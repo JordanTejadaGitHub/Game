@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="EnemyData" load_steps=3 format=3 uid="uid://q167fnda8ab7"]
+
+[ext_resource type="Script" path="res://resource/enemy/script/enemy_data.gd" id="1_fbja3"]
+[ext_resource type="SpriteFrames" uid="uid://beaeiuffeeboy" path="res://animation/enemy/leaf_bug.tres" id="2_jud3g"]
+
+[resource]
+script = ExtResource("1_fbja3")
+health = 100
+speed = 100.0
+sprite_frames = ExtResource("2_jud3g")
