@@ -7,7 +7,7 @@
 [resource]
 script = ExtResource("1_edata")
 sprite_frames = ExtResource("2_frames")
-display_name = "Mother Spider"
+display_name = "Widow"
 health = 220
 speed = 75.0
 dew_reward = 6

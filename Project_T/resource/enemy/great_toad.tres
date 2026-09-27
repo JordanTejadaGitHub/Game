@@ -14,5 +14,5 @@ leaf_cost = 5
 sprite_scale = 2.2
 speed = 38.4
 trait_kind = 4
-display_name = "Great Toad"
-cleanse_line = "The Great Toad sings, and the Deep Wood listens."
+display_name = "The Mire Hag"
+cleanse_line = "The Mire Hag is gone. The Deep Wood is quiet, for now."

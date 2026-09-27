@@ -6,7 +6,7 @@
 [resource]
 script = ExtResource("1_edata")
 sprite_frames = ExtResource("2_frames")
-display_name = "Puffcaplet"
+display_name = "Sob"
 health = 30
 speed = 128.0
 dew_reward = 1

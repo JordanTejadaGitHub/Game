@@ -5,7 +5,7 @@
 [resource]
 script = ExtResource("1_edata")
 sprite_frames = ExtResource("2_frames")
-display_name = "Hedgehog"
+display_name = "Night Hound"
 health = 200
 speed = 76.8
 dew_reward = 6

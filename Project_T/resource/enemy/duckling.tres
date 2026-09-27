@@ -6,7 +6,7 @@
 [resource]
 script = ExtResource("1_edata")
 sprite_frames = ExtResource("2_frames")
-display_name = "Duckling"
+display_name = "Wraith"
 leaf_cost = 1
 speed = 70.4
 sprite_scale = 0.75

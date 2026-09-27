@@ -5,7 +5,7 @@
 [resource]
 script = ExtResource("1_edata")
 sprite_frames = ExtResource("2_frames")
-display_name = "Dandelion Seed"
+display_name = "Phantom"
 health = 60
 speed = 64.0
 dew_reward = 3

@@ -6,7 +6,7 @@
 [resource]
 script = ExtResource("1_edata")
 sprite_frames = ExtResource("2_frames")
-display_name = "Bark Beetle"
+display_name = "Husk"
 health = 300
 speed = 57.6
 dew_reward = 8

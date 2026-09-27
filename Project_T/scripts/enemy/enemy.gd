@@ -2,12 +2,13 @@ extends Node2D
 
 # Emitted when the enemy walks off the end of its path (reaches the goal), right before it's freed.
 signal reached_goal(enemy: Node2D)
-# Emitted when health hits 0. The enemy stops being a target and plays its cleanse effect.
+# Emitted when health hits 0 (the nightmare is dispelled). It stops being a target and plays its
+# dispel effect.
 signal cleansed(enemy: Node2D)
-# TRAMPLE (Old Stag): wants to knock down a Thornwall next to it. The spawner calls
+# TRAMPLE (The Hollow Stag): wants to knock down a Thornwall next to it. The spawner calls
 # `trampled()` back if it did.
 signal trample_requested(enemy: Node2D)
-# LEAP (Great Toad) landed at its new position.
+# LEAP (The Mire Hag) rose at her new position.
 signal leaped(enemy: Node2D)
 
 # Deeply Blighted elites (acts_1_2.md): ×3 health, ×3 Dew, 2 leaves, 20% bigger and darker.
@@ -16,14 +17,19 @@ const ELITE_DEW := 3
 const ELITE_LEAVES := 2
 const ELITE_SCALE := 1.2
 const ELITE_DARKEN := 0.35
-const LEAP_TIME := 0.45  # Seconds in the air
+const LEAP_TIME := 0.45  # Seconds to sink, move under the mire and rise again
 
-# Group of enemies that are still blighted (walking, targetable). Cleansed enemies leave it.
+# Group of nightmares that are still walking and targetable. Dispelled ones leave it.
 const GROUP := "enemies"
 const BLIGHT_SHADER := preload("res://shaders/blight.gdshader")
 const HEALTH_BAR_SIZE := Vector2(40, 5)
 const HEALTH_BAR_OFFSET := Vector2(0, -38)  # Bar centre, relative to the enemy's origin
-const CLEANSE_TIME := 0.8
+# Dispel: shriek, crack with light, burst, then the motes drift up (about 1.2 s in all).
+const SHRIEK_TIME := 0.12
+const CRACK_TIME := 0.25
+const BURST_TIME := 0.12
+const MOTE_LIFETIME := 0.7
+const MOTE_COLOR := Color(1.0, 0.92, 0.62)
 
 @export var enemy_data: EnemyData
 @onready var sprite: AnimatedSprite2D = $AnimatedSprite2D
@@ -57,9 +63,9 @@ var _coat_per_hit := 0.0
 var modifiers := {}
 
 var elite := false  # Deeply Blighted (set before adding to the tree)
-var hold_time := 0.0  # Seconds to stand still before setting off (Ducklings in single file)
-var rolling := false  # Hedgehog curled up
-var lost := false  # Duckling whose Mother Duck was cleansed first
+var hold_time := 0.0  # Seconds to stand still before setting off (Wraiths in single file)
+var rolling := false  # Night Hound sprinting down a straight
+var lost := false  # Wraith whose Lantern Bearer was dispelled first
 var _straight_steps := 0
 var _last_step := Vector2.ZERO
 var _trait_timer := 0.0
@@ -67,6 +73,7 @@ var _trampled := 0
 var _startled := false
 var _charge_left := 0.0
 var _leaping := false
+var _leap_tween: Tween
 
 # Cells to walk through, in grid coordinates. `_path_index` is the cell we're currently walking toward.
 var _path: PackedVector2Array
@@ -93,7 +100,7 @@ func _ready() -> void:
 	sprite.modulate = enemy_data.tint.darkened(ELITE_DARKEN) if elite else enemy_data.tint
 	sprite.play("walk_side")
 
-	# Blighted look: per-enemy material so each one can be cleansed on its own
+	# Nightmare look: per-enemy material so each one can crack apart on its own
 	var blight_material := ShaderMaterial.new()
 	blight_material.shader = BLIGHT_SHADER
 	sprite.material = blight_material
@@ -202,18 +209,18 @@ func update_animation(velocity: Vector2) -> void:
 		sprite.play("walk_up")
 		sprite.flip_h = false
 
-# Dew for cleansing this creature (Omens can change it, e.g. Dry Spell = 0).
+# Dew for dispelling this nightmare (Omens can change it, e.g. Dry Spell = 0).
 func get_dew_reward() -> int:
 	return roundi(enemy_data.dew_reward * modifiers.get("dew", 1.0)) * (ELITE_DEW if elite else 1)
 
-# Leaves lost when this creature reaches the Heartwood (Deeply Blighted cost at least 2).
+# Leaves lost when this nightmare reaches the Heartwood (Deeply Blighted cost at least 2).
 func get_leaf_cost() -> int:
 	return maxi(enemy_data.leaf_cost, ELITE_LEAVES) if elite else enemy_data.leaf_cost
 
 func is_flying() -> bool:
 	return enemy_data.trait_kind == EnemyData.Trait.FLYING
 
-# Pixels per second right now: base speed, rolling / lost / startled, then slows.
+# Pixels per second right now: base speed, sprinting / lost / charging, then slows.
 func get_move_speed() -> float:
 	var base := speed
 	if rolling:
@@ -224,7 +231,7 @@ func get_move_speed() -> float:
 		base *= enemy_data.charge_speed_multiplier
 	return base * statuses.get_speed_multiplier()
 
-# A Duckling whose Mother Duck was cleansed first wanders on, slowly.
+# A Wraith whose Lantern Bearer was dispelled first loses the way and slows down.
 func set_lost() -> void:
 	if not is_cleansed:
 		lost = true
@@ -265,17 +272,26 @@ func _on_cell_reached() -> void:
 	var next_same := _path_index < _path.size() and _path[_path_index] - _path[_path_index - 1] == step
 	rolling = _straight_steps >= enemy_data.roll_after_tiles and next_same
 
-# Great Toad: hops `leap_tiles` ahead along its path, then makes creatures near the landing Damp.
+# Mire Hag: sinks into the mire and rises `leap_tiles` ahead along her path, then makes nightmares
+# near where she rose Damp.
 func _leap() -> void:
 	if _path_index >= _path.size():
 		return
 	var landing_index := mini(_path_index + enemy_data.leap_tiles - 1, _path.size() - 1)
 	var landing := grid.calculate_map_position(_path[landing_index])
 	_leaping = true
+	var base_scale := sprite.scale
+	var sunk_scale := Vector2(base_scale.x * 1.3, base_scale.y * 0.1)
 	var tween := create_tween()
-	tween.tween_property(self, "position", landing, LEAP_TIME).set_trans(Tween.TRANS_SINE)
-	tween.parallel().tween_property(sprite, "position:y", -28.0, LEAP_TIME / 2).set_ease(Tween.EASE_OUT)
-	tween.parallel().tween_property(sprite, "position:y", 0.0, LEAP_TIME / 2).set_delay(LEAP_TIME / 2).set_ease(Tween.EASE_IN)
+	_leap_tween = tween
+	# Sink: squashes flat into the ground and fades; moves while under; rises the same way back up.
+	tween.tween_property(sprite, "scale", sunk_scale, LEAP_TIME * 0.4).set_ease(Tween.EASE_IN)
+	tween.parallel().tween_property(sprite, "position:y", 10.0, LEAP_TIME * 0.4).set_ease(Tween.EASE_IN)
+	tween.parallel().tween_property(sprite, "modulate:a", 0.0, LEAP_TIME * 0.4)
+	tween.tween_property(self, "position", landing, LEAP_TIME * 0.2)
+	tween.tween_property(sprite, "scale", base_scale, LEAP_TIME * 0.4).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_BACK)
+	tween.parallel().tween_property(sprite, "position:y", 0.0, LEAP_TIME * 0.4).set_ease(Tween.EASE_OUT)
+	tween.parallel().tween_property(sprite, "modulate:a", 1.0, LEAP_TIME * 0.4)
 	tween.tween_callback(func() -> void:
 		_leaping = false
 		_path_index = landing_index + 1
@@ -315,7 +331,7 @@ func take_damage(amount: float, line: String = "", is_area: bool = false) -> voi
 	if health == 0:
 		_cleanse()
 	elif enemy_data.trait_kind == EnemyData.Trait.TRAMPLE and not _startled and health <= max_health / 2:
-		_startled = true  # Old Stag panics and charges
+		_startled = true  # The Hollow Stag's antlers flare and it charges
 		_charge_left = enemy_data.charge_time
 
 # Applies a status from a Warden (`potency` = its soothe, see EnemyStatuses). A Static charge that
@@ -334,24 +350,67 @@ func _mark_hit(kind: int) -> void:
 	_hit_mark = kind
 	_hit_mark_time = HIT_MARK_TIME
 
-# Colour returns, the creature hops happily and fades out. It no longer blocks building or re-routes.
+# Dispelled (story.md): a short shriek, the shape cracks with light, then bursts into motes that
+# drift up (the Dew popup rises with them). It no longer blocks building or re-routes. Code keeps
+# the old "cleanse" names; players only ever see "dispel".
 func _cleanse() -> void:
 	is_cleansed = true
 	remove_from_group(GROUP)
 	cleansed.emit(self)
 	queue_redraw()
 
+	if _leap_tween:
+		_leap_tween.kill()  # Dispelled mid-sink: surface right here to crack apart
+		sprite.modulate.a = 1.0
+		sprite.position.y = 0.0
+	var base_scale := Vector2.ONE * enemy_data.sprite_scale * (ELITE_SCALE if elite else 1.0)
+	sprite.scale = base_scale
+	_shriek()
 	var tween := create_tween()
-	tween.tween_method(_set_blight, 1.0, 0.0, CLEANSE_TIME * 0.4)
-	tween.parallel().tween_property(sprite, "scale", Vector2(1.25, 1.25), CLEANSE_TIME * 0.2)
-	tween.tween_property(sprite, "scale", Vector2.ONE, CLEANSE_TIME * 0.2)
-	tween.tween_property(sprite, "position:y", -24.0, CLEANSE_TIME * 0.6)
-	tween.parallel().tween_property(self, "modulate:a", 0.0, CLEANSE_TIME * 0.6)
+	tween.tween_interval(SHRIEK_TIME)
+	tween.tween_method(_set_crack, 0.0, 1.0, CRACK_TIME).set_ease(Tween.EASE_IN)
+	tween.parallel().tween_property(sprite, "scale", base_scale * 1.12, CRACK_TIME)
+	tween.tween_callback(_burst_into_motes)
+	tween.tween_property(sprite, "scale", base_scale * 1.35, BURST_TIME).set_ease(Tween.EASE_OUT)
+	tween.parallel().tween_property(sprite, "modulate:a", 0.0, BURST_TIME)
+	tween.tween_interval(MOTE_LIFETIME)
 	tween.tween_callback(queue_free)
 
-# 1 = fully blighted (grey), 0 = cleansed (full colour).
-func _set_blight(amount: float) -> void:
-	(sprite.material as ShaderMaterial).set_shader_parameter("blight", amount)
+# Hook for the dispel shriek / hiss sound (none yet). Visually: a quick, violent shudder.
+func _shriek() -> void:
+	var tween := create_tween()
+	for i in 4:
+		tween.tween_property(sprite, "position:x", 2.5 if i % 2 == 0 else -2.5, SHRIEK_TIME / 5)
+	tween.tween_property(sprite, "position:x", 0.0, SHRIEK_TIME / 5)
+
+# The motes of light a dispelled nightmare breaks into. Bigger nightmares make more.
+func _burst_into_motes() -> void:
+	var motes := CPUParticles2D.new()
+	motes.one_shot = true
+	motes.explosiveness = 0.9
+	motes.amount = roundi(14 * maxf(sprite.scale.x, 1.0))
+	motes.lifetime = MOTE_LIFETIME
+	motes.emission_shape = CPUParticles2D.EMISSION_SHAPE_SPHERE
+	motes.emission_sphere_radius = 12.0 * sprite.scale.x
+	motes.direction = Vector2.UP
+	motes.spread = 180.0
+	motes.initial_velocity_min = 30.0
+	motes.initial_velocity_max = 75.0
+	motes.gravity = Vector2(0, -70)  # Motes drift up
+	motes.damping_min = 40.0
+	motes.damping_max = 60.0
+	motes.scale_amount_min = 2.0
+	motes.scale_amount_max = 3.5
+	var fade := Gradient.new()
+	fade.set_color(0, MOTE_COLOR)
+	fade.set_color(1, Color(MOTE_COLOR, 0.0))
+	motes.color_ramp = fade
+	add_child(motes)
+	motes.emitting = true
+
+# 0 = whole, 1 = cracked through with light (see shaders/blight.gdshader).
+func _set_crack(amount: float) -> void:
+	(sprite.material as ShaderMaterial).set_shader_parameter("crack", amount)
 
 
 # Sets the cells to walk through (grid coordinates). The enemy heads to points[0] first.

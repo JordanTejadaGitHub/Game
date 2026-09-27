@@ -7,7 +7,7 @@
 [resource]
 script = ExtResource("1_edata")
 sprite_frames = ExtResource("2_frames")
-display_name = "Puffcap"
+display_name = "Mourner"
 health = 150
 speed = 76.8
 dew_reward = 4

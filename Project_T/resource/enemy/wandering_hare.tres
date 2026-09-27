@@ -5,7 +5,7 @@
 [resource]
 script = ExtResource("1_edata")
 sprite_frames = ExtResource("2_frames")
-display_name = "Wandering Hare"
+display_name = "Sleepwalker"
 health = 110
 speed = 110.0
 dew_reward = 4
