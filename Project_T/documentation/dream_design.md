@@ -200,6 +200,50 @@ branch, Rare final); only the extra cards are listed here.
 *(Chain Bloom's rule hook, `rule_id = "chain_bloom"`, is already in the code since the Puffball pop,
 commit 56634f8.)*
 
+## Cards from the family review (2026-09-27)
+
+Cards for Bellflower (new family), Cairn, Hummingbird Bower and Samara (`tower_design.md`). Per
+the Grove rules, family-specific cards come with their family or hidden-branch node.
+
+**Bellflower (song and sleep)**
+
+| # | Card | Rarity | Effect | Tags | Needs | Pool |
+|---|---|---|---|---|---|---|
+| 84 | **Hush** | Common | Bellflower-line pulses +15% radius (stacks, max +45%) | song, sleep | Bellflower | family |
+| 85 | **Heavy Eyelids** | Uncommon | Drowsy cap +2 for all nightmares (bosses +1) | song, sleep | any Drowsy Warden | family |
+| 86 | **Bad Dreams** | Uncommon | Caught nightmares also take 1 Drowsy per second, so they stay Caught | song, sleep | Dreamcatcher | family |
+| 87 | **Encore** | Rare, **Entwined** (Echo Hollow + any Reaction card) | an echo can echo once more, at half strength | song, reaction | — | hidden node |
+
+**Pebbling (Cairn)**
+
+| # | Card | Rarity | Effect | Tags | Needs | Pool |
+|---|---|---|---|---|---|---|
+| 88 | **Loose Stones** | Uncommon | Cairn and Rockslide stones break into 3 on landing: 35% each onto random tiles within 1.5 cells | stone | Cairn | hidden node |
+
+**On-hit (Hummingbird Bower; also helps Wren's Nest, Samara and any Warden that hits often)**
+
+| # | Card | Rarity | Effect | Tags | Needs | Pool |
+|---|---|---|---|---|---|---|
+| 89 | **Sharp Beaks** | Common | multi-hit Wardens (Hummingbird, Wren's Nest) +1 hit per attack (stacks, max +3) | wing, on-hit | Hummingbird Bower or Wren's Nest | hidden node |
+| 90 | **Needle Point** | Uncommon | multi-hit Wardens' hits **ignore dread shell** reduction | wing, on-hit | Hummingbird Bower | hidden node |
+| 91 | **Charged Feathers** | Rare, **Entwined** (Hummingbird Bower + Firefly Jar) | each peck applies **1 Static** | wing, storm, on-hit | — | hidden node |
+| 92 | **Pollen Beaks** | Rare, **Entwined** (Hummingbird Bower + Sporeling) | each peck applies **1 Spored** | wing, spore, on-hit | — | hidden node |
+| 93 | **Thousand Cuts** | Legendary | every hit on the same nightmare within 2 s gives **all Wardens** +2% damage against it (max +60%) | on-hit | Hummingbird Bower | hidden node |
+
+**Boomerang (Samara)**
+
+| # | Card | Rarity | Effect | Tags | Needs | Pool |
+|---|---|---|---|---|---|---|
+| 94 | **Longer Flight** | Common | Samara line +1 cell (stacks, max +3) | wind, maze | Samara | hidden node |
+| 95 | **Backspin** | Uncommon | the **return pass** gets +25% crit chance | wind, crit | Samara | hidden node |
+| 96 | **Ricochet** | Uncommon | at the end of its line the seed **turns 90° once** toward the nearest nightmare before returning (rewards L-shaped corners) | wind, maze | Samara | hidden node |
+| 97 | **Heavy Seed** | Uncommon | each pass knocks nightmares back 0.25 tiles (once per throw) | wind | Samara | hidden node |
+| 98 | **Windborne Rain** | Rare, **Entwined** (Samara + Rain Lily) | every pass applies **Damp**, so the line becomes a Thunderclap corridor | wind, water, reaction | — | hidden node |
+| 99 | **Seed Storm** | Legendary | every 5th throw bursts into **5 seeds in a fan** | wind | Samara | hidden node |
+
+Deepened: **Heavy Eyelids II** cap +3 (bosses +1); **Ricochet II** turns twice; **Bad Dreams II**
+2 Drowsy per second.
+
 ## Clearing cards: removing obstacles
 
 Added 2026-09-27. Obstacles (Withered Trees, Mossy Boulders, later Blight Patches) are the dream's

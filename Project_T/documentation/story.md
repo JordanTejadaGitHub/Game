@@ -100,7 +100,8 @@ their light, sparks, rain and song are what the nightmares fear. The Sporeling (
 its mossy slab) is the mascot.
 
 The Heartwood's families: **Sporeling** (spores), **Pebbling** (stone), **Dewdrop** (water),
-**Firefly Jar** (light), **Rootling** (roots), **Acorn** (support), and in the full game **Nestling**
+**Firefly Jar** (light), **Rootling** (roots), **Bellflower** (bell-flower spirits that sing
+nightmares to sleep and catch them in dreamcatchers), **Acorn** (support), and in the full game **Nestling**
 (birds that swoop out and back) and **Whirligig** (maple-seed spinners that carry other Wardens'
 magic further). Each has hidden branches the Heartwood only remembers later (Grove unlocks, e.g.
 Sunpetal, Fairy Ring, Frostfern). **Thornwall** hedges can grow into Brambles or **Honeysuckle**,

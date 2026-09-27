@@ -8,7 +8,7 @@ adjacency, corners, wall count. That's what no other tower defense roguelite can
 ## Evolution tree
 
 Every run starts with only the **Sprout** (plus Thornwall). Sprouts grow into the base Wardens
-(6 families, 8 in the full game),
+(7 families, 9 in the full game),
 bases grow into branches, branches into final forms. **Base families come from family picks**
 (after drift 1 and from the bosses at 25, 50, 75; 4 per run, see `run_design.md`); branches and
 final forms come from Dreams.
@@ -16,27 +16,61 @@ final forms come from Dreams.
 ```
 								SPROUT (weak spore puffs)
    ┌────────────┬────────────┬──────┴─────┬────────────┬────────────┐
-Sporeling    Pebbling     Dewdrop     Firefly Jar   Rootling      Acorn        ← family picks
+Sporeling  Dewdrop  Firefly Jar  Pebbling  Rootling  Bellflower  Acorn  (+ Nestling, Whirligig)  ← family picks
  (2 branches each, then a final form per branch — see table)                   ← Dew / Rare Dreams
 ```
 
-| Base | Identity | Branch A → final | Branch B → final | Hidden branch → final |
-|---|---|---|---|---|
-| **Sporeling** | damage over time | Driftspore → Puffball | Bloomcap → Dreamshroom | Fairy Ring → Elf Circle |
-| **Pebbling** | heavy hits | Mossback → Boulderback | Chime Stone → Lullaby Bell | Standing Stone → Moonstone |
-| **Dewdrop** | water, splash | Rain Lily → Monsoon | Mistveil → Morning Fog | Frostfern → Hoarfrost |
-| **Firefly Jar** | light and spark | Stormcap → Thunderhead | Lanternmoth → Beacon | Sunpetal → Midsummer |
-| **Rootling** | crowd control | Rootcurl → Long Way Home | Tangleroot → Snugroot | Rootlight → Starcave |
-| **Acorn** | support, economy | Elder Stump → Grove Heart | Dewcatcher → Wellspring | Graftling → Grafted Elder |
-| **Nestling** *(full game)* | birds: mobile, fast | Wren's Nest → Starling Murmuration | Magpie Perch → Magpie's Hoard | — |
-| **Whirligig** *(full game)* | wind: spreads statuses | Gust → Zephyr | Pinwheel → Windmill | — |
+| Base | Role | Owns | Branch A → final | Branch B → final | Hidden (late) → final |
+|---|---|---|---|---|---|
+| **Sporeling** | damage over time | Spored | Driftspore → Puffball | Bloomcap → Dreamshroom | Fairy Ring → Elf Circle |
+| **Dewdrop** | water: splash, fog, ice | Damp | Rain Lily → Monsoon | Mistveil → Morning Fog | Frostfern → Hoarfrost |
+| **Firefly Jar** | light: lightning, marking, beams | Static, Marked | Stormcap → Thunderhead | Lanternmoth → Beacon | Sunpetal → Midsummer |
+| **Pebbling** | heavy hits | — (payoff family) | Mossback → Boulderback | Standing Stone → Moonstone | Cairn → Rockslide |
+| **Rootling** | crowd control | Held | Rootcurl → Long Way Home | Tangleroot → Snugroot | Rootlight → Starcave |
+| **Bellflower** | song and sleep | Drowsy | Chime Stone → Lullaby Bell | Dreamcatcher → Great Dreamcatcher | Echo Hollow → Whispering Hollow |
+| **Acorn** | support, economy | — | Elder Stump → Grove Heart | Dewcatcher → Wellspring | Graftling → Grafted Elder |
+| **Nestling** *(full game)* | birds: fast hunters | — | Wren's Nest → Starling Murmuration | Magpie Perch → Magpie's Hoard | Hummingbird Bower → Jewelwing Court |
+| **Whirligig** *(full game)* | wind: spreads statuses | copies | Gust → Zephyr | Pinwheel → Windmill | Samara → Autumn Gale |
 
-- **Hidden branches** are Memory Grove unlocks (Sunpetal from a milestone). Once unlocked they join
-  the Dream pool like any branch. Each one opens a *different playstyle* for its family, not a
-  stronger version of an existing branch.
+- **Hidden branches** are late Memory Grove unlocks (Sunpetal from a milestone). Once unlocked,
+  they can be chosen with Dreamlight like any branch.
 - **Nestling and Whirligig** are Grove unlocks for the full game (not in the demo). A run still
   gets **4 families**; more families means more variety between runs.
 - **Memory Wardens** (below) are unique Wardens freed from the act bosses.
+
+### Family design rules (reviewed 2026-09-27)
+
+Every family was checked against these rules. Changes from the review are listed after them.
+
+1. **One role per family, in one sentence.** A player should be able to say "Pebbling hits hard"
+   or "Bellflower puts them to sleep" after one run.
+2. **Each family owns at most one or two statuses** (applies them best), and every status has an
+   owner: Spored (Sporeling), Damp (Dewdrop), Static and Marked (Firefly Jar), Held (Rootling),
+   Drowsy (Bellflower). Other families may touch a status in one branch, which creates combos inside
+   a family (e.g. Bloomcap's sleepy spores).
+3. **Branches are different playstyles, not bigger numbers.** Branch A is usually the family's
+   plain version; branch B bends it in another direction.
+4. **Hidden branches are late unlocks for experienced players.** They're often **combo engines**
+   (Fairy Ring traps, Frostfern freezes, Echo Hollow repeats Reactions, Hummingbird multi-hits,
+   Samara carries statuses) or an unusual shape (Cairn mortar, Graftling copies).
+5. **A final form is its branch's idea, bigger**, plus one signature moment. It never changes what
+   the branch does.
+6. **Every family has an answer to at least one nightmare trait** (Lurkers: Lanternmoth, Rootlight;
+   Phantoms: snipers, Wren's Nest; Shellbound: Pebbling; swarms: area Wardens), so no family is a
+   dead pick against a given drift.
+
+**Changes from the review:**
+- **New family: Bellflower (song and sleep).** Nobody owned Drowsy, even though sleep is the heart
+  of a game about dreams, and the story says Wardens *sing* nightmares away. Chime Stone and Lullaby
+  Bell move here from Pebbling (they were a sleep/song branch inside the heavy-hit family). New:
+  Bellflower, Dreamcatcher, Great Dreamcatcher, Echo Hollow, Whispering Hollow.
+- **Pebbling is now only heavy hits:** Mossback (close), **Standing Stone (sniper), moved from
+  hidden to branch B** to fill Chime Stone's slot, and a new hidden **Cairn → Rockslide**
+  (mortar: lobbed area shots over the maze). Close, far and area: three kinds of heavy.
+- **Starling Murmuration** now hunts the **3 fastest** nightmares instead of sweeping straights.
+  It matches Wren's Nest (its branch) and leaves straight corridors to Samara.
+- **Nestling and Whirligig get hidden branches:** Hummingbird Bower (multi-hit) and Samara
+  (boomerang), both late unlocks.
 
 ## Every Warden
 
@@ -57,17 +91,18 @@ where one Warden's *applies* matches another's *loves*. Numbers are starting poi
 | Hidden | Fairy Ring | **trap tower**: plants mushroom rings on path tiles in range; a nightmare stepping on one sets off a spore burst | Spored | chokepoints, long paths |
 | Hidden+ | Elf Circle | more rings, and they stay until stepped on | Spored | chokepoints |
 
-**Pebbling line**
+**Pebbling line**: heavy hits in three shapes: close (Mossback), far (Standing Stone), area (Cairn). Applies nothing;
+it's the family that **cashes in** Marked, Held and Drowsy, and the answer to the Shellbound.
 
 | Tier | Warden | Does | Applies | Loves |
 |---|---|---|---|---|
 | Base | Pebbling | slow, heavy pebble | — | Marked |
 | A | Mossback | huge single hit, short range; double damage vs Marked | — | Marked, Drowsy |
 | A+ | Boulderback | hit splashes to nearby tiles; guaranteed crit on Drowsy | — | Marked, Drowsy |
-| B | Chime Stone | weak pulse hitting everything around it; pulses set off Static | Static ×1 | Static, Held |
-| B+ | Lullaby Bell | bigger pulse that also applies Drowsy | Drowsy | Static, Held |
-| Hidden | Standing Stone | **sniper**: range 8, one slow heavy shot; more damage the further the target; can't hit nightmares right beside it (minimum range 2) | — | distance, Marked, Held |
-| Hidden+ | Moonstone | range 10; its **first hit on each nightmare is always a crit** | — | distance, Marked, Held |
+| B | Standing Stone | **sniper**: range 8, one slow heavy shot; more damage the further the target; can't hit nightmares right beside it (minimum range 2) | — | distance, Marked, Held |
+| B+ | Moonstone | range 10; its **first hit on each nightmare is always a crit** | — | distance, Marked, Held |
+| Hidden | Cairn | **mortar**: a stack of stones that lobs its top stone over the maze onto a tile up to 6 cells away, splashing everything there | — | crowds, chokepoints, Held |
+| Hidden+ | Rockslide | bigger splash; leaves **rubble** on the path that slows for 3 s | — | crowds, chokepoints, Held |
 
 **Dewdrop line**
 
@@ -105,6 +140,19 @@ where one Warden's *applies* matches another's *loves*. Numbers are starting poi
 | Hidden | Rootlight | glowing roots light up path tiles in range: **reveals Lurkers**, **Gravecrawlers can't burrow** there, nightmares on lit tiles are Marked | Marked | long paths |
 | Hidden+ | Starcave | bigger lit area; Marked from it lingers 2 s after leaving the light | Marked | long paths |
 
+**Bellflower line**: song and sleep. Bell-flower spirits that ring, hum and sing nightmares to
+sleep, then make sleep dangerous. Owns **Drowsy**.
+
+| Tier | Warden | Does | Applies | Loves |
+|---|---|---|---|---|
+| Base | Bellflower | a soft ringing pulse around it; every 2nd pulse adds Drowsy | Drowsy | chokepoints |
+| A | Chime Stone | weak pulse hitting everything around it; pulses set off Static | Static ×1 | Static, Held |
+| A+ | Lullaby Bell | bigger pulse that also applies Drowsy | Drowsy | Static, Held |
+| B | Dreamcatcher | hangs a dreamcatcher over the path: **sleeping or max-Drowsy nightmares in range are Caught** and take +40% damage from everything | — | Drowsy, sleep |
+| B+ | Great Dreamcatcher | +60%; sleep in its range lasts 1 s longer; Caught nightmares that are dispelled drop **Dreamlight shards** | — | Drowsy, sleep |
+| Hidden | Echo Hollow | a hollow log that **echoes Reactions**: a Reaction nearby repeats 1 s later at 50% | — | Reactions |
+| Hidden+ | Whispering Hollow | 75%, bigger radius; **echoes count as chain links** | — | Reactions, chains |
+
 **Acorn line**
 
 | Tier | Warden | Does | Applies | Loves |
@@ -124,9 +172,15 @@ wall-ignoring nightmares.
 |---|---|---|---|---|
 | Base | Nestling | a bird swoops at a nightmare and returns | — | fast nightmares |
 | A | Wren's Nest | quick wrens hunt the **fastest** nightmare in range; bonus vs Phantoms and sprinting Night Hounds | — | fast, gliding |
-| A+ | Starling Murmuration | a flock sweeps a stretch of path, hitting everything on it | — | long straights |
+| A+ | Starling Murmuration | a flock of starlings hunts the **3 fastest** nightmares in range at once | — | fast, gliding |
 | B | Magpie Perch | nightmares it hits drop +1 Dew when dispelled | — | economy |
 | B+ | Magpie's Hoard | **each crit it lands gives +1 Dew** (capped per drift) | — | crits |
+| Hidden | Hummingbird Bower | **multi-hit**: a hummingbird pecks one nightmare **6 times in 1 s**, then returns. Every peck is a full hit (crit roll, Marked, on-hit effects) | — | crits, Marked, on-hit cards |
+| Hidden+ | Jewelwing Court | 3 hummingbirds, 8 pecks each; **Flurry**: every 6th peck is a guaranteed crit | — | crits, Marked, on-hit cards |
+
+Hummingbirds are weak against the Shellbound's dread shell (small pecks bounce off) and the Whisper
+Swarm (single-target), and one peck uses up Pinned's ×3 crit. The *Needle Point* card fixes the
+first.
 
 **Whirligig line** *(full game)*: maple-seed spinners. An **amplifier** with no status of its own;
 it makes every other family's statuses go further.
@@ -138,6 +192,11 @@ it makes every other family's statuses go further.
 | A+ | Zephyr | spreads to up to 5 | copied | any status |
 | B | Pinwheel | spinning blades hit every path tile next to it; stronger the more path tiles it touches | — | corners, hairpin bends |
 | B+ | Windmill | bigger, faster blades | — | hairpin bends |
+| Hidden | Samara | **boomerang**: throws a spinning maple seed in a **straight line** (4 cells) that passes through everything and **flies back**, hitting each nightmare twice. It **carries the statuses** of the first nightmare it hits down the whole line and back. Can't throw again until it catches the seed | copied | **straight corridors**, slows |
+| Hidden+ | Autumn Gale | **2 seeds** along the two lines with the most nightmares (5 cells); **catch rhythm**: each catch +10% damage on the next throw (max +50%, resets on a miss) | copied | straight corridors, attack speed |
+
+Samara is the Warden that wants **straights**, which is where Night Hounds sprint. Building for it
+means answering Hounds on the throwing line (Tangleroot, Honeysuckle).
 
 **Thornwall**: cheap plain wall, no attack, always available. Two growths:
 - **Bramble**: damages nightmares walking next to it; loves long walls and Held nightmares. Lets
@@ -181,11 +240,11 @@ set small. (Nightmares that resist or exploit these: see `enemy_design.md`.)
 | Effect | What it does | Applied by | Paid off by | Why it works |
 |---|---|---|---|---|
 | **Damp** | slight slow | Dewdrop line | Stormcap, Thunderhead | lightning jumps further and more often |
-| **Drowsy** | strong slow, stacks to a cap | Bloomcap, Lullaby Bell, Morning Fog | Mossback, Boulderback, Dreamshroom, Sunpetal | crits, full sleep, faster beam ramp |
+| **Drowsy** | strong slow, stacks to a cap | **Bellflower line**; also Bloomcap, Morning Fog, Honeysuckle | Mossback, Boulderback, Dreamshroom, Dreamcatcher, Sunpetal | crits, full sleep, Caught, faster beam ramp |
 | **Spored** | damage over time, stacks | Sporeling, Driftspore, Fairy Ring | Puffball, Mistveil, Rootcurl, Long Way Home | bursts, harder ticks; pulled nightmares walk the spores again |
 | **Marked** | takes extra damage | Lanternmoth, Beacon, Rootlight, Moon Moth | Mossback, Boulderback, Standing Stone | double damage on Marked |
 | **Static** | builds charge; at 5 stacks, a free bolt | Firefly Jar, Stormcap, Chime Stone | Chime Stone, Lullaby Bell | pulses set off Static bolts |
-| **Held** | can't move for a moment | Tangleroot, Snugroot, Frostfern (freeze) | Bloomcap, Mistveil, Chime Stone, Bramble, Sunpetal, Hoarfrost, Standing Stone | held nightmares sit inside area effects and are easy targets |
+| **Held** | can't move for a moment | Tangleroot, Snugroot, Frostfern (freeze) | Bloomcap, Mistveil, Chime Stone, Bramble, Sunpetal, Hoarfrost, Standing Stone, Cairn | held nightmares sit inside area effects and are easy targets |
 
 Towers also interact **through placement** and **through Dreams** (rule changes that link lines).
 
@@ -212,7 +271,7 @@ Numbers, cooldowns and boss rules: `dream_design.md` ("Reaction numbers").
 
 **Which families make which Reactions** (a quick guide for family picks and Dream design):
 
-| | Damp (Dewdrop) | Static (Firefly Jar, Chime Stone) | Spored (Sporeling) | Marked (Lanternmoth, Rootlight) | Held (Rootling, Frostfern) | Drowsy (Bloomcap, Lullaby Bell) |
+| | Damp (Dewdrop) | Static (Firefly Jar, Chime Stone) | Spored (Sporeling) | Marked (Lanternmoth, Rootlight) | Held (Rootling, Frostfern) | Drowsy (Bellflower, Bloomcap) |
 |---|---|---|---|---|---|---|
 | **Damp** | | Thunderclap | Mushrooming | | Shatter | Drown |
 | **Static** | | | Ignite | Lightning Rod | | |
@@ -220,7 +279,9 @@ Numbers, cooldowns and boss rules: `dream_design.md` ("Reaction numbers").
 | **Marked** | | | | | Pinned | Pinned |
 
 Damp is the most-connected status on purpose: Dewdrop is the "combo family" that makes other
-families react. Whirligig's Gust spreads statuses, so it sets up Reactions across a whole group.
+families react. Whirligig's Gust spreads statuses, so it sets up Reactions across a whole group,
+and Samara carries them down a whole corridor. Bellflower's Echo Hollow repeats Reactions, and
+Hummingbird's pecks apply on-hit statuses six times per attack, so both families feed chains.
 
 ### Chains
 
@@ -292,8 +353,11 @@ simple.
 - **Wall count:** Bramble builds want lots of cheap Thornwalls.
 - **Distance:** Standing Stone and Moonstone want to be *far* from the path, deep in dead space inside
   the maze that no other Warden wants.
-- **Straights vs bends:** Starling Murmuration wants long straight stretches; Pinwheel and Windmill
-  want hairpin bends wrapped around them. Everything else mostly wants bends.
+- **Straights vs bends:** Samara and Autumn Gale want long straight corridors to throw down (where
+  Night Hounds sprint); Pinwheel and Windmill want hairpin bends wrapped around them. Everything
+  else mostly wants bends.
+- **Over the maze:** Cairn and Rockslide lob over walls, so they can sit anywhere and hit the
+  densest bend, like snipers but for crowds.
 - **Traps:** Fairy Ring rewards knowing exactly which tiles nightmares will step on.
 
 ## Build archetypes (targets for Dream design)
@@ -308,7 +372,11 @@ simple.
 | **Gale** | Gust/Zephyr + any status family | *Carried on the Wind* | one Warden applies it, the wind spreads it to the whole drift |
 | **Fairy Mines** | Elf Circle + Honeysuckle + Tangleroot | *Ring Dance* | slow them onto the rings, hold them there, spores go off everywhere |
 | **Hairpin Mill** | Windmill + Thornwalls + Cozy Corners | *Rootbound* | wrap tight switchbacks around each Windmill |
-| **Sleepy Hollow** | Lullaby Bell + Morning Fog + Dreamshroom (+ Sunpetal) | *Heavy Eyelids* (Drowsy cap +2) | nothing ever wakes up |
+| **Sleepy Hollow** | Lullaby Bell + Great Dreamcatcher + Dreamshroom (+ Boulderback) | *Heavy Eyelids* (Drowsy cap +2) | sing them to sleep, catch them, and every hit lands harder; Dreamlight shards on the side |
+| **Storm Corridor** | Rain Lily + Samara + Stormcap | *Windborne Rain* | the seed soaks a whole straight, then Thunderclaps chain down it |
+| **Thousand Cuts** | Jewelwing Court + Firefly Jar/Rain Lily + Beacon | *Charged Feathers*, *Thousand Cuts* | every flurry charges a wet, marked nightmare into a Thunderclap |
+| **Encore** | Whispering Hollow + any two Reaction families | *Quick Reactions* | every Reaction goes off twice; the easiest road to Dawnburst |
+| **Rockfall** | Rockslide + Snugroot + Bloomcap | *Shattering Blow* | hold a crowd in a sleepy cloud and drop stones on it |
 | **Thunder Chimes** | Stormcap + Chime Stone | *Resonance* (pulses count as lightning) | Static bolts go off constantly |
 | **Bramble Maze** | mostly Thornwalls (Bramble) + Snugroot | *Thornheart* (+damage per wall) | the maze itself is the weapon |
 | **The Grove** | Grove Heart surrounded by any Wardens | *Rootbound* | one tight fortress at a chokepoint |
@@ -328,6 +396,18 @@ Every tower must be useful alone; combos are the payoff, not a requirement.
   Spored and Static in particular; half stacks is the starting guard.
 - **Graftling copying a Memory Warden or another Graftling:** not allowed (copies attacking,
   non-unique Wardens only).
+- **Bellflower resistances:** a new `song` family id. `enemy_design.md` needs resist/weak entries
+  for it and a new tally (idea: *weak to song* for the Sleepwalker and the Weeper, *resist song*
+  for the Watcher, which never sleeps). Chime Stone and Lullaby Bell change line from `stone` to
+  `song`.
+- **Migration (for the code chats):** Chime Stone and Lullaby Bell move to Bellflower; Standing
+  Stone and Moonstone stop being hidden (`hidden = false`); Starling Murmuration's behaviour
+  changes from sweep to "hunt the 3 fastest". Art exists for all of these; new art is needed for
+  Bellflower, Dreamcatcher, Great Dreamcatcher, Echo Hollow, Whispering Hollow, Cairn, Rockslide,
+  Hummingbird Bower, Jewelwing Court, Samara and Autumn Gale.
+- **9 families, 4 per run:** reachability for a specific pair drops. The Grove unlocks families
+  gradually, so a new player sees 3, and *Early Bloom* shows all unlocked families at the first
+  pick. Re-run the Dream/family simulation once Bellflower exists.
 
 ## First playable scope
 
@@ -340,7 +420,8 @@ Art budget: final forms can reuse the branch sprite with additions (bigger, glow
 ## Data
 
 `TowerData` resources (cost, range, damage, attack speed, texture, **tags**, **attack
-behavior**: projectile / chain / beam / pulse / trap / none, `evolves_to: Array[TowerData]`,
+behavior**: projectile / chain / beam / pulse / trap / lob (Cairn) / boomerang (Samara) /
+multi-hit (Hummingbird) / catch (Dreamcatcher) / echo (Echo Hollow) / none, `evolves_to: Array[TowerData]`,
 `crit_chance: float = 0.05`, `crit_multiplier: float = 2.0`, `min_range: float = 0.0`,
 `has_target_priority: bool`, `is_unique: bool` for Memory Wardens, `hidden: bool` for Grove-gated
 branches). Crits are rolled by the Warden and passed on:

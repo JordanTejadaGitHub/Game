@@ -37,7 +37,7 @@ The old tagline ("…Nobody gets hurt.") no longer fits. **Proposed new tagline 
    live, and make the long way round the only way round.
 2. **Guard the dream.** Shades, hounds, phantoms that glide through walls, and worse: every nightmare
    hunts differently, and every one that gets through tears a piece out of the dream.
-3. **Grow and combine.** Sprouts evolve into 6 Warden families and their branches. Soak the path
+3. **Grow and combine.** Sprouts evolve into 9 Warden families and their branches. Soak the path
    with Rain Lilies, then chain lightning through every drenched nightmare.
 4. **100 drifts, a new forest every night.** Winding ridges, a Dream every 5 drifts, and a great
    nightmare every 25 whose defeat returns a lost Warden family to the Heartwood. Save and come back

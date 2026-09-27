@@ -76,6 +76,9 @@ adds +5%. Clouds, fog, Spored, Static bolts and Puffball pops never crit.
 | ✓ Hoarfrost | 5% | ×2 | +20% chance vs Held (frozen) nightmares |
 | **Standing Stone** | **20%** | **×2.5** | |
 | **Moonstone** | **25%** | **×3** | first hit on each nightmare always crits |
+| Cairn, Rockslide | 8%, 10% | ×2 | |
+| Hummingbird Bower, Jewelwing Court | 5% | ×2 | rolls **per peck**; Jewelwing's every 6th peck is guaranteed |
+| Samara, Autumn Gale | 5% | ×2 | rolls per pass (twice per nightmare per throw) |
 | ✓ Wren's Nest | 15% | ×2 | |
 | ✓ Magpie Perch | 10% | ×2 | |
 | ✓ Magpie's Hoard | 15% | ×2 | each crit +1 Dew, max 15 per drift |
@@ -126,17 +129,35 @@ adds +5%. Clouds, fog, Spored, Static bolts and Puffball pops never crit.
 | ✓ Sunpetal *(hidden)* | branch | +45 | 3.5 | 12/s, ramping | 12 → 48 | beam | ramps +25% per second on one target (max ×4); ramps **2× as fast** on Drowsy or Held |
 | ✓ Midsummer *(hidden)* | final | +90 | 4 | 18/s, ramping | 18 → 90 | beam | ramps +35%/s (max ×5), 2× on Drowsy/Held; beam **also hits the nightmare right behind** its target at 50% |
 
-## Pebbling family (stone) — not built yet
+## Pebbling family (stone) — heavy hits: close, far, area
 
 | Warden | Tier | Cost | Range | Soothe × /s | DPS | Kind | Effect |
 |---|---|---|---|---|---|---|---|
 | ✓ Pebbling | base | 30 (+20) | 2 | 40 × 0.5 | 20 | projectile | heavy, slow |
 | Mossback | branch | +45 | 1.75 | 110 × 0.4 | 44 | projectile | **×2 vs Marked** |
 | Boulderback | final | +90 | 1.75 | 220 × 0.35 | 77 | projectile | splashes 50% to creatures within 1 cell; **always crits (×2) on Drowsy** |
-| Chime Stone | branch | +45 | 2 | 22 × 0.8 | 18 (area) | pulse | Static 1; each pulse **sets off** a Static bolt on creatures with 3+ stacks |
+| ✓ Standing Stone | branch | +45 | **8** (min 2) | 100 every 3 s | 33 | projectile | **+10% damage per cell** of distance beyond 3 (max +50%); crit 20% ×2.5; target priority. With crits and full distance ≈ 65 DPS. *(Was hidden; now branch B, 2026-09-27 review.)* |
+| ✓ Moonstone | final | +90 | **10** (min 2) | 220 every 3.5 s | 63 | projectile | distance bonus as above; crit 25% **×3**; **first hit on each nightmare always crits**. Full distance + crits ≈ 140 DPS |
+| Cairn *(hidden)* | branch | +45 | **6** (min 2) | 60 every 2.5 s | 24 (area) | lob | lobs over walls onto the target's tile: 60 to everything within **1 cell**; crit 8% ×2 |
+| Rockslide *(hidden)* | final | +90 | 7 (min 2) | 110 every 2.5 s | 44 (area) | lob | splash **1.25 cells**; the path tiles hit get **rubble**: −25% speed for 3 s; crit 10% |
+
+## Bellflower family (song) — new 2026-09-27
+
+Owns **Drowsy**. Chime Stone and Lullaby Bell moved here from Pebbling (numbers unchanged).
+
+| Warden | Tier | Cost | Range | Damage × /s | DPS | Kind | Effect |
+|---|---|---|---|---|---|---|---|
+| Bellflower | base | 25 (+15) | 2 | 10 × 1.0 | 10 (area) | pulse | every 2nd pulse: **1 Drowsy** to everything in range |
+| Chime Stone | branch | +45 | 2 | 22 × 0.8 | 18 (area) | pulse | Static 1; each pulse **sets off** a Static bolt on nightmares with 3+ stacks |
 | Lullaby Bell | final | +90 | 2.5 | 40 × 0.8 | 32 (area) | pulse | Static 1 + **Drowsy 1** per pulse; sets off Static like Chime Stone |
-| ✓ Standing Stone *(hidden)* | branch | +45 | **8** (min 2) | 100 every 3 s | 33 | projectile | **+10% damage per cell** of distance beyond 3 (max +50%); crit 20% ×2.5; target priority. With crits and full distance ≈ 65 DPS |
-| ✓ Moonstone *(hidden)* | final | +90 | **10** (min 2) | 220 every 3.5 s | 63 | projectile | distance bonus as above; crit 25% **×3**; **first hit on each nightmare always crits**. Full distance + crits ≈ 140 DPS |
+| Dreamcatcher | branch | +45 | 2.5 | 10 × 1.0 | 10 | projectile | nightmares in range that are **asleep or at max Drowsy** are **Caught**: +40% damage taken from all sources |
+| Great Dreamcatcher | final | +90 | 3 | 16 × 1.0 | 16 | projectile | Caught +60%; sleep in range lasts **+1 s** (once per nightmare); each Caught nightmare dispelled drops a **Dreamlight shard** (10 shards = 1 Dreamlight; max 2 Dreamlight per run from shards) |
+| Echo Hollow *(hidden)* | branch | +45 | 2.5 | 8 × 1.0 | 8 (area) | echo | a Reaction within range **repeats 1 s later at 50%** on the same spot (echoes don't echo) |
+| Whispering Hollow *(hidden)* | final | +90 | 3.5 | 12 × 1.0 | 12 (area) | echo | echoes at **75%**; each echo **counts as a chain link** |
+
+Caught and Marked stack multiplicatively (a Caught, Marked nightmare takes ×1.4 × ×1.25). Bosses
+never sleep, but their Drowsy cap is 3, and **3 counts as max for them**, so bosses can be Caught.
+Caught bosses give no Dreamlight shards.
 
 ## Rootling family (root) — not built yet
 
@@ -168,9 +189,11 @@ adds +5%. Clouds, fog, Spored, Static bolts and Puffball pops never crit.
 |---|---|---|---|---|---|---|---|
 | ✓ Nestling | base | 25 (+15) | 3 | 14 × 1.2 | 17 | swoop | bird flies out and back; ×1.25 vs Phantoms |
 | ✓ Wren's Nest | branch | +45 | 3.5 | 8 × 3.0 | 24 | swoop | targets the **fastest** nightmare in range; ×1.5 vs Phantoms and sprinting Night Hounds; crit 15% |
-| ✓ Starling Murmuration | final | +90 | 4 | 30 per sweep, every 2 s | 15 to **each** | sweep | flock sweeps the **5 path tiles** in range with the most nightmares on them |
+| ✓ Starling Murmuration | final | +90 | 4 | 3 birds × 10 × 1.5 | 45 (split) | swoop | **changed 2026-09-27:** 3 starlings each hunt one of the **3 fastest** nightmares in range; ×1.5 vs Phantoms and sprinting Night Hounds; crit 15%. (Was: sweeps the 5 busiest path tiles) |
 | ✓ Magpie Perch | branch | +45 | 3 | 12 × 1.0 | 12 | swoop | nightmares it hits drop **+1 Dew** when dispelled; crit 10% |
 | ✓ Magpie's Hoard | final | +90 | 3.5 | 20 × 1.0 | 20 | swoop | as Magpie Perch; **each crit +1 Dew** (max 15 per drift); crit 15% |
+| Hummingbird Bower *(hidden)* | branch | +45 | 3 | 6 pecks × 4, every 1.5 s | 16 | multi-hit | pecks one nightmare 6 times in 1 s, returns in 0.5 s; **each peck is a full hit** (crit roll, Marked, on-hit cards) |
+| Jewelwing Court *(hidden)* | final | +90 | 3.5 | 3 birds × 8 pecks × 6, every 1.5 s | 96 (split) | multi-hit | birds spread over targets or all focus the strongest (toggle); **every 6th peck crits** |
 
 ## Whirligig family (wind) — full game
 
@@ -181,6 +204,8 @@ adds +5%. Clouds, fog, Spored, Static bolts and Puffball pops never crit.
 | ✓ Zephyr | final | +90 | 3 | 16 × 0.5 | 8 (area) | gust | as Gust, onto **up to 5** |
 | ✓ Pinwheel | branch | +45 | 1 (adjacent tiles) | 12 × 2.0 | 24 (area) | blades | hits every nightmare on the 8 tiles around it; **+20% damage per adjacent path tile beyond 2** (max +100%) |
 | ✓ Windmill | final | +90 | 1 | 18 × 2.5 | 45 (area) | blades | as Pinwheel |
+| Samara *(hidden)* | branch | +45 | 4 (line) | 20 per pass, ~1 throw / 1.6 s | ~25 to **each** in the line | boomerang | straight out and back through everything; each nightmare hit twice; carries the first-hit nightmare's statuses (half stacks) down the line |
+| Autumn Gale *(hidden)* | final | +90 | 5 (line) | 2 seeds × 35 per pass, ~1 throw / 1.6 s | ~44 to each, two lines | boomerang | aims along the 2 lines with most nightmares; each catch +10% next-throw damage (max +50%; resets if a throw hits nothing) |
 
 ## Memory Wardens (unique, from bosses)
 
@@ -196,6 +221,11 @@ placed again at the next rest).
 ## New mechanics the unbuilt Wardens need
 
 For the coding chat, in rough order of need:
+0. **2026-09-27 review:** Bellflower family (`song` line; Chime Stone and Lullaby Bell move from
+   Pebbling), Dreamcatcher's **Caught** state and Dreamlight shards, Echo Hollow's **Reaction
+   echo**, Cairn's **lob** over walls with rubble tiles, Hummingbird's **multi-hit** (each peck a
+   full hit), Samara's **boomerang** (line out and back, catch, status carry), Standing Stone and
+   Moonstone no longer hidden, Starling Murmuration hunts the 3 fastest.
 1. **Pulse with an effect**: slow (Rootling), Static set-off (Chime Stone), extra statuses.
 2. **Pull back along the path** (Rootcurl, Long Way Home): move a creature back N cells on its
    current route; once-per-creature memory.

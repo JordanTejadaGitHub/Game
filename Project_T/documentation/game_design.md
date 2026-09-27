@@ -103,10 +103,11 @@ perks can modify them.
 
 **Towers are walls, so builds should care about the maze.** Every run starts with the **Sprout**
 and **Thornwall** (a cheap plain wall). **Warden families** come from the pick after drift 1 and
-from the bosses at 25, 50 and 75: **4 of the 6 families per run** (Sporeling, Pebbling, Dewdrop,
-Firefly Jar, Rootling, Acorn; the full game adds Nestling and Whirligig). Each family has 2
-branches and a final form per branch, plus a **hidden 3rd branch** unlocked in the Memory Grove
-(e.g. the Standing Stone sniper).
+from the bosses at 25, 50 and 75: **4 families per run** out of Sporeling, Dewdrop, Firefly Jar,
+Pebbling, Rootling, **Bellflower** (song and sleep) and Acorn; the full game adds Nestling and
+Whirligig. Each family has one clear role, 2 branches and a final form per branch, plus a
+**hidden 3rd branch** unlocked late in the Memory Grove (e.g. the Cairn mortar, the Samara
+boomerang, the multi-hit Hummingbird).
 
 - **Crits**: every attacking Warden has a crit chance (default 5%, ×2); snipers and heavy hitters
   more. Crit cards in the Dream pool support crit builds.

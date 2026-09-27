@@ -131,11 +131,19 @@ branches), **its final forms**, **its hidden branch**.
 | Sporeling | *(start)* | 50 (Puffball, Dreamshroom) | 40 (Fairy Ring + Elf Circle) |
 | Firefly Jar | *(start)* | 50 (Thunderhead, Beacon) | *milestone:* Sunpetal |
 | Dewdrop | *(start)* | 50 (Monsoon, Morning Fog) | 40 (Frostfern + Hoarfrost) |
-| Pebbling | 50 | 50 | 40 (Standing Stone + Moonstone) |
+| Pebbling | 50 (branches: Mossback, **Standing Stone**) | 50 (Boulderback, Moonstone) | 50 (Cairn + Rockslide) |
 | Rootling | 50 | 50 | 40 (Rootlight + Starcave) |
+| Bellflower | 60 (needs Pebbling or Rootling) | 50 (Lullaby Bell, Great Dreamcatcher) | 60 (Echo Hollow + Whispering Hollow) |
 | Acorn | 70 (needs Pebbling or Rootling) | 50 | 60 (Graftling + Grafted Elder) |
-| Nestling | 120 (needs 2 of Pebbling / Rootling / Acorn) | 60 | — |
-| Whirligig | 120 (needs 2 of Pebbling / Rootling / Acorn) | 60 | — |
+| Nestling | 120 (needs 2 of Pebbling / Rootling / Bellflower / Acorn) | 60 | 80 (Hummingbird Bower + Jewelwing Court; brings the on-hit cards) |
+| Whirligig | 120 (needs 2 of Pebbling / Rootling / Bellflower / Acorn) | 60 | 80 (Samara + Autumn Gale; brings the boomerang cards) |
+
+**Unlock order, by design:** the 3 starting families are the easiest to read (spores, water,
+light). Pebbling and Rootling come next (plain roles: hit hard, control). Bellflower and Acorn need
+one of those first, because sleep payoffs and support are better once you know the basics.
+Nestling and Whirligig are the full-game families, and **every hidden branch is a late node**
+above its family's final forms, so veterans keep finding new playstyles. Reviewed 2026-09-27
+(`tower_design.md`, "Family design rules").
 
 - The Grove decides which forms **exist** in your runs; **Dreamlight** decides which you unlock
   **this run** (`run_design.md`). A final form not yet grown here shows as *"Memory Grove"* on the
@@ -144,7 +152,9 @@ branches), **its final forms**, **its hidden branch**.
   or hidden-branch node automatically.
 - **Memory Wardens** aren't bought: dispelling a boss for the first time grows its Memory Warden as a
   free bloom on this limb, and it's offered after that boss in later runs.
-- Total ≈ 1,100 Seeds.
+- Total ≈ 1,390 Seeds (was ≈ 1,100 before Bellflower and the Nestling/Whirligig hidden nodes;
+  re-check the tree's ~3,100 total and the hours estimate).
+- Each hidden-branch node needs its family's final-forms node, so hidden branches really are late.
 
 ### Section 3: Cards (Dream pool unlocks)
 
@@ -176,7 +186,7 @@ styles a player has grown into.
 Dewdrop), but a run offers family picks at drift 1 and at the 25/50/75 bosses. When there are
 fewer than 3 new families to offer, the empty slots become **Family Blessings**: a strong boon for
 a family you already own (e.g. *"Sporeling Blessing: Sporeling family +25% soothe, evolutions 25%
-cheaper"*). So early runs deepen few families; unlocking Pebbling, Rootling and Acorn widens later
+cheaper"*). So early runs deepen few families; unlocking Pebbling, Rootling, Bellflower and Acorn widens later
 runs, which makes those Grove purchases feel big.
 
 ### Later: Forests

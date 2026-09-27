@@ -137,7 +137,8 @@ longer unlock base Wardens; they give stats, branches, final forms and rules.
 | Boss at 25, 50, 75 | **Pick a new family**: 1 of 3 base Wardens you don't have yet, **+3 Dreamlight**, **plus** a Dream that's guaranteed Rare or better |
 | Boss at 100 | the win |
 
-That's **4 of the 6 Warden families per run**, so every run leans a different way. The run starts
+That's **4 Warden families per run** (out of 7, or 9 in the full game), so every run leans a
+different way. The run starts
 with only Sprout + Thornwall. **Act 1 is about one family**: you deepen it through its branches
 before a second family arrives at drift 25. When fewer than 3 new families are available (early
 in the meta, before the Grove unlocks Pebbling, Rootling and Acorn), empty slots become **Family
