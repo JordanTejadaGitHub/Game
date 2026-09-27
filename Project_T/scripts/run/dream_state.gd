@@ -513,9 +513,11 @@ func is_eligible(card: UpgradeData, act: int = 1) -> bool:
 			return false
 	return true
 
-# A growth card: unlocks a branch or final form (dream_design.md "Growth slot").
+# A growth card: unlocks a family's branch or final form (dream_design.md "Growth slot"). Wall
+# growths (Bramble, Honeysuckle) aren't: they're drawn in the normal slots only.
 static func is_growth(card: UpgradeData) -> bool:
-	return card.kind == UpgradeData.Kind.UNLOCK_EVOLUTION
+	return card.kind == UpgradeData.Kind.UNLOCK_EVOLUTION and card.unlocks != null \
+		and card.unlocks.line != "wall"
 
 # The growth slot's card, or null when every growth for your families is unlocked. Drawn across
 # rarities by their act weights, so branches (Uncommon) usually come before final forms (Rare).

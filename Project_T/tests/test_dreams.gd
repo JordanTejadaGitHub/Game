@@ -549,8 +549,15 @@ func _test_growth_slot(main: Node) -> void:
 		elif growth[0].is_rare_or_better():
 			final_forms += 1
 	_check(exactly_one, "every offer has exactly one growth card while some are locked")
-	# Thornwall's Bramble and Firefly's two branches are Uncommon; no final form is eligible yet
+	# Firefly's two branches are Uncommon; no final form is eligible yet
 	_check(final_forms == 0, "final forms wait for their branch")
+	_check(not DreamState.is_growth(_card(dreams, "dream_bramble")) and not DreamState.is_growth(_card(dreams, "dream_honeysuckle")),
+		"wall growths (Bramble, Honeysuckle) stay out of the growth slot")
+	var bramble_seen := false
+	for i in 300:
+		if dreams.make_offer(10).any(func(c: UpgradeData) -> bool: return c.id == "dream_bramble"):
+			bramble_seen = true
+	_check(bramble_seen, "…but still appear in the normal slots")
 	dreams.take(_card(dreams, "dream_stormcap"))
 	var saw_final := false
 	for i in 300:
