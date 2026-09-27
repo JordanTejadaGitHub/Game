@@ -1,7 +1,7 @@
 [gd_resource type="Resource" script_class="EnemyData" load_steps=3 format=3]
 
 [ext_resource type="Script" path="res://resource/enemy/script/enemy_data.gd" id="1_edata"]
-[ext_resource type="SpriteFrames" path="res://animation/enemy/bark_beetle.tres" id="2_frames"]
+[ext_resource type="SpriteFrames" path="res://animation/enemy/ash_crawler.tres" id="2_frames"]
 
 [resource]
 script = ExtResource("1_edata")
@@ -10,7 +10,6 @@ display_name = "Ash Crawler"
 health = 250
 speed = 45.0
 dew_reward = 7
-tint = Color(1, 0.65, 0.45, 1)
 resists = Array[String](["wind"])
 weak_to = Array[String](["stone"])
 ash_trail_time = 3.0

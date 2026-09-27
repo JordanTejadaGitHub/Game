@@ -1,7 +1,7 @@
 [gd_resource type="Resource" script_class="EnemyData" load_steps=3 format=3]
 
 [ext_resource type="Script" path="res://resource/enemy/script/enemy_data.gd" id="1_edata"]
-[ext_resource type="SpriteFrames" path="res://animation/enemy/bark_beetle.tres" id="2_frames"]
+[ext_resource type="SpriteFrames" path="res://animation/enemy/shellbound.tres" id="2_frames"]
 
 [resource]
 script = ExtResource("1_edata")
@@ -11,8 +11,6 @@ health = 250
 speed = 70.0
 dew_reward = 8
 leaf_cost = 2
-sprite_scale = 1.25
-tint = Color(0.7, 0.72, 0.8, 1)
 resists = Array[String](["wind"])
 weak_to = Array[String](["root"])
 coat_per_hit = 6

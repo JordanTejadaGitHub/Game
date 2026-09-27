@@ -1,7 +1,7 @@
 [gd_resource type="Resource" script_class="EnemyData" load_steps=3 format=3]
 
 [ext_resource type="Script" path="res://resource/enemy/script/enemy_data.gd" id="1_edata"]
-[ext_resource type="SpriteFrames" path="res://animation/enemy/puffcap.tres" id="2_frames"]
+[ext_resource type="SpriteFrames" path="res://animation/enemy/weeper.tres" id="2_frames"]
 
 [resource]
 script = ExtResource("1_edata")
@@ -10,7 +10,6 @@ display_name = "Weeper"
 health = 160
 speed = 70.0
 dew_reward = 5
-tint = Color(0.6, 0.65, 0.9, 1)
 resists = Array[String](["water"])
 weak_to = Array[String](["light"])
 mend_radius = 1.5

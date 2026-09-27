@@ -1,7 +1,7 @@
 [gd_resource type="Resource" script_class="EnemyData" load_steps=4 format=3]
 
 [ext_resource type="Script" path="res://resource/enemy/script/enemy_data.gd" id="1_edata"]
-[ext_resource type="SpriteFrames" path="res://animation/enemy/dusk_moth.tres" id="2_frames"]
+[ext_resource type="SpriteFrames" path="res://animation/enemy/moth_queen.tres" id="2_frames"]
 [ext_resource type="Resource" path="res://resource/enemy/dusk_moth.tres" id="3_brood"]
 
 [resource]
@@ -13,7 +13,6 @@ speed = 65.0
 dew_reward = 80
 leaf_cost = 5
 is_boss = true
-sprite_scale = 2.4
 resists = Array[String](["spore", "wing"])
 weak_to = Array[String](["light"])
 trait_kind = 1
