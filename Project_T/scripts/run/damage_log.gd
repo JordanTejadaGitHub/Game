@@ -19,8 +19,9 @@ const DPS_WINDOW := 5.0  # Seconds of recent events kept for damage-per-second
 #   fog        Spored tick inside Mistveil fog (+50%)
 #   conducted  lightning that only reached it through Damp (whole hit)
 #   static     a Static bolt (whole hit)
+#   popped     a Puffball pop bursting built-up Spored stacks (whole hit; kind "pop")
 const COMBO_NAMES := {&"crit": "crits", &"weak": "weakness", &"marked": "Marked", &"fog": "fog",
-	&"conducted": "through Damp", &"static": "Static bolts"}
+	&"conducted": "through Damp", &"static": "Static bolts", &"popped": "pops"}
 
 enum NumbersMode { OFF, BIG, ALL }
 
@@ -171,7 +172,7 @@ func _row(source: Node) -> Dictionary:
 func _combo_share(event: Event, tag: StringName) -> float:
 	if event.combos.size() == 1:
 		return event.combo_amount
-	if tag == &"conducted" or tag == &"static":
+	if tag == &"conducted" or tag == &"static" or tag == &"popped":
 		return event.combo_amount
 	var factors := {&"crit": event.crit_multiplier, &"weak": EnemyData.WEAK_MULTIPLIER,
 		&"marked": 1.0 + EnemyStatuses.MARKED_EXTRA, &"fog": 1.0 + EnemyStatuses.FOG_SPORE_BONUS}
@@ -187,6 +188,7 @@ func _show_number(event: Event) -> void:
 	if numbers_mode == NumbersMode.OFF or not is_instance_valid(event.enemy) or event.amount < 0.5:
 		return
 	var big: bool = event.combos.has(&"crit") or event.combos.has(&"weak") or event.combos.has(&"conducted") \
+		or event.combos.has(&"popped") \
 		or event.amount >= event.enemy.max_health * 0.1
 	if numbers_mode == NumbersMode.BIG and not big:
 		return
@@ -195,7 +197,7 @@ func _show_number(event: Event) -> void:
 	if event.combos.has(&"crit"):
 		color = Color(1.0, 0.85, 0.3)
 		size = 20
-	elif event.combos.has(&"weak") or event.combos.has(&"conducted"):
+	elif event.combos.has(&"weak") or event.combos.has(&"conducted") or event.combos.has(&"popped"):
 		color = Color(1.0, 1.0, 0.6)
 		size = 17
 	elif event.family_multiplier < 1.0:

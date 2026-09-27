@@ -15,6 +15,8 @@ signal attack_released(tower: Tower)
 signal crit_landed(tower: Tower, enemy: Node2D)
 # A hit from this Warden landed on `enemy` (sound: the impact). Every attack kind goes through hit().
 signal hit_landed(tower: Tower, enemy: Node2D, is_area: bool, is_crit: bool)
+# A Puffball popped `enemy`'s `stacks` Spored stacks (sound, and the "Popped!" callout).
+signal popped(tower: Tower, enemy: Node2D, stacks: int)
 # A beam (Sunpetal line) hit its target; `ramp` is its current damage multiplier.
 signal beam_ticked(tower: Tower, ramp: float)
 
@@ -26,6 +28,7 @@ const ENEMY_GROUP := "enemies"
 const SPORE_POTENCY := 0.25  # Spored soothes this share of the Warden's soothe per second per stack
 const CHAIN_DAMP_EXTRA_JUMPS := 2
 const CHAIN_DAMP_EXTRA_RANGE := 1.0  # Cells
+const POP_SPREAD_RANGE := 1.5  # Cells: how far a Puffball pop's spores drift on
 const BEAM_TICK := 0.25  # Seconds between beam hits
 const BEAM_RAMP_FAST := 2.0  # Beams ramp this much faster on Drowsy or Held nightmares
 const AURA_TICK := 0.25  # Seconds between aura refreshes (White Stag)
@@ -299,7 +302,53 @@ func hit(enemy: Node2D, soothe_multiplier: float = 1.0, is_area: bool = false, c
 	_after_hit(enemy, is_crit)
 	if is_crit:
 		crit_landed.emit(self, enemy)
+	if attack_data.pop_at_stacks > 0 and is_instance_valid(enemy) and not enemy.is_cleansed \
+			and enemy.statuses.stacks(EnemyStatuses.SPORED) >= attack_data.pop_at_stacks:
+		pop(enemy)
 	return is_crit
+
+# Puffball: `enemy`'s Spored stacks burst. Pop damage (6 × stacks, Dreams included) hits it and every
+# nightmare within pop_radius as an area spore hit that never crits, logged as a "popped" combo.
+# Its stacks are used up and half of them drift on to the nearest few nightmares, still credited to
+# the Warden that applied them. With the Chain Bloom rule, a nightmare those spores bring to the
+# threshold pops too (each nightmare at most once per chain).
+func pop(enemy: Node2D, chain: Dictionary = {}) -> void:
+	var statuses: EnemyStatuses = enemy.statuses
+	var stacks := statuses.stacks(EnemyStatuses.SPORED)
+	if stacks <= 0 or chain.has(enemy.get_instance_id()):
+		return
+	chain[enemy.get_instance_id()] = true
+	var potency := statuses.potency(EnemyStatuses.SPORED)
+	var duration := statuses.time_left(EnemyStatuses.SPORED)
+	var line := statuses.spore_line()
+	var applier := statuses.source(EnemyStatuses.SPORED)
+	statuses.remove(EnemyStatuses.SPORED)
+	var at := enemy.global_position
+	var damage := attack_data.pop_damage_per_stack * stacks \
+		* (_dream_state.get_soothe_multiplier(self) if _dream_state else 1.0)
+	var reach := attack_data.pop_radius * MAP_GRID.cell_size.x
+	for other in get_tree().get_nodes_in_group(ENEMY_GROUP):
+		if other.global_position.distance_to(at) <= reach:
+			other.take_damage(damage, tower_data.line, true, false, self, &"popped")
+	add_child(SporePop.new(at, reach))
+	popped.emit(self, enemy, stacks)
+
+	# Half the spores drift on to the nearest nightmares (not back onto the one that popped).
+	var spread := stacks / 2
+	if spread <= 0:
+		return
+	var others := get_tree().get_nodes_in_group(ENEMY_GROUP).filter(func(e: Node2D) -> bool:
+		return e != enemy and e.global_position.distance_to(at) <= POP_SPREAD_RANGE * MAP_GRID.cell_size.x)
+	others.sort_custom(func(a: Node2D, b: Node2D) -> bool:
+		return a.global_position.distance_squared_to(at) < b.global_position.distance_squared_to(at))
+	var chain_bloom := _dream_state != null and _dream_state.has_rule(&"chain_bloom")
+	for i in mini(attack_data.pop_spread_targets, others.size()):
+		var other: Node2D = others[i]
+		other.apply_status(EnemyStatuses.SPORED, spread, duration, potency, attack_data.status_max_stacks,
+			line, applier)
+		if chain_bloom and is_instance_valid(other) and not other.is_cleansed \
+				and other.statuses.stacks(EnemyStatuses.SPORED) >= attack_data.pop_at_stacks:
+			pop(other, chain)
 
 # Rolls for a crit on `enemy` (Moonstone: the first hit on each nightmare always crits).
 func roll_crit(enemy: Node2D) -> bool:

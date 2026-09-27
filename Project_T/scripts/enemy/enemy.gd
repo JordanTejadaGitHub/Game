@@ -438,7 +438,7 @@ func _report_damage(amount: float, family: float, taken: float, soaked: float, d
 	var event := DamageLog.Event.new()
 	event.source = source
 	event.enemy = self
-	event.kind = &"status" if tag == &"spored" else (&"bolt" if tag == &"static" else &"hit")
+	event.kind = &"status" if tag == &"spored" else (&"bolt" if tag == &"static" else (&"pop" if tag == &"popped" else &"hit"))
 	event.amount = dealt
 	event.base = amount
 	event.family_multiplier = family
@@ -458,7 +458,7 @@ func _report_damage(amount: float, family: float, taken: float, soaked: float, d
 	if tag == &"spored" and statuses.is_in_fog():
 		event.combos.append(&"fog")
 		factor *= 1.0 + EnemyStatuses.FOG_SPORE_BONUS
-	if tag == &"conducted" or tag == &"static":
+	if tag == &"conducted" or tag == &"static" or tag == &"popped":
 		event.combos.append(tag)
 		event.combo_amount = dealt  # The whole hit only happened thanks to the combo
 	else:
