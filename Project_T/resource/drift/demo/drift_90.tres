@@ -1,31 +1,32 @@
 [gd_resource type="Resource" script_class="DriftData" format=3]
 
-[ext_resource type="Script" path="res://resource/drift/script/drift_group.gd" id="1_6ipas"]
-[ext_resource type="Script" path="res://resource/drift/script/drift_entry.gd" id="2_is3m3"]
-[ext_resource type="Resource" path="res://resource/enemy/puffcap.tres" id="3_7s6j7"]
-[ext_resource type="Resource" path="res://resource/enemy/bark_beetle.tres" id="4_oey5r"]
-[ext_resource type="Script" path="res://resource/drift/script/drift_data.gd" id="5_h30sw"]
-
-[sub_resource type="Resource" id="Resource_yandt"]
-script = ExtResource("2_is3m3")
-enemy = ExtResource("3_7s6j7")
-count = 6
-
-[sub_resource type="Resource" id="Resource_eeoxy"]
-script = ExtResource("2_is3m3")
-enemy = ExtResource("3_7s6j7")
-count = 12
+[ext_resource type="Script" path="res://resource/drift/script/drift_group.gd" id="1_is3m3"]
+[ext_resource type="Script" path="res://resource/drift/script/drift_entry.gd" id="2_7s6j7"]
+[ext_resource type="Resource" path="res://resource/enemy/weeper.tres" id="3_oey5r"]
+[ext_resource type="Resource" path="res://resource/enemy/puffcap.tres" id="4_h30sw"]
+[ext_resource type="Resource" path="res://resource/enemy/bark_beetle.tres" id="5_yandt"]
+[ext_resource type="Script" path="res://resource/drift/script/drift_data.gd" id="6_eeoxy"]
 
 [sub_resource type="Resource" id="Resource_hbogr"]
-script = ExtResource("2_is3m3")
-enemy = ExtResource("4_oey5r")
-count = 10
+script = ExtResource("2_7s6j7")
+enemy = ExtResource("3_oey5r")
+count = 6
 
 [sub_resource type="Resource" id="Resource_m161q"]
-script = ExtResource("1_6ipas")
-entries = Array[ExtResource("2_is3m3")]([SubResource("Resource_yandt"), SubResource("Resource_eeoxy"), SubResource("Resource_hbogr")])
+script = ExtResource("2_7s6j7")
+enemy = ExtResource("4_h30sw")
+count = 12
+
+[sub_resource type="Resource" id="Resource_46qq3"]
+script = ExtResource("2_7s6j7")
+enemy = ExtResource("5_yandt")
+count = 10
+
+[sub_resource type="Resource" id="Resource_xvbph"]
+script = ExtResource("1_is3m3")
+entries = Array[ExtResource("2_7s6j7")]([SubResource("Resource_hbogr"), SubResource("Resource_m161q"), SubResource("Resource_46qq3")])
 spacing = 1.0714285714285714
 
 [resource]
-script = ExtResource("5_h30sw")
-groups = Array[ExtResource("1_6ipas")]([SubResource("Resource_m161q")])
+script = ExtResource("6_eeoxy")
+groups = Array[ExtResource("1_is3m3")]([SubResource("Resource_xvbph")])

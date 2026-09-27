@@ -2,7 +2,7 @@
 
 [ext_resource type="Script" path="res://resource/drift/script/drift_group.gd" id="1_8k8bg"]
 [ext_resource type="Script" path="res://resource/drift/script/drift_entry.gd" id="2_l6rcy"]
-[ext_resource type="Resource" path="res://resource/enemy/puffcap.tres" id="3_m1gks"]
+[ext_resource type="Resource" path="res://resource/enemy/weeper.tres" id="3_m1gks"]
 [ext_resource type="Resource" path="res://resource/enemy/leaf_bug.tres" id="4_tk4ox"]
 [ext_resource type="Script" path="res://resource/drift/script/drift_data.gd" id="5_eauqk"]
 

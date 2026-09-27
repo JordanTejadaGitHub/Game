@@ -2,7 +2,7 @@
 
 [ext_resource type="Script" path="res://resource/drift/script/drift_group.gd" id="1_c6ovc"]
 [ext_resource type="Script" path="res://resource/drift/script/drift_entry.gd" id="2_x7ue5"]
-[ext_resource type="Resource" path="res://resource/enemy/hedgehog.tres" id="3_3w13d"]
+[ext_resource type="Resource" path="res://resource/enemy/dream_thief.tres" id="3_3w13d"]
 [ext_resource type="Script" path="res://resource/drift/script/drift_data.gd" id="4_qo3n1"]
 
 [sub_resource type="Resource" id="Resource_eu2c3"]

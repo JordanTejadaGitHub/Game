@@ -1,31 +1,32 @@
 [gd_resource type="Resource" script_class="DriftData" format=3]
 
-[ext_resource type="Script" path="res://resource/drift/script/drift_group.gd" id="1_ai28w"]
-[ext_resource type="Script" path="res://resource/drift/script/drift_entry.gd" id="2_1dwh5"]
-[ext_resource type="Resource" path="res://resource/enemy/leaf_bug.tres" id="3_0q1b2"]
-[ext_resource type="Resource" path="res://resource/enemy/bark_beetle.tres" id="4_1xraf"]
-[ext_resource type="Script" path="res://resource/drift/script/drift_data.gd" id="5_1tt6l"]
-
-[sub_resource type="Resource" id="Resource_bnmtr"]
-script = ExtResource("2_1dwh5")
-enemy = ExtResource("3_0q1b2")
-count = 32
-
-[sub_resource type="Resource" id="Resource_vrmle"]
-script = ExtResource("2_1dwh5")
-enemy = ExtResource("4_1xraf")
-count = 10
+[ext_resource type="Script" path="res://resource/drift/script/drift_group.gd" id="1_1dwh5"]
+[ext_resource type="Script" path="res://resource/drift/script/drift_entry.gd" id="2_0q1b2"]
+[ext_resource type="Resource" path="res://resource/enemy/leaf_bug.tres" id="3_1xraf"]
+[ext_resource type="Resource" path="res://resource/enemy/bark_beetle.tres" id="4_1tt6l"]
+[ext_resource type="Resource" path="res://resource/enemy/drowned_one.tres" id="5_bnmtr"]
+[ext_resource type="Script" path="res://resource/drift/script/drift_data.gd" id="6_vrmle"]
 
 [sub_resource type="Resource" id="Resource_yrh5e"]
-script = ExtResource("2_1dwh5")
-enemy = ExtResource("4_1xraf")
-count = 8
+script = ExtResource("2_0q1b2")
+enemy = ExtResource("3_1xraf")
+count = 32
 
 [sub_resource type="Resource" id="Resource_w1d1i"]
-script = ExtResource("1_ai28w")
-entries = Array[ExtResource("2_1dwh5")]([SubResource("Resource_bnmtr"), SubResource("Resource_vrmle"), SubResource("Resource_yrh5e")])
+script = ExtResource("2_0q1b2")
+enemy = ExtResource("4_1tt6l")
+count = 10
+
+[sub_resource type="Resource" id="Resource_7quhw"]
+script = ExtResource("2_0q1b2")
+enemy = ExtResource("5_bnmtr")
+count = 8
+
+[sub_resource type="Resource" id="Resource_rq55n"]
+script = ExtResource("1_1dwh5")
+entries = Array[ExtResource("2_0q1b2")]([SubResource("Resource_yrh5e"), SubResource("Resource_w1d1i"), SubResource("Resource_7quhw")])
 spacing = 0.6
 
 [resource]
-script = ExtResource("5_1tt6l")
-groups = Array[ExtResource("1_ai28w")]([SubResource("Resource_w1d1i")])
+script = ExtResource("6_vrmle")
+groups = Array[ExtResource("1_1dwh5")]([SubResource("Resource_rq55n")])

@@ -2,7 +2,7 @@
 
 [ext_resource type="Script" path="res://resource/drift/script/drift_group.gd" id="1_cqc8h"]
 [ext_resource type="Script" path="res://resource/drift/script/drift_entry.gd" id="2_uaw2i"]
-[ext_resource type="Resource" path="res://resource/enemy/dandelion_seed.tres" id="3_qep0c"]
+[ext_resource type="Resource" path="res://resource/enemy/will_o_wisp.tres" id="3_qep0c"]
 [ext_resource type="Resource" path="res://resource/enemy/dusk_moth.tres" id="4_mywdl"]
 [ext_resource type="Script" path="res://resource/drift/script/drift_data.gd" id="5_k4qyo"]
 

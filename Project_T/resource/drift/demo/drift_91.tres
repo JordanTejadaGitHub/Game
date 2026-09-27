@@ -1,43 +1,44 @@
 [gd_resource type="Resource" script_class="DriftData" format=3]
 
-[ext_resource type="Script" path="res://resource/drift/script/drift_group.gd" id="1_wfpat"]
-[ext_resource type="Script" path="res://resource/drift/script/drift_entry.gd" id="2_niljs"]
-[ext_resource type="Resource" path="res://resource/enemy/leaf_bug.tres" id="3_78bbm"]
-[ext_resource type="Resource" path="res://resource/enemy/bark_beetle.tres" id="4_0vupl"]
-[ext_resource type="Resource" path="res://resource/enemy/hedgehog.tres" id="5_hx3qi"]
-[ext_resource type="Resource" path="res://resource/enemy/mother_spider.tres" id="6_1irvh"]
-[ext_resource type="Script" path="res://resource/drift/script/drift_data.gd" id="7_hqyf8"]
-
-[sub_resource type="Resource" id="Resource_q5t54"]
-script = ExtResource("2_niljs")
-enemy = ExtResource("3_78bbm")
-count = 44
-
-[sub_resource type="Resource" id="Resource_vpdjf"]
-script = ExtResource("2_niljs")
-enemy = ExtResource("4_0vupl")
-count = 14
+[ext_resource type="Script" path="res://resource/drift/script/drift_group.gd" id="1_niljs"]
+[ext_resource type="Script" path="res://resource/drift/script/drift_entry.gd" id="2_78bbm"]
+[ext_resource type="Resource" path="res://resource/enemy/leaf_bug.tres" id="3_0vupl"]
+[ext_resource type="Resource" path="res://resource/enemy/bark_beetle.tres" id="4_hx3qi"]
+[ext_resource type="Resource" path="res://resource/enemy/hedgehog.tres" id="5_1irvh"]
+[ext_resource type="Resource" path="res://resource/enemy/mother_spider.tres" id="6_hqyf8"]
+[ext_resource type="Resource" path="res://resource/enemy/dream_thief.tres" id="7_q5t54"]
+[ext_resource type="Script" path="res://resource/drift/script/drift_data.gd" id="8_vpdjf"]
 
 [sub_resource type="Resource" id="Resource_if77r"]
-script = ExtResource("2_niljs")
-enemy = ExtResource("5_hx3qi")
-count = 10
+script = ExtResource("2_78bbm")
+enemy = ExtResource("3_0vupl")
+count = 44
 
 [sub_resource type="Resource" id="Resource_kso1p"]
-script = ExtResource("2_niljs")
-enemy = ExtResource("6_1irvh")
-count = 6
+script = ExtResource("2_78bbm")
+enemy = ExtResource("4_hx3qi")
+count = 14
 
 [sub_resource type="Resource" id="Resource_uwbj2"]
-script = ExtResource("2_niljs")
-enemy = ExtResource("5_hx3qi")
-count = 6
+script = ExtResource("2_78bbm")
+enemy = ExtResource("5_1irvh")
+count = 10
 
 [sub_resource type="Resource" id="Resource_6hjar"]
-script = ExtResource("1_wfpat")
-entries = Array[ExtResource("2_niljs")]([SubResource("Resource_q5t54"), SubResource("Resource_vpdjf"), SubResource("Resource_if77r"), SubResource("Resource_kso1p"), SubResource("Resource_uwbj2")])
+script = ExtResource("2_78bbm")
+enemy = ExtResource("6_hqyf8")
+count = 6
+
+[sub_resource type="Resource" id="Resource_ax61e"]
+script = ExtResource("2_78bbm")
+enemy = ExtResource("7_q5t54")
+count = 6
+
+[sub_resource type="Resource" id="Resource_e28pv"]
+script = ExtResource("1_niljs")
+entries = Array[ExtResource("2_78bbm")]([SubResource("Resource_if77r"), SubResource("Resource_kso1p"), SubResource("Resource_uwbj2"), SubResource("Resource_6hjar"), SubResource("Resource_ax61e")])
 spacing = 0.375
 
 [resource]
-script = ExtResource("7_hqyf8")
-groups = Array[ExtResource("1_wfpat")]([SubResource("Resource_6hjar")])
+script = ExtResource("8_vpdjf")
+groups = Array[ExtResource("1_niljs")]([SubResource("Resource_e28pv")])

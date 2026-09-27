@@ -1,31 +1,32 @@
 [gd_resource type="Resource" script_class="DriftData" format=3]
 
-[ext_resource type="Script" path="res://resource/drift/script/drift_group.gd" id="1_tb25h"]
-[ext_resource type="Script" path="res://resource/drift/script/drift_entry.gd" id="2_ysmok"]
-[ext_resource type="Resource" path="res://resource/enemy/bark_beetle.tres" id="3_envvh"]
-[ext_resource type="Resource" path="res://resource/enemy/leaf_bug.tres" id="4_fajes"]
-[ext_resource type="Script" path="res://resource/drift/script/drift_data.gd" id="5_hd6ep"]
-
-[sub_resource type="Resource" id="Resource_wdtci"]
-script = ExtResource("2_ysmok")
-enemy = ExtResource("3_envvh")
-count = 12
-
-[sub_resource type="Resource" id="Resource_ulsdm"]
-script = ExtResource("2_ysmok")
-enemy = ExtResource("3_envvh")
-count = 10
+[ext_resource type="Script" path="res://resource/drift/script/drift_group.gd" id="1_ysmok"]
+[ext_resource type="Script" path="res://resource/drift/script/drift_entry.gd" id="2_envvh"]
+[ext_resource type="Resource" path="res://resource/enemy/gravecrawler.tres" id="3_fajes"]
+[ext_resource type="Resource" path="res://resource/enemy/bark_beetle.tres" id="4_hd6ep"]
+[ext_resource type="Resource" path="res://resource/enemy/leaf_bug.tres" id="5_wdtci"]
+[ext_resource type="Script" path="res://resource/drift/script/drift_data.gd" id="6_ulsdm"]
 
 [sub_resource type="Resource" id="Resource_bvd1h"]
-script = ExtResource("2_ysmok")
-enemy = ExtResource("4_fajes")
-count = 10
+script = ExtResource("2_envvh")
+enemy = ExtResource("3_fajes")
+count = 12
 
 [sub_resource type="Resource" id="Resource_eslx1"]
-script = ExtResource("1_tb25h")
-entries = Array[ExtResource("2_ysmok")]([SubResource("Resource_wdtci"), SubResource("Resource_ulsdm"), SubResource("Resource_bvd1h")])
+script = ExtResource("2_envvh")
+enemy = ExtResource("4_hd6ep")
+count = 10
+
+[sub_resource type="Resource" id="Resource_xksli"]
+script = ExtResource("2_envvh")
+enemy = ExtResource("5_wdtci")
+count = 10
+
+[sub_resource type="Resource" id="Resource_38vuu"]
+script = ExtResource("1_ysmok")
+entries = Array[ExtResource("2_envvh")]([SubResource("Resource_bvd1h"), SubResource("Resource_eslx1"), SubResource("Resource_xksli")])
 spacing = 0.9375
 
 [resource]
-script = ExtResource("5_hd6ep")
-groups = Array[ExtResource("1_tb25h")]([SubResource("Resource_eslx1")])
+script = ExtResource("6_ulsdm")
+groups = Array[ExtResource("1_ysmok")]([SubResource("Resource_38vuu")])

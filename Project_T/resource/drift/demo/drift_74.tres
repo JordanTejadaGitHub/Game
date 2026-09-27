@@ -1,48 +1,50 @@
 [gd_resource type="Resource" script_class="DriftData" format=3]
 
-[ext_resource type="Script" path="res://resource/drift/script/drift_group.gd" id="1_iknli"]
-[ext_resource type="Script" path="res://resource/drift/script/drift_entry.gd" id="2_loo2d"]
-[ext_resource type="Resource" path="res://resource/enemy/leaf_bug.tres" id="3_xp2vq"]
-[ext_resource type="Resource" path="res://resource/enemy/bark_beetle.tres" id="4_0mbab"]
-[ext_resource type="Resource" path="res://resource/enemy/hedgehog.tres" id="5_01p8e"]
-[ext_resource type="Resource" path="res://resource/enemy/dandelion_seed.tres" id="6_bgd6n"]
-[ext_resource type="Script" path="res://resource/drift/script/drift_data.gd" id="7_5m54h"]
-
-[sub_resource type="Resource" id="Resource_alefp"]
-script = ExtResource("2_loo2d")
-enemy = ExtResource("3_xp2vq")
-count = 40
-
-[sub_resource type="Resource" id="Resource_ufwv7"]
-script = ExtResource("2_loo2d")
-enemy = ExtResource("4_0mbab")
-count = 12
-
-[sub_resource type="Resource" id="Resource_d2ijq"]
-script = ExtResource("2_loo2d")
-enemy = ExtResource("5_01p8e")
-count = 10
-
-[sub_resource type="Resource" id="Resource_djp5v"]
-script = ExtResource("2_loo2d")
-enemy = ExtResource("4_0mbab")
-count = 8
+[ext_resource type="Script" path="res://resource/drift/script/drift_group.gd" id="1_xp2vq"]
+[ext_resource type="Script" path="res://resource/drift/script/drift_entry.gd" id="2_0mbab"]
+[ext_resource type="Resource" path="res://resource/enemy/leaf_bug.tres" id="3_01p8e"]
+[ext_resource type="Resource" path="res://resource/enemy/bark_beetle.tres" id="4_bgd6n"]
+[ext_resource type="Resource" path="res://resource/enemy/hedgehog.tres" id="5_5m54h"]
+[ext_resource type="Resource" path="res://resource/enemy/drowned_one.tres" id="6_alefp"]
+[ext_resource type="Resource" path="res://resource/enemy/barrow_wight.tres" id="7_ufwv7"]
+[ext_resource type="Resource" path="res://resource/enemy/dandelion_seed.tres" id="8_d2ijq"]
+[ext_resource type="Script" path="res://resource/drift/script/drift_data.gd" id="9_djp5v"]
 
 [sub_resource type="Resource" id="Resource_uj7hl"]
-script = ExtResource("2_loo2d")
-enemy = ExtResource("4_0mbab")
-count = 4
+script = ExtResource("2_0mbab")
+enemy = ExtResource("3_01p8e")
+count = 40
 
 [sub_resource type="Resource" id="Resource_6whbm"]
-script = ExtResource("2_loo2d")
-enemy = ExtResource("6_bgd6n")
-count = 6
+script = ExtResource("2_0mbab")
+enemy = ExtResource("4_bgd6n")
+count = 12
 
 [sub_resource type="Resource" id="Resource_uofun"]
-script = ExtResource("1_iknli")
-entries = Array[ExtResource("2_loo2d")]([SubResource("Resource_alefp"), SubResource("Resource_ufwv7"), SubResource("Resource_d2ijq"), SubResource("Resource_djp5v"), SubResource("Resource_uj7hl"), SubResource("Resource_6whbm")])
+script = ExtResource("2_0mbab")
+enemy = ExtResource("5_5m54h")
+count = 10
+
+[sub_resource type="Resource" id="Resource_2we2s"]
+script = ExtResource("2_0mbab")
+enemy = ExtResource("6_alefp")
+count = 8
+
+[sub_resource type="Resource" id="Resource_6niuv"]
+script = ExtResource("2_0mbab")
+enemy = ExtResource("7_ufwv7")
+count = 4
+
+[sub_resource type="Resource" id="Resource_pk25h"]
+script = ExtResource("2_0mbab")
+enemy = ExtResource("8_d2ijq")
+count = 6
+
+[sub_resource type="Resource" id="Resource_lftqc"]
+script = ExtResource("1_xp2vq")
+entries = Array[ExtResource("2_0mbab")]([SubResource("Resource_uj7hl"), SubResource("Resource_6whbm"), SubResource("Resource_uofun"), SubResource("Resource_2we2s"), SubResource("Resource_6niuv"), SubResource("Resource_pk25h")])
 spacing = 0.375
 
 [resource]
-script = ExtResource("7_5m54h")
-groups = Array[ExtResource("1_iknli")]([SubResource("Resource_uofun")])
+script = ExtResource("9_djp5v")
+groups = Array[ExtResource("1_xp2vq")]([SubResource("Resource_lftqc")])

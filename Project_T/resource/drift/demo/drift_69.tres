@@ -3,9 +3,9 @@
 [ext_resource type="Script" path="res://resource/drift/script/drift_group.gd" id="1_x416r"]
 [ext_resource type="Script" path="res://resource/drift/script/drift_entry.gd" id="2_eeixy"]
 [ext_resource type="Resource" path="res://resource/enemy/leaf_bug.tres" id="3_otqsu"]
-[ext_resource type="Resource" path="res://resource/enemy/hedgehog.tres" id="4_fk58l"]
+[ext_resource type="Resource" path="res://resource/enemy/ash_crawler.tres" id="4_fk58l"]
 [ext_resource type="Resource" path="res://resource/enemy/puffcap.tres" id="5_5i0vw"]
-[ext_resource type="Resource" path="res://resource/enemy/bark_beetle.tres" id="6_vq75e"]
+[ext_resource type="Resource" path="res://resource/enemy/gravecrawler.tres" id="6_vq75e"]
 [ext_resource type="Script" path="res://resource/drift/script/drift_data.gd" id="7_hc7w1"]
 
 [sub_resource type="Resource" id="Resource_53xao"]

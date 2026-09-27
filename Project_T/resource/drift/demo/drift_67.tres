@@ -4,7 +4,7 @@
 [ext_resource type="Script" path="res://resource/drift/script/drift_entry.gd" id="2_5001p"]
 [ext_resource type="Resource" path="res://resource/enemy/leaf_bug.tres" id="3_kb0xt"]
 [ext_resource type="Resource" path="res://resource/enemy/bark_beetle.tres" id="4_ib413"]
-[ext_resource type="Resource" path="res://resource/enemy/puffcap.tres" id="5_ohpbo"]
+[ext_resource type="Resource" path="res://resource/enemy/watcher.tres" id="5_ohpbo"]
 [ext_resource type="Resource" path="res://resource/enemy/mother_duck.tres" id="6_ylddx"]
 [ext_resource type="Script" path="res://resource/drift/script/drift_data.gd" id="7_k7m62"]
 

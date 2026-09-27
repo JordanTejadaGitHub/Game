@@ -1,31 +1,32 @@
 [gd_resource type="Resource" script_class="DriftData" format=3]
 
-[ext_resource type="Script" path="res://resource/drift/script/drift_group.gd" id="1_ihd1l"]
-[ext_resource type="Script" path="res://resource/drift/script/drift_entry.gd" id="2_5akyb"]
-[ext_resource type="Resource" path="res://resource/enemy/hedgehog.tres" id="3_l1tn7"]
-[ext_resource type="Resource" path="res://resource/enemy/leaf_bug.tres" id="4_dmxmc"]
-[ext_resource type="Script" path="res://resource/drift/script/drift_data.gd" id="5_dn6bh"]
-
-[sub_resource type="Resource" id="Resource_w1xq4"]
-script = ExtResource("2_5akyb")
-enemy = ExtResource("3_l1tn7")
-count = 12
-
-[sub_resource type="Resource" id="Resource_i807o"]
-script = ExtResource("2_5akyb")
-enemy = ExtResource("4_dmxmc")
-count = 20
+[ext_resource type="Script" path="res://resource/drift/script/drift_group.gd" id="1_5akyb"]
+[ext_resource type="Script" path="res://resource/drift/script/drift_entry.gd" id="2_l1tn7"]
+[ext_resource type="Resource" path="res://resource/enemy/dream_thief.tres" id="3_dmxmc"]
+[ext_resource type="Resource" path="res://resource/enemy/leaf_bug.tres" id="4_dn6bh"]
+[ext_resource type="Resource" path="res://resource/enemy/hedgehog.tres" id="5_w1xq4"]
+[ext_resource type="Script" path="res://resource/drift/script/drift_data.gd" id="6_i807o"]
 
 [sub_resource type="Resource" id="Resource_qi0ao"]
-script = ExtResource("2_5akyb")
-enemy = ExtResource("3_l1tn7")
-count = 6
+script = ExtResource("2_l1tn7")
+enemy = ExtResource("3_dmxmc")
+count = 12
 
 [sub_resource type="Resource" id="Resource_21jml"]
-script = ExtResource("1_ihd1l")
-entries = Array[ExtResource("2_5akyb")]([SubResource("Resource_w1xq4"), SubResource("Resource_i807o"), SubResource("Resource_qi0ao")])
+script = ExtResource("2_l1tn7")
+enemy = ExtResource("4_dn6bh")
+count = 20
+
+[sub_resource type="Resource" id="Resource_64yfp"]
+script = ExtResource("2_l1tn7")
+enemy = ExtResource("5_w1xq4")
+count = 6
+
+[sub_resource type="Resource" id="Resource_ayou7"]
+script = ExtResource("1_5akyb")
+entries = Array[ExtResource("2_l1tn7")]([SubResource("Resource_qi0ao"), SubResource("Resource_21jml"), SubResource("Resource_64yfp")])
 spacing = 0.7894736842105263
 
 [resource]
-script = ExtResource("5_dn6bh")
-groups = Array[ExtResource("1_ihd1l")]([SubResource("Resource_21jml")])
+script = ExtResource("6_i807o")
+groups = Array[ExtResource("1_5akyb")]([SubResource("Resource_ayou7")])

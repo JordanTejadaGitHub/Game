@@ -2,7 +2,7 @@
 
 [ext_resource type="Script" path="res://resource/drift/script/drift_group.gd" id="1_7or3t"]
 [ext_resource type="Script" path="res://resource/drift/script/drift_entry.gd" id="2_fi611"]
-[ext_resource type="Resource" path="res://resource/enemy/bark_beetle.tres" id="3_xyiig"]
+[ext_resource type="Resource" path="res://resource/enemy/barrow_wight.tres" id="3_xyiig"]
 [ext_resource type="Script" path="res://resource/drift/script/drift_data.gd" id="4_xgmot"]
 
 [sub_resource type="Resource" id="Resource_6qqw1"]

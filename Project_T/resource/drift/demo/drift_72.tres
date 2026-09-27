@@ -4,8 +4,8 @@
 [ext_resource type="Script" path="res://resource/drift/script/drift_entry.gd" id="2_fgkdo"]
 [ext_resource type="Resource" path="res://resource/enemy/leaf_bug.tres" id="3_o1ltp"]
 [ext_resource type="Resource" path="res://resource/enemy/dusk_moth.tres" id="4_dsgtw"]
-[ext_resource type="Resource" path="res://resource/enemy/dandelion_seed.tres" id="5_pfsr5"]
-[ext_resource type="Resource" path="res://resource/enemy/bark_beetle.tres" id="6_1i876"]
+[ext_resource type="Resource" path="res://resource/enemy/will_o_wisp.tres" id="5_pfsr5"]
+[ext_resource type="Resource" path="res://resource/enemy/gravecrawler.tres" id="6_1i876"]
 [ext_resource type="Resource" path="res://resource/enemy/mother_duck.tres" id="7_bq65c"]
 [ext_resource type="Script" path="res://resource/drift/script/drift_data.gd" id="8_4chg5"]
 
