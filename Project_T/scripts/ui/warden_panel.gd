@@ -87,6 +87,17 @@ func _refresh() -> void:
 		lines.append("A wall: no attack.")
 	if data.is_unique:
 		lines.append("A freed memory: one per run, can't grow.")
+	# Combat feedback (screens_ui.md): what this Warden has done, and what it combos with.
+	var log := DamageLog.instance
+	if log != null and data.can_attack:
+		var stats := log.get_tower_stats(_tower)
+		var run: float = stats.get("run", 0.0)
+		if run > 0.0:
+			lines.append("This run: %d damage · %.0f/s · from combos %d%%" % [roundi(run),
+				log.get_dps(_tower), roundi(100.0 * stats.get("run_combo", 0.0) / run)])
+	var links := Synergies.find_links(data, _tower.cell, _tower.get_parent().get_children())
+	if not links.is_empty():
+		lines.append("Combos with: " + ", ".join(links.map(func(l: Array) -> String: return l[1])))
 	_body.text = "\n".join(lines)
 
 	for child in _buttons.get_children():

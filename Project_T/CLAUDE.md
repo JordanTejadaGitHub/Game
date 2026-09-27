@@ -177,6 +177,14 @@ controller / Steam Deck, accessibility, Steam achievements (milestones map to th
   run, whispers toggle, run summary. Settings: UI scale, Auto-drift default, reduced motion, damage
   numbers (`damage_numbers` 0/1/2). Hotkeys G (grow selected), H / F (centre on goal / start).
   Results show run stats (`RunState.leaves_lost`, `longest_path`, `play_time`). `tests/test_ui.gd`.
+- Combat feedback (screens_ui.md), all on `DamageLog` events: `CombatCallouts` (world; combo tag →
+  "Conducted!" / "Popped!" / "Asleep!" / "Shattered!" / "Weak!", throttled; calls
+  `enemy.flash_status`), `PlacementLinks` (vines from the build ghost to Wardens it combos with),
+  `Synergies` (static status → payoff table; `link`, `find_links`), `RestReport` (top 3 Wardens +
+  combos per block; `get_report_text` also feeds the results' run report), Warden panel "This run /
+  from combos / Combos with". `DamageLog`: `combo_counts_block/run`, `get_top_towers(period)`,
+  numbers mode from the `damage_numbers` setting. New combo tags just need a `CombatCallouts.WORDS` /
+  `USES_STATUS` / `RestReport.COMBO_LINES` entry. `tests/test_feedback.gd`.
 
 ## Meta (meta_design.md; full game only — `game/demo` true = nothing applied or recorded)
 - `UnlockData` (`resource/meta/grove/*.tres`): root (WARDENS/DREAMS/PERKS/FORESTS), `costs` per

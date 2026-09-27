@@ -71,9 +71,44 @@ var drift_label := 0  # The drift the "drift" totals started at
 func _ready() -> void:
 	instance = self
 	z_index = 20  # Numbers over nightmares and effects
+	# The player's setting (Test Grove can override it later with set_numbers_mode).
+	numbers_mode = clampi(int(HeartwoodMemory.get_settings().get("damage_numbers", NumbersMode.BIG)),
+		NumbersMode.OFF, NumbersMode.ALL) as NumbersMode
 	var director := get_node_or_null("%DriftDirector") as DriftDirector
 	if director:
 		director.drift_started.connect(func(number: int) -> void: reset_drift(number))
+		director.rest_ended.connect(func(_block: int) -> void: reset_block())
+
+# --- Block and run reports (rest report, results) -------------------------------------------------
+
+# Combos triggered: {tag: times} this block (since the last rest) and this run.
+var combo_counts_block := {}
+var combo_counts_run := {}
+
+func reset_block() -> void:
+	combo_counts_block = {}
+	for id in _stats:
+		_stats[id]["block"] = 0.0
+
+# The `count` Wardens with the most damage, this block (`period` = "block") or run ("run"):
+# [{"name", "tower", "amount"}], most first.
+func get_top_towers(period: String = "run", count: int = 3) -> Array:
+	var rows := []
+	for id in _stats:
+		var row: Dictionary = _stats[id]
+		var amount: float = row.get(period, 0.0)
+		if amount > 0.0:
+			rows.append({"name": row.name, "tower": row.tower if is_instance_valid(row.tower) else null, "amount": amount})
+	rows.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return a.amount > b.amount)
+	return rows.slice(0, count)
+
+# The combo triggered most this run: [tag, times], or [] if none.
+func get_top_combo(counts: Dictionary = combo_counts_run) -> Array:
+	var best := []
+	for tag in counts:
+		if best.is_empty() or counts[tag] > best[1]:
+			best = [tag, counts[tag]]
+	return best
 
 func _exit_tree() -> void:
 	if instance == self:
@@ -93,11 +128,15 @@ func report(event: Event) -> void:
 		row.run += event.amount
 		row.run_combo += event.combo_amount
 		row.drift += event.amount
+		row["block"] = row.get("block", 0.0) + event.amount
 		row.drift_combo += event.combo_amount
 		if event.kind != &"hit":
 			row.drift_status += event.amount
 		for tag in event.combos:
 			row.combos[tag] = row.combos.get(tag, 0.0) + _combo_share(event, tag)
+	for tag in event.combos:
+		combo_counts_block[tag] = combo_counts_block.get(tag, 0) + 1
+		combo_counts_run[tag] = combo_counts_run.get(tag, 0) + 1
 	_recent.append(event)
 	damage_dealt.emit(event)
 	_show_number(event)
