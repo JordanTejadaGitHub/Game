@@ -145,7 +145,16 @@ Rootling, Acorn) brings its own cards.
 | 30 | **Spore Cascade** | a dispelled nightmare's Spored stacks spread to the 2 nearest nightmares | spore | Sporeling | Start |
 | 31 | **Static Field** | Static bolts also hit creatures within 1 tile | storm | Firefly Jar | Grove |
 | 32 | **Guiding Light** | Marked spreads to creatures within 1 tile of the target | mark | Lanternmoth | Grove |
-| 33 | **Seedling Gift** | at every rest, plant a free Sprout | sprout, economy | — | Grove |
+| 33 | **Seedling Gift** | at every rest, gain **1 free Sprout** (a charge; you plant it) | sprout, economy | — | Grove |
+
+**Seedling Gift details** (settled 2026-09-27): the free Sprout is a **charge**, not an automatic
+planting, so it never blocks or reshapes the maze on its own. Charges show next to the Sprout button
+in the Warden bar (a small seed badge with the count) and are **used before Dew** when you plant a
+Sprout, like Heartwood's Reach's free clears. Unused charges last all run and are kept in the save.
+A Sprout planted with a charge has 0 invested Dew, so selling it refunds nothing. With **Nursery**,
+a Sprout planted from a charge starts at **rank II** (its rank Dew counts as 0 too). **Deepened II:**
+at every rest, choose a free Sprout charge **or** a free growth charge (the next Sprout → base
+Warden growth costs 0).
 
 ### Legendary: changes how you play (act 2+ only)
 
