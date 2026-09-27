@@ -248,6 +248,7 @@ func _init() -> void:
 			rows.append([idle, _make_attack(warden) if ATTACKS.has(warden) else null])
 		_save_line_preview(rows, PREVIEWS + line + ".png")
 	_save_attack_info()
+	_make_ranks()
 	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(OUT + "projectiles/"))
 	for p: String in ["spore", "pebble", "boulder", "dew_drop", "spark", "light_orb", "sling_stone", "moon_shard",
 			"frost_shard", "sparrow", "wren", "magpie", "starling", "moon_mote", "fairy_ring", "elf_circle"]:
@@ -3261,3 +3262,246 @@ func _trap_ring(canvas: Image, f: int, cap: Color, n: int) -> void:
 		_px(canvas, p.x + 1, p.y - 1, cap)
 		if (i + f) % n == 0:
 			_px(canvas, p.x, p.y - 2, Color.WHITE)
+
+# --- Nurture ranks (warden_stats.md "Ranks: Nurture") -----------------------------------------
+# Every Warden stands on the same waystone slab (the mock's), so rank art is drawn once and layered
+# on any Warden: rank_<n>_over.png sits on top of the Warden sprite but only touches the slab's
+# rim and side faces (never the figure); rank_<n>_under.png is a warm halo drawn below it. Both
+# are 8-frame loops like the idle. Ranks build up: I seedlings, II blossoming vine, III glowing
+# runes, IV gold trim, V golden laurels and rising motes. Plus rank badges and a rank-up burst.
+
+const RANKS_OUT := "res://assets/towers/ranks/"
+const RANK_GOLD := Color("#f0c860")
+const RANK_GOLD_DARK := Color("#a87a28")
+const BADGE_SIZE := 16
+const RANKUP_FRAMES := 8
+
+func _make_ranks() -> void:
+	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(RANKS_OUT))
+	var masks := _slab_masks()
+	for rank in range(1, 6):
+		for layer in ["over", "under"]:
+			var sheet := Image.create_empty(S * FRAMES, S, false, Image.FORMAT_RGBA8)
+			for f in FRAMES:
+				var canvas := _layer()
+				if layer == "over":
+					_rank_over(canvas, rank, f, masks)
+				else:
+					_rank_under(canvas, rank, f, masks)
+				sheet.blit_rect(canvas, Rect2i(0, 0, S, S), Vector2i(f * S, 0))
+			sheet.save_png(RANKS_OUT + "rank_%d_%s.png" % [rank, layer])
+	var badges := Image.create_empty(BADGE_SIZE * 5, BADGE_SIZE, false, Image.FORMAT_RGBA8)
+	for rank in range(1, 6):
+		badges.blit_rect(_rank_badge(rank), Rect2i(0, 0, BADGE_SIZE, BADGE_SIZE), Vector2i((rank - 1) * BADGE_SIZE, 0))
+	badges.save_png(RANKS_OUT + "rank_badges.png")
+	var burst := Image.create_empty(S * RANKUP_FRAMES, S, false, Image.FORMAT_RGBA8)
+	for f in RANKUP_FRAMES:
+		var canvas := _layer()
+		_rank_up(canvas, f)
+		burst.blit_rect(canvas, Rect2i(0, 0, S, S), Vector2i(f * S, 0))
+	burst.save_png(RANKS_OUT + "rank_up.png")
+	_save_rank_preview(masks, badges)
+
+# The slab's top face, side faces and front rim (the top face's front edges), from the template.
+func _slab_masks() -> Dictionary:
+	var pose: Dictionary = poses[0]
+	var top := _layer()
+	var side := _layer()
+	for i in S * S:
+		var ch: String = pose.grid[i]
+		if ch == ".":
+			continue
+		var x := i % S
+		var y := i / S
+		var on_top := y <= 40 + mini(x, 63 - x) / 2
+		if pose.outside[i] == 1:
+			(top if ch == "a" and on_top else side).set_pixel(x, y, Color.WHITE)
+		else:
+			var xl := 2 * (40 - y) - 1
+			var xr := 64 - 2 * (40 - y) + 1
+			if y > 40 or (x > xl + 1 and x < xr - 1):
+				top.set_pixel(x, y, Color.WHITE)
+	var rim := _layer()
+	for y in range(S - 1):
+		for x in S:
+			if _on(top, x, y) and _on(side, x, y + 1) and y >= 40:
+				rim.set_pixel(x, y, Color.WHITE)
+	return {top = top, side = side, rim = rim}
+
+# The rim's y at column x (the front edge of the top face), or -1.
+func _rim_y(masks: Dictionary, x: int) -> int:
+	for y in range(40, S):
+		if _on(masks.rim, x, y):
+			return y
+	return -1
+
+func _rank_over(canvas: Image, rank: int, f: int, masks: Dictionary) -> void:
+	var sway: int = SWAY[f]
+	var twinkle := f % 4 < 2
+	# V: golden laurels at the three corners.
+	if rank >= 5:
+		var laurel := _ramp(["#c89030", "#f0c850", "#fff4b0"])
+		for c: Array in [[Vector2(4, 44), -1], [Vector2(59, 44), 1]]:
+			var at: Vector2 = c[0]
+			var dir: int = c[1]
+			for k in 3:
+				_leaf(canvas, at, at + Vector2(dir * (2 + k), -5 + k * 2), 2.0, laurel, Color("#7a5218"))
+	# IV: gold trim along the rim with a glint running along it.
+	if rank >= 4:
+		var glint := int(f * S / float(FRAMES))
+		for x in S:
+			var y := _rim_y(masks, x)
+			if y < 0:
+				continue
+			_px(canvas, x, y, Color.WHITE if absi(x - glint) <= 1 else RANK_GOLD)
+			if _on(masks.side, x, y + 1):
+				_px(canvas, x, y + 1, RANK_GOLD_DARK)
+	# III: warm runes glowing in the side faces.
+	if rank >= 3:
+		var rune := Color("#ffe890") if twinkle else Color("#f0c060")
+		var glyphs := [[Vector2i(0, 0), Vector2i(1, 1), Vector2i(2, 0), Vector2i(1, 2)], [Vector2i(0, 0), Vector2i(0, 1), Vector2i(0, 2), Vector2i(1, 1), Vector2i(2, 2)],
+			[Vector2i(1, 0), Vector2i(0, 1), Vector2i(2, 1), Vector2i(1, 2)]]
+		for i in 6:
+			var p: Vector2i = [Vector2i(9, 48), Vector2i(17, 52), Vector2i(25, 56), Vector2i(37, 56), Vector2i(45, 52), Vector2i(53, 48)][i]
+			for d: Vector2i in glyphs[i % 3]:
+				if _on(masks.side, p.x + d.x, p.y + d.y):
+					_px(canvas, p.x + d.x, p.y + d.y, rune)
+	# II: a flowering vine creeping along just under the rim.
+	if rank >= 2:
+		for x in range(2, 62):
+			var y := _rim_y(masks, x)
+			if y < 0:
+				continue
+			var vy := y + 2 + (1 if (x / 4) % 2 == 0 else 0)
+			if _on(masks.side, x, vy) and x % 3 != 0:
+				_px(canvas, x, vy, Color("#4a8a3e"))
+			if x % 9 == 4 and _on(masks.side, x, vy):
+				_flower(canvas, Vector2i(x, vy), Color("#f4a0c0") if x % 18 == 4 else Color("#fff4f0"), Color("#ffd24a"))
+	# I: two glowing seedlings on the front rim (they bloom from rank II).
+	for base: Vector2i in [Vector2i(16, 47), Vector2i(47, 47)]:
+		var y := _rim_y(masks, base.x)
+		var stem := _layer()
+		_stroke(stem, [Vector2(base.x, y), Vector2(base.x, y - 4)], 0.9, Color("#5a9a3c"))
+		_stamp(canvas, stem, Color("#1e3a24"))
+		_leaf(canvas, Vector2(base.x, y - 4), Vector2(base.x - 5 + sway, y - 7), 2.2, _ramp(LEAF), Color("#1e3a24"))
+		_leaf(canvas, Vector2(base.x, y - 4), Vector2(base.x + 5 + sway, y - 8), 2.2, _ramp(LEAF), Color("#1e3a24"))
+		if rank >= 2:
+			_flower(canvas, Vector2i(base.x + sway, y - 6), Color("#ffe890"), Color("#f0a030"))
+		_warm_glow(canvas, Vector2(base.x, y - 4), Vector2(7, 5), f)
+	# V: motes of light drifting up off the slab.
+	if rank >= 5:
+		for k in 4:
+			var t := float((f + k * 2) % FRAMES) / FRAMES
+			var x: int = [6, 22, 42, 58][k] + roundi(sin(t * TAU) * 1.5)
+			var y := roundi(46 - t * 14)
+			if not _on(masks.top, x, y):
+				_glow_dot(canvas, Vector2i(x, y), Color("#fffbe0"), GLOW_OUTER if t < 0.6 else Color(0, 0, 0, 0))
+
+# A warm halo round the foot of the slab, growing with rank (drawn under the Warden sprite, so only
+# the part outside the slab shows).
+func _rank_under(canvas: Image, rank: int, f: int, _masks: Dictionary) -> void:
+	if rank < 3:
+		return
+	var pulse := 0.5 + 0.5 * sin(TAU * f / FRAMES)
+	var r := Vector2(32 + rank * 1.2 + pulse, 13 + rank * 0.8)
+	var c := Vector2(31.5, 49)
+	for y in S:
+		for x in S:
+			var q := ((Vector2(x + 0.5, y + 0.5) - c) / r).length()
+			if q > 1.0:
+				continue
+			if q > 0.85 and (x + y + f) % 2 == 0:
+				canvas.set_pixel(x, y, Color(GLOW_OUTER, 0.55))
+			elif q <= 0.85 and (x + 2 * y + f) % (3 if rank >= 4 else 4) == 0:
+				canvas.set_pixel(x, y, Color(GLOW_INNER, 0.6))
+
+# A 16x16 badge: a gold seed-medallion with the rank's numeral, dressed up at higher ranks.
+func _rank_badge(rank: int) -> Image:
+	var canvas := _layer()
+	var c := Vector2(8, 8.5)
+	var o := Color("#4a2e10")
+	if rank >= 3:
+		for side: int in [-1, 1]:
+			_px(canvas, int(c.x) + side * 7, 7, Color("#6ab04a"))
+			_px(canvas, int(c.x) + side * 7, 9, Color("#6ab04a"))
+			_px(canvas, int(c.x) + side * 8 - (1 if side < 0 else 0), 8, Color("#9ad86a"))
+	var coin := _layer()
+	_ellipse(coin, c, Vector2(6.2, 6.2), _ramp(["#c89030", "#f0c060", "#fff0a0"]))
+	_stamp(canvas, coin, o)
+	if rank >= 5:
+		for p: Vector2i in [Vector2i(8, 0), Vector2i(7, 1), Vector2i(9, 1), Vector2i(8, 1)]:
+			_px(canvas, p.x, p.y, Color("#fffbe0"))
+	var numerals := {
+		1: [0], 2: [0, 2], 3: [0, 2, 4],
+	}
+	var ink := Color("#5a3410")
+	var i_col := func(x: int) -> void:
+		for y in range(6, 11):
+			_px(canvas, x, y, ink)
+	var v_at := func(x: int) -> void:
+		for p: Vector2i in [Vector2i(0, 0), Vector2i(0, 1), Vector2i(1, 2), Vector2i(1, 3), Vector2i(2, 4), Vector2i(3, 3), Vector2i(3, 2), Vector2i(4, 1), Vector2i(4, 0)]:
+			_px(canvas, x + p.x, 6 + p.y, ink)
+	if rank <= 3:
+		var cols: Array = numerals[rank]
+		var start := 8 - int(cols[-1]) / 2
+		for dx: int in cols:
+			i_col.call(start + dx)
+	elif rank == 4:
+		i_col.call(5)
+		v_at.call(7)
+	else:
+		v_at.call(6)
+	return canvas
+
+# Played once when a Warden is nurtured: a warm ring swells off the slab, leaves and sparks fly up.
+func _rank_up(canvas: Image, f: int) -> void:
+	var t := float(f) / (RANKUP_FRAMES - 1)
+	var c := Vector2(31.5, 46)
+	if f < 6:
+		_ring(canvas, c, Vector2(10 + t * 30, 4 + t * 11), GLOW_INNER, f >= 4)
+		_ring(canvas, c, Vector2(7 + t * 26, 3 + t * 9), GLOW_OUTER, f >= 3)
+	for k in 7:
+		var a := k * TAU / 7.0 + 0.3
+		var p := c + Vector2(cos(a) * (6 + t * 20), -t * 34 - absf(sin(a)) * 6 + sin(a) * 4)
+		if p.y < 0:
+			continue
+		if k % 2 == 0:
+			_px(canvas, int(p.x), int(p.y), Color("#9ad86a"))
+			_px(canvas, int(p.x) + 1, int(p.y) - 1, Color("#d8f8a8"))
+			_px(canvas, int(p.x) + 1, int(p.y), Color("#6ab04a"))
+		elif f < 7:
+			_sparkle(canvas, Vector2i(p.round()), Color("#fffbe0") if f % 2 == 0 else RANK_GOLD)
+	if f <= 2:
+		_warm_glow(canvas, c + Vector2(0, -8), Vector2(18 - f * 3, 10), f)
+
+# Sample Wardens at ranks 0-V (under + sprite + over, frame 0), then the badges and the burst.
+func _save_rank_preview(masks: Dictionary, badges: Image) -> void:
+	var demo := ["sprout", "sporeling", "pebbling", "firefly_jar", "moon_moth"]
+	var pad := 6
+	var preview := Image.create_empty(pad + 6 * (S + pad), pad + (demo.size() + 2) * (S + pad), false, Image.FORMAT_RGBA8)
+	preview.fill(Color("#5fa844"))
+	for r in demo.size():
+		var body := _layer()
+		call("_draw_" + demo[r], body, _idle_state(0))
+		for rank in 6:
+			var tile := _layer()
+			if rank > 0:
+				_rank_under(tile, rank, 0, masks)
+			tile.blend_rect(body, Rect2i(0, 0, S, S), Vector2i.ZERO)
+			if rank > 0:
+				var over := _layer()
+				_rank_over(over, rank, 0, masks)
+				tile.blend_rect(over, Rect2i(0, 0, S, S), Vector2i.ZERO)
+			preview.blend_rect(tile, Rect2i(0, 0, S, S), Vector2i(pad + rank * (S + pad), pad + r * (S + pad)))
+	var y := pad + demo.size() * (S + pad)
+	for rank in 5:
+		var badge := badges.get_region(Rect2i(rank * BADGE_SIZE, 0, BADGE_SIZE, BADGE_SIZE))
+		badge.resize(BADGE_SIZE * 3, BADGE_SIZE * 3, Image.INTERPOLATE_NEAREST)
+		preview.blend_rect(badge, Rect2i(0, 0, BADGE_SIZE * 3, BADGE_SIZE * 3), Vector2i(pad + (rank + 1) * (S + pad) + 8, y + 8))
+	y += S + pad
+	for f in 6:
+		var canvas := _layer()
+		_rank_up(canvas, f + 1)
+		preview.blend_rect(canvas, Rect2i(0, 0, S, S), Vector2i(pad + f * (S + pad), y))
+	preview.resize(preview.get_width() * 3, preview.get_height() * 3, Image.INTERPOLATE_NEAREST)
+	preview.save_png(PREVIEWS + "ranks.png")
