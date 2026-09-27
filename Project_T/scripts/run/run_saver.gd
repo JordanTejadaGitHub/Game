@@ -40,7 +40,8 @@ static func delete_save() -> void:
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS  # Choice screens pause the tree
-	autosave = get_tree().current_scene == owner
+	# Never in tests, and never in Test Grove (a dev playtest would overwrite the real saved run).
+	autosave = get_tree().current_scene == owner and not TestGrove.is_active()
 	# Runs before MapGenerator (earlier sibling), so the map is rebuilt from the saved seed.
 	if resume_next:
 		resume_next = false

@@ -101,6 +101,21 @@ func _run() -> void:
 
 	main.queue_free()
 	await process_frame
+
+	# --- Test Grove runs never bank Seeds or count as runs ---
+	TestGrove.force_on = true
+	var before := HeartwoodMemory.load_data()
+	main = await _new_run()
+	var grove_results: ResultsScreen = main.get_node("%ResultsScreen")
+	grove_results.bank_in_tests = true
+	main.get_node("%RunState").end_run(false)
+	await _frames(2)
+	var after := HeartwoodMemory.load_data()
+	_check(grove_results.not_banked and after.seeds == before.seeds and after.runs_played == before.runs_played,
+		"a Test Grove run banks nothing")
+	TestGrove.force_on = false
+	main.queue_free()
+	await process_frame
 	RunSaver.delete_save()
 	_delete(PROFILE_PATH)
 	print("save test: %s" % ("PASS" if failures == 0 else "%d FAILED" % failures))

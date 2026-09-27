@@ -17,6 +17,7 @@ const MEMORY_1 := "Before the Heartwood, there were two trees, and both of them 
 var breakdown: Array = []  # [[label, seeds], …, ["Total", n]] of the finished run
 var banked := 0  # Seeds banked after this run
 var bank_in_tests := false  # Tests that point HeartwoodMemory.file_path at a temp file can bank
+var not_banked := false  # Test Grove run: the breakdown is shown but nothing was saved
 
 func _ready() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -28,12 +29,16 @@ static func is_demo() -> bool:
 	return ProjectSettings.get_setting(DEMO_SETTING, false)
 
 func _on_run_ended(won: bool) -> void:
-	var first_run := HeartwoodMemory.is_first_run()
+	# Test Grove (developer playtests) never banks Seeds or counts as a run, so it can't inflate the
+	# real save, and never gets the first-run bonus.
+	var test_grove := TestGrove.is_active()
+	var first_run := HeartwoodMemory.is_first_run() and not test_grove
 	breakdown = run_state.get_seed_breakdown(drift_director.drifts_cleared, drift_director.bosses_cleansed, first_run)
-	if get_tree().current_scene == owner or bank_in_tests:
+	if (get_tree().current_scene == owner or bank_in_tests) and not test_grove:
 		banked = HeartwoodMemory.record_run(breakdown[-1][1], won, drift_director.drifts_started)
-	else:  # A test's run: show what would be banked without touching the player's profile
+	else:  # A test's or Test Grove run: show what would be banked without touching the profile
 		banked = HeartwoodMemory.load_data().seeds + breakdown[-1][1]
+		not_banked = test_grove
 	_build(won)
 	visible = true
 
@@ -70,6 +75,8 @@ func _build(won: bool) -> void:
 			Color(0.75, 0.95, 0.6))
 		box.add_child(row)
 	box.add_child(HSeparator.new())
+	if not_banked:
+		_label(box, "Test Grove: nothing was banked.", 15, Color(1.0, 0.75, 0.4))
 
 	if is_demo():
 		# The Memory Grove teaser: asleep in the demo, waiting in the full game.
