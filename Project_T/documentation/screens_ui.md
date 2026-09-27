@@ -109,6 +109,43 @@ Stormcap belong together.
 - **Targeting** (proposed): *First* (default) / *Strongest* / *Closest* for attacking Wardens. Adds
   real decisions (bosses, elites, Lantern Bearers) at little cost.
 
+### Selecting several Wardens
+
+Added 2026-09-27. Mazes reach 30–40 Wardens, so upgrading one at a time gets tedious.
+
+**Selecting** (outside build mode):
+
+| Input | Selects |
+|---|---|
+| Click | one Warden (as now) |
+| **Click and drag** on the map | every Warden inside the box (a thin warm outline shows the box) |
+| **Double-click** a Warden | every Warden **of the same kind visible on screen** |
+| Ctrl + double-click | every Warden of that kind on the whole map |
+| Shift + click / Shift + drag | add to or remove from the selection |
+| Esc, right-click, click empty ground | clear the selection |
+
+A drag only starts after the mouse moves ~8 px, so normal clicks never turn into boxes. Walls
+(Thornwalls) are included in box selections only if the box contains nothing else, so a sweep
+across the maze picks the Wardens, not the hedges.
+
+**The panel with a selection:**
+- Header: *"8 Wardens selected"*, grouped by kind (*5 Sporeling, 3 Dewdrop*), each group with its
+  portrait.
+- **Grow, per group:** one button per form that group can grow into, with the total cost:
+  *"Grow 5 Sporelings into Driftspore · 225 Dew"*. If you can't afford them all, the button says
+  so and grows as many as you can: *"Grow 3 of 5 · 135 Dew"*. It grows the ones **closest to the
+  Heartwood first** (usually where they matter most). Forms still needing a Dream show as
+  disabled, as now.
+- **Sell all:** *"Sell 8 · +310 Dew"* (half refund while nightmares walk, as always); asks for
+  confirmation during a drift.
+- **Targeting** (if accepted): set it for the whole group at once.
+- Stats in the panel become totals and averages (damage this run, from combos).
+
+Selected Wardens have the warm outline; growing plays a short staggered bloom across them.
+
+**Controller** (see the controller topic): hold the select button and move the cursor to paint a
+selection; a "select all of this kind" button.
+
 ### Nightmare info (on hover)
 
 Name, one-line trait ("Rolls fast down straight corridors"), health, speed, leaf cost, current
@@ -183,6 +220,7 @@ Side: a run summary (Dreams, families, active Omen, time played).
 | Action | Key |
 |---|---|
 | Select Warden / place | 1–9, left click |
+| Select several | click and drag; double-click (same kind on screen); Ctrl + double-click (whole map); Shift adds/removes |
 | Cancel / deselect | right click, Esc |
 | Build mode | B |
 | Start drift / call early | Enter |
@@ -210,5 +248,6 @@ For the coding chat. Items likely missing or different (verify in the game):
 - [ ] Leak feedback at the Heartwood
 - [ ] Abandon run in pause; UI scale and accessibility settings
 - [ ] Proposed hotkeys (Delete, G, H, F)
+- [ ] Selecting several Wardens: box select, double-click same kind, group grow / sell
 - [ ] Combat feedback: combo callouts, damage numbers setting, placement links, "from combos" stat,
       rest report, run report on results
