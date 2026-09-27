@@ -58,8 +58,21 @@ root need earlier ones. Costs rise along a root, so early choices are cheap and 
 | Pebbling finals (Boulderback, Lullaby Bell) | 100 | Pebbling line |
 | Rootling finals (Long Way Home, Snugroot) | 100 | Rootling line |
 | Acorn finals (Grove Heart, Wellspring) | 100 | Acorn line |
+| Hidden branch: Fairy Ring (+ Elf Circle) | 90 | Sporeling finals |
+| Hidden branch: Standing Stone (+ Moonstone) | 90 | Pebbling line |
+| Hidden branch: Frostfern (+ Hoarfrost) | 90 | Dewdrop finals |
+| Hidden branch: Rootlight (+ Starcave) | 90 | Rootling line |
+| Hidden branch: Graftling (+ Grafted Elder) | 120 | Acorn line |
+| Nestling family *(full game)* | 120 | any 2 of Pebbling / Rootling / Acorn |
+| Whirligig family *(full game)* | 120 | any 2 of Pebbling / Rootling / Acorn |
 
-Final forms still need their Rare Dream in-run; the Grove only puts them in the pool.
+Final forms still need their Rare Dream in-run; the Grove only puts them in the pool. Sunpetal is
+the one hidden branch that comes from a milestone instead (below). The hidden branches and new
+families add ~720 Seeds; the time estimate at the top should be re-checked once they're priced for
+real (or some move to milestones).
+
+**Memory Wardens** (`tower_design.md`) aren't bought: dispelling a boss for the first time unlocks
+its Memory Warden as a boss-reward option in every later run.
 
 **Families before the Grove fills in:** a new player has only 3 families (Sporeling, Firefly Jar,
 Dewdrop), but a run offers family picks at drift 1 and at the 25/50/75 bosses. When there are
