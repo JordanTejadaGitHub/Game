@@ -157,6 +157,33 @@ branch, Rare final); only the extra cards are listed here.
 **Honeysuckle** unlock card: Uncommon, like Bramble (*"Thornwalls can grow into Honeysuckle
 (+10 Dew each)"*), Start pool.
 
+## Clearing cards: removing obstacles
+
+Added 2026-09-27. Obstacles (Withered Trees, Mossy Boulders, later Blight Patches) are the dream's
+dead places; clearing them costs Dew, gives +1 Seed each at run end (`run_design.md`) and frees
+building space, but often **opens shortcuts for the nightmares**. These cards make clearing a real
+build direction with that trade-off intact.
+
+| # | Card | Rarity | Effect | Tags | Pool |
+|---|---|---|---|---|---|
+| 54 | **Cleared Ground** | Common | clearing obstacles costs **40% less** Dew (stacks, minimum 1 Dew) | clearing, economy | Start |
+| 55 | **Heartwood's Reach** | Uncommon | gain **4 free clears**; use them any time (a charge counter on the HUD; unused charges last all run). Deepened II: 7 | clearing | Start |
+| 56 | **Reclaimed Earth** | Uncommon | each obstacle you clear gives **+8 Dew**, and the cell is left **fertile**: the first Warden planted there costs 50% less | clearing, economy | Start |
+| 57 | **Tended Forest** | Rare | **+1% damage for every obstacle cleared this run** (max +25%; clears from before the card count) | clearing, maze | Start |
+| 58 | **Burn Back the Dead Wood** | Rare, **Bittersweet** | clear **every Withered Tree** on the map right now. **Cost:** nightmares +10% speed for the rest of the run | clearing, bittersweet | Grove |
+
+- **Offered only when it matters:** clearing cards need at least **8 obstacles** left on the map
+  (Burn Back needs 8 Withered Trees). They lean toward early Dreams, when the map is still full.
+- **Seeds:** free clears (Heartwood's Reach) still give +1 Seed each. **Burn Back doesn't**: clearing
+  dozens of trees at once would otherwise flood the meta with Seeds.
+- **Path rule:** clearing only ever opens routes, so every card is always safe; the preview line
+  shows the new route before a clear, as now.
+- **Pairs well with:** Hedge Maze and Thornwalls (clear the forest, then build your own walls where
+  you want them), The Long Walk (more space for a longer maze), Cozy Corners.
+- **Data:** `RunState` gets a `free_clears` counter and a set of fertile cells; clear cost goes
+  through one function so Cleared Ground stacks apply everywhere; `Burn Back` is a one-shot effect
+  + a permanent nightmare speed modifier.
+
 ## Deepened cards: repeats become upgrades
 
 Added 2026-09-27. With 19 Dreams from a 33-card pool, repeats are common. Stat cards already
