@@ -148,26 +148,29 @@ branches), **its final forms**, **its hidden branch**.
 
 ### Section 3: Cards (Dream pool unlocks)
 
-Cards come in **themed bundles** (one node = a set of Grove cards joining the Dream pool), so the
-limb stays readable and each purchase feels big. The Legendaries sit at the top.
+Revised 2026-09-27. Cards come in **themed bundles** (one node = a set of Grove cards joining the
+Dream pool). The limb splits into **one branch per build style**; each branch grows from cheap
+bundles near the trunk to **a Legendary flower at its tip**. So the tree also shows which build
+styles a player has grown into.
 
-| Node | Cards it adds | Cost | Needs |
+| Branch | Node 1 (near the trunk) | Node 2 | Tip: Legendary |
 |---|---|---|---|
-| Storm Lore | Static Bloom, Static Field | 40 | — |
-| Spore Lore | Twin Puff, Chain Bloom | 40 | — |
-| Guiding Lights | Guiding Light, Starlit Aim | 50 | Storm Lore |
-| Keen Edges (crit) | Still Target, Shattering Blow, Reckless Bloom | 70 | — |
-| Tending Hands (nurture) | Sunlit Rest, Deeper Rings, Nursery, The Old Ones, Chosen Few | 90 | — |
-| Overgrowth (wide) | Seedling Gift, Canopy, Overgrowth | 70 | — |
-| Lone Lantern (narrow) | The Last Light | 70 | — |
-| Dead Wood (clearing) | Burn Back the Dead Wood | 40 | — |
-| Bittersweet Dreams | Wild Growth, Borrowed Memory, Deep Sleep and the other Bittersweet Grove cards | 60 | any 2 bundles |
-| **The Long Walk** | Legendary | 100 | any 3 bundles |
-| **Rootbound** | Legendary | 100 | any 3 bundles |
-| **Monoculture** | Legendary | 100 | any 3 bundles |
-| **Full Moon** | Legendary | 120 | Keen Edges |
+| **Storm** | *Storm Lore*: Static Bloom, Static Field (40) | *Guiding Lights*: Guiding Light, Starlit Aim (60) | — (Storm builds share the Reactions tip) |
+| **Spores and Reactions** | *Spore Lore*: Twin Puff, Chain Bloom (40) | *Reactions*: Wildfire Spores, Deep Water, Quick Reactions (70) | **Dawnbreak** (120) |
+| **Keen Edges** (crit) | *Sharpened*: Still Target, Shattering Blow (50) | *Reckless*: Reckless Bloom (40) | **Full Moon** (120) |
+| **Tending** (nurture, tall) | *Tending Hands*: Sunlit Rest, Deeper Rings (60) | *Nursery*: Nursery, Chosen Few (70) | **The Old Ones** (120) |
+| **Overgrowth** (wide) | *Seedbed*: Seedling Gift, Canopy (60) | *Wild Planting*: Overgrowth (50) | **Rootbound** (100) |
+| **Lone Lantern** (narrow) | *One Line*: Monoculture (80) | — | **The Last Light** (120) |
+| **The Long Way** (maze, clearing) | *Dead Wood*: Burn Back the Dead Wood (40) | — | **The Long Walk** (100) |
+| **Bittersweet** | *Bittersweet Dreams*: Deep Sleep, Borrowed Dew, Wild Growth, Overgrown, Restless Dreams, Hungry Roots, Borrowed Memory (60; needs any 2 other nodes) | — | — |
 
-Total ≈ 900 Seeds. Cards added later go into an existing bundle or a new one.
+- Each node needs the one before it on its branch; a tip needs both nodes below it (or the one,
+  where a branch has a single node).
+- **Family-specific cards** (Skipping Stones, Deep Frost, Sweet Scent, etc.) aren't here: they come
+  with their family or hidden-branch node on the Families limb.
+- **Start-pool cards** (the basic stat, economy and first build cards) are always available, so a
+  new player already has a full Dream pool; this limb adds depth and big payoffs.
+- Total ≈ 1,300 Seeds. New cards join an existing branch's bundle or start a new branch.
 
 **Families before the Grove fills in:** a new player has only 3 families (Sporeling, Firefly Jar,
 Dewdrop), but a run offers family picks at drift 1 and at the 25/50/75 bosses. When there are
