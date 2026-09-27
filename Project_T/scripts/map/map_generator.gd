@@ -205,6 +205,24 @@ func clear_obstacle(cell: Vector2) -> bool:
 	path_changed.emit()
 	return true
 
+# Puts obstacle `data` on `cell` mid-run (the Hollow Oak's thorn-saplings): blocks and draws it, and
+# re-routes nightmares. Call can_block() first; it can then be cleared like any obstacle.
+func place_obstacle(cell: Vector2, data: ObstacleData) -> void:
+	environment_object_layer.set_cell(Vector2i(cell), data.source_id, data.tiles.pick_random())
+	obstacles[cell] = data
+	path_layer.set_cell_blocked(cell, true)
+	path_layer.draw()
+	path_changed.emit()
+
+# Removes an obstacle without the player clearing it (a sapling withering): no clearing mark, no
+# obstacle_cleared. Re-routes nightmares.
+func remove_obstacle(cell: Vector2) -> void:
+	if not obstacles.has(cell):
+		return
+	_remove_obstacle(cell, false)
+	path_layer.draw()
+	path_changed.emit()
+
 # Path from `cell` to the end, in cell coordinates. Used by enemies to re-route.
 func get_path_from(cell: Vector2) -> PackedVector2Array:
 	return path_layer.find_path_from(cell)

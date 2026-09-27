@@ -2,14 +2,18 @@
 
 [ext_resource type="Script" path="res://resource/enemy/script/enemy_data.gd" id="1_edata"]
 [ext_resource type="SpriteFrames" path="res://animation/enemy/wandering_hare.tres" id="2_frames"]
+
 [resource]
 script = ExtResource("1_edata")
 sprite_frames = ExtResource("2_frames")
-display_name = "Sleepwalker"
-health = 110
-speed = 110.0
+display_name = "Drowned One"
+health = 120
+speed = 95.0
 dew_reward = 4
-resists = Array[String](["root"])
-weak_to = Array[String](["wind"])
-trait_text = "Wanders into dead ends, then comes back."
-trait_kind = 6
+tint = Color(0.55, 0.75, 1, 1)
+resists = Array[String](["water"])
+weak_to = Array[String](["light"])
+status_immune = Array[StringName]([&"drowsy", &"held"])
+always_damp = true
+ignores_slows = true
+trait_text = "Always Damp, and nothing slows it."

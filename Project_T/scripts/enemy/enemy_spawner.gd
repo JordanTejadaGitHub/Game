@@ -12,6 +12,15 @@ signal enemy_split(parent: Node2D, child: Node2D)
 signal wall_trampled(cell: Vector2, by: Node2D)
 
 const SPLIT_SPACING := 14.0  # Pixels between creatures that pop out of a split
+const GRIEF_RING := 40.0  # Pixels from the Hollow Oak that its Grief Mourners rise
+const SAPLING_REACH := 10  # Route cells ahead of the Hollow Oak it may plant beside
+
+# Seconds left of the Moth Queen's Eclipse (every nightmare but bosses hidden unless revealed).
+var eclipse_left := 0.0
+# Health scale of the latest drift's (non-boss) arrivals: what boss spawns (brood, Grief) grow by,
+# since bosses themselves have a fixed health scale.
+var drift_health_scale := 1.0
+var _saplings := {}  # {Hollow Oak: [cells it planted]}
 
 @export var enemy_scene: PackedScene = preload("res://scenes/enemy/enemy.tscn")  # The enemy scene to spawn
 
@@ -30,8 +39,10 @@ func spawn_enemy(enemy_data: EnemyData, health_scale: float = 1.0, modifiers: Di
 	var path_points: PackedVector2Array = map_generator.get_path_from(map_generator.startPath)
 	if path_points.is_empty():
 		return null
+	if not enemy_data.is_boss:
+		drift_health_scale = health_scale
 	if enemy_data.trait_kind == EnemyData.Trait.FLYING:
-		path_points = PackedVector2Array([map_generator.startPath, map_generator.endPath])
+		path_points = _flight_path(enemy_data.flight_weave)
 	var enemy := _create(enemy_data, health_scale, modifiers, elite)
 	enemy.position = enemy.grid.calculate_map_position(path_points[0])  # Start at the first waypoint (pixels)
 	enemy.set_path(path_points)
@@ -46,8 +57,12 @@ func _create(enemy_data: EnemyData, health_scale: float, modifiers: Dictionary =
 	enemy.modifiers = modifiers
 	enemy.elite = elite
 	enemy.cleansed.connect(_on_enemy_cleansed)
-	enemy.reached_goal.connect(enemy_reached_goal.emit)
+	enemy.reached_goal.connect(_on_enemy_reached_goal)
 	enemy.trample_requested.connect(_on_trample_requested)
+	enemy.brood_requested.connect(_on_brood_requested)
+	enemy.eclipse_started.connect(func(_by: Node2D, seconds: float) -> void: eclipse_left = maxf(eclipse_left, seconds))
+	enemy.sapling_requested.connect(_on_sapling_requested)
+	enemy.grief_requested.connect(_on_grief_requested)
 	add_child(enemy)
 	return enemy
 
@@ -83,7 +98,11 @@ func get_enemies() -> Array[Node]:
 func get_maze_walkers() -> Array[Node]:
 	return get_enemies().filter(func(enemy: Node) -> bool: return not enemy.is_flying())
 
+func _process(delta: float) -> void:
+	eclipse_left = maxf(eclipse_left - delta, 0.0)
+
 func _on_enemy_cleansed(enemy: Node2D) -> void:
+	_wither_saplings(enemy)
 	_split(enemy)
 	enemy_cleansed.emit(enemy)
 
@@ -125,3 +144,94 @@ func _on_path_changed() -> void:
 		var new_path: PackedVector2Array = map_generator.get_path_from(enemy.get_target_cell())
 		if not new_path.is_empty():
 			enemy.set_path(new_path)
+
+# Dream Thief: takes steals_dew Dew (as much as there is) on its way in, then the leaf is lost as usual.
+func _on_enemy_reached_goal(enemy: Node2D) -> void:
+	var run_state = get_node_or_null("%RunState")
+	if enemy.enemy_data.steals_dew > 0 and run_state != null:
+		var stolen: int = mini(enemy.enemy_data.steals_dew, run_state.dew)
+		if stolen > 0:
+			run_state.spend_dew(stolen)
+	enemy_reached_goal.emit(enemy)
+
+# A flyer's line from the forest's edge to the Heartwood (grid coordinates), weaving up to weave
+# cells either side (the Moth Queen), gently at the ends so it still starts and ends on target.
+func _flight_path(weave: float) -> PackedVector2Array:
+	var from: Vector2 = map_generator.startPath
+	var to: Vector2 = map_generator.endPath
+	if weave <= 0.0:
+		return PackedVector2Array([from, to])
+	var across := (to - from).orthogonal().normalized()
+	var steps := maxi(ceili(from.distance_to(to) / 2.0), 2)
+	var points := PackedVector2Array()
+	for i in steps + 1:
+		var t := float(i) / steps
+		var point := from.lerp(to, t) + across * sin(t * TAU * 1.5) * weave * sin(t * PI)
+		var bounds: Vector2 = Vector2(map_generator.MAP_GRID.size) - Vector2.ONE
+		points.append(point.clamp(Vector2.ZERO, bounds))
+	return points
+
+# Moth Queen: a brood nightmare lands on the route cell nearest her and walks the maze from there.
+func _on_brood_requested(queen: Node2D) -> void:
+	var route: PackedVector2Array = map_generator.get_path_from(map_generator.startPath)
+	if route.is_empty():
+		return
+	var nearest := 0
+	for i in route.size():
+		if queen.grid.calculate_map_position(route[i]).distance_squared_to(queen.position) \
+				< queen.grid.calculate_map_position(route[nearest]).distance_squared_to(queen.position):
+			nearest = i
+	var path := route.slice(nearest)
+	var child := _create(queen.enemy_data.brood, drift_health_scale)
+	child.position = child.grid.calculate_map_position(path[0])
+	child.set_path(path)
+	enemy_split.emit(queen, child)
+
+# Hollow Oak Grief: grief_count nightmares rise in a ring around it and walk on from its cell.
+func _on_grief_requested(oak: Node2D) -> void:
+	var data: EnemyData = oak.enemy_data
+	var path: PackedVector2Array = map_generator.get_path_from(oak.get_target_cell())
+	if data.grief_spawn == null or path.is_empty():
+		return
+	for i in data.grief_count:
+		var child := _create(data.grief_spawn, drift_health_scale)
+		child.position = oak.position + Vector2.from_angle(TAU * i / data.grief_count) * GRIEF_RING
+		child.set_path(path)
+		enemy_split.emit(oak, child)
+
+# Hollow Oak: plants a thorn-sapling on an empty cell beside its route ahead. Never on a Warden, the
+# start / end or a nightmare, and never where it would cut anyone off (the path rule).
+func _on_sapling_requested(oak: Node2D) -> void:
+	var walkers := get_maze_walkers()
+	var taken := {}
+	var also_from := PackedVector2Array()
+	for walker in walkers:
+		taken[walker.get_current_cell()] = true
+		taken[walker.get_target_cell()] = true
+		also_from.append(walker.get_target_cell())
+	var ahead: PackedVector2Array = oak.get_cells_ahead(SAPLING_REACH)
+	var on_route := {}
+	for cell in ahead:
+		on_route[cell] = true
+	var candidates: Array[Vector2] = []
+	for cell in ahead:
+		for offset in [Vector2.LEFT, Vector2.RIGHT, Vector2.UP, Vector2.DOWN]:
+			var beside: Vector2 = cell + offset
+			if not on_route.has(beside) and not taken.has(beside) and not candidates.has(beside) \
+					and map_generator.is_buildable(beside):
+				candidates.append(beside)
+	candidates.shuffle()
+	for cell in candidates:
+		if map_generator.can_block(cell, also_from):
+			map_generator.place_obstacle(cell, oak.enemy_data.sapling)
+			_saplings.get_or_add(oak, []).append(cell)
+			return
+
+# The Hollow Oak is dispelled: the saplings it planted (and the player hasn't cleared) crumble.
+func _wither_saplings(oak: Node2D) -> void:
+	if not _saplings.has(oak):
+		return
+	for cell: Vector2 in _saplings[oak]:
+		if map_generator.get_obstacle(cell) == oak.enemy_data.sapling:
+			map_generator.remove_obstacle(cell)
+	_saplings.erase(oak)

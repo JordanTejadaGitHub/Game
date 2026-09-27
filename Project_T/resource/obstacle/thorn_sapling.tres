@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="ObstacleData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/obstacle/script/obstacle_data.gd" id="1_obst"]
+
+[resource]
+script = ExtResource("1_obst")
+display_name = "Thorn-sapling"
+clear_verb = "Clear"
+clear_cost = 8
+source_id = 3
+tiles = Array[Vector2i]([Vector2i(0, 0), Vector2i(0, 1), Vector2i(0, 2)])
+cleared_source_id = -1

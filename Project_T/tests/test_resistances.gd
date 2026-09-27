@@ -80,7 +80,7 @@ func _run() -> void:
 	weak_to_spores._process(1.0)  # One second: two Spored ticks
 	var ticked: int = before - weak_to_spores.health
 	_check(ticked == floori(10.0 * EnemyData.WEAK_MULTIPLIER), "Spored ticks get the spore weakness (%d from 10/s × weak)" % ticked)
-	var moth = _spawn(spawner, _sturdy("res://resource/enemy/dusk_moth.tres"))
+	var moth = _spawn(spawner, _sturdy("res://resource/enemy/drowned_one.tres"))  # Weak to light
 	before = moth.health
 	for i in EnemyStatuses.DEFAULT_MAX_STACKS[EnemyStatuses.STATIC]:
 		moth.apply_status(EnemyStatuses.STATIC, 1, 0.0, 10.0)

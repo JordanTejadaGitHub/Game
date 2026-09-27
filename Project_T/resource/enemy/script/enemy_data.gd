@@ -13,8 +13,8 @@ class_name EnemyData
 @export var trait_text: String = ""  # One line for the hover panel, e.g. "Sprints down long straight corridors."
 @export var cleanse_line: String = ""  # Shown when cleansed (bosses), e.g. "The Old Stag remembers the way home."
 
-# Movement / boss trait (documentation/acts_1_2.md).
-enum Trait { NONE, FLYING, ROLLING, TRAMPLE, LEAP }
+# Movement / boss trait (documentation/acts_1_2.md, acts_3_4.md).
+enum Trait { NONE, FLYING, ROLLING, TRAMPLE, LEAP, BURROW, WANDER }
 @export var trait_kind: Trait = Trait.NONE
 
 @export_group("Trait")
@@ -34,6 +34,50 @@ enum Trait { NONE, FLYING, ROLLING, TRAMPLE, LEAP }
 @export var leap_interval_hurt: float = 4.0
 @export var leap_tiles: int = 3
 @export var leap_splash_radius: float = 1.0
+# BURROW (Gravecrawler): sinks under a Warden or wall next to it and surfaces on the other side, up
+# to `burrow_max` times per trip, when that's at least `burrow_min_saving` cells shorter.
+@export var burrow_max: int = 1
+@export var burrow_min_saving: int = 2
+# WANDER (Sleepwalker): at a cell beside a dead-end pocket, `wander_chance` to walk into it (up to
+# `wander_depth` cells) and back, then at least `wander_cooldown_cells` cells before the next one.
+@export var wander_chance: float = 0.35
+@export var wander_depth: int = 4
+@export var wander_cooldown_cells: int = 5
+# FLYING: weaves up to this many cells either side of its straight line (Moth Queen; 0 = straight).
+@export var flight_weave: float = 0.0
+
+@export_group("Presence")
+# Hidden in fog (Lurker): untargetable unless a Warden is within 1.5 cells, a Marking Warden has
+# it in range, or a Will-o'-Wisp is near.
+@export var hidden: bool = false
+@export var reveal_radius: float = 0.0  # Cells; reveals hidden nightmares near it (Will-o'-Wisp)
+@export var wake_radius: float = 0.0  # Cells; clears Drowsy from nightmares near it (Watcher)
+@export var mend_radius: float = 0.0  # Cells; heals other nightmares near it (Weeper)
+@export var mend_rate: float = 0.0  # Share of their max health per second
+@export var ash_trail_time: float = 0.0  # Seconds its trail burns; clears Spored from nightmares on it (Ash Crawler)
+@export var always_damp: bool = false  # Drowned One
+@export var ignores_slows: bool = false  # Drowned One: Damp / Drowsy / auras never slow it
+@export var steals_dew: int = 0  # Dew taken when it reaches the Heartwood (Dream Thief)
+
+@export_group("Boss")
+# Moth Queen: every `brood_interval` s drops a `brood` onto the nearest path cell. At half health,
+# Eclipse: every nightmare (not bosses) is hidden for `eclipse_time` s unless revealed.
+@export var brood: EnemyData
+@export var brood_interval: float = 4.0
+@export var eclipse_time: float = 0.0
+# Hollow Oak: every `sapling_interval` s plants `sapling` on an empty cell beside the path ahead.
+# Saplings are obstacles (never closing the path) that wither when the Oak is dispelled.
+@export var sapling: ObstacleData
+@export var sapling_interval: float = 8.0
+# Grief: at each health share in `grief_at`, stops `grief_pause` s and `grief_count` `grief_spawn`
+# rise in a ring around it.
+@export var grief_spawn: EnemyData
+@export var grief_count: int = 0
+@export var grief_at: Array[float] = []
+@export var grief_pause: float = 2.0
+# From this Blight Level, the first dispel doesn't count: it rises at half health, saplings twice as
+# fast (0 = never).
+@export var rises_from_blight: int = 0
 
 @export_group("Followers")
 # Mother Duck: spawns `follower_count` `followers` right behind her in single file. If she's

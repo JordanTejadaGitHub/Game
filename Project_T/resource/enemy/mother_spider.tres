@@ -14,5 +14,5 @@ dew_reward = 6
 split_into = ExtResource("3_split")
 split_count = 6
 resists = Array[String](["spore"])
-weak_to = Array[String](["water"])
+weak_to = Array[String](["wing"])
 trait_text = "Releases Creeps when dispelled."

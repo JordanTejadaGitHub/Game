@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="EnemyData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://resource/enemy/script/enemy_data.gd" id="1_edata"]
+[ext_resource type="SpriteFrames" path="res://animation/enemy/dandelion_seed.tres" id="2_frames"]
+
+[resource]
+script = ExtResource("1_edata")
+sprite_frames = ExtResource("2_frames")
+display_name = "Will-o'-Wisp"
+health = 60
+speed = 70.0
+dew_reward = 2
+sprite_scale = 0.75
+tint = Color(0.75, 1, 0.9, 1)
+resists = Array[String](["light"])
+weak_to = Array[String](["wind"])
+reveal_radius = 2.0
+trait_text = "A treacherous light: Lurkers near it can be seen."

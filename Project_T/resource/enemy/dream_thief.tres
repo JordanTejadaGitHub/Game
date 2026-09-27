@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="EnemyData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://resource/enemy/script/enemy_data.gd" id="1_edata"]
+[ext_resource type="SpriteFrames" path="res://animation/enemy/hedgehog.tres" id="2_frames"]
+
+[resource]
+script = ExtResource("1_edata")
+sprite_frames = ExtResource("2_frames")
+display_name = "Dream Thief"
+health = 90
+speed = 120.0
+dew_reward = 6
+tint = Color(1, 0.88, 0.5, 1)
+resists = Array[String](["light"])
+weak_to = Array[String](["wing"])
+steals_dew = 5
+trait_text = "Steals 5 Dew if it gets through. Double Dew if dispelled."

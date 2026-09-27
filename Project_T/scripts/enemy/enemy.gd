@@ -10,6 +10,14 @@ signal cleansed(enemy: Node2D)
 signal trample_requested(enemy: Node2D)
 # LEAP (The Mire Hag) rose at her new position.
 signal leaped(enemy: Node2D)
+# Boss abilities the spawner carries out (acts_3_4.md): the Moth Queen drops a brood nightmare and
+# starts the Eclipse; the Hollow Oak plants a thorn-sapling and grieves (Mourners rise around it).
+signal brood_requested(enemy: Node2D)
+signal eclipse_started(enemy: Node2D, seconds: float)
+signal sapling_requested(enemy: Node2D)
+signal grief_requested(enemy: Node2D)
+# The Hollow Oak (Blight Level 10) rose again at half health instead of being dispelled.
+signal rose_again(enemy: Node2D)
 
 # Deeply Blighted elites (acts_1_2.md): ×3 health, ×3 Dew, 2 leaves, 20% bigger, wrapped in a slow
 # haze with a swirl mark by the health bar (not darkened: the nightmare art is already dark).
@@ -96,8 +104,29 @@ var _trait_timer := 0.0
 var _trampled := 0
 var _startled := false
 var _charge_left := 0.0
-var _leaping := false
+var _leaping := false  # Sinking / underground / rising (Mire Hag, Gravecrawler): not walking
 var _leap_tween: Tween
+var _burrows := 0
+var _wander_cooldown := 0
+
+# Presence (acts_3_4.md): hiding, revealing, waking, mending, the ash trail and boss timers, checked
+# every PRESENCE_TICK seconds rather than every frame.
+const PRESENCE_TICK := 0.1
+const CLOSE_REVEAL_CELLS := 1.5  # Any Warden this close sees a hidden nightmare
+const HIDDEN_ALPHA := 0.22
+const ALWAYS_DAMP_TIME := 3600.0
+const ASH_COLOR := Color(1.0, 0.45, 0.15, 0.5)
+const DIRECTIONS: Array[Vector2] = [Vector2.LEFT, Vector2.RIGHT, Vector2.UP, Vector2.DOWN]
+var _hidden := false
+var _presence_elapsed := 0.0
+var _ash_cells := {}  # {cell: seconds the ash still burns}
+var _heal_carry := 0.0
+var _brood_timer := 0.0
+var _sapling_timer := 0.0
+var _sapling_speed := 1.0
+var _eclipsed := false
+var _griefs := 0  # grief_at thresholds already passed
+var _has_risen := false
 
 # Cells to walk through, in grid coordinates. `_path_index` is the cell we're currently walking toward.
 var _path: PackedVector2Array
@@ -111,6 +140,7 @@ func _ready() -> void:
 	health = max_health
 	speed = enemy_data.speed * modifiers.get("speed", 1.0)
 	statuses.is_boss = enemy_data.is_boss
+	statuses.ignores_slows = enemy_data.ignores_slows
 	statuses.immune = enemy_data.status_immune
 	statuses.duration_multipliers = enemy_data.status_duration_multipliers
 	statuses.duration_multiplier_all = modifiers.get("status_duration", 1.0)
@@ -128,6 +158,11 @@ func _ready() -> void:
 	var blight_material := ShaderMaterial.new()
 	blight_material.shader = BLIGHT_SHADER
 	sprite.material = blight_material
+
+	if enemy_data.always_damp:
+		statuses.apply(EnemyStatuses.DAMP, 1, ALWAYS_DAMP_TIME)
+	if enemy_data.hidden:
+		_set_hidden(true)  # Revealed on the first presence tick if something sees it
 
 func _process(delta: float) -> void:
 	if is_cleansed or _path_index >= _path.size():
@@ -151,8 +186,9 @@ func _process(delta: float) -> void:
 	freeze_cooldown = maxf(freeze_cooldown - delta, 0.0)
 	push_cooldown = maxf(push_cooldown - delta, 0.0)
 	if not statuses.active_ids().is_empty() or _bolt_flash > 0.0 or _hit_mark_time > 0.0 or elite \
-			or _crit_flash > 0.0 or statuses.is_in_stag_aura():
+			or _crit_flash > 0.0 or statuses.is_in_stag_aura() or not _ash_cells.is_empty():
 		queue_redraw()
+	_update_presence(delta)
 
 	if hold_time > 0.0:
 		hold_time -= delta
@@ -177,6 +213,8 @@ func _process(delta: float) -> void:
 			remaining -= distance
 			_path_index += 1
 			_on_cell_reached()
+			if _leaping:
+				return  # Started burrowing: the tween moves it now
 		else:
 			position += to_target / distance * remaining
 			remaining = 0.0
@@ -209,6 +247,13 @@ func _restart_route() -> void:
 func _draw() -> void:
 	if is_cleansed:
 		return
+	for cell: Vector2 in _ash_cells:  # Ash Crawler: embers on the cells it just crossed
+		var t: float = _ash_cells[cell] / enemy_data.ash_trail_time
+		var at := to_local(grid.calculate_map_position(cell))
+		for i in 3:
+			draw_circle(at + Vector2(-10 + 10 * i, 6 - 5 * (i % 2)), 2.0 + 1.5 * t, Color(ASH_COLOR, ASH_COLOR.a * t))
+	if _hidden:
+		return  # Only the faint sprite shows: no bars, no status icons
 	if elite:
 		_draw_elite_haze()  # Drawn before the sprite (a child), so it sits behind it
 	if _bolt_flash > 0.0:
@@ -354,7 +399,19 @@ func _update_trait(delta: float) -> void:
 
 # Called each time the creature reaches a cell centre on its path.
 func _on_cell_reached() -> void:
-	if enemy_data.trait_kind != EnemyData.Trait.ROLLING or _path_index < 1:
+	if enemy_data.ash_trail_time > 0.0:
+		_ash_cells[get_current_cell()] = enemy_data.ash_trail_time
+	match enemy_data.trait_kind:
+		EnemyData.Trait.ROLLING:
+			_update_rolling()
+		EnemyData.Trait.BURROW:
+			_try_burrow()
+		EnemyData.Trait.WANDER:
+			_try_wander()
+
+# Night Hound: sprints once it has gone `roll_after_tiles` in a straight line.
+func _update_rolling() -> void:
+	if _path_index < 1:
 		return
 	var step := _path[_path_index - 1] - (_path[_path_index - 2] if _path_index >= 2 else get_current_cell())
 	_straight_steps = _straight_steps + 1 if step == _last_step else 1
@@ -370,21 +427,7 @@ func _leap() -> void:
 		return
 	var landing_index := mini(_path_index + enemy_data.leap_tiles - 1, _path.size() - 1)
 	var landing := grid.calculate_map_position(_path[landing_index])
-	_leaping = true
-	var base_scale := sprite.scale
-	var sunk_scale := Vector2(base_scale.x * 1.3, base_scale.y * 0.1)
-	var tween := create_tween()
-	_leap_tween = tween
-	# Sink: squashes flat into the ground and fades; moves while under; rises the same way back up.
-	tween.tween_property(sprite, "scale", sunk_scale, LEAP_TIME * 0.4).set_ease(Tween.EASE_IN)
-	tween.parallel().tween_property(sprite, "position:y", 10.0, LEAP_TIME * 0.4).set_ease(Tween.EASE_IN)
-	tween.parallel().tween_property(sprite, "modulate:a", 0.0, LEAP_TIME * 0.4)
-	tween.tween_property(self, "position", landing, LEAP_TIME * 0.2)
-	tween.tween_property(sprite, "scale", base_scale, LEAP_TIME * 0.4).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_BACK)
-	tween.parallel().tween_property(sprite, "position:y", 0.0, LEAP_TIME * 0.4).set_ease(Tween.EASE_OUT)
-	tween.parallel().tween_property(sprite, "modulate:a", 1.0, LEAP_TIME * 0.4)
-	tween.tween_callback(func() -> void:
-		_leaping = false
+	_sink_and_rise(landing, func() -> void:
 		_path_index = landing_index + 1
 		var reach := enemy_data.leap_splash_radius * grid.cell_size.x
 		for creature in get_tree().get_nodes_in_group(GROUP):
@@ -394,6 +437,237 @@ func _leap() -> void:
 		if _path_index >= _path.size():
 			reached_goal.emit(self)
 			queue_free())
+
+# Squashes flat into the ground and fades, moves to `landing` (pixels) while under, rises the same
+# way back up, then calls `on_risen`. Not walking meanwhile (Mire Hag, Gravecrawler).
+func _sink_and_rise(landing: Vector2, on_risen: Callable) -> void:
+	_leaping = true
+	var base_scale := sprite.scale
+	var sunk_scale := Vector2(base_scale.x * 1.3, base_scale.y * 0.1)
+	var tween := create_tween()
+	_leap_tween = tween
+	tween.tween_property(sprite, "scale", sunk_scale, LEAP_TIME * 0.4).set_ease(Tween.EASE_IN)
+	tween.parallel().tween_property(sprite, "position:y", 10.0, LEAP_TIME * 0.4).set_ease(Tween.EASE_IN)
+	tween.parallel().tween_property(sprite, "modulate:a", 0.0, LEAP_TIME * 0.4)
+	tween.tween_property(self, "position", landing, LEAP_TIME * 0.2)
+	tween.tween_property(sprite, "scale", base_scale, LEAP_TIME * 0.4).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_BACK)
+	tween.parallel().tween_property(sprite, "position:y", 0.0, LEAP_TIME * 0.4).set_ease(Tween.EASE_OUT)
+	tween.parallel().tween_property(sprite, "modulate:a", 1.0, LEAP_TIME * 0.4)
+	tween.tween_callback(func() -> void:
+		_leaping = false
+		on_risen.call())
+
+# Gravecrawler: if a Warden or wall is right beside it and the cell past it leads to the Heartwood by
+# a route at least `burrow_min_saving` cells shorter, it sinks under and surfaces there.
+func _try_burrow() -> void:
+	var map_generator = _map_generator()
+	if _burrows >= enemy_data.burrow_max or _path_index >= _path.size() or map_generator == null:
+		return
+	var walls := _tower_cells()
+	var here := get_current_cell()
+	var best_route := PackedVector2Array()
+	var best_length := _path.size() - _path_index - enemy_data.burrow_min_saving  # Cells to beat
+	for direction in DIRECTIONS:
+		var beyond := here + direction * 2
+		if not walls.has(here + direction) or not _is_walkable(beyond, map_generator):
+			continue
+		var route: PackedVector2Array = map_generator.get_path_from(beyond)
+		if not route.is_empty() and route.size() + 1 <= best_length:  # +1: the tunnel under the wall
+			best_route = route
+			best_length = route.size() + 1
+	if best_route.is_empty():
+		return
+	_burrows += 1
+	var surface := grid.calculate_map_position(best_route[0])
+	_sink_and_rise(surface, func() -> void: set_path(best_route))
+
+# Sleepwalker: sometimes steps into a dead-end pocket beside it, walks to the end and comes back.
+func _try_wander() -> void:
+	if _wander_cooldown > 0:
+		_wander_cooldown -= 1
+		return
+	var map_generator = _map_generator()
+	if map_generator == null or _path_index >= _path.size() or randf() >= enemy_data.wander_chance:
+		return
+	var here := get_current_cell()
+	var pocket := _find_dead_end(here, map_generator)
+	if pocket.is_empty():
+		return
+	var detour := pocket.duplicate()
+	for i in range(pocket.size() - 2, -1, -1):
+		detour.append(pocket[i])
+	detour.append(here)
+	detour.append_array(_path.slice(_path_index))
+	set_path(detour)
+	_wander_cooldown = enemy_data.wander_cooldown_cells
+
+# Cells of a dead-end pocket starting next to `here` (off the route, one way in, at most
+# `wander_depth` deep), from the entrance to the end. Empty if there's none.
+func _find_dead_end(here: Vector2, map_generator: Node) -> PackedVector2Array:
+	var on_route := {}
+	for cell in _path:
+		on_route[cell] = true
+	var starts := DIRECTIONS.duplicate()
+	starts.shuffle()
+	for direction: Vector2 in starts:
+		var cells := PackedVector2Array([here + direction])
+		if on_route.has(cells[0]) or not _is_walkable(cells[0], map_generator):
+			continue
+		var visited := {here: true, cells[0]: true}
+		while cells.size() <= enemy_data.wander_depth:
+			var onward: Array[Vector2] = []
+			for step in DIRECTIONS:
+				var next: Vector2 = cells[cells.size() - 1] + step
+				if not visited.has(next) and not on_route.has(next) and _is_walkable(next, map_generator):
+					onward.append(next)
+			if onward.is_empty():
+				return cells  # The end of the pocket
+			if onward.size() > 1:
+				break  # It opens up: not a dead end
+			visited[onward[0]] = true
+			cells.append(onward[0])
+	return PackedVector2Array()
+
+func _is_walkable(cell: Vector2, map_generator: Node) -> bool:
+	return grid.is_within_bounds(cell) and not map_generator.path_layer.is_cell_blocked(cell)
+
+# The map (through the EnemyContainer), or null outside the main scene.
+func _map_generator() -> Node:
+	return get_parent().get("map_generator") if get_parent() else null
+
+# Cells with a Warden or wall on them.
+func _tower_cells() -> Dictionary:
+	var cells := {}
+	var towers = get_parent().get("tower_container") if get_parent() else null
+	if towers:
+		for tower in towers.get_children():
+			if tower is Tower:
+				cells[tower.cell] = true
+	return cells
+
+
+# --- Presence (acts_3_4.md) ---------------------------------------------------------------------
+
+# True while the nightmare can't be seen or targeted (Lurker in fog, the Moth Queen's Eclipse).
+func is_hidden() -> bool:
+	return _hidden
+
+func _update_presence(delta: float) -> void:
+	if enemy_data.always_damp and not statuses.has(EnemyStatuses.DAMP):
+		statuses.apply(EnemyStatuses.DAMP, 1, ALWAYS_DAMP_TIME)
+	for cell: Vector2 in _ash_cells.keys():
+		_ash_cells[cell] -= delta
+		if _ash_cells[cell] <= 0.0:
+			_ash_cells.erase(cell)
+	_presence_elapsed += delta
+	if _presence_elapsed < PRESENCE_TICK:
+		return
+	var elapsed := _presence_elapsed
+	_presence_elapsed = 0.0
+
+	var hide := (enemy_data.hidden or _is_eclipsed()) and not _is_revealed()
+	if hide != _hidden:
+		_set_hidden(hide)
+	if enemy_data.wake_radius > 0.0:  # Watcher
+		for other in _others_within(enemy_data.wake_radius):
+			if other.statuses.has(EnemyStatuses.DROWSY):
+				other.statuses.remove(EnemyStatuses.DROWSY)
+				other.queue_redraw()
+	if enemy_data.mend_radius > 0.0:  # Weeper
+		for other in _others_within(enemy_data.mend_radius):
+			other.heal(other.max_health * enemy_data.mend_rate * elapsed)
+	if not _ash_cells.is_empty():  # Ash Crawler
+		for other in _field():
+			if other != self and other.statuses.has(EnemyStatuses.SPORED) and _ash_cells.has(other.get_current_cell()):
+				other.statuses.remove(EnemyStatuses.SPORED)
+				other.queue_redraw()
+	if enemy_data.brood != null:  # Moth Queen
+		_brood_timer += elapsed
+		if _brood_timer >= enemy_data.brood_interval:
+			_brood_timer = 0.0
+			brood_requested.emit(self)
+	if enemy_data.sapling != null:  # Hollow Oak
+		_sapling_timer += elapsed * _sapling_speed
+		if _sapling_timer >= enemy_data.sapling_interval:
+			_sapling_timer = 0.0
+			sapling_requested.emit(self)
+
+func _set_hidden(value: bool) -> void:
+	_hidden = value
+	if value:
+		remove_from_group(GROUP)
+	else:
+		add_to_group(GROUP)
+	sprite.self_modulate.a = HIDDEN_ALPHA if value else 1.0
+	queue_redraw()
+
+# The Moth Queen's Eclipse hides every nightmare but bosses.
+func _is_eclipsed() -> bool:
+	return not enemy_data.is_boss and get_parent() != null and get_parent().get("eclipse_left") != null \
+		and get_parent().eclipse_left > 0.0
+
+# Seen by a Warden within CLOSE_REVEAL_CELLS, a Marking Warden (Lanternmoth, Moon Moth, Rootlight)
+# that has it in range, or a Will-o'-Wisp's glow.
+func _is_revealed() -> bool:
+	var towers = get_parent().get("tower_container") if get_parent() else null
+	if towers:
+		for tower in towers.get_children():
+			if not tower is Tower or tower.attack_data == null:
+				continue
+			var distance := global_position.distance_to(tower.global_position)
+			if distance <= CLOSE_REVEAL_CELLS * grid.cell_size.x:
+				return true
+			if tower.attack_data.applies_status == EnemyStatuses.MARKED and distance <= tower.get_range_pixels():
+				return true
+	for other in _field():
+		if other != self and other.enemy_data.reveal_radius > 0.0 and not other.is_hidden() \
+				and global_position.distance_to(other.global_position) <= other.enemy_data.reveal_radius * grid.cell_size.x:
+			return true
+	return false
+
+# Every nightmare still on the field, hidden or not.
+func _field() -> Array:
+	var parent := get_parent()
+	return parent.get_enemies() if parent and parent.has_method("get_enemies") else get_tree().get_nodes_in_group(GROUP)
+
+func _others_within(cells: float) -> Array:
+	var reach := cells * grid.cell_size.x
+	return _field().filter(func(other: Node2D) -> bool:
+		return other != self and global_position.distance_to(other.global_position) <= reach)
+
+# Weeper's mending: restores up to `amount` health (fractions add up over time).
+func heal(amount: float) -> void:
+	if is_cleansed or health >= max_health:
+		return
+	_heal_carry += amount
+	var whole := int(_heal_carry)
+	_heal_carry -= whole
+	health = mini(health + whole, max_health)
+	queue_redraw()
+
+# Boss moments that happen at a share of health: the Moth Queen's Eclipse, the Hollow Oak's Grief.
+func _check_health_thresholds() -> void:
+	if enemy_data.eclipse_time > 0.0 and not _eclipsed and health <= max_health / 2:
+		_eclipsed = true
+		eclipse_started.emit(self, enemy_data.eclipse_time)
+	while _griefs < enemy_data.grief_at.size() and health <= max_health * enemy_data.grief_at[_griefs]:
+		_griefs += 1
+		hold_time = maxf(hold_time, enemy_data.grief_pause)  # It stops and wails
+		grief_requested.emit(self)
+
+# Blight Level `rises_from_blight`+ (the Hollow Oak remembers): the first dispel doesn't take; it
+# rises again at half health with saplings twice as fast. True if it rose.
+func _try_rise() -> bool:
+	if _has_risen or enemy_data.rises_from_blight <= 0 or MetaRun.blight_level < enemy_data.rises_from_blight:
+		return false
+	_has_risen = true
+	health = max_health / 2
+	_sapling_speed = 2.0
+	var tween := create_tween()
+	tween.tween_method(_set_crack, 0.0, 0.7, CRACK_TIME)
+	tween.tween_method(_set_crack, 0.7, 0.0, CRACK_TIME * 2)
+	rose_again.emit(self)
+	return true
 
 # Soothes the blight away. `line` is the Warden family that soothed it ("" = neutral) and `is_area`
 # whether it was an area hit (splash, pulse, cloud, Spored). Soothe = amount × family × shape ×
@@ -428,9 +702,11 @@ func take_damage(amount: float, line: String = "", is_area: bool = false, is_cri
 	health = maxi(health - whole, 1 if unkillable else 0)
 	queue_redraw()
 	_report_damage(amount, family, taken, soothe_before_coat - soothe, soothe, line, is_crit, source, tag)
-	if health == 0:
+	if health == 0 and not _try_rise():
 		_cleanse()
-	elif enemy_data.trait_kind == EnemyData.Trait.TRAMPLE and not _startled and health <= max_health / 2:
+		return
+	_check_health_thresholds()
+	if enemy_data.trait_kind == EnemyData.Trait.TRAMPLE and not _startled and health <= max_health / 2:
 		_startled = true  # The Hollow Stag's antlers flare and it charges
 		_charge_left = enemy_data.charge_time
 
@@ -505,6 +781,7 @@ func _cleanse() -> void:
 	remove_from_group(GROUP)
 	cleansed.emit(self)
 	queue_redraw()
+	sprite.self_modulate.a = 1.0  # A hidden nightmare shows itself as it cracks apart
 
 	if _leap_tween:
 		_leap_tween.kill()  # Dispelled mid-sink: surface right here to crack apart
@@ -587,6 +864,10 @@ func push_back(pixels: float) -> float:
 # Index into the current route of the cell the nightmare last stood on (or is standing on).
 func get_route_index() -> int:
 	return maxi(_path_index - 1, 0)
+
+# The next `count` route cells the nightmare will walk through (Hollow Oak plants beside these).
+func get_cells_ahead(count: int) -> PackedVector2Array:
+	return _path.slice(_path_index, _path_index + count)
 
 # Route cells behind the nightmare (the ones it already walked through on this route), oldest first.
 func get_cells_behind() -> PackedVector2Array:

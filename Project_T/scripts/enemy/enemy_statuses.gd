@@ -40,6 +40,7 @@ const SPORE_TICK := 0.5  # Spored soothes in ticks this long
 const FOG_SPORE_BONUS := 0.5  # Spored ticks +50% while in fog (Mistveil)
 
 var is_boss := false
+var ignores_slows := false  # Drowned One: statuses still apply, they just don't slow it
 # From EnemyData: statuses that don't take, and {status id: duration multiplier}.
 var immune: Array[StringName] = []
 var duration_multipliers := {}
@@ -147,6 +148,8 @@ func is_held() -> bool:
 
 # Movement speed multiplier from slows.
 func get_speed_multiplier() -> float:
+	if ignores_slows:
+		return 1.0
 	var slow := 0.0
 	if has(DAMP):
 		# Damp's potency is a strength multiplier (Soaked Through II: ×1.5 = −15%); 0 = plain Damp.
