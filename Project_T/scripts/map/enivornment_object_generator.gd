@@ -3,7 +3,7 @@ class_name EnvironmentObjectGenerator
 
 const MAP_GRID = preload("res://resource/map/map_grid.tres")
 # Rings of healthy trees outside the border wall: dark silhouettes where the maze never goes.
-const OUTER_FOREST_RINGS := 2
+const OUTER_FOREST_RINGS := 10  # Deep enough to fill a zoomed-out view (the map is small)
 @export var noise_texture: NoiseTexture2D
 @export var tree_obstacle: ObstacleData = preload("res://resource/obstacle/tree.tres")
 @export var rock_obstacle: ObstacleData = preload("res://resource/obstacle/rock.tres")
@@ -16,8 +16,8 @@ const OUTER_FOREST_RINGS := 2
 @export var tree_cluster_scale_max: float = 1.4
 @export_group("Rocks")
 @export_range(0.0, 1.0) var rock_chance: float = 0.02  # Chance for any free cell to get a lone rock
-@export var rock_cluster_count_min: int = 2
-@export var rock_cluster_count_max: int = 7
+@export var rock_cluster_count_min: int = 1
+@export var rock_cluster_count_max: int = 3
 @export var rock_cluster_radius_min: float = 1.0  # In cells
 @export var rock_cluster_radius_max: float = 2.5
 @export_group("Ridges")
@@ -27,7 +27,7 @@ const OUTER_FOREST_RINGS := 2
 @export var ridge_count_max: int = 5
 @export_range(0.1, 1.0) var ridge_length_min: float = 0.55  # Fraction of the map's width (>0.5 so opposite ridges overlap)
 @export_range(0.1, 1.0) var ridge_length_max: float = 0.85
-@export var ridge_min_spacing: int = 5  # Rows between ridge centres (and walls); ridges span Â±1, so keep >= 4
+@export var ridge_min_spacing: int = 4  # Rows between ridge centres (and walls); ridges span ±1, so keep >= 4
 @export_range(0.0, 1.0) var ridge_wander_chance: float = 0.3  # Per cell: step up/down a row (max 1 from its base)
 @export_range(0.0, 1.0) var ridge_thicken_chance: float = 0.2  # Per cell: add a second cell above/below
 @onready var path_tile_map_layer: PathGenerator = %PathTileMapLayer
@@ -96,7 +96,7 @@ func _generate_ridges(rng: RandomNumberGenerator, skip_cells: PackedVector2Array
 			var x := 1 + i if from_left else inner_width - i
 			_place_ridge_cell(rng, Vector2(x, row), rock_share, skip_cells, obstacles)
 			if rng.randf() < ridge_thicken_chance:
-				# Thicken within the ridge's band (base row Â±1) so neighbouring ridges never touch.
+				# Thicken within the ridge's band (base row ±1) so neighbouring ridges never touch.
 				var side := 1 if rng.randf() < 0.5 else -1
 				if absi(row + side - base_row) > 1:
 					side = -side
@@ -126,23 +126,23 @@ func _generate_rock_clusters(rng: RandomNumberGenerator, skip_cells: PackedVecto
 				if rng.randf() < 1.0 - distance / (radius + 1.0):
 					_place_obstacle(rng, cell, rock_obstacle, obstacles)
 
-# Up to `count` distinct rows, sorted, each at least `ridge_min_spacing` from the others and the walls.
+# Up to `count` rows, sorted, each at least `ridge_min_spacing` from the others and the walls.
 func _pick_ridge_rows(rng: RandomNumberGenerator, count: int) -> Array[int]:
 	var first := ridge_min_spacing
 	var last := int(MAP_GRID.size.y) - 1 - ridge_min_spacing
 	var rows: Array[int] = []
-	for attempt in 200:
-		if rows.size() >= count:
-			break
-		var row := rng.randi_range(first, last)
-		var too_close := false
-		for other in rows:
-			if absi(other - row) < ridge_min_spacing:
-				too_close = true
-				break
-		if not too_close:
-			rows.append(row)
-	rows.sort()
+	if last < first:
+		return rows
+	# As many as fit (a small map fits fewer), spread by random gaps: picking rows one at a time could
+	# put the first in the middle and leave no room for a second.
+	count = mini(count, (last - first) / ridge_min_spacing + 1)
+	var slack := (last - first) - (count - 1) * ridge_min_spacing
+	var offsets: Array[int] = []
+	for i in count:
+		offsets.append(rng.randi_range(0, slack))
+	offsets.sort()
+	for i in count:
+		rows.append(first + i * ridge_min_spacing + offsets[i])
 	return rows
 
 func _place_obstacle(rng: RandomNumberGenerator, cell: Vector2, data: ObstacleData, obstacles: Dictionary) -> void:

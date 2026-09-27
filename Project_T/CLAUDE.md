@@ -171,7 +171,10 @@ branches, final forms; localization; audio; replacing the Foozle placeholder art
   trimmed so more layers never get louder), `duck(db, s)` (dispel 4/0.5, leaf lost + boss moments 8/1),
   `set_drifting` (−3 dB in drifts), `set_ambience_trim` (thins with the field, swells at rests).
   Attacks = quiet launch (`attack_<line>`) + hit where it lands (`hit_<family>`, `_dull` when resisted,
-  `hit_bright` when weak, pitched by the target's size; one per pulse/splash, chains ripple quieter).
+  `hit_full` + louder when weak, pitched by the target's size; one per pulse/splash, chains ripple quieter).
+- Second listen ("Rounded, never sharp"): the generator never uses crackle/click textures; `_sfx()`
+  lowpasses every effect (`SFX_TOP_HZ`) and fades it in (`SFX_ONSET`, `HIT_ONSET`); SFX bells skip
+  partials above 6 kHz; SFX/UI buses get a −6 dB high shelf + a limiter (`Sound._add_softening`).
 
 ## Layout
 - `scenes/main.tscn` — root scene: MapGenerator (Ground / Path / EnvironmentObject TileMapLayers),
@@ -232,7 +235,7 @@ branches, final forms; localization; audio; replacing the Foozle placeholder art
   `dew_popup.gd` (`DewPopup`).
 - Input actions: `toggle_build_mode` (B), `place_tower` (LMB), `cancel_build` (RMB / Esc),
   `sell_tower` (RMB / Delete), `start_drift` (Enter), `pause_game` (Space), `cycle_speed` (Tab).
-- `resource/` — data resources + their scripts: `map_grid.tres` (`Grid`: 45x36 cells, 64px),
+- `resource/` — data resources + their scripts: `map_grid.tres` (`Grid`: 23x18 cells, 64px; small on purpose so each Warden matters),
   `obstacle/*.tres` (`ObstacleData`), `enemy/*.tres` (`EnemyData`),
   `tower/*.tres` (`TowerData`).
 - `animation/` — SpriteFrames (`walk_side`, `walk_up`, `walk_down`).

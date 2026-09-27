@@ -9,7 +9,7 @@ extends Node2D
 const MAP_GRID = preload("res://resource/map/map_grid.tres")
 const VIGNETTE_Z := 3  # Over the map, Wardens and creatures; under attack effects (4-5) and popups (10)
 const GLOW_Z := 4  # Additive glows (the Heartwood's) go over the cold multiply
-const MARGIN_CELLS := 4  # The multiply also covers the forest outside the wall
+const MARGIN_CELLS := 12  # The multiply also covers the forest outside the wall
 const SQRT2 := 1.41421356
 
 # Multiply colours from the map's centre (0) to its corners (1); edge midpoints sit at ~0.71.

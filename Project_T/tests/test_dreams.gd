@@ -70,6 +70,9 @@ func _test_attacks(main: Node) -> void:
 	dewdrop._release()
 	await _frames(30)
 	_check(target.statuses.has(EnemyStatuses.DAMP), "Dewdrop makes creatures Damp")
+	# It may stand on an obstacle (no route), which would block every later build: clear it.
+	_free_enemies(main)
+	await process_frame
 
 	# Splash: a Rain Lily projectile landing between two creatures soothes both
 	var lily := _build(main, "rain_lily")
@@ -540,10 +543,16 @@ func _clear(main: Node) -> void:
 
 func _free_cell(map_generator) -> Vector2:
 	var path: PackedVector2Array = map_generator.get_path_from(map_generator.startPath)
+	# Also keep every creature's way out open (the placement rule), or the build is refused. Test
+	# creatures placed where no route exists can't be cut off, so they don't count.
+	var enemy_cells := PackedVector2Array()
+	for enemy in map_generator.get_node("%EnemyContainer").get_maze_walkers():
+		if not map_generator.get_path_from(enemy.get_target_cell()).is_empty():
+			enemy_cells.append(enemy.get_target_cell())
 	for i in range(3, path.size()):
 		for offset in [Vector2.LEFT, Vector2.RIGHT, Vector2.UP, Vector2.DOWN]:
 			var cell: Vector2 = path[i] + offset
-			if not path.has(cell) and map_generator.can_block(cell) and not _near_enemy(map_generator, cell):
+			if not path.has(cell) and map_generator.can_block(cell, enemy_cells) and not _near_enemy(map_generator, cell):
 				return cell
 	return Vector2(-1, -1)
 

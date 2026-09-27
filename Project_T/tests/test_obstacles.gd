@@ -48,7 +48,8 @@ func _run() -> void:
 	# Rocks almost everywhere: the generator must carve a route through.
 	main = await _make_main(42, 0.7)
 	map = main.get_node("%MapGenerator")
-	_check(map.obstacles.size() > 500, "dense map really is dense (%d obstacles)" % map.obstacles.size())
+	var inner_cells := int((map.MAP_GRID.size.x - 2) * (map.MAP_GRID.size.y - 2))
+	_check(map.obstacles.size() > inner_cells / 3, "dense map really is dense (%d of %d cells)" % [map.obstacles.size(), inner_cells])
 	_check_route(map, "dense map")
 	main.free()
 

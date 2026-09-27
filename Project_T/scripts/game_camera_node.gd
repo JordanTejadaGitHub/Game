@@ -81,12 +81,19 @@ func _handle_input(delta: float) -> void:
 		target_position += direction.normalized() * camera_speed * delta
 
 	# Handle zoom input
+	var zoom_min := _get_zoom_out_min()
 	if Input.is_action_just_released("zoom_in"):  # Zoom in
-		target_zoom.x = clamp(target_zoom.x + zoom_speed, camera_zoom_out_min, camera_zoom_in_max)
-		target_zoom.y = clamp(target_zoom.y + zoom_speed, camera_zoom_out_min, camera_zoom_in_max)
+		target_zoom += Vector2.ONE * zoom_speed
 	if Input.is_action_just_released("zoom_out"):  # Zoom out
-		target_zoom.x = clamp(target_zoom.x - zoom_speed, camera_zoom_out_min, camera_zoom_in_max)
-		target_zoom.y = clamp(target_zoom.y - zoom_speed, camera_zoom_out_min, camera_zoom_in_max)
+		target_zoom -= Vector2.ONE * zoom_speed
+	target_zoom = target_zoom.clamp(Vector2.ONE * zoom_min, Vector2.ONE * maxf(camera_zoom_in_max, zoom_min))
+
+# How far the camera may zoom out: `camera_zoom_out_min`, but never past the whole map (plus a cell
+# of forest) filling the view, so a small map can't shrink into the middle of the screen.
+func _get_zoom_out_min() -> float:
+	var viewport_size := camera_2d.get_viewport_rect().size
+	var framed := map_size_pixels + MAP_GRID.cell_size * 2
+	return maxf(camera_zoom_out_min, minf(viewport_size.x / framed.x, viewport_size.y / framed.y))
 
 # Smoothly move the camera to the target position.
 # Using 1 - exp(-k * delta) makes the smoothing feel the same at any frame rate.
@@ -106,11 +113,18 @@ func _clamp_camera_to_map() -> void:
 	var actual_visible_area = viewport_size / camera_2d.zoom  # Adjust for zoom
 	var half_visible_area = actual_visible_area / 2  # Half the visible area
 
-	# Calculate clamping ranges to ensure the entire visible area stays within map bounds
+	# Calculate clamping ranges to ensure the entire visible area stays within map bounds. When the
+	# view is bigger than the map along an axis, the map is centred on that axis instead.
 	var min_x = half_visible_area.x + EPSILON
-	var max_x = max(map_size_pixels.x - half_visible_area.x - EPSILON, min_x)
+	var max_x = map_size_pixels.x - half_visible_area.x - EPSILON
+	if max_x < min_x:
+		min_x = map_size_pixels.x / 2
+		max_x = min_x
 	var min_y = half_visible_area.y + EPSILON
-	var max_y = max(map_size_pixels.y - half_visible_area.y - EPSILON, min_y)
+	var max_y = map_size_pixels.y - half_visible_area.y - EPSILON
+	if max_y < min_y:
+		min_y = map_size_pixels.y / 2
+		max_y = min_y
 
 	# When the camera hits the boundaries, we update the target position directly
 	if target_position.x < min_x:
