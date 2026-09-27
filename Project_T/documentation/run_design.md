@@ -106,6 +106,38 @@ before a second family arrives at drift 25. When fewer than 3 new families are a
 in the meta, before the Grove unlocks Pebbling, Rootling and Acorn), empty slots become **Family
 Blessings** for a family you own (`meta_design.md`).
 
+### Omens: choose the next block's twist
+
+Added 2026-09-27. Aimed at "does the middle of the run stay interesting?". **At every rest from
+drift 10 on**, after the Dream, the wind brings **2 Omens**. Pick one to change the next block
+(5 drifts) for a reward, or keep **Clear Skies** (the default: nothing changes). This is optional
+risk: players set their own difficulty block by block.
+
+- An Omen affects only the **next block**. Bosses themselves ignore Omens (their escorts don't).
+- Rewards are paid at the rest **after** the block, and only if the Heartwood is still standing.
+  Losing leaves doesn't cancel the reward.
+- Offers only include Omens that make sense (e.g. no flyer Omen before flyers exist).
+- Omen rewards scale with the act (×1 / ×1.5 / ×2 / ×2.5 for Dew and Seeds).
+
+| Omen | The next block | Reward |
+|---|---|---|
+| **Moth Night** | +40% flying creatures | next Dream: one card is Rare+ |
+| **Thick Blight** | creatures +20% health | next Dream offers 4 cards |
+| **Crowded Paths** | +30% creatures per drift | +40 Dew |
+| **Hard Bark** | blight coats +50% | next Dream: one card is Rare+ |
+| **Swift Stream** | creatures +15% speed | +3 Seeds |
+| **Dry Spell** | creatures give no Dew | rest bonus ×2 |
+| **Stubborn Blight** | status durations halved | regrow 2 leaves |
+| **Restless Wind** | drifts arrive 30% closer together | +1 max leaf |
+
+- **Blight Levels** can make Omens harsher or remove Clear Skies ("an Omen is always chosen").
+- **Grove perks** later: a third Omen option, or Omen rewards +25% (`meta_design.md`).
+- **Data:** `OmenData` resource: `display_name`, `description`, `min_drift`, `requires` (e.g.
+  flyers), next-block multipliers (health, speed, count, coat, flyer share, creature Dew, status
+  duration, arrival spacing) and a reward (Dew, Seeds, leaves, max leaves, Dream min rarity, Dream
+  extra cards, rest-bonus multiplier). `DriftDirector` applies the multipliers to the next block.
+- **To check:** is one more choice per rest too much? If it is, offer Omens only every other rest.
+
 ## Build rules
 
 - **Anything, any time:** build, evolve, sell and tend obstacles during drifts and rests. The path

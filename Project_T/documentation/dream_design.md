@@ -103,7 +103,7 @@ Rootling, Acorn) brings its own cards.
 | # | Card | Effect | Tags | Needs | Pool |
 |---|---|---|---|---|---|
 | 28 | **Thunderhead** | Stormcaps can grow into Thunderheads (90 Dew) | storm | Stormcap | Start |
-| 29 | **Conductive Soil** | lightning jumps to *every* Damp creature in range | storm, water | Firefly Jar + Dewdrop | Start |
+| 29 | **Conductive Soil** | lightning jumps to *every* Damp creature in range | storm, water | Entwined: Stormcap + Rain Lily | Start |
 | 30 | **Spore Cascade** | a cleansed creature's Spored stacks spread to the 2 nearest creatures | spore | Sporeling | Start |
 | 31 | **Static Field** | Static bolts also hit creatures within 1 tile | storm | Firefly Jar | Grove |
 | 32 | **Guiding Light** | Marked spreads to creatures within 1 tile of the target | mark | Lanternmoth | Grove |
@@ -117,8 +117,71 @@ Rootling, Acorn) brings its own cards.
 | 35 | **Rootbound** | Wardens touching 3+ other Wardens attack twice | maze | Grove |
 | 36 | **Monoculture** | if all your attacking Wardens are one line: +60% soothe | — | Grove |
 
-*Bittersweet cards* (big upside, gentle cost, e.g. **Deep Sleep**: +40% soothe, lose 2 leaves)
-are parked for later; they're only worth it once leaves are tuned.
+## Deepened cards: repeats become upgrades
+
+Added 2026-09-27. With 19 Dreams from a 33-card pool, repeats are common. Stat cards already
+stack; now **rule cards** can come back too, as a stronger **Deepened** version ("II").
+
+- A Deepened card can only be offered if you own the base card. Same rarity and weight as the base.
+  Each card deepens **once** (no III).
+- Taking it replaces the base effect with the Deepened one. It's not a new slot.
+- Branch cards, final-form cards and Legendaries don't deepen. They're a direction, not a number.
+
+| Card | Base | Deepened (II) |
+|---|---|---|
+| Cozy Corners | +15% soothe beside a bend | +25%, and bends up to 2 tiles away count |
+| Hedge Maze | +1% per 5 Thornwalls (max 20%) | +1% per 4 Thornwalls (max 30%) |
+| Evergreen | evolving −25% Dew | evolving −40% Dew |
+| Lingering Spores | Spored +3 s | Spored +5 s, and max stacks +2 |
+| Soaked Through | Damp lasts ×2 | Damp lasts ×3 and slows −15% instead of −10% |
+| Twin Puff | every 3rd Sporeling attack fires twice | every 2nd |
+| Static Bloom | Stormcap chains apply 1 Drowsy | apply 2 Drowsy |
+| Spore Cascade | spreads to the 2 nearest | spreads to the 3 nearest |
+| Static Field | bolts also hit within 1 tile | within 1.5 tiles, and splashed creatures gain 1 Static |
+| Guiding Light | Marked spreads within 1 tile | within 2 tiles |
+| Seedling Gift | a free Sprout at every rest | a free Sprout, or a free Sprout → base growth, at every rest |
+
+## Entwined cards: combos that come together
+
+Added 2026-09-27. Some Rares are **Entwined**: they list 2 ingredients (cards or Wardens), and
+**once you own every ingredient, the Entwined card is guaranteed in your next Dream offer** (one
+slot; if you pass on it, it goes back to normal weight). This is the main lever for build
+reachability (Storm Grid sims at ~6–10% vs the 33% target). It replaces the plain "Needs"
+prerequisite on these cards.
+
+| Entwined card | Ingredients | Replaces "Needs" |
+|---|---|---|
+| **Conductive Soil** | Stormcap + Rain Lily | Firefly Jar + Dewdrop |
+| **Static Bloom** | Stormcap + Bloomcap | Stormcap |
+| **Spore Cascade** | Driftspore + Lingering Spores | Sporeling |
+| **Guiding Light** | Lanternmoth + Cozy Corners | Lanternmoth |
+
+- The card UI shows the ingredients (small icons) so players can plan toward a combo.
+- An Entwined card shows up in the offer with a vine border and "Entwined" under its name.
+- **Re-run the Storm Grid simulation** (`tests/test_dreams.gd`) with this rule. If it overshoots
+  33%, loosen "guaranteed" to "2× weight"; if it's still short, also make Entwined ingredients get
+  1.5× weight once you own one of the two.
+- New families (Pebbling, Rootling, Acorn) should each bring at least one Entwined card that crosses
+  into an existing family.
+
+## Bittersweet cards
+
+Un-parked 2026-09-27, but **only enter the pool once leaves are tuned** (`run_design.md`, "To check
+in playtests"). Big upside, a real cost that lasts all run. Tag `bittersweet`, 1 each, Uncommon or
+Rare, act 2+ (`min_act` 2). At most one bittersweet card per offer. The cost is always shown in
+its own line on the card, in a muted plum colour.
+
+| Card | Rarity | Upside | Cost |
+|---|---|---|---|
+| **Deep Sleep** | Rare | all Wardens +40% soothe | −4 max leaves (and lose them now) |
+| **Borrowed Dew** | Uncommon | +150 Dew now | rest bonus −15 for the rest of the run |
+| **Wild Growth** | Uncommon | evolving −40% Dew | creatures +10% health |
+| **Overgrown** | Rare | all Wardens +1 range | no selling while creatures are walking |
+| **Restless Dreams** | Rare | the next 3 Dreams each include a Rare+ card | *Let it pass* is gone for the run |
+| **Hungry Roots** | Uncommon | all Wardens +25% attack speed | Thornwalls cost 6 |
+
+Bittersweet cards are also the natural home for Blight-Level rewards (a Level could add "every
+boss Dream includes one bittersweet card").
 
 ## Reachability check: Storm Grid
 
@@ -129,7 +192,8 @@ Conductive Soil) out of 19.
 - **Families are now the bottleneck.** With all 6 families in the game, the first pick offers 3 of
   6 and each boss 3 of the rest, so getting both specific families by drift 50 happens in roughly
   **70%** of runs if you aim for it.
-- **The Dreams are easy** with 19 of them, tag weighting, and guaranteed Rares at bosses.
+- **The Dreams are easy** with 19 of them, tag weighting, and guaranteed Rares at bosses. Conductive
+  Soil is now Entwined (Stormcap + Rain Lily), so it's guaranteed once both are owned.
 - **Target (restated for 100 drifts):** a deliberate dream build is **complete by the act 2 boss
   (drift 50) in about 1 run in 3**, and most runs finish *some* complete build by act 4. The
   original "1 in 3" goal now describes the mid-run; long runs naturally let more builds finish.
