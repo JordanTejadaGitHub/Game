@@ -8,6 +8,8 @@ class_name ReactionData
 @export var id: StringName = &""
 @export var display_name: String = ""  # Callout text without the "!"
 @export var statuses: Array[StringName] = []  # The two it needs, for the Codex ("Damp + Static")
+# Statuses that can stand in for the second one (Pinned: full Drowsy instead of Held).
+@export var alternatives: Array[StringName] = []
 @export_multiline var description: String = ""
 @export var callout_color: Color = Color.WHITE
 @export var effect: StringName = &""  # assets/effects/effects.json entry
