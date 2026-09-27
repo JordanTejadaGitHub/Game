@@ -19,8 +19,16 @@ func _init() -> void:
 	_check(ground.tile_set == map.tile_set and path.tile_set == map.tile_set and env.tile_set == map.tile_set,
 		"all layers share the environment TileSet")
 	_check(ground.get_cell_source_id(Vector2i(5, 5)) == EnvironmentTiles.GRASS, "ground is grass")
-	_check(env.get_cell_source_id(Vector2i(0, 5)) == EnvironmentTiles.WALL, "border is the drystone wall")
-	_check(env.get_cell_source_id(Vector2i(-1, 5)) in EnvironmentTiles.HEALTHY_TREES, "healthy trees outside the wall")
+	var size := Vector2i(map.MAP_GRID.size)
+	_check(ground.get_cell_source_id(Vector2i(0, 5)) == -1, "no grass square under the island's rim")
+	_check(env.get_cell_source_id(Vector2i(0, 5)) == EnvironmentTiles.ISLAND_EDGE
+		and env.get_cell_atlas_coords(Vector2i(0, 5)).x == 1 | 2 | 4, "the left rim: island to the N, E and S")
+	_check(env.get_cell_atlas_coords(Vector2i(0, 0)).x == 2 | 4, "the top-left corner: island to the E and S")
+	_check(env.get_cell_source_id(Vector2i(5, size.y)) == EnvironmentTiles.CLIFF
+		and env.get_cell_atlas_coords(Vector2i(5, size.y)).x == 3, "a cliff hangs under the bottom row")
+	_check(env.get_cell_source_id(Vector2i(map.startPath) + Vector2i.UP) == EnvironmentTiles.ROPE_BRIDGE,
+		"a rope bridge leads out from the start")
+	_check(map.dream_void.get_child(0) is Parallax2D and map.dream_void.z_index < 0, "the void sits behind the map")
 	_check(env.get_cell_source_id(Vector2i(map.startPath)) == EnvironmentTiles.EDGE_MIST, "mist on the start cell")
 	for cell in path.get_used_cells():
 		if path.get_cell_source_id(cell) != EnvironmentTiles.PATH:
@@ -97,15 +105,32 @@ func _check(ok: bool, what: String) -> void:
 		failures += 1
 		print("FAIL: ", what)
 
-# Flat render of the map layers + the Heartwood (headless has no renderer): frame 0 of every tile.
+# Flat render of the void, the map layers, the Heartwood and Wardens (headless has no renderer):
+# frame 0 of every tile, `MARGIN` cells of void around the island, at half size.
+const MARGIN := 5
+
 func _render(main: Node, layers: Array, file: String) -> void:
-	var size := Vector2i(main.get_node("%MapGenerator").MAP_GRID.size) + Vector2i(2, 2)
+	var map = main.get_node("%MapGenerator")
+	var size := Vector2i(map.MAP_GRID.size) + Vector2i.ONE * MARGIN * 2
 	var tile := EnvironmentTiles.SIZE
+	var offset := tile * MARGIN  # World (0, 0) in the image
 	var image := Image.create_empty(size.x * tile.x, size.y * tile.y, false, Image.FORMAT_RGBA8)
+	for sheet in ["void_sky", "void_stars"]:
+		var layer: Image = load(EnvironmentTiles.shared_path(sheet)).get_image()
+		layer.convert(Image.FORMAT_RGBA8)
+		for y in range(0, image.get_height(), layer.get_height()):
+			for x in range(0, image.get_width(), layer.get_width()):
+				image.blend_rect(layer, Rect2i(Vector2i.ZERO, layer.get_size()), Vector2i(x, y))
+	for islet in map.dream_void.get_children():
+		if islet is Sprite2D:
+			var art: Image = islet.texture.get_image()
+			art.convert(Image.FORMAT_RGBA8)
+			var region := Rect2i(islet.region_rect)
+			image.blend_rect(art, region, Vector2i(islet.position) - region.size / 2 + offset)
 	var sheets := {}
 	for layer: TileMapLayer in layers:
 		for cell in layer.get_used_cells():
-			var at := (cell + Vector2i.ONE) * tile
+			var at := cell * tile + offset
 			if at.x < 0 or at.y < 0 or at.x >= image.get_width() or at.y >= image.get_height():
 				continue
 			var source := layer.tile_set.get_source(layer.get_cell_source_id(cell)) as TileSetAtlasSource
@@ -113,21 +138,20 @@ func _render(main: Node, layers: Array, file: String) -> void:
 				sheets[source] = source.texture.get_image()
 				sheets[source].convert(Image.FORMAT_RGBA8)
 			image.blend_rect(sheets[source], Rect2i(layer.get_cell_atlas_coords(cell) * tile, tile), at)
-	var heartwood: Heartwood = main.get_node("%MapGenerator").heartwood
+	var heartwood: Heartwood = map.heartwood
 	var tree: Image = heartwood.texture.get_image()
 	tree.convert(Image.FORMAT_RGBA8)
 	var frame := Vector2i(EnvironmentTiles.HEARTWOOD_SIZE, EnvironmentTiles.HEARTWOOD_SIZE)
-	var top_left := Vector2i(heartwood.position + heartwood.offset) - frame / 2 + tile
+	var top_left := Vector2i(heartwood.position + heartwood.offset) - frame / 2 + offset
 	image.blend_rect(tree, Rect2i(heartwood.frame_coords * frame, frame), top_left)
 	for tower: Tower in main.get_node("%TowerContainer").get_children():
 		var sprite: Image = tower.tower_data.texture.get_image()
 		sprite.convert(Image.FORMAT_RGBA8)
-		image.blend_rect(sprite, Rect2i(Vector2i.ZERO, tile), Vector2i(tower.position) - tile / 2 + tile)
+		image.blend_rect(sprite, Rect2i(Vector2i.ZERO, tile), Vector2i(tower.position) - tile / 2 + offset)
 	image.resize(image.get_width() / 2, image.get_height() / 2, Image.INTERPOLATE_NEAREST)
-	_light_pass(image, main.get_node("%MapGenerator"), tile, 2.0)
+	_light_pass(image, map, offset, 2.0)
 	image.save_png(file)
 	print("preview saved to ", file)
-
 # Rough stand-in for the renderer's lighting: the cold multiply, lifted by the additive warm lights
 # (which light the multiply layer too). `scale` = world px per image px.
 func _light_pass(image: Image, map: Node, margin: Vector2i, scale: float) -> void:
@@ -145,7 +169,7 @@ func _light_pass(image: Image, map: Node, margin: Vector2i, scale: float) -> voi
 			lights.append([node.global_position, node.color * node.energy, node.texture_scale * 128.0 * node.scale.x])
 	for y in image.get_height():
 		for x in image.get_width():
-			var world := Vector2(x, y) * scale - Vector2(margin) + Vector2.ONE
+			var world := Vector2(x, y) * scale - Vector2(margin)
 			var cold := edge.gradient.sample(((world - vignette.position) / cover).length() / reach)
 			var warm := Color(0, 0, 0)
 			for light: Array in lights:

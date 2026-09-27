@@ -46,10 +46,10 @@ func draw():
 	# Later re-routes (towers, cleared obstacles, enemies mid-walk) stick to this route when they can.
 	_pathGenerator.set_preferred_cells(current_path)
 	# And we draw a tile for every cell in the path: the sheet has one per neighbour mask, and the
-	# start and end run off the map's edge.
+	# start runs off the island's edge onto the rope bridge.
 	for cell in current_path:
 		var mask := _get_tile_score(cell)
-		if cell == cell_start_path or cell == cell_end_path:
+		if cell == cell_start_path:
 			mask |= _edge_mask(cell)
 		set_cell(cell, EnvironmentTiles.PATH, EnvironmentTiles.path_tile(mask))
 		current_path_curve.add_point(grid.calculate_map_position(cell))

@@ -56,9 +56,11 @@ All cells are 64×64 unless noted. Frames run left to right; animated sheets are
 ### The dream's outer layer (shared, `assets/environment/dream/`)
 
 The map as an island of dream adrift in a starry void (from concept direction C, drawn in the
-Waystone pixel style). Not act-specific. **Art only so far:** the map still uses `border_wall` and
-the outer forest; wiring this in means island-edge tiles on the border cells, cliff tiles below the
-south edge, and the void as `Parallax2D` layers behind the map.
+Waystone pixel style). Not act-specific. **In the game:** the border cells are `island_edge` rim tiles
+(grass only inside the rim), `cliff` tiles hang under the bottom row, a `rope_bridge` leads 3 cells
+out from the start to an islet, and `scripts/map/dream_void.gd` (`DreamVoid`) puts `void_sky` /
+`void_stars` behind the map as `Parallax2D` layers and scatters `void_islets`. `border_wall` and the
+healthy trees are no longer used.
 
 | File | Size | Layout | Use |
 |---|---|---|---|

@@ -24,6 +24,7 @@ var unwalkable_cells: PackedVector2Array
 var obstacles: Dictionary = {}
 var tile_set: TileSet  # Shared by the ground, path and object layers (EnvironmentTiles)
 var heartwood: Heartwood  # The goal tree on the end cell
+var dream_void: DreamVoid  # The starry void around the island
 var lighting: EnvironmentLighting  # Cold edges, warm Warden lights
 var ambience: EnvironmentAmbience  # Edge fog and the act's particles
 
@@ -60,6 +61,12 @@ func _ready() -> void:
 	heartwood.position = MAP_GRID.calculate_map_position(endPath)
 	heartwood.run_state = get_node_or_null("%RunState")
 	add_child(heartwood)
+
+	dream_void = DreamVoid.new()
+	dream_void.bridge_end = environment_object_layer.bridge_end
+	dream_void.map_seed = map_seed
+	add_child(dream_void)
+	move_child(dream_void, 0)  # Behind the tile layers
 
 	lighting = EnvironmentLighting.new()
 	lighting.tower_container = get_node_or_null("%TowerContainer")

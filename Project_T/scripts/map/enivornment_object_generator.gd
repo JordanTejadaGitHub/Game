@@ -3,7 +3,7 @@ class_name EnvironmentObjectGenerator
 
 const MAP_GRID = preload("res://resource/map/map_grid.tres")
 # Rings of healthy trees outside the border wall: dark silhouettes where the maze never goes.
-const OUTER_FOREST_RINGS := 10  # Deep enough to fill a zoomed-out view (the map is small)
+const BRIDGE_CELLS := 3  # Rope bridge from the start out into the void (DreamVoid puts an islet at its end)
 @export var noise_texture: NoiseTexture2D
 @export var tree_obstacle: ObstacleData = preload("res://resource/obstacle/tree.tres")
 @export var rock_obstacle: ObstacleData = preload("res://resource/obstacle/rock.tres")
@@ -35,6 +35,7 @@ const OUTER_FOREST_RINGS := 10  # Deep enough to fill a zoomed-out view (the map
 var unwalkable_cells: PackedVector2Array
 # Cells that belong to a ridge (set of Vector2 -> true), so route carving can avoid breaking them.
 var ridge_cells: Dictionary = {}
+var bridge_end: Vector2i  # The void cell just past the rope bridge's far end
 
 # Noise thresholds (set by generate_obstacles): below `_tree_level` = tree, below `_detail_level` =
 # grass detail, above = bare grass. Tree level is rolled per map; detail level comes from the noise
@@ -47,7 +48,8 @@ var _start_on_left := true
 func initialize(startPath: Vector2i, endPath: Vector2i) -> PackedVector2Array:
 	_start_on_left = startPath.x < MAP_GRID.size.x / 2
 	_generate_border(startPath, endPath)
-	_generate_outer_forest()
+	_generate_cliffs()
+	_generate_bridge(startPath)
 	# Nightmare mist where drifts arrive. Nothing is ever built or cleared on the start cell.
 	set_cell(startPath, EnvironmentTiles.EDGE_MIST, Vector2i.ZERO)
 	return unwalkable_cells
@@ -182,7 +184,9 @@ func _compute_noise_levels(noise: FastNoiseLite, tree_density: float) -> void:
 	_tree_level = lowest + (highest - lowest) * tree_density
 	_detail_level = lowest + (highest - lowest) * maxf(offsets[2], tree_density)
 
-# Drystone wall around the map, open at the start and end.
+# The map is an island of dream adrift in the void (environment_assets.md, "The dream's outer
+# layer"): its border cells are the island's rim, each tile picked by which neighbours are island.
+# The rim stays unwalkable; the start and end are open (the path draws them).
 func _generate_border(startPath: Vector2i, endPath: Vector2i) -> void:
 	var last := Vector2i(MAP_GRID.size) - Vector2i.ONE
 	for x in range(0, last.x + 1):
@@ -190,16 +194,31 @@ func _generate_border(startPath: Vector2i, endPath: Vector2i) -> void:
 			var cell := Vector2i(x, y)
 			if (x != 0 and y != 0 and x != last.x and y != last.y) or cell == startPath or cell == endPath:
 				continue
-			set_cell(cell, EnvironmentTiles.WALL, Vector2i(EnvironmentTiles.cell_variant(cell, 2), 0))
+			var mask := (1 if y > 0 else 0) | (2 if x < last.x else 0) | (4 if y < last.y else 0) | (8 if x > 0 else 0)
+			set_cell(cell, EnvironmentTiles.ISLAND_EDGE, Vector2i(mask, 0))
 			unwalkable_cells.append(Vector2(cell))
 
-# Healthy trees in the rings just outside the wall (art_direction.md: the dark forest edge).
-func _generate_outer_forest() -> void:
+# Cliff faces hanging under the island's bottom row.
+func _generate_cliffs() -> void:
 	var size := Vector2i(MAP_GRID.size)
-	for x in range(-OUTER_FOREST_RINGS, size.x + OUTER_FOREST_RINGS):
-		for y in range(-OUTER_FOREST_RINGS, size.y + OUTER_FOREST_RINGS):
-			var cell := Vector2i(x, y)
-			if x >= 0 and y >= 0 and x < size.x and y < size.y:
-				continue
-			var trees := EnvironmentTiles.HEALTHY_TREES
-			set_cell(cell, trees[EnvironmentTiles.cell_variant(cell, trees.size(), 1)], Vector2i.ZERO)
+	for x in size.x:
+		var cell := Vector2i(x, size.y)
+		var column := (1 if x > 0 else 0) | (2 if x < size.x - 1 else 0)
+		set_cell(cell, EnvironmentTiles.CLIFF, Vector2i(column, EnvironmentTiles.cell_variant(cell, 4)))
+
+# A rope bridge from the start cell straight out into the void, where the nightmares cross over.
+func _generate_bridge(startPath: Vector2i) -> void:
+	var out := _outward(startPath)
+	var tile := Vector2i(1, 0) if out.x == 0 else Vector2i(0, 0)  # North-south or east-west planks
+	for i in range(1, BRIDGE_CELLS + 1):
+		set_cell(startPath + out * i, EnvironmentTiles.ROPE_BRIDGE, tile)
+	bridge_end = startPath + out * (BRIDGE_CELLS + 1)
+
+# The direction off the island from an edge cell.
+func _outward(cell: Vector2i) -> Vector2i:
+	var last := Vector2i(MAP_GRID.size) - Vector2i.ONE
+	if cell.y <= 0:
+		return Vector2i.UP
+	if cell.y >= last.y:
+		return Vector2i.DOWN
+	return Vector2i.LEFT if cell.x <= 0 else Vector2i.RIGHT

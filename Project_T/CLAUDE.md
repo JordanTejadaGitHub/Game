@@ -202,8 +202,10 @@ branches, final forms; localization; audio; replacing the Foozle placeholder art
   `tiles`, and the `cleared_source_id` mark left when the player clears one: tended stump, moved hollow).
   Tiles: `environment_tiles.gd` (`EnvironmentTiles`) builds one TileSet from `assets/environment/<act>/`
   (one atlas source per sheet, fixed source ids) shared by all three layers; the path picks
-  `path.png` column = neighbour mask. Border = drystone wall, healthy trees ring the outside, mist on
-  the start, `Heartwood` (`heartwood.gd`, Sprite2D) on the end shows leaves lost (its warm light and additive
+  `path.png` column = neighbour mask. The map is an island in a starry void: border cells are
+  `island_edge` rim tiles (neighbour mask; no grass under them), cliffs under the bottom row, a rope
+  bridge out from the start (shared sheets in `assets/environment/dream/`), and `DreamVoid`
+  (`dream_void.gd`: Parallax2D sky + stars behind the map, islets). Mist on the start, `Heartwood` (`heartwood.gd`, Sprite2D) on the end shows leaves lost (its warm light and additive
   glow dim with them). Lighting pass (art_direction.md), made by MapGenerator: `EnvironmentLighting`
   (MUL-blended radial multiply, cold at the edges, z 3; a PointLight2D per attacking Warden, kept under
   it, not the Warden) and `EnvironmentAmbience` (`_draw`: edge fog + the act's particles, z 6). `tests/test_environment.gd`

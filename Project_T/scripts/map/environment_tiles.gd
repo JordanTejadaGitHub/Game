@@ -15,29 +15,30 @@ const ACT_FOLDERS: Array[String] = ["forest_edge", "deep_wood", "misty_hollow", 
 # Source ids.
 const GRASS := 0  # 4 variants
 const PATH := 1  # Column = neighbour mask (N=1, E=2, S=4, W=8)
-const WALL := 2  # 2 variants
-const WITHERED_TREE := 3  # Animated, 3 variants (rows)
+const WITHERED_TREE := 3  # Animated, 9 dead trees (rows)
 const TENDED_STUMP := 4
-const MOSSY_BOULDER := 5  # 2 variants
+const MOSSY_BOULDER := 5  # 9 rocks
 const MOVED_HOLLOW := 6
 const EDGE_MIST := 7  # Animated overlay
-const TREE_ROUND := 8
-const TREE_PINE := 9
-const TREE_FLOWERING := 10
 const GROUND_DETAILS := 11  # Mushrooms, ferns, pebbles, leaf litter
 const WAYSTONE := 12  # Special tiles (design plan §9): art only, no rules yet
 const DEW_POOL := 13
 const BLIGHT_PATCH := 14
+const ISLAND_EDGE := 15  # The island's rim: column = neighbour mask of island cells (N=1, E=2, S=4, W=8)
+const CLIFF := 16  # Under the bottom row: column bit 1 = cliff to the west, bit 2 = to the east; rows = variants
+const ROPE_BRIDGE := 17  # Shared (dream/): column 0 = east-west, 1 = north-south
+# (Ids 2 and 8-10 were the drystone wall and healthy trees; the island and the void replaced them.)
 
 const SHEETS := {
-	GRASS: "grass", PATH: "path", WALL: "border_wall", WITHERED_TREE: "withered_tree",
+	GRASS: "grass", PATH: "path", WITHERED_TREE: "withered_tree",
 	TENDED_STUMP: "tended_stump", MOSSY_BOULDER: "mossy_boulder", MOVED_HOLLOW: "moved_hollow",
-	EDGE_MIST: "edge_mist", TREE_ROUND: "tree_round", TREE_PINE: "tree_pine",
-	TREE_FLOWERING: "tree_flowering", GROUND_DETAILS: "ground_details", WAYSTONE: "waystone",
-	DEW_POOL: "dew_pool", BLIGHT_PATCH: "blight_patch",
+	EDGE_MIST: "edge_mist", GROUND_DETAILS: "ground_details", WAYSTONE: "waystone",
+	DEW_POOL: "dew_pool", BLIGHT_PATCH: "blight_patch", ISLAND_EDGE: "island_edge", CLIFF: "cliff",
 }
+# The dream's outer layer, the same in every act (assets/environment/dream/).
+const DREAM_FOLDER := "dream"
+const SHARED_SHEETS := {ROPE_BRIDGE: "rope_bridge"}
 const ANIMATED: Array[int] = [WITHERED_TREE, EDGE_MIST, WAYSTONE, DEW_POOL, BLIGHT_PATCH]
-const HEALTHY_TREES: Array[int] = [TREE_ROUND, TREE_PINE, TREE_FLOWERING]
 
 # The Heartwood (goal): 128x128 frames, FRAMES per row, row = leaves lost (0..HEARTWOOD_STATES-1).
 const HEARTWOOD := "heartwood"
@@ -48,12 +49,15 @@ const HEARTWOOD_STATES := 21
 static func sheet_path(sheet: String, act: int) -> String:
 	return ROOT + ACT_FOLDERS[clampi(act, 1, ACT_FOLDERS.size()) - 1] + "/" + sheet + ".png"
 
+static func shared_path(sheet: String) -> String:
+	return ROOT + DREAM_FOLDER + "/" + sheet + ".png"
+
 static func create_tile_set(act: int = 1) -> TileSet:
 	var tile_set := TileSet.new()
 	tile_set.tile_size = SIZE
-	for id: int in SHEETS:
+	for id: int in SHEETS.keys() + SHARED_SHEETS.keys():
 		var source := TileSetAtlasSource.new()
-		source.texture = load(sheet_path(SHEETS[id], act))
+		source.texture = load(sheet_path(SHEETS[id], act) if SHEETS.has(id) else shared_path(SHARED_SHEETS[id]))
 		source.texture_region_size = SIZE
 		var grid := source.get_atlas_grid_size()
 		if id in ANIMATED:

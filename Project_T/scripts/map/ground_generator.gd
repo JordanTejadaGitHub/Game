@@ -2,18 +2,18 @@ extends TileMapLayer
 class_name GroundGenerator
 
 const MAP_GRID = preload("res://resource/map/map_grid.tres")
-const MARGIN := 10  # Grass beyond the map, under the outer forest
 # Share of cells per grass variant (plain, tufts, flowers, clover), as on the concept page.
 const GRASS_WEIGHTS: Array[float] = [0.5, 0.22, 0.16, 0.12]
 
-# Creates the ground layer, including the playable area and the outer grass layer
+# Creates the ground layer: grass inside the island's rim (the rim tiles carry their own grass, and the
+# void shows around them)
 func initialize() -> void:
 	_generate_grass()
 
 # Every variant tiles with every other, so each cell just rolls one.
 func _generate_grass() -> void:
-	for x in range(-MARGIN, MAP_GRID.size.x + MARGIN):
-		for y in range(-MARGIN, MAP_GRID.size.y + MARGIN):
+	for x in range(1, MAP_GRID.size.x - 1):
+		for y in range(1, MAP_GRID.size.y - 1):
 			var cell := Vector2i(x, y)
 			set_cell(cell, EnvironmentTiles.GRASS, Vector2i(_grass_variant(cell), 0))
 
