@@ -54,13 +54,6 @@ const BRANCH_DREAMLIGHT := 1  # Branch, hidden branch, wall growth
 const FINAL_DREAMLIGHT := 2  # Final form (needs its branch)
 # Wardens that hold nightmares in place (Held) without a freeze: the Rootling line's roots.
 const HELD_SOURCES: Array[String] = ["tangleroot", "snugroot"]
-# Reactions and the statuses they need (each entry: statuses where any one will do).
-const REACTIONS := {
-	&"thunderclap": [[&"damp"], [&"static"]], &"ignite": [[&"spored"], [&"static"]],
-	&"mushrooming": [[&"spored"], [&"damp"]], &"shatter": [[&"held"], [&"damp"]],
-	&"drown": [[&"damp"], [&"drowsy"]], &"pinned": [[&"marked"], [&"held", &"drowsy"]],
-	&"smother": [[&"held"], [&"spored"]], &"lightning_rod": [[&"marked"], [&"static"]],
-}
 
 signal unlocks_changed
 signal card_taken(card: UpgradeData)
@@ -869,17 +862,18 @@ func _meets_needs(card: UpgradeData) -> bool:
 		return false
 	return true
 
-# How many Reactions (dream_design.md "Reaction numbers") your owned Wardens could set off together:
-# each needs both of its statuses applied by Wardens you own (Held = Frostfern's freeze).
+# How many Reactions (Reactions.all(), dream_design.md "Reaction numbers") your owned Wardens could
+# set off together: the first status and the second (or one of its alternatives, e.g. Pinned's
+# Drowsy) each applied by a Warden you own.
 func count_reaction_pairs() -> int:
 	var statuses := owned_statuses()
 	var count := 0
-	for needs in REACTIONS.values():
-		var ok := true
-		for options in needs:  # Each need is a list of statuses, any one of which will do
-			if not options.any(func(s: StringName) -> bool: return statuses.has(s)):
-				ok = false
-		if ok:
+	for reaction in Reactions.all():
+		if reaction.statuses.size() < 2 or not statuses.has(reaction.statuses[0]):
+			continue
+		var seconds: Array[StringName] = [reaction.statuses[1]]
+		seconds.append_array(reaction.alternatives)
+		if seconds.any(func(s: StringName) -> bool: return statuses.has(s)):
 			count += 1
 	return count
 
