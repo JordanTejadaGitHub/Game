@@ -171,6 +171,9 @@ func _check_cleared(number: int) -> void:
 	drifts_cleared += 1
 	var perfect: bool = not drift.leaked
 	var bonus := get_clear_bonus(number) + (perfect_bonus if perfect else 0)
+	var dreams := get_tree().get_first_node_in_group(DreamState.GROUP) as DreamState
+	if dreams:
+		bonus += dreams.get_dew_per_clear()  # Morning Dew
 	run_state.add_dew(bonus)
 	drift_cleared.emit(number, bonus, perfect)
 

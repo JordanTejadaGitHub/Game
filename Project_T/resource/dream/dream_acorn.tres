@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+[ext_resource type="Resource" path="res://resource/tower/acorn.tres" id="2_tower"]
+
+[resource]
+script = ExtResource("1_card")
+id = "dream_acorn"
+display_name = "Acorn"
+description = "Sprouts can now grow into Acorns (15 Dew), or plant one directly (25 Dew). A little oak that soothes all around it."
+rarity = 0
+kind = 0
+tags = Array[String](["acorn"])
+requires = Array[String]([])
+max_stacks = 1
+unlocks = ExtResource("2_tower")
+in_start_pool = false

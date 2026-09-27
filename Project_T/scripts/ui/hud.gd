@@ -16,26 +16,21 @@ const LEAVES_COLOR := Color(0.6, 0.9, 0.5)
 const LEAF_LOST_COLOR := Color(1.0, 0.6, 0.3)
 const TOAST_TIME := 2.5
 
-# One toggle button per buildable Warden, in `tower_placer.towers` order.
+@onready var dream_state: DreamState = %DreamState
+
+# One toggle button per plantable Warden (unlocked this run), in roster order; `_bar_towers` matches.
 var _tower_buttons: Array[Button] = []
+var _bar_towers: Array[TowerData] = []
 var _dew_flash: Tween
 var _leaf_flash: Tween
 var _toast_tween: Tween
 
 func _ready() -> void:
-	for i in tower_placer.towers.size():
-		var data: TowerData = tower_placer.towers[i]
-		var button := Button.new()
-		button.toggle_mode = true
-		button.focus_mode = Control.FOCUS_NONE
-		button.icon = _tower_icon(data)
-		button.tooltip_text = "%s (%d)\nCost: %d Dew" % [data.display_name, i + 1, data.cost]
-		button.pressed.connect(_on_tower_pressed.bind(data))
-		tower_bar.add_child(button)
-		_tower_buttons.append(button)
+	_build_tower_bar()
+	# New Wardens unlocked by Dreams appear in the bar (and prices can change).
+	dream_state.unlocks_changed.connect(_build_tower_bar)
 	# Keep the buttons in sync when build mode is toggled with B / cancelled with Esc or right-click.
 	tower_placer.build_mode_changed.connect(_sync_buttons.unbind(1))
-	_sync_buttons()
 
 	run_state.dew_changed.connect(_on_dew_changed)
 	run_state.dew_short.connect(_on_dew_short.unbind(1))
@@ -44,6 +39,7 @@ func _ready() -> void:
 	run_state.leaves_changed.connect(_on_leaves_changed)
 	_on_leaves_changed(run_state.leaves, run_state.max_leaves)
 	run_state.run_ended.connect(_on_run_ended)
+	dream_state.card_taken.connect(func(card: UpgradeData) -> void: show_toast("Dreamed: %s" % card.display_name))
 	drift_director.drift_cleared.connect(_on_drift_cleared)
 	drift_director.act_started.connect(_on_act_started)
 	toast_label.modulate.a = 0.0
@@ -55,8 +51,28 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 	var index := key.physical_keycode - KEY_1
 	if index >= 0 and index < mini(_tower_buttons.size(), 9):
-		_on_tower_pressed(tower_placer.towers[index])
+		_on_tower_pressed(_bar_towers[index])
 		get_viewport().set_input_as_handled()
+
+func _build_tower_bar() -> void:
+	for button in _tower_buttons:
+		tower_bar.remove_child(button)
+		button.queue_free()
+	_tower_buttons.clear()
+	_bar_towers = tower_placer.get_buildable_towers()
+	for i in _bar_towers.size():
+		var data: TowerData = _bar_towers[i]
+		var button := Button.new()
+		button.toggle_mode = true
+		button.focus_mode = Control.FOCUS_NONE
+		button.icon = _tower_icon(data)
+		button.tooltip_text = "%s (%d)\nCost: %d Dew\n%s" % [data.display_name, i + 1,
+			tower_placer.get_cost(data), data.description]
+		button.pressed.connect(_on_tower_pressed.bind(data))
+		tower_bar.add_child(button)
+		_tower_buttons.append(button)
+	_sync_buttons()
+	_on_dew_changed(run_state.dew)
 
 # Selecting the tower that's already being built leaves build mode; any other enters it.
 func _on_tower_pressed(data: TowerData) -> void:
@@ -68,14 +84,14 @@ func _on_tower_pressed(data: TowerData) -> void:
 
 func _sync_buttons() -> void:
 	for i in _tower_buttons.size():
-		var selected := tower_placer.build_mode and tower_placer.towers[i] == tower_placer.tower_data
+		var selected := tower_placer.build_mode and _bar_towers[i] == tower_placer.tower_data
 		_tower_buttons[i].set_pressed_no_signal(selected)
 
 func _on_dew_changed(dew: int) -> void:
 	dew_label.text = "Dew %d" % dew
 	# Fade out Wardens the player can't afford right now (still selectable, the ghost shows red).
 	for i in _tower_buttons.size():
-		var affordable := run_state.can_afford(tower_placer.towers[i].cost)
+		var affordable := run_state.can_afford(tower_placer.get_cost(_bar_towers[i]))
 		_tower_buttons[i].modulate.a = 1.0 if affordable else UNAFFORDABLE_BUTTON_ALPHA
 
 # Tried to spend Dew we don't have: flash the counter red and give it a little shake.

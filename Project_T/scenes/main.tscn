@@ -1,4 +1,4 @@
-[gd_scene load_steps=26 format=3 uid="uid://ct33vhcgulg0g"]
+[gd_scene load_steps=29 format=3 uid="uid://ct33vhcgulg0g"]
 
 [ext_resource type="Script" path="res://scripts/main.gd" id="1_bjgx8"]
 [ext_resource type="Script" path="res://scripts/map/map_generator.gd" id="2_888hw"]
@@ -16,6 +16,9 @@
 [ext_resource type="Script" path="res://scripts/run/game_speed.gd" id="13_speed"]
 [ext_resource type="Script" path="res://scripts/tower/tower_seller.gd" id="14_sell"]
 [ext_resource type="Script" path="res://scripts/ui/drift_panel.gd" id="15_dpanel"]
+[ext_resource type="Script" path="res://scripts/run/dream_state.gd" id="16_dream"]
+[ext_resource type="Script" path="res://scripts/ui/warden_panel.gd" id="17_wpanel"]
+[ext_resource type="Script" path="res://scripts/ui/dream_screen.gd" id="18_dscreen"]
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_vgjl1"]
 texture = ExtResource("3_4m67i")
@@ -245,6 +248,11 @@ script = ExtResource("7_pm83a")
 unique_name_in_owner = true
 script = ExtResource("12_drift")
 
+[node name="DreamState" type="Node" parent="."]
+unique_name_in_owner = true
+process_mode = 3
+script = ExtResource("16_dream")
+
 [node name="TowerPlacer" type="Node2D" parent="."]
 unique_name_in_owner = true
 process_mode = 3
@@ -338,6 +346,26 @@ offset_bottom = -16.0
 grow_horizontal = 0
 grow_vertical = 0
 script = ExtResource("15_dpanel")
+
+[node name="WardenPanel" type="PanelContainer" parent="HUD"]
+anchors_preset = 2
+anchor_top = 1.0
+anchor_bottom = 1.0
+offset_left = 16.0
+offset_top = -56.0
+offset_right = 316.0
+offset_bottom = -16.0
+grow_vertical = 0
+script = ExtResource("17_wpanel")
+
+[node name="DreamScreen" type="Control" parent="HUD"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("18_dscreen")
 
 [node name="GameCameraNode" type="Node2D" parent="."]
 process_mode = 3

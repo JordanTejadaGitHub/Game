@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "soaked_through"
+display_name = "Soaked Through"
+description = "Damp lasts twice as long."
+rarity = 1
+kind = 2
+tags = Array[String](["water"])
+requires = Array[String](["dewdrop"])
+max_stacks = 1
+status_id = &"damp"
+status_duration_multiplier = 2

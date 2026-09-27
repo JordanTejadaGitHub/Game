@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "morning_dew"
+display_name = "Morning Dew"
+description = "+20 Dew now, and +5 Dew every time you clear a drift."
+rarity = 0
+kind = 4
+tags = Array[String](["economy"])
+requires = Array[String]([])
+max_stacks = 1
+dew_now = 20
+dew_per_clear = 5

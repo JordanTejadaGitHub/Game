@@ -31,8 +31,33 @@ export (60). Earned when a creature is cleansed (`EnemyData.dew_reward`, "+N Dew
 spent on Wardens (`TowerData.cost`) and obstacle clears (`ObstacleData.clear_cost`). Always go
 through `run_state.spend_dew(cost)` (returns false + emits `dew_short` when short) — never subtract
 directly. HUD shows the Dew counter (`%DewLabel`), dims unaffordable Warden buttons.
-Next up: Dreams (after drifts 1, 3, 5…, see run_design.md), results screen with Seeds, acts 2–3
-drifts, Old Stag's Thornwall knock-down and its own art.
+**Statuses, evolutions, Dreams** (first-playable scope of tower_design.md / dream_design.md): see
+"Dreams and Wardens" below.
+Next up: results screen with Seeds, title + scene flow, meta (Memory Grove, save), acts 2–3 drifts,
+Old Stag's Thornwall knock-down, Rootling/Pebbling/Acorn branches, Grove-only Dream cards.
+
+## Dreams and Wardens
+- `EnemyStatuses` (RefCounted on each enemy, `enemy.statuses`): damp, drowsy, spored, marked,
+  static with dream_design.md numbers; `enemy.apply_status(id, stacks, duration, potency, max)`.
+  Potency scales with the Warden's soothe (Spored = 25%/s per stack, Static bolt = 3×). Status dots
+  above the health bar. `take_damage` takes floats (fractions carry) and applies Marked.
+- `TowerData`: `line` (Dream tag), `tier`, `buildable_directly`, `evolve_cost`, `evolves_to`
+  (typed `Array[Resource]` on purpose: a self-typed array leaks the script), `applies_status…`,
+  `splash_radius`, chain (`chain_targets`, `chain_jump_range`, `storm_every`), cloud
+  (`cloud_radius`, `cloud_duration`, `cloud_fog`). `AttackKind`: PROJECTILE, PULSE, CHAIN, CLOUD.
+  `get_attack_origin()` reads `assets/towers/attacks.json` (point − 32) so regenerated art stays
+  aligned; `attack_origin` is only the fallback.
+- `Tower`: effective stats via `DreamState` (group `dream_state`): `get_damage()`,
+  `get_attacks_per_second()`, `get_range_cells()`; `hit(enemy)`; `evolve(data, cost)` in place.
+  `ChainBolt` / `PathCloud` are script-only effect nodes. Evolve through `TowerPlacer.evolve()`.
+- `DreamState` (`%DreamState`): unlocked Warden ids (run starts with sprout + thornwall),
+  taken cards (`stacks`), stat/status/rule queries, offers (`make_offer`, `choose`, `skip`),
+  `offer_ready` / `offer_closed`. Cards: `resource/dream/*.tres` (`UpgradeData`), loaded from the
+  folder. `unlock_everything` export for debugging.
+- UI: `WardenPanel` (click a Warden: stats, grow buttons, Sell), `DreamScreen` (pauses; 3 cards +
+  "Let it pass"). Tower bar shows only unlocked Wardens.
+- `tests/test_dreams.gd` prints a Storm Grid reachability simulation (doc target ≈ 33%; currently
+  ~6–10%, tag weighting barely moves it — open design question).
 
 ## Run flow
 - `RunState` also holds leaves (`starting_leaves` 20, `max_leaves`), `lose_leaves` / `regrow_leaves`,

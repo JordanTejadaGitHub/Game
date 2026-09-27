@@ -18,6 +18,12 @@ func _run() -> void:
 	var tower_container: Node = main.get_node("%TowerContainer")
 	var run_state = main.get_node("%RunState")
 
+	var dream_state: DreamState = main.get_node("%DreamState")
+	_check(placer.get_buildable_towers().size() == 2, "a run starts with only Sprout and Thornwall")
+	_check(main.get_node("%TowerBar").get_child_count() == 2, "the tower bar shows only unlocked Wardens")
+	dream_state.unlock_everything = true  # Test the whole roster
+	dream_state.unlocks_changed.emit()
+	await process_frame
 	_check(placer.towers.size() == 8, "all eight Wardens are buildable")
 	_check(main.get_node("%TowerBar").get_child_count() == placer.towers.size(), "one HUD button per Warden")
 

@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+[ext_resource type="Resource" path="res://resource/tower/firefly_jar.tres" id="2_tower"]
+
+[resource]
+script = ExtResource("1_card")
+id = "dream_firefly_jar"
+display_name = "Firefly Jar"
+description = "Sprouts can now grow into Firefly Jars (20 Dew), or plant one directly (30 Dew). Sparks build Static for free bolts."
+rarity = 0
+kind = 0
+tags = Array[String](["light"])
+requires = Array[String]([])
+max_stacks = 1
+unlocks = ExtResource("2_tower")

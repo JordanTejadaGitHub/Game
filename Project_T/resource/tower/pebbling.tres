@@ -21,3 +21,7 @@ attack_texture = ExtResource("4_atk")
 attack_frame_count = 6
 attack_release_frame = 2
 attack_origin = Vector2(14, -18)
+description = "A slow, heavy pebble."
+line = "stone"
+tier = 1
+evolve_cost = 20

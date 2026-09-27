@@ -9,7 +9,7 @@ signal build_mode_changed(active: bool)
 signal tower_built(tower: Tower)
 
 @export var tower_scene: PackedScene = preload("res://scenes/tower/tower.tscn")
-# Wardens the player can build (all of them until Dreams unlock them during a run).
+# Wardens that can be planted directly. Only the ones DreamState has unlocked show in the tower bar.
 @export var towers: Array[TowerData] = [
 	preload("res://resource/tower/sprout.tres"),
 	preload("res://resource/tower/thornwall.tres"),
@@ -32,6 +32,7 @@ const NO_CELL := Vector2(-1, -1)
 @onready var tower_container: Node2D = %TowerContainer
 @onready var enemy_spawner = %EnemyContainer
 @onready var run_state: RunState = %RunState
+@onready var dream_state: DreamState = %DreamState
 
 var build_mode := false
 var _hover_cell := NO_CELL
@@ -88,7 +89,7 @@ func _process(_delta: float) -> void:
 	# Enemies move every frame, so re-check whether one is standing on the hovered cell.
 	var valid := not _hover_path.is_empty() and not _is_occupied_by_enemy(_hover_cell)
 	# Dew changes while hovering (creatures get cleansed), so re-check affordability too.
-	var affordable := run_state.can_afford(tower_data.cost)
+	var affordable := run_state.can_afford(get_cost())
 	if valid != _hover_valid or affordable != _hover_affordable:
 		_hover_valid = valid
 		_hover_affordable = affordable
@@ -100,7 +101,7 @@ func _draw() -> void:
 	draw_set_transform(MAP_GRID.calculate_map_position(_hover_cell))
 	var tint := VALID_TINT if _hover_valid and _hover_affordable else INVALID_TINT
 	if tower_data.can_attack:
-		var range_pixels := Tower.range_to_pixels(tower_data.attack_range)
+		var range_pixels := Tower.range_to_pixels(Tower.get_range_for(tower_data, dream_state))
 		draw_circle(Vector2.ZERO, range_pixels, Color(tint, 0.12))
 		draw_arc(Vector2.ZERO, range_pixels, 0.0, TAU, 64, Color(tint, 0.5), 2.0)
 	if tower_data.texture == null:
@@ -108,7 +109,7 @@ func _draw() -> void:
 	else:
 		var frame := tower_data.get_frame_rect(0)
 		draw_texture_rect_region(tower_data.texture, Rect2(-frame.size / 2.0, frame.size), frame, tint)
-	var tag := "%s · %d Dew" % [tower_data.display_name, tower_data.cost]
+	var tag := "%s · %d Dew" % [tower_data.display_name, get_cost()]
 	WorldLabel.draw_tag(self, 0.0, MAP_GRID.cell_size.y / 2.0 + 18.0, tag,
 		WorldLabel.cost_color(_hover_affordable))
 
@@ -121,7 +122,7 @@ func _refresh_hover() -> void:
 	for point in _hover_path:
 		_path_preview.add_point(MAP_GRID.calculate_map_position(point))
 	_hover_valid = not _hover_path.is_empty() and not _is_occupied_by_enemy(_hover_cell)
-	_hover_affordable = run_state.can_afford(tower_data.cost)
+	_hover_affordable = run_state.can_afford(get_cost())
 	queue_redraw()
 
 # Builds a tower on `cell` and charges its Dew cost. Returns false (and charges nothing) if the cell
@@ -135,17 +136,41 @@ func _try_build(cell: Vector2) -> bool:
 		enemy_cells.append(enemy.get_target_cell())
 	if not map_generator.can_block(cell, enemy_cells):
 		return false
-	if not run_state.spend_dew(tower_data.cost):
+	var cost := get_cost()
+	if not run_state.spend_dew(cost):
 		return false
 
 	var tower: Tower = tower_scene.instantiate()
 	tower.tower_data = tower_data
 	tower.cell = cell
-	tower.invested_dew = tower_data.cost
+	tower.invested_dew = cost
 	tower.position = MAP_GRID.calculate_map_position(cell)
 	tower_container.add_child(tower)
 	map_generator.block_cell(cell)  # Emits path_changed -> enemies re-route, preview refreshes
 	tower_built.emit(tower)
+	return true
+
+# Dew to plant the selected Warden (Dreams can change it, e.g. Cheap Hedges).
+func get_cost(data: TowerData = null) -> int:
+	return dream_state.get_build_cost(data if data != null else tower_data)
+
+# Wardens that can be planted right now (unlocked this run), in roster order.
+func get_buildable_towers() -> Array[TowerData]:
+	var result: Array[TowerData] = []
+	for data in towers:
+		if dream_state.is_buildable(data):
+			result.append(data)
+	return result
+
+# Grows `tower` into `into` in place, if that evolution is unlocked and affordable. The path never
+# changes, so evolving is always allowed, including mid-drift and while paused.
+func evolve(tower: Tower, into: TowerData) -> bool:
+	if not tower.tower_data.evolves_to.has(into) or not dream_state.is_unlocked(into.get_id()):
+		return false
+	var cost := dream_state.get_evolve_cost(into)
+	if not run_state.spend_dew(cost):
+		return false
+	tower.evolve(into, cost)
 	return true
 
 # True if an enemy is standing in, or walking into, `cell`.

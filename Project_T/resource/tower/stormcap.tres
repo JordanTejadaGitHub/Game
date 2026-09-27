@@ -1,0 +1,29 @@
+[gd_resource type="Resource" script_class="TowerData" load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://resource/tower/script/tower_data.gd" id="1_tdata"]
+[ext_resource type="Texture2D" path="res://assets/towers/stormcap.png" id="2_tex"]
+[ext_resource type="Texture2D" path="res://assets/towers/stormcap_attack.png" id="4_atk"]
+[ext_resource type="Resource" path="res://resource/tower/thunderhead.tres" id="ev_1"]
+
+[resource]
+script = ExtResource("1_tdata")
+display_name = "Stormcap"
+description = "Lightning that chains to 3 creatures; jumps further and more often between Damp ones."
+cost = 0
+texture = ExtResource("2_tex")
+frame_count = 8
+line = "light"
+tier = 2
+buildable_directly = false
+evolve_cost = 45
+attack_range = 3
+damage = 14
+attacks_per_second = 1.2
+attack_kind = 2
+chain_jump_range = 1.5
+applies_status = &"static"
+chain_targets = 3
+attack_texture = ExtResource("4_atk")
+attack_frame_count = 6
+attack_release_frame = 2
+evolves_to = Array[Resource]([ExtResource("ev_1")])

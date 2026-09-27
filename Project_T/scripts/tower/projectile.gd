@@ -1,15 +1,15 @@
 extends Node2D
 class_name Projectile
 
-# A projectile (spore puff, pebble, spark, ...) that homes in on its target and soothes it on
-# arrival. If the target is cleansed or gone first, it finishes its flight to the last known
-# position and fizzles. Uses the tower's projectile sheet, rotated to face travel, or draws a
-# coloured puff when the tower has none.
+# A projectile (spore puff, pebble, spark, ...) that homes in on its target. On arrival it calls
+# `on_land(target_or_null, position)` (the tower soothes the target, or splashes around the
+# position). If the target is cleansed or gone first, it finishes its flight to the last known
+# position (a splash still lands there). Uses the tower's projectile sheet, rotated to face travel,
+# or draws a coloured puff when the tower has none.
 
 const RADIUS := 6.0
 const ANIMATION_FPS := 12.0
 
-var damage: int
 var speed: float
 var color: Color
 var texture: Texture2D
@@ -17,12 +17,13 @@ var frame_count: int
 
 var _target: Node2D
 var _target_position: Vector2
+var _on_land: Callable
 var _anim_time := 0.0
 
-func _init(target: Node2D, data: TowerData) -> void:
+func _init(target: Node2D, data: TowerData, on_land: Callable) -> void:
 	_target = target
 	_target_position = target.global_position
-	damage = data.damage
+	_on_land = on_land
 	speed = data.projectile_speed
 	color = data.projectile_color
 	texture = data.projectile_texture
@@ -36,8 +37,7 @@ func _process(delta: float) -> void:
 
 	var step := speed * delta
 	if global_position.distance_to(_target_position) <= step:
-		if target_alive:
-			_target.take_damage(damage)
+		_on_land.call(_target if target_alive else null, _target_position)
 		queue_free()
 		return
 	if texture != null:

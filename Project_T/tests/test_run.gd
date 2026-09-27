@@ -40,6 +40,7 @@ func _test_full_run() -> void:
 	var speed: GameSpeed = main.get_node("%GameSpeed")
 	var map_generator = main.get_node("%MapGenerator")
 	director.drifts_per_act = 2  # Act breaks after drifts 2 and 4, so this run sees them
+	main.get_node("%DreamState").dream_after_drifts.clear()  # Dreams have their own test
 
 	_check(director.is_build_phase() and director.drifts_started == 0, "run starts in the build phase")
 	_check(run_state.leaves == 20 and run_state.dew == 60, "20 leaves, 60 Dew")
@@ -149,6 +150,7 @@ func _test_lose() -> void:
 	var run_state: RunState = main.get_node("%RunState")
 	var spawner = main.get_node("%EnemyContainer")
 	var map_generator = main.get_node("%MapGenerator")
+	main.get_node("%DreamState").dream_after_drifts.clear()
 	run_state.leaves = 1
 	director.start_next_drift()
 	_send_to_goal(spawner.get_enemies()[0], map_generator)

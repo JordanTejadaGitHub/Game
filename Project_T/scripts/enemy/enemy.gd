@@ -23,6 +23,14 @@ var speed: float
 var is_cleansed := false
 # Multiplies `enemy_data.health` (set before adding to the tree; drifts grow creatures this way).
 var health_scale := 1.0
+# Damp, Drowsy, Spored, Marked, Static (see EnemyStatuses). Wardens apply them via apply_status().
+var statuses := EnemyStatuses.new()
+
+const STATUS_DOT_RADIUS := 3.0
+const BOLT_FLASH_TIME := 0.2
+
+var _soothe_carry := 0.0  # Fractional soothe (Spored ticks, multipliers) waiting to add up to 1
+var _bolt_flash := 0.0
 
 # Cells to walk through, in grid coordinates. `_path_index` is the cell we're currently walking toward.
 var _path: PackedVector2Array
@@ -35,6 +43,7 @@ func _ready() -> void:
 	max_health = maxi(roundi(enemy_data.health * health_scale), 1)
 	health = max_health
 	speed = enemy_data.speed
+	statuses.is_boss = enemy_data.is_boss
 
 	# Set up animations
 	sprite.sprite_frames = enemy_data.sprite_frames
@@ -50,10 +59,19 @@ func _process(delta: float) -> void:
 	if is_cleansed or _path_index >= _path.size():
 		return
 
+	var spore_soothe := statuses.tick(delta)
+	if spore_soothe > 0.0:
+		take_damage(spore_soothe)
+		if is_cleansed:
+			return
+	_bolt_flash = maxf(_bolt_flash - delta, 0.0)
+	if not statuses.active_ids().is_empty() or _bolt_flash > 0.0:
+		queue_redraw()
+
 	var previous_position := position
 	# Walk toward the next cell centre; carry leftover distance into the following cell so speed
 	# stays constant through corners.
-	var remaining := speed * delta
+	var remaining := speed * statuses.get_speed_multiplier() * delta
 	while remaining > 0.0 and _path_index < _path.size():
 		var target := grid.calculate_map_position(_path[_path_index])
 		var to_target := target - position
@@ -74,8 +92,21 @@ func _process(delta: float) -> void:
 		queue_free()
 
 func _draw() -> void:
+	if is_cleansed:
+		return
+	if _bolt_flash > 0.0:
+		var t := _bolt_flash / BOLT_FLASH_TIME
+		draw_circle(Vector2.ZERO, 26.0 * (1.5 - t), Color(1.0, 1.0, 0.6, 0.5 * t))
+	# One coloured dot per status, just above where the health bar sits
+	var ids := statuses.active_ids()
+	var x := -(ids.size() - 1) * STATUS_DOT_RADIUS * 1.5
+	for id in ids:
+		var dot := HEALTH_BAR_OFFSET + Vector2(x, -8)
+		draw_circle(dot, STATUS_DOT_RADIUS + 1, Color(0.1, 0.1, 0.12, 0.8))
+		draw_circle(dot, STATUS_DOT_RADIUS, EnemyStatuses.COLORS[id])
+		x += STATUS_DOT_RADIUS * 3.0
 	# Health bar, only once the enemy has been hit
-	if is_cleansed or health >= max_health:
+	if health >= max_health:
 		return
 	var bar := Rect2(HEALTH_BAR_OFFSET - HEALTH_BAR_SIZE / 2, HEALTH_BAR_SIZE)
 	draw_rect(bar.grow(1), Color(0.1, 0.1, 0.12, 0.8))
@@ -97,14 +128,29 @@ func update_animation(velocity: Vector2) -> void:
 		sprite.play("walk_up")
 		sprite.flip_h = false
 
-# Soothes the blight away. At 0 health the enemy is cleansed.
-func take_damage(amount: int) -> void:
+# Soothes the blight away (Marked creatures take more). At 0 health the enemy is cleansed.
+func take_damage(amount: float) -> void:
 	if is_cleansed:
 		return
-	health = maxi(health - amount, 0)
+	_soothe_carry += amount * statuses.get_damage_taken_multiplier()
+	var whole := int(_soothe_carry)
+	_soothe_carry -= whole
+	health = maxi(health - whole, 0)
 	queue_redraw()
 	if health == 0:
 		_cleanse()
+
+# Applies a status from a Warden (`potency` = its soothe, see EnemyStatuses). A Static charge that
+# fills up sets off a free bolt right away.
+func apply_status(id: StringName, stacks: int = 1, duration: float = 0.0, potency: float = 0.0,
+		max_stacks: int = 0) -> void:
+	if is_cleansed:
+		return
+	var bolt := statuses.apply(id, stacks, duration, potency, max_stacks)
+	queue_redraw()
+	if bolt > 0.0:
+		_bolt_flash = BOLT_FLASH_TIME
+		take_damage(bolt)
 
 # Colour returns, the creature hops happily and fades out. It no longer blocks building or re-routes.
 func _cleanse() -> void:

@@ -1,11 +1,14 @@
 extends Node2D
 class_name TowerSeller
 
-# Outside build mode: hovering a Warden shows what selling it would refund; right-click (or Delete)
-# sells it. Refund = all Dew invested in it: 100% in the build phase, 50% during a drift.
+# Outside build mode: hovering a Warden highlights it; left-click selects it (the Warden panel
+# shows its stats, growth options and Sell), right-click (or Delete) sells it straight away.
+# Refund = all Dew invested in it: 100% in the build phase, 50% during a drift.
 # Selling only ever opens paths, so it's always allowed; creatures re-route right away.
 
 signal tower_sold(tower: Tower, refund: int)
+# The Warden the player clicked (null = selection cleared).
+signal tower_selected(tower: Tower)
 
 const MAP_GRID = preload("res://resource/map/map_grid.tres")
 const NO_CELL := Vector2(-1, -1)
@@ -58,13 +61,30 @@ func sell(cell: Vector2) -> bool:
 	map_generator.unblock_cell(cell)  # Emits path_changed -> creatures re-route
 	run_state.earn_dew_at(refund, MAP_GRID.calculate_map_position(cell))
 	tower_sold.emit(tower, refund)
+	if selected == tower:
+		select(null)
 	_hover_tower = null
 	queue_redraw()
 	return true
 
+var selected: Tower = null
+
+func select(tower: Tower) -> void:
+	selected = tower
+	tower_selected.emit(tower)
+	queue_redraw()
+
 func _unhandled_input(event: InputEvent) -> void:
-	if active and event.is_action_pressed("sell_tower") and _hover_tower != null:
+	if not active:
+		return
+	if event.is_action_pressed("sell_tower") and _hover_tower != null:
 		sell(_hover_cell)
+		get_viewport().set_input_as_handled()
+	elif event.is_action_pressed("clear_obstacle") and _hover_tower != null:
+		select(_hover_tower)
+		get_viewport().set_input_as_handled()
+	elif event.is_action_pressed("cancel_build") and selected != null:
+		select(null)
 		get_viewport().set_input_as_handled()
 
 func _process(_delta: float) -> void:
@@ -77,11 +97,17 @@ func _process(_delta: float) -> void:
 		queue_redraw()
 
 func _draw() -> void:
+	if is_instance_valid(selected):
+		var range_pixels := selected.get_range_pixels()
+		draw_circle(selected.position, range_pixels, Color(HIGHLIGHT_COLOR, 0.08))
+		draw_arc(selected.position, range_pixels, 0.0, TAU, 64, Color(HIGHLIGHT_COLOR, 0.5), 2.0)
+		draw_rect(Rect2(selected.position - MAP_GRID.cell_size / 2, MAP_GRID.cell_size).grow(-2),
+			HIGHLIGHT_COLOR, false, 3.0)
 	if _hover_tower == null:
 		return
 	var center: Vector2 = MAP_GRID.calculate_map_position(_hover_cell)
 	var rect := Rect2(center - MAP_GRID.cell_size / 2, MAP_GRID.cell_size).grow(-2)
 	draw_rect(rect, HIGHLIGHT_COLOR, false, 2.0)
-	var label := "Right-click: sell %s · +%d Dew" % [_hover_tower.tower_data.display_name,
+	var label := "%s · click: details · right-click: sell +%d Dew" % [_hover_tower.tower_data.display_name,
 		get_refund(_hover_tower)]
 	WorldLabel.draw_tag(self, center.x, rect.position.y - 8, label)

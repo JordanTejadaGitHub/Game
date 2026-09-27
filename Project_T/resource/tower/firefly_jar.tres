@@ -1,9 +1,11 @@
-[gd_resource type="Resource" script_class="TowerData" load_steps=5 format=3]
+[gd_resource type="Resource" script_class="TowerData" load_steps=7 format=3]
 
 [ext_resource type="Script" path="res://resource/tower/script/tower_data.gd" id="1_tdata"]
 [ext_resource type="Texture2D" path="res://assets/towers/firefly_jar.png" id="2_tex"]
 [ext_resource type="Texture2D" path="res://assets/towers/projectiles/spark.png" id="3_proj"]
 [ext_resource type="Texture2D" path="res://assets/towers/firefly_jar_attack.png" id="4_atk"]
+[ext_resource type="Resource" path="res://resource/tower/stormcap.tres" id="ev_1"]
+[ext_resource type="Resource" path="res://resource/tower/lanternmoth.tres" id="ev_2"]
 
 [resource]
 script = ExtResource("1_tdata")
@@ -21,3 +23,9 @@ attack_texture = ExtResource("4_atk")
 attack_frame_count = 6
 attack_release_frame = 2
 attack_origin = Vector2(-1, -26)
+description = "Sparks build Static; at 5 charges a creature gets a free bolt."
+line = "light"
+tier = 1
+evolve_cost = 20
+evolves_to = Array[Resource]([ExtResource("ev_1"), ExtResource("ev_2")])
+applies_status = &"static"
