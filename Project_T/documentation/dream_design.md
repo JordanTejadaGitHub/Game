@@ -253,6 +253,9 @@ the Grove rules, family-specific cards come with their family or hidden-branch n
 Deepened: **Heavy Eyelids II** cap +3 (bosses +1); **Ricochet II** turns twice; **Bad Dreams II**
 2 Drowsy per second.
 
+As built (a9ba4b6): Ricochet's turned leg is **half the line's length**; Sharp Beaks on Wren's Nest
+adds extra hits per swoop.
+
 ## Clearing cards: removing obstacles
 
 Added 2026-09-27. Obstacles (Withered Trees, Mossy Boulders, later Blight Patches) are the dream's

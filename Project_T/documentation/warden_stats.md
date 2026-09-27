@@ -155,6 +155,11 @@ Owns **Drowsy**. Chime Stone and Lullaby Bell moved here from Pebbling (numbers 
 | Echo Hollow *(hidden)* | branch | +45 | 2.5 | 8 × 1.0 | 8 (area) | echo | a Reaction within range **repeats 1 s later at 50%** on the same spot (echoes don't echo) |
 | Whispering Hollow *(hidden)* | final | +90 | 3.5 | 12 × 1.0 | 12 (area) | echo | echoes at **75%**; each echo **counts as a chain link** |
 
+**Echoes, as built (a9ba4b6):** an echo is a burst at the Reaction's spot, sized from the applier's
+damage × a per-Reaction factor (Thunderclap 4, Ignite 3, Shatter 2.5, Lightning Rod 6) × 50% (Echo
+Hollow) or 75% (Whispering Hollow). Drown echoes as a shorter sleep, Pinned re-primes its guaranteed
+crit, Mushrooming grows a shorter cloud, and **Smother doesn't echo**.
+
 Caught and Marked stack multiplicatively (a Caught, Marked nightmare takes ×1.4 × ×1.25). Bosses
 never sleep, but their Drowsy cap is 3, and **3 counts as max for them**, so bosses can be Caught.
 Caught bosses give no Dreamlight shards.
@@ -206,6 +211,10 @@ Caught bosses give no Dreamlight shards.
 | ✓ Windmill | final | +90 | 1 | 18 × 2.5 | 45 (area) | blades | as Pinwheel |
 | Samara *(hidden)* | branch | +45 | 4 (line) | 20 per pass, ~1 throw / 1.6 s | ~25 to **each** in the line | boomerang | straight out and back through everything; each nightmare hit twice; carries the first-hit nightmare's statuses (half stacks) down the line |
 | Autumn Gale *(hidden)* | final | +90 | 5 (line) | 2 seeds × 35 per pass, ~1 throw / 1.6 s | ~44 to each, two lines | boomerang | aims along the 2 lines with most nightmares; each catch +10% next-throw damage (max +50%; resets if a throw hits nothing) |
+
+As built: Samara aims its line at its **first target**; Autumn Gale picks the **two lines through the
+most nightmares**. The catch rhythm counts **per throw** (+10% if any seed hit, reset if none did),
+not per seed.
 
 ## Memory Wardens (unique, from bosses)
 
