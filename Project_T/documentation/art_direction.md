@@ -55,8 +55,10 @@ Full brief per nightmare in `enemy_design.md` ("Art direction" and the "Looks li
 - **One strong silhouette per nightmare**, tied to its trait.
 - **Wrong movement:** gliding, twitching, stop-start, heads turning.
 - **Dispel:** cracks of light, then a burst of motes that drift up as Dew.
-- Until real art exists, stand-in "shades" (dark translucent silhouettes made from the old
-  placeholder sprites) are fine for testing.
+- **The darkness is in the art, not a filter.** Nightmare sprites (committed 2026-09-27; files still
+  use the old names, e.g. `leaf_bug` = Shade) are drawn dark. The shader must **not recolour or
+  darken** them (that flattens their shading to black); it only adds partial translucency, a subtle
+  shimmer, and the dispel effect.
 
 ## Still to do
 
