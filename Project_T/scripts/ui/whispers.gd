@@ -17,6 +17,7 @@ const TEXT := {
 	&"save": "The forest will wait for you.",
 	&"cage": "A dream can bend, but never close.",
 	&"grow": "This Sprout could grow.",
+	&"dead_wood": "Dead wood. I can't move it… yet.",
 	&"tend": "Tend the forest, and it will remember you.",
 	&"leaf": "It fed. A leaf blackens and falls.",
 	&"sell": "Selling gives everything back during a rest, and half while nightmares walk.",
@@ -131,8 +132,9 @@ func _show_next() -> void:
 func _process(_delta: float) -> void:
 	if tower_placer.hover_breaks_path():
 		whisper(&"cage")
+	# Obstacles can't be cleared until the run's first clearing Dream (run_design.md).
 	if obstacle_clearer._hover_obstacle != null:
-		whisper(&"tend")
+		whisper(&"dead_wood" if obstacle_clearer.is_locked() else &"tend")
 	for id in EnemyStatuses.ALL:
 		if not _seen.has(String(id)) and _any_creature_has(id):
 			whisper(id)

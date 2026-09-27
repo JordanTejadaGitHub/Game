@@ -52,6 +52,24 @@ func _run() -> void:
 	dreams.unlock_everything = false
 	dreams.unlocks_changed.emit()
 
+	# --- Whispers: a locked obstacle says "Dead wood…", Tend waits for the first clearing Dream ---
+	var whispers = main.get_node("%Whispers")
+	var clearer: ObstacleClearer = main.get_node("%ObstacleClearer")
+	whispers.set_process(false)  # Driven by hand below
+	whispers.enabled = true
+	whispers._seen = []
+	clearer.set_process(false)  # Its hover follows the mouse each frame
+	clearer._hover_obstacle = load("res://resource/obstacle/tree.tres")
+	whispers._process(0.0)
+	_check(whispers._queue.has(&"dead_wood") and not whispers._queue.has(&"tend"), "a locked obstacle whispers Dead wood, not Tend")
+	dreams.clearing_open = true
+	whispers._process(0.0)
+	_check(whispers._queue.has(&"tend"), "Tend comes once clearing opens")
+	dreams.clearing_open = false
+	clearer._hover_obstacle = null
+	clearer.set_process(true)
+	whispers.set_enabled(false)
+
 	# --- Nightmare info on hover ---
 	var info = main.get_node("%NightmareInfo")
 	var shade: Node2D = spawner.spawn_enemy(load("res://resource/enemy/leaf_bug.tres"))
