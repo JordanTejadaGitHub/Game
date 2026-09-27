@@ -16,7 +16,7 @@ func _run() -> void:
 	var kinds := {}
 	for data in obstacles_a.values():
 		kinds[data.display_name] = true
-	_check(kinds.has("Tree") and kinds.has("Rock"), "map has both trees and rocks (%s)" % [kinds.keys()])
+	_check(kinds.has("Withered Tree") and kinds.has("Mossy Boulder"), "map has both trees and boulders (%s)" % [kinds.keys()])
 	_check_route(map, "seed 1234")
 	_check(not map.obstacles.has(map.startPath) and not map.obstacles.has(map.endPath), "start and end stay clear")
 	main.free()

@@ -22,7 +22,6 @@ func _run() -> void:
 	var leaf_bug: EnemyData = load("res://resource/enemy/leaf_bug.tres")
 
 	# Keep the field empty so enemies don't block cells or earn Dew on their own.
-	spawner._auto_spawn_data = null
 	for child in spawner.get_children():
 		child.queue_free()
 	await process_frame

@@ -4,7 +4,7 @@
 
 [resource]
 script = ExtResource("1_obst")
-display_name = "Rock"
-clear_verb = "Break"
+display_name = "Mossy Boulder"
+clear_verb = "Move"
 clear_cost = 8
 tiles = Array[Vector2i]([Vector2i(13, 12), Vector2i(14, 12), Vector2i(13, 13), Vector2i(14, 13)])

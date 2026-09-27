@@ -1,4 +1,4 @@
-[gd_scene load_steps=22 format=3 uid="uid://ct33vhcgulg0g"]
+[gd_scene load_steps=26 format=3 uid="uid://ct33vhcgulg0g"]
 
 [ext_resource type="Script" path="res://scripts/main.gd" id="1_bjgx8"]
 [ext_resource type="Script" path="res://scripts/map/map_generator.gd" id="2_888hw"]
@@ -12,6 +12,10 @@
 [ext_resource type="Script" path="res://scripts/ui/hud.gd" id="9_hud"]
 [ext_resource type="Script" path="res://scripts/map/obstacle_clearer.gd" id="10_obclr"]
 [ext_resource type="Script" path="res://scripts/run/run_state.gd" id="11_runst"]
+[ext_resource type="Script" path="res://scripts/run/drift_director.gd" id="12_drift"]
+[ext_resource type="Script" path="res://scripts/run/game_speed.gd" id="13_speed"]
+[ext_resource type="Script" path="res://scripts/tower/tower_seller.gd" id="14_sell"]
+[ext_resource type="Script" path="res://scripts/ui/drift_panel.gd" id="15_dpanel"]
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_vgjl1"]
 texture = ExtResource("3_4m67i")
@@ -205,6 +209,11 @@ script = ExtResource("1_bjgx8")
 unique_name_in_owner = true
 script = ExtResource("11_runst")
 
+[node name="GameSpeed" type="Node" parent="."]
+unique_name_in_owner = true
+process_mode = 3
+script = ExtResource("13_speed")
+
 [node name="MapGenerator" type="Node2D" parent="."]
 unique_name_in_owner = true
 script = ExtResource("2_888hw")
@@ -232,15 +241,27 @@ unique_name_in_owner = true
 unique_name_in_owner = true
 script = ExtResource("7_pm83a")
 
+[node name="DriftDirector" type="Node" parent="."]
+unique_name_in_owner = true
+script = ExtResource("12_drift")
+
 [node name="TowerPlacer" type="Node2D" parent="."]
 unique_name_in_owner = true
+process_mode = 3
 script = ExtResource("8_twrpl")
 
 [node name="ObstacleClearer" type="Node2D" parent="."]
 unique_name_in_owner = true
+process_mode = 3
 script = ExtResource("10_obclr")
 
+[node name="TowerSeller" type="Node2D" parent="."]
+unique_name_in_owner = true
+process_mode = 3
+script = ExtResource("14_sell")
+
 [node name="HUD" type="CanvasLayer" parent="."]
+process_mode = 3
 script = ExtResource("9_hud")
 
 [node name="TowerBar" type="HBoxContainer" parent="HUD"]
@@ -268,7 +289,58 @@ text = "Dew 0"
 horizontal_alignment = 2
 vertical_alignment = 1
 
+[node name="LeavesLabel" type="Label" parent="HUD"]
+unique_name_in_owner = true
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -216.0
+offset_top = 56.0
+offset_right = -16.0
+offset_bottom = 92.0
+grow_horizontal = 0
+theme_override_colors/font_color = Color(0.6, 0.9, 0.5, 1)
+theme_override_colors/font_outline_color = Color(0.08, 0.1, 0.14, 1)
+theme_override_constants/outline_size = 8
+theme_override_font_sizes/font_size = 22
+text = "Leaves 20 / 20"
+horizontal_alignment = 2
+vertical_alignment = 1
+
+[node name="ToastLabel" type="Label" parent="HUD"]
+unique_name_in_owner = true
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -300.0
+offset_top = 72.0
+offset_right = 300.0
+offset_bottom = 140.0
+grow_horizontal = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(1, 0.95, 0.75, 1)
+theme_override_colors/font_outline_color = Color(0.08, 0.1, 0.14, 1)
+theme_override_constants/outline_size = 8
+theme_override_font_sizes/font_size = 24
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="DriftPanel" type="VBoxContainer" parent="HUD"]
+anchors_preset = 3
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -296.0
+offset_top = -136.0
+offset_right = -16.0
+offset_bottom = -16.0
+grow_horizontal = 0
+grow_vertical = 0
+script = ExtResource("15_dpanel")
+
 [node name="GameCameraNode" type="Node2D" parent="."]
+process_mode = 3
 script = ExtResource("5_kbv55")
 
 [node name="Camera2D" type="Camera2D" parent="GameCameraNode"]

@@ -9,6 +9,8 @@ const ENEMY_GROUP := "enemies"
 
 # The grid cell this tower occupies (set by TowerPlacer).
 var cell: Vector2
+# All Dew put into this Warden (build cost, later evolutions). Selling refunds a share of it.
+var invested_dew := 0
 
 var _cooldown := 0.0  # Seconds until the tower can attack again
 var _anim_time := 0.0

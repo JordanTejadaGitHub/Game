@@ -21,6 +21,8 @@ var health: int
 var max_health: int
 var speed: float
 var is_cleansed := false
+# Multiplies `enemy_data.health` (set before adding to the tree; drifts grow creatures this way).
+var health_scale := 1.0
 
 # Cells to walk through, in grid coordinates. `_path_index` is the cell we're currently walking toward.
 var _path: PackedVector2Array
@@ -30,12 +32,13 @@ func _ready() -> void:
 	add_to_group(GROUP)
 
 	# Initialize attributes
-	max_health = enemy_data.health
+	max_health = maxi(roundi(enemy_data.health * health_scale), 1)
 	health = max_health
 	speed = enemy_data.speed
 
 	# Set up animations
 	sprite.sprite_frames = enemy_data.sprite_frames
+	sprite.scale = Vector2.ONE * enemy_data.sprite_scale
 	sprite.play("walk_side")
 
 	# Blighted look: per-enemy material so each one can be cleansed on its own

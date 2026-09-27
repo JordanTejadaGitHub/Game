@@ -44,7 +44,6 @@ func _run() -> void:
 	var tower: Tower = main.get_node("%TowerContainer").get_child(0)
 	tower.set_process(false)  # Don't let it fire while we check targeting
 
-	spawner._auto_spawn_data = null  # Stop the temporary endless spawner
 	for child in spawner.get_children():
 		child.queue_free()
 	await process_frame

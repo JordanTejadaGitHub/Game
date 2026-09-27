@@ -19,16 +19,44 @@ data-driven enemy (Leaf Bug), **tower building** (build mode, placement validati
 *cleansed*, not killed: blight shader fades to full colour, then they fade out),
 **clearable obstacles** (random map each run: ridges of rocks/trees from alternating walls make
 the route zig-zag, plus noise tree clusters and scattered rocks; outside build mode, hover shows
-cost + the route that would open, left-click clears; costs not charged until Dew exists).
-Temporary: `EnemyContainer.start_spawning()` spawns a Leaf Bug every 2 s forever (stand-in for waves).
-Design, build order and story: `documentation/game_design.md`, `documentation/story.md` (cozy tone;
+cost + the route that would open, left-click clears. Obstacles are "Withered Tree" (Tend) and
+"Mossy Boulder" (Move); `RunState.obstacles_tended` counts clears for +1 Seed each at run end).
+**Run structure** (`documentation/run_design.md`): act 1 only for now (5 drifts; winning = clearing
+drift 5). See "Run flow" below.
+Design, build order and story: `documentation/game_design.md` (overview), `tower_design.md`
+(Wardens, statuses, synergies), `enemy_design.md` (creature roster), `documentation/story.md` (cozy tone;
 enemies are "blighted creatures", towers are "Wardens", gold is "Dew", lives are "leaves").
 **Dew economy**: `RunState` (`%RunState`, `scripts/run/run_state.gd`) holds Dew; `starting_dew`
 export (60). Earned when a creature is cleansed (`EnemyData.dew_reward`, "+N Dew" `DewPopup`),
 spent on Wardens (`TowerData.cost`) and obstacle clears (`ObstacleData.clear_cost`). Always go
 through `run_state.spend_dew(cost)` (returns false + emits `dew_short` when short) — never subtract
 directly. HUD shows the Dew counter (`%DewLabel`), dims unaffordable Warden buttons.
-Next up: rest of build-order step 2 (leaves, lose condition), then drifts (drift-clear Dew bonus).
+Next up: Dreams (after drifts 1, 3, 5…, see run_design.md), results screen with Seeds, acts 2–3
+drifts, Old Stag's Thornwall knock-down and its own art.
+
+## Run flow
+- `RunState` also holds leaves (`starting_leaves` 20, `max_leaves`), `lose_leaves` / `regrow_leaves`,
+  `end_run(won)` + `run_ended` signal, `is_over`. `earn_dew_at(amount, pos)` = add Dew + popup.
+- `DriftDirector` (`%DriftDirector`, `scripts/run/drift_director.gd`): `drifts: Array[DriftData]`
+  (`resource/drift/act1/drift_N.tres`). Build phase = no drift on the field; `start_next_drift()` is
+  Start Drift, or call early once the latest drift finished arriving (bonus: +1 Dew per 2 s skipped,
+  estimated from the slowest creature's remaining walk, capped at the drift's clear bonus). Tracks
+  creatures per drift (`_drift_of`), pays the clear bonus (15 + 5×n, +5 if no leaf lost) when a
+  drift's last creature is resolved, regrows leaves at act breaks (every `drifts_per_act`), wins
+  after the last drift. Non-boss health × `health_growth_per_drift`^(n-1).
+- Drift data: `DriftData.groups: Array[DriftGroup]`; `DriftGroup.entries: Array[DriftEntry]`
+  (enemy + count, several entries mix evenly), `spacing`, `delay`. `get_schedule()` gives arrival times.
+- `EnemyData`: `display_name`, `leaf_cost`, `is_boss`, `sprite_scale`, `split_into`/`split_count`
+  (Puffcap → 3 Puffcaplets). Creatures: `resource/enemy/*.tres` (Old Stag uses Bark Beetle frames).
+  `EnemyContainer.spawn_enemy(data, health_scale)` returns the enemy; signals `enemy_cleansed`,
+  `enemy_reached_goal`, `enemy_split` (emitted before the parent's `enemy_cleansed`).
+- Selling: `TowerSeller` (`%TowerSeller`): outside build mode, hover a Warden, RMB / Delete sells for
+  `Tower.invested_dew` × 100% (build phase) or 50% (during a drift); `MapGenerator.unblock_cell`.
+- Speed: `GameSpeed` (`%GameSpeed`): pause = `get_tree().paused`, speed = `Engine.time_scale`.
+  Build/clear/sell tools, HUD, camera and GameSpeed are `process_mode = ALWAYS` so building works
+  while paused; the camera divides delta by time_scale so panning stays real-time.
+- HUD: `%LeavesLabel`, `%ToastLabel` (`show_toast`), `DriftPanel` (`scripts/ui/drift_panel.gd`:
+  drift label, Start/call-early button, speed buttons), win/lose panel with "New run" (reloads scene).
 
 ## Layout
 - `scenes/main.tscn` — root scene: MapGenerator (Ground / Path / EnvironmentObject TileMapLayers),
@@ -67,7 +95,8 @@ Next up: rest of build-order step 2 (leaves, lose condition), then drifts (drift
 - `scripts/ui/hud.gd` — HUD (Warden bar + 1-8 hotkeys, Dew counter).
   `world_label.gd` (`WorldLabel.draw_tag` for world-space text tags, `cost_color`),
   `dew_popup.gd` (`DewPopup`).
-- Input actions: `toggle_build_mode` (B), `place_tower` (LMB), `cancel_build` (RMB / Esc).
+- Input actions: `toggle_build_mode` (B), `place_tower` (LMB), `cancel_build` (RMB / Esc),
+  `sell_tower` (RMB / Delete), `start_drift` (Enter), `pause_game` (Space), `cycle_speed` (Tab).
 - `resource/` — data resources + their scripts: `map_grid.tres` (`Grid`: 45x36 cells, 64px),
   `tile_map_location_data.tres` (atlas coords of every tile), `enemy/*.tres` (`EnemyData`),
   `tower/*.tres` (`TowerData`).

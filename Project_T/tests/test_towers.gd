@@ -17,7 +17,6 @@ func _run() -> void:
 	var placer: TowerPlacer = main.get_node("%TowerPlacer")
 	var tower_container: Node = main.get_node("%TowerContainer")
 	var run_state = main.get_node("%RunState")
-	main.get_node("%EnemyContainer")._auto_spawn_data = null  # Stop the temporary endless spawner
 
 	_check(placer.towers.size() == 8, "all eight Wardens are buildable")
 	_check(main.get_node("%TowerBar").get_child_count() == placer.towers.size(), "one HUD button per Warden")

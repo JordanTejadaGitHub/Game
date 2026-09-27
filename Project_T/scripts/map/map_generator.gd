@@ -135,6 +135,13 @@ func block_cell(cell: Vector2) -> void:
 	path_layer.draw()
 	path_changed.emit()
 
+# Opens a cell a Warden stood on (it was sold), redraws the path and notifies enemies.
+# Opening a cell never cuts a route, so this is always allowed.
+func unblock_cell(cell: Vector2) -> void:
+	path_layer.set_cell_blocked(cell, false)
+	path_layer.draw()
+	path_changed.emit()
+
 
 # --- Obstacles ------------------------------------------------------------------------------------
 

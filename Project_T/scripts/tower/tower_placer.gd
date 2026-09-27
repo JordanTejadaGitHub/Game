@@ -141,6 +141,7 @@ func _try_build(cell: Vector2) -> bool:
 	var tower: Tower = tower_scene.instantiate()
 	tower.tower_data = tower_data
 	tower.cell = cell
+	tower.invested_dew = tower_data.cost
 	tower.position = MAP_GRID.calculate_map_position(cell)
 	tower_container.add_child(tower)
 	map_generator.block_cell(cell)  # Emits path_changed -> enemies re-route, preview refreshes

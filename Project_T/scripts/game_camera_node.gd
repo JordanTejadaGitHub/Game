@@ -28,6 +28,9 @@ func _ready() -> void:
 	target_zoom = camera_2d.zoom
 
 func _process(delta: float) -> void:
+	# The camera runs in real time: game speed (2×/3×) shouldn't make panning faster.
+	if Engine.time_scale > 0.0:
+		delta /= Engine.time_scale
 	_handle_input(delta)  # Handle WASD movement and zoom input
 	_clamp_camera_to_map()  # Keep the target inside the map bounds
 	_smooth_camera_movement(delta)  # Smoothly move the camera

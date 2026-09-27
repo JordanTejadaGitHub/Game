@@ -5,6 +5,7 @@
 
 [resource]
 script = ExtResource("1_fbja3")
+display_name = "Leaf Bug"
 health = 100
 speed = 100.0
 dew_reward = 3
