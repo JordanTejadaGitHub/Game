@@ -105,7 +105,7 @@ Playtests found the game too easy, and Warden ranks (below) add player power, so
 
 | Lever | Was | Now |
 |---|---|---|
-| Health growth | ×1.045 per drift all run | **×1.045 for drifts 1–25, ×1.055 from drift 26** (≈ ×11 by drift 50; re-tune for acts 3–4) |
+| Health growth | ×1.045 per drift all run | **×1.045 for drifts 1–25, ×1.055 for 26–50, ×1.045 from 51** (≈ ×11 by drift 50, ×100 by drift 100; `acts_3_4.md`) |
 | Elites | block finales only | **one Deeply Blighted nightmare in every drift from drift 26** (a random non-boss kind from that drift) |
 | Family resist / weak | ×0.65 / ×1.35 | **×0.5 / ×1.5** (`enemy_design.md`) |
 | Nurture | flat cost, +15% damage per rank | **Nurture v2**: cost × tier, +10% per rank, a Focus at rank III (`warden_stats.md`) |

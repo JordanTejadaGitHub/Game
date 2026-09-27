@@ -12,6 +12,7 @@ placeholders).
 | `tower_design.md` | Warden families, evolutions, status effects, synergies, build archetypes |
 | `warden_stats.md` | numbers for every Warden, new mechanics the unbuilt ones need |
 | `enemy_design.md` | nightmares: roster, traits, resistances, stats, bosses |
+| `acts_3_4.md` | drifts 51–100, the Moth Queen and the Hollow Oak, act 3–4 nightmare intros |
 | `acts_1_2.md` | creature and boss stats, special drifts, the drift-by-drift plan for drifts 1–50 |
 | `dream_design.md` | in-run upgrade pool, offer rules, status numbers |
 | `meta_design.md` | Seeds, Memory Grove, milestones, Blight Levels, Memories, true ending |

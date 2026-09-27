@@ -7,15 +7,21 @@ replayable run, then leave players wanting the Deep Wood and the Memory Grove.
 
 ## Shape
 
-- **A demo run = acts 1–2: drifts 1–50**, with **the Hollow Stag** at 25 and **the Mire Hag** at
-  50 ending the demo. About **45 minutes** at 1×, ~30 with fast-forward.
+- **Now (2026-09-27, user decision): the demo runs all 100 drifts**, like the full game: the Hollow
+  Stag (25), the Mire Hag (50), the Moth Queen (75), the Hollow Oak (100; `acts_3_4.md`). About
+  1.5–2 hours at 1×.
+- **Trade-off to revisit before the public demo:** a 100-drift demo is the whole run minus the
+  meta, so the full game's reasons to buy become the Memory Grove, more families, Memories and the
+  true ending, Blight Levels. It also means every nightmare needs finished art and sound before the
+  demo is public. Options then: keep 100, or end the public demo at drift 50 (the old plan: the
+  Mire Hag, ~45 minutes).
 - **Unlimited replays, no progression.** Every run starts the same way (new random map, new
   Dreams), with nothing carried between demo runs.
 - **Seeds are still earned and saved** (not spendable in the demo). They carry into the full game
   (`meta_design.md`, "Seeds from the demo").
 - **Mid-run save** works in the demo too (autosave at every rest).
-- Dispelling the Mire Hag ends the run with a victory screen: *"Deeper in the dream, something
-  larger stirs…"*, the Seeds earned and banked, a **Wishlist** button, and a **teaser of the Memory Grove**
+- Dispelling the Hollow Oak ends the run with a victory screen (if the demo ends at 50: the Mire
+  Hag, *"Deeper in the dream, something larger stirs…"*), the Seeds earned and banked, a **Wishlist** button, and a **teaser of the Memory Grove**
   (see below).
 
 ## In the demo
@@ -23,10 +29,10 @@ replayable run, then leave players wanting the Deep Wood and the Memory Grove.
 | Area | Included |
 |---|---|
 | Wardens | **To be decided after playtesting** (2026-09-27): a **Test Grove** mode unlocks every Warden so all of them can be tried first (below). Starting proposal: Sprout, Thornwall (+ Bramble); **Sporeling, Firefly Jar, Dewdrop** as family picks, with their 6 branches |
-| Family picks | after drift 1 and after the Hollow Stag (drift 25): **2 families per run**, so cross-family combos (Storm Grid) are reachable |
+| Family picks | after drift 1 and after the bosses at 25, 50 and 75 (with only the demo's families, empty slots become Family Blessings) |
 | Final forms | **shown but locked** ("in the full game") on Dream cards |
-| Dreams | after drifts 5, 10, … 45 (**9 per run**; the drift 25 one guaranteed Rare+), from the Start pool (no Legendaries) |
-| Nightmares | act 1: Shade, Husk, Mourner, **the Hollow Stag**; act 2: 3 maze testers from `enemy_design.md`: **Phantom** (glides through walls), **Night Hound** (sprints down straight corridors) and the **Procession** (Lantern Bearer + Wraiths), plus **the Mire Hag** (plan in `acts_1_2.md`) |
+| Dreams | after drifts 5, 10, … 95 (**19 per run**; boss Dreams guaranteed Rare+), from the Start pool |
+| Nightmares | acts 1–2 as in `acts_1_2.md` (Shade, Husk, Mourner, Phantom, Night Hound, Procession, the Hollow Stag, the Mire Hag) and acts 3–4 as in `acts_3_4.md` (the whole roster, the Moth Queen, the Hollow Oak) |
 | Act 2 boss | **always the Mire Hag** in the demo (the full game picks the Hag or the Moth Queen); the Hag needs no extra nightmares, the Moth Queen needs Lurkers and flying |
 | Map | the forest biome, fully procedural (ridges, tending) |
 | Story | the intro, and **Memory 1** as a story hook on the victory screen |
