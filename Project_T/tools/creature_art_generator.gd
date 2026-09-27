@@ -1,10 +1,12 @@
 extends SceneTree
-# Generates the blighted creature (enemy) spritesheets in assets/creatures/ and a SpriteFrames
-# resource per creature in animation/enemy/. Creatures are listed in documentation/enemy_design.md.
-# Each sheet has one row per animation (walk_side facing right, walk_down, walk_up, then extras such
-# as the Hedgehog's roll) of FRAMES 64x64 frames. Art is drawn in full colour: in game the blight
-# shader greys it until the creature is cleansed. Same look as the Wardens: dark outline, banded
-# shading lit from the upper right, dot eyes with a shine, rosy cheeks.
+# Generates the nightmare (enemy) spritesheets in assets/creatures/ and a SpriteFrames resource per
+# nightmare in animation/enemy/. Roster and art direction: documentation/enemy_design.md. Nightmares
+# are dark, cold and partly translucent, glow only in their eyes or core, have one strong silhouette
+# tied to their trait and move a little wrong (twitches, stop-start, gliding). Warm, cute Wardens vs
+# cold nightmares is the game's core look. Each sheet has one row per animation (walk_side facing
+# right, walk_down, walk_up, then extras such as the Night Hound's sprint, which the game still calls
+# "roll") of FRAMES frames. Files keep the old creature names (see CREATURES) until the code renames
+# them. The preview ends each row with a frame as shaders/blight.gdshader shows it in game.
 # Run:  Godot --headless --path . --script res://tools/creature_art_generator.gd
 # then once with --import so new sheets are imported (re-running afterwards adds their uids to the
 # SpriteFrames; existing SpriteFrames keep their own uid, so references to them stay valid).
@@ -17,37 +19,47 @@ const PREVIEW_SCALE := 2
 const WALKS := ["walk_side", "walk_down", "walk_up"]
 enum { SIDE, DOWN, UP }
 
-# fps: animation speed. draw: shared draw function (default: the creature's own). k: size scale for
-# the small versions spawned by splitters. size: frame size in px (default 64); bosses get bigger
-# frames instead of a sprite_scale so their pixels are the same size as everyone else's.
+# fps: animation speed (extra_fps for the extra rows). draw: shared draw function (default: the
+# file's own). k: size scale for the small ones spawned by splitters. size: frame size in px (default
+# 64); bosses get bigger frames instead of a sprite_scale so their pixels match everyone else's.
 const CREATURES := {
-	"leaf_bug": {fps = 10.0},
-	"bark_beetle": {fps = 6.0},
-	"dusk_moth": {fps = 12.0},
-	"dandelion_seed": {fps = 6.0},
-	"puffcap": {fps = 9.0},
-	"puffcaplet": {fps = 11.0, draw = "puffcap", k = 0.6},
-	"mother_spider": {fps = 9.0},
-	"spiderling": {fps = 14.0, draw = "mother_spider", k = 0.5},
-	"hedgehog": {fps = 9.0, extra = ["roll"]},
-	"wandering_hare": {fps = 8.0},
-	"mother_duck": {fps = 8.0},
-	"duckling": {fps = 12.0},
-	"old_stag": {fps = 7.0, size = 112},
-	"great_toad": {fps = 8.0, size = 144},
+	"leaf_bug": {fps = 10.0},  # Shade
+	"bark_beetle": {fps = 6.0},  # Husk
+	"dusk_moth": {fps = 10.0},  # Lurker
+	"dandelion_seed": {fps = 6.0},  # Phantom
+	"puffcap": {fps = 6.0},  # Mourner
+	"puffcaplet": {fps = 8.0, draw = "puffcap", k = 0.55},  # Sob
+	"mother_spider": {fps = 9.0},  # Widow
+	"spiderling": {fps = 14.0, draw = "mother_spider", k = 0.5},  # Creep
+	"hedgehog": {fps = 9.0, extra = ["roll"], extra_fps = 14.0},  # Night Hound; "roll" = sprint
+	"wandering_hare": {fps = 5.0},  # Sleepwalker
+	"mother_duck": {fps = 6.0},  # Lantern Bearer
+	"duckling": {fps = 7.0},  # Wraith
+	"old_stag": {fps = 7.0, size = 112},  # The Hollow Stag
+	"great_toad": {fps = 6.0, size = 144},  # The Mire Hag
 }
-# Matches shaders/blight.gdshader, for the blighted frame in the preview.
-const BLIGHT_FLOOR := 0.13
-const BLIGHT_RANGE := 0.76
-const BLIGHT_TINT := Color(0.89, 0.91, 1.0)
+# Defaults of shaders/blight.gdshader, for the in-game frame at the end of each preview row.
+const SHADER_SHADOW := Color(0.04, 0.05, 0.10)
+const SHADER_COLD := Color(0.36, 0.44, 0.62)
+const SHADER_FLOOR := 0.12
+const SHADER_RANGE := 0.85
+const SHADER_GLOW := Color(0.62, 0.95, 1.0)
+const SHADER_GLOW_START := 0.8
+const SHADER_GLOW_STRENGTH := 1.4
+const SHADER_TRANSLUCENCY := 0.8
 
-const BLUSH := Color("#f49aa8")
-const SHADOW := Color(0.08, 0.14, 0.06, 0.32)
-const LEAF := ["#3f7a3e", "#6ab04a", "#9ad86a"]
+# Shadow-stuff, lit from the upper right like the Wardens: [deep, dark, mid, rim].
+const NIGHT := ["#0e0c18", "#1a1730", "#2a2646", "#3e3962"]
+const NIGHT_O := Color("#05040a")
+const HOLLOW := Color("#030206")
+const EYE := Color("#dff8ff")  # cold glow
+const EYE_HALO := Color(0.37, 0.72, 0.88, 0.55)
+const SHADOW := Color(0.02, 0.02, 0.06, 0.38)
+const BAYER := [0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5]
 
 var light := Vector3(0.45, -0.55, 0.7).normalized()
 var sheets: Array[Image] = []
-var S := 64  # frame size of the creature being drawn
+var S := 64  # frame size of the nightmare being drawn
 
 func _init() -> void:
 	for dir: String in [OUT, ANIM_OUT]:
@@ -71,10 +83,10 @@ func _make(creature: String, info: Dictionary) -> void:
 			sheet.blit_rect(canvas, Rect2i(0, 0, S, S), Vector2i(f * S, row * S))
 	sheet.save_png(OUT + creature + ".png")
 	sheets.append(sheet)
-	_save_sprite_frames(creature, anims, info.fps)
+	_save_sprite_frames(creature, anims, info.fps, info.get("extra_fps", info.fps))
 
 # Writes animation/enemy/<creature>.tres: one AtlasTexture per frame, one looping animation per row.
-func _save_sprite_frames(creature: String, anims: Array, fps: float) -> void:
+func _save_sprite_frames(creature: String, anims: Array, fps: float, extra_fps: float) -> void:
 	var path := ANIM_OUT + creature + ".tres"
 	var png := OUT + creature + ".png"
 	var uid := _read_uid(path, true)
@@ -90,7 +102,8 @@ func _save_sprite_frames(creature: String, anims: Array, fps: float) -> void:
 		var frames: Array[String] = []
 		for f in FRAMES:
 			frames.append("{\n\"duration\": 1.0,\n\"texture\": SubResource(\"frame_%d_%d\")\n}" % [row, f])
-		entries.append("{\n\"frames\": [%s],\n\"loop\": true,\n\"name\": &\"%s\",\n\"speed\": %s\n}" % [", ".join(frames), anims[row], str(fps)])
+		var speed := fps if row < WALKS.size() else extra_fps
+		entries.append("{\n\"frames\": [%s],\n\"loop\": true,\n\"name\": &\"%s\",\n\"speed\": %s\n}" % [", ".join(frames), anims[row], str(speed)])
 	text += "[resource]\nanimations = [%s]\n" % ", ".join(entries)
 	var file := FileAccess.open(path, FileAccess.WRITE)
 	file.store_string(text)
@@ -106,7 +119,7 @@ func _read_uid(path: String, header_only: bool = false) -> String:
 	return found.get_string(1) if found else ""
 
 # All sheets on grass in two columns, scaled up, for eyeballing. Each row ends with its first frame
-# blighted (as the blight shader greys it), since that's how players see creatures most of the time.
+# as the blight shader shows it in game.
 func _save_preview() -> void:
 	var pad := 6
 	var cols := [[], []]
@@ -124,10 +137,10 @@ func _save_preview() -> void:
 		var y := pad
 		for sheet: Image in cols[col]:
 			var s := _frame_size(sheet)
-			var grey := _blighted(sheet)
+			var lit := _in_game(sheet)
 			for row in sheet.get_height() / s:
 				for f in FRAMES + 1:
-					var src := sheet if f < FRAMES else grey
+					var src := sheet if f < FRAMES else lit
 					var at := Vector2i(col * block_w[0] + pad + f * (s + pad), y)
 					preview.blend_rect(src, Rect2i((f % FRAMES) * s, row * s, s, s), at)
 				y += s + pad
@@ -137,14 +150,21 @@ func _save_preview() -> void:
 func _frame_size(sheet: Image) -> int:
 	return sheet.get_width() / FRAMES
 
-func _blighted(sheet: Image) -> Image:
-	var grey: Image = sheet.duplicate()
-	for y in grey.get_height():
-		for x in grey.get_width():
-			var c := grey.get_pixel(x, y)
-			var v := BLIGHT_FLOOR + BLIGHT_RANGE * (c.r * 0.299 + c.g * 0.587 + c.b * 0.114)
-			grey.set_pixel(x, y, Color(minf(v * BLIGHT_TINT.r, 1.0), minf(v * BLIGHT_TINT.g, 1.0), minf(v * BLIGHT_TINT.b, 1.0), c.a))
-	return grey
+# The sheet as the blight shader shows it in game at blight = 1 (without its shimmer).
+func _in_game(sheet: Image) -> Image:
+	var out: Image = sheet.duplicate()
+	for y in out.get_height():
+		for x in out.get_width():
+			var c := out.get_pixel(x, y)
+			if c.a == 0.0:
+				continue
+			var lum := c.r * 0.299 + c.g * 0.587 + c.b * 0.114
+			var t := clampf(SHADER_FLOOR + SHADER_RANGE * lum, 0.0, 1.0)
+			var glow := smoothstep(SHADER_GLOW_START, 1.0, lum)
+			var col := SHADER_SHADOW.lerp(SHADER_COLD, t * t).lerp(SHADER_GLOW * SHADER_GLOW_STRENGTH, glow)
+			col.a = c.a * lerpf(SHADER_TRANSLUCENCY, 1.0, glow)
+			out.set_pixel(x, y, col.clamp())
+	return out
 
 # --- Primitives -------------------------------------------------------------------------------
 
@@ -154,6 +174,11 @@ func _layer() -> Image:
 func _px(canvas: Image, x: int, y: int, color: Color) -> void:
 	if x >= 0 and y >= 0 and x < S and y < S:
 		canvas.set_pixel(x, y, color)
+
+# Alpha-blends a colour over what's already there.
+func _blend_px(canvas: Image, x: int, y: int, color: Color) -> void:
+	if x >= 0 and y >= 0 and x < S and y < S:
+		canvas.set_pixel(x, y, canvas.get_pixel(x, y).blend(color))
 
 func _ramp(hexes: Array) -> Array[Color]:
 	var out: Array[Color] = []
@@ -194,6 +219,12 @@ func _flat_ellipse(layer: Image, c: Vector2, r: Vector2, color: Color) -> void:
 			if ((Vector2(x + 0.5, y + 0.5) - c) / r).length_squared() <= 1.0:
 				layer.set_pixel(x, y, color)
 
+func _blend_ellipse(canvas: Image, c: Vector2, r: Vector2, color: Color) -> void:
+	for y in range(maxi(0, floori(c.y - r.y)), mini(S, ceili(c.y + r.y) + 1)):
+		for x in range(maxi(0, floori(c.x - r.x)), mini(S, ceili(c.x + r.x) + 1)):
+			if ((Vector2(x + 0.5, y + 0.5) - c) / r).length_squared() <= 1.0:
+				_blend_px(canvas, x, y, color)
+
 # Shaded ellipse on its own layer, outlined onto the canvas. Returns the layer (a mask of the part).
 func _blob(canvas: Image, c: Vector2, r: Vector2, ramp: Array[Color], o: Color, max_y: float = INF) -> Image:
 	var layer := _layer()
@@ -210,7 +241,7 @@ func _line(canvas: Image, pts: Array, color: Color) -> void:
 			var p := a.lerp(b, s / maxf(steps, 1.0)).round()
 			_px(canvas, int(p.x), int(p.y), color)
 
-# Thick line of round dabs, for legs, horns and stalks.
+# Thick line of round dabs, for legs, arms, necks and antlers.
 func _stroke(layer: Image, pts: Array, r: float, color: Color) -> void:
 	for i in pts.size() - 1:
 		var a: Vector2 = pts[i]
@@ -235,7 +266,7 @@ func _stamp(canvas: Image, layer: Image, outline: Color = Color(0, 0, 0, 0)) -> 
 						break
 			canvas.set_pixel(x, y, col)
 
-# Pointed at both ends, lit on the side facing the light. For ears and wings seen edge-on.
+# Pointed at both ends, lit on the side facing the light. For ears, snouts, arms and limbs.
 func _lens(layer: Image, a: Vector2, b: Vector2, width: float, lit: Color, dark: Color) -> void:
 	var axis := b - a
 	var length := axis.length()
@@ -250,37 +281,17 @@ func _lens(layer: Image, a: Vector2, b: Vector2, width: float, lit: Color, dark:
 			if t >= 0.0 and t <= 1.0 and absf(s) <= width * sin(t * PI):
 				layer.set_pixel(x, y, lit if s * lit_side > 0.0 else dark)
 
-# Soft contact shadow on the ground, drawn before the creature.
+# Cold contact shadow on the ground, drawn before the nightmare.
 func _shadow(canvas: Image, c: Vector2, r: Vector2) -> void:
 	_flat_ellipse(canvas, c, r, SHADOW)
 
-# A dark w x h eye with a shine in its top-right corner (lit from the upper right).
-func _eye(canvas: Image, x: int, y: int, w: int, h: int, o: Color) -> void:
-	for dy in h:
-		for dx in w:
-			_px(canvas, x + dx, y + dy, o)
-	if w * h >= 4:
-		_px(canvas, x + w - 1, y, Color.WHITE)
+# A glowing eye: a bright core, optionally with a soft halo on its four sides.
+func _glow(canvas: Image, p: Vector2i, core: Color = EYE, halo: Color = Color(0, 0, 0, 0)) -> void:
+	if halo.a > 0.0:
+		for d: Vector2i in [Vector2i.LEFT, Vector2i.RIGHT, Vector2i.UP, Vector2i.DOWN]:
+			_blend_px(canvas, p.x + d.x, p.y + d.y, halo)
+	_px(canvas, p.x, p.y, core)
 
-# Two eyes mirrored around column `axis` (32 = the frame's centre line).
-func _eye_pair(canvas: Image, axis: int, x: int, y: int, w: int, h: int, o: Color) -> void:
-	_eye(canvas, x, y, w, h, o)
-	_eye(canvas, 2 * axis - x - w, y, w, h, o)
-
-# Moss patch on a part's layer (before stamping), dithered at the edge.
-func _moss(layer: Image, c: Vector2, r: Vector2) -> void:
-	var moss := _ramp(["#3f7a3e", "#5a9a48", "#7cbc5a"])
-	for y in S:
-		for x in S:
-			if layer.get_pixel(x, y).a == 0.0:
-				continue
-			var d := (Vector2(x + 0.5, y + 0.5) - c) / r
-			var q := d.length()
-			if q > 1.0 or (q > 0.75 and (x + y) % 2 == 0):
-				continue
-			layer.set_pixel(x, y, moss[2] if q < 0.5 and d.y < 0.0 else (moss[0] if q > 0.75 else moss[1]))
-
-# Pixels of a colour dotted onto a layer's own pixels only (spots, marks).
 func _spots(layer: Image, pts: Array, r: float, color: Color) -> void:
 	for p: Vector2 in pts:
 		for y in range(floori(p.y - r), ceili(p.y + r) + 1):
@@ -289,106 +300,142 @@ func _spots(layer: Image, pts: Array, r: float, color: Color) -> void:
 						and Vector2(x + 0.5, y + 0.5).distance_to(p) <= r:
 					layer.set_pixel(x, y, color)
 
-# Leg from root through knee to foot: an outlined 3px limb, or a 1px dark line for tiny creatures.
-func _leg(canvas: Image, pts: Array, color: Color, o: Color, thin: bool) -> void:
-	if thin:
-		_line(canvas, pts, o)
-		return
-	var layer := _layer()
-	_stroke(layer, pts, 1.0, color)
-	_stamp(canvas, layer, o)
+# Ordered-dither test: keeps `amount` (0..1) of the pixels, evenly spread. `shift` moves the pattern.
+func _keep(x: int, y: int, amount: float, shift: int = 0) -> bool:
+	return amount > (BAYER[posmod(y + shift, 4) * 4 + posmod(x + shift * 3, 4)] + 0.5) / 16.0
 
-# --- Leaf Bug -----------------------------------------------------------------------------------
-# Common and quick: a little green bug whose back is a leaf, with a round face and antennae.
-
-# Leaf from its stalk end to its tip: lit half, shaded half, dark midrib and veins angled to the tip.
-func _leaf_back(layer: Image, base: Vector2, tip: Vector2, width: float, ramp: Array[Color]) -> void:
-	var axis := tip - base
-	var length := axis.length()
-	var dir := axis / length
-	var nrm := Vector2(-dir.y, dir.x)
-	var lit_side := 1.0 if nrm.dot(Vector2(light.x, light.y)) >= 0.0 else -1.0
+# Fades a layer out from `from` to `to` (gone past `to`) by dropping pixels in a dither, so it
+# dissolves into wisps instead of turning see-through.
+func _dissolve(img: Image, from: Vector2, to: Vector2) -> void:
+	var axis := to - from
+	var len2 := axis.length_squared()
 	for y in S:
 		for x in S:
-			var p := Vector2(x + 0.5, y + 0.5) - base
-			var t := p.dot(dir) / length
-			if t < 0.0 or t > 1.0:
+			if img.get_pixel(x, y).a > 0.0 and not _keep(x, y, 1.0 - (Vector2(x + 0.5, y + 0.5) - from).dot(axis) / len2):
+				img.set_pixel(x, y, Color(0, 0, 0, 0))
+
+# Blends a finished figure layer onto the canvas, optionally see-through and offset.
+func _merge(canvas: Image, img: Image, alpha: float = 1.0, offset: Vector2i = Vector2i.ZERO) -> void:
+	var src := img
+	if alpha < 1.0:
+		src = img.duplicate()
+		for y in S:
+			for x in S:
+				var c := src.get_pixel(x, y)
+				if c.a > 0.0:
+					c.a *= alpha
+					src.set_pixel(x, y, c)
+	canvas.blend_rect(src, Rect2i(0, 0, S, S), offset)
+
+# Smoke curling off a nightmare: puffs drifting from `origin` along `dir`, shrinking and fading.
+func _wisps(canvas: Image, origin: Vector2, dir: Vector2, f: int, count: int = 3, reach: float = 9.0, size: float = 2.2) -> void:
+	for k in count:
+		var t := fposmod(float(f) / FRAMES + float(k) / count, 1.0)
+		var p := origin + dir * t * reach + dir.orthogonal() * sin(t * TAU + k) * 1.5
+		var r := size * (1.0 - t) + 0.6
+		var col := Color(NIGHT[2])
+		col.a = 0.8 * (1.0 - t)
+		_blend_ellipse(canvas, p, Vector2(r, r), col)
+
+# Hooded robe or veil from the shoulders (y0, half-width w0) to a ragged hem (y1, half-width w1),
+# leaning `lean` px at the hem, with folds; the tatters sway with `ph`.
+func _robe(layer: Image, cx: float, y0: float, w0: float, y1: float, w1: float, lean: float, ph: float, ramp: Array[Color]) -> void:
+	for y in range(maxi(0, floori(y0)), mini(S, ceili(y1) + 3)):
+		var t := clampf((y + 0.5 - y0) / (y1 - y0), 0.0, 1.0)
+		var w := lerpf(w0, w1, sqrt(t))
+		var mid := cx + lean * t
+		for x in range(maxi(0, floori(mid - w) - 1), mini(S, ceili(mid + w) + 1)):
+			var px := x + 0.5
+			var u := (px - mid) / w
+			if absf(u) > 1.0:
 				continue
-			var s := p.dot(nrm)
-			var w := width * sin(PI * (0.15 + 0.85 * t))
-			if absf(s) > w:
+			var hem := y1 + sin(px * 0.8 + ph) * 1.5 + (2.0 if posmod(x, 5) == 0 else 0.0)
+			if y + 0.5 > hem:
 				continue
-			var lit := s * lit_side > 0.0
-			var col: Color = ramp[2] if lit else ramp[1]
-			if absf(s) < 0.6:
-				col = ramp[0]
-			elif absf(s) < w - 1.0 and posmod(roundi(t * length - absf(s) * 1.2), 4) == 0:
-				col = ramp[1] if lit else ramp[0]
-			elif lit and ramp.size() > 3 and absf(s) > w * 0.35 and absf(s) < w * 0.6 and t > 0.25 and t < 0.55:
-				col = ramp[3]
+			var col := _shade(ramp, Vector3(u, -0.2, sqrt(maxf(1.0 - u * u, 0.0))).normalized())
+			if posmod(roundi(px - mid + t * 2.0), 5) == 0 and absf(u) < 0.85 and t > 0.15:
+				col = _darker(ramp, col)
 			layer.set_pixel(x, y, col)
 
+# Jagged cracks across a part (points in units of its radii from its centre), drawn in `color` on the
+# part's own pixels. Returns the crack pixels in order, for something to move along inside them.
+func _crack(layer: Image, c: Vector2, r: Vector2, polys: Array, color: Color) -> Array[Vector2i]:
+	var out: Array[Vector2i] = []
+	for poly: Array in polys:
+		for i in poly.size() - 1:
+			var a: Vector2 = c + (poly[i] as Vector2) * r
+			var b: Vector2 = c + (poly[i + 1] as Vector2) * r
+			var steps := int(maxf(absf(b.x - a.x), absf(b.y - a.y)))
+			for s in steps + 1:
+				var p := Vector2i(a.lerp(b, s / maxf(steps, 1.0)).round())
+				if p.x >= 0 and p.y >= 0 and p.x < S and p.y < S and layer.get_pixelv(p).a > 0.0 and not out.has(p):
+					layer.set_pixelv(p, color)
+					out.append(p)
+	return out
+
+# A cold light crawling along crack pixels: something alive inside.
+func _crawl(canvas: Image, pixels: Array[Vector2i], f: int, count: int = 2) -> void:
+	var n := pixels.size()
+	if n == 0:
+		return
+	for k in count:
+		var i := (f * 3 + k * n / count) % n
+		for j: int in [-1, 1]:
+			if i + j >= 0 and i + j < n:
+				_px(canvas, pixels[i + j].x, pixels[i + j].y, Color("#2e6478"))
+		_px(canvas, pixels[i].x, pixels[i].y, Color("#a8ecff"))
+
+# Little ragged tufts sticking up off a shadow's back.
+func _ragged(canvas: Image, pts: Array, dy: int) -> void:
+	for p: Vector2i in pts:
+		_px(canvas, p.x, p.y + dy, NIGHT_O)
+		_px(canvas, p.x + 1, p.y + dy - 1, NIGHT_O)
+
+# --- Shade (leaf_bug) ---------------------------------------------------------------------------
+# Common and quick: a small hunched shadow with two pinprick eyes. Scuttles, stops, twitches its
+# head; smoke curls off its back.
+
 func _draw_leaf_bug(canvas: Image, st: Dictionary) -> void:
-	var o := Color("#1e3a24")
-	var leaf := _ramp(["#3f7a3e", "#5aa044", "#86c85a", "#b4e67e"])
-	var skin := _ramp(["#6a9a3c", "#a4d070", "#cce898"])
+	var body := _ramp(NIGHT)
 	var f: int = st.f
 	var ph: float = st.ph
-	var bob: int = [0, -1, 0, 0, -1, 0][f]
-	var wave: int = [0, 1, 1, 0, -1, -1][f]
-	var body := _layer()
+	var bob: int = [0, 0, -1, 0, 0, -1][f]
+	var twitch: int = [0, 0, 0, 1, 1, 0][f]
+	var fig := _layer()
+	_shadow(canvas, Vector2(32, 43), Vector2(11, 2.5))
 	match st.dir:
 		SIDE:
-			_shadow(canvas, Vector2(30, 42), Vector2(14, 2.5))
-			for i in 3:  # far legs
-				var s := sin(ph + i * PI + PI)
-				_line(canvas, [Vector2(25 + i * 7, 37 + bob), Vector2(25 + i * 7 + roundi(s * 1.5), 40 - (1 if s > 0.5 else 0))], o)
-			_leaf_back(body, Vector2(40, 33 + bob), Vector2(13, 32 + bob), 6.0, leaf)
-			_stamp(canvas, body, o)
-			for i in 3:  # near legs
+			_wisps(canvas, Vector2(24, 31 + bob), Vector2(-0.8, -0.6), f)
+			for i in 4:
 				var s := sin(ph + i * PI)
-				_line(canvas, [Vector2(23 + i * 7, 38 + bob), Vector2(23 + i * 7 + roundi(s * 1.5), 42 - (1 if s > 0.5 else 0))], o)
-			_blob(canvas, Vector2(42, 36 + bob), Vector2(5, 4.5), skin, o)
-			_line(canvas, [Vector2(42, 31 + bob), Vector2(44, 28 + bob), Vector2(47, 26 + bob + wave)], o)
-			_px(canvas, 48, 26 + bob + wave, leaf[3])
-			_eye(canvas, 43, 34 + bob, 2, 2, o)
-			_px(canvas, 45, 37 + bob, BLUSH)
-		DOWN:
-			_shadow(canvas, Vector2(32, 43), Vector2(11, 2.5))
-			_leaf_bug_legs(canvas, 23 + bob, st, o)
-			_leaf_back(body, Vector2(32, 36 + bob), Vector2(32, 16 + bob), 8.0, leaf)
-			_stamp(canvas, body, o)
-			_blob(canvas, Vector2(32, 38 + bob), Vector2(5.5, 4.5), skin, o)
-			for side: int in [-1, 1]:
-				_line(canvas, [Vector2(32 + side * 2, 34 + bob), Vector2(32 + side * 5, 30 + bob), Vector2(32 + side * 7, 27 + bob + wave)], o)
-				_px(canvas, 32 + side * 7 + (0 if side > 0 else -1), 26 + bob + wave, leaf[3])
-			_eye_pair(canvas, 32, 28, 37 + bob, 2, 2, o)
-			_px(canvas, 28, 40 + bob, BLUSH)
-			_px(canvas, 35, 40 + bob, BLUSH)
-			_px(canvas, 31, 40 + bob, skin[0])
-			_px(canvas, 32, 40 + bob, skin[0])
-		UP:
-			_shadow(canvas, Vector2(32, 42), Vector2(11, 2.5))
-			_blob(canvas, Vector2(32, 24 + bob), Vector2(5.5, 4.5), skin, o)
-			for side: int in [-1, 1]:
-				_line(canvas, [Vector2(32 + side * 2, 20 + bob), Vector2(32 + side * 5, 16 + bob), Vector2(32 + side * 7, 13 + bob + wave)], o)
-				_px(canvas, 32 + side * 7 + (0 if side > 0 else -1), 12 + bob + wave, leaf[3])
-			_leaf_bug_legs(canvas, 28 + bob, st, o)
-			_leaf_back(body, Vector2(32, 25 + bob), Vector2(32, 45 + bob), 8.0, leaf)
-			_stamp(canvas, body, o)
+				var x := 25 + i * 4
+				_line(fig, [Vector2(x, 38 + bob), Vector2(x + 1 + roundi(s * 1.5), 40 + bob), Vector2(x + roundi(s * 2.0), 43 - (1 if s > 0.5 else 0))], body[0])
+			_ellipse(fig, Vector2(30, 35 + bob), Vector2(9, 6.5), body)
+			_ellipse(fig, Vector2(37 + twitch, 37 + bob), Vector2(5, 4), body)
+			_stamp(canvas, fig, NIGHT_O)
+			_ragged(canvas, [Vector2i(24, 30), Vector2i(27, 29), Vector2i(30, 28), Vector2i(33, 29)], bob)
+			_glow(canvas, Vector2i(38 + twitch, 36 + bob))
+			_glow(canvas, Vector2i(40 + twitch, 36 + bob))
+		DOWN, UP:
+			var down: bool = st.dir == DOWN
+			_wisps(canvas, Vector2(32, 28 + bob), Vector2(0.3, -1), f)
+			for i in 2:
+				for side: int in [-1, 1]:
+					var s := sin(ph + (i + (1 if side > 0 else 0)) * PI)
+					var y := 35 + i * 3 + bob
+					_line(fig, [Vector2(32 + side * 6, y), Vector2(32 + side * (9 + i), y - 1), Vector2(32 + side * (10 + i) + roundi(s), 42 + i - (1 if s > 0.5 else 0))], body[0])
+			_ellipse(fig, Vector2(32, 34 + bob), Vector2(9, 7), body)
+			_ellipse(fig, Vector2(32 + twitch, 38 + bob if down else 29 + bob), Vector2(5.5, 4.5) if down else Vector2(4.5, 3.5), body)
+			_stamp(canvas, fig, NIGHT_O)
+			_ragged(canvas, [Vector2i(26, 29), Vector2i(30, 27), Vector2i(34, 27), Vector2i(37, 29)], bob)
+			if down:
+				_glow(canvas, Vector2i(30 + twitch, 38 + bob))
+				_glow(canvas, Vector2i(33 + twitch, 38 + bob))
 
-# Three legs a side poking out from under the leaf, in a tripod gait.
-func _leaf_bug_legs(canvas: Image, top: int, st: Dictionary, o: Color) -> void:
-	for i in 3:
-		for side: int in [-1, 1]:
-			var s := sin(st.ph + (i + (1 if side > 0 else 0)) * PI)
-			var y := top + i * 5
-			_line(canvas, [Vector2(32 + side * 6, y), Vector2(32 + side * 11, y + 2 - (1 if s > 0.5 else 0) + roundi(s))], o)
+# --- Husk (bark_beetle) -------------------------------------------------------------------------
+# Slow and sturdy: a hollow shell of dead bark on stubby legs. Something cold moves inside the
+# cracks; two eyes watch from the dark opening at the front.
 
-# --- Bark Beetle --------------------------------------------------------------------------------
-# Slow and sturdy: a chunky beetle under a thick ridged bark shell with moss and a sprout on top.
-
-# Ridges running front to back along the shell: curved lines one step darker, with a few breaks.
 func _grooves(layer: Image, c: Vector2, r: Vector2, ramp: Array[Color], lengthwise_x: bool) -> void:
 	for y in S:
 		for x in S:
@@ -401,16 +448,15 @@ func _grooves(layer: Image, c: Vector2, r: Vector2, ramp: Array[Color], lengthwi
 				layer.set_pixel(x, y, _darker(ramp, col))
 
 func _draw_bark_beetle(canvas: Image, st: Dictionary) -> void:
-	var o := Color("#24160e")
-	var bark := _ramp(["#4a3020", "#6a4830", "#8a6444", "#a8845c"])
-	var skin := _ramp(["#8a6440", "#b08858", "#d4b080"])
-	var leg := Color("#3a2418")
+	var o := NIGHT_O
+	var bark := _ramp(["#1c1818", "#2c2626", "#403834", "#564a42"])
 	var f: int = st.f
 	var ph: float = st.ph
-	var bob: int = [0, 0, -1, 0, 0, -1][f]
-	var sway: int = [0, 0, 1, 0, 0, -1][f]
+	var bob: int = [0, 0, 0, -1, 0, 0][f]  # a heavy lurch, then still
+	var sway: int = [0, 0, 1, 1, 0, 0][f]
 	var shell := _layer()
-	var horn := _layer()
+	var snag := _layer()
+	var cracks: Array[Vector2i] = []
 	match st.dir:
 		SIDE:
 			_shadow(canvas, Vector2(31, 43), Vector2(17, 3))
@@ -418,58 +464,56 @@ func _draw_bark_beetle(canvas: Image, st: Dictionary) -> void:
 				var s := sin(ph + i * PI + PI)
 				_beetle_leg(canvas, Vector2(24 + i * 8, 37 + bob), Vector2(25 + i * 8 + roundi(s * 1.5), 41 - (1 if s > 0.5 else 0)), o)
 			var c := Vector2(29, 34 + bob)
-			_ellipse(shell, c, Vector2(15, 11), bark, 38.5 + bob)
-			_grooves(shell, c, Vector2(15, 11), bark, true)
+			var r := Vector2(15, 11)
+			_ellipse(shell, c, r, bark, 38.5 + bob)
+			_grooves(shell, c, r, bark, true)
 			for x in S:
-				for y in [37 + bob, 38 + bob]:
+				for y: int in [37 + bob, 38 + bob]:
 					if shell.get_pixel(x, y).a > 0.0:
 						shell.set_pixel(x, y, bark[0])
-			_moss(shell, Vector2(27, 25 + bob), Vector2(8, 3.5))
+			cracks = _crack(shell, c, r, [[Vector2(-0.8, -0.1), Vector2(-0.45, -0.45), Vector2(-0.1, -0.2), Vector2(0.25, -0.6), Vector2(0.5, -0.35)],
+				[Vector2(-0.55, 0.3), Vector2(-0.1, 0.05), Vector2(0.3, 0.3), Vector2(0.75, 0.05)]], HOLLOW)
 			_stamp(canvas, shell, o)
-			_sprout(canvas, Vector2i(26, 23 + bob), o)
+			_crawl(canvas, cracks, f)
+			_twig(canvas, Vector2i(25, 24 + bob), bark[2])
 			for i in 3:
 				var s := sin(ph + i * PI)
-				_beetle_leg(canvas, Vector2(21 + i * 8, 38 + bob), Vector2(21 + i * 8 + roundi(s * 1.5), 43 - (1 if s > 0.5 else 0)), leg)
-			_stroke(horn, [Vector2(46, 34 + bob), Vector2(48.5, 30 + bob), Vector2(48.5, 28 + bob)], 1.3, skin[1])
-			_stamp(canvas, horn, o)
-			_blob(canvas, Vector2(45, 37 + bob), Vector2(5.5, 5), skin, o)
-			_eye(canvas, 46, 35 + bob, 2, 3, o)
-			_px(canvas, 48, 39 + bob, BLUSH)
-		DOWN:
+				_beetle_leg(canvas, Vector2(21 + i * 8, 38 + bob), Vector2(21 + i * 8 + roundi(s * 1.5), 43 - (1 if s > 0.5 else 0)), bark[0])
+			_stroke(snag, [Vector2(45, 34 + bob), Vector2(47, 30 + bob), Vector2(46, 27 + bob)], 1.1, bark[1])
+			_stamp(canvas, snag, o)
+			_blob(canvas, Vector2(45, 37 + bob), Vector2(5.5, 5), bark, o)
+			_flat_ellipse(canvas, Vector2(46.5, 37.5 + bob), Vector2(3, 3.2), HOLLOW)
+			_glow(canvas, Vector2i(46, 36 + bob))
+			_glow(canvas, Vector2i(48, 37 + bob))
+		DOWN, UP:
+			var down: bool = st.dir == DOWN
+			var cx := 32 + sway
 			_shadow(canvas, Vector2(32, 44), Vector2(16, 3))
-			_beetle_side_legs(canvas, 26 + bob, 32 + sway, st, leg)
-			var c := Vector2(32 + sway, 29 + bob)
-			_ellipse(shell, c, Vector2(14, 11), bark)
-			_grooves(shell, c, Vector2(14, 11), bark, false)
+			if not down:
+				_stroke(snag, [Vector2(cx, 18 + bob), Vector2(cx + 1, 15 + bob), Vector2(cx - 1, 12 + bob)], 1.1, bark[1])
+				_stamp(canvas, snag, o)
+				_blob(canvas, Vector2(cx, 20 + bob), Vector2(6, 4.5), bark, o)
+			_beetle_side_legs(canvas, (26 if down else 27) + bob, cx, st, bark[0])
+			var c := Vector2(cx, (29 if down else 32) + bob)
+			var r := Vector2(14, 11 if down else 11.5)
+			_ellipse(shell, c, r, bark)
+			_grooves(shell, c, r, bark, false)
 			for y in S:
-				if shell.get_pixel(32 + sway, y).a > 0.0:
-					shell.set_pixel(32 + sway, y, bark[0])
-			_moss(shell, Vector2(32 + sway, 22 + bob), Vector2(8, 3.5))
+				if shell.get_pixel(cx, y).a > 0.0:
+					shell.set_pixel(cx, y, bark[0])
+			cracks = _crack(shell, c, r, [[Vector2(-0.7, -0.3), Vector2(-0.3, -0.1), Vector2(-0.35, 0.4), Vector2(0.0, 0.7)],
+				[Vector2(0.2, -0.8), Vector2(0.35, -0.3), Vector2(0.7, -0.1)]], HOLLOW)
 			_stamp(canvas, shell, o)
-			_sprout(canvas, Vector2i(34 + sway, 20 + bob), o)
-			_stroke(horn, [Vector2(32 + sway, 36 + bob), Vector2(32 + sway, 31 + bob)], 1.4, skin[1])
-			_stamp(canvas, horn, o)
-			_blob(canvas, Vector2(32 + sway, 39 + bob), Vector2(6.5, 5.5), skin, o)
-			_eye_pair(canvas, 32 + sway, 28 + sway, 38 + bob, 2, 3, o)
-			_px(canvas, 27 + sway, 42 + bob, BLUSH)
-			_px(canvas, 36 + sway, 42 + bob, BLUSH)
-			_px(canvas, 31 + sway, 42 + bob, skin[0])
-			_px(canvas, 32 + sway, 42 + bob, skin[0])
-		UP:
-			_shadow(canvas, Vector2(32, 43), Vector2(16, 3))
-			_stroke(horn, [Vector2(32 + sway, 18 + bob), Vector2(32 + sway, 13 + bob)], 1.4, skin[1])
-			_stamp(canvas, horn, o)
-			_blob(canvas, Vector2(32 + sway, 20 + bob), Vector2(6, 4.5), skin, o)
-			_beetle_side_legs(canvas, 27 + bob, 32 + sway, st, leg)
-			var c := Vector2(32 + sway, 32 + bob)
-			_ellipse(shell, c, Vector2(14, 11.5), bark)
-			_grooves(shell, c, Vector2(14, 11.5), bark, false)
-			for y in S:
-				if shell.get_pixel(32 + sway, y).a > 0.0:
-					shell.set_pixel(32 + sway, y, bark[0])
-			_moss(shell, Vector2(30 + sway, 26 + bob), Vector2(8, 3.5))
-			_stamp(canvas, shell, o)
-			_sprout(canvas, Vector2i(30 + sway, 24 + bob), o)
+			_crawl(canvas, cracks, f)
+			_twig(canvas, Vector2i(cx + 3, (21 if down else 24) + bob), bark[2])
+			if down:
+				snag = _layer()
+				_stroke(snag, [Vector2(cx, 36 + bob), Vector2(cx + 1, 32 + bob), Vector2(cx - 1, 30 + bob)], 1.1, bark[1])
+				_stamp(canvas, snag, o)
+				_blob(canvas, Vector2(cx, 39 + bob), Vector2(6.5, 5.5), bark, o)
+				_flat_ellipse(canvas, Vector2(cx, 40 + bob), Vector2(4, 3.2), HOLLOW)
+				_glow(canvas, Vector2i(cx - 2, 39 + bob))
+				_glow(canvas, Vector2i(cx + 1, 39 + bob))
 
 func _beetle_leg(canvas: Image, root: Vector2, foot: Vector2, color: Color) -> void:
 	_line(canvas, [root, foot], color)
@@ -483,628 +527,507 @@ func _beetle_side_legs(canvas: Image, top: int, cx: int, st: Dictionary, color: 
 			var foot := Vector2(cx + side * 16 - (1 if side > 0 else 0), y + 3 - (1 if s > 0.5 else 0) + roundi(s))
 			_beetle_leg(canvas, Vector2(cx + side * 10 - (1 if side > 0 else 0), y), foot, color)
 
-# A two-leaf sprout growing from moss: stem at `p`, leaves up either side.
-func _sprout(canvas: Image, p: Vector2i, o: Color) -> void:
-	var leaf := _ramp(LEAF)
-	_px(canvas, p.x, p.y, leaf[0])
-	_px(canvas, p.x, p.y - 1, leaf[0])
-	for q: Vector2i in [Vector2i(-1, -2), Vector2i(-2, -2), Vector2i(-2, -3)]:
-		_px(canvas, p.x + q.x, p.y + q.y, leaf[2])
-	for q: Vector2i in [Vector2i(1, -2), Vector2i(2, -3), Vector2i(3, -3)]:
-		_px(canvas, p.x + q.x, p.y + q.y, leaf[1])
-	_px(canvas, p.x - 3, p.y - 3, o)
-	_px(canvas, p.x + 4, p.y - 4, o)
+# A bare dead twig growing out of the bark at `p`.
+func _twig(canvas: Image, p: Vector2i, color: Color) -> void:
+	for q: Vector2i in [Vector2i(0, 0), Vector2i(0, -1), Vector2i(0, -2), Vector2i(-1, -3), Vector2i(-2, -4), Vector2i(1, -3),
+			Vector2i(2, -4), Vector2i(2, -5)]:
+		_px(canvas, p.x + q.x, p.y + q.y, color)
 
-# --- Dusk Moth ----------------------------------------------------------------------------------
-# Fast, hides in fog: a fluffy moth with dusky violet wings, eye spots and feathery antennae.
-
-# Flat two-tone wing with a pale edge band and an optional eye spot, as a rotated ellipse.
-func _wing(canvas: Image, c: Vector2, r: Vector2, angle: float, ramp: Array[Color], lit: bool, spot: bool, o: Color) -> void:
-	var layer := _layer()
-	var reach := ceili(maxf(r.x, r.y))
-	for y in range(maxi(0, floori(c.y) - reach), mini(S, ceili(c.y) + reach + 1)):
-		for x in range(maxi(0, floori(c.x) - reach), mini(S, ceili(c.x) + reach + 1)):
-			var d := (Vector2(x + 0.5, y + 0.5) - c).rotated(-angle) / r
-			var q := d.length()
-			if q > 1.0:
-				continue
-			var col: Color = ramp[2] if lit else ramp[1]
-			if q > 0.72:
-				col = ramp[3] if lit else ramp[2]
-			elif q < 0.3 and spot:
-				col = Color("#f0b080") if q > 0.14 else Color("#3a2440")
-			layer.set_pixel(x, y, col)
-	_stamp(canvas, layer, o)
-
-func _feather_antenna(canvas: Image, a: Vector2, b: Vector2, stem: Color, barb: Color) -> void:
-	_line(canvas, [a, b], stem)
-	var out := signf(b.x - a.x)
-	for k in range(1, 4):
-		var p := a.lerp(b, k / 4.0 + 0.1).round()
-		_px(canvas, int(p.x + out), int(p.y + 1), barb)
+# --- Lurker (dusk_moth) -------------------------------------------------------------------------
+# Fast, hidden in fog: a thin, long-limbed shape that's only half there. It flickers (the dither
+# shifts every frame) and a band of it slips sideways now and then; only its eyes stay solid.
 
 func _draw_dusk_moth(canvas: Image, st: Dictionary) -> void:
-	var o := Color("#221a36")
-	var wing := _ramp(["#3a3470", "#5a5498", "#8a82c8", "#b8b0e8"])
-	var fur := _ramp(["#a89078", "#d0bca0", "#f0e4cc", "#fffaf0"])
+	var body := _ramp(["#16142a", "#24203e", "#36305a", "#4a4278"])
 	var f: int = st.f
-	var bob := roundi(sin(st.ph) * 1.2)
-	var open: float = [1.0, 0.75, 0.35, 0.1, 0.45, 0.8][f]
-	_shadow(canvas, Vector2(32, 47), Vector2(7, 2))
-	if st.dir == SIDE:
-		var ang := deg_to_rad([-105, -130, -160, 175, -150, -115][f])
-		var root := Vector2(31, 24 + bob)
-		_wing(canvas, root + Vector2(1, -1) + Vector2.from_angle(ang + 0.25) * 6.0, Vector2(8, 4.5), ang + 0.25, wing, false, false, o)
-		var belly := _layer()
-		_ellipse(belly, Vector2(26, 27 + bob), Vector2(7, 3.8), fur)
-		for y in S:
-			for x in range(19, 32):
-				if belly.get_pixel(x, y).a > 0.0 and x % 3 == 0:
-					belly.set_pixel(x, y, _darker(fur, belly.get_pixel(x, y)))
-		_stamp(canvas, belly, o)
-		_blob(canvas, Vector2(35, 25 + bob), Vector2(4.5, 4.5), fur, o)
-		_feather_antenna(canvas, Vector2(36, 21 + bob), Vector2(41, 15 + bob), fur[0], fur[1])
-		_eye(canvas, 36, 24 + bob, 2, 2, o)
-		_px(canvas, 38, 27 + bob, BLUSH)
-		_wing(canvas, root + Vector2.from_angle(ang) * 6.0, Vector2(8.5, 5), ang, wing, true, true, o)
-		return
-	var wx := 2.0 + 8.0 * open
-	for side: int in [-1, 1]:
-		_wing(canvas, Vector2(32 + side * (3 + wx * 0.7), 31 + bob), Vector2(wx * 0.7, 4.5), -side * 0.2, wing, side > 0, false, o)
-	for side: int in [-1, 1]:
-		_wing(canvas, Vector2(32 + side * (3 + wx), 23 + bob), Vector2(wx, 6.5), -side * 0.3, wing, side > 0, wx > 6.0, o)
-	var body := _layer()
-	_ellipse(body, Vector2(32, 29 + bob), Vector2(3.5, 6.5), fur)
-	for y in range(26, 37):
-		for x in S:
-			if body.get_pixel(x, y + bob).a > 0.0 and y % 3 == 0:
-				body.set_pixel(x, y + bob, _darker(fur, body.get_pixel(x, y + bob)))
-	_stamp(canvas, body, o)
-	_blob(canvas, Vector2(32, 21 + bob), Vector2(5, 4.5), fur, o)
-	_feather_antenna(canvas, Vector2(30, 17 + bob), Vector2(26, 11 + bob), fur[0], fur[1])
-	_feather_antenna(canvas, Vector2(33, 17 + bob), Vector2(37, 11 + bob), fur[0], fur[1])
-	if st.dir == DOWN:
-		_eye_pair(canvas, 32, 28, 20 + bob, 2, 3, o)
-		_px(canvas, 28, 23 + bob, BLUSH)
-		_px(canvas, 35, 23 + bob, BLUSH)
-	else:
-		for p: Vector2i in [Vector2i(30, 19), Vector2i(33, 18), Vector2i(31, 22), Vector2i(34, 21)]:
-			_px(canvas, p.x, p.y + bob, fur[3])
-
-# --- Dandelion Seed -----------------------------------------------------------------------------
-# Floats straight to the Heartwood: a fluffy seed clock on a stalk, a tiny seed with a face below.
-
-func _draw_dandelion_seed(canvas: Image, st: Dictionary) -> void:
-	var o := Color("#5a6480")
-	var fluff := _ramp(["#b8c4d8", "#dde6f0", "#ffffff"])
-	var seed := _ramp(["#8a6440", "#b08858", "#d8b888"])
-	var seed_o := Color("#3a2818")
-	var f: int = st.f
-	var bob := roundi(sin(st.ph) * 1.5)
-	var sway := roundi(sin(st.ph + 1.0))
-	var lean: int = -2 if st.dir == SIDE else 0
-	_shadow(canvas, Vector2(32, 48), Vector2(5.0 - bob * 0.4, 1.5))
-	var top := Vector2(32 + sway + lean, 19 + bob)
-	var seed_c := Vector2(32, 34 + bob)
-	_line(canvas, [top, seed_c + Vector2(0, -4)], Color("#c8b890"))
-	# The clock: tufts in a ring (open at the bottom where the stalk is), filaments to the centre.
-	var puff := _layer()
-	var tips: Array[Vector2] = []
-	for i in 13:
-		var a := deg_to_rad(-235.0 + i * 24.0)
-		tips.append(top + Vector2.from_angle(a) * Vector2(9.5, 8.5))
-	for t in tips:
-		_flat_ellipse(puff, t, Vector2(2.4, 2.2), fluff[1])
+	var ph: float = st.ph
+	var keep: float = [0.62, 0.5, 0.7, 0.38, 0.58, 0.46][f]
+	var h := roundi(sin(ph))
+	var step := sin(ph)
+	var fig := _layer()
+	_shadow(canvas, Vector2(32, 45), Vector2(6, 1.5))
+	match st.dir:
+		SIDE:
+			_stroke(fig, [Vector2(31, 33 + h), Vector2(31 - step * 3, 39), Vector2(30 - step * 5, 45)], 0.8, body[0])
+			_stroke(fig, [Vector2(34, 20 + h), Vector2(30, 27 + h), Vector2(27, 34 + h)], 0.7, body[0])
+			_lens(fig, Vector2(36, 16 + h), Vector2(31, 36 + h), 3.4, body[2], body[1])
+			_ellipse(fig, Vector2(37, 14 + h), Vector2(3, 4.5), body)
+			_stroke(fig, [Vector2(31, 33 + h), Vector2(31 + step * 3, 39), Vector2(30 + step * 5, 45)], 0.8, body[1])
+			_stroke(fig, [Vector2(35, 20 + h), Vector2(40, 24 + h), Vector2(45, 25 + h)], 0.7, body[1])
+			for d: Vector2 in [Vector2(3, 1), Vector2(3, 3)]:
+				_line(fig, [Vector2(45, 25 + h), Vector2(45, 25 + h) + d], body[1])
+		DOWN, UP:
+			var sway := step * 1.5
+			for side: int in [-1, 1]:
+				var s := step * side
+				_stroke(fig, [Vector2(32 + side * 2, 35 + h), Vector2(32 + side * 3, 40 + s), Vector2(32 + side * 3, 45 - maxf(s, 0.0))], 0.8, body[1])
+				_stroke(fig, [Vector2(32 + side * 3.5, 21 + h), Vector2(32 + side * 6 + sway, 30 + h), Vector2(32 + side * 7 + sway, 39 + h)], 0.7, body[1])
+			_lens(fig, Vector2(32, 17 + h), Vector2(32, 37 + h), 3.8, body[2], body[1])
+			_ellipse(fig, Vector2(32, 14 + h), Vector2(3.5, 5), body)
+	var ghost := _layer()
+	_stamp(ghost, fig, NIGHT_O)
 	for y in S:
 		for x in S:
-			if puff.get_pixel(x, y).a > 0.0 and y < top.y - 1:
-				puff.set_pixel(x, y, fluff[2])
-	for t in tips:
-		_line(canvas, [top, top.lerp(t, 0.8)], Color("#e8eef6"))
-	_stamp(canvas, puff, o)
-	_px(canvas, int(top.x), int(top.y), seed[1])
-	_px(canvas, int(top.x) - 1, int(top.y), seed[1])
-	_blob(canvas, seed_c, Vector2(3.5, 4.5), seed, seed_o)
+			if ghost.get_pixel(x, y).a > 0.0 and not _keep(x, y, keep, f):
+				ghost.set_pixel(x, y, Color(0, 0, 0, 0))
+	if f == 1 or f == 3:  # a band of it slips sideways
+		var band := ghost.get_region(Rect2i(0, 24, S, 3))
+		ghost.fill_rect(Rect2i(0, 24, S, 3), Color(0, 0, 0, 0))
+		ghost.blit_rect(band, Rect2i(0, 0, S, 3), Vector2i(2 if f == 1 else -2, 24))
+	_merge(canvas, ghost, 0.9)
 	match st.dir:
-		DOWN:
-			_eye_pair(canvas, 32, 30, 33 + bob, 1, 2, seed_o)
-			_px(canvas, 30, 36 + bob, BLUSH)
-			_px(canvas, 33, 36 + bob, BLUSH)
 		SIDE:
-			_eye(canvas, 33, 33 + bob, 1, 2, seed_o)
-			_px(canvas, 34, 36 + bob, BLUSH)
-	# A loose filament drifting away behind it.
-	var t := float(f) / FRAMES
-	var drift := top + (Vector2(-10 - t * 10, -2 - t * 6) if st.dir == SIDE else Vector2(8 + t * 6, 4 - t * 10))
-	_px(canvas, roundi(drift.x), roundi(drift.y), fluff[2])
-	_px(canvas, roundi(drift.x) + 1, roundi(drift.y), fluff[0])
+			_glow(canvas, Vector2i(38, 13 + h), EYE, EYE_HALO)
+		DOWN:
+			_glow(canvas, Vector2i(30, 14 + h), EYE, EYE_HALO)
+			_glow(canvas, Vector2i(33, 14 + h), EYE, EYE_HALO)
 
-# --- Puffcap ------------------------------------------------------------------------------------
-# Splits into little puffcaps: a hopping mushroom with a spotted rosy cap. k scales it down.
+# --- Phantom (dandelion_seed) -------------------------------------------------------------------
+# Glides through walls straight to the Heartwood: a pale floating veiled ghost with hollow eyes and
+# mouth, arms reaching ahead, its tail streaming behind and a faint after-image where it just was.
+
+func _draw_dandelion_seed(canvas: Image, st: Dictionary) -> void:
+	var body := _ramp(["#5a7a98", "#86aac8", "#b6d8ee", "#e6f8ff"])
+	var o := Color("#26384e")
+	var f: int = st.f
+	var ph: float = st.ph
+	var h := roundi(sin(ph) * 2.0)
+	_shadow(canvas, Vector2(32, 47), Vector2(6, 1.5))
+	var fig := _layer()
+	var ghost := _layer()
+	var trail := Vector2i(-5, 0)  # after-image, only in side view (front/back it reads as a hood)
+	match st.dir:
+		SIDE:
+			for i in range(12, 0, -1):
+				var t := i / 12.0
+				_ellipse(fig, Vector2(39 - i * 2.1, 23 + h + i * 0.8 + sin(ph - i * 0.55) * 1.6), Vector2.ONE * (6.5 * (1.0 - t) + 1.0), body)
+			_ellipse(fig, Vector2(39, 22 + h), Vector2(7, 7), body)
+			_lens(fig, Vector2(40, 27 + h), Vector2(49, 26 + h + roundi(sin(ph))), 1.8, body[2], body[1])
+			_stamp(ghost, fig, o)
+			_dissolve(ghost, Vector2(24, 0), Vector2(12, 0))
+			_face_hole(ghost, 41, 19 + h, 2, 3)
+			_face_hole(ghost, 43, 24 + h, 2, 2)
+		DOWN, UP:
+			trail = Vector2i.ZERO
+			for i in range(12, 0, -1):
+				var t := i / 12.0
+				_ellipse(fig, Vector2(32 + sin(ph - i * 0.55) * 2.5 * t, 21 + h + i * 1.9), Vector2.ONE * (7.0 * (1.0 - t) + 1.0), body)
+			_ellipse(fig, Vector2(32, 20 + h), Vector2(7.5, 7), body)
+			for side: int in [-1, 1]:
+				_lens(fig, Vector2(32 + side * 6, 25 + h), Vector2(32 + side * 12, 31 + h + roundi(sin(ph + side))), 1.6, body[2], body[1])
+			_stamp(ghost, fig, o)
+			_dissolve(ghost, Vector2(0, 36 + h), Vector2(0, 46 + h))
+			if st.dir == DOWN:
+				_face_hole(ghost, 28, 17 + h, 2, 3)
+				_face_hole(ghost, 34, 17 + h, 2, 3)
+				_face_hole(ghost, 31, 23 + h, 2, 3)
+	if trail != Vector2i.ZERO:
+		_merge(canvas, ghost, 0.22, trail)
+	_merge(canvas, ghost, 0.82)
+
+func _face_hole(canvas: Image, x: int, y: int, w: int, h: int) -> void:
+	for dy in h:
+		for dx in w:
+			_px(canvas, x + dx, y + dy, HOLLOW)
+
+# --- Mourner (puffcap) / Sob (puffcaplet) -------------------------------------------------------
+# Breaks into 3 Sobs when dispelled: a veiled, weeping ghost, hood bowed over a dark face with
+# sad glowing eyes and tears running. Its shoulders shake. k shrinks it into a Sob.
 
 func _draw_puffcap(canvas: Image, st: Dictionary) -> void:
 	var k: float = st.k
-	var o := Color("#3a1e24")
-	var cap := _ramp(["#a8404a", "#d05a58", "#f08a74", "#ffb8a0"])
-	var stem := _ramp(["#c8b090", "#e8d4b0", "#fff4dc"])
+	var veil := _ramp(["#262c44", "#3e4764", "#5c6688", "#8089ac"])
+	var o := Color("#0a0c18")
+	var tear := Color("#8fdcff")
 	var f: int = st.f
-	var hop: float = [0.0, 2.0, 5.0, 6.0, 3.5, 1.0][f] * k
-	var sq: Vector2 = [Vector2(1.12, 0.86), Vector2(0.94, 1.08), Vector2.ONE, Vector2.ONE, Vector2(0.96, 1.05), Vector2(1.06, 0.92)][f]
-	var ground := 44.0
-	var base := Vector2(32, ground - roundf(hop))
-	var turn: float = {SIDE: 3.0, DOWN: 0.0, UP: -1.0}[st.dir] * k
-	_shadow(canvas, Vector2(32, ground), Vector2(10.0 * k * (1.0 - hop * 0.04), 2.5 * k))
-	var feet := _layer()
-	for side: int in [-1, 1]:
-		_flat_ellipse(feet, base + Vector2(side * 3.5 * sq.x + turn * 0.5, -1.0) * Vector2(k, k), Vector2(2.2, 1.6) * k, stem[1])
-	_stamp(canvas, feet, o)
-	var body_c := base + Vector2(0, -6.5 * k * sq.y)
-	_blob(canvas, body_c, Vector2(6.5 * sq.x, 6.5 * sq.y) * k, stem, o)
-	var cap_c := base + Vector2(0, -14.0 * k * sq.y)
-	var cap_l := _layer()
-	var cap_r := Vector2(13.5 * sq.x, 9.0 * sq.y) * k
-	_ellipse(cap_l, cap_c, cap_r, cap, cap_c.y + 2.5 * k)
-	for y in range(S - 1):
-		for x in S:
-			if cap_l.get_pixel(x, y).a > 0.0 and cap_l.get_pixel(x, y + 1).a == 0.0 and y > cap_c.y:
-				cap_l.set_pixel(x, y, cap[0])
-	var spots: Array = []
-	for s: Vector2 in [Vector2(-6, -3), Vector2(1, -6), Vector2(7, -2), Vector2(-1, -1.5), Vector2(-10, 0)]:
-		spots.append(cap_c + (s + Vector2(turn / k, 0)) * k)
-	_spots(cap_l, spots, maxf(1.8 * k, 1.0), Color("#fff0d8"))
-	_stamp(canvas, cap_l, o)
-	if st.dir == UP:
-		return
-	var w := 2 if k > 0.8 else 1
-	var ey := roundi(body_c.y - 1.0 * k)
-	var ex := int(32.0 - 2.0 * k) - w
-	var shift := roundi(turn)
-	_eye(canvas, ex + shift, ey, w, 2, o)
-	_eye(canvas, 64 - ex - w + shift, ey, w, 2, o)
-	_px(canvas, ex - 1 + shift, ey + 2, BLUSH)
-	_px(canvas, 64 - ex + shift, ey + 2, BLUSH)
+	var ph: float = st.ph
+	var h := roundf(sin(ph) * 1.5 * k)
+	var shake: int = [0, 1, 0, -1, 0, 0][f] if k > 0.8 else 0
+	var ground := 45.0
+	_shadow(canvas, Vector2(32, ground), Vector2(9, 2) * k)
+	var top := ground - 36.0 * k + h
+	var side_view: bool = st.dir == SIDE
+	var fig := _layer()
+	_robe(fig, 32.0, top + 8.0 * k, 6.0 * k, ground - 2.0 * k + h, 11.0 * k, -3.0 * k if side_view else 0.0, ph, veil)
+	_ellipse(fig, Vector2(32.0 + (1.0 * k if side_view else 0.0), top + 8.0 * k), Vector2(7.0, 8.0) * k, veil)
+	var ghost := _layer()
+	_stamp(ghost, fig, o)
+	_dissolve(ghost, Vector2(0, ground - 7.0 * k + h), Vector2(0, ground + 1.0 + h))
+	if st.dir != UP:
+		var fx := roundi(32.0 + (2.5 * k if side_view else 0.0))
+		var hc := Vector2(fx, top + 9.0 * k)
+		_flat_ellipse(ghost, hc, Vector2(4.5, 4.2) * k, HOLLOW)
+		var ey := roundi(hc.y - 0.5 * k)
+		var drop := ey + 5 + (f % 3) * 2
+		if k > 0.8:
+			for p: Vector2i in [Vector2i(fx - 3, ey), Vector2i(fx - 4, ey + 1), Vector2i(fx + 2, ey), Vector2i(fx + 3, ey + 1)]:
+				_px(ghost, p.x, p.y, EYE)
+			for tx: int in [fx - 4, fx + 3]:
+				for ty in range(ey + 2, ey + 5):
+					_px(ghost, tx, ty, tear)
+				_px(ghost, tx, drop, tear)
+		else:
+			for tx: int in [fx - 2, fx + 1]:
+				_px(ghost, tx, ey, EYE)
+				_px(ghost, tx, ey + 1, tear)
+				_px(ghost, tx, ey + 2 + f % 2, tear)
+	_merge(canvas, ghost, 0.88, Vector2i(shake, 0))
 
-# --- Mother Spider ------------------------------------------------------------------------------
-# Releases spiderlings when cleansed: a round fuzzy plum spider with a heart on her back, big eyes
-# and four little ones. k scales her down into a spiderling.
+# --- Widow (mother_spider) / Creep (spiderling) -------------------------------------------------
+# Bursts into 6 Creeps when dispelled: a bloated many-legged shadow on thin spiked legs, a cluster
+# of cold eyes, and something glowing through the veins of its swollen body. k shrinks it into a Creep.
 
 func _draw_mother_spider(canvas: Image, st: Dictionary) -> void:
 	var k: float = st.k
 	var thin := k < 0.7
-	var o := Color("#1a0e22")
-	var body := _ramp(["#3a2048", "#5a3468", "#7a4c8a", "#9a6aa8"])
-	var mark := Color("#f0c8dc")
+	var o := NIGHT_O
+	var body := _ramp(["#0e0a16", "#1c1428", "#2c2040", "#40305a"])
 	var f: int = st.f
 	var ph: float = st.ph
 	var bob: float = 0.0 if thin else float([0, -1, 0, 0, -1, 0][f])
 	var a := Vector2(32, 43)
+	var veins: Array = [[Vector2(-0.6, -0.4), Vector2(-0.2, -0.1), Vector2(0.0, -0.6)], [Vector2(0.1, 0.1), Vector2(0.5, -0.2), Vector2(0.7, 0.2)],
+		[Vector2(-0.3, 0.5), Vector2(0.1, 0.3), Vector2(0.2, 0.6)]]
 	_shadow(canvas, a + Vector2(0, -1), Vector2(15, 3) * k)
 	var abdomen := _layer()
+	var glow: Array[Vector2i] = []
 	match st.dir:
 		SIDE:
 			for i in 4:  # far legs
 				var s := sin(ph + i * PI + PI)
 				var root := a + Vector2(-1 + i * 3, -10) * k + Vector2(0, bob)
 				var foot := a + Vector2(-10 + i * 7 + s * 1.2, -2 - (1.0 if s > 0.5 else 0.0)) * k
-				_line(canvas, [root, (root + foot) / 2 + Vector2(0, -8) * k, foot], o)
-			var ac := a + Vector2(-8, -12) * k + Vector2(0, bob)
-			_ellipse(abdomen, ac, Vector2(10, 8.5) * k, body)
+				_line(canvas, [root, (root + foot) / 2 + Vector2(0, -10) * k, foot], o)
+			var ac := a + Vector2(-8, -13) * k + Vector2(0, bob)
+			_ellipse(abdomen, ac, Vector2(11, 9.5) * k, body)
 			if not thin:
-				_heart(abdomen, ac + Vector2(-1, -3) * k, k, mark)
+				glow = _crack(abdomen, ac, Vector2(11, 9.5) * k, veins, HOLLOW)
 			_stamp(canvas, abdomen, o)
-			var hc := a + Vector2(7, -7) * k + Vector2(0, bob)
-			_blob(canvas, hc, Vector2(6, 5.5) * k, body, o)
+			_crawl(canvas, glow, f, 3)
+			var hc := a + Vector2(6, -7) * k + Vector2(0, bob)
+			_blob(canvas, hc, Vector2(5.5, 5) * k, body, o)
 			for i in 4:  # near legs
 				var s := sin(ph + i * PI)
 				var root := a + Vector2(-3 + i * 3, -8) * k + Vector2(0, bob)
 				var foot := a + Vector2(-13 + i * 8 + s * 1.5, -(1.0 if s > 0.5 else 0.0)) * k
-				_leg(canvas, [root, (root + foot) / 2 + Vector2(0, -8) * k, foot], body[1], o, thin)
+				_spider_leg(canvas, [root, (root + foot) / 2 + Vector2(0, -10) * k, foot], o, thin)
 			var e := Vector2i(hc.round()) + Vector2i(roundi(2 * k), -1)
-			if thin:
-				_px(canvas, e.x, e.y, o)
-			else:
-				_eye(canvas, e.x, e.y, 2, 2, o)
-				_px(canvas, e.x - 1, e.y - 2, o)
-				_px(canvas, e.x + 1, e.y - 3, o)
-				_px(canvas, e.x + 2, e.y + 3, BLUSH)
-				_tuft(canvas, Vector2i(hc.round()) + Vector2i(-1, -6), body[3])
+			_glow(canvas, e)
+			if not thin:
+				for q: Vector2i in [Vector2i(2, 0), Vector2i(-1, -2), Vector2i(1, -2), Vector2i(3, 2)]:
+					_glow(canvas, e + q)
 		DOWN, UP:
 			var down: bool = st.dir == DOWN
-			var hc := a + (Vector2(0, -6) if down else Vector2(0, -21)) * k + Vector2(0, bob)
-			var ac := a + (Vector2(0, -16) if down else Vector2(0, -12)) * k + Vector2(0, bob)
+			var hc := a + (Vector2(0, -6) if down else Vector2(0, -22)) * k + Vector2(0, bob)
+			var ac := a + (Vector2(0, -17) if down else Vector2(0, -12)) * k + Vector2(0, bob)
 			if not down:
 				_blob(canvas, hc, Vector2(6, 5) * k, body, o)
-				_tuft(canvas, Vector2i(hc.round()) + Vector2i(-1, -5), body[3])
 			for i in 4:
 				for side: int in [-1, 1]:
 					var s := sin(ph + (i + (1 if side > 0 else 0)) * PI)
 					var root := a + Vector2(side * 5, -15 + i * 2.5) * k + Vector2(0, bob)
-					var foot := a + Vector2(side * (14 + i * 0.5) + s, -11 + i * 3.5 - (1.5 if s > 0.5 else 0.0)) * k
-					_leg(canvas, [root, (root + foot) / 2 + Vector2(side * 2, -7) * k, foot], body[1], o, thin)
-			_ellipse(abdomen, ac, Vector2(11, 9) * k, body)
+					var foot := a + Vector2(side * (15 + i * 0.5) + s, -11 + i * 3.5 - (1.5 if s > 0.5 else 0.0)) * k
+					_spider_leg(canvas, [root, (root + foot) / 2 + Vector2(side * 2, -9) * k, foot], o, thin)
+			_ellipse(abdomen, ac, Vector2(12, 10) * k, body)
 			if not thin:
-				_heart(abdomen, ac + Vector2(0, -2) * k, k, mark)
+				glow = _crack(abdomen, ac, Vector2(12, 10) * k, veins, HOLLOW)
 			_stamp(canvas, abdomen, o)
+			_crawl(canvas, glow, f, 3)
 			if down:
-				_blob(canvas, hc, Vector2(7, 6) * k, body, o)
+				_blob(canvas, hc, Vector2(6.5, 5.5) * k, body, o)
 				var ey := roundi(hc.y - 1)
 				if thin:
-					_eye_pair(canvas, 32, 30, ey, 1, 1, o)
+					_glow(canvas, Vector2i(30, ey))
+					_glow(canvas, Vector2i(33, ey))
 				else:
-					_eye_pair(canvas, 32, 28, ey, 2, 2, o)
-					_px(canvas, 30, ey - 2, o)
-					_px(canvas, 33, ey - 2, o)
-					_px(canvas, 27, ey + 3, BLUSH)
-					_px(canvas, 36, ey + 3, BLUSH)
-					_px(canvas, 31, ey + 4, body[0])
-					_px(canvas, 32, ey + 4, body[0])
-					_tuft(canvas, Vector2i(hc.round()) + Vector2i(-1, -6), body[3])
+					for p: Vector2i in [Vector2i(29, ey), Vector2i(34, ey), Vector2i(30, ey - 2), Vector2i(33, ey - 2), Vector2i(27, ey - 1),
+							Vector2i(36, ey - 1), Vector2i(31, ey + 2), Vector2i(32, ey + 2)]:
+						_glow(canvas, p)
 
-func _heart(layer: Image, c: Vector2, k: float, color: Color) -> void:
-	_spots(layer, [c + Vector2(-1.5, -1) * k, c + Vector2(1.5, -1) * k], 1.8 * k, color)
-	for y in range(ceili(c.y), ceili(c.y + 3 * k)):
-		var half := (c.y + 3 * k - y) * 0.9
-		for x in range(floori(c.x - half), ceili(c.x + half)):
-			if layer.get_pixel(x, y).a > 0.0:
-				layer.set_pixel(x, y, color)
+# Thin spiky leg: 2px dark for the Widow, 1px for a Creep.
+func _spider_leg(canvas: Image, pts: Array, o: Color, thin: bool) -> void:
+	_line(canvas, pts, o)
+	if not thin:
+		var shifted: Array = []
+		for p: Vector2 in pts:
+			shifted.append(p + Vector2.RIGHT)
+		_line(canvas, shifted, o)
 
-func _tuft(canvas: Image, p: Vector2i, color: Color) -> void:
-	for q: Vector2i in [Vector2i(0, 0), Vector2i(1, -1), Vector2i(2, 0)]:
-		_px(canvas, p.x + q.x, p.y + q.y, color)
-
-# --- Hedgehog -----------------------------------------------------------------------------------
-# Rolls on long straights: a round spiny back, a cream face with a button nose. "roll" is the
-# curled-up ball, spinning clockwise (moving right; flip it for left).
+# --- Night Hound (hedgehog) ---------------------------------------------------------------------
+# Sprints after 3 straight tiles: a long, lean shadow-dog with glowing eye slits and a smoking tail.
+# "roll" is its sprint: stretched low, ears back, galloping, eyes streaking.
 
 func _draw_hedgehog(canvas: Image, st: Dictionary) -> void:
-	var o := Color("#2a1a10")
-	var spine := _ramp(["#4a3020", "#6a4a30", "#8a6a48", "#b0906a"])
-	var face := _ramp(["#c8a880", "#e8cca0", "#fae8c8"])
+	var body := _ramp(NIGHT)
+	var o := NIGHT_O
 	var f: int = st.f
 	var ph: float = st.ph
+	var fig := _layer()
 	if st.anim == "roll":
-		_hedgehog_roll(canvas, f, o, spine)
+		_hound_sprint(canvas, f, ph, body, o)
 		return
 	var bob: int = [0, -1, 0, 0, -1, 0][f]
-	var step := roundi(sin(ph))
 	match st.dir:
 		SIDE:
-			_shadow(canvas, Vector2(30, 43), Vector2(14, 3))
-			_px(canvas, 25 - step, 41, o)
-			_px(canvas, 37 + step, 41, o)
-			_spines(canvas, Vector2(28, 35 + bob), Vector2(12, 9), -170, -10, spine, o, 39.5 + bob)
-			for x: int in [22 + step, 23 + step, 35 - step, 36 - step]:
-				_px(canvas, x, 42, o)
-				_px(canvas, x, 41, face[0])
-			_blob(canvas, Vector2(39, 38 + bob), Vector2(5.5, 4), face, o)
-			_blob(canvas, Vector2(36, 34 + bob), Vector2(1.8, 1.8), face, o)
-			_eye(canvas, 39, 36 + bob, 2, 2, o)
-			_px(canvas, 41, 39 + bob, BLUSH)
-			for p: Vector2i in [Vector2i(44, 37), Vector2i(45, 37), Vector2i(44, 38), Vector2i(45, 38)]:
-				_px(canvas, p.x, p.y + bob, o)
+			_shadow(canvas, Vector2(31, 44), Vector2(16, 2.5))
+			var far := _layer()
+			_hound_leg(far, Vector2(40, 33 + bob), ph + PI, false, body[0])
+			_hound_leg(far, Vector2(22, 33 + bob), ph, true, body[0])
+			_stamp(canvas, far, o)
+			_wisps(canvas, Vector2(10, 36 + bob), Vector2(-1, -0.4), f, 3, 7.0, 1.6)
+			_stroke(fig, [Vector2(17, 30 + bob), Vector2(13, 33 + bob), Vector2(10, 37 + bob)], 1.3, body[1])
+			_ellipse(fig, Vector2(30, 31 + bob), Vector2(11, 4.5), body)
+			_ellipse(fig, Vector2(38, 31 + bob), Vector2(5, 5.5), body)
+			_ellipse(fig, Vector2(21, 31 + bob), Vector2(5.5, 4.5), body)
+			_stroke(fig, [Vector2(40, 29 + bob), Vector2(45, 25 + bob)], 2.5, body[2])
+			_ellipse(fig, Vector2(46, 25 + bob), Vector2(4, 3.5), body)
+			_lens(fig, Vector2(46, 26 + bob), Vector2(55, 28 + bob), 2.2, body[2], body[1])
+			_lens(fig, Vector2(44, 24 + bob), Vector2(42, 16 + bob), 1.8, body[2], body[1])
+			_lens(fig, Vector2(46, 23 + bob), Vector2(45, 16 + bob), 1.6, body[2], body[1])
+			_hound_leg(fig, Vector2(38, 34 + bob), ph, false, body[1])
+			_hound_leg(fig, Vector2(20, 34 + bob), ph + PI, true, body[1])
+			for x: int in [28, 31, 34]:  # ribs under the skin
+				_line(fig, [Vector2(x, 31 + bob), Vector2(x, 33 + bob)], body[0])
+			_stamp(canvas, fig, o)
+			_line(canvas, [Vector2(49, 28 + bob), Vector2(53, 28 + bob)], HOLLOW)
+			_glow(canvas, Vector2i(47, 24 + bob), EYE, EYE_HALO)
+			_px(canvas, 48, 24 + bob, EYE)
 		DOWN:
-			_shadow(canvas, Vector2(32, 44), Vector2(13, 3))
-			_spines(canvas, Vector2(32, 31 + bob), Vector2(12, 9), -175, -5, spine, o)
+			_shadow(canvas, Vector2(32, 44), Vector2(9, 2.5))
+			_wisps(canvas, Vector2(32, 16), Vector2(0.2, -1), f, 3, 6.0, 1.6)
+			for side: int in [-1, 1]:  # hind paws behind
+				_ellipse(fig, Vector2(32 + side * 6, 39 + bob), Vector2(1.8, 2), body)
+			_ellipse(fig, Vector2(32, 27 + bob), Vector2(6.5, 8.5), body)
+			_ellipse(fig, Vector2(32, 33 + bob), Vector2(7, 4.5), body)
 			for side: int in [-1, 1]:
-				_blob(canvas, Vector2(32 + side * 5.5, 34 + bob), Vector2(1.8, 1.8), face, o)
-			_blob(canvas, Vector2(32, 38 + bob), Vector2(6.5, 5), face, o)
-			_eye_pair(canvas, 32, 28, 37 + bob, 2, 2, o)
-			_px(canvas, 27, 40 + bob, BLUSH)
-			_px(canvas, 36, 40 + bob, BLUSH)
-			for p: Vector2i in [Vector2i(31, 40), Vector2i(32, 40), Vector2i(31, 41), Vector2i(32, 41)]:
-				_px(canvas, p.x, p.y + bob, o)
-			for x: int in [28, 29]:
-				_px(canvas, x, 43 - (1 if step > 0 else 0), face[0])
-				_px(canvas, 63 - x, 43 - (1 if step < 0 else 0), face[0])
+				var s := sin(ph + (PI if side > 0 else 0.0))
+				_stroke(fig, [Vector2(32 + side * 3, 36 + bob), Vector2(32 + side * 3, 44 - (1.5 if s > 0.3 else 0.0))], 1.0, body[1])
+			_stamp(canvas, fig, o)
+			var head := _layer()  # its own outline, so the ears and snout read against the body
+			for side: int in [-1, 1]:
+				_lens(head, Vector2(32 + side * 2, 33 + bob), Vector2(32 + side * 8, 26 + bob), 2.0, body[3], body[2])
+			_ellipse(head, Vector2(32, 34 + bob), Vector2(4.5, 4), body)
+			_lens(head, Vector2(32, 35 + bob), Vector2(32, 44 + bob), 2.4, body[3], body[2])
+			_stamp(canvas, head, o)
+			for x: int in [29, 30, 33, 34]:
+				_glow(canvas, Vector2i(x, 33 + bob))
 		UP:
-			_shadow(canvas, Vector2(32, 44), Vector2(13, 3))
-			for x: int in [27, 28]:
-				_px(canvas, x, 43 - (1 if step > 0 else 0), face[0])
-				_px(canvas, 63 - x, 43 - (1 if step < 0 else 0), face[0])
-			_spines(canvas, Vector2(32, 33 + bob), Vector2(12, 10), -180, 0, spine, o)
+			_shadow(canvas, Vector2(32, 44), Vector2(9, 2.5))
+			for side: int in [-1, 1]:
+				_ellipse(fig, Vector2(32 + side * 6, 30 + bob), Vector2(1.8, 2), body)
+				_lens(fig, Vector2(32 + side * 1.5, 19 + bob), Vector2(32 + side * 6, 14 + bob), 1.8, body[2], body[1])
+			_ellipse(fig, Vector2(32, 19 + bob), Vector2(4, 3.5), body)
+			_lens(fig, Vector2(32, 18 + bob), Vector2(32, 12 + bob), 1.8, body[2], body[1])  # snout, pointing away
+			_ellipse(fig, Vector2(32, 29 + bob), Vector2(6.5, 8.5), body)
+			_ellipse(fig, Vector2(32, 37 + bob), Vector2(7, 4.5), body)
+			for side: int in [-1, 1]:
+				var s := sin(ph + (PI if side > 0 else 0.0))
+				_stroke(fig, [Vector2(32 + side * 4, 39 + bob), Vector2(32 + side * 4, 45 - (1.5 if s > 0.3 else 0.0))], 1.0, body[1])
+			_stroke(fig, [Vector2(32, 40 + bob), Vector2(33, 44 + bob), Vector2(32, 47 + bob)], 1.2, body[1])
+			_stamp(canvas, fig, o)
+			_wisps(canvas, Vector2(32, 48 + bob), Vector2(0.3, 1), f, 3, 6.0, 1.4)
 
-# Spiny dome: shaded body with spikes poking out along the arc between the two angles (degrees)
-# and a streaky spine texture with pale tips.
-func _spines(canvas: Image, c: Vector2, r: Vector2, from_deg: int, to_deg: int, ramp: Array[Color], o: Color, max_y: float = INF) -> void:
-	var layer := _layer()
-	_ellipse(layer, c, r, ramp, max_y)
-	for a_deg in range(from_deg, to_deg + 1, 16):
-		var a := deg_to_rad(a_deg)
-		var out := Vector2(cos(a), sin(a))
-		var edge := c + out * r * 0.92
-		var perp := out.orthogonal()
-		var tip := edge + out * 3.5 + Vector2(-1.5, 0)
-		var tri := PackedVector2Array([edge - perp * 2.0, edge + perp * 2.0, tip])
-		for y in range(floori(minf(edge.y, tip.y)) - 3, ceili(maxf(edge.y, tip.y)) + 3):
-			for x in range(floori(minf(edge.x, tip.x)) - 3, ceili(maxf(edge.x, tip.x)) + 3):
-				if x >= 0 and y >= 0 and x < S and y < S and y + 0.5 <= max_y \
-						and Geometry2D.is_point_in_polygon(Vector2(x + 0.5, y + 0.5), tri):
-					layer.set_pixel(x, y, ramp[1])
-	for y in S:
-		for x in S:
-			if layer.get_pixel(x, y).a == 0.0:
-				continue
-			var h := posmod(x + 2 * y, 5)
-			if h == 0:
-				layer.set_pixel(x, y, ramp[0])
-			elif h == 2 and y % 2 == 0:
-				layer.set_pixel(x, y, Color("#e8d4b0"))
-	_stamp(canvas, layer, o)
+# Leg from the shoulder or hip: two segments to a small paw; hind legs bend back at the hock.
+func _hound_leg(layer: Image, top: Vector2, phase: float, hind: bool, color: Color) -> void:
+	var swing := sin(phase) * 4.0
+	var lift := 1.5 if cos(phase) > 0.3 else 0.0
+	var paw := top + Vector2(swing, 10.0 - lift)
+	var knee := top + Vector2(swing * 0.4 + (-2.0 if hind else 1.0), 5.0)
+	_stroke(layer, [top, knee, paw], 1.0, color)
+	_flat_ellipse(layer, paw + Vector2(1, 0), Vector2(1.5, 1), color)
 
-func _hedgehog_roll(canvas: Image, f: int, o: Color, spine: Array[Color]) -> void:
-	var c := Vector2(32, 35 + [0, -1, -2, -1, 0, 0][f])
-	var rot := deg_to_rad(10.0 * f)
-	_shadow(canvas, Vector2(32, 44), Vector2(10, 2.5))
-	var ball := _layer()
-	for i in 12:
-		var a := rot + i * TAU / 12.0
-		var out := Vector2.from_angle(a)
-		var perp := out.orthogonal()
-		var tri := PackedVector2Array([c + out * 8.5 - perp * 2.0, c + out * 8.5 + perp * 2.0, c + out * 12.0 + perp * 1.2])
-		for y in S:
-			for x in S:
-				if Geometry2D.is_point_in_polygon(Vector2(x + 0.5, y + 0.5), tri):
-					ball.set_pixel(x, y, spine[1])
-	_ellipse(ball, c, Vector2(9.5, 9.5), spine)
-	for y in S:
-		for x in S:
-			var d := Vector2(x + 0.5, y + 0.5) - c
-			if ball.get_pixel(x, y).a == 0.0 or d.length() > 9.5:
-				continue
-			var stripe := posmod(floori((d.angle() - rot) / TAU * 24.0 + d.length() * 0.25), 3)
-			if stripe == 0:
-				ball.set_pixel(x, y, _darker(spine, ball.get_pixel(x, y)))
-			elif stripe == 1 and d.length() > 6.0 and (x + y) % 2 == 0:
-				ball.set_pixel(x, y, Color("#e8d4b0"))
-	_stamp(canvas, ball, o)
-	# Speed lines trailing behind.
-	var streak := Color(1, 1, 1, 0.55)
-	for l: Vector3i in [Vector3i(15, 30, 4), Vector3i(13, 36, 5), Vector3i(16, 41, 3)]:
-		for x in range(l.x, l.x + l.z):
-			if (x + f) % 3 != 0:
-				_px(canvas, x - (f % 2), l.y, streak)
+func _hound_sprint(canvas: Image, f: int, ph: float, body: Array[Color], o: Color) -> void:
+	var ext := sin(ph)  # 1 = legs stretched out, -1 = gathered under
+	var lift := roundi(maxf(-ext, 0.0) * 2.0)
+	var y := 35 - lift
+	_shadow(canvas, Vector2(32, 44), Vector2(18, 2.5))
+	for k in 3:  # smoke streaming off the back
+		var t := fposmod(float(f) / FRAMES + k / 3.0, 1.0)
+		var col := Color(NIGHT[2])
+		col.a = 0.7 * (1.0 - t)
+		_blend_ellipse(canvas, Vector2(14 - t * 12, y - 3 + k * 2), Vector2(3.0 - t * 2.0, 1.2), col)
+	var fig := _layer()
+	var gather := maxf(-ext, 0.0)
+	for leg: Vector4 in [Vector4(41, 1, 0, 0), Vector4(22, -1, 1, 0)]:  # x, direction, hind?, unused
+		var top := Vector2(leg.x, y + 2)
+		var reach := ext * 7.0 * leg.y
+		var paw := top + Vector2(reach + (4.0 * gather * -leg.y), 8.0 - absf(ext) * 3.0)
+		_stroke(fig, [top, top.lerp(paw, 0.5) + Vector2(-leg.y * 1.5, 0.5), paw], 1.0, body[1])
+		_stroke(fig, [top + Vector2(-2 * leg.y, 0), paw + Vector2(-3 * leg.y, -1)], 0.9, body[0])
+	_stroke(fig, [Vector2(16, y - 1), Vector2(10, y - 1), Vector2(5, y)], 1.2, body[1])
+	_ellipse(fig, Vector2(30, y), Vector2(14, 4), body)
+	_ellipse(fig, Vector2(40, y), Vector2(5, 4.5), body)
+	_stroke(fig, [Vector2(43, y - 1), Vector2(48, y - 2)], 2.3, body[2])
+	_ellipse(fig, Vector2(49, y - 2), Vector2(4, 3.2), body)
+	_lens(fig, Vector2(49, y - 1), Vector2(58, y), 2.0, body[2], body[1])
+	_lens(fig, Vector2(48, y - 4), Vector2(41, y - 6), 1.6, body[2], body[1])
+	_stamp(canvas, fig, o)
+	for i in 4:  # eye streak
+		_px(canvas, 50 - i, y - 3, [EYE, EYE, Color("#5fa8c8"), Color("#2e5a70")][i])
 
-# --- Wandering Hare -----------------------------------------------------------------------------
-# Takes wrong turns: a hopping hare with long ears (they trail the hop) and a daisy behind one ear.
+# --- Sleepwalker (wandering_hare) ---------------------------------------------------------------
+# Sometimes takes a wrong turn: a drifting figure in a pale gown, eyes closed, arms held out in
+# front, head lolling. It floats, never quite walking.
 
 func _draw_wandering_hare(canvas: Image, st: Dictionary) -> void:
-	var o := Color("#2e2218")
-	var fur := _ramp(["#7a6450", "#a08468", "#c4a888", "#e0ccb0"])
-	var white := _ramp(["#d8d0c8", "#f0ece6", "#ffffff"])
-	var pink := Color("#f0a8b0")
+	var gown := _ramp(["#322e48", "#4c466a", "#6c6690", "#948eb8"])
+	var skin := _ramp(["#58546e", "#7a7694", "#a09cb8"])
+	var hair := Color("#0c0a14")
+	var o := Color("#100e1a")
 	var f: int = st.f
-	var y: int = -[0, 2, 5, 6, 3, 0][f]
-	var lag: int = [0, 1, 2, 1, -1, -1][f]
-	var up := Vector2(0, y)
-	_shadow(canvas, Vector2(30 if st.dir == SIDE else 32, 44), Vector2(12.0 + y * 0.6, 2.5))
+	var ph: float = st.ph
+	var h := roundi(sin(ph) * 1.5)
+	var loll: int = [0, 0, 1, 1, 1, 0][f]
+	var side_view: bool = st.dir == SIDE
+	_shadow(canvas, Vector2(32, 45), Vector2(7, 2))
+	var fig := _layer()
+	var hx := 32 + (1 if side_view else 0) + loll
+	if side_view:
+		_stroke(fig, [Vector2(33, 19 + h), Vector2(43, 18 + h)], 1.0, skin[0])
+	_robe(fig, 32.0, 21.0 + h, 4.0, 43.0 + h, 8.0, -2.0 if side_view else 0.0, ph, gown)
+	_ellipse(fig, Vector2(hx, 15 + h), Vector2(4.5, 5), skin)
 	match st.dir:
 		SIDE:
-			_ear(canvas, Vector2(37, 26) + up, Vector2(30 - lag, 14 + lag) + up, 2.6, fur[0], fur[1], o, Color(0, 0, 0, 0))
-			_blob(canvas, Vector2(18, 32) + up, Vector2(2.8, 2.6), white, o)
-			_blob(canvas, Vector2(29, 35) + up, Vector2(10, 6.5), fur, o)
-			var hind: Array = [[Vector2(21, 42), Vector2(28, 42)], [Vector2(16, 40), Vector2(21, 42)], [Vector2(15, 38), Vector2(21, 40)],
-				[Vector2(17, 38), Vector2(23, 40)], [Vector2(21, 40), Vector2(27, 41)], [Vector2(21, 42), Vector2(28, 42)]][f]
-			var fore: Array = [[Vector2(37, 39), Vector2(38, 42)], [Vector2(38, 38), Vector2(40, 41)], [Vector2(40, 36), Vector2(43, 38)],
-				[Vector2(41, 37), Vector2(44, 39)], [Vector2(39, 38), Vector2(41, 41)], [Vector2(37, 39), Vector2(38, 42)]][f]
-			var feet := _layer()
-			_stroke(feet, [hind[0] + up * 0.5, hind[1] + up], 1.3, fur[1])
-			_stamp(canvas, feet, o)
-			_blob(canvas, Vector2(23, 36) + up, Vector2(5.5, 5.5), fur, o)
-			var paw := _layer()
-			_stroke(paw, [fore[0] + up, fore[1] + up], 1.1, fur[2])
-			_stamp(canvas, paw, o)
-			_blob(canvas, Vector2(39, 29) + up, Vector2(5.5, 5), fur, o)
-			_blob(canvas, Vector2(43, 31) + up, Vector2(2.5, 2), white, o)
-			_px(canvas, 45, 30 + y, pink)
-			_eye(canvas, 39, 27 + y, 2, 2, o)
-			_px(canvas, 38, 31 + y, BLUSH)
-			_ear(canvas, Vector2(39, 25) + up, Vector2(34 - lag, 12 + lag) + up, 2.8, fur[2], fur[1], o, pink)
-			_daisy(canvas, Vector2i(41, 24 + y))
+			_stroke(fig, [Vector2(34, 21 + h), Vector2(40, 21 + h), Vector2(45, 21 + h)], 1.0, skin[1])
+			_flat_ellipse(fig, Vector2(46, 21 + h), Vector2(1.6, 1.4), skin[2])
 		DOWN:
-			var spread: int = 1 if y < -2 else 0
 			for side: int in [-1, 1]:
-				_blob(canvas, Vector2(32 + side * (7 + spread), 43 + y * 0.5), Vector2(3, 1.6), fur, o)
-			_blob(canvas, Vector2(32, 37) + up, Vector2(9, 7.5), fur, o)
-			for side: int in [-1, 1]:
-				_blob(canvas, Vector2(32 + side * 3, 43) + up, Vector2(1.8, 1.5), white, o)
-			for side: int in [-1, 1]:
-				_ear(canvas, Vector2(32 + side * 3, 24) + up, Vector2(32 + side * 6, 11 + lag) + up, 2.8, fur[2], fur[1], o, pink)
-			_blob(canvas, Vector2(32, 28) + up, Vector2(7, 6), fur, o)
-			_blob(canvas, Vector2(32, 31) + up, Vector2(3, 2), white, o)
-			_px(canvas, 31, 30 + y, pink)
-			_px(canvas, 32, 30 + y, pink)
-			_eye_pair(canvas, 32, 27, 27 + y, 2, 2, o)
-			_px(canvas, 27, 31 + y, BLUSH)
-			_px(canvas, 36, 31 + y, BLUSH)
-			_daisy(canvas, Vector2i(37, 23 + y))
-		UP:
-			for side: int in [-1, 1]:
-				_blob(canvas, Vector2(32 + side * 6, 44 + y * 0.5), Vector2(2.5, 1.6), fur, o)
-			_blob(canvas, Vector2(32, 26) + up, Vector2(6.5, 5.5), fur, o)
-			for side: int in [-1, 1]:
-				_ear(canvas, Vector2(32 + side * 2.5, 22) + up, Vector2(32 + side * 5, 9 + lag) + up, 2.8, fur[2], fur[1], o, Color(0, 0, 0, 0))
-			_daisy(canvas, Vector2i(35, 22 + y))
-			_blob(canvas, Vector2(32, 36) + up, Vector2(9.5, 8), fur, o)
-			_blob(canvas, Vector2(32, 42) + up, Vector2(3, 2.5), white, o)
+				_ellipse(fig, Vector2(32 + side * 4, 22 + h), Vector2(2, 2), gown)
+				_flat_ellipse(fig, Vector2(32 + side * 5, 25 + h), Vector2(1.8, 1.6), skin[2])
+	var ghost := _layer()
+	_stamp(ghost, fig, o)
+	# Long dark hair: a cap over the head, strands down to the shoulders (all over the back from behind).
+	if st.dir == UP:
+		_flat_ellipse(ghost, Vector2(hx, 15 + h), Vector2(5, 5.5), hair)
+		for x in range(hx - 4, hx + 5, 2):
+			_line(ghost, [Vector2(x, 18 + h), Vector2(x + roundi(sin(ph + x) * 0.8), 25 + h)], hair)
+	else:
+		_flat_ellipse(ghost, Vector2(hx - (1 if side_view else 0), 12 + h), Vector2(4.8, 2.6), hair)
+		for x: int in ([hx - 4] if side_view else [hx - 5, hx + 4]):
+			_line(ghost, [Vector2(x, 12 + h), Vector2(x, 22 + h)], hair)
+	_dissolve(ghost, Vector2(0, 37 + h), Vector2(0, 46 + h))
+	match st.dir:
+		DOWN:
+			for p: Vector2i in [Vector2i(hx - 4, 16), Vector2i(hx - 3, 17), Vector2i(hx - 2, 16), Vector2i(hx + 1, 16), Vector2i(hx + 2, 17), Vector2i(hx + 3, 16)]:
+				_px(ghost, p.x, p.y + h, o)
+			_px(ghost, hx, 19 + h, o)
+		SIDE:
+			_px(ghost, hx + 2, 16 + h, o)
+			_px(ghost, hx + 3, 16 + h, o)
+	_merge(canvas, ghost, 0.8)
 
-# Long ear from base to tip, with an optional pink inner ear.
-func _ear(canvas: Image, base: Vector2, tip: Vector2, width: float, lit: Color, dark: Color, o: Color, inner: Color) -> void:
-	var layer := _layer()
-	_lens(layer, base + (base - tip) * 0.1, tip, width, lit, dark)
-	_stamp(canvas, layer, o)
-	if inner.a > 0.0:
-		var ins := _layer()
-		_lens(ins, base.lerp(tip, 0.05), base.lerp(tip, 0.85), width * 0.45, inner, inner)
-		_stamp(canvas, ins)
-
-func _daisy(canvas: Image, p: Vector2i) -> void:
-	for d: Vector2i in [Vector2i.LEFT, Vector2i.RIGHT, Vector2i.UP, Vector2i.DOWN]:
-		_px(canvas, p.x + d.x, p.y + d.y, Color("#fff8f0"))
-	_px(canvas, p.x, p.y, Color("#ffd24a"))
-
-# --- Mother Duck --------------------------------------------------------------------------------
-# Leads a line of Ducklings: a plump cream duck with an orange bill and a blue kerchief, waddling.
+# --- Lantern Bearer (mother_duck) ---------------------------------------------------------------
+# Leads a Procession of 4 Wraiths: a tall hooded ghost with one long arm holding out a cold
+# swinging lantern. Its light pools on the ground; one eye glints under the hood.
 
 func _draw_mother_duck(canvas: Image, st: Dictionary) -> void:
-	var o := Color("#3a2a1e")
-	var down := _ramp(["#c4b8a4", "#e4dccc", "#faf5ea", "#ffffff"])
-	var bill := _ramp(["#c0621e", "#ee9636", "#ffc46a"])
-	var scarf := _ramp(["#2e5c98", "#4c80c8", "#86b0ea"])
+	var robe := _ramp(["#141222", "#221e36", "#322c4c", "#463e66"])
+	var o := NIGHT_O
 	var f: int = st.f
-	var bob: int = [0, -1, 0, 0, -1, 0][f]
-	var sway: int = [0, 1, 1, 0, -1, -1][f]
-	var step := sin(st.ph)
+	var ph: float = st.ph
+	var h := roundi(sin(ph))
+	var swing := sin(ph + 0.8) * 2.5
+	var ground := 45.0
+	_shadow(canvas, Vector2(32, ground), Vector2(9, 2.2))
+	var fig := _layer()
+	var lantern := Vector2.ZERO
+	var hand := Vector2.ZERO
 	match st.dir:
 		SIDE:
-			_shadow(canvas, Vector2(31, 46), Vector2(15, 3))
-			for side: int in [-1, 1]:  # far foot, then near foot
-				var s := step * side
-				_duck_foot(canvas, Vector2(29 + roundi(s * 3.0) - side, 46 - (1 if s > 0.5 else 0)), bill, o, true)
-			var tail := _layer()
-			_lens(tail, Vector2(21, 36 + bob), Vector2(13, 29 + bob), 3.2, down[2], down[1])
-			_stamp(canvas, tail, o)
-			_blob(canvas, Vector2(29, 37 + bob), Vector2(13, 8), down, o)
-			_duck_wing(canvas, Vector2(27, 36 + bob), Vector2(8, 4), down, scarf[1], o, -1)
-			_blob(canvas, Vector2(38, 31 + bob), Vector2(4.5, 5), down, o)
-			var band := _layer()
-			_flat_ellipse(band, Vector2(38, 33 + bob), Vector2(5, 1.6), scarf[1])
-			_flat_ellipse(band, Vector2(33, 34 + bob), Vector2(2, 1.8), scarf[0])
-			for x in range(35, 42):
-				if band.get_pixel(x, 32 + bob).a > 0.0:
-					_px(band, x, 32 + bob, scarf[2])
-			_stamp(canvas, band, o)
-			_blob(canvas, Vector2(41, 25 + bob), Vector2(6, 5.5), down, o)
-			_duck_bill(canvas, Vector2(48, 27 + bob), Vector2(4, 1.8), bill, o)
-			_eye(canvas, 41, 23 + bob, 2, 2, o)
-			_px(canvas, 43, 27 + bob, BLUSH)
-			_tuft(canvas, Vector2i(39, 19 + bob), down[3])
+			_robe(fig, 33.0, 17.0 + h, 4.5, ground - 1.0 + h, 9.0, -3.0, ph, robe)
+			_ellipse(fig, Vector2(34, 13 + h), Vector2(4.5, 5.5), robe)
+			_lens(fig, Vector2(34, 11 + h), Vector2(31, 4 + h), 2.2, robe[2], robe[1])
+			hand = Vector2(45, 24 + h)
+			_stroke(fig, [Vector2(36, 19 + h), Vector2(41, 23 + h), hand], 1.1, robe[2])
+			lantern = Vector2(45 + swing, 31 + h)
 		DOWN:
-			_shadow(canvas, Vector2(32, 46), Vector2(13, 3))
-			for side: int in [-1, 1]:
-				_duck_foot(canvas, Vector2(32 + side * 5, 46 - (1 if step * side > 0.5 else 0)), bill, o, false)
-			for side: int in [-1, 1]:
-				_blob(canvas, Vector2(32 + side * 10 + sway, 36 + bob), Vector2(3.5, 6), down, o)
-			_blob(canvas, Vector2(32 + sway, 37 + bob), Vector2(11, 8.5), down, o)
-			var band := _layer()
-			_flat_ellipse(band, Vector2(32, 30 + bob), Vector2(6.5, 2), scarf[1])
-			_flat_ellipse(band, Vector2(32, 33 + bob), Vector2(2.2, 2), scarf[2])
-			_stamp(canvas, band, o)
-			_blob(canvas, Vector2(32, 23 + bob), Vector2(6.5, 6), down, o)
-			_duck_bill(canvas, Vector2(32, 27 + bob), Vector2(4, 2), bill, o)
-			_eye_pair(canvas, 32, 28, 21 + bob, 2, 2, o)
-			_px(canvas, 26, 24 + bob, BLUSH)
-			_px(canvas, 37, 24 + bob, BLUSH)
-			_tuft(canvas, Vector2i(31, 16 + bob), down[3])
+			_robe(fig, 32.0, 17.0 + h, 5.0, ground - 1.0 + h, 10.0, 0.0, ph, robe)
+			_ellipse(fig, Vector2(32, 12 + h), Vector2(5, 6), robe)
+			_lens(fig, Vector2(32, 9 + h), Vector2(32, 2 + h), 2.2, robe[2], robe[1])
+			hand = Vector2(39, 27 + h)
+			_stroke(fig, [Vector2(36, 19 + h), Vector2(39, 24 + h), hand], 1.1, robe[2])
+			lantern = Vector2(39 + swing * 0.4, 32 + h)
 		UP:
-			_shadow(canvas, Vector2(32, 46), Vector2(13, 3))
-			for side: int in [-1, 1]:
-				_duck_foot(canvas, Vector2(32 + side * 5, 46 - (1 if step * side > 0.5 else 0)), bill, o, false)
-			_blob(canvas, Vector2(32 + sway, 36 + bob), Vector2(11, 9), down, o)
-			for side: int in [-1, 1]:
-				var wing := _layer()
-				_lens(wing, Vector2(32 + side * 3 + sway, 30 + bob), Vector2(32 + side * 8 + sway, 41 + bob), 3.5, down[1], down[0])
-				_spots(wing, [Vector2(32 + side * 7 + sway, 38 + bob)], 1.3, scarf[1])
-				_stamp(canvas, wing, o)
-			_blob(canvas, Vector2(32 + sway, 43 + bob), Vector2(3, 2), down, o)
-			var band := _layer()
-			_flat_ellipse(band, Vector2(32, 29 + bob), Vector2(6, 1.8), scarf[1])
-			_flat_ellipse(band, Vector2(32, 31 + bob), Vector2(2.5, 2.2), scarf[0])
-			_stamp(canvas, band, o)
-			_blob(canvas, Vector2(32, 22 + bob), Vector2(6, 5.5), down, o)
-			_tuft(canvas, Vector2i(31, 16 + bob), down[3])
+			lantern = Vector2(42 + swing * 0.4, 30 + h)
+			_lantern(canvas, lantern, f, ground)
+			_robe(fig, 32.0, 17.0 + h, 5.0, ground - 1.0 + h, 10.0, 0.0, ph, robe)
+			_ellipse(fig, Vector2(32, 12 + h), Vector2(5, 6), robe)
+			_lens(fig, Vector2(32, 9 + h), Vector2(32, 2 + h), 2.2, robe[2], robe[1])
+			_stroke(fig, [Vector2(36, 19 + h), Vector2(40, 24 + h)], 1.1, robe[2])
+	var ghost := _layer()
+	_stamp(ghost, fig, o)
+	_dissolve(ghost, Vector2(0, ground - 7.0 + h), Vector2(0, ground + 1.0 + h))
+	match st.dir:
+		SIDE:
+			_flat_ellipse(ghost, Vector2(36, 14 + h), Vector2(2.5, 3), HOLLOW)
+			_px(ghost, 37, 13 + h, EYE)
+		DOWN:
+			_flat_ellipse(ghost, Vector2(32, 13 + h), Vector2(3, 3.2), HOLLOW)
+			_px(ghost, 30, 13 + h, EYE)
+			_px(ghost, 33, 13 + h, EYE)
+	_merge(canvas, ghost, 0.92)
+	if st.dir != UP:
+		_line(canvas, [hand, lantern + Vector2(0, -4)], Color("#4a4a5a"))
+		_lantern(canvas, lantern, f, ground)
 
-# Folded wing on the body's side: a flat feathered ellipse with a blue patch at the back.
-func _duck_wing(canvas: Image, c: Vector2, r: Vector2, ramp: Array[Color], patch: Color, o: Color, back: int) -> void:
-	var wing := _layer()
-	_flat_ellipse(wing, c, r, ramp[1])
-	for x in S:
-		for y in S:
-			if wing.get_pixel(x, y).a == 0.0:
-				continue
-			var d := (Vector2(x + 0.5, y + 0.5) - c) / r
-			if d.y < -0.45:
-				wing.set_pixel(x, y, ramp[2])
-			elif d.x * back > 0.45 and d.y > -0.1:
-				wing.set_pixel(x, y, patch)
-			elif posmod(x - y, 4) == 0 and d.y > 0.0:
-				wing.set_pixel(x, y, ramp[0])
-	_stamp(canvas, wing, o)
+# A cold lantern: dark cap and base, glowing glass, a flickering halo and light pooled on the ground.
+func _lantern(canvas: Image, p: Vector2, f: int, ground: float) -> void:
+	var halo_r: float = [6.0, 6.5, 5.5, 6.5, 6.0, 7.0][f]
+	_blend_ellipse(canvas, Vector2(p.x, ground), Vector2(8, 2.5), Color(0.55, 0.9, 1.0, 0.14))
+	for y in range(floori(p.y - halo_r), ceili(p.y + halo_r) + 1):
+		for x in range(floori(p.x - halo_r), ceili(p.x + halo_r) + 1):
+			var d := Vector2(x + 0.5, y + 0.5).distance_to(p)
+			if d > 2.5 and d < halo_r and (x + y + f) % 2 == 0:
+				_blend_px(canvas, x, y, Color(0.45, 0.8, 0.95, 0.35 * (1.0 - d / halo_r)))
+	var q := Vector2i(p.round())
+	var metal := Color("#2a2a38")
+	_px(canvas, q.x, q.y - 4, metal)
+	for x in range(q.x - 1, q.x + 2):
+		_px(canvas, x, q.y - 3, metal)
+	for y in range(q.y - 2, q.y + 2):
+		_px(canvas, q.x - 2, y, metal)
+		_px(canvas, q.x + 2, y, metal)
+		for x in range(q.x - 1, q.x + 2):
+			_px(canvas, x, y, EYE)
+	_px(canvas, q.x, q.y - 1, Color.WHITE)
+	_px(canvas, q.x, q.y, Color.WHITE)
+	for x in range(q.x - 2, q.x + 3):
+		_px(canvas, x, q.y + 2, metal)
 
-func _duck_bill(canvas: Image, c: Vector2, r: Vector2, ramp: Array[Color], o: Color) -> void:
-	var layer := _layer()
-	_flat_ellipse(layer, c, r, ramp[1])
-	for x in S:
-		for y in S:
-			if layer.get_pixel(x, y).a > 0.0 and y < c.y - 0.5:
-				layer.set_pixel(x, y, ramp[2])
-			elif layer.get_pixel(x, y).a > 0.0 and y > c.y + 0.5:
-				layer.set_pixel(x, y, ramp[0])
-	_stamp(canvas, layer, o)
-
-# Webbed orange foot at `p` (its ground point); side view points it forward.
-func _duck_foot(canvas: Image, p: Vector2, ramp: Array[Color], o: Color, side_view: bool) -> void:
-	var layer := _layer()
-	_flat_ellipse(layer, p + (Vector2(1.5, 0) if side_view else Vector2.ZERO), Vector2(3, 1.3), ramp[1])
-	_px(layer, int(p.x), int(p.y) - 2, ramp[0])
-	_px(layer, int(p.x), int(p.y) - 3, ramp[0])
-	_stamp(canvas, layer, o)
-
-# --- Duckling -----------------------------------------------------------------------------------
-# Follows its mother in single file: a round yellow fluffball with a tiny bill, pitter-pattering.
+# --- Wraith (duckling) --------------------------------------------------------------------------
+# Follows the Lantern Bearer in single file: a small hunched hooded wisp, head bowed, two faint
+# eyes under the hood. Every so often its head jerks.
 
 func _draw_duckling(canvas: Image, st: Dictionary) -> void:
-	var o := Color("#4a3418")
-	var fluff := _ramp(["#d8a830", "#f0cc48", "#ffe680", "#fff4b8"])
-	var bill := _ramp(["#c0621e", "#ee9636", "#ffc46a"])
+	var robe := _ramp(["#141222", "#221e36", "#322c4c", "#463e66"])
 	var f: int = st.f
-	var bob: int = [0, -1, 0, -1, 0, -1][f]
-	var foot: int = [0, 1, 0, -1, 0, 1][f]
-	match st.dir:
-		SIDE:
-			_shadow(canvas, Vector2(32, 44), Vector2(7, 2))
-			_px(canvas, 30 + foot, 43, bill[1])
-			_px(canvas, 31 + foot, 43, bill[1])
-			_px(canvas, 33 - foot, 43, bill[0])
-			_px(canvas, 34 - foot, 43, bill[0])
-			_blob(canvas, Vector2(31, 38 + bob), Vector2(6, 4.5), fluff, o)
-			_px(canvas, 24, 36 + bob, o)
-			_px(canvas, 25, 35 + bob, fluff[2])
-			_blob(canvas, Vector2(35, 32 + bob), Vector2(4, 3.8), fluff, o)
-			_duck_bill(canvas, Vector2(39.5, 33 + bob), Vector2(1.8, 1), bill, o)
-			_px(canvas, 36, 31 + bob, o)
-			_px(canvas, 37, 33 + bob, BLUSH)
-			_px(canvas, 29, 38 + bob, fluff[0])
-			_px(canvas, 30, 39 + bob, fluff[0])
-			_tuft(canvas, Vector2i(33, 28 + bob), fluff[3])
-		DOWN, UP:
-			var down: bool = st.dir == DOWN
-			_shadow(canvas, Vector2(32, 44), Vector2(6, 2))
-			for side: int in [-1, 1]:
-				var lift := 1 if foot * side > 0 else 0
-				_px(canvas, 32 + side * 3 - (1 if side < 0 else 0), 43 - lift, bill[1])
-				_px(canvas, 32 + side * 2 - (1 if side < 0 else 0), 43 - lift, bill[1])
-			_blob(canvas, Vector2(32, 38 + bob), Vector2(6, 4.5), fluff, o)
-			if not down:
-				_px(canvas, 31, 42 + bob, fluff[3])
-				_px(canvas, 32, 42 + bob, fluff[3])
-			_blob(canvas, Vector2(32, 32 + bob), Vector2(4.2, 4), fluff, o)
-			_tuft(canvas, Vector2i(31, 27 + bob), fluff[3])
-			if down:
-				_duck_bill(canvas, Vector2(32, 34 + bob), Vector2(2, 1), bill, o)
-				_px(canvas, 30, 31 + bob, o)
-				_px(canvas, 33, 31 + bob, o)
-				_px(canvas, 29, 33 + bob, BLUSH)
-				_px(canvas, 34, 33 + bob, BLUSH)
+	var ph: float = st.ph
+	var h := roundi(sin(ph))
+	var twitch: int = [0, 0, 0, 0, 1, 0][f]
+	var side_view: bool = st.dir == SIDE
+	_shadow(canvas, Vector2(32, 45), Vector2(6, 1.8))
+	var fig := _layer()
+	var fx := 32 + (2 if side_view else 0) + twitch
+	_robe(fig, 32.0, 31.0 + h, 3.5, 44.0 + h, 6.5, -2.0 if side_view else 0.0, ph, robe)
+	_ellipse(fig, Vector2(32 + (1 if side_view else 0) + twitch, 29 + h), Vector2(4, 4.5), robe)
+	var ghost := _layer()
+	_stamp(ghost, fig, NIGHT_O)
+	_dissolve(ghost, Vector2(0, 39 + h), Vector2(0, 46 + h))
+	if st.dir != UP:
+		_flat_ellipse(ghost, Vector2(fx, 30.5 + h), Vector2(2.4, 2.2), HOLLOW)
+		for x: int in ([fx + 1] if side_view else [fx - 2, fx + 1]):
+			_px(ghost, x, 30 + h, Color("#a8c8ff"))
+	_merge(canvas, ghost, 0.85)
 
-# --- Old Stag -----------------------------------------------------------------------------------
-# Act 1 boss, knocks down Thornwalls: an ancient stag with a moss mane and huge antlers grown over
-# with moss and little pink blossoms. Drawn on a 112px frame.
+# --- The Hollow Stag (old_stag) -----------------------------------------------------------------
+# Act 1 boss, tramples Thornwalls: a gaunt stag of dead bark and bone, a skull for a face with
+# cold eyes in its sockets, ribs open around a ghost-fire heart, and ghost-fire burning in its
+# antlers. Drawn on a 112px frame.
 
 func _draw_old_stag(canvas: Image, st: Dictionary) -> void:
-	var o := Color("#22160e")
-	var fur := _ramp(["#5a4030", "#7a5a40", "#9a7858", "#bc9a74"])
-	var pale := _ramp(["#c8b8a0", "#e8dcc6", "#fbf4e6"])
-	var antler := _ramp(["#8a7458", "#b8a07c", "#e0cca4"])
+	var o := NIGHT_O
+	var bark := _ramp(["#1a1616", "#2a2424", "#3e3632", "#54483e"])
+	var bone := _ramp(["#8a8478", "#b8b0a0", "#e0d8c6"])
 	var f: int = st.f
 	var ph: float = st.ph
 	var bob: int = [0, -1, -1, 0, -1, -1][f]
@@ -1112,89 +1035,81 @@ func _draw_old_stag(canvas: Image, st: Dictionary) -> void:
 	match st.dir:
 		SIDE:
 			_shadow(canvas, Vector2(56, 77), Vector2(30, 4))
-			# Diagonal gait: near-front with far-back, far-front with near-back.
-			_deer_leg(canvas, Vector2(43, 57 + bob), ph + PI, fur[0], o)
-			_deer_leg(canvas, Vector2(67, 57 + bob), ph, fur[0], o)
+			_deer_leg(canvas, Vector2(43, 57 + bob), ph + PI, bark[0], o)
+			_deer_leg(canvas, Vector2(67, 57 + bob), ph, bark[0], o)
 			var body := _layer()
 			var c := Vector2(55, 50 + bob)
-			_ellipse(body, c, Vector2(22, 11), fur)
+			var r := Vector2(22, 10)
+			_ellipse(body, c, r, bark)
+			_grooves(body, c, r, bark, true)
+			var ribs: Array[Vector2i] = []
 			for y in S:
 				for x in S:
 					if body.get_pixel(x, y).a == 0.0:
 						continue
-					var d := (Vector2(x + 0.5, y + 0.5) - c) / Vector2(22, 11)
-					if d.y > 0.5:
-						body.set_pixel(x, y, pale[0] if d.y > 0.8 else pale[1])
-					elif d.x < -0.78 and d.y > -0.4:
-						body.set_pixel(x, y, pale[2] if d.y < 0.2 else pale[1])
+					var d := (Vector2(x + 0.5, y + 0.5) - c) / r
+					if d.x > -0.05 and d.x < 0.6 and d.y > -0.35 and d.y < 0.75:
+						var rib := posmod(x, 4) == 0
+						body.set_pixel(x, y, bone[1] if rib else HOLLOW)
+						if not rib:
+							ribs.append(Vector2i(x, y))
 			_stamp(canvas, body, o)
-			_blob(canvas, Vector2(33, 44 + bob), Vector2(2.5, 3), pale, o)
-			_deer_leg(canvas, Vector2(40, 58 + bob), ph, fur[1], o)
-			_deer_leg(canvas, Vector2(70, 58 + bob), ph + PI, fur[1], o)
+			_heart_fire(canvas, c + Vector2(r.x * 0.3, r.y * 0.2), f)
+			_blob(canvas, Vector2(33, 44 + bob), Vector2(2, 2.5), bark, o)
+			_deer_leg(canvas, Vector2(40, 58 + bob), ph, bark[1], o)
+			_deer_leg(canvas, Vector2(70, 58 + bob), ph + PI, bark[1], o)
 			var neck := _layer()
-			_stroke(neck, [Vector2(68, 50 + bob), Vector2(76, 43 + bob + nod), Vector2(81, 38 + bob + nod)], 6.0, fur[2])
-			for y in S:
-				for x in S:
-					if neck.get_pixel(x, y).a > 0.0 and (x + 0.5) - 68.0 < (50.0 + bob - y) * 1.1 - 5.0:
-						neck.set_pixel(x, y, fur[1])
-			_moss(neck, Vector2(72, 42 + bob + nod), Vector2(6, 7))
+			_stroke(neck, [Vector2(68, 50 + bob), Vector2(76, 43 + bob + nod), Vector2(81, 38 + bob + nod)], 5.0, bark[2])
 			_stamp(canvas, neck, o)
-			var h := Vector2(84, 37 + bob + nod)
-			_antler(canvas, h + Vector2(-5, -5), -1.0, 0.85, antler, o, false)
-			var ear := _layer()
-			_lens(ear, h + Vector2(-4, -4), h + Vector2(-12, -8), 2.6, fur[2], fur[1])
-			_stamp(canvas, ear, o)
-			_blob(canvas, h, Vector2(7, 6), fur, o)
-			_blob(canvas, h + Vector2(7, 3), Vector2(4.5, 3.2), pale, o)
-			for p: Vector2i in [Vector2i(10, 2), Vector2i(11, 2), Vector2i(10, 3), Vector2i(11, 3)]:
-				_px(canvas, int(h.x) + p.x, int(h.y) + p.y, o)
-			_eye(canvas, int(h.x), int(h.y) - 2, 2, 3, o)
-			_px(canvas, int(h.x) + 3, int(h.y) + 3, BLUSH)
-			_antler(canvas, h + Vector2(-2, -5), -1.0, 1.0, antler, o, true)
-			for p: Vector2i in [Vector2i(2, 7), Vector2i(4, 7), Vector2i(3, 8)]:  # mossy beard
-				_px(canvas, int(h.x) + p.x, int(h.y) + p.y, Color(LEAF[1]))
+			for i in 4:  # dead bark hanging off the neck
+				var x := 68 + i * 3
+				_line(canvas, [Vector2(x, 47 + bob - i * 2 + nod), Vector2(x - 1, 53 + bob - i * 2 + nod)], bark[0])
+			var hd := Vector2(84, 37 + bob + nod)
+			_bone_antler(canvas, hd + Vector2(-5, -5), -1.0, 0.85, bone, o, f, false)
+			_blob(canvas, hd, Vector2(6.5, 5.5), bone, o)
+			_blob(canvas, hd + Vector2(7, 3), Vector2(4.5, 2.8), bone, o)
+			_flat_ellipse(canvas, hd + Vector2(0.5, -1), Vector2(2.2, 2.4), HOLLOW)
+			_glow(canvas, Vector2i(hd) + Vector2i(1, -1), EYE, EYE_HALO)
+			_px(canvas, int(hd.x) + 10, int(hd.y) + 2, HOLLOW)
+			_line(canvas, [hd + Vector2(3, 2), hd + Vector2(5, 5)], bone[0])
+			_bone_antler(canvas, hd + Vector2(-2, -5), -1.0, 1.0, bone, o, f, true)
 		DOWN, UP:
 			var down: bool = st.dir == DOWN
 			_shadow(canvas, Vector2(56, 77), Vector2(20, 4))
-			for side: int in [-1, 1]:  # hind legs, peeking out wider
-				_deer_leg(canvas, Vector2(56 + side * 11, 60 + bob), ph + (PI if side > 0 else 0.0), fur[0], o, true)
+			for side: int in [-1, 1]:
+				_deer_leg(canvas, Vector2(56 + side * 11, 60 + bob), ph + (PI if side > 0 else 0.0), bark[0], o, true)
 			var body := _layer()
 			var c := Vector2(56, 55 + bob)
-			_ellipse(body, c, Vector2(16, 12), fur)
-			if not down:  # white rump and tail
-				_spots(body, [c + Vector2(0, 2)], 7.0, pale[1])
-				_spots(body, [c + Vector2(-1, 0)], 4.0, pale[2])
-			else:
-				_spots(body, [c + Vector2(0, 1)], 6.5, pale[1])
+			_ellipse(body, c, Vector2(15, 12), bark)
+			_grooves(body, c, Vector2(15, 12), bark, false)
+			if down:  # the open ribcage
+				for y in S:
+					for x in S:
+						var d := (Vector2(x + 0.5, y + 0.5) - c - Vector2(0, 3)) / Vector2(8, 7)
+						if body.get_pixel(x, y).a > 0.0 and d.length() < 1.0:
+							body.set_pixel(x, y, bone[1] if posmod(y, 3) == 0 and absf(d.x) > 0.2 else HOLLOW)
 			_stamp(canvas, body, o)
+			if down:
+				_heart_fire(canvas, c + Vector2(0, 3), f)
 			for side: int in [-1, 1]:
-				_deer_leg(canvas, Vector2(56 + side * 6, 62 + bob), ph + (0.0 if side > 0 else PI), fur[1], o, true)
+				_deer_leg(canvas, Vector2(56 + side * 6, 62 + bob), ph + (0.0 if side > 0 else PI), bark[1], o, true)
 			var neck := _layer()
-			_ellipse(neck, Vector2(56, 45 + bob), Vector2(8.5, 8), fur)
-			_moss(neck, Vector2(56, 47 + bob), Vector2(10, 4))
+			_ellipse(neck, Vector2(56, 45 + bob), Vector2(7.5, 8), bark)
 			_stamp(canvas, neck, o)
-			var h := Vector2(56, 37 + bob + nod)
+			var hd := Vector2(56, 37 + bob + nod)
 			if not down:
 				for side: int in [-1, 1]:
-					_antler(canvas, h + Vector2(side * 3, -6), side, 1.0, antler, o, true)
-			for side: int in [-1, 1]:
-				var ear := _layer()
-				_lens(ear, h + Vector2(side * 5, -4), h + Vector2(side * 15, -6), 2.8, fur[2], fur[1])
-				_stamp(canvas, ear, o)
-			_blob(canvas, h, Vector2(7, 8.5), fur, o)
+					_bone_antler(canvas, hd + Vector2(side * 3, -6), side, 1.0, bone, o, f, true)
+			_blob(canvas, hd, Vector2(6.5, 8), bark if not down else bone, o)
 			if down:
-				_blob(canvas, h + Vector2(0, 7), Vector2(4.5, 3.5), pale, o)
-				for x in range(54, 58):
-					_px(canvas, x, int(h.y) + 6, o)
-				_px(canvas, 55, int(h.y) + 7, o)
-				_px(canvas, 56, int(h.y) + 7, o)
-				_eye_pair(canvas, 56, 50, int(h.y) - 2, 2, 3, o)
-				_px(canvas, 49, int(h.y) + 3, BLUSH)
-				_px(canvas, 62, int(h.y) + 3, BLUSH)
+				_blob(canvas, hd + Vector2(0, 7), Vector2(4, 3.5), bone, o)
 				for side: int in [-1, 1]:
-					_antler(canvas, h + Vector2(side * 3, -6), side, 1.0, antler, o, true)
-			else:
-				_spots(canvas, [h + Vector2(0, -2)], 2.0, fur[3])
+					_flat_ellipse(canvas, hd + Vector2(side * 3, -1), Vector2(2, 2.4), HOLLOW)
+					_glow(canvas, Vector2i(hd.round()) + Vector2i(side * 3 - (1 if side < 0 else 0), -1), EYE, EYE_HALO)
+				for x in range(54, 58):
+					_px(canvas, x, int(hd.y) + 8, HOLLOW)
+				for side: int in [-1, 1]:
+					_bone_antler(canvas, hd + Vector2(side * 3, -6), side, 1.0, bone, o, f, true)
 
 # Leg from `top`: upper leg, knee, shin and a dark hoof. The swing follows `phase`; the foot lifts
 # while it moves forward. `straight` is for front/back views (the leg lifts instead of swinging).
@@ -1204,15 +1119,14 @@ func _deer_leg(canvas: Image, top: Vector2, phase: float, color: Color, o: Color
 	var swing := 0.0 if straight else s * 4.0
 	var hoof := top + Vector2(swing, 19.0 - lift)
 	var layer := _layer()
-	_stroke(layer, [top, top + Vector2(swing * 0.3 + (0.0 if straight else 1.5), 10.0 - lift * 0.5), hoof], 2.2, color)
+	_stroke(layer, [top, top + Vector2(swing * 0.3 + (0.0 if straight else 1.5), 10.0 - lift * 0.5), hoof], 1.8, color)
 	_stamp(canvas, layer, o)
 	for dx in range(-1, 2):
 		_px(canvas, int(hoof.x) + dx, int(hoof.y) + 1, o)
-		_px(canvas, int(hoof.x) + dx, int(hoof.y), Color("#3a2a20"))
 
-# One antler from its root on the head: a beam curving out (`sx` = -1 left, 1 right) and up, with
-# tines, moss on the forks and blossoms on two tips. `scale` shrinks the far antler in side view.
-func _antler(canvas: Image, root: Vector2, sx: float, scale: float, ramp: Array[Color], o: Color, decorate: bool) -> void:
+# One bone antler from its root on the head: a beam curving out (`sx` = -1 left, 1 right) and up,
+# with tines; `burning` puts ghost-fire on the tips. `scale` shrinks the far antler in side view.
+func _bone_antler(canvas: Image, root: Vector2, sx: float, scale: float, ramp: Array[Color], o: Color, f: int, burning: bool) -> void:
 	var m := Vector2(sx, 1.0) * scale
 	var beam: Array = [Vector2(0, 0), Vector2(3, -8), Vector2(7, -15), Vector2(13, -20), Vector2(18, -27)]
 	var tines: Array = [[Vector2(1, -4), Vector2(7, -5)], [Vector2(4, -11), Vector2(2, -20)],
@@ -1221,154 +1135,174 @@ func _antler(canvas: Image, root: Vector2, sx: float, scale: float, ramp: Array[
 	var pts: Array = []
 	for p: Vector2 in beam:
 		pts.append(root + p * m)
-	_stroke(layer, pts, 1.9 * scale, ramp[1] if decorate else ramp[0])
+	_stroke(layer, pts, 1.7 * scale, ramp[1] if burning else ramp[0])
 	for t: Array in tines:
-		_stroke(layer, [root + t[0] * m, root + t[1] * m], 1.3 * scale, ramp[1] if decorate else ramp[0])
-	if decorate:  # lit edge on the side facing the light
+		_stroke(layer, [root + t[0] * m, root + t[1] * m], 1.2 * scale, ramp[1] if burning else ramp[0])
+	if burning:
 		for y in S:
 			for x in S:
 				if layer.get_pixel(x, y).a > 0.0 and (x + 1 >= S or layer.get_pixel(x + 1, y).a == 0.0):
 					layer.set_pixel(x, y, ramp[2])
 	_stamp(canvas, layer, o)
-	if not decorate:
-		return
-	var moss := _ramp(["#3f7a3e", "#5a9a48", "#7cbc5a"])
-	for p: Vector2 in [Vector2(7, -15), Vector2(3, -8)]:
-		var q := (root + p * m).round()
-		for d: Vector2i in [Vector2i(0, 0), Vector2i(-1, 0), Vector2i(0, -1), Vector2i(1, 1)]:
-			_px(canvas, int(q.x) + d.x, int(q.y) + d.y, moss[1] if d.y < 0 else moss[0])
-		_px(canvas, int(q.x) + 1, int(q.y) - 1, moss[2])
-	for p: Vector2 in [Vector2(18, -27), Vector2(8, -25)]:
-		_blossom(canvas, Vector2i((root + p * m).round()))
+	if burning:
+		for i in 3:
+			var tip: Vector2 = [Vector2(18, -27), Vector2(8, -25), Vector2(2, -20)][i]
+			_ghost_fire(canvas, root + tip * m, f + i * 2)
 
-func _blossom(canvas: Image, p: Vector2i) -> void:
-	for d: Vector2i in [Vector2i.LEFT, Vector2i.RIGHT, Vector2i.UP, Vector2i.DOWN]:
-		_px(canvas, p.x + d.x, p.y + d.y, Color("#f8b8cc"))
-	_px(canvas, p.x, p.y, Color("#ffe07a"))
+# A flickering tongue of cold ghost-fire rising from `p`.
+func _ghost_fire(canvas: Image, p: Vector2, f: int) -> void:
+	var height: float = [5.0, 7.0, 4.5, 6.5, 5.5, 7.5][f % FRAMES]
+	for layer_i in 2:
+		var col := Color(0.25, 0.72, 0.8, 0.85) if layer_i == 0 else Color("#d8ffff")
+		var r0 := 2.2 if layer_i == 0 else 1.0
+		for s in 10:
+			var t := s / 9.0
+			var c := p + Vector2(sin(f * 1.7 + t * 4.0) * t * 1.2, -t * height * (1.0 if layer_i == 0 else 0.6))
+			var rr := r0 * (1.0 - t) + 0.3
+			if layer_i == 0:
+				_blend_ellipse(canvas, c, Vector2(rr, rr), col)
+			else:
+				_flat_ellipse(canvas, c, Vector2(rr, rr), col)
 
-# --- Great Toad ---------------------------------------------------------------------------------
-# Act 2 boss, leaps ahead along its path: a huge, sleepy, warty toad wearing a lily pad with a
-# water lily on its head. Walks in heavy hops. Drawn on a 144px frame.
+# The cold fire in its chest, pulsing.
+func _heart_fire(canvas: Image, c: Vector2, f: int) -> void:
+	var r: float = [1.6, 2.0, 2.4, 2.0, 1.6, 1.4][f]
+	_blend_ellipse(canvas, c, Vector2(r + 2.0, r + 2.0), Color(0.3, 0.75, 0.85, 0.35))
+	_flat_ellipse(canvas, c, Vector2(r, r), Color("#8ff0f0"))
+	_px(canvas, int(c.x), int(c.y), Color.WHITE)
+
+# --- The Mire Hag (great_toad) ------------------------------------------------------------------
+# Act 2 boss, sinks into the mire and rises 3 tiles ahead: a bent bog witch wading waist-deep in a
+# pool of black water, wrapped in reeds, long wet hair down her back, a crooked staff and a long
+# clawed hand reaching ahead; her eyes glow a sickly cold green. Drawn on a 144px frame.
 
 func _draw_great_toad(canvas: Image, st: Dictionary) -> void:
-	var o := Color("#1e2a18")
-	var skin := _ramp(["#4a6a34", "#6a8c44", "#8eb05a", "#b4d27a"])
-	var belly := _ramp(["#c8c090", "#e6dcb0", "#faf2d0"])
+	var o := Color("#040506")
+	var robe := _ramp(["#0e1210", "#18201a", "#243026", "#324236"])
+	var skin := _ramp(["#3a4a40", "#566a5a", "#7a8e7c"])
+	var hair := _ramp(["#080c0a", "#121a14", "#1e2a20"])
+	var reed := Color("#3e5230")
+	var wood := Color("#2a2018")
+	var eye := Color("#c8ffe8")
+	var eye_halo := Color(0.4, 0.9, 0.7, 0.5)
 	var f: int = st.f
-	var hop: float = [0.0, 3.0, 8.0, 9.0, 4.0, 0.0][f]
-	var sq: Vector2 = [Vector2(1.06, 0.9), Vector2(0.97, 1.05), Vector2(0.95, 1.08), Vector2(0.97, 1.05), Vector2(1.0, 1.0), Vector2(1.08, 0.88)][f]
-	var h := roundf(hop)
+	var ph: float = st.ph
+	var b: int = [0, 1, 2, 1, 0, -1][f]
 	var ground := 97.0
-	_shadow(canvas, Vector2(72, ground), Vector2(36.0 - hop * 0.8, 5.0))
+	_mire(canvas, Vector2(70, ground), f, false)
+	var fig := _layer()
 	match st.dir:
 		SIDE:
-			var tuck := hop * 0.6
-			_blob(canvas, Vector2(58, ground - 2 - h * 0.4), Vector2(10, 2.5), skin, o)  # hind foot
-			_blob(canvas, Vector2(50, ground - 12 - h), Vector2(14, 11 - tuck * 0.3), skin, o)  # haunch
-			var c := Vector2(70, ground - 20 - h - (sq.y - 1.0) * 20.0)
-			var r := Vector2(30, 19) * sq
-			var body := _layer()
-			_ellipse(body, c, r, skin)
-			for y in S:
-				for x in S:
-					if body.get_pixel(x, y).a == 0.0:
-						continue
-					var d := (Vector2(x + 0.5, y + 0.5) - c) / r
-					if d.y > 0.3 and d.x > -0.3:
-						body.set_pixel(x, y, belly[0] if d.y > 0.75 else belly[1])
-			_warts(body, c, r, skin, [Vector2(-0.6, -0.5), Vector2(-0.25, -0.75), Vector2(-0.8, 0.0), Vector2(0.05, -0.55), Vector2(-0.45, -0.1), Vector2(-0.2, 0.2)])
-			_stamp(canvas, body, o)
-			_blob(canvas, Vector2(50, ground - 13 - h), Vector2(11, 8), skin, o)  # thigh over body
+			var staff := _layer()
+			_stroke(staff, [Vector2(55, 30 + b), Vector2(53, 60 + b), Vector2(56, ground)], 1.6, wood)
+			_stroke(staff, [Vector2(55, 30 + b), Vector2(51, 25 + b), Vector2(54, 21 + b)], 1.4, wood)
+			_stamp(canvas, staff, o)
+			_ellipse(fig, Vector2(66, 67 + b), Vector2(18, 26), robe, ground)
+			_ellipse(fig, Vector2(62, 52 + b), Vector2(15, 13), robe)
+			_reed_bands(fig, [[Vector2(48, 62), Vector2(82, 54)], [Vector2(47, 76), Vector2(84, 68)], [Vector2(50, 88), Vector2(84, 82)]], b, reed)
+			_stamp(canvas, fig, o)
+			_hag_hair(canvas, [Vector2(80, 30), Vector2(84, 29), Vector2(88, 30), Vector2(91, 32)], Vector2(-26, 48), ph, b, hair, o)
+			var sleeve := _layer()
+			_ellipse(sleeve, Vector2(78, 55 + b), Vector2(5, 4.5), robe)
+			_stamp(canvas, sleeve, o)
 			var arm := _layer()
-			_stroke(arm, [Vector2(90, c.y + 6), Vector2(95, ground - 5 - h * 0.3)], 3.5, skin[2])
+			_stroke(arm, [Vector2(79, 57 + b), Vector2(90, 66 + b), Vector2(101, 62 + b + roundi(sin(ph)))], 1.8, skin[1])
 			_stamp(canvas, arm, o)
-			_blob(canvas, Vector2(98, ground - 2 - h * 0.3), Vector2(6, 2.2), skin, o)
-			var head := Vector2(92, c.y - 8)
-			_blob(canvas, head, Vector2(16, 12) * sq, skin, o)
-			_line(canvas, [head + Vector2(-4, 7), head + Vector2(6, 8), head + Vector2(14, 5)], o)
-			_spots(canvas, [head + Vector2(6, 4)], 1.6, BLUSH)
-			_toad_eye(canvas, head + Vector2(2, -10), 7.0, skin, o)
-			_lily_hat(canvas, head + Vector2(-9, -11), 9.0)
+			_claws(canvas, Vector2(101, 62 + b + roundi(sin(ph))), 1.0, skin[2])
+			var head := _layer()
+			_ellipse(head, Vector2(88, 39 + b), Vector2(8, 9.5), skin)
+			_ellipse(head, Vector2(92, 49 + b), Vector2(3.5, 3), skin)
+			_lens(head, Vector2(93, 38 + b), Vector2(104, 47 + b), 2.6, skin[2], skin[1])
+			_stamp(canvas, head, o)
+			_flat_ellipse(canvas, Vector2(86, 32 + b), Vector2(8.5, 4.5), hair[1])
+			_line(canvas, [Vector2(94, 33 + b), Vector2(96, 40 + b), Vector2(95, 47 + b)], hair[0])
+			_line(canvas, [Vector2(92, 46 + b), Vector2(97, 47 + b)], HOLLOW)
+			for x in range(91, 94):
+				_glow(canvas, Vector2i(x, 37 + b), eye, eye_halo)
 		DOWN, UP:
 			var down: bool = st.dir == DOWN
+			var staff := _layer()
+			var sx := 42 if down else 102
+			_stroke(staff, [Vector2(sx, 27 + b), Vector2(sx - 2, 62 + b), Vector2(sx + 1, ground)], 1.6, wood)
+			_stroke(staff, [Vector2(sx, 27 + b), Vector2(sx - 4, 22 + b), Vector2(sx - 1, 18 + b)], 1.4, wood)
+			_stamp(canvas, staff, o)
+			_ellipse(fig, Vector2(72, 70 + b), Vector2(21, 24), robe, ground)
+			_ellipse(fig, Vector2(72, 53 + b), Vector2(18, 10), robe)
+			_reed_bands(fig, [[Vector2(52, 64), Vector2(92, 58)], [Vector2(51, 78), Vector2(93, 74)], [Vector2(53, 90), Vector2(91, 88)]], b, reed)
+			_stamp(canvas, fig, o)
 			for side: int in [-1, 1]:
-				_blob(canvas, Vector2(72 + side * 32, ground - 3 - h * 0.4), Vector2(10, 3), skin, o)
-				_blob(canvas, Vector2(72 + side * 27, ground - 13 - h), Vector2(12, 10), skin, o)
-			var c := Vector2(72, ground - 21 - h - (sq.y - 1.0) * 20.0)
-			var r := Vector2(32, 20) * sq
-			var body := _layer()
-			_ellipse(body, c, r, skin)
+				var arm := _layer()
+				var hand := Vector2(72 + side * 19, 84 + b + roundi(sin(ph + side)))
+				_stroke(arm, [Vector2(72 + side * 16, 54 + b), Vector2(72 + side * 22, 70 + b), hand], 1.8, skin[1])
+				_stamp(canvas, arm, o)
+				_claws(canvas, hand, 0.0, skin[2])
 			if down:
-				_spots(body, [c + Vector2(0, 8)], 15.0, belly[1])
-				_spots(body, [c + Vector2(3, 5)], 7.0, belly[2])
+				_hag_hair(canvas, [Vector2(62, 32), Vector2(64, 30), Vector2(80, 30), Vector2(82, 32)], Vector2(0, 42), ph, b, hair, o)
+				var head := _layer()
+				_ellipse(head, Vector2(72, 38 + b), Vector2(9.5, 11), skin)
+				_lens(head, Vector2(72, 36 + b), Vector2(72, 49 + b), 2.2, skin[2], skin[1])
+				_stamp(canvas, head, o)
+				_flat_ellipse(canvas, Vector2(72, 29 + b), Vector2(10.5, 5), hair[1])
+				for side: int in [-1, 1]:
+					_line(canvas, [Vector2(72 + side * 8, 31 + b), Vector2(72 + side * 10, 46 + b), Vector2(72 + side * 11, 58 + b)], hair[0])
+				_line(canvas, [Vector2(69, 51 + b), Vector2(75, 51 + b)], HOLLOW)
+				for x: int in [66, 67, 68, 75, 76, 77]:
+					_glow(canvas, Vector2i(x, 38 + b), eye, eye_halo)
 			else:
-				_warts(body, c, r, skin, [Vector2(-0.5, -0.4), Vector2(0.3, -0.6), Vector2(0.6, -0.1), Vector2(-0.2, 0.0),
-					Vector2(0.1, 0.4), Vector2(-0.65, 0.25), Vector2(0.45, 0.35), Vector2(-0.1, -0.7)])
-			_stamp(canvas, body, o)
-			if down:
-				for side: int in [-1, 1]:
-					var arm := _layer()
-					_stroke(arm, [Vector2(72 + side * 17, c.y + 6), Vector2(72 + side * 21, ground - 5 - h * 0.3)], 3.5, skin[2])
-					_stamp(canvas, arm, o)
-					_blob(canvas, Vector2(72 + side * 22, ground - 2 - h * 0.3), Vector2(5, 2.2), skin, o)
-			var head := Vector2(72, c.y - 13)
-			_blob(canvas, head, Vector2(24, 13) * sq, skin, o)
-			if down:
-				_line(canvas, [head + Vector2(-16, 4), head + Vector2(-6, 7), head + Vector2(6, 7), head + Vector2(16, 4)], o)
-				for side: int in [-1, 1]:
-					_spots(canvas, [head + Vector2(side * 15, 1)], 1.8, BLUSH)
-			for side: int in [-1, 1]:
-				if down:
-					_toad_eye(canvas, head + Vector2(side * 14, -10), 7.5, skin, o)
-				else:
-					_blob(canvas, head + Vector2(side * 14, -9), Vector2(7, 6), skin, o)
-			_lily_hat(canvas, head + Vector2(0, -15), 11.0)
+				var head := _layer()
+				_ellipse(head, Vector2(72, 36 + b), Vector2(9.5, 10), hair)
+				_stamp(canvas, head, o)
+				_hag_hair(canvas, [Vector2(64, 36), Vector2(68, 38), Vector2(72, 39), Vector2(76, 38), Vector2(80, 36)], Vector2(0, 36), ph, b, hair, o)
+	_mire(canvas, Vector2(70, ground), f, true)
 
-# Raised bumps on a part's layer at points given in units of its radius: a lit dot over a shade.
-func _warts(layer: Image, c: Vector2, r: Vector2, ramp: Array[Color], pts: Array) -> void:
-	for p: Vector2 in pts:
-		var q := c + p * r
-		_spots(layer, [q + Vector2(0.5, 0.8)], 2.2, ramp[0])
-		_spots(layer, [q], 1.6, ramp[2])
-		_px(layer, roundi(q.x), roundi(q.y) - 1, ramp[3])
-
-# Big sleepy eye on a bump: golden iris, wide dark pupil, a shine and a heavy lid over the top.
-func _toad_eye(canvas: Image, c: Vector2, r: float, skin: Array[Color], o: Color) -> void:
-	_blob(canvas, c, Vector2(r, r * 0.9), skin, o)
-	var eye := _layer()
-	_flat_ellipse(eye, c + Vector2(0, 1), Vector2(r - 2.0, r * 0.9 - 2.0), Color("#f0c84a"))
-	for y in S:
-		for x in S:
-			if eye.get_pixel(x, y).a == 0.0:
+# The black pool she wades in. The back half and ripples go under her; `front` draws the near
+# edge of the water over her waist.
+func _mire(canvas: Image, c: Vector2, f: int, front: bool) -> void:
+	var water := Color("#06080a")
+	var sheen := Color("#1e2c34")
+	var r := Vector2(36, 8)
+	for y in range(floori(c.y - r.y), ceili(c.y + r.y) + 1):
+		for x in range(floori(c.x - r.x), ceili(c.x + r.x) + 1):
+			var d := (Vector2(x + 0.5, y + 0.5) - c) / r
+			if d.length_squared() > 1.0 or (front and d.y < -0.1):
 				continue
-			var d := Vector2(x + 0.5, y + 0.5) - c
-			if absf(d.y - 1.5) < 1.2 and absf(d.x) < r - 3.0:
-				eye.set_pixel(x, y, Color("#1a1410"))
-			elif d.y < -r * 0.15:
-				eye.set_pixel(x, y, skin[1])  # lid
-			elif d.y > r * 0.35:
-				eye.set_pixel(x, y, Color("#c89a30"))
-	_stamp(canvas, eye, o)
-	_line(canvas, [c + Vector2(-r + 2.0, -r * 0.15), c + Vector2(r - 2.0, -r * 0.15)], o)
-	_px(canvas, roundi(c.x + r * 0.35), roundi(c.y + 0.5), Color.WHITE)
+			var col := water
+			for k in 2:  # ripples spreading out
+				var rr := fposmod(f / float(FRAMES) + k * 0.5, 1.0) * 0.8 + 0.25
+				if absf(d.length() - rr) < 0.06 and (x + y) % 2 == 0:
+					col = sheen
+			_px(canvas, x, y, col)
+	if front:
+		for x in range(floori(c.x - r.x * 0.75), ceili(c.x + r.x * 0.75)):
+			if (x + f) % 3 != 0:
+				_px(canvas, x, roundi(c.y - r.y * 0.1) - 1, sheen)
 
-# Lily pad worn as a hat (with its notch), a water lily on top.
-func _lily_hat(canvas: Image, c: Vector2, r: float) -> void:
-	var pad := _ramp(["#2e6a3a", "#46905a", "#6ab878"])
+# Reed stalks bound round her body in bands, only over her own pixels.
+func _reed_bands(layer: Image, bands: Array, b: int, color: Color) -> void:
+	for band: Array in bands:
+		var a: Vector2 = band[0] + Vector2(0, b)
+		var e: Vector2 = band[1] + Vector2(0, b)
+		for off: int in [0, 2]:
+			var steps := int(absf(e.x - a.x))
+			for s in steps + 1:
+				var p := a.lerp(e, float(s) / steps).round() + Vector2(0, off)
+				if layer.get_pixel(int(p.x), int(p.y)).a > 0.0 and posmod(int(p.x) + off, 7) != 0:
+					layer.set_pixel(int(p.x), int(p.y), color if off == 0 else color.darkened(0.35))
+
+# Long wet hair: strands from the crown points trailing by `fall`, swaying at the ends.
+func _hag_hair(canvas: Image, crown: Array, fall: Vector2, ph: float, b: int, ramp: Array[Color], o: Color) -> void:
 	var layer := _layer()
-	for y in S:
-		for x in S:
-			var d := (Vector2(x + 0.5, y + 0.5) - c) / Vector2(r, r * 0.32)
-			if d.length_squared() > 1.0 or (d.y > 0.1 and absf(d.x - 0.35) < 0.1 + d.y * 0.25):
-				continue
-			layer.set_pixel(x, y, pad[2] if d.y < -0.35 else (pad[0] if d.y > 0.55 else pad[1]))
-	_stamp(canvas, layer, Color("#1a3a22"))
-	var petal := _ramp(["#e07a9a", "#f8a8c0", "#ffe0ea"])
-	var top := c + Vector2(-r * 0.2, -3)
-	var flower := _layer()
-	for p: Vector2 in [Vector2(-3, 1), Vector2(3, 1), Vector2(-1.5, -1), Vector2(1.5, -1), Vector2(0, -2.5)]:
-		_flat_ellipse(flower, top + p, Vector2(1.6, 2.2), petal[1] if p.y < 0 else petal[0])
-	_px(flower, roundi(top.x) + 1, roundi(top.y) - 3, petal[2])
-	_stamp(canvas, flower, Color("#6a2a3a"))
-	_px(canvas, roundi(top.x), roundi(top.y), Color("#ffe07a"))
-	_px(canvas, roundi(top.x) - 1, roundi(top.y), Color("#ffe07a"))
+	for i in crown.size():
+		for j in 3:
+			var start: Vector2 = crown[i] + Vector2(j * 1.5 - 1.5, b)
+			var end := start + fall + Vector2(sin(ph + i + j) * 2.0 + j * 2.0 - 2.0, j * 2.0)
+			_stroke(layer, [start, start.lerp(end, 0.5) + Vector2(1.5 * sin(i + j), 0), end], 1.0, ramp[(i + j) % ramp.size()])
+	_stamp(canvas, layer, o)
+
+# Long claw fingers curling down from a hand; `forward` 1 = reaching right, 0 = hanging down.
+func _claws(canvas: Image, hand: Vector2, forward: float, color: Color) -> void:
+	for i in 4:
+		var spread := (i - 1.5) * 1.5
+		var tip := hand + (Vector2(5, spread + 2) if forward > 0.5 else Vector2(spread, 6))
+		var bend := tip + (Vector2(1, 2) if forward > 0.5 else Vector2(0, 1))
+		_line(canvas, [hand, tip, bend], color)

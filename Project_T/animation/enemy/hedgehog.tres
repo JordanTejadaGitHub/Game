@@ -190,5 +190,5 @@ animations = [{
 }],
 "loop": true,
 "name": &"roll",
-"speed": 9.0
+"speed": 14.0
 }]
