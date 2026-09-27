@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "sudden_insight"
+display_name = "Sudden Insight"
+description = "+1 Dreamlight now."
+rarity = 1
+kind = 4
+tags = Array[String](["dreamlight"])
+max_stacks = 0
+dreamlight_now = 1

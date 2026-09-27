@@ -272,6 +272,9 @@ func _play_until(main: Node, done: Callable, leave: int = 0, max_frames: int = 4
 				dreams.choose(dreams.current_offer[0])
 		if omens != null and omens.is_offering():
 			omens.choose(null)
+		var remember := main.get_node_or_null("%RememberScreen") as RememberScreen
+		if remember != null and remember.visible:
+			remember.close()  # The boss-rest Remember screen: the Dream waits behind it
 		var enemies: Array = main.get_node("%EnemyContainer").get_enemies()
 		for j in range(leave, enemies.size()):
 			enemies[j].take_damage(1000000)

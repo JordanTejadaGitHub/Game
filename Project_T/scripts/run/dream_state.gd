@@ -47,12 +47,21 @@ const NEARBY_CELLS := 2  # "Within 2 cells" (Sprout Chorus, Solitude): Chebyshev
 const DIRECTION_TAGS: Array[String] = ["nurture", "wide", "narrow"]
 const OPPOSITE_DIRECTION := {"wide": "narrow", "narrow": "wide"}
 const OPPOSITE_WEIGHT := 0.5
+# Dreamlight (run_design.md "Dreamlight"): sources and unlock costs.
+const FIRST_PICK_DREAMLIGHT := 1
+const BOSS_DREAMLIGHT := 3
+const BRANCH_DREAMLIGHT := 1  # Branch, hidden branch, wall growth
+const FINAL_DREAMLIGHT := 2  # Final form (needs its branch)
 
 signal unlocks_changed
 signal card_taken(card: UpgradeData)
 # A Dream is ready to be chosen (`cards` has up to 3). The Dream screen pauses and shows it.
 signal offer_ready(cards: Array[UpgradeData], drift_number: int)
 signal offer_closed
+signal dreamlight_changed(dreamlight: int)
+# The Remember screen should open (after a boss's family pick, from the rest panel or the Warden
+# panel). `focus` = the form to highlight, or null.
+signal remember_requested(focus: TowerData)
 
 @export var pool: Array[UpgradeData] = []  # Empty = every card in res://resource/dream/
 @export var starting_unlocks: Array[String] = ["sprout", "thornwall"]
@@ -79,6 +88,9 @@ var banishes_left := 0
 var unlocked := {}  # Warden id -> true
 var stacks := {}  # Card id -> times taken
 var dreams_seen := 0
+# Dreamlight (run_design.md): spent to unlock branches, final forms and wall growths for the run.
+var dreamlight := 0
+var _remember_open := false  # The boss-rest Remember screen is open: the Dream waits for it
 var current_offer: Array[UpgradeData] = []
 var current_offer_drift := 0
 
@@ -107,6 +119,9 @@ func _ready() -> void:
 	for id in starting_unlocks:
 		unlocked[id] = true
 	drift_director.rest_started.connect(_on_rest_started)
+	drift_director.family_pick_requested.connect(func(reason: StringName) -> void:
+		if reason == &"first":
+			add_dreamlight(FIRST_PICK_DREAMLIGHT))  # Act 1 can take one branch
 	map_generator.path_changed.connect(_update_bends)
 	spawner.enemy_cleansed.connect(_on_enemy_cleansed)
 	map_generator.obstacle_cleared.connect(_on_obstacle_cleared)
@@ -175,6 +190,95 @@ func get_evolve_cost(to: TowerData) -> int:
 		if _applies_to(card, to):
 			discount += card.evolve_discount * stacks[card.id]
 	return roundi(to.evolve_cost * maxf(1.0 - discount, 0.0))
+
+# --- Dreamlight (run_design.md "Dreamlight: choosing your build paths") -------------------------------
+
+func add_dreamlight(amount: int) -> void:
+	dreamlight = maxi(dreamlight + amount, 0)
+	dreamlight_changed.emit(dreamlight)
+
+# Dreamlight to unlock `data` for the run: 1 for a branch, hidden branch or wall growth, 2 for a
+# final form. 0 = already unlocked.
+func get_unlock_cost(data: TowerData) -> int:
+	if is_unlocked(data.get_id()):
+		return 0
+	return FINAL_DREAMLIGHT if data.tier >= 3 else BRANCH_DREAMLIGHT
+
+# Why `data` can't be unlocked yet ("" = it can, given enough Dreamlight): its parent form isn't
+# unlocked, or it's a hidden branch the Memory Grove hasn't opened.
+func get_unlock_blocker(data: TowerData) -> String:
+	if data.buildable_directly:
+		return "family pick"  # Base families (and Memory Wardens) aren't bought with Dreamlight
+	var parent := get_parent_form(data)
+	if parent != null and not is_unlocked(parent.get_id()):
+		return "needs %s" % parent.display_name
+	var card := _unlock_card_for(data)
+	if card != null and not (card.in_start_pool or grove_cards.has(card.id)):
+		return "Memory Grove"
+	return ""
+
+func can_unlock(data: TowerData) -> bool:
+	var cost := get_unlock_cost(data)
+	return cost > 0 and cost <= dreamlight and get_unlock_blocker(data) == ""
+
+# Spends Dreamlight to make `data` available for the run (evolving each Warden still costs Dew).
+func unlock_with_dreamlight(data: TowerData) -> bool:
+	if not can_unlock(data):
+		return false
+	add_dreamlight(-get_unlock_cost(data))
+	unlocked[data.get_id()] = true
+	unlocks_changed.emit()
+	return true
+
+# Opens the Remember screen (the rest panel's button, the Warden panel's locked forms).
+func open_remember(focus: TowerData = null) -> void:
+	remember_requested.emit(focus)
+
+# The Remember screen closed: a Dream waiting behind the boss-rest Remember screen can show now.
+func remember_closed() -> void:
+	if _remember_open:
+		_remember_open = false
+		_show_next_offer.call_deferred()
+
+# The form `data` grows from (the Warden whose evolves_to has it), or null.
+func get_parent_form(data: TowerData) -> TowerData:
+	for card in pool:
+		if card.unlocks != null and card.unlocks.evolves_to.has(data):
+			return card.unlocks
+	for tower in _roster():
+		if tower.evolves_to.has(data):
+			return tower
+	return null
+
+# The old unlock card for a form (hidden branches' cards are Grove-only), or null.
+func _unlock_card_for(data: TowerData) -> UpgradeData:
+	for card in pool:
+		if card.unlocks == data:
+			return card
+	return null
+
+# Plantable Wardens (the tower bar's roster).
+func _roster() -> Array:
+	var placer := get_node_or_null("%TowerPlacer")
+	return placer.towers if placer else []
+
+# The Remember screen's trees: [[root TowerData, [[branch, [finals...]], ...]], ...] for each owned
+# family, plus Thornwall's wall growths.
+func get_remember_trees() -> Array:
+	var trees := []
+	for root in _roster():
+		var is_family: bool = root.tier == 1 and root.buildable_directly and is_unlocked(root.get_id())
+		var is_wall: bool = root.line == "wall" and is_unlocked(root.get_id())
+		if not (is_family or is_wall) or root.evolves_to.is_empty():
+			continue
+		var branches := []
+		for branch in root.evolves_to:
+			var finals := []
+			for final in branch.evolves_to:
+				finals.append(final)
+			branches.append([branch, finals])
+		trees.append([root, branches])
+	return trees
 
 # `data`'s evolutions this run: [[TowerData, available: bool], ...].
 func get_evolutions(data: TowerData) -> Array:
@@ -547,6 +651,8 @@ func take(card: UpgradeData) -> void:
 	if card.leaves_now != 0 or card.max_leaves_add != 0:
 		run_state.regrow_leaves(maxi(card.leaves_now, 0))  # Also clamps to a lower maximum
 	add_rare_dreams(card.rare_dreams_add)
+	if card.dreamlight_now > 0:
+		add_dreamlight(card.dreamlight_now)
 	if card.free_clears_add > 0:
 		run_state.add_free_clears(card.free_clears_add)
 	if card.clears_obstacle != null:
@@ -586,9 +692,14 @@ func is_offering() -> bool:
 func has_pending_offer() -> bool:
 	return not _pending_drifts.is_empty()
 
-func _on_rest_started(_block: int, _is_boss_rest: bool, _bonus: int, _perfect: bool) -> void:
+func _on_rest_started(_block: int, is_boss_rest: bool, _bonus: int, _perfect: bool) -> void:
 	if not drift_director.has_next_drift() or run_state.is_over:
 		return
+	if is_boss_rest:
+		# The freed light: +3 Dreamlight, and the Remember screen opens before the Dream.
+		add_dreamlight(BOSS_DREAMLIGHT)
+		_remember_open = true
+		remember_requested.emit(null)
 	if has_rule(&"sunlit_rest"):
 		sunlit_rest()
 	_pending_drifts.append(drift_director.drifts_started)
@@ -596,7 +707,7 @@ func _on_rest_started(_block: int, _is_boss_rest: bool, _bonus: int, _perfect: b
 		_show_next_offer.call_deferred()
 
 func _show_next_offer() -> void:
-	if _pending_drifts.is_empty() or is_offering():
+	if _pending_drifts.is_empty() or is_offering() or _remember_open:
 		return
 	current_offer_drift = _pending_drifts.pop_front()
 	_before_offer = _offer_counters()
@@ -682,12 +793,6 @@ func make_offer(drift_number: int) -> Array[UpgradeData]:
 	var force_rare := drift_director.is_boss_drift(drift_number) or _dreams_without_rare >= pity_after \
 		or _rare_dreams_left > 0
 	_rare_dreams_left = maxi(_rare_dreams_left - 1, 0)
-	# Growth slot: one branch / final-form unlock for a family you own, while any are locked.
-	if offer.size() < size:
-		var want_rare := force_rare and not offer.any(func(c: UpgradeData) -> bool: return c.is_rare_or_better())
-		var growth := _draw_growth(act, offer, want_rare)
-		if growth != null:
-			offer.append(growth)
 	while offer.size() < size:
 		var want_rare := force_rare and not offer.any(func(c: UpgradeData) -> bool: return c.is_rare_or_better())
 		var card := _draw_card(act, offer, want_rare)
@@ -705,6 +810,8 @@ func is_eligible(card: UpgradeData, act: int = 1) -> bool:
 		return false
 	if act < card.min_act or card.kind == UpgradeData.Kind.UNLOCK_WARDEN:
 		return false  # Base Wardens come from the family pick
+	if card.kind == UpgradeData.Kind.UNLOCK_EVOLUTION:
+		return false  # Branches and final forms are unlocked with Dreamlight now
 	if card.max_stacks > 0 and card_stacks(card.id) >= card.max_stacks:
 		return false
 	if card.is_deepened() and not has_card(card.deepens):
@@ -755,46 +862,12 @@ func count_taken_with_tag(tag: String) -> int:
 			count += 1
 	return count
 
-# A growth card: unlocks a family's branch or final form (dream_design.md "Growth slot"). Wall
-# growths (Bramble, Honeysuckle) aren't: they're drawn in the normal slots only.
-static func is_growth(card: UpgradeData) -> bool:
-	return card.kind == UpgradeData.Kind.UNLOCK_EVOLUTION and card.unlocks != null \
-		and card.unlocks.line != "wall"
-
-# The growth slot's card, or null when every growth for your families is unlocked. Drawn across
-# rarities by their act weights, so branches (Uncommon) usually come before final forms (Rare).
-# `want_rare` (boss / pity / Restless Dreams): if only growth cards could be the Rare+, the growth
-# card doubles as it.
-func _draw_growth(act: int, exclude: Array[UpgradeData], want_rare: bool = false) -> UpgradeData:
-	if exclude.any(is_growth):
-		return null  # An Entwined card can't be growth today, but keep "exactly one"
-	var candidates: Array[UpgradeData] = []
-	for card in pool:
-		if is_growth(card) and not exclude.has(card) and is_eligible(card, act):
-			candidates.append(card)
-	if candidates.is_empty():
-		return null
-	if want_rare and not _has_rare_besides_growth(act, exclude):
-		var rares := candidates.filter(func(c: UpgradeData) -> bool: return c.is_rare_or_better())
-		if not rares.is_empty():
-			return _weighted_pick(rares)
-	return _weighted_pick(candidates, RARITY_WEIGHTS[clampi(act, 1, RARITY_WEIGHTS.size()) - 1])
-
-func _has_rare_besides_growth(act: int, exclude: Array[UpgradeData]) -> bool:
-	for card in pool:
-		if card.is_rare_or_better() and not is_growth(card) and not exclude.has(card) and is_eligible(card, act):
-			return true
-	return false
-
 func _draw_card(act: int, exclude: Array[UpgradeData], want_rare: bool) -> UpgradeData:
 	var has_bittersweet := exclude.any(func(c: UpgradeData) -> bool: return c.is_bittersweet())
-	var has_growth := exclude.any(is_growth)
 	var eligible: Array[UpgradeData] = []
 	for card in pool:
 		if exclude.has(card) or (has_bittersweet and card.is_bittersweet()):
 			continue  # At most one bittersweet card per offer
-		if has_growth and is_growth(card):
-			continue  # Exactly one growth card per offer (the growth slot)
 		if is_eligible(card, act):
 			eligible.append(card)
 	if eligible.is_empty():
@@ -829,9 +902,8 @@ func _roll_rarity(act: int, want_rare: bool) -> int:
 			return i
 	return 0
 
-# Picks one of `cards`: tag weighting (and the clearing boost), times `rarity_weights[rarity]` if
-# given (the growth slot draws across rarities at once).
-func _weighted_pick(cards: Array, rarity_weights: Array = []) -> UpgradeData:
+# Picks one of `cards` by tag weighting (owned families and build directions, the clearing boost).
+func _weighted_pick(cards: Array) -> UpgradeData:
 	var owned_lines := {}
 	for tower_id in unlocked:
 		var line := _line_of(tower_id)
@@ -858,8 +930,6 @@ func _weighted_pick(cards: Array, rarity_weights: Array = []) -> UpgradeData:
 		for tag in opposed:  # e.g. a narrow card while you've gone wide
 			if card.tags.has(tag) and not card.tags.has(OPPOSITE_DIRECTION[tag]):
 				weight *= OPPOSITE_WEIGHT
-		if not rarity_weights.is_empty():
-			weight *= rarity_weights[card.rarity]
 		weights.append(weight)
 		total += weight
 	if total <= 0.0:
@@ -892,7 +962,7 @@ func to_save() -> Dictionary:
 		"dreams_without_rare": _dreams_without_rare, "rare_dreams_left": _rare_dreams_left,
 		"extra_cards_next": _extra_cards_next, "entwined_offered": _entwined_offered.keys(),
 		"rerolls_left": rerolls_left, "banishes_left": banishes_left, "banished": _banished.keys(),
-		"attackers_planted": _attackers_planted,
+		"attackers_planted": _attackers_planted, "dreamlight": dreamlight,
 		"rng_state": str(_rng.state),  # A string: JSON would round a 64-bit int
 	}
 
@@ -918,6 +988,8 @@ func load_save(data: Dictionary) -> void:
 	for id in data.get("banished", []):
 		_banished[id] = true
 	_attackers_planted = int(data.get("attackers_planted", 0))
+	dreamlight = int(data.get("dreamlight", 0))
+	dreamlight_changed.emit(dreamlight)
 	if data.has("rng_state"):
 		_rng.state = str(data.rng_state).to_int()
 	unlocks_changed.emit()

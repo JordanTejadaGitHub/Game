@@ -22,8 +22,7 @@ func _run() -> void:
 	_test_new_cards(main)
 	_test_clearing_cards(main)
 	_test_meta_hooks(main)
-	_test_growth_slot(main)
-	_simulate_storm_grid(main)
+	await _test_dreamlight(main)
 	print("dreams test: %s" % ("PASS" if failures == 0 else "%d FAILED" % failures))
 	quit(failures)
 
@@ -179,13 +178,13 @@ func _test_dream_flow(main: Node) -> void:
 	_check(run_state.dew == dew + 15, "letting a Dream pass gives 15 Dew")
 
 	# Eligibility
-	_check(dreams.is_eligible(_card(dreams, "dream_stormcap")), "Stormcap card needs Firefly Jar (owned)")
-	_check(not dreams.is_eligible(_card(dreams, "dream_rain_lily")), "Rain Lily card needs Dewdrop (not owned)")
+	_check(not dreams.is_eligible(_card(dreams, "dream_stormcap")), "branch cards aren't Dreams any more (Dreamlight)")
 	_check(not dreams.is_eligible(_card(dreams, "dream_sporeling")), "no base Warden cards in Dreams")
 
-	# Boss Dream guarantees Rare+, and pity kicks in after 3 without (Thunderhead is the Rare here)
+	# Boss Dream guarantees Rare+, and pity kicks in after 3 without (Conductive Soil is the Rare here)
 	dreams.unlocked["dewdrop"] = true
-	dreams.take(_card(dreams, "dream_stormcap"))
+	dreams.unlocked["stormcap"] = true
+	dreams.unlocked["rain_lily"] = true
 	var boss_offer := dreams.make_offer(25)
 	_check(boss_offer.any(func(c: UpgradeData) -> bool: return c.is_rare_or_better()), "boss Dream has a Rare+ card")
 	var saw_rare_by_4 := true
@@ -533,99 +532,66 @@ func _test_meta_hooks(main: Node) -> void:
 	_check(rare_lean < rare_normal * 0.7, "lean_common halves Rare+ (%d → %d)" % [rare_normal, rare_lean])
 	_reset_dreams(main)
 
-# Every offer has exactly one growth card while any are locked for the families you own.
-func _test_growth_slot(main: Node) -> void:
+# Dreamlight (run_design.md): branches, finals and wall growths are unlocked with it, not Dreams.
+func _test_dreamlight(main: Node) -> void:
 	var dreams: DreamState = main.get_node("%DreamState")
+	var director: DriftDirector = main.get_node("%DriftDirector")
+	var run_state: RunState = main.get_node("%RunState")
 	_reset_dreams(main)
 	dreams.unlocked["firefly_jar"] = true
-	var exactly_one := true
-	var final_forms := 0
-	for i in 300:
-		dreams._dreams_without_rare = 0
-		var offer := dreams.make_offer(10)
-		var growth := offer.filter(DreamState.is_growth)
-		if growth.size() != 1:
-			exactly_one = false
-		elif growth[0].is_rare_or_better():
-			final_forms += 1
-	_check(exactly_one, "every offer has exactly one growth card while some are locked")
-	# Firefly's two branches are Uncommon; no final form is eligible yet
-	_check(final_forms == 0, "final forms wait for their branch")
-	_check(not DreamState.is_growth(_card(dreams, "dream_bramble")) and not DreamState.is_growth(_card(dreams, "dream_honeysuckle")),
-		"wall growths (Bramble, Honeysuckle) stay out of the growth slot")
-	var bramble_seen := false
-	for i in 300:
-		if dreams.make_offer(10).any(func(c: UpgradeData) -> bool: return c.id == "dream_bramble"):
-			bramble_seen = true
-	_check(bramble_seen, "…but still appear in the normal slots")
-	dreams.take(_card(dreams, "dream_stormcap"))
-	var saw_final := false
-	for i in 300:
-		var offer := dreams.make_offer(10)
-		if offer.any(func(c: UpgradeData) -> bool: return c.id == "dream_thunderhead"):
-			saw_final = true
-	_check(saw_final, "a final form joins the growth slot once its branch is owned")
+	var stormcap: TowerData = load("res://resource/tower/stormcap.tres")
+	var thunderhead: TowerData = load("res://resource/tower/thunderhead.tres")
+	var bramble: TowerData = load("res://resource/tower/bramble.tres")
+	var rain_lily: TowerData = load("res://resource/tower/rain_lily.tres")
+	var sporeling: TowerData = load("res://resource/tower/sporeling.tres")
 	for card in dreams.pool:
-		if DreamState.is_growth(card) and dreams.is_eligible(card, 1):
-			dreams.take(card)
-	var none := true
-	for i in 50:
-		if dreams.make_offer(10).any(DreamState.is_growth):
-			none = false
-	_check(none, "no growth card once every growth is unlocked")
-	_reset_dreams(main)
+		if card.kind == UpgradeData.Kind.UNLOCK_EVOLUTION and dreams.is_eligible(card, 2):
+			_check(false, "%s is still a Dream card" % card.id)
 
-# Reachability (dream_design.md "Growth slot"): most runs should have their first cross-family combo
-# by the act 1 boss. Firefly Jar is the first family (after drift 1), Dewdrop the boss pick at drift
-# 25, and the player aims for Storm Grid. First combo = Stormcap owned once Dewdrop arrives
-# (lightning jumps through Dewdrop's Damp). Also reported: the full Storm Grid (Stormcap + Rain Lily
-# + Conductive Soil) by the demo's last Dream (drift 45).
-func _simulate_storm_grid(main: Node) -> void:
-	var dreams: DreamState = main.get_node("%DreamState")
-	_reset_dreams(main)
-	var want := ["dream_stormcap", "dream_rain_lily", "conductive_soil", "dream_thunderhead"]
-	var runs := 1000
-	var result := _storm_grid_rate(dreams, want, runs)
-	var combo_rate := float(result[0]) / runs
-	print("Reachability (%d runs, Firefly Jar then Dewdrop, aiming for Storm Grid): first cross-family combo by the act 1 boss %.0f%% (target: most runs), full Storm Grid by drift 45 %.0f%%"
-		% [runs, 100.0 * combo_rate, 100.0 * result[1] / runs])
-	var owned_rates: Dictionary = result[2]
-	var parts: Array[String] = []
-	for id in want:
-		parts.append("%s %.0f%%" % [id.trim_prefix("dream_"), 100.0 * owned_rates.get(id, 0) / runs])
-	print("  how often each piece is owned by drift 45: " + ", ".join(parts))
-	_check(combo_rate > 0.5, "most runs have a cross-family combo by the act 1 boss (%.0f%%)" % (100.0 * combo_rate))
-	_reset_dreams(main)
+	# Sources: +1 with the first family pick, +3 at a boss rest (which opens Remember first)
+	dreams.dreamlight = 0
+	director.family_pick_requested.emit(&"first")
+	_check(dreams.dreamlight == 1, "+1 Dreamlight with the first family pick")
+	var remembers := []
+	dreams.remember_requested.connect(func(focus: TowerData) -> void: remembers.append(focus))
+	director.drifts_started = 25
+	director.rest_started.emit(5, true, 0, true)
+	_check(dreams.dreamlight == 4 and remembers.size() == 1, "+3 at a boss rest, and Remember opens")
+	_check(not dreams.is_offering() and dreams.has_pending_offer(), "the Dream waits for Remember")
+	dreams.remember_closed()
+	await process_frame
+	_check(dreams.is_offering(), "…and follows once it closes")
+	dreams.skip()
+	director.drifts_started = 0
 
-# [runs with the first combo by the boss, runs with the full Storm Grid by drift 45, {id: runs owning it}].
-func _storm_grid_rate(dreams: DreamState, want: Array, runs: int) -> Array:
-	var combo_by_boss := 0
-	var storm_grid := 0
-	var owned_count := {}
-	for run in runs:
-		_reset_dreams_quiet(dreams)
-		dreams.unlocked["firefly_jar"] = true
-		for drift in range(5, 50, 5):
-			if drift == 25:
-				dreams.unlocked["dewdrop"] = true  # The boss family pick comes before the Dream
-				if dreams.has_card("dream_stormcap"):
-					combo_by_boss += 1
-			var offer := dreams.make_offer(drift)
-			var pick: UpgradeData = null
-			for id in want:  # In build order
-				for card in offer:
-					if card.id == id:
-						pick = card
-				if pick != null:
-					break
-			if pick != null:
-				dreams.take(pick)
-		if dreams.has_card("dream_stormcap") and dreams.has_card("dream_rain_lily") and dreams.has_card("conductive_soil"):
-			storm_grid += 1
-		for id in want:
-			if dreams.has_card(id):
-				owned_count[id] = owned_count.get(id, 0) + 1
-	return [combo_by_boss, storm_grid, owned_count]
+	# Costs: branch 1, final 2 (needs its branch), wall growth 1; base families never
+	_check(dreams.get_unlock_cost(stormcap) == 1 and dreams.get_unlock_cost(thunderhead) == 2
+		and dreams.get_unlock_cost(bramble) == 1, "costs: branch 1, final form 2, wall growth 1")
+	_check(dreams.get_unlock_blocker(thunderhead) == "needs Stormcap", "a final form needs its branch")
+	_check(not dreams.can_unlock(rain_lily), "no branches for a family you don't own")
+	_check(dreams.get_unlock_blocker(sporeling) == "family pick", "base families only come from the family pick")
+	_check(dreams.unlock_with_dreamlight(stormcap) and dreams.is_unlocked("stormcap") and dreams.dreamlight == 3,
+		"unlocking Stormcap spends 1")
+	_check(dreams.unlock_with_dreamlight(thunderhead) and dreams.dreamlight == 1, "then Thunderhead for 2")
+	_check(dreams.unlock_with_dreamlight(bramble) and dreams.dreamlight == 0, "Bramble for 1")
+	_check(not dreams.unlock_with_dreamlight(load("res://resource/tower/lanternmoth.tres")), "not without Dreamlight")
+	var trees := dreams.get_remember_trees()
+	_check(trees.any(func(t: Array) -> bool: return t[0].get_id() == "firefly_jar")
+		and trees.any(func(t: Array) -> bool: return t[0].get_id() == "thornwall"), "Remember shows owned families and walls")
+
+	# Cards and the save
+	dreams.take(_card(dreams, "sudden_insight"))
+	_check(dreams.dreamlight == 1, "Sudden Insight: +1 Dreamlight")
+	run_state.max_leaves = 20
+	dreams.take(_card(dreams, "borrowed_memory"))
+	_check(dreams.dreamlight == 3 and run_state.max_leaves == 18, "Borrowed Memory: +2, −2 max leaves")
+	var saved := dreams.to_save()
+	dreams.dreamlight = 0
+	dreams.load_save(saved)
+	_check(dreams.dreamlight == 3, "Dreamlight survives the save")
+	run_state.max_leaves = 20
+	_reset_dreams(main)
+	dreams.dreamlight = 0
 
 # --- Helpers --------------------------------------------------------------------------------------
 

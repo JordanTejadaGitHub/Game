@@ -49,6 +49,7 @@ enum Kind { UNLOCK_WARDEN, UNLOCK_EVOLUTION, STAT, RULE, ECONOMY }
 
 @export_group("Economy")
 @export var dew_now: int = 0
+@export var dreamlight_now: int = 0  # Sudden Insight, Borrowed Memory
 @export var dew_per_clear: int = 0
 @export var max_leaves_add: int = 0  # Negative = the Heartwood holds fewer (Deep Sleep)
 @export var leaves_now: int = 0  # Negative = lose leaves now (never offered if it would end the run)
