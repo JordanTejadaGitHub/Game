@@ -39,9 +39,9 @@ All cells are 64×64 unless noted. Frames run left to right; animated sheets are
 | `grass.png` | 256×64 | 4 variants | ground; any variant tiles with any other |
 | `path.png` | 1024×64 | 16 tiles, **column = neighbour mask** (N=1, E=2, S=4, W=8) | the creature path; e.g. column 5 = N+S straight, 15 = crossroads |
 | `border_wall.png` | 128×64 | 2 variants, seamless | the map's stone border |
-| `withered_tree.png` | 256×192 | 3 variants (rows) × 4 frames | obstacle, "Tend" |
+| `withered_tree.png` | 256×576 | 9 dead trees (rows) × 4 frames: 0–2 gnarled Withered Tree, 3 split trunk, 4 broken hollow snag (eyes glint), 5 weeping dead willow (strands sway), 6 dead pine, 7 dead birch, 8 thorn tree | obstacle, "Tend"; all 9 are in `tree.tres` |
 | `tended_stump.png` | 64×64 | 1 | walkable mark left after Tend |
-| `mossy_boulder.png` | 128×64 | 2 variants | obstacle, "Move" |
+| `mossy_boulder.png` | 576×64 | 9 rocks: 0–1 Mossy Boulder, 2 standing stone, 3 cairn, 4 rock cluster, 5 split boulder with dead roots, 6 lichen boulder, 7 ruined waystone, 8 dream-crystal boulder | obstacle, "Move"; all 9 are in `rock.tres` |
 | `moved_hollow.png` | 64×64 | 1 | walkable mark left after Move |
 | `waystone.png` | 256×64 | 4 frames | proposed bonus build spot |
 | `dew_pool.png` | 256×64 | 4 frames (frozen in winter) | proposed special tile |
@@ -49,7 +49,23 @@ All cells are 64×64 unless noted. Frames run left to right; animated sheets are
 | `edge_mist.png` | 256×64 | 4 frames, transparent overlay | start cell / map edge mist |
 | `tree_round.png`, `tree_pine.png`, `tree_flowering.png` | 64×64 | 1 each | scenery on cells the maze never uses |
 | `ground_details.png` | 256×64 | 4 variants: mushrooms, ferns, pebbles, leaf litter | walkable decoration |
+| `island_edge.png` | 1024×64 | 16 tiles, **column = neighbour mask** (N=1, E=2, S=4, W=8: which neighbours are island) | the dream's outer layer: the island's rim; transparent where the void shows. Assumes a convex (blocky) island: no inner-corner tiles |
+| `cliff.png` | 256×256 | columns: bit 1 = the cell to the west also has cliff, bit 2 = the east does; rows: 4 variants | cliff face under island cells whose south neighbour is void; transparent below its ragged, dripping underside |
 | `heartwood.png` | 512×2688 | 128×128 frames: **row = leaves lost (0–20)**, 4 frames per row | the goal; anchor its bottom centre about 8 px below the goal cell's bottom centre, so it overhangs the cells around it |
+
+### The dream's outer layer (shared, `assets/environment/dream/`)
+
+The map as an island of dream adrift in a starry void (from concept direction C, drawn in the
+Waystone pixel style). Not act-specific. **Art only so far:** the map still uses `border_wall` and
+the outer forest; wiring this in means island-edge tiles on the border cells, cliff tiles below the
+south edge, and the void as `Parallax2D` layers behind the map.
+
+| File | Size | Layout | Use |
+|---|---|---|---|
+| `void_sky.png` | 256×256 | seamless | back parallax layer: indigo with nebula bands and faint stars |
+| `void_stars.png` | 256×256 | seamless, transparent | front parallax layer: brighter stars |
+| `void_islets.png` | 256×64 | 4 small floating islands | scatter in the void |
+| `rope_bridge.png` | 128×64 | 2 tiles: east–west, north–south; repeat along the bridge | where nightmares cross from the void to the start cell |
 
 ## Notes
 
