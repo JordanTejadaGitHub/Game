@@ -1,6 +1,6 @@
 [gd_resource type="SpriteFrames" format=3]
 
-[ext_resource type="Texture2D" path="res://assets/creatures/mother_spider.png" id="1_sheet"]
+[ext_resource type="Texture2D" uid="uid://cpts0oh25um6x" path="res://assets/creatures/mother_spider.png" id="1_sheet"]
 
 [sub_resource type="AtlasTexture" id="frame_0_0"]
 atlas = ExtResource("1_sheet")
@@ -97,7 +97,7 @@ animations = [{
 }],
 "loop": true,
 "name": &"walk_side",
-"speed": 9
+"speed": 9.0
 }, {
 "frames": [{
 "duration": 1.0,
@@ -120,7 +120,7 @@ animations = [{
 }],
 "loop": true,
 "name": &"walk_down",
-"speed": 9
+"speed": 9.0
 }, {
 "frames": [{
 "duration": 1.0,
@@ -143,5 +143,5 @@ animations = [{
 }],
 "loop": true,
 "name": &"walk_up",
-"speed": 9
+"speed": 9.0
 }]
