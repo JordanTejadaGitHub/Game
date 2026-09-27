@@ -21,8 +21,12 @@ points.
 
 ## Where Warden families come from (not Dreams)
 
-- **After drift 1:** pick 1 of 3 base Wardens.
-- **Bosses at drifts 25, 50, 75:** pick 1 of 3 base Wardens you don't have yet.
+- **After drift 1:** pick 1 of 3 base Wardens, drawn **at random from every family you've
+  unlocked** (the starting 3 plus any unlocked in the Memory Grove: Pebbling, Rootling, Acorn,
+  Nestling, Whirligig). Not always the same 3: a Grove unlock can turn up from drift 1.
+- **Bosses at drifts 25, 50, 75:** pick 1 of 3 from the unlocked families you don't have yet (Family
+  Blessings fill empty slots, `meta_design.md`).
+- Draws avoid repeating the previous run's first-pick offer exactly, so runs start differently.
 - Family cards explain the Sprout rule, e.g. *"Sporeling: Sprouts can now grow into Sporelings
   (15 Dew), or plant one directly (25 Dew)."*
 

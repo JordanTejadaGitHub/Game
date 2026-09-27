@@ -98,7 +98,7 @@ longer unlock base Wardens; they give stats, branches, final forms and rules.
 
 | When | Reward |
 |---|---|
-| After drift 1 | **Pick your first family**: 1 of 3 base Wardens |
+| After drift 1 | **Pick your first family**: 1 of 3, drawn at random from **all families you've unlocked** (incl. Grove unlocks) |
 | Boss at 25, 50, 75 | **Pick a new family**: 1 of 3 base Wardens you don't have yet, **plus** a Dream that's guaranteed Rare or better |
 | Boss at 100 | the win |
 
