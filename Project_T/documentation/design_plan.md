@@ -58,6 +58,9 @@ Remaining: an offer simulation to check build reachability, then playtest tuning
 
 ## Phase 3: Meta and story delivery (before build-order step 7)
 
+**Drafted in `meta_design.md`** (Seed formula, Grove roots and costs, milestones, Blight Levels
+1–10, the 10 Memories and the true ending). Remaining: playtest tuning; Memory art and final text.
+
 ### 7. Meta-progression
 - Seed formula (per drift, per cleanse, win bonus) and a target of how many runs to unlock
   everything (e.g. 15–25 hours).
