@@ -12,7 +12,8 @@ const REBINDABLE := [
 	["move_camera_left", "Camera left"], ["move_camera_right", "Camera right"],
 	["toggle_build_mode", "Build mode"], ["start_drift", "Start / next drift"],
 	["pause_game", "Pause"], ["cycle_speed", "Change speed"], ["sell_tower", "Sell Warden"],
-	["grow_warden", "Grow selected Warden"], ["center_heartwood", "Centre on the Heartwood"],
+	["grow_warden", "Grow selected Warden"], ["nurture_warden", "Nurture selected Warden"],
+	["center_heartwood", "Centre on the Heartwood"],
 	["center_start", "Centre on the forest's edge"],
 ]
 

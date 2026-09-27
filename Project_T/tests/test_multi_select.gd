@@ -73,12 +73,12 @@ func _run() -> void:
 	await process_frame
 	_check(panel._title.text == "5 Wardens selected", "the panel title counts the selection")
 
-	# Sell all: normal refund rules (everything invested, in the build phase).
+	# Sell all: normal refund rules (the resting share of everything invested, 75% since difficulty v1).
 	var refund := seller.get_selection_refund()
-	var invested := 0
+	var expected := 0
 	for tower in sprouts:
-		invested += tower.invested_dew
-	_check(refund == invested, "Sell all refunds everything invested during a rest (%d)" % refund)
+		expected += int(tower.invested_dew * seller.build_phase_refund)
+	_check(refund == expected, "Sell all refunds the resting share of everything invested (%d)" % refund)
 	var dew := run_state.dew
 	_check(seller.sell_selection() == refund and run_state.dew == dew + refund, "Sell all pays the refund")
 	await process_frame

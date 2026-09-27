@@ -9,8 +9,9 @@ class_name TowerSeller
 #   double-click           every Warden of the same kind visible on screen (Ctrl: on the whole map)
 #   Shift + click / drag   add to / remove from the selection
 #   Esc                    clear
-# The Warden panel shows the selection and grows or sells it as a group.
-# Refund = all Dew invested in it: 100% in the build phase, 50% during a drift.
+# The Warden panel shows the selection and grows, nurtures (R) or sells it as a group.
+# Refund = a share of all Dew invested in it (build, growth, ranks): 75% while resting, 50% during a
+# drift (run_design.md difficulty pass v1).
 # Selling only ever opens paths, so it's always allowed; creatures re-route right away.
 
 signal tower_sold(tower: Tower, refund: int)
@@ -28,7 +29,7 @@ const BLOOM_TIME := 0.45
 const BLOOM_STAGGER := 0.06  # Seconds between Wardens in a group grow's bloom
 const WALL_ID := "thornwall"
 
-@export var build_phase_refund: float = 1.0
+@export var build_phase_refund: float = 0.75
 @export var drift_refund: float = 0.5
 
 @onready var map_generator = %MapGenerator
@@ -205,6 +206,43 @@ func grow_group(towers: Array, into: TowerData) -> int:
 		_selection_updated()  # Kinds changed: refresh the panel
 	return grown
 
+# The Wardens in `towers` that group Nurture would raise one rank each with the Dew there is,
+# nearest the Heartwood first (like group grow), and what that costs: [Array[Tower], cost].
+func plan_nurture(towers: Array) -> Array:
+	var chosen: Array[Tower] = []
+	var total := 0
+	for tower in sort_by_heartwood(towers):
+		if not is_instance_valid(tower) or not tower.can_nurture():
+			continue
+		var cost: int = tower.get_nurture_cost()
+		if total + cost > run_state.dew:
+			continue  # A cheaper one further out may still fit
+		chosen.append(tower)
+		total += cost
+	return [chosen, total]
+
+# Wardens in `towers` that could still gain a rank, and what raising all of them one rank costs.
+func full_nurture_cost(towers: Array) -> Array:
+	var count := 0
+	var total := 0
+	for tower in towers:
+		if is_instance_valid(tower) and tower.can_nurture():
+			count += 1
+			total += tower.get_nurture_cost()
+	return [count, total]
+
+# Nurtures `towers` one rank each as far as the Dew goes, nearest the Heartwood first. Returns how
+# many gained a rank.
+func nurture_group(towers: Array) -> int:
+	var raised := 0
+	for tower in plan_nurture(towers)[0]:
+		if tower_placer.nurture(tower):
+			_blooms.append([tower, raised * BLOOM_STAGGER])
+			raised += 1
+	if raised > 0:
+		_selection_updated()
+	return raised
+
 # Dew for selling the whole selection right now.
 func get_selection_refund() -> int:
 	var total := 0
@@ -257,6 +295,9 @@ func _unhandled_input(event: InputEvent) -> void:
 		get_viewport().set_input_as_handled()
 	elif event.is_action_pressed("cancel_build") and not selection.is_empty():
 		select(null)
+		get_viewport().set_input_as_handled()
+	elif event.is_action_pressed("nurture_warden") and not selection.is_empty():
+		nurture_group(selection)
 		get_viewport().set_input_as_handled()
 	elif event.is_action_pressed("grow_warden") and not selection.is_empty():
 		grow_selected()

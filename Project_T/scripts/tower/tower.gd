@@ -9,6 +9,8 @@ class_name Tower
 # them. Kinds and their numbers: documentation/tower_design.md and warden_stats.md.
 
 signal evolved(tower: Tower)
+# The Warden gained a Nurture rank (`rank` is the new one).
+signal nurtured(tower: Tower)
 # The attack's release frame: the shot / pulse / chain / cloud happens (sound hooks listen).
 signal attack_released(tower: Tower)
 # A hit from this Warden was a critical hit (sound: a sharp chime).
@@ -37,14 +39,24 @@ const TONGUE_COLOR := Color(0.95, 0.55, 0.6)
 const WIND_COLOR := Color(0.85, 0.95, 1.0)
 const LIGHT_COLOR := Color(1.0, 0.9, 0.5)
 # Crit argument for hit(): roll the dice, or force it (a burst or splash uses its main hit's roll).
+const RANK_MAX := 5
+const RANK_COSTS: Array[int] = [15, 25, 40, 60, 90]  # Dew for ranks I-V
+const RANK_DAMAGE := 0.15
+const RANK_SPEED := 0.05
+const RANK_RANGE := 0.1  # Cells
+const RANK_NAMES: Array[String] = ["", "I", "II", "III", "IV", "V"]
+const PIP_COLOR := Color(1.0, 0.85, 0.45)
 const ROLL_CRIT := -1
 const NO_CRIT := 0
 const CRIT := 1
 
 # The grid cell this tower occupies (set by TowerPlacer).
 var cell: Vector2
-# All Dew put into this Warden (build cost, evolutions). Selling refunds a share of it.
+# All Dew put into this Warden (build cost, evolutions, ranks). Selling refunds a share of it.
 var invested_dew := 0
+# Nurture rank 0-5 (warden_stats.md "Ranks: Nurture"): each rank +15% damage, +5% attack speed,
+# +0.1 range. Kept through evolution.
+var rank := 0
 # What the attack does: `tower_data` itself, or for a Graftling the neighbour it copies.
 var attack_data: TowerData
 # Who snipers shoot at (the player can change it in the Warden panel).
@@ -135,13 +147,33 @@ func _has_work() -> bool:
 # --- Effective stats (base × Dreams) ----------------------------------------------------------------
 
 func get_damage() -> float:
-	return attack_data.damage * _damage_share * (_dream_state.get_soothe_multiplier(self) if _dream_state else 1.0)
+	return attack_data.damage * _damage_share * (1.0 + RANK_DAMAGE * rank) \
+		* (_dream_state.get_soothe_multiplier(self) if _dream_state else 1.0)
 
 func get_attacks_per_second() -> float:
-	return attack_data.attacks_per_second * (_dream_state.get_attack_speed_multiplier(tower_data) if _dream_state else 1.0)
+	return attack_data.attacks_per_second * (1.0 + RANK_SPEED * rank) \
+		* (_dream_state.get_attack_speed_multiplier(tower_data) if _dream_state else 1.0)
 
 func get_range_cells() -> float:
-	return get_range_for(attack_data, _dream_state) + _aura_range
+	return get_range_for(attack_data, _dream_state) + _aura_range + RANK_RANGE * rank
+
+
+# --- Nurture ranks -------------------------------------------------------------------------------------
+
+# Attacking Wardens can be nurtured (not walls, not the White Stag's aura).
+func can_nurture() -> bool:
+	return tower_data.can_attack and tower_data.attack_kind != TowerData.AttackKind.AURA and rank < RANK_MAX
+
+# Dew for the next rank (0 when it can't be nurtured further).
+func get_nurture_cost() -> int:
+	return RANK_COSTS[rank] if can_nurture() else 0
+
+# Raises the rank by one; `cost` is added to invested Dew (TowerPlacer.nurture charges it).
+func nurture(cost: int) -> void:
+	rank = mini(rank + 1, RANK_MAX)
+	invested_dew += cost
+	queue_redraw()
+	nurtured.emit(self)
 
 func get_splash_cells() -> float:
 	return attack_data.splash_radius * (_dream_state.get_splash_multiplier(tower_data) if _dream_state else 1.0)
@@ -324,7 +356,7 @@ func pop(enemy: Node2D, chain: Dictionary = {}) -> void:
 	var applier := statuses.source(EnemyStatuses.SPORED)
 	statuses.remove(EnemyStatuses.SPORED)
 	var at := enemy.global_position
-	var damage := attack_data.pop_damage_per_stack * stacks \
+	var damage := attack_data.pop_damage_per_stack * stacks * (1.0 + RANK_DAMAGE * rank) \
 		* (_dream_state.get_soothe_multiplier(self) if _dream_state else 1.0)
 	var reach := attack_data.pop_radius * MAP_GRID.cell_size.x
 	for other in get_tree().get_nodes_in_group(ENEMY_GROUP):
@@ -715,6 +747,7 @@ func _update_aura(delta: float) -> void:
 func _draw() -> void:
 	if tower_data.texture == null:
 		draw_placeholder(self, tower_data.placeholder_color)
+	_draw_rank_pips()
 	for at in _lit_cells:
 		var centre := to_local(MAP_GRID.calculate_map_position(at))
 		var half := MAP_GRID.cell_size / 2.0 - Vector2(6, 6)
@@ -731,6 +764,27 @@ func _draw() -> void:
 			from = to  # Midsummer's beam carries on from the target to the one behind it
 	if attack_data != null and attack_data.attack_kind == TowerData.AttackKind.AURA:
 		draw_arc(Vector2.ZERO, get_range_pixels(), 0.0, TAU, 64, Color(0.85, 0.9, 1.0, 0.12), 3.0)
+
+# Small warm pips along the bottom of the tile, one per Nurture rank. Drawn on a child so they sit
+# over the sprite.
+func _draw_rank_pips() -> void:
+	var pips := get_node_or_null("RankPips") as Node2D
+	if rank <= 0:
+		if pips:
+			pips.queue_redraw()
+		return
+	if pips == null:
+		pips = Node2D.new()
+		pips.name = "RankPips"
+		pips.z_index = 1
+		pips.draw.connect(func() -> void:
+			var width := (rank - 1) * 7.0
+			for i in rank:
+				var at := Vector2(-width / 2.0 + i * 7.0, 27.0)
+				pips.draw_circle(at, 3.2, Color(0.1, 0.08, 0.05, 0.85))
+				pips.draw_circle(at, 2.2, PIP_COLOR))
+		add_child(pips)
+	pips.queue_redraw()
 
 # Attack reach in pixels.
 func get_range_pixels() -> float:

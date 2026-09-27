@@ -83,7 +83,7 @@ func save_now() -> bool:
 	for tower in tower_container.get_children():
 		if tower is Tower and not tower.is_queued_for_deletion():
 			towers.append({"cell": [tower.cell.x, tower.cell.y], "data": tower.tower_data.resource_path,
-				"invested": tower.invested_dew})
+				"invested": tower.invested_dew, "rank": tower.rank, "target_mode": tower.target_mode})
 	var data := {
 		"version": VERSION,
 		"map_seed": map_generator.map_seed,
@@ -137,6 +137,8 @@ func _restore(data: Dictionary) -> void:
 		tower.tower_data = load(saved.data)
 		tower.cell = Vector2(saved.cell[0], saved.cell[1])
 		tower.invested_dew = int(saved.invested)
+		tower.rank = int(saved.get("rank", 0))  # Saves from before Nurture have none
+		tower.target_mode = int(saved.get("target_mode", 0)) as TowerData.TargetMode  # Snipers' aim
 		tower.position = map_generator.MAP_GRID.calculate_map_position(tower.cell)
 		tower_container.add_child(tower)
 		map_generator.path_layer.set_cell_blocked(tower.cell, true)

@@ -63,6 +63,8 @@ func _refresh() -> void:
 	visible = true
 	var data := _tower.tower_data
 	_title.text = data.display_name
+	if _tower.rank > 0:
+		_title.text += " · Rank %s" % Tower.RANK_NAMES[_tower.rank]
 	var lines: Array[String] = []
 	if data.description != "":
 		lines.append(data.description)
@@ -118,6 +120,16 @@ func _refresh() -> void:
 			button.text = "%s · needs a Dream" % next.display_name
 			button.tooltip_text = next.description
 			button.disabled = true
+	if _tower.can_nurture():
+		var cost := _tower.get_nurture_cost()
+		var nurture := _add_button("Nurture to rank %s · %d Dew (R)" % [Tower.RANK_NAMES[_tower.rank + 1], cost])
+		nurture.tooltip_text = "+15% damage, +5% attack speed, +0.1 range. Kept when it grows."
+		nurture.disabled = not run_state.can_afford(cost)
+		nurture.pressed.connect(func() -> void:
+			if tower_placer.nurture(_tower):
+				_refresh())
+	elif data.can_attack and _tower.rank >= Tower.RANK_MAX:
+		_add_button("Rank V: fully nurtured").disabled = true
 	var refund := tower_seller.get_refund(_tower)
 	var sell := _add_button("Sell · +%d Dew%s" % [refund, "" if drift_director.is_build_phase() else " (half during a drift)"])
 	sell.pressed.connect(func() -> void: tower_seller.sell(_tower.cell))
@@ -172,6 +184,18 @@ func _refresh_group() -> void:
 					_plural(data, towers.size()), next.display_name, cost * affordable]
 				button.disabled = affordable == 0
 			button.pressed.connect(func() -> void: tower_seller.grow_group(towers, next))
+	# Nurture all: one rank each, as far as the Dew goes (nearest the Heartwood first).
+	var full: Array = tower_seller.full_nurture_cost(selection)
+	if full[0] > 0:
+		var plan: Array = tower_seller.plan_nurture(selection)
+		var nurture := _add_button("")
+		if plan[0].size() >= full[0]:
+			nurture.text = "Nurture all %d · %d Dew (R)" % [full[0], full[1]]
+		else:
+			nurture.text = "Nurture %d of %d · %d Dew (R)" % [plan[0].size(), full[0], plan[1]]
+			nurture.disabled = plan[0].is_empty()
+		nurture.tooltip_text = "Each gains a rank: +15% damage, +5% attack speed, +0.1 range."
+		nurture.pressed.connect(func() -> void: tower_seller.nurture_group(tower_seller.selection))
 	var refund := tower_seller.get_selection_refund()
 	var in_drift := not drift_director.is_build_phase()
 	var sell := _add_button("Sell %d · +%d Dew%s" % [selection.size(), refund, " (half during a drift)" if in_drift else ""])

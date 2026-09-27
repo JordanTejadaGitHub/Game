@@ -225,6 +225,17 @@ func evolve(tower: Tower, into: TowerData) -> bool:
 	tower.evolve(into, cost)
 	return true
 
+# Nurtures `tower` one rank (warden_stats.md "Ranks: Nurture"), if it can go higher and the player
+# can afford it. Ranks never change the path, so this is always allowed, like evolving.
+func nurture(tower: Tower) -> bool:
+	if not is_instance_valid(tower) or not tower.can_nurture():
+		return false
+	var cost := tower.get_nurture_cost()
+	if not run_state.spend_dew(cost):
+		return false
+	tower.nurture(cost)
+	return true
+
 # True if an enemy is standing in, or walking into, `cell`.
 func _is_occupied_by_enemy(cell: Vector2) -> bool:
 	for enemy in enemy_spawner.get_maze_walkers():
