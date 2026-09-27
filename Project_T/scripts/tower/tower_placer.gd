@@ -73,7 +73,11 @@ func _draw() -> void:
 	if _hover_cell == NO_CELL or not MAP_GRID.is_within_bounds(_hover_cell):
 		return
 	draw_set_transform(MAP_GRID.calculate_map_position(_hover_cell))
-	Tower.draw_placeholder(self, VALID_TINT if _hover_valid else INVALID_TINT)
+	var tint := VALID_TINT if _hover_valid else INVALID_TINT
+	var range_pixels := Tower.range_to_pixels(tower_data.attack_range)
+	draw_circle(Vector2.ZERO, range_pixels, Color(tint, 0.12))
+	draw_arc(Vector2.ZERO, range_pixels, 0.0, TAU, 64, Color(tint, 0.5), 2.0)
+	Tower.draw_placeholder(self, tint)
 
 # Recomputes the route preview for the hovered cell (only needed when the cell or the maze changes).
 func _refresh_hover() -> void:

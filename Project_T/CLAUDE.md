@@ -14,10 +14,13 @@ Original design docs are in `documentation/*.docx` (structure, 15-card dev plan)
 
 ## Current status
 Done: map generation, AStarGrid2D pathing + path tiles, camera (WASD + wheel zoom, clamped),
-data-driven enemy (Leaf Bug), **tower building** (build mode, placement validation, enemies re-route).
+data-driven enemy (Leaf Bug), **tower building** (build mode, placement validation, enemies re-route),
+**combat** (towers target the enemy closest to the goal and fire homing spore puffs; enemies are
+*cleansed*, not killed: blight shader fades to full colour, then they fade out).
 Temporary: `EnemyContainer.start_spawning()` spawns a Leaf Bug every 2 s forever (stand-in for waves).
-Next up: tower attacks (range/targeting/projectiles), enemy death, goal/lives, gold cost for towers.
-Not started: wave manager, upgrades, save data, selling/removing towers.
+Design, build order and story: `documentation/game_design.md`, `documentation/story.md` (cozy tone;
+enemies are "blighted creatures", towers are "Wardens", gold is "Dew", lives are "leaves").
+Next up: step 2 of the build order (leaves, Dew, tower cost, lose condition, HUD).
 
 ## Layout
 - `scenes/main.tscn` — root scene: MapGenerator (Ground / Path / EnvironmentObject TileMapLayers),
@@ -34,6 +37,11 @@ Not started: wave manager, upgrades, save data, selling/removing towers.
   empty), `tower_placer.gd` (`TowerPlacer`: build mode, ghost, route preview, validation).
   Towers can't go on border/trees/towers/start/end, on a cell an enemy occupies, or anywhere that
   would leave the start or any live enemy without a path to the end.
+- `scripts/tower/tower.gd` also handles attacking (stats in `TowerData`: range in cells, damage,
+  attacks/sec); `projectile.gd` (`Projectile`, script-only node). Enemies in the `"enemies"` group
+  are targetable; cleansing removes them from it and from `EnemyContainer.get_enemies()`.
+- `shaders/blight.gdshader` — grey "blighted" look; `blight` uniform 1 → 0 on cleanse.
+- `tests/` — headless `extends SceneTree` tests (e.g. `test_combat.gd`).
 - `scripts/ui/hud.gd` — HUD (Build Tower button, synced with build mode).
 - Input actions: `toggle_build_mode` (B), `place_tower` (LMB), `cancel_build` (RMB / Esc).
 - `resource/` — data resources + their scripts: `map_grid.tres` (`Grid`: 45x36 cells, 64px),

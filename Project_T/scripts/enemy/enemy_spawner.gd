@@ -38,8 +38,13 @@ func spawn_enemy(enemy_data: EnemyData) -> void:
 	enemy.position = enemy.grid.calculate_map_position(path_points[0])  # Start at the first waypoint (pixels)
 	enemy.set_path(path_points)
 
+# Enemies still walking the maze. Cleansing enemies are excluded: they don't block building or re-route.
 func get_enemies() -> Array[Node]:
-	return get_children()
+	var enemies: Array[Node] = []
+	for enemy in get_children():
+		if not enemy.is_cleansed:
+			enemies.append(enemy)
+	return enemies
 
 # The maze changed: every enemy re-routes from the cell it's currently walking toward.
 func _on_path_changed() -> void:
