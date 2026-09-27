@@ -35,6 +35,16 @@ func _ready() -> void:
 	_slider(box, "Sounds", "sfx_volume")
 	_toggle(box, "Fullscreen", "fullscreen")
 	_toggle(box, "Heartwood whispers (hints)", "whispers")
+	if TestGrove.is_available():  # Debug builds only; never in the demo or release
+		var dev := Label.new()
+		dev.text = "Developer"
+		box.add_child(dev)
+		var grove := CheckButton.new()
+		grove.text = "Test Grove: every Warden unlocked (from the next run)"
+		grove.button_pressed = _settings.get(TestGrove.SETTING, false)
+		grove.focus_mode = Control.FOCUS_NONE
+		grove.toggled.connect(func(on: bool) -> void: _set_value(TestGrove.SETTING, on))
+		box.add_child(grove)
 
 	var keys_title := Label.new()
 	keys_title.text = "Keys (click, then press a key)"

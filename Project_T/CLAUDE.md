@@ -67,6 +67,10 @@ branches, final forms; localization; audio; replacing the Foozle placeholder art
   queries, a Dream offer at every `rest_started` (built deferred; boss rests Rare+), `make_offer`,
   `choose`, `skip`, `offer_ready` / `offer_closed`, `to_save` / `load_save`. Cards:
   `resource/dream/*.tres` (`UpgradeData`), loaded from the folder. `unlock_everything` export for debugging.
+- **Test Grove** (dev playtest mode, demo_scope.md; `scripts/run/test_grove.gd`, `%TestGrove`):
+  debug builds only (`TestGrove.is_available()`), on via settings "Developer" toggle
+  (`test_grove`), launch flag `-- --test-grove`, or `TestGrove.force_on` (tests). Sets
+  `unlock_everything` (family picks then skip themselves), F9 = +500 Dew, `skip_to(n)` at a rest.
 - Card kinds from dream_design.md (2026-09-27): **Deepened** (`deepens` = base id, e.g.
   `evergreen_ii`; only offered once the base is owned; replaces the base: `_taken_cards()` drops it,
   rule code reads `rule_level(rule)` 0/1). **Entwined** (`entwined`, ingredients = `requires`;

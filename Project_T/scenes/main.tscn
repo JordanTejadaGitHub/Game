@@ -27,6 +27,7 @@
 [ext_resource type="Script" path="res://scripts/ui/whispers.gd" id="35_whisper"]
 [ext_resource type="Script" path="res://scripts/run/seasons.gd" id="36_seasons"]
 [ext_resource type="Script" path="res://scripts/audio/sound_hooks.gd" id="37_sound"]
+[ext_resource type="Script" path="res://scripts/run/test_grove.gd" id="38_grove"]
 
 [sub_resource type="Gradient" id="Gradient_5toel"]
 interpolation_mode = 1
@@ -95,6 +96,10 @@ script = ExtResource("16_dream")
 unique_name_in_owner = true
 process_mode = 3
 script = ExtResource("30_omen")
+
+[node name="TestGrove" type="CanvasLayer" parent="."]
+unique_name_in_owner = true
+script = ExtResource("38_grove")
 
 [node name="TowerPlacer" type="Node2D" parent="."]
 unique_name_in_owner = true
