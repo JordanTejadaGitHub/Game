@@ -17,6 +17,7 @@ Status as of 2026-09-27. The overview of the whole design is `game_design.md`; t
 | `dream_design.md` | Dream pool, offer rules, Deepened / Entwined / Bittersweet cards, status numbers |
 | `meta_design.md` | Seeds, Memory Grove, milestones, Blight Levels, Memories, true ending |
 | `onboarding.md` | teaching across the first runs |
+| `screens_ui.md` | screen flow, run HUD layout, panels, choice screens, settings, controls |
 | `demo_scope.md` | demo content (drifts 1–50, no meta), timeline, success measures |
 
 All numbers are guesses until act 1 is playable; **playtesting is the biggest missing piece**.
@@ -27,7 +28,7 @@ In recommended order:
 
 | # | Topic | What it needs | Needed for |
 |---|---|---|---|
-| 1 | **Screens and HUD** | every screen (title, run HUD, family pick, Dream, Omen, rest, pause, results, Grove, Memories, settings), what's on each, layout, Warden and creature info panels, path length, "+N path" tag | rests, Dreams and Omens (being built now) |
+| 1 | ~~Screens and HUD~~ | **done: `screens_ui.md`**; open question: Warden targeting modes | — |
 | 2 | **Art and audio direction** | style guide: palette, outlines, sizes, animation counts, how blighted vs cleansed reads, tileset list, UI style; music mood per phase, key SFX (the cleanse) | original art (longest lead time for the demo) |
 | 3 | **Accessibility** | blight must not rely on colour alone (grey vs colour is the core visual): a second cue such as haze, outline or icon; text size, reduced motion, key remapping, colour-blind check of status icons | art direction (do together) |
 | 4 | **Balance framework** | target soothe vs creature health per drift; how much of a drift should leak at "par"; spec for a simulation tool | tuning 100 drifts |
