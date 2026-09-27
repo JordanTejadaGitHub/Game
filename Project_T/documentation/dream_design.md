@@ -45,6 +45,12 @@ points.
 - **Boss Dreams** (after drifts 25, 50, 75, alongside the family pick): at least one card is Rare
   or better.
 - **Pity:** 3 Dreams in a row without a Rare+ card → the next offer includes one.
+- **Growth slot** (added 2026-09-27; playtests found combos too hard to reach): **every Dream offer
+  includes one growth card** (a branch or final-form unlock for a family you own) while any are
+  still locked. Final forms still only appear at their Rare weight within that slot, so branches
+  come first. You still choose; the other two slots stay as normal. This makes combos like Storm
+  Grid reliable in most runs (the old "1 in 3 by drift 50" target is replaced: aim for **most runs
+  having their first cross-family combo by the act 1 boss**).
 - **Tag weighting:** cards tagged with a family you own are **2× as likely**. Builds converge
   without being forced.
 - **Prerequisites:** a card never appears if it can't do anything yet (e.g. Stormcap cards need

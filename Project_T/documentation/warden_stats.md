@@ -19,6 +19,29 @@ evolving is how you keep growing. That tension is the long-run economy.
 against one creature, before statuses, auras and Dreams. Area and status effects are worth extra;
 single-target Wardens get higher raw numbers to compensate.
 
+**Ranks: Nurture** (added 2026-09-27, user request). Every attacking Warden (not Thornwall) can be
+**Nurtured** up to **rank V** with Dew, from the Warden panel (group Nurture works with
+multi-select; hotkey **R**).
+
+| Rank | Cost | Each rank adds |
+|---|---|---|
+| I | 15 | **+15% damage**, **+5% attack speed**, **+0.1 range** |
+| II | 25 | the same again |
+| III | 40 | the same again |
+| IV | 60 | the same again |
+| V | 90 | the same again (230 Dew in total) |
+
+- At rank V: +75% damage, +25% attack speed, +0.5 range: about **2.2× damage per second**, with
+  no Dream needed and **no extra space**. That's the point: steady growth when branch Dreams don't
+  come, and a use for Dew when the map is full.
+- **Ranks carry through evolution:** a rank III Sporeling that grows into a Driftspore is a rank III
+  Driftspore. So nurturing early is never wasted.
+- Ranks are **less Dew-efficient than evolving** (rank V costs 230 for ~2.2×; a branch costs 45 for
+  ~2×), so evolving stays the better buy when a Dream allows it.
+- Ranks multiply with Dream bonuses (Deeper Calm etc.). Status potency uses the ranked damage.
+- Selling refunds rank Dew like any other Dew spent on the Warden.
+- Shown as small pips under the Warden and in its panel ("Rank III").
+
 **Auras don't stack with themselves:** a Warden next to two Elder Stumps gets the bonus once (the
 highest one applies). Different aura types do stack.
 
