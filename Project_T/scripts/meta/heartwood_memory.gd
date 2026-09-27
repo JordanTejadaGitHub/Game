@@ -78,9 +78,12 @@ static func save_settings(settings: Dictionary) -> void:
 static func apply_settings(settings: Dictionary = {}) -> void:
 	if settings.is_empty():
 		settings = get_settings()
-	var master := AudioServer.get_bus_index("Master")
-	AudioServer.set_bus_volume_db(master, linear_to_db(maxf(settings.master_volume, 0.0001)))
-	AudioServer.set_bus_mute(master, settings.master_volume <= 0.0)
+	# Buses are made by the Sound autoload; Ambience follows the music slider, UI the sounds slider.
+	_set_bus_volume("Master", settings.master_volume)
+	_set_bus_volume("Music", settings.music_volume)
+	_set_bus_volume("Ambience", settings.music_volume)
+	_set_bus_volume("SFX", settings.sfx_volume)
+	_set_bus_volume("UI", settings.sfx_volume)
 	if DisplayServer.get_name() != "headless":
 		DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_FULLSCREEN if settings.fullscreen
 			else DisplayServer.WINDOW_MODE_WINDOWED)
@@ -95,6 +98,13 @@ static func apply_settings(settings: Dictionary = {}) -> void:
 			var key := InputEventKey.new()
 			key.physical_keycode = int(keycode)
 			InputMap.action_add_event(action, key)
+
+static func _set_bus_volume(bus_name: String, volume: float) -> void:
+	var bus := AudioServer.get_bus_index(bus_name)
+	if bus == -1:
+		return
+	AudioServer.set_bus_volume_db(bus, linear_to_db(maxf(volume, 0.0001)))
+	AudioServer.set_bus_mute(bus, volume <= 0.0)
 
 # Copies keys from `source` into `target`, recursing into dictionaries, so new defaults survive
 # loading an older save.

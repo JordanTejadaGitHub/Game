@@ -1,4 +1,4 @@
-[gd_scene load_steps=29 format=3 uid="uid://ct33vhcgulg0g"]
+[gd_scene load_steps=30 format=3 uid="uid://ct33vhcgulg0g"]
 
 [ext_resource type="Script" path="res://scripts/main.gd" id="1_bjgx8"]
 [ext_resource type="Script" path="res://scripts/map/map_generator.gd" id="2_888hw"]
@@ -26,6 +26,7 @@
 [ext_resource type="Script" path="res://scripts/ui/pause_menu.gd" id="34_pause"]
 [ext_resource type="Script" path="res://scripts/ui/whispers.gd" id="35_whisper"]
 [ext_resource type="Script" path="res://scripts/run/seasons.gd" id="36_seasons"]
+[ext_resource type="Script" path="res://scripts/audio/sound_hooks.gd" id="37_sound"]
 
 [sub_resource type="Gradient" id="Gradient_5toel"]
 interpolation_mode = 1
@@ -286,6 +287,11 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("34_pause")
+
+[node name="SoundHooks" type="Node" parent="."]
+unique_name_in_owner = true
+process_mode = 3
+script = ExtResource("37_sound")
 
 [node name="Seasons" type="CanvasModulate" parent="."]
 script = ExtResource("36_seasons")

@@ -151,6 +151,18 @@ branches, final forms; localization; audio; replacing the Foozle placeholder art
 - `Whispers` (`%Whispers`): onboarding.md's Heartwood whispers, each once ever; first run glides the
   camera along the path (`GameCameraNode.glide`). The build ghost shows "+N path".
 
+## Audio (placeholder, audio_direction.md)
+- `tools/sound_generator.gd` synthesizes every sound into `assets/audio/` (sfx 44.1 kHz; music
+  stems + ambience 22 kHz, D minor 72 bpm 3/4, 20 s loops of equal length). Re-run it, then `--import`.
+- `Sound` autoload (`scripts/audio/sound.gd`): buses Music/SFX/Ambience/UI (reverb on Music/SFX,
+  lowpass "muffle" on Music), `play(id, world_pos, db, pitch, jitter, bus)` (random variant
+  `<id>_01..`, voice limit + throttle per id, positional via AudioStreamPlayer2D), `play_dispel`
+  (chime climbs a pentatonic combo), `play_music(set, layers)` / `set_layer` (stems base, dread1,
+  dread2, heartbeat, boss), `play_ambience`. Every BaseButton clicks. Silent under headless.
+- `SoundHooks` (`%SoundHooks` in main.tscn) connects the run's signals to it and drives the music
+  layers; gameplay scripts never call Sound (`Tower.attack_released`, `TowerPlacer.build_rejected`
+  exist for it). Settings: Music slider = Music + Ambience, Sounds = SFX + UI. `tests/test_sound.gd`.
+
 ## Layout
 - `scenes/main.tscn` — root scene: MapGenerator (Ground / Path / EnvironmentObject TileMapLayers),
   TowerContainer, EnemyContainer (spawner), HUD, GameCameraNode.
