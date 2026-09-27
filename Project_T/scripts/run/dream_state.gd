@@ -917,6 +917,8 @@ func owned_statuses() -> Dictionary:
 			continue
 		if data.applies_status != &"":
 			statuses[data.applies_status] = true
+		if data.extra_status != &"":  # A second status (Lullaby Bell's Drowsy)
+			statuses[data.extra_status] = true
 		if data.freeze_duration > 0.0 or HELD_SOURCES.has(data.get_id()):
 			statuses[EnemyStatuses.HELD] = true
 	for id in HELD_SOURCES:  # Also when only unlocked by id (not in the roster or a card yet)
