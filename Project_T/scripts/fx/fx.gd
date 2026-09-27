@@ -14,6 +14,9 @@ class_name Fx
 #   Fx.chain(count, where, parent, towers)                 x2+ badge, x5 surge + hitstop, x10 Dawnburst
 #   Fx.crit(at, parent) / Fx.status_flash(status, at, parent)
 #   Fx.rain_sweep(center, radius, parent, seconds)         Monsoon's sheet of rain
+#
+# `parent`: the run's scene root (world space, scrolls with the map). Never EnemyContainer or
+# TowerContainer: other code treats their children as nightmares / Wardens.
 
 const INDEX_PATH := "res://assets/effects/effects.json"
 const DIR := "res://assets/effects/"
