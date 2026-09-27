@@ -388,6 +388,13 @@
 				46
 			]
 		},
+		"white_stag": {
+			"kind": "aura",
+			"point": [
+				31,
+				46
+			]
+		},
 		"windmill": {
 			"kind": "spin",
 			"point": [

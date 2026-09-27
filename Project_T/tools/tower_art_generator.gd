@@ -204,7 +204,7 @@ const ATTACKS := {
 	# New Wardens. trap = plants on path tiles (sprite in projectiles/); light = lit path tiles;
 	# copy = copies a neighbour's attack; swoop = a bird flies out and back (sprite in projectiles/);
 	# sweep = a flock crosses a stretch of path; gust / spread / spin = wind around it. The White
-	# Stag's aura is always on, so it has no attack.
+	# Stag's aura is always on; its "attack" sheet is just the aura's pulse.
 	"honeysuckle": {kind = "pulse", point = Vector2i(31, 46)},
 	"fairy_ring": {kind = "trap", projectile = "fairy_ring", point = Vector2i(31, 50)},
 	"elf_circle": {kind = "trap", projectile = "elf_circle", point = Vector2i(31, 50)},
@@ -229,6 +229,7 @@ const ATTACKS := {
 	"windmill": {kind = "spin", point = Vector2i(31, 38)},
 	"pond_keeper": {kind = "pull", point = Vector2i(60, 30)},
 	"moon_moth": {kind = "projectile", projectile = "moon_mote", point = Vector2i(31, 4)},
+	"white_stag": {kind = "aura", point = Vector2i(31, 46)},  # its aura is always on; this is the visible pulse
 }
 const PREVIEWS := "res://tools/previews/"
 
@@ -3182,6 +3183,15 @@ func _attack_pond_keeper(canvas: Image, st: Dictionary) -> void:
 	_flat_ellipse(tongue, end, Vector2(2.2, 2.2), Color("#f09aa8"))
 	_stamp(canvas, tongue, Color("#6a2030"))
 	_warm_glow(canvas, end, Vector2(5, 4), a)
+
+# The White Stag's aura breathing out: a soft silver ring and a warm one, with a shimmer of stars.
+func _attack_white_stag(canvas: Image, st: Dictionary) -> void:
+	_pulse(canvas, st, Color("#e8ecff"))
+	var k: int = st.attack - RELEASE_FRAME
+	if k >= 0 and k < 3:
+		for p: Vector2i in [Vector2i(10, 20), Vector2i(52, 18), Vector2i(31, 2), Vector2i(6, 36), Vector2i(57, 34)]:
+			if (p.x + k) % 3 != 0:
+				_sparkle(canvas, p + Vector2i(0, -k), Color("#f4f8ff"))
 
 func _attack_moon_moth(canvas: Image, st: Dictionary) -> void:
 	_flash(canvas, st, Vector2(ATTACKS["moon_moth"].point), Color("#f4f8ff"), MEMORY_GOLD)
