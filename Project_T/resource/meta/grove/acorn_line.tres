@@ -5,10 +5,10 @@
 [resource]
 script = ExtResource("1_unlock")
 id = "acorn_line"
-display_name = "Acorn line"
+display_name = "Acorn family"
 description = "Acorn joins your family picks: support and Dew."
 root = 0
 costs = Array[int]([70])
-order = 3
-families = Array[String](["acorn"])
 requires_any = Array[String](["pebbling_line", "rootling_line"])
+order = 4
+families = Array[String](["acorn"])

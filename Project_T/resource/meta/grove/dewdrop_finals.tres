@@ -4,10 +4,9 @@
 
 [resource]
 script = ExtResource("1_unlock")
-id = "rootling_line"
-display_name = "Rootling family"
-description = "Rootling joins your family picks: roots that slow and hold."
+id = "dewdrop_finals"
+display_name = "Dewdrop final forms"
+description = "Dewdrop final forms can grow in your runs: Monsoon, Morning Fog."
 root = 0
 costs = Array[int]([50])
-order = 2
-families = Array[String](["rootling"])
+order = 12

@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="UnlockData" format=3]
+
+[ext_resource type="Script" path="res://resource/meta/script/unlock_data.gd" id="1_unlock"]
+
+[resource]
+script = ExtResource("1_unlock")
+id = "samara"
+display_name = "Hidden branch: Samara"
+description = "Whirligigs can grow into Samaras (and Autumn Gales). Brings the boomerang cards."
+root = 0
+costs = Array[int]([80])
+requires_all = Array[String](["whirligig_finals"])
+order = 27
+dream_cards = Array[String](["longer_flight", "backspin", "ricochet", "ricochet_ii", "heavy_seed", "windborne_rain", "seed_storm"])

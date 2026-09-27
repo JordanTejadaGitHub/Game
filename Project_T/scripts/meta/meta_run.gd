@@ -74,6 +74,11 @@ func _ready() -> void:
 			_shades_this_run += 1)
 	run_state.run_ended.connect(_on_run_ended)
 
+# A family's base Warden, or null while it isn't built yet (a Grove node can name a coming family).
+static func _family(id: String) -> TowerData:
+	var path := TOWER_DIR + id + ".tres"
+	return load(path) as TowerData if ResourceLoader.exists(path) else null
+
 static func load_blessings() -> Array[UpgradeData]:
 	var result: Array[UpgradeData] = []
 	for file in ResourceLoader.list_directory(BLESSING_DIR):
@@ -92,7 +97,7 @@ func _apply_all_families() -> void:
 		if unlock.root != UnlockData.Root.WARDENS:
 			continue
 		for id in unlock.families:
-			var data := load(TOWER_DIR + id + ".tres") as TowerData
+			var data := _family(id)
 			if data != null and not family_screen.families.has(data):
 				family_screen.families.append(data)
 		if "grove_cards" in dream_state:
@@ -113,7 +118,7 @@ func _apply_grove(memory: Dictionary) -> void:
 		if level == 0:
 			continue
 		for id in unlock.families:
-			var data := load(TOWER_DIR + id + ".tres") as TowerData
+			var data := _family(id)
 			if data != null and not family_screen.families.has(data):
 				family_screen.families.append(data)
 		for id in unlock.dream_cards:

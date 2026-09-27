@@ -4,10 +4,10 @@
 
 [resource]
 script = ExtResource("1_unlock")
-id = "rootling_line"
-display_name = "Rootling family"
-description = "Rootling joins your family picks: roots that slow and hold."
+id = "firefly_jar_finals"
+display_name = "Firefly Jar final forms"
+description = "Firefly Jar final forms can grow in your runs: Thunderhead, Beacon."
 root = 0
 costs = Array[int]([50])
-order = 2
-families = Array[String](["rootling"])
+order = 11
+dream_cards = Array[String](["dream_thunderhead"])

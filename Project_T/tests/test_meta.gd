@@ -25,6 +25,19 @@ func _run() -> void:
 	HeartwoodMemory.save_data(memory)
 	var grove := HeartwoodMemory.load_grove()
 	_check(grove.size() >= 17, "the Grove has its unlocks (%d)" % grove.size())
+	# The Families limb (meta_design.md): 7 families + final forms + hidden branches ≈ 1,390 Seeds.
+	var limb := 0
+	for unlock in grove:
+		if unlock.root == UnlockData.Root.WARDENS:
+			limb += unlock.costs[0]
+	_check(limb == 1390, "the Families limb costs 1,390 Seeds (%d)" % limb)
+	_check(_unlock(grove, "bellflower_line").requires_any == ["pebbling_line", "rootling_line"], "Bellflower needs Pebbling or Rootling")
+	for hidden in ["fairy_ring", "frostfern", "cairn", "rootlight", "echo_hollow", "graftling", "hummingbird_bower", "samara"]:
+		var node := _unlock(grove, hidden)
+		_check(node != null and node.requires_all.size() == 1 and node.requires_all[0].ends_with("_finals"),
+			"hidden branch %s needs its family's final forms" % hidden)
+	_check(_unlock(grove, "nestling_family").requires_any.has("bellflower_line") and _unlock(grove, "nestling_family").requires_any_count == 2,
+		"Nestling needs 2 of Pebbling / Rootling / Bellflower / Acorn")
 	var acorn := _unlock(grove, "acorn_line")
 	_check(HeartwoodMemory.buy_problem(HeartwoodMemory.load_data(), acorn) != "", "Acorn needs Pebbling or Rootling first")
 	_check(HeartwoodMemory.buy(_unlock(grove, "pebbling_line")), "buy the Pebbling line")
@@ -51,6 +64,8 @@ func _run() -> void:
 	_check(run_state.dew == run_state.starting_dew + 30 - 20, "starting Dew: base + Morning Stores 30 − Blight 20 (%d)" % run_state.dew)
 	var family_ids: Array = family.families.map(func(d: TowerData) -> String: return d.get_id())
 	_check(family_ids.has("pebbling") and family_ids.has("acorn") and family_ids.has("nestling"), "Grove families join the picks (%s)" % [family_ids])
+	_check(dreams.grove_cards.has("dream_standing_stone") and dreams.grove_cards.has("dream_wrens_nest")
+		and not dreams.grove_cards.has("dream_magpies_hoard"), "family nodes bring their branches, not their final forms")
 	_check(is_equal_approx(director.blight_health_multiplier, 1.1) and is_equal_approx(director.blight_boss_health_multiplier, 1.25)
 		and director.blight_elites_per_drift == 1 and is_equal_approx(director.blight_rest_bonus_multiplier, 0.75),
 		"Blight 1–5 modifiers applied")

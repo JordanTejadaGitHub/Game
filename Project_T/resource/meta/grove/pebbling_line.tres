@@ -5,9 +5,10 @@
 [resource]
 script = ExtResource("1_unlock")
 id = "pebbling_line"
-display_name = "Pebbling line"
-description = "Pebbling joins your family picks: heavy hits, and its hidden Standing Stone can be grown."
+display_name = "Pebbling family"
+description = "Pebbling joins your family picks: heavy hits. Its branches: Mossback and Standing Stone."
 root = 0
 costs = Array[int]([50])
 order = 1
 families = Array[String](["pebbling"])
+dream_cards = Array[String](["dream_standing_stone"])

@@ -6,11 +6,11 @@
 script = ExtResource("1_unlock")
 id = "nestling_family"
 display_name = "Nestling family"
-description = "Nestling joins your family picks: birds, mobile and fast. Its branches join the Dream pool."
+description = "Nestling joins your family picks: birds, mobile and fast. Its branches: Wren's Nest and Magpie Perch."
 root = 0
 costs = Array[int]([120])
-order = 4
-requires_any = Array[String](["pebbling_line", "rootling_line", "acorn_line"])
-dream_cards = Array[String](["dream_wrens_nest", "dream_magpie_perch", "dream_starling_murmuration", "dream_magpies_hoard"])
-families = Array[String](["nestling"])
+requires_any = Array[String](["pebbling_line", "rootling_line", "bellflower_line", "acorn_line"])
 requires_any_count = 2
+order = 5
+families = Array[String](["nestling"])
+dream_cards = Array[String](["dream_wrens_nest", "dream_magpie_perch"])
