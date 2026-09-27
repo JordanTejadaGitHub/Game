@@ -126,8 +126,9 @@ func _refresh() -> void:
 		# Rank III asks for a Focus, kept through growth and never changed.
 		var cost := _tower.get_nurture_cost()
 		for which in [Tower.Focus.POWER, Tower.Focus.SWIFT, Tower.Focus.REACH, Tower.Focus.DEEP]:
-			var button := _add_button("Rank III · %s: %s per rank · %d Dew" % [Tower.FOCUS_NAMES[which],
-				Tower.FOCUS_TEXT[which], cost])
+			# Usually rank III; a Warden planted at a higher rank (Remembered Care) chooses on its next one.
+			var button := _add_button("Rank %s · %s: %s per rank · %d Dew" % [Tower.RANK_NAMES[_tower.rank + 1],
+				Tower.FOCUS_NAMES[which], Tower.FOCUS_TEXT[which], cost])
 			button.tooltip_text = "The usual rank gains, plus this Focus at ranks III, IV and V. Can't be changed later."
 			button.disabled = not run_state.can_afford(cost)
 			button.pressed.connect(func() -> void:
