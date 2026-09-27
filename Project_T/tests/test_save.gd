@@ -46,6 +46,9 @@ func _run() -> void:
 	placer._try_build(cell)
 	var obstacle_cell: Vector2 = map_generator.obstacles.keys()[0]
 	clearer.try_clear(obstacle_cell)
+	run_state.add_free_clears(2)  # Clearing Dream cards
+	var fertile_cell := _free_cell(map_generator)
+	run_state.fertile_cells[fertile_cell] = true
 	saver._dirty = true
 	await _frames(3)
 	var saved := {"seed": map_generator.map_seed, "dew": run_state.dew, "leaves": run_state.leaves,
@@ -71,6 +74,7 @@ func _run() -> void:
 	_check(not map_generator.is_buildable(cell), "and it blocks its cell again")
 	_check(map_generator.get_obstacle(obstacle_cell) == null, "the tended obstacle stays gone")
 	_check(dreams.is_unlocked(family_id), "the family pick is remembered")
+	_check(run_state.free_clears == 2 and run_state.fertile_cells.has(fertile_cell), "free clears and fertile cells restored")
 	_check(director.drifts_started == 5 and director.is_resting(), "resumes at the rest after drift 5")
 	_check(director.start_next_drift() and director.drifts_started == 6, "and plays on from drift 6")
 
