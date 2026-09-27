@@ -59,7 +59,30 @@ points.
 - **Tag weighting:** cards tagged with a family you own are **2× as likely**. Builds converge
   without being forced.
 - **Prerequisites:** a card never appears if it can't do anything yet (e.g. Stormcap cards need
-  Firefly Jar).
+  Firefly Jar). Full rules in *Card requirements* below.
+
+### Card requirements (the "Needs" column)
+
+Clarified 2026-09-27 (user rule: cards that need other cards work like the clearing cards). Every
+card lists its **Needs**; it is **never offered until all of them are met**. There are three kinds:
+
+| Kind | Meaning | Example | Data |
+|---|---|---|---|
+| **Warden** | you own that Warden (built or unlocked) | Soft Spores needs Sporeling | `requires` (Warden id) |
+| **Card** | you've taken that card, or *any* card with a tag | Thunderhead needs Stormcap; Sunlit Rest needs any `nurture` card | `requires` (card id) / `requires_tag` (new) |
+| **Run state** | something on the map or in your run is true | clearing cards need 8+ obstacles; Deeper Rings needs a rank V Warden | `min_obstacles`, `min_rank_dew` (new), `min_rank_owned` (new) |
+
+**Opener cards and follow-up cards.** Some directions are *locked mechanics*: clearing is off until you
+take a clearing card, so **every clearing card is an opener** (taking any one turns clearing on).
+Directions that are always available but need investment (Nurture) have **openers** (need only the
+run-state check) and **follow-ups** (need an opener card too). So the pool grows with your build
+instead of offering payoff cards for a direction you never started.
+
+- **Deepened cards** always need their base card.
+- **Entwined cards** need all their ingredients (and are then guaranteed once).
+- **Grove cards** also need their Grove unlock (outside the run).
+- A requirement that is **lost** (e.g. you sell your last rank V Warden) doesn't remove a card you
+  took; it only stops new offers of cards that need it.
 - **Stacking:** stat cards (Commons 1–7) **stack without limit** (shown as "II", "III", …);
   everything else once. Stacks add, not multiply (3× Quickened Sap = +30%, not +33.1%). With 19
   Dreams the extreme is +190% in one stat, which is fine: creatures reach ×30 health by drift 100,
@@ -83,18 +106,18 @@ Rootling, Acorn) brings its own cards.
 
 ### Common: steady growth
 
-| # | Card | Effect | Tags | Pool |
-|---|---|---|---|---|
-| 1 | **Quickened Sap** | all Wardens +10% attack speed | — | Start |
-| 2 | **Deeper Calm** | all Wardens +10% soothe | — | Start |
-| 3 | **Longer Roots** | all Wardens +0.25 range | — | Start |
-| 4 | **Sprout Surge** | Sprouts +30% soothe, +0.5 range | sprout | Start |
-| 5 | **Soft Spores** | Spored +25% strength | spore | Start |
-| 6 | **Brighter Jars** | Firefly line +15% attack speed | light | Start |
-| 7 | **Heavy Dew** | Dewdrop line +25% splash radius, Damp +1 s | water | Start |
-| 8 | **Cheap Hedges** | Thornwalls cost 2 (once) | wall | Start |
-| 9 | **Morning Dew** | +20 Dew now, +10 at every rest | economy | Start |
-| 10 | **Deep Roots** | +2 max leaves, regrow 2 now | leaves | Start |
+| # | Card | Effect | Tags | Needs | Pool |
+|---|---|---|---|---|---|
+| 1 | **Quickened Sap** | all Wardens +10% attack speed | — | — | Start |
+| 2 | **Deeper Calm** | all Wardens +10% soothe | — | — | Start |
+| 3 | **Longer Roots** | all Wardens +0.25 range | — | — | Start |
+| 4 | **Sprout Surge** | Sprouts +30% soothe, +0.5 range | sprout | — | Start |
+| 5 | **Soft Spores** | Spored +25% strength | spore | Sporeling | Start |
+| 6 | **Brighter Jars** | Firefly line +15% attack speed | light | Firefly Jar | Start |
+| 7 | **Heavy Dew** | Dewdrop line +25% splash radius, Damp +1 s | water | Dewdrop | Start |
+| 8 | **Cheap Hedges** | Thornwalls cost 2 (once) | wall | — | Start |
+| 9 | **Morning Dew** | +20 Dew now, +10 at every rest | economy | — | Start |
+| 10 | **Deep Roots** | +2 max leaves, regrow 2 now | leaves | — | Start |
 
 *(Numbers 11–13 were base Warden unlocks; those now come from the first pick and bosses.)*
 
@@ -146,10 +169,10 @@ additively like other stats.
 | 37 | **Glinting Dew** | Common | all Wardens +4% crit chance (stacks) | crit | — | Start |
 | 38 | **Heavy Stones** | Common | Pebbling line +8% crit chance (stacks) | stone, crit | Pebbling | Start |
 | 39 | **Sharpened Light** | Uncommon | all Wardens +0.5 crit multiplier | crit | — | Start |
-| 40 | **Still Target** | Uncommon | +15% crit chance vs Drowsy, Held or frozen nightmares | crit, sleep | — | Grove |
+| 40 | **Still Target** | Uncommon | +15% crit chance vs Drowsy, Held or frozen nightmares | crit, sleep | a Warden that applies Drowsy, Held or frost (Bloomcap, Rootling line, Frostfern, Honeysuckle) | Grove |
 | 41 | **Shattering Blow** | Rare | crits splash 50% of their damage to nightmares within 1 cell | crit | — | Grove |
 | 42 | **Starlit Aim** | Rare, **Entwined** (Standing Stone + Lanternmoth) | Marked nightmares take +25% crit chance from every Warden | crit, mark | — | Grove |
-| 43 | **Full Moon** | Legendary | all Wardens +10% crit chance; crit chance **above 100%** becomes crit damage (each 1% over = +1% crit multiplier) | crit | — | Grove |
+| 43 | **Full Moon** | Legendary | all Wardens +10% crit chance; crit chance **above 100%** becomes crit damage (each 1% over = +1% crit multiplier) | crit | 2 `crit` cards | Grove |
 | 44 | **Reckless Bloom** | Uncommon, **Bittersweet** | all Wardens +20% crit chance. **Cost:** hits that don't crit do −15% damage | crit, bittersweet | — | Grove |
 
 Deepened: **Sharpened Light II** +1.0 multiplier; **Still Target II** +25%; **Shattering Blow II**
@@ -232,21 +255,24 @@ make it a build choice without breaking its rule: **ranks stay less Dew-efficien
 Evolving is still the better buy when a Dream allows it; Nurture cards make ranks the better buy
 **when the map is full or growth Dreams haven't come**.
 
-| # | Card | Rarity | Effect | Tags | Pool |
-|---|---|---|---|---|---|
-| 60 | **Tender Care** | Common | Nurturing costs **15% less** Dew (stacks, max −45%) | nurture, economy | Start |
-| 61 | **Warm Hands** | Common | each Nurture rank gives **+4% more damage** (15% → 19%; stacks) | nurture | Start |
-| 62 | **Kindred Roots** | Uncommon | each Warden gets **+2% damage per rank of the Wardens touching it** (max +30%) | nurture, maze | Start |
-| 63 | **Remembered Care** | Uncommon | selling a ranked Warden leaves a **memory seed** on the HUD; the next Warden you plant starts at that rank (one seed at a time, the highest one is kept) | nurture | Start |
-| 64 | **Sunlit Rest** | Uncommon | at every rest, your ranked Warden **nearest the Heartwood** that isn't rank V gains a free rank | nurture | Grove |
-| 65 | **Deeper Rings** | Rare | max rank **VII**: VI costs 130, VII costs 180 (same gains per rank) | nurture | Grove |
-| 66 | **Nursery** | Rare, **Entwined** (Tender Care + Seedling Gift) | Seedling Gift's free Sprouts arrive at **rank II**, and Sprouts nurture for half price | nurture, sprout | Grove |
-| 67 | **The Old Ones** | Legendary | each rank also gives **+2% crit chance**; rank V+ Wardens make the Wardens touching them count **one rank higher** (doesn't stack with itself) | nurture, crit | Grove |
-| 68 | **Chosen Few** | Rare, **Bittersweet** | rank V+ Wardens **+50% damage**. **Cost:** Wardens below rank III do −15% damage | nurture, bittersweet | Grove |
+| # | Card | Rarity | Effect | Tags | Needs | Pool |
+|---|---|---|---|---|---|---|
+| 60 | **Tender Care** | Common | Nurturing costs **15% less** Dew (stacks, max −45%) | nurture, economy | *opener:* 30+ Dew spent on ranks | Start |
+| 61 | **Warm Hands** | Common | each Nurture rank gives **+4% more damage** (15% → 19%; stacks) | nurture | *opener:* 30+ Dew spent on ranks | Start |
+| 62 | **Kindred Roots** | Uncommon | each Warden gets **+2% damage per rank of the Wardens touching it** (max +30%) | nurture, maze | any `nurture` card + 2 ranked Wardens | Start |
+| 63 | **Remembered Care** | Uncommon | selling a ranked Warden leaves a **memory seed** on the HUD; the next Warden you plant starts at that rank (one seed at a time, the highest one is kept) | nurture | any `nurture` card + a rank III+ Warden | Start |
+| 64 | **Sunlit Rest** | Uncommon | at every rest, your ranked Warden **nearest the Heartwood** that isn't at max rank gains a free rank | nurture | any `nurture` card | Grove |
+| 65 | **Deeper Rings** | Rare | max rank **VII**: VI costs 130, VII costs 180 (same gains per rank) | nurture | any `nurture` card + a rank V Warden | Grove |
+| 66 | **Nursery** | Rare, **Entwined** | Seedling Gift's free Sprouts arrive at **rank II**, and Sprouts nurture for half price | nurture, sprout | Tender Care + Seedling Gift | Grove |
+| 67 | **The Old Ones** | Legendary | each rank also gives **+2% crit chance**; rank V+ Wardens make the Wardens touching them count **one rank higher** (doesn't stack with itself) | nurture, crit | any `nurture` card + a rank V Warden | Grove |
+| 68 | **Chosen Few** | Rare, **Bittersweet** | rank V+ Wardens **+50% damage**. **Cost:** Wardens below rank III do −15% damage | nurture, bittersweet | a rank V Warden | Grove |
 
-- **Offered only when it matters:** Nurture cards need you to have **spent 30+ Dew on ranks** this
-  run (a "you've tried it" gate, like the 8-obstacle rule for clearing cards). After that, the
-  `nurture` tag counts as an owned family for tag weighting (2×).
+- **Openers and follow-ups** (see *Card requirements*): Tender Care and Warm Hands are the
+  **openers**, offered once you've **spent 30+ Dew on ranks** this run (a "you've tried it" gate,
+  like the 8-obstacle rule for clearing cards). Everything else is a **follow-up** that also needs an
+  opener (or any other `nurture` card) plus the rank it pays off. Chosen Few is the exception: a
+  Bittersweet card can tempt you into the direction, so it only needs the rank V Warden.
+- Once you own any `nurture` card, the tag counts as an owned family for tag weighting (2×).
 - **Walls and auras** can't be nurtured, so none of these cards touch them. Kindred Roots counts
   the ranks of neighbours that *have* ranks; a Thornwall neighbour gives 0.
 - **Dew-efficiency check:** rank V with 3× Tender Care costs 127 for ~2.2×. A branch costs 45 for
@@ -369,5 +395,9 @@ up with creature health and benefit from stat Dreams and evolutions.
 `id`, `display_name`, `description`, `rarity`, `kind` (unlock_evolution / stat / rule / economy;
 family unlocks are a separate pick, not a Dream card), `tags: Array[String]`, `requires: Array[String]` (ids of Wardens or cards),
 `max_stacks` (0 = unlimited for stat cards, else 1), `min_act` (Legendary = 2), `in_start_pool: bool`,
+requirement fields (*Card requirements*): `requires_tag` + `requires_tag_count` (e.g. "nurture", 1;
+"crit", 2), `requires_any` (Wardens where any one is enough, e.g. Still Target's sources),
+`min_obstacles`, `min_rank_dew` (Dew spent on ranks this run), `min_rank_owned` + `min_rank_count`
+(e.g. rank V, 1; any rank, 2),
 plus effect parameters (stat modifiers: target line + stat + amount; or a `rule_id` the game
 checks for).
