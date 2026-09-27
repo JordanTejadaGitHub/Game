@@ -9,14 +9,16 @@ class_name DriftData
 # sorted by time.
 # Omens: `count_multiplier` / `flyer_multiplier` scale the counts (see DriftEntry.get_count),
 # `spacing_multiplier` scales all the gaps (Restless Wind: 0.7 = 30% closer together).
-func get_schedule(count_multiplier: float = 1.0, flyer_multiplier: float = 1.0, spacing_multiplier: float = 1.0) -> Array:
+# `extra` = the difficulty's extra nightmares (DriftDirector.get_extra_nightmares), rounded up per entry.
+func get_schedule(count_multiplier: float = 1.0, flyer_multiplier: float = 1.0, spacing_multiplier: float = 1.0,
+		extra: float = 1.0) -> Array:
 	var schedule: Array = []
 	var time := 0.0
 	for g in groups.size():
 		var group := groups[g]
 		if g > 0:
 			time += (group.spacing + group.delay) * spacing_multiplier
-		var arrivals := group.get_arrivals(count_multiplier, flyer_multiplier)
+		var arrivals := group.get_arrivals(count_multiplier, flyer_multiplier, extra)
 		for i in arrivals.size():
 			if i > 0:
 				time += group.spacing * spacing_multiplier

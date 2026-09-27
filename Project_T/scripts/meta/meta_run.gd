@@ -19,6 +19,26 @@ const MILESTONE_COSMETICS := {"flawless_win": "golden_leaf", "blight_10_win": "b
 # Chosen on the title screen before a run (0 = none); saved with the run.
 static var blight_level := 0
 
+# Developer option "Unlock all families" (settings, debug builds only): a normal run whose family
+# picks and Dream pool act as if the Grove's Warden root were fully grown. The profile's real
+# unlocks are untouched (turning it off undoes it), and the run banks no Seeds and records nothing.
+const ALL_FAMILIES_SETTING := "all_families"
+static var force_all_families := false  # Tests
+
+static func all_families_active() -> bool:
+	if not TestGrove.is_available():
+		return false
+	if force_all_families:
+		return true
+	# Headless test scripts ignore the developer's saved setting, as with Test Grove.
+	if OS.get_cmdline_args().has("--script"):
+		return false
+	return bool(HeartwoodMemory.get_settings().get(ALL_FAMILIES_SETTING, false))
+
+# A developer run (Test Grove or Unlock all families): nothing is banked or recorded.
+static func is_dev_run() -> bool:
+	return TestGrove.is_active() or all_families_active()
+
 @onready var run_state: RunState = %RunState
 @onready var drift_director: DriftDirector = %DriftDirector
 @onready var dream_state: DreamState = %DreamState
@@ -32,16 +52,21 @@ var _shades_this_run := 0
 
 func _ready() -> void:
 	active = not ResultsScreen.is_demo()
-	records = active and get_tree().current_scene == owner and not TestGrove.is_active()
+	records = active and get_tree().current_scene == owner and not is_dev_run()
 	# Family Blessings are in the Dream pool (never offered; the family pick grants them), so their
 	# effects count and saved runs find them.
 	for blessing in load_blessings():
 		if not dream_state.pool.has(blessing):
 			dream_state.pool.append(blessing)
+	var all_families := all_families_active() and not TestGrove.is_active()
 	if not active:
+		if all_families:  # Also in the demo build's debug runs
+			_apply_all_families()
 		return
 	var memory := HeartwoodMemory.load_data()
 	_apply_grove(memory)
+	if all_families:
+		_apply_all_families()
 	_apply_blight(blight_level)
 	run_state.seed_bonus = seed_bonus
 	spawner.enemy_cleansed.connect(func(enemy: Node2D) -> void:
@@ -59,6 +84,21 @@ static func load_blessings() -> Array[UpgradeData]:
 # Obstacles cost twice as much from Blight Level 9.
 static func clear_cost_multiplier() -> float:
 	return 2.0 if blight_level >= 9 else 1.0
+
+# Unlock all families: every family and Warden Dream card from the Grove's Warden root join this
+# run (on top of whatever the profile has), without perks.
+func _apply_all_families() -> void:
+	for unlock in HeartwoodMemory.load_grove():
+		if unlock.root != UnlockData.Root.WARDENS:
+			continue
+		for id in unlock.families:
+			var data := load(TOWER_DIR + id + ".tres") as TowerData
+			if data != null and not family_screen.families.has(data):
+				family_screen.families.append(data)
+		if "grove_cards" in dream_state:
+			for id in unlock.dream_cards:
+				if not dream_state.grove_cards.has(id):
+					dream_state.grove_cards.append(id)
 
 func _apply_grove(memory: Dictionary) -> void:
 	var cards: Array[String] = []

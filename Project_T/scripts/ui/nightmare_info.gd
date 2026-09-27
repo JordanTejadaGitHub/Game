@@ -79,7 +79,7 @@ func _on_spawned(node: Node) -> void:
 		return
 	_saved[kind] = true
 	# Remember the kind for future runs (this run keeps showing "New" for it). Real game only.
-	if get_tree().current_scene != owner or TestGrove.is_active():
+	if get_tree().current_scene != owner or MetaRun.is_dev_run():
 		return
 	var memory := HeartwoodMemory.load_data()
 	var seen: Array = memory.get("nightmares_seen", [])

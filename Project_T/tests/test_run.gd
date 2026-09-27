@@ -29,6 +29,14 @@ func _test_demo_data() -> void:
 	_check(boss_50.has("great_toad"), "drift 50 brings its boss")
 	var elites: int = drifts[44].get_schedule().filter(func(a: Array) -> bool: return a[2]).size()
 	_check(elites == 4, "drift 45 has 4 Deeply Blighted (%d)" % elites)
+	# Difficulty pass v1: +25% nightmares (rounded up per kind) from drift 10; bosses stay alone.
+	var entry := DriftEntry.new()
+	entry.enemy = load("res://resource/enemy/leaf_bug.tres")
+	entry.count = 6
+	_check(entry.get_count(1.0, 1.0, 1.25) == 8 and entry.get_count() == 6, "6 nightmares × 1.25 rounds up to 8")
+	var boss_count: int = drifts[24].get_schedule(1.0, 1.0, 1.0, 1.25).map(func(a: Array) -> String: return _kind(a[1])).count("old_stag")
+	_check(boss_count == 1, "the boss still comes alone")
+	_check(drifts[9].get_schedule(1.0, 1.0, 1.0, 1.25).size() > drifts[9].get_schedule().size(), "drift 10 gets more nightmares")
 
 func _test_blocks_and_rests() -> void:
 	var main := await _new_run()
@@ -43,15 +51,20 @@ func _test_blocks_and_rests() -> void:
 	var map_generator = main.get_node("%MapGenerator")
 
 	_check(director.is_resting() and director.drifts_started == 0, "the run starts resting")
-	_check(run_state.leaves == 20 and run_state.dew == 60, "20 leaves, 60 Dew")
+	_check(run_state.leaves == 15 and run_state.max_leaves == 15 and run_state.dew == 45, "15 leaves, 45 Dew (difficulty pass v1)")
 	_check(spawner.get_enemies().is_empty(), "no creatures before Start")
+	_check(director.get_extra_nightmares(9) == 1.0 and director.get_extra_nightmares(10) == 1.25, "extra nightmares from drift 10")
+	var stag: EnemyData = load("res://resource/enemy/old_stag.tres")
+	_check(is_equal_approx(director.get_health_scale(stag, 25), 1.5), "bosses have ×1.5 health")
 
-	# Selling in a rest: full refund
+	# Selling in a rest: the rest refund (build_phase_refund, 75% in difficulty pass v1)
 	var sprout: TowerData = placer.towers[0]
 	placer.tower_data = sprout
 	var cell := _free_cell(map_generator)
 	_check(placer._try_build(cell), "built a Sprout")
-	_check(seller.sell(cell) and run_state.dew == 60, "full refund while resting")
+	var refund := seller.get_refund(seller.get_tower_at(cell))
+	_check(absf(refund - sprout.cost * seller.build_phase_refund) <= 1.0, "the rest refund is build_phase_refund (%d)" % refund)
+	_check(seller.sell(cell) and run_state.dew == 45 - sprout.cost + refund, "the refund is paid while resting")
 
 	# Drift 1 → the family pick (no rest bonus, no Dream)
 	var rests := []
@@ -111,10 +124,11 @@ func _test_blocks_and_rests() -> void:
 	_check(director.drifts_started == 7 and run_state.dew == dew + bonus_now[0], "call early pays")
 	var bug: Node2D = spawner.get_enemies().filter(func(e: Node2D) -> bool:
 		return _kind(e.enemy_data) == "leaf_bug")[0]
-	_check(bug.max_health == roundi(100 * pow(1.035, 6)), "drift 7 Leaf Bug health ×1.035^6 (%d)" % bug.max_health)
+	_check(bug.max_health == roundi(100 * pow(1.045, 6)), "drift 7 Leaf Bug health ×1.045^6 (%d)" % bug.max_health)
+	var leaves_before := run_state.leaves
 	_send_to_goal(bug, map_generator)
 	await _frames(5)
-	_check(run_state.leaves == 19, "a Leaf Bug reaching the Heartwood costs a leaf")
+	_check(run_state.leaves == leaves_before - 1, "a Leaf Bug reaching the Heartwood costs a leaf")
 	director.set_auto_drift(false)
 	await _play_until(main, func() -> bool: return not director.is_arriving() and spawner.get_enemies().is_empty(), 0, 3000)
 	await _frames(300)
@@ -143,7 +157,7 @@ func _test_boss_rest_and_win() -> void:
 	director.act_started.connect(func(act: int, regrown: int) -> void: acts.append([act, regrown]))
 	var ended := []
 	run_state.run_ended.connect(func(won: bool) -> void: ended.append(won))
-	run_state.leaves = 15
+	run_state.leaves = 10
 
 	director.start_next_drift()
 	await _play_until(main, func() -> bool: return director.awaiting_family_pick)
@@ -155,7 +169,7 @@ func _test_boss_rest_and_win() -> void:
 	family.choose(family.offer[0])
 	_check(rests == [[1, true]], "then the boss rest")
 	await _settle(main)
-	_check(acts == [[2, 3]] and run_state.leaves == 18, "act break regrows 3 leaves (%s)" % [acts])
+	_check(acts == [[2, 1]] and run_state.leaves == 11, "act break regrows 1 leaf (%s)" % [acts])
 	director.start_next_drift()
 	await _play_until(main, func() -> bool: return not ended.is_empty(), 0, 3000)
 	_check(ended == [true] and not director.has_next_drift(), "clearing the last drift wins")

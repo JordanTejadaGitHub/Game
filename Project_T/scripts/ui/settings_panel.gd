@@ -52,6 +52,13 @@ func _ready() -> void:
 		grove.focus_mode = Control.FOCUS_NONE
 		grove.toggled.connect(func(on: bool) -> void: _set_value(TestGrove.SETTING, on))
 		box.add_child(grove)
+		var families := CheckButton.new()
+		families.text = "Unlock all families: normal runs, every family in the picks (no Seeds banked)"
+		families.tooltip_text = "As if the Memory Grove's Warden root were fully grown, for this and later runs while on.\nYour real Grove unlocks are not changed."
+		families.button_pressed = _settings.get(MetaRun.ALL_FAMILIES_SETTING, false)
+		families.focus_mode = Control.FOCUS_NONE
+		families.toggled.connect(func(on: bool) -> void: _set_value(MetaRun.ALL_FAMILIES_SETTING, on))
+		box.add_child(families)
 
 	var keys_title := Label.new()
 	keys_title.text = "Keys (click, then press a key)"

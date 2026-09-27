@@ -154,7 +154,7 @@ func _any_creature_has(id: StringName) -> bool:
 
 # Remembered in the player's profile, except in tests (the scene isn't the running game there).
 func _remember() -> void:
-	if get_tree().current_scene != owner or TestGrove.is_active():
+	if get_tree().current_scene != owner or MetaRun.is_dev_run():
 		return
 	var memory := HeartwoodMemory.load_data()
 	memory["whispers_seen"] = _seen

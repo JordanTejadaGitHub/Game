@@ -9,6 +9,7 @@ const BUTTON_FONT_SIZE := 16
 @onready var drift_director: DriftDirector = %DriftDirector
 @onready var game_speed: GameSpeed = %GameSpeed
 @onready var run_state: RunState = %RunState
+@onready var tower_seller: TowerSeller = %TowerSeller
 
 var _status_label := Label.new()
 var _start_button := Button.new()
@@ -84,7 +85,7 @@ func _process(_delta: float) -> void:
 		_status_label.text = "The last drift is walking"
 		_start_button.text = "Final drift"
 	elif drift_director.is_resting():
-		_status_label.text = "Resting: rearrange freely (full refunds)"
+		_status_label.text = "Resting: rearrange (%d%% refunds)" % roundi(tower_seller.build_phase_refund * 100)
 		var boss := " (boss)" if drift_director.is_boss_drift(next) else ""
 		_start_button.text = "Start Drift %d%s  (Enter)" % [next, boss]
 	elif drift_director.can_start_next_drift():

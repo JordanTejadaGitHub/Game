@@ -109,7 +109,7 @@ func _ids(datas: Array) -> Array:
 # Kept in the profile for the next run's first pick; real game only (never tests or Test Grove).
 func _remember_first_offer() -> void:
 	previous_first_offer = _ids(offer)
-	if get_tree().current_scene != owner or TestGrove.is_active():
+	if get_tree().current_scene != owner or MetaRun.is_dev_run():
 		return
 	var memory := HeartwoodMemory.load_data()
 	memory["last_first_pick"] = previous_first_offer

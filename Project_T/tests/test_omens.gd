@@ -65,7 +65,7 @@ func _test_twists(main: Node) -> void:
 		"Thick Blight: +20% health in its block")
 	_check(is_equal_approx(director.get_health_scale(bug, 16), pow(director.health_growth_per_drift, 15)),
 		"Thick Blight: only its own block")
-	_check(is_equal_approx(director.get_health_scale(stag, 15), 1.0), "bosses ignore Omens")
+	_check(is_equal_approx(director.get_health_scale(stag, 15), director.boss_health_multiplier), "bosses ignore Omens")
 
 	_activate(omens, "crowded_paths", 3)
 	var drift: DriftData = director.drifts[10]

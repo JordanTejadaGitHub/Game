@@ -7,11 +7,13 @@ class_name DriftEntry
 @export var count: int = 1
 @export var elite: bool = false  # Deeply Blighted: ×3 health, ×3 Dew, 2 leaves (acts_1_2.md)
 
-# `count` scaled by Omens (never below 1). Bosses always come alone: they ignore Omens.
-func get_count(count_multiplier: float = 1.0, flyer_multiplier: float = 1.0) -> int:
+# `count` scaled by the difficulty's extra nightmares (`extra`, rounded up; run_design.md
+# "Difficulty pass v1"), then by Omens (never below 1). Bosses always come alone: they ignore both.
+func get_count(count_multiplier: float = 1.0, flyer_multiplier: float = 1.0, extra: float = 1.0) -> int:
 	if enemy == null or enemy.is_boss:
 		return count
+	var base := ceili(count * extra - 0.0001)
 	var multiplier := count_multiplier
 	if enemy.trait_kind == EnemyData.Trait.FLYING:
 		multiplier *= flyer_multiplier
-	return maxi(roundi(count * multiplier), 1)
+	return maxi(roundi(base * multiplier), 1)

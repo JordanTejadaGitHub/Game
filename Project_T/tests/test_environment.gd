@@ -61,7 +61,8 @@ func _init() -> void:
 	var run_state: RunState = main.get_node("%RunState")
 	_check(heartwood.frame_coords.y == 0, "Heartwood starts whole")
 	run_state.lose_leaves(run_state.max_leaves / 2)
-	_check(heartwood.frame_coords.y == EnvironmentTiles.HEARTWOOD_STATES / 2,
+	var lost := float(run_state.max_leaves / 2) / run_state.max_leaves  # Not exactly half with an odd count
+	_check(heartwood.frame_coords.y == roundi(lost * (EnvironmentTiles.HEARTWOOD_STATES - 1)),
 		"half the leaves lost = half-blackened (row %d)" % heartwood.frame_coords.y)
 
 	# Act breaks swap every sheet to the new season.

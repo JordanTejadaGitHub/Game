@@ -17,10 +17,10 @@ func get_arrival_order(count_multiplier: float = 1.0, flyer_multiplier: float = 
 	return order
 
 # Like get_arrival_order, but each item is [EnemyData, elite: bool].
-func get_arrivals(count_multiplier: float = 1.0, flyer_multiplier: float = 1.0) -> Array:
+func get_arrivals(count_multiplier: float = 1.0, flyer_multiplier: float = 1.0, extra: float = 1.0) -> Array:
 	var slots: Array = []  # [position 0..1, EnemyData, elite]
 	for entry in entries:
-		var count := entry.get_count(count_multiplier, flyer_multiplier)
+		var count := entry.get_count(count_multiplier, flyer_multiplier, extra)
 		for i in count:
 			slots.append([(i + 0.5) / count, entry.enemy, entry.elite])
 	slots.sort_custom(func(a: Array, b: Array) -> bool: return a[0] < b[0])

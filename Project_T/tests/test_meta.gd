@@ -47,7 +47,7 @@ func _run() -> void:
 	var director: DriftDirector = main.get_node("%DriftDirector")
 	var family = main.get_node("%FamilyPickScreen")
 	var dreams: DreamState = main.get_node("%DreamState")
-	_check(run_state.dew == 60 + 30 - 20, "starting Dew: 60 + Morning Stores 30 − Blight 20 (%d)" % run_state.dew)
+	_check(run_state.dew == run_state.starting_dew + 30 - 20, "starting Dew: base + Morning Stores 30 − Blight 20 (%d)" % run_state.dew)
 	var family_ids: Array = family.families.map(func(d: TowerData) -> String: return d.get_id())
 	_check(family_ids.has("pebbling") and family_ids.has("acorn") and family_ids.has("nestling"), "Grove families join the picks (%s)" % [family_ids])
 	_check(is_equal_approx(director.blight_health_multiplier, 1.1) and is_equal_approx(director.blight_boss_health_multiplier, 1.25)
@@ -105,6 +105,30 @@ func _run() -> void:
 	main.queue_free()
 	await process_frame
 	MetaRun.blight_level = 0
+
+	# --- Developer "Unlock all families": a fresh profile, even in the demo, gets every family and
+	# their Grove Dream cards, without touching the profile, and banks nothing ---
+	HeartwoodMemory.save_data(HeartwoodMemory.defaults())
+	ProjectSettings.set_setting("game/demo", true)
+	MetaRun.force_all_families = true
+	main = await _new_run()
+	family = main.get_node("%FamilyPickScreen")
+	dreams = main.get_node("%DreamState")
+	family_ids = family.families.map(func(d: TowerData) -> String: return d.get_id())
+	for id in ["sporeling", "firefly_jar", "dewdrop", "pebbling", "rootling", "acorn", "nestling", "whirligig"]:
+		_check(family_ids.has(id), "Unlock all families: %s joins the picks (%s)" % [id, family_ids])
+	_check(dreams.grove_cards.has("dream_gust") and dreams.grove_cards.has("dream_wrens_nest"), "their Grove Dream cards join the pool")
+	_check(not (main.get_node("%MetaRun") as MetaRun).records, "a developer run records nothing")
+	var results := main.get_node("%ResultsScreen") as ResultsScreen
+	results.bank_in_tests = true  # Would bank, but it's a developer run
+	main.get_node("%RunState").end_run(true)
+	await process_frame
+	memory = HeartwoodMemory.load_data()
+	_check(results.not_banked and int(memory.seeds) == 0 and int(memory.runs_played) == 0 and memory.unlocks.is_empty(),
+		"the profile is untouched: no Seeds, runs or unlocks")
+	main.queue_free()
+	await process_frame
+	MetaRun.force_all_families = false
 	ProjectSettings.set_setting("game/demo", was_demo)
 	_delete(PROFILE_PATH)
 	print("meta test: %s" % ("PASS" if failures == 0 else "%d FAILED" % failures))

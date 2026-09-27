@@ -41,11 +41,15 @@ const DEMO_DRIFTS_DIR := "res://resource/drift/demo/"
 @export var act_names: Array[String] = ["Forest's Edge", "Deep Wood", "Misty Hollow", "Heartwood Glade"]
 @export var drifts_per_block: int = 5
 @export var drifts_per_act: int = 25  # The act's last drift is its boss
-@export var health_growth_per_drift: float = 1.035  # Non-boss health multiplier per drift
+# Difficulty pass v1 (run_design.md): health growth, boss health, extra nightmares, act-break leaves.
+@export var health_growth_per_drift: float = 1.045  # Non-boss health multiplier per drift
+@export var boss_health_multiplier: float = 1.5  # On the bosses' base health
+@export var extra_nightmares: float = 1.25  # Nightmares per drift (rounded up) from `extra_nightmares_from`
+@export var extra_nightmares_from: int = 10  # The intro drifts before it are unchanged
 @export var rest_bonus_base: int = 20  # Rest bonus = base + per_block × block number
 @export var rest_bonus_per_block: int = 10
 @export var perfect_block_bonus: int = 10  # No leaf lost in the whole block
-@export var act_break_leaves: int = 3
+@export var act_break_leaves: int = 1
 @export var auto_drift: bool = true  # Drifts in a block start by themselves
 @export var auto_drift_delay: float = 3.0  # Seconds after the previous drift finished arriving
 @export var call_early_seconds_per_dew: float = 2.0
@@ -227,7 +231,7 @@ func _start_drift() -> void:
 	var mods := get_schedule_modifiers(number)
 	_arriving[number] = {
 		"schedule": drifts[number - 1].get_schedule(mods.get("count", 1.0), mods.get("flyers", 1.0),
-			mods.get("spacing", 1.0)),
+			mods.get("spacing", 1.0), get_extra_nightmares(number)),
 		"clock": 0.0,
 	}
 	_add_blight_elites(_arriving[number].schedule)
@@ -239,10 +243,14 @@ func _start_drift() -> void:
 func _next_is_in_block() -> bool:
 	return has_next_drift() and drifts_started % drifts_per_block != 0 and drifts_started != 1
 
-# Health multiplier for `data` in drift `number` (×1.035 per drift; bosses fixed). Dreams / Omens
-# multiply on top (hook: see get_health_multiplier).
+# The difficulty's nightmare count multiplier for drift `number` (1.0 for the intro drifts).
+func get_extra_nightmares(number: int) -> float:
+	return extra_nightmares if number >= extra_nightmares_from else 1.0
+
+# Health multiplier for `data` in drift `number` (×1.045 per drift; bosses fixed at ×1.5 their
+# base). Dreams / Omens multiply on top (hook: see get_health_multiplier).
 func get_health_scale(data: EnemyData, number: int) -> float:
-	var scale := 1.0 if data.is_boss else pow(health_growth_per_drift, number - 1)
+	var scale := boss_health_multiplier if data.is_boss else pow(health_growth_per_drift, number - 1)
 	return scale * get_health_multiplier(data, number)
 
 # Dreams / Omens: extra health multiplier for creatures of drift `number` (Wild Growth: all
