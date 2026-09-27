@@ -1,0 +1,61 @@
+{
+	"frame_size": 64,
+	"frames": 6,
+	"release_frame": 2,
+	"wardens": {
+		"acorn": {
+			"kind": "pulse",
+			"point": [
+				31,
+				46
+			]
+		},
+		"dewdrop": {
+			"kind": "projectile",
+			"point": [
+				30,
+				2
+			],
+			"projectile": "dew_drop"
+		},
+		"firefly_jar": {
+			"kind": "projectile",
+			"point": [
+				31,
+				6
+			],
+			"projectile": "spark"
+		},
+		"pebbling": {
+			"kind": "projectile",
+			"point": [
+				46,
+				14
+			],
+			"projectile": "pebble"
+		},
+		"rootling": {
+			"kind": "pulse",
+			"point": [
+				31,
+				46
+			]
+		},
+		"sporeling": {
+			"kind": "projectile",
+			"point": [
+				46,
+				9
+			],
+			"projectile": "spore"
+		},
+		"sprout": {
+			"kind": "projectile",
+			"point": [
+				46,
+				9
+			],
+			"projectile": "spore"
+		}
+	}
+}
