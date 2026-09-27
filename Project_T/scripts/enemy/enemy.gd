@@ -11,12 +11,17 @@ signal trample_requested(enemy: Node2D)
 # LEAP (The Mire Hag) rose at her new position.
 signal leaped(enemy: Node2D)
 
-# Deeply Blighted elites (acts_1_2.md): ×3 health, ×3 Dew, 2 leaves, 20% bigger and darker.
+# Deeply Blighted elites (acts_1_2.md): ×3 health, ×3 Dew, 2 leaves, 20% bigger, wrapped in a slow
+# haze with a swirl mark by the health bar (not darkened: the nightmare art is already dark).
 const ELITE_HEALTH := 3.0
 const ELITE_DEW := 3
 const ELITE_LEAVES := 2
 const ELITE_SCALE := 1.2
-const ELITE_DARKEN := 0.35
+const ELITE_HAZE_PUFFS := 6
+const ELITE_HAZE_SPEED := 0.6  # Radians per second the haze drifts round
+const ELITE_HAZE_COLOR := Color(0.1, 0.08, 0.14, 0.32)
+const ELITE_HAZE_RIM := Color(0.62, 0.58, 0.72, 0.16)  # Keeps the haze visible on dark ground
+const ELITE_SWIRL_COLOR := Color(0.78, 0.7, 0.95)
 const LEAP_TIME := 0.45  # Seconds to sink, move under the mire and rise again
 
 # Group of nightmares that are still walking and targetable. Dispelled ones leave it.
@@ -63,6 +68,7 @@ var _coat_per_hit := 0.0
 var modifiers := {}
 
 var elite := false  # Deeply Blighted (set before adding to the tree)
+var _haze_phase := 0.0
 var hold_time := 0.0  # Seconds to stand still before setting off (Wraiths in single file)
 var rolling := false  # Night Hound sprinting down a straight
 var lost := false  # Wraith whose Lantern Bearer was dispelled first
@@ -97,7 +103,7 @@ func _ready() -> void:
 	# Set up animations
 	sprite.sprite_frames = enemy_data.sprite_frames
 	sprite.scale = Vector2.ONE * enemy_data.sprite_scale * (ELITE_SCALE if elite else 1.0)
-	sprite.modulate = enemy_data.tint.darkened(ELITE_DARKEN) if elite else enemy_data.tint
+	sprite.modulate = enemy_data.tint
 	sprite.play("walk_side")
 
 	# Nightmare look: per-enemy material so each one can crack apart on its own
@@ -115,6 +121,8 @@ func _process(delta: float) -> void:
 		if is_cleansed:
 			return
 	_bolt_flash = maxf(_bolt_flash - delta, 0.0)
+	if elite:
+		_haze_phase += ELITE_HAZE_SPEED * delta
 	_hit_mark_time = maxf(_hit_mark_time - delta, 0.0)
 	if not statuses.active_ids().is_empty() or _bolt_flash > 0.0 or _hit_mark_time > 0.0 or elite:
 		queue_redraw()
@@ -154,6 +162,8 @@ func _process(delta: float) -> void:
 func _draw() -> void:
 	if is_cleansed:
 		return
+	if elite:
+		_draw_elite_haze()  # Drawn before the sprite (a child), so it sits behind it
 	if _bolt_flash > 0.0:
 		var t := _bolt_flash / BOLT_FLASH_TIME
 		draw_circle(Vector2.ZERO, 26.0 * (1.5 - t), Color(1.0, 1.0, 0.6, 0.5 * t))
@@ -178,6 +188,23 @@ func _draw() -> void:
 		var crust := Rect2(bar.position - Vector2(0, 4), Vector2(bar.size.x * coat / maxf(coat_max, 1.0), 3))
 		draw_rect(crust.grow(1), Color(0.1, 0.1, 0.12, 0.8))
 		draw_rect(crust, COAT_COLOR)
+
+# Deeply Blighted: soft puffs drifting slowly round the nightmare, and a swirl left of the health bar.
+func _draw_elite_haze() -> void:
+	var r := 18.0 * sprite.scale.x
+	for i in ELITE_HAZE_PUFFS:
+		var a := _haze_phase + TAU * i / ELITE_HAZE_PUFFS
+		var at := Vector2(cos(a) * r, sin(a) * r * 0.5 - 8.0)  # Flattened ring round the body
+		var size := (9.0 + 3.0 * sin(_haze_phase * 1.7 + i)) * sprite.scale.x
+		draw_circle(at, size + 2.0, ELITE_HAZE_RIM)
+		draw_circle(at, size, ELITE_HAZE_COLOR)
+	var centre := HEALTH_BAR_OFFSET + Vector2(-HEALTH_BAR_SIZE.x / 2 - 8.0, 0)
+	var swirl := PackedVector2Array()
+	for s in 14:
+		var t := s / 13.0
+		swirl.append(centre + Vector2.from_angle(t * TAU * 1.6 + _haze_phase) * (1.0 + 4.0 * t))
+	draw_circle(centre, 6.0, Color(0.1, 0.1, 0.12, 0.8))
+	draw_polyline(swirl, ELITE_SWIRL_COLOR, 1.5)
 
 # A small grey puff for a resisted hit, a little sparkle for a weak one. `t` fades 1 -> 0.
 func _draw_hit_mark(t: float) -> void:

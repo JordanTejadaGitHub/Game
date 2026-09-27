@@ -1,7 +1,7 @@
 [gd_resource type="Resource" script_class="EnemyData" load_steps=3 format=3]
 
 [ext_resource type="Script" path="res://resource/enemy/script/enemy_data.gd" id="1_edata"]
-[ext_resource type="SpriteFrames" path="res://animation/enemy/bark_beetle.tres" id="2_frames"]
+[ext_resource type="SpriteFrames" path="res://animation/enemy/old_stag.tres" id="2_frames"]
 
 [resource]
 script = ExtResource("1_edata")
@@ -12,7 +12,6 @@ speed = 44.8
 dew_reward = 40
 leaf_cost = 5
 is_boss = true
-sprite_scale = 1.7
 resists = Array[String](["stone","root"])
 weak_to = Array[String](["water"])
 trait_kind = 3
