@@ -76,6 +76,22 @@
 				46
 			]
 		},
+		"elf_circle": {
+			"kind": "trap",
+			"point": [
+				31,
+				50
+			],
+			"projectile": "elf_circle"
+		},
+		"fairy_ring": {
+			"kind": "trap",
+			"point": [
+				31,
+				50
+			],
+			"projectile": "fairy_ring"
+		},
 		"firefly_jar": {
 			"kind": "projectile",
 			"point": [
@@ -84,7 +100,51 @@
 			],
 			"projectile": "spark"
 		},
+		"frostfern": {
+			"kind": "projectile",
+			"point": [
+				45,
+				4
+			],
+			"projectile": "frost_shard"
+		},
+		"grafted_elder": {
+			"kind": "copy",
+			"point": [
+				31,
+				1
+			]
+		},
+		"graftling": {
+			"kind": "copy",
+			"point": [
+				31,
+				1
+			]
+		},
 		"grove_heart": {
+			"kind": "pulse",
+			"point": [
+				31,
+				46
+			]
+		},
+		"gust": {
+			"kind": "spread",
+			"point": [
+				31,
+				46
+			]
+		},
+		"hoarfrost": {
+			"kind": "projectile",
+			"point": [
+				45,
+				4
+			],
+			"projectile": "frost_shard"
+		},
+		"honeysuckle": {
 			"kind": "pulse",
 			"point": [
 				31,
@@ -113,6 +173,29 @@
 				46
 			]
 		},
+		"magpie_perch": {
+			"kind": "swoop",
+			"point": [
+				50,
+				10
+			],
+			"projectile": "magpie"
+		},
+		"magpies_hoard": {
+			"kind": "swoop",
+			"point": [
+				50,
+				10
+			],
+			"projectile": "magpie"
+		},
+		"midsummer": {
+			"kind": "beam",
+			"point": [
+				38,
+				12
+			]
+		},
 		"mistveil": {
 			"kind": "cloud",
 			"point": [
@@ -126,6 +209,22 @@
 				31,
 				46
 			]
+		},
+		"moon_moth": {
+			"kind": "projectile",
+			"point": [
+				31,
+				4
+			],
+			"projectile": "moon_mote"
+		},
+		"moonstone": {
+			"kind": "projectile",
+			"point": [
+				36,
+				11
+			],
+			"projectile": "moon_shard"
 		},
 		"morning_fog": {
 			"kind": "cloud",
@@ -142,6 +241,14 @@
 			],
 			"projectile": "boulder"
 		},
+		"nestling": {
+			"kind": "swoop",
+			"point": [
+				44,
+				6
+			],
+			"projectile": "sparrow"
+		},
 		"pebbling": {
 			"kind": "projectile",
 			"point": [
@@ -149,6 +256,20 @@
 				14
 			],
 			"projectile": "pebble"
+		},
+		"pinwheel": {
+			"kind": "spin",
+			"point": [
+				31,
+				38
+			]
+		},
+		"pond_keeper": {
+			"kind": "pull",
+			"point": [
+				60,
+				30
+			]
 		},
 		"puffball": {
 			"kind": "projectile",
@@ -171,6 +292,13 @@
 			"point": [
 				60,
 				31
+			]
+		},
+		"rootlight": {
+			"kind": "light",
+			"point": [
+				31,
+				46
 			]
 		},
 		"rootling": {
@@ -203,6 +331,28 @@
 			],
 			"projectile": "spore"
 		},
+		"standing_stone": {
+			"kind": "projectile",
+			"point": [
+				36,
+				11
+			],
+			"projectile": "sling_stone"
+		},
+		"starcave": {
+			"kind": "light",
+			"point": [
+				31,
+				46
+			]
+		},
+		"starling_murmuration": {
+			"kind": "sweep",
+			"point": [
+				40,
+				10
+			]
+		},
 		"stormcap": {
 			"kind": "chain",
 			"point": [
@@ -229,6 +379,35 @@
 			"point": [
 				44,
 				5
+			]
+		},
+		"whirligig": {
+			"kind": "gust",
+			"point": [
+				31,
+				46
+			]
+		},
+		"windmill": {
+			"kind": "spin",
+			"point": [
+				31,
+				38
+			]
+		},
+		"wrens_nest": {
+			"kind": "swoop",
+			"point": [
+				44,
+				8
+			],
+			"projectile": "wren"
+		},
+		"zephyr": {
+			"kind": "spread",
+			"point": [
+				31,
+				46
 			]
 		}
 	}
