@@ -439,6 +439,25 @@ func _test_meta_hooks(main: Node) -> void:
 	_check(dreams.is_eligible(grove_card), "grove_cards puts it in the pool")
 	dreams.grove_cards.clear()
 
+	# Chain Bloom: a Grove card, Entwined (Puffball + Mistveil)
+	var bloom := _card(dreams, "chain_bloom")
+	dreams.unlocked["puffball"] = true
+	dreams.unlocked["mistveil"] = true
+	_check(bloom.entwined and bloom.rule_id == &"chain_bloom" and not dreams.is_eligible(bloom),
+		"Chain Bloom stays out until the Grove unlocks it")
+	dreams.grove_cards.assign(["chain_bloom"])
+	dreams.unlocked.erase("mistveil")
+	_check(not dreams.is_eligible(bloom), "Chain Bloom needs Mistveil too")
+	dreams.unlocked["mistveil"] = true
+	_check(dreams.make_offer(10).has(bloom), "Chain Bloom is guaranteed once Puffball and Mistveil are owned")
+	dreams.take(bloom)
+	_check(dreams.has_rule(&"chain_bloom"), "taking it switches on the chain_bloom rule")
+	dreams.stacks.erase("chain_bloom")
+	dreams.grove_cards.clear()
+	dreams._entwined_offered.clear()
+	dreams.unlocked.erase("puffball")
+	dreams.unlocked.erase("mistveil")
+
 	# A family Blessing's evolve discount only covers its own line
 	var blessing := UpgradeData.new()
 	blessing.id = "test_blessing_spore"
