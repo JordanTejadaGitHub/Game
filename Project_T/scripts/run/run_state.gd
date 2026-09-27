@@ -52,14 +52,14 @@ func _ready() -> void:
 func get_seed_breakdown(drifts_cleared: int, bosses: int, first_run: bool) -> Array:
 	var lines: Array = [
 		["Drifts survived: %d" % drifts_cleared, mini(drifts_cleared / SEEDS_PER_DRIFTS, SEEDS_DRIFT_MAX)],
-		["Creatures cleansed: %d" % creatures_cleansed, creatures_cleansed / CLEANSES_PER_SEED],
-		["Bosses cleansed: %d" % bosses, bosses * SEEDS_PER_BOSS],
+		["Nightmares dispelled: %d" % creatures_cleansed, creatures_cleansed / CLEANSES_PER_SEED],
+		["Bosses dispelled: %d" % bosses, bosses * SEEDS_PER_BOSS],
 		["Tended: %d" % obstacles_tended, obstacles_tended],
 	]
 	if omen_seeds > 0:
 		lines.append(["Omens", omen_seeds])
 	if won:
-		lines.append(["The Heartwood is safe", SEEDS_FOR_WIN])
+		lines.append(["The Hollow Oak is dispelled", SEEDS_FOR_WIN])
 	if first_run:
 		lines.append(["The first seed", SEEDS_FIRST_RUN])
 	var total := 0

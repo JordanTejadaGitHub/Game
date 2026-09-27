@@ -7,20 +7,22 @@ extends Label
 
 const SHOW_TIME := 5.0
 const TEXT := {
-	&"start": "A grey mist gathers at the forest's edge.",
+	&"start": "Something moves at the edge of the dream.",
 	&"plant": "Plant a Warden near the path.",
-	&"first_cleanse": "They're not enemies. Just lost.",
-	&"walls": "Wardens are walls. Make their walk longer.",
-	&"flow": "The mist rolls in, drift after drift.",
-	&"speed": "Take your time. The forest can wait.",
+	&"first_cleanse": "Nightmares. They're coming for the dream. Don't let them reach me.",
+	&"walls": "Wardens are walls. Make them take the long way.",
+	&"flow": "They don't stop. They come in drifts, like fog.",
+	&"speed": "Pause if you need to think. They'll wait.",
 	&"rest": "Rest here. Rearrange the forest; nothing is lost.",
 	&"save": "The forest will wait for you.",
-	&"cage": "The forest may guide, but never cage.",
+	&"cage": "A dream can bend, but never close.",
 	&"grow": "This Sprout could grow.",
 	&"tend": "Tend the forest, and it will remember you.",
-	&"leaf": "A leaf wilts. The Heartwood shivers.",
-	&"sell": "Selling gives everything back during a rest, and half while creatures walk.",
-	&"boss": "Something old is coming.",
+	&"leaf": "It fed. A leaf blackens and falls.",
+	&"sell": "Selling gives everything back during a rest, and half while nightmares walk.",
+	&"boss": "Something old has found the dream.",
+	&"after_boss": "It's gone, and something I'd forgotten came back.",
+	&"again": "The Heartwood dreams again.",
 	&"damp": "Damp: slower, and lightning loves it.",
 	&"drowsy": "Drowsy: heavy-eyed and slow.",
 	&"spored": "Spored: the spores keep soothing.",
@@ -51,13 +53,17 @@ func _ready() -> void:
 		return
 	if not _seen.has("start"):
 		_glide_along_path.call_deferred()  # After the camera is ready
+	if memory.runs_played > 0:
+		whisper(&"again")
 	whisper(&"start")
 	whisper(&"plant")
 	var spawner = %EnemyContainer
 	spawner.enemy_cleansed.connect(func(_e: Node2D) -> void: whisper(&"first_cleanse"), CONNECT_ONE_SHOT)
 	drift_director.family_pick_requested.connect(func(reason: StringName) -> void:
 		if reason == &"first":
-			whisper(&"walls"))
+			whisper(&"walls")
+		else:
+			whisper(&"after_boss"))
 	drift_director.drift_started.connect(func(number: int) -> void:
 		if number == 2:
 			whisper(&"flow")

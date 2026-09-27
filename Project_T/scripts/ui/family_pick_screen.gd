@@ -7,7 +7,7 @@ extends Control
 const CARD_SIZE := Vector2(250, 230)
 const TITLES := {
 	&"first": "The Heartwood stirs, and remembers an old friend…",
-	&"boss": "The Heartwood remembers another friend.",
+	&"boss": "It's gone, and something I'd forgotten came back.",
 }
 
 # Families that can be offered (demo: the first-playable three; the full game adds Pebbling,

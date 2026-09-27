@@ -23,10 +23,10 @@ func _test_demo_data() -> void:
 	var drifts := DriftDirector.load_demo_drifts()
 	_check(drifts.size() == 50, "the demo has 50 drifts (%d)" % drifts.size())
 	_check(drifts[0].get_creature_count() == 8, "drift 1 is 8 Leaf Bugs")
-	var boss_25: Array = drifts[24].get_schedule().map(func(a: Array) -> String: return a[1].display_name)
-	_check(boss_25.count("Old Stag") == 1 and boss_25.find("Old Stag") == 12, "drift 25: 12 Leaf Bugs, then the Old Stag")
-	var boss_50: Array = drifts[49].get_schedule().map(func(a: Array) -> String: return a[1].display_name)
-	_check(boss_50.has("Great Toad"), "drift 50 brings the Great Toad")
+	var boss_25: Array = drifts[24].get_schedule().map(func(a: Array) -> String: return _kind(a[1]))
+	_check(boss_25.count("old_stag") == 1 and boss_25.find("old_stag") == 12, "drift 25: 12 Leaf Bugs, then the boss")
+	var boss_50: Array = drifts[49].get_schedule().map(func(a: Array) -> String: return _kind(a[1]))
+	_check(boss_50.has("great_toad"), "drift 50 brings its boss")
 	var elites: int = drifts[44].get_schedule().filter(func(a: Array) -> bool: return a[2]).size()
 	_check(elites == 4, "drift 45 has 4 Deeply Blighted (%d)" % elites)
 
@@ -110,7 +110,7 @@ func _test_blocks_and_rests() -> void:
 	director.start_next_drift()
 	_check(director.drifts_started == 7 and run_state.dew == dew + bonus_now[0], "call early pays")
 	var bug: Node2D = spawner.get_enemies().filter(func(e: Node2D) -> bool:
-		return e.enemy_data.display_name == "Leaf Bug")[0]
+		return _kind(e.enemy_data) == "leaf_bug")[0]
 	_check(bug.max_health == roundi(100 * pow(1.035, 6)), "drift 7 Leaf Bug health ×1.035^6 (%d)" % bug.max_health)
 	_send_to_goal(bug, map_generator)
 	await _frames(5)
@@ -237,6 +237,10 @@ func _free_cell(map_generator) -> Vector2:
 			if not path.has(cell) and map_generator.can_block(cell):
 				return cell
 	return Vector2(-1, -1)
+
+# A creature's kind by its resource file (display names change with the story; files don't).
+func _kind(data: EnemyData) -> String:
+	return data.resource_path.get_file().get_basename()
 
 func _check(condition: bool, label: String) -> void:
 	if not condition:

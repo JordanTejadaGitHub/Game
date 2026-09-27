@@ -111,7 +111,11 @@ func _draw() -> void:
 		draw_texture_rect_region(tower_data.texture, Rect2(-frame.size / 2.0, frame.size), frame, tint)
 	var tag := "%s · %d Dew" % [tower_data.display_name, get_cost()]
 	var growth := get_hover_path_growth()
-	if growth != 0:
+	if hover_breaks_path():
+		tag += "  ·  would close the dream"  # The forest's rule: it may bend, never close
+	elif _is_occupied_by_enemy(_hover_cell):
+		tag += "  ·  nightmare here"
+	elif growth != 0:
 		tag += "  ·  %+d path" % growth  # "Wardens are walls": how much longer the walk gets
 	WorldLabel.draw_tag(self, 0.0, MAP_GRID.cell_size.y / 2.0 + 18.0, tag,
 		WorldLabel.cost_color(_hover_affordable))

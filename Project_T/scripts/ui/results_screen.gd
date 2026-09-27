@@ -2,14 +2,14 @@ extends Control
 class_name ResultsScreen
 
 # End of a run (win or lose): the Seeds breakdown, banked into HeartwoodMemory, then New run /
-# Title. In the demo (project setting game/demo), a win shows the demo ending: the mist beyond the
+# Title. In the demo (project setting game/demo), a win shows the demo ending: something larger in the
 # Deep Wood, Memory 1, the sleeping Memory Grove with the banked Seeds, and a Wishlist button
 # (demo_scope.md). Built in code.
 
 const DEMO_SETTING := "game/demo"
 const WISHLIST_SETTING := "game/wishlist_url"
 const TITLE_SCENE := "res://scenes/title.tscn"
-const MEMORY_1 := "Before the Heartwood, there were two trees, side by side."
+const MEMORY_1 := "Before the Heartwood, there were two trees, and both of them dreamed."
 
 @onready var run_state: RunState = %RunState
 @onready var drift_director: DriftDirector = %DriftDirector
@@ -53,11 +53,11 @@ func _build(won: bool) -> void:
 	panel.add_child(box)
 
 	var demo_end := won and is_demo()
-	var title := "The mist thickens beyond the Deep Wood…" if demo_end \
-		else ("The Heartwood is safe" if won else "The Heartwood goes dormant")
+	var title := "Deeper in the dream, something larger stirs…" if demo_end \
+		else ("The Hollow Oak is dispelled" if won else "The dream goes dark")
 	_label(box, title, 28, Color(0.9, 1.0, 0.85))
 	if not won:
-		_label(box, "The Heartwood sleeps. A seed falls, and remembers.", 16, Color(0.8, 0.85, 0.8), true)
+		_label(box, "The Heartwood sinks into dreamless sleep. A seed falls, and remembers.", 16, Color(0.8, 0.85, 0.8), true)
 	if demo_end:
 		_label(box, "“%s”" % MEMORY_1, 16, Color(0.85, 0.8, 1.0), true)
 

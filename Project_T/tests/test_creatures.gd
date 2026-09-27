@@ -58,7 +58,7 @@ func _run() -> void:
 	# --- Mother Duck and her Ducklings ---
 	var duck: Node2D = spawner.spawn_enemy(load("res://resource/enemy/mother_duck.tres"))
 	var ducklings: Array = spawner.get_enemies().filter(func(e: Node2D) -> bool:
-		return e.enemy_data.display_name == "Duckling")
+		return e.enemy_data.resource_path.get_file() == "duckling.tres")
 	_check(ducklings.size() == 4, "Mother Duck brings 4 Ducklings")
 	_check(ducklings.all(func(d: Node2D) -> bool: return d.hold_time > 0.0), "Ducklings set off one after another")
 	duck.take_damage(1000000)
