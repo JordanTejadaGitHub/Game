@@ -569,6 +569,9 @@ func _test_dreamlight(main: Node) -> void:
 	# Costs: branch 1, final 2 (needs its branch), wall growth 1; base families never
 	_check(dreams.get_unlock_cost(stormcap) == 1 and dreams.get_unlock_cost(thunderhead) == 2
 		and dreams.get_unlock_cost(bramble) == 1, "costs: branch 1, final form 2, wall growth 1")
+	_check(dreams.get_unlock_blocker(thunderhead) == "Memory Grove" or dreams.get_unlock_blocker(thunderhead) == "needs Stormcap",
+		"final forms need their Grove node and their branch")
+	dreams.grove_cards.assign(["dream_thunderhead"])  # Firefly Jar's final-forms node
 	_check(dreams.get_unlock_blocker(thunderhead) == "needs Stormcap", "a final form needs its branch")
 	_check(not dreams.can_unlock(rain_lily), "no branches for a family you don't own")
 	_check(dreams.get_unlock_blocker(sporeling) == "family pick", "base families only come from the family pick")
