@@ -15,15 +15,17 @@ Two things no competitor combines:
 
 Everything else (roguelite Dreams, evolving Wardens, the Memory Grove) supports those two.
 
-## One-liner (pick one)
+## One-liner
+
+**Decided: B is the tagline** (capsule, trailer, social posts). A stays as the store description's
+first line, since B alone doesn't say the genre.
+
 
 | | Line | Leans on |
 |---|---|---|
-| **A** *(recommended)* | *A cozy maze-building tower defense roguelite. Grow a living maze of Wardens, soothe the Blight, and help every lost creature find its way home.* | clarity: genre + fantasy |
-| B | *Grow a living maze. Soothe the Blight. Nobody gets hurt.* | punchy tagline, needs genre elsewhere |
+| A *(store description)* | *A cozy maze-building tower defense roguelite. Grow a living maze of Wardens, soothe the Blight, and help every lost creature find its way home.* | clarity: genre + fantasy |
+| **B** *(tagline, chosen)* | *Grow a living maze. Soothe the Blight. Nobody gets hurt.* | punchy tagline, needs genre elsewhere |
 | C | *Tower defense where your towers are the maze, and the "enemies" are just lost.* | the twist, slightly jokey |
-
-Use B as the trailer/capsule tagline and A as the store description's first line.
 
 ## Steam short description (≤ 300 characters)
 
