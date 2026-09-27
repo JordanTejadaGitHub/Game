@@ -16,7 +16,10 @@ Original design docs are in `documentation/*.docx` (structure, 15-card dev plan)
 Done: map generation, AStarGrid2D pathing + path tiles, camera (WASD + wheel zoom, clamped),
 data-driven enemy (Leaf Bug), **tower building** (build mode, placement validation, enemies re-route),
 **combat** (towers target the enemy closest to the goal and fire homing spore puffs; enemies are
-*cleansed*, not killed: blight shader fades to full colour, then they fade out).
+*cleansed*, not killed: blight shader fades to full colour, then they fade out),
+**clearable obstacles** (random map each run: ridges of rocks/trees from alternating walls make
+the route zig-zag, plus noise tree clusters and scattered rocks; outside build mode, hover shows
+cost + the route that would open, left-click clears; costs not charged until Dew exists).
 Temporary: `EnemyContainer.start_spawning()` spawns a Leaf Bug every 2 s forever (stand-in for waves).
 Design, build order and story: `documentation/game_design.md`, `documentation/story.md` (cozy tone;
 enemies are "blighted creatures", towers are "Wardens", gold is "Dew", lives are "leaves").
@@ -31,6 +34,11 @@ Next up: step 2 of the build order (leaves, Dew, tower cost, lose condition, HUD
   Rename via the Godot editor (FileSystem dock), not the shell, so references update.
   `map_generator.gd` is also the pathing/building API: `is_buildable`, `can_block`,
   `get_path_if_blocked`, `block_cell`, `get_path_from`, and the `path_changed` signal.
+  Obstacles: `obstacles` ({cell: `ObstacleData`}), `get_obstacle`, `get_path_if_cleared`,
+  `clear_obstacle`, `obstacle_cleared` signal. `map_seed` export: 0 = random map, else reproducible.
+  Generation guarantees a route (`_carve_route_if_blocked` clears the fewest obstacles, avoiding ridges).
+  `obstacle_clearer.gd` (`ObstacleClearer`) is the hover/click tool; input action `clear_obstacle` (LMB).
+  Obstacle types are `resource/obstacle/*.tres` (`ObstacleData`: name, verb, cost, tile atlas coords).
 - `scripts/enemy/` — `enemy.gd` (walks cell to cell along a grid path; `set_path` re-routes it),
   `enemy_spawner.gd` (on `path_changed`, re-routes every enemy from its `get_target_cell()`).
 - `scripts/tower/` — `tower.gd` (`Tower`, draws a placeholder block when `TowerData.texture` is

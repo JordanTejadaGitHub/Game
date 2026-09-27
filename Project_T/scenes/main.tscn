@@ -1,4 +1,4 @@
-[gd_scene load_steps=20 format=3 uid="uid://ct33vhcgulg0g"]
+[gd_scene load_steps=21 format=3 uid="uid://ct33vhcgulg0g"]
 
 [ext_resource type="Script" path="res://scripts/main.gd" id="1_bjgx8"]
 [ext_resource type="Script" path="res://scripts/map/map_generator.gd" id="2_888hw"]
@@ -10,6 +10,7 @@
 [ext_resource type="Script" path="res://scripts/enemy/enemy_spawner.gd" id="7_pm83a"]
 [ext_resource type="Script" path="res://scripts/tower/tower_placer.gd" id="8_twrpl"]
 [ext_resource type="Script" path="res://scripts/ui/hud.gd" id="9_hud"]
+[ext_resource type="Script" path="res://scripts/map/obstacle_clearer.gd" id="10_obclr"]
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_vgjl1"]
 texture = ExtResource("3_4m67i")
@@ -229,6 +230,10 @@ script = ExtResource("7_pm83a")
 [node name="TowerPlacer" type="Node2D" parent="."]
 unique_name_in_owner = true
 script = ExtResource("8_twrpl")
+
+[node name="ObstacleClearer" type="Node2D" parent="."]
+unique_name_in_owner = true
+script = ExtResource("10_obclr")
 
 [node name="HUD" type="CanvasLayer" parent="."]
 script = ExtResource("9_hud")

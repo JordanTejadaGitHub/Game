@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="ObstacleData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/obstacle/script/obstacle_data.gd" id="1_obst"]
+
+[resource]
+script = ExtResource("1_obst")
+display_name = "Rock"
+clear_verb = "Break"
+clear_cost = 8
+tiles = Array[Vector2i]([Vector2i(13, 12), Vector2i(14, 12), Vector2i(13, 13), Vector2i(14, 13)])
