@@ -19,7 +19,8 @@ const PREVIEW_SCALE := 2
 const WALKS := ["walk_side", "walk_down", "walk_up"]
 enum { SIDE, DOWN, UP }
 
-# fps: animation speed (extra_fps for the extra rows). draw: shared draw function (default: the
+# fps: animation speed (extra_fps for the extra rows; `once` lists extra rows that don't loop, such
+# as a burrow the game plays forwards to sink and backwards to surface). draw: shared draw function (default: the
 # file's own). k: size scale for the small ones spawned by splitters. size: frame size in px (default
 # 64); bosses get bigger frames instead of a sprite_scale so their pixels match everyone else's.
 const CREATURES := {
@@ -37,6 +38,14 @@ const CREATURES := {
 	"duckling": {fps = 7.0},  # Wraith
 	"old_stag": {fps = 7.0, size = 112},  # The Hollow Stag
 	"great_toad": {fps = 6.0, size = 144},  # The Mire Hag
+	# Acts 3-4 (acts_3_4.md): new names from the start.
+	"will_o_wisp": {fps = 8.0},
+	"gravecrawler": {fps = 8.0, extra = ["burrow"], extra_fps = 10.0, once = ["burrow"]},
+	"drowned_one": {fps = 6.0},
+	"barrow_wight": {fps = 4.0},
+	"watcher": {fps = 6.0},
+	"ash_crawler": {fps = 6.0},
+	"moth_queen": {fps = 6.0, size = 144, extra = ["eclipse"], extra_fps = 8.0, once = ["eclipse"]},
 }
 # Defaults of shaders/blight.gdshader, for the in-game frame at the end of each preview row.
 const SHADER_TRANSLUCENCY := 0.85
@@ -78,10 +87,10 @@ func _make(creature: String, info: Dictionary) -> void:
 			sheet.blit_rect(canvas, Rect2i(0, 0, S, S), Vector2i(f * S, row * S))
 	sheet.save_png(OUT + creature + ".png")
 	sheets.append(sheet)
-	_save_sprite_frames(creature, anims, info.fps, info.get("extra_fps", info.fps))
+	_save_sprite_frames(creature, anims, info.fps, info.get("extra_fps", info.fps), info.get("once", []))
 
-# Writes animation/enemy/<creature>.tres: one AtlasTexture per frame, one looping animation per row.
-func _save_sprite_frames(creature: String, anims: Array, fps: float, extra_fps: float) -> void:
+# Writes animation/enemy/<creature>.tres: one AtlasTexture per frame, one animation per row.
+func _save_sprite_frames(creature: String, anims: Array, fps: float, extra_fps: float, once: Array) -> void:
 	var path := ANIM_OUT + creature + ".tres"
 	var png := OUT + creature + ".png"
 	var uid := _read_uid(path, true)
@@ -98,7 +107,8 @@ func _save_sprite_frames(creature: String, anims: Array, fps: float, extra_fps: 
 		for f in FRAMES:
 			frames.append("{\n\"duration\": 1.0,\n\"texture\": SubResource(\"frame_%d_%d\")\n}" % [row, f])
 		var speed := fps if row < WALKS.size() else extra_fps
-		entries.append("{\n\"frames\": [%s],\n\"loop\": true,\n\"name\": &\"%s\",\n\"speed\": %s\n}" % [", ".join(frames), anims[row], str(speed)])
+		var loop := "false" if once.has(anims[row]) else "true"
+		entries.append("{\n\"frames\": [%s],\n\"loop\": %s,\n\"name\": &\"%s\",\n\"speed\": %s\n}" % [", ".join(frames), loop, anims[row], str(speed)])
 	text += "[resource]\nanimations = [%s]\n" % ", ".join(entries)
 	var file := FileAccess.open(path, FileAccess.WRITE)
 	file.store_string(text)
@@ -369,7 +379,8 @@ func _crack(layer: Image, c: Vector2, r: Vector2, polys: Array, color: Color) ->
 	return out
 
 # A cold light crawling along crack pixels: something alive inside.
-func _crawl(canvas: Image, pixels: Array[Vector2i], f: int, count: int = 2) -> void:
+func _crawl(canvas: Image, pixels: Array[Vector2i], f: int, count: int = 2, core: Color = Color("#a8ecff"),
+		edge: Color = Color("#2e6478")) -> void:
 	var n := pixels.size()
 	if n == 0:
 		return
@@ -377,8 +388,8 @@ func _crawl(canvas: Image, pixels: Array[Vector2i], f: int, count: int = 2) -> v
 		var i := (f * 3 + k * n / count) % n
 		for j: int in [-1, 1]:
 			if i + j >= 0 and i + j < n:
-				_px(canvas, pixels[i + j].x, pixels[i + j].y, Color("#2e6478"))
-		_px(canvas, pixels[i].x, pixels[i].y, Color("#a8ecff"))
+				_px(canvas, pixels[i + j].x, pixels[i + j].y, edge)
+		_px(canvas, pixels[i].x, pixels[i].y, core)
 
 # Little ragged tufts sticking up off a shadow's back.
 func _ragged(canvas: Image, pts: Array, dy: int) -> void:
@@ -1301,3 +1312,449 @@ func _claws(canvas: Image, hand: Vector2, forward: float, color: Color) -> void:
 		var tip := hand + (Vector2(5, spread + 2) if forward > 0.5 else Vector2(spread, 6))
 		var bend := tip + (Vector2(1, 2) if forward > 0.5 else Vector2(0, 1))
 		_line(canvas, [hand, tip, bend], color)
+
+# --- Will-o'-Wisp -------------------------------------------------------------------------------
+# Reveals Lurkers near it: a treacherous floating light, a cold green-white flame with two tiny
+# dark eyes in its core. It flickers, and every so often it stutters dim.
+
+func _draw_will_o_wisp(canvas: Image, st: Dictionary) -> void:
+	var glow := _ramp(["#2a8a78", "#5fd8b8", "#bfffe8", "#ffffff"])
+	var f: int = st.f
+	var ph: float = st.ph
+	var h := roundi(sin(ph) * 2.0)
+	var flick: float = [1.0, 0.85, 1.1, 0.6, 1.0, 0.9][f]
+	var c := Vector2(32, 25 + h)
+	var back := Vector2(-1, -0.5) if st.dir == SIDE else Vector2(0, -1)  # flames rise
+	_blend_ellipse(canvas, Vector2(32, 45), Vector2(9 * flick, 2.5), Color(0.4, 0.95, 0.8, 0.16 * flick))
+	var halo_r := 9.0 * flick
+	for y in range(floori(c.y - halo_r), ceili(c.y + halo_r) + 1):
+		for x in range(floori(c.x - halo_r), ceili(c.x + halo_r) + 1):
+			var d := Vector2(x + 0.5, y + 0.5).distance_to(c)
+			if d > 3.0 and d < halo_r and (x + y + f) % 2 == 0:
+				_blend_px(canvas, x, y, Color(0.37, 0.85, 0.72, 0.4 * (1.0 - d / halo_r)))
+	var flame := _layer()
+	for s in 12:
+		var t := s / 11.0
+		var p := c + back * t * 10.0 * flick + back.orthogonal() * sin(ph * 2.0 + t * 5.0) * t * 2.0
+		_flat_ellipse(flame, p, Vector2.ONE * (4.2 * (1.0 - t) + 0.4), glow[1] if t > 0.45 else glow[2])
+	_stamp(canvas, flame)
+	_flat_ellipse(canvas, c, Vector2(3.4, 3.4) * flick, glow[2])
+	_flat_ellipse(canvas, c, Vector2(2.0, 2.0) * flick, glow[3])
+	match st.dir:
+		DOWN:
+			_px(canvas, 30, int(c.y), HOLLOW)
+			_px(canvas, 33, int(c.y), HOLLOW)
+		SIDE:
+			_px(canvas, 33, int(c.y), HOLLOW)
+			_px(canvas, 35, int(c.y), HOLLOW)
+	for k in 2:  # stray sparks drifting off
+		var t := fposmod(float(f) / FRAMES + k * 0.5, 1.0)
+		var p := c + back * (4.0 + t * 10.0) + back.orthogonal() * (k * 5.0 - 2.5)
+		var col := glow[2]
+		col.a = 1.0 - t
+		_blend_px(canvas, roundi(p.x), roundi(p.y), col)
+
+# --- Gravecrawler -------------------------------------------------------------------------------
+# Burrows under one Warden or wall per trip: a low hunched thing that drags itself along on long
+# clawed arms, elbows high. "burrow" sinks it into the earth (played backwards, it surfaces).
+
+func _draw_gravecrawler(canvas: Image, st: Dictionary) -> void:
+	var body := _ramp(["#141018", "#221c28", "#342a3a", "#4a3e50"])
+	var claw := Color("#8a8288")
+	var o := NIGHT_O
+	var f: int = st.f
+	var ph: float = st.ph
+	if st.anim == "burrow":
+		_gravecrawler_burrow(canvas, st)
+		return
+	var bob: int = [0, 1, 0, 0, 1, 0][f]
+	var fig := _layer()
+	match st.dir:
+		SIDE:
+			_shadow(canvas, Vector2(31, 43), Vector2(15, 2.5))
+			var pull := sin(ph)
+			_crawler_arm(canvas, Vector2(37, 33 + bob), Vector2(42 - pull * 3, 28 + bob), Vector2(47 - pull * 4, 42 - (2 if pull < -0.3 else 0)), Vector2(1, 0.3), body[0], claw, o)
+			_stroke(fig, [Vector2(21, 37 + bob), Vector2(17, 40), Vector2(13, 42)], 1.1, body[1])
+			_ellipse(fig, Vector2(28, 35 + bob), Vector2(11, 6.5), body)
+			_ellipse(fig, Vector2(26, 31 + bob), Vector2(7, 5), body)
+			_ellipse(fig, Vector2(40, 38 + bob), Vector2(4.5, 4), body)
+			_stamp(canvas, fig, o)
+			_ragged(canvas, [Vector2i(20, 28), Vector2i(23, 26), Vector2i(26, 25), Vector2i(29, 26)], bob)
+			_crawler_arm(canvas, Vector2(35, 34 + bob), Vector2(41 + pull * 3, 28 + bob), Vector2(46 + pull * 4, 43 - (2 if pull > 0.3 else 0)), Vector2(1, 0.3), body[1], claw, o)
+			_glow(canvas, Vector2i(41, 37 + bob))
+			_glow(canvas, Vector2i(43, 38 + bob))
+		DOWN, UP:
+			var down: bool = st.dir == DOWN
+			_shadow(canvas, Vector2(32, 43), Vector2(13, 2.5))
+			if not down:
+				_ellipse(fig, Vector2(32, 26 + bob), Vector2(4.5, 4), body)
+			_ellipse(fig, Vector2(32, (30 if down else 34) + bob), Vector2(9, 8), body)
+			if down:
+				_ellipse(fig, Vector2(32, 37 + bob), Vector2(5, 4), body)
+			_stamp(canvas, fig, o)
+			_ragged(canvas, [Vector2i(27, 24), Vector2i(31, 22), Vector2i(35, 24)] if down else [Vector2i(27, 30), Vector2i(31, 28), Vector2i(35, 30)], bob)
+			for side: int in [-1, 1]:
+				var s := sin(ph + (PI if side > 0 else 0.0))
+				var lift := 2 if s > 0.3 else 0
+				if down:
+					_crawler_arm(canvas, Vector2(32 + side * 6, 34 + bob), Vector2(32 + side * 13, 30 + bob), Vector2(32 + side * 10, 42 - lift), Vector2(0, 1), body[1], claw, o)
+				else:
+					_crawler_arm(canvas, Vector2(32 + side * 6, 30 + bob), Vector2(32 + side * 13, 27 + bob), Vector2(32 + side * 10, 19 - lift), Vector2(0, -1), body[1], claw, o)
+			if down:
+				_glow(canvas, Vector2i(30, 37 + bob))
+				_glow(canvas, Vector2i(33, 37 + bob))
+
+# A long arm from shoulder through a high elbow to the hand, three pale claws hooking along `reach`.
+func _crawler_arm(canvas: Image, shoulder: Vector2, elbow: Vector2, hand: Vector2, reach: Vector2, color: Color, claw: Color, o: Color) -> void:
+	var layer := _layer()
+	_stroke(layer, [shoulder, elbow, hand], 1.1, color)
+	_stamp(canvas, layer, o)
+	var side := reach.normalized().orthogonal()
+	for k in 3:
+		var tip := hand + reach.normalized() * 3.0 + side * (k - 1) * 1.5
+		_line(canvas, [hand, tip, tip + Vector2(0, 1.5) + reach.normalized()], claw)
+
+# Sinking into the earth: the front view drops through a dark hole while dirt flies.
+func _gravecrawler_burrow(canvas: Image, st: Dictionary) -> void:
+	var f: int = st.f
+	var sink: int = [0, 3, 6, 10, 14, 19][f]
+	var earth := _ramp(["#1a130e", "#2a2018", "#3e3024"])
+	_flat_ellipse(canvas, Vector2(32, 41), Vector2(14, 4), Color("#0a0706"))
+	var fig := _layer()
+	_draw_gravecrawler(fig, {anim = "walk_down", dir = DOWN, f = 0, ph = 0.0, k = 1.0})
+	var sunk := _layer()
+	sunk.blit_rect(fig, Rect2i(0, 0, S, S - sink), Vector2i(0, sink))
+	sunk.fill_rect(Rect2i(0, 42, S, S - 42), Color(0, 0, 0, 0))
+	canvas.blend_rect(sunk, Rect2i(0, 0, S, S), Vector2i.ZERO)
+	for y in range(42, 46):  # the near rim of the hole
+		for x in range(18, 47):
+			if ((Vector2(x + 0.5, y + 0.5) - Vector2(32, 42)) / Vector2(15, 3.5)).length_squared() <= 1.0:
+				_px(canvas, x, y, earth[1] if y == 42 else earth[0])
+	for k in 4:  # clods thrown out
+		var t := fposmod(float(f) / FRAMES + k * 0.25, 1.0)
+		var p := Vector2(32 + (k - 1.5) * 7.0 * (0.4 + t), 40 - sin(t * PI) * 9.0)
+		_px(canvas, roundi(p.x), roundi(p.y), earth[2])
+		_px(canvas, roundi(p.x) + 1, roundi(p.y), earth[1])
+
+# --- Drowned One --------------------------------------------------------------------------------
+# Always Damp, immune to slows: a bloated, dripping shape, head lolling, arms hanging, black water
+# streaming down it and trailing behind in puddles.
+
+func _draw_drowned_one(canvas: Image, st: Dictionary) -> void:
+	var skin := _ramp(["#142228", "#223840", "#34525a", "#4c6e74"])
+	var o := Color("#03070a")
+	var water := Color("#05080a")
+	var sheen := Color("#2a4a58")
+	var f: int = st.f
+	var ph: float = st.ph
+	var b: int = [0, 1, 1, 0, 1, 1][f]
+	var s := roundi(sin(ph) * 1.5)
+	var trail: Vector2 = Vector2(-1, 0) if st.dir == SIDE else (Vector2(0, -1) if st.dir == DOWN else Vector2(0, 1))
+	var pool := water
+	pool.a = 0.85
+	_blend_ellipse(canvas, Vector2(32, 44), Vector2(10, 2.5), pool)
+	for k in 3:
+		pool.a = 0.6 - k * 0.15
+		_blend_ellipse(canvas, Vector2(32, 44) + trail * (9 + k * 6), Vector2(5 - k, 1.6), pool)
+	var fig := _layer()
+	var top := 0
+	match st.dir:
+		SIDE:
+			_stroke(fig, [Vector2(29, 39), Vector2(29 + s, 44)], 1.4, skin[1])
+			_stroke(fig, [Vector2(34, 39), Vector2(34 - s, 44)], 1.4, skin[1])
+			_ellipse(fig, Vector2(31, 31 + b), Vector2(9.5, 11), skin)
+			_ellipse(fig, Vector2(35, 34 + b), Vector2(5, 6), skin)
+			_ellipse(fig, Vector2(37, 20 + b), Vector2(4.5, 4), skin)
+			_stroke(fig, [Vector2(35, 25 + b), Vector2(39, 31 + b), Vector2(40, 38 + b)], 1.3, skin[2])
+			top = 20
+		DOWN, UP:
+			for side: int in [-1, 1]:
+				_stroke(fig, [Vector2(32 + side * 4, 39), Vector2(32 + side * 4, 44 - (1 if s * side > 0 else 0))], 1.4, skin[1])
+			_ellipse(fig, Vector2(32, 31 + b), Vector2(10.5, 11), skin)
+			_ellipse(fig, Vector2(32, 19 + b), Vector2(5, 4.5), skin)
+			for side: int in [-1, 1]:
+				_stroke(fig, [Vector2(32 + side * 9, 25 + b), Vector2(32 + side * 12, 32 + b), Vector2(32 + side * 12, 39 + b)], 1.3, skin[2])
+			top = 22
+	# Black water running down it in streaks, a glint sliding down each.
+	for x in S:
+		if posmod(x * 3, 7) != 0:
+			continue
+		var run := -1
+		for y in range(top, 44):
+			if fig.get_pixel(x, y + b).a > 0.0:
+				run += 1
+				fig.set_pixel(x, y + b, sheen if run == (f * 2 + x) % 12 else water)
+	_stamp(canvas, fig, o)
+	match st.dir:
+		SIDE:
+			_glow(canvas, Vector2i(39, 19 + b))
+			_face_hole(canvas, 39, 22 + b, 2, 1)
+			_px(canvas, 40, 40 + b + (f % 3) * 2, water)
+		DOWN:
+			_glow(canvas, Vector2i(30, 18 + b))
+			_glow(canvas, Vector2i(33, 18 + b))
+			_face_hole(canvas, 31, 21 + b, 2, 2)
+			for side: int in [-1, 1]:
+				_px(canvas, 32 + side * 12, 40 + b + ((f + (1 if side > 0 else 0)) % 3) * 2, water)
+
+# --- Barrow Wight -------------------------------------------------------------------------------
+# Can't be Held; very slow, very high health: an ancient king in a long ragged cloak, a dull iron
+# crown on a bone-pale face, a grey beard, leaning on an iron staff. It holds still, then shuffles.
+
+func _draw_barrow_wight(canvas: Image, st: Dictionary) -> void:
+	var cloak := _ramp(["#121216", "#202026", "#303038", "#46464f"])
+	var bone := _ramp(["#4e4a44", "#7a746a", "#a49c8e"])
+	var crown := _ramp(["#3a3020", "#5a4a30", "#8a7448"])
+	var iron := Color("#34343c")
+	var o := NIGHT_O
+	var f: int = st.f
+	var ph: float = st.ph
+	var h: int = [0, 0, 0, 1, 1, 0][f]
+	_shadow(canvas, Vector2(32, 45), Vector2(10, 2.5))
+	var fig := _layer()
+	var staff_x := 41 if st.dir != UP else 23
+	if st.dir == UP:
+		_line(canvas, [Vector2(staff_x, 10 + h), Vector2(staff_x + 1, 45)], iron)
+	match st.dir:
+		SIDE:
+			_robe(fig, 32.0, 18.0 + h, 6.0, 45.0, 11.0, -2.0, ph * 0.3, cloak)
+			_ellipse(fig, Vector2(34, 13 + h), Vector2(4.5, 5), bone)
+			_stroke(fig, [Vector2(35, 20 + h), Vector2(39, 25 + h), Vector2(41, 25 + h)], 1.2, cloak[2])
+		DOWN:
+			_robe(fig, 32.0, 18.0 + h, 6.5, 45.0, 11.0, 0.0, ph * 0.3, cloak)
+			_ellipse(fig, Vector2(32, 13 + h), Vector2(4.5, 5), bone)
+			_stroke(fig, [Vector2(36, 20 + h), Vector2(39, 24 + h), Vector2(41, 25 + h)], 1.2, cloak[2])
+		UP:
+			_robe(fig, 32.0, 18.0 + h, 6.5, 45.0, 11.0, 0.0, ph * 0.3, cloak)
+			_ellipse(fig, Vector2(32, 13 + h), Vector2(4.5, 5), bone)
+	_stamp(canvas, fig, o)
+	match st.dir:
+		SIDE:
+			for p: Array in [[Vector2(35, 17), Vector2(34, 24)], [Vector2(36, 17), Vector2(36, 23)], [Vector2(37, 16), Vector2(38, 22)]]:
+				_line(canvas, [p[0] + Vector2(0, h), p[1] + Vector2(0, h)], bone[0])
+			_flat_ellipse(canvas, Vector2(36.5, 13.5 + h), Vector2(1.5, 1.5), HOLLOW)
+			_glow(canvas, Vector2i(36, 13 + h))
+			_crown(canvas, 30, 38, 9 + h, [30, 33, 36, 38], crown, o)
+		DOWN:
+			for x: int in [29, 31, 32, 34]:
+				_line(canvas, [Vector2(x, 17 + h), Vector2(x + (1 if x > 32 else (-1 if x < 31 else 0)), 23 + h + (1 if x == 31 or x == 32 else 0))], bone[0])
+			for side: int in [-1, 1]:
+				_flat_ellipse(canvas, Vector2(32 + side * 2, 13.5 + h), Vector2(1.5, 1.5), HOLLOW)
+			_glow(canvas, Vector2i(30, 13 + h))
+			_glow(canvas, Vector2i(33, 13 + h))
+			_crown(canvas, 27, 36, 9 + h, [28, 30, 31, 32, 33, 35], crown, o)
+		UP:
+			_crown(canvas, 27, 36, 9 + h, [28, 30, 31, 32, 33, 35], crown, o)
+	if st.dir != UP:
+		_line(canvas, [Vector2(staff_x, 10 + h), Vector2(staff_x + 1, 45)], iron)
+		_px(canvas, staff_x, 25 + h, bone[1])
+
+# A dull iron crown: a band across the head with points sticking up.
+func _crown(canvas: Image, x0: int, x1: int, y: int, spikes: Array, ramp: Array[Color], o: Color) -> void:
+	var layer := _layer()
+	for x in range(x0, x1 + 1):
+		layer.set_pixel(x, y, ramp[1])
+		layer.set_pixel(x, y + 1, ramp[0])
+	for x: int in spikes:
+		var tall := 3 if x == 31 or x == 32 else 2
+		for k in range(1, tall + 1):
+			layer.set_pixel(x, y - k, ramp[2] if k == tall else ramp[1])
+	_stamp(canvas, layer, o)
+
+# --- Watcher ------------------------------------------------------------------------------------
+# Never sleeps; wakes Drowsy nightmares: a floating lump of shadow studded with unblinking eyes,
+# tendrils trailing beneath. All the eyes look where it's going, then snap aside together.
+
+func _draw_watcher(canvas: Image, st: Dictionary) -> void:
+	var body := _ramp(NIGHT)
+	var f: int = st.f
+	var ph: float = st.ph
+	var h := roundi(sin(ph) * 1.5)
+	var look: Vector2 = Vector2(1, 0) if st.dir == SIDE else (Vector2(0, 1) if st.dir == DOWN else Vector2(0, -1))
+	if f == 3:
+		look = look.orthogonal()
+	_shadow(canvas, Vector2(32, 46), Vector2(9, 2))
+	var fig := _layer()
+	for k in 4:
+		var x := 24.0 + k * 5.0
+		_stroke(fig, [Vector2(x, 34 + h), Vector2(x + sin(ph + k) * 2.0, 40 + h), Vector2(x + sin(ph + k + 1.0) * 3.0, 46)], 0.9, body[1])
+	for l: Vector4 in [Vector4(32, 26, 11, 10), Vector4(24, 30, 6, 5), Vector4(40, 29, 6, 5.5), Vector4(28, 19, 6, 5), Vector4(37, 18, 6, 5), Vector4(32, 34, 7, 4)]:
+		_ellipse(fig, Vector2(l.x, l.y + h), Vector2(l.z, l.w), body)
+	var ghost := _layer()
+	_stamp(ghost, fig, NIGHT_O)
+	_dissolve(ghost, Vector2(0, 40 + h), Vector2(0, 47 + h))
+	_merge(canvas, ghost)
+	var eyes: Array = [Vector3(32, 25, 4.0), Vector3(24, 30, 2.5), Vector3(40, 29, 2.5), Vector3(28, 18, 2.2), Vector3(37, 18, 2.2),
+		Vector3(32, 33, 1.8), Vector3(21, 24, 1.6), Vector3(43, 23, 1.6), Vector3(34, 12, 1.4)]
+	if st.dir == UP:
+		eyes = [Vector3(28, 18, 2.2), Vector3(37, 18, 2.2), Vector3(34, 12, 1.4), Vector3(21, 24, 1.6), Vector3(43, 23, 1.6)]
+	for e: Vector3 in eyes:
+		_watch_eye(canvas, Vector2(e.x, e.y + h), e.z, look)
+
+func _watch_eye(canvas: Image, c: Vector2, r: float, look: Vector2) -> void:
+	var layer := _layer()
+	_flat_ellipse(layer, c, Vector2(r, r * 0.85), Color("#d8e2ea"))
+	for y in S:
+		for x in S:
+			if layer.get_pixel(x, y).a > 0.0 and y + 0.5 > c.y + r * 0.3:
+				layer.set_pixel(x, y, Color("#98a4b0"))
+	_flat_ellipse(layer, c + look * r * 0.35, Vector2.ONE * maxf(r * 0.55, 0.8), Color("#5fc8e0"))
+	var pupil := Vector2i((c + look * r * 0.45).floor())
+	layer.set_pixelv(pupil, HOLLOW)
+	_stamp(canvas, layer, NIGHT_O)
+
+# --- Ash Crawler --------------------------------------------------------------------------------
+# Its burning ash clears Spored behind it: a slow segmented crawler of charcoal, embers glowing
+# in its cracks, ash flaking off and left in a grey trail.
+
+func _draw_ash_crawler(canvas: Image, st: Dictionary) -> void:
+	var coal := _ramp(["#141212", "#221f1e", "#332e2b", "#48413b"])
+	var ember := Color("#c8502a")
+	var ember_dim := Color("#5a2014")
+	var hot := Color("#ffb070")
+	var ash := Color("#6a6662")
+	var o := NIGHT_O
+	var f: int = st.f
+	var ph: float = st.ph
+	var cracks: Array = [[Vector2(-0.6, -0.2), Vector2(-0.1, 0.2), Vector2(0.5, -0.3)], [Vector2(-0.3, -0.6), Vector2(0.1, -0.2)]]
+	var trail: Rect2i
+	var segs: Array[Vector3] = []  # x, y, radius scale; drawn in order (far to near)
+	match st.dir:
+		SIDE:
+			trail = Rect2i(3, 41, 12, 3)
+			for i in 5:
+				segs.append(Vector3(16 + i * 6.5, 36 + sin(ph - i * 0.9), 1.0 + i * 0.08))
+		DOWN:
+			trail = Rect2i(28, 6, 8, 10)
+			for i in 5:
+				segs.append(Vector3(32 + sin(ph - i * 0.9), 17 + i * 5.5, 1.0 + i * 0.08))
+		UP:
+			trail = Rect2i(28, 46, 8, 10)
+			for i in range(4, -1, -1):
+				segs.append(Vector3(32 + sin(ph - i * 0.9), 45 - i * 5.5 - 4, 1.0 + i * 0.08))
+	_shadow(canvas, Vector2(32 if st.dir != SIDE else 30, 43), Vector2(15 if st.dir == SIDE else 8, 2.5))
+	for y in range(trail.position.y, trail.end.y):
+		for x in range(trail.position.x, trail.end.x):
+			if (x * 7 + y * 3 + f) % 4 == 0:
+				_px(canvas, x, y, ash)
+	for i in segs.size():
+		var sg: Vector3 = segs[i]
+		var c := Vector2(sg.x, sg.y)
+		var r := Vector2(5.0, 4.5) * sg.z if st.dir == SIDE else Vector2(5.5, 4.0) * sg.z
+		if st.dir == SIDE:  # a pair of tiny legs under each segment
+			var s := sin(ph + i * PI)
+			_line(canvas, [c + Vector2(-1, r.y - 1), Vector2(c.x - 1 + roundi(s), 42)], o)
+		var seg := _layer()
+		_ellipse(seg, c, r, coal)
+		var glow := _crack(seg, c, r, cracks if i % 2 == 0 else [cracks[0]], ember_dim)
+		_stamp(canvas, seg, o)
+		_crawl(canvas, glow, f + i, 1, hot, ember)
+	var head: Vector3 = segs[segs.size() - 1] if st.dir != UP else segs[0]
+	match st.dir:
+		SIDE:
+			_px(canvas, int(head.x) + 2, int(head.y) - 1, hot)
+			_px(canvas, int(head.x) + 4, int(head.y), hot)
+		DOWN:
+			_px(canvas, 30, int(head.y) + 1, hot)
+			_px(canvas, 33, int(head.y) + 1, hot)
+	for k in 3:  # ash and embers floating up
+		var t := fposmod(float(f) / FRAMES + k / 3.0, 1.0)
+		var sg: Vector3 = segs[k + 1]
+		var col := ember if k == 1 else ash
+		col.a = 1.0 - t
+		_blend_px(canvas, roundi(sg.x + sin(t * TAU + k) * 2.0), roundi(sg.y - 5 - t * 10.0), col)
+
+# --- The Moth Queen -----------------------------------------------------------------------------
+# Act 3 boss, flies over the maze dropping Lurkers: a vast dusky moth whose wings carry a skull,
+# pale patches with hollow sockets on the forewings and a band of teeth on the hindwings; feathery
+# antennae and cold eyes. Drawn head-up on a 144px frame and turned to face the way she flies.
+# "eclipse": her wings fold up and close over the dream (played backwards, they open).
+
+func _draw_moth_queen(canvas: Image, st: Dictionary) -> void:
+	var f: int = st.f
+	var eclipse: bool = st.anim == "eclipse"
+	var open: float = ([0.9, 0.7, 0.5, 0.32, 0.18, 0.08] if eclipse else [1.0, 0.93, 0.82, 0.74, 0.82, 0.93])[f]
+	var h := 0 if eclipse else roundi(sin(st.ph) * 2.0)
+	var shadow := SHADOW
+	shadow.a = 0.25
+	var side_view: bool = st.dir == SIDE and not eclipse
+	_blend_ellipse(canvas, Vector2(72, 116), Vector2(22, 7) if side_view else Vector2(20 + 40 * open, 7), shadow)
+	var pose := _layer()
+	_moth_queen_pose(pose, f, st.ph, open, eclipse, h)
+	if not eclipse:
+		match st.dir:
+			SIDE:
+				pose.rotate_90(CLOCKWISE)
+			DOWN:
+				pose.rotate_180()
+	canvas.blend_rect(pose, Rect2i(0, 0, S, S), Vector2i.ZERO)
+
+func _moth_queen_pose(canvas: Image, f: int, ph: float, open: float, eclipse: bool, h: int) -> void:
+	var wing := _ramp(["#16121e", "#241e30", "#342c44", "#4a405c"])
+	var fur := _ramp(["#1a1620", "#2a2430", "#3c3444", "#544a5c"])
+	var bone := _ramp(["#6a6460", "#968e86", "#bcb4a8"])
+	var o := NIGHT_O
+	var c := Vector2(72, 62 + h)
+	var lift := (1.0 - open) * 16.0 if eclipse else 0.0
+	for side: int in [-1, 1]:  # hindwings, with the skull's teeth along their inner edge
+		var hc := c + Vector2(side * (14 + 10 * open), 16 - lift * 0.5)
+		_moth_wing(canvas, hc, Vector2(16 * open + 6, 15), side * 0.5, wing, bone, side, false, f)
+	for side: int in [-1, 1]:  # forewings, with the skull's pale cheeks and hollow sockets
+		var fc := c + Vector2(side * (18 + 18 * open), -10 - lift)
+		_moth_wing(canvas, fc, Vector2(24 * open + 8, 17), side * (-0.35 - (1.0 - open) * 0.6 if eclipse else -0.35), wing, bone, side, true, f)
+	var body := _layer()
+	_ellipse(body, c + Vector2(0, 18), Vector2(7, 16), fur)
+	for y in S:
+		for x in S:
+			if body.get_pixel(x, y).a > 0.0 and posmod(y - int(c.y), 5) == 0:
+				body.set_pixel(x, y, _darker(fur, body.get_pixel(x, y)))
+	_ellipse(body, c, Vector2(9, 9), fur)
+	_ellipse(body, c + Vector2(0, -12), Vector2(6, 5), fur)
+	_stamp(canvas, body, o)
+	for p: Vector2i in [Vector2i(0, 0), Vector2i(-1, 1), Vector2i(1, 1), Vector2i(0, 2)]:  # the skull's nose on her back
+		_px(canvas, int(c.x) + p.x, int(c.y) + p.y, HOLLOW)
+	for side: int in [-1, 1]:
+		_feather_antenna(canvas, c + Vector2(side * 3, -16), c + Vector2(side * 16, -36), fur[3], fur[2])
+		var e := Vector2i((c + Vector2(side * 4 - (1 if side < 0 else 0), -13)).round())
+		_glow(canvas, e, EYE, EYE_HALO)
+		_px(canvas, e.x + side, e.y, EYE)
+
+# One of her wings as a rotated ellipse: dark with a paler ragged rim; `skull` puts a bone patch
+# with a hollow socket on the inner part (forewings), otherwise a band of pale teeth (hindwings).
+func _moth_wing(canvas: Image, c: Vector2, r: Vector2, angle: float, ramp: Array[Color], bone: Array[Color], side: int, skull: bool, f: int) -> void:
+	var layer := _layer()
+	var reach := ceili(maxf(r.x, r.y)) + 1
+	for y in range(maxi(0, floori(c.y) - reach), mini(S, ceili(c.y) + reach + 1)):
+		for x in range(maxi(0, floori(c.x) - reach), mini(S, ceili(c.x) + reach + 1)):
+			var d := (Vector2(x + 0.5, y + 0.5) - c).rotated(-angle) / r
+			var q := d.length()
+			if q > 1.0 or (q > 0.92 and (x * 7 + y * 3) % 5 == 0):
+				continue
+			var inner := -d.x * side  # 1 = towards the body
+			var col: Color = ramp[1] if side < 0 else ramp[2]
+			if q > 0.82:
+				col = ramp[3] if (x + y) % 2 == 0 else ramp[2]
+			elif posmod(roundi(atan2(d.y, d.x * side) * 9.0), 4) == 0 and q > 0.35:
+				col = ramp[0]  # veins
+			if skull:
+				var pd := (Vector2(inner, d.y) - Vector2(0.4, -0.05)) / Vector2(0.36, 0.52)
+				if pd.length() < 1.0:
+					col = bone[2] if pd.y < -0.3 else (bone[1] if pd.length() < 0.8 else bone[0])
+					var sd := (Vector2(inner, d.y) - Vector2(0.42, -0.08)) / Vector2(0.15, 0.24)
+					if sd.length() < 1.0:
+						col = HOLLOW
+					elif sd.length() < 1.35 and (x + y + f) % 2 == 0:
+						col = Color("#4a8aa0")
+			elif inner > 0.45 and d.y < 0.2 and posmod(roundi(d.y * r.y), 4) != 0 and absf(fposmod(inner * 8.0, 1.0) - 0.5) < 0.3:
+				col = bone[1]
+			layer.set_pixel(x, y, col)
+	_stamp(canvas, layer, NIGHT_O)
+
+# Feathery antenna: a stalk with barbs on its outer side.
+func _feather_antenna(canvas: Image, a: Vector2, b: Vector2, stem: Color, barb: Color) -> void:
+	_line(canvas, [a, b], stem)
+	var out := signf(b.x - a.x)
+	for k in range(1, 8):
+		var p := a.lerp(b, k / 8.0).round()
+		_px(canvas, int(p.x + out), int(p.y + 1), barb)
+		_px(canvas, int(p.x + out * 2), int(p.y + 2), barb)
