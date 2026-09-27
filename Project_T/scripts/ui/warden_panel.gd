@@ -21,6 +21,7 @@ var _body := Label.new()
 var _groups := VBoxContainer.new()  # Several selected: one row per kind with its portrait
 var _buttons := VBoxContainer.new()
 var _confirm_sell := false  # Selling a group during a drift asks once more
+var _confirm_unlock: TowerData = null  # Unlocking a form with Dreamlight asks once more
 
 func _ready() -> void:
 	custom_minimum_size = Vector2(300, 0)
@@ -39,10 +40,13 @@ func _ready() -> void:
 	tower_seller.tower_selected.connect(_show)
 	tower_seller.selection_changed.connect(func(_towers: Array[Tower]) -> void:
 		_confirm_sell = false
+		_confirm_unlock = null
 		_refresh())
 	run_state.dew_changed.connect(_refresh.unbind(1))
 	dream_state.unlocks_changed.connect(_refresh)
 	dream_state.card_taken.connect(_refresh.unbind(1))
+	if dream_state.has_signal("dreamlight_changed"):
+		dream_state.dreamlight_changed.connect(_refresh.unbind(1))
 	drift_director.build_phase_changed.connect(_refresh.unbind(1))
 
 func _show(tower: Tower) -> void:
@@ -119,9 +123,7 @@ func _refresh() -> void:
 			button.disabled = not run_state.can_afford(cost)
 			button.pressed.connect(_evolve.bind(next))
 		else:
-			button.text = "%s · needs a Dream" % next.display_name
-			button.tooltip_text = next.description
-			button.disabled = true
+			_locked_form_button(button, "Grow into %s" % next.display_name, next)
 	if _tower.needs_focus():
 		# Rank III asks for a Focus, kept through growth and never changed.
 		var cost := _tower.get_nurture_cost()
@@ -137,7 +139,7 @@ func _refresh() -> void:
 	elif _tower.can_nurture():
 		var cost := _tower.get_nurture_cost()
 		var nurture := _add_button("Nurture to rank %s · %d Dew (R)" % [Tower.RANK_NAMES[_tower.rank + 1], cost])
-		nurture.tooltip_text = "+10% damage, +4% attack speed, +0.1 range%s. Kept when it grows." % (
+		nurture.tooltip_text = "+10%% damage, +4%% attack speed, +0.1 range%s. Kept when it grows." % (
 			", and %s" % Tower.FOCUS_TEXT[_tower.focus] if _tower.focus != Tower.Focus.NONE else "")
 		nurture.disabled = not run_state.can_afford(cost)
 		nurture.pressed.connect(func() -> void:
@@ -185,8 +187,7 @@ func _refresh_group() -> void:
 			var button := _add_button("")
 			button.tooltip_text = next.description
 			if not option[1]:
-				button.text = "%s → %s · needs a Dream" % [_plural(data, towers.size()), next.display_name]
-				button.disabled = true
+				_locked_form_button(button, "%s → %s" % [_plural(data, towers.size()), next.display_name], next)
 				continue
 			var cost := dream_state.get_evolve_cost(next)
 			var affordable := tower_seller.count_affordable(towers, next)
@@ -288,6 +289,40 @@ func _cycle_group_target() -> void:
 	for tower in tower_seller.selection:
 		if tower.tower_data.has_target_priority:
 			tower.target_mode = next
+	_refresh()
+
+# A form that isn't unlocked yet (run_design.md "Dreamlight"): "Grow into Stormcap · Unlock with 1
+# Dreamlight". With enough Dreamlight, the first click asks and the second unlocks it; otherwise it
+# opens the Remember screen on that form (which also says what else it needs).
+func _locked_form_button(button: Button, label: String, next: TowerData) -> void:
+	button.tooltip_text = next.description
+	if not dream_state.has_method("get_unlock_cost"):
+		button.text = "%s · needs a Dream" % label  # Before Dreamlight
+		button.disabled = true
+		return
+	var cost: int = dream_state.get_unlock_cost(next)
+	var blocker: String = dream_state.get_unlock_blocker(next)
+	var affordable: bool = dream_state.can_unlock(next) and dream_state.dreamlight >= cost
+	button.text = "%s · Unlock with %d Dreamlight" % [label, cost]
+	if blocker != "":
+		button.text = "%s · %s" % [label, blocker]
+	elif not affordable:
+		button.text += " (you have %d)" % dream_state.dreamlight
+	elif _confirm_unlock == next:
+		button.text = "Unlock %s for %d Dreamlight? Click to confirm" % [next.display_name, cost]
+	button.pressed.connect(_on_locked_form.bind(next, affordable and blocker == ""))
+
+func _on_locked_form(next: TowerData, can_unlock_now: bool) -> void:
+	if not can_unlock_now:
+		_confirm_unlock = null
+		dream_state.open_remember(next)
+		return
+	if _confirm_unlock != next:
+		_confirm_unlock = next
+		_refresh()
+		return
+	_confirm_unlock = null
+	dream_state.unlock_with_dreamlight(next)  # Emits unlocks_changed -> refresh
 	_refresh()
 
 func _add_button(text: String) -> Button:
