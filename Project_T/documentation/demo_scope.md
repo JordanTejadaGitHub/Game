@@ -53,6 +53,11 @@ While testing, note for each Warden: fun?, readable?, too strong / too weak?, ne
 work? Then pick the demo families (2–3) and branches from the notes. Must be off (and hidden) in
 demo and release builds, and **Test Grove runs don't bank Seeds**.
 
+**Unlock all families** (added 2026-09-27): a second developer toggle for testing the *core game*:
+normal runs (family picks, Dreams, Dew, difficulty all as usual) but with **every family in the
+pick pool** and their Grove Dream cards, as if the Memory Grove had unlocked everything. Doesn't
+touch the real profile; runs don't bank Seeds. Unlike Test Grove, nothing is free or pre-unlocked.
+
 **Test tools v2** (added 2026-09-27: first test showed combos and impact couldn't be judged):
 - **Spawn panel:** pick a nightmare type, a count and "elite", spawn at the start now.
 - **Target Dummy:** a slow, unkillable nightmare that walks the route on a loop; shows the damage
