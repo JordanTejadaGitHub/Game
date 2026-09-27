@@ -19,14 +19,14 @@ Revised for 100-drift runs (`run_design.md`).
 |---|---|
 | Every 2 drifts survived | 1 (max 50) |
 | Nightmares dispelled | 1 per 25 (~60 in a full run) |
-| Each boss dispelled | 10 |
+| Each boss dispelled | **15** (was 10) |
 | Each obstacle tended | 1 (see `run_design.md`) |
-| Winning | +50 |
+| Winning | **+80** (was 50) |
 | Blight Level | +10% per level (Level 10 = double) |
 
-Examples: a loss around drift 20 ≈ **25 Seeds**; a loss at drift 60 ≈ **80**; a win ≈ **220**.
-Averaging ~170 across a player's first runs, the Grove below (~2,300 Seeds) takes **~13–14 runs
-≈ 18–20 hours**.
+Examples: a loss around drift 20 ≈ **25 Seeds**; a loss at drift 60 ≈ **95**; a win ≈ **270**.
+Averaging ~220 across a player's first runs, the tech tree below (~3,100 Seeds) takes **~14 runs
+≈ 20 hours**. (Raised 2026-09-27 when the Grove grew into the tech tree.)
 
 **Every run should buy something early on**: the cheapest unlocks cost 20–25, so even a bad first
 run grows the Grove. Losing early in a long run is also cushioned by the mid-run save: players can
@@ -40,39 +40,101 @@ remembered you."* This works if the demo and full game share the save format and
 project name, so the same `user://` folder); the full game reads the demo's saved Seeds once and
 marks them as imported.
 
-## The Memory Grove
+## The Memory Grove: a tech tree
 
-A garden screen between runs. Each unlock grows as a plant on one of **4 roots**; later unlocks on a
-root need earlier ones. Costs rise along a root, so early choices are cheap and fast.
+Redesigned 2026-09-27 (user decision): the Grove is a **tech tree** growing up from the Heartwood's
+roots, with **three sections**. Each node costs Seeds and needs its parent node(s). About 55 nodes,
+~3,100 Seeds in total.
 
-### Wardens root: new lines and forms (~680)
+```
+                 FAMILIES (middle limb)
+   PERKS (left limb)     |      CARDS (right limb)
+            \            |            /
+             \           |           /
+                  [ the Heartwood ]
+```
 
-| Unlock | Cost | Needs |
-|---|---|---|
-| Pebbling line (joins the family picks; its branches and cards join the Dream pool) | 50 | — |
-| Rootling line | 50 | — |
-| Acorn line | 70 | Pebbling or Rootling |
-| Beacon (Firefly final, Lanternmoth side) | 50 | — |
-| Sporeling finals (Puffball, Dreamshroom) | 80 | — |
-| Dewdrop finals (Monsoon, Morning Fog) | 80 | — |
-| Pebbling finals (Boulderback, Lullaby Bell) | 100 | Pebbling line |
-| Rootling finals (Long Way Home, Snugroot) | 100 | Rootling line |
-| Acorn finals (Grove Heart, Wellspring) | 100 | Acorn line |
-| Hidden branch: Fairy Ring (+ Elf Circle) | 90 | Sporeling finals |
-| Hidden branch: Standing Stone (+ Moonstone) | 90 | Pebbling line |
-| Hidden branch: Frostfern (+ Hoarfrost) | 90 | Dewdrop finals |
-| Hidden branch: Rootlight (+ Starcave) | 90 | Rootling line |
-| Hidden branch: Graftling (+ Grafted Elder) | 120 | Acorn line |
-| Nestling family *(full game)* | 120 | any 2 of Pebbling / Rootling / Acorn |
-| Whirligig family *(full game)* | 120 | any 2 of Pebbling / Rootling / Acorn |
+**How it looks and works** (`screens_ui.md`, meta screens): the Heartwood at the bottom, the three
+limbs branching up. Each node is a bud (locked, cost shown), a glowing bud (affordable, parents
+owned) or a bloom (owned). Tap or click a node for its card and a **Plant** button. Pan and zoom
+like the map. A Seeds counter top left; a **Memories** shelf; **Start run** opens the loadout
+(below) first.
 
-Final forms still need their Rare Dream in-run; the Grove only puts them in the pool. Sunpetal is
-the one hidden branch that comes from a milestone instead (below). The hidden branches and new
-families add ~720 Seeds; the time estimate at the top should be re-checked once they're priced for
-real (or some move to milestones).
+### Section 1: Perks (bring into the game)
 
-**Memory Wardens** (`tower_design.md`) aren't bought: dispelling a boss for the first time unlocks
-its Memory Warden as a boss-reward option in every later run.
+Perks are **unlocked** in the tree, then **equipped** in a small **loadout** before each run
+("Carry into the dream"). You own many but carry few, so the loadout is a choice every run.
+
+- **Loadout slots:** 1 at the start; the tree adds a 2nd (40), 3rd (100) and 4th (200).
+- A perk with levels (e.g. Morning Stores I–III) takes one slot at its highest owned level.
+- Loadout is kept between runs; change it any time before starting.
+
+| Node | Levels | Cost per level | Effect (at max) | Needs |
+|---|---|---|---|---|
+| Morning Stores | 3 | 20 / 40 / 60 | +30 starting Dew | — |
+| Deep Taproot | 3 | 25 / 50 / 75 | +3 max leaves | — |
+| Sprout Bed | 1 | 60 | start with 2 free Sprouts to place | Morning Stores I |
+| Clear Sight | 1 | 80 | clearing is unlocked from the start (no clearing card needed) | — |
+| Early Bloom | 1 | 80 | the first family pick offers every unlocked family | — |
+| Early Light | 1 | 120 | +1 Dreamlight at run start | Early Bloom |
+| Second Thoughts | 2 | 50 / 100 | 2 Dream rerolls per run | — |
+| Let Go | 1 | 60 | banish 1 card per run | Second Thoughts I |
+| Omen Reader | 1 | 80 | Omen rests offer 3 Omens instead of 2 | — |
+| Seed Pouch | 1 | 100 | +10% Seeds | — |
+| Wider Dreams | 1 | 150 | 4 cards per Dream instead of 3 | Second Thoughts II |
+| Loadout slot 2 / 3 / 4 | — | 40 / 100 / 200 | carry one more perk | slot 2 → 3 → 4 |
+
+**Power caps stay:** starting Dew +30, leaves +3, rerolls 2. With 4 slots at most, a player can't
+carry every power perk at once.
+
+### Section 2: Families and family upgrades
+
+The starting families (Sporeling, Firefly Jar, Dewdrop) sit at the base of this limb, already grown.
+Each family has three nodes stacked above it: **the family** (joins the family picks, with its
+branches), **its final forms**, **its hidden branch**.
+
+| Family | Family node | Final forms node | Hidden branch node |
+|---|---|---|---|
+| Sporeling | *(start)* | 50 (Puffball, Dreamshroom) | 40 (Fairy Ring + Elf Circle) |
+| Firefly Jar | *(start)* | 50 (Thunderhead, Beacon) | *milestone:* Sunpetal |
+| Dewdrop | *(start)* | 50 (Monsoon, Morning Fog) | 40 (Frostfern + Hoarfrost) |
+| Pebbling | 50 | 50 | 40 (Standing Stone + Moonstone) |
+| Rootling | 50 | 50 | 40 (Rootlight + Starcave) |
+| Acorn | 70 (needs Pebbling or Rootling) | 50 | 60 (Graftling + Grafted Elder) |
+| Nestling | 120 (needs 2 of Pebbling / Rootling / Acorn) | 60 | — |
+| Whirligig | 120 (needs 2 of Pebbling / Rootling / Acorn) | 60 | — |
+
+- The Grove decides which forms **exist** in your runs; **Dreamlight** decides which you unlock
+  **this run** (`run_design.md`). A final form not yet grown here shows as *"Memory Grove"* on the
+  Remember screen.
+- A family's own Dream cards (`dream_design.md`, "Cards for the new Wardens") come with its family
+  or hidden-branch node automatically.
+- **Memory Wardens** aren't bought: dispelling a boss for the first time grows its Memory Warden as a
+  free bloom on this limb, and it's offered after that boss in later runs.
+- Total ≈ 1,100 Seeds.
+
+### Section 3: Cards (Dream pool unlocks)
+
+Cards come in **themed bundles** (one node = a set of Grove cards joining the Dream pool), so the
+limb stays readable and each purchase feels big. The Legendaries sit at the top.
+
+| Node | Cards it adds | Cost | Needs |
+|---|---|---|---|
+| Storm Lore | Static Bloom, Static Field | 40 | — |
+| Spore Lore | Twin Puff, Chain Bloom | 40 | — |
+| Guiding Lights | Guiding Light, Starlit Aim | 50 | Storm Lore |
+| Keen Edges (crit) | Still Target, Shattering Blow, Reckless Bloom | 70 | — |
+| Tending Hands (nurture) | Sunlit Rest, Deeper Rings, Nursery, The Old Ones, Chosen Few | 90 | — |
+| Overgrowth (wide) | Seedling Gift, Canopy, Overgrowth | 70 | — |
+| Lone Lantern (narrow) | The Last Light | 70 | — |
+| Dead Wood (clearing) | Burn Back the Dead Wood | 40 | — |
+| Bittersweet Dreams | Wild Growth, Borrowed Memory, Deep Sleep and the other Bittersweet Grove cards | 60 | any 2 bundles |
+| **The Long Walk** | Legendary | 100 | any 3 bundles |
+| **Rootbound** | Legendary | 100 | any 3 bundles |
+| **Monoculture** | Legendary | 100 | any 3 bundles |
+| **Full Moon** | Legendary | 120 | Keen Edges |
+
+Total ≈ 900 Seeds. Cards added later go into an existing bundle or a new one.
 
 **Families before the Grove fills in:** a new player has only 3 families (Sporeling, Firefly Jar,
 Dewdrop), but a run offers family picks at drift 1 and at the 25/50/75 bosses. When there are
@@ -81,32 +143,15 @@ a family you already own (e.g. *"Sporeling Blessing: Sporeling family +25% sooth
 cheaper"*). So early runs deepen few families; unlocking Pebbling, Rootling and Acorn widens later
 runs, which makes those Grove purchases feel big.
 
-### Dreams root: new cards (~510)
+### Later: Forests
 
-The "Grove" cards in `dream_design.md`: Static Bloom 25, Twin Puff 25, Static Field 50,
-Guiding Light 50, Seedling Gift 60, then the Legendaries (The Long Walk, Rootbound, Monoculture)
-at 100 each.
+New biomes (e.g. **Misty Marsh**, **Autumn Hollow**) will be a small fourth limb or nodes at the top
+of the Perks limb once they're designed (`design_plan.md` topic 9); not in the first version.
 
-### Perks root: permanent power, capped (~810)
+### Memories and the tree
 
-| Perk | Levels | Cost per level | Effect at max |
-|---|---|---|---|
-| Morning Stores | 3 | 20 / 40 / 60 | +30 starting Dew (+50%) |
-| Deep Taproot | 3 | 25 / 50 / 75 | +3 max leaves |
-| Early Bloom | 1 | 80 | the first family pick (after drift 1) offers **every** unlocked family instead of 3 random ones |
-| Early Light | 1 | 120 | start every run with **+1 Dreamlight** |
-| Second Thoughts | 2 | 50 / 100 | 2 Dream rerolls per run |
-| Let Go | 1 | 60 | banish 1 card per run (it never appears again that run) |
-| Seed Pouch | 1 | 100 | +10% Seeds |
-| Wider Dreams | 1 | 150 | 4 cards per Dream instead of 3 |
-
-**Power caps:** starting Dew +50%, leaves +3, rerolls 2. Power perks make runs smoother but never
-replace good building. Watch Wider Dreams + rerolls together with unlimited stat stacking.
-
-### Forests root: new biomes (~320, after first playable)
-
-Two extra forests (e.g. **Misty Marsh**, **Autumn Hollow**) with their own obstacles, look and a
-rule twist; 120 and 200 Seeds. Designed in Phase 4 (`design_plan.md` topic 9).
+A Memory fragment blooms **every 3 nodes planted** (plus the milestone ones below), shown as a leaf
+on the Memories shelf. About 55 nodes, so all 10 Memories arrive well before the tree is complete.
 
 ## Milestones (free unlocks; double as Steam achievements)
 
@@ -130,8 +175,8 @@ Pick a level before a run; each level includes all the ones below it. **+10% See
 
 | Level | Adds |
 |---|---|
-| 1 | Creatures +10% health |
-| 2 | Starting Dew −20 |
+| 1 | Nightmares +10% health |
+| 2 | **The first family pick gives no Dreamlight** (was "starting Dew −20", which made drift 1 unwinnable after the opening test) |
 | 3 | Bosses +25% health |
 | 4 | Drift-clear bonus −25% |
 | 5 | One nightmare per drift is **Deeply Blighted** (×3 health, costs 2 leaves; see `acts_1_2.md`) |
@@ -178,7 +223,9 @@ Blight Levels carry on as the endgame.
 - `HeartwoodMemory` autoload: Seeds, owned unlocks (ids), milestone progress and counters,
   Memories seen, highest Blight Level won, settings. Saved to `user://` (Steam Auto-Cloud),
   versioned.
-- `UnlockData` resources: id, root, cost per level, levels, prerequisites, effect (adds ids to the
-  Dream pool, modifies a starting value, or unlocks a biome).
+- `UnlockData` resources (tree nodes): id, **section** (perks / families / cards), cost per level,
+  levels, **parents** (ids), **tree position**, effect (adds families/forms/cards to the pools, or a
+  perk). Perks also have `loadout: true`.
+- `HeartwoodMemory` also stores the **perk loadout** (equipped perk ids) and the number of slots.
 - `MemoryData` resources: order, text, art, trigger (unlock count or milestone id).
 - `BlightLevelData` resources (or one list): level, description, modifiers.
