@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "deep_sleep"
 display_name = "Deep Sleep"
-description = "All Wardens soothe 40% more."
+description = "All Wardens deal 40% more damage."
 cost_description = "The Heartwood holds 4 fewer leaves, and loses 4 now."
 rarity = 2
 kind = 2

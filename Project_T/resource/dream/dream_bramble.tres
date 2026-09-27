@@ -7,7 +7,7 @@
 script = ExtResource("1_card")
 id = "dream_bramble"
 display_name = "Bramble"
-description = "Thornwalls can now grow into Brambles (+10 Dew each): they soothe nightmares walking past."
+description = "Thornwalls can now grow into Brambles (+10 Dew each): they damage nightmares walking past."
 rarity = 1
 kind = 1
 tags = Array[String](["wall"])

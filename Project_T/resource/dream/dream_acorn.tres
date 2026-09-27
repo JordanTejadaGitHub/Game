@@ -7,7 +7,7 @@
 script = ExtResource("1_card")
 id = "dream_acorn"
 display_name = "Acorn"
-description = "Sprouts can now grow into Acorns (15 Dew), or plant one directly (25 Dew). A little oak that soothes all around it."
+description = "Sprouts can now grow into Acorns (15 Dew), or plant one directly (25 Dew). A little oak that damages everything around it."
 rarity = 0
 kind = 0
 tags = Array[String](["acorn"])
