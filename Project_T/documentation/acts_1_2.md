@@ -30,7 +30,8 @@ points for playtesting and live in data (`EnemyData`, `DriftData`).
 - **Hedgehogs** punish long straight corridors and reward twisty mazes. Rolling is visible (a
   curled-up sprite, a little dust trail) so the player can see why they're fast.
 - **Ducklings** make a target-priority choice: cleanse Mother first (the line slows down) or catch
-  the whole line with splash and chains at a chokepoint.
+  the whole line with splash and chains at a chokepoint. **Every Duckling costs a leaf**, so a
+  whole line reaching the Heartwood costs 5: a real threat, not a parade to watch.
 
 **Full game only** (act 2 extras, after the demo): **Mole** (burrows under one wall per trip) and
 **Wandering Hare** (takes wrong turns into dead ends) join act 2 and replace some mixed drifts.
@@ -50,11 +51,11 @@ seen at drift 23. (Blight Level 5 uses the same rule: one Deeply Blighted creatu
 | 3,000 | 0.7 | 40 | 5 |
 
 - **Trampling:** every 10 seconds, if a **Thornwall** is next to it, it knocks one down (up to 3
-  per trip). The wall becomes a **Trampled Hedge**: an empty cell creatures can walk through, which
-  the player can regrow for free during the next rest. Knocking down walls can open shortcuts, but
-  the path rule still holds. Tests maze redundancy: don't rely on one wall.
-- **Remembering:** at half health it stops for 3 seconds, colour flickering back for a moment. A
-  breather and a hint that it can be cleansed.
+  per trip). **The wall is gone for good** (no refund); creatures, including the Stag, can use the
+  opened cell right away. Knocking down walls can open shortcuts, but the path rule still holds.
+  Tests maze redundancy: don't rely on one wall.
+- **Startled:** at half health it charges: +50% speed for 4 seconds, and it can trample during the
+  charge. Burst it down before it panics, or have soothe spread along the route.
 - **Escort:** 12 Leaf Bugs ahead, then the Stag, then 6 Bark Beetles.
 - **Cleansed:** a long colour return; it lifts its head and walks off into the trees. *"The Old
   Stag remembers the way home."*
