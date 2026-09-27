@@ -37,6 +37,14 @@ signal offer_closed
 # Bittersweet cards stay out of the pool until leaves are tuned (dream_design.md). Act 2+ only,
 # at most one per offer.
 @export var allow_bittersweet: bool = false
+# Blight Level 8 ("Dream offers lean Common"): half of the Rare+ weight goes to Common.
+@export var lean_common: bool = false
+
+# Memory Grove (set at run start by MetaRun): Grove cards owned (in_start_pool = false cards that
+# may now be offered), Dream rerolls (Second Thoughts) and banishes (Let Go) left this run.
+var grove_cards: Array[String] = []
+var rerolls_left := 0
+var banishes_left := 0
 
 var unlocked := {}  # Warden id -> true
 var stacks := {}  # Card id -> times taken
@@ -48,6 +56,8 @@ var _dreams_without_rare := 0
 var _rare_dreams_left := 0  # Restless Dreams / Omens: the next N offers each include a Rare+
 var _extra_cards_next := 0  # Omens (Thick Blight): the next offer has this many more cards
 var _entwined_offered := {}  # Entwined card id -> true once its guaranteed offer happened
+var _banished := {}  # Card id -> true: Let Go took it out of this run's pool
+var _before_offer := {}  # Offer counters from before the current offer (a reroll rolls them back)
 var _pending_drifts: Array[int] = []
 var _bend_cells := {}  # Path cells where the route turns (Cozy Corners)
 var _rng := RandomNumberGenerator.new()
@@ -115,10 +125,12 @@ func get_build_cost(data: TowerData) -> int:
 			surcharge = maxi(surcharge, card.set_cost)
 	return maxi(cost, surcharge)
 
+# Discounts apply to the Warden grown into, if the card covers its line (Family Blessings: one family).
 func get_evolve_cost(to: TowerData) -> int:
 	var discount := 0.0
 	for card in _taken_cards():
-		discount += card.evolve_discount * stacks[card.id]
+		if _applies_to(card, to):
+			discount += card.evolve_discount * stacks[card.id]
 	return roundi(to.evolve_cost * maxf(1.0 - discount, 0.0))
 
 # `data`'s evolutions this run: [[TowerData, available: bool], ...].
@@ -360,6 +372,7 @@ func _show_next_offer() -> void:
 	if _pending_drifts.is_empty() or is_offering():
 		return
 	current_offer_drift = _pending_drifts.pop_front()
+	_before_offer = _offer_counters()
 	current_offer = make_offer(current_offer_drift)
 	if current_offer.is_empty():
 		_show_next_offer()
@@ -383,6 +396,47 @@ func _close_offer() -> void:
 	current_offer = []
 	offer_closed.emit()
 	_show_next_offer()
+
+# Second Thoughts (Grove): a new offer for the same Dream. It counts as the same Dream (pity, Omen
+# rewards and Entwined guarantees are rolled back first), so only the cards change.
+func reroll() -> bool:
+	if not is_offering() or rerolls_left <= 0:
+		return false
+	rerolls_left -= 1
+	_restore_offer_counters(_before_offer)
+	current_offer = make_offer(current_offer_drift)
+	offer_ready.emit(current_offer, current_offer_drift)
+	return true
+
+# Let Go (Grove): `card` leaves this run's pool for good; another card takes its place in the offer.
+func banish(card: UpgradeData) -> bool:
+	if not current_offer.has(card) or banishes_left <= 0:
+		return false
+	banishes_left -= 1
+	_banished[card.id] = true
+	var index := current_offer.find(card)
+	current_offer.remove_at(index)
+	var replacement := _draw_card(drift_director.get_act(current_offer_drift), current_offer, false)
+	if replacement != null:
+		current_offer.insert(index, replacement)
+	if current_offer.is_empty():
+		_close_offer()
+	else:
+		offer_ready.emit(current_offer, current_offer_drift)
+	return true
+
+func _offer_counters() -> Dictionary:
+	return {"dreams_seen": dreams_seen, "without_rare": _dreams_without_rare,
+		"rare_left": _rare_dreams_left, "extra": _extra_cards_next, "entwined": _entwined_offered.duplicate()}
+
+func _restore_offer_counters(counters: Dictionary) -> void:
+	if counters.is_empty():
+		return
+	dreams_seen = counters.dreams_seen
+	_dreams_without_rare = counters.without_rare
+	_rare_dreams_left = counters.rare_left
+	_extra_cards_next = counters.extra
+	_entwined_offered = counters.entwined.duplicate()
 
 # Builds a Dream offer for after drift `drift_number` (see dream_design.md, "How offers work").
 func make_offer(drift_number: int) -> Array[UpgradeData]:
@@ -414,7 +468,9 @@ func make_offer(drift_number: int) -> Array[UpgradeData]:
 	return offer
 
 func is_eligible(card: UpgradeData, act: int = 1) -> bool:
-	if not card.in_start_pool or act < card.min_act or card.kind == UpgradeData.Kind.UNLOCK_WARDEN:
+	if not (card.in_start_pool or grove_cards.has(card.id)) or _banished.has(card.id):
+		return false
+	if act < card.min_act or card.kind == UpgradeData.Kind.UNLOCK_WARDEN:
 		return false  # Base Wardens come from the family pick
 	if card.max_stacks > 0 and card_stacks(card.id) >= card.max_stacks:
 		return false
@@ -457,6 +513,11 @@ func _draw_card(act: int, exclude: Array[UpgradeData], want_rare: bool) -> Upgra
 
 func _roll_rarity(act: int, want_rare: bool) -> int:
 	var weights: Array = RARITY_WEIGHTS[clampi(act, 1, RARITY_WEIGHTS.size()) - 1].duplicate()
+	if lean_common:
+		for i in [UpgradeData.Rarity.RARE, UpgradeData.Rarity.LEGENDARY]:
+			var moved: int = weights[i] / 2
+			weights[i] -= moved
+			weights[UpgradeData.Rarity.COMMON] += moved
 	if want_rare:
 		weights[0] = 0
 		weights[1] = 0
@@ -515,6 +576,7 @@ func to_save() -> Dictionary:
 		"unlocked": unlocked.keys(), "stacks": stacks.duplicate(), "dreams_seen": dreams_seen,
 		"dreams_without_rare": _dreams_without_rare, "rare_dreams_left": _rare_dreams_left,
 		"extra_cards_next": _extra_cards_next, "entwined_offered": _entwined_offered.keys(),
+		"rerolls_left": rerolls_left, "banishes_left": banishes_left, "banished": _banished.keys(),
 		"rng_state": str(_rng.state),  # A string: JSON would round a 64-bit int
 	}
 
@@ -533,6 +595,12 @@ func load_save(data: Dictionary) -> void:
 	_entwined_offered.clear()
 	for id in data.get("entwined_offered", []):
 		_entwined_offered[id] = true
+	if data.has("rerolls_left"):  # Else keep what MetaRun set at run start
+		rerolls_left = int(data.rerolls_left)
+		banishes_left = int(data.banishes_left)
+	_banished.clear()
+	for id in data.get("banished", []):
+		_banished[id] = true
 	if data.has("rng_state"):
 		_rng.state = str(data.rng_state).to_int()
 	unlocks_changed.emit()

@@ -15,6 +15,7 @@ var _was_paused := false
 var _title := Label.new()
 var _cards := HBoxContainer.new()
 var _skip := Button.new()
+var _reroll := Button.new()  # Second Thoughts (Memory Grove)
 
 func _ready() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -39,7 +40,12 @@ func _ready() -> void:
 	box.add_child(_cards)
 	_skip.focus_mode = Control.FOCUS_NONE
 	_skip.pressed.connect(dream_state.skip)
-	var skip_row := CenterContainer.new()
+	_reroll.focus_mode = Control.FOCUS_NONE
+	_reroll.pressed.connect(dream_state.reroll)
+	var skip_row := HBoxContainer.new()
+	skip_row.alignment = BoxContainer.ALIGNMENT_CENTER
+	skip_row.add_theme_constant_override("separation", 16)
+	skip_row.add_child(_reroll)
 	skip_row.add_child(_skip)
 	box.add_child(skip_row)
 
@@ -54,10 +60,22 @@ func _show_offer(cards: Array[UpgradeData], drift_number: int) -> void:
 	_title.text = "A Dream, after drift %d" % drift_number
 	_skip.text = "Let it pass  (+%d Dew)" % dream_state.skip_dew
 	_skip.visible = dream_state.can_skip()  # Restless Dreams
+	_reroll.text = "Dream again  (%d left)" % dream_state.rerolls_left
+	_reroll.visible = dream_state.rerolls_left > 0
 	for child in _cards.get_children():
+		_cards.remove_child(child)  # Right away: a reroll rebuilds the row in the same frame
 		child.queue_free()
 	for card in cards:
-		_cards.add_child(_make_card(card))
+		var column := VBoxContainer.new()
+		column.add_child(_make_card(card))
+		if dream_state.banishes_left > 0:  # Let Go (Memory Grove)
+			var let_go := Button.new()
+			let_go.text = "Let go  (%d left)" % dream_state.banishes_left
+			let_go.tooltip_text = "This card won't come back this run; another takes its place."
+			let_go.focus_mode = Control.FOCUS_NONE
+			let_go.pressed.connect(dream_state.banish.bind(card))
+			column.add_child(let_go)
+		_cards.add_child(column)
 	visible = true
 
 func _make_card(card: UpgradeData) -> Button:

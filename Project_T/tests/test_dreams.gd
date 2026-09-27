@@ -21,6 +21,7 @@ func _run() -> void:
 	_test_card_effects(main)
 	_test_new_cards(main)
 	_test_clearing_cards(main)
+	_test_meta_hooks(main)
 	_simulate_storm_grid(main)
 	print("dreams test: %s" % ("PASS" if failures == 0 else "%d FAILED" % failures))
 	quit(failures)
@@ -419,6 +420,73 @@ func _test_clearing_cards(main: Node) -> void:
 	var bug: EnemyData = load("res://resource/enemy/leaf_bug.tres")
 	_check(is_equal_approx(director.get_spawn_modifiers(bug, 3).get("speed", 1.0), 1.1), "Burn Back: nightmares +10% speed")
 	run_state.fertile_cells.clear()
+	_reset_dreams(main)
+
+# Memory Grove hooks MetaRun sets: Grove cards, family-only evolve discounts, rerolls, banishes,
+# Blight Level 8's lean-Common offers, and the save.
+func _test_meta_hooks(main: Node) -> void:
+	var dreams: DreamState = main.get_node("%DreamState")
+	_reset_dreams(main)
+	dreams.unlocked["sporeling"] = true
+	dreams.unlocked["firefly_jar"] = true
+
+	# Grove cards only once owned
+	var grove_card := UpgradeData.new()
+	grove_card.id = "test_grove_card"
+	grove_card.in_start_pool = false
+	_check(not dreams.is_eligible(grove_card), "a Grove card stays out until owned")
+	dreams.grove_cards.assign(["test_grove_card"])
+	_check(dreams.is_eligible(grove_card), "grove_cards puts it in the pool")
+	dreams.grove_cards.clear()
+
+	# A family Blessing's evolve discount only covers its own line
+	var blessing := UpgradeData.new()
+	blessing.id = "test_blessing_spore"
+	blessing.stat_line = "spore"
+	blessing.evolve_discount = 0.25
+	blessing.max_stacks = 0
+	dreams.pool.append(blessing)
+	var driftspore: TowerData = load("res://resource/tower/driftspore.tres")
+	var stormcap: TowerData = load("res://resource/tower/stormcap.tres")
+	var spore_before := dreams.get_evolve_cost(driftspore)
+	var storm_before := dreams.get_evolve_cost(stormcap)
+	dreams.take(blessing)
+	_check(dreams.get_evolve_cost(driftspore) < spore_before and dreams.get_evolve_cost(stormcap) == storm_before,
+		"a line-limited evolve discount only covers that family")
+	dreams.pool.erase(blessing)
+	dreams.stacks.erase(blessing.id)
+
+	# Reroll: same Dream (counters unchanged), new cards; banish: gone for the run, replaced
+	dreams.rerolls_left = 1
+	dreams.banishes_left = 1
+	dreams._pending_drifts.append(10)
+	dreams._show_next_offer()
+	var seen := dreams.dreams_seen
+	_check(dreams.reroll() and dreams.rerolls_left == 0 and dreams.dreams_seen == seen and dreams.is_offering(),
+		"a reroll re-deals the same Dream")
+	_check(not dreams.reroll(), "no rerolls left")
+	var size := dreams.current_offer.size()
+	var gone: UpgradeData = dreams.current_offer[0]
+	_check(dreams.banish(gone) and not dreams.current_offer.has(gone) and dreams.current_offer.size() == size,
+		"Let Go replaces the card")
+	_check(not dreams.is_eligible(gone), "a banished card never comes back this run")
+	var saved := dreams.to_save()
+	dreams._banished.clear()
+	dreams.load_save(saved)
+	_check(not dreams.is_eligible(gone) and dreams.banishes_left == 0, "banishes and counts survive a save")
+	dreams.skip()
+	dreams._banished.clear()
+
+	# Lean Common: fewer Rare+ rolls
+	var rare_normal := 0
+	var rare_lean := 0
+	for i in 4000:
+		rare_normal += 1 if dreams._roll_rarity(2, false) >= UpgradeData.Rarity.RARE else 0
+	dreams.lean_common = true
+	for i in 4000:
+		rare_lean += 1 if dreams._roll_rarity(2, false) >= UpgradeData.Rarity.RARE else 0
+	dreams.lean_common = false
+	_check(rare_lean < rare_normal * 0.7, "lean_common halves Rare+ (%d → %d)" % [rare_normal, rare_lean])
 	_reset_dreams(main)
 
 func _simulate_storm_grid(main: Node) -> void:
