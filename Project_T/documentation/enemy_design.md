@@ -115,7 +115,8 @@ some are hard, so every drift plays a little differently. They must never make a
 | **Weak to** | ×1.35 damage | same |
 
 Families: **spore** (Sporeling line), **stone** (Pebbling), **water** (Dewdrop), **light**
-(Firefly Jar), **root** (Rootling). Sprout, Thornwall/Bramble and Acorn are neutral: they're
+(Firefly Jar), **root** (Rootling), and in the full game **wing** (Nestling) and **wind**
+(Whirligig). Sprout, Thornwall/Bramble and Acorn are neutral: they're
 never resisted, so a Sprout is always a safe answer. Statuses still apply at full strength;
 only the damage changes. Stacks multiplicatively with Marked
 (`damage × family × shape × Marked`, then dread shell).
@@ -145,9 +146,26 @@ with the nightmare's per-drift health scale.
 
 ### Family tally
 
-Resists: spore 5 · stone 4 · water 4 · light 4 · root 5.
-Weak to: spore 4 · stone 4 · water 5 · light 4 · root 3.
+Resists: spore 4 · stone 3 · water 4 · light 3 · root 4 · wing 3 · wind 3.
+Weak to: spore 3 · stone 4 · water 3 · light 3 · root 3 · wing 3 · wind 3.
 Re-check this whenever a nightmare is added or changed.
+
+**Wing and wind** (Nestling and Whirligig are full-game Grove families, so the demo nightmares
+keep their entries; only full-game nightmares moved to make room):
+
+- *Weak to wing*: the Lurker (birds see what eyes can't), the Widow (birds pick off anything
+  many-legged), the Dream Thief (magpies steal the stolen light back).
+- *Resist wing*: the Gravecrawler (no beak reaches under the earth), the Watcher (it sees every
+  swoop coming), the Moth Queen (she flies higher than any bird).
+- *Weak to wind*: the Sleepwalker (gusts push it off course), the Will-o'-Wisp (blown out like a
+  candle), the Whisper Swarm (the wind scatters its motes).
+- *Resist wind*: the Barrow Wight (too ancient to be moved), the Shellbound (wind breaks on its
+  shell), the Ash Crawler (wind only fans its embers).
+- Moved to make room: Lurker lost light weakness, Sleepwalker lost spore weakness, Widow lost water
+  weakness, Dream Thief lost root weakness, Gravecrawler lost root resistance, Watcher lost spore
+  resistance, Barrow Wight lost stone resistance, Ash Crawler lost light resistance; the Shellbound
+  gained root weakness (roots pry its shell apart). Lurker, Sleepwalker and Widow have `.tres`
+  files: update their `weak_to` when the wing family exists in code.
 
 ## Stats
 
@@ -160,29 +178,29 @@ are marked ✓; the rest are proposals to tune.
 |---|---|---|---|---|---|---|---|
 | Shade (Leaf Bug) ✓ | 100 | 100 | 3 | 1 | — | — | baseline |
 | Husk (Bark Beetle) ✓ | 300 | 58 | 8 | 2 | stone | spore | |
-| Lurker (Dusk Moth) ✓ | 70 | 140 | 4 | 1 | spore | light | hidden in fog |
+| Lurker (Dusk Moth) ✓ | 70 | 140 | 4 | 1 | spore | wing | hidden in fog |
 | Phantom (Dandelion Seed) ✓ | 50 | 70 | 3 | 1 | root | water | glides through walls to the goal |
-| Gravecrawler (Mole) | 180 | 75 | 5 | 1 | root | stone | burrows under 1 Warden per trip |
+| Gravecrawler (Mole) | 180 | 75 | 5 | 1 | wing | stone | burrows under 1 Warden per trip |
 | Night Hound (Hedgehog) ✓ | 160 | 80 (sprinting 200) | 5 | 1 | stone | water | sprints after 3 straight tiles |
 | Lantern Bearer (Mother Duck) | 200 | 85 | 6 | 1 | water | root | 4 Wraiths follow it |
 | Wraith (Duckling) | 40 | 85 | 1 | 1 | — | — | |
-| Sleepwalker (Wandering Hare) ✓ | 110 | 110 | 4 | 1 | root | spore | wrong turns into dead ends |
-| Barrow Wight (Tortoise) | 600 | 40 | 15 | 2 | stone | spore | see status table |
+| Sleepwalker (Wandering Hare) ✓ | 110 | 110 | 4 | 1 | root | wind | wrong turns into dead ends |
+| Barrow Wight (Tortoise) | 600 | 40 | 15 | 2 | wind | spore | see status table |
 | Drowned One (Newt) | 120 | 95 | 4 | 1 | water | light | always Damp, no slows |
-| Watcher (Owl) | 200 | 80 | 6 | 1 | spore | stone | wakes Drowsy neighbours |
-| Ash Crawler (Snail) | 250 | 45 | 7 | 1 | light | stone | clears Spored on its trail |
-| Will-o'-Wisp (Glowworm) | 60 | 70 | 2 | 1 | light | water | reveals Lurkers within 2 cells |
+| Watcher (Owl) | 200 | 80 | 6 | 1 | wing | stone | wakes Drowsy neighbours |
+| Ash Crawler (Snail) | 250 | 45 | 7 | 1 | wind | stone | clears Spored on its trail |
+| Will-o'-Wisp (Glowworm) | 60 | 70 | 2 | 1 | light | wind | reveals Lurkers within 2 cells |
 | Mourner (Puffcap) ✓ | 150 | 83 | 4 | 1 | spore | stone | breaks into 3 Sobs |
 | Sob (Puffcaplet) ✓ | 30 | 115 | 1 | 1 | — | — | |
-| Widow (Mother Spider) ✓ | 220 | 75 | 6 | 1 | spore | water | bursts into 6 Creeps |
+| Widow (Mother Spider) ✓ | 220 | 75 | 6 | 1 | spore | wing | bursts into 6 Creeps |
 | Creep (Spiderling) ✓ | 20 | 140 | 1 | 1 | — | — | |
-| Shellbound (Badger) | 250 | 70 | 8 | 2 | — | — | dread shell: −6 per hit, soaks 100 |
-| Whisper Swarm (Bee Swarm) | 180 | 105 | 5 | 1 | — | — | single-target ×0.5 (its shape resistance is its trait) |
-| Dream Thief (Squirrel) | 90 | 120 | 3 (×2) | 1 | light | root | steals 5 Dew if it reaches the Heartwood |
+| Shellbound (Badger) | 250 | 70 | 8 | 2 | wind | root | dread shell: −6 per hit, soaks 100 |
+| Whisper Swarm (Bee Swarm) | 180 | 105 | 5 | 1 | — | wind | single-target ×0.5 (its shape resistance is its trait) |
+| Dream Thief (Squirrel) | 90 | 120 | 3 (×2) | 1 | light | wing | steals 5 Dew if it reaches the Heartwood |
 | Weeper (Mossling) | 160 | 70 | 5 | 1 | water | light | mends nightmares within 1.5 cells for 2% of their max health/s |
 | **The Hollow Stag** (Old Stag) ✓ | 3,000 | 51 | 40 | 5 | stone, root | water | tramples Thornwalls |
 | **The Mire Hag** (Great Toad) | 8,000 | 55 (+ rises ahead) | 60 | 5 | water | root | surfaces 3 tiles ahead every 6 s |
-| **The Moth Queen** (Mother Moth) | 16,000 | 65 | 80 | 5 | spore | light | flies; drops a Lurker every 4 s |
+| **The Moth Queen** (Mother Moth) | 16,000 | 65 | 80 | 5 | spore, wing | light | flies; drops a Lurker every 4 s |
 | **The Hollow Oak** | 30,000 | 35 | 100 | 5 | root, light | spore | plants a thorn-sapling every 8 s |
 
 The Hollow Oak's spore weakness and the Moth Queen's light weakness are deliberate: each boss has
@@ -213,7 +231,7 @@ and `display_name`s to the new names is part of the theme change. Add:
 - `traits` / `behaviors`: flying, burrow, shield, sprint_on_straights, follow_leader, wander.
 - **Resistances** (export group "Resistances"):
   - `resists: Array[String]`, `weak_to: Array[String]`: family ids matching `TowerData.line`
-    (spore, stone, water, light, root). Multipliers are constants (0.65 / 1.35) in one place so
+    (spore, stone, water, light, root, wing, wind). Multipliers are constants (0.65 / 1.35) in one place so
     they tune globally.
   - `single_target_multiplier: float = 1.0`, `area_multiplier: float = 1.0`.
   - `coat_per_hit: int = 0`, `coat_total: int = 0` (both × the nightmare's `health_scale`).
