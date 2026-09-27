@@ -62,6 +62,27 @@ enum Kind { UNLOCK_WARDEN, UNLOCK_EVOLUTION, STAT, RULE, ECONOMY }
 @export var rare_dreams_add: int = 0  # The next N Dreams each include a Rare+ card
 @export var creature_speed_bonus: float = 0.0  # +0.10 = nightmares +10% speed (Burn Back)
 
+@export_group("Needs")
+# Card requirements (dream_design.md "Card requirements"); all must hold for the card to be offered.
+@export var requires_tag: String = ""  # Own this many taken cards with the tag (e.g. "nurture")
+@export var requires_tag_count: int = 1
+@export var requires_any: Array[String] = []  # Own any one of these Wardens / cards
+@export var min_rank_dew: int = 0  # Dew spent on Nurture ranks this run
+@export var min_rank_count: int = 0  # Own this many Wardens at rank `min_rank_owned` or higher
+@export var min_rank_owned: int = 1
+@export var min_attackers: int = 0  # Attacking Wardens on the map (never Thornwalls); 0 = no check
+@export var max_attackers: int = 0  # 0 = no check
+@export var count_warden: String = ""  # Own `min_warden_count` of this Warden on the map (Sprouts)
+@export var min_warden_count: int = 0
+
+@export_group("Nurture")
+@export var nurture_discount: float = 0.0  # 0.15 = ranks cost 15% less (all cards together max 45%)
+@export var rank_damage_bonus: float = 0.0  # Extra damage per rank (Warm Hands 0.03)
+@export var rank_crit_bonus: float = 0.0  # Crit chance per rank (The Old Ones 0.02)
+# Max Nurture rank: above 5 raises it (Deeper Rings 7), below 5 caps it (Wild Growth 1; a cap wins).
+@export var max_rank_set: int = 0
+@export var plant_discount: float = 0.0  # 0.3 = planting any Warden costs 30% less (Wild Growth)
+
 @export_group("Clearing")
 # Offered only with at least this many obstacles left (of `clears_obstacle`'s kind if set).
 @export var min_obstacles: int = 0
@@ -74,7 +95,9 @@ enum Kind { UNLOCK_WARDEN, UNLOCK_EVOLUTION, STAT, RULE, ECONOMY }
 @export_group("Rule")
 # cozy_corners, hedge_maze, conductive_soil, spore_cascade, overgrown (no selling while creatures
 # walk), restless_dreams (no "Let it pass"), reclaimed_earth (cleared cells turn fertile),
-# tended_forest (+1% damage per clear this run)
+# tended_forest (+1% damage per clear this run); Nurture: kindred_roots, remembered_care,
+# sunlit_rest, old_ones, chosen_few, nursery; wide / narrow: many_hands, sprout_chorus, canopy,
+# solitude, few_and_mighty, last_light
 @export var rule_id: StringName = &""
 
 func is_rare_or_better() -> bool:

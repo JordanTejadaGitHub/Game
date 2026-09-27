@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "sprout_chorus"
+display_name = "Sprout Chorus"
+description = "Sprouts attack 5% faster for each other Sprout within 2 cells (up to +40%)."
+rarity = 1
+kind = 3
+tags = Array[String](["sprout", "wide"])
+max_stacks = 1
+count_warden = "sprout"
+min_warden_count = 6
+rule_id = &"sprout_chorus"

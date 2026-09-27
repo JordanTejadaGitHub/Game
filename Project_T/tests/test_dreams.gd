@@ -387,7 +387,7 @@ func _test_clearing_cards(main: Node) -> void:
 
 	# Heartwood's Reach: free clears, still +1 Seed each; II gives 7
 	dreams.take(_card(dreams, "heartwoods_reach"))
-	_check(run_state.free_clears == 4, "Heartwood's Reach: 4 free clears")
+	_check(run_state.free_clears == 4, "Heartwood's Reach: 4 free clears (%d)" % run_state.free_clears)
 	run_state.dew = 0
 	var tended := run_state.obstacles_tended
 	var cell: Vector2 = map_generator.obstacles.keys()[0]
@@ -672,6 +672,8 @@ func _reset_dreams(main: Node) -> void:
 	var dreams: DreamState = main.get_node("%DreamState")
 	dreams.unlock_everything = false
 	dreams.stacks.clear()
+	var run_state: RunState = main.get_node("%RunState")
+	run_state.add_free_clears(-run_state.free_clears)  # A random Dream pick may have been Heartwood's Reach
 	dreams.unlocked = {"sprout": true, "thornwall": true}
 	dreams.dreams_seen = 0
 	dreams._dreams_without_rare = 0

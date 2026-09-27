@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "chosen_few"
+display_name = "Chosen Few"
+description = "Rank V+ Wardens deal 50% more damage."
+cost_description = "Wardens below rank III deal 15% less damage."
+rarity = 2
+kind = 3
+tags = Array[String](["nurture", "bittersweet"])
+max_stacks = 1
+min_act = 2
+in_start_pool = false
+min_rank_count = 1
+min_rank_owned = 5
+rule_id = &"chosen_few"

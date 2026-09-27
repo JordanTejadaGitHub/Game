@@ -21,6 +21,32 @@ const TENDED_FOREST_PER_CLEAR := 0.01
 const TENDED_FOREST_MAX := 0.25
 const FERTILE_DISCOUNT := 0.5  # Reclaimed Earth: the first Warden on a cleared cell
 const CLEARING_LOCKED_WEIGHT := 2.0  # Clearing cards are this much likelier until you own one
+# Nurture and wide / narrow cards (dream_design.md). [base, Deepened (II)] where it deepens.
+const NURTURE_DISCOUNT_MAX := 0.45
+const BASE_MAX_RANK := 5
+const EXTRA_RANK_COSTS := {6: 130, 7: 180}  # Deeper Rings, before the Warden's tier multiplier
+const KINDRED_PER_RANK := [0.02, 0.03]
+const KINDRED_MAX := [0.30, 0.45]
+const MEMORY_SEEDS := [1, 2]  # Remembered Care keeps this many seeds
+const SUNLIT_WARDENS := [1, 2]  # Sunlit Rest raises this many per rest
+const CHOSEN_FEW_BONUS := 0.5  # Rank V+
+const CHOSEN_FEW_PENALTY := 0.15  # Below rank III
+const MANY_HANDS_PER := 4  # +1% per this many attacking Wardens
+const MANY_HANDS_MAX := 0.25
+const SPROUT_CHORUS_PER := 0.05
+const SPROUT_CHORUS_MAX := 0.40
+const CANOPY_STEPS: Array[int] = [20, 30, 40]  # Attacking Wardens planted this run
+const CANOPY_BONUS := 0.08
+const SOLITUDE_BONUS := 0.30
+const SOLITUDE_RANGE := 0.5
+const FEW_AND_MIGHTY_BELOW := 12
+const FEW_AND_MIGHTY_PER := 0.08
+const LAST_LIGHT_MAX := 5
+const NEARBY_CELLS := 2  # "Within 2 cells" (Sprout Chorus, Solitude): Chebyshev distance
+# Build directions: owning one makes its tag count as a family (2×); wide and narrow halve each other.
+const DIRECTION_TAGS: Array[String] = ["nurture", "wide", "narrow"]
+const OPPOSITE_DIRECTION := {"wide": "narrow", "narrow": "wide"}
+const OPPOSITE_WEIGHT := 0.5
 
 signal unlocks_changed
 signal card_taken(card: UpgradeData)
@@ -62,6 +88,7 @@ var _extra_cards_next := 0  # Omens (Thick Blight): the next offer has this many
 var _entwined_offered := {}  # Entwined card id -> true once its guaranteed offer happened
 var _banished := {}  # Card id -> true: Let Go took it out of this run's pool
 var _before_offer := {}  # Offer counters from before the current offer (a reroll rolls them back)
+var _attackers_planted := 0  # Attacking Wardens planted this run (Canopy)
 var _pending_drifts: Array[int] = []
 var _bend_cells := {}  # Path cells where the route turns (Cozy Corners)
 var _rng := RandomNumberGenerator.new()
@@ -83,6 +110,12 @@ func _ready() -> void:
 	map_generator.path_changed.connect(_update_bends)
 	spawner.enemy_cleansed.connect(_on_enemy_cleansed)
 	map_generator.obstacle_cleared.connect(_on_obstacle_cleared)
+	var placer := get_node_or_null("%TowerPlacer")
+	if placer:
+		placer.tower_built.connect(_on_tower_built)
+	var seller := get_node_or_null("%TowerSeller")
+	if seller:
+		seller.tower_sold.connect(_on_tower_sold)
 	_update_bends()
 
 static func load_pool() -> Array[UpgradeData]:
@@ -127,7 +160,13 @@ func get_build_cost(data: TowerData) -> int:
 			cost = mini(cost, card.set_cost)
 		else:
 			surcharge = maxi(surcharge, card.set_cost)
-	return maxi(cost, surcharge)
+	cost = maxi(cost, surcharge)
+	var plant_discount := 0.0
+	for card in _taken_cards():
+		plant_discount += card.plant_discount * stacks[card.id]
+	if plant_discount > 0.0:
+		cost = maxi(roundi(cost * maxf(1.0 - plant_discount, 0.0)), 1)  # Wild Growth
+	return cost
 
 # Discounts apply to the Warden grown into, if the card covers its line (Family Blessings: one family).
 func get_evolve_cost(to: TowerData) -> int:
@@ -158,7 +197,179 @@ func get_soothe_multiplier(tower: Tower) -> float:
 		bonus += minf(HEDGE_BONUS_PER * (count_walls() / HEDGE_PER_WALLS[level]), HEDGE_BONUS_MAX[level])
 	if has_rule(&"tended_forest"):
 		bonus += minf(TENDED_FOREST_PER_CLEAR * run_state.tended_cells.size(), TENDED_FOREST_MAX)
+	bonus += _nurture_damage_bonus(tower) + _count_damage_bonus(tower)
 	return 1.0 + bonus
+
+# Kindred Roots (ranks of touching Wardens) and Chosen Few (rank V+ strong, below III weak).
+func _nurture_damage_bonus(tower: Tower) -> float:
+	var bonus := 0.0
+	if has_rule(&"kindred_roots"):
+		var level := rule_level(&"kindred_roots")
+		var ranks := 0
+		for other in _touching(tower):
+			ranks += other.rank
+		bonus += minf(KINDRED_PER_RANK[level] * ranks, KINDRED_MAX[level])
+	if has_rule(&"chosen_few") and tower.tower_data.can_attack:
+		if tower.rank >= 5:
+			bonus += CHOSEN_FEW_BONUS
+		elif tower.rank < 3:
+			bonus -= CHOSEN_FEW_PENALTY
+	return bonus
+
+# Wide and narrow cards: bonuses from how many attacking Wardens there are.
+func _count_damage_bonus(tower: Tower) -> float:
+	var bonus := 0.0
+	var needs_count := has_rule(&"many_hands") or has_rule(&"few_and_mighty")
+	var attackers := count_attackers() if needs_count else 0
+	if has_rule(&"many_hands"):
+		bonus += minf(0.01 * (attackers / MANY_HANDS_PER), MANY_HANDS_MAX)
+	if has_rule(&"few_and_mighty"):
+		bonus += FEW_AND_MIGHTY_PER * maxi(FEW_AND_MIGHTY_BELOW - attackers, 0)
+	if has_rule(&"canopy"):
+		bonus += CANOPY_BONUS * canopy_steps_reached()
+	if has_rule(&"solitude") and is_solitary(tower):
+		bonus += SOLITUDE_BONUS
+	return bonus
+
+# Per-Warden attack speed from Dreams (Tower adds it to its multiplier): Sprout Chorus, The Last Light.
+func get_tower_attack_speed_bonus(tower: Tower) -> float:
+	var bonus := 0.0
+	if has_rule(&"sprout_chorus") and tower.tower_data.get_id() == "sprout":
+		var sprouts := 0
+		for other in _attackers_near(tower, NEARBY_CELLS):
+			if other.tower_data.get_id() == "sprout":
+				sprouts += 1
+		bonus += minf(SPROUT_CHORUS_PER * sprouts, SPROUT_CHORUS_MAX)
+	if has_rule(&"last_light") and tower.tower_data.can_attack and count_attackers() <= LAST_LIGHT_MAX:
+		bonus += 1.0  # Twice as fast
+	return bonus
+
+# Per-Warden range from Dreams, in cells (Tower adds it): Solitude.
+func get_tower_range_bonus(tower: Tower) -> float:
+	return SOLITUDE_RANGE if has_rule(&"solitude") and is_solitary(tower) else 0.0
+
+# Solitude: an attacking Warden with no other attacking Warden within 2 cells.
+func is_solitary(tower: Tower) -> bool:
+	return tower.tower_data.can_attack and _attackers_near(tower, NEARBY_CELLS).is_empty()
+
+func canopy_steps_reached() -> int:
+	var steps := 0
+	for step in CANOPY_STEPS:
+		if _attackers_planted >= step:
+			steps += 1
+	return steps
+
+# Attacking Wardens on the map (Thornwalls never count).
+func count_attackers() -> int:
+	var count := 0
+	for tower in _towers():
+		if tower.tower_data.can_attack:
+			count += 1
+	return count
+
+func count_wardens(warden_id: String) -> int:
+	var count := 0
+	for tower in _towers():
+		if tower.tower_data.get_id() == warden_id:
+			count += 1
+	return count
+
+# Wardens at `min_rank` or higher.
+func count_ranked(min_rank: int) -> int:
+	var count := 0
+	for tower in _towers():
+		if tower.rank >= min_rank:
+			count += 1
+	return count
+
+func _towers() -> Array[Tower]:
+	var result: Array[Tower] = []
+	for child in tower_container.get_children():
+		if child is Tower and not child.is_queued_for_deletion():
+			result.append(child)
+	return result
+
+# Wardens sharing an edge with `tower`.
+func _touching(tower: Tower) -> Array[Tower]:
+	var result: Array[Tower] = []
+	for other in _towers():
+		if other != tower and absf(other.cell.x - tower.cell.x) + absf(other.cell.y - tower.cell.y) == 1.0:
+			result.append(other)
+	return result
+
+# Other attacking Wardens within `cells` (Chebyshev distance).
+func _attackers_near(tower: Tower, cells: int) -> Array[Tower]:
+	var result: Array[Tower] = []
+	for other in _towers():
+		if other != tower and other.tower_data.can_attack \
+				and maxf(absf(other.cell.x - tower.cell.x), absf(other.cell.y - tower.cell.y)) <= cells:
+			result.append(other)
+	return result
+
+
+# --- Nurture ranks (Tower reads these; warden_stats.md "Ranks: Nurture") ------------------------------
+
+# Multiplies the Dew for a rank: Tender Care (−15% per stack, max −45%), Nursery (Sprouts half price).
+func get_nurture_cost_multiplier(tower: Tower = null) -> float:
+	var discount := 0.0
+	for card in _taken_cards():
+		discount += card.nurture_discount * stacks[card.id]
+	var multiplier := 1.0 - minf(discount, NURTURE_DISCOUNT_MAX)
+	if has_rule(&"nursery") and tower != null and tower.tower_data.get_id() == "sprout":
+		multiplier *= 0.5
+	return multiplier
+
+# Extra damage per rank on top of the base (Warm Hands).
+func get_rank_damage_bonus() -> float:
+	var bonus := 0.0
+	for card in _taken_cards():
+		bonus += card.rank_damage_bonus * stacks[card.id]
+	return bonus
+
+# Crit chance per rank (The Old Ones).
+func get_rank_crit_bonus() -> float:
+	var bonus := 0.0
+	for card in _taken_cards():
+		bonus += card.rank_crit_bonus * stacks[card.id]
+	return bonus
+
+# Highest rank: 5, raised by Deeper Rings (7), capped by Wild Growth (1; a cap wins over a raise).
+func get_max_rank() -> int:
+	var raised := BASE_MAX_RANK
+	var capped := BASE_MAX_RANK
+	for card in _taken_cards():
+		if card.max_rank_set > BASE_MAX_RANK:
+			raised = maxi(raised, card.max_rank_set)
+		elif card.max_rank_set > 0:
+			capped = mini(capped, card.max_rank_set)
+	return capped if capped < BASE_MAX_RANK else raised
+
+# Base Dew for rank `rank` (the one being bought) above V, before the tier multiplier; 0 = not allowed.
+func get_extra_rank_cost(rank: int) -> int:
+	return EXTRA_RANK_COSTS.get(rank, 0) if rank <= get_max_rank() else 0
+
+# The rank a Warden's stats use: The Old Ones counts one higher beside a rank V+ Warden (stats only;
+# it never chains, since it reads real ranks).
+func get_effective_rank(tower: Tower) -> int:
+	if has_rule(&"old_ones") and tower.rank > 0:
+		for other in _touching(tower):
+			if other.rank >= 5:
+				return tower.rank + 1
+	return tower.rank
+
+# A short live value for a card's icon in the Dreams row ("" = none): Few and Mighty, The Last
+# Light, Many Hands, Canopy.
+func get_live_bonus_text(card: UpgradeData) -> String:
+	match card.rule_id:
+		&"few_and_mighty":
+			return "+%d%%" % roundi(100 * FEW_AND_MIGHTY_PER * maxi(FEW_AND_MIGHTY_BELOW - count_attackers(), 0))
+		&"last_light":
+			return "×2" if count_attackers() <= LAST_LIGHT_MAX else "off"
+		&"many_hands":
+			return "+%d%%" % roundi(100 * minf(0.01 * (count_attackers() / MANY_HANDS_PER), MANY_HANDS_MAX))
+		&"canopy":
+			return "+%d%%" % roundi(100 * CANOPY_BONUS * canopy_steps_reached())
+	return ""
 
 func get_attack_speed_multiplier(data: TowerData) -> float:
 	return 1.0 + _sum_stat(data, "attack_speed_bonus")
@@ -378,6 +589,8 @@ func has_pending_offer() -> bool:
 func _on_rest_started(_block: int, _is_boss_rest: bool, _bonus: int, _perfect: bool) -> void:
 	if not drift_director.has_next_drift() or run_state.is_over:
 		return
+	if has_rule(&"sunlit_rest"):
+		sunlit_rest()
 	_pending_drifts.append(drift_director.drifts_started)
 	if not is_offering():
 		_show_next_offer.call_deferred()
@@ -506,12 +719,41 @@ func is_eligible(card: UpgradeData, act: int = 1) -> bool:
 	# Clearing cards only when the map is still full enough to matter.
 	if card.min_obstacles > 0 and count_obstacles(card.clears_obstacle) < card.min_obstacles:
 		return false
+	if not _meets_needs(card):
+		return false
 	if card.unlocks != null and is_unlocked(card.unlocks.get_id()):
 		return false
 	for requirement in card.requires:
 		if not owns(requirement):
 			return false
 	return true
+
+# The run-state and card Needs (dream_design.md "Card requirements"). Only gates new offers: losing
+# a requirement never takes a card away.
+func _meets_needs(card: UpgradeData) -> bool:
+	if card.requires_tag != "" and count_taken_with_tag(card.requires_tag) < card.requires_tag_count:
+		return false
+	if not card.requires_any.is_empty() and not card.requires_any.any(owns):
+		return false
+	if card.min_rank_dew > 0 and run_state.rank_dew_spent < card.min_rank_dew:
+		return false
+	if card.min_rank_count > 0 and count_ranked(card.min_rank_owned) < card.min_rank_count:
+		return false
+	if card.min_attackers > 0 or card.max_attackers > 0:
+		var attackers := count_attackers()
+		if attackers < card.min_attackers or (card.max_attackers > 0 and attackers > card.max_attackers):
+			return false
+	if card.count_warden != "" and count_wardens(card.count_warden) < card.min_warden_count:
+		return false
+	return true
+
+# Taken cards carrying `tag` (each card once, however many stacks).
+func count_taken_with_tag(tag: String) -> int:
+	var count := 0
+	for card in _taken_cards():
+		if card.tags.has(tag):
+			count += 1
+	return count
 
 # A growth card: unlocks a family's branch or final form (dream_design.md "Growth slot"). Wall
 # growths (Bramble, Honeysuckle) aren't: they're drawn in the normal slots only.
@@ -595,6 +837,13 @@ func _weighted_pick(cards: Array, rarity_weights: Array = []) -> UpgradeData:
 		var line := _line_of(tower_id)
 		if line != "":
 			owned_lines[line] = true
+	# Build directions you've started count like families; wide and narrow push each other away.
+	var opposed := {}
+	for tag in DIRECTION_TAGS:
+		if count_taken_with_tag(tag) > 0:
+			owned_lines[tag] = true
+			if OPPOSITE_DIRECTION.has(tag):
+				opposed[OPPOSITE_DIRECTION[tag]] = true
 	var weights: Array[float] = []
 	var total := 0.0
 	var clearing_locked := not can_clear()
@@ -606,6 +855,9 @@ func _weighted_pick(cards: Array, rarity_weights: Array = []) -> UpgradeData:
 				break
 		if clearing_locked and card.tags.has("clearing"):
 			weight *= CLEARING_LOCKED_WEIGHT  # Until the first one unlocks clearing
+		for tag in opposed:  # e.g. a narrow card while you've gone wide
+			if card.tags.has(tag) and not card.tags.has(OPPOSITE_DIRECTION[tag]):
+				weight *= OPPOSITE_WEIGHT
 		if not rarity_weights.is_empty():
 			weight *= rarity_weights[card.rarity]
 		weights.append(weight)
@@ -640,6 +892,7 @@ func to_save() -> Dictionary:
 		"dreams_without_rare": _dreams_without_rare, "rare_dreams_left": _rare_dreams_left,
 		"extra_cards_next": _extra_cards_next, "entwined_offered": _entwined_offered.keys(),
 		"rerolls_left": rerolls_left, "banishes_left": banishes_left, "banished": _banished.keys(),
+		"attackers_planted": _attackers_planted,
 		"rng_state": str(_rng.state),  # A string: JSON would round a 64-bit int
 	}
 
@@ -664,6 +917,7 @@ func load_save(data: Dictionary) -> void:
 	_banished.clear()
 	for id in data.get("banished", []):
 		_banished[id] = true
+	_attackers_planted = int(data.get("attackers_planted", 0))
 	if data.has("rng_state"):
 		_rng.state = str(data.rng_state).to_int()
 	unlocks_changed.emit()
@@ -679,6 +933,42 @@ func _clear_all(kind: ObstacleData) -> void:
 	for cell in cells:
 		map_generator.clear_obstacle(cell)
 	run_state.clearing_without_seeds = false
+
+# Sunlit Rest: the ranked Warden(s) nearest the Heartwood that can still gain a rank get one free
+# (II: two). Wardens at rank II are skipped: rank III asks for a Focus, which is the player's choice.
+func sunlit_rest() -> Array[Tower]:
+	var raised: Array[Tower] = []
+	var seller := get_node_or_null("%TowerSeller")
+	var ranked: Array = _towers().filter(func(t: Tower) -> bool:
+		return t.rank > 0 and t.rank != 2 and t.can_nurture())
+	if seller and seller.has_method("sort_by_heartwood"):
+		ranked = seller.sort_by_heartwood(ranked)  # Same order as group Nurture
+	for tower in ranked:
+		if raised.size() >= SUNLIT_WARDENS[rule_level(&"sunlit_rest")]:
+			break
+		tower.nurture(0)  # A free rank (adds no Dew to what it's worth)
+		raised.append(tower)
+	return raised
+
+# Remembered Care: selling a ranked Warden leaves a memory seed (II: keeps two, highest first).
+func _on_tower_sold(tower: Tower, _refund: int) -> void:
+	if not has_rule(&"remembered_care") or tower.rank <= 0:
+		return
+	run_state.memory_seeds.append(tower.rank)
+	run_state.memory_seeds.sort()
+	run_state.memory_seeds.reverse()
+	run_state.memory_seeds.resize(mini(run_state.memory_seeds.size(), MEMORY_SEEDS[rule_level(&"remembered_care")]))
+
+# The next Warden planted uses the highest memory seed (it still costs its normal Dew). Canopy
+# counts attacking Wardens planted.
+func _on_tower_built(tower: Tower) -> void:
+	if tower.tower_data.can_attack:
+		_attackers_planted += 1
+	if run_state.memory_seeds.is_empty() or not tower.tower_data.can_attack:
+		return
+	tower.rank = mini(run_state.memory_seeds.pop_front(), get_max_rank())
+	if tower.has_signal("nurtured"):
+		tower.nurtured.emit(tower)
 
 # Reclaimed Earth: every clear gives Dew and leaves the cell fertile. Not Burn Back's mass clear
 # (it would flood the Dew economy, same as its no-Seeds rule).

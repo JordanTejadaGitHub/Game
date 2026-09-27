@@ -31,6 +31,10 @@ var free_clears := 0
 var fertile_cells := {}
 var clearing_without_seeds := false
 var invulnerable := false  # Test Grove: leaves can't fall
+# Nurture Dreams (dream_design.md "Nurture cards"): Dew spent on ranks this run (opener cards need
+# 30+), and Remembered Care's memory seeds (ranks the next planted Wardens start at, highest first).
+var rank_dew_spent := 0
+var memory_seeds: Array[int] = []
 var creatures_cleansed := 0
 var leaves_lost := 0
 var seed_bonus := 0.0  # +share of Seeds at run end (Seed Pouch, Blight Levels); set by MetaRun

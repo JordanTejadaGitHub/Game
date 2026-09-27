@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "few_and_mighty"
+display_name = "Few and Mighty"
+description = "All Wardens +8% damage for each attacking Warden below 12 you have (7 Wardens = +40%; up to +80%)."
+rarity = 2
+kind = 3
+tags = Array[String](["narrow"])
+max_stacks = 1
+max_attackers = 12
+rule_id = &"few_and_mighty"

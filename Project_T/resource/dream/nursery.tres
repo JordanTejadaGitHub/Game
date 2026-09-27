@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "nursery"
+display_name = "Nursery"
+description = "Seedling Gift's free Sprouts arrive at rank II, and Sprouts nurture for half price."
+rarity = 2
+kind = 3
+tags = Array[String](["nurture", "sprout"])
+requires = Array[String](["tender_care", "seedling_gift"])
+max_stacks = 1
+in_start_pool = false
+entwined = true
+rule_id = &"nursery"

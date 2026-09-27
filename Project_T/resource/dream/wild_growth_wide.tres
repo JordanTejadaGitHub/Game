@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "wild_growth_wide"
+display_name = "Wild Growth"
+description = "Planting any Warden costs 30% less Dew."
+cost_description = "Wardens can't be nurtured past rank I."
+rarity = 2
+kind = 4
+tags = Array[String](["wide", "bittersweet"])
+max_stacks = 1
+min_act = 2
+in_start_pool = false
+plant_discount = 0.3
+max_rank_set = 1

@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "remembered_care"
+display_name = "Remembered Care"
+description = "Selling a ranked Warden leaves a memory seed: the next Warden you plant starts at that rank."
+rarity = 1
+kind = 3
+tags = Array[String](["nurture"])
+max_stacks = 1
+requires_tag = "nurture"
+min_rank_count = 1
+min_rank_owned = 3
+rule_id = &"remembered_care"

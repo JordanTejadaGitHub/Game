@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "the_last_light"
+display_name = "The Last Light"
+description = "If you have 5 or fewer attacking Wardens, they attack twice as fast."
+rarity = 3
+kind = 3
+tags = Array[String](["narrow"])
+max_stacks = 1
+min_act = 2
+in_start_pool = false
+max_attackers = 8
+rule_id = &"last_light"
