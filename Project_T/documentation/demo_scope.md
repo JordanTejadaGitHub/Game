@@ -22,7 +22,7 @@ replayable run, then leave players wanting the Deep Wood and the Memory Grove.
 
 | Area | Included |
 |---|---|
-| Wardens | Sprout, Thornwall (+ Bramble); **Sporeling, Firefly Jar, Dewdrop** as family picks, with their 6 branches |
+| Wardens | **To be decided after playtesting** (2026-09-27): a **Test Grove** mode unlocks every Warden so all of them can be tried first (below). Starting proposal: Sprout, Thornwall (+ Bramble); **Sporeling, Firefly Jar, Dewdrop** as family picks, with their 6 branches |
 | Family picks | after drift 1 and after the Hollow Stag (drift 25): **2 families per run**, so cross-family combos (Storm Grid) are reachable |
 | Final forms | **shown but locked** ("in the full game") on Dream cards |
 | Dreams | after drifts 5, 10, … 45 (**9 per run**; the drift 25 one guaranteed Rare+), from the Start pool (no Legendaries) |
@@ -38,6 +38,20 @@ replayable run, then leave players wanting the Deep Wood and the Memory Grove.
 After every demo run, the results screen shows the Grove **greyed out and asleep**, with the
 player's banked Seeds: *"In the full game, every run grows your Memory Grove. Your 214 Seeds will
 be waiting."* It sells the meta without building it for the demo.
+
+### Test Grove (developer playtest mode, not shipped)
+
+To choose the demo roster by playing, not guessing. A toggle (settings "Developer" section, or a
+launch flag) that starts a normal run with:
+- **every Warden family** in the Warden bar from drift 1 (no family picks needed);
+- **every branch, final form, hidden branch and Memory Warden** evolvable without its Dream (still
+  costs Dew);
+- a **"+500 Dew"** hotkey and a **skip to drift N** option, so late-game Wardens can be tested fast;
+- everything else normal (drifts, bosses, Dreams still offered for their other effects).
+
+While testing, note for each Warden: fun?, readable?, too strong / too weak?, needs art or sound
+work? Then pick the demo families (2–3) and branches from the notes. Must be off (and hidden) in
+demo and release builds.
 
 ## Not in the demo
 
