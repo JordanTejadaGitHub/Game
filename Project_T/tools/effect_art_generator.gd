@@ -30,6 +30,7 @@ func _init() -> void:
 	_reactions()
 	_chain_ui()
 	_signatures()
+	_family_review()
 	var file := FileAccess.open(OUT + "effects.json", FileAccess.WRITE)
 	file.store_string(JSON.stringify({effects = index}, "\t") + "\n")
 	_save_preview()
@@ -700,6 +701,108 @@ func _long_way_home_drag(img: Image, f: int) -> void:
 		_disc(img, p, 2.0, Color(0.85, 0.8, 0.7, 0.7), true, f)
 	_glow(img, Vector2(4, 12), Vector2(8, 8), f)
 
+# --- Family review (Bellflower, Cairn, Hummingbird) -----------------------------------------------
+
+const LILAC := Color("#c8a8f0")
+const LILAC_PALE := Color("#e8dcff")
+
+func _family_review() -> void:
+	_sheet("caught", Vector2i(64, 64), 8, 8, Vector2i(32, 32), true, "status_loop", _caught,
+		{note = "Dreamcatcher: loops over a Caught (sleeping, +damage) nightmare. Draw above it."})
+	_sheet("dreamlight_shard", Vector2i(16, 16), 8, 10, Vector2i(8, 12), true, "pickup",
+		_dreamlight_shard, {note = "Great Dreamcatcher: dropped by a Caught nightmare when dispelled. Loops until collected."})
+	_sheet("echo", Vector2i(64, 64), 6, 16, Vector2i(32, 32), false, "overlay",
+		_echo, {note = "Echo Hollow: play with the repeated Reaction (which can also be drawn at ~60% alpha, lilac-tinted)."})
+	_sheet("rubble", Vector2i(64, 64), 1, 0, Vector2i(32, 32), false, "ground",
+		_rubble, {note = "Rockslide: one path tile of slowing rubble. Draw under nightmares; fade alpha out over its 3 s."})
+	_sheet("landing_dust", Vector2i(64, 64), 6, 18, Vector2i(32, 40), false, "hit", _landing_dust,
+		{note = "Cairn / Rockslide: where the lobbed stone lands. Anchor = impact point."})
+	_sheet("peck_spark", Vector2i(16, 16), 4, 24, Vector2i(8, 8), false, "hit", _peck_spark,
+		{note = "Hummingbird: one per peck (6-8 a second), so it's tiny and quick."})
+	_sheet("lob_shadow", Vector2i(16, 8), 1, 0, Vector2i(8, 4), false, "shadow", _lob_shadow,
+		{note = "Under a lobbed stone, on the ground below it; scale it down as the stone rises."})
+
+func _caught(img: Image, f: int) -> void:
+	var c := Vector2(32, 30)
+	var pulse := 0.5 + 0.5 * sin(TAU * f / 8.0)
+	var alpha := 0.55 + 0.25 * pulse
+	_ring(img, c, Vector2(13, 13), 1, Color(LILAC, alpha))
+	_ring(img, c, Vector2(7, 7), 1, Color(LILAC_PALE, alpha * 0.8), true, f)
+	for k in 6:
+		var a := k * TAU / 6.0 + f * TAU / 48.0  # the web turns slowly
+		var d := Vector2.from_angle(a)
+		_line(img, c + d * 2.0, c + d * 12.0, Color(LILAC_PALE, alpha * 0.7))
+	_disc(img, c, 1.5, Color(WARM, 0.9))
+	for k in 3:
+		var top := c + Vector2(-6 + k * 6, 13)
+		_line(img, top, top + Vector2(0, 4 + (k % 2) * 2), Color(LILAC, alpha * 0.8))
+		_px(img, int(top.x), int(top.y) + 5 + (k % 2) * 2, Color(GOLD, alpha))
+
+func _dreamlight_shard(img: Image, f: int) -> void:
+	var bob := roundi(sin(TAU * f / 8.0) * 1.5)
+	var c := Vector2(8, 7 + bob)
+	var pts := PackedVector2Array([c + Vector2(0, -5), c + Vector2(3, 0), c + Vector2(0, 5), c + Vector2(-3, 0)])
+	for y in 16:
+		for x in 16:
+			var p := Vector2(x + 0.5, y + 0.5)
+			if Geometry2D.is_point_in_polygon(p, pts):
+				img.set_pixel(x, y, CORE if p.x < c.x else (WARM if p.y < c.y else LILAC))
+	for i in 4:
+		_line(img, pts[i], pts[(i + 1) % 4], Color("#6a4a9a"))
+	if f % 4 == 0:
+		_star(img, c + Vector2(4, -4), 1, Color.WHITE, WARM)
+	_px(img, 8, 14, Color(0.1, 0.08, 0.14, 0.5))  # a little shadow below
+	_px(img, 7, 14, Color(0.1, 0.08, 0.14, 0.35))
+	_px(img, 9, 14, Color(0.1, 0.08, 0.14, 0.35))
+
+func _echo(img: Image, f: int) -> void:
+	var c := Vector2(32, 32)
+	var r := 8.0 + f * 4.0
+	_ring(img, c, Vector2(r, r * 0.8), 1, Color(LILAC_PALE, 0.9 - f * 0.12), f >= 3, f)
+	if f >= 1:
+		_ring(img, c, Vector2(r - 5, (r - 5) * 0.8), 1, Color(LILAC, 0.8 - f * 0.1), true, f + 1)
+	if f <= 2:
+		for k in 4:
+			var d := Vector2.from_angle(k * TAU / 4.0 + 0.8)
+			_px(img, roundi(c.x + d.x * (r + 2)), roundi(c.y + d.y * (r + 2) * 0.8), WARM)
+
+func _rubble(img: Image, _f: int) -> void:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 7
+	_ellipse(img, Vector2(32, 36), Vector2(26, 12), Color(0.42, 0.4, 0.5, 0.35), true)
+	for k in 14:
+		var p := Vector2(rng.randf_range(10, 54), rng.randf_range(28, 46))
+		var r := rng.randf_range(1.5, 3.5)
+		_ellipse(img, p, Vector2(r, r * 0.7), OUTLINE)
+		_ellipse(img, p + Vector2(0, -0.5), Vector2(r - 0.8, r * 0.7 - 0.6), Color("#979dc2"))
+		_px(img, int(p.x) - 1, int(p.y) - 1, Color("#c4c9e2"))
+
+func _landing_dust(img: Image, f: int) -> void:
+	var c := Vector2(32, 40)
+	var t := f / 5.0
+	if f == 0:
+		_disc(img, c, 5, CORE)
+		_glow(img, c, Vector2(12, 7))
+	for k in 7:
+		var d := Vector2.from_angle(PI + k * PI / 6.0)
+		var p := c + Vector2(d.x * (6 + t * 18), d.y * (3 + t * 12) - t * 2)
+		_disc(img, p, 3.2 - t * 2.2, Color(0.85, 0.82, 0.78, 0.85 - t * 0.6), f >= 3, f + k)
+	if f <= 2:
+		_ring(img, c, Vector2(10 + f * 6, 4 + f * 2), 1, Color("#d8d4e4"), f == 2)
+		for k in 4:
+			_px(img, int(c.x) - 14 + k * 9, int(c.y) - 6 - f * 3, Color("#979dc2"))
+
+func _peck_spark(img: Image, f: int) -> void:
+	var c := Vector2(8, 8)
+	var arm: int = [2, 4, 3, 1][f]
+	_star(img, c, arm, CORE if f < 2 else WARM, GOLD)
+	if f == 1:
+		for d: Vector2i in [Vector2i(-3, -3), Vector2i(3, -3), Vector2i(-3, 3), Vector2i(3, 3)]:
+			_px(img, 8 + d.x, 8 + d.y, WARM)
+
+func _lob_shadow(img: Image, _f: int) -> void:
+	_ellipse(img, Vector2(8, 4), Vector2(6.5, 2.8), Color(0.05, 0.04, 0.08, 0.35))
+	_ellipse(img, Vector2(8, 4), Vector2(4, 1.8), Color(0.05, 0.04, 0.08, 0.5))
 # --- Preview ----------------------------------------------------------------------------------------
 
 func _save_preview() -> void:

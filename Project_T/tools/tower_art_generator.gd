@@ -156,13 +156,14 @@ const POSE_DY := [0, 1, -1]
 const LINES := {
 	"starters": ["sprout", "thornwall", "bramble", "honeysuckle"],
 	"sporeling": ["sporeling", "driftspore", "puffball", "bloomcap", "dreamshroom", "fairy_ring", "elf_circle"],
-	"pebbling": ["pebbling", "mossback", "boulderback", "chime_stone", "lullaby_bell", "standing_stone", "moonstone"],
+	"pebbling": ["pebbling", "mossback", "boulderback", "standing_stone", "moonstone", "cairn", "rockslide"],
+	"bellflower": ["bellflower", "chime_stone", "lullaby_bell", "dreamcatcher", "great_dreamcatcher", "echo_hollow", "whispering_hollow"],
 	"dewdrop": ["dewdrop", "rain_lily", "monsoon", "mistveil", "morning_fog", "frostfern", "hoarfrost"],
 	"firefly_jar": ["firefly_jar", "stormcap", "thunderhead", "lanternmoth", "beacon", "sunpetal", "midsummer"],
 	"rootling": ["rootling", "rootcurl", "long_way_home", "tangleroot", "snugroot", "rootlight", "starcave"],
 	"acorn": ["acorn", "elder_stump", "grove_heart", "dewcatcher", "wellspring", "graftling", "grafted_elder"],
-	"nestling": ["nestling", "wrens_nest", "starling_murmuration", "magpie_perch", "magpies_hoard"],
-	"whirligig": ["whirligig", "gust", "zephyr", "pinwheel", "windmill"],
+	"nestling": ["nestling", "wrens_nest", "starling_murmuration", "magpie_perch", "magpies_hoard", "hummingbird_bower", "jewelwing_court"],
+	"whirligig": ["whirligig", "gust", "zephyr", "pinwheel", "windmill", "samara", "autumn_gale"],
 	"memory": ["white_stag", "pond_keeper", "moon_moth"],
 }
 # How each Warden acts, and where from, in sprite pixels (0,0 = top-left): the projectile spawn
@@ -219,7 +220,7 @@ const ATTACKS := {
 	"grafted_elder": {kind = "copy", point = Vector2i(31, 1)},
 	"nestling": {kind = "swoop", projectile = "sparrow", point = Vector2i(44, 6)},
 	"wrens_nest": {kind = "swoop", projectile = "wren", point = Vector2i(44, 8)},
-	"starling_murmuration": {kind = "sweep", point = Vector2i(40, 10)},
+	"starling_murmuration": {kind = "swoop", projectile = "starling_bird", point = Vector2i(46, 8)},  # 3 starlings hunt the 3 fastest
 	"magpie_perch": {kind = "swoop", projectile = "magpie", point = Vector2i(50, 10)},
 	"magpies_hoard": {kind = "swoop", projectile = "magpie", point = Vector2i(50, 10)},
 	"whirligig": {kind = "gust", point = Vector2i(31, 46)},
@@ -230,6 +231,20 @@ const ATTACKS := {
 	"pond_keeper": {kind = "pull", point = Vector2i(60, 30)},
 	"moon_moth": {kind = "projectile", projectile = "moon_mote", point = Vector2i(31, 4)},
 	"white_stag": {kind = "aura", point = Vector2i(31, 46)},  # its aura is always on; this is the visible pulse
+	# Family review: Bellflower family and the Cairn, Hummingbird and Samara hidden branches. lob = an arc
+	# over the maze; echo = repeats a nearby Reaction; multi = one bird, several quick pecks;
+	# boomerang = a seed thrown down a line and back.
+	"bellflower": {kind = "pulse", point = Vector2i(31, 46)},
+	"dreamcatcher": {kind = "projectile", projectile = "dream_mote", point = Vector2i(46, 14)},
+	"great_dreamcatcher": {kind = "projectile", projectile = "dream_mote", point = Vector2i(46, 14)},
+	"echo_hollow": {kind = "echo", point = Vector2i(34, 29)},
+	"whispering_hollow": {kind = "echo", point = Vector2i(34, 29)},
+	"cairn": {kind = "lob", projectile = "lob_stone", point = Vector2i(12, 12)},
+	"rockslide": {kind = "lob", projectile = "lob_stone", point = Vector2i(12, 6)},
+	"hummingbird_bower": {kind = "multi", projectile = "hummingbird", point = Vector2i(51, 16)},
+	"jewelwing_court": {kind = "multi", projectile = "hummingbird", point = Vector2i(51, 16)},
+	"samara": {kind = "boomerang", projectile = "maple_seed", point = Vector2i(54, 14)},
+	"autumn_gale": {kind = "boomerang", projectile = "autumn_seed", point = Vector2i(54, 14)},
 }
 const PREVIEWS := "res://tools/previews/"
 
@@ -252,7 +267,8 @@ func _init() -> void:
 	_make_ranks()
 	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(OUT + "projectiles/"))
 	for p: String in ["spore", "pebble", "boulder", "dew_drop", "spark", "light_orb", "sling_stone", "moon_shard",
-			"frost_shard", "sparrow", "wren", "magpie", "starling", "moon_mote", "fairy_ring", "elf_circle"]:
+			"frost_shard", "sparrow", "wren", "magpie", "starling", "moon_mote", "fairy_ring", "elf_circle",
+			"dream_mote", "lob_stone", "hummingbird", "maple_seed", "autumn_seed", "starling_bird"]:
 		_make_projectile(p)
 	_save_projectile_preview()
 	quit()
@@ -533,6 +549,7 @@ const THEMES := {
 	"nest": ["#a89878", "#6a5a44", "#3a2e22"],
 	"windswept": ["#a8b0a0", "#646e60", "#343a30"],
 	"memory": ["#d0cce0", "#8a86a8", "#4a4668"],
+	"bellflower": ["#b8b0c8", "#6e6488", "#383050"],
 }
 
 func _draw_waystone(canvas: Image, st: Dictionary, theme: String = "moss", lush: bool = false) -> Image:
@@ -1475,9 +1492,9 @@ func _bloom_cap(canvas: Image, dy: int, w: float, h: float, ramp: Array[Color], 
 const STONE := ["#686d9a", "#979dc2", "#c4c9e2", "#e4e7f4"]
 const MOSS := ["#3f7a3e", "#5a9a48", "#7cbc5a", "#a8dc7a"]
 
-func _pebble_golem(canvas: Image, st: Dictionary, fig: Dictionary, lush: bool, before: Callable = Callable()) -> Image:
+func _pebble_golem(canvas: Image, st: Dictionary, fig: Dictionary, lush: bool, before: Callable = Callable(), theme: String = "cobble") -> Image:
 	var dy: int = st.dy
-	_draw_waystone(canvas, st, "cobble", lush)
+	_draw_waystone(canvas, st, theme, lush)
 	if before.is_valid():
 		before.call(canvas, st, fig)
 	var mask := _draw_template_figure(canvas, st.pose, fig)
@@ -1558,8 +1575,8 @@ func _draw_lullaby_bell(canvas: Image, st: Dictionary) -> void:
 func _chime_body(canvas: Image, st: Dictionary, bell: bool) -> void:
 	var dy: int = st.dy
 	var fig := _pal("#1c1c36", "#e4e0f0", "#bcb8d8", "#9490b8")
-	var rune := Color("#9ff4ec") if st.power > 0.5 else Color("#7fd8d0")
-	var mask := _pebble_golem(canvas, st, fig, bell)
+	var rune := Color("#f0e0ff") if st.power > 0.5 else Color("#c8a8f0")  # Bellflower lilac
+	var mask := _pebble_golem(canvas, st, fig, bell, Callable(), "bellflower")
 	_line(canvas, [Vector2(24, 25 + dy), Vector2(27, 22 + dy), Vector2(31, 23 + dy), Vector2(30, 27 + dy), Vector2(26, 27 + dy)], rune, mask)
 	_line(canvas, [Vector2(34, 33), Vector2(37, 31), Vector2(39, 34)], rune, mask)
 	_line(canvas, [Vector2(15, 40), Vector2(18, 38)], rune, mask)
@@ -1575,7 +1592,7 @@ func _chime_body(canvas: Image, st: Dictionary, bell: bool) -> void:
 		var y0: int = rod[1] + dy + 2
 		_line(canvas, [Vector2(rod[0], rod[1] + dy), Vector2(x, y0)], Color("#e0c8a0"))
 		var layer := _layer()
-		_round_rect(layer, Rect2i(x - 1, y0, 3, rod[2]), 1, fig.b)
+		_round_rect(layer, Rect2i(x - 1, y0, 3, rod[2]), 1, Color("#c8b8e8"))
 		for y in range(y0, y0 + rod[2]):
 			if y >= 0 and y < S:
 				layer.set_pixel(clampi(x - 1, 0, S - 1), y, fig.a)
@@ -2099,11 +2116,11 @@ func _attack_boulderback(canvas: Image, st: Dictionary) -> void:
 	_throw(canvas, st, Vector2(ATTACKS["boulderback"].point), 6.0, _ramp(STONE), Color("#1c1c36"))
 
 func _attack_chime_stone(canvas: Image, st: Dictionary) -> void:
-	_pulse(canvas, st, Color("#7fd8d0"))
+	_pulse(canvas, st, Color("#c8b0f0"))
 	var k: int = st.attack - RELEASE_FRAME
 	if k >= 1 and k < 4:
-		_glyph(canvas, Vector2i(8, 14 - k * 3), NOTE_GLYPH, Color("#9ff4ec"))
-		_glyph(canvas, Vector2i(52, 12 - k * 3), NOTE_GLYPH, Color("#9ff4ec"))
+		_glyph(canvas, Vector2i(8, 14 - k * 3), NOTE_GLYPH, Color("#e0c8ff"))
+		_glyph(canvas, Vector2i(52, 12 - k * 3), NOTE_GLYPH, Color("#ffe890"))
 
 func _attack_lullaby_bell(canvas: Image, st: Dictionary) -> void:
 	_pulse(canvas, st, Color("#c8b0f0"))
@@ -3098,19 +3115,16 @@ func _attack_magpie_perch(canvas: Image, st: Dictionary) -> void:
 func _attack_magpies_hoard(canvas: Image, st: Dictionary) -> void:
 	_swoop(canvas, st, "magpies_hoard", _ramp(["#1a1a2a", "#2e3048", "#f4f2f0"]), Color("#141420"), true)
 
-# The flock pours off to one side in a long ribbon over the path.
+# The three starlings each dart out after a different nightmare (the 3 fastest), then return.
 func _attack_starling_murmuration(canvas: Image, st: Dictionary) -> void:
 	var k: int = st.attack - RELEASE_FRAME
-	if k < -2 or k > 2:
+	if k < 0 or k > 1:
 		return
-	for i in 14:
-		var t := i / 13.0
-		var p := Vector2(20 + t * (30 + k * 6), 6 + sin(t * PI * 2.0 + k) * 5 + t * (6 + k * 3))
-		_px(canvas, roundi(p.x), roundi(p.y), Color("#241c34"))
-		_px(canvas, roundi(p.x) + 1, roundi(p.y) - ((i + k) % 2), Color("#241c34"))
-	if k >= 0:
-		_warm_glow(canvas, Vector2(40 + k * 4, 12 + k * 2), Vector2(14, 7), k)
-
+	var body := _ramp(["#241c34", "#3e3258", "#7a6a9a"])
+	for i in 3:
+		var p := Vector2(ATTACKS["starling_murmuration"].point) + Vector2(k * 6, i * 9 - 4) + Vector2(i * 3, 0)
+		_bird(canvas, p, 1, body, Color("#0e0a16"), (st.f + i) % 2 == 0, Color("#f0c050"), 1.2)
+		_warm_glow(canvas, p, Vector2(5, 4), k + i)
 # Wind rushing outward in curved streaks, with a pale ring.
 func _gust_rush(canvas: Image, st: Dictionary, spiral: bool) -> void:
 	var k: int = st.attack - RELEASE_FRAME
@@ -3585,3 +3599,473 @@ func _save_rank_preview(masks: Dictionary, badges: Image) -> void:
 		preview.blend_rect(canvas, Rect2i(0, 0, S, S), Vector2i(pad + f * (S + pad), y))
 	preview.resize(preview.get_width() * 3, preview.get_height() * 3, Image.INTERPOLATE_NEAREST)
 	preview.save_png(PREVIEWS + "ranks.png")
+
+# --- Family review (tower_design.md "Family design rules", 2026-09-27) --------------------------
+# Bellflower family (song and sleep), and the hidden branches Cairn, Hummingbird Bower and Samara.
+
+const BELL_LILAC := ["#9a80d0", "#c0a8ec", "#e0d0f8", "#f4ecff"]
+const BELL_GLOW := Color("#ffe890")
+
+# Lilac-grey stone under a meadow of bellflowers, some glowing warm gold.
+func _decor_bellflower(canvas: Image, top: Image, _side: Image, st: Dictionary, lush: bool) -> void:
+	for y in S:
+		for x in S:
+			if not _on(top, x, y):
+				continue
+			var h := (x * 29 + y * 53) % 9
+			canvas.set_pixel(x, y, Color("#8ab07a") if h == 0 else (Color("#4a7a50") if h == 4 else Color("#5f8f5c")))
+	var spots: Array = OPEN_SPOTS.slice(0, 9 if lush else 6)
+	for i in spots.size():
+		var p: Vector2i = spots[i]
+		if not _on(top, p.x, p.y):
+			continue
+		var glowing: bool = i % 3 == 0 and (st.f + i) % 4 < 2
+		_px(canvas, p.x, p.y, Color("#4a7a50"))
+		_px(canvas, p.x - 1, p.y - 1, Color(BELL_LILAC[1]))
+		_px(canvas, p.x, p.y - 1, Color(BELL_LILAC[2]))
+		_px(canvas, p.x + 1, p.y - 1, Color(BELL_LILAC[1]))
+		_px(canvas, p.x, p.y - 2, Color(BELL_LILAC[0]))
+		if glowing:
+			_glow_dot(canvas, Vector2i(p.x, p.y), BELL_GLOW, Color("#c8a8f0"))
+
+# A little bellflower on a curved stem: `ground` is where the stem starts, the bell hangs at the tip.
+func _stem_bell(canvas: Image, ground: Vector2, height: float, lean: float, o: Color) -> void:
+	var tip := ground + Vector2(lean * 4.0, -height)
+	var stem := _layer()
+	_stroke(stem, [ground, ground + Vector2(lean, -height * 0.6), tip], 0.8, Color("#4a8a4e"))
+	_stamp(canvas, stem, o)
+	var bell := _layer()
+	_ellipse(bell, tip + Vector2(lean * 1.5, 2.5), Vector2(2.6, 2.2), _ramp(BELL_LILAC), tip.y + 3.5)
+	_stamp(canvas, bell, o)
+	_px(canvas, roundi(tip.x + lean * 1.5), roundi(tip.y + 4), BELL_GLOW)
+
+# A big bell-flower worn as a cap: petals flaring to a scalloped rim, warm light glowing inside.
+func _bell_cap(canvas: Image, c: Vector2, w: float, h: float, o: Color) -> void:
+	var ramp := _ramp(["#5a3aa0", "#8a60d8", "#b890f4", "#e8d8ff"])  # deeper than the lilac body
+	var pts := PackedVector2Array([c + Vector2(-w, 0), c + Vector2(-w * 0.8, -h * 0.55), c + Vector2(-w * 0.35, -h),
+		c + Vector2(w * 0.35, -h), c + Vector2(w * 0.8, -h * 0.55), c + Vector2(w, 0)])
+	var layer := _layer()
+	for y in S:
+		for x in S:
+			var p := Vector2(x + 0.5, y + 0.5)
+			if Geometry2D.is_point_in_polygon(p, pts):
+				var nx := clampf((p.x - c.x) / w, -1.0, 1.0)
+				layer.set_pixel(x, y, _shade(ramp, Vector3(nx, -0.3, sqrt(maxf(0.1, 1.0 - nx * nx)))))
+	var x := c.x - w + 1.5
+	while x < c.x + w - 1.0:
+		_flat_ellipse(layer, Vector2(x, c.y), Vector2(1.8, 1.5), ramp[1])
+		x += 3.5
+	_stamp(canvas, layer, o)
+	for k in 3:
+		_line(canvas, [c + Vector2(-w * 0.55 + k * w * 0.55, -h * 0.9), c + Vector2(-w * 0.7 + k * w * 0.7, -1)], ramp[0])
+	_px(canvas, int(c.x), int(c.y) + 1, BELL_GLOW)
+	_px(canvas, int(c.x) - 1, int(c.y) + 1, Color("#f0c050"))
+
+# --- Bellflower line ---
+
+# Bellflower: a lilac golem wearing a big bell-flower, little bells ringing on stems round it.
+func _draw_bellflower(canvas: Image, st: Dictionary) -> void:
+	var dy: int = st.dy
+	var fig := _pal("#22183a", "#e0d0f8", "#c0a8ec", "#9a80d0")
+	_draw_waystone(canvas, st, "bellflower")
+	_stem_bell(canvas, Vector2(9, 44), 10, -1 + st.sway * 0.5, fig.o)
+	_stem_bell(canvas, Vector2(55, 43), 12, 1 + st.sway * 0.5, fig.o)
+	_draw_template_figure(canvas, st.pose, fig)
+	_golem_face(canvas, st, fig, Color(0, 0, 0, 0), true, st.attack < 0)
+	_bell_cap(canvas, Vector2(30.5 + st.sway * 0.5, 10 + dy), 14.0, 10, fig.o)
+	_stem_bell(canvas, Vector2(43, 21 + dy), 6, 1 + st.sway, fig.o)
+	if st.attack < 0:
+		_rising_glyph(canvas, st, NOTE_GLYPH, 50, 14, Color("#e0c8ff"))
+
+func _attack_bellflower(canvas: Image, st: Dictionary) -> void:
+	_pulse(canvas, st, Color("#c8b0f0"))
+	var k: int = st.attack - RELEASE_FRAME
+	if k >= 0 and k < 3:
+		_glyph(canvas, Vector2i(7, 14 - k * 3), NOTE_GLYPH, Color("#e0c8ff"))
+		_glyph(canvas, Vector2i(52, 12 - k * 3), NOTE_GLYPH, BELL_GLOW)
+		_warm_glow(canvas, Vector2(30.5, 12), Vector2(12, 6), k)
+
+# A dreamcatcher hoop: a ring with a woven web, a glowing bead, and bead strings with a feather.
+func _hoop(canvas: Image, c: Vector2, r: float, sway: float, o: Color, glow: bool) -> void:
+	var ring := _layer()
+	_ring(ring, c, Vector2(r, r), Color("#a8845a"), false)
+	_ring(ring, c, Vector2(r - 1, r - 1), Color("#d8b888"), false)
+	_stamp(canvas, ring, Color(0, 0, 0, 0))
+	var web := Color("#e8e0ff")
+	for k in 6:
+		var d := Vector2.from_angle(k * TAU / 6.0 + 0.3)
+		_line(canvas, [c + d * 1.5, c + d * (r - 1.5)], web)
+	if r >= 5:
+		_ring(canvas, c, Vector2(r * 0.5, r * 0.5), web, true)
+	_glow_dot(canvas, Vector2i(c.round()), BELL_GLOW if glow else Color("#c8a8f0"), Color("#c8a8f0"))
+	for k in 3:
+		var top := c + Vector2(-r * 0.6 + k * r * 0.6, r - 0.5)
+		var end := top + Vector2(sway, 3 + (k % 2) * 2)
+		_line(canvas, [top, end], Color("#d8b888"))
+		_px(canvas, int(end.x), int(end.y) - 1, Color("#f0c050") if k != 1 else Color(BELL_LILAC[1]))
+		if k == 1:
+			_leaf(canvas, end, end + Vector2(sway * 0.5, 5), 1.6, _ramp(["#8a74c0", "#c8b8f0", "#f4f0ff"]), o)
+
+# Dreamcatcher: an indigo golem with a woven dreamcatcher hung from a crooked branch beside it.
+func _draw_dreamcatcher(canvas: Image, st: Dictionary) -> void:
+	_dreamcatcher_body(canvas, st, false)
+
+# Great Dreamcatcher: a bigger branch hung with three dreamcatchers and glowing beads.
+func _draw_great_dreamcatcher(canvas: Image, st: Dictionary) -> void:
+	_dreamcatcher_body(canvas, st, true)
+
+func _dreamcatcher_body(canvas: Image, st: Dictionary, great: bool) -> void:
+	var dy: int = st.dy
+	var fig := _pal("#1a1430", "#b8a8e0", "#9080c8", "#6a5aa8")
+	var sway: float = st.sway
+	var glow: bool = st.f % 4 < 2 or st.power > 0.5
+	_draw_waystone(canvas, st, "bellflower", great)
+	var branch := _layer()
+	_stroke(branch, [Vector2(51, 44), Vector2(52, 30), Vector2(50, 18), Vector2(53, 8), Vector2(46, 3)], 1.3, Color("#7a5234"))
+	if great:
+		_stroke(branch, [Vector2(10, 44), Vector2(9, 28), Vector2(12, 14), Vector2(18, 8)], 1.1, Color("#7a5234"))
+	_stamp(canvas, branch, fig.o)
+	_draw_template_figure(canvas, st.pose, fig)
+	_golem_face(canvas, st, fig, Color(0, 0, 0, 0), true, st.attack < 0)
+	_line(canvas, [Vector2(47, 4), Vector2(46 + sway, 8)], Color("#d8b888"))
+	_hoop(canvas, Vector2(46 + sway, 14), 7.0 if great else 6.0, sway, fig.o, glow)
+	if great:
+		_line(canvas, [Vector2(17, 9), Vector2(16 + sway, 12)], Color("#d8b888"))
+		_hoop(canvas, Vector2(16 + sway, 16), 4.0, sway, fig.o, not glow)
+		_hoop(canvas, Vector2(57 + sway, 31), 3.5, sway, fig.o, glow)
+		for p: Vector2i in [Vector2i(4, 30), Vector2i(60, 20), Vector2i(24, 2)]:
+			if (st.f + p.x) % 3 != 0:
+				_glow_dot(canvas, p, BELL_GLOW, Color("#c8a8f0"))
+
+# Threads flick out of the hoop, a glowing bead on the end.
+func _thread_flick(canvas: Image, st: Dictionary, key: String) -> void:
+	var k: int = st.attack - RELEASE_FRAME
+	var from := Vector2(ATTACKS[key].point)
+	if k < 0 or k > 1:
+		return
+	var to := from + (Vector2(16, 10) if k == 0 else Vector2(10, 6))
+	for w in [-1, 0, 1]:
+		_line(canvas, [from, to + Vector2(0, w * 2)], Color("#e8e0ff") if w == 0 else Color("#c8a8f0"))
+	_glow_dot(canvas, Vector2i(to.round()), BELL_GLOW, Color("#c8a8f0"))
+	_warm_glow(canvas, to, Vector2(5, 4), k)
+
+func _attack_dreamcatcher(canvas: Image, st: Dictionary) -> void:
+	_thread_flick(canvas, st, "dreamcatcher")
+
+func _attack_great_dreamcatcher(canvas: Image, st: Dictionary) -> void:
+	_thread_flick(canvas, st, "great_dreamcatcher")
+
+# Sound ripples: arcs spreading out of an opening towards the right.
+func _ripples(canvas: Image, from: Vector2, count: int, spacing: float, color: Color, phase: int) -> void:
+	for k in count:
+		var r := 4.0 + k * spacing + (phase % 2)
+		for s in 7:
+			var a := lerpf(-0.9, 0.9, s / 6.0)
+			var p := from + Vector2(cos(a), sin(a) * 1.2) * r
+			if (s + k + phase) % 3 != 0:
+				_px(canvas, roundi(p.x), roundi(p.y), color)
+
+# Echo Hollow: a sleepy log golem with a hollow in its chest that echoes, ripples coming out.
+func _draw_echo_hollow(canvas: Image, st: Dictionary) -> void:
+	_hollow_body(canvas, st, false)
+
+# Whispering Hollow: an old hollow tree behind it, whispering from several openings.
+func _draw_whispering_hollow(canvas: Image, st: Dictionary) -> void:
+	_hollow_body(canvas, st, true)
+
+func _hollow_body(canvas: Image, st: Dictionary, whispering: bool) -> void:
+	var dy: int = st.dy
+	var fig := _pal("#24160e", "#b08a64", "#8a6a4a", "#6a4e36")
+	var ripple := Color("#d8c0ff")
+	_draw_waystone(canvas, st, "bellflower", whispering)
+	if whispering:
+		var trunk := _layer()
+		_flat_polygon(trunk, PackedVector2Array([Vector2(4, 44), Vector2(6, 12), Vector2(3, 2), Vector2(12, 4),
+			Vector2(17, 1), Vector2(19, 12), Vector2(21, 44)]), fig.b)
+		for y in S:
+			for x in S:
+				if trunk.get_pixel(x, y).a > 0.0 and x % 4 == 0:
+					trunk.set_pixel(x, y, fig.c)
+				elif trunk.get_pixel(x, y).a > 0.0 and x < 8:
+					trunk.set_pixel(x, y, fig.a)
+		_stamp(canvas, trunk, fig.o)
+		for hole: Vector2 in [Vector2(12, 14), Vector2(11, 28)]:
+			var h := _layer()
+			_flat_ellipse(h, hole, Vector2(2.5, 3.5), Color("#1a1008"))
+			_stamp(canvas, h, fig.o)
+			_px(canvas, int(hole.x), int(hole.y) + 1, Color("#8a6ad0"))
+	var mask := _draw_template_figure(canvas, st.pose, fig)
+	for g: Array in [[Vector2(24, 24 + dy), Vector2(23, 31 + dy)], [Vector2(37, 27 + dy), Vector2(38, 34)]]:
+		_line(canvas, g, fig.c, mask)
+	var top := _layer()
+	_flat_ellipse(top, Vector2(30.5, 6 + dy), Vector2(8.5, 2.6), Color("#d8b888"))
+	_stamp(canvas, top, fig.o)
+	_line(canvas, [Vector2(27, 6 + dy), Vector2(34, 6 + dy)], Color("#a88a60"))
+	_px(canvas, 36, 4 + dy, Color("#6ab04a"))
+	_px(canvas, 37, 4 + dy, Color("#9ad86a"))
+	var hollow := _layer()
+	_flat_ellipse(hollow, Vector2(30, 29 + dy), Vector2(4.5, 5.5), Color("#1a1008"))
+	_stamp(canvas, hollow, fig.o)
+	_ellipse(canvas, Vector2(30, 30 + dy), Vector2(2, 2.5), _ramp(["#5a3a8a", "#8a6ad0", "#c8a8f0"]))
+	_golem_face(canvas, st, fig, Color(0, 0, 0, 0), true, true)
+	if st.attack < 0:
+		_ripples(canvas, Vector2(35, 29 + dy), 2, 4.0, ripple, st.f)
+		if whispering:
+			_ripples(canvas, Vector2(15, 14), 1, 4.0, ripple, st.f + 1)
+			_wisp(canvas, Vector2(12, 26), float(st.f) / st.n, Color("#e8d8ff"))
+
+func _attack_echo_hollow(canvas: Image, st: Dictionary) -> void:
+	_echo_burst(canvas, st, false)
+
+func _attack_whispering_hollow(canvas: Image, st: Dictionary) -> void:
+	_echo_burst(canvas, st, true)
+
+func _echo_burst(canvas: Image, st: Dictionary, big: bool) -> void:
+	var k: int = st.attack - RELEASE_FRAME
+	if k < 0 or k > 2:
+		return
+	_ripples(canvas, Vector2(35, 28), 3 + (1 if big else 0), 5.0 + k * 2, Color("#e8d8ff") if k < 2 else Color("#a888d8"), k)
+	if big:
+		_ripples(canvas, Vector2(15, 14), 2, 5.0 + k * 2, Color("#e8d8ff"), k + 1)
+	_warm_glow(canvas, Vector2(30, 29), Vector2(8, 7), k)
+
+# --- Pebbling hidden: Cairn -> Rockslide ---
+
+# A balanced stack of flat stones on the slab beside the golem; the top one bobs (it's next).
+func _cairn(canvas: Image, stones: Array, bob: int, o: Color, lifted: bool) -> void:
+	var stone := _ramp(STONE)
+	for i in stones.size():
+		var s: Vector3 = stones[i]
+		if lifted and i == stones.size() - 1:
+			continue
+		var layer := _layer()
+		var y := s.y + (bob if i == stones.size() - 1 else 0)
+		_ellipse(layer, Vector2(s.x, y), Vector2(s.z, s.z * 0.45), stone)
+		_stamp(canvas, layer, o)
+		_px(canvas, int(s.x) - 1, int(y) - 1, Color("#e4e7f4"))
+
+func _draw_cairn(canvas: Image, st: Dictionary) -> void:
+	_cairn_body(canvas, st, false)
+
+func _draw_rockslide(canvas: Image, st: Dictionary) -> void:
+	_cairn_body(canvas, st, true)
+
+func _cairn_body(canvas: Image, st: Dictionary, slide: bool) -> void:
+	var fig := _pal("#1c1c36", "#c4c9e2", "#979dc2", "#686d9a")
+	var stones: Array = [Vector3(11, 43, 7), Vector3(11, 37, 6), Vector3(12, 32, 5), Vector3(11, 27, 4.2), Vector3(12, 22, 3.6)]
+	if slide:
+		stones = [Vector3(11, 44, 7.5), Vector3(11, 38, 6.5), Vector3(12, 33, 6), Vector3(11, 28, 5), Vector3(12, 23, 4.4),
+			Vector3(11, 18, 4), Vector3(12, 13, 3.6)]
+	var bob: int = [0, 0, -1, -1, 0, 0, -1, -1][st.f] if st.attack < 0 else [-1, -2, 0, 0, 0, 0][st.attack]
+	_draw_waystone(canvas, st, "cobble", slide)
+	_cairn(canvas, stones, bob, fig.o, st.attack >= RELEASE_FRAME and st.attack <= RELEASE_FRAME + 1)
+	if slide:
+		_cairn(canvas, [Vector3(54, 43, 5), Vector3(54, 38, 4), Vector3(55, 34, 3)], 0, fig.o, false)
+		_rock(canvas, PackedVector2Array([Vector2(44, 49), Vector2(46, 47), Vector2(49, 48), Vector2(48, 51)]), _ramp(STONE), fig.o)
+	var mask := _draw_template_figure(canvas, st.pose, fig)
+	for band in [26, 33, 40]:
+		_line(canvas, [Vector2(19, band), Vector2(44, band + 1)], fig.c, mask)
+	_golem_face(canvas, st, fig)
+
+func _attack_cairn(canvas: Image, st: Dictionary) -> void:
+	_lob(canvas, st, "cairn", 3.6)
+
+func _attack_rockslide(canvas: Image, st: Dictionary) -> void:
+	_lob(canvas, st, "rockslide", 4.4)
+
+# The top stone lifts off the stack and is lobbed high over the maze.
+func _lob(canvas: Image, st: Dictionary, key: String, size: float) -> void:
+	var k: int = st.attack - RELEASE_FRAME
+	var launch := Vector2(ATTACKS[key].point)
+	if k == 0:
+		var layer := _layer()
+		_ellipse(layer, launch, Vector2(size, size * 0.6), _ramp(STONE))
+		_stamp(canvas, layer, Color("#1c1c36"))
+		for s in 3:
+			_px(canvas, int(launch.x) + 1, int(launch.y) + 4 + s * 3, GLOW_INNER)
+		_warm_glow(canvas, launch, Vector2(size + 4, size + 3))
+	if k == 0 or k == 1:
+		for d: Vector2i in [Vector2i(-5, 0), Vector2i(5, 0), Vector2i(-3, -2), Vector2i(3, -2)]:
+			_px(canvas, 12 + d.x * (1 + k), 20 + d.y - k, Color("#d8d4e4") if k == 0 else Color("#aaa4bc"))
+
+# --- Nestling hidden: Hummingbird Bower -> Jewelwing Court ---
+
+const EMERALD := ["#1a7a4a", "#3ac070", "#9af0b0"]
+const RUBY := ["#a02040", "#e04a6a", "#ffa0b8"]
+const SAPPHIRE := ["#2a4aa8", "#4a7ae0", "#a0c8ff"]
+
+# A hummingbird hovering: jewel body, long beak, a blur of wings, a bright throat.
+func _hummingbird(canvas: Image, p: Vector2, face: int, jewel: Array, f: int) -> void:
+	var o := Color("#12101e")
+	var body := _layer()
+	_ellipse(body, p, Vector2(2.6, 1.9), _ramp(jewel))
+	_ellipse(body, p + Vector2(face * 2.2, -1.2), Vector2(1.6, 1.5), _ramp(jewel))
+	_flat_polygon(body, PackedVector2Array([p + Vector2(-face * 2, 0), p + Vector2(-face * 5, 1.5), p + Vector2(-face * 4, -1)]), Color(jewel[0]))
+	_stamp(canvas, body, o)
+	_line(canvas, [p + Vector2(face * 3.6, -1.4), p + Vector2(face * 6.5, -1)], Color("#2a2030"))
+	_px(canvas, roundi(p.x + face * 2.6), roundi(p.y - 1.8), o)
+	_px(canvas, roundi(p.x + face * 1.6), roundi(p.y), Color("#ff6a8a"))
+	var wing_y := -3.0 if f % 2 == 0 else -1.5
+	_flat_ellipse(canvas, p + Vector2(-face * 0.5, wing_y), Vector2(2.2, 1.0), Color(1, 1, 1, 0.55))
+
+# A bower: an arch of vine over the golem, hung with trumpet flowers.
+func _bower(canvas: Image, st: Dictionary, big: bool, o: Color) -> void:
+	var pts: Array = []
+	var r := Vector2(27 if big else 26, 41 if big else 39)  # arches right over the golem's head
+	for s in 17:
+		var a := lerpf(PI, TAU, s / 16.0)
+		pts.append(Vector2(31.5, 44) + Vector2(cos(a) * r.x, sin(a) * r.y))
+	var vine := _layer()
+	_stroke(vine, pts, 1.3 if big else 1.1, Color("#5a7a30"))
+	_stamp(canvas, vine, o)
+	for i in pts.size():
+		if i % 2 == 1:
+			var p: Vector2 = pts[i]
+			_px(canvas, int(p.x) + 1, int(p.y) - 1, Color("#7cbc5a"))
+		if i % (3 if big else 4) == 2:
+			var p: Vector2 = pts[i]
+			var col := Color("#f08a4a") if i % 2 == 0 else Color("#f4a0c0")
+			_px(canvas, int(p.x), int(p.y) + 1, col)
+			_px(canvas, int(p.x), int(p.y) + 2, col)
+			_px(canvas, int(p.x) - 1, int(p.y) + 3, col.lightened(0.2))
+			_px(canvas, int(p.x) + 1, int(p.y) + 3, col.lightened(0.2))
+
+func _draw_hummingbird_bower(canvas: Image, st: Dictionary) -> void:
+	_bower_body(canvas, st, false)
+
+func _draw_jewelwing_court(canvas: Image, st: Dictionary) -> void:
+	_bower_body(canvas, st, true)
+
+func _bower_body(canvas: Image, st: Dictionary, court: bool) -> void:
+	var dy: int = st.dy
+	var fig := _pal(FEATHER[0], FEATHER[1], FEATHER[2], FEATHER[3])
+	_draw_waystone(canvas, st, "nest", court)
+	_bower(canvas, st, court, fig.o)
+	var mask := _draw_template_figure(canvas, st.pose, fig)
+	_feathers(canvas, mask, fig, dy)
+	_golem_face(canvas, st, fig)
+	var hover: int = [0, -1, -1, 0, 0, 1, 1, 0][st.f % 8] if st.attack < 0 else 0
+	var birds: Array = [[Vector2(51, 16), -1, EMERALD]]
+	if court:
+		birds = [[Vector2(51, 16), -1, EMERALD], [Vector2(11, 18), 1, RUBY], [Vector2(45, 6), -1, SAPPHIRE]]
+	for i in birds.size():
+		var b: Array = birds[i]
+		if st.attack >= RELEASE_FRAME and st.attack <= RELEASE_FRAME + 1:
+			continue  # They're out pecking
+		_hummingbird(canvas, b[0] + Vector2(0, hover * (1 if i % 2 == 0 else -1)), b[1], b[2], st.f + i)
+
+func _attack_hummingbird_bower(canvas: Image, st: Dictionary) -> void:
+	_peck_flurry(canvas, st, [EMERALD])
+
+func _attack_jewelwing_court(canvas: Image, st: Dictionary) -> void:
+	_peck_flurry(canvas, st, [EMERALD, RUBY, SAPPHIRE])
+
+# The hummingbirds dart out and peck in a quick flurry, a spark on each peck.
+func _peck_flurry(canvas: Image, st: Dictionary, jewels: Array) -> void:
+	var k: int = st.attack - RELEASE_FRAME
+	if k < 0 or k > 1:
+		return
+	for i in jewels.size():
+		var p := Vector2(56 - i * 4, 26 + i * 7) + Vector2(k * 2, 0)
+		_hummingbird(canvas, p, 1, jewels[i], st.f + i)
+		var spark := Vector2i((p + Vector2(8, -1)).round())
+		_sparkle(canvas, spark, Color.WHITE if k == 0 else GLOW_INNER)
+		_warm_glow(canvas, Vector2(spark), Vector2(4, 3), k + i)
+
+# --- Whirligig hidden: Samara -> Autumn Gale ---
+
+# A maple seed (samara): a round nut with one veined wing, turned by `angle`.
+func _samara_seed(canvas: Image, c: Vector2, angle: float, wing: Array, o: Color, size: float = 1.0) -> void:
+	var d := Vector2.from_angle(angle)
+	_leaf(canvas, c + d * 1.0 * size, c + d * 9.0 * size, 2.6 * size, _ramp(wing), o)
+	var nut := _layer()
+	_ellipse(nut, c, Vector2(2.2, 2.2) * size, _ramp(["#6a3a1a", "#9a5a2a", "#c88a4a"]))
+	_stamp(canvas, nut, o)
+
+func _draw_samara(canvas: Image, st: Dictionary) -> void:
+	_samara_body(canvas, st, false)
+
+func _draw_autumn_gale(canvas: Image, st: Dictionary) -> void:
+	_samara_body(canvas, st, true)
+
+func _samara_body(canvas: Image, st: Dictionary, gale: bool) -> void:
+	var dy: int = st.dy
+	var fig := _pal("#2a0e0a", "#f0906a", "#d86a48", "#b04a30") if gale else _pal(MAPLE[0], MAPLE[1], MAPLE[2], MAPLE[3])
+	var wing := ["#c8401a", "#f06a3a", "#ffb07a"] if gale else ["#b0602e", "#e0a060", "#f8d8a0"]
+	var spin: float = float(st.f) * TAU / st.n * 0.5
+	_draw_waystone(canvas, st, "windswept", gale)
+	var mask := _draw_template_figure(canvas, st.pose, fig)
+	_line(canvas, [Vector2(24, 26 + dy), Vector2(27, 32)], fig.c, mask)
+	_golem_face(canvas, st, fig)
+	_leaf(canvas, Vector2(31, 6 + dy), Vector2(36 + st.sway, 1 + dy), 2.4, _ramp(wing), fig.o)
+	var holding: bool = st.attack < RELEASE_FRAME
+	var arms := _layer()
+	var right_hand := Vector2(48, 15 + dy) if st.attack != 1 else Vector2(44, 13 + dy)  # drawn back to throw
+	_stroke(arms, [Vector2(42, 22 + dy), right_hand + Vector2(-1, 3)], 2.0, fig.b)
+	if gale:
+		_stroke(arms, [Vector2(20, 22 + dy), Vector2(14, 15 + dy)], 2.0, fig.b)
+	_stamp(canvas, arms, fig.o)
+	if holding:
+		_samara_seed(canvas, right_hand, spin - PI / 2.0, wing, fig.o, 1.3)
+	if gale:
+		_samara_seed(canvas, Vector2(14, 13 + dy), -spin - PI / 2.0, wing, fig.o, 1.3)
+		for k in 3:
+			var t: float = float((st.f + k * 3) % st.n) / st.n
+			var p := Vector2([8, 30, 56][k] + sin(t * TAU) * 3.0, 2 + t * 20)
+			_leaf(canvas, p, p + Vector2(3, 2), 1.6, _ramp(["#a83a1a", "#e05a2a", "#f8a060"]), fig.o)
+	if st.attack < 0:
+		for k in 2:
+			var t: float = float((st.f + k * 4) % st.n) / st.n
+			_line(canvas, [Vector2(52 + t * 6, 10 + k * 8), Vector2(58 + t * 6, 9 + k * 8)], Color("#e8f8f0"))
+
+func _attack_samara(canvas: Image, st: Dictionary) -> void:
+	_seed_throw(canvas, st, "samara", ["#b0602e", "#e0a060", "#f8d8a0"], 1)
+
+func _attack_autumn_gale(canvas: Image, st: Dictionary) -> void:
+	_seed_throw(canvas, st, "autumn_gale", ["#c8401a", "#f06a3a", "#ffb07a"], 2)
+
+# The seed leaves the hand spinning, with a wind trail behind it.
+func _seed_throw(canvas: Image, st: Dictionary, key: String, wing: Array, seeds: int) -> void:
+	var k: int = st.attack - RELEASE_FRAME
+	if k < 0 or k > 1:
+		return
+	for i in seeds:
+		var p := Vector2(ATTACKS[key].point) + Vector2(k * 5, i * 14 - k * 2)
+		_samara_seed(canvas, p, st.attack * 1.9 + i, wing, Color(MAPLE[0]))
+		for s in 3:
+			_px(canvas, int(p.x) - 5 - s * 3, int(p.y) + (s % 2), Color("#e8f8f0"))
+		_warm_glow(canvas, p, Vector2(7, 6), k + i)
+
+# --- Projectiles (family review) ---
+
+func _proj_dream_mote(canvas: Image, f: int) -> void:
+	for x in range(24, 30):
+		if (x + f) % 2 == 0:
+			_px(canvas, x, 32, Color("#e8e0ff"))
+	var bead := _layer()
+	_flat_ellipse(bead, Vector2(33, 32), Vector2(2.4, 2.4), BELL_GLOW)
+	_stamp(canvas, bead, Color("#6a4a9a"))
+	_px(canvas, 32, 31, Color.WHITE)
+
+func _proj_lob_stone(canvas: Image, f: int) -> void:
+	var layer := _layer()
+	var c := Vector2(32, 32)
+	var a := f * TAU / 8.0
+	var pts := PackedVector2Array()
+	for k in 8:
+		var ang := a + k * TAU / 8.0
+		pts.append(c + Vector2(cos(ang) * 5.0, sin(ang) * 2.8).rotated(a))
+	_rock(canvas, pts, _ramp(STONE), Color("#1c1c36"))
+	_px(canvas, 31, 30, Color("#7cbc5a"))
+
+func _proj_hummingbird(canvas: Image, f: int) -> void:
+	_hummingbird(canvas, Vector2(31, 33), 1, EMERALD, f)
+
+func _proj_maple_seed(canvas: Image, f: int) -> void:
+	_samara_seed(canvas, Vector2(32, 32), f * TAU / 4.0, ["#b0602e", "#e0a060", "#f8d8a0"], Color(MAPLE[0]), 0.75)
+
+func _proj_autumn_seed(canvas: Image, f: int) -> void:
+	_samara_seed(canvas, Vector2(32, 32), f * TAU / 4.0, ["#c8401a", "#f06a3a", "#ffb07a"], Color(MAPLE[0]), 0.75)
+
+func _proj_starling_bird(canvas: Image, f: int) -> void:
+	_bird(canvas, Vector2(32, 34), 1, _ramp(["#241c34", "#3e3258", "#7a6a9a"]), Color("#0e0a16"), f % 2 == 0, Color("#f0c050"), 1.1)

@@ -1,5 +1,21 @@
 {
 	"effects": {
+		"caught": {
+			"anchor": [
+				32,
+				32
+			],
+			"file": "caught.png",
+			"fps": 8.0,
+			"frame_size": [
+				64,
+				64
+			],
+			"frames": 8,
+			"kind": "status_loop",
+			"loop": true,
+			"note": "Dreamcatcher: loops over a Caught (sleeping, +damage) nightmare. Draw above it."
+		},
 		"chain_badge": {
 			"anchor": [
 				24,
@@ -80,6 +96,22 @@
 			"kind": "screen",
 			"loop": false
 		},
+		"dreamlight_shard": {
+			"anchor": [
+				8,
+				12
+			],
+			"file": "dreamlight_shard.png",
+			"fps": 10.0,
+			"frame_size": [
+				16,
+				16
+			],
+			"frames": 8,
+			"kind": "pickup",
+			"loop": true,
+			"note": "Great Dreamcatcher: dropped by a Caught nightmare when dispelled. Loops until collected."
+		},
 		"drown": {
 			"anchor": [
 				32,
@@ -96,6 +128,22 @@
 			"kind": "reaction",
 			"loop": false,
 			"reaction": "Damp + max Drowsy"
+		},
+		"echo": {
+			"anchor": [
+				32,
+				32
+			],
+			"file": "echo.png",
+			"fps": 16.0,
+			"frame_size": [
+				64,
+				64
+			],
+			"frames": 6,
+			"kind": "overlay",
+			"loop": false,
+			"note": "Echo Hollow: play with the repeated Reaction (which can also be drawn at ~60% alpha, lilac-tinted)."
 		},
 		"ignite": {
 			"anchor": [
@@ -130,6 +178,22 @@
 			"kind": "reaction",
 			"loop": false
 		},
+		"landing_dust": {
+			"anchor": [
+				32,
+				40
+			],
+			"file": "landing_dust.png",
+			"fps": 18.0,
+			"frame_size": [
+				64,
+				64
+			],
+			"frames": 6,
+			"kind": "hit",
+			"loop": false,
+			"note": "Cairn / Rockslide: where the lobbed stone lands. Anchor = impact point."
+		},
 		"light_thread": {
 			"anchor": [
 				0,
@@ -163,6 +227,22 @@
 			"loop": false,
 			"note": "Anchor is the impact point; the bolt falls from the top.",
 			"reaction": "Marked + Static"
+		},
+		"lob_shadow": {
+			"anchor": [
+				8,
+				4
+			],
+			"file": "lob_shadow.png",
+			"fps": 0.0,
+			"frame_size": [
+				16,
+				8
+			],
+			"frames": 1,
+			"kind": "shadow",
+			"loop": false,
+			"note": "Under a lobbed stone, on the ground below it; scale it down as the stone rises."
 		},
 		"long_way_home_drag": {
 			"anchor": [
@@ -246,6 +326,22 @@
 			"loop": true,
 			"note": "One path tile (64x64), loops while the cloud lasts. Draw under nightmares."
 		},
+		"peck_spark": {
+			"anchor": [
+				8,
+				8
+			],
+			"file": "peck_spark.png",
+			"fps": 24.0,
+			"frame_size": [
+				16,
+				16
+			],
+			"frames": 4,
+			"kind": "hit",
+			"loop": false,
+			"note": "Hummingbird: one per peck (6-8 a second), so it's tiny and quick."
+		},
 		"pinned": {
 			"anchor": [
 				32,
@@ -278,6 +374,22 @@
 			"kind": "signature",
 			"loop": false,
 			"note": "Puffball's pop at 10+ Spored stacks."
+		},
+		"rubble": {
+			"anchor": [
+				32,
+				32
+			],
+			"file": "rubble.png",
+			"fps": 0.0,
+			"frame_size": [
+				64,
+				64
+			],
+			"frames": 1,
+			"kind": "ground",
+			"loop": false,
+			"note": "Rockslide: one path tile of slowing rubble. Draw under nightmares; fade alpha out over its 3 s."
 		},
 		"shatter": {
 			"anchor": [

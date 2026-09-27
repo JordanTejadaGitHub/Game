@@ -10,7 +10,22 @@
 				46
 			]
 		},
+		"autumn_gale": {
+			"kind": "boomerang",
+			"point": [
+				54,
+				14
+			],
+			"projectile": "autumn_seed"
+		},
 		"beacon": {
+			"kind": "pulse",
+			"point": [
+				31,
+				46
+			]
+		},
+		"bellflower": {
 			"kind": "pulse",
 			"point": [
 				31,
@@ -39,6 +54,14 @@
 				46
 			]
 		},
+		"cairn": {
+			"kind": "lob",
+			"point": [
+				12,
+				12
+			],
+			"projectile": "lob_stone"
+		},
 		"chime_stone": {
 			"kind": "pulse",
 			"point": [
@@ -54,6 +77,14 @@
 			],
 			"projectile": "dew_drop"
 		},
+		"dreamcatcher": {
+			"kind": "projectile",
+			"point": [
+				46,
+				14
+			],
+			"projectile": "dream_mote"
+		},
 		"dreamshroom": {
 			"kind": "cloud",
 			"point": [
@@ -68,6 +99,13 @@
 				9
 			],
 			"projectile": "spore"
+		},
+		"echo_hollow": {
+			"kind": "echo",
+			"point": [
+				34,
+				29
+			]
 		},
 		"elder_stump": {
 			"kind": "pulse",
@@ -122,6 +160,14 @@
 				1
 			]
 		},
+		"great_dreamcatcher": {
+			"kind": "projectile",
+			"point": [
+				46,
+				14
+			],
+			"projectile": "dream_mote"
+		},
 		"grove_heart": {
 			"kind": "pulse",
 			"point": [
@@ -150,6 +196,22 @@
 				31,
 				46
 			]
+		},
+		"hummingbird_bower": {
+			"kind": "multi",
+			"point": [
+				51,
+				16
+			],
+			"projectile": "hummingbird"
+		},
+		"jewelwing_court": {
+			"kind": "multi",
+			"point": [
+				51,
+				16
+			],
+			"projectile": "hummingbird"
 		},
 		"lanternmoth": {
 			"kind": "projectile",
@@ -287,6 +349,14 @@
 			],
 			"projectile": "dew_drop"
 		},
+		"rockslide": {
+			"kind": "lob",
+			"point": [
+				12,
+				6
+			],
+			"projectile": "lob_stone"
+		},
 		"rootcurl": {
 			"kind": "pull",
 			"point": [
@@ -307,6 +377,14 @@
 				31,
 				46
 			]
+		},
+		"samara": {
+			"kind": "boomerang",
+			"point": [
+				54,
+				14
+			],
+			"projectile": "maple_seed"
 		},
 		"snugroot": {
 			"kind": "hold",
@@ -347,11 +425,12 @@
 			]
 		},
 		"starling_murmuration": {
-			"kind": "sweep",
+			"kind": "swoop",
 			"point": [
-				40,
-				10
-			]
+				46,
+				8
+			],
+			"projectile": "starling_bird"
 		},
 		"stormcap": {
 			"kind": "chain",
@@ -386,6 +465,13 @@
 			"point": [
 				31,
 				46
+			]
+		},
+		"whispering_hollow": {
+			"kind": "echo",
+			"point": [
+				34,
+				29
 			]
 		},
 		"white_stag": {
