@@ -33,6 +33,9 @@ come from a `CanvasModulate` plus `PointLight2D`s (`art_direction.md`).
 ## Sheets
 
 All cells are 64×64 unless noted. Frames run left to right; animated sheets are 4 frames at 4 fps.
+In game every animated tile starts at a random point per cell, and each dead-tree type runs at its
+own speed with uneven frame timing (`EnvironmentTiles.TREE_SPEEDS` / `TREE_FRAME_WEIGHTS`), so no
+two trees pulse in step.
 
 | File | Size | Layout | Use |
 |---|---|---|---|

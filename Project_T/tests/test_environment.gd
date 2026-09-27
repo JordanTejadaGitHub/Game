@@ -30,6 +30,12 @@ func _init() -> void:
 		"a rope bridge leads out from the start")
 	_check(map.dream_void.get_child(0) is Parallax2D and map.dream_void.z_index < 0, "the void sits behind the map")
 	_check(env.get_cell_source_id(Vector2i(map.startPath)) == EnvironmentTiles.EDGE_MIST, "mist on the start cell")
+	var trees := map.tile_set.get_source(EnvironmentTiles.WITHERED_TREE) as TileSetAtlasSource
+	_check(trees.get_tile_animation_mode(Vector2i(0, 0)) == TileSetAtlasSource.TILE_ANIMATION_MODE_RANDOM_START_TIMES,
+		"dead trees start their animation at random times")
+	_check(trees.get_tile_animation_speed(Vector2i(0, 3)) != trees.get_tile_animation_speed(Vector2i(0, 4))
+		and trees.get_tile_animation_frame_duration(Vector2i(0, 0), 0) != trees.get_tile_animation_frame_duration(Vector2i(0, 0), 1),
+		"each dead-tree type animates at its own pace")
 	for cell in path.get_used_cells():
 		if path.get_cell_source_id(cell) != EnvironmentTiles.PATH:
 			_check(false, "path cell %s uses the path sheet" % cell)

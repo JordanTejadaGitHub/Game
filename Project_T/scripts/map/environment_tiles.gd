@@ -39,6 +39,10 @@ const SHEETS := {
 const DREAM_FOLDER := "dream"
 const SHARED_SHEETS := {ROPE_BRIDGE: "rope_bridge"}
 const ANIMATED: Array[int] = [WITHERED_TREE, EDGE_MIST, WAYSTONE, DEW_POOL, BLIGHT_PATCH]
+# Animated tiles start at a random point per cell (so a field of them never pulses in step), and
+# each dead-tree type (row) runs at its own pace with uneven frame timing: one frame held, one quick.
+const TREE_SPEEDS: Array[float] = [0.8, 0.95, 0.7, 0.85, 0.6, 1.1, 0.75, 0.9, 0.65]
+const TREE_FRAME_WEIGHTS: Array[float] = [1.6, 0.8, 0.6, 1.0]  # Rotated by row
 
 # The Heartwood (goal): 128x128 frames, FRAMES per row, row = leaves lost (0..HEARTWOOD_STATES-1).
 const HEARTWOOD := "heartwood"
@@ -65,8 +69,12 @@ static func create_tile_set(act: int = 1) -> TileSet:
 				var coords := Vector2i(0, row)
 				source.create_tile(coords)
 				source.set_tile_animation_frames_count(coords, FRAMES)
+				source.set_tile_animation_mode(coords, TileSetAtlasSource.TILE_ANIMATION_MODE_RANDOM_START_TIMES)
 				for frame in FRAMES:
-					source.set_tile_animation_frame_duration(coords, frame, 1.0 / FPS)
+					var weight := TREE_FRAME_WEIGHTS[(frame + row) % FRAMES] if id == WITHERED_TREE else 1.0
+					source.set_tile_animation_frame_duration(coords, frame, weight / FPS)
+				if id == WITHERED_TREE:
+					source.set_tile_animation_speed(coords, TREE_SPEEDS[row % TREE_SPEEDS.size()])
 		else:
 			for row in grid.y:
 				for column in grid.x:
