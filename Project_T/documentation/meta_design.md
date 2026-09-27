@@ -25,8 +25,8 @@ Revised for 100-drift runs (`run_design.md`).
 | Blight Level | +10% per level (Level 10 = double) |
 
 Examples: a loss around drift 20 ≈ **25 Seeds**; a loss at drift 60 ≈ **95**; a win ≈ **270**.
-Averaging ~220 across a player's first runs, the tech tree below (~3,100 Seeds) takes **~14 runs
-≈ 20 hours**. (Raised 2026-09-27 when the Grove grew into the tech tree.)
+Averaging ~220 across a player's first runs, the tech tree below (~3,600 Seeds, with the larger
+perk limb) takes **~16 runs ≈ 22 hours**. (Raised 2026-09-27 when the Grove grew into the tech tree.)
 
 **Every run should buy something early on**: the cheapest unlocks cost 20–25, so even a bad first
 run grows the Grove. Losing early in a long run is also cushioned by the mid-run save: players can
@@ -65,28 +65,50 @@ like the map. A Seeds counter top left; a **Memories** shelf; **Start run** open
 Perks are **unlocked** in the tree, then **equipped** in a small **loadout** before each run
 ("Carry into the dream"). You own many but carry few, so the loadout is a choice every run.
 
-- **Loadout slots: maximum 3 for now** (user decision 2026-09-27): 1 at the start; the tree adds a
-  2nd (40) and a 3rd (100).
+- **Loadout slots: up to 5** (user decision 2026-09-27): **1** at the start; the tree adds slot 2
+  (40), 3 (80), 4 (140) and 5 (220). Growing this limb = **more perks to choose from and more
+  room to carry them**.
 - A perk with levels (e.g. Morning Stores I–III) takes one slot at its highest owned level.
 - Loadout is kept between runs; change it any time before starting.
 
-| Node | Levels | Cost per level | Effect (at max) | Needs |
+**Economy perks**
+
+| Perk | Levels | Cost per level | Effect (at max) | Needs |
 |---|---|---|---|---|
-| Morning Stores | 3 | 20 / 40 / 60 | +30 starting Dew | — |
-| Deep Taproot | 3 | 25 / 50 / 75 | +3 max leaves | — |
-| Sprout Bed | 1 | 60 | start with 2 free Sprouts to place | Morning Stores I |
-| Clear Sight | 1 | 80 | clearing is unlocked from the start (no clearing card needed) | — |
-| Early Bloom | 1 | 80 | the first family pick offers every unlocked family | — |
-| Early Light | 1 | 120 | +1 Dreamlight at run start | Early Bloom |
+| Morning Stores | 3 | 20 / 40 / 60 | **+30 starting Dew** (+10 per level) | — |
+| Rich Dew | 3 | 30 / 60 / 90 | **+15% Dew** from dispelled nightmares (+5% per level) | Morning Stores I |
+| Rested Roots | 2 | 40 / 80 | rest bonus **+20%** (+10% per level) | Rich Dew I |
+| Seed Pouch | 1 | 100 | +10% Seeds at run end | — |
+
+**Starting-advantage perks**
+
+| Perk | Levels | Cost | Effect | Needs |
+|---|---|---|---|---|
+| Clear Sight | 1 | 80 | start the run holding **Cleared Ground** (so clearing trees and rocks is unlocked from drift 1, and cheaper) | — |
+| Sprout Bed | 1 | 60 | start with **2 free Sprouts** to place | Morning Stores I |
+| Kindling | 1 | 90 | start with **a random Common Dream** already taken | — |
+| Early Bloom | 1 | 80 | the first family pick offers **every** unlocked family | — |
+| Early Light | 1 | 120 | **+1 Dreamlight** at run start | Early Bloom |
+| First Care | 1 | 70 | your **first 3 Nurture ranks** each run are free | — |
+
+**Survival and choice perks**
+
+| Perk | Levels | Cost per level | Effect (at max) | Needs |
+|---|---|---|---|---|
+| Deep Taproot | 3 | 25 / 50 / 75 | **+3 max leaves** | — |
 | Second Thoughts | 2 | 50 / 100 | 2 Dream rerolls per run | — |
 | Let Go | 1 | 60 | banish 1 card per run | Second Thoughts I |
 | Omen Reader | 1 | 80 | Omen rests offer 3 Omens instead of 2 | — |
-| Seed Pouch | 1 | 100 | +10% Seeds | — |
 | Wider Dreams | 1 | 150 | 4 cards per Dream instead of 3 | Second Thoughts II |
-| Loadout slot 2 / 3 | — | 40 / 100 | carry one more perk (max 3) | slot 2 → 3 |
 
-**Power caps stay:** starting Dew +30, leaves +3, rerolls 2. With 3 slots at most, a player picks
-3 of ~11 perks each run: never everything at once.
+| Slot node | Cost | Needs |
+|---|---|---|
+| Loadout slot 2 / 3 / 4 / 5 | 40 / 80 / 140 / 220 | each needs the previous |
+
+**Power budget:** 15 perks, carry at most 5. A full economy loadout (Morning Stores III, Rich Dew
+III, Rested Roots II, Sprout Bed, Clear Sight) makes the early game noticeably smoother, which is
+why **Blight Levels** exist: each level takes back some of that power. Caps: starting Dew +30,
+Dew gain +15%, leaves +3, rerolls 2.
 
 ### Section 2: Families and family upgrades
 
