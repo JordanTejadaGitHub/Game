@@ -15,6 +15,7 @@ placeholders).
 | `acts_1_2.md` | creature and boss stats, special drifts, the drift-by-drift plan for drifts 1–50 |
 | `dream_design.md` | in-run upgrade pool, offer rules, status numbers |
 | `meta_design.md` | Seeds, Memory Grove, milestones, Blight Levels, Memories, true ending |
+| `art_direction.md` | warm vs cold, environment, Warden and nightmare look (audio to do) |
 | `onboarding.md` | teaching across the first runs |
 | `screens_ui.md` | screen flow, HUD layout, panels, choice screens, settings, controls |
 | `demo_scope.md` | what's in the demo, timeline, success measures |

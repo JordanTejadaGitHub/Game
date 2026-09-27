@@ -33,7 +33,8 @@ exports, `TowerData`, `EnemyData`, `DriftData`), so tuning never needs code chan
 | 4. Heartwood Glade | 76–100 | full builds, everything mixed | **The Hollow Oak** (100, story climax) |
 
 - **Win:** dispel The Hollow Oak and every nightmare still in the dream.
-- **Between acts:** the season changes (visual), the Heartwood regrows 3 leaves (up to its
+- **Between acts:** the season changes (spring dusk → summer night → autumn fog → winter dark;
+  `art_direction.md`), the Heartwood regrows 3 leaves (up to its
   maximum), and the boss rewards (below).
 - **No endless mode for v1.** Blight Levels are the replay hook.
 

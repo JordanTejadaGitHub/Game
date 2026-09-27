@@ -29,7 +29,7 @@ In recommended order:
 | # | Topic | What it needs | Needed for |
 |---|---|---|---|
 | 1 | ~~Screens and HUD~~ | **done: `screens_ui.md`**; open question: Warden targeting modes | — |
-| 2 | **Art and audio direction** | style guide for the **dark fairytale** (`story.md`): warm Wardens vs cold nightmares, palette, outlines, sizes, animation counts, nightmare look and dispel effect, a darker dream-forest tileset, UI style; music mood per phase (dread building during drifts), key SFX (the dispel, nightmare whispers) | original art (longest lead time for the demo) |
+| 2 | **Art and audio direction** (**started: `art_direction.md`**, environment, Wardens, nightmares; audio and UI style still to do) | style guide for the **dark fairytale** (`story.md`): warm Wardens vs cold nightmares, palette, outlines, sizes, animation counts, nightmare look and dispel effect, a darker dream-forest tileset, UI style; music mood per phase (dread building during drifts), key SFX (the dispel, nightmare whispers) | original art (longest lead time for the demo) |
 | 3 | **Accessibility** | warm vs cold must not rely on colour alone: nightmares also need shape cues (silhouette, glowing eyes, haze); text size, reduced motion, key remapping, colour-blind check of status icons; a note on scary content for younger players | art direction (do together) |
 | 4 | **Balance framework** | target damage vs nightmare health per drift; how much of a drift should leak at "par"; spec for a simulation tool | tuning 100 drifts |
 | 5 | **Soft mechanics review** | tighten now that the theme is darker too: rest refund 100% → 75%? leaf regrowth +3 per act → none? | run rules |
