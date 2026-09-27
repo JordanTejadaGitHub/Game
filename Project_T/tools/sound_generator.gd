@@ -142,6 +142,21 @@ func _mix(dst: PackedFloat32Array, src: PackedFloat32Array, rate: int, at: float
 	for i in src.size():
 		dst[offset + i] += src[i] * gain
 
+# Sounds that were replaced draw from their own generator (`_side`) and `_burn` what the old version
+# drew, so every sound generated after them stays byte-identical (e.g. the approved Firefly Jar).
+var side_rng := RandomNumberGenerator.new()
+
+func _side(make: Callable) -> PackedFloat32Array:
+	var main := rng
+	rng = side_rng
+	var out: PackedFloat32Array = make.call()
+	rng = main
+	return out
+
+func _burn(draws: int) -> void:
+	for i in draws:
+		rng.randf()
+
 # Sum of decaying partials (music box, bell, chime). `decay` = the fundamental's time constant.
 func _bell(rate: int, freq: float, amp: float, decay: float, partials: Array, length := -1.0) -> PackedFloat32Array:
 	if length < 0.0:
@@ -274,7 +289,15 @@ func _make_sfx() -> void:
 		_mix(s, _tone(r, 0.35, glide(200.0, 100.0, 0.08), perc(0.01, 0.08, 0.35)), r, 0.12, 0.6)
 		_mix(s, _filter(_noise(r, 0.3, swell(0.05, 0.2, 0.3)), r, 600.0, 0.7), r, 0.12, 0.35)
 		_sfx("dispel_%02d" % (v + 1), s, 0.5)
-	_sfx("dispel_chime", _bell(r, hz(74), 0.8, 0.5, CHIME, 1.6))  # D5, soft mallet
+	# Release: the dream settling, a warm exhale over a low hum in D fading over ~0.5 s. No bell or chime
+	# (third listen: chimes read as coins).
+	_burn(4)  # What the old chime drew, so later sounds (the approved Firefly Jar) stay identical
+	_sfx("dispel_release", _side(func() -> PackedFloat32Array:
+		var release := _seg(0.8, r)
+		for m in [50, 57]:  # D3 + A3
+			_mix(release, _env(_choir(r, hz(m), 0.8), r, swell(0.06, 0.5, 0.8)), r, 0.0, 0.5)
+		_mix(release, _filter(_noise(r, 0.7, swell(0.05, 0.5, 0.7)), r, glide(900.0, 350.0, 0.7), 0.6, "bp"), r, 0.0, 0.5)
+		return release), 0.45)
 
 	var boss := _seg(3.0, r)
 	var roar := _tone(r, 0.8, glide(300.0, 80.0, 0.8), perc(0.04, 0.3, 0.8), "saw")
@@ -301,12 +324,13 @@ func _make_sfx() -> void:
 	_mix(leaf, _knock(r, 95.0, 0.09), r, 0.75, 1.0)
 	_sfx("leaf_lost", leaf, 0.8)
 
-	for v in 3:  # Dew landing: a tiny, low tinkle
-		var dew := _seg(0.35, r)
-		var notes: Array = [[74, 78], [76, 81], [78, 83]][v]
-		_mix(dew, _bell(r, hz(notes[0]), 0.5, 0.06, CHIME, 0.3), r, 0.0)
-		_mix(dew, _bell(r, hz(notes[1]), 0.4, 0.07, CHIME, 0.3), r, 0.04)
-		_sfx("dew_%02d" % (v + 1), dew, 0.3)
+	# A lump sum of Dew (rest bonus, Omen reward): a soft, low rustle of light. Never a tinkle or coin,
+	# and never per kill.
+	_burn(24)  # The old tinkle's draws
+	_sfx("dew", _side(func() -> PackedFloat32Array:
+		var dew := _filter(_noise(r, 1.0, swell(0.25, 0.6, 1.0)), r, glide(350.0, 800.0, 1.0), 0.5, "bp")
+		_mix(dew, _filter(_noise(r, 1.0, swell(0.3, 0.6, 1.0)), r, 250.0, 0.7), r, 0.0, 0.6)
+		return dew), 0.35)
 
 	# Building and the map.
 	var plant := _seg(0.9, r)
@@ -381,8 +405,13 @@ func _make_sfx() -> void:
 		var pulse := _knock(r, 110.0 + v * 12.0)
 		_mix(pulse, _filter(_noise(r, 0.4, swell(0.02, 0.3, 0.4)), r, 120.0, 0.6), r, 0.0, 3.0)
 		_sfx("attack_root_%02d" % (v + 1), pulse, 0.5)
-	for v in 3:
-		_sfx("attack_sprout_%02d" % (v + 1), _pluck(r, hz([67, 69, 71][v]), 0.5, 0.4, 0.8, 0.99), 0.35)
+	for v in 3:  # Sprout: a small leafy flick of air (third listen: the plucked tone sounded chiptune)
+		_burn(int(r / hz([67, 69, 71][v])))  # The old pluck's draws
+		var flick_len := 0.12 + v * 0.02
+		_sfx("attack_sprout_%02d" % (v + 1), _side(func() -> PackedFloat32Array:
+			var flick := _filter(_noise(r, flick_len, swell(0.02, 0.08, flick_len)), r, [900.0, 1100.0, 1300.0][v], 0.9, "bp")
+			_mix(flick, _filter(_noise(r, flick_len, swell(0.02, 0.08, flick_len)), r, 400.0, 0.7), r, 0.0, 0.4)
+			return _filter(_filter(flick, r, 1600.0, 0.7), r, 1600.0, 0.7)), 0.3)
 	_sfx("attack_acorn", _bell(r, hz(62), 0.4, 0.3, MUSIC_BOX, 0.9), 0.3)
 
 	# UI.
@@ -474,6 +503,8 @@ func _make_sfx() -> void:
 
 # One Warden hit. `v` shifts the pitch a little per variant.
 func _hit(family: String, v: int, dull: bool) -> PackedFloat32Array:
+	if family == "sprout":
+		return _twig(v, dull)
 	var r := SFX_RATE
 	var s := _seg(0.5, r)
 	var shift := 1.0 + (v - 1) * 0.06
@@ -484,7 +515,6 @@ func _hit(family: String, v: int, dull: bool) -> PackedFloat32Array:
 		"water": [700.0, 0.6, 110.0, 0.05, 0.9],
 		"light": [520.0, 0.4, 90.0, 0.06, 0.9],
 		"spore": [360.0, 0.5, 80.0, 0.07, 1.0],
-		"sprout": [850.0, 0.7, 150.0, 0.035, 0.7],
 	}[family]
 	var tock_hz: float = shape[0] * shift
 	var tock := _tone(r, 0.06, glide(tock_hz * 1.3, tock_hz, 0.01), perc(0.004, 0.012, 0.06), "tri")
@@ -509,9 +539,25 @@ func _hit(family: String, v: int, dull: bool) -> PackedFloat32Array:
 			_mix(s, _filter(_noise(r, 0.3, swell(0.02, 0.2, 0.3)), r, 800.0, 0.7), r, 0.0, 0.4)
 		"spore":  # A full, round puff
 			_mix(s, _filter(_noise(r, 0.3, swell(0.02, 0.22, 0.3)), r, 1100.0, 0.8), r, 0.005, 0.8)
-		"sprout":  # A light, bright tock
-			_mix(s, _pluck(r, hz(72) * shift, 0.3, 0.2, 0.8, 0.99), r, 0.0)
 	return _filter(s, r, 1200.0 if dull else 3000.0, 0.7)
+
+# The Sprout's hit (third listen, "Organic, never chiptune"): a light wooden twig tap. A short noise
+# burst rings a few woody, inharmonic resonances, over a soft low thump of filtered noise. No
+# oscillator tone, no pitch sweep; the variants differ by their resonances, not by notes.
+const TWIG_RESONANCES := [[380.0, 1070.0, 1780.0], [430.0, 1190.0, 1650.0], [350.0, 960.0, 1900.0]]
+func _twig(v: int, dull: bool) -> PackedFloat32Array:
+	var r := SFX_RATE
+	var s := _seg(0.3, r)
+	var burst := _noise(r, 0.02, perc(0.004, 0.004, 0.02))
+	burst.resize(int(0.25 * r))  # Silence after the burst, so the resonances ring on
+	var gains := [1.0, 0.6, 0.3]
+	for k in 3:
+		var ring := _filter(burst, r, TWIG_RESONANCES[v][k], 0.04, "bp")  # Narrow bands ring like wood
+		ring = _filter(_env(ring, r, perc(0.001, 0.035 / (k + 1), 0.25)), r, TWIG_RESONANCES[v][k], 0.06, "bp")
+		_mix(s, ring, r, 0.0, gains[k] * (0.5 if dull and k > 0 else 1.0))
+	var thump := _filter(_noise(r, 0.15, perc(0.004, 0.03, 0.15)), r, 160.0, 0.6)
+	_mix(s, thump, r, 0.0, 2.5 * (0.6 if dull else 1.0))
+	return _filter(_filter(s, r, 1200.0 if dull else 2200.0, 0.7), r, 1200.0 if dull else 2200.0, 0.7)
 
 # Nightmare signature sounds (played when one enters, and on their special moments).
 func _make_signatures() -> void:

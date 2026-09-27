@@ -29,6 +29,7 @@ const CHAIN_STEP_DB := -4.0  # Each jump of a chain ripples a little quieter
 const CLOUD_HIT_MS := 400  # A cloud's lingering ticks are silent; only its landing hits
 const RESISTED_DB := -3.0
 const WEAK_DB := 2.0
+const DEW_DB := -6.0  # Lump sums of Dew (rest bonus, Omen rewards): a soft, low rustle of light
 # Ambience (audio_direction.md "Ambience"): thins out with the field, swells at rests.
 const AMBIENCE_THIN_DB := -8.0  # At AMBIENCE_THIN_COUNT nightmares or more
 const AMBIENCE_THIN_COUNT := 15
@@ -85,12 +86,16 @@ func _ready() -> void:
 	map_generator.path_changed.connect(_on_path_changed)
 
 	run_state.dew_short.connect(func(_cost: int) -> void: sound.ui(&"invalid"))
-	run_state.dew_earned.connect(func(_amount: int, where: Vector2) -> void: sound.play(&"dew", where, -8.0))
+	# No Dew sound per kill (third listen: kills sounded like coins); only lump sums make one.
 	run_state.run_ended.connect(_on_run_ended)
 
 	drift_director.drift_started.connect(func(_number: int) -> void: sound.play(&"drift_start", null, -4.0, 1.0, 0.0))
-	drift_director.rest_started.connect(func(_block: int, _boss: bool, _bonus: int, _perfect: bool) -> void:
-		sound.play(&"rest", null, -2.0, 1.0, 0.0))
+	drift_director.rest_started.connect(func(_block: int, _boss: bool, bonus: int, _perfect: bool) -> void:
+		sound.play(&"rest", null, -2.0, 1.0, 0.0)
+		if bonus > 0:
+			sound.play(&"dew", null, DEW_DB, 1.0, 0.0))
+	omen_director.omen_rewarded.connect(func(_omen: OmenData, _summary: String) -> void:
+		sound.play(&"dew", null, DEW_DB, 1.0, 0.0))
 	drift_director.act_started.connect(func(_act: int, _regrown: int) -> void: sound.play(&"act_swell", null, 0.0, 1.0, 0.0))
 	drift_director.family_pick_requested.connect(func(_reason: StringName) -> void:
 		sound.play(&"family_bell", null, 0.0, 1.0, 0.0, &"UI"))

@@ -3,7 +3,7 @@ extends SceneTree
 # SoundHooks asks for exists (a missing file would just be silent in game, so check here).
 # Run: Godot --headless --path . --script res://tests/test_sound.gd
 
-const HOOK_IDS := [&"dispel", &"dispel_chime", &"dispel_boss", &"split", &"leaf_lost", &"dew",
+const HOOK_IDS := [&"dispel", &"dispel_release", &"dispel_boss", &"split", &"leaf_lost", &"dew",
 	&"plant", &"evolve", &"sell", &"invalid", &"tend", &"move", &"path_shimmer", &"trample",
 	&"attack_spore", &"attack_stone", &"attack_water", &"attack_light", &"attack_root",
 	&"attack_sprout", &"attack_acorn", &"ui_click", &"dream_open", &"dream_take_0", &"dream_take_1",
@@ -79,6 +79,11 @@ func _initialize() -> void:
 		sound._process(0.02)
 	_check(absf(sound._phase_db - Sound.DRIFT_MUSIC_DB) < 0.1, "music is lower during drifts")
 	sound.set_drifting(false)
+	# Dispels close together get quieter (a softer swell), never higher: no chime combo, no coin.
+	_check(not sound.has_sound(&"dispel_chime") and not sound._streams.has(&"dew_01"), "no dispel chime or Dew tinkle")
+	sound.play_dispel(Vector2.ZERO)
+	sound.play_dispel(Vector2.ZERO)
+	_check(sound._dispel_cluster == 1, "a second dispel joins the cluster")
 	_check(HeartwoodMemory.defaults().settings.music_volume == 0.55, "music defaults to 55%")
 
 	print("test_sound: %s" % ("PASS" if failures == 0 else "%d FAILED" % failures))

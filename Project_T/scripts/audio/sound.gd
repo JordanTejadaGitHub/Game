@@ -32,9 +32,11 @@ const DUCK_RELEASE := 16.0
 const SOFTEN_SHELF_HZ := 6000.0
 const SOFTEN_SHELF_DB := -6.0
 const SOFTEN_CEILING_DB := -1.5
-# The dispel chime climbs this scale (D minor pentatonic, semitones) when dispels land close together.
-const COMBO_STEPS := [0, 3, 5, 7, 10, 12, 15, 17]
-const COMBO_WINDOW_MS := 700
+# Dispels landing this close together blend into one softer swell (third listen: no climbing combo,
+# a dispel is a nightmare ending, never a reward sound). Each one in a cluster is this much quieter.
+const DISPEL_CLUSTER_MS := 700
+const DISPEL_CLUSTER_DB := -1.5
+const DISPEL_CLUSTER_MAX_DB := -6.0
 
 var _streams := {}  # id -> Array[AudioStream]
 var _voices := {}  # id -> Array[Node] (players still playing)
@@ -54,8 +56,8 @@ var _duck_depth := 0.0
 var _duck_until := 0
 var _muffle: AudioEffectLowPassFilter
 var _muffled := false
-var _combo := 0
-var _combo_time := -100000
+var _dispel_cluster := 0  # Dispels in the current cluster before this one
+var _dispel_time := -100000
 var _scene: Node
 # Headless (tests, CI) uses the dummy audio driver, which never mixes, so playbacks it starts are
 # never released and show up as leaks at exit. Everything runs the same, it just doesn't start.
@@ -155,7 +157,8 @@ func ui(id: StringName, volume_db := 0.0) -> void:
 func has_sound(id: StringName) -> bool:
 	return _streams.has(id)
 
-# The dispel: shriek and crack, then the warm chime. Chimes landing close together climb the scale.
+# The dispel: sigh and dissolve, then the release (a warm exhale / low hum in D). Several close
+# together blend into one softer swell: each is a little quieter, never higher.
 func play_dispel(at: Vector2, boss := false) -> void:
 	if boss:
 		duck(8.0, 1.0)
@@ -163,12 +166,11 @@ func play_dispel(at: Vector2, boss := false) -> void:
 		return
 	duck(4.0, 0.5)
 	var now := Time.get_ticks_msec()
-	_combo = _combo + 1 if now - _combo_time < COMBO_WINDOW_MS else 0
-	_combo_time = now
-	play(&"dispel", at, -3.0)
-	var step: int = COMBO_STEPS[mini(_combo, COMBO_STEPS.size() - 1)]
-	# The chime has its own throttle, so a dozen at once still reads as one rising run.
-	play(&"dispel_chime", at, -6.0, pow(2.0, step / 12.0), 0.0)
+	_dispel_cluster = _dispel_cluster + 1 if now - _dispel_time < DISPEL_CLUSTER_MS else 0
+	_dispel_time = now
+	var cluster_db := maxf(DISPEL_CLUSTER_DB * _dispel_cluster, DISPEL_CLUSTER_MAX_DB)
+	play(&"dispel", at, -3.0 + cluster_db)
+	play(&"dispel_release", at, -6.0 + cluster_db, 1.0, 0.03)
 
 
 # --- Music and ambience ---------------------------------------------------------------------------
