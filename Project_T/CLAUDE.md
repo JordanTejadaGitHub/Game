@@ -142,6 +142,11 @@ branches, final forms; localization; audio; replacing the Foozle placeholder art
   (drift/act label, status line, Start / call-early button, Auto-drift toggle, speed buttons).
   `Seasons` (CanvasModulate) swaps the environment to each act's sheets (`MapGenerator.set_act`)
   and can tint the world per act (neutral for now). `tests/test_run.gd`.
+  It also owns selection (`selection`, `selected` = first; `selection_changed`): click, drag box
+  (after 8 px; Thornwalls only if alone), double-click = same kind on screen (Ctrl: whole map), Shift
+  adds/removes, Esc/RMB/empty ground clears. A left press on an obstacle is left to ObstacleClearer.
+  Group ops: `get_selection_groups`, `count_affordable`, `grow_group` (nearest the Heartwood first,
+  staggered bloom), `sell_selection`; the Warden panel shows them for 2+ selected.
 
 ## Run end, saving, onboarding
 - Scene flow: `scenes/title.tscn` (main scene; Continue / New run / Settings / Credits / Quit) →
