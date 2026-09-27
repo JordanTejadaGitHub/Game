@@ -46,6 +46,51 @@ func _run() -> void:
 	_check(thornwall.tower_data.display_name == "Thornwall" and thornwall.get_child_count() == 1,
 		"Thornwall never fires (only its sprite as a child)")
 
+	# --- Attack animations ---
+	for data in placer.towers:
+		if data.can_attack:
+			_check(data.attack_texture != null
+				and data.attack_texture.get_width() / data.attack_frame_count == 64,
+				"%s has a 64x64 attack sheet" % data.display_name)
+	for tower in tower_container.get_children():
+		tower.set_process(false)
+		tower._cooldown = 0.0
+	var spawner = main.get_node("%EnemyContainer")
+	var leaf_bug: EnemyData = load("res://resource/enemy/leaf_bug.tres")
+	# Clear creatures spawned before the spawner was stopped, so only the test's own are targets.
+	for child in spawner.get_children():
+		child.queue_free()
+	await process_frame
+
+	# Projectile: winds up on the attack sheet, fires on the release frame, then idles again.
+	var sprout: Tower = tower_container.get_child(0)
+	var target = _spawn_still(spawner, leaf_bug, sprout.global_position)
+	sprout.set_process(true)
+	await process_frame
+	await process_frame
+	_check(sprout.sprite.texture == sprout.tower_data.attack_texture, "Sprout plays its attack animation")
+	_check(target.health == target.max_health, "Sprout doesn't hit before its release frame")
+	await _wait(0.8)
+	_check(target.health < target.max_health, "Sprout's shot lands after the release frame")
+	sprout.set_process(false)
+	sprout._attack_time = -1.0
+	sprout._show_idle()
+	_check(sprout.sprite.texture == sprout.tower_data.texture, "Sprout returns to its idle loop")
+	target.queue_free()
+
+	# Pulse: soothes every creature in range at once, no projectile.
+	var rootling: Tower = tower_container.get_child(6)
+	var near_a = _spawn_still(spawner, leaf_bug, rootling.global_position + Vector2(40, 0))
+	var near_b = _spawn_still(spawner, leaf_bug, rootling.global_position + Vector2(0, -40))
+	var far = _spawn_still(spawner, leaf_bug, rootling.global_position + Vector2(1000, 0))
+	await process_frame
+	rootling._release()
+	var damage := rootling.tower_data.damage
+	_check(near_a.health == near_a.max_health - damage and near_b.health == near_b.max_health - damage,
+		"Rootling's pulse soothes every creature in range")
+	_check(far.health == far.max_health, "Rootling's pulse doesn't reach creatures out of range")
+	_check(rootling.get_child_count() == 1, "a pulse fires no projectile")
+
 	print("towers test: %s" % ("PASS" if failures == 0 else "%d FAILED" % failures))
 	quit(failures)
 
@@ -56,6 +101,14 @@ func _check(condition: bool, label: String) -> void:
 
 func _wait(seconds: float) -> void:
 	await create_timer(seconds, true, true).timeout
+
+# A creature standing still at `position` (still targetable, remaining distance from spawn).
+func _spawn_still(spawner, data: EnemyData, position: Vector2) -> Node2D:
+	spawner.spawn_enemy(data)
+	var enemy = spawner.get_child(spawner.get_child_count() - 1)
+	enemy.set_process(false)
+	enemy.global_position = position
+	return enemy
 
 # A buildable cell beside the path that keeps the path open.
 func _cell_next_to_path(map_generator, path: PackedVector2Array) -> Vector2:

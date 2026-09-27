@@ -1,7 +1,8 @@
-[gd_resource type="Resource" script_class="TowerData" load_steps=3 format=3]
+[gd_resource type="Resource" script_class="TowerData" load_steps=4 format=3]
 
 [ext_resource type="Script" path="res://resource/tower/script/tower_data.gd" id="1_tdata"]
 [ext_resource type="Texture2D" path="res://assets/towers/acorn.png" id="2_tex"]
+[ext_resource type="Texture2D" path="res://assets/towers/acorn_attack.png" id="4_atk"]
 
 [resource]
 script = ExtResource("1_tdata")
@@ -12,5 +13,8 @@ frame_count = 8
 attack_range = 2
 damage = 8
 attacks_per_second = 1
-projectile_speed = 380
-projectile_color = Color(0.8, 0.6, 0.3, 1)
+attack_kind = 1
+attack_texture = ExtResource("4_atk")
+attack_frame_count = 6
+attack_release_frame = 2
+attack_origin = Vector2(-1, 14)

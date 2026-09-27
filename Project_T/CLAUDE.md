@@ -56,7 +56,10 @@ Next up: rest of build-order step 2 (leaves, lose condition), then drifts (drift
   Towers can't go on border/trees/towers/start/end, on a cell an enemy occupies, or anywhere that
   would leave the start or any live enemy without a path to the end.
 - `scripts/tower/tower.gd` also handles attacking (stats in `TowerData`: range in cells, damage,
-  attacks/sec); `projectile.gd` (`Projectile`, script-only node; animates and rotates
+  attacks/sec). Each attack plays `attack_texture` (`<warden>_attack.png`, 6 frames) and fires on
+  `attack_release_frame`: PROJECTILE kinds spawn at `attack_origin` (px from centre, from
+  `assets/towers/attacks.json`); PULSE kinds (Rootling, Acorn) soothe everything in range.
+  `projectile.gd` (`Projectile`, script-only node; animates and rotates
   `TowerData.projectile_texture`, 16x16 frames drawn pointing right, else a coloured puff). Enemies in the `"enemies"` group
   are targetable; cleansing removes them from it and from `EnemyContainer.get_enemies()`.
 - `shaders/blight.gdshader` — grey "blighted" look; `blight` uniform 1 → 0 on cleanse.
