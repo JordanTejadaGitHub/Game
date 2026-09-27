@@ -8,7 +8,8 @@
 - Procedurally generated map each run (grass, stone border, trees/details from noise).
 - Waves of enemies; after each wave the player picks 1 of 3 random upgrades (roguelite).
 - Persistent meta-progression between runs via an autoload singleton (planned).
-- Art: 64x64 pixel art (Foozle "Spire" tileset + enemy pack in `assets/`).
+- Art: 64x64 pixel art. Environment: original sheets in `assets/environment/<act>/`
+  (`documentation/environment_assets.md`); creatures/Wardens from the generators in `tools/`.
 
 Original design docs are in `documentation/*.docx` (structure, 15-card dev plan).
 
@@ -127,7 +128,8 @@ branches, final forms; localization; audio; replacing the Foozle placeholder art
   while paused; the camera divides delta by time_scale so panning stays real-time.
 - HUD: `%LeavesLabel`, `%PathLabel` (path length), `%ToastLabel` (`show_toast`), `DriftPanel`
   (drift/act label, status line, Start / call-early button, Auto-drift toggle, speed buttons).
-  `Seasons` (CanvasModulate) tints the world per act. `tests/test_run.gd`.
+  `Seasons` (CanvasModulate) swaps the environment to each act's sheets (`MapGenerator.set_act`)
+  and can tint the world per act (neutral for now). `tests/test_run.gd`.
 
 ## Run end, saving, onboarding
 - Scene flow: `scenes/title.tscn` (main scene; Continue / New run / Settings / Credits / Quit) →
@@ -163,7 +165,13 @@ branches, final forms; localization; audio; replacing the Foozle placeholder art
   `clear_obstacle`, `obstacle_cleared` signal. `map_seed` export: 0 = random map, else reproducible.
   Generation guarantees a route (`_carve_route_if_blocked` clears the fewest obstacles, avoiding ridges).
   `obstacle_clearer.gd` (`ObstacleClearer`) is the hover/click tool; input action `clear_obstacle` (LMB).
-  Obstacle types are `resource/obstacle/*.tres` (`ObstacleData`: name, verb, cost, tile atlas coords).
+  Obstacle types are `resource/obstacle/*.tres` (`ObstacleData`: name, verb, cost, `source_id` +
+  `tiles`, and the `cleared_source_id` mark left when the player clears one: tended stump, moved hollow).
+  Tiles: `environment_tiles.gd` (`EnvironmentTiles`) builds one TileSet from `assets/environment/<act>/`
+  (one atlas source per sheet, fixed source ids) shared by all three layers; the path picks
+  `path.png` column = neighbour mask. Border = drystone wall, healthy trees ring the outside, mist on
+  the start, `Heartwood` (`heartwood.gd`, Sprite2D) on the end shows leaves lost. `tests/test_environment.gd`
+  (`-- --preview=<file.png>` saves a flat render of the map).
 - `scripts/enemy/` — `enemy.gd` (walks cell to cell along a grid path; `set_path` re-routes it),
   `enemy_spawner.gd` (on `path_changed`, re-routes every enemy from its `get_target_cell()`).
 - `scripts/tower/` — `tower.gd` (`Tower`, plays the idle loop from `TowerData.texture` — a row of
@@ -189,7 +197,7 @@ branches, final forms; localization; audio; replacing the Foozle placeholder art
 - Input actions: `toggle_build_mode` (B), `place_tower` (LMB), `cancel_build` (RMB / Esc),
   `sell_tower` (RMB / Delete), `start_drift` (Enter), `pause_game` (Space), `cycle_speed` (Tab).
 - `resource/` — data resources + their scripts: `map_grid.tres` (`Grid`: 45x36 cells, 64px),
-  `tile_map_location_data.tres` (atlas coords of every tile), `enemy/*.tres` (`EnemyData`),
+  `obstacle/*.tres` (`ObstacleData`), `enemy/*.tres` (`EnemyData`),
   `tower/*.tres` (`TowerData`).
 - `animation/` — SpriteFrames (`walk_side`, `walk_up`, `walk_down`).
 

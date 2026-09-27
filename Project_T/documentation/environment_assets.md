@@ -5,7 +5,11 @@ original"). Style: **Waystone pixel** (`art_style_options.md`). Direction: `art_
 (warm centre, cold edge; ground < obstacles < path in value). Created 2026-09-27 from the concept
 page (https://claude.ai/artifact/DhTsE8rJXJwU3UgYEL73ym), seed 1207.
 
-**Art only.** These PNGs aren't wired into the game yet. The map still draws with the Foozle tiles.
+**In the game** (2026-09-27): `scripts/map/environment_tiles.gd` (`EnvironmentTiles`) builds one
+TileSet from these sheets (one atlas source per file) that the ground, path and object layers share,
+and swaps every sheet to the next act's folder at act breaks (`Seasons` → `MapGenerator.set_act`).
+The Heartwood is `scripts/map/heartwood.gd`. Waystone, Dew Pool and Blight Patch have tiles in the
+TileSet but aren't placed on maps (their rules are still proposals). The lighting pass isn't in yet.
 
 ## Folders
 

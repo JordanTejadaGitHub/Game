@@ -22,6 +22,8 @@ const CARVE_RIDGE_WEIGHT := 1000.0
 var unwalkable_cells: PackedVector2Array
 # Clearable trees/rocks still on the map: {cell (Vector2): ObstacleData}.
 var obstacles: Dictionary = {}
+var tile_set: TileSet  # Shared by the ground, path and object layers (EnvironmentTiles)
+var heartwood: Heartwood  # The goal tree on the end cell
 
 
 # Called when the node enters the scene tree for the first time.
@@ -32,6 +34,9 @@ func _ready() -> void:
 	var rng := RandomNumberGenerator.new()
 	rng.seed = map_seed
 
+	tile_set = EnvironmentTiles.create_tile_set()
+	for layer: TileMapLayer in [ground_layer, path_layer, environment_object_layer]:
+		layer.tile_set = tile_set
 	ground_layer.initialize()
 	unwalkable_cells = environment_object_layer.initialize(startPath, endPath)
 	path_layer.initialize(get_array_board(), startPath, endPath)
@@ -49,6 +54,16 @@ func _ready() -> void:
 	var no_details := unwalkable_cells + path_layer.current_path + PackedVector2Array(obstacles.keys())
 	environment_object_layer.generate_details(rng, no_details)
 
+	heartwood = Heartwood.new()
+	heartwood.position = MAP_GRID.calculate_map_position(endPath)
+	heartwood.run_state = get_node_or_null("%RunState")
+	add_child(heartwood)
+
+# Swaps the environment art to act `act`'s season (every sheet, and the Heartwood's).
+func set_act(act: int) -> void:
+	EnvironmentTiles.set_act(tile_set, act)
+	heartwood.set_act(act)
+
 # If obstacles cut the start off from the end, clears the fewest-obstacle route between them.
 # Ridges are left intact (they create the zig-zag) unless there's no other way through.
 func _carve_route_if_blocked() -> void:
@@ -59,7 +74,7 @@ func _carve_route_if_blocked() -> void:
 		route = _find_carve_route(true)
 	for cell in route:
 		if obstacles.has(cell):
-			_remove_obstacle(cell)
+			_remove_obstacle(cell, false)  # Generation: no clearing mark
 
 # Cheapest start-to-end route where obstacles are passable but costly. Ridge cells are solid unless
 # `break_ridges`.
@@ -83,9 +98,14 @@ func _find_carve_route(break_ridges: bool) -> PackedVector2Array:
 			astar.set_point_weight_scale(Vector2i(cell), CARVE_OBSTACLE_WEIGHT)
 	return astar.get_point_path(Vector2i(startPath), Vector2i(endPath))
 
-func _remove_obstacle(cell: Vector2) -> void:
+# Removes the obstacle on `cell`; `mark` leaves its clearing mark (tended stump, moved hollow).
+func _remove_obstacle(cell: Vector2, mark: bool = true) -> void:
+	var data: ObstacleData = obstacles.get(cell)
 	obstacles.erase(cell)
-	environment_object_layer.erase_cell(Vector2i(cell))
+	if mark and data != null:
+		environment_object_layer.mark_cleared(cell, data)
+	else:
+		environment_object_layer.erase_cell(Vector2i(cell))
 	path_layer.set_cell_blocked(cell, false)
 
 func get_array_board() -> PackedVector2Array:

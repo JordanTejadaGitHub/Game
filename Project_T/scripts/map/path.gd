@@ -4,7 +4,6 @@ extends TileMapLayer
 
 @onready var board = %MapGenerator
 @onready var tileMap: TileMapLayer = %PathTileMapLayer
-@onready var tile_map_location: TileMapLocation = preload("res://resource/map/tile_map_location_data.tres")
 
 const grid = preload("res://resource/map/map_grid.tres")
 
@@ -46,28 +45,26 @@ func draw():
 	current_path = _pathGenerator.calculate_point_path(cell_start_path, cell_end_path)
 	# Later re-routes (towers, cleared obstacles, enemies mid-walk) stick to this route when they can.
 	_pathGenerator.set_preferred_cells(current_path)
-	# And we draw a tile for every cell in the path.
-		
+	# And we draw a tile for every cell in the path: the sheet has one per neighbour mask, and the
+	# start and end run off the map's edge.
 	for cell in current_path:
-		var tile_score:int = _get_tile_score(cell)
-		var tile: Vector2i = tile_map_location.tile_straight_side
-		if tile_score == 2 or tile_score == 8 or tile_score == 10:
-			pass
-		elif tile_score == 1 or tile_score == 4 or tile_score == 5:
-			tile = tile_map_location.tile_straight_up
-		elif tile_score == 9:
-			tile = tile_map_location.tile_corner_left_up
-		elif tile_score == 12:
-			tile = tile_map_location.tile_corner_left_down
-		elif tile_score == 6:
-			tile = tile_map_location.tile_corner_right_down
-		elif tile_score == 3:
-			tile = tile_map_location.tile_corner_right_up
-		set_cell(cell, 1, tile)
+		var mask := _get_tile_score(cell)
+		if cell == cell_start_path or cell == cell_end_path:
+			mask |= _edge_mask(cell)
+		set_cell(cell, EnvironmentTiles.PATH, EnvironmentTiles.path_tile(mask))
 		current_path_curve.add_point(grid.calculate_map_position(cell))
-	
-	# The function below updates the auto-tiling. Without it, you wouldn't get the nice path with curves
-	# and the arrows on either end.
+
+# The neighbour bit pointing off the map from an edge cell (N=1, E=2, S=4, W=8), else 0.
+func _edge_mask(cell: Vector2) -> int:
+	if cell.y <= 0:
+		return 1
+	if cell.x >= grid.size.x - 1:
+		return 2
+	if cell.y >= grid.size.y - 1:
+		return 4
+	if cell.x <= 0:
+		return 8
+	return 0
 
 func draw_unit_path(node: Node2D) -> bool:
 	temp_current_path = _pathGenerator.calculate_point_path(cell_start_path, cell_end_path)

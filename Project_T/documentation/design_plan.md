@@ -50,7 +50,7 @@ The Long Walk Out is worth building. (Memory 5's tone is settled by the darker t
 | Nightmare sprites (movement ×3 directions + dispel; dark, translucent, glowing eyes) | ~25 + 4 bosses | 9 + 2 bosses |
 | Warden sprites (idle + attack) | ~33 (6 families × 5, Sprout, Thornwall, Bramble) | ~16 |
 | Projectiles, status icons, dispel and hit effects | ~20 | most |
-| Tilesets (ground, path, border, obstacles) + the Heartwood | 3 biomes | 1 (**forest drawn: 4 act palettes in `assets/environment/`, not wired in yet**) |
+| Tilesets (ground, path, border, obstacles) + the Heartwood | 3 biomes | 1 (**forest drawn: 4 act palettes in `assets/environment/`, in the game; lighting pass still to do**) |
 | UI art (frames, buttons, cards, icons) | full set | full set |
 | Grove garden + 10 Memory illustrations | full set | Grove teaser only |
 | Music | ~6–8 tracks (build, drift, boss per act, Grove, title) | ~3 |

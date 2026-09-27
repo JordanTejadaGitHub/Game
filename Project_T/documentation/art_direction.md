@@ -23,7 +23,7 @@ Concept reference: the Environment Assets session's artifact page
 (https://claude.ai/artifact/DhTsE8rJXJwU3UgYEL73ym). **Sheets now exist** (Waystone pixel, one
 folder per act, 16 sheets each): `assets/environment/<act>/`, with layouts in
 **`environment_assets.md`** (e.g. `path.png` columns = neighbour mask, `heartwood.png` rows = leaves
-lost 0–20). They're not wired into the map yet; the Foozle tiles are still in use.
+lost 0–20). They're wired into the map (`EnvironmentTiles`); the lighting pass below is still to do.
 
 - **Warm centre, cold edge.** Darker, cooler night palettes on the tiles, then a lighting pass: a
   cold multiply toward the map edges, warm light on the Heartwood, a small warm light on each Warden.
