@@ -22,7 +22,7 @@ func _run() -> void:
 func _test_demo_data() -> void:
 	var drifts := DriftDirector.load_demo_drifts()
 	_check(drifts.size() == 50, "the demo has 50 drifts (%d)" % drifts.size())
-	_check(drifts[0].get_creature_count() == 8, "drift 1 is 8 Leaf Bugs")
+	_check(drifts[0].get_creature_count() == 6, "drift 1 is 6 Shades")
 	var boss_25: Array = drifts[24].get_schedule().map(func(a: Array) -> String: return _kind(a[1]))
 	_check(boss_25.count("old_stag") == 1 and boss_25.find("old_stag") == 12, "drift 25: 12 Leaf Bugs, then the boss")
 	var boss_50: Array = drifts[49].get_schedule().map(func(a: Array) -> String: return _kind(a[1]))
@@ -58,7 +58,7 @@ func _test_blocks_and_rests() -> void:
 	var map_generator = main.get_node("%MapGenerator")
 
 	_check(director.is_resting() and director.drifts_started == 0, "the run starts resting")
-	_check(run_state.leaves == 15 and run_state.max_leaves == 15 and run_state.dew == 45, "15 leaves, 45 Dew (difficulty pass v1)")
+	_check(run_state.leaves == 15 and run_state.max_leaves == 15 and run_state.dew == 60, "15 leaves, 60 Dew")
 	_check(spawner.get_enemies().is_empty(), "no creatures before Start")
 	_check(director.get_extra_nightmares(9) == 1.0 and director.get_extra_nightmares(10) == 1.25, "extra nightmares from drift 10")
 	var stag: EnemyData = load("res://resource/enemy/old_stag.tres")
@@ -71,7 +71,7 @@ func _test_blocks_and_rests() -> void:
 	_check(placer._try_build(cell), "built a Sprout")
 	var refund := seller.get_refund(seller.get_tower_at(cell))
 	_check(absf(refund - sprout.cost * seller.build_phase_refund) <= 1.0, "the rest refund is build_phase_refund (%d)" % refund)
-	_check(seller.sell(cell) and run_state.dew == 45 - sprout.cost + refund, "the refund is paid while resting")
+	_check(seller.sell(cell) and run_state.dew == 60 - sprout.cost + refund, "the refund is paid while resting")
 
 	# Drift 1 → the family pick (no rest bonus, no Dream)
 	var rests := []

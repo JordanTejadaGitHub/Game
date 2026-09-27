@@ -14,7 +14,7 @@ signal free_clears_changed(free_clears: int)
 # Emitted once, when the run is won (last drift cleansed) or lost (no leaves left).
 signal run_ended(won: bool)
 
-@export var starting_dew: int = 45  # Difficulty pass v1 (run_design.md): was 60
+@export var starting_dew: int = 60  # run_design.md "Opening rule": enough Sprouts for drift 1
 @export var starting_leaves: int = 15  # Difficulty pass v1: was 20
 @export var max_leaves: int = 15
 

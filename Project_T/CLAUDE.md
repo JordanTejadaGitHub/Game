@@ -30,7 +30,7 @@ Design, build order and story: `documentation/game_design.md` (overview), `tower
 (Wardens, statuses, synergies), `enemy_design.md` (creature roster), `documentation/story.md` (cozy tone;
 enemies are "blighted creatures", towers are "Wardens", gold is "Dew", lives are "leaves").
 **Dew economy**: `RunState` (`%RunState`, `scripts/run/run_state.gd`) holds Dew; `starting_dew`
-export (45). Earned when a creature is cleansed (`EnemyData.dew_reward`, "+N Dew" `DewPopup`),
+export (60). Earned when a creature is cleansed (`EnemyData.dew_reward`, "+N Dew" `DewPopup`),
 spent on Wardens (`TowerData.cost`) and obstacle clears (`ObstacleData.clear_cost`). Always go
 through `run_state.spend_dew(cost)` (returns false + emits `dew_short` when short) — never subtract
 directly. HUD shows the Dew counter (`%DewLabel`), dims unaffordable Warden buttons.
@@ -113,7 +113,7 @@ controller / Steam Deck, accessibility, Steam achievements (milestones map to th
   drift 50 (× ~70% family odds ≈ the 33% target), thanks to Entwined Conductive Soil.
 
 ## Run flow
-- Difficulty pass v1 (run_design.md), all exports: `RunState.starting_dew` 45, `starting_leaves` /
+- Difficulty pass v1 (run_design.md), all exports: `RunState.starting_dew` 60 (opening rule, `tests/test_opening.gd`), `starting_leaves` /
   `max_leaves` 15; `DriftDirector.health_growth_per_drift` 1.045, `boss_health_multiplier` 1.5,
   `extra_nightmares` 1.25 from `extra_nightmares_from` 10 (rounded up per entry of 3+, never elites
   or bosses: `DriftEntry.get_count` `extra`), `act_break_leaves` 1 (Blight 6: 0);
