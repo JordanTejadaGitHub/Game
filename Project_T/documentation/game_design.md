@@ -16,6 +16,7 @@ placeholders).
 | `dream_design.md` | in-run upgrade pool, offer rules, status numbers |
 | `meta_design.md` | Seeds, Memory Grove, milestones, Blight Levels, Memories, true ending |
 | `art_direction.md` | warm vs cold, environment, Warden and nightmare look (audio to do) |
+| `art_style_options.md` | six candidate rendering styles compared; leaning Waystone pixel |
 | `onboarding.md` | teaching across the first runs |
 | `screens_ui.md` | screen flow, HUD layout, panels, choice screens, settings, controls |
 | `demo_scope.md` | what's in the demo, timeline, success measures |

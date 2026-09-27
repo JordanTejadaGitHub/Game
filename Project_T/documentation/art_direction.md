@@ -10,6 +10,13 @@ moss green, amber); nightmares and the forest's edges are cold dark (blue-black,
 Every screen should show that contrast, even in a thumbnail. Unsettling, never gory: no blood,
 bodies or skulls-and-gore horror.
 
+## Rendering style
+
+Six candidate styles are compared in **`art_style_options.md`** (Waystone pixel, Storybook chunky,
+Papercut, Woodcut ink, Lantern 16, Stained glass), each switchable on the concept page. **Leaning
+pick: Waystone pixel**, the current 64×64 pixel look, so the existing Warden and nightmare art
+stays as it is. Not final yet; everything below assumes it.
+
 ## Environment
 
 Concept reference: the Environment Assets session's artifact page
