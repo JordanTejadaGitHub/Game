@@ -1,0 +1,32 @@
+[gd_resource type="Resource" script_class="DriftData" format=3]
+
+[ext_resource type="Script" path="res://resource/drift/script/drift_group.gd" id="1_snifn"]
+[ext_resource type="Script" path="res://resource/drift/script/drift_entry.gd" id="2_bdj24"]
+[ext_resource type="Resource" path="res://resource/enemy/puffcap.tres" id="3_xkth1"]
+[ext_resource type="Resource" path="res://resource/enemy/leaf_bug.tres" id="4_nj3fl"]
+[ext_resource type="Script" path="res://resource/drift/script/drift_data.gd" id="5_8o2wo"]
+
+[sub_resource type="Resource" id="Resource_cemfd"]
+script = ExtResource("2_bdj24")
+enemy = ExtResource("3_xkth1")
+count = 3
+
+[sub_resource type="Resource" id="Resource_ou03c"]
+script = ExtResource("1_snifn")
+entries = Array[ExtResource("2_bdj24")]([SubResource("Resource_cemfd")])
+spacing = 3.0
+
+[sub_resource type="Resource" id="Resource_1xan3"]
+script = ExtResource("2_bdj24")
+enemy = ExtResource("4_nj3fl")
+count = 10
+
+[sub_resource type="Resource" id="Resource_yxnyv"]
+script = ExtResource("1_snifn")
+entries = Array[ExtResource("2_bdj24")]([SubResource("Resource_1xan3")])
+spacing = 3.0
+delay = 3.0
+
+[resource]
+script = ExtResource("5_8o2wo")
+groups = Array[ExtResource("1_snifn")]([SubResource("Resource_ou03c"), SubResource("Resource_yxnyv")])

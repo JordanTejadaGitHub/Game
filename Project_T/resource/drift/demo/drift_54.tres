@@ -1,0 +1,32 @@
+[gd_resource type="Resource" script_class="DriftData" format=3]
+
+[ext_resource type="Script" path="res://resource/drift/script/drift_group.gd" id="1_cqc8h"]
+[ext_resource type="Script" path="res://resource/drift/script/drift_entry.gd" id="2_uaw2i"]
+[ext_resource type="Resource" path="res://resource/enemy/dandelion_seed.tres" id="3_qep0c"]
+[ext_resource type="Resource" path="res://resource/enemy/dusk_moth.tres" id="4_mywdl"]
+[ext_resource type="Script" path="res://resource/drift/script/drift_data.gd" id="5_k4qyo"]
+
+[sub_resource type="Resource" id="Resource_phdx2"]
+script = ExtResource("2_uaw2i")
+enemy = ExtResource("3_qep0c")
+count = 3
+
+[sub_resource type="Resource" id="Resource_tvnlr"]
+script = ExtResource("1_cqc8h")
+entries = Array[ExtResource("2_uaw2i")]([SubResource("Resource_phdx2")])
+spacing = 2.0
+
+[sub_resource type="Resource" id="Resource_kgl5k"]
+script = ExtResource("2_uaw2i")
+enemy = ExtResource("4_mywdl")
+count = 8
+
+[sub_resource type="Resource" id="Resource_ktslx"]
+script = ExtResource("1_cqc8h")
+entries = Array[ExtResource("2_uaw2i")]([SubResource("Resource_kgl5k")])
+spacing = 3.75
+delay = 3.0
+
+[resource]
+script = ExtResource("5_k4qyo")
+groups = Array[ExtResource("1_cqc8h")]([SubResource("Resource_tvnlr"), SubResource("Resource_ktslx")])

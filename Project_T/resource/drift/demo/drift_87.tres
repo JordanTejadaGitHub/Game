@@ -1,0 +1,37 @@
+[gd_resource type="Resource" script_class="DriftData" format=3]
+
+[ext_resource type="Script" path="res://resource/drift/script/drift_group.gd" id="1_cmfk3"]
+[ext_resource type="Script" path="res://resource/drift/script/drift_entry.gd" id="2_662f1"]
+[ext_resource type="Resource" path="res://resource/enemy/leaf_bug.tres" id="3_0lj6k"]
+[ext_resource type="Resource" path="res://resource/enemy/puffcap.tres" id="4_7hy0l"]
+[ext_resource type="Resource" path="res://resource/enemy/bark_beetle.tres" id="5_o2r1x"]
+[ext_resource type="Script" path="res://resource/drift/script/drift_data.gd" id="6_ffcbd"]
+
+[sub_resource type="Resource" id="Resource_bvnea"]
+script = ExtResource("2_662f1")
+enemy = ExtResource("3_0lj6k")
+count = 40
+
+[sub_resource type="Resource" id="Resource_8cgje"]
+script = ExtResource("2_662f1")
+enemy = ExtResource("4_7hy0l")
+count = 4
+
+[sub_resource type="Resource" id="Resource_hheh2"]
+script = ExtResource("2_662f1")
+enemy = ExtResource("5_o2r1x")
+count = 12
+
+[sub_resource type="Resource" id="Resource_4flut"]
+script = ExtResource("2_662f1")
+enemy = ExtResource("5_o2r1x")
+count = 6
+
+[sub_resource type="Resource" id="Resource_l7m14"]
+script = ExtResource("1_cmfk3")
+entries = Array[ExtResource("2_662f1")]([SubResource("Resource_bvnea"), SubResource("Resource_8cgje"), SubResource("Resource_hheh2"), SubResource("Resource_4flut")])
+spacing = 0.4838709677419355
+
+[resource]
+script = ExtResource("6_ffcbd")
+groups = Array[ExtResource("1_cmfk3")]([SubResource("Resource_l7m14")])

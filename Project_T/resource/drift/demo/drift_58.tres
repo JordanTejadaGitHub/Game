@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="DriftData" format=3]
+
+[ext_resource type="Script" path="res://resource/drift/script/drift_group.gd" id="1_w72wu"]
+[ext_resource type="Script" path="res://resource/drift/script/drift_entry.gd" id="2_ivmua"]
+[ext_resource type="Resource" path="res://resource/enemy/wandering_hare.tres" id="3_fif4b"]
+[ext_resource type="Script" path="res://resource/drift/script/drift_data.gd" id="4_dloh3"]
+
+[sub_resource type="Resource" id="Resource_to5qc"]
+script = ExtResource("2_ivmua")
+enemy = ExtResource("3_fif4b")
+count = 5
+
+[sub_resource type="Resource" id="Resource_uavo4"]
+script = ExtResource("1_w72wu")
+entries = Array[ExtResource("2_ivmua")]([SubResource("Resource_to5qc")])
+spacing = 2.0
+
+[resource]
+script = ExtResource("4_dloh3")
+groups = Array[ExtResource("1_w72wu")]([SubResource("Resource_uavo4")])

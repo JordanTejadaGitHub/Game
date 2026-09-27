@@ -1,0 +1,71 @@
+[gd_resource type="Resource" script_class="DriftData" format=3]
+
+[ext_resource type="Script" path="res://resource/drift/script/drift_group.gd" id="1_uaa3m"]
+[ext_resource type="Script" path="res://resource/drift/script/drift_entry.gd" id="2_iqv45"]
+[ext_resource type="Resource" path="res://resource/enemy/leaf_bug.tres" id="3_bd8wc"]
+[ext_resource type="Resource" path="res://resource/enemy/puffcap.tres" id="4_pn50h"]
+[ext_resource type="Resource" path="res://resource/enemy/hedgehog.tres" id="5_drcjv"]
+[ext_resource type="Resource" path="res://resource/enemy/dusk_moth.tres" id="6_tvwtu"]
+[ext_resource type="Resource" path="res://resource/enemy/bark_beetle.tres" id="7_4kchi"]
+[ext_resource type="Resource" path="res://resource/enemy/mother_spider.tres" id="8_qhs1p"]
+[ext_resource type="Resource" path="res://resource/enemy/mother_duck.tres" id="9_cgqx1"]
+[ext_resource type="Script" path="res://resource/drift/script/drift_data.gd" id="10_17s2b"]
+
+[sub_resource type="Resource" id="Resource_rj06o"]
+script = ExtResource("2_iqv45")
+enemy = ExtResource("3_bd8wc")
+count = 50
+
+[sub_resource type="Resource" id="Resource_6fndi"]
+script = ExtResource("2_iqv45")
+enemy = ExtResource("4_pn50h")
+count = 12
+
+[sub_resource type="Resource" id="Resource_acgdf"]
+script = ExtResource("2_iqv45")
+enemy = ExtResource("5_drcjv")
+count = 12
+
+[sub_resource type="Resource" id="Resource_gg1ck"]
+script = ExtResource("2_iqv45")
+enemy = ExtResource("6_tvwtu")
+count = 12
+
+[sub_resource type="Resource" id="Resource_kl8tp"]
+script = ExtResource("2_iqv45")
+enemy = ExtResource("7_4kchi")
+count = 12
+
+[sub_resource type="Resource" id="Resource_cvh04"]
+script = ExtResource("2_iqv45")
+enemy = ExtResource("8_qhs1p")
+count = 6
+
+[sub_resource type="Resource" id="Resource_88v2i"]
+script = ExtResource("2_iqv45")
+enemy = ExtResource("7_4kchi")
+count = 6
+
+[sub_resource type="Resource" id="Resource_cukml"]
+script = ExtResource("2_iqv45")
+enemy = ExtResource("4_pn50h")
+count = 6
+
+[sub_resource type="Resource" id="Resource_xaprh"]
+script = ExtResource("2_iqv45")
+enemy = ExtResource("5_drcjv")
+count = 6
+
+[sub_resource type="Resource" id="Resource_yy5gb"]
+script = ExtResource("2_iqv45")
+enemy = ExtResource("9_cgqx1")
+count = 4
+
+[sub_resource type="Resource" id="Resource_0agkq"]
+script = ExtResource("1_uaa3m")
+entries = Array[ExtResource("2_iqv45")]([SubResource("Resource_rj06o"), SubResource("Resource_6fndi"), SubResource("Resource_acgdf"), SubResource("Resource_gg1ck"), SubResource("Resource_kl8tp"), SubResource("Resource_cvh04"), SubResource("Resource_88v2i"), SubResource("Resource_cukml"), SubResource("Resource_xaprh"), SubResource("Resource_yy5gb")])
+spacing = 0.3
+
+[resource]
+script = ExtResource("10_17s2b")
+groups = Array[ExtResource("1_uaa3m")]([SubResource("Resource_0agkq")])

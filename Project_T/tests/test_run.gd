@@ -21,7 +21,16 @@ func _run() -> void:
 
 func _test_demo_data() -> void:
 	var drifts := DriftDirector.load_demo_drifts()
-	_check(drifts.size() == 50, "the demo has 50 drifts (%d)" % drifts.size())
+	_check(drifts.size() == 100, "runs have 100 drifts, the demo too (%d)" % drifts.size())
+	# Acts 3–4 (acts_3_4.md): the Moth Queen at 75 (after 12 Lurkers), the Hollow Oak ends drift 100.
+	var bosses_75: Array = drifts[74].get_schedule().filter(func(a: Array) -> bool: return a[1].is_boss)
+	_check(bosses_75.size() == 1 and bosses_75[0][1].display_name == "The Moth Queen"
+		and drifts[74].get_schedule()[12][1].is_boss, "drift 75: 12 Lurkers, then the Moth Queen")
+	var last: Array = drifts[99].get_schedule()[-1]
+	_check(last[1].is_boss and last[1].display_name == "The Hollow Oak", "drift 100 ends with the Hollow Oak")
+	_check(drifts[50].get_schedule().all(func(a: Array) -> bool: return not a[1].is_boss)
+		and drifts[50].get_creature_count() == 48, "drift 51: 48 nightmares, no boss")
+	_check(drifts[97].get_creature_count() == 80, "drift 98: the Swarm of 80 Shades")
 	_check(drifts[0].get_creature_count() == 6, "drift 1 is 6 Shades")
 	var boss_25: Array = drifts[24].get_schedule().map(func(a: Array) -> String: return _kind(a[1]))
 	_check(boss_25.count("old_stag") == 1 and boss_25.find("old_stag") == 12, "drift 25: 12 Leaf Bugs, then the boss")
@@ -61,16 +70,20 @@ func _test_blocks_and_rests() -> void:
 	_check(run_state.leaves == 15 and run_state.max_leaves == 15 and run_state.dew == 60, "15 leaves, 60 Dew")
 	_check(spawner.get_enemies().is_empty(), "no creatures before Start")
 	_check(director.get_extra_nightmares(9) == 1.0 and director.get_extra_nightmares(10) == 1.25, "extra nightmares from drift 10")
-	# Mid-game rework: ×1.045 per drift to 25, ×1.055 from 26 (≈ ×11 by drift 50).
+	# Mid-game rework: ×1.045 per drift to 25, ×1.055 for 26–50 (≈ ×11 by drift 50), ×1.045 from 51
+	# (≈ ×33 at 75, ×100 at 100).
 	_check(is_equal_approx(director.get_growth(25), pow(1.045, 24)) and is_equal_approx(director.get_growth(26), pow(1.045, 24) * 1.055)
 		and absf(director.get_growth(50) - 11.0) < 0.6, "health growth steepens from drift 26 (×%.1f at 50)" % director.get_growth(50))
-	# One Deeply Blighted from drift 26 when the drift lists none (boss drifts: from the escort).
-	for number in [25, 26, 35, 45, 50]:
+	_check(is_equal_approx(director.get_growth(51), director.get_growth(50) * 1.045) and absf(director.get_growth(75) - 33.0) < 1.5
+		and absf(director.get_growth(100) - 100.0) < 3.0, "growth eases to ×1.045 from 51 (×%.0f at 75, ×%.0f at 100)" % [
+		director.get_growth(75), director.get_growth(100)])
+	# One Deeply Blighted from drift 26 when the drift lists none (boss drifts: from the escort); two from 76.
+	for number in [25, 26, 35, 45, 50, 51, 75, 76, 100]:
 		var schedule: Array = director.drifts[number - 1].get_schedule()
 		var listed: int = schedule.filter(func(a: Array) -> bool: return a[2]).size()
 		director.add_guaranteed_elite(schedule, number)
 		var elites: Array = schedule.filter(func(a: Array) -> bool: return a[2])
-		var expected := listed if number < 26 or listed > 0 else 1
+		var expected := listed if number < 26 or listed > 0 else (2 if number >= 76 else 1)
 		_check(elites.size() == expected and elites.all(func(a: Array) -> bool: return not a[1].is_boss),
 			"drift %d: %d elite(s) (%d listed)" % [number, elites.size(), listed])
 	var stag: EnemyData = load("res://resource/enemy/old_stag.tres")
@@ -192,6 +205,27 @@ func _test_boss_rest_and_win() -> void:
 	director.start_next_drift()
 	await _play_until(main, func() -> bool: return not ended.is_empty(), 0, 3000)
 	_check(ended == [true] and not director.has_next_drift(), "clearing the last drift wins")
+	main.queue_free()
+	await process_frame
+
+	# The run is won by dispelling the Hollow Oak (drift 100), in the demo too.
+	main = await _new_run()
+	director = main.get_node("%DriftDirector")
+	run_state = main.get_node("%RunState")
+	family = main.get_node("%FamilyPickScreen")
+	director.drifts = [all[0], all[99]]
+	director.drifts_per_act = 2
+	ended.clear()
+	run_state.run_ended.connect(func(won: bool) -> void: ended.append(won))
+	director.start_next_drift()
+	await _play_until(main, func() -> bool: return director.awaiting_family_pick)
+	family.choose(family.offer[0])
+	director.start_next_drift()
+	await _play_until(main, func() -> bool: return not ended.is_empty(), 0, 6000)
+	_check(ended == [true] and director.bosses_cleansed == 1, "dispelling the Hollow Oak wins the run")
+	var titles := main.get_node("%ResultsScreen").find_children("*", "Label", true, false) \
+		.map(func(label: Label) -> String: return label.text)
+	_check(titles.has("The Hollow Oak is dispelled"), "the results say the Hollow Oak is dispelled")
 	main.queue_free()
 	await process_frame
 

@@ -1,0 +1,31 @@
+[gd_resource type="Resource" script_class="DriftData" format=3]
+
+[ext_resource type="Script" path="res://resource/drift/script/drift_group.gd" id="1_ai28w"]
+[ext_resource type="Script" path="res://resource/drift/script/drift_entry.gd" id="2_1dwh5"]
+[ext_resource type="Resource" path="res://resource/enemy/leaf_bug.tres" id="3_0q1b2"]
+[ext_resource type="Resource" path="res://resource/enemy/bark_beetle.tres" id="4_1xraf"]
+[ext_resource type="Script" path="res://resource/drift/script/drift_data.gd" id="5_1tt6l"]
+
+[sub_resource type="Resource" id="Resource_bnmtr"]
+script = ExtResource("2_1dwh5")
+enemy = ExtResource("3_0q1b2")
+count = 32
+
+[sub_resource type="Resource" id="Resource_vrmle"]
+script = ExtResource("2_1dwh5")
+enemy = ExtResource("4_1xraf")
+count = 10
+
+[sub_resource type="Resource" id="Resource_yrh5e"]
+script = ExtResource("2_1dwh5")
+enemy = ExtResource("4_1xraf")
+count = 8
+
+[sub_resource type="Resource" id="Resource_w1d1i"]
+script = ExtResource("1_ai28w")
+entries = Array[ExtResource("2_1dwh5")]([SubResource("Resource_bnmtr"), SubResource("Resource_vrmle"), SubResource("Resource_yrh5e")])
+spacing = 0.6
+
+[resource]
+script = ExtResource("5_1tt6l")
+groups = Array[ExtResource("1_ai28w")]([SubResource("Resource_w1d1i")])

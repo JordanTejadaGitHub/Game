@@ -2,8 +2,8 @@ extends Control
 class_name ResultsScreen
 
 # End of a run (win or lose): the Seeds breakdown, banked into HeartwoodMemory, then New run /
-# Title. In the demo (project setting game/demo), a win shows the demo ending: something larger in the
-# Deep Wood, Memory 1, the sleeping Memory Grove with the banked Seeds, and a Wishlist button
+# Title. A win means the Hollow Oak (drift 100) is dispelled; in the demo (project setting game/demo)
+# it also shows Memory 1, the sleeping Memory Grove with the banked Seeds, and a Wishlist button
 # (demo_scope.md). Built in code.
 
 const DEMO_SETTING := "game/demo"
@@ -58,8 +58,8 @@ func _build(won: bool) -> void:
 	panel.add_child(box)
 
 	var demo_end := won and is_demo()
-	var title := "Deeper in the dream, something larger stirs…" if demo_end \
-		else ("The Hollow Oak is dispelled" if won else "The dream goes dark")
+	# Runs go to the Hollow Oak at drift 100, in the demo too (demo_scope.md).
+	var title := "The Hollow Oak is dispelled" if won else "The dream goes dark"
 	_label(box, title, 28, Color(0.9, 1.0, 0.85))
 	if not won:
 		_label(box, "The Heartwood sinks into dreamless sleep. A seed falls, and remembers.", 16, Color(0.8, 0.85, 0.8), true)

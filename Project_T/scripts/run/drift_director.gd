@@ -47,7 +47,11 @@ const DEMO_DRIFTS_DIR := "res://resource/drift/demo/"
 # value), and from then on every drift without listed elites gets one Deeply Blighted nightmare.
 @export var late_health_growth_per_drift: float = 1.055
 @export var late_growth_from: int = 26
+# Acts 3–4 (acts_3_4.md): growth eases back so the late game doesn't run away (≈ ×100 at drift 100).
+@export var endgame_health_growth_per_drift: float = 1.045
+@export var endgame_growth_from: int = 51
 @export var guaranteed_elite_from: int = 26
+@export var second_elite_from: int = 76  # Two Deeply Blighted per drift from here
 @export var boss_health_multiplier: float = 1.5  # On the bosses' base health
 @export var extra_nightmares: float = 1.25  # Nightmares per drift (rounded up) from `extra_nightmares_from`
 @export var extra_nightmares_from: int = 10  # The intro drifts before it are unchanged
@@ -101,7 +105,8 @@ static func load_demo_drifts() -> Array[DriftData]:
 	for file in ResourceLoader.list_directory(DEMO_DRIFTS_DIR):
 		if file.ends_with(".tres") or file.ends_with(".res"):
 			files.append(file)
-	files.sort()  # drift_01 … drift_50
+	# drift_01 … drift_100 in number order (a plain sort would put drift_100 after drift_10)
+	files.sort_custom(func(a: String, b: String) -> bool: return a.naturalnocasecmp_to(b) < 0)
 	var result: Array[DriftData] = []
 	for file in files:
 		result.append(load(DEMO_DRIFTS_DIR + file))
@@ -259,11 +264,14 @@ func get_health_scale(data: EnemyData, number: int) -> float:
 	var scale := boss_health_multiplier if data.is_boss else get_growth(number)
 	return scale * get_health_multiplier(data, number)
 
-# The per-drift health growth for drift `number`: ×1.045 per drift, ×1.055 from drift 26.
+# The per-drift health growth for drift `number`, compounding: ×1.045 per drift to 25, ×1.055 for
+# 26–50, ×1.045 from 51.
 func get_growth(number: int) -> float:
 	var early := mini(number, late_growth_from - 1) - 1
-	var late := maxi(number - (late_growth_from - 1), 0)
-	return pow(health_growth_per_drift, early) * pow(late_health_growth_per_drift, late)
+	var late := clampi(number, late_growth_from - 1, endgame_growth_from - 1) - (late_growth_from - 1)
+	var endgame := maxi(number - (endgame_growth_from - 1), 0)
+	return pow(health_growth_per_drift, early) * pow(late_health_growth_per_drift, late) \
+		* pow(endgame_health_growth_per_drift, endgame)
 
 # Dreams / Omens: extra health multiplier for creatures of drift `number` (Wild Growth: all
 # creatures; Omens: not bosses).
@@ -297,23 +305,24 @@ func get_spawn_modifiers(data: EnemyData, number: int) -> Dictionary:
 	return modifiers
 
 # Blight Level 5: `blight_elites_per_drift` random non-boss arrivals become Deeply Blighted.
-# From drift 26, a drift that lists no elites gets one: a random non-boss kind in it (boss drifts:
-# from the escort), and one of that kind becomes Deeply Blighted.
+# From drift 26, a drift that lists no elites gets one (two from drift 76): each time a random
+# non-boss kind in it (boss drifts: from the escort), and one of that kind becomes Deeply Blighted.
 func add_guaranteed_elite(schedule: Array, number: int) -> void:
 	if number < guaranteed_elite_from or schedule.any(func(a: Array) -> bool: return a.size() > 2 and a[2]):
 		return
-	var by_kind := {}  # EnemyData -> [schedule index, …]
-	for i in schedule.size():
-		if not schedule[i][1].is_boss:
-			by_kind.get_or_add(schedule[i][1], []).append(i)
-	if by_kind.is_empty():
-		return
-	var arrivals: Array = by_kind[by_kind.keys().pick_random()]
-	var index: int = arrivals.pick_random()
-	if schedule[index].size() > 2:
-		schedule[index][2] = true
-	else:
-		schedule[index].append(true)
+	for n in (2 if number >= second_elite_from else 1):
+		var by_kind := {}  # EnemyData -> [schedule index, …] not elite yet
+		for i in schedule.size():
+			if not schedule[i][1].is_boss and not (schedule[i].size() > 2 and schedule[i][2]):
+				by_kind.get_or_add(schedule[i][1], []).append(i)
+		if by_kind.is_empty():
+			return
+		var arrivals: Array = by_kind[by_kind.keys().pick_random()]
+		var index: int = arrivals.pick_random()
+		if schedule[index].size() > 2:
+			schedule[index][2] = true
+		else:
+			schedule[index].append(true)
 
 func _add_blight_elites(schedule: Array) -> void:
 	if blight_elites_per_drift <= 0:

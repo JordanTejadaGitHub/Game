@@ -22,8 +22,9 @@ data-driven enemy (Leaf Bug), **tower building** (build mode, placement validati
 the route zig-zag, plus noise tree clusters and scattered rocks; outside build mode, hover shows
 cost + the route that would open, left-click clears. Obstacles are "Withered Tree" (Tend) and
 "Mossy Boulder" (Move); `RunState.obstacles_tended` counts clears for +1 Seed each at run end).
-**Run structure** (`run_design.md`, `acts_1_2.md`, `demo_scope.md`): the demo run, drifts 1–50 in
-blocks of 5 with rests, Old Stag at 25, Great Toad at 50 (winning = clearing drift 50). Title
+**Run structure** (`run_design.md`, `acts_1_2.md`, `acts_3_4.md`, `demo_scope.md`): runs (demo too)
+are drifts 1–100 in blocks of 5 with rests, bosses at 25 / 50 / 75 / 100 (winning = dispelling the
+Hollow Oak at drift 100). Title
 screen, pause menu, settings, results with Seeds, mid-run save. See "Run flow" and "Run end,
 saving, onboarding" below.
 Design, build order and story: `documentation/game_design.md` (overview), `tower_design.md`
@@ -122,7 +123,7 @@ controller / Steam Deck, accessibility, Steam achievements (milestones map to th
   `end_run(won)` + `run_ended` signal, `is_over`. `earn_dew_at(amount, pos)` = add Dew + popup.
 - `DriftDirector` (`%DriftDirector`, `scripts/run/drift_director.gd`): blocks of 5
   (`drifts_per_block`), acts of 25 (`drifts_per_act`, the act's last drift is its boss). `drifts`
-  loads `resource/drift/demo/drift_01..50.tres` when empty. The run starts `resting`; Start
+  loads `resource/drift/demo/drift_01..100.tres` when empty (natural sort). The run starts `resting`; Start
   (`start_next_drift()` / `start_next_block()`) begins a block; its drifts FLOW (the next starts
   `auto_drift_delay` s after the previous finished arriving; `set_auto_drift()`); starting one while
   the current is still arriving = call early (+1 Dew / 2 s of arrival skipped, cap 10). Once a
@@ -131,12 +132,14 @@ controller / Steam Deck, accessibility, Steam achievements (milestones map to th
   (+1 leaf, `act_started`). `family_pick_requested(&"first"|&"boss")` fires after drift 1 and
   before a boss rest; `FamilyPickScreen` calls `family_picked()` (first pick: 3 random of every
   unlocked family, never the last run's offer again, profile `last_first_pick`). `is_build_phase()`
-  = resting (75% refunds). Health `get_growth(n)`: × 1.045 per drift, × 1.055 from drift 26 (`late_growth_from`); bosses × 1.5. From drift 26 a drift listing no elites gets one (`add_guaranteed_elite`). Hooks for Dreams/Omens:
+  = resting (75% refunds). Health `get_growth(n)`: × 1.045 per drift, × 1.055 from drift 26 (`late_growth_from`), × 1.045 from 51 (`endgame_growth_from`); bosses × 1.5. From drift 26 a drift listing no elites gets one, two from 76 (`add_guaranteed_elite`). Hooks for Dreams/Omens:
   `get_health_multiplier`, `get_schedule_modifiers`, `get_spawn_modifiers`, `_pay_rest_bonus`.
 - Drift data: `DriftData.groups: Array[DriftGroup]`; `DriftGroup.entries: Array[DriftEntry]`
   (enemy + count + `elite`; several entries mix evenly), `spacing`, `delay`. `get_schedule()` →
-  `[[time, EnemyData, elite], …]`. The demo list mirrors the acts_1_2.md table (mixed drifts spread
-  over 25 s in act 1, 30 s in act 2).
+  `[[time, EnemyData, elite], …]`. Drifts 1–50 mirror the acts_1_2.md table (hand-edited files; mixed
+  drifts spread over 25 s in act 1, 30 s in act 2). Drifts 51–100 are generated from acts_3_4.md by
+  `tools/drift_generator.gd` (stand-ins for nightmares without a `resource/enemy/` file yet); re-run it
+  after adding or renaming a nightmare, then `--import`.
 - `EnemyData`: `display_name`, `leaf_cost`, `is_boss`, `sprite_scale`, `tint` (placeholder recolour),
   `cleanse_line` (boss toast), `split_into`/`split_count`, `trait_kind` (NONE, FLYING, ROLLING,
   TRAMPLE, LEAP) with its numbers, `followers`/`follower_count` (Mother Duck → Ducklings, who get

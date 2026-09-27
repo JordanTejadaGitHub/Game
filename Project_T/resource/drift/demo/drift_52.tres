@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="DriftData" format=3]
+
+[ext_resource type="Script" path="res://resource/drift/script/drift_group.gd" id="1_n5gg6"]
+[ext_resource type="Script" path="res://resource/drift/script/drift_entry.gd" id="2_cqdbc"]
+[ext_resource type="Resource" path="res://resource/enemy/dusk_moth.tres" id="3_7cw5s"]
+[ext_resource type="Script" path="res://resource/drift/script/drift_data.gd" id="4_e8wed"]
+
+[sub_resource type="Resource" id="Resource_sww7r"]
+script = ExtResource("2_cqdbc")
+enemy = ExtResource("3_7cw5s")
+count = 6
+
+[sub_resource type="Resource" id="Resource_bwd2v"]
+script = ExtResource("1_n5gg6")
+entries = Array[ExtResource("2_cqdbc")]([SubResource("Resource_sww7r")])
+spacing = 2.0
+
+[resource]
+script = ExtResource("4_e8wed")
+groups = Array[ExtResource("1_n5gg6")]([SubResource("Resource_bwd2v")])

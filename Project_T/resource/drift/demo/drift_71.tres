@@ -1,0 +1,43 @@
+[gd_resource type="Resource" script_class="DriftData" format=3]
+
+[ext_resource type="Script" path="res://resource/drift/script/drift_group.gd" id="1_ydtr3"]
+[ext_resource type="Script" path="res://resource/drift/script/drift_entry.gd" id="2_ige40"]
+[ext_resource type="Resource" path="res://resource/enemy/leaf_bug.tres" id="3_eg1tc"]
+[ext_resource type="Resource" path="res://resource/enemy/bark_beetle.tres" id="4_6tgih"]
+[ext_resource type="Resource" path="res://resource/enemy/hedgehog.tres" id="5_qt8v3"]
+[ext_resource type="Resource" path="res://resource/enemy/puffcap.tres" id="6_t2ylu"]
+[ext_resource type="Script" path="res://resource/drift/script/drift_data.gd" id="7_4qiir"]
+
+[sub_resource type="Resource" id="Resource_nrbks"]
+script = ExtResource("2_ige40")
+enemy = ExtResource("3_eg1tc")
+count = 36
+
+[sub_resource type="Resource" id="Resource_ht4np"]
+script = ExtResource("2_ige40")
+enemy = ExtResource("4_6tgih")
+count = 12
+
+[sub_resource type="Resource" id="Resource_6pkbo"]
+script = ExtResource("2_ige40")
+enemy = ExtResource("5_qt8v3")
+count = 8
+
+[sub_resource type="Resource" id="Resource_43qn4"]
+script = ExtResource("2_ige40")
+enemy = ExtResource("4_6tgih")
+count = 6
+
+[sub_resource type="Resource" id="Resource_pdkne"]
+script = ExtResource("2_ige40")
+enemy = ExtResource("6_t2ylu")
+count = 4
+
+[sub_resource type="Resource" id="Resource_2cy86"]
+script = ExtResource("1_ydtr3")
+entries = Array[ExtResource("2_ige40")]([SubResource("Resource_nrbks"), SubResource("Resource_ht4np"), SubResource("Resource_6pkbo"), SubResource("Resource_43qn4"), SubResource("Resource_pdkne")])
+spacing = 0.45454545454545453
+
+[resource]
+script = ExtResource("7_4qiir")
+groups = Array[ExtResource("1_ydtr3")]([SubResource("Resource_2cy86")])

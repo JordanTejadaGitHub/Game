@@ -1,0 +1,118 @@
+[gd_resource type="Resource" script_class="DriftData" format=3]
+
+[ext_resource type="Script" path="res://resource/drift/script/drift_group.gd" id="1_re6ug"]
+[ext_resource type="Script" path="res://resource/drift/script/drift_entry.gd" id="2_64pfx"]
+[ext_resource type="Resource" path="res://resource/enemy/leaf_bug.tres" id="3_5jj4t"]
+[ext_resource type="Resource" path="res://resource/enemy/bark_beetle.tres" id="4_3y63w"]
+[ext_resource type="Resource" path="res://resource/enemy/puffcap.tres" id="5_l2u3v"]
+[ext_resource type="Resource" path="res://resource/enemy/dandelion_seed.tres" id="6_kqa0o"]
+[ext_resource type="Resource" path="res://resource/enemy/hedgehog.tres" id="7_qjivj"]
+[ext_resource type="Resource" path="res://resource/enemy/mother_duck.tres" id="8_kp2vu"]
+[ext_resource type="Resource" path="res://resource/enemy/dusk_moth.tres" id="9_g6gml"]
+[ext_resource type="Resource" path="res://resource/enemy/wandering_hare.tres" id="10_31gck"]
+[ext_resource type="Resource" path="res://resource/enemy/mother_spider.tres" id="11_ayey1"]
+[ext_resource type="Script" path="res://resource/drift/script/drift_data.gd" id="12_4g0kg"]
+
+[sub_resource type="Resource" id="Resource_vplnp"]
+script = ExtResource("2_64pfx")
+enemy = ExtResource("3_5jj4t")
+count = 30
+
+[sub_resource type="Resource" id="Resource_ogadn"]
+script = ExtResource("2_64pfx")
+enemy = ExtResource("4_3y63w")
+count = 6
+
+[sub_resource type="Resource" id="Resource_6dw32"]
+script = ExtResource("2_64pfx")
+enemy = ExtResource("5_l2u3v")
+count = 6
+
+[sub_resource type="Resource" id="Resource_tpve6"]
+script = ExtResource("2_64pfx")
+enemy = ExtResource("6_kqa0o")
+count = 6
+
+[sub_resource type="Resource" id="Resource_r4a0m"]
+script = ExtResource("2_64pfx")
+enemy = ExtResource("7_qjivj")
+count = 6
+
+[sub_resource type="Resource" id="Resource_6jkp8"]
+script = ExtResource("2_64pfx")
+enemy = ExtResource("8_kp2vu")
+count = 6
+
+[sub_resource type="Resource" id="Resource_0e1o8"]
+script = ExtResource("2_64pfx")
+enemy = ExtResource("9_g6gml")
+count = 6
+
+[sub_resource type="Resource" id="Resource_28jct"]
+script = ExtResource("2_64pfx")
+enemy = ExtResource("6_kqa0o")
+count = 6
+
+[sub_resource type="Resource" id="Resource_bej3e"]
+script = ExtResource("2_64pfx")
+enemy = ExtResource("4_3y63w")
+count = 6
+
+[sub_resource type="Resource" id="Resource_yhf0s"]
+script = ExtResource("2_64pfx")
+enemy = ExtResource("10_31gck")
+count = 6
+
+[sub_resource type="Resource" id="Resource_kn2y8"]
+script = ExtResource("2_64pfx")
+enemy = ExtResource("4_3y63w")
+count = 6
+
+[sub_resource type="Resource" id="Resource_r70w2"]
+script = ExtResource("2_64pfx")
+enemy = ExtResource("4_3y63w")
+count = 6
+
+[sub_resource type="Resource" id="Resource_p1d2x"]
+script = ExtResource("2_64pfx")
+enemy = ExtResource("5_l2u3v")
+count = 6
+
+[sub_resource type="Resource" id="Resource_lb8f5"]
+script = ExtResource("2_64pfx")
+enemy = ExtResource("7_qjivj")
+count = 6
+
+[sub_resource type="Resource" id="Resource_3kl1h"]
+script = ExtResource("2_64pfx")
+enemy = ExtResource("11_ayey1")
+count = 6
+
+[sub_resource type="Resource" id="Resource_7mde5"]
+script = ExtResource("2_64pfx")
+enemy = ExtResource("4_3y63w")
+count = 6
+
+[sub_resource type="Resource" id="Resource_ltopx"]
+script = ExtResource("2_64pfx")
+enemy = ExtResource("3_5jj4t")
+count = 6
+
+[sub_resource type="Resource" id="Resource_sfrqt"]
+script = ExtResource("2_64pfx")
+enemy = ExtResource("7_qjivj")
+count = 6
+
+[sub_resource type="Resource" id="Resource_rwkob"]
+script = ExtResource("2_64pfx")
+enemy = ExtResource("5_l2u3v")
+count = 6
+
+[sub_resource type="Resource" id="Resource_tqxbu"]
+script = ExtResource("1_re6ug")
+entries = Array[ExtResource("2_64pfx")]([SubResource("Resource_vplnp"), SubResource("Resource_ogadn"), SubResource("Resource_6dw32"), SubResource("Resource_tpve6"), SubResource("Resource_r4a0m"), SubResource("Resource_6jkp8"), SubResource("Resource_0e1o8"), SubResource("Resource_28jct"), SubResource("Resource_bej3e"), SubResource("Resource_yhf0s"), SubResource("Resource_kn2y8"), SubResource("Resource_r70w2"), SubResource("Resource_p1d2x"), SubResource("Resource_lb8f5"), SubResource("Resource_3kl1h"), SubResource("Resource_7mde5"), SubResource("Resource_ltopx"), SubResource("Resource_sfrqt"), SubResource("Resource_rwkob")])
+spacing = 0.3
+
+[resource]
+script = ExtResource("12_4g0kg")
+groups = Array[ExtResource("1_re6ug")]([SubResource("Resource_tqxbu")])

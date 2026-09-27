@@ -1,0 +1,54 @@
+[gd_resource type="Resource" script_class="DriftData" format=3]
+
+[ext_resource type="Script" path="res://resource/drift/script/drift_group.gd" id="1_4rhsw"]
+[ext_resource type="Script" path="res://resource/drift/script/drift_entry.gd" id="2_py534"]
+[ext_resource type="Resource" path="res://resource/enemy/mother_duck.tres" id="3_fviad"]
+[ext_resource type="Resource" path="res://resource/enemy/puffcap.tres" id="4_w2gj4"]
+[ext_resource type="Script" path="res://resource/enemy/script/enemy_data.gd" id="5_5n55l"]
+[ext_resource type="SpriteFrames" path="res://animation/enemy/great_toad.tres" id="6_2cunh"]
+[ext_resource type="Script" path="res://resource/drift/script/drift_data.gd" id="7_k7h6v"]
+
+[sub_resource type="Resource" id="Resource_2jpsm"]
+script = ExtResource("2_py534")
+enemy = ExtResource("3_fviad")
+count = 3
+
+[sub_resource type="Resource" id="Resource_1kvpp"]
+script = ExtResource("2_py534")
+enemy = ExtResource("4_w2gj4")
+count = 8
+
+[sub_resource type="Resource" id="Resource_2ylwj"]
+script = ExtResource("2_py534")
+enemy = ExtResource("4_w2gj4")
+count = 4
+
+[sub_resource type="Resource" id="Resource_dkqs1"]
+script = ExtResource("1_4rhsw")
+entries = Array[ExtResource("2_py534")]([SubResource("Resource_2jpsm"), SubResource("Resource_1kvpp"), SubResource("Resource_2ylwj")])
+spacing = 2.0
+
+[sub_resource type="Resource" id="Resource_7scue"]
+script = ExtResource("5_5n55l")
+display_name = "The Hollow Oak"
+health = 30000
+speed = 23.04
+sprite_frames = ExtResource("6_2cunh")
+dew_reward = 100
+leaf_cost = 5
+is_boss = true
+trait_text = "Walks very slowly along the maze."
+cleanse_line = "The Hollow Oak is still. Somewhere beyond the dream, the Hollow remembers."
+
+[sub_resource type="Resource" id="Resource_cg8gb"]
+script = ExtResource("2_py534")
+enemy = SubResource("Resource_7scue")
+
+[sub_resource type="Resource" id="Resource_3u1d6"]
+script = ExtResource("1_4rhsw")
+entries = Array[ExtResource("2_py534")]([SubResource("Resource_cg8gb")])
+delay = 3.0
+
+[resource]
+script = ExtResource("7_k7h6v")
+groups = Array[ExtResource("1_4rhsw")]([SubResource("Resource_dkqs1"), SubResource("Resource_3u1d6")])
