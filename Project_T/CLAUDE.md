@@ -13,10 +13,11 @@
 Original design docs are in `documentation/*.docx` (structure, 15-card dev plan).
 
 ## Current status
-Done: map generation, A* path + path tiles, camera (WASD + wheel zoom, clamped), data-driven enemy
-(Leaf Bug) that walks the path.
-Next milestone: grid tower placement with path blocking + live re-pathing (see below).
-Not started: tower attacks/projectiles, wave manager, core/lives, HUD, upgrades, save data.
+Done: map generation, AStarGrid2D pathing + path tiles, camera (WASD + wheel zoom, clamped),
+data-driven enemy (Leaf Bug), **tower building** (build mode, placement validation, enemies re-route).
+Temporary: `EnemyContainer.start_spawning()` spawns a Leaf Bug every 2 s forever (stand-in for waves).
+Next up: tower attacks (range/targeting/projectiles), enemy death, goal/lives, gold cost for towers.
+Not started: wave manager, upgrades, save data, selling/removing towers.
 
 ## Layout
 - `scenes/main.tscn` — root scene: MapGenerator (Ground / Path / EnvironmentObject TileMapLayers),
@@ -25,9 +26,19 @@ Not started: tower attacks/projectiles, wave manager, core/lives, HUD, upgrades,
   `path.gd` defines `class_name PathGenerator` (draws path tiles), `path_generator.gd` defines
   `class_name FindPath` (AStar2D wrapper). `enivornment_object_generator.gd` is misspelled.
   Rename via the Godot editor (FileSystem dock), not the shell, so references update.
-- `scripts/enemy/` — `enemy.gd` (PathFollow2D movement), `enemy_spawner.gd`.
+  `map_generator.gd` is also the pathing/building API: `is_buildable`, `can_block`,
+  `get_path_if_blocked`, `block_cell`, `get_path_from`, and the `path_changed` signal.
+- `scripts/enemy/` — `enemy.gd` (walks cell to cell along a grid path; `set_path` re-routes it),
+  `enemy_spawner.gd` (on `path_changed`, re-routes every enemy from its `get_target_cell()`).
+- `scripts/tower/` — `tower.gd` (`Tower`, draws a placeholder block when `TowerData.texture` is
+  empty), `tower_placer.gd` (`TowerPlacer`: build mode, ghost, route preview, validation).
+  Towers can't go on border/trees/towers/start/end, on a cell an enemy occupies, or anywhere that
+  would leave the start or any live enemy without a path to the end.
+- `scripts/ui/hud.gd` — HUD (Build Tower button, synced with build mode).
+- Input actions: `toggle_build_mode` (B), `place_tower` (LMB), `cancel_build` (RMB / Esc).
 - `resource/` — data resources + their scripts: `map_grid.tres` (`Grid`: 45x36 cells, 64px),
-  `tile_map_location_data.tres` (atlas coords of every tile), `enemy/*.tres` (`EnemyData`).
+  `tile_map_location_data.tres` (atlas coords of every tile), `enemy/*.tres` (`EnemyData`),
+  `tower/*.tres` (`TowerData`).
 - `animation/` — SpriteFrames (`walk_side`, `walk_up`, `walk_down`).
 
 ## Conventions
@@ -51,11 +62,11 @@ after the banner = clean):
 & "D:\Program Files\Godot\Godot_v4.7.2-stable_win64_console.exe" --headless --path . --quit-after 300
 ```
 
-Headless can't show visuals — for anything visual, ask the user to press Play and describe it.
+After adding a new `class_name`, run once with `--import` (same args, no `--quit-after`) so the
+global class cache knows it; otherwise headless runs fail to parse scripts that use it.
 
-## Planned architecture for the maze milestone
-- Replace `FindPath` (custom AStar2D) with `AStarGrid2D`: towers/trees/border = `set_point_solid`.
-- Validate placement: mark solid → check a path still exists → revert if not.
-- Enemies should re-route mid-wave from their current cell (cell-to-cell movement or a flow field
-  from the goal) instead of a baked per-enemy `Curve2D`.
-- Reuse `PathGenerator.draw_unit_path()` (Line2D) as the placement preview.
+Gameplay logic can be tested headless with a `extends SceneTree` script run via
+`--script <path> --fixed-fps 60` that instantiates `res://scenes/main.tscn`, drives it (e.g.
+`TowerPlacer._try_build(cell)`), and `quit(failures)`. `--fixed-fps 60` makes `delta` realistic.
+
+Headless can't show visuals — for anything visual, ask the user to press Play and describe it.

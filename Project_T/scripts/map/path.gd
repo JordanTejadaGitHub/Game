@@ -90,6 +90,16 @@ func draw_unit_path(node: Node2D) -> bool:
 func hide_path():
 	path_drawn.visible = false
 	
+func is_cell_blocked(cell: Vector2) -> bool:
+	return not _pathGenerator.is_walkable(cell)
+
+func set_cell_blocked(cell: Vector2, blocked: bool) -> void:
+	_pathGenerator.set_blocked(cell, blocked)
+
+# Path from `cell` to the end of the map, in cell coordinates. Empty if the end can't be reached.
+func find_path_from(cell: Vector2) -> PackedVector2Array:
+	return _pathGenerator.calculate_point_path(cell, cell_end_path)
+
 func get_curr_path() -> PackedVector2Array:
 	return current_path
 

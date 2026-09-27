@@ -1,14 +1,19 @@
 extends Node2D
 
+# Emitted when the enemy walks off the end of its path (reaches the goal), right before it's freed.
+signal reached_goal(enemy: Node2D)
+
 @export var enemy_data: EnemyData
 @onready var sprite: AnimatedSprite2D = $AnimatedSprite2D
-@onready var path_2d: Path2D = $Path2D
-@onready var path_follower: PathFollow2D = $Path2D/PathFollow2D
 
 @export var grid: Grid = preload("res://resource/map/map_grid.tres") # Reference to the shared Grid resource
 
 var health: int
 var speed: float
+
+# Cells to walk through, in grid coordinates. `_path_index` is the cell we're currently walking toward.
+var _path: PackedVector2Array
+var _path_index: int = 0
 
 func _ready() -> void:
 	# Initialize attributes
@@ -16,23 +21,35 @@ func _ready() -> void:
 	speed = enemy_data.speed
 
 	# Set up animations
-	sprite.frames = enemy_data.sprite_frames
+	sprite.sprite_frames = enemy_data.sprite_frames
 	sprite.play("walk_side")
 
-	# Ensure PathFollow2D starts at the beginning of the path
-	path_follower.progress = 0.0
-
 func _process(delta: float) -> void:
+	if _path_index >= _path.size():
+		return
+
 	var previous_position := position
-
-	# Move the PathFollow2D along the path
-	path_follower.progress += speed * delta
-
-	# Update the enemy's position to match the PathFollow2D's position
-	position = path_follower.position
+	# Walk toward the next cell centre; carry leftover distance into the following cell so speed
+	# stays constant through corners.
+	var remaining := speed * delta
+	while remaining > 0.0 and _path_index < _path.size():
+		var target := grid.calculate_map_position(_path[_path_index])
+		var to_target := target - position
+		var distance := to_target.length()
+		if distance <= remaining:
+			position = target
+			remaining -= distance
+			_path_index += 1
+		else:
+			position += to_target / distance * remaining
+			remaining = 0.0
 
 	# Update animation based on movement direction
 	update_animation(position - previous_position)
+
+	if _path_index >= _path.size():
+		reached_goal.emit(self)
+		queue_free()
 
 func update_animation(velocity: Vector2) -> void:
 	# Keep the current animation when not moving (e.g. end of path)
@@ -49,15 +66,18 @@ func update_animation(velocity: Vector2) -> void:
 		sprite.flip_h = false
 
 
+# Sets the cells to walk through (grid coordinates). The enemy heads to points[0] first.
 func set_path(points: PackedVector2Array) -> void:
-	# Ensure the Path2D has a valid Curve2D
-	if not path_2d.curve:
-		path_2d.curve = Curve2D.new()
+	_path = points
+	_path_index = 0
 
-	# Add points to the curve, converting grid positions to map positions
-	var curve = path_2d.curve
-	curve.clear_points()
+# The cell the enemy is currently walking toward. New paths should start from here so the enemy
+# never cuts diagonally through a cell mid-step.
+func get_target_cell() -> Vector2:
+	if _path_index < _path.size():
+		return _path[_path_index]
+	return grid.calculate_grid_coordinates(position)
 
-	for point in points:
-		var map_position = grid.calculate_map_position(point)
-		curve.add_point(map_position)
+# The cell the enemy is standing in right now.
+func get_current_cell() -> Vector2:
+	return grid.calculate_grid_coordinates(position)

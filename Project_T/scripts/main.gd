@@ -4,5 +4,5 @@ extends Node
 @onready var leaf_bug = preload("res://resource/enemy/leaf_bug.tres")
 
 func _ready() -> void:
-	# Spawn a LeafBug on game start
-	enemy_spawner.spawn_enemy(leaf_bug)
+	# Keep LeafBugs coming so there's something to maze (until waves exist)
+	enemy_spawner.start_spawning(leaf_bug)

@@ -29,9 +29,12 @@ func initialize(startPath: Vector2i, endPath: Vector2i) -> PackedVector2Array:
 	_generate_outer_layer_of_rocks()
 	return unwalkable_cells
 
-func generate_details_and_trees(unwalkable_path: PackedVector2Array) -> void:
+# Scatters trees and grass details on free cells. Returns the cells that got a tree (they block
+# enemies and building).
+func generate_details_and_trees(unwalkable_path: PackedVector2Array) -> PackedVector2Array:
 	var noise = noise_texture.noise
 	var noise_val_array: Array[float]
+	var tree_cells: PackedVector2Array
 	var noise_color = noise_texture.color_ramp
 	unwalkable_cells = unwalkable_path
 	
@@ -54,10 +57,12 @@ func generate_details_and_trees(unwalkable_path: PackedVector2Array) -> void:
 			#Set tree
 			elif noise_val_array[noise_ind] >= noise_val_array.min() and noise_val_array[noise_ind] <= grass_detail_value:
 				set_cell(cell_position, 2, trees.pick_random())
+				tree_cells.append(cell_position)
 			#Set grass detail
 			elif noise_val_array[noise_ind] >= grass_detail_value and noise_val_array[noise_ind] <= empty_value:
 				set_cell(cell_position, 2, grass_details.pick_random())
-			noise_ind += 1 
+			noise_ind += 1
+	return tree_cells
 
 func _generate_border(startPath: Vector2i, endPath: Vector2i) -> void:
 	var corners = {
