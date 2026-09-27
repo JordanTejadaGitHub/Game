@@ -79,8 +79,9 @@ One map per run. Act breaks: the season changes, 3 leaves regrow. Creature healt
 
 | Resource | Source | Spent on |
 |---|---|---|
-| **Dew** (in-run) | dispelled nightmares, rest bonus, perfect blocks, bosses; start with 60 | Wardens, evolutions, tending obstacles |
-| **Leaves** (in-run) | start with 20, +3 per act break | lost when creatures reach the Heartwood |
+| **Dew** (in-run) | dispelled nightmares, rest bonus, perfect blocks, bosses; start with 60 | Wardens, evolutions, Nurture ranks, tending obstacles |
+| **Dreamlight** (in-run) | 1 with the first family pick, 3 from each boss (25, 50, 75) | unlocking branches (1) and final forms (2) |
+| **Leaves** (in-run) | start with 15, +1 per act break | lost when nightmares reach the Heartwood |
 | **Seeds** (meta) | end of every run, win or lose | Memory Grove unlocks |
 
 Per-run state lives in `RunState` (`%RunState`); starting values are read from one place so meta
@@ -112,8 +113,9 @@ branches and a final form per branch, plus a **hidden 3rd branch** unlocked in t
 - **Memory Wardens**: after a boss, the reward can be that boss's unique Memory Warden instead of a
   family (the White Stag, the Pond Keeper, the Moon Moth).
 
-- **Dreams unlock, Dew pays**: a Dream makes a branch or final form available; evolving a specific
-  Warden costs Dew. Evolving happens in place, so the path never changes.
+- **Dreamlight unlocks, Dew pays**: spending Dreamlight (from bosses) makes a branch or final form
+  available; evolving a specific Warden costs Dew. Evolving happens in place, so the path never
+  changes. Wardens also grow through **Nurture ranks** (Dew, rank I–V, a Focus at III).
 - Wardens combo **through status effects** on creatures (Damp, Drowsy, Spored, Marked, Static,
   Held) and **through placement** (path length, clusters, chokepoints, wall count).
 - When fewer than 3 new families are available (early in the meta), empty pick slots become

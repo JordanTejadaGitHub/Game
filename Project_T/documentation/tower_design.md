@@ -162,14 +162,15 @@ The Hollow Oak ends the run, so it has no Memory Warden (its memory is the true 
 
 ## Evolution rules
 
-- **Dreams unlock, Dew pays.** A Dream makes an evolution *available* this run; evolving a
-  specific tower costs Dew.
+- **Dreamlight unlocks, Dew pays** (was "Dreams unlock"; changed 2026-09-27). Spending
+  **Dreamlight** (earned from bosses, `run_design.md`) makes a branch or final form *available* this
+  run; evolving a specific tower costs Dew. Branch 1 Dreamlight, final form 2.
 - **Per tower:** each tower evolves separately (one Sprout can become a Stormcap, the next a Rain
   Lily).
 - **In place:** evolving keeps the tower on its cell, so the path never changes.
 - Once a base is unlocked it can also be **built directly** on a fresh cell, costing about the same
   as Sprout + evolution. Sprouts stay useful as placeholders: place now, decide later.
-- Final forms need a **Rare Dream** for that branch before Dew can evolve into them.
+- Final forms need **2 Dreamlight** (and their branch unlocked) before Dew can evolve into them.
 
 ## Status effects
 

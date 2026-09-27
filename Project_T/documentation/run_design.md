@@ -133,8 +133,8 @@ longer unlock base Wardens; they give stats, branches, final forms and rules.
 
 | When | Reward |
 |---|---|
-| After drift 1 | **Pick your first family**: 1 of 3, drawn at random from **all families you've unlocked** (incl. Grove unlocks) |
-| Boss at 25, 50, 75 | **Pick a new family**: 1 of 3 base Wardens you don't have yet, **plus** a Dream that's guaranteed Rare or better |
+| After drift 1 | **Pick your first family**: 1 of 3, drawn at random from **all families you've unlocked** (incl. Grove unlocks), **+1 Dreamlight** |
+| Boss at 25, 50, 75 | **Pick a new family**: 1 of 3 base Wardens you don't have yet, **+3 Dreamlight**, **plus** a Dream that's guaranteed Rare or better |
 | Boss at 100 | the win |
 
 That's **4 of the 6 Warden families per run**, so every run leans a different way. The run starts
@@ -142,6 +142,38 @@ with only Sprout + Thornwall. **Act 1 is about one family**: you deepen it throu
 before a second family arrives at drift 25. When fewer than 3 new families are available (early
 in the meta, before the Grove unlocks Pebbling, Rootling and Acorn), empty slots become **Family
 Blessings** for a family you own (`meta_design.md`).
+
+### Dreamlight: choosing your build paths
+
+Added 2026-09-27 (user decision): a second in-run currency so build paths come from **choice, not
+card luck**. Dispelling a great nightmare frees the light it stole from the dream.
+
+| Source | Dreamlight |
+|---|---|
+| First family pick (after drift 1) | **1** (so act 1 can take one branch) |
+| Each boss (drifts 25, 50, 75) | **3** |
+| Dream cards (Sudden Insight, Borrowed Memory) | +1 / +2 |
+| Grove perk *Early Light* | +1 at run start |
+
+**Spending (per run, like the old unlock cards):**
+
+| Unlock | Cost |
+|---|---|
+| A **branch** of a family you own (Stormcap, Rain Lily, Driftspore, …) | **1** |
+| A **final form** (needs its branch unlocked) | **2** |
+| A **hidden branch** (only if the Grove has unlocked it) | **1** |
+| A **wall growth** (Bramble, Honeysuckle) | **1** |
+
+- About **10 Dreamlight per run** against 4 families × (2 branches + 2 finals) = 24 possible: you
+  can't have everything, so each run is a set of real choices. Unspent Dreamlight carries over.
+- **Where:** a **Remember** screen (a branching tree per owned family) opens right after each boss's
+  family pick, and can be reopened at any rest from the rest panel. The Warden panel's disabled
+  "Grow into Stormcap" button says *"Unlock with 1 Dreamlight"* and opens it.
+- Unlocking makes the form available; **evolving each Warden still costs Dew**, as before.
+- **Dreams** no longer unlock evolutions (`dream_design.md`); they're stats, rules, combos and
+  economy. The Rare-or-better boss Dream stays.
+- **Test Grove:** everything unlocked, as now. **Demo:** same rules.
+- HUD: a Dreamlight counter next to Dew (a small glowing mote icon).
 
 ### Omens: choose the next block's twist
 
@@ -211,8 +243,8 @@ Creature Dew does **not** scale with the per-drift health increase; more creatur
 | Thornwall | 3 | Bramble growth: +10 |
 | Sprout | 10 | |
 | Sprout → base Warden | 15–20 | = building the base directly (25–30, current values) |
-| Base → branch | 45 | needs the branch Dream |
-| Branch → final form | 90 | needs the Rare Dream for that branch |
+| Base → branch | 45 | branch unlocked with **1 Dreamlight** |
+| Branch → final form | 90 | final form unlocked with **2 Dreamlight** |
 | Tend a Withered Tree / move a Mossy Boulder | 5 / 8 | needs a clearing Dream first |
 | Nurture a Warden (rank I → V) | 15 / 25 / 40 / 60 / 90 | 230 for rank V; see `warden_stats.md` |
 

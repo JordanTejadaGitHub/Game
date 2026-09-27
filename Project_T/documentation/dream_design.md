@@ -45,17 +45,13 @@ points.
 - **Boss Dreams** (after drifts 25, 50, 75, alongside the family pick): at least one card is Rare
   or better.
 - **Pity:** 3 Dreams in a row without a Rare+ card → the next offer includes one.
-- **Growth slot** (added 2026-09-27; playtests found combos too hard to reach): **every Dream offer
-  includes one growth card** (a branch or final-form unlock for a family you own) while any are
-  still locked. Final forms still only appear at their Rare weight within that slot, so branches
-  come first. You still choose; the other two slots stay as normal. This makes combos like Storm
-  Grid reliable in most runs (the old "1 in 3 by drift 50" target is replaced: aim for **most runs
-  having their first cross-family combo by the act 1 boss**). Wall growths (Bramble, Honeysuckle)
-  are **not** growth-slot cards; they can still appear in the other two slots. Measured (1000-run
-  simulation, aiming for Storm Grid with both families): first cross-family combo by the act 1
-  boss **92–95%**; full Storm Grid by drift 45 **76–79%** (was 67% / 47% before wall growths were
-  excluded). Variety now comes mostly from **which families you're offered**. If complete builds
-  feel too routine in play, the lever is the growth slot's weighting for final forms.
+- **Branches and final forms are no longer Dream cards** (2026-09-27, user decision): they're
+  unlocked with **Dreamlight**, a currency earned from bosses (`run_design.md`, "Dreamlight"). The
+  **growth slot is removed**, and so are all branch / final-form unlock cards (including Thunderhead,
+  Puffball and the Honeysuckle/Bramble wall growths, which become Dreamlight unlocks too). Dreams are
+  now purely stats, rules, combos and economy. Build paths are a **choice**, not luck. (History: the
+  growth slot had reached 92–95% of runs with a cross-family combo by the act 1 boss; Dreamlight
+  makes that deterministic.)
 - **Tag weighting:** cards tagged with a family you own are **2× as likely**. Builds converge
   without being forced.
 - **Prerequisites:** a card never appears if it can't do anything yet (e.g. Stormcap cards need
@@ -328,6 +324,15 @@ from walls (Hedge Maze, Bramble).
   catch up late (ranks + multipliers, and it saves map space for walls). Compare both in the Test
   Grove with the damage meter at drifts 25 and 50.
 
+## Dreamlight cards
+
+Added 2026-09-27 with Dreamlight (`run_design.md`). Cards may *add* Dreamlight, never replace it.
+
+| # | Card | Rarity | Effect | Tags | Pool |
+|---|---|---|---|---|---|
+| 77 | **Sudden Insight** | Uncommon | **+1 Dreamlight** now | dreamlight | Start |
+| 78 | **Borrowed Memory** | Rare, **Bittersweet** | **+2 Dreamlight** now. **Cost:** −2 max leaves | dreamlight, bittersweet | Grove |
+
 ## Deepened cards: repeats become upgrades
 
 Added 2026-09-27. With 19 Dreams from a 33-card pool, repeats are common. Stat cards already
@@ -429,7 +434,8 @@ up with creature health and benefit from stat Dreams and evolutions.
 
 ## Data (`UpgradeData`)
 
-`id`, `display_name`, `description`, `rarity`, `kind` (unlock_evolution / stat / rule / economy;
+`id`, `display_name`, `description`, `rarity`, `kind` (stat / rule / economy; evolutions are
+unlocked with Dreamlight, not cards;
 family unlocks are a separate pick, not a Dream card), `tags: Array[String]`, `requires: Array[String]` (ids of Wardens or cards),
 `max_stacks` (0 = unlimited for stat cards, else 1), `min_act` (Legendary = 2), `in_start_pool: bool`,
 requirement fields (*Card requirements*): `requires_tag` + `requires_tag_count` (e.g. "nurture", 1;

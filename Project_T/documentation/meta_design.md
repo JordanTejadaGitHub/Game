@@ -94,6 +94,7 @@ at 100 each.
 | Morning Stores | 3 | 20 / 40 / 60 | +30 starting Dew (+50%) |
 | Deep Taproot | 3 | 25 / 50 / 75 | +3 max leaves |
 | Early Bloom | 1 | 80 | the first family pick (after drift 1) offers **every** unlocked family instead of 3 random ones |
+| Early Light | 1 | 120 | start every run with **+1 Dreamlight** |
 | Second Thoughts | 2 | 50 / 100 | 2 Dream rerolls per run |
 | Let Go | 1 | 60 | banish 1 card per run (it never appears again that run) |
 | Seed Pouch | 1 | 100 | +10% Seeds |
