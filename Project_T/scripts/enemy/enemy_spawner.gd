@@ -17,4 +17,4 @@ func spawn_enemy(enemy_data: EnemyData) -> void:
 	var path_points = path_layer.current_path
 	if path_points.size() > 0:
 		enemy.set_path(path_points)
-		enemy.position = path_points[0]  # Set initial position at the first waypoint
+		enemy.position = enemy.grid.calculate_map_position(path_points[0])  # Start at the first waypoint (pixels)

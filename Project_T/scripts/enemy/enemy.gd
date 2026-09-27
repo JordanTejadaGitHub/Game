@@ -23,6 +23,8 @@ func _ready() -> void:
 	path_follower.progress = 0.0
 
 func _process(delta: float) -> void:
+	var previous_position := position
+
 	# Move the PathFollow2D along the path
 	path_follower.progress += speed * delta
 
@@ -30,18 +32,19 @@ func _process(delta: float) -> void:
 	position = path_follower.position
 
 	# Update animation based on movement direction
-	var direction = path_follower.get_rotation()
-	update_animation(direction)
+	update_animation(position - previous_position)
 
-func update_animation(direction: float) -> void:
-	# Update animation based on rotation
-	if abs(direction) > 0.25 and abs(direction) < 1.0:  # Moving horizontally
+func update_animation(velocity: Vector2) -> void:
+	# Keep the current animation when not moving (e.g. end of path)
+	if velocity.is_zero_approx():
+		return
+	if abs(velocity.x) >= abs(velocity.y):  # Moving horizontally
 		sprite.play("walk_side")
-		sprite.flip_h = direction < 0  # Flip horizontally if moving left
-	elif direction > 1.0:  # Moving down
+		sprite.flip_h = velocity.x < 0  # Flip horizontally if moving left
+	elif velocity.y > 0:  # Moving down
 		sprite.play("walk_down")
 		sprite.flip_h = false
-	elif direction < -1.0:  # Moving up
+	else:  # Moving up
 		sprite.play("walk_up")
 		sprite.flip_h = false
 

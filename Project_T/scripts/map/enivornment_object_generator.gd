@@ -29,7 +29,7 @@ func initialize(startPath: Vector2i, endPath: Vector2i) -> PackedVector2Array:
 	_generate_outer_layer_of_rocks()
 	return unwalkable_cells
 
-func generate_details_and_trees(unwalkable_path: Array[Vector2i]) -> void:
+func generate_details_and_trees(unwalkable_path: PackedVector2Array) -> void:
 	var noise = noise_texture.noise
 	var noise_val_array: Array[float]
 	var noise_color = noise_texture.color_ramp
@@ -43,7 +43,7 @@ func generate_details_and_trees(unwalkable_path: Array[Vector2i]) -> void:
 	
 	var noise_diff = -noise_val_array.min() + noise_val_array.max()
 	var grass_detail_value = (noise_diff * noise_texture.color_ramp.offsets[1]) + noise_val_array.min()
-	var empty_value = (noise_diff * noise_texture.color_ramp.offsets[2]) + grass_detail_value + noise_val_array.min()
+	var empty_value = (noise_diff * noise_texture.color_ramp.offsets[2]) + noise_val_array.min()
 	var noise_ind = 0
 	#Set cell with object
 	for x in MAP_GRID.size.x:

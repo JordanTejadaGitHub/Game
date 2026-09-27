@@ -108,6 +108,11 @@ func _get_tile_score(tile:Vector2i) -> int:
 	
 	return score
 
+# `path_drawn` is only parented once draw_unit_path() runs; free it ourselves otherwise so it doesn't leak.
+func _exit_tree() -> void:
+	if path_drawn.get_parent() == null:
+		path_drawn.free()
+
 # Stops drawing, clearing the drawn path and the `_pathGenerator`.
 func stop() -> void:
 	_pathGenerator = null

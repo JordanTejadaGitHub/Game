@@ -5,13 +5,13 @@ const MAP_GRID = preload("res://resource/map/map_grid.tres")  # The shared grid 
 
 # Camera movement settings
 @export var camera_speed: float = 1000.0  # Camera movement speed
-@export var movement_smoothness: float = 0.01  # Smoothness factor for movement
+@export var movement_smoothness: float = 12.0  # How quickly the camera catches up to its target (higher = snappier)
 
 # Camera zoom settings
 @export var camera_zoom_in_max: float = 1.4  # Maximum zoom-in level
 @export var camera_zoom_out_min: float = 0.5  # Minimum zoom-out level
 @export var zoom_speed: float = 0.1  # Speed of zoom adjustment
-@export var zoom_smoothness: float = 0.01  # Smoothness factor for zooming
+@export var zoom_smoothness: float = 10.0  # How quickly the zoom catches up to its target (higher = snappier)
 
 # Internal variables
 var target_position: Vector2  # Target position for the camera
@@ -29,9 +29,9 @@ func _ready() -> void:
 
 func _process(delta: float) -> void:
 	_handle_input(delta)  # Handle WASD movement and zoom input
+	_clamp_camera_to_map()  # Keep the target inside the map bounds
 	_smooth_camera_movement(delta)  # Smoothly move the camera
 	_smooth_zoom(delta)  # Smoothly adjust the zoom level
-	_clamp_camera_to_map(delta)  # Smoothly clamp camera to map bounds
 
 # Handle keyboard input for movement and zoom
 func _handle_input(delta: float) -> void:
@@ -56,17 +56,18 @@ func _handle_input(delta: float) -> void:
 		target_zoom.x = clamp(target_zoom.x - zoom_speed, camera_zoom_out_min, camera_zoom_in_max)
 		target_zoom.y = clamp(target_zoom.y - zoom_speed, camera_zoom_out_min, camera_zoom_in_max)
 
-# Smoothly move the camera to the target position
+# Smoothly move the camera to the target position.
+# Using 1 - exp(-k * delta) makes the smoothing feel the same at any frame rate.
 func _smooth_camera_movement(delta: float) -> void:
-	camera_2d.position = camera_2d.position.lerp(target_position, movement_smoothness)
+	camera_2d.position = camera_2d.position.lerp(target_position, 1.0 - exp(-movement_smoothness * delta))
 
 # Smoothly adjust the camera's zoom level
 func _smooth_zoom(delta: float) -> void:
 	# Interpolate zoom as Vector2
-	camera_2d.zoom = camera_2d.zoom.lerp(target_zoom, zoom_smoothness)
+	camera_2d.zoom = camera_2d.zoom.lerp(target_zoom, 1.0 - exp(-zoom_smoothness * delta))
 
-# Smoothly clamp the camera to map boundaries
-func _clamp_camera_to_map(delta: float) -> void:
+# Clamp the camera's target to the map boundaries
+func _clamp_camera_to_map() -> void:
 	var EPSILON = 0.001  # Small buffer to prevent jittering
 
 	var viewport_size = camera_2d.get_viewport_rect().size
@@ -89,6 +90,3 @@ func _clamp_camera_to_map(delta: float) -> void:
 		target_position.y = min_y
 	elif target_position.y > max_y:
 		target_position.y = max_y
-
-	# Smoothly interpolate the target position if it's within bounds
-	camera_2d.position = camera_2d.position.lerp(target_position, movement_smoothness * delta * 10)

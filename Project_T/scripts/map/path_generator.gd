@@ -37,8 +37,6 @@ func calculate_point_path(start: Vector2, end: Vector2) -> PackedVector2Array:
 	var end_index: int = _grid.as_index(end)
 	# We just ensure that the AStar graph has both points defined. If not, we return an empty
 	# PoolVector2Array() to avoid errors.
-	print(_astar.has_point(start_index))
-	print(_astar.has_point(end_index))
 	if _astar.has_point(start_index) and _astar.has_point(end_index):
 		# The AStar2D object then finds the best path between the two indices.
 		return _astar.get_point_path(start_index, end_index)

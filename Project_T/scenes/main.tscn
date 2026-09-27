@@ -230,6 +230,3 @@ script = ExtResource("5_kbv55")
 [node name="Camera2D" type="Camera2D" parent="GameCameraNode"]
 unique_name_in_owner = true
 position = Vector2(640, 384)
-limit_smoothed = true
-position_smoothing_enabled = true
-position_smoothing_speed = 50.0
