@@ -41,9 +41,15 @@ Concept reference: the Environment Assets session's artifact page
   Boulder** stays a readable pale shape.
 - **The start:** mist at the start cell, with pale eyes that open now and then. Dark fog drifts
   along every map edge.
-- **The Heartwood:** a fixed warm moss-gold canopy in every act. It shows **leaves lost (0–20)**:
-  each lost leaf blackens a patch of canopy, black leaves fall, and its hollow and warm light dim.
-  The player should feel the damage by looking at the tree, not just the counter.
+- **The Heartwood** (redesigned 2026-09-27 on the concept page): a slowly twisting trunk with bark
+  grooves and moss on its lit side; roots curling over a ring of moss; the hollow is an **arched
+  doorway full of golden light**. A layered canopy (a darker back layer, front clusters of small
+  leaf clumps) with twinkling dream-leaves; **vines hang from beneath it, each ending in a glowing
+  dream-fruit**; the whole tree sits in a soft warm halo. The canopy stays warm moss-gold in every
+  act.
+- **Damage shows on the tree** as **leaves lost (0–20)**: blackened patches spread across the
+  canopy and black leaves fall, the **dream-fruit darken one by one**, and the halo and the hollow's
+  light dim. The player should feel the damage by looking at the tree, not just the counter.
 
 ## Wardens
 
