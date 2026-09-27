@@ -31,6 +31,12 @@ func _run() -> void:
 	var first_button := bar.get_child(0) as Button
 	_check(first_button.text.is_valid_int() and first_button.get_child(0) is Label and first_button.get_child(0).text == "1",
 		"Warden buttons show the cost and the hotkey (%s)" % first_button.text)
+	# Seedling Gift: a seed badge with the count on the Sprout button, hidden at 0.
+	var hud_node = main.get_node("HUD")
+	_check(hud_node._seed_badge != null and not hud_node._seed_badge.visible, "no seed badge without free Sprouts")
+	run_state.add_sprout_charges(2)
+	_check(hud_node._seed_badge.visible, "free Sprouts show a seed badge on the Sprout button")
+	run_state.add_sprout_charges(-2)
 	for screen in [Vector2i(1920, 1080), Vector2i(1280, 800)]:
 		root.size = screen
 		await _frames(2)

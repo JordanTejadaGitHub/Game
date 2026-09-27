@@ -6,6 +6,8 @@ const UNAFFORDABLE_BUTTON_ALPHA := 0.45
 # Warden bar buttons (bottom centre): 13 of them must fit between the Warden panel and the drift
 # controls at 1280×800 (screens_ui.md principle 6: buttons at least 48 px tall).
 const BUTTON_SIZE := Vector2(46, 60)
+const SPROUT_ID := "sprout"
+const SEED_COLOR := Color(0.6, 0.85, 0.4)
 
 @onready var tower_bar: HBoxContainer = %TowerBar
 @onready var tower_placer: TowerPlacer = %TowerPlacer
@@ -25,6 +27,7 @@ const TOAST_TIME := 2.5
 
 # One toggle button per plantable Warden (unlocked this run), in roster order; `_bar_towers` matches.
 var _tower_buttons: Array[Button] = []
+var _seed_badge: Control = null  # On the Sprout button
 var _bar_towers: Array[TowerData] = []
 var _dew_flash: Tween
 var _leaf_flash: Tween
@@ -37,6 +40,7 @@ func _ready() -> void:
 	# Keep the buttons in sync when build mode is toggled with B / cancelled with Esc or right-click.
 	tower_placer.build_mode_changed.connect(_sync_buttons.unbind(1))
 
+	run_state.sprout_charges_changed.connect(_update_seed_badge)
 	run_state.dew_changed.connect(_on_dew_changed)
 	run_state.dew_short.connect(_on_dew_short.unbind(1))
 	_on_dew_changed(run_state.dew)
@@ -116,10 +120,36 @@ func _build_tower_bar() -> void:
 			hotkey.add_theme_color_override("font_outline_color", Color(0.08, 0.1, 0.14))
 			hotkey.add_theme_constant_override("outline_size", 4)
 			button.add_child(hotkey)
+		if data.get_id() == SPROUT_ID:
+			button.add_child(_make_seed_badge())
 		tower_bar.add_child(button)
 		_tower_buttons.append(button)
 	_sync_buttons()
 	_on_dew_changed(run_state.dew)
+	_update_seed_badge(run_state.sprout_charges)
+
+# Seedling Gift (Roguelite's `RunState.sprout_charges`): free Sprouts, shown as a seed with the
+# count in the Sprout button's top-right corner; hidden at 0.
+func _make_seed_badge() -> Control:
+	_seed_badge = Control.new()
+	_seed_badge.name = "SeedBadge"
+	_seed_badge.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_seed_badge.position = Vector2(BUTTON_SIZE.x - 14, 2)
+	_seed_badge.draw.connect(func() -> void:
+		_seed_badge.draw_set_transform(Vector2(0, 7), -0.5, Vector2(0.7, 1.0))
+		_seed_badge.draw_circle(Vector2.ZERO, 6.0, Color(0.08, 0.1, 0.12))
+		_seed_badge.draw_circle(Vector2.ZERO, 4.5, SEED_COLOR)
+		_seed_badge.draw_set_transform(Vector2.ZERO)
+		var font := ThemeDB.fallback_font
+		var text := str(run_state.sprout_charges)
+		_seed_badge.draw_string_outline(font, Vector2(-2, 22), text, HORIZONTAL_ALIGNMENT_LEFT, -1, 11, 4, Color(0.05, 0.06, 0.08))
+		_seed_badge.draw_string(font, Vector2(-2, 22), text, HORIZONTAL_ALIGNMENT_LEFT, -1, 11, SEED_COLOR.lightened(0.3)))
+	return _seed_badge
+
+func _update_seed_badge(charges: int) -> void:
+	if is_instance_valid(_seed_badge):
+		_seed_badge.visible = charges > 0
+		_seed_badge.queue_redraw()
 
 # Selecting the tower that's already being built leaves build mode; any other enters it.
 func _on_tower_pressed(data: TowerData) -> void:
