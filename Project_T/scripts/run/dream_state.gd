@@ -615,6 +615,10 @@ func _applies_to(card: UpgradeData, data: TowerData) -> bool:
 	return (card.stat_line == "" or card.stat_line == data.line) \
 		and (card.stat_warden == "" or card.stat_warden == data.get_id())
 
+# The cards taken this run whose effect counts (for the Dreams row and reports).
+func get_taken_cards() -> Array[UpgradeData]:
+	return _taken_cards()
+
 # Cards whose effect counts: taken, and not replaced by their Deepened version.
 func _taken_cards() -> Array[UpgradeData]:
 	var replaced := {}
