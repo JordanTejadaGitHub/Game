@@ -95,7 +95,7 @@ Playtests found the game too easy, and Warden ranks (below) add player power, so
 | Lever | Was | Now |
 |---|---|---|
 | Nightmare health growth | ×1.035 per drift (×5.4 by drift 50) | **×1.045 per drift** (×8.6 by drift 50, ×78 by drift 100) |
-| Nightmares per drift | as listed in `acts_1_2.md` | **+25% from drift 10** (rounded up; intro drifts unchanged) |
+| Nightmares per drift | as listed in `acts_1_2.md` | **+25% from drift 10**, applied only to kinds with 3+ in the drift (rounded up); single/paired specials, elites and bosses unchanged; intro drifts unchanged |
 | Starting Dew | 60 | **45** |
 | Refund during a rest | 100% | **75%** |
 | Leaves | 20, +3 per act break | **15, +1 per act break** |

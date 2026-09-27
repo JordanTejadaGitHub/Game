@@ -134,7 +134,7 @@ Pick a level before a run; each level includes all the ones below it. **+10% See
 | 3 | Bosses +25% health |
 | 4 | Drift-clear bonus −25% |
 | 5 | One nightmare per drift is **Deeply Blighted** (×3 health, costs 2 leaves; see `acts_1_2.md`) |
-| 6 | The Heartwood regrows only 1 leaf per act break (instead of 3) |
+| 6 | **No leaves regrow at act breaks** (the normal rule is +1 since difficulty pass v1) |
 | 7 | Nightmares +10% speed |
 | 8 | Dream offers lean Common; *Let it pass* gives no Dew |
 | 9 | Obstacles cost twice as much to tend; maps get one extra ridge |
