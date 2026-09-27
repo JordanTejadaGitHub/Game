@@ -223,6 +223,48 @@ early and often.
   through one function so Cleared Ground stacks apply everywhere; `Burn Back` is a one-shot effect
   + a permanent nightmare speed modifier.
 
+## Nurture cards: growing tall
+
+Added 2026-09-27, for Nurture ranks (`warden_stats.md`, "Ranks: Nurture": rank I–V, 15 / 25 / 40 /
+60 / 90 Dew, each rank +15% damage, +5% attack speed, +0.1 range, kept through evolution).
+Nurture is the "tall" direction, putting Dew into few Wardens instead of more space. These cards
+make it a build choice without breaking its rule: **ranks stay less Dew-efficient than evolving**.
+Evolving is still the better buy when a Dream allows it; Nurture cards make ranks the better buy
+**when the map is full or growth Dreams haven't come**.
+
+| # | Card | Rarity | Effect | Tags | Pool |
+|---|---|---|---|---|---|
+| 60 | **Tender Care** | Common | Nurturing costs **15% less** Dew (stacks, max −45%) | nurture, economy | Start |
+| 61 | **Warm Hands** | Common | each Nurture rank gives **+4% more damage** (15% → 19%; stacks) | nurture | Start |
+| 62 | **Kindred Roots** | Uncommon | each Warden gets **+2% damage per rank of the Wardens touching it** (max +30%) | nurture, maze | Start |
+| 63 | **Remembered Care** | Uncommon | selling a ranked Warden leaves a **memory seed** on the HUD; the next Warden you plant starts at that rank (one seed at a time, the highest one is kept) | nurture | Start |
+| 64 | **Sunlit Rest** | Uncommon | at every rest, your ranked Warden **nearest the Heartwood** that isn't rank V gains a free rank | nurture | Grove |
+| 65 | **Deeper Rings** | Rare | max rank **VII**: VI costs 130, VII costs 180 (same gains per rank) | nurture | Grove |
+| 66 | **Nursery** | Rare, **Entwined** (Tender Care + Seedling Gift) | Seedling Gift's free Sprouts arrive at **rank II**, and Sprouts nurture for half price | nurture, sprout | Grove |
+| 67 | **The Old Ones** | Legendary | each rank also gives **+2% crit chance**; rank V+ Wardens make the Wardens touching them count **one rank higher** (doesn't stack with itself) | nurture, crit | Grove |
+| 68 | **Chosen Few** | Rare, **Bittersweet** | rank V+ Wardens **+50% damage**. **Cost:** Wardens below rank III do −15% damage | nurture, bittersweet | Grove |
+
+- **Offered only when it matters:** Nurture cards need you to have **spent 30+ Dew on ranks** this
+  run (a "you've tried it" gate, like the 8-obstacle rule for clearing cards). After that, the
+  `nurture` tag counts as an owned family for tag weighting (2×).
+- **Walls and auras** can't be nurtured, so none of these cards touch them. Kindred Roots counts
+  the ranks of neighbours that *have* ranks; a Thornwall neighbour gives 0.
+- **Dew-efficiency check:** rank V with 3× Tender Care costs 127 for ~2.2×. A branch costs 45 for
+  ~2×. Evolving still wins on Dew; ranks win on space. Deeper Rings (VII ≈ 2.8× for 540 Dew) is a
+  late-run Dew sink on purpose.
+- **Remembered Care** makes rearranging the maze painless for a tall build: sell a rank V to move
+  it and the next plant is rank V again (it still costs the plant's normal Dew). The seed survives
+  the run save. It's shown as a small glowing seed next to the Dew counter.
+- **Sunlit Rest** picks the Warden nearest the Heartwood by path distance (the same order as group
+  Nurture). If none is ranked, nothing happens (you need to nurture once first).
+- **The Old Ones' neighbour bonus** counts for stats only (not for Deeper Rings' cap, not for Chosen
+  Few's rank V check), so it can't chain.
+- **Deepened:** **Kindred Roots II** +3% per rank (max +45%); **Remembered Care II** keeps two seeds;
+  **Sunlit Rest II** two Wardens per rest.
+- **Data:** `DreamState` gets `get_nurture_cost_multiplier()`, `get_rank_damage_bonus()`,
+  `get_max_rank()`. `Tower.get_nurture_cost()` / `RANK_MAX` read those instead of constants.
+  `RunState` holds the memory seeds.
+
 ## Deepened cards: repeats become upgrades
 
 Added 2026-09-27. With 19 Dreams from a 33-card pool, repeats are common. Stat cards already
