@@ -30,7 +30,8 @@ Next up: step 2 of the build order (leaves, Dew, tower cost, lose condition, HUD
   TowerContainer, EnemyContainer (spawner), HUD, GameCameraNode.
 - `scripts/map/` — `map_generator.gd` orchestrates generation. Note the confusing names:
   `path.gd` defines `class_name PathGenerator` (draws path tiles), `path_generator.gd` defines
-  `class_name FindPath` (AStar2D wrapper). `enivornment_object_generator.gd` is misspelled.
+  `class_name FindPath` (AStar2D wrapper; routes are "sticky": a tiny off-route weight makes ties
+  between equally short routes keep the current route, set by `PathGenerator.draw()`). `enivornment_object_generator.gd` is misspelled.
   Rename via the Godot editor (FileSystem dock), not the shell, so references update.
   `map_generator.gd` is also the pathing/building API: `is_buildable`, `can_block`,
   `get_path_if_blocked`, `block_cell`, `get_path_from`, and the `path_changed` signal.

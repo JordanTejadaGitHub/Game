@@ -8,6 +8,13 @@ class_name FindPath
 var _grid: Grid
 var _astar := AStarGrid2D.new()
 
+# Stepping off the preferred route costs this much extra per cell. It's tiny (the total over the
+# longest possible route stays under 1 step), so paths are still always shortest; it only breaks
+# ties between equally short routes in favour of the one that reuses the most of the old route.
+# Without it, blocking one cell on open ground can make the route jump to a far-away equal-length one.
+var _off_route_weight: float
+var _preferred_cells := PackedVector2Array()
+
 
 # Builds the pathfinding grid. Only `walkable_cells` start out open; everything else is solid.
 func _init(grid: Grid, walkable_cells: Array) -> void:
@@ -20,6 +27,17 @@ func _init(grid: Grid, walkable_cells: Array) -> void:
 	_astar.fill_solid_region(_astar.region, true)
 	for cell in walkable_cells:
 		_astar.set_point_solid(Vector2i(cell), false)
+	_off_route_weight = 1.0 + 1.0 / (grid.size.x * grid.size.y + 1.0)
+	_astar.fill_weight_scale_region(_astar.region, _off_route_weight)
+
+
+# Makes future paths stick to `cells` (the current route) when there's a tie.
+func set_preferred_cells(cells: PackedVector2Array) -> void:
+	for cell in _preferred_cells:
+		_astar.set_point_weight_scale(Vector2i(cell), _off_route_weight)
+	_preferred_cells = cells.duplicate()
+	for cell in _preferred_cells:
+		_astar.set_point_weight_scale(Vector2i(cell), 1.0)
 
 
 # Returns the path found between `start` and `end` as an array of cell coordinates (start and end

@@ -44,6 +44,8 @@ func draw():
 	current_path.clear()
 	current_path_curve.clear_points()
 	current_path = _pathGenerator.calculate_point_path(cell_start_path, cell_end_path)
+	# Later re-routes (towers, cleared obstacles, enemies mid-walk) stick to this route when they can.
+	_pathGenerator.set_preferred_cells(current_path)
 	# And we draw a tile for every cell in the path.
 		
 	for cell in current_path:
