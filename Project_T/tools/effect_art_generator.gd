@@ -713,13 +713,13 @@ func _family_review() -> void:
 		_dreamlight_shard, {note = "Great Dreamcatcher: dropped by a Caught nightmare when dispelled. Loops until collected."})
 	_sheet("echo", Vector2i(64, 64), 6, 16, Vector2i(32, 32), false, "overlay",
 		_echo, {note = "Echo Hollow: play with the repeated Reaction (which can also be drawn at ~60% alpha, lilac-tinted)."})
-	_sheet("rubble", Vector2i(64, 64), 1, 0, Vector2i(32, 32), false, "ground",
-		_rubble, {note = "Rockslide: one path tile of slowing rubble. Draw under nightmares; fade alpha out over its 3 s."})
+	_sheet("rubble", Vector2i(64, 64), 1, 0, Vector2i(32, 32), true, "ground",
+		_rubble, {note = "Rockslide: one path tile of slowing rubble. Draw under nightmares. Loops: Fx.play(&\"rubble\", tile, world, 1.0, true, 3.0) holds it 3 s and fades it out."})
 	_sheet("landing_dust", Vector2i(64, 64), 6, 18, Vector2i(32, 40), false, "hit", _landing_dust,
 		{note = "Cairn / Rockslide: where the lobbed stone lands. Anchor = impact point."})
 	_sheet("peck_spark", Vector2i(16, 16), 4, 24, Vector2i(8, 8), false, "hit", _peck_spark,
 		{note = "Hummingbird: one per peck (6-8 a second), so it's tiny and quick."})
-	_sheet("lob_shadow", Vector2i(16, 8), 1, 0, Vector2i(8, 4), false, "shadow", _lob_shadow,
+	_sheet("lob_shadow", Vector2i(16, 8), 1, 0, Vector2i(8, 4), true, "shadow", _lob_shadow,
 		{note = "Under a lobbed stone, on the ground below it; scale it down as the stone rises."})
 
 func _caught(img: Image, f: int) -> void:
