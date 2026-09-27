@@ -54,11 +54,21 @@ roots, with **three sections**. Each node costs Seeds and needs its parent node(
                   [ the Heartwood ]
 ```
 
-**How it looks and works** (`screens_ui.md`, meta screens): the Heartwood at the bottom, the three
-limbs branching up. Each node is a bud (locked, cost shown), a glowing bud (affordable, parents
-owned) or a bloom (owned). Tap or click a node for its card and a **Plant** button. Pan and zoom
-like the map. A Seeds counter top left; a **Memories** shelf; **Start run** opens the loadout
-(below) first.
+**How it looks and works: the tree *is* the Heartwood** (user decision 2026-09-27;
+`screens_ui.md`, meta screens):
+- The screen shows **the Heartwood itself**, at night, from its roots up. Its three great limbs are
+  the three sections (Perks left, Families middle, Cards right). Every node is a spot on a branch.
+- **Locked nodes** are bare twigs with a closed bud (cost shown). **Affordable nodes** (parents
+  owned, enough Seeds) glow faintly.
+- **Planting a node grows the branch** out to it with a short animation, and **a flower blooms**
+  there, its colour by section (e.g. gold for Perks, green for Families, violet for Cards). Owned
+  nodes stay in bloom, so **the more you unlock, the fuller and brighter the Heartwood gets**.
+- **Memories hang as dream-fruit** (the glowing fruit from the Heartwood's art): a new fruit appears
+  every 3 nodes planted; tapping it plays that Memory.
+- Tap or click a node for its card and a **Plant** button (no hover needed). Pan and zoom like the
+  map. A Seeds counter top left; **Start run** opens the loadout (below) first.
+- **Carried into the run** (optional, cosmetic): the in-run Heartwood sprite shows a few of the
+  player's flowers and dream-fruit, so the tree on the map reflects their progress.
 
 ### Section 1: Perks (bring into the game)
 
@@ -173,8 +183,8 @@ of the Perks limb once they're designed (`design_plan.md` topic 9); not in the f
 
 ### Memories and the tree
 
-A Memory fragment blooms **every 3 nodes planted** (plus the milestone ones below), shown as a leaf
-on the Memories shelf. About 55 nodes, so all 10 Memories arrive well before the tree is complete.
+A Memory fragment appears **every 3 nodes planted** (plus the milestone ones below), as a
+**dream-fruit** hanging from the Heartwood's branches. About 55 nodes, so all 10 Memories arrive well before the tree is complete.
 
 ## Milestones (free unlocks; double as Steam achievements)
 
