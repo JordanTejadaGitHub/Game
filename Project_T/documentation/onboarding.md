@@ -99,6 +99,6 @@ once"*).
 
 ## Demo fit
 
-The demo has no meta (`demo_scope.md`): a demo run is act 1 (drifts 1–25), taught exactly as run
-1 above. At the end, the Grove parts are replaced by a **teaser** (the Grove asleep, with the
+The demo has no meta (`demo_scope.md`): a demo run is acts 1–2 (drifts 1–50), taught exactly as
+run 1 above. At the end, the Grove parts are replaced by a **teaser** (the Grove asleep, with the
 player's banked Seeds) and a wishlist screen.
