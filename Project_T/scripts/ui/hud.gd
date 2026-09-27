@@ -6,6 +6,10 @@ const UNAFFORDABLE_BUTTON_ALPHA := 0.45
 # Warden bar buttons (bottom centre): 13 of them must fit between the Warden panel and the drift
 # controls at 1280×800 (screens_ui.md principle 6: buttons at least 48 px tall).
 const BUTTON_SIZE := Vector2(46, 60)
+const BUTTON_MIN_WIDTH := 32.0
+# Half-width taken from each side: the Warden panel (16–316 px) or the drift controls (272 px + 16),
+# plus a small gap; the wider of the two, so the centred bar clears both.
+const BAR_CLEARANCE := 324.0
 const SPROUT_ID := "sprout"
 const SEED_COLOR := Color(0.6, 0.85, 0.4)
 
@@ -35,6 +39,7 @@ var _toast_tween: Tween
 
 func _ready() -> void:
 	_build_tower_bar()
+	get_viewport().size_changed.connect(_fit_tower_bar)
 	# New Wardens unlocked by Dreams appear in the bar (and prices can change).
 	dream_state.unlocks_changed.connect(_build_tower_bar)
 	# Keep the buttons in sync when build mode is toggled with B / cancelled with Esc or right-click.
@@ -127,6 +132,30 @@ func _build_tower_bar() -> void:
 	_sync_buttons()
 	_on_dew_changed(run_state.dew)
 	_update_seed_badge(run_state.sprout_charges)
+	_fit_tower_bar()
+
+# The bar is centred at the bottom and must stay clear of the Warden panel (left) and the drift
+# controls (right): buttons shrink from BUTTON_SIZE.x down to BUTTON_MIN_WIDTH as Wardens are added
+# or the screen gets narrower (screens_ui.md principle 6: still 60 px tall).
+func _fit_tower_bar() -> void:
+	if _tower_buttons.is_empty():
+		return
+	var half := get_viewport().get_visible_rect().size.x / 2.0 - BAR_CLEARANCE
+	var gap := tower_bar.get_theme_constant("separation")
+	var n := _tower_buttons.size()
+	var width := clampf(floorf((half * 2.0 - gap * (n - 1)) / n), BUTTON_MIN_WIDTH, BUTTON_SIZE.x)
+	for button in _tower_buttons:
+		button.custom_minimum_size = Vector2(width, BUTTON_SIZE.y)
+		button.add_theme_constant_override("icon_max_width", int(width) - 12)
+		if button == _seed_badge_button():
+			_seed_badge.position.x = width - 14
+	# Centre it from the computed width (the container only re-sorts its children next frame).
+	var total := width * n + gap * (n - 1)
+	tower_bar.offset_left = -total / 2.0
+	tower_bar.offset_right = total / 2.0
+
+func _seed_badge_button() -> Button:
+	return _seed_badge.get_parent() as Button if is_instance_valid(_seed_badge) else null
 
 # Seedling Gift (Roguelite's `RunState.sprout_charges`): free Sprouts, shown as a seed with the
 # count in the Sprout button's top-right corner; hidden at 0.

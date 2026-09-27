@@ -8,6 +8,9 @@ class_name RestReport
 const COMBO_LINES := {&"conducted": "Lightning through Damp", &"popped": "Spore pops", &"asleep": "Put to sleep",
 	&"crit": "Critical hits", &"weak": "Hits on weaknesses", &"marked": "Hits on Marked", &"fog": "Spores in fog",
 	&"static": "Static bolts"}
+# Reaction damage tags that aren't a Reaction's own id (Echo Hollow's repeats): kept off the combo
+# lines like the Reactions themselves.
+const REACTION_TAGS: Array[StringName] = [&"echo", &"lightning_rod", &"dawnbreak"]
 
 @onready var drift_director: DriftDirector = %DriftDirector
 
@@ -46,7 +49,8 @@ static func get_report_text(log: DamageLog, period: String, counts: Dictionary, 
 	for i in top.size():
 		lines.append("%d. %s — %d" % [i + 1, top[i].name, roundi(top[i].amount)])
 	# Reaction damage is tagged too (thunderclap, ignite, …); those are counted on the Reactions line.
-	var tags := counts.keys().filter(func(tag: StringName) -> bool: return Reactions.get_data(tag) == null)
+	var tags := counts.keys().filter(func(tag: StringName) -> bool:
+		return Reactions.get_data(tag) == null and not REACTION_TAGS.has(tag))
 	tags.sort_custom(func(a: StringName, b: StringName) -> bool: return counts[a] > counts[b])
 	for tag in tags.slice(0, 3):
 		lines.append("%s: %d times" % [COMBO_LINES.get(tag, String(tag)), counts[tag]])
