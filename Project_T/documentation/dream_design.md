@@ -180,14 +180,16 @@ build direction with that trade-off intact.
 **Clearing is locked until you take one of these cards** (decided 2026-09-27). Until then,
 obstacles are fixed terrain you plan around. **Taking any clearing card (54–58) unlocks clearing
 for the rest of the run**, at the normal cost (5 / 8 Dew) plus that card's effect. To keep the
-option reachable, clearing cards get **2× weight until you own one** (on maps with 8+ obstacles).
+option reachable, clearing cards get **2× weight until you own one** (on maps with 8+ obstacles),
+and **all of them are Common except Burn Back** (user decision, 2026-09-27), so clearing shows up
+early and often.
 
 | # | Card | Rarity | Effect | Tags | Pool |
 |---|---|---|---|---|---|
 | 54 | **Cleared Ground** | Common | clearing obstacles costs **40% less** Dew (stacks, minimum 1 Dew) | clearing, economy | Start |
-| 55 | **Heartwood's Reach** | Uncommon | gain **4 free clears**; use them any time (a charge counter on the HUD; unused charges last all run). Deepened II: 7 | clearing | Start |
-| 56 | **Reclaimed Earth** | Uncommon | each obstacle you clear gives **+8 Dew**, and the cell is left **fertile**: the first Warden planted there costs 50% less | clearing, economy | Start |
-| 57 | **Tended Forest** | Rare | **+1% damage for every obstacle cleared this run** (max +25%; clears from before the card count) | clearing, maze | Start |
+| 55 | **Heartwood's Reach** | Common | gain **4 free clears**; use them any time (a charge counter on the HUD; unused charges last all run). Deepened II: 7 | clearing | Start |
+| 56 | **Reclaimed Earth** | Common | each obstacle you clear gives **+8 Dew**, and the cell is left **fertile**: the first Warden planted there costs 50% less | clearing, economy | Start |
+| 57 | **Tended Forest** | Common | **+1% damage for every obstacle cleared this run** (max +25%; clears from before the card count) | clearing, maze | Start |
 | 58 | **Burn Back the Dead Wood** | Rare, **Bittersweet** | clear **every Withered Tree** on the map right now. **Cost:** nightmares +10% speed for the rest of the run | clearing, bittersweet | Grove |
 
 - **Offered only when it matters:** clearing cards need at least **8 obstacles** left on the map
