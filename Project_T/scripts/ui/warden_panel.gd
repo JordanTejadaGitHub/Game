@@ -78,7 +78,7 @@ func _refresh() -> void:
 	var sell := _add_button("Sell · +%d Dew%s" % [refund, "" if drift_director.is_build_phase() else " (half during a drift)"])
 	sell.pressed.connect(func() -> void: tower_seller.sell(_tower.cell))
 	if not tower_seller.can_sell():
-		sell.text = "Rooted: no selling while creatures walk (Overgrown)"
+		sell.text = "Rooted: no selling while nightmares walk (Overgrown)"
 		sell.disabled = true
 	var close := _add_button("Close")
 	close.pressed.connect(tower_seller.select.bind(null))

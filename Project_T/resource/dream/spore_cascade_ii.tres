@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "spore_cascade_ii"
 display_name = "Spore Cascade II"
-description = "A cleansed creature's Spored stacks spread to the 3 nearest creatures."
+description = "A dispelled nightmare's Spored stacks spread to the 3 nearest nightmares."
 rarity = 2
 kind = 3
 tags = Array[String](["spore"])
