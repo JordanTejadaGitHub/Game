@@ -101,7 +101,7 @@ it's the family that **cashes in** Marked, Held and Drowsy, and the answer to th
 | A+ | Boulderback | hit splashes to nearby tiles; guaranteed crit on Drowsy | — | Marked, Drowsy |
 | B | Standing Stone | **sniper**: range 8, one slow heavy shot; more damage the further the target; can't hit nightmares right beside it (minimum range 2) | — | distance, Marked, Held |
 | B+ | Moonstone | range 10; its **first hit on each nightmare is always a crit** | — | distance, Marked, Held |
-| Hidden | Cairn | **mortar**: a stack of stones that lobs its top stone over the maze onto a tile up to 6 cells away, splashing everything there | — | crowds, chokepoints, Held |
+| Hidden | Cairn | **mortar**: a golem beside a stone cairn lobs the top stone over the maze onto a tile up to 6 cells away, splashing everything there | — | crowds, chokepoints, Held |
 | Hidden+ | Rockslide | bigger splash; leaves **rubble** on the path that slows for 3 s | — | crowds, chokepoints, Held |
 
 **Dewdrop line**
