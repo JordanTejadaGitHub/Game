@@ -32,8 +32,12 @@ run, after drifts 1, 3, 5★, 7, 9, 10★, 12, 14 (see `run_design.md`). Numbers
   without being forced.
 - **Prerequisites:** a card never appears if it can't do anything yet (e.g. Stormcap cards need
   Firefly Jar).
-- **Stacking:** stat cards can be taken up to 3 times (shown as "II", "III"); everything else once.
+- **Stacking:** stat cards (Commons 1–7) **stack without limit** (shown as "II", "III", …);
+  everything else once. Stacks add, not multiply (3× Quickened Sap = +30%, not +33.1%), so power
+  grows in a straight line. In practice 8 Dreams per run caps it (+80% at the extreme), and Grove
+  perks that add Dreams or rerolls are what push it further; watch those in balancing.
 - **Let it pass:** you may skip a Dream for +15 Dew. A cozy escape hatch when nothing fits.
+- **Target:** a deliberate dream build (e.g. Storm Grid) completes in about **1 run in 3**.
 - **Reroll / banish:** not in the base game; Memory Grove perks add them (see `game_design.md`).
 
 ## What an unlock card says
@@ -112,8 +116,9 @@ Needs: 2 bases, 2 branches, Thunderhead, Conductive Soil = **6 of 8 Dreams**.
 - Branch cards are 2× likely once their base is owned; the boss Dreams guarantee a Rare, and
   both Thunderhead and Conductive Soil are Rares with matching tags.
 - Estimate: the full build lands in roughly **1 run in 3** if you aim for it, and a partial
-  version (without Thunderhead) in most runs. That feels right for a roguelite: the dream build is
-  a highlight, not a given. Verify with a quick offer simulation once `UpgradeData` exists.
+  version (without Thunderhead) in most runs. **That's the agreed target**: the dream build is a
+  highlight, not a given. Verify with a quick offer simulation once `UpgradeData` exists, and tune
+  tag weighting (2×) up or down to hit it.
 
 ## Status effect numbers
 
@@ -135,6 +140,6 @@ up with creature health and benefit from stat Dreams and evolutions.
 
 `id`, `display_name`, `description`, `rarity`, `kind` (unlock_warden / unlock_evolution / stat /
 rule / economy), `tags: Array[String]`, `requires: Array[String]` (ids of Wardens or cards),
-`max_stacks` (3 for stat cards, else 1), `min_act` (Legendary = 2), `in_start_pool: bool`,
+`max_stacks` (0 = unlimited for stat cards, else 1), `min_act` (Legendary = 2), `in_start_pool: bool`,
 plus effect parameters (stat modifiers: target line + stat + amount; or a `rule_id` the game
 checks for).
