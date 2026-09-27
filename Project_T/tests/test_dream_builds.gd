@@ -268,6 +268,8 @@ func _test_reaction_cards() -> void:
 		"Dawnbreak is a Legendary: act 2+")
 	dreams.unlocked["lanternmoth"] = true  # Marked: + Lightning Rod (Marked + Static)
 	_check(dreams.count_reaction_pairs() == 4, "Lanternmoth adds Lightning Rod")
+	dreams.unlocked["tangleroot"] = true  # Held: + Shatter, Pinned, Smother
+	_check(dreams.count_reaction_pairs() == 7, "Tangleroot's Held adds Shatter, Pinned and Smother (%d)" % dreams.count_reaction_pairs())
 
 # --- Helpers --------------------------------------------------------------------------------------
 

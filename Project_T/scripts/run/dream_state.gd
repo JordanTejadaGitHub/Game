@@ -52,6 +52,8 @@ const FIRST_PICK_DREAMLIGHT := 1
 const BOSS_DREAMLIGHT := 3
 const BRANCH_DREAMLIGHT := 1  # Branch, hidden branch, wall growth
 const FINAL_DREAMLIGHT := 2  # Final form (needs its branch)
+# Wardens that hold nightmares in place (Held) without a freeze: the Rootling line's roots.
+const HELD_SOURCES: Array[String] = ["tangleroot", "snugroot"]
 # Reactions and the statuses they need (each entry: statuses where any one will do).
 const REACTIONS := {
 	&"thunderclap": [[&"damp"], [&"static"]], &"ignite": [[&"spored"], [&"static"]],
@@ -893,7 +895,10 @@ func owned_statuses() -> Dictionary:
 			continue
 		if data.applies_status != &"":
 			statuses[data.applies_status] = true
-		if data.freeze_duration > 0.0:
+		if data.freeze_duration > 0.0 or HELD_SOURCES.has(data.get_id()):
+			statuses[EnemyStatuses.HELD] = true
+	for id in HELD_SOURCES:  # Also when only unlocked by id (not in the roster or a card yet)
+		if is_unlocked(id) and not unlock_everything:
 			statuses[EnemyStatuses.HELD] = true
 	return statuses
 
