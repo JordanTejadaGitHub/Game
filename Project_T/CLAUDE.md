@@ -21,8 +21,10 @@ data-driven enemy (Leaf Bug), **tower building** (build mode, placement validati
 the route zig-zag, plus noise tree clusters and scattered rocks; outside build mode, hover shows
 cost + the route that would open, left-click clears. Obstacles are "Withered Tree" (Tend) and
 "Mossy Boulder" (Move); `RunState.obstacles_tended` counts clears for +1 Seed each at run end).
-**Run structure** (`documentation/run_design.md`): act 1 only for now (5 drifts; winning = clearing
-drift 5). See "Run flow" below.
+**Run structure** (`run_design.md`, `acts_1_2.md`, `demo_scope.md`): the demo run, drifts 1–50 in
+blocks of 5 with rests, Old Stag at 25, Great Toad at 50 (winning = clearing drift 50). Title
+screen, pause menu, settings, results with Seeds, mid-run save. See "Run flow" and "Run end,
+saving, onboarding" below.
 Design, build order and story: `documentation/game_design.md` (overview), `tower_design.md`
 (Wardens, statuses, synergies), `enemy_design.md` (creature roster), `documentation/story.md` (cozy tone;
 enemies are "blighted creatures", towers are "Wardens", gold is "Dew", lives are "leaves").
@@ -33,8 +35,9 @@ through `run_state.spend_dew(cost)` (returns false + emits `dew_short` when shor
 directly. HUD shows the Dew counter (`%DewLabel`), dims unaffordable Warden buttons.
 **Statuses, evolutions, Dreams** (first-playable scope of tower_design.md / dream_design.md): see
 "Dreams and Wardens" below.
-Next up: results screen with Seeds, title + scene flow, meta (Memory Grove, save), acts 2–3 drifts,
-Old Stag's Thornwall knock-down, Rootling/Pebbling/Acorn branches, Grove-only Dream cards.
+Next up (full game, after the demo): Memory Grove (spending Seeds, `UnlockData`), Memories 2–10,
+Blight Levels, acts 3–4 drifts and bosses (Mother Moth, Hollow Oak), Pebbling/Rootling/Acorn
+branches, final forms; localization; audio; replacing the Foozle placeholder art.
 
 ## Dreams and Wardens
 - `EnemyStatuses` (RefCounted on each enemy, `enemy.statuses`): damp, drowsy, spored, marked,
@@ -85,26 +88,60 @@ Old Stag's Thornwall knock-down, Rootling/Pebbling/Acorn branches, Grove-only Dr
 ## Run flow
 - `RunState` also holds leaves (`starting_leaves` 20, `max_leaves`), `lose_leaves` / `regrow_leaves`,
   `end_run(won)` + `run_ended` signal, `is_over`. `earn_dew_at(amount, pos)` = add Dew + popup.
-- `DriftDirector` (`%DriftDirector`, `scripts/run/drift_director.gd`): `drifts: Array[DriftData]`
-  (`resource/drift/act1/drift_N.tres`). Build phase = no drift on the field; `start_next_drift()` is
-  Start Drift, or call early once the latest drift finished arriving (bonus: +1 Dew per 2 s skipped,
-  estimated from the slowest creature's remaining walk, capped at the drift's clear bonus). Tracks
-  creatures per drift (`_drift_of`), pays the clear bonus (15 + 5×n, +5 if no leaf lost) when a
-  drift's last creature is resolved, regrows leaves at act breaks (every `drifts_per_act`), wins
-  after the last drift. Non-boss health × `health_growth_per_drift`^(n-1).
+- `DriftDirector` (`%DriftDirector`, `scripts/run/drift_director.gd`): blocks of 5
+  (`drifts_per_block`), acts of 25 (`drifts_per_act`, the act's last drift is its boss). `drifts`
+  loads `resource/drift/demo/drift_01..50.tres` when empty. The run starts `resting`; Start
+  (`start_next_drift()` / `start_next_block()`) begins a block; its drifts FLOW (the next starts
+  `auto_drift_delay` s after the previous finished arriving; `set_auto_drift()`); starting one while
+  the current is still arriving = call early (+1 Dew / 2 s of arrival skipped, cap 10). Once a
+  block's last drift arrived and the field is clear: rest bonus (20 + 10×block, +10 perfect
+  block, + Dreams) → `rest_started(block, is_boss_rest, bonus, perfect)`; boss rests are act breaks
+  (+3 leaves, `act_started`). `family_pick_requested(&"first"|&"boss")` fires after drift 1 and
+  before a boss rest; `FamilyPickScreen` calls `family_picked()`. `is_build_phase()` = resting
+  (100% refunds). Health × 1.035^(n−1) (bosses fixed). Hooks for Dreams/Omens:
+  `get_health_multiplier`, `get_schedule_modifiers`, `get_spawn_modifiers`, `_pay_rest_bonus`.
 - Drift data: `DriftData.groups: Array[DriftGroup]`; `DriftGroup.entries: Array[DriftEntry]`
-  (enemy + count, several entries mix evenly), `spacing`, `delay`. `get_schedule()` gives arrival times.
-- `EnemyData`: `display_name`, `leaf_cost`, `is_boss`, `sprite_scale`, `split_into`/`split_count`
-  (Puffcap → 3 Puffcaplets). Creatures: `resource/enemy/*.tres` (Old Stag uses Bark Beetle frames).
-  `EnemyContainer.spawn_enemy(data, health_scale)` returns the enemy; signals `enemy_cleansed`,
-  `enemy_reached_goal`, `enemy_split` (emitted before the parent's `enemy_cleansed`).
+  (enemy + count + `elite`; several entries mix evenly), `spacing`, `delay`. `get_schedule()` →
+  `[[time, EnemyData, elite], …]`. The demo list mirrors the acts_1_2.md table (mixed drifts spread
+  over 25 s in act 1, 30 s in act 2).
+- `EnemyData`: `display_name`, `leaf_cost`, `is_boss`, `sprite_scale`, `tint` (placeholder recolour),
+  `cleanse_line` (boss toast), `split_into`/`split_count`, `trait_kind` (NONE, FLYING, ROLLING,
+  TRAMPLE, LEAP) with its numbers, `followers`/`follower_count` (Mother Duck → Ducklings, who get
+  `lost` if she's cleansed first). Elites (Deeply Blighted) are a spawn flag: ×3 health/Dew, 2
+  leaves (`enemy.get_dew_reward()`, `get_leaf_cost()`). Every act 1–2 creature has its own art
+  (`assets/creatures/`, `animation/enemy/`); `tint` / `sprite_scale` are only for placeholders.
+  `EnemyContainer.spawn_enemy(data, health_scale, modifiers, elite)`; flyers path straight
+  start→end and are skipped by `get_maze_walkers()` (the path rule / re-routing); signals
+  `enemy_cleansed`, `enemy_reached_goal`, `enemy_split` (split children and followers, emitted
+  before the parent's cleanse), `wall_trampled`. `tests/test_creatures.gd`.
 - Selling: `TowerSeller` (`%TowerSeller`): outside build mode, hover a Warden, RMB / Delete sells for
-  `Tower.invested_dew` × 100% (build phase) or 50% (during a drift); `MapGenerator.unblock_cell`.
+  `Tower.invested_dew` × 100% (resting) or 50% (walking); `MapGenerator.unblock_cell`.
 - Speed: `GameSpeed` (`%GameSpeed`): pause = `get_tree().paused`, speed = `Engine.time_scale`.
   Build/clear/sell tools, HUD, camera and GameSpeed are `process_mode = ALWAYS` so building works
   while paused; the camera divides delta by time_scale so panning stays real-time.
-- HUD: `%LeavesLabel`, `%ToastLabel` (`show_toast`), `DriftPanel` (`scripts/ui/drift_panel.gd`:
-  drift label, Start/call-early button, speed buttons), win/lose panel with "New run" (reloads scene).
+- HUD: `%LeavesLabel`, `%PathLabel` (path length), `%ToastLabel` (`show_toast`), `DriftPanel`
+  (drift/act label, status line, Start / call-early button, Auto-drift toggle, speed buttons).
+  `Seasons` (CanvasModulate) tints the world per act. `tests/test_run.gd`.
+
+## Run end, saving, onboarding
+- Scene flow: `scenes/title.tscn` (main scene; Continue / New run / Settings / Credits / Quit) →
+  `scenes/main.tscn`. Project settings `game/demo` (true) and `game/wishlist_url`.
+- `HeartwoodMemory` (`scripts/meta/heartwood_memory.gd`, static, `user://heartwood.json`): banked
+  Seeds, run counts, `whispers_seen`, settings (volumes, fullscreen, whispers, keybinds);
+  `apply_settings()`. `SettingsPanel` edits it (title + pause menu).
+- Seeds: `RunState.get_seed_breakdown()` (meta_design.md formula + first-run +20).
+  `ResultsScreen` (`%ResultsScreen`) shows it on `run_ended`, banks it, and in the demo shows the
+  Deep Wood ending, Memory 1, the sleeping Grove teaser and a Wishlist button.
+- `RunSaver` (`%RunSaver`, `user://run.json`): autosaves each rest once no choice screen is open;
+  `resume_next` (set by Continue) rebuilds the run from the save (map seed, tended cells, Wardens,
+  counters, `DreamState`/`OmenDirector` `to_save`/`load_save`). `PauseMenu` (Esc): Resume,
+  Settings, Save & Quit. `tests/test_save.gd`.
+- **Tests never touch the player's saves:** autosave, Seed banking and whispers only write when
+  `main.tscn` is the running scene (`get_tree().current_scene == owner`); tests add it under root
+  by hand. `RunSaver.file_path` / `HeartwoodMemory.file_path` can point at temp files. Don't smoke
+  run with `--scene res://scenes/main.tscn` (that IS the real game and writes to user://).
+- `Whispers` (`%Whispers`): onboarding.md's Heartwood whispers, each once ever; first run glides the
+  camera along the path (`GameCameraNode.glide`). The build ghost shows "+N path".
 
 ## Layout
 - `scenes/main.tscn` — root scene: MapGenerator (Ground / Path / EnvironmentObject TileMapLayers),

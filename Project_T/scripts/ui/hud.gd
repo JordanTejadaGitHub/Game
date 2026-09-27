@@ -38,9 +38,15 @@ func _ready() -> void:
 
 	run_state.leaves_changed.connect(_on_leaves_changed)
 	_on_leaves_changed(run_state.leaves, run_state.max_leaves)
-	run_state.run_ended.connect(_on_run_ended)
 	dream_state.card_taken.connect(func(card: UpgradeData) -> void: show_toast("Dreamed: %s" % card.display_name))
 	drift_director.rest_started.connect(_on_rest_started)
+	# Path length ("Wardens are walls: make their walk longer").
+	var map_generator = %MapGenerator
+	var path_label: Label = %PathLabel
+	var update_path := func() -> void:
+		path_label.text = "Path %d tiles" % map_generator.get_path_from(map_generator.startPath).size()
+	map_generator.path_changed.connect(update_path)
+	update_path.call()
 	drift_director.act_started.connect(_on_act_started)
 	var spawner = %EnemyContainer
 	spawner.enemy_cleansed.connect(func(enemy: Node2D) -> void:
@@ -149,36 +155,6 @@ func show_toast(text: String) -> void:
 	_toast_tween = create_tween()
 	_toast_tween.tween_interval(TOAST_TIME)
 	_toast_tween.tween_property(toast_label, "modulate:a", 0.0, 0.6)
-
-# Win / lose panel with the run's numbers and a Restart button (restarting reloads the scene).
-func _on_run_ended(won: bool) -> void:
-	var panel := PanelContainer.new()
-	panel.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
-	panel.grow_horizontal = Control.GROW_DIRECTION_BOTH
-	panel.grow_vertical = Control.GROW_DIRECTION_BOTH
-	var box := VBoxContainer.new()
-	box.add_theme_constant_override("separation", 12)
-	panel.add_child(box)
-
-	var title := Label.new()
-	title.text = "The Heartwood is safe" if won else "The Heartwood goes dormant"
-	title.add_theme_font_size_override("font_size", 32)
-	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	box.add_child(title)
-
-	var details := Label.new()
-	details.text = "Drifts cleansed: %d / %d\nLeaves left: %d\nTended: %d → +%d Seeds" % [
-		drift_director.drifts_cleared, drift_director.get_total_drifts(), run_state.leaves,
-		run_state.obstacles_tended, run_state.obstacles_tended]
-	details.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	box.add_child(details)
-
-	var restart := Button.new()
-	restart.text = "New run"
-	restart.focus_mode = Control.FOCUS_NONE
-	restart.pressed.connect(func() -> void: get_tree().reload_current_scene())
-	box.add_child(restart)
-	add_child(panel)
 
 # First idle frame of the tower's sheet.
 func _tower_icon(data: TowerData) -> Texture2D:

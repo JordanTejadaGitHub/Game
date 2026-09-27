@@ -110,8 +110,22 @@ func _draw() -> void:
 		var frame := tower_data.get_frame_rect(0)
 		draw_texture_rect_region(tower_data.texture, Rect2(-frame.size / 2.0, frame.size), frame, tint)
 	var tag := "%s · %d Dew" % [tower_data.display_name, get_cost()]
+	var growth := get_hover_path_growth()
+	if growth != 0:
+		tag += "  ·  %+d path" % growth  # "Wardens are walls": how much longer the walk gets
 	WorldLabel.draw_tag(self, 0.0, MAP_GRID.cell_size.y / 2.0 + 18.0, tag,
 		WorldLabel.cost_color(_hover_affordable))
+
+# How many tiles longer creatures would walk if the ghost were built (0 if it can't be).
+func get_hover_path_growth() -> int:
+	if _hover_path.is_empty():
+		return 0
+	return _hover_path.size() - map_generator.get_path_from(map_generator.startPath).size()
+
+# The hovered cell is free but building there would cut creatures off (the forest's rule).
+func hover_breaks_path() -> bool:
+	return build_mode and _hover_cell != NO_CELL and map_generator.is_buildable(_hover_cell) \
+		and _hover_path.is_empty()
 
 # Recomputes the route preview for the hovered cell (only needed when the cell or the maze changes).
 func _refresh_hover() -> void:

@@ -20,6 +20,7 @@ var target_zoom: Vector2  # Target zoom level (Vector2 for consistency)
 var map_size_pixels: Vector2  # Map size in pixels, calculated from MAP_GRID
 
 func _ready() -> void:
+	add_to_group(&"game_camera")
 	# Calculate map size in pixels from the grid
 	map_size_pixels = MAP_GRID.size * MAP_GRID.cell_size
 
@@ -27,14 +28,42 @@ func _ready() -> void:
 	target_position = camera_2d.position
 	target_zoom = camera_2d.zoom
 
+var _glide_points := PackedVector2Array()  # Onboarding glide along the path (pixels)
+var _glide_time := 0.0
+var _glide_duration := 0.0
+
+# Glides the camera along `points` (pixels) over `duration` seconds, ending on the last one. Any
+# camera key cancels it. Used on a first run to show where creatures go (onboarding.md).
+func glide(points: PackedVector2Array, duration: float = 5.0) -> void:
+	if points.size() < 2:
+		return
+	_glide_points = points
+	_glide_time = 0.0
+	_glide_duration = duration
+
 func _process(delta: float) -> void:
 	# The camera runs in real time: game speed (2×/3×) shouldn't make panning faster.
 	if Engine.time_scale > 0.0:
 		delta /= Engine.time_scale
+	if not _glide_points.is_empty():
+		_advance_glide(delta)
 	_handle_input(delta)  # Handle WASD movement and zoom input
 	_clamp_camera_to_map()  # Keep the target inside the map bounds
 	_smooth_camera_movement(delta)  # Smoothly move the camera
 	_smooth_zoom(delta)  # Smoothly adjust the zoom level
+
+func _advance_glide(delta: float) -> void:
+	for action in ["move_camera_up", "move_camera_down", "move_camera_left", "move_camera_right"]:
+		if Input.is_action_pressed(action):
+			_glide_points = PackedVector2Array()  # The player takes over
+			return
+	_glide_time += delta
+	var t := clampf(_glide_time / _glide_duration, 0.0, 1.0)
+	var index := t * (_glide_points.size() - 1)
+	var i := mini(int(index), _glide_points.size() - 2)
+	target_position = _glide_points[i].lerp(_glide_points[i + 1], index - i)
+	if t >= 1.0:
+		_glide_points = PackedVector2Array()
 
 # Handle keyboard input for movement and zoom
 func _handle_input(delta: float) -> void:
