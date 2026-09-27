@@ -65,7 +65,8 @@ like the map. A Seeds counter top left; a **Memories** shelf; **Start run** open
 Perks are **unlocked** in the tree, then **equipped** in a small **loadout** before each run
 ("Carry into the dream"). You own many but carry few, so the loadout is a choice every run.
 
-- **Loadout slots:** 1 at the start; the tree adds a 2nd (40), 3rd (100) and 4th (200).
+- **Loadout slots: maximum 3 for now** (user decision 2026-09-27): 1 at the start; the tree adds a
+  2nd (40) and a 3rd (100).
 - A perk with levels (e.g. Morning Stores I–III) takes one slot at its highest owned level.
 - Loadout is kept between runs; change it any time before starting.
 
@@ -82,10 +83,10 @@ Perks are **unlocked** in the tree, then **equipped** in a small **loadout** bef
 | Omen Reader | 1 | 80 | Omen rests offer 3 Omens instead of 2 | — |
 | Seed Pouch | 1 | 100 | +10% Seeds | — |
 | Wider Dreams | 1 | 150 | 4 cards per Dream instead of 3 | Second Thoughts II |
-| Loadout slot 2 / 3 / 4 | — | 40 / 100 / 200 | carry one more perk | slot 2 → 3 → 4 |
+| Loadout slot 2 / 3 | — | 40 / 100 | carry one more perk (max 3) | slot 2 → 3 |
 
-**Power caps stay:** starting Dew +30, leaves +3, rerolls 2. With 4 slots at most, a player can't
-carry every power perk at once.
+**Power caps stay:** starting Dew +30, leaves +3, rerolls 2. With 3 slots at most, a player picks
+3 of ~11 perks each run: never everything at once.
 
 ### Section 2: Families and family upgrades
 
