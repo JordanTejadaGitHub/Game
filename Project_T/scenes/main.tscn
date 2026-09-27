@@ -1,4 +1,4 @@
-[gd_scene load_steps=31 format=3 uid="uid://ct33vhcgulg0g"]
+[gd_scene load_steps=32 format=3 uid="uid://ct33vhcgulg0g"]
 
 [ext_resource type="Script" path="res://scripts/main.gd" id="1_bjgx8"]
 [ext_resource type="Script" path="res://scripts/map/map_generator.gd" id="2_888hw"]
@@ -38,6 +38,7 @@
 [ext_resource type="Script" path="res://scripts/ui/rest_report.gd" id="46_report"]
 [ext_resource type="Script" path="res://scripts/ui/dreams_row.gd" id="47_dreams"]
 [ext_resource type="Script" path="res://scripts/ui/remember_screen.gd" id="48_remember"]
+[ext_resource type="Script" path="res://scripts/ui/reaction_feedback.gd" id="49_reactions"]
 
 [sub_resource type="Gradient" id="Gradient_5toel"]
 interpolation_mode = 1
@@ -306,6 +307,17 @@ offset_right = 376.0
 offset_bottom = 58.0
 mouse_filter = 2
 script = ExtResource("47_dreams")
+
+[node name="ReactionFeedback" type="Control" parent="HUD"]
+unique_name_in_owner = true
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("49_reactions")
 
 [node name="RestReport" type="PanelContainer" parent="HUD"]
 unique_name_in_owner = true

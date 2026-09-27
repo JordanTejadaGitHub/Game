@@ -206,6 +206,10 @@ controller / Steam Deck, accessibility, Steam achievements (milestones map to th
   from combos / Combos with". `DamageLog`: `combo_counts_block/run`, `get_top_towers(period)`,
   numbers mode from the `damage_numbers` setting. New combo tags just need a `CombatCallouts.WORDS` /
   `USES_STATUS` / `RestReport.COMBO_LINES` entry. `tests/test_feedback.gd`.
+  Reactions (Tower Code's `ReactionTracker`, made on the first Reaction; Fx shows their callouts):
+  `%ReactionFeedback` hooks it when it joins the run, counts per block (rest report "Reactions:
+  … longest chain ×N"; results use the tracker's run counts), shows the first-ever discovery card and
+  saves profile `reactions_seen` (real game only). `CodexPanel` (pause menu + Grove) lists all 8.
 
 ## Meta (meta_design.md; full game only — `game/demo` true = nothing applied or recorded)
 - `UnlockData` (`resource/meta/grove/*.tres`): root (WARDENS/DREAMS/PERKS/FORESTS), `costs` per

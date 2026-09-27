@@ -78,6 +78,24 @@ func _run() -> void:
 	_check(panel._body.text.contains("This run: 24 damage") and panel._body.text.contains("from combos 100%"),
 		"the Warden panel shows run damage and the combo share (%s)" % panel._body.text)
 
+	# Reactions: the first one ever shows a discovery card, counts go to the rest report, the Codex
+	# lists them all, and nothing is written to the profile from a test.
+	var feedback: ReactionFeedback = main.get_node("%ReactionFeedback")
+	feedback._seen.clear()  # As if never discovered
+	var profile_before: Array = HeartwoodMemory.load_data().get("reactions_seen", []).duplicate()
+	var tracker := ReactionTracker.find(main)
+	tracker.record(&"thunderclap", shade, 1, [storm])
+	tracker.record(&"thunderclap", shade, 3, [storm])
+	_check(feedback._card.visible and feedback._card_label.text.begins_with("Reaction discovered: Thunderclap")
+		and feedback._card_label.text.contains("Damp + Static"), "the first Thunderclap shows a discovery card (%s)" % feedback._card_label.text)
+	_check(feedback.block_counts.get(&"thunderclap", 0) == 2 and feedback.block_longest_chain == 3, "Reactions are counted per block")
+	report.show_report(1)
+	_check(report._label.text.contains("Reactions: Thunderclap 2 · longest chain ×3"), "the rest report shows Reactions (%s)" % report._label.text)
+	_check(HeartwoodMemory.load_data().get("reactions_seen", []) == profile_before, "tests never write discoveries")
+	var codex: CodexPanel = main.get_node("%PauseMenu").codex
+	codex.open()
+	_check(codex.visible and codex._list.get_child_count() == Reactions.all().size() + 1, "the Codex lists every Reaction")
+
 	main.queue_free()
 	await process_frame
 	print("feedback test: %s" % ("PASS" if failures == 0 else "%d FAILED" % failures))

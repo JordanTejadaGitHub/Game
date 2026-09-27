@@ -23,6 +23,7 @@ static func defaults() -> Dictionary:
 		"best_drift": 0,
 		"whispers_seen": [],  # Heartwood whisper ids already shown (onboarding)
 		"nightmares_seen": [],  # Nightmare kinds (resource file names) met in any run ("New" tag)
+		"reactions_seen": [],  # Reaction ids discovered in any run (discovery card, Codex)
 		# Meta (meta_design.md): Grove unlocks {id: level}, milestones reached {id: true}, lifetime
 		# counters, the highest Blight Level won (-1 = none), cosmetics, and one-time messages.
 		"unlocks": {},

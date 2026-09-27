@@ -30,19 +30,26 @@ func show_report(block: int) -> void:
 	var log := DamageLog.instance
 	if log == null:
 		return
-	_label.text = get_report_text(log, "block", log.combo_counts_block, "Block %d" % block)
+	var reactions := get_node_or_null("%ReactionFeedback") as ReactionFeedback
+	_label.text = get_report_text(log, "block", log.combo_counts_block, "Block %d" % block,
+		reactions.block_counts if reactions else {}, reactions.block_longest_chain if reactions else 0)
 	visible = true
 
-# Shared with the results screen (the whole run).
-static func get_report_text(log: DamageLog, period: String, counts: Dictionary, heading: String) -> String:
+# Shared with the results screen (the whole run). `reactions` {id: n} and `longest_chain` add a
+# Reactions line (screens_ui.md "Reactions": per type and the longest chain).
+static func get_report_text(log: DamageLog, period: String, counts: Dictionary, heading: String,
+		reactions: Dictionary = {}, longest_chain: int = 0) -> String:
 	var lines: Array[String] = [heading]
 	var top := log.get_top_towers(period, 3)
 	if top.is_empty():
 		lines.append("No damage dealt.")
 	for i in top.size():
 		lines.append("%d. %s — %d" % [i + 1, top[i].name, roundi(top[i].amount)])
-	var tags := counts.keys()
+	# Reaction damage is tagged too (thunderclap, ignite, …); those are counted on the Reactions line.
+	var tags := counts.keys().filter(func(tag: StringName) -> bool: return Reactions.get_data(tag) == null)
 	tags.sort_custom(func(a: StringName, b: StringName) -> bool: return counts[a] > counts[b])
 	for tag in tags.slice(0, 3):
 		lines.append("%s: %d times" % [COMBO_LINES.get(tag, String(tag)), counts[tag]])
+	if not reactions.is_empty():
+		lines.append("Reactions: " + ReactionFeedback.summary(reactions, longest_chain))
 	return "\n".join(lines)

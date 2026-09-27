@@ -1,6 +1,6 @@
 extends Control
 
-# Esc menu during a run (screens_ui.md "Pause"): Resume, Settings, Save & Quit, Abandon run (confirm;
+# Esc menu during a run (screens_ui.md "Pause"): Resume, Settings, Codex, Save & Quit, Abandon run (confirm;
 # still earns Seeds), Quit game, a Heartwood whispers toggle, and a run summary on the side (drift,
 # Dreams, families, active Omen, time played). Pauses the game while open. Save & Quit saves right
 # away when resting; otherwise the run resumes from its last rest (run_design.md "Mid-run save").
@@ -22,6 +22,7 @@ var _menu := VBoxContainer.new()
 var _panel := PanelContainer.new()
 var _summary := Label.new()
 var _settings: SettingsPanel
+var codex: CodexPanel  # The Reaction Codex (screens_ui.md "Reactions")
 var _save_button: Button
 var _whispers_toggle := CheckButton.new()
 var _confirm_abandon := ConfirmationDialog.new()
@@ -41,6 +42,11 @@ func _ready() -> void:
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 16)
 	center.add_child(row)
+	codex = CodexPanel.new()
+	codex.visibility_changed.connect(func() -> void:
+		if not codex.visible:
+			row.visible = true)
+	center.add_child(codex)
 	row.add_child(_panel)
 	_menu.add_theme_constant_override("separation", 10)
 	_menu.custom_minimum_size = Vector2(300, 0)
@@ -52,6 +58,9 @@ func _ready() -> void:
 	_menu.add_child(title)
 	_add_button("Resume", close)
 	_add_button("Settings", _show_settings)
+	_add_button("Codex", func() -> void:
+		row.visible = false
+		codex.open())
 	_save_button = _add_button("Save & Quit", _save_and_quit)
 	_add_button("Abandon run", func() -> void: _confirm_abandon.popup_centered())
 	_add_button("Quit game", func() -> void: get_tree().quit())
@@ -113,6 +122,7 @@ func open() -> void:
 func close() -> void:
 	visible = false
 	_settings.visible = false
+	codex.visible = false
 	(_settings.get_meta("row") as Control).visible = true
 	game_speed.set_paused(_was_paused)
 

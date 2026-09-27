@@ -3,7 +3,7 @@ extends Control
 # The Memory Grove (meta_design.md, screens_ui.md "Meta screens"): spend Seeds between runs. Four
 # roots (Wardens, Dreams, Perks, Forests); each unlock is a plant: a seed (locked, shows its cost),
 # glowing (affordable) or grown (owned). A Memories shelf (1–10) opens the viewer. Start run (with
-# the Blight Level picker after the first win) and Back. The first visit with Seeds already banked
+# the Blight Level picker after the first win), Codex (Reactions) and Back. The first visit with Seeds already banked
 # (from the demo) says "The forest remembered you." Full game only. Built in code.
 
 const TITLE_SCENE := "res://scenes/title.tscn"
@@ -21,6 +21,7 @@ var _shelf := HBoxContainer.new()
 var _message := Label.new()
 var _viewer := AcceptDialog.new()
 var _blight := BlightPicker.new()
+var codex: CodexPanel  # The Reaction Codex
 
 func _ready() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -69,8 +70,16 @@ func _ready() -> void:
 	footer.add_theme_constant_override("separation", 12)
 	box.add_child(footer)
 	_button(footer, "Back", func() -> void: get_tree().change_scene_to_file(TITLE_SCENE))
+	# The Reaction Codex (screens_ui.md "Reactions"), centred over the Grove.
+	var codex_center := CenterContainer.new()
+	codex_center.set_anchors_preset(Control.PRESET_FULL_RECT)
+	codex_center.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	codex = CodexPanel.new()
+	codex_center.add_child(codex)
+	_button(footer, "Codex", codex.open)
 	_button(footer, "Start run", _start_run)
 
+	add_child(codex_center)
 	_viewer.title = "Memory"
 	add_child(_viewer)
 	add_child(_blight)

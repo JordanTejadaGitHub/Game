@@ -69,9 +69,11 @@ func _build(won: bool) -> void:
 	box.add_child(HSeparator.new())
 	_label(box, get_stats_text(), 15, Color(0.85, 0.88, 0.85), true)
 	# The run report (screens_ui.md "Combat feedback"): top Wardens and the most-used combos.
+	var tracker := get_tree().get_first_node_in_group(ReactionTracker.GROUP) as ReactionTracker
 	if DamageLog.instance != null and not DamageLog.instance.get_top_towers("run", 1).is_empty():
 		_label(box, RestReport.get_report_text(DamageLog.instance, "run", DamageLog.instance.combo_counts_run,
-			"Wardens this run"), 14, Color(0.8, 0.9, 1.0), true)
+			"Wardens this run", tracker.counts if tracker else {}, tracker.longest_chain if tracker else 0),
+			14, Color(0.8, 0.9, 1.0), true)
 	box.add_child(HSeparator.new())
 	for line in breakdown:
 		var row := HBoxContainer.new()
