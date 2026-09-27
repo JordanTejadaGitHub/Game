@@ -432,6 +432,17 @@ func _make_sfx() -> void:
 
 	_make_signatures()
 
+	# Added after the first batch (kept last so the earlier sounds' random seeds don't shift).
+	var crit := _seg(0.6, r)  # The hit's own sound plays too; this is the bright ping on top
+	_mix(crit, _bell(r, hz(98), 0.6, 0.12, CHIME, 0.5), r, 0.0)
+	_mix(crit, _bell(r, hz(105), 0.3, 0.08, CHIME, 0.4), r, 0.015)
+	_sfx("crit", crit, 0.4)
+	var beam := _seg(0.3, r)  # One soft warm tick of a held beam; pitched up as it ramps
+	for m in [74, 81]:
+		_mix(beam, _tone(r, 0.28, hz(m), swell(0.04, 0.15, 0.28), "tri"), r, 0.0, 0.5)
+	_mix(beam, _filter(_noise(r, 0.28, swell(0.04, 0.15, 0.28)), r, 3000.0, 0.8, "bp"), r, 0.0, 0.1)
+	_sfx("beam", beam, 0.3)
+
 # Nightmare signature sounds (played when one enters, and on their special moments).
 func _make_signatures() -> void:
 	var r := SFX_RATE
@@ -542,6 +553,7 @@ func _bubbles(rate: int, length: float, per_second: float) -> PackedFloat32Array
 # --- Music (act 1: synced stems) ------------------------------------------------------------------
 
 func _make_music() -> void:
+	rng.seed = 9091  # Its own seed, so adding sound effects doesn't change the music
 	var r := MUSIC_RATE
 	var total := LOOP + TAIL
 

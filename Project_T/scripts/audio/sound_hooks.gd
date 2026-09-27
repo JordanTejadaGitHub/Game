@@ -111,7 +111,8 @@ func _on_enemy_added(enemy: Node) -> void:
 	if enemy.has_signal("leaped"):
 		enemy.leaped.connect(func(e: Node2D) -> void: sound.play(&"hag_rise", e.global_position))
 
-func _play_signature(enemy: Node) -> void:
+# Untyped on purpose: the nightmare may be freed before this deferred call runs.
+func _play_signature(enemy) -> void:
 	if not is_instance_valid(enemy) or enemy.enemy_data == null:
 		return
 	var id: StringName = SIGNATURES.get(enemy.enemy_data.resource_path.get_file().get_basename(), &"")
@@ -131,6 +132,11 @@ func _on_tower_added(node: Node) -> void:
 	if not tower.attack_released.is_connected(_on_attack):
 		tower.attack_released.connect(_on_attack)
 		tower.evolved.connect(func(t: Tower) -> void: sound.play(&"evolve", t.global_position))
+		tower.crit_landed.connect(func(_t: Tower, enemy: Node2D) -> void:
+			sound.play(&"crit", enemy.global_position, -6.0))
+		# Sunpetal / Midsummer: the hum climbs as the beam ramps up (ramp 1 -> 4 or 5).
+		tower.beam_ticked.connect(func(t: Tower, ramp: float) -> void:
+			sound.play(&"beam", t.global_position, ATTACK_DB, 1.0 + (ramp - 1.0) * 0.08, 0.0))
 
 func _on_attack(tower: Tower) -> void:
 	var line: String = tower.tower_data.line

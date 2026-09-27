@@ -40,13 +40,17 @@ var _scene: Node
 # never released and show up as leaks at exit. Everything runs the same, it just doesn't start.
 var _silent := DisplayServer.get_name() == "headless"
 
-func _ready() -> void:
+# Set up in _init, not _ready: a test script's _init can add main.tscn (and so SoundHooks) before
+# the autoloads are ready.
+func _init() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	_setup_buses()
 	_load_sfx()
 	_ambience = AudioStreamPlayer.new()
 	_ambience.bus = &"Ambience"
 	add_child(_ambience)
+
+func _ready() -> void:
 	get_tree().node_added.connect(_on_node_added)
 
 func _process(delta: float) -> void:
