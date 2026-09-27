@@ -396,10 +396,9 @@ Every tower must be useful alone; combos are the payoff, not a requirement.
   Spored and Static in particular; half stacks is the starting guard.
 - **Graftling copying a Memory Warden or another Graftling:** not allowed (copies attacking,
   non-unique Wardens only).
-- **Bellflower resistances:** a new `song` family id. `enemy_design.md` needs resist/weak entries
-  for it and a new tally (idea: *weak to song* for the Sleepwalker and the Weeper, *resist song*
-  for the Watcher, which never sleeps). Chime Stone and Lullaby Bell change line from `stone` to
-  `song`.
+- **Bellflower resistances:** done in `enemy_design.md` (f45cee0). *Weak to song*: Sleepwalker,
+  Gravecrawler, Widow. *Resist song*: Watcher (the natural counter to Bellflower builds), Drowned
+  One, Hollow Oak. Chime Stone and Lullaby Bell change line from `stone` to `song`.
 - **Migration (for the code chats):** Chime Stone and Lullaby Bell move to Bellflower; Standing
   Stone and Moonstone stop being hidden (`hidden = false`); Starling Murmuration's behaviour
   changes from sweep to "hunt the 3 fastest". Art exists for all of these; new art is needed for
