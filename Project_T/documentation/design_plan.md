@@ -102,7 +102,8 @@ Forest Journal, demo fit).
 ### 13. Demo and store page
 
 **Pitch drafted in `pitch.md`** (hook, one-liners, store copy, tags, capsule and trailer concepts,
-title check). Demo scope still to do.
+title check). **Demo scope drafted in `demo_scope.md`** (act 1 runs, content list, must-haves,
+timeline, success measures).
 
 - One-line pitch and hook for the Steam page; capsule art concept.
 - Demo scope for Next Fest (e.g. act 1 + one boss, a few unlocks).

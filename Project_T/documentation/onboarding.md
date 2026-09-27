@@ -80,7 +80,7 @@ Act 1 plays as normal (`run_design.md`); lessons trigger at these moments:
 | Blight Levels | after the first win |
 | Forests root | after the first win (shown greyed before, as a promise) |
 
-## Forest Journal (optional, recommended)
+## Forest Journal (later: not in the first playable or demo)
 
 A collection book on the title screen: each creature gets an entry (cozy art, a line of text, its
 trait) the first time it's cleansed, and each Warden when first grown. It gives curious players a
