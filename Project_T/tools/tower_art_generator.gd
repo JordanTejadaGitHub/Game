@@ -3268,18 +3268,21 @@ func _trap_ring(canvas: Image, f: int, cap: Color, n: int) -> void:
 # on any Warden: rank_<n>_over.png sits on top of the Warden sprite but only touches the slab's
 # rim and side faces (never the figure); rank_<n>_under.png is a warm halo drawn below it. Both
 # are 8-frame loops like the idle. Ranks build up: I seedlings, II blossoming vine, III glowing
-# runes, IV gold trim, V golden laurels and rising motes. Plus rank badges and a rank-up burst.
+# runes, IV gold trim, V golden laurels and rising motes. VI and VII only come from the Deeper
+# Rings card (dream_design.md): VI doubles the gold trim into rings and grows golden saplings, VII
+# runs gold root filigree down the stone. Plus rank badges and a rank-up burst.
 
 const RANKS_OUT := "res://assets/towers/ranks/"
 const RANK_GOLD := Color("#f0c860")
 const RANK_GOLD_DARK := Color("#a87a28")
 const BADGE_SIZE := 16
+const RANK_TOP := 7  # Deeper Rings' cap
 const RANKUP_FRAMES := 8
 
 func _make_ranks() -> void:
 	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(RANKS_OUT))
 	var masks := _slab_masks()
-	for rank in range(1, 6):
+	for rank in range(1, RANK_TOP + 1):
 		for layer in ["over", "under"]:
 			var sheet := Image.create_empty(S * FRAMES, S, false, Image.FORMAT_RGBA8)
 			for f in FRAMES:
@@ -3290,8 +3293,8 @@ func _make_ranks() -> void:
 					_rank_under(canvas, rank, f, masks)
 				sheet.blit_rect(canvas, Rect2i(0, 0, S, S), Vector2i(f * S, 0))
 			sheet.save_png(RANKS_OUT + "rank_%d_%s.png" % [rank, layer])
-	var badges := Image.create_empty(BADGE_SIZE * 5, BADGE_SIZE, false, Image.FORMAT_RGBA8)
-	for rank in range(1, 6):
+	var badges := Image.create_empty(BADGE_SIZE * RANK_TOP, BADGE_SIZE, false, Image.FORMAT_RGBA8)
+	for rank in range(1, RANK_TOP + 1):
 		badges.blit_rect(_rank_badge(rank), Rect2i(0, 0, BADGE_SIZE, BADGE_SIZE), Vector2i((rank - 1) * BADGE_SIZE, 0))
 	badges.save_png(RANKS_OUT + "rank_badges.png")
 	var burst := Image.create_empty(S * RANKUP_FRAMES, S, false, Image.FORMAT_RGBA8)
@@ -3356,6 +3359,30 @@ func _rank_over(canvas: Image, rank: int, f: int, masks: Dictionary) -> void:
 			_px(canvas, x, y, Color.WHITE if absi(x - glint) <= 1 else RANK_GOLD)
 			if _on(masks.side, x, y + 1):
 				_px(canvas, x, y + 1, RANK_GOLD_DARK)
+	# VI: a second gold ring just inside the trim, and ring emblems in the stone.
+	if rank >= 6:
+		for x in S:
+			var y := _rim_y(masks, x)
+			if y > 0 and _on(masks.top, x, y - 2) and (x + f) % 2 == 0:
+				_px(canvas, x, y - 2, RANK_GOLD)
+		for p: Vector2i in [Vector2i(13, 51), Vector2i(31, 58), Vector2i(49, 51)]:
+			for d: Vector2i in [Vector2i(-1, -1), Vector2i(0, -1), Vector2i(1, -1), Vector2i(-1, 0), Vector2i(1, 0), Vector2i(-1, 1), Vector2i(0, 1), Vector2i(1, 1)]:
+				if _on(masks.side, p.x + d.x, p.y + d.y):
+					_px(canvas, p.x + d.x, p.y + d.y, RANK_GOLD)
+			if _on(masks.side, p.x, p.y):
+				_px(canvas, p.x, p.y, Color.WHITE if f % 4 < 2 else Color("#ffe890"))
+	# VII: golden root filigree running down the side faces.
+	if rank >= 7:
+		var gold := Color("#ffd870") if f % 4 < 2 else RANK_GOLD
+		for root: Array in [[Vector2(5, 44), Vector2(7, 48), Vector2(5, 52)], [Vector2(22, 53), Vector2(23, 57), Vector2(21, 61)],
+				[Vector2(41, 54), Vector2(40, 58), Vector2(42, 61)], [Vector2(57, 45), Vector2(56, 49), Vector2(58, 52)]]:
+			for i in root.size() - 1:
+				var a: Vector2 = root[i]
+				var b: Vector2 = root[i + 1]
+				for s in 9:
+					var p := Vector2i(a.lerp(b, s / 8.0).round())
+					if _on(masks.side, p.x, p.y):
+						_px(canvas, p.x, p.y, gold)
 	# III: warm runes glowing in the side faces.
 	if rank >= 3:
 		var rune := Color("#ffe890") if twinkle else Color("#f0c060")
@@ -3385,7 +3412,12 @@ func _rank_over(canvas: Image, rank: int, f: int, masks: Dictionary) -> void:
 		_stamp(canvas, stem, Color("#1e3a24"))
 		_leaf(canvas, Vector2(base.x, y - 4), Vector2(base.x - 5 + sway, y - 7), 2.2, _ramp(LEAF), Color("#1e3a24"))
 		_leaf(canvas, Vector2(base.x, y - 4), Vector2(base.x + 5 + sway, y - 8), 2.2, _ramp(LEAF), Color("#1e3a24"))
-		if rank >= 2:
+		if rank >= 6:
+			var crown := _layer()
+			_ellipse(crown, Vector2(base.x + sway * 0.5, y - 8), Vector2(4, 3), _ramp(["#c89030", "#f0c850", "#fff4b0"]))
+			_stamp(canvas, crown, Color("#7a5218"))
+			_px(canvas, base.x - 1 + sway, y - 9, Color.WHITE)
+		elif rank >= 2:
 			_flower(canvas, Vector2i(base.x + sway, y - 6), Color("#ffe890"), Color("#f0a030"))
 		_warm_glow(canvas, Vector2(base.x, y - 4), Vector2(7, 5), f)
 	# V: motes of light drifting up off the slab.
@@ -3403,8 +3435,10 @@ func _rank_under(canvas: Image, rank: int, f: int, _masks: Dictionary) -> void:
 	if rank < 3:
 		return
 	var pulse := 0.5 + 0.5 * sin(TAU * f / FRAMES)
-	var r := Vector2(32 + rank * 1.2 + pulse, 13 + rank * 0.8)
+	var r := Vector2(32 + mini(rank, 5) * 1.2 + pulse, 13 + mini(rank, 5) * 0.8)
 	var c := Vector2(31.5, 49)
+	if rank >= 7:
+		_ring(canvas, c, r + Vector2(1.5, 1), Color(GLOW_INNER, 0.7), f % 2 == 0)
 	for y in S:
 		for x in S:
 			var q := ((Vector2(x + 0.5, y + 0.5) - c) / r).length()
@@ -3428,6 +3462,8 @@ func _rank_badge(rank: int) -> Image:
 	var coin := _layer()
 	_ellipse(coin, c, Vector2(6.2, 6.2), _ramp(["#c89030", "#f0c060", "#fff0a0"]))
 	_stamp(canvas, coin, o)
+	if rank >= 6:
+		_ring(canvas, c, Vector2(5.6, 5.6), Color("#fff4b0"), false)
 	if rank >= 5:
 		for p: Vector2i in [Vector2i(8, 0), Vector2i(7, 1), Vector2i(9, 1), Vector2i(8, 1)]:
 			_px(canvas, p.x, p.y, Color("#fffbe0"))
@@ -3449,8 +3485,15 @@ func _rank_badge(rank: int) -> Image:
 	elif rank == 4:
 		i_col.call(5)
 		v_at.call(7)
-	else:
+	elif rank == 5:
 		v_at.call(6)
+	elif rank == 6:
+		v_at.call(4)
+		i_col.call(10)
+	else:
+		v_at.call(3)
+		i_col.call(9)
+		i_col.call(11)
 	return canvas
 
 # Played once when a Warden is nurtured: a warm ring swells off the slab, leaves and sparks fly up.
@@ -3478,12 +3521,12 @@ func _rank_up(canvas: Image, f: int) -> void:
 func _save_rank_preview(masks: Dictionary, badges: Image) -> void:
 	var demo := ["sprout", "sporeling", "pebbling", "firefly_jar", "moon_moth"]
 	var pad := 6
-	var preview := Image.create_empty(pad + 6 * (S + pad), pad + (demo.size() + 2) * (S + pad), false, Image.FORMAT_RGBA8)
+	var preview := Image.create_empty(pad + (RANK_TOP + 1) * (S + pad), pad + (demo.size() + 2) * (S + pad), false, Image.FORMAT_RGBA8)
 	preview.fill(Color("#5fa844"))
 	for r in demo.size():
 		var body := _layer()
 		call("_draw_" + demo[r], body, _idle_state(0))
-		for rank in 6:
+		for rank in RANK_TOP + 1:
 			var tile := _layer()
 			if rank > 0:
 				_rank_under(tile, rank, 0, masks)
@@ -3494,7 +3537,7 @@ func _save_rank_preview(masks: Dictionary, badges: Image) -> void:
 				tile.blend_rect(over, Rect2i(0, 0, S, S), Vector2i.ZERO)
 			preview.blend_rect(tile, Rect2i(0, 0, S, S), Vector2i(pad + rank * (S + pad), pad + r * (S + pad)))
 	var y := pad + demo.size() * (S + pad)
-	for rank in 5:
+	for rank in RANK_TOP:
 		var badge := badges.get_region(Rect2i(rank * BADGE_SIZE, 0, BADGE_SIZE, BADGE_SIZE))
 		badge.resize(BADGE_SIZE * 3, BADGE_SIZE * 3, Image.INTERPOLATE_NEAREST)
 		preview.blend_rect(badge, Rect2i(0, 0, BADGE_SIZE * 3, BADGE_SIZE * 3), Vector2i(pad + (rank + 1) * (S + pad) + 8, y + 8))
