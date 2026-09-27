@@ -53,6 +53,7 @@ var statuses := EnemyStatuses.new()
 const STATUS_DOT_RADIUS := 3.0
 const BOLT_FLASH_TIME := 0.2
 const HIT_MARK_TIME := 0.35  # Grey puff (resisted) / sparkle (weak) after a hit
+const STATUS_FLASH_TIME := 0.3  # A status icon flashes when a combo uses it (see flash_status)
 const COAT_COLOR := Color(0.62, 0.6, 0.66)
 const CRIT_FLASH_TIME := 0.3  # Gold starburst after a critical hit
 const CRIT_COLOR := Color(1.0, 0.82, 0.3)
@@ -85,6 +86,7 @@ var modifiers := {}
 
 var elite := false  # Deeply Blighted (set before adding to the tree)
 var _haze_phase := 0.0
+var _status_flash := {}  # {status id: seconds left} for icons a combo just used
 var hold_time := 0.0  # Seconds to stand still before setting off (Wraiths in single file)
 var rolling := false  # Night Hound sprinting down a straight
 var lost := false  # Wraith whose Lantern Bearer was dispelled first
@@ -141,6 +143,10 @@ func _process(delta: float) -> void:
 	if elite:
 		_haze_phase += ELITE_HAZE_SPEED * delta
 	_hit_mark_time = maxf(_hit_mark_time - delta, 0.0)
+	for id: StringName in _status_flash.keys():
+		_status_flash[id] -= delta
+		if _status_flash[id] <= 0.0:
+			_status_flash.erase(id)
 	_crit_flash = maxf(_crit_flash - delta, 0.0)
 	freeze_cooldown = maxf(freeze_cooldown - delta, 0.0)
 	push_cooldown = maxf(push_cooldown - delta, 0.0)
@@ -185,6 +191,13 @@ func _process(delta: float) -> void:
 		reached_goal.emit(self)
 		queue_free()
 
+# A combo just used this status (e.g. lightning jumped through Damp): its icon flashes briefly.
+# Called by the HUD's combat callouts. Does nothing if the status isn't on this nightmare.
+func flash_status(id: StringName) -> void:
+	if statuses.active_ids().has(id):
+		_status_flash[id] = STATUS_FLASH_TIME
+		queue_redraw()
+
 # Target Dummy: back to the forest's edge to walk the maze again.
 func _restart_route() -> void:
 	var map_generator = get_parent().get("map_generator")  # The EnemyContainer's
@@ -214,6 +227,10 @@ func _draw() -> void:
 		var dot := HEALTH_BAR_OFFSET + Vector2(x, -8)
 		draw_circle(dot, STATUS_DOT_RADIUS + 1, Color(0.1, 0.1, 0.12, 0.8))
 		draw_circle(dot, STATUS_DOT_RADIUS, EnemyStatuses.COLORS[id])
+		if _status_flash.has(id):
+			var f: float = _status_flash[id] / STATUS_FLASH_TIME  # 1 -> 0
+			draw_circle(dot, STATUS_DOT_RADIUS, Color(1, 1, 1, 0.7 * f))
+			draw_arc(dot, STATUS_DOT_RADIUS + 1.0 + 4.0 * (1.0 - f), 0.0, TAU, 12, Color(EnemyStatuses.COLORS[id], f), 1.5)
 		x += STATUS_DOT_RADIUS * 3.0
 	# Health bar once the enemy has been hit, with the blight coat as a grey bar on top of it
 	var bar := Rect2(HEALTH_BAR_OFFSET - HEALTH_BAR_SIZE / 2, HEALTH_BAR_SIZE)
