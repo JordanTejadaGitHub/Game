@@ -88,7 +88,8 @@ Most viewers decide in the first 5 seconds. Show both hooks immediately; no logo
   games (e.g. Cult of the Lamb, Don't Starve) for the look.
 - **Short version for press and Next Fest:** *"a maze tower defense roguelite in a dark fairytale
   dream"*.
-- **Platforms:** PC (Steam), Steam Deck verified as a goal.
+- **Platforms:** PC (Steam), Steam Deck verified as a goal; **mobile (iOS/Android) port later**
+  (`platforms.md`).
 - **Price:** typical for this genre and scope is $9.99–$19.99; decide closer to launch.
 
 ## Title
