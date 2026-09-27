@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="UnlockData" format=3]
+
+[ext_resource type="Script" path="res://resource/meta/script/unlock_data.gd" id="1_unlock"]
+
+[resource]
+script = ExtResource("1_unlock")
+id = "morning_stores"
+display_name = "Morning Stores"
+description = "+10 starting Dew per level (+30 at most)."
+root = 2
+costs = Array[int]([20, 40, 60])
+order = 1
+starting_dew = 10

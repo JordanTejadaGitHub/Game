@@ -33,6 +33,7 @@ var clearing_without_seeds := false
 var invulnerable := false  # Test Grove: leaves can't fall
 var creatures_cleansed := 0
 var leaves_lost := 0
+var seed_bonus := 0.0  # +share of Seeds at run end (Seed Pouch, Blight Levels); set by MetaRun
 var longest_path := 0  # Longest route the maze reached this run, in tiles
 var play_time := 0.0  # Seconds of unpaused play this run
 var is_over := false
@@ -82,6 +83,10 @@ func get_seed_breakdown(drifts_cleared: int, bosses: int, first_run: bool) -> Ar
 	var total := 0
 	for line in lines:
 		total += line[1]
+	if seed_bonus > 0.0:  # Seed Pouch, Blight Levels (+10% each)
+		var extra := roundi(total * seed_bonus)
+		lines.append(["Seed bonus +%d%%" % roundi(seed_bonus * 100.0), extra])
+		total += extra
 	lines.append(["Total", total])
 	return lines
 

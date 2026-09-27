@@ -68,7 +68,8 @@ func _draw() -> void:
 # Dew to clear `data` right now (Dreams can lower it). Every clear-cost check goes through here.
 func get_clear_cost(data: ObstacleData) -> int:
 	var dreams := get_tree().get_first_node_in_group(DreamState.GROUP) as DreamState
-	return dreams.get_clear_cost(data) if dreams else data.clear_cost
+	var cost: int = dreams.get_clear_cost(data) if dreams else data.clear_cost
+	return roundi(cost * MetaRun.clear_cost_multiplier())  # Blight Level 9: twice as much
 
 # Clears the obstacle on `cell`, using a free clear (Heartwood's Reach) if there is one, else
 # charging its Dew cost. Returns false if there's nothing to clear or the player can't afford it.

@@ -48,6 +48,7 @@ func _ready() -> void:
 		_saved_data = _read()
 		if not _saved_data.is_empty():
 			map_generator.map_seed = int(_saved_data.map_seed)
+			MetaRun.blight_level = int(_saved_data.get("blight_level", 0))  # Before MetaRun applies it
 	drift_director.rest_started.connect(func(_b: int, _boss: bool, _bonus: int, _perfect: bool) -> void: _dirty = true)
 	drift_director.family_pick_requested.connect(func(_reason: StringName) -> void: _dirty = true)
 	run_state.run_ended.connect(func(_won: bool) -> void:
@@ -86,6 +87,7 @@ func save_now() -> bool:
 	var data := {
 		"version": VERSION,
 		"map_seed": map_generator.map_seed,
+		"blight_level": MetaRun.blight_level,
 		"tended": run_state.tended_cells.map(func(c: Vector2) -> Array: return [c.x, c.y]),
 		"towers": towers,
 		"dew": run_state.dew,

@@ -23,6 +23,14 @@ static func defaults() -> Dictionary:
 		"best_drift": 0,
 		"whispers_seen": [],  # Heartwood whisper ids already shown (onboarding)
 		"nightmares_seen": [],  # Nightmare kinds (resource file names) met in any run ("New" tag)
+		# Meta (meta_design.md): Grove unlocks {id: level}, milestones reached {id: true}, lifetime
+		# counters, the highest Blight Level won (-1 = none), cosmetics, and one-time messages.
+		"unlocks": {},
+		"milestones": {},
+		"counters": {"shades_dispelled": 0, "tended_total": 0},
+		"highest_blight_won": -1,
+		"cosmetics": [],
+		"grove_welcome_shown": false,
 		"settings": {
 			"master_volume": 1.0,
 			"music_volume": 0.55,  # audio_direction.md: music sits well under the sound effects
@@ -70,6 +78,90 @@ static func record_run(seeds: int, won: bool, drift_reached: int) -> int:
 
 static func is_first_run() -> bool:
 	return load_data().runs_played == 0
+
+
+# --- Meta: the Memory Grove, milestones, Memories, Blight Levels ------------------------------
+
+const GROVE_DIR := "res://resource/meta/grove/"
+const UNLOCKS_PER_MEMORY := 3
+# The 10 Memories (meta_design.md "The Hollow's story"), read in order.
+const MEMORIES: Array[String] = [
+	"Before the Heartwood, there were two trees, and both of them dreamed.",
+	"The Heartwood and the Hollow shared their roots, and one dream grew between them: the forest.",
+	"A long drought came. The Heartwood's roots went deep; the Hollow's couldn't reach.",
+	"The forest's creatures followed the Heartwood's shade. The Hollow was left alone, still dreaming.",
+	"The Hollow tried to keep the last creatures inside its dream, and closed it around them. The dream broke.",
+	"Its leaves fell, one by one, and nobody came.",
+	"It dreamed alone in the dark for so long that its dreams turned: the first nightmares.",
+	"The creatures once carved waystones to mark the path between the two trees.",
+	"The Heartwood remembers it promised to come back.",
+	"The path to the Hollow is still there, under the nightmares.",
+]
+# Milestones that reveal a Memory (the rest reward cards, Wardens or cosmetics).
+const MEMORY_MILESTONES: Array[String] = ["first_boss", "first_win", "tend_100", "blight_5"]
+
+static func load_grove() -> Array[UnlockData]:
+	var result: Array[UnlockData] = []
+	for file in ResourceLoader.list_directory(GROVE_DIR):
+		if file.ends_with(".tres") or file.ends_with(".res"):
+			var unlock := load(GROVE_DIR + file) as UnlockData
+			if unlock != null:
+				result.append(unlock)
+	result.sort_custom(func(a: UnlockData, b: UnlockData) -> bool:
+		return a.root < b.root or (a.root == b.root and a.order < b.order))
+	return result
+
+static func unlock_level(data: Dictionary, id: String) -> int:
+	return int(data.unlocks.get(id, 0))
+
+# Why `unlock` can't be bought now ("" = it can).
+static func buy_problem(data: Dictionary, unlock: UnlockData) -> String:
+	var level := unlock_level(data, unlock.id)
+	if level >= unlock.get_levels():
+		return "Grown"
+	for id in unlock.requires_all:
+		if unlock_level(data, id) == 0:
+			return "Needs another unlock first"
+	if not unlock.requires_any.is_empty():
+		var owned := unlock.requires_any.filter(func(id: String) -> bool: return unlock_level(data, id) > 0).size()
+		if owned < unlock.requires_any_count:
+			return "Needs another unlock first"
+	if data.seeds < unlock.get_cost(level):
+		return "Not enough Seeds"
+	return ""
+
+# Buys the next level of `unlock`. Returns false (nothing changes) if it can't.
+static func buy(unlock: UnlockData) -> bool:
+	var data := load_data()
+	if buy_problem(data, unlock) != "":
+		return false
+	data.seeds -= unlock.get_cost(unlock_level(data, unlock.id))
+	data.unlocks[unlock.id] = unlock_level(data, unlock.id) + 1
+	save_data(data)
+	return true
+
+static func total_unlock_levels(data: Dictionary) -> int:
+	var total := 0
+	for id in data.unlocks:
+		total += int(data.unlocks[id])
+	return total
+
+# How many Memories are revealed: the first after your first run, one per 3 Grove unlocks, and one
+# per Memory milestone.
+static func memories_unlocked(data: Dictionary) -> int:
+	if data.runs_played == 0:
+		return 0
+	var count := 1 + total_unlock_levels(data) / UNLOCKS_PER_MEMORY
+	for id in MEMORY_MILESTONES:
+		if data.milestones.has(id):
+			count += 1
+	return mini(count, MEMORIES.size())
+
+# Blight Levels open after the first win; you can pick up to one above your best.
+static func max_blight_level(data: Dictionary) -> int:
+	if data.runs_won == 0:
+		return 0
+	return mini(int(data.highest_blight_won) + 1, 10)
 
 static func get_settings() -> Dictionary:
 	return load_data().settings

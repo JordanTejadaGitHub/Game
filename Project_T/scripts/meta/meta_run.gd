@@ -1,0 +1,175 @@
+extends Node
+class_name MetaRun
+
+# Brings the meta (meta_design.md) into a run and back out:
+# - Run start: Memory Grove perks (starting Dew, max leaves, Dream rerolls / banishes / cards per
+#   offer, Seed bonus, Early Bloom), unlocked families join the family picks, unlocked Dream cards
+#   join the pool, Family Blessings are made available, and the chosen Blight Level's modifiers.
+# - Run end (the real full game only, never tests / Test Grove / the demo): lifetime counters,
+#   milestones (and what they unlock), the highest Blight Level won.
+# The demo has no meta (demo_scope.md): nothing is applied or recorded there.
+
+const TOWER_DIR := "res://resource/tower/"
+const BLESSING_DIR := "res://resource/meta/blessing/"
+const SHADE_KIND := "leaf_bug"
+# Milestones (meta_design.md "Milestones"): id -> what it unlocks.
+const MILESTONE_CARDS := {"shades_500": ["dream_sunpetal", "dream_midsummer"]}
+const MILESTONE_COSMETICS := {"flawless_win": "golden_leaf", "blight_10_win": "blossoms"}
+
+# Chosen on the title screen before a run (0 = none); saved with the run.
+static var blight_level := 0
+
+@onready var run_state: RunState = %RunState
+@onready var drift_director: DriftDirector = %DriftDirector
+@onready var dream_state: DreamState = %DreamState
+@onready var family_screen: Control = %FamilyPickScreen
+@onready var spawner = %EnemyContainer
+
+var active := false  # Meta applies (full game)
+var records := false  # Run end writes to the profile (real full game)
+var seed_bonus := 0.0
+var _shades_this_run := 0
+
+func _ready() -> void:
+	active = not ResultsScreen.is_demo()
+	records = active and get_tree().current_scene == owner and not TestGrove.is_active()
+	# Family Blessings are in the Dream pool (never offered; the family pick grants them), so their
+	# effects count and saved runs find them.
+	for blessing in load_blessings():
+		if not dream_state.pool.has(blessing):
+			dream_state.pool.append(blessing)
+	if not active:
+		return
+	var memory := HeartwoodMemory.load_data()
+	_apply_grove(memory)
+	_apply_blight(blight_level)
+	run_state.seed_bonus = seed_bonus
+	spawner.enemy_cleansed.connect(func(enemy: Node2D) -> void:
+		if enemy.enemy_data.resource_path.get_file().get_basename() == SHADE_KIND:
+			_shades_this_run += 1)
+	run_state.run_ended.connect(_on_run_ended)
+
+static func load_blessings() -> Array[UpgradeData]:
+	var result: Array[UpgradeData] = []
+	for file in ResourceLoader.list_directory(BLESSING_DIR):
+		if file.ends_with(".tres") or file.ends_with(".res"):
+			result.append(load(BLESSING_DIR + file))
+	return result
+
+# Obstacles cost twice as much from Blight Level 9.
+static func clear_cost_multiplier() -> float:
+	return 2.0 if blight_level >= 9 else 1.0
+
+func _apply_grove(memory: Dictionary) -> void:
+	var cards: Array[String] = []
+	var dew := 0
+	var leaves := 0
+	var rerolls := 0
+	var banishes := 0
+	var extra_cards := 0
+	for unlock in HeartwoodMemory.load_grove():
+		var level := HeartwoodMemory.unlock_level(memory, unlock.id)
+		if level == 0:
+			continue
+		for id in unlock.families:
+			var data := load(TOWER_DIR + id + ".tres") as TowerData
+			if data != null and not family_screen.families.has(data):
+				family_screen.families.append(data)
+		for id in unlock.dream_cards:
+			if not cards.has(id):
+				cards.append(id)
+		dew += unlock.starting_dew * level
+		leaves += unlock.max_leaves * level
+		rerolls += unlock.dream_rerolls * level
+		banishes += unlock.dream_banishes * level
+		extra_cards += unlock.extra_dream_cards * level
+		seed_bonus += unlock.seed_bonus * level
+		if unlock.early_bloom:
+			family_screen.offer_all_first = true
+	for milestone in MILESTONE_CARDS:
+		if memory.milestones.has(milestone):
+			for id in MILESTONE_CARDS[milestone]:
+				if not cards.has(id):
+					cards.append(id)
+	run_state.add_dew(dew)
+	run_state.max_leaves += leaves
+	run_state.leaves += leaves
+	run_state.leaves_changed.emit(run_state.leaves, run_state.max_leaves)
+	# Dream hooks (DreamState owns the Dream rules; these names are its public knobs).
+	if "grove_cards" in dream_state:
+		dream_state.grove_cards.assign(cards)
+	dream_state.cards_per_offer += extra_cards
+	if "rerolls_left" in dream_state:
+		dream_state.rerolls_left += rerolls
+	if "banishes_left" in dream_state:
+		dream_state.banishes_left += banishes
+
+# Blight Levels (meta_design.md): each level includes the ones below it. +10% Seeds per level.
+func _apply_blight(level: int) -> void:
+	if level <= 0:
+		return
+	seed_bonus += 0.1 * level
+	if level >= 1:
+		drift_director.blight_health_multiplier = 1.1
+	if level >= 2:
+		run_state.dew = maxi(run_state.dew - 20, 0)
+		run_state.dew_changed.emit(run_state.dew)
+	if level >= 3:
+		drift_director.blight_boss_health_multiplier = 1.25
+	if level >= 4:
+		drift_director.blight_rest_bonus_multiplier = 0.75
+	if level >= 5:
+		drift_director.blight_elites_per_drift = 1
+	if level >= 6:
+		drift_director.act_break_leaves = 1
+	if level >= 7:
+		drift_director.blight_speed_multiplier = 1.1
+	if level >= 8:
+		dream_state.skip_dew = 0  # Let it pass gives no Dew
+		if "lean_common" in dream_state:
+			dream_state.lean_common = true
+	# Level 9's doubled clear costs: clear_cost_multiplier(). Its extra ridge and level 10's Hollow
+	# Oak phase need the map generator / act 4 boss.
+
+# Lifetime counters, milestones and the highest Blight Level won.
+func _on_run_ended(won: bool) -> void:
+	if not records:
+		return
+	var memory := HeartwoodMemory.load_data()
+	var counters: Dictionary = memory.counters
+	counters.shades_dispelled = int(counters.get("shades_dispelled", 0)) + _shades_this_run
+	counters.tended_total = int(counters.get("tended_total", 0)) + run_state.obstacles_tended
+	var reached := []
+	if drift_director.bosses_cleansed > 0:
+		reached.append("first_boss")
+	if won:
+		reached.append("first_win")
+		memory.highest_blight_won = maxi(int(memory.highest_blight_won), blight_level)
+		if run_state.leaves_lost == 0:
+			reached.append("flawless_win")
+		if _one_family_only():
+			reached.append("one_line_win")
+		if blight_level >= 10:
+			reached.append("blight_10_win")
+	if counters.shades_dispelled >= 500:
+		reached.append("shades_500")
+	if run_state.longest_path >= 300:
+		reached.append("path_300")
+	if counters.tended_total >= 100:
+		reached.append("tend_100")
+	if blight_level >= 5:
+		reached.append("blight_5")
+	for id in reached:
+		if not memory.milestones.has(id):
+			memory.milestones[id] = true
+			if MILESTONE_COSMETICS.has(id) and not memory.cosmetics.has(MILESTONE_COSMETICS[id]):
+				memory.cosmetics.append(MILESTONE_COSMETICS[id])
+	HeartwoodMemory.save_data(memory)
+
+# Won with every attacking Warden from one family line (Sprouts and walls don't count).
+func _one_family_only() -> bool:
+	var lines := {}
+	for tower in (%TowerContainer as Node).get_children():
+		if tower is Tower and tower.tower_data.can_attack and tower.tower_data.line not in ["sprout", "wall", "memory"]:
+			lines[tower.tower_data.line] = true
+	return lines.size() == 1

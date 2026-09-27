@@ -32,6 +32,7 @@
 [ext_resource type="Script" path="res://scripts/ui/drift_banner.gd" id="40_banner"]
 [ext_resource type="Script" path="res://scripts/ui/nightmare_info.gd" id="41_ninfo"]
 [ext_resource type="Script" path="res://scripts/ui/leak_effect.gd" id="42_leak"]
+[ext_resource type="Script" path="res://scripts/meta/meta_run.gd" id="43_meta"]
 
 [sub_resource type="Gradient" id="Gradient_5toel"]
 interpolation_mode = 1
@@ -104,6 +105,10 @@ script = ExtResource("16_dream")
 unique_name_in_owner = true
 process_mode = 3
 script = ExtResource("30_omen")
+
+[node name="MetaRun" type="Node" parent="."]
+unique_name_in_owner = true
+script = ExtResource("43_meta")
 
 [node name="TestGrove" type="CanvasLayer" parent="."]
 unique_name_in_owner = true

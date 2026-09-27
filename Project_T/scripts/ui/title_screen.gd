@@ -1,14 +1,18 @@
 extends Control
 
-# Title screen: Continue (when a run is saved), New run, Settings, Quit, and the Seeds banked so
-# far. Applies the saved settings on start. Built in code.
+# Title screen (screens_ui.md): Continue (when a run is saved), New run (with the Blight Level
+# picker after the first win), Memory Grove (full game; a greyed teaser in the demo, plus Wishlist),
+# Settings, Credits, Quit, the Seeds banked and the highest Blight Level won. Applies the saved
+# settings on start. Built in code.
 
 const GAME_SCENE := "res://scenes/main.tscn"
+const GROVE_SCENE := "res://scenes/grove.tscn"
 const TITLE := "The Heartwood Remembers"
 
 var _menu := VBoxContainer.new()
 var _settings: SettingsPanel
 var _confirm: ConfirmationDialog
+var _blight := BlightPicker.new()
 
 func _ready() -> void:
 	HeartwoodMemory.apply_settings()
@@ -41,6 +45,15 @@ func _ready() -> void:
 	if RunSaver.has_save():
 		_add_button("Continue", _continue)
 	_add_button("New run", _new_run)
+	if ResultsScreen.is_demo():
+		var grove := _add_button("Memory Grove (in the full game)", func() -> void: pass)
+		grove.disabled = true
+		var url: String = ProjectSettings.get_setting(ResultsScreen.WISHLIST_SETTING, "")
+		var wishlist := _add_button("Wishlist on Steam", func() -> void: OS.shell_open(url))
+		wishlist.disabled = url == ""
+		wishlist.tooltip_text = "Store page coming soon" if url == "" else url
+	else:
+		_add_button("Memory Grove", func() -> void: get_tree().change_scene_to_file(GROVE_SCENE))
 	_add_button("Settings", _show_settings)
 	_add_button("Credits", _show_credits)
 	_add_button("Quit", func() -> void: get_tree().quit())
@@ -48,6 +61,8 @@ func _ready() -> void:
 	var seeds := Label.new()
 	var memory := HeartwoodMemory.load_data()
 	seeds.text = "Seeds banked: %d" % memory.seeds if memory.runs_played > 0 else ""
+	if int(memory.highest_blight_won) > 0:  # A blossom per Blight Level won (text until the art exists)
+		seeds.text += "\n" + "✿".repeat(int(memory.highest_blight_won)) + "  Blight Level %d won" % int(memory.highest_blight_won)
 	seeds.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	seeds.add_theme_color_override("font_color", Color(0.75, 0.95, 0.6))
 	_menu.add_child(seeds)
@@ -63,14 +78,19 @@ func _ready() -> void:
 	_confirm.dialog_text = "Start a new run? The run in progress will be lost."
 	_confirm.confirmed.connect(_start_new)
 	add_child(_confirm)
+	add_child(_blight)
+	_blight.picked.connect(func(level: int) -> void:
+		MetaRun.blight_level = level
+		_go())
 
-func _add_button(text: String, action: Callable) -> void:
+func _add_button(text: String, action: Callable) -> Button:
 	var button := Button.new()
 	button.text = text
 	button.custom_minimum_size = Vector2(0, 44)
 	button.focus_mode = Control.FOCUS_NONE
 	button.pressed.connect(action)
 	_menu.add_child(button)
+	return button
 
 func _continue() -> void:
 	RunSaver.resume_next = true
@@ -84,6 +104,14 @@ func _new_run() -> void:
 
 func _start_new() -> void:
 	RunSaver.delete_save()
+	var max_level := HeartwoodMemory.max_blight_level(HeartwoodMemory.load_data())
+	if max_level > 0 and not ResultsScreen.is_demo():
+		_blight.open(max_level)  # Blight Levels open after the first win
+	else:
+		MetaRun.blight_level = 0
+		_go()
+
+func _go() -> void:
 	RunSaver.resume_next = false
 	get_tree().change_scene_to_file(GAME_SCENE)
 

@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="UpgradeData" format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "blessing_whirligig"
+display_name = "Whirligig Blessing"
+description = "The whole Whirligig family deals 25% more damage, and grows 25% cheaper."
+rarity = 2
+kind = 2
+tags = Array[String](["wind"])
+requires = Array[String]([])
+max_stacks = 0
+in_start_pool = false
+stat_line = "wind"
+soothe_bonus = 0.25
+evolve_discount = 0.25

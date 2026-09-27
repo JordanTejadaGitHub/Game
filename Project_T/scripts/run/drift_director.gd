@@ -51,6 +51,13 @@ const DEMO_DRIFTS_DIR := "res://resource/drift/demo/"
 @export var call_early_seconds_per_dew: float = 2.0
 @export var call_early_cap: int = 10  # Max Dew for calling one drift early
 
+# Blight Levels (meta_design.md), set by MetaRun at run start. 1.0 / 0 = no change.
+var blight_health_multiplier := 1.0  # Nightmares (not bosses)
+var blight_boss_health_multiplier := 1.0
+var blight_speed_multiplier := 1.0
+var blight_rest_bonus_multiplier := 1.0  # The block's rest bonus (before perfect / Dreams)
+var blight_elites_per_drift := 0  # Nightmares per drift made Deeply Blighted
+
 @onready var run_state: RunState = %RunState
 @onready var spawner = %EnemyContainer
 
@@ -223,6 +230,7 @@ func _start_drift() -> void:
 			mods.get("spacing", 1.0)),
 		"clock": 0.0,
 	}
+	_add_blight_elites(_arriving[number].schedule)
 	drift_started.emit(number)
 	# Creatures due at t=0 arrive right away, not a frame later.
 	_process(0.0)
@@ -240,7 +248,7 @@ func get_health_scale(data: EnemyData, number: int) -> float:
 # Dreams / Omens: extra health multiplier for creatures of drift `number` (Wild Growth: all
 # creatures; Omens: not bosses).
 func get_health_multiplier(data: EnemyData, number: int) -> float:
-	var multiplier := 1.0
+	var multiplier := blight_boss_health_multiplier if data.is_boss else blight_health_multiplier
 	var dreams := get_tree().get_first_node_in_group(DreamState.GROUP) as DreamState
 	if dreams:
 		multiplier *= dreams.get_creature_health_multiplier()
@@ -264,7 +272,24 @@ func get_spawn_modifiers(data: EnemyData, number: int) -> Dictionary:
 	var dreams := get_tree().get_first_node_in_group(DreamState.GROUP) as DreamState
 	if dreams and dreams.get_creature_speed_multiplier() != 1.0:
 		modifiers["speed"] = modifiers.get("speed", 1.0) * dreams.get_creature_speed_multiplier()
+	if blight_speed_multiplier != 1.0:
+		modifiers["speed"] = modifiers.get("speed", 1.0) * blight_speed_multiplier
 	return modifiers
+
+# Blight Level 5: `blight_elites_per_drift` random non-boss arrivals become Deeply Blighted.
+func _add_blight_elites(schedule: Array) -> void:
+	if blight_elites_per_drift <= 0:
+		return
+	var candidates: Array[int] = []
+	for i in schedule.size():
+		if not schedule[i][1].is_boss and not (schedule[i].size() > 2 and schedule[i][2]):
+			candidates.append(i)
+	candidates.shuffle()
+	for i in candidates.slice(0, blight_elites_per_drift):
+		if schedule[i].size() > 2:
+			schedule[i][2] = true
+		else:
+			schedule[i].append(true)
 
 func _spawn(data: EnemyData, number: int, elite: bool = false) -> void:
 	var enemy: Node2D = spawner.spawn_enemy(data, get_health_scale(data, number),
@@ -346,7 +371,7 @@ func _begin_rest() -> void:
 func _pay_rest_bonus() -> Array:
 	var block := get_block(drifts_started)
 	var perfect := not _block_leaked
-	var bonus := get_rest_bonus(block) + (perfect_block_bonus if perfect else 0)
+	var bonus := roundi(get_rest_bonus(block) * blight_rest_bonus_multiplier) + (perfect_block_bonus if perfect else 0)
 	var dreams := get_tree().get_first_node_in_group(DreamState.GROUP) as DreamState
 	if dreams:
 		bonus += dreams.get_dew_per_clear()  # Morning Dew

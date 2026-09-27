@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="UnlockData" format=3]
+
+[ext_resource type="Script" path="res://resource/meta/script/unlock_data.gd" id="1_unlock"]
+
+[resource]
+script = ExtResource("1_unlock")
+id = "acorn_line"
+display_name = "Acorn line"
+description = "Acorn joins your family picks: support and Dew."
+root = 0
+costs = Array[int]([70])
+order = 3
+families = Array[String](["acorn"])
+requires_any = Array[String](["pebbling_line", "rootling_line"])

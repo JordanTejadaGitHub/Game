@@ -36,9 +36,12 @@ through `run_state.spend_dew(cost)` (returns false + emits `dew_short` when shor
 directly. HUD shows the Dew counter (`%DewLabel`), dims unaffordable Warden buttons.
 **Statuses, evolutions, Dreams** (first-playable scope of tower_design.md / dream_design.md): see
 "Dreams and Wardens" below.
-Next up (full game, after the demo): Memory Grove (spending Seeds, `UnlockData`), Memories 2–10,
-Blight Levels, acts 3–4 drifts and bosses (Mother Moth, Hollow Oak), Pebbling/Rootling/Acorn
-branches, final forms; localization; audio; replacing the Foozle placeholder art.
+**Meta** (full game; inert in the demo): Memory Grove, Memories, milestones, Blight Levels, Family
+Blessings — see "Meta" below.
+Next up: acts 3–4 drifts and bosses (Moth Queen, Hollow Oak incl. Blight 10), the missing final
+forms (Puffball, Beacon, Monsoon, …) and their Grove entries, Grove-only Dream cards (Static Bloom,
+Twin Puff, Legendaries…), Forests root (biomes), Memory Wardens as boss rewards, localization,
+controller / Steam Deck, accessibility, Steam achievements (milestones map to them).
 
 ## Dreams and Wardens
 - `EnemyStatuses` (RefCounted on each enemy, `enemy.statuses`): damp, drowsy, spored, marked,
@@ -164,9 +167,36 @@ branches, final forms; localization; audio; replacing the Foozle placeholder art
 - **Tests never touch the player's saves:** autosave, Seed banking and whispers only write when
   `main.tscn` is the running scene (`get_tree().current_scene == owner`); tests add it under root
   by hand. `RunSaver.file_path` / `HeartwoodMemory.file_path` can point at temp files. Don't smoke
-  run with `--scene res://scenes/main.tscn` (that IS the real game and writes to user://).
+  run with `--scene res://scenes/main.tscn` or `grove.tscn` (they ARE the real game and write to
+  user://: run saves, whispers, the Grove's one-time welcome). The title scene is safe.
 - `Whispers` (`%Whispers`): onboarding.md's Heartwood whispers, each once ever; first run glides the
   camera along the path (`GameCameraNode.glide`). The build ghost shows "+N path".
+- HUD from screens_ui.md: `DriftBanner` (top centre: act/drift, block pips, "Boss in N", boss
+  health bar with 50% marker), `NightmareInfo` (hover panel; `EnemyData.trait_text`; "New" tag via
+  profile `nightmares_seen`), `LeakEffect` (pulse + falling leaf at the goal). Pause menu: Abandon
+  run, whispers toggle, run summary. Settings: UI scale, Auto-drift default, reduced motion, damage
+  numbers (`damage_numbers` 0/1/2). Hotkeys G (grow selected), H / F (centre on goal / start).
+  Results show run stats (`RunState.leaves_lost`, `longest_path`, `play_time`). `tests/test_ui.gd`.
+
+## Meta (meta_design.md; full game only — `game/demo` true = nothing applied or recorded)
+- `UnlockData` (`resource/meta/grove/*.tres`): root (WARDENS/DREAMS/PERKS/FORESTS), `costs` per
+  level, `requires_all` / `requires_any` (+count), effects: `families` (join family picks),
+  `dream_cards` (→ `DreamState.grove_cards`), perks per level (`starting_dew`, `max_leaves`,
+  `dream_rerolls`, `dream_banishes`, `extra_dream_cards`, `seed_bonus`, `early_bloom`).
+- `HeartwoodMemory`: `unlocks {id: level}`, `buy()` / `buy_problem()`, `load_grove()`, `MEMORIES`
+  (10) + `memories_unlocked()` (1 after the first run, +1 per 3 unlock levels, +1 per Memory
+  milestone), `milestones`, `counters`, `highest_blight_won`, `max_blight_level()`, `cosmetics`.
+- `MetaRun` (`%MetaRun`, `scripts/meta/meta_run.gd`): applies Grove perks, families, cards and the
+  Blight Level (`MetaRun.blight_level`, static, chosen by `BlightPicker`, saved with the run) at
+  run start; records counters / milestones / highest Blight won at run end (real game only).
+  Blight hooks: `DriftDirector.blight_*` multipliers, `act_break_leaves`, `DreamState.skip_dew` /
+  `lean_common`, `MetaRun.clear_cost_multiplier()`. `RunState.seed_bonus` adds a Seeds line.
+- Family Blessings: `resource/meta/blessing/blessing_<family>.tres` (UpgradeData, +25% damage and
+  25% cheaper growth for that family), put in the Dream pool by MetaRun (never offered); the family
+  pick fills empty slots with them.
+- `scenes/grove.tscn` (`GroveScreen`): roots of plants (seed / glowing / grown), Memories shelf +
+  viewer, Start run (Blight picker after the first win), "The forest remembered you" on the first
+  visit with Seeds. Title: Memory Grove button (demo: greyed + Wishlist). `tests/test_meta.gd`.
 
 ## Audio (placeholder, audio_direction.md)
 - `tools/sound_generator.gd` synthesizes every sound into `assets/audio/` (sfx 44.1 kHz; music

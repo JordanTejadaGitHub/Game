@@ -98,6 +98,9 @@ func _build(won: bool) -> void:
 		wishlist.disabled = url == ""
 		wishlist.tooltip_text = "Store page coming soon" if url == "" else url
 		wishlist.pressed.connect(func() -> void: OS.shell_open(url))
+	if not is_demo():  # screens_ui.md: Results → Memory Grove
+		_button(buttons, "Memory Grove").pressed.connect(func() -> void:
+			get_tree().change_scene_to_file("res://scenes/grove.tscn"))
 	_button(buttons, "New run").pressed.connect(func() -> void: get_tree().reload_current_scene())
 	_button(buttons, "Title").pressed.connect(func() -> void: get_tree().change_scene_to_file(TITLE_SCENE))
 
