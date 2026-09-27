@@ -12,6 +12,13 @@ const MUSIC_RATE := 22050
 const SFX_DIR := "res://assets/audio/sfx/"
 const MUSIC_DIR := "res://assets/audio/music/"
 const SFX_PEAK := 0.7  # ≈ −3 dBFS
+# Second listen (audio_direction.md pillar 6, "Rounded, never sharp"): soft onsets, a dark top end,
+# bells in their lower octaves, no crackle/click/hiss textures.
+const SFX_ONSET := 0.012
+const HIT_ONSET := 0.004
+const SFX_TOP_HZ := 4500.0  # Every sound effect is lowpassed here
+const SFX_BELL_ONSET := 0.008  # Soft mallet
+const SFX_MAX_PARTIAL_HZ := 6000.0  # Nothing rings above this
 # Warden families with their own hit sound (the rest use sprout's).
 const HIT_FAMILIES := ["stone", "root", "water", "light", "spore", "sprout"]
 
@@ -140,17 +147,19 @@ func _bell(rate: int, freq: float, amp: float, decay: float, partials: Array, le
 	if length < 0.0:
 		length = decay * 5.0
 	var seg := _seg(length, rate)
+	var sfx := rate == SFX_RATE  # Sound effects: soft mallet, no partials above SFX_MAX_PARTIAL_HZ
+	var onset := SFX_BELL_ONSET if sfx else 0.003
 	for p in partials:
 		var f: float = freq * p[0]
-		if f > rate * 0.45:
+		var phase := rng.randf() * TAU
+		if f > rate * 0.45 or (sfx and f > SFX_MAX_PARTIAL_HZ):
 			continue
 		var a: float = amp * p[1]
 		var tau: float = decay * p[2]
-		var phase := rng.randf() * TAU
 		var step := TAU * f / rate
 		for i in seg.size():
 			var t := float(i) / rate
-			seg[i] += sin(phase + step * i) * a * minf(t / 0.003, 1.0) * exp(-t / tau)
+			seg[i] += sin(phase + step * i) * a * minf(t / onset, 1.0) * exp(-t / tau)
 	for i in range(maxi(seg.size() - int(0.02 * rate), 0), seg.size()):
 		seg[i] *= float(seg.size() - i) / (0.02 * rate)
 	return seg
@@ -173,20 +182,10 @@ func _pluck(rate: int, freq: float, amp: float, length: float, soft := 0.5, deca
 		line[idx] = (cur + line[next_i]) * 0.5 * decay
 		seg[i] = cur * amp
 		idx = next_i
-	return _env(seg, rate, swell(0.002, 0.05, length))
-
-# Sparse random clicks (crackle of ice, dry leaves, embers).
-func _crackle(rate: int, length: float, per_second: float, amp, bright := 3000.0) -> PackedFloat32Array:
-	var seg := _seg(length, rate)
-	var i := 0
-	while i < seg.size():
-		var click_len := int(rate * rng.randf_range(0.001, 0.006))
-		var a := _val(amp, float(i) / rate) * rng.randf_range(0.3, 1.0)
-		for k in click_len:
-			if i + k < seg.size():
-				seg[i + k] += rng.randf_range(-1.0, 1.0) * a * (1.0 - float(k) / click_len)
-		i += int(rate * rng.randf_range(0.2, 1.8) / per_second)
-	return _filter(seg, rate, bright, 0.9, "hp")
+	seg = _env(seg, rate, swell(0.002, 0.05, length))
+	if rate == SFX_RATE:  # Sound effects: a felt-soft string, no bright noise burst on top
+		seg = _filter(_filter(seg, rate, 1600.0, 0.7), rate, 1600.0, 0.7)
+	return seg
 
 # Whispering: noise through two moving formants, chopped into syllables.
 func _whisper(rate: int, length: float, amp: float, syllables := 5.0) -> PackedFloat32Array:
@@ -245,7 +244,13 @@ func _save(seg: PackedFloat32Array, rate: int, path: String, stereo := false) ->
 	if err != OK:
 		push_error("Could not save %s: %s" % [path, error_string(err)])
 
-func _sfx(sound_name: String, seg: PackedFloat32Array, peak := SFX_PEAK) -> void:
+# Every sound effect ends here: a dark top end (lowpassed, pillar "Rounded, never sharp") and a soft
+# onset (`onset` s fade-in: 10 ms+ for most, HIT_ONSET for hits), then normalised and saved.
+func _sfx(sound_name: String, seg: PackedFloat32Array, peak := SFX_PEAK, onset := SFX_ONSET) -> void:
+	seg = _filter(seg, SFX_RATE, SFX_TOP_HZ, 0.7)
+	var fade := int(onset * SFX_RATE)
+	for i in mini(fade, seg.size()):
+		seg[i] *= float(i) / fade
 	_save(_normalize(seg, peak), SFX_RATE, SFX_DIR + sound_name + ".wav")
 
 
@@ -254,47 +259,54 @@ func _sfx(sound_name: String, seg: PackedFloat32Array, peak := SFX_PEAK) -> void
 func _make_sfx() -> void:
 	var r := SFX_RATE
 
-	# The dispel (the most important sound): shriek -> crack. The warm release chime is its own
-	# sound so the game can step its pitch up when several dispels land close together.
+	# The dispel (the most important sound): sigh -> dissolve, all rounded (second listen: the saw
+	# shriek and the crackle were too sharp). The warm release chime is its own sound so the game can
+	# step its pitch up when several dispels land close together.
 	for v in 4:
-		var s := _seg(0.5, r)
-		var top := rng.randf_range(800.0, 1050.0)
-		var shriek := _tone(r, 0.2, glide(top, top * 0.35, 0.2), perc(0.01, 0.07, 0.2), "saw")
-		_mix(s, _filter(shriek, r, 2200.0, 0.4), r, 0.0, 0.5)
-		_mix(s, _filter(_noise(r, 0.2, perc(0.005, 0.05, 0.2)), r, glide(3000.0, 800.0, 0.2), 0.5, "bp"), r, 0.0, 0.3)
-		_mix(s, _crackle(r, 0.18, 90.0, perc(0.002, 0.07, 0.18), 2500.0), r, 0.1, 0.9)
-		_sfx("dispel_%02d" % (v + 1), s, 0.55)
-	_sfx("dispel_chime", _bell(r, hz(86), 0.8, 0.45, CHIME, 1.6))  # D6
+		var s := _seg(0.6, r)
+		var top := rng.randf_range(600.0, 850.0)
+		# Sigh: the nightmare's cold breath going out, a falling breathy formant with a faint voice under it.
+		var breath := _filter(_noise(r, 0.4, perc(0.03, 0.12, 0.4)), r, glide(top, top * 0.45, 0.35), 0.45, "bp")
+		_mix(s, _filter(breath, r, 1500.0, 0.7), r, 0.0, 1.0)
+		var voice := _tone(r, 0.35, glide(top * 0.3, top * 0.18, 0.35), perc(0.03, 0.1, 0.35), "tri")
+		_mix(s, _filter(voice, r, 900.0, 0.7), r, 0.0, 0.25)
+		# Dissolve: a soft, muffled whumpf with an airy swell.
+		_mix(s, _tone(r, 0.35, glide(200.0, 100.0, 0.08), perc(0.01, 0.08, 0.35)), r, 0.12, 0.6)
+		_mix(s, _filter(_noise(r, 0.3, swell(0.05, 0.2, 0.3)), r, 600.0, 0.7), r, 0.12, 0.35)
+		_sfx("dispel_%02d" % (v + 1), s, 0.5)
+	_sfx("dispel_chime", _bell(r, hz(74), 0.8, 0.5, CHIME, 1.6))  # D5, soft mallet
 
 	var boss := _seg(3.0, r)
-	var roar := _tone(r, 0.8, glide(420.0, 90.0, 0.8), perc(0.02, 0.3, 0.8), "saw")
-	_mix(boss, _filter(roar, r, 1500.0, 0.5), r, 0.0, 0.5)
-	_mix(boss, _crackle(r, 0.6, 120.0, perc(0.005, 0.25, 0.6), 1800.0), r, 0.35, 1.0)
-	for m in [62, 66, 69, 74, 78]:  # D major, the Heartwood wins
-		_mix(boss, _bell(r, hz(m), 0.3, 0.9, CHIME, 2.2), r, 0.6 + (m - 62) * 0.012)
+	var roar := _tone(r, 0.8, glide(300.0, 80.0, 0.8), perc(0.04, 0.3, 0.8), "saw")
+	_mix(boss, _filter(roar, r, 900.0, 0.5), r, 0.0, 0.5)
+	_mix(boss, _tone(r, 0.6, glide(160.0, 70.0, 0.15), perc(0.01, 0.15, 0.6)), r, 0.35, 0.8)  # The whumpf
+	_mix(boss, _filter(_noise(r, 0.6, swell(0.1, 0.4, 0.6)), r, 500.0, 0.7), r, 0.35, 0.6)
+	for m in [50, 54, 57, 62, 66]:  # D major, the Heartwood wins
+		_mix(boss, _bell(r, hz(m), 0.3, 0.9, CHIME, 2.2), r, 0.6 + (m - 50) * 0.012)
 	_sfx("dispel_boss", boss)
 
-	var split := _seg(0.5, r)
-	_mix(split, _bell(r, hz(93), 0.4, 0.12, CHIME, 0.4), r, 0.0)
-	_mix(split, _bell(r, hz(93) * 1.03, 0.3, 0.1, CHIME, 0.4), r, 0.01)
-	_mix(split, _crackle(r, 0.12, 120.0, perc(0.002, 0.05, 0.12)), r, 0.0, 0.8)
-	_sfx("split", split, 0.45)
+	var split := _seg(0.6, r)  # Breaking into Sobs: a soft, detuned low chime and a small sniffle
+	_mix(split, _bell(r, hz(69), 0.4, 0.15, CHIME, 0.5), r, 0.0)
+	_mix(split, _bell(r, hz(69) * 1.025, 0.3, 0.12, CHIME, 0.5), r, 0.01)
+	_mix(split, _filter(_noise(r, 0.15, perc(0.03, 0.05, 0.15)), r, 900.0, 0.6, "bp"), r, 0.2, 0.3)
+	_sfx("split", split, 0.4)
 
-	# The Heartwood loses a leaf: lunge, groan, a leaf crackling as it falls. Cuts through.
+	# The Heartwood loses a leaf: a dark lunge, the tree groaning, a deep hollow knock as the leaf falls.
+	# Cuts through by level and ducking, not brightness.
 	var leaf := _seg(1.6, r)
 	var whoosh := _noise(r, 0.5, swell(0.3, 0.2, 0.5))
-	_mix(leaf, _filter(whoosh, r, func(t: float) -> float: return 300.0 + 2800.0 * sin(PI * t / 0.5), 0.5), r, 0.0, 0.9)
+	_mix(leaf, _filter(whoosh, r, func(t: float) -> float: return 200.0 + 1000.0 * sin(PI * t / 0.5), 0.5), r, 0.0, 0.9)
 	var groan := _tone(r, 1.1, func(t: float) -> float: return 72.0 - 14.0 * t + 3.0 * sin(t * 23.0), swell(0.1, 0.4, 1.1), "saw")
 	_mix(leaf, _filter(groan, r, 500.0, 0.3), r, 0.3, 0.9)
-	_mix(leaf, _crackle(r, 0.5, 60.0, perc(0.01, 0.2, 0.5), 2000.0), r, 0.7, 0.8)
+	_mix(leaf, _knock(r, 95.0, 0.09), r, 0.75, 1.0)
 	_sfx("leaf_lost", leaf, 0.8)
 
-	for v in 3:  # Dew landing: a tiny tinkle
+	for v in 3:  # Dew landing: a tiny, low tinkle
 		var dew := _seg(0.35, r)
-		var notes: Array = [[86, 90], [88, 93], [90, 95]][v]
+		var notes: Array = [[74, 78], [76, 81], [78, 83]][v]
 		_mix(dew, _bell(r, hz(notes[0]), 0.5, 0.06, CHIME, 0.3), r, 0.0)
 		_mix(dew, _bell(r, hz(notes[1]), 0.4, 0.07, CHIME, 0.3), r, 0.04)
-		_sfx("dew_%02d" % (v + 1), dew, 0.35)
+		_sfx("dew_%02d" % (v + 1), dew, 0.3)
 
 	# Building and the map.
 	var plant := _seg(0.9, r)
@@ -306,12 +318,12 @@ func _make_sfx() -> void:
 
 	var evolve := _seg(1.4, r)
 	for i in 4:  # D F# A D: a rising bloom
-		_mix(evolve, _bell(r, hz([74, 78, 81, 86][i]), 0.4, 0.35, MUSIC_BOX, 1.0), r, i * 0.07)
-	_mix(evolve, _filter(_noise(r, 0.6, swell(0.2, 0.3, 0.6)), r, 6000.0, 0.8, "hp"), r, 0.0, 0.08)
+		_mix(evolve, _bell(r, hz([62, 66, 69, 74][i]), 0.4, 0.35, MUSIC_BOX, 1.0), r, i * 0.07)
+	_mix(evolve, _filter(_noise(r, 0.6, swell(0.2, 0.3, 0.6)), r, 1200.0, 0.8), r, 0.0, 0.1)
 	_sfx("evolve", evolve)
 
 	var sell := _seg(0.7, r)
-	_mix(sell, _filter(_noise(r, 0.5, swell(0.02, 0.3, 0.5)), r, glide(3000.0, 300.0, 0.5), 0.5, "bp"), r, 0.0, 0.8)
+	_mix(sell, _filter(_noise(r, 0.5, swell(0.04, 0.3, 0.5)), r, glide(1500.0, 250.0, 0.5), 0.5, "bp"), r, 0.0, 0.8)
 	_mix(sell, _pluck(r, hz(55), 0.4, 0.5, 0.8), r, 0.2)
 	_sfx("sell", sell, 0.55)
 
@@ -320,10 +332,10 @@ func _make_sfx() -> void:
 		_mix(invalid, _knock(r, 170.0 - k * 20.0), r, k * 0.09)
 	_sfx("invalid", invalid, 0.5)
 
-	var tend := _seg(0.7, r)
-	_mix(tend, _filter(_noise(r, 0.4, func(t: float) -> float: return swell(0.05, 0.1, 0.4).call(t) * (0.4 + 0.6 * absf(sin(t * 40.0)))), r, 4000.0, 0.8, "hp"), r, 0.0, 0.5)
-	_mix(tend, _crackle(r, 0.3, 40.0, 0.7, 1500.0), r, 0.0)
-	_mix(tend, _filter(_noise(r, 0.06, perc(0.001, 0.015, 0.06)), r, 1800.0, 0.4, "bp"), r, 0.35, 2.0)  # Snap
+	var tend := _seg(0.8, r)  # A soft creak and a low wooden settle
+	_mix(tend, _creak(r, 0.45, 20.0, 45.0, 600.0), r, 0.0, 0.8)
+	_mix(tend, _filter(_noise(r, 0.4, swell(0.08, 0.25, 0.4)), r, 700.0, 0.7), r, 0.05, 0.3)
+	_mix(tend, _knock(r, 120.0, 0.06), r, 0.4, 1.0)
 	_sfx("tend", tend, 0.6)
 
 	var move := _seg(0.9, r)
@@ -335,65 +347,65 @@ func _make_sfx() -> void:
 
 	var shimmer := _seg(0.6, r)
 	for i in 5:
-		_mix(shimmer, _bell(r, hz(86 + [0, 3, 5, 7, 10][i]), 0.2, 0.15, CHIME, 0.4), r, i * 0.04)
-	_sfx("path_shimmer", shimmer, 0.25)
+		_mix(shimmer, _bell(r, hz(74 + [0, 3, 5, 7, 10][i]), 0.2, 0.15, CHIME, 0.4), r, i * 0.04)
+	_sfx("path_shimmer", shimmer, 0.2)
 
-	var trample := _seg(1.0, r)
-	_mix(trample, _knock(r, 55.0), r, 0.0, 1.5)
-	_mix(trample, _filter(_noise(r, 0.4, perc(0.002, 0.12, 0.4)), r, 1200.0, 0.7), r, 0.0, 1.0)
-	_mix(trample, _crackle(r, 0.5, 80.0, perc(0.005, 0.2, 0.5), 900.0), r, 0.02, 1.5)
+	var trample := _seg(1.0, r)  # A heavy wooden collapse: low, no splinters
+	_mix(trample, _knock(r, 55.0, 0.08), r, 0.0, 1.5)
+	_mix(trample, _knock(r, 80.0, 0.06), r, 0.09, 1.0)
+	_mix(trample, _filter(_noise(r, 0.6, perc(0.01, 0.2, 0.6)), r, 400.0, 0.7), r, 0.0, 1.5)
 	_sfx("trample", trample)
 
-	# Warden attacks (warm and soft; voice-limited in game).
+	# Warden launches (quiet; the hits below carry the impact).
 	for v in 3:
 		var puff := _seg(0.35, r)
-		_mix(puff, _tone(r, 0.08, glide(420.0 + v * 30.0, 140.0, 0.08), perc(0.002, 0.025, 0.08)), r, 0.0, 0.8)
+		_mix(puff, _tone(r, 0.08, glide(420.0 + v * 30.0, 140.0, 0.08), perc(0.004, 0.025, 0.08)), r, 0.0, 0.8)
 		_mix(puff, _filter(_noise(r, 0.3, swell(0.03, 0.2, 0.3)), r, 1200.0, 0.8), r, 0.01, 0.5)
 		_sfx("attack_spore_%02d" % (v + 1), puff, 0.4)
-	for v in 3:
-		var thock := _knock(r, 190.0 + v * 25.0)
-		_mix(thock, _filter(_noise(r, 0.02, perc(0.0005, 0.004, 0.02)), r, 1400.0, 0.3, "bp"), r, 0.0, 1.2)
-		_sfx("attack_stone_%02d" % (v + 1), thock, 0.45)
-	for v in 3:
+	for v in 3:  # Sling whip: a soft low swish and a knock
+		var sling := _filter(_noise(r, 0.12, swell(0.04, 0.06, 0.12)), r, glide(400.0, 1200.0, 0.12), 0.6, "bp")
+		_mix(sling, _knock(r, 190.0 + v * 25.0), r, 0.08, 0.8)
+		_sfx("attack_stone_%02d" % (v + 1), sling, 0.4)
+	for v in 3:  # A drop falling
 		var drop := _seg(0.3, r)
-		_mix(drop, _tone(r, 0.09, glide(500.0 + v * 60.0, 1500.0, 0.06), perc(0.002, 0.03, 0.09)), r, 0.0)
-		_mix(drop, _bell(r, 1800.0 + v * 100.0, 0.15, 0.04, CHIME, 0.2), r, 0.05)
+		_mix(drop, _tone(r, 0.09, glide(400.0 + v * 40.0, 900.0, 0.06), perc(0.005, 0.03, 0.09)), r, 0.0)
+		_mix(drop, _bell(r, 900.0 + v * 60.0, 0.15, 0.04, CHIME, 0.2), r, 0.05)
 		_sfx("attack_water_%02d" % (v + 1), drop, 0.4)
-	for v in 3:
-		var zap := _seg(0.3, r)
-		var buzz := _tone(r, 0.18, func(t: float) -> float: return 180.0 + 60.0 * sin(t * 170.0) + rng.randf() * 40.0, perc(0.003, 0.06, 0.18), "square")
-		_mix(zap, _filter(buzz, r, 2200.0, 0.6), r, 0.0, 0.35)
-		_mix(zap, _crackle(r, 0.2, 150.0, perc(0.002, 0.08, 0.2), 2500.0), r, 0.0)
-		_sfx("attack_light_%02d" % (v + 1), zap, 0.35)
+	for v in 3:  # A warm glow swell
+		var glow := _seg(0.3, r)
+		for m in [69, 76]:
+			_mix(glow, _tone(r, 0.25, hz(m + v), swell(0.05, 0.15, 0.25), "tri"), r, 0.0, 0.5)
+		_mix(glow, _filter(_noise(r, 0.25, swell(0.05, 0.15, 0.25)), r, 700.0, 0.7), r, 0.0, 0.3)
+		_sfx("attack_light_%02d" % (v + 1), glow, 0.3)
 	for v in 3:
 		var pulse := _knock(r, 110.0 + v * 12.0)
 		_mix(pulse, _filter(_noise(r, 0.4, swell(0.02, 0.3, 0.4)), r, 120.0, 0.6), r, 0.0, 3.0)
 		_sfx("attack_root_%02d" % (v + 1), pulse, 0.5)
 	for v in 3:
-		_sfx("attack_sprout_%02d" % (v + 1), _pluck(r, hz([79, 81, 83][v]), 0.5, 0.4, 0.6, 0.99), 0.35)
-	_sfx("attack_acorn", _bell(r, hz(74), 0.4, 0.3, MUSIC_BOX, 0.9), 0.3)
+		_sfx("attack_sprout_%02d" % (v + 1), _pluck(r, hz([67, 69, 71][v]), 0.5, 0.4, 0.8, 0.99), 0.35)
+	_sfx("attack_acorn", _bell(r, hz(62), 0.4, 0.3, MUSIC_BOX, 0.9), 0.3)
 
 	# UI.
-	var click := _knock(r, 900.0, 0.012)
-	_mix(click, _knock(r, 300.0, 0.02), r, 0.0, 0.5)
-	_sfx("ui_click", click, 0.35)
+	var click := _knock(r, 420.0, 0.012)  # A soft wooden click
+	_mix(click, _knock(r, 220.0, 0.02), r, 0.0, 0.6)
+	_sfx("ui_click", click, 0.3)
 
 	var dream := _seg(1.8, r)  # A breath in, then a shimmer
-	_mix(dream, _filter(_noise(r, 0.7, swell(0.6, 0.08, 0.7)), r, glide(400.0, 2500.0, 0.7), 0.6, "bp"), r, 0.0, 0.8)
+	_mix(dream, _filter(_noise(r, 0.7, swell(0.6, 0.08, 0.7)), r, glide(300.0, 1400.0, 0.7), 0.6, "bp"), r, 0.0, 0.8)
 	for i in 6:
-		_mix(dream, _bell(r, hz([81, 84, 86, 88, 91, 93][i]), 0.25, 0.4, MUSIC_BOX, 1.1), r, 0.65 + i * 0.05)
-	_sfx("dream_open", dream, 0.55)
-	_sfx("dream_take_0", _bell(r, hz(74), 0.5, 0.5, MUSIC_BOX, 1.5), 0.45)  # Common: a soft note
+		_mix(dream, _bell(r, hz([69, 72, 74, 76, 79, 81][i]), 0.25, 0.4, MUSIC_BOX, 1.1), r, 0.65 + i * 0.05)
+	_sfx("dream_open", dream, 0.5)
+	_sfx("dream_take_0", _bell(r, hz(62), 0.5, 0.5, MUSIC_BOX, 1.5), 0.45)  # Common: a soft note
 	var rare := _seg(2.2, r)
 	for m in [62, 65, 69, 74]:
 		_mix(rare, _choir(r, hz(m), 2.0), r, 0.0, 0.25)
-	_mix(rare, _bell(r, hz(81), 0.4, 0.6, MUSIC_BOX, 1.8), r, 0.0)
+	_mix(rare, _bell(r, hz(69), 0.4, 0.6, MUSIC_BOX, 1.8), r, 0.0)
 	_sfx("dream_take_1", rare, 0.55)
 	var legendary := _seg(3.2, r)
 	for m in [50, 62, 66, 69, 74, 78]:
 		_mix(legendary, _choir(r, hz(m), 3.0), r, 0.0, 0.2)
 	for i in 5:
-		_mix(legendary, _bell(r, hz([74, 78, 81, 86, 90][i]), 0.35, 0.8, CHIME, 2.5), r, i * 0.08)
+		_mix(legendary, _bell(r, hz([62, 66, 69, 74, 78][i]), 0.35, 0.8, CHIME, 2.5), r, i * 0.08)
 	_sfx("dream_take_2", legendary, 0.65)
 
 	_sfx("family_bell", _bell(r, hz(50), 0.9, 1.4, BELL, 5.0), 0.6)  # A deep warm bell
@@ -403,34 +415,34 @@ func _make_sfx() -> void:
 	_sfx("omen_wind", _filter(wind, r, func(t: float) -> float: return 140.0 + 240.0 * sin(PI * t / 3.0), 0.5), 0.4)
 
 	var rest := _seg(3.0, r)  # The exhale: breath out and a warm strum
-	_mix(rest, _filter(_noise(r, 1.2, swell(0.1, 0.9, 1.2)), r, glide(1500.0, 300.0, 1.2), 0.6, "bp"), r, 0.0, 0.5)
+	_mix(rest, _filter(_noise(r, 1.2, swell(0.1, 0.9, 1.2)), r, glide(1200.0, 300.0, 1.2), 0.6, "bp"), r, 0.0, 0.5)
 	for i in 5:
-		_mix(rest, _pluck(r, hz([50, 57, 62, 66, 69][i]), 0.4, 2.2, 0.5, 0.998), r, 0.15 + i * 0.06)
+		_mix(rest, _pluck(r, hz([50, 57, 62, 66, 69][i]), 0.4, 2.2, 0.7, 0.998), r, 0.15 + i * 0.06)
 	_sfx("rest", rest, 0.5)
 
 	var drift := _seg(2.0, r)  # A drift comes: a low drum and a cold swell
 	_mix(drift, _knock(r, 60.0, 0.35), r, 0.0, 1.2)
 	var cold := _tone(r, 1.8, hz(38), swell(0.8, 0.8, 1.8), "saw")
 	_mix(drift, _filter(cold, r, 300.0, 0.4), r, 0.1, 0.5)
-	_mix(drift, _whisper(r, 1.4, 0.8), r, 0.3, 0.6)
+	_mix(drift, _filter(_whisper(r, 1.4, 0.8), r, 1500.0, 0.7), r, 0.3, 0.6)
 	_sfx("drift_start", drift, 0.5)
 
-	var act := _seg(4.0, r)  # Act break, leaves regrown: a warm swell and rustling leaves
+	var act := _seg(4.0, r)  # Act break, leaves regrown: a warm swell and soft rustling
 	for m in [50, 57, 62, 66, 69]:
 		_mix(act, _tone(r, 3.5, hz(m), swell(1.5, 1.5, 3.5), "tri"), r, 0.0, 0.12)
-	_mix(act, _filter(_noise(r, 3.0, func(t: float) -> float: return swell(1.0, 1.0, 3.0).call(t) * (0.5 + 0.5 * sin(t * 13.0))), r, 3500.0, 0.7, "hp"), r, 0.3, 0.15)
+	_mix(act, _filter(_noise(r, 3.0, func(t: float) -> float: return swell(1.0, 1.0, 3.0).call(t) * (0.5 + 0.5 * sin(t * 13.0))), r, 800.0, 0.7, "bp"), r, 0.3, 0.12)
 	_sfx("act_swell", act, 0.55)
 
 	var win := _seg(4.0, r)  # A warm resolving chord
 	for i in 6:
-		_mix(win, _pluck(r, hz([50, 57, 62, 66, 69, 74][i]), 0.4, 3.5, 0.4, 0.998), r, i * 0.09)
-	for m in [74, 78, 81]:
+		_mix(win, _pluck(r, hz([50, 57, 62, 66, 69, 74][i]), 0.4, 3.5, 0.7, 0.998), r, i * 0.09)
+	for m in [62, 66, 69]:
 		_mix(win, _bell(r, hz(m), 0.3, 1.0, CHIME, 3.0), r, 0.6)
 	_sfx("win", win, 0.7)
 
 	var loss := _seg(5.0, r)  # A slow fall into a single cold note
 	for i in 5:
-		_mix(loss, _pluck(r, hz([74, 70, 65, 62, 57][i]), 0.4, 1.6, 0.5, 0.997), r, i * 0.35)
+		_mix(loss, _pluck(r, hz([74, 70, 65, 62, 57][i]), 0.4, 1.6, 0.7, 0.997), r, i * 0.35)
 	var last := _tone(r, 3.2, func(t: float) -> float: return hz(38) * (1.0 + 0.004 * sin(t * 1.3)), swell(1.0, 1.5, 3.2), "saw")
 	_mix(loss, _filter(last, r, 400.0, 0.4), r, 1.6, 0.6)
 	_mix(loss, _bell(r, hz(51), 0.3, 1.5, BELL, 3.2), r, 1.7)  # Eb: wrong, cold
@@ -438,79 +450,73 @@ func _make_sfx() -> void:
 
 	_make_signatures()
 
-	# Added after the first batch (kept last so the earlier sounds' random seeds don't shift).
-	var crit := _seg(0.6, r)  # The hit's own sound plays too; this is the bright ping on top
-	_mix(crit, _bell(r, hz(98), 0.6, 0.12, CHIME, 0.5), r, 0.0)
-	_mix(crit, _bell(r, hz(105), 0.3, 0.08, CHIME, 0.4), r, 0.015)
+	var crit := _seg(0.9, r)  # With the hit and the punch: a soft, low bell (not a high ping)
+	_mix(crit, _bell(r, hz(62), 0.6, 0.25, BELL, 0.8), r, 0.0)
 	_sfx("crit", crit, 0.4)
-	var beam := _seg(0.3, r)  # One soft warm tick of a held beam; pitched up as it ramps
-	for m in [74, 81]:
+	var punch := _tone(r, 0.35, glide(110.0, 46.0, 0.06), perc(0.004, 0.08, 0.35))  # Crit: the extra low punch
+	_mix(punch, _filter(_tone(r, 0.05, 420.0, perc(0.004, 0.012, 0.05), "tri"), r, 900.0, 0.7), r, 0.0, 0.4)
+	_sfx("crit_punch", punch, 0.6, HIT_ONSET)
+	var beam := _seg(0.3, r)  # One soft warm tick of a held beam; pitched up as it ramps. No sizzle.
+	for m in [62, 69]:
 		_mix(beam, _tone(r, 0.28, hz(m), swell(0.04, 0.15, 0.28), "tri"), r, 0.0, 0.5)
-	_mix(beam, _filter(_noise(r, 0.28, swell(0.04, 0.15, 0.28)), r, 3000.0, 0.8, "bp"), r, 0.0, 0.1)
 	_sfx("beam", beam, 0.3)
 
-	# Warden hits (after the first listen: attacks had no impact). The launch sounds above stay as the
-	# quiet part; these play where the attack lands. Transient (2–4 kHz snap) + body (low thump) + tail
-	# (the family's colour). `_dull` = resisted: a muffled transient and less body.
+	# Warden hits: rounded tock (300–900 Hz, soft onset) + low body + a lowpassed tail per family.
+	# `_dull` = resisted: a softer onset and less body. `hit_full` = weak to it: fuller, not brighter.
 	for family in HIT_FAMILIES:
 		for v in 3:
-			_sfx("hit_%s_%02d" % [family, v + 1], _hit(family, v, false))
-		_sfx("hit_%s_dull" % family, _hit(family, 1, true), 0.45)
-	for v in 3:  # Weak to the Warden: a bright snap and a sparkle on top of the hit
-		var bright := _filter(_noise(r, 0.012, perc(0.0003, 0.003, 0.012)), r, 3600.0 + v * 300.0, 0.4, "bp")
-		_mix(bright, _bell(r, hz(96 + [0, 3, 5][v]), 0.3, 0.05, CHIME, 0.25), r, 0.004)
-		_sfx("hit_bright_%02d" % (v + 1), bright, 0.4)
-	var punch := _tone(r, 0.3, glide(120.0, 48.0, 0.05), perc(0.001, 0.06, 0.3))  # Crit: the extra low punch
-	_mix(punch, _filter(_noise(r, 0.01, perc(0.0003, 0.002, 0.01)), r, 2500.0, 0.5, "bp"), r, 0.0, 0.5)
-	_sfx("crit_punch", punch, 0.6)
+			_sfx("hit_%s_%02d" % [family, v + 1], _hit(family, v, false), SFX_PEAK, HIT_ONSET)
+		_sfx("hit_%s_dull" % family, _hit(family, 1, true), 0.45, HIT_ONSET)
+	for v in 3:
+		var full := _tone(r, 0.45, glide(150.0 - v * 10.0, 58.0, 0.06), perc(0.004, 0.11, 0.45))
+		_mix(full, _filter(_noise(r, 0.3, perc(0.01, 0.08, 0.3)), r, 300.0, 0.7), r, 0.0, 0.8)
+		_sfx("hit_full_%02d" % (v + 1), full, 0.55, HIT_ONSET)
 
 # One Warden hit. `v` shifts the pitch a little per variant.
 func _hit(family: String, v: int, dull: bool) -> PackedFloat32Array:
 	var r := SFX_RATE
-	var s := _seg(0.45, r)
+	var s := _seg(0.5, r)
 	var shift := 1.0 + (v - 1) * 0.06
-	# [transient band Hz, transient gain, body Hz, body decay s, body gain]
+	# [tock Hz, tock gain, body Hz, body decay s, body gain]
 	var shape: Array = {
-		"stone": [3000.0, 1.0, 70.0, 0.05, 1.0],
-		"root": [1800.0, 0.5, 48.0, 0.12, 1.0],
-		"water": [3400.0, 0.7, 110.0, 0.04, 0.7],
-		"light": [3600.0, 0.8, 90.0, 0.035, 0.6],
-		"spore": [2200.0, 0.45, 80.0, 0.06, 0.8],
-		"sprout": [4000.0, 0.8, 150.0, 0.025, 0.5],
+		"stone": [480.0, 0.9, 70.0, 0.07, 1.3],
+		"root": [300.0, 0.5, 48.0, 0.14, 1.3],
+		"water": [700.0, 0.6, 110.0, 0.05, 0.9],
+		"light": [520.0, 0.4, 90.0, 0.06, 0.9],
+		"spore": [360.0, 0.5, 80.0, 0.07, 1.0],
+		"sprout": [850.0, 0.7, 150.0, 0.035, 0.7],
 	}[family]
-	var t_hz: float = shape[0] * shift
-	var t_gain: float = shape[1] * (0.3 if dull else 1.0)
-	var click := _noise(r, 0.012, perc(0.0003, 0.003, 0.012))
-	_mix(s, _filter(click, r, 1100.0 if dull else t_hz, 0.4, "lp" if dull else "bp"), r, 0.0, t_gain * 1.6)
+	var tock_hz: float = shape[0] * shift
+	var tock := _tone(r, 0.06, glide(tock_hz * 1.3, tock_hz, 0.01), perc(0.004, 0.012, 0.06), "tri")
+	_mix(s, _filter(tock, r, 700.0 if dull else 1400.0, 0.7), r, 0.0, shape[1] * (0.4 if dull else 1.0))
 	var body_hz: float = shape[2] * shift
 	var decay: float = shape[3]
-	var body := _tone(r, decay * 6.0, glide(body_hz * 1.8, body_hz, 0.02), perc(0.001, decay, decay * 6.0))
+	var body := _tone(r, decay * 6.0, glide(body_hz * 1.8, body_hz, 0.025), perc(0.004, decay, decay * 6.0))
 	_mix(s, body, r, 0.0, shape[4] * (0.6 if dull else 1.0))
 	match family:
-		"stone":  # A hard wood/stone crack over the thud
-			_mix(s, _crackle(r, 0.12, 110.0, perc(0.001, 0.03, 0.12), 1800.0), r, 0.003, 0.6)
+		"stone":  # A hard wood/stone knock over the thud
+			_mix(s, _tone(r, 0.05, 900.0 * shift, perc(0.004, 0.01, 0.05), "tri"), r, 0.004, 0.25)
+			_mix(s, _filter(_noise(r, 0.12, perc(0.005, 0.03, 0.12)), r, 1000.0, 0.7), r, 0.0, 0.4)
 		"root":  # Wooden knock + deep sub rumble, felt more than heard
 			_mix(s, _knock(r, 170.0 * shift, 0.03), r, 0.0, 0.5)
 			_mix(s, _filter(_noise(r, 0.4, swell(0.02, 0.3, 0.4)), r, 90.0, 0.6), r, 0.0, 3.0)
-		"water":  # Droplet snap, low plunk, spray
-			_mix(s, _tone(r, 0.05, glide(1200.0 * shift, 3000.0 * shift, 0.03), perc(0.001, 0.012, 0.05)), r, 0.0, 0.5)
-			_mix(s, _filter(_noise(r, 0.3, perc(0.01, 0.08, 0.3)), r, 3500.0, 0.7, "hp"), r, 0.01, 0.25)
-		"light":  # A warm crackle burst
-			_mix(s, _crackle(r, 0.25, 220.0, perc(0.002, 0.07, 0.25), 2200.0), r, 0.0, 0.9)
+		"water":  # Droplet, low plunk, a soft spray
+			_mix(s, _tone(r, 0.05, glide(600.0 * shift, 1400.0 * shift, 0.03), perc(0.004, 0.012, 0.05)), r, 0.0, 0.4)
+			_mix(s, _filter(_noise(r, 0.3, perc(0.02, 0.08, 0.3)), r, 1600.0, 0.7, "bp"), r, 0.01, 0.2)
+		"light":  # A warm bloom: a soft fwump of light
+			for m in [62, 69]:
+				_mix(s, _tone(r, 0.3, hz(m) * shift, swell(0.02, 0.2, 0.3), "tri"), r, 0.0, 0.25)
+			_mix(s, _filter(_noise(r, 0.3, swell(0.02, 0.2, 0.3)), r, 800.0, 0.7), r, 0.0, 0.4)
 		"spore":  # A full, round puff
 			_mix(s, _filter(_noise(r, 0.3, swell(0.02, 0.22, 0.3)), r, 1100.0, 0.8), r, 0.005, 0.8)
 		"sprout":  # A light, bright tock
-			_mix(s, _pluck(r, hz(84) * shift, 0.3, 0.2, 0.3, 0.99), r, 0.0)
-	if dull:
-		s = _filter(s, r, 1400.0, 0.7)
-	return s
+			_mix(s, _pluck(r, hz(72) * shift, 0.3, 0.2, 0.8, 0.99), r, 0.0)
+	return _filter(s, r, 1200.0 if dull else 3000.0, 0.7)
 
 # Nightmare signature sounds (played when one enters, and on their special moments).
 func _make_signatures() -> void:
 	var r := SFX_RATE
-	var shade := _crackle(r, 0.7, 45.0, swell(0.1, 0.3, 0.7), 2500.0)  # Dry skittering, faint hiss
-	_mix(shade, _filter(_noise(r, 0.6, swell(0.2, 0.3, 0.6)), r, 5000.0, 0.8, "hp"), r, 0.0, 0.15)
-	_sfx("sig_shade", shade, 0.35)
+	_sfx("sig_shade", _taps(r, 0.7, 14.0, 300.0, 500.0), 0.35)  # Soft, muffled skittering
 
 	var husk := _seg(1.4, r)  # Creaking bark, heavy steps
 	_mix(husk, _creak(r, 0.8, 18.0, 30.0, 400.0), r, 0.0, 0.8)
@@ -518,14 +524,14 @@ func _make_signatures() -> void:
 		_mix(husk, _knock(r, 60.0, 0.15), r, 0.4 + k * 0.6, 0.9)
 	_sfx("sig_husk", husk, 0.5)
 
-	_sfx("sig_lurker", _whisper(r, 1.5, 1.0, 6.0), 0.3)  # Only a faint whisper
+	_sfx("sig_lurker", _filter(_whisper(r, 1.5, 1.0, 6.0), r, 1500.0, 0.7), 0.3)  # Only a faint whisper
 
 	var phantom := _seg(1.6, r)  # Breathy whoosh, reversed choir
 	var choir := _seg(1.2, r)
 	for m in [62, 63, 69]:
 		_mix(choir, _choir(r, hz(m), 1.2), r, 0.0, 0.3)
 	_mix(phantom, _reverse(_env(choir, r, perc(0.02, 0.4, 1.2))), r, 0.0, 0.7)
-	_mix(phantom, _filter(_noise(r, 1.0, swell(0.6, 0.3, 1.0)), r, glide(300.0, 1800.0, 1.0), 0.5, "bp"), r, 0.4, 0.6)
+	_mix(phantom, _filter(_noise(r, 1.0, swell(0.6, 0.3, 1.0)), r, glide(300.0, 1400.0, 1.0), 0.5, "bp"), r, 0.4, 0.6)
 	_sfx("sig_phantom", phantom, 0.4)
 
 	var growl := _tone(r, 0.9, func(t: float) -> float: return 78.0 + 6.0 * sin(t * 4.0), func(t: float) -> float: return swell(0.15, 0.3, 0.9).call(t) * (0.5 + 0.5 * absf(sin(t * 31.0 + sin(t * 7.0)))), "saw")
@@ -536,7 +542,7 @@ func _make_signatures() -> void:
 
 	var procession := _seg(2.0, r)  # Distant chain-clink and a slow drum
 	for k in 5:
-		_mix(procession, _bell(r, 2100.0 + rng.randf() * 600.0, 0.3, 0.05, [[1.0, 1.0, 1.0], [1.47, 0.6, 0.8], [2.09, 0.4, 0.6]], 0.2), r, 0.1 + k * 0.23 + rng.randf() * 0.05)
+		_mix(procession, _bell(r, 1000.0 + rng.randf() * 300.0, 0.3, 0.05, [[1.0, 1.0, 1.0], [1.47, 0.6, 0.8], [2.09, 0.4, 0.6]], 0.2), r, 0.1 + k * 0.23 + rng.randf() * 0.05)
 	for k in 2:
 		_mix(procession, _knock(r, 75.0, 0.3), r, k * 1.0, 0.8)
 	_sfx("sig_procession", procession, 0.4)
@@ -549,17 +555,17 @@ func _make_signatures() -> void:
 	for k in 3:
 		var hitch := _tone(r, 0.25, func(t: float) -> float: return 330.0 - 60.0 * t + 12.0 * sin(t * 40.0), perc(0.02, 0.08, 0.25), "saw")
 		_mix(sob, _filter(hitch, r, 1100.0, 0.3), r, k * 0.33, 0.6)
-		_mix(sob, _filter(_noise(r, 0.2, perc(0.05, 0.08, 0.2)), r, 1500.0, 0.6, "bp"), r, k * 0.33 + 0.15, 0.4)
+		_mix(sob, _filter(_noise(r, 0.2, perc(0.05, 0.08, 0.2)), r, 1200.0, 0.6, "bp"), r, k * 0.33 + 0.15, 0.4)
 	_sfx("sig_mourner", sob, 0.35)
 
-	var widow := _crackle(r, 0.9, 25.0, swell(0.1, 0.3, 0.9), 1200.0)  # Clicking chitter
-	_mix(widow, _whisper(r, 0.9, 0.4, 9.0), r, 0.0)
+	var widow := _taps(r, 0.9, 30.0, 250.0, 420.0)  # A soft chitter of low taps and a whisper
+	_mix(widow, _filter(_whisper(r, 0.9, 0.4, 9.0), r, 1500.0, 0.7), r, 0.0)
 	_sfx("sig_widow", widow, 0.4)
 
-	var stag := _seg(2.2, r)  # Deep bellow, crackling ghost-fire
+	var stag := _seg(2.2, r)  # Deep bellow, a low roaring hush of ghost-fire
 	var bellow := _tone(r, 1.6, func(t: float) -> float: return 95.0 - 20.0 * t + 4.0 * sin(t * 9.0), swell(0.2, 0.7, 1.6), "saw")
-	_mix(stag, _filter(bellow, r, func(t: float) -> float: return 400.0 + 500.0 * sin(PI * t / 1.6), 0.25), r, 0.0)
-	_mix(stag, _crackle(r, 2.0, 70.0, swell(0.3, 0.5, 2.0), 1500.0), r, 0.1, 0.8)
+	_mix(stag, _filter(bellow, r, func(t: float) -> float: return 300.0 + 400.0 * sin(PI * t / 1.6), 0.25), r, 0.0)
+	_mix(stag, _filter(_noise(r, 2.0, swell(0.4, 0.6, 2.0)), r, 450.0, 0.7), r, 0.1, 0.8)
 	_sfx("sig_stag", stag, 0.7)
 
 	var hag := _seg(1.8, r)  # Wet gurgling laugh
@@ -570,9 +576,18 @@ func _make_signatures() -> void:
 	_sfx("sig_hag", hag, 0.6)
 
 	_sfx("hag_sink", _bubbles(r, 0.9, 30.0), 0.5)
-	var splash := _filter(_noise(r, 0.6, perc(0.005, 0.15, 0.6)), r, glide(4000.0, 700.0, 0.6), 0.6)
+	var splash := _filter(_noise(r, 0.6, perc(0.01, 0.15, 0.6)), r, glide(2000.0, 500.0, 0.6), 0.6)
 	_mix(splash, _bubbles(r, 0.5, 20.0), r, 0.1, 0.5)
 	_sfx("hag_rise", splash, 0.55)
+
+# Soft, muffled taps (skittering legs): little low sine blips at random times, no noise.
+func _taps(rate: int, length: float, per_second: float, low_hz: float, high_hz: float) -> PackedFloat32Array:
+	var seg := _seg(length, rate)
+	var t := rng.randf_range(0.0, 0.5) / per_second
+	while t < length - 0.05:
+		_mix(seg, _tone(rate, 0.04, rng.randf_range(low_hz, high_hz), perc(0.004, 0.01, 0.04)), rate, t, rng.randf_range(0.4, 1.0))
+		t += rng.randf_range(0.3, 1.7) / per_second
+	return _env(seg, rate, swell(0.1, 0.25, length))
 
 # Wood creaking: a slowing/speeding train of tiny clicks through a resonance.
 func _creak(rate: int, length: float, from_hz: float, to_hz: float, body: float) -> PackedFloat32Array:
@@ -587,11 +602,12 @@ func _creak(rate: int, length: float, from_hz: float, to_hz: float, body: float)
 	seg = _filter(seg, rate, body, 0.08, "bp")
 	return _env(seg, rate, swell(0.05, 0.1, length))
 
-# A soft wooden knock: a pitched thump with a click.
+# A soft wooden knock: a pitched thump with a rounded tap on top (no click).
 func _knock(rate: int, freq: float, tau := 0.04) -> PackedFloat32Array:
 	var length := tau * 6.0
-	var seg := _tone(rate, length, glide(freq * 1.6, freq, 0.02), perc(0.001, tau, length))
-	_mix(seg, _filter(_noise(rate, 0.01, perc(0.0005, 0.002, 0.01)), rate, freq * 6.0, 0.5, "bp"), rate, 0.0, 0.6)
+	var seg := _tone(rate, length, glide(freq * 1.6, freq, 0.02), perc(0.003, tau, length))
+	var tap := _tone(rate, 0.03, minf(freq * 3.0, 900.0), perc(0.003, 0.006, 0.03), "tri")
+	_mix(seg, _filter(tap, rate, 1200.0, 0.7), rate, 0.0, 0.4)
 	return seg
 
 # A hummed "ooh": a soft saw through a vowel formant, with slow vibrato.
@@ -673,8 +689,8 @@ func _make_music() -> void:
 	_music("mus_act1_boss", drums, 0.6)
 
 	# Ambience: a spring-dusk forest edge, felt more than heard (stereo). Low wind in gusts with calm
-	# stretches between them, a leaf rustle every few seconds panned somewhere, a far owl, a whisper
-	# now and then. No constant hiss (the first listen heard it as static).
+	# stretches between them, and rare soft events: a far owl, a low creak, a whisper. No hiss and no
+	# leaf rustles (the second listen: they hurt the ear).
 	var left := _seg(total, r)
 	var right := _seg(total, r)
 	var gust := func(t: float) -> float:
@@ -688,21 +704,14 @@ func _make_music() -> void:
 	for channel in [left, right]:  # Separate noise per side: a wide, soft bed
 		var wind := _noise(r, total, func(t: float) -> float: return 0.12 + 0.88 * gust.call(t))
 		_mix(channel, _filter(wind, r, func(t: float) -> float: return 110.0 + 270.0 * gust.call(t), 0.5), r, 0.0, 1.0)
-	var rustle_at := rng.randf_range(0.5, 2.0)
-	while rustle_at < LOOP - 1.0:  # Rustles
-		var length := rng.randf_range(0.3, 0.8)
-		var rustle := _crackle(r, length, rng.randf_range(40.0, 90.0), swell(0.08, 0.2, length), 1500.0)
-		_mix(rustle, _filter(_noise(r, length, swell(0.1, 0.2, length)), r, 2200.0, 0.8, "bp"), r, 0.0, 0.25)
-		rustle = _filter(rustle, r, 3500.0, 0.7)
-		_pan_mix(left, right, rustle, rustle_at, 0.3, rng.randf_range(0.1, 0.9))
-		rustle_at += rng.randf_range(2.0, 5.0)
 	for hoot_at in [3.0, 12.5]:
 		var hoot := _seg(1.0, r)
 		for k in 2:
-			_mix(hoot, _tone(r, 0.35, glide(410.0, 360.0, 0.35), swell(0.05, 0.2, 0.35)), r, k * 0.5)
+			_mix(hoot, _tone(r, 0.35, glide(410.0, 360.0, 0.35), swell(0.08, 0.2, 0.35)), r, k * 0.5)
 		_pan_mix(left, right, hoot, hoot_at, 0.1, rng.randf_range(0.2, 0.8))
-	_pan_mix(left, right, _whisper(r, 1.5, 1.0), 8.0, 0.2, 0.2)
-	_pan_mix(left, right, _whisper(r, 1.2, 1.0), 16.5, 0.16, 0.8)
+	_pan_mix(left, right, _filter(_creak(r, 0.9, 10.0, 22.0, 300.0), r, 600.0, 0.7), 6.0, 0.25, 0.7)
+	_pan_mix(left, right, _filter(_whisper(r, 1.5, 1.0), r, 1200.0, 0.7), 8.0, 0.2, 0.2)
+	_pan_mix(left, right, _filter(_whisper(r, 1.2, 1.0), r, 1200.0, 0.7), 16.5, 0.16, 0.8)
 	_music_stereo("amb_act1", left, right, 0.5)
 
 # Trims to exactly one loop and saves. Notes (`sustained` false): the tail past the loop end is

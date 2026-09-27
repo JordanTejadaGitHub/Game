@@ -29,6 +29,9 @@ const LAYER_GAIN := {&"base": 1.0, &"dread1": 0.55, &"dread2": 0.45, &"heartbeat
 const LEVEL_SMOOTHING := 1.5  # Phase and ambience changes ease in over a second or two
 const DUCK_ATTACK := 150.0  # dB per second
 const DUCK_RELEASE := 16.0
+const SOFTEN_SHELF_HZ := 6000.0
+const SOFTEN_SHELF_DB := -6.0
+const SOFTEN_CEILING_DB := -1.5
 # The dispel chime climbs this scale (D minor pentatonic, semitones) when dispels land close together.
 const COMBO_STEPS := [0, 3, 5, 7, 10, 12, 15, 17]
 const COMBO_WINDOW_MS := 700
@@ -266,7 +269,23 @@ func _setup_buses() -> void:
 		reverb.damping = 0.7
 		reverb.wet = 0.12
 		AudioServer.add_bus_effect(sfx, reverb)
+		_add_softening(sfx)
+	var ui_bus := AudioServer.get_bus_index(&"UI")
+	if AudioServer.get_bus_effect_count(ui_bus) == 0:
+		_add_softening(ui_bus)
 	HeartwoodMemory.apply_settings()  # Bus volumes now that the buses exist
+
+# The SFX/UI safety net (audio_direction.md "Mix rules"): a gentle high shelf (−6 dB above ~6 kHz)
+# and a soft limiter, so stacked hits can't turn sharp. Not a substitute for rounded sounds.
+static func _add_softening(bus: int) -> void:
+	var shelf := AudioEffectHighShelfFilter.new()
+	shelf.cutoff_hz = SOFTEN_SHELF_HZ
+	shelf.gain = db_to_linear(SOFTEN_SHELF_DB)
+	AudioServer.add_bus_effect(bus, shelf)
+	var limiter := AudioEffectHardLimiter.new()
+	limiter.ceiling_db = SOFTEN_CEILING_DB
+	limiter.release = 0.15
+	AudioServer.add_bus_effect(bus, limiter)
 
 func _load_sfx() -> void:
 	if not DirAccess.dir_exists_absolute(SFX_DIR):

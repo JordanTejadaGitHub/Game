@@ -28,6 +28,7 @@ const HIT_GROUP_MS := 90  # A pulse or splash hitting many nightmares at once is
 const CHAIN_STEP_DB := -4.0  # Each jump of a chain ripples a little quieter
 const CLOUD_HIT_MS := 400  # A cloud's lingering ticks are silent; only its landing hits
 const RESISTED_DB := -3.0
+const WEAK_DB := 2.0
 # Ambience (audio_direction.md "Ambience"): thins out with the field, swells at rests.
 const AMBIENCE_THIN_DB := -8.0  # At AMBIENCE_THIN_COUNT nightmares or more
 const AMBIENCE_THIN_COUNT := 15
@@ -163,7 +164,7 @@ func _on_tower_added(node: Node) -> void:
 		tower.attack_released.connect(_on_attack)
 		tower.hit_landed.connect(_on_hit)
 		tower.evolved.connect(func(t: Tower) -> void: sound.play(&"evolve", t.global_position))
-		# The hit's own sound plays too; the crit adds a bright ping and a low punch.
+		# The hit's own sound plays too; the crit adds a low punch and a soft, low bell.
 		tower.crit_landed.connect(func(_t: Tower, enemy: Node2D) -> void:
 			sound.play(&"crit", enemy.global_position, -6.0)
 			sound.play(&"crit_punch", enemy.global_position, -4.0))
@@ -187,7 +188,7 @@ func _on_attack(tower: Tower) -> void:
 	sound.play(id, tower.global_position, LAUNCH_DB)
 
 # The impact, where the attack lands (audio_direction.md "Wardens"): the family's hit, pitched lower
-# on big or tanky nightmares, dulled when resisted, brightened when the nightmare is weak to it.
+# on big or tanky nightmares, dulled when resisted, fuller and louder when the nightmare is weak to it.
 func _on_hit(tower: Tower, enemy: Node2D, _is_area: bool, _is_crit: bool) -> void:
 	if not is_instance_valid(enemy):
 		return
@@ -216,10 +217,10 @@ func _on_hit(tower: Tower, enemy: Node2D, _is_area: bool, _is_crit: bool) -> voi
 	var resisted: bool = line in enemy.enemy_data.resists
 	var weak: bool = not resisted and line in enemy.enemy_data.weak_to
 	var at: Vector2 = tower.global_position if kind == TowerData.AttackKind.PULSE else enemy.global_position
-	var volume := HIT_DB + CHAIN_STEP_DB * hits_before + (RESISTED_DB if resisted else 0.0)
+	var volume := HIT_DB + CHAIN_STEP_DB * hits_before + (RESISTED_DB if resisted else WEAK_DB if weak else 0.0)
 	sound.play(StringName("hit_%s%s" % [family, "_dull" if resisted else ""]), at, volume, _weight_pitch(enemy))
-	if weak:
-		sound.play(&"hit_bright", at, HIT_DB - 5.0)
+	if weak:  # Fuller and louder, never brighter: an extra low body under the hit
+		sound.play(&"hit_full", at, HIT_DB - 2.0, _weight_pitch(enemy))
 
 # Hits on big or tanky nightmares land lower and fuller, on small ones lighter and higher.
 static func _weight_pitch(enemy: Node2D) -> float:

@@ -8,7 +8,7 @@ const HOOK_IDS := [&"dispel", &"dispel_chime", &"dispel_boss", &"split", &"leaf_
 	&"attack_spore", &"attack_stone", &"attack_water", &"attack_light", &"attack_root",
 	&"attack_sprout", &"attack_acorn", &"ui_click", &"dream_open", &"dream_take_0", &"dream_take_1",
 	&"dream_take_2", &"family_bell", &"omen_wind", &"rest", &"drift_start", &"act_swell", &"win",
-	&"loss", &"hag_rise", &"crit", &"beam", &"crit_punch", &"hit_bright"]
+	&"loss", &"hag_rise", &"crit", &"beam", &"crit_punch", &"hit_full"]
 const HIT_FAMILIES := ["stone", "root", "water", "light", "spore", "sprout"]
 const MUSIC_LAYERS := ["base", "dread1", "dread2", "heartbeat", "boss"]
 
@@ -23,6 +23,13 @@ func _initialize() -> void:
 		return
 	for bus in Sound.BUSES:
 		_check(AudioServer.get_bus_index(bus) != -1, "bus %s exists" % bus)
+	for bus in [&"SFX", &"UI"]:  # The softening safety net
+		var index := AudioServer.get_bus_index(bus)
+		var kinds := []
+		for i in AudioServer.get_bus_effect_count(index):
+			kinds.append(AudioServer.get_bus_effect(index, i).get_class())
+		_check(kinds.has("AudioEffectHighShelfFilter") and kinds.has("AudioEffectHardLimiter"),
+			"%s bus has a high shelf and a limiter %s" % [bus, kinds])
 	for id in HOOK_IDS:
 		_check(sound.has_sound(id), "sound %s exists" % id)
 	for id in SoundHooks.SIGNATURES.values():
