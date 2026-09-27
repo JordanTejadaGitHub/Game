@@ -77,6 +77,24 @@ results screens; results lead back to the title.
 | **Leak** | when a nightmare reaches the Heartwood: it lunges into the tree, a leaf blackens and falls, a dark pulse at the goal, the leaves counter shakes |
 | **Selected Warden** | range circle + a soft outline; its status field (clouds, fog) highlighted |
 
+## Combat feedback: seeing what works
+
+Added 2026-09-27 after the first playtest: the player couldn't tell whether combos fired or which
+Wardens mattered. Builds are the heart of the roguelite, so **the game must show them paying off**.
+
+| Feedback | Design |
+|---|---|
+| **Combo callouts** | a short word pops over the nightmare when a synergy fires, in the triggering Warden's colour: *Conducted!* (lightning through Damp), *Popped!* (Puffball burst), *Asleep!* (Dreamshroom), *Shattered!* (crit splash), *Weak!* (family weakness). Throttled so a busy maze shows a few at a time, never a wall of text |
+| **Damage numbers** | setting: **off / big hits only (default) / all**. Crits larger with a ping; weakness hits bright; resisted hits small and grey; status ticks tiny |
+| **Status icons** | always visible on nightmares, with stack counts (already specced above); flash when a status is *used* by a combo (Damp flashes as lightning jumps) |
+| **Placement links** | while placing, a small vine icon links the ghost to nearby Wardens it combos with ("combos with Rain Lily"); the Warden panel lists its active links |
+| **Warden panel stats** | damage this run, damage per second over the last drift, and **"from combos: N%"** |
+| **Rest report** | at every rest, a small card: top 3 Wardens by damage, and combos triggered this block ("Lightning through Damp: 124 times"). Tap to see all Wardens |
+| **Results screen** | the same report for the whole run, plus your most-used combo |
+
+These double as teaching: a new player sees *Conducted!* once and understands why Rain Lily and
+Stormcap belong together.
+
 ## Panels
 
 ### Warden panel (on selection)
@@ -192,3 +210,5 @@ For the coding chat. Items likely missing or different (verify in the game):
 - [ ] Leak feedback at the Heartwood
 - [ ] Abandon run in pause; UI scale and accessibility settings
 - [ ] Proposed hotkeys (Delete, G, H, F)
+- [ ] Combat feedback: combo callouts, damage numbers setting, placement links, "from combos" stat,
+      rest report, run report on results

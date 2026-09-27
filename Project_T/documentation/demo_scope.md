@@ -53,6 +53,19 @@ While testing, note for each Warden: fun?, readable?, too strong / too weak?, ne
 work? Then pick the demo families (2–3) and branches from the notes. Must be off (and hidden) in
 demo and release builds, and **Test Grove runs don't bank Seeds**.
 
+**Test tools v2** (added 2026-09-27: first test showed combos and impact couldn't be judged):
+- **Spawn panel:** pick a nightmare type, a count and "elite", spawn at the start now.
+- **Target Dummy:** a slow, unkillable nightmare that walks the route on a loop; shows the damage
+  per second it's taking, and from whom.
+- **Damage meter:** every Warden's damage this drift and per second, including its status damage
+  and its share from combos (e.g. Stormcap: 40% of its damage came from jumps between Damp
+  nightmares).
+- **Damage numbers** toggle (see `screens_ui.md`, combat feedback).
+- **Inspect:** click a nightmare while paused to see its statuses, stacks and the damage breakdown
+  (base × family resist/weak × Marked × crit).
+- **Invulnerable Heartwood** toggle (leaves can't fall) and **clear the field** button, so a test
+  can run as long as needed.
+
 **Built** (2026-09-27): Settings → Developer → Test Grove (applies from the next run), or launch
 with `-- --test-grove`; debug builds only. Tools panel on the left: +500 Dew (or **F9**), and "Skip
 to drift N" at a rest.
