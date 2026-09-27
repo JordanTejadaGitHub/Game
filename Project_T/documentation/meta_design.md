@@ -6,27 +6,39 @@ Phase 3 of `design_plan.md`. Numbers are starting points for tuning.
 
 | Question | Decision |
 |---|---|
-| Time to unlock everything | **~15–20 hours** (≈ 30 runs of 30–45 min) |
+| Time to unlock everything | **~15–20 hours** (≈ 12–15 runs of 1–2 hours; revised for 100-drift runs) |
 | What meta gives | **Both new options and some permanent power**; power perks are capped |
 | Difficulty ladder | **Slay the Spire style**: Blight Levels 1–10, each adds one modifier on top of the previous ones |
 | Story delivery | **Memory fragments** revealed through progression, leading to a true ending |
 
 ## Seeds (earned every run, win or lose)
 
+Revised for 100-drift runs (`run_design.md`).
+
 | Source | Seeds |
 |---|---|
-| Each drift survived | 2 (max 30) |
-| Creatures cleansed | 1 per 20 (~20 in a full run) |
-| Each boss cleansed | 5 |
+| Every 2 drifts survived | 1 (max 50) |
+| Creatures cleansed | 1 per 25 (~60 in a full run) |
+| Each boss cleansed | 10 |
 | Each obstacle tended | 1 (see `run_design.md`) |
-| Winning | +25 |
+| Winning | +50 |
 | Blight Level | +10% per level (Level 10 = double) |
 
-Examples: an early loss at drift 6 ≈ **30 Seeds**; a win ≈ **100 Seeds**. Averaging ~75 across a
-player's first 30 runs, the Grove below (~2,300 Seeds) takes **~30 runs ≈ 18 hours**.
+Examples: a loss around drift 20 ≈ **25 Seeds**; a loss at drift 60 ≈ **80**; a win ≈ **220**.
+Averaging ~170 across a player's first runs, the Grove below (~2,300 Seeds) takes **~13–14 runs
+≈ 18–20 hours**.
 
 **Every run should buy something early on**: the cheapest unlocks cost 20–25, so even a bad first
-run grows the Grove.
+run grows the Grove. Losing early in a long run is also cushioned by the mid-run save: players can
+stop at any rest and come back.
+
+## Seeds from the demo
+
+The demo has no Grove (`demo_scope.md`), but **every Seed earned in the demo is saved**. When the
+player owns the full game, those Seeds are waiting in their Grove on first launch: *"The forest
+remembered you."* This works if the demo and full game share the save format and location (same
+project name, so the same `user://` folder); the full game reads the demo's saved Seeds once and
+marks them as imported.
 
 ## The Memory Grove
 
@@ -37,7 +49,7 @@ root need earlier ones. Costs rise along a root, so early choices are cheap and 
 
 | Unlock | Cost | Needs |
 |---|---|---|
-| Pebbling line (base + branches into the Dream pool, with its Dream cards) | 50 | — |
+| Pebbling line (joins the family picks; its branches and cards join the Dream pool) | 50 | — |
 | Rootling line | 50 | — |
 | Acorn line | 70 | Pebbling or Rootling |
 | Beacon (Firefly final, Lanternmoth side) | 50 | — |
@@ -48,6 +60,13 @@ root need earlier ones. Costs rise along a root, so early choices are cheap and 
 | Acorn finals (Grove Heart, Wellspring) | 100 | Acorn line |
 
 Final forms still need their Rare Dream in-run; the Grove only puts them in the pool.
+
+**Families before the Grove fills in:** a new player has only 3 families (Sporeling, Firefly Jar,
+Dewdrop), but a run offers family picks at drift 1 and at the 25/50/75 bosses. When there are
+fewer than 3 new families to offer, the empty slots become **Family Blessings**: a strong boon for
+a family you already own (e.g. *"Sporeling Blessing: Sporeling family +25% soothe, evolutions 25%
+cheaper"*). So early runs deepen few families; unlocking Pebbling, Rootling and Acorn widens later
+runs, which makes those Grove purchases feel big.
 
 ### Dreams root: new cards (~510)
 
@@ -61,7 +80,7 @@ at 100 each.
 |---|---|---|---|
 | Morning Stores | 3 | 20 / 40 / 60 | +30 starting Dew (+50%) |
 | Deep Taproot | 3 | 25 / 50 / 75 | +3 max leaves |
-| Early Bloom | 1 | 80 | start with one base Warden of your choice already unlocked |
+| Early Bloom | 1 | 80 | the first family pick (after drift 1) offers all 6 families instead of 3 random |
 | Second Thoughts | 2 | 50 / 100 | 2 Dream rerolls per run |
 | Let Go | 1 | 60 | banish 1 card per run (it never appears again that run) |
 | Seed Pouch | 1 | 100 | +10% Seeds |
@@ -102,7 +121,7 @@ Pick a level before a run; each level includes all the ones below it. **+10% See
 | 3 | Bosses +25% health |
 | 4 | Drift-clear bonus −25% |
 | 5 | One creature per drift is **Thick-Blighted**: double health, costs 2 leaves |
-| 6 | The Heartwood regrows only 1 leaf per act (instead of 3) |
+| 6 | The Heartwood regrows only 1 leaf per act break (instead of 3) |
 | 7 | Creatures +10% speed |
 | 8 | Dream offers lean Common; *Let it pass* gives no Dew |
 | 9 | Obstacles cost twice as much to tend; maps get one extra ridge |

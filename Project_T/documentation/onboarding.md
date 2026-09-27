@@ -19,22 +19,28 @@ has to nail (`pitch.md`).
 
 ## Run 1: the core loop (and the first taste of meta)
 
-Act 1 plays as normal (`run_design.md`); lessons trigger at these moments:
+Runs are 100 drifts (`run_design.md`), so nearly all teaching happens in **act 1 (drifts 1–25)**;
+a new player's first run will usually end (and open the Grove) somewhere in act 1 or 2. Lessons
+trigger at these moments:
 
 | When | Lesson | How |
 |---|---|---|
 | Run start | Where creatures go | Camera glides along the path from the forest edge to the Heartwood. *"A grey mist gathers at the forest's edge."* |
 | Build phase 1 | Planting | The Sprout button glows; a soft highlight on a good cell beside the path. *"Plant a Warden near the path."* Start Drift pulses once one is placed. |
 | First cleanse | Nothing dies | A brief slow-motion as colour returns. *"They're not enemies. Just lost."* The Dew popup and counter pulse. |
-| After drift 1 | Dreams | The Dream screen (pick a base Warden). *"The Heartwood stirs, and dreams of…"* Card text explains Sprouts growing into it. |
-| Build phase 2 | **Towers are walls** | *"Wardens are walls. Make their walk longer."* The route preview is emphasised; a "+N path" tag on the ghost; the path length counter appears. |
+| After drift 1 | First family | The family pick (1 of 3 base Wardens). *"The Heartwood stirs, and remembers an old friend…"* Card text explains Sprouts growing into it. |
+| Right after the pick | **Towers are walls** | *"Wardens are walls. Make their walk longer."* The route preview is emphasised; a "+N path" tag on the ghost; the path length counter appears. |
+| Drift 2 starts on its own | Drifts flow | *"The mist rolls in, drift after drift."* The Auto-drift toggle glows once. |
+| First rest (after drift 5) | Dreams and rests | The first Dream. *"The Heartwood stirs, and dreams of…"* Then: *"Rest here. Rearrange the forest; nothing is lost."* (full refunds during rests) |
+| First rest | Saving | *"The forest will wait for you."* Save & Quit is highlighted once. |
 | First blocked placement | The forest's rule | The ghost turns red. *"The forest may guide, but never cage."* |
 | First affordable evolution | Growing | The Sprout under the cursor shimmers. *"This Sprout could grow."* |
 | First hover on an obstacle | Tending | *"Tend the forest, and it will remember you."* (+1 Seed at run end) |
 | First leaf lost | Stakes | The leaf counter pulses. *"A leaf wilts. The Heartwood shivers."* |
 | Drift 2 starts | Speed and pause | The speed buttons glow once. *"Take your time. The forest can wait."* |
-| First sell | Refunds | A tooltip on the sell button: full refund now, half during a drift. |
-| Before drift 5 | Bosses | The Old Stag is shown walking in from the edge. *"Something old is coming."* |
+| First sell | Refunds | A tooltip on the sell button: full refund during a rest, half while creatures walk. |
+| Rest before drift 25 | Bosses | The Old Stag is shown walking in from the edge. *"Something old is coming."* |
+| After the Old Stag | New family | The second family pick. *"The Heartwood remembers another friend."* |
 
 **Run end (win or lose):**
 1. Dormancy (or victory) moment: *"The Heartwood sleeps. A seed falls, and remembers."*
@@ -67,11 +73,14 @@ Act 1 plays as normal (`run_design.md`); lessons trigger at these moments:
 | System | Appears |
 |---|---|
 | Sprout, Thornwall, Start Drift, Dew, leaves | run 1, drift 1 |
-| Dreams (base Warden pick) | run 1, after drift 1 |
-| Route preview "+N path", path length | run 1, build phase 2 |
+| First family pick | run 1, after drift 1 |
+| Route preview "+N path", path length | run 1, right after the first pick |
+| Drift flow, Auto-drift | run 1, drift 2 |
+| Dreams, rests, Save & Quit | run 1, first rest (after drift 5) |
 | Evolving | run 1, first affordable |
 | Obstacles / tending | run 1, first hover |
 | Speed, pause, selling | run 1, drift 2 or first use |
+| Bosses, second family pick | run 1, drift 25 |
 | Memory Grove, Seeds, Memories | end of run 1 |
 | Statuses, branches | first time owned (usually run 1–2) |
 | Let it pass, call early | first time available |
@@ -90,6 +99,6 @@ once"*).
 
 ## Demo fit
 
-The demo = run 1 + the first Grove visit + run 2 (act 1 only). That shows both hooks, a Dream, a
-boss, and the meta loop paying off once, then ends on a wishlist screen. Detailed demo scope comes
-next.
+The demo has no meta (`demo_scope.md`): a demo run is act 1 (drifts 1–25), taught exactly as run
+1 above. At the end, the Grove parts are replaced by a **teaser** (the Grove asleep, with the
+player's banked Seeds) and a wishlist screen.

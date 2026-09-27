@@ -41,8 +41,9 @@ first line, since B alone doesn't say the genre.
    back, and they scurry home happy.
 3. **Grow and combine.** Sprouts evolve into 6 Warden families and their branches. Soak the path
    with Rain Lilies, then chain lightning through every damp creature.
-4. **A new forest every run.** Winding ridges, withered trees to tend, and a different Dream each
-   time you play.
+4. **100 drifts, a new forest every run.** Winding ridges and withered trees to tend, a Dream every
+   5 drifts, and a great blighted guardian every 25 that brings a new Warden family when it's
+   soothed. Save and come back any time.
 5. **Remember and grow.** Seeds from every run grow your Memory Grove, unlock new Wardens, and
    slowly reveal the story of the Hollow.
 

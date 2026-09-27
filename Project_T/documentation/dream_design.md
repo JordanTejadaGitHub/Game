@@ -1,52 +1,64 @@
 # Dream Design: the in-run upgrade pool
 
-Phase 2 of `design_plan.md`. Covers the first-playable scope from `tower_design.md` (Sprout,
-Thornwall, Sporeling, Firefly Jar, Dewdrop, their branches, and Thunderhead). Timing: 8 Dreams per
-run, after drifts 1, 3, 5★, 7, 9, 10★, 12, 14 (see `run_design.md`). Numbers are starting points.
+Phase 2 of `design_plan.md`. Revised 2026-09-27 for **100-drift runs** (`run_design.md`): a
+Dream after every 5th drift (**19 per run**), and Warden families come from the first pick and the
+bosses, not from Dreams. Covers the first-playable scope from `tower_design.md` (Sprout,
+Thornwall, Sporeling, Firefly Jar, Dewdrop, their branches, and Thunderhead). Numbers are starting
+points.
 
 ## Goals
 
-- **Builds come together.** With 8 Dreams you can't have everything, so each run leans one way.
-  The pool must make at least one full build reachable in most runs (checked below for Storm Grid).
-- **Every card is a real choice.** Stat cards are safe; rule cards are exciting; unlock cards open
+- **Builds come together.** Families are limited (4 of 6 per run), so each run leans a different
+  way; Dreams then shape those families into a build (checked below for Storm Grid).
+- **Every card is a real choice.** Stat cards are safe; rule cards are exciting; branch cards open
   a direction. An offer should usually mix kinds.
 - **Maze matters.** Several cards reward how you build the maze (corners, walls, path length), not
   just damage.
 
-## How offers work
+## Where Warden families come from (not Dreams)
 
-- **3 cards per Dream.** No duplicates within an offer.
-- **Drift 1 Dream:** always the 3 base Wardens (Sporeling, Firefly Jar, Dewdrop); pick 1. Later,
-  the other bases appear as Common cards.
+- **After drift 1:** pick 1 of 3 base Wardens.
+- **Bosses at drifts 25, 50, 75:** pick 1 of 3 base Wardens you don't have yet.
+- Family cards explain the Sprout rule, e.g. *"Sporeling: Sprouts can now grow into Sporelings
+  (15 Dew), or plant one directly (25 Dew)."*
+
+## How Dream offers work
+
+- **3 cards per Dream**, after drifts 5, 10, … 95. No duplicates within an offer.
 - **Rarity weights by act:**
 
   | Act | Common | Uncommon | Rare | Legendary |
   |---|---|---|---|---|
-  | 1 | 65 | 28 | 7 | 0 |
-  | 2 | 50 | 32 | 15 | 3 |
-  | 3 | 38 | 34 | 22 | 6 |
+  | 1 (drifts 1–25) | 65 | 28 | 7 | 0 |
+  | 2 (26–50) | 50 | 32 | 15 | 3 |
+  | 3 (51–75) | 42 | 33 | 20 | 5 |
+  | 4 (76–100) | 35 | 33 | 24 | 8 |
 
-- **Boss Dreams** (after drifts 5 and 10): at least one card is Rare or better.
+- **Boss Dreams** (after drifts 25, 50, 75, alongside the family pick): at least one card is Rare
+  or better.
 - **Pity:** 3 Dreams in a row without a Rare+ card → the next offer includes one.
-- **Tag weighting:** cards tagged with a line you've unlocked are **2× as likely**. Builds converge
+- **Tag weighting:** cards tagged with a family you own are **2× as likely**. Builds converge
   without being forced.
 - **Prerequisites:** a card never appears if it can't do anything yet (e.g. Stormcap cards need
   Firefly Jar).
 - **Stacking:** stat cards (Commons 1–7) **stack without limit** (shown as "II", "III", …);
-  everything else once. Stacks add, not multiply (3× Quickened Sap = +30%, not +33.1%), so power
-  grows in a straight line. In practice 8 Dreams per run caps it (+80% at the extreme), and Grove
-  perks that add Dreams or rerolls are what push it further; watch those in balancing.
+  everything else once. Stacks add, not multiply (3× Quickened Sap = +30%, not +33.1%). With 19
+  Dreams the extreme is +190% in one stat, which is fine: creatures reach ×30 health by drift 100,
+  and a player who puts everything into one stat gives up branches and rules. Watch Grove perks
+  that add Dreams or rerolls.
 - **Let it pass:** you may skip a Dream for +15 Dew. A cozy escape hatch when nothing fits.
-- **Target:** a deliberate dream build (e.g. Storm Grid) completes in about **1 run in 3**.
-- **Reroll / banish:** not in the base game; Memory Grove perks add them (see `game_design.md`).
+- **Reroll / banish:** not in the base game; Memory Grove perks add them (`meta_design.md`).
+- **Branch cards** say what they allow, e.g. *"Stormcap: Firefly Jars can now grow into
+  Stormcaps (45 Dew)."*
 
-## What an unlock card says
+## Pool size over 100 drifts
 
-Unlock cards explain the Sprout rule on the card, e.g. *"Sporeling: Sprouts can now grow into
-Sporelings (15 Dew), or plant one directly (25 Dew)."* Branch cards: *"Stormcap: Firefly Jars can
-now grow into Stormcaps (45 Dew)."*
+19 Dreams from the first-playable pool (33 cards) will repeat within a run. Stacking commons soften
+that, but the **full game should grow the pool to ~70 cards**: roughly 6–8 cards per family (its
+branches, finals and family-specific rules) plus ~20 general cards. Each new family added (Pebbling,
+Rootling, Acorn) brings its own cards.
 
-## The pool (36 cards)
+## The pool (33 cards)
 
 **Start** = in the pool from the very first run. **Grove** = unlocked in the Memory Grove (meta).
 
@@ -62,9 +74,10 @@ now grow into Stormcaps (45 Dew)."*
 | 6 | **Brighter Jars** | Firefly line +15% attack speed | light | Start |
 | 7 | **Heavy Dew** | Dewdrop line +25% splash radius, Damp +1 s | water | Start |
 | 8 | **Cheap Hedges** | Thornwalls cost 2 (once) | wall | Start |
-| 9 | **Morning Dew** | +20 Dew now, +5 on every drift clear | economy | Start |
+| 9 | **Morning Dew** | +20 Dew now, +10 at every rest | economy | Start |
 | 10 | **Deep Roots** | +2 max leaves, regrow 2 now | leaves | Start |
-| 11–13 | **Sporeling / Firefly Jar / Dewdrop** | unlock that base Warden | its line | Start |
+
+*(Numbers 11–13 were base Warden unlocks; those now come from the first pick and bosses.)*
 
 ### Uncommon: new directions and small rules
 
@@ -94,7 +107,7 @@ now grow into Stormcaps (45 Dew)."*
 | 30 | **Spore Cascade** | a cleansed creature's Spored stacks spread to the 2 nearest creatures | spore | Sporeling | Start |
 | 31 | **Static Field** | Static bolts also hit creatures within 1 tile | storm | Firefly Jar | Grove |
 | 32 | **Guiding Light** | Marked spreads to creatures within 1 tile of the target | mark | Lanternmoth | Grove |
-| 33 | **Seedling Gift** | after every drift, plant a free Sprout | sprout, economy | — | Grove |
+| 33 | **Seedling Gift** | at every rest, plant a free Sprout | sprout, economy | — | Grove |
 
 ### Legendary: changes how you play (act 2+ only)
 
@@ -110,15 +123,18 @@ are parked for later; they're only worth it once leaves are tuned.
 ## Reachability check: Storm Grid
 
 Storm Grid = Dewdrop/Rain Lily + Firefly Jar/Stormcap/Thunderhead + *Conductive Soil*.
-Needs: 2 bases, 2 branches, Thunderhead, Conductive Soil = **6 of 8 Dreams**.
+Needs: **2 families** (Dewdrop, Firefly Jar) + **4 Dreams** (Rain Lily, Stormcap, Thunderhead,
+Conductive Soil) out of 19.
 
-- Drift 1 gives a base for free; the second base is a tag-weighted Common.
-- Branch cards are 2× likely once their base is owned; the boss Dreams guarantee a Rare, and
-  both Thunderhead and Conductive Soil are Rares with matching tags.
-- Estimate: the full build lands in roughly **1 run in 3** if you aim for it, and a partial
-  version (without Thunderhead) in most runs. **That's the agreed target**: the dream build is a
-  highlight, not a given. Verify with a quick offer simulation once `UpgradeData` exists, and tune
-  tag weighting (2×) up or down to hit it.
+- **Families are now the bottleneck.** With all 6 families in the game, the first pick offers 3 of
+  6 and each boss 3 of the rest, so getting both specific families by drift 50 happens in roughly
+  **70%** of runs if you aim for it.
+- **The Dreams are easy** with 19 of them, tag weighting, and guaranteed Rares at bosses.
+- **Target (restated for 100 drifts):** a deliberate dream build is **complete by the act 2 boss
+  (drift 50) in about 1 run in 3**, and most runs finish *some* complete build by act 4. The
+  original "1 in 3" goal now describes the mid-run; long runs naturally let more builds finish.
+  Verify with an offer simulation once `UpgradeData` exists; tune tag weighting (2×) and the family
+  offers to hit it.
 
 ## Status effect numbers
 
@@ -138,8 +154,8 @@ up with creature health and benefit from stat Dreams and evolutions.
 
 ## Data (`UpgradeData`)
 
-`id`, `display_name`, `description`, `rarity`, `kind` (unlock_warden / unlock_evolution / stat /
-rule / economy), `tags: Array[String]`, `requires: Array[String]` (ids of Wardens or cards),
+`id`, `display_name`, `description`, `rarity`, `kind` (unlock_evolution / stat / rule / economy;
+family unlocks are a separate pick, not a Dream card), `tags: Array[String]`, `requires: Array[String]` (ids of Wardens or cards),
 `max_stacks` (0 = unlimited for stat cards, else 1), `min_act` (Legendary = 2), `in_start_pool: bool`,
 plus effect parameters (stat modifiers: target line + stat + amount; or a `rule_id` the game
 checks for).

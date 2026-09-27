@@ -10,8 +10,9 @@ that feels right. Topics are ordered by when the build will need them (build ord
 
 ## Phase 1: Run pacing and economy (now; code needs it for leaves and drifts)
 
-**Drafted in `run_design.md`** (15 drifts in 3 acts, build/sell/speed rules, Dew numbers, act 1
-drift list). All questions decided; remaining work is playtest tuning.
+**Drafted in `run_design.md`**, revised to **100 drifts in 4 acts** (1–2 hour runs, a Dream every
+5 drifts, a boss every 25 that unlocks a Warden family, mid-run save), with build/sell/speed rules,
+Dew numbers and the act 1 plan. Remaining: playtest tuning.
 
 ### 1. Run structure
 - How long is a run? (Target session length, e.g. 30–45 min.)
