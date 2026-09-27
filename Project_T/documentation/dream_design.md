@@ -291,6 +291,42 @@ Evolving is still the better buy when a Dream allows it; Nurture cards make rank
   `get_max_rank()`. `Tower.get_nurture_cost()` / `RANK_MAX` read those instead of constants.
   `RunState` holds the memory seeds.
 
+## Wide and narrow: many Wardens or few
+
+Added 2026-09-27 (user request): two build directions defined by **how many** Wardens you have.
+They pair with the Nurture cards above: *wide* spends Dew on count, *narrow* spends it on ranks.
+Only **attacking** Wardens count; Thornwalls never do, so a narrow build still gets a long maze
+from walls (Hedge Maze, Bramble).
+
+**Wide: the Overgrowth** (flood the maze with cheap Wardens)
+
+| # | Card | Rarity | Effect | Tags | Needs | Pool |
+|---|---|---|---|---|---|---|
+| 69 | **Seedfall** | Common | Sprouts cost **6** Dew (was 10) | sprout, wide | — | Start |
+| 70 | **Many Hands** | Uncommon | all Wardens **+1% damage per 4 attacking Wardens** you have (max +25%) | wide | 15+ attacking Wardens | Start |
+| 71 | **Sprout Chorus** | Uncommon | Sprouts **+5% attack speed per other Sprout within 2 cells** (max +40%) | sprout, wide | 6+ Sprouts | Start |
+| 72 | **Canopy** | Rare | when you reach **20, 30 and 40** attacking Wardens (planted this run), every Warden gets **+8% damage** permanently, each time | wide | 15+ attacking Wardens | Grove |
+| 73 | **Wild Growth** | Rare, **Bittersweet** | planting any Warden costs **30% less**. **Cost:** Wardens can't be nurtured past rank I | wide, bittersweet | — | Grove |
+
+**Narrow: the Lone Lantern** (a few Wardens, very strong)
+
+| # | Card | Rarity | Effect | Tags | Needs | Pool |
+|---|---|---|---|---|---|---|
+| 74 | **Solitude** | Uncommon | a Warden with **no other attacking Warden within 2 cells** gets **+30% damage and +0.5 range** | narrow, maze | — | Start |
+| 75 | **Few and Mighty** | Rare | all Wardens **+8% damage for each attacking Warden below 12** you have (7 Wardens = +40%; max +80%) | narrow | 12 or fewer attacking Wardens when offered | Start |
+| 76 | **The Last Light** | Legendary | if you have **5 or fewer** attacking Wardens, they **attack twice as fast** | narrow | 8 or fewer attacking Wardens when offered | Grove |
+
+- **Once you own a wide or narrow card, its tag counts as an owned family** for tag weighting (2×),
+  so the direction you start tends to come together. Owning one direction makes the other's cards
+  **half as likely** (they'd work against each other), but never impossible.
+- **Few and Mighty and The Last Light** are live values: selling or planting changes the bonus
+  immediately (shown on the card icon in the Dreams row).
+- **Pairs with:** narrow + Nurture (Chosen Few, Deeper Rings) + Standing Stone snipers + Hedge Maze;
+  wide + Seedling Gift, Nursery, Rootbound, Grove Heart, Elder Stump.
+- **Balance check:** wide should out-damage narrow early (cheap Dew-efficiency) and narrow should
+  catch up late (ranks + multipliers, and it saves map space for walls). Compare both in the Test
+  Grove with the damage meter at drifts 25 and 50.
+
 ## Deepened cards: repeats become upgrades
 
 Added 2026-09-27. With 19 Dreams from a 33-card pool, repeats are common. Stat cards already
