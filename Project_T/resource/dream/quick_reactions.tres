@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "quick_reactions"
+display_name = "Quick Reactions"
+description = "Reactions can fire again on the same nightmare after 0.75 s instead of 1.5 s."
+rarity = 2
+kind = 3
+tags = Array[String](["reaction"])
+max_stacks = 1
+in_start_pool = false
+min_reaction_pairs = 2
+rule_id = &"quick_reactions"

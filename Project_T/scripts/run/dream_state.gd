@@ -52,6 +52,13 @@ const FIRST_PICK_DREAMLIGHT := 1
 const BOSS_DREAMLIGHT := 3
 const BRANCH_DREAMLIGHT := 1  # Branch, hidden branch, wall growth
 const FINAL_DREAMLIGHT := 2  # Final form (needs its branch)
+# Reactions and the statuses they need (each entry: statuses where any one will do).
+const REACTIONS := {
+	&"thunderclap": [[&"damp"], [&"static"]], &"ignite": [[&"spored"], [&"static"]],
+	&"mushrooming": [[&"spored"], [&"damp"]], &"shatter": [[&"held"], [&"damp"]],
+	&"drown": [[&"damp"], [&"drowsy"]], &"pinned": [[&"marked"], [&"held", &"drowsy"]],
+	&"smother": [[&"held"], [&"spored"]], &"lightning_rod": [[&"marked"], [&"static"]],
+}
 
 signal unlocks_changed
 signal card_taken(card: UpgradeData)
@@ -856,7 +863,39 @@ func _meets_needs(card: UpgradeData) -> bool:
 			return false
 	if card.count_warden != "" and count_wardens(card.count_warden) < card.min_warden_count:
 		return false
+	if card.min_reaction_pairs > 0 and count_reaction_pairs() < card.min_reaction_pairs:
+		return false
 	return true
+
+# How many Reactions (dream_design.md "Reaction numbers") your owned Wardens could set off together:
+# each needs both of its statuses applied by Wardens you own (Held = Frostfern's freeze).
+func count_reaction_pairs() -> int:
+	var statuses := owned_statuses()
+	var count := 0
+	for needs in REACTIONS.values():
+		var ok := true
+		for options in needs:  # Each need is a list of statuses, any one of which will do
+			if not options.any(func(s: StringName) -> bool: return statuses.has(s)):
+				ok = false
+		if ok:
+			count += 1
+	return count
+
+# Statuses applied by Wardens unlocked this run.
+func owned_statuses() -> Dictionary:
+	var statuses := {}
+	var forms := _roster().duplicate()
+	for card in pool:
+		if card.unlocks != null:
+			forms.append(card.unlocks)
+	for data in forms:
+		if not is_unlocked(data.get_id()):
+			continue
+		if data.applies_status != &"":
+			statuses[data.applies_status] = true
+		if data.freeze_duration > 0.0:
+			statuses[EnemyStatuses.HELD] = true
+	return statuses
 
 # Taken cards carrying `tag` (each card once, however many stacks).
 func count_taken_with_tag(tag: String) -> int:

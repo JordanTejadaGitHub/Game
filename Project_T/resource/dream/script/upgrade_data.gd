@@ -75,6 +75,8 @@ enum Kind { UNLOCK_WARDEN, UNLOCK_EVOLUTION, STAT, RULE, ECONOMY }
 @export var max_attackers: int = 0  # 0 = no check
 @export var count_warden: String = ""  # Own `min_warden_count` of this Warden on the map (Sprouts)
 @export var min_warden_count: int = 0
+# Reactions you can set off: pairs of statuses your owned Wardens apply (Quick Reactions: 2).
+@export var min_reaction_pairs: int = 0
 
 @export_group("Nurture")
 @export var nurture_discount: float = 0.0  # 0.15 = ranks cost 15% less (all cards together max 45%)

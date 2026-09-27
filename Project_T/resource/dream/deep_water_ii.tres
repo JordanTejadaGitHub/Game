@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "deep_water_ii"
+display_name = "Deep Water II"
+description = "Drown sleeps for 3 s (bosses slowed 40%), and can happen twice to each nightmare."
+rarity = 1
+kind = 3
+tags = Array[String](["water", "sleep", "reaction"])
+requires = Array[String](["dewdrop"])
+max_stacks = 1
+in_start_pool = false
+deepens = "deep_water"
+rule_id = &"deep_water"

@@ -24,6 +24,7 @@ func _run() -> void:
 	_test_nurture_rules()
 	_test_wide_and_narrow()
 	_test_direction_weighting()
+	_test_reaction_cards()
 	print("dream builds test: %s" % ("PASS" if failures == 0 else "%d FAILED" % failures))
 	quit(failures)
 
@@ -240,6 +241,33 @@ func _test_direction_weighting() -> void:
 	# 2× vs 0.5× → 80% wide
 	_check(wide_picks > 1500 and wide_picks < 1700, "wide 2×, narrow 0.5× once you've gone wide (%d / 2000)" % wide_picks)
 
+
+# Reaction cards 79–83: Needs, "own 2 Reaction pairs", and the rule ids the Reaction code reads.
+func _test_reaction_cards() -> void:
+	_reset()
+	var rolling := _card("rolling_thunder")
+	_check(not dreams.is_eligible(rolling), "Rolling Thunder needs Stormcap + Dewdrop")
+	dreams.unlocked["dewdrop"] = true
+	dreams.unlocked["firefly_jar"] = true
+	_check(dreams.count_reaction_pairs() == 1, "Dewdrop + Firefly Jar: one Reaction pair (Thunderclap)")
+	dreams.unlocked["stormcap"] = true
+	_check(dreams.is_eligible(rolling), "…offered once Stormcap is unlocked too")
+	dreams.take(rolling)
+	_check(dreams.has_rule(&"rolling_thunder") and dreams.rule_level(&"rolling_thunder") == 0, "Rolling Thunder switches on its rule")
+	dreams.take(_card("rolling_thunder_ii"))
+	_check(dreams.rule_level(&"rolling_thunder") == 1, "Rolling Thunder II deepens it")
+
+	var quick := _card("quick_reactions")
+	dreams.grove_cards.assign(["quick_reactions", "dawnbreak", "deep_water", "wildfire_spores"])
+	_check(not dreams.is_eligible(quick), "Quick Reactions needs 2 Reaction pairs")
+	dreams.unlocked["sporeling"] = true  # + Ignite (Spored + Static), Mushrooming (Spored + Damp)
+	_check(dreams.count_reaction_pairs() == 3 and dreams.is_eligible(quick), "…offered with 3")
+	_check(dreams.is_eligible(_card("wildfire_spores")) and dreams.is_eligible(_card("deep_water")),
+		"Wildfire Spores (Sporeling + Firefly Jar) and Deep Water (Dewdrop) from the Grove")
+	_check(not dreams.is_eligible(_card("dawnbreak"), 1) and dreams.is_eligible(_card("dawnbreak"), 2),
+		"Dawnbreak is a Legendary: act 2+")
+	dreams.unlocked["lanternmoth"] = true  # Marked: + Lightning Rod (Marked + Static)
+	_check(dreams.count_reaction_pairs() == 4, "Lanternmoth adds Lightning Rod")
 
 # --- Helpers --------------------------------------------------------------------------------------
 
