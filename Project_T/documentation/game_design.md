@@ -20,6 +20,7 @@ placeholders).
 | `audio_direction.md` | music (adaptive layers), nightmare signature sounds, dispel, mix, demo list |
 | `platforms.md` | PC first, mobile port later: touch-friendly rules and the touch control map |
 | `art_style_options.md` | six candidate rendering styles compared; leaning Waystone pixel |
+| `meta_assets.md` | Memory Grove art: tree segments, node states, dream-fruit, loadout, icons, Memories |
 | `environment_assets.md` | environment sprite-sheet layouts per act |
 | `onboarding.md` | teaching across the first runs |
 | `screens_ui.md` | screen flow, HUD layout, panels, choice screens, settings, controls |
