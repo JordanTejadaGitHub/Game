@@ -66,8 +66,8 @@ enum Trait { NONE, FLYING, ROLLING, TRAMPLE, LEAP }
 @export var status_immune: Array[StringName] = []
 @export var status_duration_multipliers: Dictionary = {}
 
-const RESIST_MULTIPLIER := 0.65
-const WEAK_MULTIPLIER := 1.35
+const RESIST_MULTIPLIER := 0.5
+const WEAK_MULTIPLIER := 1.5
 
 # Soothe multiplier for a hit from Warden family `line` (area or single-target).
 func get_soothe_multiplier(line: String, is_area: bool) -> float:

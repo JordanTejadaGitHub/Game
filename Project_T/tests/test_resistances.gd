@@ -20,8 +20,8 @@ func _run() -> void:
 
 	# --- Family resistance / weakness (Bark Beetle: resists stone, weak to spore) ---
 	var beetle = _spawn(spawner, _sturdy("res://resource/enemy/bark_beetle.tres"))
-	_check(_loss(beetle, 100.0, "stone") == 65, "resisted family soothes ×0.65")
-	_check(_loss(beetle, 100.0, "spore") == 135, "weak family soothes ×1.35")
+	_check(_loss(beetle, 100.0, "stone") == roundi(100 * EnemyData.RESIST_MULTIPLIER), "resisted family soothes ×%s" % EnemyData.RESIST_MULTIPLIER)
+	_check(_loss(beetle, 100.0, "spore") == roundi(100 * EnemyData.WEAK_MULTIPLIER), "weak family soothes ×%s" % EnemyData.WEAK_MULTIPLIER)
 	_check(_loss(beetle, 100.0, "water") == 100, "other families soothe normally")
 	_check(_loss(beetle, 100.0, "sprout") == 100, "neutral lines (Sprout) are never resisted")
 	_check(_loss(beetle, 100.0) == 100, "unsourced soothe is unchanged")
@@ -31,7 +31,7 @@ func _run() -> void:
 
 	# --- Marked stacks multiplicatively with the family multiplier ---
 	beetle.apply_status(EnemyStatuses.MARKED)
-	_check(_loss(beetle, 100.0, "spore") == floori(100 * 1.35 * 1.25), "Marked × weakness")
+	_check(_loss(beetle, 100.0, "spore") == floori(100 * EnemyData.WEAK_MULTIPLIER * 1.25), "Marked × weakness")
 
 	# --- Attack shape (Bee Swarm): single-target halved, area full ---
 	var swarm_data := _sturdy("res://resource/enemy/leaf_bug.tres")
@@ -79,12 +79,12 @@ func _run() -> void:
 	var before: int = weak_to_spores.health
 	weak_to_spores._process(1.0)  # One second: two Spored ticks
 	var ticked: int = before - weak_to_spores.health
-	_check(ticked == floori(10.0 * 1.35), "Spored ticks get the spore weakness (%d from 10/s × 1.35)" % ticked)
+	_check(ticked == floori(10.0 * EnemyData.WEAK_MULTIPLIER), "Spored ticks get the spore weakness (%d from 10/s × weak)" % ticked)
 	var moth = _spawn(spawner, _sturdy("res://resource/enemy/dusk_moth.tres"))
 	before = moth.health
 	for i in EnemyStatuses.DEFAULT_MAX_STACKS[EnemyStatuses.STATIC]:
 		moth.apply_status(EnemyStatuses.STATIC, 1, 0.0, 10.0)
-	_check(before - moth.health == floori(10.0 * EnemyStatuses.STATIC_BOLT_MULTIPLIER * 1.35), "Static bolts count as light")
+	_check(before - moth.health == floori(10.0 * EnemyStatuses.STATIC_BOLT_MULTIPLIER * EnemyData.WEAK_MULTIPLIER), "Static bolts count as light")
 
 	# --- A real Warden passes its family ---
 	var stone_data: TowerData = load("res://resource/tower/pebbling.tres").duplicate()
@@ -99,7 +99,7 @@ func _run() -> void:
 	var target = _spawn(spawner, _sturdy("res://resource/enemy/bark_beetle.tres"))
 	before = target.health
 	warden.hit(target)
-	_check(before - target.health == floori(warden.get_damage() * 0.65), "a Pebbling's hit is resisted by the Bark Beetle")
+	_check(before - target.health == floori(warden.get_damage() * EnemyData.RESIST_MULTIPLIER), "a Pebbling's hit is resisted by the Bark Beetle")
 
 	print("resistance test: %s" % ("PASS" if failures == 0 else "%d FAILED" % failures))
 	quit(failures)
