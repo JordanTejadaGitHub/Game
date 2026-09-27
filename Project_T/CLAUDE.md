@@ -160,8 +160,14 @@ branches, final forms; localization; audio; replacing the Foozle placeholder art
   (chime climbs a pentatonic combo), `play_music(set, layers)` / `set_layer` (stems base, dread1,
   dread2, heartbeat, boss), `play_ambience`. Every BaseButton clicks. Silent under headless.
 - `SoundHooks` (`%SoundHooks` in main.tscn) connects the run's signals to it and drives the music
-  layers; gameplay scripts never call Sound (`Tower.attack_released`, `TowerPlacer.build_rejected`
-  exist for it). Settings: Music slider = Music + Ambience, Sounds = SFX + UI. `tests/test_sound.gd`.
+  layers; gameplay scripts never call Sound (`Tower.attack_released`, `Tower.hit_landed`,
+  `TowerPlacer.build_rejected` exist for it). Settings: Music slider = Music + Ambience, Sounds = SFX + UI.
+  `tests/test_sound.gd`.
+- Mix (first-listen revisions): levels in `Sound` (`MUSIC_DB`, `AMBIENCE_DB`, `LAYER_GAIN`; stems are
+  trimmed so more layers never get louder), `duck(db, s)` (dispel 4/0.5, leaf lost + boss moments 8/1),
+  `set_drifting` (−3 dB in drifts), `set_ambience_trim` (thins with the field, swells at rests).
+  Attacks = quiet launch (`attack_<line>`) + hit where it lands (`hit_<family>`, `_dull` when resisted,
+  `hit_bright` when weak, pitched by the target's size; one per pulse/splash, chains ripple quieter).
 
 ## Layout
 - `scenes/main.tscn` — root scene: MapGenerator (Ground / Path / EnvironmentObject TileMapLayers),

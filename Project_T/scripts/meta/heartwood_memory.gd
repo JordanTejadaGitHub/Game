@@ -24,7 +24,7 @@ static func defaults() -> Dictionary:
 		"whispers_seen": [],  # Heartwood whisper ids already shown (onboarding)
 		"settings": {
 			"master_volume": 1.0,
-			"music_volume": 0.8,
+			"music_volume": 0.55,  # audio_direction.md: music sits well under the sound effects
 			"sfx_volume": 1.0,
 			"fullscreen": false,
 			"whispers": true,  # Heartwood whispers (first-run hints)

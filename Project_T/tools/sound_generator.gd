@@ -1,5 +1,5 @@
 extends SceneTree
-# Generates the placeholder sounds in assets/audio/ (audio_direction.md): the dispel, Warden attacks,
+# Generates the placeholder sounds in assets/audio/ (audio_direction.md): the dispel, Warden attacks and hits,
 # nightmare signatures, building, the Heartwood, UI, stingers, and act 1's music stems and ambience.
 # Everything is synthesized here (no samples), so it's all original and free to ship as a stand-in.
 # Warm things use plucks, bells and music box; nightmares use noise, drones and whisper formants.
@@ -12,6 +12,8 @@ const MUSIC_RATE := 22050
 const SFX_DIR := "res://assets/audio/sfx/"
 const MUSIC_DIR := "res://assets/audio/music/"
 const SFX_PEAK := 0.7  # ≈ −3 dBFS
+# Warden families with their own hit sound (the rest use sprout's).
+const HIT_FAMILIES := ["stone", "root", "water", "light", "spore", "sprout"]
 
 const BPM := 72.0
 const BEATS_PER_BAR := 3
@@ -28,8 +30,10 @@ const CHIME := [[1.0, 1.0, 1.0], [2.76, 0.35, 0.45], [5.4, 0.15, 0.25], [8.93, 0
 
 # Chord per bar: [bass root midi, third (3 minor / 4 major)]. Dm Bb F C Dm Gm Bb A.
 const CHORDS := [[50, 3], [46, 4], [53, 4], [48, 4], [50, 3], [43, 3], [46, 4], [45, 4]]
+# Ambience wind gusts: [start s, length s] within the 20 s loop; calm stretches between them.
+const AMB_GUSTS := [[0.5, 5.5], [8.5, 4.5], [14.0, 4.5]]
 # Music box melody: [beat, midi].
-const MELODY := [[0, 69], [2, 65], [3, 74], [4, 72], [5, 70], [6, 69], [8, 72], [9, 67], [11, 64],
+const MELODY :=[[0, 69], [2, 65], [3, 74], [4, 72], [5, 70], [6, 69], [8, 72], [9, 67], [11, 64],
 	[12, 65], [13, 69], [14, 74], [15, 70], [16, 67], [17, 62], [18, 65], [19, 70], [20, 74],
 	[21, 73], [22, 69], [23, 64]]
 
@@ -226,7 +230,8 @@ func _normalize(seg: PackedFloat32Array, peak: float) -> PackedFloat32Array:
 			seg[i] *= peak / top
 	return seg
 
-func _save(seg: PackedFloat32Array, rate: int, path: String) -> void:
+# `stereo`: `seg` holds interleaved left/right samples.
+func _save(seg: PackedFloat32Array, rate: int, path: String, stereo := false) -> void:
 	var bytes := PackedByteArray()
 	bytes.resize(seg.size() * 2)
 	for i in seg.size():
@@ -234,7 +239,7 @@ func _save(seg: PackedFloat32Array, rate: int, path: String) -> void:
 	var wav := AudioStreamWAV.new()
 	wav.format = AudioStreamWAV.FORMAT_16_BITS
 	wav.mix_rate = rate
-	wav.stereo = false
+	wav.stereo = stereo
 	wav.data = bytes
 	var err := wav.save_to_wav(path)
 	if err != OK:
@@ -393,8 +398,9 @@ func _make_sfx() -> void:
 
 	_sfx("family_bell", _bell(r, hz(50), 0.9, 1.4, BELL, 5.0), 0.6)  # A deep warm bell
 
+	# The Omen: one soft, low gust (under ~400 Hz), not a roar. Rises and falls with the swell.
 	var wind := _noise(r, 3.0, swell(1.0, 1.4, 3.0))
-	_sfx("omen_wind", _filter(wind, r, func(t: float) -> float: return 350.0 + 900.0 * sin(PI * t / 3.0) + 200.0 * sin(t * 5.0), 0.35, "bp"), 0.5)
+	_sfx("omen_wind", _filter(wind, r, func(t: float) -> float: return 140.0 + 240.0 * sin(PI * t / 3.0), 0.5), 0.4)
 
 	var rest := _seg(3.0, r)  # The exhale: breath out and a warm strum
 	_mix(rest, _filter(_noise(r, 1.2, swell(0.1, 0.9, 1.2)), r, glide(1500.0, 300.0, 1.2), 0.6, "bp"), r, 0.0, 0.5)
@@ -442,6 +448,62 @@ func _make_sfx() -> void:
 		_mix(beam, _tone(r, 0.28, hz(m), swell(0.04, 0.15, 0.28), "tri"), r, 0.0, 0.5)
 	_mix(beam, _filter(_noise(r, 0.28, swell(0.04, 0.15, 0.28)), r, 3000.0, 0.8, "bp"), r, 0.0, 0.1)
 	_sfx("beam", beam, 0.3)
+
+	# Warden hits (after the first listen: attacks had no impact). The launch sounds above stay as the
+	# quiet part; these play where the attack lands. Transient (2–4 kHz snap) + body (low thump) + tail
+	# (the family's colour). `_dull` = resisted: a muffled transient and less body.
+	for family in HIT_FAMILIES:
+		for v in 3:
+			_sfx("hit_%s_%02d" % [family, v + 1], _hit(family, v, false))
+		_sfx("hit_%s_dull" % family, _hit(family, 1, true), 0.45)
+	for v in 3:  # Weak to the Warden: a bright snap and a sparkle on top of the hit
+		var bright := _filter(_noise(r, 0.012, perc(0.0003, 0.003, 0.012)), r, 3600.0 + v * 300.0, 0.4, "bp")
+		_mix(bright, _bell(r, hz(96 + [0, 3, 5][v]), 0.3, 0.05, CHIME, 0.25), r, 0.004)
+		_sfx("hit_bright_%02d" % (v + 1), bright, 0.4)
+	var punch := _tone(r, 0.3, glide(120.0, 48.0, 0.05), perc(0.001, 0.06, 0.3))  # Crit: the extra low punch
+	_mix(punch, _filter(_noise(r, 0.01, perc(0.0003, 0.002, 0.01)), r, 2500.0, 0.5, "bp"), r, 0.0, 0.5)
+	_sfx("crit_punch", punch, 0.6)
+
+# One Warden hit. `v` shifts the pitch a little per variant.
+func _hit(family: String, v: int, dull: bool) -> PackedFloat32Array:
+	var r := SFX_RATE
+	var s := _seg(0.45, r)
+	var shift := 1.0 + (v - 1) * 0.06
+	# [transient band Hz, transient gain, body Hz, body decay s, body gain]
+	var shape: Array = {
+		"stone": [3000.0, 1.0, 70.0, 0.05, 1.0],
+		"root": [1800.0, 0.5, 48.0, 0.12, 1.0],
+		"water": [3400.0, 0.7, 110.0, 0.04, 0.7],
+		"light": [3600.0, 0.8, 90.0, 0.035, 0.6],
+		"spore": [2200.0, 0.45, 80.0, 0.06, 0.8],
+		"sprout": [4000.0, 0.8, 150.0, 0.025, 0.5],
+	}[family]
+	var t_hz: float = shape[0] * shift
+	var t_gain: float = shape[1] * (0.3 if dull else 1.0)
+	var click := _noise(r, 0.012, perc(0.0003, 0.003, 0.012))
+	_mix(s, _filter(click, r, 1100.0 if dull else t_hz, 0.4, "lp" if dull else "bp"), r, 0.0, t_gain * 1.6)
+	var body_hz: float = shape[2] * shift
+	var decay: float = shape[3]
+	var body := _tone(r, decay * 6.0, glide(body_hz * 1.8, body_hz, 0.02), perc(0.001, decay, decay * 6.0))
+	_mix(s, body, r, 0.0, shape[4] * (0.6 if dull else 1.0))
+	match family:
+		"stone":  # A hard wood/stone crack over the thud
+			_mix(s, _crackle(r, 0.12, 110.0, perc(0.001, 0.03, 0.12), 1800.0), r, 0.003, 0.6)
+		"root":  # Wooden knock + deep sub rumble, felt more than heard
+			_mix(s, _knock(r, 170.0 * shift, 0.03), r, 0.0, 0.5)
+			_mix(s, _filter(_noise(r, 0.4, swell(0.02, 0.3, 0.4)), r, 90.0, 0.6), r, 0.0, 3.0)
+		"water":  # Droplet snap, low plunk, spray
+			_mix(s, _tone(r, 0.05, glide(1200.0 * shift, 3000.0 * shift, 0.03), perc(0.001, 0.012, 0.05)), r, 0.0, 0.5)
+			_mix(s, _filter(_noise(r, 0.3, perc(0.01, 0.08, 0.3)), r, 3500.0, 0.7, "hp"), r, 0.01, 0.25)
+		"light":  # A warm crackle burst
+			_mix(s, _crackle(r, 0.25, 220.0, perc(0.002, 0.07, 0.25), 2200.0), r, 0.0, 0.9)
+		"spore":  # A full, round puff
+			_mix(s, _filter(_noise(r, 0.3, swell(0.02, 0.22, 0.3)), r, 1100.0, 0.8), r, 0.005, 0.8)
+		"sprout":  # A light, bright tock
+			_mix(s, _pluck(r, hz(84) * shift, 0.3, 0.2, 0.3, 0.99), r, 0.0)
+	if dull:
+		s = _filter(s, r, 1400.0, 0.7)
+	return s
 
 # Nightmare signature sounds (played when one enters, and on their special moments).
 func _make_signatures() -> void:
@@ -610,23 +672,65 @@ func _make_music() -> void:
 			_mix(drums, _tom(r, 90.0), r, beat * BEAT + BEAT * 0.5, 0.45)
 	_music("mus_act1_boss", drums, 0.6)
 
-	# Ambience: a spring-dusk forest edge. Wind, a far owl, a whisper now and then.
-	var amb := _seg(total, r)
-	var gust := rng.randf() * TAU
-	var wind := _noise(r, total, func(t: float) -> float: return 0.4 + 0.25 * sin(t * TAU / LOOP * 3.0 + gust) + 0.15 * sin(t * TAU / LOOP * 7.0))
-	_mix(amb, _filter(wind, r, func(t: float) -> float: return 500.0 + 250.0 * sin(t * TAU / LOOP * 5.0), 0.4, "bp"), r, 0.0, 0.6)
-	_mix(amb, _filter(_noise(r, total, 0.15), r, 5500.0, 0.8, "hp"), r, 0.0, 0.2)  # Leaves
+	# Ambience: a spring-dusk forest edge, felt more than heard (stereo). Low wind in gusts with calm
+	# stretches between them, a leaf rustle every few seconds panned somewhere, a far owl, a whisper
+	# now and then. No constant hiss (the first listen heard it as static).
+	var left := _seg(total, r)
+	var right := _seg(total, r)
+	var gust := func(t: float) -> float:
+		var loop_t := fposmod(t, LOOP)  # Wraps, so the loop's crossfaded tail matches its start
+		var g := 0.0
+		for span in AMB_GUSTS:
+			var x: float = (loop_t - span[0]) / span[1]
+			if x > 0.0 and x < 1.0:
+				g = maxf(g, pow(sin(PI * x), 2.0))
+		return g
+	for channel in [left, right]:  # Separate noise per side: a wide, soft bed
+		var wind := _noise(r, total, func(t: float) -> float: return 0.12 + 0.88 * gust.call(t))
+		_mix(channel, _filter(wind, r, func(t: float) -> float: return 110.0 + 270.0 * gust.call(t), 0.5), r, 0.0, 1.0)
+	var rustle_at := rng.randf_range(0.5, 2.0)
+	while rustle_at < LOOP - 1.0:  # Rustles
+		var length := rng.randf_range(0.3, 0.8)
+		var rustle := _crackle(r, length, rng.randf_range(40.0, 90.0), swell(0.08, 0.2, length), 1500.0)
+		_mix(rustle, _filter(_noise(r, length, swell(0.1, 0.2, length)), r, 2200.0, 0.8, "bp"), r, 0.0, 0.25)
+		rustle = _filter(rustle, r, 3500.0, 0.7)
+		_pan_mix(left, right, rustle, rustle_at, 0.3, rng.randf_range(0.1, 0.9))
+		rustle_at += rng.randf_range(2.0, 5.0)
 	for hoot_at in [3.0, 12.5]:
+		var hoot := _seg(1.0, r)
 		for k in 2:
-			_mix(amb, _tone(r, 0.35, glide(410.0, 360.0, 0.35), swell(0.05, 0.2, 0.35)), r, hoot_at + k * 0.5, 0.12)
-	_mix(amb, _whisper(r, 1.5, 1.0), r, 8.0, 0.25)
-	_mix(amb, _whisper(r, 1.2, 1.0), r, 16.5, 0.2)
-	_music("amb_act1", amb, 0.35, true)
+			_mix(hoot, _tone(r, 0.35, glide(410.0, 360.0, 0.35), swell(0.05, 0.2, 0.35)), r, k * 0.5)
+		_pan_mix(left, right, hoot, hoot_at, 0.1, rng.randf_range(0.2, 0.8))
+	_pan_mix(left, right, _whisper(r, 1.5, 1.0), 8.0, 0.2, 0.2)
+	_pan_mix(left, right, _whisper(r, 1.2, 1.0), 16.5, 0.16, 0.8)
+	_music_stereo("amb_act1", left, right, 0.5)
 
 # Trims to exactly one loop and saves. Notes (`sustained` false): the tail past the loop end is
 # added back onto the start, so they ring across the loop point. Drones and beds (`sustained`):
 # the tail is crossfaded into the start instead, so there's no seam and no doubled level.
 func _music(sound_name: String, seg: PackedFloat32Array, peak: float, sustained := false) -> void:
+	_fold_loop(seg, sustained)
+	_save(_normalize(seg, peak), MUSIC_RATE, MUSIC_DIR + sound_name + ".wav")
+
+# A stereo bed (the ambience): both sides folded as sustained, normalised together.
+func _music_stereo(sound_name: String, left: PackedFloat32Array, right: PackedFloat32Array, peak: float) -> void:
+	var size := maxi(left.size(), right.size())
+	left.resize(size)
+	right.resize(size)
+	_fold_loop(left, true)
+	_fold_loop(right, true)
+	var top := 0.0
+	for i in left.size():
+		top = maxf(top, maxf(absf(left[i]), absf(right[i])))
+	var gain := peak / top if top > 0.0 else 1.0
+	var both := PackedFloat32Array()
+	both.resize(left.size() * 2)
+	for i in left.size():
+		both[i * 2] = left[i] * gain
+		both[i * 2 + 1] = right[i] * gain
+	_save(both, MUSIC_RATE, MUSIC_DIR + sound_name + ".wav", true)
+
+func _fold_loop(seg: PackedFloat32Array, sustained: bool) -> void:
 	var loop_samples := int(LOOP * MUSIC_RATE)
 	var tail := seg.size() - loop_samples
 	for i in tail:
@@ -636,7 +740,12 @@ func _music(sound_name: String, seg: PackedFloat32Array, peak: float, sustained 
 		else:
 			seg[i] += seg[loop_samples + i]
 	seg.resize(loop_samples)
-	_save(_normalize(seg, peak), MUSIC_RATE, MUSIC_DIR + sound_name + ".wav")
+
+# Mixes a mono `src` into a stereo pair at `at` s; `pan` 0 = left, 1 = right (equal power).
+func _pan_mix(left: PackedFloat32Array, right: PackedFloat32Array, src: PackedFloat32Array, at: float,
+		gain: float, pan: float) -> void:
+	_mix(left, src, MUSIC_RATE, at, gain * cos(pan * PI / 2.0))
+	_mix(right, src, MUSIC_RATE, at, gain * sin(pan * PI / 2.0))
 
 func _tom(rate: int, freq: float) -> PackedFloat32Array:
 	var seg := _tone(rate, 0.6, glide(freq * 1.8, freq, 0.08), perc(0.002, 0.14, 0.6))

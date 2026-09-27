@@ -19,6 +19,16 @@ const PITCH_JITTER := 0.05
 const MAX_DISTANCE := 2200.0  # Px: positional sounds fade out this far from the screen centre
 const LAYER_FADE := 0.8  # Seconds for a music layer to fade fully in or out
 const MUFFLED_HZ := 900.0  # Music lowpass on choice screens ("time has stopped")
+# Mix (audio_direction.md "Mix rules", after the first listen): music sits ~10 dB under the sound
+# effects and the ambience ~10 dB under the music. Dread layers are quieter than the warm base, and
+# the stems are trimmed so adding layers never makes the music louder overall.
+const MUSIC_DB := -6.0
+const DRIFT_MUSIC_DB := -3.0  # During drifts, relative to rests: combat owns the space
+const AMBIENCE_DB := -16.0
+const LAYER_GAIN := {&"base": 1.0, &"dread1": 0.55, &"dread2": 0.45, &"heartbeat": 0.6, &"boss": 0.7}
+const LEVEL_SMOOTHING := 1.5  # Phase and ambience changes ease in over a second or two
+const DUCK_ATTACK := 150.0  # dB per second
+const DUCK_RELEASE := 16.0
 # The dispel chime climbs this scale (D minor pentatonic, semitones) when dispels land close together.
 const COMBO_STEPS := [0, 3, 5, 7, 10, 12, 15, 17]
 const COMBO_WINDOW_MS := 700
@@ -30,7 +40,15 @@ var _music := {}  # layer -> AudioStreamPlayer
 var _music_level := {}  # layer -> current linear volume
 var _music_target := {}  # layer -> target linear volume
 var _music_set := &""
+var _phase_db := 0.0  # Music offset for the phase (0 at rests, DRIFT_MUSIC_DB in drifts), eased
+var _phase_target := 0.0
 var _ambience: AudioStreamPlayer
+var _ambience_db := AMBIENCE_DB
+var _ambience_trim := 0.0  # Thinner with many nightmares, fuller at rests (eased)
+var _ambience_trim_target := 0.0
+var _duck_db := 0.0  # Current dip of music and ambience
+var _duck_depth := 0.0
+var _duck_until := 0
 var _muffle: AudioEffectLowPassFilter
 var _muffled := false
 var _combo := 0
@@ -60,10 +78,25 @@ func _process(delta: float) -> void:
 		if scene != null and scene.scene_file_path == TITLE_SCENE:
 			play_music(&"act1", [&"base"])  # The title: the warm theme alone
 			stop_ambience()
+	delta /= maxf(Engine.time_scale, 0.01)  # Mixing runs in real time, whatever the game speed
+	var smooth := 1.0 - exp(-LEVEL_SMOOTHING * delta)
+	_phase_db = lerpf(_phase_db, _phase_target, smooth)
+	_ambience_trim = lerpf(_ambience_trim, _ambience_trim_target, smooth)
+	var duck_target := _duck_depth if Time.get_ticks_msec() < _duck_until else 0.0
+	_duck_db = move_toward(_duck_db, duck_target, delta * (DUCK_ATTACK if duck_target > _duck_db else DUCK_RELEASE))
+
+	var energy := 0.0
 	for layer in _music:
 		var level: float = move_toward(_music_level[layer], _music_target[layer], delta / LAYER_FADE)
 		_music_level[layer] = level
-		_music[layer].volume_db = linear_to_db(maxf(level, 0.0001))
+		energy += pow(level * LAYER_GAIN.get(layer, 1.0), 2.0)
+	# More layers playing: all of them come down together, so the total stays about as loud as the base.
+	var trim := -10.0 * log(maxf(energy, 1.0)) / log(10.0)
+	var music_db := MUSIC_DB + _phase_db + trim - _duck_db
+	for layer in _music:
+		var gain: float = _music_level[layer] * LAYER_GAIN.get(layer, 1.0)
+		_music[layer].volume_db = linear_to_db(maxf(gain, 0.0001)) + music_db
+	_ambience.volume_db = _ambience_db + _ambience_trim - _duck_db
 	if _muffle:
 		var target := MUFFLED_HZ if _muffled else 20000.0
 		_muffle.cutoff_hz = lerpf(_muffle.cutoff_hz, target, 1.0 - exp(-6.0 * delta))
@@ -122,8 +155,10 @@ func has_sound(id: StringName) -> bool:
 # The dispel: shriek and crack, then the warm chime. Chimes landing close together climb the scale.
 func play_dispel(at: Vector2, boss := false) -> void:
 	if boss:
+		duck(8.0, 1.0)
 		play(&"dispel_boss", at, 2.0, 1.0, 0.0)
 		return
+	duck(4.0, 0.5)
 	var now := Time.get_ticks_msec()
 	_combo = _combo + 1 if now - _combo_time < COMBO_WINDOW_MS else 0
 	_combo_time = now
@@ -176,12 +211,27 @@ func stop_music() -> void:
 func set_muffled(on: bool) -> void:
 	_muffled = on
 
-func play_ambience(set_name: StringName, volume_db := -6.0) -> void:
+# Dips the music and ambience by `depth_db` for `seconds` (dispel ~4 dB / 0.5 s; a lost leaf and boss
+# moments ~8 dB / 1 s). Overlapping ducks keep the deeper dip and the later end.
+func duck(depth_db: float, seconds: float) -> void:
+	var now := Time.get_ticks_msec()
+	_duck_depth = depth_db if now >= _duck_until else maxf(_duck_depth, depth_db)
+	_duck_until = maxi(_duck_until, now + int(seconds * 1000.0))
+
+# Music a little lower during drifts than at rests (`drifting`), eased.
+func set_drifting(drifting: bool) -> void:
+	_phase_target = DRIFT_MUSIC_DB if drifting else 0.0
+
+# The ambience's offset from its level: negative thins it out, positive swells it (eased).
+func set_ambience_trim(db: float) -> void:
+	_ambience_trim_target = db
+
+func play_ambience(set_name: StringName, volume_db := AMBIENCE_DB) -> void:
 	var path := "%samb_%s.wav" % [MUSIC_DIR, set_name]
 	if not ResourceLoader.exists(path):
 		return
 	_ambience.stream = _looping(load(path))
-	_ambience.volume_db = volume_db
+	_ambience_db = volume_db
 	if not _silent:
 		_ambience.play()
 
