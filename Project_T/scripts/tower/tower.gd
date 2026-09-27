@@ -120,7 +120,7 @@ func _release() -> void:
 	match tower_data.attack_kind:
 		TowerData.AttackKind.PULSE:
 			for enemy in get_enemies_in_range():
-				hit(enemy)
+				hit(enemy, 1.0, true)
 		TowerData.AttackKind.CHAIN:
 			var target := find_target()
 			if target != null:
@@ -134,12 +134,14 @@ func _release() -> void:
 			if target != null:
 				fire_at(target)
 
-# Soothes `enemy` and applies this Warden's status.
-func hit(enemy: Node2D, soothe_multiplier: float = 1.0) -> void:
+# Soothes `enemy` and applies this Warden's status. `is_area`: splash, pulse and cloud hits (creatures
+# with an attack-shape resistance, like the Bee Swarm, take these differently). The creature's
+# family resistance or weakness to this Warden's line is applied in Enemy.take_damage.
+func hit(enemy: Node2D, soothe_multiplier: float = 1.0, is_area: bool = false) -> void:
 	if not is_instance_valid(enemy) or enemy.is_cleansed:
 		return
 	var soothe := get_damage() * soothe_multiplier
-	enemy.take_damage(soothe)
+	enemy.take_damage(soothe, tower_data.line, is_area)
 	apply_status_to(enemy, soothe)
 
 func apply_status_to(enemy: Node2D, soothe: float) -> void:
@@ -153,7 +155,7 @@ func apply_status_to(enemy: Node2D, soothe: float) -> void:
 	if _dream_state:
 		potency *= _dream_state.get_status_strength_multiplier(status)
 		duration = _dream_state.get_status_duration(tower_data, status)
-	enemy.apply_status(status, tower_data.status_stacks, duration, potency, tower_data.status_max_stacks)
+	enemy.apply_status(status, tower_data.status_stacks, duration, potency, tower_data.status_max_stacks, tower_data.line)
 
 # Projectile landed at `where` (on `target` if it's still there): soothe it, or everything in the
 # splash radius.
@@ -164,7 +166,7 @@ func projectile_landed(target: Node2D, where: Vector2) -> void:
 		return
 	for enemy in get_tree().get_nodes_in_group(ENEMY_GROUP):
 		if enemy.global_position.distance_to(where) <= splash:
-			hit(enemy)
+			hit(enemy, 1.0, true)
 
 func fire_at(target: Node2D) -> void:
 	var projectile := Projectile.new(target, tower_data, projectile_landed)

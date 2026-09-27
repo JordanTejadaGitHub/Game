@@ -370,10 +370,11 @@ func _on_enemy_cleansed(enemy: Node2D) -> void:
 	var spores: int = enemy.statuses.stacks(EnemyStatuses.SPORED)
 	var potency: float = enemy.statuses.potency(EnemyStatuses.SPORED)
 	var duration: float = enemy.statuses.time_left(EnemyStatuses.SPORED)
+	var line: String = enemy.statuses.spore_line()
 	var others := get_tree().get_nodes_in_group(Tower.ENEMY_GROUP)
 	others.erase(enemy)
 	others.sort_custom(func(a: Node2D, b: Node2D) -> bool:
 		return a.global_position.distance_squared_to(enemy.global_position) \
 			< b.global_position.distance_squared_to(enemy.global_position))
 	for i in mini(SPORE_CASCADE_TARGETS, others.size()):
-		others[i].apply_status(EnemyStatuses.SPORED, spores, duration, potency)
+		others[i].apply_status(EnemyStatuses.SPORED, spores, duration, potency, 0, line)

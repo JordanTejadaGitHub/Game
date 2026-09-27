@@ -35,19 +35,28 @@ const SPORE_TICK := 0.5  # Spored soothes in ticks this long
 const FOG_SPORE_BONUS := 0.5  # Spored ticks +50% while in fog (Mistveil)
 
 var is_boss := false
+# From EnemyData: statuses that don't take, and {status id: duration multiplier}.
+var immune: Array[StringName] = []
+var duration_multipliers := {}
 # {id: {"stacks": int, "time": float (seconds left), "potency": float}}
 var _active := {}
 var _spore_timer := 0.0
 var _fog_time := 0.0
 
 # Adds `stacks` of `id` (up to `max_stacks`, 0 = default cap) and refreshes its duration.
+# `line` is the applying Warden's family; Spored ticks count as that family's soothe.
 # Returns the soothe of a Static bolt if this application set one off, else 0.
 func apply(id: StringName, stacks: int = 1, duration: float = 0.0, potency: float = 0.0,
-		max_stacks: int = 0) -> float:
+		max_stacks: int = 0, line: String = "") -> float:
+	if id in immune:
+		return 0.0
 	var cap := get_max_stacks(id, max_stacks)
 	var status: Dictionary = _active.get(id, {"stacks": 0, "time": 0.0, "potency": 0.0})
 	status.stacks = mini(status.stacks + stacks, cap)
-	status.time = maxf(status.time, duration if duration > 0.0 else DEFAULT_DURATION[id])
+	var length: float = (duration if duration > 0.0 else DEFAULT_DURATION[id]) * duration_multipliers.get(id, 1.0)
+	status.time = maxf(status.time, length)
+	if potency >= status.potency:
+		status["line"] = line  # The strongest applier's family sets the ticks' family
 	status.potency = maxf(status.potency, potency)
 	# Driftspore's higher cap sticks once reached, even if a Sporeling hits next.
 	status["cap"] = maxi(status.get("cap", 0), cap)
@@ -68,6 +77,10 @@ func has(id: StringName) -> bool:
 
 func stacks(id: StringName) -> int:
 	return _active[id].stacks if _active.has(id) else 0
+
+# Family of the Warden behind the current Spored ("" if none).
+func spore_line() -> String:
+	return _active[SPORED].get("line", "") if _active.has(SPORED) else ""
 
 func potency(id: StringName) -> float:
 	return _active[id].potency if _active.has(id) else 0.0

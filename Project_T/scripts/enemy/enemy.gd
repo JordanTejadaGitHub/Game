@@ -28,9 +28,16 @@ var statuses := EnemyStatuses.new()
 
 const STATUS_DOT_RADIUS := 3.0
 const BOLT_FLASH_TIME := 0.2
+const HIT_MARK_TIME := 0.35  # Grey puff (resisted) / sparkle (weak) after a hit
+const COAT_COLOR := Color(0.62, 0.6, 0.66)
 
 var _soothe_carry := 0.0  # Fractional soothe (Spored ticks, multipliers) waiting to add up to 1
 var _bolt_flash := 0.0
+var _hit_mark := 0  # -1 resisted, +1 weak, 0 none
+var _hit_mark_time := 0.0
+# Blight coat left to soak up, and soothe it takes off each hit (both already health-scaled).
+var coat := 0.0
+var _coat_per_hit := 0.0
 
 # Cells to walk through, in grid coordinates. `_path_index` is the cell we're currently walking toward.
 var _path: PackedVector2Array
@@ -44,6 +51,10 @@ func _ready() -> void:
 	health = max_health
 	speed = enemy_data.speed
 	statuses.is_boss = enemy_data.is_boss
+	statuses.immune = enemy_data.status_immune
+	statuses.duration_multipliers = enemy_data.status_duration_multipliers
+	coat = enemy_data.coat_total * health_scale
+	_coat_per_hit = enemy_data.coat_per_hit * health_scale
 
 	# Set up animations
 	sprite.sprite_frames = enemy_data.sprite_frames
@@ -61,11 +72,12 @@ func _process(delta: float) -> void:
 
 	var spore_soothe := statuses.tick(delta)
 	if spore_soothe > 0.0:
-		take_damage(spore_soothe)
+		take_damage(spore_soothe, statuses.spore_line(), true)
 		if is_cleansed:
 			return
 	_bolt_flash = maxf(_bolt_flash - delta, 0.0)
-	if not statuses.active_ids().is_empty() or _bolt_flash > 0.0:
+	_hit_mark_time = maxf(_hit_mark_time - delta, 0.0)
+	if not statuses.active_ids().is_empty() or _bolt_flash > 0.0 or _hit_mark_time > 0.0:
 		queue_redraw()
 
 	var previous_position := position
@@ -97,6 +109,8 @@ func _draw() -> void:
 	if _bolt_flash > 0.0:
 		var t := _bolt_flash / BOLT_FLASH_TIME
 		draw_circle(Vector2.ZERO, 26.0 * (1.5 - t), Color(1.0, 1.0, 0.6, 0.5 * t))
+	if _hit_mark_time > 0.0:
+		_draw_hit_mark(_hit_mark_time / HIT_MARK_TIME)
 	# One coloured dot per status, just above where the health bar sits
 	var ids := statuses.active_ids()
 	var x := -(ids.size() - 1) * STATUS_DOT_RADIUS * 1.5
@@ -105,14 +119,30 @@ func _draw() -> void:
 		draw_circle(dot, STATUS_DOT_RADIUS + 1, Color(0.1, 0.1, 0.12, 0.8))
 		draw_circle(dot, STATUS_DOT_RADIUS, EnemyStatuses.COLORS[id])
 		x += STATUS_DOT_RADIUS * 3.0
-	# Health bar, only once the enemy has been hit
-	if health >= max_health:
-		return
+	# Health bar once the enemy has been hit, with the blight coat as a grey bar on top of it
 	var bar := Rect2(HEALTH_BAR_OFFSET - HEALTH_BAR_SIZE / 2, HEALTH_BAR_SIZE)
-	draw_rect(bar.grow(1), Color(0.1, 0.1, 0.12, 0.8))
-	var fill := bar
-	fill.size.x *= float(health) / max_health
-	draw_rect(fill, Color(0.55, 0.9, 0.5))
+	if health < max_health:
+		draw_rect(bar.grow(1), Color(0.1, 0.1, 0.12, 0.8))
+		var fill := bar
+		fill.size.x *= float(health) / max_health
+		draw_rect(fill, Color(0.55, 0.9, 0.5))
+	if coat > 0.0:
+		var crust := Rect2(bar.position - Vector2(0, 4), Vector2(bar.size.x * coat / maxf(enemy_data.coat_total * health_scale, 1.0), 3))
+		draw_rect(crust.grow(1), Color(0.1, 0.1, 0.12, 0.8))
+		draw_rect(crust, COAT_COLOR)
+
+# A small grey puff for a resisted hit, a little sparkle for a weak one. `t` fades 1 -> 0.
+func _draw_hit_mark(t: float) -> void:
+	var at := Vector2(10, -20)
+	if _hit_mark < 0:
+		for i in 3:
+			var puff := at + Vector2.from_angle(TAU * i / 3.0) * 4.0 * (1.6 - t)
+			draw_circle(puff, 3.5 * t + 1.0, Color(0.75, 0.75, 0.78, 0.7 * t))
+	else:
+		var r := 7.0 * (1.4 - t)
+		var col := Color(1.0, 0.95, 0.6, t)
+		draw_line(at + Vector2(-r, 0), at + Vector2(r, 0), col, 2.0)
+		draw_line(at + Vector2(0, -r), at + Vector2(0, r), col, 2.0)
 
 func update_animation(velocity: Vector2) -> void:
 	# Keep the current animation when not moving (e.g. end of path)
@@ -128,11 +158,26 @@ func update_animation(velocity: Vector2) -> void:
 		sprite.play("walk_up")
 		sprite.flip_h = false
 
-# Soothes the blight away (Marked creatures take more). At 0 health the enemy is cleansed.
-func take_damage(amount: float) -> void:
+# Soothes the blight away. `line` is the Warden family that soothed it ("" = neutral) and `is_area`
+# whether it was an area hit (splash, pulse, cloud, Spored). Soothe = amount × family × shape ×
+# Marked, then the blight coat takes its bite. At 0 health the enemy is cleansed.
+func take_damage(amount: float, line: String = "", is_area: bool = false) -> void:
 	if is_cleansed:
 		return
-	_soothe_carry += amount * statuses.get_damage_taken_multiplier()
+	var soothe := amount * enemy_data.get_soothe_multiplier(line, is_area) * statuses.get_damage_taken_multiplier()
+	if line in enemy_data.resists:
+		_mark_hit(-1)
+	elif line in enemy_data.weak_to:
+		_mark_hit(1)
+	if coat > 0.0 and soothe > 0.0:
+		# Each hit loses up to _coat_per_hit (always keeping at least 1), never more than the coat has left.
+		var soaked := minf(minf(_coat_per_hit, coat), soothe - minf(soothe, 1.0))
+		coat -= soaked
+		soothe -= soaked
+		if coat <= 0.0:
+			coat = 0.0
+			_mark_hit(-1)  # The crust crumbles off in a puff
+	_soothe_carry += soothe
 	var whole := int(_soothe_carry)
 	_soothe_carry -= whole
 	health = maxi(health - whole, 0)
@@ -143,14 +188,18 @@ func take_damage(amount: float) -> void:
 # Applies a status from a Warden (`potency` = its soothe, see EnemyStatuses). A Static charge that
 # fills up sets off a free bolt right away.
 func apply_status(id: StringName, stacks: int = 1, duration: float = 0.0, potency: float = 0.0,
-		max_stacks: int = 0) -> void:
+		max_stacks: int = 0, line: String = "") -> void:
 	if is_cleansed:
 		return
-	var bolt := statuses.apply(id, stacks, duration, potency, max_stacks)
+	var bolt := statuses.apply(id, stacks, duration, potency, max_stacks, line)
 	queue_redraw()
 	if bolt > 0.0:
 		_bolt_flash = BOLT_FLASH_TIME
-		take_damage(bolt)
+		take_damage(bolt, "light")  # Static bolts count as light
+
+func _mark_hit(kind: int) -> void:
+	_hit_mark = kind
+	_hit_mark_time = HIT_MARK_TIME
 
 # Colour returns, the creature hops happily and fades out. It no longer blocks building or re-routes.
 func _cleanse() -> void:

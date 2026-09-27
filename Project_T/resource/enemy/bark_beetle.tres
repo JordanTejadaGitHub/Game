@@ -11,3 +11,5 @@ health = 300
 speed = 58.0
 dew_reward = 8
 leaf_cost = 2
+resists = Array[String](["stone"])
+weak_to = Array[String](["spore"])

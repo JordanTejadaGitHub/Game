@@ -41,6 +41,14 @@ Old Stag's Thornwall knock-down, Rootling/Pebbling/Acorn branches, Grove-only Dr
   static with dream_design.md numbers; `enemy.apply_status(id, stacks, duration, potency, max)`.
   Potency scales with the Warden's soothe (Spored = 25%/s per stack, Static bolt = 3×). Status dots
   above the health bar. `take_damage` takes floats (fractions carry) and applies Marked.
+- Resistances (enemy_design.md): `take_damage(amount, line := "", is_area := false)`: soothe ×
+  family (`EnemyData.resists` / `weak_to` vs `TowerData.line`: ×0.65 / ×1.35, constants on
+  `EnemyData`) × shape (`single_target_multiplier` / `area_multiplier`) × Marked, then the blight
+  coat (`coat_per_hit` / `coat_total`, × health_scale). Always pass the source: `Tower.hit(enemy,
+  mult, is_area)` does (pulse, splash, cloud = area). Spored ticks use the applier's line
+  (`statuses.spore_line()`), Static bolts count as "light". `status_immune` /
+  `status_duration_multipliers` feed `EnemyStatuses`. Grey puff = resisted, sparkle = weak.
+  `tests/test_resistances.gd`.
 - `TowerData`: `line` (Dream tag), `tier`, `buildable_directly`, `evolve_cost`, `evolves_to`
   (typed `Array[Resource]` on purpose: a self-typed array leaks the script), `applies_status…`,
   `splash_radius`, chain (`chain_targets`, `chain_jump_range`, `storm_every`), cloud

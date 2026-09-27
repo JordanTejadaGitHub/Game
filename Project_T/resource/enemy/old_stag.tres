@@ -13,3 +13,5 @@ dew_reward = 40
 leaf_cost = 5
 is_boss = true
 sprite_scale = 1.7
+resists = Array[String](["stone","root"])
+weak_to = Array[String](["water"])

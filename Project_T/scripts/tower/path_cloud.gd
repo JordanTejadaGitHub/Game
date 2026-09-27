@@ -46,7 +46,7 @@ func _tick() -> void:
 		if _fog:
 			enemy.statuses.set_in_fog(TICK * 1.5)
 		# A cloud's soothe per tick is a share of one attack, spread over its lifetime.
-		_tower.hit(enemy, TICK / _duration)
+		_tower.hit(enemy, TICK / _duration, true)
 
 func _draw() -> void:
 	var fade := minf(1.0, (_duration - _age) / 0.5) * minf(1.0, _age / 0.2 + 0.3)
