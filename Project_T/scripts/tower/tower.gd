@@ -11,12 +11,20 @@ const ENEMY_GROUP := "enemies"
 var cell: Vector2
 
 var _cooldown := 0.0  # Seconds until the tower can fire again
+var _anim_time := 0.0
 
 func _ready() -> void:
 	sprite.texture = tower_data.texture
+	sprite.hframes = tower_data.frame_count
+	# Start each tower at a random point in its idle loop so neighbours don't breathe in sync.
+	_anim_time = randf() * tower_data.frame_count / tower_data.animation_fps
 	queue_redraw()
 
 func _process(delta: float) -> void:
+	_anim_time += delta
+	sprite.frame = int(_anim_time * tower_data.animation_fps) % tower_data.frame_count
+	if not tower_data.can_attack:
+		return
 	_cooldown = maxf(_cooldown - delta, 0.0)
 	if _cooldown > 0.0:
 		return
@@ -49,8 +57,7 @@ func find_target() -> Node2D:
 	return best
 
 func fire_at(target: Node2D) -> void:
-	var projectile := Projectile.new(target, tower_data.damage, tower_data.projectile_speed,
-		tower_data.projectile_color)
+	var projectile := Projectile.new(target, tower_data)
 	add_child(projectile)
 	projectile.global_position = global_position
 

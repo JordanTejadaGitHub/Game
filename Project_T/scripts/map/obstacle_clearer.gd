@@ -7,10 +7,10 @@ class_name ObstacleClearer
 const MAP_GRID = preload("res://resource/map/map_grid.tres")
 const NO_CELL := Vector2(-1, -1)
 const HIGHLIGHT_COLOR := Color(1.0, 0.85, 0.4)
-const LABEL_FONT_SIZE := 14
 
 @onready var map_generator = %MapGenerator
 @onready var tower_placer: TowerPlacer = %TowerPlacer
+@onready var run_state: RunState = %RunState
 
 var active := true
 var _hover_cell := NO_CELL
@@ -25,6 +25,7 @@ func _ready() -> void:
 	_path_preview.end_cap_mode = Line2D.LINE_CAP_ROUND
 	add_child(_path_preview)
 	map_generator.path_changed.connect(_refresh_hover)
+	run_state.dew_changed.connect(func(_dew: int) -> void: queue_redraw())  # Cost label colour
 	# Build mode owns left-click; clearing is available the rest of the time.
 	tower_placer.build_mode_changed.connect(func(building: bool) -> void: set_active(not building))
 
@@ -52,22 +53,22 @@ func _draw() -> void:
 		return
 	var center: Vector2 = MAP_GRID.calculate_map_position(_hover_cell)
 	var rect := Rect2(center - MAP_GRID.cell_size / 2, MAP_GRID.cell_size).grow(-2)
-	draw_rect(rect, Color(HIGHLIGHT_COLOR, 0.15))
-	draw_rect(rect, HIGHLIGHT_COLOR, false, 3.0)
+	var affordable := run_state.can_afford(_hover_obstacle.clear_cost)
+	var highlight := HIGHLIGHT_COLOR if affordable else WorldLabel.UNAFFORDABLE_COLOR
+	draw_rect(rect, Color(highlight, 0.15))
+	draw_rect(rect, highlight, false, 3.0)
 
 	var label := "%s %s · %d Dew" % [_hover_obstacle.clear_verb, _hover_obstacle.display_name,
 		_hover_obstacle.clear_cost]
-	var font := ThemeDB.fallback_font
-	var size := font.get_string_size(label, HORIZONTAL_ALIGNMENT_LEFT, -1, LABEL_FONT_SIZE)
-	var origin := Vector2(center.x - size.x / 2, rect.position.y - 8)
-	draw_rect(Rect2(origin + Vector2(-6, -size.y), size + Vector2(12, 6)), Color(0.1, 0.1, 0.12, 0.75))
-	draw_string(font, origin, label, HORIZONTAL_ALIGNMENT_LEFT, -1, LABEL_FONT_SIZE, Color.WHITE)
+	WorldLabel.draw_tag(self, center.x, rect.position.y - 8, label, WorldLabel.cost_color(affordable))
 
-# Clears the obstacle on `cell`. Returns false if there's nothing to clear.
-# TODO: charge `clear_cost` Dew once the economy exists (build order step 2).
+# Clears the obstacle on `cell` and charges its Dew cost. Returns false if there's nothing to clear
+# or the player can't afford it.
 func try_clear(cell: Vector2) -> bool:
 	var data: ObstacleData = map_generator.get_obstacle(cell)
 	if data == null:
+		return false
+	if not run_state.spend_dew(data.clear_cost):
 		return false
 	map_generator.clear_obstacle(cell)  # Emits path_changed -> enemies re-route, hover refreshes
 	return true

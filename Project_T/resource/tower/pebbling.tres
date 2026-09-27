@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="TowerData" load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://resource/tower/script/tower_data.gd" id="1_tdata"]
+[ext_resource type="Texture2D" path="res://assets/towers/pebbling.png" id="2_tex"]
+[ext_resource type="Texture2D" path="res://assets/towers/projectiles/pebble.png" id="3_proj"]
+
+[resource]
+script = ExtResource("1_tdata")
+display_name = "Pebbling"
+cost = 30
+texture = ExtResource("2_tex")
+frame_count = 8
+attack_range = 2
+damage = 40
+attacks_per_second = 0.5
+projectile_speed = 350
+projectile_texture = ExtResource("3_proj")
+projectile_color = Color(0.6, 0.6, 0.6, 1)

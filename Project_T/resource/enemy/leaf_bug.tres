@@ -7,4 +7,5 @@
 script = ExtResource("1_fbja3")
 health = 100
 speed = 100.0
+dew_reward = 3
 sprite_frames = ExtResource("2_jud3g")

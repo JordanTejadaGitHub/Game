@@ -1,5 +1,8 @@
 extends Node2D
 
+# Re-emits every spawned enemy's `cleansed` signal, so listeners (e.g. RunState) don't track enemies.
+signal enemy_cleansed(enemy: Node2D)
+
 @export var enemy_scene: PackedScene = preload("res://scenes/enemy/enemy.tscn")  # The enemy scene to spawn
 @export var spawn_rate: float = 2.0  # Time between spawns
 var timer: float = 0.0
@@ -34,6 +37,7 @@ func spawn_enemy(enemy_data: EnemyData) -> void:
 
 	var enemy = enemy_scene.instantiate()
 	enemy.enemy_data = enemy_data
+	enemy.cleansed.connect(enemy_cleansed.emit)
 	add_child(enemy)
 	enemy.position = enemy.grid.calculate_map_position(path_points[0])  # Start at the first waypoint (pixels)
 	enemy.set_path(path_points)
