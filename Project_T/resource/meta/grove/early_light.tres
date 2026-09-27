@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="UnlockData" format=3]
+
+[ext_resource type="Script" path="res://resource/meta/script/unlock_data.gd" id="1_unlock"]
+
+[resource]
+script = ExtResource("1_unlock")
+id = "early_light"
+display_name = "Early Light"
+description = "Start every run with +1 Dreamlight."
+root = 2
+costs = Array[int]([120])
+order = 8
+starting_dreamlight = 1

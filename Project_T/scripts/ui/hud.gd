@@ -16,6 +16,7 @@ const BUTTON_SIZE := Vector2(46, 60)
 @onready var drift_director: DriftDirector = %DriftDirector
 
 const LEAVES_COLOR := Color(0.6, 0.9, 0.5)
+const DREAMLIGHT_COLOR := Color(1.0, 0.88, 0.55)
 const LEAF_LOST_COLOR := Color(1.0, 0.6, 0.3)
 const TOAST_TIME := 2.5
 
@@ -41,6 +42,7 @@ func _ready() -> void:
 
 	run_state.leaves_changed.connect(_on_leaves_changed)
 	_on_leaves_changed(run_state.leaves, run_state.max_leaves)
+	_add_dreamlight_counter()
 	dream_state.card_taken.connect(func(card: UpgradeData) -> void: show_toast("Dreamed: %s" % card.display_name))
 	drift_director.rest_started.connect(_on_rest_started)
 	# Path length ("Wardens are walls: make their walk longer").
@@ -152,6 +154,33 @@ func _on_dew_short() -> void:
 		_dew_flash.tween_property(dew_label, "rotation_degrees", offset * 0.5, 0.04)
 	_dew_flash.tween_interval(0.25)
 	_dew_flash.tween_callback(dew_label.add_theme_color_override.bind("font_color", DEW_COLOR))
+
+# Dreamlight (run_design.md "Dreamlight"): a glowing mote and the count, just left of the Dew.
+func _add_dreamlight_counter() -> void:
+	var label := dew_label.duplicate() as Label
+	label.unique_name_in_owner = false
+	label.name = "DreamlightLabel"
+	label.offset_right = dew_label.offset_right - 150
+	label.offset_left = label.offset_right - 110
+	label.add_theme_color_override("font_color", DREAMLIGHT_COLOR)
+	label.mouse_filter = Control.MOUSE_FILTER_PASS
+	label.tooltip_text = "Dreamlight: unlock branches and final forms on the Remember screen (at rests)."
+	add_child(label)
+	var mote := Control.new()
+	mote.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	mote.draw.connect(func() -> void:
+		mote.draw_circle(Vector2.ZERO, 9.0, Color(DREAMLIGHT_COLOR, 0.25))
+		mote.draw_circle(Vector2.ZERO, 5.0, DREAMLIGHT_COLOR)
+		mote.draw_circle(Vector2.ZERO, 2.0, Color.WHITE))
+	label.add_child(mote)
+	var update := func(amount: int) -> void:
+		label.text = str(amount)
+		var width := label.get_theme_font("font").get_string_size(label.text, HORIZONTAL_ALIGNMENT_LEFT, -1,
+			label.get_theme_font_size("font_size")).x
+		mote.position = Vector2(label.size.x - width - 14.0, label.size.y / 2.0)
+	dream_state.dreamlight_changed.connect(update)
+	label.resized.connect(func() -> void: update.call(dream_state.dreamlight))
+	update.call(dream_state.dreamlight)
 
 var _shown_leaves := -1
 

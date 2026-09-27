@@ -74,6 +74,21 @@ func _run() -> void:
 		_check(row._icons[-1].live != live_before, "planting a Warden updates it (%s → %s)" % [live_before, row._icons[-1].live])
 		_check(row.get_list_text().contains("Few and Mighty"), "Dreams this run lists it")
 
+	# --- Dreamlight: the counter beside the Dew, and Remember at rests ---
+	var light: Label = main.get_node("HUD/DreamlightLabel")
+	dreams.add_dreamlight(2)
+	_check(light.text == str(dreams.dreamlight), "the Dreamlight counter follows DreamState (%s)" % light.text)
+	var drift_panel = main.get_node("HUD/DriftPanel")
+	var saved_started := director.drifts_started
+	director.drifts_started = 0
+	drift_panel._process(0.0)
+	_check(not drift_panel._remember_button.visible, "no Remember before the first family pick")
+	director.drifts_started = 5
+	drift_panel._process(0.0)
+	_check(drift_panel._remember_button.visible == director.is_resting()
+		and drift_panel._remember_button.text == "Remember (%d)" % dreams.dreamlight, "Remember at a rest, with the Dreamlight")
+	director.drifts_started = saved_started
+
 	# --- Whispers: a locked obstacle says "Dead wood…", Tend waits for the first clearing Dream ---
 	var whispers = main.get_node("%Whispers")
 	var clearer: ObstacleClearer = main.get_node("%ObstacleClearer")

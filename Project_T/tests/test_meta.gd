@@ -39,6 +39,7 @@ func _run() -> void:
 	_check(int(memory.seeds) == 600 - 50 - 70 - 120 - 20 - 40 - 60, "Seeds spent (%d left)" % int(memory.seeds))
 	_check(HeartwoodMemory.memories_unlocked(memory) == 1 + 6 / 3, "Memories: 1 + one per 3 unlocks")
 	_check(HeartwoodMemory.buy(_unlock(grove, "early_bloom")), "buy Early Bloom")
+	_check(HeartwoodMemory.buy(_unlock(grove, "early_light")), "buy Early Light")
 
 	# --- Perks and Blight Level 5 at run start ---
 	MetaRun.blight_level = 5
@@ -54,6 +55,7 @@ func _run() -> void:
 		and director.blight_elites_per_drift == 1 and is_equal_approx(director.blight_rest_bonus_multiplier, 0.75),
 		"Blight 1–5 modifiers applied")
 	_check(is_equal_approx(run_state.seed_bonus, 0.5), "Blight 5: +50% Seeds")
+	_check(dreams.dreamlight == 1, "Early Light: the run starts with 1 Dreamlight (%d)" % dreams.dreamlight)
 	director.start_next_drift()
 	await process_frame
 	var elites: int = main.get_node("%EnemyContainer").get_enemies().filter(func(e: Node2D) -> bool: return e.elite).size() \

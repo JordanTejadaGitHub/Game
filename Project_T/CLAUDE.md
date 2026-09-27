@@ -159,7 +159,11 @@ controller / Steam Deck, accessibility, Steam achievements (milestones map to th
   (bottom right, compact: status line, Start / call-early button, Auto-drift + speed buttons in one
   row). `%TowerBar` is bottom centre (cost under the icon, hotkey number in the corner) and must fit
   between the Warden panel and DriftPanel at 1280×800 (checked in `tests/test_ui.gd`). The camera
-  may overscroll the map edges by `hud_overscroll` so the ends can clear the HUD.
+  may overscroll the map edges by `hud_overscroll` so the ends can clear the HUD. `%DreamsRow`
+  (`dreams_row.gd`, top left): an icon per taken Dream (rarity shape/colour, stacks, live bonus from
+  `DreamState.get_live_bonus_text`, polled 4×/s), click = "Dreams this run". Dreamlight: counter
+  left of the Dew (`DreamlightLabel`, `dreamlight_changed`), DriftPanel "Remember (N)" at rests →
+  `DreamState.open_remember()`; Grove perk Early Light (`UnlockData.starting_dreamlight`, MetaRun).
   `Seasons` (CanvasModulate) swaps the environment to each act's sheets (`MapGenerator.set_act`)
   and can tint the world per act (neutral for now). `tests/test_run.gd`.
   It also owns selection (`selection`, `selected` = first; `selection_changed`): click, drag box

@@ -107,6 +107,7 @@ func _apply_grove(memory: Dictionary) -> void:
 	var rerolls := 0
 	var banishes := 0
 	var extra_cards := 0
+	var dreamlight := 0
 	for unlock in HeartwoodMemory.load_grove():
 		var level := HeartwoodMemory.unlock_level(memory, unlock.id)
 		if level == 0:
@@ -124,6 +125,7 @@ func _apply_grove(memory: Dictionary) -> void:
 		banishes += unlock.dream_banishes * level
 		extra_cards += unlock.extra_dream_cards * level
 		seed_bonus += unlock.seed_bonus * level
+		dreamlight += unlock.starting_dreamlight * level
 		if unlock.early_bloom:
 			family_screen.offer_all_first = true
 	for milestone in MILESTONE_CARDS:
@@ -139,6 +141,8 @@ func _apply_grove(memory: Dictionary) -> void:
 	if "grove_cards" in dream_state:
 		dream_state.grove_cards.assign(cards)
 	dream_state.cards_per_offer += extra_cards
+	if dreamlight > 0:  # Early Light
+		dream_state.add_dreamlight(dreamlight)
 	if "rerolls_left" in dream_state:
 		dream_state.rerolls_left += rerolls
 	if "banishes_left" in dream_state:

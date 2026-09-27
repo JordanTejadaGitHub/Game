@@ -30,6 +30,7 @@ enum Root { WARDENS, DREAMS, PERKS, FORESTS }
 @export var extra_dream_cards: int = 0  # Wider Dreams: cards per offer +N
 @export var seed_bonus: float = 0.0  # 0.10 = +10% Seeds
 @export var early_bloom: bool = false  # The first family pick offers every family you own
+@export var starting_dreamlight: int = 0  # Early Light: Dreamlight at run start
 
 func get_levels() -> int:
 	return costs.size()

@@ -1,6 +1,7 @@
 extends VBoxContainer
 
-# Bottom-right run controls: a status line (resting / next drift in N s / rest ahead), the Start /
+# Bottom-right run controls: a status line (resting / next drift in N s / rest ahead) with the
+# Remember button during rests (Dreamlight: DreamState.open_remember), the Start /
 # call-early button (Enter), the Auto-drift toggle, and pause / 1× / 2× / 3× buttons (Space pauses,
 # Tab cycles speed). The act / drift line is the top-centre DriftBanner.
 
@@ -11,7 +12,10 @@ const BUTTON_FONT_SIZE := 16
 @onready var run_state: RunState = %RunState
 @onready var tower_seller: TowerSeller = %TowerSeller
 
+@onready var dream_state: DreamState = %DreamState
+
 var _status_label := Label.new()
+var _remember_button := Button.new()
 var _start_button := Button.new()
 var _auto_toggle := CheckButton.new()
 var _pause_button := Button.new()
@@ -19,13 +23,24 @@ var _speed_buttons: Array[Button] = []
 
 func _ready() -> void:
 	alignment = BoxContainer.ALIGNMENT_END
-	for label in [_status_label]:
-		label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-		label.add_theme_color_override("font_outline_color", Color(0.08, 0.1, 0.14))
-		label.add_theme_constant_override("outline_size", 6)
-		add_child(label)
+	# Status line, with the Remember button (run_design.md "Dreamlight") beside it during rests.
+	var status_row := HBoxContainer.new()
+	add_child(status_row)
+	_remember_button.text = "Remember"
+	_remember_button.tooltip_text = "Spend Dreamlight on branches and final forms of your families."
+	_remember_button.focus_mode = Control.FOCUS_NONE
+	_remember_button.custom_minimum_size = Vector2(0, 32)
+	_remember_button.pressed.connect(func() -> void: dream_state.open_remember())
+	status_row.add_child(_remember_button)
+	_status_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_status_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	_status_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	_status_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_status_label.add_theme_color_override("font_outline_color", Color(0.08, 0.1, 0.14))
+	_status_label.add_theme_constant_override("outline_size", 6)
 	_status_label.add_theme_font_size_override("font_size", 14)
 	_status_label.add_theme_color_override("font_color", Color(0.85, 0.9, 0.8))
+	status_row.add_child(_status_label)
 
 	_start_button.focus_mode = Control.FOCUS_NONE
 	_start_button.custom_minimum_size = Vector2(272, 48)
@@ -77,6 +92,10 @@ func _process(_delta: float) -> void:
 	var next := latest + 1
 
 	_start_button.disabled = not drift_director.can_start_next_drift()
+	# Remember reopens at any rest once a family is owned (after the first pick).
+	_remember_button.visible = drift_director.is_resting() and not drift_director.awaiting_family_pick \
+		and latest > 0 and not run_state.is_over
+	_remember_button.text = "Remember (%d)" % dream_state.dreamlight
 	var block_end := drift_director.get_block(maxi(latest, 1)) * drift_director.drifts_per_block
 	if drift_director.awaiting_family_pick:
 		_status_label.text = "Choose a Warden family…"
