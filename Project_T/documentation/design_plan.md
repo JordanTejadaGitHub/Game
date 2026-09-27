@@ -43,6 +43,9 @@ drift list). All questions decided; remaining work is playtest tuning.
 
 ## Phase 2: Dreams and statuses (before build-order step 4)
 
+**Drafted in `dream_design.md`** (36-card pool, offer rules and weights, status numbers).
+Remaining: an offer simulation to check build reachability, then playtest tuning.
+
 ### 5. Dream pool v1
 - ~30 concrete Dreams for the first-playable scope (Sprout, Thornwall, Sporeling, Firefly Jar,
   Dewdrop lines + Thunderhead): name, rarity, effect, numbers, prerequisites, tags.
