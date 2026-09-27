@@ -469,6 +469,12 @@ func make_offer(drift_number: int) -> Array[UpgradeData]:
 	var force_rare := drift_director.is_boss_drift(drift_number) or _dreams_without_rare >= pity_after \
 		or _rare_dreams_left > 0
 	_rare_dreams_left = maxi(_rare_dreams_left - 1, 0)
+	# Growth slot: one branch / final-form unlock for a family you own, while any are locked.
+	if offer.size() < size:
+		var want_rare := force_rare and not offer.any(func(c: UpgradeData) -> bool: return c.is_rare_or_better())
+		var growth := _draw_growth(act, offer, want_rare)
+		if growth != null:
+			offer.append(growth)
 	while offer.size() < size:
 		var want_rare := force_rare and not offer.any(func(c: UpgradeData) -> bool: return c.is_rare_or_better())
 		var card := _draw_card(act, offer, want_rare)
@@ -507,12 +513,44 @@ func is_eligible(card: UpgradeData, act: int = 1) -> bool:
 			return false
 	return true
 
+# A growth card: unlocks a branch or final form (dream_design.md "Growth slot").
+static func is_growth(card: UpgradeData) -> bool:
+	return card.kind == UpgradeData.Kind.UNLOCK_EVOLUTION
+
+# The growth slot's card, or null when every growth for your families is unlocked. Drawn across
+# rarities by their act weights, so branches (Uncommon) usually come before final forms (Rare).
+# `want_rare` (boss / pity / Restless Dreams): if only growth cards could be the Rare+, the growth
+# card doubles as it.
+func _draw_growth(act: int, exclude: Array[UpgradeData], want_rare: bool = false) -> UpgradeData:
+	if exclude.any(is_growth):
+		return null  # An Entwined card can't be growth today, but keep "exactly one"
+	var candidates: Array[UpgradeData] = []
+	for card in pool:
+		if is_growth(card) and not exclude.has(card) and is_eligible(card, act):
+			candidates.append(card)
+	if candidates.is_empty():
+		return null
+	if want_rare and not _has_rare_besides_growth(act, exclude):
+		var rares := candidates.filter(func(c: UpgradeData) -> bool: return c.is_rare_or_better())
+		if not rares.is_empty():
+			return _weighted_pick(rares)
+	return _weighted_pick(candidates, RARITY_WEIGHTS[clampi(act, 1, RARITY_WEIGHTS.size()) - 1])
+
+func _has_rare_besides_growth(act: int, exclude: Array[UpgradeData]) -> bool:
+	for card in pool:
+		if card.is_rare_or_better() and not is_growth(card) and not exclude.has(card) and is_eligible(card, act):
+			return true
+	return false
+
 func _draw_card(act: int, exclude: Array[UpgradeData], want_rare: bool) -> UpgradeData:
 	var has_bittersweet := exclude.any(func(c: UpgradeData) -> bool: return c.is_bittersweet())
+	var has_growth := exclude.any(is_growth)
 	var eligible: Array[UpgradeData] = []
 	for card in pool:
 		if exclude.has(card) or (has_bittersweet and card.is_bittersweet()):
 			continue  # At most one bittersweet card per offer
+		if has_growth and is_growth(card):
+			continue  # Exactly one growth card per offer (the growth slot)
 		if is_eligible(card, act):
 			eligible.append(card)
 	if eligible.is_empty():
@@ -547,7 +585,9 @@ func _roll_rarity(act: int, want_rare: bool) -> int:
 			return i
 	return 0
 
-func _weighted_pick(cards: Array) -> UpgradeData:
+# Picks one of `cards`: tag weighting (and the clearing boost), times `rarity_weights[rarity]` if
+# given (the growth slot draws across rarities at once).
+func _weighted_pick(cards: Array, rarity_weights: Array = []) -> UpgradeData:
 	var owned_lines := {}
 	for tower_id in unlocked:
 		var line := _line_of(tower_id)
@@ -564,8 +604,12 @@ func _weighted_pick(cards: Array) -> UpgradeData:
 				break
 		if clearing_locked and card.tags.has("clearing"):
 			weight *= CLEARING_LOCKED_WEIGHT  # Until the first one unlocks clearing
+		if not rarity_weights.is_empty():
+			weight *= rarity_weights[card.rarity]
 		weights.append(weight)
 		total += weight
+	if total <= 0.0:
+		return cards[_rng.randi_range(0, cards.size() - 1)]
 	var roll := _rng.randf() * total
 	for i in cards.size():
 		roll -= weights[i]

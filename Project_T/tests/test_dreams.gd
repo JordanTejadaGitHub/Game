@@ -22,6 +22,7 @@ func _run() -> void:
 	_test_new_cards(main)
 	_test_clearing_cards(main)
 	_test_meta_hooks(main)
+	_test_growth_slot(main)
 	_simulate_storm_grid(main)
 	print("dreams test: %s" % ("PASS" if failures == 0 else "%d FAILED" % failures))
 	quit(failures)
@@ -167,7 +168,7 @@ func _test_dream_flow(main: Node) -> void:
 		"Dreams never offer base Wardens (they come from the family pick)")
 	_check(paused and speed.paused, "the game pauses for a Dream")
 	if not offer.is_empty():
-		dreams.choose(offer[0])
+		dreams.choose(offer[-1])  # Not the growth card: the checks below need Stormcap still offered
 	_check(not dreams.is_offering() and not paused, "choosing closes the Dream and resumes")
 
 	# Let it pass
@@ -532,30 +533,67 @@ func _test_meta_hooks(main: Node) -> void:
 	_check(rare_lean < rare_normal * 0.7, "lean_common halves Rare+ (%d → %d)" % [rare_normal, rare_lean])
 	_reset_dreams(main)
 
+# Every offer has exactly one growth card while any are locked for the families you own.
+func _test_growth_slot(main: Node) -> void:
+	var dreams: DreamState = main.get_node("%DreamState")
+	_reset_dreams(main)
+	dreams.unlocked["firefly_jar"] = true
+	var exactly_one := true
+	var final_forms := 0
+	for i in 300:
+		dreams._dreams_without_rare = 0
+		var offer := dreams.make_offer(10)
+		var growth := offer.filter(DreamState.is_growth)
+		if growth.size() != 1:
+			exactly_one = false
+		elif growth[0].is_rare_or_better():
+			final_forms += 1
+	_check(exactly_one, "every offer has exactly one growth card while some are locked")
+	# Thornwall's Bramble and Firefly's two branches are Uncommon; no final form is eligible yet
+	_check(final_forms == 0, "final forms wait for their branch")
+	dreams.take(_card(dreams, "dream_stormcap"))
+	var saw_final := false
+	for i in 300:
+		var offer := dreams.make_offer(10)
+		if offer.any(func(c: UpgradeData) -> bool: return c.id == "dream_thunderhead"):
+			saw_final = true
+	_check(saw_final, "a final form joins the growth slot once its branch is owned")
+	for card in dreams.pool:
+		if DreamState.is_growth(card) and dreams.is_eligible(card, 1):
+			dreams.take(card)
+	var none := true
+	for i in 50:
+		if dreams.make_offer(10).any(DreamState.is_growth):
+			none = false
+	_check(none, "no growth card once every growth is unlocked")
+	_reset_dreams(main)
+
+# Reachability (dream_design.md "Growth slot"): most runs should have their first cross-family combo
+# by the act 1 boss. Firefly Jar is the first family (after drift 1), Dewdrop the boss pick at drift
+# 25, and the player aims for Storm Grid. First combo = Stormcap owned once Dewdrop arrives
+# (lightning jumps through Dewdrop's Damp). Also reported: the full Storm Grid (Stormcap + Rain Lily
+# + Conductive Soil) by the demo's last Dream (drift 45).
 func _simulate_storm_grid(main: Node) -> void:
 	var dreams: DreamState = main.get_node("%DreamState")
 	_reset_dreams(main)
-	# Dreams at the rests after drifts 5 … 45 (the demo's 9; drift 25 is a boss rest, Rare+). The
-	# families are assumed lucky: Firefly Jar picked after drift 1, Dewdrop at the drift-25 boss.
-	# That isolates the Dream side; the family picks themselves land ~70% (dream_design.md).
-	var want := ["dream_stormcap", "dream_rain_lily", "dream_thunderhead", "conductive_soil"]
+	var want := ["dream_stormcap", "dream_rain_lily", "conductive_soil", "dream_thunderhead"]
 	var runs := 1000
-	for weight in [dreams.tag_weight, 3.0]:
-		dreams.tag_weight = weight
-		var result := _storm_grid_rate(dreams, want, runs)
-		print("Storm Grid simulation, tag weight %.0f× (%d runs, both families, aiming for it): by drift 50 full build %.0f%%, without Thunderhead %.0f%% (target ≈ 33%% incl. families)"
-			% [weight, runs, 100.0 * result[0] / runs, 100.0 * result[1] / runs])
-	dreams.tag_weight = 2.0
-	var owned_rates: Dictionary = _storm_grid_rate(dreams, want, runs)[2]
+	var result := _storm_grid_rate(dreams, want, runs)
+	var combo_rate := float(result[0]) / runs
+	print("Reachability (%d runs, Firefly Jar then Dewdrop, aiming for Storm Grid): first cross-family combo by the act 1 boss %.0f%% (target: most runs), full Storm Grid by drift 45 %.0f%%"
+		% [runs, 100.0 * combo_rate, 100.0 * result[1] / runs])
+	var owned_rates: Dictionary = result[2]
 	var parts: Array[String] = []
 	for id in want:
 		parts.append("%s %.0f%%" % [id.trim_prefix("dream_"), 100.0 * owned_rates.get(id, 0) / runs])
-	print("  how often each piece is owned by drift 50: " + ", ".join(parts))
+	print("  how often each piece is owned by drift 45: " + ", ".join(parts))
+	_check(combo_rate > 0.5, "most runs have a cross-family combo by the act 1 boss (%.0f%%)" % (100.0 * combo_rate))
 	_reset_dreams(main)
 
+# [runs with the first combo by the boss, runs with the full Storm Grid by drift 45, {id: runs owning it}].
 func _storm_grid_rate(dreams: DreamState, want: Array, runs: int) -> Array:
-	var full := 0
-	var partial := 0
+	var combo_by_boss := 0
+	var storm_grid := 0
 	var owned_count := {}
 	for run in runs:
 		_reset_dreams_quiet(dreams)
@@ -563,24 +601,24 @@ func _storm_grid_rate(dreams: DreamState, want: Array, runs: int) -> Array:
 		for drift in range(5, 50, 5):
 			if drift == 25:
 				dreams.unlocked["dewdrop"] = true  # The boss family pick comes before the Dream
+				if dreams.has_card("dream_stormcap"):
+					combo_by_boss += 1
 			var offer := dreams.make_offer(drift)
 			var pick: UpgradeData = null
-			for card in offer:
-				if want.has(card.id):
-					pick = card
+			for id in want:  # In build order
+				for card in offer:
+					if card.id == id:
+						pick = card
+				if pick != null:
 					break
 			if pick != null:
 				dreams.take(pick)
-		var owned := want.filter(func(id: String) -> bool: return dreams.has_card(id)).size()
-		if owned == want.size():
-			full += 1
 		if dreams.has_card("dream_stormcap") and dreams.has_card("dream_rain_lily") and dreams.has_card("conductive_soil"):
-			partial += 1
+			storm_grid += 1
 		for id in want:
 			if dreams.has_card(id):
 				owned_count[id] = owned_count.get(id, 0) + 1
-	return [full, partial, owned_count]
-
+	return [combo_by_boss, storm_grid, owned_count]
 
 # --- Helpers --------------------------------------------------------------------------------------
 
