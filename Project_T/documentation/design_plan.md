@@ -1,119 +1,78 @@
-# Design Plan: what still needs fleshing out
+# Design Plan: what a fleshed-out game still needs
 
-Status as of 2026-09-27. Already solid: story and tone (`story.md`), Warden roster, evolutions,
-status effects and synergies (`tower_design.md`), creature roster (`enemy_design.md`), core loop
-and meta outline (`game_design.md`).
+Status as of 2026-09-27. The overview of the whole design is `game_design.md`; this doc tracks
+**what's done and what's missing**, across design, content, systems and release.
 
-What's missing is mostly **numbers and structure**: the things that turn good ideas into a run
-that feels right. Topics are ordered by when the build will need them (build order in
-`game_design.md`).
+## Designed (first drafts done)
 
-## Phase 1: Run pacing and economy (now; code needs it for leaves and drifts)
+| Doc | Covers |
+|---|---|
+| `story.md` | tone, premise, the Hollow |
+| `pitch.md` | hook, tagline, store page, capsule, trailer |
+| `run_design.md` | 100 drifts in 4 acts, blocks and rests, rules, economy, scaling, Omens |
+| `tower_design.md` | Warden families, evolutions, statuses, synergies, archetypes |
+| `warden_stats.md` | numbers for every Warden, new mechanics needed |
+| `enemy_design.md` | creature roster, traits, counters, bosses |
+| `acts_1_2.md` | creature and boss stats, special drifts, drifts 1–50 |
+| `dream_design.md` | Dream pool, offer rules, Deepened / Entwined / Bittersweet cards, status numbers |
+| `meta_design.md` | Seeds, Memory Grove, milestones, Blight Levels, Memories, true ending |
+| `onboarding.md` | teaching across the first runs |
+| `demo_scope.md` | demo content (drifts 1–50, no meta), timeline, success measures |
 
-**Drafted in `run_design.md`**, revised to **100 drifts in 4 acts** (1–2 hour runs, a Dream every
-5 drifts, a boss every 25 that unlocks a Warden family, mid-run save), with build/sell/speed rules,
-Dew numbers and the act 1 plan. Remaining: playtest tuning.
+All numbers are guesses until act 1 is playable; **playtesting is the biggest missing piece**.
 
-### 1. Run structure
-- How long is a run? (Target session length, e.g. 30–45 min.)
-- Acts: how many, how many drifts each, a boss drift at the end of each? (Docs say both "10 drifts"
-  and "a boss per act"; pick one.)
-- Starting leaves; do bosses cost more than 1 leaf?
-- Dream timing: after drift 1 (guaranteed base Warden), then every 2 drifts? Extra Dream after a boss?
-- Win condition: survive the last boss? Endless mode after winning?
+## 1. Design still to do (the design chat)
 
-### 2. Build-phase rules (small, but every system depends on them)
-- Can you build, evolve and clear during a drift, or only between drifts?
-- Speed controls (pause, 2×, 3×)? Cozy players expect them.
-- Selling: allowed? Refund %? Does selling a Warden re-open the path mid-drift?
-- Can a placed Warden be moved?
+In recommended order:
 
-### 3. Economy numbers
-- Starting Dew (currently 60), Dew per creature, drift-clear bonus.
-- Costs: Sprout, Thornwall, each base, each evolution tier, obstacle clears (Tree 5, Rock 8 now).
-- Target curve: how many Wardens should a player have by drift 3 / 6 / 10? Work backwards from that.
-- Interest / saving (Wellspring) and how it's capped.
-- **Why clear obstacles?** Clearing currently helps creatures (it opens shortcuts); the payoff
-  is building space. Should clears also give something back (Seeds, Dew, a free sapling)?
-  Rename to fit the fiction (Withered Tree, Blight Bramble, Mossy Boulder)?
+| # | Topic | What it needs | Needed for |
+|---|---|---|---|
+| 1 | **Screens and HUD** | every screen (title, run HUD, family pick, Dream, Omen, rest, pause, results, Grove, Memories, settings), what's on each, layout, Warden and creature info panels, path length, "+N path" tag | rests, Dreams and Omens (being built now) |
+| 2 | **Art and audio direction** | style guide: palette, outlines, sizes, animation counts, how blighted vs cleansed reads, tileset list, UI style; music mood per phase, key SFX (the cleanse) | original art (longest lead time for the demo) |
+| 3 | **Accessibility** | blight must not rely on colour alone (grey vs colour is the core visual): a second cue such as haze, outline or icon; text size, reduced motion, key remapping, colour-blind check of status icons | art direction (do together) |
+| 4 | **Balance framework** | target soothe vs creature health per drift; how much of a drift should leak at "par"; spec for a simulation tool | tuning 100 drifts |
+| 5 | **Soft mechanics review** | tighten per "cozy theme, not easy gameplay": rest refund 100% → 75%? leaf regrowth +3 per act → none? | run rules |
+| 6 | **Dream pool to ~70 cards** | family cards for Pebbling, Rootling, Acorn; **Family Blessings** list; more Entwined pairs | full game |
+| 7 | **Acts 3–4 content** | stats for ~13 creatures (Dusk Moth, Mole, Wandering Hare, Tortoise, Newt, Owl, Snail, Glowworm, Mother Spider, Badger, Bee Swarm, Squirrel, Mossling); Mother Moth; The Hollow Oak incl. its Blight Level 10 phase; drifts 51–100 | full game |
+| 8 | **Controller / Steam Deck** | building with a gamepad: cursor, snapping, selecting Wardens, route preview, menus | demo (Deck-playable) |
+| 9 | **Story text** | final wording of the 10 Memories, boss cleanse lines, flavour-text library, The Long Walk Out sequence | full game |
+| 10 | **Biomes and special tiles** | the 2 Grove forests (look, obstacles, rule twist); special tiles (waystones, dew pools) | full game |
+| 11 | **Forest Journal** | parked for later | post-launch? |
 
-### 4. Drift list for the first playable
-- A concrete table for act 1: drift number → creatures, counts, spacing.
-- Health/speed scaling formula per drift (so drifts past the hand-made ones still work).
-- When each new creature is introduced (alone first, then mixed, per `enemy_design.md`).
+**Open decisions:** title (keep "The Heartwood Remembers"?), Memory 5's tone, whether The Long Walk
+Out is worth building, committing the shared design docs.
 
-**Acts 1–2 content drafted in `acts_1_2.md`** (creature and boss stats, Deeply Blighted elites,
-special drifts, drifts 1–50). Still to do: acts 3–4 (after the demo).
+## 2. Content to produce
 
-## Phase 2: Dreams and statuses (before build-order step 4)
+| Content | Amount (full game) | Demo needs |
+|---|---|---|
+| Creature sprites (walk ×3 directions; the shader does blighted) | ~25 + 4 bosses | 7 + 2 bosses |
+| Warden sprites (idle + attack) | ~33 (6 families × 5, Sprout, Thornwall, Bramble) | ~16 |
+| Projectiles, status icons, cleanse and hit effects | ~20 | most |
+| Tilesets (ground, path, border, obstacles) + the Heartwood | 3 biomes | 1 |
+| UI art (frames, buttons, cards, icons) | full set | full set |
+| Grove garden + 10 Memory illustrations | full set | Grove teaser only |
+| Music | ~6–8 tracks (build, drift, boss per act, Grove, title) | ~3 |
+| Sound effects | ~60 | ~40 |
+| Marketing: capsule art, trailer, screenshots | 1 set | 1 set |
 
-**Drafted in `dream_design.md`** (36-card pool, offer rules and weights, status numbers).
-Remaining: an offer simulation to check build reachability, then playtest tuning.
+## 3. Systems to build (the coding chats)
 
-### 5. Dream pool v1
-- ~30 concrete Dreams for the first-playable scope (Sprout, Thornwall, Sporeling, Firefly Jar,
-  Dewdrop lines + Thunderhead): name, rarity, effect, numbers, prerequisites, tags.
-- Rarity weights per drift, pity rule numbers, reroll/banish rules.
-- How "Sprouts grow" and "a Dream unlocks a base" interact on the Dream screen.
+Per the build order in `game_design.md`; current status in `CLAUDE.md`.
 
-### 6. Status effect numbers
-- Duration, stack cap and strength for Damp, Drowsy, Spored, Marked, Static, Held.
-- Boss resistances (the "reduced cap/duration" in `enemy_design.md`).
+- **Run flow:** blocks of 5, rests, Auto-drift, call early, family picks, Dreams, Omens, leaves and
+  losing, results, mid-run save.
+- **Wardens:** evolution UI, remaining families' mechanics (`warden_stats.md`), selling.
+- **Creatures:** behaviours (flying, rolling, splitting, following, burrowing, hiding), elites,
+  bosses (Old Stag, Great Toad first).
+- **Meta:** `HeartwoodMemory` save, Grove, Memories, milestones, Blight Levels, demo Seed import.
+- **Around the game:** title and scene flow, settings, localization, controller, accessibility
+  options.
+- **Steam:** achievements, cloud saves, demo build.
+- **Tools:** Dream offer simulation (exists: `tests/test_dreams.gd`), a balance simulation.
 
-## Phase 3: Meta and story delivery (before build-order step 7)
+## 4. Release and business
 
-**Drafted in `meta_design.md`** (Seed formula, Grove roots and costs, milestones, Blight Levels
-1–10, the 10 Memories and the true ending). Remaining: playtest tuning; Memory art and final text.
-
-### 7. Meta-progression
-- Seed formula (per drift, per cleanse, win bonus) and a target of how many runs to unlock
-  everything (e.g. 15–25 hours).
-- The Memory Grove unlock tree: ~30 unlocks with costs and prerequisites.
-- Milestone list (these double as Steam achievements).
-- Blight Levels: a list of ~10 stackable modifiers and their Seed bonus.
-
-### 8. How the story is told
-- Where lore appears: Memories unlocking story fragments? Dream-screen text? A narrator voice?
-- The Hollow arc: which unlocks reveal it, and what the "reach the Hollow" true ending is in play
-  terms (a final map? a special run?).
-- Boss cleanse moments: one line of text each.
-
-## Phase 4: Variety, onboarding, presentation (before the demo)
-
-### 9. Maps and biomes
-- Obstacle types beyond tree/rock, special tiles (e.g. waystones as bonus build spots, dew pools,
-  blight patches).
-- "New forests" meta unlock: 3–4 biomes, each with its own obstacles, look and rule twist.
-- Later acts: multiple entrances? A different start/end layout?
-
-### 10. First-run experience
-
-**Drafted in `onboarding.md`** (3-run teaching plan, Heartwood whispers, system reveal schedule,
-Forest Journal, demo fit).
-
-- What the very first run teaches, and in what order (build, maze, cleanse, Dream, evolve).
-- Which systems are hidden until later (evolution, statuses, obstacles).
-
-### 11. Player-facing information
-- Warden info panel (stats, statuses it applies/loves), creature info on hover.
-- Path length readout, and "+N path" on the build ghost.
-- Targeting modes (first / strongest / closest)?
-
-### 12. Art and audio direction
-- Style guide: palette, outline, size rules (Warden art direction is started in `tools/`).
-- Music and SFX mood (cozy, gentle; the cleanse sound matters most).
-
-### 13. Demo and store page
-
-**Pitch drafted in `pitch.md`** (hook, one-liners, store copy, tags, capsule and trailer concepts,
-title check). **Demo scope drafted in `demo_scope.md`** (act 1 runs, content list, must-haves,
-timeline, success measures).
-
-- One-line pitch and hook for the Steam page; capsule art concept.
-- Demo scope for Next Fest (e.g. act 1 + one boss, a few unlocks).
-
-## Recommended next step
-
-**Phase 1 (topics 1–4) as one session: "Run pacing and economy".** It's what the code needs next
-(leaves, drifts, costs), the four topics depend on each other, and the rest (Dream numbers, Seed
-formula) is easier to tune once a run's length and income are fixed.
+Title check (Steam, itch.io, trademarks) → Steam page with capsule and trailer → private playtests →
+public demo 1–2 months before a Next Fest → Next Fest → launch. Also: press kit, a community space
+(Discord), pricing, and a licence check for anything not original (`demo_scope.md`).
