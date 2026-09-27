@@ -50,7 +50,10 @@ points.
   still locked. Final forms still only appear at their Rare weight within that slot, so branches
   come first. You still choose; the other two slots stay as normal. This makes combos like Storm
   Grid reliable in most runs (the old "1 in 3 by drift 50" target is replaced: aim for **most runs
-  having their first cross-family combo by the act 1 boss**).
+  having their first cross-family combo by the act 1 boss**). Wall growths (Bramble, Honeysuckle)
+  are **not** growth-slot cards; they can still appear in the other two slots. Measured: ~67% of
+  runs have their first cross-family combo by the act 1 boss (1000-run simulation, before the wall
+  growths were excluded).
 - **Tag weighting:** cards tagged with a family you own are **2× as likely**. Builds converge
   without being forced.
 - **Prerequisites:** a card never appears if it can't do anything yet (e.g. Stormcap cards need
