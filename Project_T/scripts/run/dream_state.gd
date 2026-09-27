@@ -576,4 +576,5 @@ func _on_enemy_cleansed(enemy: Node2D) -> void:
 		return a.global_position.distance_squared_to(enemy.global_position) \
 			< b.global_position.distance_squared_to(enemy.global_position))
 	for i in mini(SPORE_CASCADE_TARGETS[rule_level(&"spore_cascade")], others.size()):
-		others[i].apply_status(EnemyStatuses.SPORED, spores, duration, potency, 0, line)
+		others[i].apply_status(EnemyStatuses.SPORED, spores, duration, potency, 0, line,
+			enemy.statuses.source(EnemyStatuses.SPORED))

@@ -30,6 +30,7 @@ var omen_seeds := 0  # Seeds earned from Omen rewards (Swift Stream), paid at ru
 var free_clears := 0
 var fertile_cells := {}
 var clearing_without_seeds := false
+var invulnerable := false  # Test Grove: leaves can't fall
 var creatures_cleansed := 0
 var is_over := false
 var won := false
@@ -116,7 +117,7 @@ func earn_dew_at(amount: int, world_position: Vector2) -> void:
 	get_parent().add_child(DewPopup.new(amount, world_position))
 
 func lose_leaves(amount: int) -> void:
-	if is_over or amount <= 0:
+	if is_over or amount <= 0 or invulnerable:
 		return
 	leaves = maxi(leaves - amount, 0)
 	leaves_changed.emit(leaves, max_leaves)

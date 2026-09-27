@@ -71,6 +71,14 @@ branches, final forms; localization; audio; replacing the Foozle placeholder art
   debug builds only (`TestGrove.is_available()`), on via settings "Developer" toggle
   (`test_grove`), launch flag `-- --test-grove`, or `TestGrove.force_on` (tests). Sets
   `unlock_everything` (family picks then skip themselves), F9 = +500 Dew, `skip_to(n)` at a rest.
+  Tools v2: spawn panel, Target Dummy (`Enemy.unkillable` + `loops_route`), damage meter, damage
+  numbers, Inspect (click while paused), `RunState.invulnerable`, `clear_field()` (`Enemy.dispel()`).
+- **DamageLog** (`%DamageLog`, `DamageLog.instance`): every soothe is reported by
+  `Enemy.take_damage(..., source, tag)` as a `DamageLog.Event` (source Warden, kind hit/status/bolt,
+  combos crit/weak/marked/fog/conducted/static with `combo_amount`). Pass the source everywhere:
+  `Tower.hit` does; statuses keep their applier (`EnemyStatuses.source(id)`, `apply(..., source)`).
+  Per-Warden totals (`get_tower_stats`), `get_dps`, `get_meter_rows`, damage numbers
+  (`numbers_mode`). Reuse it for player-facing combat feedback.
 - Card kinds from dream_design.md (2026-09-27): **Deepened** (`deepens` = base id, e.g.
   `evergreen_ii`; only offered once the base is owned; replaces the base: `_taken_cards()` drops it,
   rule code reads `rule_level(rule)` 0/1). **Entwined** (`entwined`, ingredients = `requires`;

@@ -61,10 +61,126 @@ func _run() -> void:
 	director.start_next_drift()
 	_check(director.drifts_started == 20, "the next Start begins drift 20")
 	_check(not grove.skip_to(30), "no skipping while nightmares walk")
+	grove.clear_field()
+	_check(main.get_node("%EnemyContainer").get_enemies().is_empty(), "clear the field dispels everything")
 
+	await _test_tools(main, grove)
 	TestGrove.force_on = false
 	print("test grove test: %s" % ("PASS" if failures == 0 else "%d FAILED" % failures))
 	quit(failures)
+
+# Test tools v2: damage attribution (DamageLog), the dummy, meter, Inspect, invulnerable Heartwood.
+func _test_tools(main: Node, grove: TestGrove) -> void:
+	var damage_log: DamageLog = main.get_node("%DamageLog")
+	var run_state: RunState = main.get_node("%RunState")
+	var placer: TowerPlacer = main.get_node("%TowerPlacer")
+	var spawner = main.get_node("%EnemyContainer")
+	_check(DamageLog.instance == damage_log, "the DamageLog is reachable")
+	damage_log.reset_drift(1)
+	run_state.dew = 10000
+
+	# Plain hit and crit: credited to the Warden, crit share = 1 − 1/crit multiplier
+	var sporeling := _build(main, "sporeling")
+	var target := _spawn_near(main, sporeling.cell + Vector2(1, 0))
+	var events: Array = []
+	damage_log.damage_dealt.connect(func(e: DamageLog.Event) -> void: events.append(e))
+	sporeling.hit(target, 1.0, false, Tower.NO_CRIT)
+	_check(not events.is_empty() and events[0].source == sporeling and events[0].amount > 0.0 and events[0].combos.is_empty(),
+		"a hit is credited to its Warden")
+	events.clear()
+	sporeling.hit(target, 1.0, false, Tower.CRIT)
+	var crit_mult: float = sporeling.attack_data.crit_multiplier
+	_check(not events.is_empty() and events[0].combos.has(&"crit")
+		and is_equal_approx(events[0].combo_amount, events[0].amount * (1.0 - 1.0 / crit_mult)),
+		"a crit's extra damage counts as a combo")
+	# Status ticks are credited to whoever applied them
+	_check(target.statuses.source(EnemyStatuses.SPORED) == sporeling, "Spored remembers the Sporeling")
+	events.clear()
+	target.take_damage(5.0, "spore", true, false, target.statuses.source(EnemyStatuses.SPORED), &"spored")
+	_check(not events.is_empty() and events[0].kind == &"status" and events[0].source == sporeling, "Spored ticks count as its status damage")
+	var stats := damage_log.get_tower_stats(sporeling)
+	_check(stats.drift > 0.0 and stats.drift_status > 0.0, "per-Warden totals: damage and status damage")
+
+	# Lightning through Damp: jumps beyond the normal count are "conducted"
+	_free_enemies(main)
+	var storm := _build(main, "stormcap")
+	var row: Array[Node2D] = []
+	for i in 5:
+		var e := _spawn_near(main, storm.cell + Vector2(1, 0), Vector2(0, 64 * i - 128))
+		e.apply_status(EnemyStatuses.DAMP)
+		row.append(e)
+	events.clear()
+	storm._chain_strike(row[2])
+	var conducted := events.filter(func(e: DamageLog.Event) -> bool: return e.combos.has(&"conducted")).size()
+	_check(conducted == 5 - storm.attack_data.chain_targets, "jumps through Damp are tagged conducted (%d)" % conducted)
+	var rows := damage_log.get_meter_rows()
+	var storm_row: Array = rows.filter(func(r: Dictionary) -> bool: return r.tower == storm)
+	_check(not storm_row.is_empty() and storm_row[0].combo_share > 0.0 and storm_row[0].combos.has(&"conducted"),
+		"the meter shows Stormcap's combo share")
+	_check(grove.get_meter_text().contains("Stormcap"), "meter text lists the Wardens")
+
+	# Inspect
+	var inspect := grove.get_inspect_text(row[0])
+	_check(inspect.contains(row[0].enemy_data.display_name) and inspect.contains("Damp") and inspect.contains("Last hits"),
+		"Inspect shows the nightmare, its statuses and its last hits")
+	_check(grove.nightmare_at(row[0].global_position) == row[0], "clicking finds the nightmare under the cursor")
+	_free_enemies(main)
+
+	# Target Dummy: never dispelled, loops the route
+	var dummy := grove.toggle_dummy(load("res://resource/enemy/leaf_bug.tres") if ResourceLoader.exists("res://resource/enemy/leaf_bug.tres") else null)
+	_check(dummy != null and dummy.unkillable and dummy.loops_route, "the Target Dummy spawns")
+	dummy.take_damage(1000000.0, "", false, false, storm)
+	_check(not dummy.is_cleansed and dummy.health == 1, "the Target Dummy can't be dispelled")
+	_check(damage_log.get_dps(null, dummy) > 0.0 and damage_log.get_dps_by_source(dummy).has("Stormcap"),
+		"damage per second on the dummy, by Warden")
+	dummy.position += Vector2(200, 0)
+	dummy._restart_route()
+	var map_generator = main.get_node("%MapGenerator")
+	_check(dummy.get_current_cell() == map_generator.startPath, "the dummy walks the route again from the start")
+	grove.toggle_dummy()
+	_check(grove.dummy == null, "the dummy toggles off")
+
+	# Spawn panel, invulnerable Heartwood, damage numbers
+	var bug: EnemyData = grove.enemy_types[0]
+	var spawned := grove.spawn(bug, 1, true)
+	_check(spawned != null and spawned.elite, "spawn an elite nightmare")
+	grove.set_invulnerable(true)
+	var leaves := run_state.leaves
+	run_state.lose_leaves(5)
+	_check(run_state.leaves == leaves, "invulnerable Heartwood: no leaves fall")
+	grove.set_invulnerable(false)
+	grove.set_numbers_mode(DamageLog.NumbersMode.ALL)
+	var numbers_before := damage_log.get_child_count()
+	storm.hit(spawned)
+	_check(damage_log.get_child_count() > numbers_before, "damage numbers appear")
+	grove.set_numbers_mode(DamageLog.NumbersMode.OFF)
+	grove.clear_field()
+	await process_frame
+
+func _build(main: Node, id: String) -> Tower:
+	var placer: TowerPlacer = main.get_node("%TowerPlacer")
+	placer.tower_data = load("res://resource/tower/%s.tres" % id)
+	var cell := _free_cell(main.get_node("%MapGenerator"))
+	_check(placer._try_build(cell), "built %s" % id)
+	var tower: Tower = main.get_node("%TowerSeller").get_tower_at(cell)
+	tower.set_process(false)
+	return tower
+
+func _spawn_near(main: Node, cell: Vector2, offset: Vector2 = Vector2.ZERO) -> Node2D:
+	var spawner = main.get_node("%EnemyContainer")
+	var enemy = spawner.enemy_scene.instantiate()
+	enemy.enemy_data = TestGrove._load_enemy_types()[0]
+	spawner.add_child(enemy)
+	enemy.position = enemy.grid.calculate_map_position(cell) + offset
+	enemy.set_path(PackedVector2Array([enemy.grid.calculate_grid_coordinates(enemy.position)]))
+	enemy.set_process(false)
+	enemy.max_health = 1000000  # Survives every test hit
+	enemy.health = enemy.max_health
+	return enemy
+
+func _free_enemies(main: Node) -> void:
+	for child in main.get_node("%EnemyContainer").get_children():
+		child.free()
 
 func _free_cell(map_generator) -> Vector2:
 	var path: PackedVector2Array = map_generator.get_path_from(map_generator.startPath)

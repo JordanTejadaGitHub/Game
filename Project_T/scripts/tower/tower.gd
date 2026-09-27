@@ -282,8 +282,10 @@ func _release() -> void:
 # Soothes `enemy` and applies this Warden's status. `is_area`: splash, pulse and cloud hits (creatures
 # with an attack-shape resistance, like the Bee Swarm, take these differently). `crit`: ROLL_CRIT,
 # NO_CRIT or CRIT. The creature's family resistance or weakness to this Warden's line is applied in
-# Enemy.take_damage. Returns whether it was a crit.
-func hit(enemy: Node2D, soothe_multiplier: float = 1.0, is_area: bool = false, crit: int = ROLL_CRIT) -> bool:
+# Enemy.take_damage. `combo`: a DamageLog combo tag this hit owes itself to (&"conducted").
+# Returns whether it was a crit.
+func hit(enemy: Node2D, soothe_multiplier: float = 1.0, is_area: bool = false, crit: int = ROLL_CRIT,
+		combo: StringName = &"") -> bool:
 	if not is_instance_valid(enemy) or enemy.is_cleansed:
 		return false
 	var is_crit := roll_crit(enemy) if crit == ROLL_CRIT else crit == CRIT
@@ -291,7 +293,7 @@ func hit(enemy: Node2D, soothe_multiplier: float = 1.0, is_area: bool = false, c
 		enemy.bonus_dew = maxi(enemy.bonus_dew, 1)  # Before the hit, so a dispelling hit counts
 	var soothe := get_damage() * soothe_multiplier * _damage_against(enemy)
 	var dealt := soothe * (attack_data.crit_multiplier if is_crit else 1.0)
-	enemy.take_damage(dealt, tower_data.line, is_area, is_crit)
+	enemy.take_damage(dealt, tower_data.line, is_area, is_crit, self, combo)
 	hit_landed.emit(self, enemy, is_area, is_crit)
 	apply_status_to(enemy, soothe)
 	_after_hit(enemy, is_crit)
@@ -361,7 +363,7 @@ func apply_status_to(enemy: Node2D, soothe: float) -> void:
 		potency *= _dream_state.get_status_strength_multiplier(status)
 		duration = _dream_state.get_status_duration(attack_data, status)
 		max_stacks = _dream_state.get_status_max_stacks(attack_data, status)
-	enemy.apply_status(status, attack_data.status_stacks, duration, potency, max_stacks, tower_data.line)
+	enemy.apply_status(status, attack_data.status_stacks, duration, potency, max_stacks, tower_data.line, self)
 
 # Projectile landed at `where` (on `target` if it's still there): soothe it, or everything in the
 # splash radius (the splash shares the main hit's crit roll).
@@ -407,10 +409,12 @@ func _chain_strike(first: Node2D) -> void:
 			if enemy.statuses.has(EnemyStatuses.DAMP) and not hits.has(enemy):
 				hits.append(enemy)
 
+	# Jumps past the normal count only happened through Damp (DamageLog: "conducted").
 	var points := PackedVector2Array([global_position + tower_data.get_attack_origin()])
-	for enemy in hits:
+	for i in hits.size():
+		var enemy := hits[i]
 		points.append(enemy.global_position)
-		hit(enemy)
+		hit(enemy, 1.0, false, ROLL_CRIT, &"conducted" if i >= attack_data.chain_targets else &"")
 	var bolt := ChainBolt.new(points)
 	add_child(bolt)
 
@@ -535,7 +539,7 @@ func _spread() -> void:
 	for i in mini(attack_data.spread_targets, others.size()):
 		for status in copied:
 			others[i].apply_status(status.id, maxi(ceili(status.stacks / 2.0), 1), status.time,
-				status.potency, 0, status.line)
+				status.potency, 0, status.line, status.source)
 		points.append(source.global_position)
 		points.append(others[i].global_position)
 	for i in range(0, points.size(), 2):

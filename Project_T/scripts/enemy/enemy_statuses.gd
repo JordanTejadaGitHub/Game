@@ -52,10 +52,11 @@ var _fog_time := 0.0
 var _stag_time := 0.0  # Seconds left inside the White Stag's aura
 
 # Adds `stacks` of `id` (up to `max_stacks`, 0 = default cap) and refreshes its duration.
-# `line` is the applying Warden's family; Spored ticks count as that family's soothe.
+# `line` is the applying Warden's family; Spored ticks count as that family's soothe. `source` is
+# the applying Warden (damage attribution: Spored ticks and Static bolts are credited to it).
 # Returns the soothe of a Static bolt if this application set one off, else 0.
 func apply(id: StringName, stacks: int = 1, duration: float = 0.0, potency: float = 0.0,
-		max_stacks: int = 0, line: String = "") -> float:
+		max_stacks: int = 0, line: String = "", source: Node = null) -> float:
 	if id in immune:
 		return 0.0
 	var cap := get_max_stacks(id, max_stacks)
@@ -66,6 +67,7 @@ func apply(id: StringName, stacks: int = 1, duration: float = 0.0, potency: floa
 	status.time = maxf(status.time, length)
 	if potency >= status.potency:
 		status["line"] = line  # The strongest applier's family sets the ticks' family
+		status["source"] = source  # …and gets the credit for them
 	status.potency = maxf(status.potency, potency)
 	# Driftspore's higher cap sticks once reached, even if a Sporeling hits next.
 	status["cap"] = maxi(status.get("cap", 0), cap)
@@ -91,6 +93,11 @@ func stacks(id: StringName) -> int:
 func spore_line() -> String:
 	return _active[SPORED].get("line", "") if _active.has(SPORED) else ""
 
+# The Warden credited for `id` (its strongest applier), or null if unknown or gone.
+func source(id: StringName) -> Node:
+	var who = _active[id].get("source") if _active.has(id) else null
+	return who if is_instance_valid(who) else null
+
 func potency(id: StringName) -> float:
 	return _active[id].potency if _active.has(id) else 0.0
 
@@ -110,13 +117,14 @@ func total_stacks() -> int:
 		total += _active[id].stacks
 	return total
 
-# Every active status as [{id, stacks, time, potency, line}] (Gust copies them to other nightmares).
+# Every active status as [{id, stacks, time, potency, line, source}] (Gust copies them to other
+# nightmares; Inspect shows them).
 func snapshot() -> Array:
 	var result := []
 	for id in _active:
 		var status: Dictionary = _active[id]
 		result.append({"id": id, "stacks": status.stacks, "time": status.time, "potency": status.potency,
-			"line": status.get("line", "")})
+			"line": status.get("line", ""), "source": source(id)})
 	return result
 
 # Keeps the creature "in fog" (Mistveil) for `seconds`.

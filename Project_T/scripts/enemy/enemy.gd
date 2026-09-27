@@ -63,6 +63,13 @@ var bonus_dew := 0
 # Seconds before this nightmare can be frozen (Frostfern) / pushed back (Whirligig) again.
 var freeze_cooldown := 0.0
 var push_cooldown := 0.0
+# Test Grove's Target Dummy: never drops below 1 health, and walks the route again instead of
+# reaching the Heartwood.
+var unkillable := false
+var loops_route := false
+# The last few damage events (DamageLog.Event) for Inspect.
+var recent_hits: Array = []
+const RECENT_HITS := 6
 
 var _soothe_carry := 0.0  # Fractional soothe (Spored ticks, multipliers) waiting to add up to 1
 var _bolt_flash := 0.0
@@ -126,7 +133,8 @@ func _process(delta: float) -> void:
 
 	var spore_soothe := statuses.tick(delta)
 	if spore_soothe > 0.0:
-		take_damage(spore_soothe, statuses.spore_line(), true)
+		take_damage(spore_soothe, statuses.spore_line(), true, false, statuses.source(EnemyStatuses.SPORED),
+			&"spored")
 		if is_cleansed:
 			return
 	_bolt_flash = maxf(_bolt_flash - delta, 0.0)
@@ -171,8 +179,19 @@ func _process(delta: float) -> void:
 	update_animation(position - previous_position)
 
 	if _path_index >= _path.size():
+		if loops_route:
+			_restart_route()
+			return
 		reached_goal.emit(self)
 		queue_free()
+
+# Target Dummy: back to the forest's edge to walk the maze again.
+func _restart_route() -> void:
+	var map_generator = get_parent().get("map_generator")  # The EnemyContainer's
+	var start: Vector2 = _path[0] if map_generator == null else map_generator.startPath
+	var route: PackedVector2Array = _path if map_generator == null else map_generator.get_path_from(start)
+	position = grid.calculate_map_position(start)
+	set_path(route)
 
 func _draw() -> void:
 	if is_cleansed:
@@ -362,12 +381,18 @@ func _leap() -> void:
 # Soothes the blight away. `line` is the Warden family that soothed it ("" = neutral) and `is_area`
 # whether it was an area hit (splash, pulse, cloud, Spored). Soothe = amount × family × shape ×
 # Marked, then the blight coat takes its bite. At 0 health the enemy is cleansed.
-func take_damage(amount: float, line: String = "", is_area: bool = false, is_crit: bool = false) -> void:
+# `source` (the Warden) and `tag` (&"spored" tick, &"static" bolt, &"conducted" lightning through
+# Damp) feed the DamageLog; crit/weak/Marked/fog combos are worked out here.
+func take_damage(amount: float, line: String = "", is_area: bool = false, is_crit: bool = false,
+		source: Node = null, tag: StringName = &"") -> void:
 	if is_cleansed:
 		return
 	if is_crit:
 		_crit_flash = CRIT_FLASH_TIME
-	var soothe := amount * enemy_data.get_soothe_multiplier(line, is_area) * statuses.get_damage_taken_multiplier()
+	var family := enemy_data.get_soothe_multiplier(line, is_area)
+	var taken := statuses.get_damage_taken_multiplier()
+	var soothe := amount * family * taken
+	var soothe_before_coat := soothe
 	if line in enemy_data.resists:
 		_mark_hit(-1)
 	elif line in enemy_data.weak_to:
@@ -383,8 +408,9 @@ func take_damage(amount: float, line: String = "", is_area: bool = false, is_cri
 	_soothe_carry += soothe
 	var whole := int(_soothe_carry)
 	_soothe_carry -= whole
-	health = maxi(health - whole, 0)
+	health = maxi(health - whole, 1 if unkillable else 0)
 	queue_redraw()
+	_report_damage(amount, family, taken, soothe_before_coat - soothe, soothe, line, is_crit, source, tag)
 	if health == 0:
 		_cleanse()
 	elif enemy_data.trait_kind == EnemyData.Trait.TRAMPLE and not _startled and health <= max_health / 2:
@@ -394,14 +420,61 @@ func take_damage(amount: float, line: String = "", is_area: bool = false, is_cri
 # Applies a status from a Warden (`potency` = its soothe, see EnemyStatuses). A Static charge that
 # fills up sets off a free bolt right away.
 func apply_status(id: StringName, stacks: int = 1, duration: float = 0.0, potency: float = 0.0,
-		max_stacks: int = 0, line: String = "") -> void:
+		max_stacks: int = 0, line: String = "", source: Node = null) -> void:
 	if is_cleansed:
 		return
-	var bolt := statuses.apply(id, stacks, duration, potency, max_stacks, line)
+	var bolt := statuses.apply(id, stacks, duration, potency, max_stacks, line, source)
 	queue_redraw()
 	if bolt > 0.0:
 		_bolt_flash = BOLT_FLASH_TIME
-		take_damage(bolt, "light")  # Static bolts count as light
+		take_damage(bolt, "light", false, false, source, &"static")  # Static bolts count as light
+
+# Tells the DamageLog what this hit did, with the combos that boosted it (see DamageLog).
+func _report_damage(amount: float, family: float, taken: float, soaked: float, dealt: float, line: String,
+		is_crit: bool, source: Node, tag: StringName) -> void:
+	var damage_log := DamageLog.instance
+	if damage_log == null:
+		return
+	var event := DamageLog.Event.new()
+	event.source = source
+	event.enemy = self
+	event.kind = &"status" if tag == &"spored" else (&"bolt" if tag == &"static" else &"hit")
+	event.amount = dealt
+	event.base = amount
+	event.family_multiplier = family
+	event.taken_multiplier = taken
+	event.coat_soaked = soaked
+	var factor := 1.0  # Multiplicative combos
+	if is_crit and source is Tower:
+		event.crit_multiplier = source.attack_data.crit_multiplier
+		event.combos.append(&"crit")
+		factor *= event.crit_multiplier
+	if line in enemy_data.weak_to:
+		event.combos.append(&"weak")
+		factor *= EnemyData.WEAK_MULTIPLIER
+	if statuses.has(EnemyStatuses.MARKED):
+		event.combos.append(&"marked")
+		factor *= taken / (taken - EnemyStatuses.MARKED_EXTRA)
+	if tag == &"spored" and statuses.is_in_fog():
+		event.combos.append(&"fog")
+		factor *= 1.0 + EnemyStatuses.FOG_SPORE_BONUS
+	if tag == &"conducted" or tag == &"static":
+		event.combos.append(tag)
+		event.combo_amount = dealt  # The whole hit only happened thanks to the combo
+	else:
+		event.combo_amount = dealt * (1.0 - 1.0 / factor)
+	recent_hits.append(event)
+	if recent_hits.size() > RECENT_HITS:
+		recent_hits.pop_front()
+	damage_log.report(event)
+
+# Removes the nightmare as if dispelled (Test Grove's "clear the field").
+func dispel() -> void:
+	if is_cleansed:
+		return
+	unkillable = false
+	health = 0
+	_cleanse()
 
 func _mark_hit(kind: int) -> void:
 	_hit_mark = kind
