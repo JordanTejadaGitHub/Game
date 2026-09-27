@@ -11,4 +11,4 @@ root = 0
 costs = Array[int]([60])
 requires_all = Array[String](["bellflower_finals"])
 order = 24
-dream_cards = Array[String](["encore"])
+dream_cards = Array[String](["dream_echo_hollow", "dream_whispering_hollow", "encore"])

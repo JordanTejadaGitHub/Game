@@ -11,4 +11,4 @@ root = 0
 costs = Array[int]([50])
 requires_all = Array[String](["pebbling_finals"])
 order = 22
-dream_cards = Array[String](["loose_stones"])
+dream_cards = Array[String](["dream_cairn", "dream_rockslide", "loose_stones"])

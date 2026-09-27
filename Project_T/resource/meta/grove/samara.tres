@@ -11,4 +11,4 @@ root = 0
 costs = Array[int]([80])
 requires_all = Array[String](["whirligig_finals"])
 order = 27
-dream_cards = Array[String](["longer_flight", "backspin", "ricochet", "ricochet_ii", "heavy_seed", "windborne_rain", "seed_storm"])
+dream_cards = Array[String](["dream_samara", "dream_autumn_gale", "longer_flight", "backspin", "ricochet", "ricochet_ii", "heavy_seed", "windborne_rain", "seed_storm"])

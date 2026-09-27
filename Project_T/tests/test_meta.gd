@@ -64,8 +64,10 @@ func _run() -> void:
 	_check(run_state.dew == run_state.starting_dew + 30 - 20, "starting Dew: base + Morning Stores 30 − Blight 20 (%d)" % run_state.dew)
 	var family_ids: Array = family.families.map(func(d: TowerData) -> String: return d.get_id())
 	_check(family_ids.has("pebbling") and family_ids.has("acorn") and family_ids.has("nestling"), "Grove families join the picks (%s)" % [family_ids])
-	_check(dreams.grove_cards.has("dream_standing_stone") and dreams.grove_cards.has("dream_wrens_nest")
-		and not dreams.grove_cards.has("dream_magpies_hoard"), "family nodes bring their branches, not their final forms")
+	_check(dreams.grove_cards.has("dream_wrens_nest") and not dreams.grove_cards.has("dream_magpies_hoard"),
+		"family nodes bring their branches, not their final forms")
+	_check(_unlock(grove, "cairn").dream_cards.has("dream_cairn") and _unlock(grove, "samara").dream_cards.has("dream_autumn_gale"),
+		"hidden nodes open their hidden Wardens")
 	_check(is_equal_approx(director.blight_health_multiplier, 1.1) and is_equal_approx(director.blight_boss_health_multiplier, 1.25)
 		and director.blight_elites_per_drift == 1 and is_equal_approx(director.blight_rest_bonus_multiplier, 0.75),
 		"Blight 1–5 modifiers applied")
