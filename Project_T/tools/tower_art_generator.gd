@@ -1,9 +1,11 @@
 extends SceneTree
 # Generates the Warden (tower) spritesheets in assets/towers/ (64x64 frames, FRAMES per row) and
 # their projectiles in assets/towers/projectiles/ (16x16 frames). Wardens are listed in
-# documentation/game_design.md. They all doze on the mossy waystone from the original concept
-# mock (POSE_UP / POSE_DOWN below); the Sporeling is the mock's figure itself.
+# documentation/game_design.md. Each Warden is a golem in the pose of the original concept mock
+# (POSE_UP / POSE_DOWN below), dozing on the mock's slab as a mossy waystone; the Sporeling is the
+# mock's figure itself.
 # Run:  Godot --headless --path . --script res://tools/tower_art_generator.gd
+
 const S := 64
 const FRAMES := 8
 const OUT := "res://assets/towers/"
@@ -418,23 +420,6 @@ func _draw_waystone(canvas: Image, pose: Dictionary) -> Image:
 				canvas.set_pixel(x, y, moss[2] if (q < 0.5 and d.y < 0.0) else (moss[0] if q > 0.8 else moss[1]))
 	return top
 
-# Mock-style face: 3px tall eyes six apart, a small mouth, rosy cheeks. Closed eyes on blink.
-func _face(canvas: Image, cx: int, eye_y: int, o: Color, blink: bool, mouth: int = 3, blush: bool = true) -> void:
-	var eyes := [cx - 3, cx + 3]
-	for i in 2:
-		var ex: int = eyes[i]
-		if blink:
-			_px(canvas, ex, eye_y + 1, o)
-			_px(canvas, ex + (-1 if i == 0 else 1), eye_y + 1, o)
-		else:
-			for k in 3:
-				_px(canvas, ex, eye_y + k, o)
-	for k in mouth:
-		_px(canvas, cx - mouth / 2 + k, eye_y + 4, o)
-	if blush:
-		for bx: int in [cx - 6, cx - 5, cx + 5, cx + 6]:
-			_px(canvas, bx, eye_y + 3, BLUSH)
-
 # Lens-shaped leaf from base to tip: one half lit, the other shaded, with a dark midrib.
 func _leaf(canvas: Image, base: Vector2, tip: Vector2, width: float, ramp: Array[Color], o: Color) -> void:
 	var layer := _layer()
@@ -466,19 +451,6 @@ func _stroke(layer: Image, pts: Array, r: float, color: Color) -> void:
 		for s in steps + 1:
 			_flat_ellipse(layer, a.lerp(b, s / maxf(steps, 1.0)), Vector2(r, r), color)
 
-# A body that "breathes": on the down pose it squashes 1px while its bottom stays planted.
-func _breathing_body(canvas: Image, bottom: Vector2, r: Vector2, dy: int, ramp: Array[Color], o: Color) -> Image:
-	var rr := r + Vector2(0.5, -0.5) * dy
-	var layer := _layer()
-	_ellipse(layer, Vector2(bottom.x, bottom.y - rr.y), rr, ramp)
-	_stamp(canvas, layer, o)
-	return layer
-
-func _mask_px(canvas: Image, mask: Image, pts: Array, color: Color) -> void:
-	for p: Vector2i in pts:
-		if p.x >= 0 and p.y >= 0 and p.x < S and p.y < S and mask.get_pixelv(p).a > 0.0:
-			canvas.set_pixelv(p, color)
-
 # Motes drifting up and fading; one per phase offset.
 func _motes(canvas: Image, f: int, xs: Array, from_y: float, rise: float, colors: Array) -> void:
 	for k in xs.size():
@@ -486,268 +458,281 @@ func _motes(canvas: Image, f: int, xs: Array, from_y: float, rise: float, colors
 		var x: int = xs[k] + roundi(sin(t * TAU) * 1.5)
 		_px(canvas, x, roundi(from_y - t * rise), colors[0] if t < 0.6 else colors[1])
 
-# --- Wardens ----------------------------------------------------------------------------------
+# --- Warden golems ----------------------------------------------------------------------------
+# Every Warden is a golem in the mock's seated pose (the Sporeling is the mock itself), themed
+# after its line in game_design.md, dozing on the mossy waystone.
 
 const LEAF := ["#3f7a3e", "#6ab04a", "#9ad86a"]
+const SWAY := [0, 1, 1, 0, 0, -1, -1, 0]
 
-# Sprout: the tiny sleepy shoot every Warden starts as. A seed-bulb with a face, two leaves
-# swaying on top, sitting in a little mound of soil, puffing weak spores.
+# Recoloured mock face: blink (or always asleep), optional glowing eyes and rosy cheeks.
+func _golem_face(canvas: Image, f: int, dy: int, fig: Dictionary, eye: Color = Color(0, 0, 0, 0),
+		blush: bool = true, asleep: bool = false) -> void:
+	if blush:
+		for bx: int in [24, 25, 34, 35]:
+			_px(canvas, bx, EYE_TOP + 3 + dy, BLUSH)
+	var closed := asleep or f == BLINK_FRAME
+	for ex: int in EYES:
+		for k in 3:
+			var col: Color = fig.a if closed and k != 1 else (eye if eye.a > 0.0 else fig.o)
+			_px(canvas, ex, EYE_TOP + k + dy, col)
+		if closed:
+			_px(canvas, ex, EYE_TOP + 1 + dy, fig.o)
+			_px(canvas, ex + 1, EYE_TOP + 1 + dy, fig.o)
+
+# Pixels of the figure that aren't outline, for texture and decorations.
+func _skin_px(canvas: Image, mask: Image, o: Color, pts: Array, color: Color) -> void:
+	for p: Vector2i in pts:
+		if p.x >= 0 and p.y >= 0 and p.x < S and p.y < S and mask.get_pixelv(p).a > 0.0 and canvas.get_pixelv(p) != o:
+			canvas.set_pixelv(p, color)
+
+func _glow_dot(canvas: Image, p: Vector2i, core: Color, halo: Color, mask: Image = null) -> void:
+	for d: Vector2i in [Vector2i.LEFT, Vector2i.RIGHT, Vector2i.UP, Vector2i.DOWN]:
+		var q := p + d
+		if mask == null or (q.x >= 0 and q.y >= 0 and q.x < S and q.y < S and mask.get_pixelv(q).a > 0.0):
+			_px(canvas, q.x, q.y, halo)
+	_px(canvas, p.x, p.y, core)
+
+# Sprout: a pale green seedling golem with two leaves sprouting from its head and soil on its
+# feet, puffing weak spores.
 func _draw_sprout(canvas: Image, f: int) -> void:
 	var dy: int = FRAME_POSE[f]
-	var sway: int = [0, 1, 1, 0, 0, -1, -1, 0][f]
-	var o := Color("#1e3a24")
-	_draw_waystone(canvas, poses[0])
-	var soil := _layer()
-	_ellipse(soil, Vector2(32, 44), Vector2(10, 3.5), _ramp(["#5a3a24", "#7a5234", "#9a6e48"]))
-	_stamp(canvas, soil, Color("#2a1a10"))
+	var sway: int = SWAY[f]
+	var fig := _pal("#1e3a24", "#cce898", "#a4d070", "#7aa850")
+	var soil := Color("#7a5234")
+	_draw_waystone(canvas, poses[dy])
+	var mask := _draw_template_figure(canvas, poses[dy], fig)
 	var stem := _layer()
-	_stroke(stem, [Vector2(32, 34 + dy), Vector2(32.5, 27 + dy)], 1.5, Color("#5a9a3c"))
-	_stamp(canvas, stem, o)
-	_leaf(canvas, Vector2(32, 27 + dy), Vector2(22 + sway, 21 + dy), 3.5, _ramp(LEAF), o)
-	_leaf(canvas, Vector2(33, 26 + dy), Vector2(43 + sway, 18 + dy), 4.0, _ramp(LEAF), o)
-	_breathing_body(canvas, Vector2(32, 45), Vector2(8.5, 7.5), dy, _ramp(["#7aa850", "#a4d070", "#cce898", "#eefcd0"]), o)
-	_face(canvas, 32, 36 + dy, o, f == BLINK_FRAME)
-	_motes(canvas, f, [24, 42], 20, 14, [Color("#eefcd0"), Color("#a4d070")])
+	_stroke(stem, [Vector2(30.5, 8 + dy), Vector2(30.5, 3 + dy)], 1.5, Color("#5a9a3c"))
+	_stamp(canvas, stem, fig.o)
+	_leaf(canvas, Vector2(30, 4 + dy), Vector2(19 + sway, 1 + dy), 3.5, _ramp(LEAF), fig.o)
+	_leaf(canvas, Vector2(31, 4 + dy), Vector2(43 + sway, 0 + dy), 4.0, _ramp(LEAF), fig.o)
+	# Seed-coat speckles and soil clinging to the legs.
+	_skin_px(canvas, mask, fig.o, [Vector2i(33, 22 + dy), Vector2i(37, 26 + dy), Vector2i(26, 27 + dy), Vector2i(31, 33)], fig.c)
+	_skin_px(canvas, mask, fig.o, [Vector2i(12, 41), Vector2i(13, 41), Vector2i(14, 42), Vector2i(20, 45), Vector2i(21, 45),
+		Vector2i(36, 47), Vector2i(37, 47), Vector2i(38, 46), Vector2i(48, 41), Vector2i(49, 41)], soil)
+	_golem_face(canvas, f, dy, fig)
+	_motes(canvas, f, [15, 46, 38], 20, 16, [Color("#eefcd0"), Color("#a4d070")])
 
-# Thornwall: a plain bramble hedge. No face, no soothing; clumps of leaves, a thorny vine,
-# berries and a couple of blossoms.
+# Thornwall: a bramble golem that never wakes up. Leafy body, a thorny vine wrapped round it,
+# berries, blossoms, and bramble tufts on the stone.
 func _draw_thornwall(canvas: Image, f: int) -> void:
-	var o := Color("#14241a")
+	var dy: int = FRAME_POSE[f]
+	var fig := _pal("#14241a", "#7cbc5a", "#58964a", "#3c7040")
 	var bush := _ramp(["#2a5232", "#3c7040", "#58964a", "#7cbc5a"])
-	_draw_waystone(canvas, poses[0])
-	var hedge := _layer()
-	for clump: Rect2 in [Rect2(21, 32, 9, 8), Rect2(43, 31, 9, 8), Rect2(32, 25, 10, 9), Rect2(14, 41, 7, 5),
-			Rect2(50, 40, 7, 5), Rect2(26, 39, 10, 7), Rect2(39, 40, 10, 7)]:
-		var layer := _layer()
-		_ellipse(layer, clump.position, clump.size, bush)
-		_stamp(canvas, layer, o)
-		_stamp(hedge, layer)
-	# Leaf texture and thorns on the silhouette.
+	var thorn := Color("#d8c090")
+	_draw_waystone(canvas, poses[dy])
+	for tuft: Rect2 in [Rect2(8, 42, 5, 3.5), Rect2(56, 42, 5, 3.5)]:
+		var t := _layer()
+		_ellipse(t, tuft.position, tuft.size, bush)
+		_stamp(canvas, t, fig.o)
+	var mask := _draw_template_figure(canvas, poses[dy], fig)
 	for y in S:
 		for x in S:
-			if hedge.get_pixel(x, y).a == 0.0 or canvas.get_pixel(x, y) == o:
+			if mask.get_pixel(x, y).a == 0.0 or canvas.get_pixel(x, y) == fig.o:
 				continue
-			var h := (x * 73 + y * 151) % 13
+			var h := (x * 73 + y * 151) % 11
 			if h == 0:
 				canvas.set_pixel(x, y, bush[0])
-			elif h == 5 and canvas.get_pixel(x, y) == bush[2]:
-				canvas.set_pixel(x, y, bush[3])
+			elif h == 4 and canvas.get_pixel(x, y) == fig.a:
+				canvas.set_pixel(x, y, Color("#a8dc7a"))
+	# Thorns poking out of the top of the silhouette.
 	for y in range(1, S):
 		for x in S:
-			if hedge.get_pixel(x, y).a > 0.0 and hedge.get_pixel(x, y - 1).a == 0.0 and (x * 7) % 5 == 0:
-				_px(canvas, x, y - 1, Color("#d8c090"))
-	# Bramble vine looping through the hedge.
-	var vine := [Vector2(12, 37), Vector2(19, 31), Vector2(27, 34), Vector2(33, 26), Vector2(41, 29), Vector2(51, 35)]
-	_line(canvas, vine, Color("#6a4030"), hedge)
-	for p: Vector2i in [Vector2i(16, 33), Vector2i(30, 29), Vector2i(45, 31)]:
-		_px(canvas, p.x, p.y - 1, Color("#d8c090"))
-	# Berries (they glint in turn) and blossoms.
+			if mask.get_pixel(x, y).a > 0.0 and mask.get_pixel(x, y - 1).a == 0.0 and (x * 7) % 4 == 0:
+				_px(canvas, x, y - 1, thorn)
+	# Vine wrapped round the body.
+	for vine: Array in [[Vector2(19, 31), Vector2(25, 26 + dy), Vector2(31, 29), Vector2(37, 24 + dy), Vector2(44, 28)],
+			[Vector2(20, 40), Vector2(27, 36), Vector2(34, 39)]]:
+		_line(canvas, vine, Color("#6a4030"), mask)
+	_skin_px(canvas, mask, fig.o, [Vector2i(22, 28 + dy), Vector2i(34, 26 + dy), Vector2i(41, 25 + dy), Vector2i(24, 37)], thorn)
 	for i in 3:
-		var b: Vector2i = [Vector2i(24, 29), Vector2i(37, 37), Vector2i(18, 41)][i]
-		for d: Vector2i in [Vector2i.ZERO, Vector2i.RIGHT, Vector2i.DOWN, Vector2i(1, 1)]:
-			_px(canvas, b.x + d.x, b.y + d.y, Color("#8a2a5a"))
-		_px(canvas, b.x, b.y, Color("#f0a0c8") if (f / 2) % 3 == i else Color("#c8387a"))
-	for bl: Vector2i in [Vector2i(44, 26), Vector2i(29, 40), Vector2i(52, 38)]:
-		for d: Vector2i in [Vector2i.LEFT, Vector2i.RIGHT, Vector2i.UP, Vector2i.DOWN]:
-			_px(canvas, bl.x + d.x, bl.y + d.y, Color("#fff4f0"))
-		_px(canvas, bl.x, bl.y, Color("#ffd24a"))
-	# A leaf drifting off the hedge.
+		var b: Vector2i = [Vector2i(28, 32), Vector2i(39, 36), Vector2i(17, 38)][i]
+		_skin_px(canvas, mask, fig.o, [b, b + Vector2i.RIGHT, b + Vector2i.DOWN, b + Vector2i(1, 1)], Color("#8a2a5a"))
+		_skin_px(canvas, mask, fig.o, [b], Color("#f0a0c8") if (f / 2) % 3 == i else Color("#c8387a"))
+	for bl: Vector2i in [Vector2i(36, 8 + dy), Vector2i(23, 24 + dy), Vector2i(42, 31)]:
+		_skin_px(canvas, mask, fig.o, [bl + Vector2i.LEFT, bl + Vector2i.RIGHT, bl + Vector2i.UP, bl + Vector2i.DOWN], Color("#fff4f0"))
+		_skin_px(canvas, mask, fig.o, [bl], Color("#ffd24a"))
+	_golem_face(canvas, f, dy, fig, Color(0, 0, 0, 0), false, true)
 	var t := float(f) / FRAMES
-	_px(canvas, 47 + roundi(sin(t * TAU) * 2), 20 + roundi(t * 8), Color("#7cbc5a"))
+	_px(canvas, 50 + roundi(sin(t * TAU) * 2), 14 + roundi(t * 10), Color("#7cbc5a"))
 
-# Sporeling: the original concept art (the mock), dozing on the mossy waystone, releasing spores.
+# Sporeling: the original concept art, releasing drowsy spores.
 func _draw_sporeling(canvas: Image, f: int) -> void:
-	var pose: Dictionary = poses[FRAME_POSE[f]]
+	var dy: int = FRAME_POSE[f]
 	var fig := _pal("#17174d", "#ed9df2", "#de73e5", "#ba41d9")
-	_draw_waystone(canvas, pose)
-	_draw_template_figure(canvas, pose, fig)
-	if f == BLINK_FRAME:
-		_blink(canvas, FRAME_POSE[f], fig.a, fig.o)
+	_draw_waystone(canvas, poses[dy])
+	_draw_template_figure(canvas, poses[dy], fig)
+	_golem_face(canvas, f, dy, fig, Color(0, 0, 0, 0), false)
 	_motes(canvas, f, [21, 42, 34], 16, 16, [Color("#f7c8fa"), Color("#de73e5")])
 
-# Pebbling: a small round stone spirit wearing a cap of moss with a flower in it, with little
-# pebble feet.
+# Pebbling: a mossy stone golem with boulder shoulders, a moss cap with a flower, cracks and
+# pebbles at its feet.
 func _draw_pebbling(canvas: Image, f: int) -> void:
 	var dy: int = FRAME_POSE[f]
-	var o := Color("#1c1c36")
+	var fig := _pal("#1c1c36", "#c4c9e2", "#979dc2", "#686d9a")
 	var stone := _ramp(["#686d9a", "#979dc2", "#c4c9e2", "#e4e7f4"])
 	var moss := _ramp(["#3f7a3e", "#5a9a48", "#7cbc5a", "#a8dc7a"])
-	var top := _draw_waystone(canvas, poses[0])
-	_rock(canvas, PackedVector2Array([Vector2(12, 44), Vector2(14, 41), Vector2(18, 41), Vector2(19, 44), Vector2(16, 46)]), stone, o)
-	_rock(canvas, PackedVector2Array([Vector2(48, 44), Vector2(50, 42), Vector2(53, 42), Vector2(54, 45), Vector2(51, 46)]), stone, o)
-	var body := _breathing_body(canvas, Vector2(32, 45), Vector2(12, 10.5), dy, stone, o)
-	_mask_px(canvas, body, [Vector2i(25, 38), Vector2i(37, 41), Vector2i(40, 36), Vector2i(23, 33)], stone[0])
-	# Moss cap with drips and a flower.
+	_draw_waystone(canvas, poses[dy])
+	_rock(canvas, PackedVector2Array([Vector2(4, 43), Vector2(6, 40), Vector2(10, 40), Vector2(11, 43), Vector2(8, 45)]), stone, fig.o)
+	_rock(canvas, PackedVector2Array([Vector2(53, 45), Vector2(55, 42), Vector2(58, 42), Vector2(59, 45), Vector2(56, 47)]), stone, fig.o)
+	var mask := _draw_template_figure(canvas, poses[dy], fig)
+	_line(canvas, [Vector2(36, 9 + dy), Vector2(35, 11 + dy)], fig.c, mask)
+	_line(canvas, [Vector2(21, 30), Vector2(23, 33), Vector2(22, 35)], fig.c, mask)
+	_line(canvas, [Vector2(34, 36), Vector2(35, 39)], fig.c, mask)
+	_line(canvas, [Vector2(28, 25 + dy), Vector2(30, 28 + dy)], fig.c, mask)
+	_rock(canvas, PackedVector2Array([Vector2(14, 25 + dy), Vector2(16, 19 + dy), Vector2(22, 17 + dy),
+		Vector2(27, 20 + dy), Vector2(25, 26 + dy), Vector2(18, 28 + dy)]), stone, fig.o)
+	_rock(canvas, PackedVector2Array([Vector2(37, 20 + dy), Vector2(41, 15 + dy), Vector2(47, 16 + dy),
+		Vector2(50, 21 + dy), Vector2(47, 26 + dy), Vector2(40, 25 + dy)]), stone, fig.o)
+	# Moss: a cap with drips on the head, patches on the shoulders and legs.
 	var cap := _layer()
-	_ellipse(cap, Vector2(32, 29 + dy), Vector2(10, 5.5), moss, 30.0 + dy)
-	for p: Vector2i in [Vector2i(24, 30), Vector2i(24, 31), Vector2i(25, 30), Vector2i(39, 30), Vector2i(39, 31), Vector2i(31, 30), Vector2i(32, 30)]:
+	_ellipse(cap, Vector2(30.5, 9 + dy), Vector2(9.5, 5), moss, 9.0 + dy)
+	for p: Vector2i in [Vector2i(22, 9), Vector2i(22, 10), Vector2i(29, 9), Vector2i(38, 9), Vector2i(38, 10)]:
 		cap.set_pixel(p.x, p.y + dy, moss[1])
-	_stamp(canvas, cap, o)
+	_stamp(canvas, cap, fig.o)
 	for d: Vector2i in [Vector2i.LEFT, Vector2i.RIGHT, Vector2i.UP, Vector2i.DOWN]:
-		_px(canvas, 36 + d.x, 25 + dy + d.y, Color("#fff4f0"))
-	_px(canvas, 36, 25 + dy, Color("#ffd24a"))
-	_face(canvas, 32, 35 + dy, o, f == BLINK_FRAME)
-	# Pebble feet.
-	var feet := _layer()
-	_ellipse(feet, Vector2(26, 45), Vector2(3.5, 2.5), stone)
-	_ellipse(feet, Vector2(38, 45), Vector2(3.5, 2.5), stone)
-	_stamp(canvas, feet, o)
+		_px(canvas, 34 + d.x, 5 + dy + d.y, Color("#fff4f0"))
+	_px(canvas, 34, 5 + dy, Color("#ffd24a"))
+	for m: Vector2i in [Vector2i(19, 19), Vector2i(20, 19), Vector2i(21, 18), Vector2i(43, 17), Vector2i(44, 17)]:
+		_px(canvas, m.x, m.y + dy, moss[2])
+	_skin_px(canvas, mask, fig.o, [Vector2i(12, 37), Vector2i(13, 37), Vector2i(14, 37), Vector2i(50, 34), Vector2i(51, 34), Vector2i(52, 35)], moss[1])
+	_golem_face(canvas, f, dy, fig)
 
-# Dewdrop: a bead of morning dew with a face, wobbling on a lily pad, a tiny droplet hopping
-# beside it.
+# Dewdrop: a water golem with a droplet tip on its head, a glossy body with bubbles rising
+# inside, a drip falling from its hand and lily pads on the stone.
 func _draw_dewdrop(canvas: Image, f: int) -> void:
 	var dy: int = FRAME_POSE[f]
-	var sway: int = [0, 1, 1, 0, 0, -1, -1, 0][f]
-	var o := Color("#16305e")
-	var water := _ramp(["#3a78c8", "#5aa8ec", "#9ad4ff", "#e8faff"])
-	_draw_waystone(canvas, poses[0])
-	# Lily pad with a notch and veins.
-	var pad := _layer()
-	_ellipse(pad, Vector2(32, 44), Vector2(16, 5), _ramp(["#3f7a3e", "#5a9a48", "#7cbc5a"]))
-	_flat_polygon(pad, PackedVector2Array([Vector2(36, 45), Vector2(49, 44), Vector2(49, 47.5)]), Color(0, 0, 0, 0))
-	_stamp(canvas, pad, Color("#1e3a24"))
-	_line(canvas, [Vector2(20, 44), Vector2(28, 44)], Color("#3f7a3e"), pad)
-	_line(canvas, [Vector2(24, 47), Vector2(29, 45)], Color("#3f7a3e"), pad)
-	# The drop: a teardrop, lit from the upper left, with a light crescent in its base.
-	var r := 9.0 + 0.5 * dy
-	var c := Vector2(32, 44 - r)
-	var drop := _layer()
-	_flame(drop, c, r, 17.0 - dy, sway, Color.WHITE)
-	for y in S:
-		for x in S:
-			if drop.get_pixel(x, y).a == 0.0:
-				continue
-			var p := Vector2(x + 0.5, y + 0.5)
-			var q := (p - c - Vector2(-2, -3)).length() / r
-			var col: Color = water[2] if q < 0.55 else (water[1] if q < 1.0 else water[0])
-			if p.y - c.y > r * 0.5 and absf(p.x - c.x) < r * 0.55:
-				col = water[2]
-			drop.set_pixel(x, y, col)
-	_stamp(canvas, drop, o)
-	for h: Vector2i in [Vector2i(27, 31), Vector2i(27, 32), Vector2i(28, 30), Vector2i(26, 33)]:
-		_px(canvas, h.x, h.y + dy, water[3])
-	_px(canvas, 37, 40, water[3])
-	_face(canvas, 32, 34 + dy, o, f == BLINK_FRAME)
-	# A tiny droplet hopping on the pad.
-	var hop: int = [0, 1, 2, 1, 0, 0, 0, 0][f]
-	var bead := _layer()
-	_flat_ellipse(bead, Vector2(46, 42 - hop), Vector2(1.6, 1.6), water[2])
-	_stamp(canvas, bead, o)
+	var sway: int = SWAY[f]
+	var fig := _pal("#16305e", "#9ad4ff", "#5aa8ec", "#3a78c8")
+	var shine := Color("#e8faff")
+	_draw_waystone(canvas, poses[dy])
+	for pad: Rect2 in [Rect2(27, 50, 6.5, 3)]:
+		var p := _layer()
+		_ellipse(p, pad.position, pad.size, _ramp(LEAF))
+		_stamp(canvas, p, Color("#1e3a24"))
+	# Droplet tip behind the head, so only the point shows above it.
+	var tip := _layer()
+	_flame(tip, Vector2(30.5, 11 + dy), 6.0, 13.0, sway, fig.a)
+	_stamp(canvas, tip, fig.o)
+	var mask := _draw_template_figure(canvas, poses[dy], fig)
+	# Gloss streaks.
+	_skin_px(canvas, mask, fig.o, [Vector2i(24, 7 + dy), Vector2i(25, 7 + dy), Vector2i(24, 8 + dy), Vector2i(29, 1 + dy),
+		Vector2i(22, 25 + dy), Vector2i(22, 26 + dy), Vector2i(21, 27 + dy), Vector2i(21, 28 + dy), Vector2i(21, 29 + dy),
+		Vector2i(43, 28), Vector2i(43, 29)], shine)
+	# Bubbles rising inside the body.
+	for k in 3:
+		var t := float((f + k * 3) % FRAMES) / FRAMES
+		var b := Vector2i([27, 34, 38][k], roundi(42 - t * 18))
+		_skin_px(canvas, mask, fig.o, [b, b + Vector2i.RIGHT], shine)
+	# A drip falling from the hand.
+	var drip := _layer()
+	_flat_ellipse(drip, Vector2(44, 41 + f * 1.2), Vector2(1.4, 1.8), fig.a)
+	_stamp(canvas, drip, fig.o)
+	_golem_face(canvas, f, dy, fig)
 
-# Firefly Jar: a glass jar with a cork, tied with string, a sprout growing from the cork and
-# fireflies drifting and blinking inside.
+# Firefly Jar: a glass golem with fireflies drifting inside it, a cork hat with a sprout,
+# string tied round its neck and eyes lit like fireflies.
 func _draw_firefly_jar(canvas: Image, f: int) -> void:
-	var o := Color("#1a2230")
-	var glass := _ramp(["#2e4a58", "#4e7482", "#86b4bc", "#d8f4f4"])
+	var dy: int = FRAME_POSE[f]
+	var sway: int = SWAY[f]
+	var fig := _pal("#1a2230", "#4e7482", "#3e6270", "#2e4a58")
 	var cork := _ramp(["#6a4428", "#8a5a3a", "#b07a4a", "#d09a6a"])
-	var top := _draw_waystone(canvas, poses[0])
 	var bright := f % 4 < 2
-	# Warm glow on the slab around the jar.
+	var top := _draw_waystone(canvas, poses[dy])
 	for y in S:
 		for x in S:
-			var q := ((Vector2(x + 0.5, y + 0.5) - Vector2(32, 45)) / Vector2(17, 6)).length()
-			if top.get_pixel(x, y).a > 0.0 and q < 1.0 and q > 0.6 and (x + y) % 2 == 0 and bright:
+			var q := ((Vector2(x + 0.5, y + 0.5) - Vector2(31, 45)) / Vector2(24, 8)).length()
+			if bright and top.get_pixel(x, y).a > 0.0 and q < 1.0 and q > 0.7 and (x + y) % 2 == 0:
 				canvas.set_pixel(x, y, Color("#d8d890"))
-	# Jar: body and neck, glass dark inside with light edges.
-	var jar := _layer()
-	_round_rect(jar, Rect2i(21, 22, 23, 24), 6, glass[0])
-	_round_rect(jar, Rect2i(25, 17, 15, 7), 2, glass[0])
+	var mask := _draw_template_figure(canvas, poses[dy], fig)
+	# Glass highlights down the left side and on the head.
+	for y in range(24, 40):
+		_skin_px(canvas, mask, fig.o, [Vector2i(21, y + dy)], Color("#a8d0d8"))
+	_skin_px(canvas, mask, fig.o, [Vector2i(24, 7 + dy), Vector2i(24, 8 + dy), Vector2i(25, 7 + dy), Vector2i(22, 24 + dy)], Color("#d8f4f4"))
+	# Fireflies.
+	for k in 6:
+		var home: Vector2 = [Vector2(27, 25), Vector2(35, 27), Vector2(30, 33), Vector2(24, 36), Vector2(37, 22), Vector2(33, 8)][k]
+		var a := float(f) / FRAMES * TAU + k * 1.3
+		var p := Vector2i((home + Vector2(cos(a) * 2.0, sin(a * 2.0) * 1.5)).round()) + Vector2i(0, dy)
+		if (f + k) % 4 == 0:
+			_skin_px(canvas, mask, fig.o, [p], Color("#8aa860"))
+		elif mask.get_pixelv(p).a > 0.0:
+			_glow_dot(canvas, p, Color("#fff27a"), Color("#a8c868"), mask)
+	# String round the neck.
+	_line(canvas, [Vector2(25, 19 + dy), Vector2(44, 19 + dy)], Color("#e0c8a0"), mask)
+	_px(canvas, 45, 19 + dy, Color("#e0c8a0"))
+	_px(canvas, 46, 20 + dy, Color("#e0c8a0"))
+	# Cork hat and its sprout.
+	var lid := _layer()
+	_round_rect(lid, Rect2i(24, 1 + dy, 14, 7), 2, cork[1])
 	for y in S:
 		for x in S:
-			if jar.get_pixel(x, y).a == 0.0:
-				continue
-			if x <= 23 and y > 20:
-				jar.set_pixel(x, y, glass[2])
-			elif x >= 41 or y >= 43:
-				jar.set_pixel(x, y, glass[1])
-	_stamp(canvas, jar, o)
-	for y in range(25, 40):
-		_px(canvas, 24, y, glass[3])
-	_px(canvas, 25, 26, glass[3])
-	# Fireflies.
-	for k in 5:
-		var home: Vector2 = [Vector2(28, 28), Vector2(36, 26), Vector2(32, 34), Vector2(27, 39), Vector2(37, 38)][k]
-		var a := float(f) / FRAMES * TAU + k * 1.3
-		var p := Vector2i((home + Vector2(cos(a) * 2.0, sin(a * 2.0) * 1.5)).round())
-		if (f + k) % 4 == 0:
-			_px(canvas, p.x, p.y, Color("#8aa860"))
-			continue
-		for d: Vector2i in [Vector2i.LEFT, Vector2i.RIGHT, Vector2i.UP, Vector2i.DOWN]:
-			_px(canvas, p.x + d.x, p.y + d.y, Color("#a8c868"))
-		_px(canvas, p.x, p.y, Color("#fff27a"))
-	# String around the neck, cork, and a sprout on the cork.
-	var tie := _layer()
-	_round_rect(tie, Rect2i(24, 20, 17, 3), 1, Color("#e0c8a0"))
-	_stamp(canvas, tie, o)
-	_px(canvas, 42, 20, Color("#e0c8a0"))
-	_px(canvas, 43, 22, Color("#e0c8a0"))
-	var lid := _layer()
-	_round_rect(lid, Rect2i(26, 11, 13, 8), 2, cork[1])
-	for y in range(11, 19):
-		for x in range(26, 39):
 			if lid.get_pixel(x, y).a > 0.0:
-				lid.set_pixel(x, y, cork[2] if y < 13 else (cork[0] if x > 35 else cork[1]))
-	_stamp(canvas, lid, o)
-	_px(canvas, 29, 15, cork[0])
-	_px(canvas, 33, 16, cork[3])
-	var sway: int = [0, 1, 1, 0, 0, -1, -1, 0][f]
-	_leaf(canvas, Vector2(32, 11), Vector2(26 + sway, 5), 2.8, _ramp(LEAF), o)
-	_leaf(canvas, Vector2(33, 11), Vector2(39 + sway, 4), 3.0, _ramp(LEAF), o)
+				lid.set_pixel(x, y, cork[2] if y < 3 + dy else (cork[0] if x > 34 else cork[1]))
+	_stamp(canvas, lid, fig.o)
+	_px(canvas, 27, 4 + dy, cork[0])
+	_px(canvas, 31, 5 + dy, cork[3])
+	_leaf(canvas, Vector2(37, 3 + dy), Vector2(45 + sway, 0), 2.8, _ramp(LEAF), fig.o)
+	_golem_face(canvas, f, dy, fig, Color("#fff27a"), false)
 
-# Rootling: a little root spirit with a bark body, root legs gripping the stone, root arms (one
-# waving) and a leafy sprout on its head.
+# Rootling: a bark golem with roots spreading from its feet into the stone, root tendrils
+# curling from its shoulders (one waves), a knot hole and a leafy sprout on its head.
 func _draw_rootling(canvas: Image, f: int) -> void:
 	var dy: int = FRAME_POSE[f]
-	var sway: int = [0, 1, 1, 0, 0, -1, -1, 0][f]
-	var o := Color("#24160e")
-	var bark := _ramp(["#5a3a24", "#7a5234", "#9a6e48", "#c09268"])
-	_draw_waystone(canvas, poses[0])
+	var sway: int = SWAY[f]
+	var fig := _pal("#24160e", "#c09268", "#9a6e48", "#7a5234")
+	_draw_waystone(canvas, poses[dy])
 	var roots := _layer()
-	for root: Array in [[Vector2(28, 40), Vector2(22, 44), Vector2(15, 45)], [Vector2(31, 42), Vector2(28, 48)],
-			[Vector2(36, 41), Vector2(42, 45), Vector2(49, 44)], [Vector2(34, 42), Vector2(37, 49)]]:
-		_stroke(roots, root, 1.7, bark[1])
-	_stamp(canvas, roots, o)
-	# Head sprout (behind the body so the stem tucks in).
-	_leaf(canvas, Vector2(31, 24 + dy), Vector2(24 + sway, 17 + dy), 3.2, _ramp(LEAF), o)
-	_leaf(canvas, Vector2(33, 24 + dy), Vector2(40 + sway, 15 + dy), 3.6, _ramp(LEAF), o)
-	var body := _breathing_body(canvas, Vector2(32, 44), Vector2(9.5, 10.5), dy, bark, o)
-	# Bark grain.
-	for g: Array in [[Vector2(27, 29 + dy), Vector2(26, 34 + dy)], [Vector2(37, 31 + dy), Vector2(38, 37 + dy)],
-			[Vector2(30, 40), Vector2(30, 42)]]:
-		_line(canvas, g, bark[0], body)
-	_face(canvas, 32, 32 + dy, o, f == BLINK_FRAME)
-	# Arms: the left one waves.
+	for root: Array in [[Vector2(16, 44), Vector2(10, 46), Vector2(5, 44)], [Vector2(27, 47), Vector2(25, 53)],
+			[Vector2(40, 48), Vector2(46, 52), Vector2(53, 50)], [Vector2(52, 42), Vector2(57, 41), Vector2(61, 42)]]:
+		_stroke(roots, root, 1.6, fig.b)
+	_stamp(canvas, roots, fig.o)
+	var mask := _draw_template_figure(canvas, poses[dy], fig)
+	for g: Array in [[Vector2(24, 26 + dy), Vector2(23, 31 + dy), Vector2(24, 35)], [Vector2(29, 23 + dy), Vector2(30, 29 + dy)],
+			[Vector2(36, 28 + dy), Vector2(37, 34)], [Vector2(27, 7 + dy), Vector2(26, 9 + dy)], [Vector2(15, 40), Vector2(18, 42)]]:
+		_line(canvas, g, fig.c, mask)
+	var knot := _layer()
+	_flat_ellipse(knot, Vector2(33, 33), Vector2(1.6, 2.2), fig.c)
+	_stamp(canvas, knot, fig.o)
+	_leaf(canvas, Vector2(30, 5 + dy), Vector2(21 + sway, 1 + dy), 3.2, _ramp(LEAF), fig.o)
+	_leaf(canvas, Vector2(31, 5 + dy), Vector2(41 + sway, 0 + dy), 3.6, _ramp(LEAF), fig.o)
 	var wave: int = [0, -1, -2, -1, 0, 0, 0, 0][f]
-	var arms := _layer()
-	_stroke(arms, [Vector2(24, 34 + dy), Vector2(20, 30 + dy), Vector2(18, 25 + dy + wave)], 1.5, bark[2])
-	_stroke(arms, [Vector2(40, 35 + dy), Vector2(44, 38 + dy), Vector2(45, 42)], 1.5, bark[2])
-	_stamp(canvas, arms, o)
+	var tendrils := _layer()
+	_stroke(tendrils, [Vector2(21, 23 + dy), Vector2(17, 19 + dy), Vector2(16, 14 + dy + wave)], 1.3, fig.b)
+	_stroke(tendrils, [Vector2(42, 23 + dy), Vector2(47, 21 + dy), Vector2(49, 17 + dy)], 1.3, fig.b)
+	_stamp(canvas, tendrils, fig.o)
+	_golem_face(canvas, f, dy, fig)
 
-# Acorn: an acorn spirit with a scaly cap, a stem and a leaf, sitting on the stone.
+# Acorn: a nut golem wearing a scaly acorn cap with a stem and leaf, little acorns beside it.
 func _draw_acorn(canvas: Image, f: int) -> void:
 	var dy: int = FRAME_POSE[f]
-	var sway: int = [0, 1, 1, 0, 0, -1, -1, 0][f]
-	var o := Color("#2a1a10")
-	var nut := _ramp(["#8a5a2a", "#b07a3a", "#d49c54", "#f0c080"])
+	var sway: int = SWAY[f]
+	var fig := _pal("#2a1a10", "#f0c080", "#d49c54", "#b07a3a")
 	var shell := _ramp(["#4a3018", "#6a4828", "#8a6440", "#a88258"])
-	_draw_waystone(canvas, poses[0])
-	var nub := _layer()
-	_flat_ellipse(nub, Vector2(32, 46), Vector2(2, 1.5), nut[0])
-	_stamp(canvas, nub, o)
-	_breathing_body(canvas, Vector2(32, 46), Vector2(11, 11), dy, nut, o)
-	# Cap with a scale pattern, stem and leaf.
+	_draw_waystone(canvas, poses[dy])
+	var mask := _draw_template_figure(canvas, poses[dy], fig)
+	# A little acorn on the stone in front.
+	var nut := _layer()
+	_ellipse(nut, Vector2(26, 50), Vector2(3, 3.5), _ramp(["#b07a3a", "#d49c54", "#f0c080"]))
+	_stamp(canvas, nut, fig.o)
+	var hat := _layer()
+	_ellipse(hat, Vector2(26, 48), Vector2(4, 2.5), shell, 48.5)
+	_stamp(canvas, hat, fig.o)
+	for g: Array in [[Vector2(26, 24 + dy), Vector2(25, 30 + dy)], [Vector2(35, 26 + dy), Vector2(36, 31)]]:
+		_line(canvas, g, fig.b, mask)
 	var stem := _layer()
-	_stroke(stem, [Vector2(32, 22 + dy), Vector2(33, 18 + dy)], 1.5, shell[1])
-	_stamp(canvas, stem, o)
-	_leaf(canvas, Vector2(34, 19 + dy), Vector2(43 + sway, 14 + dy), 3.2, _ramp(LEAF), o)
+	_stroke(stem, [Vector2(30.5, 5 + dy), Vector2(31.5, 1 + dy)], 1.3, shell[1])
+	_stamp(canvas, stem, fig.o)
+	_leaf(canvas, Vector2(32, 2 + dy), Vector2(41 + sway, 0), 3.0, _ramp(LEAF), fig.o)
 	var cap := _layer()
-	_ellipse(cap, Vector2(32, 30 + dy), Vector2(13, 8), shell, 31.0 + dy)
+	_ellipse(cap, Vector2(30.5, 10 + dy), Vector2(12.5, 7), shell, 10.5 + dy)
 	for y in S:
 		for x in S:
-			if cap.get_pixel(x, y).a > 0.0 and (x + 2 * y) % 4 == 0 and y < 30 + dy:
+			if cap.get_pixel(x, y).a > 0.0 and (x + 2 * y) % 4 == 0 and y < 9 + dy:
 				cap.set_pixel(x, y, shell[0])
-	_stamp(canvas, cap, o)
-	_face(canvas, 32, 34 + dy, o, f == BLINK_FRAME)
+	_stamp(canvas, cap, fig.o)
+	_golem_face(canvas, f, dy, fig)
 
 func _round_rect(layer: Image, rect: Rect2i, r: int, color: Color) -> void:
 	for y in range(rect.position.y, rect.end.y):
