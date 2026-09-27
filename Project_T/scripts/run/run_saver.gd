@@ -83,7 +83,8 @@ func save_now() -> bool:
 	for tower in tower_container.get_children():
 		if tower is Tower and not tower.is_queued_for_deletion():
 			towers.append({"cell": [tower.cell.x, tower.cell.y], "data": tower.tower_data.resource_path,
-				"invested": tower.invested_dew, "rank": tower.rank, "target_mode": tower.target_mode})
+				"invested": tower.invested_dew, "rank": tower.rank, "focus": tower.focus,
+				"target_mode": tower.target_mode})
 	var data := {
 		"version": VERSION,
 		"map_seed": map_generator.map_seed,
@@ -111,6 +112,11 @@ func save_now() -> bool:
 	var omens := get_tree().get_first_node_in_group(&"omens")
 	if omens != null and omens.has_method("to_save"):
 		data["omens"] = omens.to_save()
+	# Nurture Dream cards (Tender Care / Warm Hands openers, Remembered Care's memory seeds).
+	if "rank_dew_spent" in run_state:
+		data["rank_dew_spent"] = run_state.rank_dew_spent
+	if "memory_seeds" in run_state:
+		data["memory_seeds"] = Array(run_state.memory_seeds)
 	var file := FileAccess.open(file_path, FileAccess.WRITE)
 	if file == null:
 		push_error("Could not write %s" % file_path)
@@ -138,6 +144,7 @@ func _restore(data: Dictionary) -> void:
 		tower.cell = Vector2(saved.cell[0], saved.cell[1])
 		tower.invested_dew = int(saved.invested)
 		tower.rank = int(saved.get("rank", 0))  # Saves from before Nurture have none
+		tower.focus = int(saved.get("focus", 0)) as Tower.Focus
 		tower.target_mode = int(saved.get("target_mode", 0)) as TowerData.TargetMode  # Snipers' aim
 		tower.position = map_generator.MAP_GRID.calculate_map_position(tower.cell)
 		tower_container.add_child(tower)
@@ -161,6 +168,10 @@ func _restore(data: Dictionary) -> void:
 	for cell in data.get("fertile_cells", []):
 		run_state.fertile_cells[Vector2(cell[0], cell[1])] = true
 	run_state.add_free_clears(int(data.get("free_clears", 0)) - run_state.free_clears)
+	if "rank_dew_spent" in run_state:
+		run_state.rank_dew_spent = int(data.get("rank_dew_spent", 0))
+	if "memory_seeds" in run_state:
+		run_state.memory_seeds.assign(data.get("memory_seeds", []).map(func(r) -> int: return int(r)))
 	run_state.dew_changed.emit(run_state.dew)
 	run_state.leaves_changed.emit(run_state.leaves, run_state.max_leaves)
 

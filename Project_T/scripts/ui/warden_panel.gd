@@ -65,6 +65,8 @@ func _refresh() -> void:
 	_title.text = data.display_name
 	if _tower.rank > 0:
 		_title.text += " · Rank %s" % Tower.RANK_NAMES[_tower.rank]
+		if _tower.focus != Tower.Focus.NONE:
+			_title.text += " · %s" % Tower.FOCUS_NAMES[_tower.focus]
 	var lines: Array[String] = []
 	if data.description != "":
 		lines.append(data.description)
@@ -120,16 +122,28 @@ func _refresh() -> void:
 			button.text = "%s · needs a Dream" % next.display_name
 			button.tooltip_text = next.description
 			button.disabled = true
-	if _tower.can_nurture():
+	if _tower.needs_focus():
+		# Rank III asks for a Focus, kept through growth and never changed.
+		var cost := _tower.get_nurture_cost()
+		for which in [Tower.Focus.POWER, Tower.Focus.SWIFT, Tower.Focus.REACH, Tower.Focus.DEEP]:
+			var button := _add_button("Rank III · %s: %s per rank · %d Dew" % [Tower.FOCUS_NAMES[which],
+				Tower.FOCUS_TEXT[which], cost])
+			button.tooltip_text = "The usual rank gains, plus this Focus at ranks III, IV and V. Can't be changed later."
+			button.disabled = not run_state.can_afford(cost)
+			button.pressed.connect(func() -> void:
+				if tower_placer.nurture(_tower, which):
+					_refresh())
+	elif _tower.can_nurture():
 		var cost := _tower.get_nurture_cost()
 		var nurture := _add_button("Nurture to rank %s · %d Dew (R)" % [Tower.RANK_NAMES[_tower.rank + 1], cost])
-		nurture.tooltip_text = "+15% damage, +5% attack speed, +0.1 range. Kept when it grows."
+		nurture.tooltip_text = "+10% damage, +4% attack speed, +0.1 range%s. Kept when it grows." % (
+			", and %s" % Tower.FOCUS_TEXT[_tower.focus] if _tower.focus != Tower.Focus.NONE else "")
 		nurture.disabled = not run_state.can_afford(cost)
 		nurture.pressed.connect(func() -> void:
 			if tower_placer.nurture(_tower):
 				_refresh())
-	elif data.can_attack and _tower.rank >= Tower.RANK_MAX:
-		_add_button("Rank V: fully nurtured").disabled = true
+	elif _tower.can_be_nurtured() and _tower.rank > 0:
+		_add_button("Rank %s: fully nurtured" % Tower.RANK_NAMES[_tower.rank]).disabled = true
 	var refund := tower_seller.get_refund(_tower)
 	var sell := _add_button("Sell · +%d Dew%s" % [refund, "" if drift_director.is_build_phase() else " (half during a drift)"])
 	sell.pressed.connect(func() -> void: tower_seller.sell(_tower.cell))
@@ -194,8 +208,27 @@ func _refresh_group() -> void:
 		else:
 			nurture.text = "Nurture %d of %d · %d Dew (R)" % [plan[0].size(), full[0], plan[1]]
 			nurture.disabled = plan[0].is_empty()
-		nurture.tooltip_text = "Each gains a rank: +15% damage, +5% attack speed, +0.1 range."
+		nurture.tooltip_text = "Each gains a rank: +10% damage, +4% attack speed, +0.1 range."
+		if tower_seller.count_needing_focus(selection) > 0:
+			nurture.tooltip_text += " Wardens at rank II wait for a Focus (below)."
 		nurture.pressed.connect(func() -> void: tower_seller.nurture_group(tower_seller.selection))
+	# Wardens at rank II need a Focus for rank III: one choice for the whole group.
+	var waiting := tower_seller.count_needing_focus(selection)
+	if waiting > 0:
+		for which in [Tower.Focus.POWER, Tower.Focus.SWIFT, Tower.Focus.REACH, Tower.Focus.DEEP]:
+			var cost: Array = tower_seller.full_nurture_cost(selection, which)
+			var plan_focus: Array = tower_seller.plan_nurture(selection, which)
+			var button := _add_button("")
+			if plan_focus[0].size() >= cost[0]:
+				button.text = "Nurture all %d, %d at rank III take %s · %d Dew" % [cost[0], waiting,
+					Tower.FOCUS_NAMES[which], cost[1]]
+			else:
+				button.text = "Nurture %d of %d, rank III take %s · %d Dew" % [plan_focus[0].size(), cost[0],
+					Tower.FOCUS_NAMES[which], plan_focus[1]]
+				button.disabled = plan_focus[0].is_empty()
+			button.tooltip_text = "%s: %s per rank from rank III. Can't be changed later." % [
+				Tower.FOCUS_NAMES[which], Tower.FOCUS_TEXT[which]]
+			button.pressed.connect(func() -> void: tower_seller.nurture_group(tower_seller.selection, which))
 	var refund := tower_seller.get_selection_refund()
 	var in_drift := not drift_director.is_build_phase()
 	var sell := _add_button("Sell %d · +%d Dew%s" % [selection.size(), refund, " (half during a drift)" if in_drift else ""])

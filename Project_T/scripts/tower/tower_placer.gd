@@ -225,15 +225,20 @@ func evolve(tower: Tower, into: TowerData) -> bool:
 	tower.evolve(into, cost)
 	return true
 
-# Nurtures `tower` one rank (warden_stats.md "Ranks: Nurture"), if it can go higher and the player
-# can afford it. Ranks never change the path, so this is always allowed, like evolving.
-func nurture(tower: Tower) -> bool:
+# Nurtures `tower` one rank (warden_stats.md "Nurture v2"), if it can go higher and the player can
+# afford it. The rank that asks for a Focus (III) needs `focus`; without one it refuses. Ranks never
+# change the path, so this is always allowed, like evolving.
+func nurture(tower: Tower, focus: Tower.Focus = Tower.Focus.NONE) -> bool:
 	if not is_instance_valid(tower) or not tower.can_nurture():
+		return false
+	if tower.needs_focus() and focus == Tower.Focus.NONE:
 		return false
 	var cost := tower.get_nurture_cost()
 	if not run_state.spend_dew(cost):
 		return false
-	tower.nurture(cost)
+	if "rank_dew_spent" in run_state:
+		run_state.rank_dew_spent += cost  # Nurture Dream openers look at this
+	tower.nurture(cost, focus)
 	return true
 
 # True if an enemy is standing in, or walking into, `cell`.

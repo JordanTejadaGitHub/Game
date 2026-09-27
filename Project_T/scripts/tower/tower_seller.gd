@@ -206,13 +206,20 @@ func grow_group(towers: Array, into: TowerData) -> int:
 		_selection_updated()  # Kinds changed: refresh the panel
 	return grown
 
+# Whether group Nurture would raise `tower` (with `focus` for Wardens reaching rank III; without one
+# they're left out).
+static func _nurturable(tower, focus: Tower.Focus) -> bool:
+	return is_instance_valid(tower) and tower.can_nurture() \
+		and (focus != Tower.Focus.NONE or not tower.needs_focus())
+
 # The Wardens in `towers` that group Nurture would raise one rank each with the Dew there is,
 # nearest the Heartwood first (like group grow), and what that costs: [Array[Tower], cost].
-func plan_nurture(towers: Array) -> Array:
+# Wardens whose next rank asks for a Focus only count when `focus` is given (one Focus for the group).
+func plan_nurture(towers: Array, focus: Tower.Focus = Tower.Focus.NONE) -> Array:
 	var chosen: Array[Tower] = []
 	var total := 0
 	for tower in sort_by_heartwood(towers):
-		if not is_instance_valid(tower) or not tower.can_nurture():
+		if not _nurturable(tower, focus):
 			continue
 		var cost: int = tower.get_nurture_cost()
 		if total + cost > run_state.dew:
@@ -221,22 +228,27 @@ func plan_nurture(towers: Array) -> Array:
 		total += cost
 	return [chosen, total]
 
-# Wardens in `towers` that could still gain a rank, and what raising all of them one rank costs.
-func full_nurture_cost(towers: Array) -> Array:
+# Wardens in `towers` that could still gain a rank (see plan_nurture), and what raising all of them
+# one rank costs: [count, Dew].
+func full_nurture_cost(towers: Array, focus: Tower.Focus = Tower.Focus.NONE) -> Array:
 	var count := 0
 	var total := 0
 	for tower in towers:
-		if is_instance_valid(tower) and tower.can_nurture():
+		if _nurturable(tower, focus):
 			count += 1
 			total += tower.get_nurture_cost()
 	return [count, total]
 
-# Nurtures `towers` one rank each as far as the Dew goes, nearest the Heartwood first. Returns how
-# many gained a rank.
-func nurture_group(towers: Array) -> int:
+# How many of `towers` are waiting at rank II for a Focus.
+func count_needing_focus(towers: Array) -> int:
+	return towers.filter(func(t) -> bool: return is_instance_valid(t) and t.needs_focus()).size()
+
+# Nurtures `towers` one rank each as far as the Dew goes, nearest the Heartwood first. Wardens
+# reaching rank III take `focus` (none given: they're skipped). Returns how many gained a rank.
+func nurture_group(towers: Array, focus: Tower.Focus = Tower.Focus.NONE) -> int:
 	var raised := 0
-	for tower in plan_nurture(towers)[0]:
-		if tower_placer.nurture(tower):
+	for tower in plan_nurture(towers, focus)[0]:
+		if tower_placer.nurture(tower, focus):
 			_blooms.append([tower, raised * BLOOM_STAGGER])
 			raised += 1
 	if raised > 0:

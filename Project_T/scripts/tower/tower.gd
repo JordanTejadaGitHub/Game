@@ -38,14 +38,29 @@ const NEIGHBOUR_REFRESH := 0.5  # Seconds between looks at neighbouring Wardens 
 const TONGUE_COLOR := Color(0.95, 0.55, 0.6)
 const WIND_COLOR := Color(0.85, 0.95, 1.0)
 const LIGHT_COLOR := Color(1.0, 0.9, 0.5)
-# Crit argument for hit(): roll the dice, or force it (a burst or splash uses its main hit's roll).
-const RANK_MAX := 5
-const RANK_COSTS: Array[int] = [15, 25, 40, 60, 90]  # Dew for ranks I-V
-const RANK_DAMAGE := 0.15
-const RANK_SPEED := 0.05
+# Nurture ranks (warden_stats.md "Nurture v2"). Costs are base × tier multiplier (at purchase) × Dreams.
+const RANK_MAX := 5  # Without Dreams (Deeper Rings: VII)
+const RANK_COSTS: Array[int] = [15, 25, 40, 60, 90]  # Base Dew for ranks I-V
+const RANK_DAMAGE := 0.10
+const RANK_SPEED := 0.04
 const RANK_RANGE := 0.1  # Cells
-const RANK_NAMES: Array[String] = ["", "I", "II", "III", "IV", "V"]
+const RANK_NAMES: Array[String] = ["", "I", "II", "III", "IV", "V", "VI", "VII"]
+const FOCUS_RANK := 3  # The rank that asks for a Focus; its bonus counts from here on
+enum Focus { NONE, POWER, SWIFT, REACH, DEEP }
+const FOCUS_NAMES := {Focus.POWER: "Power", Focus.SWIFT: "Swift", Focus.REACH: "Reach", Focus.DEEP: "Deep"}
+const FOCUS_TEXT := {Focus.POWER: "+8% damage", Focus.SWIFT: "+6% attack speed", Focus.REACH: "+0.2 range",
+	Focus.DEEP: "+10% status strength and duration"}
+const FOCUS_COLORS := {Focus.POWER: Color(1.0, 0.5, 0.35), Focus.SWIFT: Color(0.6, 1.0, 0.55),
+	Focus.REACH: Color(0.55, 0.8, 1.0), Focus.DEEP: Color(0.8, 0.6, 1.0)}
+const FOCUS_POWER := 0.08
+const FOCUS_SWIFT := 0.06
+const FOCUS_REACH := 0.2
+const FOCUS_DEEP := 0.10
 const PIP_COLOR := Color(1.0, 0.85, 0.45)
+const RANK_ART := "res://assets/towers/ranks/rank_%d_%s.png"
+const RANK_UP_ART := preload("res://assets/towers/ranks/rank_up.png")
+const RANK_UP_FPS := 16.0
+# Crit argument for hit(): roll the dice, or force it (a burst or splash uses its main hit's roll).
 const ROLL_CRIT := -1
 const NO_CRIT := 0
 const CRIT := 1
@@ -54,9 +69,18 @@ const CRIT := 1
 var cell: Vector2
 # All Dew put into this Warden (build cost, evolutions, ranks). Selling refunds a share of it.
 var invested_dew := 0
-# Nurture rank 0-5 (warden_stats.md "Ranks: Nurture"): each rank +15% damage, +5% attack speed,
-# +0.1 range. Kept through evolution.
-var rank := 0
+# Nurture rank 0-5 (7 with Deeper Rings): each rank +10% damage, +4% attack speed, +0.1 range, and
+# from rank III the Focus bonus. Kept through evolution, like the Focus (chosen at rank III, fixed).
+# Setting it from outside (Dream cards, the save) refreshes the rank art and pips too.
+var rank := 0:
+	set(value):
+		rank = value
+		_update_rank_art()
+		queue_redraw()
+var focus: Focus = Focus.NONE:
+	set(value):
+		focus = value
+		queue_redraw()
 # What the attack does: `tower_data` itself, or for a Graftling the neighbour it copies.
 var attack_data: TowerData
 # Who snipers shoot at (the player can change it in the Warden panel).
@@ -117,6 +141,11 @@ func _process(delta: float) -> void:
 		_advance_attack(delta)
 	elif _beam_target == null:
 		sprite.frame = int(_anim_time * tower_data.animation_fps) % tower_data.frame_count
+	if rank > 0:
+		var art_frame := int(_anim_time * tower_data.animation_fps) % 8
+		for art in [get_node_or_null("RankUnder"), get_node_or_null("RankOver")]:
+			if art:
+				art.frame = art_frame
 	if not tower_data.can_attack:
 		return
 	match attack_data.attack_kind:
@@ -147,39 +176,149 @@ func _has_work() -> bool:
 # --- Effective stats (base × Dreams) ----------------------------------------------------------------
 
 func get_damage() -> float:
-	return attack_data.damage * _damage_share * (1.0 + RANK_DAMAGE * rank) \
+	return attack_data.damage * _damage_share * get_rank_damage_multiplier() \
 		* (_dream_state.get_soothe_multiplier(self) if _dream_state else 1.0)
 
 func get_attacks_per_second() -> float:
-	return attack_data.attacks_per_second * (1.0 + RANK_SPEED * rank) \
-		* (_dream_state.get_attack_speed_multiplier(tower_data) if _dream_state else 1.0)
+	var ranks := get_effective_rank()
+	var speed := 1.0 + RANK_SPEED * ranks + (FOCUS_SWIFT * _focus_ranks(ranks) if focus == Focus.SWIFT else 0.0)
+	var dreams := 1.0
+	if _dream_state:
+		dreams = _dream_state.get_attack_speed_multiplier(tower_data)
+		if _dream_state.has_method("get_tower_attack_speed_bonus"):
+			dreams += _dream_state.get_tower_attack_speed_bonus(self)  # Sprout Chorus, The Last Light
+	return attack_data.attacks_per_second * speed * dreams
 
 func get_range_cells() -> float:
-	return get_range_for(attack_data, _dream_state) + _aura_range + RANK_RANGE * rank
+	var ranks := get_effective_rank()
+	var reach := RANK_RANGE * ranks + (FOCUS_REACH * _focus_ranks(ranks) if focus == Focus.REACH else 0.0)
+	if _dream_state and _dream_state.has_method("get_tower_range_bonus"):
+		reach += _dream_state.get_tower_range_bonus(self)  # Solitude
+	return get_range_for(attack_data, _dream_state) + _aura_range + reach
 
 
 # --- Nurture ranks -------------------------------------------------------------------------------------
 
-# Attacking Wardens can be nurtured (not walls, not the White Stag's aura).
+# The rank that counts for stats (The Old Ones can lift it by one next to a rank V+ Warden).
+func get_effective_rank() -> int:
+	if _dream_state and _dream_state.has_method("get_effective_rank"):
+		return _dream_state.get_effective_rank(self)
+	return rank
+
+# Ranks from III up (the ones that carry the Focus bonus).
+static func _focus_ranks(ranks: int) -> int:
+	return maxi(ranks - FOCUS_RANK + 1, 0)
+
+# Damage multiplier from ranks: +10% each (+ Warm Hands), + Power's +8% from rank III.
+func get_rank_damage_multiplier() -> float:
+	var ranks := get_effective_rank()
+	var per_rank := RANK_DAMAGE
+	if _dream_state and _dream_state.has_method("get_rank_damage_bonus"):
+		per_rank += _dream_state.get_rank_damage_bonus()
+	return 1.0 + per_rank * ranks + (FOCUS_POWER * _focus_ranks(ranks) if focus == Focus.POWER else 0.0)
+
+# Deep Focus: status strength and duration multiplier.
+func get_status_focus_multiplier() -> float:
+	return 1.0 + FOCUS_DEEP * _focus_ranks(get_effective_rank()) if focus == Focus.DEEP else 1.0
+
+func get_max_rank() -> int:
+	if _dream_state and _dream_state.has_method("get_max_rank"):
+		return _dream_state.get_max_rank()
+	return RANK_MAX
+
+# Attacking Wardens can be nurtured (not walls or wall growths, not the White Stag's aura).
+func can_be_nurtured() -> bool:
+	return tower_data.can_attack and tower_data.line != "wall" \
+		and tower_data.attack_kind != TowerData.AttackKind.AURA
+
 func can_nurture() -> bool:
-	return tower_data.can_attack and tower_data.attack_kind != TowerData.AttackKind.AURA and rank < RANK_MAX
+	return can_be_nurtured() and rank < get_max_rank()
+
+# The next rank asks for a Focus first (rank II -> III, no Focus yet).
+func needs_focus() -> bool:
+	return can_nurture() and rank + 1 >= FOCUS_RANK and focus == Focus.NONE
+
+# Cost multiplier from the Warden's tier right now: Sprout ×0.5, base ×1, branch ×2, final ×3,
+# Memory Warden ×2.
+func get_tier_cost_multiplier() -> float:
+	if tower_data.is_unique:
+		return 2.0
+	match tower_data.tier:
+		0:
+			return 0.5
+		1:
+			return 1.0
+		2:
+			return 2.0
+	return 3.0
 
 # Dew for the next rank (0 when it can't be nurtured further).
 func get_nurture_cost() -> int:
-	return RANK_COSTS[rank] if can_nurture() else 0
+	if not can_nurture():
+		return 0
+	var next := rank + 1
+	var base: float = RANK_COSTS[rank] if rank < RANK_COSTS.size() else 0.0
+	if next > RANK_COSTS.size() and _dream_state and _dream_state.has_method("get_extra_rank_cost"):
+		base = _dream_state.get_extra_rank_cost(next)  # Deeper Rings: VI and VII
+	var multiplier := get_tier_cost_multiplier()
+	if _dream_state and _dream_state.has_method("get_nurture_cost_multiplier"):
+		multiplier *= _dream_state.get_nurture_cost_multiplier()
+	return maxi(roundi(base * multiplier), 1)
 
 # Raises the rank by one; `cost` is added to invested Dew (TowerPlacer.nurture charges it).
-func nurture(cost: int) -> void:
-	rank = mini(rank + 1, RANK_MAX)
+# `chosen` sets the Focus when this is the rank that asks for one.
+func nurture(cost: int, chosen: Focus = Focus.NONE) -> void:
+	if focus == Focus.NONE and chosen != Focus.NONE:
+		focus = chosen
+	rank = mini(rank + 1, get_max_rank())
 	invested_dew += cost
+	_play_rank_up()
 	queue_redraw()
 	nurtured.emit(self)
+
+# The rank's slab art: a halo under the sprite, and a looping overlay on the slab's rim over it.
+func _update_rank_art() -> void:
+	var under := get_node_or_null("RankUnder") as Sprite2D
+	var over := get_node_or_null("RankOver") as Sprite2D
+	var art_rank := mini(rank, 7)
+	if art_rank <= 0:
+		for node in [under, over]:
+			if node:
+				node.queue_free()
+		return
+	if under == null:
+		under = Sprite2D.new()
+		under.name = "RankUnder"
+		under.hframes = 8
+		add_child(under)
+		move_child(under, 0)  # Drawn before (under) the Warden's sprite
+	if over == null:
+		over = Sprite2D.new()
+		over.name = "RankOver"
+		over.hframes = 8
+		add_child(over)
+	under.texture = load(RANK_ART % [art_rank, "under"])
+	over.texture = load(RANK_ART % [art_rank, "over"])
+
+func _play_rank_up() -> void:
+	if not is_inside_tree():
+		return
+	var burst := Sprite2D.new()
+	burst.texture = RANK_UP_ART
+	burst.hframes = 8
+	burst.z_index = 2
+	add_child(burst)
+	var tween := burst.create_tween()
+	tween.tween_property(burst, "frame", 7, 7.0 / RANK_UP_FPS)
+	tween.tween_callback(burst.queue_free)
 
 func get_splash_cells() -> float:
 	return attack_data.splash_radius * (_dream_state.get_splash_multiplier(tower_data) if _dream_state else 1.0)
 
 func get_crit_chance(enemy: Node2D = null) -> float:
 	var chance := attack_data.crit_chance + _aura_crit
+	if _dream_state and _dream_state.has_method("get_rank_crit_bonus"):
+		chance += _dream_state.get_rank_crit_bonus() * get_effective_rank()  # The Old Ones
 	if enemy != null and enemy.statuses.is_held():
 		chance += attack_data.crit_bonus_vs_held
 	return minf(chance, 1.0)
@@ -356,7 +495,7 @@ func pop(enemy: Node2D, chain: Dictionary = {}) -> void:
 	var applier := statuses.source(EnemyStatuses.SPORED)
 	statuses.remove(EnemyStatuses.SPORED)
 	var at := enemy.global_position
-	var damage := attack_data.pop_damage_per_stack * stacks * (1.0 + RANK_DAMAGE * rank) \
+	var damage := attack_data.pop_damage_per_stack * stacks * get_rank_damage_multiplier() \
 		* (_dream_state.get_soothe_multiplier(self) if _dream_state else 1.0)
 	var reach := attack_data.pop_radius * MAP_GRID.cell_size.x
 	for other in get_tree().get_nodes_in_group(ENEMY_GROUP):
@@ -444,6 +583,12 @@ func apply_status_to(enemy: Node2D, soothe: float) -> void:
 		potency *= _dream_state.get_status_strength_multiplier(status)
 		duration = _dream_state.get_status_duration(attack_data, status)
 		max_stacks = _dream_state.get_status_max_stacks(attack_data, status)
+	var deep := get_status_focus_multiplier()  # Deep Focus: stronger and longer
+	if deep != 1.0:
+		if duration <= 0.0:
+			duration = EnemyStatuses.DEFAULT_DURATION[status]
+		duration *= deep
+		potency *= deep
 	enemy.apply_status(status, attack_data.status_stacks, duration, potency, max_stacks, tower_data.line, self)
 
 # Projectile landed at `where` (on `target` if it's still there): soothe it, or everything in the
@@ -765,8 +910,8 @@ func _draw() -> void:
 	if attack_data != null and attack_data.attack_kind == TowerData.AttackKind.AURA:
 		draw_arc(Vector2.ZERO, get_range_pixels(), 0.0, TAU, 64, Color(0.85, 0.9, 1.0, 0.12), 3.0)
 
-# Small warm pips along the bottom of the tile, one per Nurture rank. Drawn on a child so they sit
-# over the sprite.
+# Small warm pips along the bottom of the tile, one per Nurture rank, with the Focus icon after them.
+# Drawn on a child so they sit over the sprite.
 func _draw_rank_pips() -> void:
 	var pips := get_node_or_null("RankPips") as Node2D
 	if rank <= 0:
@@ -778,13 +923,42 @@ func _draw_rank_pips() -> void:
 		pips.name = "RankPips"
 		pips.z_index = 1
 		pips.draw.connect(func() -> void:
-			var width := (rank - 1) * 7.0
+			if rank <= 0:
+				return
+			var step := 7.0 if rank <= 5 else 6.0
+			var icon_space := 9.0 if focus != Focus.NONE else 0.0
+			var left := -((rank - 1) * step + icon_space) / 2.0
 			for i in rank:
-				var at := Vector2(-width / 2.0 + i * 7.0, 27.0)
+				var at := Vector2(left + i * step, 27.0)
 				pips.draw_circle(at, 3.2, Color(0.1, 0.08, 0.05, 0.85))
-				pips.draw_circle(at, 2.2, PIP_COLOR))
+				pips.draw_circle(at, 2.2, PIP_COLOR)
+			if focus != Focus.NONE:
+				draw_focus_icon(pips, Vector2(left + (rank - 1) * step + icon_space, 27.0), focus))
 		add_child(pips)
 	pips.queue_redraw()
+
+# A tiny Focus glyph: Power an upward flame, Swift a double chevron, Reach a ring, Deep a drop.
+# Shared with the Warden panel.
+static func draw_focus_icon(canvas: CanvasItem, at: Vector2, which: Focus, size: float = 1.0) -> void:
+	var color: Color = FOCUS_COLORS.get(which, Color.WHITE)
+	var dark := Color(0.1, 0.08, 0.05, 0.9)
+	canvas.draw_circle(at, 4.6 * size, dark)
+	match which:
+		Focus.POWER:
+			var flame := PackedVector2Array([at + Vector2(0, -3.5) * size, at + Vector2(3, 2.5) * size,
+				at + Vector2(-3, 2.5) * size])
+			canvas.draw_colored_polygon(flame, color)
+		Focus.SWIFT:
+			for dx in [-1.5, 1.5]:
+				canvas.draw_polyline(PackedVector2Array([at + Vector2(dx - 1.5, -2.5) * size,
+					at + Vector2(dx + 1.0, 0) * size, at + Vector2(dx - 1.5, 2.5) * size]), color, 1.2 * size)
+		Focus.REACH:
+			canvas.draw_arc(at, 2.8 * size, 0.0, TAU, 12, color, 1.3 * size)
+			canvas.draw_circle(at, 0.9 * size, color)
+		Focus.DEEP:
+			canvas.draw_circle(at + Vector2(0, 1) * size, 2.3 * size, color)
+			canvas.draw_colored_polygon(PackedVector2Array([at + Vector2(0, -3.5) * size,
+				at + Vector2(2.1, 0.3) * size, at + Vector2(-2.1, 0.3) * size]), color)
 
 # Attack reach in pixels.
 func get_range_pixels() -> float:
