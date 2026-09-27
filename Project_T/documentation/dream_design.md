@@ -176,6 +176,14 @@ build direction with that trade-off intact.
   (Burn Back needs 8 Withered Trees). They lean toward early Dreams, when the map is still full.
 - **Seeds:** free clears (Heartwood's Reach) still give +1 Seed each. **Burn Back doesn't**: clearing
   dozens of trees at once would otherwise flood the meta with Seeds.
+- **Burn Back and the other cards:** its clears **don't trigger Reclaimed Earth** (no +8 Dew, no
+  fertile cells), for the same reason. They **do count for Tended Forest** (it's capped at +25%, so
+  that combo is a fair payoff).
+- **Heartwood's Reach II** brings the total to **7 charges** (+3 when taken), not +7: Deepened
+  replaces the base effect.
+- **Settled in implementation:** Cleared Ground stacks add (−40%, −80%, then the 1 Dew minimum);
+  free clears are used before Dew; Burn Back's speed cost applies to bosses too; Burn Back is act 2+
+  like other Bittersweet cards.
 - **Path rule:** clearing only ever opens routes, so every card is always safe; the preview line
   shows the new route before a clear, as now.
 - **Pairs well with:** Hedge Maze and Thornwalls (clear the forest, then build your own walls where
