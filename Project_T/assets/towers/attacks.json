@@ -10,6 +10,42 @@
 				46
 			]
 		},
+		"beacon": {
+			"kind": "pulse",
+			"point": [
+				31,
+				46
+			]
+		},
+		"bloomcap": {
+			"kind": "cloud",
+			"point": [
+				49,
+				14
+			]
+		},
+		"boulderback": {
+			"kind": "projectile",
+			"point": [
+				51,
+				8
+			],
+			"projectile": "boulder"
+		},
+		"bramble": {
+			"kind": "pulse",
+			"point": [
+				31,
+				46
+			]
+		},
+		"chime_stone": {
+			"kind": "pulse",
+			"point": [
+				31,
+				46
+			]
+		},
 		"dewdrop": {
 			"kind": "projectile",
 			"point": [
@@ -17,6 +53,28 @@
 				2
 			],
 			"projectile": "dew_drop"
+		},
+		"dreamshroom": {
+			"kind": "cloud",
+			"point": [
+				49,
+				14
+			]
+		},
+		"driftspore": {
+			"kind": "projectile",
+			"point": [
+				46,
+				9
+			],
+			"projectile": "spore"
+		},
+		"elder_stump": {
+			"kind": "pulse",
+			"point": [
+				31,
+				46
+			]
 		},
 		"firefly_jar": {
 			"kind": "projectile",
@@ -26,6 +84,64 @@
 			],
 			"projectile": "spark"
 		},
+		"grove_heart": {
+			"kind": "pulse",
+			"point": [
+				31,
+				46
+			]
+		},
+		"lanternmoth": {
+			"kind": "projectile",
+			"point": [
+				31,
+				4
+			],
+			"projectile": "light_orb"
+		},
+		"long_way_home": {
+			"kind": "pull",
+			"point": [
+				60,
+				31
+			]
+		},
+		"lullaby_bell": {
+			"kind": "pulse",
+			"point": [
+				31,
+				46
+			]
+		},
+		"mistveil": {
+			"kind": "cloud",
+			"point": [
+				31,
+				46
+			]
+		},
+		"monsoon": {
+			"kind": "pulse",
+			"point": [
+				31,
+				46
+			]
+		},
+		"morning_fog": {
+			"kind": "cloud",
+			"point": [
+				31,
+				46
+			]
+		},
+		"mossback": {
+			"kind": "projectile",
+			"point": [
+				51,
+				8
+			],
+			"projectile": "boulder"
+		},
 		"pebbling": {
 			"kind": "projectile",
 			"point": [
@@ -34,8 +150,38 @@
 			],
 			"projectile": "pebble"
 		},
+		"puffball": {
+			"kind": "projectile",
+			"point": [
+				46,
+				9
+			],
+			"projectile": "spore"
+		},
+		"rain_lily": {
+			"kind": "projectile",
+			"point": [
+				30,
+				2
+			],
+			"projectile": "dew_drop"
+		},
+		"rootcurl": {
+			"kind": "pull",
+			"point": [
+				60,
+				31
+			]
+		},
 		"rootling": {
 			"kind": "pulse",
+			"point": [
+				31,
+				46
+			]
+		},
+		"snugroot": {
+			"kind": "hold",
 			"point": [
 				31,
 				46
@@ -56,6 +202,34 @@
 				9
 			],
 			"projectile": "spore"
+		},
+		"stormcap": {
+			"kind": "chain",
+			"point": [
+				40,
+				6
+			]
+		},
+		"sunpetal": {
+			"kind": "beam",
+			"point": [
+				38,
+				12
+			]
+		},
+		"tangleroot": {
+			"kind": "hold",
+			"point": [
+				31,
+				46
+			]
+		},
+		"thunderhead": {
+			"kind": "chain",
+			"point": [
+				44,
+				5
+			]
 		}
 	}
 }
