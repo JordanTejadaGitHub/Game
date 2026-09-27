@@ -4,8 +4,8 @@
 
 [resource]
 script = ExtResource("1_card")
-id = "wild_growth_wide"
-display_name = "Wild Growth"
+id = "overgrowth"
+display_name = "Overgrowth"
 description = "Planting any Warden costs 30% less Dew."
 cost_description = "Wardens can't be nurtured past rank I."
 rarity = 2
