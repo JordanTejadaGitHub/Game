@@ -10,6 +10,9 @@ that feels right. Topics are ordered by when the build will need them (build ord
 
 ## Phase 1: Run pacing and economy (now; code needs it for leaves and drifts)
 
+**Drafted in `run_design.md`** (15 drifts in 3 acts, build/sell/speed rules, Dew numbers, act 1
+drift list). Remaining: its open questions, then playtest tuning.
+
 ### 1. Run structure
 - How long is a run? (Target session length, e.g. 30–45 min.)
 - Acts: how many, how many drifts each, a boss drift at the end of each? (Docs say both "10 drifts"
