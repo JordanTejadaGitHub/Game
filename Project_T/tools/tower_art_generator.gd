@@ -3329,7 +3329,7 @@ func _slab_masks() -> Dictionary:
 		for x in S:
 			if _on(top, x, y) and _on(side, x, y + 1) and y >= 40:
 				rim.set_pixel(x, y, Color.WHITE)
-	return {top = top, side = side, rim = rim}
+	return {top = top, side = side, rim = rim, grid = pose.grid}
 
 # The rim's y at column x (the front edge of the top face), or -1.
 func _rim_y(masks: Dictionary, x: int) -> int:
@@ -3359,6 +3359,20 @@ func _rank_over(canvas: Image, rank: int, f: int, masks: Dictionary) -> void:
 			_px(canvas, x, y, Color.WHITE if absi(x - glint) <= 1 else RANK_GOLD)
 			if _on(masks.side, x, y + 1):
 				_px(canvas, x, y + 1, RANK_GOLD_DARK)
+	# VI+: the whole slab is gilded: gold side faces that keep the template's brick lines and streaks.
+	if rank >= 6:
+		var lit: bool = f % 4 < 2
+		for y in S:
+			for x in S:
+				if not _on(masks.side, x, y):
+					continue
+				var ch: String = masks.grid[y * S + x]
+				var col := Color("#d8a840") if ch == "d" else (Color("#a8782a") if ch == "e" else Color("#f4d878"))
+				if rank >= 7:  # radiant: paler, brighter gold
+					col = Color("#f4d070") if ch == "d" else (Color("#d0a040") if ch == "e" else Color("#fff0b8"))
+				if (x * 3 + y * 5) % 11 == 0:
+					col = col.lightened(0.3) if lit else col.lightened(0.15)
+				canvas.set_pixel(x, y, col)
 	# VI: a second gold ring just inside the trim, and ring emblems in the stone.
 	if rank >= 6:
 		for x in S:
@@ -3371,9 +3385,12 @@ func _rank_over(canvas: Image, rank: int, f: int, masks: Dictionary) -> void:
 					_px(canvas, p.x + d.x, p.y + d.y, RANK_GOLD)
 			if _on(masks.side, p.x, p.y):
 				_px(canvas, p.x, p.y, Color.WHITE if f % 4 < 2 else Color("#ffe890"))
+			for d: Vector2i in [Vector2i(-1, -1), Vector2i(0, -1), Vector2i(1, -1), Vector2i(-1, 0), Vector2i(1, 0), Vector2i(-1, 1), Vector2i(0, 1), Vector2i(1, 1)]:
+				if _on(masks.side, p.x + d.x, p.y + d.y):
+					_px(canvas, p.x + d.x, p.y + d.y, Color("#6a4418"))
 	# VII: golden root filigree running down the side faces.
 	if rank >= 7:
-		var gold := Color("#ffd870") if f % 4 < 2 else RANK_GOLD
+		var gold := Color("#fffbe0") if f % 4 < 2 else Color("#fff0a0")
 		for root: Array in [[Vector2(5, 44), Vector2(7, 48), Vector2(5, 52)], [Vector2(22, 53), Vector2(23, 57), Vector2(21, 61)],
 				[Vector2(41, 54), Vector2(40, 58), Vector2(42, 61)], [Vector2(57, 45), Vector2(56, 49), Vector2(58, 52)]]:
 			for i in root.size() - 1:
@@ -3439,6 +3456,16 @@ func _rank_under(canvas: Image, rank: int, f: int, _masks: Dictionary) -> void:
 	var c := Vector2(31.5, 49)
 	if rank >= 7:
 		_ring(canvas, c, r + Vector2(1.5, 1), Color(GLOW_INNER, 0.7), f % 2 == 0)
+	# VI+: warm light rays fanning out over the ground round the gilded slab.
+	if rank >= 6:
+		var rays := 10 if rank >= 7 else 8
+		for k in rays:
+			var d := Vector2.from_angle(k * TAU / rays + f * 0.05)
+			var reach := 1.25 + (0.1 if (k + f) % 2 == 0 else 0.0)
+			for s in 12:
+				var p := c + Vector2(d.x * r.x, d.y * r.y) * lerpf(0.75, reach, s / 11.0)
+				if (s + f) % 2 == 0:
+					_px(canvas, roundi(p.x), roundi(p.y), Color(GLOW_INNER, 0.8))
 	for y in S:
 		for x in S:
 			var q := ((Vector2(x + 0.5, y + 0.5) - c) / r).length()
