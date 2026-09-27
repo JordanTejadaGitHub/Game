@@ -94,15 +94,33 @@ were too sharp):
    formant, lowpassed near 1.5 kHz), pitched by size. Unsettling, not a scream.
 2. **Dissolve:** a soft, muffled *whumpf* as the shadow comes apart: low body (~100–200 Hz) with a
    gentle airy swell. No glass or ice crackle.
-3. **Release:** a warm chime that resolves in the music's key, **an octave lower than the placeholder**
-   (around D5), with a soft mallet onset. Randomise pitch
-slightly; when several dispels land close together, the chimes step up in pitch like a combo. Dew
-landing on the leaves: a tiny tinkle.
+3. **Release:** the dream settling: a quiet, warm exhale or a low hummed tone in the music's key,
+   fading over ~0.5 s. **No bell or chime** (third listen: chimes read as coins).
+
+**Not a reward sound.** A dispel sounds like a nightmare ending, never like getting paid:
+- **No climbing combo.** When several dispels land close together they blend into one fuller, softer
+  swell (voice-limited, slightly quieter each), not a rising run of notes.
+- **No Dew sound per kill.** The "+N Dew" popup is enough. Dew makes a sound only for big lump sums
+  (the rest bonus, Omen rewards): a soft, low rustle of light, never a tinkle, bell or coin.
+- Randomise pitch slightly.
 
 ### Wardens (warm, not weak)
 
-Every attack has **two parts**: a small **launch** when the Warden fires, and a **hit** when it lands.
-The hit carries the impact. It's built in three layers:
+**Organic, never chiptune** (third listen: the Sprout's shot sounded like "pixel murmur"; the Firefly
+Jar was fine). Shots and hits sound like real materials: air, wood, stone, water, breath, earth.
+This matters most for the Sprout: it's the starting Warden, so its shot is the most-heard sound in
+the game. Apply the rules below to it now, and to every new Warden sound:
+- **No pure oscillator tones** (sine, square, saw) as the main sound of a shot, and **no pitch sweeps**
+  (the rising "bloop" droplet, laser glides). Those read as 8-bit.
+- **No plucked or music-box tones** on shots; melody belongs to the music, not to combat.
+- Synthesized placeholders are built from **noise shaped by material resonances** (several
+  inharmonic resonant bands for wood or stone, filtered noise for air and water), never tones.
+- **Final sounds are recorded foley** (or licensed foley libraries), layered and processed to fit.
+  Synthesis is only a stand-in for combat sounds.
+
+Every attack has **two parts**: a very quiet **launch** when the Warden fires (mostly air: a soft
+*whff*, a sling's rush, a breath), and a **hit** when it lands. The hit carries the impact. It's
+built in three layers:
 
 - **Onset** (first ~10 ms): a rounded *tock* in the 300–900 Hz range with a 3–5 ms fade-in. It
   gives the hit its edge without stinging. (Revised: the first version asked for a 2–4 kHz snap, which
@@ -116,9 +134,9 @@ The hit carries the impact. It's built in three layers:
 | Sporeling (spore) | soft pop + breath | a full, round "puff" with a soft low thump |
 | Pebbling (stone) | sling whip | **heavy thud**: a hard wood/stone crack over a deep body |
 | Dewdrop (water) | a drop falling | **splash**: a sharp droplet snap, a low "plunk", a spray tail |
-| Firefly Jar (light) | a warm glow swell | a **warm bloom**: a soft *fwump* of light with a low body, no crackle; chains ripple a softer bloom down the line |
+| Firefly Jar (light) | a warm glow swell | a **warm bloom**: a soft *fwump* of light with a low body, no crackle; chains ripple a softer bloom down the line. **Approved on the third listen: keep.** |
 | Rootling (root, pulse) | — (the pulse is the hit) | a **ground boom**: wooden knock + deep sub rumble, felt more than heard |
-| Sprout (neutral) | a soft pluck | a light, bright "tock" |
+| **Sprout (neutral)** | a small leafy flick of air (no pluck) | a light wooden **twig tap**: noise through a couple of woody resonances, a soft low thump, no tone. **Revised on the third listen**: the plucked-tone version sounded like chiptune |
 | Acorn aura | — | a soft chime when a neighbour is buffed (rare, not every tick) |
 | Crit | — | the normal hit + an extra low punch + a soft, low bell (not a high ping) |
 | Sunpetal / Midsummer beam | — | a warm hum that climbs in pitch as the beam ramps; no sizzle |
@@ -246,5 +264,12 @@ rustles hurt the ear.
 | Dispels, hits and much else too sharp | the shared "crackle" texture (high-passed click trains at 1.5–3 kHz) in the dispel, split, leaf lost, hits, tend, trample, Shade, Widow and Stag; the dispel's saw shriek; instant 1–2 ms onsets; the doc itself asked for a 2–4 kHz snap | new pillar **Rounded, never sharp**; the dispel becomes sigh → dissolve → low chime; hits get a rounded 300–900 Hz *tock* and more body instead of a snap; weak hits fuller, not brighter; soft onsets; SFX-bus high shelf + soft limiter |
 | Leaf rustles hurt | crackle-based rustles in the ambience | removed; wind plus rare soft events only |
 
+**Third listen (same day):** shots sound like "pixel murmur"; kills sound "cashy".
+
+| Problem | Cause in the placeholder | Change |
+|---|---|---|
+| The Sprout's shot sounds chiptune (Firefly Jar fine) | the Sprout's shot is a plucked synth tone, pitched in a melody, fired constantly (it's the most-built Warden) | Sprout becomes a leafy flick + a wooden twig tap made from noise through woody resonances, no tone; new rule **Organic, never chiptune** for all future Warden sounds; final versions are recorded foley |
+| Kills sound like coins | every kill played the dispel + a bell chime that climbed a scale in combos + a two-bell Dew tinkle | release is a warm exhale / low hum, no bell; no climbing combo; no Dew sound per kill (lump sums only, soft) |
+
 Open question: whether every attack keeps a launch sound, or only the slower, heavier Wardens
-(Pebbling, Rootling) do and the fast ones are hit-only. Default: all keep it, very quiet.
+(Pebbling, Rootling) do and the fast ones are hit-only. Default: all keep it, very quiet (mostly air).
