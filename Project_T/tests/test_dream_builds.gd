@@ -26,6 +26,7 @@ func _run() -> void:
 	_test_direction_weighting()
 	_test_reaction_cards()
 	_test_family_review_cards()
+	_test_seedling_gift()
 	print("dream builds test: %s" % ("PASS" if failures == 0 else "%d FAILED" % failures))
 	quit(failures)
 
@@ -307,6 +308,73 @@ func _test_family_review_cards() -> void:
 	dreams.unlocked["rain_lily"] = true
 	_check(dreams.is_eligible(_card("windborne_rain")) and not dreams.is_eligible(_card("seed_storm"), 1)
 		and dreams.is_eligible(_card("seed_storm"), 2), "Windborne Rain (Samara + Rain Lily); Seed Storm is act 2+")
+
+# Seedling Gift (#33): a free Sprout charge each rest, used before Dew; Nursery (Entwined with Tender
+# Care) makes those Sprouts rank II. Also the Great Dreamcatcher's Dreamlight shards.
+func _test_seedling_gift() -> void:
+	_reset()
+	var placer: TowerPlacer = main.get_node("%TowerPlacer")
+	var seller: TowerSeller = main.get_node("%TowerSeller")
+	var map_generator = main.get_node("%MapGenerator")
+	var gift := _card("seedling_gift")
+	var nursery := _card("nursery")
+	dreams.grove_cards.assign(["seedling_gift", "nursery"])
+	_check(dreams.is_eligible(gift), "Seedling Gift is offered from the Grove")
+	dreams.take(gift)
+	run_state.sprout_charges = 0
+	dreams._on_rest_started(1, false, 0, true)
+	dreams._pending_drifts.clear()
+	_check(run_state.sprout_charges == 1, "a free Sprout charge at every rest")
+
+	run_state.dew = 100
+	placer.tower_data = load("res://resource/tower/sprout.tres")
+	var cell := _free_cell(map_generator)
+	_check(placer.get_cost(null, cell) == 0, "a charge makes the next Sprout free")
+	_check(placer._try_build(cell) and run_state.dew == 100 and run_state.sprout_charges == 0, "the charge is used before Dew")
+	var sprout: Tower = seller.get_tower_at(cell)
+	_check(sprout != null and sprout.invested_dew == 0 and seller.get_refund(sprout) == 0, "a charged Sprout refunds nothing")
+	_check(sprout.rank == 0, "without Nursery it starts unranked")
+	var paid_cell := _free_cell(map_generator)
+	placer._try_build(paid_cell)
+	_check(run_state.dew < 100, "with no charge left, Sprouts cost Dew again")
+
+	_check(not dreams.is_eligible(nursery), "Nursery needs Tender Care too")
+	dreams.take(_card("tender_care"))
+	_check(dreams.is_eligible(nursery) and dreams.make_offer(10).has(nursery), "…then Nursery is Entwined: guaranteed")
+	dreams.take(nursery)
+	_check(is_equal_approx(dreams.get_nurture_cost_multiplier(sprout), 0.85 * 0.5), "Nursery: Sprouts nurture for half price")
+	run_state.add_sprout_charges(1)
+	var nursery_cell := _free_cell(map_generator)
+	placer._try_build(nursery_cell)
+	var ranked: Tower = seller.get_tower_at(nursery_cell)
+	_check(ranked != null and ranked.rank == 2 and ranked.invested_dew == 0, "with Nursery, a charged Sprout arrives at rank II")
+	var saved := dreams.to_save()
+	run_state.sprout_charges = 0
+	run_state.add_sprout_charges(2)
+	saved = dreams.to_save()
+	run_state.sprout_charges = 0
+	dreams.load_save(saved)
+	_check(run_state.sprout_charges == 2, "charges survive the save")
+	run_state.sprout_charges = 0
+	for c in [cell, paid_cell, nursery_cell]:
+		seller.sell(c)
+
+	# Dreamlight shards: 10 = 1 Dreamlight, at most 2 a run
+	dreams.dreamlight = 0
+	dreams.dreamlight_shards = 0
+	for i in 35:
+		dreams.add_dreamlight_shard()
+	_check(dreams.dreamlight == 2 and dreams.dreamlight_shards == 20, "shards: 10 per Dreamlight, 2 per run at most")
+
+func _free_cell(map_generator) -> Vector2:
+	var path: PackedVector2Array = map_generator.get_path_from(map_generator.startPath)
+	for i in range(3, path.size()):
+		for offset in [Vector2.LEFT, Vector2.RIGHT, Vector2.UP, Vector2.DOWN]:
+			var cell: Vector2 = path[i] + offset
+			if not path.has(cell) and map_generator.can_block(cell) \
+					and main.get_node("%TowerSeller").get_tower_at(cell) == null:
+				return cell
+	return Vector2(-1, -1)
 
 # --- Helpers --------------------------------------------------------------------------------------
 

@@ -52,6 +52,9 @@ const FIRST_PICK_DREAMLIGHT := 1
 const BOSS_DREAMLIGHT := 3
 const BRANCH_DREAMLIGHT := 1  # Branch, hidden branch, wall growth
 const FINAL_DREAMLIGHT := 2  # Final form (needs its branch)
+const SHARDS_PER_DREAMLIGHT := 10  # Great Dreamcatcher: shards from Caught nightmares
+const SHARD_DREAMLIGHT_MAX := 2  # Per run
+const NURSERY_RANK := 2  # Seedling Gift Sprouts with Nursery
 # Wardens that hold nightmares in place (Held) without a freeze: the Rootling line's roots.
 const HELD_SOURCES: Array[String] = ["tangleroot", "snugroot"]
 
@@ -92,6 +95,7 @@ var stacks := {}  # Card id -> times taken
 var dreams_seen := 0
 # Dreamlight (run_design.md): spent to unlock branches, final forms and wall growths for the run.
 var dreamlight := 0
+var dreamlight_shards := 0  # Shards gathered this run (Great Dreamcatcher)
 var _remember_open := false  # The boss-rest Remember screen is open: the Dream waits for it
 var current_offer: Array[UpgradeData] = []
 var current_offer_drift := 0
@@ -198,6 +202,15 @@ func get_evolve_cost(to: TowerData) -> int:
 func add_dreamlight(amount: int) -> void:
 	dreamlight = maxi(dreamlight + amount, 0)
 	dreamlight_changed.emit(dreamlight)
+
+# Great Dreamcatcher: one shard per Caught nightmare dispelled; 10 shards = 1 Dreamlight, at most
+# 2 Dreamlight a run this way.
+func add_dreamlight_shard() -> void:
+	if dreamlight_shards >= SHARDS_PER_DREAMLIGHT * SHARD_DREAMLIGHT_MAX:
+		return
+	dreamlight_shards += 1
+	if dreamlight_shards % SHARDS_PER_DREAMLIGHT == 0:
+		add_dreamlight(1)
 
 # Dreamlight to unlock `data` for the run: 1 for a branch, hidden branch or wall growth, 2 for a
 # final form. 0 = already unlocked.
@@ -557,8 +570,11 @@ func get_clear_cost(data: ObstacleData) -> int:
 		discount += card.clear_discount * stacks[card.id]
 	return maxi(roundi(data.clear_cost * maxf(1.0 - discount, 0.0)), 1)
 
-# Cost to plant `data` on `cell`: Reclaimed Earth halves the first Warden on a fertile cell.
+# Cost to plant `data` on `cell`: a Seedling Gift charge makes a Sprout free; Reclaimed Earth halves
+# the first Warden on a fertile cell.
 func get_build_cost_at(data: TowerData, cell: Vector2) -> int:
+	if data.get_id() == "sprout" and run_state.sprout_charges > 0:
+		return 0  # The charge is used in _on_tower_built
 	var cost := get_build_cost(data)
 	if run_state.fertile_cells.has(cell):
 		cost = roundi(cost * FERTILE_DISCOUNT)
@@ -716,6 +732,8 @@ func _on_rest_started(_block: int, is_boss_rest: bool, _bonus: int, _perfect: bo
 		remember_requested.emit(null)
 	if has_rule(&"sunlit_rest"):
 		sunlit_rest()
+	if has_rule(&"seedling_gift"):
+		run_state.add_sprout_charges(1)
 	_pending_drifts.append(drift_director.drifts_started)
 	if not is_offering():
 		_show_next_offer.call_deferred()
@@ -1015,6 +1033,7 @@ func to_save() -> Dictionary:
 		"extra_cards_next": _extra_cards_next, "entwined_offered": _entwined_offered.keys(),
 		"rerolls_left": rerolls_left, "banishes_left": banishes_left, "banished": _banished.keys(),
 		"attackers_planted": _attackers_planted, "dreamlight": dreamlight,
+		"dreamlight_shards": dreamlight_shards, "sprout_charges": run_state.sprout_charges,
 		"rng_state": str(_rng.state),  # A string: JSON would round a 64-bit int
 	}
 
@@ -1042,6 +1061,8 @@ func load_save(data: Dictionary) -> void:
 	_attackers_planted = int(data.get("attackers_planted", 0))
 	dreamlight = int(data.get("dreamlight", 0))
 	dreamlight_changed.emit(dreamlight)
+	dreamlight_shards = int(data.get("dreamlight_shards", 0))
+	run_state.add_sprout_charges(int(data.get("sprout_charges", 0)) - run_state.sprout_charges)
 	if data.has("rng_state"):
 		_rng.state = str(data.rng_state).to_int()
 	unlocks_changed.emit()
@@ -1088,6 +1109,11 @@ func _on_tower_sold(tower: Tower, _refund: int) -> void:
 func _on_tower_built(tower: Tower) -> void:
 	if tower.tower_data.can_attack:
 		_attackers_planted += 1
+	# Seedling Gift: a free Sprout (0 Dew) used a charge; with Nursery it arrives at rank II.
+	if tower.tower_data.get_id() == "sprout" and tower.invested_dew == 0 and run_state.sprout_charges > 0:
+		run_state.add_sprout_charges(-1)
+		if has_rule(&"nursery"):
+			tower.rank = maxi(tower.rank, mini(NURSERY_RANK, get_max_rank()))
 	if run_state.memory_seeds.is_empty() or not tower.tower_data.can_attack:
 		return
 	tower.rank = mini(run_state.memory_seeds.pop_front(), get_max_rank())

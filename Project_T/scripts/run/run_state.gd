@@ -11,6 +11,7 @@ signal dew_short(cost: int)
 signal dew_earned(amount: int, world_position: Vector2)
 signal leaves_changed(leaves: int, max_leaves: int)
 signal free_clears_changed(free_clears: int)
+signal sprout_charges_changed(charges: int)  # For the Warden bar's seed badge (Seedling Gift)
 # Emitted once, when the run is won (last drift cleansed) or lost (no leaves left).
 signal run_ended(won: bool)
 
@@ -35,6 +36,12 @@ var invulnerable := false  # Test Grove: leaves can't fall
 # 30+), and Remembered Care's memory seeds (ranks the next planted Wardens start at, highest first).
 var rank_dew_spent := 0
 var memory_seeds: Array[int] = []
+# Seedling Gift: free Sprout charges (used before Dew when planting a Sprout).
+var sprout_charges := 0
+
+func add_sprout_charges(amount: int) -> void:
+	sprout_charges = maxi(sprout_charges + amount, 0)
+	sprout_charges_changed.emit(sprout_charges)
 var creatures_cleansed := 0
 var leaves_lost := 0
 var seed_bonus := 0.0  # +share of Seeds at run end (Seed Pouch, Blight Levels); set by MetaRun

@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "seedling_gift"
+display_name = "Seedling Gift"
+description = "At every rest, gain a free Sprout charge: your next Sprout costs no Dew (you choose where)."
+rarity = 2
+kind = 4
+tags = Array[String](["sprout", "economy"])
+max_stacks = 1
+in_start_pool = false
+rule_id = &"seedling_gift"
