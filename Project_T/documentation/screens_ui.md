@@ -15,7 +15,11 @@ game. The checklist at the end lists what to compare against the current build.
    `design_plan.md`, accessibility).
 4. **Time stops for choices.** Family picks, Dreams and Omens pause the game; nothing is ever
    decided under time pressure.
-5. **Readable on a Steam Deck.** Designed at 1920×1080, must work at 1280×800: body text at least
+5. **Never cover the map's ends.** The camera must be able to scroll so that every part of the
+   map, especially the start and **the Heartwood**, can sit clear of the HUD (let the camera go a
+   little past the map edges by the HUD's size). Panels never overlap each other: one left panel at
+   a time (Warden panel), dev tools elsewhere (below).
+6. **Readable on a Steam Deck.** Designed at 1920×1080, must work at 1280×800: body text at least
    16 px there, buttons at least 48 px tall, and a UI scale setting.
 
 ## Screen flow
@@ -62,6 +66,9 @@ results screens; results lead back to the title.
 | **Bottom right: drift controls** | Start / Call early (shows the Dew bonus), Auto-drift, pause, 1×/2×/3×, status line ("Resting: rearrange freely") | the Start button pulses during rests |
 | **Left: Warden panel** | on selecting a Warden (below) | closes on Esc / right-click / clicking empty ground |
 | **Right: nightmare info** | on hovering a nightmare (below) | follows the most recently hovered one |
+
+**Dev panels (Test Grove tools, damage meter):** docked on the **right side**, under the
+resources, collapsible with one key (F10), never overlapping the Warden panel or the Warden bar.
 
 ## In the world
 
