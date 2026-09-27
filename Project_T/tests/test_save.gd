@@ -27,6 +27,7 @@ func _run() -> void:
 	var map_generator = main.get_node("%MapGenerator")
 	var placer: TowerPlacer = main.get_node("%TowerPlacer")
 	var clearer: ObstacleClearer = main.get_node("%ObstacleClearer")
+	main.get_node("%DreamState").clearing_open = true  # Normally a clearing Dream unlocks clearing
 	var family: Control = main.get_node("%FamilyPickScreen")
 	var dreams: DreamState = main.get_node("%DreamState")
 

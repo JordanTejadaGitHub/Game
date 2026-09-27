@@ -85,6 +85,7 @@ func _ready() -> void:
 		if not card.in_start_pool:
 			dream_state.grove_cards.append(card.id)
 	dream_state.allow_bittersweet = true
+	dream_state.clearing_open = true  # No clearing Dream needed to tend obstacles
 	enemy_types = _load_enemy_types()
 	_build_dock()
 

@@ -20,6 +20,7 @@ const SPORE_CASCADE_TARGETS := [2, 3]
 const TENDED_FOREST_PER_CLEAR := 0.01
 const TENDED_FOREST_MAX := 0.25
 const FERTILE_DISCOUNT := 0.5  # Reclaimed Earth: the first Warden on a cleared cell
+const CLEARING_LOCKED_WEIGHT := 2.0  # Clearing cards are this much likelier until you own one
 
 signal unlocks_changed
 signal card_taken(card: UpgradeData)
@@ -43,6 +44,9 @@ signal offer_closed
 # Memory Grove (set at run start by MetaRun): Grove cards owned (in_start_pool = false cards that
 # may now be offered), Dream rerolls (Second Thoughts) and banishes (Let Go) left this run.
 var grove_cards: Array[String] = []
+# Clearing obstacles is locked until a clearing Dream is taken (dream_design.md "Clearing cards");
+# Test Grove and tests open it from the start.
+var clearing_open := false
 var rerolls_left := 0
 var banishes_left := 0
 
@@ -241,6 +245,16 @@ func get_creature_speed_multiplier() -> float:
 	for card in _taken_cards():
 		bonus += card.creature_speed_bonus * stacks[card.id]
 	return 1.0 + bonus
+
+# Whether obstacles can be cleared: after any clearing Dream (tag "clearing"). Taken cards are in
+# the save, so this needs no saving of its own.
+func can_clear() -> bool:
+	if clearing_open:
+		return true
+	for card in _taken_cards():
+		if card.tags.has("clearing"):
+			return true
+	return false
 
 # Obstacles left on the map, of `kind` only if given.
 func count_obstacles(kind: ObstacleData = null) -> int:
@@ -541,12 +555,15 @@ func _weighted_pick(cards: Array) -> UpgradeData:
 			owned_lines[line] = true
 	var weights: Array[float] = []
 	var total := 0.0
+	var clearing_locked := not can_clear()
 	for card in cards:
 		var weight := 1.0
 		for tag in card.tags:
 			if owned_lines.has(tag):
 				weight = tag_weight
 				break
+		if clearing_locked and card.tags.has("clearing"):
+			weight *= CLEARING_LOCKED_WEIGHT  # Until the first one unlocks clearing
 		weights.append(weight)
 		total += weight
 	var roll := _rng.randf() * total

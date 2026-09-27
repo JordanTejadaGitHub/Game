@@ -17,6 +17,7 @@ func _run() -> void:
 	var spawner = main.get_node("%EnemyContainer")
 	var placer: TowerPlacer = main.get_node("%TowerPlacer")
 	var clearer: ObstacleClearer = main.get_node("%ObstacleClearer")
+	main.get_node("%DreamState").clearing_open = true  # Normally a clearing Dream unlocks clearing
 	var run_state: RunState = main.get_node("%RunState")
 	var towers: Node = main.get_node("%TowerContainer")
 	var leaf_bug: EnemyData = load("res://resource/enemy/leaf_bug.tres")

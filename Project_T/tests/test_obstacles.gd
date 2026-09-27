@@ -59,6 +59,7 @@ func _run() -> void:
 		main = await _make_main(seed_value)
 		map = main.get_node("%MapGenerator")
 		var clearer: ObstacleClearer = main.get_node("%ObstacleClearer")
+		main.get_node("%DreamState").clearing_open = true  # Normally a clearing Dream unlocks clearing
 		var before: PackedVector2Array = map.get_path_from(map.startPath)
 		var shortcut := Vector2(-1, -1)
 		for cell in map.obstacles:

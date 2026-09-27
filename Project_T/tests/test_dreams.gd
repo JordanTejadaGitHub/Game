@@ -344,6 +344,30 @@ func _test_clearing_cards(main: Node) -> void:
 	var sprout: TowerData = load("res://resource/tower/sprout.tres")
 	_reset_dreams(main)
 
+	# Clearing is locked until the first clearing Dream; until then clearing cards weigh double
+	dreams.clearing_open = false
+	run_state.dew = 100
+	var locked_cell: Vector2 = map_generator.obstacles.keys()[0]
+	_check(clearer.is_locked() and not clearer.try_clear(locked_cell) and run_state.dew == 100,
+		"obstacles can't be cleared before a clearing Dream")
+	var picks := 0
+	var clearing_picks := 0
+	var cards_with_one: Array = [_card(dreams, "cleared_ground"), _card(dreams, "quickened_sap")]
+	for i in 2000:
+		if dreams._weighted_pick(cards_with_one).tags.has("clearing"):
+			clearing_picks += 1
+		picks += 1
+	_check(clearing_picks > picks * 0.6, "clearing cards weigh double while clearing is locked (%d / %d)" % [clearing_picks, picks])
+	dreams.take(_card(dreams, "tended_forest"))
+	_check(dreams.can_clear() and not clearer.is_locked(), "any clearing Dream unlocks clearing")
+	_check(clearer.try_clear(locked_cell), "…and clearing works at the normal price")
+	var saved := dreams.to_save()
+	_reset_dreams(main)
+	_check(not dreams.can_clear(), "a new run starts locked")
+	dreams.load_save(saved)
+	_check(dreams.can_clear(), "the unlock survives a mid-run save (it's in the taken cards)")
+	_reset_dreams(main)
+
 	# Offered only while 8+ obstacles are left
 	var ground := _card(dreams, "cleared_ground")
 	_check(dreams.is_eligible(ground), "Cleared Ground offered on a full map (%d obstacles)" % dreams.count_obstacles())
