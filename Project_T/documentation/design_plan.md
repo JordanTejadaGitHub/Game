@@ -42,6 +42,9 @@ Dew numbers and the act 1 plan. Remaining: playtest tuning.
 - Health/speed scaling formula per drift (so drifts past the hand-made ones still work).
 - When each new creature is introduced (alone first, then mixed, per `enemy_design.md`).
 
+**Acts 1–2 content drafted in `acts_1_2.md`** (creature and boss stats, Deeply Blighted elites,
+special drifts, drifts 1–50). Still to do: acts 3–4 (after the demo).
+
 ## Phase 2: Dreams and statuses (before build-order step 4)
 
 **Drafted in `dream_design.md`** (36-card pool, offer rules and weights, status numbers).

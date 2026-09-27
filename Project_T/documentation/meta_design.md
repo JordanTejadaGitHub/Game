@@ -120,7 +120,7 @@ Pick a level before a run; each level includes all the ones below it. **+10% See
 | 2 | Starting Dew −20 |
 | 3 | Bosses +25% health |
 | 4 | Drift-clear bonus −25% |
-| 5 | One creature per drift is **Thick-Blighted**: double health, costs 2 leaves |
+| 5 | One creature per drift is **Deeply Blighted** (×3 health, costs 2 leaves; see `acts_1_2.md`) |
 | 6 | The Heartwood regrows only 1 leaf per act break (instead of 3) |
 | 7 | Creatures +10% speed |
 | 8 | Dream offers lean Common; *Let it pass* gives no Dew |
