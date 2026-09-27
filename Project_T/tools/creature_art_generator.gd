@@ -39,14 +39,9 @@ const CREATURES := {
 	"great_toad": {fps = 6.0, size = 144},  # The Mire Hag
 }
 # Defaults of shaders/blight.gdshader, for the in-game frame at the end of each preview row.
-const SHADER_SHADOW := Color(0.04, 0.05, 0.10)
-const SHADER_COLD := Color(0.36, 0.44, 0.62)
-const SHADER_FLOOR := 0.12
-const SHADER_RANGE := 0.85
-const SHADER_GLOW := Color(0.62, 0.95, 1.0)
-const SHADER_GLOW_START := 0.8
-const SHADER_GLOW_STRENGTH := 1.4
-const SHADER_TRANSLUCENCY := 0.8
+const SHADER_TRANSLUCENCY := 0.85
+const SHADER_GLOW_START := 0.6
+const SHADER_GLOW_STRENGTH := 0.5
 
 # Shadow-stuff, lit from the upper right like the Wardens: [deep, dark, mid, rim].
 const NIGHT := ["#0e0c18", "#1a1730", "#2a2646", "#3e3962"]
@@ -150,7 +145,8 @@ func _save_preview() -> void:
 func _frame_size(sheet: Image) -> int:
 	return sheet.get_width() / FRAMES
 
-# The sheet as the blight shader shows it in game at blight = 1 (without its shimmer).
+# The sheet as the blight shader shows it in game at blight = 1 (without its shimmer): see-through
+# body, the brightest pixels solid and brightened.
 func _in_game(sheet: Image) -> Image:
 	var out: Image = sheet.duplicate()
 	for y in out.get_height():
@@ -159,9 +155,8 @@ func _in_game(sheet: Image) -> Image:
 			if c.a == 0.0:
 				continue
 			var lum := c.r * 0.299 + c.g * 0.587 + c.b * 0.114
-			var t := clampf(SHADER_FLOOR + SHADER_RANGE * lum, 0.0, 1.0)
 			var glow := smoothstep(SHADER_GLOW_START, 1.0, lum)
-			var col := SHADER_SHADOW.lerp(SHADER_COLD, t * t).lerp(SHADER_GLOW * SHADER_GLOW_STRENGTH, glow)
+			var col := c * (1.0 + glow * SHADER_GLOW_STRENGTH)
 			col.a = c.a * lerpf(SHADER_TRANSLUCENCY, 1.0, glow)
 			out.set_pixel(x, y, col.clamp())
 	return out
