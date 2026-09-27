@@ -7,7 +7,7 @@
 [resource]
 script = ExtResource("1_tdata")
 display_name = "Bramble"
-description = "A thorny wall that soothes creatures walking right past it."
+description = "A thorny wall that damages nightmares walking right past it."
 cost = 0
 texture = ExtResource("2_tex")
 frame_count = 8

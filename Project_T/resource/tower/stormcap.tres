@@ -8,7 +8,7 @@
 [resource]
 script = ExtResource("1_tdata")
 display_name = "Stormcap"
-description = "Lightning that chains to 3 creatures; jumps further and more often between Damp ones."
+description = "Lightning that chains to 3 nightmares; jumps further and more often between Damp ones."
 cost = 0
 texture = ExtResource("2_tex")
 frame_count = 8

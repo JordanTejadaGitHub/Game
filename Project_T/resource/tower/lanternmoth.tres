@@ -8,7 +8,7 @@
 [resource]
 script = ExtResource("1_tdata")
 display_name = "Lanternmoth"
-description = "Long-range light that Marks creatures: they take 25% more soothe."
+description = "Long-range light that Marks nightmares: they take 25% more damage."
 cost = 0
 texture = ExtResource("2_tex")
 frame_count = 8

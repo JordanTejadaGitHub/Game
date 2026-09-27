@@ -51,7 +51,7 @@ func _refresh() -> void:
 	if data.description != "":
 		lines.append(data.description)
 	if data.can_attack:
-		lines.append("Soothe %.0f · %.2f/s · range %.2f" % [_tower.get_damage(), _tower.get_attacks_per_second(), _tower.get_range_cells()])
+		lines.append("Damage %.0f · %.2f/s · range %.2f" % [_tower.get_damage(), _tower.get_attacks_per_second(), _tower.get_range_cells()])
 		if data.applies_status != &"":
 			lines.append("Applies %s%s" % [STATUS_NAMES.get(data.applies_status, data.applies_status),
 				" ×%d" % data.status_stacks if data.status_stacks > 1 else ""])

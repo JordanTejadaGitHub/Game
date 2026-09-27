@@ -7,7 +7,7 @@
 [resource]
 script = ExtResource("1_tdata")
 display_name = "Bloomcap"
-description = "Leaves a sleepy cloud on the path that makes creatures Drowsy."
+description = "Leaves a sleepy cloud on the path that makes nightmares Drowsy."
 cost = 0
 texture = ExtResource("2_tex")
 frame_count = 8
