@@ -142,7 +142,10 @@ controller / Steam Deck, accessibility, Steam achievements (milestones map to th
   Build/clear/sell tools, HUD, camera and GameSpeed are `process_mode = ALWAYS` so building works
   while paused; the camera divides delta by time_scale so panning stays real-time.
 - HUD: `%LeavesLabel`, `%PathLabel` (path length), `%ToastLabel` (`show_toast`), `DriftPanel`
-  (drift/act label, status line, Start / call-early button, Auto-drift toggle, speed buttons).
+  (bottom right, compact: status line, Start / call-early button, Auto-drift + speed buttons in one
+  row). `%TowerBar` is bottom centre (cost under the icon, hotkey number in the corner) and must fit
+  between the Warden panel and DriftPanel at 1280×800 (checked in `tests/test_ui.gd`). The camera
+  may overscroll the map edges by `hud_overscroll` so the ends can clear the HUD.
   `Seasons` (CanvasModulate) swaps the environment to each act's sheets (`MapGenerator.set_act`)
   and can tint the world per act (neutral for now). `tests/test_run.gd`.
   It also owns selection (`selection`, `selected` = first; `selection_changed`): click, drag box

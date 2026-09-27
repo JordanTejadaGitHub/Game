@@ -12,6 +12,7 @@ const MAP_GRID = preload("res://resource/map/map_grid.tres")  # The shared grid 
 @export var camera_zoom_out_min: float = 0.5  # Minimum zoom-out level
 @export var zoom_speed: float = 0.1  # Speed of zoom adjustment
 @export var zoom_smoothness: float = 10.0  # How quickly the zoom catches up to its target (higher = snappier)
+@export var hud_overscroll := Vector2(300, 180)  # Screen pixels the view may go past each map edge (the HUD's size)
 
 # Internal variables
 var target_position: Vector2  # Target position for the camera
@@ -125,15 +126,19 @@ func _clamp_camera_to_map() -> void:
 	var actual_visible_area = viewport_size / camera_2d.zoom  # Adjust for zoom
 	var half_visible_area = actual_visible_area / 2  # Half the visible area
 
-	# Calculate clamping ranges to ensure the entire visible area stays within map bounds. When the
-	# view is bigger than the map along an axis, the map is centred on that axis instead.
-	var min_x = half_visible_area.x + EPSILON
-	var max_x = map_size_pixels.x - half_visible_area.x - EPSILON
+	# The view may go past the map edges by the HUD's size, so the start and the Heartwood can be
+	# scrolled clear of the panels (screens_ui.md principle 5).
+	var overscroll: Vector2 = hud_overscroll / camera_2d.zoom
+
+	# Calculate clamping ranges to keep the visible area within the map bounds (plus the overscroll).
+	# When the view is bigger than that along an axis, the map is centred on that axis instead.
+	var min_x = half_visible_area.x - overscroll.x + EPSILON
+	var max_x = map_size_pixels.x - half_visible_area.x + overscroll.x - EPSILON
 	if max_x < min_x:
 		min_x = map_size_pixels.x / 2
 		max_x = min_x
-	var min_y = half_visible_area.y + EPSILON
-	var max_y = map_size_pixels.y - half_visible_area.y - EPSILON
+	var min_y = half_visible_area.y - overscroll.y + EPSILON
+	var max_y = map_size_pixels.y - half_visible_area.y + overscroll.y - EPSILON
 	if max_y < min_y:
 		min_y = map_size_pixels.y / 2
 		max_y = min_y

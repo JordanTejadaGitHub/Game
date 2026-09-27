@@ -33,7 +33,7 @@ func _draw() -> void:
 	var total := drift_director.get_total_drifts()
 	var shown := mini(latest + 1 if drift_director.is_resting() else maxi(latest, 1), total)
 	var act := drift_director.get_act(shown)
-	var top := "Act %d · %s      Drift %d / %d" % [act, drift_director.get_act_name(act), latest, total]
+	var top := "Act %d · %s      %s" % [act, drift_director.get_act_name(act), get_drift_text()]
 	_draw_centered(font, top, Vector2(center_x, 20), FONT_SIZE, TEXT_COLOR)
 
 	if is_instance_valid(_boss) and not _boss.is_cleansed:
@@ -65,6 +65,11 @@ func _draw_boss_bar(font: Font, center_x: float) -> void:
 	var half_x := bar.position.x + bar.size.x * 0.5
 	draw_line(Vector2(half_x, bar.position.y - 3), Vector2(half_x, bar.end.y + 3), Color.WHITE, 2.0)
 	_draw_centered(font, _boss.enemy_data.display_name, Vector2(center_x, bar.end.y + 16), SMALL_FONT_SIZE, BOSS_COLOR.lightened(0.3))
+
+# "Drift 7 / 50", or "Ready · Drift 1" before the first drift.
+func get_drift_text() -> String:
+	var latest := drift_director.drifts_started
+	return "Ready · Drift 1" if latest == 0 else "Drift %d / %d" % [latest, drift_director.get_total_drifts()]
 
 # "The Hollow Stag in 18" for the next boss drift after `latest`, or "".
 func _next_boss_text(latest: int) -> String:

@@ -23,6 +23,35 @@ func _run() -> void:
 	var text: String = banner._next_boss_text(0)
 	_check(text.ends_with("in 25"), "banner counts down to the drift 25 boss (%s)" % text)
 
+	# --- HUD layout (screens_ui.md "The run HUD", principles 5 and 6) ---
+	var dreams: DreamState = main.get_node("%DreamState")
+	dreams.unlock_everything = true  # Every Warden in the bar, as in Test Grove
+	dreams.unlocks_changed.emit()
+	var bar: HBoxContainer = main.get_node("%TowerBar")
+	var first_button := bar.get_child(0) as Button
+	_check(first_button.text.is_valid_int() and first_button.get_child(0) is Label and first_button.get_child(0).text == "1",
+		"Warden buttons show the cost and the hotkey (%s)" % first_button.text)
+	for screen in [Vector2i(1920, 1080), Vector2i(1280, 800)]:
+		root.size = screen
+		await _frames(2)
+		var bar_rect := bar.get_global_rect()
+		_check(bar_rect.end.y > screen.y - 100 and absf(bar_rect.get_center().x - screen.x / 2.0) < 2.0,
+			"the Warden bar sits at the bottom centre at %s (%s)" % [screen, bar_rect])
+		for name in ["WardenPanel", "DriftPanel", "DriftBanner"]:
+			var other := (main.get_node("HUD/" + name) as Control).get_global_rect()
+			_check(not bar_rect.intersects(other), "the Warden bar doesn't overlap %s at %s (%s vs %s)" % [name, screen, bar_rect, other])
+	_check(banner.get_drift_text() == "Ready · Drift 1", "before the first drift the banner reads Ready · Drift 1")
+	# The camera can scroll past the map's far corner, so the Heartwood can clear the drift controls.
+	var camera = main.get_node("GameCameraNode")
+	camera.target_position = Vector2(1e6, 1e6)
+	camera._clamp_camera_to_map()
+	var half_view: Vector2 = camera.camera_2d.get_viewport_rect().size / camera.camera_2d.zoom / 2.0
+	_check(camera.target_position.x > camera.map_size_pixels.x - half_view.x + 1.0
+		and camera.target_position.y > camera.map_size_pixels.y - half_view.y + 1.0,
+		"the camera can go past the map's edges by the HUD's size")
+	dreams.unlock_everything = false
+	dreams.unlocks_changed.emit()
+
 	# --- Nightmare info on hover ---
 	var info = main.get_node("%NightmareInfo")
 	var shade: Node2D = spawner.spawn_enemy(load("res://resource/enemy/leaf_bug.tres"))
@@ -47,7 +76,6 @@ func _run() -> void:
 	# --- G grows the selected Warden ---
 	var placer: TowerPlacer = main.get_node("%TowerPlacer")
 	var seller: TowerSeller = main.get_node("%TowerSeller")
-	var dreams: DreamState = main.get_node("%DreamState")
 	run_state.dew = 500
 	placer.tower_data = load("res://resource/tower/sprout.tres")
 	var cell := _free_cell(map_generator)

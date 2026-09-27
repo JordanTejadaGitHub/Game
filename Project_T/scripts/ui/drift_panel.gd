@@ -4,7 +4,7 @@ extends VBoxContainer
 # call-early button (Enter), the Auto-drift toggle, and pause / 1× / 2× / 3× buttons (Space pauses,
 # Tab cycles speed). The act / drift line is the top-centre DriftBanner.
 
-const BUTTON_FONT_SIZE := 18
+const BUTTON_FONT_SIZE := 16
 
 @onready var drift_director: DriftDirector = %DriftDirector
 @onready var game_speed: GameSpeed = %GameSpeed
@@ -27,22 +27,22 @@ func _ready() -> void:
 	_status_label.add_theme_color_override("font_color", Color(0.85, 0.9, 0.8))
 
 	_start_button.focus_mode = Control.FOCUS_NONE
-	_start_button.custom_minimum_size = Vector2(280, 44)
+	_start_button.custom_minimum_size = Vector2(272, 48)
 	_start_button.add_theme_font_size_override("font_size", BUTTON_FONT_SIZE)
 	_start_button.pressed.connect(drift_director.start_next_drift)
 	add_child(_start_button)
 
-	_auto_toggle.text = "Auto-drift"
-	_auto_toggle.tooltip_text = "Drifts in a block start by themselves a few seconds after the last one arrived."
+	# Kept compact (screens_ui.md principle 5): Auto-drift shares the speed row.
+	var speed_row := HBoxContainer.new()
+	speed_row.alignment = BoxContainer.ALIGNMENT_END
+	speed_row.add_theme_constant_override("separation", 2)
+	add_child(speed_row)
+	_auto_toggle.text = "Auto"
+	_auto_toggle.tooltip_text = "Auto-drift: drifts in a block start by themselves a few seconds after the last one arrived."
 	_auto_toggle.focus_mode = Control.FOCUS_NONE
 	_auto_toggle.button_pressed = drift_director.auto_drift
 	_auto_toggle.toggled.connect(drift_director.set_auto_drift)
-	_auto_toggle.size_flags_horizontal = Control.SIZE_SHRINK_END
-	add_child(_auto_toggle)
-
-	var speed_row := HBoxContainer.new()
-	speed_row.alignment = BoxContainer.ALIGNMENT_END
-	add_child(speed_row)
+	speed_row.add_child(_auto_toggle)
 	_pause_button.text = "II"
 	_pause_button.tooltip_text = "Pause (Space). You can still build while paused."
 	_pause_button.pressed.connect(game_speed.toggle_pause)
@@ -62,7 +62,7 @@ func _ready() -> void:
 func _add_speed_button(row: HBoxContainer, button: Button) -> void:
 	button.toggle_mode = true
 	button.focus_mode = Control.FOCUS_NONE
-	button.custom_minimum_size = Vector2(52, 36)
+	button.custom_minimum_size = Vector2(44, 40)
 	row.add_child(button)
 
 func _unhandled_input(event: InputEvent) -> void:

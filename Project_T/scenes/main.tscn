@@ -138,10 +138,18 @@ script = ExtResource("9_hud")
 
 [node name="TowerBar" type="HBoxContainer" parent="HUD"]
 unique_name_in_owner = true
-offset_left = 16.0
-offset_top = 16.0
-offset_right = 56.0
-offset_bottom = 56.0
+anchors_preset = 7
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -20.0
+offset_top = -76.0
+offset_right = 20.0
+offset_bottom = -16.0
+grow_horizontal = 2
+grow_vertical = 0
+theme_override_constants/separation = 3
 
 [node name="DewLabel" type="Label" parent="HUD"]
 unique_name_in_owner = true
@@ -269,7 +277,7 @@ anchor_left = 1.0
 anchor_top = 1.0
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_left = -296.0
+offset_left = -288.0
 offset_top = -136.0
 offset_right = -16.0
 offset_bottom = -16.0

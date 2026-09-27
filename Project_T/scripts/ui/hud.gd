@@ -3,6 +3,9 @@ extends CanvasLayer
 const DEW_COLOR := Color(0.7, 0.9, 1.0)
 const DEW_SHORT_COLOR := Color(1.0, 0.45, 0.4)
 const UNAFFORDABLE_BUTTON_ALPHA := 0.45
+# Warden bar buttons (bottom centre): 13 of them must fit between the Warden panel and the drift
+# controls at 1280×800 (screens_ui.md principle 6: buttons at least 48 px tall).
+const BUTTON_SIZE := Vector2(46, 60)
 
 @onready var tower_bar: HBoxContainer = %TowerBar
 @onready var tower_placer: TowerPlacer = %TowerPlacer
@@ -86,13 +89,30 @@ func _build_tower_bar() -> void:
 	_bar_towers = tower_placer.get_buildable_towers()
 	for i in _bar_towers.size():
 		var data: TowerData = _bar_towers[i]
+		# Icon on top, the Dew cost under it, the hotkey number in the top-left corner.
 		var button := Button.new()
 		button.toggle_mode = true
 		button.focus_mode = Control.FOCUS_NONE
 		button.icon = _tower_icon(data)
-		button.tooltip_text = "%s (%d)\nCost: %d Dew\n%s" % [data.display_name, i + 1,
+		button.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		button.vertical_icon_alignment = VERTICAL_ALIGNMENT_TOP
+		button.add_theme_constant_override("icon_max_width", 34)
+		button.add_theme_font_size_override("font_size", 13)
+		button.add_theme_color_override("font_color", DEW_COLOR)
+		button.custom_minimum_size = BUTTON_SIZE
+		button.tooltip_text = "%s (%s)\nCost: %d Dew\n%s" % [data.display_name, str(i + 1) if i < 9 else "no key",
 			tower_placer.get_cost(data), data.description]
 		button.pressed.connect(_on_tower_pressed.bind(data))
+		if i < 9:
+			var hotkey := Label.new()
+			hotkey.text = str(i + 1)
+			hotkey.position = Vector2(3, 0)
+			hotkey.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			hotkey.add_theme_font_size_override("font_size", 11)
+			hotkey.add_theme_color_override("font_color", Color(0.85, 0.88, 0.8))
+			hotkey.add_theme_color_override("font_outline_color", Color(0.08, 0.1, 0.14))
+			hotkey.add_theme_constant_override("outline_size", 4)
+			button.add_child(hotkey)
 		tower_bar.add_child(button)
 		_tower_buttons.append(button)
 	_sync_buttons()
@@ -114,8 +134,11 @@ func _sync_buttons() -> void:
 func _on_dew_changed(dew: int) -> void:
 	dew_label.text = "Dew %d" % dew
 	# Fade out Wardens the player can't afford right now (still selectable, the ghost shows red).
+	# (Costs can change with Dreams, so the cost text is refreshed here too.)
 	for i in _tower_buttons.size():
-		var affordable := run_state.can_afford(tower_placer.get_cost(_bar_towers[i]))
+		var cost := tower_placer.get_cost(_bar_towers[i])
+		_tower_buttons[i].text = str(cost)
+		var affordable := run_state.can_afford(cost)
 		_tower_buttons[i].modulate.a = 1.0 if affordable else UNAFFORDABLE_BUTTON_ALPHA
 
 # Tried to spend Dew we don't have: flash the counter red and give it a little shake.
