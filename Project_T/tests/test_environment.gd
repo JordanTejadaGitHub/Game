@@ -55,7 +55,26 @@ func _init() -> void:
 	var grass_source := map.tile_set.get_source(EnvironmentTiles.GRASS) as TileSetAtlasSource
 	_check(grass_source.texture.resource_path.contains("deep_wood"), "act 2 uses the Deep Wood sheets")
 	_check(heartwood.texture.resource_path.contains("deep_wood"), "and the Heartwood follows")
+	_check(map.ambience.act == 2, "the ambience follows the act")
 	main.get_node("Seasons").set_act(1, false)
+	run_state.regrow_leaves(run_state.max_leaves)
+
+	# Lighting: a cold multiply over the map, a warm light on the Heartwood and on attacking Wardens.
+	var lighting: EnvironmentLighting = map.lighting
+	var vignette := lighting.get_child(0) as Sprite2D
+	_check(vignette != null and (vignette.material as CanvasItemMaterial).blend_mode == CanvasItemMaterial.BLEND_MODE_MUL,
+		"the edges get a cold multiply")
+	_check(heartwood.get_child(0) is PointLight2D and heartwood.get_child(1) is Sprite2D, "the Heartwood glows")
+	var lights_before := lighting.get_child_count()
+	var sprout := _add_warden(main, "res://resource/tower/sprout.tres", Vector2(20, 18))
+	var wall := _add_warden(main, "res://resource/tower/thornwall.tres", Vector2(22, 18))
+	_add_warden(main, "res://resource/tower/sprout.tres", Vector2(12, 10))
+	_check(lighting.get_child_count() == lights_before + 2, "attacking Wardens get a warm light, walls don't")
+	_check(sprout.get_child_count() == 1, "the light isn't parented to the Warden")
+	wall.free()
+	sprout.free()
+	await process_frame
+	_check(lighting.get_child_count() == lights_before + 1, "a sold Warden's light goes with it")
 
 	for arg in OS.get_cmdline_user_args():
 		if arg.begins_with("--preview="):
@@ -64,6 +83,14 @@ func _init() -> void:
 	print("test_environment: %d failure(s)" % failures)
 	main.free()
 	quit(failures)
+
+func _add_warden(main: Node, data_path: String, cell: Vector2) -> Tower:
+	var tower: Tower = main.get_node("%TowerPlacer").tower_scene.instantiate()
+	tower.tower_data = load(data_path)
+	tower.cell = cell
+	tower.position = main.get_node("%MapGenerator").MAP_GRID.calculate_map_position(cell)
+	main.get_node("%TowerContainer").add_child(tower)
+	return tower
 
 func _check(ok: bool, what: String) -> void:
 	if not ok:
@@ -92,5 +119,43 @@ func _render(main: Node, layers: Array, file: String) -> void:
 	var frame := Vector2i(EnvironmentTiles.HEARTWOOD_SIZE, EnvironmentTiles.HEARTWOOD_SIZE)
 	var top_left := Vector2i(heartwood.position + heartwood.offset) - frame / 2 + tile
 	image.blend_rect(tree, Rect2i(heartwood.frame_coords * frame, frame), top_left)
+	for tower: Tower in main.get_node("%TowerContainer").get_children():
+		var sprite: Image = tower.tower_data.texture.get_image()
+		sprite.convert(Image.FORMAT_RGBA8)
+		image.blend_rect(sprite, Rect2i(Vector2i.ZERO, tile), Vector2i(tower.position) - tile / 2 + tile)
+	image.resize(image.get_width() / 2, image.get_height() / 2, Image.INTERPOLATE_NEAREST)
+	_light_pass(image, main.get_node("%MapGenerator"), tile, 2.0)
 	image.save_png(file)
 	print("preview saved to ", file)
+
+# Rough stand-in for the renderer's lighting: the cold multiply, lifted by the additive warm lights
+# (which light the multiply layer too). `scale` = world px per image px.
+func _light_pass(image: Image, map: Node, margin: Vector2i, scale: float) -> void:
+	var lighting: EnvironmentLighting = map.lighting
+	var vignette := lighting.get_child(0) as Sprite2D
+	var edge := vignette.texture as GradientTexture2D
+	var cover := vignette.scale * 256.0
+	var reach := edge.fill_to.x - 0.5
+	var falloff := (EnvironmentLighting.light_texture() as GradientTexture2D).gradient
+	var lights := []
+	var glow := map.heartwood.get_child(1) as Sprite2D  # Additive, over the multiply
+	var glow_radius := glow.scale.x * 128.0
+	for node in lighting.get_children() + [map.heartwood.get_child(0)]:
+		if node is PointLight2D:
+			lights.append([node.global_position, node.color * node.energy, node.texture_scale * 128.0 * node.scale.x])
+	for y in image.get_height():
+		for x in image.get_width():
+			var world := Vector2(x, y) * scale - Vector2(margin) + Vector2.ONE
+			var cold := edge.gradient.sample(((world - vignette.position) / cover).length() / reach)
+			var warm := Color(0, 0, 0)
+			for light: Array in lights:
+				var d: float = world.distance_to(light[0]) / light[2]
+				if d < 1.0:
+					warm += light[1] * falloff.sample(d).a
+			var lift := Color(1, 1, 1) + warm
+			var c := image.get_pixel(x, y) * lift * cold * lift
+			var g := world.distance_to(glow.global_position) / glow_radius
+			if g < 1.0:
+				c += glow.modulate * glow.modulate.a * falloff.sample(g).a
+			c.a = 1.0
+			image.set_pixel(x, y, c.clamp())

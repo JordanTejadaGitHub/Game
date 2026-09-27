@@ -182,7 +182,10 @@ branches, final forms; localization; audio; replacing the Foozle placeholder art
   Tiles: `environment_tiles.gd` (`EnvironmentTiles`) builds one TileSet from `assets/environment/<act>/`
   (one atlas source per sheet, fixed source ids) shared by all three layers; the path picks
   `path.png` column = neighbour mask. Border = drystone wall, healthy trees ring the outside, mist on
-  the start, `Heartwood` (`heartwood.gd`, Sprite2D) on the end shows leaves lost. `tests/test_environment.gd`
+  the start, `Heartwood` (`heartwood.gd`, Sprite2D) on the end shows leaves lost (its warm light and additive
+  glow dim with them). Lighting pass (art_direction.md), made by MapGenerator: `EnvironmentLighting`
+  (MUL-blended radial multiply, cold at the edges, z 3; a PointLight2D per attacking Warden, kept under
+  it, not the Warden) and `EnvironmentAmbience` (`_draw`: edge fog + the act's particles, z 6). `tests/test_environment.gd`
   (`-- --preview=<file.png>` saves a flat render of the map).
 - `scripts/enemy/` — `enemy.gd` (walks cell to cell along a grid path; `set_path` re-routes it),
   `enemy_spawner.gd` (on `path_changed`, re-routes every enemy from its `get_target_cell()`).

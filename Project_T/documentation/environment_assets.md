@@ -9,7 +9,12 @@ page (https://claude.ai/artifact/DhTsE8rJXJwU3UgYEL73ym), seed 1207.
 TileSet from these sheets (one atlas source per file) that the ground, path and object layers share,
 and swaps every sheet to the next act's folder at act breaks (`Seasons` → `MapGenerator.set_act`).
 The Heartwood is `scripts/map/heartwood.gd`. Waystone, Dew Pool and Blight Patch have tiles in the
-TileSet but aren't placed on maps (their rules are still proposals). The lighting pass isn't in yet.
+TileSet but aren't placed on maps (their rules are still proposals).
+
+Lighting (the tiles stay unlit): `environment_lighting.gd` (a cold multiply toward the map's edges,
+a warm PointLight2D per attacking Warden), `heartwood.gd` (a warm light plus an additive glow over
+the multiply, dimming as leaves are lost) and `environment_ambience.gd` (nightmare fog along every
+edge; per act: warm motes, cold wisps, fog banks and embers, snow).
 
 ## Folders
 

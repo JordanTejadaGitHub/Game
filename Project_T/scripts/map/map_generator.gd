@@ -24,6 +24,8 @@ var unwalkable_cells: PackedVector2Array
 var obstacles: Dictionary = {}
 var tile_set: TileSet  # Shared by the ground, path and object layers (EnvironmentTiles)
 var heartwood: Heartwood  # The goal tree on the end cell
+var lighting: EnvironmentLighting  # Cold edges, warm Warden lights
+var ambience: EnvironmentAmbience  # Edge fog and the act's particles
 
 
 # Called when the node enters the scene tree for the first time.
@@ -59,10 +61,18 @@ func _ready() -> void:
 	heartwood.run_state = get_node_or_null("%RunState")
 	add_child(heartwood)
 
+	lighting = EnvironmentLighting.new()
+	lighting.tower_container = get_node_or_null("%TowerContainer")
+	add_child(lighting)
+	ambience = EnvironmentAmbience.new()
+	ambience.heartwood_position = heartwood.position
+	add_child(ambience)
+
 # Swaps the environment art to act `act`'s season (every sheet, and the Heartwood's).
 func set_act(act: int) -> void:
 	EnvironmentTiles.set_act(tile_set, act)
 	heartwood.set_act(act)
+	ambience.act = act
 
 # If obstacles cut the start off from the end, clears the fewest-obstacle route between them.
 # Ridges are left intact (they create the zig-zag) unless there's no other way through.
