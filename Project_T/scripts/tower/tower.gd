@@ -13,6 +13,8 @@ signal evolved(tower: Tower)
 signal attack_released(tower: Tower)
 # A hit from this Warden was a critical hit (sound: a sharp chime).
 signal crit_landed(tower: Tower, enemy: Node2D)
+# A hit from this Warden landed on `enemy` (sound: the impact). Every attack kind goes through hit().
+signal hit_landed(tower: Tower, enemy: Node2D, is_area: bool, is_crit: bool)
 # A beam (Sunpetal line) hit its target; `ramp` is its current damage multiplier.
 signal beam_ticked(tower: Tower, ramp: float)
 
@@ -245,7 +247,6 @@ func _show_attack_pose() -> void:
 func _release() -> void:
 	_attack_count += 1
 	attack_released.emit(self)
-	attack_released.emit(self)
 	match attack_data.attack_kind:
 		TowerData.AttackKind.PULSE:
 			for enemy in get_enemies_in_range():
@@ -291,6 +292,7 @@ func hit(enemy: Node2D, soothe_multiplier: float = 1.0, is_area: bool = false, c
 	var soothe := get_damage() * soothe_multiplier * _damage_against(enemy)
 	var dealt := soothe * (attack_data.crit_multiplier if is_crit else 1.0)
 	enemy.take_damage(dealt, tower_data.line, is_area, is_crit)
+	hit_landed.emit(self, enemy, is_area, is_crit)
 	apply_status_to(enemy, soothe)
 	_after_hit(enemy, is_crit)
 	if is_crit:
