@@ -60,6 +60,20 @@ func _run() -> void:
 		+ director._arriving.get(1, {"schedule": []}).schedule.filter(func(a: Array) -> bool: return a.size() > 2 and a[2]).size()
 	_check(elites == 1, "one Deeply Blighted nightmare in the drift (%d)" % elites)
 
+	# --- First pick: 3 random from every unlocked family, never the previous offer again ---
+	family.offer_all_first = false
+	var drawn := {}
+	for i in 30:
+		var previous: Array = family.previous_first_offer.duplicate()
+		family.show_pick(&"first")
+		_check(family.offer.size() == 3 and family._ids(family.offer) != previous,
+			"the first pick draws 3 and doesn't repeat the last offer (%s after %s)" % [family._ids(family.offer), previous])
+		for data in family.offer:
+			drawn[data.get_id()] = true
+	_check(drawn.size() > 3 and drawn.has("pebbling"), "first picks draw from the Grove families too (%s)" % [drawn.keys()])
+	_check(not HeartwoodMemory.load_data().has("last_first_pick"), "tests never write the last offer to the profile")
+	family.offer_all_first = true
+
 	# --- Early Bloom and Family Blessings ---
 	family.show_pick(&"first")
 	_check(family.offer.size() == family.families.size(), "Early Bloom: the first pick offers every family (%d)" % family.offer.size())

@@ -1,7 +1,9 @@
 extends Control
 
 # Warden family pick (run_design.md, "Warden families"): after drift 1 and after each boss, pick 1
-# of up to 3 base Wardens you don't have yet. The pick unlocks it (Sprouts can grow into it, or
+# of up to 3 base Wardens you don't have yet, drawn at random from every family the profile has
+# unlocked (the starting 3 + Grove families added by MetaRun); the first pick avoids repeating the
+# previous run's first offer. The pick unlocks it (Sprouts can grow into it, or
 # plant it directly). When fewer than 3 new families are left, the empty slots become Family
 # Blessings for families you own (meta_design.md). Early Bloom (Grove perk) makes the first pick offer
 # every family. Pauses the game while open. Built in code.
@@ -21,6 +23,7 @@ const TITLES := {
 ]
 @export var cards_per_pick: int = 3
 var offer_all_first := false  # Early Bloom (set by MetaRun)
+var previous_first_offer: Array = []  # Sorted ids of the last run's first-pick offer (profile "last_first_pick")
 
 @onready var dream_state: DreamState = %DreamState
 @onready var drift_director: DriftDirector = %DriftDirector
@@ -52,6 +55,8 @@ func _ready() -> void:
 	_cards.alignment = BoxContainer.ALIGNMENT_CENTER
 	box.add_child(_cards)
 	visible = false
+	previous_first_offer = HeartwoodMemory.load_data().get("last_first_pick", [])
+	previous_first_offer.sort()
 	drift_director.family_pick_requested.connect(show_pick)
 
 # Families not unlocked yet, in roster order.
@@ -66,8 +71,17 @@ func show_pick(reason: StringName = &"first") -> void:
 	var available := get_available()
 	available.shuffle()
 	var count := available.size() if reason == &"first" and offer_all_first else cards_per_pick
+	# The first pick never repeats the previous run's offer exactly (when there's a choice), so runs
+	# start differently (dream_design.md "Where Warden families come from").
+	if reason == &"first" and available.size() > count:
+		for attempt in 20:
+			if _ids(available.slice(0, count)) != previous_first_offer:
+				break
+			available.shuffle()
 	offer = []  # Untyped: families (TowerData) and Blessings (UpgradeData) share it
 	offer.append_array(available.slice(0, count))
+	if reason == &"first":
+		_remember_first_offer()
 	var blessings := get_blessings()
 	blessings.shuffle()
 	while offer.size() < cards_per_pick and not blessings.is_empty():
@@ -85,6 +99,21 @@ func show_pick(reason: StringName = &"first") -> void:
 	for data in offer:
 		_cards.add_child(_make_blessing_card(data) if data is UpgradeData else _make_card(data))
 	visible = true
+
+# Sorted Warden ids of the families in `datas`.
+func _ids(datas: Array) -> Array:
+	var ids: Array = datas.filter(func(d) -> bool: return d is TowerData).map(func(d: TowerData) -> String: return d.get_id())
+	ids.sort()
+	return ids
+
+# Kept in the profile for the next run's first pick; real game only (never tests or Test Grove).
+func _remember_first_offer() -> void:
+	previous_first_offer = _ids(offer)
+	if get_tree().current_scene != owner or TestGrove.is_active():
+		return
+	var memory := HeartwoodMemory.load_data()
+	memory["last_first_pick"] = previous_first_offer
+	HeartwoodMemory.save_data(memory)
 
 # Blessings for the families you own (their cards are in the Dream pool, added by MetaRun).
 func get_blessings() -> Array:
