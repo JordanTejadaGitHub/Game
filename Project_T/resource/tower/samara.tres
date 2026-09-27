@@ -1,0 +1,30 @@
+[gd_resource type="Resource" script_class="TowerData" load_steps=6 format=3]
+
+[ext_resource type="Script" path="res://resource/tower/script/tower_data.gd" id="1_tdata"]
+[ext_resource type="Texture2D" path="res://assets/towers/samara.png" id="2_tex"]
+[ext_resource type="Texture2D" path="res://assets/towers/projectiles/maple_seed.png" id="3_proj"]
+[ext_resource type="Texture2D" path="res://assets/towers/samara_attack.png" id="4_atk"]
+[ext_resource type="Resource" path="res://resource/tower/autumn_gale.tres" id="ev_1"]
+
+[resource]
+script = ExtResource("1_tdata")
+display_name = "Samara"
+description = "Throws a spinning maple seed down a straight line and back through everything, carrying the first nightmare's statuses along it."
+cost = 0
+texture = ExtResource("2_tex")
+frame_count = 8
+line = "wind"
+tier = 2
+buildable_directly = false
+evolve_cost = 45
+attack_kind = 15
+attack_range = 4.0
+damage = 20
+attacks_per_second = 0.625
+boomerang_length = 4.0
+crit_chance = 0.05
+projectile_texture = ExtResource("3_proj")
+attack_texture = ExtResource("4_atk")
+attack_frame_count = 6
+attack_release_frame = 2
+evolves_to = Array[Resource]([ExtResource("ev_1")])

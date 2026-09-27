@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+[ext_resource type="Resource" path="res://resource/tower/dreamcatcher.tres" id="2_tower"]
+
+[resource]
+script = ExtResource("1_card")
+id = "dream_dreamcatcher"
+display_name = "Dreamcatcher"
+description = "Bellflowers can now grow into Dreamcatchers (45 Dew): sleeping or fully Drowsy nightmares in its range are Caught and take 40% more damage from everything."
+rarity = 1
+kind = 1
+tags = Array[String](["song"])
+requires = Array[String](["bellflower"])
+max_stacks = 1
+unlocks = ExtResource("2_tower")

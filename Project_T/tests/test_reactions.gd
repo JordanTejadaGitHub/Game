@@ -87,11 +87,11 @@ func _run() -> void:
 	var d := _spawn(origin)
 	d.apply_status(EnemyStatuses.DAMP)
 	d.apply_status(EnemyStatuses.DROWSY, 5)
-	_check(d.hold_time >= 2.0 and not d.statuses.has(EnemyStatuses.DROWSY), "Drown: asleep for 2 s, Drowsy used up")
-	d.hold_time = 0.0
+	_check(d.statuses.sleep_time >= 2.0 and not d.statuses.has(EnemyStatuses.DROWSY), "Drown: asleep for 2 s, Drowsy used up")
+	d.statuses.sleep_time = 0.0
 	d.statuses.reaction_cooldowns.clear()
 	d.apply_status(EnemyStatuses.DROWSY, 5)
-	_check(d.hold_time == 0.0, "only once per nightmare")
+	_check(d.statuses.sleep_time == 0.0, "only once per nightmare")
 	await _clean()
 
 	# --- Pinned: Marked + Held. The next hit is a guaranteed ×3 crit; uses up Marked ---

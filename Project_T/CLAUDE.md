@@ -319,6 +319,13 @@ controller / Steam Deck, accessibility, Steam achievements (milestones map to th
   budget/lite and reduce_flashes inside). Never parent effects under `%EnemyContainer` (its children
   are all nightmares); use `Reactions._world(node)`.
   `projectile.gd` (`Projectile`, script-only node; animates and rotates
+- Family review Wardens (tower_design.md 7e574e0): Bellflower family (`song` line; `status_every`,
+  `extra_status`, `sets_off_static_at`), Dreamcatchers (`caught_bonus`: `EnemyStatuses.caught_*`,
+  sleep via `EnemyStatuses.sleep_time`; shards → `DreamState.add_dreamlight_shard`), Echo Hollow
+  (`echo_share`, `Reactions.echo`), Cairn/Rockslide (`lob` projectiles, `RubblePatch`), Hummingbird
+  (`AttackKind.PECK`, `PeckingBird`, `Tower.peck`), Samara (`AttackKind.BOOMERANG`, `SeedBoomerang`),
+  Starling Murmuration (`multi_targets` swoops). Seeds/rubble/clouds go in the world, never in
+  `%TowerContainer` or `%EnemyContainer`. Card rules 84–99 are read by rule id in those scripts.
   `TowerData.projectile_texture`, 16x16 frames drawn pointing right, else a coloured puff). Enemies in the `"enemies"` group
   are targetable; cleansing removes them from it and from `EnemyContainer.get_enemies()`.
 - `shaders/blight.gdshader` — grey "blighted" look; `blight` uniform 1 → 0 on cleanse.

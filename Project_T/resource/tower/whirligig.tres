@@ -1,10 +1,11 @@
-[gd_resource type="Resource" script_class="TowerData" load_steps=6 format=3]
+[gd_resource type="Resource" script_class="TowerData" load_steps=7 format=3]
 
 [ext_resource type="Script" path="res://resource/tower/script/tower_data.gd" id="1_tdata"]
 [ext_resource type="Texture2D" path="res://assets/towers/whirligig.png" id="2_tex"]
 [ext_resource type="Texture2D" path="res://assets/towers/whirligig_attack.png" id="4_atk"]
 [ext_resource type="Resource" path="res://resource/tower/gust.tres" id="ev_1"]
 [ext_resource type="Resource" path="res://resource/tower/pinwheel.tres" id="ev_2"]
+[ext_resource type="Resource" path="res://resource/tower/samara.tres" id="ev_3"]
 
 [resource]
 script = ExtResource("1_tdata")
@@ -26,4 +27,4 @@ crit_chance = 0.05
 attack_texture = ExtResource("4_atk")
 attack_frame_count = 6
 attack_release_frame = 2
-evolves_to = Array[Resource]([ExtResource("ev_1"), ExtResource("ev_2")])
+evolves_to = Array[Resource]([ExtResource("ev_1"), ExtResource("ev_2"), ExtResource("ev_3")])

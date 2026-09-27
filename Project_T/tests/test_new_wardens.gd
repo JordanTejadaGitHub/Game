@@ -263,19 +263,22 @@ func _test_birds() -> void:
 		hoarder.hit(mark2)
 	_check(run_state.dew == dew + 2, "Magpie's Hoard: +1 Dew per crit, capped per drift")
 
-	# Starling Murmuration sweeps a stretch of path. The birds above are still attacking whatever
-	# comes into range, so clear them first (on some maps the swept tile is within their reach).
+	# Starling Murmuration: 3 starlings, each after one of the 3 fastest nightmares in range. The birds
+	# above are still attacking whatever comes into range, so clear them first.
 	await _clean()
-	var starling: TowerData = load("res://resource/tower/starling_murmuration.tres").duplicate()
-	starling.crit_chance = 0.0
-	var spot := _route_cell(12)
-	var flock := _plant(starling, _free_cell_near(spot))
-	var on_path := _spawn_at(map_generator.MAP_GRID.calculate_map_position(spot))
-	var off_path := _spawn_at(flock.global_position + Vector2(0, 0.4 * CELL))
+	var flock := _plant(load("res://resource/tower/starling_murmuration.tres"), Vector2(5, 5))
+	flock.set_process(false)
+	var runners: Array = []
+	for i in 4:
+		var runner := _spawn_at(flock.global_position + Vector2.from_angle(i * PI / 2.0) * 1.5 * CELL)
+		runner.speed = 40.0 + i * 20.0
+		runners.append(runner)
 	await process_frame
-	flock._sweep()
-	_check(on_path.health == on_path.max_health - starling.damage, "the flock hits nightmares on the swept stretch")
-	_check(off_path.health == off_path.max_health, "and nothing off the path")
+	var targets: Array = flock.find_targets(3)
+	_check(targets.size() == 3 and not targets.has(runners[0]), "the starlings go after the 3 fastest, not the slowest")
+	flock._release()
+	var birds := flock.get_children().filter(func(n: Node) -> bool: return n is Projectile)
+	_check(birds.size() == 3, "one starling each (%d)" % birds.size())
 	await _clean()
 
 

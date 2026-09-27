@@ -31,7 +31,7 @@ func _run() -> void:
 	_check(driftspore.evolves_to.has(puffball), "Driftspores can grow into Puffballs")
 	var card := load("res://resource/dream/dream_puffball.tres") as UpgradeData
 	_check(card != null and card.unlocks == puffball and card.requires == ["driftspore"] \
-		and card.rarity == UpgradeData.Rarity.RARE and card.in_start_pool, "Puffball's Rare Dream card")
+		and card.rarity == UpgradeData.Rarity.RARE and not card.in_start_pool, "Puffball's Rare Dream card (Grove-gated final form)")
 	_check(dreams.pool.has(card), "the card is in the Dream pool")
 
 	var data: TowerData = puffball.duplicate()

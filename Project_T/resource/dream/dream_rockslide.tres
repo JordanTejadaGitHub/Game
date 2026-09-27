@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+[ext_resource type="Resource" path="res://resource/tower/rockslide.tres" id="2_tower"]
+
+[resource]
+script = ExtResource("1_card")
+id = "dream_rockslide"
+display_name = "Rockslide"
+description = "Cairns can now grow into Rockslides (90 Dew): a bigger splash, and the path where its stones land is left with rubble that slows for 3 s."
+rarity = 2
+kind = 1
+tags = Array[String](["stone"])
+requires = Array[String](["cairn"])
+max_stacks = 1
+unlocks = ExtResource("2_tower")
+in_start_pool = false

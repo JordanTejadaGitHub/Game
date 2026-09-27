@@ -63,7 +63,7 @@ const BOLT_FLASH_TIME := 0.2
 const HIT_MARK_TIME := 0.35  # Grey puff (resisted) / sparkle (weak) after a hit
 # Damage that only happened because of a Reaction (DamageLog: whole-hit combos, event kind "reaction").
 const REACTION_TAGS: Array[StringName] = [&"thunderclap", &"ignite", &"shatter", &"pinned", &"lightning_rod",
-	&"dawnbreak"]
+	&"dawnbreak", &"echo"]
 const STATUS_FLASH_TIME := 0.3  # A status icon flashes when a combo uses it (see flash_status)
 const COAT_COLOR := Color(0.62, 0.6, 0.66)
 const CRIT_FLASH_TIME := 0.3  # Seconds a crit counts as "just happened" (the glint itself is Fx.crit)
@@ -71,6 +71,8 @@ const CRIT_FLASH_TIME := 0.3  # Seconds a crit counts as "just happened" (the gl
 var _crit_flash := 0.0
 # Extra Dew when dispelled (Magpie Perch: +1 once it's been hit by a magpie).
 var bonus_dew := 0
+# The next hit ignores the blight coat's (dread shell's) reduction (Needle Point pecks).
+var pierce_coat_once := false
 # Seconds before this nightmare can be frozen (Frostfern) / pushed back (Whirligig) again.
 var freeze_cooldown := 0.0
 var push_cooldown := 0.0
@@ -203,8 +205,8 @@ func _process(delta: float) -> void:
 	if hold_time > 0.0:
 		hold_time -= delta
 		return
-	if statuses.is_held():
-		return  # Frozen / rooted in place
+	if statuses.is_held() or statuses.is_asleep():
+		return  # Frozen / rooted in place, or asleep (Drown)
 	_charge_left = maxf(_charge_left - delta, 0.0)
 	_update_trait(delta)
 	if _leaping:
@@ -746,7 +748,9 @@ func take_damage(amount: float, line: String = "", is_area: bool = false, is_cri
 		_mark_hit(-1)
 	elif line in enemy_data.weak_to:
 		_mark_hit(1)
-	if coat > 0.0 and soothe > 0.0:
+	var pierce := pierce_coat_once
+	pierce_coat_once = false
+	if coat > 0.0 and soothe > 0.0 and not pierce:
 		# Each hit loses up to _coat_per_hit (always keeping at least 1), never more than the coat has left.
 		var soaked := minf(minf(_coat_per_hit, coat), soothe - minf(soothe, 1.0))
 		coat -= soaked
@@ -776,6 +780,8 @@ func apply_status(id: StringName, stacks: int = 1, duration: float = 0.0, potenc
 		max_stacks: int = 0, line: String = "", source: Node = null) -> void:
 	if is_cleansed:
 		return
+	if id == EnemyStatuses.DROWSY:
+		statuses.drowsy_cap_bonus = Reactions.drowsy_cap_bonus(self)  # Heavy Eyelids
 	var bolt := statuses.apply(id, stacks, duration, potency, max_stacks, line, source)
 	queue_redraw()
 	if bolt > 0.0:
@@ -844,6 +850,12 @@ func _mark_hit(kind: int) -> void:
 func _cleanse() -> void:
 	is_cleansed = true
 	remove_from_group(GROUP)
+	# Great Dreamcatcher: a Caught nightmare (never a boss) leaves a Dreamlight shard.
+	if statuses.caught_shard and statuses.is_caught() and not enemy_data.is_boss:
+		var dreams := get_tree().get_first_node_in_group(DreamState.GROUP)
+		if dreams and dreams.has_method("add_dreamlight_shard"):
+			dreams.add_dreamlight_shard()
+			Reactions._effect(&"dreamlight_shard", global_position, self, 1.0, 1.2)
 	cleansed.emit(self)
 	queue_redraw()
 	sprite.self_modulate.a = 1.0  # A hidden nightmare shows itself as it cracks apart

@@ -1,0 +1,30 @@
+[gd_resource type="Resource" script_class="TowerData" load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://resource/tower/script/tower_data.gd" id="1_tdata"]
+[ext_resource type="Texture2D" path="res://assets/towers/great_dreamcatcher.png" id="2_tex"]
+[ext_resource type="Texture2D" path="res://assets/towers/projectiles/dream_mote.png" id="3_proj"]
+[ext_resource type="Texture2D" path="res://assets/towers/great_dreamcatcher_attack.png" id="4_atk"]
+
+[resource]
+script = ExtResource("1_tdata")
+display_name = "Great Dreamcatcher"
+description = "Caught nightmares take 60% more damage; sleep in its range lasts 1 s longer, and Caught nightmares leave Dreamlight shards."
+cost = 0
+texture = ExtResource("2_tex")
+frame_count = 8
+line = "song"
+tier = 3
+buildable_directly = false
+evolve_cost = 90
+attack_range = 3.0
+damage = 16
+attacks_per_second = 1.0
+projectile_speed = 440
+caught_bonus = 0.6
+sleep_extend = 1.0
+caught_shards = true
+crit_chance = 0.05
+projectile_texture = ExtResource("3_proj")
+attack_texture = ExtResource("4_atk")
+attack_frame_count = 6
+attack_release_frame = 2

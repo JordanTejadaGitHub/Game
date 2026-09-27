@@ -15,6 +15,8 @@ signal chain_reached(count: int, where: Vector2, towers: Array)
 
 var counts := {}  # Reaction id -> times it fired this run
 var longest_chain := 0
+# > 0 while an echo (Echo Hollow) is going off: Hollows don't echo echoes (Encore: once more).
+var echo_depth := 0
 
 func _ready() -> void:
 	add_to_group(GROUP)

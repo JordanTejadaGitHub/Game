@@ -6,11 +6,14 @@ class_name TowerData
 # cloud on the target's path tile that soothes and applies its status to creatures inside.
 # TRAP plants rings on path tiles that burst when stepped on (Fairy Ring); BEAM holds one target and
 # ramps up (Sunpetal); COPY uses the strongest adjacent Warden's attack (Graftling); SWOOP sends a
-# bird that flies back (Nestling line); SWEEP hits every nightmare on a stretch of path (Starling
-# Murmuration); SPREAD copies statuses between nightmares (Gust); SPIN hits the 8 tiles around it
+# bird that flies back (Nestling line); SWEEP is unused (Starling Murmuration swoops now; kept so the
+# numbers after it don't shift); SPREAD copies statuses between nightmares (Gust); SPIN hits the 8 tiles around it
 # (Pinwheel); PULL grabs a nightmare and drags it back (Pond Keeper); LIGHT lights path tiles and
 # Marks nightmares on them (Rootlight); AURA never attacks but affects everything in range (White Stag).
-enum AttackKind { PROJECTILE, PULSE, CHAIN, CLOUD, TRAP, BEAM, COPY, SWOOP, SWEEP, SPREAD, SPIN, PULL, LIGHT, AURA }
+# PECK sends birds that peck one nightmare several times, each a full hit (Hummingbird Bower);
+# BOOMERANG throws a seed along a straight line and back through everything (Samara).
+enum AttackKind { PROJECTILE, PULSE, CHAIN, CLOUD, TRAP, BEAM, COPY, SWOOP, SWEEP, SPREAD, SPIN, PULL, LIGHT, AURA,
+	PECK, BOOMERANG }
 # Who a Warden shoots at. FIRST = furthest along the path. Snipers let the player choose.
 enum TargetMode { FIRST, STRONGEST, BOSSES, FASTEST }
 
@@ -78,6 +81,42 @@ const ATTACKS_JSON := "res://assets/towers/attacks.json"
 @export var cloud_duration: float = 3.0
 @export var cloud_fog: bool = false  # Mistveil fog: Spored ticks harder inside
 
+@export_group("Song")
+# Only every Nth attack applies `applies_status` (Bellflower: Drowsy on every 2nd pulse). 1 = always.
+@export var status_every: int = 1
+# A second status on every hit (Lullaby Bell: Static and Drowsy).
+@export var extra_status: StringName = &""
+@export var extra_status_stacks: int = 1
+# Pulses set off a Static bolt on nightmares with this many Static stacks or more (Chime Stone). 0 = no.
+@export var sets_off_static_at: int = 0
+# Dreamcatcher: nightmares in range that are asleep or at max Drowsy are Caught and take this much
+# more damage from everything (0 = not a Dreamcatcher).
+@export var caught_bonus: float = 0.0
+@export var sleep_extend: float = 0.0  # Great Dreamcatcher: sleep in range lasts this much longer (once each)
+@export var caught_shards: bool = false  # Great Dreamcatcher: Caught nightmares dispelled drop Dreamlight shards
+# Echo Hollow: a Reaction within range repeats 1 s later at this share on the same spot (0 = no echo).
+@export var echo_share: float = 0.0
+@export var echo_is_chain_link: bool = false  # Whispering Hollow: echoes count as chain links
+
+@export_group("Lob")
+# Cairn: the shot lobs over walls onto the target's tile (lands there even if the target moves on).
+@export var lob: bool = false
+@export var lob_height: float = 90.0  # Pixels at the top of the arc
+@export var rubble_slow: float = 0.0  # Rockslide: path tiles hit get rubble that slows this much…
+@export var rubble_time: float = 3.0  # …for this long
+
+@export_group("Birds and seeds")
+@export var multi_targets: int = 1  # Swoops at this many different nightmares at once (Starling Murmuration)
+@export var pecks: int = 6  # PECK: pecks per bird per attack…
+@export var peck_time: float = 1.0  # …spread over this long, then the bird flies home
+@export var peck_birds: int = 1  # Jewelwing Court: 3
+@export var flurry_every: int = 0  # Jewelwing Court: every Nth peck is a guaranteed crit
+@export var has_bird_toggle: bool = false  # Jewelwing Court: birds spread out or all focus the strongest
+@export var boomerang_length: float = 4.0  # BOOMERANG: cells out along the line
+@export var boomerang_seeds: int = 1  # Autumn Gale: 2 seeds along the 2 busiest lines
+@export var catch_bonus: float = 0.0  # Autumn Gale: +damage per caught throw that hit something…
+@export var catch_bonus_max: float = 0.0  # …up to this
+
 @export_group("Pop")
 # Puffball: when a hit leaves a nightmare with pop_at_stacks+ Spored, it pops: pop_damage_per_stack
 # × stacks to it and every nightmare within pop_radius cells (area, never crits), its stacks are used
@@ -115,7 +154,6 @@ const ATTACKS_JSON := "res://assets/towers/attacks.json"
 @export var dew_mark: bool = false  # Nightmares it hits drop +1 Dew when dispelled (Magpie Perch)
 @export var crit_dew: int = 0  # Dew per crit (Magpie's Hoard)
 @export var crit_dew_per_drift: int = 0  # Cap on crit Dew per drift
-@export var sweep_tiles: int = 5  # Starling Murmuration: path tiles per sweep
 
 @export_group("Wind")
 @export var push_back_tiles: float = 0.0  # Pulse hits push nightmares back this far (Whirligig)

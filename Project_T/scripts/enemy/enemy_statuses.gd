@@ -67,6 +67,38 @@ var slow_time := 0.0  # Drown on bosses (and Held-immune nightmares): an extra s
 var slow_amount := 0.0
 var smothering := false  # Held + Spored right now (Spored ticks faster)
 
+# Sleep (Drown; Great Dreamcatcher lengthens it): can't move while > 0. Not a status (no icon, no
+# Reactions of its own), but it counts as asleep for Pinned and Caught.
+var sleep_time := 0.0
+var sleep_extended := false  # Great Dreamcatcher's +1 s happened already
+# Caught (Dreamcatcher): asleep or at max Drowsy inside a Dreamcatcher's range; takes more damage.
+var caught_time := 0.0
+var caught_bonus := 0.0
+var caught_shard := false  # Caught by a Great Dreamcatcher: dispelling it drops a Dreamlight shard
+var bad_dreams_timer := 0.0  # Bad Dreams: Drowsy per second while Caught
+# Thousand Cuts: hits within 2 s of each other stack +2% damage taken (max +60%).
+const CUT_BONUS := 0.02
+const CUT_MAX := 30
+const CUT_WINDOW := 2.0
+var cut_stacks := 0
+var cut_time := 0.0
+# Heavy Eyelids: extra Drowsy cap (set by the nightmare from the Dream before Drowsy lands).
+var drowsy_cap_bonus := 0
+
+func is_asleep() -> bool:
+	return sleep_time > 0.0
+
+func is_caught() -> bool:
+	return caught_time > 0.0
+
+# Asleep or at full Drowsy (bosses: their cap of 3 counts): what Dreamcatchers catch.
+func is_catchable() -> bool:
+	return is_asleep() or (has(DROWSY) and stacks(DROWSY) >= get_max_stacks(DROWSY))
+
+func add_cut() -> void:
+	cut_stacks = mini(cut_stacks + 1, CUT_MAX)
+	cut_time = CUT_WINDOW
+
 # Marks this nightmare as touched by a Reaction's output, so a Reaction here within `window` s counts
 # as the chain's next link.
 func mark_chain(count: int, towers: Array, window: float = 1.0) -> void:
@@ -112,6 +144,8 @@ func get_max_stacks(id: StringName, override: int = 0) -> int:
 	var cap: int = override if override > 0 else DEFAULT_MAX_STACKS[id]
 	if is_boss and BOSS_MAX_STACKS.has(id):
 		cap = BOSS_MAX_STACKS[id] if id == DROWSY else maxi(cap, BOSS_MAX_STACKS[id])
+	if id == DROWSY:
+		cap += drowsy_cap_bonus
 	return maxi(cap, _active.get(id, {}).get("cap", 0))
 
 func has(id: StringName) -> bool:
@@ -198,6 +232,11 @@ func get_damage_taken_multiplier() -> float:
 		multiplier += MARKED_EXTRA
 	if is_in_stag_aura():
 		multiplier += STAG_EXTRA
+	# Caught multiplies with the rest (a Caught, Marked nightmare takes ×1.4 × ×1.25).
+	if is_caught():
+		multiplier *= 1.0 + caught_bonus
+	if cut_stacks > 0:
+		multiplier *= 1.0 + CUT_BONUS * cut_stacks
 	return multiplier
 
 # Advances timers. Returns the Spored soothe to deal this frame (already fog-boosted).
@@ -207,6 +246,11 @@ func tick(delta: float) -> float:
 	chain_time = maxf(chain_time - delta, 0.0)
 	mushroom_time = maxf(mushroom_time - delta, 0.0)
 	slow_time = maxf(slow_time - delta, 0.0)
+	sleep_time = maxf(sleep_time - delta, 0.0)
+	caught_time = maxf(caught_time - delta, 0.0)
+	cut_time = maxf(cut_time - delta, 0.0)
+	if cut_time <= 0.0:
+		cut_stacks = 0
 	for reaction in reaction_cooldowns.keys():
 		reaction_cooldowns[reaction] -= delta
 		if reaction_cooldowns[reaction] <= 0.0:

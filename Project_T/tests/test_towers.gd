@@ -24,7 +24,7 @@ func _run() -> void:
 	dream_state.unlock_everything = true  # Test the whole roster
 	dream_state.unlocks_changed.emit()
 	await process_frame
-	_check(placer.towers.size() == 13, "all thirteen plantable Wardens are in the roster")
+	_check(placer.towers.size() == 14, "all fourteen plantable Wardens are in the roster")
 	_check(main.get_node("%TowerBar").get_child_count() == placer.towers.size(), "one HUD button per Warden")
 
 	for data in placer.towers:

@@ -23,6 +23,11 @@ var _anim_time := 0.0
 var _returns := false
 var _home := Vector2.ZERO
 var _returning := false
+# Lob (Cairn): flies over walls in a high arc to the tile the target was on when fired, and lands
+# there even if the target has moved on.
+var _lob := false
+var _lob_height := 0.0
+var _lob_distance := 1.0
 
 func _init(target: Node2D, data: TowerData, on_land: Callable) -> void:
 	_target = target
@@ -33,10 +38,15 @@ func _init(target: Node2D, data: TowerData, on_land: Callable) -> void:
 	texture = data.projectile_texture
 	frame_count = data.projectile_frames
 	_returns = data.projectile_returns
+	_lob = data.lob
+	_lob_height = data.lob_height
+	if _lob:
+		_target_position = Tower.MAP_GRID.calculate_map_position(target.get_current_cell())
 	top_level = true  # Fly in world space, independent of the tower that fired it
 
 func _ready() -> void:
 	_home = global_position
+	_lob_distance = maxf(global_position.distance_to(_target_position), 1.0)
 
 func is_returning() -> bool:
 	return _returning
@@ -51,7 +61,7 @@ func _process(delta: float) -> void:
 		return
 
 	var target_alive: bool = is_instance_valid(_target) and not _target.is_cleansed
-	if target_alive:
+	if target_alive and not _lob:
 		_target_position = _target.global_position
 
 	if global_position.distance_to(_target_position) <= step:
@@ -64,17 +74,28 @@ func _process(delta: float) -> void:
 	_fly_toward(_target_position, step, delta)
 
 func _fly_toward(to: Vector2, step: float, delta: float) -> void:
-	if texture != null:
+	_anim_time += delta
+	if texture != null and not _lob:
 		rotation = global_position.direction_to(to).angle()
-		_anim_time += delta
-		queue_redraw()
+	queue_redraw()
 	global_position = global_position.move_toward(to, step)
 
+# How high a lobbed stone is above the ground right now (0 at both ends of the arc).
+func _lob_lift() -> float:
+	if not _lob:
+		return 0.0
+	var t := 1.0 - global_position.distance_to(_target_position) / _lob_distance
+	return sin(clampf(t, 0.0, 1.0) * PI) * _lob_height
+
 func _draw() -> void:
+	var lift := _lob_lift()
+	if _lob:
+		draw_circle(Vector2.ZERO, RADIUS * (1.0 - lift / (_lob_height * 2.0)), Color(0, 0, 0, 0.25))  # Its shadow
+	var at := Vector2(0, -lift)
 	if texture == null:
-		draw_circle(Vector2.ZERO, RADIUS, color.darkened(0.3))
-		draw_circle(Vector2.ZERO, RADIUS - 2.0, color)
+		draw_circle(at, RADIUS, color.darkened(0.3))
+		draw_circle(at, RADIUS - 2.0, color)
 		return
 	var frame := int(_anim_time * ANIMATION_FPS) % frame_count
 	var size := Vector2(texture.get_width() / float(frame_count), texture.get_height())
-	draw_texture_rect_region(texture, Rect2(-size / 2.0, size), Rect2(Vector2(size.x * frame, 0), size))
+	draw_texture_rect_region(texture, Rect2(at - size / 2.0, size), Rect2(Vector2(size.x * frame, 0), size))

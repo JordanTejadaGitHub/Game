@@ -103,7 +103,16 @@ static func on_status(enemy: Node2D, _id: StringName, source: Node) -> void:
 		_smother(enemy, source)
 
 static func is_asleep(enemy: Node2D) -> bool:
-	return enemy.hold_time > 0.0 and enemy.statuses.drowned > 0
+	return enemy.statuses.is_asleep()
+
+# Heavy Eyelids: Drowsy cap +2 (Heavy Eyelids II: +3), bosses +1.
+static func drowsy_cap_bonus(enemy: Node2D) -> int:
+	var dreams := _dreams(enemy)
+	if dreams == null or not dreams.has_rule(&"heavy_eyelids"):
+		return 0
+	if enemy.enemy_data.is_boss:
+		return 1
+	return 3 if dreams.rule_level(&"heavy_eyelids") > 0 else 2
 
 # Before a Warden's hit: Pinned turns it into a ×3 crit, and Shatter (Held + Damp, hit by a crit or
 # a heavy hitter) makes it ×2.5. Returns {"crit", "crit_multiplier", "multiplier", "shatter", "tag"}.
@@ -249,7 +258,7 @@ static func _drown(enemy: Node2D, source: Node) -> void:
 		s.slow_time = DROWN_SLEEP[0]
 		s.slow_amount = DROWN_BOSS_SLOW[deep]
 	else:
-		enemy.hold_time = maxf(enemy.hold_time, DROWN_SLEEP[deep])
+		s.sleep_time = maxf(s.sleep_time, DROWN_SLEEP[deep])
 
 # Marked + (Held or asleep or full Drowsy): the next Warden hit is a guaranteed ×3 crit. Uses up Marked.
 static func _pinned(enemy: Node2D, source: Node) -> void:
@@ -265,6 +274,61 @@ static func _pinned(enemy: Node2D, source: Node) -> void:
 static func _smother(enemy: Node2D, source: Node) -> void:
 	var s: EnemyStatuses = enemy.statuses
 	_fire(enemy, &"smother", _towers(s.source(SPORED), _tower_of(source, s.source(HELD))))
+
+
+# --- Echoes (Echo Hollow) ---------------------------------------------------------------------------
+
+# Rough strength of each Reaction's burst, × the applier's damage, for echoes (the originals scale
+# with what the nightmare had built up, which an echo on an empty spot can't).
+const ECHO_DAMAGE := {&"thunderclap": 4.0, &"ignite": 3.0, &"shatter": 2.5, &"lightning_rod": 6.0}
+const ECHO_REACH := 1.0  # Cells around the spot
+
+# Reaction `id` repeats at `spot` at `share` strength (Echo Hollow's echo, 1 s after the original).
+# `echo_tower` is the Hollow, `applier` the Warden behind the original. With `as_chain_link`
+# (Whispering Hollow) the echo is recorded as the chain's next link. `depth` = 1 for an echo, 2 for
+# Encore's echo of an echo; the tracker's echo_depth tells Hollows not to echo echoes.
+static func echo(id: StringName, spot: Vector2, share: float, echo_tower: Tower, applier: Tower, chain: int,
+		as_chain_link: bool, depth: int = 1) -> void:
+	if not is_instance_valid(echo_tower) or not echo_tower.is_inside_tree():
+		return
+	var tracker := ReactionTracker.find(echo_tower)
+	var world := _world(echo_tower)
+	var nearby := echo_tower.get_tree().get_nodes_in_group(Tower.ENEMY_GROUP).filter(func(e: Node2D) -> bool:
+		return e.global_position.distance_to(spot) <= ECHO_REACH * CELL)
+	tracker.echo_depth = depth
+	if world:
+		Fx.play(&"echo", spot, world)  # Lilac rings, then the Reaction's own effect again
+		Fx.reaction(id, spot, world, [echo_tower])
+	var strength: float = ECHO_DAMAGE.get(id, 0.0) * (applier.get_damage() if is_instance_valid(applier) else echo_tower.get_damage())
+	for enemy in nearby:
+		if not is_instance_valid(enemy) or enemy.is_cleansed:
+			continue
+		var s: EnemyStatuses = enemy.statuses
+		match id:
+			&"drown":
+				if s.is_boss or HELD in s.immune:
+					s.slow_time = maxf(s.slow_time, DROWN_SLEEP[0] * share)
+					s.slow_amount = maxf(s.slow_amount, DROWN_BOSS_SLOW[0])
+				else:
+					s.sleep_time = maxf(s.sleep_time, DROWN_SLEEP[0] * share)
+			&"pinned":
+				s.pinned = true
+			_:
+				if strength > 0.0:
+					enemy.take_damage(strength * share, _line(applier, echo_tower.tower_data.line), true, false,
+						echo_tower, &"echo")
+	if id == &"mushrooming" and not nearby.is_empty():
+		var first: Node2D = nearby[0]
+		var cloud := ReactionCloud.new(spot, MUSHROOM_CLOUD_RADIUS * CELL, MUSHROOM_CLOUD_TIME * share,
+			first.statuses.potency(SPORED), first.statuses.spore_line(), applier, chain)
+		var container := first.get_parent()
+		container.get_parent().add_child(cloud)
+		container.get_parent().move_child(cloud, container.get_index())
+	if as_chain_link and not nearby.is_empty() and tracker:
+		var link: Node2D = nearby[0]
+		link.statuses.mark_chain(chain + 1, [echo_tower], CHAIN_WINDOW)
+		tracker.record(id, link, chain + 1, [echo_tower])
+	tracker.echo_depth = 0
 
 
 # --- Firing, chains and output ---------------------------------------------------------------------

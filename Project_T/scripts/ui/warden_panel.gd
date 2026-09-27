@@ -113,6 +113,11 @@ func _refresh() -> void:
 	if data.has_target_priority:
 		var aim := _add_button("Aim: %s (click to change)" % TARGET_NAMES[_tower.target_mode])
 		aim.pressed.connect(_cycle_target)
+	if data.has_bird_toggle:
+		var birds := _add_button("Birds: %s (click to change)" % ("all on the strongest" if _tower.focus_strongest else "spread out"))
+		birds.pressed.connect(func() -> void:
+			_tower.focus_strongest = not _tower.focus_strongest
+			_refresh())
 	for option in dream_state.get_evolutions(data):
 		var next: TowerData = option[0]
 		var button := _add_button("")

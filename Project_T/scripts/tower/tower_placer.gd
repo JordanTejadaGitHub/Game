@@ -22,6 +22,7 @@ signal build_rejected(cell: Vector2)
 	preload("res://resource/tower/firefly_jar.tres"),
 	preload("res://resource/tower/rootling.tres"),
 	preload("res://resource/tower/acorn.tres"),
+	preload("res://resource/tower/bellflower.tres"),
 	preload("res://resource/tower/nestling.tres"),
 	preload("res://resource/tower/whirligig.tres"),
 	# Memory Wardens (one of each per run)
