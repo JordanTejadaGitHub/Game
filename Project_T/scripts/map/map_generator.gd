@@ -50,22 +50,38 @@ func _ready() -> void:
 	environment_object_layer.generate_details(rng, no_details)
 
 # If obstacles cut the start off from the end, clears the fewest-obstacle route between them.
+# Ridges are left intact (they create the zig-zag) unless there's no other way through.
 func _carve_route_if_blocked() -> void:
 	if not path_layer.find_path_from(startPath).is_empty():
 		return
+	var route := _find_carve_route(false)
+	if route.is_empty():
+		route = _find_carve_route(true)
+	for cell in route:
+		if obstacles.has(cell):
+			_remove_obstacle(cell)
+
+# Cheapest start-to-end route where obstacles are passable but costly. Ridge cells are solid unless
+# `break_ridges`.
+func _find_carve_route(break_ridges: bool) -> PackedVector2Array:
 	var astar := AStarGrid2D.new()
 	astar.region = Rect2i(Vector2i.ZERO, Vector2i(MAP_GRID.size))
 	astar.diagonal_mode = AStarGrid2D.DIAGONAL_MODE_NEVER
+	astar.default_compute_heuristic = AStarGrid2D.HEURISTIC_MANHATTAN
+	astar.default_estimate_heuristic = AStarGrid2D.HEURISTIC_MANHATTAN
 	astar.update()
 	for cell in unwalkable_cells:
 		if astar.is_in_boundsv(Vector2i(cell)):
 			astar.set_point_solid(Vector2i(cell), true)
 	for cell in obstacles:
-		var is_ridge: bool = environment_object_layer.ridge_cells.has(cell)
-		astar.set_point_weight_scale(Vector2i(cell), CARVE_RIDGE_WEIGHT if is_ridge else CARVE_OBSTACLE_WEIGHT)
-	for cell in astar.get_point_path(Vector2i(startPath), Vector2i(endPath)):
-		if obstacles.has(cell):
-			_remove_obstacle(cell)
+		if environment_object_layer.ridge_cells.has(cell):
+			if break_ridges:
+				astar.set_point_weight_scale(Vector2i(cell), CARVE_RIDGE_WEIGHT)
+			else:
+				astar.set_point_solid(Vector2i(cell), true)
+		else:
+			astar.set_point_weight_scale(Vector2i(cell), CARVE_OBSTACLE_WEIGHT)
+	return astar.get_point_path(Vector2i(startPath), Vector2i(endPath))
 
 func _remove_obstacle(cell: Vector2) -> void:
 	obstacles.erase(cell)

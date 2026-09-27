@@ -37,6 +37,12 @@ func _run() -> void:
 		var straight := int(absf(map.endPath.x - map.startPath.x) + absf(map.endPath.y - map.startPath.y)) + 1
 		var length: int = map.get_path_from(map.startPath).size()
 		_check(length > straight, "seed %d: route winds (%d cells vs %d straight)" % [seed_value, length, straight])
+		var env = main.get_node("%EnvironmentObjectTileMapLayer")
+		var broken := 0
+		for cell in env.ridge_cells:
+			if not map.obstacles.has(cell):
+				broken += 1
+		_check(broken == 0, "seed %d: generation keeps ridges intact (%d broken)" % [seed_value, broken])
 		main.free()
 
 	# Rocks almost everywhere: the generator must carve a route through.
