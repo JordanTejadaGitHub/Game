@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "windborne_rain"
+display_name = "Windborne Rain"
+description = "Every pass applies Damp, so the line becomes a Thunderclap corridor."
+rarity = 2
+kind = 3
+tags = Array[String](["wind", "water", "reaction"])
+requires = Array[String](["samara", "rain_lily"])
+max_stacks = 1
+entwined = true
+rule_id = &"windborne_rain"
+in_start_pool = false

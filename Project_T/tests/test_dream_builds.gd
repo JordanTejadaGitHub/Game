@@ -25,6 +25,7 @@ func _run() -> void:
 	_test_wide_and_narrow()
 	_test_direction_weighting()
 	_test_reaction_cards()
+	_test_family_review_cards()
 	print("dream builds test: %s" % ("PASS" if failures == 0 else "%d FAILED" % failures))
 	quit(failures)
 
@@ -270,6 +271,42 @@ func _test_reaction_cards() -> void:
 	_check(dreams.count_reaction_pairs() == 4, "Lanternmoth adds Lightning Rod")
 	dreams.unlocked["tangleroot"] = true  # Held: + Shatter, Pinned, Smother
 	_check(dreams.count_reaction_pairs() == 7, "Tangleroot's Held adds Shatter, Pinned and Smother (%d)" % dreams.count_reaction_pairs())
+
+# Cards 84–99 (family review): Grove-only, their Needs, stacking rules and Entwined combos.
+func _test_family_review_cards() -> void:
+	_reset()
+	var ids := ["hush", "heavy_eyelids", "bad_dreams", "encore", "loose_stones", "sharp_beaks", "needle_point",
+		"charged_feathers", "pollen_beaks", "thousand_cuts", "longer_flight", "backspin", "ricochet",
+		"heavy_seed", "windborne_rain", "seed_storm", "heavy_eyelids_ii", "bad_dreams_ii", "ricochet_ii"]
+	for id in ids:
+		_check(not _card(id).in_start_pool, "%s comes with its Grove node" % id)
+	dreams.grove_cards.assign(ids)
+
+	var eyelids := _card("heavy_eyelids")
+	_check(not dreams.is_eligible(eyelids), "Heavy Eyelids needs a Drowsy Warden")
+	dreams.unlocked["bloomcap"] = true
+	_check(dreams.is_eligible(eyelids), "…Bloomcap makes nightmares Drowsy")
+
+	var beaks := _card("sharp_beaks")
+	_check(not dreams.is_eligible(beaks), "Sharp Beaks needs Hummingbird Bower or Wren's Nest")
+	dreams.unlocked["wrens_nest"] = true
+	_check(dreams.is_eligible(beaks), "…Wren's Nest is enough")
+	dreams.take(beaks)
+	dreams.take(beaks)
+	_check(dreams.rule_stacks(&"sharp_beaks") == 2, "stacking rule cards report their stacks")
+	dreams.take(beaks)
+	_check(not dreams.is_eligible(beaks), "Sharp Beaks stops at +3")
+
+	var encore := _card("encore")
+	dreams.unlocked["echo_hollow"] = true
+	_check(not dreams.is_eligible(encore), "Encore needs a Reaction card as well as Echo Hollow")
+	dreams.take(_card("rolling_thunder"))
+	_check(dreams.is_eligible(encore) and dreams.make_offer(10).has(encore), "…then Entwined: guaranteed next offer")
+
+	dreams.unlocked["samara"] = true
+	dreams.unlocked["rain_lily"] = true
+	_check(dreams.is_eligible(_card("windborne_rain")) and not dreams.is_eligible(_card("seed_storm"), 1)
+		and dreams.is_eligible(_card("seed_storm"), 2), "Windborne Rain (Samara + Rain Lily); Seed Storm is act 2+")
 
 # --- Helpers --------------------------------------------------------------------------------------
 

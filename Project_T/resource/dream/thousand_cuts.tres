@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "thousand_cuts"
+display_name = "Thousand Cuts"
+description = "Every hit on the same nightmare within 2 s gives all Wardens +2% damage against it (up to +60%)."
+rarity = 3
+kind = 3
+tags = Array[String](["on-hit"])
+requires = Array[String](["hummingbird_bower"])
+max_stacks = 1
+min_act = 2
+rule_id = &"thousand_cuts"
+in_start_pool = false

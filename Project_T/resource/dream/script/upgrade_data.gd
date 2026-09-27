@@ -77,6 +77,7 @@ enum Kind { UNLOCK_WARDEN, UNLOCK_EVOLUTION, STAT, RULE, ECONOMY }
 @export var min_warden_count: int = 0
 # Reactions you can set off: pairs of statuses your owned Wardens apply (Quick Reactions: 2).
 @export var min_reaction_pairs: int = 0
+@export var requires_status: StringName = &""  # Own any Warden applying this status (e.g. Drowsy)
 
 @export_group("Nurture")
 @export var nurture_discount: float = 0.0  # 0.15 = ranks cost 15% less (all cards together max 45%)

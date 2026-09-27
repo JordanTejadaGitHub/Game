@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "bad_dreams_ii"
+display_name = "Bad Dreams II"
+description = "Caught nightmares also take 2 Drowsy per second, so they stay Caught."
+rarity = 1
+kind = 3
+tags = Array[String](["song", "sleep"])
+requires = Array[String](["dreamcatcher"])
+max_stacks = 1
+deepens = "bad_dreams"
+rule_id = &"bad_dreams"
+in_start_pool = false

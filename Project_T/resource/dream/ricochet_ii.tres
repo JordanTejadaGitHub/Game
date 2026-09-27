@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "ricochet_ii"
+display_name = "Ricochet II"
+description = "At the end of its line the seed turns 90° twice toward nightmares before returning."
+rarity = 1
+kind = 3
+tags = Array[String](["wind", "maze"])
+requires = Array[String](["samara"])
+max_stacks = 1
+deepens = "ricochet"
+rule_id = &"ricochet"
+in_start_pool = false

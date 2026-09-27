@@ -522,6 +522,14 @@ func has_rule(rule: StringName) -> bool:
 			return true
 	return false
 
+# Stacks taken of the cards with rule `rule` (stacking rule cards: Hush, Sharp Beaks, Longer Flight).
+func rule_stacks(rule: StringName) -> int:
+	var total := 0
+	for card in _taken_cards():
+		if card.rule_id == rule:
+			total += stacks[card.id]
+	return total
+
 # 0 = the base rule, 1 = its Deepened (II) version (index into the rule-number constants).
 func rule_level(rule: StringName) -> int:
 	for card in _taken_cards():
@@ -859,6 +867,8 @@ func _meets_needs(card: UpgradeData) -> bool:
 	if card.count_warden != "" and count_wardens(card.count_warden) < card.min_warden_count:
 		return false
 	if card.min_reaction_pairs > 0 and count_reaction_pairs() < card.min_reaction_pairs:
+		return false
+	if card.requires_status != &"" and not owned_statuses().has(card.requires_status):
 		return false
 	return true
 
