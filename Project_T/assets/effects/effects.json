@@ -1,0 +1,431 @@
+{
+	"effects": {
+		"chain_badge": {
+			"anchor": [
+				24,
+				16
+			],
+			"file": "chain_badge.png",
+			"fps": 20.0,
+			"frame_size": [
+				48,
+				32
+			],
+			"frames": 5,
+			"kind": "ui",
+			"loop": false,
+			"note": "Pop-in; hold the last frame. Draw chain_digits centred on it (x then the number)."
+		},
+		"chain_digits": {
+			"anchor": [
+				0,
+				0
+			],
+			"file": "chain_digits.png",
+			"fps": 0.0,
+			"frame_size": [
+				8,
+				12
+			],
+			"frames": 11,
+			"glyphs": "x0123456789",
+			"kind": "font",
+			"loop": false,
+			"note": "Bitmap font: frame i is glyph i of `glyphs` ('x' = the multiply sign). 7 px advance."
+		},
+		"crit_flare": {
+			"anchor": [
+				24,
+				24
+			],
+			"file": "crit_flare.png",
+			"fps": 20.0,
+			"frame_size": [
+				48,
+				48
+			],
+			"frames": 5,
+			"kind": "hit",
+			"loop": false
+		},
+		"dawnburst": {
+			"anchor": [
+				128,
+				128
+			],
+			"file": "dawnburst.png",
+			"fps": 16.0,
+			"frame_size": [
+				256,
+				256
+			],
+			"frames": 8,
+			"kind": "screen",
+			"lite": "dawnburst_lite",
+			"loop": false,
+			"note": "x10 chain. Screen-level: draw centred on the reaction, above the map."
+		},
+		"dawnburst_lite": {
+			"anchor": [
+				128,
+				128
+			],
+			"file": "dawnburst_lite.png",
+			"fps": 16.0,
+			"frame_size": [
+				256,
+				256
+			],
+			"frames": 8,
+			"kind": "screen",
+			"loop": false
+		},
+		"drown": {
+			"anchor": [
+				32,
+				32
+			],
+			"callout": "#6ab0ff",
+			"file": "drown.png",
+			"fps": 16.0,
+			"frame_size": [
+				64,
+				64
+			],
+			"frames": 8,
+			"kind": "reaction",
+			"loop": false,
+			"reaction": "Damp + max Drowsy"
+		},
+		"ignite": {
+			"anchor": [
+				32,
+				32
+			],
+			"callout": "#ffc040",
+			"file": "ignite.png",
+			"fps": 20.0,
+			"frame_size": [
+				64,
+				64
+			],
+			"frames": 6,
+			"kind": "reaction",
+			"lite": "ignite_lite",
+			"loop": false,
+			"reaction": "Spored + Static"
+		},
+		"ignite_lite": {
+			"anchor": [
+				32,
+				32
+			],
+			"file": "ignite_lite.png",
+			"fps": 20.0,
+			"frame_size": [
+				64,
+				64
+			],
+			"frames": 6,
+			"kind": "reaction",
+			"loop": false
+		},
+		"light_thread": {
+			"anchor": [
+				0,
+				4
+			],
+			"file": "light_thread.png",
+			"fps": 16.0,
+			"frame_size": [
+				32,
+				8
+			],
+			"frames": 4,
+			"kind": "segment",
+			"loop": true,
+			"note": "Stretch or tile along x from a Warden to the reaction; starts and ends at y = 4."
+		},
+		"lightning_rod": {
+			"anchor": [
+				32,
+				112
+			],
+			"callout": "#fff27a",
+			"file": "lightning_rod.png",
+			"fps": 18.0,
+			"frame_size": [
+				64,
+				128
+			],
+			"frames": 6,
+			"kind": "reaction",
+			"loop": false,
+			"note": "Anchor is the impact point; the bolt falls from the top.",
+			"reaction": "Marked + Static"
+		},
+		"long_way_home_drag": {
+			"anchor": [
+				0,
+				12
+			],
+			"file": "long_way_home_drag.png",
+			"fps": 14.0,
+			"frame_size": [
+				64,
+				24
+			],
+			"frames": 6,
+			"kind": "segment",
+			"loop": false,
+			"note": "Roots dragging a nightmare back: stretch along x from where it was to where it lands (x = 0 end)."
+		},
+		"monsoon_sweep": {
+			"anchor": [
+				32,
+				32
+			],
+			"file": "monsoon_sweep.png",
+			"fps": 14.0,
+			"frame_size": [
+				64,
+				64
+			],
+			"frames": 8,
+			"kind": "overlay_loop",
+			"loop": true,
+			"note": "Tiles in x and y. Fill Monsoon's range and slide it across while it rains."
+		},
+		"moonstone_beam": {
+			"anchor": [
+				16,
+				120
+			],
+			"file": "moonstone_beam.png",
+			"fps": 16.0,
+			"frame_size": [
+				32,
+				128
+			],
+			"frames": 6,
+			"kind": "signature",
+			"loop": false,
+			"note": "Moonstone's first shot on each nightmare: a moonbeam from above. Anchor = where it lands."
+		},
+		"overgrowth": {
+			"anchor": [
+				32,
+				44
+			],
+			"callout": "#c080ff",
+			"file": "overgrowth.png",
+			"fps": 16.0,
+			"frame_size": [
+				64,
+				64
+			],
+			"frames": 7,
+			"kind": "reaction",
+			"loop": false,
+			"reaction": "Spored + Damp",
+			"then": "overgrowth_cloud"
+		},
+		"overgrowth_cloud": {
+			"anchor": [
+				32,
+				32
+			],
+			"file": "overgrowth_cloud.png",
+			"fps": 10.0,
+			"frame_size": [
+				64,
+				64
+			],
+			"frames": 8,
+			"kind": "ground_loop",
+			"loop": true,
+			"note": "One path tile (64x64), loops while the cloud lasts. Draw under nightmares."
+		},
+		"pinned": {
+			"anchor": [
+				32,
+				32
+			],
+			"callout": "#e8ecff",
+			"file": "pinned.png",
+			"fps": 18.0,
+			"frame_size": [
+				64,
+				64
+			],
+			"frames": 6,
+			"kind": "reaction",
+			"loop": false,
+			"reaction": "Marked + Held or asleep"
+		},
+		"puffball_bloom": {
+			"anchor": [
+				64,
+				64
+			],
+			"file": "puffball_bloom.png",
+			"fps": 16.0,
+			"frame_size": [
+				128,
+				128
+			],
+			"frames": 8,
+			"kind": "signature",
+			"loop": false,
+			"note": "Puffball's pop at 10+ Spored stacks."
+		},
+		"shatter": {
+			"anchor": [
+				32,
+				32
+			],
+			"callout": "#bff4ff",
+			"file": "shatter.png",
+			"fps": 18.0,
+			"frame_size": [
+				64,
+				64
+			],
+			"frames": 7,
+			"kind": "reaction",
+			"loop": false,
+			"reaction": "frozen + heavy hit or crit"
+		},
+		"smother": {
+			"anchor": [
+				32,
+				32
+			],
+			"callout": "#a8d060",
+			"file": "smother.png",
+			"fps": 12.0,
+			"frame_size": [
+				64,
+				64
+			],
+			"frames": 8,
+			"kind": "reaction_loop",
+			"loop": true,
+			"note": "Loops while the hold lasts.",
+			"reaction": "Held + Spored"
+		},
+		"status_flash": {
+			"anchor": [
+				16,
+				16
+			],
+			"colours": {
+				"damp": "#6ab0ff",
+				"drowsy": "#c8b0f0",
+				"held": "#9a8a40",
+				"marked": "#e8ecff",
+				"spored": "#c080ff",
+				"static": "#fff27a"
+			},
+			"file": "status_flash.png",
+			"fps": 20.0,
+			"frame_size": [
+				32,
+				32
+			],
+			"frames": 5,
+			"kind": "hit",
+			"loop": false,
+			"note": "One row per status (top to bottom in `rows`); each sheet row is 32 px tall.",
+			"rows": [
+				"damp",
+				"drowsy",
+				"spored",
+				"marked",
+				"static",
+				"held"
+			]
+		},
+		"surge": {
+			"anchor": [
+				64,
+				64
+			],
+			"file": "surge.png",
+			"fps": 0.0,
+			"frame_size": [
+				128,
+				128
+			],
+			"frames": 1,
+			"kind": "overlay",
+			"loop": false,
+			"note": "x5 chain: stretch over the whole screen and fade alpha 0 -> 0.8 -> 0 over ~0.5 s. Smooth, not pixel art."
+		},
+		"thunderclap": {
+			"anchor": [
+				32,
+				32
+			],
+			"callout": "#bfe0ff",
+			"file": "thunderclap.png",
+			"fps": 20.0,
+			"frame_size": [
+				64,
+				64
+			],
+			"frames": 6,
+			"kind": "reaction",
+			"lite": "thunderclap_lite",
+			"loop": false,
+			"reaction": "Damp + Static"
+		},
+		"thunderclap_arc": {
+			"anchor": [
+				0,
+				8
+			],
+			"file": "thunderclap_arc.png",
+			"fps": 20.0,
+			"frame_size": [
+				64,
+				16
+			],
+			"frames": 4,
+			"kind": "segment",
+			"loop": true,
+			"note": "Stretch or tile along x between two points; starts and ends at y = 8."
+		},
+		"thunderclap_lite": {
+			"anchor": [
+				32,
+				32
+			],
+			"file": "thunderclap_lite.png",
+			"fps": 20.0,
+			"frame_size": [
+				64,
+				64
+			],
+			"frames": 6,
+			"kind": "reaction",
+			"loop": false
+		},
+		"thunderhead_strike": {
+			"anchor": [
+				48,
+				148
+			],
+			"file": "thunderhead_strike.png",
+			"fps": 18.0,
+			"frame_size": [
+				96,
+				160
+			],
+			"frames": 7,
+			"kind": "signature",
+			"loop": false,
+			"note": "Thunderhead's every 5th strike. Anchor = ground impact; the bolt comes from the sky above."
+		}
+	}
+}
