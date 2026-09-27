@@ -96,12 +96,18 @@ Playtests found the game too easy, and Warden ranks (below) add player power, so
 |---|---|---|
 | Nightmare health growth | ×1.035 per drift (×5.4 by drift 50) | **×1.045 per drift** (×8.6 by drift 50, ×78 by drift 100) |
 | Nightmares per drift | as listed in `acts_1_2.md` | **+25% from drift 10**, applied only to kinds with 3+ in the drift (rounded up); single/paired specials, elites and bosses unchanged; intro drifts unchanged |
-| Starting Dew | 60 | **45** |
+| Starting Dew | 60 | ~~45~~ **60** (reverted: drift 1 became unwinnable without leaks; see below) |
 | Refund during a rest | 100% | **75%** |
 | Leaves | 20, +3 per act break | **15, +1 per act break** |
 | Boss health | base values in `enemy_design.md` | **×1.5** |
 
-All six are data (global multipliers), so any that overshoot can be loosened quickly. Next
+**Opening rule** (added after playtest: drift 1 couldn't be held): **drifts 1–3 must be clearable
+without losing a leaf** by a sensible player using only Sprouts and Thornwalls. Difficulty comes
+from later drifts, not the opening. So starting Dew stays **60** and drift 1 is lighter (6 Shades,
+2 s apart; `acts_1_2.md`). A headless test should check it: drift 1 with 5 Sprouts placed beside
+the route leaks nothing.
+
+All the levers are data (global multipliers), so any that overshoot can be loosened quickly. Next
 playtest: note the drift where it first gets hard, and how many leaves were left at each boss.
 
 ## Rewards
@@ -178,7 +184,7 @@ risk: players set their own difficulty block by block.
 
 | Source | Amount |
 |---|---|
-| Starting Dew | 45 (was 60) |
+| Starting Dew | 60 |
 | Shade | 3 (≈3 per 100 base health; other nightmares follow the same ratio) |
 | Rest bonus (every 5 drifts) | 20 + 10 × block number (30 after drift 5, 220 after drift 100) |
 | Perfect block (no leaf lost) | +10 |

@@ -96,8 +96,8 @@ SH = Shade, HU = Husk, MO = Mourner. ★ = elite (Deeply Blighted). **Rest** aft
 
 | Drift | Contents | Notes |
 |---|---|---|
-| 1 | 8 SH (1.5 s apart) | then the first family pick |
-| 2 | 10 SH | |
+| 1 | 6 SH (2 s apart) | then the first family pick. Must be holdable with Sprouts alone |
+| 2 | 9 SH | |
 | 3 | 12 SH | |
 | 4 | 14 SH | |
 | 5 | 16 SH | **rest: first Dream** |
