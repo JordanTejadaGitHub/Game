@@ -12,6 +12,10 @@ target in `game_design.md`. All numbers are starting points for playtesting; the
 | Building during drifts | **Allowed** (build, evolve, sell and clear at any time) |
 | Selling | **Allowed.** Full refund in the build phase, half during a drift |
 | Speed controls | **Pause, 1×, 2×, 3×.** Building works while paused |
+| Obstacle payoff | **+1 Seed per cleared obstacle** at run end; renamed Withered Tree / Mossy Boulder |
+| Call early | **Yes**, small Dew bonus |
+| Leaves | 20, +3 per act break; **tune by playtesting** |
+| Act 3 boss | **Always The Hollow Oak** (story beat) |
 
 ## Run structure
 
@@ -22,7 +26,7 @@ the maze you build keeps paying off.
 |---|---|---|---|
 | 1. Forest's Edge | 1–5 | learn the maze, first Wardens | Old Stag |
 | 2. Deep Wood | 6–10 | maze testers arrive, builds take shape | Great Toad *or* Mother Moth (random) |
-| 3. Heartwood Glade | 11–15 | status testers, full builds | The Hollow Oak |
+| 3. Heartwood Glade | 11–15 | status testers, full builds | The Hollow Oak (always: the run's story climax) |
 
 - **Win:** cleanse the act 3 boss and everything still walking.
 - **Between acts:** the season changes (spring → summer → autumn, visual only), the Heartwood
@@ -66,7 +70,7 @@ cutting drifts.**
   no placement may leave any creature (or the start) without a route.
 - **Speed:** Pause / 1× / 2× / 3× buttons + hotkeys (Space = pause). Pausing is a normal way to
   plan, not a penalty.
-- **Call early (optional, recommended):** once a drift has finished arriving, the next one can be
+- **Call early:** once a drift has finished arriving, the next one can be
   started early for +1 Dew per 2 seconds skipped (capped at the drift-clear bonus). This rewards
   confident players without pressuring anyone.
 
@@ -145,16 +149,16 @@ playtested.
 Clearing costs Dew and usually *helps* the creatures (it opens shortcuts), so it needs a payoff
 beyond building space.
 
-**Recommendation: each cleared obstacle adds +1 Seed to the run's end payout** ("the forest
-remembers you tended it"). That gives a real trade-off: in-run power (spend Dew on Wardens) vs
-long-term progress (tend the forest), without changing in-run balance.
+**Each cleared obstacle adds +1 Seed to the run's end payout** ("the forest remembers you tended
+it"). That gives a real trade-off: in-run power (spend Dew on Wardens) vs long-term progress (tend
+the forest), without changing in-run balance. Show the running count on the results screen
+("Tended: 14 → +14 Seeds").
 
-Rename to fit the fiction: **Withered Tree** ("Tend") and **Mossy Boulder** ("Move"), later
-**Blight Bramble**. You're healing the forest, not chopping it down.
+Renamed to fit the fiction: **Withered Tree** ("Tend", was Tree) and **Mossy Boulder** ("Move",
+was Rock), later **Blight Bramble**. You're healing the forest, not chopping it down.
 
-## Open questions
+## To check in playtests
 
-1. Obstacle payoff: +1 Seed per clear (recommended), a Dew find, or space only?
-2. Call early: include it?
-3. 20 leaves and 3 regrown per act: too forgiving or right for cozy?
-4. Act 3 boss: always The Hollow Oak, or random from a pool?
+- Leaves: are 20 (+3 per act break) too forgiving or right for a cozy game?
+- Run length: 35–45 min at 1×? If long, speed creatures up before cutting drifts.
+- Dew curve: compare real totals to the target table above.
