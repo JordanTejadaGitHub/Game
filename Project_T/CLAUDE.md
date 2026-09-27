@@ -115,8 +115,9 @@ controller / Steam Deck, accessibility, Steam achievements (milestones map to th
 ## Run flow
 - Difficulty pass v1 (run_design.md), all exports: `RunState.starting_dew` 45, `starting_leaves` /
   `max_leaves` 15; `DriftDirector.health_growth_per_drift` 1.045, `boss_health_multiplier` 1.5,
-  `extra_nightmares` 1.25 from `extra_nightmares_from` 10 (rounded up per entry, `DriftEntry.get_count`
-  `extra`), `act_break_leaves` 1; `TowerSeller.build_phase_refund` 0.75.
+  `extra_nightmares` 1.25 from `extra_nightmares_from` 10 (rounded up per entry of 3+, never elites
+  or bosses: `DriftEntry.get_count` `extra`), `act_break_leaves` 1 (Blight 6: 0);
+  `TowerSeller.build_phase_refund` 0.75.
 - `RunState` also holds leaves (`starting_leaves`, `max_leaves`), `lose_leaves` / `regrow_leaves`,
   `end_run(won)` + `run_ended` signal, `is_over`. `earn_dew_at(amount, pos)` = add Dew + popup.
 - `DriftDirector` (`%DriftDirector`, `scripts/run/drift_director.gd`): blocks of 5

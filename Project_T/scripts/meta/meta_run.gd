@@ -161,7 +161,7 @@ func _apply_blight(level: int) -> void:
 	if level >= 5:
 		drift_director.blight_elites_per_drift = 1
 	if level >= 6:
-		drift_director.act_break_leaves = 1
+		drift_director.act_break_leaves = 0  # No leaves regrow at act breaks (normally +1)
 	if level >= 7:
 		drift_director.blight_speed_multiplier = 1.1
 	if level >= 8:

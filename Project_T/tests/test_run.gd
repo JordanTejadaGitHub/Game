@@ -34,6 +34,13 @@ func _test_demo_data() -> void:
 	entry.enemy = load("res://resource/enemy/leaf_bug.tres")
 	entry.count = 6
 	_check(entry.get_count(1.0, 1.0, 1.25) == 8 and entry.get_count() == 6, "6 nightmares × 1.25 rounds up to 8")
+	entry.count = 3
+	_check(entry.get_count(1.0, 1.0, 1.25) == 4, "3 nightmares × 1.25 rounds up to 4")
+	entry.count = 2
+	_check(entry.get_count(1.0, 1.0, 1.25) == 2, "kinds of 1–2 (lone specials) stay as listed")
+	entry.count = 6
+	entry.elite = true
+	_check(entry.get_count(1.0, 1.0, 1.25) == 6, "elites stay as listed")
 	var boss_count: int = drifts[24].get_schedule(1.0, 1.0, 1.0, 1.25).map(func(a: Array) -> String: return _kind(a[1])).count("old_stag")
 	_check(boss_count == 1, "the boss still comes alone")
 	_check(drifts[9].get_schedule(1.0, 1.0, 1.0, 1.25).size() > drifts[9].get_schedule().size(), "drift 10 gets more nightmares")
