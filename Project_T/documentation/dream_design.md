@@ -169,6 +169,11 @@ dead places; clearing them costs Dew, gives +1 Seed each at run end (`run_design
 building space, but often **opens shortcuts for the nightmares**. These cards make clearing a real
 build direction with that trade-off intact.
 
+**Clearing is locked until you take one of these cards** (decided 2026-09-27). Until then,
+obstacles are fixed terrain you plan around. **Taking any clearing card (54–58) unlocks clearing
+for the rest of the run**, at the normal cost (5 / 8 Dew) plus that card's effect. To keep the
+option reachable, clearing cards get **2× weight until you own one** (on maps with 8+ obstacles).
+
 | # | Card | Rarity | Effect | Tags | Pool |
 |---|---|---|---|---|---|
 | 54 | **Cleared Ground** | Common | clearing obstacles costs **40% less** Dew (stacks, minimum 1 Dew) | clearing, economy | Start |

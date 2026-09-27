@@ -35,7 +35,7 @@ trigger at these moments:
 | First rest | Saving | *"The forest will wait for you."* Save & Quit is highlighted once. |
 | First blocked placement | The dream's rule | The ghost turns red. *"A dream can bend, but never close."* |
 | First affordable evolution | Growing | The Sprout under the cursor shimmers. *"This Sprout could grow."* |
-| First hover on an obstacle | Tending | *"Tend the forest, and it will remember you."* (+1 Seed at run end) |
+| First hover on an obstacle | Obstacles | Before clearing is unlocked: *"Dead wood. I can't move it… yet."* (the hover tag says a clearing Dream is needed). After the first clearing card: *"Tend the forest, and it will remember you."* (+1 Seed at run end) |
 | First leaf lost | Stakes | The leaf counter shakes. *"It fed. A leaf blackens and falls."* |
 | Drift 2 starts | Speed and pause | The speed buttons glow once. *"Pause if you need to think. They'll wait."* |
 | First sell | Refunds | A tooltip on the sell button: full refund during a rest, half while nightmares walk. |
@@ -79,7 +79,8 @@ trigger at these moments:
 | Drift flow, Auto-drift | run 1, drift 2 |
 | Dreams, rests, Save & Quit | run 1, first rest (after drift 5) |
 | Evolving | run 1, first affordable |
-| Obstacles / tending | run 1, first hover |
+| Obstacles (fixed) | run 1, first hover |
+| Tending | after the first clearing Dream card |
 | Speed, pause, selling | run 1, drift 2 or first use |
 | Bosses, second family pick | run 1, drift 25 |
 | Memory Grove, Seeds, Memories | end of run 1 |

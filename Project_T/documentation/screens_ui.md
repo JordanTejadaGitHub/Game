@@ -76,7 +76,7 @@ resources, collapsible with one key (F10), never overlapping the Warden panel or
 |---|---|
 | **Build ghost** | the Warden on the hovered cell, green/red; range circle; **route preview line**; tag above: **"+12 path"** (or "−4 path") and the cost, red if unaffordable |
 | **Invalid placement** | red ghost + a short reason tag ("would close the dream", "nightmare here", "can't afford") |
-| **Obstacle hover** | outline + "Tend Withered Tree · 5 Dew" + route preview if clearing changes it |
+| **Obstacle hover** | before a clearing card: the obstacle's name + *"Needs a clearing Dream"* (no outline, no click). After: outline + "Tend Withered Tree · 5 Dew" + route preview if clearing changes it |
 | **Health bars** | only once a nightmare is hit (setting: always) |
 | **Status icons** | up to 3 small icons above a nightmare, most important first; each status has its own **shape** (Damp droplet, Drowsy "z", Spored dots, Marked ring, Static bolt, Held vine) and a stack number where relevant |
 | **Elites** | Deeply Blighted nightmares: black haze + a small swirl icon, larger sprite |

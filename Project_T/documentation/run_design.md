@@ -15,6 +15,7 @@ exports, `TowerData`, `EnemyData`, `DriftData`), so tuning never needs code chan
 | First Warden | picked **after drift 1** (pick 1 of 3 base Wardens) |
 | Mid-run save | **Yes**, at every rest (every 5 drifts) |
 | Building during drifts | **Allowed** (build, evolve, sell and clear at any time) |
+| Clearing obstacles | **Locked until you take a clearing Dream card** (`dream_design.md`, cards 54–58) |
 | Selling | Full refund during a **rest**, half while creatures are walking |
 | Speed controls | **Pause, 1×, 2×, 3×.** Building works while paused |
 | Obstacle payoff | **+1 Seed per cleared obstacle** at run end; Withered Tree / Mossy Boulder |
@@ -141,7 +142,8 @@ risk: players set their own difficulty block by block.
 
 ## Build rules
 
-- **Anything, any time:** build, evolve, sell and tend obstacles during drifts and rests. The path
+- **Anything, any time:** build, evolve, sell and (once unlocked by a clearing card) tend obstacles
+  during drifts and rests. The path
   rule always applies: no placement may leave any creature (or the start) without a route.
 - **Speed:** Pause / 1× / 2× / 3× + hotkeys (Space = pause). Pausing is a normal way to plan.
 
@@ -215,6 +217,10 @@ Nightmares: Shade, Husk, Mourner, **the Hollow Stag** (stats in `enemy_design.md
 Exact counts per drift: `acts_1_2.md`.
 
 ## Obstacles: why clear them?
+
+**Clearing starts locked**: obstacles are fixed terrain until the player takes a clearing Dream
+card, which unlocks clearing for the rest of the run. The map you're dealt matters more, and
+clearing becomes a choice you commit to.
 
 **Each cleared obstacle adds +1 Seed to the run's end payout** ("the forest remembers you tended
 it"): a trade-off between in-run power and long-term progress. Shown on the results screen

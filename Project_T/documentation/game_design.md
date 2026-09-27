@@ -89,7 +89,8 @@ perks can modify them.
 - **A new random forest every run**: wobbly **ridges** of rocks and trees from alternating walls
   make the starting route zig-zag; tree groves and rock clusters vary per map.
 - **Obstacles**: **Withered Trees** ("Tend", 5 Dew) and **Mossy Boulders** ("Move", 8 Dew) block
-  creatures and building. Tending one opens space (and often a shortcut) and adds **+1 Seed** at
+  nightmares and building. **Clearing is locked until you take a clearing Dream card**; after that,
+  tending one opens space (and often a shortcut) and adds **+1 Seed** at
   run end: in-run power vs long-term progress.
 - Routes are always the shortest path, and re-routes stay local when there's a tie (routes are
   "sticky"), so small changes don't send creatures across the map.
