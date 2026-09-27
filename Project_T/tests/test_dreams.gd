@@ -320,6 +320,7 @@ func _test_card_effects(main: Node) -> void:
 	var dew := run_state.dew
 	dreams.take(_card(dreams, "morning_dew"))
 	_check(run_state.dew == dew + 20 and dreams.get_dew_per_clear() == 5, "Morning Dew: +20 now, +5 per clear")
+	run_state.max_leaves = 20  # The flow test's random pick may have been Deep Roots already
 	run_state.leaves = 15
 	dreams.take(_card(dreams, "deep_roots"))
 	_check(run_state.max_leaves == 22 and run_state.leaves == 17, "Deep Roots: +2 max, regrow 2")
@@ -366,7 +367,7 @@ func _test_clearing_cards(main: Node) -> void:
 	_check(run_state.obstacles_tended == tended + 1, "free clears still give a Seed")
 	_check(dreams.is_eligible(_card(dreams, "heartwoods_reach_ii")), "Heartwood's Reach II once the base is owned")
 	dreams.take(_card(dreams, "heartwoods_reach_ii"))
-	_check(run_state.free_clears == 10, "Heartwood's Reach II: +7 free clears")
+	_check(run_state.free_clears == 6, "Heartwood's Reach II: 7 in all (3 left + 3 more)")
 	run_state.add_free_clears(-run_state.free_clears)
 
 	# Reclaimed Earth: +8 Dew per clear, and the cleared cell halves its first Warden
@@ -403,9 +404,15 @@ func _test_clearing_cards(main: Node) -> void:
 	dreams.allow_bittersweet = false
 	tended = run_state.obstacles_tended
 	var rocks := dreams.count_obstacles(load("res://resource/obstacle/rock.tres"))
-	dreams.take(burn)
+	var trees := dreams.count_obstacles(tree)
+	clears = run_state.tended_cells.size()
+	run_state.fertile_cells.clear()
+	dew = run_state.dew
+	dreams.take(burn)  # Reclaimed Earth is still owned
 	_check(dreams.count_obstacles(tree) == 0 and dreams.count_obstacles() == rocks, "Burn Back clears every Withered Tree, no rocks")
 	_check(run_state.obstacles_tended == tended, "Burn Back's clears give no Seeds")
+	_check(run_state.dew == dew and run_state.fertile_cells.is_empty(), "Burn Back doesn't trigger Reclaimed Earth")
+	_check(run_state.tended_cells.size() == clears + trees, "Burn Back's clears still count for Tended Forest")
 	var bug: EnemyData = load("res://resource/enemy/leaf_bug.tres")
 	_check(is_equal_approx(director.get_spawn_modifiers(bug, 3).get("speed", 1.0), 1.1), "Burn Back: nightmares +10% speed")
 	run_state.fertile_cells.clear()

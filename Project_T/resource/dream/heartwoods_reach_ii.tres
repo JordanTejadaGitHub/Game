@@ -6,11 +6,11 @@
 script = ExtResource("1_card")
 id = "heartwoods_reach_ii"
 display_name = "Heartwood's Reach II"
-description = "Gain 7 free clears. Use them any time; they last all run."
+description = "Gain 3 more free clears (7 in all). Use them any time; they last all run."
 rarity = 1
 kind = 4
 tags = Array[String](["clearing"])
 max_stacks = 1
 min_obstacles = 8
 deepens = "heartwoods_reach"
-free_clears_add = 7
+free_clears_add = 3

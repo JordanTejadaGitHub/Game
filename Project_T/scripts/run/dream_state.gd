@@ -549,8 +549,11 @@ func _clear_all(kind: ObstacleData) -> void:
 		map_generator.clear_obstacle(cell)
 	run_state.clearing_without_seeds = false
 
-# Reclaimed Earth: every clear gives Dew and leaves the cell fertile.
+# Reclaimed Earth: every clear gives Dew and leaves the cell fertile. Not Burn Back's mass clear
+# (it would flood the Dew economy, same as its no-Seeds rule).
 func _on_obstacle_cleared(cell: Vector2, _data: ObstacleData) -> void:
+	if run_state.clearing_without_seeds:
+		return
 	var dew := 0
 	for card in _taken_cards():
 		dew += card.dew_per_obstacle_clear * stacks[card.id]
