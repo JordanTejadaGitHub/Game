@@ -42,7 +42,8 @@ A vast moth with a skull-like face on its wings. Health 16,000 × 1.5 = **24,000
 - **Brood:** drops a Lurker every 4 seconds; they land on the path and walk the maze.
 - **Eclipse** (at half health): her wings close over the dream for 5 seconds: every nightmare on
   the map is hidden (like Lurkers) unless something reveals it (Lanternmoth, Moon Moth,
-  Will-o'-Wisp). Detection Wardens pay off here.
+  Will-o'-Wisp). Detection Wardens pay off here. **The Queen herself stays visible and targetable**
+  during the Eclipse (settled in implementation: hiding the boss would just stall the fight).
 - **Escort:** 12 Lurkers ahead, then the Queen, then 6 Night Hounds.
 - **Dispelled:** her wings burn white, then scatter into a cloud of moths that fade. *"The Moth
   Queen is gone, and the light comes back."* Memory Warden: **the Moon Moth**.
