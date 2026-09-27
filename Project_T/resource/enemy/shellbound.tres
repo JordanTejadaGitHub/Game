@@ -1,7 +1,8 @@
-[gd_resource type="Resource" script_class="EnemyData" load_steps=3 format=3]
+[gd_resource type="Resource" script_class="EnemyData" load_steps=4 format=3]
 
 [ext_resource type="Script" path="res://resource/enemy/script/enemy_data.gd" id="1_edata"]
 [ext_resource type="SpriteFrames" path="res://animation/enemy/shellbound.tres" id="2_frames"]
+[ext_resource type="SpriteFrames" path="res://animation/enemy/shellbound_cracked.tres" id="9_cracked"]
 
 [resource]
 script = ExtResource("1_edata")
@@ -16,3 +17,4 @@ weak_to = Array[String](["root"])
 coat_per_hit = 6
 coat_total = 100
 trait_text = "A dread shell shrugs off small hits until it breaks."
+cracked_frames = ExtResource("9_cracked")

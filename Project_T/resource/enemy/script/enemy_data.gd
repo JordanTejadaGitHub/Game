@@ -69,6 +69,7 @@ enum Trait { NONE, FLYING, ROLLING, TRAMPLE, LEAP, BURROW, WANDER }
 # Saplings are obstacles (never closing the path) that wither when the Oak is dispelled.
 @export var sapling: ObstacleData
 @export var sapling_interval: float = 8.0
+@export var sapling_frames: SpriteFrames  # The sapling's "grow" / "idle" / "wither" animation
 # Grief: at each health share in `grief_at`, stops `grief_pause` s and `grief_count` `grief_spawn`
 # rise in a ring around it.
 @export var grief_spawn: EnemyData
@@ -106,6 +107,7 @@ enum Trait { NONE, FLYING, ROLLING, TRAMPLE, LEAP, BURROW, WANDER }
 # `coat_total`, then it crumbles for good. Both scale with the creature's health_scale.
 @export var coat_per_hit: int = 0
 @export var coat_total: int = 0
+@export var cracked_frames: SpriteFrames  # Swapped in once the coat breaks (Shellbound's cracked shell)
 # Statuses that don't take (e.g. &"held", &"drowsy"), and {status id: duration multiplier}.
 @export var status_immune: Array[StringName] = []
 @export var status_duration_multipliers: Dictionary = {}

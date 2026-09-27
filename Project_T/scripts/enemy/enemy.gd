@@ -107,6 +107,7 @@ var _charge_left := 0.0
 var _leaping := false  # Sinking / underground / rising (Mire Hag, Gravecrawler): not walking
 var _leap_tween: Tween
 var _burrows := 0
+var _pose_left := 0.0  # Seconds a special animation (eclipse, grief) keeps the walk animation off
 var _wander_cooldown := 0
 
 # Presence (acts_3_4.md): hiding, revealing, waking, mending, the ash trail and boss timers, checked
@@ -183,6 +184,7 @@ func _process(delta: float) -> void:
 		if _status_flash[id] <= 0.0:
 			_status_flash.erase(id)
 	_crit_flash = maxf(_crit_flash - delta, 0.0)
+	_pose_left = maxf(_pose_left - delta, 0.0)
 	freeze_cooldown = maxf(freeze_cooldown - delta, 0.0)
 	push_cooldown = maxf(push_cooldown - delta, 0.0)
 	if not statuses.active_ids().is_empty() or _bolt_flash > 0.0 or _hit_mark_time > 0.0 or elite \
@@ -329,8 +331,8 @@ func _draw_crit_flare(t: float) -> void:
 	draw_circle(Vector2.ZERO, 8.0 * t, Color(1.0, 0.97, 0.8, 0.8 * t))
 
 func update_animation(velocity: Vector2) -> void:
-	# Keep the current animation when not moving (e.g. end of path)
-	if velocity.is_zero_approx():
+	# Keep the current animation when not moving (e.g. end of path) or while a pose plays
+	if velocity.is_zero_approx() or _pose_left > 0.0:
 		return
 	if rolling and sprite.sprite_frames.has_animation("roll"):
 		sprite.play("roll")
@@ -442,6 +444,9 @@ func _leap() -> void:
 # way back up, then calls `on_risen`. Not walking meanwhile (Mire Hag, Gravecrawler).
 func _sink_and_rise(landing: Vector2, on_risen: Callable) -> void:
 	_leaping = true
+	if sprite.sprite_frames.has_animation(&"burrow"):
+		_burrow_to(landing, on_risen)
+		return
 	var base_scale := sprite.scale
 	var sunk_scale := Vector2(base_scale.x * 1.3, base_scale.y * 0.1)
 	var tween := create_tween()
@@ -456,6 +461,49 @@ func _sink_and_rise(landing: Vector2, on_risen: Callable) -> void:
 	tween.tween_callback(func() -> void:
 		_leaping = false
 		on_risen.call())
+
+# With burrow art (Gravecrawler): plays "burrow" to sink, moves while under, plays it backwards to
+# surface, then calls on_risen.
+func _burrow_to(landing: Vector2, on_risen: Callable) -> void:
+	var length := _animation_length(&"burrow")
+	sprite.play(&"burrow")
+	var tween := create_tween()
+	_leap_tween = tween
+	tween.tween_interval(length)
+	tween.tween_property(sprite, "modulate:a", 0.0, 0.05)
+	tween.tween_property(self, "position", landing, LEAP_TIME * 0.2)
+	tween.tween_callback(func() -> void: sprite.play_backwards(&"burrow"))
+	tween.tween_property(sprite, "modulate:a", 1.0, 0.05)
+	tween.tween_interval(length)
+	tween.tween_callback(func() -> void:
+		_leaping = false
+		on_risen.call())
+
+# Plays a special animation (if the art has it) and keeps the walk animation from replacing it for
+# seconds.
+func _play_pose(animation: StringName, seconds: float, backwards: bool = false) -> void:
+	if not sprite.sprite_frames.has_animation(animation):
+		return
+	if backwards:
+		sprite.play_backwards(animation)
+	else:
+		sprite.play(animation)
+	_pose_left = seconds
+
+func _animation_length(animation: StringName) -> float:
+	var frames := sprite.sprite_frames
+	if not frames.has_animation(animation) or frames.get_animation_speed(animation) <= 0.0:
+		return 0.0
+	return frames.get_frame_count(animation) / frames.get_animation_speed(animation)
+
+# New art for the same nightmare (the Shellbound's cracked shell), keeping the current animation.
+func _swap_frames(frames: SpriteFrames) -> void:
+	var animation := sprite.animation
+	sprite.sprite_frames = frames
+	if frames.has_animation(animation):
+		sprite.play(animation)
+	else:
+		sprite.play(&"walk_side")
 
 # Gravecrawler: if a Warden or wall is right beside it and the cell past it leads to the Heartwood by
 # a route at least `burrow_min_saving` cells shorter, it sinks under and surfaces there.
@@ -650,9 +698,16 @@ func _check_health_thresholds() -> void:
 	if enemy_data.eclipse_time > 0.0 and not _eclipsed and health <= max_health / 2:
 		_eclipsed = true
 		eclipse_started.emit(self, enemy_data.eclipse_time)
+		_play_pose(&"eclipse", enemy_data.eclipse_time)  # Wings close over the dream…
+		var reopen := create_tween()
+		reopen.tween_interval(enemy_data.eclipse_time)
+		reopen.tween_callback(func() -> void:  # …and open again
+			if not is_cleansed:
+				_play_pose(&"eclipse", _animation_length(&"eclipse"), true))
 	while _griefs < enemy_data.grief_at.size() and health <= max_health * enemy_data.grief_at[_griefs]:
 		_griefs += 1
 		hold_time = maxf(hold_time, enemy_data.grief_pause)  # It stops and wails
+		_play_pose(&"grief", enemy_data.grief_pause)
 		grief_requested.emit(self)
 
 # Blight Level `rises_from_blight`+ (the Hollow Oak remembers): the first dispel doesn't take; it
@@ -696,6 +751,8 @@ func take_damage(amount: float, line: String = "", is_area: bool = false, is_cri
 		if coat <= 0.0:
 			coat = 0.0
 			_mark_hit(-1)  # The crust crumbles off in a puff
+			if enemy_data.cracked_frames != null:
+				_swap_frames(enemy_data.cracked_frames)
 	_soothe_carry += soothe
 	var whole := int(_soothe_carry)
 	_soothe_carry -= whole

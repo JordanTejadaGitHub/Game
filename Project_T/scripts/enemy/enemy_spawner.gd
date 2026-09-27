@@ -21,6 +21,7 @@ var eclipse_left := 0.0
 # since bosses themselves have a fixed health scale.
 var drift_health_scale := 1.0
 var _saplings := {}  # {Hollow Oak: [cells it planted]}
+var _sapling_sprites := {}  # {cell: AnimatedSprite2D} the saplings' grow / idle / wither animation
 
 @export var enemy_scene: PackedScene = preload("res://scenes/enemy/enemy.tscn")  # The enemy scene to spawn
 
@@ -30,6 +31,7 @@ var _saplings := {}  # {Hollow Oak: [cells it planted]}
 
 func _ready() -> void:
 	map_generator.path_changed.connect(_on_path_changed)
+	map_generator.obstacle_cleared.connect(func(cell: Vector2, _data: ObstacleData) -> void: _wither_sprite(cell))
 
 # Spawns a creature at the start of the maze. Returns it, or null if there's no route.
 # `modifiers`: Omen multipliers for the creature (see Enemy.modifiers). `elite`: Deeply Blighted.
@@ -225,6 +227,7 @@ func _on_sapling_requested(oak: Node2D) -> void:
 		if map_generator.can_block(cell, also_from):
 			map_generator.place_obstacle(cell, oak.enemy_data.sapling)
 			_saplings.get_or_add(oak, []).append(cell)
+			_grow_sprite(cell, oak.enemy_data.sapling_frames)
 			return
 
 # The Hollow Oak is dispelled: the saplings it planted (and the player hasn't cleared) crumble.
@@ -234,4 +237,29 @@ func _wither_saplings(oak: Node2D) -> void:
 	for cell: Vector2 in _saplings[oak]:
 		if map_generator.get_obstacle(cell) == oak.enemy_data.sapling:
 			map_generator.remove_obstacle(cell)
+			_wither_sprite(cell)
 	_saplings.erase(oak)
+# A sapling springs up on cell ("grow", then "idle"). Drawn on the map, under the nightmares.
+func _grow_sprite(cell: Vector2, frames: SpriteFrames) -> void:
+	if frames == null:
+		return
+	var sprite := AnimatedSprite2D.new()
+	sprite.sprite_frames = frames
+	sprite.position = map_generator.MAP_GRID.calculate_map_position(cell)
+	map_generator.add_child(sprite)
+	sprite.animation_finished.connect(func() -> void:
+		if sprite.animation == &"grow":
+			sprite.play(&"idle"))
+	sprite.play(&"grow")
+	_sapling_sprites[cell] = sprite
+
+# The sapling on cell crumbles to ash ("wither"), then goes (the Oak fell, or the player cleared it).
+func _wither_sprite(cell: Vector2) -> void:
+	var sprite: AnimatedSprite2D = _sapling_sprites.get(cell)
+	if sprite == null:
+		return
+	_sapling_sprites.erase(cell)
+	if not is_instance_valid(sprite):
+		return
+	sprite.animation_finished.connect(sprite.queue_free)
+	sprite.play(&"wither")

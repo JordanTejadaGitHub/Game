@@ -100,6 +100,11 @@ func _run() -> void:
 	var before: int = shell.health
 	shell.take_damage(5.0)
 	_check(before - shell.health == 1, "a small hit mostly bounces off the shell (%d)" % (before - shell.health))
+	shell.max_health = 100000
+	shell.health = 100000
+	for i in 20:  # −6 per hit until it has soaked 100
+		shell.take_damage(50.0)
+	_check(shell.coat == 0.0 and shell.sprite.sprite_frames == shell.enemy_data.cracked_frames, "a broken shell shows the cracked art")
 	var swarm := _still("whisper_swarm", route[6])
 	before = swarm.health
 	swarm.take_damage(100.0)
@@ -142,7 +147,7 @@ func _run() -> void:
 		grave.set_process(true)
 		grave._try_burrow()
 		_check(grave._leaping, "the Gravecrawler sinks under the wall")
-		await _wait(0.8)
+		await _wait(1.8)
 		_check(grave.get_current_cell() == burrow.beyond and grave._burrows == 1,
 			"and surfaces on the other side (%s)" % grave.get_current_cell())
 		grave._leaping = false
@@ -192,6 +197,7 @@ func _run() -> void:
 	var bystander := _still("leaf_bug", route[25])
 	queen.take_damage(queen.max_health / 2 + 1)
 	_check(spawner.eclipse_left > 4.9, "half health: the Eclipse")
+	_check(queen.sprite.animation == &"eclipse", "her wings close (eclipse pose)")
 	bystander._update_presence(0.2)
 	queen._update_presence(0.2)
 	_check(bystander.is_hidden() and not queen.is_hidden(), "every nightmare but the Queen is hidden")
@@ -209,6 +215,8 @@ func _run() -> void:
 	var planted: Array = map_generator.obstacles.keys().filter(func(c: Vector2) -> bool:
 		return map_generator.obstacles[c] == sapling)
 	_check(planted.size() == 1, "the Hollow Oak plants a thorn-sapling")
+	var sapling_sprites: Array = spawner._sapling_sprites.values()
+	_check(sapling_sprites.size() == 1 and sapling_sprites[0].animation == &"grow", "the sapling grows in")
 	_check(not map_generator.get_path_from(map_generator.startPath).is_empty(), "the path stays open")
 	var grief := []
 	spawner.enemy_split.connect(func(parent: Node2D, child: Node2D) -> void:
@@ -216,6 +224,7 @@ func _run() -> void:
 			grief.append(child))
 	oak.take_damage(oak.max_health * 0.34 + 1)
 	_check(grief.size() == 6 and oak.hold_time > 0.0, "two-thirds health: it stops, and 6 Mourners rise")
+	_check(oak.sprite.animation == &"grief", "and wails (grief animation)")
 	oak.take_damage(oak.max_health * 0.34)
 	_check(grief.size() == 12, "and again at one third")
 	MetaRun.blight_level = 10
@@ -226,6 +235,7 @@ func _run() -> void:
 	MetaRun.blight_level = 0
 	_check(oak.is_cleansed, "the second time it's dispelled")
 	_check(planted.all(func(c: Vector2) -> bool: return map_generator.get_obstacle(c) == null), "its saplings wither")
+	_check(sapling_sprites.size() == 1 and sapling_sprites[0].animation == &"wither", "crumbling to ash (wither animation)")
 
 	print("acts 3-4 test: %s" % ("PASS" if failures == 0 else "%d FAILED" % failures))
 	quit(failures)

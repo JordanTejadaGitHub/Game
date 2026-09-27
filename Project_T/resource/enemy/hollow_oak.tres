@@ -1,9 +1,10 @@
-[gd_resource type="Resource" script_class="EnemyData" load_steps=5 format=3]
+[gd_resource type="Resource" script_class="EnemyData" load_steps=6 format=3]
 
 [ext_resource type="Script" path="res://resource/enemy/script/enemy_data.gd" id="1_edata"]
 [ext_resource type="SpriteFrames" path="res://animation/enemy/hollow_oak.tres" id="2_frames"]
 [ext_resource type="Resource" path="res://resource/obstacle/thorn_sapling.tres" id="3_sapling"]
 [ext_resource type="Resource" path="res://resource/enemy/puffcap.tres" id="4_grief"]
+[ext_resource type="SpriteFrames" path="res://animation/enemy/thorn_sapling.tres" id="9_sapling_frames"]
 
 [resource]
 script = ExtResource("1_edata")
@@ -25,3 +26,4 @@ grief_pause = 2.0
 rises_from_blight = 10
 trait_text = "Plants thorn-saplings that bend the path. Grieves as it weakens."
 cleanse_line = "The Hollow Oak is still. Somewhere beyond the dream, the Hollow remembers."
+sapling_frames = ExtResource("9_sapling_frames")
