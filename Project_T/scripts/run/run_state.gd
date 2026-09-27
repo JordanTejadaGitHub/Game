@@ -10,6 +10,7 @@ signal dew_short(cost: int)
 # Emitted when Dew is earned somewhere in the world (e.g. a creature was cleansed), for popups.
 signal dew_earned(amount: int, world_position: Vector2)
 signal leaves_changed(leaves: int, max_leaves: int)
+signal free_clears_changed(free_clears: int)
 # Emitted once, when the run is won (last drift cleansed) or lost (no leaves left).
 signal run_ended(won: bool)
 
@@ -22,6 +23,13 @@ var leaves: int
 var obstacles_tended := 0  # Obstacles cleared this run; each is +1 Seed at run end
 var tended_cells: Array[Vector2] = []  # Which obstacles were cleared (for the mid-run save)
 var omen_seeds := 0  # Seeds earned from Omen rewards (Swift Stream), paid at run end
+# Clearing Dreams (dream_design.md, "Clearing cards"): free clears to spend (Heartwood's Reach),
+# cells whose first Warden costs half (Reclaimed Earth: {cell: true}), and a flag set while a
+# Dream clears obstacles without Seeds (Burn Back the Dead Wood). Every clear still lands in
+# `tended_cells`, so tended_cells.size() is the run's total clears (Tended Forest).
+var free_clears := 0
+var fertile_cells := {}
+var clearing_without_seeds := false
 var creatures_cleansed := 0
 var is_over := false
 var won := false
@@ -44,7 +52,8 @@ func _ready() -> void:
 	enemy_spawner.enemy_cleansed.connect(_on_enemy_cleansed)
 	enemy_spawner.enemy_reached_goal.connect(_on_enemy_reached_goal)
 	map_generator.obstacle_cleared.connect(func(cell: Vector2, _data: ObstacleData) -> void:
-		obstacles_tended += 1
+		if not clearing_without_seeds:
+			obstacles_tended += 1
 		tended_cells.append(cell))
 
 # The run's Seeds: [[label, seeds], …] ending with ["Total", n]. `drifts_cleared` and `bosses`
@@ -78,6 +87,17 @@ func spend_dew(cost: int) -> bool:
 		return false
 	dew -= cost
 	dew_changed.emit(dew)
+	return true
+
+func add_free_clears(amount: int) -> void:
+	free_clears = maxi(free_clears + amount, 0)
+	free_clears_changed.emit(free_clears)
+
+# Uses one free clear if there is one.
+func use_free_clear() -> bool:
+	if free_clears <= 0:
+		return false
+	add_free_clears(-1)
 	return true
 
 func add_dew(amount: int) -> void:

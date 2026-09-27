@@ -17,6 +17,9 @@ const HEDGE_PER_WALLS := [5, 4]
 const HEDGE_BONUS_PER := 0.01
 const HEDGE_BONUS_MAX := [0.20, 0.30]
 const SPORE_CASCADE_TARGETS := [2, 3]
+const TENDED_FOREST_PER_CLEAR := 0.01
+const TENDED_FOREST_MAX := 0.25
+const FERTILE_DISCOUNT := 0.5  # Reclaimed Earth: the first Warden on a cleared cell
 
 signal unlocks_changed
 signal card_taken(card: UpgradeData)
@@ -65,6 +68,7 @@ func _ready() -> void:
 	drift_director.rest_started.connect(_on_rest_started)
 	map_generator.path_changed.connect(_update_bends)
 	spawner.enemy_cleansed.connect(_on_enemy_cleansed)
+	map_generator.obstacle_cleared.connect(_on_obstacle_cleared)
 	_update_bends()
 
 static func load_pool() -> Array[UpgradeData]:
@@ -136,6 +140,8 @@ func get_soothe_multiplier(tower: Tower) -> float:
 	if has_rule(&"hedge_maze"):
 		var level := rule_level(&"hedge_maze")
 		bonus += minf(HEDGE_BONUS_PER * (count_walls() / HEDGE_PER_WALLS[level]), HEDGE_BONUS_MAX[level])
+	if has_rule(&"tended_forest"):
+		bonus += minf(TENDED_FOREST_PER_CLEAR * run_state.tended_cells.size(), TENDED_FOREST_MAX)
 	return 1.0 + bonus
 
 func get_attack_speed_multiplier(data: TowerData) -> float:
@@ -202,6 +208,37 @@ func get_rest_bonus_add() -> int:
 	for card in _taken_cards():
 		add += card.rest_bonus_add * stacks[card.id]
 	return add
+
+# Dew to clear `data` (Cleared Ground: −40% per stack, never below 1 Dew).
+func get_clear_cost(data: ObstacleData) -> int:
+	var discount := 0.0
+	for card in _taken_cards():
+		discount += card.clear_discount * stacks[card.id]
+	return maxi(roundi(data.clear_cost * maxf(1.0 - discount, 0.0)), 1)
+
+# Cost to plant `data` on `cell`: Reclaimed Earth halves the first Warden on a fertile cell.
+func get_build_cost_at(data: TowerData, cell: Vector2) -> int:
+	var cost := get_build_cost(data)
+	if run_state.fertile_cells.has(cell):
+		cost = roundi(cost * FERTILE_DISCOUNT)
+	return cost
+
+# Nightmare speed multiplier from Dreams (Burn Back the Dead Wood).
+func get_creature_speed_multiplier() -> float:
+	var bonus := 0.0
+	for card in _taken_cards():
+		bonus += card.creature_speed_bonus * stacks[card.id]
+	return 1.0 + bonus
+
+# Obstacles left on the map, of `kind` only if given.
+func count_obstacles(kind: ObstacleData = null) -> int:
+	if kind == null:
+		return map_generator.obstacles.size()
+	var count := 0
+	for cell in map_generator.obstacles:
+		if map_generator.obstacles[cell] == kind:
+			count += 1
+	return count
 
 # Creature health multiplier from Dreams (Wild Growth).
 func get_creature_health_multiplier() -> float:
@@ -273,6 +310,10 @@ func take(card: UpgradeData) -> void:
 	if card.leaves_now != 0 or card.max_leaves_add != 0:
 		run_state.regrow_leaves(maxi(card.leaves_now, 0))  # Also clamps to a lower maximum
 	add_rare_dreams(card.rare_dreams_add)
+	if card.free_clears_add > 0:
+		run_state.add_free_clears(card.free_clears_add)
+	if card.clears_obstacle != null:
+		_clear_all(card.clears_obstacle)
 	if card.set_cost_warden != "":
 		unlocks_changed.emit()  # Tower bar prices change
 	card_taken.emit(card)
@@ -386,6 +427,9 @@ func is_eligible(card: UpgradeData, act: int = 1) -> bool:
 		return false
 	if card.max_leaves_add < 0 and run_state.max_leaves + card.max_leaves_add < 1:
 		return false
+	# Clearing cards only when the map is still full enough to matter.
+	if card.min_obstacles > 0 and count_obstacles(card.clears_obstacle) < card.min_obstacles:
+		return false
 	if card.unlocks != null and is_unlocked(card.unlocks.get_id()):
 		return false
 	for requirement in card.requires:
@@ -495,6 +539,25 @@ func load_save(data: Dictionary) -> void:
 
 
 # --- Rules ------------------------------------------------------------------------------------------
+
+# Burn Back the Dead Wood: clears every obstacle of `kind` now. These clears give no Seeds.
+func _clear_all(kind: ObstacleData) -> void:
+	var cells: Array = map_generator.obstacles.keys().filter(
+		func(cell: Vector2) -> bool: return map_generator.obstacles[cell] == kind)
+	run_state.clearing_without_seeds = true
+	for cell in cells:
+		map_generator.clear_obstacle(cell)
+	run_state.clearing_without_seeds = false
+
+# Reclaimed Earth: every clear gives Dew and leaves the cell fertile.
+func _on_obstacle_cleared(cell: Vector2, _data: ObstacleData) -> void:
+	var dew := 0
+	for card in _taken_cards():
+		dew += card.dew_per_obstacle_clear * stacks[card.id]
+	if dew > 0:
+		run_state.earn_dew_at(dew, map_generator.MAP_GRID.calculate_map_position(cell))
+	if has_rule(&"reclaimed_earth"):
+		run_state.fertile_cells[cell] = true
 
 # Spore Cascade: a cleansed creature's Spored stacks spread to the nearest creatures.
 func _on_enemy_cleansed(enemy: Node2D) -> void:

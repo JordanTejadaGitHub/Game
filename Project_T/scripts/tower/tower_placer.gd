@@ -89,7 +89,7 @@ func _process(_delta: float) -> void:
 	# Enemies move every frame, so re-check whether one is standing on the hovered cell.
 	var valid := not _hover_path.is_empty() and not _is_occupied_by_enemy(_hover_cell)
 	# Dew changes while hovering (creatures get cleansed), so re-check affordability too.
-	var affordable := run_state.can_afford(get_cost())
+	var affordable := run_state.can_afford(get_cost(null, _hover_cell))
 	if valid != _hover_valid or affordable != _hover_affordable:
 		_hover_valid = valid
 		_hover_affordable = affordable
@@ -109,7 +109,9 @@ func _draw() -> void:
 	else:
 		var frame := tower_data.get_frame_rect(0)
 		draw_texture_rect_region(tower_data.texture, Rect2(-frame.size / 2.0, frame.size), frame, tint)
-	var tag := "%s · %d Dew" % [tower_data.display_name, get_cost()]
+	var tag := "%s · %d Dew" % [tower_data.display_name, get_cost(null, _hover_cell)]
+	if run_state.fertile_cells.has(_hover_cell):
+		tag += " (fertile)"
 	var growth := get_hover_path_growth()
 	if hover_breaks_path():
 		tag += "  ·  would close the dream"  # The forest's rule: it may bend, never close
@@ -140,7 +142,7 @@ func _refresh_hover() -> void:
 	for point in _hover_path:
 		_path_preview.add_point(MAP_GRID.calculate_map_position(point))
 	_hover_valid = not _hover_path.is_empty() and not _is_occupied_by_enemy(_hover_cell)
-	_hover_affordable = run_state.can_afford(get_cost())
+	_hover_affordable = run_state.can_afford(get_cost(null, _hover_cell))
 	queue_redraw()
 
 # Builds a tower on `cell` and charges its Dew cost. Returns false (and charges nothing) if the cell
@@ -154,9 +156,10 @@ func _try_build(cell: Vector2) -> bool:
 		enemy_cells.append(enemy.get_target_cell())
 	if not map_generator.can_block(cell, enemy_cells):
 		return false
-	var cost := get_cost()
+	var cost := get_cost(null, cell)
 	if not run_state.spend_dew(cost):
 		return false
+	run_state.fertile_cells.erase(cell)  # Only the first Warden gets the fertile price
 
 	var tower: Tower = tower_scene.instantiate()
 	tower.tower_data = tower_data
@@ -168,9 +171,13 @@ func _try_build(cell: Vector2) -> bool:
 	tower_built.emit(tower)
 	return true
 
-# Dew to plant the selected Warden (Dreams can change it, e.g. Cheap Hedges).
-func get_cost(data: TowerData = null) -> int:
-	return dream_state.get_build_cost(data if data != null else tower_data)
+# Dew to plant the selected Warden (Dreams can change it, e.g. Cheap Hedges). With `cell`, the price
+# on that cell (Reclaimed Earth: fertile cells halve the first Warden).
+func get_cost(data: TowerData = null, cell: Vector2 = NO_CELL) -> int:
+	var warden := data if data != null else tower_data
+	if cell == NO_CELL:
+		return dream_state.get_build_cost(warden)
+	return dream_state.get_build_cost_at(warden, cell)
 
 # Wardens that can be planted right now (unlocked this run), in roster order.
 func get_buildable_towers() -> Array[TowerData]:

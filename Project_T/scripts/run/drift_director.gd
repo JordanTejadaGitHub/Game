@@ -252,10 +252,17 @@ func get_schedule_modifiers(number: int) -> Dictionary:
 	var omens := get_tree().get_first_node_in_group(OmenDirector.GROUP) as OmenDirector
 	return omens.get_schedule_modifiers(number) if omens else {}
 
-# Omens: per-creature modifiers (see Enemy.modifiers) for drift `number`. Bosses ignore Omens.
+# Per-creature modifiers (see Enemy.modifiers) for drift `number`: the Omen's (bosses ignore
+# Omens), times Dreams that change every nightmare (Burn Back the Dead Wood: speed).
 func get_spawn_modifiers(data: EnemyData, number: int) -> Dictionary:
+	var modifiers := {}
 	var omens := get_tree().get_first_node_in_group(OmenDirector.GROUP) as OmenDirector
-	return omens.get_spawn_modifiers(number) if omens and not data.is_boss else {}
+	if omens and not data.is_boss:
+		modifiers = omens.get_spawn_modifiers(number)
+	var dreams := get_tree().get_first_node_in_group(DreamState.GROUP) as DreamState
+	if dreams and dreams.get_creature_speed_multiplier() != 1.0:
+		modifiers["speed"] = modifiers.get("speed", 1.0) * dreams.get_creature_speed_multiplier()
+	return modifiers
 
 func _spawn(data: EnemyData, number: int, elite: bool = false) -> void:
 	var enemy: Node2D = spawner.spawn_enemy(data, get_health_scale(data, number),

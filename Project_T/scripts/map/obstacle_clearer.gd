@@ -26,6 +26,7 @@ func _ready() -> void:
 	add_child(_path_preview)
 	map_generator.path_changed.connect(_refresh_hover)
 	run_state.dew_changed.connect(func(_dew: int) -> void: queue_redraw())  # Cost label colour
+	run_state.free_clears_changed.connect(func(_n: int) -> void: queue_redraw())
 	# Build mode owns left-click; clearing is available the rest of the time.
 	tower_placer.build_mode_changed.connect(func(building: bool) -> void: set_active(not building))
 
@@ -53,22 +54,29 @@ func _draw() -> void:
 		return
 	var center: Vector2 = MAP_GRID.calculate_map_position(_hover_cell)
 	var rect := Rect2(center - MAP_GRID.cell_size / 2, MAP_GRID.cell_size).grow(-2)
-	var affordable := run_state.can_afford(_hover_obstacle.clear_cost)
+	var free := run_state.free_clears > 0
+	var cost := get_clear_cost(_hover_obstacle)
+	var affordable := free or run_state.can_afford(cost)
 	var highlight := HIGHLIGHT_COLOR if affordable else WorldLabel.UNAFFORDABLE_COLOR
 	draw_rect(rect, Color(highlight, 0.15))
 	draw_rect(rect, highlight, false, 3.0)
 
-	var label := "%s %s · %d Dew" % [_hover_obstacle.clear_verb, _hover_obstacle.display_name,
-		_hover_obstacle.clear_cost]
+	var price := "free (%d left)" % run_state.free_clears if free else "%d Dew" % cost
+	var label := "%s %s · %s" % [_hover_obstacle.clear_verb, _hover_obstacle.display_name, price]
 	WorldLabel.draw_tag(self, center.x, rect.position.y - 8, label, WorldLabel.cost_color(affordable))
 
-# Clears the obstacle on `cell` and charges its Dew cost. Returns false if there's nothing to clear
-# or the player can't afford it.
+# Dew to clear `data` right now (Dreams can lower it). Every clear-cost check goes through here.
+func get_clear_cost(data: ObstacleData) -> int:
+	var dreams := get_tree().get_first_node_in_group(DreamState.GROUP) as DreamState
+	return dreams.get_clear_cost(data) if dreams else data.clear_cost
+
+# Clears the obstacle on `cell`, using a free clear (Heartwood's Reach) if there is one, else
+# charging its Dew cost. Returns false if there's nothing to clear or the player can't afford it.
 func try_clear(cell: Vector2) -> bool:
 	var data: ObstacleData = map_generator.get_obstacle(cell)
 	if data == null:
 		return false
-	if not run_state.spend_dew(data.clear_cost):
+	if not run_state.use_free_clear() and not run_state.spend_dew(get_clear_cost(data)):
 		return false
 	map_generator.clear_obstacle(cell)  # Emits path_changed -> enemies re-route, hover refreshes
 	return true

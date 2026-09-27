@@ -74,6 +74,12 @@ branches, final forms; localization; audio; replacing the Foozle placeholder art
   negative `max_leaves_add` / `leaves_now` (never offered if it'd end the run), `rest_bonus_add`,
   `creature_health_bonus`, `rare_dreams_add`, a `set_cost` above the base cost = surcharge, rules
   `overgrown` (`TowerSeller.can_sell()`) and `restless_dreams` (`can_skip()`).
+- **Clearing cards** (tag `clearing`, need `min_obstacles` 8 left): clear cost always via
+  `ObstacleClearer.get_clear_cost()` → `DreamState.get_clear_cost()` (Cleared Ground stacks);
+  `RunState.free_clears` (Heartwood's Reach, used first by `try_clear`, HUD counter);
+  `RunState.fertile_cells` + `TowerPlacer.get_cost(data, cell)` (Reclaimed Earth); Tended Forest
+  reads `tended_cells.size()` (all clears); Burn Back sets `RunState.clearing_without_seeds` (no Seeds)
+  and `creature_speed_bonus` (via `DriftDirector.get_spawn_modifiers`).
 - **Omens** (run_design.md): `OmenDirector` (`%OmenDirector`, group `omens`), `OmenData` in
   `resource/omen/*.tres`. At rests from drift `first_rest_drift` (10), after the Dream: 2 Omens or
   Clear Skies (`choose(null)`); the pick twists the next block (`get_multiplier`,

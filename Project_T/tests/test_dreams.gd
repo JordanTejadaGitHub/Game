@@ -20,6 +20,7 @@ func _run() -> void:
 	await _test_dream_flow(main)
 	_test_card_effects(main)
 	_test_new_cards(main)
+	_test_clearing_cards(main)
 	_simulate_storm_grid(main)
 	print("dreams test: %s" % ("PASS" if failures == 0 else "%d FAILED" % failures))
 	quit(failures)
@@ -325,6 +326,90 @@ func _test_card_effects(main: Node) -> void:
 	var dewdrop: TowerData = load("res://resource/tower/dewdrop.tres")
 	dreams.take(_card(dreams, "soaked_through"))
 	_check(is_equal_approx(dreams.get_status_duration(dewdrop, EnemyStatuses.DAMP), 8.0), "Soaked Through doubles Damp")
+
+# Clearing cards 54–58 (dream_design.md, "Clearing cards").
+func _test_clearing_cards(main: Node) -> void:
+	var dreams: DreamState = main.get_node("%DreamState")
+	var run_state: RunState = main.get_node("%RunState")
+	var director: DriftDirector = main.get_node("%DriftDirector")
+	var placer: TowerPlacer = main.get_node("%TowerPlacer")
+	var clearer: ObstacleClearer = main.get_node("%ObstacleClearer")
+	var map_generator = main.get_node("%MapGenerator")
+	var tree: ObstacleData = load("res://resource/obstacle/tree.tres")
+	var sprout: TowerData = load("res://resource/tower/sprout.tres")
+	_reset_dreams(main)
+
+	# Offered only while 8+ obstacles are left
+	var ground := _card(dreams, "cleared_ground")
+	_check(dreams.is_eligible(ground), "Cleared Ground offered on a full map (%d obstacles)" % dreams.count_obstacles())
+	var all_obstacles: Dictionary = map_generator.obstacles
+	map_generator.obstacles = {}
+	_check(not dreams.is_eligible(ground), "clearing cards need 8+ obstacles left")
+	map_generator.obstacles = all_obstacles
+
+	# Cleared Ground: −40% per stack, min 1, through the clearer's one cost function
+	dreams.take(ground)
+	_check(clearer.get_clear_cost(tree) == 3, "Cleared Ground: tree 5 → 3 Dew (got %d)" % clearer.get_clear_cost(tree))
+	dreams.take(ground)
+	dreams.take(ground)
+	_check(clearer.get_clear_cost(tree) == 1, "Cleared Ground stacks, never below 1 Dew")
+	dreams.stacks.erase("cleared_ground")
+
+	# Heartwood's Reach: free clears, still +1 Seed each; II gives 7
+	dreams.take(_card(dreams, "heartwoods_reach"))
+	_check(run_state.free_clears == 4, "Heartwood's Reach: 4 free clears")
+	run_state.dew = 0
+	var tended := run_state.obstacles_tended
+	var cell: Vector2 = map_generator.obstacles.keys()[0]
+	_check(clearer.try_clear(cell) and run_state.free_clears == 3 and run_state.dew == 0,
+		"a free clear costs no Dew")
+	_check(run_state.obstacles_tended == tended + 1, "free clears still give a Seed")
+	_check(dreams.is_eligible(_card(dreams, "heartwoods_reach_ii")), "Heartwood's Reach II once the base is owned")
+	dreams.take(_card(dreams, "heartwoods_reach_ii"))
+	_check(run_state.free_clears == 10, "Heartwood's Reach II: +7 free clears")
+	run_state.add_free_clears(-run_state.free_clears)
+
+	# Reclaimed Earth: +8 Dew per clear, and the cleared cell halves its first Warden
+	dreams.take(_card(dreams, "reclaimed_earth"))
+	run_state.dew = 100
+	cell = map_generator.obstacles.keys()[0]
+	var price := clearer.get_clear_cost(map_generator.get_obstacle(cell))
+	clearer.try_clear(cell)
+	_check(run_state.dew == 100 - price + 8, "Reclaimed Earth: +8 Dew per clear (dew %d)" % run_state.dew)
+	_check(run_state.fertile_cells.has(cell) and placer.get_cost(sprout, cell) == 5, "fertile ground: a Sprout costs 5")
+	placer.tower_data = sprout
+	var dew := run_state.dew
+	if placer._try_build(cell):
+		_check(run_state.dew == dew - 5 and not run_state.fertile_cells.has(cell), "only the first Warden gets the fertile price")
+		main.get_node("%TowerSeller").sell(cell)
+
+	# Tended Forest: +1% damage per clear this run, earlier clears count, max +25%
+	var tower := Tower.new()
+	tower.tower_data = sprout
+	tower.cell = Vector2(-5, -5)
+	var clears: int = run_state.tended_cells.size()
+	dreams.take(_card(dreams, "tended_forest"))
+	_check(is_equal_approx(dreams.get_soothe_multiplier(tower), 1.0 + minf(0.01 * clears, 0.25)),
+		"Tended Forest counts the %d earlier clears" % clears)
+	run_state.tended_cells.resize(40)
+	_check(is_equal_approx(dreams.get_soothe_multiplier(tower), 1.25), "Tended Forest caps at +25%")
+	run_state.tended_cells.resize(clears)
+	tower.free()
+
+	# Burn Back the Dead Wood: a Grove card; clears every Withered Tree, no Seeds, nightmares +10% speed
+	var burn := _card(dreams, "burn_back")
+	dreams.allow_bittersweet = true
+	_check(not dreams.is_eligible(burn, 2), "Burn Back is a Grove card (not in the start pool)")
+	dreams.allow_bittersweet = false
+	tended = run_state.obstacles_tended
+	var rocks := dreams.count_obstacles(load("res://resource/obstacle/rock.tres"))
+	dreams.take(burn)
+	_check(dreams.count_obstacles(tree) == 0 and dreams.count_obstacles() == rocks, "Burn Back clears every Withered Tree, no rocks")
+	_check(run_state.obstacles_tended == tended, "Burn Back's clears give no Seeds")
+	var bug: EnemyData = load("res://resource/enemy/leaf_bug.tres")
+	_check(is_equal_approx(director.get_spawn_modifiers(bug, 3).get("speed", 1.0), 1.1), "Burn Back: nightmares +10% speed")
+	run_state.fertile_cells.clear()
+	_reset_dreams(main)
 
 func _simulate_storm_grid(main: Node) -> void:
 	var dreams: DreamState = main.get_node("%DreamState")

@@ -60,10 +60,21 @@ enum Kind { UNLOCK_WARDEN, UNLOCK_EVOLUTION, STAT, RULE, ECONOMY }
 @export var rest_bonus_add: int = 0  # Every rest (drift-clear) bonus; negative = Borrowed Dew
 @export var creature_health_bonus: float = 0.0  # +0.10 = creatures +10% health (Wild Growth)
 @export var rare_dreams_add: int = 0  # The next N Dreams each include a Rare+ card
+@export var creature_speed_bonus: float = 0.0  # +0.10 = nightmares +10% speed (Burn Back)
+
+@export_group("Clearing")
+# Offered only with at least this many obstacles left (of `clears_obstacle`'s kind if set).
+@export var min_obstacles: int = 0
+@export var clear_discount: float = 0.0  # 0.4 = clearing costs 40% less (stacks, min 1 Dew)
+@export var free_clears_add: int = 0  # Free clears gained now (Heartwood's Reach)
+@export var dew_per_obstacle_clear: int = 0  # Dew for every clear from now on (Reclaimed Earth)
+# One-shot: clears every obstacle of this kind now, without Seeds (Burn Back the Dead Wood).
+@export var clears_obstacle: ObstacleData
 
 @export_group("Rule")
 # cozy_corners, hedge_maze, conductive_soil, spore_cascade, overgrown (no selling while creatures
-# walk), restless_dreams (no "Let it pass")
+# walk), restless_dreams (no "Let it pass"), reclaimed_earth (cleared cells turn fertile),
+# tended_forest (+1% damage per clear this run)
 @export var rule_id: StringName = &""
 
 func is_rare_or_better() -> bool:
