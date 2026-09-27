@@ -20,7 +20,10 @@ stays as it is. Not final yet; everything below assumes it.
 ## Environment
 
 Concept reference: the Environment Assets session's artifact page
-(https://claude.ai/artifact/DhTsE8rJXJwU3UgYEL73ym). Not in the repo yet; tiles get made from it.
+(https://claude.ai/artifact/DhTsE8rJXJwU3UgYEL73ym). **Sheets now exist** (Waystone pixel, one
+folder per act, 16 sheets each): `assets/environment/<act>/`, with layouts in
+**`environment_assets.md`** (e.g. `path.png` columns = neighbour mask, `heartwood.png` rows = leaves
+lost 0–20). They're not wired into the map yet; the Foozle tiles are still in use.
 
 - **Warm centre, cold edge.** Darker, cooler night palettes on the tiles, then a lighting pass: a
   cold multiply toward the map edges, warm light on the Heartwood, a small warm light on each Warden.
@@ -47,8 +50,8 @@ Concept reference: the Environment Assets session's artifact page
   leaf clumps) with twinkling dream-leaves; **vines hang from beneath it, each ending in a glowing
   dream-fruit**; the whole tree sits in a soft warm halo. The canopy stays warm moss-gold in every
   act.
-- **Damage shows on the tree** as **leaves lost (0–20)**: blackened patches spread across the
-  canopy and black leaves fall, the **dream-fruit darken one by one**, and the halo and the hollow's
+- **Damage shows on the tree** as **leaves lost (0–20)**: ragged violet-black rot patches with ash
+  flecks spread across the canopy and black leaves fall, the **dream-fruit darken one by one**, and the halo and the hollow's
   light dim. The player should feel the damage by looking at the tree, not just the counter.
 
 ## Wardens
