@@ -263,7 +263,9 @@ func _test_birds() -> void:
 		hoarder.hit(mark2)
 	_check(run_state.dew == dew + 2, "Magpie's Hoard: +1 Dew per crit, capped per drift")
 
-	# Starling Murmuration sweeps a stretch of path.
+	# Starling Murmuration sweeps a stretch of path. The birds above are still attacking whatever
+	# comes into range, so clear them first (on some maps the swept tile is within their reach).
+	await _clean()
 	var starling: TowerData = load("res://resource/tower/starling_murmuration.tres").duplicate()
 	starling.crit_chance = 0.0
 	var spot := _route_cell(12)
