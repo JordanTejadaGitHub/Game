@@ -51,9 +51,11 @@ points.
   come first. You still choose; the other two slots stay as normal. This makes combos like Storm
   Grid reliable in most runs (the old "1 in 3 by drift 50" target is replaced: aim for **most runs
   having their first cross-family combo by the act 1 boss**). Wall growths (Bramble, Honeysuckle)
-  are **not** growth-slot cards; they can still appear in the other two slots. Measured: ~67% of
-  runs have their first cross-family combo by the act 1 boss (1000-run simulation, before the wall
-  growths were excluded).
+  are **not** growth-slot cards; they can still appear in the other two slots. Measured (1000-run
+  simulation, aiming for Storm Grid with both families): first cross-family combo by the act 1
+  boss **92–95%**; full Storm Grid by drift 45 **76–79%** (was 67% / 47% before wall growths were
+  excluded). Variety now comes mostly from **which families you're offered**. If complete builds
+  feel too routine in play, the lever is the growth slot's weighting for final forms.
 - **Tag weighting:** cards tagged with a family you own are **2× as likely**. Builds converge
   without being forced.
 - **Prerequisites:** a card never appears if it can't do anything yet (e.g. Stormcap cards need
