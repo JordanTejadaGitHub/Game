@@ -41,6 +41,8 @@ func _ready() -> void:
 	_toggle(box, "Heartwood whispers (hints)", "whispers")
 	_toggle(box, "Auto-drift on by default", "auto_drift")
 	_toggle(box, "Reduced motion", "reduced_motion")
+	_toggle(box, "Reduce flashes", "reduce_flashes")
+	_toggle(box, "Hit-stop on big hits", "hitstop")
 	_choice(box, "Damage numbers", "damage_numbers", ["Off", "Big hits", "All"])
 	if TestGrove.is_available():  # Debug builds only; never in the demo or release
 		var dev := Label.new()

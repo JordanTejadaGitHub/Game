@@ -41,6 +41,8 @@ static func defaults() -> Dictionary:
 			"auto_drift": true,  # Auto-drift toggle's default at run start
 			"reduced_motion": false,  # No camera glide, shakes or hops in the UI
 			"damage_numbers": 1,  # 0 off, 1 big hits, 2 all (read by the combat feedback)
+			"reduce_flashes": false,  # Reactions: softer, shorter flashes (accessibility)
+			"hitstop": true,  # Reactions: a tiny freeze on big hits
 			"keybinds": {},  # {action: [physical keycodes]}; empty = project defaults
 		},
 	}
