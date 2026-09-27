@@ -25,8 +25,8 @@ const TEXT := {
 	&"again": "The Heartwood dreams again.",
 	&"damp": "Damp: slower, and lightning loves it.",
 	&"drowsy": "Drowsy: heavy-eyed and slow.",
-	&"spored": "Spored: the spores keep soothing.",
-	&"marked": "Marked: every Warden soothes it more.",
+	&"spored": "Spored: the spores keep eating at it.",
+	&"marked": "Marked: every Warden hits it harder.",
 	&"static": "Static: five charges, and a bolt.",
 }
 
