@@ -61,6 +61,18 @@ func _test_blocks_and_rests() -> void:
 	_check(run_state.leaves == 15 and run_state.max_leaves == 15 and run_state.dew == 60, "15 leaves, 60 Dew")
 	_check(spawner.get_enemies().is_empty(), "no creatures before Start")
 	_check(director.get_extra_nightmares(9) == 1.0 and director.get_extra_nightmares(10) == 1.25, "extra nightmares from drift 10")
+	# Mid-game rework: ×1.045 per drift to 25, ×1.055 from 26 (≈ ×11 by drift 50).
+	_check(is_equal_approx(director.get_growth(25), pow(1.045, 24)) and is_equal_approx(director.get_growth(26), pow(1.045, 24) * 1.055)
+		and absf(director.get_growth(50) - 11.0) < 0.6, "health growth steepens from drift 26 (×%.1f at 50)" % director.get_growth(50))
+	# One Deeply Blighted from drift 26 when the drift lists none (boss drifts: from the escort).
+	for number in [25, 26, 35, 45, 50]:
+		var schedule: Array = director.drifts[number - 1].get_schedule()
+		var listed: int = schedule.filter(func(a: Array) -> bool: return a[2]).size()
+		director.add_guaranteed_elite(schedule, number)
+		var elites: Array = schedule.filter(func(a: Array) -> bool: return a[2])
+		var expected := listed if number < 26 or listed > 0 else 1
+		_check(elites.size() == expected and elites.all(func(a: Array) -> bool: return not a[1].is_boss),
+			"drift %d: %d elite(s) (%d listed)" % [number, elites.size(), listed])
 	var stag: EnemyData = load("res://resource/enemy/old_stag.tres")
 	_check(is_equal_approx(director.get_health_scale(stag, 25), 1.5), "bosses have ×1.5 health")
 

@@ -43,6 +43,11 @@ const DEMO_DRIFTS_DIR := "res://resource/drift/demo/"
 @export var drifts_per_act: int = 25  # The act's last drift is its boss
 # Difficulty pass v1 (run_design.md): health growth, boss health, extra nightmares, act-break leaves.
 @export var health_growth_per_drift: float = 1.045  # Non-boss health multiplier per drift
+# Mid-game rework (run_design.md): steeper growth from drift 26 (compounding from drift 25's
+# value), and from then on every drift without listed elites gets one Deeply Blighted nightmare.
+@export var late_health_growth_per_drift: float = 1.055
+@export var late_growth_from: int = 26
+@export var guaranteed_elite_from: int = 26
 @export var boss_health_multiplier: float = 1.5  # On the bosses' base health
 @export var extra_nightmares: float = 1.25  # Nightmares per drift (rounded up) from `extra_nightmares_from`
 @export var extra_nightmares_from: int = 10  # The intro drifts before it are unchanged
@@ -234,6 +239,7 @@ func _start_drift() -> void:
 			mods.get("spacing", 1.0), get_extra_nightmares(number)),
 		"clock": 0.0,
 	}
+	add_guaranteed_elite(_arriving[number].schedule, number)
 	_add_blight_elites(_arriving[number].schedule)
 	drift_started.emit(number)
 	# Creatures due at t=0 arrive right away, not a frame later.
@@ -247,11 +253,17 @@ func _next_is_in_block() -> bool:
 func get_extra_nightmares(number: int) -> float:
 	return extra_nightmares if number >= extra_nightmares_from else 1.0
 
-# Health multiplier for `data` in drift `number` (×1.045 per drift; bosses fixed at ×1.5 their
+# Health multiplier for `data` in drift `number` (get_growth; bosses fixed at ×1.5 their
 # base). Dreams / Omens multiply on top (hook: see get_health_multiplier).
 func get_health_scale(data: EnemyData, number: int) -> float:
-	var scale := boss_health_multiplier if data.is_boss else pow(health_growth_per_drift, number - 1)
+	var scale := boss_health_multiplier if data.is_boss else get_growth(number)
 	return scale * get_health_multiplier(data, number)
+
+# The per-drift health growth for drift `number`: ×1.045 per drift, ×1.055 from drift 26.
+func get_growth(number: int) -> float:
+	var early := mini(number, late_growth_from - 1) - 1
+	var late := maxi(number - (late_growth_from - 1), 0)
+	return pow(health_growth_per_drift, early) * pow(late_health_growth_per_drift, late)
 
 # Dreams / Omens: extra health multiplier for creatures of drift `number` (Wild Growth: all
 # creatures; Omens: not bosses).
@@ -285,6 +297,24 @@ func get_spawn_modifiers(data: EnemyData, number: int) -> Dictionary:
 	return modifiers
 
 # Blight Level 5: `blight_elites_per_drift` random non-boss arrivals become Deeply Blighted.
+# From drift 26, a drift that lists no elites gets one: a random non-boss kind in it (boss drifts:
+# from the escort), and one of that kind becomes Deeply Blighted.
+func add_guaranteed_elite(schedule: Array, number: int) -> void:
+	if number < guaranteed_elite_from or schedule.any(func(a: Array) -> bool: return a.size() > 2 and a[2]):
+		return
+	var by_kind := {}  # EnemyData -> [schedule index, …]
+	for i in schedule.size():
+		if not schedule[i][1].is_boss:
+			by_kind.get_or_add(schedule[i][1], []).append(i)
+	if by_kind.is_empty():
+		return
+	var arrivals: Array = by_kind[by_kind.keys().pick_random()]
+	var index: int = arrivals.pick_random()
+	if schedule[index].size() > 2:
+		schedule[index][2] = true
+	else:
+		schedule[index].append(true)
+
 func _add_blight_elites(schedule: Array) -> void:
 	if blight_elites_per_drift <= 0:
 		return

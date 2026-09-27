@@ -131,7 +131,7 @@ controller / Steam Deck, accessibility, Steam achievements (milestones map to th
   (+1 leaf, `act_started`). `family_pick_requested(&"first"|&"boss")` fires after drift 1 and
   before a boss rest; `FamilyPickScreen` calls `family_picked()` (first pick: 3 random of every
   unlocked family, never the last run's offer again, profile `last_first_pick`). `is_build_phase()`
-  = resting (75% refunds). Health × 1.045^(n−1), bosses × 1.5. Hooks for Dreams/Omens:
+  = resting (75% refunds). Health `get_growth(n)`: × 1.045 per drift, × 1.055 from drift 26 (`late_growth_from`); bosses × 1.5. From drift 26 a drift listing no elites gets one (`add_guaranteed_elite`). Hooks for Dreams/Omens:
   `get_health_multiplier`, `get_schedule_modifiers`, `get_spawn_modifiers`, `_pay_rest_bonus`.
 - Drift data: `DriftData.groups: Array[DriftGroup]`; `DriftGroup.entries: Array[DriftEntry]`
   (enemy + count + `elite`; several entries mix evenly), `spacing`, `delay`. `get_schedule()` →
