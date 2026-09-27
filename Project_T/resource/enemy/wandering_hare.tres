@@ -11,3 +11,4 @@ speed = 110.0
 dew_reward = 4
 resists = Array[String](["root"])
 weak_to = Array[String](["spore"])
+trait_text = "Wanders into dead ends, then comes back."

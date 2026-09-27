@@ -32,6 +32,9 @@ var fertile_cells := {}
 var clearing_without_seeds := false
 var invulnerable := false  # Test Grove: leaves can't fall
 var creatures_cleansed := 0
+var leaves_lost := 0
+var longest_path := 0  # Longest route the maze reached this run, in tiles
+var play_time := 0.0  # Seconds of unpaused play this run
 var is_over := false
 var won := false
 
@@ -52,6 +55,10 @@ func _ready() -> void:
 	leaves = starting_leaves
 	enemy_spawner.enemy_cleansed.connect(_on_enemy_cleansed)
 	enemy_spawner.enemy_reached_goal.connect(_on_enemy_reached_goal)
+	var track_path := func() -> void:
+		longest_path = maxi(longest_path, map_generator.get_path_from(map_generator.startPath).size())
+	map_generator.path_changed.connect(track_path)
+	track_path.call_deferred()  # The map builds its path after RunState is ready
 	map_generator.obstacle_cleared.connect(func(cell: Vector2, _data: ObstacleData) -> void:
 		if not clearing_without_seeds:
 			obstacles_tended += 1
@@ -119,10 +126,15 @@ func earn_dew_at(amount: int, world_position: Vector2) -> void:
 func lose_leaves(amount: int) -> void:
 	if is_over or amount <= 0 or invulnerable:
 		return
+	leaves_lost += mini(amount, leaves)
 	leaves = maxi(leaves - amount, 0)
 	leaves_changed.emit(leaves, max_leaves)
 	if leaves == 0:
 		end_run(false)
+
+func _process(delta: float) -> void:
+	if not is_over:
+		play_time += delta / maxf(Engine.time_scale, 0.001)  # Real seconds, not game seconds
 
 # The Heartwood regrows up to its maximum (between acts).
 func regrow_leaves(amount: int) -> void:

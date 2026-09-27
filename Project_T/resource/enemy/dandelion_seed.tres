@@ -13,3 +13,4 @@ resists = Array[String](["root"])
 weak_to = Array[String](["water"])
 status_immune = Array[StringName]([&"held"])
 trait_kind = 1
+trait_text = "Drifts straight through the walls to the Heartwood."

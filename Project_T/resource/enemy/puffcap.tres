@@ -15,3 +15,4 @@ split_into = ExtResource("3_split")
 split_count = 3
 resists = Array[String](["spore"])
 weak_to = Array[String](["stone"])
+trait_text = "Breaks into three Sobs when dispelled."

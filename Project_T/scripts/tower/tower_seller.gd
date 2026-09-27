@@ -91,6 +91,21 @@ func _unhandled_input(event: InputEvent) -> void:
 	elif event.is_action_pressed("cancel_build") and selected != null:
 		select(null)
 		get_viewport().set_input_as_handled()
+	elif event.is_action_pressed("grow_warden") and is_instance_valid(selected):
+		grow_selected()
+		get_viewport().set_input_as_handled()
+
+# G: grows the selected Warden into its first form that's unlocked and affordable.
+func grow_selected() -> bool:
+	var dreams := get_tree().get_first_node_in_group(DreamState.GROUP) as DreamState
+	if dreams == null or not is_instance_valid(selected):
+		return false
+	for option in dreams.get_evolutions(selected.tower_data):
+		if option[1] and run_state.can_afford(dreams.get_evolve_cost(option[0])):
+			if tower_placer.evolve(selected, option[0]):
+				tower_selected.emit(selected)  # Refresh the Warden panel
+				return true
+	return false
 
 func _process(_delta: float) -> void:
 	if not active:

@@ -15,3 +15,4 @@ split_into = ExtResource("3_split")
 split_count = 6
 resists = Array[String](["spore"])
 weak_to = Array[String](["water"])
+trait_text = "Releases Creeps when dispelled."

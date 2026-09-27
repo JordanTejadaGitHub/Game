@@ -12,3 +12,4 @@ dew_reward = 6
 resists = Array[String](["stone"])
 weak_to = Array[String](["water"])
 trait_kind = 2
+trait_text = "Sprints down long straight corridors."

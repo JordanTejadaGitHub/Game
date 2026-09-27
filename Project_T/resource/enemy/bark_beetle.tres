@@ -13,3 +13,4 @@ dew_reward = 8
 leaf_cost = 1
 resists = Array[String](["stone"])
 weak_to = Array[String](["spore"])
+trait_text = "Slow, under a thick shell of blight."

@@ -65,6 +65,18 @@ func _advance_glide(delta: float) -> void:
 	if t >= 1.0:
 		_glide_points = PackedVector2Array()
 
+# H / F: centre on the Heartwood / on the forest's edge.
+func _unhandled_input(event: InputEvent) -> void:
+	var map_generator = get_node_or_null("%MapGenerator")
+	if map_generator == null:
+		return
+	if event.is_action_pressed("center_heartwood"):
+		target_position = MAP_GRID.calculate_map_position(map_generator.endPath)
+		_glide_points = PackedVector2Array()
+	elif event.is_action_pressed("center_start"):
+		target_position = MAP_GRID.calculate_map_position(map_generator.startPath)
+		_glide_points = PackedVector2Array()
+
 # Handle keyboard input for movement and zoom
 func _handle_input(delta: float) -> void:
 	# Handle WASD movement

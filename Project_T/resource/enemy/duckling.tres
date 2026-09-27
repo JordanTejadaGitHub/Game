@@ -12,3 +12,4 @@ speed = 70.4
 health = 50
 dew_reward = 1
 lost_speed = 44.8
+trait_text = "Follows the Lantern Bearer in single file."

@@ -67,6 +67,8 @@ func _build(won: bool) -> void:
 		_label(box, "“%s”" % MEMORY_1, 16, Color(0.85, 0.8, 1.0), true)
 
 	box.add_child(HSeparator.new())
+	_label(box, get_stats_text(), 15, Color(0.85, 0.88, 0.85), true)
+	box.add_child(HSeparator.new())
 	for line in breakdown:
 		var row := HBoxContainer.new()
 		var name_label := _label(row, line[0], 16, Color.WHITE)
@@ -98,6 +100,23 @@ func _build(won: bool) -> void:
 		wishlist.pressed.connect(func() -> void: OS.shell_open(url))
 	_button(buttons, "New run").pressed.connect(func() -> void: get_tree().reload_current_scene())
 	_button(buttons, "Title").pressed.connect(func() -> void: get_tree().change_scene_to_file(TITLE_SCENE))
+
+# The run in numbers (screens_ui.md "Results"): drift reached, drifts survived, nightmares
+# dispelled, leaves lost, longest path, Dreams taken, families.
+func get_stats_text() -> String:
+	var dream_state := get_tree().get_first_node_in_group(DreamState.GROUP) as DreamState
+	var dreams := 0
+	var families: Array[String] = []
+	if dream_state != null:
+		for id in dream_state.stacks:
+			dreams += dream_state.stacks[id]
+		for data in (%TowerPlacer as TowerPlacer).towers:
+			if data.tier == 1 and dream_state.is_unlocked(data.get_id()):
+				families.append(data.display_name)
+	return "Drift %d reached · %d survived\nNightmares dispelled: %d · Leaves lost: %d\nLongest path: %d tiles · Dreams: %d\nFamilies: %s" % [
+		drift_director.drifts_started, drift_director.drifts_cleared, run_state.creatures_cleansed,
+		run_state.leaves_lost, run_state.longest_path, dreams,
+		", ".join(families) if not families.is_empty() else "none"]
 
 func _label(parent: Control, text: String, font_size: int, color: Color, wrap: bool = false) -> Label:
 	var label := Label.new()

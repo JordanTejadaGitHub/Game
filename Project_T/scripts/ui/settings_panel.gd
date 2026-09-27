@@ -12,6 +12,8 @@ const REBINDABLE := [
 	["move_camera_left", "Camera left"], ["move_camera_right", "Camera right"],
 	["toggle_build_mode", "Build mode"], ["start_drift", "Start / next drift"],
 	["pause_game", "Pause"], ["cycle_speed", "Change speed"], ["sell_tower", "Sell Warden"],
+	["grow_warden", "Grow selected Warden"], ["center_heartwood", "Centre on the Heartwood"],
+	["center_start", "Centre on the forest's edge"],
 ]
 
 var _settings: Dictionary
@@ -34,7 +36,11 @@ func _ready() -> void:
 	_slider(box, "Music", "music_volume")
 	_slider(box, "Sounds", "sfx_volume")
 	_toggle(box, "Fullscreen", "fullscreen")
+	_slider(box, "UI scale", "ui_scale", 0.75, 1.5, 0.05)
 	_toggle(box, "Heartwood whispers (hints)", "whispers")
+	_toggle(box, "Auto-drift on by default", "auto_drift")
+	_toggle(box, "Reduced motion", "reduced_motion")
+	_choice(box, "Damage numbers", "damage_numbers", ["Off", "Big hits", "All"])
 	if TestGrove.is_available():  # Debug builds only; never in the demo or release
 		var dev := Label.new()
 		dev.text = "Developer"
@@ -81,16 +87,32 @@ func _ready() -> void:
 		closed.emit())
 	row.add_child(back)
 
-func _slider(box: VBoxContainer, text: String, key: String) -> void:
+func _choice(box: VBoxContainer, text: String, key: String, options: Array) -> void:
+	var row := HBoxContainer.new()
+	var label := Label.new()
+	label.text = text
+	label.custom_minimum_size = Vector2(120, 0)
+	row.add_child(label)
+	var pick := OptionButton.new()
+	for option in options:
+		pick.add_item(option)
+	pick.selected = int(_settings.get(key, 1))
+	pick.focus_mode = Control.FOCUS_NONE
+	pick.item_selected.connect(func(index: int) -> void: _set_value(key, index))
+	row.add_child(pick)
+	box.add_child(row)
+
+func _slider(box: VBoxContainer, text: String, key: String, min_value: float = 0.0,
+		max_value: float = 1.0, step: float = 0.05) -> void:
 	var row := HBoxContainer.new()
 	var label := Label.new()
 	label.text = text
 	label.custom_minimum_size = Vector2(120, 0)
 	row.add_child(label)
 	var slider := HSlider.new()
-	slider.min_value = 0.0
-	slider.max_value = 1.0
-	slider.step = 0.05
+	slider.min_value = min_value
+	slider.max_value = max_value
+	slider.step = step
 	slider.value = _settings[key]
 	slider.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	slider.focus_mode = Control.FOCUS_NONE

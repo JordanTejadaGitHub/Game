@@ -10,3 +10,4 @@ display_name = "Sob"
 health = 30
 speed = 128.0
 dew_reward = 1
+trait_text = "Small and quick."

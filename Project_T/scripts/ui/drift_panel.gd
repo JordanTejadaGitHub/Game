@@ -1,8 +1,8 @@
 extends VBoxContainer
 
-# Bottom-right run controls: act/drift label, a status line (resting / next drift in N s / rest
-# ahead), the Start / call-early button (Enter), the Auto-drift toggle, and pause / 1× / 2× / 3×
-# buttons (Space pauses, Tab cycles speed).
+# Bottom-right run controls: a status line (resting / next drift in N s / rest ahead), the Start /
+# call-early button (Enter), the Auto-drift toggle, and pause / 1× / 2× / 3× buttons (Space pauses,
+# Tab cycles speed). The act / drift line is the top-centre DriftBanner.
 
 const BUTTON_FONT_SIZE := 18
 
@@ -10,7 +10,6 @@ const BUTTON_FONT_SIZE := 18
 @onready var game_speed: GameSpeed = %GameSpeed
 @onready var run_state: RunState = %RunState
 
-var _drift_label := Label.new()
 var _status_label := Label.new()
 var _start_button := Button.new()
 var _auto_toggle := CheckButton.new()
@@ -19,12 +18,11 @@ var _speed_buttons: Array[Button] = []
 
 func _ready() -> void:
 	alignment = BoxContainer.ALIGNMENT_END
-	for label in [_drift_label, _status_label]:
+	for label in [_status_label]:
 		label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 		label.add_theme_color_override("font_outline_color", Color(0.08, 0.1, 0.14))
 		label.add_theme_constant_override("outline_size", 6)
 		add_child(label)
-	_drift_label.add_theme_font_size_override("font_size", BUTTON_FONT_SIZE)
 	_status_label.add_theme_font_size_override("font_size", 14)
 	_status_label.add_theme_color_override("font_color", Color(0.85, 0.9, 0.8))
 
@@ -75,11 +73,7 @@ func _unhandled_input(event: InputEvent) -> void:
 # The call-early bonus changes every frame as creatures walk, so refresh continuously.
 func _process(_delta: float) -> void:
 	var latest := drift_director.drifts_started
-	var total := drift_director.get_total_drifts()
 	var next := latest + 1
-	var shown := mini(next if drift_director.is_resting() else maxi(latest, 1), total)
-	var act := drift_director.get_act(shown)
-	_drift_label.text = "Act %d · %s    Drift %d / %d" % [act, drift_director.get_act_name(act), latest, total]
 
 	_start_button.disabled = not drift_director.can_start_next_drift()
 	var block_end := drift_director.get_block(maxi(latest, 1)) * drift_director.drifts_per_block

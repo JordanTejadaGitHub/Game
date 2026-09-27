@@ -22,12 +22,17 @@ static func defaults() -> Dictionary:
 		"runs_won": 0,
 		"best_drift": 0,
 		"whispers_seen": [],  # Heartwood whisper ids already shown (onboarding)
+		"nightmares_seen": [],  # Nightmare kinds (resource file names) met in any run ("New" tag)
 		"settings": {
 			"master_volume": 1.0,
 			"music_volume": 0.55,  # audio_direction.md: music sits well under the sound effects
 			"sfx_volume": 1.0,
 			"fullscreen": false,
 			"whispers": true,  # Heartwood whispers (first-run hints)
+			"ui_scale": 1.0,
+			"auto_drift": true,  # Auto-drift toggle's default at run start
+			"reduced_motion": false,  # No camera glide, shakes or hops in the UI
+			"damage_numbers": 1,  # 0 off, 1 big hits, 2 all (read by the combat feedback)
 			"keybinds": {},  # {action: [physical keycodes]}; empty = project defaults
 		},
 	}
@@ -84,6 +89,9 @@ static func apply_settings(settings: Dictionary = {}) -> void:
 	_set_bus_volume("Ambience", settings.music_volume)
 	_set_bus_volume("SFX", settings.sfx_volume)
 	_set_bus_volume("UI", settings.sfx_volume)
+	var tree := Engine.get_main_loop() as SceneTree
+	if tree != null and tree.root != null:
+		tree.root.content_scale_factor = clampf(float(settings.get("ui_scale", 1.0)), 0.5, 2.0)
 	if DisplayServer.get_name() != "headless":
 		DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_FULLSCREEN if settings.fullscreen
 			else DisplayServer.WINDOW_MODE_WINDOWED)

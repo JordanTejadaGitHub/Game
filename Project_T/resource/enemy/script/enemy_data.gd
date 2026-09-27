@@ -10,6 +10,7 @@ class_name EnemyData
 @export var is_boss: bool = false  # Bosses have fixed health: no per-drift growth
 @export var sprite_scale: float = 1.0  # Drawn bigger/smaller (e.g. bosses, Puffcaplets)
 @export var tint: Color = Color.WHITE  # Placeholder recolour until a creature has its own art
+@export var trait_text: String = ""  # One line for the hover panel, e.g. "Sprints down long straight corridors."
 @export var cleanse_line: String = ""  # Shown when cleansed (bosses), e.g. "The Old Stag remembers the way home."
 
 # Movement / boss trait (documentation/acts_1_2.md).

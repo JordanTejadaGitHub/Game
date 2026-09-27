@@ -73,6 +73,8 @@ var _block_leaked := false
 func _ready() -> void:
 	if drifts.is_empty():
 		drifts = load_demo_drifts()
+	if get_tree().current_scene == owner:  # The player's default (tests keep the export's)
+		auto_drift = bool(HeartwoodMemory.get_settings().get("auto_drift", auto_drift))
 	spawner.enemy_split.connect(_on_enemy_split)
 	spawner.enemy_cleansed.connect(_on_enemy_cleansed)
 	spawner.enemy_reached_goal.connect(_resolve.bind(true))

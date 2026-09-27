@@ -16,3 +16,4 @@ resists = Array[String](["stone","root"])
 weak_to = Array[String](["water"])
 trait_kind = 3
 cleanse_line = "The Hollow Stag is gone. Something the Heartwood had forgotten comes back to it."
+trait_text = "Tramples walls. Charges when hurt."

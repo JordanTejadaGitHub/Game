@@ -96,6 +96,9 @@ func save_now() -> bool:
 		"free_clears": run_state.free_clears,
 		"fertile_cells": run_state.fertile_cells.keys().map(func(c: Vector2) -> Array: return [c.x, c.y]),
 		"creatures_cleansed": run_state.creatures_cleansed,
+		"leaves_lost": run_state.leaves_lost,
+		"longest_path": run_state.longest_path,
+		"play_time": run_state.play_time,
 		"drifts_started": drift_director.drifts_started,
 		"drifts_cleared": drift_director.drifts_cleared,
 		"blocks_rested": drift_director.blocks_rested,
@@ -145,6 +148,9 @@ func _restore(data: Dictionary) -> void:
 	run_state.tended_cells.assign(data.tended.map(func(c: Array) -> Vector2: return Vector2(c[0], c[1])))
 	run_state.omen_seeds = int(data.omen_seeds)
 	run_state.creatures_cleansed = int(data.creatures_cleansed)
+	run_state.leaves_lost = int(data.get("leaves_lost", 0))
+	run_state.longest_path = maxi(run_state.longest_path, int(data.get("longest_path", 0)))
+	run_state.play_time = float(data.get("play_time", 0.0))
 	# Clearing Dream cards. Burn Back's clears are in `tended` without counting as tended, so both
 	# are restored as saved, never recomputed from each other.
 	run_state.fertile_cells.clear()

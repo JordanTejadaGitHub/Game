@@ -143,6 +143,11 @@ func _on_leaves_changed(leaves: int, max_leaves: int) -> void:
 		_leaf_flash.kill()
 	leaves_label.add_theme_color_override("font_color", LEAF_LOST_COLOR)
 	_leaf_flash = create_tween()
+	# The leaves counter shakes as well as flashing (screens_ui.md "Leak"), unless reduced motion.
+	if not HeartwoodMemory.get_settings().get("reduced_motion", false):
+		leaves_label.pivot_offset = leaves_label.size / 2
+		for offset in [-5.0, 5.0, -3.0, 3.0, 0.0]:
+			_leaf_flash.tween_property(leaves_label, "rotation_degrees", offset, 0.04)
 	_leaf_flash.tween_interval(0.4)
 	_leaf_flash.tween_callback(leaves_label.add_theme_color_override.bind("font_color", LEAVES_COLOR))
 

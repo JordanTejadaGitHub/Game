@@ -9,3 +9,4 @@ display_name = "Creep"
 health = 20
 speed = 140.0
 dew_reward = 1
+trait_text = "Tiny and fast."

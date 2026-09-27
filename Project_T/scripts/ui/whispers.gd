@@ -40,6 +40,16 @@ const TEXT := {
 
 var enabled := true
 var _seen: Array = []
+
+# The pause menu's toggle. Turning off hides the current whisper and drops the queue.
+func set_enabled(on: bool) -> void:
+	enabled = on
+	set_process(on)
+	if not on:
+		_queue.clear()
+		if _tween:
+			_tween.kill()
+		modulate.a = 0.0
 var _queue: Array[StringName] = []
 var _tween: Tween
 
@@ -52,7 +62,7 @@ func _ready() -> void:
 	if not enabled:
 		set_process(false)
 		return
-	if not _seen.has("start"):
+	if not _seen.has("start") and not memory.settings.get("reduced_motion", false):
 		_glide_along_path.call_deferred()  # After the camera is ready
 	if memory.runs_played > 0:
 		whisper(&"again")
