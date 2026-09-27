@@ -226,7 +226,8 @@ families react. Whirligig's Gust spreads statuses, so it sets up Reactions acros
 
 Reactions can set off Reactions: Thunderclap arcs add Static to wet nightmares (more
 Thunderclaps), Ignite spreads spores onto charged ones (more Ignites), Mushrooming clouds spread
-Spored into Damp crowds. When a Reaction is caused by another within **1 s**, it's a **chain**:
+Spored into Damp crowds. When a Reaction is caused by another within **1 s**, or a different
+Reaction hits the same nightmare within 1 s, it's a **chain**:
 
 - **Chain badge** over the latest Reaction: *×2, ×3, ×4…* with a rising chime (`chain_badge`,
   `chain_digits`).

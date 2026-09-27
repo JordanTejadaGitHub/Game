@@ -459,7 +459,9 @@ Design and effects: `tower_design.md`, "Reactions". Starting points for tuning.
 | **Lightning Rod** | Marked + 1+ Static | Static bolts (5-stack bolts and Thunderclap arcs) within **3 cells** strike the Marked nightmare instead, at ×2 | — (while Marked) | same |
 
 - On a Damp nightmare, Static never reaches its normal 5-stack bolt: Thunderclap fires at 3 first.
-- **Chains:** a Reaction caused by another Reaction's output within 1 s adds +1 to the chain.
+- **Chains:** a Reaction caused by another Reaction's output within 1 s adds +1 to the chain. So
+  does a different Reaction on the **same nightmare** within 1 s (e.g. Drown → Pinned = ×2), as
+  built.
   Chains are visual and tracked; they add no damage of their own (the Legendary *Dawnbreak* below
   changes that).
 - **Performance:** at most ~6 full Reaction effects per second; the rest use the `_lite` sheets.

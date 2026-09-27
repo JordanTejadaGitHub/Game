@@ -128,7 +128,7 @@ each tier is clearly louder than the one below. Effects are in `assets/effects/`
 | Drown | *Drown!* | `#6ab0ff` | `drown` |
 | Pinned | *Pinned!* | `#e8ecff` | `pinned` |
 | Smother | *Smother!* | `#a8d060` | `smother` (loops while Held) |
-| Lightning Rod | *Lightning Rod!* | `#fff27a` | `lightning_rod` (anchor = impact point) |
+| Lightning Rod | *Lightning Rod!* | `#fff27a` | `lightning_rod` (anchor = impact point); shown when a bolt is actually **redirected**, not merely when Marked and Static meet |
 
 - **Light threads:** when a Reaction fires, a thin warm line (`light_thread`, stretched) runs
   for ~0.3 s from **each Warden whose status was part of it** to the nightmare. Players can see
