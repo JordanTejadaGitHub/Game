@@ -3,8 +3,9 @@ extends VBoxContainer
 # The HUD's Dreams row (screens_ui.md "Under resources: Dreams"): one small icon per Dream taken
 # this run, its shape and colour by rarity (circle, diamond, hexagon, star), the stack count, and the
 # card's live bonus under it (`DreamState.get_live_bonus_text`: Few and Mighty, The Last Light, Many
-# Hands, Canopy change as Wardens are planted, sold or grown). Hover for the card; click opens
-# "Dreams this run" (every card with its stacks). Built in code.
+# Hands, Canopy change as Wardens are planted, sold or grown). Hover for the card; click / tap opens
+# "Dreams this run" (every card with its stacks and text, so nothing is hover-only: platforms.md).
+# Built in code.
 
 const ICON_SIZE := Vector2(30, 30)
 const REFRESH_TIME := 0.25  # Live bonuses are re-read this often (real time, also while paused)
@@ -50,7 +51,7 @@ func _process(delta: float) -> void:
 
 # Rebuilds the icons when the cards changed, and updates every live bonus.
 func refresh() -> void:
-	var cards := dream_state._taken_cards()
+	var cards := dream_state.get_taken_cards()
 	var key := ",".join(cards.map(func(c: UpgradeData) -> String: return "%s:%d" % [c.id, dream_state.card_stacks(c.id)]))
 	if key != _shown_key:
 		_shown_key = key

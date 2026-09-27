@@ -78,6 +78,11 @@ func _run() -> void:
 	var light: Label = main.get_node("HUD/DreamlightLabel")
 	dreams.add_dreamlight(2)
 	_check(light.text == str(dreams.dreamlight), "the Dreamlight counter follows DreamState (%s)" % light.text)
+	var tap := InputEventMouseButton.new()
+	tap.button_index = MOUSE_BUTTON_LEFT
+	tap.pressed = true
+	light.gui_input.emit(tap)
+	_check((main.get_node("%ToastLabel") as Label).text.begins_with("Dreamlight"), "tapping the counter explains it (no hover-only info)")
 	var drift_panel = main.get_node("HUD/DriftPanel")
 	var saved_started := director.drifts_started
 	director.drifts_started = 0
