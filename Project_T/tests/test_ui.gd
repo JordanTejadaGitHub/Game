@@ -52,6 +52,28 @@ func _run() -> void:
 	dreams.unlock_everything = false
 	dreams.unlocks_changed.emit()
 
+	# --- Dreams row: an icon per Dream, with Few and Mighty's live bonus following the Wardens ---
+	var row = main.get_node("%DreamsRow")
+	var few: UpgradeData = null
+	for card in dreams.pool:
+		if card.id == "few_and_mighty":
+			few = card
+	_check(few != null, "Few and Mighty is in the pool")
+	if few != null:
+		var before_count: int = row._icons.size()
+		dreams.take(few)
+		await process_frame
+		_check(row._icons.size() == before_count + 1 and row._icons[-1].card == few, "taking a Dream adds its icon")
+		var live_before: String = row._icons[-1].live
+		_check(live_before == dreams.get_live_bonus_text(few) and live_before.begins_with("+"), "the icon shows the live bonus (%s)" % live_before)
+		var row_placer: TowerPlacer = main.get_node("%TowerPlacer")
+		main.get_node("%RunState").dew = 500
+		row_placer.tower_data = load("res://resource/tower/sprout.tres")
+		row_placer._try_build(_free_cell(main.get_node("%MapGenerator")))
+		row.refresh()
+		_check(row._icons[-1].live != live_before, "planting a Warden updates it (%s → %s)" % [live_before, row._icons[-1].live])
+		_check(row.get_list_text().contains("Few and Mighty"), "Dreams this run lists it")
+
 	# --- Whispers: a locked obstacle says "Dead wood…", Tend waits for the first clearing Dream ---
 	var whispers = main.get_node("%Whispers")
 	var clearer: ObstacleClearer = main.get_node("%ObstacleClearer")

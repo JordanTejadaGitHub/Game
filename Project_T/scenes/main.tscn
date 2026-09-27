@@ -1,4 +1,4 @@
-[gd_scene load_steps=30 format=3 uid="uid://ct33vhcgulg0g"]
+[gd_scene load_steps=31 format=3 uid="uid://ct33vhcgulg0g"]
 
 [ext_resource type="Script" path="res://scripts/main.gd" id="1_bjgx8"]
 [ext_resource type="Script" path="res://scripts/map/map_generator.gd" id="2_888hw"]
@@ -36,6 +36,7 @@
 [ext_resource type="Script" path="res://scripts/ui/combat_callouts.gd" id="44_callouts"]
 [ext_resource type="Script" path="res://scripts/ui/placement_links.gd" id="45_links"]
 [ext_resource type="Script" path="res://scripts/ui/rest_report.gd" id="46_report"]
+[ext_resource type="Script" path="res://scripts/ui/dreams_row.gd" id="47_dreams"]
 [ext_resource type="Script" path="res://scripts/ui/remember_screen.gd" id="48_remember"]
 
 [sub_resource type="Gradient" id="Gradient_5toel"]
@@ -297,12 +298,21 @@ offset_bottom = -16.0
 grow_vertical = 0
 script = ExtResource("17_wpanel")
 
+[node name="DreamsRow" type="VBoxContainer" parent="HUD"]
+unique_name_in_owner = true
+offset_left = 16.0
+offset_top = 16.0
+offset_right = 376.0
+offset_bottom = 58.0
+mouse_filter = 2
+script = ExtResource("47_dreams")
+
 [node name="RestReport" type="PanelContainer" parent="HUD"]
 unique_name_in_owner = true
 offset_left = 16.0
-offset_top = 80.0
+offset_top = 124.0
 offset_right = 296.0
-offset_bottom = 200.0
+offset_bottom = 244.0
 script = ExtResource("46_report")
 
 [node name="FamilyPickScreen" type="Control" parent="HUD"]
