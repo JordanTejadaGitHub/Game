@@ -78,7 +78,6 @@ Full brief per nightmare in `enemy_design.md` ("Art direction" and the "Looks li
 
 ## Still to do
 
-- **Audio direction:** music per phase (build, drift with dread building, boss, Grove, title),
-  nightmare whispers and a signature sound per type, the dispel sound, the leaf-lost sound.
+- ~~Audio direction~~: done in `audio_direction.md`.
 - **UI style:** frames, cards, fonts, icons (the shape-based icon language in `screens_ui.md`).
 - **Accessibility pass:** make sure warm vs cold never relies on colour alone.

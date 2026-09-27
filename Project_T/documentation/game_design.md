@@ -16,6 +16,7 @@ placeholders).
 | `dream_design.md` | in-run upgrade pool, offer rules, status numbers |
 | `meta_design.md` | Seeds, Memory Grove, milestones, Blight Levels, Memories, true ending |
 | `art_direction.md` | warm vs cold, environment, Warden and nightmare look (audio to do) |
+| `audio_direction.md` | music (adaptive layers), nightmare signature sounds, dispel, mix, demo list |
 | `art_style_options.md` | six candidate rendering styles compared; leaning Waystone pixel |
 | `environment_assets.md` | environment sprite-sheet layouts per act |
 | `onboarding.md` | teaching across the first runs |
