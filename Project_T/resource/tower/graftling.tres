@@ -1,0 +1,26 @@
+[gd_resource type="Resource" script_class="TowerData" load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://resource/tower/script/tower_data.gd" id="1_tdata"]
+[ext_resource type="Texture2D" path="res://assets/towers/graftling.png" id="2_tex"]
+[ext_resource type="Texture2D" path="res://assets/towers/graftling_attack.png" id="4_atk"]
+[ext_resource type="Resource" path="res://resource/tower/grafted_elder.tres" id="ev_1"]
+
+[resource]
+script = ExtResource("1_tdata")
+display_name = "Graftling"
+description = "Copies the attack of its strongest neighbouring Warden at 60%, statuses and all."
+cost = 0
+texture = ExtResource("2_tex")
+frame_count = 8
+line = "acorn"
+tier = 2
+buildable_directly = false
+evolve_cost = 45
+attack_kind = 6
+attack_range = 0.0
+damage = 0
+copy_share = 0.6
+attack_texture = ExtResource("4_atk")
+attack_frame_count = 6
+attack_release_frame = 2
+evolves_to = Array[Resource]([ExtResource("ev_1")])

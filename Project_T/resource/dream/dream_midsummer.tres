@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+[ext_resource type="Resource" path="res://resource/tower/midsummer.tres" id="2_tower"]
+
+[resource]
+script = ExtResource("1_card")
+id = "dream_midsummer"
+display_name = "Midsummer"
+description = "Sunpetals can now grow into Midsummers (90 Dew): a brighter beam that ramps higher and carries on to the nightmare right behind its target."
+rarity = 2
+kind = 1
+tags = Array[String](["light"])
+requires = Array[String](["sunpetal"])
+max_stacks = 1
+unlocks = ExtResource("2_tower")
+in_start_pool = false

@@ -1,0 +1,24 @@
+[gd_resource type="Resource" script_class="TowerData" load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://resource/tower/script/tower_data.gd" id="1_tdata"]
+[ext_resource type="Texture2D" path="res://assets/towers/grafted_elder.png" id="2_tex"]
+[ext_resource type="Texture2D" path="res://assets/towers/grafted_elder_attack.png" id="4_atk"]
+
+[resource]
+script = ExtResource("1_tdata")
+display_name = "Grafted Elder"
+description = "Copies its strongest neighbour's attack at 85%."
+cost = 0
+texture = ExtResource("2_tex")
+frame_count = 8
+line = "acorn"
+tier = 3
+buildable_directly = false
+evolve_cost = 90
+attack_kind = 6
+attack_range = 0.0
+damage = 0
+copy_share = 0.85
+attack_texture = ExtResource("4_atk")
+attack_frame_count = 6
+attack_release_frame = 2

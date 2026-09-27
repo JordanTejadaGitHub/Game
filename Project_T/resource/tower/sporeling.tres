@@ -1,4 +1,4 @@
-[gd_resource type="Resource" script_class="TowerData" load_steps=7 format=3]
+[gd_resource type="Resource" script_class="TowerData" load_steps=8 format=3]
 
 [ext_resource type="Script" path="res://resource/tower/script/tower_data.gd" id="1_tdata"]
 [ext_resource type="Texture2D" path="res://assets/towers/sporeling.png" id="2_tex"]
@@ -6,6 +6,7 @@
 [ext_resource type="Texture2D" path="res://assets/towers/sporeling_attack.png" id="4_atk"]
 [ext_resource type="Resource" path="res://resource/tower/driftspore.tres" id="ev_1"]
 [ext_resource type="Resource" path="res://resource/tower/bloomcap.tres" id="ev_2"]
+[ext_resource type="Resource" path="res://resource/tower/fairy_ring.tres" id="ev_3"]
 
 [resource]
 script = ExtResource("1_tdata")
@@ -27,5 +28,5 @@ description = "Lingering spore puffs: Spored nightmares take damage over time."
 line = "spore"
 tier = 1
 evolve_cost = 15
-evolves_to = Array[Resource]([ExtResource("ev_1"), ExtResource("ev_2")])
+evolves_to = Array[Resource]([ExtResource("ev_1"), ExtResource("ev_2"), ExtResource("ev_3")])
 applies_status = &"spored"

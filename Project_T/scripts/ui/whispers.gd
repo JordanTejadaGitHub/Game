@@ -28,6 +28,7 @@ const TEXT := {
 	&"spored": "Spored: the spores keep eating at it.",
 	&"marked": "Marked: every Warden hits it harder.",
 	&"static": "Static: five charges, and a bolt.",
+	&"held": "Held: it can't move. Now's the time.",
 }
 
 @onready var run_state: RunState = %RunState

@@ -10,21 +10,26 @@ class_name EnemyStatuses
 #   spored  soothe/s per stack = potency, 5 s, up to 8 (Driftspore raises the cap)
 #   marked  +25% soothe taken from everything, 5 s    (no stacks)
 #   static  charges; at 5 (bosses 8) a free bolt of 3× potency, then reset; −1 stack per 2 s
+#   held    can't move (Frostfern's freeze), 1 s                  (no stacks)
 
 const DAMP := &"damp"
 const DROWSY := &"drowsy"
 const SPORED := &"spored"
 const MARKED := &"marked"
 const STATIC := &"static"
-const ALL: Array[StringName] = [DAMP, DROWSY, SPORED, MARKED, STATIC]
+const HELD := &"held"
+const ALL: Array[StringName] = [DAMP, DROWSY, SPORED, MARKED, STATIC, HELD]
 
-const DEFAULT_DURATION := {DAMP: 4.0, DROWSY: 3.0, SPORED: 5.0, MARKED: 5.0, STATIC: 2.0}
-const DEFAULT_MAX_STACKS := {DAMP: 1, DROWSY: 5, SPORED: 8, MARKED: 1, STATIC: 5}
+const DEFAULT_DURATION := {DAMP: 4.0, DROWSY: 3.0, SPORED: 5.0, MARKED: 5.0, STATIC: 2.0, HELD: 1.0}
+const DEFAULT_MAX_STACKS := {DAMP: 1, DROWSY: 5, SPORED: 8, MARKED: 1, STATIC: 5, HELD: 1}
 const BOSS_MAX_STACKS := {DROWSY: 3, STATIC: 8}
 const COLORS := {
 	DAMP: Color(0.45, 0.7, 1.0), DROWSY: Color(0.75, 0.6, 1.0), SPORED: Color(0.7, 0.9, 0.4),
-	MARKED: Color(1.0, 0.85, 0.3), STATIC: Color(1.0, 1.0, 0.55),
+	MARKED: Color(1.0, 0.85, 0.3), STATIC: Color(1.0, 1.0, 0.55), HELD: Color(0.8, 0.95, 1.0),
 }
+# The White Stag's aura (a Memory Warden): nightmares inside are slower and take more damage.
+const STAG_SLOW := 0.15
+const STAG_EXTRA := 0.15
 
 const DAMP_SLOW := 0.10
 const DROWSY_SLOW_PER_STACK := 0.08
@@ -44,6 +49,7 @@ var duration_multiplier_all := 1.0
 var _active := {}
 var _spore_timer := 0.0
 var _fog_time := 0.0
+var _stag_time := 0.0  # Seconds left inside the White Stag's aura
 
 # Adds `stacks` of `id` (up to `max_stacks`, 0 = default cap) and refreshes its duration.
 # `line` is the applying Warden's family; Spored ticks count as that family's soothe.
@@ -97,12 +103,39 @@ func remove(id: StringName) -> void:
 func active_ids() -> Array:
 	return _active.keys()
 
+# Total stacks of every status (how "afflicted" a nightmare is, for Gust).
+func total_stacks() -> int:
+	var total := 0
+	for id in _active:
+		total += _active[id].stacks
+	return total
+
+# Every active status as [{id, stacks, time, potency, line}] (Gust copies them to other nightmares).
+func snapshot() -> Array:
+	var result := []
+	for id in _active:
+		var status: Dictionary = _active[id]
+		result.append({"id": id, "stacks": status.stacks, "time": status.time, "potency": status.potency,
+			"line": status.get("line", "")})
+	return result
+
 # Keeps the creature "in fog" (Mistveil) for `seconds`.
 func set_in_fog(seconds: float) -> void:
 	_fog_time = maxf(_fog_time, seconds)
 
 func is_in_fog() -> bool:
 	return _fog_time > 0.0
+
+# Keeps the creature inside the White Stag's aura for `seconds`.
+func set_in_stag_aura(seconds: float) -> void:
+	_stag_time = maxf(_stag_time, seconds)
+
+func is_in_stag_aura() -> bool:
+	return _stag_time > 0.0
+
+# Held nightmares stand still (they're easy targets for area effects).
+func is_held() -> bool:
+	return has(HELD)
 
 # Movement speed multiplier from slows.
 func get_speed_multiplier() -> float:
@@ -111,15 +144,23 @@ func get_speed_multiplier() -> float:
 		# Damp's potency is a strength multiplier (Soaked Through II: ×1.5 = −15%); 0 = plain Damp.
 		slow += DAMP_SLOW * maxf(potency(DAMP), 1.0)
 	slow += DROWSY_SLOW_PER_STACK * stacks(DROWSY)
+	if is_in_stag_aura():
+		slow += STAG_SLOW
 	return maxf(1.0 - slow, 0.1)
 
-# Soothe taken multiplier (Marked).
+# Soothe taken multiplier (Marked, and the White Stag's aura).
 func get_damage_taken_multiplier() -> float:
-	return 1.0 + MARKED_EXTRA if has(MARKED) else 1.0
+	var multiplier := 1.0
+	if has(MARKED):
+		multiplier += MARKED_EXTRA
+	if is_in_stag_aura():
+		multiplier += STAG_EXTRA
+	return multiplier
 
 # Advances timers. Returns the Spored soothe to deal this frame (already fog-boosted).
 func tick(delta: float) -> float:
 	_fog_time = maxf(_fog_time - delta, 0.0)
+	_stag_time = maxf(_stag_time - delta, 0.0)
 	var spore_damage := 0.0
 	if has(SPORED):
 		_spore_timer += delta

@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+[ext_resource type="Resource" path="res://resource/tower/magpies_hoard.tres" id="2_tower"]
+
+[resource]
+script = ExtResource("1_card")
+id = "dream_magpies_hoard"
+display_name = "Magpie's Hoard"
+description = "Magpie Perches can now grow into Magpie's Hoards (90 Dew): as Magpie Perch, and every crit it lands gives +1 Dew (up to 15 per drift)."
+rarity = 2
+kind = 1
+tags = Array[String](["wing"])
+requires = Array[String](["magpie_perch"])
+max_stacks = 1
+unlocks = ExtResource("2_tower")
+in_start_pool = false

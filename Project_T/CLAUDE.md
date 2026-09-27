@@ -198,6 +198,17 @@ branches, final forms; localization; audio; replacing the Foozle placeholder art
   attacks/sec). Each attack plays `attack_texture` (`<warden>_attack.png`, 6 frames) and fires on
   `attack_release_frame`: PROJECTILE kinds spawn at `attack_origin` (px from centre, from
   `assets/towers/attacks.json`); PULSE kinds (Rootling, Acorn) soothe everything in range.
+  `TowerData.AttackKind` also has TRAP (`fairy_ring.gd` rings on path tiles), BEAM (ramping,
+  continuous), COPY (Graftling: `Tower.attack_data` becomes the strongest adjacent Warden's data at
+  `copy_share`; attack code must read `attack_data`, not `tower_data`), SWOOP (projectile flies back),
+  SWEEP (`flock_sweep.gd`), SPREAD (Gust copies statuses), SPIN (8 tiles around), PULL (Pond Keeper),
+  LIGHT (Rootlight lit tiles) and AURA (White Stag). Crits: `crit_chance`/`crit_multiplier` per
+  Warden (0 on the original roster), `Tower.hit(enemy, mult, is_area, crit)` rolls them and passes
+  `is_crit` to `Enemy.take_damage`; signals `crit_landed`, `beam_ticked`. Snipers: `min_range`,
+  distance bonus, `has_target_priority` (Warden panel button). Held status (`EnemyStatuses.HELD`) stops
+  movement. Memory Wardens (`is_unique`): one on the map at a time. New Wardens are unlocked by Dream
+  cards (`in_start_pool = false` for hidden branches and the Nestling/Whirligig families until the
+  Memory Grove exists; Memory Wardens need the boss reward); `DreamState.unlock_everything` shows all.
   `projectile.gd` (`Projectile`, script-only node; animates and rotates
   `TowerData.projectile_texture`, 16x16 frames drawn pointing right, else a coloured puff). Enemies in the `"enemies"` group
   are targetable; cleansing removes them from it and from `EnemyContainer.get_enemies()`.

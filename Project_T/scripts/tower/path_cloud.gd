@@ -17,10 +17,11 @@ var _tick_timer := 0.0
 
 func _init(tower: Tower, center: Vector2) -> void:
 	_tower = tower
-	_radius = tower.tower_data.cloud_radius * Tower.MAP_GRID.cell_size.x
-	_duration = tower.tower_data.cloud_duration
-	_fog = tower.tower_data.cloud_fog
-	_color = tower.tower_data.projectile_color
+	# attack_data: a Graftling copying a Bloomcap drops the Bloomcap's cloud.
+	_radius = tower.attack_data.cloud_radius * Tower.MAP_GRID.cell_size.x
+	_duration = tower.attack_data.cloud_duration
+	_fog = tower.attack_data.cloud_fog
+	_color = tower.attack_data.projectile_color
 	top_level = true
 	z_index = 4
 	position = center
@@ -46,7 +47,7 @@ func _tick() -> void:
 		if _fog:
 			enemy.statuses.set_in_fog(TICK * 1.5)
 		# A cloud's soothe per tick is a share of one attack, spread over its lifetime.
-		_tower.hit(enemy, TICK / _duration, true)
+		_tower.hit(enemy, TICK / _duration, true, Tower.NO_CRIT)  # Clouds never crit
 
 func _draw() -> void:
 	var fade := minf(1.0, (_duration - _age) / 0.5) * minf(1.0, _age / 0.2 + 0.3)

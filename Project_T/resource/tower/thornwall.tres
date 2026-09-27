@@ -1,8 +1,9 @@
-[gd_resource type="Resource" script_class="TowerData" load_steps=4 format=3]
+[gd_resource type="Resource" script_class="TowerData" load_steps=5 format=3]
 
 [ext_resource type="Script" path="res://resource/tower/script/tower_data.gd" id="1_tdata"]
 [ext_resource type="Texture2D" path="res://assets/towers/thornwall.png" id="2_tex"]
 [ext_resource type="Resource" path="res://resource/tower/bramble.tres" id="ev_1"]
+[ext_resource type="Resource" path="res://resource/tower/honeysuckle.tres" id="ev_2"]
 
 [resource]
 script = ExtResource("1_tdata")
@@ -15,4 +16,4 @@ description = "A cheap plain wall for shaping the maze. No attack."
 line = "wall"
 tier = 0
 evolve_cost = 0
-evolves_to = Array[Resource]([ExtResource("ev_1")])
+evolves_to = Array[Resource]([ExtResource("ev_1"), ExtResource("ev_2")])

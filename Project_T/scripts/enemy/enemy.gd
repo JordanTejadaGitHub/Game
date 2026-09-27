@@ -54,6 +54,15 @@ const STATUS_DOT_RADIUS := 3.0
 const BOLT_FLASH_TIME := 0.2
 const HIT_MARK_TIME := 0.35  # Grey puff (resisted) / sparkle (weak) after a hit
 const COAT_COLOR := Color(0.62, 0.6, 0.66)
+const CRIT_FLASH_TIME := 0.3  # Gold starburst after a critical hit
+const CRIT_COLOR := Color(1.0, 0.82, 0.3)
+
+var _crit_flash := 0.0
+# Extra Dew when dispelled (Magpie Perch: +1 once it's been hit by a magpie).
+var bonus_dew := 0
+# Seconds before this nightmare can be frozen (Frostfern) / pushed back (Whirligig) again.
+var freeze_cooldown := 0.0
+var push_cooldown := 0.0
 
 var _soothe_carry := 0.0  # Fractional soothe (Spored ticks, multipliers) waiting to add up to 1
 var _bolt_flash := 0.0
@@ -124,12 +133,18 @@ func _process(delta: float) -> void:
 	if elite:
 		_haze_phase += ELITE_HAZE_SPEED * delta
 	_hit_mark_time = maxf(_hit_mark_time - delta, 0.0)
-	if not statuses.active_ids().is_empty() or _bolt_flash > 0.0 or _hit_mark_time > 0.0 or elite:
+	_crit_flash = maxf(_crit_flash - delta, 0.0)
+	freeze_cooldown = maxf(freeze_cooldown - delta, 0.0)
+	push_cooldown = maxf(push_cooldown - delta, 0.0)
+	if not statuses.active_ids().is_empty() or _bolt_flash > 0.0 or _hit_mark_time > 0.0 or elite \
+			or _crit_flash > 0.0 or statuses.is_in_stag_aura():
 		queue_redraw()
 
 	if hold_time > 0.0:
 		hold_time -= delta
 		return
+	if statuses.is_held():
+		return  # Frozen / rooted in place
 	_charge_left = maxf(_charge_left - delta, 0.0)
 	_update_trait(delta)
 	if _leaping:
@@ -169,6 +184,10 @@ func _draw() -> void:
 		draw_circle(Vector2.ZERO, 26.0 * (1.5 - t), Color(1.0, 1.0, 0.6, 0.5 * t))
 	if _hit_mark_time > 0.0:
 		_draw_hit_mark(_hit_mark_time / HIT_MARK_TIME)
+	if _crit_flash > 0.0:
+		_draw_crit_flare(_crit_flash / CRIT_FLASH_TIME)
+	if statuses.is_in_stag_aura():
+		draw_arc(Vector2(0, 6), 18.0, 0.0, TAU, 24, Color(0.9, 0.95, 1.0, 0.35), 2.0)
 	# One coloured dot per status, just above where the health bar sits
 	var ids := statuses.active_ids()
 	var x := -(ids.size() - 1) * STATUS_DOT_RADIUS * 1.5
@@ -219,6 +238,15 @@ func _draw_hit_mark(t: float) -> void:
 		draw_line(at + Vector2(-r, 0), at + Vector2(r, 0), col, 2.0)
 		draw_line(at + Vector2(0, -r), at + Vector2(0, r), col, 2.0)
 
+# A critical hit: a bright gold starburst. `t` fades 1 -> 0.
+func _draw_crit_flare(t: float) -> void:
+	var r := 22.0 * (1.3 - t * 0.5)
+	for i in 8:
+		var dir := Vector2.from_angle(TAU * i / 8.0 + 0.2)
+		var length := r if i % 2 == 0 else r * 0.6
+		draw_line(dir * 6.0, dir * length, Color(CRIT_COLOR, t), 3.0 if i % 2 == 0 else 2.0)
+	draw_circle(Vector2.ZERO, 8.0 * t, Color(1.0, 0.97, 0.8, 0.8 * t))
+
 func update_animation(velocity: Vector2) -> void:
 	# Keep the current animation when not moving (e.g. end of path)
 	if velocity.is_zero_approx():
@@ -238,7 +266,7 @@ func update_animation(velocity: Vector2) -> void:
 
 # Dew for dispelling this nightmare (Omens can change it, e.g. Dry Spell = 0).
 func get_dew_reward() -> int:
-	return roundi(enemy_data.dew_reward * modifiers.get("dew", 1.0)) * (ELITE_DEW if elite else 1)
+	return roundi(enemy_data.dew_reward * modifiers.get("dew", 1.0)) * (ELITE_DEW if elite else 1) + bonus_dew
 
 # Leaves lost when this nightmare reaches the Heartwood (Deeply Blighted cost at least 2).
 func get_leaf_cost() -> int:
@@ -334,9 +362,11 @@ func _leap() -> void:
 # Soothes the blight away. `line` is the Warden family that soothed it ("" = neutral) and `is_area`
 # whether it was an area hit (splash, pulse, cloud, Spored). Soothe = amount × family × shape ×
 # Marked, then the blight coat takes its bite. At 0 health the enemy is cleansed.
-func take_damage(amount: float, line: String = "", is_area: bool = false) -> void:
+func take_damage(amount: float, line: String = "", is_area: bool = false, is_crit: bool = false) -> void:
 	if is_cleansed:
 		return
+	if is_crit:
+		_crit_flash = CRIT_FLASH_TIME
 	var soothe := amount * enemy_data.get_soothe_multiplier(line, is_area) * statuses.get_damage_taken_multiplier()
 	if line in enemy_data.resists:
 		_mark_hit(-1)
@@ -444,6 +474,41 @@ func _set_crack(amount: float) -> void:
 func set_path(points: PackedVector2Array) -> void:
 	_path = points
 	_path_index = 0
+
+# Moves the nightmare back along the way it came by `pixels` (Whirligig gusts, Pond Keeper). It can't
+# go back past the start of its current route (routes restart at each re-route). Returns the pixels
+# actually moved.
+func push_back(pixels: float) -> float:
+	if is_cleansed or _leaping or _path.is_empty():
+		return 0.0
+	var moved := 0.0
+	while pixels > 0.0 and _path_index > 0:
+		var previous := grid.calculate_map_position(_path[_path_index - 1])
+		var distance := position.distance_to(previous)
+		if distance > pixels:
+			position = position.move_toward(previous, pixels)
+			return moved + pixels
+		position = previous
+		moved += distance
+		pixels -= distance
+		_path_index -= 1  # Now walking back toward the cell it just stood on
+	return moved
+
+# Index into the current route of the cell the nightmare last stood on (or is standing on).
+func get_route_index() -> int:
+	return maxi(_path_index - 1, 0)
+
+# Route cells behind the nightmare (the ones it already walked through on this route), oldest first.
+func get_cells_behind() -> PackedVector2Array:
+	return _path.slice(0, maxi(_path_index, 0))
+
+# Sends the nightmare back to route cell `index` (must be behind it). Pond Keeper's grab.
+func pull_back_to(index: int) -> void:
+	if is_cleansed or _leaping or index < 0 or index >= _path_index:
+		return
+	position = grid.calculate_map_position(_path[index])
+	_path_index = index + 1
+	queue_redraw()
 
 # The cell the enemy is currently walking toward. New paths should start from here so the enemy
 # never cuts diagonally through a cell mid-step.

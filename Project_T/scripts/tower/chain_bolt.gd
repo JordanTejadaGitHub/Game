@@ -9,9 +9,14 @@ const COLOR := Color(1.0, 0.95, 0.55)
 
 var _points: PackedVector2Array
 var _age := 0.0
+var _color := COLOR
+var _jag := JAG
 
-func _init(points: PackedVector2Array) -> void:
+# `color` / `jag`: other streaks reuse this (Gust's wind, Pond Keeper's tongue with jag 0).
+func _init(points: PackedVector2Array, color: Color = COLOR, jag: float = JAG) -> void:
 	_points = points
+	_color = color
+	_jag = jag
 	top_level = true
 	z_index = 5
 
@@ -28,7 +33,7 @@ func _draw() -> void:
 		var a := _points[i]
 		var b := _points[i + 1]
 		var normal := (b - a).orthogonal().normalized()
-		var mid := (a + b) / 2.0 + normal * randf_range(-JAG, JAG)
+		var mid := (a + b) / 2.0 + normal * randf_range(-_jag, _jag)
 		var line := PackedVector2Array([a, mid, b])
-		draw_polyline(line, Color(COLOR, alpha * 0.4), 6.0)
-		draw_polyline(line, Color(COLOR, alpha), 2.0)
+		draw_polyline(line, Color(_color, alpha * 0.4), 6.0)
+		draw_polyline(line, Color(_color, alpha), 2.0)

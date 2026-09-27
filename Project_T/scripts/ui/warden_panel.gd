@@ -3,7 +3,11 @@ extends PanelContainer
 # Bottom-left panel for the selected Warden: what it does, its stats (including Dreams), what it
 # can grow into (Dew cost, or which Dream it needs) and Sell. Built in code; hidden with no selection.
 
-const STATUS_NAMES := {&"damp": "Damp", &"drowsy": "Drowsy", &"spored": "Spored", &"marked": "Marked", &"static": "Static"}
+const STATUS_NAMES := {&"damp": "Damp", &"drowsy": "Drowsy", &"spored": "Spored", &"marked": "Marked", &"static": "Static", &"held": "Held"}
+const TARGET_NAMES := {
+	TowerData.TargetMode.FIRST: "Furthest along", TowerData.TargetMode.STRONGEST: "Strongest",
+	TowerData.TargetMode.BOSSES: "Bosses first", TowerData.TargetMode.FASTEST: "Fastest",
+}
 
 @onready var tower_seller: TowerSeller = %TowerSeller
 @onready var tower_placer: TowerPlacer = %TowerPlacer
@@ -50,17 +54,34 @@ func _refresh() -> void:
 	var lines: Array[String] = []
 	if data.description != "":
 		lines.append(data.description)
-	if data.can_attack:
-		lines.append("Damage %.0f · %.2f/s · range %.2f" % [_tower.get_damage(), _tower.get_attacks_per_second(), _tower.get_range_cells()])
-		if data.applies_status != &"":
-			lines.append("Applies %s%s" % [STATUS_NAMES.get(data.applies_status, data.applies_status),
-				" ×%d" % data.status_stacks if data.status_stacks > 1 else ""])
+	var attack := _tower.attack_data
+	if data.attack_kind == TowerData.AttackKind.AURA:
+		lines.append("Aura · range %.2f" % _tower.get_range_cells())
+	elif data.attack_kind == TowerData.AttackKind.COPY and _tower.get_copied() == null:
+		lines.append("Nothing to copy: plant it beside an attacking Warden.")
+	elif data.can_attack:
+		if _tower.get_copied() != null:
+			lines.append("Copying %s at %d%%" % [attack.display_name, roundi(data.copy_share * 100)])
+		var range_text := "range %.2f" % _tower.get_range_cells()
+		if attack.min_range > 0.0:
+			range_text = "range %.1f–%.1f" % [attack.min_range, _tower.get_range_cells()]
+		lines.append("Damage %.0f · %.2f/s · %s" % [_tower.get_damage(), _tower.get_attacks_per_second(), range_text])
+		if _tower.get_crit_chance() > 0.0:
+			lines.append("Crit %d%% · ×%s" % [roundi(_tower.get_crit_chance() * 100), str(attack.crit_multiplier)])
+		if attack.applies_status != &"":
+			lines.append("Applies %s%s" % [STATUS_NAMES.get(attack.applies_status, attack.applies_status),
+				" ×%d" % attack.status_stacks if attack.status_stacks > 1 else ""])
 	else:
 		lines.append("A wall: no attack.")
+	if data.is_unique:
+		lines.append("A freed memory: one per run, can't grow.")
 	_body.text = "\n".join(lines)
 
 	for child in _buttons.get_children():
 		child.queue_free()
+	if data.has_target_priority:
+		var aim := _add_button("Aim: %s (click to change)" % TARGET_NAMES[_tower.target_mode])
+		aim.pressed.connect(_cycle_target)
 	for option in dream_state.get_evolutions(data):
 		var next: TowerData = option[0]
 		var button := _add_button("")
@@ -90,6 +111,13 @@ func _add_button(text: String) -> Button:
 	button.alignment = HORIZONTAL_ALIGNMENT_LEFT
 	_buttons.add_child(button)
 	return button
+
+# Snipers: Furthest along -> Strongest -> Bosses first -> back.
+func _cycle_target() -> void:
+	var order := [TowerData.TargetMode.FIRST, TowerData.TargetMode.STRONGEST, TowerData.TargetMode.BOSSES]
+	var index := order.find(_tower.target_mode)
+	_tower.target_mode = order[(index + 1) % order.size()]
+	_refresh()
 
 func _evolve(into: TowerData) -> void:
 	if tower_placer.evolve(_tower, into):

@@ -24,7 +24,7 @@ func _run() -> void:
 	dream_state.unlock_everything = true  # Test the whole roster
 	dream_state.unlocks_changed.emit()
 	await process_frame
-	_check(placer.towers.size() == 8, "all eight Wardens are buildable")
+	_check(placer.towers.size() == 13, "all thirteen plantable Wardens are in the roster")
 	_check(main.get_node("%TowerBar").get_child_count() == placer.towers.size(), "one HUD button per Warden")
 
 	for data in placer.towers:
@@ -53,7 +53,7 @@ func _run() -> void:
 
 	# --- Attack animations ---
 	for data in placer.towers:
-		if data.can_attack:
+		if data.can_attack and data.attack_kind != TowerData.AttackKind.AURA:  # The White Stag has none
 			_check(data.attack_texture != null
 				and data.attack_texture.get_width() / data.attack_frame_count == 64,
 				"%s has a 64x64 attack sheet" % data.display_name)

@@ -1,0 +1,27 @@
+[gd_resource type="Resource" script_class="TowerData" load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://resource/tower/script/tower_data.gd" id="1_tdata"]
+[ext_resource type="Texture2D" path="res://assets/towers/pond_keeper.png" id="2_tex"]
+[ext_resource type="Texture2D" path="res://assets/towers/pond_keeper_attack.png" id="4_atk"]
+
+[resource]
+script = ExtResource("1_tdata")
+display_name = "The Pond Keeper"
+description = "Every 4 s its tongue drags the nightmare furthest along back beside the pond, and makes it Damp."
+cost = 0
+texture = ExtResource("2_tex")
+frame_count = 8
+line = "memory"
+tier = 0
+evolve_cost = 0
+is_unique = true
+attack_kind = 11
+attack_range = 3.0
+damage = 40
+attacks_per_second = 0.25
+applies_status = &"damp"
+pull_boss_tiles = 2
+crit_chance = 0.05
+attack_texture = ExtResource("4_atk")
+attack_frame_count = 6
+attack_release_frame = 2

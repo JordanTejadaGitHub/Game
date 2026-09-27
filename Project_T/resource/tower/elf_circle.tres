@@ -1,0 +1,33 @@
+[gd_resource type="Resource" script_class="TowerData" load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://resource/tower/script/tower_data.gd" id="1_tdata"]
+[ext_resource type="Texture2D" path="res://assets/towers/elf_circle.png" id="2_tex"]
+[ext_resource type="Texture2D" path="res://assets/towers/projectiles/elf_circle.png" id="5_trap"]
+[ext_resource type="Texture2D" path="res://assets/towers/elf_circle_attack.png" id="4_atk"]
+
+[resource]
+script = ExtResource("1_tdata")
+display_name = "Elf Circle"
+description = "More rings, and they wait until a nightmare steps on them."
+cost = 0
+texture = ExtResource("2_tex")
+frame_count = 8
+line = "spore"
+tier = 3
+buildable_directly = false
+evolve_cost = 90
+attack_kind = 4
+attack_range = 3.0
+damage = 60
+attacks_per_second = 0.667
+applies_status = &"spored"
+status_stacks = 3
+trap_max = 6
+trap_lifetime = 0.0
+trap_radius = 0.6
+crit_chance = 0.05
+projectile_color = Color(0.85, 0.8, 1, 1)
+trap_texture = ExtResource("5_trap")
+attack_texture = ExtResource("4_atk")
+attack_frame_count = 6
+attack_release_frame = 2

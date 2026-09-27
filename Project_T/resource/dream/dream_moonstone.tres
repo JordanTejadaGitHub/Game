@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+[ext_resource type="Resource" path="res://resource/tower/moonstone.tres" id="2_tower"]
+
+[resource]
+script = ExtResource("1_card")
+id = "dream_moonstone"
+display_name = "Moonstone"
+description = "Standing Stones can now grow into Moonstones (90 Dew): range 10; its first hit on each nightmare is always a crit."
+rarity = 2
+kind = 1
+tags = Array[String](["stone"])
+requires = Array[String](["standing_stone"])
+max_stacks = 1
+unlocks = ExtResource("2_tower")
+in_start_pool = false

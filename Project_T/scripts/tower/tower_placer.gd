@@ -7,6 +7,9 @@ class_name TowerPlacer
 
 signal build_mode_changed(active: bool)
 signal tower_built(tower: Tower)
+# A placement was refused because of the cell (a nightmare on it, or it would close the path).
+# Not affording it emits RunState.dew_short instead.
+signal build_rejected(cell: Vector2)
 
 @export var tower_scene: PackedScene = preload("res://scenes/tower/tower.tscn")
 # Wardens that can be planted directly. Only the ones DreamState has unlocked show in the tower bar.
@@ -19,6 +22,12 @@ signal tower_built(tower: Tower)
 	preload("res://resource/tower/firefly_jar.tres"),
 	preload("res://resource/tower/rootling.tres"),
 	preload("res://resource/tower/acorn.tres"),
+	preload("res://resource/tower/nestling.tres"),
+	preload("res://resource/tower/whirligig.tres"),
+	# Memory Wardens (one of each per run)
+	preload("res://resource/tower/white_stag.tres"),
+	preload("res://resource/tower/pond_keeper.tres"),
+	preload("res://resource/tower/moon_moth.tres"),
 ]
 # The tower that will be built (the last one selected; the first in `towers` to begin with).
 var tower_data: TowerData
@@ -87,7 +96,8 @@ func _process(_delta: float) -> void:
 		_hover_cell = cell
 		_refresh_hover()
 	# Enemies move every frame, so re-check whether one is standing on the hovered cell.
-	var valid := not _hover_path.is_empty() and not _is_occupied_by_enemy(_hover_cell)
+	var valid := not _hover_path.is_empty() and not _is_occupied_by_enemy(_hover_cell) \
+		and not is_unique_placed(tower_data)
 	# Dew changes while hovering (creatures get cleansed), so re-check affordability too.
 	var affordable := run_state.can_afford(get_cost(null, _hover_cell))
 	if valid != _hover_valid or affordable != _hover_affordable:
@@ -113,7 +123,9 @@ func _draw() -> void:
 	if run_state.fertile_cells.has(_hover_cell):
 		tag += " (fertile)"
 	var growth := get_hover_path_growth()
-	if hover_breaks_path():
+	if is_unique_placed(tower_data):
+		tag += "  ·  already planted (one per run)"
+	elif hover_breaks_path():
 		tag += "  ·  would close the dream"  # The forest's rule: it may bend, never close
 	elif _is_occupied_by_enemy(_hover_cell):
 		tag += "  ·  nightmare here"
@@ -141,20 +153,35 @@ func _refresh_hover() -> void:
 	_path_preview.clear_points()
 	for point in _hover_path:
 		_path_preview.add_point(MAP_GRID.calculate_map_position(point))
-	_hover_valid = not _hover_path.is_empty() and not _is_occupied_by_enemy(_hover_cell)
+	_hover_valid = not _hover_path.is_empty() and not _is_occupied_by_enemy(_hover_cell) \
+		and not is_unique_placed(tower_data)
 	_hover_affordable = run_state.can_afford(get_cost(null, _hover_cell))
 	queue_redraw()
+
+# Memory Wardens are one per run: true if `data` is one and it's already on the map.
+func is_unique_placed(data: TowerData) -> bool:
+	if not data.is_unique:
+		return false
+	for tower in tower_container.get_children():
+		if tower is Tower and tower.tower_data == data and not tower.is_queued_for_deletion():
+			return true
+	return false
 
 # Builds a tower on `cell` and charges its Dew cost. Returns false (and charges nothing) if the cell
 # can't be built on or the player can't afford it.
 func _try_build(cell: Vector2) -> bool:
+	if is_unique_placed(tower_data):
+		build_rejected.emit(cell)
+		return false
 	if _is_occupied_by_enemy(cell):
+		build_rejected.emit(cell)
 		return false
 	# Every enemy on the field must still be able to reach the end, not just new spawns.
 	var enemy_cells := PackedVector2Array()
 	for enemy in enemy_spawner.get_maze_walkers():
 		enemy_cells.append(enemy.get_target_cell())
 	if not map_generator.can_block(cell, enemy_cells):
+		build_rejected.emit(cell)
 		return false
 	var cost := get_cost(null, cell)
 	if not run_state.spend_dew(cost):
