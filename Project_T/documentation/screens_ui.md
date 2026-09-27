@@ -56,12 +56,12 @@ results screens; results lead back to the title.
 
 | Zone | Shows | Behaviour |
 |---|---|---|
-| **Top left: resources** | leaves (current / max), Dew | leaves flash and shake when one is lost; Dew flashes red when you can't afford something; Dew motes float up from dispelled nightmares |
-| **Under resources: Dreams** | one small icon per Dream taken this run (rarity shape + colour) | hover for the card; click opens "Dreams this run" (all cards + stack counts) |
+| **Top right: resources** (as built) | Dew, Dreamlight, leaves (current / max), path length | leaves flash and shake when one is lost; Dew flashes red when you can't afford something; Dew motes float up from dispelled nightmares; path length pulses when it changes |
+| **Top left: Dreams** (as built) | one small icon per Dream taken this run (rarity shape + colour, stack count, live bonus) | hover or tap for the card; click opens "Dreams this run" (all cards + stack counts) |
 | **Top centre: drift** | act and name, drift / 100, **5 pips for the current block**, countdown to the next boss | pips fill as drifts arrive; the boss countdown turns into the **boss health bar** during a boss drift |
 | **Under drift: Omen** | the active Omen, if any | hover for its effect and reward |
 | **Top centre, lower: whispers and toasts** | Heartwood whispers (italic, teaching) and event toasts (plain: rest bonus, act start, trampled wall, boss lines) | whispers stay until done; toasts fade after ~2.5 s |
-| **Top right** | path length, Menu | path length pulses when it changes |
+| **Menu** | pause menu button | with the drift controls or top right, clear of the resources |
 | **Bottom centre: Warden bar** | every Warden you can plant, with hotkey and cost | unaffordable = faded (still selectable, the ghost shows red); new families slide in after a pick |
 | **Bottom right: drift controls** | Start / Call early (shows the Dew bonus), Auto-drift, pause, 1×/2×/3×, status line ("Resting: rearrange freely") | the Start button pulses during rests |
 | **Left: Warden panel** | on selecting a Warden (below) | closes on Esc / right-click / clicking empty ground |
