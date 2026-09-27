@@ -1,0 +1,39 @@
+[gd_resource type="Resource" script_class="DriftData" format=3]
+
+[ext_resource type="Script" path="res://resource/drift/script/drift_data.gd" id="1_drift"]
+[ext_resource type="Script" path="res://resource/drift/script/drift_group.gd" id="2_group"]
+[ext_resource type="Script" path="res://resource/drift/script/drift_entry.gd" id="3_entry"]
+[ext_resource type="Resource" path="res://resource/enemy/leaf_bug.tres" id="e_LB"]
+[ext_resource type="Resource" path="res://resource/enemy/bark_beetle.tres" id="e_BB"]
+[ext_resource type="Resource" path="res://resource/enemy/hedgehog.tres" id="e_HH"]
+[ext_resource type="Resource" path="res://resource/enemy/mother_duck.tres" id="e_DL"]
+
+[sub_resource type="Resource" id="Entry_1"]
+script = ExtResource("3_entry")
+enemy = ExtResource("e_LB")
+count = 30
+
+[sub_resource type="Resource" id="Entry_2"]
+script = ExtResource("3_entry")
+enemy = ExtResource("e_BB")
+count = 10
+
+[sub_resource type="Resource" id="Entry_3"]
+script = ExtResource("3_entry")
+enemy = ExtResource("e_HH")
+count = 6
+
+[sub_resource type="Resource" id="Entry_4"]
+script = ExtResource("3_entry")
+enemy = ExtResource("e_DL")
+count = 2
+
+[sub_resource type="Resource" id="Group_1"]
+script = ExtResource("2_group")
+entries = Array[ExtResource("3_entry")]([SubResource("Entry_1"), SubResource("Entry_2"), SubResource("Entry_3"), SubResource("Entry_4")])
+spacing = 0.625
+delay = 0
+
+[resource]
+script = ExtResource("1_drift")
+groups = Array[ExtResource("2_group")]([SubResource("Group_1")])

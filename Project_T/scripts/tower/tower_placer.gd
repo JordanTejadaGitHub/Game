@@ -132,7 +132,7 @@ func _try_build(cell: Vector2) -> bool:
 		return false
 	# Every enemy on the field must still be able to reach the end, not just new spawns.
 	var enemy_cells := PackedVector2Array()
-	for enemy in enemy_spawner.get_enemies():
+	for enemy in enemy_spawner.get_maze_walkers():
 		enemy_cells.append(enemy.get_target_cell())
 	if not map_generator.can_block(cell, enemy_cells):
 		return false
@@ -175,7 +175,7 @@ func evolve(tower: Tower, into: TowerData) -> bool:
 
 # True if an enemy is standing in, or walking into, `cell`.
 func _is_occupied_by_enemy(cell: Vector2) -> bool:
-	for enemy in enemy_spawner.get_enemies():
+	for enemy in enemy_spawner.get_maze_walkers():
 		if enemy.get_current_cell() == cell or enemy.get_target_cell() == cell:
 			return true
 	return false

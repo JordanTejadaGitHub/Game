@@ -1,7 +1,9 @@
 extends SceneTree
 
-# Headless run-structure test: drifts, build phase, call early, bonuses, leaves, act breaks,
-# selling, speed controls, win and lose. Run from the project folder:
+# Headless run-flow test (run_design.md "Blocks and rests"): rests, the family pick after drift 1,
+# drifts flowing on their own, call early, rest bonuses, selling refunds, speed controls, boss rest
+# with its family pick and act break, winning and losing. Dreams / Omens that pop up at rests are
+# dismissed (first card / Clear Skies) so the flow keeps going.
 #   godot --headless --path . --script res://tests/test_run.gd --fixed-fps 60
 
 var failures := 0
@@ -10,27 +12,25 @@ func _initialize() -> void:
 	_run.call_deferred()
 
 func _run() -> void:
-	_test_schedules()
-	await _test_full_run()
+	_test_demo_data()
+	await _test_blocks_and_rests()
+	await _test_boss_rest_and_win()
 	await _test_lose()
 	print("run test: %s" % ("PASS" if failures == 0 else "%d FAILED" % failures))
 	quit(failures)
 
-func _test_schedules() -> void:
-	var drift3: DriftData = load("res://resource/drift/act1/drift_3.tres")
-	var schedule := drift3.get_schedule()
-	_check(schedule.size() == 15 and drift3.get_creature_count() == 15, "drift 3 has 15 creatures")
-	_check(schedule[0][1].display_name == "Bark Beetle" and schedule[2][1].display_name == "Bark Beetle",
-		"drift 3 sends the beetles first")
-	_check(is_equal_approx(schedule[3][0], 8.0), "leaf bugs start after the beetles + delay (t=%s)" % schedule[3][0])
-	var drift4: DriftData = load("res://resource/drift/act1/drift_4.tres")
-	var mixed := drift4.groups[1].get_arrival_order()
-	var beetles := mixed.filter(func(e: EnemyData) -> bool: return e.display_name == "Bark Beetle").size()
-	_check(mixed.size() == 25 and beetles == 5, "drift 4 mixes 20 Leaf Bugs + 5 Bark Beetles")
-	_check(mixed[0].display_name == "Leaf Bug" and mixed[2].display_name == "Bark Beetle",
-		"mixed group spreads the beetles out")
+func _test_demo_data() -> void:
+	var drifts := DriftDirector.load_demo_drifts()
+	_check(drifts.size() == 50, "the demo has 50 drifts (%d)" % drifts.size())
+	_check(drifts[0].get_creature_count() == 8, "drift 1 is 8 Leaf Bugs")
+	var boss_25: Array = drifts[24].get_schedule().map(func(a: Array) -> String: return a[1].display_name)
+	_check(boss_25.count("Old Stag") == 1 and boss_25.find("Old Stag") == 12, "drift 25: 12 Leaf Bugs, then the Old Stag")
+	var boss_50: Array = drifts[49].get_schedule().map(func(a: Array) -> String: return a[1].display_name)
+	_check(boss_50.has("Great Toad"), "drift 50 brings the Great Toad")
+	var elites: int = drifts[44].get_schedule().filter(func(a: Array) -> bool: return a[2]).size()
+	_check(elites == 4, "drift 45 has 4 Deeply Blighted (%d)" % elites)
 
-func _test_full_run() -> void:
+func _test_blocks_and_rests() -> void:
 	var main := await _new_run()
 	var director: DriftDirector = main.get_node("%DriftDirector")
 	var run_state: RunState = main.get_node("%RunState")
@@ -38,45 +38,44 @@ func _test_full_run() -> void:
 	var placer: TowerPlacer = main.get_node("%TowerPlacer")
 	var seller: TowerSeller = main.get_node("%TowerSeller")
 	var speed: GameSpeed = main.get_node("%GameSpeed")
+	var family: Control = main.get_node("%FamilyPickScreen")
+	var dreams: DreamState = main.get_node("%DreamState")
 	var map_generator = main.get_node("%MapGenerator")
-	director.drifts_per_act = 2  # Act breaks after drifts 2 and 4, so this run sees them
-	main.get_node("%DreamState").dream_after_drifts.clear()  # Dreams have their own test
 
-	_check(director.is_build_phase() and director.drifts_started == 0, "run starts in the build phase")
+	_check(director.is_resting() and director.drifts_started == 0, "the run starts resting")
 	_check(run_state.leaves == 20 and run_state.dew == 60, "20 leaves, 60 Dew")
-	_check(spawner.get_enemies().is_empty(), "no creatures before Start Drift")
-	_check(director.get_call_early_bonus() == 0, "no call-early bonus in the build phase")
+	_check(spawner.get_enemies().is_empty(), "no creatures before Start")
 
-	# --- Selling: full refund in the build phase ---
+	# Selling in a rest: full refund
 	var sprout: TowerData = placer.towers[0]
 	placer.tower_data = sprout
-	var cell := _free_cell_beside_path(map_generator)
+	var cell := _free_cell(map_generator)
 	_check(placer._try_build(cell), "built a Sprout")
-	_check(run_state.dew == 60 - sprout.cost, "Sprout cost %d" % sprout.cost)
-	_check(seller.sell(cell), "sold it")
-	_check(run_state.dew == 60, "full refund in the build phase")
-	_check(map_generator.is_buildable(cell), "sold cell is open again")
+	_check(seller.sell(cell) and run_state.dew == 60, "full refund while resting")
 
-	# --- Drift 1 ---
-	_check(director.start_next_drift(), "Start Drift 1")
-	_check(not director.is_build_phase() and director.is_arriving(), "drift 1 is arriving")
-	_check(spawner.get_enemies().size() == 1, "first creature arrives immediately")
-	_check(not director.start_next_drift(), "can't call early while a drift is still arriving")
+	# Drift 1 → the family pick (no rest bonus, no Dream)
+	var rests := []
+	director.rest_started.connect(func(block: int, boss: bool, bonus: int, perfect: bool) -> void:
+		rests.append([block, boss, bonus, perfect]))
+	var picks := []
+	director.family_pick_requested.connect(func(reason: StringName) -> void: picks.append(reason))
+	_check(director.start_next_drift(), "Start drift 1")
+	_check(not director.is_resting() and spawner.get_enemies().size() == 1, "drift 1 starts, first Leaf Bug arrives at once")
+	_check(not director.can_start_next_drift(), "no drift 2 before the family pick")
 
-	# --- Selling: half refund during a drift ---
+	# Selling during a drift: half refund
 	placer.tower_data = sprout
 	_check(placer._try_build(cell), "can build during a drift")
-	var dew_before := run_state.dew
+	var dew := run_state.dew
 	seller.sell(cell)
-	_check(run_state.dew == dew_before + sprout.cost / 2, "half refund during a drift")
+	_check(run_state.dew == dew + sprout.cost / 2, "half refund while creatures walk")
 
-	# --- Pause and speed ---
+	# Pause stops creatures but not building
 	speed.set_paused(true)
-	var enemy: Node2D = spawner.get_enemies()[0]
-	var pos := enemy.position
-	for i in 10:
-		await process_frame
-	_check(enemy.position == pos, "creatures stop while paused")
+	var walker: Node2D = spawner.get_enemies()[0]
+	var pos := walker.position
+	await _frames(10)
+	_check(walker.position == pos, "creatures stop while paused")
 	placer.tower_data = sprout
 	_check(placer._try_build(cell), "can build while paused")
 	seller.sell(cell)
@@ -84,63 +83,82 @@ func _test_full_run() -> void:
 	_check(not paused and Engine.time_scale == 3.0, "3× speed unpauses")
 	speed.set_speed(1.0)
 
-	# Cleanse everything drift 1 sends -> perfect clear
-	var cleared := []
-	director.drift_cleared.connect(func(n: int, bonus: int, perfect: bool) -> void: cleared.append([n, bonus, perfect]))
+	await _play_until(main, func() -> bool: return director.awaiting_family_pick)
+	_check(picks == [&"first"] and rests.is_empty(), "after drift 1: family pick, no rest")
+	_check(family.visible and family.offer.size() == 3, "3 families offered")
+	var picked: TowerData = family.offer[0]
+	family.choose(picked)
+	_check(dreams.is_unlocked(picked.get_id()) and not director.awaiting_family_pick, "picking unlocks the family")
+	_check(director.is_resting(), "then a quick rest until Start")
+
+	# Drifts 2–5 flow on their own
+	_check(director.start_next_drift(), "Start drift 2")
+	await _play_until(main, func() -> bool: return director.drifts_started >= 3, 0, 3000)
+	_check(director.drifts_started >= 3, "drift 3 starts by itself (Auto-drift)")
+	await _play_until(main, func() -> bool: return not rests.is_empty(), 0, 9000)
+	_check(director.drifts_started == 5 and director.is_resting(), "rest after drift 5")
+	_check(rests[0] == [1, false, 40, true], "rest bonus 20 + 10×1 + perfect 10 = 40 (%s)" % [rests[0]])
+
+	await _settle(main)  # Let the rest's Dream (built a frame later) show and be dismissed
+	# Block 2: call early, a leak, health growth
+	var bonus_now := [0]
+	_check(director.start_next_drift(), "Start drift 6 (3 Bark Beetles, 2.5 s apart)")
+	await _frames(2)
+	bonus_now[0] = director.get_call_early_bonus()
+	_check(bonus_now[0] == 2, "calling drift 7 early skips ~5 s = 2 Dew (%d)" % bonus_now[0])
+	dew = run_state.dew
+	director.start_next_drift()
+	_check(director.drifts_started == 7 and run_state.dew == dew + bonus_now[0], "call early pays")
+	var bug: Node2D = spawner.get_enemies().filter(func(e: Node2D) -> bool:
+		return e.enemy_data.display_name == "Leaf Bug")[0]
+	_check(bug.max_health == roundi(100 * pow(1.035, 6)), "drift 7 Leaf Bug health ×1.035^6 (%d)" % bug.max_health)
+	_send_to_goal(bug, map_generator)
+	await _frames(5)
+	_check(run_state.leaves == 19, "a Leaf Bug reaching the Heartwood costs a leaf")
+	director.set_auto_drift(false)
+	await _play_until(main, func() -> bool: return not director.is_arriving() and spawner.get_enemies().is_empty(), 0, 3000)
+	await _frames(300)
+	_check(director.drifts_started == 7, "Auto-drift off: the next drift waits for the button")
+	director.set_auto_drift(true)
+	await _play_until(main, func() -> bool: return rests.size() >= 2, 0, 9000)
+	_check(rests[1] == [2, false, 40, false], "leaky block: 20 + 10×2, no perfect bonus (%s)" % [rests[1]])
+	main.queue_free()
+	await process_frame
+
+func _test_boss_rest_and_win() -> void:
+	var main := await _new_run()
+	var director: DriftDirector = main.get_node("%DriftDirector")
+	var run_state: RunState = main.get_node("%RunState")
+	var family: Control = main.get_node("%FamilyPickScreen")
+	var all := DriftDirector.load_demo_drifts()
+	# A short run: block 1 = drifts 1–4 + the Old Stag drift (a boss at the end of "act 1"), then one more.
+	director.drifts = [all[0], all[1], all[2], all[3], all[24], all[1]]
+	director.drifts_per_act = 5
+	var picks := []
+	director.family_pick_requested.connect(func(reason: StringName) -> void: picks.append(reason))
+	var rests := []
+	director.rest_started.connect(func(block: int, boss: bool, bonus: int, perfect: bool) -> void:
+		rests.append([block, boss]))
 	var acts := []
 	director.act_started.connect(func(act: int, regrown: int) -> void: acts.append([act, regrown]))
-	dew_before = run_state.dew
-	await _cleanse_until(spawner, func() -> bool: return director.drifts_cleared >= 1)
-	_check(cleared.size() == 1 and cleared[0] == [1, 25, true], "drift 1 clear bonus 20 + perfect 5 (%s)" % [cleared])
-	_check(run_state.dew == dew_before + 10 * 3 + 25, "10 Leaf Bugs + bonus = %d Dew (got %d)" % [dew_before + 55, run_state.dew])
-	_check(director.is_build_phase(), "back to the build phase after drift 1")
-
-	# --- Drift 2: leak one creature, then call drift 3 early ---
-	director.start_next_drift()
-	var leaker: Node2D = spawner.get_enemies()[0]
-	_send_to_goal(leaker, map_generator)
-	await _frames(5)
-	_check(run_state.leaves == 19, "a Leaf Bug reaching the Heartwood costs 1 leaf")
-	await _cleanse_until(spawner, func() -> bool: return not director.is_arriving(), 2)
-	# Let the last creatures walk a little so there's time to skip
-	var early_bonus := director.get_call_early_bonus()
-	_check(early_bonus > 0 and early_bonus <= director.get_clear_bonus(2), "call-early bonus %d is within the cap" % early_bonus)
-	dew_before = run_state.dew
-	_check(director.start_next_drift(), "call drift 3 early")
-	_check(run_state.dew == dew_before + early_bonus, "call-early bonus paid")
-	_check(director.drifts_started == 3 and not director.is_build_phase(), "drifts 2 and 3 overlap")
-
-	# Drift 3 creatures are 1.12² tougher
-	var beetle: Node2D = spawner.get_enemies().filter(func(e: Node2D) -> bool:
-		return e.enemy_data.display_name == "Bark Beetle")[0]
-	_check(beetle.max_health == roundi(300 * 1.12 * 1.12), "drift 3 Bark Beetle health %d" % beetle.max_health)
-
-	await _cleanse_until(spawner, func() -> bool: return director.drifts_cleared >= 3)
-	var drift2: Array = cleared.filter(func(c: Array) -> bool: return c[0] == 2)[0]
-	_check(drift2[1] == 25 and not drift2[2], "leaky drift 2 gets no perfect bonus (%s)" % [drift2])
-	_check(acts.size() == 1 and acts[0] == [2, 1], "act 2 after drift 2 regrows leaves up to max (%s)" % [acts])
-	_check(run_state.leaves == 20, "leaves back to 20")
-
-	# --- Drift 4: Puffcaps split, and the drift waits for the Puffcaplets ---
-	director.start_next_drift()
-	var puffcap: Node2D = spawner.get_enemies()[0]
-	_check(puffcap.enemy_data.display_name == "Puffcap", "drift 4 starts with Puffcaps")
-	var count_before: int = spawner.get_enemies().size()
-	puffcap.take_damage(100000)
-	var lets: Array = spawner.get_enemies().filter(func(e: Node2D) -> bool:
-		return e.enemy_data.display_name == "Puffcaplet")
-	_check(lets.size() == 3 and spawner.get_enemies().size() == count_before - 1 + 3, "a Puffcap splits into 3 Puffcaplets")
-	await _cleanse_until(spawner, func() -> bool: return director.drifts_cleared >= 4)
-	_check(acts.size() == 2, "act break after drift 4")
-
-	# --- Drift 5 (boss) and the win ---
 	var ended := []
 	run_state.run_ended.connect(func(won: bool) -> void: ended.append(won))
+	run_state.leaves = 15
+
 	director.start_next_drift()
-	await _cleanse_until(spawner, func() -> bool: return not ended.is_empty(), 0, 3000)
-	_check(ended == [true] and run_state.won, "cleansing the last drift wins the run")
-	_check(director.drifts_cleared == 5 and not director.has_next_drift(), "all 5 drifts cleared")
-	_check(not director.start_next_drift(), "nothing to start after the win")
+	await _play_until(main, func() -> bool: return director.awaiting_family_pick)
+	family.choose(family.offer[0])
+	director.start_next_drift()
+	await _play_until(main, func() -> bool: return picks.size() >= 2, 0, 12000)
+	_check(picks == [&"first", &"boss"] and director.bosses_cleansed == 1, "boss drift ends with a family pick")
+	_check(rests.is_empty(), "the boss rest waits for the family pick")
+	family.choose(family.offer[0])
+	_check(rests == [[1, true]], "then the boss rest")
+	await _settle(main)
+	_check(acts == [[2, 3]] and run_state.leaves == 18, "act break regrows 3 leaves (%s)" % [acts])
+	director.start_next_drift()
+	await _play_until(main, func() -> bool: return not ended.is_empty(), 0, 3000)
+	_check(ended == [true] and not director.has_next_drift(), "clearing the last drift wins")
 	main.queue_free()
 	await process_frame
 
@@ -149,11 +167,9 @@ func _test_lose() -> void:
 	var director: DriftDirector = main.get_node("%DriftDirector")
 	var run_state: RunState = main.get_node("%RunState")
 	var spawner = main.get_node("%EnemyContainer")
-	var map_generator = main.get_node("%MapGenerator")
-	main.get_node("%DreamState").dream_after_drifts.clear()
 	run_state.leaves = 1
 	director.start_next_drift()
-	_send_to_goal(spawner.get_enemies()[0], map_generator)
+	_send_to_goal(spawner.get_enemies()[0], main.get_node("%MapGenerator"))
 	await _frames(5)
 	_check(run_state.is_over and not run_state.won and run_state.leaves == 0, "losing the last leaf ends the run")
 	await _frames(200)
@@ -174,17 +190,38 @@ func _frames(n: int) -> void:
 	for i in n:
 		await process_frame
 
-# Each frame, cleanses every creature on the field (in drift order) until `done` or `max_frames`.
-# `leave` creatures are left walking.
-func _cleanse_until(spawner, done: Callable, leave: int = 0, max_frames: int = 2000) -> void:
+# Each frame: dismisses Dream / Omen offers (first card / Clear Skies) and cleanses every creature
+# except the first `leave`, until `done` or `max_frames`.
+func _play_until(main: Node, done: Callable, leave: int = 0, max_frames: int = 4000) -> void:
+	var dreams: DreamState = main.get_node("%DreamState")
+	var omens = get_first_node_in_group(&"omens")
 	for i in max_frames:
 		if done.call():
 			return
-		var enemies: Array = spawner.get_enemies()
+		if dreams.is_offering():
+			if dreams.can_skip():
+				dreams.skip()  # Let it pass: no card effects that would change the numbers under test
+			else:
+				dreams.choose(dreams.current_offer[0])
+		if omens != null and omens.is_offering():
+			omens.choose(null)
+		var enemies: Array = main.get_node("%EnemyContainer").get_enemies()
 		for j in range(leave, enemies.size()):
-			enemies[j].take_damage(100000)
+			enemies[j].take_damage(1000000)
 		await process_frame
 	_check(false, "timed out waiting (%d frames)" % max_frames)
+
+# Runs rames frames dismissing any Dream / Omen offers, without cleansing anything.
+func _settle(main: Node, frames: int = 10) -> void:
+	for i in frames:
+		await _play_until(main, func() -> bool: return true)
+		await process_frame
+		var dreams: DreamState = main.get_node("%DreamState")
+		if dreams.is_offering():
+			dreams.skip() if dreams.can_skip() else dreams.choose(dreams.current_offer[0])
+		var omens = get_first_node_in_group(&"omens")
+		if omens != null and omens.is_offering():
+			omens.choose(null)
 
 # Puts `enemy` one step from the Heartwood so it reaches it next frame.
 func _send_to_goal(enemy: Node2D, map_generator) -> void:
@@ -192,7 +229,7 @@ func _send_to_goal(enemy: Node2D, map_generator) -> void:
 	enemy.position = enemy.grid.calculate_map_position(goal) + Vector2(0, -8)
 	enemy.set_path(PackedVector2Array([goal]))
 
-func _free_cell_beside_path(map_generator) -> Vector2:
+func _free_cell(map_generator) -> Vector2:
 	var path: PackedVector2Array = map_generator.get_path_from(map_generator.startPath)
 	for i in range(4, path.size()):
 		for offset in [Vector2.LEFT, Vector2.RIGHT, Vector2.UP, Vector2.DOWN]:

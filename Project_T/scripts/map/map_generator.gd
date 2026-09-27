@@ -26,11 +26,11 @@ var obstacles: Dictionary = {}
 
 # Called when the node enters the scene tree for the first time.
 func _ready() -> void:
+	# A random map gets a concrete seed too, so a saved run can rebuild exactly this map.
+	if map_seed == 0:
+		map_seed = randi_range(1, 2147483646)
 	var rng := RandomNumberGenerator.new()
-	if map_seed != 0:
-		rng.seed = map_seed
-	else:
-		rng.randomize()
+	rng.seed = map_seed
 
 	ground_layer.initialize()
 	unwalkable_cells = environment_object_layer.initialize(startPath, endPath)

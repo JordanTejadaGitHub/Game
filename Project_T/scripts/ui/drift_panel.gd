@@ -1,7 +1,8 @@
 extends VBoxContainer
 
-# Bottom-right run controls: act/drift label, Start Drift / call-early button (Enter), and
-# pause / 1× / 2× / 3× buttons (Space pauses, Tab cycles speed).
+# Bottom-right run controls: act/drift label, a status line (resting / next drift in N s / rest
+# ahead), the Start / call-early button (Enter), the Auto-drift toggle, and pause / 1× / 2× / 3×
+# buttons (Space pauses, Tab cycles speed).
 
 const BUTTON_FONT_SIZE := 18
 
@@ -10,23 +11,36 @@ const BUTTON_FONT_SIZE := 18
 @onready var run_state: RunState = %RunState
 
 var _drift_label := Label.new()
+var _status_label := Label.new()
 var _start_button := Button.new()
+var _auto_toggle := CheckButton.new()
 var _pause_button := Button.new()
 var _speed_buttons: Array[Button] = []
 
 func _ready() -> void:
 	alignment = BoxContainer.ALIGNMENT_END
-	_drift_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	for label in [_drift_label, _status_label]:
+		label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+		label.add_theme_color_override("font_outline_color", Color(0.08, 0.1, 0.14))
+		label.add_theme_constant_override("outline_size", 6)
+		add_child(label)
 	_drift_label.add_theme_font_size_override("font_size", BUTTON_FONT_SIZE)
-	_drift_label.add_theme_color_override("font_outline_color", Color(0.08, 0.1, 0.14))
-	_drift_label.add_theme_constant_override("outline_size", 6)
-	add_child(_drift_label)
+	_status_label.add_theme_font_size_override("font_size", 14)
+	_status_label.add_theme_color_override("font_color", Color(0.85, 0.9, 0.8))
 
 	_start_button.focus_mode = Control.FOCUS_NONE
-	_start_button.custom_minimum_size = Vector2(260, 44)
+	_start_button.custom_minimum_size = Vector2(280, 44)
 	_start_button.add_theme_font_size_override("font_size", BUTTON_FONT_SIZE)
 	_start_button.pressed.connect(drift_director.start_next_drift)
 	add_child(_start_button)
+
+	_auto_toggle.text = "Auto-drift"
+	_auto_toggle.tooltip_text = "Drifts in a block start by themselves a few seconds after the last one arrived."
+	_auto_toggle.focus_mode = Control.FOCUS_NONE
+	_auto_toggle.button_pressed = drift_director.auto_drift
+	_auto_toggle.toggled.connect(drift_director.set_auto_drift)
+	_auto_toggle.size_flags_horizontal = Control.SIZE_SHRINK_END
+	add_child(_auto_toggle)
 
 	var speed_row := HBoxContainer.new()
 	speed_row.alignment = BoxContainer.ALIGNMENT_END
@@ -61,26 +75,34 @@ func _unhandled_input(event: InputEvent) -> void:
 # The call-early bonus changes every frame as creatures walk, so refresh continuously.
 func _process(_delta: float) -> void:
 	var latest := drift_director.drifts_started
-	var shown := maxi(latest, 1) if not drift_director.is_build_phase() else latest + 1
-	shown = mini(shown, drift_director.get_total_drifts())
-	var act := drift_director.get_act(shown)
-	_drift_label.text = "Act %d · %s    Drift %d / %d" % [act, drift_director.get_act_name(act),
-		latest, drift_director.get_total_drifts()]
-
+	var total := drift_director.get_total_drifts()
 	var next := latest + 1
-	if not drift_director.has_next_drift():
+	var shown := mini(next if drift_director.is_resting() else maxi(latest, 1), total)
+	var act := drift_director.get_act(shown)
+	_drift_label.text = "Act %d · %s    Drift %d / %d" % [act, drift_director.get_act_name(act), latest, total]
+
+	_start_button.disabled = not drift_director.can_start_next_drift()
+	var block_end := drift_director.get_block(maxi(latest, 1)) * drift_director.drifts_per_block
+	if drift_director.awaiting_family_pick:
+		_status_label.text = "Choose a Warden family…"
+		_start_button.text = "Start Drift %d" % next
+	elif not drift_director.has_next_drift():
+		_status_label.text = "The last drift is walking"
 		_start_button.text = "Final drift"
-		_start_button.disabled = true
-	elif drift_director.is_build_phase():
-		_start_button.text = "Start Drift %d  (Enter)" % next
-		_start_button.disabled = false
-	elif drift_director.is_arriving():
-		_start_button.text = "Drift %d arriving…" % latest
-		_start_button.disabled = true
-	else:
+	elif drift_director.is_resting():
+		_status_label.text = "Resting: rearrange freely (full refunds)"
+		var boss := " (boss)" if drift_director.is_boss_drift(next) else ""
+		_start_button.text = "Start Drift %d%s  (Enter)" % [next, boss]
+	elif drift_director.can_start_next_drift():
+		var countdown := drift_director.get_auto_countdown()
+		_status_label.text = "Drift %d in %d s" % [next, ceili(countdown)] if countdown >= 0.0 \
+			else "Rest after drift %d" % block_end
 		var bonus := drift_director.get_call_early_bonus()
-		_start_button.text = "Call Drift %d early  +%d Dew" % [next, bonus]
-		_start_button.disabled = false
+		_start_button.text = "Call Drift %d early  +%d Dew" % [next, bonus] if bonus > 0 \
+			else "Start Drift %d now" % next
+	else:
+		_status_label.text = "Rest once the field is clear"
+		_start_button.text = "Rest after drift %d" % block_end
 
 func _on_speed_changed(paused: bool, speed: float) -> void:
 	_pause_button.set_pressed_no_signal(paused)

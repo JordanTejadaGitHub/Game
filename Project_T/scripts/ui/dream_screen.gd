@@ -4,6 +4,9 @@ extends Control
 # while open (restoring the previous pause state after). Built in code.
 
 const CARD_SIZE := Vector2(250, 220)
+const ENTWINED_COLOR := Color(0.45, 0.8, 0.4)  # Vine border
+const DEEPENED_COLOR := Color(0.6, 0.85, 1.0)
+const BITTERSWEET_COLOR := Color(0.72, 0.5, 0.68)  # Muted plum, for the cost line
 
 @onready var dream_state: DreamState = %DreamState
 @onready var game_speed: GameSpeed = %GameSpeed
@@ -50,6 +53,7 @@ func _show_offer(cards: Array[UpgradeData], drift_number: int) -> void:
 	game_speed.set_paused(true)
 	_title.text = "A Dream, after drift %d" % drift_number
 	_skip.text = "Let it pass  (+%d Dew)" % dream_state.skip_dew
+	_skip.visible = dream_state.can_skip()  # Restless Dreams
 	for child in _cards.get_children():
 		child.queue_free()
 	for card in cards:
@@ -63,8 +67,8 @@ func _make_card(card: UpgradeData) -> Button:
 	button.pressed.connect(dream_state.choose.bind(card))
 	var style := StyleBoxFlat.new()
 	style.bg_color = Color(0.12, 0.13, 0.2, 0.95)
-	style.border_color = UpgradeData.rarity_color(card.rarity)
-	style.set_border_width_all(3)
+	style.border_color = ENTWINED_COLOR if card.entwined else UpgradeData.rarity_color(card.rarity)
+	style.set_border_width_all(5 if card.entwined else 3)
 	style.set_corner_radius_all(10)
 	style.set_content_margin_all(14)
 	button.add_theme_stylebox_override("normal", style)
@@ -93,14 +97,30 @@ func _make_card(card: UpgradeData) -> Button:
 	name_label.text = card.display_name
 	name_label.add_theme_font_size_override("font_size", 22)
 	box.add_child(name_label)
-	var description := Label.new()
-	description.text = card.description
-	description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	if card.entwined:
+		var names := card.requires.map(dream_state.get_display_name)
+		_add_line(box, "Entwined  ·  %s" % " + ".join(names), ENTWINED_COLOR, 14)
+	elif card.is_deepened():
+		_add_line(box, "Deepened  ·  replaces %s" % dream_state.get_display_name(card.deepens), DEEPENED_COLOR, 14)
+	elif card.is_bittersweet():
+		_add_line(box, "Bittersweet", BITTERSWEET_COLOR, 14)
+	var description := _add_line(box, card.description, Color(0.92, 0.92, 0.95), 16)
 	description.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	box.add_child(description)
-	for label in [rarity, name_label, description]:
+	if card.cost_description != "":
+		_add_line(box, card.cost_description, BITTERSWEET_COLOR, 15)
+	for label in [rarity, name_label]:
 		label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	return button
+
+func _add_line(box: VBoxContainer, text: String, color: Color, font_size: int) -> Label:
+	var label := Label.new()
+	label.text = text
+	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	label.add_theme_color_override("font_color", color)
+	label.add_theme_font_size_override("font_size", font_size)
+	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	box.add_child(label)
+	return label
 
 func _on_closed() -> void:
 	# If another Dream is queued, offer_ready follows right away and shows (and pauses) again.

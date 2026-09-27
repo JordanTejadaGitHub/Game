@@ -39,6 +39,11 @@ func set_active(value: bool) -> void:
 	_hover_cell = NO_CELL
 	_hover_tower = null
 
+# The Overgrown Dream (bittersweet) roots Wardens in place while creatures are walking.
+func can_sell() -> bool:
+	var dreams := get_tree().get_first_node_in_group(DreamState.GROUP) as DreamState
+	return drift_director.is_build_phase() or dreams == null or not dreams.has_rule(&"overgrown")
+
 # Dew that selling `tower` gives back right now.
 func get_refund(tower: Tower) -> int:
 	var share := build_phase_refund if drift_director.is_build_phase() else drift_refund
@@ -53,7 +58,7 @@ func get_tower_at(cell: Vector2) -> Tower:
 # Sells the Warden on `cell`. Returns false if there's none.
 func sell(cell: Vector2) -> bool:
 	var tower := get_tower_at(cell)
-	if tower == null:
+	if tower == null or not can_sell():
 		return false
 	var refund := get_refund(tower)
 	tower_container.remove_child(tower)
@@ -110,4 +115,6 @@ func _draw() -> void:
 	draw_rect(rect, HIGHLIGHT_COLOR, false, 2.0)
 	var label := "%s · click: details · right-click: sell +%d Dew" % [_hover_tower.tower_data.display_name,
 		get_refund(_hover_tower)]
+	if not can_sell():
+		label = "%s · click: details · rooted (Overgrown) until the rest" % _hover_tower.tower_data.display_name
 	WorldLabel.draw_tag(self, center.x, rect.position.y - 8, label)

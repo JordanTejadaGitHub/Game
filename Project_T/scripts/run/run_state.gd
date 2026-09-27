@@ -20,8 +20,20 @@ signal run_ended(won: bool)
 var dew: int
 var leaves: int
 var obstacles_tended := 0  # Obstacles cleared this run; each is +1 Seed at run end
+var tended_cells: Array[Vector2] = []  # Which obstacles were cleared (for the mid-run save)
+var omen_seeds := 0  # Seeds earned from Omen rewards (Swift Stream), paid at run end
+var creatures_cleansed := 0
 var is_over := false
 var won := false
+
+# Seeds formula (meta_design.md): 1 per 2 drifts survived (max 50), 1 per 25 creatures cleansed,
+# 10 per boss, 1 per obstacle tended, +50 for winning, +20 on the very first run.
+const SEEDS_PER_DRIFTS := 2
+const SEEDS_DRIFT_MAX := 50
+const CLEANSES_PER_SEED := 25
+const SEEDS_PER_BOSS := 10
+const SEEDS_FOR_WIN := 50
+const SEEDS_FIRST_RUN := 20
 
 @onready var enemy_spawner = %EnemyContainer
 @onready var map_generator = %MapGenerator
@@ -31,8 +43,30 @@ func _ready() -> void:
 	leaves = starting_leaves
 	enemy_spawner.enemy_cleansed.connect(_on_enemy_cleansed)
 	enemy_spawner.enemy_reached_goal.connect(_on_enemy_reached_goal)
-	map_generator.obstacle_cleared.connect(func(_cell: Vector2, _data: ObstacleData) -> void:
-		obstacles_tended += 1)
+	map_generator.obstacle_cleared.connect(func(cell: Vector2, _data: ObstacleData) -> void:
+		obstacles_tended += 1
+		tended_cells.append(cell))
+
+# The run's Seeds: [[label, seeds], …] ending with ["Total", n]. `drifts_cleared` and `bosses`
+# come from the DriftDirector; `first_run` adds the first-run bonus.
+func get_seed_breakdown(drifts_cleared: int, bosses: int, first_run: bool) -> Array:
+	var lines: Array = [
+		["Drifts survived: %d" % drifts_cleared, mini(drifts_cleared / SEEDS_PER_DRIFTS, SEEDS_DRIFT_MAX)],
+		["Creatures cleansed: %d" % creatures_cleansed, creatures_cleansed / CLEANSES_PER_SEED],
+		["Bosses cleansed: %d" % bosses, bosses * SEEDS_PER_BOSS],
+		["Tended: %d" % obstacles_tended, obstacles_tended],
+	]
+	if omen_seeds > 0:
+		lines.append(["Omens", omen_seeds])
+	if won:
+		lines.append(["The Heartwood is safe", SEEDS_FOR_WIN])
+	if first_run:
+		lines.append(["The first seed", SEEDS_FIRST_RUN])
+	var total := 0
+	for line in lines:
+		total += line[1]
+	lines.append(["Total", total])
+	return lines
 
 func can_afford(cost: int) -> bool:
 	return dew >= cost
@@ -84,7 +118,8 @@ func end_run(did_win: bool) -> void:
 	run_ended.emit(did_win)
 
 func _on_enemy_cleansed(enemy: Node2D) -> void:
-	earn_dew_at(enemy.enemy_data.dew_reward, enemy.global_position)
+	creatures_cleansed += 1
+	earn_dew_at(enemy.get_dew_reward(), enemy.global_position)
 
 func _on_enemy_reached_goal(enemy: Node2D) -> void:
-	lose_leaves(enemy.enemy_data.leaf_cost)
+	lose_leaves(enemy.get_leaf_cost())

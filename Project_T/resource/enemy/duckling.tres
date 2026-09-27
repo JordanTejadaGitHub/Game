@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="EnemyData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://resource/enemy/script/enemy_data.gd" id="1_edata"]
+[ext_resource type="SpriteFrames" path="res://animation/enemy/leaf_bug.tres" id="2_frames"]
+
+[resource]
+script = ExtResource("1_edata")
+sprite_frames = ExtResource("2_frames")
+display_name = "Duckling"
+leaf_cost = 1
+speed = 70.4
+sprite_scale = 0.75
+health = 50
+tint = Color(1, 0.92, 0.45, 1)
+dew_reward = 1
+lost_speed = 44.8

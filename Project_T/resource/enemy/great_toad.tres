@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="EnemyData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://resource/enemy/script/enemy_data.gd" id="1_edata"]
+[ext_resource type="SpriteFrames" path="res://animation/enemy/puffcap.tres" id="2_frames"]
+
+[resource]
+script = ExtResource("1_edata")
+sprite_frames = ExtResource("2_frames")
+health = 8000
+is_boss = true
+tint = Color(0.55, 0.85, 0.45, 1)
+dew_reward = 60
+leaf_cost = 5
+sprite_scale = 2.2
+speed = 38.4
+trait_kind = 4
+display_name = "Great Toad"
+cleanse_line = "The Great Toad sings, and the Deep Wood listens."

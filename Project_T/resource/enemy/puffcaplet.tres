@@ -8,5 +8,5 @@ script = ExtResource("1_edata")
 sprite_frames = ExtResource("2_frames")
 display_name = "Puffcaplet"
 health = 30
-speed = 115.0
+speed = 128.0
 dew_reward = 1

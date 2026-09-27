@@ -58,14 +58,29 @@ Old Stag's Thornwall knock-down, Rootling/Pebbling/Acorn branches, Grove-only Dr
 - `Tower`: effective stats via `DreamState` (group `dream_state`): `get_damage()`,
   `get_attacks_per_second()`, `get_range_cells()`; `hit(enemy)`; `evolve(data, cost)` in place.
   `ChainBolt` / `PathCloud` are script-only effect nodes. Evolve through `TowerPlacer.evolve()`.
-- `DreamState` (`%DreamState`): unlocked Warden ids (run starts with sprout + thornwall),
-  taken cards (`stacks`), stat/status/rule queries, offers (`make_offer`, `choose`, `skip`),
-  `offer_ready` / `offer_closed`. Cards: `resource/dream/*.tres` (`UpgradeData`), loaded from the
-  folder. `unlock_everything` export for debugging.
+- `DreamState` (`%DreamState`): unlocked Warden ids (run starts with sprout + thornwall; base
+  Wardens come from the family pick, never Dreams), taken cards (`stacks`), stat/status/rule
+  queries, a Dream offer at every `rest_started` (built deferred; boss rests Rare+), `make_offer`,
+  `choose`, `skip`, `offer_ready` / `offer_closed`, `to_save` / `load_save`. Cards:
+  `resource/dream/*.tres` (`UpgradeData`), loaded from the folder. `unlock_everything` export for debugging.
+- Card kinds from dream_design.md (2026-09-27): **Deepened** (`deepens` = base id, e.g.
+  `evergreen_ii`; only offered once the base is owned; replaces the base: `_taken_cards()` drops it,
+  rule code reads `rule_level(rule)` 0/1). **Entwined** (`entwined`, ingredients = `requires`;
+  guaranteed one slot in the next offer once all are owned, then normal). **Bittersweet** (tag
+  `bittersweet`, `cost_description`, act 2+, max 1 per offer, off until `allow_bittersweet`):
+  negative `max_leaves_add` / `leaves_now` (never offered if it'd end the run), `rest_bonus_add`,
+  `creature_health_bonus`, `rare_dreams_add`, a `set_cost` above the base cost = surcharge, rules
+  `overgrown` (`TowerSeller.can_sell()`) and `restless_dreams` (`can_skip()`).
+- **Omens** (run_design.md): `OmenDirector` (`%OmenDirector`, group `omens`), `OmenData` in
+  `resource/omen/*.tres`. At rests from drift `first_rest_drift` (10), after the Dream: 2 Omens or
+  Clear Skies (`choose(null)`); the pick twists the next block (`get_multiplier`,
+  `get_schedule_modifiers`, `get_spawn_modifiers` → `Enemy.modifiers`; bosses ignore them). The reward is
+  paid at the rest after that block, or on a win (Dew/Seeds × act scale; `RunState.omen_seeds`).
+  `OmenScreen` shows the offer and an active-Omen tag. `tests/test_omens.gd`.
 - UI: `WardenPanel` (click a Warden: stats, grow buttons, Sell), `DreamScreen` (pauses; 3 cards +
-  "Let it pass"). Tower bar shows only unlocked Wardens.
-- `tests/test_dreams.gd` prints a Storm Grid reachability simulation (doc target ≈ 33%; currently
-  ~6–10%, tag weighting barely moves it — open design question).
+  "Let it pass"; Entwined vine border, Deepened / bittersweet lines). Tower bar shows only unlocked Wardens.
+- `tests/test_dreams.gd` prints a Storm Grid reachability simulation: with both families, ~40% by
+  drift 50 (× ~70% family odds ≈ the 33% target), thanks to Entwined Conductive Soil.
 
 ## Run flow
 - `RunState` also holds leaves (`starting_leaves` 20, `max_leaves`), `lose_leaves` / `regrow_leaves`,

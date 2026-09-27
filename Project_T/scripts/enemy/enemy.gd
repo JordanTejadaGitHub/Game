@@ -4,6 +4,19 @@ extends Node2D
 signal reached_goal(enemy: Node2D)
 # Emitted when health hits 0. The enemy stops being a target and plays its cleanse effect.
 signal cleansed(enemy: Node2D)
+# TRAMPLE (Old Stag): wants to knock down a Thornwall next to it. The spawner calls
+# `trampled()` back if it did.
+signal trample_requested(enemy: Node2D)
+# LEAP (Great Toad) landed at its new position.
+signal leaped(enemy: Node2D)
+
+# Deeply Blighted elites (acts_1_2.md): ×3 health, ×3 Dew, 2 leaves, 20% bigger and darker.
+const ELITE_HEALTH := 3.0
+const ELITE_DEW := 3
+const ELITE_LEAVES := 2
+const ELITE_SCALE := 1.2
+const ELITE_DARKEN := 0.35
+const LEAP_TIME := 0.45  # Seconds in the air
 
 # Group of enemies that are still blighted (walking, targetable). Cleansed enemies leave it.
 const GROUP := "enemies"
@@ -37,7 +50,23 @@ var _hit_mark := 0  # -1 resisted, +1 weak, 0 none
 var _hit_mark_time := 0.0
 # Blight coat left to soak up, and soothe it takes off each hit (both already health-scaled).
 var coat := 0.0
+var coat_max := 0.0
 var _coat_per_hit := 0.0
+# Omen modifiers for this creature's drift (set before adding to the tree; bosses get none):
+# {"speed", "coat", "dew", "status_duration": multiplier}. Split-off creatures inherit them.
+var modifiers := {}
+
+var elite := false  # Deeply Blighted (set before adding to the tree)
+var hold_time := 0.0  # Seconds to stand still before setting off (Ducklings in single file)
+var rolling := false  # Hedgehog curled up
+var lost := false  # Duckling whose Mother Duck was cleansed first
+var _straight_steps := 0
+var _last_step := Vector2.ZERO
+var _trait_timer := 0.0
+var _trampled := 0
+var _startled := false
+var _charge_left := 0.0
+var _leaping := false
 
 # Cells to walk through, in grid coordinates. `_path_index` is the cell we're currently walking toward.
 var _path: PackedVector2Array
@@ -47,18 +76,21 @@ func _ready() -> void:
 	add_to_group(GROUP)
 
 	# Initialize attributes
-	max_health = maxi(roundi(enemy_data.health * health_scale), 1)
+	max_health = maxi(roundi(enemy_data.health * health_scale * (ELITE_HEALTH if elite else 1.0)), 1)
 	health = max_health
-	speed = enemy_data.speed
+	speed = enemy_data.speed * modifiers.get("speed", 1.0)
 	statuses.is_boss = enemy_data.is_boss
 	statuses.immune = enemy_data.status_immune
 	statuses.duration_multipliers = enemy_data.status_duration_multipliers
-	coat = enemy_data.coat_total * health_scale
-	_coat_per_hit = enemy_data.coat_per_hit * health_scale
+	statuses.duration_multiplier_all = modifiers.get("status_duration", 1.0)
+	coat_max = enemy_data.coat_total * health_scale * modifiers.get("coat", 1.0)
+	coat = coat_max
+	_coat_per_hit = enemy_data.coat_per_hit * health_scale * modifiers.get("coat", 1.0)
 
 	# Set up animations
 	sprite.sprite_frames = enemy_data.sprite_frames
-	sprite.scale = Vector2.ONE * enemy_data.sprite_scale
+	sprite.scale = Vector2.ONE * enemy_data.sprite_scale * (ELITE_SCALE if elite else 1.0)
+	sprite.modulate = enemy_data.tint.darkened(ELITE_DARKEN) if elite else enemy_data.tint
 	sprite.play("walk_side")
 
 	# Blighted look: per-enemy material so each one can be cleansed on its own
@@ -77,13 +109,21 @@ func _process(delta: float) -> void:
 			return
 	_bolt_flash = maxf(_bolt_flash - delta, 0.0)
 	_hit_mark_time = maxf(_hit_mark_time - delta, 0.0)
-	if not statuses.active_ids().is_empty() or _bolt_flash > 0.0 or _hit_mark_time > 0.0:
+	if not statuses.active_ids().is_empty() or _bolt_flash > 0.0 or _hit_mark_time > 0.0 or elite:
 		queue_redraw()
+
+	if hold_time > 0.0:
+		hold_time -= delta
+		return
+	_charge_left = maxf(_charge_left - delta, 0.0)
+	_update_trait(delta)
+	if _leaping:
+		return
 
 	var previous_position := position
 	# Walk toward the next cell centre; carry leftover distance into the following cell so speed
 	# stays constant through corners.
-	var remaining := speed * statuses.get_speed_multiplier() * delta
+	var remaining := get_move_speed() * delta
 	while remaining > 0.0 and _path_index < _path.size():
 		var target := grid.calculate_map_position(_path[_path_index])
 		var to_target := target - position
@@ -92,6 +132,7 @@ func _process(delta: float) -> void:
 			position = target
 			remaining -= distance
 			_path_index += 1
+			_on_cell_reached()
 		else:
 			position += to_target / distance * remaining
 			remaining = 0.0
@@ -127,7 +168,7 @@ func _draw() -> void:
 		fill.size.x *= float(health) / max_health
 		draw_rect(fill, Color(0.55, 0.9, 0.5))
 	if coat > 0.0:
-		var crust := Rect2(bar.position - Vector2(0, 4), Vector2(bar.size.x * coat / maxf(enemy_data.coat_total * health_scale, 1.0), 3))
+		var crust := Rect2(bar.position - Vector2(0, 4), Vector2(bar.size.x * coat / maxf(coat_max, 1.0), 3))
 		draw_rect(crust.grow(1), Color(0.1, 0.1, 0.12, 0.8))
 		draw_rect(crust, COAT_COLOR)
 
@@ -148,7 +189,10 @@ func update_animation(velocity: Vector2) -> void:
 	# Keep the current animation when not moving (e.g. end of path)
 	if velocity.is_zero_approx():
 		return
-	if abs(velocity.x) >= abs(velocity.y):  # Moving horizontally
+	if rolling and sprite.sprite_frames.has_animation("roll"):
+		sprite.play("roll")
+		sprite.flip_h = velocity.x < 0
+	elif abs(velocity.x) >= abs(velocity.y):  # Moving horizontally
 		sprite.play("walk_side")
 		sprite.flip_h = velocity.x < 0  # Flip horizontally if moving left
 	elif velocity.y > 0:  # Moving down
@@ -157,6 +201,92 @@ func update_animation(velocity: Vector2) -> void:
 	else:  # Moving up
 		sprite.play("walk_up")
 		sprite.flip_h = false
+
+# Dew for cleansing this creature (Omens can change it, e.g. Dry Spell = 0).
+func get_dew_reward() -> int:
+	return roundi(enemy_data.dew_reward * modifiers.get("dew", 1.0)) * (ELITE_DEW if elite else 1)
+
+# Leaves lost when this creature reaches the Heartwood (Deeply Blighted cost at least 2).
+func get_leaf_cost() -> int:
+	return maxi(enemy_data.leaf_cost, ELITE_LEAVES) if elite else enemy_data.leaf_cost
+
+func is_flying() -> bool:
+	return enemy_data.trait_kind == EnemyData.Trait.FLYING
+
+# Pixels per second right now: base speed, rolling / lost / startled, then slows.
+func get_move_speed() -> float:
+	var base := speed
+	if rolling:
+		base = enemy_data.roll_speed * modifiers.get("speed", 1.0)
+	elif lost:
+		base = minf(base, enemy_data.lost_speed)
+	if _charge_left > 0.0:
+		base *= enemy_data.charge_speed_multiplier
+	return base * statuses.get_speed_multiplier()
+
+# A Duckling whose Mother Duck was cleansed first wanders on, slowly.
+func set_lost() -> void:
+	if not is_cleansed:
+		lost = true
+
+# The spawner knocked down a Thornwall for this creature (TRAMPLE).
+func trampled() -> void:
+	_trampled += 1
+	_trait_timer = 0.0
+
+
+# --- Traits (acts_1_2.md) ---------------------------------------------------------------------
+
+func _update_trait(delta: float) -> void:
+	match enemy_data.trait_kind:
+		EnemyData.Trait.TRAMPLE:
+			if _trampled >= enemy_data.trample_max:
+				return
+			_trait_timer += delta
+			if _trait_timer >= enemy_data.trample_interval:
+				_trait_timer = enemy_data.trample_interval - 0.25  # No wall in reach: look again soon
+				trample_requested.emit(self)
+		EnemyData.Trait.LEAP:
+			_trait_timer += delta
+			var hurt := health <= max_health / 2
+			var interval := enemy_data.leap_interval_hurt if hurt else enemy_data.leap_interval
+			if _trait_timer >= interval:
+				_trait_timer = 0.0
+				_leap()
+
+# Called each time the creature reaches a cell centre on its path.
+func _on_cell_reached() -> void:
+	if enemy_data.trait_kind != EnemyData.Trait.ROLLING or _path_index < 1:
+		return
+	var step := _path[_path_index - 1] - (_path[_path_index - 2] if _path_index >= 2 else get_current_cell())
+	_straight_steps = _straight_steps + 1 if step == _last_step else 1
+	_last_step = step
+	# Keeps rolling only while the next step goes the same way; stops at the turn.
+	var next_same := _path_index < _path.size() and _path[_path_index] - _path[_path_index - 1] == step
+	rolling = _straight_steps >= enemy_data.roll_after_tiles and next_same
+
+# Great Toad: hops `leap_tiles` ahead along its path, then makes creatures near the landing Damp.
+func _leap() -> void:
+	if _path_index >= _path.size():
+		return
+	var landing_index := mini(_path_index + enemy_data.leap_tiles - 1, _path.size() - 1)
+	var landing := grid.calculate_map_position(_path[landing_index])
+	_leaping = true
+	var tween := create_tween()
+	tween.tween_property(self, "position", landing, LEAP_TIME).set_trans(Tween.TRANS_SINE)
+	tween.parallel().tween_property(sprite, "position:y", -28.0, LEAP_TIME / 2).set_ease(Tween.EASE_OUT)
+	tween.parallel().tween_property(sprite, "position:y", 0.0, LEAP_TIME / 2).set_delay(LEAP_TIME / 2).set_ease(Tween.EASE_IN)
+	tween.tween_callback(func() -> void:
+		_leaping = false
+		_path_index = landing_index + 1
+		var reach := enemy_data.leap_splash_radius * grid.cell_size.x
+		for creature in get_tree().get_nodes_in_group(GROUP):
+			if creature.global_position.distance_to(global_position) <= reach:
+				creature.apply_status(EnemyStatuses.DAMP)
+		leaped.emit(self)
+		if _path_index >= _path.size():
+			reached_goal.emit(self)
+			queue_free())
 
 # Soothes the blight away. `line` is the Warden family that soothed it ("" = neutral) and `is_area`
 # whether it was an area hit (splash, pulse, cloud, Spored). Soothe = amount × family × shape ×
@@ -184,6 +314,9 @@ func take_damage(amount: float, line: String = "", is_area: bool = false) -> voi
 	queue_redraw()
 	if health == 0:
 		_cleanse()
+	elif enemy_data.trait_kind == EnemyData.Trait.TRAMPLE and not _startled and health <= max_health / 2:
+		_startled = true  # Old Stag panics and charges
+		_charge_left = enemy_data.charge_time
 
 # Applies a status from a Warden (`potency` = its soothe, see EnemyStatuses). A Static charge that
 # fills up sets off a free bolt right away.

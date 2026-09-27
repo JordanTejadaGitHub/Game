@@ -151,11 +151,15 @@ func apply_status_to(enemy: Node2D, soothe: float) -> void:
 	var potency := soothe
 	if status == EnemyStatuses.SPORED:
 		potency = soothe * SPORE_POTENCY
+	elif status == EnemyStatuses.DAMP:
+		potency = 1.0  # Damp's potency is its slow strength, not soothe
 	var duration := tower_data.status_duration
+	var max_stacks := tower_data.status_max_stacks
 	if _dream_state:
 		potency *= _dream_state.get_status_strength_multiplier(status)
 		duration = _dream_state.get_status_duration(tower_data, status)
-	enemy.apply_status(status, tower_data.status_stacks, duration, potency, tower_data.status_max_stacks, tower_data.line)
+		max_stacks = _dream_state.get_status_max_stacks(tower_data, status)
+	enemy.apply_status(status, tower_data.status_stacks, duration, potency, max_stacks, tower_data.line)
 
 # Projectile landed at `where` (on `target` if it's still there): soothe it, or everything in the
 # splash radius.

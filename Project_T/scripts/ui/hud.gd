@@ -40,8 +40,14 @@ func _ready() -> void:
 	_on_leaves_changed(run_state.leaves, run_state.max_leaves)
 	run_state.run_ended.connect(_on_run_ended)
 	dream_state.card_taken.connect(func(card: UpgradeData) -> void: show_toast("Dreamed: %s" % card.display_name))
-	drift_director.drift_cleared.connect(_on_drift_cleared)
+	drift_director.rest_started.connect(_on_rest_started)
 	drift_director.act_started.connect(_on_act_started)
+	var spawner = %EnemyContainer
+	spawner.enemy_cleansed.connect(func(enemy: Node2D) -> void:
+		if enemy.enemy_data.cleanse_line != "":
+			show_toast(enemy.enemy_data.cleanse_line))
+	spawner.wall_trampled.connect(func(_cell: Vector2, by: Node2D) -> void:
+		show_toast("The %s tramples a Thornwall!" % by.enemy_data.display_name))
 	toast_label.modulate.a = 0.0
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -122,10 +128,10 @@ func _on_leaves_changed(leaves: int, max_leaves: int) -> void:
 	_leaf_flash.tween_interval(0.4)
 	_leaf_flash.tween_callback(leaves_label.add_theme_color_override.bind("font_color", LEAVES_COLOR))
 
-func _on_drift_cleared(number: int, bonus: int, perfect: bool) -> void:
-	var text := "Drift %d cleansed!  +%d Dew" % [number, bonus]
+func _on_rest_started(_block: int, _is_boss_rest: bool, bonus: int, perfect: bool) -> void:
+	var text := "Rest.  +%d Dew" % bonus
 	if perfect:
-		text += "  (perfect: no leaves lost)"
+		text += "  (perfect block: no leaves lost)"
 	show_toast(text)
 
 func _on_act_started(act: int, leaves_regrown: int) -> void:

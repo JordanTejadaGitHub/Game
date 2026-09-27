@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="OmenData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/omen/script/omen_data.gd" id="1_omen"]
+
+[resource]
+script = ExtResource("1_omen")
+id = "moth_night"
+display_name = "Moth Night"
+description = "40% more flying creatures."
+requires_flyers = true
+flyer_count_multiplier = 1.4
+reward_rare_dreams = 1

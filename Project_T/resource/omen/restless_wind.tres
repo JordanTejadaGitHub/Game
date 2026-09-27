@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="OmenData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/omen/script/omen_data.gd" id="1_omen"]
+
+[resource]
+script = ExtResource("1_omen")
+id = "restless_wind"
+display_name = "Restless Wind"
+description = "Creatures arrive 30% closer together."
+arrival_spacing_multiplier = 0.7
+reward_max_leaves = 1

@@ -38,6 +38,8 @@ var is_boss := false
 # From EnemyData: statuses that don't take, and {status id: duration multiplier}.
 var immune: Array[StringName] = []
 var duration_multipliers := {}
+# Every status's duration on this creature (Omens: Stubborn Blight halves them).
+var duration_multiplier_all := 1.0
 # {id: {"stacks": int, "time": float (seconds left), "potency": float}}
 var _active := {}
 var _spore_timer := 0.0
@@ -53,7 +55,8 @@ func apply(id: StringName, stacks: int = 1, duration: float = 0.0, potency: floa
 	var cap := get_max_stacks(id, max_stacks)
 	var status: Dictionary = _active.get(id, {"stacks": 0, "time": 0.0, "potency": 0.0})
 	status.stacks = mini(status.stacks + stacks, cap)
-	var length: float = (duration if duration > 0.0 else DEFAULT_DURATION[id]) * duration_multipliers.get(id, 1.0)
+	var length: float = (duration if duration > 0.0 else DEFAULT_DURATION[id]) * duration_multipliers.get(id, 1.0) \
+		* duration_multiplier_all
 	status.time = maxf(status.time, length)
 	if potency >= status.potency:
 		status["line"] = line  # The strongest applier's family sets the ticks' family
@@ -105,7 +108,8 @@ func is_in_fog() -> bool:
 func get_speed_multiplier() -> float:
 	var slow := 0.0
 	if has(DAMP):
-		slow += DAMP_SLOW
+		# Damp's potency is a strength multiplier (Soaked Through II: ×1.5 = −15%); 0 = plain Damp.
+		slow += DAMP_SLOW * maxf(potency(DAMP), 1.0)
 	slow += DROWSY_SLOW_PER_STACK * stacks(DROWSY)
 	return maxf(1.0 - slow, 0.1)
 

@@ -17,6 +17,15 @@ enum Kind { UNLOCK_WARDEN, UNLOCK_EVOLUTION, STAT, RULE, ECONOMY }
 @export var max_stacks: int = 1  # 0 = stacks without limit (stat cards)
 @export var min_act: int = 1  # Legendary: 2
 @export var in_start_pool: bool = true  # false = unlocked in the Memory Grove (meta)
+# Deepened card ("II"): the id of the base card it upgrades. Only offered once the base is owned;
+# taking it replaces the base card's effect (the base stops counting), so this card carries the
+# whole new effect.
+@export var deepens: String = ""
+# Entwined card: `requires` lists its ingredients. Once all are owned it's guaranteed in the next
+# Dream offer (once; after that it's drawn normally).
+@export var entwined: bool = false
+# Bittersweet cards (tag "bittersweet"): the lasting cost, shown on its own line in plum.
+@export_multiline var cost_description: String = ""
 
 @export_group("Unlock")
 @export var unlocks: TowerData  # UNLOCK_WARDEN / UNLOCK_EVOLUTION
@@ -36,21 +45,35 @@ enum Kind { UNLOCK_WARDEN, UNLOCK_EVOLUTION, STAT, RULE, ECONOMY }
 @export var status_strength_bonus: float = 0.0
 @export var status_duration_add: float = 0.0  # Seconds
 @export var status_duration_multiplier: float = 1.0
+@export var status_max_stacks_add: int = 0
 
 @export_group("Economy")
 @export var dew_now: int = 0
 @export var dew_per_clear: int = 0
-@export var max_leaves_add: int = 0
-@export var leaves_now: int = 0
+@export var max_leaves_add: int = 0  # Negative = the Heartwood holds fewer (Deep Sleep)
+@export var leaves_now: int = 0  # Negative = lose leaves now (never offered if it would end the run)
 @export var evolve_discount: float = 0.0  # 0.25 = evolving costs 25% less
-@export var set_cost_warden: String = ""  # Warden id whose build cost becomes `set_cost`
+# Warden id whose build cost becomes `set_cost` (below its cost: a discount, the cheapest wins;
+# above it: a surcharge, the highest wins and beats discounts).
+@export var set_cost_warden: String = ""
 @export var set_cost: int = 0
+@export var rest_bonus_add: int = 0  # Every rest (drift-clear) bonus; negative = Borrowed Dew
+@export var creature_health_bonus: float = 0.0  # +0.10 = creatures +10% health (Wild Growth)
+@export var rare_dreams_add: int = 0  # The next N Dreams each include a Rare+ card
 
 @export_group("Rule")
-@export var rule_id: StringName = &""  # cozy_corners, hedge_maze, conductive_soil, spore_cascade
+# cozy_corners, hedge_maze, conductive_soil, spore_cascade, overgrown (no selling while creatures
+# walk), restless_dreams (no "Let it pass")
+@export var rule_id: StringName = &""
 
 func is_rare_or_better() -> bool:
 	return rarity >= Rarity.RARE
+
+func is_bittersweet() -> bool:
+	return tags.has("bittersweet")
+
+func is_deepened() -> bool:
+	return deepens != ""
 
 static func rarity_name(value: Rarity) -> String:
 	return ["Common", "Uncommon", "Rare", "Legendary"][value]

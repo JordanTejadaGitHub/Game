@@ -19,6 +19,9 @@
 [ext_resource type="Script" path="res://scripts/run/dream_state.gd" id="16_dream"]
 [ext_resource type="Script" path="res://scripts/ui/warden_panel.gd" id="17_wpanel"]
 [ext_resource type="Script" path="res://scripts/ui/dream_screen.gd" id="18_dscreen"]
+[ext_resource type="Script" path="res://scripts/ui/family_pick_screen.gd" id="19_family"]
+[ext_resource type="Script" path="res://scripts/run/omen_director.gd" id="30_omen"]
+[ext_resource type="Script" path="res://scripts/ui/omen_screen.gd" id="31_oscreen"]
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_vgjl1"]
 texture = ExtResource("3_4m67i")
@@ -253,6 +256,11 @@ unique_name_in_owner = true
 process_mode = 3
 script = ExtResource("16_dream")
 
+[node name="OmenDirector" type="Node" parent="."]
+unique_name_in_owner = true
+process_mode = 3
+script = ExtResource("30_omen")
+
 [node name="TowerPlacer" type="Node2D" parent="."]
 unique_name_in_owner = true
 process_mode = 3
@@ -358,6 +366,16 @@ offset_bottom = -16.0
 grow_vertical = 0
 script = ExtResource("17_wpanel")
 
+[node name="FamilyPickScreen" type="Control" parent="HUD"]
+unique_name_in_owner = true
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("19_family")
+
 [node name="DreamScreen" type="Control" parent="HUD"]
 layout_mode = 3
 anchors_preset = 15
@@ -366,6 +384,15 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("18_dscreen")
+
+[node name="OmenScreen" type="Control" parent="HUD"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("31_oscreen")
 
 [node name="GameCameraNode" type="Node2D" parent="."]
 process_mode = 3

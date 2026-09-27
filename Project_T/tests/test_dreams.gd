@@ -19,6 +19,7 @@ func _run() -> void:
 	await _test_evolution(main)
 	await _test_dream_flow(main)
 	_test_card_effects(main)
+	_test_new_cards(main)
 	_simulate_storm_grid(main)
 	print("dreams test: %s" % ("PASS" if failures == 0 else "%d FAILED" % failures))
 	quit(failures)
@@ -145,31 +146,27 @@ func _test_dream_flow(main: Node) -> void:
 	var dreams: DreamState = main.get_node("%DreamState")
 	_reset_dreams(main)
 	var director: DriftDirector = main.get_node("%DriftDirector")
-	var spawner = main.get_node("%EnemyContainer")
 	var run_state: RunState = main.get_node("%RunState")
 	var speed: GameSpeed = main.get_node("%GameSpeed")
 	var offers := []
 	dreams.offer_ready.connect(func(cards: Array, n: int) -> void: offers.append([cards, n]))
-	director.start_next_drift()
-	for i in 3000:
-		if director.drifts_cleared >= 1:
-			break
-		for e in spawner.get_enemies():
-			e.take_damage(100000)
-		await process_frame
-	_check(offers.size() == 1 and offers[0][1] == 1, "a Dream after drift 1")
-	var ids := (offers[0][0] as Array).map(func(c: UpgradeData) -> String: return c.id)
-	ids.sort()
-	_check(ids == ["dream_dewdrop", "dream_firefly_jar", "dream_sporeling"], "first Dream offers the 3 base Wardens (%s)" % [ids])
+	# A rest after drift 5 (the family pick has given Firefly Jar)
+	dreams.unlocked["firefly_jar"] = true
+	director.drifts_started = 5
+	director.rest_started.emit(1, false, 30, true)
+	await process_frame
+	_check(offers.size() == 1 and offers[0][1] == 5, "a Dream at the rest after drift 5")
+	var offer: Array = offers[0][0] if not offers.is_empty() else []
+	_check(offer.size() == 3, "a Dream offers 3 cards")
+	_check(not offer.any(func(c: UpgradeData) -> bool: return c.kind == UpgradeData.Kind.UNLOCK_WARDEN),
+		"Dreams never offer base Wardens (they come from the family pick)")
 	_check(paused and speed.paused, "the game pauses for a Dream")
-	var firefly: UpgradeData = offers[0][0].filter(func(c: UpgradeData) -> bool: return c.id == "dream_firefly_jar")[0]
-	dreams.choose(firefly)
-	_check(dreams.is_unlocked("firefly_jar") and not dreams.is_offering(), "choosing unlocks Firefly Jar")
-	_check(not paused, "the game resumes after the Dream")
-	_check(main.get_node("%TowerBar").get_child_count() == 3, "Firefly Jar joins the tower bar")
+	if not offer.is_empty():
+		dreams.choose(offer[0])
+	_check(not dreams.is_offering() and not paused, "choosing closes the Dream and resumes")
 
 	# Let it pass
-	dreams._pending_drifts.append(3)
+	dreams._pending_drifts.append(10)
 	var dew := run_state.dew
 	dreams._show_next_offer()
 	dreams.skip()
@@ -178,21 +175,132 @@ func _test_dream_flow(main: Node) -> void:
 	# Eligibility
 	_check(dreams.is_eligible(_card(dreams, "dream_stormcap")), "Stormcap card needs Firefly Jar (owned)")
 	_check(not dreams.is_eligible(_card(dreams, "dream_rain_lily")), "Rain Lily card needs Dewdrop (not owned)")
-	_check(not dreams.is_eligible(_card(dreams, "dream_firefly_jar")), "no card for a Warden you already have")
+	_check(not dreams.is_eligible(_card(dreams, "dream_sporeling")), "no base Warden cards in Dreams")
 
-	# Boss Dream guarantees Rare+, and pity kicks in after 3 without (Conductive Soil becomes
-	# eligible once both Firefly Jar and Dewdrop are owned)
-	dreams.take(_card(dreams, "dream_dewdrop"))
-	var boss_offer := dreams.make_offer(5)
+	# Boss Dream guarantees Rare+, and pity kicks in after 3 without (Thunderhead is the Rare here)
+	dreams.unlocked["dewdrop"] = true
+	dreams.take(_card(dreams, "dream_stormcap"))
+	var boss_offer := dreams.make_offer(25)
 	_check(boss_offer.any(func(c: UpgradeData) -> bool: return c.is_rare_or_better()), "boss Dream has a Rare+ card")
 	var saw_rare_by_4 := true
 	for trial in 20:
 		dreams._dreams_without_rare = 3
-		var offer := dreams.make_offer(3)
-		if not offer.any(func(c: UpgradeData) -> bool: return c.is_rare_or_better()):
+		var pity_offer := dreams.make_offer(10)
+		if not pity_offer.any(func(c: UpgradeData) -> bool: return c.is_rare_or_better()):
 			saw_rare_by_4 = false
 	_check(saw_rare_by_4, "pity: 3 Dreams without Rare+ guarantees one")
+	director.drifts_started = 0
+	_reset_dreams(main)  # The card chosen above was random
 	_clear(main)
+
+# Deepened, Entwined and Bittersweet cards (dream_design.md, added 2026-09-27).
+func _test_new_cards(main: Node) -> void:
+	var dreams: DreamState = main.get_node("%DreamState")
+	var run_state: RunState = main.get_node("%RunState")
+	var director: DriftDirector = main.get_node("%DriftDirector")
+	var placer: TowerPlacer = main.get_node("%TowerPlacer")
+	var seller: TowerSeller = main.get_node("%TowerSeller")
+	var sporeling: TowerData = load("res://resource/tower/sporeling.tres")
+	var dewdrop: TowerData = load("res://resource/tower/dewdrop.tres")
+	var driftspore: TowerData = load("res://resource/tower/driftspore.tres")
+	var thornwall: TowerData = load("res://resource/tower/thornwall.tres")
+
+	# Deepened: needs the base card; replaces its effect instead of adding to it
+	_reset_dreams(main)
+	dreams.unlocked["sporeling"] = true
+	dreams.unlocked["dewdrop"] = true
+	_check(not dreams.is_eligible(_card(dreams, "evergreen_ii")), "Evergreen II needs Evergreen")
+	dreams.take(_card(dreams, "evergreen"))
+	_check(dreams.is_eligible(_card(dreams, "evergreen_ii")), "Evergreen II offered once Evergreen is owned")
+	dreams.take(_card(dreams, "evergreen_ii"))
+	_check(dreams.get_evolve_cost(driftspore) == 27, "Evergreen II: 45 → 27, replacing Evergreen (got %d)" % dreams.get_evolve_cost(driftspore))
+	_check(not dreams.is_eligible(_card(dreams, "evergreen_ii")), "a card deepens once")
+	dreams.take(_card(dreams, "lingering_spores"))
+	dreams.take(_card(dreams, "lingering_spores_ii"))
+	_check(is_equal_approx(dreams.get_status_duration(sporeling, EnemyStatuses.SPORED), 10.0), "Lingering Spores II: Spored 5 + 5 s")
+	_check(dreams.get_status_max_stacks(sporeling, EnemyStatuses.SPORED) == 10, "Lingering Spores II: Spored stacks to 10")
+	dreams.take(_card(dreams, "soaked_through"))
+	dreams.take(_card(dreams, "soaked_through_ii"))
+	_check(is_equal_approx(dreams.get_status_duration(dewdrop, EnemyStatuses.DAMP), 12.0), "Soaked Through II: Damp ×3")
+	var soaked := EnemyStatuses.new()
+	soaked.apply(EnemyStatuses.DAMP, 1, 0.0, dreams.get_status_strength_multiplier(EnemyStatuses.DAMP))
+	_check(is_equal_approx(soaked.get_speed_multiplier(), 0.85), "Soaked Through II: Damp slows 15%")
+	dreams.take(_card(dreams, "cozy_corners"))
+	_check(dreams.rule_level(&"cozy_corners") == 0, "Cozy Corners starts at its base level")
+	dreams.take(_card(dreams, "cozy_corners_ii"))
+	_check(dreams.rule_level(&"cozy_corners") == 1 and dreams.has_rule(&"cozy_corners"), "Cozy Corners II deepens the rule")
+	var bends: Dictionary = dreams._bend_cells
+	dreams._bend_cells = {Vector2(10, 10): true}
+	_check(dreams.is_beside_bend(Vector2(12, 10), 2) and not dreams.is_beside_bend(Vector2(12, 10), 1)
+		and not dreams.is_beside_bend(Vector2(12, 11), 2), "bend reach counts orthogonal steps")
+	dreams._bend_cells = bends
+
+	# Entwined: guaranteed in the next offer once the ingredients come together, then drawn normally
+	_reset_dreams(main)
+	dreams.unlocked["firefly_jar"] = true
+	dreams.unlocked["dewdrop"] = true
+	var soil := _card(dreams, "conductive_soil")
+	_check(not dreams.is_eligible(soil), "Conductive Soil needs Stormcap + Rain Lily")
+	dreams.take(_card(dreams, "dream_stormcap"))
+	dreams.take(_card(dreams, "dream_rain_lily"))
+	_check(dreams.make_offer(10).has(soil), "Entwined: Conductive Soil guaranteed once both are owned")
+	var seen_again := 0
+	for i in 30:
+		if dreams.make_offer(10).has(soil):
+			seen_again += 1
+	_check(seen_again < 30, "Entwined: after one pass it's drawn normally (%d/30)" % seen_again)
+
+	# Bittersweet: kept out until enabled, act 2+, at most one per offer, a real cost
+	_reset_dreams(main)
+	var deep_sleep := _card(dreams, "deep_sleep")
+	dreams.allow_bittersweet = false
+	_check(not dreams.is_eligible(deep_sleep, 2), "bittersweet cards stay out until enabled")
+	dreams.allow_bittersweet = true
+	_check(dreams.is_eligible(deep_sleep, 2) and not dreams.is_eligible(deep_sleep, 1), "bittersweet cards: act 2+")
+	var most := 0
+	for i in 60:
+		var offer := dreams.make_offer(30)
+		most = maxi(most, offer.filter(func(c: UpgradeData) -> bool: return c.is_bittersweet()).size())
+	_check(most <= 1, "at most one bittersweet card per offer (saw %d)" % most)
+	run_state.max_leaves = 20
+	run_state.leaves = 20
+	dreams.take(deep_sleep)
+	_check(run_state.max_leaves == 16 and run_state.leaves == 16, "Deep Sleep: −4 max leaves, lose 4 now (%d/%d)" % [run_state.leaves, run_state.max_leaves])
+	var sprout_tower := Tower.new()
+	sprout_tower.tower_data = load("res://resource/tower/sprout.tres")
+	_check(is_equal_approx(dreams.get_soothe_multiplier(sprout_tower), 1.4), "Deep Sleep: +40% soothe")
+	sprout_tower.free()
+	dreams.stacks.erase("deep_sleep")
+	run_state.leaves = 4
+	_check(not dreams.is_eligible(deep_sleep, 2), "Deep Sleep never offered when it would end the run")
+	run_state.leaves = 16
+	dreams.take(_card(dreams, "cheap_hedges"))
+	dreams.take(_card(dreams, "hungry_roots"))
+	_check(placer.get_cost(thornwall) == 6, "Hungry Roots: Thornwalls cost 6, even with Cheap Hedges")
+	dreams.take(_card(dreams, "borrowed_dew"))
+	_check(dreams.get_rest_bonus_add() == -15, "Borrowed Dew: rest bonus −15")
+	var bug: EnemyData = load("res://resource/enemy/leaf_bug.tres")
+	var before := director.get_health_scale(bug, 3)
+	dreams.take(_card(dreams, "wild_growth"))
+	_check(is_equal_approx(director.get_health_scale(bug, 3), before * 1.1), "Wild Growth: creatures +10% health")
+	dreams.take(_card(dreams, "overgrown"))
+	director.resting = false
+	_check(not seller.can_sell(), "Overgrown: no selling while creatures walk")
+	director.resting = true
+	_check(seller.can_sell(), "Overgrown: selling is fine at a rest")
+	dreams.take(_card(dreams, "restless_dreams"))
+	_check(not dreams.can_skip(), "Restless Dreams: no Let it pass")
+	var rare_runs := 0
+	dreams.allow_bittersweet = false
+	dreams.unlocked["firefly_jar"] = true
+	dreams.take(_card(dreams, "dream_stormcap"))  # So a Rare (Thunderhead) can be offered
+	for i in 3:
+		if dreams.make_offer(10).any(func(c: UpgradeData) -> bool: return c.is_rare_or_better()):
+			rare_runs += 1
+	_check(rare_runs == 3, "Restless Dreams: the next 3 Dreams include a Rare+ (%d/3)" % rare_runs)
+	run_state.max_leaves = 20
+	run_state.leaves = 20
+	_reset_dreams(main)
 
 func _test_card_effects(main: Node) -> void:
 	var dreams: DreamState = main.get_node("%DreamState")
@@ -221,41 +329,34 @@ func _test_card_effects(main: Node) -> void:
 func _simulate_storm_grid(main: Node) -> void:
 	var dreams: DreamState = main.get_node("%DreamState")
 	_reset_dreams(main)
-	var director: DriftDirector = main.get_node("%DriftDirector")
-	director.drifts = []  # Acts by drift number still work (get_act only needs drifts_per_act)
-	var want := ["dream_firefly_jar", "dream_dewdrop", "dream_stormcap", "dream_rain_lily", "dream_thunderhead", "conductive_soil"]
+	# Dreams at the rests after drifts 5 … 45 (the demo's 9; drift 25 is a boss rest, Rare+). The
+	# families are assumed lucky: Firefly Jar picked after drift 1, Dewdrop at the drift-25 boss.
+	# That isolates the Dream side; the family picks themselves land ~70% (dream_design.md).
+	var want := ["dream_stormcap", "dream_rain_lily", "dream_thunderhead", "conductive_soil"]
 	var runs := 1000
-	for weight in [dreams.tag_weight, 3.0, 4.0, 6.0]:
+	for weight in [dreams.tag_weight, 3.0]:
 		dreams.tag_weight = weight
 		var result := _storm_grid_rate(dreams, want, runs)
-		print("Storm Grid simulation, tag weight %.0f× (%d runs, aiming for it): full build %.0f%%, without Thunderhead %.0f%% (target ≈ 33%%)"
+		print("Storm Grid simulation, tag weight %.0f× (%d runs, both families, aiming for it): by drift 50 full build %.0f%%, without Thunderhead %.0f%% (target ≈ 33%% incl. families)"
 			% [weight, runs, 100.0 * result[0] / runs, 100.0 * result[1] / runs])
 	dreams.tag_weight = 2.0
-	var extra_bases := ["dream_pebbling", "dream_rootling", "dream_acorn"]
-	var extra_in_pool: bool = _card(dreams, "dream_pebbling").in_start_pool
-	for id in extra_bases:
-		_card(dreams, id).in_start_pool = not extra_in_pool
-	var other := _storm_grid_rate(dreams, want, runs)
-	print("  with Pebbling/Rootling/Acorn cards %s the pool: full build %.0f%%, without Thunderhead %.0f%%"
-		% ["added to" if not extra_in_pool else "removed from", 100.0 * other[0] / runs, 100.0 * other[1] / runs])
-	for id in extra_bases:
-		_card(dreams, id).in_start_pool = extra_in_pool
 	var owned_rates: Dictionary = _storm_grid_rate(dreams, want, runs)[2]
 	var parts: Array[String] = []
 	for id in want:
 		parts.append("%s %.0f%%" % [id.trim_prefix("dream_"), 100.0 * owned_rates.get(id, 0) / runs])
-	print("  how often each piece is owned by the end: " + ", ".join(parts))
+	print("  how often each piece is owned by drift 50: " + ", ".join(parts))
+	_reset_dreams(main)
 
 func _storm_grid_rate(dreams: DreamState, want: Array, runs: int) -> Array:
 	var full := 0
 	var partial := 0
 	var owned_count := {}
 	for run in runs:
-		dreams.stacks.clear()
-		dreams.unlocked = {"sprout": true, "thornwall": true}
-		dreams.dreams_seen = 0
-		dreams._dreams_without_rare = 0
-		for drift in dreams.dream_after_drifts:
+		_reset_dreams_quiet(dreams)
+		dreams.unlocked["firefly_jar"] = true
+		for drift in range(5, 50, 5):
+			if drift == 25:
+				dreams.unlocked["dewdrop"] = true  # The boss family pick comes before the Dream
 			var offer := dreams.make_offer(drift)
 			var pick: UpgradeData = null
 			for card in offer:
@@ -323,7 +424,20 @@ func _reset_dreams(main: Node) -> void:
 	dreams.unlocked = {"sprout": true, "thornwall": true}
 	dreams.dreams_seen = 0
 	dreams._dreams_without_rare = 0
+	dreams._rare_dreams_left = 0
+	dreams._extra_cards_next = 0
+	dreams._entwined_offered.clear()
 	dreams.unlocks_changed.emit()
+
+# Like _reset_dreams, without signals (the simulation runs thousands of times).
+func _reset_dreams_quiet(dreams: DreamState) -> void:
+	dreams.stacks.clear()
+	dreams.unlocked = {"sprout": true, "thornwall": true}
+	dreams.dreams_seen = 0
+	dreams._dreams_without_rare = 0
+	dreams._rare_dreams_left = 0
+	dreams._extra_cards_next = 0
+	dreams._entwined_offered.clear()
 
 func _clear(main: Node) -> void:
 	for child in main.get_node("%EnemyContainer").get_children():
