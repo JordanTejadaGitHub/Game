@@ -132,8 +132,7 @@ const POSE_DOWN := [
 	".............eeddddddeeeeddddeddeeeeeeeeeeee....................",
 	"...............eeddddeeeedddedddeeeeeeeeee......................",
 	".................eeddeeeeeddedddeeeeeeee........................",
-	"...................eeee...eeddddeeeeee..........................",
-	"............................eeddeeee............................",
+	"...................eeee...eeddddeeeeee..........................",	"............................eeddeeee............................",
 	"..............................eeee..............................",
 ]
 
@@ -434,6 +433,7 @@ func _make_projectile(proj_name: String) -> void:
 	for f in P_FRAMES:
 		var canvas := _layer()
 		call("_proj_" + proj_name, canvas, f)
+		_warm_glow(canvas, Vector2(33, 32), Vector2(7.5, 6.5), f)  # every Warden shot glows warmly
 		sheet.blit_rect(canvas, Rect2i(24, 24, P, P), Vector2i(f * P, 0))
 	sheet.save_png(OUT + "projectiles/" + proj_name + ".png")
 	projectile_sheets.append(sheet)
@@ -458,7 +458,7 @@ func _spinning_rock(canvas: Image, f: int, r: float, ramp: Array[Color], o: Colo
 	_rock(canvas, pts, ramp, o)
 
 func _proj_spore(canvas: Image, f: int) -> void:
-	var puff := _ramp(["#6a9a3c", "#a8d468", "#d8f4a8", "#ffffff"])
+	var puff := _ramp(["#9ab04a", "#e0ec98", "#fff6c8", "#ffffff"])  # warm, sunlit spores
 	var grow: float = [0.0, 0.5, 1.0, 0.5][f]
 	var layer := _layer()
 	_ellipse(layer, Vector2(33, 32), Vector2(4 + grow, 4 + grow), puff)
@@ -1102,6 +1102,23 @@ func _proj_spark(canvas: Image, f: int) -> void:
 # --- Attack effects ---------------------------------------------------------------------------
 # Drawn over the Warden's attack-pose body. st.attack is the frame (RELEASE_FRAME = the shot).
 
+# Warden attacks glow warmly: light pushing back the cold, dark nightmares (story.md).
+const GLOW_INNER := Color("#ffe8a0")
+const GLOW_OUTER := Color("#ffc860")
+
+# Warm light spilling round an attack or projectile, dithered so it reads as a glow. It only lights
+# empty pixels, so it never paints over the Warden or its base: draw it after the effect itself.
+func _warm_glow(canvas: Image, c: Vector2, r: Vector2, phase: int = 0) -> void:
+	for y in range(maxi(0, floori(c.y - r.y)), mini(S, ceili(c.y + r.y) + 1)):
+		for x in range(maxi(0, floori(c.x - r.x)), mini(S, ceili(c.x + r.x) + 1)):
+			if canvas.get_pixel(x, y).a > 0.0:
+				continue
+			var q := ((Vector2(x + 0.5, y + 0.5) - c) / r).length()
+			if q < 0.6 and (x + y + phase) % 2 == 0:
+				canvas.set_pixel(x, y, GLOW_INNER)
+			elif q < 1.0 and (x + 2 * y + phase) % 4 == 0:
+				canvas.set_pixel(x, y, GLOW_OUTER)
+
 # A puff that bursts on release, then scatters into dots and fades.
 func _burst(canvas: Image, c: Vector2, a: int, light_col: Color, dark_col: Color, o: Color) -> void:
 	if a == RELEASE_FRAME:
@@ -1117,6 +1134,7 @@ func _burst(canvas: Image, c: Vector2, a: int, light_col: Color, dark_col: Color
 		for k in 4:
 			var d := Vector2.from_angle(k * TAU / 4.0 + 0.4) * 8.0
 			_px(canvas, roundi(c.x + d.x), roundi(c.y + d.y), light_col)
+		_warm_glow(canvas, c + Vector2(0, 1), Vector2(9, 7.5))
 	elif a == RELEASE_FRAME + 1 or a == RELEASE_FRAME + 2:
 		var radius := 8.0 if a == RELEASE_FRAME + 1 else 11.0
 		for k in 6:
@@ -1126,6 +1144,7 @@ func _burst(canvas: Image, c: Vector2, a: int, light_col: Color, dark_col: Color
 			var core := _layer()
 			_flat_ellipse(core, c, Vector2(2.5, 2.2), light_col)
 			_stamp(canvas, core, o)
+			_warm_glow(canvas, c, Vector2(6, 5), 1)
 
 # A 1px ellipse ring on the ground; dithered when fading.
 func _ring(canvas: Image, c: Vector2, r: Vector2, color: Color, fading: bool) -> void:
@@ -1139,7 +1158,9 @@ func _pulse(canvas: Image, st: Dictionary, color: Color) -> void:
 	var c := Vector2(ATTACKS["rootling"].point)
 	var k: int = st.attack - RELEASE_FRAME
 	if k >= 0 and k < 3:
-		_ring(canvas, c, Vector2(12 + k * 8, 4.5 + k * 3), color, k == 2)
+		var r := Vector2(12 + k * 8, 4.5 + k * 3)
+		_ring(canvas, c, r * 0.82, GLOW_INNER, true)  # warm light just inside the wave
+		_ring(canvas, c, r, color, k == 2)
 
 func _sparkle(canvas: Image, p: Vector2i, color: Color) -> void:
 	for d: Vector2i in [Vector2i.ZERO, Vector2i.LEFT, Vector2i.RIGHT, Vector2i.UP, Vector2i.DOWN]:
@@ -1186,7 +1207,8 @@ func _attack_pebbling(canvas: Image, st: Dictionary) -> void:
 		_px(canvas, int(c.x) - 1, int(c.y) - 1, Color("#7cbc5a"))
 	if a == RELEASE_FRAME:
 		for s: Vector2i in [Vector2i(44, 20), Vector2i(43, 23), Vector2i(42, 26)]:
-			_px(canvas, s.x, s.y, stone[3])
+			_px(canvas, s.x, s.y, GLOW_INNER)
+		_warm_glow(canvas, Vector2(ATTACKS["pebbling"].point), Vector2(7, 6))
 	# Dust kicked up at the feet.
 	if a == RELEASE_FRAME or a == RELEASE_FRAME + 1:
 		var spread: int = a - RELEASE_FRAME
@@ -1201,6 +1223,7 @@ func _attack_dewdrop(canvas: Image, st: Dictionary) -> void:
 			var spout := _layer()
 			_flat_ellipse(spout, Vector2(d.x, d.y), Vector2(d.z, d.z), Color("#e8faff"))
 			_stamp(canvas, spout, Color("#16305e"))
+		_warm_glow(canvas, Vector2(30.5, 3), Vector2(11, 5))
 	# Splash droplets arcing out and falling.
 	if a > RELEASE_FRAME and a < ATTACK_FRAMES:
 		var k: int = a - RELEASE_FRAME
@@ -1217,11 +1240,12 @@ func _attack_firefly_jar(canvas: Image, st: Dictionary) -> void:
 			var d := Vector2.from_angle(k * TAU / 8.0) * (3.5 if k % 2 == 0 else 5.5)
 			_glow_dot(canvas, Vector2i((c + d).round()), Color("#fff27a"), Color("#c8e060"))
 		_glow_dot(canvas, Vector2i(c), Color.WHITE, Color("#fff27a"))
+		_warm_glow(canvas, c, Vector2(9, 8))
 	elif a == RELEASE_FRAME + 1 or a == RELEASE_FRAME + 2:
 		var radius := 8.0 if a == RELEASE_FRAME + 1 else 11.0
 		for k in 5:
 			var d := Vector2.from_angle(k * TAU / 5.0 - 0.3) * radius
-			_px(canvas, roundi(c.x + d.x), roundi(c.y + d.y), Color("#fff27a") if a == RELEASE_FRAME + 1 else Color("#a8c868"))
+			_px(canvas, roundi(c.x + d.x), roundi(c.y + d.y), Color("#fff27a") if a == RELEASE_FRAME + 1 else GLOW_OUTER)
 
 # Rootling: its tendrils fling up and a Drowsy pulse ripples out over the stone, sending up z's.
 func _attack_rootling(canvas: Image, st: Dictionary) -> void:
@@ -1562,7 +1586,8 @@ func _throw(canvas: Image, st: Dictionary, launch: Vector2, size: float, ramp: A
 	if a == RELEASE_FRAME:
 		for k in 3:
 			var p: Vector2 = (at[1] as Vector2).lerp(launch, 0.3 + k * 0.2)
-			_px(canvas, int(p.x), int(p.y), ramp[3])
+			_px(canvas, int(p.x), int(p.y), GLOW_INNER)
+		_warm_glow(canvas, launch, Vector2(size + 4, size + 3))
 	if a == RELEASE_FRAME or a == RELEASE_FRAME + 1:
 		var spread: int = a - RELEASE_FRAME
 		for d: Vector2i in [Vector2i(-7, 0), Vector2i(-4, -2), Vector2i(4, -1), Vector2i(8, 0), Vector2i(0, -3), Vector2i(-10, 1)]:
@@ -1614,12 +1639,12 @@ func _draw_monsoon(canvas: Image, st: Dictionary) -> void:
 	_cloud(canvas, Vector2(30.5, 3 + dy), 24, _ramp(["#4a5a80", "#6a7aa0", "#9aaac8", "#c8d4e8"]), Color("#1e2a48"))
 	_rain(canvas, st, 7)
 
-func _rain(canvas: Image, st: Dictionary, n: int) -> void:
+func _rain(canvas: Image, st: Dictionary, n: int, color: Color = Color("#9ad4ff")) -> void:
 	for k in n:
 		var x := 8 + k * 7
 		var y: int = 10 + ((st.f * 3 + k * 5) % 22)
-		_px(canvas, x, y, Color("#9ad4ff"))
-		_px(canvas, x - 1, y + 1, Color("#9ad4ff"))
+		_px(canvas, x, y, color)
+		_px(canvas, x - 1, y + 1, color)
 
 # Mistveil: a pale mist golem under a hood and veil of fog, wisps curling round its feet.
 func _draw_mistveil(canvas: Image, st: Dictionary) -> void:
@@ -2011,8 +2036,10 @@ func _cloud_puff(canvas: Image, st: Dictionary, at: Vector2, ramp: Array[Color],
 	var k: int = st.attack - RELEASE_FRAME
 	if k == 0:
 		_cloud(canvas, at, 10, ramp, o)
+		_warm_glow(canvas, at, Vector2(8, 6))
 	elif k == 1:
 		_cloud(canvas, at + Vector2(3, 3), 14, ramp, o)
+		_warm_glow(canvas, at + Vector2(3, 3), Vector2(10, 7), 1)
 	elif k == 2:
 		_fog(canvas, at + Vector2(5, 5), Vector2(9, 5), mist, st.f)
 
@@ -2055,6 +2082,7 @@ func _attack_rain_lily(canvas: Image, st: Dictionary) -> void:
 			var spout := _layer()
 			_flat_ellipse(spout, Vector2(d.x, d.y), Vector2(d.z, d.z), Color("#e8faff"))
 			_stamp(canvas, spout, Color(WATER[0]))
+		_warm_glow(canvas, Vector2(30.5, 3), Vector2(13, 5))
 	if a > RELEASE_FRAME:
 		var k: int = a - RELEASE_FRAME
 		for side: int in [-1, 1]:
@@ -2065,16 +2093,16 @@ func _attack_rain_lily(canvas: Image, st: Dictionary) -> void:
 func _attack_monsoon(canvas: Image, st: Dictionary) -> void:
 	_pulse(canvas, st, Color("#8ad0f8"))
 	if st.attack >= RELEASE_FRAME - 1 and st.attack <= RELEASE_FRAME + 2:
-		_rain(canvas, st, 9)
+		_rain(canvas, st, 9, Color("#fff0c0"))  # warm-lit rain
 		var shifted := st.duplicate()
 		shifted.f = st.f + 3
-		_rain(canvas, shifted, 9)
+		_rain(canvas, shifted, 9, GLOW_INNER)
 
 func _attack_mistveil(canvas: Image, st: Dictionary) -> void:
-	_fog_roll(canvas, st, Color("#f4faff"))
+	_fog_roll(canvas, st, Color("#fff2d8"))
 
 func _attack_morning_fog(canvas: Image, st: Dictionary) -> void:
-	_fog_roll(canvas, st, Color("#fff8f0"))
+	_fog_roll(canvas, st, Color("#ffe4c0"))
 	var k: int = st.attack - RELEASE_FRAME
 	if k >= 0 and k < 3:
 		_sparkle(canvas, Vector2i(14 + k * 3, 46 - k), Color("#ffe8a0"))
@@ -2093,9 +2121,9 @@ func _attack_stormcap(canvas: Image, st: Dictionary) -> void:
 	if a == RELEASE_FRAME - 1:
 		_sparkle(canvas, Vector2i(from), Color("#fff6a0"))
 	elif a == RELEASE_FRAME:
-		_bolt(canvas, from, Vector2(62, 22), Color("#fff6a0"), Color("#8a8af0"))
+		_bolt(canvas, from, Vector2(62, 22), Color("#fff6a0"), GLOW_OUTER)
 	elif a == RELEASE_FRAME + 1:
-		_bolt(canvas, from, Vector2(56, 14), Color("#c8c8ff"), Color("#5a5ab0"), 3)
+		_bolt(canvas, from, Vector2(56, 14), Color("#fff0c0"), Color("#d8a040"), 3)
 
 func _attack_thunderhead(canvas: Image, st: Dictionary) -> void:
 	var a: int = st.attack
@@ -2104,10 +2132,10 @@ func _attack_thunderhead(canvas: Image, st: Dictionary) -> void:
 		_sparkle(canvas, Vector2i(from), Color("#fff6a0"))
 		_sparkle(canvas, Vector2i(18, 5), Color("#fff6a0"))
 	elif a == RELEASE_FRAME:
-		_bolt(canvas, from, Vector2(63, 24), Color("#fff6a0"), Color("#8a8af0"), 5)
-		_bolt(canvas, Vector2(17, 5), Vector2(1, 22), Color("#fff6a0"), Color("#8a8af0"), 5)
+		_bolt(canvas, from, Vector2(63, 24), Color("#fff6a0"), GLOW_OUTER, 5)
+		_bolt(canvas, Vector2(17, 5), Vector2(1, 22), Color("#fff6a0"), GLOW_OUTER, 5)
 	elif a == RELEASE_FRAME + 1:
-		_bolt(canvas, from, Vector2(58, 16), Color("#c8c8ff"), Color("#5a5ab0"), 3)
+		_bolt(canvas, from, Vector2(58, 16), Color("#fff0c0"), Color("#d8a040"), 3)
 
 # A flash of light from `c` scattering into sparks.
 func _flash(canvas: Image, st: Dictionary, c: Vector2, core: Color, halo: Color) -> void:
@@ -2117,6 +2145,7 @@ func _flash(canvas: Image, st: Dictionary, c: Vector2, core: Color, halo: Color)
 			var d := Vector2.from_angle(k * TAU / 8.0) * (3.5 if k % 2 == 0 else 5.5)
 			_glow_dot(canvas, Vector2i((c + d).round()), core, halo)
 		_glow_dot(canvas, Vector2i(c), Color.WHITE, core)
+		_warm_glow(canvas, c, Vector2(9, 8))
 	elif a == RELEASE_FRAME + 1 or a == RELEASE_FRAME + 2:
 		var radius := 8.0 if a == RELEASE_FRAME + 1 else 11.0
 		for k in 5:
@@ -2143,6 +2172,8 @@ func _attack_sunpetal(canvas: Image, st: Dictionary) -> void:
 	for w in range(-(2 - k), 3 - k):
 		_line(canvas, [from + Vector2(0, w), to + Vector2(0, w)], Color("#fff4a0") if w == 0 else Color("#ffd24a"))
 	_sparkle(canvas, Vector2i(from), Color.WHITE)
+	for t in [0.25, 0.6, 0.95]:
+		_warm_glow(canvas, from.lerp(to, t), Vector2(6, 5 - k), k)
 
 # Lashes a curling root out to hook a creature, then reels it back in.
 func _root_lash(canvas: Image, st: Dictionary, fig: Dictionary, sparkly: bool) -> void:
@@ -2154,6 +2185,7 @@ func _root_lash(canvas: Image, st: Dictionary, fig: Dictionary, sparkly: bool) -
 	_stroke(layer, [Vector2(42, 24), Vector2(50, 25), tip], 1.3, fig.a)
 	_stroke(layer, [tip, tip + Vector2(1.5, 2), tip + Vector2(-0.5, 3.5), tip + Vector2(-2, 2.5)], 1.0, fig.a)
 	_stamp(canvas, layer, fig.o)
+	_warm_glow(canvas, tip, Vector2(6, 5))  # the hook glows as it catches
 	if sparkly:
 		_sparkle(canvas, Vector2i(tip) + Vector2i(2, -3), Color("#fff4c0"))
 
@@ -2173,6 +2205,8 @@ func _root_spikes(canvas: Image, st: Dictionary, spots: Array, flowers: bool) ->
 	for p: Vector2 in spots:
 		_stroke(layer, [p, p + Vector2(1, -h)], 1.1, Color("#9a7a54"))
 	_stamp(canvas, layer, Color("#1e160e"))
+	for p: Vector2 in spots:
+		_warm_glow(canvas, p + Vector2(1, -h), Vector2(4, 3), k)
 	if flowers and k == 1:
 		for p: Vector2 in spots:
 			_flower(canvas, Vector2i(p) + Vector2i(1, -h - 1), Color("#f4a0c0"), Color("#ffd24a"))
