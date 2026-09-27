@@ -83,6 +83,10 @@ Remaining: an offer simulation to check build reachability, then playtest tuning
 - Later acts: multiple entrances? A different start/end layout?
 
 ### 10. First-run experience
+
+**Drafted in `onboarding.md`** (3-run teaching plan, Heartwood whispers, system reveal schedule,
+Forest Journal, demo fit).
+
 - What the very first run teaches, and in what order (build, maze, cleanse, Dream, evolve).
 - Which systems are hidden until later (evolution, statuses, obstacles).
 
