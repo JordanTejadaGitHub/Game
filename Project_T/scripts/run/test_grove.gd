@@ -9,8 +9,11 @@ class_name TestGrove
 #   spawn any nightmare (count, elite), a Target Dummy (slow, unkillable, loops the route),
 #   a damage meter (per Warden this drift: total, DPS, status and combo shares, from DamageLog),
 #   damage numbers (off / big / all), Inspect (click a nightmare while paused),
-#   invulnerable Heartwood, and clear the field.
-# On with the settings "Developer" toggle or the launch flag `-- --test-grove`; only in debug builds.
+#   invulnerable Heartwood, and clear the field,
+#   every Dream card in the pool (Grove-only and bittersweet too) and "Take any Dream".
+# The tools, meter and Inspect are one dock on the right under the resources (screens_ui.md), which
+# F10 collapses. On with the settings "Developer" toggle or the launch flag `-- --test-grove`; only
+# in debug builds.
 
 const SETTING := "test_grove"
 const LAUNCH_FLAG := "--test-grove"
@@ -21,6 +24,13 @@ const DUMMY_SPEED := 0.35  # × the nightmare's speed
 const REFRESH := 0.5  # Real seconds between meter / inspect refreshes
 const METER_ROWS := 10
 const INSPECT_RADIUS := 32.0  # Pixels from a nightmare that count as clicking it
+# Dock: right edge, below the resources and the nightmare info, above the drift controls.
+const DOCK_WIDTH := 300.0
+const DOCK_TOP := 256.0
+const DOCK_BOTTOM_GAP := 152.0
+const TEXT_COLOR := Color(0.96, 0.97, 0.94)
+const TITLE_COLOR := Color(1.0, 0.8, 0.4)
+const DOCK_BG := Color(0.05, 0.06, 0.08, 0.94)
 
 # Tests (and the settings toggle, within one session) can switch it on without the saved setting.
 static var force_on := false
@@ -41,7 +51,11 @@ var _count := SpinBox.new()
 var _elite := CheckBox.new()
 var _meter := Label.new()
 var _inspect := Label.new()
-var _inspect_panel := PanelContainer.new()
+var _inspect_panel := VBoxContainer.new()
+var _dream := OptionButton.new()
+var _dream_cards: Array[UpgradeData] = []
+var _dock := PanelContainer.new()
+var _dock_body := ScrollContainer.new()
 var _refresh := 0.0
 
 # Debug builds only: exported release/demo builds never show or allow it.
@@ -51,8 +65,12 @@ static func is_available() -> bool:
 static func is_active() -> bool:
 	if not is_available():
 		return false
-	return force_on or OS.get_cmdline_user_args().has(LAUNCH_FLAG) \
-		or bool(HeartwoodMemory.get_settings().get(SETTING, false))
+	if force_on:
+		return true
+	# Headless test scripts ignore the developer's saved setting, so every test runs a normal run.
+	if OS.get_cmdline_args().has("--script"):
+		return false
+	return OS.get_cmdline_user_args().has(LAUNCH_FLAG) or bool(HeartwoodMemory.get_settings().get(SETTING, false))
 
 func _ready() -> void:
 	if not is_active():
@@ -62,12 +80,16 @@ func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	dream_state.unlock_everything = true
 	dream_state.unlocks_changed.emit()  # Tower bar shows every family
+	# Every Dream card can be offered: Grove-only ones (the Grove isn't built yet) and bittersweet.
+	for card in dream_state.pool:
+		if not card.in_start_pool:
+			dream_state.grove_cards.append(card.id)
+	dream_state.allow_bittersweet = true
 	enemy_types = _load_enemy_types()
-	_build_tools()
-	_build_meter()
-	_build_inspect()
+	_build_dock()
 
 func _process(delta: float) -> void:
+	_fit_dock()
 	_refresh -= delta / maxf(Engine.time_scale, 0.001)  # Real time, also while paused
 	if _refresh > 0.0:
 		return
@@ -83,6 +105,10 @@ func _unhandled_input(event: InputEvent) -> void:
 	var key := event as InputEventKey
 	if key != null and key.pressed and not key.echo and key.physical_keycode == KEY_F9:
 		give_dew()
+		get_viewport().set_input_as_handled()
+		return
+	if key != null and key.pressed and not key.echo and key.physical_keycode == KEY_F10:
+		toggle_dock()
 		get_viewport().set_input_as_handled()
 		return
 	var click := event as InputEventMouseButton
@@ -170,6 +196,18 @@ func inspect(enemy: Node2D) -> void:
 	inspected = enemy
 	_inspect.text = get_inspect_text(enemy)
 	_inspect_panel.visible = true
+	_dock_body.visible = true  # Show it even if the dock was collapsed
+
+# "Take any Dream": applies `card` right now, as if chosen from an offer (stat cards stack).
+func take_dream(card: UpgradeData) -> bool:
+	if card == null or (card.max_stacks > 0 and dream_state.card_stacks(card.id) >= card.max_stacks):
+		return false
+	dream_state.take(card)
+	return true
+
+# F10: collapse the dock to its title bar, or open it again.
+func toggle_dock() -> void:
+	_dock_body.visible = not _dock_body.visible
 
 
 # --- Readouts ---------------------------------------------------------------------------------------
@@ -226,19 +264,68 @@ func get_inspect_text(enemy: Node2D) -> String:
 
 # --- UI ---------------------------------------------------------------------------------------------
 
-func _build_tools() -> void:
-	var panel := PanelContainer.new()
-	panel.set_anchors_and_offsets_preset(Control.PRESET_CENTER_LEFT)
-	panel.offset_left = 16
-	add_child(panel)
-	var box := VBoxContainer.new()
-	panel.add_child(box)
-	var title := Label.new()
-	title.text = "Test Grove (dev)"
-	title.add_theme_color_override("font_color", Color(1.0, 0.8, 0.4))
-	box.add_child(title)
-	_button(box, "+%d Dew  (F9)" % DEW_GIFT, give_dew)
+# One dock on the right, under the resources: title bar (F10 collapses the rest), tools, Dreams,
+# Inspect (when a nightmare is inspected) and the damage meter. Scrolls if it's taller than the gap.
+func _build_dock() -> void:
+	_dock.anchor_left = 1.0
+	_dock.anchor_right = 1.0
+	_dock.anchor_top = 0.0
+	_dock.anchor_bottom = 1.0
+	_dock.offset_left = -16.0 - DOCK_WIDTH
+	_dock.offset_right = -16.0
+	_dock.offset_top = DOCK_TOP
+	_dock.offset_bottom = -DOCK_BOTTOM_GAP
+	_dock.grow_horizontal = Control.GROW_DIRECTION_BEGIN
+	var style := StyleBoxFlat.new()
+	style.bg_color = DOCK_BG
+	style.border_color = TITLE_COLOR.darkened(0.4)
+	style.set_border_width_all(1)
+	style.set_corner_radius_all(6)
+	style.set_content_margin_all(8)
+	_dock.add_theme_stylebox_override("panel", style)
+	_dock.add_theme_color_override("font_color", TEXT_COLOR)
+	add_child(_dock)
 
+	var outer := VBoxContainer.new()
+	_dock.add_child(outer)
+	var title := Button.new()
+	title.text = "Test Grove (dev)  ·  F10"
+	title.flat = true
+	title.alignment = HORIZONTAL_ALIGNMENT_LEFT
+	title.focus_mode = Control.FOCUS_NONE
+	title.add_theme_color_override("font_color", TITLE_COLOR)
+	title.add_theme_color_override("font_hover_color", TITLE_COLOR.lightened(0.2))
+	title.pressed.connect(toggle_dock)
+	outer.add_child(title)
+
+	_dock_body.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	_dock_body.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	outer.add_child(_dock_body)
+	var box := VBoxContainer.new()
+	box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	box.add_theme_constant_override("separation", 6)
+	_dock_body.add_child(box)
+	_build_tools(box)
+	_build_dreams(box)
+	_build_inspect(box)
+	box.add_child(HSeparator.new())
+	_meter.add_theme_font_size_override("font_size", 13)
+	_meter.add_theme_color_override("font_color", TEXT_COLOR)
+	_meter.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	box.add_child(_meter)
+
+# The drift controls grow upward with their content, so keep the dock's bottom just above them.
+func _fit_dock() -> void:
+	var drift_panel := get_parent().get_node_or_null("HUD/DriftPanel") as Control
+	if drift_panel == null or not drift_panel.visible:
+		return
+	var height := _dock.get_viewport_rect().size.y
+	var gap := maxf(DOCK_BOTTOM_GAP, height - drift_panel.get_global_rect().position.y + 8.0)
+	if not is_equal_approx(_dock.offset_bottom, -gap):
+		_dock.offset_bottom = -gap
+
+func _build_tools(box: VBoxContainer) -> void:
+	_button(box, "+%d Dew  (F9)" % DEW_GIFT, give_dew)
 	var skip_row := HBoxContainer.new()
 	box.add_child(skip_row)
 	_skip_to.min_value = 1
@@ -248,7 +335,7 @@ func _build_tools() -> void:
 	_button(skip_row, "Skip to drift", func() -> void: skip_to(int(_skip_to.value)),
 		"At a rest: the next Start begins this drift.")
 
-	box.add_child(HSeparator.new())
+	box.add_child(_heading("Nightmares"))
 	for data in enemy_types:
 		_type.add_item(data.display_name)
 	_type.focus_mode = Control.FOCUS_NONE
@@ -261,61 +348,75 @@ func _build_tools() -> void:
 	spawn_row.add_child(_count)
 	_elite.text = "Elite"
 	_elite.focus_mode = Control.FOCUS_NONE
+	_elite.add_theme_color_override("font_color", TEXT_COLOR)
 	spawn_row.add_child(_elite)
-	_button(box, "Spawn", func() -> void: spawn(_selected_type(), int(_count.value), _elite.button_pressed))
+	_button(spawn_row, "Spawn", func() -> void: spawn(_selected_type(), int(_count.value), _elite.button_pressed))
 	_button(box, "Target Dummy (on / off)", func() -> void: toggle_dummy(),
 		"A slow, unkillable nightmare that walks the route on a loop.")
 
-	box.add_child(HSeparator.new())
+	box.add_child(_heading("Field"))
 	var numbers := OptionButton.new()
 	for label in ["Damage numbers: off", "Damage numbers: big", "Damage numbers: all"]:
 		numbers.add_item(label)
+	if DamageLog.instance:
+		numbers.selected = DamageLog.instance.numbers_mode
 	numbers.focus_mode = Control.FOCUS_NONE
 	numbers.item_selected.connect(set_numbers_mode)
 	box.add_child(numbers)
 	var invulnerable := CheckBox.new()
 	invulnerable.text = "Invulnerable Heartwood"
 	invulnerable.focus_mode = Control.FOCUS_NONE
+	invulnerable.add_theme_color_override("font_color", TEXT_COLOR)
 	invulnerable.toggled.connect(set_invulnerable)
 	box.add_child(invulnerable)
-	_button(box, "Clear the field", clear_field)
-	_button(box, "Reset damage meter", func() -> void:
+	var field_row := HBoxContainer.new()
+	box.add_child(field_row)
+	_button(field_row, "Clear the field", clear_field)
+	_button(field_row, "Reset meter", func() -> void:
 		if DamageLog.instance:
 			DamageLog.instance.reset_drift())
-	var hint := Label.new()
-	hint.text = "Pause, then click a nightmare to inspect it."
-	hint.add_theme_font_size_override("font_size", 12)
-	box.add_child(hint)
 
-func _build_meter() -> void:
-	var panel := PanelContainer.new()
-	panel.set_anchors_and_offsets_preset(Control.PRESET_TOP_LEFT)
-	panel.offset_left = 16
-	panel.offset_top = 64
-	panel.modulate.a = 0.9
-	add_child(panel)
-	_meter.add_theme_font_size_override("font_size", 13)
-	panel.add_child(_meter)
+# "Take any Dream": every card, taken right away.
+func _build_dreams(box: VBoxContainer) -> void:
+	box.add_child(_heading("Dreams"))
+	_dream_cards = dream_state.pool.duplicate()
+	_dream_cards.sort_custom(func(a: UpgradeData, b: UpgradeData) -> bool: return a.display_name < b.display_name)
+	for card in _dream_cards:
+		_dream.add_item("%s (%s)" % [card.display_name, UpgradeData.rarity_name(card.rarity)])
+	_dream.focus_mode = Control.FOCUS_NONE
+	_dream.fit_to_longest_item = false
+	_dream.clip_text = true
+	box.add_child(_dream)
+	_button(box, "Take this Dream now", func() -> void:
+		if _dream.selected >= 0:
+			take_dream(_dream_cards[_dream.selected]))
 
-func _build_inspect() -> void:
-	_inspect_panel.set_anchors_and_offsets_preset(Control.PRESET_CENTER_TOP)
-	_inspect_panel.grow_horizontal = Control.GROW_DIRECTION_BOTH
-	_inspect_panel.offset_top = 96
+func _build_inspect(box: VBoxContainer) -> void:
 	_inspect_panel.visible = false
-	add_child(_inspect_panel)
-	var box := VBoxContainer.new()
-	_inspect_panel.add_child(box)
+	box.add_child(_inspect_panel)
+	_inspect_panel.add_child(HSeparator.new())
+	_inspect_panel.add_child(_heading("Inspect"))
 	_inspect.add_theme_font_size_override("font_size", 13)
-	box.add_child(_inspect)
-	_button(box, "Close", func() -> void:
+	_inspect.add_theme_color_override("font_color", TEXT_COLOR)
+	_inspect.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_inspect_panel.add_child(_inspect)
+	_button(_inspect_panel, "Close", func() -> void:
 		inspected = null
 		_inspect_panel.visible = false)
+
+func _heading(text: String) -> Label:
+	var label := Label.new()
+	label.text = text
+	label.add_theme_color_override("font_color", TITLE_COLOR)
+	label.add_theme_font_size_override("font_size", 13)
+	return label
 
 func _button(parent: Control, text: String, action: Callable, tooltip: String = "") -> Button:
 	var button := Button.new()
 	button.text = text
 	button.tooltip_text = tooltip
 	button.focus_mode = Control.FOCUS_NONE
+	button.add_theme_color_override("font_color", TEXT_COLOR)
 	button.pressed.connect(action)
 	parent.add_child(button)
 	return button

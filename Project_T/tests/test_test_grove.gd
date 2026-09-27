@@ -157,6 +157,31 @@ func _test_tools(main: Node, grove: TestGrove) -> void:
 	grove.clear_field()
 	await process_frame
 
+	# The dock sits on the right and never covers the Warden bar, Warden panel or drift controls
+	# (at a real screen size: headless windows start tiny)
+	root.size = Vector2i(1920, 1080)
+	await process_frame
+	await process_frame
+	var dock: Rect2 = grove._dock.get_global_rect()
+	for name in ["TowerBar", "WardenPanel", "DriftPanel", "DewLabel", "LeavesLabel", "PathLabel", "NightmareInfo"]:
+		var other := main.get_node("HUD/" + name) as Control
+		_check(not dock.intersects(other.get_global_rect()), "the dock doesn't overlap %s (%s vs %s)" % [name, dock, other.get_global_rect()])
+	_check(dock.position.x > main.get_viewport().get_visible_rect().size.x / 2,
+		"the dock is on the right (%s in %s)" % [dock, main.get_viewport().get_visible_rect()])
+	grove.toggle_dock()
+	_check(not grove._dock_body.visible, "F10 collapses the dock")
+	grove.toggle_dock()
+
+	# Every Dream is in the pool (Grove-only too), and "Take any Dream" applies one now
+	var dreams: DreamState = main.get_node("%DreamState")
+	var bloom: UpgradeData = null
+	for card in dreams.pool:
+		if card.id == "chain_bloom":
+			bloom = card
+	_check(bloom != null and dreams.is_eligible(bloom, 2), "Grove-only Dreams can be offered in Test Grove")
+	_check(grove.take_dream(bloom) and dreams.has_rule(&"chain_bloom"), "Take any Dream applies it now")
+	_check(not grove.take_dream(bloom), "a once-only Dream can't be taken twice")
+
 func _build(main: Node, id: String) -> Tower:
 	var placer: TowerPlacer = main.get_node("%TowerPlacer")
 	placer.tower_data = load("res://resource/tower/%s.tres" % id)
