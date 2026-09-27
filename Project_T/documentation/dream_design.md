@@ -432,6 +432,54 @@ up with creature health and benefit from stat Dreams and evolutions.
 
 **Bosses:** Drowsy cap 3, Held duration halved, Static bolts at 8 stacks instead of 5.
 
+## Reaction numbers
+
+Design and effects: `tower_design.md`, "Reactions". Starting points for tuning.
+
+**Rules**
+- A Reaction fires the moment a nightmare has **both** statuses (either order) at the listed
+  threshold.
+- **"Applier"** = the Warden whose status or hit completed the Reaction. Reaction damage scales with
+  its damage, so Reactions keep up with the ×30 health of act 4 and benefit from stat Dreams.
+- Reaction damage counts as the **applier's family** for resist/weak, and Marked applies. Reactions
+  themselves **don't crit** (they're status damage); Shatter and Pinned change a *hit*, and that
+  hit can.
+- **Cooldown:** each Reaction type can fire on the same nightmare at most once per **1.5 s**.
+- **Bosses** take full Reaction damage but get reduced control (below).
+
+| Reaction | Trigger | Effect | Uses up | Bosses |
+|---|---|---|---|---|
+| **Thunderclap** | Damp + 3 Static | 4× applier damage to the target; arcs to every Damp nightmare within **2.5 cells** for 2×, each arc adds **1 Static** | all Static | Static threshold 5 |
+| **Ignite** | 3+ Spored + any Static | deals the target's **remaining Spored damage ×1.5** at once; 1 Spored stack to nightmares within 1 cell | all Spored | same |
+| **Mushrooming** | 3+ Spored + Damp | the target's Spored ticks +50% for 4 s; a spore cloud (radius 0.6, 4 s) on its tile gives 1 Spored per second | Damp | same |
+| **Shatter** | Held (incl. frozen) + Damp, then a crit or a hit from the Pebbling line or a sniper | that hit ×2.5; shards deal 50% of it to nightmares within 1 cell | Held | same (Held is already halved) |
+| **Drown** | Damp + 5 Drowsy | sleeps **2 s**, once per nightmare | all Drowsy | no sleep: −30% speed for 2 s instead |
+| **Pinned** | Marked + (Held or 5 Drowsy) | the next hit is a guaranteed crit at **×3** (or the hitter's multiplier if higher) | Marked | same |
+| **Smother** | Held + 1+ Spored | Spored ticks 3× as fast while Held | — (ends with Held) | same |
+| **Lightning Rod** | Marked + 1+ Static | Static bolts (5-stack bolts and Thunderclap arcs) within **3 cells** strike the Marked nightmare instead, at ×2 | — (while Marked) | same |
+
+- On a Damp nightmare, Static never reaches its normal 5-stack bolt: Thunderclap fires at 3 first.
+- **Chains:** a Reaction caused by another Reaction's output within 1 s adds +1 to the chain.
+  Chains are visual and tracked; they add no damage of their own (the Legendary *Dawnbreak* below
+  changes that).
+- **Performance:** at most ~6 full Reaction effects per second; the rest use the `_lite` sheets.
+  Rules always apply in full; only visuals are capped.
+
+## Reaction cards
+
+| # | Card | Rarity | Effect | Tags | Needs | Pool |
+|---|---|---|---|---|---|---|
+| 79 | **Rolling Thunder** | Uncommon | Thunderclap arcs reach 3.5 cells | storm, water, reaction | Stormcap + any Dewdrop | Start |
+| 80 | **Wildfire Spores** | Uncommon | Ignite spreads 2 stacks, within 1.5 cells | spore, storm, reaction | Sporeling + Firefly Jar | Grove |
+| 81 | **Deep Water** | Uncommon | Drown sleeps 3 s; bosses −40% speed | water, sleep, reaction | Dewdrop | Grove |
+| 82 | **Quick Reactions** | Rare | Reaction cooldowns 1.5 s → 0.75 s | reaction | own 2 Reaction pairs | Grove |
+| 83 | **Dawnbreak** | Legendary | a **×10 chain** Dawnburst deals 10% of max health to every nightmare within 4 cells (bosses 2%) | reaction | — | Grove |
+
+- *Conductive Soil* (Entwined, Rare) now also means **Thunderclap arcs reach every Damp nightmare
+  in the Warden's range**, not just 2.5 cells. It's the Storm Grid capstone.
+- Deepened: **Rolling Thunder II** arcs 4.5 cells and add 2 Static; **Deep Water II** Drown can
+  happen twice per nightmare.
+
 ## Data (`UpgradeData`)
 
 `id`, `display_name`, `description`, `rarity`, `kind` (stat / rule / economy; evolutions are

@@ -91,7 +91,7 @@ Wardens mattered. Builds are the heart of the roguelite, so **the game must show
 
 | Feedback | Design |
 |---|---|
-| **Combo callouts** | a short word pops over the nightmare when a synergy fires, in the triggering Warden's colour: *Conducted!* (lightning through Damp), *Popped!* (Puffball burst), *Asleep!* (Dreamshroom), *Shattered!* (crit splash), *Weak!* (family weakness). Throttled so a busy maze shows a few at a time, never a wall of text |
+| **Combo callouts** | a short word pops over the nightmare when a synergy fires, in the triggering Warden's colour: *Conducted!* (lightning through Damp), *Popped!* (Puffball burst), *Asleep!* (Dreamshroom), *Splintered!* (crit splash from *Shattering Blow*), *Weak!* (family weakness). Reactions have their own callouts (below). Throttled so a busy maze shows a few at a time, never a wall of text |
 | **Damage numbers** | setting: **off / big hits only (default) / all**. Crits larger with a ping; weakness hits bright; resisted hits small and grey; status ticks tiny |
 | **Status icons** | always visible on nightmares, with stack counts (already specced above); flash when a status is *used* by a combo (Damp flashes as lightning jumps) |
 | **Placement links** | while placing, a small vine icon links the ghost to nearby Wardens it combos with ("combos with Rain Lily"); the Warden panel lists its active links |
@@ -101,6 +101,49 @@ Wardens mattered. Builds are the heart of the roguelite, so **the game must show
 
 These double as teaching: a new player sees *Conducted!* once and understands why Rain Lily and
 Stormcap belong together.
+
+### Impact tiers: bigger combos must feel bigger
+
+Added 2026-09-27 with Reactions (`tower_design.md`). Every combat event belongs to one tier, and
+each tier is clearly louder than the one below. Effects are in `assets/effects/` (index:
+`effects.json`, generator: `tools/effect_art_generator.gd`).
+
+| Tier | Examples | Feedback |
+|---|---|---|
+| **Hit** | a normal attack | small flash, damage number (if on) |
+| **Crit** | crit, weakness hit | `crit_flare` gold glint, bigger gold number, a sharp ping |
+| **Combo** | quiet bonuses (*Conducted!*, *Weak!*) | callout text, `status_flash` on the status that was used |
+| **Reaction** | Thunderclap, Ignite, Mushrooming… | its own effect and sound, callout in its colour, a small screen shake, **light threads** |
+| **Signature** | final-form moments | its own big effect (`thunderhead_strike`, `monsoon_sweep`, `moonstone_beam`, `puffball_bloom`, `long_way_home_drag`) |
+| **Chain** | ×5 / ×10 | `chain_badge` + digits; ×5: hitstop + `surge`; ×10: **Dawnburst** (`dawnburst`), Wardens flare, music stinger |
+
+**Reaction callouts** (colours from the art chat, matching each effect):
+
+| Reaction | Callout | Colour | Effect |
+|---|---|---|---|
+| Thunderclap | *Thunderclap!* | `#bfe0ff` | `thunderclap` + `thunderclap_arc` (64×16, stretched between nightmares) |
+| Ignite | *Ignite!* | `#ffc040` | `ignite` |
+| Mushrooming | *Mushrooming!* | `#c080ff` | `overgrowth`, then `overgrowth_cloud` (ground loop) |
+| Shatter | *Shatter!* | `#bff4ff` | `shatter` |
+| Drown | *Drown!* | `#6ab0ff` | `drown` |
+| Pinned | *Pinned!* | `#e8ecff` | `pinned` |
+| Smother | *Smother!* | `#a8d060` | `smother` (loops while Held) |
+| Lightning Rod | *Lightning Rod!* | `#fff27a` | `lightning_rod` (anchor = impact point) |
+
+- **Light threads:** when a Reaction fires, a thin warm line (`light_thread`, stretched) runs
+  for ~0.3 s from **each Warden whose status was part of it** to the nightmare. Players can see
+  *who made that happen*, the thing the first playtest said was missing.
+- **Discovery:** the first time a Reaction fires (ever, saved in `HeartwoodMemory`), a small card
+  slides in: *"Reaction discovered: Thunderclap. Damp + Static."* Discovered Reactions fill a
+  **Codex** page (reachable from the pause menu and the Grove), with undiscovered ones shown as
+  silhouettes. Finding them all can be a Steam achievement.
+- **Size check (first playtest with effects):** Thunderclap's burst, Ignite, Pinned and Shatter
+  peak small inside their 64 px frames, and `monsoon_sweep` is faint. If they get lost over a busy
+  maze, play them at **1.5–2× scale** before asking for new art.
+- **Budget:** at most ~6 full Reaction effects per second; the rest use the `_lite` sheets
+  (`thunderclap_lite`, `ignite_lite`, `dawnburst_lite`). Callouts stay throttled. Game rules
+  always apply in full; only visuals are capped.
+- **Rest report / results:** add Reactions triggered per type and the **longest chain**.
 
 ## Panels
 
@@ -219,7 +262,7 @@ Side: a run summary (Dreams, families, active Omen, time played).
 | Display | fullscreen/windowed, resolution, V-sync, **UI scale** |
 | Gameplay | Heartwood whispers, Auto-drift default, health bars (hit / always), screen shake, confirm before selling during a drift |
 | Controls | rebind every action, controller layout (see controller topic) |
-| Accessibility | colour-blind-friendly blight cue (outline/haze), text size, reduced motion, high-contrast route line |
+| Accessibility | colour-blind-friendly blight cue (outline/haze), text size, reduced motion, high-contrast route line, **reduce flashes** (photosensitivity: lite effects everywhere, no `surge`/Dawnburst flash), **hitstop and slow-motion** on/off |
 | Language | once translations exist |
 
 ## Controls (keyboard and mouse)

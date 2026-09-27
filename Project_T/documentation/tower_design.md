@@ -189,6 +189,68 @@ set small. (Nightmares that resist or exploit these: see `enemy_design.md`.)
 
 Towers also interact **through placement** and **through Dreams** (rule changes that link lines).
 
+## Reactions: combos you can see
+
+Added 2026-09-27. The bonuses above are quiet: they make numbers bigger. **Reactions** are the
+loud layer: when two specific statuses meet on one nightmare, a named event goes off with its own
+effect, sound and callout. Every Reaction is **warm light breaking cold shadow**, the game's core
+look. Any Warden can set one up (the rule that towers never reference each other still holds), and
+the bigger the combo, the more of the screen fills with the Heartwood's light.
+
+| Reaction | Statuses | What happens | Effect (`assets/effects/`) |
+|---|---|---|---|
+| **Thunderclap** | Damp + 3 Static | discharges and **arcs to every Damp nightmare within 2.5 cells**; each arc adds Static, so wet crowds chain | `thunderclap`, `thunderclap_arc` |
+| **Ignite** | Spored + Static | all Spored stacks **detonate at once**; 1 stack spreads to neighbours (which may Ignite too) | `ignite` |
+| **Mushrooming** | Spored + Damp | mushrooms burst out of the nightmare and leave a **spore cloud** on the tile that spreads Spored | `overgrowth`, `overgrowth_cloud` |
+| **Shatter** | frozen/Held + Damp, then a crit or heavy hit | that hit does ×2.5 and ice shards splash nearby; the freeze ends | `shatter` |
+| **Drown** | Damp + max Drowsy | falls asleep for 2 s, **no Dreamshroom needed** | `drown` |
+| **Pinned** | Marked + (Held or max Drowsy) | the next hit is a **guaranteed ×3 crit** | `pinned` |
+| **Smother** | Held + Spored | Spored ticks 3× as fast while Held | `smother` (loops) |
+| **Lightning Rod** | Marked + Static | Static bolts nearby **redirect** to the Marked nightmare at ×2 | `lightning_rod` |
+
+Numbers, cooldowns and boss rules: `dream_design.md` ("Reaction numbers").
+
+**Which families make which Reactions** (a quick guide for family picks and Dream design):
+
+| | Damp (Dewdrop) | Static (Firefly Jar, Chime Stone) | Spored (Sporeling) | Marked (Lanternmoth, Rootlight) | Held (Rootling, Frostfern) | Drowsy (Bloomcap, Lullaby Bell) |
+|---|---|---|---|---|---|---|
+| **Damp** | | Thunderclap | Mushrooming | | Shatter | Drown |
+| **Static** | | | Ignite | Lightning Rod | | |
+| **Spored** | | | | | Smother | |
+| **Marked** | | | | | Pinned | Pinned |
+
+Damp is the most-connected status on purpose: Dewdrop is the "combo family" that makes other
+families react. Whirligig's Gust spreads statuses, so it sets up Reactions across a whole group.
+
+### Chains
+
+Reactions can set off Reactions: Thunderclap arcs add Static to wet nightmares (more
+Thunderclaps), Ignite spreads spores onto charged ones (more Ignites), Mushrooming clouds spread
+Spored into Damp crowds. When a Reaction is caused by another within **1 s**, it's a **chain**:
+
+- **Chain badge** over the latest Reaction: *×2, ×3, ×4…* with a rising chime (`chain_badge`,
+  `chain_digits`).
+- **×5**: a short hitstop and a warm colour surge over the screen (`surge`).
+- **×10: Dawnburst.** A big radial flare (`dawnburst`), every Warden that took part flares, every
+  nightmare dispelled in the chain cracks with extra light, and a short music stinger. This is the
+  screenshot and trailer moment.
+- Chains are tracked per run (longest chain, shown on the results screen).
+
+### Final-form signatures
+
+Final forms get one unmistakable moment each, so reaching one feels like a reward:
+
+| Final form | Signature | Effect |
+|---|---|---|
+| Thunderhead | every 5th strike is a **bolt from the sky** with a screen flash | `thunderhead_strike` |
+| Monsoon | a **sheet of rain** sweeps across its range | `monsoon_sweep` |
+| Moonstone | its first shot on each nightmare is a **moonbeam from above** | `moonstone_beam` |
+| Puffball | each pop is a **big bloom of light** | `puffball_bloom` |
+| Long Way Home | you see the **roots drag** the nightmare back along the path | `long_way_home_drag` |
+
+How Reactions are shown (impact tiers, light threads, discovery cards, settings): `screens_ui.md`,
+"Combat feedback".
+
 ## Critical hits
 
 Every attacking Warden has a **crit chance** and a **crit multiplier**. A crit is a hit that does
@@ -237,7 +299,7 @@ simple.
 
 | Build | Wardens | Key Dream | How it plays |
 |---|---|---|---|
-| **Storm Grid** | Rain Lily/Monsoon + Stormcap/Thunderhead | *Conductive Soil* | soak the path, then lightning spreads through the whole drift |
+| **Storm Grid** | Rain Lily/Monsoon + Stormcap/Thunderhead | *Conductive Soil* | soak the path, then Thunderclap chains race through the whole drift |
 | **The Long Walk** | Thornwalls + Driftspore + Long Way Home | *The Long Walk* | huge maze, stacking damage over time, nightmares dragged back past it all |
 | **Spore Bomb** | Puffball + Mistveil + Tangleroot | *Chain Bloom* (Puffball bursts set off each other) | hold nightmares in fog, stack spores, bursts cascade |
 | **Sniper's Rest** | Beacon + Moonstone (+ Boulderback) | *Starlit Aim* | a few Wardens deep inside the maze, enormous crits; boss and Phantom killer |
@@ -283,3 +345,7 @@ behavior**: projectile / chain / beam / pulse / trap / none, `evolves_to: Array[
 branches). Crits are rolled by the Warden and passed on:
 `Enemy.take_damage(amount, line, is_area, is_crit)` so the enemy can show the crit flare.
 `StatusEffect` resources (id, duration, max stacks) + a status handler on `Enemy`.
+`ReactionData` resources (id, the two statuses + thresholds, which it consumes, effect id from
+`assets/effects/effects.json`, callout text and colour, cooldown, boss rule), checked by the
+status handler whenever a status is added, so a new Reaction is mostly data. A small
+`ChainTracker` (in the run) counts Reactions caused by Reactions within 1 s.
