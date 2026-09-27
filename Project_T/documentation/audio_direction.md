@@ -13,6 +13,12 @@ Phase 4, topic 12 of `design_plan.md` (the audio half; visuals are in `art_direc
    a Night Hound pack or a Procession coming before they see it.
 4. **Unsettling, not harsh.** Whispers, drones and silence rather than screams and jump scares.
    Nothing ear-piercing, nothing that punishes long sessions (runs are 1–2 hours).
+5. **Warm, not weak.** Wardens have soft *timbres* (wood, water, bells) but sharp *transients* and
+   real low end. Combat must feel like it lands. Gentle tone, firm hit.
+
+**First listen (2026-09-27, placeholder build):** the wind was too strong with a hard hiss under it,
+the music was too loud, and attacks had no impact. The sections below are revised for that; see
+"Revisions from the first listen" at the end for the summary.
 
 ## Instrument palette
 
@@ -76,17 +82,33 @@ Three parts, about 0.5 s: **shriek** (short, filtered, pitched by size, never ha
 slightly; when several dispels land close together, the chimes step up in pitch like a combo. Dew
 landing on the leaves: a tiny tinkle.
 
-### Wardens (warm and soft)
+### Wardens (warm, not weak)
 
-| Sound | Design |
-|---|---|
-| Sporeling puff | soft pop + breath |
-| Pebbling hit | woody "thock" |
-| Dewdrop splash | a clear droplet |
-| Firefly spark / chain | a warm, crackly zap (not electric-harsh); chains ripple |
-| Root pulse | wooden knock + low rumble |
-| Acorn aura | a soft chime when a neighbour is buffed (rare, not every tick) |
-| Crit | the normal hit + a bright ping |
+Every attack has **two parts**: a small **launch** when the Warden fires, and a **hit** when it lands.
+The hit carries the impact. It's built in three layers:
+
+- **Transient** (first ~10 ms): a click or snap in the 2–4 kHz range. This is what makes it feel sharp.
+- **Body** (~10–120 ms): a low thump, 60–150 Hz depending on the family. This is the weight.
+- **Tail** (up to ~300 ms): the family's colour (splash, crackle, rustle), quieter.
+
+| Family | Launch (quiet) | Hit (the impact) |
+|---|---|---|
+| Sporeling (spore) | soft pop + breath | a full, round "puff" with a soft low thump |
+| Pebbling (stone) | sling whip | **heavy thud**: a hard wood/stone crack over a deep body |
+| Dewdrop (water) | a drop falling | **splash**: a sharp droplet snap, a low "plunk", a spray tail |
+| Firefly Jar (light) | a warm spark | a **crackle burst**; chains ripple a quieter crackle down the line |
+| Rootling (root, pulse) | — (the pulse is the hit) | a **ground boom**: wooden knock + deep sub rumble, felt more than heard |
+| Sprout (neutral) | a soft pluck | a light, bright "tock" |
+| Acorn aura | — | a soft chime when a neighbour is buffed (rare, not every tick) |
+| Crit | — | the normal hit + a bright ping + an extra low punch |
+| Sunpetal / Midsummer beam | — | a warm hum that climbs in pitch as the beam ramps, with a soft sizzle on each tick |
+
+- **Weight by target:** hits on tanky or big nightmares (Husk, Barrow Wight, bosses) are pitched a
+  little lower and fuller; hits on small ones (Sob, Creep, Wraith) lighter and higher.
+- **Resisted / weak** (the grey puff / sparkle): resisted hits are dulled (duller transient, less
+  body); weak hits get a brighter transient. The player hears the matchup.
+- **Level:** hits sit about 6 dB above where the first placeholder attacks sat (they were at −9 dB and
+  far too quiet); launches stay low. Voice limiting (see Mix rules) keeps a full maze from turning to mush.
 
 ### Building and the map
 
@@ -119,10 +141,30 @@ A night forest bed per act (wind, leaves, insects in summer, dripping in autumn 
 in winter), **warmer and fuller near the Heartwood** and **thinner, colder, with occasional
 whispers** toward the map's edges and the start, where nightmares come from.
 
+**Felt more than heard.** The bed sits well under everything (about −10 dB below the music; the
+Music slider controls both). Rules for it:
+
+- **No constant hiss.** Never a steady layer of bright noise: it reads as static, not forest.
+  Leaves are **occasional rustles** every few seconds, scattered and panned.
+- **Wind is low and moving.** Dark (mostly below ~400 Hz), in **gusts** that rise and fall over
+  several seconds, with calm stretches between them. It never sits in the midrange where the music
+  and the whispers live.
+- **Sparse events** over the bed: a far owl, a creak, a whisper. Most of the time, quiet.
+- **Reacts to the run:** thins out as more nightmares are on the field (the dread layers take over),
+  and swells back, warmer, at every rest.
+- The **Omen wind** (the choice screen gust) follows the same rules: a soft, low gust, not a roar.
+
 ## Mix rules
 
-- **Priority:** leaf lost > boss > dispel > nightmare signatures > Warden attacks > ambience.
-  Duck lower priorities briefly for the top two.
+- **Priority:** leaf lost > boss > dispel > Warden hits > nightmare signatures > Warden launches >
+  music > ambience. Combat sits **on top of** the music, never under it.
+- **Levels (relative):** SFX peaks at 0 dB reference; music about −10 dB under the SFX; ambience about
+  −10 dB under the music. Default settings: Sounds 100%, Music **55%** (was 80%).
+- **Ducking:** the music dips ~4 dB for about half a second under a dispel, and ~8 dB for about a
+  second under a lost leaf and boss moments (roar, charge, dispel). The ambience ducks along with it.
+- **Music by phase:** during drifts the music plays ~3 dB lower than at rests, so combat owns the
+  space and the rest is the exhale. The dread layers are also quieter than the warm base; they add
+  tension, not volume. Adding layers must never make the music louder overall.
 - **Many Wardens:** attack sounds are **voice-limited** (a few at a time per type), randomised, and
   get quieter as more of them play, so a 40-Warden maze doesn't become noise.
 - **Game speed 2×/3×:** don't pitch-shift; throttle repeated sounds instead.
@@ -160,3 +202,17 @@ motif per boss); win and loss stingers.
 Hound, Procession, Hollow Stag, Mire Hag; the 4 base Warden attacks + branches in scope; plant,
 evolve, sell, invalid, tend, move; leaf lost; Dew; UI set (buttons, Dream reveal by rarity, family
 bell, rest); ambience beds for acts 1–2.
+
+## Revisions from the first listen (2026-09-27)
+
+Placeholder sounds exist (`tools/sound_generator.gd`, `assets/audio/`, `Sound` autoload,
+`SoundHooks`). The first listen found three problems; the fixes are in the sections above:
+
+| Problem | Cause in the placeholder | Change |
+|---|---|---|
+| Wind too strong, hard noise under it | a constant high-passed hiss ("leaves") under a midrange wind; ambience only slightly under the music | no constant hiss, sparse rustles; low gusting wind with calm gaps; ambience ~10 dB under the music (see Ambience) |
+| Music too loud | every stem normalised equally, layers add up; no ducking; Music default 80% | music ~10 dB under SFX, default 55%, dread layers quieter than the base, ducking, lower during drifts (see Mix rules) |
+| Attacks lack impact | only a tiny launch sound, no hit sound when the shot lands; attacks at −9 dB and under 0.1 s | launch + **hit** with transient / body / tail, family weights, hit level about 6 dB up (see Wardens) |
+
+Open question: whether every attack keeps a launch sound, or only the slower, heavier Wardens
+(Pebbling, Rootling) do and the fast ones are hit-only. Default: all keep it, very quiet.
