@@ -51,7 +51,11 @@ launch flag) that starts a normal run with:
 
 While testing, note for each Warden: fun?, readable?, too strong / too weak?, needs art or sound
 work? Then pick the demo families (2–3) and branches from the notes. Must be off (and hidden) in
-demo and release builds.
+demo and release builds, and **Test Grove runs don't bank Seeds**.
+
+**Built** (2026-09-27): Settings → Developer → Test Grove (applies from the next run), or launch
+with `-- --test-grove`; debug builds only. Tools panel on the left: +500 Dew (or **F9**), and "Skip
+to drift N" at a rest.
 
 ## Not in the demo
 
