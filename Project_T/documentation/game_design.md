@@ -1,114 +1,179 @@
 # Game Design — *The Heartwood Remembers*
 
-Story and tone: see `story.md`. Goal: commercial release on Steam, all art original (the Foozle
-packs in `assets/` are placeholders).
+The overview. Each section summarises a detailed doc; **the detailed doc wins** if they disagree.
+Goal: commercial release on Steam, all art original (the Foozle packs in `assets/` are
+placeholders).
 
-## Core loop (one run)
+| Doc | Covers |
+|---|---|
+| `pitch.md` | hook, tagline, store page, capsule and trailer concepts |
+| `story.md` | tone, premise, the Hollow, naming (Wardens, Dew, leaves, drifts) |
+| `run_design.md` | run structure, drifts, rests, rules, economy, scaling |
+| `tower_design.md` | Warden families, evolutions, status effects, synergies, build archetypes |
+| `warden_stats.md` | numbers for every Warden, new mechanics the unbuilt ones need |
+| `enemy_design.md` | nightmares: roster, traits, resistances, stats, bosses |
+| `acts_1_2.md` | creature and boss stats, special drifts, the drift-by-drift plan for drifts 1–50 |
+| `dream_design.md` | in-run upgrade pool, offer rules, status numbers |
+| `meta_design.md` | Seeds, Memory Grove, milestones, Blight Levels, Memories, true ending |
+| `onboarding.md` | teaching across the first runs |
+| `screens_ui.md` | screen flow, HUD layout, panels, choice screens, settings, controls |
+| `demo_scope.md` | what's in the demo, timeline, success measures |
+| `design_plan.md` | what's designed and what still needs fleshing out |
+
+## Hook
+
+**Your towers are the maze, and nightmares are hunting the dream.** A dark fairytale: charming
+Warden spirits hold a dreaming forest against cold, hungry nightmares. Proposed tagline: *Grow a
+living maze. Hold back the nightmares.* (`pitch.md`, `story.md`)
+
+## Core loop
+
+**A run** (1–2 hours, 100 drifts, saved at every rest):
 
 ```
-Title → New run → [Build phase → Drift → cleanse creatures, earn Dew]
-      → every few drifts: Dream (pick 1 of 3) → repeat
-      → Win (survive all drifts) or Lose (all leaves fall) → Results (Seeds earned)
-      → Memory Grove (spend Seeds) → Title
+New run (new random forest) → only Sprout + Thornwall
+  → drift 1 → pick your first Warden family (1 of 3)
+  → drifts flow in blocks of 5 → rest: Dream (pick 1 of 3), rebuild at full refund
+  → … every 25th drift is a boss → soothe it → new Warden family + a Rare-or-better Dream
+  → drift 100: The Hollow Oak → win   (or all leaves fall → the Heartwood goes dormant)
+  → Results (Seeds earned) → Memory Grove (spend Seeds, unlock Memories) → next run
 ```
 
-- **Build phase:** place Wardens (towers are walls; path must stay open). Player presses
-  **Start Drift** when ready. No timer; this is a relaxed game.
-- **Drift:** a wave of blighted creatures walks from start to the Heartwood.
-- **Cleanse:** Wardens soothe creatures; at 0 health a creature is cleansed (colour returns, it
-  leaves the path) and drops **Dew**.
-- **Leaves:** each creature reaching the Heartwood wilts a leaf. 0 leaves = run over.
-- **Dream:** every N drifts, choose 1 of 3 random upgrades.
+- **Drifts** (waves): nightmares hunt their way from the forest edge to the Heartwood. Within a
+  block of 5 they flow into each other (Auto-drift can be turned off).
+- **Dispel**: at 0 health a nightmare shrieks, cracks with light and bursts into motes that become
+  **Dew**.
+- **Leaves**: each nightmare reaching the Heartwood feeds on the dream: a leaf blackens and falls
+  (bosses: 5). 0 leaves = the Heartwood sinks into dreamless sleep, run over.
+- **Rests** after every 5th drift: time pauses, a Dream, free rearranging, autosave.
 
-Prototype targets (all data, easy to tune): 10 drifts per run, a Dream every 2 drifts.
+## Run structure (`run_design.md`)
 
-## Run resources
+| Act | Drifts | Boss |
+|---|---|---|
+| 1. Forest's Edge | 1–25 | The Hollow Stag |
+| 2. Deep Wood | 26–50 | The Mire Hag or The Moth Queen |
+| 3. Misty Hollow | 51–75 | the other one |
+| 4. Heartwood Glade | 76–100 | The Hollow Oak (always) |
+
+One map per run. Act breaks: the season changes, 3 leaves regrow. Creature health ×1.035 per drift
+(×30 by drift 100), plus more and tougher creatures.
+
+## Rules
+
+| Rule | Decision |
+|---|---|
+| Building | any time, during drifts and rests; the path must always stay open |
+| Selling | full refund during a rest, half while creatures are walking |
+| Speed | pause, 1×, 2×, 3×; building works while paused |
+| Call early | start the next drift sooner for a small Dew bonus |
+| Saving | autosave at every rest; Save & Quit any time (resumes from the last rest) |
+
+## Resources
 
 | Resource | Source | Spent on |
 |---|---|---|
-| Dew | cleansed creatures, drift-clear bonus | placing Wardens |
-| Leaves | starting value (perks can raise it) | lost when a creature reaches the Heartwood |
-| Seeds | end of run (see Meta) | Memory Grove unlocks |
+| **Dew** (in-run) | dispelled nightmares, rest bonus, perfect blocks, bosses; start with 60 | Wardens, evolutions, tending obstacles |
+| **Leaves** (in-run) | start with 20, +3 per act break | lost when creatures reach the Heartwood |
+| **Seeds** (meta) | end of every run, win or lose | Memory Grove unlocks |
 
-Per-run state lives in a `RunState` node in the main scene (Dew, leaves, current drift, chosen
-dreams) and emits signals (`dew_changed`, `leaves_changed`, …). Restarting a run reloads the
-scene. Starting values are read from one place so meta perks can modify them.
+Per-run state lives in `RunState` (`%RunState`); starting values are read from one place so meta
+perks can modify them.
 
-## Dreams (in-run upgrades)
+## The forest (map)
 
-Kinds:
-- **New Warden:** adds a tower type to the build menu.
-- **Stat growth:** Quickened Sap (attack speed), Deeper Calm (damage), Longer Roots (range).
-  Global or per-Warden-type.
-- **Growth path:** a Warden's branch upgrade (e.g. Sporeling → Bloom or Drift).
-- **Rarity tiers:** common / rare / (later) legendary.
+- **A new random forest every run**: wobbly **ridges** of rocks and trees from alternating walls
+  make the starting route zig-zag; tree groves and rock clusters vary per map.
+- **Obstacles**: **Withered Trees** ("Tend", 5 Dew) and **Mossy Boulders** ("Move", 8 Dew) block
+  creatures and building. Tending one opens space (and often a shortcut) and adds **+1 Seed** at
+  run end: in-run power vs long-term progress.
+- Routes are always the shortest path, and re-routes stay local when there's a tie (routes are
+  "sticky"), so small changes don't send creatures across the map.
+- Later: more biomes ("New forests" in the Grove), special tiles (`design_plan.md` topic 9).
 
-Data: `UpgradeData` resources. The Dream pool only draws from **unlocked** upgrades (see Meta).
+## Wardens (towers) — `tower_design.md`
 
-## Wardens (towers)
+**Towers are walls, so builds should care about the maze.** Every run starts with the **Sprout**
+and **Thornwall** (a cheap plain wall). **Warden families** come from the pick after drift 1 and
+from the bosses at 25, 50 and 75: **4 of the 6 families per run** (Sporeling, Pebbling, Dewdrop,
+Firefly Jar, Rootling, Acorn). Each family has 2 branches and a final form per branch.
 
-| Warden | Role | Growths |
+- **Dreams unlock, Dew pays**: a Dream makes a branch or final form available; evolving a specific
+  Warden costs Dew. Evolving happens in place, so the path never changes.
+- Wardens combo **through status effects** on creatures (Damp, Drowsy, Spored, Marked, Static,
+  Held) and **through placement** (path length, clusters, chokepoints, wall count).
+- When fewer than 3 new families are available (early in the meta), empty pick slots become
+  **Family Blessings** for a family you own.
+
+## Dreams (in-run upgrades) — `dream_design.md`
+
+**A Dream after every 5th drift (19 per run)**: pick 1 of 3, or *Let it pass* for +15 Dew.
+
+| Rarity | Feel | Examples |
 |---|---|---|
-| Sporeling | basic spore puff | Bloom (slow clouds) / Drift (stacking soothe over time) |
-| Mossback | short range, strong single target | — |
-| Lanternmoth Roost | long range, reveals fog-hidden creatures | — |
-| Rootcurl | pulls creatures back a tile | — |
-| Elder Stump (rare) | aura buffs neighbours | — |
+| Common | stat growth, stacks without limit | Quickened Sap +10% attack speed |
+| Uncommon | branches, small rules | Stormcap; *Cozy Corners*: Wardens beside a bend +15% soothe |
+| Rare | final forms, combo enablers | Thunderhead; *Conductive Soil* |
+| Legendary (act 2+) | changes how you play | *The Long Walk*: +1% soothe per 4 path tiles |
 
-Data: `TowerData` resources (cost, range, damage, attack speed, texture).
+Rarity shifts toward Rare/Legendary each act; boss Dreams guarantee a Rare; pity after 3 Dreams
+without one; cards for families you own are 2× as likely. Target: a deliberate dream build is
+complete by drift 50 in about 1 run in 3. The full game's pool should grow to ~70 cards.
 
-## Blighted creatures (enemies)
+## Nightmares (enemies) — `enemy_design.md`
 
-| Creature | Trait |
-|---|---|
-| Leaf Bug | common, quick |
-| Bark Beetle | slow, sturdy |
-| Dusk Moth | fast, hidden in fog |
-| Puffcap | splits when cleansed |
-| Old Stag | boss drift |
+**Nightmares** (evil spirits, ghosts and shadow things) should **test the maze, not just the
+damage**: basics (Shade, Husk, Lurker), maze testers (Phantom through walls, Gravecrawler, Night
+Hound, Procession, Sleepwalker), status testers (Barrow Wight, Drowned One, Watcher, Ash Crawler,
+Will-o'-Wisp), support/swarm (Mourner, Widow, Shellbound, Whisper Swarm, Dream Thief, Weeper) and
+bosses (The Hollow Stag, The Mire Hag, The Moth Queen, The Hollow Oak). Resistances by Warden
+family give each run's picks weight. Dark, cold and unsettling, never gory. Over 100
+drifts, every block should feel different (a new creature, a special drift, a mini-boss).
 
-Data: `EnemyData` resources. Blighted look = desaturated `modulate`; cleansed = full colour.
+## Drifts (data)
 
-## Drifts (waves)
+`DriftData` resources: groups of creatures (type, count, spacing, delay). A run is an ordered list
+of 100 drifts in blocks of 5; hand-written for act 1 (`run_design.md`), then composed from rules
+and the health scaling for later acts.
 
-`DriftData` resource: list of groups (creature, count, spacing, delay). A run is an ordered list
-of drifts. Clearing a drift grants bonus Dew.
+## Meta-progression — `meta_design.md`
 
-## Meta-progression
+- **Seeds** every run (drifts survived, nightmares dispelled, bosses, obstacles tended, win bonus;
+  more at higher Blight Levels). The full Grove takes ~15–20 hours.
+- **Memory Grove**: 4 roots: **Wardens** (Pebbling, Rootling, Acorn families; final forms),
+  **Dreams** (locked cards incl. Legendaries), **Perks** (capped power: starting Dew, leaves,
+  rerolls, banish, 4-card Dreams), **Forests** (new biomes).
+- **Milestones** (free unlocks, also Steam achievements) and **Blight Levels 1–10** (Slay the
+  Spire style, unlocked by the first win, +10% Seeds each).
+- **The Hollow's story in 10 Memories**, one every 3 Grove unlocks plus milestones, leading to the
+  true ending run, **The Long Walk Out**.
+- **Design rule:** unlocks mostly widen options; power perks stay small and capped.
 
-**Seeds** are earned every run, win or lose: per drift survived + creatures cleansed + win bonus.
+Tech: `HeartwoodMemory` autoload, save file in `user://` (Steam Auto-Cloud), versioned;
+`UnlockData`, `MemoryData` resources.
 
-Spent in the **Memory Grove** (between-runs screen; each unlock grows as a plant):
+## Onboarding and demo
 
-| Kind | Examples |
-|---|---|
-| New Wardens | unlock Mossback, Lanternmoth… into the Dream pool |
-| Better Dreams | rare-tier dreams, Growth paths, stronger versions |
-| Perks | +starting Dew, +1 leaf, one Dream reroll per run, 4 Dream choices instead of 3 |
-| New forests | new biomes / map types |
-
-**Milestones:** some unlocks come from achievements instead (e.g. cleanse 500 Leaf Bugs →
-Rootcurl). These map to Steam achievements later.
-
-**Blight Levels:** after the first win, stackable difficulty modifiers for more Seeds (like
-Ascension). The long-term replayability hook.
-
-**Design rule:** unlocks mostly **widen options**; raw-power perks stay small and capped so
-early drifts are never trivial.
-
-Tech: `HeartwoodMemory` autoload, save file in `user://` (works with Steam Auto-Cloud),
-`UnlockData` resources (id, cost, kind, prerequisites, effect). Save format is versioned.
+- **Onboarding** (`onboarding.md`): no tutorial mode; one-line "Heartwood whispers" teach each
+  thing the first time it matters, mostly in act 1 of the first run.
+- **Demo** (`demo_scope.md`): drifts 1–50 (the Hollow Stag and the Mire Hag), 2 family picks, 9 Dreams,
+  **no meta progression**, replay freely; Seeds are saved and carry into the full game; a Grove
+  teaser and a Wishlist button at the end.
 
 ## Build order
 
-1. Combat & cleanse: tower range, targeting, projectile/puff; enemy health; cleanse on 0.
-2. Stakes & economy: leaves, Dew, tower cost, lose condition, HUD.
-3. Drifts: `DriftData`, build phase, Start Drift button (replaces the temp spawner).
-4. Dreams: pause every N drifts, pick 1 of 3 from `UpgradeData`.
+1. ~~Combat & dispel~~ (done; restyle the cleanse effect as a dispel for the nightmare theme).
+2. Stakes & economy: ~~Dew, tower cost~~ (done); leaves, lose condition.
+3. Drifts: `DriftData`, blocks of 5, rests, Auto-drift, call early, family picks, mid-run save
+   (replaces the temporary spawner).
+4. Dreams: `UpgradeData`, the offer rules, the Dream screen.
 5. Run end: win/lose, results screen with Seeds earned.
-6. Title screen & scene flow.
-7. Meta: `HeartwoodMemory`, save/load, `UnlockData`, Memory Grove screen.
-8. Milestones, Blight Levels, more content.
+6. Title screen & scene flow (Continue for saved runs).
+7. Meta: `HeartwoodMemory`, save/load, `UnlockData`, Memory Grove screen, Memories.
+8. Content: act 1–2 creatures and bosses (demo), then acts 3–4, milestones, Blight Levels.
 
-Release prep (parallel, later): Steam page early for wishlists, settings menu, controller/Steam
-Deck support, localization-ready text, credits (Godot MIT notice), Next Fest demo.
+Current code status lives in `CLAUDE.md`.
+
+**Release prep** (parallel): Steam page early for wishlists (`pitch.md`), original art replacing
+the Foozle placeholders, settings menu, controller/Steam Deck support, localization-ready text,
+credits (Godot MIT notice), then the demo plan in `demo_scope.md`.

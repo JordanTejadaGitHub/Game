@@ -46,7 +46,7 @@ points.
   Dreams the extreme is +190% in one stat, which is fine: creatures reach ×30 health by drift 100,
   and a player who puts everything into one stat gives up branches and rules. Watch Grove perks
   that add Dreams or rerolls.
-- **Let it pass:** you may skip a Dream for +15 Dew. A cozy escape hatch when nothing fits.
+- **Let it pass:** you may skip a Dream for +15 Dew. An escape hatch when nothing fits.
 - **Reroll / banish:** not in the base game; Memory Grove perks add them (`meta_design.md`).
 - **Branch cards** say what they allow, e.g. *"Stormcap: Firefly Jars can now grow into
   Stormcaps (45 Dew)."*
@@ -104,7 +104,7 @@ Rootling, Acorn) brings its own cards.
 |---|---|---|---|---|---|
 | 28 | **Thunderhead** | Stormcaps can grow into Thunderheads (90 Dew) | storm | Stormcap | Start |
 | 29 | **Conductive Soil** | lightning jumps to *every* Damp creature in range | storm, water | Entwined: Stormcap + Rain Lily | Start |
-| 30 | **Spore Cascade** | a cleansed creature's Spored stacks spread to the 2 nearest creatures | spore | Sporeling | Start |
+| 30 | **Spore Cascade** | a dispelled nightmare's Spored stacks spread to the 2 nearest nightmares | spore | Sporeling | Start |
 | 31 | **Static Field** | Static bolts also hit creatures within 1 tile | storm | Firefly Jar | Grove |
 | 32 | **Guiding Light** | Marked spreads to creatures within 1 tile of the target | mark | Lanternmoth | Grove |
 | 33 | **Seedling Gift** | at every rest, plant a free Sprout | sprout, economy | — | Grove |

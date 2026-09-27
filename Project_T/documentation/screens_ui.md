@@ -38,7 +38,7 @@ results screens; results lead back to the title.
 ```
 ┌──────────────────────────────────────────────────────────────────────────────┐
 │ ❦ 18/20   💧 245        Act 1 · Forest's Edge   Drift 7 / 100        ⚙ Menu  │
-│ Dreams: ◆◆◇◆            ● ● ○ ○ ○  Old Stag in 18       Path 132 tiles      │
+│ Dreams: ◆◆◇◆            ● ● ○ ○ ○  Hollow Stag in 18    Path 132 tiles      │
 │                         [Omen: Swift Stream]                                 │
 │                   ~ "Wardens are walls. Make their walk longer." ~           │
 │                                                                              │
@@ -52,7 +52,7 @@ results screens; results lead back to the title.
 
 | Zone | Shows | Behaviour |
 |---|---|---|
-| **Top left: resources** | leaves (current / max), Dew | leaves flash and shake when one is lost; Dew flashes red when you can't afford something; Dew popups float from cleansed creatures |
+| **Top left: resources** | leaves (current / max), Dew | leaves flash and shake when one is lost; Dew flashes red when you can't afford something; Dew motes float up from dispelled nightmares |
 | **Under resources: Dreams** | one small icon per Dream taken this run (rarity shape + colour) | hover for the card; click opens "Dreams this run" (all cards + stack counts) |
 | **Top centre: drift** | act and name, drift / 100, **5 pips for the current block**, countdown to the next boss | pips fill as drifts arrive; the boss countdown turns into the **boss health bar** during a boss drift |
 | **Under drift: Omen** | the active Omen, if any | hover for its effect and reward |
@@ -61,20 +61,20 @@ results screens; results lead back to the title.
 | **Bottom centre: Warden bar** | every Warden you can plant, with hotkey and cost | unaffordable = faded (still selectable, the ghost shows red); new families slide in after a pick |
 | **Bottom right: drift controls** | Start / Call early (shows the Dew bonus), Auto-drift, pause, 1×/2×/3×, status line ("Resting: rearrange freely") | the Start button pulses during rests |
 | **Left: Warden panel** | on selecting a Warden (below) | closes on Esc / right-click / clicking empty ground |
-| **Right: creature info** | on hovering a creature (below) | follows the most recently hovered creature |
+| **Right: nightmare info** | on hovering a nightmare (below) | follows the most recently hovered one |
 
 ## In the world
 
 | Element | Design |
 |---|---|
 | **Build ghost** | the Warden on the hovered cell, green/red; range circle; **route preview line**; tag above: **"+12 path"** (or "−4 path") and the cost, red if unaffordable |
-| **Invalid placement** | red ghost + a short reason tag ("would cage them", "creature here", "can't afford") |
+| **Invalid placement** | red ghost + a short reason tag ("would close the dream", "nightmare here", "can't afford") |
 | **Obstacle hover** | outline + "Tend Withered Tree · 5 Dew" + route preview if clearing changes it |
-| **Health bars** | only once a creature is hit (setting: always) |
-| **Status icons** | up to 3 small icons above a creature, most important first; each status has its own **shape** (Damp droplet, Drowsy "z", Spored dots, Marked ring, Static bolt, Held vine) and a stack number where relevant |
-| **Elites** | Deeply Blighted creatures: grey haze + a small swirl icon, larger sprite |
-| **Bosses** | a name plate on arrival ("The Old Stag"); the top-centre boss bar with health and a marker at 50% (where its behaviour changes) |
-| **Leak** | when a creature reaches the Heartwood: a leaf falls from the Heartwood, a soft red pulse at the goal, leaves counter shakes |
+| **Health bars** | only once a nightmare is hit (setting: always) |
+| **Status icons** | up to 3 small icons above a nightmare, most important first; each status has its own **shape** (Damp droplet, Drowsy "z", Spored dots, Marked ring, Static bolt, Held vine) and a stack number where relevant |
+| **Elites** | Deeply Blighted nightmares: black haze + a small swirl icon, larger sprite |
+| **Bosses** | a name plate on arrival ("The Hollow Stag"), the screen edges darken; the top-centre boss bar with health and a marker at 50% (where its behaviour changes) |
+| **Leak** | when a nightmare reaches the Heartwood: it lunges into the tree, a leaf blackens and falls, a dark pulse at the goal, the leaves counter shakes |
 | **Selected Warden** | range circle + a soft outline; its status field (clouds, fog) highlighted |
 
 ## Panels
@@ -84,17 +84,17 @@ results screens; results lead back to the title.
 - **Header:** portrait, name, family icon and tier ("Rain Lily · Dewdrop family · branch").
 - **Stats:** soothe per hit, attacks per second, range; applies (status icons + numbers); loves
   (what it's good with); auras affecting it.
-- **This run:** soothe dealt, creatures cleansed (helps players judge placements).
+- **This run:** damage dealt, nightmares dispelled (helps players judge placements).
 - **Grow into:** one button per next form: "Grow into Stormcap · 45 Dew", or "Thunderhead · needs a
   Dream" (disabled, with the Dream's name).
-- **Sell:** "+62 Dew" (full during a rest, half while creatures walk; the button says which).
+- **Sell:** "+62 Dew" (full during a rest, half while nightmares walk; the button says which).
 - **Targeting** (proposed): *First* (default) / *Strongest* / *Closest* for attacking Wardens. Adds
-  real decisions (bosses, elites, Mother Ducks) at little cost.
+  real decisions (bosses, elites, Lantern Bearers) at little cost.
 
-### Creature info (on hover)
+### Nightmare info (on hover)
 
 Name, one-line trait ("Rolls fast down straight corridors"), health, speed, leaf cost, current
-statuses with remaining time. First time a creature type appears: a **"New"** tag and the whisper
+statuses with remaining time. First time a nightmare type appears: a **"New"** tag and the whisper
 from `onboarding.md`.
 
 ## Choice screens (time stops)
@@ -130,10 +130,10 @@ Side: a run summary (Dreams, families, active Omen, time played).
 
 ### Results
 
-- Headline: **"The Heartwood sleeps"** (loss) or **"The Hollow Oak is soothed"** (win), with the
+- Headline: **"The dream goes dark"** (loss) or **"The Hollow Oak is dispelled"** (win), with the
   drift reached.
-- Stats: drifts survived, creatures cleansed, leaves lost, longest path, Dreams taken, families.
-- **Seeds breakdown**, one line per source, counting up (drifts, cleansed, bosses, tended, win,
+- Stats: drifts survived, nightmares dispelled, leaves lost, longest path, Dreams taken, families.
+- **Seeds breakdown**, one line per source, counting up (drifts, dispelled, bosses, tended, win,
   Blight Level bonus).
 - Buttons: Memory Grove / New Run / Title. **Demo:** the Grove teaser (asleep, "Your 214 Seeds will
   be waiting") and **Wishlist**.

@@ -9,7 +9,7 @@ has to nail (`pitch.md`).
 - **Teach by doing, one thing at a time.** Each lesson appears the first time it matters, and is
   dismissed by doing the thing, not by clicking "OK".
 - **The Heartwood speaks.** Hints are one-line italic whispers at the top of the screen, in the
-  story's voice (*"They're not enemies. Just lost."*). No tutorial windows, no walls of text.
+  story's voice (*"They're coming for the dream. Don't let them reach me."*). No tutorial windows, no walls of text.
 - **Never punish learning.** Run 1 is a real run, but the first drifts are gentle and Seeds are
   guaranteed, so even a quick loss moves the player forward.
 - **Hide what isn't needed yet.** Systems appear when the player can use them (see the table
@@ -25,39 +25,40 @@ trigger at these moments:
 
 | When | Lesson | How |
 |---|---|---|
-| Run start | Where creatures go | Camera glides along the path from the forest edge to the Heartwood. *"A grey mist gathers at the forest's edge."* |
+| Run start | Where nightmares go | Camera glides along the path from the dark forest edge to the Heartwood. *"Something moves at the edge of the dream."* |
 | Build phase 1 | Planting | The Sprout button glows; a soft highlight on a good cell beside the path. *"Plant a Warden near the path."* Start Drift pulses once one is placed. |
-| First cleanse | Nothing dies | A brief slow-motion as colour returns. *"They're not enemies. Just lost."* The Dew popup and counter pulse. |
+| First dispel | What they are | A brief slow-motion as the Shade shrieks and cracks into light. *"Nightmares. They're coming for the dream. Don't let them reach me."* The Dew motes and counter pulse. |
 | After drift 1 | First family | The family pick (1 of 3 base Wardens). *"The Heartwood stirs, and remembers an old friend…"* Card text explains Sprouts growing into it. |
-| Right after the pick | **Towers are walls** | *"Wardens are walls. Make their walk longer."* The route preview is emphasised; a "+N path" tag on the ghost; the path length counter appears. |
-| Drift 2 starts on its own | Drifts flow | *"The mist rolls in, drift after drift."* The Auto-drift toggle glows once. |
+| Right after the pick | **Towers are walls** | *"Wardens are walls. Make them take the long way."* The route preview is emphasised; a "+N path" tag on the ghost; the path length counter appears. |
+| Drift 2 starts on its own | Drifts flow | *"They don't stop. They come in drifts, like fog."* The Auto-drift toggle glows once. |
 | First rest (after drift 5) | Dreams and rests | The first Dream. *"The Heartwood stirs, and dreams of…"* Then: *"Rest here. Rearrange the forest; nothing is lost."* (full refunds during rests) |
 | First rest | Saving | *"The forest will wait for you."* Save & Quit is highlighted once. |
-| First blocked placement | The forest's rule | The ghost turns red. *"The forest may guide, but never cage."* |
+| First blocked placement | The dream's rule | The ghost turns red. *"A dream can bend, but never close."* |
 | First affordable evolution | Growing | The Sprout under the cursor shimmers. *"This Sprout could grow."* |
 | First hover on an obstacle | Tending | *"Tend the forest, and it will remember you."* (+1 Seed at run end) |
-| First leaf lost | Stakes | The leaf counter pulses. *"A leaf wilts. The Heartwood shivers."* |
-| Drift 2 starts | Speed and pause | The speed buttons glow once. *"Take your time. The forest can wait."* |
-| First sell | Refunds | A tooltip on the sell button: full refund during a rest, half while creatures walk. |
-| Rest before drift 25 | Bosses | The Old Stag is shown walking in from the edge. *"Something old is coming."* |
-| After the Old Stag | New family | The second family pick. *"The Heartwood remembers another friend."* |
+| First leaf lost | Stakes | The leaf counter shakes. *"It fed. A leaf blackens and falls."* |
+| Drift 2 starts | Speed and pause | The speed buttons glow once. *"Pause if you need to think. They'll wait."* |
+| First sell | Refunds | A tooltip on the sell button: full refund during a rest, half while nightmares walk. |
+| Rest before drift 25 | Bosses | The Hollow Stag's silhouette appears at the forest edge, antlers burning. *"Something old has found the dream."* |
+| After the Hollow Stag | New family | The second family pick. *"It's gone, and something I'd forgotten came back."* |
 
 **Run end (win or lose):**
-1. Dormancy (or victory) moment: *"The Heartwood sleeps. A seed falls, and remembers."*
-2. **Results screen** with the Seeds breakdown (drifts, cleansed, bosses, tended).
+1. Dormancy (or victory) moment: *"The Heartwood sinks into dreamless sleep. A seed falls, and
+   remembers."*
+2. **Results screen** with the Seeds breakdown (drifts, dispelled, bosses, tended).
 3. **First-run bonus: +20 Seeds** ("The first seed"), so a very early loss still affords an
    unlock.
 4. **The Memory Grove opens for the first time.** Memory 1 plays (*"Before the Heartwood, there
    were two trees…"*). The Heartwood guides the first purchase: 2–3 cheap unlocks glow (e.g.
    Morning Stores I, Static Bloom, Pebbling line).
-5. *"Spring comes again."* → Start run 2.
+5. *"The Heartwood dreams again."* → Start run 2.
 
 ## Run 2: seeing the meta pay off
 
 - The first Dream that comes from a Grove unlock is marked with a small leaf badge: *"Remembered
-  from a past spring."* This closes the loop: runs → Seeds → new things in the next run.
+  from a past dream."* This closes the loop: runs → Seeds → new things in the next run.
 - **Branches** and **statuses** are taught when the player first gets one: when a Warden first
-  applies a status, its icon appears over the creature with a one-time tooltip (*"Damp: slower,
+  applies a status, its icon appears over the nightmare with a one-time tooltip (*"Damp: slower,
   and lightning loves it"*).
 - **Let it pass** and **call early** get one-time hints the first time they're available.
 
@@ -66,7 +67,7 @@ trigger at these moments:
 - By now the player has ~5 unlocks; the **second Memory** arrives around here (one every 3
   unlocks), establishing the story rhythm.
 - Grove roots beyond the first become the focus (perks vs new Wardens: the first real meta choice).
-- No more whispers except for genuinely new things (new creature, first Legendary, act 2).
+- No more whispers except for genuinely new things (new nightmare, first Legendary, act 2).
 
 ## When each system appears
 
@@ -91,11 +92,10 @@ trigger at these moments:
 
 ## Forest Journal (later: not in the first playable or demo)
 
-A collection book on the title screen: each creature gets an entry (cozy art, a line of text, its
-trait) the first time it's cleansed, and each Warden when first grown. It gives curious players a
-place to look things up without tutorials, rewards seeing new things, and adds a gentle
-completionist goal. Entries could double as milestone progress (e.g. *"Cleanse every creature
-once"*).
+A bestiary on the title screen: each nightmare gets an entry (art, a line of unsettling lore, its
+trait) the first time it's dispelled, and each Warden when first grown. It gives curious players a
+place to look things up without tutorials, rewards seeing new things, and adds a completionist
+goal. Entries could double as milestone progress (e.g. *"Dispel every kind of nightmare once"*).
 
 ## Demo fit
 

@@ -7,15 +7,15 @@ replayable run, then leave players wanting the Deep Wood and the Memory Grove.
 
 ## Shape
 
-- **A demo run = acts 1–2: drifts 1–50**, with the **Old Stag** at 25 and the **Great Toad** at
+- **A demo run = acts 1–2: drifts 1–50**, with **the Hollow Stag** at 25 and **the Mire Hag** at
   50 ending the demo. About **45 minutes** at 1×, ~30 with fast-forward.
 - **Unlimited replays, no progression.** Every run starts the same way (new random map, new
   Dreams), with nothing carried between demo runs.
 - **Seeds are still earned and saved** (not spendable in the demo). They carry into the full game
   (`meta_design.md`, "Seeds from the demo").
 - **Mid-run save** works in the demo too (autosave at every rest).
-- Beating the Great Toad ends the run with a victory screen: *"The mist thickens beyond the Deep
-  Wood…"*, the Seeds earned and banked, a **Wishlist** button, and a **teaser of the Memory Grove**
+- Dispelling the Mire Hag ends the run with a victory screen: *"Deeper in the dream, something
+  larger stirs…"*, the Seeds earned and banked, a **Wishlist** button, and a **teaser of the Memory Grove**
   (see below).
 
 ## In the demo
@@ -23,11 +23,11 @@ replayable run, then leave players wanting the Deep Wood and the Memory Grove.
 | Area | Included |
 |---|---|
 | Wardens | Sprout, Thornwall (+ Bramble); **Sporeling, Firefly Jar, Dewdrop** as family picks, with their 6 branches |
-| Family picks | after drift 1 and after the Old Stag (drift 25): **2 families per run**, so cross-family combos (Storm Grid) are reachable |
+| Family picks | after drift 1 and after the Hollow Stag (drift 25): **2 families per run**, so cross-family combos (Storm Grid) are reachable |
 | Final forms | **shown but locked** ("in the full game") on Dream cards |
 | Dreams | after drifts 5, 10, … 45 (**9 per run**; the drift 25 one guaranteed Rare+), from the Start pool (no Legendaries) |
-| Creatures | act 1: Leaf Bug, Bark Beetle, Puffcap, **Old Stag**; act 2: 3 maze testers from `enemy_design.md`, recommended **Dandelion Seed** (flies over the maze), **Hedgehog** (rolls down straight corridors) and the **Duckling line** (single-file parade), plus the **Great Toad** |
-| Act 2 boss | **always the Great Toad** in the demo (the full game picks Toad or Mother Moth); the Toad needs no extra creatures, the Moth needs Dusk Moths and flying |
+| Nightmares | act 1: Shade, Husk, Mourner, **the Hollow Stag**; act 2: 3 maze testers from `enemy_design.md`: **Phantom** (glides through walls), **Night Hound** (sprints down straight corridors) and the **Procession** (Lantern Bearer + Wraiths), plus **the Mire Hag** (plan in `acts_1_2.md`) |
+| Act 2 boss | **always the Mire Hag** in the demo (the full game picks the Hag or the Moth Queen); the Hag needs no extra nightmares, the Moth Queen needs Lurkers and flying |
 | Map | the forest biome, fully procedural (ridges, tending) |
 | Story | the intro, and **Memory 1** as a story hook on the victory screen |
 | Onboarding | everything in `onboarding.md` for run 1 (Grove parts replaced by the teaser) |
@@ -41,7 +41,7 @@ be waiting."* It sells the meta without building it for the demo.
 
 ## Not in the demo
 
-Acts 3–4, the Mother Moth and The Hollow Oak, the other act 2 creatures, Pebbling / Rootling /
+Acts 3–4, the Moth Queen and The Hollow Oak, the other act 2 nightmares, Pebbling / Rootling /
 Acorn, final forms, Legendary Dreams, the Memory Grove (spending Seeds), Memories 2–10, Blight
 Levels, the true ending, the Forest Journal.
 
@@ -64,18 +64,18 @@ Levels, the true ending, the Forest Journal.
 - **Content cost.** 50 drifts means the demo needs act 2's creatures and a second boss finished
   and polished (art, animation, sound), not just act 1's.
 - **Length.** 45 minutes per run is long for a demo; the mid-run save and speed controls matter,
-  and the Old Stag at drift 25 is a natural "I've seen enough to wishlist" point for busy players.
+  and the Hollow Stag at drift 25 is a natural "I've seen enough to wishlist" point for busy players.
 
 ## Must be true before the demo is public
 
 - **All art is original.** The Foozle tileset and creature placeholders can't ship in a public
   demo unless their licence clearly allows it; since the plan is to replace them anyway, replace
-  them first: tileset (grass, path, border, Withered Tree, Mossy Boulder), Leaf Bug, Bark Beetle,
-  Puffcap, Old Stag, Dandelion Seed, Hedgehog, Mother Duck + Ducklings, Great Toad.
-- **The three marketing moments are polished** (`pitch.md`): the cleanse, the live re-route, and
+  them first: tileset (grass, path, border, Withered Tree, Mossy Boulder), Shade, Husk, Mourner +
+  Sob, the Hollow Stag, Phantom, Night Hound, Lantern Bearer + Wraith, the Mire Hag.
+- **The three marketing moments are polished** (`pitch.md`): the dispel, the live re-route, and
   the Sporeling.
 - **Audio exists:** calm music for build and drift, a boss track, and good SFX, especially the
-  cleanse sound.
+  dispel sound, and whispers/signature sounds for each nightmare.
 - **Stable:** no crashes, saves never lost (mid-run saves and banked Seeds), the path rule never
   broken.
 - **Credits** screen (Godot MIT notice and any licences).
@@ -94,7 +94,7 @@ Levels, the true ending, the Forest Journal.
 ## How to know it's working
 
 - Median demo playtime **over 45 minutes**.
-- Share of players who **reach the Old Stag** (drift 25), **beat the Great Toad** (drift 50), and
+- Share of players who **reach the Hollow Stag** (drift 25), **dispel the Mire Hag** (drift 50), and
   **start a second run**.
 - **Wishlists per demo player** (Steam shows both).
 - Where players quit (which drift? the first Dream?), from playtests and feedback.

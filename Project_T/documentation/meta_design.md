@@ -18,8 +18,8 @@ Revised for 100-drift runs (`run_design.md`).
 | Source | Seeds |
 |---|---|
 | Every 2 drifts survived | 1 (max 50) |
-| Creatures cleansed | 1 per 25 (~60 in a full run) |
-| Each boss cleansed | 10 |
+| Nightmares dispelled | 1 per 25 (~60 in a full run) |
+| Each boss dispelled | 10 |
 | Each obstacle tended | 1 (see `run_design.md`) |
 | Winning | +50 |
 | Blight Level | +10% per level (Level 10 = double) |
@@ -98,9 +98,9 @@ rule twist; 120 and 200 Seeds. Designed in Phase 4 (`design_plan.md` topic 9).
 
 | Milestone | Reward |
 |---|---|
-| Cleanse your first boss | Memory fragment |
+| Dispel your first boss | Memory fragment |
 | Win a run | Memory fragment + Blight Levels open |
-| Cleanse 500 Leaf Bugs | Sunpetal (hidden Firefly Jar branch) |
+| Dispel 500 Shades | Sunpetal (hidden Firefly Jar branch) |
 | Build a 300-tile path | The Long Walk card, free |
 | Win without losing a leaf | Golden Leaf (cosmetic Heartwood) |
 | Tend 100 obstacles (total) | Memory fragment |
@@ -120,9 +120,9 @@ Pick a level before a run; each level includes all the ones below it. **+10% See
 | 2 | Starting Dew −20 |
 | 3 | Bosses +25% health |
 | 4 | Drift-clear bonus −25% |
-| 5 | One creature per drift is **Deeply Blighted** (×3 health, costs 2 leaves; see `acts_1_2.md`) |
+| 5 | One nightmare per drift is **Deeply Blighted** (×3 health, costs 2 leaves; see `acts_1_2.md`) |
 | 6 | The Heartwood regrows only 1 leaf per act break (instead of 3) |
-| 7 | Creatures +10% speed |
+| 7 | Nightmares +10% speed |
 | 8 | Dream offers lean Common; *Let it pass* gives no Dew |
 | 9 | Obstacles cost twice as much to tend; maps get one extra ridge |
 | 10 | **The Hollow Oak remembers**: it gains a second phase |
@@ -133,26 +133,28 @@ The highest level won is shown on the title screen, as a small blossom per level
 
 Memories appear as short illustrated fragments in the Grove (one screen each, a few lines). Most
 come from Grove progress (**one every 3 unlocks**); the rest from milestones (above). Read in
-order, they tell why the Blight exists:
+order, they tell where the nightmares come from (revised 2026-09-27 for the nightmare theme):
 
-1. *Before the Heartwood, there were two trees, side by side.* (after your first run, always)
-2. The Heartwood and the Hollow shared their roots, and the forest grew between them.
+1. *Before the Heartwood, there were two trees, and both of them dreamed.* (after your first run,
+   always)
+2. The Heartwood and the Hollow shared their roots, and one dream grew between them: the forest.
 3. A long drought came. The Heartwood's roots went deep; the Hollow's couldn't reach.
-4. The creatures followed the Heartwood's shade. The Hollow was left alone.
-5. The Hollow tried to keep the last creatures close, and they could not leave. (why the forest's
-   rule is *"guide, but never cage"*)
+4. The forest's creatures followed the Heartwood's shade. The Hollow was left alone, still dreaming.
+5. The Hollow tried to keep the last creatures inside its dream, and closed it around them. The
+   dream broke. (why *a dream can bend, but never close*)
 6. Its leaves fell, one by one, and nobody came.
-7. Its loneliness sank into the soil, and turned grey: the Blight.
+7. It dreamed alone in the dark for so long that its dreams turned: **the first nightmares**.
 8. The creatures once carved **waystones** to mark the path between the two trees. (the stones the
    Wardens sleep on)
 9. The Heartwood remembers it promised to come back.
-10. *The path to the Hollow is still there, under the moss.*
+10. *The path to the Hollow is still there, under the nightmares.*
 
 ### True ending: The Long Walk Out
 
 With all 10 Memories and at least one win, a special run unlocks. The goal flips: the path leads
-**away** from the Heartwood, toward the Hollow. Same 3 acts, and the final drift is the Hollow
-itself: not fought but **soothed**, until it blooms. Then the ending and credits.
+**away** from the Heartwood, into the Hollow's nightmares. Same acts, and the final drift is the
+Hollow itself, the one enemy that is **not dispelled**: the Wardens surround it with light until its
+grief breaks and it blooms again. Then the ending and credits.
 
 After the ending: the Grove grows a sapling of the Hollow beside the Heartwood (cosmetic), and
 Blight Levels carry on as the endgame.

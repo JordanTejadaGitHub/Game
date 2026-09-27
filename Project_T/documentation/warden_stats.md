@@ -106,7 +106,7 @@ For the coding chat, in rough order of need:
 ## To check in playtests
 
 - Is each family roughly as strong as the others at the same Dew? (Compare Dew spent vs creatures
-  cleansed per family.)
+  dispelled per family.)
 - Do players evolve when space runs out, as intended, or hoard cheap Wardens?
 - Pull and Hold on bosses: fun, or trivialising? (Bosses get reduced effects.)
 - Economy Wardens: does Dewcatcher pay back fast enough to be picked, without being mandatory?

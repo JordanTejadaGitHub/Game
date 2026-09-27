@@ -27,12 +27,12 @@ exports, `TowerData`, `EnemyData`, `DriftData`), so tuning never needs code chan
 
 | Act | Drifts | Feel | Boss |
 |---|---|---|---|
-| 1. Forest's Edge | 1–25 | learn the maze, first Wardens | **Old Stag** (25) |
-| 2. Deep Wood | 26–50 | maze testers arrive, builds take shape | **Great Toad** or **Mother Moth** (50) |
+| 1. Forest's Edge | 1–25 | learn the maze, first Wardens | **The Hollow Stag** (25) |
+| 2. Deep Wood | 26–50 | maze testers arrive, builds take shape | **The Mire Hag** or **The Moth Queen** (50) |
 | 3. Misty Hollow | 51–75 | status testers, bigger drifts | the other of the two (75) |
 | 4. Heartwood Glade | 76–100 | full builds, everything mixed | **The Hollow Oak** (100, story climax) |
 
-- **Win:** cleanse The Hollow Oak and everything still walking.
+- **Win:** dispel The Hollow Oak and every nightmare still in the dream.
 - **Between acts:** the season changes (visual), the Heartwood regrows 3 leaves (up to its
   maximum), and the boss rewards (below).
 - **No endless mode for v1.** Blight Levels are the replay hook.
@@ -47,7 +47,7 @@ Drifts come in **blocks of 5**:
 ```
 
 - **Within a block, drifts flow.** The next drift starts automatically a few seconds after the
-  previous one has finished *arriving* (not after it's cleansed), so drifts overlap and there's
+  previous one has finished *arriving* (not after it's dispelled), so drifts overlap and there's
   no dead time. An **Auto-drift** toggle lets players turn this off and start each drift by hand.
 - **A rest** comes after every 5th drift, once the field is clear: time pauses, the Dream (or boss
   reward) appears, and you can rebuild at full refund. Press **Start** when ready. No timer.
@@ -158,7 +158,7 @@ risk: players set their own difficulty block by block.
 | Source | Amount |
 |---|---|
 | Starting Dew | 60 |
-| Leaf Bug | 3 (≈3 per 100 base health; other creatures follow the same ratio) |
+| Shade | 3 (≈3 per 100 base health; other nightmares follow the same ratio) |
 | Rest bonus (every 5 drifts) | 20 + 10 × block number (30 after drift 5, 220 after drift 100) |
 | Perfect block (no leaf lost) | +10 |
 | Boss | 40 / 60 / 80 / 100 by act |
@@ -195,25 +195,23 @@ Measure real Dew totals at each boss in playtests and compare.
 - Difficulty also rises through **composition**: more creatures per drift, tougher types, maze
   testers from act 2, status testers from act 3, mixed everything in act 4.
 - **Variety matters over 100 drifts**: every block should feel different (a new creature, a
-  "special drift" like all-flyers or a Duckling parade, or a mini-boss). Needs a bigger creature
+  "special drift" like a Haunting of Phantoms or a Funeral of Processions, or a mini-boss). Needs a bigger creature
   roster than 15 drifts did (`enemy_design.md`).
 - Bosses have fixed health per act (start at 3,000 / 8,000 / 16,000 / 30,000; tune).
 
 ## Act 1 plan (first playable)
 
-Creatures: Leaf Bug, Bark Beetle, Puffcap, **Old Stag**. Proposed stats for the new ones: Bark
-Beetle 300 health, ~0.9 cells/s, 8 Dew; Puffcap 150 health, splits into 3 × 30-health
-Puffcaplets, 4 Dew + 1 each.
+Nightmares: Shade, Husk, Mourner, **the Hollow Stag** (stats in `enemy_design.md`).
 
 | Block | Drifts | Contents |
 |---|---|---|
-| 1 | 1–5 | Leaf Bugs only, 8 → 16 per drift. First Warden pick after drift 1 |
-| 2 | 6–10 | **Bark Beetles introduced** (drift 6: 3 Beetles alone), then mixed in |
-| 3 | 11–15 | bigger mixed drifts; drift 15 is a "swarm" (30 fast Leaf Bugs) |
-| 4 | 16–20 | **Puffcaps introduced** (drift 16: 4 alone), then mixed in |
-| 5 | 21–25 | everything mixed, growing; **drift 25: Old Stag** with an escort of Leaf Bugs |
+| 1 | 1–5 | Shades only, 8 → 16 per drift. First Warden pick after drift 1 |
+| 2 | 6–10 | **Husks introduced** (drift 6: 3 Husks alone), then mixed in |
+| 3 | 11–15 | bigger mixed drifts; drift 15 is a Swarm (35 fast Shades) |
+| 4 | 16–20 | **Mourners introduced** (drift 16: 4 alone), then mixed in |
+| 5 | 21–25 | everything mixed, growing; **drift 25: the Hollow Stag** with an escort |
 
-Exact counts per drift are written once the first block has been playtested.
+Exact counts per drift: `acts_1_2.md`.
 
 ## Obstacles: why clear them?
 
