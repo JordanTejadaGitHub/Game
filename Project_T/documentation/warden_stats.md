@@ -23,21 +23,38 @@ single-target Wardens get higher raw numbers to compensate.
 **Nurtured** up to **rank V** with Dew, from the Warden panel (group Nurture works with
 multi-select; hotkey **R**).
 
-| Rank | Cost | Each rank adds |
-|---|---|---|
-| I | 15 | **+15% damage**, **+5% attack speed**, **+0.1 range** |
-| II | 25 | the same again |
-| III | 40 | the same again |
-| IV | 60 | the same again |
-| V | 90 | the same again (230 Dew in total) |
+**Nurture v2** (2026-09-27, after a playtest where "upgrading without thought" won the mid-game):
+costs scale with the Warden's tier, gains per rank are smaller, and **rank III asks for a choice**.
 
-- At rank V: +75% damage, +25% attack speed, +0.5 range: about **2.2× damage per second**, with
-  no Dream needed and **no extra space**. That's the point: steady growth when branch Dreams don't
-  come, and a use for Dew when the map is full.
+| Rank | Base cost | Each rank adds |
+|---|---|---|
+| I | 15 | **+10% damage**, **+4% attack speed**, **+0.1 range** |
+| II | 25 | the same again |
+| III | 40 | the same again, **and choose a Focus** (below) |
+| IV | 60 | the same again + the Focus bonus |
+| V | 90 | the same again + the Focus bonus (230 base in total) |
+
+**Cost × tier:** Sprout **×0.5** (115 to rank V), base **×1** (230), branch **×2** (460), final form
+**×3** (690), Memory Warden **×2**. The cost is set by the Warden's tier *when you buy the rank*, so
+ranking a Sprout before it evolves is cheap (ranks still carry through evolution) and ranking a
+final form is a big, deliberate spend.
+
+**Focus (chosen at rank III, kept through evolution, can't be changed):**
+
+| Focus | Ranks III, IV and V each add | At rank V (on top of the base gains) |
+|---|---|---|
+| **Power** | +8% damage | +24% damage |
+| **Swift** | +6% attack speed | +18% attack speed |
+| **Reach** | +0.2 range | +0.6 range |
+| **Deep** | +10% status strength and duration | +30% |
+
+- At rank V without Focus: +50% damage, +20% attack speed, +0.5 range ≈ **1.8× damage per second**;
+  with Power ≈ 2.1×. Two identical Wardens can end up doing different jobs (a Reach Lanternmoth
+  marking far ahead, a Deep Rain Lily keeping everything soaked).
 - **Ranks carry through evolution:** a rank III Sporeling that grows into a Driftspore is a rank III
-  Driftspore. So nurturing early is never wasted.
-- Ranks are **less Dew-efficient than evolving** (rank V costs 230 for ~2.2×; a branch costs 45 for
-  ~2×), so evolving stays the better buy when a Dream allows it.
+  Driftspore, with the same Focus.
+- Ranks are **less Dew-efficient than evolving** (a branch costs 45 for ~2×; rank V on a base
+  Warden costs 230 for ~1.8×), so evolving stays the better buy when a Dream allows it.
 - Ranks multiply with Dream bonuses (Deeper Calm etc.). Status potency uses the ranked damage.
 - Selling refunds rank Dew like any other Dew spent on the Warden.
 - Shown as small pips under the Warden and in its panel ("Rank III").

@@ -111,8 +111,8 @@ some are hard, so every drift plays a little differently. They must never make a
 
 | | Multiplier | Applies to |
 |---|---|---|
-| **Resists** | ×0.65 damage | every hit from that family, including its Spored ticks, Static bolts, clouds and pulses |
-| **Weak to** | ×1.35 damage | same |
+| **Resists** | **×0.5** damage (was ×0.65; mid-game rework 2026-09-27) | every hit from that family, including its Spored ticks, Static bolts, clouds and pulses |
+| **Weak to** | **×1.5** damage (was ×1.35) | same |
 
 Families: **spore** (Sporeling line), **stone** (Pebbling), **water** (Dewdrop), **light**
 (Firefly Jar), **root** (Rootling), and in the full game **wing** (Nestling) and **wind**
@@ -231,7 +231,7 @@ and `display_name`s to the new names is part of the theme change. Add:
 - `traits` / `behaviors`: flying, burrow, shield, sprint_on_straights, follow_leader, wander.
 - **Resistances** (export group "Resistances"):
   - `resists: Array[String]`, `weak_to: Array[String]`: family ids matching `TowerData.line`
-    (spore, stone, water, light, root, wing, wind). Multipliers are constants (0.65 / 1.35) in one place so
+    (spore, stone, water, light, root, wing, wind). Multipliers are constants (0.5 / 1.5) in one place so
     they tune globally.
   - `single_target_multiplier: float = 1.0`, `area_multiplier: float = 1.0`.
   - `coat_per_hit: int = 0`, `coat_total: int = 0` (both × the nightmare's `health_scale`).

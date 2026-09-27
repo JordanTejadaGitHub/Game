@@ -248,8 +248,9 @@ early and often.
 
 ## Nurture cards: growing tall
 
-Added 2026-09-27, for Nurture ranks (`warden_stats.md`, "Ranks: Nurture": rank I–V, 15 / 25 / 40 /
-60 / 90 Dew, each rank +15% damage, +5% attack speed, +0.1 range, kept through evolution).
+Added 2026-09-27, for Nurture ranks (`warden_stats.md`, "Ranks: Nurture"; **Nurture v2**: rank I–V,
+15 / 25 / 40 / 60 / 90 Dew × the Warden's tier multiplier, each rank +10% damage, +4% attack speed,
++0.1 range, a Focus at rank III, kept through evolution).
 Nurture is the "tall" direction, putting Dew into few Wardens instead of more space. These cards
 make it a build choice without breaking its rule: **ranks stay less Dew-efficient than evolving**.
 Evolving is still the better buy when a Dream allows it; Nurture cards make ranks the better buy
@@ -258,7 +259,7 @@ Evolving is still the better buy when a Dream allows it; Nurture cards make rank
 | # | Card | Rarity | Effect | Tags | Needs | Pool |
 |---|---|---|---|---|---|---|
 | 60 | **Tender Care** | Common | Nurturing costs **15% less** Dew (stacks, max −45%) | nurture, economy | *opener:* 30+ Dew spent on ranks | Start |
-| 61 | **Warm Hands** | Common | each Nurture rank gives **+4% more damage** (15% → 19%; stacks) | nurture | *opener:* 30+ Dew spent on ranks | Start |
+| 61 | **Warm Hands** | Common | each Nurture rank gives **+3% more damage** (10% → 13%; stacks) | nurture | *opener:* 30+ Dew spent on ranks | Start |
 | 62 | **Kindred Roots** | Uncommon | each Warden gets **+2% damage per rank of the Wardens touching it** (max +30%) | nurture, maze | any `nurture` card + 2 ranked Wardens | Start |
 | 63 | **Remembered Care** | Uncommon | selling a ranked Warden leaves a **memory seed** on the HUD; the next Warden you plant starts at that rank (one seed at a time, the highest one is kept) | nurture | any `nurture` card + a rank III+ Warden | Start |
 | 64 | **Sunlit Rest** | Uncommon | at every rest, your ranked Warden **nearest the Heartwood** that isn't at max rank gains a free rank | nurture | any `nurture` card | Grove |
@@ -275,9 +276,9 @@ Evolving is still the better buy when a Dream allows it; Nurture cards make rank
 - Once you own any `nurture` card, the tag counts as an owned family for tag weighting (2×).
 - **Walls and auras** can't be nurtured, so none of these cards touch them. Kindred Roots counts
   the ranks of neighbours that *have* ranks; a Thornwall neighbour gives 0.
-- **Dew-efficiency check:** rank V with 3× Tender Care costs 127 for ~2.2×. A branch costs 45 for
-  ~2×. Evolving still wins on Dew; ranks win on space. Deeper Rings (VII ≈ 2.8× for 540 Dew) is a
-  late-run Dew sink on purpose.
+- **Dew-efficiency check (Nurture v2):** rank V on a base Warden with 3× Tender Care costs 127 for
+  ~1.8×; on a final form, 380. A branch costs 45 for ~2×. Evolving still wins on Dew; ranks win on
+  space. Deeper Rings (VI and VII, also × tier) is a late-run Dew sink on purpose.
 - **Remembered Care** makes rearranging the maze painless for a tall build: sell a rank V to move
   it and the next plant is rank V again (it still costs the plant's normal Dew). The seed survives
   the run save. It's shown as a small glowing seed next to the Dew counter.

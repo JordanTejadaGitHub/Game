@@ -101,6 +101,18 @@ Playtests found the game too easy, and Warden ranks (below) add player power, so
 | Leaves | 20, +3 per act break | **15, +1 per act break** |
 | Boss health | base values in `enemy_design.md` | **×1.5** |
 
+**Mid-game rework** (2026-09-27; playtest: "upgrading without thought wins the mid-game"):
+
+| Lever | Was | Now |
+|---|---|---|
+| Health growth | ×1.045 per drift all run | **×1.045 for drifts 1–25, ×1.055 from drift 26** (≈ ×11 by drift 50; re-tune for acts 3–4) |
+| Elites | block finales only | **one Deeply Blighted nightmare in every drift from drift 26** (a random non-boss kind from that drift) |
+| Family resist / weak | ×0.65 / ×1.35 | **×0.5 / ×1.5** (`enemy_design.md`) |
+| Nurture | flat cost, +15% damage per rank | **Nurture v2**: cost × tier, +10% per rank, a Focus at rank III (`warden_stats.md`) |
+
+Plus new build-direction cards (wide / narrow, `dream_design.md` 69–76), so the mid-game asks
+*which* Wardens, not just *more* upgrades. Act 1 (drifts 1–25) is unchanged.
+
 **Opening rule** (added after playtest: drift 1 couldn't be held): **drifts 1–3 must be clearable
 without losing a leaf** by a sensible player using only Sprouts and Thornwalls. Difficulty comes
 from later drifts, not the opening. So starting Dew stays **60** and drift 1 is lighter (6 Shades,
