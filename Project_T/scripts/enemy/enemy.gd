@@ -61,10 +61,12 @@ var statuses := EnemyStatuses.new()
 const STATUS_DOT_RADIUS := 3.0
 const BOLT_FLASH_TIME := 0.2
 const HIT_MARK_TIME := 0.35  # Grey puff (resisted) / sparkle (weak) after a hit
+# Damage that only happened because of a Reaction (DamageLog: whole-hit combos, event kind "reaction").
+const REACTION_TAGS: Array[StringName] = [&"thunderclap", &"ignite", &"shatter", &"pinned", &"lightning_rod",
+	&"dawnbreak"]
 const STATUS_FLASH_TIME := 0.3  # A status icon flashes when a combo uses it (see flash_status)
 const COAT_COLOR := Color(0.62, 0.6, 0.66)
-const CRIT_FLASH_TIME := 0.3  # Gold starburst after a critical hit
-const CRIT_COLOR := Color(1.0, 0.82, 0.3)
+const CRIT_FLASH_TIME := 0.3  # Seconds a crit counts as "just happened" (the glint itself is Fx.crit)
 
 var _crit_flash := 0.0
 # Extra Dew when dispelled (Magpie Perch: +1 once it's been hit by a magpie).
@@ -187,6 +189,12 @@ func _process(delta: float) -> void:
 	_pose_left = maxf(_pose_left - delta, 0.0)
 	freeze_cooldown = maxf(freeze_cooldown - delta, 0.0)
 	push_cooldown = maxf(push_cooldown - delta, 0.0)
+	# Smother's looping effect lasts while it's held with spores on it (Reactions).
+	if has_meta(&"smother_fx") and not statuses.smothering:
+		var smother = get_meta(&"smother_fx")
+		if is_instance_valid(smother):
+			smother.queue_free()
+		remove_meta(&"smother_fx")
 	if not statuses.active_ids().is_empty() or _bolt_flash > 0.0 or _hit_mark_time > 0.0 or elite \
 			or _crit_flash > 0.0 or statuses.is_in_stag_aura() or not _ash_cells.is_empty():
 		queue_redraw()
@@ -237,6 +245,9 @@ func flash_status(id: StringName) -> void:
 	if statuses.active_ids().has(id):
 		_status_flash[id] = STATUS_FLASH_TIME
 		queue_redraw()
+		var world := Reactions._world(self)
+		if world:
+			Fx.status_flash(id, global_position, world)
 
 # Target Dummy: back to the forest's edge to walk the maze again.
 func _restart_route() -> void:
@@ -263,8 +274,6 @@ func _draw() -> void:
 		draw_circle(Vector2.ZERO, 26.0 * (1.5 - t), Color(1.0, 1.0, 0.6, 0.5 * t))
 	if _hit_mark_time > 0.0:
 		_draw_hit_mark(_hit_mark_time / HIT_MARK_TIME)
-	if _crit_flash > 0.0:
-		_draw_crit_flare(_crit_flash / CRIT_FLASH_TIME)
 	if statuses.is_in_stag_aura():
 		draw_arc(Vector2(0, 6), 18.0, 0.0, TAU, 24, Color(0.9, 0.95, 1.0, 0.35), 2.0)
 	# One coloured dot per status, just above where the health bar sits
@@ -320,15 +329,6 @@ func _draw_hit_mark(t: float) -> void:
 		var col := Color(1.0, 0.95, 0.6, t)
 		draw_line(at + Vector2(-r, 0), at + Vector2(r, 0), col, 2.0)
 		draw_line(at + Vector2(0, -r), at + Vector2(0, r), col, 2.0)
-
-# A critical hit: a bright gold starburst. `t` fades 1 -> 0.
-func _draw_crit_flare(t: float) -> void:
-	var r := 22.0 * (1.3 - t * 0.5)
-	for i in 8:
-		var dir := Vector2.from_angle(TAU * i / 8.0 + 0.2)
-		var length := r if i % 2 == 0 else r * 0.6
-		draw_line(dir * 6.0, dir * length, Color(CRIT_COLOR, t), 3.0 if i % 2 == 0 else 2.0)
-	draw_circle(Vector2.ZERO, 8.0 * t, Color(1.0, 0.97, 0.8, 0.8 * t))
 
 func update_animation(velocity: Vector2) -> void:
 	# Keep the current animation when not moving (e.g. end of path) or while a pose plays
@@ -735,6 +735,9 @@ func take_damage(amount: float, line: String = "", is_area: bool = false, is_cri
 		return
 	if is_crit:
 		_crit_flash = CRIT_FLASH_TIME
+		var world := Reactions._world(self)
+		if world:
+			Fx.crit(global_position, world)  # The crit_flare glint (drawn by the effects player)
 	var family := enemy_data.get_soothe_multiplier(line, is_area)
 	var taken := statuses.get_damage_taken_multiplier()
 	var soothe := amount * family * taken
@@ -777,7 +780,10 @@ func apply_status(id: StringName, stacks: int = 1, duration: float = 0.0, potenc
 	queue_redraw()
 	if bolt > 0.0:
 		_bolt_flash = BOLT_FLASH_TIME
-		take_damage(bolt, "light", false, false, source, &"static")  # Static bolts count as light
+		# Static bolts count as light; a Lightning Rod nearby takes the bolt instead.
+		Reactions.strike_bolt(self, bolt, source, &"static")
+	if not is_cleansed and id in statuses.ALL:
+		Reactions.on_status(self, id, source)  # Two statuses may meet: a Reaction
 
 # Tells the DamageLog what this hit did, with the combos that boosted it (see DamageLog).
 func _report_damage(amount: float, family: float, taken: float, soaked: float, dealt: float, line: String,
@@ -789,6 +795,8 @@ func _report_damage(amount: float, family: float, taken: float, soaked: float, d
 	event.source = source
 	event.enemy = self
 	event.kind = &"status" if tag == &"spored" else (&"bolt" if tag == &"static" else (&"pop" if tag == &"popped" else &"hit"))
+	if tag in REACTION_TAGS:
+		event.kind = &"reaction"
 	event.amount = dealt
 	event.base = amount
 	event.family_multiplier = family
@@ -808,7 +816,7 @@ func _report_damage(amount: float, family: float, taken: float, soaked: float, d
 	if tag == &"spored" and statuses.is_in_fog():
 		event.combos.append(&"fog")
 		factor *= 1.0 + EnemyStatuses.FOG_SPORE_BONUS
-	if tag == &"conducted" or tag == &"static" or tag == &"popped":
+	if tag == &"conducted" or tag == &"static" or tag == &"popped" or tag in REACTION_TAGS:
 		event.combos.append(tag)
 		event.combo_amount = dealt  # The whole hit only happened thanks to the combo
 	else:

@@ -34,6 +34,7 @@ const POP_SPREAD_RANGE := 1.5  # Cells: how far a Puffball pop's spores drift on
 const BEAM_TICK := 0.25  # Seconds between beam hits
 const BEAM_RAMP_FAST := 2.0  # Beams ramp this much faster on Drowsy or Held nightmares
 const AURA_TICK := 0.25  # Seconds between aura refreshes (White Stag)
+const AURA_PULSE_EVERY := 2.5  # Seconds between the White Stag's pulse animations
 const NEIGHBOUR_REFRESH := 0.5  # Seconds between looks at neighbouring Wardens (copy, auras)
 const TONGUE_COLOR := Color(0.95, 0.55, 0.6)
 const WIND_COLOR := Color(0.85, 0.95, 1.0)
@@ -448,6 +449,8 @@ func _release() -> void:
 				_grab(target)
 		TowerData.AttackKind.LIGHT:
 			_light()
+		TowerData.AttackKind.AURA:
+			pass  # The White Stag's pulse is only its animation; the aura works in _update_aura
 		_:
 			var target := find_target()
 			if target != null:
@@ -466,8 +469,15 @@ func hit(enemy: Node2D, soothe_multiplier: float = 1.0, is_area: bool = false, c
 	if attack_data.dew_mark:
 		enemy.bonus_dew = maxi(enemy.bonus_dew, 1)  # Before the hit, so a dispelling hit counts
 	var soothe := get_damage() * soothe_multiplier * _damage_against(enemy)
-	var dealt := soothe * (attack_data.crit_multiplier if is_crit else 1.0)
+	# Reactions that change a hit: Pinned (a guaranteed ×3 crit) and Shatter (×2.5, shards).
+	var reaction := Reactions.before_hit(enemy, self, is_crit)
+	is_crit = reaction.crit
+	var dealt: float = soothe * (reaction.crit_multiplier if is_crit else 1.0) * reaction.multiplier
+	if reaction.tag != &"":
+		combo = reaction.tag
 	enemy.take_damage(dealt, tower_data.line, is_area, is_crit, self, combo)
+	if reaction.shatter:
+		Reactions.shatter_splash(enemy, self, dealt)
 	hit_landed.emit(self, enemy, is_area, is_crit)
 	apply_status_to(enemy, soothe)
 	_after_hit(enemy, is_crit)
@@ -501,7 +511,9 @@ func pop(enemy: Node2D, chain: Dictionary = {}) -> void:
 	for other in get_tree().get_nodes_in_group(ENEMY_GROUP):
 		if other.global_position.distance_to(at) <= reach:
 			other.take_damage(damage, tower_data.line, true, false, self, &"popped")
-	add_child(SporePop.new(at, reach))
+	# Final-form signature: a big bloom of light (the plain burst without the effects player).
+	if Reactions._effect(&"puffball_bloom", at, self) == null:
+		add_child(SporePop.new(at, reach))
 	popped.emit(self, enemy, stacks)
 
 	# Half the spores drift on to the nearest nightmares (not back onto the one that popped).
@@ -529,6 +541,7 @@ func roll_crit(enemy: Node2D) -> bool:
 	var first := not _hit_before.has(id)
 	_hit_before[id] = true
 	if attack_data.first_hit_crits and first:
+		Reactions._effect(&"moonstone_beam", enemy.global_position, self)  # Signature: a moonbeam from above
 		return true
 	var chance := get_crit_chance(enemy)
 	return chance > 0.0 and randf() < chance
@@ -630,6 +643,8 @@ func _chain_strike(first: Node2D) -> void:
 		hits.append(next)
 
 	var storm := attack_data.storm_every > 0 and _attack_count % attack_data.storm_every == 0
+	if storm:
+		Reactions._effect(&"thunderhead_strike", first.global_position, self)  # Signature: a bolt from the sky
 	if storm or (_dream_state and _dream_state.has_rule(&"conductive_soil")):
 		for enemy in get_enemies_in_range():
 			if enemy.statuses.has(EnemyStatuses.DAMP) and not hits.has(enemy):
@@ -883,8 +898,14 @@ func _update_aura(delta: float) -> void:
 	if _aura_tick > 0.0:
 		return
 	_aura_tick = AURA_TICK
-	for enemy in get_enemies_in_range():
+	var inside := get_enemies_in_range()
+	for enemy in inside:
 		enemy.statuses.set_in_stag_aura(AURA_TICK * 1.6)
+	# Its pulse animation plays every few seconds while nightmares are inside.
+	_cooldown = maxf(_cooldown - AURA_TICK, 0.0)
+	if not inside.is_empty() and tower_data.attack_texture != null and _cooldown <= 0.0 and _attack_time < 0.0:
+		_start_attack()
+		_cooldown = AURA_PULSE_EVERY
 
 
 # --- Drawing and targeting ------------------------------------------------------------------------------

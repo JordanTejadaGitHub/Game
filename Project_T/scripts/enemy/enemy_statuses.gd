@@ -52,6 +52,35 @@ var _spore_timer := 0.0
 var _fog_time := 0.0
 var _stag_time := 0.0  # Seconds left inside the White Stag's aura
 
+# Reactions (tower_design.md "Reactions"; rules in Reactions). Per nightmare:
+const MUSHROOM_SPORE_BONUS := 0.5  # Mushrooming: Spored ticks +50%
+const SMOTHER_SPORE_RATE := 3.0  # Smother: Spored ticks this much faster while Held
+var reaction_cooldowns := {}  # Reaction id -> seconds before it can fire here again
+# The latest Reaction whose output touched this nightmare, while it can still start a chain.
+var chain_count := 0
+var chain_time := 0.0
+var chain_towers: Array = []  # Wardens that took part in that chain so far
+var pinned := false  # Pinned: the next Warden hit is a guaranteed ×3 crit
+var drowned := 0  # Times Drown made it sleep (once per nightmare; Deep Water II: twice)
+var mushroom_time := 0.0  # Mushrooming: Spored ticks harder while > 0
+var slow_time := 0.0  # Drown on bosses (and Held-immune nightmares): an extra slow instead of sleep
+var slow_amount := 0.0
+var smothering := false  # Held + Spored right now (Spored ticks faster)
+
+# Marks this nightmare as touched by a Reaction's output, so a Reaction here within `window` s counts
+# as the chain's next link.
+func mark_chain(count: int, towers: Array, window: float = 1.0) -> void:
+	if count > chain_count or chain_time <= 0.0:
+		chain_count = count
+		chain_towers = towers
+	chain_time = maxf(chain_time, window)
+
+func is_on_cooldown(reaction: StringName) -> bool:
+	return reaction_cooldowns.get(reaction, 0.0) > 0.0
+
+func start_cooldown(reaction: StringName, seconds: float) -> void:
+	reaction_cooldowns[reaction] = seconds
+
 # Adds `stacks` of `id` (up to `max_stacks`, 0 = default cap) and refreshes its duration.
 # `line` is the applying Warden's family; Spored ticks count as that family's soothe. `source` is
 # the applying Warden (damage attribution: Spored ticks and Static bolts are credited to it).
@@ -73,7 +102,8 @@ func apply(id: StringName, stacks: int = 1, duration: float = 0.0, potency: floa
 	# Driftspore's higher cap sticks once reached, even if a Sporeling hits next.
 	status["cap"] = maxi(status.get("cap", 0), cap)
 	_active[id] = status
-	if id == STATIC and status.stacks >= cap:
+	# On a Damp nightmare Thunderclap goes off at 3 Static first (Reactions), so no bolt here then.
+	if id == STATIC and status.stacks >= cap and not has(DAMP):
 		_active.erase(STATIC)
 		return status.potency * STATIC_BOLT_MULTIPLIER
 	return 0.0
@@ -157,6 +187,8 @@ func get_speed_multiplier() -> float:
 	slow += DROWSY_SLOW_PER_STACK * stacks(DROWSY)
 	if is_in_stag_aura():
 		slow += STAG_SLOW
+	if slow_time > 0.0:
+		slow += slow_amount
 	return maxf(1.0 - slow, 0.1)
 
 # Soothe taken multiplier (Marked, and the White Stag's aura).
@@ -172,15 +204,25 @@ func get_damage_taken_multiplier() -> float:
 func tick(delta: float) -> float:
 	_fog_time = maxf(_fog_time - delta, 0.0)
 	_stag_time = maxf(_stag_time - delta, 0.0)
+	chain_time = maxf(chain_time - delta, 0.0)
+	mushroom_time = maxf(mushroom_time - delta, 0.0)
+	slow_time = maxf(slow_time - delta, 0.0)
+	for reaction in reaction_cooldowns.keys():
+		reaction_cooldowns[reaction] -= delta
+		if reaction_cooldowns[reaction] <= 0.0:
+			reaction_cooldowns.erase(reaction)
 	var spore_damage := 0.0
 	if has(SPORED):
-		_spore_timer += delta
+		smothering = has(HELD)
+		_spore_timer += delta * (SMOTHER_SPORE_RATE if smothering else 1.0)
 		while _spore_timer >= SPORE_TICK:
 			_spore_timer -= SPORE_TICK
 			var per_tick: float = _active[SPORED].stacks * _active[SPORED].potency * SPORE_TICK
-			spore_damage += per_tick * (1.0 + FOG_SPORE_BONUS if is_in_fog() else 1.0)
+			var bonus := (FOG_SPORE_BONUS if is_in_fog() else 0.0) + (MUSHROOM_SPORE_BONUS if mushroom_time > 0.0 else 0.0)
+			spore_damage += per_tick * (1.0 + bonus)
 	else:
 		_spore_timer = 0.0
+		smothering = false
 
 	for id in _active.keys():
 		var status: Dictionary = _active[id]

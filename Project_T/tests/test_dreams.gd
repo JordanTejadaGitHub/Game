@@ -36,6 +36,8 @@ func _test_status_numbers() -> void:
 	_check(s.stacks(EnemyStatuses.DROWSY) == 5, "Drowsy caps at 5")
 	s.apply(EnemyStatuses.MARKED)
 	_check(is_equal_approx(s.get_damage_taken_multiplier(), 1.25), "Marked: +25% soothe taken")
+	# On a Damp nightmare Static never bolts (Thunderclap fires at 3 first; see test_reactions).
+	s.remove(EnemyStatuses.DAMP)
 	var bolt := 0.0
 	for i in 4:
 		bolt += s.apply(EnemyStatuses.STATIC, 1, 0.0, 10.0)

@@ -304,7 +304,7 @@ func _test_wind() -> void:
 	var gust_tower := _plant(gust, Vector2(5, 5))
 	var source := _spawn_at(gust_tower.global_position + Vector2(CELL, 0))
 	source.apply_status(EnemyStatuses.SPORED, 4, 5.0, 1.0)
-	source.apply_status(EnemyStatuses.DAMP)
+	source.apply_status(EnemyStatuses.DROWSY)  # Spored + Damp would set off Mushrooming
 	var others: Array = []
 	for offset in [Vector2(0.5, 0.5), Vector2(0.5, -0.5), Vector2(1.0, 0.8)]:
 		others.append(_spawn_at(source.global_position + offset * CELL))
@@ -313,7 +313,7 @@ func _test_wind() -> void:
 	var spread := others.filter(func(e: Node2D) -> bool: return e.statuses.has(EnemyStatuses.SPORED))
 	_check(spread.size() == 2, "Gust spreads to 2 nightmares (%d)" % spread.size())
 	_check(spread.all(func(e: Node2D) -> bool:
-		return e.statuses.stacks(EnemyStatuses.SPORED) == 2 and e.statuses.has(EnemyStatuses.DAMP)),
+		return e.statuses.stacks(EnemyStatuses.SPORED) == 2 and e.statuses.has(EnemyStatuses.DROWSY)),
 		"with half the stacks, and every status")
 	await _clean()
 

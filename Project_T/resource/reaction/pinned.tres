@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="ReactionData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/reaction/script/reaction_data.gd" id="1_rx"]
+
+[resource]
+script = ExtResource("1_rx")
+id = &"pinned"
+display_name = "Pinned"
+statuses = Array[StringName]([&"marked", &"held"])
+description = "Marked + Held or full Drowsy: the next hit is a guaranteed 3x crit."
+callout_color = Color(0.91, 0.925, 1, 1)
+effect = &"pinned"
+effect_scale = 1.75

@@ -20,8 +20,15 @@ const DPS_WINDOW := 5.0  # Seconds of recent events kept for damage-per-second
 #   conducted  lightning that only reached it through Damp (whole hit)
 #   static     a Static bolt (whole hit)
 #   popped     a Puffball pop bursting built-up Spored stacks (whole hit; kind "pop")
+#   thunderclap, ignite, shatter, pinned, lightning_rod, dawnbreak: Reactions (whole hit; kind
+#              "reaction"; see Reactions and Enemy.REACTION_TAGS)
 const COMBO_NAMES := {&"crit": "crits", &"weak": "weakness", &"marked": "Marked", &"fog": "fog",
-	&"conducted": "through Damp", &"static": "Static bolts", &"popped": "pops"}
+	&"conducted": "through Damp", &"static": "Static bolts", &"popped": "pops",
+	&"thunderclap": "Thunderclaps", &"ignite": "Ignites", &"shatter": "Shatters", &"pinned": "Pinned hits",
+	&"lightning_rod": "Lightning Rods", &"dawnbreak": "Dawnbreak"}
+# Whole-hit combo tags: the entire hit is the combo's (see _combo_share).
+const WHOLE_HIT_COMBOS: Array[StringName] = [&"conducted", &"static", &"popped", &"thunderclap", &"ignite",
+	&"shatter", &"pinned", &"lightning_rod", &"dawnbreak"]
 
 enum NumbersMode { OFF, BIG, ALL }
 
@@ -211,7 +218,7 @@ func _row(source: Node) -> Dictionary:
 func _combo_share(event: Event, tag: StringName) -> float:
 	if event.combos.size() == 1:
 		return event.combo_amount
-	if tag == &"conducted" or tag == &"static" or tag == &"popped":
+	if tag in WHOLE_HIT_COMBOS:
 		return event.combo_amount
 	var factors := {&"crit": event.crit_multiplier, &"weak": EnemyData.WEAK_MULTIPLIER,
 		&"marked": 1.0 + EnemyStatuses.MARKED_EXTRA, &"fog": 1.0 + EnemyStatuses.FOG_SPORE_BONUS}
@@ -227,7 +234,7 @@ func _show_number(event: Event) -> void:
 	if numbers_mode == NumbersMode.OFF or not is_instance_valid(event.enemy) or event.amount < 0.5:
 		return
 	var big: bool = event.combos.has(&"crit") or event.combos.has(&"weak") or event.combos.has(&"conducted") \
-		or event.combos.has(&"popped") \
+		or event.combos.has(&"popped") or event.kind == &"reaction" \
 		or event.amount >= event.enemy.max_health * 0.1
 	if numbers_mode == NumbersMode.BIG and not big:
 		return

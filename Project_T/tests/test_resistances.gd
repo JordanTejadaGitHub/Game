@@ -81,6 +81,9 @@ func _run() -> void:
 	var ticked: int = before - weak_to_spores.health
 	_check(ticked == floori(10.0 * EnemyData.WEAK_MULTIPLIER), "Spored ticks get the spore weakness (%d from 10/s × weak)" % ticked)
 	var moth = _spawn(spawner, _sturdy("res://resource/enemy/drowned_one.tres"))  # Weak to light
+	# The Drowned One is always Damp, where Static becomes a Thunderclap at 3 (test_reactions); dry it
+	# off for a plain 5-stack bolt.
+	moth.statuses.remove(EnemyStatuses.DAMP)
 	before = moth.health
 	for i in EnemyStatuses.DEFAULT_MAX_STACKS[EnemyStatuses.STATIC]:
 		moth.apply_status(EnemyStatuses.STATIC, 1, 0.0, 10.0)
