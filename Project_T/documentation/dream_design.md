@@ -14,6 +14,10 @@ points.
   a direction. An offer should usually mix kinds.
 - **Maze matters.** Several cards reward how you build the maze (corners, walls, path length), not
   just damage.
+- **Cards never gate a combo** (user rule, 2026-09-27). If you own the Wardens, their combo works on
+  its own (e.g. Rain Lily's Damp already gives Stormcap +2 jumps and longer jumps). Combo cards like
+  Conductive Soil, Static Bloom, Chain Bloom and Spore Cascade only **amplify** a combo or **add a
+  new twist**. Any new card must follow this.
 
 ## Where Warden families come from (not Dreams)
 
