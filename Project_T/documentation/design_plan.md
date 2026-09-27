@@ -96,6 +96,10 @@ Remaining: an offer simulation to check build reachability, then playtest tuning
 - Music and SFX mood (cozy, gentle; the cleanse sound matters most).
 
 ### 13. Demo and store page
+
+**Pitch drafted in `pitch.md`** (hook, one-liners, store copy, tags, capsule and trailer concepts,
+title check). Demo scope still to do.
+
 - One-line pitch and hook for the Steam page; capsule art concept.
 - Demo scope for Next Fest (e.g. act 1 + one boss, a few unlocks).
 
