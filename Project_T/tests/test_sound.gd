@@ -52,12 +52,16 @@ func _initialize() -> void:
 		var data := load("res://resource/tower/" + file) as TowerData
 		var wid := SoundHooks.warden_id(data)
 		var sounds := SoundHooks.warden_sounds(sound, data)
+		if not data.can_attack and not WARDEN_FALLBACKS.has(wid) and sounds.is_empty():
+			continue  # Wardens that never attack (walls, economy saplings) only plant, unless given more
 		if WARDEN_FALLBACKS.has(wid):
 			var fallback: String = WARDEN_FALLBACKS[wid]
 			_check(fallback == "" or sounds.has(StringName(fallback)), "%s falls back to %s %s" % [wid, fallback, sounds])
-		else:
-			_check(sounds.any(func(id: StringName) -> bool: return String(id).ends_with(wid) or String(id).contains(wid + "_")),
-				"%s has its own sound %s" % [wid, sounds])
+		elif sounds.any(func(id: StringName) -> bool: return String(id).ends_with(wid) or String(id).contains(wid + "_")):
+			pass
+		else:  # Not on the sound sheet yet (e.g. a new final form): its family's sounds for now
+			_check(not sounds.is_empty(), "%s has a sound or a family fallback %s" % [wid, sounds])
+			print("NOTE: %s has no sounds of its own yet, using its family's %s" % [wid, sounds])
 	_check(SoundHooks._rate_db(6.0) < SoundHooks._rate_db(0.33), "fast Wardens are quieter per shot")
 	_check(SoundHooks._weight_pitch_for(3000, false, true) < SoundHooks._weight_pitch_for(20, false, false),
 		"big nightmares take lower hits than small ones")

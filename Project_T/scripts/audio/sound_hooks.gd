@@ -32,6 +32,9 @@ const FIRST_BREATH_DELAY := 0.6  # Evolve bloom, then the new form's hit
 const PLOP_DELAY := 0.25
 const SLEEP_INTERVAL_MS := 1500
 # Pulse Wardens whose sound should stay rare (ms between two).
+# Each family's base Warden (the last fallback for a Warden without sounds of its own).
+const FAMILY_BASE := {"spore": "sporeling", "stone": "pebbling", "water": "dewdrop", "light": "firefly_jar",
+	"root": "rootling", "song": "bellflower", "acorn": "acorn", "wing": "nestling", "wind": "whirligig"}
 const PULSE_THROTTLE_MS := {"bramble": 800, "honeysuckle": 3000, "acorn": 5000}
 # Sound id prefixes a Warden can have (warden_sounds, tests).
 const EVENT_PREFIXES := ["attack_", "hit_", "drowsy_", "pop_", "cloud_", "fog_", "sleep_", "trap_", "trigger_",
@@ -199,13 +202,22 @@ static func warden_id(data: TowerData) -> String:
 static func warden_sounds(snd: Node, data: TowerData) -> Array[StringName]:
 	var found: Array[StringName] = []
 	for prefix in EVENT_PREFIXES:
-		for id in [prefix + warden_id(data), prefix + data.line]:
+		for id in _lookup_ids(prefix, data):
 			if snd.has_sound(StringName(id)) and not found.has(StringName(id)):
 				found.append(StringName(id))
 	return found
 
+# Where a Warden's sound is looked up: its own, its family's base Warden's, then its family's (so a
+# Warden not on the sound sheet yet, e.g. a new final form, sounds like its family until it has its own).
+static func _lookup_ids(prefix: String, data: TowerData) -> Array:
+	var ids := [prefix + warden_id(data)]
+	if FAMILY_BASE.has(data.line):
+		ids.append(prefix + FAMILY_BASE[data.line])
+	ids.append(prefix + data.line)
+	return ids
+
 func _sound_for(prefix: String, data: TowerData) -> StringName:
-	for id in [prefix + warden_id(data), prefix + data.line]:
+	for id in _lookup_ids(prefix, data):
 		if sound.has_sound(StringName(id)):
 			return StringName(id)
 	return &""

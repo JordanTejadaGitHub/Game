@@ -641,17 +641,17 @@ func _make_wardens() -> void:
 
 	# Dewdrop line: real water.
 	_ws("attack_dewdrop", 2, 0.2, func(_v: int) -> PackedFloat32Array:
-		return _layers([[_air(0.1, 1200.0, 0.01, 0.06), 0.5], [_ring(0.12, [520.0], [1.0], 0.02), 0.3]]))
+		return _lowpass(_layers([[_air(0.1, 700.0, 0.01, 0.06), 0.5], [_ring(0.12, [520.0], [1.0], 0.02), 0.3]]), 1500.0))
 	_ws("hit_dewdrop", 3, 0.5, func(_v: int) -> PackedFloat32Array: return _splash(1.0, 0.3))
 	_ws("attack_rain_lily", 2, 0.25, func(_v: int) -> PackedFloat32Array:
-		return _layers([[_air(0.14, 1100.0, 0.01, 0.08), 0.5], [_ring(0.16, [440.0], [1.0], 0.03), 0.4]]))
+		return _lowpass(_layers([[_air(0.14, 650.0, 0.01, 0.08), 0.5], [_ring(0.16, [440.0], [1.0], 0.03), 0.4]]), 1500.0))
 	_ws("hit_rain_lily", 3, 0.6, func(_v: int) -> PackedFloat32Array: return _splash(1.3, 0.5))
 	_ws("attack_mistveil", 2, 0.3, func(_v: int) -> PackedFloat32Array:  # Damp air, no hiss
 		return _layers([[_air(0.45, 500.0, 0.1, 0.3), 1.0], [_rumble(0.45, 180.0, 0.1, 0.3), 0.4]]))
 	_ws("fog_mistveil", 1, 0.4, func(_v: int) -> PackedFloat32Array:
 		return _layers([[_air(1.0, 350.0, 0.2, 0.7), 1.0], [_rumble(1.0, 150.0, 0.2, 0.7), 0.5]]))
 	_wloop("loop_mistveil", func() -> PackedFloat32Array: return _breath_bed(420.0, 0.35))  # A very quiet cold breath
-	_ws("attack_frostfern", 2, 0.25, func(_v: int) -> PackedFloat32Array: return _air(0.2, 900.0, 0.03, 0.14))
+	_ws("attack_frostfern", 2, 0.25, func(_v: int) -> PackedFloat32Array: return _lowpass(_air(0.2, 600.0, 0.03, 0.14), 1500.0))
 	_ws("hit_frostfern", 3, 0.5, func(_v: int) -> PackedFloat32Array:  # A splash that stiffens: a soft, low ice creak
 		return _layers([[_splash(1.0, 0.3), 1.0], [_lowpass(_creak(SFX_RATE, 0.35, 12.0, 25.0, 350.0), 800.0), 0.5, 0.05]]))
 	_ws("attack_hoarfrost", 2, 0.3, func(_v: int) -> PackedFloat32Array: return _air(0.3, 700.0, 0.05, 0.2))
@@ -848,7 +848,8 @@ func _thump(length: float, cutoff: float, tau: float) -> PackedFloat32Array:
 
 func _air(length: float, center: float, attack: float, release: float, damp := 0.8) -> PackedFloat32Array:
 	var n := _noise(SFX_RATE, length, swell(attack, release, length))
-	return _normalize(_filter(n, SFX_RATE, center, damp, "bp"), 1.0)
+	# Lowpassed above ~2× the band, so a wide band of air never leaks brightness
+	return _normalize(_lowpass(_lowpass(_filter(n, SFX_RATE, center, damp, "bp"), minf(center * 2.2, 2400.0)), minf(center * 2.2, 2400.0)), 1.0)
 
 func _rumble(length: float, cutoff: float, attack: float, release: float) -> PackedFloat32Array:
 	var n := _noise(SFX_RATE, length, swell(attack, release, length))
@@ -927,7 +928,7 @@ func _mortar(pebbles: int, spread: float) -> PackedFloat32Array:  # Stone landin
 func _splash(size: float, spray: float) -> PackedFloat32Array:  # A water slap, a low plunk, a spray tail
 	return _layers([[_lowpass(_nburst(0.12 * size, 0.02 * size), 1800.0), 1.0],
 		[_ring(0.3 * size, [260.0 / size], [1.0], 0.05 * size), 0.6],
-		[_air(0.3 + spray, 2000.0, 0.01, 0.2 + spray * 0.5, 0.9), 0.15 + spray * 0.3]])
+		[_lowpass(_air(0.3 + spray, 1100.0, 0.01, 0.2 + spray * 0.5, 0.8), 1600.0), 0.12 + spray * 0.25]])
 
 func _glow_swell(length: float) -> PackedFloat32Array:  # The Firefly Jar's warm swell, heavier
 	var glow := _seg(length, SFX_RATE)
@@ -972,13 +973,13 @@ func _tiny_tap() -> PackedFloat32Array:
 
 func _spin_up() -> PackedFloat32Array:  # Air gathering (a gently moving band of noise, no tone)
 	var n := _noise(SFX_RATE, 0.4, swell(0.25, 0.1, 0.4))
-	return _normalize(_filter(n, SFX_RATE, glide(300.0, 700.0, 0.4), 0.7, "bp"), 1.0)
+	return _normalize(_lowpass(_filter(n, SFX_RATE, glide(300.0, 700.0, 0.4), 0.7, "bp"), 1400.0), 1.0)
 
 func _swirl(length: float) -> PackedFloat32Array:
 	return _wobble(_air(length, 500.0, 0.15, length * 0.6), 3.0)
 
 func _air_cut(length: float, center: float) -> PackedFloat32Array:
-	return _air(length, center, 0.01, length * 0.7, 0.7)
+	return _lowpass(_air(length, center, 0.01, length * 0.7, 0.7), 1600.0)
 
 func _seed_whir(rate_hz: float) -> PackedFloat32Array:  # A spinning maple seed
 	var n := _noise(SFX_RATE, 0.5, func(t: float) -> float:
