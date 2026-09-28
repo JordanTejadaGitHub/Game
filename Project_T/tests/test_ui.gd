@@ -259,6 +259,13 @@ func _run() -> void:
 	var marks_hud = main.get_node("HUD")
 	marks_hud.bark_shield.set_charges(2)
 	_check(marks_hud.bark_shield.visible and marks_hud.bark_shield.charges == 2, "Thick Bark: the shield shows while leaks can be saved")
+	_check(marks_hud.bark_shield._intro > 0.0, "…and pulses with its name the first time")
+	var bark_card = marks_hud.bark_shield.card()
+	if bark_card != null:
+		marks_hud.bark_shield.tip.show_card(marks_hud.bark_shield, bark_card, Vector2(200, 200))
+		_check(marks_hud.bark_shield.tip.visible and marks_hud.bark_shield.tip._name.text == bark_card.display_name
+			and marks_hud.bark_shield.tip._text.text == bark_card.description, "hover / tap: the card's icon, name and text")
+		marks_hud.bark_shield.tip.hide_tip(marks_hud.bark_shield)
 	marks_hud.bark_shield.set_charges(0)
 	_check(not marks_hud.bark_shield.visible, "…and hides at 0")
 	_check(main.get_children().any(func(c: Node) -> bool: return c is DreamMarks), "the Heart of the Maze mark layer exists")

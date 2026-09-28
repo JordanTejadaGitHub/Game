@@ -99,7 +99,8 @@ func _test_legendary_weighting() -> void:
 	for i in 2000:
 		if dreams._weighted_pick([maze_card, plain]) == maze_card:
 			maze_picks += 1
-	_check(maze_picks > 1080 and maze_picks < 1260, "a taken Legendary's tag is weighted 1.4× (%d / 2000)" % maze_picks)
+	var expected := 2000.0 * dreams.tag_weight / (dreams.tag_weight + 1.0)
+	_check(absf(maze_picks - expected) < 110, "a taken Legendary's tag is weighted like a family (%d / 2000, expected %d)" % [maze_picks, expected])
 
 func _test_lucid_dreaming() -> void:
 	_reset()

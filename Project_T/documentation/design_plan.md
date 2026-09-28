@@ -29,18 +29,18 @@ In recommended order:
 | # | Topic | What it needs | Needed for |
 |---|---|---|---|
 | 1 | ~~Screens and HUD~~ | **done: `screens_ui.md`**; open question: Warden targeting modes | — |
-| 2 | **Art and audio direction** (**drafted: `art_direction.md`, `audio_direction.md`**; UI style still to do) | style guide for the **dark fairytale** (`story.md`): warm Wardens vs cold nightmares, palette, outlines, sizes, animation counts, nightmare look and dispel effect, a darker dream-forest tileset, UI style; music mood per phase (dread building during drifts), key SFX (the dispel, nightmare whispers) | original art (longest lead time for the demo) |
+| 2 | **Art and audio direction** (**drafted: `art_direction.md`, `audio_direction.md`**; **style decided: Waystone pixel, detailed 64**; master palette and UI style still to do, Theme chats) | style guide for the **dark fairytale** (`story.md`): warm Wardens vs cold nightmares, palette, outlines, sizes, animation counts, nightmare look and dispel effect, a darker dream-forest tileset, UI style; music mood per phase (dread building during drifts), key SFX (the dispel, nightmare whispers) | original art (longest lead time for the demo) |
 | 3 | **Accessibility** | warm vs cold must not rely on colour alone: nightmares also need shape cues (silhouette, glowing eyes, haze); text size, reduced motion, key remapping, colour-blind check of status icons; a note on scary content for younger players | art direction (do together) |
-| 4 | **Balance framework** | target damage vs nightmare health per drift; how much of a drift should leak at "par"; spec for a simulation tool | tuning 100 drifts |
+| 4 | **Balance framework** (**spec: `balance_simulation.md`**, 2026-09-28; targets in `run_design.md`) | target damage vs nightmare health per drift; how much of a drift should leak at "par"; spec for a simulation tool | tuning 100 drifts |
 | 5 | **Soft mechanics review** | tighten now that the theme is darker too: rest refund 100% → 75%? leaf regrowth +3 per act → none? | run rules |
 | 6 | **Dream pool to ~70 cards** | family cards for Pebbling, Rootling, Acorn; **Family Blessings** list; more Entwined pairs; **Rare tier gap** (2026-09-28): many boards have 0–1 eligible Rares in acts 1–2 (Few and Mighty sim, c64183a); add ~6 Rares with loose Needs (general and per family) | full game |
 | 7 | ~~Acts 3–4 content~~ **done** (`acts_3_4.md`, all four bosses built; boss dossier data 2026-09-28) | behaviour detail and drift plan for the act 3–4 nightmares (Lurker, Gravecrawler, Sleepwalker, Barrow Wight, Drowned One, Watcher, Ash Crawler, Will-o'-Wisp, Widow, Shellbound, Whisper Swarm, Dream Thief, Weeper; stats exist in `enemy_design.md`); the Moth Queen; The Hollow Oak incl. its Blight Level 10 phase; drifts 51–100 | full game |
-| 8 | **Controller / Steam Deck** | building with a gamepad: cursor, snapping, selecting Wardens, route preview, menus | demo (Deck-playable) |
+| 8 | **Controller / Steam Deck** (**later**, user 2026-09-28; proposal: a tile-snapping cursor, A place/select, B cancel, bumpers switch Wardens, a radial menu for grow / nurture / sell) | building with a gamepad: cursor, snapping, selecting Wardens, route preview, menus | demo (Deck-playable) |
 | 9 | **Story text** | final wording of the 10 Memories, boss dispel lines, nightmare lore lines, flavour-text library, The Long Walk Out sequence | full game |
 | 10 | **Biomes and special tiles** | the 2 Grove forests (look, obstacles, rule twist); special tiles (waystones, dew pools) | full game |
 | 11 | **Forest Journal** (now a bestiary) | parked for later | post-launch? |
 
-**Open decisions:** ~~tagline~~ (B, decided), ~~title~~ (**Heartwood TD**, decided 2026-09-28; check Steam / itch.io / trademarks), the **art style** (undecided), whether
+**Open decisions:** ~~tagline~~ (B, decided), ~~title~~ (**Heartwood TD**, decided 2026-09-28; check Steam / itch.io / trademarks), ~~art style~~ (**Waystone pixel, "detailed 64"**, decided 2026-09-28 in the Theme chats; `art_direction.md` "Decision"; the ~32-colour master palette still open), whether
 The Long Walk Out is worth building. (Memory 5's tone is settled by the darker theme.)
 
 ## 2. Content to produce

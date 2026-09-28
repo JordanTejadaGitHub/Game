@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "sparking_spores"
+display_name = "Sparking Spores"
+description = "Ignite detonations deal 20% more."
+rarity = 0
+kind = 3
+tags = Array[String](["spore", "storm", "reaction"])
+requires = Array[String](["sporeling", "firefly_jar"])
+max_stacks = 3
+rule_id = &"sparking_spores"

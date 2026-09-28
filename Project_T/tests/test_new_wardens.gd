@@ -115,7 +115,7 @@ func _test_snipers() -> void:
 	var strong := _spawn_at(tower.global_position + Vector2(0, 6 * CELL))
 	strong.max_health = 5000
 	strong.health = 5000
-	tower.target_mode = TowerData.TargetMode.STRONGEST
+	tower.set_target_mode(TowerData.TargetMode.STRONGEST)  # The Targeting switch
 	_check(tower.find_target() == strong, "target priority: Strongest")
 
 	var moon: TowerData = load("res://resource/tower/moonstone.tres").duplicate()

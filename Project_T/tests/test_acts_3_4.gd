@@ -340,6 +340,74 @@ func _run() -> void:
 	wall_tower.free()
 	_clear_enemies()
 
+	# --- Damp Rot (Dream 169): Poisoned ticks +20% per stack on Soaked nightmares ---
+	_clear_enemies()
+	var rot_dry := _still("leaf_bug", route[5])
+	var rot_wet := _still("leaf_bug", route[5])
+	rot_wet.apply_status(EnemyStatuses.DAMP)
+	for rotting in [rot_dry, rot_wet]:
+		rotting.max_health = 100000
+		rotting.health = 100000
+		rotting.apply_status(EnemyStatuses.SPORED, 1, 10.0, 100.0)
+	dreams.unlocked["sporeling"] = true  # Damp Rot needs both families, or it lies dormant
+	dreams.unlocked["dewdrop"] = true
+	_take_card(dreams, "damp_rot")
+	for rotting in [rot_dry, rot_wet]:
+		rotting._process(0.5)  # One Poisoned tick
+	var dry_loss: int = 100000 - rot_dry.health
+	var wet_loss: int = 100000 - rot_wet.health
+	_check(dry_loss > 0 and is_equal_approx(float(wet_loss) / dry_loss, 1.2),
+		"Damp Rot: a Soaked nightmare's Poisoned tick is +20%% (%d vs %d)" % [wet_loss, dry_loss])
+	_clear_enemies()
+
+	# --- No maze juggling: Restless and Unbound ---
+	_clear_enemies()
+	route = map_generator.get_path_from(map_generator.startPath)
+	var restless_seen := []
+	var unbound_seen := []
+	spawner.nightmare_restless.connect(func(e: Node2D, stacks: int) -> void: restless_seen.append(stacks))
+	spawner.nightmare_unbound.connect(func(e: Node2D) -> void: unbound_seen.append(e))
+	var crowd := []
+	for i in 3:
+		crowd.append(_still("leaf_bug", route[10]))
+	for walker_n in crowd:
+		_walk_backwards(walker_n, 10)
+	spawner._on_path_changed()
+	_check(crowd.all(func(e: Node2D) -> bool: return e.get_restless() == 1), "a crowd turned around once: 1 Restless each")
+	_check(restless_seen == [1, 1, 1], "one nightmare_restless each (%s)" % [restless_seen])
+	_check(is_equal_approx(crowd[0].get_move_speed(), crowd[0].speed * 1.2), "Restless: +20% speed")
+	var normal_walker := _still("leaf_bug", route[10])
+	normal_walker.set_path(route.slice(10))
+	normal_walker._path_index = 1
+	normal_walker._last_cell = route[10]
+	spawner._on_path_changed()
+	_check(normal_walker.get_restless() == 0, "a re-route that doesn't turn it back gives nothing")
+	_clear_enemies()
+	var juggled := _still("leaf_bug", route[10])
+	for flip in 3:
+		_walk_backwards(juggled, 10)
+		spawner._on_path_changed()
+	_check(juggled.get_restless() == 3 and juggled.is_unbound() and unbound_seen == [juggled], "turned back 3 times: Unbound")
+	var kept: PackedVector2Array = juggled._path.duplicate()
+	spawner._on_path_changed()
+	_check(juggled._path == kept, "an Unbound nightmare ignores re-routes")
+	var trampled_cells := []
+	spawner.wall_trampled.connect(func(cell: Vector2, _by: Node2D) -> void: trampled_cells.append(cell))
+	var on_route := _plant("thornwall", route[13])
+	juggled.position = juggled.grid.calculate_map_position(route[12])
+	juggled.set_path(route.slice(12))
+	juggled._path_index = 1
+	juggled._trample_ahead()
+	_check(on_route.is_queued_for_deletion() and trampled_cells == [route[13]], "it tramples a Warden planted on its route")
+	_check(juggled.get_restless_info().unbound and juggled.get_restless_info().stacks == 3, "get_restless_info reports it")
+	_clear_enemies()
+	var boss_walker := _still("old_stag", route[10])
+	for flip in 3:
+		_walk_backwards(boss_walker, 10)
+		spawner._on_path_changed()
+	_check(boss_walker.get_restless() == 3 and not boss_walker.is_unbound(), "a boss gains Restless but never turns Unbound")
+	_clear_enemies()
+
 	# --- Display settings: health bars "always", the Deeply Blighted outline ---
 	_clear_enemies()
 	Fx._settings = {}  # Defaults, whatever the player's profile says
@@ -366,6 +434,14 @@ func _still(kind: String, cell: Vector2) -> Node2D:
 	enemy.set_process(false)
 	enemy.position = enemy.grid.calculate_map_position(cell)
 	return enemy
+
+# Sets `enemy` up standing on route[k + 1] and heading back to route[k]: the map's route from there
+# leads forward again, so the next re-route turns it back onto the tile it just left.
+func _walk_backwards(enemy: Node2D, k: int) -> void:
+	enemy.position = enemy.grid.calculate_map_position(route[k + 1])
+	enemy.set_path(PackedVector2Array([route[k + 1], route[k]]))
+	enemy._path_index = 1
+	enemy._last_cell = route[k + 1]
 
 func _take_card(dreams: DreamState, id: String) -> void:
 	for card in dreams.pool:

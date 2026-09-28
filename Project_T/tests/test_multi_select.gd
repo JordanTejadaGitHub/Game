@@ -73,18 +73,31 @@ func _run() -> void:
 	await process_frame
 	_check(panel._title.text == "5 Wardens selected", "the panel title counts the selection")
 
-	# Sell all: normal refund rules (the resting share of everything invested, 75% since difficulty v1).
+	# Sell all: normal refund rules. All of them were planted and grown this rest: a full refund
+	# (run_design.md "Selling"; 75% applies once they have stood through a drift).
 	var refund := seller.get_selection_refund()
 	var expected := 0
 	for tower in sprouts:
-		expected += int(tower.invested_dew * seller.build_phase_refund)
-	_check(refund == expected, "Sell all refunds the resting share of everything invested (%d)" % refund)
+		expected += tower.invested_dew
+	_check(refund == expected, "Sell all refunds what was placed this rest in full (%d)" % refund)
 	var dew := run_state.dew
 	_check(seller.sell_selection() == refund and run_state.dew == dew + refund, "Sell all pays the refund")
 	await process_frame
 	_check(sprouts.all(func(t) -> bool: return not is_instance_valid(t) or t.is_queued_for_deletion()),
 		"every selected Warden is gone")
 	_check(seller.selection.is_empty() and seller.get_tower_at(wall.cell) == wall, "the unselected Thornwall stays")
+
+	# --- A selected Warden trampled away (Unbound nightmares) leaves the selection ---
+	var trampled := _build(placer, map_generator, sprout)
+	var kept := _build(placer, map_generator, sprout)
+	seller.set_selection([trampled, kept])
+	var told := []
+	seller.selection_changed.connect(func(towers: Array[Tower]) -> void: told.append(towers.size()), CONNECT_ONE_SHOT)
+	trampled.get_parent().remove_child(trampled)  # What Enemy Code's trample does
+	trampled.queue_free()
+	await process_frame
+	_check(seller.selection == [kept] and seller.selected == kept, "the trampled Warden drops out of the selection")
+	_check(told == [1], "and the panel hears about it")
 
 	print("multi-select test: %s" % ("PASS" if failures == 0 else "%d FAILED" % failures))
 	quit(failures)

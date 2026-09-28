@@ -65,7 +65,7 @@ const OPPOSITE_WEIGHT := 0.5
 const SOFT_NEED_WEIGHT := 0.4  # A card whose soft Needs are unmet (dream_design.md "Adapt, don't get handed")
 const STRAY_FROM_DRIFT := 10  # The Stray Dream: one slot per offer from this rest on (never at boss rests)
 const STRAY_IN_BUILD_WEIGHT := 0.25
-const HALF_DREAMED_WEIGHT := 0.8  # A combo card whose other family you could still pick
+const HALF_DREAMED_WEIGHT := 1.0  # A combo card whose other family you could still pick
 const HALF_DREAMED_WITHIN := 20  # …offered only when the next family pick is at most this many drifts away
 const HALF_DREAMED_DECLINED_WEIGHT := 0.3  # …after its missing family was offered at a pick and not taken
 # Passed-over cards fade (dream_design.md "How Dream offers work"): left out of the next offer, then
@@ -139,12 +139,17 @@ const LAST_BREATH_BOSS_CAP := 0.05
 const LAST_BREATH_CELLS := 1.0
 const TANGLED_SLOW := 0.10
 const WATCHFUL_REST_TIME := [5.0, 3.0]
-const GLIMMER_CHANCE := 0.10
+const GLIMMER_CHANCE := 0.30
+const GLIMMER_DREAMLIGHT_MAX := 3  # Per run, its own cap (not the Great Dreamcatcher's)
 const STRAIGHT_TILES := 5
 const STRAIGHTAWAY := [[0.15, 0.5], [0.25, 0.5]]  # [damage, range]
 const HEART_OF_MAZE_BONUS := 0.50
 const ECHO_PER := 0.05
 const ECHO_MAX := 0.25
+# Half-dreamed Commons (169–171, stack to 3)
+const DAMP_ROT_PER := 0.20  # Poisoned (Spored) ticks on Soaked nightmares
+const SPARKING_SPORES_PER := 0.20  # Ignite detonations
+const RAIN_ON_GLASS_PER := 0.12  # Light Wardens vs Soaked
 # Dreamlight (run_design.md "Dreamlight"): sources and unlock costs.
 const FIRST_PICK_DREAMLIGHT := 1
 const BOSS_DREAMLIGHT := 3
@@ -178,7 +183,7 @@ signal remember_requested(focus: TowerData)
 @export var unlock_everything: bool = false  # Debug/tests: every Warden and evolution available
 @export var cards_per_offer: int = 3
 @export var skip_dew: int = 15  # "Let it pass"
-@export var tag_weight: float = 1.4  # Cards sharing a tag you own (family, direction, Legendary archetype)
+@export var tag_weight: float = 2.4  # Cards sharing a tag you own (family, direction, Legendary archetype)
 @export var pity_after: int = 3  # Dreams in a row without Rare+ before one is guaranteed
 # Bittersweet cards stay out of the pool until leaves are tuned (dream_design.md). Act 2+ only,
 # at most one per offer.
@@ -229,6 +234,7 @@ var _last_route := PackedVector2Array()
 var _straight_cells := {}  # Route tiles in a straight stretch of 5+ (Straightaway)
 var _heart_cache := []  # [key, Tower] (get_heart_of_maze)
 var _glimmer_rng := RandomNumberGenerator.new()
+var glimmer_shards := 0  # Glimmering Hunt's shards this run (10 = 1 Dreamlight, own cap)
 var _statuses_cache := []  # [state key, owned statuses] (owned_statuses)
 var _offer_drift := 0  # The drift of the offer being built (half-dreamed checks)
 var _before_offer := {}  # Offer counters from before the current offer (a reroll rolls them back)
@@ -1651,7 +1657,7 @@ func to_save() -> Dictionary:
 		"eldest_cell": [_eldest_cell.x, _eldest_cell.y], "court_pending": _court_pending,
 		"passed_count": _passed_count.duplicate(), "passed_at": _passed_at.duplicate(),
 		"owed_families": _owed_families.duplicate(), "declined_families": _declined_families.duplicate(),
-		"walls_planted": _walls_planted,
+		"walls_planted": _walls_planted, "glimmer_shards": glimmer_shards,
 		"rng_state": str(_rng.state),  # A string: JSON would round a 64-bit int
 	}
 
@@ -1687,6 +1693,7 @@ func load_save(data: Dictionary) -> void:
 			into[id] = int(saved[id])  # JSON gives floats
 	_attackers_planted = int(data.get("attackers_planted", 0))
 	_walls_planted = int(data.get("walls_planted", 0))
+	glimmer_shards = int(data.get("glimmer_shards", 0))
 	_refill_bark()  # Saved at a rest, where Thick Bark is full again
 	dreamlight = int(data.get("dreamlight", 0))
 	dreamlight_changed.emit(dreamlight)
@@ -1959,6 +1966,9 @@ func on_hit_multiplier(tower: Tower, enemy: Node2D) -> float:
 	bonus += get_bitter_bonus(enemy)
 	if has_rule(&"lone_hunter") and _is_alone(enemy):
 		bonus += LONE_HUNTER_BONUS[rule_level(&"lone_hunter")]
+	if tower != null and tower.tower_data.line == "light" and has_rule(&"rain_on_glass") \
+			and enemy.statuses.has(EnemyStatuses.DAMP):
+		bonus += RAIN_ON_GLASS_PER * rule_stacks(&"rain_on_glass")  # Rain on Glass
 	if has_rule(&"skyward_gaze") and enemy.enemy_data != null and enemy.enemy_data.trait_kind == EnemyData.Trait.FLYING:
 		bonus += SKYWARD_BONUS
 	var multiplier := 1.0 + bonus
@@ -2116,10 +2126,15 @@ func _is_alone(enemy: Node2D) -> bool:
 			return false
 	return true
 
-# Glimmering Hunt: a dispelled elite may drop a Dreamlight shard.
+# Glimmering Hunt: a dispelled elite has a 30% chance to drop a Dreamlight shard (10 = 1 Dreamlight),
+# up to 3 Dreamlight per run from this card, apart from the Great Dreamcatcher's shards and cap.
 func _glimmer(enemy: Node2D) -> void:
-	if has_rule(&"glimmering_hunt") and enemy.elite and _glimmer_rng.randf() < GLIMMER_CHANCE:
-		add_dreamlight_shard()
+	if not has_rule(&"glimmering_hunt") or not enemy.elite or _glimmer_rng.randf() >= GLIMMER_CHANCE \
+			or glimmer_shards >= SHARDS_PER_DREAMLIGHT * GLIMMER_DREAMLIGHT_MAX:
+		return
+	glimmer_shards += 1
+	if glimmer_shards % SHARDS_PER_DREAMLIGHT == 0:
+		add_dreamlight(1)
 
 # Last Breath: a dispelled nightmare bursts for 10% (II 15%) of its max health on nightmares within
 # 1 cell; bosses' bursts are capped at 5% of the boss's max health. Effect damage (tag last_breath);
@@ -2215,3 +2230,85 @@ func owns_range_at_most(reach: float) -> bool:
 		if is_unlocked(data.get_id()) and data.can_attack and data.attack_range <= reach:
 			return true
 	return false
+
+# Damp Rot: Poisoned (Spored) tick multiplier on `enemy` (enemy.gd's tick asks; 1.0 without it).
+func get_spored_tick_multiplier(enemy: Node2D) -> float:
+	var n := rule_stacks(&"damp_rot")
+	if n == 0 or enemy == null or not enemy.statuses.has(EnemyStatuses.DAMP):
+		return 1.0
+	return 1.0 + DAMP_ROT_PER * n
+
+# Sparking Spores: Ignite detonation multiplier (Reactions._ignite asks; 1.0 without it).
+func get_ignite_multiplier() -> float:
+	return 1.0 + SPARKING_SPORES_PER * rule_stacks(&"sparking_spores")
+
+
+# --- Headless simulation entry points (tools/balance_run.gd, tests) -------------------------------
+# A real rest and family pick without the screens or deferred offers, keeping the offer bookkeeping
+# (fade, half-dreamed, owed families, Stray, pity, Lucid) exactly as in play.
+
+# Dreamlight a run earns at `kind`: &"first" (the first family pick) or &"boss" (a boss rest).
+static func sim_dreamlight_for(kind: StringName) -> int:
+	return FIRST_PICK_DREAMLIGHT if kind == &"first" else (BOSS_DREAMLIGHT if kind == &"boss" else 0)
+
+# The rest after drift `drift`: what _on_rest_started does (rest rules, Sunlit Rest, Seedling Gift,
+# the boss's +3 Dreamlight) and a real offer. `pick.call(offer: Array) -> UpgradeData` (null = let it
+# pass); with Lucid Dreaming it's called again with what's left. Returns the cards taken.
+func sim_rest(drift: int, pick: Callable, perfect: bool = true) -> Array[UpgradeData]:
+	_early_calls = 0
+	_rest_rules(perfect)
+	if drift_director.is_boss_drift(drift):
+		add_dreamlight(sim_dreamlight_for(&"boss"))
+	if has_rule(&"sunlit_rest"):
+		sunlit_rest()
+	if has_rule(&"seedling_gift"):
+		run_state.add_sprout_charges(1)
+	var taken: Array[UpgradeData] = []
+	current_offer_drift = drift
+	current_offer = make_offer(drift)
+	while is_offering():
+		var card: UpgradeData = pick.call(current_offer.duplicate())
+		if card == null or not current_offer.has(card):
+			if can_skip():
+				skip()
+			else:
+				_close_offer()  # Restless Dreams: no skipping, but the sim moves on
+			break
+		taken.append(card)
+		choose(card)
+	return taken
+
+# A family pick (&"first" after drift 1, &"boss" before a boss rest) through FamilyPickScreen's real
+# offer (owed half-dreamed families included), without leaving the game paused or the screen open.
+# `pick.call(offered_ids: Array) -> StringName`; &"" takes a Family Blessing if one is offered.
+# Returns the family taken (&"" = none). The first pick also gives its +1 Dreamlight.
+func sim_family_pick(kind: StringName, pick: Callable) -> StringName:
+	if kind == &"first":
+		add_dreamlight(sim_dreamlight_for(&"first"))
+	var screen := get_node_or_null("%FamilyPickScreen")
+	if screen == null:
+		return &""
+	var speed := get_node_or_null("%GameSpeed")
+	var was_paused: bool = speed.paused if speed else false
+	var was_awaiting := drift_director.awaiting_family_pick
+	drift_director.awaiting_family_pick = false  # An empty offer mustn't start a rest in the sim
+	screen.show_pick(kind)
+	drift_director.awaiting_family_pick = was_awaiting
+	var families: Array = screen.offer.filter(func(d) -> bool: return d is TowerData)
+	var ids: Array = families.map(func(d: TowerData) -> String: return d.get_id())
+	var chosen := StringName(pick.call(ids.duplicate())) if not ids.is_empty() else &""
+	if ids.has(String(chosen)):
+		unlocked[String(chosen)] = true
+		unlocks_changed.emit()
+		note_family_pick(ids, String(chosen))
+	else:
+		chosen = &""
+		var blessings: Array = screen.offer.filter(func(d) -> bool: return d is UpgradeData)
+		if not blessings.is_empty():
+			take(blessings[0])
+		note_family_pick(ids, "")
+	screen.offer = []
+	screen.visible = false
+	if speed:
+		speed.set_paused(was_paused)
+	return chosen

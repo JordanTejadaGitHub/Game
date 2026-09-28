@@ -137,9 +137,11 @@ func _run() -> void:
 		and profile_after.get("combo_counts", {}) == profile_before.get("combo_counts", {}), "tests never write discoveries")
 	# The Codex: Glossary (search, see-also jumps) and Combos (15, "???" until discovered).
 	var codex: CodexPanel = main.get_node("%PauseMenu").codex
+	ResultsScreen.demo_override = 0  # The full game: every combo in scope (the scope itself: test_codex_scope)
 	codex.open(&"combos")
-	_check(codex.visible and codex.tabs.current_tab == 1 and CodexData.combos().all(func(c: Dictionary) -> bool: return codex._entries.has(String(c.id)))
-		and CodexData.combos().size() == 15, "the Codex lists all 15 combos")
+	_check(codex.visible and codex.tabs.current_tab == 1 and CodexData.combos().filter(CodexData.in_build).all(func(c: Dictionary) -> bool: return codex._entries.has(String(c.id)))
+		and CodexData.combos().size() == 15, "the Codex lists every combo in scope, of 15")
+	ResultsScreen.demo_override = -1
 	# Locked entries are just "???": no ingredient icons or text (they'd give the answer away).
 	var seen_now := ComboFeedback.load_seen()
 	for combo in CodexData.combos():
@@ -206,6 +208,24 @@ func _run() -> void:
 		_check(whispers._seen.has("kin") or whispers._queue.has(&"kin"), "the Kinship whisper, once two branches of a family are planted")
 		whispers._queue.clear()
 		whispers.set_enabled(false)
+		# No maze juggling: the Unbound whisper, the rest report's "Unbound: N", the info's Restless line.
+		var juggled: Node2D = spawner.spawn_enemy(load("res://resource/enemy/leaf_bug.tres"))
+		juggled.set_process(false)
+		if spawner.has_signal("nightmare_unbound"):
+			whispers.enabled = true
+			whispers._seen = []
+			whispers._queue.clear()
+			report.unbound_block = 0
+			spawner.nightmare_unbound.emit(juggled)
+			_check(whispers._seen.has("unbound") or whispers._queue.has(&"unbound"), "the first Unbound whispers")
+			report.show_report(2)
+			_check(report._label.get_parsed_text().contains("Unbound: 1"), "the rest report counts Unbound nightmares")
+			whispers._queue.clear()
+			whispers.set_enabled(false)
+			juggled.restless = 2
+			var restless_line: String = load("res://scripts/ui/nightmare_info.gd").restless_text(juggled)
+			_check(restless_line == "Restless ×2: +40% speed (Unbound at 3)", "the nightmare info's Restless line (" + restless_line + ")")
+		juggled.queue_free()
 	# Crowned Reactions: their own discovery card, a hidden entry until found, outside the 15.
 	_check(CodexData.crowned().size() == 8 and CodexData.combos().size() == 15, "8 Crowned Reactions, apart from the 15 combos")
 	_check(ComboFeedback.discovery_text(&"tempest").begins_with("Crowned Reaction discovered: Tempest")

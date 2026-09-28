@@ -15,6 +15,7 @@ func _initialize() -> void:
 
 func _run() -> void:
 	HeartwoodMemory.file_path = PROFILE_PATH  # Never the player's profile
+	ResultsScreen.demo_override = 0  # The full game: every family's icons (the demo's: test_demo_scope)
 	DirAccess.remove_absolute(ProjectSettings.globalize_path(PROFILE_PATH))
 	var stag: EnemyData = load("res://resource/enemy/old_stag.tres")
 	var wight: EnemyData = load("res://resource/enemy/barrow_wight.tres")
@@ -148,6 +149,7 @@ func _run() -> void:
 	DirAccess.remove_absolute(ProjectSettings.globalize_path(PROFILE_PATH))
 	main.queue_free()
 	await process_frame
+	ResultsScreen.demo_override = -1
 	print("nightmare icons test: %s" % ("PASS" if failures == 0 else "%d FAILED" % failures))
 	quit(failures)
 

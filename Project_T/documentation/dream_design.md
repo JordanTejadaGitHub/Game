@@ -75,7 +75,7 @@ points.
   now purely stats, rules, combos and economy. Build paths are a **choice**, not luck. (History: the
   growth slot had reached 92–95% of runs with a cross-family combo by the act 1 boss; Dreamlight
   makes that deterministic.)
-- **Tag weighting:** cards tagged with a family you own are **1.4× as likely** (was 2×; see
+- **Tag weighting:** cards tagged with a family you own are **2× as likely** (1.4× for a while, back to 2× once the pool grew by 27 generic cards; see
   *Adapt, don't get handed* below). Builds lean together without being forced.
 - **Prerequisites:** a card never appears if it can't do anything yet (e.g. Stormcap cards need
   Firefly Jar). Full rules in *Card requirements* below.
@@ -92,7 +92,7 @@ with good things they'd have to adapt to. The genre's tension is the second one.
 **Goal:** most offers still have something for your build, but **most offers also hold one real
 alternative**: a strong card you can use now if you bend the plan.
 
-1. **Tag weighting 2× → 1.4×** (`tag_weight`), for owned families, directions (wide / narrow /
+1. **Tag weighting 2× → 1.4× → 2.4×** (`tag_weight`; raised to 2.4 on 2026-09-28 (measured, 15f07aa) after cards 142–168 grew the generic pool and own-family cards fell to 16–18%; the target is the **share**, ~22–25%, not the number), for owned families, directions (wide / narrow /
    nurture) and Legendary archetypes alike. Wide vs narrow opposition (×0.5) stays.
 2. **Soft Needs.** A Need is *hard* if the card would do nothing without it, *soft* if it only
    checks what you've built so far:
@@ -122,7 +122,7 @@ alternative**: a strong card you can use now if you bend the plan.
      this run: unlocked, not owned, and a family pick is still ahead (never after the drift 75 pick).
      Needs on a specific form (Stormcap) count as its family for this check; the form itself is still
      unlocked with Dreamlight as usual.
-   - **Weight ×0.8** while half-dreamed (was ×0.6; raised after the generic Rares thinned it to ~0.5 per run before drift 25), so it's an occasional temptation, not a flood. Normal
+   - **Weight ×1.0** while half-dreamed (×0.6 → ×0.8 → ×1.0 as the generic Rares and cards 142–168 thinned it; target 0.4–0.8 per run before drift 25), so it's an occasional temptation, not a flood. Normal
      rarity; the skip fade applies.
    - **Timing (playtest fix, 2026-09-28):** only offered when the next family pick is **at most 20
      drifts away** (so not in the rest right after a pick, when it would sleep 25 drifts), and
@@ -133,6 +133,19 @@ alternative**: a strong card you can use now if you bend the plan.
    - **Coverage:** every pair of starting families has at least one combo card in the start pool:
      Firefly Jar + Dewdrop (Rolling Thunder, Conductive Soil), Sporeling + Firefly Jar (Wildfire
      Spores), Sporeling + Dewdrop (Mushroom Rain, 134). New families should bring one per pair.
+   - **Common combo cards** (added 2026-09-28: after cards 142–168 and `tag_weight` 2.4, Sporeling
+     and Dewdrop starts fell to ~0.35 half-dreamed offers before drift 25, because each pair's combos
+     were Uncommon or Rare and lost the Common-heavy rarity roll). One small, stackable **Common** per
+     starting pair, Start pool; they only amplify:
+
+     | # | Card | Rarity | Effect | Tags | Needs |
+     |---|---|---|---|---|---|
+     | 169 | **Damp Rot** | Common, stacks (max 3) | Poisoned ticks on **Soaked** nightmares deal **+20%** | spore, water, reaction | Sporeling + Dewdrop |
+     | 170 | **Sparking Spores** | Common, stacks (max 3) | **Ignite** detonations deal **+20%** | spore, storm, reaction | Sporeling + Firefly Jar |
+     | 171 | **Rain on Glass** | Common, stacks (max 3) | light Wardens deal **+12%** to **Soaked** nightmares | water, storm, reaction | Dewdrop + Firefly Jar |
+
+     Target after these: **≥ 0.4** per starting family before drift 25 (guard back to 0.4), with the
+     half-dreamed weight left at ×1.0.
    - **As built (2c1612b, with the generic Rares and real family picks):** **0.5–0.8 offers per run
      before the drift 25 pick** (Sporeling 0.53, Firefly Jar 0.76, Dewdrop 0.68), ~1 through drift 70.
      **Accepted** (2026-09-28): a temptation should be occasional, so no stronger weight (it would
@@ -248,7 +261,7 @@ Rootling, Acorn) brings its own cards.
 **Seedling Gift details** (settled 2026-09-27): the free Sprout is a **charge**, not an automatic
 planting, so it never blocks or reshapes the maze on its own. Charges show next to the Sprout button
 in the Warden bar (a small seed badge with the count) and are **used before Dew** when you plant a
-Sprout, like Heartwood's Reach's free clears. Unused charges last all run and are kept in the save.
+Sprout, like Heartwood's Reach's clear charges. Unused charges last all run and are kept in the save.
 A Sprout planted with a charge has 0 invested Dew, so selling it refunds nothing. With **Nursery**,
 a Sprout planted from a charge starts at **rank II** (its rank Dew counts as 0 too). **Deepened II:**
 at every rest, choose a free Sprout charge **or** a free growth charge (the next Sprout → base
@@ -460,15 +473,26 @@ early and often.
 
 | # | Card | Rarity | Effect | Tags | Pool |
 |---|---|---|---|---|---|
-| 54 | **Cleared Ground** | Common | clearing obstacles costs **40% less** Dew (stacks, minimum 1 Dew) | clearing, economy | Start |
-| 55 | **Heartwood's Reach** | Common | gain **4 free clears**; use them any time (a charge counter on the HUD; unused charges last all run). Deepened II: 7 | clearing | Start |
-| 56 | **Reclaimed Earth** | Common | each obstacle you clear gives **+8 Dew**, and the cell is left **fertile**: the first Warden planted there costs 50% less | clearing, economy | Start |
+| 54 | **Cleared Ground** | Common | clearing obstacles costs **25% less** Dew (stacks, **max −50%**) | clearing, economy | Start |
+| 55 | **Heartwood's Reach** | Common | gain **4 half-price clears**; use them any time (a charge counter on the HUD; unused charges last all run). Deepened II: 7 | clearing | Start |
+| 56 | **Reclaimed Earth** | Common | each clear **refunds 40% of the Dew you paid for it**, and the cell is left **fertile**: the first Warden planted there costs 50% less | clearing, economy | Start |
 | 57 | **Tended Forest** | Common | **+1% damage for every obstacle cleared this run** (max +25%; clears from before the card count) | clearing, maze | Start |
-| 58 | **Burn Back the Dead Wood** | Rare, **Bittersweet** | clear **every Withered Tree** on the map right now. **Cost:** nightmares +10% speed for the rest of the run | clearing, bittersweet | Grove |
+| 58 | **Burn Back the Dead Wood** | Rare, **Bittersweet** | clear **every Withered Tree** on the map right now for **2 Dew each** (paid when taken; only offered if you can pay). **Cost:** nightmares +10% speed for the rest of the run | clearing, bittersweet | Grove |
+
+**Clearing always costs Dew** (user rule, 2026-09-28). No card, perk or combination makes a clear
+free or profitable:
+- **Floor:** a clear never costs less than **half its base cost** (tree 3, boulder 4, rounded up),
+  whatever stacks: Cleared Ground, Heartwood's Reach charges, Grove perks. Blight Level 9's ×2 is
+  applied on top.
+- **Dew back** from a clear (Reclaimed Earth) is a share of what you **paid**, so it's always less
+  than the cost.
+- Changed from the first version: Cleared Ground was −40% per stack down to 1 Dew; Heartwood's Reach
+  gave free clears; Reclaimed Earth gave a flat +8 Dew (a 5-Dew tree made +3 profit); Burn Back was
+  free.
 
 - **Offered only when it matters:** clearing cards need at least **8 obstacles** left on the map
   (Burn Back needs 8 Withered Trees). They lean toward early Dreams, when the map is still full.
-- **Seeds:** free clears (Heartwood's Reach) still give +1 Seed each. **Burn Back doesn't**: clearing
+- **Seeds:** half-price clears (Heartwood's Reach) still give +1 Seed each. **Burn Back doesn't**: clearing
   dozens of trees at once would otherwise flood the meta with Seeds.
 - **Burn Back and the other cards:** its clears **don't trigger Reclaimed Earth** (no +8 Dew, no
   fertile cells), for the same reason. They **do count for Tended Forest** (it's capped at +25%, so
@@ -476,7 +500,7 @@ early and often.
 - **Heartwood's Reach II** brings the total to **7 charges** (+3 when taken), not +7: Deepened
   replaces the base effect.
 - **Settled in implementation:** Cleared Ground stacks add (−40%, −80%, then the 1 Dew minimum);
-  free clears are used before Dew; Burn Back's speed cost applies to bosses too; Burn Back is act 2+
+  half-price charges are used first; Burn Back's speed cost applies to bosses too; Burn Back is act 2+
   like other Bittersweet cards.
 - **Path rule:** clearing only ever opens routes, so every card is always safe; the preview line
   shows the new route before a clear, as now.
@@ -924,7 +948,7 @@ length, straights) and the moment a nightmare is dispelled. All **Start** pool, 
 | 162 | **Last Breath** | Uncommon | a dispelled nightmare **bursts for 10% of its max health** on nightmares within **1 cell** (never chains) | — | — | Start |
 | 163 | **Tangled** | Uncommon | nightmares carrying **2+ statuses** move **10% slower** | status | a Warden that applies a status (soft) | Start |
 | 164 | **Watchful Rest** | Uncommon | a Warden with **nothing in range for 5 s** stores a charge; its **next attack deals ×2** (one charge at a time) | — | — | Start |
-| 165 | **Glimmering Hunt** | Uncommon | elites (Deeply Blighted) have a **10% chance to drop a Dreamlight shard** | dreamlight | act 2+ (elites appear) | Start |
+| 165 | **Glimmering Hunt** | Uncommon | elites (Deeply Blighted) have a **30% chance to drop a Dreamlight shard** (10 shards = 1 Dreamlight; **its own cap of 3 Dreamlight per run**, separate from the Great Dreamcatcher's) | dreamlight | act 2+ (elites appear) | Start |
 | 166 | **Straightaway** | Uncommon | Wardens beside a **straight stretch of 5+ path tiles** get **+15% damage and +0.5 range** | maze | — | Start |
 | 167 | **Heart of the Maze** | Rare | the attacking Warden **furthest (along the path) from any other attacking Warden** gets **+50% damage** | maze | 4+ attacking Wardens (soft) | Start |
 | 168 | **Echoing Steps** | Rare | each time **the route changes during a drift**, all Wardens get **+5% damage** until the drift ends (max +25%) | maze, tempo | — | Start |

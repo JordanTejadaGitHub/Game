@@ -125,6 +125,18 @@ var _leaping := false  # Sinking / underground / rising (Mire Hag, Gravecrawler)
 # Rooted Nightmares (Dream card 122): a Held nightmare blocks its cell. Walkers re-route round it,
 # or wait at the cell before it (`waiting`; others then queue behind rather than stack in one cell).
 const REROUTE_RETRY := 0.25  # Seconds between re-route attempts while waiting
+# No maze juggling (run_design.md): each re-route that turns it back onto the tile it just came from
+# gives 1 Restless (+RESTLESS_SPEED speed for good, stacking). At UNBOUND_AT it's Unbound (not
+# bosses): it ignores re-routes and tramples any Warden planted on its route. Not a status.
+signal trample_cell_requested(enemy: Node2D, cell: Vector2)
+const RESTLESS_SPEED := 0.2
+const UNBOUND_AT := 3
+const RESTLESS_COLOR := Color(1.0, 0.62, 0.3)
+const UNBOUND_GLOW := Color(1.0, 0.3, 0.1)
+var restless := 0
+var unbound := false
+var _last_cell := Vector2(-1, -1)  # The cell it last stood on (a turn-back heads there again)
+var _unbound_trail: CPUParticles2D
 var waiting := false
 var _reroute_wait := 0.0
 var _leap_tween: Tween
@@ -194,6 +206,9 @@ func _process(delta: float) -> void:
 
 	var spore_soothe := statuses.tick(delta)
 	if spore_soothe > 0.0:
+		var dreams := get_tree().get_first_node_in_group(DreamState.GROUP) as DreamState
+		if dreams != null:
+			spore_soothe *= dreams.get_spored_tick_multiplier(self)  # Damp Rot: harder on Soaked nightmares
 		take_damage(spore_soothe, statuses.spore_line(), true, false, statuses.source(EnemyStatuses.SPORED),
 			&"spored")
 		if is_cleansed:
@@ -221,7 +236,7 @@ func _process(delta: float) -> void:
 			smother.queue_free()
 		remove_meta(&"smother_fx")
 	if not statuses.active_ids().is_empty() or _bolt_flash > 0.0 or _hit_mark_time > 0.0 or elite \
-			or _crit_flash > 0.0 or statuses.is_in_stag_aura() or not _ash_cells.is_empty():
+			or _crit_flash > 0.0 or statuses.is_in_stag_aura() or not _ash_cells.is_empty() or unbound:
 		queue_redraw()
 	_update_presence(delta)
 
@@ -236,6 +251,8 @@ func _process(delta: float) -> void:
 		return
 	if _is_blocked_ahead(delta):
 		return  # Rooted Nightmares: waiting for a Held nightmare in the next cell
+	if unbound:
+		_trample_ahead()
 
 	var previous_position := position
 	# Walk toward the next cell centre; carry leftover distance into the following cell so speed
@@ -249,11 +266,14 @@ func _process(delta: float) -> void:
 			position = target
 			remaining -= distance
 			_path_index += 1
+			_last_cell = _path[_path_index - 1]
 			_on_cell_reached()
 			if _leaping:
 				return  # Started burrowing: the tween moves it now
 			if _is_blocked_ahead(0.0):
 				break  # Stops at this cell's centre and waits
+			if unbound:
+				_trample_ahead()
 		else:
 			position += to_target / distance * remaining
 			remaining = 0.0
@@ -303,6 +323,10 @@ func _draw() -> void:
 			draw_circle(at + Vector2(-10 + 10 * i, 6 - 5 * (i % 2)), 2.0 + 1.5 * t, Color(ASH_COLOR, ASH_COLOR.a * t))
 	if _hidden:
 		return  # Only the faint sprite shows: no bars, no status icons
+	if unbound:  # Red-hot glow behind the sprite, pulsing
+		var pulse := 0.5 + 0.5 * sin(Time.get_ticks_msec() / 150.0)
+		draw_circle(Vector2(0, -8), 24.0 * sprite.scale.x, Color(UNBOUND_GLOW, 0.18 + 0.12 * pulse))
+		draw_circle(Vector2(0, -8), 15.0 * sprite.scale.x, Color(1.0, 0.55, 0.2, 0.22 + 0.12 * pulse))
 	if elite:
 		_draw_elite_haze()  # Drawn before the sprite (a child), so it sits behind it
 	if _bolt_flash > 0.0:
@@ -336,6 +360,12 @@ func _draw() -> void:
 			draw_circle(at, 7.0, Color(1, 1, 1, 0.55 * f))
 			draw_arc(at, 9.0 + 4.0 * (1.0 - f), 0.0, TAU, 16, Color(color, f), 1.5)
 		x += STATUS_ICON_STEP
+	# Restless: a small backward arrow per stack, right of the health bar (red-hot once Unbound)
+	for i in restless:
+		var tip := HEALTH_BAR_OFFSET + Vector2(HEALTH_BAR_SIZE.x / 2 + 5 + i * 6, 0)
+		var arrow := PackedVector2Array([tip + Vector2(4, -3), tip, tip + Vector2(4, 3)])
+		draw_polyline(arrow, Color(0.1, 0.1, 0.12, 0.8), 3.0)
+		draw_polyline(arrow, UNBOUND_GLOW if unbound else RESTLESS_COLOR, 1.5)
 	# Health bar once the enemy has been hit, with the blight coat as a grey bar on top of it
 	var bar := Rect2(HEALTH_BAR_OFFSET - HEALTH_BAR_SIZE / 2, HEALTH_BAR_SIZE)
 	if health < max_health or _bars_always:
@@ -419,6 +449,7 @@ func get_move_speed() -> float:
 		base = minf(base, enemy_data.lost_speed)
 	if _charge_left > 0.0:
 		base *= enemy_data.charge_speed_multiplier
+	base *= 1.0 + RESTLESS_SPEED * restless
 	return base * statuses.get_speed_multiplier(_tangled_slow())
 
 # Tangled (Dream): carrying 2+ statuses slows it DreamState.TANGLED_SLOW more, like Soaked does (a
@@ -565,6 +596,66 @@ func _swap_frames(frames: SpriteFrames) -> void:
 	else:
 		sprite.play(&"walk_side")
 
+# --- No maze juggling (run_design.md) -----------------------------------------------------------
+
+# Restless stacks (+RESTLESS_SPEED speed each, for the rest of its life).
+func get_restless() -> int:
+	return restless
+
+# Unbound: deaf to re-routes, tramples Wardens planted on its route.
+func is_unbound() -> bool:
+	return unbound
+
+# For the nightmare info: {stacks, speed_bonus (0.2 per stack), unbound, can_unbind (false for
+# bosses), unbound_at}.
+func get_restless_info() -> Dictionary:
+	return {"stacks": restless, "speed_bonus": RESTLESS_SPEED * restless, "unbound": unbound,
+		"can_unbind": not enemy_data.is_boss, "unbound_at": UNBOUND_AT}
+
+# The cell it last stood on: a re-route whose next step leads back there turns it around.
+func get_last_cell() -> Vector2:
+	return _last_cell
+
+# A re-route turned it back: one more Restless. True if that made it Unbound (never bosses).
+func add_restless() -> bool:
+	if is_cleansed:
+		return false
+	restless += 1
+	queue_redraw()
+	if unbound or restless < UNBOUND_AT or enemy_data.is_boss:
+		return false
+	unbound = true
+	_start_unbound_trail()
+	return true
+
+# Unbound: a Warden on the cell it's heading into gets trampled (the spawner removes it).
+func _trample_ahead() -> void:
+	if _path_index >= _path.size():
+		return
+	var next := _path[_path_index]
+	if _tower_cells().has(next):
+		trample_cell_requested.emit(self, next)
+
+# Red-hot embers left behind while it walks (world space, so they trail).
+func _start_unbound_trail() -> void:
+	_unbound_trail = CPUParticles2D.new()
+	_unbound_trail.local_coords = false
+	_unbound_trail.amount = 16
+	_unbound_trail.lifetime = 0.6
+	_unbound_trail.emission_shape = CPUParticles2D.EMISSION_SHAPE_SPHERE
+	_unbound_trail.emission_sphere_radius = 8.0
+	_unbound_trail.gravity = Vector2(0, -20)
+	_unbound_trail.initial_velocity_max = 8.0
+	_unbound_trail.scale_amount_min = 1.5
+	_unbound_trail.scale_amount_max = 3.0
+	var fade := Gradient.new()
+	fade.set_color(0, Color(1.0, 0.6, 0.2, 0.9))
+	fade.set_color(1, Color(UNBOUND_GLOW, 0.0))
+	_unbound_trail.color_ramp = fade
+	_unbound_trail.position = Vector2(0, -6)
+	add_child(_unbound_trail)
+	_unbound_trail.emitting = true
+
 # Rooted Nightmares: true while the next cell on the route is blocked for this walker, by a Held
 # nightmare (it tries a way round every REROUTE_RETRY s, else waits) or a nightmare already waiting
 # there (it queues). Only checked at a cell centre, so walkers never stop halfway between cells.
@@ -678,8 +769,9 @@ func _tower_cells() -> Dictionary:
 	var towers = get_parent().get("tower_container") if get_parent() else null
 	if towers:
 		for tower in towers.get_children():
-			if tower is Tower:
-				cells[tower.cell] = true
+			if tower is Tower and not tower.is_queued_for_deletion():
+				for cell in tower.get_cells():
+					cells[cell] = true
 	return cells
 
 
@@ -981,6 +1073,8 @@ func _cleanse() -> void:
 	queue_redraw()
 	sprite.self_modulate.a = 1.0  # A hidden nightmare shows itself as it cracks apart
 	_refresh_display_settings()  # No outline while it cracks
+	if _unbound_trail:
+		_unbound_trail.emitting = false
 
 	if _leap_tween:
 		_leap_tween.kill()  # Dispelled mid-sink: surface right here to crack apart

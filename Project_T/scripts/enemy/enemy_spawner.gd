@@ -12,6 +12,10 @@ signal enemy_split(parent: Node2D, child: Node2D)
 signal wall_trampled(cell: Vector2, by: Node2D)
 # A nightmare shrugged off a status it's immune to (throttled per nightmare; see Enemy.status_refused).
 signal status_refused(enemy: Node2D, status: StringName)
+# No maze juggling (run_design.md): a re-route turned a nightmare back (stacks = its Restless now),
+# and one reached 3 and turned Unbound (it ignores re-routes and tramples Wardens on its route).
+signal nightmare_restless(enemy: Node2D, stacks: int)
+signal nightmare_unbound(enemy: Node2D)
 
 const SPLIT_SPACING := 14.0  # Pixels between creatures that pop out of a split
 const GRIEF_RING := 40.0  # Pixels from the Hollow Oak that its Grief Mourners rise
@@ -74,6 +78,7 @@ func _create(enemy_data: EnemyData, health_scale: float, modifiers: Dictionary =
 	enemy.sapling_requested.connect(_on_sapling_requested)
 	enemy.grief_requested.connect(_on_grief_requested)
 	enemy.status_refused.connect(status_refused.emit)
+	enemy.trample_cell_requested.connect(_on_trample_cell_requested)
 	add_child(enemy)
 	return enemy
 
@@ -173,23 +178,52 @@ func _on_trample_requested(enemy: Node2D) -> void:
 		return  # Weathered Walls: Thornwalls stand like any other wall
 	var here: Vector2 = enemy.get_current_cell()
 	for offset in [Vector2.LEFT, Vector2.RIGHT, Vector2.UP, Vector2.DOWN]:
-		var cell: Vector2 = here + offset
-		for tower in tower_container.get_children():
-			if tower is Tower and tower.cell == cell and tower.tower_data.line == "wall" \
-					and not tower.is_queued_for_deletion():
-				tower_container.remove_child(tower)
-				tower.queue_free()
-				map_generator.unblock_cell(cell)
-				enemy.trampled()
-				wall_trampled.emit(cell, enemy)
-				return
+		var tower := _tower_on(here + offset)
+		if tower != null and tower.tower_data.line == "wall":
+			_trample_tower(tower, here + offset, enemy)
+			enemy.trampled()
+			return
 
-# The maze changed: every enemy re-routes from the cell it's currently walking toward.
+# An Unbound nightmare walks into a Warden on its route: any Warden, trampled (Weathered Walls
+# doesn't save it; nothing blocks an Unbound nightmare).
+func _on_trample_cell_requested(enemy: Node2D, cell: Vector2) -> void:
+	var tower := _tower_on(cell)
+	if tower != null:
+		_trample_tower(tower, cell, enemy)
+
+func _tower_on(cell: Vector2) -> Tower:
+	for tower in tower_container.get_children():
+		if tower is Tower and not tower.is_queued_for_deletion() and tower.get_cells().has(cell):
+			return tower
+	return null
+
+# The Warden is gone for good, with no refund; opening its cells never breaks the path rule, and
+# everyone else re-routes.
+func _trample_tower(tower: Tower, cell: Vector2, by: Node2D) -> void:
+	tower_container.remove_child(tower)
+	tower.queue_free()
+	for c in tower.get_cells():
+		map_generator.unblock_cell(c)
+	wall_trampled.emit(cell, by)
+
+# The maze changed: every enemy re-routes from the cell it's currently walking toward. One whose next
+# step would take it back to the cell it just left turns around: +1 Restless (No maze juggling).
+# Unbound nightmares keep their route.
 func _on_path_changed() -> void:
 	for enemy in get_maze_walkers():
+		if enemy.is_unbound():
+			continue
 		var new_path: PackedVector2Array = map_generator.get_path_from(enemy.get_target_cell())
-		if not new_path.is_empty():
-			enemy.set_path(new_path)
+		if new_path.is_empty():
+			continue
+		var turned_back: bool = new_path.size() > 1 and new_path[1] == enemy.get_last_cell() \
+			and enemy.get_target_cell() != enemy.get_last_cell()
+		enemy.set_path(new_path)
+		if turned_back:
+			var became_unbound: bool = enemy.add_restless()
+			nightmare_restless.emit(enemy, enemy.get_restless())
+			if became_unbound:
+				nightmare_unbound.emit(enemy)
 
 # Dream Thief: takes steals_dew Dew (as much as there is) on its way in, then the leaf is lost as usual.
 func _on_enemy_reached_goal(enemy: Node2D) -> void:
@@ -255,6 +289,9 @@ func _on_sapling_requested(oak: Node2D) -> void:
 		taken[walker.get_current_cell()] = true
 		taken[walker.get_target_cell()] = true
 		also_from.append(walker.get_target_cell())
+		if walker.is_unbound():  # It won't re-route: keep its whole route clear
+			for cell in walker.get_cells_ahead(1000):
+				taken[cell] = true
 	var ahead: PackedVector2Array = oak.get_cells_ahead(SAPLING_REACH)
 	var on_route := {}
 	for cell in ahead:

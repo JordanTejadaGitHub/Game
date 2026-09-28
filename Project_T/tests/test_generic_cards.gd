@@ -36,6 +36,8 @@ func _run() -> void:
 	_test_hit_rules()
 	_test_rest_rules()
 	_test_map_rules()
+	_test_sim_entry()
+	_test_sim_policy()
 	print("generic cards test: %s" % ("PASS" if failures == 0 else "%d FAILED" % failures))
 	quit(failures)
 
@@ -160,18 +162,102 @@ func _test_hit_rules() -> void:
 	dreams._last_breath(a)  # Test nightmares aren't wired to the spawner's enemy_cleansed
 	_check(b.health < before and is_equal_approx(before - b.health, a.max_health * 0.1) or b.is_cleansed,
 		"Last Breath: 10%% of its max health on the nightmare beside it (%.1f)" % (before - b.health))
-	# Glimmering Hunt: elites drop a shard 10% of the time
+	# Glimmering Hunt: 30% of elites drop a shard (10 = 1 Dreamlight), its own cap of 3 Dreamlight per run
 	dreams.take(_card("glimmering_hunt"))
 	dreams._glimmer_rng.seed = 3
-	var shards := dreams.dreamlight_shards
+	dreams.glimmer_shards = 0
+	var light := dreams.dreamlight
+	var catcher_shards := dreams.dreamlight_shards
 	var elite := _spawn(map_generator.startPath + Vector2(0, 2))
 	elite.elite = true
-	for i in 200:
+	for i in 50:
 		dreams._glimmer(elite)
-	var dropped := dreams.dreamlight_shards - shards
-	_check(dropped > 5 and dropped < 40, "Glimmering Hunt: ~10%% of elites drop a shard (%d / 200)" % dropped)
+	_check(dreams.glimmer_shards > 8 and dreams.glimmer_shards < 25 and dreams.dreamlight_shards == catcher_shards,
+		"Glimmering Hunt: ~30%% of elites drop a shard, apart from the Dreamcatcher's (%d / 50)" % dreams.glimmer_shards)
+	for i in 500:
+		dreams._glimmer(elite)
+	_check(dreams.glimmer_shards == 30 and dreams.dreamlight == light + 3, "…capped at 3 Dreamlight per run (%d shards, +%d)" % [dreams.glimmer_shards, dreams.dreamlight - light])
+	# Half-dreamed Commons 169–171 (stack to 3)
+	var soaked := _spawn(map_generator.startPath + Vector2(0, 4))
+	var jar := _plant("firefly_jar", Vector2(110, 100))
+	dreams.unlocked["dewdrop"] = true  # Cross-family combos sleep until both families are yours
+	dreams.unlocked["firefly_jar"] = true
+	dreams.take(_card("rain_on_glass"))
+	dreams.unlocked["firefly_jar"] = true
+	dreams.take(_card("rain_on_glass"))
+	_check(dreams.get_spored_tick_multiplier(soaked) == 1.0 and dreams.get_ignite_multiplier() == 1.0, "no Damp Rot / Sparking Spores: ×1")
+	var dry := dreams.on_hit_multiplier(jar, soaked)
+	soaked.apply_status(EnemyStatuses.DAMP, 1, 4.0)
+	_check(is_equal_approx(dreams.on_hit_multiplier(jar, soaked) / dry, (1.0 + 0.24) / 1.0) or is_equal_approx(dreams.on_hit_multiplier(jar, soaked) - dry, 0.24),
+		"Rain on Glass ×2: light Wardens +24% vs Soaked")
+	_check(dreams.on_hit_multiplier(tower, soaked) == dreams.on_hit_multiplier(tower, soaked), "…not other lines")
+	dreams.take(_card("damp_rot"))
+	dreams.take(_card("sparking_spores"))
+	_check(is_equal_approx(dreams.get_spored_tick_multiplier(soaked), 1.2) and is_equal_approx(dreams.get_ignite_multiplier(), 1.2),
+		"Damp Rot: Poisoned ticks +20% on Soaked; Sparking Spores: Ignite +20%")
 	_free_enemies()
 	_clear()
+
+# The headless entry points for balance tools (DreamState.sim_rest / sim_family_pick).
+func _test_sim_entry() -> void:
+	_reset()
+	dreams.unlocked = {"sprout": true, "thornwall": true}
+	var light := dreams.dreamlight
+	var family := dreams.sim_family_pick(&"first", func(ids: Array) -> StringName: return StringName(ids[0]))
+	_check(family != &"" and dreams.is_unlocked(String(family)) and dreams.dreamlight == light + 1,
+		"sim_family_pick: takes the family, +1 Dreamlight on the first pick (%s)" % family)
+	_check(not main.get_node("%GameSpeed").paused and not main.get_node("%FamilyPickScreen").visible, "…leaves the game unpaused")
+	var taken := dreams.sim_rest(5, func(offer: Array) -> UpgradeData: return offer[0])
+	_check(taken.size() == 1 and dreams.has_card(taken[0].id) and not dreams.is_offering(), "sim_rest: a real offer, one card taken")
+	var passed := dreams.sim_rest(10, func(_offer: Array) -> UpgradeData: return null)
+	_check(passed.is_empty() and not dreams.is_offering(), "…null lets it pass")
+	light = dreams.dreamlight
+	dreams.sim_rest(25, func(offer: Array) -> UpgradeData: return offer[0])
+	_check(dreams.dreamlight == light + 3, "…a boss rest gives +3 Dreamlight")
+	_check(DreamState.sim_dreamlight_for(&"first") == 1 and DreamState.sim_dreamlight_for(&"boss") == 3, "sim_dreamlight_for")
+	_reset()
+
+# The balance bot's Dream / family / Dreamlight / Omen policies (balance_simulation.md "Bot rules").
+func _test_sim_policy() -> void:
+	_reset()
+	var wide_card := _card("many_hands")
+	var narrow_card := _card("few_and_mighty")
+	var wide := DreamSimPolicy.new(dreams, DreamSimPolicy.Style.WIDE)
+	var narrow := DreamSimPolicy.new(dreams, DreamSimPolicy.Style.NARROW)
+	_check(wide.pick_dream([narrow_card, wide_card]) == wide_card and narrow.pick_dream([wide_card, narrow_card]) == narrow_card,
+		"styles score by tags: Wide takes Many Hands, Narrow Few and Mighty")
+	var balanced := DreamSimPolicy.new(dreams, DreamSimPolicy.Style.BALANCED)
+	_check(balanced.pick_family(["dewdrop", "sporeling"]) == &"sporeling", "Balanced: its family order")
+	dreams._owed_families.assign(["dewdrop"])
+	var sleep := DreamSimPolicy.new(dreams, DreamSimPolicy.Style.SLEEP)
+	_check(sleep.pick_family(["pebbling", "dewdrop"]) == &"dewdrop", "family order before the owed family")
+	dreams._owed_families.clear()
+	dreams.unlocked["firefly_jar"] = true
+	var combo := DreamSimPolicy.new(dreams, DreamSimPolicy.Style.COMBO)
+	_check(combo.pick_family(["pebbling", "dewdrop"]) == &"dewdrop", "Combo: the family with the most combo cards (Dewdrop with Firefly Jar)")
+	dreams.add_dreamlight(-dreams.dreamlight)  # Earlier sections left Dreamlight
+	var taken := balanced.rest(5)
+	_check(taken.size() == 1 and not dreams.is_offering(), "the bot never lets a Dream pass")
+	# Dreamlight: the next form of the most-built family
+	_plant("sporeling", Vector2(100, 100))
+	_plant("sporeling", Vector2(103, 100))
+	dreams.add_dreamlight(5 - dreams.dreamlight)
+	balanced.spend_dreamlight()
+	var branch_unlocked := false
+	for next in load("res://resource/tower/sporeling.tres").evolves_to:
+		branch_unlocked = branch_unlocked or dreams.is_unlocked(next.get_id())
+	_check(branch_unlocked and dreams.dreamlight < 5, "Dreamlight: a Sporeling branch first (%s)" % ", ".join(balanced.choices))
+	# Wide also grows Thornwalls with Dreamlight when walls are its most-built "family"
+	for i in 3:
+		_plant("thornwall", Vector2(100 + i, 105))
+	dreams.add_dreamlight(3 - dreams.dreamlight)
+	var wide_bot := DreamSimPolicy.new(dreams, DreamSimPolicy.Style.WIDE)
+	wide_bot.spend_dreamlight()
+	_check(wide_bot.choices.any(func(c: String) -> bool: return c.contains("bramble") or c.contains("honeysuckle")),
+		"Wide: Dreamlight on Thornwall growths (%s)" % ", ".join(wide_bot.choices))
+	_check(balanced.pick_omen([]) == null, "Omens: Clear Skies")
+	_clear()
+	_reset()
 
 func _test_rest_rules() -> void:
 	_reset()

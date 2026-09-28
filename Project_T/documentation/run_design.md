@@ -122,6 +122,20 @@ turn leaks into a hold. Targets for the balance simulation and playtests (averag
     takes 4 cells now), not 7× as measured.
   - Watch sleep: if Asleep damage stays above ~50% after this, look at Caught's +40% and
     Dreamshroom next.
+  - **Rerun after both changes** (2026-09-28): ~200k health per drift, the maze deals ×1.11–1.14 of
+    it, 0–5 leaks, still **without Dreams**. The Great Bell at half-strength set-offs was no better
+    than the Lullaby Bell it grows from (it lost the Lullaby's own effects, ~150k over 10 drifts).
+    Decision: **Ascended forms keep their family final form's signature effects** (the Great Bell
+    keeps the Lullaby Bell's lullaby) **plus** their own; set-offs stay at 50%. That puts the Great
+    Bell near **5× an average final form**, the target. Asleep share still 52–56%: watch.
+  - **Legacy rerun** (17c217a, fixed seeds 7 and 42): with the Lullaby legacy the Great Bell hit
+    **×6.6–8.7** an average final (35–42% of all damage); its own hits (400k+) became the biggest
+    part. The Bell's spot swings its share 2–3×, so single-map numbers are loose. Decision: **Great
+    Bell damage 180 → 130 and the toll every 8 s** (was 6): trims both its hits and its sleep
+    control (Asleep share 44–62% with it). Target ×5–6. **Result (2b0b2c4): ×4.6 and ×6.5** on the two seeds (27–35% of all damage; 9 and 0 leaks): on target, done. Asleep share 36% and 60%: the high one comes from a Dreamshroom beside the Bell, so Dreamshroom / Caught wait for the realistic-run numbers.
+  - **Next:** the probe with a **realistic run** (Dreams taken by the real offer logic, a Dew
+    budget from simulated income, so the maze is one a player could afford) is the start of the
+    balance simulation. Only then raise act 3 health further.
 - **Demo:** it has no meta, so every demo run is a fresh profile. **Decided (user, 2026-09-28): keep
   that curve** (demo wins are rare: "go deeper in the full game"). Maybe later: **a few Memory Grove
   unlocks in the demo** (a small taste of the meta), decided after playtests.
@@ -279,6 +293,44 @@ risk: players set their own difficulty block by block.
 | **Stubborn Blight** | status durations halved | regrow 2 leaves |
 | **Restless Wind** | drifts arrive 30% closer together | +1 max leaf |
 
+**More Omens (2026-09-28, user: "we need more omens").** With ~18 Omen rests and 2 per rest, 8 Omens
+repeated constantly, and all 8 were "nightmares get stronger for a reward". The new ones add three
+other kinds: **weaken your side**, **double-edged** (the twist itself helps some builds) and **change
+the map or the rules**. That makes ~20; aim for no Omen twice in a row and each kind showing up.
+
+| Omen | Kind | The next block | Reward |
+|---|---|---|---|
+| **Fog Bank** | your side | every Warden **−1 range** (min 1) | +4 Seeds |
+| **Wilting** | your side | every Warden **−15% attack speed** | +1 Dreamlight |
+| **Frozen Ground** | your side | **no planting or growing during drifts** (rests only) | +50 Dew |
+| **Leaf Fall** | your side | every leak costs **double leaves** | +2 max leaves |
+| **Lean Season** | your side | **rest bonus halved** at the end of the block | next Dream **includes a Legendary** (act 2+) |
+| **Heavy Rain** | double-edged | every nightmare is **always Soaked**, but has **+35% health** | +30 Dew |
+| **Blood Moon** | double-edged | nightmares **+25% speed**, and give **+50% Dew** | (the Dew is the reward) |
+| **Harvest Moon** | double-edged | nightmares **+25% health**, and give **×2 Dew** | (the Dew is the reward) |
+| **Elder Night** | nightmares | **+1 elite** in every drift (act 2+) | +1 Dreamlight |
+| **Hollow Wind** | nightmares | the block's **first 2 drifts are all flyers** (act 2+, flyers exist) | next Dream: one card is Rare+ |
+| **Sleepless** | nightmares | nightmares are **immune to Drowsy and Held** | +40 Dew |
+| **Shifting Ground** | the map | **3 Withered Trees sprout** on empty cells at the block's start (never blocking the route or on a Warden) | each tree you clear this run gives **+2 Seeds** instead of 1 |
+
+- **Heavy Rain, Sleepless and Hollow Wind read your build:** they're great or awful depending on
+  what you've built (Heavy Rain feeds Thunderclap and Conductive Soil; Sleepless hurts sleep builds).
+  That's the point: an Omen that's free for *your* build is a reason to take it.
+- **Frozen Ground** still allows selling (at the usual 50%) and clearing; it's only about planting.
+- **Leaf Fall** doubles a boss's leaf cost too, but bosses ignore Omens only for their *own* stats,
+  so a boss leak costs 10. Shown clearly on the Omen card.
+- **Lean Season's Legendary** follows the Legendary rules (any Legendary you could be offered);
+  before act 2 it isn't offered.
+- **Shifting Ground:** clearing is still locked until a clearing card (the trees stay as terrain if
+  you never unlock it); its trees can be cleared at normal cost. Not offered on maps with fewer than
+  3 free cells that don't touch the route.
+- **Offer rules:** each offer's 2 Omens are of **two different kinds**; an Omen never repeats from
+  the previous rest; the reward scaling by act (×1 / ×1.5 / ×2 / ×2.5) applies to Dew and Seeds only.
+- **New `OmenData` fields:** Warden range add / attack-speed multiplier, `no_build_during_drift`,
+  leak multiplier, rest-bonus multiplier below 1, status immunities, always-applied status, extra
+  elites per drift, all-flyer drift count, obstacles to sprout, per-tree Seed bonus; rewards
+  `dreamlight`, `dream_legendary`. Double-edged Omens have no separate reward.
+
 - **Blight Levels** can make Omens harsher or remove Clear Skies ("an Omen is always chosen").
 - **Grove perks** later: a third Omen option, or Omen rewards +25% (`meta_design.md`).
 - **Data:** `OmenData` resource: `display_name`, `description`, `min_drift`, `requires` (e.g.
@@ -294,11 +346,43 @@ risk: players set their own difficulty block by block.
   rule always applies: no placement may leave any creature (or the start) without a route.
 - **Speed:** Pause / 1× / 2× / 3× + hotkeys (Space = pause). Pausing is a normal way to plan.
 
+### No maze juggling (2026-09-28)
+
+The exploit: during a drift, flip the route back and forth (plant a wall, sell it, plant another)
+so nightmares keep turning around and never arrive. Refunds don't stop it (a Thornwall flip costs a
+few Dew). Two rules make it a losing trade while leaving ordinary mid-drift re-mazing alone:
+
+1. **Restless nightmares.** When a route change makes a nightmare **turn back** (its next step is
+   the tile it just came from), it gains **1 Restless**: **+20% speed** for the rest of its life,
+   stacking. At **3 Restless** it becomes **Unbound**: it stops listening to the maze, keeps its
+   current route and **tramples** any Warden planted on it afterwards (the wall is destroyed, like
+   the Hollow Stag's trample; no refund).
+   - A single re-maze that turns a crowd around gives each of them only 1 stack, so honest
+     adjustments cost a little speed, never a Warden. Juggling the same nightmares is what triggers it.
+   - Flyers ignore the maze anyway; bosses gain Restless but never become Unbound (their own rules
+     cover them). **Nothing stops an Unbound nightmare's trample** (not Weathered Walls), and the
+     Hollow Oak never plants a sapling on an Unbound route: it no longer re-routes, so a wall that
+     held would trap it (as built, Enemy Code 2026-09-28). Restless doesn't count as a status (can't be cleansed, no Reactions).
+   - **Readable:** Restless shows as small backward-arrow marks over the nightmare (one per stack);
+     Unbound glows red-hot with a trail. The nightmare info explains both; the first Unbound ever
+     triggers a whisper: *"Turn them too often, and they stop listening."*
+2. **Settling ground.** During a drift, a cell where a Warden was just **sold** can't be planted
+   again for **8 seconds** (a settling ring with a countdown on the tile). It stops
+   sell-and-replant toggling on the same cell. Rests are exempt.
+
+Not added: a delay before new walls block, and higher mid-drift costs (both would also punish
+honest play). If juggling still pays after this, raise the speed per stack first.
+
 ## Selling
 
 - Refund is based on **all Dew invested** in that Warden (build + evolutions).
 - **During a rest: 75%** (was 100%; difficulty pass v1). Rearranging still pays, but mistakes
   cost something.
+- **Placed this rest: 100%** (user, 2026-09-28: "if you just placed it incorrectly"). A Warden
+  planted (or grown / nurtured) during the **current** rest refunds everything spent on it this
+  rest in full, until Start is pressed. Once it has stood through a drift, the 75% applies. The
+  Sell button says which: "+40 Dew (placed this rest: full refund)". Not during drifts (that would
+  make juggling free).
 - **While creatures are walking: 50%.**
 - Dreams are unlocks, not refunded. Obstacle clears are permanent and never refunded.
 

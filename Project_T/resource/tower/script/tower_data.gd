@@ -17,7 +17,7 @@ class_name TowerData
 enum AttackKind { PROJECTILE, PULSE, CHAIN, CLOUD, TRAP, BEAM, COPY, SWOOP, SWEEP, SPREAD, SPIN, PULL, LIGHT, AURA,
 	PECK, BOOMERANG, PATROL }
 # Who a Warden shoots at. FIRST = furthest along the path. Snipers let the player choose.
-enum TargetMode { FIRST, STRONGEST, BOSSES, FASTEST }
+enum TargetMode { FIRST, STRONGEST, BOSSES, FASTEST, CLOSEST }  # Append only (saved as ints)
 
 const ATTACKS_JSON := "res://assets/towers/attacks.json"
 const ASCENDED_JSON := "res://assets/towers/ascended/ascended.json"  # 128×128 Ascended art: anchor + points

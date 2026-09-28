@@ -58,6 +58,8 @@ const GLOSSARY_SOURCE := [
 		["Dread shell", "A shell that soaks chip damage: heavy hits break through.", ["Crit"]],
 		["Hidden", "Lurkers can't be seen or targeted until revealed or close.", ["Nightmare"]],
 		["Flying", "Flies straight over the maze, ignoring walls.", ["Nightmare"]],
+		["Restless", "A nightmare turned back by a change of route: +20% speed per stack, for good. Three make it Unbound. Not a status.", ["Unbound"]],
+		["Unbound", "Turned back three times, it stops listening to the maze: it keeps its route and tramples any Warden planted on it (no refund). Bosses never become Unbound.", ["Restless"]],
 	]],
 	["Statuses", [
 		["{damp}", "{tip:damp}", ["Conducted", "Thunderclap"]],
@@ -233,6 +235,86 @@ static func combos() -> Array[Dictionary]:
 		list.append({"id": data.id, "name": data.display_name, "kind": "Reaction", "statuses": data.statuses,
 			"text": IconInfo.format(data.description), "by": ""})
 	return list
+
+# --- What the Codex covers (screens_ui.md "What the Codex covers") ---------------------------------
+# The families you can get in a run: the starting three plus every family planted in the Memory Grove;
+# a form a Grove node unlocks (hidden branches, finals, Ascended) only once that node is planted.
+# The demo covers its three families' trees (demo_scope.md "Wardens"); dev runs cover everything.
+# Combos, Crowned and Kinships are listed once all they need is in scope (in_build).
+
+const DEMO_FAMILIES := ["sporeling", "firefly_jar", "dewdrop"]  # Also the full game's starting three
+const TOWER_DIR := "res://resource/tower/"
+const DREAM_DIR := "res://resource/dream/"
+static var _grove_forms := {}  # Warden id -> the Grove node id whose Dream card unlocks it
+
+static func demo_limited() -> bool:
+	return ResultsScreen.is_demo() and not MetaRun.is_dev_run()
+
+# {"all": bool, "families": [base ids], "wardens": {id: true}, "names": {display name: true},
+# "statuses": {id: true}} from the profile (`profile` = HeartwoodMemory.load_data(), for tests).
+static func scope(profile: Dictionary = {}) -> Dictionary:
+	if not demo_limited() and MetaRun.is_dev_run():
+		return {"all": true, "families": [], "wardens": {}, "names": {}, "statuses": {}}
+	var demo := demo_limited()
+	if profile.is_empty() and not demo:
+		profile = HeartwoodMemory.load_data()
+	var families: Array = DEMO_FAMILIES.duplicate()
+	var planted := {}
+	if not demo:
+		for unlock in HeartwoodMemory.load_grove():
+			if HeartwoodMemory.node_level(profile, unlock) > 0:
+				planted[unlock.id] = true
+				for id in unlock.families:
+					if not families.has(id):
+						families.append(id)
+	var forms := grove_forms()
+	var wardens := {}
+	var names := {}
+	var statuses := {}
+	var todo: Array = families.map(func(id: String) -> Resource: return load(TOWER_DIR + id + ".tres") if ResourceLoader.exists(TOWER_DIR + id + ".tres") else null)
+	while not todo.is_empty():
+		var data := todo.pop_back() as TowerData
+		if data == null or wardens.has(data.get_id()):
+			continue
+		if not demo and forms.has(data.get_id()) and not planted.has(forms[data.get_id()]):
+			continue  # A form its Grove node still keeps (hidden branch, final, Ascended)
+		wardens[data.get_id()] = true
+		names[data.display_name] = true
+		for status in [data.applies_status, data.extra_status]:
+			if status != &"":
+				statuses[status] = true
+		if int(data.get("hold_targets")) > 0:
+			statuses[&"held"] = true
+		if float(data.get("marked_bonus")) > 0.0:
+			statuses[&"marked"] = true
+		todo.append_array(data.evolves_to)
+	return {"all": false, "families": families, "wardens": wardens, "names": names, "statuses": statuses}
+
+# Warden id -> the Grove node whose Dream card ("dream_<warden>") unlocks it.
+static func grove_forms() -> Dictionary:
+	if _grove_forms.is_empty():
+		for unlock in HeartwoodMemory.load_grove():
+			for card_id in unlock.dream_cards:
+				var path := DREAM_DIR + card_id + ".tres"
+				var card := load(path) as UpgradeData if ResourceLoader.exists(path) else null
+				if card != null and card.unlocks != null:
+					_grove_forms[card.unlocks.get_id()] = unlock.id
+	return _grove_forms
+
+# Whether a combo / Crowned / Kinship entry is covered by `in_scope` (default: the current scope).
+static func in_build(entry: Dictionary, in_scope: Dictionary = {}) -> bool:
+	var s := in_scope if not in_scope.is_empty() else scope()
+	if s.all:
+		return true
+	match entry.get("kind", ""):
+		"Kinship":
+			return (not demo_limited() or Kinships.is_available(entry.id)) and s.names.has(entry.a) and s.names.has(entry.b)
+		"Crowned":
+			if not entry.get("families", []).all(func(id: String) -> bool: return s.families.has(id)):
+				return false
+	if String(entry.get("by", "")) != "":  # A synergy: one of its Wardens is in scope
+		return Array(String(entry.by).split(", ")).any(func(name: String) -> bool: return s.names.has(name))
+	return entry.get("statuses", []).all(func(status: StringName) -> bool: return s.statuses.has(status))
 
 static func get_combo(id: StringName) -> Dictionary:
 	for combo in combos():

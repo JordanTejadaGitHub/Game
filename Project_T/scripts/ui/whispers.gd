@@ -18,6 +18,7 @@ const TEXT := {
 	&"cage": "A dream can bend, but never close.",
 	&"grow": "This Sprout could grow.",
 	&"kin": "Two of one family, planted close, learn from each other.",
+	&"unbound": "Turn them too often, and they stop listening.",
 	&"dead_wood": "Dead wood. I can't move it… yet.",
 	&"tend": "Tend the forest, and it will remember you.",
 	&"chain": "One reaction set off another: a chain. Reach 10 for a Dawnburst.",
@@ -84,6 +85,10 @@ func _ready() -> void:
 	owner.child_entered_tree.connect(func(node: Node) -> void:
 		if node is ReactionTracker:
 			node.chain_reached.connect(func(_count: int, _where: Vector2, _towers: Array) -> void: whisper(&"chain")))
+	# The first Unbound ever (run_design.md "No maze juggling"); connected even while whispers are off.
+	var unbound_source = %EnemyContainer
+	if unbound_source.has_signal("nightmare_unbound"):
+		unbound_source.nightmare_unbound.connect(func(_e: Node2D) -> void: whisper(&"unbound"))
 	if not enabled:
 		set_process(false)
 		return

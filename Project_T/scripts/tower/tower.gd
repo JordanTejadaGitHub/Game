@@ -36,6 +36,7 @@ signal sap_yielded(tower: Tower, dew: int)  # The Sapling / Grandmother Oak paid
 signal dreamlight_ripened(tower: Tower)  # The Sapling gave a Dreamlight
 signal withered(tower: Tower)  # A leaf lost withered the Sapling's yield
 signal statics_set_off(tower: Tower, where: Vector2, count: int)  # An Ascended pulse (the Great Bell) set off Static charges
+signal legacy_released(tower: Tower)  # An Ascended form made its final form's attack (no wind-up; sound)
 
 @export var tower_data: TowerData
 @onready var sprite: Sprite2D = $Sprite2D
@@ -148,6 +149,8 @@ const CRIT := 1
 var cell: Vector2
 # All Dew put into this Warden (build cost, evolutions, ranks). Selling refunds a share of it.
 var invested_dew := 0
+var rest_dew := 0  # Dew spent on it during the current rest (refunded in full until the next drift)
+static var resting := false  # A rest is on (TowerSeller keeps it in step with the DriftDirector)
 # Nurture rank 0-5 (7 with Deeper Rings): each rank +10% damage, +4% attack speed, +0.1 range, and
 # from rank III the Focus bonus. Kept through evolution, like the Focus (chosen at rank III, fixed).
 # Setting it from outside (Dream cards, the save) refreshes the rank art and pips too.
@@ -164,6 +167,8 @@ var focus: Focus = Focus.NONE:
 var attack_data: TowerData
 # Who snipers shoot at (the player can change it in the Warden panel).
 var target_mode: TowerData.TargetMode = TowerData.TargetMode.FIRST
+var target_chosen := false  # The player set target_mode (kept through growing, saved with the run)
+var is_selected := false  # In TowerSeller's selection (the targeting pip shows)
 
 var _cooldown := 0.0  # Seconds until the tower can attack again
 var _anim_time := 0.0
@@ -208,6 +213,17 @@ var kin_branch := ""  # The branch an Ascended form grew from (Kinships); saved 
 var footprint_size := 0  # 0 = the data's footprint; 1 keeps an old save's 1-cell Ascended form
 var _hits_landed := 0  # Eternal Charge / Rooted Nightmares count this Warden's hits
 var _hunted := {}  # Hunter's Moon: nightmares this Warden has hit (instance ids)
+var bloom_attacks := 0  # Sudden Bloom: attacks left at ×2 after growing
+var watch_charged := false  # Watchful Rest: a stored charge (its next attack deals ×2)
+var _watch_time := 0.0  # Watchful Rest: seconds with nothing in range
+var _hit_boost := 1.0  # ×2 while a boosted attack's hits land (Sudden Bloom, Watchful Rest)
+var _underdog_drawn := false
+var legacy_data: TowerData = null  # An Ascended form's final form (its legacy attack); saved with the run
+var _legacy_cooldown := 0.0
+var _legacy_active := false  # Inside the legacy attack (a legacy beam leaves the sprite alone)
+const EMPOWERED_MULTIPLIER := 2.0
+const WATCH_CHECK := 0.25  # Watchful Rest looks for nightmares this often
+var _watch_check := 0.0
 const ETERNAL_STATIC_EVERY := 4
 const ROOTED_NIGHTMARES_EVERY := 8
 const ROOTED_TIME := 1.0
@@ -230,8 +246,8 @@ func _ready() -> void:
 func _apply_data() -> void:
 	attack_data = tower_data
 	_damage_share = 1.0
-	if not tower_data.has_target_priority:
-		target_mode = tower_data.target_mode
+	if not target_chosen:
+		target_mode = tower_data.target_mode  # A mode the player chose is kept through growing
 	_attack_time = -1.0
 	_stop_beam()
 	sprite.offset = tower_data.sprite_offset
@@ -252,11 +268,18 @@ func evolve(data: TowerData, cost: int) -> void:
 	# A Warden keeps its size unless it was given room: TowerPlacer takes the 2×2 square first (and sets
 	# footprint_size); growing any other way stays on the cells it has.
 	var size := get_footprint()
+	if data.tier >= DreamState.ASCENDED_TIER and tower_data.tier == DreamState.ASCENDED_TIER - 1:
+		legacy_data = tower_data  # It keeps its final form's attack
 	tower_data = data
 	if size != data.footprint:
 		footprint_size = size
 	invested_dew += cost
+	if resting:
+		rest_dew += cost
 	_apply_data()
+	if _rule_stacks(&"sudden_bloom") > 0:
+		bloom_attacks = maxi(bloom_attacks, DreamState.SUDDEN_BLOOM_ATTACKS)  # Its next attacks deal ×2
+		queue_redraw()
 	evolved.emit(self)
 	if data.tier >= 4:
 		ascended.emit(self)
@@ -283,6 +306,7 @@ func _process(delta: float) -> void:
 		_update_catch(delta)  # Dreamcatchers catch sleepy nightmares whether or not they're shooting
 	if attack_data.ability_every > 0.0:
 		_update_ability(delta)
+	_update_legacy(delta)
 	match attack_data.attack_kind:
 		TowerData.AttackKind.AURA:
 			_update_aura(delta)
@@ -300,6 +324,7 @@ func _process(delta: float) -> void:
 			return
 		TowerData.AttackKind.COPY:
 			return  # A Graftling with nothing to copy
+	_update_watch(delta)
 	_cooldown = maxf(_cooldown - delta, 0.0)
 	if _cooldown > 0.0 or _attack_time >= 0.0 or not _has_work():
 		return
@@ -492,6 +517,8 @@ func nurture(cost: int, chosen: Focus = Focus.NONE) -> void:
 		focus = chosen
 	rank = mini(rank + 1, get_max_rank())
 	invested_dew += cost
+	if resting:
+		rest_dew += cost
 	_play_rank_up()
 	queue_redraw()
 	nurtured.emit(self)
@@ -594,6 +621,8 @@ func get_aura_extra() -> float:
 # Refreshes what depends on nearby Wardens: the copied attack (Graftling) and aura bonuses.
 func _refresh_neighbours() -> void:
 	_neighbour_timer = NEIGHBOUR_REFRESH
+	if _is_underdog() != _underdog_drawn:
+		queue_redraw()  # DreamState picks the Underdogs at each rest
 	_aura_crit = 0.0
 	_aura_range = 0.0
 	_aura_damage = 0.0
@@ -688,7 +717,7 @@ func _show_idle() -> void:
 
 # Holds the attack pose (the release frame) while beaming.
 func _show_attack_pose() -> void:
-	if tower_data.attack_texture == null:
+	if tower_data.attack_texture == null or _legacy_active:
 		return
 	sprite.texture = tower_data.attack_texture
 	sprite.hframes = tower_data.attack_frame_count
@@ -698,6 +727,80 @@ func _show_attack_pose() -> void:
 func _release() -> void:
 	_attack_count += 1
 	attack_released.emit(self)
+	var boost := _take_empowered()
+	if boost == 1.0:
+		_release_attack()
+	else:
+		_boosted(boost, _release_attack)
+
+# Sudden Bloom / Watchful Rest: this attack's multiplier (×2 each), using up what it spends.
+func _take_empowered() -> float:
+	var boost := 1.0
+	if bloom_attacks > 0:
+		bloom_attacks -= 1
+		boost *= EMPOWERED_MULTIPLIER
+	if watch_charged:
+		watch_charged = false
+		_watch_time = 0.0
+		boost *= EMPOWERED_MULTIPLIER
+	if boost != 1.0:
+		queue_redraw()  # The glow fades once the charge is spent
+	return boost
+
+# Runs `action` with every hit it lands at ×`boost` (projectiles carry it to where they land).
+func _boosted(boost: float, action: Callable) -> void:
+	run_as(attack_data, boost, action)
+
+# Runs `action` as this Warden attacking with `data` (null = its own) at ×`boost`. Delayed attack nodes
+# (projectiles, clouds, rings, birds, seeds) keep what they were made with and land through this, so an
+# Ascended form's legacy attack and a Sudden Bloom / Watchful Rest boost reach them.
+func run_as(data: TowerData, boost: float, action: Callable) -> void:
+	var own_data := attack_data
+	var own_boost := _hit_boost
+	if data != null:
+		attack_data = data
+	_hit_boost = boost
+	action.call()
+	attack_data = own_data
+	_hit_boost = own_boost
+
+# Legacy (run_design.md "Act 3 probe"): an Ascended form keeps the final form it grew from and still
+# makes that attack on the final's own cadence (and ranks, Dreams), besides its own. A Graftling
+# final's copy has nothing to copy on its own, so Grandmother Oak keeps none.
+func _update_legacy(delta: float) -> void:
+	if legacy_data == null or not legacy_data.can_attack or legacy_data.attack_kind == TowerData.AttackKind.COPY:
+		return
+	var own := attack_data
+	attack_data = legacy_data
+	_legacy_active = true
+	if legacy_data.attack_kind == TowerData.AttackKind.BEAM:
+		_update_beam(delta)  # Stormheart keeps Midsummer's beam (its own attack is a chain)
+	else:
+		_legacy_cooldown = maxf(_legacy_cooldown - delta, 0.0)
+		if _legacy_cooldown <= 0.0 and _has_work():
+			_legacy_cooldown = 1.0 / get_attacks_per_second()
+			_release_attack()
+			legacy_released.emit(self)
+	_legacy_active = false
+	attack_data = own
+
+# Watchful Rest (card, rule watchful_rest): nothing in range for WATCHFUL_REST_TIME seconds (II: less)
+# stores one charge.
+func _update_watch(delta: float) -> void:
+	if watch_charged or _rule_stacks(&"watchful_rest") <= 0:
+		return
+	_watch_check -= delta
+	_watch_time += delta
+	if _watch_check > 0.0:
+		return
+	_watch_check = WATCH_CHECK
+	if not get_enemies_in_range().is_empty():
+		_watch_time = 0.0
+	elif _watch_time >= DreamState.WATCHFUL_REST_TIME[mini(_dream_state.rule_level(&"watchful_rest"), 1)]:
+		watch_charged = true
+		queue_redraw()
+
+func _release_attack() -> void:
 	match attack_data.attack_kind:
 		TowerData.AttackKind.PULSE:
 			var in_range := get_enemies_in_range()
@@ -764,7 +867,7 @@ func hit(enemy: Node2D, soothe_multiplier: float = 1.0, is_area: bool = false, c
 	var is_crit := roll_crit(enemy) if crit == ROLL_CRIT else crit == CRIT
 	if attack_data.dew_mark:
 		enemy.bonus_dew = maxi(enemy.bonus_dew, 1)  # Before the hit, so a dispelling hit counts
-	var soothe := get_damage() * soothe_multiplier * _damage_against(enemy)
+	var soothe := get_damage() * soothe_multiplier * _damage_against(enemy) * _hit_boost
 	if _dream_state and _dream_state.has_method("get_hit_damage_multiplier"):
 		soothe *= _dream_state.get_hit_damage_multiplier()  # Venom Bloom: hits weaker, effects stronger
 	if _dream_state and _dream_state.has_method("on_hit_multiplier"):
@@ -1138,7 +1241,7 @@ func _lob_landed(where: Vector2, splash: float) -> void:
 			if not cells.has(at) and MAP_GRID.calculate_map_position(at).distance_to(spot) <= splash:
 				cells.append(at)
 	if not cells.is_empty():
-		var rubble := RubblePatch.new(cells, attack_data.rubble_slow, attack_data.rubble_time)
+		var rubble := RubblePatch.new(cells, attack_data.rubble_slow * get_slow_multiplier(), attack_data.rubble_time)
 		var world := Reactions._world(self)
 		var any_nightmare := get_tree().get_first_node_in_group(Tower.ENEMY_GROUP)
 		world.add_child(rubble)
@@ -1146,9 +1249,20 @@ func _lob_landed(where: Vector2, splash: float) -> void:
 			world.move_child(rubble, any_nightmare.get_parent().get_index())
 
 func fire_at(target: Node2D) -> void:
-	var projectile := Projectile.new(target, attack_data, projectile_landed)
+	var on_land := projectile_landed
+	if _hit_boost != 1.0 or _legacy_active:
+		# Sudden Bloom / Watchful Rest and a legacy attack's data ride the projectile to where it lands.
+		on_land = _land_as.bind(attack_data, _hit_boost)
+	var projectile := Projectile.new(target, attack_data, on_land)
+	# Placed before it enters the tree: _ready() takes its home (swoops fly back to it) and a lob's arc
+	# length from where it starts. It's top_level, so position is world space.
+	projectile.position = global_position + tower_data.get_attack_origin()
 	add_child(projectile)
-	projectile.global_position = global_position + tower_data.get_attack_origin()
+
+# A projectile fired with `data` at ×`boost` lands. A bound method: the lambda this replaced lost its
+# captures by the time the projectile landed ("Lambda capture was freed") and dealt nothing.
+func _land_as(target, where: Vector2, data: TowerData, boost: float) -> void:
+	run_as(data, boost, projectile_landed.bind(target, where))
 
 # Whirligig: pulses nudge nightmares back a little (each at most once per push_cooldown).
 # The timed ability (warden_stats.md, Rootling and Firefly Jar families): every ability_every seconds
@@ -1549,7 +1663,7 @@ func find_targets(count: int) -> Array:
 	if count <= 1:
 		var one := find_target()
 		return [one] if one != null else []
-	var mode := target_mode if tower_data.has_target_priority else attack_data.target_mode
+	var mode := get_target_mode()
 	var ranked := get_enemies_in_range()
 	ranked.sort_custom(func(a: Node2D, b: Node2D) -> bool: return _target_score(a, mode) > _target_score(b, mode))
 	return ranked.slice(0, count)
@@ -1808,7 +1922,7 @@ func _stop_beam() -> void:
 	_beam_target = null
 	_beam_behind = null
 	_beam_ramp = 1.0
-	if was_beaming and is_node_ready():
+	if was_beaming and is_node_ready() and not _legacy_active:
 		_show_idle()
 	queue_redraw()
 
@@ -1848,6 +1962,7 @@ func _update_aura(delta: float) -> void:
 
 func _draw() -> void:
 	_draw_root_links()  # Under the sprite (children draw on top)
+	_draw_empowered()
 	if tower_data.texture == null:
 		draw_placeholder(self, tower_data.placeholder_color)
 	_draw_rank_pips()
@@ -1862,17 +1977,47 @@ func _draw() -> void:
 			if not is_instance_valid(target):
 				continue
 			var to := to_local(target.global_position)
-			draw_line(from, to, Color(attack_data.beam_color, 0.35), width * 2.0)
+			draw_line(from, to, Color(_beam_data().beam_color, 0.35), width * 2.0)
 			draw_line(from, to, Color(1.0, 1.0, 0.9, 0.9), maxf(width * 0.5, 1.5))
 			from = to  # Midsummer's beam carries on from the target to the one behind it
 	if attack_data != null and attack_data.attack_kind == TowerData.AttackKind.AURA:
 		draw_arc(Vector2.ZERO, get_range_pixels(), 0.0, TAU, 64, Color(0.85, 0.9, 1.0, 0.12), 3.0)
 	_draw_badges()
+	_draw_target_pip()
 	if _dream_state and _dream_state.has_method("is_eldest") and _dream_state.is_eldest(self):
 		# The Eldest: a small crown of three golden rings over the slab.
 		var top := Vector2(0, -MAP_GRID.cell_size.y * 0.5 - 4.0) + tower_data.sprite_offset
 		for i in 3:
 			draw_arc(top + Vector2((i - 1) * 7.0, -absf(i - 1) * -2.0), 3.5, 0.0, TAU, 12, Color(1.0, 0.85, 0.4, 0.95), 1.5)
+
+# Under the sprite: a warm ring while an attack is stored (Sudden Bloom, Watchful Rest) and a soft
+# rising glow on this block's Underdogs (DreamState.is_underdog: the least damage last block).
+const EMPOWERED_GLOW := Color(1.0, 0.85, 0.45)
+const UNDERDOG_GLOW := Color(0.65, 0.85, 1.0)
+
+func _draw_empowered() -> void:
+	var radius := MAP_GRID.cell_size.x * 0.42 * get_footprint()
+	_underdog_drawn = _is_underdog()
+	if _underdog_drawn:
+		for i in 3:
+			draw_circle(Vector2(0, 6), radius * (1.0 - i * 0.2), Color(UNDERDOG_GLOW, 0.07))
+	if bloom_attacks > 0 or watch_charged:
+		draw_arc(Vector2(0, 6), radius, 0.0, TAU, 32, Color(EMPOWERED_GLOW, 0.3), 5.0)
+		draw_arc(Vector2(0, 6), radius, 0.0, TAU, 32, Color(EMPOWERED_GLOW, 0.85), 1.5)
+
+# Whose beam is drawn: Stormheart's is Midsummer's (its legacy).
+func _beam_data() -> TowerData:
+	if legacy_data != null and legacy_data.attack_kind == TowerData.AttackKind.BEAM:
+		return legacy_data
+	return attack_data
+
+func _is_underdog() -> bool:
+	return _dream_state != null and _dream_state.has_method("is_underdog") and _dream_state.is_underdog(self)
+
+# Heavy Air (card, rule heavy_air): slows that aren't statuses (Morning Fog's cloud, Rockslide's rubble)
+# are 20% stronger too; Soaked / Drowsy get it in DreamState.get_status_strength_multiplier.
+func get_slow_multiplier() -> float:
+	return 1.0 + DreamState.HEAVY_AIR_BONUS if _rule_stacks(&"heavy_air") > 0 else 1.0
 
 # Root Network (card, rule root_network): Sprouts touching side by side (II: diagonally too) glow along
 # their shared edges. Each Sprout draws its half of every link, so a pair reads as one glowing root.
@@ -1986,10 +2131,54 @@ static func draw_focus_icon(canvas: CanvasItem, at: Vector2, which: Focus, size:
 func get_range_pixels() -> float:
 	return range_to_pixels(get_range_cells())
 
+# Targeting (screens_ui.md "Targeting"): the three modes the player picks from, in the switch's order.
+const PLAYER_TARGET_MODES: Array[TowerData.TargetMode] = [TowerData.TargetMode.FIRST,
+	TowerData.TargetMode.STRONGEST, TowerData.TargetMode.CLOSEST]
+const TARGET_MODE_NAMES := {TowerData.TargetMode.FIRST: "First", TowerData.TargetMode.STRONGEST: "Strongest",
+	TowerData.TargetMode.CLOSEST: "Closest", TowerData.TargetMode.BOSSES: "Bosses",
+	TowerData.TargetMode.FASTEST: "Fastest"}
+# Attacks that don't pick a target: pulses, auras, traps / rings, spins, patrols and lit tiles.
+const UNTARGETED_KINDS := [TowerData.AttackKind.PULSE, TowerData.AttackKind.AURA, TowerData.AttackKind.TRAP,
+	TowerData.AttackKind.SPIN, TowerData.AttackKind.PATROL, TowerData.AttackKind.LIGHT]
+
+# The mode this Warden aims with: the player's choice, else its data's (Wren's Nest: fastest).
+func get_target_mode() -> TowerData.TargetMode:
+	return target_mode if target_chosen else attack_data.target_mode
+
+# Whether the Targeting switch shows for this Warden (Thornwalls and untargeted attacks: no).
+func can_choose_target() -> bool:
+	return tower_data.can_attack and attack_data != null and not UNTARGETED_KINDS.has(attack_data.attack_kind)
+
+func set_target_mode(mode: TowerData.TargetMode) -> void:
+	target_mode = mode
+	target_chosen = true
+	queue_redraw()
+
+# T: First -> Strongest -> Closest -> First.
+func cycle_target_mode() -> void:
+	var index := PLAYER_TARGET_MODES.find(get_target_mode())
+	set_target_mode(PLAYER_TARGET_MODES[(index + 1) % PLAYER_TARGET_MODES.size()])
+
+# A tiny pip at the tile's top-right while selected: an arrow (First), a filled diamond (Strongest)
+# or a ring (Closest).
+func _draw_target_pip() -> void:
+	if not (is_selected and can_choose_target()):
+		return
+	var at := Vector2(MAP_GRID.cell_size.x / 2.0 - 8.0, -MAP_GRID.cell_size.y / 2.0 + 8.0)
+	draw_circle(at, 6.0, Color(0.1, 0.08, 0.05, 0.85))
+	var ink := Color(1.0, 0.92, 0.7)
+	match get_target_mode():
+		TowerData.TargetMode.STRONGEST:
+			draw_colored_polygon(PackedVector2Array([at + Vector2(0, -3.5), at + Vector2(3.5, 0), at + Vector2(0, 3.5), at + Vector2(-3.5, 0)]), ink)
+		TowerData.TargetMode.CLOSEST:
+			draw_arc(at, 3.0, 0.0, TAU, 12, ink, 1.5)
+		_:
+			draw_colored_polygon(PackedVector2Array([at + Vector2(-2.5, -3.5), at + Vector2(3.5, 0), at + Vector2(-2.5, 3.5)]), ink)
+
 # The nightmare in range this Warden should attack, or null. Most Wardens pick the one furthest
 # along the path; snipers let the player choose, and Wren's Nest hunts the fastest.
 func find_target() -> Node2D:
-	var mode := target_mode if tower_data.has_target_priority else attack_data.target_mode
+	var mode := get_target_mode()
 	if kin_share(&"flock_together", "b") > 0.0:
 		mode = TowerData.TargetMode.FASTEST  # Flock Together: hunts the fastest nightmare
 	var best: Node2D = null
@@ -2002,7 +2191,7 @@ func find_target() -> Node2D:
 	return best
 
 # How much this Warden wants to shoot `enemy` under `mode` (higher = sooner).
-static func _target_score(enemy: Node2D, mode: TowerData.TargetMode) -> float:
+func _target_score(enemy: Node2D, mode: TowerData.TargetMode) -> float:
 	match mode:
 		TowerData.TargetMode.STRONGEST:
 			return enemy.health
@@ -2010,16 +2199,23 @@ static func _target_score(enemy: Node2D, mode: TowerData.TargetMode) -> float:
 			return -enemy.get_remaining_distance() + (1e9 if enemy.enemy_data.is_boss else 0.0)
 		TowerData.TargetMode.FASTEST:
 			return enemy.get_move_speed()
+		TowerData.TargetMode.CLOSEST:
+			return -global_position.distance_squared_to(enemy.global_position)
 	return -enemy.get_remaining_distance()
 
 # Blighted enemies within attack range (and outside a sniper's minimum range).
 func get_enemies_in_range() -> Array[Node2D]:
 	var range_squared := get_range_pixels() ** 2
+	# Skyward Gaze (card, rule skyward_gaze): flying nightmares count from further away.
+	var sky_squared := range_squared
+	if _rule_stacks(&"skyward_gaze") > 0:
+		sky_squared = range_to_pixels(get_range_cells() + DreamState.SKYWARD_RANGE) ** 2
 	var min_squared := (attack_data.min_range * MAP_GRID.cell_size.x) ** 2
 	var result: Array[Node2D] = []
 	for enemy in get_tree().get_nodes_in_group(ENEMY_GROUP):
 		var distance_squared := global_position.distance_squared_to(enemy.global_position)
-		if distance_squared <= range_squared and distance_squared >= min_squared:
+		var flying: bool = enemy.enemy_data != null and enemy.enemy_data.trait_kind == EnemyData.Trait.FLYING
+		if distance_squared <= (sky_squared if flying else range_squared) and distance_squared >= min_squared:
 			result.append(enemy)
 	return result
 

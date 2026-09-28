@@ -33,6 +33,7 @@ const REPORTERS := {
 	&"underdog": "_underdog", &"shelter_of_stones": "_shelter_of_stones", &"cliffside": "_cliffside",
 	&"sudden_bloom": "_sudden_bloom", &"watchful_rest": "_watchful_rest", &"straightaway": "_straightaway",
 	&"heart_of_the_maze": "_heart_of_the_maze", &"echoing_steps": "_echoing_steps",
+	&"rain_on_glass": "_rain_on_glass",
 }
 const STAT_KEYS := {&"damage": "damage", &"attack_speed": "speed", &"range": "range", &"cost": "cost"}
 
@@ -467,3 +468,8 @@ func _echoing_steps(_spot: Dictionary, _others: Array, _card: UpgradeData) -> Di
 	var bonus := ds.get_echo_bonus()
 	return {"run_wide": true, "active": bonus > 0.0, "damage": bonus, "note": "%d route changes this drift" % ds._echoes,
 		"reason": "" if bonus > 0.0 else "the route hasn't changed this drift"}
+
+func _rain_on_glass(spot: Dictionary, _others: Array, _card: UpgradeData) -> Dictionary:
+	if spot.data.line != "light":
+		return {}
+	return {"effect": "+%d%% damage to Soaked nightmares" % roundi(DreamState.RAIN_ON_GLASS_PER * ds.rule_stacks(&"rain_on_glass") * 100)}

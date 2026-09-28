@@ -3,9 +3,10 @@ extends PanelContainer
 # Bottom-left panel for the selected Warden: what it does, its stats (including Dreams), what it
 # can grow into (Dew cost, or which Dream it needs) and Sell. Built in code; hidden with no selection.
 
-const TARGET_NAMES := {
-	TowerData.TargetMode.FIRST: "Furthest along", TowerData.TargetMode.STRONGEST: "Strongest",
-	TowerData.TargetMode.BOSSES: "Bosses first", TowerData.TargetMode.FASTEST: "Fastest",
+const TARGET_TIPS := {
+	TowerData.TargetMode.FIRST: "The nightmare furthest along the path",
+	TowerData.TargetMode.STRONGEST: "The nightmare with the most health left",
+	TowerData.TargetMode.CLOSEST: "The nightmare nearest this Warden",
 }
 
 @onready var tower_seller: TowerSeller = %TowerSeller
@@ -91,7 +92,10 @@ func _refresh() -> void:
 		_title.tooltip_text = IconInfo.stat_tooltip(&"rank") + ("\n" + IconInfo.stat_tooltip(&"focus") if _tower.focus != Tower.Focus.NONE else "")
 	_title.mouse_filter = Control.MOUSE_FILTER_PASS if _title.tooltip_text != "" else Control.MOUSE_FILTER_IGNORE
 	_desc.text = StatusLinks.bbcode(data.description)  # {damp}-style tokens and plain names both work
-	_desc.visible = data.description != ""
+	if _tower.legacy_data != null:
+		# An Ascended form still makes its final form's attack.
+		_desc.text += "\n[i]Still %s: %s[/i]" % [_tower.legacy_data.display_name, StatusLinks.bbcode(_tower.legacy_data.description)]
+	_desc.visible = _desc.text != ""
 	for child in _stats.get_children():
 		child.queue_free()
 	var lines: Array[String] = []
@@ -158,9 +162,8 @@ func _refresh() -> void:
 
 	for child in _buttons.get_children():
 		child.queue_free()
-	if data.has_target_priority:
-		var aim := _add_button("Aim: %s (click to change)" % TARGET_NAMES[_tower.target_mode])
-		aim.pressed.connect(_cycle_target)
+	if _tower.can_choose_target():
+		_add_target_switch([_tower])
 	if data.has_bird_toggle:
 		var birds := _add_button("Birds: %s (click to change)" % ("all on the strongest" if _tower.focus_strongest else "spread out"))
 		birds.pressed.connect(func() -> void:
@@ -238,7 +241,12 @@ func _refresh() -> void:
 		else:
 			_add_button("Rank %s: fully nurtured" % Tower.rank_name(_tower.rank)).disabled = true
 	var refund := tower_seller.get_refund(_tower)
-	var sell := _add_button("Sell · +%d Dew%s" % [refund, "" if drift_director.is_build_phase() else " (half during a drift)"])
+	var note := "" if drift_director.is_build_phase() else " (half during a drift)"
+	if tower_seller.is_placed_this_rest(_tower):
+		note = " (placed this rest: full refund)"
+	elif drift_director.is_build_phase() and _tower.rest_dew > 0:
+		note = " (this rest's %d Dew in full)" % _tower.rest_dew
+	var sell := _add_button("Sell · +%d Dew%s" % [refund, note])
 	sell.pressed.connect(func() -> void: tower_seller.sell(_tower.cell))
 	if _tower.tower_data.rooted:
 		sell.text = "Permanent: the Sapling can't be sold or moved"
@@ -310,9 +318,9 @@ func _refresh_group() -> void:
 
 	for child in _buttons.get_children():
 		child.queue_free()
-	if selection.any(func(t) -> bool: return is_instance_valid(t) and t.tower_data.has_target_priority):
-		var aim := _add_button("Aim all: %s (click to change)" % TARGET_NAMES[_group_target_mode()])
-		aim.pressed.connect(_cycle_group_target)
+	var aimed := selection.filter(func(t) -> bool: return is_instance_valid(t) and t.can_choose_target())
+	if not aimed.is_empty():
+		_add_target_switch(aimed)
 	for group in groups:
 		var data: TowerData = group[0]
 		var towers: Array = group[1]
@@ -419,19 +427,28 @@ func _sell_group() -> void:
 	_confirm_sell = false
 	tower_seller.sell_selection()
 
-func _group_target_mode() -> TowerData.TargetMode:
-	for tower in tower_seller.selection:
-		if tower.tower_data.has_target_priority:
-			return tower.target_mode
-	return TowerData.TargetMode.FIRST
-
-func _cycle_group_target() -> void:
-	var order := [TowerData.TargetMode.FIRST, TowerData.TargetMode.STRONGEST, TowerData.TargetMode.BOSSES]
-	var next: TowerData.TargetMode = order[(order.find(_group_target_mode()) + 1) % order.size()]
-	for tower in tower_seller.selection:
-		if tower.tower_data.has_target_priority:
-			tower.target_mode = next
-	_refresh()
+# Targeting (screens_ui.md): a 3-way switch First / Strongest / Closest for `towers` (one Warden or a
+# group). A group with mixed modes shows none pressed; a press sets them all. T cycles (TowerSeller).
+func _add_target_switch(towers: Array) -> void:
+	var row := HBoxContainer.new()
+	var label := Label.new()
+	label.text = "Targeting"
+	row.add_child(label)
+	var modes := {}
+	for tower in towers:
+		modes[tower.get_target_mode()] = true
+	for mode in Tower.PLAYER_TARGET_MODES:
+		var button := Button.new()
+		button.text = Tower.TARGET_MODE_NAMES[mode]
+		button.toggle_mode = true
+		button.focus_mode = Control.FOCUS_NONE
+		button.button_pressed = modes.size() == 1 and modes.has(mode)
+		button.tooltip_text = TARGET_TIPS[mode] + " (T cycles)"
+		button.pressed.connect(func() -> void:
+			tower_seller.set_target_group(towers, mode)
+			_refresh())
+		row.add_child(button)
+	_buttons.add_child(row)
 
 # A form that isn't unlocked yet (run_design.md "Dreamlight"): "Grow into Stormcap · Unlock with 1
 # Dreamlight". With enough Dreamlight, the first click asks and the second unlocks it; otherwise it
@@ -478,13 +495,6 @@ func _add_button(text: String) -> Button:
 	button.alignment = HORIZONTAL_ALIGNMENT_LEFT
 	_buttons.add_child(button)
 	return button
-
-# Snipers: Furthest along -> Strongest -> Bosses first -> back.
-func _cycle_target() -> void:
-	var order := [TowerData.TargetMode.FIRST, TowerData.TargetMode.STRONGEST, TowerData.TargetMode.BOSSES]
-	var index := order.find(_tower.target_mode)
-	_tower.target_mode = order[(index + 1) % order.size()]
-	_refresh()
 
 func _evolve(into: TowerData) -> void:
 	if into.footprint > _tower.get_footprint():
