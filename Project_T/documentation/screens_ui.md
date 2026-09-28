@@ -418,6 +418,12 @@ card that touches it is listed.**
 **On the map (while in build mode or with a Warden selected)**
 - Wardens with an active position-based card show a small card-icon badge at their base (the card's
   rarity shape). Outside build mode the badges are hidden to keep the map clean (setting: always).
+- **Marks that are always on the map** (Heart of the Maze's heart, Thick Bark's shield) must
+  **explain themselves** (playtest 2026-09-28: "what is the heart?"): hover or tap shows the card
+  icon, its name and one line: *"Heart of the Maze: the Warden furthest from any other attacking
+  Warden. +50% damage."* The first time one appears in a run it pulses once with the card's name
+  under it for ~2 s. When the heart moves to another Warden it glides there (no pop), and the build
+  ghost says *"Becomes the Heart of the Maze"* when a placement would move it.
 
 **Which cards this covers:** every card whose effect depends on where a Warden stands or what is near
 it (Solitude, Sprout Chorus, Cozy Corners, Hedge Maze, Kindred Roots, Reclaimed Earth's fertile cells,
