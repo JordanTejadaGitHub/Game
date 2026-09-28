@@ -96,6 +96,22 @@ func _run() -> void:
 	_check(far.health == far.max_health, "Rootling's pulse doesn't reach creatures out of range")
 	_check(rootling.get_child_count() == 1, "a pulse fires no projectile")
 
+	# A beam whose target is dispelled goes back to the idle sheet (it held the 6-frame attack pose, and
+	# the idle loop then asked for frames 6 and 7: "Index p_frame out of bounds").
+	var midsummer: Tower = placer.tower_scene.instantiate()
+	midsummer.tower_data = load("res://resource/tower/midsummer.tres")
+	midsummer.cell = Vector2(1, 1)
+	midsummer.position = Tower.MAP_GRID.calculate_map_position(Vector2(1, 1))
+	tower_container.add_child(midsummer)
+	midsummer.set_process(false)
+	var beamed = _spawn_still(spawner, leaf_bug, midsummer.global_position + Vector2(40, 0))
+	midsummer._update_beam(0.1)
+	_check(midsummer.sprite.hframes == midsummer.tower_data.attack_frame_count, "Midsummer holds its attack pose while beaming")
+	beamed.dispel()
+	await process_frame
+	midsummer._update_beam(0.1)
+	_check(midsummer.sprite.hframes == midsummer.tower_data.frame_count, "and returns to its idle sheet when the target is gone")
+
 	print("towers test: %s" % ("PASS" if failures == 0 else "%d FAILED" % failures))
 	quit(failures)
 

@@ -1758,12 +1758,12 @@ func _light() -> void:
 func _update_beam(delta: float) -> void:
 	var target := find_target()
 	if target != _beam_target:
+		if target == null:
+			_stop_beam()  # Back to the idle sheet (it knows a beam was on only before the target is cleared)
+			return
 		_beam_ramp = 1.0
 		_beam_tick = 0.0
 		_beam_target = target
-		if target == null:
-			_stop_beam()
-			return
 		_show_attack_pose()
 	if _beam_target == null:
 		return
@@ -1780,7 +1780,7 @@ func _update_beam(delta: float) -> void:
 		if is_instance_valid(_beam_behind):
 			hit(_beam_behind, share * attack_data.beam_behind_share)
 	if not is_instance_valid(_beam_target) or _beam_target.is_cleansed:
-		_beam_target = null
+		_stop_beam()  # The target is gone: back to the idle sheet (8 frames), not the 6-frame pose
 	queue_redraw()
 
 func _stop_beam() -> void:
