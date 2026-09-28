@@ -37,6 +37,7 @@ func _run() -> void:
 	_test_rest_rules()
 	_test_map_rules()
 	_test_sim_entry()
+	_test_sim_policy()
 	print("generic cards test: %s" % ("PASS" if failures == 0 else "%d FAILED" % failures))
 	quit(failures)
 
@@ -214,6 +215,40 @@ func _test_sim_entry() -> void:
 	dreams.sim_rest(25, func(offer: Array) -> UpgradeData: return offer[0])
 	_check(dreams.dreamlight == light + 3, "…a boss rest gives +3 Dreamlight")
 	_check(DreamState.sim_dreamlight_for(&"first") == 1 and DreamState.sim_dreamlight_for(&"boss") == 3, "sim_dreamlight_for")
+	_reset()
+
+# The balance bot's Dream / family / Dreamlight / Omen policies (balance_simulation.md "Bot rules").
+func _test_sim_policy() -> void:
+	_reset()
+	var wide_card := _card("many_hands")
+	var narrow_card := _card("few_and_mighty")
+	var wide := DreamSimPolicy.new(dreams, DreamSimPolicy.Style.WIDE)
+	var narrow := DreamSimPolicy.new(dreams, DreamSimPolicy.Style.NARROW)
+	_check(wide.pick_dream([narrow_card, wide_card]) == wide_card and narrow.pick_dream([wide_card, narrow_card]) == narrow_card,
+		"styles score by tags: Wide takes Many Hands, Narrow Few and Mighty")
+	var balanced := DreamSimPolicy.new(dreams, DreamSimPolicy.Style.BALANCED)
+	_check(balanced.pick_family(["dewdrop", "sporeling"]) == &"sporeling", "Balanced: its family order")
+	dreams._owed_families.assign(["dewdrop"])
+	var sleep := DreamSimPolicy.new(dreams, DreamSimPolicy.Style.SLEEP)
+	_check(sleep.pick_family(["pebbling", "dewdrop"]) == &"dewdrop", "family order before the owed family")
+	dreams._owed_families.clear()
+	dreams.unlocked["firefly_jar"] = true
+	var combo := DreamSimPolicy.new(dreams, DreamSimPolicy.Style.COMBO)
+	_check(combo.pick_family(["pebbling", "dewdrop"]) == &"dewdrop", "Combo: the family with the most combo cards (Dewdrop with Firefly Jar)")
+	dreams.add_dreamlight(-dreams.dreamlight)  # Earlier sections left Dreamlight
+	var taken := balanced.rest(5)
+	_check(taken.size() == 1 and not dreams.is_offering(), "the bot never lets a Dream pass")
+	# Dreamlight: the next form of the most-built family
+	_plant("sporeling", Vector2(100, 100))
+	_plant("sporeling", Vector2(103, 100))
+	dreams.add_dreamlight(5 - dreams.dreamlight)
+	balanced.spend_dreamlight()
+	var branch_unlocked := false
+	for next in load("res://resource/tower/sporeling.tres").evolves_to:
+		branch_unlocked = branch_unlocked or dreams.is_unlocked(next.get_id())
+	_check(branch_unlocked and dreams.dreamlight < 5, "Dreamlight: a Sporeling branch first (%s)" % ", ".join(balanced.choices))
+	_check(balanced.pick_omen([]) == null, "Omens: Clear Skies")
+	_clear()
 	_reset()
 
 func _test_rest_rules() -> void:
