@@ -77,7 +77,11 @@ func can_sell() -> bool:
 
 # Dew that selling `tower` gives back right now.
 func get_refund(tower: Tower) -> int:
-	var share := build_phase_refund if drift_director.is_build_phase() else drift_refund
+	var resting := drift_director.is_build_phase()
+	var share := build_phase_refund if resting else drift_refund
+	var dreams := get_tree().get_first_node_in_group(DreamState.GROUP) as DreamState
+	if dreams:
+		share = dreams.get_refund_share(share, resting)  # Fair Trade
 	return int(tower.invested_dew * share)
 
 func get_tower_at(cell: Vector2) -> Tower:

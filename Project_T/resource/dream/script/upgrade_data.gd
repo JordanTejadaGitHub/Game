@@ -84,6 +84,8 @@ enum Kind { UNLOCK_WARDEN, UNLOCK_EVOLUTION, STAT, RULE, ECONOMY }
 @export var requires_status: StringName = &""  # Own any Warden applying this status (e.g. Drowsy)
 @export var min_owned_statuses: int = 0  # Own Wardens applying this many different statuses (Seeping: 2)
 @export var min_kinships: int = 0  # Kinships on the map at offer time (Kinship cards; hard Need)
+@export var requires_any_status: Array[StringName] = []  # Own a Warden applying any of these (Heavy Air: a slow)
+@export var max_range_owned: float = 0.0  # Own an attacking Warden with range at most this (Short Roots: 2); 0 = no check
 
 @export_group("Nurture")
 @export var nurture_discount: float = 0.0  # 0.15 = ranks cost 15% less (all cards together max 45%)

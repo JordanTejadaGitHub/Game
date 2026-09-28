@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "straightaway_ii"
+display_name = "Straightaway II"
+description = "Wardens beside a straight stretch of 5+ path tiles deal 25% more damage and get +0.5 range."
+rarity = 1
+kind = 3
+tags = Array[String](["maze"])
+max_stacks = 1
+deepens = "straightaway"
+rule_id = &"straightaway"

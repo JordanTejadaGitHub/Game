@@ -28,6 +28,11 @@ const REPORTERS := {
 	&"root_network": "_root_network", &"first_light": "_first_light", &"last_stand": "_last_stand",
 	&"old_growth": "_old_growth", &"hunters_patience": "_hunters_patience", &"thinning_the_herd": "_thinning_the_herd",
 	&"bitter_hedges": "_bitter_hedges",
+	&"short_roots": "_short_roots", &"forests_edge": "_forests_edge", &"crowded_path": "_crowded_path",
+	&"lone_hunter": "_lone_hunter", &"skyward_gaze": "_skyward_gaze", &"fresh_growth": "_fresh_growth",
+	&"underdog": "_underdog", &"shelter_of_stones": "_shelter_of_stones", &"cliffside": "_cliffside",
+	&"sudden_bloom": "_sudden_bloom", &"watchful_rest": "_watchful_rest", &"straightaway": "_straightaway",
+	&"heart_of_the_maze": "_heart_of_the_maze", &"echoing_steps": "_echoing_steps",
 }
 const STAT_KEYS := {&"damage": "damage", &"attack_speed": "speed", &"range": "range", &"cost": "cost"}
 
@@ -380,3 +385,85 @@ func _thinning_the_herd(spot: Dictionary, _others: Array, _card: UpgradeData) ->
 func _bitter_hedges(_spot: Dictionary, _others: Array, _card: UpgradeData) -> Dictionary:
 	return {"effect": "nightmares passing Thornwalls take +%d%% per wall for %d s (up to +%d%%)" % [
 		roundi(DreamState.BITTER_PER * 100), DreamState.BITTER_TIME, roundi(DreamState.BITTER_MAX * 100)]}
+
+# Generic Commons / Uncommons and the second batch (dream_design.md 142–168)
+func _short_roots(spot: Dictionary, _others: Array, _card: UpgradeData) -> Dictionary:
+	if not spot.data.can_attack:
+		return {}
+	var on: bool = spot.data.attack_range <= DreamState.SHORT_ROOTS_RANGE
+	return {"active": on, "damage": DreamState.SHORT_ROOTS_BONUS,
+		"reason": "" if on else "range %.1f (needs 2 or less)" % spot.data.attack_range}
+
+func _forests_edge(spot: Dictionary, _others: Array, _card: UpgradeData) -> Dictionary:
+	var start: Vector2 = ds.map_generator.startPath
+	var on := _cheb(spot.cell, start) <= DreamState.FORESTS_EDGE_CELLS
+	return {"positional": true, "active": on, "damage": DreamState.FORESTS_EDGE_BONUS,
+		"reason": "" if on else "more than %d cells from the start" % DreamState.FORESTS_EDGE_CELLS}
+
+func _crowded_path(spot: Dictionary, _others: Array, _card: UpgradeData) -> Dictionary:
+	if not spot.data.can_attack:
+		return {}
+	var level := ds.rule_level(&"crowded_path")
+	var count: int = ds.count_in_range(spot.node) if spot.node != null else 0
+	var bonus := minf(DreamState.CROWDED_PER[level] * count, DreamState.CROWDED_MAX[level])
+	return {"run_wide": true, "active": bonus > 0.0, "damage": bonus, "note": "%d nightmares in range" % count,
+		"reason": "" if bonus > 0.0 else "no nightmare in range"}
+
+func _lone_hunter(_spot: Dictionary, _others: Array, _card: UpgradeData) -> Dictionary:
+	return {"effect": "+%d%% damage to a nightmare with no other within 2 cells" % roundi(
+		DreamState.LONE_HUNTER_BONUS[ds.rule_level(&"lone_hunter")] * 100)}
+
+func _skyward_gaze(_spot: Dictionary, _others: Array, _card: UpgradeData) -> Dictionary:
+	return {"effect": "+%d%% damage and +%d range against flying nightmares" % [
+		roundi(DreamState.SKYWARD_BONUS * 100), roundi(DreamState.SKYWARD_RANGE)]}
+
+func _fresh_growth(spot: Dictionary, _others: Array, _card: UpgradeData) -> Dictionary:
+	var on: bool = ds.is_fresh(spot.node) if spot.node != null else not ds.drift_director.resting
+	return {"active": on, "damage": DreamState.FRESH_GROWTH_BONUS[ds.rule_level(&"fresh_growth")],
+		"reason": "" if on else "not planted or grown during this drift"}
+
+func _underdog(spot: Dictionary, _others: Array, _card: UpgradeData) -> Dictionary:
+	if not spot.data.can_attack:
+		return {}
+	var on := ds.is_underdog(spot.node)
+	var level := ds.rule_level(&"underdog")
+	return {"run_wide": true, "active": on, "damage": DreamState.UNDERDOG[level][1],
+		"reason": "" if on else "not one of the %d that soothed least last block" % DreamState.UNDERDOG[level][0]}
+
+func _shelter_of_stones(spot: Dictionary, _others: Array, _card: UpgradeData) -> Dictionary:
+	var on := ds.touches_obstacle(spot.cell)
+	return {"positional": true, "radius": 1.0, "active": on, "damage": DreamState.SHELTER_BONUS,
+		"reason": "" if on else "no obstacle in the 8 cells around it"}
+
+func _cliffside(spot: Dictionary, _others: Array, _card: UpgradeData) -> Dictionary:
+	if not spot.data.can_attack:
+		return {}
+	var on := ds.is_on_cliff(spot.cell)
+	return {"positional": true, "radius": 1.0, "active": on, "range": DreamState.CLIFFSIDE_RANGE,
+		"reason": "" if on else "not touching the island's edge"}
+
+func _sudden_bloom(_spot: Dictionary, _others: Array, _card: UpgradeData) -> Dictionary:
+	return {"effect": "after growing, its next %d attacks deal ×2" % DreamState.SUDDEN_BLOOM_ATTACKS}
+
+func _watchful_rest(_spot: Dictionary, _others: Array, _card: UpgradeData) -> Dictionary:
+	return {"effect": "%d s with nothing in range: its next attack deals ×2" % roundi(
+		DreamState.WATCHFUL_REST_TIME[ds.rule_level(&"watchful_rest")])}
+
+func _straightaway(spot: Dictionary, _others: Array, _card: UpgradeData) -> Dictionary:
+	var numbers: Array = DreamState.STRAIGHTAWAY[ds.rule_level(&"straightaway")]
+	var on := ds.beside_straight(spot.cell)
+	return {"positional": true, "radius": 1.0, "active": on, "damage": numbers[0], "range": numbers[1],
+		"reason": "" if on else "no straight stretch of %d+ path tiles beside it" % DreamState.STRAIGHT_TILES}
+
+func _heart_of_the_maze(spot: Dictionary, _others: Array, _card: UpgradeData) -> Dictionary:
+	if not spot.data.can_attack:
+		return {}
+	var heart := ds.get_heart_of_maze()
+	var on: bool = spot.node != null and heart == spot.node
+	return {"run_wide": true, "active": on, "damage": DreamState.HEART_OF_MAZE_BONUS,
+		"reason": "" if on else "another Warden stands furthest from the rest"}
+
+func _echoing_steps(_spot: Dictionary, _others: Array, _card: UpgradeData) -> Dictionary:
+	var bonus := ds.get_echo_bonus()
+	return {"run_wide": true, "active": bonus > 0.0, "damage": bonus, "note": "%d route changes this drift" % ds._echoes,
+		"reason": "" if bonus > 0.0 else "the route hasn't changed this drift"}

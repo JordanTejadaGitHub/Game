@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "thick_bark"
+display_name = "Thick Bark"
+description = "The first leak each block (between two rests) costs no leaves."
+rarity = 0
+kind = 3
+tags = Array[String](["leaves"])
+max_stacks = 1
+rule_id = &"thick_bark"

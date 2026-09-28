@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "echoing_steps"
+display_name = "Echoing Steps"
+description = "Each time the route changes during a drift, all Wardens deal 5% more damage until it ends (up to +25%)."
+rarity = 2
+kind = 3
+tags = Array[String](["maze", "tempo"])
+max_stacks = 1
+rule_id = &"echoing_steps"
