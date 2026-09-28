@@ -29,6 +29,7 @@ func _run() -> void:
 	_test_seedling_gift()
 	_test_peek()
 	_test_grove_cards()
+	_test_clear_tool()
 	print("dream builds test: %s" % ("PASS" if failures == 0 else "%d FAILED" % failures))
 	quit(failures)
 
@@ -431,6 +432,58 @@ func _test_grove_cards() -> void:
 	dreams.take(_card("rootbound"))
 	_check(is_equal_approx(dreams.get_tower_attack_speed_bonus(hub), 1.0), "Rootbound: touching 3 Wardens attacks twice")
 	_clear_towers()
+
+# The Clear tool (screens_ui.md): clicks clear only while the tool is on; locked until a clearing Dream.
+func _test_clear_tool() -> void:
+	_reset()
+	var clearer: ObstacleClearer = main.get_node("%ObstacleClearer")
+	var placer: TowerPlacer = main.get_node("%TowerPlacer")
+	var map_generator = main.get_node("%MapGenerator")
+	dreams.clearing_open = false
+	var refused := []
+	clearer.tool_refused.connect(func() -> void: refused.append(true))
+	_check(not clearer.set_tool_active(true) and refused.size() == 1, "the tool is refused while clearing is locked")
+	var locks := []
+	clearer.lock_changed.connect(func(locked: bool) -> void: locks.append(locked))
+	dreams.take(_card("tended_forest"))
+	_check(locks == [false], "lock_changed(false) when the first clearing Dream unlocks it")
+
+	var cell: Vector2 = map_generator.obstacles.keys()[0]
+	clearer._hover_cell = cell
+	clearer._refresh_hover()
+	run_state.dew = 100
+	clearer._unhandled_input(_click())
+	_check(map_generator.get_obstacle(cell) != null, "without the tool a click doesn't clear")
+	_check(clearer.set_tool_active(true) and clearer.is_tool_active(), "the tool switches on once unlocked")
+	clearer._unhandled_input(_click())
+	_check(map_generator.get_obstacle(cell) == null and clearer.is_tool_active(), "with the tool a click clears, and it stays on")
+
+	# Touch: tap marks, second tap clears
+	clearer.confirm_clears = true
+	var second: Vector2 = map_generator.obstacles.keys()[0]
+	clearer._hover_cell = second
+	clearer._refresh_hover()
+	clearer._unhandled_input(_click())
+	_check(map_generator.get_obstacle(second) != null and clearer.pending_cell == second, "touch: the first tap only marks it")
+	_check(clearer.confirm_pending() and map_generator.get_obstacle(second) == null, "…the ✓ clears it")
+	clearer.confirm_clears = false
+
+	var cancel := InputEventAction.new()
+	cancel.action = &"cancel_build"
+	cancel.pressed = true
+	clearer._unhandled_input(cancel)
+	_check(not clearer.is_tool_active(), "Esc / right-click puts the tool away")
+	clearer.set_tool_active(true)
+	placer.select_tower(load("res://resource/tower/sprout.tres"))
+	_check(not clearer.is_tool_active(), "picking a Warden puts the tool away")
+	placer.set_build_mode(false)
+	dreams.clearing_open = true
+
+func _click() -> InputEventAction:
+	var click := InputEventAction.new()
+	click.action = &"clear_obstacle"
+	click.pressed = true
+	return click
 
 # The Dream, Omen and Remember screens can be minimised to look at the map (screens_ui.md).
 func _test_peek() -> void:
