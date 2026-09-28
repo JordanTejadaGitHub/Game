@@ -83,8 +83,8 @@ func _run() -> void:
 		"family nodes bring their branches, not their final forms")
 	for line: String in ["sporeling", "firefly_jar", "dewdrop", "pebbling", "rootling", "bellflower", "acorn", "nestling", "whirligig"]:
 		var ascension := _unlock(grove, line + "_ascension")
-		_check(ascension != null and ascension.costs == [120] and ascension.requires_all == [line + "_hidden"] and ascension.dream_cards.size() == 1,
-			"%s Ascension: 120 Seeds, needs the hidden branch, opens the Ascended Warden" % line)
+		_check(ascension != null and ascension.costs == [120] and ascension.requires_all == [line + ("_final" if line == "firefly_jar" else "_hidden")] and ascension.dream_cards.size() == 1,
+			"%s Ascension: 120 Seeds, needs the hidden branch (Firefly Jar: final forms, Sunpetal is milestone-only), opens the Ascended Warden" % line)
 	_check(_unlock(grove, "pebbling_hidden").dream_cards.has("dream_cairn") and _unlock(grove, "whirligig_hidden").dream_cards.has("dream_autumn_gale"),
 		"hidden nodes open their hidden Wardens")
 	_check(is_equal_approx(director.blight_health_multiplier, 1.1) and is_equal_approx(director.blight_boss_health_multiplier, 1.25)
@@ -328,7 +328,7 @@ func _check_layout(grove: Array[UnlockData]) -> void:
 		_check(maxi(unlock.get_levels(), 1) == int(node.levels), "%s has %d levels" % [node.id, int(node.levels)])
 		_check(unlock.legendary == bool(node.legendary) and unlock.start == bool(node.start), "%s: Legendary / start match" % node.id)
 		_check(ResourceLoader.exists("res://assets/meta/grove/branches/%s.png" % node.id), "%s has branch art" % node.id)
-		if node.parent != null:
+		if node.parent != null and node.id != "firefly_jar_ascension":  # Drawn from Sunpetal, needs final forms
 			_check(unlock.requires_all.any(func(r: String) -> bool: return r.split(":")[0] == node.parent) or unlock.milestone != "" and unlock.is_free(),
 				"%s needs its parent %s" % [node.id, node.parent])
 	for unlock in grove:
