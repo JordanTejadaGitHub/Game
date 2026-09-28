@@ -97,6 +97,6 @@ itself. All options use a 64×64 cell.
 
 ## Decision
 
-**Leaning: 1. Waystone pixel** (2026-09-27, user's preference; not yet final). It keeps the existing
+**Leaning: 1. Waystone pixel** (2026-09-27, user's preference; not yet final). **2026-09-28:** the user wants to stay with pixel art; six pixel-only looks rendered from the real sprites are compared at https://claude.ai/artifact/SAodZ4uHZR6QcQ4tN3gx2y (Waystone, Hi-bit glow, Chunky 32, Lantern 16, Chunky Lantern, Ink dither; the design chat recommends Waystone plus a ~32-colour master palette). The decision moves to a dedicated **theme chat**. It keeps the existing
 Warden and nightmare art, so no redraw is needed. The other five stay here as references in case the
 look is revisited. When it's final, record it in `art_direction.md`.
