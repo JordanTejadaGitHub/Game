@@ -51,7 +51,7 @@ func _tick() -> void:
 		var data: TowerData = _tower.attack_data if is_instance_valid(_tower) else null
 		if data and data.cloud_slow > 0.0:
 			enemy.statuses.slow_time = maxf(enemy.statuses.slow_time, TICK * 1.6)
-			enemy.statuses.slow_amount = maxf(enemy.statuses.slow_amount, data.cloud_slow)
+			enemy.statuses.slow_amount = maxf(enemy.statuses.slow_amount, data.cloud_slow * _tower.get_slow_multiplier())  # Heavy Air
 		if data and data.cloud_drowsy_per_second > 0.0:
 			var id: int = enemy.get_instance_id()
 			_drowsy_time[id] = _drowsy_time.get(id, 0.0) + TICK

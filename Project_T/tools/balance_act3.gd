@@ -81,8 +81,10 @@ func _run() -> void:
 		await process_frame
 		frames += 1
 		game_time += SPEED / 60.0  # --fixed-fps 60, scaled by time_scale (a member: lambdas copy locals)
-		# Watchdog: no drift cleared for 3 game minutes = say why (who is still on the field).
-		stuck_frames = 0 if director.drifts_cleared != last_cleared else stuck_frames + 1
+		# Watchdog: no drift cleared for 90 game seconds after the last one finished arriving = say why
+		# (who is still on the field). Act 3 drifts can arrive for 3+ minutes; that isn't a stall.
+		var arriving := not director._arriving.is_empty()
+		stuck_frames = 0 if director.drifts_cleared != last_cleared or arriving else stuck_frames + 1
 		last_cleared = director.drifts_cleared
 		if stuck_frames == int(90.0 * 60.0 / SPEED):
 			_report_stall(director, spawner)
