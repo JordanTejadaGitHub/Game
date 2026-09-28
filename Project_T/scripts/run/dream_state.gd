@@ -62,6 +62,11 @@ const RECKLESS_PENALTY := 0.15
 const DIRECTION_TAGS: Array[String] = ["nurture", "wide", "narrow"]
 const OPPOSITE_DIRECTION := {"wide": "narrow", "narrow": "wide"}
 const OPPOSITE_WEIGHT := 0.5
+# Passed-over cards fade (dream_design.md "How Dream offers work"): left out of the next offer, then
+# back at these weights for the offers after it (full from then on); passed over 3+ times = ×0.25.
+const PASSED_WEIGHTS: Array[float] = [0.0, 0.5, 0.75]
+const PASSED_OFTEN := 3
+const PASSED_OFTEN_WEIGHT := 0.25
 const NO_CELL := Vector2(-1, -1)
 # New Legendaries (dream_design.md "New Legendaries", 113–123).
 const CROSSROADS_BONUS := 0.40
@@ -147,6 +152,10 @@ var _rare_dreams_left := 0  # Restless Dreams / Omens: the next N offers each in
 var _extra_cards_next := 0  # Omens (Thick Blight): the next offer has this many more cards
 var _entwined_offered := {}  # Entwined card id -> true once its guaranteed offer happened
 var _banished := {}  # Card id -> true: Let Go took it out of this run's pool
+var _passed_count := {}  # Card id -> times offered and not taken this run
+var _passed_at := {}  # Card id -> the offer number (dreams_seen) it was last passed over in
+var _taken_this_offer: Array[String] = []
+var _guaranteed_id := ""  # The Entwined guaranteed card of the current offer (never fades)
 var _before_offer := {}  # Offer counters from before the current offer (a reroll rolls them back)
 var _attackers_planted := 0  # Attacking Wardens planted this run (Canopy)
 var picks_left := 1  # Cards still to take from the current offer (Lucid Dreaming: 2)
@@ -1066,6 +1075,7 @@ func choose(card: UpgradeData) -> void:
 	if not current_offer.has(card):
 		return
 	take(card)
+	_taken_this_offer.append(card.id)
 	picks_left -= 1
 	if picks_left > 0 and current_offer.size() > 1:  # Lucid Dreaming: take a second card
 		current_offer.erase(card)
@@ -1081,6 +1091,7 @@ func skip() -> void:
 	_close_offer()
 
 func _close_offer() -> void:
+	_note_passed(current_offer, dreams_seen)
 	current_offer = []
 	offer_closed.emit()
 	_show_next_offer()
@@ -1092,6 +1103,8 @@ func reroll() -> bool:
 		return false
 	rerolls_left -= 1
 	_restore_offer_counters(_before_offer)
+	# The replaced cards count as passed over, as if in the offer before, so the new one leaves them out.
+	_note_passed(current_offer, dreams_seen)
 	current_offer = make_offer(current_offer_drift)
 	offer_ready.emit(current_offer, current_offer_drift)
 	return true
@@ -1112,6 +1125,29 @@ func banish(card: UpgradeData) -> bool:
 	else:
 		offer_ready.emit(current_offer, current_offer_drift)
 	return true
+
+# Passed-over cards fade: every card of `offer` not taken counts as passed over in offer `offer_number`.
+# The Entwined guaranteed card is unaffected.
+func _note_passed(offer: Array[UpgradeData], offer_number: int) -> void:
+	for card in offer:
+		if _taken_this_offer.has(card.id) or card.id == _guaranteed_id:
+			continue
+		_passed_count[card.id] = int(_passed_count.get(card.id, 0)) + 1
+		_passed_at[card.id] = offer_number
+	_taken_this_offer.clear()
+
+# Weight multiplier for `card` in the current offer (0 = left out: passed over in the one before).
+func get_passed_weight(card: UpgradeData) -> float:
+	if not _passed_at.has(card.id):
+		return 1.0
+	var since: int = dreams_seen - int(_passed_at[card.id]) - 1
+	var weight: float = PASSED_WEIGHTS[since] if since >= 0 and since < PASSED_WEIGHTS.size() else 1.0
+	if int(_passed_count.get(card.id, 0)) >= PASSED_OFTEN:
+		weight = minf(weight, PASSED_OFTEN_WEIGHT)
+	return weight
+
+func times_passed(card_id: String) -> int:
+	return int(_passed_count.get(card_id, 0))
 
 func _offer_counters() -> Dictionary:
 	return {"dreams_seen": dreams_seen, "without_rare": _dreams_without_rare,
@@ -1137,11 +1173,14 @@ func make_offer(drift_number: int) -> Array[UpgradeData]:
 	_extra_cards_next = 0
 	var offer: Array[UpgradeData] = []
 	var act := drift_director.get_act(drift_number)
+	_guaranteed_id = ""
+	_taken_this_offer.clear()
 	# Entwined: a combo whose ingredients just came together gets one guaranteed slot.
 	if offer.size() < size:
 		for card in pool:
 			if card.entwined and not _entwined_offered.has(card.id) and is_eligible(card, act):
 				_entwined_offered[card.id] = true
+				_guaranteed_id = card.id
 				offer.append(card)
 				break
 	var force_rare := drift_director.is_boss_drift(drift_number) or _dreams_without_rare >= pity_after \
@@ -1276,7 +1315,9 @@ func _draw_card(act: int, exclude: Array[UpgradeData], want_rare: bool) -> Upgra
 		of_rarity = eligible.filter(func(c: UpgradeData) -> bool: return c.is_rare_or_better())
 	if of_rarity.is_empty():
 		of_rarity = eligible
-	return _weighted_pick(of_rarity)
+	# Passed over in the offer before: left out, unless nothing else of the rolled rarity is eligible.
+	var fresh := of_rarity.filter(func(c: UpgradeData) -> bool: return get_passed_weight(c) > 0.0)
+	return _weighted_pick(fresh if not fresh.is_empty() else of_rarity)
 
 func _roll_rarity(act: int, want_rare: bool) -> int:
 	var weights: Array = RARITY_WEIGHTS[clampi(act, 1, RARITY_WEIGHTS.size()) - 1].duplicate()
@@ -1332,6 +1373,7 @@ func _weighted_pick(cards: Array) -> UpgradeData:
 		for tag in opposed:  # e.g. a narrow card while you've gone wide
 			if card.tags.has(tag) and not card.tags.has(OPPOSITE_DIRECTION[tag]):
 				weight *= OPPOSITE_WEIGHT
+		weight *= get_passed_weight(card)  # Passed-over cards fade (all 0 = a plain random pick below)
 		weights.append(weight)
 		total += weight
 	if total <= 0.0:
@@ -1367,6 +1409,7 @@ func to_save() -> Dictionary:
 		"attackers_planted": _attackers_planted, "dreamlight": dreamlight,
 		"dreamlight_shards": dreamlight_shards, "sprout_charges": run_state.sprout_charges,
 		"eldest_cell": [_eldest_cell.x, _eldest_cell.y], "court_pending": _court_pending,
+		"passed_count": _passed_count.duplicate(), "passed_at": _passed_at.duplicate(),
 		"rng_state": str(_rng.state),  # A string: JSON would round a 64-bit int
 	}
 
@@ -1391,6 +1434,13 @@ func load_save(data: Dictionary) -> void:
 	_banished.clear()
 	for id in data.get("banished", []):
 		_banished[id] = true
+	_passed_count.clear()
+	_passed_at.clear()
+	for key in ["passed_count", "passed_at"]:
+		var saved: Dictionary = data.get(key, {})
+		var into: Dictionary = _passed_count if key == "passed_count" else _passed_at
+		for id in saved:
+			into[id] = int(saved[id])  # JSON gives floats
 	_attackers_planted = int(data.get("attackers_planted", 0))
 	dreamlight = int(data.get("dreamlight", 0))
 	dreamlight_changed.emit(dreamlight)

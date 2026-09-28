@@ -23,6 +23,7 @@ func _run() -> void:
 	_test_clearing_cards(main)
 	_test_meta_hooks(main)
 	await _test_dreamlight(main)
+	_test_passed_over(main)
 	print("dreams test: %s" % ("PASS" if failures == 0 else "%d FAILED" % failures))
 	quit(failures)
 
@@ -486,6 +487,8 @@ func _test_meta_hooks(main: Node) -> void:
 	dreams.stacks.erase("chain_bloom")
 	dreams.grove_cards.clear()
 	dreams._entwined_offered.clear()
+	dreams._passed_count.clear()
+	dreams._passed_at.clear()
 	dreams.unlocked.erase("puffball")
 	dreams.unlocked.erase("mistveil")
 
@@ -605,6 +608,89 @@ func _test_dreamlight(main: Node) -> void:
 
 # --- Helpers --------------------------------------------------------------------------------------
 
+# Passed-over cards fade (dream_design.md "How Dream offers work"): skip the same offers again and
+# again and count how often one Common card comes back.
+func _test_passed_over(main: Node) -> void:
+	var dreams: DreamState = main.get_node("%DreamState")
+	_reset_dreams(main)
+	var watched: UpgradeData = null
+	for card in dreams.pool:
+		if card.rarity == UpgradeData.Rarity.COMMON and dreams.is_eligible(card, 1) and card.rule_id == &"":
+			watched = card
+			break
+	_check(watched != null, "a plain Common card to watch")
+	if watched == null:
+		return
+	# Rules on one card
+	dreams._note_passed([watched] as Array[UpgradeData], dreams.dreams_seen)
+	dreams.dreams_seen += 1
+	_check(dreams.get_passed_weight(watched) == 0.0, "passed over: left out of the next offer")
+	dreams.dreams_seen += 1
+	_check(dreams.get_passed_weight(watched) == 0.5, "…then back at ×0.5")
+	dreams.dreams_seen += 2
+	_check(dreams.get_passed_weight(watched) == 1.0, "…full again after 2 more offers")
+	for i in 2:
+		dreams._note_passed([watched] as Array[UpgradeData], dreams.dreams_seen)
+	dreams.dreams_seen += 5
+	_check(dreams.times_passed(watched.id) == 3 and dreams.get_passed_weight(watched) == 0.25,
+		"passed over 3 times: ×0.25 for the rest of the run")
+	var saved := dreams.to_save()
+	_reset_dreams(main)
+	dreams.load_save(JSON.parse_string(JSON.stringify(saved)))
+	_check(dreams.times_passed(watched.id) == 3 and dreams.get_passed_weight(watched) == 0.25,
+		"passed-over counters survive a save")
+
+	# Taking other cards but always passing over the watched one (the playtest case): it never comes
+	# in two offers in a row, and comes far less often than with fading switched off.
+	var repeats := []  # Times it came back after it was first passed over, over 200 runs of 7 Dreams
+	var back_to_back := 0
+	for fading in [false, true]:
+		var total := 0
+		dreams._rng.seed = 7  # Same draws both ways, so the comparison never flakes
+		for run in 200:
+			_reset_dreams_quiet(dreams)
+			var seen := 0
+			var last := false
+			for i in 7:
+				dreams.current_offer = dreams.make_offer(2)
+				var has_it := dreams.current_offer.has(watched)
+				if has_it:
+					seen += 1
+					if fading and last:
+						back_to_back += 1
+				last = has_it
+				var other: Array = dreams.current_offer.filter(func(c: UpgradeData) -> bool: return c != watched)
+				if other.is_empty():
+					dreams.skip()
+				else:
+					dreams.choose(other[0])
+				dreams.stacks.clear()  # Keep the pool as it was
+				dreams.picks_left = 1
+				dreams.current_offer = []
+				if not fading:
+					dreams._passed_count.clear()
+					dreams._passed_at.clear()
+			total += maxi(seen - 1, 0)
+		repeats.append(total)
+	print("passed-over: %s came back %d times without fading, %d with (200 runs × 7 Dreams)" % [watched.id, repeats[0], repeats[1]])
+	_check(back_to_back == 0, "a passed-over card never comes back in the very next offer")
+	_check(repeats[1] < repeats[0] * 0.85, "passed-over cards come back less often (%d vs %d)" % [repeats[1], repeats[0]])
+
+	# A reroll passes over every card it replaced.
+	_reset_dreams(main)
+	dreams.rerolls_left = 1
+	dreams._before_offer = dreams._offer_counters()
+	dreams.current_offer = dreams.make_offer(2)
+	var first := dreams.current_offer.duplicate()
+	dreams.reroll()
+	_check(first.all(func(c: UpgradeData) -> bool: return dreams.times_passed(c.id) == 1 and dreams.get_passed_weight(c) == 0.0),
+		"a reroll counts as passing over the cards it replaced")
+	_check(not dreams.current_offer.any(func(c: UpgradeData) -> bool:
+		return c.rarity == UpgradeData.Rarity.COMMON and first.has(c)), "…and the new offer leaves them out")
+	dreams.choose(dreams.current_offer[0])
+	_check(dreams.times_passed(dreams.get_taken_cards()[0].id) == 0, "a taken card isn't passed over")
+	_reset_dreams(main)
+
 func _card(dreams: DreamState, id: String) -> UpgradeData:
 	for card in dreams.pool:
 		if card.id == id:
@@ -656,6 +742,8 @@ func _reset_dreams(main: Node) -> void:
 	dreams._rare_dreams_left = 0
 	dreams._extra_cards_next = 0
 	dreams._entwined_offered.clear()
+	dreams._passed_count.clear()
+	dreams._passed_at.clear()
 	dreams.unlocks_changed.emit()
 
 # Like _reset_dreams, without signals (the simulation runs thousands of times).
@@ -667,6 +755,8 @@ func _reset_dreams_quiet(dreams: DreamState) -> void:
 	dreams._rare_dreams_left = 0
 	dreams._extra_cards_next = 0
 	dreams._entwined_offered.clear()
+	dreams._passed_count.clear()
+	dreams._passed_at.clear()
 
 func _clear(main: Node) -> void:
 	for child in main.get_node("%EnemyContainer").get_children():
