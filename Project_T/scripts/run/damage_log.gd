@@ -22,13 +22,18 @@ const DPS_WINDOW := 5.0  # Seconds of recent events kept for damage-per-second
 #   popped     a Puffball pop bursting built-up Spored stacks (whole hit; kind "pop")
 #   thunderclap, ignite, shatter, pinned, lightning_rod, dawnbreak: Reactions (whole hit; kind
 #              "reaction"; see Reactions and Enemy.REACTION_TAGS)
-const COMBO_NAMES := {&"crit": "crits", &"weak": "weakness", &"marked": "Marked", &"fog": "fog",
-	&"conducted": "through Damp", &"static": "Static bolts", &"popped": "pops",
+# Status names as {tokens}: read them through combo_name() so they show today's names.
+const COMBO_NAMES := {&"crit": "crits", &"weak": "weakness", &"marked": "{marked}", &"fog": "fog",
+	&"conducted": "through {damp}", &"static": "{static} bolts", &"popped": "pops",
 	&"thunderclap": "Thunderclaps", &"ignite": "Ignites", &"shatter": "Shatters", &"pinned": "Pinned hits",
 	&"lightning_rod": "Lightning Rods", &"dawnbreak": "Dawnbreak"}
 # Whole-hit combo tags: the entire hit is the combo's (see _combo_share).
 const WHOLE_HIT_COMBOS: Array[StringName] = [&"conducted", &"static", &"popped", &"thunderclap", &"ignite",
 	&"shatter", &"pinned", &"lightning_rod", &"dawnbreak"]
+
+# A combo's name for the meter and reports ("through Soaked", "Charged bolts"), in today's names.
+static func combo_name(tag: StringName) -> String:
+	return IconInfo.format(COMBO_NAMES.get(tag, String(tag)))
 
 enum NumbersMode { OFF, BIG, ALL }
 

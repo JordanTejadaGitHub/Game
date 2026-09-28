@@ -105,7 +105,10 @@ func _make_card(omen: OmenData, act: int) -> Button:
 	box.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	button.add_child(box)
 	_add_line(box, omen.display_name, Color(0.95, 0.93, 0.9), 22)
-	_add_line(box, omen.description, TWIST_COLOR, 16).size_flags_vertical = Control.SIZE_EXPAND_FILL
+	var twist := StatusLinks.make_label(omen.description, 16, TWIST_COLOR)  # Status words as links
+	twist.mouse_filter = Control.MOUSE_FILTER_PASS  # A click still picks the Omen
+	twist.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	box.add_child(twist)
 	_add_line(box, "Reward: " + omens.describe_reward(omen, act), REWARD_COLOR, 15)
 	return button
 
@@ -124,7 +127,8 @@ func _on_closed() -> void:
 	game_speed.set_paused(_was_paused)
 
 func _on_omen_started(omen: OmenData, first_drift: int, last_drift: int) -> void:
-	_active_tag.text = "Omen: %s (drifts %d–%d) · %s" % [omen.display_name, first_drift, last_drift, omen.description]
+	_active_tag.text = "Omen: %s (drifts %d–%d) · %s" % [omen.display_name, first_drift, last_drift,
+		IconInfo.format(omen.description)]
 	_active_tag.visible = true
 	_toast("Omen chosen: %s" % omen.display_name)
 

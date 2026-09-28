@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "soaked_through"
 display_name = "Soaked Through"
-description = "Soaked lasts twice as long."
+description = "{damp} lasts twice as long."
 rarity = 1
 kind = 2
 tags = Array[String](["water"])

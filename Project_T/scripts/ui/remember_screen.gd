@@ -130,7 +130,7 @@ func _make_form(data: TowerData, depth: int) -> Button:
 	var button := Button.new()
 	button.focus_mode = Control.FOCUS_NONE
 	button.alignment = HORIZONTAL_ALIGNMENT_LEFT
-	button.tooltip_text = data.description
+	button.tooltip_text = IconInfo.format(data.description)  # {damp} tokens → today's names
 	var indent := "      ".repeat(depth) + ("└ " if depth > 0 else "")
 	var cost := dream_state.get_unlock_cost(data)
 	var blocker := dream_state.get_unlock_blocker(data)

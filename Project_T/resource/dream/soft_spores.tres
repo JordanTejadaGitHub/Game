@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "soft_spores"
 display_name = "Soft Spores"
-description = "Poisoned deals 25% more damage."
+description = "{spored} deals 25% more damage."
 rarity = 0
 kind = 2
 tags = Array[String](["spore"])

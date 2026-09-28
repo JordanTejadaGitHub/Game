@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "static_bloom"
 display_name = "Charged Bloom"
-description = "Stormcap chains also make nightmares Drowsy (1 stack)."
+description = "Stormcap chains also make nightmares {drowsy} (1 stack)."
 rarity = 2
 kind = 3
 tags = Array[String](["storm", "sleep"])

@@ -228,7 +228,7 @@ func get_meter_text() -> String:
 			var parts: Array[String] = []
 			for tag in row.combos:
 				if row.combos[tag] > 0.01:
-					parts.append("%s %d%%" % [DamageLog.COMBO_NAMES.get(tag, tag), roundi(row.combos[tag] * 100)])
+					parts.append("%s %d%%" % [DamageLog.combo_name(tag), roundi(row.combos[tag] * 100)])
 			line += "  combos %d%% (%s)" % [roundi(row.combo_share * 100), ", ".join(parts)]
 		lines.append(line)
 	if rows.is_empty():

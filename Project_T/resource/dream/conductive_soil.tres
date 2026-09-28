@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "conductive_soil"
 display_name = "Conductive Soil"
-description = "Lightning also jumps to every Soaked nightmare in range."
+description = "Lightning also jumps to every {damp} nightmare in range."
 rarity = 2
 kind = 3
 tags = Array[String](["light", "water", "storm"])

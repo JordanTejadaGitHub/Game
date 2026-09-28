@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "rooted_nightmares"
 display_name = "Rooted Nightmares"
-description = "Every 8th hit from a Warden Roots the nightmare for 1 s (bosses 0.5 s). A Rooted nightmare blocks its cell: others re-route around it or wait."
+description = "Every 8th hit from a Warden Roots the nightmare for 1 s (bosses 0.5 s). A {held} nightmare blocks its cell: others re-route around it or wait."
 rarity = 3
 kind = 3
 tags = Array[String](["held"])

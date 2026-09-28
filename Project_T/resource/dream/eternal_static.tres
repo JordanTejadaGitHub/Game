@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "eternal_static"
 display_name = "Eternal Charge"
-description = "Every 4th hit from any Warden adds 1 Charged stack, and Charged never decays."
+description = "Every 4th hit from any Warden adds 1 {static} stack, and {static} never decays."
 rarity = 3
 kind = 3
 tags = Array[String](["storm"])

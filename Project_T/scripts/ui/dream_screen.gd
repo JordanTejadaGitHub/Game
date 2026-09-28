@@ -132,10 +132,10 @@ func _make_card(card: UpgradeData) -> Button:
 		_add_line(box, "Deepened  ·  replaces %s" % dream_state.get_display_name(card.deepens), DEEPENED_COLOR, 14)
 	elif card.is_bittersweet():
 		_add_line(box, "Bittersweet", BITTERSWEET_COLOR, 14)
-	var description := _add_line(box, card.description, Color(0.92, 0.92, 0.95), 16)
+	var description := _add_linked_line(box, card.description, Color(0.92, 0.92, 0.95), 16)
 	description.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	if card.cost_description != "":
-		_add_line(box, card.cost_description, BITTERSWEET_COLOR, 15)
+		_add_linked_line(box, card.cost_description, BITTERSWEET_COLOR, 15)
 	for label in [rarity, name_label]:
 		label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	return button
@@ -147,6 +147,14 @@ func _add_line(box: VBoxContainer, text: String, color: Color, font_size: int) -
 	label.add_theme_color_override("font_color", color)
 	label.add_theme_font_size_override("font_size", font_size)
 	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	box.add_child(label)
+	return label
+
+# Card text with its status words as links ({damp} tokens → today's names). The label passes clicks
+# through, so a click still takes the card; hovering a status word (PC) shows its definition.
+func _add_linked_line(box: VBoxContainer, text: String, color: Color, font_size: int) -> RichTextLabel:
+	var label := StatusLinks.make_label(text, font_size, color)
+	label.mouse_filter = Control.MOUSE_FILTER_PASS
 	box.add_child(label)
 	return label
 
