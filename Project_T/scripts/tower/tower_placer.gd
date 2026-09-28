@@ -842,7 +842,8 @@ func _stroke_input(event: InputEvent) -> void:
 	if event.is_action_pressed("cancel_build"):
 		cancel_stroke()
 		get_viewport().set_input_as_handled()
-	elif event is InputEventMouseMotion:
+	elif event is InputEventMouseMotion and get_viewport().gui_get_hovered_control() == null:
+		# (Over a HUD button, e.g. touch's Plant: an emulated nudge mustn't extend the stroke.)
 		extend_stroke(MAP_GRID.calculate_grid_coordinates(get_global_mouse_position()), event.alt_pressed)
 	elif event.is_action_released("place_tower") and confirm_on_release:
 		plant_stroke()
