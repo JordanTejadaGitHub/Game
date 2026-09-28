@@ -1027,6 +1027,7 @@ func _draw_firefly_jar(canvas: Image, st: Dictionary) -> void:
 			_skin_px(canvas, mask, fig.o, [p], Color("#8aa860"))
 		elif mask.get_pixelv(p).a > 0.0:
 			_glow_dot(canvas, p, Color("#fff27a"), Color("#a8c868"), mask)
+	_neck_string(canvas, mask, st, fig.o)
 	# Cork hat and its sprout (it pops up when the jar fires).
 	var cy: int = dy + maxi(-2, mini(0, st.lift))
 	var lid := _layer()
@@ -1747,6 +1748,34 @@ func _glass(canvas: Image, mask: Image, st: Dictionary, fig: Dictionary, hi: Col
 	for y in range(24, 40):
 		_skin_px(canvas, mask, fig.o, [Vector2i(21, y + dy)], hi)
 	_skin_px(canvas, mask, fig.o, [Vector2i(24, 7 + dy), Vector2i(24, 8 + dy), Vector2i(25, 7 + dy), Vector2i(22, 24 + dy)], hi.lightened(0.4))
+	_neck_string(canvas, mask, st, fig.o)
+
+# The twine tied round a jar's neck: it sags a little with the neck, has a dark underside so it
+# reads as a cord, and ends in a knot on the right with two short ends that sway.
+func _neck_string(canvas: Image, mask: Image, st: Dictionary, o: Color) -> void:
+	var dy: int = st.dy
+	var twine := Color("#f0d8a8")
+	var under := Color("#8a6a40")
+	for x in range(24, 45):
+		var t := (x - 24) / 20.0
+		var y := 19 + dy + roundi(sin(t * PI) * 1.4)
+		if mask.get_pixel(x, y).a == 0.0:
+			continue
+		_px(canvas, x, y, twine if (x % 3) != 0 else Color("#d8b880"))  # a twist every few pixels
+		if mask.get_pixel(x, y + 1).a > 0.0:
+			_px(canvas, x, y + 1, under)
+	# The knot, and its two ends hanging down (swaying with the idle).
+	var kx := 44
+	var ky := 19 + dy
+	for p: Vector2i in [Vector2i(kx, ky - 1), Vector2i(kx + 1, ky - 1), Vector2i(kx, ky), Vector2i(kx + 1, ky)]:
+		_px(canvas, p.x, p.y, twine)
+	_px(canvas, kx + 2, ky, o)
+	_px(canvas, kx + 1, ky + 1, under)
+	var sway: int = st.sway
+	for end: Array in [[Vector2(kx, ky + 1), Vector2(kx - 1 + sway, ky + 5)], [Vector2(kx + 1, ky + 1), Vector2(kx + 3 + sway, ky + 4)]]:
+		_line(canvas, [end[0], end[1]], twine)
+		var tip: Vector2 = end[1]
+		_px(canvas, int(tip.x), int(tip.y) + 1, under)
 
 # Stormcap: a storm-glass golem capped with a little storm cloud, static crackling inside it.
 func _draw_stormcap(canvas: Image, st: Dictionary) -> void:
