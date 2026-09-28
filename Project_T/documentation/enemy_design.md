@@ -107,7 +107,7 @@ some are hard, so every drift plays a little differently. They must never make a
 
 ### Kinds
 
-**1. Family resistance / weakness** (damage multipliers by Warden family)
+**1. Damage-type resistance / weakness** (damage multipliers by the Warden's **damage type**; renamed 2026-09-28, see "Damage types" below)
 
 | | Multiplier | Applies to |
 |---|---|---|
@@ -120,6 +120,33 @@ full game **wing** (Nestling) and **wind** (Whirligig). Sprout, Thornwall/Brambl
 never resisted, so a Sprout is always a safe answer. Statuses still apply at full strength;
 only the damage changes. Stacks multiplicatively with Marked
 (`damage × family × shape × Marked`, then dread shell).
+
+#### Damage types (2026-09-28, user: "resistant not to the specific Warden but the Warden's type")
+
+Nightmares resist or fear a **damage type**, and **every Warden shows its damage type**. The type
+is a property of the Warden (`TowerData.line`), not of a named Warden: by default each family
+deals one type, but a branch or hidden form may deal another where it fits the fiction, so a
+type can span families.
+
+| Type | Icon (new art) | Default family | Fiction |
+|---|---|---|---|
+| **Spore** | a puff of spores | Sporeling | rot and spores |
+| **Stone** | a cracked pebble | Pebbling | weight and impact |
+| **Water** | a droplet | Dewdrop | rain, tide, mist |
+| **Light** | a spark | Firefly Jar | lantern light and lightning |
+| **Root** | a curling root | Rootling | grasping roots |
+| **Song** | a bell / note | Bellflower | sound, lullabies |
+| **Talon** | a feather claw | Nestling | beaks and claws (was "wing") |
+| **Wind** | a swirl | Whirligig | gusts and blades |
+| **Plain** | none (a plain dot) | Sprout, Thornwall, Bramble, Acorn, Memory Wardens | never resisted, never weak |
+
+- **Effect damage keeps its source's type:** Poisoned ticks deal the type of the Warden that applied
+  them (usually Spore), Charged bolts deal **Light**, clouds / rings / seeds the type of the Warden
+  that made them. Reactions deal the type of the Warden that set them off.
+- **Shown everywhere with the type icon, never a Warden's face:** the Warden panel and build
+  tooltip ("Light damage"), the Warden bar tooltip, nightmare info ("Resists Stone ×0.5"), the boss
+  dossier, the map's shield / spark pips, the Codex glossary ("Damage types" page).
+- The rules above (at most one resistance and one weakness, spread evenly) now count **types**.
 
 **2. Attack shape** (rare, one nightmare per shape at most)
 

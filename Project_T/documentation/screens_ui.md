@@ -502,13 +502,14 @@ from `onboarding.md`.
 **Resistances and immunities as icons** (added 2026-09-28, user request: "enemy statuses should be
 more clear with icons of their resistances"):
 
-- **Family icons:** each Warden family (damage line) is shown by its **base Warden's face**
-  (Sporeling = spore, Pebbling = stone, Dewdrop = water, Firefly Jar = light, Rootling = root,
-  Bellflower = song, Nestling = wing, Whirligig = wind, Acorn = support). No new art: the
-  `WardenIcon` portraits, small, in a round frame.
+- **Damage-type icons** (changed 2026-09-28, user: resist the Warden's *type*, not a Warden; see
+  `enemy_design.md` "Damage types"): Spore, Stone, Water, Light, Root, Song, Talon, Wind, each with
+  its own small icon (new art), replacing the base-Warden faces. Plain Wardens (Sprout, Thornwall,
+  Acorn, Memory Wardens) show a plain dot and are never resisted. Every Warden shows its type
+  (Warden panel, build tooltip, Warden bar tooltip: "Light damage").
 - In the nightmare info, three rows under the stats, each hidden when empty:
-  - **Resists** (grey frame, small shield): the family icons, "×0.5".
-  - **Weak to** (warm frame, small spark): the family icons, "×1.5".
+  - **Resists** (grey frame, small shield): the type icons + names, "Stone ×0.5".
+  - **Weak to** (warm frame, small spark): the type icons + names, "Light ×1.5".
   - **Immune / shrugs off**: the **status icons** crossed out for immunities (Barrow Wight: Rooted),
     or with "½" for shorter durations (Barrow Wight: Drowsy wears off fast). Traits get their own
     icons too (Flying, Hidden, Dread shell, Passes through walls).
