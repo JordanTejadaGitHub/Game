@@ -1007,7 +1007,7 @@ func _test_half_dreamed(main: Node) -> void:
 		main.get_node("%GameSpeed").set_paused(false)
 		print("half-dreamed (start %s): %.2f offered per run before the drift 25 pick, %.2f through drift 70" % [
 			start, float(before_pick) / RUNS, float(through_70) / RUNS])
-		_check(float(before_pick) / RUNS >= 0.3, "half-dreamed cards: at least 0.3 per run before the drift 25 pick (start %s: %.2f)" % [start, float(before_pick) / RUNS])
+		_check(float(before_pick) / RUNS >= 0.4, "half-dreamed cards: at least 0.4 per run before the drift 25 pick (start %s: %.2f)" % [start, float(before_pick) / RUNS])
 	_reset_dreams(main)
 
 func _card(dreams: DreamState, id: String) -> UpgradeData:

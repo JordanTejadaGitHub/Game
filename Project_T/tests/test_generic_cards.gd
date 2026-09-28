@@ -170,6 +170,24 @@ func _test_hit_rules() -> void:
 		dreams._glimmer(elite)
 	var dropped := dreams.dreamlight_shards - shards
 	_check(dropped > 5 and dropped < 40, "Glimmering Hunt: ~10%% of elites drop a shard (%d / 200)" % dropped)
+	# Half-dreamed Commons 169–171 (stack to 3)
+	var soaked := _spawn(map_generator.startPath + Vector2(0, 4))
+	var jar := _plant("firefly_jar", Vector2(110, 100))
+	dreams.unlocked["dewdrop"] = true  # Cross-family combos sleep until both families are yours
+	dreams.unlocked["firefly_jar"] = true
+	dreams.take(_card("rain_on_glass"))
+	dreams.unlocked["firefly_jar"] = true
+	dreams.take(_card("rain_on_glass"))
+	_check(dreams.get_spored_tick_multiplier(soaked) == 1.0 and dreams.get_ignite_multiplier() == 1.0, "no Damp Rot / Sparking Spores: ×1")
+	var dry := dreams.on_hit_multiplier(jar, soaked)
+	soaked.apply_status(EnemyStatuses.DAMP, 1, 4.0)
+	_check(is_equal_approx(dreams.on_hit_multiplier(jar, soaked) / dry, (1.0 + 0.24) / 1.0) or is_equal_approx(dreams.on_hit_multiplier(jar, soaked) - dry, 0.24),
+		"Rain on Glass ×2: light Wardens +24% vs Soaked")
+	_check(dreams.on_hit_multiplier(tower, soaked) == dreams.on_hit_multiplier(tower, soaked), "…not other lines")
+	dreams.take(_card("damp_rot"))
+	dreams.take(_card("sparking_spores"))
+	_check(is_equal_approx(dreams.get_spored_tick_multiplier(soaked), 1.2) and is_equal_approx(dreams.get_ignite_multiplier(), 1.2),
+		"Damp Rot: Poisoned ticks +20% on Soaked; Sparking Spores: Ignite +20%")
 	_free_enemies()
 	_clear()
 

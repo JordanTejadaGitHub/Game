@@ -145,6 +145,10 @@ const STRAIGHTAWAY := [[0.15, 0.5], [0.25, 0.5]]  # [damage, range]
 const HEART_OF_MAZE_BONUS := 0.50
 const ECHO_PER := 0.05
 const ECHO_MAX := 0.25
+# Half-dreamed Commons (169–171, stack to 3)
+const DAMP_ROT_PER := 0.20  # Poisoned (Spored) ticks on Soaked nightmares
+const SPARKING_SPORES_PER := 0.20  # Ignite detonations
+const RAIN_ON_GLASS_PER := 0.12  # Light Wardens vs Soaked
 # Dreamlight (run_design.md "Dreamlight"): sources and unlock costs.
 const FIRST_PICK_DREAMLIGHT := 1
 const BOSS_DREAMLIGHT := 3
@@ -1959,6 +1963,9 @@ func on_hit_multiplier(tower: Tower, enemy: Node2D) -> float:
 	bonus += get_bitter_bonus(enemy)
 	if has_rule(&"lone_hunter") and _is_alone(enemy):
 		bonus += LONE_HUNTER_BONUS[rule_level(&"lone_hunter")]
+	if tower != null and tower.tower_data.line == "light" and has_rule(&"rain_on_glass") \
+			and enemy.statuses.has(EnemyStatuses.DAMP):
+		bonus += RAIN_ON_GLASS_PER * rule_stacks(&"rain_on_glass")  # Rain on Glass
 	if has_rule(&"skyward_gaze") and enemy.enemy_data != null and enemy.enemy_data.trait_kind == EnemyData.Trait.FLYING:
 		bonus += SKYWARD_BONUS
 	var multiplier := 1.0 + bonus
@@ -2215,3 +2222,14 @@ func owns_range_at_most(reach: float) -> bool:
 		if is_unlocked(data.get_id()) and data.can_attack and data.attack_range <= reach:
 			return true
 	return false
+
+# Damp Rot: Poisoned (Spored) tick multiplier on `enemy` (enemy.gd's tick asks; 1.0 without it).
+func get_spored_tick_multiplier(enemy: Node2D) -> float:
+	var n := rule_stacks(&"damp_rot")
+	if n == 0 or enemy == null or not enemy.statuses.has(EnemyStatuses.DAMP):
+		return 1.0
+	return 1.0 + DAMP_ROT_PER * n
+
+# Sparking Spores: Ignite detonation multiplier (Reactions._ignite asks; 1.0 without it).
+func get_ignite_multiplier() -> float:
+	return 1.0 + SPARKING_SPORES_PER * rule_stacks(&"sparking_spores")
