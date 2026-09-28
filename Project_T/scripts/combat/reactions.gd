@@ -428,7 +428,9 @@ static func _ignite(enemy: Node2D, source: Node, carry_static: float = 0.0, spre
 	var dreams := _dreams(enemy)
 	var level := 1 if dreams and dreams.has_rule(&"wildfire_spores") else 0
 	var neighbours := _others_within(enemy, IGNITE_REACH[level] + _storm_front(enemy))
-	enemy.take_damage(left * IGNITE_MULTIPLIER, line, true, false, spore_source, &"ignite")
+	# Sparking Spores (card 170): +20% per stack, via DreamState.
+	var sparking: float = dreams.get_ignite_multiplier() if dreams and dreams.has_method("get_ignite_multiplier") else 1.0
+	enemy.take_damage(left * IGNITE_MULTIPLIER * sparking, line, true, false, spore_source, &"ignite")
 	var stacks: int = spread if spread > 0 else IGNITE_SPREAD[level]
 	for other in neighbours:
 		if is_instance_valid(other) and not other.is_cleansed:
