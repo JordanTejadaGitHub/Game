@@ -2233,3 +2233,74 @@ func get_spored_tick_multiplier(enemy: Node2D) -> float:
 # Sparking Spores: Ignite detonation multiplier (Reactions._ignite asks; 1.0 without it).
 func get_ignite_multiplier() -> float:
 	return 1.0 + SPARKING_SPORES_PER * rule_stacks(&"sparking_spores")
+
+
+# --- Headless simulation entry points (tools/balance_run.gd, tests) -------------------------------
+# A real rest and family pick without the screens or deferred offers, keeping the offer bookkeeping
+# (fade, half-dreamed, owed families, Stray, pity, Lucid) exactly as in play.
+
+# Dreamlight a run earns at `kind`: &"first" (the first family pick) or &"boss" (a boss rest).
+static func sim_dreamlight_for(kind: StringName) -> int:
+	return FIRST_PICK_DREAMLIGHT if kind == &"first" else (BOSS_DREAMLIGHT if kind == &"boss" else 0)
+
+# The rest after drift `drift`: what _on_rest_started does (rest rules, Sunlit Rest, Seedling Gift,
+# the boss's +3 Dreamlight) and a real offer. `pick.call(offer: Array) -> UpgradeData` (null = let it
+# pass); with Lucid Dreaming it's called again with what's left. Returns the cards taken.
+func sim_rest(drift: int, pick: Callable, perfect: bool = true) -> Array[UpgradeData]:
+	_early_calls = 0
+	_rest_rules(perfect)
+	if drift_director.is_boss_drift(drift):
+		add_dreamlight(sim_dreamlight_for(&"boss"))
+	if has_rule(&"sunlit_rest"):
+		sunlit_rest()
+	if has_rule(&"seedling_gift"):
+		run_state.add_sprout_charges(1)
+	var taken: Array[UpgradeData] = []
+	current_offer_drift = drift
+	current_offer = make_offer(drift)
+	while is_offering():
+		var card: UpgradeData = pick.call(current_offer.duplicate())
+		if card == null or not current_offer.has(card):
+			if can_skip():
+				skip()
+			else:
+				_close_offer()  # Restless Dreams: no skipping, but the sim moves on
+			break
+		taken.append(card)
+		choose(card)
+	return taken
+
+# A family pick (&"first" after drift 1, &"boss" before a boss rest) through FamilyPickScreen's real
+# offer (owed half-dreamed families included), without leaving the game paused or the screen open.
+# `pick.call(offered_ids: Array) -> StringName`; &"" takes a Family Blessing if one is offered.
+# Returns the family taken (&"" = none). The first pick also gives its +1 Dreamlight.
+func sim_family_pick(kind: StringName, pick: Callable) -> StringName:
+	if kind == &"first":
+		add_dreamlight(sim_dreamlight_for(&"first"))
+	var screen := get_node_or_null("%FamilyPickScreen")
+	if screen == null:
+		return &""
+	var speed := get_node_or_null("%GameSpeed")
+	var was_paused: bool = speed.paused if speed else false
+	var was_awaiting := drift_director.awaiting_family_pick
+	drift_director.awaiting_family_pick = false  # An empty offer mustn't start a rest in the sim
+	screen.show_pick(kind)
+	drift_director.awaiting_family_pick = was_awaiting
+	var families: Array = screen.offer.filter(func(d) -> bool: return d is TowerData)
+	var ids: Array = families.map(func(d: TowerData) -> String: return d.get_id())
+	var chosen := StringName(pick.call(ids.duplicate())) if not ids.is_empty() else &""
+	if ids.has(String(chosen)):
+		unlocked[String(chosen)] = true
+		unlocks_changed.emit()
+		note_family_pick(ids, String(chosen))
+	else:
+		chosen = &""
+		var blessings: Array = screen.offer.filter(func(d) -> bool: return d is UpgradeData)
+		if not blessings.is_empty():
+			take(blessings[0])
+		note_family_pick(ids, "")
+	screen.offer = []
+	screen.visible = false
+	if speed:
+		speed.set_paused(was_paused)
+	return chosen

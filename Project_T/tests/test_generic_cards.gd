@@ -36,6 +36,7 @@ func _run() -> void:
 	_test_hit_rules()
 	_test_rest_rules()
 	_test_map_rules()
+	_test_sim_entry()
 	print("generic cards test: %s" % ("PASS" if failures == 0 else "%d FAILED" % failures))
 	quit(failures)
 
@@ -190,6 +191,25 @@ func _test_hit_rules() -> void:
 		"Damp Rot: Poisoned ticks +20% on Soaked; Sparking Spores: Ignite +20%")
 	_free_enemies()
 	_clear()
+
+# The headless entry points for balance tools (DreamState.sim_rest / sim_family_pick).
+func _test_sim_entry() -> void:
+	_reset()
+	dreams.unlocked = {"sprout": true, "thornwall": true}
+	var light := dreams.dreamlight
+	var family := dreams.sim_family_pick(&"first", func(ids: Array) -> StringName: return StringName(ids[0]))
+	_check(family != &"" and dreams.is_unlocked(String(family)) and dreams.dreamlight == light + 1,
+		"sim_family_pick: takes the family, +1 Dreamlight on the first pick (%s)" % family)
+	_check(not main.get_node("%GameSpeed").paused and not main.get_node("%FamilyPickScreen").visible, "…leaves the game unpaused")
+	var taken := dreams.sim_rest(5, func(offer: Array) -> UpgradeData: return offer[0])
+	_check(taken.size() == 1 and dreams.has_card(taken[0].id) and not dreams.is_offering(), "sim_rest: a real offer, one card taken")
+	var passed := dreams.sim_rest(10, func(_offer: Array) -> UpgradeData: return null)
+	_check(passed.is_empty() and not dreams.is_offering(), "…null lets it pass")
+	light = dreams.dreamlight
+	dreams.sim_rest(25, func(offer: Array) -> UpgradeData: return offer[0])
+	_check(dreams.dreamlight == light + 3, "…a boss rest gives +3 Dreamlight")
+	_check(DreamState.sim_dreamlight_for(&"first") == 1 and DreamState.sim_dreamlight_for(&"boss") == 3, "sim_dreamlight_for")
+	_reset()
 
 func _test_rest_rules() -> void:
 	_reset()
