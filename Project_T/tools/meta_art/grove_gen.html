@@ -228,6 +228,8 @@ let ACT = ACTS[0];
 
 
 
+
+
 // ================= Memory Grove: the Heartwood as a tech tree =================
 // Tree space is 1280×960 px (native pixel art); every position below is in that space.
 const GW = 1280, GH = 960;
@@ -723,7 +725,7 @@ function spreadNodes(mask) {
     list.forEach((n, i) => {
       if (!sc[i]) return;
       let mx = (sx[i] / sc[i] - n.x) * .6, my = (sy[i] / sc[i] - n.y) * .6;
-      const p = anchor(n); if (Math.hypot(p.x - n.x - mx, p.y - n.y - my) > R * 1.6) { mx *= .2; my *= .2; }
+      const p = anchor(n); if (Math.hypot(p.x - n.x - mx, p.y - n.y - my) > R * (n.parent ? 1.6 : .75)) { mx *= .2; my *= .2; }
       mx = clamp(mx, -8, 8); my = clamp(my, -8, 8);
       if (inMask(n.x + mx, n.y + my, 26)) { n.x += mx; n.y += my; }
     });
@@ -738,7 +740,8 @@ function spreadNodes(mask) {
     }
     list.forEach((n, i) => {
       const p = anchor(n), dx = p.x - n.x, dy = p.y - n.y, d = Math.hypot(dx, dy);
-      if (d > R * 1.3) { mv[i][0] += dx / d * (d - R * 1.3) * .15; mv[i][1] += dy / d * (d - R * 1.3) * .15; }
+      const lim = R * (n.parent ? 1.3 : .6);  // a line's first node stays close to its limb
+      if (d > lim) { mv[i][0] += dx / d * (d - lim) * .25; mv[i][1] += dy / d * (d - lim) * .25; }
     });
     list.forEach((n, i) => {
       const mx = clamp(mv[i][0], -4, 4), my = clamp(mv[i][1], -4, 4);
@@ -760,10 +763,14 @@ function spreadNodes(mask) {
   const refresh = i => { seg[i] = [anchor(list[i]), list[i]]; };
   // The score of one branch: its length, its crossings, whether it grows outward, and (for a line's
   // first branch) whether it leaves the limb right next to another line.
+  const limbSegs = [];
+  for (const pts of Object.values(limbPts)) for (let k = 8; k < pts.length; k += 8) limbSegs.push([{ x: pts[k - 8][0], y: pts[k - 8][1] }, { x: pts[k][0], y: pts[k][1] }]);
   const branchCost = i => {
     const [a, n] = seg[i];
     let c = Math.hypot(a.x - n.x, a.y - n.y);
     for (let j = 0; j < seg.length; j++) if (j !== i && cross(a, n, seg[j][0], seg[j][1])) c += 1000;
+    for (const [p, q] of limbSegs) if (cross(a, n, p, q)) c += 800;  // reaching across a great limb
+    if (!n.parent) c += Math.max(0, Math.hypot(a.x - n.x, a.y - n.y) - R * .7) * 6;  // first branches stay short
     if (n.parent) {
       const p = byId[n.parent], q = seg[idx.get(p)][0];
       if ((p.x - q.x) * (n.x - p.x) + (p.y - q.y) * (n.y - p.y) < 0) c += 600;
