@@ -191,14 +191,14 @@ be playtested; where each sits in the Memory Grove is for `meta_design.md` to de
 | # | Card | Archetype (tag) | Effect | You build around |
 |---|---|---|---|---|
 | 113 | **Crossroads** | maze | a Warden touching **two path tiles at least 6 steps apart along the route** gets **+40% damage** | hairpin mazes that fold back past the same Wardens |
-| 114 | **Briar Crown** | walls | when a nightmare walks onto a path tile beside a Thornwall, it takes **25% of the damage of the strongest attacking Warden touching that Thornwall** (once per wall per nightmare per second) | corridors lined with walls, with Wardens behind them |
+| 114 | **Briar Crown** | wall | when a nightmare walks onto a path tile beside a Thornwall, it takes **25% of the damage of the strongest attacking Warden touching that Thornwall** (once per wall per nightmare per second) | corridors lined with walls, with Wardens behind them |
 | 115 | **Menagerie** | variety | all Wardens **+8% damage per different attacking Warden kind** on the map (max +80%) | one of everything; the opposite of Monoculture |
 | 116 | **Restless Night** | tempo | **+8% damage for each drift you call early** this block (max +40%); resets at each rest | calling every drift early |
 | 117 | **Last Leaf** | leaves | all Wardens **+6% damage per leaf below your max** (max +60%) | playing close to losing |
 | 118 | **Lucid Dreaming** | dreams | Dream offers show **4 cards and you take 2**; **Commons are no longer offered** | drafting two halves of a combo at once |
 | 119 | **Court of the Eldest** | nurture | your highest-rank Warden becomes **the Eldest** now (ties: nearest the Heartwood; if nothing is ranked, the next Warden you nurture). Wardens touching the Eldest get **25% of its rank bonuses** | a ring of Wardens around one great one |
-| 120 | **Hunter's Moon** | marked | each Warden's **first hit on a nightmare Marks it**; Marked **never expires**; when a Marked nightmare is dispelled, the **2 nearest within 3 cells** become Marked | marking at the maze's entrance, damage behind |
-| 121 | **Eternal Static** | static | **every 4th hit** from any Warden adds **1 Static**; Static **never decays** | long mazes that build charge on every nightmare |
+| 120 | **Hunter's Moon** | mark | each Warden's **first hit on a nightmare Marks it**; Marked **never expires**; when a Marked nightmare is dispelled, the **2 nearest within 3 cells** become Marked | marking at the maze's entrance, damage behind |
+| 121 | **Eternal Static** | storm | **every 4th hit** from any Warden adds **1 Static**; Static **never decays** | long mazes that build charge on every nightmare |
 | 122 | **Rooted Nightmares** | held | **every 8th hit** from a Warden **Holds** for 1 s (bosses 0.5 s); a Held nightmare **blocks its cell**: other walkers re-route around it, or wait if there's no way round | a maze that grows while it runs |
 | 123 | **Wildwood Reclaimed** | clearing | **unlocks clearing** (counts as a clearing card); Wardens on cells you've cleared get **+30% damage, +2% per obstacle cleared this run** (max +60%) | clearing exactly where your best Wardens will stand |
 
