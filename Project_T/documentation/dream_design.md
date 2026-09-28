@@ -36,12 +36,15 @@ points.
 - **Passed-over cards fade** (added 2026-09-28; playtest: Few and Mighty was offered ~5 times by
   drift 35 to a player not going narrow). A card that was offered and **not taken**:
   - **never appears in the next offer** (unless nothing else of the rolled rarity is eligible);
-  - then comes back at **×0.5 weight**, recovering to full after 2 more offers without it;
-  - after being passed over **3 times in a run**, stays at **×0.25 weight** for the rest of the run
-    (the player has told us it isn't their build). A reroll counts as passing over every card it
-    replaced.
-  - Taking the card, or it being Entwined's guaranteed slot, is unaffected. Rerolls, Banish and
-    Let it pass still work as before; this is only about how often a skipped card returns.
+  - and its draw weight is **×0.6 per time passed this run** (1 pass ×0.6, 2 ×0.36, 3 ×0.22, 4
+    ×0.13; floor ×0.1). Weights are relative, so this means **cards you've seen less come first**:
+    an unseen card is ~5× as likely as one you've skipped three times. (Revised the same day: a
+    flat ×0.5 / ×0.25 faded every unchosen card equally, so after act 2 it changed nothing.)
+  - **Taking** a card resets its count to 0 (stackable cards you like keep coming).
+  - A reroll counts as passing over every card it replaced. The Entwined guaranteed slot never
+    fades and never counts as passed. Rerolls, Banish and Let it pass work as before.
+  - Measure: in a test run that skips the same card at every offer, it should turn up in at most
+    ~1 offer in 4 after its second skip.
 - **Rarity weights by act:**
 
   | Act | Common | Uncommon | Rare | Legendary |
