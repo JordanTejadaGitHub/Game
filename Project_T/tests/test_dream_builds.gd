@@ -30,6 +30,7 @@ func _run() -> void:
 	_test_peek()
 	_test_grove_cards()
 	_test_clear_tool()
+	_test_new_forms()
 	print("dream builds test: %s" % ("PASS" if failures == 0 else "%d FAILED" % failures))
 	quit(failures)
 
@@ -478,6 +479,30 @@ func _test_clear_tool() -> void:
 	_check(not clearer.is_tool_active(), "picking a Warden puts the tool away")
 	placer.set_build_mode(false)
 	dreams.clearing_open = true
+
+# Mossback / Boulderback / Dreamshroom (403c0f8): Dreamlight unlocks only, never Dream offers.
+func _test_new_forms() -> void:
+	_reset()
+	for id in ["dream_mossback", "dream_boulderback", "dream_dreamshroom"]:
+		dreams.grove_cards.append(id)
+		_check(not dreams.is_eligible(_card(id), 2), "%s is never offered as a Dream" % id)
+	dreams.grove_cards.clear()
+	var mossback: TowerData = load("res://resource/tower/mossback.tres")
+	var boulderback: TowerData = load("res://resource/tower/boulderback.tres")
+	var dreamshroom: TowerData = load("res://resource/tower/dreamshroom.tres")
+	dreams.unlocked["pebbling"] = true
+	dreams.unlocked["sporeling"] = true
+	dreams.unlocked["bloomcap"] = true
+	_check(dreams.get_unlock_cost(mossback) == 1 and dreams.get_unlock_blocker(mossback) == "", "Mossback: a branch for 1 Dreamlight")
+	_check(dreams.get_unlock_cost(boulderback) == 2 and dreams.get_unlock_cost(dreamshroom) == 2, "Boulderback and Dreamshroom: final forms for 2")
+	_check(dreams.get_unlock_blocker(dreamshroom) == "Memory Grove", "Dreamshroom waits for Sporeling's final-forms node")
+	dreams.grove_cards.assign(["dream_boulderback", "dream_dreamshroom"])
+	_check(dreams.get_unlock_blocker(boulderback) == "needs Mossback" and dreams.get_unlock_blocker(dreamshroom) == "",
+		"with the Grove nodes: Boulderback needs Mossback, Dreamshroom is ready")
+	var trees := dreams.get_remember_trees()
+	var pebbling_tree: Array = trees.filter(func(t: Array) -> bool: return t[0].get_id() == "pebbling")
+	_check(not pebbling_tree.is_empty() and pebbling_tree[0][1].any(func(b: Array) -> bool:
+		return b[0] == mossback and b[1].has(boulderback)), "Remember shows Pebbling → Mossback → Boulderback")
 
 func _click() -> InputEventAction:
 	var click := InputEventAction.new()
