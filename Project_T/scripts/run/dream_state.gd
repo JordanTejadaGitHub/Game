@@ -1309,17 +1309,35 @@ func _draw_card(act: int, exclude: Array[UpgradeData], want_rare: bool) -> Upgra
 			eligible.append(card)
 	if eligible.is_empty():
 		return null
+	# Passed-over cards fade across rarities (dream_design.md): when every card of the rolled rarity is
+	# faded, keep that rarity with a chance equal to their best weight, else re-roll among the others
+	# (a forced Rare+ slot falls through to Legendary).
+	var tried: Array[int] = []
 	var rarity := _roll_rarity(act, want_rare)
-	var of_rarity := eligible.filter(func(c: UpgradeData) -> bool: return c.rarity == rarity)
-	if of_rarity.is_empty() and want_rare:
-		of_rarity = eligible.filter(func(c: UpgradeData) -> bool: return c.is_rare_or_better())
-	if of_rarity.is_empty():
-		of_rarity = eligible
-	# Passed over in the offer before: left out, unless nothing else of the rolled rarity is eligible.
-	var fresh := of_rarity.filter(func(c: UpgradeData) -> bool: return get_passed_weight(c) > 0.0)
-	return _weighted_pick(fresh if not fresh.is_empty() else of_rarity)
+	while rarity >= 0:
+		var of_rarity := eligible.filter(func(c: UpgradeData) -> bool: return c.rarity == rarity)
+		if tried.is_empty():  # The first roll keeps the old fallbacks when its rarity has no card
+			if of_rarity.is_empty() and want_rare:
+				of_rarity = eligible.filter(func(c: UpgradeData) -> bool: return c.is_rare_or_better())
+			if of_rarity.is_empty():
+				of_rarity = eligible
+		var best := 0.0
+		for card in of_rarity:
+			best = maxf(best, get_passed_weight(card))
+		if best >= 1.0 or (best > 0.0 and _rng.randf() < best):
+			return _weighted_pick(of_rarity.filter(func(c: UpgradeData) -> bool: return get_passed_weight(c) > 0.0))
+		tried.append(rarity)
+		rarity = _roll_rarity(act, want_rare, tried)
+	# Nothing else can fill the slot: faded cards after all (passed over in the offer before only if
+	# there's truly nothing else).
+	var left := eligible
+	if want_rare and eligible.any(func(c: UpgradeData) -> bool: return c.is_rare_or_better()):
+		left = eligible.filter(func(c: UpgradeData) -> bool: return c.is_rare_or_better())
+	var fresh := left.filter(func(c: UpgradeData) -> bool: return get_passed_weight(c) > 0.0)
+	return _weighted_pick(fresh if not fresh.is_empty() else left)
 
-func _roll_rarity(act: int, want_rare: bool) -> int:
+# A rarity for the next card (-1 = every rarity is in `skip`).
+func _roll_rarity(act: int, want_rare: bool, skip: Array[int] = []) -> int:
 	var weights: Array = RARITY_WEIGHTS[clampi(act, 1, RARITY_WEIGHTS.size()) - 1].duplicate()
 	if lean_common:
 		for i in [UpgradeData.Rarity.RARE, UpgradeData.Rarity.LEGENDARY]:
@@ -1329,11 +1347,17 @@ func _roll_rarity(act: int, want_rare: bool) -> int:
 	if want_rare:
 		weights[0] = 0
 		weights[1] = 0
+	for i in skip:
+		weights[i] = 0
 	var total := 0
 	for w in weights:
 		total += w
 	if total <= 0:
-		return UpgradeData.Rarity.RARE
+		if want_rare:  # Falls through to Legendary even where its weight is 0 (act 1)
+			for i in [UpgradeData.Rarity.RARE, UpgradeData.Rarity.LEGENDARY]:
+				if not skip.has(i):
+					return i
+		return -1
 	var roll := _rng.randi_range(1, total)
 	for i in weights.size():
 		roll -= weights[i]

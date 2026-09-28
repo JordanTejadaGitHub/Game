@@ -754,8 +754,10 @@ func _test_few_and_mighty_sim(main: Node) -> void:
 		var r: Array = results[i]
 		print("few and mighty (%s fading): offered %.2f times by drift 35, %.2f by 50; after its 2nd pass in %.0f%% of offers" % [
 			"with" if i == 1 else "without", float(r[0]) / RUNS, float(r[1]) / RUNS, 100.0 * r[3] / maxi(r[2], 1)])
-	# Report only for now: with Few and Mighty the only eligible Rare, fading within a rarity can't
-	# lower it (design chat to decide how fading should reach across rarities).
+	# It's the only eligible Rare here, so this needs the fade to reach across rarities.
+	var faded: Array = results[1]
+	_check(faded[1] < results[0][1], "Few and Mighty: fading lowers how often it's offered")
+	_check(float(faded[3]) / maxi(faded[2], 1) <= 0.25, "Few and Mighty: after its 2nd pass at most ~1 offer in 4")
 
 func _card(dreams: DreamState, id: String) -> UpgradeData:
 	for card in dreams.pool:
