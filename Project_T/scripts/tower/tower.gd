@@ -317,7 +317,7 @@ func _has_work() -> bool:
 func get_damage() -> float:
 	return attack_data.damage * _damage_share * get_rank_damage_multiplier() * (1.0 + _aura_damage) \
 		* (_dream_state.get_soothe_multiplier(self) if _dream_state else 1.0) \
-		* (1.0 + (_kin.family_bonus(tower_data.line) if is_instance_valid(_kin) else 0.0))  # Kindred / Whole Tree
+		* (1.0 + (_kin.damage_bonus(self) if is_instance_valid(_kin) else 0.0))  # Kindred / Whole Tree, Kinship cards
 
 func get_attacks_per_second() -> float:
 	var ranks := mini(get_effective_rank(), STAT_TOP_RANK)

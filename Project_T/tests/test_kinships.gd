@@ -131,6 +131,44 @@ func _run() -> void:
 	kin.load_save(saved)
 	_check(kin.ages.size() == saved.ages.size(), "bond ages survive a save and load")
 
+	# --- Kinship cards (dream_design.md "Kinship cards: going deep"), with stand-in cards by rule id ---
+	var dreams: DreamState = main.get_node("%DreamState")
+	_check(Kinships.count_on_map(drift) == kin.count() and kin.count() >= 3, "Kinships on the map can be counted (%d)" % kin.count())
+	var far_a := _plant("driftspore", Vector2(18, 14))
+	var far_b := _plant("bloomcap", Vector2(21, 14))  # 3 cells apart
+	await process_frame
+	kin.refresh()
+	_check(kin.get_pair(far_a).is_empty(), "3 cells apart: no bond")
+	_rule(dreams, &"close_kin")
+	kin.refresh()
+	_check(kin.get_partner(far_a) == far_b, "Close Kin: bonds reach 3 cells")
+	_check(is_equal_approx(far_a.kin_share(&"slumber_rot", "a"), 0.5), "a new bond starts at Sapling")
+	_rule(dreams, &"quick_bonds")
+	_check(kin.get_stage_drifts() == [0, 4, 9], "Quick Bonds: Blooming at 4, Old Kin at 9 (%s)" % [kin.get_stage_drifts()])
+	var bonded := far_a.get_damage()
+	_rule(dreams, &"family_ties")
+	_check(far_a.get_damage() > bonded, "Family Ties: Wardens in a Kinship hit harder")
+	seller.sell(far_b.cell)
+	await process_frame
+	_rule(dreams, &"old_friends")
+	var far_c := _plant("bloomcap", Vector2(20, 15))
+	await process_frame
+	kin.refresh()
+	_check(kin.get_partner(far_a) == far_c and is_equal_approx(far_a.kin_share(&"slumber_rot", "a"), 0.75),
+		"Old Friends: new bonds start at Blooming")
+	_rule(dreams, &"extended_family")
+	var far_d := _plant("bloomcap", Vector2(18, 16))
+	await process_frame
+	kin.refresh()
+	_check(kin.get_pairs(far_a).size() == 2, "Extended Family: a Warden bonds with its two nearest kin")
+	var harmony_before: int = kin.harmony_run
+	_rule(dreams, &"kin_and_kindling")
+	var target := _spawn(far_a.global_position + Vector2(CELL, 0))
+	far_a.hit(target, 1.0, false, Tower.NO_CRIT)
+	far_c.hit(target, 1.0, false, Tower.NO_CRIT)
+	_check(kin.harmony_run > harmony_before and target.statuses.has(EnemyStatuses.DROWSY),
+		"Kin and Kindling: the Harmony strike also applies the Bloomcap's Drowsy")
+
 	# --- The demo has only its three ---
 	Kinships.force_full = false
 	if ResultsScreen.is_demo():
@@ -164,3 +202,13 @@ func _check(condition: bool, label: String) -> void:
 	if not condition:
 		failures += 1
 		printerr("FAIL: " + label)
+
+# Takes a stand-in card with rule `rule` (the real ones are Roguelite's resources).
+func _rule(dreams: DreamState, rule: StringName) -> void:
+	var card := UpgradeData.new()
+	card.id = "test_" + String(rule)
+	card.rule_id = rule
+	card.kind = UpgradeData.Kind.RULE
+	card.max_stacks = 0
+	dreams.pool.append(card)
+	dreams.take(card)

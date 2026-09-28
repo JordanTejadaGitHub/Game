@@ -31,6 +31,14 @@ const HARMONY_OLD_KIN := 1.5
 const KINDRED_BONUS := 0.10
 const WHOLE_TREE_BONUS := 0.20
 const DIM_ALPHA := 0.3  # Vines in combat
+# Kinship cards (dream_design.md "Kinship cards: going deep")
+const FAMILY_TIES_PER := 0.08  # Family Ties: Wardens in a Kinship, per stack
+const BLOOD_BONDED := 0.30  # Blood is Thicker (bittersweet): in a Kinship…
+const BLOOD_UNBONDED := 0.15  # …and the cost for attacking Wardens not in one
+const GROVE_OF_KIN_PER := 0.03  # Grove of Kin: every Warden, per Kinship on the map…
+const GROVE_OF_KIN_MAX := 0.30
+const SWEET_BONUS: Array[float] = [0.5, 1.0]  # Sweet Harmony (II)
+const SWEET_COOLDOWN: Array[float] = [1.5, 1.0]
 
 # id -> [name, family line, branch A, branch B, in the demo]
 const KINSHIPS := {
@@ -185,27 +193,28 @@ func refresh() -> void:
 			if id == &"" or not is_available(id):
 				continue
 			var distance := _cheb(ta.cell, tb.cell)
-			if distance <= REACH:
+			if distance <= get_reach():
 				# Side A is the Warden from the table's first branch.
 				var first: bool = KINSHIPS[id][2] == ba
 				edges.append([distance, id, ta if first else tb, tb if first else ta])
 	edges.sort_custom(func(x: Array, y: Array) -> bool: return x[0] < y[0])
-	var taken := {}
+	var taken := {}  # Tower instance id -> bonds so far
+	var capacity := 2 if _has(&"extended_family") else 1  # Extended Family: two kin each
 	var new_pairs := []
 	for edge in edges:
 		var a: Tower = edge[2]
 		var b: Tower = edge[3]
-		if taken.has(a.get_instance_id()) or taken.has(b.get_instance_id()):
+		if taken.get(a.get_instance_id(), 0) >= capacity or taken.get(b.get_instance_id(), 0) >= capacity:
 			continue
-		taken[a.get_instance_id()] = true
-		taken[b.get_instance_id()] = true
-		new_pairs.append({"id": edge[1], "a": a, "b": b, "key": _key(edge[1], a.cell, b.cell)})
+		taken[a.get_instance_id()] = taken.get(a.get_instance_id(), 0) + 1
+		taken[b.get_instance_id()] = taken.get(b.get_instance_id(), 0) + 1
+		new_pairs.append({"id": edge[1], "a": a, "b": b, "key": _key(edge[1], a, b)})
 	# Bonds that ended lose their age (moving or selling resets; evolving keeps the cells).
 	var keys := {}
 	for pair in new_pairs:
 		keys[pair.key] = true
 		if not ages.has(pair.key):
-			ages[pair.key] = 0
+			ages[pair.key] = _start_age()
 			_on_formed(pair)
 	for key in ages.keys():
 		if not keys.has(key):
@@ -213,12 +222,77 @@ func refresh() -> void:
 	pairs = new_pairs
 	_partner.clear()
 	for pair in pairs:
-		_partner[pair.a.get_instance_id()] = pair
-		_partner[pair.b.get_instance_id()] = pair
+		for tower in [pair.a, pair.b]:
+			if not _partner.has(tower.get_instance_id()):
+				_partner[tower.get_instance_id()] = []
+			_partner[tower.get_instance_id()].append(pair)
 	_count_families(towers)
 
-static func _key(id: StringName, a: Vector2, b: Vector2) -> String:
-	return "%s:%d,%d:%d,%d" % [id, a.x, a.y, b.x, b.y]
+# A bond's identity: the two Wardens' cells (moving or selling resets), or with Rooted Bond the two
+# Wardens themselves (moving keeps it; selling still ends it).
+func _key(id: StringName, a: Tower, b: Tower) -> String:
+	if _has(&"rooted_bond"):
+		return "%s:#%d:#%d" % [id, a.get_instance_id(), b.get_instance_id()]
+	return "%s:%d,%d:%d,%d" % [id, a.cell.x, a.cell.y, b.cell.x, b.cell.y]
+
+
+# --- Kinship cards (dream_design.md "Kinship cards: going deep"), read by rule id ---
+
+func _dreams() -> DreamState:
+	return get_tree().get_first_node_in_group(DreamState.GROUP) as DreamState if is_inside_tree() else null
+
+func _has(rule: StringName) -> bool:
+	var dreams := _dreams()
+	return dreams != null and dreams.has_rule(rule)
+
+func _level(rule: StringName) -> int:
+	var dreams := _dreams()
+	return dreams.rule_level(rule) if dreams else 0
+
+func _stacks(rule: StringName) -> int:
+	var dreams := _dreams()
+	return dreams.rule_stacks(rule) if dreams else 0
+
+# Close Kin: bonds reach 3 cells (II: 4).
+func get_reach() -> float:
+	if _has(&"close_kin"):
+		return 4.0 if _level(&"close_kin") > 0 else 3.0
+	return REACH
+
+# Drifts together for each stage; Quick Bonds takes 1 off per stack (max 3).
+func get_stage_drifts() -> Array[int]:
+	var cut := mini(_stacks(&"quick_bonds"), 3)
+	var result: Array[int] = [0]
+	for i in range(1, STAGE_DRIFTS.size()):
+		result.append(maxi(STAGE_DRIFTS[i] - cut, 1))
+	return result
+
+# Old Friends: new bonds start at Blooming (II: Old Kin), counting on from there.
+func _start_age() -> int:
+	if not _has(&"old_friends"):
+		return 0
+	return get_stage_drifts()[2 if _level(&"old_friends") > 0 else 1]
+
+# Kinships on the map (card prerequisites at offer time).
+func count() -> int:
+	return pairs.size()
+
+static func count_on_map(near: Node) -> int:
+	var kin := find(near)
+	return kin.count() if kin else 0
+
+# Every damage bonus Kinships give `tower`: Kindred / Whole Tree, Family Ties (+8% per stack in a
+# Kinship), Blood is Thicker (+30% in one, −15% not), Grove of Kin (+3% per Kinship, max +30%).
+func damage_bonus(tower: Tower) -> float:
+	var bonus := family_bonus(tower.tower_data.line)
+	var bonded := not get_pairs(tower).is_empty()
+	if bonded:
+		bonus += FAMILY_TIES_PER * _stacks(&"family_ties")
+	if _has(&"blood_is_thicker") and tower.tower_data.can_attack:
+		bonus += BLOOD_BONDED if bonded else -BLOOD_UNBONDED
+	if _has(&"grove_of_kin"):
+		bonus += minf(GROVE_OF_KIN_PER * pairs.size(), GROVE_OF_KIN_MAX)
+	return bonus
 
 func _count_families(towers: Array) -> void:
 	var present := {}
@@ -246,19 +320,26 @@ func _count_families(towers: Array) -> void:
 
 # --- Queries for the Warden code ---------------------------------------------------------------------
 
-# The pair `tower` is in ({} = none).
+# The pairs `tower` is in (one; two with Extended Family).
+func get_pairs(tower: Tower) -> Array:
+	return _partner.get(tower.get_instance_id(), [])
+
+# The first pair `tower` is in ({} = none).
 func get_pair(tower: Tower) -> Dictionary:
-	return _partner.get(tower.get_instance_id(), {})
+	var list := get_pairs(tower)
+	return list[0] if not list.is_empty() else {}
 
 # The share (0.5 / 0.75 / 1.0) of Kinship `id`'s trait `tower` borrows on `side` ("a": the table's
 # first branch borrows from the second; "b": the other way), or 0.
 func share(tower: Tower, id: StringName, side: String) -> float:
-	var pair := get_pair(tower)
-	if pair.is_empty() or pair.id != id or not is_instance_valid(pair.a) or not is_instance_valid(pair.b):
-		return 0.0
-	if (side == "a") != (pair.a == tower):
-		return 0.0
-	return STAGE_SHARE[get_stage(pair)]
+	var best := 0.0
+	for pair in get_pairs(tower):
+		if pair.id != id or not is_instance_valid(pair.a) or not is_instance_valid(pair.b):
+			continue
+		if (side == "a") != (pair.a == tower):
+			continue
+		best = maxf(best, STAGE_SHARE[get_stage(pair)])
+	return best
 
 func get_partner(tower: Tower) -> Tower:
 	var pair := get_pair(tower)
@@ -268,9 +349,10 @@ func get_partner(tower: Tower) -> Tower:
 
 func get_stage(pair: Dictionary) -> int:
 	var drifts: int = ages.get(pair.key, 0)
+	var thresholds := get_stage_drifts()
 	var stage := 0
-	for i in STAGE_DRIFTS.size():
-		if drifts >= STAGE_DRIFTS[i]:
+	for i in thresholds.size():
+		if drifts >= thresholds[i]:
 			stage = i
 	return stage
 
@@ -285,17 +367,18 @@ func family_bonus(line: String) -> float:
 
 # "Slumber Rot · Blooming (3 drifts to Old Kin)" for the Warden panel ("" = not in a Kinship).
 func describe(tower: Tower) -> String:
-	var pair := get_pair(tower)
-	if pair.is_empty():
-		return ""
-	var partner := get_partner(tower)
-	var stage := get_stage(pair)
-	var text := "Kin: %s · %s · %s" % [partner.tower_data.display_name if partner else "?",
-		KINSHIPS[pair.id][0], STAGE_NAMES[stage]]
-	if stage < STAGE_DRIFTS.size() - 1:
-		var left: int = STAGE_DRIFTS[stage + 1] - ages.get(pair.key, 0)
-		text += " (%d drift%s to %s)" % [left, "" if left == 1 else "s", STAGE_NAMES[stage + 1]]
-	return text
+	var lines: Array[String] = []
+	var thresholds := get_stage_drifts()
+	for pair in get_pairs(tower):
+		var partner: Tower = pair.b if pair.a == tower else pair.a
+		var stage := get_stage(pair)
+		var text := "Kin: %s · %s · %s" % [partner.tower_data.display_name if is_instance_valid(partner) else "?",
+			KINSHIPS[pair.id][0], STAGE_NAMES[stage]]
+		if stage < thresholds.size() - 1:
+			var left: int = thresholds[stage + 1] - ages.get(pair.key, 0)
+			text += " (%d drift%s to %s)" % [left, "" if left == 1 else "s", STAGE_NAMES[stage + 1]]
+		lines.append(text)
+	return "\n".join(lines)
 
 # The Kinship a Warden of `data` planted on `cell` would form ({} = none): {id, name, partner}. For the
 # build ghost's PlacementLinks ("Forms Kinship: Slumber Rot").
@@ -306,7 +389,7 @@ func preview(data: TowerData, cell: Vector2) -> Dictionary:
 	var best := {}
 	var best_distance := INF
 	for tower in _towers():
-		if tower.tower_data.line != data.line or not get_pair(tower).is_empty():
+		if tower.tower_data.line != data.line or get_pairs(tower).size() >= (2 if _has(&"extended_family") else 1):
 			continue
 		var other := branch_of(tower.tower_data)
 		if other == "" or other == branch:
@@ -324,28 +407,42 @@ func preview(data: TowerData, cell: Vector2) -> Dictionary:
 # `tower` just hit `enemy` for `dealt`. If its kin hit the same nightmare within 1 s, a Harmony strike
 # bursts: 1× the weaker Warden's hit (×1.5 at Old Kin), effect damage, no crit, 2 s per pair.
 func note_hit(tower: Tower, enemy: Node2D, dealt: float) -> void:
-	var pair := get_pair(tower)
-	if pair.is_empty() or not is_instance_valid(enemy) or enemy.is_cleansed:
+	if get_pairs(tower).is_empty() or not is_instance_valid(enemy) or enemy.is_cleansed:
 		return
 	var hits: Dictionary = enemy.get_meta(&"kin_hits", {})
 	hits[tower.get_instance_id()] = [_clock, dealt]
 	enemy.set_meta(&"kin_hits", hits)
-	var partner := get_partner(tower)
-	if partner == null or not hits.has(partner.get_instance_id()):
-		return
-	var theirs: Array = hits[partner.get_instance_id()]
-	if _clock - theirs[0] > HARMONY_WINDOW or _clock < _harmony_ready.get(pair.key, 0.0):
-		return
-	_harmony_ready[pair.key] = _clock + HARMONY_COOLDOWN
-	var weaker: Tower = tower if tower.get_damage() <= partner.get_damage() else partner
-	var damage := weaker.get_damage() * (HARMONY_OLD_KIN if get_stage(pair) == 2 else 1.0)
-	harmony_block += 1
-	harmony_run += 1
-	_spark(enemy.global_position, pair)
-	harmony_struck.emit(tower, enemy)
-	# Credited to the Warden whose hit just landed, so DamageLog merges it into that hit's number (green).
-	enemy.take_damage(damage, tower.tower_data.line, true, false, tower, &"harmony")
-
+	for pair in get_pairs(tower):
+		var partner: Tower = pair.b if pair.a == tower else pair.a
+		if not is_instance_valid(partner) or not hits.has(partner.get_instance_id()):
+			continue
+		var theirs: Array = hits[partner.get_instance_id()]
+		if _clock - theirs[0] > HARMONY_WINDOW or _clock < _harmony_ready.get(pair.key, 0.0):
+			continue
+		# Sweet Harmony: +50% and a 1.5 s cooldown (II: +100%, 1 s).
+		var sweet := -1
+		if _has(&"sweet_harmony"):
+			sweet = _level(&"sweet_harmony")
+		_harmony_ready[pair.key] = _clock + (SWEET_COOLDOWN[sweet] if sweet >= 0 else HARMONY_COOLDOWN)
+		var weaker: Tower = tower if tower.get_damage() <= partner.get_damage() else partner
+		var damage := weaker.get_damage() * (HARMONY_OLD_KIN if get_stage(pair) == 2 else 1.0)
+		if sweet >= 0:
+			damage *= 1.0 + SWEET_BONUS[sweet]
+		harmony_block += 1
+		harmony_run += 1
+		_spark(enemy.global_position, pair)
+		harmony_struck.emit(tower, enemy)
+		# Credited to the Warden whose hit just landed, so DamageLog merges it into that hit's number (green).
+		enemy.take_damage(damage, tower.tower_data.line, true, false, tower, &"harmony")
+		# Kin and Kindling: the strike also applies both Wardens' statuses (1 stack each); they can
+		# complete Reactions, but the strike itself is never a chain link.
+		if _has(&"kin_and_kindling"):
+			for kin_warden in [pair.a, pair.b]:
+				if is_instance_valid(kin_warden) and is_instance_valid(enemy) and not enemy.is_cleansed \
+						and kin_warden.attack_data.applies_status != &"":
+					kin_warden._apply_one_status(enemy, kin_warden.attack_data.applies_status, 1, kin_warden.get_damage())
+		if not is_instance_valid(enemy) or enemy.is_cleansed:
+			return
 
 # --- Bond moments ------------------------------------------------------------------------------------
 
