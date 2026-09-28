@@ -1,7 +1,7 @@
 {
 	"anchor": [
-		64,
-		96
+		80,
+		104
 	],
 	"attack_frames": 6,
 	"dawnwing_empty": "dawnwing_empty.png",
@@ -82,8 +82,8 @@
 		}
 	},
 	"frame_size": [
-		128,
-		128
+		160,
+		160
 	],
 	"frames": 8,
 	"release_frame": 2,
@@ -115,70 +115,70 @@
 	},
 	"sprite_offset": [
 		0,
-		-32
+		-24
 	],
 	"wardens": {
 		"dawnwing": {
 			"kind": "circle",
 			"point": [
-				64,
-				14
+				80,
+				22
 			]
 		},
 		"grandmother_oak": {
 			"kind": "aura",
 			"point": [
-				64,
-				96
+				80,
+				104
 			]
 		},
 		"old_mountain": {
 			"kind": "crush",
 			"point": [
-				63,
-				6
+				79,
+				14
 			]
 		},
 		"sporemother": {
 			"kind": "storm",
 			"point": [
-				63,
-				20
+				79,
+				28
 			]
 		},
 		"stormheart": {
 			"kind": "chain",
 			"point": [
-				64,
-				76
+				80,
+				84
 			]
 		},
 		"the_great_bell": {
 			"kind": "toll",
 			"point": [
-				64,
-				84
+				80,
+				92
 			]
 		},
 		"the_tempest": {
 			"kind": "cyclone",
 			"point": [
-				64,
-				10
+				80,
+				18
 			]
 		},
 		"tidecaller": {
 			"kind": "tide",
 			"point": [
-				100,
-				40
+				116,
+				48
 			]
 		},
 		"world_root": {
 			"kind": "hold",
 			"point": [
-				64,
-				96
+				80,
+				104
 			]
 		}
 	}

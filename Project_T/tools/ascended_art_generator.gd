@@ -11,11 +11,14 @@ extends "res://tools/tower_art_generator.gd"
 # Frame sizes, anchors and attack points: assets/towers/ascended/ascended.json.
 # Run:  Godot --headless --path . --script res://tools/ascended_art_generator.gd
 
-const W := 128
-const H := 128
+const W := 160  # frame size; the figure and its waystone are drawn on a 128 px layer (L) placed at LAYER_AT
+const H := 160
+const L := 128
+const LAYER_AT := Vector2i(16, 8)
+const DAIS := Vector2(80, 118)  # centre of the dais top face (frame px)
 const AOUT := "res://assets/towers/ascended/"
 const BASE_AT := Vector2i(32, 64)
-const HEAD := Vector2(63, 44)
+var HEAD := Vector2(60, 44)  # the figure's head centre on the layer (set by _place_figure)
 
 # name: [waystone theme, figure palette (outline, light, mid, shadow), halo colour, attack kind,
 # attack point in frame px].
@@ -39,6 +42,7 @@ func _is_extension() -> bool:
 func _init() -> void:
 	var stretch: Array = POSE_UP.slice(0, 13) + POSE_UP.slice(12)
 	poses = [_parse(POSE_UP), _parse(POSE_DOWN), _parse(stretch, TOP - 1)]
+	_place_figure()
 	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(AOUT))
 	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(PREVIEWS))
 	var rows: Array = []
@@ -83,9 +87,9 @@ func _save_info() -> void:
 	var wardens := {}
 	for warden: String in ASCENDED:
 		var p: Vector2i = ASCENDED[warden][4]
-		wardens[warden] = {kind = ASCENDED[warden][3], point = [p.x, p.y]}
+		wardens[warden] = {kind = ASCENDED[warden][3], point = [p.x + LAYER_AT.x, p.y + LAYER_AT.y]}
 	var data := {
-		frame_size = [W, H], anchor = [64, 96], sprite_offset = [0, -32], frames = FRAMES,
+		frame_size = [W, H], anchor = [80, 104], sprite_offset = [0, -24], frames = FRAMES,
 		attack_frames = ATTACK_FRAMES, release_frame = RELEASE_FRAME, wardens = wardens,
 		dawnwing_empty = "dawnwing_empty.png",
 		effects = {
@@ -267,14 +271,154 @@ func _base(canvas: Image, st: Dictionary, theme: String) -> void:
 	_draw_waystone(slab, st, theme, true)
 	canvas.blend_rect(slab, Rect2i(0, 0, S, S), BASE_AT)
 
-func _draw_ascended(warden: String, canvas: Image, st: Dictionary) -> void:
+func _draw_ascended(warden: String, frame: Image, st: Dictionary) -> void:
 	var info: Array = ASCENDED[warden]
 	var pal: Array = info[1]
 	var fig := {o = Color(pal[0]), a = Color(pal[1]), b = Color(pal[2]), c = Color(pal[3]), ramp = _ramp_of(pal)}
-	_base(canvas, st, info[0])
 	var halo := Color(info[2])
+	# The Warden itself (themed waystone, halo, golem, accessories) on a 128 px layer.
+	var canvas := Image.create_empty(L, L, false, Image.FORMAT_RGBA8)
+	_base(canvas, st, info[0])
 	_halo(canvas, st, halo)
-	call("_asc_" + warden, canvas, st, fig)
+	# Accessories move with the scaled-up head bob; the figure itself reads the template bob (tdy).
+	var st2 := st.duplicate()
+	st2["tdy"] = st.dy
+	st2["dy"] = roundi(st.dy * K)
+	st2["halo"] = halo
+	call("_asc_" + warden, canvas, st2, fig)
+	# The frame: light rays behind, the great dais, crystals orbiting, then the Warden on top.
+	_rays(frame, st, halo)
+	_dais(frame, st, info[0], halo)
+	_crystals(frame, st, halo, fig, false)
+	frame.blend_rect(canvas, Rect2i(0, 0, L, L), LAYER_AT)
+	_crystals(frame, st, halo, fig, true)
+
+# Soft beams of light fanning up from behind the Warden, turning slowly.
+func _rays(frame: Image, st: Dictionary, halo: Color) -> void:
+	var c := Vector2(HEAD) + Vector2(LAYER_AT) + Vector2(0, 6)
+	for k in 7:
+		var a := -PI * 0.5 + (k - 3) * 0.33 + sin(TAU * float(st.f) / st.n + k) * 0.03
+		var len := 70.0 + (k % 3) * 10.0
+		var col := Color(halo, 0.28 if k % 2 == 0 else 0.18)
+		for s in int(len):
+			var p := c + Vector2.from_angle(a) * (22.0 + s)
+			var w := 1 + s / 24
+			for o in range(-w, w + 1):
+				var q := p + Vector2.from_angle(a + PI * 0.5) * o
+				var x := roundi(q.x)
+				var y := roundi(q.y)
+				if _in(frame, x, y) and (x + y + st.f) % 2 == 0:
+					frame.set_pixel(x, y, col)
+
+# The great dais under the waystone: an isometric plinth in the theme's stone, flagstones on top, a
+# glowing rune ring, block seams and a lit trim on the sides, and four lantern posts.
+func _dais(frame: Image, st: Dictionary, theme: String, halo: Color) -> void:
+	var pal: Array = THEMES[theme]
+	var top := Color(pal[0])
+	var side_l := Color(pal[1])
+	var side_r := Color(pal[2])
+	var edge := Color(pal[2]).darkened(0.45)
+	var hw := 70.0
+	var hh := 30.0
+	var thick := 10
+	for y in H:
+		for x in W:
+			var u := (x + 0.5 - DAIS.x) / hw
+			var v := (y + 0.5 - DAIS.y) / hh
+			if absf(u) + absf(v) <= 1.0:
+				# Top face: flagstones along both iso axes, each stone a slightly different shade.
+				var a := (u + v) * 3.5
+				var b := (v - u) * 3.5
+				var seam := absf(a - roundf(a)) < 0.07 or absf(b - roundf(b)) < 0.07
+				var cell := int(floorf(a) * 7 + floorf(b) * 13)
+				var col := top.darkened(0.08 * (absi(cell) % 3))
+				if seam:
+					col = side_l.lerp(top, 0.35)
+				if absf(u) + absf(v) > 0.97:
+					col = top.lightened(0.25) if v < 0.0 else side_l
+				frame.set_pixel(x, y, col)
+				continue
+			# Side faces below the front edges.
+			var down := v - (1.0 - absf(u))
+			if v > 0.0 and absf(u) <= 1.0 and down * hh <= thick and down > 0.0:
+				var face := side_l if u < 0.0 else side_r
+				var depth := down * hh
+				var blocks := int(floorf((u + 1.0) * 7.0))
+				var bx := absf((u + 1.0) * 7.0 - roundf((u + 1.0) * 7.0)) < 0.06
+				var col := face
+				if bx or absi(roundi(depth) - thick / 2) == 0 and blocks % 2 == 0:
+					col = face.darkened(0.25)
+				if depth < 2.0:
+					col = Color(halo, 1.0).lerp(face, 0.45)  # the lit trim
+				if depth > thick - 1.5:
+					col = edge
+				frame.set_pixel(x, y, col)
+	# Outline round the dais.
+	var src := frame.duplicate() as Image
+	for y in range(1, H - 1):
+		for x in range(1, W - 1):
+			var u := (x + 0.5 - DAIS.x) / hw
+			var v := (y + 0.5 - DAIS.y) / hh
+			var inside := absf(u) + absf(v) <= 1.0 or (v > 0.0 and absf(u) <= 1.0 and (v - (1.0 - absf(u))) * hh <= thick)
+			if not inside:
+				continue
+			for d: Vector2i in [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]:
+				var q := Vector2i(x, y) + d
+				var qu := (q.x + 0.5 - DAIS.x) / hw
+				var qv := (q.y + 0.5 - DAIS.y) / hh
+				var q_in := absf(qu) + absf(qv) <= 1.0 or (qv > 0.0 and absf(qu) <= 1.0 and (qv - (1.0 - absf(qu))) * hh <= thick)
+				if not q_in:
+					frame.set_pixel(x, y, edge)
+					break
+	# The rune ring, runes lighting in turn.
+	var runes := 24
+	for k in runes:
+		var ang := k * TAU / runes
+		var p := DAIS + Vector2(cos(ang) * hw * 0.74, sin(ang) * hh * 0.74)
+		var lit: bool = (k + st.f * 3) % runes < 6
+		var col := Color.WHITE.lerp(halo, 0.3) if lit else halo.darkened(0.35)
+		var x := roundi(p.x)
+		var y := roundi(p.y)
+		match k % 3:
+			0:
+				_gpx(frame, x, y, col); _gpx(frame, x + 1, y, col); _gpx(frame, x, y - 1, col)
+			1:
+				_gpx(frame, x, y, col); _gpx(frame, x, y + 1, col)
+			2:
+				_gpx(frame, x - 1, y, col); _gpx(frame, x + 1, y, col); _gpx(frame, x, y, col)
+	_gring(frame, DAIS, Vector2(hw * 0.82, hh * 0.82), halo.darkened(0.2), 3, st.f, false)
+	# Lantern posts: small standing stones with a glowing gem, at the dais corners.
+	for post: Vector2 in [Vector2(DAIS.x - hw + 8, DAIS.y - 2), Vector2(DAIS.x + hw - 8, DAIS.y - 2), Vector2(DAIS.x - 34, DAIS.y + 15), Vector2(DAIS.x + 34, DAIS.y + 15)]:
+		_post(frame, post, st, halo, top, side_l, side_r, edge)
+
+func _post(frame: Image, p: Vector2, st: Dictionary, halo: Color, light: Color, mid: Color, dark: Color, o: Color) -> void:
+	var l := _gnew(frame)
+	var stone := _ramp([dark.to_html(), mid.to_html(), light.to_html(), light.lightened(0.2).to_html()])
+	_gpoly(l, PackedVector2Array([p + Vector2(-4, 0), p + Vector2(-4, -13), p + Vector2(0, -16), p + Vector2(4, -13), p + Vector2(4, 0)]), stone, true)
+	_gstamp(frame, l, o)
+	var pulse: int = [0, 1, 1, 0, 0, 0, 1, 0][(st.f + int(p.x)) % 8]
+	var gem := p + Vector2(0, -20 - pulse)
+	var g := _gnew(frame)
+	_gpoly(g, PackedVector2Array([gem + Vector2(0, -4), gem + Vector2(3, 0), gem + Vector2(0, 4), gem + Vector2(-3, 0)]), _ramp([halo.darkened(0.4).to_html(), halo.darkened(0.15).to_html(), halo.to_html(), "#ffffff"]))
+	_gstamp(frame, g, o)
+	_gglow(frame, gem, Vector2(8, 7), Color.WHITE.lerp(halo, 0.3), halo, st.f)
+
+# Three family crystals orbiting the Warden at chest height (behind, then in front).
+func _crystals(frame: Image, st: Dictionary, halo: Color, fig: Dictionary, front: bool) -> void:
+	var c := Vector2(80, 76)
+	for k in 3:
+		var a: float = k * TAU / 3.0 + float(st.f) / st.n * TAU / 3.0
+		var depth := sin(a)
+		if (depth >= 0.0) != front:
+			continue
+		var p := c + Vector2(cos(a) * 62, depth * 12 - 6 + sin(TAU * float(st.f) / st.n + k) * 2)
+		var g := _gnew(frame)
+		var s := 4.0 + depth
+		_gpoly(g, PackedVector2Array([p + Vector2(0, -s * 1.6), p + Vector2(s, 0), p + Vector2(0, s * 1.6), p + Vector2(-s, 0)]),
+			_ramp([fig.c.to_html(), fig.b.to_html(), fig.a.to_html(), Color.WHITE.lerp(halo, 0.5).to_html()]))
+		_gstamp(frame, g, fig.o)
+		if (st.f + k) % 3 == 0:
+			_gsparkle(frame, Vector2i(p.round()) + Vector2i(2, -5), Color.WHITE, halo)
 
 # A ring of light behind the head, the Ascended mark; a spark runs round it.
 func _halo(canvas: Image, st: Dictionary, color: Color) -> void:
@@ -285,58 +429,141 @@ func _halo(canvas: Image, st: Dictionary, color: Color) -> void:
 	_gsparkle(canvas, Vector2i((c + Vector2(cos(a) * 27, sin(a) * 25)).round()), Color.WHITE, color)
 	_gsparkle(canvas, Vector2i((c + Vector2(cos(a + PI) * 27, sin(a + PI) * 25)).round()), Color.WHITE, color)
 
-# The seated golem of the mock, grown: head, body, arms, feet. opts: raise (right arm 0-1),
-# both (both arms), asleep, lap (skip the feet's front overlap). Returns its mask.
+# The seated golem of the mock, the same template every Warden uses (POSE_UP / POSE_DOWN /
+# stretch), drawn K times bigger: its banded shading scales up, while outlines stay 1 px (template
+# outline runs keep only their first row / column, and the silhouette gets a fresh 1 px outline).
+# Sets gh (head centre) and gb (belly centre) in frame px for the accessories. Returns its mask.
+const K := 2.0
+const HEAD_T := Vector2(30.0, 11.5)  # head centre in template px
+const BELLY_T := Vector2(34.0, 30.0)
+var fo := Vector2(0, 0)  # frame position of template (0, 0)
+var gh := Vector2.ZERO
+var gb := Vector2.ZERO
+
+func _fig_at(pose: Dictionary, tx: int, ty: int) -> String:
+	if tx < 0 or ty < 0 or tx >= S or ty >= S:
+		return "."
+	var i := ty * S + tx
+	if pose.outside[i] == 1:
+		return "."
+	return pose.grid[i]
+
+func _place_figure() -> void:
+	# Centre the figure on the slab, feet on its top face.
+	var pose: Dictionary = poses[0]
+	var box := Rect2i()
+	var first := true
+	for i in S * S:
+		if pose.grid[i] != "." and pose.outside[i] == 0:
+			var p := Vector2i(i % S, i / S)
+			box = Rect2i(p, Vector2i.ONE) if first else box.expand(p)
+			first = false
+	fo = Vector2(roundf(64.0 - (box.position.x + box.size.x * 0.5) * K), roundf(110.0 - (box.end.y + 1) * K))
+	HEAD = fo + HEAD_T * K
+
 func _golem(canvas: Image, st: Dictionary, fig: Dictionary, opts: Dictionary = {}) -> Image:
-	var dy: float = st.dy
-	var ramp: Array[Color] = fig.ramp
-	# A pear: the big head sinks into narrow shoulders that widen to a round seat, like the mock.
+	if fo == Vector2.ZERO:
+		_place_figure()
+	var pose: Dictionary = st.pose
+	var dy: int = st.get("tdy", st.dy)
+	var colors := {a = fig.a, b = fig.b, c = fig.c, o = fig.o}
 	var body := _gnew(canvas)
-	_gell(body, Vector2(64, 86 + dy), Vector2(25, 16), ramp)
-	_gell(body, Vector2(64, 70 + dy), Vector2(19, 15), ramp)
-	_gell(body, HEAD + Vector2(0, dy + 3), Vector2(17, 15), ramp)
+	for y in 128:
+		for x in 128:
+			var t := (Vector2(x, y) - fo) / K
+			var tx := floori(t.x)
+			var ty := floori(t.y)
+			var ch := _fig_at(pose, tx, ty)
+			if ch == ".":
+				continue
+			if ch == "o":
+				var first_x := floori((x - 1 - fo.x) / K) != tx
+				var first_y := floori((y - 1 - fo.y) / K) != ty
+				var h := _fig_at(pose, tx - 1, ty) == "o" or _fig_at(pose, tx + 1, ty) == "o"
+				var v := _fig_at(pose, tx, ty - 1) == "o" or _fig_at(pose, tx, ty + 1) == "o"
+				if not ((h and first_y) or (v and first_x) or (not h and not v)):
+					# A dropped outline pixel takes the fill beside it (below / right), if any.
+					var n := _fig_at(pose, tx + (0 if first_x else 1), ty + (0 if first_y else 1))
+					if n == "o" or n == ".":
+						n = _fig_at(pose, tx, ty + 1) if not first_y else _fig_at(pose, tx + 1, ty)
+					if n == "o" or n == "." or not colors.has(n):
+						continue
+					ch = n
+			if not colors.has(ch):
+				continue
+			body.set_pixel(x, y, colors[ch])
+	# Fresh 1 px outline round the silhouette.
 	var mask := _gnew(canvas)
-	_gstamp(canvas, body, fig.o)
-	_gstamp(mask, body)
-	# Chin: a short shadow curve where the head meets the body.
-	for x in range(54, 72):
-		_gpx(canvas, x, roundi(HEAD.y + 17 + dy + absf(x - 63.0) * 0.14), fig.c)
-	var feet := _gnew(canvas)
-	_gell(feet, Vector2(48, 99), Vector2(13, 7), ramp)
-	_gell(feet, Vector2(80, 100), Vector2(13, 7), ramp)
-	_gstamp(canvas, feet, fig.o)
-	_gstamp(mask, feet)
-	var raise: float = opts.get("raise", 0.0)
-	var raise_l: float = raise if opts.get("both", false) else 0.0
-	var arms := _gnew(canvas)
-	var ang_r := -raise * 2.5
-	var ang_l := raise_l * 2.5
-	_gell(arms, Vector2(84, 66 + dy) + Vector2(0, 14).rotated(ang_r), Vector2(7, 14), ramp, ang_r)
-	_gell(arms, Vector2(44, 66 + dy) + Vector2(0, 14).rotated(ang_l), Vector2(7, 14), ramp, ang_l)
-	_gstamp(canvas, arms, fig.o)
-	_gstamp(mask, arms)
+	for y in 128:
+		for x in 128:
+			if body.get_pixel(x, y).a == 0.0:
+				continue
+			mask.set_pixel(x, y, Color.WHITE)
+			var col := body.get_pixel(x, y)
+			for d: Vector2i in [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]:
+				var q := Vector2i(x, y) + d
+				if not _in(body, q.x, q.y) or body.get_pixelv(q).a == 0.0:
+					col = fig.o
+					break
+			canvas.set_pixel(x, y, col)
+	# Detail: dither where the shading bands meet, a few speckles, and a rim light (the Ascended
+	# glow) on the silhouette's lit edge.
+	var rim: Color = fig.a.lerp(st.get("halo", Color.WHITE), 0.55).lightened(0.15)
+	var src := canvas.duplicate() as Image
+	for y in range(1, 127):
+		for x in range(1, 127):
+			if mask.get_pixel(x, y).a == 0.0:
+				continue
+			var col := src.get_pixel(x, y)
+			if col == fig.o:
+				continue
+			var left := src.get_pixel(x - 1, y)
+			var above := src.get_pixel(x, y - 1)
+			if col == fig.a and left == fig.b and y % 2 == 0:
+				canvas.set_pixel(x, y, fig.b)
+			elif col == fig.b and left == fig.c and y % 2 == 1:
+				canvas.set_pixel(x, y, fig.c)
+			elif col == fig.b and above == fig.a and x % 2 == 0:
+				canvas.set_pixel(x, y, fig.a)
+			elif (x * 7 + y * 13) % 37 == 0:
+				canvas.set_pixel(x, y, col.lightened(0.12) if (x + y) % 2 == 0 else col.darkened(0.08))
+			var right := src.get_pixel(x + 1, y)
+			var up_out: bool = above == fig.o and mask.get_pixel(x, y - 2).a == 0.0
+			var right_out: bool = right == fig.o and mask.get_pixel(x + 2, y).a == 0.0
+			if (up_out or right_out) and col != fig.c:
+				canvas.set_pixel(x, y, rim)
+	gh = fo + (HEAD_T + Vector2(0, dy)) * K
+	gb = fo + BELLY_T * K
 	_face(canvas, st, fig, opts.get("asleep", false))
 	return mask
 
 func _face(canvas: Image, st: Dictionary, fig: Dictionary, asleep: bool) -> void:
-	var dy: int = st.dy
-	var hx := int(HEAD.x)
-	var hy := int(HEAD.y) + dy + 3
-	for bx: int in [hx - 12, hx - 11, hx - 10, hx + 9, hx + 10, hx + 11]:
-		_gpx(canvas, bx, hy + 6, BLUSH)
-		_gpx(canvas, bx, hy + 7, BLUSH.darkened(0.08))
-	for ex: int in [hx - 7, hx + 5]:
+	var dy: int = st.get("tdy", st.dy)
+	var ey := floori(fo.y + (EYE_TOP + dy) * K)
+	for ex: int in EYES:
+		var x0 := floori(fo.x + ex * K)
+		# Clear the template's eye, then draw a 2 px wide one (or a closed smile).
+		for k in 6:
+			for w in 3:
+				var p := Vector2i(x0 - 1 + w, ey - 1 + k)
+				if canvas.get_pixelv(p) == fig.o:
+					canvas.set_pixelv(p, fig.a)
 		if asleep or st.blink:
-			# Closed: a small smiling arc.
-			_gpx(canvas, ex - 1, hy + 1, fig.o)
-			_gpx(canvas, ex, hy + 2, fig.o)
-			_gpx(canvas, ex + 1, hy + 2, fig.o)
-			_gpx(canvas, ex + 2, hy + 1, fig.o)
+			_gpx(canvas, x0 - 1, ey + 2, fig.o)
+			_gpx(canvas, x0, ey + 3, fig.o)
+			_gpx(canvas, x0 + 1, ey + 3, fig.o)
+			_gpx(canvas, x0 + 2, ey + 2, fig.o)
 		else:
 			for k in 5:
-				_gpx(canvas, ex, hy - 2 + k, fig.o)
-				_gpx(canvas, ex + 1, hy - 2 + k, fig.o)
-			_gpx(canvas, ex, hy - 2, Color.WHITE)
+				_gpx(canvas, x0, ey + k, fig.o)
+				_gpx(canvas, x0 + 1, ey + k, fig.o)
+			_gpx(canvas, x0, ey, Color.WHITE)
+	var by := floori(fo.y + (EYE_TOP + 3 + dy) * K) + 1
+	for bx: int in [24, 34]:
+		var x0 := floori(fo.x + bx * K)
+		for w in 3:
+			_gpx(canvas, x0 + w, by, BLUSH)
+			_gpx(canvas, x0 + w, by + 1, BLUSH.darkened(0.08))
 
 func _on_mask(mask: Image, x: int, y: int) -> bool:
 	return _in(mask, x, y) and mask.get_pixel(x, y).a > 0.0
