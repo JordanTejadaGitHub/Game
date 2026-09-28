@@ -1196,6 +1196,8 @@ func make_offer(drift_number: int) -> Array[UpgradeData]:
 		_dreams_without_rare = 0
 	else:
 		_dreams_without_rare += 1
+		if force_rare:  # Its Rares were all faded (act 1): the next offer tries for a Rare again
+			_rare_dreams_left = maxi(_rare_dreams_left, 1)
 	return offer
 
 func is_eligible(card: UpgradeData, act: int = 1) -> bool:
@@ -1353,8 +1355,10 @@ func _roll_rarity(act: int, want_rare: bool, skip: Array[int] = []) -> int:
 	for w in weights:
 		total += w
 	if total <= 0:
-		if want_rare:  # Falls through to Legendary even where its weight is 0 (act 1)
-			for i in [UpgradeData.Rarity.RARE, UpgradeData.Rarity.LEGENDARY]:
+		# A forced Rare+ slot whose Rares are all faded, where Legendaries can't appear (act 1): Uncommon
+		# (make_offer then owes the next offer a Rare).
+		if want_rare:
+			for i in [UpgradeData.Rarity.RARE, UpgradeData.Rarity.UNCOMMON, UpgradeData.Rarity.COMMON]:
 				if not skip.has(i):
 					return i
 		return -1

@@ -747,6 +747,27 @@ func _test_few_and_mighty_sim(main: Node) -> void:
 					dreams._passed_count.clear()
 					dreams._passed_at.clear()
 		results.append(r)
+	# Act 1 boss rest with its only Rare faded: never a Legendary (none in act 1); without a Rare the
+	# next offer owes one.
+	var legendary := 0
+	dreams._rng.seed = 5
+	var fell := 0
+	var owed := 0
+	for i in 200:
+		_reset_dreams_quiet(dreams)
+		dreams._passed_count.clear()
+		dreams._passed_at.clear()
+		dreams.unlocked["sporeling"] = true
+		dreams._passed_count[few.id] = 3  # ×0.22
+		dreams._passed_at[few.id] = -5
+		var offer := dreams.make_offer(25)
+		legendary += 1 if offer.any(func(c: UpgradeData) -> bool: return c.rarity == UpgradeData.Rarity.LEGENDARY) else 0
+		if not offer.has(few):
+			fell += 1
+			owed += 1 if dreams._rare_dreams_left == 1 else 0
+	print("act 1 boss rest with Few and Mighty faded ×0.22: fell to Uncommon in %d of 200" % fell)
+	_check(legendary == 0, "act 1: a faded forced Rare slot never falls to Legendary")
+	_check(fell > 60 and owed == fell, "…it falls to Uncommon and the next offer tries for a Rare again")
 	for tower in planted:
 		tower.free()
 	_reset_dreams(main)
