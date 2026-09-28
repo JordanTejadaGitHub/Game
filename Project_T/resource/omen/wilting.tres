@@ -8,6 +8,5 @@ id = "wilting"
 display_name = "Wilting"
 description = "Every Warden attacks 15% slower."
 kind = 1
-waiting_for_hook = true
 warden_attack_speed_multiplier = 0.85
 reward_dreamlight = 1

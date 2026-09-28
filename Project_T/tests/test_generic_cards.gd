@@ -203,7 +203,10 @@ func _test_sim_entry() -> void:
 	_reset()
 	dreams.unlocked = {"sprout": true, "thornwall": true}
 	var light := dreams.dreamlight
+	Engine.time_scale = 8.0
 	var family := dreams.sim_family_pick(&"first", func(ids: Array) -> StringName: return StringName(ids[0]))
+	_check(Engine.time_scale == 8.0, "sim_family_pick keeps a runner's time_scale")
+	Engine.time_scale = 1.0
 	_check(family != &"" and dreams.is_unlocked(String(family)) and dreams.dreamlight == light + 1,
 		"sim_family_pick: takes the family, +1 Dreamlight on the first pick (%s)" % family)
 	_check(not main.get_node("%GameSpeed").paused and not main.get_node("%FamilyPickScreen").visible, "…leaves the game unpaused")
