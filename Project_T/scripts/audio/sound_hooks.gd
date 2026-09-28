@@ -73,6 +73,11 @@ const CHAIN_SWELL_STEP_DB := 1.2  # Fuller each link, never higher
 const SURGE_LINKS := 5
 const DAWNBURST_LINKS := 10
 const STINGER_DELAY := 0.9  # After the Dawnburst boom and its duck
+# Kinships: quiet rewards. The Harmony strike stays well under the Reactions and is throttled hard.
+const KIN_DB := -6.0
+const HARMONY_DB := -16.0
+const HARMONY_THROTTLE_MS := 1500
+const WHOLE_DB := -3.0
 const HIT_FAMILIES := ["stone", "root", "water", "light", "spore", "sprout"]  # Others sound like sprout
 const HIT_GROUP_MS := 90  # A pulse or splash hitting many nightmares at once is one impact
 const CHAIN_STEP_DB := -4.0  # Each jump of a chain ripples a little quieter
@@ -113,6 +118,7 @@ var _focus_heard := {}  # Tower instance id -> its Focus lean already played
 var _reaction_at := {}  # Reaction id -> msec of its last sound
 var _last_reaction_crowned := false  # The Reaction just before a chain_reached (Crowned = 2 links)
 var _dawnburst_played := false
+var _harmony_at := -100000  # msec of the last Harmony strike sound
 
 func _ready() -> void:
 	if sound == null:
@@ -202,6 +208,8 @@ func _ready() -> void:
 	var tracker := get_tree().get_first_node_in_group(ReactionTracker.GROUP)
 	if tracker != null:
 		_on_node_added(tracker)
+	for node in owner.find_children("*", "", true, false):  # Kinship nodes already in the scene
+		_hook_kinships(node)
 
 	sound.play_music(&"act1", [&"base"])
 	sound.play_ambience(&"act1")
@@ -633,6 +641,38 @@ func _on_node_added(node: Node) -> void:
 	if node is ReactionTracker and not node.reaction_fired.is_connected(_on_reaction):
 		node.reaction_fired.connect(_on_reaction)
 		node.chain_reached.connect(_on_chain)
+	_hook_kinships(node)
+
+# Kinships (tower_design.md "Kinships"): whichever node carries these signals (Tower Code's), hooked
+# when it joins the tree. Rewarding but quiet: bonds and stage-ups are chords at rests, the Harmony
+# strike is a very quiet, throttled chime under the Reactions, Whole is the biggest (below bosses).
+func _hook_kinships(node: Node) -> void:
+	if node.has_signal("kin_bonded") and not node.is_connected("kin_bonded", _on_kin_bonded):
+		node.connect("kin_bonded", _on_kin_bonded)
+	if node.has_signal("kin_stage_grew") and not node.is_connected("kin_stage_grew", _on_kin_stage_grew):
+		node.connect("kin_stage_grew", _on_kin_stage_grew)
+	if node.has_signal("harmony_struck") and not node.is_connected("harmony_struck", _on_harmony_struck):
+		node.connect("harmony_struck", _on_harmony_struck)
+	if node.has_signal("family_whole") and not node.is_connected("family_whole", _on_family_whole):
+		node.connect("family_whole", _on_family_whole)
+
+func _on_kin_bonded(family: String, _where: Vector2 = Vector2.ZERO) -> void:
+	var id := StringName("kin_bond_" + family)
+	sound.play(id if sound.has_sound(id) else &"kin_bond", null, KIN_DB, 1.0, 0.0, &"UI")
+
+func _on_kin_stage_grew(_family: String, _stage: int = 0, _where: Vector2 = Vector2.ZERO) -> void:
+	sound.play(&"kin_stage_up", null, KIN_DB, 1.0, 0.0, &"UI")
+
+func _on_harmony_struck(_tower: Node, enemy: Node2D = null) -> void:
+	var now := Time.get_ticks_msec()
+	if now - _harmony_at < HARMONY_THROTTLE_MS:
+		return
+	_harmony_at = now
+	sound.play(&"harmony_strike", enemy.global_position if is_instance_valid(enemy) else null, HARMONY_DB, 1.0, 0.0)
+
+func _on_family_whole(_family: String) -> void:
+	sound.duck(3.0, 0.5)
+	sound.play(&"whole_tree", null, WHOLE_DB, 1.0, 0.0, &"UI")
 
 func _on_reaction(id: StringName, enemy: Node2D, _chain: int, _towers: Array) -> void:
 	if not is_instance_valid(enemy):

@@ -895,6 +895,7 @@ func _make_nurture() -> void:
 	_ws("bloom_great_bell", 2, 0.45, func(_v: int) -> PackedFloat32Array:
 		return _lowpass(_layers([[_glow_swell(1.4), 1.0], [_air(1.4, 600.0, 0.2, 1.0), 0.4]]), 1500.0))
 	_make_reactions()
+	_make_kinships()
 
 # Reactions (audio_direction.md 5594129): two statuses' materials meeting and resolving warm; no
 # crackle, zaps or sparkle. reaction_<id>, the shared crown layer (crown_swell), each Crowned
@@ -1564,3 +1565,51 @@ func _tom(rate: int, freq: float) -> PackedFloat32Array:
 	var seg := _tone(rate, 0.6, glide(freq * 1.8, freq, 0.08), perc(0.002, 0.14, 0.6))
 	_mix(seg, _filter(_noise(rate, 0.08, perc(0.001, 0.02, 0.08)), rate, 900.0, 0.6), rate, 0.0, 0.5)
 	return seg
+
+# Kinships (tower_design.md "Kinships", 834fdd0): rewarding but quiet, rounded. A two-note chord per
+# family when kin bond (its own interval and colour, D minor pentatonic, low), a gentle chime when a
+# bond grows, a very quiet chime for the Harmony strike, and a warm swell when a family is Whole.
+func _make_kinships() -> void:
+	var bonds := {  # family: [two notes, colour]
+		"spore": [[50, 57], "hum"], "stone": [[50, 53], "stone"], "water": [[53, 60], "bell"],
+		"light": [[57, 62], "glow"], "root": [[38, 45], "hum"], "song": [[62, 65], "bell"],
+		"acorn": [[55, 62], "wood"], "wing": [[60, 65], "flute"], "wind": [[55, 60], "hum"],
+	}
+	for family in bonds:
+		var notes: Array = bonds[family][0]
+		var colour: String = bonds[family][1]
+		_w("kin_bond_" + family, _own("kin_bond_" + family, func() -> PackedFloat32Array:
+			var out := _seg(1.8, SFX_RATE)
+			for k in 2:
+				_mix(out, _normalize(_kin_note(notes[k], colour), 1.0), SFX_RATE, k * 0.12, 1.0 - k * 0.15)
+			return _lowpass(out, 1800.0)), 0.4)
+	_w("kin_bond", _own("kin_bond", func() -> PackedFloat32Array:  # A family without its own colour
+		return _layers([[_kin_note(50, "bell"), 1.0], [_kin_note(57, "bell"), 0.85, 0.12]])), 0.4)
+	_ws("kin_stage_up", 1, 0.4, func(_v: int) -> PackedFloat32Array:  # A gentle chime: a bond grows
+		return _lowpass(_layers([[_bell(SFX_RATE, hz(62), 0.4, 0.5, MUSIC_BOX, 1.4), 1.0],
+			[_bell(SFX_RATE, hz(69), 0.3, 0.5, MUSIC_BOX, 1.4), 0.8, 0.1], [_air(1.2, 500.0, 0.2, 0.8), 0.2]]), 1800.0))
+	_ws("harmony_strike", 3, 0.25, func(v: int) -> PackedFloat32Array:  # A very quiet soft chime in combat
+		return _lowpass(_bell(SFX_RATE, hz([62, 65, 69][v]), 0.3, 0.2, MUSIC_BOX, 0.6), 1500.0))
+	_ws("whole_tree", 1, 0.6, func(_v: int) -> PackedFloat32Array:  # A family made Whole: a warm swell
+		var chord := _seg(3.2, SFX_RATE)
+		for m in [38, 50, 57, 62, 65]:
+			_mix(chord, _choir(SFX_RATE, hz(m), 3.2), SFX_RATE, 0.0, 0.3)
+		return _layers([[_env(_lowpass(chord, 1200.0), SFX_RATE, swell(1.0, 1.4, 3.2)), 1.0], [_air(3.2, 400.0, 1.2, 1.4), 0.35],
+			[_lowpass(_bell(SFX_RATE, hz(50), 0.5, 1.2, BELL, 3.0), 1200.0), 0.4, 0.8]]))
+
+func _kin_note(midi: int, colour: String) -> PackedFloat32Array:  # One soft note in a family's colour
+	match colour:
+		"hum":
+			return _soft_hum([midi], 1.6)
+		"stone":
+			var f := hz(midi)
+			return _lowpass(_ring(1.6, [f, f * 2.32], [1.0, 0.3], 0.5), 1400.0)
+		"glow":
+			return _env(_tone(SFX_RATE, 1.6, hz(midi), swell(0.08, 1.0, 1.6), "tri"), SFX_RATE, swell(0.05, 1.0, 1.6))
+		"wood":
+			var f := hz(midi)
+			return _lowpass(_ring(1.2, [f, f * 2.7], [1.0, 0.25], 0.35), 1400.0)
+		"flute":
+			return _layers([[_env(_tone(SFX_RATE, 1.5, hz(midi), swell(0.15, 0.9, 1.5), "tri"), SFX_RATE, swell(0.1, 0.9, 1.5)), 1.0],
+				[_air(1.5, hz(midi) * 2.0, 0.15, 0.9), 0.15]])
+	return _lowpass(_bell(SFX_RATE, hz(midi), 0.5, 0.7, BELL, 1.6), 1600.0)  # "bell"

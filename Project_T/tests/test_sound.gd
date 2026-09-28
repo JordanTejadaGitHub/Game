@@ -76,6 +76,11 @@ func _initialize() -> void:
 	for id in [&"crown_swell", &"chain_swell", &"chain_surge", &"chain_dawnburst", &"stinger_dawnburst",
 			&"discover_reaction", &"loop_smother"]:
 		_check(sound.has_sound(id), "%s exists" % id)
+	# Kinships: a bond chord per family (own colour), stage-up, Harmony strike, Whole.
+	for family in ["spore", "stone", "water", "light", "root", "song", "acorn", "wing", "wind"]:
+		_check(sound.has_sound(StringName("kin_bond_" + family)), "kin_bond_%s exists" % family)
+	for id in [&"kin_bond", &"kin_stage_up", &"harmony_strike", &"whole_tree"]:
+		_check(sound.has_sound(id), "%s exists" % id)
 	# Nurture: a swell per family material, Focus leans, and Dawnwing's calm + busy loops in sync.
 	for file in DirAccess.get_files_at("res://resource/tower/"):
 		if file.ends_with(".tres"):
