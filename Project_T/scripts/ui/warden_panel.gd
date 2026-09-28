@@ -176,6 +176,10 @@ func _refresh() -> void:
 				button.text += " (%d + %d for rank %s)" % [grow.base, grow.ranks, Tower.rank_name(_tower.rank)]
 			button.tooltip_text = next.description
 			button.disabled = not run_state.can_afford(cost)
+			var awake := tower_placer.ascended_blocker(next)
+			if awake != "":
+				button.text = "Grow into %s · %s" % [next.display_name, awake]  # One per family
+				button.disabled = true
 			button.pressed.connect(_evolve.bind(next))
 		else:
 			_locked_form_button(button, "Grow into %s" % next.display_name, next)
@@ -321,6 +325,10 @@ func _refresh_group() -> void:
 				button.text = "Grow %d of %d %s into %s · %d Dew" % [affordable, towers.size(),
 					_plural(data, towers.size()), next.display_name, plan[1]]
 				button.disabled = affordable == 0
+			var awake := tower_placer.ascended_blocker(next)
+			if awake != "":
+				button.text = "%s → %s · %s" % [_plural(data, towers.size()), next.display_name, awake]
+				button.disabled = true
 			button.pressed.connect(func() -> void: tower_seller.grow_group(towers, next))
 	# Nurture all: one rank each, as far as the Dew goes (nearest the Heartwood first).
 	var full: Array = tower_seller.full_nurture_cost(selection)

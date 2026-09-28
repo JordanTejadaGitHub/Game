@@ -340,11 +340,23 @@ func get_buildable_towers() -> Array[TowerData]:
 func evolve(tower: Tower, into: TowerData) -> bool:
 	if not tower.tower_data.evolves_to.has(into) or not dream_state.is_unlocked(into.get_id()):
 		return false
+	if ascended_blocker(into) != "":
+		return false  # One Ascended form per family on the map
 	var cost: int = tower.get_grow_cost(into).total  # Evolve cost + the rank difference; all invested
 	if not run_state.spend_dew(cost):
 		return false
 	tower.evolve(into, cost)
 	return true
+
+# Ascended forms are one per family (tower_design.md): while one is on the map, nothing else can grow
+# into it (selling it frees the slot). The reason to show on the Grow button, or "".
+func ascended_blocker(into: TowerData) -> String:
+	if into.tier < DreamState.ASCENDED_TIER:
+		return ""
+	for tower in tower_container.get_children():
+		if tower is Tower and not tower.is_queued_for_deletion() and tower.tower_data.get_id() == into.get_id():
+			return "%s is already awake" % into.display_name
+	return ""
 
 # Nurtures `tower` one rank (warden_stats.md "Nurture v2"), if it can go higher and the player can
 # afford it. The rank that asks for a Focus (III) needs `focus`; without one it refuses. Ranks never

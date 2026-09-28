@@ -201,8 +201,11 @@ func count_affordable(towers: Array, into: TowerData) -> int:
 func plan_grow(towers: Array, into: TowerData) -> Array:
 	var count := 0
 	var total := 0
+	if tower_placer.ascended_blocker(into) != "":
+		return [0, 0]  # One Ascended form per family is already on the map
+	var limit := 1 if into.tier >= DreamState.ASCENDED_TIER else towers.size()  # …and only one can wake
 	for tower in sort_by_heartwood(towers):
-		if not is_instance_valid(tower):
+		if not is_instance_valid(tower) or count >= limit:
 			continue
 		var cost: int = tower.get_grow_cost(into).total
 		if total + cost > run_state.dew:

@@ -48,6 +48,7 @@ const REACTIONS := {
 const DEFAULT_SCALE := {&"thunderclap": 1.5, &"thunderclap_lite": 1.5, &"ignite": 1.5, &"ignite_lite": 1.5,
 	&"pinned": 1.5, &"shatter": 1.5, &"crit_flare": 1.25}
 const THREAD_SECONDS := 0.3
+const CROWN_OFFSET := Vector2(0, -34)  # The Crowned crown mark over its callout
 const CALLOUT_LIFE := 0.9
 const CALLOUT_COOLDOWN := 0.5  # Per reaction, so a chain doesn't wall the screen with words
 const MAX_CALLOUTS := 3
@@ -168,9 +169,11 @@ static func reaction(reaction: StringName, at: Vector2, parent: Node, towers: Ar
 	var node := play(effect, at, parent, 1.0, true, seconds)
 	var colour := Color(info(effect).get("callout", "#fff0c0"))
 	if row[1] != "":
-		callout(row[1], colour, at, parent, reaction)
-		if String(effect).begins_with("crowned_"):
-			play(&"crowned_crown", at + Vector2(0, -34), parent)  # The crown mark over the callout
+		var shown := callout(row[1], colour, at, parent, reaction)
+		if shown != null and String(effect).begins_with("crowned_"):
+			# The crown mark sits on the callout and goes with it (the sheet loops: never leave it in the
+			# world, or every Crowned Reaction leaves a crown behind).
+			play(&"crowned_crown", at + CROWN_OFFSET, shown)
 	for tower in towers:
 		if tower is Node2D and is_instance_valid(tower):
 			segment(&"light_thread", tower.global_position, at, parent, THREAD_SECONDS)
@@ -178,16 +181,18 @@ static func reaction(reaction: StringName, at: Vector2, parent: Node, towers: Ar
 	return node
 
 # A word popping over the nightmare in `colour` (throttled: a few at a time, one per reaction).
-static func callout(text: String, colour: Color, at: Vector2, parent: Node, key: StringName = &"") -> void:
+# Returns the callout, or null when it was throttled.
+static func callout(text: String, colour: Color, at: Vector2, parent: Node, key: StringName = &"") -> Node2D:
 	var now := Time.get_ticks_msec()
 	_callouts_alive = _callouts_alive.filter(func(c): return is_instance_valid(c))
 	if _callouts_alive.size() >= MAX_CALLOUTS or now < _callout_cooldown.get(key, 0):
-		return
+		return null
 	_callout_cooldown[key] = now + int(CALLOUT_COOLDOWN * 1000)
 	var node := FxCallout.new(text, colour)
 	parent.add_child(node)
 	node.global_position = at
 	_callouts_alive.append(node)
+	return node
 
 # Monsoon's signature: a sheet of warm-lit rain over a square of `radius` pixels round `center`.
 static func rain_sweep(center: Vector2, radius: float, parent: Node, seconds: float = 0.8) -> Node2D:

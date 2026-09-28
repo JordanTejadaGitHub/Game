@@ -99,6 +99,22 @@ func _run() -> void:
 		_check(saved.towers.any(func(t) -> bool: return t.data == sapling.tower_data.resource_path),
 			"the Sapling is saved")
 
+	# --- One Ascended form per family on the map (selling it frees the slot) ---
+	var bell_data: TowerData = load("res://resource/tower/great_bell.tres")
+	var lullaby: TowerData = load("res://resource/tower/lullaby_bell.tres")
+	var bell_a := _build(placer, map_generator, lullaby)
+	var bell_b := _build(placer, map_generator, lullaby)
+	_check(placer.evolve(bell_a, bell_data), "the first Lullaby Bell wakes as The Great Bell")
+	_check(placer.ascended_blocker(bell_data) == "The Great Bell is already awake", "the slot is taken")
+	_check(not placer.evolve(bell_b, bell_data) and bell_b.tower_data == lullaby, "a second can't wake while it's there")
+	var both := [bell_b, _build(placer, map_generator, lullaby)]
+	_check(seller.plan_grow(both, bell_data)[0] == 0, "group grow and G grow none")
+	var sell_cell: Vector2 = bell_a.cell
+	seller.sell(sell_cell)
+	await process_frame
+	_check(placer.ascended_blocker(bell_data) == "" and seller.plan_grow(both, bell_data)[0] == 1,
+		"selling it frees the slot, and group grow wakes only one")
+
 	# --- Ascended: Grandmother Oak's aura, Dawnwing's patrol ---
 	var oak := _build(placer, map_generator, load("res://resource/tower/sprout.tres"))
 	var neighbour := _build(placer, map_generator, load("res://resource/tower/sprout.tres"))

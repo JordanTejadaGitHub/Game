@@ -171,6 +171,18 @@ func _run() -> void:
 	_check(_lost(t) > 0, "Carried Storm repeats a Thunderclap at 50%% (%d)" % _lost(t))
 	await _clean()
 
+	# --- The crown mark rides its callout and never stays behind (it's a looping sheet) ---
+	await _wait(Fx.CALLOUT_LIFE + 0.3)  # Earlier steps' callouts (and their crowns) are gone
+	Fx._callout_cooldown.clear()
+	var world_node: Node = main
+	Fx.reaction(&"tempest", origin, world_node)
+	Fx.reaction(&"tempest", origin + Vector2(0, CELL), world_node)  # Throttled: no callout, so no crown
+	var crowns := _find_named(main, "Fx_crowned_crown")
+	_check(crowns.size() <= 1, "one crown for one callout, none for a throttled one (%d)" % crowns.size())
+	_check(crowns.all(func(c) -> bool: return c.get_parent() is Fx.FxCallout), "the crown belongs to its callout")
+	await _wait(Fx.CALLOUT_LIFE + 0.3)
+	_check(_find_named(main, "Fx_crowned_crown").is_empty(), "and goes when the callout does")
+
 	# --- A sprinting Night Hound can't be Held: Drown slows it instead of putting it to sleep ---
 	var hound := _spawn(origin)
 	hound.enemy_data = hound.enemy_data.duplicate()
@@ -237,3 +249,14 @@ func _clean() -> void:
 		if node is ReactionCloud or node is CrownedGround:
 			node.queue_free()
 	await process_frame
+
+func _find_named(node: Node, prefix: String) -> Array:
+	var found := []
+	for child in node.get_children():
+		if String(child.name).begins_with(prefix):
+			found.append(child)
+		found.append_array(_find_named(child, prefix))
+	return found
+
+func _wait(seconds: float) -> void:
+	await create_timer(seconds, true, false, true).timeout

@@ -72,6 +72,7 @@ const NIGHTBLOOM_WIDTH: Array[float] = [1.0, 1.5]
 const FAIRY_RING_TIME := 6.0
 const FAIRY_RING_MAX := 8  # Ring of Rings: rings last until stepped on, at most this many
 const STORM_FRONT_REACH := 1.0  # Cells added to a Reaction a Gust-copied status completed
+const STORM_FRONT_SECONDS := 0.8  # How long the swirl shows
 const CARRIED_SHARE := 0.5  # Carried Storm: a Samara seed repeats a Reaction it passes through at 50%
 const CARRIED_WINDOW := 0.5  # Seconds after the Reaction
 const CARRIED_REACH := 0.75  # Cells from the Reaction's spot
@@ -644,7 +645,7 @@ static func _fire(enemy: Node2D, id: StringName, towers: Array, ignore_cooldown:
 		if id == &"smother" and node != null:
 			enemy.set_meta(&"smother_fx", node)  # Loops while held; the nightmare frees it after
 		if storm_front:
-			Fx.play(&"storm_front", enemy.global_position, world)  # A wind swirl round the Reaction
+			Fx.play(&"storm_front", enemy.global_position, world, 1.0, true, STORM_FRONT_SECONDS)  # A wind swirl (it loops: give it a life)
 	var tracker := ReactionTracker.find(enemy)
 	if tracker:
 		tracker.record(id, enemy, chain, all_towers)
