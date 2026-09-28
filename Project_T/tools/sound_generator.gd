@@ -512,6 +512,8 @@ func _make_sfx() -> void:
 		_mix(found, _filter(_noise(r, 0.6, swell(0.1, 0.4, 0.6)), r, 900.0, 0.7), r, 0.0, 0.15)
 		return found), 0.4)
 
+	_make_wardens()  # Every Warden's own sounds (last, each with its own RNG, so nothing above shifts)
+
 # One Warden hit. `v` shifts the pitch a little per variant.
 func _hit(family: String, v: int, dull: bool) -> PackedFloat32Array:
 	if family == "sprout":
@@ -569,6 +571,454 @@ func _twig(v: int, dull: bool) -> PackedFloat32Array:
 	var thump := _filter(_noise(r, 0.15, perc(0.004, 0.03, 0.15)), r, 160.0, 0.6)
 	_mix(s, thump, r, 0.0, 2.5 * (0.6 if dull else 1.0))
 	return _filter(_filter(s, r, 1200.0 if dull else 2200.0, 0.7), r, 1200.0 if dull else 2200.0, 0.7)
+
+# --- Warden sound sheet (audio_direction.md, 7b11d5a) ---------------------------------------------
+# Every Warden's own launch (attack_<id>), hit (hit_<id>), events (<event>_<id>) and loops
+# (loop_<id>). Family = material, tier = size (a final form adds one signature layer), and
+# everything is organic: noise through material resonances, thumps and air, no oscillator tones,
+# no pitch sweeps, no plucks, no crackle. Only the song family (Bellflower line) is tonal: low,
+# soft mallet, notes from D minor pentatonic, never a melody. Sprout and Firefly Jar keep their
+# family sounds (attack_/hit_sprout rebuilt on the third listen, attack_/hit_light approved).
+# Each Warden draws from its own seeded RNG (`_own`), so adding or changing one never changes another.
+
+const LOOP_LEN := 4.0  # Seconds; loops are crossfaded seamless
+
+func _make_wardens() -> void:
+	# Starters (wall line).
+	_ws("hit_bramble", 2, 0.35, func(_v: int) -> PackedFloat32Array:  # A dry, low thorn scrape
+		return _layers([[_scrape(0.35, 650.0), 1.0], [_thump(0.2, 150.0, 0.03), 0.4]]))
+	_ws("hit_honeysuckle", 1, 0.3, func(_v: int) -> PackedFloat32Array:  # A soft, sweet floral sigh
+		return _layers([[_air(0.7, 600.0, 0.12, 0.45, 0.9), 1.0], [_soft_hum([62], 0.7), 0.12]]))
+
+	# Sporeling line: soft fungal air.
+	_ws("attack_sporeling", 2, 0.3, func(_v: int) -> PackedFloat32Array:
+		return _layers([[_air(0.2, 700.0, 0.03, 0.14), 0.6], [_air(0.2, 300.0, 0.03, 0.14), 0.4]]))
+	_ws("hit_sporeling", 3, 0.45, func(_v: int) -> PackedFloat32Array: return _puff(0.3, 1.0))
+	_ws("attack_driftspore", 2, 0.3, func(_v: int) -> PackedFloat32Array: return _air(0.4, 600.0, 0.1, 0.28))
+	_ws("hit_driftspore", 3, 0.45, func(_v: int) -> PackedFloat32Array:  # A double puff, the second smaller
+		return _layers([[_puff(0.3, 1.0), 1.0], [_puff(0.25, 0.8), 0.55, 0.09]]))
+	_ws("attack_puffball", 2, 0.3, func(_v: int) -> PackedFloat32Array: return _air(0.25, 650.0, 0.04, 0.18))
+	_ws("hit_puffball", 3, 0.5, func(_v: int) -> PackedFloat32Array: return _puff(0.35, 1.2))
+	_ws("pop_puffball", 1, 0.7, func(_v: int) -> PackedFloat32Array:  # Signature: a deep, soft fwoomp, wide and airy
+		return _layers([[_thump(0.6, 90.0, 0.15), 1.0], [_air(0.9, 500.0, 0.02, 0.65, 0.9), 0.6],
+			[_rumble(0.9, 200.0, 0.02, 0.55), 0.4]]))
+	_ws("attack_bloomcap", 2, 0.45, func(_v: int) -> PackedFloat32Array: return _cap_thup(150.0))
+	_ws("cloud_bloomcap", 1, 0.4, func(_v: int) -> PackedFloat32Array: return _exhale(1.2, 450.0))
+	_ws("attack_dreamshroom", 2, 0.5, func(_v: int) -> PackedFloat32Array: return _cap_thup(110.0))
+	_ws("cloud_dreamshroom", 1, 0.45, func(_v: int) -> PackedFloat32Array: return _exhale(1.4, 380.0))
+	_ws("sleep_dreamshroom", 1, 0.4, func(_v: int) -> PackedFloat32Array:  # Signature: a low, yawn-like drone
+		return _layers([[_env(_filter(_choir(SFX_RATE, hz(38), 1.6), SFX_RATE, 400.0, 0.7), SFX_RATE, swell(0.35, 0.9, 1.6)), 1.0],
+			[_air(1.6, 300.0, 0.4, 0.9), 0.4]]))
+	_ws("trap_fairy_ring", 2, 0.3, func(_v: int) -> PackedFloat32Array: return _earth_pops(4))
+	_ws("trigger_fairy_ring", 2, 0.55, func(_v: int) -> PackedFloat32Array: return _puff(0.35, 1.2))
+	_ws("trap_elf_circle", 2, 0.35, func(_v: int) -> PackedFloat32Array:  # Signature: a faint low hum under the pops
+		return _layers([[_earth_pops(5), 1.0], [_soft_hum([50], 0.9), 0.3]]))
+	_ws("trigger_elf_circle", 2, 0.65, func(_v: int) -> PackedFloat32Array:
+		return _layers([[_puff(0.45, 1.5), 1.0], [_rumble(0.6, 140.0, 0.01, 0.4), 0.4]]))
+
+	# Pebbling line: rock on earth, the heaviest family.
+	_ws("attack_pebbling", 2, 0.3, func(_v: int) -> PackedFloat32Array: return _air(0.2, 500.0, 0.06, 0.1, 0.6))
+	_ws("hit_pebbling", 3, 0.6, func(_v: int) -> PackedFloat32Array: return _stone_thud(1.0))
+	_ws("attack_mossback", 2, 0.4, func(_v: int) -> PackedFloat32Array: return _stone_grunt(160.0))
+	_ws("hit_mossback", 3, 0.8, func(_v: int) -> PackedFloat32Array:  # The heaviest hit; moss softens the top
+		return _lowpass(_stone_thud(1.7), 1500.0))
+	_ws("attack_boulderback", 2, 0.45, func(_v: int) -> PackedFloat32Array: return _stone_grunt(125.0))
+	_ws("hit_boulderback", 3, 0.85, func(_v: int) -> PackedFloat32Array:  # Signature: a ground rumble that spreads
+		return _layers([[_lowpass(_stone_thud(1.7), 1400.0), 1.0], [_rumble(1.1, 90.0, 0.05, 0.85), 0.6, 0.05]]))
+	_ws("attack_standing_stone", 2, 0.45, func(_v: int) -> PackedFloat32Array: return _whoom())
+	_ws("hit_standing_stone", 3, 0.7, func(_v: int) -> PackedFloat32Array: return _far_crack())
+	_ws("attack_moonstone", 2, 0.45, func(_v: int) -> PackedFloat32Array:
+		return _layers([[_whoom(), 1.0], [_air(0.6, 1800.0, 0.2, 0.3, 0.9), 0.15]]))
+	_ws("hit_moonstone", 3, 0.7, func(_v: int) -> PackedFloat32Array: return _far_crack())
+	_ws("crit_moonstone", 1, 0.45, func(_v: int) -> PackedFloat32Array:  # Signature: a low, glassy bell-stone ring (D3)
+		return _layers([[_bell(SFX_RATE, hz(50), 0.6, 0.8, BELL, 2.2), 1.0],
+			[_ring(1.2, [hz(50) * 2.32, hz(50) * 3.9], [0.4, 0.15], 0.3), 0.4]]))
+	_ws("attack_cairn", 2, 0.4, func(_v: int) -> PackedFloat32Array: return _lob())
+	_ws("hit_cairn", 3, 0.65, func(_v: int) -> PackedFloat32Array: return _mortar(6, 0.25))
+	_ws("attack_rockslide", 2, 0.4, func(_v: int) -> PackedFloat32Array: return _lob())
+	_ws("hit_rockslide", 3, 0.7, func(_v: int) -> PackedFloat32Array:  # Signature: a rolling rubble settle (~1 s)
+		return _layers([[_mortar(6, 0.25), 1.0], [_pebbles(14, 1.0, 0.5), 0.5, 0.1], [_rumble(1.1, 150.0, 0.05, 0.9), 0.4]]))
+
+	# Dewdrop line: real water.
+	_ws("attack_dewdrop", 2, 0.2, func(_v: int) -> PackedFloat32Array:
+		return _layers([[_air(0.1, 1200.0, 0.01, 0.06), 0.5], [_ring(0.12, [520.0], [1.0], 0.02), 0.3]]))
+	_ws("hit_dewdrop", 3, 0.5, func(_v: int) -> PackedFloat32Array: return _splash(1.0, 0.3))
+	_ws("attack_rain_lily", 2, 0.25, func(_v: int) -> PackedFloat32Array:
+		return _layers([[_air(0.14, 1100.0, 0.01, 0.08), 0.5], [_ring(0.16, [440.0], [1.0], 0.03), 0.4]]))
+	_ws("hit_rain_lily", 3, 0.6, func(_v: int) -> PackedFloat32Array: return _splash(1.3, 0.5))
+	_ws("attack_mistveil", 2, 0.3, func(_v: int) -> PackedFloat32Array:  # Damp air, no hiss
+		return _layers([[_air(0.45, 500.0, 0.1, 0.3), 1.0], [_rumble(0.45, 180.0, 0.1, 0.3), 0.4]]))
+	_ws("fog_mistveil", 1, 0.4, func(_v: int) -> PackedFloat32Array:
+		return _layers([[_air(1.0, 350.0, 0.2, 0.7), 1.0], [_rumble(1.0, 150.0, 0.2, 0.7), 0.5]]))
+	_wloop("loop_mistveil", func() -> PackedFloat32Array: return _breath_bed(420.0, 0.35))  # A very quiet cold breath
+	_ws("attack_frostfern", 2, 0.25, func(_v: int) -> PackedFloat32Array: return _air(0.2, 900.0, 0.03, 0.14))
+	_ws("hit_frostfern", 3, 0.5, func(_v: int) -> PackedFloat32Array:  # A splash that stiffens: a soft, low ice creak
+		return _layers([[_splash(1.0, 0.3), 1.0], [_lowpass(_creak(SFX_RATE, 0.35, 12.0, 25.0, 350.0), 800.0), 0.5, 0.05]]))
+	_ws("attack_hoarfrost", 2, 0.3, func(_v: int) -> PackedFloat32Array: return _air(0.3, 700.0, 0.05, 0.2))
+	_ws("hit_hoarfrost", 3, 0.6, func(_v: int) -> PackedFloat32Array:  # Signature: a deep, slow frost groan
+		return _layers([[_splash(1.1, 0.3), 1.0], [_lowpass(_creak(SFX_RATE, 0.9, 6.0, 14.0, 200.0), 500.0), 0.6, 0.05],
+			[_rumble(0.9, 120.0, 0.1, 0.6), 0.3]]))
+
+	# Firefly Jar line: warm air and glow; the approved Firefly Jar (attack_/hit_light) is the template.
+	_ws("attack_stormcap", 2, 0.35, func(_v: int) -> PackedFloat32Array: return _glow_swell(0.3))
+	_ws("hit_stormcap", 3, 0.6, func(v: int) -> PackedFloat32Array:
+		return _layers([[_hit("light", v, false), 1.0], [_air(0.35, 600.0, 0.02, 0.25), 0.3]]))
+	_ws("attack_thunderhead", 2, 0.35, func(_v: int) -> PackedFloat32Array: return _glow_swell(0.35))
+	_ws("hit_thunderhead", 3, 0.6, func(v: int) -> PackedFloat32Array:
+		return _layers([[_hit("light", v, false), 1.0], [_air(0.4, 550.0, 0.02, 0.3), 0.35]]))
+	_ws("storm_thunderhead", 1, 0.55, func(_v: int) -> PackedFloat32Array: return _thunder_roll())
+	_ws("attack_lanternmoth", 2, 0.2, func(_v: int) -> PackedFloat32Array: return _flutter(0.3, 22.0, 900.0))
+	_ws("hit_lanternmoth", 3, 0.5, func(v: int) -> PackedFloat32Array:  # A warm bloom with a faint glow hum
+		return _layers([[_hit("light", v, false), 1.0], [_soft_hum([57], 0.5), 0.15]]))
+	_wloop("loop_sunpetal", func() -> PackedFloat32Array:  # Warm, airy hum like sunlight through leaves
+		return _layers([[_hum_bed([50, 57]), 1.0], [_breath_bed(700.0, 0.4), 0.5]]))
+	_wloop("loop_midsummer", func() -> PackedFloat32Array:
+		return _layers([[_hum_bed([50, 57, 62]), 1.0], [_breath_bed(700.0, 0.45), 0.5]]))
+	_wloop("loop_midsummer_behind", func() -> PackedFloat32Array: return _hum_bed([38, 45]))  # Signature: the lower layer
+
+	# Rootling line: earth and creaking wood, felt more than heard.
+	_ws("hit_rootling", 3, 0.55, func(_v: int) -> PackedFloat32Array:
+		return _layers([[_lowpass(_creak(SFX_RATE, 0.4, 15.0, 30.0, 250.0), 700.0), 0.4], [_rumble(0.6, 70.0, 0.01, 0.4), 1.0],
+			[_thump(0.4, 90.0, 0.08), 0.6]]))
+	_ws("attack_rootlight", 2, 0.35, func(_v: int) -> PackedFloat32Array: return _earth_glow(false))
+	_wloop("loop_rootlight", func() -> PackedFloat32Array:
+		return _layers([[_hum_bed([50]), 0.6], [_breath_bed(200.0, 0.3), 1.0]]))
+	_ws("attack_starcave", 2, 0.4, func(_v: int) -> PackedFloat32Array: return _earth_glow(true))
+	_wloop("loop_starcave", func() -> PackedFloat32Array:  # Signature: a deep cavern resonance under the hum
+		return _layers([[_hum_bed([50]), 0.6], [_breath_bed(200.0, 0.3), 1.0], [_cavern_bed(), 0.5]]))
+
+	# Bellflower line: soft low bells and hums, the one tonal family. Variants = random chord notes.
+	var bell_notes := [57, 60, 62, 65]  # A3 C4 D4 F4
+	for i in bell_notes.size():
+		_w("hit_bellflower_%02d" % (i + 1), _lowpass(_bell(SFX_RATE, hz(bell_notes[i]), 0.5, 0.6, BELL, 2.0), 2500.0), 0.4)
+	var drowsy_notes := [50, 53, 57]  # Every 2nd pulse: sleepier and lower
+	for i in drowsy_notes.size():
+		_w("drowsy_bellflower_%02d" % (i + 1), _lowpass(_bell(SFX_RATE, hz(drowsy_notes[i]), 0.5, 0.9, BELL, 2.6), 1600.0), 0.35)
+	var stone_notes := [50, 53, 57]
+	for i in stone_notes.size():  # A low stone chime, duller and rounder than the bell
+		var f: float = hz(stone_notes[i])
+		_w("hit_chime_stone_%02d" % (i + 1), _own("chime_stone%d" % i, func() -> PackedFloat32Array:
+			return _lowpass(_layers([[_ring(1.1, [f, f * 2.32, f * 3.9], [1.0, 0.4, 0.15], 0.35), 1.0],
+				[_thump(0.2, 160.0, 0.03), 0.3]]), 1800.0)), 0.4)
+	var lullaby_notes := [45, 50, 53]
+	for i in lullaby_notes.size():  # A deep bell with a long hum tail; signature: a faint hummed voice
+		var n: int = lullaby_notes[i]
+		_w("hit_lullaby_bell_%02d" % (i + 1), _own("lullaby%d" % i, func() -> PackedFloat32Array:
+			return _layers([[_lowpass(_bell(SFX_RATE, hz(n), 0.6, 1.2, BELL, 3.0), 1800.0), 1.0],
+				[_soft_hum([n + 12], 2.2), 0.14]])), 0.45)
+	_ws("attack_dreamcatcher", 2, 0.25, func(_v: int) -> PackedFloat32Array: return _thread_rustle())
+	_ws("hit_dreamcatcher", 3, 0.45, func(_v: int) -> PackedFloat32Array: return _thrum(1.0))
+	_ws("attack_great_dreamcatcher", 2, 0.28, func(_v: int) -> PackedFloat32Array: return _thread_rustle())
+	_ws("hit_great_dreamcatcher", 3, 0.5, func(_v: int) -> PackedFloat32Array: return _thrum(1.3))
+	_ws("shard_great_dreamcatcher", 1, 0.35, func(_v: int) -> PackedFloat32Array:  # A warm, muffled shimmer (notes together, no run)
+		return _lowpass(_layers([[_bell(SFX_RATE, hz(62), 0.4, 0.6, MUSIC_BOX, 1.4), 1.0], [_bell(SFX_RATE, hz(69), 0.3, 0.6, MUSIC_BOX, 1.4), 0.8],
+			[_air(1.0, 900.0, 0.1, 0.7), 0.3]]), 1500.0))
+	_ws("echo_echo_hollow", 2, 0.35, func(_v: int) -> PackedFloat32Array: return _hollow_echo())
+	_ws("echo_whispering_hollow", 2, 0.38, func(_v: int) -> PackedFloat32Array:  # Signature: a faint, warm whisper in it
+		return _layers([[_hollow_echo(), 1.0], [_lowpass(_whisper(SFX_RATE, 0.9, 1.0, 4.0), 900.0), 0.3, 0.1]]))
+
+	# Acorn line: wood and bark, support, so quiet.
+	_ws("hit_acorn", 2, 0.35, func(_v: int) -> PackedFloat32Array: return _wood_knock(190.0))
+
+	# Memory Wardens.
+	_wloop("loop_white_stag", func() -> PackedFloat32Array: return _breathing())
+	_ws("place_white_stag", 1, 0.5, func(_v: int) -> PackedFloat32Array:  # A distant antler knock and a warm swell
+		return _layers([[_lowpass(_wood_knock(260.0), 1200.0), 0.8], [_soft_hum([50, 57], 1.6), 0.4, 0.1]]))
+	_ws("attack_pond_keeper", 2, 0.35, func(_v: int) -> PackedFloat32Array:  # A wet tongue flick
+		return _layers([[_lowpass(_nburst(0.08, 0.015), 1200.0), 1.0], [_ring(0.12, [300.0], [1.0], 0.02), 0.4],
+			[_air(0.1, 900.0, 0.01, 0.06), 0.3]]))
+	_ws("hit_pond_keeper", 2, 0.45, func(_v: int) -> PackedFloat32Array:  # A drag through water
+		return _layers([[_wobble(_air(0.6, 500.0, 0.05, 0.3), 7.0), 1.0], [_splash(0.6, 0.2), 0.4]]))
+	_ws("plop_pond_keeper", 2, 0.4, func(_v: int) -> PackedFloat32Array:
+		return _layers([[_ring(0.3, [220.0], [1.0], 0.06), 1.0], [_lowpass(_nburst(0.1, 0.02), 1000.0), 0.5]]))
+	_ws("attack_moon_moth", 2, 0.3, func(_v: int) -> PackedFloat32Array: return _flutter(0.55, 5.0, 700.0))
+	_ws("hit_moon_moth", 3, 0.55, func(v: int) -> PackedFloat32Array:  # A cool air rush and a muffled glow bloom
+		return _layers([[_air(0.4, 900.0, 0.05, 0.3), 0.5], [_lowpass(_hit("light", v, false), 1500.0), 0.8]]))
+
+	# Nestling line: feathers and wingbeats (full game).
+	_ws("attack_nestling", 2, 0.3, func(_v: int) -> PackedFloat32Array: return _flutter(0.25, 14.0, 1200.0))
+	_ws("hit_nestling", 3, 0.45, func(_v: int) -> PackedFloat32Array: return _feather_strike(1.0, 14.0))
+	_ws("attack_wrens_nest", 2, 0.22, func(_v: int) -> PackedFloat32Array: return _flutter(0.18, 18.0, 1300.0))
+	_ws("hit_wrens_nest", 3, 0.35, func(_v: int) -> PackedFloat32Array: return _feather_strike(0.7, 18.0))
+	_ws("attack_starling_murmuration", 2, 0.4, func(_v: int) -> PackedFloat32Array:  # A soft flock whoosh
+		var flock := _air(0.6, 700.0, 0.1, 0.4)
+		for k in 5:
+			_mix(flock, _flutter(0.45, 11.0 + k * 1.5, 1100.0), SFX_RATE, rng.randf() * 0.12, 0.35)
+		return flock)
+	_ws("hit_starling_murmuration", 3, 0.4, func(_v: int) -> PackedFloat32Array:  # Three strikes as a soft patter
+		return _layers([[_thump(0.15, 170.0, 0.03), 1.0], [_thump(0.15, 190.0, 0.03), 0.8, 0.05], [_thump(0.15, 160.0, 0.03), 0.7, 0.11]]))
+	_ws("attack_magpie_perch", 2, 0.35, func(_v: int) -> PackedFloat32Array: return _flutter(0.35, 9.0, 900.0))
+	_ws("hit_magpie_perch", 3, 0.5, func(_v: int) -> PackedFloat32Array: return _beak_strike())
+	_ws("attack_magpies_hoard", 2, 0.35, func(_v: int) -> PackedFloat32Array: return _flutter(0.35, 9.0, 900.0))
+	_ws("hit_magpies_hoard", 3, 0.5, func(_v: int) -> PackedFloat32Array: return _beak_strike())
+	_ws("dew_magpies_hoard", 2, 0.3, func(_v: int) -> PackedFloat32Array:  # A soft, low clutter of trinkets (no coin, no bell)
+		return _lowpass(_pebbles(6, 0.3, 0.9), 1500.0))
+	_ws("attack_hummingbird_bower", 2, 0.2, func(_v: int) -> PackedFloat32Array: return _flutter(0.3, 40.0, 700.0))
+	_ws("hit_hummingbird_bower", 3, 0.25, func(_v: int) -> PackedFloat32Array: return _tiny_tap())
+	_ws("attack_jewelwing_court", 2, 0.25, func(_v: int) -> PackedFloat32Array:  # Hum from three birds
+		return _layers([[_flutter(0.3, 38.0, 700.0), 1.0], [_flutter(0.3, 42.0, 700.0), 0.8], [_flutter(0.3, 46.0, 700.0), 0.6]]))
+	_ws("hit_jewelwing_court", 3, 0.25, func(_v: int) -> PackedFloat32Array: return _tiny_tap())
+	_ws("crit_jewelwing_court", 2, 0.4, func(_v: int) -> PackedFloat32Array:  # Signature: the Flurry crit, a fuller tap
+		return _layers([[_tiny_tap(), 1.0], [_thump(0.12, 200.0, 0.03), 0.7]]))
+
+	# Whirligig line: moving air and spinning wood (full game).
+	_ws("hit_whirligig", 3, 0.4, func(_v: int) -> PackedFloat32Array:  # A soft gust that nudges
+		return _layers([[_air(0.4, 300.0, 0.05, 0.3, 0.8), 1.0], [_rumble(0.4, 150.0, 0.05, 0.3), 0.3]]))
+	_ws("attack_gust", 2, 0.3, func(_v: int) -> PackedFloat32Array: return _spin_up())
+	_ws("hit_gust", 2, 0.35, func(_v: int) -> PackedFloat32Array: return _swirl(0.6))
+	_ws("attack_zephyr", 2, 0.3, func(_v: int) -> PackedFloat32Array: return _spin_up())
+	_ws("hit_zephyr", 2, 0.4, func(_v: int) -> PackedFloat32Array:  # Signature: a longer, sighing breeze
+		return _layers([[_swirl(0.6), 1.0], [_air(1.2, 350.0, 0.3, 0.8), 0.5, 0.1]]))
+	_wloop("loop_pinwheel", func() -> PackedFloat32Array: return _whirr_bed(14.0, 260.0))
+	_ws("hit_pinwheel", 3, 0.25, func(_v: int) -> PackedFloat32Array: return _air_cut(0.12, 900.0))
+	_wloop("loop_windmill", func() -> PackedFloat32Array: return _whirr_bed(8.0, 180.0))
+	_ws("hit_windmill", 3, 0.3, func(_v: int) -> PackedFloat32Array: return _air_cut(0.16, 750.0))
+	_ws("turn_windmill", 2, 0.35, func(_v: int) -> PackedFloat32Array:  # Signature: the mill's low creak each turn
+		return _lowpass(_creak(SFX_RATE, 0.8, 8.0, 16.0, 220.0), 700.0))
+	_ws("attack_samara", 2, 0.25, func(_v: int) -> PackedFloat32Array: return _seed_whir(25.0))
+	_ws("hit_samara", 3, 0.25, func(_v: int) -> PackedFloat32Array: return _air_cut(0.12, 850.0))
+	_ws("catch_samara", 2, 0.35, func(_v: int) -> PackedFloat32Array: return _clack())
+	_ws("attack_autumn_gale", 2, 0.28, func(_v: int) -> PackedFloat32Array:
+		return _layers([[_seed_whir(25.0), 1.0], [_seed_whir(29.0), 0.8, 0.04]]))
+	_ws("hit_autumn_gale", 3, 0.25, func(_v: int) -> PackedFloat32Array: return _air_cut(0.12, 850.0))
+	_ws("catch_autumn_gale", 2, 0.4, func(_v: int) -> PackedFloat32Array:  # Signature: a gust rising in volume
+		return _layers([[_clack(), 1.0], [_air(0.8, 400.0, 0.6, 0.15), 0.5]]))
+
+# Saves `count` variants of `id` (id_01.. when more than one), each from its own seeded RNG.
+func _ws(id: String, count: int, peak: float, make: Callable) -> void:
+	for v in count:
+		var seg := _own("%s#%d" % [id, v], make.bind(v))
+		_w(id if count == 1 else "%s_%02d" % [id, v + 1], seg, peak)
+
+func _w(id: String, seg: PackedFloat32Array, peak: float) -> void:
+	var onset := HIT_ONSET if id.begins_with("hit_") else SFX_ONSET
+	_sfx(id, seg, peak, onset)
+
+func _own(key: String, make: Callable) -> PackedFloat32Array:
+	var main := rng
+	rng = RandomNumberGenerator.new()
+	rng.seed = hash(key)
+	var out: PackedFloat32Array = make.call()
+	rng = main
+	return out
+
+# A seamless loop (LOOP_LEN s): rendered longer, the tail crossfaded into the start. Loops skip the
+# onset fade (it would click at the seam) and are saved as loop_<id>.wav.
+func _wloop(id: String, make: Callable) -> void:
+	var seg := _own(id, make)
+	var loop_samples := int(LOOP_LEN * SFX_RATE)
+	seg.resize(maxi(seg.size(), loop_samples + int(0.5 * SFX_RATE)))
+	var tail := seg.size() - loop_samples
+	for i in tail:
+		var w := float(i) / tail
+		seg[i] = seg[i] * w + seg[loop_samples + i] * (1.0 - w)
+	seg.resize(loop_samples)
+	_save(_normalize(_filter(seg, SFX_RATE, SFX_TOP_HZ, 0.7), 0.4), SFX_RATE, SFX_DIR + id + ".wav")
+
+# Mixes [seg, gain, (at s)] layers into one, each normalised first so gains mean what they say.
+func _layers(parts: Array) -> PackedFloat32Array:
+	var out := PackedFloat32Array()
+	for p in parts:
+		_mix(out, _normalize(p[0], 1.0), SFX_RATE, p[2] if p.size() > 2 else 0.0, p[1])
+	return out
+
+func _lowpass(seg: PackedFloat32Array, cutoff: float) -> PackedFloat32Array:
+	return _filter(seg, SFX_RATE, cutoff, 0.7)
+
+# --- Organic building blocks (noise shaped by materials; no oscillator as the main sound) ---------
+
+func _nburst(length: float, tau: float) -> PackedFloat32Array:
+	return _noise(SFX_RATE, length, perc(0.004, tau, length))
+
+# A short noise burst ringing a few narrow resonances: the voice of wood, stone or a hollow.
+func _ring(length: float, freqs: Array, gains: Array, tau: float) -> PackedFloat32Array:
+	var burst := _nburst(0.03, 0.004)
+	burst.resize(int(length * SFX_RATE))
+	var out := _seg(length, SFX_RATE)
+	for k in freqs.size():
+		var ring := _filter(burst, SFX_RATE, freqs[k], 0.03, "bp")
+		ring = _env(ring, SFX_RATE, perc(0.001, tau / (1.0 + 0.3 * k), length))
+		_mix(out, _normalize(ring, 1.0), SFX_RATE, 0.0, gains[k])
+	return out
+
+# A low thump: noise lowpassed twice (the weight), no tone.
+func _thump(length: float, cutoff: float, tau: float) -> PackedFloat32Array:
+	var n := _noise(SFX_RATE, length, perc(0.004, tau, length))
+	return _normalize(_filter(_filter(n, SFX_RATE, cutoff, 0.6), SFX_RATE, cutoff, 0.6), 1.0)
+
+func _air(length: float, center: float, attack: float, release: float, damp := 0.8) -> PackedFloat32Array:
+	var n := _noise(SFX_RATE, length, swell(attack, release, length))
+	return _normalize(_filter(n, SFX_RATE, center, damp, "bp"), 1.0)
+
+func _rumble(length: float, cutoff: float, attack: float, release: float) -> PackedFloat32Array:
+	var n := _noise(SFX_RATE, length, swell(attack, release, length))
+	return _normalize(_filter(_filter(n, SFX_RATE, cutoff, 0.6), SFX_RATE, cutoff, 0.6), 1.0)
+
+# Wingbeats: noise gated by a soft beat of `beats` per second, lowpassed.
+func _flutter(length: float, beats: float, cutoff: float) -> PackedFloat32Array:
+	var phase := rng.randf()
+	var n := _noise(SFX_RATE, length, func(t: float) -> float:
+		return pow(maxf(sin(TAU * (beats * t + phase)), 0.0), 2.0) * swell(0.03, 0.1, length).call(t))
+	return _normalize(_filter(_filter(n, SFX_RATE, cutoff, 0.7), SFX_RATE, cutoff, 0.7), 1.0)
+
+# A rough scrape: grainy noise through a low band.
+func _scrape(length: float, center: float) -> PackedFloat32Array:
+	var grain := rng.randf_range(60.0, 90.0)
+	var n := _noise(SFX_RATE, length, func(t: float) -> float:
+		return (0.5 + 0.5 * absf(sin(t * grain + sin(t * 23.0)))) * swell(0.02, 0.2, length).call(t))
+	return _normalize(_lowpass(_filter(n, SFX_RATE, center, 0.6, "bp"), 1500.0), 1.0)
+
+func _wobble(seg: PackedFloat32Array, rate_hz: float) -> PackedFloat32Array:
+	return _env(seg, SFX_RATE, func(t: float) -> float: return 0.6 + 0.4 * sin(TAU * rate_hz * t))
+
+# A low hummed tone (only for the few "hum" layers the sheet names), lowpassed.
+func _soft_hum(notes: Array, length: float) -> PackedFloat32Array:
+	var out := _seg(length, SFX_RATE)
+	for n in notes:
+		_mix(out, _choir(SFX_RATE, hz(n), length), SFX_RATE, 0.0, 1.0)
+	return _env(_lowpass(out, 700.0), SFX_RATE, swell(minf(0.2, length * 0.3), minf(0.5, length * 0.5), length))
+
+func _puff(length: float, size: float) -> PackedFloat32Array:
+	return _layers([[_air(length, 900.0, 0.01, length * 0.7, 0.9), 0.6], [_thump(length, 120.0 / size, 0.05 * size), 0.8]])
+
+func _cap_thup(cutoff: float) -> PackedFloat32Array:
+	return _layers([[_thump(0.25, cutoff, 0.04), 1.0], [_ring(0.2, [220.0, 470.0], [0.5, 0.3], 0.03), 0.4]])
+
+func _exhale(length: float, center: float) -> PackedFloat32Array:
+	return _layers([[_air(length, center, 0.15, length * 0.75, 0.7), 0.7], [_rumble(length, 120.0, 0.2, length * 0.65), 0.4]])
+
+func _earth_pops(count: int) -> PackedFloat32Array:
+	var out := _seg(0.5, SFX_RATE)
+	for k in count:
+		_mix(out, _layers([[_thump(0.08, 300.0, 0.012), 1.0], [_ring(0.08, [rng.randf_range(450.0, 750.0)], [1.0], 0.01), 0.25]]),
+			SFX_RATE, rng.randf() * 0.4, rng.randf_range(0.5, 1.0))
+	return out
+
+func _stone_thud(size: float) -> PackedFloat32Array:
+	var base := 110.0 / size
+	return _layers([[_thump(0.35 * size, base, 0.07 * size), 1.0],
+		[_ring(0.15, [310.0 / size, 620.0 / size, 1040.0 / size], [0.5, 0.3, 0.15], 0.015), 0.45],
+		[_rumble(0.3 * size, 250.0, 0.005, 0.12 * size), 0.3]])
+
+func _stone_grunt(cutoff: float) -> PackedFloat32Array:
+	return _layers([[_rumble(0.35, cutoff, 0.15, 0.15), 0.7], [_ring(0.3, [180.0, 390.0], [0.4, 0.2], 0.05), 0.3]])
+
+func _whoom() -> PackedFloat32Array:  # A stone slung far
+	return _layers([[_air(0.6, 250.0, 0.2, 0.3, 0.7), 1.0], [_rumble(0.6, 120.0, 0.2, 0.3), 0.5]])
+
+func _far_crack() -> PackedFloat32Array:  # Stone on stone, far away
+	return _lowpass(_layers([[_ring(0.4, [260.0, 540.0, 930.0, 1400.0], [0.6, 0.5, 0.35, 0.2], 0.03), 1.0],
+		[_thump(0.4, 90.0, 0.08), 0.7]]), 1200.0)
+
+func _lob() -> PackedFloat32Array:  # A stone lifted and lobbed: a low grunt and an arcing rush of air
+	return _layers([[_rumble(0.25, 150.0, 0.08, 0.12), 0.6], [_air(0.5, 400.0, 0.15, 0.25), 0.6, 0.1]])
+
+func _pebbles(count: int, spread: float, gain: float) -> PackedFloat32Array:
+	var out := _seg(spread + 0.1, SFX_RATE)
+	for k in count:
+		var at := spread * pow(rng.randf(), 1.6)  # Denser at the start, settling out
+		_mix(out, _ring(0.08, [rng.randf_range(500.0, 1100.0)], [1.0], 0.01), SFX_RATE, at,
+			gain * rng.randf_range(0.3, 1.0) * (1.0 - at / (spread + 0.1)))
+	return _lowpass(out, 2000.0)
+
+func _mortar(pebbles: int, spread: float) -> PackedFloat32Array:  # Stone landing among many
+	return _layers([[_thump(0.45, 100.0, 0.09), 1.0], [_pebbles(pebbles, spread, 0.8), 0.25, 0.01]])
+
+func _splash(size: float, spray: float) -> PackedFloat32Array:  # A water slap, a low plunk, a spray tail
+	return _layers([[_lowpass(_nburst(0.12 * size, 0.02 * size), 1800.0), 1.0],
+		[_ring(0.3 * size, [260.0 / size], [1.0], 0.05 * size), 0.6],
+		[_air(0.3 + spray, 2000.0, 0.01, 0.2 + spray * 0.5, 0.9), 0.15 + spray * 0.3]])
+
+func _glow_swell(length: float) -> PackedFloat32Array:  # The Firefly Jar's warm swell, heavier
+	var glow := _seg(length, SFX_RATE)
+	for m in [62, 69]:
+		_mix(glow, _tone(SFX_RATE, length, hz(m), swell(0.05, length * 0.6, length), "tri"), SFX_RATE, 0.0, 0.5)
+	_mix(glow, _normalize(_lowpass(_noise(SFX_RATE, length, swell(0.05, length * 0.6, length)), 700.0), 1.0), SFX_RATE, 0.0, 0.5)
+	return glow
+
+func _thunder_roll() -> PackedFloat32Array:  # Low and distant, no crack
+	var roll := _rumble(2.2, 110.0, 0.3, 1.5)
+	roll = _env(roll, SFX_RATE, func(t: float) -> float: return 0.6 + 0.4 * absf(sin(t * 3.1 + sin(t * 1.7))))
+	return _layers([[roll, 1.0], [_rumble(2.2, 300.0, 0.4, 1.3), 0.3]])
+
+func _earth_glow(cavern: bool) -> PackedFloat32Array:
+	var parts := [[_rumble(0.9, 200.0, 0.2, 0.55), 0.6], [_soft_hum([50], 0.9), 0.2]]
+	if cavern:
+		parts.append([_ring(1.2, [110.0, 173.0, 260.0], [0.4, 0.3, 0.2], 0.4), 0.3])
+	return _layers(parts)
+
+func _thread_rustle() -> PackedFloat32Array:
+	return _layers([[_flutter(0.3, 16.0, 1400.0), 0.4], [_air(0.3, 1100.0, 0.03, 0.2), 0.3]])
+
+func _thrum(size: float) -> PackedFloat32Array:  # A low, woven thrum (D2 A2 D3)
+	return _lowpass(_layers([[_ring(0.6 * size, [73.4, 110.0, 146.8], [0.6, 0.4, 0.25], 0.2 * size), 1.0],
+		[_thump(0.3, 110.0, 0.05), 0.4]]), 1200.0)
+
+func _hollow_echo() -> PackedFloat32Array:  # From inside a log: hollow, lowpassed
+	return _lowpass(_layers([[_ring(0.8, [180.0, 410.0, 690.0], [0.6, 0.4, 0.2], 0.12), 1.0], [_air(0.8, 400.0, 0.1, 0.5), 0.2]]), 900.0)
+
+func _wood_knock(freq: float) -> PackedFloat32Array:
+	return _layers([[_ring(0.25, [freq, freq * 2.7, freq * 4.6], [0.7, 0.35, 0.15], 0.04), 1.0], [_thump(0.2, 140.0, 0.03), 0.5]])
+
+func _feather_strike(size: float, beats: float) -> PackedFloat32Array:  # A muffled strike, then the flutter home
+	return _layers([[_thump(0.2 * size, 160.0 / size, 0.04 * size), 1.0], [_air(0.15, 800.0, 0.01, 0.1), 0.3],
+		[_flutter(0.3 * size, beats, 1000.0), 0.35, 0.12]])
+
+func _beak_strike() -> PackedFloat32Array:  # A strike and a faint beak tap
+	return _layers([[_feather_strike(1.1, 9.0), 1.0], [_ring(0.08, [900.0, 1500.0], [0.5, 0.3], 0.012), 0.3]])
+
+func _tiny_tap() -> PackedFloat32Array:
+	return _layers([[_thump(0.06, 400.0, 0.01), 1.0], [_ring(0.05, [rng.randf_range(650.0, 800.0)], [1.0], 0.01), 0.3]])
+
+func _spin_up() -> PackedFloat32Array:  # Air gathering (a gently moving band of noise, no tone)
+	var n := _noise(SFX_RATE, 0.4, swell(0.25, 0.1, 0.4))
+	return _normalize(_filter(n, SFX_RATE, glide(300.0, 700.0, 0.4), 0.7, "bp"), 1.0)
+
+func _swirl(length: float) -> PackedFloat32Array:
+	return _wobble(_air(length, 500.0, 0.15, length * 0.6), 3.0)
+
+func _air_cut(length: float, center: float) -> PackedFloat32Array:
+	return _air(length, center, 0.01, length * 0.7, 0.7)
+
+func _seed_whir(rate_hz: float) -> PackedFloat32Array:  # A spinning maple seed
+	var n := _noise(SFX_RATE, 0.5, func(t: float) -> float:
+		return (0.5 + 0.5 * sin(TAU * rate_hz * t)) * swell(0.05, 0.3, 0.5).call(t))
+	return _normalize(_filter(n, SFX_RATE, 700.0, 0.7, "bp"), 1.0)
+
+func _clack() -> PackedFloat32Array:  # A light wooden clack
+	return _layers([[_ring(0.1, [600.0, 1150.0, 1800.0], [0.6, 0.4, 0.2], 0.015), 1.0], [_thump(0.08, 250.0, 0.015), 0.4]])
+
+# --- Loop beds (LOOP_LEN + 0.5 s, crossfaded by _wloop) --------------------------------------------
+
+func _hum_bed(notes: Array) -> PackedFloat32Array:
+	var length := LOOP_LEN + 0.5
+	var out := _seg(length, SFX_RATE)
+	for n in notes:
+		_mix(out, _choir(SFX_RATE, hz(n), length), SFX_RATE, 0.0, 1.0)
+	return _normalize(_lowpass(out, 800.0), 1.0)
+
+func _breath_bed(center: float, depth: float) -> PackedFloat32Array:
+	var length := LOOP_LEN + 0.5
+	var n := _noise(SFX_RATE, length, func(t: float) -> float: return 1.0 - depth + depth * sin(TAU * t / LOOP_LEN))
+	return _normalize(_lowpass(_filter(n, SFX_RATE, center, 0.8, "bp"), 1200.0), 1.0)
+
+func _cavern_bed() -> PackedFloat32Array:
+	var length := LOOP_LEN + 0.5
+	var n := _noise(SFX_RATE, length, 1.0)
+	var out := _seg(length, SFX_RATE)
+	for f in [55.0, 110.0, 165.0]:
+		_mix(out, _normalize(_filter(n, SFX_RATE, f, 0.05, "bp"), 1.0), SFX_RATE, 0.0, 0.5)
+	return _normalize(out, 1.0)
+
+func _whirr_bed(rate_hz: float, center: float) -> PackedFloat32Array:  # Spinning wood
+	var length := LOOP_LEN + 0.5
+	var n := _noise(SFX_RATE, length, func(t: float) -> float: return 0.4 + 0.6 * pow(absf(sin(PI * rate_hz * t)), 2.0))
+	return _normalize(_lowpass(_filter(n, SFX_RATE, center, 0.5, "bp"), 900.0), 1.0)
+
+func _breathing() -> PackedFloat32Array:  # The White Stag: one slow warm breath per loop
+	var length := LOOP_LEN + 0.5
+	var n := _noise(SFX_RATE, length, func(t: float) -> float: return pow(sin(PI * t / LOOP_LEN), 2.0))
+	return _layers([[_filter(_filter(n, SFX_RATE, 300.0, 0.6), SFX_RATE, 300.0, 0.6), 1.0], [_hum_bed([50]), 0.12]])
 
 # Nightmare signature sounds (played when one enters, and on their special moments).
 func _make_signatures() -> void:

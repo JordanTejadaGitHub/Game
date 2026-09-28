@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "seeping"
+display_name = "Seeping"
+description = "Effects deal 5% more for each status the nightmare carries (up to +30%)."
+rarity = 1
+kind = 3
+tags = Array[String](["potency", "reaction"])
+max_stacks = 1
+min_owned_statuses = 2
+rule_id = &"seeping"
+in_start_pool = false

@@ -187,7 +187,7 @@ foley-like, no chiptune.
 |---|---|---|
 | Sporeling | a soft breath out | a round **puff** (air + soft low thump) |
 | Driftspore | a longer, drifting breath | a double puff, the second smaller (2 stacks) |
-| Puffball *(not built)* | a soft breath | puff; **pop** at 10 stacks = signature: a deep, soft *fwoomp* with a wide airy spread |
+| Puffball | a soft breath | puff; **pop** at 10 stacks = signature: a deep, soft *fwoomp* with a wide airy spread |
 | Bloomcap | a heavy mushroom-cap *thup* | cloud forming: a slow, sleepy **exhale** that settles |
 | Dreamshroom | same, deeper | cloud + signature: a low **yawn-like drone** when a nightmare falls asleep |
 | Fairy Ring | — | ring appearing: tiny soft earth pops. Triggered: a **spore burst** (puff + low thump) |

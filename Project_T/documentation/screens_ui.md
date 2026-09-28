@@ -232,9 +232,10 @@ Every combo starts **locked** and is **discovered the first time it actually fir
 | Crowned | **Fairy Circle** | Mushrooming + Held | a ring of mushrooms that spores and soaks the next walkers |
 
 **Crowned entries** (added 2026-09-27, `tower_design.md` "Crowned Reactions"): locked ones show
-*"???"* with the **three family icons** (not status icons) as the hint, and a gold crown frame. The
-counter becomes *"N / 23 combos discovered"*. Their discovery card uses the gold tier accent. Full
-game only (they can't happen in the demo).
+*"???"* with the **three family icons** (not status icons) as the hint, and a gold crown frame.
+As built (57a551e): they live in **their own hidden Codex section**, separate from the 15 combos
+(which keep their own counter), with their own first-ever discovery card in the gold tier accent.
+Full game only (they can't happen in the demo).
 
 New combos (new Wardens, Reactions) are added to this table and the Codex automatically.
 

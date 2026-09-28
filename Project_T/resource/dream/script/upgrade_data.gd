@@ -42,6 +42,7 @@ enum Kind { UNLOCK_WARDEN, UNLOCK_EVOLUTION, STAT, RULE, ECONOMY }
 @export var attack_speed_bonus: float = 0.0
 @export var range_bonus: float = 0.0  # Cells
 @export var splash_bonus: float = 0.0  # +0.25 = +25% splash radius
+@export var potency_bonus: float = 0.0  # +0.08 = +8% Potency (effect damage)
 
 @export_group("Status")
 @export var status_id: StringName = &""
@@ -81,6 +82,7 @@ enum Kind { UNLOCK_WARDEN, UNLOCK_EVOLUTION, STAT, RULE, ECONOMY }
 # Reactions you can set off: pairs of statuses your owned Wardens apply (Quick Reactions: 2).
 @export var min_reaction_pairs: int = 0
 @export var requires_status: StringName = &""  # Own any Warden applying this status (e.g. Drowsy)
+@export var min_owned_statuses: int = 0  # Own Wardens applying this many different statuses (Seeping: 2)
 
 @export_group("Nurture")
 @export var nurture_discount: float = 0.0  # 0.15 = ranks cost 15% less (all cards together max 45%)

@@ -11,11 +11,13 @@ const BUTTON_FONT_SIZE := 16
 @onready var game_speed: GameSpeed = %GameSpeed
 @onready var run_state: RunState = %RunState
 @onready var tower_seller: TowerSeller = %TowerSeller
+@onready var tower_placer = %TowerPlacer  # Untyped: the Sapling API is guarded with has_method
 
 @onready var dream_state: DreamState = %DreamState
 
 var _status_label := Label.new()
 var _remember_button := Button.new()
+var _sapling_button := Button.new()
 var _start_button := Button.new()
 var _auto_toggle := CheckButton.new()
 var _pause_button := Button.new()
@@ -32,6 +34,14 @@ func _ready() -> void:
 	_remember_button.custom_minimum_size = Vector2(0, 32)
 	_remember_button.pressed.connect(func() -> void: dream_state.open_remember())
 	status_row.add_child(_remember_button)
+	# The Heartwood Sapling (run_design.md): plant it later if it was declined, or place it if taken.
+	_sapling_button.text = "Sapling"
+	_sapling_button.tooltip_text = "Plant the Heartwood Sapling: free, 2×2, rooted; yields Dew after every drift."
+	_sapling_button.focus_mode = Control.FOCUS_NONE
+	_sapling_button.custom_minimum_size = Vector2(0, 32)
+	_sapling_button.visible = false
+	_sapling_button.pressed.connect(plant_sapling)
+	status_row.add_child(_sapling_button)
 	_status_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_status_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	_status_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
@@ -75,6 +85,19 @@ func _ready() -> void:
 	_on_speed_changed(game_speed.paused, game_speed.speed)
 	run_state.run_ended.connect(func(_won: bool) -> void: _start_button.visible = false)
 
+# The Sapling was declined (still takeable) or taken but not planted yet.
+func _sapling_waiting() -> bool:
+	if not tower_placer.has_method("can_take_sapling"):
+		return false
+	return tower_placer.can_take_sapling() or tower_placer.has_unplanted_sapling()
+
+# Takes the Sapling if it was declined, then selects it to place (TowerPlacer's Sapling API).
+func plant_sapling() -> void:
+	if tower_placer.can_take_sapling():
+		tower_placer.take_sapling()  # Selects it too
+	elif tower_placer.has_unplanted_sapling():
+		tower_placer.select_tower(tower_placer.sapling)
+
 func _add_speed_button(row: HBoxContainer, button: Button) -> void:
 	button.toggle_mode = true
 	button.focus_mode = Control.FOCUS_NONE
@@ -96,6 +119,7 @@ func _process(_delta: float) -> void:
 	_remember_button.visible = drift_director.is_resting() and not drift_director.awaiting_family_pick \
 		and latest > 0 and not run_state.is_over
 	_remember_button.text = "Remember (%d)" % dream_state.dreamlight
+	_sapling_button.visible = _remember_button.visible and _sapling_waiting()
 	var block_end := drift_director.get_block(maxi(latest, 1)) * drift_director.drifts_per_block
 	if drift_director.awaiting_family_pick:
 		_status_label.text = "Choose a Warden family…"

@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "nightshade"
+display_name = "Nightshade"
+description = "All Wardens +15% Potency. Effect ticks can crit, using the applier's crit chance and multiplier."
+rarity = 3
+kind = 3
+tags = Array[String](["potency", "crit"])
+max_stacks = 1
+min_act = 2
+potency_bonus = 0.15
+rule_id = &"nightshade"
+in_start_pool = false

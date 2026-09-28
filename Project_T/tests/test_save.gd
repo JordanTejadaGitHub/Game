@@ -94,7 +94,7 @@ func _run() -> void:
 		quit(failures)
 		return
 	var total: int = results.breakdown[-1][1]
-	var expected: int = mini(5 / 2, 50) + saved.cleansed / 25 + saved.tended + 20  # + first-run bonus
+	var expected: int = mini(5 / 2, 50) + saved.cleansed / RunState.CLEANSES_PER_SEED + saved.tended + 20  # + first-run bonus
 	_check(total == expected, "Seeds: drifts, cleansed, tended, first run = %d (got %d, %s)" % [expected, total, results.breakdown])
 	_check(HeartwoodMemory.load_data().seeds == total and HeartwoodMemory.load_data().runs_played == 1, "Seeds banked")
 	_check(not RunSaver.has_save(), "the run save is deleted when the run ends")

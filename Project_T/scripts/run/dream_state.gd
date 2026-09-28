@@ -25,6 +25,11 @@ const CLEARING_LOCKED_WEIGHT := 2.0  # Clearing cards are this much likelier unt
 const NURTURE_DISCOUNT_MAX := 0.45
 const BASE_MAX_RANK := 5
 const EXTRA_RANK_COSTS := {6: 130, 7: 180}  # Deeper Rings, before the Warden's tier multiplier
+const FREE_RANK_MAX := 7  # Free ranks (Sunlit Rest, seeds, The Old Ones) never go past VII
+const ENDLESS_RANK_GROWTH := 1.2  # Endless Rings: each rank past VII costs ×1.2 the one before
+const SEEPING_PER := [0.05, 0.07]
+const SEEPING_MAX_STATUSES := 6
+const VENOM_HIT_PENALTY := 0.15
 const KINDRED_PER_RANK := [0.02, 0.03]
 const KINDRED_MAX := [0.30, 0.45]
 const MEMORY_SEEDS := [1, 2]  # Remembered Care keeps this many seeds
@@ -542,12 +547,16 @@ func get_max_rank() -> int:
 
 # Base Dew for rank `rank` (the one being bought) above V, before the tier multiplier; 0 = not allowed.
 func get_extra_rank_cost(rank: int) -> int:
-	return EXTRA_RANK_COSTS.get(rank, 0) if rank <= get_max_rank() else 0
+	if rank > get_max_rank():
+		return 0
+	if rank > FREE_RANK_MAX:  # Endless Rings: each rank ×1.2 the one before (VIII 216, IX 259, …)
+		return roundi(EXTRA_RANK_COSTS[FREE_RANK_MAX] * pow(ENDLESS_RANK_GROWTH, rank - FREE_RANK_MAX))
+	return EXTRA_RANK_COSTS.get(rank, 0)
 
 # The rank a Warden's stats use: The Old Ones counts one higher beside a rank V+ Warden (stats only;
 # it never chains, since it reads real ranks).
 func get_effective_rank(tower: Tower) -> int:
-	if has_rule(&"old_ones") and tower.rank > 0:
+	if has_rule(&"old_ones") and tower.rank > 0 and tower.rank < FREE_RANK_MAX:  # Never lifts past VII
 		for other in _touching(tower):
 			if other.rank >= 5:
 				return tower.rank + 1
@@ -575,6 +584,22 @@ func get_range_bonus(data: TowerData) -> float:
 
 func get_splash_multiplier(data: TowerData) -> float:
 	return 1.0 + _sum_stat(data, "splash_bonus")
+
+# Potency from Dreams (Bitter Sap, Venom Bloom, Nightshade), added to the Warden's 100%.
+func get_potency_bonus(data: TowerData) -> float:
+	return _sum_stat(data, "potency_bonus")
+
+# Seeping: effect damage (Spored ticks, bolts, clouds, Reactions…) +5% per status `enemy` carries
+# (II: +7%), capped at 6 statuses. 0 without the card.
+func get_effect_bonus(enemy: Node2D) -> float:
+	if not has_rule(&"seeping") or enemy == null or not is_instance_valid(enemy):
+		return 0.0
+	var level := rule_level(&"seeping")
+	return minf(SEEPING_PER[level] * enemy.statuses.active_ids().size(), SEEPING_PER[level] * SEEPING_MAX_STATUSES)
+
+# Venom Bloom (bittersweet): every hit (not effects) deals this much of its damage.
+func get_hit_damage_multiplier() -> float:
+	return 1.0 - VENOM_HIT_PENALTY if has_rule(&"venom_bloom") else 1.0
 
 func get_status_strength_multiplier(status: StringName) -> float:
 	var bonus := 0.0
@@ -966,6 +991,8 @@ func _meets_needs(card: UpgradeData) -> bool:
 		return false
 	if card.requires_status != &"" and not owned_statuses().has(card.requires_status):
 		return false
+	if card.min_owned_statuses > 0 and owned_statuses().size() < card.min_owned_statuses:
+		return false
 	return true
 
 # How many Reactions (Reactions.all(), dream_design.md "Reaction numbers") your owned Wardens could
@@ -1165,7 +1192,7 @@ func sunlit_rest() -> Array[Tower]:
 	var raised: Array[Tower] = []
 	var seller := get_node_or_null("%TowerSeller")
 	var ranked: Array = _towers().filter(func(t: Tower) -> bool:
-		return t.rank > 0 and t.rank != 2 and t.can_nurture())
+		return t.rank > 0 and t.rank != 2 and t.rank < FREE_RANK_MAX and t.can_nurture())  # Free ranks stop at VII
 	if seller and seller.has_method("sort_by_heartwood"):
 		ranked = seller.sort_by_heartwood(ranked)  # Same order as group Nurture
 	for tower in ranked:
@@ -1196,7 +1223,7 @@ func _on_tower_built(tower: Tower) -> void:
 			tower.rank = maxi(tower.rank, mini(NURSERY_RANK, get_max_rank()))
 	if run_state.memory_seeds.is_empty() or not tower.tower_data.can_attack:
 		return
-	tower.rank = mini(run_state.memory_seeds.pop_front(), get_max_rank())
+	tower.rank = mini(run_state.memory_seeds.pop_front(), mini(get_max_rank(), FREE_RANK_MAX))
 	if tower.has_signal("nurtured"):
 		tower.nurtured.emit(tower)
 

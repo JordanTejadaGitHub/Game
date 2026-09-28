@@ -9,7 +9,12 @@ const HOOK_IDS := [&"dispel", &"dispel_release", &"dispel_boss", &"split", &"lea
 	&"attack_sprout", &"attack_acorn", &"ui_click", &"dream_open", &"dream_take_0", &"dream_take_1",
 	&"dream_take_2", &"family_bell", &"omen_wind", &"rest", &"drift_start", &"act_swell", &"win",
 	&"loss", &"hag_rise", &"crit", &"beam", &"crit_punch", &"hit_full", &"combo_found"]
-const HIT_FAMILIES := ["stone", "root", "water", "light", "spore", "sprout"]
+# Wardens without sounds of their own (audio_direction.md "Warden sound sheet"): Sprout and Firefly
+# Jar are their families' sounds (hit_sprout rebuilt, hit_light approved); Graftlings play the Warden
+# they copy, muffled; Thornwall only plants; Echo Hollows sound on echoes; "" = silent by design.
+const WARDEN_FALLBACKS := {"sprout": "hit_sprout", "firefly_jar": "hit_light", "graftling": "", "grafted_elder": "",
+	"thornwall": ""}
+const HIT_FAMILIES :=["stone", "root", "water", "light", "spore", "sprout"]
 const MUSIC_LAYERS := ["base", "dread1", "dread2", "heartbeat", "boss"]
 
 var failures := 0
@@ -39,6 +44,21 @@ func _initialize() -> void:
 	for family in HIT_FAMILIES:
 		_check(sound.has_sound(StringName("hit_" + family)), "hit sound %s exists" % family)
 		_check(sound.has_sound(StringName("hit_%s_dull" % family)), "resisted hit sound %s exists" % family)
+	# Warden sound sheet: every built Warden (resource/tower/*.tres) has its own sound (launch, hit,
+	# event or loop), except the documented fallbacks.
+	for file in DirAccess.get_files_at("res://resource/tower/"):
+		if not file.ends_with(".tres"):
+			continue
+		var data := load("res://resource/tower/" + file) as TowerData
+		var wid := SoundHooks.warden_id(data)
+		var sounds := SoundHooks.warden_sounds(sound, data)
+		if WARDEN_FALLBACKS.has(wid):
+			var fallback: String = WARDEN_FALLBACKS[wid]
+			_check(fallback == "" or sounds.has(StringName(fallback)), "%s falls back to %s %s" % [wid, fallback, sounds])
+		else:
+			_check(sounds.any(func(id: StringName) -> bool: return String(id).ends_with(wid) or String(id).contains(wid + "_")),
+				"%s has its own sound %s" % [wid, sounds])
+	_check(SoundHooks._rate_db(6.0) < SoundHooks._rate_db(0.33), "fast Wardens are quieter per shot")
 	_check(SoundHooks._weight_pitch_for(3000, false, true) < SoundHooks._weight_pitch_for(20, false, false),
 		"big nightmares take lower hits than small ones")
 	for layer in MUSIC_LAYERS:
