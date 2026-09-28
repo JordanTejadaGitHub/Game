@@ -53,13 +53,13 @@ var play_time := 0.0  # Seconds of unpaused play this run
 var is_over := false
 var won := false
 
-# Seeds formula (meta_design.md): 1 per 2 drifts survived (max 50), 1 per 25 creatures cleansed,
-# 10 per boss, 1 per obstacle tended, +50 for winning, +20 on the very first run.
+# Seeds formula (meta_design.md, revised for 100 drifts): 1 per 2 drifts survived (max 50), 1 per
+# 20 nightmares dispelled, 20 per boss, 1 per obstacle tended, +120 for winning, +20 on the first run.
 const SEEDS_PER_DRIFTS := 2
 const SEEDS_DRIFT_MAX := 50
-const CLEANSES_PER_SEED := 25
-const SEEDS_PER_BOSS := 10
-const SEEDS_FOR_WIN := 50
+const CLEANSES_PER_SEED := 20
+const SEEDS_PER_BOSS := 20
+const SEEDS_FOR_WIN := 120
 const SEEDS_FIRST_RUN := 20
 
 @onready var enemy_spawner = %EnemyContainer
