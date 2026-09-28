@@ -149,6 +149,154 @@ built in three layers:
 - **Level:** hits sit about 6 dB above where the first placeholder attacks sat (they were at −9 dB and
   far too quiet); launches stay low. Voice limiting (see Mix rules) keeps a full maze from turning to mush.
 
+### Warden sound sheet (every Warden, 2026-09-27)
+
+Every Warden gets its **own** launch and hit (ids `attack_<warden_id>` / `hit_<warden_id>`, falling
+back to the family's sound when a file is missing). All of the rules above apply: rounded, organic,
+foley-like, no chiptune.
+
+**Rules for the sheet**
+- **Family = material.** You can tell the family with your eyes closed: spore = air and soft fungal
+  puffs; stone = rock on earth; water = real water; light = warm air and glow (the approved Firefly
+  Jar sound is the template); root = earth and creaking wood; song = soft low bells and hums;
+  acorn = wood and bark; wing = feathers and wingbeats; wind = moving air and spinning wood.
+- **Tier = size.** A branch is the base sound grown fuller (more body, longer tail). A final form
+  adds **one signature layer** only it has (listed below), so reaching it is a moment you hear.
+- **Loudness × rate stays even.** A Warden that fires 6 times a second (Hummingbird) gets a tiny,
+  near-subliminal peck. A Warden that fires once every 3 s (Standing Stone) gets a big, full hit.
+  No Warden may dominate the mix by rate.
+- **Song is the only tonal family.** The Bellflower line are bells, so they may be pitched. They
+  stay low (D3–D5), soft-mallet, in the music's key (D minor pentatonic), and never form a melody
+  (random notes from the chord, not a tune).
+- **Continuous things loop quietly** (beams, auras, fog, spinning blades): a soft bed that fades in
+  when active and out when idle, one voice per Warden type, never per tile.
+- **Evolving** plays the evolve bloom, then the new form's hit once as a "first breath".
+
+**Starters**
+
+| Warden | Launch | Hit / event |
+|---|---|---|
+| Sprout | a small leafy flick of air | a light wooden **twig tap** (noise through woody resonances + a soft low thump; no tone) |
+| Thornwall | — | planting only (see Building); no attack |
+| Bramble | — | nightmare brushing past: a dry, low **thorn scrape** on the damage tick (throttled per wall run) |
+| Honeysuckle | — | a soft, sweet **floral sigh** when it adds Drowsy (rare; throttled) |
+
+**Sporeling line** (spore: soft fungal air)
+
+| Warden | Launch | Hit / event |
+|---|---|---|
+| Sporeling | a soft breath out | a round **puff** (air + soft low thump) |
+| Driftspore | a longer, drifting breath | a double puff, the second smaller (2 stacks) |
+| Puffball *(not built)* | a soft breath | puff; **pop** at 10 stacks = signature: a deep, soft *fwoomp* with a wide airy spread |
+| Bloomcap | a heavy mushroom-cap *thup* | cloud forming: a slow, sleepy **exhale** that settles |
+| Dreamshroom | same, deeper | cloud + signature: a low **yawn-like drone** when a nightmare falls asleep |
+| Fairy Ring | — | ring appearing: tiny soft earth pops. Triggered: a **spore burst** (puff + low thump) |
+| Elf Circle | — | ring appearing: a faint low **hum** under the pops (signature). Triggered: bigger burst |
+
+**Pebbling line** (stone: rock on earth; the heaviest family)
+
+| Warden | Launch | Hit / event |
+|---|---|---|
+| Pebbling | a sling's short rush of air | **stone thud** on packed earth, deep body |
+| Mossback | a heavy wind-up grunt of stone | a **huge muffled thud**, the heaviest single hit in the game; moss softens the top |
+| Boulderback | same, lower | thud + signature: a short **ground rumble** that spreads (the splash) |
+| Standing Stone | a long, low **whoom** of a stone slinging far | a deep, distant **crack of stone on stone**, lowpassed (it hits far away) |
+| Moonstone | same + a faint cool shimmer of air | hit + signature: the first-hit crit adds a low, **glassy bell-stone ring** (soft, D3) |
+| Cairn | a stone lifted and **lobbed**: a low grunt + an arcing air rush | a **mortar thump**: stone landing among many, a scatter of pebbles (low, soft) |
+| Rockslide | same | thump + signature: a rolling **rubble settle** that fades over ~1 s |
+
+**Dewdrop line** (water: real water)
+
+| Warden | Launch | Hit / event |
+|---|---|---|
+| Dewdrop | a faint drip of air | a small **water slap** with a low plunk (no rising "bloop" tone) |
+| Rain Lily | a fuller drip | a bigger splash, a wide spray tail |
+| Monsoon *(not built)* | — | rain on everything in range: a soft **downpour burst** (1 s), signature low thunder-roll far off |
+| Mistveil | a soft hiss-free exhale of damp air | fog forming: a low, damp **settle**; fog loop = a very quiet cold breath |
+| Morning Fog *(not built)* | same | fog loop fuller and sleepier (a faint low hum under it) |
+| Frostfern | a small cold breath | a splash that **stiffens**: water slap + a soft, low **ice creak** (freeze) |
+| Hoarfrost | same, colder | splash + signature: a deep, slow **frost groan** as ice spreads (no sparkle, no crackle) |
+
+**Firefly Jar line** (light: warm air and glow; Firefly Jar approved as the template)
+
+| Warden | Launch | Hit / event |
+|---|---|---|
+| Firefly Jar | a warm glow swell | a warm **bloom** (approved; keep) |
+| Stormcap | a heavier swell | bloom that **ripples** down the chain: each jump quieter, slightly lower |
+| Thunderhead | same | ripple; every 5th strike = signature: a soft, distant **thunder roll** (low, no crack) |
+| Lanternmoth | soft **moth wings** | a warm bloom with a faint glow hum (Marked) |
+| Beacon *(not built)* | — | marking everything: a slow, warm **swell** like a lamp turning up |
+| Sunpetal | — | beam loop: warm, airy hum like sunlight through leaves, **swelling** with the ramp |
+| Midsummer | — | beam loop fuller; signature: a second, lower hum layer when it hits the one behind |
+
+**Rootling line** (root: earth and creaking wood, felt more than heard)
+
+| Warden | Launch | Hit / event |
+|---|---|---|
+| Rootling | — (the pulse is the hit) | a **ground boom**: roots shifting in earth + deep sub rumble |
+| Rootcurl *(not built)* | — | the pull: a long **wooden creak** + earth dragging |
+| Long Way Home *(not built)* | — | pull + signature: a deep, slow **heave** of roots (3 tiles) |
+| Tangleroot *(not built)* | — | the hold: roots **snapping tight** (a low wooden clench, no crack) |
+| Snugroot *(not built)* | — | same, three at once, overlapping softly |
+| Rootlight | — | tiles lighting: a low, warm **earth glow** swell; lit loop = a very faint warm hum |
+| Starcave | — | same + signature: a faint, deep **cavern resonance** under the hum |
+
+**Bellflower line** (song: soft low bells and hums, the one tonal family)
+
+| Warden | Launch | Hit / event |
+|---|---|---|
+| Bellflower | — | a soft **bell pulse** (low, felt mallet, D4 area); every 2nd pulse a slightly sleepier, lower one (Drowsy) |
+| Chime Stone | — | a low **stone chime**, duller and rounder than the bell |
+| Lullaby Bell | — | a deep bell with a long hum tail; signature: a faint **hummed voice** under it |
+| Dreamcatcher | a soft **thread and feather** rustle as it hangs | Caught: a low, woven **thrum** |
+| Great Dreamcatcher | same | thrum + signature: a warm, muffled **shimmer** when a Caught nightmare drops a Dreamlight shard |
+| Echo Hollow | — | an echo: the original Reaction's sound, **repeated 1 s later, softer and hollow** (lowpassed, from inside a log) |
+| Whispering Hollow | — | same, 75%; signature: a faint **whisper** in the echo (the good kind: warm, low) |
+
+**Acorn line** (wood and bark; support, so quiet)
+
+| Warden | Launch | Hit / event |
+|---|---|---|
+| Acorn | — | a soft **woody knock** when a neighbour is buffed (rare) |
+| Elder Stump *(not built)* | — | a deeper knock, rare |
+| Grove Heart *(not built)* | — | a slow, warm **wooden heartbeat** when its bonus grows (rare) |
+| Dewcatcher *(not built)* | — | at the drift's end: a soft **pour of water** into a cup (the Dew; one per rest, not per drift start) |
+| Wellspring *(not built)* | — | interest paid: a slow **welling-up** of water, low and soft |
+| Graftling | — | sounds like the Warden it copies, **muffled through bark** (lowpassed, a little softer) |
+| Grafted Elder | — | same, less muffled (85%) |
+
+**Nestling line** (wing: feathers and wingbeats; full game)
+
+| Warden | Launch | Hit / event |
+|---|---|---|
+| Nestling | a short **wing flutter** | a soft feathered **strike** (a muffled thump) + the flutter home |
+| Wren's Nest | quicker, lighter flutter | a smaller, quicker strike |
+| Starling Murmuration | a **flock whoosh** (many wings, soft) | strikes land as a soft, overlapping patter (3 targets) |
+| Magpie Perch | a heavier wingbeat | a strike + a faint **caw-less** beak tap |
+| Magpie's Hoard | same | crit that pays Dew: a tiny, soft **clutter of trinkets**, low (never a coin, never a bell) |
+| Hummingbird Bower | a very fast, **quiet wing hum** | pecks: tiny soft taps, near-subliminal (6 per second) |
+| Jewelwing Court | hum from three birds | pecks as above; signature: the Flurry crit (every 6th) is a slightly fuller tap |
+
+**Whirligig line** (wind: moving air and spinning wood; full game)
+
+| Warden | Launch | Hit / event |
+|---|---|---|
+| Whirligig | — | a soft **gust** (low air push) that nudges |
+| Gust | a spin-up of air | statuses copying across: a soft **air swirl** between the targets |
+| Zephyr | same | swirl + signature: a longer, sighing **breeze** as it spreads to 5 |
+| Pinwheel | — | blades loop: a soft, low **wooden whirr**; hits are soft air cuts, one per sweep |
+| Windmill | — | bigger, slower whirr; signature: a low **creak of the mill** each turn |
+| Samara | a spinning **maple seed whir** leaving | the pass-through hit: soft air cuts; the catch: a light **wooden clack** |
+| Autumn Gale | two seeds | same; signature: a rising (in volume, not pitch) **gust** as the catch rhythm builds |
+
+**Memory Wardens** (unique; each a small signature moment)
+
+| Warden | Sound |
+|---|---|
+| The White Stag | aura loop: a very faint, warm, **breathing presence**; placing it: a soft, distant antler knock + warm swell |
+| The Pond Keeper | the grab: a wet **tongue flick** (soft, low), a drag through water, a gentle plop beside the pond |
+| The Moon Moth | a slow, soft **wingbeat**; its long shot: a cool, soft air rush and a muffled glow bloom |
+
 ### Building and the map
 
 | Action | Sound |
