@@ -79,6 +79,7 @@ var tempest_time := 0.0
 var gust_time := 0.0
 var prism_pending := false
 var smother_ended := false
+var marked_extra := 0.0  # Beacon: its Marked is stronger (+35% instead of +25%) until Marked ends
 # Caught (Dreamcatcher): asleep or at max Drowsy inside a Dreamcatcher's range; takes more damage.
 var caught_time := 0.0
 var caught_bonus := 0.0
@@ -238,7 +239,7 @@ func get_speed_multiplier() -> float:
 func get_damage_taken_multiplier() -> float:
 	var multiplier := 1.0
 	if has(MARKED):
-		multiplier += MARKED_EXTRA
+		multiplier += maxf(MARKED_EXTRA, marked_extra)
 	if is_in_stag_aura():
 		multiplier += STAG_EXTRA
 	# Caught multiplies with the rest (a Caught, Marked nightmare takes ×1.4 × ×1.25).
@@ -293,4 +294,6 @@ func tick(delta: float) -> float:
 			status.time = STATIC_DECAY_TIME
 		else:
 			_active.erase(id)
+	if not has(MARKED):
+		marked_extra = 0.0
 	return spore_damage

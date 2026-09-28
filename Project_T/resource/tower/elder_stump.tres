@@ -1,0 +1,29 @@
+[gd_resource type="Resource" script_class="TowerData" load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://resource/tower/script/tower_data.gd" id="1_tdata"]
+[ext_resource type="Texture2D" path="res://assets/towers/elder_stump.png" id="2_tex"]
+[ext_resource type="Texture2D" path="res://assets/towers/elder_stump_attack.png" id="4_atk"]
+[ext_resource type="Resource" path="res://resource/tower/grove_heart.tres" id="ev_1"]
+
+[resource]
+script = ExtResource("1_tdata")
+display_name = "Elder Stump"
+description = "The 8 Wardens around it attack 20% faster."
+cost = 0
+line = "acorn"
+tier = 2
+buildable_directly = false
+evolve_cost = 80
+attack_kind = 1
+attack_range = 2.0
+damage = 13
+attacks_per_second = 1.0
+crit_chance = 0.05
+aura_speed_bonus = 0.2
+aura_radius = 1.5
+texture = ExtResource("2_tex")
+frame_count = 8
+attack_texture = ExtResource("4_atk")
+attack_frame_count = 6
+attack_release_frame = 2
+evolves_to = Array[Resource]([ExtResource("ev_1")])

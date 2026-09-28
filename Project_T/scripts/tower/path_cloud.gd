@@ -14,6 +14,7 @@ var _fog: bool
 var _color: Color
 var _age := 0.0
 var _tick_timer := 0.0
+var _drowsy_time := {}  # Morning Fog: nightmare instance id -> seconds inside since its last Drowsy
 
 func _init(tower: Tower, center: Vector2) -> void:
 	_tower = tower
@@ -46,6 +47,16 @@ func _tick() -> void:
 			continue
 		if _fog:
 			enemy.statuses.set_in_fog(TICK * 1.5)
+		var data: TowerData = _tower.attack_data if is_instance_valid(_tower) else null
+		if data and data.cloud_slow > 0.0:
+			enemy.statuses.slow_time = maxf(enemy.statuses.slow_time, TICK * 1.6)
+			enemy.statuses.slow_amount = maxf(enemy.statuses.slow_amount, data.cloud_slow)
+		if data and data.cloud_drowsy_per_second > 0.0:
+			var id: int = enemy.get_instance_id()
+			_drowsy_time[id] = _drowsy_time.get(id, 0.0) + TICK
+			if _drowsy_time[id] >= 1.0 / data.cloud_drowsy_per_second:
+				_drowsy_time[id] = 0.0
+				enemy.apply_status(EnemyStatuses.DROWSY, 1, 0.0, 0.0, 0, data.line, _tower)
 		# A cloud's soothe per tick is a share of one attack, spread over its lifetime.
 		_tower.hit(enemy, TICK / _duration, true, Tower.NO_CRIT)  # Clouds never crit
 

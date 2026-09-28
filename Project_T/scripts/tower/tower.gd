@@ -142,6 +142,9 @@ var _throw_hit := false
 var focus_strongest := false  # Jewelwing Court's toggle: all birds on the strongest nightmare
 var _echo_tracker: ReactionTracker = null
 var _patrol: PatrolFlight = null
+var _aura_count := 0  # Other Wardens inside this Warden's aura (Grove Heart)
+var _ability_timer := 0.0  # Rootcurl / Tangleroot / Beacon: seconds until the timed ability
+const INTEREST_CAP := 80  # Wellspring: all Wellsprings together pay at most this per rest
 var _drifts_yielded := 0  # Sapling: drifts since planted (Dreamlight every N)
 var _wither := 0  # Sapling: leaves lost since the last rest (−5% yield each)
 var _last_leaves := -1
@@ -200,6 +203,8 @@ func _process(delta: float) -> void:
 		return
 	if tower_data.caught_bonus > 0.0:
 		_update_catch(delta)  # Dreamcatchers catch sleepy nightmares whether or not they're shooting
+	if attack_data.ability_every > 0.0:
+		_update_ability(delta)
 	match attack_data.attack_kind:
 		TowerData.AttackKind.AURA:
 			_update_aura(delta)
@@ -457,6 +462,17 @@ func _other_towers() -> Array:
 	return get_parent().get_children().filter(func(t: Node) -> bool:
 		return t is Tower and t != self and not t.is_queued_for_deletion())
 
+# How far this Warden's aura reaches, in cells (aura_radius, or its attack range).
+func get_aura_reach() -> float:
+	return tower_data.aura_radius if tower_data.aura_radius > 0.0 else tower_data.attack_range
+
+# Grove Heart: +aura_per_warden for each Warden in its radius, keeping the total under aura_max.
+func get_aura_extra() -> float:
+	if tower_data.aura_per_warden <= 0.0:
+		return 0.0
+	var base := maxf(tower_data.aura_damage_bonus, tower_data.aura_speed_bonus)
+	return clampf(tower_data.aura_per_warden * _aura_count, 0.0, maxf(tower_data.aura_max - base, 0.0))
+
 # Refreshes what depends on nearby Wardens: the copied attack (Graftling) and aura bonuses.
 func _refresh_neighbours() -> void:
 	_neighbour_timer = NEIGHBOUR_REFRESH
@@ -464,6 +480,7 @@ func _refresh_neighbours() -> void:
 	_aura_range = 0.0
 	_aura_damage = 0.0
 	_aura_speed = 0.0
+	var aura_count := 0
 	var harmony := {}
 	var best: Tower = null
 	var best_dps := 0.0
@@ -472,9 +489,15 @@ func _refresh_neighbours() -> void:
 		var data: TowerData = other.tower_data
 		if data.aura_crit_bonus > 0.0 and distance <= data.attack_range:
 			_aura_crit = maxf(_aura_crit, data.aura_crit_bonus)  # Auras don't stack with themselves
-		if (data.aura_damage_bonus > 0.0 or data.aura_speed_bonus > 0.0) and distance <= data.attack_range:
-			_aura_damage = maxf(_aura_damage, data.aura_damage_bonus)  # Grandmother Oak
-			_aura_speed = maxf(_aura_speed, data.aura_speed_bonus)
+		if (data.aura_damage_bonus > 0.0 or data.aura_speed_bonus > 0.0) and distance <= other.get_aura_reach():
+			# Acorn, Elder Stump, Grove Heart, Grandmother Oak. Auras don't stack: the strongest counts.
+			var extra: float = other.get_aura_extra()
+			if data.aura_damage_bonus > 0.0:
+				_aura_damage = maxf(_aura_damage, data.aura_damage_bonus + extra)
+			if data.aura_speed_bonus > 0.0:
+				_aura_speed = maxf(_aura_speed, data.aura_speed_bonus + extra)
+		if (tower_data.aura_damage_bonus > 0.0 or tower_data.aura_speed_bonus > 0.0) and distance <= get_aura_reach():
+			aura_count += 1
 		if data.range_aura_bonus > 0.0 and distance <= data.range_aura_radius:
 			_aura_range = maxf(_aura_range, data.range_aura_bonus)
 		if tower_data.attack_kind == TowerData.AttackKind.COPY and data.applies_status != &"" \
@@ -486,6 +509,7 @@ func _refresh_neighbours() -> void:
 			if dps > best_dps:
 				best_dps = dps
 				best = other
+	_aura_count = aura_count
 	_set_harmony(harmony if harmony.size() >= 2 else {})
 	if tower_data.attack_kind != TowerData.AttackKind.COPY:
 		return
@@ -555,6 +579,10 @@ func _release() -> void:
 		TowerData.AttackKind.PULSE:
 			var in_range := get_enemies_in_range()
 			var statics := 0
+			if attack_data.rain:
+				var world := Reactions._world(self)
+				if world:
+					Fx.rain_sweep(global_position, get_range_pixels(), world)  # Monsoon's sheet of rain
 			if attack_data.tier >= 4:
 				ascended_event.emit(self, global_position, in_range.size())
 			for enemy in in_range:
@@ -904,6 +932,59 @@ func fire_at(target: Node2D) -> void:
 	projectile.global_position = global_position + tower_data.get_attack_origin()
 
 # Whirligig: pulses nudge nightmares back a little (each at most once per push_cooldown).
+# The timed ability (warden_stats.md, Rootling and Firefly Jar families): every ability_every seconds
+# while a nightmare is in range. Rootcurl / Long Way Home pull the one furthest along back along its
+# route, Tangleroot / Snugroot Hold the ones furthest along, Beacon Marks everything in range.
+func _update_ability(delta: float) -> void:
+	_ability_timer -= delta
+	if _ability_timer > 0.0:
+		return
+	var in_range := get_enemies_in_range()
+	if in_range.is_empty():
+		return
+	_ability_timer = attack_data.ability_every
+	in_range.sort_custom(func(a: Node2D, b: Node2D) -> bool:
+		return a.get_remaining_distance() < b.get_remaining_distance())  # Furthest along first
+	if attack_data.mark_all:
+		for enemy in in_range:
+			_apply_one_status(enemy, EnemyStatuses.MARKED, 1, get_damage())
+			if is_instance_valid(enemy) and enemy.statuses.has(EnemyStatuses.MARKED):
+				enemy.statuses.marked_extra = maxf(enemy.statuses.marked_extra, attack_data.marked_bonus)
+		Reactions._effect(&"pinned", global_position, self, 0.6)  # A flare of light from the Beacon
+	if attack_data.pull_tiles > 0.0:
+		for enemy in in_range:
+			if attack_data.pull_once and enemy.has_meta(&"pulled_home"):
+				continue
+			var tiles: float = attack_data.pull_boss_tiles if enemy.enemy_data.is_boss else attack_data.pull_tiles
+			var before: Vector2 = enemy.global_position
+			enemy.push_back(tiles * MAP_GRID.cell_size.x)
+			if attack_data.pull_once:
+				enemy.set_meta(&"pulled_home", true)
+			var world := Reactions._world(self)
+			if world:
+				Fx.segment(&"long_way_home_drag", before, enemy.global_position, world, 0.4)
+			break  # One nightmare per pull
+	if attack_data.hold_targets > 0:
+		for enemy in in_range.slice(0, attack_data.hold_targets):
+			enemy.apply_status(EnemyStatuses.HELD, 1, attack_data.hold_time, 0.0, 0, tower_data.line, self)
+
+# Wellspring: at every rest, a share of your banked Dew (per Wellspring and for all of them together).
+func _on_rest_interest(block: int, _boss: bool, _bonus: int, _perfect: bool) -> void:
+	if not is_inside_tree() or is_queued_for_deletion() or tower_data.rest_interest <= 0.0:
+		return
+	var run_state: RunState = _dream_state.run_state
+	if run_state.get_meta(&"interest_block", -1) != block:
+		run_state.set_meta(&"interest_block", block)
+		run_state.set_meta(&"interest_paid", 0)
+	var paid: int = run_state.get_meta(&"interest_paid", 0)
+	var dew := mini(floori(run_state.dew * tower_data.rest_interest), tower_data.rest_interest_max)
+	dew = mini(dew, INTEREST_CAP - paid)
+	if dew <= 0:
+		return
+	run_state.set_meta(&"interest_paid", paid + dew)
+	run_state.earn_dew_at(dew, global_position)
+	sap_yielded.emit(self, dew)
+
 func _push(enemy: Node2D) -> void:
 	if attack_data.push_back_tiles <= 0.0 or not is_instance_valid(enemy) or enemy.is_cleansed \
 			or enemy.push_cooldown > 0.0:
@@ -1102,9 +1183,13 @@ func _on_reaction_nearby(id: StringName, enemy: Node2D, chain: int, towers: Arra
 const WITHER_PER_LEAF := 0.05  # Sapling: each leaf lost since the last rest
 
 func _connect_yield() -> void:
-	if tower_data.dew_per_drift <= 0 or _dream_state == null or not is_inside_tree():
+	if _dream_state == null or not is_inside_tree():
 		return
 	var director: DriftDirector = _dream_state.drift_director
+	if tower_data.rest_interest > 0.0 and not director.rest_started.is_connected(_on_rest_interest):
+		director.rest_started.connect(_on_rest_interest)  # Wellspring
+	if tower_data.dew_per_drift <= 0:
+		return
 	if not director.drift_cleared.is_connected(_on_drift_cleared):
 		director.drift_cleared.connect(_on_drift_cleared)
 		director.rest_started.connect(func(_b, _boss, _bonus, _perfect) -> void:

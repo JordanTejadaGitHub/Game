@@ -6,8 +6,9 @@
 script = ExtResource("1_unlock")
 id = "acorn_finals"
 display_name = "Acorn final forms"
-description = "Acorn final forms can grow in your runs."
+description = "Acorn final forms can grow in your runs: Grove Heart, Wellspring."
 root = 0
 costs = Array[int]([50])
 requires_all = Array[String](["acorn_line"])
 order = 16
+dream_cards = Array[String](["dream_grove_heart", "dream_wellspring"])

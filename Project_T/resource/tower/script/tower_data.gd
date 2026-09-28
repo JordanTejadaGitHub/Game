@@ -164,6 +164,28 @@ const ASCENDED_JSON := "res://assets/towers/ascended/ascended.json"  # 128×128 
 @export var rank_overlay_texture: Texture2D  # …and one overlay frame per rank I–V (instead of the rank rings)
 @export var rank_overlay_frames: int = 5
 
+@export_group("Rootling, Acorn, Monsoon, Beacon")
+# A timed ability besides the attack (every `ability_every` s, while a nightmare is in range), on the
+# nightmares furthest along: pull them back (Rootcurl, Long Way Home), Hold them (Tangleroot,
+# Snugroot), or Mark everything in range (Beacon).
+@export var ability_every: float = 0.0
+@export var pull_tiles: float = 0.0  # Tiles pulled back along the route (bosses: pull_boss_tiles)
+@export var pull_once: bool = false  # Long Way Home: each nightmare only once
+@export var hold_targets: int = 0  # Tangleroot 1, Snugroot up to 3…
+@export var hold_time: float = 1.0  # …for this long
+@export var mark_all: bool = false  # Beacon: Marks every nightmare in range…
+@export var marked_bonus: float = 0.0  # …and its Marked is this strong (0.35 = +35%, instead of +25%)
+@export var rain: bool = false  # Monsoon: each pulse is a sheet of rain over its range
+# Auras (Acorn, Elder Stump, Grove Heart): Wardens within aura_radius cells get aura_damage_bonus /
+# aura_speed_bonus, + aura_per_warden for each other Warden in the radius, up to aura_max.
+@export var aura_radius: float = 0.0  # 0 = the attack range; 1.5 = the 8 around it
+@export var aura_per_warden: float = 0.0
+@export var aura_max: float = 0.0
+@export var rest_interest: float = 0.0  # Wellspring: at every rest, this share of your banked Dew…
+@export var rest_interest_max: int = 0  # …up to this per Wellspring (all together: Tower.INTEREST_CAP)
+@export var cloud_slow: float = 0.0  # Morning Fog: nightmares inside are this much slower…
+@export var cloud_drowsy_per_second: float = 0.0  # …and gain Drowsy at this rate
+
 @export_group("Pop")
 # Puffball: when a hit leaves a nightmare with pop_at_stacks+ Spored, it pops: pop_damage_per_stack
 # × stacks to it and every nightmare within pop_radius cells (area, never crits), its stacks are used

@@ -10,4 +10,4 @@ description = "Firefly Jar final forms can grow in your runs: Thunderhead, Beaco
 root = 0
 costs = Array[int]([50])
 order = 11
-dream_cards = Array[String](["dream_thunderhead"])
+dream_cards = Array[String](["dream_thunderhead", "dream_beacon"])

@@ -84,8 +84,7 @@ func _refresh() -> void:
 			_title.text += " · %s" % Tower.FOCUS_NAMES[_tower.focus]
 	_title.tooltip_text = ""
 	if _tower.rank > 0:
-		_title.tooltip_text = IconInfo.stat_tooltip(&"rank") + ("
-" + IconInfo.stat_tooltip(&"focus") if _tower.focus != Tower.Focus.NONE else "")
+		_title.tooltip_text = IconInfo.stat_tooltip(&"rank") + ("\n" + IconInfo.stat_tooltip(&"focus") if _tower.focus != Tower.Focus.NONE else "")
 	_title.mouse_filter = Control.MOUSE_FILTER_PASS if _title.tooltip_text != "" else Control.MOUSE_FILTER_IGNORE
 	_desc.text = data.description
 	_desc.visible = data.description != ""
@@ -94,7 +93,7 @@ func _refresh() -> void:
 	var lines: Array[String] = []
 	var attack := _tower.attack_data
 	if data.attack_kind == TowerData.AttackKind.AURA:
-		_stat_row([["Aura", ""], ["range %.2f" % _tower.get_range_cells(), IconInfo.stat_tooltip(&"range")]])
+		_stat_row([["Aura", &""], ["range %.2f" % _tower.get_range_cells(), &"range"]])
 	elif data.attack_kind == TowerData.AttackKind.COPY and _tower.get_copied() == null:
 		lines.append("Nothing to copy: plant it beside an attacking Warden.")
 	elif data.can_attack:
@@ -103,21 +102,21 @@ func _refresh() -> void:
 		var range_text := "range %.2f" % _tower.get_range_cells()
 		if attack.min_range > 0.0:
 			range_text = "range %.1f–%.1f" % [attack.min_range, _tower.get_range_cells()]
-		_stat_row([["Damage %.0f" % _tower.get_damage(), IconInfo.stat_tooltip(&"damage")],
-			["%.2f/s" % _tower.get_attacks_per_second(), IconInfo.stat_tooltip(&"attack_speed")],
-			[range_text, IconInfo.stat_tooltip(&"range")]])
+		_stat_row([["Damage %.0f" % _tower.get_damage(), &"damage"],
+			["%.2f/s" % _tower.get_attacks_per_second(), &"attack_speed"],
+			[range_text, &"range"]])
 		var second: Array = []
 		if _tower.get_crit_chance() > 0.0:
-			second.append(["Crit %d%%" % roundi(_tower.get_crit_chance() * 100), IconInfo.stat_tooltip(&"crit_chance")])
-			second.append(["×%s" % str(attack.crit_multiplier), IconInfo.stat_tooltip(&"crit_damage")])
+			second.append(["Crit %d%%" % roundi(_tower.get_crit_chance() * 100), &"crit_chance"])
+			second.append(["×%s" % str(attack.crit_multiplier), &"crit_damage"])
 		var potency := _tower.get_potency()
 		if not is_equal_approx(potency, 1.0):
-			second.append(["Potency %d%%" % roundi(potency * 100), IconInfo.stat_tooltip(&"potency")])  # Effect damage
+			second.append(["Potency %d%%" % roundi(potency * 100), &"potency"])  # Effect damage
 		if not second.is_empty():
 			_stat_row(second)
 		if attack.applies_status != &"":
 			_stat_row([["Applies %s%s" % [IconInfo.status_name(attack.applies_status),
-				" ×%d" % attack.status_stacks if attack.status_stacks > 1 else ""], IconInfo.status_tooltip(attack.applies_status)]])
+				" ×%d" % attack.status_stacks if attack.status_stacks > 1 else ""], attack.applies_status, true]])
 	else:
 		lines.append("A wall: no attack.")
 	if data.is_unique:
@@ -191,20 +190,32 @@ func _refresh() -> void:
 	var close := _add_button("Close")
 	close.pressed.connect(tower_seller.select.bind(null))
 
-# One row of stats ("Damage 24 · 1.00/s · range 2.50"); each part is a label with its own tooltip,
-# which also opens on tap. `parts`: [[text, tooltip], …] ("" = no tooltip).
+# One row of stats ("Damage 24 · 1.00/s · range 2.50"): each part is its icon and a label, both
+# explaining the stat on hover and on tap (IconInfo). `parts`: [[text, stat id], …] or
+# [text, status id, true] for a status (&"" = plain text).
 func _stat_row(parts: Array) -> void:
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 0)
 	for i in parts.size():
+		var part: Array = parts[i]
 		if i > 0:
 			var dot := Label.new()
 			dot.text = " · "
 			row.add_child(dot)
+		var id: StringName = part[1]
+		var is_status: bool = part.size() > 2 and part[2]
+		var tip := IconInfo.status_tooltip(id) if is_status else IconInfo.stat_tooltip(id)
+		if id != &"" and IconInfo.icon(id) != null:
+			var icon := IconInfo.make_icon(id, 1)  # Carries its own TapTip
+			icon.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+			row.add_child(icon)
+			var gap := Control.new()
+			gap.custom_minimum_size = Vector2(3, 0)
+			row.add_child(gap)
 		var label := Label.new()
-		label.text = parts[i][0]
-		if parts[i][1] != "":
-			TapTip.attach(label, parts[i][1])
+		label.text = part[0]
+		if tip != "":
+			TapTip.attach(label, tip)
 		row.add_child(label)
 	_stats.add_child(row)
 

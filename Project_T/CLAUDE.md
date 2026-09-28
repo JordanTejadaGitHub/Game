@@ -345,6 +345,14 @@ accessibility, Steam achievements (milestones map to them). Acts 3–4 and all f
   `assets/effects/effects.json`: `play`, `segment`, `reaction`, `chain`, `crit`, `status_flash`;
   budget/lite and reduce_flashes inside). Never parent effects under `%EnemyContainer` (its children
   are all nightmares); use `Reactions._world(node)`.
+- Rootling / Acorn / Dewdrop / Firefly branches and finals (warden_stats.md): a timed ability
+  (`TowerData.ability_every`, `Tower._update_ability`) on the nightmares furthest along: pull back
+  (`pull_tiles`, `pull_once`: Rootcurl, Long Way Home), Hold (`hold_targets`: Tangleroot, Snugroot),
+  Mark all at `marked_bonus` (Beacon; `EnemyStatuses.marked_extra`). Auras: `aura_radius` (1.5 = the 8
+  around), `aura_per_warden` / `aura_max` (Grove Heart; Acorn +5%, Elder Stump +20% speed).
+  Dewcatcher = `dew_per_drift`; Wellspring = `rest_interest` (cap per Warden, `Tower.INTEREST_CAP` 80
+  for all). Monsoon = PULSE + `rain`; Morning Fog = CLOUD + `cloud_slow` / `cloud_drowsy_per_second`.
+  `tests/test_family_finals.gd`.
 - **Crowned Reactions** (a Reaction on a nightmare with a third status; `Reactions.CROWNED_BASE`):
   tempest, still_pool, fever_dream, starfall, avalanche, prismstorm, nightbloom, fairy_circle, handled
   inside the base Reaction's code (same cooldown key, `_fire(..., links = 2, cooldown_id)`); data in

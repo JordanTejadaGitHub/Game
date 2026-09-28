@@ -10,3 +10,4 @@ description = "Dewdrop final forms can grow in your runs: Monsoon, Morning Fog."
 root = 0
 costs = Array[int]([50])
 order = 12
+dream_cards = Array[String](["dream_monsoon", "dream_morning_fog"])
