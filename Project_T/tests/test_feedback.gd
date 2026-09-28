@@ -168,7 +168,7 @@ func _run() -> void:
 		feedback._on_kinship(&"slumber_rot", null, null)
 		_check(feedback.kin_formed_block == 1 and feedback._queue.has(&"slumber_rot") or feedback._card_id == &"slumber_rot",
 			"a first bond is discovered and counted")
-		_check(RestReport.kinship_text(2, 84, ["sporeling"]) == "\nKinships formed: 2 · Harmony strikes: 84\nThe Sporeling line is whole.",
+		_check(RestReport.kinship_text(2, 84, ["spore"]) == "\nKinships formed: 2 · Harmony strikes: 84\nThe Sporeling line is whole.",
 			"the rest report's Kinship lines")
 		feedback._queue.clear()
 		feedback._card.visible = false

@@ -136,6 +136,9 @@ const CROWNED := {
 # assets/meta/icons/family_icons.png: 32×32 icons in this order.
 const FAMILY_ICON_ORDER := ["sporeling", "firefly_jar", "dewdrop", "pebbling", "rootling", "bellflower",
 	"acorn", "nestling", "whirligig"]
+# TowerData.line -> family id (Kinships' signals pass the line: family_whole("spore")).
+const LINE_FAMILIES := {"spore": "sporeling", "water": "dewdrop", "light": "firefly_jar", "stone": "pebbling",
+	"root": "rootling", "song": "bellflower", "acorn": "acorn", "wing": "nestling", "wind": "whirligig"}
 const FAMILY_NAMES := {"sporeling": "Sporeling", "firefly_jar": "Firefly Jar", "dewdrop": "Dewdrop",
 	"pebbling": "Pebbling", "rootling": "Rootling", "bellflower": "Bellflower", "acorn": "Acorn",
 	"nestling": "Nestling", "whirligig": "Whirligig"}

@@ -59,8 +59,9 @@ static func kinship_text(formed: int, harmony: int, whole: Array) -> String:
 		parts.append("Harmony strikes: %d" % harmony)
 	if not parts.is_empty():
 		text += "\n" + " · ".join(parts)
-	for family in whole:
-		text += "\nThe %s line is whole." % CodexData.FAMILY_NAMES.get(family, String(family).capitalize())
+	for line in whole:  # Kinships pass the line ("spore"); the report names the family
+		var family: String = CodexData.LINE_FAMILIES.get(String(line), String(line))
+		text += "\nThe %s line is whole." % CodexData.FAMILY_NAMES.get(family, family.capitalize())
 	return text
 
 func _link_open() -> bool:
