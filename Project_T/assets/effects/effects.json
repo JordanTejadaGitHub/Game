@@ -65,6 +65,38 @@
 			"loop": false,
 			"note": "Bitmap font: frame i is glyph i of `glyphs` ('x' = the multiply sign). 7 px advance."
 		},
+		"chain_link": {
+			"anchor": [
+				8,
+				8
+			],
+			"bright": "chain_link_bright",
+			"file": "chain_link.png",
+			"fps": 8.0,
+			"frame_size": [
+				16,
+				16
+			],
+			"frames": 4,
+			"kind": "ui",
+			"loop": true,
+			"note": "Icon beside the chain badge's \"Chain N\" text. Loops a glint; use chain_link_bright from Chain 5."
+		},
+		"chain_link_bright": {
+			"anchor": [
+				8,
+				8
+			],
+			"file": "chain_link_bright.png",
+			"fps": 10.0,
+			"frame_size": [
+				16,
+				16
+			],
+			"frames": 4,
+			"kind": "ui",
+			"loop": true
+		},
 		"crit_flare": {
 			"anchor": [
 				24,

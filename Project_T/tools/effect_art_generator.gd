@@ -454,6 +454,9 @@ func _chain_ui() -> void:
 	_sheet("light_thread", Vector2i(32, 8), 4, 16, Vector2i(0, 4), true, "segment", _light_thread,
 		{note = "Stretch or tile along x from a Warden to the reaction; starts and ends at y = 4."})
 	_sheet("crit_flare", Vector2i(48, 48), 5, 20, Vector2i(24, 24), false, "hit", _crit_flare)
+	_sheet("chain_link", Vector2i(16, 16), 4, 8, Vector2i(8, 8), true, "ui", _chain_link.bind(false),
+		{bright = "chain_link_bright", note = "Icon beside the chain badge's \"Chain N\" text. Loops a glint; use chain_link_bright from Chain 5."})
+	_sheet("chain_link_bright", Vector2i(16, 16), 4, 10, Vector2i(8, 8), true, "ui", _chain_link.bind(true))
 	var colours := {"damp": "#6ab0ff", "drowsy": "#c8b0f0", "spored": "#c080ff", "marked": "#e8ecff", "static": "#fff27a", "held": "#9a8a40"}
 	_sheet("status_flash", Vector2i(32, 32), 5, 20, Vector2i(16, 16), false, "hit", _status_flash.bind(colours.values()),
 		{rows = colours.keys(), colours = colours, note = "One row per status (top to bottom in `rows`); each sheet row is 32 px tall."})
@@ -535,6 +538,69 @@ func _light_thread(img: Image, f: int) -> void:
 	_px(img, dot, 4, CORE)
 	_px(img, dot, 3, WARM)
 	_px(img, dot, 5, WARM)
+
+# Two interlocked warm-gold links on the diagonal; a glint runs round them.
+func _chain_link(img: Image, f: int, bright: bool) -> void:
+	var centres := [Vector2(5.6, 5.6), Vector2(10.4, 10.4)]
+	var half := 2.3  # half the straight part of each capsule-shaped link
+	var ro := 3.9
+	var ri := 1.3
+	var light := Color("#fff4c0") if bright else Color("#ffe070")
+	var mid := Color("#ffd860") if bright else Color("#e8b040")
+	var dark := Color("#c8902a") if bright else Color("#a86a1a")
+	var edge := Color("#5a3200")
+	# Which link a pixel belongs to (link 1 on top above the diagonal, link 2 below: interlocked).
+	# Returns the normal-ish offset from the link's centre line, or INF when off the link. `solid`
+	# ignores the hole (for finding the outer edge).
+	var on_link := func(p: Vector2, k: int, solid: bool = false) -> Vector2:
+		var d := (p - (centres[k] as Vector2)).rotated(-PI / 4.0)
+		var near := Vector2(clampf(d.x, -half, half), 0.0)
+		var r := d.distance_to(near)
+		if r <= ro and (solid or r > ri):
+			return (d - near) / ro
+		return Vector2(INF, INF)
+	var owner := func(x: int, y: int) -> int:
+		var p := Vector2(x + 0.5, y + 0.5)
+		var a: bool = (on_link.call(p, 0) as Vector2).x != INF
+		var b: bool = (on_link.call(p, 1) as Vector2).x != INF
+		if a and b:
+			return 0 if x > y else 1
+		return 0 if a else (1 if b else -1)
+	for y in 16:
+		for x in 16:
+			var k: int = owner.call(x, y)
+			if k < 0:
+				continue
+			# Outline only against the outside and the other link, never into the hole.
+			var border := false
+			for d: Vector2i in [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]:
+				var nx := x + d.x
+				var ny := y + d.y
+				if nx < 0 or ny < 0 or nx >= 16 or ny >= 16:
+					border = true
+					break
+				var other: int = owner.call(nx, ny)
+				var in_hole: bool = other < 0 and (on_link.call(Vector2(nx + 0.5, ny + 0.5), k, true) as Vector2).x != INF
+				if other != k and not in_hole:
+					border = true
+					break
+			if border:
+				img.set_pixel(x, y, edge)
+				continue
+			var n: Vector2 = on_link.call(Vector2(x + 0.5, y + 0.5), k)
+			var lit := -n.rotated(PI / 4.0).dot(Vector2(0.7, 0.7))
+			img.set_pixel(x, y, light if lit > 0.25 else (dark if lit < -0.3 else mid))
+	# The glint travels from one link to the other.
+	var glints := [Vector2i(3, 5), Vector2i(6, 3), Vector2i(10, 8), Vector2i(12, 11)]
+	var g: Vector2i = glints[f]
+	if img.get_pixelv(g) != edge and img.get_pixelv(g).a > 0.0:
+		img.set_pixelv(g, Color.WHITE)
+	if bright:
+		for s: Vector2i in [Vector2i(14, 2), Vector2i(1, 13)]:
+			if (f + s.x) % 2 == 0:
+				_px(img, s.x, s.y, CORE)
+				_px(img, s.x - 1, s.y, WARM)
+				_px(img, s.x, s.y + 1, WARM)
 
 func _crit_flare(img: Image, f: int) -> void:
 	var c := Vector2(24, 24)
