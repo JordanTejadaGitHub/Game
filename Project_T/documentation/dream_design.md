@@ -33,6 +33,15 @@ points.
 ## How Dream offers work
 
 - **3 cards per Dream**, after drifts 5, 10, … 95. No duplicates within an offer.
+- **Passed-over cards fade** (added 2026-09-28; playtest: Few and Mighty was offered ~5 times by
+  drift 35 to a player not going narrow). A card that was offered and **not taken**:
+  - **never appears in the next offer** (unless nothing else of the rolled rarity is eligible);
+  - then comes back at **×0.5 weight**, recovering to full after 2 more offers without it;
+  - after being passed over **3 times in a run**, stays at **×0.25 weight** for the rest of the run
+    (the player has told us it isn't their build). A reroll counts as passing over every card it
+    replaced.
+  - Taking the card, or it being Entwined's guaranteed slot, is unaffected. Rerolls, Banish and
+    Let it pass still work as before; this is only about how often a skipped card returns.
 - **Rarity weights by act:**
 
   | Act | Common | Uncommon | Rare | Legendary |
