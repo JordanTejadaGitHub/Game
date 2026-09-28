@@ -122,7 +122,7 @@ alternative**: a strong card you can use now if you bend the plan.
      this run: unlocked, not owned, and a family pick is still ahead (never after the drift 75 pick).
      Needs on a specific form (Stormcap) count as its family for this check; the form itself is still
      unlocked with Dreamlight as usual.
-   - **Weight ×0.6** while half-dreamed, so it's an occasional temptation, not a flood. Normal
+   - **Weight ×0.8** while half-dreamed (was ×0.6; raised after the generic Rares thinned it to ~0.5 per run before drift 25), so it's an occasional temptation, not a flood. Normal
      rarity; the skip fade applies.
    - **Timing (playtest fix, 2026-09-28):** only offered when the next family pick is **at most 20
      drifts away** (so not in the rest right after a pick, when it would sleep 25 drifts), and
@@ -853,7 +853,7 @@ and have loose or no Needs. Each rewards a way of building, not a family; all on
 | 135 | **Root Network** | Rare | Sprouts that **touch each other** (side by side, not diagonal) form a network: each Sprout gets **+6% damage per Sprout in its network** (a line of 8 = +48% each; max +60%). The networks glow faintly along their shared edges | sprout, wide | 4+ Sprouts (soft) | Start |
 | 136 | **First Light** | Rare | each Warden's **first hit on a nightmare** deals **×3** damage | — | — | Start |
 | 137 | **Last Stand** | Rare | nightmares within **4 cells of the Heartwood** take **+35% damage** from every Warden | maze | — | Start |
-| 138 | **Deep Roots** | Rare | Wardens that have stood **5 drifts** (never sold; growing keeps the count) deal **+15% damage**; **15 drifts: +30%** | — | — | Start |
+| 138 | **Steadfast** (id `old_growth`; "Deep Roots" and "Old Growth" were taken) | Rare | Wardens that have stood **5 drifts** (never sold; growing keeps the count) deal **+15% damage**; **15 drifts: +30%** | — | — | Start |
 | 139 | **Hunter's Patience** | Rare | Wardens deal **+50% damage to Deeply Blighted** nightmares and **+20% to bosses** | — | act 2+ | Start |
 | 140 | **Thinning the Herd** | Rare | each nightmare dispelled within a Warden's range gives that Warden **+1% damage for the rest of the drift** (max +25%) | — | — | Start |
 | 141 | **Bitter Hedges** | Rare | nightmares walking past a **Thornwall** (next to the path) take **+3% damage** from every Warden for 2 s, **+3% more per extra Thornwall** they pass in that time (max +15%) | wall, maze | 6+ Thornwalls (soft) | Start |
