@@ -6,14 +6,16 @@ function emitImg(name, img) { const p = document.createElement("pre"); p.dataset
 function emitText(name, text) { const p = document.createElement("pre"); p.dataset.name = name; p.textContent = btoa(unescape(encodeURIComponent(text))); document.body.appendChild(p); }
 const nodeRow = (sec, big) => strip([nodeSprite(sec, "locked", 0, big), ...[0, 1, 2, 3].map(f => nodeSprite(sec, "afford", f, big)), ...[0, 1, 2, 3].map(f => nodeSprite(sec, "open", f, big)), nodeSprite(sec, "bloom", 0, big), nodeSprite(sec, "bloom", 1, big)]);
 
+// The smallest crown (stage 0, shown from the first visit) decides where everything sits, so no
+// branch pokes out of the leaves at any stage: the great limbs end inside it, the nodes are spread
+// evenly over it, and the dream-fruit hang just under its belly. The tree and branches come after.
+const canopies = [0, 1, 2, 3].map(groveCanopy);
+canopies.forEach((c, i) => emitImg("grove/grove_canopy_" + i + ".png", c));
+trimLimbs(canopies[0]);
 const tree = groveTree(), sky = grovesky();
 emitImg("grove/grove_sky.png", sky);
 emitImg("grove/grove_tree.png", tree);
-const canopies = [0, 1, 2, 3].map(groveCanopy);
-canopies.forEach((c, i) => emitImg("grove/grove_canopy_" + i + ".png", c));
-// The full crown decides where the nodes sit (inside its leaves, spread evenly) and where the
-// dream-fruit hang (just under its belly); the branches are drawn after that.
-spreadNodes(canopies[3]);
+spreadNodes(canopies[0]);
 FRUIT_SPOTS.forEach(s => { s[1] = maskBottom(s[0]) - 8; });
 const layout = { size: [GW, GH], nodes: [], fruit_spots: FRUIT_SPOTS, loadout_stones: LOADOUT_STONES, moon: MOON, node_cell: 32, legendary_cell: 48, fruit_cell: 48 };
 const segs = {};

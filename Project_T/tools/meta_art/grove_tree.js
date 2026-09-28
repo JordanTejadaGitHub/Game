@@ -322,7 +322,7 @@ function grovesky() {
 const CROWN_P = ["#050b08", "#07100b", "#0c1a10", "#132816", "#1c381c", "#284a24", "#3a5e30"];
 const CROWN_PX = 2, CROWN_SEED = 970;
 // Stages grow the crown outward: the clusters over the limbs are always there, the edges fill in.
-const CROWN_SHARE = [.55, .7, .85, 1];
+const CROWN_SHARE = [.72, .8, .9, 1];
 const CROWN = (() => {
   const s = CROWN_PX, W = Math.ceil(GW / s), H = Math.ceil(GH / s), seed = CROWN_SEED;
   const inCrown = (x, y) => crownIn(x * s, y * s);
@@ -418,9 +418,29 @@ function groveCanopy(stage) {
 // nodes fill the crown, gaps between the limbs included, while staying within reach of their parent.
 let CROWN_MASK = null;
 const inMask = (x, y, m) => !CROWN_MASK || [[0, 0], [m, 0], [-m, 0], [0, m], [0, -m]].every(([a, b]) => CROWN_MASK.alpha(Math.round(x + a), Math.round(y + b)));
+// The great limbs end where they would leave the crown's leaves (they enter the leaves low down and
+// run up inside them); `cut` keeps the part that's left, for moving branch starts onto it.
+function trimLimbs(mask) {
+  CROWN_MASK = mask;
+  for (const limb of Object.values(LIMBS)) {
+    const curve = catmull(limb.pts, 16);
+    let last = curve.length - 1, entered = false;
+    for (let i = 0; i < curve.length; i++) {
+      if (inMask(curve[i][0], curve[i][1], 22)) { entered = true; last = i; } else if (entered) break;
+    }
+    const keep = Math.floor(last / 16);
+    limb.pts = [...limb.pts.slice(0, keep + 1), ...(last % 16 ? [curve[last].map(Math.round)] : [])];
+    limb.cut = curve.slice(0, last + 1);
+  }
+}
 function spreadNodes(mask) {
   CROWN_MASK = mask;
   const list = NODES, anchor = n => n.parent ? byId[n.parent] : { x: n.from[0], y: n.from[1] };
+  // Branches that grew off a cut-away limb tip start from the nearest point left on that limb.
+  for (const n of list) if (n.from && LIMBS[n.section].cut && !inMask(n.from[0], n.from[1], 16)) {
+    const inside = LIMBS[n.section].cut.filter(([x, y]) => inMask(x, y, 16));
+    if (inside.length) n.from = inside.reduce((b, p) => Math.hypot(p[0] - n.from[0], p[1] - n.from[1]) < Math.hypot(b[0] - n.from[0], b[1] - n.from[1]) ? p : b).map(Math.round);
+  }
   for (const n of list) for (let k = 0; k < 250 && !inMask(n.x, n.y, 24); k++) {
     const dx = 640 - n.x, dy = 300 - n.y, d = Math.hypot(dx, dy) || 1;
     n.x = Math.round(n.x + dx / d * 4); n.y = Math.round(n.y + dy / d * 4);
