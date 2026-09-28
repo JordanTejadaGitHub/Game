@@ -330,6 +330,19 @@ demo) and 9 hidden ones later. Kindred and Whole Tree are explained on the secti
 
 New combos (new Wardens, Reactions) are added to this table and the Codex automatically.
 
+**What the Codex covers** (2026-09-28, user): **the families you can get in a run**: the three
+starting families plus every family unlocked in the Memory Grove (hidden branches only once their
+Grove node is planted). Combos, Reactions, Crowned Reactions and Kinships appear once all the
+families they need are yours in that sense; the list grows as the Grove does, and a newly covered
+entry arrives as "???" with a small leaf "New from the Grove" mark.
+- Entries that need a family you haven't unlocked aren't listed. One quiet line at the end of each
+  section says how many: *"4 more wait in the Memory Grove."* (no names, no hints).
+- Counters read against that scope ("9 / 11 combos discovered"); the **Discover every combo**
+  milestone still needs every combo in the game.
+- The demo covers only its three families (as built, 22bab70); dev toggles show everything.
+- A **Families** page lists the families you have, with their branches and final forms (locked ones
+  as silhouettes with "unlock with Dreamlight" / "Memory Grove"), each linking to its combos.
+
 - **Saved in the profile**, including in the demo (carried into the full game like Seeds). Not
   saved from developer runs (Test Grove, Unlock all families), **but** (changed 2026-09-28, user
   playtest: "unlocking stuff in the codex doesn't display after") discoveries in a developer run are
