@@ -317,7 +317,9 @@ few Dew). Two rules make it a losing trade while leaving ordinary mid-drift re-m
    - A single re-maze that turns a crowd around gives each of them only 1 stack, so honest
      adjustments cost a little speed, never a Warden. Juggling the same nightmares is what triggers it.
    - Flyers ignore the maze anyway; bosses gain Restless but never become Unbound (their own rules
-     cover them). Restless doesn't count as a status (can't be cleansed, no Reactions).
+     cover them). **Nothing stops an Unbound nightmare's trample** (not Weathered Walls), and the
+     Hollow Oak never plants a sapling on an Unbound route: it no longer re-routes, so a wall that
+     held would trap it (as built, Enemy Code 2026-09-28). Restless doesn't count as a status (can't be cleansed, no Reactions).
    - **Readable:** Restless shows as small backward-arrow marks over the nightmare (one per stack);
      Unbound glows red-hot with a trail. The nightmare info explains both; the first Unbound ever
      triggers a whisper: *"Turn them too often, and they stop listening."*
