@@ -10,6 +10,6 @@ health = 110
 speed = 110.0
 dew_reward = 4
 resists = Array[String](["root"])
-weak_to = Array[String](["wind"])
+weak_to = Array[String](["song"])
 trait_text = "Wanders into dead ends, then comes back."
 trait_kind = 6

@@ -19,4 +19,4 @@ cleanse_line = "The Hollow Stag is gone. Something the Heartwood had forgotten c
 trait_text = "Tramples walls. Charges when hurt."
 title = "the gaunt king of the old wood"
 abilities = Array[Dictionary]([{"name": "Trample", "icon": &"trample", "text": "Knocks down a Thornwall beside it for good, up to {trample_max} each trip. The path always stays open.", "when": "every {trample_interval} s"}, {"name": "Charge", "icon": &"charge", "text": "Its antlers flare and it runs {charge_speed_multiplier:plus_pct} faster for {charge_time} s, still trampling.", "when": "at 50% health"}])
-tips = Array[String](["Don't let the maze hang on one long wall.", "Spread your damage along the route, so its charge can't carry it past one kill zone.", "Rain douses the ghost-fire in its antlers."])
+tips = Array[String](["It tramples walls in its path: don't let the whole maze hang on one wall.", "Spread your damage along the route, so its charge can't carry it past one kill zone.", "Rain douses the ghost-fire in its antlers."])
