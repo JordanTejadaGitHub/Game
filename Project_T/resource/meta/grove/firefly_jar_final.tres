@@ -12,4 +12,4 @@ costs = Array[int]([50])
 order = 11
 icon = 1
 requires_all = Array[String](["firefly_jar"])
-dream_cards = Array[String](["dream_thunderhead"])
+dream_cards = Array[String](["dream_thunderhead", "dream_beacon"])
