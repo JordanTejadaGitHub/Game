@@ -255,6 +255,13 @@ func _run() -> void:
 	_check(family.mouse_filter == Control.MOUSE_FILTER_STOP, "and Back reopens the pick")
 	family.choose(family.offer[0])
 
+	# Dream card marks (DreamMarks): Thick Bark's shield by the leaves, Heart of the Maze's heart layer.
+	var marks_hud = main.get_node("HUD")
+	marks_hud.bark_shield.set_charges(2)
+	_check(marks_hud.bark_shield.visible and marks_hud.bark_shield.charges == 2, "Thick Bark: the shield shows while leaks can be saved")
+	marks_hud.bark_shield.set_charges(0)
+	_check(not marks_hud.bark_shield.visible, "…and hides at 0")
+	_check(main.get_children().any(func(c: Node) -> bool: return c is DreamMarks), "the Heart of the Maze mark layer exists")
 	# --- The Heartwood Sapling: its card after the drift 50 family pick, then the rest panel ---
 	# The Sapling is out of runs (TowerPlacer.sapling_enabled, run_design.md): no Codex terms for it.
 	var sapling_terms := func() -> bool:

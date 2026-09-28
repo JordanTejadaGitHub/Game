@@ -29,6 +29,7 @@ const LEAF_LOST_COLOR := Color(1.0, 0.6, 0.3)
 const TOAST_TIME := 2.5
 
 @onready var dream_state: DreamState = %DreamState
+var bark_shield: DreamMarks.BarkShield = null  # Thick Bark (DreamMarks)
 
 # One toggle button per plantable Warden (unlocked this run), in roster order; `_bar_towers` matches.
 var _tower_buttons: Array[Button] = []
@@ -71,6 +72,13 @@ func _ready() -> void:
 	move_child(dossier, %PauseMenu.get_index())
 	# Resist / weak pips and the immune flash, drawn in the world over the nightmares.
 	owner.add_child.call_deferred(ResistPips.new())
+	# Dream card marks: Heart of the Maze's heart (world), Thick Bark's shield by the leaves.
+	owner.add_child.call_deferred(DreamMarks.new())
+	bark_shield = DreamMarks.BarkShield.new(leaves_label)
+	leaves_label.add_child(bark_shield)
+	if dream_state.has_signal("bark_changed"):
+		dream_state.connect("bark_changed", bark_shield.set_charges)
+		bark_shield.set_charges.call_deferred(int(dream_state.get("bark_charges")))
 	# Every resource explains itself on hover and tap (screens_ui.md "Stat and status icons").
 	TapTip.attach(dew_label, IconInfo.resource_tooltip(&"dew"))
 	TapTip.attach(leaves_label, IconInfo.resource_tooltip(&"leaves"))
@@ -312,6 +320,8 @@ var _shown_leaves := -1
 
 func _on_leaves_changed(leaves: int, max_leaves: int) -> void:
 	leaves_label.text = "Leaves %d / %d" % [leaves, max_leaves]
+	if bark_shield != null and bark_shield.visible:
+		bark_shield._place.call_deferred()  # The text width changed
 	var lost := _shown_leaves >= 0 and leaves < _shown_leaves
 	_shown_leaves = leaves
 	if not lost:
