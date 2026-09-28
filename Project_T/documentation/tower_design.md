@@ -363,7 +363,7 @@ three families are reachable with 4 per run.
 
 | Rule | Family | What happens | Effect |
 |---|---|---|---|
-| **Grafted Harmony** | Acorn (Graftling) | a Graftling touching Wardens of **two different status families** applies both statuses at half strength, so it's a Reaction source by itself. A placement puzzle, since Wardens are walls | `grafted_harmony` (two-colour glow on the Graftling) |
+| **Grafted Harmony** | Acorn (Graftling) | a Graftling touching Wardens of **two different status families** applies both statuses at half strength, so it's a Reaction source by itself. A placement puzzle, since Wardens are walls | `grafted_harmony_a` + `_b` (left and right halves of a glow, each tinted with one status colour) |
 | **Storm Front** | Whirligig (Gust) | when a status Gust copied completes a Reaction on its new host, that Reaction **counts as a chain link and reaches one tile further** | `storm_front` (a wind swirl wrapped around the Reaction) |
 | **Carried Storm** | Whirligig (Samara) | a Samara seed passing through a Reaction **carries it down the rest of its line**: the Reaction fires again (50%) on everything the seed hits after | `carried_storm` (the seed trails the Reaction's colour) |
 
