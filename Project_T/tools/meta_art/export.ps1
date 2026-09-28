@@ -5,10 +5,10 @@ param([switch]$Rebuild)
 $here = Split-Path -Parent $MyInvocation.MyCommand.Path
 $gen = Join-Path $here "grove_gen.html"
 if ($Rebuild) {
-	$old = Get-Content -Raw $gen
+	$old = Get-Content -Raw -Encoding UTF8 $gen
 	$s = $old.IndexOf('"use strict";'); $e = $old.IndexOf('// ================= Memory Grove')
 	$helpers = $old.Substring($s, $e - $s)
-	$parts = ("grove_tree.js","grove_parts.js","grove_icons.js","grove_memories.js","grove_export.js" | ForEach-Object { Get-Content -Raw (Join-Path $here $_) }) -join ""
+	$parts = ("grove_tree.js","grove_parts.js","grove_icons.js","grove_memories.js","grove_export.js" | ForEach-Object { Get-Content -Raw -Encoding UTF8 (Join-Path $here $_) }) -join ""
 	$html = "<!doctype html><meta charset=`"utf-8`"><body><script>window.addEventListener('error',ev=>{const p=document.createElement('p');p.id='jserr';p.textContent=ev.message+' @'+ev.lineno;document.body.appendChild(p)});</script><script>(() => {`n$helpers`n$parts`n})();</script></body>"
 	[IO.File]::WriteAllText($gen, $html, (New-Object Text.UTF8Encoding $false))
 }

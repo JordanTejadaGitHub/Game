@@ -425,6 +425,15 @@ function trimLimbs(mask) {
   for (const limb of Object.values(LIMBS)) {
     const curve = catmull(limb.pts, 16);
     let last = curve.length - 1;
+    // Inside the crown the limb winds: S-bends that start from nothing where it enters the leaves.
+    let entry = 0; while (entry < curve.length - 1 && !inMask(curve[entry][0], curve[entry][1], 20)) entry++;
+    const seed = limb.w[0] * 7 + limb.pts.length, base = curve.map(p => p.slice());
+    for (let i = entry + 1; i < curve.length; i++) {
+      const [x0, y0] = base[i - 1], [x1, y1] = base[Math.min(base.length - 1, i + 1)], d = Math.hypot(x1 - x0, y1 - y0) || 1;
+      const u = (i - entry) / 16, ramp = Math.min(1, u / 1.5);
+      const off = ramp * (Math.sin(u * 1.9 + seed) * 20 + Math.sin(u * 4.1 + seed * 2) * 6);
+      curve[i] = [curve[i][0] - (y1 - y0) / d * off, curve[i][1] + (x1 - x0) / d * off];
+    }
     while (last > 0 && !inMask(curve[last][0], curve[last][1], 18)) last--;
     const keep = Math.floor(last / 16);
     limb.pts = [...limb.pts.slice(0, keep + 1), ...(last % 16 ? [curve[last].map(Math.round)] : [])];
@@ -509,42 +518,41 @@ function spreadNodes(mask) {
   }
   list.forEach(n => { n.x = Math.round(n.x); n.y = Math.round(n.y); });
   // Untangle: two nodes of the same limb swap places whenever that means fewer crossing branches
-  // (then shorter ones), so no branch reaches over its neighbours to get to its node.
+  // (then shorter ones), so no branch reaches over its neighbours to get to its node. A swap only
+  // re-scores the branches it touches (the two nodes' own and their children's).
   const cross = (a, b, c, d) => {
     if ([c, d].some(p => Math.hypot(p.x - a.x, p.y - a.y) < 2 || Math.hypot(p.x - b.x, p.y - b.y) < 2)) return false;
     const o = (p, q, r) => Math.sign((q.x - p.x) * (r.y - p.y) - (q.y - p.y) * (r.x - p.x));
     return o(a, b, c) * o(a, b, d) < 0 && o(c, d, a) * o(c, d, b) < 0;
   };
-  const cost = () => {
-    const segs = list.map(n => [anchor(n), n]);
-    let c = 0;
-    for (let i = 0; i < segs.length; i++) {
-      c += Math.hypot(segs[i][0].x - segs[i][1].x, segs[i][0].y - segs[i][1].y);
-      for (let j = i + 1; j < segs.length; j++) if (cross(segs[i][0], segs[i][1], segs[j][0], segs[j][1])) c += 1000;
-    }
-    // Branches grow outward: a child that turns back on its parent's direction, or grows back
-    // toward the trunk, looks wrong.
-    for (const n of list) {
-      if (!n.parent) continue;
-      const p = byId[n.parent], q = anchor(p);
+  const idx = new Map(list.map((n, i) => [n, i])), kids = list.map(() => []);
+  list.forEach((n, i) => { if (n.parent) kids[idx.get(byId[n.parent])].push(i); });
+  const seg = list.map(n => [anchor(n), n]);
+  const refresh = i => { seg[i] = [anchor(list[i]), list[i]]; };
+  // The score of one branch: its length, its crossings, whether it grows outward, and (for a line's
+  // first branch) whether it leaves the limb right next to another line.
+  const branchCost = i => {
+    const [a, n] = seg[i];
+    let c = Math.hypot(a.x - n.x, a.y - n.y);
+    for (let j = 0; j < seg.length; j++) if (j !== i && cross(a, n, seg[j][0], seg[j][1])) c += 1000;
+    if (n.parent) {
+      const p = byId[n.parent], q = seg[idx.get(p)][0];
       if ((p.x - q.x) * (n.x - p.x) + (p.y - q.y) * (n.y - p.y) < 0) c += 600;
       if (Math.hypot(n.x - 640, n.y - 640) < Math.hypot(p.x - 640, p.y - 640) - 10) c += 400;
-    }
-    // Lines leave their limb at different points, not all from one spot.
-    const roots = list.filter(n => !n.parent).map(n => [n.section, anchor(n)]);
-    for (let i = 0; i < roots.length; i++) for (let j = i + 1; j < roots.length; j++)
-      if (roots[i][0] === roots[j][0] && Math.hypot(roots[i][1].x - roots[j][1].x, roots[i][1].y - roots[j][1].y) < 36) c += 250;
+    } else for (let j = 0; j < seg.length; j++)
+      if (j !== i && !list[j].parent && list[j].section === n.section && Math.hypot(seg[j][0].x - a.x, seg[j][0].y - a.y) < 36) c += 250;
     return c;
   };
-  let best = cost();
   for (let pass = 0; pass < 8; pass++) {
     let improved = false;
     for (let i = 0; i < list.length; i++) for (let j = i + 1; j < list.length; j++) {
       const a = list[i], b = list[j];
       if (a.section !== b.section) continue;
-      [a.x, b.x] = [b.x, a.x]; [a.y, b.y] = [b.y, a.y];
-      const c = cost();
-      if (c < best - .5) { best = c; improved = true; } else { [a.x, b.x] = [b.x, a.x]; [a.y, b.y] = [b.y, a.y]; }
+      const touched = [...new Set([i, j, ...kids[i], ...kids[j]])], score = () => touched.reduce((s, k) => s + branchCost(k), 0);
+      const before = score();
+      [a.x, b.x] = [b.x, a.x]; [a.y, b.y] = [b.y, a.y]; touched.forEach(refresh);
+      if (score() < before - .5) improved = true;
+      else { [a.x, b.x] = [b.x, a.x]; [a.y, b.y] = [b.y, a.y]; touched.forEach(refresh); }
     }
     if (!improved) break;
   }
