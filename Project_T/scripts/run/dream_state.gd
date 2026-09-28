@@ -66,6 +66,7 @@ const SOFT_NEED_WEIGHT := 0.4  # A card whose soft Needs are unmet (dream_design
 const STRAY_FROM_DRIFT := 10  # The Stray Dream: one slot per offer from this rest on (never at boss rests)
 const STRAY_IN_BUILD_WEIGHT := 0.25
 const HALF_DREAMED_WEIGHT := 0.6  # A combo card whose other family you could still pick
+const HALF_DREAMED_WITHIN := 20  # …offered only when the next family pick is at most this many drifts away
 # Passed-over cards fade (dream_design.md "How Dream offers work"): left out of the next offer, then
 # weight ×0.6 per time passed this run (floor ×0.1); taking the card resets it.
 const PASSED_FADE := 0.6
@@ -1355,6 +1356,8 @@ func _draw_card(act: int, exclude: Array[UpgradeData], want_rare: bool, stray: b
 			continue  # At most one bittersweet card per offer
 		if card.rarity == UpgradeData.Rarity.COMMON and has_rule(&"lucid_dreaming"):
 			continue  # Lucid Dreaming: no Commons
+		if want_rare and is_half_dreamed(card):
+			continue  # Never in a guaranteed Rare slot (boss rests, pity, owed Rares)
 		if can_offer(card, act):
 			eligible.append(card)
 	if eligible.is_empty():
@@ -1704,7 +1707,8 @@ func half_dreamed_missing(card: UpgradeData) -> Array[String]:
 		else:
 			missing.append(family)
 	var pickable: Array = _family_roots().map(func(d: TowerData) -> String: return d.get_id())
-	if not owned_any or next_family_pick_drift() < 0 \
+	var next_pick := next_family_pick_drift()
+	if not owned_any or next_pick < 0 or next_pick - _now_drift() > HALF_DREAMED_WITHIN \
 			or missing.any(func(family: String) -> bool: return not pickable.has(family)):
 		missing.clear()
 	return missing
@@ -1719,10 +1723,13 @@ func is_dormant(card: UpgradeData) -> bool:
 # The drift whose boss is followed by the next family pick (-1 = none left: never after drift 75's).
 func next_family_pick_drift() -> int:
 	var per: int = drift_director.drifts_per_act
-	var now: int = _offer_drift if is_offering() or _offer_drift > drift_director.drifts_started else drift_director.drifts_started
+	var now := _now_drift()
 	var next := (now / per + 1) * per
 	var last := maxi(drift_director.drifts.size(), 4 * per) - per
 	return next if next <= last else -1
+
+func _now_drift() -> int:
+	return _offer_drift if is_offering() or _offer_drift > drift_director.drifts_started else drift_director.drifts_started
 
 # "Needs Dewdrop: a family you can pick after the Hollow Stag (drift 25)" ("" if not half-dreamed).
 func half_dreamed_text(card: UpgradeData) -> String:

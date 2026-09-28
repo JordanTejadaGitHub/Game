@@ -902,7 +902,16 @@ func _test_half_dreamed(main: Node) -> void:
 	_check(text.begins_with("Needs Dewdrop: a family you can pick after") and "(drift 25)" in text, "…says what's missing and when")
 	dreams._offer_drift = 80
 	_check(not dreams.is_half_dreamed(thunder), "…never after the drift 75 family pick")
+	dreams._offer_drift = 25  # The boss rest: the next pick (drift 50) is 25 drifts away
+	_check(not dreams.is_half_dreamed(thunder), "…only when the next family pick is at most 20 drifts away")
+	dreams._offer_drift = 30
+	_check(dreams.is_half_dreamed(thunder), "…(drift 30: 20 away, yes)")
 	dreams._offer_drift = 10
+	var soil := _card(dreams, "conductive_soil")  # Rare, half-dreamed here too (Stormcap + Rain Lily)
+	var forced_soil := 0
+	for i in 300:
+		forced_soil += 1 if dreams._draw_card(1, [], true) == soil else 0
+	_check(dreams.is_half_dreamed(soil) and forced_soil == 0, "…never in a guaranteed Rare slot")
 	dreams.unlocked.erase("firefly_jar")
 	_check(not dreams.is_half_dreamed(thunder), "…needs one of its families already yours")
 	dreams.unlocked["firefly_jar"] = true
