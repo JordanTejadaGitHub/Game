@@ -303,6 +303,31 @@ risk: players set their own difficulty block by block.
   rule always applies: no placement may leave any creature (or the start) without a route.
 - **Speed:** Pause / 1× / 2× / 3× + hotkeys (Space = pause). Pausing is a normal way to plan.
 
+### No maze juggling (2026-09-28)
+
+The exploit: during a drift, flip the route back and forth (plant a wall, sell it, plant another)
+so nightmares keep turning around and never arrive. Refunds don't stop it (a Thornwall flip costs a
+few Dew). Two rules make it a losing trade while leaving ordinary mid-drift re-mazing alone:
+
+1. **Restless nightmares.** When a route change makes a nightmare **turn back** (its next step is
+   the tile it just came from), it gains **1 Restless**: **+20% speed** for the rest of its life,
+   stacking. At **3 Restless** it becomes **Unbound**: it stops listening to the maze, keeps its
+   current route and **tramples** any Warden planted on it afterwards (the wall is destroyed, like
+   the Hollow Stag's trample; no refund).
+   - A single re-maze that turns a crowd around gives each of them only 1 stack, so honest
+     adjustments cost a little speed, never a Warden. Juggling the same nightmares is what triggers it.
+   - Flyers ignore the maze anyway; bosses gain Restless but never become Unbound (their own rules
+     cover them). Restless doesn't count as a status (can't be cleansed, no Reactions).
+   - **Readable:** Restless shows as small backward-arrow marks over the nightmare (one per stack);
+     Unbound glows red-hot with a trail. The nightmare info explains both; the first Unbound ever
+     triggers a whisper: *"Turn them too often, and they stop listening."*
+2. **Settling ground.** During a drift, a cell where a Warden was just **sold** can't be planted
+   again for **8 seconds** (a settling ring with a countdown on the tile). It stops
+   sell-and-replant toggling on the same cell. Rests are exempt.
+
+Not added: a delay before new walls block, and higher mid-drift costs (both would also punish
+honest play). If juggling still pays after this, raise the speed per stack first.
+
 ## Selling
 
 - Refund is based on **all Dew invested** in that Warden (build + evolutions).
