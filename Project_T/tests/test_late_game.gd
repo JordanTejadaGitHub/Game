@@ -26,7 +26,18 @@ func _run() -> void:
 	var run_state: RunState = main.get_node("%RunState")
 	var dream_state: DreamState = main.get_node("%DreamState")
 	var director: DriftDirector = main.get_node("%DriftDirector")
+	# A Sprout's "Grow into" lists only the families picked this run (screens_ui.md "Grow into").
+	var sprout_data: TowerData = load("res://resource/tower/sprout.tres")
+	_check(Tower.grow_options(dream_state, sprout_data).is_empty(), "no family picked: a Sprout lists no families")
+	dream_state.unlocked["sporeling"] = true
+	var picked := Tower.grow_options(dream_state, sprout_data)
+	_check(picked.size() == 1 and picked[0][0].get_id() == "sporeling", "one family picked: only it is listed")
+	var driftspore_options := Tower.grow_options(dream_state, load("res://resource/tower/sporeling.tres"))
+	_check(driftspore_options.any(func(o: Array) -> bool: return not o[1]), "a picked family's locked branches still show")
+	dream_state.unlocked.erase("sporeling")
 	dream_state.unlock_everything = true
+	_check(Tower.grow_options(dream_state, sprout_data).size() == sprout_data.evolves_to.size(),
+		"unlock_everything (Test Grove) lists every family")
 
 	# --- Economy pass: pricier ranks and growth ---
 	var sprout := _build(placer, map_generator, load("res://resource/tower/sprout.tres"))

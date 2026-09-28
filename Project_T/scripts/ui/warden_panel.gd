@@ -153,7 +153,10 @@ func _refresh() -> void:
 		birds.pressed.connect(func() -> void:
 			_tower.focus_strongest = not _tower.focus_strongest
 			_refresh())
-	for option in dream_state.get_evolutions(data):
+	var options := Tower.grow_options(dream_state, data)
+	if options.is_empty() and data.line == "sprout":
+		_add_button(Tower.NO_FAMILY_YET).disabled = true  # No family picked yet
+	for option in options:
 		var next: TowerData = option[0]
 		var button := _add_button("")
 		if option[1]:
@@ -288,7 +291,7 @@ func _refresh_group() -> void:
 	for group in groups:
 		var data: TowerData = group[0]
 		var towers: Array = group[1]
-		for option in dream_state.get_evolutions(data):
+		for option in Tower.grow_options(dream_state, data):  # Sprouts: only this run's families
 			var next: TowerData = option[0]
 			var button := _add_button("")
 			button.tooltip_text = next.description

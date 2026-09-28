@@ -295,7 +295,7 @@ func grow_selected() -> bool:
 		return false
 	var grown := false
 	for group in get_selection_groups():
-		for option in dreams.get_evolutions(group[0]):
+		for option in Tower.grow_options(dreams, group[0]):
 			if option[1] and count_affordable(group[1], option[0]) > 0:
 				grown = grow_group(group[1], option[0]) > 0 or grown
 				break

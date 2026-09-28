@@ -64,6 +64,17 @@ const RANK_SPEED := 0.04
 const RANK_RANGE := 0.1  # Cells
 const RANK_NAMES: Array[String] = ["", "I", "II", "III", "IV", "V", "VI", "VII"]
 
+# The forms `data` can grow into, as the Warden panel lists them (screens_ui.md "Grow into"): a Sprout
+# lists only the families picked this run (unpicked ones are hidden, not greyed); every other Warden
+# lists all its forms, locked or not. [[TowerData, unlocked], …]
+static func grow_options(dreams: DreamState, data: TowerData) -> Array:
+	var options: Array = dreams.get_evolutions(data)
+	if data.line != "sprout" or dreams.unlock_everything:
+		return options
+	return options.filter(func(option: Array) -> bool: return option[1])
+
+const NO_FAMILY_YET := "Pick a family after the first drift to grow Sprouts."
+
 # "IV", "XII"…: rank names past VII (Endless Rings) are worked out.
 static func rank_name(value: int) -> String:
 	if value < RANK_NAMES.size():
