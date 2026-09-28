@@ -33,8 +33,10 @@ const RIM := {
 }
 
 
-## Runs the full pass on one frame in place (converted to RGBA8) and returns it.
-static func apply(img: Image, kind: Kind) -> Image:
+## Runs the full pass on one frame in place (converted to RGBA8) and returns it. `glow_radius` (px)
+## sets how far the glow halo and nightmare smoke spread; 0 = from the frame width, max(3, w / 32)
+## (64 → 3, 112 → 4, 144 → 5, 176 → 6). Rim, seams, texture and motes are always 1 px.
+static func apply(img: Image, kind: Kind, glow_radius := 0) -> Image:
 	if img.get_format() != Image.FORMAT_RGBA8:
 		img.convert(Image.FORMAT_RGBA8)
 	var w := img.get_width()
@@ -42,7 +44,7 @@ static func apply(img: Image, kind: Kind) -> Image:
 	var p := _read(img)
 	var tile := kind == Kind.TILE
 	_refine(p, w, h, tile, _hex(RIM[kind][0]), RIM[kind][1])
-	_enrich(p, w, h, kind)
+	_enrich(p, w, h, kind, glow_radius if glow_radius > 0 else maxi(3, roundi(w / 32.0)))
 	_write(img, p)
 	HeartwoodPalette.snap_image(img, kind == Kind.NIGHTMARE)
 	return img
@@ -50,7 +52,7 @@ static func apply(img: Image, kind: Kind) -> Image:
 
 ## Runs the pass on each `frame`-sized cell of a sheet separately, so blur and edges never bleed
 ## between frames. Returns the sheet.
-static func apply_sheet(sheet: Image, frame: Vector2i, kind: Kind) -> Image:
+static func apply_sheet(sheet: Image, frame: Vector2i, kind: Kind, glow_radius := 0) -> Image:
 	if sheet.get_format() != Image.FORMAT_RGBA8:
 		sheet.convert(Image.FORMAT_RGBA8)
 	for y in range(0, sheet.get_height() - frame.y + 1, frame.y):
@@ -59,7 +61,7 @@ static func apply_sheet(sheet: Image, frame: Vector2i, kind: Kind) -> Image:
 			var cell := sheet.get_region(rect)
 			if cell.is_invisible():
 				continue
-			apply(cell, kind)
+			apply(cell, kind, glow_radius)
 			sheet.blit_rect(cell, Rect2i(Vector2i.ZERO, frame), rect.position)
 	return sheet
 
@@ -212,11 +214,10 @@ static func _box_blur(a: PackedFloat32Array, w: int, h: int, r: int) -> PackedFl
 	return o
 
 
-static func _enrich(p: PackedInt64Array, w: int, h: int, kind: Kind) -> void:
+static func _enrich(p: PackedInt64Array, w: int, h: int, kind: Kind, radius: int) -> void:
 	var base := p.duplicate()
 	var tile := kind == Kind.TILE
 	var night := kind == Kind.NIGHTMARE
-	var radius := maxi(3, roundi(w / 32.0))
 	var mask := PackedFloat32Array()
 	mask.resize(w * h)
 	for i in w * h:
