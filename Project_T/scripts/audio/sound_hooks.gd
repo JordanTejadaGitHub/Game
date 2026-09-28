@@ -52,6 +52,14 @@ const PRESENCE_LEVEL := 0.45  # Presence loops: very quiet, a little fuller whil
 const ASCEND_SWELL_DELAY := 0.8  # Evolve bloom, then the material swell, then the first event
 const ASCEND_EVENT_DELAY := 2.6
 const WITHER_DELAY := 0.7  # The Sapling's creak comes after the leaf-lost sound
+# Nurture: quieter and shorter than Evolve (it's frequent), fuller each rank.
+const NURTURE_DB := -10.0
+const NURTURE_RANK_DB := 0.6
+const NURTURE_GROUP_DB := -1.0  # Each further Warden in a group nurture
+const NURTURE_GROUP_MIN_DB := -6.0
+# Dawnwing: its calm and busy wingbeat loops crossfade over this many nightmares.
+const DAWNWING_BUSY_COUNT := 10.0
+const GREAT_BELL_BLOOM_DB := -6.0
 const HIT_FAMILIES := ["stone", "root", "water", "light", "spore", "sprout"]  # Others sound like sprout
 const HIT_GROUP_MS := 90  # A pulse or splash hitting many nightmares at once is one impact
 const CHAIN_STEP_DB := -4.0  # Each jump of a chain ripples a little quieter
@@ -86,6 +94,9 @@ var _slept_at := {}  # Warden id -> msec of its last sleep drone
 var _withered := {}  # Tower instance id -> Sapling withered since the last rest
 var _popped_at := {}  # Tower instance id -> msec of its last pop sound (Sporemother)
 var _ducked_at := {}  # Tower instance id -> msec of its last Ascended duck
+var _nurture_frame := -1  # Group nurtures arrive in one frame
+var _nurture_index := 0
+var _focus_heard := {}  # Tower instance id -> its Focus lean already played
 
 func _ready() -> void:
 	if sound == null:
@@ -148,6 +159,11 @@ func _ready() -> void:
 	omen_director.offer_ready.connect(func(_omens: Array[OmenData], _block: int) -> void:
 		sound.play(&"omen_wind", null, -2.0, 1.0, 0.0, &"UI"))
 	# The Codex: a combo fired for the first time ever (its card slides in).
+	# The Heartwood Sapling's offer card (Main's FamilyPickScreen): a slow warm swell, no bell.
+	var family_pick := owner.get_node_or_null("%FamilyPickScreen")
+	if family_pick != null and family_pick.has_signal("sapling_offered"):
+		family_pick.sapling_offered.connect(func() -> void:
+			sound.play(&"offer_heartwood_sapling", null, -3.0, 1.0, 0.0, &"UI"))
 	var combo_feedback := owner.get_node_or_null("%ComboFeedback")
 	if combo_feedback != null and combo_feedback.has_signal("combo_discovered"):
 		combo_feedback.combo_discovered.connect(func(_id: StringName) -> void:
@@ -275,6 +291,12 @@ func _update_loops() -> void:
 		if tower.attack_data.attack_kind == TowerData.AttackKind.AURA:
 			# The White Stag: a faint breathing presence, fuller while nightmares walk.
 			_touch_loop("loop_" + warden_id(tower.attack_data), 1.0 if walking else 0.35, 0.2)
+		elif warden_id(tower.tower_data) == "dawnwing":
+			# Calm and busy wingbeats crossfaded by how many nightmares walk (not sped up: that'd raise
+			# the pitch). Neither ever drops to 0, so the two loops keep playing in sync.
+			var busy := clampf(enemy_container.get_enemies().size() / DAWNWING_BUSY_COUNT, 0.0, 1.0)
+			_touch_loop("loop_dawnwing", maxf(PRESENCE_LEVEL * (1.0 - busy), 0.0001), 0.2)
+			_touch_loop("loop_dawnwing_busy", maxf(PRESENCE_LEVEL * busy, 0.0001), 0.2)
 		elif tower.tower_data.tier >= ASCENDED_TIER:  # An Ascended Warden's presence
 			_touch_loop("loop_" + warden_id(tower.tower_data), PRESENCE_LEVEL * (1.0 if walking else 0.6), 0.2)
 	for id in _loop_until.keys():
@@ -321,11 +343,16 @@ func _on_tower_added(node: Node) -> void:
 	# Beams (Sunpetal / Midsummer): one warm loop per Warden type, swelling with the ramp (1 -> 4 or 5).
 	tower.beam_ticked.connect(func(t: Tower, ramp: float) -> void:
 		_touch_loop("loop_" + warden_id(t.attack_data), 0.5 + 0.5 * clampf((ramp - 1.0) / 3.0, 0.0, 1.0), BEAM_HOLD))
+	tower.nurtured.connect(_on_nurtured)
 	# Ascended Wardens and the Sapling (Tower Code a187e96); connected only if present.
 	if tower.has_signal("ascended"):
 		tower.ascended.connect(_on_ascended)
 	if tower.has_signal("ascended_event"):
 		tower.ascended_event.connect(_on_ascended_event)
+	if tower.has_signal("statics_set_off"):  # The Great Bell's toll setting off Static: one bloom, growing
+		tower.statics_set_off.connect(func(t: Tower, where: Vector2, count: int) -> void:
+			var growth := minf(ASCENDED_GROWTH_DB * log(1.0 + count) / log(2.0), ASCENDED_GROWTH_MAX)
+			_event("bloom_", t, where, GREAT_BELL_BLOOM_DB - ASCENDED_GROWTH_MAX + growth))
 	if tower.has_signal("sap_yielded"):
 		tower.sap_yielded.connect(func(t: Tower, _dew: int) -> void: _event("sap_", t, t.global_position))
 	if tower.has_signal("dreamlight_ripened"):
@@ -368,6 +395,36 @@ func _on_tower_added(node: Node) -> void:
 		_hit_groups.erase(id)
 		_released_at.erase(id)
 		_attack_counts.erase(id))
+
+# Nurture (a rank up): a soft swell of the family's material, ~1 semitone deeper and a touch fuller per
+# rank; choosing a Focus adds its lean. A group nurture fires these in one frame: they stagger with the
+# visual bloom (TowerSeller.BLOOM_STAGGER) and each is a little quieter, so ten read as one rolling swell.
+func _on_nurtured(tower: Tower) -> void:
+	var frame := Engine.get_process_frames()
+	_nurture_index = _nurture_index + 1 if frame == _nurture_frame else 0
+	_nurture_frame = frame
+	var index := _nurture_index
+	var line: String = tower.tower_data.line
+	var id := StringName("nurture_" + line)
+	if not sound.has_sound(id):
+		id = &"nurture_sprout"
+	var pitch := pow(2.0, -maxf(tower.rank - 1, 0) / 12.0)
+	var volume := NURTURE_DB + NURTURE_RANK_DB * tower.rank + maxf(NURTURE_GROUP_DB * index, NURTURE_GROUP_MIN_DB)
+	var key := tower.get_instance_id()
+	var lean := &""
+	if tower.focus != Tower.Focus.NONE and not _focus_heard.has(key):
+		_focus_heard[key] = true
+		lean = StringName("focus_" + String(Tower.Focus.keys()[tower.focus]).to_lower())
+	var play_it := func() -> void:
+		if not is_instance_valid(tower):
+			return
+		sound.play(id, tower.global_position, volume, pitch, 0.0)
+		if lean != &"":
+			sound.play(lean, tower.global_position, volume, 1.0, 0.03)
+	if index == 0:
+		play_it.call()
+	else:
+		get_tree().create_timer(index * TowerSeller.BLOOM_STAGGER).timeout.connect(play_it)
 
 # Ascending: the evolve bloom (evolved), then a slow, deep swell of the family's material, then the
 # Warden's first event (or its hit, for Wardens without one).

@@ -63,6 +63,17 @@ func _initialize() -> void:
 			_check(not sounds.is_empty(), "%s has a sound or a family fallback %s" % [wid, sounds])
 			print("NOTE: %s has no sounds of its own yet, using its family's %s" % [wid, sounds])
 	_check(SoundHooks._rate_db(6.0) < SoundHooks._rate_db(0.33), "fast Wardens are quieter per shot")
+	# Nurture: a swell per family material, Focus leans, and Dawnwing's calm + busy loops in sync.
+	for file in DirAccess.get_files_at("res://resource/tower/"):
+		if file.ends_with(".tres"):
+			var line: String = (load("res://resource/tower/" + file) as TowerData).line
+			_check(sound.has_sound(StringName("nurture_" + line)), "nurture sound for the %s family" % line)
+	for lean in ["focus_power", "focus_swift", "focus_reach", "focus_deep"]:
+		_check(sound.has_sound(StringName(lean)), "%s exists" % lean)
+	var calm: AudioStreamWAV = sound._streams.get(&"loop_dawnwing", [null])[0]
+	var busy: AudioStreamWAV = sound._streams.get(&"loop_dawnwing_busy", [null])[0]
+	_check(calm != null and busy != null and is_equal_approx(calm.get_length(), busy.get_length()),
+		"Dawnwing's calm and busy loops exist and share a length")
 	_check(SoundHooks._weight_pitch_for(3000, false, true) < SoundHooks._weight_pitch_for(20, false, false),
 		"big nightmares take lower hits than small ones")
 	for layer in MUSIC_LAYERS:
