@@ -864,6 +864,7 @@ func _set_off_static(enemy: Node2D) -> void:
 	var source := s.source(EnemyStatuses.STATIC)
 	s.remove(EnemyStatuses.STATIC)
 	Reactions.strike_bolt(enemy, bolt, source if source else self, &"static")
+	ComboFeedback.report(&"set_off", self)  # Codex: a pulse set off Static
 
 # Dreamcatcher: every AURA_TICK, nightmares in range that are asleep or at full Drowsy are Caught
 # (+damage taken). Great Dreamcatcher also lengthens sleep once per nightmare and marks them for
@@ -885,6 +886,7 @@ func _update_catch(delta: float) -> void:
 			continue
 		if not s.is_caught():
 			Reactions._effect(&"caught", enemy.global_position, self, 1.0, 0.8)  # The dreamcatcher glyph
+			ComboFeedback.report(&"caught", self)  # Codex: a nightmare is Caught
 		s.caught_time = AURA_TICK * 1.6
 		s.caught_bonus = maxf(s.caught_bonus if s.is_caught() else 0.0, tower_data.caught_bonus)
 		if tower_data.caught_shards:
