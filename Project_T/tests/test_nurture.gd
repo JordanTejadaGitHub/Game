@@ -57,8 +57,8 @@ func _run() -> void:
 		"rank III with the Power Focus")
 	_check(is_equal_approx(tower.get_damage(), base_damage * (1.0 + 0.3 + 0.08)), "rank III Power: +30% +8% damage")
 	_check(tower.invested_dew == invested + 13 + 20 + 30, "rank Dew counts as invested")
-	_check(seller.get_refund(tower) == int(tower.invested_dew * seller.build_phase_refund),
-		"selling refunds rank Dew with the normal rules")
+	_check(seller.get_refund(tower) == tower.invested_dew,
+		"rank Dew bought this rest comes back in full, like the rest of it (placed this rest)")
 	if "rank_dew_spent" in run_state:
 		_check(run_state.rank_dew_spent == 63, "RunState counts Dew spent on ranks")
 

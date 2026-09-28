@@ -240,7 +240,12 @@ func _refresh() -> void:
 		else:
 			_add_button("Rank %s: fully nurtured" % Tower.rank_name(_tower.rank)).disabled = true
 	var refund := tower_seller.get_refund(_tower)
-	var sell := _add_button("Sell · +%d Dew%s" % [refund, "" if drift_director.is_build_phase() else " (half during a drift)"])
+	var note := "" if drift_director.is_build_phase() else " (half during a drift)"
+	if tower_seller.is_placed_this_rest(_tower):
+		note = " (placed this rest: full refund)"
+	elif drift_director.is_build_phase() and _tower.rest_dew > 0:
+		note = " (this rest's %d Dew in full)" % _tower.rest_dew
+	var sell := _add_button("Sell · +%d Dew%s" % [refund, note])
 	sell.pressed.connect(func() -> void: tower_seller.sell(_tower.cell))
 	if _tower.tower_data.rooted:
 		sell.text = "Permanent: the Sapling can't be sold or moved"

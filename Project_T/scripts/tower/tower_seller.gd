@@ -61,6 +61,8 @@ func _ready() -> void:
 	tower_placer.build_mode_changed.connect(func(building: bool) -> void: set_active(not building))
 	# The refund changes when a drift starts or ends.
 	drift_director.build_phase_changed.connect(queue_redraw.unbind(1))
+	drift_director.build_phase_changed.connect(_on_build_phase_changed)
+	Tower.resting = drift_director.is_build_phase()
 	# A Warden leaving any other way (trampled by an Unbound nightmare) leaves the selection too.
 	tower_container.child_exiting_tree.connect(_on_tower_leaving)
 
@@ -84,7 +86,21 @@ func get_refund(tower: Tower) -> int:
 	var dreams := get_tree().get_first_node_in_group(DreamState.GROUP) as DreamState
 	if dreams:
 		share = dreams.get_refund_share(share, resting)  # Fair Trade
-	return int(tower.invested_dew * share)
+	# Placed this rest (run_design.md "Selling"): Dew spent on it during this rest comes back in full.
+	var fresh := mini(tower.rest_dew, tower.invested_dew) if resting else 0
+	return fresh + int((tower.invested_dew - fresh) * share)
+
+# Whether all of `tower` was bought this rest (the Sell button says "full refund").
+func is_placed_this_rest(tower: Tower) -> bool:
+	return drift_director.is_build_phase() and tower.rest_dew > 0 and tower.rest_dew >= tower.invested_dew
+
+# A drift starting ends "placed this rest" for every Warden; a rest starting opens it again.
+func _on_build_phase_changed(resting: bool) -> void:
+	Tower.resting = resting
+	if not resting:
+		for tower in tower_container.get_children():
+			if tower is Tower:
+				tower.rest_dew = 0
 
 func get_tower_at(cell: Vector2) -> Tower:
 	for tower in tower_container.get_children():

@@ -105,13 +105,13 @@ func _test_blocks_and_rests() -> void:
 	var stag: EnemyData = load("res://resource/enemy/old_stag.tres")
 	_check(is_equal_approx(director.get_health_scale(stag, 25), 1.5), "bosses have ×1.5 health")
 
-	# Selling in a rest: the rest refund (build_phase_refund, 75% in difficulty pass v1)
+	# Selling in a rest what was planted this rest: a full refund (75% once it stood through a drift)
 	var sprout: TowerData = placer.towers[0]
 	placer.tower_data = sprout
 	var cell := _free_cell(map_generator)
 	_check(placer._try_build(cell), "built a Sprout")
 	var refund := seller.get_refund(seller.get_tower_at(cell))
-	_check(absf(refund - sprout.cost * seller.build_phase_refund) <= 1.0, "the rest refund is build_phase_refund (%d)" % refund)
+	_check(refund == sprout.cost, "placed this rest: a full refund (%d)" % refund)
 	_check(seller.sell(cell) and run_state.dew == 60 - sprout.cost + refund, "the refund is paid while resting")
 
 	# Drift 1 → the family pick (no rest bonus, no Dream)
@@ -138,6 +138,7 @@ func _test_blocks_and_rests() -> void:
 	await _frames(10)
 	_check(walker.position == pos, "creatures stop while paused")
 	placer.tower_data = sprout
+	placer.clear_settling()  # Sold during the drift above: the ground would still be settling
 	_check(placer._try_build(cell), "can build while paused")
 	seller.sell(cell)
 	speed.set_speed(3.0)

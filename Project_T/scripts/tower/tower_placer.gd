@@ -442,6 +442,7 @@ func _try_build(cell: Vector2) -> bool:
 	tower.tower_data = tower_data
 	tower.cell = cell
 	tower.invested_dew = cost
+	tower.rest_dew = cost if Tower.resting else 0  # Placed this rest: a full refund until Start
 	tower.position = Tower.footprint_centre(cell, tower_data.footprint)
 	tower_container.add_child(tower)
 	map_generator.block_cells(_footprint(cell))  # Emits path_changed -> enemies re-route, preview refreshes

@@ -83,7 +83,7 @@ func save_now() -> bool:
 	for tower in tower_container.get_children():
 		if tower is Tower and not tower.is_queued_for_deletion():
 			towers.append({"cell": [tower.cell.x, tower.cell.y], "data": tower.tower_data.resource_path,
-				"invested": tower.invested_dew, "rank": tower.rank, "focus": tower.focus,
+				"invested": tower.invested_dew, "rest_dew": tower.rest_dew, "rank": tower.rank, "focus": tower.focus,
 				"target_mode": tower.target_mode, "kin_branch": tower.kin_branch, "size": tower.get_footprint(),
 				"legacy": tower.legacy_data.resource_path if tower.legacy_data else "",  # An Ascended form's final
 				"drifts_stood": int(tower.get_meta(&"drifts_stood", 0)),  # Old Growth (DreamState counts it)
@@ -151,6 +151,7 @@ func _restore(data: Dictionary) -> void:
 		tower.tower_data = load(saved.data)
 		tower.cell = Vector2(saved.cell[0], saved.cell[1])
 		tower.invested_dew = int(saved.invested)
+		tower.rest_dew = int(saved.get("rest_dew", 0))  # Placed this rest (saves happen at rests)
 		tower.rank = int(saved.get("rank", 0))  # Saves from before Nurture have none
 		tower.focus = int(saved.get("focus", 0)) as Tower.Focus
 		tower.target_mode = int(saved.get("target_mode", 0)) as TowerData.TargetMode  # Snipers' aim

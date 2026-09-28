@@ -149,6 +149,8 @@ const CRIT := 1
 var cell: Vector2
 # All Dew put into this Warden (build cost, evolutions, ranks). Selling refunds a share of it.
 var invested_dew := 0
+var rest_dew := 0  # Dew spent on it during the current rest (refunded in full until the next drift)
+static var resting := false  # A rest is on (TowerSeller keeps it in step with the DriftDirector)
 # Nurture rank 0-5 (7 with Deeper Rings): each rank +10% damage, +4% attack speed, +0.1 range, and
 # from rank III the Focus bonus. Kept through evolution, like the Focus (chosen at rank III, fixed).
 # Setting it from outside (Dream cards, the save) refreshes the rank art and pips too.
@@ -270,6 +272,8 @@ func evolve(data: TowerData, cost: int) -> void:
 	if size != data.footprint:
 		footprint_size = size
 	invested_dew += cost
+	if resting:
+		rest_dew += cost
 	_apply_data()
 	if _rule_stacks(&"sudden_bloom") > 0:
 		bloom_attacks = maxi(bloom_attacks, DreamState.SUDDEN_BLOOM_ATTACKS)  # Its next attacks deal ×2
@@ -511,6 +515,8 @@ func nurture(cost: int, chosen: Focus = Focus.NONE) -> void:
 		focus = chosen
 	rank = mini(rank + 1, get_max_rank())
 	invested_dew += cost
+	if resting:
+		rest_dew += cost
 	_play_rank_up()
 	queue_redraw()
 	nurtured.emit(self)
