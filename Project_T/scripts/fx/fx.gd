@@ -54,6 +54,7 @@ const CALLOUT_COOLDOWN := 0.5  # Per reaction, so a chain doesn't wall the scree
 const MAX_CALLOUTS := 3
 const BADGE_OFFSET := Vector2(0, -60)
 const HITSTOP_SECONDS := 0.07
+const HITSTOP_SCALE := 0.05  # Speed during a hitstop
 const SURGE_SECONDS := 0.5
 const DAWNBURST_SCALE := 2.0
 
@@ -96,6 +97,8 @@ static func reduce_flashes() -> bool:
 static func reset_run() -> void:
 	_settings_at = -SETTINGS_REFRESH_MS
 	longest_chain = 0
+	_hitstop_base = -1.0  # A hitstop cut short by leaving the last run never ends here
+	_hitstop_pending = 0
 
 # The sheet to actually show: its _lite variant when flashes are reduced or the budget is spent.
 static func _pick(effect: StringName, lite_ok: bool) -> StringName:
@@ -231,14 +234,28 @@ static func chain(count: int, where: Vector2, parent: Node, towers: Array = []) 
 			if tower is Node2D and is_instance_valid(tower):
 				play(&"crit_flare", tower.global_position + Vector2(0, -16), parent, 1.6)
 
+# A brief slow-down on a big chain. Overlapping hitstops extend one hitstop instead of stacking: the
+# old version saved "the speed before" each time, so a second hitstop inside the first saved the
+# slowed speed and restored to it, leaving the game at 5% speed for good (found by the act 3 probe).
+static var _hitstop_base := -1.0  # The speed to return to (-1 = no hitstop on)
+static var _hitstop_pending := 0  # Hitstop timers still running (the last one to end restores the speed)
+
 static func _hitstop(parent: Node) -> void:
 	if not bool(setting("hitstop", true)) or Engine.time_scale <= 0.0:
 		return
-	var before := Engine.time_scale
-	Engine.time_scale = before * 0.05
-	parent.get_tree().create_timer(HITSTOP_SECONDS, true, false, true).timeout.connect(func() -> void:
-		if is_equal_approx(Engine.time_scale, before * 0.05):
-			Engine.time_scale = before)
+	if _hitstop_base < 0.0 or not is_equal_approx(Engine.time_scale, _hitstop_base * HITSTOP_SCALE):
+		_hitstop_base = Engine.time_scale  # Not in a hitstop (or the speed was changed meanwhile)
+		Engine.time_scale = _hitstop_base * HITSTOP_SCALE
+	_hitstop_pending += 1
+	parent.get_tree().create_timer(HITSTOP_SECONDS, true, false, true).timeout.connect(_end_hitstop)
+
+static func _end_hitstop() -> void:
+	_hitstop_pending = maxi(_hitstop_pending - 1, 0)
+	if _hitstop_base < 0.0 or _hitstop_pending > 0:
+		return  # A later hitstop extended it; its own timer ends it
+	if is_equal_approx(Engine.time_scale, _hitstop_base * HITSTOP_SCALE):
+		Engine.time_scale = _hitstop_base  # (If the player changed speed meanwhile, keep theirs)
+	_hitstop_base = -1.0
 
 static func _surge(parent: Node) -> void:
 	var tex := texture(&"surge")
