@@ -18,6 +18,8 @@ const LOCKED_COLOR := Color(0.5, 0.52, 0.56)
 const TERM_COLOR := Color(0.95, 0.9, 0.7)
 const HIGHLIGHT := Color(1.0, 0.95, 0.6, 0.18)
 const CROWN_COLOR := Color(1.0, 0.82, 0.35)  # Crowned Reactions: the gold tier
+const CROWN_SILHOUETTE := preload("res://assets/effects/crowned_codex_silhouette.png")
+const SILHOUETTE_SLOTS: Array[Vector2] = [Vector2(22, 80), Vector2(48, 84), Vector2(74, 80)]  # Family icon centres
 
 var tabs := TabContainer.new()
 var _search := LineEdit.new()
@@ -225,6 +227,27 @@ func _build_combos() -> void:
 		_combos.add_child(card)
 		_entries[String(c.id)] = card
 
+# An undiscovered Crowned Reaction (effects.json crowned_codex_silhouette, 96×96): the silhouette with
+# the three family icons (18 px) in its slots.
+func _crowned_silhouette(c: Dictionary) -> Control:
+	var holder := Control.new()
+	holder.custom_minimum_size = Vector2(96, 96)
+	holder.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var art := TextureRect.new()
+	art.texture = CROWN_SILHOUETTE
+	art.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	holder.add_child(art)
+	for i in mini(c.families.size(), SILHOUETTE_SLOTS.size()):
+		var icon := TextureRect.new()
+		icon.texture = CodexData.family_icon(c.families[i])
+		icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		icon.size = Vector2(18, 18)
+		icon.position = SILHOUETTE_SLOTS[i] - Vector2(9, 9)
+		icon.tooltip_text = CodexData.FAMILY_NAMES.get(c.families[i], c.families[i])
+		holder.add_child(icon)
+	return holder
+
 func _crowned_card(c: Dictionary, discovered: bool, times: int) -> Control:
 	var panel := PanelContainer.new()
 	var style := StyleBoxFlat.new()
@@ -239,16 +262,17 @@ func _crowned_card(c: Dictionary, discovered: bool, times: int) -> Control:
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 6)
 	box.add_child(row)
-	for family in c.families:  # The three family icons: the hint while hidden
-		var icon := TextureRect.new()
-		icon.texture = CodexData.family_icon(family)
-		icon.custom_minimum_size = Vector2(28, 28)
-		icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-		icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-		icon.tooltip_text = CodexData.FAMILY_NAMES.get(family, family)
-		if not discovered:
-			icon.modulate = Color(0.6, 0.6, 0.65)
-		row.add_child(icon)
+	if not discovered:
+		row.add_child(_crowned_silhouette(c))  # The hint: the silhouette with its three family icons
+	else:
+		for family in c.families:
+			var icon := TextureRect.new()
+			icon.texture = CodexData.family_icon(family)
+			icon.custom_minimum_size = Vector2(28, 28)
+			icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+			icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+			icon.tooltip_text = CodexData.FAMILY_NAMES.get(family, family)
+			row.add_child(icon)
 	var name := Label.new()
 	name.text = "%s  ·  Crowned" % c.name if discovered else "???"
 	name.add_theme_font_size_override("font_size", 18)

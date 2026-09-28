@@ -344,9 +344,4 @@ func show_toast(text: String) -> void:
 
 # First idle frame of the tower's sheet.
 func _tower_icon(data: TowerData) -> Texture2D:
-	if data.texture == null:
-		return null
-	var icon := AtlasTexture.new()
-	icon.atlas = data.texture
-	icon.region = data.get_frame_rect(0)
-	return icon
+	return WardenIcon.make(data)  # Big Wardens (the Sapling) cropped to the bottom centre

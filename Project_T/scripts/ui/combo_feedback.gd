@@ -35,6 +35,9 @@ var _card := PanelContainer.new()
 var _card_label := Label.new()
 var _card_id: StringName = &""
 var _card_tween: Tween
+var _crown_corners := Control.new()  # Gold corners, shown on Crowned discovery cards
+
+const CROWN_ACCENT := preload("res://assets/effects/crowned_card_accent.png")
 
 # Reports combo `id` (e.g. &"set_off") firing, from anywhere in the run's scene.
 static func report(id: StringName, near: Node) -> void:
@@ -68,6 +71,19 @@ func _ready() -> void:
 	_card_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_card_label.add_theme_font_size_override("font_size", 16)
 	_card.add_child(_card_label)
+	# Crowned Reactions get gold corners (effects.json crowned_card_accent: the top-left corner,
+	# mirrored for the others).
+	_crown_corners.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_card.add_child(_crown_corners)
+	for corner in [[Control.PRESET_TOP_LEFT, false, false], [Control.PRESET_TOP_RIGHT, true, false],
+			[Control.PRESET_BOTTOM_LEFT, false, true], [Control.PRESET_BOTTOM_RIGHT, true, true]]:
+		var piece := TextureRect.new()
+		piece.texture = CROWN_ACCENT
+		piece.flip_h = corner[1]
+		piece.flip_v = corner[2]
+		piece.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		piece.set_anchors_and_offsets_preset(corner[0], Control.PRESET_MODE_MINSIZE)
+		_crown_corners.add_child(piece)
 	_card.gui_input.connect(func(event: InputEvent) -> void:  # Tap: open the entry in the Codex
 		if event is InputEventMouseButton and event.pressed:
 			_open_in_codex(_card_id))
@@ -138,6 +154,7 @@ func _show_next() -> void:
 	_card_label.text = discovery_text(_card_id)
 	var reaction := Reactions.get_data(_card_id)
 	_card_label.add_theme_color_override("font_color", reaction.callout_color if reaction != null else Color(0.9, 1.0, 0.8))
+	_crown_corners.visible = CodexData.CROWNED.has(_card_id)
 	_card.visible = true
 	_card.reset_size()
 	_card.offset_left = -_card.size.x / 2.0

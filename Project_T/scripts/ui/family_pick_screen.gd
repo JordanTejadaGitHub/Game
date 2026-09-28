@@ -305,12 +305,7 @@ func get_branches(data: TowerData) -> Array[TowerData]:
 	return result
 
 func _frame(data: TowerData) -> Texture2D:
-	if data.texture == null:
-		return null
-	var atlas := AtlasTexture.new()
-	atlas.atlas = data.texture
-	atlas.region = data.get_frame_rect(0)
-	return atlas
+	return WardenIcon.make(data)
 
 # A Family Blessing: the same card shape, with a golden blessing border.
 func _make_blessing_card(card: UpgradeData) -> Button:

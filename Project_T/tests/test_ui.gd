@@ -202,6 +202,9 @@ func _run() -> void:
 		_check(sapling_placer.has_unplanted_sapling() and sapling_placer.build_mode, "Sapling: taken and ready to place")
 		sapling_placer.set_build_mode(false)
 		director.drifts_started = started_before
+		if sapling_placer.sapling != null and sapling_placer.sapling.texture != null:
+			var crop := WardenIcon.region(sapling_placer.sapling)
+			_check(crop.size == Vector2(64, 64), "the Sapling's big frame is cropped to a 64×64 icon (%s)" % crop)
 
 	# --- Settings: tabs, and the high-contrast route line ---
 	var settings := SettingsPanel.new()
