@@ -101,6 +101,16 @@ func _handle_input(delta: float) -> void:
 		target_zoom -= Vector2.ONE * zoom_speed
 	target_zoom = target_zoom.clamp(Vector2.ONE * zoom_min, Vector2.ONE * maxf(camera_zoom_in_max, zoom_min))
 
+# Touch (TouchBuild: two-finger drag / pinch): move the view by `screen_px` (the fingers' movement,
+# so the map follows them) and zoom by `factor` (> 1 = in), within the usual limits.
+func pan_screen(screen_px: Vector2) -> void:
+	target_position -= screen_px / camera_2d.zoom
+	_glide_points = PackedVector2Array()
+
+func zoom_by(factor: float) -> void:
+	var zoom_min := _get_zoom_out_min()
+	target_zoom = (target_zoom * factor).clamp(Vector2.ONE * zoom_min, Vector2.ONE * maxf(camera_zoom_in_max, zoom_min))
+
 # How far the camera may zoom out: `camera_zoom_out_min`, but never past the whole map (plus a cell
 # of forest) filling the view, so a small map can't shrink into the middle of the screen.
 func _get_zoom_out_min() -> float:

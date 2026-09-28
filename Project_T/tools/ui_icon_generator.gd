@@ -253,6 +253,10 @@ const NIGHTMARE_ICONS := ["flying", "dread_shell", "through_walls", "sprints", "
 	"trample", "charge", "sink", "bog_water", "eclipse", "brood", "sapling", "grief",
 	"wanders", "splits", "ignores_slows", "leap", "mender", "waker", "revealer", "ash", "thief",
 	"followers", "swarm", "bulky"]
+# Warden damage types (enemy_design.md "Damage types"): a warm symbol on a small gold-rimmed badge,
+# so they never read as statuses (which have no badge).
+const DAMAGE_TYPE_ICONS := ["spore", "stone", "water", "light", "root", "song", "wing", "wind", "plain"]
+
 # Run resources for the HUD counters (ui_style.md): leaves, path length, Seeds. Dew and Dreamlight
 # reuse the cost icons (aliases "dew", "dreamlight").
 const RESOURCE_ICONS := ["leaves", "path_length", "seeds"]
@@ -264,7 +268,7 @@ var _ramps: Array = []  # [light, mid, dark]
 var _details: Array = []  # [Vector2i, Color], painted last
 
 func _make_icons() -> void:
-	var ids: Array = STATUS_ICONS + STAT_ICONS + NIGHTMARE_ICONS + RESOURCE_ICONS
+	var ids: Array = STATUS_ICONS + STAT_ICONS + NIGHTMARE_ICONS + DAMAGE_TYPE_ICONS + RESOURCE_ICONS
 	var sheet := Image.create(ICON * ids.size(), ICON, false, Image.FORMAT_RGBA8)
 	var index := {}
 	for i in ids.size():
@@ -274,7 +278,8 @@ func _make_icons() -> void:
 		index[alias] = index[ICON_ALIASES[alias]]
 	sheet.save_png(OUT + "icons.png")
 	var data := {frame_size = ICON, icons = index, statuses = STATUS_ICONS, stats = STAT_ICONS,
-		nightmare = NIGHTMARE_ICONS + ["hidden", "always_damp", "burrows"], resources = RESOURCE_ICONS + ["dew", "dreamlight"],
+		nightmare = NIGHTMARE_ICONS + ["hidden", "always_damp", "burrows"], damage_type = DAMAGE_TYPE_ICONS,
+		resources = RESOURCE_ICONS + ["dew", "dreamlight"],
 		note = "One row of 16x16 icons; column = icons[id]. Readable at 12 px; for 24-32 px panels scale by whole numbers with nearest filtering."}
 	var file := FileAccess.open(OUT + "icons.json", FileAccess.WRITE)
 	file.store_string(JSON.stringify(data, "\t") + "\n")
@@ -906,6 +911,95 @@ func _ic_bulky() -> void:
 	_dt(7, 3, NM_EYE)
 	_dt(9, 3, NM_EYE)
 	_dt_line(Vector2i(4, 12), Vector2i(12, 12), Color("#302a48"))
+
+# Warden damage types ------------------------------------------------------------------------------
+# A warm dark badge with a gold rim, the type's symbol inside (warm Warden colours).
+
+func _type_badge() -> void:
+	var fill := _rp("#6a4a34", "#4a3226", "#33221a")
+	var rim := _rp("#fff0b0", "#e8b048", "#a8701e")
+	_c_disc(Vector2(8, 8), 7.4, fill)
+	_c_ring(Vector2(8, 8), 7.4, 6.2, rim)
+
+func _ic_spore() -> void:
+	_type_badge()
+	var k := _rp("#ffd8f8", "#e888d8", "#a8489a")
+	_c_disc(Vector2(9.4, 6), 2.0, k)
+	_c_disc(Vector2(5.6, 8.4), 1.8, k)
+	_c_disc(Vector2(9.2, 10.6), 1.6, k)
+	_dt(9, 5, Color.WHITE)
+	_dt(5, 8, Color.WHITE)
+
+func _ic_stone() -> void:
+	_type_badge()
+	var k := _rp("#e8ecf8", "#a0a6c8", "#626890")
+	_c_poly(PackedVector2Array([Vector2(3.6, 9.6), Vector2(5, 5), Vector2(9, 3.8), Vector2(12.2, 6.4), Vector2(11.6, 11), Vector2(7, 12.2)]), k)
+	_dt_line(Vector2i(8, 5), Vector2i(7, 8), Color("#626890"))
+	_dt_line(Vector2i(7, 8), Vector2i(9, 10), Color("#626890"))
+
+func _ic_water() -> void:
+	# A single round-bottomed drop with a wave line through it (the status Soaked is a bare drop
+	# with a second small drop and no badge).
+	_type_badge()
+	var k := _rp("#d8f0ff", "#6ab0f0", "#3a70c0")
+	_c_disc(Vector2(8, 9.4), 3.2, k)
+	_c_poly(PackedVector2Array([Vector2(8, 3.2), Vector2(5, 8.6), Vector2(11, 8.6)]), k)
+	_dt(6, 8, Color.WHITE)
+	_dt_line(Vector2i(6, 10), Vector2i(7, 10), Color("#f0faff"))
+	_dt_line(Vector2i(8, 11), Vector2i(10, 11), Color("#f0faff"))
+
+func _ic_light() -> void:
+	_type_badge()
+	var k := _rp("#fffbe0", "#ffe070", "#d0a020")
+	_c_poly(PackedVector2Array([Vector2(8, 2.6), Vector2(9.2, 6.8), Vector2(13.4, 8), Vector2(9.2, 9.2),
+		Vector2(8, 13.4), Vector2(6.8, 9.2), Vector2(2.6, 8), Vector2(6.8, 6.8)]), k)
+	_dt(8, 8, Color.WHITE)
+
+func _ic_root() -> void:
+	_type_badge()
+	var k := _rp("#e0c090", "#a07448", "#5e4028")
+	_c_line([Vector2(8, 12.6), Vector2(8, 8), Vector2(9.6, 5.4), Vector2(11.4, 5.6), Vector2(11.2, 7.4), Vector2(9.8, 7.6)], 1.5, k)
+	_c_line([Vector2(8, 10), Vector2(5, 8.4), Vector2(4.4, 6.2)], 1.2, k)
+	_dt(4, 5, Color("#8ad060"))
+	_dt(5, 5, Color("#8ad060"))
+
+func _ic_song() -> void:
+	_type_badge()
+	var k := _rp("#f4e8ff", "#c8a8f0", "#8a6ac8")
+	_c_ell(Vector2(6.4, 11), Vector2(2.2, 1.7), k, -0.3)
+	_c_line([Vector2(8.2, 10.6), Vector2(8.2, 3.6)], 1.2, k)
+	_c_line([Vector2(8.2, 3.6), Vector2(11.4, 5.2), Vector2(11.4, 6.6)], 1.3, k)
+
+func _ic_wing() -> void:
+	# Talon: one curved, hooked claw, thick at its root and sharp at the tip.
+	_type_badge()
+	var claw := _rp("#ffffff", "#f4e4c8", "#d8b88c")
+	var pts: Array = []
+	for s in 10:
+		var t := s / 9.0
+		var a := lerpf(-PI * 0.9, PI * 0.25, t)
+		pts.append(Vector2(8.2, 9.2) + Vector2(cos(a), sin(a)) * Vector2(4.6, 4.2))
+	_c_line(pts.slice(0, 5), 1.9, claw)
+	_c_line(pts.slice(4, 8), 1.4, claw)
+	_c_line(pts.slice(7), 0.9, claw)
+	_dt(5, 6, Color.WHITE)
+
+func _ic_wind() -> void:
+	_type_badge()
+	var k := _rp("#f4fff8", "#a8e8d0", "#58a890")
+	var pts: Array = []
+	for s in 16:
+		var t := s / 15.0
+		var a := t * TAU * 1.1
+		pts.append(Vector2(8, 8) + Vector2(cos(a), sin(a)) * (0.6 + t * 4.4))
+	_c_line(pts, 1.2, k)
+	_c_line([Vector2(3.4, 11.6), Vector2(8, 12.6)], 1.2, k)
+
+func _ic_plain() -> void:
+	# A small plain dot: never resisted.
+	_type_badge()
+	var k := _rp("#fffbf0", "#e8dcc4", "#b8a888")
+	_c_disc(Vector2(8, 8), 2.2, k)
 
 # Run resources ----------------------------------------------------------------------------------
 

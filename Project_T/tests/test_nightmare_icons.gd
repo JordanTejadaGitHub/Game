@@ -27,11 +27,14 @@ func _run() -> void:
 	var weak_icons := _icons(rows, NightmareIcons.Kind.FAMILY, &"weak")
 	_check(resist_icons.size() == stag.resists.size() and weak_icons.size() == stag.weak_to.size(),
 		"the Hollow Stag's rows: %d resist, %d weak icons" % [resist_icons.size(), weak_icons.size()])
-	_check(_text(rows).contains("Resists ×0.5") and _text(rows).contains("Weak to ×1.5"), "row captions (%s)" % _text(rows))
+	_check(_text(rows).contains("Resists") and _text(rows).contains("Stone ×0.5") and _text(rows).contains("Weak to") and _text(rows).contains("Water ×1.5"),
+		"rows name the damage types (" + _text(rows) + ")")
 	var pebble := NightmareIcons.family("stone", &"resist")
-	_check(pebble.tip == "Resists Pebbling: stone Wardens deal half damage to it.", "resist tooltip (%s)" % pebble.tip)
-	_check(pebble._face != null, "a family icon shows its base Warden's face")
-	_check(NightmareIcons.family("support", &"weak")._face != null, "support (Acorn) has a face too")
+	_check(pebble.tip == "Resists Stone: Stone damage deals half to it.", "resist tooltip (%s)" % pebble.tip)
+	_check(IconInfo.damage_type_name("wing") == "Talon" and IconInfo.damage_type_name("acorn") == "Plain"
+		and IconInfo.damage_type_text("light") == "Light damage", "damage type names (wing = Talon, acorn = Plain)")
+	_check(["spore", "stone", "water", "light", "root", "song", "wing", "wind", "acorn"].all(func(l: String) -> bool: return IconInfo.damage_type_icon(l) != null),
+		"every damage type (and Plain) has its sheet icon")
 	var wight_rows := NightmareIcons.make_rows(wight)
 	_check(not _icons(wight_rows, NightmareIcons.Kind.STATUS, &"immune").is_empty(), "the Barrow Wight shows a crossed-out Rooted")
 	var short := _icons(wight_rows, NightmareIcons.Kind.STATUS, &"short")

@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="OmenData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/omen/script/omen_data.gd" id="1_omen"]
+
+[resource]
+script = ExtResource("1_omen")
+id = "shifting_ground"
+display_name = "Shifting Ground"
+description = "3 Withered Trees sprout on empty ground at the block's start (never on the route or a Warden)."
+kind = 3
+needs_free_cells = 3
+sprout_obstacles = 3
+reward_tree_seeds = 1

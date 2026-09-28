@@ -15,10 +15,11 @@ func _run() -> void:
 	root.add_child(main)
 	await process_frame
 	var omens: OmenDirector = main.get_node("%OmenDirector")
-	_check(omens.pool.size() == 8, "8 Omens in the pool (%d)" % omens.pool.size())
+	_check(omens.pool.size() == 20, "20 Omens in the pool (%d)" % omens.pool.size())
 	await _test_flow(main)
 	_test_twists(main)
 	_test_rewards(main)
+	_test_new_omens(main)
 	print("omens test: %s" % ("PASS" if failures == 0 else "%d FAILED" % failures))
 	quit(failures)
 
@@ -149,6 +150,107 @@ func _activate(omens: OmenDirector, id: String, block: int) -> void:
 			omens.active_block = block
 			return
 	_check(false, "Omen %s exists" % id)
+
+# The 12 Omens from "More Omens" (run_design.md): offer rules, and each twist / reward on our side.
+func _test_new_omens(main: Node) -> void:
+	var omens: OmenDirector = main.get_node("%OmenDirector")
+	var director: DriftDirector = main.get_node("%DriftDirector")
+	var dreams: DreamState = main.get_node("%DreamState")
+	var run_state: RunState = main.get_node("%RunState")
+	var map_generator = main.get_node("%MapGenerator")
+	var by_id := {}
+	for omen in omens.pool:
+		by_id[omen.id] = omen
+	# Offer rules: two different kinds, never an Omen from the previous rest
+	omens._last_offer_ids.clear()
+	var previous: Array = []
+	var ok_kinds := true
+	var no_repeat := true
+	for i in 60:
+		var offer := omens.make_offer(11)  # Drifts 51–55: every Omen can show
+		if offer.size() == 2 and offer[0].kind == offer[1].kind:
+			ok_kinds = false
+		if offer.any(func(o: OmenData) -> bool: return previous.has(o.id)):
+			no_repeat = false
+		previous = offer.map(func(o: OmenData) -> String: return o.id)
+	_check(ok_kinds, "each offer's 2 Omens are of different kinds")
+	_check(no_repeat, "an Omen never repeats from the previous rest")
+	var waiting: Array = omens.pool.filter(func(o: OmenData) -> bool: return o.waiting_for_hook)
+	var ever := {}
+	for i in 60:
+		for o in omens.make_offer(11):
+			ever[o.id] = true
+	_check(not waiting.any(func(o: OmenData) -> bool: return ever.has(o.id)), "Omens waiting for their Tower / Enemy hooks are never offered (%d waiting)" % waiting.size())
+	_check(not omens.make_offer(3).any(func(o: OmenData) -> bool: return o.min_drift > 11), "act 2 Omens wait for act 2")
+
+	# Your side: Fog Bank, Wilting, Frozen Ground, Leaf Fall (the queries Tower / TowerPlacer / RunState ask)
+	director.drifts_started = 51
+	omens.active_block = director.get_block(51)
+	omens.active = by_id["fog_bank"]
+	_check(omens.get_warden_range_add() == -1.0, "Fog Bank: −1 range")
+	omens.active = by_id["wilting"]
+	_check(is_equal_approx(omens.get_warden_speed_multiplier(), 0.85), "Wilting: −15% attack speed")
+	omens.active = by_id["frozen_ground"]
+	director.resting = false
+	_check(omens.blocks_building(), "Frozen Ground: no building during a drift")
+	director.resting = true
+	_check(not omens.blocks_building(), "…fine at a rest")
+	omens.active = by_id["leaf_fall"]
+	_check(omens.get_leak_multiplier() == 2.0, "Leaf Fall: leaks ×2")
+
+	# Lean Season: the rest bonus is halved, the next Dream (act 2+) includes a Legendary
+	omens.active = by_id["lean_season"]
+	run_state.dew = 200
+	omens._pay_reward(100)
+	_check(run_state.dew == 150, "Lean Season: half the 100 rest bonus is lost (%d)" % run_state.dew)
+	var offer := dreams.make_offer(51)
+	_check(offer.any(func(c: UpgradeData) -> bool: return c.rarity == UpgradeData.Rarity.LEGENDARY), "…the next Dream includes a Legendary")
+
+	# Double-edged and nightmare Omens through the spawn modifiers / schedule
+	omens.active = by_id["heavy_rain"]
+	omens.active_block = director.get_block(51)
+	_check(omens.get_spawn_modifiers(51).get("always_status") == &"damp" and is_equal_approx(omens.get_multiplier(51, "health_multiplier"), 1.35),
+		"Heavy Rain: always Soaked, +35% health")
+	omens.active = by_id["sleepless"]
+	_check(Array(omens.get_spawn_modifiers(51).get("status_immune", [])) == [&"drowsy", &"held"], "Sleepless: immune to Drowsy and Held")
+	_check(omens.describe_reward(by_id["blood_moon"], 3) == "" and omens.describe_reward(by_id["harvest_moon"], 3) == "",
+		"Blood Moon / Harvest Moon: no separate reward")
+	var bug: EnemyData = load("res://resource/enemy/leaf_bug.tres")
+	omens.active = by_id["elder_night"]
+	var schedule := []
+	for i in 5:
+		schedule.append([i * 1.0, bug, false])
+	omens.shape_schedule(schedule, 51)
+	_check(schedule.filter(func(a: Array) -> bool: return a[2]).size() == 1, "Elder Night: +1 elite per drift")
+	var flyers := omens._block_flyers(omens.get_block_range(director.get_block(51)))
+	if not flyers.is_empty():
+		omens.active = by_id["hollow_wind"]
+		schedule = [[0.0, bug, false], [1.0, bug, false]]
+		omens.shape_schedule(schedule, 51)
+		_check(schedule.all(func(a: Array) -> bool: return a[1].trait_kind == EnemyData.Trait.FLYING), "Hollow Wind: the first drifts are all flyers")
+		schedule = [[0.0, bug, false]]
+		omens.shape_schedule(schedule, 53)
+		_check(schedule[0][1] == bug, "…only the first 2")
+
+	# Shifting Ground: 3 trees on free cells away from the route, once; then +1 Seed per tree cleared
+	omens.active = by_id["shifting_ground"]
+	omens._sprouted_block = 0
+	var route_before: PackedVector2Array = map_generator.get_path_from(map_generator.startPath)
+	var obstacles_before: int = map_generator.obstacles.size()
+	omens._on_drift_started(51)
+	omens._on_drift_started(52)
+	_check(map_generator.obstacles.size() == obstacles_before + 3, "Shifting Ground: 3 trees sprout, once (%d)" % (map_generator.obstacles.size() - obstacles_before))
+	_check(map_generator.get_path_from(map_generator.startPath) == route_before, "…never changing the route")
+	omens._pay_reward(0)
+	_check(omens.tree_seed_bonus == 1, "…reward: +1 Seed per tree cleared")
+	var tree_cell: Vector2 = map_generator.obstacles.keys().filter(func(c: Vector2) -> bool:
+		return map_generator.obstacles[c] == OmenDirector.TREE)[0]
+	var seeds := run_state.omen_seeds
+	map_generator.clear_obstacle(tree_cell)
+	_check(run_state.omen_seeds == seeds + 1, "…a cleared Withered Tree gives the extra Seed")
+	omens.tree_seed_bonus = 0
+	omens.active = null
+	director.drifts_started = 0
 
 func _frames(n: int) -> void:
 	for i in n:

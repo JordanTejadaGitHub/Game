@@ -329,7 +329,7 @@ the map or the rules**. That makes ~20; aim for no Omen twice in a row and each 
 - **New `OmenData` fields:** Warden range add / attack-speed multiplier, `no_build_during_drift`,
   leak multiplier, rest-bonus multiplier below 1, status immunities, always-applied status, extra
   elites per drift, all-flyer drift count, obstacles to sprout, per-tree Seed bonus; rewards
-  `dreamlight`, `dream_legendary`. Double-edged Omens have no separate reward.
+  `dreamlight`, `dream_legendary`. Blood Moon and Harvest Moon have no separate reward (their Dew is it); **Heavy Rain keeps +30 Dew**, because its +35% health hurts every build while the Soaked only helps some.
 
 - **Blight Levels** can make Omens harsher or remove Clear Skies ("an Omen is always chosen").
 - **Grove perks** later: a third Omen option, or Omen rewards +25% (`meta_design.md`).

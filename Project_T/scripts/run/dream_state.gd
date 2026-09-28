@@ -20,6 +20,9 @@ const SPORE_CASCADE_TARGETS := [2, 3]
 const TENDED_FOREST_PER_CLEAR := 0.01
 const TENDED_FOREST_MAX := 0.25
 const FERTILE_DISCOUNT := 0.5  # Reclaimed Earth: the first Warden on a cleared cell
+const CLEAR_DISCOUNT_MAX := 0.5  # Cleared Ground stacks to −50%
+const RECLAIMED_REFUND := 0.4  # Reclaimed Earth: share of the Dew paid for a clear
+const BURN_BACK_PER_TREE := 2  # Burn Back: Dew per Withered Tree, paid when taken
 const CLEARING_LOCKED_WEIGHT := 2.0  # Clearing cards are this much likelier until you own one
 # Nurture and wide / narrow cards (dream_design.md). [base, Deepened (II)] where it deepens.
 const NURTURE_DISCOUNT_MAX := 0.45
@@ -220,6 +223,7 @@ var _passed_at := {}  # Card id -> the offer number (dreams_seen) it was last pa
 var _taken_this_offer: Array[String] = []
 var _guaranteed_id := ""  # The Entwined guaranteed card of the current offer (never fades)
 var current_stray: UpgradeData = null  # The Stray Dream card of the current offer (null = none)
+var _legendary_next := 0  # Lean Season: Dreams still owed a Legendary
 var _owed_families: Array[String] = []  # Half-dreamed cards taken: the next family pick includes one
 var _declined_families: Array[String] = []  # Offered at the last family pick, not taken (half-dreamed ×0.3)
 var _taken_cache := {}  # include_dormant -> [state key, taken cards] (_taken_cards)
@@ -234,6 +238,7 @@ var _last_route := PackedVector2Array()
 var _straight_cells := {}  # Route tiles in a straight stretch of 5+ (Straightaway)
 var _heart_cache := []  # [key, Tower] (get_heart_of_maze)
 var _glimmer_rng := RandomNumberGenerator.new()
+var last_clear_paid := 0  # Dew the clear being made cost (ObstacleClearer sets it; Reclaimed Earth)
 var glimmer_shards := 0  # Glimmering Hunt's shards this run (10 = 1 Dreamlight, own cap)
 var _statuses_cache := []  # [state key, owned statuses] (owned_statuses)
 var _offer_drift := 0  # The drift of the offer being built (half-dreamed checks)
@@ -978,11 +983,17 @@ func get_rest_bonus_add() -> int:
 	return add
 
 # Dew to clear `data` (Cleared Ground: −40% per stack, never below 1 Dew).
-func get_clear_cost(data: ObstacleData) -> int:
+# Clearing always costs Dew (dream_design.md "Clearing always costs Dew"): Cleared Ground −25% per
+# stack (max −50%), a Heartwood's Reach charge (`half_price`) halves it, and it never goes below half
+# the base cost, rounded up (tree 3, boulder 4). Blight 9's ×2 is ObstacleClearer's, on top.
+func get_clear_cost(data: ObstacleData, half_price: bool = false) -> int:
 	var discount := 0.0
 	for card in _taken_cards():
 		discount += card.clear_discount * stacks[card.id]
-	return maxi(roundi(data.clear_cost * maxf(1.0 - discount, 0.0)), 1)
+	var cost := roundi(data.clear_cost * (1.0 - minf(discount, CLEAR_DISCOUNT_MAX)))
+	if half_price:
+		cost = ceili(cost / 2.0)
+	return maxi(cost, ceili(data.clear_cost / 2.0))
 
 # Cost to plant `data` on `cell`: a Seedling Gift charge makes a Sprout free; Reclaimed Earth halves
 # the first Warden on a fertile cell.
@@ -1145,7 +1156,8 @@ func take(card: UpgradeData) -> void:
 		run_state.add_free_clears(card.free_clears_add)
 	if card.rule_id == &"court_of_the_eldest":
 		_crown_court_eldest()
-	if card.clears_obstacle != null:
+	if card.clears_obstacle != null:  # Burn Back: 2 Dew per tree, paid now (only offered when affordable)
+		run_state.spend_dew(BURN_BACK_PER_TREE * count_obstacles(card.clears_obstacle))
 		_clear_all(card.clears_obstacle)
 	if card.set_cost_warden != "":
 		unlocks_changed.emit()  # Tower bar prices change
@@ -1158,6 +1170,10 @@ func add_rare_dreams(count: int) -> void:
 # Omen reward (Thick Blight): the next Dream offers `count` more cards.
 func add_extra_cards(count: int) -> void:
 	_extra_cards_next += count
+
+# Omen reward (Lean Season): the next Dream (from act 2) includes a Legendary.
+func add_legendary_dreams(count: int) -> void:
+	_legendary_next += count
 
 # Restless Dreams (bittersweet) takes "Let it pass" away for the rest of the run.
 func can_skip() -> bool:
@@ -1298,7 +1314,8 @@ func times_passed(card_id: String) -> int:
 
 func _offer_counters() -> Dictionary:
 	return {"dreams_seen": dreams_seen, "without_rare": _dreams_without_rare,
-		"rare_left": _rare_dreams_left, "extra": _extra_cards_next, "entwined": _entwined_offered.duplicate()}
+		"rare_left": _rare_dreams_left, "extra": _extra_cards_next, "entwined": _entwined_offered.duplicate(),
+		"legendary": _legendary_next}
 
 func _restore_offer_counters(counters: Dictionary) -> void:
 	if counters.is_empty():
@@ -1307,6 +1324,7 @@ func _restore_offer_counters(counters: Dictionary) -> void:
 	_dreams_without_rare = counters.without_rare
 	_rare_dreams_left = counters.rare_left
 	_extra_cards_next = counters.extra
+	_legendary_next = counters.get("legendary", 0)
 	_entwined_offered = counters.entwined.duplicate()
 
 # Builds a Dream offer for after drift `drift_number` (see dream_design.md, "How offers work").
@@ -1332,6 +1350,13 @@ func make_offer(drift_number: int) -> Array[UpgradeData]:
 				offer.append(card)
 				break
 	# The Stray Dream: from drift 10's rest (never a boss rest), one slot leans away from the build.
+	# Lean Season's reward: one Legendary slot (act 2+), before the Stray and the normal slots.
+	if _legendary_next > 0 and act >= 2 and offer.size() < size:
+		var legendaries: Array = pool.filter(func(c: UpgradeData) -> bool:
+			return c.rarity == UpgradeData.Rarity.LEGENDARY and not offer.has(c) and can_offer(c, act))
+		if not legendaries.is_empty():
+			offer.append(_weighted_pick(legendaries))
+			_legendary_next -= 1
 	current_stray = null
 	if offer.size() < size and drift_number >= STRAY_FROM_DRIFT and not drift_director.is_boss_drift(drift_number):
 		current_stray = _draw_card(act, offer, false, true)
@@ -1382,6 +1407,8 @@ func can_offer(card: UpgradeData, act: int = 1) -> bool:
 	if card.max_leaves_add < 0 and run_state.max_leaves + card.max_leaves_add < 1:
 		return false
 	# Clearing cards only when the map is still full enough to matter.
+	if card.clears_obstacle != null and run_state.dew < BURN_BACK_PER_TREE * count_obstacles(card.clears_obstacle):
+		return false  # Burn Back: only when you can pay for every tree
 	if card.min_obstacles > 0 and count_obstacles(card.clears_obstacle) < card.min_obstacles:
 		return false
 	if not _meets_needs(card):
@@ -1658,6 +1685,7 @@ func to_save() -> Dictionary:
 		"passed_count": _passed_count.duplicate(), "passed_at": _passed_at.duplicate(),
 		"owed_families": _owed_families.duplicate(), "declined_families": _declined_families.duplicate(),
 		"walls_planted": _walls_planted, "glimmer_shards": glimmer_shards,
+		"legendary_next": _legendary_next,
 		"rng_state": str(_rng.state),  # A string: JSON would round a 64-bit int
 	}
 
@@ -1694,6 +1722,7 @@ func load_save(data: Dictionary) -> void:
 	_attackers_planted = int(data.get("attackers_planted", 0))
 	_walls_planted = int(data.get("walls_planted", 0))
 	glimmer_shards = int(data.get("glimmer_shards", 0))
+	_legendary_next = int(data.get("legendary_next", 0))
 	_refill_bark()  # Saved at a rest, where Thick Bark is full again
 	dreamlight = int(data.get("dreamlight", 0))
 	dreamlight_changed.emit(dreamlight)
@@ -1769,15 +1798,18 @@ func _on_tower_built(tower: Tower) -> void:
 # Reclaimed Earth: every clear gives Dew and leaves the cell fertile. Not Burn Back's mass clear
 # (it would flood the Dew economy, same as its no-Seeds rule).
 func _on_obstacle_cleared(cell: Vector2, _data: ObstacleData) -> void:
+	var paid := last_clear_paid
+	last_clear_paid = 0
 	if run_state.clearing_without_seeds:
 		return
 	var dew := 0
 	for card in _taken_cards():
 		dew += card.dew_per_obstacle_clear * stacks[card.id]
+	if has_rule(&"reclaimed_earth"):
+		dew += floori(paid * RECLAIMED_REFUND)  # 40% of what the clear cost: never a profit
+		run_state.fertile_cells[cell] = true
 	if dew > 0:
 		run_state.earn_dew_at(dew, map_generator.MAP_GRID.calculate_map_position(cell))
-	if has_rule(&"reclaimed_earth"):
-		run_state.fertile_cells[cell] = true
 
 # Spore Cascade: a cleansed creature's Spored stacks spread to the nearest creatures.
 func _on_enemy_cleansed(enemy: Node2D) -> void:
@@ -2161,6 +2193,8 @@ func _last_breath(enemy: Node2D) -> void:
 # (path steps between their closest route tiles; ties go nearer the Heartwood). Cached until the
 # route or the Wardens change. null with fewer than 2 attackers.
 func get_heart_of_maze() -> Tower:
+	if not has_rule(&"heart_of_the_maze"):
+		return null  # No card, no heart (DreamMarks draws whatever this returns)
 	var attackers: Array = _towers().filter(func(t: Tower) -> bool: return t.tower_data.can_attack)
 	var key := hash([attackers.map(func(t: Tower) -> Vector2: return t.cell), path_length])
 	if not _heart_cache.is_empty() and _heart_cache[0] == key:

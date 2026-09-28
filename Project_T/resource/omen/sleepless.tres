@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="OmenData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/omen/script/omen_data.gd" id="1_omen"]
+
+[resource]
+script = ExtResource("1_omen")
+id = "sleepless"
+display_name = "Sleepless"
+description = "Nightmares are immune to {drowsy} and {held}."
+kind = 0
+status_immune = Array[StringName]([&"drowsy", &"held"])
+reward_dew = 40

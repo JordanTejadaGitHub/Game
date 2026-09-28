@@ -75,6 +75,8 @@ func _ready() -> void:
 	move_child(dossier, %PauseMenu.get_index())
 	# Resist / weak pips and the immune flash, drawn in the world over the nightmares.
 	owner.add_child.call_deferred(ResistPips.new())
+	# Touch: Plant / Cancel for a pending drag-to-build stroke, two-finger pan and pinch (TouchBuild).
+	add_child(TouchBuild.new(tower_placer, owner.get_node_or_null("GameCameraNode")))
 	# Dream card marks: Heart of the Maze's heart (world), Thick Bark's shield by the leaves.
 	owner.add_child.call_deferred(DreamMarks.new())
 	bark_shield = DreamMarks.BarkShield.new(leaves_label)
@@ -97,15 +99,15 @@ func _ready() -> void:
 	map_generator.path_changed.connect(update_path)
 	update_path.call()
 	drift_director.act_started.connect(_on_act_started)
-	# Free clears (Heartwood's Reach), under the path length; hidden when there are none.
+	# Half-price clears (Heartwood's Reach; clearing always costs Dew), under the path length; hidden when there are none.
 	var clears_label := path_label.duplicate() as Label
 	clears_label.unique_name_in_owner = false
 	clears_label.offset_top = path_label.offset_bottom
 	clears_label.offset_bottom = path_label.offset_bottom + (path_label.offset_bottom - path_label.offset_top)
-	clears_label.tooltip_text = "Free clears: tending a tree or moving a rock costs no Dew."
+	clears_label.tooltip_text = "Half-price clears: tending a tree or moving a rock costs half (never less than half its base price)."
 	add_child(clears_label)
 	var update_clears := func(n: int) -> void:
-		clears_label.text = "Free clears %d" % n
+		clears_label.text = "Half-price clears %d" % n
 		clears_label.visible = n > 0
 	run_state.free_clears_changed.connect(update_clears)
 	update_clears.call(run_state.free_clears)
@@ -151,8 +153,8 @@ func _build_tower_bar() -> void:
 		button.theme_type_variation = &"WardenSlot"  # A fog patch; selected = the gold underline (ui_style.md)
 		button.add_theme_font_size_override("font_size", 16)
 		button.custom_minimum_size = BUTTON_SIZE
-		button.tooltip_text = "%s (%s)\nCost: %d Dew\n%s" % [data.display_name, str(i + 1) if i < 9 else "no key",
-			tower_placer.get_cost(data), data.description]
+		button.tooltip_text = "%s (%s)\n%s · Cost: %d Dew\n%s" % [data.display_name, str(i + 1) if i < 9 else "no key",
+			IconInfo.damage_type_text(data.line), tower_placer.get_cost(data), data.description]  # "Light damage"
 		button.pressed.connect(_on_tower_pressed.bind(data))
 		if i < 9:
 			var hotkey := Label.new()

@@ -100,7 +100,8 @@ func _make_card(omen: OmenData, act: int) -> Button:
 	twist.mouse_filter = Control.MOUSE_FILTER_PASS  # A click still picks the Omen
 	twist.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	box.add_child(twist)
-	_add_line(box, "Reward: " + omens.describe_reward(omen, act), REWARD_COLOR, 15)
+	var reward := omens.describe_reward(omen, act)
+	_add_line(box, "Reward: " + reward if reward != "" else "Double-edged: the twist is the reward", REWARD_COLOR, 15)
 	return button
 
 func _add_line(box: VBoxContainer, text: String, color: Color, font_size: int) -> Label:

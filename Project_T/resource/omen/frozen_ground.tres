@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="OmenData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/omen/script/omen_data.gd" id="1_omen"]
+
+[resource]
+script = ExtResource("1_omen")
+id = "frozen_ground"
+display_name = "Frozen Ground"
+description = "No planting or growing during drifts, only at rests (selling and clearing still work)."
+kind = 1
+waiting_for_hook = true
+no_build_during_drift = true
+reward_dew = 50
