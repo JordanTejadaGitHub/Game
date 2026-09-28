@@ -134,8 +134,8 @@ func _refresh() -> void:
 		var cost := _tower.get_nurture_cost()
 		for which in [Tower.Focus.POWER, Tower.Focus.SWIFT, Tower.Focus.REACH, Tower.Focus.DEEP]:
 			# Usually rank III; a Warden planted at a higher rank (Remembered Care) chooses on its next one.
-			var button := _add_button("Rank %s · %s: %s per rank · %d Dew" % [Tower.RANK_NAMES[_tower.rank + 1],
-				Tower.FOCUS_NAMES[which], Tower.FOCUS_TEXT[which], cost])
+			var button := _add_button("Rank %s · %s: %s per rank · %s" % [Tower.RANK_NAMES[_tower.rank + 1],
+				Tower.FOCUS_NAMES[which], Tower.FOCUS_TEXT[which], _price(cost)])
 			button.tooltip_text = "The usual rank gains, plus this Focus at ranks III, IV and V. Can't be changed later."
 			button.disabled = not run_state.can_afford(cost)
 			button.pressed.connect(func() -> void:
@@ -143,7 +143,7 @@ func _refresh() -> void:
 					_refresh())
 	elif _tower.can_nurture():
 		var cost := _tower.get_nurture_cost()
-		var nurture := _add_button("Nurture to rank %s · %d Dew (R)" % [Tower.RANK_NAMES[_tower.rank + 1], cost])
+		var nurture := _add_button("Nurture to rank %s · %s (R)" % [Tower.RANK_NAMES[_tower.rank + 1], _price(cost)])
 		nurture.tooltip_text = "+10%% damage, +4%% attack speed, +0.1 range%s. Kept when it grows." % (
 			", and %s" % Tower.FOCUS_TEXT[_tower.focus] if _tower.focus != Tower.Focus.NONE else "")
 		nurture.disabled = not run_state.can_afford(cost)
@@ -211,9 +211,9 @@ func _refresh_group() -> void:
 		var plan: Array = tower_seller.plan_nurture(selection)
 		var nurture := _add_button("")
 		if plan[0].size() >= full[0]:
-			nurture.text = "Nurture all %d · %d Dew (R)" % [full[0], full[1]]
+			nurture.text = "Nurture all %d · %s (R)" % [full[0], _price(full[1])]
 		else:
-			nurture.text = "Nurture %d of %d · %d Dew (R)" % [plan[0].size(), full[0], plan[1]]
+			nurture.text = "Nurture %d of %d · %s (R)" % [plan[0].size(), full[0], _price(plan[1])]
 			nurture.disabled = plan[0].is_empty()
 		nurture.tooltip_text = "Each gains a rank: +10% damage, +4% attack speed, +0.1 range."
 		if tower_seller.count_needing_focus(selection) > 0:
@@ -227,11 +227,11 @@ func _refresh_group() -> void:
 			var plan_focus: Array = tower_seller.plan_nurture(selection, which)
 			var button := _add_button("")
 			if plan_focus[0].size() >= cost[0]:
-				button.text = "Nurture all %d, %d at rank III take %s · %d Dew" % [cost[0], waiting,
-					Tower.FOCUS_NAMES[which], cost[1]]
+				button.text = "Nurture all %d, %d at rank III take %s · %s" % [cost[0], waiting,
+					Tower.FOCUS_NAMES[which], _price(cost[1])]
 			else:
-				button.text = "Nurture %d of %d, rank III take %s · %d Dew" % [plan_focus[0].size(), cost[0],
-					Tower.FOCUS_NAMES[which], plan_focus[1]]
+				button.text = "Nurture %d of %d, rank III take %s · %s" % [plan_focus[0].size(), cost[0],
+					Tower.FOCUS_NAMES[which], _price(plan_focus[1])]
 				button.disabled = plan_focus[0].is_empty()
 			button.tooltip_text = "%s: %s per rank from rank III. Can't be changed later." % [
 				Tower.FOCUS_NAMES[which], Tower.FOCUS_TEXT[which]]
@@ -331,6 +331,10 @@ func _on_locked_form(next: TowerData, can_unlock_now: bool) -> void:
 	_confirm_unlock = null
 	dream_state.unlock_with_dreamlight(next)  # Emits unlocks_changed -> refresh
 	_refresh()
+
+# A Nurture price for a button: "40 Dew", or "free" (First Care's free ranks).
+static func _price(dew: int) -> String:
+	return "free" if dew <= 0 else "%d Dew" % dew
 
 func _add_button(text: String) -> Button:
 	var button := Button.new()

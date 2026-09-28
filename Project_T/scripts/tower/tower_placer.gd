@@ -237,7 +237,9 @@ func nurture(tower: Tower, focus: Tower.Focus = Tower.Focus.NONE) -> bool:
 	if tower.needs_focus() and focus == Tower.Focus.NONE:
 		return false
 	var cost := tower.get_nurture_cost()
-	if not run_state.spend_dew(cost):
+	if cost == 0 and tower.free_nurtures_left() > 0:
+		run_state.free_nurtures -= 1  # First Care: a free rank (nothing invested, nothing refunded)
+	elif not run_state.spend_dew(cost):
 		return false
 	if "rank_dew_spent" in run_state:
 		run_state.rank_dew_spent += cost  # Nurture Dream openers look at this

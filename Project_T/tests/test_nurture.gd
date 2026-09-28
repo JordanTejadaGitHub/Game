@@ -153,6 +153,24 @@ func _run() -> void:
 		and group.all(func(t: Tower) -> bool: return t.rank == 3 and t.focus == Tower.Focus.SWIFT),
 		"one Focus for the whole group")
 
+	# First Care (Grove perk): the run's first free_nurtures ranks cost nothing.
+	if "free_nurtures" in run_state:
+		var freebie := _build(placer, map_generator, sprout_data)
+		var paid := freebie.invested_dew
+		run_state.free_nurtures = 2
+		run_state.dew = 100
+		_check(freebie.get_nurture_cost() == 0 and freebie.get_nurture_price() == 8, "a free rank shows as free (normally 8)")
+		var group_free := [freebie]
+		_check(seller.full_nurture_cost(group_free) == [1, 0], "group Nurture counts free ranks as free")
+		placer.nurture(freebie)
+		placer.nurture(freebie)
+		_check(freebie.rank == 2 and run_state.dew == 100 and run_state.free_nurtures == 0,
+			"First Care: 2 free ranks, no Dew spent")
+		_check(freebie.invested_dew == paid, "free ranks add nothing to invested Dew (nothing to refund)")
+		_check(freebie.get_nurture_cost() == freebie.get_nurture_price(), "then ranks cost Dew again")
+	else:
+		print("(RunState.free_nurtures not in this tree yet: First Care checks skipped)")
+
 	# Mid-run save keeps ranks and Focus.
 	var saver: RunSaver = main.get_node("%RunSaver")
 	saver.save_now()

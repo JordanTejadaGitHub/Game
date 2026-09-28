@@ -280,6 +280,19 @@ func get_tier_cost_multiplier() -> float:
 func get_nurture_cost() -> int:
 	if not can_nurture():
 		return 0
+	if free_nurtures_left() > 0:
+		return 0  # First Care: the run's first few ranks are free
+	return get_nurture_price()
+
+# First Care (a Grove perk): free Nurture ranks left this run (RunState.free_nurtures).
+func free_nurtures_left() -> int:
+	var run_state = _dream_state.run_state if _dream_state else null
+	return run_state.free_nurtures if run_state and "free_nurtures" in run_state else 0
+
+# Dew for the next rank at its normal price (ignoring First Care's free ranks).
+func get_nurture_price() -> int:
+	if not can_nurture():
+		return 0
 	var next := rank + 1
 	var base: float = RANK_COSTS[rank] if rank < RANK_COSTS.size() else 0.0
 	if next > RANK_COSTS.size() and _dream_state and _dream_state.has_method("get_extra_rank_cost"):
