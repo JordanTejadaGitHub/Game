@@ -38,6 +38,8 @@ func _run() -> void:
 		"…and Drowsy with ½ (%s)" % (short[0].tip if not short.is_empty() else "none"))
 	_check(NightmareIcons.traits_of(queen).has(&"flying"), "the Moth Queen has the Flying trait icon")
 	_check(NightmareIcons.shrugs_off(stag).has(&"held"), "bosses shrug off Rooted (½)")
+	for art_id in [&"flying", &"dread_shell", &"through_walls", &"sprints", &"trample", &"charge", &"eclipse", &"grief"]:
+		_check(IconInfo.icon(art_id) != null, "the sheet has the " + String(art_id) + " icon (used over the drawn glyph)")
 	var empty := NightmareIcons.make_rows(load("res://resource/enemy/leaf_bug.tres"), 16.0, true)
 	_check(empty.get_child_count() == 0 or not stag.resists.is_empty(), "a compact row with nothing to show is empty")
 
