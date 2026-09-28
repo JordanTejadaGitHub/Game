@@ -122,6 +122,15 @@ turn leaks into a hold. Targets for the balance simulation and playtests (averag
     takes 4 cells now), not 7× as measured.
   - Watch sleep: if Asleep damage stays above ~50% after this, look at Caught's +40% and
     Dreamshroom next.
+  - **Rerun after both changes** (2026-09-28): ~200k health per drift, the maze deals ×1.11–1.14 of
+    it, 0–5 leaks, still **without Dreams**. The Great Bell at half-strength set-offs was no better
+    than the Lullaby Bell it grows from (it lost the Lullaby's own effects, ~150k over 10 drifts).
+    Decision: **Ascended forms keep their family final form's signature effects** (the Great Bell
+    keeps the Lullaby Bell's lullaby) **plus** their own; set-offs stay at 50%. That puts the Great
+    Bell near **5× an average final form**, the target. Asleep share still 52–56%: watch.
+  - **Next:** the probe with a **realistic run** (Dreams taken by the real offer logic, a Dew
+    budget from simulated income, so the maze is one a player could afford) is the start of the
+    balance simulation. Only then raise act 3 health further.
 - **Demo:** it has no meta, so every demo run is a fresh profile. **Decided (user, 2026-09-28): keep
   that curve** (demo wins are rare: "go deeper in the full game"). Maybe later: **a few Memory Grove
   unlocks in the demo** (a small taste of the meta), decided after playtests.
