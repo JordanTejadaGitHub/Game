@@ -937,7 +937,7 @@ length, straights) and the moment a nightmare is dispelled. All **Start** pool, 
 | 162 | **Last Breath** | Uncommon | a dispelled nightmare **bursts for 10% of its max health** on nightmares within **1 cell** (never chains) | — | — | Start |
 | 163 | **Tangled** | Uncommon | nightmares carrying **2+ statuses** move **10% slower** | status | a Warden that applies a status (soft) | Start |
 | 164 | **Watchful Rest** | Uncommon | a Warden with **nothing in range for 5 s** stores a charge; its **next attack deals ×2** (one charge at a time) | — | — | Start |
-| 165 | **Glimmering Hunt** | Uncommon | elites (Deeply Blighted) have a **10% chance to drop a Dreamlight shard** | dreamlight | act 2+ (elites appear) | Start |
+| 165 | **Glimmering Hunt** | Uncommon | elites (Deeply Blighted) have a **30% chance to drop a Dreamlight shard** (10 shards = 1 Dreamlight; **its own cap of 3 Dreamlight per run**, separate from the Great Dreamcatcher's) | dreamlight | act 2+ (elites appear) | Start |
 | 166 | **Straightaway** | Uncommon | Wardens beside a **straight stretch of 5+ path tiles** get **+15% damage and +0.5 range** | maze | — | Start |
 | 167 | **Heart of the Maze** | Rare | the attacking Warden **furthest (along the path) from any other attacking Warden** gets **+50% damage** | maze | 4+ attacking Wardens (soft) | Start |
 | 168 | **Echoing Steps** | Rare | each time **the route changes during a drift**, all Wardens get **+5% damage** until the drift ends (max +25%) | maze, tempo | — | Start |
