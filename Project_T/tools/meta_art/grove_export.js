@@ -11,6 +11,10 @@ emitImg("grove/grove_sky.png", sky);
 emitImg("grove/grove_tree.png", tree);
 const canopies = [0, 1, 2, 3].map(groveCanopy);
 canopies.forEach((c, i) => emitImg("grove/grove_canopy_" + i + ".png", c));
+// The full crown decides where the nodes sit (inside its leaves, spread evenly) and where the
+// dream-fruit hang (just under its belly); the branches are drawn after that.
+spreadNodes(canopies[3]);
+FRUIT_SPOTS.forEach(s => { s[1] = maskBottom(s[0]) - 8; });
 const layout = { size: [GW, GH], nodes: [], fruit_spots: FRUIT_SPOTS, loadout_stones: LOADOUT_STONES, moon: MOON, node_cell: 32, legendary_cell: 48, fruit_cell: 48 };
 const segs = {};
 for (const n of NODES) {
