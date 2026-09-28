@@ -285,7 +285,7 @@ func _refresh_group() -> void:
 
 	for child in _buttons.get_children():
 		child.queue_free()
-	if selection.any(func(t: Tower) -> bool: return t.tower_data.has_target_priority):
+	if selection.any(func(t) -> bool: return is_instance_valid(t) and t.tower_data.has_target_priority):
 		var aim := _add_button("Aim all: %s (click to change)" % TARGET_NAMES[_group_target_mode()])
 		aim.pressed.connect(_cycle_group_target)
 	for group in groups:

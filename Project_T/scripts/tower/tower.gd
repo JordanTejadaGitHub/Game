@@ -297,7 +297,9 @@ func _process(delta: float) -> void:
 func _has_work() -> bool:
 	match attack_data.attack_kind:
 		TowerData.AttackKind.TRAP:
-			_rings = _rings.filter(func(r: FairyRing) -> bool: return is_instance_valid(r) and not r.is_spent())
+			# Untyped lambda + assign(): a freed ring can't be passed to a typed parameter, and filter()
+			# returns an untyped Array (the old line errored every frame once a ring had gone).
+			_rings.assign(_rings.filter(func(r) -> bool: return is_instance_valid(r) and not r.is_spent()))
 			return _rings.size() < attack_data.trap_max and not _free_trap_cells().is_empty()
 		TowerData.AttackKind.SPIN:
 			return not _enemies_on_adjacent_tiles().is_empty()

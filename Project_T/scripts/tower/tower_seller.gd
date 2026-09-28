@@ -33,6 +33,10 @@ const WALL_ID := "thornwall"
 @export var build_phase_refund: float = 0.75
 @export var drift_refund: float = 0.5
 
+const SELL_CONFIRM_TIME := 2.0  # Seconds for the second press of the sell key during a drift
+var _sell_armed: Array = []  # The Wardens the first press armed
+var _sell_armed_until := 0  # Ticks (ms) until the second press must come
+
 @onready var map_generator = %MapGenerator
 @onready var tower_container: Node2D = %TowerContainer
 @onready var tower_placer: TowerPlacer = %TowerPlacer
@@ -118,7 +122,7 @@ func set_selection(towers: Array) -> void:
 	_selection_updated()
 
 func _selection_updated() -> void:
-	selection = selection.filter(func(t: Tower) -> bool: return is_instance_valid(t) and not t.is_queued_for_deletion())
+	selection.assign(selection.filter(func(t) -> bool: return is_instance_valid(t) and not t.is_queued_for_deletion()))  # Untyped: t may be freed
 	selected = selection[0] if not selection.is_empty() else null
 	Tower.set_badges_visible(&"selection", not selection.is_empty())  # Card badges show while Wardens are selected
 	tower_selected.emit(selected)
@@ -153,8 +157,8 @@ func _visible_world_rect() -> Rect2:
 
 # Shift: adds `towers`, or removes them if they're all selected already.
 func _add_or_remove(towers: Array) -> void:
-	if not towers.is_empty() and towers.all(func(t: Tower) -> bool: return selection.has(t)):
-		set_selection(selection.filter(func(t: Tower) -> bool: return not towers.has(t)))
+	if not towers.is_empty() and towers.all(func(t) -> bool: return selection.has(t)):
+		set_selection(selection.filter(func(t) -> bool: return is_instance_valid(t) and not towers.has(t)))
 	else:
 		set_selection(selection + towers)
 
@@ -276,6 +280,49 @@ func get_selection_refund() -> int:
 	return total
 
 # Sells every selected Warden. Returns the Dew refunded.
+# The sell key (X or Delete; screens_ui.md hotkeys): sells the selected Wardens, or the hovered one
+# with nothing selected. During a drift with the confirm_sell setting on, the first press shows the
+# (half) refund and a second press within SELL_CONFIRM_TIME sells; at rests one press sells.
+# Returns whether the key did something.
+func sell_key() -> bool:
+	var targets: Array = selection.duplicate() if not selection.is_empty() else ([_hover_tower] if _hover_tower else [])
+	targets = targets.filter(func(t) -> bool: return is_instance_valid(t) and not t.tower_data.rooted)
+	if targets.is_empty() or not can_sell():
+		return false
+	var ask: bool = not drift_director.is_build_phase() and HeartwoodMemory.get_settings().get("confirm_sell", true)
+	var now := Time.get_ticks_msec()
+	if ask and not (now < _sell_armed_until and _sell_armed == targets):
+		_sell_armed = targets
+		_sell_armed_until = now + int(SELL_CONFIRM_TIME * 1000)
+		get_tree().create_timer(SELL_CONFIRM_TIME, true, false, true).timeout.connect(queue_redraw)
+		queue_redraw()
+		return true
+	_sell_armed = []
+	_sell_armed_until = 0
+	if targets == selection:
+		sell_selection()
+	else:
+		sell(targets[0].cell)
+	return true
+
+# Waiting for the second press: the Wardens and their total refund (0 when not armed).
+func get_armed_sell() -> Array:
+	if Time.get_ticks_msec() >= _sell_armed_until:
+		return []
+	return _sell_armed.filter(func(t) -> bool: return is_instance_valid(t))
+
+# The first key bound to sell_tower, for the prompt ("X").
+func _sell_key_name() -> String:
+	for event in InputMap.action_get_events("sell_tower"):
+		if event is InputEventKey:
+			return OS.get_keycode_string(event.physical_keycode if event.physical_keycode != 0 else event.keycode)
+	return "the sell key"
+
+# True while a text field has focus (the sell key must not fire while typing).
+func _typing() -> bool:
+	var focus := get_viewport().gui_get_focus_owner()
+	return focus is LineEdit or focus is TextEdit
+
 func sell_selection() -> int:
 	if not can_sell():
 		return 0
@@ -311,9 +358,9 @@ func _dreams() -> DreamState:
 func _unhandled_input(event: InputEvent) -> void:
 	if not active:
 		return
-	if event.is_action_pressed("sell_tower") and _hover_tower != null and not (event is InputEventMouseButton):
-		sell(_hover_cell)
-		get_viewport().set_input_as_handled()
+	if event.is_action_pressed("sell_tower") and not (event is InputEventMouseButton) and not _typing():
+		if sell_key():
+			get_viewport().set_input_as_handled()
 	elif event.is_action_pressed("clear_obstacle") and _starts_selection(event):
 		_on_press(event)
 		get_viewport().set_input_as_handled()
@@ -417,6 +464,16 @@ func _draw() -> void:
 		for i in 6:
 			var dir := Vector2.from_angle(TAU * i / 6.0 + t)
 			draw_circle(at + dir * (10.0 + 26.0 * t), 3.0 * (1.0 - t) + 1.0, Color(1.0, 0.95, 0.7, 1.0 - t))
+	var armed := get_armed_sell()
+	if not armed.is_empty():
+		# First press during a drift: show the (half) refund; a second press sells.
+		var refund := 0
+		for tower in armed:
+			refund += get_refund(tower)
+		var at: Vector2 = armed[0].position
+		WorldLabel.draw_tag(self, at.x, at.y - MAP_GRID.cell_size.y / 2.0 - 8.0,
+			"Press %s again to sell for +%d Dew (half during a drift)" % [_sell_key_name(), refund],
+			Color(1.0, 0.8, 0.45))
 	if _dragging:
 		var box := Rect2(_press_world, Vector2.ZERO).expand(get_global_mouse_position())
 		draw_rect(box, Color(SELECTED_COLOR, 0.08))
@@ -426,8 +483,8 @@ func _draw() -> void:
 	var center: Vector2 = MAP_GRID.calculate_map_position(_hover_cell)
 	var rect := Rect2(center - MAP_GRID.cell_size / 2, MAP_GRID.cell_size).grow(-2)
 	draw_rect(rect, HIGHLIGHT_COLOR, false, 2.0)
-	var label := "%s · click: details · Delete: sell +%d Dew" % [_hover_tower.tower_data.display_name,
-		get_refund(_hover_tower)]
+	var label := "%s · click: details · %s: sell +%d Dew" % [_hover_tower.tower_data.display_name,
+		_sell_key_name(), get_refund(_hover_tower)]
 	if not can_sell():
 		label = "%s · click: details · Overgrown: no selling until the rest" % _hover_tower.tower_data.display_name
 	WorldLabel.draw_tag(self, center.x, rect.position.y - 8, label)

@@ -415,7 +415,7 @@ accessibility, Steam achievements (milestones map to them). Acts 3–4 and all f
   `world_label.gd` (`WorldLabel.draw_tag` for world-space text tags, `cost_color`),
   `dew_popup.gd` (`DewPopup`).
 - Input actions: `toggle_build_mode` (B), `place_tower` (LMB), `cancel_build` (RMB / Esc),
-  `sell_tower` (Delete only: right-click never sells, it only cancels or deselects), `start_drift` (Enter), `pause_game` (Space), `cycle_speed` (Tab).
+  `sell_tower` (X / Delete: sells the selection, or the hovered Warden; during a drift a second press within 2 s confirms; right-click never sells), `start_drift` (Enter), `pause_game` (Space), `cycle_speed` (Tab).
 - `resource/` — data resources + their scripts: `map_grid.tres` (`Grid`: 23x18 cells, 64px; small on purpose so each Warden matters),
   `obstacle/*.tres` (`ObstacleData`), `enemy/*.tres` (`EnemyData`),
   `tower/*.tres` (`TowerData`).
