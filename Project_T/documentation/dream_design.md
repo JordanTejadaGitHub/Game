@@ -822,6 +822,9 @@ Kinship on the map.
 - "A Kinship on the map" counts at offer time (like other prerequisites). Kin and Kindling's
   statuses from Harmony strikes can complete Reactions, but the Harmony strike itself still never
   counts as a chain link.
+- **Rooted Bond as built:** the partner remembers the bond's drift count until the rest ends; only
+  the **first kin planted after the sale** within reach inherits it (a kin already standing nearby
+  doesn't). With Extended Family each partner remembers its own. `tests/test_kinships.gd`.
 - **In the demo:** the Start-pool three (Quick Bonds, Family Ties, Sweet Harmony).
 - **Watch in playtests:** Extended Family + Grove of Kin + Whole Tree + Monoculture could make an
   all-kin maze far ahead. The +30% cap on Grove of Kin is the first knob.
