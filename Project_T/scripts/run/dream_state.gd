@@ -65,7 +65,7 @@ const OPPOSITE_WEIGHT := 0.5
 const SOFT_NEED_WEIGHT := 0.4  # A card whose soft Needs are unmet (dream_design.md "Adapt, don't get handed")
 const STRAY_FROM_DRIFT := 10  # The Stray Dream: one slot per offer from this rest on (never at boss rests)
 const STRAY_IN_BUILD_WEIGHT := 0.25
-const HALF_DREAMED_WEIGHT := 0.6  # A combo card whose other family you could still pick
+const HALF_DREAMED_WEIGHT := 0.8  # A combo card whose other family you could still pick
 const HALF_DREAMED_WITHIN := 20  # …offered only when the next family pick is at most this many drifts away
 const HALF_DREAMED_DECLINED_WEIGHT := 0.3  # …after its missing family was offered at a pick and not taken
 # Passed-over cards fade (dream_design.md "How Dream offers work"): left out of the next offer, then
@@ -679,7 +679,7 @@ func crossroads_at(cell: Vector2) -> bool:
 func _on_drift_started(number: int) -> void:
 	_herd.clear()  # Thinning the Herd lasts the rest of the drift
 	_first_hits.clear()
-	for tower in _towers():  # Old Growth: drifts this Warden has stood (growing keeps the node)
+	for tower in _towers():  # Steadfast (old_growth): drifts this Warden has stood (growing keeps the node)
 		tower.set_meta(&"drifts_stood", int(tower.get_meta(&"drifts_stood", 0)) + 1)
 	if number > 1 and drift_director._arriving.has(number - 1):
 		_early_calls += 1
@@ -1906,7 +1906,7 @@ func _count_herd(enemy: Node2D) -> void:
 func get_herd_bonus(tower: Tower) -> float:
 	return minf(HERD_PER * int(_herd.get(tower.get_instance_id(), 0)), HERD_MAX) if tower != null else 0.0
 
-# Old Growth: drifts `tower` has stood (a node meta, so growing in place keeps it; RunSaver keeps it
+# Steadfast (old_growth): drifts `tower` has stood (a node meta, so growing in place keeps it; RunSaver keeps it
 # across a save).
 static func drifts_stood(tower: Tower) -> int:
 	return int(tower.get_meta(&"drifts_stood", 0)) if tower != null else 0
