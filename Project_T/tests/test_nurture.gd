@@ -159,7 +159,8 @@ func _run() -> void:
 		var paid := freebie.invested_dew
 		run_state.free_nurtures = 2
 		run_state.dew = 100
-		_check(freebie.get_nurture_cost() == 0 and freebie.get_nurture_price() == 8, "a free rank shows as free (normally 8)")
+		var normal := roundi(Tower.RANK_COSTS[0] * freebie.get_tier_cost_multiplier())  # 25 × 0.5 = 13 on a Sprout
+		_check(freebie.get_nurture_cost() == 0 and freebie.get_nurture_price() == normal, "a free rank shows as free (normally %d)" % normal)
 		var group_free := [freebie]
 		_check(seller.full_nurture_cost(group_free) == [1, 0], "group Nurture counts free ranks as free")
 		placer.nurture(freebie)
