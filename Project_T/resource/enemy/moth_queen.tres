@@ -26,4 +26,4 @@ title = "the wings that close the sky"
 flying_icon = &"flying"
 abilities = Array[Dictionary]([{"name": "Flight", "icon": &"flying", "text": "Weaves over the maze toward the Heartwood, ignoring walls.", "when": "from the start"}, {"name": "Brood", "icon": &"hidden", "text": "Drops a {brood:name} onto the nearest path; it walks the maze from there.", "when": "every {brood_interval} s"}, {"name": "Eclipse", "icon": &"eclipse", "text": "Her wings close over the dream: for {eclipse_time} s every other nightmare is hidden unless something reveals it.", "when": "at 50% health"}])
 tips = Array[String](["She flies over your maze: guard the ground near the Heartwood too.", "Something that reveals the hidden keeps the field in sight through the Eclipse.", "Light burns her wings."])
-whisper = "Wings close over the sky of the dream."
+whisper = "The light is going out. There are wings everywhere."
