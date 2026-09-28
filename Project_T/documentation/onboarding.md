@@ -58,7 +58,7 @@ trigger at these moments:
 - The first Dream that comes from a Grove unlock is marked with a small leaf badge: *"Remembered
   from a past dream."* This closes the loop: runs → Seeds → new things in the next run.
 - **Branches** and **statuses** are taught when the player first gets one: when a Warden first
-  applies a status, its icon appears over the nightmare with a one-time tooltip (*"Damp: slower,
+  applies a status, its icon appears over the nightmare with a one-time tooltip (*"Soaked: slower,
   and lightning loves it"*).
 - **Let it pass** and **call early** get one-time hints the first time they're available.
 
