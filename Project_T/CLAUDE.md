@@ -158,6 +158,11 @@ controller / Steam Deck, accessibility, Steam achievements (milestones map to th
 - HUD: `%LeavesLabel`, `%PathLabel` (path length), `%ToastLabel` (`show_toast`), `DriftPanel`
   (bottom right, compact: status line, Start / call-early button, Auto-drift + speed buttons in one
   row). `%TowerBar` is bottom centre (cost under the icon, hotkey number in the corner) and must fit
+  It also owns selection (`selection`, `selected` = first; `selection_changed`): click, drag box
+  (after 8 px; Thornwalls only if alone), double-click = same kind on screen (Ctrl: whole map), Shift
+  adds/removes, Esc/RMB/empty ground clears. With the Clear tool on (`ObstacleClearer.is_tool_active()`), presses on obstacles are its.
+  Group ops: `get_selection_groups`, `count_affordable`, `grow_group` (nearest the Heartwood first,
+  staggered bloom), `sell_selection`; the Warden panel shows them for 2+ selected.
   between the Warden panel and DriftPanel at 1280×800 (checked in `tests/test_ui.gd`). The camera
   may overscroll the map edges by `hud_overscroll` so the ends can clear the HUD. `%DreamsRow`
   (`dreams_row.gd`, top left): an icon per taken Dream (rarity shape/colour, stacks, live bonus from

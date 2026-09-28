@@ -323,11 +323,14 @@ func _unhandled_input(event: InputEvent) -> void:
 		grow_selected()
 		get_viewport().set_input_as_handled()
 
-# A left press starts a click / drag / double-click unless it's on something the obstacle clearer owns.
+# A left press starts a click / drag / double-click, unless the Clear tool is on and it's on an obstacle.
 func _starts_selection(event: InputEvent) -> bool:
 	if _hover_tower != null:
 		return true
-	return map_generator.get_obstacle(_hover_cell) == null
+	# With the Clear tool on, a press on a tree or rock is the clearer's; otherwise it can start a box.
+	var clearer := get_node_or_null("%ObstacleClearer")
+	var clearing: bool = clearer != null and clearer.has_method("is_tool_active") and clearer.is_tool_active()
+	return not clearing or map_generator.get_obstacle(_hover_cell) == null
 
 func _on_press(event: InputEvent) -> void:
 	var mouse := event as InputEventMouseButton
