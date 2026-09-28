@@ -16,6 +16,7 @@ const REACTION_TAGS: Array[StringName] = [&"echo", &"lightning_rod", &"dawnbreak
 @onready var drift_director: DriftDirector = %DriftDirector
 
 var _label := StatusLinks.make_label("", 15)  # Status names are links
+var unbound_block := 0  # Nightmares that turned Unbound this block ("Unbound: N")
 
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_STOP
@@ -24,7 +25,12 @@ func _ready() -> void:
 	add_child(_label)
 	visible = false
 	drift_director.rest_started.connect(func(block: int, _boss: bool, _bonus: int, _perfect: bool) -> void: show_report(block))
-	drift_director.rest_ended.connect(func(_block: int) -> void: visible = false)
+	drift_director.rest_ended.connect(func(_block: int) -> void:
+		visible = false
+		unbound_block = 0)
+	var spawner := get_node_or_null("%EnemyContainer")
+	if spawner != null and spawner.has_signal("nightmare_unbound"):  # No maze juggling (run_design.md)
+		spawner.nightmare_unbound.connect(func(_e: Node2D) -> void: unbound_block += 1)
 
 func _gui_input(event: InputEvent) -> void:
 	# A click dismisses the card, unless it just opened a status link's popup.
@@ -50,6 +56,8 @@ func show_report(block: int) -> void:
 		text += kinship_text(0 if not combos.kin_names_block.is_empty() else combos.kin_formed_block,
 			combos.harmony_block, combos.whole_block)
 	text += _kin_hint()
+	if unbound_block > 0:
+		text += "\nUnbound: %d" % unbound_block
 	_label.text = StatusLinks.bbcode(text)
 	visible = true
 

@@ -52,6 +52,9 @@ func _process(_delta: float) -> void:
 		lines.append(data.trait_text)
 	lines.append("Health %d / %d" % [_target.health, _target.max_health])
 	lines.append("Speed %.1f tiles/s   Leaves %d" % [_target.get_move_speed() / 64.0, _target.get_leaf_cost()])
+	var restless := restless_text(_target)
+	if restless != "":
+		lines.append(restless)
 	var statuses: Array[String] = []
 	for id in _target.statuses.active_ids():
 		var stacks: int = _target.statuses.stacks(id)
@@ -71,6 +74,22 @@ func _process(_delta: float) -> void:
 		for child in _rows_box.get_children():
 			child.queue_free()
 		_rows_box.add_child(NightmareIcons.make_rows(data, 26.0))
+
+# No maze juggling (run_design.md): "Restless ×2: +40% speed (Unbound at 3)" or "Unbound: ignores
+# the maze, tramples Wardens on its route" (Enemy Code's get_restless_info); "" when calm.
+static func restless_text(enemy: Node) -> String:
+	if not enemy.has_method("get_restless_info"):
+		return ""
+	var info: Dictionary = enemy.get_restless_info()
+	if info.get("unbound", false):
+		return "Unbound: ignores the maze, tramples Wardens on its route"
+	var stacks := int(info.get("stacks", 0))
+	if stacks <= 0:
+		return ""
+	var text := "Restless ×%d: +%d%% speed" % [stacks, roundi(float(info.get("speed_bonus", 0.0)) * 100.0)]
+	if info.get("can_unbind", true):
+		text += " (Unbound at %d)" % int(info.get("unbound_at", 3))
+	return text
 
 func _hovered_nightmare() -> Node2D:
 	var mouse: Vector2 = get_viewport().get_canvas_transform().affine_inverse() * get_viewport().get_mouse_position()
