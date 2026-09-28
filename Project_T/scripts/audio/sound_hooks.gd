@@ -236,7 +236,7 @@ func _process(_delta: float) -> void:
 	for key in BOSS_THEMES.values():
 		sound.set_layer(StringName("boss_" + key), theme == key)
 		sound.set_layer(StringName("boss_%s_warm" % key), theme == key and winning)
-	sound.set_muffled(_choice_screens.any(func(screen: Control) -> bool: return screen.visible))
+	sound.set_muffled(_choice_screens.any(func(screen) -> bool: return is_instance_valid(screen) and screen.visible))
 	var resting: bool = drift_director.is_build_phase()
 	sound.set_drifting(not resting)
 	if resting:

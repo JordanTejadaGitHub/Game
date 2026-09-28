@@ -133,6 +133,14 @@ func _initialize() -> void:
 	sound.play_dispel(Vector2.ZERO)
 	_check(sound._dispel_cluster == 1, "a second dispel joins the cluster")
 	_check(HeartwoodMemory.defaults().settings.music_volume == 0.55, "music defaults to 55%")
+	# A freed voice (a finished player) must not break play() for the same id, and gets pruned
+	# (playtest bug: the typed filter lambda errored on freed players many times a second).
+	var gone := Node.new()
+	sound._voices[&"ui_click"] = [gone]
+	gone.free()
+	sound._last_start.erase(&"ui_click")
+	sound.play(&"ui_click")
+	_check(sound._voices[&"ui_click"].all(func(p) -> bool: return is_instance_valid(p)), "freed voices are pruned")
 	# One theme per boss: every boss has its stem and a warm counter-melody (the lengths check above keeps
 	# them in sync), and Softer nightmares halves the whispering dread layer.
 	for key in SoundHooks.BOSS_THEMES:

@@ -141,7 +141,10 @@ func play(id: StringName, at: Variant = null, volume_db := 0.0, pitch := 1.0, ji
 	var now := Time.get_ticks_msec()
 	if now - int(_last_start.get(id, -100000)) < MIN_INTERVAL_MS:
 		return null
-	var playing: Array = _voices.get(id, []).filter(func(p: Node) -> bool: return is_instance_valid(p))
+	# Untyped on purpose: a freed player can't be passed to a typed `Node` parameter. Pruned right away,
+	# so the list never grows past the players still sounding.
+	var playing: Array = _voices.get(id, []).filter(func(p) -> bool: return is_instance_valid(p))
+	_voices[id] = playing
 	if playing.size() >= MAX_VOICES:
 		return null
 	_last_start[id] = now
