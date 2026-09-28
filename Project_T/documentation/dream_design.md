@@ -903,7 +903,7 @@ All **Start** pool, no family Needs (a few have a soft run-state Need so they're
 - **Deepened:** Crowded Path II (+4%, max +40%), Lone Hunter II (+45%), Fresh Growth II (+45%),
   Underdog II (4 Wardens, +25%).
 - **Name clash fixed (2026-09-28):** Commons #10 and Rares #138 were both called **Deep Roots**; #138 is now
-  **Old Growth** (id and .tres need renaming in code). Wandering Mind is a **Grove** card (rerolls stay a Grove thing).
+  **Steadfast** (id `old_growth`). Wandering Mind is a **Grove** card (rerolls stay a Grove thing).
 
 ## Data (`UpgradeData`)
 
