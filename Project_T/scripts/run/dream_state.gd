@@ -65,6 +65,7 @@ const OPPOSITE_WEIGHT := 0.5
 const SOFT_NEED_WEIGHT := 0.4  # A card whose soft Needs are unmet (dream_design.md "Adapt, don't get handed")
 const STRAY_FROM_DRIFT := 10  # The Stray Dream: one slot per offer from this rest on (never at boss rests)
 const STRAY_IN_BUILD_WEIGHT := 0.25
+const HALF_DREAMED_WEIGHT := 0.6  # A combo card whose other family you could still pick
 # Passed-over cards fade (dream_design.md "How Dream offers work"): left out of the next offer, then
 # weight ×0.6 per time passed this run (floor ×0.1); taking the card resets it.
 const PASSED_FADE := 0.6
@@ -159,6 +160,8 @@ var _passed_at := {}  # Card id -> the offer number (dreams_seen) it was last pa
 var _taken_this_offer: Array[String] = []
 var _guaranteed_id := ""  # The Entwined guaranteed card of the current offer (never fades)
 var current_stray: UpgradeData = null  # The Stray Dream card of the current offer (null = none)
+var _owed_families: Array[String] = []  # Half-dreamed cards taken: the next family pick includes one
+var _offer_drift := 0  # The drift of the offer being built (half-dreamed checks)
 var _before_offer := {}  # Offer counters from before the current offer (a reroll rolls them back)
 var _attackers_planted := 0  # Attacking Wardens planted this run (Canopy)
 var picks_left := 1  # Cards still to take from the current offer (Lucid Dreaming: 2)
@@ -961,17 +964,19 @@ func _applies_to(card: UpgradeData, data: TowerData) -> bool:
 
 # The cards taken this run whose effect counts (for the Dreams row and reports).
 func get_taken_cards() -> Array[UpgradeData]:
-	return _taken_cards()
+	return _taken_cards(true)  # Dormant half-dreamed cards too (is_dormant: shown asleep)
 
 # Cards whose effect counts: taken, and not replaced by their Deepened version.
-func _taken_cards() -> Array[UpgradeData]:
+# A taken half-dreamed card whose families aren't all yours yet sleeps (no effect) unless
+# `include_dormant`.
+func _taken_cards(include_dormant: bool = false) -> Array[UpgradeData]:
 	var replaced := {}
 	for card in pool:
 		if card.is_deepened() and stacks.get(card.id, 0) > 0:
 			replaced[card.deepens] = true
 	var taken: Array[UpgradeData] = []
 	for card in pool:
-		if stacks.get(card.id, 0) > 0 and not replaced.has(card.id):
+		if stacks.get(card.id, 0) > 0 and not replaced.has(card.id) and (include_dormant or not _is_asleep(card)):
 			taken.append(card)
 	return taken
 
@@ -990,6 +995,9 @@ func _update_bends() -> void:
 # --- Taking cards -------------------------------------------------------------------------------------
 
 func take(card: UpgradeData) -> void:
+	for family in half_dreamed_missing(card):  # The next family pick will include one of them
+		if not _owed_families.has(family):
+			_owed_families.append(family)
 	stacks[card.id] = stacks.get(card.id, 0) + 1
 	_passed_count.erase(card.id)  # Taking a card resets its fade
 	_passed_at.erase(card.id)
@@ -1177,6 +1185,7 @@ func _restore_offer_counters(counters: Dictionary) -> void:
 # Builds a Dream offer for after drift `drift_number` (see dream_design.md, "How offers work").
 func make_offer(drift_number: int) -> Array[UpgradeData]:
 	dreams_seen += 1
+	_offer_drift = drift_number
 	var size := cards_per_offer + _extra_cards_next
 	picks_left = 1
 	if has_rule(&"lucid_dreaming"):  # 4 cards, take 2, no Commons
@@ -1223,7 +1232,7 @@ func make_offer(drift_number: int) -> Array[UpgradeData]:
 # Whether `card` could be offered with every Need met (hard and soft): the "offered with 7 Wardens"
 # sense, for tests, tools and the Needs text.
 func is_eligible(card: UpgradeData, act: int = 1) -> bool:
-	return can_offer(card, act) and soft_needs_met(card)
+	return can_offer(card, act) and soft_needs_met(card) and _requires_met(card)
 
 # Whether `card` can be drawn at all (hard Needs). Unmet soft Needs only lower its weight
 # (dream_design.md "Adapt, don't get handed").
@@ -1252,9 +1261,8 @@ func can_offer(card: UpgradeData, act: int = 1) -> bool:
 		return false
 	if card.unlocks != null and is_unlocked(card.unlocks.get_id()):
 		return false
-	for requirement in card.requires:
-		if not owns(requirement):
-			return false
+	if not _requires_met(card) and not is_half_dreamed(card):
+		return false  # A half-dreamed combo card may be offered before its families are all yours
 	return true
 
 # The hard run-state and card Needs (dream_design.md "Card requirements"). Only gates new offers:
@@ -1460,6 +1468,8 @@ func _weighted_pick(cards: Array, stray: bool = false) -> UpgradeData:
 					weight *= OPPOSITE_WEIGHT
 		if clearing_locked and card.tags.has("clearing"):
 			weight *= CLEARING_LOCKED_WEIGHT  # Until the first one unlocks clearing
+		if is_half_dreamed(card):
+			weight *= HALF_DREAMED_WEIGHT
 		weight *= get_passed_weight(card)  # Passed-over cards fade (all 0 = a plain random pick below)
 		weights.append(weight)
 		total += weight
@@ -1497,6 +1507,7 @@ func to_save() -> Dictionary:
 		"dreamlight_shards": dreamlight_shards, "sprout_charges": run_state.sprout_charges,
 		"eldest_cell": [_eldest_cell.x, _eldest_cell.y], "court_pending": _court_pending,
 		"passed_count": _passed_count.duplicate(), "passed_at": _passed_at.duplicate(),
+		"owed_families": _owed_families.duplicate(),
 		"rng_state": str(_rng.state),  # A string: JSON would round a 64-bit int
 	}
 
@@ -1521,6 +1532,7 @@ func load_save(data: Dictionary) -> void:
 	_banished.clear()
 	for id in data.get("banished", []):
 		_banished[id] = true
+	_owed_families.assign(data.get("owed_families", []))
 	_passed_count.clear()
 	_passed_at.clear()
 	for key in ["passed_count", "passed_at"]:
@@ -1633,3 +1645,121 @@ func count_kinships() -> int:
 	if kinships == null or not kinships.has_method("count"):
 		return 0
 	return int(kinships.call("count"))
+
+
+# --- Half-dreamed combo cards (dream_design.md "Adapt, don't get handed" 5) ------------------------
+# A card whose `requires` names Wardens from 2+ families can be offered once you own one of them and
+# every missing one can still come from a family pick. It sleeps until all are yours; taking it makes
+# the next family pick include (one of) the missing families.
+
+var _family_by_warden := {}  # Warden id -> its family's base id
+var _family_roots_seen := -1
+
+# The family (base Warden id) `warden_id` belongs to; "" for Sprout, Thornwall and non-Wardens.
+func family_of(warden_id: String) -> String:
+	var roots := _family_roots()
+	if roots.size() != _family_roots_seen:  # MetaRun adds Grove families at run start
+		_family_roots_seen = roots.size()
+		_family_by_warden.clear()
+		for root in roots:
+			_map_family(root, root.get_id())
+	return _family_by_warden.get(warden_id, "")
+
+func _map_family(data: TowerData, family: String) -> void:
+	if data == null or _family_by_warden.has(data.get_id()):
+		return
+	_family_by_warden[data.get_id()] = family
+	for next in data.evolves_to:
+		_map_family(next as TowerData, family)
+
+# Families the profile can pick (the family pick's roster).
+func _family_roots() -> Array:
+	var screen := get_node_or_null("%FamilyPickScreen")
+	return screen.families if screen != null and "families" in screen else []
+
+func _requires_met(card: UpgradeData) -> bool:
+	for requirement in card.requires:
+		if not owns(requirement):
+			return false
+	return true
+
+# The missing families that make `card` half-dreamed ([] = it isn't: not a combo, already whole,
+# none of its families yours, or a missing one can't be picked any more).
+func half_dreamed_missing(card: UpgradeData) -> Array[String]:
+	var missing: Array[String] = []
+	if card.requires.size() < 2 or _requires_met(card):
+		return missing
+	var families := {}
+	for id in card.requires:
+		var family := family_of(id)
+		if family != "":
+			families[family] = true
+	if families.size() < 2:
+		return missing
+	var owned_any := false
+	for family in families:
+		if is_unlocked(family):
+			owned_any = true  # A form of an owned family (Stormcap) counts as that family here
+		else:
+			missing.append(family)
+	var pickable: Array = _family_roots().map(func(d: TowerData) -> String: return d.get_id())
+	if not owned_any or next_family_pick_drift() < 0 \
+			or missing.any(func(family: String) -> bool: return not pickable.has(family)):
+		missing.clear()
+	return missing
+
+func is_half_dreamed(card: UpgradeData) -> bool:
+	return not half_dreamed_missing(card).is_empty()
+
+# Taken, but asleep until its families are all yours.
+func is_dormant(card: UpgradeData) -> bool:
+	return card_stacks(card.id) > 0 and _is_asleep(card)
+
+# The drift whose boss is followed by the next family pick (-1 = none left: never after drift 75's).
+func next_family_pick_drift() -> int:
+	var per: int = drift_director.drifts_per_act
+	var now: int = _offer_drift if is_offering() or _offer_drift > drift_director.drifts_started else drift_director.drifts_started
+	var next := (now / per + 1) * per
+	var last := maxi(drift_director.drifts.size(), 4 * per) - per
+	return next if next <= last else -1
+
+# "Needs Dewdrop: a family you can pick after the Hollow Stag (drift 25)" ("" if not half-dreamed).
+func half_dreamed_text(card: UpgradeData) -> String:
+	var missing := half_dreamed_missing(card)
+	if missing.is_empty():
+		return ""
+	var names: Array = missing.map(get_display_name)
+	var drift := next_family_pick_drift()
+	var boss := _boss_name(drift)
+	if boss.begins_with("The "):
+		boss = "the " + boss.substr(4)  # "after the Hollow Stag"
+	var when := "after %s (drift %d)" % [boss, drift] if boss != "" else "at the family pick after drift %d" % drift
+	if names.size() == 1:
+		return "Needs %s: a family you can pick %s" % [names[0], when]
+	return "Needs %s: families you can pick %s" % [" and ".join(names), when]
+
+func _boss_name(drift: int) -> String:
+	if drift < 1 or drift > drift_director.drifts.size():
+		return ""
+	for group in drift_director.drifts[drift - 1].groups:
+		for entry in group.entries:
+			if entry.enemy != null and entry.enemy.is_boss:
+				return entry.enemy.display_name
+	return ""
+
+# The families taken half-dreamed cards owe the next family pick; clears them (FamilyPickScreen).
+func take_owed_families() -> Array[String]:
+	var owed := _owed_families.duplicate()
+	_owed_families.clear()
+	return owed
+
+# A cross-family combo card without all its Wardens (cheap checks first: _taken_cards runs per hit).
+func _is_asleep(card: UpgradeData) -> bool:
+	if card.requires.size() < 2 or _requires_met(card):
+		return false
+	var families := {}
+	for id in card.requires:
+		var family := family_of(id)
+		if family != "":
+			families[family] = true
+	return families.size() >= 2

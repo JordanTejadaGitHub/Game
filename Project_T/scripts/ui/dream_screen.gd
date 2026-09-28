@@ -8,6 +8,7 @@ const ENTWINED_COLOR := Color(0.45, 0.8, 0.4)  # Vine border
 const DEEPENED_COLOR := Color(0.6, 0.85, 1.0)
 const BITTERSWEET_COLOR := Color(0.72, 0.5, 0.68)  # Muted plum, for the cost line
 const STRAY_COLOR := Color(0.75, 0.85, 0.95)  # Pale wisp
+const HALF_DREAMED_COLOR := Color(0.62, 0.82, 0.6, 0.85)  # Pale vine
 
 @onready var dream_state: DreamState = %DreamState
 @onready var game_speed: GameSpeed = %GameSpeed
@@ -133,6 +134,8 @@ func _make_card(card: UpgradeData) -> Button:
 		_add_line(box, "Deepened  ·  replaces %s" % dream_state.get_display_name(card.deepens), DEEPENED_COLOR, 14)
 	elif card.is_bittersweet():
 		_add_line(box, "Bittersweet", BITTERSWEET_COLOR, 14)
+	if dream_state.is_half_dreamed(card):  # A combo card whose other family you could still pick
+		_add_line(box, "Half-dreamed  ·  " + dream_state.half_dreamed_text(card) + ". Sleeps until then.", HALF_DREAMED_COLOR, 13)
 	if dream_state.is_stray(card):  # The Stray Dream slot (dream_design.md "Adapt, don't get handed")
 		_add_line(box, "✧ Stray  ·  something the Heartwood hasn't dreamed of yet", STRAY_COLOR, 13)
 	var description := _add_linked_line(box, card.description, Color(0.92, 0.92, 0.95), 16)

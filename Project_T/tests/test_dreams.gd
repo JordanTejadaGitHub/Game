@@ -26,6 +26,7 @@ func _run() -> void:
 	_test_passed_over(main)
 	_test_few_and_mighty_sim(main)
 	_test_stray_dream(main)
+	_test_half_dreamed(main)
 	print("dreams test: %s" % ("PASS" if failures == 0 else "%d FAILED" % failures))
 	quit(failures)
 
@@ -489,6 +490,8 @@ func _test_meta_hooks(main: Node) -> void:
 	dreams.stacks.erase("chain_bloom")
 	dreams.grove_cards.clear()
 	dreams._entwined_offered.clear()
+	dreams._offer_drift = 0
+	dreams._owed_families.clear()
 	dreams._passed_count.clear()
 	dreams._passed_at.clear()
 	dreams.unlocked.erase("puffball")
@@ -870,6 +873,76 @@ func _test_stray_dream(main: Node) -> void:
 		tower.free()
 	_reset_dreams(main)
 
+# Half-dreamed combo cards (dream_design.md "Adapt, don't get handed" 5).
+# Half-dreamed combo cards (dream_design.md "Adapt, don't get handed" 5).
+func _test_half_dreamed(main: Node) -> void:
+	var dreams: DreamState = main.get_node("%DreamState")
+	var screen = main.get_node("%FamilyPickScreen")
+	_reset_dreams(main)
+	dreams.unlocked["firefly_jar"] = true
+	var thunder := _card(dreams, "rolling_thunder")  # Needs Stormcap (Firefly Jar's) + Dewdrop
+	dreams._offer_drift = 10
+	_check(Array(dreams.half_dreamed_missing(thunder)) == ["dewdrop"], "half-dreamed: owns Firefly Jar (Stormcap counts), Dewdrop pickable")
+	_check(dreams.can_offer(thunder) and not dreams.is_eligible(thunder), "…can be offered, but isn't whole")
+	var text := dreams.half_dreamed_text(thunder)
+	print("half-dreamed text: " + text)
+	_check(text.begins_with("Needs Dewdrop: a family you can pick after") and "(drift 25)" in text, "…says what's missing and when")
+	dreams._offer_drift = 80
+	_check(not dreams.is_half_dreamed(thunder), "…never after the drift 75 family pick")
+	dreams._offer_drift = 10
+	dreams.unlocked.erase("firefly_jar")
+	_check(not dreams.is_half_dreamed(thunder), "…needs one of its families already yours")
+	dreams.unlocked["firefly_jar"] = true
+	dreams.take(thunder)
+	_check(dreams.is_dormant(thunder) and not dreams.has_rule(thunder.rule_id) and dreams.get_taken_cards().has(thunder),
+		"taken half-dreamed: asleep (no effect), still listed")
+	var saved := dreams.to_save()
+	dreams.load_save(JSON.parse_string(JSON.stringify(saved)))
+	# The next family pick includes the missing family (one slot here, so it must be that one)
+	var per_pick: int = screen.cards_per_pick
+	screen.cards_per_pick = 1
+	screen.show_pick(&"boss")
+	_check(screen.offer.size() == 1 and screen.offer[0].get_id() == "dewdrop", "…the next family pick offers Dewdrop (after a save)")
+	screen.cards_per_pick = per_pick
+	screen.visible = false
+	main.get_node("%GameSpeed").set_paused(false)
+	dreams.unlocked["dewdrop"] = true
+	_check(dreams.is_dormant(thunder), "…still asleep without Stormcap itself")
+	dreams.unlocked["stormcap"] = true
+	_check(not dreams.is_dormant(thunder) and dreams.has_rule(thunder.rule_id), "…and wakes once it's all yours")
+	_reset_dreams(main)
+
+	# How often one is offered per run, taking some other card at each rest.
+	var grove_ids: Array[String] = []
+	for card in dreams.pool:
+		if not card.in_start_pool:
+			grove_ids.append(card.id)
+	for scenario in [["demo pool, owning Firefly Jar", "firefly_jar", false], ["every Grove card, owning Sporeling", "sporeling", true]]:
+		const RUNS := 300
+		var before_pick := 0
+		var through_70 := 0
+		dreams._rng.seed = 21
+		for run in RUNS:
+			_reset_dreams_quiet(dreams)
+			dreams._passed_count.clear()
+			dreams._passed_at.clear()
+			dreams._owed_families.clear()
+			dreams.grove_cards.assign(grove_ids if scenario[2] else [])
+			dreams.unlocked[scenario[1]] = true
+			for drift in range(5, 75, 5):
+				var offer := dreams.make_offer(drift)
+				var half := offer.filter(func(c: UpgradeData) -> bool: return dreams.is_half_dreamed(c)).size()
+				before_pick += half if drift < 25 else 0
+				through_70 += half
+				var other := offer.filter(func(c: UpgradeData) -> bool: return not dreams.is_half_dreamed(c))
+				if not other.is_empty():
+					dreams.take(other[0])
+		print("half-dreamed (%s): %.2f offered per run before the drift 25 pick, %.2f through drift 70" % [
+			scenario[0], float(before_pick) / RUNS, float(through_70) / RUNS])
+		_check(before_pick > 0, "half-dreamed cards turn up before the drift 25 pick (%s)" % scenario[0])
+	dreams.grove_cards.clear()
+	_reset_dreams(main)
+
 func _card(dreams: DreamState, id: String) -> UpgradeData:
 	for card in dreams.pool:
 		if card.id == id:
@@ -921,6 +994,8 @@ func _reset_dreams(main: Node) -> void:
 	dreams._rare_dreams_left = 0
 	dreams._extra_cards_next = 0
 	dreams._entwined_offered.clear()
+	dreams._offer_drift = 0
+	dreams._owed_families.clear()
 	dreams._passed_count.clear()
 	dreams._passed_at.clear()
 	dreams.unlocks_changed.emit()
@@ -934,6 +1009,8 @@ func _reset_dreams_quiet(dreams: DreamState) -> void:
 	dreams._rare_dreams_left = 0
 	dreams._extra_cards_next = 0
 	dreams._entwined_offered.clear()
+	dreams._offer_drift = 0
+	dreams._owed_families.clear()
 	dreams._passed_count.clear()
 	dreams._passed_at.clear()
 

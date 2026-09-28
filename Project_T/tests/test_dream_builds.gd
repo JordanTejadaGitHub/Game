@@ -321,6 +321,8 @@ func _test_family_review_cards() -> void:
 	var encore := _card("encore")
 	dreams.unlocked["echo_hollow"] = true
 	_check(not dreams.is_eligible(encore), "Encore needs a Reaction card as well as Echo Hollow")
+	dreams.unlocked["stormcap"] = true  # Rolling Thunder's Wardens (else it sleeps: half-dreamed)
+	dreams.unlocked["dewdrop"] = true
 	dreams.take(_card("rolling_thunder"))
 	_check(dreams.is_eligible(encore) and dreams.make_offer(10).has(encore), "…then Entwined: guaranteed next offer")
 
