@@ -124,6 +124,10 @@ alternative**: a strong card you can use now if you bend the plan.
      unlocked with Dreamlight as usual.
    - **Weight ×0.6** while half-dreamed, so it's an occasional temptation, not a flood. Normal
      rarity; the skip fade applies.
+   - **Timing (playtest fix, 2026-09-28):** only offered when the next family pick is **at most 20
+     drifts away** (so not in the rest right after a pick, when it would sleep 25 drifts), and
+     **never in a guaranteed Rare slot** (boss rests, pity, owed Rares): a guaranteed reward must
+     work now.
    - **Card face:** a pale **"Half-dreamed"** vine tag and the missing piece in plain words:
      *"Needs Dewdrop: a family you can pick after the Hollow Stag (drift 25)."* The card's effect
      works only once everything it needs is owned (it never pretends to do something now).
