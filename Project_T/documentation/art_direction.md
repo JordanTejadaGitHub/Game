@@ -67,7 +67,11 @@ https://claude.ai/artifact/BbGHs9cDsKvm8kZEDH1Bra
 - **Pick colours by name, never raw hex.** Generators read the shared palette file (once it
   exists) and snap every pixel they write to the nearest palette colour (OKLab distance).
 - **Nightmares use only the cold ramps:** Ink, Nightmare, Stone & moon and Dew. No warm colour
-  ever lands on a nightmare.
+  ever lands on a nightmare, with **one exception: stolen Heartwood light.** The Dream Thief's orb
+  may be warm (Gold / Glow / Heartlight), kept small and composited after the detail pass. It reads
+  as "that's ours, take it back". Nothing else qualifies: fire and embers on nightmares are cold
+  ghost-fire (Wraithlight, Dewlight, Moonlight), e.g. the Ash Crawler's smoulder. Decided
+  2026-09-28.
 - **Glow and translucency** use palette colours with alpha steps (Gold, Glow, Wraithlight).
 - **The value order holds:** Deepmoss ground < Stone obstacles < Moonpath.
 - **The acts' seasons** come from the lighting pass (`Seasons` / `EnvironmentLighting` tinting),
