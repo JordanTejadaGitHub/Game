@@ -158,13 +158,22 @@ Warden growth costs 0).
 
 ### Legendary: changes how you play (act 2+ only)
 
-**Legendary rules** (user, 2026-09-28):
-- **A build you play around.** A Legendary changes what you build or where, has a shape or
+**Legendary rules** (user, 2026-09-28): *Legendaries are cards you build around; most other cards
+enhance a build.*
+- **A Legendary starts a build.** It changes what you build or where, gives you a shape or
   condition to aim for, and drives your next choices. No flat stat cards.
-- **One archetype only.** A Legendary belongs to a single archetype (nurture, crit, potency, maze,
-  narrow, wide, a status, walls…) and never mixes in another's mechanic. Its tags list one
-  archetype; its Needs only name cards or Wardens of that same archetype. Mixing archetypes is what
-  Entwined (Rare) cards are for.
+- **No card Needs.** A Legendary never requires other cards (or a count of them, or a board state):
+  it can turn up in any act 2+ offer and you pivot toward it. Commons, Uncommons and Rares are the
+  **enhancers**; they keep their Needs, because they deepen a build you already have.
+- **It works on its own.** If a Legendary is about a mechanic, it brings that mechanic with it
+  (e.g. a Marked Legendary makes your Wardens apply Marked), so it's never a dead card in a run
+  without the right Warden family.
+- **One archetype.** It belongs to a single archetype (nurture, crit, potency, maze, narrow, wide, a
+  status, walls…) and never mixes in another's mechanic. Mixing is what Entwined (Rare) cards do.
+- **After you take one,** its archetype counts as an owned family for tag weighting (2×), so the
+  enhancers for it start to show up.
+- **Cards that enhance one Warden or one combo aren't Legendary.** Thousand Cuts, Seed Storm and
+  the Woven cards moved to Rare (2026-09-28).
 
 | # | Card | Effect | Tags | Pool |
 |---|---|---|---|---|
@@ -185,7 +194,7 @@ additively like other stats.
 | 40 | **Still Target** | Uncommon | +15% crit chance vs Drowsy, Held or frozen nightmares | crit, sleep | a Warden that applies Drowsy, Held or frost (Bloomcap, Rootling line, Frostfern, Honeysuckle) | Grove |
 | 41 | **Shattering Blow** | Rare | crits splash 50% of their damage to nightmares within 1 cell | crit | — | Grove |
 | 42 | **Starlit Aim** | Rare, **Entwined** (Standing Stone + Lanternmoth) | Marked nightmares take +25% crit chance from every Warden | crit, mark | — | Grove |
-| 43 | **Full Moon** | Legendary | all Wardens +10% crit chance; crit chance **above 100%** becomes crit damage (each 1% over = +1% crit multiplier) | crit | 2 `crit` cards | Grove |
+| 43 | **Full Moon** | Legendary | all Wardens +10% crit chance; crit chance **above 100%** becomes crit damage (each 1% over = +1% crit multiplier) | crit | — | Grove |
 | 44 | **Reckless Bloom** | Uncommon, **Bittersweet** | all Wardens +20% crit chance. **Cost:** hits that don't crit do −15% damage | crit, bittersweet | — | Grove |
 
 Deepened: **Sharpened Light II** +1.0 multiplier; **Still Target II** +25%; **Shattering Blow II**
@@ -259,7 +268,7 @@ the Grove rules, family-specific cards come with their family or hidden-branch n
 | 90 | **Needle Point** | Uncommon | multi-hit Wardens' hits **ignore dread shell** reduction | wing, on-hit | Hummingbird Bower | hidden node |
 | 91 | **Charged Feathers** | Rare, **Entwined** (Hummingbird Bower + Firefly Jar) | each peck applies **1 Static** | wing, storm, on-hit | — | hidden node |
 | 92 | **Pollen Beaks** | Rare, **Entwined** (Hummingbird Bower + Sporeling) | each peck applies **1 Spored** | wing, spore, on-hit | — | hidden node |
-| 93 | **Thousand Cuts** | Legendary | every hit on the same nightmare within 2 s gives **all Wardens** +2% damage against it (max +60%) | on-hit | Hummingbird Bower | hidden node |
+| 93 | **Thousand Cuts** | Rare *(was Legendary; enhances one Warden, 2026-09-28)* | every hit on the same nightmare within 2 s gives **all Wardens** +2% damage against it (max +60%) | on-hit | Hummingbird Bower | hidden node |
 
 **Boomerang (Samara)**
 
@@ -270,7 +279,7 @@ the Grove rules, family-specific cards come with their family or hidden-branch n
 | 96 | **Ricochet** | Uncommon | at the end of its line the seed **turns 90° once** toward the nearest nightmare before returning (rewards L-shaped corners) | wind, maze | Samara | hidden node |
 | 97 | **Heavy Seed** | Uncommon | each pass knocks nightmares back 0.25 tiles (once per throw) | wind | Samara | hidden node |
 | 98 | **Windborne Rain** | Rare, **Entwined** (Samara + Rain Lily) | every pass applies **Damp**, so the line becomes a Thunderclap corridor | wind, water, reaction | — | hidden node |
-| 99 | **Seed Storm** | Legendary | every 5th throw bursts into **5 seeds in a fan** | wind | Samara | hidden node |
+| 99 | **Seed Storm** | Rare *(was Legendary; enhances one Warden, 2026-09-28)* | every 5th throw bursts into **5 seeds in a fan** | wind | Samara | hidden node |
 
 Deepened: **Heavy Eyelids II** cap +3 (bosses +1); **Ricochet II** turns twice; **Bad Dreams II**
 2 Drowsy per second.
@@ -339,9 +348,9 @@ Evolving is still the better buy when a Dream allows it; Nurture cards make rank
 | 64 | **Sunlit Rest** | Uncommon | at every rest, your ranked Warden **nearest the Heartwood** that isn't at max rank gains a free rank | nurture | any `nurture` card | Grove |
 | 65 | **Deeper Rings** | Rare | **one Warden, the Eldest,** can grow past V to rank **VII**: VI costs 130, VII costs 180 (same gains per rank) | nurture | any `nurture` card + a rank V Warden | Grove |
 | 66 | **Nursery** | Rare, **Entwined** | Seedling Gift's free Sprouts arrive at **rank II**, and Sprouts nurture for half price | nurture, sprout | Tender Care + Seedling Gift | Grove |
-| 67 | **The Old Ones** | Legendary | rank V+ Wardens make the Wardens touching them count **one rank higher** (doesn't stack with itself). *(2026-09-28: the "+2% crit chance per rank" half was removed: one archetype per Legendary)* | nurture | any `nurture` card + a rank V Warden | Grove |
+| 67 | **The Old Ones** | Legendary | rank V+ Wardens make the Wardens touching them count **one rank higher** (doesn't stack with itself). *(2026-09-28: the "+2% crit chance per rank" half was removed: one archetype per Legendary)* | nurture | — | Grove |
 | 68 | **Chosen Few** | Rare, **Bittersweet** | rank V+ Wardens **+50% damage**. **Cost:** Wardens below rank III do −15% damage | nurture, bittersweet | a rank V Warden | Grove |
-| 108 | **Endless Rings** | Legendary | **the Eldest has no max rank.** Past VII, each rank costs **×1.2** the one before (VIII 216, IX 259, X 311, … × tier) and gives **+10% damage** | nurture | Deeper Rings + a **rank VI** Warden | Grove |
+| 108 | **Endless Rings** | Legendary | **the Eldest has no max rank.** Past VII, each rank costs **×1.2** the one before (VIII 216, IX 259, X 311, … × tier) and gives **+10% damage** | nurture | — (taking it makes the Eldest available, like Deeper Rings) | Grove |
 
 **Endless Rings** (added 2026-09-27, user idea: "infinite Nurture once you reach rank VI"). The tall
 build's capstone and the run's last Dew sink.
@@ -421,7 +430,7 @@ from walls (Hedge Maze, Bramble).
 |---|---|---|---|---|---|---|
 | 74 | **Solitude** | Uncommon | a Warden with **no other attacking Warden within 2 cells** gets **+30% damage and +0.5 range** | narrow, maze | — | Start |
 | 75 | **Few and Mighty** | Rare | all Wardens **+8% damage for each attacking Warden below 12** you have (7 Wardens = +40%; max +80%) | narrow | 12 or fewer attacking Wardens when offered | Start |
-| 76 | **The Last Light** | Legendary | if you have **5 or fewer** attacking Wardens, they **attack twice as fast** | narrow | 8 or fewer attacking Wardens when offered | Grove |
+| 76 | **The Last Light** | Legendary | if you have **5 or fewer** attacking Wardens, they **attack twice as fast** | narrow | — | Grove |
 
 - **Once you own a wide or narrow card, its tag counts as an owned family** for tag weighting (2×),
   so the direction you start tends to come together. Owning one direction makes the other's cards
@@ -622,11 +631,11 @@ ends because the Held ran out, on a nightmare at full Drowsy.
 | **Storm Front** | a Reaction completed by a Gust-copied status counts **+1 chain link** and its radius/reach **+1 tile** |
 | **Carried Storm** | a Samara/Autumn Gale seed passing through a Reaction's spot within 0.5 s repeats that Reaction at **50%** on each nightmare it hits for the rest of that throw (once per nightmare per throw) |
 
-## Woven cards: three-family Legendaries
+## Woven cards: three-family Rares
 
 A **Woven** card is an Entwined card with a third vine: **3 ingredients** (Wardens or statuses you
 own), **guaranteed** in the next offer once all 3 are owned (one slot; passing returns it to normal
-weight). All Legendary (act 2+), Grove bundle *Woven Dreams* (see `meta_design.md`).
+weight). All **Rare** (was Legendary until 2026-09-28: they enhance a combo, they don't start a build), Grove bundle *Woven Dreams* (see `meta_design.md`).
 
 | # | Card | Ingredients | Effect |
 |---|---|---|---|
