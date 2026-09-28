@@ -8,11 +8,13 @@ extends SceneTree
 const S := 64
 const OUT := "res://assets/ui/"
 const PREVIEW := "res://tools/previews/ui_icons.png"
+# Every pixel is snapped to the Heartwood 32 palette (art_direction.md); nightmare icons to its cold ramps.
+const Palette := preload("res://tools/art/heartwood_palette.gd")
 
 const OUTLINE := Color("#3a2618")
-const SKIN_LIGHT := Color("#f0c898")
-const SKIN_MID := Color("#d49a6a")
-const SKIN_DARK := Color("#a86a48")
+var SKIN_LIGHT := Palette.color("moonpath")
+var SKIN_MID := Palette.color("deadwood")
+var SKIN_DARK := Palette.color("oak")
 const MOSS_LIGHT := Color("#8ad060")
 const MOSS_MID := Color("#5a9a48")
 const MOSS_DARK := Color("#3f7a3e")
@@ -33,6 +35,7 @@ func _init() -> void:
 	var sheet := Image.create(S * 3, S, false, Image.FORMAT_RGBA8)
 	for state in [LOCKED, AVAILABLE, ACTIVE]:
 		sheet.blit_rect(_clear_tool(state), Rect2i(0, 0, S, S), Vector2i(S * state, 0))
+	Palette.snap_image(sheet)
 	sheet.save_png(OUT + "clear_tool.png")
 	_save_preview(sheet)
 	_make_icons()
@@ -272,7 +275,9 @@ func _make_icons() -> void:
 	var sheet := Image.create(ICON * ids.size(), ICON, false, Image.FORMAT_RGBA8)
 	var index := {}
 	for i in ids.size():
-		sheet.blit_rect(_icon(ids[i]), Rect2i(0, 0, ICON, ICON), Vector2i(i * ICON, 0))
+		var icon := _icon(ids[i])
+		Palette.snap_image(icon, ids[i] in NIGHTMARE_ICONS)
+		sheet.blit_rect(icon, Rect2i(0, 0, ICON, ICON), Vector2i(i * ICON, 0))
 		index[ids[i]] = i
 	for alias: String in ICON_ALIASES:
 		index[alias] = index[ICON_ALIASES[alias]]
