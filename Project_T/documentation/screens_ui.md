@@ -176,7 +176,7 @@ at rests**, when the screen is calm; in combat Kinships are nearly invisible.
 | **Preview** | while placing | the build ghost's vine to its kin reads *"Forms Kinship: Slumber Rot"* |
 | **Bond forms** | when placed or evolved (almost always at a rest) | a vine grows along the ground between them, both flare in the family colour, petals burst, callout *"Kinship: Slumber Rot"*, a two-note chord (one note per Warden). First time ever: discovery card + Codex entry |
 | **Bond grows** (Blooming, Old Kin) | **queued to the next rest** even if reached mid-drift | the vine thickens / flowers, a soft chime, a small line in the rest report |
-| **Whole Tree** | once per family per run; **held until the next rest** if reached mid-drift | every Warden of the family flares at once, a tree sigil blooms over the Heartwood, banner *"The Sporeling line is whole."*; a lasting small badge on those Wardens |
+| **Whole Tree** | once per family per run; **held until the next rest** if reached mid-drift | every Warden of the family flares at once, **the Heartwood itself blossoms** in the family's colour (light climbs its bark, the crown bursts into bloom, a ring pulses over the roots; `whole_tree_sigil`, drawn above the Heartwood sprite), banner *"The Sporeling line is whole."*; a lasting small badge on those Wardens |
 | **Harmony strike** | in combat | **a small two-colour spark** (crit-glint size) on the nightmare; the bonus damage merges into the hit's number, tinted green. **No callout in combat.** Counted in the rest report ("Harmony strikes: 84") |
 | **Vines** | always | on the ground under the Wardens, **~30% brightness, still during drifts**; full brightness in build mode, when one of the pair is selected, and during the rest moments |
 
