@@ -66,16 +66,21 @@ func _run() -> void:
 	_check(c.statuses.is_held(), "Rooted Nightmares: the 8th hit Roots it")
 	await _clean()
 
-	# --- Nightshade: an effect's damage makes the other effects deal 25% of their tick ---
+	# --- Nightshade: effect damage +20% per status the nightmare carries (hits get nothing) ---
 	_take("nightshade")
 	var d := _spawn(sprout.global_position + Vector2(CELL, 0))
-	d.apply_status(EnemyStatuses.SPORED, 4, 5.0, 10.0, 0, "spore", sprout)
+	d.apply_status(EnemyStatuses.SPORED, 2, 5.0, 1.0, 0, "spore", sprout)
+	d.apply_status(EnemyStatuses.DAMP)
+	d.apply_status(EnemyStatuses.STATIC, 1, 0.0, 1.0, 0, "light", sprout)
+	var count: int = d.statuses.active_ids().size()
+	_check(is_equal_approx(Reactions.nightshade_bonus(d), 0.2 * count), "Nightshade: +20%% per status (%d statuses)" % count)
 	var before: int = d.health
-	d.take_damage(1.0, "light", true, false, sprout, &"static")
-	await process_frame  # Nightshade lands right after the damage that set it off
-	var expected := 1.0 + 4 * 10.0 * Reactions.NIGHTSHADE_TICK * Reactions.NIGHTSHADE_SHARE
-	_check(absi((before - d.health) - int(expected)) <= 1,
-		"Nightshade: a Charged bolt makes the Poison tick at 25%% (%d, expected ~%d)" % [before - d.health, int(expected)])
+	d.take_damage(100.0, "", true, false, sprout, &"static")
+	var expected := int(100.0 * sprout.get_potency() * (1.0 + 0.2 * count))
+	_check(absi((before - d.health) - expected) <= 1, "a Charged bolt gets it (%d, expected %d)" % [before - d.health, expected])
+	before = d.health
+	d.take_damage(100.0, "", false, false, sprout, &"")
+	_check(before - d.health == 100, "a hit gets nothing (%d)" % (before - d.health))
 	await _clean()
 
 	# --- The Eldest and its Court ---

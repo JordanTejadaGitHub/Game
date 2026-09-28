@@ -58,7 +58,7 @@ func _tick() -> void:
 				_drowsy_time[id] = 0.0
 				enemy.apply_status(EnemyStatuses.DROWSY, 1, 0.0, 0.0, 0, data.line, _tower)
 		# A cloud's soothe per tick is a share of one attack, spread over its lifetime.
-		_tower.hit(enemy, TICK / _duration, true, Tower.NO_CRIT)  # Clouds never crit
+		_tower.hit(enemy, TICK / _duration, true, Tower.NO_CRIT, &"cloud")  # Clouds never crit; an effect (Potency)
 
 func _draw() -> void:
 	var fade := minf(1.0, (_duration - _age) / 0.5) * minf(1.0, _age / 0.2 + 0.3)

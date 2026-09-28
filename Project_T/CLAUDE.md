@@ -382,8 +382,8 @@ accessibility, Steam achievements (milestones map to them). Acts 3–4 and all f
 - **Potency** (effect damage): `TowerData.potency` (1.0; Puffball 1.3, …), `Tower.get_potency()` (+ Dream
   `get_potency_bonus`, + Deep Focus 10% per rank III–V; Deep no longer boosts status strength).
   `Enemy.take_damage` multiplies damage whose tag is in `Reactions.EFFECT_TAGS` by the source's
-  Potency × Seeping (`DreamState.get_effect_bonus`); Nightshade (`Reactions.nightshade`): an effect's damage makes
-  the nightmare's other effects deal 25% of their tick (tag "nightshade"). Venom Bloom =
+  Potency × Seeping (`DreamState.get_effect_bonus`); Nightshade (`Reactions.nightshade_bonus`): effect damage
+  +20% per status the nightmare carries, adding with Seeping. `PathCloud` damage is tagged "cloud" (an effect). Venom Bloom =
   `get_hit_damage_multiplier` in `Tower.hit`. New effect damage must use an effect tag. Ranks: attack
   speed/range stop at VII (`STAT_TOP_RANK`), Focus at V (`FOCUS_TOP_RANK`). `tests/test_potency.gd`.
 - The Eldest (Legendary): `Tower.get_max_rank()` asks `DreamState.get_max_rank_for(tower)`; rank VI needs

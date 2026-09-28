@@ -829,9 +829,6 @@ func take_damage(amount: float, line: String = "", is_area: bool = false, is_cri
 		return
 	if source is Tower and Reactions.is_effect(tag):
 		amount *= Reactions.effect_multiplier(self, source)  # Potency (and Seeping)
-		if tag != &"nightshade" and Reactions.has_nightshade(self):
-			var kind := tag
-			(func() -> void: Reactions.nightshade(self, kind)).call_deferred()  # After this damage lands
 	if is_crit:
 		_crit_flash = CRIT_FLASH_TIME
 		var world := Reactions._world(self)

@@ -159,32 +159,21 @@ static func effect_multiplier(enemy: Node2D, source: Tower) -> float:
 	var multiplier := source.get_potency()
 	var dreams := _dreams(enemy)
 	if dreams and dreams.has_method("get_effect_bonus"):
-		multiplier *= 1.0 + dreams.get_effect_bonus(enemy)
+		multiplier *= 1.0 + dreams.get_effect_bonus(enemy) + nightshade_bonus(enemy)  # Seeping + Nightshade add
+	elif dreams:
+		multiplier *= 1.0 + nightshade_bonus(enemy)
 	return multiplier
 
-# Nightshade (reworked Legendary): whenever an effect on a nightmare deals damage, every OTHER effect
-# on it deals 25% of its own tick: Poisoned (stacks × strength per 0.5 s tick) and Charged (a spark:
-# charges × strength × 0.5). Credited to each effect's applier, tagged "nightshade" (which doesn't
-# set off more Nightshade).
-const NIGHTSHADE_SHARE := 0.25
-const NIGHTSHADE_TICK := 0.5
+# Nightshade (Legendary #112): effect damage +20% for every status the nightmare carries (one per
+# status, not per stack; every status counts, the one dealing the damage too; no cap). Adds with
+# Seeping. 0 without the card. Also shown on the nightmare's info card.
+const NIGHTSHADE_PER_STATUS := 0.20
 
-static func has_nightshade(enemy: Node2D) -> bool:
+static func nightshade_bonus(enemy: Node2D) -> float:
 	var dreams := _dreams(enemy)
-	return dreams != null and dreams.has_rule(&"nightshade")
-
-static func nightshade(enemy: Node2D, tag: StringName) -> void:
-	if not is_instance_valid(enemy) or enemy.is_cleansed:
-		return
-	var s: EnemyStatuses = enemy.statuses
-	var from_spores := tag == &"spored" or tag == &"ignite" or tag == &"popped" or tag == &"fever_dream"
-	var from_charge := tag == &"static" or tag == &"thunderclap" or tag == &"lightning_rod" or tag == &"starfall"
-	if not from_spores and s.has(SPORED):
-		var tick := s.stacks(SPORED) * s.potency(SPORED) * NIGHTSHADE_TICK * NIGHTSHADE_SHARE
-		enemy.take_damage(tick, s.spore_line(), true, false, s.source(SPORED), &"nightshade")
-	if is_instance_valid(enemy) and not enemy.is_cleansed and not from_charge and s.has(STATIC):
-		var spark := s.stacks(STATIC) * s.potency(STATIC) * NIGHTSHADE_TICK * NIGHTSHADE_SHARE
-		enemy.take_damage(spark, "light", true, false, s.source(STATIC), &"nightshade")
+	if dreams == null or not dreams.has_rule(&"nightshade"):
+		return 0.0
+	return NIGHTSHADE_PER_STATUS * enemy.statuses.active_ids().size()
 
 static func is_crowned(id: StringName) -> bool:
 	return CROWNED_BASE.has(id)
