@@ -104,6 +104,23 @@ silent. Target: one 100-drift run in under 5 minutes, so a full batch fits in a 
 **As built so far (2026-09-28):** Grove presets `MetaRun.load_preset(&"fresh" | &"early" | &"half" | &"full")` (a separate sim profile; meta applies only with `game/demo` off). Card and pick policies `DreamSimPolicy` (`scripts/run/dream_sim_policy.gd`, 147ee8e): card score = style tag score × 10 + rarity; in-build cards +2; half-dreamed −1 (Combo +2); Dreamlight to the most-built family's next form (Wide may also buy Thornwall growths); Omens: Clear Skies. Tuning lives in the file's consts.
 - **Design chat:** owns the targets above; adjusts them when the design changes.
 
+## First findings (realistic-run probe, 2026-09-28, fresh profile, 3 seeds)
+
+Income only for drifts 1–60 (assumed perfect blocks), then drifts 61–70 fought for real:
+- **Dew by drift 60 ≈ 8,100** (dispels ~7,000, rests ~800, call-early ~300). Spent: plant ~370, grow
+  ~1,800, **Nurture ~5,900 (73%)**. The board: 16 attackers, all **branch tier**, average rank ~3.8.
+- **No final forms on a fresh profile**: they're Grove-only, so 2–3 Dreamlight sat unspent. That's
+  by design (a fresh Heartwood is outmatched), and it means **the old "12 rank-IV finals" probe was
+  far above anything a fresh player can own**; act 3 health isn't tuned against it.
+- Drifts 61–70: damage ×1.26 / ×0.99 / ×0.73 of the health spawned; 0 / 6 / 229 leaks. The act 3
+  wall is right there for a first-time board; the spread is the map plus naive Dream picks (seed 3
+  took Sprout cards with no Sprouts; DreamSimPolicy replaces that).
+- **Watch:** the target says a fresh profile usually **ends in act 2**. Reaching act 3 comfortably on
+  one seed of three hints that acts 1–2 are too gentle for a fresh profile, but this probe didn't
+  fight drifts 1–60. The quick batch (all 100 drifts fought) decides it.
+- **Watch:** Nurture is the only big Dew sink before finals. If Dew still piles up in act 2 of a
+  fresh run, the fix is a sink or less income, not more health.
+
 ## Later
 
 A **human baseline**: the same CSV written from real playtests (debug builds only), so the bot's
