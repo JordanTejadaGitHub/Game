@@ -270,7 +270,8 @@ static func _drown(enemy: Node2D, source: Node) -> void:
 		level = 1 + dreams.rule_level(&"deep_water")
 	if s.drowned >= DROWN_TIMES[level]:
 		return
-	if _fire(enemy, &"drown", _towers(_tower_of(source, s.source(DROWSY)), s.source(DAMP))) <= 0:
+	var applier := _tower_of(source, s.source(DROWSY))
+	if _fire(enemy, &"drown", _towers(applier, s.source(DAMP))) <= 0:
 		return
 	s.remove(DROWSY)
 	s.drowned += 1
@@ -279,7 +280,10 @@ static func _drown(enemy: Node2D, source: Node) -> void:
 		s.slow_time = DROWN_SLEEP[0]
 		s.slow_amount = DROWN_BOSS_SLOW[deep]
 	else:
+		var was_asleep := s.is_asleep()
 		s.sleep_time = maxf(s.sleep_time, DROWN_SLEEP[deep])
+		if applier != null and not was_asleep:
+			applier.put_to_sleep.emit(applier, enemy)  # Sound: the sleep drone
 
 # Marked + (Held or asleep or full Drowsy): the next Warden hit is a guaranteed ×3 crit. Uses up Marked.
 static func _pinned(enemy: Node2D, source: Node) -> void:
@@ -317,6 +321,7 @@ static func echo(id: StringName, spot: Vector2, share: float, echo_tower: Tower,
 	var nearby := echo_tower.get_tree().get_nodes_in_group(Tower.ENEMY_GROUP).filter(func(e: Node2D) -> bool:
 		return e.global_position.distance_to(spot) <= ECHO_REACH * CELL)
 	tracker.echo_depth = depth
+	echo_tower.echoed.emit(echo_tower, id, spot)
 	if world:
 		Fx.play(&"echo", spot, world)  # Lilac rings, then the Reaction's own effect again
 		Fx.reaction(id, spot, world, [echo_tower])

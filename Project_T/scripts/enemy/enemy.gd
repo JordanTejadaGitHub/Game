@@ -881,6 +881,9 @@ func _cleanse() -> void:
 		if dreams and dreams.has_method("add_dreamlight_shard"):
 			dreams.add_dreamlight_shard()
 			Reactions._effect(&"dreamlight_shard", global_position, self, 1.0, 1.2)
+			var catcher = statuses.caught_shard_tower
+			if is_instance_valid(catcher) and catcher.has_signal("shard_dropped"):
+				catcher.shard_dropped.emit(catcher, global_position)
 	cleansed.emit(self)
 	queue_redraw()
 	sprite.self_modulate.a = 1.0  # A hidden nightmare shows itself as it cracks apart

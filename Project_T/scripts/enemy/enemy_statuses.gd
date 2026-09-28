@@ -76,6 +76,7 @@ var dreamshroom_slept := false  # Dreamshroom puts each nightmare to sleep once
 var caught_time := 0.0
 var caught_bonus := 0.0
 var caught_shard := false  # Caught by a Great Dreamcatcher: dispelling it drops a Dreamlight shard
+var caught_shard_tower: Node = null  # That Great Dreamcatcher (for its shard_dropped signal)
 var bad_dreams_timer := 0.0  # Bad Dreams: Drowsy per second while Caught
 # Thousand Cuts: hits within 2 s of each other stack +2% damage taken (max +60%).
 const CUT_BONUS := 0.02

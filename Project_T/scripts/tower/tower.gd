@@ -21,6 +21,15 @@ signal hit_landed(tower: Tower, enemy: Node2D, is_area: bool, is_crit: bool)
 signal popped(tower: Tower, enemy: Node2D, stacks: int)
 # A beam (Sunpetal line) hit its target; `ramp` is its current damage multiplier.
 signal beam_ticked(tower: Tower, ramp: float)
+# Sound hooks for the Warden sound sheet (audio_direction.md); SoundHooks connects to these.
+signal cloud_formed(tower: Tower, where: Vector2, duration: float)  # Bloomcap / Dreamshroom / Mistveil
+signal trap_set(tower: Tower, where: Vector2)  # Fairy Ring planted a ring
+signal trap_triggered(tower: Tower, where: Vector2)  # A ring went off
+signal seed_caught(tower: Tower)  # Samara / Autumn Gale caught a seed
+signal echoed(tower: Tower, reaction: StringName, where: Vector2)  # Echo Hollow repeated a Reaction
+signal put_to_sleep(tower: Tower, enemy: Node2D)  # A nightmare fell asleep because of this Warden
+signal shard_dropped(tower: Tower, where: Vector2)  # A Great Dreamcatcher's Caught nightmare left a shard
+signal grab_finished(tower: Tower, enemy: Node2D)  # The Pond Keeper's drag ended
 
 @export var tower_data: TowerData
 @onready var sprite: Sprite2D = $Sprite2D
@@ -681,8 +690,11 @@ func _put_to_sleep(enemy: Node2D) -> void:
 			or s.stacks(EnemyStatuses.DROWSY) < s.get_max_stacks(EnemyStatuses.DROWSY):
 		return
 	s.dreamshroom_slept = true
+	var was_asleep := s.is_asleep()
 	s.sleep_time = maxf(s.sleep_time, attack_data.sleep_at_max_drowsy)
 	ComboFeedback.report(&"asleep", self)  # Codex: Asleep
+	if not was_asleep:
+		put_to_sleep.emit(self, enemy)
 
 func _apply_one_status(enemy: Node2D, status: StringName, stacks: int, soothe: float) -> void:
 	if status == &"" or not is_instance_valid(enemy) or enemy.is_cleansed:
@@ -841,6 +853,7 @@ func _drop_cloud(target: Node2D) -> void:
 	var center: Vector2 = MAP_GRID.calculate_map_position(target.get_current_cell())
 	var cloud := PathCloud.new(self, center)
 	add_child(cloud)
+	cloud_formed.emit(self, center, attack_data.cloud_duration)
 
 
 # --- New kinds -------------------------------------------------------------------------------------------
@@ -875,6 +888,7 @@ func _plant_ring() -> void:
 	var ring := FairyRing.new(self, free[randi() % free.size()])
 	add_child(ring)
 	_rings.append(ring)
+	trap_set.emit(self, ring.global_position)
 
 # --- Bellflower family (song and sleep) -----------------------------------------------------------------
 
@@ -917,6 +931,7 @@ func _update_catch(delta: float) -> void:
 		s.caught_bonus = maxf(s.caught_bonus if s.is_caught() else 0.0, tower_data.caught_bonus)
 		if tower_data.caught_shards:
 			s.caught_shard = true
+			s.caught_shard_tower = self  # Told when the shard drops (shard_dropped)
 		if bad_dreams > 0:
 			s.bad_dreams_timer += AURA_TICK
 			while s.bad_dreams_timer >= 1.0:
@@ -1043,6 +1058,7 @@ func _throw_seeds() -> void:
 # A seed came home. Once every seed of a throw is back, Autumn Gale's catch rhythm counts the throw:
 # +10% on the next one if any seed hit something, back to nothing if none did.
 func catch_seed(hit_anything: bool) -> void:
+	seed_caught.emit(self)
 	_throw_hit = _throw_hit or hit_anything
 	_seeds_home += 1
 	if _seeds_home < _seeds_thrown:
@@ -1144,6 +1160,7 @@ func _grab(target: Node2D) -> void:
 		return
 	if target.enemy_data.is_boss:
 		target.push_back(attack_data.pull_boss_tiles * MAP_GRID.cell_size.x)
+		grab_finished.emit(self, target)
 		return
 	var behind: PackedVector2Array = target.get_cells_behind()
 	var best := -1
@@ -1155,6 +1172,7 @@ func _grab(target: Node2D) -> void:
 			best = i
 	if best >= 0:
 		target.pull_back_to(best)
+	grab_finished.emit(self, target)  # The drag is instant: it ends right away
 
 # Rootlight: glowing roots light the path tiles in range; nightmares there are soothed and Marked.
 func _light() -> void:
