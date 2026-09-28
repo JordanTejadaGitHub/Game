@@ -67,11 +67,12 @@ func _run() -> void:
 	spawner.spawn_enemy(leaf_bug)
 	var enemy = spawner.get_child(spawner.get_child_count() - 1)
 	enemy.take_damage(enemy.max_health)
-	_check(run_state.dew == leaf_bug.dew_reward, "cleansing a Leaf Bug earns %d Dew (got %d)" % [leaf_bug.dew_reward, run_state.dew])
+	var act_1_pay := floori(leaf_bug.dew_reward * run_state.act_dew_multipliers[0])  # Act 1 pays ×0.85 (fractions carry)
+	_check(run_state.dew == act_1_pay, "cleansing a Leaf Bug earns %d Dew (got %d)" % [act_1_pay, run_state.dew])
 	var popups := main.get_children().filter(func(n: Node) -> bool: return n is DewPopup)
 	_check(popups.size() == 1, "a +Dew popup appears")
 	enemy.take_damage(enemy.max_health)
-	_check(run_state.dew == leaf_bug.dew_reward, "an already-cleansed creature doesn't pay twice")
+	_check(run_state.dew == act_1_pay, "an already-cleansed creature doesn't pay twice")
 	await create_timer(1.5, true, true).timeout
 	_check(main.get_children().filter(func(n: Node) -> bool: return n is DewPopup).is_empty(), "popup frees itself")
 

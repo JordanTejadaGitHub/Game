@@ -192,13 +192,14 @@ func _run() -> void:
 	_check(run_state.free_nurtures == 0 and dreams.rerolls_left == 0, "perks not carried do nothing")
 	_check(not dreams.allow_bittersweet, "no Bittersweet Dreams node: no bittersweet cards")
 	var dew_before := run_state.dew
-	for i in 20:  # 20 dispels of 1 Dew at +15%: 3 whole Dew carried over
+	var expected_dew := floori(20 * run_state.act_dew_multipliers[0] * 1.15)  # Act 1 ×0.85, Rich Dew +15%, fractions kept
+	for i in 20:  # 20 dispels of 1 Dew: the fractions carry over into whole Dew
 		var enemy := Node2D.new()
 		enemy.set_script(_FakeEnemy)
 		main.add_child(enemy)
 		run_state._on_enemy_cleansed(enemy)
 		enemy.queue_free()
-	_check(run_state.dew - dew_before == 23, "Rich Dew carries fractions: 20 Dew becomes 23 (%d)" % (run_state.dew - dew_before))
+	_check(run_state.dew - dew_before == expected_dew, "Rich Dew carries fractions: 20 Dew becomes %d (%d)" % [expected_dew, run_state.dew - dew_before])
 	main.queue_free()
 	await process_frame
 	memory = HeartwoodMemory.load_data()
