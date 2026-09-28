@@ -108,7 +108,7 @@ func _on_reaction(id: StringName, _enemy: Node2D, chain: int, _towers: Array) ->
 func record(id: StringName) -> void:
 	run_counts[id] = run_counts.get(id, 0) + 1
 	_unsaved[id] = _unsaved.get(id, 0) + 1
-	if _seen.has(String(id)) or CodexData.get_combo(id).is_empty():
+	if _seen.has(String(id)) or CodexData.get_any(id).is_empty():
 		return
 	_seen.append(String(id))
 	block_new.append(id)
@@ -119,9 +119,15 @@ func record(id: StringName) -> void:
 		_show_next()
 
 static func discovery_text(id: StringName) -> String:
-	var combo := CodexData.get_combo(id)
+	var combo := CodexData.get_any(id)
 	if combo.is_empty():
 		return ""
+	if combo.kind == "Crowned":  # Its own card (tower_design.md "Crowned Reactions", rule 3)
+		var families: Array[String] = []
+		for family in combo.families:
+			families.append(CodexData.FAMILY_NAMES.get(family, family))
+		return "Crowned Reaction discovered: %s\n%s  ·  %s\n%s\nAdded to the Codex." % [combo.name,
+			CodexData.crowned_recipe(combo), ", ".join(families), combo.text]
 	return "Combo discovered: %s\n%s\n%s\nAdded to the Codex." % [combo.name, CodexData.ingredients_text(combo), combo.text]
 
 func _show_next() -> void:
@@ -156,7 +162,7 @@ static func summary(counts: Dictionary, longest_chain: int) -> String:
 	ids.sort_custom(func(a, b) -> bool: return counts[a] > counts[b])
 	var parts: Array[String] = []
 	for id in ids:
-		var combo := CodexData.get_combo(id)
+		var combo := CodexData.get_any(id)
 		parts.append("%s %d" % [combo.name if not combo.is_empty() else String(id), counts[id]])
 	var text := " · ".join(parts)
 	if longest_chain >= 2:
@@ -175,7 +181,8 @@ func _remember_discovery() -> void:
 		return
 	var memory := HeartwoodMemory.load_data()
 	memory[SEEN_KEY] = _seen.duplicate()
-	if _seen.size() >= CodexData.combos().size():
+	# The milestone counts the 15 combos only (Crowned Reactions aren't part of it).
+	if CodexData.combos().all(func(c: Dictionary) -> bool: return _seen.has(String(c.id))):
 		memory.milestones[MILESTONE] = true  # meta_design.md "Discover every combo"
 	HeartwoodMemory.save_data(memory)
 

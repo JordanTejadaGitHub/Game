@@ -17,6 +17,7 @@ const START_FAMILIES := ["sporeling", "firefly_jar", "dewdrop"]
 const LOCKED_COLOR := Color(0.5, 0.52, 0.56)
 const TERM_COLOR := Color(0.95, 0.9, 0.7)
 const HIGHLIGHT := Color(1.0, 0.95, 0.6, 0.18)
+const CROWN_COLOR := Color(1.0, 0.82, 0.35)  # Crowned Reactions: the gold tier
 
 var tabs := TabContainer.new()
 var _search := LineEdit.new()
@@ -108,7 +109,7 @@ func _focus(scroll: ScrollContainer, target: Control) -> void:
 	tween.tween_property(target, "modulate", Color.WHITE, 0.8)
 
 func _find_combo(name: String) -> Dictionary:
-	for combo in CodexData.combos():
+	for combo in CodexData.combos() + CodexData.crowned():
 		if String(combo.id) == name or combo.name == name:
 			return combo
 	return {}
@@ -207,6 +208,71 @@ func _build_combos() -> void:
 		_entries[String(combo.id)] = card
 	_combo_count.text = "%d / %d combos discovered" % [found, all.size()]
 	tabs.set_tab_title(1, "Combos %d / %d" % [found, all.size()])
+	# Crowned Reactions: hidden (a silhouette + their three family icons) until found; full game only.
+	if ResultsScreen.is_demo():
+		return
+	var crowned := CodexData.crowned()
+	var crowned_found := crowned.filter(func(c: Dictionary) -> bool: return seen.has(String(c.id))).size()
+	var header := Label.new()
+	header.text = "Crowned Reactions  %d / %d" % [crowned_found, crowned.size()]
+	header.add_theme_font_size_override("font_size", 20)
+	header.add_theme_color_override("font_color", CROWN_COLOR)
+	_combos.add_child(header)
+	for c in crowned:
+		var discovered := seen.has(String(c.id))
+		var times := int(counts.get(String(c.id), 0)) + (int(live._unsaved.get(c.id, 0)) if live else 0)
+		var card := _crowned_card(c, discovered, times)
+		_combos.add_child(card)
+		_entries[String(c.id)] = card
+
+func _crowned_card(c: Dictionary, discovered: bool, times: int) -> Control:
+	var panel := PanelContainer.new()
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color(0.13, 0.11, 0.07, 0.95) if discovered else Color(0.06, 0.06, 0.07, 0.95)
+	style.border_color = CROWN_COLOR if discovered else Color(0.25, 0.23, 0.18)
+	style.set_border_width_all(2)
+	style.set_corner_radius_all(8)
+	style.set_content_margin_all(10)
+	panel.add_theme_stylebox_override("panel", style)
+	var box := VBoxContainer.new()
+	panel.add_child(box)
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 6)
+	box.add_child(row)
+	for family in c.families:  # The three family icons: the hint while hidden
+		var icon := TextureRect.new()
+		icon.texture = CodexData.family_icon(family)
+		icon.custom_minimum_size = Vector2(28, 28)
+		icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		icon.tooltip_text = CodexData.FAMILY_NAMES.get(family, family)
+		if not discovered:
+			icon.modulate = Color(0.6, 0.6, 0.65)
+		row.add_child(icon)
+	var name := Label.new()
+	name.text = "%s  ·  Crowned" % c.name if discovered else "???"
+	name.add_theme_font_size_override("font_size", 18)
+	name.add_theme_color_override("font_color", CROWN_COLOR if discovered else LOCKED_COLOR)
+	row.add_child(name)
+	var families: Array[String] = []
+	for family in c.families:
+		families.append(CodexData.FAMILY_NAMES.get(family, family))
+	var hint := Label.new()
+	hint.text = ", ".join(families) if not discovered else "%s  ·  %s" % [CodexData.crowned_recipe(c), ", ".join(families)]
+	hint.add_theme_font_size_override("font_size", 14)
+	hint.add_theme_color_override("font_color", Color(0.9, 0.82, 0.6) if discovered else LOCKED_COLOR)
+	box.add_child(hint)
+	if discovered:
+		var text := Label.new()
+		text.text = c.text
+		text.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		text.add_theme_font_size_override("font_size", 15)
+		box.add_child(text)
+		var count := Label.new()
+		count.text = "Set off %d time%s" % [times, "" if times == 1 else "s"]
+		count.add_theme_font_size_override("font_size", 13)
+		box.add_child(count)
+	return panel
 
 func _combo_card(combo: Dictionary, discovered: bool, times: int) -> Control:
 	var panel := PanelContainer.new()

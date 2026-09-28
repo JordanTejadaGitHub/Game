@@ -40,7 +40,8 @@ const GLOSSARY := [
 		["Rank", "How nurtured a Warden is (I to V): each rank adds damage, speed and range.", ["Nurture"]],
 		["Focus", "At rank III a Warden takes a focus: Power, Swift, Reach or Deep.", ["Rank"]],
 		["Thornwall", "A cheap wall that doesn't attack; grows into Bramble or Honeysuckle.", ["Warden"]],
-		["Crit", "A critical hit: some Wardens sometimes hit much harder.", ["Pinned"]],
+		["Crit", "A critical hit: some Wardens sometimes hit much harder.", ["Pinned", "Potency"]],
+		["Potency", "Effect damage: scales status and spore damage and Reactions the way crit scales hits.", ["Crit", "Spored"]],
 		["Clear tool", "Tend withered trees and move boulders to reshape the maze. Opens with a clearing Dream.", ["Dew"]],
 	]],
 	["Nightmares", [
@@ -96,6 +97,74 @@ const SYNERGIES := {
 const STATUS_NAMES := {&"damp": "Damp", &"drowsy": "Drowsy", &"spored": "Spored", &"marked": "Marked",
 	&"static": "Static", &"held": "Held"}
 
+# Crowned Reactions (tower_design.md "Crowned Reactions: three families at once"): a Reaction going
+# off on a nightmare that already carries a third status. id -> [name, base Reaction, the third
+# status, its three families (Warden ids), what happens]. Hidden in the Codex until found (a
+# silhouette + the three family icons), not in the demo, and not part of the 15 combos' count.
+const CROWNED := {
+	&"tempest": ["Tempest", &"thunderclap", &"spored", ["dewdrop", "firefly_jar", "sporeling"],
+		"Every arc also sets off Ignite on Spored nightmares, and the spores carry Static onto wet ones: new Thunderclaps follow."],
+	&"still_pool": ["Still Pool", &"drown", &"held", ["dewdrop", "bellflower", "rootling"],
+		"The nightmare sinks and leaves a still pool for 5 s: every walker that enters it sleeps for a moment."],
+	&"fever_dream": ["Fever Dream", &"smother", &"drowsy", ["sporeling", "rootling", "bellflower"],
+		"Its spores all go off at once, and it passes Spored + Drowsy to its neighbours: a sleep plague."],
+	&"starfall": ["Starfall", &"pinned", &"static", ["firefly_jar", "rootling", "bellflower"],
+		"The crit pulls every Static bolt within 3 cells into it; each bolt crits too, and a column of light falls."],
+	&"avalanche": ["Avalanche", &"shatter", &"held", ["dewdrop", "rootling", "pebbling"],
+		"A Cairn or Rockslide lob sets off the Shatter on every Damp + Held nightmare under it."],
+	&"prismstorm": ["Prismstorm", &"shatter", &"static", ["dewdrop", "rootling", "firefly_jar"],
+		"The ice shards carry lightning: each adds Static to what it hits, so wet neighbours Thunderclap."],
+	&"nightbloom": ["Nightbloom", &"mushrooming", &"drowsy", ["sporeling", "dewdrop", "bellflower"],
+		"The spore cloud glows violet and nothing inside can wake."],
+	&"fairy_circle": ["Fairy Circle", &"mushrooming", &"held", ["sporeling", "dewdrop", "rootling"],
+		"A ring of mushrooms sprouts around the held nightmare: walkers crossing it get Spored + Damp."],
+}
+# assets/meta/icons/family_icons.png: 32×32 icons in this order.
+const FAMILY_ICON_ORDER := ["sporeling", "firefly_jar", "dewdrop", "pebbling", "rootling", "bellflower",
+	"acorn", "nestling", "whirligig"]
+const FAMILY_NAMES := {"sporeling": "Sporeling", "firefly_jar": "Firefly Jar", "dewdrop": "Dewdrop",
+	"pebbling": "Pebbling", "rootling": "Rootling", "bellflower": "Bellflower", "acorn": "Acorn",
+	"nestling": "Nestling", "whirligig": "Whirligig"}
+
+# The Crowned Reactions: [{id, name, kind "Crowned", base, statuses (base's + the third), families, text}].
+# A ReactionData of the same id (if Tower Code adds one) supplies the name and text.
+static func crowned() -> Array[Dictionary]:
+	var list: Array[Dictionary] = []
+	for id in CROWNED:
+		var c: Array = CROWNED[id]
+		var base := Reactions.get_data(c[1])
+		var statuses: Array = (base.statuses.duplicate() if base else []) + [c[2]]
+		var data := Reactions.get_data(id)
+		list.append({"id": id, "name": data.display_name if data else c[0], "kind": "Crowned", "base": c[1],
+			"statuses": statuses, "families": c[3], "text": data.description if data else c[4], "by": ""})
+	return list
+
+# A combo or a Crowned Reaction by id ({} if neither).
+static func get_any(id: StringName) -> Dictionary:
+	var found := get_combo(id)
+	if found.is_empty():
+		for c in crowned():
+			if c.id == id:
+				return c
+	return found
+
+# "Thunderclap + Spored" for a Crowned Reaction.
+static func crowned_recipe(c: Dictionary) -> String:
+	var base := Reactions.get_data(c.base)
+	return "%s + %s" % [base.display_name if base else String(c.base).capitalize(),
+		STATUS_NAMES.get(c.statuses[-1], String(c.statuses[-1]))]
+
+static func family_icon(family: String) -> Texture2D:
+	var index := FAMILY_ICON_ORDER.find(family)
+	if index < 0 or not ResourceLoader.exists(FAMILY_ICONS):
+		return null
+	var atlas := AtlasTexture.new()
+	atlas.atlas = load(FAMILY_ICONS)
+	atlas.region = Rect2(index * 32, 0, 32, 32)
+	return atlas
+
+const FAMILY_ICONS := "res://assets/meta/icons/family_icons.png"
+
 # Every combo: [{id, name, kind ("Synergy" / "Reaction"), statuses, text, by}], synergies first.
 static func combos() -> Array[Dictionary]:
 	var list: Array[Dictionary] = []
@@ -105,6 +174,8 @@ static func combos() -> Array[Dictionary]:
 	var reactions := Reactions.all()
 	reactions.sort_custom(func(a: ReactionData, b: ReactionData) -> bool: return a.display_name < b.display_name)
 	for data in reactions:
+		if CROWNED.has(data.id):
+			continue  # Crowned Reactions are their own list (crowned())
 		list.append({"id": data.id, "name": data.display_name, "kind": "Reaction", "statuses": data.statuses,
 			"text": data.description, "by": ""})
 	return list

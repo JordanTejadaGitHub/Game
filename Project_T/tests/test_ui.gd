@@ -181,6 +181,28 @@ func _run() -> void:
 	_check(family.mouse_filter == Control.MOUSE_FILTER_STOP, "and Back reopens the pick")
 	family.choose(family.offer[0])
 
+	# --- The Heartwood Sapling: its card after the drift 50 family pick, then the rest panel ---
+	var sapling_placer = main.get_node("%TowerPlacer")
+	if sapling_placer.has_method("can_take_sapling"):
+		var started_before := director.drifts_started
+		director.drifts_started = 50
+		director.awaiting_family_pick = true
+		family.show_pick(&"boss")
+		if not family.offer.is_empty():
+			family.choose(family.offer[0])
+		_check(family.visible and family._title.text == "The Heartwood offers a seedling of itself",
+			"the Sapling's card follows the drift 50 family pick")
+		var not_now: Button = family._cards.get_child(0).get_child(-1).get_child(1)
+		not_now.pressed.emit()
+		_check(not family.visible and sapling_placer.can_take_sapling(), "Not now keeps it for later")
+		var sapling_panel = main.get_node("HUD/DriftPanel")
+		sapling_panel._process(0.0)
+		_check(sapling_panel._sapling_button.visible == director.is_resting(), "the rest panel offers to plant it")
+		sapling_panel.plant_sapling()
+		_check(sapling_placer.has_unplanted_sapling() and sapling_placer.build_mode, "Sapling: taken and ready to place")
+		sapling_placer.set_build_mode(false)
+		director.drifts_started = started_before
+
 	# --- Settings: tabs, and the high-contrast route line ---
 	var settings := SettingsPanel.new()
 	main.add_child(settings)

@@ -10,6 +10,7 @@ extends Control
 # the family applies and its two branches (screens_ui.md "Family pick"). Built in code.
 
 const CARD_SIZE := Vector2(250, 300)
+const SAPLING_DRIFT := 50  # The act 2 boss: the Heartwood Sapling is offered after its family pick
 const STATUS_NAMES := {&"damp": "Damp", &"drowsy": "Drowsy", &"spored": "Spored", &"marked": "Marked",
 	&"static": "Static", &"held": "Held"}
 const TITLES := {
@@ -93,6 +94,13 @@ func show_pick(reason: StringName = &"first") -> void:
 	while offer.size() < cards_per_pick and not blessings.is_empty():
 		offer.append(blessings.pop_back())
 	if offer.is_empty():
+		if should_offer_sapling():  # No family left, but the Sapling still gets its card
+			if not visible:
+				_was_paused = game_speed.paused
+			game_speed.set_paused(true)
+			visible = true
+			_show_sapling()
+			return
 		drift_director.family_picked()  # Nothing left to offer
 		return
 	if not visible:
@@ -146,9 +154,63 @@ func choose(data: Resource) -> void:
 	else:
 		dream_state.unlocked[data.get_id()] = true
 		dream_state.unlocks_changed.emit()
+	if should_offer_sapling():
+		_show_sapling()  # Right after the drift 50 family pick (run_design.md "The Heartwood Sapling")
+		return
+	_finish()
+
+func _finish() -> void:
 	visible = false
 	game_speed.set_paused(_was_paused)
 	drift_director.family_picked()
+
+# The Heartwood Sapling's own card follows the act 2 boss's family pick (drift 50), once.
+func should_offer_sapling() -> bool:
+	var placer := get_node_or_null("%TowerPlacer")
+	return placer != null and placer.has_method("can_take_sapling") and placer.can_take_sapling() \
+		and drift_director.drifts_started == SAPLING_DRIFT
+
+func _show_sapling() -> void:
+	var placer = %TowerPlacer
+	_title.text = "The Heartwood offers a seedling of itself"
+	for child in _cards.get_children():
+		_cards.remove_child(child)
+		child.queue_free()
+	var card := VBoxContainer.new()
+	card.custom_minimum_size = Vector2(420, 0)
+	card.add_theme_constant_override("separation", 10)
+	var data: TowerData = placer.sapling
+	if data != null and data.texture != null:
+		var icon := TextureRect.new()
+		icon.texture = _frame(data)
+		icon.stretch_mode = TextureRect.STRETCH_KEEP_CENTERED
+		card.add_child(icon)
+	for line in [["The Heartwood Sapling", 22, Color.WHITE],
+			["Free to plant, 2×2, a wall like any Warden. Rooted: once planted it can't be sold or moved.", 15, Color(0.9, 0.95, 0.9)],
+			["It doesn't attack. After every drift it yields +20 Dew, and every 10 drifts +1 Dreamlight. Nurture it for more; leaks wither it a little.", 15, Color(0.85, 0.9, 1.0)],
+			["Not now? You can plant it later from the rest panel.", 13, Color(0.7, 0.8, 0.7)]]:
+		var label := Label.new()
+		label.text = line[0]
+		label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		label.add_theme_font_size_override("font_size", line[1])
+		label.add_theme_color_override("font_color", line[2])
+		card.add_child(label)
+	var row := HBoxContainer.new()
+	row.alignment = BoxContainer.ALIGNMENT_CENTER
+	row.add_theme_constant_override("separation", 16)
+	for pair in [["Take the Sapling", func() -> void:
+			_finish()
+			placer.take_sapling()],  # Enters build mode with it selected
+			["Not now", _finish]]:
+		var button := Button.new()
+		button.text = pair[0]
+		button.focus_mode = Control.FOCUS_NONE
+		button.custom_minimum_size = Vector2(180, 48)
+		button.pressed.connect(pair[1])
+		row.add_child(button)
+	card.add_child(row)
+	_cards.add_child(card)
 
 func _make_card(data: TowerData) -> Button:
 	var button := Button.new()

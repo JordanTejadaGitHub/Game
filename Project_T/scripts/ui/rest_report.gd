@@ -39,7 +39,7 @@ func show_report(block: int) -> void:
 	if combos and not combos.block_new.is_empty():  # screens_ui.md "The Codex": "New combos: …"
 		var names: Array[String] = []
 		for id in combos.block_new:
-			names.append(CodexData.get_combo(id).get("name", String(id)))
+			names.append(CodexData.get_any(id).get("name", String(id)))
 		_label.text += "\nNew combos: " + ", ".join(names)
 	visible = true
 

@@ -116,6 +116,20 @@ func _run() -> void:
 	_check(CodexData.find_term("Tend the forest, and it will remember you.") == "" and CodexData.find_term("Wardens are walls.") == "Warden",
 		"in-game text finds whole-word terms only")
 	_check(main.get_node("HUD/CodexButton") != null, "a ? button on the HUD opens the Codex")
+	# Crowned Reactions: their own discovery card, a hidden entry until found, outside the 15.
+	_check(CodexData.crowned().size() == 8 and CodexData.combos().size() == 15, "8 Crowned Reactions, apart from the 15 combos")
+	_check(ComboFeedback.discovery_text(&"tempest").begins_with("Crowned Reaction discovered: Tempest")
+		and ComboFeedback.discovery_text(&"tempest").contains("Thunderclap + Spored"), "a Crowned discovery card names its recipe")
+	var was_demo = ProjectSettings.get_setting("game/demo", false)
+	ProjectSettings.set_setting("game/demo", false)
+	codex.open(&"combos")
+	_check(codex._entries.has("tempest"), "the full game's Codex lists the Crowned Reactions")
+	ProjectSettings.set_setting("game/demo", true)
+	codex.open(&"combos")
+	await process_frame
+	_check(not codex._entries.has("tempest") or not is_instance_valid(codex._entries["tempest"]) or codex._entries["tempest"].is_queued_for_deletion(),
+		"the demo's Codex leaves them out")
+	ProjectSettings.set_setting("game/demo", was_demo)
 
 	main.queue_free()
 	await process_frame
