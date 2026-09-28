@@ -24,6 +24,7 @@ func _run() -> void:
 	_test_meta_hooks(main)
 	await _test_dreamlight(main)
 	_test_passed_over(main)
+	_test_few_and_mighty_sim(main)
 	print("dreams test: %s" % ("PASS" if failures == 0 else "%d FAILED" % failures))
 	quit(failures)
 
@@ -697,6 +698,64 @@ func _test_passed_over(main: Node) -> void:
 	dreams.choose(dreams.current_offer[0])
 	_check(dreams.times_passed(dreams.get_taken_cards()[0].id) == 0, "a taken card isn't passed over")
 	_reset_dreams(main)
+
+# The playtest case (design chat, 2026-09-28): a Thornwall maze with 10 attacking Wardens meets Few and
+# Mighty's Need all run; the player keeps taking other (non-narrow) cards. How often is it offered
+# by drift 35 and 50, with and without fading? Target: after its 2nd pass, about 1 offer in 4 at most.
+func _test_few_and_mighty_sim(main: Node) -> void:
+	var dreams: DreamState = main.get_node("%DreamState")
+	var container: Node = main.get_node("%TowerContainer")
+	var few := _card(dreams, "few_and_mighty")
+	var planted: Array[Tower] = []
+	for i in 16:
+		var tower: Tower = load("res://scenes/tower/tower.tscn").instantiate()
+		tower.tower_data = load("res://resource/tower/%s.tres" % ("sporeling" if i < 10 else "thornwall"))
+		tower.cell = Vector2(100 + i, 100)  # Off the map: only counted
+		container.add_child(tower)
+		tower.set_process(false)
+		planted.append(tower)
+	const RUNS := 300
+	var results := []  # Per mode: [offers by 35, by 50, offers after 2nd pass, of them with it]
+	for fading in [false, true]:
+		var r := [0, 0, 0, 0]
+		dreams._rng.seed = 11
+		for run in RUNS:
+			_reset_dreams_quiet(dreams)
+			dreams._passed_count.clear()
+			dreams._passed_at.clear()
+			dreams.unlocked["sporeling"] = true
+			var passes := 0
+			for drift in range(5, 51, 5):
+				dreams.current_offer = dreams.make_offer(drift)
+				var has_it := dreams.current_offer.has(few)
+				if passes >= 2:
+					r[2] += 1
+					r[3] += 1 if has_it else 0
+				if has_it:
+					passes += 1
+					r[0] += 1 if drift <= 35 else 0
+					r[1] += 1
+				var other: Array = dreams.current_offer.filter(func(c: UpgradeData) -> bool:
+					return c != few and not c.tags.has("narrow"))
+				if other.is_empty():
+					dreams._close_offer()
+				else:
+					dreams.choose(other[0])
+				if dreams.is_offering():  # Lucid Dreaming's second pick
+					dreams._close_offer()
+				if not fading:
+					dreams._passed_count.clear()
+					dreams._passed_at.clear()
+		results.append(r)
+	for tower in planted:
+		tower.free()
+	_reset_dreams(main)
+	for i in 2:
+		var r: Array = results[i]
+		print("few and mighty (%s fading): offered %.2f times by drift 35, %.2f by 50; after its 2nd pass in %.0f%% of offers" % [
+			"with" if i == 1 else "without", float(r[0]) / RUNS, float(r[1]) / RUNS, 100.0 * r[3] / maxi(r[2], 1)])
+	# Report only for now: with Few and Mighty the only eligible Rare, fading within a rarity can't
+	# lower it (design chat to decide how fading should reach across rarities).
 
 func _card(dreams: DreamState, id: String) -> UpgradeData:
 	for card in dreams.pool:
