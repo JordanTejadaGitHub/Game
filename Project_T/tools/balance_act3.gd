@@ -5,7 +5,8 @@ extends SceneTree
 # split (its hits, Charged bolts its toll set off, damage landing on Asleep nightmares) and how much of
 # the field's health was dispelled vs leaked. Run from the project folder:
 #   godot --headless --path . --script res://tools/balance_act3.gd --fixed-fps 60 -- --bell=1
-# (--bell=0 for the comparison maze).
+# (--bell=0 for the comparison maze; --seed=N picks the map, default 7). The Great Bell is grown from the
+# Lullaby Bell, so it keeps the Lullaby's pulse (legacy).
 
 const FIRST := 61
 const LAST := 70
@@ -26,6 +27,7 @@ var leaked_health := 0.0
 var dispelled := 0
 var game_time := 0.0
 var leaked := 0
+var map_seed := 7
 
 func _initialize() -> void:
 	_run.call_deferred()
@@ -35,8 +37,11 @@ func _run() -> void:
 	for arg in OS.get_cmdline_user_args():
 		if arg.begins_with("--bell="):
 			with_bell = arg.get_slice("=", 1) == "1"
+		if arg.begins_with("--seed="):
+			map_seed = int(arg.get_slice("=", 1))
 	Kinships.force_full = true
 	main = load("res://scenes/main.tscn").instantiate()
+	main.get_node("%MapGenerator").map_seed = map_seed  # The same map for both bells (--seed=N)
 	root.add_child(main)
 	await process_frame
 	var dreams: DreamState = main.get_node("%DreamState")
@@ -48,7 +53,9 @@ func _run() -> void:
 	run_state.dew = 1000000
 	run_state.invulnerable = true
 	# The Bell first, so both runs have it in the same spot (the maze can fill every cell by the path).
-	bell = _build(placer, "great_bell" if with_bell else "lullaby_bell")
+	bell = _build(placer, "lullaby_bell")
+	if with_bell:
+		bell.evolve(load("res://resource/tower/great_bell.tres"), 0)  # Grown, so it keeps the Lullaby (legacy)
 	for id in MAZE:
 		_build(placer, id)
 	bell.attack_released.connect(func(_t) -> void: toll_frame = Engine.get_process_frames())
@@ -62,6 +69,9 @@ func _run() -> void:
 		if n.has_method("take_damage"):
 			(func() -> void: spawned_health += n.max_health).call_deferred())
 	spawner.enemy_cleansed.connect(func(_e) -> void: dispelled += 1)
+	if spawner.has_signal("wall_trampled"):
+		spawner.wall_trampled.connect(func(cell, by) -> void:
+			print("  TRAMPLED %s at %.0f s by %s" % [cell, game_time, by.enemy_data.display_name if is_instance_valid(by) else "?"]))
 	spawner.enemy_reached_goal.connect(func(e) -> void:
 		leaked += 1
 		leaked_health += e.health)
@@ -107,7 +117,7 @@ func _on_damage(event) -> void:
 		bell_split.other += event.amount
 
 func _report(with_bell: bool, director: DriftDirector) -> void:
-	print("=== drifts %d-%d, %s, finals at rank %d, drifts cleared %d ===" % [FIRST, LAST,
+	print("=== map seed %d, drifts %d-%d, %s, finals at rank %d, drifts cleared %d ===" % [map_seed, FIRST, LAST,
 		"with The Great Bell" if with_bell else "with a Lullaby Bell instead", RANK, director.drifts_cleared])
 	var rows := by_tower.keys()
 	rows.sort_custom(func(a, b) -> bool: return by_tower[a] > by_tower[b])
