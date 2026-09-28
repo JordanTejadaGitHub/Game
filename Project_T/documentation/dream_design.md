@@ -212,7 +212,7 @@ Rootling, Acorn) brings its own cards.
 | 18 | **Rain Lily** | unlock branch | water | Dewdrop | Start |
 | 19 | **Mistveil** | unlock branch | water, fog | Dewdrop | Start |
 | 20 | **Bramble** | Thornwalls can grow into Brambles (+10 Dew each) | wall | — | Start |
-| 21 | **Cozy Corners** | Wardens beside a bend in the path +15% soothe | maze | — | Start |
+| 21 | **Cozy Corners** | Wardens beside a bend in the path +15% damage. "Beside" = any of the **8 cells around** the Warden, diagonals included (clarified 2026-09-28: the inside of a U-turn is diagonal to its corners) | maze | — | Start |
 | 22 | **Hedge Maze** | +1% soothe per 5 Thornwalls you have (max +20%) | wall, maze | — | Start |
 | 23 | **Evergreen** | evolving costs 25% less Dew | economy | — | Start |
 | 24 | **Lingering Spores** | Spored lasts 3 s longer | spore | Sporeling | Start |
@@ -607,7 +607,7 @@ stack; now **rule cards** can come back too, as a stronger **Deepened** version 
 
 | Card | Base | Deepened (II) |
 |---|---|---|
-| Cozy Corners | +15% soothe beside a bend | +25%, and bends up to 2 tiles away count |
+| Cozy Corners | +15% soothe beside a bend | +25%, and bends up to 2 tiles away count (the 5×5 square around the Warden) |
 | Hedge Maze | +1% per 5 Thornwalls (max 20%) | +1% per 4 Thornwalls (max 30%) |
 | Evergreen | evolving −25% Dew | evolving −40% Dew |
 | Lingering Spores | Spored +3 s | Spored +5 s, and max stacks +2 |
