@@ -37,7 +37,7 @@ func _ready() -> void:
 	box.add_theme_constant_override("separation", 16)
 	center.add_child(box)
 	_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_title.add_theme_font_size_override("font_size", 28)
+	UiStyle.display(_title, 28)
 	_title.add_theme_color_override("font_color", Color(0.85, 0.85, 1.0))
 	box.add_child(_title)
 	var hint := Label.new()
@@ -101,11 +101,7 @@ func _rebuild() -> void:
 # with its final forms.
 func _make_tree(root: TowerData, branches: Array, ascended: TowerData = null) -> Control:
 	var panel := PanelContainer.new()
-	var style := StyleBoxFlat.new()
-	style.bg_color = Color(0.1, 0.1, 0.16, 0.95)
-	style.set_corner_radius_all(8)
-	style.set_content_margin_all(10)
-	panel.add_theme_stylebox_override("panel", style)
+	panel.add_theme_stylebox_override("panel", UiStyle.panel(10.0, 10.0))
 	var column := VBoxContainer.new()
 	column.custom_minimum_size = Vector2(COLUMN_WIDTH, 0)
 	column.add_theme_constant_override("separation", 6)

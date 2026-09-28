@@ -35,7 +35,7 @@ func _ready() -> void:
 	box.add_theme_constant_override("separation", 18)
 	center.add_child(box)
 	_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_title.add_theme_font_size_override("font_size", 28)
+	UiStyle.display(_title, 28)
 	_title.add_theme_color_override("font_color", OMEN_COLOR)
 	box.add_child(_title)
 	_cards.add_theme_constant_override("separation", 16)
@@ -85,16 +85,7 @@ func _make_card(omen: OmenData, act: int) -> Button:
 	button.custom_minimum_size = CARD_SIZE
 	button.focus_mode = Control.FOCUS_NONE
 	button.pressed.connect(omens.choose.bind(omen))
-	var style := StyleBoxFlat.new()
-	style.bg_color = Color(0.16, 0.13, 0.12, 0.95)
-	style.border_color = OMEN_COLOR
-	style.set_border_width_all(3)
-	style.set_corner_radius_all(10)
-	button.add_theme_stylebox_override("normal", style)
-	var hover := style.duplicate() as StyleBoxFlat
-	hover.bg_color = Color(0.24, 0.2, 0.17, 0.98)
-	button.add_theme_stylebox_override("hover", hover)
-	button.add_theme_stylebox_override("pressed", hover)
+	UiStyle.card_button(button, OMEN_COLOR)  # Moonlit Thread card (ui_style.md)
 
 	var box := VBoxContainer.new()
 	box.set_anchors_preset(Control.PRESET_FULL_RECT)

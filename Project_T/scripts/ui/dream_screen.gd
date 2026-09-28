@@ -28,7 +28,7 @@ func _ready() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	var dim := ColorRect.new()
-	dim.color = Color(0.03, 0.05, 0.08, 0.72)
+	dim.color = Color(UiStyle.FOG, 0.72)
 	dim.set_anchors_preset(Control.PRESET_FULL_RECT)
 	add_child(dim)
 
@@ -39,8 +39,7 @@ func _ready() -> void:
 	box.add_theme_constant_override("separation", 18)
 	center.add_child(box)
 	_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_title.add_theme_font_size_override("font_size", 30)
-	_title.add_theme_color_override("font_color", Color(0.85, 0.8, 1.0))
+	UiStyle.title(_title, UiStyle.CHOICE_TITLE_SIZE)
 	box.add_child(_title)
 	_cards.add_theme_constant_override("separation", 16)
 	_cards.alignment = BoxContainer.ALIGNMENT_CENTER
@@ -94,20 +93,12 @@ func _make_card(card: UpgradeData) -> Button:
 	button.custom_minimum_size = CARD_SIZE
 	button.focus_mode = Control.FOCUS_NONE
 	button.pressed.connect(dream_state.choose.bind(card))
-	var style := StyleBoxFlat.new()
-	style.bg_color = Color(0.12, 0.13, 0.2, 0.95)
-	style.border_color = ENTWINED_COLOR if card.entwined else UpgradeData.rarity_color(card.rarity)
-	style.set_border_width_all(7 if card.woven else (5 if card.entwined else 3))  # Woven: triple vine
+	# Moonlit Thread card (ui_style.md): solid fog, the top thread in the rarity colour (Entwined: the
+	# vine green; Woven: glowing).
+	UiStyle.card_button(button, ENTWINED_COLOR if card.entwined else UpgradeData.rarity_color(card.rarity))
 	if card.woven:
-		style.shadow_color = Color(UpgradeData.rarity_color(card.rarity), 0.6)  # Legendary glow round the vines
-		style.shadow_size = 4
-	style.set_corner_radius_all(10)
-	style.set_content_margin_all(14)
-	button.add_theme_stylebox_override("normal", style)
-	var hover := style.duplicate() as StyleBoxFlat
-	hover.bg_color = Color(0.18, 0.2, 0.3, 0.98)
-	button.add_theme_stylebox_override("hover", hover)
-	button.add_theme_stylebox_override("pressed", hover)
+		for state in ["normal", "hover", "pressed", "hover_pressed"]:
+			(button.get_theme_stylebox(state) as MoonStyleBox).underline = true  # A glowing line along the foot too
 
 	var box := VBoxContainer.new()
 	box.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -122,16 +113,26 @@ func _make_card(card: UpgradeData) -> Button:
 	var stack_count := dream_state.card_stacks(card.id)
 	if card.max_stacks == 0 and stack_count > 0:
 		rarity.text += "  ·  " + _roman(stack_count + 1)
-	rarity.add_theme_color_override("font_color", UpgradeData.rarity_color(card.rarity))
-	rarity.add_theme_font_size_override("font_size", 14)
-	box.add_child(rarity)
+	UiStyle.caps(rarity, 16, UpgradeData.rarity_color(card.rarity))
+	rarity.text = rarity.text.to_upper().left(1) + rarity.text.substr(1)  # Small caps with a capital
+	var gem_row := HBoxContainer.new()
+	gem_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	gem_row.add_theme_constant_override("separation", 8)
+	var gem := Control.new()
+	gem.custom_minimum_size = Vector2(18, 18)
+	gem.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	gem.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	gem.draw.connect(func() -> void: UiStyle.draw_gem(gem, gem.size / 2.0, 8.0, card.rarity))
+	gem_row.add_child(gem)
+	gem_row.add_child(rarity)
+	box.add_child(gem_row)
 	var name_label := Label.new()
 	name_label.text = card.display_name
 	name_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	name_label.add_theme_font_size_override("font_size", 22)
+	UiStyle.title(name_label, UiStyle.CARD_NAME_SIZE)
 	box.add_child(name_label)
 	# The effect comes right after the name; it never shrinks.
-	_add_linked_line(box, card.description, Color(0.92, 0.92, 0.95), 16)
+	_add_linked_line(box, card.description, UiStyle.INK, 16)
 	if card.cost_description != "":
 		_add_linked_line(box, card.cost_description, BITTERSWEET_COLOR, 15)
 	# Secondary lines below, smaller and muted; they shrink first when a card runs out of room.

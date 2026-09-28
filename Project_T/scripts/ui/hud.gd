@@ -1,8 +1,8 @@
 extends CanvasLayer
 
-const DEW_COLOR := Color(0.7, 0.9, 1.0)
-const DEW_SHORT_COLOR := Color(1.0, 0.45, 0.4)
-const UNAFFORDABLE_BUTTON_ALPHA := 0.45
+const DEW_COLOR := UiStyle.GOLD
+const DEW_SHORT_COLOR := UiStyle.POOR
+const UNAFFORDABLE_BUTTON_ALPHA := UiStyle.UNAFFORDABLE_ALPHA
 # Warden bar buttons (bottom centre): 13 of them must fit between the Warden panel and the drift
 # controls at 1280×800 (screens_ui.md principle 6: buttons at least 48 px tall).
 const BUTTON_SIZE := Vector2(46, 60)
@@ -22,8 +22,8 @@ const SEED_COLOR := Color(0.6, 0.85, 0.4)
 @onready var run_state: RunState = %RunState
 @onready var drift_director: DriftDirector = %DriftDirector
 
-const LEAVES_COLOR := Color(0.6, 0.9, 0.5)
-const DREAMLIGHT_COLOR := Color(1.0, 0.88, 0.55)
+const LEAVES_COLOR := UiStyle.INK
+const DREAMLIGHT_COLOR := UiStyle.GOLD
 const MENU_BUTTON_RIGHT := -284.0  # Left of the Dreamlight counter and the Dew
 const LEAF_LOST_COLOR := Color(1.0, 0.6, 0.3)
 const TOAST_TIME := 2.5
@@ -43,6 +43,7 @@ var _toast_tween: Tween
 func _ready() -> void:
 	# The Clear tool sits at the left end of the Warden bar, set apart (screens_ui.md "The Clear tool").
 	# (A sibling of %TowerBar, placed and sized with it in _fit_tower_bar.)
+	_style_resources()
 	clear_tool = ClearToolButton.new()
 	clear_tool.setup(%ObstacleClearer, run_state, show_toast)
 	clear_tool.anchor_left = 0.5
@@ -139,8 +140,8 @@ func _build_tower_bar() -> void:
 		button.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		button.vertical_icon_alignment = VERTICAL_ALIGNMENT_TOP
 		button.add_theme_constant_override("icon_max_width", 34)
-		button.add_theme_font_size_override("font_size", 13)
-		button.add_theme_color_override("font_color", DEW_COLOR)
+		button.theme_type_variation = &"WardenSlot"  # A fog patch; selected = the gold underline (ui_style.md)
+		button.add_theme_font_size_override("font_size", 16)
 		button.custom_minimum_size = BUTTON_SIZE
 		button.tooltip_text = "%s (%s)\nCost: %d Dew\n%s" % [data.display_name, str(i + 1) if i < 9 else "no key",
 			tower_placer.get_cost(data), data.description]
@@ -150,10 +151,9 @@ func _build_tower_bar() -> void:
 			hotkey.text = str(i + 1)
 			hotkey.position = Vector2(3, 0)
 			hotkey.mouse_filter = Control.MOUSE_FILTER_IGNORE
-			hotkey.add_theme_font_size_override("font_size", 11)
-			hotkey.add_theme_color_override("font_color", Color(0.85, 0.88, 0.8))
-			hotkey.add_theme_color_override("font_outline_color", Color(0.08, 0.1, 0.14))
-			hotkey.add_theme_constant_override("outline_size", 4)
+			UiStyle.number(hotkey, 13, UiStyle.INK_DIM)
+			hotkey.add_theme_color_override("font_outline_color", UiStyle.FOG)
+			hotkey.add_theme_constant_override("outline_size", 3)
 			button.add_child(hotkey)
 		if data.get_id() == SPROUT_ID:
 			button.add_child(_make_seed_badge())
@@ -240,6 +240,12 @@ func _on_dew_changed(dew: int) -> void:
 		_tower_buttons[i].text = str(cost)
 		var affordable := run_state.can_afford(cost)
 		_tower_buttons[i].modulate.a = 1.0 if affordable else UNAFFORDABLE_BUTTON_ALPHA
+		# Colour is never alone (ui_style.md): faded AND the cost in red.
+		for state in ["font_color", "font_hover_color", "font_pressed_color", "font_hover_pressed_color"]:
+			if affordable:
+				_tower_buttons[i].remove_theme_color_override(state)
+			else:
+				_tower_buttons[i].add_theme_color_override(state, UiStyle.POOR)
 
 # Tried to spend Dew we don't have: flash the counter red and give it a little shake.
 func _on_dew_short() -> void:
@@ -350,6 +356,29 @@ func _on_act_started(act: int, leaves_regrown: int) -> void:
 	if leaves_regrown > 0:
 		text += "\nThe Heartwood regrows %d leaves" % leaves_regrown
 	show_toast(text)
+
+# Moonlit Thread (ui_style.md): the resources sit on a fog patch (no thread: they hug the screen
+# edge), numbers in Cormorant with lining figures.
+func _style_resources() -> void:
+	var fog := Panel.new()
+	fog.name = "ResourcesFog"
+	fog.add_theme_stylebox_override("panel", UiStyle.fog_patch())
+	fog.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	fog.set_anchors_preset(Control.PRESET_TOP_RIGHT)
+	fog.offset_left = -300.0
+	fog.offset_right = -4.0
+	fog.offset_top = 4.0
+	fog.offset_bottom = 124.0
+	add_child(fog)
+	move_child(fog, 0)
+	UiStyle.number(dew_label, 28, DEW_COLOR)
+	UiStyle.number(leaves_label, 22, LEAVES_COLOR)
+	UiStyle.number(%PathLabel, 18, UiStyle.INK_DIM)
+	for label: Label in [dew_label, leaves_label, %PathLabel]:
+		label.add_theme_color_override("font_outline_color", UiStyle.FOG)
+		label.add_theme_constant_override("outline_size", 4)
+	UiStyle.title(toast_label, 22)
+	toast_label.add_theme_color_override("font_outline_color", UiStyle.FOG)
 
 # Shows a message at the top of the screen for a few seconds.
 func show_toast(text: String) -> void:

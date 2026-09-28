@@ -44,7 +44,7 @@ func _ready() -> void:
 	add_child(box)
 	var title := Label.new()
 	title.text = "Codex"
-	title.add_theme_font_size_override("font_size", 24)
+	UiStyle.display(title, 24)
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	box.add_child(title)
 	# Developer runs keep discoveries for the session only (screens_ui.md "Saved in the profile").
@@ -293,13 +293,7 @@ func _kinship_card(k: Dictionary, discovered: bool, times: int) -> Control:
 		box.add_child(frame)
 		return box
 	var panel := PanelContainer.new()
-	var style := StyleBoxFlat.new()
-	style.bg_color = Color(0.08, 0.12, 0.08, 0.95)
-	style.border_color = KIN_COLOR
-	style.set_border_width_all(2)
-	style.set_corner_radius_all(8)
-	style.set_content_margin_all(10)
-	panel.add_theme_stylebox_override("panel", style)
+	panel.add_theme_stylebox_override("panel", UiStyle.panel_in(KIN_COLOR))
 	var inner := VBoxContainer.new()
 	panel.add_child(inner)
 	var row := HBoxContainer.new()
@@ -344,13 +338,7 @@ func _crowned_silhouette(c: Dictionary) -> Control:
 
 func _crowned_card(c: Dictionary, discovered: bool, times: int) -> Control:
 	var panel := PanelContainer.new()
-	var style := StyleBoxFlat.new()
-	style.bg_color = Color(0.13, 0.11, 0.07, 0.95) if discovered else Color(0.06, 0.06, 0.07, 0.95)
-	style.border_color = CROWN_COLOR if discovered else Color(0.25, 0.23, 0.18)
-	style.set_border_width_all(2)
-	style.set_corner_radius_all(8)
-	style.set_content_margin_all(10)
-	panel.add_theme_stylebox_override("panel", style)
+	panel.add_theme_stylebox_override("panel", UiStyle.panel_in(CROWN_COLOR if discovered else Color(0.25, 0.23, 0.18)))
 	var box := VBoxContainer.new()
 	panel.add_child(box)
 	var row := HBoxContainer.new()
@@ -390,11 +378,7 @@ func _crowned_card(c: Dictionary, discovered: bool, times: int) -> Control:
 
 func _combo_card(combo: Dictionary, discovered: bool, times: int) -> Control:
 	var panel := PanelContainer.new()
-	var style := StyleBoxFlat.new()
-	style.bg_color = Color(0.1, 0.12, 0.15, 0.95) if discovered else Color(0.06, 0.07, 0.09, 0.95)
-	style.set_corner_radius_all(8)
-	style.set_content_margin_all(10)
-	panel.add_theme_stylebox_override("panel", style)
+	panel.add_theme_stylebox_override("panel", UiStyle.panel(10.0, 10.0))
 	var box := VBoxContainer.new()
 	panel.add_child(box)
 	var row := HBoxContainer.new()

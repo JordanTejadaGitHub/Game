@@ -67,6 +67,8 @@ var _tween: Tween
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	StatusLinks.hook(self)  # Status names in whispers are links
+	UiStyle.whisper(self, 22)  # Cormorant italic, warm, with a dark outline and no panel (ui_style.md)
+	add_theme_color_override("font_outline_color", Color(UiStyle.FOG, 0.9))
 	mouse_filter = Control.MOUSE_FILTER_IGNORE  # On only while a whisper with links or a term shows
 	var memory := HeartwoodMemory.load_data()
 	enabled = memory.settings.whispers

@@ -436,6 +436,19 @@ accessibility, Steam achievements (milestones map to them). Acts 3–4 and all f
 - `shaders/blight.gdshader` — the nightmare look (the art is already dark; the shader only adds
   translucency, shimmer, glowing eyes/cores, the colour-blind outline, and the `crack` dispel effect).
 - `tests/` — headless `extends SceneTree` tests (e.g. `test_combat.gd`).
+- **UI style "Moonlit Thread"** (`documentation/ui_style.md`): `UiStyle` (`scripts/ui/ui_style.gd`, static)
+  holds the colour tokens (`INK`, `INK_DIM`, `GOLD`, `POOR`, `FOG`, `RARITY`…), the fonts
+  (`assets/ui/fonts/`, OFL: `body_font` Alegreya Sans, `display_font` / `number_font` Cormorant
+  Garamond SemiBold, `caps_font` Cormorant SC, `whisper_font`) and `make_theme()`.
+  `tools/ui_theme_generator.gd` saves it to `assets/ui/ui_theme.tres` = project `gui/theme/custom`:
+  **re-run it after changing UiStyle**. `MoonStyleBox` (fog + gold thread + diamond; `TopLine` NONE /
+  GOLD / FULL, `underline`) is every PanelContainer / tooltip / popup panel; `MoonDivider` = HSeparator.
+  Type variations: `PrimaryButton` (also what toggled buttons look like), `WardenSlot`, `TitleLabel`,
+  `NumberLabel`, `CapsLabel`, `WhisperLabel`, `FogPatch`. In code: `UiStyle.primary(button)`,
+  `title` / `display` / `number` / `caps` / `whisper(label, size)`, `card_button(button, colour)`,
+  `panel_in(colour)`, `fog_patch()`, `draw_gem(canvas, centre, r, rarity)`; don't hand-build
+  StyleBoxFlats for panels or cards. `tools/ui_preview.gd` (needs a window, not --headless) renders
+  the HUD, Dream choice and a component sheet to PNGs.
 - `scripts/ui/hud.gd` — HUD (Warden bar + 1-8 hotkeys, Dew counter).
   `world_label.gd` (`WorldLabel.draw_tag` for world-space text tags, `cost_color`),
   `dew_popup.gd` (`DewPopup`).

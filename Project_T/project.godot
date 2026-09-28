@@ -38,6 +38,10 @@ folder_colors={
 demo=true
 wishlist_url=""
 
+[gui]
+
+theme/custom="res://assets/ui/ui_theme.tres"
+
 [input]
 
 move_camera_up={

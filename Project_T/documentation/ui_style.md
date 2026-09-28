@@ -5,7 +5,9 @@ from five mock-ups on the concept page (https://claude.ai/artifact/4Cs1PP2CrqTjt
 "Moonlit Thread"; the page shows the run HUD, Dream choice and components on real game sprites).
 Layout and behaviour stay in `screens_ui.md`; this doc only covers how the UI looks.
 
-Design only, no code yet: the UI Code Implementation chat builds it.
+Built 2026-09-28 by the UI Code Implementation chat: `UiStyle` + `assets/ui/ui_theme.tres` (see CLAUDE.md
+"UI style"). The panels, thread and fog are drawn in code (`MoonStyleBox`); the textures listed at the
+end are optional.
 
 ## The idea
 

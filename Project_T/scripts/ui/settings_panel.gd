@@ -42,7 +42,7 @@ func _ready() -> void:
 	add_child(outer)
 	var title := Label.new()
 	title.text = "Settings"
-	title.add_theme_font_size_override("font_size", 24)
+	UiStyle.display(title, 24)
 	outer.add_child(title)
 	# Tabs as in screens_ui.md "Settings" (Language comes with translations).
 	tabs.custom_minimum_size = Vector2(0, 420)
