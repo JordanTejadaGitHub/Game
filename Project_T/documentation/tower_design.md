@@ -321,7 +321,7 @@ Spored into Damp crowds. When a Reaction is caused by another within **1 s**, or
 Reaction hits the same nightmare within 1 s, it's a **chain**:
 
 - **Chain badge** over the latest Reaction: *"Chain 2", "Chain 3"…* with a small chain-link icon and
-  a rising chime (`chain_badge`, `chain_digits`). **Never "×N"**: "×" means a damage multiplier
+  a warm swell that builds link by link, fuller and never higher, no rising chime (audio_direction.md "Chains") (`chain_badge`, `chain_digits`). **Never "×N"**: "×" means a damage multiplier
   everywhere else (crit ×2, Pinned ×3), and a playtest read "×5" as five times the damage. A chain
   count is a celebration, not a multiplier; only the *Dawnbreak* card turns it into damage.
 - **First chain ever:** a one-time whisper, *"One reaction set off another: a chain. Reach 10 for a
