@@ -426,7 +426,7 @@ function trimLimbs(mask) {
     const curve = catmull(limb.pts, 16);
     let last = curve.length - 1, entered = false;
     for (let i = 0; i < curve.length; i++) {
-      if (inMask(curve[i][0], curve[i][1], 22)) { entered = true; last = i; } else if (entered) break;
+      if (inMask(curve[i][0], curve[i][1], 8)) { entered = true; last = i; } else if (entered) break;
     }
     const keep = Math.floor(last / 16);
     limb.pts = [...limb.pts.slice(0, keep + 1), ...(last % 16 ? [curve[last].map(Math.round)] : [])];
@@ -439,7 +439,7 @@ function spreadNodes(mask) {
   // A line's first node grows from the nearest point on its own limb (inside the leaves), so its
   // branch is short; every other node grows from its parent.
   const limbPts = {};
-  for (const [sec, limb] of Object.entries(LIMBS)) limbPts[sec] = (limb.cut || catmull(limb.pts, 16)).filter(([x, y]) => inMask(x, y, 16));
+  for (const [sec, limb] of Object.entries(LIMBS)) { const all = limb.cut || catmull(limb.pts, 16), inside = all.filter(([x, y]) => inMask(x, y, 8)); limbPts[sec] = inside.length ? inside : all; }
   const nearestLimb = n => limbPts[n.section].reduce((b, p) => (p[0] - n.x) ** 2 + (p[1] - n.y) ** 2 < (b[0] - n.x) ** 2 + (b[1] - n.y) ** 2 ? p : b);
   const anchor = n => n.parent ? byId[n.parent] : (([x, y]) => ({ x, y }))(nearestLimb(n));
   for (const n of list) for (let k = 0; k < 250 && !inMask(n.x, n.y, 24); k++) {
@@ -498,6 +498,18 @@ function spreadNodes(mask) {
       c += Math.hypot(segs[i][0].x - segs[i][1].x, segs[i][0].y - segs[i][1].y);
       for (let j = i + 1; j < segs.length; j++) if (cross(segs[i][0], segs[i][1], segs[j][0], segs[j][1])) c += 1000;
     }
+    // Branches grow outward: a child that turns back on its parent's direction, or grows back
+    // toward the trunk, looks wrong.
+    for (const n of list) {
+      if (!n.parent) continue;
+      const p = byId[n.parent], q = anchor(p);
+      if ((p.x - q.x) * (n.x - p.x) + (p.y - q.y) * (n.y - p.y) < 0) c += 600;
+      if (Math.hypot(n.x - 640, n.y - 640) < Math.hypot(p.x - 640, p.y - 640) - 10) c += 400;
+    }
+    // Lines leave their limb at different points, not all from one spot.
+    const roots = list.filter(n => !n.parent).map(n => [n.section, anchor(n)]);
+    for (let i = 0; i < roots.length; i++) for (let j = i + 1; j < roots.length; j++)
+      if (roots[i][0] === roots[j][0] && Math.hypot(roots[i][1].x - roots[j][1].x, roots[i][1].y - roots[j][1].y) < 36) c += 250;
     return c;
   };
   let best = cost();
@@ -526,8 +538,9 @@ function geomAB(a, b, depth) {
   const mx = (a[0] + b[0]) / 2, my = (a[1] + b[1]) / 2, dx = b[0] - a[0], dy = b[1] - a[1], len = Math.hypot(dx, dy);
   let px = -dy / len, py = dx / len; if (py > 0) { px = -px; py = -py; }
   const bend = len * (hash(b[0], b[1], 70) - .4) * .4;
-  const w0 = [0, 7, 5.5, 4.5, 4][Math.min(4, depth)] * (.65 + hash(b[0], b[1], 72) * .75);
-  return { a, b, c: [mx + px * bend, my + py * bend], len, w0, w1: Math.max(2.5, w0 * .62) };
+  // A line's first branch (off a limb) is clearly the thickest; deeper ones get thinner, each a little different.
+  const h = hash(b[0], b[1], 72), w0 = depth === 1 ? 11 + h * 2 : [0, 0, 6, 5, 4.2][Math.min(4, depth)] * (.75 + h * .4);
+  return { a, b, c: [mx + px * bend, my + py * bend], len, w0, w1: depth === 1 ? w0 * .55 : Math.max(2.5, w0 * .62) };
 }
 function segGeom(n) { return geomAB(n.parent ? [byId[n.parent].x, byId[n.parent].y] : n.from, [n.x, n.y], n.depth); }
 const JCACHE = new Map();
@@ -582,7 +595,7 @@ function segBox(gs) {
 }
 function drawTwig(L, g, ox, oy, seed) {
   const steps = Math.ceil(g.len * 2);
-  for (let i = 0; i <= steps; i++) { const [x, y] = along(g, i / steps); L.set(x - ox, y - oy, "#3a2616"); L.set(x - ox, y - oy + 1, "#24160c"); }
+  for (let i = 0; i <= steps; i++) { const [x, y] = along(g, i / steps); L.set(x - ox, y - oy, "#3a2616"); L.set(x - ox, y - oy + 1, "#24160c"); if (g.w0 >= 9) { L.set(x - ox, y - oy - 1, "#4a3220"); L.set(x - ox, y - oy + 2, "#24160c"); } }  // a first branch is a thicker twig
   for (const t of [.35, .7]) {
     const [x, y] = along(g, t), s = hash(Math.floor(t * 10), 1, seed) < .5 ? -1 : 1;
     for (let i = 1; i < 5; i++) L.set(x - ox + s * i, y - oy - i, "#3a2616");
