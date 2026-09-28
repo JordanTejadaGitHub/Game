@@ -284,6 +284,59 @@ New combos (new Wardens, Reactions) are added to this table and the Codex automa
 - **Targeting** (proposed): *First* (default) / *Strongest* / *Closest* for attacking Wardens. Adds
   real decisions (bosses, elites, Lantern Bearers) at little cost.
 
+### Dream bonuses on Wardens (added 2026-09-28, user request)
+
+Problem: Dream cards change Warden stats, some only in certain spots (Solitude: no other attacking
+Warden within 2 cells), and the player can't see when a bonus is on, either when placing or when
+selecting. **Rule: every number the player sees for a Warden is its real, current number, and every
+card that touches it is listed.**
+
+**Warden panel**
+- Stats show the **effective** value (what the Warden really does now: Dreams, Nurture, Focus, auras,
+  Blessings). A changed stat is tinted warm with a small up-arrow; tapping or hovering it opens the
+  breakdown: `Damage 18 → 27` / `base 18 · Nurture II +20% · Solitude +30%`.
+- A **"Dreams on this Warden"** list under the stats: one row per card that affects it, with the card
+  icon (rarity shape), name and what it gives. Card names are links (like status words) to the
+  card's text.
+  - **Active:** bright, e.g. "Solitude · +30% damage, +0.5 range".
+  - **Conditional and off:** greyed, with **why** and what would turn it on, e.g. "Solitude · off:
+    Rain Lily is 1 cell away (needs no attacking Warden within 2)". This is the key teaching line.
+  - Run-wide cards (Many Hands, Few and Mighty) show their current value ("+6%: 24 attacking Wardens").
+- Selecting several Wardens: the group summary shows how many have each conditional card active
+  ("Solitude: 3 of 5").
+
+**Build ghost (placing)**
+- The **range circle uses the range the Warden would really have on that cell**, including
+  position-based cards. When a card adds range there, draw the base range as a faint ring and the
+  boosted range as the bright ring, so the gain is visible.
+- **Bonus chips** above the ghost, beside "+N path": one small chip per position-based card, green
+  when it would be on at this cell ("Solitude ✓ +30% dmg, +0.5 range"), grey when it would be off
+  ("Solitude ✗ Rain Lily too close").
+- **Effect on neighbours:** if this placement would turn a card **off** (or on) for a Warden already
+  planted, that Warden gets a small red (or green) chip while the ghost is there ("loses Solitude")
+  and the ghost's tag says "breaks Solitude on 2 Wardens". Placing a Warden should never silently
+  weaken others.
+- For position cards with an area (Solitude's 2 cells, Sprout Chorus), the ghost shows that area as
+  a dashed outline while the card is owned, so "within 2 cells" is something the player can see.
+
+**On the map (while in build mode or with a Warden selected)**
+- Wardens with an active position-based card show a small card-icon badge at their base (the card's
+  rarity shape). Outside build mode the badges are hidden to keep the map clean (setting: always).
+
+**Which cards this covers:** every card whose effect depends on where a Warden stands or what is near
+it (Solitude, Sprout Chorus, Cozy Corners, Hedge Maze, Kindred Roots, Reclaimed Earth's fertile cells,
+and any later ones), plus run-wide stat cards in the panel breakdown. New position-based cards must
+report themselves through the same breakdown (below), so the UI never needs a card-by-card patch.
+
+**Data (for the build):** one query answers all of this, for a planted Warden or a hypothetical one:
+`DreamState` returns, for a Warden (or a Warden type at a cell), the list of cards that affect it,
+each with *active or not*, the stat changes, and a short reason line when off. The Warden panel, the
+ghost chips, the neighbour check (re-run for Wardens within the largest card radius) and the range
+circle all read from it.
+
+Touch: chips and badges are tappable (no hover-only); on touch the ghost's chips show above the
+confirm button.
+
 ### Selecting several Wardens
 
 Added 2026-09-27. Mazes reach 30–40 Wardens, so upgrading one at a time gets tedious.
@@ -421,6 +474,8 @@ For the coding chat. Items likely missing or different (verify in the game):
 - [ ] Rarity gem shapes; Deepened / Entwined / Bittersweet card styles
 - [ ] "Peek" (minimise) on choice screens
 - [ ] Warden panel: per-run stats, targeting modes (if accepted)
+- [ ] Dream bonuses on Wardens: effective stats + breakdown, "Dreams on this Warden" (active / off +
+      why), ghost range with card range, bonus chips, neighbour "breaks Solitude" warning
 - [ ] Leak feedback at the Heartwood
 - [ ] Abandon run in pause; UI scale and accessibility settings
 - [ ] Proposed hotkeys (Delete, G, H, F)
