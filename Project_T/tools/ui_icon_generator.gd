@@ -247,13 +247,17 @@ const ICON_OUTLINE := Color("#1a1420")
 const STATUS_ICONS := ["damp", "drowsy", "spored", "marked", "static", "held", "caught", "frozen", "deeply_blighted", "hidden"]
 const STAT_ICONS := ["damage", "attack_speed", "range", "crit_chance", "crit_damage", "potency", "rank",
 	"focus_power", "focus_swift", "focus_reach", "focus_deep", "dew_cost", "dreamlight_cost"]
+# Nightmare traits and boss abilities (screens_ui.md "Nightmare info", "Boss dossier"), in a cold
+# palette (warm is for Wardens). The trait "hidden" reuses the status icon of the same id.
+const NIGHTMARE_ICONS := ["flying", "dread_shell", "through_walls", "sprints", "rises",
+	"trample", "charge", "sink", "bog_water", "eclipse", "brood", "sapling", "grief"]
 
 var _cells := {}  # Vector2i -> ramp index
 var _ramps: Array = []  # [light, mid, dark]
 var _details: Array = []  # [Vector2i, Color], painted last
 
 func _make_icons() -> void:
-	var ids: Array = STATUS_ICONS + STAT_ICONS
+	var ids: Array = STATUS_ICONS + STAT_ICONS + NIGHTMARE_ICONS
 	var sheet := Image.create(ICON * ids.size(), ICON, false, Image.FORMAT_RGBA8)
 	var index := {}
 	for i in ids.size():
@@ -261,6 +265,7 @@ func _make_icons() -> void:
 		index[ids[i]] = i
 	sheet.save_png(OUT + "icons.png")
 	var data := {frame_size = ICON, icons = index, statuses = STATUS_ICONS, stats = STAT_ICONS,
+		nightmare = NIGHTMARE_ICONS + ["hidden"],
 		note = "One row of 16x16 icons; column = icons[id]. Readable at 12 px; for 24-32 px panels scale by whole numbers with nearest filtering."}
 	var file := FileAccess.open(OUT + "icons.json", FileAccess.WRITE)
 	file.store_string(JSON.stringify(data, "\t") + "\n")
@@ -620,3 +625,155 @@ func _ic_dreamlight_cost() -> void:
 	_c_poly(PackedVector2Array([Vector2(8, 0.8), Vector2(13.2, 8), Vector2(8, 15.2), Vector2(2.8, 8)]), k)
 	_dt_line(Vector2i(6, 4), Vector2i(6, 8), Color("#fffbe8"))
 	_dt(8, 8, Color("#ffe890"))
+
+# Nightmare traits and boss abilities -------------------------------------------------------------
+# Cold nightmare colours: violet, slate, bone, sickly teal, mire green; small pink-red eyes.
+
+const NM_EYE := Color("#ff4a7a")
+
+func _ic_flying() -> void:
+	# Two ragged bat-like wings round a small body.
+	var k := _rp("#9a8ac8", "#5a4a8a", "#2e2450")
+	_c_poly(PackedVector2Array([Vector2(7.2, 7), Vector2(1, 3), Vector2(1.6, 7), Vector2(0.8, 10), Vector2(3.4, 9), Vector2(4.6, 11.4), Vector2(7.2, 9.6)]), k)
+	_c_poly(PackedVector2Array([Vector2(8.8, 7), Vector2(15, 3), Vector2(14.4, 7), Vector2(15.2, 10), Vector2(12.6, 9), Vector2(11.4, 11.4), Vector2(8.8, 9.6)]), k)
+	_c_ell(Vector2(8, 8.4), Vector2(1.8, 2.8), k)
+	_dt(7, 7, NM_EYE)
+	_dt(8, 7, NM_EYE)
+
+func _ic_dread_shell() -> void:
+	# A dark hexagonal shell with a crack.
+	var k := _rp("#a8b0c8", "#6a7090", "#3a3e58")
+	var pts := PackedVector2Array()
+	for i in 6:
+		pts.append(Vector2(8, 8) + Vector2.from_angle(i * TAU / 6.0 - PI * 0.5) * Vector2(6.4, 6.8))
+	_c_poly(pts, k)
+	_dt_line(Vector2i(8, 3), Vector2i(8, 13), Color("#3a3e58"))
+	_dt_line(Vector2i(4, 6), Vector2i(12, 10), Color("#3a3e58"))
+	_dt_line(Vector2i(12, 6), Vector2i(4, 10), Color("#3a3e58"))
+	_dt(6, 4, Color("#e0e4f4"))
+	_dt(9, 7, Color("#c8d0e8"))
+
+func _ic_through_walls() -> void:
+	# A ghost passing through a brick wall.
+	var wall := _rp("#b8b0a8", "#7a7068", "#4a4440")
+	var ghost := _rp("#f0ecfa", "#b8b0d8", "#7a70a8")
+	_c_rect(Rect2i(1, 2, 5, 12), wall)
+	_c_ell(Vector2(9.5, 6.5), Vector2(4.4, 4.4), ghost)
+	_c_rect(Rect2i(6, 7, 8, 5), ghost)
+	for x in [6, 8, 10, 12]:
+		_cset(x, 12, ghost)
+	for y in [5, 9]:
+		_dt_line(Vector2i(1, y), Vector2i(5, y), Color("#4a4440"))
+	_dt(3, 3, Color("#4a4440"))
+	_dt(3, 7, Color("#4a4440"))
+	_dt(3, 11, Color("#4a4440"))
+	_dt(8, 6, Color("#241634"))
+	_dt(11, 6, Color("#241634"))
+
+func _ic_sprints() -> void:
+	# A dashing shadow wisp with speed lines behind it.
+	var k := _rp("#8ae0d0", "#3a9a90", "#1e5a58")
+	_c_ell(Vector2(11, 8), Vector2(3.4, 3.0), k)
+	_c_poly(PackedVector2Array([Vector2(8, 5.4), Vector2(3, 7), Vector2(8, 10.6)]), k)
+	_c_line([Vector2(1, 4), Vector2(5.5, 4)], 1.0, k)
+	_c_line([Vector2(0.5, 8), Vector2(3, 8)], 1.0, k)
+	_c_line([Vector2(1, 12), Vector2(5.5, 12)], 1.0, k)
+	_dt(12, 7, NM_EYE)
+
+func _ic_rises() -> void:
+	# A bony hand clawing up out of a mound of earth (it burrows under walls).
+	var bone := _rp("#e8e4f0", "#b8b0cc", "#7a7098")
+	var earth := _rp("#8a7a6a", "#5a4a40", "#302622")
+	_c_ell(Vector2(8, 13.6), Vector2(7, 2.4), earth)
+	_c_rect(Rect2i(6, 7, 4, 5), bone)
+	for x in [5, 7, 9, 11]:
+		_c_line([Vector2(x + 0.5, 7.5), Vector2(x + 0.5 + (x - 8) * 0.3, 2.5 + absf(x - 8) * 0.6)], 1.1, bone)
+	_dt(8, 9, Color("#7a7098"))
+
+func _ic_trample() -> void:
+	# A heavy cloven hoofprint: two toes with a clear split, dew-claw dots behind.
+	var k := _rp("#a8a0c0", "#5e5680", "#302a48")
+	_c_ell(Vector2(5.2, 6.2), Vector2(2.5, 4.0), k, 0.2)
+	_c_ell(Vector2(10.8, 6.2), Vector2(2.5, 4.0), k, -0.2)
+	_c_disc(Vector2(3.8, 13.8), 1.2, k)
+	_c_disc(Vector2(12.2, 13.8), 1.2, k)
+	_dt(5, 3, Color("#d0c8e8"))
+	_dt(10, 3, Color("#d0c8e8"))
+
+func _ic_charge() -> void:
+	# The Stag's head lowered, antlers first, speed lines behind.
+	var bone := _rp("#e0d8c8", "#a09480", "#5a5040")
+	var head := _rp("#8a8aa8", "#4a4a6a", "#262640")
+	_c_ell(Vector2(11.2, 11.2), Vector2(3.4, 2.4), head, 0.3)
+	_c_line([Vector2(10, 9.4), Vector2(7, 5.2), Vector2(4.6, 4.2)], 1.3, bone)
+	_c_line([Vector2(7.6, 6), Vector2(7.4, 2)], 1.1, bone)
+	_c_line([Vector2(12, 9), Vector2(13.4, 4.4)], 1.1, bone)
+	_dt(12, 11, NM_EYE)
+	for y in [8, 11, 14]:
+		_dt_line(Vector2i(0, y), Vector2i(3 + (y % 2), y), Color("#8a8aa8"))
+
+func _ic_sink() -> void:
+	# A whirlpool pulling down: a dark pool with a spiral, bubbles rising.
+	var water := _rp("#7a9a9a", "#2e4a4a", "#162626")
+	_c_ell(Vector2(8, 9.6), Vector2(7, 4.8), water)
+	var swirl := Color("#9ac0c0")
+	for s in 22:
+		var t := s / 21.0
+		var a := t * TAU * 1.6
+		var p := Vector2(8, 9.6) + Vector2(cos(a), sin(a) * 0.62) * (5.6 * (1.0 - t) + 0.6)
+		_dt(int(round(p.x)), int(round(p.y)), swirl)
+	_dt(8, 10, Color("#0a1414"))
+	_c_disc(Vector2(4.6, 2.6), 1.2, water)
+	_c_disc(Vector2(11.4, 3.4), 0.9, water)
+
+func _ic_bog_water() -> void:
+	# A murky bog: a flat green puddle, ripples and two bubbles.
+	var k := _rp("#8ab070", "#4a6a48", "#26382a")
+	_c_ell(Vector2(8, 10.4), Vector2(7.2, 4.0), k)
+	_dt_line(Vector2i(4, 10), Vector2i(7, 10), Color("#a8c890"))
+	_dt_line(Vector2i(9, 12), Vector2i(12, 12), Color("#a8c890"))
+	_c_disc(Vector2(5, 4), 1.5, k)
+	_c_disc(Vector2(10.5, 5.6), 1.1, k)
+	_dt(5, 3, Color("#e0f0c8"))
+
+func _ic_eclipse() -> void:
+	# A dark moon swallowing the sun: a black disc with a cold bright corona.
+	var corona := _rp("#f0ecff", "#b8a8e8", "#6a58a8")
+	_c_disc(Vector2(8, 8), 6.6, corona)
+	var dark := Color("#120c20")
+	for y in ICON:
+		for x in ICON:
+			if Vector2(x + 0.5, y + 0.5).distance_to(Vector2(9.2, 7.2)) <= 5.4:
+				_dt(x, y, dark)
+	_dt(12, 5, Color("#2a1e40"))
+
+func _ic_brood() -> void:
+	# A clutch of three eggs, each with a watching eye (Lurkers hatch from them).
+	var k := _rp("#9a8ac8", "#5a4a8a", "#2e2450")
+	for c: Vector2 in [Vector2(5, 10.6), Vector2(11, 10.6), Vector2(8, 5)]:
+		_c_ell(c, Vector2(2.9, 3.4), k)
+	for c: Vector2i in [Vector2i(5, 11), Vector2i(11, 11), Vector2i(8, 5)]:
+		_dt(c.x, c.y, NM_EYE)
+		_dt(c.x - 1, c.y - 2, Color("#c8b8f0"))
+
+func _ic_sapling() -> void:
+	# A thorny, blighted sapling.
+	var k := _rp("#8a8aa0", "#4a4a62", "#26263a")
+	_c_line([Vector2(8, 15), Vector2(8, 3), Vector2(6, 1.2)], 1.8, k)
+	_c_line([Vector2(8, 9), Vector2(3.4, 5.6)], 1.3, k)
+	_c_line([Vector2(8, 7), Vector2(12.6, 3.6)], 1.3, k)
+	for p: Vector2i in [Vector2i(9, 12), Vector2i(6, 10), Vector2i(9, 5), Vector2i(4, 5), Vector2i(12, 3)]:
+		_dt(p.x, p.y, Color("#c8c8e0"))
+	_c_rect(Rect2i(5, 14, 6, 1), k)
+
+func _ic_grief() -> void:
+	# A hooded mourner, head bowed, one cold tear.
+	var k := _rp("#c8c0e0", "#7a70a8", "#3e3666")
+	_c_ell(Vector2(8, 5.6), Vector2(4.2, 4.2), k)
+	_c_poly(PackedVector2Array([Vector2(3.6, 6), Vector2(12.4, 6), Vector2(14, 14.6), Vector2(2, 14.6)]), k)
+	for x in range(5, 11):
+		for y in range(5, 8):
+			if Vector2(x + 0.5, y + 0.5).distance_to(Vector2(8, 6.4)) <= 2.6:
+				_dt(x, y, Color("#120c20"))
+	_dt(9, 7, Color("#8ad8ff"))
+	_dt(9, 8, Color("#bfe8ff"))
