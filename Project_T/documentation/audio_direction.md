@@ -63,7 +63,7 @@ Each drift track is written as **synced stems** that fade in and out on bar line
 | **Title** | the Heartwood theme: slow, warm, a single cold note under it |
 | **Rest** | the act's warm base alone, calmer tempo; the exhale |
 | **Drift** | base + dread layers by intensity |
-| **Boss** | **one theme per boss** (decided 2026-09-28) (Hollow Stag: heavy drums and bowed bass; Mire Hag: bubbling low reeds and a crooked waltz). Below half health a **warm counter-melody** enters: the player is winning |
+| **Boss** | **one theme per boss** (decided 2026-09-28) (Hollow Stag: heavy drums and bowed bass; Mire Hag: bubbling low reeds and a crooked waltz; Moth Queen: tremolo shimmer over soft wingbeats; Hollow Oak: deep wooden drums and a hummed drone; placeholders built in f30db75). Below half health a **warm counter-melody** enters: the player is winning |
 | **Choice screens** (family pick, Dream, Omen) | music drops to a soft pad; time has stopped |
 | **Memory Grove** | the Heartwood theme, gentle, with music box |
 | **Win / loss** | short stingers: a warm resolving chord / a slow fall into a single cold note |
@@ -467,7 +467,7 @@ Music slider controls both). Rules for it:
 - **Every sound cue has a visual one**: Phantom and Lurker approach indicators, the leak flash, the
   low-leaves screen tint (see `screens_ui.md`).
 - Separate volume sliders per bus; a **mono** option.
-- A **"Softer nightmares"** option (decided 2026-09-28: include it) that tones down shrieks and whispers for players who find them
+- A **"Softer nightmares"** option (decided 2026-09-28: include it; built in f30db75: nightmare sounds 8 dB quieter and muffled, dread whisper layer halved) that tones down shrieks and whispers for players who find them
   too intense.
 - Boss lines and whispers are already on screen as text.
 
