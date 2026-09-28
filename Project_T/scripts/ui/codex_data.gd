@@ -251,13 +251,22 @@ static func ingredients_text(combo: Dictionary) -> String:
 
 # Glossary entries whose term (or group) contains `query` (case-insensitive); all when empty.
 static var _glossary: Array = []
+static var _glossary_sapling := false  # TowerPlacer.sapling_enabled when it was built
+# Terms only while the Heartwood Sapling is in runs (TowerPlacer.sapling_enabled; run_design.md).
+const SAPLING_TERMS := ["Heartwood Sapling", "Permanent"]
 
-# The glossary with today's status names and IconInfo's definitions filled in (built once).
+# The glossary with today's status names and IconInfo's definitions filled in (built once, again
+# if the Sapling is switched on or off).
 static func glossary() -> Array:
+	if _glossary_sapling != TowerPlacer.sapling_enabled:
+		_glossary = []
+		_glossary_sapling = TowerPlacer.sapling_enabled
 	if _glossary.is_empty():
 		for group in GLOSSARY_SOURCE:
 			var entries: Array = []
 			for entry in group[1]:
+				if not TowerPlacer.sapling_enabled and SAPLING_TERMS.has(entry[0]):
+					continue
 				var text: String = entry[1]
 				if text.begins_with("{tip:"):
 					text = IconInfo.STATUSES.get(StringName(text.trim_prefix("{tip:").trim_suffix("}")), ["", ""])[1]
