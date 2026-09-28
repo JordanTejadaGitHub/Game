@@ -538,6 +538,53 @@ Design and effects: `tower_design.md`, "Reactions". Starting points for tuning.
 - Deepened: **Rolling Thunder II** arcs 4.5 cells and add 2 Static; **Deep Water II** Drown can
   happen twice per nightmare.
 
+## Crowned Reaction numbers
+
+Design: `tower_design.md`, "Crowned Reactions". A Crowned Reaction **replaces** its base Reaction
+when the third status is present (same trigger, same cooldown, uses up the same statuses). Damage
+scales with the applier, as for Reactions. Each counts as **2 chain links**.
+
+| Crowned | Effect | Bosses |
+|---|---|---|
+| **Tempest** | Thunderclap as normal; each arc also fires **Ignite** on Spored targets (normal Ignite numbers); Ignite's spread stacks carry **1 Static** each. A nightmare hit by a Tempest can't start another Tempest for **2 s** | arcs don't Ignite bosses; they still take the Thunderclap |
+| **Still Pool** | Drown (2 s sleep) + a pool on its tile, **5 s**: each walker entering it the first time sleeps **1 s** | no sleep: −30% speed while in the pool |
+| **Fever Dream** | the nightmare's remaining Spored damage resolves at once (×1.0); adjacent nightmares get **3 Spored + 2 Drowsy** | same (Drowsy capped at 3) |
+| **Starfall** | the Pinned ×3 crit; Static bolts from nightmares within **3 cells** fire at once into it (each ×2 and a crit); uses up their Static | same, bolts count as crits at ×1.5 |
+| **Avalanche** | the lob's Shatter (×2.5) also Shatters every Damp + Held nightmare within the lob's splash | bosses take the ×2.5 hit, no spread from them |
+| **Prismstorm** | Shatter as normal; each nightmare hit by shards gains **2 Static** | same |
+| **Nightbloom** | Mushrooming's cloud (4 s) also keeps nightmares inside **unable to wake** (sleep and max Drowsy don't end while inside, and the Watcher's wake-up does nothing there) | bosses don't sleep; they keep max Drowsy while inside |
+| **Fairy Circle** | instead of one cloud: mushroom rings on the **path tiles among the 8 around** the nightmare, **6 s**; each ring tile gives the first walker **2 Spored + Damp** | same |
+
+**Delivery rules**
+
+| Rule | Numbers |
+|---|---|
+| **Grafted Harmony** | a Graftling adjacent to Wardens of 2+ different status families also applies each of their statuses at **half** stacks/duration on its hits (it still copies the strongest attack) |
+| **Storm Front** | a Reaction completed by a Gust-copied status counts **+1 chain link** and its radius/reach **+1 tile** |
+| **Carried Storm** | a Samara/Autumn Gale seed passing through a Reaction's spot within 0.5 s repeats that Reaction at **50%** on each nightmare it hits for the rest of that throw (once per nightmare per throw) |
+
+## Woven cards: three-family Legendaries
+
+A **Woven** card is an Entwined card with a third vine: **3 ingredients** (Wardens or statuses you
+own), **guaranteed** in the next offer once all 3 are owned (one slot; passing returns it to normal
+weight). All Legendary (act 2+), Grove bundle *Woven Dreams* (see `meta_design.md`).
+
+| # | Card | Ingredients | Effect |
+|---|---|---|---|
+| 100 | **Eye of the Tempest** | Stormcap + Rain Lily + Driftspore | Tempest arcs reach +1 cell and its Ignites spread 2 stacks |
+| 101 | **Deep Stillness** | Rain Lily + Tangleroot + Bellflower | Still Pools last 8 s and their sleep is 1.5 s |
+| 102 | **Fever Pitch** | Driftspore + Tangleroot + Bellflower | Fever Dream spreads to nightmares within 1.5 cells, not just adjacent |
+| 103 | **Falling Stars** | Firefly Jar + Tangleroot + Chime Stone or Bellflower | Starfall pulls bolts from 5 cells |
+| 104 | **Mountain's Fall** | Cairn + Frostfern + Tangleroot | Avalanche also leaves rubble where each spread Shatter lands |
+| 105 | **Prism Heart** | Frostfern + Tangleroot + Stormcap | Prismstorm shards add 3 Static and fly 0.5 cells further |
+| 106 | **Endless Night** | Bloomcap + Rain Lily + Bellflower | Nightbloom clouds last 7 s and 1.5× as wide |
+| 107 | **Ring of Rings** | Fairy Ring + Rain Lily + Tangleroot | Fairy Circle rings last until stepped on (max 8 per Circle) |
+
+- If Quick Reactions shortens cooldowns, the Tempest cap stays 2 s.
+- **Watch in playtests:** Crowned Reactions counting as 2 links make ×10 Dawnburst (and
+  *Dawnbreak*) much easier to reach. If every late drift ends in Dawnburst, drop them to 1 link or
+  raise Dawnburst to ×12.
+
 ## Data (`UpgradeData`)
 
 `id`, `display_name`, `description`, `rarity`, `kind` (stat / rule / economy; evolutions are
