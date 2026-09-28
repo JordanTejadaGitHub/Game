@@ -23,6 +23,9 @@ var eclipse_left := 0.0
 # since bosses themselves have a fixed health scale.
 var drift_health_scale := 1.0
 const ROOTED_RULE := &"rooted_nightmares"
+const TANGLED_RULE := &"tangled"
+const WEATHERED_WALLS_RULE := &"weathered_walls"  # Thornwalls can't be trampled
+var tangled := false  # The Tangled Dream is owned (checked once a frame; see Enemy._tangled_slow)
 var rooted_cells := {}  # {cell: Held nightmare} (Rooted Nightmares; see _update_rooted_cells)
 var waiting_cells := {}  # {cell: nightmare waiting behind a rooted one}
 var _saplings := {}  # {Hollow Oak: [cells it planted]}
@@ -108,15 +111,18 @@ func get_maze_walkers() -> Array[Node]:
 
 func _process(delta: float) -> void:
 	eclipse_left = maxf(eclipse_left - delta, 0.0)
-	_update_rooted_cells()
+	var dreams := get_tree().get_first_node_in_group(DreamState.GROUP) as DreamState
+	tangled = dreams != null and dreams.has_rule(TANGLED_RULE)
+	_update_rooted_cells(dreams)
 
 # Rooted Nightmares (Dream card 122): with the card, every Held maze walker blocks its cell for the
 # others ({cell: nightmare}), and walkers waiting behind one block theirs so nobody stacks up. Rebuilt
 # every frame before the nightmares move (they're this node's children). Empty without the card.
-func _update_rooted_cells() -> void:
+func _update_rooted_cells(dreams: DreamState = null) -> void:
 	rooted_cells.clear()
 	waiting_cells.clear()
-	var dreams := get_tree().get_first_node_in_group(DreamState.GROUP) as DreamState
+	if dreams == null:
+		dreams = get_tree().get_first_node_in_group(DreamState.GROUP) as DreamState
 	if dreams == null or not dreams.has_rule(ROOTED_RULE):
 		return
 	for enemy in get_maze_walkers():
@@ -162,6 +168,9 @@ func _split(parent: Node2D) -> void:
 # Old Stag: knocks down a Thornwall (or Bramble) next to it. The wall is gone for good, with no
 # refund; opening a cell never breaks the path rule, and everyone re-routes.
 func _on_trample_requested(enemy: Node2D) -> void:
+	var dreams := get_tree().get_first_node_in_group(DreamState.GROUP) as DreamState
+	if dreams != null and dreams.has_rule(WEATHERED_WALLS_RULE):
+		return  # Weathered Walls: Thornwalls stand like any other wall
 	var here: Vector2 = enemy.get_current_cell()
 	for offset in [Vector2.LEFT, Vector2.RIGHT, Vector2.UP, Vector2.DOWN]:
 		var cell: Vector2 = here + offset

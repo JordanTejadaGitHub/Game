@@ -315,6 +315,31 @@ func _run() -> void:
 	_check(hound.statuses.is_held(), "a walking one can")
 	_clear_enemies()
 
+	# --- Tangled (2+ statuses: 10% slower) and Weathered Walls (no trampling) ---
+	_clear_enemies()
+	var tangle := _still("leaf_bug", route[6])
+	tangle.apply_status(EnemyStatuses.MARKED)
+	tangle.apply_status(EnemyStatuses.SPORED, 1, 5.0, 1.0)
+	spawner._process(0.0)
+	_check(is_equal_approx(tangle.get_move_speed(), tangle.speed), "without Tangled, two statuses that aren't slows don't slow")
+	_take_card(dreams, "tangled")
+	spawner._process(0.0)
+	_check(is_equal_approx(tangle.get_move_speed(), tangle.speed * (1.0 - DreamState.TANGLED_SLOW)), "Tangled: 2 statuses, 10% slower")
+	tangle.apply_status(EnemyStatuses.DAMP)
+	_check(is_equal_approx(tangle.get_move_speed(), tangle.speed * (1.0 - DreamState.TANGLED_SLOW - EnemyStatuses.DAMP_SLOW)),
+		"and it adds to other slows")
+	var one := _still("leaf_bug", route[7])
+	one.apply_status(EnemyStatuses.MARKED)
+	_check(is_equal_approx(one.get_move_speed(), one.speed), "one status isn't enough")
+	var stag_wall := _free_neighbour(route[12])
+	var wall_tower := _plant("thornwall", stag_wall)
+	var walker_stag := _still("old_stag", route[12])
+	_take_card(dreams, "weathered_walls")
+	spawner._on_trample_requested(walker_stag)
+	_check(is_instance_valid(wall_tower) and not wall_tower.is_queued_for_deletion(), "Weathered Walls: the Stag can't trample a Thornwall")
+	wall_tower.free()
+	_clear_enemies()
+
 	# --- Display settings: health bars "always", the Deeply Blighted outline ---
 	_clear_enemies()
 	Fx._settings = {}  # Defaults, whatever the player's profile says
@@ -341,6 +366,13 @@ func _still(kind: String, cell: Vector2) -> Node2D:
 	enemy.set_process(false)
 	enemy.position = enemy.grid.calculate_map_position(cell)
 	return enemy
+
+func _take_card(dreams: DreamState, id: String) -> void:
+	for card in dreams.pool:
+		if card.id == id:
+			dreams.take(card)
+			return
+	_check(false, "card %s exists" % id)
 
 func _clear_enemies() -> void:
 	for enemy in spawner.get_children():

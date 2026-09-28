@@ -226,10 +226,11 @@ func is_held() -> bool:
 	return has(HELD)
 
 # Movement speed multiplier from slows.
-func get_speed_multiplier() -> float:
+# `extra_slow` adds slows that aren't statuses (the Tangled Dream).
+func get_speed_multiplier(extra_slow: float = 0.0) -> float:
 	if ignores_slows:
 		return 1.0
-	var slow := 0.0
+	var slow := extra_slow
 	if has(DAMP):
 		# Damp's potency is a strength multiplier (Soaked Through II: ×1.5 = −15%); 0 = plain Damp.
 		slow += DAMP_SLOW * maxf(potency(DAMP), 1.0)

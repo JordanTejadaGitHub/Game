@@ -419,7 +419,15 @@ func get_move_speed() -> float:
 		base = minf(base, enemy_data.lost_speed)
 	if _charge_left > 0.0:
 		base *= enemy_data.charge_speed_multiplier
-	return base * statuses.get_speed_multiplier()
+	return base * statuses.get_speed_multiplier(_tangled_slow())
+
+# Tangled (Dream): carrying 2+ statuses slows it DreamState.TANGLED_SLOW more, like Soaked does (a
+# plain slow; Heavy Air doesn't boost it). The spawner checks the card once a frame.
+func _tangled_slow() -> float:
+	var spawner := get_parent()
+	if spawner == null or not spawner.get("tangled") or statuses.active_ids().size() < 2:
+		return 0.0
+	return DreamState.TANGLED_SLOW
 
 # A Wraith whose Lantern Bearer was dispelled first loses the way and slows down.
 func set_lost() -> void:
