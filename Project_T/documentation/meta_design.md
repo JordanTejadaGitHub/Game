@@ -177,7 +177,7 @@ styles a player has grown into.
 | **Spores and Reactions** | *Spore Lore*: Twin Puff, Chain Bloom (40) | *Reactions*: Wildfire Spores, Deep Water, Quick Reactions (70) | **Dawnbreak** (120) |
 | **Woven** (Crowned Reactions) | *Woven Dreams I*: Eye of the Tempest, Deep Stillness, Fever Pitch, Falling Stars (90; needs *Reactions*) | *Woven Dreams II*: Mountain's Fall, Prism Heart, Endless Night, Ring of Rings (90) | — (Crowned Reactions always work; these cards strengthen them) |
 | **Keen Edges** (crit) | *Sharpened*: Still Target, Shattering Blow (50) | *Reckless*: Reckless Bloom (40) | **Full Moon** (120) |
-| **Tending** (nurture, tall) | *Tending Hands*: Sunlit Rest, Deeper Rings (60) | *Nursery*: Nursery, Chosen Few (70) | **The Old Ones** (120) |
+| **Tending** (nurture, tall) | *Tending Hands*: Sunlit Rest, Deeper Rings (60) | *Nursery*: Nursery, Chosen Few (70) | **The Old Ones** + **Endless Rings** (150) |
 | **Overgrowth** (wide) | *Seedbed*: Seedling Gift, Canopy (60) | *Wild Planting*: Overgrowth (50) | **Rootbound** (100) |
 | **Lone Lantern** (narrow) | *One Line*: Monoculture (80) | — | **The Last Light** (120) |
 | **The Long Way** (maze, clearing) | *Dead Wood*: Burn Back the Dead Wood (40) | — | **The Long Walk** (100) |
