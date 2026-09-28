@@ -801,7 +801,8 @@ weight). All **Rare** (was Legendary until 2026-09-28: they enhance a combo, the
 Added 2026-09-28 (user decision) for Kinships (`tower_design.md` "Kinships"). Reactions and
 Crowned Reactions reward going wide; these make **going deep in one family** a full build. They
 change decisions (placement, time, depth), not just numbers. Tag `kinship`; like other family
-cards they're 2× as likely once you have a Kinship on the map.
+cards they get the family weight (**1.4×**, per the "Adapt, don't get handed" change) once you have a
+Kinship on the map.
 
 | # | Card | Rarity | Effect | Changes what you decide | Needs | Pool |
 |---|---|---|---|---|---|---|
