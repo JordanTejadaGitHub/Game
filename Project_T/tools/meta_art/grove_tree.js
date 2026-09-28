@@ -138,10 +138,15 @@ function groveTree() {
   roots.forEach((r, i) => thickPath(L, catmull(r, 12), [46, 46, 34, 34, 28, 28, 30][i], 8, rootFn(20 + i)));
   // Twisted strands: each sample's segments are drawn back to front (by where they are in the
   // twist), and each strand's edge is darkened so the strands read apart.
+  // Each strand is a shaded cylinder: dark edges, a lit band toward the key light (top left), and
+  // bark lines running along it, broken into dashes.
   const strandFn = seed => (x, y, nx) => {
-    if (Math.abs(nx) > .82) return HB6[1];
-    const grain = pnoise(x * 3, y, 12, seed) - .5;
-    return pick(HB6.slice(1), clamp(.62 - nx * .5 + grain * .3 + (hash(x, y >> 1, seed) < .05 ? -.2 : 0), 0, 1), x, y, .5);
+    if (Math.abs(nx) > .84) return HB6[1];
+    let t = .6 - nx * .55;
+    if (nx > -.6 && nx < -.28) t += .16;
+    const line = Math.abs(((nx + 1) * 3.5 + (pnoise(x, y, 18, seed) - .5) * .8) % 1 - .5);
+    if (line > .4 && pnoise(x, y, 5, seed + 3) > .35) t -= .22;
+    return pick(HB6.slice(1), clamp(t, 0, 1), x, y, .35);
   };
   const twist = (centre, widthAt, count, turns, seed) => {
     const N = centre.length - 1;
@@ -275,9 +280,9 @@ function grovesky() {
 const CROWN_CLUMPS = (() => {
   const list = [];
   for (let gy = 20; gy < 640; gy += 34) for (let gx = -10; gx < GW + 10; gx += 40) {
-    const x = gx + (hash(gx, gy, 821) - .5) * 26 + (gy / 34 % 2) * 20, y = gy + (hash(gx, gy, 822) - .5) * 18;
+    const x = gx + (hash(gx, gy, 821) - .5) * 26 + (gy / 34 % 2) * 20, y = gy + (hash(gx, gy, 822) - .5) * 26;
     if (!crownIn(x, y)) continue;
-    list.push([x, y, 30 + hash(gx, gy, 823) * 16, 23 + hash(gx, gy, 824) * 10]);
+    list.push([x, y, 30 + hash(gx, gy, 823) * 16, 26 + hash(gx, gy, 824) * 11]);
   }
   // A few clumps hanging below the crown's edge.
   for (let k = 0; k < 16; k++) { const x = 140 + k * 66 + (hash(k, 1, 825) - .5) * 30, y = crownBottom(x) + 4; list.push([x, y, 20 + hash(k, 2, 825) * 8, 16 + hash(k, 3, 825) * 6]); }
@@ -289,25 +294,81 @@ const CROWN_P = ["#050b08", "#07100b", "#0c1a10", "#132816", "#1c381c", "#284a24
 const CROWN_SHARE = [.55, .7, .85, 1];
 const CROWN_RANK = CROWN_CLUMPS.map(([x, y], k) => Math.hypot((x - 640) / 620, (y - 380) / 330) + hash(k, 1, 840) * .35);
 const CROWN_CUT = CROWN_SHARE.map(s => [...CROWN_RANK].sort((a, b) => a - b)[Math.max(0, Math.round(CROWN_RANK.length * s) - 1)]);
-function clump(L, cx, cy, rx, ry, P, seed, dim) {
-  const inE = (x, y, ex, ey, erx, ery) => ((x + .5 - ex) / erx) ** 2 + ((y + .5 - ey) / ery) ** 2 <= 1;
-  for (let y = Math.floor(cy - ry * 1.2); y <= cy + ry * 1.2; y++) for (let x = Math.floor(cx - rx * 1.2); x <= cx + rx * 1.2; x++) {
-    let dx = (x + .5 - cx) / rx, dy = (y + .5 - cy) / ry;
-    const a = Math.atan2(dy, dx), k = 1 + .09 * Math.sin(a * 5 + seed) + .05 * Math.sin(a * 9 + seed * 2);
-    const q = (dx * dx + dy * dy) / (k * k);
-    if (q > 1) continue;
-    let i = 2;
-    if (q > .8 && dy > -.25) i = 1;
-    else if (inE(x, y, cx - .3 * rx, cy - .42 * ry, .22 * rx, .15 * ry)) i = 5;
-    else if (inE(x, y, cx - .22 * rx, cy - .32 * ry, .48 * rx, .38 * ry)) i = 4;
-    else if (inE(x, y, cx - .12 * rx, cy - .18 * ry, .74 * rx, .64 * ry)) i = 3;
-    L.set(x, y, P[Math.max(1, i - dim)]);
+// Each clump is a cauliflower of bubbles: small bumps scalloping its underside (behind), a core,
+// then bumps round its top, lowest first, so the upper ones overlap like puffs of cloud.
+const CROWN_BUBBLES = CROWN_CLUMPS.map(([cx, cy, rx, ry], k) => {
+  const under = [], top = [];
+  for (let i = 0; i < 3; i++) {
+    const a = .45 + i * 1.1 + (hash(k, i, 851) - .5) * .4;
+    under.push([cx + Math.cos(a) * rx * .5, cy + Math.sin(a) * ry * .42, rx * (.3 + hash(k, i, 852) * .1), ry * (.32 + hash(k, i, 853) * .1)]);
   }
-  if (!dim && hash(Math.floor(cx), Math.floor(cy), seed) < .6) { L.set(cx - .32 * rx, cy - .46 * ry, P[6]); L.set(cx - .32 * rx + 1, cy - .46 * ry, P[6]); }
+  const n = 4 + Math.floor(hash(k, 9, 854) * 3);
+  for (let i = 0; i < n; i++) {
+    const a = Math.PI * (1.04 + (i + (hash(k, i, 855) - .5) * .5) / (n - 1) * .92);
+    top.push([cx + Math.cos(a) * rx * .56, cy + Math.sin(a) * ry * .5 + ry * .06, rx * (.32 + hash(k, i, 856) * .14), ry * (.34 + hash(k, i, 857) * .14)]);
+  }
+  // A few puffs sitting on the top bumps: the brightest, frontmost layer.
+  for (let i = 0; i < 2; i++) {
+    const a = Math.PI * (1.3 + i * .35 + (hash(k, i, 858) - .5) * .2);
+    top.push([cx + Math.cos(a) * rx * .3, cy + Math.sin(a) * ry * .42, rx * (.24 + hash(k, i, 859) * .08), ry * (.26 + hash(k, i, 860) * .08)]);
+  }
+  return [...under, [cx, cy + ry * .04, rx * .8, ry * .76], ...top.sort((p, q) => q[1] - p[1])];
+});
+// Draws the crown into per-pixel buffers (who owns each pixel, how lit it is), then shades from
+// them: a dark gap round every clump in front, a crease under every bump, leaf texture, crisp tiers.
+function crownLayer(stage) {
+  const L = new Img(GW, GH), OWN = new Int32Array(GW * GH).fill(-1), LIT = new Float32Array(GW * GH), P = CROWN_P;
+  // Lower clumps in front, so every clump shows its lit top against the shaded underside behind it.
+  const order = CROWN_CLUMPS.map((c, k) => k).filter(k => CROWN_RANK[k] <= CROWN_CUT[stage]).sort((a, b) => CROWN_CLUMPS[a][1] - CROWN_CLUMPS[b][1]);
+  const light = (dx, dy) => { const r2 = Math.min(.98, dx * dx + dy * dy), nz = Math.sqrt(1 - r2); return clamp((-dx * .45 - dy * .75 + nz * .5 + .3) / 1.3, 0, 1); };
+  order.forEach((k, oi) => {
+    const [cx, cy, rx, ry] = CROWN_CLUMPS[k];
+    // Lower in the crown = darker; the far right a touch darker (away from the key light).
+    const base = .1 - (cy - 240) / 640 * .5 - (cx - 560) / 1280 * .12;
+    CROWN_BUBBLES[k].forEach(([bx, by, brx, bry], bi) => {
+      const seed = k * 7 + bi;
+      for (let y = Math.floor(by - bry * 1.15); y <= by + bry * 1.15; y++) for (let x = Math.floor(bx - brx * 1.15); x <= bx + brx * 1.15; x++) {
+        if (x < 0 || y < 0 || x >= GW || y >= GH) continue;
+        const dx = (x + .5 - bx) / brx, dy = (y + .5 - by) / bry, a = Math.atan2(dy, dx);
+        const w = 1 + .08 * Math.sin(a * 4 + seed) + .05 * Math.sin(a * 7 + seed * 1.7);
+        if ((dx * dx + dy * dy) / (w * w) > 1) continue;
+        const i = y * GW + x;
+        OWN[i] = oi * 16 + bi;
+        LIT[i] = light(dx / w, dy / w) * .65 + light((x + .5 - cx) / (rx * 1.1), (y + .5 - cy) / (ry * 1.1)) * .35 + base;
+      }
+    });
+  });
+  for (let y = 0; y < GH; y++) for (let x = 0; x < GW; x++) {
+    const i = y * GW + x, o = OWN[i]; if (o < 0) continue;
+    const t = (LIT[i] - .45) * 1.7 + .5;
+    let tier = clamp(1 + Math.floor(t * 5 + (bay(x, y) - .5) * .3), 1, 5);
+    // A clump in front casts a dark gap: an outline right against it, a shadow falling off behind.
+    let gap = 9;
+    for (let d = 1; d <= 4 && gap > 4; d++) for (const [ex, ey] of [[0, 1], [1, 1], [-1, 1], [1, 0], [-1, 0], [0, -1]]) {
+      const xx = x + ex * d, yy = y + ey * d;
+      if (xx < 0 || yy < 0 || xx >= GW || yy >= GH) continue;
+      const q = OWN[yy * GW + xx]; if (q > o && (q >> 4) !== (o >> 4)) { gap = d; break; }
+    }
+    if (gap === 1) tier = 0; else if (gap <= 4) tier = Math.max(1, tier - (gap <= 2 ? 2 : 1));
+    // A crease under each bump of the same clump (the front bump sits just above).
+    else {
+      const up = y > 0 ? OWN[i - GW] : -1, up2 = y > 1 ? OWN[i - 2 * GW] : -1;
+      if (up > o && (up >> 4) === (o >> 4)) tier = Math.max(1, tier - 2);
+      else if (up2 > o && (up2 >> 4) === (o >> 4)) tier = Math.max(1, tier - 1);
+      // Leaf texture: short dark dashes (gaps between leaves) and a few bright leaf tips on the lit parts.
+      else if (tier >= 3) {
+        const cx = x >> 2, cy = y / 3 | 0, h = hash(cx, cy, 870);
+        if (h < .22 && (x & 3) < 2 && y % 3 === 1) tier -= 1;
+        else if (tier === 5 && h > .9 && (x & 3) === 2 && y % 3 === 0) tier = 6;
+      }
+    }
+    if (tier && CROWN_CLUMPS[order[o >> 4]][1] > 520) tier = Math.max(1, tier - 1);
+    L.set(x, y, P[tier]);
+  }
+  return L;
 }
 function groveCanopy(stage) {
-  const out = new Img(GW, GH), L = new Img(GW, GH), P = CROWN_P;
-  CROWN_CLUMPS.forEach(([x, y, rx, ry], k) => { if (CROWN_RANK[k] <= CROWN_CUT[stage]) clump(L, x, y, rx, ry, P, k * 3 + 1, y > 520 ? 1 : 0); });
+  const out = new Img(GW, GH), L = crownLayer(stage), P = CROWN_P;
   out.stamp(L, P[0]);
   for (let y = 1; y < GH - 1; y++) for (let x = 1; x < GW - 1; x++)
     if (L.alpha(x, y) && !L.alpha(x + 1, y - 1) && L.alpha(x - 1, y + 1)) out.set(x, y, "#3e5e4c");  // moonlit edge
