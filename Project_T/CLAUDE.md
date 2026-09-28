@@ -272,6 +272,9 @@ accessibility, Steam achievements (milestones map to them). Acts 3–4 and all f
   when perks are owned), Blight picker after the first win, Codex, "The forest remembered you".
   Title: Memory Grove button (demo: greyed + Wishlist). `tests/test_meta.gd` (layout ↔ data, perks,
   milestones, migration, screen smoke test with a temp profile).
+- Balance simulation profiles (balance_simulation.md): `GrovePresets` (`scripts/meta/grove_presets.gd`)
+  fresh / early / half / full; `MetaRun.load_preset(&"half")` writes it to `user://sim_heartwood.json`
+  and points `HeartwoodMemory.file_path` there (real profile untouched), `GrovePresets.unload()`.
 
 ## Audio (placeholder, audio_direction.md)
 - `tools/sound_generator.gd` synthesizes every sound into `assets/audio/` (sfx 44.1 kHz; music

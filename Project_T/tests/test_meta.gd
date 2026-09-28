@@ -257,6 +257,40 @@ func _run() -> void:
 	grove_screen.queue_free()
 	await process_frame
 
+	# --- Balance simulation presets (balance_simulation.md "Profiles") ---
+	var tree_total := 0
+	for unlock in grove:
+		tree_total += unlock.get_spent(unlock.get_levels())
+	var spent_share := func(data: Dictionary) -> float:
+		var spent := 0
+		for unlock in grove:
+			spent += unlock.get_spent(HeartwoodMemory.unlock_level(data, unlock.id))
+		return float(spent) / tree_total
+	var fresh := GrovePresets.profile(&"fresh")
+	_check(fresh.unlocks.is_empty() and fresh.loadout.is_empty(), "Fresh: nothing grown")
+	var early := GrovePresets.profile(&"early")
+	_check(early.unlocks.size() == 5 and early.loadout == ["morning_stores"] and HeartwoodMemory.loadout_slots(early) == 1,
+		"Early: 5 cheap unlocks, Morning Stores carried (%s)" % [early.loadout])
+	var half := GrovePresets.profile(&"half")
+	var share: float = spent_share.call(half)
+	_check(share >= 0.5 and share < 0.56 and HeartwoodMemory.loadout_slots(half) == 3 and half.loadout.size() == 3,
+		"Half: about half the tree by Seeds (%.2f), 3 slots, 3 perks carried (%s)" % [share, half.loadout])
+	var full := GrovePresets.profile(&"full")
+	_check(is_equal_approx(spent_share.call(full), 1.0) and HeartwoodMemory.loadout_slots(full) == 5 and full.loadout.size() == 5
+		and grove.all(func(u: UnlockData) -> bool: return HeartwoodMemory.is_grown(full, u)), "Full: every node grown, 5 perks carried")
+	var real_path := HeartwoodMemory.file_path
+	MetaRun.load_preset(&"full")
+	_check(HeartwoodMemory.file_path == GrovePresets.PATH, "a preset loads from its own temp profile")
+	main = await _new_run()
+	family = main.get_node("%FamilyPickScreen")
+	run_state = main.get_node("%RunState")
+	_check(family.families.size() >= 9 and run_state.max_leaves == run_state.starting_leaves + 3,
+		"a Full run: every family in the picks, Deep Taproot III carried (%d families)" % family.families.size())
+	main.queue_free()
+	await process_frame
+	_delete(GrovePresets.PATH)
+	HeartwoodMemory.file_path = real_path
+
 	# --- Developer "Unlock all families": a fresh profile, even in the demo, gets every family and
 	# their Grove Dream cards, without touching the profile, and banks nothing ---
 	HeartwoodMemory.save_data(HeartwoodMemory.defaults())

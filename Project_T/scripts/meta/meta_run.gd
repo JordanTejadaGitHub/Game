@@ -36,6 +36,11 @@ static func all_families_active() -> bool:
 		return false
 	return bool(HeartwoodMemory.get_settings().get(ALL_FAMILIES_SETTING, false))
 
+# Balance simulation: play the next run with a Grove profile preset (&"fresh" / &"early" / &"half" /
+# &"full", GrovePresets) from a temp file; the real profile is untouched. GrovePresets.unload() undoes it.
+static func load_preset(preset: StringName) -> String:
+	return GrovePresets.load_preset(preset)
+
 # A developer run (Test Grove or Unlock all families): nothing is banked or recorded.
 static func is_dev_run() -> bool:
 	return TestGrove.is_active() or all_families_active()
