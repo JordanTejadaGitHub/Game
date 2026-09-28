@@ -1,0 +1,30 @@
+[gd_resource type="Resource" script_class="TowerData" load_steps=6 format=3]
+
+[ext_resource type="Script" path="res://resource/tower/script/tower_data.gd" id="1_tdata"]
+[ext_resource type="Texture2D" path="res://assets/towers/mossback.png" id="2_tex"]
+[ext_resource type="Texture2D" path="res://assets/towers/mossback_attack.png" id="4_atk"]
+[ext_resource type="Texture2D" path="res://assets/towers/projectiles/boulder.png" id="3_proj"]
+[ext_resource type="Resource" path="res://resource/tower/boulderback.tres" id="ev_1"]
+
+[resource]
+script = ExtResource("1_tdata")
+display_name = "Mossback"
+description = "One huge, slow hit at short range; double damage against Marked nightmares."
+cost = 0
+texture = ExtResource("2_tex")
+frame_count = 8
+line = "stone"
+tier = 2
+buildable_directly = false
+evolve_cost = 45
+attack_range = 1.75
+damage = 110
+attacks_per_second = 0.4
+projectile_speed = 350
+projectile_texture = ExtResource("3_proj")
+marked_multiplier = 2.0
+crit_chance = 0.1
+evolves_to = Array[Resource]([ExtResource("ev_1")])
+attack_texture = ExtResource("4_atk")
+attack_frame_count = 6
+attack_release_frame = 2

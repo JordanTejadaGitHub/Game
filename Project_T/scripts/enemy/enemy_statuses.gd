@@ -71,6 +71,7 @@ var smothering := false  # Held + Spored right now (Spored ticks faster)
 # Reactions of its own), but it counts as asleep for Pinned and Caught.
 var sleep_time := 0.0
 var sleep_extended := false  # Great Dreamcatcher's +1 s happened already
+var dreamshroom_slept := false  # Dreamshroom puts each nightmare to sleep once
 # Caught (Dreamcatcher): asleep or at max Drowsy inside a Dreamcatcher's range; takes more damage.
 var caught_time := 0.0
 var caught_bonus := 0.0

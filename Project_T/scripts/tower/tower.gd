@@ -620,6 +620,8 @@ func roll_crit(enemy: Node2D) -> bool:
 	if attack_data.first_hit_crits and first:
 		Reactions._effect(&"moonstone_beam", enemy.global_position, self)  # Signature: a moonbeam from above
 		return true
+	if attack_data.crits_vs_drowsy and enemy.statuses.has(EnemyStatuses.DROWSY):
+		return true  # Boulderback: a guaranteed crit on Drowsy, no roll
 	var chance := get_crit_chance(enemy)
 	return chance > 0.0 and randf() < chance
 
@@ -634,6 +636,10 @@ func _damage_against(enemy: Node2D) -> float:
 		var kind: String = enemy.enemy_data.resource_path.get_file().get_basename()
 		if kind in attack_data.bonus_vs_enemies or (attack_data.bonus_vs_sprinting and enemy.rolling):
 			multiplier *= attack_data.bonus_vs_multiplier
+	# Mossback / Boulderback cash in Marked: double damage (Codex: Marked Blow).
+	if attack_data.marked_multiplier != 1.0 and enemy.statuses.has(EnemyStatuses.MARKED):
+		multiplier *= attack_data.marked_multiplier
+		ComboFeedback.report(&"marked_blow", self)
 	return multiplier
 
 # On-hit rules: freeze (Frostfern), Dew from crits (Magpie's Hoard).
@@ -664,6 +670,19 @@ func apply_status_to(enemy: Node2D, soothe: float) -> void:
 		_apply_one_status(enemy, attack_data.applies_status, attack_data.status_stacks, soothe)
 	if attack_data.extra_status != &"":
 		_apply_one_status(enemy, attack_data.extra_status, attack_data.extra_status_stacks, soothe)  # Lullaby Bell
+	_put_to_sleep(enemy)
+
+# Dreamshroom: a nightmare at full Drowsy falls asleep (once each; bosses never sleep, their cap is 3).
+func _put_to_sleep(enemy: Node2D) -> void:
+	if attack_data.sleep_at_max_drowsy <= 0.0 or not is_instance_valid(enemy) or enemy.is_cleansed:
+		return
+	var s: EnemyStatuses = enemy.statuses
+	if s.is_boss or s.dreamshroom_slept or not s.has(EnemyStatuses.DROWSY) \
+			or s.stacks(EnemyStatuses.DROWSY) < s.get_max_stacks(EnemyStatuses.DROWSY):
+		return
+	s.dreamshroom_slept = true
+	s.sleep_time = maxf(s.sleep_time, attack_data.sleep_at_max_drowsy)
+	ComboFeedback.report(&"asleep", self)  # Codex: Asleep
 
 func _apply_one_status(enemy: Node2D, status: StringName, stacks: int, soothe: float) -> void:
 	if status == &"" or not is_instance_valid(enemy) or enemy.is_cleansed:
@@ -706,7 +725,14 @@ func projectile_landed(target: Node2D, where: Vector2) -> void:
 				hit(target)
 		return
 	var crit := CRIT if target != null and is_instance_valid(target) and roll_crit(target) else NO_CRIT
-	_splash(where, splash, 1.0, crit)
+	if attack_data.splash_share < 1.0 and target != null and is_instance_valid(target):
+		# Boulderback: the full hit on its target, a share of it to everything else nearby.
+		hit(target, 1.0, false, crit)
+		for enemy in get_tree().get_nodes_in_group(ENEMY_GROUP):
+			if enemy != target and enemy.global_position.distance_to(where) <= splash:
+				hit(enemy, attack_data.splash_share, true, crit)
+	else:
+		_splash(where, splash, 1.0, crit)
 	if attack_data.lob:
 		_lob_landed(where, splash)
 

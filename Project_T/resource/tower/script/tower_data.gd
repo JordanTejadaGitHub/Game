@@ -117,6 +117,13 @@ const ATTACKS_JSON := "res://assets/towers/attacks.json"
 @export var catch_bonus: float = 0.0  # Autumn Gale: +damage per caught throw that hit something…
 @export var catch_bonus_max: float = 0.0  # …up to this
 
+@export_group("Heavy hits and sleep")
+@export var marked_multiplier: float = 1.0  # Mossback / Boulderback: ×2 damage against Marked nightmares
+@export var splash_share: float = 1.0  # Share of the hit the splash deals to the others (Boulderback: 0.5)
+@export var crits_vs_drowsy: bool = false  # Boulderback: always crits on a Drowsy nightmare
+# Dreamshroom: a nightmare it brings to full Drowsy falls asleep for this long, once (bosses never).
+@export var sleep_at_max_drowsy: float = 0.0
+
 @export_group("Pop")
 # Puffball: when a hit leaves a nightmare with pop_at_stacks+ Spored, it pops: pop_damage_per_stack
 # × stacks to it and every nightmare within pop_radius cells (area, never crits), its stacks are used
