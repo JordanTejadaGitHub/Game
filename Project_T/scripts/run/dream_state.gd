@@ -1186,8 +1186,10 @@ func make_offer(drift_number: int) -> Array[UpgradeData]:
 	var force_rare := drift_director.is_boss_drift(drift_number) or _dreams_without_rare >= pity_after \
 		or _rare_dreams_left > 0
 	_rare_dreams_left = maxi(_rare_dreams_left - 1, 0)
+	var rare_tried := false  # The forced Rare is tried in one slot only (faded Rares: one chance per offer)
 	while offer.size() < size:
-		var want_rare := force_rare and not offer.any(func(c: UpgradeData) -> bool: return c.is_rare_or_better())
+		var want_rare := force_rare and not rare_tried and not offer.any(func(c: UpgradeData) -> bool: return c.is_rare_or_better())
+		rare_tried = rare_tried or want_rare
 		var card := _draw_card(act, offer, want_rare)
 		if card == null:
 			break

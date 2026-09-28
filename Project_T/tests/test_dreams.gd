@@ -767,7 +767,7 @@ func _test_few_and_mighty_sim(main: Node) -> void:
 			owed += 1 if dreams._rare_dreams_left == 1 else 0
 	print("act 1 boss rest with Few and Mighty faded ×0.22: fell to Uncommon in %d of 200" % fell)
 	_check(legendary == 0, "act 1: a faded forced Rare slot never falls to Legendary")
-	_check(fell > 60 and owed == fell, "…it falls to Uncommon and the next offer tries for a Rare again")
+	_check(fell > 140 and owed == fell, "…one chance per offer (~22%): it falls to Uncommon and the next offer tries for a Rare again")
 	for tower in planted:
 		tower.free()
 	_reset_dreams(main)
