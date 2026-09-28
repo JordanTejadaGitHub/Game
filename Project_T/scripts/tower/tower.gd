@@ -202,6 +202,7 @@ var focus_strongest := false  # Jewelwing Court's toggle: all birds on the stron
 var _echo_tracker: ReactionTracker = null
 var _patrol: PatrolFlight = null
 var _aura_count := 0  # Other Wardens inside this Warden's aura (Grove Heart)
+var _kin: Kinships = null  # The run's Kinships (two branches of one family bond)
 var _hits_landed := 0  # Eternal Charge / Rooted Nightmares count this Warden's hits
 var _hunted := {}  # Hunter's Moon: nightmares this Warden has hit (instance ids)
 const ETERNAL_STATIC_EVERY := 4
@@ -315,7 +316,8 @@ func _has_work() -> bool:
 
 func get_damage() -> float:
 	return attack_data.damage * _damage_share * get_rank_damage_multiplier() * (1.0 + _aura_damage) \
-		* (_dream_state.get_soothe_multiplier(self) if _dream_state else 1.0)
+		* (_dream_state.get_soothe_multiplier(self) if _dream_state else 1.0) \
+		* (1.0 + (_kin.family_bonus(tower_data.line) if is_instance_valid(_kin) else 0.0))  # Kindred / Whole Tree
 
 func get_attacks_per_second() -> float:
 	var ranks := mini(get_effective_rank(), STAT_TOP_RANK)
@@ -523,6 +525,7 @@ func get_raw_crit_chance(enemy: Node2D = null) -> float:
 		chance += _dream_state.get_crit_chance_bonus(self, enemy)  # Still Target, Starlit Aim, Full Moon…
 	if enemy != null and enemy.statuses.is_held():
 		chance += attack_data.crit_bonus_vs_held
+	chance += 0.1 * kin_share(&"hammer_and_anvil", "a")  # Hammer and Anvil: the sniper's eye
 	return chance
 
 # Range in cells for `data` including Dreams (shared with the build ghost).
@@ -575,6 +578,9 @@ func _refresh_neighbours() -> void:
 				_aura_speed = maxf(_aura_speed, data.aura_speed_bonus + extra)
 		if (tower_data.aura_damage_bonus > 0.0 or tower_data.aura_speed_bonus > 0.0) and distance <= get_aura_reach():
 			aura_count += 1
+		var growth: float = other.kin_share(&"old_growth", "b")
+		if growth > 0.0 and distance <= 1.5:
+			_aura_speed = maxf(_aura_speed, 0.1 * growth)  # Old Growth: the Dewcatcher kin's small aura
 		if data.range_aura_bonus > 0.0 and distance <= data.range_aura_radius:
 			_aura_range = maxf(_aura_range, data.range_aura_bonus)
 		if tower_data.attack_kind == TowerData.AttackKind.COPY and data.applies_status != &"" \
@@ -726,6 +732,11 @@ func hit(enemy: Node2D, soothe_multiplier: float = 1.0, is_area: bool = false, c
 	var reaction := Reactions.before_hit(enemy, self, is_crit)
 	is_crit = reaction.crit
 	var crit_multiplier: float = reaction.crit_multiplier
+	var hammer := kin_share(&"hammer_and_anvil", "a")
+	if hammer > 0.0:
+		crit_multiplier = maxf(crit_multiplier, 2.0 + 0.5 * hammer)  # Hammer and Anvil: the sniper's eye
+	if _kin_roll(kin_share(&"flock_together", "a")):
+		enemy.bonus_dew = maxi(enemy.bonus_dew, 1)  # Flock Together: it drops +1 Dew
 	if is_crit and _dream_state and _dream_state.has_method("get_crit_overflow_multiplier"):
 		crit_multiplier += _dream_state.get_crit_overflow_multiplier(get_raw_crit_chance(enemy))  # Full Moon
 	var non_crit := 1.0
@@ -745,12 +756,53 @@ func hit(enemy: Node2D, soothe_multiplier: float = 1.0, is_area: bool = false, c
 	apply_status_to(enemy, soothe)
 	_after_hit(enemy, is_crit)
 	_legendary_hit_rules(enemy, soothe)
+	if is_instance_valid(_kin):
+		_kin_night_chimes(enemy)
+		_kin.note_hit(self, enemy, dealt)  # Harmony strike when its kin hit this nightmare within 1 s
 	if is_crit:
 		crit_landed.emit(self, enemy)
 	if attack_data.pop_at_stacks > 0 and is_instance_valid(enemy) and not enemy.is_cleansed \
 			and enemy.statuses.stacks(EnemyStatuses.SPORED) >= attack_data.pop_at_stacks:
 		pop(enemy)
 	return is_crit
+
+# --- Kinships (tower_design.md): a trait borrowed from a kin of another branch of the family ---
+
+# The share (0.5 Sapling / 0.75 Blooming / 1.0 Old Kin) of Kinship `id`'s trait this Warden borrows on
+# `side` ("a" = the table's first branch), or 0.
+func kin_share(id: StringName, side: String) -> float:
+	return _kin.share(self, id, side) if is_instance_valid(_kin) else 0.0
+
+func _kin_partner() -> Tower:
+	return _kin.get_partner(self) if is_instance_valid(_kin) else null
+
+# A per-hit trait at 50% goes off half the time.
+static func _kin_roll(share: float) -> bool:
+	return share > 0.0 and randf() < share
+
+# Called by this Warden's clouds (PathCloud) for each nightmare inside; `entered` on its first tick
+# there. Slumber Rot (Bloomcap line): +1 Spored per tick. Rainfog (Mistveil line): the fog deals the
+# Rain Lily kin's splash damage to nightmares entering it.
+func kin_cloud_tick(enemy: Node2D, entered: bool) -> void:
+	if _kin_roll(kin_share(&"slumber_rot", "b")):
+		enemy.apply_status(EnemyStatuses.SPORED, 1, 0.0, get_damage() * SPORE_POTENCY, 0, tower_data.line, self)
+	var fog := kin_share(&"rainfog", "b")
+	if entered and fog > 0.0 and is_instance_valid(enemy) and not enemy.is_cleansed:
+		var partner := _kin_partner()
+		if partner:
+			enemy.take_damage(partner.get_damage() * fog, partner.tower_data.line, true, false, partner, &"fog")
+
+# Night Chimes (Dreamcatcher line): its hits set off Static at 3 charges, like a chime.
+func _kin_night_chimes(enemy: Node2D) -> void:
+	if not is_instance_valid(enemy) or enemy.is_cleansed or not _kin_roll(kin_share(&"night_chimes", "b")):
+		return
+	var s: EnemyStatuses = enemy.statuses
+	if s.stacks(EnemyStatuses.STATIC) < 3:
+		return
+	var bolt := s.potency(EnemyStatuses.STATIC) * EnemyStatuses.STATIC_BOLT_MULTIPLIER
+	var source := s.source(EnemyStatuses.STATIC)
+	s.remove(EnemyStatuses.STATIC)
+	Reactions.strike_bolt(enemy, bolt, source if source else self, &"static")
 
 # Hit rules of the new Legendaries (dream_design.md "New Legendaries"), read by rule id:
 # Hunter's Moon (a Warden's first hit on a nightmare Exposes it, and that never runs out), Eternal
@@ -878,6 +930,16 @@ func _damage_against(enemy: Node2D) -> float:
 	if attack_data.marked_multiplier != 1.0 and enemy.statuses.has(EnemyStatuses.MARKED):
 		multiplier *= attack_data.marked_multiplier
 		ComboFeedback.report(&"marked_blow", self)
+	if is_instance_valid(_kin) and _kin.get_pair(self).size() > 0:
+		var anvil := kin_share(&"hammer_and_anvil", "b")
+		if anvil > 0.0 and enemy.statuses.has(EnemyStatuses.MARKED):
+			multiplier *= 1.0 + anvil  # Hammer and Anvil: Mossback's weight, ×2 vs Marked
+		var chimes := kin_share(&"night_chimes", "a")
+		if chimes > 0.0 and enemy.statuses.is_caught():
+			multiplier *= 1.0 + 0.4 * chimes  # Night Chimes: pulses +40% on Caught nightmares
+		var flock := kin_share(&"flock_together", "b")
+		if flock > 0.0 and enemy.enemy_data.resource_path.get_file().get_basename() == "dandelion_seed":
+			multiplier *= 1.0 + 0.25 * flock  # Flock Together: +25% vs Phantoms
 	return multiplier
 
 # On-hit rules: freeze (Frostfern), Dew from crits (Magpie's Hoard).
@@ -910,6 +972,10 @@ func apply_status_to(enemy: Node2D, soothe: float) -> void:
 		_apply_one_status(enemy, attack_data.applies_status, attack_data.status_stacks, soothe)
 	if attack_data.extra_status != &"":
 		_apply_one_status(enemy, attack_data.extra_status, attack_data.extra_status_stacks, soothe)  # Lullaby Bell
+	if _kin_roll(kin_share(&"slumber_rot", "a")):
+		_apply_one_status(enemy, EnemyStatuses.DROWSY, 1, soothe)  # Slumber Rot: puffs add Drowsy
+	if _kin_roll(kin_share(&"storm_beacon", "b")):
+		_apply_one_status(enemy, EnemyStatuses.STATIC, 1, soothe)  # Storm Beacon: shots add Static
 	for status in _harmony:  # Grafted Harmony: each neighbour family's status at half strength
 		_apply_one_status(enemy, status, maxi(_harmony[status] / 2, 1), soothe * 0.5)
 	_put_to_sleep(enemy)
@@ -996,6 +1062,9 @@ func projectile_landed(target: Node2D, where: Vector2) -> void:
 				hit(enemy, attack_data.splash_share, true, crit)
 	else:
 		_splash(where, splash, 1.0, crit)
+		var rainfog := kin_share(&"rainfog", "a")
+		if rainfog > 0.0 and is_instance_valid(_kin):
+			_kin.fog_patch(where, 2.0 * rainfog)  # Rainfog: the splash leaves a fog patch
 	if attack_data.lob:
 		_lob_landed(where, splash)
 	if attack_data.impact_texture != null:  # Old Mountain's crush
@@ -1066,6 +1135,9 @@ func _update_ability(delta: float) -> void:
 			var tiles: float = attack_data.pull_boss_tiles if enemy.enemy_data.is_boss else attack_data.pull_tiles
 			var before: Vector2 = enemy.global_position
 			enemy.push_back(tiles * MAP_GRID.cell_size.x)
+			var snare := kin_share(&"snare", "a")
+			if snare > 0.0:
+				enemy.apply_status(EnemyStatuses.HELD, 1, 0.5 * snare, 0.0, 0, tower_data.line, self)  # Snare: the pull ends in a hold
 			if attack_data.pull_once:
 				enemy.set_meta(&"pulled_home", true)
 			var world := Reactions._world(self)
@@ -1075,6 +1147,9 @@ func _update_ability(delta: float) -> void:
 	if attack_data.hold_targets > 0:
 		for enemy in in_range.slice(0, attack_data.hold_targets):
 			enemy.apply_status(EnemyStatuses.HELD, 1, attack_data.hold_time, 0.0, 0, tower_data.line, self)
+			var drag := kin_share(&"snare", "b")
+			if drag > 0.0 and is_instance_valid(enemy):
+				enemy.push_back(0.5 * drag * MAP_GRID.cell_size.x)  # Snare: the hold drags it back
 
 # Wellspring: at every rest, a share of your banked Dew (per Wellspring and for all of them together).
 func _on_rest_interest(block: int, _boss: bool, _bonus: int, _perfect: bool) -> void:
@@ -1137,6 +1212,9 @@ func _chain_strike(first: Node2D) -> void:
 		points.append(enemy.global_position)
 		var falloff := maxf(1.0 - attack_data.chain_falloff * i, 0.1)  # Stormheart: −15% per jump
 		hit(enemy, falloff, false, ROLL_CRIT, &"conducted" if i >= attack_data.chain_targets and not attack_data.chain_all_in_range else &"")
+		var beacon := kin_share(&"storm_beacon", "a")
+		if beacon > 0.0 and is_instance_valid(enemy) and not enemy.is_cleansed:
+			enemy.apply_status(EnemyStatuses.MARKED, 1, 2.0 * beacon, 0.0, 0, tower_data.line, self)  # Storm Beacon
 		if bloom > 0 and is_instance_valid(enemy) and not enemy.is_cleansed:
 			enemy.apply_status(EnemyStatuses.DROWSY, bloom, 0.0, 0.0, 0, tower_data.line, self)
 	if attack_data.tier >= 4:
@@ -1291,7 +1369,10 @@ func _on_reaction_nearby(id: StringName, enemy: Node2D, chain: int, towers: Arra
 const WITHER_PER_LEAF := 0.05  # Sapling: each leaf lost since the last rest
 
 func _connect_yield() -> void:
-	if _dream_state == null or not is_inside_tree():
+	if not is_inside_tree():
+		return
+	_kin = Kinships.find(self)  # Made on the first Warden of the run
+	if _dream_state == null:
 		return
 	if _dream_state.has_signal("eldest_changed") and not _dream_state.eldest_changed.is_connected(_on_eldest_changed):
 		_dream_state.eldest_changed.connect(_on_eldest_changed)
@@ -1569,6 +1650,10 @@ func _spread() -> void:
 		for status in copied:
 			others[i].apply_status(status.id, maxi(ceili(status.stacks / 2.0), 1), status.time,
 				status.potency, 0, status.line, status.source)
+		var devil := kin_share(&"dust_devil", "a")
+		var blade := _kin_partner()
+		if devil > 0.0 and blade and is_instance_valid(others[i]):
+			blade.hit(others[i], devil, true)  # Dust Devil: each copy also deals one blade hit
 		points.append(source.global_position)
 		points.append(others[i].global_position)
 	for i in range(0, points.size(), 2):
@@ -1584,8 +1669,21 @@ func _spin() -> void:
 				path_tiles += 1
 	var bonus := clampf((path_tiles - attack_data.spin_free_path_tiles) * attack_data.spin_bonus,
 		0.0, attack_data.spin_bonus_max)
-	for enemy in _enemies_on_adjacent_tiles():
+	var struck := _enemies_on_adjacent_tiles()
+	for enemy in struck:
 		hit(enemy, 1.0 + bonus, true)
+	# Dust Devil (Pinwheel line): the blades copy the most-afflicted nightmare's statuses (half stacks)
+	# onto the others they hit.
+	if _kin_roll(kin_share(&"dust_devil", "b")) and struck.size() > 1:
+		var alive := struck.filter(func(e) -> bool: return is_instance_valid(e) and not e.is_cleansed)
+		if alive.size() > 1:
+			alive.sort_custom(func(a, b) -> bool: return a.statuses.total_stacks() > b.statuses.total_stacks())
+			var copied: Array = alive[0].statuses.snapshot()
+			for other in alive.slice(1):
+				for status in copied:
+					if is_instance_valid(other) and not other.is_cleansed:
+						other.apply_status(status.id, maxi(ceili(status.stacks / 2.0), 1), status.time,
+							status.potency, 0, status.line, status.source)
 
 func _enemies_on_adjacent_tiles() -> Array[Node2D]:
 	var result: Array[Node2D] = []
@@ -1796,6 +1894,8 @@ func get_range_pixels() -> float:
 # along the path; snipers let the player choose, and Wren's Nest hunts the fastest.
 func find_target() -> Node2D:
 	var mode := target_mode if tower_data.has_target_priority else attack_data.target_mode
+	if kin_share(&"flock_together", "b") > 0.0:
+		mode = TowerData.TargetMode.FASTEST  # Flock Together: hunts the fastest nightmare
 	var best: Node2D = null
 	var best_score := -INF
 	for enemy in get_enemies_in_range():

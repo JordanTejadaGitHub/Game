@@ -15,6 +15,7 @@ var _color: Color
 var _age := 0.0
 var _tick_timer := 0.0
 var _drowsy_time := {}  # Morning Fog: nightmare instance id -> seconds inside since its last Drowsy
+var _seen := {}  # Nightmares that have been inside (instance ids): "entering" for Rainfog
 
 func _init(tower: Tower, center: Vector2) -> void:
 	_tower = tower
@@ -57,6 +58,12 @@ func _tick() -> void:
 			if _drowsy_time[id] >= 1.0 / data.cloud_drowsy_per_second:
 				_drowsy_time[id] = 0.0
 				enemy.apply_status(EnemyStatuses.DROWSY, 1, 0.0, 0.0, 0, data.line, _tower)
+		# Kinships: Slumber Rot adds Spored per tick, Rainfog's fog hits nightmares entering it.
+		var entered := not _seen.has(enemy.get_instance_id())
+		_seen[enemy.get_instance_id()] = true
+		_tower.kin_cloud_tick(enemy, entered)
+		if not is_instance_valid(enemy) or enemy.is_cleansed:
+			continue
 		# A cloud's soothe per tick is a share of one attack, spread over its lifetime.
 		_tower.hit(enemy, TICK / _duration, true, Tower.NO_CRIT, &"cloud")  # Clouds never crit; an effect (Potency)
 

@@ -137,6 +137,15 @@ func _refresh() -> void:
 	var links := Synergies.find_links(data, _tower.cell, _tower.get_parent().get_children())
 	if not links.is_empty():
 		lines.append("Combos with: " + ", ".join(links.map(func(l: Array) -> String: return l[1])))
+	var kin := Kinships.find(_tower)
+	if kin != null:
+		var kin_line := kin.describe(_tower)  # "Kin: Bloomcap · Slumber Rot · Blooming (3 drifts to Old Kin)"
+		if kin_line != "":
+			lines.append(kin_line)
+		var family := kin.family_bonus(data.line)
+		if family > 0.0:
+			lines.append("%s: +%d%% damage for the family" % ["Whole Tree" if family > Kinships.KINDRED_BONUS else "Kindred",
+				roundi(family * 100)])
 	if dream_state.has_method("get_crossroads_bonus") and dream_state.has_rule(&"crossroads"):
 		var crossroads: float = dream_state.get_crossroads_bonus(_tower)
 		if crossroads > 0.0:

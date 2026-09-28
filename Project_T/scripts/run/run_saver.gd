@@ -114,6 +114,9 @@ func save_now() -> bool:
 	var omens := get_tree().get_first_node_in_group(&"omens")
 	if omens != null and omens.has_method("to_save"):
 		data["omens"] = omens.to_save()
+	var kin := Kinships.find(tower_container)
+	if kin != null:
+		data["kinships"] = kin.to_save()  # Bond ages (drifts together), Whole Trees, counts
 	# Nurture Dream cards (Tender Care / Warm Hands openers, Remembered Care's memory seeds).
 	if "rank_dew_spent" in run_state:
 		data["rank_dew_spent"] = run_state.rank_dew_spent
@@ -194,4 +197,7 @@ func _restore(data: Dictionary) -> void:
 	var omens := get_tree().get_first_node_in_group(&"omens")
 	if omens != null and data.has("omens") and omens.has_method("load_save"):
 		omens.load_save(data.omens)
+	var kin := Kinships.find(tower_container)
+	if kin != null and data.has("kinships"):
+		kin.load_save(data.kinships)  # After the Wardens are back, so the saved bonds keep their age
 	dream_state.unlocks_changed.emit()

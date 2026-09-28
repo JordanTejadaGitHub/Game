@@ -149,7 +149,7 @@ static func on_status(enemy: Node2D, _id: StringName, source: Node) -> void:
 # Damage tags that are effects, not hits: they scale with the source Warden's Potency (and Seeping),
 # never with crit (except Nightshade). Shatter's own hit is a hit; its spreads are effects.
 const EFFECT_TAGS: Array[StringName] = [&"spored", &"static", &"thunderclap", &"ignite", &"lightning_rod",
-	&"popped", &"echo", &"carried_storm", &"avalanche", &"starfall", &"fever_dream", &"fog", &"cloud"]
+	&"popped", &"echo", &"carried_storm", &"avalanche", &"starfall", &"fever_dream", &"fog", &"cloud", &"harmony"]
 
 static func is_effect(tag: StringName) -> bool:
 	return tag in EFFECT_TAGS

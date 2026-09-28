@@ -386,6 +386,16 @@ accessibility, Steam achievements (milestones map to them). Acts 3–4 and all f
   +20% per status the nightmare carries, adding with Seeping. `PathCloud` damage is tagged "cloud" (an effect). Venom Bloom =
   `get_hit_damage_multiplier` in `Tower.hit`. New effect damage must use an effect tag. Ranks: attack
   speed/range stop at VII (`STAT_TOP_RANK`), Focus at V (`FOCUS_TOP_RANK`). `tests/test_potency.gd`.
+- **Kinships** (tower_design.md "Kinships"; `scripts/combat/kinships.gd`, `Kinships.find(node)`, made in
+  the run's scene on first use, drawn under the Wardens): two branches of one family within 2 cells bond
+  (nearest first, one each; `Kinships.branch_of(data)`, table `KINSHIPS`). Ages by pair key (the two cells:
+  evolving keeps, moving/selling resets) in drifts: `STAGE_SHARE` 0.5/0.75/1.0; stage-ups and Whole Tree
+  queue to the rest. Traits: `Tower.kin_share(id, side)` read in Tower / PathCloud (18 hooks). Harmony
+  strike: `note_hit` from `Tower.hit`, tag "harmony" (an effect), never a Reaction. Kindred / Whole Tree:
+  `family_bonus(line)` in `Tower.get_damage`. Signals for Sound: `kin_bonded`, `kin_stage_grew`,
+  `harmony_struck`, `family_whole`; `kinship_formed` for discovery. Setting `kinship_effects` (0 Full /
+  1 Subtle / 2 Off). Saved via `to_save` / `load_save` in RunSaver. Demo: 3 Kinships, no Whole Tree
+  (`force_full` for tests). The 9 hidden Kinships and the Whole Tree perks are still to build. `tests/test_kinships.gd`.
 - Dream bonuses on Wardens (screens_ui.md): every card effect comes from `DreamState.get_card_effects(data,
   cell, tower, ghost)` rows (Roguelite's `DreamEffects`). Build ghost (`TowerPlacer._update_dream_preview`,
   on hover change): real range with position cards (faint base ring + bright boosted ring), chips
