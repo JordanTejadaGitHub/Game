@@ -866,6 +866,45 @@ and have loose or no Needs. Each rewards a way of building, not a family; all on
   Network · +36% (network of 6)"); the build ghost shows the network it would join.
 - After these, an act 1 board with any family has **~5–7 eligible Rares** instead of 0–1.
 
+## Generic Commons and Uncommons (2026-09-28: filling the lower tiers)
+
+Why: only ~14 Commons/Uncommons work with any family (the stat cards, Cozy Corners, Hedge Maze,
+Evergreen, Glinting Dew, Bitter Sap, Seedfall, Solitude…), so over 19 Dreams the same few repeat.
+These are **enhancers** for any build: small rules and trade-offs rather than more flat stats.
+All **Start** pool, no family Needs (a few have a soft run-state Need so they're never dead).
+
+| # | Card | Rarity | Effect | Tags | Needs | Pool |
+|---|---|---|---|---|---|---|
+| 142 | **Gathered Dew** | Common | nightmares give **+10% Dew** (stacks, max +30%) | economy | — | Start |
+| 143 | **Fair Trade** | Common | selling refunds **+10%** more (rest 85%, drift 60%; stacks to 100% / 75%) | economy | — | Start |
+| 144 | **Call of the Wild** | Common | calling a drift early gives **double Dew** (cap 20 per drift) | tempo, economy | — | Start |
+| 145 | **Mending Bark** | Common | a **perfect block** (no leaf lost) regrows **1 leaf** | leaves | — | Start |
+| 146 | **Lasting Dreams** | Common | every status your Wardens apply lasts **+1 s** (stacks, max +3 s) | status | a Warden that applies a status (soft) | Start |
+| 147 | **Short Roots** | Common | Wardens with **range 2 or less** deal **+25% damage** | — | a Warden with range ≤ 2 (soft) | Start |
+| 148 | **Forest's Edge** | Common | Wardens within **3 cells of the start** deal **+20% damage** | maze | — | Start |
+| 149 | **Crowded Path** | Uncommon | Wardens get **+3% damage per nightmare in their range** (max +30%) | — | — | Start |
+| 150 | **Lone Hunter** | Uncommon | **+30% damage** to a nightmare with **no other nightmare within 2 cells** | — | — | Start |
+| 151 | **Skyward Gaze** | Uncommon | **+40% damage and +1 range** against **flying** nightmares | — | act 2+ (flyers exist) | Start |
+| 152 | **Fresh Growth** | Uncommon | a Warden planted or grown during a drift deals **+30% damage until the next rest** | tempo | — | Start |
+| 153 | **Underdog** | Uncommon | at each rest, your **3 Wardens that soothed least** in that block get **+20% damage** for the next block | — | 6+ attacking Wardens (soft) | Start |
+| 154 | **Weathered Walls** | Uncommon | Thornwalls **can't be trampled**, and every 10th Thornwall is free | wall | — | Start |
+| 155 | **Heavy Air** | Uncommon | every slow your Wardens apply (Soaked, Drowsy, frost…) is **20% stronger** | status | a Warden that slows (soft) | Start |
+| 156 | **Wandering Mind** | Uncommon | gain **2 Dream rerolls** (reroll one offer's cards) | dreams | — | Start |
+
+- **Pairs of opposites:** Crowded Path (swarms) vs Lone Hunter (spread-out nightmares, bosses);
+  Forest's Edge (fight early) vs Last Stand (fight at the Heartwood); Short Roots vs Long Shadows.
+  An offer showing both halves of a pair is a real choice about your maze.
+- **Economy check:** Gathered Dew ×3 = +30% creature Dew, which is only part of income (rest
+  bonuses don't change). Fair Trade makes rebuilding cheap but never profitable (max 100%, and
+  Remembered Care still keeps rank Dew in the seed).
+- **Underdog** uses the rest report's per-Warden totals (`DamageLog`), and its glow shows on the
+  3 chosen Wardens. Thornwalls don't count.
+- **Wandering Mind** stacks with the Grove perk Second Thoughts (rerolls add).
+- **Deepened:** Crowded Path II (+4%, max +40%), Lone Hunter II (+45%), Fresh Growth II (+45%),
+  Underdog II (4 Wardens, +25%).
+- **Name clash to fix:** Commons #10 and Rares #138 are both called **Deep Roots**. Suggest renaming
+  #138 to **Old Growth**.
+
 ## Data (`UpgradeData`)
 
 `id`, `display_name`, `description`, `rarity`, `kind` (stat / rule / economy; evolutions are
