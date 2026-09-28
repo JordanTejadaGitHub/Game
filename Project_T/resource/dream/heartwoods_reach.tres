@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "heartwoods_reach"
 display_name = "Heartwood's Reach"
-description = "Gain 4 free clears. Use them any time; they last all run."
+description = "Gain 4 half-price clears. Use them any time; they last all run."
 rarity = 0
 kind = 4
 tags = Array[String](["clearing"])

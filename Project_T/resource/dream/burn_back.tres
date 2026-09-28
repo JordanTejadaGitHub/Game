@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "burn_back"
 display_name = "Burn Back the Dead Wood"
-description = "Clear every Withered Tree on the map now (no Seeds for these)."
+description = "Clear every Withered Tree on the map now for 2 Dew each (no Seeds for these)."
 cost_description = "Nightmares move 10% faster for the rest of the run."
 rarity = 2
 kind = 3

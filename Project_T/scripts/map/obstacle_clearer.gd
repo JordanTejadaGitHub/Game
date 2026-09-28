@@ -3,7 +3,7 @@ class_name ObstacleClearer
 
 # The Clear tool (screens_ui.md "The Clear tool"): trees and rocks are cleared through a tool on the
 # Warden bar (Main's button, hotkeys 0 / C → set_tool_active). While the tool is active, hovering an
-# obstacle shows its outline, cost (or "free") and the route that would open; a click clears it, and
+# obstacle shows its outline, cost (half price while Heartwood's Reach charges last) and the route that would open; a click clears it, and
 # the tool stays on for more clears until Esc / right-click / picking a Warden. Without the tool,
 # hovering only names the obstacle and clicks pass through (box-select can start anywhere).
 # Until the run's first clearing Dream (DreamState.can_clear) the tool can't be switched on.
@@ -137,14 +137,14 @@ func _draw() -> void:
 	if not tool_active:
 		WorldLabel.draw_tag(self, center.x, rect.position.y - 8, _hover_obstacle.display_name, NAME_COLOR)
 		return
-	var free := run_state.free_clears > 0
-	var cost := get_clear_cost(_hover_obstacle)
-	var affordable := free or run_state.can_afford(cost)
+	var half := run_state.free_clears > 0
+	var cost := get_next_clear_cost(_hover_obstacle)
+	var affordable := run_state.can_afford(cost)
 	var highlight := HIGHLIGHT_COLOR if affordable else WorldLabel.UNAFFORDABLE_COLOR
 	draw_rect(rect, Color(highlight, 0.15))
 	draw_rect(rect, highlight, false, 3.0)
 
-	var price := "free (%d left)" % run_state.free_clears if free else "%d Dew" % cost
+	var price := "%d Dew · half price (%d left)" % [cost, run_state.free_clears] if half else "%d Dew" % cost
 	var label := "%s %s · %s" % [_hover_obstacle.clear_verb, _hover_obstacle.display_name, price]
 	if pending_cell == _hover_cell:
 		label += "  ·  tap ✓ to clear"
@@ -155,21 +155,31 @@ func is_locked() -> bool:
 	var dreams := get_tree().get_first_node_in_group(DreamState.GROUP) as DreamState
 	return dreams != null and not dreams.can_clear()
 
-# Dew to clear `data` right now (Dreams can lower it). Every clear-cost check goes through here.
-func get_clear_cost(data: ObstacleData) -> int:
+# Dew to clear `data` right now (Dreams can lower it; `half_price` = a Heartwood's Reach charge).
+# Every clear-cost check goes through here.
+func get_clear_cost(data: ObstacleData, half_price: bool = false) -> int:
 	var dreams := get_tree().get_first_node_in_group(DreamState.GROUP) as DreamState
-	var cost: int = dreams.get_clear_cost(data) if dreams else data.clear_cost
+	var cost: int = dreams.get_clear_cost(data, half_price) if dreams else data.clear_cost
 	return roundi(cost * MetaRun.clear_cost_multiplier())  # Blight Level 9: twice as much
 
-# Clears the obstacle on `cell`, using a free clear (Heartwood's Reach) if there is one, else
-# charging its Dew cost. Returns false if there's nothing to clear or the player can't afford it.
+# The price of the next clear of `data`: half-price while Heartwood's Reach charges last.
+func get_next_clear_cost(data: ObstacleData) -> int:
+	return get_clear_cost(data, run_state.free_clears > 0)
+
+# Clears the obstacle on `cell`, using a half-price charge (Heartwood's Reach) first. Clearing always
+# costs Dew. Returns false if there's nothing to clear or the player can't afford it.
 # (The tool decides when the player may click; Dreams and tests call this directly.)
 func try_clear(cell: Vector2) -> bool:
 	var data: ObstacleData = map_generator.get_obstacle(cell)
 	if data == null or is_locked():
 		return false
-	if not run_state.use_free_clear() and not run_state.spend_dew(get_clear_cost(data)):
+	var cost := get_next_clear_cost(data)
+	if not run_state.spend_dew(cost):
 		return false
+	run_state.use_free_clear()  # A charge is spent only when the clear goes through
+	var dreams := get_tree().get_first_node_in_group(DreamState.GROUP) as DreamState
+	if dreams:
+		dreams.last_clear_paid = cost  # Reclaimed Earth refunds a share of it
 	map_generator.clear_obstacle(cell)  # Emits path_changed -> enemies re-route, hover refreshes
 	return true
 

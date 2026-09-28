@@ -20,6 +20,9 @@ const SPORE_CASCADE_TARGETS := [2, 3]
 const TENDED_FOREST_PER_CLEAR := 0.01
 const TENDED_FOREST_MAX := 0.25
 const FERTILE_DISCOUNT := 0.5  # Reclaimed Earth: the first Warden on a cleared cell
+const CLEAR_DISCOUNT_MAX := 0.5  # Cleared Ground stacks to −50%
+const RECLAIMED_REFUND := 0.4  # Reclaimed Earth: share of the Dew paid for a clear
+const BURN_BACK_PER_TREE := 2  # Burn Back: Dew per Withered Tree, paid when taken
 const CLEARING_LOCKED_WEIGHT := 2.0  # Clearing cards are this much likelier until you own one
 # Nurture and wide / narrow cards (dream_design.md). [base, Deepened (II)] where it deepens.
 const NURTURE_DISCOUNT_MAX := 0.45
@@ -234,6 +237,7 @@ var _last_route := PackedVector2Array()
 var _straight_cells := {}  # Route tiles in a straight stretch of 5+ (Straightaway)
 var _heart_cache := []  # [key, Tower] (get_heart_of_maze)
 var _glimmer_rng := RandomNumberGenerator.new()
+var last_clear_paid := 0  # Dew the clear being made cost (ObstacleClearer sets it; Reclaimed Earth)
 var glimmer_shards := 0  # Glimmering Hunt's shards this run (10 = 1 Dreamlight, own cap)
 var _statuses_cache := []  # [state key, owned statuses] (owned_statuses)
 var _offer_drift := 0  # The drift of the offer being built (half-dreamed checks)
@@ -978,11 +982,17 @@ func get_rest_bonus_add() -> int:
 	return add
 
 # Dew to clear `data` (Cleared Ground: −40% per stack, never below 1 Dew).
-func get_clear_cost(data: ObstacleData) -> int:
+# Clearing always costs Dew (dream_design.md "Clearing always costs Dew"): Cleared Ground −25% per
+# stack (max −50%), a Heartwood's Reach charge (`half_price`) halves it, and it never goes below half
+# the base cost, rounded up (tree 3, boulder 4). Blight 9's ×2 is ObstacleClearer's, on top.
+func get_clear_cost(data: ObstacleData, half_price: bool = false) -> int:
 	var discount := 0.0
 	for card in _taken_cards():
 		discount += card.clear_discount * stacks[card.id]
-	return maxi(roundi(data.clear_cost * maxf(1.0 - discount, 0.0)), 1)
+	var cost := roundi(data.clear_cost * (1.0 - minf(discount, CLEAR_DISCOUNT_MAX)))
+	if half_price:
+		cost = ceili(cost / 2.0)
+	return maxi(cost, ceili(data.clear_cost / 2.0))
 
 # Cost to plant `data` on `cell`: a Seedling Gift charge makes a Sprout free; Reclaimed Earth halves
 # the first Warden on a fertile cell.
@@ -1145,7 +1155,8 @@ func take(card: UpgradeData) -> void:
 		run_state.add_free_clears(card.free_clears_add)
 	if card.rule_id == &"court_of_the_eldest":
 		_crown_court_eldest()
-	if card.clears_obstacle != null:
+	if card.clears_obstacle != null:  # Burn Back: 2 Dew per tree, paid now (only offered when affordable)
+		run_state.spend_dew(BURN_BACK_PER_TREE * count_obstacles(card.clears_obstacle))
 		_clear_all(card.clears_obstacle)
 	if card.set_cost_warden != "":
 		unlocks_changed.emit()  # Tower bar prices change
@@ -1382,6 +1393,8 @@ func can_offer(card: UpgradeData, act: int = 1) -> bool:
 	if card.max_leaves_add < 0 and run_state.max_leaves + card.max_leaves_add < 1:
 		return false
 	# Clearing cards only when the map is still full enough to matter.
+	if card.clears_obstacle != null and run_state.dew < BURN_BACK_PER_TREE * count_obstacles(card.clears_obstacle):
+		return false  # Burn Back: only when you can pay for every tree
 	if card.min_obstacles > 0 and count_obstacles(card.clears_obstacle) < card.min_obstacles:
 		return false
 	if not _meets_needs(card):
@@ -1769,15 +1782,18 @@ func _on_tower_built(tower: Tower) -> void:
 # Reclaimed Earth: every clear gives Dew and leaves the cell fertile. Not Burn Back's mass clear
 # (it would flood the Dew economy, same as its no-Seeds rule).
 func _on_obstacle_cleared(cell: Vector2, _data: ObstacleData) -> void:
+	var paid := last_clear_paid
+	last_clear_paid = 0
 	if run_state.clearing_without_seeds:
 		return
 	var dew := 0
 	for card in _taken_cards():
 		dew += card.dew_per_obstacle_clear * stacks[card.id]
+	if has_rule(&"reclaimed_earth"):
+		dew += floori(paid * RECLAIMED_REFUND)  # 40% of what the clear cost: never a profit
+		run_state.fertile_cells[cell] = true
 	if dew > 0:
 		run_state.earn_dew_at(dew, map_generator.MAP_GRID.calculate_map_position(cell))
-	if has_rule(&"reclaimed_earth"):
-		run_state.fertile_cells[cell] = true
 
 # Spore Cascade: a cleansed creature's Spored stacks spread to the nearest creatures.
 func _on_enemy_cleansed(enemy: Node2D) -> void:
