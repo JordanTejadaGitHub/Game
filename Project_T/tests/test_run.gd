@@ -70,8 +70,10 @@ func _test_blocks_and_rests() -> void:
 	_check(run_state.leaves == 15 and run_state.max_leaves == 15 and run_state.dew == 60, "15 leaves, 60 Dew")
 	_check(spawner.get_enemies().is_empty(), "no creatures before Start")
 	_check(director.get_extra_nightmares(9) == 1.0 and director.get_extra_nightmares(10) == 1.25, "extra nightmares from drift 10")
-	# Economy pass v2: dispel Dew × 1.0 / 0.8 / 0.65 / 0.5 by act, fractions carried over.
-	_check(run_state._scaled_dispel_dew(3) == 3, "act 1 pays dispel Dew in full")
+	# Dispel Dew × 0.85 / 0.68 / 0.65 / 0.5 by act (acts 1–2 tightened), fractions carried over.
+	run_state._dispel_dew_carry = 0.0
+	_check(run_state._scaled_dispel_dew(20) == 17, "act 1 pays 85% of dispel Dew")
+	run_state._dispel_dew_carry = 0.0
 	var started := director.drifts_started
 	director.drifts_started = 80  # Act 4
 	run_state._dispel_dew_carry = 0.0
@@ -89,10 +91,14 @@ func _test_blocks_and_rests() -> void:
 	# Acts 3–4: ×1.4 on top of growth, bosses included (run_design.md "Act 3 probe").
 	var shade_data: EnemyData = load("res://resource/enemy/leaf_bug.tres")
 	var oak_data: EnemyData = load("res://resource/enemy/hollow_oak.tres")
-	_check(is_equal_approx(director.get_health_scale(shade_data, 50), director.get_growth(50) * director.get_health_multiplier(shade_data, 50))
+	_check(is_equal_approx(director.get_health_scale(shade_data, 50), director.get_growth(50) * 1.3 * director.get_health_multiplier(shade_data, 50))
 		and is_equal_approx(director.get_health_scale(shade_data, 51), director.get_growth(51) * 1.4 * director.get_health_multiplier(shade_data, 51))
 		and is_equal_approx(director.get_health_scale(oak_data, 100), director.boss_health_multiplier * 1.4 * director.get_health_multiplier(oak_data, 100)),
 		"acts 3–4 nightmares and bosses have ×1.4 health")
+	# Acts 1–2 (run_design.md "Interim acts 1–2 tightening"): ×1.0 to drift 10, ramping to ×1.3 at 25.
+	_check(is_equal_approx(director.get_early_multiplier(1), 1.0) and is_equal_approx(director.get_early_multiplier(10), 1.0)
+		and is_equal_approx(director.get_early_multiplier(25), 1.3) and is_equal_approx(director.get_early_multiplier(40), 1.3)
+		and absf(director.get_early_multiplier(16) - 1.12) < 0.001, "acts 1–2 health ramps from ×1.0 (drift 10) to ×1.3 (25)")
 	# One Deeply Blighted from drift 26 when the drift lists none (boss drifts: from the escort); two from 76.
 	for number in [25, 26, 35, 45, 50, 51, 75, 76, 100]:
 		var schedule: Array = director.drifts[number - 1].get_schedule()
@@ -103,7 +109,7 @@ func _test_blocks_and_rests() -> void:
 		_check(elites.size() == expected and elites.all(func(a: Array) -> bool: return not a[1].is_boss),
 			"drift %d: %d elite(s) (%d listed)" % [number, elites.size(), listed])
 	var stag: EnemyData = load("res://resource/enemy/old_stag.tres")
-	_check(is_equal_approx(director.get_health_scale(stag, 25), 1.5), "bosses have ×1.5 health")
+	_check(is_equal_approx(director.get_health_scale(stag, 25), 1.5 * 1.3), "bosses have ×1.5 health (× the acts 1–2 ramp: ×1.3 at 25)")
 
 	# Selling in a rest what was planted this rest: a full refund (75% once it stood through a drift)
 	var sprout: TowerData = placer.towers[0]
