@@ -236,6 +236,52 @@ static func combos() -> Array[Dictionary]:
 			"text": IconInfo.format(data.description), "by": ""})
 	return list
 
+# --- The demo's reach (demo_scope.md "Wardens": Sporeling, Firefly Jar, Dewdrop + Sprout, Thornwall) --
+# In a demo run (not a dev run) the Codex lists only combos and Kinships those families can make.
+
+const DEMO_FAMILIES := ["sporeling", "firefly_jar", "dewdrop"]
+const TOWER_DIR := "res://resource/tower/"
+static var _demo_reach := {}
+
+static func demo_limited() -> bool:
+	return ResultsScreen.is_demo() and not MetaRun.is_dev_run()
+
+# {"wardens": {display name: true}, "statuses": {id: true}} over the demo families' whole trees.
+static func demo_reach() -> Dictionary:
+	if not _demo_reach.is_empty():
+		return _demo_reach
+	var wardens := {}
+	var statuses := {}
+	var todo: Array = []
+	for id in DEMO_FAMILIES:
+		todo.append(load(TOWER_DIR + id + ".tres"))
+	while not todo.is_empty():
+		var data := todo.pop_back() as TowerData
+		if data == null or wardens.has(data.display_name):
+			continue
+		wardens[data.display_name] = true
+		for status in [data.applies_status, data.extra_status]:
+			if status != &"":
+				statuses[status] = true
+		if int(data.get("hold_targets")) > 0:
+			statuses[&"held"] = true
+		if float(data.get("marked_bonus")) > 0.0:
+			statuses[&"marked"] = true
+		todo.append_array(data.evolves_to)
+	_demo_reach = {"wardens": wardens, "statuses": statuses}
+	return _demo_reach
+
+# Whether a combo / Crowned / Kinship entry belongs in this build's Codex.
+static func in_build(entry: Dictionary) -> bool:
+	if not demo_limited():
+		return true
+	if entry.get("kind", "") == "Kinship":
+		return Kinships.is_available(entry.id)
+	var reach := demo_reach()
+	if String(entry.get("by", "")) != "":  # A synergy: one of its Wardens is in the demo
+		return Array(String(entry.by).split(", ")).any(func(name: String) -> bool: return reach.wardens.has(name))
+	return entry.get("statuses", []).all(func(s: StringName) -> bool: return reach.statuses.has(s))
+
 static func get_combo(id: StringName) -> Dictionary:
 	for combo in combos():
 		if combo.id == id:

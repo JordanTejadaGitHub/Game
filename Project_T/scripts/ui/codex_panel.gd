@@ -209,7 +209,7 @@ func _build_combos() -> void:
 	_dev_note.visible = MetaRun.is_dev_run()
 	var counts: Dictionary = HeartwoodMemory.load_data().get(ComboFeedback.COUNTS_KEY, {})
 	var live := get_tree().get_first_node_in_group(ComboFeedback.GROUP) as ComboFeedback if is_inside_tree() else null
-	var all := CodexData.combos()
+	var all := CodexData.combos().filter(CodexData.in_build)  # The demo: only what its 3 families can make
 	var found := 0
 	for combo in all:
 		var discovered := seen.has(String(combo.id))
@@ -225,7 +225,7 @@ func _build_combos() -> void:
 	# Crowned Reactions: hidden ("???" in a gold crown frame) until found; full game only.
 	if ResultsScreen.is_demo():
 		return
-	var crowned := CodexData.crowned()
+	var crowned := CodexData.crowned().filter(CodexData.in_build)
 	var crowned_found := crowned.filter(func(c: Dictionary) -> bool: return seen.has(String(c.id))).size()
 	var header := Label.new()
 	header.text = "Crowned Reactions  %d / %d" % [crowned_found, crowned.size()]
@@ -258,7 +258,7 @@ func _add_card(card: Control, id: StringName, discovered: bool) -> void:
 # Kinships (screens_ui.md "Kinship feedback"): "???" in a vine frame until the first bond of that kind
 # ever, then the pair, what each borrows, and how often it has formed.
 func _build_kinships(seen: Array, counts: Dictionary, live: ComboFeedback) -> void:
-	var kin := CodexData.kinships()
+	var kin := CodexData.kinships().filter(CodexData.in_build)
 	if kin.is_empty():
 		return
 	var found := kin.filter(func(k: Dictionary) -> bool: return seen.has(String(k.id))).size()

@@ -110,6 +110,14 @@ func _sized(side: float) -> NightmareIcons:
 
 # --- Data ------------------------------------------------------------------------------------------
 
+# The demo (demo_scope.md) has only the spore, light and water families: others' resist / weak
+# icons would name Wardens the player can't have (CodexData.demo_limited: not in dev runs).
+static func in_build(line: String) -> bool:
+	if not CodexData.demo_limited():
+		return true
+	var data := base_warden(line)
+	return data != null and CodexData.DEMO_FAMILIES.has(data.get_id())
+
 static func base_warden(line: String) -> TowerData:
 	var path := TOWER_DIR + String(LINE_WARDENS.get(line, "")) + ".tres"
 	return load(path) as TowerData if LINE_WARDENS.has(line) and ResourceLoader.exists(path) else null
@@ -165,8 +173,8 @@ static func make_rows(data: EnemyData, side: float = 28.0, compact: bool = false
 	var box := VBoxContainer.new()
 	box.add_theme_constant_override("separation", 2)
 	var d := defences(data)
-	var resists: Array = d.get("resists", [])
-	var weak: Array = d.get("weak_to", [])
+	var resists: Array = d.get("resists", []).filter(in_build)
+	var weak: Array = d.get("weak_to", []).filter(in_build)
 	if compact:
 		var row := HFlowContainer.new()
 		row.alignment = FlowContainer.ALIGNMENT_CENTER
