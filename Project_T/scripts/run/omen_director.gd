@@ -140,7 +140,7 @@ func make_offer(block: int) -> Array[OmenData]:
 	var eligible: Array[OmenData] = []
 	var free_cells := -1
 	for omen in pool:
-		if omen.min_drift > drifts.x or _last_offer_ids.has(omen.id):
+		if omen.waiting_for_hook or omen.min_drift > drifts.x or _last_offer_ids.has(omen.id):
 			continue
 		if omen.requires_flyers and not _block_has_flyers(drifts):
 			continue

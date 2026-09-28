@@ -14,6 +14,7 @@ class_name OmenData
 enum Kind { NIGHTMARES, YOUR_SIDE, DOUBLE_EDGED, MAP }
 @export var kind: Kind = Kind.NIGHTMARES
 @export var needs_free_cells: int = 0  # Only on maps with this many free cells away from the route (Shifting Ground)
+@export var waiting_for_hook: bool = false  # Not offered until its twist is built in Tower / Enemy code
 
 @export_group("Next block")
 @export var health_multiplier: float = 1.0

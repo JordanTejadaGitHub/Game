@@ -175,6 +175,12 @@ func _test_new_omens(main: Node) -> void:
 		previous = offer.map(func(o: OmenData) -> String: return o.id)
 	_check(ok_kinds, "each offer's 2 Omens are of different kinds")
 	_check(no_repeat, "an Omen never repeats from the previous rest")
+	var waiting: Array = omens.pool.filter(func(o: OmenData) -> bool: return o.waiting_for_hook)
+	var ever := {}
+	for i in 60:
+		for o in omens.make_offer(11):
+			ever[o.id] = true
+	_check(not waiting.any(func(o: OmenData) -> bool: return ever.has(o.id)), "Omens waiting for their Tower / Enemy hooks are never offered (%d waiting)" % waiting.size())
 	_check(not omens.make_offer(3).any(func(o: OmenData) -> bool: return o.min_drift > 11), "act 2 Omens wait for act 2")
 
 	# Your side: Fog Bank, Wilting, Frozen Ground, Leaf Fall (the queries Tower / TowerPlacer / RunState ask)
