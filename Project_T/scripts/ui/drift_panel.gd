@@ -1,6 +1,6 @@
 extends VBoxContainer
 
-# Bottom-right run controls: a status line (resting / next drift in N s / rest ahead) with the
+# Bottom-right run controls: "Coming this block" at rests (ComingStrip), a status line (resting / next drift in N s / rest ahead) with the
 # Remember button during rests (Dreamlight: DreamState.open_remember), the Start /
 # call-early button (Enter), the Auto-drift toggle, and pause / 1× / 2× / 3× buttons (Space pauses,
 # Tab cycles speed). The act / drift line is the top-centre DriftBanner.
@@ -25,6 +25,8 @@ var _speed_buttons: Array[Button] = []
 
 func _ready() -> void:
 	alignment = BoxContainer.ALIGNMENT_END
+	# "Coming this block" (screens_ui.md): the next block's nightmare kinds, above Start, at rests.
+	add_child(ComingStrip.new(drift_director))
 	# Status line, with the Remember button (run_design.md "Dreamlight") beside it during rests.
 	var status_row := HBoxContainer.new()
 	add_child(status_row)

@@ -15,9 +15,15 @@ const SMALL_FONT_SIZE := 14
 @onready var drift_director: DriftDirector = %DriftDirector
 
 var _boss: Node2D = null
+# Tappable spots (screens_ui.md "Boss dossier"): "Boss in N" opens the dossier; during the boss drift
+# the bar's 50% marker shows the ability that starts there. Everything else lets clicks through.
+var _countdown_rect := Rect2()
+var _marker_rect := Rect2()
+var _marker_tip := TapTip.new()
 
 func _ready() -> void:
-	mouse_filter = Control.MOUSE_FILTER_IGNORE
+	mouse_filter = Control.MOUSE_FILTER_STOP  # Only on the spots above (_has_point)
+	add_child(_marker_tip)
 	var spawner = %EnemyContainer
 	spawner.child_entered_tree.connect(func(node: Node) -> void:
 		if node.get("enemy_data") != null and node.enemy_data.is_boss:
@@ -56,6 +62,14 @@ func _draw() -> void:
 	var boss_text := _next_boss_text(latest)
 	if boss_text != "":
 		_draw_centered(font, boss_text, Vector2(center_x + 40.0, 45), SMALL_FONT_SIZE, BOSS_COLOR.lightened(0.2))
+		var width := font.get_string_size(boss_text, HORIZONTAL_ALIGNMENT_LEFT, -1, SMALL_FONT_SIZE).x
+		_countdown_rect = Rect2(center_x + 40.0 - width / 2.0 - 8.0, 28, width + 16.0, 26)
+		# Underlined: it opens the dossier.
+		draw_line(Vector2(center_x + 40.0 - width / 2.0, 49), Vector2(center_x + 40.0 + width / 2.0, 49),
+			Color(BOSS_COLOR, 0.6), 1.0)
+	else:
+		_countdown_rect = Rect2()
+	_marker_rect = Rect2()
 
 func _draw_boss_bar(font: Font, center_x: float) -> void:
 	var bar := Rect2(center_x - WIDTH / 2.0, 34, WIDTH, 10)
@@ -64,7 +78,48 @@ func _draw_boss_bar(font: Font, center_x: float) -> void:
 	draw_rect(Rect2(bar.position, Vector2(bar.size.x * fraction, bar.size.y)), BOSS_COLOR)
 	var half_x := bar.position.x + bar.size.x * 0.5
 	draw_line(Vector2(half_x, bar.position.y - 3), Vector2(half_x, bar.end.y + 3), Color.WHITE, 2.0)
+	draw_circle(Vector2(half_x, bar.position.y - 5), 3.0, Color.WHITE)  # A knob: it's tappable
+	_marker_rect = Rect2(half_x - 14, bar.position.y - 14, 28, 32)
+	# The rest of the bar (and the name) opens the dossier too.
+	_countdown_rect = Rect2(bar.position.x, bar.position.y - 4, bar.size.x, bar.size.y + 26)
 	_draw_centered(font, _boss.enemy_data.display_name, Vector2(center_x, bar.end.y + 16), SMALL_FONT_SIZE, BOSS_COLOR.lightened(0.3))
+
+func _has_point(point: Vector2) -> bool:
+	return _marker_rect.has_point(point) or _countdown_rect.has_point(point)
+
+func _get_tooltip(at: Vector2) -> String:
+	if _marker_rect.has_point(at):
+		return half_health_text()
+	return "Open the boss dossier" if _countdown_rect.has_point(at) else ""
+
+func _gui_input(event: InputEvent) -> void:
+	if not (event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT):
+		return
+	if _marker_rect.has_point(event.position):
+		show_marker_tip()
+	elif _countdown_rect.has_point(event.position):
+		BossDossier.open_for(get_tree())
+	accept_event()
+
+# The boss's ability that starts at 50% health (EnemyData abilities, "when" mentions 50%), e.g.
+# "At 50% health · Charge: its antlers flare and it runs +50% faster for 4 s."
+func half_health_text() -> String:
+	if not is_instance_valid(_boss):
+		return ""
+	var data: EnemyData = _boss.enemy_data
+	for i in data.abilities.size():
+		var ability := data.get_ability(i)
+		if String(ability.get("when", "")).contains("50%"):
+			return IconInfo.format("At 50%% health · %s: %s" % [ability.get("name", ""), ability.get("text", "")])
+	return "At 50% health its behaviour changes."
+
+func show_marker_tip() -> void:
+	_marker_tip._label.text = half_health_text()
+	_marker_tip.visible = false
+	_marker_tip.toggle()
+	var screen := get_viewport_rect().size
+	_marker_tip.global_position = Vector2(clampf(global_position.x + _marker_rect.get_center().x - _marker_tip.size.x / 2.0,
+		4, screen.x - _marker_tip.size.x - 4), global_position.y + _marker_rect.end.y + 22)
 
 # "Drift 7 / 50", or "Ready · Drift 1" before the first drift.
 func get_drift_text() -> String:

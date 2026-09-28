@@ -65,6 +65,12 @@ func _ready() -> void:
 	_on_leaves_changed(run_state.leaves, run_state.max_leaves)
 	_add_dreamlight_counter()
 	_add_menu_button()
+	# Boss dossier (screens_ui.md): under the pause menu, above the rest of the HUD.
+	var dossier := BossDossier.new(drift_director)
+	add_child(dossier)
+	move_child(dossier, %PauseMenu.get_index())
+	# Resist / weak pips and the immune flash, drawn in the world over the nightmares.
+	owner.add_child.call_deferred(ResistPips.new())
 	# Every resource explains itself on hover and tap (screens_ui.md "Stat and status icons").
 	TapTip.attach(dew_label, IconInfo.resource_tooltip(&"dew"))
 	TapTip.attach(leaves_label, IconInfo.resource_tooltip(&"leaves"))
