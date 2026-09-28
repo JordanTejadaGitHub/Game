@@ -226,6 +226,8 @@ let ACT = ACTS[0];
 
 
 
+
+
 // ================= Memory Grove: the Heartwood as a tech tree =================
 // Tree space is 1280×960 px (native pixel art); every position below is in that space.
 const GW = 1280, GH = 960;
@@ -240,9 +242,9 @@ const SECTION = {
 };
 // The three great limbs (Catmull-Rom through these points), with their widths at base and tip.
 const LIMBS = {
-  perks:    { pts: [[628, 648], [540, 604], [440, 562], [340, 520], [250, 470], [170, 410], [104, 334], [74, 250]], w: [38, 9] },
+  perks:    { pts: [[628, 648], [566, 596], [500, 540], [432, 482], [362, 424], [292, 366], [224, 306], [168, 244]], w: [38, 9] },
   families: { pts: [[640, 648], [640, 560], [645, 480], [636, 400], [641, 320], [645, 240], [638, 160], [640, 104]], w: [44, 10] },
-  cards:    { pts: [[652, 648], [740, 604], [840, 562], [940, 517], [1040, 467], [1130, 407], [1192, 342], [1222, 280]], w: [38, 9] },
+  cards:    { pts: [[652, 648], [714, 596], [780, 540], [848, 482], [918, 424], [988, 366], [1056, 306], [1112, 244]], w: [38, 9] },
 };
 // The trunk leans in an S-curve (roots to the limbs' fork); trunkX(y) is its centre line.
 const TRUNK_PTS = [[640, 905], [618, 846], [608, 786], [650, 730], [674, 668], [640, 610]];
