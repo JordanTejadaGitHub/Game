@@ -131,6 +131,11 @@ func _run() -> void:
 	boss.set_process(false)
 	await process_frame
 	_check(banner.half_health_text().begins_with("At 50% health · Charge"), "the 50 percent marker names the ability (" + banner.half_health_text() + ")")
+	banner._boss = spawner.spawn_enemy(load("res://resource/enemy/hollow_oak.tres"))
+	banner._boss.set_process(false)
+	var oak_lines: Dictionary = banner.marker_lines()
+	_check(oak_lines.has(0.67) and oak_lines.has(0.33) and not oak_lines.has(0.5), "the Oak marks 67 and 33 percent, not 50: " + str(oak_lines.keys()))
+	banner._boss.queue_free()
 	boss.queue_free()
 
 	# --- Record ----------------------------------------------------------------------------------

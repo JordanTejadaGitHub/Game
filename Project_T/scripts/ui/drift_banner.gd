@@ -2,7 +2,7 @@ extends Control
 
 # Top-centre drift display (screens_ui.md "The run HUD"): act and drift, 5 pips for the current
 # block, and the countdown to the next boss. During a boss drift the countdown becomes the boss's
-# health bar, with a marker at 50% (where its behaviour changes). Drawn in code.
+# health bar, with a marker where an ability starts (50%; the Oak 67% / 33%). Drawn in code.
 
 const WIDTH := 460.0
 const PIP_RADIUS := 5.0
@@ -16,9 +16,9 @@ const SMALL_FONT_SIZE := 14
 
 var _boss: Node2D = null
 # Tappable spots (screens_ui.md "Boss dossier"): "Boss in N" opens the dossier; during the boss drift
-# the bar's 50% marker shows the ability that starts there. Everything else lets clicks through.
+# the bar's markers (50%, or the Oak's 67% / 33%) show the ability that starts there. Everything else lets clicks through.
 var _countdown_rect := Rect2()
-var _marker_rect := Rect2()
+var _markers: Array = []  # [[Rect2, line], …] on the boss bar
 var _marker_tip := TapTip.new()
 
 func _ready() -> void:
@@ -69,57 +69,81 @@ func _draw() -> void:
 			Color(BOSS_COLOR, 0.6), 1.0)
 	else:
 		_countdown_rect = Rect2()
-	_marker_rect = Rect2()
+	_markers = []
 
 func _draw_boss_bar(font: Font, center_x: float) -> void:
 	var bar := Rect2(center_x - WIDTH / 2.0, 34, WIDTH, 10)
 	var fraction := float(_boss.health) / maxf(_boss.max_health, 1.0)
 	draw_rect(bar.grow(2), Color(0.05, 0.05, 0.08, 0.85))
 	draw_rect(Rect2(bar.position, Vector2(bar.size.x * fraction, bar.size.y)), BOSS_COLOR)
-	var half_x := bar.position.x + bar.size.x * 0.5
-	draw_line(Vector2(half_x, bar.position.y - 3), Vector2(half_x, bar.end.y + 3), Color.WHITE, 2.0)
-	draw_circle(Vector2(half_x, bar.position.y - 5), 3.0, Color.WHITE)  # A knob: it's tappable
-	_marker_rect = Rect2(half_x - 14, bar.position.y - 14, 28, 32)
+	# A marker (with a knob: it's tappable) at every health share an ability starts at.
+	_markers = []
+	var lines := marker_lines()
+	for share in lines:
+		var x := bar.position.x + bar.size.x * float(share)
+		draw_line(Vector2(x, bar.position.y - 3), Vector2(x, bar.end.y + 3), Color.WHITE, 2.0)
+		draw_circle(Vector2(x, bar.position.y - 5), 3.0, Color.WHITE)
+		_markers.append([Rect2(x - 14, bar.position.y - 14, 28, 32), lines[share]])
 	# The rest of the bar (and the name) opens the dossier too.
 	_countdown_rect = Rect2(bar.position.x, bar.position.y - 4, bar.size.x, bar.size.y + 26)
 	_draw_centered(font, _boss.enemy_data.display_name, Vector2(center_x, bar.end.y + 16), SMALL_FONT_SIZE, BOSS_COLOR.lightened(0.3))
 
 func _has_point(point: Vector2) -> bool:
-	return _marker_rect.has_point(point) or _countdown_rect.has_point(point)
+	return _marker_at(point) != "" or _countdown_rect.has_point(point)
+
+func _marker_at(point: Vector2) -> String:
+	for marker in _markers:
+		if marker[0].has_point(point):
+			return marker[1]
+	return ""
 
 func _get_tooltip(at: Vector2) -> String:
-	if _marker_rect.has_point(at):
-		return half_health_text()
+	var line := _marker_at(at)
+	if line != "":
+		return line
 	return "Open the boss dossier" if _countdown_rect.has_point(at) else ""
 
 func _gui_input(event: InputEvent) -> void:
 	if not (event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT):
 		return
-	if _marker_rect.has_point(event.position):
-		show_marker_tip()
+	var line := _marker_at(event.position)
+	if line != "":
+		show_marker_tip(line, event.position)
 	elif _countdown_rect.has_point(event.position):
 		BossDossier.open_for(get_tree())
 	accept_event()
 
-# The boss's ability that starts at 50% health (EnemyData abilities, "when" mentions 50%), e.g.
-# "At 50% health · Charge: its antlers flare and it runs +50% faster for 4 s."
-func half_health_text() -> String:
+# {health share: line} for the boss's abilities that start at a health share (EnemyData abilities
+# whose "when" says "at 50% health", "at 67% and 33% health"), e.g. 0.5: "At 50% health · Charge: its
+# antlers flare and it runs +50% faster for 4 s." Empty = no markers (never a marker that says nothing).
+func marker_lines() -> Dictionary:
+	var lines := {}
 	if not is_instance_valid(_boss):
-		return ""
+		return lines
 	var data: EnemyData = _boss.enemy_data
+	var percent := RegEx.create_from_string("([0-9]+)%")
 	for i in data.abilities.size():
 		var ability := data.get_ability(i)
-		if String(ability.get("when", "")).contains("50%"):
-			return IconInfo.format("At 50%% health · %s: %s" % [ability.get("name", ""), ability.get("text", "")])
-	return "At 50% health its behaviour changes."
+		var when := String(ability.get("when", ""))
+		if not when.contains("health"):
+			continue
+		for found in percent.search_all(when):
+			var share := int(found.get_string(1)) / 100.0
+			lines[share] = IconInfo.format("At %s health · %s: %s" % [found.get_string(), ability.get("name", ""),
+				ability.get("text", "")])
+	return lines
 
-func show_marker_tip() -> void:
-	_marker_tip._label.text = half_health_text()
+# The 50% marker's line ("" if the boss has none).
+func half_health_text() -> String:
+	return marker_lines().get(0.5, "")
+
+func show_marker_tip(line: String, at: Vector2) -> void:
+	_marker_tip._label.text = line
 	_marker_tip.visible = false
 	_marker_tip.toggle()
 	var screen := get_viewport_rect().size
-	_marker_tip.global_position = Vector2(clampf(global_position.x + _marker_rect.get_center().x - _marker_tip.size.x / 2.0,
-		4, screen.x - _marker_tip.size.x - 4), global_position.y + _marker_rect.end.y + 22)
+	_marker_tip.global_position = Vector2(clampf(global_position.x + at.x - _marker_tip.size.x / 2.0,
+		4, screen.x - _marker_tip.size.x - 4), global_position.y + 70)
 
 # "Drift 7 / 50", or "Ready · Drift 1" before the first drift.
 func get_drift_text() -> String:
