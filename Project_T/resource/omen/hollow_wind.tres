@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="OmenData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/omen/script/omen_data.gd" id="1_omen"]
+
+[resource]
+script = ExtResource("1_omen")
+id = "hollow_wind"
+display_name = "Hollow Wind"
+description = "The block's first 2 drifts are all flying nightmares."
+kind = 0
+min_drift = 26
+requires_flyers = true
+all_flyer_drifts = 2
+reward_rare_dreams = 1

@@ -10,6 +10,10 @@ class_name OmenData
 @export_multiline var description: String = ""  # The twist, e.g. "Creatures have 20% more health."
 @export var min_drift: int = 0  # Only offered for blocks starting at this drift or later
 @export var requires_flyers: bool = false  # Only offered if the next block has flying creatures
+# The offer shows 2 Omens of different kinds (run_design.md "More Omens").
+enum Kind { NIGHTMARES, YOUR_SIDE, DOUBLE_EDGED, MAP }
+@export var kind: Kind = Kind.NIGHTMARES
+@export var needs_free_cells: int = 0  # Only on maps with this many free cells away from the route (Shifting Ground)
 
 @export_group("Next block")
 @export var health_multiplier: float = 1.0
@@ -20,6 +24,16 @@ class_name OmenData
 @export var creature_dew_multiplier: float = 1.0
 @export var status_duration_multiplier: float = 1.0
 @export var arrival_spacing_multiplier: float = 1.0  # < 1 = creatures arrive closer together
+@export var warden_range_add: float = 0.0  # Fog Bank: −1 (never below 1 range; Tower asks OmenDirector)
+@export var warden_attack_speed_multiplier: float = 1.0  # Wilting: 0.85
+@export var no_build_during_drift: bool = false  # Frozen Ground: planting and growing only at rests
+@export var leak_multiplier: float = 1.0  # Leaf Fall: every leak costs ×2 leaves (bosses too)
+@export var rest_bonus_multiplier: float = 1.0  # Lean Season: the block's rest bonus × 0.5
+@export var status_immune: Array[StringName] = []  # Sleepless: drowsy, held
+@export var always_status: StringName = &""  # Heavy Rain: always Soaked
+@export var extra_elites: int = 0  # Elder Night: +1 elite in every drift
+@export var all_flyer_drifts: int = 0  # Hollow Wind: the block's first N drifts are all flyers
+@export var sprout_obstacles: int = 0  # Shifting Ground: Withered Trees sprout at the block's start
 
 @export_group("Reward")
 # Dew and Seeds scale with the act (OmenDirector.ACT_REWARD_SCALE).
@@ -30,3 +44,6 @@ class_name OmenData
 @export var reward_rare_dreams: int = 0  # The next N Dreams each include a Rare+ card
 @export var reward_extra_dream_cards: int = 0  # The next Dream offers N more cards
 @export var reward_rest_bonus_multiplier: float = 1.0  # This rest's bonus × N (Dry Spell: 2)
+@export var reward_dreamlight: int = 0
+@export var reward_legendary: bool = false  # The next Dream includes a Legendary (act 2+)
+@export var reward_tree_seeds: int = 0  # Shifting Ground: each tree cleared from now on gives this many extra Seeds

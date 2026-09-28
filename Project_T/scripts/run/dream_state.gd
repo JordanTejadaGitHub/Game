@@ -223,6 +223,7 @@ var _passed_at := {}  # Card id -> the offer number (dreams_seen) it was last pa
 var _taken_this_offer: Array[String] = []
 var _guaranteed_id := ""  # The Entwined guaranteed card of the current offer (never fades)
 var current_stray: UpgradeData = null  # The Stray Dream card of the current offer (null = none)
+var _legendary_next := 0  # Lean Season: Dreams still owed a Legendary
 var _owed_families: Array[String] = []  # Half-dreamed cards taken: the next family pick includes one
 var _declined_families: Array[String] = []  # Offered at the last family pick, not taken (half-dreamed ×0.3)
 var _taken_cache := {}  # include_dormant -> [state key, taken cards] (_taken_cards)
@@ -1170,6 +1171,10 @@ func add_rare_dreams(count: int) -> void:
 func add_extra_cards(count: int) -> void:
 	_extra_cards_next += count
 
+# Omen reward (Lean Season): the next Dream (from act 2) includes a Legendary.
+func add_legendary_dreams(count: int) -> void:
+	_legendary_next += count
+
 # Restless Dreams (bittersweet) takes "Let it pass" away for the rest of the run.
 func can_skip() -> bool:
 	return not has_rule(&"restless_dreams")
@@ -1309,7 +1314,8 @@ func times_passed(card_id: String) -> int:
 
 func _offer_counters() -> Dictionary:
 	return {"dreams_seen": dreams_seen, "without_rare": _dreams_without_rare,
-		"rare_left": _rare_dreams_left, "extra": _extra_cards_next, "entwined": _entwined_offered.duplicate()}
+		"rare_left": _rare_dreams_left, "extra": _extra_cards_next, "entwined": _entwined_offered.duplicate(),
+		"legendary": _legendary_next}
 
 func _restore_offer_counters(counters: Dictionary) -> void:
 	if counters.is_empty():
@@ -1318,6 +1324,7 @@ func _restore_offer_counters(counters: Dictionary) -> void:
 	_dreams_without_rare = counters.without_rare
 	_rare_dreams_left = counters.rare_left
 	_extra_cards_next = counters.extra
+	_legendary_next = counters.get("legendary", 0)
 	_entwined_offered = counters.entwined.duplicate()
 
 # Builds a Dream offer for after drift `drift_number` (see dream_design.md, "How offers work").
@@ -1343,6 +1350,13 @@ func make_offer(drift_number: int) -> Array[UpgradeData]:
 				offer.append(card)
 				break
 	# The Stray Dream: from drift 10's rest (never a boss rest), one slot leans away from the build.
+	# Lean Season's reward: one Legendary slot (act 2+), before the Stray and the normal slots.
+	if _legendary_next > 0 and act >= 2 and offer.size() < size:
+		var legendaries: Array = pool.filter(func(c: UpgradeData) -> bool:
+			return c.rarity == UpgradeData.Rarity.LEGENDARY and not offer.has(c) and can_offer(c, act))
+		if not legendaries.is_empty():
+			offer.append(_weighted_pick(legendaries))
+			_legendary_next -= 1
 	current_stray = null
 	if offer.size() < size and drift_number >= STRAY_FROM_DRIFT and not drift_director.is_boss_drift(drift_number):
 		current_stray = _draw_card(act, offer, false, true)
@@ -1671,6 +1685,7 @@ func to_save() -> Dictionary:
 		"passed_count": _passed_count.duplicate(), "passed_at": _passed_at.duplicate(),
 		"owed_families": _owed_families.duplicate(), "declined_families": _declined_families.duplicate(),
 		"walls_planted": _walls_planted, "glimmer_shards": glimmer_shards,
+		"legendary_next": _legendary_next,
 		"rng_state": str(_rng.state),  # A string: JSON would round a 64-bit int
 	}
 
@@ -1707,6 +1722,7 @@ func load_save(data: Dictionary) -> void:
 	_attackers_planted = int(data.get("attackers_planted", 0))
 	_walls_planted = int(data.get("walls_planted", 0))
 	glimmer_shards = int(data.get("glimmer_shards", 0))
+	_legendary_next = int(data.get("legendary_next", 0))
 	_refill_bark()  # Saved at a rest, where Thick Bark is full again
 	dreamlight = int(data.get("dreamlight", 0))
 	dreamlight_changed.emit(dreamlight)
