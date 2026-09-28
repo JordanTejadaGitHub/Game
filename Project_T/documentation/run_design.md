@@ -122,10 +122,15 @@ After the act 2 boss (drift 50), the Heartwood offers **one Sapling** of itself 
 - **Free to plant, 2×2 cells**, anywhere the path rule allows (it's a wall like any Warden, so it
   reshapes the maze: a real placement decision). **Rooted:** once planted it **can't be sold or
   moved**.
-- **It doesn't attack.** At the end of every drift it yields **+20 Dew**, and every **10 drifts**
+- **It doesn't attack.** At the end of every drift it yields **+8 Dew**, and every **10 drifts**
   it ripens **+1 Dreamlight** (feeding Ascended unlocks).
-- **Nurture it** (ranks I–V at the final-form price) to raise the yield: **+10 Dew per rank**
-  (rank V: +70 Dew per drift) and, at rank III and above, Dreamlight every **7** drifts instead of 10.
+- **Nurture it** (ranks I–V at the **base-form** price, 350 Dew in all) to raise the yield: **+4 Dew
+  per rank** (rank V: +28 Dew per drift) and, at rank III and above, Dreamlight every **8** drifts
+  instead of 10.
+- **Tuned down 2026-09-28** (playtest: "the Sapling is giving too much economy"). Was +20 Dew per
+  drift, +10 per rank (rank V +70 per drift = 350 per block, over 4× the ~80 rest bonus of act 3).
+  Now: ~40 Dew per block unranked (about half a rest bonus), ~140 at rank V; the 350 Dew of ranks
+  pays back in roughly 18 drifts, a real bet rather than a free win.
 - **Leaks hurt it:** each leaf lost withers it slightly (−5% yield, recovering at each rest), so a
   greedy maze that leaks pays twice.
 - Offered on its own card right after the drift 50 family pick (*"The Heartwood offers a seedling
