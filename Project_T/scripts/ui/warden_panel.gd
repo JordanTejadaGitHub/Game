@@ -81,11 +81,11 @@ func _refresh() -> void:
 	var data := _tower.tower_data
 	_title.text = data.display_name
 	if _tower.rank > 0:
-		_title.text += " · Rank %s" % Tower.rank_name(_tower.rank)
+		_title.text += " Â· Rank %s" % Tower.rank_name(_tower.rank)
 		if _is_eldest(_tower):
-			_title.text += " · Eldest"
+			_title.text += " Â· Eldest"
 		if _tower.focus != Tower.Focus.NONE:
-			_title.text += " · %s" % Tower.FOCUS_NAMES[_tower.focus]
+			_title.text += " Â· %s" % Tower.FOCUS_NAMES[_tower.focus]
 	_title.tooltip_text = ""
 	if _tower.rank > 0:
 		_title.tooltip_text = IconInfo.stat_tooltip(&"rank") + ("\n" + IconInfo.stat_tooltip(&"focus") if _tower.focus != Tower.Focus.NONE else "")
@@ -105,14 +105,14 @@ func _refresh() -> void:
 			lines.append("Copying %s at %d%%" % [attack.display_name, roundi(data.copy_share * 100)])
 		var range_text := "range %.2f" % _tower.get_range_cells()
 		if attack.min_range > 0.0:
-			range_text = "range %.1f–%.1f" % [attack.min_range, _tower.get_range_cells()]
+			range_text = "range %.1fâ%.1f" % [attack.min_range, _tower.get_range_cells()]
 		_stat_row([["Damage %.0f" % _tower.get_damage(), &"damage"],
 			["%.2f/s" % _tower.get_attacks_per_second(), &"attack_speed"],
 			[range_text, &"range"]])
 		var second: Array = []
 		if _tower.get_crit_chance() > 0.0:
 			second.append(["Crit %d%%" % roundi(_tower.get_crit_chance() * 100), &"crit_chance"])
-			second.append(["×%s" % str(attack.crit_multiplier), &"crit_damage"])
+			second.append(["Ã%s" % str(attack.crit_multiplier), &"crit_damage"])
 		var potency := _tower.get_potency()
 		if not is_equal_approx(potency, 1.0):
 			second.append(["Potency %d%%" % roundi(potency * 100), &"potency"])  # Effect damage
@@ -120,9 +120,10 @@ func _refresh() -> void:
 			_stat_row(second)
 		if attack.applies_status != &"":
 			_stat_row([["Applies %s%s" % [IconInfo.status_name(attack.applies_status),
-				" ×%d" % attack.status_stacks if attack.status_stacks > 1 else ""], attack.applies_status, true]])
+				" Ã%d" % attack.status_stacks if attack.status_stacks > 1 else ""], attack.applies_status, true]])
 	else:
 		lines.append("A wall: no attack.")
+	_stats.add_child(DreamBonusView.make_rows(_tower))  # "Dreams on this Warden": on, off (and why), run-wide
 	if data.is_unique:
 		lines.append("A freed memory: one per run, can't grow.")
 	# Combat feedback (screens_ui.md): what this Warden has done, and what it combos with.
@@ -131,7 +132,7 @@ func _refresh() -> void:
 		var stats := log.get_tower_stats(_tower)
 		var run: float = stats.get("run", 0.0)
 		if run > 0.0:
-			lines.append("This run: %d damage · %.0f/s · from combos %d%%" % [roundi(run),
+			lines.append("This run: %d damage Â· %.0f/s Â· from combos %d%%" % [roundi(run),
 				log.get_dps(_tower), roundi(100.0 * stats.get("run_combo", 0.0) / run)])
 	var links := Synergies.find_links(data, _tower.cell, _tower.get_parent().get_children())
 	if not links.is_empty():
@@ -157,7 +158,7 @@ func _refresh() -> void:
 		var button := _add_button("")
 		if option[1]:
 			var cost := dream_state.get_evolve_cost(next)
-			button.text = "Grow into %s · %d Dew" % [next.display_name, cost]
+			button.text = "Grow into %s Â· %d Dew" % [next.display_name, cost]
 			button.tooltip_text = next.description
 			button.disabled = not run_state.can_afford(cost)
 			button.pressed.connect(_evolve.bind(next))
@@ -168,7 +169,7 @@ func _refresh() -> void:
 		var cost := _tower.get_nurture_cost()
 		for which in [Tower.Focus.POWER, Tower.Focus.SWIFT, Tower.Focus.REACH, Tower.Focus.DEEP]:
 			# Usually rank III; a Warden planted at a higher rank (Remembered Care) chooses on its next one.
-			var button := _add_button("Rank %s · %s: %s per rank · %s" % [Tower.rank_name(_tower.rank + 1),
+			var button := _add_button("Rank %s Â· %s: %s per rank Â· %s" % [Tower.rank_name(_tower.rank + 1),
 				Tower.FOCUS_NAMES[which], Tower.FOCUS_TEXT[which], _price(cost)])
 			button.tooltip_text = "The usual rank gains, plus this Focus at ranks III, IV and V. Can't be changed later."
 			button.disabled = not run_state.can_afford(cost)
@@ -181,7 +182,7 @@ func _refresh() -> void:
 		var eldest_ask: bool = dream_state.has_method("needs_eldest_confirm") and dream_state.needs_eldest_confirm(_tower)
 		if eldest_ask and _confirm_eldest:
 			_add_button("Make this the Eldest? Only one Warden can grow past rank V").disabled = true
-			var yes := _add_button("Yes: make it the Eldest · rank %s · %s" % [Tower.rank_name(_tower.rank + 1), _price(cost)])
+			var yes := _add_button("Yes: make it the Eldest Â· rank %s Â· %s" % [Tower.rank_name(_tower.rank + 1), _price(cost)])
 			yes.disabled = not run_state.can_afford(cost)
 			yes.pressed.connect(func() -> void:
 				_confirm_eldest = false
@@ -192,7 +193,7 @@ func _refresh() -> void:
 				_confirm_eldest = false
 				_refresh())
 		else:
-			var nurture := _add_button("Nurture to rank %s · %s (R)" % [Tower.rank_name(_tower.rank + 1), _price(cost)])
+			var nurture := _add_button("Nurture to rank %s Â· %s (R)" % [Tower.rank_name(_tower.rank + 1), _price(cost)])
 			nurture.tooltip_text = "+10%% damage, +4%% attack speed, +0.1 range%s. Kept when it grows." % (
 				", and %s" % Tower.FOCUS_TEXT[_tower.focus] if _tower.focus != Tower.Focus.NONE else "")
 			nurture.disabled = not run_state.can_afford(cost)
@@ -209,7 +210,7 @@ func _refresh() -> void:
 		else:
 			_add_button("Rank %s: fully nurtured" % Tower.rank_name(_tower.rank)).disabled = true
 	var refund := tower_seller.get_refund(_tower)
-	var sell := _add_button("Sell · +%d Dew%s" % [refund, "" if drift_director.is_build_phase() else " (half during a drift)"])
+	var sell := _add_button("Sell Â· +%d Dew%s" % [refund, "" if drift_director.is_build_phase() else " (half during a drift)"])
 	sell.pressed.connect(func() -> void: tower_seller.sell(_tower.cell))
 	if _tower.tower_data.rooted:
 		sell.text = "Permanent: the Sapling can't be sold or moved"
@@ -223,8 +224,8 @@ func _refresh() -> void:
 func _is_eldest(tower: Tower) -> bool:
 	return dream_state.has_method("is_eldest") and dream_state.is_eldest(tower)
 
-# One row of stats ("Damage 24 · 1.00/s · range 2.50"): each part is its icon and a label, both
-# explaining the stat on hover and on tap (IconInfo). `parts`: [[text, stat id], …] or
+# One row of stats ("Damage 24 Â· 1.00/s Â· range 2.50"): each part is its icon and a label, both
+# explaining the stat on hover and on tap (IconInfo). `parts`: [[text, stat id], â¦] or
 # [text, status id, true] for a status (&"" = plain text).
 func _stat_row(parts: Array) -> void:
 	var row := HBoxContainer.new()
@@ -233,7 +234,7 @@ func _stat_row(parts: Array) -> void:
 		var part: Array = parts[i]
 		if i > 0:
 			var dot := Label.new()
-			dot.text = " · "
+			dot.text = " Â· "
 			row.add_child(dot)
 		var id: StringName = part[1]
 		var is_status: bool = part.size() > 2 and part[2]
@@ -247,6 +248,15 @@ func _stat_row(parts: Array) -> void:
 			row.add_child(gap)
 		var label := Label.new()
 		label.text = part[0]
+		if not is_status and id != &"" and is_instance_valid(_tower):
+			# Dream bonuses on Wardens: the real number, and what made it (base Â· Nurture Â· cards).
+			var breakdown := DreamBonusView.stat_breakdown(_tower, id)
+			if breakdown != "":
+				tip = breakdown + ("
+" + tip if tip != "" else "")
+			if DreamBonusView.is_boosted(_tower, id):
+				label.text += " ↑"
+				label.add_theme_color_override("font_color", DreamBonusView.BOOSTED_COLOR)
 		if tip != "":
 			TapTip.attach(label, tip)
 		row.add_child(label)
@@ -268,6 +278,7 @@ func _refresh_group() -> void:
 	var lines: Array[String] = [", ".join(kinds)]
 	if damage_per_second > 0.0:
 		lines.append("Together: %.0f damage per second" % damage_per_second)
+	lines.append_array(DreamBonusView.group_summary(selection))  # "Solitude: 3 of 5"
 	_body.text = "\n".join(lines)
 
 	for child in _buttons.get_children():
@@ -283,16 +294,16 @@ func _refresh_group() -> void:
 			var button := _add_button("")
 			button.tooltip_text = next.description
 			if not option[1]:
-				_locked_form_button(button, "%s → %s" % [_plural(data, towers.size()), next.display_name], next)
+				_locked_form_button(button, "%s â %s" % [_plural(data, towers.size()), next.display_name], next)
 				continue
 			var cost := dream_state.get_evolve_cost(next)
 			var affordable := tower_seller.count_affordable(towers, next)
 			if affordable >= towers.size():
-				button.text = "Grow %d %s into %s · %d Dew" % [towers.size(), _plural(data, towers.size()),
+				button.text = "Grow %d %s into %s Â· %d Dew" % [towers.size(), _plural(data, towers.size()),
 					next.display_name, cost * towers.size()]
 			else:
 				# Grows as many as the Dew allows, closest to the Heartwood first.
-				button.text = "Grow %d of %d %s into %s · %d Dew" % [affordable, towers.size(),
+				button.text = "Grow %d of %d %s into %s Â· %d Dew" % [affordable, towers.size(),
 					_plural(data, towers.size()), next.display_name, cost * affordable]
 				button.disabled = affordable == 0
 			button.pressed.connect(func() -> void: tower_seller.grow_group(towers, next))
@@ -302,9 +313,9 @@ func _refresh_group() -> void:
 		var plan: Array = tower_seller.plan_nurture(selection)
 		var nurture := _add_button("")
 		if plan[0].size() >= full[0]:
-			nurture.text = "Nurture all %d · %s (R)" % [full[0], _price(full[1])]
+			nurture.text = "Nurture all %d Â· %s (R)" % [full[0], _price(full[1])]
 		else:
-			nurture.text = "Nurture %d of %d · %s (R)" % [plan[0].size(), full[0], _price(plan[1])]
+			nurture.text = "Nurture %d of %d Â· %s (R)" % [plan[0].size(), full[0], _price(plan[1])]
 			nurture.disabled = plan[0].is_empty()
 		nurture.tooltip_text = "Each gains a rank: +10% damage, +4% attack speed, +0.1 range."
 		if tower_seller.count_needing_focus(selection) > 0:
@@ -318,10 +329,10 @@ func _refresh_group() -> void:
 			var plan_focus: Array = tower_seller.plan_nurture(selection, which)
 			var button := _add_button("")
 			if plan_focus[0].size() >= cost[0]:
-				button.text = "Nurture all %d, %d at rank III take %s · %s" % [cost[0], waiting,
+				button.text = "Nurture all %d, %d at rank III take %s Â· %s" % [cost[0], waiting,
 					Tower.FOCUS_NAMES[which], _price(cost[1])]
 			else:
-				button.text = "Nurture %d of %d, rank III take %s · %s" % [plan_focus[0].size(), cost[0],
+				button.text = "Nurture %d of %d, rank III take %s Â· %s" % [plan_focus[0].size(), cost[0],
 					Tower.FOCUS_NAMES[which], _price(plan_focus[1])]
 				button.disabled = plan_focus[0].is_empty()
 			button.tooltip_text = "%s: %s per rank from rank III. Can't be changed later." % [
@@ -329,7 +340,7 @@ func _refresh_group() -> void:
 			button.pressed.connect(func() -> void: tower_seller.nurture_group(tower_seller.selection, which))
 	var refund := tower_seller.get_selection_refund()
 	var in_drift := not drift_director.is_build_phase()
-	var sell := _add_button("Sell %d · +%d Dew%s" % [selection.size(), refund, " (half during a drift)" if in_drift else ""])
+	var sell := _add_button("Sell %d Â· +%d Dew%s" % [selection.size(), refund, " (half during a drift)" if in_drift else ""])
 	if _confirm_sell:
 		sell.text = "Really sell %d while nightmares walk? +%d Dew" % [selection.size(), refund]
 	sell.pressed.connect(_sell_group)
@@ -353,7 +364,7 @@ func _group_row(data: TowerData, count: int) -> Control:
 		icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 		row.add_child(icon)
 	var label := Label.new()
-	label.text = "%d × %s" % [count, data.display_name]
+	label.text = "%d Ã %s" % [count, data.display_name]
 	row.add_child(label)
 	return row
 
@@ -389,21 +400,21 @@ func _cycle_group_target() -> void:
 			tower.target_mode = next
 	_refresh()
 
-# A form that isn't unlocked yet (run_design.md "Dreamlight"): "Grow into Stormcap · Unlock with 1
+# A form that isn't unlocked yet (run_design.md "Dreamlight"): "Grow into Stormcap Â· Unlock with 1
 # Dreamlight". With enough Dreamlight, the first click asks and the second unlocks it; otherwise it
 # opens the Remember screen on that form (which also says what else it needs).
 func _locked_form_button(button: Button, label: String, next: TowerData) -> void:
 	button.tooltip_text = next.description
 	if not dream_state.has_method("get_unlock_cost"):
-		button.text = "%s · needs a Dream" % label  # Before Dreamlight
+		button.text = "%s Â· needs a Dream" % label  # Before Dreamlight
 		button.disabled = true
 		return
 	var cost: int = dream_state.get_unlock_cost(next)
 	var blocker: String = dream_state.get_unlock_blocker(next)
 	var affordable: bool = dream_state.can_unlock(next) and dream_state.dreamlight >= cost
-	button.text = "%s · Unlock with %d Dreamlight" % [label, cost]
+	button.text = "%s Â· Unlock with %d Dreamlight" % [label, cost]
 	if blocker != "":
-		button.text = "%s · %s" % [label, blocker]
+		button.text = "%s Â· %s" % [label, blocker]
 	elif not affordable:
 		button.text += " (you have %d)" % dream_state.dreamlight
 	elif _confirm_unlock == next:
