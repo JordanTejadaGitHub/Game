@@ -164,6 +164,71 @@ each tier is clearly louder than the one below. Effects are in `assets/effects/`
   always apply in full; only visuals are capped.
 - **Rest report / results:** add Reactions triggered per type and the **longest chain**.
 
+## The Codex: Glossary and Combos
+
+Added 2026-09-27 (user request). One **Codex** book, opened from the pause menu, the title screen
+and the Memory Grove (and a **?** button on the HUD). It extends the existing Reactions Codex panel.
+Two tabs:
+
+### Glossary (every term, always complete)
+
+A reference, not a collection: every entry is there from the start, grouped, searchable, each with a
+one-line definition, a small icon, and "see also" links. Terms in tooltips, cards and whispers can be
+**tapped to jump to their entry** (underlined in-game text).
+
+| Group | Terms |
+|---|---|
+| **Resources** | Dew, Dreamlight, Leaves, Seeds |
+| **The run** | Drift, Block, Rest, Act, Boss, Family pick, Family Blessing, Dream, Omen, Call early, Auto-drift, Remember screen |
+| **Wardens** | Warden, Family, Branch, Final form, Hidden branch, Memory Warden, Grow (evolve), Nurture, Rank, Focus (Power / Swift / Reach / Deep), Thornwall and wall growths, Crit, Clear tool / Tend |
+| **Nightmares** | Nightmare, Dispel, Deeply Blighted (elite), Resists / Weak to (families), Dread shell, Hidden (Lurkers), Flying |
+| **Statuses** | Damp, Drowsy, Spored, Marked, Static, Held, Caught, Frozen |
+| **Dreams** | Rarity, Deepened, Entwined, Bittersweet, Legendary, Let it pass, Reroll, Banish |
+| **The Memory Grove** | Memory Grove, Memories, Loadout, Blight Levels, Milestones |
+
+Boss names and late nightmares only show once met, to avoid spoilers (the rest is always visible).
+
+### Combos (discovered in play)
+
+Every combo starts **locked** and is **discovered the first time it actually fires** in a run.
+
+- **Locked entry:** a dark card with *"???"* and the **two ingredient status icons** as a hint
+  (e.g. Damp + Static), so players know what to try without being told the answer.
+- **Discovery:** the first time a combo fires, a card **slides in at the top of the screen for ~5
+  seconds** (the game doesn't pause): *"Combo discovered: Thunderclap"*, the two ingredients, one
+  line on what it does, and *"Added to the Codex."* A short chime (distinct from the dispel). If
+  several fire at once they queue. The rest report lists *"New combos: Thunderclap"*.
+- **Unlocked entry:** name, ingredients, what it does, which Wardens apply each ingredient (from your
+  families seen so far), and how many times you've set it off.
+- **Counter:** *"12 / 15 combos discovered"* on the tab; discovering every one is a **milestone**
+  (a Steam achievement; `meta_design.md`).
+
+**The combos (15):**
+
+| Kind | Combo | Ingredients | What it does |
+|---|---|---|---|
+| Synergy | **Conducted** | Damp + lightning (Stormcap) | lightning jumps further and more often between Damp nightmares |
+| Synergy | **Popped** | Spored 10+ + Puffball | the spores burst over the nightmare and its neighbours |
+| Synergy | **Asleep** | full Drowsy + Dreamshroom | the nightmare falls asleep |
+| Synergy | **Spore Fog** | Spored + Mistveil fog | spores tick harder inside the fog |
+| Synergy | **Set Off** | Static + a pulse (Chime Stone, Lullaby Bell) | the pulse sets off a Static bolt |
+| Synergy | **Marked Blow** | Marked + a heavy hitter (Mossback, Boulderback) | double damage on Marked nightmares |
+| Synergy | **Caught** | asleep / full Drowsy + Dreamcatcher | the nightmare takes extra damage from everything |
+| Reaction | **Drown** | Damp + full Drowsy | falls asleep for 2 s |
+| Reaction | **Ignite** | 3 Spored + Static | every spore stack goes off, and sparks spread |
+| Reaction | **Lightning Rod** | Marked + Static | nearby Static bolts strike it at 2× |
+| Reaction | **Mushrooming** | 3 Spored + Damp | spores tick harder and a spore cloud grows |
+| Reaction | **Pinned** | Marked + Held or full Drowsy | the next hit is a guaranteed 3× crit |
+| Reaction | **Shatter** | Held + Damp, then a crit or heavy hit | that hit does 2.5× and shards fly |
+| Reaction | **Smother** | Held + Spored | spores tick three times as fast while held |
+| Reaction | **Thunderclap** | Damp + 3 Static | 4× damage; lightning arcs to nearby Damp nightmares |
+
+New combos (new Wardens, Reactions) are added to this table and the Codex automatically.
+
+- **Saved in the profile**, including in the demo (carried into the full game like Seeds). Not
+  recorded in developer runs (Test Grove, Unlock all families).
+- Touch: everything is tap-based; the discovery card can be tapped to open the entry.
+
 ## Panels
 
 ### Warden panel (on selection)

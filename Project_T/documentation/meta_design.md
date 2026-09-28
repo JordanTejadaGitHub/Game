@@ -216,6 +216,7 @@ A Memory fragment appears **every 3 nodes planted** (plus the milestone ones bel
 | Win with only one Warden line | Monoculture card, free |
 | Reach Blight Level 5 | Memory fragment |
 | Win at Blight Level 10 | Blossom cosmetic for all Wardens |
+| Discover every combo (Codex, `screens_ui.md`) | Memory fragment + a Codex cosmetic (gilded pages) |
 
 Free unlocks that duplicate a Grove purchase refund its Seeds if already bought.
 
