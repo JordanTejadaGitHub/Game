@@ -183,6 +183,20 @@ additively like other stats.
 Deepened: **Sharpened Light II** +1.0 multiplier; **Still Target II** +25%; **Shattering Blow II**
 splash 75% within 1.5 cells.
 
+## Potency cards: effect damage
+
+Added 2026-09-27 with Potency (`tower_design.md`, "Potency: effect damage"). The mirror of the crit
+cards: crit cards grow hits, these grow effects (Spored, Static bolts, clouds, fog, Reactions).
+
+| # | Card | Rarity | Effect | Tags | Needs | Pool |
+|---|---|---|---|---|---|---|
+| 109 | **Bitter Sap** | Common | all Wardens +8% Potency (stacks) | potency | — | Start |
+| 110 | **Seeping** | Uncommon | effects deal **+5% per status** the nightmare carries (max +30%) | potency, reaction | any 2 status families | Grove |
+| 111 | **Venom Bloom** | Uncommon, **Bittersweet** | all Wardens +30% Potency. **Cost:** hits do −15% damage | potency, bittersweet | — | Grove |
+| 112 | **Nightshade** | Legendary | all Wardens +15% Potency; **effect ticks can crit** using the applier's crit chance and multiplier | potency, crit | — | Grove |
+
+Deepened: **Seeping II** +7% per status (max +42%).
+
 ## Cards for the new Wardens
 
 Each hidden branch, final form and full-game family brings its own cards (the "6–8 per family"

@@ -51,7 +51,7 @@ final form is a big, deliberate spend.
 | **Power** | +8% damage | +24% damage |
 | **Swift** | +6% attack speed | +18% attack speed |
 | **Reach** | +0.2 range | +0.6 range |
-| **Deep** | +10% status strength and duration | +30% |
+| **Deep** | +10% status strength (**Potency**) and duration | +30% |
 
 - At rank V without Focus: +50% damage, +20% attack speed, +0.5 range ≈ **1.8× damage per second**;
   with Power ≈ 2.1×. Two identical Wardens can end up doing different jobs (a Reach Lanternmoth
@@ -66,6 +66,20 @@ final form is a big, deliberate spend.
 
 **Auras don't stack with themselves:** a Warden next to two Elder Stumps gets the bonus once (the
 highest one applies). Different aura types do stack.
+
+**Potency** (rules in `tower_design.md`, "Potency: effect damage"): every Warden is **100%** unless
+listed. It multiplies the effect damage of the statuses it applies and the Reactions it completes.
+
+| Warden | Potency | Why |
+|---|---|---|
+| Driftspore | 115% | the poison specialist |
+| Puffball | 130% | pops are its whole job |
+| Mistveil, Morning Fog | 115% | fog is where effects land hardest |
+| Thunderhead | 115% | Thunderclap engine |
+| Chime Stone, Lullaby Bell | 110% | Static set-off |
+| Elf Circle | 115% | spore traps |
+| Echo Hollow, Whispering Hollow | 120% | echoes are pure effect damage |
+| Rockslide | 110% | rubble |
 
 **Crits** (rules in `tower_design.md`): every attacking Warden has **5% crit chance, ×2** unless
 listed below. Average damage with crits = DPS × (1 + chance × (multiplier − 1)), so the default
