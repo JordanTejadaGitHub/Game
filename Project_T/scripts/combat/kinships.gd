@@ -75,6 +75,7 @@ var _refresh_timer := 0.0
 var _clock := 0.0
 var _harmony_ready := {}  # Pair key -> clock time it can strike again
 var _queued: Array = []  # Stage-ups and Whole Trees waiting for the rest
+var _remembered := {}  # Rooted Bond: partner instance id -> the sold kin's bond age, until the rest ends
 var _resting := true
 var _placer: TowerPlacer
 var _seller: TowerSeller
@@ -104,11 +105,18 @@ func _ready() -> void:
 	var scene := get_parent()
 	_placer = scene.get_node_or_null("%TowerPlacer")
 	_seller = scene.get_node_or_null("%TowerSeller")
+	# Re-pair right away when the map changes (a sale then a new kin in one moment stay in order).
+	if _seller:
+		_seller.tower_sold.connect(func(_t, _r) -> void: refresh())
+	if _placer:
+		_placer.tower_built.connect(func(_t) -> void: refresh.call_deferred())
 	var director: DriftDirector = scene.get_node_or_null("%DriftDirector")
 	if director:
 		director.drift_cleared.connect(_on_drift_cleared)
 		director.rest_started.connect(_on_rest_started)
-		director.rest_ended.connect(func(_block) -> void: _resting = false)
+		director.rest_ended.connect(func(_block) -> void:
+			_resting = false
+			_remembered.clear())  # Rooted Bond: a remembered stage lasts only for that rest
 		_resting = director.is_resting()
 	refresh()
 
@@ -213,8 +221,29 @@ func refresh() -> void:
 	var keys := {}
 	for pair in new_pairs:
 		keys[pair.key] = true
+	# Rooted Bond: a bond ended by selling one Warden during a rest is remembered by its partner.
+	if _has(&"rooted_bond") and _resting:
+		for old in pairs:
+			if keys.has(old.key):
+				continue
+			var a_gone: bool = not is_instance_valid(old.a) or old.a.is_queued_for_deletion()
+			var b_gone: bool = not is_instance_valid(old.b) or old.b.is_queued_for_deletion()
+			if a_gone != b_gone:
+				var survivor: Tower = old.b if a_gone else old.a
+				var standing := {}  # Wardens already planted: only a kin planted after the sale inherits
+				for tower in towers:
+					standing[tower.get_instance_id()] = true
+				_remembered[survivor.get_instance_id()] = {"age": ages.get(old.key, 0), "standing": standing}
+	for pair in new_pairs:
 		if not ages.has(pair.key):
 			ages[pair.key] = _start_age()
+			# …and a new kin planted in reach of that partner during the same rest bonds at the old stage.
+			for tower in [pair.a, pair.b]:
+				var kin: Tower = pair.b if tower == pair.a else pair.a
+				var memory: Dictionary = _remembered.get(tower.get_instance_id(), {})
+				if not memory.is_empty() and not memory.standing.has(kin.get_instance_id()):
+					ages[pair.key] = maxi(ages[pair.key], memory.age)
+					_remembered.erase(tower.get_instance_id())
 			_on_formed(pair)
 	for key in ages.keys():
 		if not keys.has(key):

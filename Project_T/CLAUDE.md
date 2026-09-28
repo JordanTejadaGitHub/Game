@@ -396,7 +396,8 @@ accessibility, Steam achievements (milestones map to them). Acts 3–4 and all f
   `harmony_struck`, `family_whole`; `kinship_formed` for discovery. Setting `kinship_effects` (0 Full /
   1 Subtle / 2 Off). Saved via `to_save` / `load_save` in RunSaver. Demo: 3 Kinships, no Whole Tree
   (`force_full` for tests). Kinship cards by rule id (quick_bonds, family_ties, sweet_harmony, close_kin, old_friends, rooted_bond,
-  extended_family, kin_and_kindling, grove_of_kin, blood_is_thicker): `get_reach`, `get_stage_drifts`,
+  extended_family, kin_and_kindling, grove_of_kin, blood_is_thicker; rooted_bond = a Warden sold during a rest
+  leaves its partner remembering the bond, and a new kin planted that rest bonds at the old age): `get_reach`, `get_stage_drifts`,
   `damage_bonus(tower)`, `get_pairs(tower)` (two with Extended Family); `Kinships.count_on_map(node)` for
   card prerequisites. The 9 hidden Kinships and the Whole Tree perks are still to build. `tests/test_kinships.gd`.
 - Dream bonuses on Wardens (screens_ui.md): every card effect comes from `DreamState.get_card_effects(data,

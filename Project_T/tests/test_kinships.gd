@@ -169,6 +169,33 @@ func _run() -> void:
 	_check(kin.harmony_run > harmony_before and target.statuses.has(EnemyStatuses.DROWSY),
 		"Kin and Kindling: the Harmony strike also applies the Bloomcap's Drowsy")
 
+	# --- Rooted Bond: sell a bonded Warden and plant a new kin in the same rest: it keeps the stage ---
+	_rule(dreams, &"rooted_bond")
+	var director_node: DriftDirector = main.get_node("%DriftDirector")
+	kin._resting = true
+	var ra := _plant("driftspore", Vector2(8, 1))
+	var rb := _plant("bloomcap", Vector2(9, 1))
+	await process_frame
+	kin.refresh()
+	var old_pair := kin.get_pair(ra)
+	_check(kin.get_partner(ra) == rb, "a fresh pair to test Rooted Bond with")
+	kin.ages[old_pair.key] = 7  # Blooming, 7 drifts together
+	seller.sell(rb.cell)
+	await process_frame
+	var rc := _plant("bloomcap", Vector2(10, 1))
+	await process_frame
+	kin.refresh()
+	_check(kin.get_partner(ra) == rc and kin.ages.get(kin.get_pair(ra).get("key", ""), -1) == 7,
+		"a new kin planted in the same rest bonds at the old stage and drift count")
+	seller.sell(rc.cell)
+	await process_frame
+	director_node.rest_ended.emit(2)  # The rest ends: the remembered stage is dropped
+	var rd := _plant("bloomcap", Vector2(10, 1))
+	await process_frame
+	kin.refresh()
+	_check(kin.get_partner(ra) == rd and kin.ages.get(kin.get_pair(ra).get("key", ""), -1) == kin._start_age(),
+		"after the rest the new bond starts fresh")
+
 	# --- The demo has only its three ---
 	Kinships.force_full = false
 	if ResultsScreen.is_demo():
