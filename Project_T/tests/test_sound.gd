@@ -8,7 +8,7 @@ const HOOK_IDS := [&"dispel", &"dispel_release", &"dispel_boss", &"split", &"lea
 	&"attack_spore", &"attack_stone", &"attack_water", &"attack_light", &"attack_root",
 	&"attack_sprout", &"attack_acorn", &"ui_click", &"dream_open", &"dream_take_0", &"dream_take_1",
 	&"dream_take_2", &"family_bell", &"omen_wind", &"rest", &"drift_start", &"act_swell", &"win",
-	&"loss", &"hag_rise", &"crit", &"beam", &"crit_punch", &"hit_full"]
+	&"loss", &"hag_rise", &"crit", &"beam", &"crit_punch", &"hit_full", &"combo_found"]
 const HIT_FAMILIES := ["stone", "root", "water", "light", "spore", "sprout"]
 const MUSIC_LAYERS := ["base", "dread1", "dread2", "heartbeat", "boss"]
 
