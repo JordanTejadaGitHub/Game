@@ -181,7 +181,7 @@ func _process(_delta: float) -> void:
 		for tower in tower_container.get_children():
 			if tower is Tower and tower.tower_data.get_id() == "sprout":
 				for option in dream_state.get_evolutions(tower.tower_data):
-					if option[1] and run_state.can_afford(dream_state.get_evolve_cost(option[0])):
+					if option[1] and run_state.can_afford(tower.get_grow_cost(option[0]).total):  # Ranked: + the rank difference
 						whisper(&"grow")
 						return
 
