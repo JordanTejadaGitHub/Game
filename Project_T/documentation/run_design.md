@@ -110,12 +110,18 @@ Playtests found the game too easy, and Warden ranks (below) add player power, so
 | Elite Dew | × 3 | **× 2** |
 | Branch / final form cost | +45 / +90 | **+80 / +200** (with more power per tier; `warden_stats.md`) |
 | Nurture base costs | 15 / 25 / 40 / 60 / 90 | **25 / 40 / 60 / 90 / 135** (× tier) |
-| Endgame | — | **Ascended forms** (one per family, from drift 51; `tower_design.md`) and the **Heartwood Sapling** (below) |
+| Endgame | — | **Ascended forms** (one per family, from drift 51; `tower_design.md`) (the Heartwood Sapling was removed 2026-09-28, below) |
 
-Target: by act 3 a player should have to **choose** between an Ascended form, nurturing, more
-Wardens and the Sapling, never afford all of them.
+Target: by act 3 a player should have to **choose** between an Ascended form, nurturing and more
+Wardens, never afford all of them.
 
-### The Heartwood Sapling (economy, from drift 51)
+### The Heartwood Sapling (REMOVED 2026-09-28; kept for reference)
+
+**Removed** (user, 2026-09-28: after tuning it down, "maybe remove the sapling?"). The late game's
+problems were too much Dew and too little challenge, and the Sapling only added Dew. It is **switched
+off, not deleted**: the code, art and sound stay behind a setting (`DriftDirector` / `TowerPlacer`
+flag, off), so it can return later, e.g. as a Memory Grove perk. Its Dreamlight (~5 over drifts
+51–100) isn't replaced: bosses and the other sources cover Ascended unlocks. Design as it was:
 
 After the act 2 boss (drift 50), the Heartwood offers **one Sapling** of itself to plant in the maze.
 
