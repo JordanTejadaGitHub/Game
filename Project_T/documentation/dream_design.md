@@ -889,7 +889,7 @@ All **Start** pool, no family Needs (a few have a soft run-state Need so they're
 | 153 | **Underdog** | Uncommon | at each rest, your **3 Wardens that soothed least** in that block get **+20% damage** for the next block | — | 6+ attacking Wardens (soft) | Start |
 | 154 | **Weathered Walls** | Uncommon | Thornwalls **can't be trampled**, and every 10th Thornwall is free | wall | — | Start |
 | 155 | **Heavy Air** | Uncommon | every slow your Wardens apply (Soaked, Drowsy, frost…) is **20% stronger** | status | a Warden that slows (soft) | Start |
-| 156 | **Wandering Mind** | Uncommon | gain **2 Dream rerolls** (reroll one offer's cards) | dreams | — | Start |
+| 156 | **Wandering Mind** | Uncommon | gain **2 Dream rerolls** (reroll one offer's cards) | dreams | — | Grove |
 
 - **Pairs of opposites:** Crowded Path (swarms) vs Lone Hunter (spread-out nightmares, bosses);
   Forest's Edge (fight early) vs Last Stand (fight at the Heartwood); Short Roots vs Long Shadows.
@@ -902,8 +902,8 @@ All **Start** pool, no family Needs (a few have a soft run-state Need so they're
 - **Wandering Mind** stacks with the Grove perk Second Thoughts (rerolls add).
 - **Deepened:** Crowded Path II (+4%, max +40%), Lone Hunter II (+45%), Fresh Growth II (+45%),
   Underdog II (4 Wardens, +25%).
-- **Name clash to fix:** Commons #10 and Rares #138 are both called **Deep Roots**. Suggest renaming
-  #138 to **Old Growth**.
+- **Name clash fixed (2026-09-28):** Commons #10 and Rares #138 were both called **Deep Roots**; #138 is now
+  **Old Growth** (id and .tres need renaming in code). Wandering Mind is a **Grove** card (rerolls stay a Grove thing).
 
 ## Data (`UpgradeData`)
 
