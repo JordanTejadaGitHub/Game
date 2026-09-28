@@ -63,12 +63,14 @@ func _ready() -> void:
 	_toggle(gameplay, "Auto-drift on by default", "auto_drift")
 	_choice(gameplay, "Damage numbers", "damage_numbers", ["Off", "Big hits", "All"])
 	_toggle(gameplay, "Confirm selling several Wardens during a drift", "confirm_sell", true)
+	_choice(gameplay, "Health bars", "health_bars", ["On hit", "Always"], 0)
 
 	var box := _tab("Accessibility")
 	_toggle(box, "Reduced motion", "reduced_motion")
 	_toggle(box, "Reduce flashes", "reduce_flashes")
 	_toggle(box, "Hit-stop on big hits", "hitstop")
 	_toggle(box, "High-contrast route line", RouteLine.SETTING, false)
+	_toggle(box, "Outline Deeply Blighted nightmares (not by colour alone)", "blight_outline", false)
 
 	var controls := _tab("Controls")
 	if TestGrove.is_available():  # Debug builds only; never in the demo or release

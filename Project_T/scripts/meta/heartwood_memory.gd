@@ -48,6 +48,8 @@ static func defaults() -> Dictionary:
 			"window_size": 0,  # Index into SettingsPanel.WINDOW_SIZES (windowed mode)
 			"high_contrast_route": false,  # RouteLine: bright, thick route previews
 			"confirm_sell": true,  # Warden panel: confirm "Sell N" while nightmares walk
+			"health_bars": 0,  # Nightmare health bars: 0 once hit, 1 always (read by Enemy via Fx.setting)
+			"blight_outline": false,  # Accessibility: outline Deeply Blighted nightmares
 			"keybinds": {},  # {action: [physical keycodes]}; empty = project defaults
 		},
 	}
