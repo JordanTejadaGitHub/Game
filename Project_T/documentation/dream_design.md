@@ -261,7 +261,7 @@ Rootling, Acorn) brings its own cards.
 **Seedling Gift details** (settled 2026-09-27): the free Sprout is a **charge**, not an automatic
 planting, so it never blocks or reshapes the maze on its own. Charges show next to the Sprout button
 in the Warden bar (a small seed badge with the count) and are **used before Dew** when you plant a
-Sprout, like Heartwood's Reach's free clears. Unused charges last all run and are kept in the save.
+Sprout, like Heartwood's Reach's clear charges. Unused charges last all run and are kept in the save.
 A Sprout planted with a charge has 0 invested Dew, so selling it refunds nothing. With **Nursery**,
 a Sprout planted from a charge starts at **rank II** (its rank Dew counts as 0 too). **Deepened II:**
 at every rest, choose a free Sprout charge **or** a free growth charge (the next Sprout → base
@@ -473,15 +473,26 @@ early and often.
 
 | # | Card | Rarity | Effect | Tags | Pool |
 |---|---|---|---|---|---|
-| 54 | **Cleared Ground** | Common | clearing obstacles costs **40% less** Dew (stacks, minimum 1 Dew) | clearing, economy | Start |
-| 55 | **Heartwood's Reach** | Common | gain **4 free clears**; use them any time (a charge counter on the HUD; unused charges last all run). Deepened II: 7 | clearing | Start |
-| 56 | **Reclaimed Earth** | Common | each obstacle you clear gives **+8 Dew**, and the cell is left **fertile**: the first Warden planted there costs 50% less | clearing, economy | Start |
+| 54 | **Cleared Ground** | Common | clearing obstacles costs **25% less** Dew (stacks, **max −50%**) | clearing, economy | Start |
+| 55 | **Heartwood's Reach** | Common | gain **4 half-price clears**; use them any time (a charge counter on the HUD; unused charges last all run). Deepened II: 7 | clearing | Start |
+| 56 | **Reclaimed Earth** | Common | each clear **refunds 40% of the Dew you paid for it**, and the cell is left **fertile**: the first Warden planted there costs 50% less | clearing, economy | Start |
 | 57 | **Tended Forest** | Common | **+1% damage for every obstacle cleared this run** (max +25%; clears from before the card count) | clearing, maze | Start |
-| 58 | **Burn Back the Dead Wood** | Rare, **Bittersweet** | clear **every Withered Tree** on the map right now. **Cost:** nightmares +10% speed for the rest of the run | clearing, bittersweet | Grove |
+| 58 | **Burn Back the Dead Wood** | Rare, **Bittersweet** | clear **every Withered Tree** on the map right now for **2 Dew each** (paid when taken; only offered if you can pay). **Cost:** nightmares +10% speed for the rest of the run | clearing, bittersweet | Grove |
+
+**Clearing always costs Dew** (user rule, 2026-09-28). No card, perk or combination makes a clear
+free or profitable:
+- **Floor:** a clear never costs less than **half its base cost** (tree 3, boulder 4, rounded up),
+  whatever stacks: Cleared Ground, Heartwood's Reach charges, Grove perks. Blight Level 9's ×2 is
+  applied on top.
+- **Dew back** from a clear (Reclaimed Earth) is a share of what you **paid**, so it's always less
+  than the cost.
+- Changed from the first version: Cleared Ground was −40% per stack down to 1 Dew; Heartwood's Reach
+  gave free clears; Reclaimed Earth gave a flat +8 Dew (a 5-Dew tree made +3 profit); Burn Back was
+  free.
 
 - **Offered only when it matters:** clearing cards need at least **8 obstacles** left on the map
   (Burn Back needs 8 Withered Trees). They lean toward early Dreams, when the map is still full.
-- **Seeds:** free clears (Heartwood's Reach) still give +1 Seed each. **Burn Back doesn't**: clearing
+- **Seeds:** half-price clears (Heartwood's Reach) still give +1 Seed each. **Burn Back doesn't**: clearing
   dozens of trees at once would otherwise flood the meta with Seeds.
 - **Burn Back and the other cards:** its clears **don't trigger Reclaimed Earth** (no +8 Dew, no
   fertile cells), for the same reason. They **do count for Tended Forest** (it's capped at +25%, so
@@ -489,7 +500,7 @@ early and often.
 - **Heartwood's Reach II** brings the total to **7 charges** (+3 when taken), not +7: Deepened
   replaces the base effect.
 - **Settled in implementation:** Cleared Ground stacks add (−40%, −80%, then the 1 Dew minimum);
-  free clears are used before Dew; Burn Back's speed cost applies to bosses too; Burn Back is act 2+
+  half-price charges are used first; Burn Back's speed cost applies to bosses too; Burn Back is act 2+
   like other Bittersweet cards.
 - **Path rule:** clearing only ever opens routes, so every card is always safe; the preview line
   shows the new route before a clear, as now.

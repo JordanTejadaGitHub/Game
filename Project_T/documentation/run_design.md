@@ -293,6 +293,44 @@ risk: players set their own difficulty block by block.
 | **Stubborn Blight** | status durations halved | regrow 2 leaves |
 | **Restless Wind** | drifts arrive 30% closer together | +1 max leaf |
 
+**More Omens (2026-09-28, user: "we need more omens").** With ~18 Omen rests and 2 per rest, 8 Omens
+repeated constantly, and all 8 were "nightmares get stronger for a reward". The new ones add three
+other kinds: **weaken your side**, **double-edged** (the twist itself helps some builds) and **change
+the map or the rules**. That makes ~20; aim for no Omen twice in a row and each kind showing up.
+
+| Omen | Kind | The next block | Reward |
+|---|---|---|---|
+| **Fog Bank** | your side | every Warden **−1 range** (min 1) | +4 Seeds |
+| **Wilting** | your side | every Warden **−15% attack speed** | +1 Dreamlight |
+| **Frozen Ground** | your side | **no planting or growing during drifts** (rests only) | +50 Dew |
+| **Leaf Fall** | your side | every leak costs **double leaves** | +2 max leaves |
+| **Lean Season** | your side | **rest bonus halved** at the end of the block | next Dream **includes a Legendary** (act 2+) |
+| **Heavy Rain** | double-edged | every nightmare is **always Soaked**, but has **+35% health** | +30 Dew |
+| **Blood Moon** | double-edged | nightmares **+25% speed**, and give **+50% Dew** | (the Dew is the reward) |
+| **Harvest Moon** | double-edged | nightmares **+25% health**, and give **×2 Dew** | (the Dew is the reward) |
+| **Elder Night** | nightmares | **+1 elite** in every drift (act 2+) | +1 Dreamlight |
+| **Hollow Wind** | nightmares | the block's **first 2 drifts are all flyers** (act 2+, flyers exist) | next Dream: one card is Rare+ |
+| **Sleepless** | nightmares | nightmares are **immune to Drowsy and Held** | +40 Dew |
+| **Shifting Ground** | the map | **3 Withered Trees sprout** on empty cells at the block's start (never blocking the route or on a Warden) | each tree you clear this run gives **+2 Seeds** instead of 1 |
+
+- **Heavy Rain, Sleepless and Hollow Wind read your build:** they're great or awful depending on
+  what you've built (Heavy Rain feeds Thunderclap and Conductive Soil; Sleepless hurts sleep builds).
+  That's the point: an Omen that's free for *your* build is a reason to take it.
+- **Frozen Ground** still allows selling (at the usual 50%) and clearing; it's only about planting.
+- **Leaf Fall** doubles a boss's leaf cost too, but bosses ignore Omens only for their *own* stats,
+  so a boss leak costs 10. Shown clearly on the Omen card.
+- **Lean Season's Legendary** follows the Legendary rules (any Legendary you could be offered);
+  before act 2 it isn't offered.
+- **Shifting Ground:** clearing is still locked until a clearing card (the trees stay as terrain if
+  you never unlock it); its trees can be cleared at normal cost. Not offered on maps with fewer than
+  3 free cells that don't touch the route.
+- **Offer rules:** each offer's 2 Omens are of **two different kinds**; an Omen never repeats from
+  the previous rest; the reward scaling by act (×1 / ×1.5 / ×2 / ×2.5) applies to Dew and Seeds only.
+- **New `OmenData` fields:** Warden range add / attack-speed multiplier, `no_build_during_drift`,
+  leak multiplier, rest-bonus multiplier below 1, status immunities, always-applied status, extra
+  elites per drift, all-flyer drift count, obstacles to sprout, per-tree Seed bonus; rewards
+  `dreamlight`, `dream_legendary`. Double-edged Omens have no separate reward.
+
 - **Blight Levels** can make Omens harsher or remove Clear Skies ("an Omen is always chosen").
 - **Grove perks** later: a third Omen option, or Omen rewards +25% (`meta_design.md`).
 - **Data:** `OmenData` resource: `display_name`, `description`, `min_drift`, `requires` (e.g.
