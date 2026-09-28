@@ -494,7 +494,7 @@ For the coding chat. Items likely missing or different (verify in the game):
 - [ ] Rarity gem shapes; Deepened / Entwined / Bittersweet card styles
 - [ ] "Peek" (minimise) on choice screens
 - [ ] Warden panel: per-run stats, targeting modes (if accepted)
-- [ ] Dream bonuses on Wardens: effective stats + breakdown, "Dreams on this Warden" (active / off +
+- [x] Dream bonuses on Wardens (8a6f1ab, get_card_effects, DreamBonusView): effective stats + breakdown, "Dreams on this Warden" (active / off +
       why), ghost range with card range, bonus chips, neighbour "breaks Solitude" warning
 - [ ] Leak feedback at the Heartwood
 - [ ] Abandon run in pause; UI scale and accessibility settings
