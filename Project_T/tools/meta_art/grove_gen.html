@@ -7,12 +7,12 @@ const clamp = (v, a, b) => v < a ? a : v > b ? b : v;
 // ---------- art styles ----------
 const STYLES = [
   { id: "waystone", name: "Waystone pixel", short: "current", bands: 99, dither: 1, outline: "dark", px: 1, tone: null,
-    desc: "Full 64 px detail, 4â€“5 tone ramps with light dithering and dark outlines. Matches the Wardens and creatures you already have, so nothing else needs redrawing.",
+    desc: "Full 64 px detail, 4ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Â¦ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œ5 tone ramps with light dithering and dark outlines. Matches the Wardens and creatures you already have, so nothing else needs redrawing.",
     pro: "Nothing else needs redrawing.", con: "The busiest of the three. A crowded maze reads less clearly when zoomed out." },
-  { id: "storybook", name: "Storybook chunky", short: "32 px at 2Ã—", bands: 3, dither: 0, outline: "self", px: 2,
+  { id: "storybook", name: "Storybook chunky", short: "32 px at 2ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â", bands: 3, dither: 0, outline: "self", px: 2,
     tone: { sat: .82, light: .1, tint: "#fff0dc", mix: .07 },
-    desc: "Drawn at 32 px and shown at 2Ã—. Three flat tones, no dithering, warmer and softer colours, and every object outlined in a darker shade of its own colour instead of a dark line.",
-    pro: "Bold shapes that stay readable zoomed out on a 45Ã—36 map. Soft, warm Wardens stand out well against the dark.", con: "Wardens and creatures would need redrawing at 32 px. The versions in the scene are rough automatic conversions." },
+    desc: "Drawn at 32 px and shown at 2ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â. Three flat tones, no dithering, warmer and softer colours, and every object outlined in a darker shade of its own colour instead of a dark line.",
+    pro: "Bold shapes that stay readable zoomed out on a 45ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â36 map. Soft, warm Wardens stand out well against the dark.", con: "Wardens and creatures would need redrawing at 32 px. The versions in the scene are rough automatic conversions." },
   { id: "papercut", name: "Papercut", short: "flat, no lines", bands: 3, dither: 0, outline: "none", px: 1, shadow: true,
     tone: { sat: .68, light: .06, tint: "#f3ead8", mix: .1 },
     desc: "Full resolution, flat three-tone shapes and no outlines. Each object has a light cut edge and a small offset shadow, like layered paper. Muted colours with a paper tint.",
@@ -135,7 +135,7 @@ function ellipse(L, cx, cy, rx, ry, col) {
       if (dx * dx + dy * dy <= 1) L.set(x, y, typeof col === "function" ? col(x, y, dx, dy) : col);
     }
 }
-// A shaded round mass: sphere lighting from the top left, quantised into the ramp (dark â†’ light).
+// A shaded round mass: sphere lighting from the top left, quantised into the ramp (dark ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¾Ãƒâ€šÃ‚Â¢ light).
 function blob(L, cx, cy, rx, ry, ramp, o = {}) {
   const lump = o.lump || 0, seed = o.seed || 0;
   for (let y = Math.floor(cy - ry * 1.3); y <= Math.ceil(cy + ry * 1.3); y++)
@@ -186,28 +186,28 @@ const BLIGHT = ["#0e0a14", "#1c1626", "#2c2438", "#3e344c", "#5a4e6a"];
 // Dark fairytale: grounds sit low in value and cool; the path is the palest, warmest ramp on the
 // map so it stays the most readable thing; obstacles sit between the two.
 const ACTS = [
-  { id:"edge", n:1, name:"Forest's Edge", drifts:"1â€“25", season:"Spring dusk", boss:"The Hollow Stag",
+  { id:"edge", n:1, name:"Forest's Edge", drifts:"1ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Â¦ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œ25", season:"Spring dusk", boss:"The Hollow Stag",
     swatch:"#4f7e4c",
     grass:["#14261e","#1c3a2a","#244a32","#33603e","#4f7e4c"],
     canopy:["#0a1410","#142a20","#1e3e2c","#2c5638","#4a7648"],
     bark:["#120c10","#2a1e22","#44323a","#645058"],
     path:["#6a5a58","#8e7e74","#b2a290","#d2c4ac"],
     dots:["#c8b8f0","#f0e8ff","#ffd27a"], accentName:"moonflower" },
-  { id:"deep", n:2, name:"Deep Wood", drifts:"26â€“50", season:"Summer night", boss:"The Mire Hag or the Moth Queen",
+  { id:"deep", n:2, name:"Deep Wood", drifts:"26ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Â¦ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œ50", season:"Summer night", boss:"The Mire Hag or the Moth Queen",
     swatch:"#386254",
     grass:["#0e1c1c","#142a2a","#1a3634","#244840","#386254"],
     canopy:["#060e0e","#0e2020","#163030","#204440","#346058"],
     bark:["#0e0a0e","#221a20","#3a2e36","#584a52"],
     path:["#5a5260","#7c7280","#9e94a0","#c4bac2"],
     dots:["#8ad8e8","#e0faff","#b0f0c0"], accentName:"glowcap" },
-  { id:"misty", n:3, name:"Misty Hollow", drifts:"51â€“75", season:"Autumn fog", boss:"the other act 2 boss",
+  { id:"misty", n:3, name:"Misty Hollow", drifts:"51ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Â¦ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œ75", season:"Autumn fog", boss:"the other act 2 boss",
     swatch:"#a85a34",
     grass:["#1c1e1a","#2a2c24","#3a3a2e","#4e4a3a","#6e6450"],
     canopy:["#140a0c","#2e1216","#4e1e1c","#7a3424","#a85a34"],
     bark:["#120a0c","#2a1a1c","#44302e","#644a44"],
     path:["#6a5e62","#8c8084","#aea2a2","#d0c4be"],
     dots:["#c0663a","#e8a060","#f0e0c8"], accentName:"ember leaf" },
-  { id:"glade", n:4, name:"Heartwood Glade", drifts:"76â€“100", season:"Winter dark", boss:"The Hollow Oak",
+  { id:"glade", n:4, name:"Heartwood Glade", drifts:"76ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Â¦ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œ100", season:"Winter dark", boss:"The Hollow Oak",
     swatch:"#a8b8d0", frozen:true,
     grass:["#1a2230","#28324a","#3a4660","#5a6a86","#a8b8d0"],
     canopy:["#0a1018","#142030","#203048","#6a7e9a","#d8e4f0"],
@@ -219,6 +219,16 @@ let LOST = 0;
 
 let SEED = 1207;
 let ACT = ACTS[0];
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -361,10 +371,15 @@ function groveTree() {
   roots.forEach((r, i) => thickPath(L, catmull(r, 12), [46, 46, 34, 34, 28, 28, 30][i], 8, rootFn(20 + i)));
   // Twisted strands: each sample's segments are drawn back to front (by where they are in the
   // twist), and each strand's edge is darkened so the strands read apart.
+  // Each strand is a shaded cylinder: dark edges, a lit band toward the key light (top left), and
+  // bark lines running along it, broken into dashes.
   const strandFn = seed => (x, y, nx) => {
-    if (Math.abs(nx) > .82) return HB6[1];
-    const grain = pnoise(x * 3, y, 12, seed) - .5;
-    return pick(HB6.slice(1), clamp(.62 - nx * .5 + grain * .3 + (hash(x, y >> 1, seed) < .05 ? -.2 : 0), 0, 1), x, y, .5);
+    if (Math.abs(nx) > .84) return HB6[1];
+    let t = .6 - nx * .55;
+    if (nx > -.6 && nx < -.28) t += .16;
+    const line = Math.abs(((nx + 1) * 3.5 + (pnoise(x, y, 18, seed) - .5) * .8) % 1 - .5);
+    if (line > .4 && pnoise(x, y, 5, seed + 3) > .35) t -= .22;
+    return pick(HB6.slice(1), clamp(t, 0, 1), x, y, .35);
   };
   const twist = (centre, widthAt, count, turns, seed) => {
     const N = centre.length - 1;
@@ -498,9 +513,9 @@ function grovesky() {
 const CROWN_CLUMPS = (() => {
   const list = [];
   for (let gy = 20; gy < 640; gy += 34) for (let gx = -10; gx < GW + 10; gx += 40) {
-    const x = gx + (hash(gx, gy, 821) - .5) * 26 + (gy / 34 % 2) * 20, y = gy + (hash(gx, gy, 822) - .5) * 18;
+    const x = gx + (hash(gx, gy, 821) - .5) * 26 + (gy / 34 % 2) * 20, y = gy + (hash(gx, gy, 822) - .5) * 26;
     if (!crownIn(x, y)) continue;
-    list.push([x, y, 30 + hash(gx, gy, 823) * 16, 23 + hash(gx, gy, 824) * 10]);
+    list.push([x, y, 30 + hash(gx, gy, 823) * 16, 26 + hash(gx, gy, 824) * 11]);
   }
   // A few clumps hanging below the crown's edge.
   for (let k = 0; k < 16; k++) { const x = 140 + k * 66 + (hash(k, 1, 825) - .5) * 30, y = crownBottom(x) + 4; list.push([x, y, 20 + hash(k, 2, 825) * 8, 16 + hash(k, 3, 825) * 6]); }
@@ -512,25 +527,81 @@ const CROWN_P = ["#050b08", "#07100b", "#0c1a10", "#132816", "#1c381c", "#284a24
 const CROWN_SHARE = [.55, .7, .85, 1];
 const CROWN_RANK = CROWN_CLUMPS.map(([x, y], k) => Math.hypot((x - 640) / 620, (y - 380) / 330) + hash(k, 1, 840) * .35);
 const CROWN_CUT = CROWN_SHARE.map(s => [...CROWN_RANK].sort((a, b) => a - b)[Math.max(0, Math.round(CROWN_RANK.length * s) - 1)]);
-function clump(L, cx, cy, rx, ry, P, seed, dim) {
-  const inE = (x, y, ex, ey, erx, ery) => ((x + .5 - ex) / erx) ** 2 + ((y + .5 - ey) / ery) ** 2 <= 1;
-  for (let y = Math.floor(cy - ry * 1.2); y <= cy + ry * 1.2; y++) for (let x = Math.floor(cx - rx * 1.2); x <= cx + rx * 1.2; x++) {
-    let dx = (x + .5 - cx) / rx, dy = (y + .5 - cy) / ry;
-    const a = Math.atan2(dy, dx), k = 1 + .09 * Math.sin(a * 5 + seed) + .05 * Math.sin(a * 9 + seed * 2);
-    const q = (dx * dx + dy * dy) / (k * k);
-    if (q > 1) continue;
-    let i = 2;
-    if (q > .8 && dy > -.25) i = 1;
-    else if (inE(x, y, cx - .3 * rx, cy - .42 * ry, .22 * rx, .15 * ry)) i = 5;
-    else if (inE(x, y, cx - .22 * rx, cy - .32 * ry, .48 * rx, .38 * ry)) i = 4;
-    else if (inE(x, y, cx - .12 * rx, cy - .18 * ry, .74 * rx, .64 * ry)) i = 3;
-    L.set(x, y, P[Math.max(1, i - dim)]);
+// Each clump is a cauliflower of bubbles: small bumps scalloping its underside (behind), a core,
+// then bumps round its top, lowest first, so the upper ones overlap like puffs of cloud.
+const CROWN_BUBBLES = CROWN_CLUMPS.map(([cx, cy, rx, ry], k) => {
+  const under = [], top = [];
+  for (let i = 0; i < 3; i++) {
+    const a = .45 + i * 1.1 + (hash(k, i, 851) - .5) * .4;
+    under.push([cx + Math.cos(a) * rx * .5, cy + Math.sin(a) * ry * .42, rx * (.3 + hash(k, i, 852) * .1), ry * (.32 + hash(k, i, 853) * .1)]);
   }
-  if (!dim && hash(Math.floor(cx), Math.floor(cy), seed) < .6) { L.set(cx - .32 * rx, cy - .46 * ry, P[6]); L.set(cx - .32 * rx + 1, cy - .46 * ry, P[6]); }
+  const n = 4 + Math.floor(hash(k, 9, 854) * 3);
+  for (let i = 0; i < n; i++) {
+    const a = Math.PI * (1.04 + (i + (hash(k, i, 855) - .5) * .5) / (n - 1) * .92);
+    top.push([cx + Math.cos(a) * rx * .56, cy + Math.sin(a) * ry * .5 + ry * .06, rx * (.32 + hash(k, i, 856) * .14), ry * (.34 + hash(k, i, 857) * .14)]);
+  }
+  // A few puffs sitting on the top bumps: the brightest, frontmost layer.
+  for (let i = 0; i < 2; i++) {
+    const a = Math.PI * (1.3 + i * .35 + (hash(k, i, 858) - .5) * .2);
+    top.push([cx + Math.cos(a) * rx * .3, cy + Math.sin(a) * ry * .42, rx * (.24 + hash(k, i, 859) * .08), ry * (.26 + hash(k, i, 860) * .08)]);
+  }
+  return [...under, [cx, cy + ry * .04, rx * .8, ry * .76], ...top.sort((p, q) => q[1] - p[1])];
+});
+// Draws the crown into per-pixel buffers (who owns each pixel, how lit it is), then shades from
+// them: a dark gap round every clump in front, a crease under every bump, leaf texture, crisp tiers.
+function crownLayer(stage) {
+  const L = new Img(GW, GH), OWN = new Int32Array(GW * GH).fill(-1), LIT = new Float32Array(GW * GH), P = CROWN_P;
+  // Lower clumps in front, so every clump shows its lit top against the shaded underside behind it.
+  const order = CROWN_CLUMPS.map((c, k) => k).filter(k => CROWN_RANK[k] <= CROWN_CUT[stage]).sort((a, b) => CROWN_CLUMPS[a][1] - CROWN_CLUMPS[b][1]);
+  const light = (dx, dy) => { const r2 = Math.min(.98, dx * dx + dy * dy), nz = Math.sqrt(1 - r2); return clamp((-dx * .45 - dy * .75 + nz * .5 + .3) / 1.3, 0, 1); };
+  order.forEach((k, oi) => {
+    const [cx, cy, rx, ry] = CROWN_CLUMPS[k];
+    // Lower in the crown = darker; the far right a touch darker (away from the key light).
+    const base = .1 - (cy - 240) / 640 * .5 - (cx - 560) / 1280 * .12;
+    CROWN_BUBBLES[k].forEach(([bx, by, brx, bry], bi) => {
+      const seed = k * 7 + bi;
+      for (let y = Math.floor(by - bry * 1.15); y <= by + bry * 1.15; y++) for (let x = Math.floor(bx - brx * 1.15); x <= bx + brx * 1.15; x++) {
+        if (x < 0 || y < 0 || x >= GW || y >= GH) continue;
+        const dx = (x + .5 - bx) / brx, dy = (y + .5 - by) / bry, a = Math.atan2(dy, dx);
+        const w = 1 + .08 * Math.sin(a * 4 + seed) + .05 * Math.sin(a * 7 + seed * 1.7);
+        if ((dx * dx + dy * dy) / (w * w) > 1) continue;
+        const i = y * GW + x;
+        OWN[i] = oi * 16 + bi;
+        LIT[i] = light(dx / w, dy / w) * .65 + light((x + .5 - cx) / (rx * 1.1), (y + .5 - cy) / (ry * 1.1)) * .35 + base;
+      }
+    });
+  });
+  for (let y = 0; y < GH; y++) for (let x = 0; x < GW; x++) {
+    const i = y * GW + x, o = OWN[i]; if (o < 0) continue;
+    const t = (LIT[i] - .45) * 1.7 + .5;
+    let tier = clamp(1 + Math.floor(t * 5 + (bay(x, y) - .5) * .3), 1, 5);
+    // A clump in front casts a dark gap: an outline right against it, a shadow falling off behind.
+    let gap = 9;
+    for (let d = 1; d <= 4 && gap > 4; d++) for (const [ex, ey] of [[0, 1], [1, 1], [-1, 1], [1, 0], [-1, 0], [0, -1]]) {
+      const xx = x + ex * d, yy = y + ey * d;
+      if (xx < 0 || yy < 0 || xx >= GW || yy >= GH) continue;
+      const q = OWN[yy * GW + xx]; if (q > o && (q >> 4) !== (o >> 4)) { gap = d; break; }
+    }
+    if (gap === 1) tier = 0; else if (gap <= 4) tier = Math.max(1, tier - (gap <= 2 ? 2 : 1));
+    // A crease under each bump of the same clump (the front bump sits just above).
+    else {
+      const up = y > 0 ? OWN[i - GW] : -1, up2 = y > 1 ? OWN[i - 2 * GW] : -1;
+      if (up > o && (up >> 4) === (o >> 4)) tier = Math.max(1, tier - 2);
+      else if (up2 > o && (up2 >> 4) === (o >> 4)) tier = Math.max(1, tier - 1);
+      // Leaf texture: short dark dashes (gaps between leaves) and a few bright leaf tips on the lit parts.
+      else if (tier >= 3) {
+        const cx = x >> 2, cy = y / 3 | 0, h = hash(cx, cy, 870);
+        if (h < .22 && (x & 3) < 2 && y % 3 === 1) tier -= 1;
+        else if (tier === 5 && h > .9 && (x & 3) === 2 && y % 3 === 0) tier = 6;
+      }
+    }
+    if (tier && CROWN_CLUMPS[order[o >> 4]][1] > 520) tier = Math.max(1, tier - 1);
+    L.set(x, y, P[tier]);
+  }
+  return L;
 }
 function groveCanopy(stage) {
-  const out = new Img(GW, GH), L = new Img(GW, GH), P = CROWN_P;
-  CROWN_CLUMPS.forEach(([x, y, rx, ry], k) => { if (CROWN_RANK[k] <= CROWN_CUT[stage]) clump(L, x, y, rx, ry, P, k * 3 + 1, y > 520 ? 1 : 0); });
+  const out = new Img(GW, GH), L = crownLayer(stage), P = CROWN_P;
   out.stamp(L, P[0]);
   for (let y = 1; y < GH - 1; y++) for (let x = 1; x < GW - 1; x++)
     if (L.alpha(x, y) && !L.alpha(x + 1, y - 1) && L.alpha(x - 1, y + 1)) out.set(x, y, "#3e5e4c");  // moonlit edge

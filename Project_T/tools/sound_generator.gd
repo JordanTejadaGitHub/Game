@@ -48,6 +48,7 @@ var rng := RandomNumberGenerator.new()
 
 func _init() -> void:
 	rng.seed = 7071
+	side_rng.seed = 4242
 	for dir in [SFX_DIR, MUSIC_DIR]:
 		DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(dir))
 	var started := Time.get_ticks_msec()
@@ -144,7 +145,7 @@ func _mix(dst: PackedFloat32Array, src: PackedFloat32Array, rate: int, at: float
 
 # Sounds that were replaced draw from their own generator (`_side`) and `_burn` what the old version
 # drew, so every sound generated after them stays byte-identical (e.g. the approved Firefly Jar).
-var side_rng := RandomNumberGenerator.new()
+var side_rng := RandomNumberGenerator.new()  # Seeded in _init, so the replaced sounds are reproducible too
 
 func _side(make: Callable) -> PackedFloat32Array:
 	var main := rng
@@ -500,6 +501,16 @@ func _make_sfx() -> void:
 		var full := _tone(r, 0.45, glide(150.0 - v * 10.0, 58.0, 0.06), perc(0.004, 0.11, 0.45))
 		_mix(full, _filter(_noise(r, 0.3, perc(0.01, 0.08, 0.3)), r, 300.0, 0.7), r, 0.0, 0.8)
 		_sfx("hit_full_%02d" % (v + 1), full, 0.55, HIT_ONSET)
+
+	# A combo found for the first time ever (the Codex card slides in): a short, warm discovery
+	# chime, distinct from the dispel's sigh and hum. Two low music-box notes (A4 then D5) over a
+	# soft breath of air. Rare (a few per run), so it may be tonal. Own RNG: nothing above changes.
+	_sfx("combo_found", _side(func() -> PackedFloat32Array:
+		var found := _seg(1.4, r)
+		_mix(found, _bell(r, hz(69), 0.4, 0.35, MUSIC_BOX, 1.0), r, 0.0)
+		_mix(found, _bell(r, hz(74), 0.45, 0.45, MUSIC_BOX, 1.2), r, 0.12)
+		_mix(found, _filter(_noise(r, 0.6, swell(0.1, 0.4, 0.6)), r, 900.0, 0.7), r, 0.0, 0.15)
+		return found), 0.4)
 
 # One Warden hit. `v` shifts the pitch a little per variant.
 func _hit(family: String, v: int, dull: bool) -> PackedFloat32Array:

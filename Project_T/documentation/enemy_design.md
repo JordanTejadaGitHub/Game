@@ -178,7 +178,7 @@ nightmares moved to make room):
   families exist in code.
 ## Stats
 
-Drift 1 values; health then grows ×1.035 per drift (bosses fixed per act, see `run_design.md`).
+Drift 1 values; health then grows per drift (×1.045, ×1.055 from drift 26, ×1.045 from 51; bosses fixed per act × 1.5; see `run_design.md`).
 Speed in px/s (64 px = 1 cell; Shade 100 ≈ 1.6 cells/s). Dew ≈ 3 per 100 health, a little more
 for nightmares with a nasty trait. Values already in the game (`.tres`, under their old file names)
 are marked ✓; the rest are proposals to tune.

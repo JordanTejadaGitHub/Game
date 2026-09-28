@@ -261,6 +261,8 @@ func _test_new_cards(main: Node) -> void:
 	_reset_dreams(main)
 	var deep_sleep := _card(dreams, "deep_sleep")
 	dreams.allow_bittersweet = false
+	# The Grove's Bittersweet Dreams node puts them in the pool
+	dreams.grove_cards.assign(["deep_sleep", "borrowed_dew", "wild_growth", "overgrown", "restless_dreams", "hungry_roots"])
 	_check(not dreams.is_eligible(deep_sleep, 2), "bittersweet cards stay out until enabled")
 	dreams.allow_bittersweet = true
 	_check(dreams.is_eligible(deep_sleep, 2) and not dreams.is_eligible(deep_sleep, 1), "bittersweet cards: act 2+")

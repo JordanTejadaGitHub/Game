@@ -218,25 +218,33 @@ static func _nurturable(tower, focus: Tower.Focus) -> bool:
 func plan_nurture(towers: Array, focus: Tower.Focus = Tower.Focus.NONE) -> Array:
 	var chosen: Array[Tower] = []
 	var total := 0
+	var free := _free_nurtures()
 	for tower in sort_by_heartwood(towers):
 		if not _nurturable(tower, focus):
 			continue
-		var cost: int = tower.get_nurture_cost()
+		var cost: int = 0 if free > 0 else tower.get_nurture_price()
 		if total + cost > run_state.dew:
 			continue  # A cheaper one further out may still fit
 		chosen.append(tower)
 		total += cost
+		free -= 1
 	return [chosen, total]
+
+# First Care: free Nurture ranks left this run (the first ones in a group plan are free).
+func _free_nurtures() -> int:
+	return run_state.free_nurtures if "free_nurtures" in run_state else 0
 
 # Wardens in `towers` that could still gain a rank (see plan_nurture), and what raising all of them
 # one rank costs: [count, Dew].
 func full_nurture_cost(towers: Array, focus: Tower.Focus = Tower.Focus.NONE) -> Array:
 	var count := 0
 	var total := 0
-	for tower in towers:
+	var free := _free_nurtures()
+	for tower in sort_by_heartwood(towers):
 		if _nurturable(tower, focus):
 			count += 1
-			total += tower.get_nurture_cost()
+			total += 0 if free > 0 else tower.get_nurture_price()
+			free -= 1
 	return [count, total]
 
 # How many of `towers` are waiting at rank II for a Focus.
@@ -315,11 +323,14 @@ func _unhandled_input(event: InputEvent) -> void:
 		grow_selected()
 		get_viewport().set_input_as_handled()
 
-# A left press starts a click / drag / double-click unless it's on something the obstacle clearer owns.
+# A left press starts a click / drag / double-click, unless the Clear tool is on and it's on an obstacle.
 func _starts_selection(event: InputEvent) -> bool:
 	if _hover_tower != null:
 		return true
-	return map_generator.get_obstacle(_hover_cell) == null
+	# With the Clear tool on, a press on a tree or rock is the clearer's; otherwise it can start a box.
+	var clearer := get_node_or_null("%ObstacleClearer")
+	var clearing: bool = clearer != null and clearer.has_method("is_tool_active") and clearer.is_tool_active()
+	return not clearing or map_generator.get_obstacle(_hover_cell) == null
 
 func _on_press(event: InputEvent) -> void:
 	var mouse := event as InputEventMouseButton

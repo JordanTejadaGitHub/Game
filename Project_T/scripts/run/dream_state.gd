@@ -43,6 +43,16 @@ const FEW_AND_MIGHTY_BELOW := 12
 const FEW_AND_MIGHTY_PER := 0.08
 const LAST_LIGHT_MAX := 5
 const NEARBY_CELLS := 2  # "Within 2 cells" (Sprout Chorus, Solitude): Chebyshev distance
+# Grove cards (dream_design.md 26–44): maze Legendaries and crit cards.
+const LONG_WALK_PER := 0.01  # The Long Walk: +1% damage…
+const LONG_WALK_TILES := 4  # …per this many path tiles
+const MONOCULTURE_BONUS := 0.60
+const ROOTBOUND_TOUCHING := 3
+const STILL_TARGET_CRIT := [0.15, 0.25]
+const STARLIT_AIM_CRIT := 0.25
+const FULL_MOON_CRIT := 0.10
+const RECKLESS_CRIT := 0.20
+const RECKLESS_PENALTY := 0.15
 # Build directions: owning one makes its tag count as a family (2×); wide and narrow halve each other.
 const DIRECTION_TAGS: Array[String] = ["nurture", "wide", "narrow"]
 const OPPOSITE_DIRECTION := {"wide": "narrow", "narrow": "wide"}
@@ -109,6 +119,7 @@ var _before_offer := {}  # Offer counters from before the current offer (a rerol
 var _attackers_planted := 0  # Attacking Wardens planted this run (Canopy)
 var _pending_drifts: Array[int] = []
 var _bend_cells := {}  # Path cells where the route turns (Cozy Corners)
+var path_length := 0  # Tiles in the current route (The Long Walk); updated with the bends
 var _rng := RandomNumberGenerator.new()
 
 @onready var run_state: RunState = %RunState
@@ -317,6 +328,10 @@ func get_soothe_multiplier(tower: Tower) -> float:
 	if has_rule(&"tended_forest"):
 		bonus += minf(TENDED_FOREST_PER_CLEAR * run_state.tended_cells.size(), TENDED_FOREST_MAX)
 	bonus += _nurture_damage_bonus(tower) + _count_damage_bonus(tower)
+	if has_rule(&"the_long_walk"):
+		bonus += LONG_WALK_PER * (path_length / LONG_WALK_TILES)
+	if has_rule(&"monoculture") and tower.tower_data.can_attack and is_monoculture():
+		bonus += MONOCULTURE_BONUS
 	return 1.0 + bonus
 
 # Kindred Roots (ranks of touching Wardens) and Chosen Few (rank V+ strong, below III weak).
@@ -361,7 +376,42 @@ func get_tower_attack_speed_bonus(tower: Tower) -> float:
 		bonus += minf(SPROUT_CHORUS_PER * sprouts, SPROUT_CHORUS_MAX)
 	if has_rule(&"last_light") and tower.tower_data.can_attack and count_attackers() <= LAST_LIGHT_MAX:
 		bonus += 1.0  # Twice as fast
+	if has_rule(&"rootbound") and tower.tower_data.can_attack and _touching(tower).size() >= ROOTBOUND_TOUCHING:
+		bonus += 1.0  # Attacks twice
 	return bonus
+
+# Monoculture: every attacking Warden is of one line.
+func is_monoculture() -> bool:
+	var lines := {}
+	for tower in _towers():
+		if tower.tower_data.can_attack:
+			lines[tower.tower_data.line] = true
+	return lines.size() == 1
+
+# --- Crits from Dreams (Tower adds these in its crit roll) --------------------------------------------
+
+# Extra crit chance for `tower` against `enemy` (null = no target): Still Target (Drowsy / Held),
+# Starlit Aim (Marked), Full Moon, Reckless Bloom.
+func get_crit_chance_bonus(_tower: Tower, enemy: Node2D = null) -> float:
+	var bonus := 0.0
+	if has_rule(&"full_moon"):
+		bonus += FULL_MOON_CRIT
+	if has_rule(&"reckless_bloom"):
+		bonus += RECKLESS_CRIT
+	if enemy != null and is_instance_valid(enemy):
+		if has_rule(&"still_target") and (enemy.statuses.has(EnemyStatuses.DROWSY) or enemy.statuses.is_held()):
+			bonus += STILL_TARGET_CRIT[rule_level(&"still_target")]
+		if has_rule(&"starlit_aim") and enemy.statuses.has(EnemyStatuses.MARKED):
+			bonus += STARLIT_AIM_CRIT
+	return bonus
+
+# Full Moon: crit chance above 100% (`raw_chance` before capping) becomes extra crit multiplier.
+func get_crit_overflow_multiplier(raw_chance: float) -> float:
+	return maxf(raw_chance - 1.0, 0.0) if has_rule(&"full_moon") else 0.0
+
+# Reckless Bloom (bittersweet): hits that don't crit deal this much of their damage.
+func get_non_crit_multiplier() -> float:
+	return 1.0 - RECKLESS_PENALTY if has_rule(&"reckless_bloom") else 1.0
 
 # Per-Warden range from Dreams, in cells (Tower adds it): Solitude.
 func get_tower_range_bonus(tower: Tower) -> float:
@@ -660,6 +710,7 @@ func _taken_cards() -> Array[UpgradeData]:
 func _update_bends() -> void:
 	_bend_cells.clear()
 	var path: PackedVector2Array = map_generator.get_path_from(map_generator.startPath)
+	path_length = path.size()
 	for i in range(1, path.size() - 1):
 		if path[i] - path[i - 1] != path[i + 1] - path[i]:
 			_bend_cells[path[i]] = true

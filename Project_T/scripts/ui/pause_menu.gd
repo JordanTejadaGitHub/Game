@@ -119,6 +119,14 @@ func open() -> void:
 	_summary.text = get_run_summary()
 	visible = true
 
+# Opens the pause menu straight on the Codex (the HUD "?" button, a tapped discovery card),
+# optionally on a tab and entry (CodexPanel.open).
+func open_codex(tab: StringName = &"", entry: String = "") -> void:
+	if not visible:
+		open()
+	(_settings.get_meta("row") as Control).visible = false
+	codex.open(tab, entry)
+
 func close() -> void:
 	visible = false
 	_settings.visible = false

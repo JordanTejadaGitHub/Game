@@ -15,9 +15,10 @@ Original design docs are in `documentation/*.docx` (structure, 15-card dev plan)
 
 ## Current status
 Done: map generation, AStarGrid2D pathing + path tiles, camera (WASD + wheel zoom, clamped),
-data-driven enemy (Leaf Bug), **tower building** (build mode, placement validation, enemies re-route),
-**combat** (towers target the enemy closest to the goal and fire homing spore puffs; enemies are
-*cleansed*, not killed: blight shader fades to full colour, then they fade out),
+data-driven enemies, **tower building** (build mode, placement validation, enemies re-route),
+**combat** (towers target the enemy closest to the goal and fire homing spore puffs; nightmares are
+*dispelled*: they crack with light and burst into motes. Code identifiers still say
+`cleansed` / `is_cleansed` / `cleanse_line` from the old cozy theme; player-facing text says dispel),
 **clearable obstacles** (random map each run: ridges of rocks/trees from alternating walls make
 the route zig-zag, plus noise tree clusters and scattered rocks; outside build mode, hover shows
 cost + the route that would open, left-click clears. Obstacles are "Withered Tree" (Tend) and
@@ -27,9 +28,14 @@ are drifts 1–100 in blocks of 5 with rests, bosses at 25 / 50 / 75 / 100 (winn
 Hollow Oak at drift 100). Title
 screen, pause menu, settings, results with Seeds, mid-run save. See "Run flow" and "Run end,
 saving, onboarding" below.
-Design, build order and story: `documentation/game_design.md` (overview), `tower_design.md`
-(Wardens, statuses, synergies), `enemy_design.md` (creature roster), `documentation/story.md` (cozy tone;
-enemies are "blighted creatures", towers are "Wardens", gold is "Dew", lives are "leaves").
+Design, build order and story: `documentation/game_design.md` (overview + index of every design
+doc), `tower_design.md` (Wardens, statuses, synergies), `enemy_design.md` (nightmare roster),
+`documentation/story.md`: **dark fairytale** (since 2026-09-27): enemies are **nightmares** (evil
+spirits, ghosts) hunting the Heartwood's dream; cute Warden spirits are the warm contrast. Towers are
+"Wardens", gold is "Dew", lives are "leaves", in-run unlock currency is "Dreamlight". **Names:** many
+files and code ids keep the old cozy names (`leaf_bug` = Shade, `bark_beetle` = Husk,
+`mother_duck` = Lantern Bearer, `old_stag` = the Hollow Stag, …); the old→new table is in `story.md`.
+Player-facing text always uses the new names.
 **Dew economy**: `RunState` (`%RunState`, `scripts/run/run_state.gd`) holds Dew; `starting_dew`
 export (60). Earned when a creature is cleansed (`EnemyData.dew_reward`, "+N Dew" `DewPopup`),
 spent on Wardens (`TowerData.cost`) and obstacle clears (`ObstacleData.clear_cost`). Always go
@@ -39,10 +45,9 @@ directly. HUD shows the Dew counter (`%DewLabel`), dims unaffordable Warden butt
 "Dreams and Wardens" below.
 **Meta** (full game; inert in the demo): Memory Grove, Memories, milestones, Blight Levels, Family
 Blessings — see "Meta" below.
-Next up: acts 3–4 drifts and bosses (Moth Queen, Hollow Oak incl. Blight 10), the missing final
-forms (Puffball, Beacon, Monsoon, …) and their Grove entries, Grove-only Dream cards (Static Bloom,
-Twin Puff, Legendaries…), Forests root (biomes), Memory Wardens as boss rewards, localization,
-controller / Steam Deck, accessibility, Steam achievements (milestones map to them).
+Next up (full list in `documentation/design_plan.md`): the Memory Grove as a tech tree
+(`meta_design.md`; owned by the Meta Game chats, art in `assets/meta/`), Forests (biomes), localization, controller / Steam Deck,
+accessibility, Steam achievements (milestones map to them). Acts 3–4 and all four bosses are done.
 
 ## Dreams and Wardens
 - `EnemyStatuses` (RefCounted on each enemy, `enemy.statuses`): damp, drowsy, spored, marked,
@@ -50,7 +55,7 @@ controller / Steam Deck, accessibility, Steam achievements (milestones map to th
   Potency scales with the Warden's soothe (Spored = 25%/s per stack, Static bolt = 3×). Status dots
   above the health bar. `take_damage` takes floats (fractions carry) and applies Marked.
 - Resistances (enemy_design.md): `take_damage(amount, line := "", is_area := false)`: soothe ×
-  family (`EnemyData.resists` / `weak_to` vs `TowerData.line`: ×0.65 / ×1.35, constants on
+  family (`EnemyData.resists` / `weak_to` vs `TowerData.line`: ×0.5 / ×1.5, constants on
   `EnemyData`) × shape (`single_target_multiplier` / `area_multiplier`) × Marked, then the blight
   coat (`coat_per_hit` / `coat_total`, × health_scale). Always pass the source: `Tower.hit(enemy,
   mult, is_area)` does (pulse, splash, cloud = area). Spored ticks use the applier's line
@@ -152,6 +157,11 @@ controller / Steam Deck, accessibility, Steam achievements (milestones map to th
   before the parent's cleanse), `wall_trampled`. `tests/test_creatures.gd`.
 - Selling: `TowerSeller` (`%TowerSeller`): outside build mode, hover a Warden, RMB / Delete sells for
   `Tower.invested_dew` × 100% (resting) or 50% (walking); `MapGenerator.unblock_cell`.
+  It also owns selection (`selection`, `selected` = first; `selection_changed`): click, drag box
+  (after 8 px; Thornwalls only if alone), double-click = same kind on screen (Ctrl: whole map), Shift
+  adds/removes, Esc/RMB/empty ground clears. With the Clear tool on (`ObstacleClearer.is_tool_active()`), presses on obstacles are its.
+  Group ops: `get_selection_groups`, `count_affordable`, `grow_group` (nearest the Heartwood first,
+  staggered bloom), `sell_selection`; the Warden panel shows them for 2+ selected.
 - Speed: `GameSpeed` (`%GameSpeed`): pause = `get_tree().paused`, speed = `Engine.time_scale`.
   Build/clear/sell tools, HUD, camera and GameSpeed are `process_mode = ALWAYS` so building works
   while paused; the camera divides delta by time_scale so panning stays real-time.
@@ -166,11 +176,6 @@ controller / Steam Deck, accessibility, Steam achievements (milestones map to th
   `DreamState.open_remember()`; Grove perk Early Light (`UnlockData.starting_dreamlight`, MetaRun).
   `Seasons` (CanvasModulate) swaps the environment to each act's sheets (`MapGenerator.set_act`)
   and can tint the world per act (neutral for now). `tests/test_run.gd`.
-  It also owns selection (`selection`, `selected` = first; `selection_changed`): click, drag box
-  (after 8 px; Thornwalls only if alone), double-click = same kind on screen (Ctrl: whole map), Shift
-  adds/removes, Esc/RMB/empty ground clears. A left press on an obstacle is left to ObstacleClearer.
-  Group ops: `get_selection_groups`, `count_affordable`, `grow_group` (nearest the Heartwood first,
-  staggered bloom), `sell_selection`; the Warden panel shows them for 2+ selected.
 
 ## Run end, saving, onboarding
 - Scene flow: `scenes/title.tscn` (main scene; Continue / New run / Settings / Credits / Quit) →
@@ -198,6 +203,16 @@ controller / Steam Deck, accessibility, Steam achievements (milestones map to th
   run, whispers toggle, run summary. Settings: UI scale, Auto-drift default, reduced motion, damage
   numbers (`damage_numbers` 0/1/2). Hotkeys G (grow selected), H / F (centre on goal / start).
   Results show run stats (`RunState.leaves_lost`, `longest_path`, `play_time`). `tests/test_ui.gd`.
+  platforms.md (no hover/keyboard-only): HUD `MenuButton` opens the pause menu; `ChoicePeek`
+  (`choice_peek.gd`) = "Peek at the map" for choice screens (family pick uses it). `SettingsPanel` is
+  tabbed (Audio / Display / Gameplay / Accessibility / Controls / Developer); `apply_display`
+  (V-sync, window size) runs from `HeartwoodMemory.apply_settings`; `RouteLine` styles the route
+  previews for `high_contrast_route` (cached; the panel calls `reload()`).
+  Clear tool: `ClearToolButton` (`HUD/ClearTool`, a sibling left of `%TowerBar`, laid out with it in
+  `hud.gd` `_fit_tower_bar`), action `clear_tool` (0 / C); drives `ObstacleClearer`'s tool mode
+  (`set_tool_active`, `tool_changed`, `tool_refused`, `lock_changed`, touch `clear_pending` /
+  `confirm_pending`). Developer "Demo mode": `settings.demo_mode` (-1 project setting / 0 full / 1
+  demo) read by `ResultsScreen.is_demo()` in debug builds, never in headless tests.
 - Combat feedback (screens_ui.md), all on `DamageLog` events: `CombatCallouts` (world; combo tag →
   "Conducted!" / "Popped!" / "Asleep!" / "Shattered!" / "Weak!", throttled; calls
   `enemy.flash_status`), `PlacementLinks` (vines from the build ghost to Wardens it combos with),
@@ -255,7 +270,8 @@ controller / Steam Deck, accessibility, Steam achievements (milestones map to th
 - `Sound` autoload (`scripts/audio/sound.gd`): buses Music/SFX/Ambience/UI (reverb on Music/SFX,
   lowpass "muffle" on Music), `play(id, world_pos, db, pitch, jitter, bus)` (random variant
   `<id>_01..`, voice limit + throttle per id, positional via AudioStreamPlayer2D), `play_dispel`
-  (chime climbs a pentatonic combo), `play_music(set, layers)` / `set_layer` (stems base, dread1,
+  (sigh + release hum; close dispels only get quieter, never a climbing chime; no Dew sound per kill,
+  only rest bonus / Omen rewards), `play_music(set, layers)` / `set_layer` (stems base, dread1,
   dread2, heartbeat, boss), `play_ambience`. Every BaseButton clicks. Silent under headless.
 - `SoundHooks` (`%SoundHooks` in main.tscn) connects the run's signals to it and drives the music
   layers; gameplay scripts never call Sound (`Tower.attack_released`, `Tower.hit_landed`,
@@ -301,7 +317,8 @@ controller / Steam Deck, accessibility, Steam achievements (milestones map to th
 - `scripts/tower/` — `tower.gd` (`Tower`, plays the idle loop from `TowerData.texture` — a row of
   `frame_count` 64x64 frames — or draws a placeholder block when it's empty), `tower_placer.gd`
   (`TowerPlacer`: roster `towers`, `select_tower()`, build mode, ghost, route preview, validation).
-  Wardens: `resource/tower/*.tres` (Sprout, Thornwall + 6 bases; all buildable until Dreams exist),
+  Wardens: `resource/tower/*.tres` (families come from family picks; branches and final forms are
+  unlocked with Dreamlight),
   art in `assets/towers/` (generated by `tools/tower_art_generator.gd`). The HUD's `%TowerBar` has
   a button per Warden (hotkeys 1-9). Thornwall has `can_attack = false`.
   Ranks (Nurture v2): `Tower.rank` 0-5 (VII with Deeper Rings), cost `RANK_COSTS` 15/25/40/60/90 ×
@@ -336,7 +353,6 @@ controller / Steam Deck, accessibility, Steam achievements (milestones map to th
   `assets/effects/effects.json`: `play`, `segment`, `reaction`, `chain`, `crit`, `status_flash`;
   budget/lite and reduce_flashes inside). Never parent effects under `%EnemyContainer` (its children
   are all nightmares); use `Reactions._world(node)`.
-  `projectile.gd` (`Projectile`, script-only node; animates and rotates
 - Family review Wardens (tower_design.md 7e574e0): Bellflower family (`song` line; `status_every`,
   `extra_status`, `sets_off_static_at`), Dreamcatchers (`caught_bonus`: `EnemyStatuses.caught_*`,
   sleep via `EnemyStatuses.sleep_time`; shards → `DreamState.add_dreamlight_shard`), Echo Hollow
@@ -344,9 +360,11 @@ controller / Steam Deck, accessibility, Steam achievements (milestones map to th
   (`AttackKind.PECK`, `PeckingBird`, `Tower.peck`), Samara (`AttackKind.BOOMERANG`, `SeedBoomerang`),
   Starling Murmuration (`multi_targets` swoops). Seeds/rubble/clouds go in the world, never in
   `%TowerContainer` or `%EnemyContainer`. Card rules 84–99 are read by rule id in those scripts.
+  `projectile.gd` (`Projectile`, script-only node; animates and rotates
   `TowerData.projectile_texture`, 16x16 frames drawn pointing right, else a coloured puff). Enemies in the `"enemies"` group
   are targetable; cleansing removes them from it and from `EnemyContainer.get_enemies()`.
-- `shaders/blight.gdshader` — grey "blighted" look; `blight` uniform 1 → 0 on cleanse.
+- `shaders/blight.gdshader` — the nightmare look (the art is already dark; the shader only adds
+  translucency, shimmer, glowing eyes/cores, the colour-blind outline, and the `crack` dispel effect).
 - `tests/` — headless `extends SceneTree` tests (e.g. `test_combat.gd`).
 - `scripts/ui/hud.gd` — HUD (Warden bar + 1-8 hotkeys, Dew counter).
   `world_label.gd` (`WorldLabel.draw_tag` for world-space text tags, `cost_color`),

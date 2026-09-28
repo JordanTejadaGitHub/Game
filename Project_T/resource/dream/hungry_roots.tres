@@ -16,3 +16,4 @@ min_act = 2
 attack_speed_bonus = 0.25
 set_cost_warden = "thornwall"
 set_cost = 6
+in_start_pool = false

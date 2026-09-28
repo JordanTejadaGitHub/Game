@@ -48,6 +48,7 @@ func _set_off() -> void:
 	_burst = 0.0
 	if not is_instance_valid(_tower):
 		return
+	_tower.trap_triggered.emit(_tower, global_position)
 	var reach := _tower.attack_data.trap_radius * Tower.MAP_GRID.cell_size.x
 	var caught: Array[Node2D] = []
 	for enemy in get_tree().get_nodes_in_group(Tower.ENEMY_GROUP):

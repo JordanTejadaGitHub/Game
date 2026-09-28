@@ -105,6 +105,11 @@ func _ready() -> void:
 		sound.play(StringName("dream_take_%d" % clampi(int(card.rarity), 0, 2)), null, 0.0, 1.0, 0.0, &"UI"))
 	omen_director.offer_ready.connect(func(_omens: Array[OmenData], _block: int) -> void:
 		sound.play(&"omen_wind", null, -2.0, 1.0, 0.0, &"UI"))
+	# The Codex: a combo fired for the first time ever (its card slides in).
+	var combo_feedback := owner.get_node_or_null("%ComboFeedback")
+	if combo_feedback != null and combo_feedback.has_signal("combo_discovered"):
+		combo_feedback.combo_discovered.connect(func(_id: StringName) -> void:
+			sound.play(&"combo_found", null, -3.0, 1.0, 0.0, &"UI"))
 
 	sound.play_music(&"act1", [&"base"])
 	sound.play_ambience(&"act1")

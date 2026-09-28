@@ -71,10 +71,12 @@ var smothering := false  # Held + Spored right now (Spored ticks faster)
 # Reactions of its own), but it counts as asleep for Pinned and Caught.
 var sleep_time := 0.0
 var sleep_extended := false  # Great Dreamcatcher's +1 s happened already
+var dreamshroom_slept := false  # Dreamshroom puts each nightmare to sleep once
 # Caught (Dreamcatcher): asleep or at max Drowsy inside a Dreamcatcher's range; takes more damage.
 var caught_time := 0.0
 var caught_bonus := 0.0
 var caught_shard := false  # Caught by a Great Dreamcatcher: dispelling it drops a Dreamlight shard
+var caught_shard_tower: Node = null  # That Great Dreamcatcher (for its shard_dropped signal)
 var bad_dreams_timer := 0.0  # Bad Dreams: Drowsy per second while Caught
 # Thousand Cuts: hits within 2 s of each other stack +2% damage taken (max +60%).
 const CUT_BONUS := 0.02

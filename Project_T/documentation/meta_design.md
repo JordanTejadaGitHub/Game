@@ -154,6 +154,10 @@ above its family's final forms, so veterans keep finding new playstyles. Reviewe
   Remember screen.
 - A family's own Dream cards (`dream_design.md`, "Cards for the new Wardens") come with its family
   or hidden-branch node automatically.
+- **Ascension nodes** (added 2026-09-27): each family gets one more node at the top of its stack,
+  **Ascension (120 Seeds)**, after its hidden branch (or its final forms where a family has no
+  hidden-branch node). It makes that family's **Ascended** endgame Warden exist in runs
+  (`tower_design.md`); in-run it still needs 3 Dreamlight and 400 Dew. 9 nodes, ≈ 1,080 Seeds.
 - **Memory Wardens** aren't bought: dispelling a boss for the first time grows its Memory Warden as a
   free bloom on this limb, and it's offered after that boss in later runs.
 - Total ≈ 1,390 Seeds (was ≈ 1,100 before Bellflower and the Nestling/Whirligig hidden nodes;
@@ -171,6 +175,7 @@ styles a player has grown into.
 |---|---|---|---|
 | **Storm** | *Storm Lore*: Static Bloom, Static Field (40) | *Guiding Lights*: Guiding Light, Starlit Aim (60) | — (Storm builds share the Reactions tip) |
 | **Spores and Reactions** | *Spore Lore*: Twin Puff, Chain Bloom (40) | *Reactions*: Wildfire Spores, Deep Water, Quick Reactions (70) | **Dawnbreak** (120) |
+| **Woven** (Crowned Reactions) | *Woven Dreams I*: Eye of the Tempest, Deep Stillness, Fever Pitch, Falling Stars (90; needs *Reactions*) | *Woven Dreams II*: Mountain's Fall, Prism Heart, Endless Night, Ring of Rings (90) | — (Crowned Reactions always work; these cards strengthen them) |
 | **Keen Edges** (crit) | *Sharpened*: Still Target, Shattering Blow (50) | *Reckless*: Reckless Bloom (40) | **Full Moon** (120) |
 | **Tending** (nurture, tall) | *Tending Hands*: Sunlit Rest, Deeper Rings (60) | *Nursery*: Nursery, Chosen Few (70) | **The Old Ones** (120) |
 | **Overgrowth** (wide) | *Seedbed*: Seedling Gift, Canopy (60) | *Wild Planting*: Overgrowth (50) | **Rootbound** (100) |
@@ -216,6 +221,7 @@ A Memory fragment appears **every 3 nodes planted** (plus the milestone ones bel
 | Win with only one Warden line | Monoculture card, free |
 | Reach Blight Level 5 | Memory fragment |
 | Win at Blight Level 10 | Blossom cosmetic for all Wardens |
+| Discover every combo (Codex, `screens_ui.md`) | Memory fragment + a Codex cosmetic (gilded pages) |
 
 Free unlocks that duplicate a Grove purchase refund its Seeds if already bought.
 

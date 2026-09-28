@@ -40,9 +40,12 @@ func _run() -> void:
 	for screen in [Vector2i(1920, 1080), Vector2i(1280, 800)]:
 		root.size = screen
 		await _frames(2)
-		var bar_rect := bar.get_global_rect()
-		_check(bar_rect.end.y > screen.y - 100 and absf(bar_rect.get_center().x - screen.x / 2.0) < 2.0,
-			"the Warden bar sits at the bottom centre at %s (%s)" % [screen, bar_rect])
+		# The Clear tool + the Warden bar, centred together at the bottom.
+		var tool_rect := (main.get_node("HUD/ClearTool") as Control).get_global_rect()
+		var bar_rect := bar.get_global_rect().merge(tool_rect)
+		_check(bar_rect.end.y > screen.y - 100 and absf(bar_rect.get_center().x - screen.x / 2.0) < 2.0
+			and tool_rect.end.x < bar.get_global_rect().position.x,
+			"the Clear tool and Warden bar sit at the bottom centre at %s (%s)" % [screen, bar_rect])
 		for name in ["WardenPanel", "DriftPanel", "DriftBanner"]:
 			var other := (main.get_node("HUD/" + name) as Control).get_global_rect()
 			_check(not bar_rect.intersects(other), "the Warden bar doesn't overlap %s at %s (%s vs %s)" % [name, screen, bar_rect, other])
@@ -111,9 +114,24 @@ func _run() -> void:
 	whispers._process(0.0)
 	_check(whispers._queue.has(&"dead_wood") and not whispers._queue.has(&"tend"), "a locked obstacle whispers Dead wood, not Tend")
 	dreams.clearing_open = true
-	whispers._process(0.0)
+	clearer.lock_changed.emit(false)
 	_check(whispers._queue.has(&"tend"), "Tend comes once clearing opens")
+
+	# --- The Clear tool: locked until clearing opens, then a toggle for ObstacleClearer's tool mode ---
+	var tool: ClearToolButton = main.get_node("HUD/ClearTool")
+	tool._update_icon()
+	_check(tool._frame == ClearToolButton.FRAME_AVAILABLE, "the icon shows the tool available once clearing opens")
+	tool.toggle_tool()
+	tool._update_icon()
+	_check(clearer.is_tool_active() and tool.button_pressed and tool._frame == ClearToolButton.FRAME_ACTIVE,
+		"the Clear tool turns the clear mode on (active icon)")
+	tool.toggle_tool()
+	_check(not clearer.is_tool_active() and not tool.button_pressed, "and off again")
 	dreams.clearing_open = false
+	tool.toggle_tool()
+	_check(not clearer.is_tool_active() and (main.get_node("%ToastLabel") as Label).text == ClearToolButton.LOCKED_TEXT,
+		"while locked it explains why instead")
+	_check(InputMap.has_action("clear_tool"), "0 / C pick the Clear tool")
 	clearer._hover_obstacle = null
 	clearer.set_process(true)
 	whispers.set_enabled(false)
@@ -151,8 +169,50 @@ func _run() -> void:
 	dreams.unlocked["sporeling"] = true
 	_check(seller.grow_selected() and seller.get_tower_at(cell).tower_data.get_id() == "sporeling", "G grows the Sprout")
 
+	# --- Family pick: statuses, branch previews, and Peek (screens_ui.md "Choice screens") ---
+	var family = main.get_node("%FamilyPickScreen")
+	var sporeling: TowerData = load("res://resource/tower/sporeling.tres")
+	_check(family.get_status_text(sporeling) == "Applies Spored", "the family card names its status (%s)" % family.get_status_text(sporeling))
+	_check(family.get_branches(sporeling).size() == 2, "the family card previews two branches")
+	family.show_pick(&"first")
+	family.peek.set_peeking(true)
+	_check(family.visible and family.mouse_filter == Control.MOUSE_FILTER_IGNORE and paused, "Peek shows the map, time still stopped")
+	family.peek.set_peeking(false)
+	_check(family.mouse_filter == Control.MOUSE_FILTER_STOP, "and Back reopens the pick")
+	family.choose(family.offer[0])
+
+	# --- Settings: tabs, and the high-contrast route line ---
+	var settings := SettingsPanel.new()
+	main.add_child(settings)
+	var tab_names: Array = settings.tabs.get_children().map(func(c: Node) -> String: return c.name)
+	_check(tab_names.has("Audio") and tab_names.has("Display") and tab_names.has("Accessibility") and tab_names.has("Controls"),
+		"settings are in tabs (%s)" % [tab_names])
+	settings.queue_free()
+	var line := Line2D.new()
+	RouteLine._high = 1
+	RouteLine.apply(line, Color.WHITE)
+	_check(line.width == RouteLine.CONTRAST_WIDTH and line.default_color == RouteLine.CONTRAST_COLOR, "high-contrast route line")
+	RouteLine._high = 0
+	RouteLine.apply(line, Color.WHITE)
+	_check(line.width == 6.0 and line.default_color == Color.WHITE, "normal route line")
+	RouteLine._high = -1
+	line.free()
+
+	# --- Demo mode override: developer setting, never applied in headless tests (temp profile) ---
+	var real_profile := HeartwoodMemory.file_path
+	HeartwoodMemory.file_path = "user://test_ui_profile.json"
+	var profile := HeartwoodMemory.defaults()
+	profile.settings[ResultsScreen.DEMO_MODE_SETTING] = 0 if ProjectSettings.get_setting("game/demo", false) else 1
+	HeartwoodMemory.save_data(profile)
+	_check(ResultsScreen.is_demo() == ProjectSettings.get_setting("game/demo", false), "tests ignore the Demo mode override")
+	DirAccess.remove_absolute(ProjectSettings.globalize_path(HeartwoodMemory.file_path))
+	HeartwoodMemory.file_path = real_profile
+
 	# --- Pause summary and Abandon run ---
 	var pause = main.get_node("%PauseMenu")
+	(main.get_node("HUD/MenuButton") as Button).pressed.emit()
+	_check(pause.visible, "the on-screen Menu button opens the pause menu")
+	pause.close()
 	var summary: String = pause.get_run_summary()
 	_check(summary.contains("Drift 0") and summary.contains("Families"), "pause shows a run summary")
 	pause.open()

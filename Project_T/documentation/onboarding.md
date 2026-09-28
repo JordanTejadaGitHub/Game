@@ -31,14 +31,14 @@ trigger at these moments:
 | After drift 1 | First family | The family pick (1 of 3 base Wardens). *"The Heartwood stirs, and remembers an old friend…"* Card text explains Sprouts growing into it. |
 | Right after the pick | **Towers are walls** | *"Wardens are walls. Make them take the long way."* The route preview is emphasised; a "+N path" tag on the ghost; the path length counter appears. |
 | Drift 2 starts on its own | Drifts flow | *"They don't stop. They come in drifts, like fog."* The Auto-drift toggle glows once. |
-| First rest (after drift 5) | Dreams and rests | The first Dream. *"The Heartwood stirs, and dreams of…"* Then: *"Rest here. Rearrange the forest; nothing is lost."* (full refunds during rests) |
+| First rest (after drift 5) | Dreams and rests | The first Dream. *"The Heartwood stirs, and dreams of…"* Then: *"Rest here. Rearrange the forest while they're gone."* (75% refunds during rests) |
 | First rest | Saving | *"The forest will wait for you."* Save & Quit is highlighted once. |
 | First blocked placement | The dream's rule | The ghost turns red. *"A dream can bend, but never close."* |
 | First affordable evolution | Growing | The Sprout under the cursor shimmers. *"This Sprout could grow."* |
 | First hover on an obstacle | Obstacles | Before clearing is unlocked: *"Dead wood. I can't move it… yet."* (the hover tag says a clearing Dream is needed). After the first clearing card: *"Tend the forest, and it will remember you."* (+1 Seed at run end) |
 | First leaf lost | Stakes | The leaf counter shakes. *"It fed. A leaf blackens and falls."* |
 | Drift 2 starts | Speed and pause | The speed buttons glow once. *"Pause if you need to think. They'll wait."* |
-| First sell | Refunds | A tooltip on the sell button: full refund during a rest, half while nightmares walk. |
+| First sell | Refunds | A tooltip on the sell button: 75% during a rest, half while nightmares walk. |
 | Rest before drift 25 | Bosses | The Hollow Stag's silhouette appears at the forest edge, antlers burning. *"Something old has found the dream."* |
 | After the Hollow Stag | New family | The second family pick. *"It's gone, and something I'd forgotten came back."* |
 

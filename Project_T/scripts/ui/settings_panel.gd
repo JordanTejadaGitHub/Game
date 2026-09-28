@@ -1,8 +1,10 @@
 extends PanelContainer
 class_name SettingsPanel
 
-# Settings (demo_scope.md "Basics"): audio, display, Heartwood whispers, key rebinding. Changes
-# apply at once and are saved to HeartwoodMemory. Used by the title screen and the pause menu.
+# Settings (screens_ui.md "Settings"): tabs Audio, Display (fullscreen, window size, V-sync, UI
+# scale), Gameplay, Accessibility (reduced motion, flashes, hit-stop, high-contrast route line),
+# Controls (rebinding) and, in debug builds, Developer. Changes apply at once and are saved to
+# HeartwoodMemory. Used by the title screen and the pause menu.
 
 signal closed
 
@@ -13,10 +15,20 @@ const REBINDABLE := [
 	["toggle_build_mode", "Build mode"], ["start_drift", "Start / next drift"],
 	["pause_game", "Pause"], ["cycle_speed", "Change speed"], ["sell_tower", "Sell Warden"],
 	["grow_warden", "Grow selected Warden"], ["nurture_warden", "Nurture selected Warden"],
+	["clear_tool", "Clear tool"],
 	["center_heartwood", "Centre on the Heartwood"],
 	["center_start", "Centre on the forest's edge"],
 ]
 
+const TITLE_SCENE := "res://scenes/title.tscn"
+const VSYNC_SETTING := "vsync"
+const WINDOW_SIZE_SETTING := "window_size"  # Index into WINDOW_SIZES (windowed mode)
+const WINDOW_SIZES: Array[Vector2i] = [Vector2i(1280, 720), Vector2i(1280, 800), Vector2i(1600, 900),
+	Vector2i(1920, 1080), Vector2i(2560, 1440)]
+
+static var _display_applied := false  # The window size is set once at startup, then on request
+
+var tabs := TabContainer.new()
 var _settings: Dictionary
 var _waiting_action := ""  # Action waiting for a key press
 var _key_buttons := {}  # action -> Button
@@ -24,30 +36,47 @@ var _key_buttons := {}  # action -> Button
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	_settings = HeartwoodMemory.get_settings()
-	custom_minimum_size = Vector2(440, 0)
-	var box := VBoxContainer.new()
-	box.add_theme_constant_override("separation", 8)
-	add_child(box)
+	custom_minimum_size = Vector2(480, 0)
+	var outer := VBoxContainer.new()
+	outer.add_theme_constant_override("separation", 8)
+	add_child(outer)
 	var title := Label.new()
 	title.text = "Settings"
 	title.add_theme_font_size_override("font_size", 24)
-	box.add_child(title)
+	outer.add_child(title)
+	# Tabs as in screens_ui.md "Settings" (Language comes with translations).
+	tabs.custom_minimum_size = Vector2(0, 420)
+	outer.add_child(tabs)
 
-	_slider(box, "Volume", "master_volume")
-	_slider(box, "Music", "music_volume")
-	_slider(box, "Sounds", "sfx_volume")
-	_toggle(box, "Fullscreen", "fullscreen")
-	_slider(box, "UI scale", "ui_scale", 0.75, 1.5, 0.05)
-	_toggle(box, "Heartwood whispers (hints)", "whispers")
-	_toggle(box, "Auto-drift on by default", "auto_drift")
+	var audio := _tab("Audio")
+	_slider(audio, "Volume", "master_volume")
+	_slider(audio, "Music", "music_volume")
+	_slider(audio, "Sounds", "sfx_volume")
+
+	var display := _tab("Display")
+	_toggle(display, "Fullscreen", "fullscreen")
+	_choice(display, "Window size", WINDOW_SIZE_SETTING,
+		WINDOW_SIZES.map(func(s: Vector2i) -> String: return "%d × %d" % [s.x, s.y]), 0)
+	_toggle(display, "V-sync", VSYNC_SETTING, true)
+	_slider(display, "UI scale", "ui_scale", 0.75, 1.5, 0.05)
+
+	var gameplay := _tab("Gameplay")
+	_toggle(gameplay, "Heartwood whispers (hints)", "whispers")
+	_toggle(gameplay, "Auto-drift on by default", "auto_drift")
+	_choice(gameplay, "Damage numbers", "damage_numbers", ["Off", "Big hits", "All"])
+	_toggle(gameplay, "Confirm selling several Wardens during a drift", "confirm_sell", true)
+	_choice(gameplay, "Health bars", "health_bars", ["On hit", "Always"], 0)
+
+	var box := _tab("Accessibility")
 	_toggle(box, "Reduced motion", "reduced_motion")
 	_toggle(box, "Reduce flashes", "reduce_flashes")
 	_toggle(box, "Hit-stop on big hits", "hitstop")
-	_choice(box, "Damage numbers", "damage_numbers", ["Off", "Big hits", "All"])
+	_toggle(box, "High-contrast route line", RouteLine.SETTING, false)
+	_toggle(box, "Outline Deeply Blighted nightmares (not by colour alone)", "blight_outline", false)
+
+	var controls := _tab("Controls")
 	if TestGrove.is_available():  # Debug builds only; never in the demo or release
-		var dev := Label.new()
-		dev.text = "Developer"
-		box.add_child(dev)
+		box = _tab("Developer")
 		var grove := CheckButton.new()
 		grove.text = "Test Grove: every Warden unlocked (from the next run)"
 		grove.button_pressed = _settings.get(TestGrove.SETTING, false)
@@ -61,13 +90,25 @@ func _ready() -> void:
 		families.focus_mode = Control.FOCUS_NONE
 		families.toggled.connect(func(on: bool) -> void: _set_value(MetaRun.ALL_FAMILIES_SETTING, on))
 		box.add_child(families)
+		# Demo mode (demo_scope.md): overrides game/demo in this build; switching goes back to the title.
+		var demo := CheckButton.new()
+		demo.text = "Demo mode (off = FULL GAME: Memory Grove, Blight Levels, Seeds spent from your real profile)"
+		demo.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		demo.tooltip_text = "Overrides the project's game/demo setting in this debug build only.\nExported builds always use the project setting. Switching returns to the title screen."
+		demo.button_pressed = ResultsScreen.is_demo()
+		demo.focus_mode = Control.FOCUS_NONE
+		demo.toggled.connect(func(on: bool) -> void:
+			_set_value(ResultsScreen.DEMO_MODE_SETTING, 1 if on else 0)
+			get_tree().paused = false
+			get_tree().change_scene_to_file.call_deferred(TITLE_SCENE))
+		box.add_child(demo)
 
 	var keys_title := Label.new()
 	keys_title.text = "Keys (click, then press a key)"
-	box.add_child(keys_title)
+	controls.add_child(keys_title)
 	var grid := GridContainer.new()
 	grid.columns = 2
-	box.add_child(grid)
+	controls.add_child(grid)
 	for pair in REBINDABLE:
 		var label := Label.new()
 		label.text = pair[1]
@@ -83,7 +124,7 @@ func _ready() -> void:
 
 	var row := HBoxContainer.new()
 	row.alignment = BoxContainer.ALIGNMENT_END
-	box.add_child(row)
+	outer.add_child(row)
 	var reset := Button.new()
 	reset.text = "Default keys"
 	reset.focus_mode = Control.FOCUS_NONE
@@ -97,7 +138,38 @@ func _ready() -> void:
 		closed.emit())
 	row.add_child(back)
 
-func _choice(box: VBoxContainer, text: String, key: String, options: Array) -> void:
+# A scrollable tab page.
+func _tab(title: String) -> VBoxContainer:
+	var scroll := ScrollContainer.new()
+	scroll.name = title
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	tabs.add_child(scroll)
+	var page := VBoxContainer.new()
+	page.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	page.add_theme_constant_override("separation", 8)
+	scroll.add_child(page)
+	return page
+
+# V-sync, and the window size (windowed only) when `resize` or the first time; also run from
+# HeartwoodMemory.apply_settings, which is called on every change, so it only resizes when asked.
+static func apply_display(settings: Dictionary, resize: bool = true) -> void:
+	if DisplayServer.get_name() == "headless":
+		return
+	DisplayServer.window_set_vsync_mode(DisplayServer.VSYNC_ENABLED if settings.get(VSYNC_SETTING, true)
+		else DisplayServer.VSYNC_DISABLED)
+	resize = resize or not _display_applied
+	_display_applied = true
+	if resize and not settings.get("fullscreen", false):
+		var index := clampi(int(settings.get(WINDOW_SIZE_SETTING, 0)), 0, WINDOW_SIZES.size() - 1)
+		var size: Vector2i = WINDOW_SIZES[index]
+		var screen := DisplayServer.screen_get_size()
+		if screen.x > 0:
+			size = size.min(screen)
+		DisplayServer.window_set_size(size)
+		DisplayServer.window_set_position(DisplayServer.screen_get_position()
+			+ (DisplayServer.screen_get_size() - size) / 2)
+
+func _choice(box: VBoxContainer, text: String, key: String, options: Array, default: int = 1) -> void:
 	var row := HBoxContainer.new()
 	var label := Label.new()
 	label.text = text
@@ -106,7 +178,7 @@ func _choice(box: VBoxContainer, text: String, key: String, options: Array) -> v
 	var pick := OptionButton.new()
 	for option in options:
 		pick.add_item(option)
-	pick.selected = int(_settings.get(key, 1))
+	pick.selected = int(_settings.get(key, default))
 	pick.focus_mode = Control.FOCUS_NONE
 	pick.item_selected.connect(func(index: int) -> void: _set_value(key, index))
 	row.add_child(pick)
@@ -130,10 +202,10 @@ func _slider(box: VBoxContainer, text: String, key: String, min_value: float = 0
 	row.add_child(slider)
 	box.add_child(row)
 
-func _toggle(box: VBoxContainer, text: String, key: String) -> void:
+func _toggle(box: VBoxContainer, text: String, key: String, default: bool = false) -> void:
 	var check := CheckButton.new()
 	check.text = text
-	check.button_pressed = _settings[key]
+	check.button_pressed = bool(_settings.get(key, default))
 	check.focus_mode = Control.FOCUS_NONE
 	check.toggled.connect(func(on: bool) -> void: _set_value(key, on))
 	box.add_child(check)
@@ -142,6 +214,9 @@ func _set_value(key: String, value) -> void:
 	_settings[key] = value
 	HeartwoodMemory.save_settings(_settings)
 	HeartwoodMemory.apply_settings(_settings)
+	RouteLine.reload()
+	if key in [VSYNC_SETTING, WINDOW_SIZE_SETTING, "fullscreen"]:
+		apply_display(_settings)
 
 func _listen(action: String) -> void:
 	_waiting_action = action

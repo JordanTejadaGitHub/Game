@@ -13,6 +13,10 @@ uniform float shimmer : hint_range(0.0, 0.3) = 0.08;
 uniform float glow_start : hint_range(0.0, 1.0) = 0.6;
 uniform float glow_strength : hint_range(0.0, 2.0) = 0.5;
 
+// Colour-blind-friendly blight cue (setting "blight_outline"): a 1 px outline round Deeply Blighted
+// nightmares. Alpha 0 = off.
+uniform vec4 outline_color : source_color = vec4(0.0);
+
 // 0 = whole, 1 = cracked through with light (dispel).
 uniform float crack : hint_range(0.0, 1.0) = 0.0;
 uniform vec3 crack_color : source_color = vec3(1.0, 0.93, 0.66);
@@ -52,6 +56,15 @@ void fragment() {
 	float alpha = mix(translucency - shimmer * wave, 1.0, glow);
 	vec3 lit = color.rgb * (1.0 + glow * glow_strength);
 	COLOR = vec4(mix(color.rgb, lit, blight), color.a * mix(1.0, alpha, blight));
+
+	if (outline_color.a > 0.0 && color.a < 0.5) {
+		vec2 px = TEXTURE_PIXEL_SIZE;
+		float near = texture(TEXTURE, UV + vec2(px.x, 0.0)).a + texture(TEXTURE, UV - vec2(px.x, 0.0)).a
+			+ texture(TEXTURE, UV + vec2(0.0, px.y)).a + texture(TEXTURE, UV - vec2(0.0, px.y)).a;
+		if (near > 0.5) {
+			COLOR = outline_color;
+		}
+	}
 
 	if (crack > 0.0) {
 		// Pixel-snapped so the cracks stay crisp on pixel art; they widen as crack goes 0 -> 1.

@@ -18,6 +18,7 @@ var _title := Label.new()
 var _cards := HBoxContainer.new()
 var _clear_skies := Button.new()
 var _active_tag := Label.new()
+var peek: ChoicePeek  # Minimise to look at the map (screens_ui.md "Choice screens")
 
 func _ready() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -46,6 +47,8 @@ func _ready() -> void:
 	var skip_row := CenterContainer.new()
 	skip_row.add_child(_clear_skies)
 	box.add_child(skip_row)
+	peek = ChoicePeek.new(self, [dim, center], "Back to the Omens")
+	box.add_child(peek.make_peek_button())
 	visible = false
 
 	# The active-Omen tag lives on the HUD, outside this (usually hidden) screen.

@@ -16,3 +16,4 @@ min_act = 2
 soothe_bonus = 0.4
 max_leaves_add = -4
 leaves_now = -4
+in_start_pool = false

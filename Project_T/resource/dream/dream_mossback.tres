@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+[ext_resource type="Resource" path="res://resource/tower/mossback.tres" id="2_tower"]
+
+[resource]
+script = ExtResource("1_card")
+id = "dream_mossback"
+display_name = "Mossback"
+description = "Pebblings can now grow into Mossbacks (45 Dew): one huge, slow hit at short range; double damage against Marked nightmares."
+rarity = 1
+kind = 1
+tags = Array[String](["stone"])
+requires = Array[String](["pebbling"])
+max_stacks = 1
+unlocks = ExtResource("2_tower")

@@ -15,3 +15,4 @@ max_stacks = 1
 min_act = 2
 evolve_discount = 0.4
 creature_health_bonus = 0.1
+in_start_pool = false

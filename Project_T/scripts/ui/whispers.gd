@@ -40,6 +40,7 @@ const TEXT := {
 @onready var dream_state: DreamState = %DreamState
 
 var enabled := true
+var term := ""  # The Codex term the showing whisper mentions ("" = none): tapping opens it
 var _seen: Array = []
 
 # The pause menu's toggle. Turning off hides the current whisper and drops the queue.
@@ -51,6 +52,8 @@ func set_enabled(on: bool) -> void:
 		if _tween:
 			_tween.kill()
 		modulate.a = 0.0
+		mouse_filter = Control.MOUSE_FILTER_IGNORE
+		term = ""
 var _queue: Array[StringName] = []
 var _tween: Tween
 
@@ -60,6 +63,11 @@ func _ready() -> void:
 	enabled = memory.settings.whispers
 	_seen = memory.get("whispers_seen", [])
 	modulate.a = 0.0
+	# The Clear tool lights up with the first clearing Dream (screens_ui.md "The Clear tool").
+	# Connected even while whispers are off: whisper() checks `enabled` itself.
+	obstacle_clearer.lock_changed.connect(func(locked: bool) -> void:
+		if not locked:
+			whisper(&"tend"))
 	if not enabled:
 		set_process(false)
 		return
@@ -118,6 +126,10 @@ func _show_next() -> void:
 	_seen.append(String(id))
 	_remember()
 	text = TEXT.get(id, "")
+	# Tappable while shown when it names a Codex term (screens_ui.md "The Codex").
+	term = CodexData.find_term(text)
+	mouse_filter = Control.MOUSE_FILTER_STOP if term != "" else Control.MOUSE_FILTER_IGNORE
+	tooltip_text = "Tap to read about %s in the Codex" % term if term != "" else ""
 	if _tween:
 		_tween.kill()
 	_tween = create_tween()
@@ -125,16 +137,25 @@ func _show_next() -> void:
 	_tween.tween_interval(SHOW_TIME)
 	_tween.tween_property(self, "modulate:a", 0.0, 0.8)
 	_tween.tween_callback(func() -> void:
+		mouse_filter = Control.MOUSE_FILTER_IGNORE
+		term = ""
 		_queue.pop_front()
 		_show_next())
+
+func _gui_input(event: InputEvent) -> void:
+	if term != "" and event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
+		var pause := get_node_or_null("%PauseMenu")
+		if pause != null and pause.has_method("open_codex"):
+			pause.open_codex(&"glossary", term)
+		accept_event()
 
 # Conditions that are easiest to notice by looking.
 func _process(_delta: float) -> void:
 	if tower_placer.hover_breaks_path():
 		whisper(&"cage")
 	# Obstacles can't be cleared until the run's first clearing Dream (run_design.md).
-	if obstacle_clearer._hover_obstacle != null:
-		whisper(&"dead_wood" if obstacle_clearer.is_locked() else &"tend")
+	if obstacle_clearer._hover_obstacle != null and obstacle_clearer.is_locked():
+		whisper(&"dead_wood")
 	for id in EnemyStatuses.ALL:
 		if not _seen.has(String(id)) and _any_creature_has(id):
 			whisper(id)

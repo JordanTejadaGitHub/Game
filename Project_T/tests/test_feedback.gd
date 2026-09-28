@@ -78,23 +78,44 @@ func _run() -> void:
 	_check(panel._body.text.contains("This run: 24 damage") and panel._body.text.contains("from combos 100%"),
 		"the Warden panel shows run damage and the combo share (%s)" % panel._body.text)
 
-	# Reactions: the first one ever shows a discovery card, counts go to the rest report, the Codex
-	# lists them all, and nothing is written to the profile from a test.
-	var feedback: ReactionFeedback = main.get_node("%ReactionFeedback")
+	# Combos: the first firing ever shows a discovery card (queued when several), counts go to the rest
+	# report ("Reactions: …", "New combos: …"), the Codex lists all 15, and a test writes nothing.
+	var feedback: ComboFeedback = main.get_node("%ComboFeedback")
 	feedback._seen.clear()  # As if never discovered
-	var profile_before: Array = HeartwoodMemory.load_data().get("reactions_seen", []).duplicate()
+	feedback._queue.clear()
+	feedback.block_new.clear()
+	feedback._card.visible = false
+	var profile_before: Dictionary = HeartwoodMemory.load_data()
+	ComboFeedback.report(&"set_off", main)  # A synergy reported from game code
 	var tracker := ReactionTracker.find(main)
 	tracker.record(&"thunderclap", shade, 1, [storm])
 	tracker.record(&"thunderclap", shade, 3, [storm])
-	_check(feedback._card.visible and feedback._card_label.text.begins_with("Reaction discovered: Thunderclap")
-		and feedback._card_label.text.contains("Damp + Static"), "the first Thunderclap shows a discovery card (%s)" % feedback._card_label.text)
+	_check(feedback._card.visible and feedback._card_label.text.begins_with("Combo discovered: Set Off"),
+		"the first Set Off shows a discovery card (%s)" % feedback._card_label.text)
+	_check(feedback._queue == [&"thunderclap"], "Thunderclap waits its turn (%s)" % [feedback._queue])
+	_check(ComboFeedback.discovery_text(&"thunderclap").contains("Damp + Static") and ComboFeedback.discovery_text(&"thunderclap").ends_with("Added to the Codex."),
+		"the card names the ingredients and says it's in the Codex")
 	_check(feedback.block_counts.get(&"thunderclap", 0) == 2 and feedback.block_longest_chain == 3, "Reactions are counted per block")
 	report.show_report(1)
-	_check(report._label.text.contains("Reactions: Thunderclap 2 · longest chain ×3"), "the rest report shows Reactions (%s)" % report._label.text)
-	_check(HeartwoodMemory.load_data().get("reactions_seen", []) == profile_before, "tests never write discoveries")
+	_check(report._label.text.contains("Reactions: Thunderclap 2 · longest chain ×3") and report._label.text.contains("New combos: Set Off, Thunderclap"),
+		"the rest report shows Reactions and new combos (%s)" % report._label.text)
+	var profile_after: Dictionary = HeartwoodMemory.load_data()
+	_check(profile_after.get("combos_seen", []) == profile_before.get("combos_seen", [])
+		and profile_after.get("combo_counts", {}) == profile_before.get("combo_counts", {}), "tests never write discoveries")
+	# The Codex: Glossary (search, see-also jumps) and Combos (15, "???" until discovered).
 	var codex: CodexPanel = main.get_node("%PauseMenu").codex
-	codex.open()
-	_check(codex.visible and codex._list.get_child_count() == Reactions.all().size() + 1, "the Codex lists every Reaction")
+	codex.open(&"combos")
+	_check(codex.visible and codex.tabs.current_tab == 1 and codex._combos.get_child_count() == CodexData.combos().size()
+		and CodexData.combos().size() == 15, "the Codex lists all 15 combos")
+	codex._search.text = "dreamlight"
+	codex._build_glossary()
+	await process_frame
+	_check(codex._entries.has("Dreamlight") and not codex._entries.has("Seeds"), "the glossary search filters terms")
+	codex.jump("Thunderclap")
+	_check(codex.tabs.current_tab == 1, "a see-also to a combo jumps to the Combos tab")
+	_check(CodexData.find_term("Tend the forest, and it will remember you.") == "" and CodexData.find_term("Wardens are walls.") == "Warden",
+		"in-game text finds whole-word terms only")
+	_check(main.get_node("HUD/CodexButton") != null, "a ? button on the HUD opens the Codex")
 
 	main.queue_free()
 	await process_frame

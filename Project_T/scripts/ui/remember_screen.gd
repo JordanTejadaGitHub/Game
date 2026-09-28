@@ -21,6 +21,7 @@ var focus: TowerData = null
 var _was_paused := false
 var _title := Label.new()
 var _trees := HBoxContainer.new()
+var peek: ChoicePeek  # Minimise to look at the map (screens_ui.md "Choice screens")
 
 func _ready() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -55,6 +56,8 @@ func _ready() -> void:
 	var row := CenterContainer.new()
 	row.add_child(done)
 	box.add_child(row)
+	peek = ChoicePeek.new(self, [dim, center], "Back to Remember")
+	box.add_child(peek.make_peek_button())
 	visible = false
 	dream_state.remember_requested.connect(open)
 	dream_state.dreamlight_changed.connect(func(_n: int) -> void:

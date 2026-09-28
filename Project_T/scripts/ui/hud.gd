@@ -11,6 +11,7 @@ const BUTTON_MIN_WIDTH := 32.0
 # plus a small gap; the wider of the two, so the centred bar clears both.
 const BAR_CLEARANCE := 324.0
 const SPROUT_ID := "sprout"
+const CLEAR_TOOL_GAP := 10.0
 const SEED_COLOR := Color(0.6, 0.85, 0.4)
 
 @onready var tower_bar: HBoxContainer = %TowerBar
@@ -23,6 +24,7 @@ const SEED_COLOR := Color(0.6, 0.85, 0.4)
 
 const LEAVES_COLOR := Color(0.6, 0.9, 0.5)
 const DREAMLIGHT_COLOR := Color(1.0, 0.88, 0.55)
+const MENU_BUTTON_RIGHT := -284.0  # Left of the Dreamlight counter and the Dew
 const DREAMLIGHT_HELP := "Unlock branches and final forms on the Remember screen (at rests)."
 const LEAF_LOST_COLOR := Color(1.0, 0.6, 0.3)
 const TOAST_TIME := 2.5
@@ -32,12 +34,22 @@ const TOAST_TIME := 2.5
 # One toggle button per plantable Warden (unlocked this run), in roster order; `_bar_towers` matches.
 var _tower_buttons: Array[Button] = []
 var _seed_badge: Control = null  # On the Sprout button
+var clear_tool: ClearToolButton  # Left of the Warden bar, CLEAR_TOOL_GAP apart
 var _bar_towers: Array[TowerData] = []
 var _dew_flash: Tween
 var _leaf_flash: Tween
 var _toast_tween: Tween
 
 func _ready() -> void:
+	# The Clear tool sits at the left end of the Warden bar, set apart (screens_ui.md "The Clear tool").
+	# (A sibling of %TowerBar, placed and sized with it in _fit_tower_bar.)
+	clear_tool = ClearToolButton.new()
+	clear_tool.setup(%ObstacleClearer, run_state, show_toast)
+	clear_tool.anchor_left = 0.5
+	clear_tool.anchor_right = 0.5
+	clear_tool.anchor_top = 1.0
+	clear_tool.anchor_bottom = 1.0
+	add_child(clear_tool)
 	_build_tower_bar()
 	get_viewport().size_changed.connect(_fit_tower_bar)
 	# New Wardens unlocked by Dreams appear in the bar (and prices can change).
@@ -53,6 +65,7 @@ func _ready() -> void:
 	run_state.leaves_changed.connect(_on_leaves_changed)
 	_on_leaves_changed(run_state.leaves, run_state.max_leaves)
 	_add_dreamlight_counter()
+	_add_menu_button()
 	dream_state.card_taken.connect(func(card: UpgradeData) -> void: show_toast("Dreamed: %s" % card.display_name))
 	drift_director.rest_started.connect(_on_rest_started)
 	# Path length ("Wardens are walls: make their walk longer").
@@ -142,16 +155,24 @@ func _fit_tower_bar() -> void:
 		return
 	var half := get_viewport().get_visible_rect().size.x / 2.0 - BAR_CLEARANCE
 	var gap := tower_bar.get_theme_constant("separation")
-	var n := _tower_buttons.size()
-	var width := clampf(floorf((half * 2.0 - gap * (n - 1)) / n), BUTTON_MIN_WIDTH, BUTTON_SIZE.x)
+	# The Clear tool counts as one more button, plus its gap, to the left of the bar.
+	var n := _tower_buttons.size() + 1
+	var fixed := CLEAR_TOOL_GAP + gap * (n - 2)  # The gap to the tool and the bar's own separations
+	var width := clampf(floorf((half * 2.0 - fixed) / n), BUTTON_MIN_WIDTH, BUTTON_SIZE.x)
 	for button in _tower_buttons:
 		button.custom_minimum_size = Vector2(width, BUTTON_SIZE.y)
 		button.add_theme_constant_override("icon_max_width", int(width) - 12)
 		if button == _seed_badge_button():
 			_seed_badge.position.x = width - 14
-	# Centre it from the computed width (the container only re-sorts its children next frame).
-	var total := width * n + gap * (n - 1)
-	tower_bar.offset_left = -total / 2.0
+	# Centre the tool + bar from the computed widths (the container only re-sorts its children next
+	# frame).
+	var total := width * n + fixed
+	var left := -total / 2.0
+	clear_tool.offset_left = left
+	clear_tool.offset_right = left + width
+	clear_tool.offset_top = tower_bar.offset_top
+	clear_tool.offset_bottom = tower_bar.offset_top + BUTTON_SIZE.y
+	tower_bar.offset_left = left + width + CLEAR_TOOL_GAP
 	tower_bar.offset_right = total / 2.0
 
 func _seed_badge_button() -> Button:
@@ -214,6 +235,38 @@ func _on_dew_short() -> void:
 		_dew_flash.tween_property(dew_label, "rotation_degrees", offset * 0.5, 0.04)
 	_dew_flash.tween_interval(0.25)
 	_dew_flash.tween_callback(dew_label.add_theme_color_override.bind("font_color", DEW_COLOR))
+
+# The pause menu on screen (screens_ui.md "Top right: … Menu"; platforms.md: Esc is only a
+# shortcut), left of the resources.
+func _add_menu_button() -> void:
+	var button := Button.new()
+	button.name = "MenuButton"
+	button.text = "Menu"
+	button.tooltip_text = "Pause menu (Esc)"
+	button.focus_mode = Control.FOCUS_NONE
+	button.set_anchors_preset(Control.PRESET_TOP_RIGHT)
+	button.offset_left = MENU_BUTTON_RIGHT - 84
+	button.offset_right = MENU_BUTTON_RIGHT
+	button.offset_top = 12
+	button.offset_bottom = 60
+	button.grow_horizontal = Control.GROW_DIRECTION_BEGIN
+	button.pressed.connect(func() -> void:
+		var pause := get_node_or_null("%PauseMenu")
+		if pause != null and not pause.visible and not run_state.is_over:
+			pause.open())
+	add_child(button)
+	# The Codex ("?", screens_ui.md "The Codex"), just left of Menu.
+	var codex := button.duplicate() as Button
+	codex.name = "CodexButton"
+	codex.text = "?"
+	codex.tooltip_text = "Codex: glossary and combos"
+	codex.offset_right = button.offset_left - 8
+	codex.offset_left = codex.offset_right - 48
+	codex.pressed.connect(func() -> void:
+		var pause := get_node_or_null("%PauseMenu")
+		if pause != null and not run_state.is_over:
+			pause.open_codex())
+	add_child(codex)
 
 # Dreamlight (run_design.md "Dreamlight"): a glowing mote and the count, just left of the Dew.
 func _add_dreamlight_counter() -> void:
