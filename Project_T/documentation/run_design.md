@@ -128,6 +128,11 @@ turn leaks into a hold. Targets for the balance simulation and playtests (averag
     Decision: **Ascended forms keep their family final form's signature effects** (the Great Bell
     keeps the Lullaby Bell's lullaby) **plus** their own; set-offs stay at 50%. That puts the Great
     Bell near **5× an average final form**, the target. Asleep share still 52–56%: watch.
+  - **Legacy rerun** (17c217a, fixed seeds 7 and 42): with the Lullaby legacy the Great Bell hit
+    **×6.6–8.7** an average final (35–42% of all damage); its own hits (400k+) became the biggest
+    part. The Bell's spot swings its share 2–3×, so single-map numbers are loose. Decision: **Great
+    Bell damage 180 → 130 and the toll every 8 s** (was 6): trims both its hits and its sleep
+    control (Asleep share 44–62% with it). Target ×5–6.
   - **Next:** the probe with a **realistic run** (Dreams taken by the real offer logic, a Dew
     budget from simulated income, so the maze is one a player could afford) is the start of the
     balance simulation. Only then raise act 3 health further.
