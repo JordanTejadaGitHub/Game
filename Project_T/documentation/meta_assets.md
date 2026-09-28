@@ -30,7 +30,7 @@ Tree space is **1280×960 px** (native pixels; the screen pans and zooms). Every
 
 - `size`: [1280, 960].
 - `nodes`: one entry per node (79), in `meta_design.md` order: `id`, `section` (`perks` /
-  `families` / `cards`), `name`, `pos` (flower centre; the generator places every node inside the stage 0 crown and spreads them evenly over it, so positions move when nodes are added), `parent` (node id) **or** `from` (the point on
+  `families` / `cards`), `name`, `pos` (flower centre; the generator places every node inside the stage 0 crown and spreads them evenly over it, keeping each node near its parent, a line's first node next to its limb, and untangling crossing branches; positions move when nodes are added. `from` is set to the nearest point on the limb), `parent` (node id) **or** `from` (the point on
   a great limb it grows from), `levels` (Morning Stores 3, Rich Dew 3, Rested Roots 2, Deep Taproot 3,
   Second Thoughts 2; the game shows pips), `start` (Sporeling, Firefly Jar, Dewdrop: grown from the
   start), `legendary`, and `branch` (`offset` = where to draw its branch sheet's frame, `frame_size`,

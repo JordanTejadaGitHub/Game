@@ -435,18 +435,21 @@ function trimLimbs(mask) {
 }
 function spreadNodes(mask) {
   CROWN_MASK = mask;
-  const list = NODES, anchor = n => n.parent ? byId[n.parent] : { x: n.from[0], y: n.from[1] };
-  // Branches that grew off a cut-away limb tip start from the nearest point left on that limb.
-  for (const n of list) if (n.from && LIMBS[n.section].cut && !inMask(n.from[0], n.from[1], 16)) {
-    const inside = LIMBS[n.section].cut.filter(([x, y]) => inMask(x, y, 16));
-    if (inside.length) n.from = inside.reduce((b, p) => Math.hypot(p[0] - n.from[0], p[1] - n.from[1]) < Math.hypot(b[0] - n.from[0], b[1] - n.from[1]) ? p : b).map(Math.round);
-  }
+  const list = NODES;
+  // A line's first node grows from the nearest point on its own limb (inside the leaves), so its
+  // branch is short; every other node grows from its parent.
+  const limbPts = {};
+  for (const [sec, limb] of Object.entries(LIMBS)) limbPts[sec] = (limb.cut || catmull(limb.pts, 16)).filter(([x, y]) => inMask(x, y, 16));
+  const nearestLimb = n => limbPts[n.section].reduce((b, p) => (p[0] - n.x) ** 2 + (p[1] - n.y) ** 2 < (b[0] - n.x) ** 2 + (b[1] - n.y) ** 2 ? p : b);
+  const anchor = n => n.parent ? byId[n.parent] : (([x, y]) => ({ x, y }))(nearestLimb(n));
   for (const n of list) for (let k = 0; k < 250 && !inMask(n.x, n.y, 24); k++) {
     const dx = 640 - n.x, dy = 300 - n.y, d = Math.hypot(dx, dy) || 1;
     n.x = Math.round(n.x + dx / d * 4); n.y = Math.round(n.y + dy / d * 4);
   }
   let area = 0; for (let y = 0; y < GH; y += 4) for (let x = 0; x < GW; x += 4) if (inMask(x, y, 26)) area += 16;
   const R = Math.sqrt(area / list.length) * 1.08;
+  // Even coverage (Lloyd relaxation): each node moves toward the middle of the leaf area nearest to
+  // it, but never far from what it grows from.
   const samples = []; for (let y = 0; y < GH; y += 8) for (let x = 0; x < GW; x += 8) if (inMask(x, y, 26)) samples.push([x, y]);
   for (let it = 0; it < 60; it++) {
     const sx = new Float64Array(list.length), sy = new Float64Array(list.length), sc = new Float64Array(list.length);
@@ -458,7 +461,7 @@ function spreadNodes(mask) {
     list.forEach((n, i) => {
       if (!sc[i]) return;
       let mx = (sx[i] / sc[i] - n.x) * .6, my = (sy[i] / sc[i] - n.y) * .6;
-      const p = anchor(n); if (Math.hypot(p.x - n.x - mx, p.y - n.y - my) > R * 2.8) { mx *= .3; my *= .3; }
+      const p = anchor(n); if (Math.hypot(p.x - n.x - mx, p.y - n.y - my) > R * 1.6) { mx *= .2; my *= .2; }
       mx = clamp(mx, -8, 8); my = clamp(my, -8, 8);
       if (inMask(n.x + mx, n.y + my, 26)) { n.x += mx; n.y += my; }
     });
@@ -473,7 +476,7 @@ function spreadNodes(mask) {
     }
     list.forEach((n, i) => {
       const p = anchor(n), dx = p.x - n.x, dy = p.y - n.y, d = Math.hypot(dx, dy);
-      if (d > R * 2) { mv[i][0] += dx / d * (d - R * 2) * .1; mv[i][1] += dy / d * (d - R * 2) * .1; }
+      if (d > R * 1.3) { mv[i][0] += dx / d * (d - R * 1.3) * .15; mv[i][1] += dy / d * (d - R * 1.3) * .15; }
     });
     list.forEach((n, i) => {
       const mx = clamp(mv[i][0], -4, 4), my = clamp(mv[i][1], -4, 4);
@@ -481,6 +484,35 @@ function spreadNodes(mask) {
     });
   }
   list.forEach(n => { n.x = Math.round(n.x); n.y = Math.round(n.y); });
+  // Untangle: two nodes of the same limb swap places whenever that means fewer crossing branches
+  // (then shorter ones), so no branch reaches over its neighbours to get to its node.
+  const cross = (a, b, c, d) => {
+    if ([c, d].some(p => Math.hypot(p.x - a.x, p.y - a.y) < 2 || Math.hypot(p.x - b.x, p.y - b.y) < 2)) return false;
+    const o = (p, q, r) => Math.sign((q.x - p.x) * (r.y - p.y) - (q.y - p.y) * (r.x - p.x));
+    return o(a, b, c) * o(a, b, d) < 0 && o(c, d, a) * o(c, d, b) < 0;
+  };
+  const cost = () => {
+    const segs = list.map(n => [anchor(n), n]);
+    let c = 0;
+    for (let i = 0; i < segs.length; i++) {
+      c += Math.hypot(segs[i][0].x - segs[i][1].x, segs[i][0].y - segs[i][1].y);
+      for (let j = i + 1; j < segs.length; j++) if (cross(segs[i][0], segs[i][1], segs[j][0], segs[j][1])) c += 1000;
+    }
+    return c;
+  };
+  let best = cost();
+  for (let pass = 0; pass < 8; pass++) {
+    let improved = false;
+    for (let i = 0; i < list.length; i++) for (let j = i + 1; j < list.length; j++) {
+      const a = list[i], b = list[j];
+      if (a.section !== b.section) continue;
+      [a.x, b.x] = [b.x, a.x]; [a.y, b.y] = [b.y, a.y];
+      const c = cost();
+      if (c < best - .5) { best = c; improved = true; } else { [a.x, b.x] = [b.x, a.x]; [a.y, b.y] = [b.y, a.y]; }
+    }
+    if (!improved) break;
+  }
+  for (const n of list) if (n.from) n.from = nearestLimb(n).map(Math.round);
 }
 // The lowest leafy pixel in a column (where dream-fruit hang from).
 function maskBottom(x) { let y = 780; while (y > 0 && !CROWN_MASK.alpha(x, y)) y--; return y; }
