@@ -1027,10 +1027,6 @@ func _draw_firefly_jar(canvas: Image, st: Dictionary) -> void:
 			_skin_px(canvas, mask, fig.o, [p], Color("#8aa860"))
 		elif mask.get_pixelv(p).a > 0.0:
 			_glow_dot(canvas, p, Color("#fff27a"), Color("#a8c868"), mask)
-	# String round the neck.
-	_line(canvas, [Vector2(25, 19 + dy), Vector2(44, 19 + dy)], Color("#e0c8a0"), mask)
-	_px(canvas, 45, 19 + dy, Color("#e0c8a0"))
-	_px(canvas, 46, 20 + dy, Color("#e0c8a0"))
 	# Cork hat and its sprout (it pops up when the jar fires).
 	var cy: int = dy + maxi(-2, mini(0, st.lift))
 	var lid := _layer()
@@ -1751,9 +1747,6 @@ func _glass(canvas: Image, mask: Image, st: Dictionary, fig: Dictionary, hi: Col
 	for y in range(24, 40):
 		_skin_px(canvas, mask, fig.o, [Vector2i(21, y + dy)], hi)
 	_skin_px(canvas, mask, fig.o, [Vector2i(24, 7 + dy), Vector2i(24, 8 + dy), Vector2i(25, 7 + dy), Vector2i(22, 24 + dy)], hi.lightened(0.4))
-	_line(canvas, [Vector2(25, 19 + dy), Vector2(44, 19 + dy)], Color("#e0c8a0"), mask)
-	_px(canvas, 45, 19 + dy, Color("#e0c8a0"))
-	_px(canvas, 46, 20 + dy, Color("#e0c8a0"))
 
 # Stormcap: a storm-glass golem capped with a little storm cloud, static crackling inside it.
 func _draw_stormcap(canvas: Image, st: Dictionary) -> void:
