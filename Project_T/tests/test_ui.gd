@@ -259,9 +259,55 @@ func _run() -> void:
 	var marks_hud = main.get_node("HUD")
 	marks_hud.bark_shield.set_charges(2)
 	_check(marks_hud.bark_shield.visible and marks_hud.bark_shield.charges == 2, "Thick Bark: the shield shows while leaks can be saved")
+	_check(marks_hud.bark_shield._intro > 0.0, "…and pulses with its name the first time")
+	var bark_card = marks_hud.bark_shield.card()
+	if bark_card != null:
+		marks_hud.bark_shield.tip.show_card(marks_hud.bark_shield, bark_card, Vector2(200, 200))
+		_check(marks_hud.bark_shield.tip.visible and marks_hud.bark_shield.tip._name.text == bark_card.display_name
+			and marks_hud.bark_shield.tip._text.text == bark_card.description, "hover / tap: the card's icon, name and text")
+		marks_hud.bark_shield.tip.hide_tip(marks_hud.bark_shield)
 	marks_hud.bark_shield.set_charges(0)
 	_check(not marks_hud.bark_shield.visible, "…and hides at 0")
 	_check(main.get_children().any(func(c: Node) -> bool: return c is DreamMarks), "the Heart of the Maze mark layer exists")
+	# Touch drag to build (TouchBuild): Plant / Cancel while a stroke waits; two fingers pan, never plant.
+	var touch: TouchBuild = main.get_node("HUD").get_children().filter(func(c: Node) -> bool: return c is TouchBuild).front()
+	var touch_placer: TowerPlacer = main.get_node("%TowerPlacer")
+	main.get_node("%RunState").dew = 500
+	touch.set_touch_mode(true)
+	_check(not touch_placer.confirm_on_release, "touch: strokes wait for Plant")
+	touch_placer.select_tower(load("res://resource/tower/thornwall.tres"))
+	var touch_cell := _free_cell(main.get_node("%MapGenerator"))
+	touch_placer.begin_stroke(touch_cell)
+	touch._refresh()
+	_check(touch.visible and touch._plant.text.begins_with("Plant"), "the Plant button shows for a pending stroke (" + touch._plant.text + ")")
+	var planted_before: int = main.get_node("%TowerContainer").get_child_count()
+	touch._on_plant()
+	_check(not touch_placer.stroking and not touch.visible and main.get_node("%TowerContainer").get_child_count() > planted_before,
+		"Plant plants the stroke")
+	touch_placer.begin_stroke(_free_cell(main.get_node("%MapGenerator")))
+	var touch_camera = main.get_node("GameCameraNode")
+	var cam_before: Vector2 = touch_camera.target_position
+	for i in 2:
+		var press := InputEventScreenTouch.new()
+		press.index = i
+		press.pressed = true
+		press.position = Vector2(400 + 100 * i, 400)
+		touch._input(press)
+	_check(not touch_placer.stroking, "a second finger drops the stroke (a pan never plants)")
+	var drag := InputEventScreenDrag.new()
+	drag.index = 0
+	drag.position = Vector2(440, 400)
+	drag.relative = Vector2(40, 0)
+	touch._input(drag)
+	_check(touch_camera.target_position != cam_before, "two fingers pan the map")
+	for i in 2:
+		var lift := InputEventScreenTouch.new()
+		lift.index = i
+		lift.pressed = false
+		touch._input(lift)
+	touch.set_touch_mode(false)
+	_check(touch_placer.confirm_on_release, "a mouse plants on release again")
+	touch_placer.set_build_mode(false)
 	# --- The Heartwood Sapling: its card after the drift 50 family pick, then the rest panel ---
 	# The Sapling is out of runs (TowerPlacer.sapling_enabled, run_design.md): no Codex terms for it.
 	var sapling_terms := func() -> bool:

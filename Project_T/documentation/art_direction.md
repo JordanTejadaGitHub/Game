@@ -13,9 +13,40 @@ bodies or skulls-and-gore horror.
 ## Rendering style
 
 Six candidate styles are compared in **`art_style_options.md`** (Waystone pixel, Storybook chunky,
-Papercut, Woodcut ink, Lantern 16, Stained glass), each switchable on the concept page. **Leaning
-pick: Waystone pixel**, the current 64×64 pixel look, so the existing Warden and nightmare art
-stays as it is. Not final yet; everything below assumes it.
+Papercut, Woodcut ink, Lantern 16, Stained glass), each switchable on the concept page.
+
+### Decision (2026-09-28): Waystone pixel, detailed 64
+
+**Final.** We keep the current Waystone pixel look at **64×64 per cell** and add more detail within
+those 64 pixels. We don't redraw at 128. The comparison page
+(https://claude.ai/artifact/L3HVzecXZZLdogJKHtkuvy) showed that with the whole map on a 1080p
+screen a cell is about 58 screen px, so 128 px art gets shrunk and its detail is lost. Going to 128
+would also mean redrawing every sheet and using 4× the texture memory, which hurts the mobile port.
+Detail added at 64 shows at every screen size.
+
+**The detail pass.** Every art chat applies it to its generator; the page's "Detailed · 64" column
+is the reference (made automatically; hand-tuned generator art should do better).
+
+- **Light from the upper left.** Each material gets at least three tones: light, base and shadow.
+  Add a **1 px rim of light** on the upper-left inside edge: warm gold on Wardens and the Heartwood,
+  violet on nightmares, pale on obstacles. Keep the dark outline.
+- **Dithered shading.** Where two shading bands meet across a large flat area, add a 1 px checker
+  seam between them. Don't dither small parts; they turn to noise.
+- **Material texture, used sparingly** (about 1 pixel in 10 at most): moss and leaf clumps with a
+  shadow under each, vertical bark grain, stone speckle and hairline cracks, pebbles on the path,
+  grass blades.
+- **Banded glow.** Warm lights glow gold (lanterns, fireflies, the Heartwood's hollow and fruit), and
+  nightmare eyes and cores glow cold. The glow is a 1–2 px halo in 2–3 alpha steps, never a soft blur.
+- **Nightmares:** a few cold motes inside the dark body, and a ragged, smoky lower edge where the
+  silhouette allows it.
+- **Readability comes first.** The value order below (dark ground < pale obstacles < palest path)
+  and each silhouette must survive the pass. If detail muddies a sprite at 58 px, remove it.
+
+**Exceptions:** the Heartwood stays 128×128 (2×2 cells). The Steam capsule, key art and trailer
+close-ups are separate showcase art and can be drawn at a higher resolution.
+
+**Still open:** a shared master palette of about 32 colours for every generator, recommended by
+the design chat to keep art from several chats consistent.
 
 ## Environment
 

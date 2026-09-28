@@ -137,9 +137,11 @@ func _run() -> void:
 		and profile_after.get("combo_counts", {}) == profile_before.get("combo_counts", {}), "tests never write discoveries")
 	# The Codex: Glossary (search, see-also jumps) and Combos (15, "???" until discovered).
 	var codex: CodexPanel = main.get_node("%PauseMenu").codex
+	ResultsScreen.demo_override = 0  # The full game: every combo in scope (the scope itself: test_codex_scope)
 	codex.open(&"combos")
-	_check(codex.visible and codex.tabs.current_tab == 1 and CodexData.combos().all(func(c: Dictionary) -> bool: return codex._entries.has(String(c.id)))
-		and CodexData.combos().size() == 15, "the Codex lists all 15 combos")
+	_check(codex.visible and codex.tabs.current_tab == 1 and CodexData.combos().filter(CodexData.in_build).all(func(c: Dictionary) -> bool: return codex._entries.has(String(c.id)))
+		and CodexData.combos().size() == 15, "the Codex lists every combo in scope, of 15")
+	ResultsScreen.demo_override = -1
 	# Locked entries are just "???": no ingredient icons or text (they'd give the answer away).
 	var seen_now := ComboFeedback.load_seen()
 	for combo in CodexData.combos():
@@ -223,6 +225,14 @@ func _run() -> void:
 			juggled.restless = 2
 			var restless_line: String = load("res://scripts/ui/nightmare_info.gd").restless_text(juggled)
 			_check(restless_line == "Restless ×2: +40% speed (Unbound at 3)", "the nightmare info's Restless line (" + restless_line + ")")
+			# Omens that change a live nightmare (Sleepless, Heavy Rain) show on its info.
+			var info_script = load("res://scripts/ui/nightmare_info.gd")
+			_check(info_script.omen_text(juggled) == "", "no Omen line for a plain nightmare")
+			juggled.statuses.immune.append(&"drowsy")
+			juggled.modifiers["always_status"] = &"damp"
+			var omen_line: String = info_script.omen_text(juggled)
+			_check(omen_line.begins_with("Omen") and omen_line.contains("immune to Drowsy") and omen_line.contains("always Soaked"),
+				"the Omen's extra traits (" + omen_line + ")")
 		juggled.queue_free()
 	# Crowned Reactions: their own discovery card, a hidden entry until found, outside the 15.
 	_check(CodexData.crowned().size() == 8 and CodexData.combos().size() == 15, "8 Crowned Reactions, apart from the 15 combos")

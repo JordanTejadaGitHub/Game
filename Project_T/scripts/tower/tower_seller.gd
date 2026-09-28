@@ -61,8 +61,11 @@ func _ready() -> void:
 	tower_placer.build_mode_changed.connect(func(building: bool) -> void: set_active(not building))
 	# The refund changes when a drift starts or ends.
 	drift_director.build_phase_changed.connect(queue_redraw.unbind(1))
+	drift_director.build_phase_changed.connect(_on_build_phase_changed)
+	Tower.resting = drift_director.is_build_phase()
 	# A Warden leaving any other way (trampled by an Unbound nightmare) leaves the selection too.
 	tower_container.child_exiting_tree.connect(_on_tower_leaving)
+	_ensure_target_action()
 
 func set_active(value: bool) -> void:
 	active = value
@@ -84,7 +87,21 @@ func get_refund(tower: Tower) -> int:
 	var dreams := get_tree().get_first_node_in_group(DreamState.GROUP) as DreamState
 	if dreams:
 		share = dreams.get_refund_share(share, resting)  # Fair Trade
-	return int(tower.invested_dew * share)
+	# Placed this rest (run_design.md "Selling"): Dew spent on it during this rest comes back in full.
+	var fresh := mini(tower.rest_dew, tower.invested_dew) if resting else 0
+	return fresh + int((tower.invested_dew - fresh) * share)
+
+# Whether all of `tower` was bought this rest (the Sell button says "full refund").
+func is_placed_this_rest(tower: Tower) -> bool:
+	return drift_director.is_build_phase() and tower.rest_dew > 0 and tower.rest_dew >= tower.invested_dew
+
+# A drift starting ends "placed this rest" for every Warden; a rest starting opens it again.
+func _on_build_phase_changed(resting: bool) -> void:
+	Tower.resting = resting
+	if not resting:
+		for tower in tower_container.get_children():
+			if tower is Tower:
+				tower.rest_dew = 0
 
 func get_tower_at(cell: Vector2) -> Tower:
 	for tower in tower_container.get_children():
@@ -138,6 +155,10 @@ func set_selection(towers: Array) -> void:
 func _selection_updated() -> void:
 	selection.assign(selection.filter(func(t) -> bool: return is_instance_valid(t) and not t.is_queued_for_deletion()))  # Untyped: t may be freed
 	selected = selection[0] if not selection.is_empty() else null
+	for tower in tower_container.get_children():
+		if tower is Tower and tower.is_selected != selection.has(tower):
+			tower.is_selected = selection.has(tower)  # The targeting pip
+			tower.queue_redraw()
 	Tower.set_badges_visible(&"selection", not selection.is_empty())  # Card badges show while Wardens are selected
 	tower_selected.emit(selected)
 	selection_changed.emit(selection)
@@ -410,6 +431,9 @@ func _unhandled_input(event: InputEvent) -> void:
 	elif event.is_action_pressed("grow_warden") and not selection.is_empty():
 		grow_selected()
 		get_viewport().set_input_as_handled()
+	elif event.is_action_pressed("cycle_target") and not selection.is_empty():
+		cycle_target_group(selection)
+		get_viewport().set_input_as_handled()
 
 # A left press starts a click / drag / double-click, unless the Clear tool is on and it's on an obstacle.
 func _starts_selection(event: InputEvent) -> bool:
@@ -525,3 +549,31 @@ func _draw() -> void:
 	if not can_sell():
 		label = "%s · click: details · Overgrown: no selling until the rest" % _hover_tower.tower_data.display_name
 	WorldLabel.draw_tag(self, center.x, rect.position.y - 8, label)
+
+# --- Targeting (screens_ui.md "Targeting") -------------------------------------------------------------
+
+# Sets every Warden in `towers` that has the switch to `mode`.
+func set_target_group(towers: Array, mode: TowerData.TargetMode) -> void:
+	for tower in towers:
+		if is_instance_valid(tower) and tower.can_choose_target():
+			tower.set_target_mode(mode)
+	selection_changed.emit(selection)  # The panel's switch follows
+
+# T: the next mode after the first targeting Warden's, for all of them together.
+func cycle_target_group(towers: Array) -> void:
+	var aimed := towers.filter(func(t) -> bool: return is_instance_valid(t) and t.can_choose_target())
+	if aimed.is_empty():
+		return
+	var modes := Tower.PLAYER_TARGET_MODES
+	var index := modes.find(aimed[0].get_target_mode())
+	set_target_group(aimed, modes[(index + 1) % modes.size()])
+
+# The T key's action. It belongs in project.godot's input map (and the settings' keybind list); until
+# it's there, it's made here so the key works.
+static func _ensure_target_action() -> void:
+	if InputMap.has_action("cycle_target"):
+		return
+	InputMap.add_action("cycle_target")
+	var key := InputEventKey.new()
+	key.physical_keycode = KEY_T
+	InputMap.action_add_event("cycle_target", key)

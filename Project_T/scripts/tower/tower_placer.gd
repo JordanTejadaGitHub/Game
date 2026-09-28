@@ -68,6 +68,7 @@ var _neighbour_changes: Array = []  # [[tower, card name, now on], …]
 var _range_gain := 0.0  # Cells of range position cards would add here
 var _kin_spots := {}  # Cells where the selected Warden would find a kin (Kinships.kin_spots)
 var _kin_here := ""  # The Kinship it would form on the hovered cell
+var _heart_here := false  # Heart of the Maze would move to the Warden planted here
 const KIN_SPOT_COLOR := Color(0.78, 0.86, 0.42, 0.4)  # Faint green-gold leaf outline
 var _path_preview := Line2D.new()
 const PREVIEW_COLOR := Color(0.4, 0.9, 1.0, 0.6)  # The route preview (RouteLine: high-contrast setting)
@@ -134,7 +135,7 @@ func _tick_settling(delta: float) -> void:
 		queue_redraw()  # The ghost's "settling (5 s)" counts down (_process re-checks validity)
 
 func _hover_cell_valid() -> bool:
-	return not _hover_path.is_empty() and not _cells_occupied(_footprint(_hover_cell)) \
+	return not frozen_ground() and not _hover_path.is_empty() and not _cells_occupied(_footprint(_hover_cell)) \
 		and not is_unique_placed(tower_data) and settling_left(_footprint(_hover_cell)) <= 0.0
 
 func _marks() -> Node2D:
@@ -160,6 +161,8 @@ func _draw_settling() -> void:
 		WorldLabel.draw_tag(_settling_marks, centre.x, centre.y + 5.0, "%d" % ceili(left), SETTLE_COLOR)
 
 func set_build_mode(active: bool) -> void:
+	if not active and stroking:
+		cancel_stroke()
 	build_mode = active
 	Tower.set_badges_visible(&"build", active)  # Card badges show in build mode
 	visible = active
@@ -174,6 +177,9 @@ func select_tower(data: TowerData) -> void:
 
 # While picking a square for a 2×2 growth, clicks go to the choice first (before selection handles them).
 func _input(event: InputEvent) -> void:
+	if stroking:
+		_stroke_input(event)
+		return
 	if not is_choosing_square():
 		return
 	if event.is_action_pressed("cancel_build"):
@@ -193,10 +199,16 @@ func _unhandled_input(event: InputEvent) -> void:
 	elif not build_mode:
 		return
 	elif event.is_action_pressed("cancel_build"):
-		set_build_mode(false)
+		if stroking:
+			cancel_stroke()  # RMB / Esc drops the stroke, not build mode
+		else:
+			set_build_mode(false)
 		get_viewport().set_input_as_handled()
 	elif event.is_action_pressed("place_tower"):
-		_try_build(_hover_cell)
+		if tower_data.footprint > 1:
+			_try_build(_hover_cell)  # Big Wardens: one per click
+		else:
+			begin_stroke(_hover_cell)  # A click is a stroke of one; dragging adds cells
 		get_viewport().set_input_as_handled()
 
 func _process(delta: float) -> void:
@@ -210,6 +222,8 @@ func _process(delta: float) -> void:
 	if not build_mode:
 		return
 	var cell: Vector2 = MAP_GRID.calculate_grid_coordinates(get_global_mouse_position())
+	if stroking:
+		return  # The stroke has its own ghosts and route (_stroke_input)
 	if cell != _hover_cell:
 		_hover_cell = cell
 		_refresh_hover()
@@ -225,6 +239,9 @@ func _process(delta: float) -> void:
 func _draw() -> void:
 	if is_choosing_square():
 		_draw_grow_choice()
+		return
+	if stroking:
+		_draw_stroke()
 		return
 	_draw_kin_spots()
 	if _hover_cell == NO_CELL or not MAP_GRID.is_within_bounds(_hover_cell):
@@ -252,7 +269,9 @@ func _draw() -> void:
 	if run_state.fertile_cells.has(_hover_cell):
 		tag += " (fertile)"
 	var growth := get_hover_path_growth()
-	if is_unique_placed(tower_data):
+	if frozen_ground():
+		tag += "  ·  Frozen Ground: plant at the rest"
+	elif is_unique_placed(tower_data):
 		tag += "  ·  already planted (one per run)"
 	elif settling_left(_footprint(_hover_cell)) > 0.0:
 		tag += "  ·  The ground is settling (%d s)" % ceili(settling_left(_footprint(_hover_cell)))
@@ -264,6 +283,8 @@ func _draw() -> void:
 		tag += "  ·  %+d path" % growth  # "Wardens are walls": how much longer the walk gets
 	if _kin_here != "":
 		tag += "  ·  Kin spot: forms %s" % _kin_here
+	if _heart_here:
+		tag += "  ·  Becomes the Heart of the Maze"
 	var broken := get_neighbour_changes().filter(func(change: Array) -> bool: return not change[2])
 	if not broken.is_empty():
 		# Placing a Warden should never silently weaken others.
@@ -393,6 +414,9 @@ func hover_breaks_path() -> bool:
 
 # Recomputes the route preview for the hovered cell (only needed when the cell or the maze changes).
 func _refresh_hover() -> void:
+	if stroking:
+		_plan_stroke()  # The maze changed under the stroke
+		return
 	_hover_path = PackedVector2Array()
 	if _footprint(_hover_cell).all(func(c: Vector2) -> bool: return map_generator.is_buildable(c)):
 		_hover_path = map_generator.get_path_if_blocked_cells(_footprint(_hover_cell))
@@ -401,6 +425,7 @@ func _refresh_hover() -> void:
 	for point in _hover_path:
 		_path_preview.add_point(MAP_GRID.calculate_map_position(point))
 	_hover_valid = _hover_cell_valid()
+	_heart_here = becomes_heart(_hover_cell, _hover_path)
 	_hover_affordable = run_state.can_afford(get_cost(null, _hover_cell))
 	_update_dream_preview()
 	queue_redraw()
@@ -417,6 +442,10 @@ func is_unique_placed(data: TowerData) -> bool:
 # Builds a tower on `cell` and charges its Dew cost. Returns false (and charges nothing) if the cell
 # can't be built on or the player can't afford it.
 func _try_build(cell: Vector2) -> bool:
+	if frozen_ground():
+		_toast_frozen()
+		build_rejected.emit(cell)
+		return false
 	if is_unique_placed(tower_data):
 		build_rejected.emit(cell)
 		return false
@@ -442,6 +471,7 @@ func _try_build(cell: Vector2) -> bool:
 	tower.tower_data = tower_data
 	tower.cell = cell
 	tower.invested_dew = cost
+	tower.rest_dew = cost if Tower.resting else 0  # Placed this rest: a full refund until Start
 	tower.position = Tower.footprint_centre(cell, tower_data.footprint)
 	tower_container.add_child(tower)
 	map_generator.block_cells(_footprint(cell))  # Emits path_changed -> enemies re-route, preview refreshes
@@ -473,6 +503,9 @@ func get_buildable_towers() -> Array[TowerData]:
 # (its top-left cell); with none given, the best one (the longest route) is used.
 func evolve(tower: Tower, into: TowerData, origin: Vector2 = NO_CELL) -> bool:
 	if not tower.tower_data.evolves_to.has(into) or not dream_state.is_unlocked(into.get_id()):
+		return false
+	if frozen_ground():
+		_toast_frozen()
 		return false
 	if ascended_blocker(into) != "":
 		return false  # One Ascended form per family on the map
@@ -669,6 +702,9 @@ func ascended_blocker(into: TowerData) -> String:
 func nurture(tower: Tower, focus: Tower.Focus = Tower.Focus.NONE) -> bool:
 	if not is_instance_valid(tower) or not tower.can_nurture():
 		return false
+	if frozen_ground():
+		_toast_frozen()
+		return false
 	if tower.needs_focus() and focus == Tower.Focus.NONE:
 		return false
 	# Rank VI would make it the Eldest (only one Warden grows past V): the panel asks first and calls
@@ -722,3 +758,221 @@ func _is_occupied_by_enemy(cell: Vector2) -> bool:
 		if enemy.get_current_cell() == cell or enemy.get_target_cell() == cell:
 			return true
 	return false
+
+
+# --- Drag to build (screens_ui.md "Planting several Wardens: drag to build") ---
+# Press and drag in build mode: every cell passed gets the chosen Warden. The stroke locks to the row or
+# column after 2 cells (Alt: free); a diagonal jump fills the corner cell. Each cell is planned in drag
+# order: green = it will be planted, red = skipped (can't plant here, the path rule given the earlier
+# cells, a nightmare on it, settling ground, out of Dew). Release plants all the green ones in order;
+# RMB / Esc cancels. A click is a stroke of one. Touch: confirm_on_release = false and the HUD's Plant
+# button calls plant_stroke().
+
+signal stroke_changed(active: bool)
+const STROKE_SKIP_TINT := Color(1.0, 0.35, 0.35, 0.45)
+var stroking := false
+var confirm_on_release := true
+var _stroke: Array[Vector2] = []  # Cells in drag order
+var _stroke_plan := {}  # cell -> "" (plant) or why it's skipped
+var _stroke_axis := -1  # -1 not locked yet, 0 = a row (y fixed), 1 = a column (x fixed)
+var _stroke_cost := 0
+var _stroke_growth := 0
+
+func begin_stroke(cell: Vector2) -> void:
+	if cell == NO_CELL or not MAP_GRID.is_within_bounds(cell):
+		return
+	stroking = true
+	_stroke.assign([cell])
+	_stroke_axis = -1
+	_plan_stroke()
+	stroke_changed.emit(true)
+
+# Adds the cells from the stroke's end to `cell`, one step at a time (a diagonal step goes via the corner
+# cell). Once the stroke has 2 cells it locks to their row or column unless `free` (Alt).
+func extend_stroke(cell: Vector2, free := false) -> void:
+	if not stroking or _stroke.is_empty() or not MAP_GRID.is_within_bounds(cell):
+		return
+	var target := _locked(cell, free)
+	var last: Vector2 = _stroke.back()
+	while last != target:
+		var step := Vector2(signf(target.x - last.x), signf(target.y - last.y))
+		if step.x != 0.0 and step.y != 0.0:
+			step.y = 0.0  # The corner first
+		last += step
+		if not _stroke.has(last):
+			_stroke.append(last)
+		if not free and _stroke_axis == -1 and _stroke.size() >= 2:
+			_stroke_axis = 0 if _stroke[1].y == _stroke[0].y else 1
+			target = _locked(cell, free)  # Locked now: carry on along the row / column
+	_plan_stroke()
+
+func _locked(cell: Vector2, free: bool) -> Vector2:
+	if free or _stroke_axis == -1:
+		return cell
+	return Vector2(cell.x, _stroke[0].y) if _stroke_axis == 0 else Vector2(_stroke[0].x, cell.y)
+
+func cancel_stroke() -> void:
+	stroking = false
+	_stroke.clear()
+	_stroke_plan.clear()
+	stroke_changed.emit(false)
+	_hover_cell = NO_CELL  # _process refreshes the single ghost
+	queue_redraw()
+
+# Plants every green cell in drag order (each re-checked by _try_build). Returns how many.
+func plant_stroke() -> int:
+	var cells := _stroke.filter(func(c: Vector2) -> bool: return _stroke_plan.get(c, "x") == "")
+	stroking = false  # So the builds below refresh the preview normally
+	var planted := 0
+	for c in cells:
+		if _try_build(c):
+			planted += 1
+	if planted == 0 and not _stroke.is_empty():
+		build_rejected.emit(_stroke[0])  # A click on a cell that can't take it (the sound)
+	_stroke.clear()
+	_stroke_plan.clear()
+	stroke_changed.emit(false)
+	_hover_cell = NO_CELL
+	queue_redraw()
+	return planted
+
+func get_stroke_plan() -> Dictionary:
+	return _stroke_plan.duplicate()
+
+func get_stroke_cells() -> Array[Vector2]:
+	return _stroke.duplicate()
+
+# "6 Thornwalls · 30 Dew · +14 path"
+func get_stroke_tag() -> String:
+	var count := _stroke_plan.values().count("")
+	var name := tower_data.display_name + ("" if count == 1 else "s")
+	var tag := "%d %s · %d Dew" % [count, name, _stroke_cost]
+	if _stroke_growth != 0:
+		tag += " · %+d path" % _stroke_growth
+	var skipped := _stroke.size() - count
+	if skipped > 0:
+		tag += " · %d skipped" % skipped
+	return tag
+
+func _stroke_input(event: InputEvent) -> void:
+	if event.is_action_pressed("cancel_build"):
+		cancel_stroke()
+		get_viewport().set_input_as_handled()
+	elif event is InputEventMouseMotion and get_viewport().gui_get_hovered_control() == null:
+		# (Over a HUD button, e.g. touch's Plant: an emulated nudge mustn't extend the stroke.)
+		extend_stroke(MAP_GRID.calculate_grid_coordinates(get_global_mouse_position()), event.alt_pressed)
+	elif event.is_action_released("place_tower") and confirm_on_release:
+		plant_stroke()
+		get_viewport().set_input_as_handled()
+
+func _plan_stroke() -> void:
+	_stroke_plan.clear()
+	var blocked: Array[Vector2] = []
+	var dew := run_state.dew
+	var enemy_cells := PackedVector2Array()
+	for enemy in enemy_spawner.get_maze_walkers():
+		enemy_cells.append(enemy.get_target_cell())
+	var unique_used := is_unique_placed(tower_data)
+	for c in _stroke:
+		var cells: Array[Vector2] = [c]
+		var why := ""
+		if frozen_ground():
+			why = "Frozen Ground: plant at the rest"
+		elif blocked.has(c) or not map_generator.is_buildable(c):
+			why = "can't plant here"
+		elif _cells_occupied(cells):
+			why = "nightmare here"
+		elif settling_left(cells) > 0.0:
+			why = "the ground is settling"
+		elif unique_used:
+			why = "one per run"
+		elif not map_generator.can_block_cells(blocked + cells, enemy_cells):
+			why = "would close the dream"
+		else:
+			var cost := get_cost(null, c)
+			if cost > dew:
+				why = "out of Dew"
+			else:
+				dew -= cost
+				blocked.append(c)
+				unique_used = tower_data.is_unique
+		_stroke_plan[c] = why
+	_stroke_cost = run_state.dew - dew
+	var route: PackedVector2Array = map_generator.get_path_from(map_generator.startPath)
+	var new_route: PackedVector2Array = map_generator.get_path_if_blocked_cells(blocked) if not blocked.is_empty() else route
+	_stroke_growth = new_route.size() - route.size()
+	_path_preview.clear_points()
+	RouteLine.apply(_path_preview, PREVIEW_COLOR)
+	for point in new_route:
+		_path_preview.add_point(MAP_GRID.calculate_map_position(point))
+	queue_redraw()
+
+func _draw_stroke() -> void:
+	for c in _stroke:
+		draw_set_transform(MAP_GRID.calculate_map_position(c))
+		var ok: bool = _stroke_plan.get(c, "x") == ""
+		var tint := VALID_TINT if ok else STROKE_SKIP_TINT
+		if tower_data.texture == null:
+			Tower.draw_placeholder(self, tint)
+		else:
+			var frame := tower_data.get_frame_rect(0)
+			draw_texture_rect_region(tower_data.texture, Rect2(-frame.size / 2.0 + tower_data.sprite_offset, frame.size), frame, tint)
+	if _stroke.is_empty():
+		return
+	draw_set_transform(MAP_GRID.calculate_map_position(_stroke.back()))
+	var last_why: String = _stroke_plan.get(_stroke.back(), "")
+	var tag := get_stroke_tag() + ("  ·  %s" % last_why if last_why != "" else "")
+	WorldLabel.draw_tag(self, 0.0, MAP_GRID.cell_size.y / 2.0 + 18.0, tag, WorldLabel.cost_color(true))
+	draw_set_transform(Vector2.ZERO)
+
+# Heart of the Maze (card, screens_ui.md "Marks that are always on the map"): whether planting the
+# selected Warden on `cell` would make it the heart. Same rule as DreamState.get_heart_of_maze (the
+# attacker whose nearest route step is furthest from every other attacker's; ties: further along),
+# worked out on `route`, the one this placement would make.
+func becomes_heart(cell: Vector2, route: PackedVector2Array) -> bool:
+	if cell == NO_CELL or route.is_empty() or not tower_data.can_attack or not dream_state.has_card("heart_of_the_maze"):
+		return false
+	var cells: Array[Vector2] = [cell]
+	for tower in tower_container.get_children():
+		if tower is Tower and not tower.is_queued_for_deletion() and tower.tower_data.can_attack:
+			cells.append(tower.cell)
+	if cells.size() < 2:
+		return false
+	var steps: Array[int] = []
+	for c in cells:
+		var best_step := 0
+		var best_distance := INF
+		for i in route.size():
+			var distance := c.distance_squared_to(route[i])
+			if distance < best_distance:
+				best_distance = distance
+				best_step = i
+		steps.append(best_step)
+	var best := -1
+	var best_gap := -1
+	for i in cells.size():
+		var gap := 1 << 30
+		for j in cells.size():
+			if i != j:
+				gap = mini(gap, absi(steps[i] - steps[j]))
+		if gap > best_gap or (gap == best_gap and steps[i] > steps[best]):
+			best_gap = gap
+			best = i
+	return best == 0
+
+# Frozen Ground (Omen): no planting, growing or nurturing while one of its block's drifts is on (rests,
+# selling and clearing are fine). OmenDirector.blocks_building() knows whether it's active.
+func frozen_ground() -> bool:
+	var omens := get_tree().get_first_node_in_group(OmenDirector.GROUP) as OmenDirector
+	return omens != null and omens.has_method("blocks_building") and omens.blocks_building()
+
+var _frozen_toast_at := -100000
+
+func _toast_frozen() -> void:
+	var now := Time.get_ticks_msec()
+	if now - _frozen_toast_at < 1500:
+		return  # One toast per attempt burst (a stroke plants several)
+	_frozen_toast_at = now
+	var hud := owner.get_node_or_null("HUD") if owner else null
+	if hud and hud.has_method("show_toast"):
+		hud.show_toast("Frozen Ground: plant at the rest")

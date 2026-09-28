@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="OmenData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/omen/script/omen_data.gd" id="1_omen"]
+
+[resource]
+script = ExtResource("1_omen")
+id = "elder_night"
+display_name = "Elder Night"
+description = "Every drift has one more Deeply Blighted nightmare."
+kind = 0
+min_drift = 26
+extra_elites = 1
+reward_dreamlight = 1

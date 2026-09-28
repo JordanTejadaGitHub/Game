@@ -233,7 +233,7 @@ accessibility, Steam achievements (milestones map to them). Acts 3–4 and all f
   Reactions (Tower Code's `ReactionTracker`, made on the first Reaction; Fx shows their callouts):
   `%ReactionFeedback` hooks it when it joins the run, counts per block (rest report "Reactions:
   … longest chain ×N"; results use the tracker's run counts), shows the first-ever discovery card and
-  saves profile `reactions_seen` (real game only). `CodexPanel` (pause menu + Grove) lists all 8.
+  saves profile `reactions_seen` (real game only). `CodexPanel` (pause menu + Grove): Glossary / Combos / Families; lists what `CodexData.scope()` covers (starting three + Grove-planted families and forms; demo its three; dev runs all), "N more wait in the Memory Grove.", "New from the Grove" leaf (profile `codex_covered`). `tests/test_codex_scope.gd`.
 
 ## Meta (meta_design.md; full game only — `game/demo` true = nothing applied or recorded)
 - Grove = tech tree on the Heartwood: 82 `UnlockData` nodes (`resource/meta/grove/<id>.tres`, ids =

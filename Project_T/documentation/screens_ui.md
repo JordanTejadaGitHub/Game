@@ -330,6 +330,19 @@ demo) and 9 hidden ones later. Kindred and Whole Tree are explained on the secti
 
 New combos (new Wardens, Reactions) are added to this table and the Codex automatically.
 
+**What the Codex covers** (2026-09-28, user): **the families you can get in a run**: the three
+starting families plus every family unlocked in the Memory Grove (hidden branches only once their
+Grove node is planted). Combos, Reactions, Crowned Reactions and Kinships appear once all the
+families they need are yours in that sense; the list grows as the Grove does, and a newly covered
+entry arrives as "???" with a small leaf "New from the Grove" mark.
+- Entries that need a family you haven't unlocked aren't listed. One quiet line at the end of each
+  section says how many: *"4 more wait in the Memory Grove."* (no names, no hints).
+- Counters read against that scope ("9 / 11 combos discovered"); the **Discover every combo**
+  milestone still needs every combo in the game.
+- The demo covers only its three families (as built, 22bab70); dev toggles show everything.
+- A **Families** page lists the families you have, with their branches and final forms (locked ones
+  as silhouettes with "unlock with Dreamlight" / "Memory Grove"), each linking to its combos.
+
 - **Saved in the profile**, including in the demo (carried into the full game like Seeds). Not
   saved from developer runs (Test Grove, Unlock all families), **but** (changed 2026-09-28, user
   playtest: "unlocking stuff in the codex doesn't display after") discoveries in a developer run are
@@ -405,6 +418,12 @@ card that touches it is listed.**
 **On the map (while in build mode or with a Warden selected)**
 - Wardens with an active position-based card show a small card-icon badge at their base (the card's
   rarity shape). Outside build mode the badges are hidden to keep the map clean (setting: always).
+- **Marks that are always on the map** (Heart of the Maze's heart, Thick Bark's shield) must
+  **explain themselves** (playtest 2026-09-28: "what is the heart?"): hover or tap shows the card
+  icon, its name and one line: *"Heart of the Maze: the Warden furthest from any other attacking
+  Warden. +50% damage."* The first time one appears in a run it pulses once with the card's name
+  under it for ~2 s. When the heart moves to another Warden it glides there (no pop), and the build
+  ghost says *"Becomes the Heart of the Maze"* when a placement would move it.
 
 **Which cards this covers:** every card whose effect depends on where a Warden stands or what is near
 it (Solitude, Sprout Chorus, Cozy Corners, Hedge Maze, Kindred Roots, Reclaimed Earth's fertile cells,
@@ -483,13 +502,14 @@ from `onboarding.md`.
 **Resistances and immunities as icons** (added 2026-09-28, user request: "enemy statuses should be
 more clear with icons of their resistances"):
 
-- **Family icons:** each Warden family (damage line) is shown by its **base Warden's face**
-  (Sporeling = spore, Pebbling = stone, Dewdrop = water, Firefly Jar = light, Rootling = root,
-  Bellflower = song, Nestling = wing, Whirligig = wind, Acorn = support). No new art: the
-  `WardenIcon` portraits, small, in a round frame.
+- **Damage-type icons** (changed 2026-09-28, user: resist the Warden's *type*, not a Warden; see
+  `enemy_design.md` "Damage types"): Spore, Stone, Water, Light, Root, Song, Talon, Wind, each with
+  its own small icon (new art), replacing the base-Warden faces. Plain Wardens (Sprout, Thornwall,
+  Acorn, Memory Wardens) show a plain dot and are never resisted. Every Warden shows its type
+  (Warden panel, build tooltip, Warden bar tooltip: "Light damage").
 - In the nightmare info, three rows under the stats, each hidden when empty:
-  - **Resists** (grey frame, small shield): the family icons, "×0.5".
-  - **Weak to** (warm frame, small spark): the family icons, "×1.5".
+  - **Resists** (grey frame, small shield): the type icons + names, "Stone ×0.5".
+  - **Weak to** (warm frame, small spark): the type icons + names, "Light ×1.5".
   - **Immune / shrugs off**: the **status icons** crossed out for immunities (Barrow Wight: Rooted),
     or with "½" for shorter durations (Barrow Wight: Drowsy wears off fast). Traits get their own
     icons too (Flying, Hidden, Dread shell, Passes through walls).

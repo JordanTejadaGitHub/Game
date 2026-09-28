@@ -55,6 +55,9 @@ func _process(_delta: float) -> void:
 	var restless := restless_text(_target)
 	if restless != "":
 		lines.append(restless)
+	var omen_line := omen_text(_target)
+	if omen_line != "":
+		lines.append(omen_line)
 	var statuses: Array[String] = []
 	for id in _target.statuses.active_ids():
 		var stacks: int = _target.statuses.stacks(id)
@@ -74,6 +77,26 @@ func _process(_delta: float) -> void:
 		for child in _rows_box.get_children():
 			child.queue_free()
 		_rows_box.add_child(NightmareIcons.make_rows(data, 26.0))
+
+# What the drift's Omen gives this nightmare beyond its kind (get_defences doesn't know them):
+# "Omen Sleepless: immune to Drowsy, Rooted · always Soaked". "" when nothing.
+static func omen_text(enemy: Node) -> String:
+	var parts: Array[String] = []
+	var data: EnemyData = enemy.enemy_data
+	var extra_immune: Array[String] = []
+	for id in enemy.statuses.immune:
+		if not data.status_immune.has(id):
+			extra_immune.append(IconInfo.status_name(id))
+	if not extra_immune.is_empty():
+		parts.append("immune to " + ", ".join(extra_immune))
+	var always: StringName = enemy.get("modifiers").get("always_status", &"") if enemy.get("modifiers") is Dictionary else &""
+	if always != &"":
+		parts.append("always " + IconInfo.status_name(always))
+	if parts.is_empty():
+		return ""
+	var omens := enemy.get_tree().get_first_node_in_group(OmenDirector.GROUP) as OmenDirector
+	var omen: OmenData = omens.current() if omens != null and omens.has_method("current") else null
+	return "%s: %s" % ["Omen " + omen.display_name if omen != null else "Omen", " · ".join(parts)]
 
 # No maze juggling (run_design.md): "Restless ×2: +40% speed (Unbound at 3)" or "Unbound: ignores
 # the maze, tramples Wardens on its route" (Enemy Code's get_restless_info); "" when calm.

@@ -16,7 +16,7 @@ placeholders).
 | `acts_1_2.md` | creature and boss stats, special drifts, the drift-by-drift plan for drifts 1–50 |
 | `dream_design.md` | in-run upgrade pool, offer rules, status numbers |
 | `meta_design.md` | Seeds, Memory Grove, milestones, Blight Levels, Memories, true ending |
-| `art_direction.md` | warm vs cold, environment, Warden and nightmare look (audio to do) |
+| `art_direction.md` | warm vs cold, environment, Warden and nightmare look; **art style decided 2026-09-28: Waystone pixel, "detailed 64"** (64 px cells with a detail pass: upper-left light and 1 px rim, dithered bands, sparse texture, banded glow; the Heartwood 128 px; marketing art may go higher). Owned by the Theme chats |
 | `audio_direction.md` | music (adaptive layers), nightmare signature sounds, dispel, mix, demo list |
 | `platforms.md` | PC first, mobile port later: touch-friendly rules and the touch control map |
 | `art_style_options.md` | six candidate rendering styles compared; leaning Waystone pixel |

@@ -69,6 +69,19 @@ normal runs (family picks, Dreams, Dew, difficulty all as usual) but with **ever
 pick pool** and their Grove Dream cards, as if the Memory Grove had unlocked everything. Doesn't
 touch the real profile; runs don't bank Seeds. Unlike Test Grove, nothing is free or pre-unlocked.
 
+**Dev Grove** (added 2026-09-28, user request: "unlock every Grove node for developer"): Settings →
+Developer → **Dev Grove: Off / Early / Half / Full**. It plays normal runs *and* opens the Memory
+Grove screen as if the profile had that much of the tree, using the balance simulation's presets
+(`MetaRun.load_preset`; Full = every node at max level, all 5 perk slots). Perks, families, card
+bundles, Ascension nodes, Blight Levels and loadouts all work, so any Grove content can be tested.
+- Uses a separate dev profile (`user://sim_heartwood.json`); the real profile is never read or
+  written while it's on. Loadout changes and purchases in the Grove screen stay in the dev profile
+  (reset to the preset when the option changes).
+- Counts as a dev run (`MetaRun.is_dev_run()`): no Seeds banked, no records, milestones or
+  whispers written. The HUD and Grove show a small "Dev Grove: Full" tag.
+- Turns **Demo mode** off while on (the Grove only applies in the full game). Debug builds only.
+  Can combine with Test Grove and Unlock all families.
+
 **Test tools v2** (added 2026-09-27: first test showed combos and impact couldn't be judged):
 - **Spawn panel:** pick a nightmare type, a count and "elite", spawn at the start now.
 - **Target Dummy:** a slow, unkillable nightmare that walks the route on a loop; shows the damage

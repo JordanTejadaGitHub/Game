@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="OmenData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/omen/script/omen_data.gd" id="1_omen"]
+
+[resource]
+script = ExtResource("1_omen")
+id = "leaf_fall"
+display_name = "Leaf Fall"
+description = "Every leak costs double leaves (a boss's leak costs 10)."
+kind = 1
+leak_multiplier = 2.0
+reward_max_leaves = 2

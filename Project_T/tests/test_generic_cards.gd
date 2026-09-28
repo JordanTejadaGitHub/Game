@@ -37,6 +37,7 @@ func _run() -> void:
 	_test_rest_rules()
 	_test_map_rules()
 	_test_sim_entry()
+	_test_sim_policy()
 	print("generic cards test: %s" % ("PASS" if failures == 0 else "%d FAILED" % failures))
 	quit(failures)
 
@@ -202,7 +203,10 @@ func _test_sim_entry() -> void:
 	_reset()
 	dreams.unlocked = {"sprout": true, "thornwall": true}
 	var light := dreams.dreamlight
+	Engine.time_scale = 8.0
 	var family := dreams.sim_family_pick(&"first", func(ids: Array) -> StringName: return StringName(ids[0]))
+	_check(Engine.time_scale == 8.0, "sim_family_pick keeps a runner's time_scale")
+	Engine.time_scale = 1.0
 	_check(family != &"" and dreams.is_unlocked(String(family)) and dreams.dreamlight == light + 1,
 		"sim_family_pick: takes the family, +1 Dreamlight on the first pick (%s)" % family)
 	_check(not main.get_node("%GameSpeed").paused and not main.get_node("%FamilyPickScreen").visible, "…leaves the game unpaused")
@@ -214,6 +218,51 @@ func _test_sim_entry() -> void:
 	dreams.sim_rest(25, func(offer: Array) -> UpgradeData: return offer[0])
 	_check(dreams.dreamlight == light + 3, "…a boss rest gives +3 Dreamlight")
 	_check(DreamState.sim_dreamlight_for(&"first") == 1 and DreamState.sim_dreamlight_for(&"boss") == 3, "sim_dreamlight_for")
+	_reset()
+
+# The balance bot's Dream / family / Dreamlight / Omen policies (balance_simulation.md "Bot rules").
+func _test_sim_policy() -> void:
+	_reset()
+	var wide_card := _card("many_hands")
+	var narrow_card := _card("few_and_mighty")
+	var wide := DreamSimPolicy.new(dreams, DreamSimPolicy.Style.WIDE)
+	var narrow := DreamSimPolicy.new(dreams, DreamSimPolicy.Style.NARROW)
+	_check(wide.pick_dream([narrow_card, wide_card]) == wide_card and narrow.pick_dream([wide_card, narrow_card]) == narrow_card,
+		"styles score by tags: Wide takes Many Hands, Narrow Few and Mighty")
+	var balanced := DreamSimPolicy.new(dreams, DreamSimPolicy.Style.BALANCED)
+	_check(balanced.pick_family(["dewdrop", "sporeling"]) == &"sporeling", "Balanced: its family order")
+	dreams._owed_families.assign(["dewdrop"])
+	var sleep := DreamSimPolicy.new(dreams, DreamSimPolicy.Style.SLEEP)
+	_check(sleep.pick_family(["pebbling", "dewdrop"]) == &"dewdrop", "family order before the owed family")
+	dreams._owed_families.clear()
+	dreams.unlocked["firefly_jar"] = true
+	var combo := DreamSimPolicy.new(dreams, DreamSimPolicy.Style.COMBO)
+	_check(combo.pick_family(["pebbling", "dewdrop"]) == &"dewdrop", "Combo: the family with the most combo cards (Dewdrop with Firefly Jar)")
+	dreams.add_dreamlight(-dreams.dreamlight)  # Earlier sections left Dreamlight
+	var taken := balanced.rest(5)
+	_check(taken.size() == 1 and not dreams.is_offering(), "the bot never lets a Dream pass")
+	# Dreamlight: the next form of the most-built family
+	_plant("sporeling", Vector2(100, 100))
+	_plant("sporeling", Vector2(103, 100))
+	dreams.add_dreamlight(5 - dreams.dreamlight)
+	balanced.spend_dreamlight()
+	var branch_unlocked := false
+	for next in load("res://resource/tower/sporeling.tres").evolves_to:
+		branch_unlocked = branch_unlocked or dreams.is_unlocked(next.get_id())
+	_check(branch_unlocked and dreams.dreamlight < 5, "Dreamlight: a Sporeling branch first (%s)" % ", ".join(balanced.choices))
+	# Wide also grows Thornwalls with Dreamlight when walls are its most-built "family"
+	for i in 3:
+		_plant("thornwall", Vector2(100 + i, 105))
+	dreams.add_dreamlight(3 - dreams.dreamlight)
+	var wide_bot := DreamSimPolicy.new(dreams, DreamSimPolicy.Style.WIDE)
+	wide_bot.spend_dreamlight()
+	_check(wide_bot.choices.any(func(c: String) -> bool: return c.contains("bramble") or c.contains("honeysuckle")),
+		"Wide: Dreamlight on Thornwall growths (%s)" % ", ".join(wide_bot.choices))
+	var sprout_bot := DreamSimPolicy.new(dreams, DreamSimPolicy.Style.SPROUT)
+	_check(sprout_bot.pick_dream([_card("few_and_mighty"), _card("many_hands"), _card("seedfall")]) == _card("seedfall")
+		and sprout_bot.pick_family(["dewdrop", "sporeling"]) == &"sporeling", "Sprout style: its own cards on top, Sporeling first")
+	_check(balanced.pick_omen([]) == null, "Omens: Clear Skies")
+	_clear()
 	_reset()
 
 func _test_rest_rules() -> void:
@@ -265,6 +314,15 @@ func _test_map_rules() -> void:
 	var far := _plant("sporeling", route[route.size() - 3])
 	_check(dreams.get_heart_of_maze() == far and _row(sporeling, far.cell, "heart_of_the_maze", far).active
 		and not _row(sporeling, early.cell, "heart_of_the_maze", early).active, "Heart of the Maze: the furthest one")
+	# Without the card: no heart (DreamMarks draws what get_heart_of_maze returns) and no bonus
+	var base_far := dreams.get_soothe_multiplier(far)
+	dreams.stacks.erase("heart_of_the_maze")
+	_check(dreams.get_heart_of_maze() == null and is_equal_approx(base_far - dreams.get_soothe_multiplier(far), 0.5),
+		"no Heart of the Maze card: no heart and no +50%")
+	# The other markers are card-gated too: no bark, no underdog, no fresh growth, no echo without their cards
+	dreams._rest_rules(true)
+	_check(dreams.bark_charges == 0 and not dreams.is_underdog(far) and not dreams.is_fresh(far) and dreams.get_echo_bonus() == 0.0,
+		"markers stay off without their cards")
 	_clear()
 	# Echoing Steps: real route changes while nightmares walk
 	dreams.take(_card("echoing_steps"))

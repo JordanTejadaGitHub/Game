@@ -1,4 +1,5 @@
 extends VBoxContainer
+class_name DreamsRow
 
 # The HUD's Dreams row (screens_ui.md "Under resources: Dreams"): one small icon per Dream taken
 # this run, its shape and colour by rarity (circle, diamond, hexagon, star), the stack count, and the

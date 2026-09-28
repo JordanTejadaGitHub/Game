@@ -73,12 +73,13 @@ func _run() -> void:
 	await process_frame
 	_check(panel._title.text == "5 Wardens selected", "the panel title counts the selection")
 
-	# Sell all: normal refund rules (the resting share of everything invested, 75% since difficulty v1).
+	# Sell all: normal refund rules. All of them were planted and grown this rest: a full refund
+	# (run_design.md "Selling"; 75% applies once they have stood through a drift).
 	var refund := seller.get_selection_refund()
 	var expected := 0
 	for tower in sprouts:
-		expected += int(tower.invested_dew * seller.build_phase_refund)
-	_check(refund == expected, "Sell all refunds the resting share of everything invested (%d)" % refund)
+		expected += tower.invested_dew
+	_check(refund == expected, "Sell all refunds what was placed this rest in full (%d)" % refund)
 	var dew := run_state.dew
 	_check(seller.sell_selection() == refund and run_state.dew == dew + refund, "Sell all pays the refund")
 	await process_frame

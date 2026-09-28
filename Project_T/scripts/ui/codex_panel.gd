@@ -6,9 +6,12 @@ class_name CodexPanel
 # - Glossary: every term (CodexData.glossary()), grouped and searchable, with "see also" links that
 #   jump (to another term, or to a combo); bosses and late nightmares appear once met
 #   (profile nightmares_seen).
-# - Combos: all 15 (CodexData.combos()); locked ones are just "???" (no icons: they would give it away);
-#   discovered ones (ComboFeedback, profile combos_seen) show what they do, which of your Wardens
-#   apply each ingredient, and how often you've set them off. "N / 15 combos discovered".
+# - Combos: those the families you can get make (CodexData.scope: the starting three + Grove
+#   families; the demo its three; dev runs all), "N more wait in the Memory Grove." for the rest;
+#   locked ones are just "???" (no icons: they would give it away); discovered ones (ComboFeedback,
+#   profile combos_seen) show what they do, which of your Wardens apply each ingredient, and how often
+#   you've set them off. Newly covered ones wear a "New from the Grove" leaf (profile codex_covered).
+# - Families: each family in scope, its forms (Grove-kept ones as silhouettes) and its combos.
 # Everything is tap-based. Built in code.
 
 const TOWER_DIR := "res://resource/tower/"
@@ -34,6 +37,8 @@ var _dev_note := Label.new()
 var _profile_seen: Array = []  # Discoveries saved in the profile (the rest are this session's dev ones)
 const DEV_COLOR := Color(0.95, 0.7, 0.4)
 var _entries := {}  # Term or combo id -> its Control (for jumps)
+var _families := VBoxContainer.new()  # The Families page
+var family_cards := {}  # Family base id -> its section (tests)
 
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_STOP
@@ -82,6 +87,15 @@ func _ready() -> void:
 	_combos_scroll.add_child(_combos)
 	combos_page.add_child(_combos_scroll)
 
+	# Families (screens_ui.md "What the Codex covers"): the families you have, their forms, their combos.
+	var families_page := ScrollContainer.new()
+	families_page.name = "Families"
+	families_page.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	_families.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_families.add_theme_constant_override("separation", 14)
+	families_page.add_child(_families)
+	tabs.add_child(families_page)
+
 	var close := Button.new()
 	close.text = "Close"
 	close.focus_mode = Control.FOCUS_NONE
@@ -93,6 +107,7 @@ func _ready() -> void:
 func open(tab: StringName = &"", entry: String = "") -> void:
 	_build_glossary()
 	_build_combos()
+	_build_families()
 	visible = true
 	if tab == &"combos":
 		tabs.current_tab = 1
@@ -115,8 +130,8 @@ func jump(name: String) -> void:
 	_focus.call_deferred(_glossary_scroll, _entries.get(name))
 
 func _focus(scroll: ScrollContainer, target: Control) -> void:
-	if target == null:
-		return
+	if not is_instance_valid(target) or not scroll.is_ancestor_of(target):
+		return  # Rebuilt since the jump was asked for (the page reopened in the same frame)
 	scroll.ensure_control_visible(target)
 	var tween := target.create_tween()
 	target.modulate = Color(1.6, 1.5, 1.1)
@@ -200,16 +215,38 @@ static func get_met_nightmares() -> Array:
 	return list
 
 # --- Combos ----------------------------------------------------------------------------------------
+# Only entries the families you can get in a run can make are listed (CodexData.scope / in_build,
+# screens_ui.md "What the Codex covers"); each section ends with "N more wait in the Memory Grove."
+# for the rest. An entry newly covered since the last look (a Grove family / form was planted) wears a
+# small leaf "New from the Grove" mark (profile codex_covered).
+
+const COVERED_KEY := "codex_covered"
+const GROVE_COLOR := Color(0.6, 0.85, 0.55)
+var _scope := {}
+var _fresh := {}  # Entry ids newly covered since the last Codex (the leaf mark)
+
+func _covered(entry: Dictionary) -> bool:
+	return CodexData.in_build(entry, _scope)
 
 func _build_combos() -> void:
+	for id in _entries.keys():  # Forget the old cards (jumps must find the new ones)
+		if is_instance_valid(_entries[id]) and _entries[id].get_parent() == _combos:
+			_entries.erase(id)
 	for child in _combos.get_children():
+		_combos.remove_child(child)  # Gone now, not at the frame's end (rebuilt in place)
 		child.queue_free()
+	_scope = CodexData.scope()
 	var seen := ComboFeedback.load_seen()
 	_profile_seen = ComboFeedback.profile_seen()
 	_dev_note.visible = MetaRun.is_dev_run()
-	var counts: Dictionary = HeartwoodMemory.load_data().get(ComboFeedback.COUNTS_KEY, {})
+	var profile := HeartwoodMemory.load_data()
+	var counts: Dictionary = profile.get(ComboFeedback.COUNTS_KEY, {})
 	var live := get_tree().get_first_node_in_group(ComboFeedback.GROUP) as ComboFeedback if is_inside_tree() else null
-	var all := CodexData.combos()
+	var every := CodexData.combos()
+	var all := every.filter(_covered)
+	var crowned_all: Array = [] if ResultsScreen.is_demo() else Array(CodexData.crowned())
+	var kin_all := CodexData.kinships()
+	_mark_fresh(profile, all + crowned_all.filter(_covered) + kin_all.filter(_covered))
 	var found := 0
 	for combo in all:
 		var discovered := seen.has(String(combo.id))
@@ -219,13 +256,14 @@ func _build_combos() -> void:
 		var card := _combo_card(combo, discovered, times)
 		_add_card(card, combo.id, discovered)
 		_entries[String(combo.id)] = card
+	_add_waiting(every.size() - all.size())
 	_combo_count.text = "%d / %d combos discovered" % [found, all.size()]
 	tabs.set_tab_title(1, "Combos %d / %d" % [found, all.size()])
-	_build_kinships(seen, counts, live)
+	_build_kinships(seen, counts, live, kin_all)
 	# Crowned Reactions: hidden ("???" in a gold crown frame) until found; full game only.
 	if ResultsScreen.is_demo():
 		return
-	var crowned := CodexData.crowned()
+	var crowned := crowned_all.filter(_covered)
 	var crowned_found := crowned.filter(func(c: Dictionary) -> bool: return seen.has(String(c.id))).size()
 	var header := Label.new()
 	header.text = "Crowned Reactions  %d / %d" % [crowned_found, crowned.size()]
@@ -238,11 +276,61 @@ func _build_combos() -> void:
 		var card := _crowned_card(c, discovered, times)
 		_add_card(card, c.id, discovered)
 		_entries[String(c.id)] = card
+	_add_waiting(crowned_all.size() - crowned.size())
+
+# "4 more wait in the Memory Grove." (no names, no hints), when a section has hidden entries.
+func _add_waiting(hidden: int) -> void:
+	if hidden <= 0:
+		return
+	var line := Label.new()
+	line.name = "Waiting"
+	line.text = "%d more wait%s in the Memory Grove." % [hidden, "s" if hidden == 1 else ""]
+	line.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	line.add_theme_font_size_override("font_size", 13)
+	line.add_theme_color_override("font_color", LOCKED_COLOR)
+	_combos.add_child(line)
+
+# Entries covered now but not at the last look get the leaf mark; the covered set is then remembered
+# (the real game only: never tests or dev runs). The first look ever marks nothing.
+func _mark_fresh(profile: Dictionary, covered: Array) -> void:
+	_fresh.clear()
+	var ids: Array = covered.map(func(e: Dictionary) -> String: return String(e.id))
+	if profile.has(COVERED_KEY):
+		for id in ids:
+			if not profile[COVERED_KEY].has(id):
+				_fresh[id] = true
+	if OS.get_cmdline_args().has("--script") or MetaRun.is_dev_run():
+		return
+	var before: Array = profile.get(COVERED_KEY, [])
+	if before.size() == ids.size() and ids.all(func(id: String) -> bool: return before.has(id)):
+		return
+	profile[COVERED_KEY] = ids
+	HeartwoodMemory.save_data(profile)
 
 # Adds a combo / Crowned / Kinship card; one found only in a developer run this session gets a small
 # "dev" mark in its top-right corner (not saved: screens_ui.md "Saved in the profile").
 func _add_card(card: Control, id: StringName, discovered: bool) -> void:
 	_combos.add_child(card)
+	if not discovered and _fresh.has(String(id)):  # Newly covered by the Grove: a leaf mark
+		var mark := HBoxContainer.new()
+		mark.name = "GroveMark"
+		mark.alignment = BoxContainer.ALIGNMENT_END
+		mark.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		var leaf := TextureRect.new()
+		leaf.texture = KIN_LEAF
+		leaf.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		leaf.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		leaf.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		leaf.custom_minimum_size = Vector2(16, 16)
+		leaf.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+		mark.add_child(leaf)
+		var words := Label.new()
+		words.text = "New from the Grove"
+		words.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+		words.add_theme_font_size_override("font_size", 12)
+		words.add_theme_color_override("font_color", GROVE_COLOR)
+		mark.add_child(words)
+		card.add_child(mark)
 	if discovered and ComboFeedback.is_dev_discovery(id, _profile_seen):
 		var mark := Label.new()
 		mark.name = "DevMark"
@@ -257,9 +345,10 @@ func _add_card(card: Control, id: StringName, discovered: bool) -> void:
 
 # Kinships (screens_ui.md "Kinship feedback"): "???" in a vine frame until the first bond of that kind
 # ever, then the pair, what each borrows, and how often it has formed.
-func _build_kinships(seen: Array, counts: Dictionary, live: ComboFeedback) -> void:
-	var kin := CodexData.kinships()
+func _build_kinships(seen: Array, counts: Dictionary, live: ComboFeedback, kin_all: Array) -> void:
+	var kin := kin_all.filter(_covered)
 	if kin.is_empty():
+		_add_waiting(kin_all.size())
 		return
 	var found := kin.filter(func(k: Dictionary) -> bool: return seen.has(String(k.id))).size()
 	var header := Label.new()
@@ -273,6 +362,7 @@ func _build_kinships(seen: Array, counts: Dictionary, live: ComboFeedback) -> vo
 		var card := _kinship_card(k, discovered, times)
 		_add_card(card, k.id, discovered)
 		_entries[String(k.id)] = card
+	_add_waiting(kin_all.size() - kin.size())
 
 func _kinship_card(k: Dictionary, discovered: bool, times: int) -> Control:
 	var box := VBoxContainer.new()
@@ -467,3 +557,137 @@ static func get_player_wardens() -> Array[TowerData]:
 		if lines.has(data.line) and data.tier >= 1:
 			result.append(data)
 	return result
+
+# --- Families --------------------------------------------------------------------------------------
+# The families you have (CodexData.scope: the starting three + Grove families; every family in dev
+# runs): the base Warden, then its branches, final forms and Ascended form. Forms a Grove node still
+# keeps are silhouettes ("Memory Grove"); the rest are unlocked in a run with Dreamlight. Below, its
+# combos: names once discovered, "???" before; each jumps to its entry.
+
+const SILHOUETTE := Color(0.05, 0.05, 0.07, 0.9)
+
+func _build_families() -> void:
+	for child in _families.get_children():
+		_families.remove_child(child)
+		child.queue_free()
+	family_cards.clear()
+	var ids: Array = _scope.get("families", [])
+	if _scope.get("all", false):
+		ids = CodexData.DEMO_FAMILIES.duplicate()
+		for unlock in HeartwoodMemory.load_grove():
+			for id in unlock.families:
+				if not ids.has(id):
+					ids.append(id)
+	var seen := ComboFeedback.load_seen()
+	for id in ids:
+		var path: String = TOWER_DIR + id + ".tres"
+		if ResourceLoader.exists(path):
+			var section := _family_section(load(path), seen)
+			_families.add_child(section)
+			family_cards[id] = section
+
+func _family_section(root: TowerData, seen: Array) -> Control:
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation", 6)
+	var head := HBoxContainer.new()
+	head.add_theme_constant_override("separation", 8)
+	head.add_child(_form_icon(root, true, 40.0))
+	var name := Label.new()
+	name.text = "%s family" % root.display_name
+	name.add_theme_font_size_override("font_size", 20)
+	name.add_theme_color_override("font_color", TERM_COLOR)
+	name.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	head.add_child(name)
+	box.add_child(head)
+	# Its forms, in growth order.
+	var forms := HFlowContainer.new()
+	forms.add_theme_constant_override("h_separation", 10)
+	var todo: Array = root.evolves_to.duplicate()
+	var done := {}
+	while not todo.is_empty():
+		var data := todo.pop_front() as TowerData
+		if data == null or done.has(data.get_id()):
+			continue
+		done[data.get_id()] = true
+		var in_scope: bool = _scope.get("all", false) or _scope.wardens.has(data.get_id())
+		var cell := VBoxContainer.new()
+		cell.add_theme_constant_override("separation", 0)
+		cell.custom_minimum_size = Vector2(92, 0)
+		cell.add_child(_form_icon(data, in_scope, 40.0))
+		var label := Label.new()
+		label.text = data.display_name if in_scope else "???"
+		label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		label.add_theme_font_size_override("font_size", 13)
+		cell.add_child(label)
+		var how := Label.new()
+		how.text = "unlock with Dreamlight" if in_scope else "Memory Grove"
+		how.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		how.add_theme_font_size_override("font_size", 11)
+		how.add_theme_color_override("font_color", LOCKED_COLOR if in_scope else GROVE_COLOR)
+		cell.add_child(how)
+		forms.add_child(cell)
+		todo.append_array(data.evolves_to)
+	box.add_child(forms)
+	# Its combos (in scope): discovered by name, the rest "???"; each jumps to its entry.
+	var links := HFlowContainer.new()
+	links.add_theme_constant_override("h_separation", 10)
+	var caption := Label.new()
+	caption.text = "Combos:"
+	caption.add_theme_font_size_override("font_size", 14)
+	links.add_child(caption)
+	for entry in family_combos(root):
+		var link := LinkButton.new()
+		link.text = entry.name if seen.has(String(entry.id)) else "???"
+		link.focus_mode = Control.FOCUS_NONE
+		link.pressed.connect(func() -> void: jump(String(entry.id)))
+		links.add_child(link)
+	if links.get_child_count() == 1:
+		caption.text = "Combos: none yet"
+	box.add_child(links)
+	return box
+
+# The combos, Crowned and Kinships in scope that `root`'s family takes part in.
+func family_combos(root: TowerData) -> Array:
+	var names := {}
+	var statuses := {}
+	var todo: Array = [root]
+	while not todo.is_empty():
+		var data := todo.pop_back() as TowerData
+		if data == null or names.has(data.display_name):
+			continue
+		names[data.display_name] = true
+		for status in [data.applies_status, data.extra_status]:
+			if status != &"":
+				statuses[status] = true
+		todo.append_array(data.evolves_to)
+	var out: Array = []
+	var crowned: Array = [] if ResultsScreen.is_demo() else Array(CodexData.crowned())
+	for entry in CodexData.combos() + crowned + CodexData.kinships():
+		if not _covered(entry):
+			continue
+		var takes_part := false
+		match entry.kind:
+			"Kinship":
+				takes_part = entry.line == root.line
+			"Crowned":
+				takes_part = entry.families.has(root.get_id())
+			_:
+				if String(entry.by) != "":
+					takes_part = Array(String(entry.by).split(", ")).any(func(n: String) -> bool: return names.has(n))
+				else:
+					takes_part = entry.statuses.any(func(s: StringName) -> bool: return statuses.has(s))
+		if takes_part:
+			out.append(entry)
+	return out
+
+func _form_icon(data: TowerData, shown: bool, side: float) -> TextureRect:
+	var icon := TextureRect.new()
+	icon.texture = WardenIcon.make(data)
+	icon.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	icon.custom_minimum_size = Vector2(side, side)
+	icon.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	if not shown:
+		icon.modulate = SILHOUETTE  # A silhouette: the shape, not the Warden
+	return icon

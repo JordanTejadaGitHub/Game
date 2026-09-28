@@ -109,6 +109,11 @@ turn leaks into a hold. Targets for the balance simulation and playtests (averag
 - Current state (playtests 2026-09-28): too easy from act 2 on, even with a thin Grove. Fixes so far:
   the Sapling removed, one Ascended per family, Nurture's rank difference, resistances corrected.
   The balance simulation measures the rest.
+- **Interim acts 1–2 tightening** (2026-09-28; two playtests: a fresh profile at drift 23 and
+  again at drift 43 with **15/15 leaves**, ~800 and **1,925 Dew banked**, "haven't done much in the
+  past 10 drifts"): nightmare health **×1.0 for drifts 1–10, ramping to ×1.3 by drift 25, ×1.3
+  through act 2** (acts 3–4 keep their ×1.4), and **Dew per dispel ×0.85 in acts 1–2**. Interim
+  numbers, as exports, until the balance simulation's quick batch replaces them.
 - **Act 3 probe** (Tower Code, `tools/balance_act3.gd`, 2026-09-28): drifts 61–70, 12 final forms at
   rank IV (Power), **no Dreams**: the maze dealt ~155–160k damage per drift against **~100–115k
   health spawned, 0 leaks**. Act 3 is too easy with a plain final-form maze, before Dreams or the
@@ -132,7 +137,7 @@ turn leaks into a hold. Targets for the balance simulation and playtests (averag
     **×6.6–8.7** an average final (35–42% of all damage); its own hits (400k+) became the biggest
     part. The Bell's spot swings its share 2–3×, so single-map numbers are loose. Decision: **Great
     Bell damage 180 → 130 and the toll every 8 s** (was 6): trims both its hits and its sleep
-    control (Asleep share 44–62% with it). Target ×5–6.
+    control (Asleep share 44–62% with it). Target ×5–6. **Result (2b0b2c4): ×4.6 and ×6.5** on the two seeds (27–35% of all damage; 9 and 0 leaks): on target, done. Asleep share 36% and 60%: the high one comes from a Dreamshroom beside the Bell, so Dreamshroom / Caught wait for the realistic-run numbers.
   - **Next:** the probe with a **realistic run** (Dreams taken by the real offer logic, a Dew
     budget from simulated income, so the maze is one a player could afford) is the start of the
     balance simulation. Only then raise act 3 health further.
@@ -292,6 +297,44 @@ risk: players set their own difficulty block by block.
 | **Dry Spell** | creatures give no Dew | rest bonus ×2 |
 | **Stubborn Blight** | status durations halved | regrow 2 leaves |
 | **Restless Wind** | drifts arrive 30% closer together | +1 max leaf |
+
+**More Omens (2026-09-28, user: "we need more omens").** With ~18 Omen rests and 2 per rest, 8 Omens
+repeated constantly, and all 8 were "nightmares get stronger for a reward". The new ones add three
+other kinds: **weaken your side**, **double-edged** (the twist itself helps some builds) and **change
+the map or the rules**. That makes ~20; aim for no Omen twice in a row and each kind showing up.
+
+| Omen | Kind | The next block | Reward |
+|---|---|---|---|
+| **Fog Bank** | your side | every Warden **−1 range** (min 1) | +4 Seeds |
+| **Wilting** | your side | every Warden **−15% attack speed** | +1 Dreamlight |
+| **Frozen Ground** | your side | **no planting or growing during drifts** (rests only) | +50 Dew |
+| **Leaf Fall** | your side | every leak costs **double leaves** | +2 max leaves |
+| **Lean Season** | your side | **rest bonus halved** at the end of the block | next Dream **includes a Legendary** (act 2+) |
+| **Heavy Rain** | double-edged | every nightmare is **always Soaked**, but has **+35% health** | +30 Dew |
+| **Blood Moon** | double-edged | nightmares **+25% speed**, and give **+50% Dew** | (the Dew is the reward) |
+| **Harvest Moon** | double-edged | nightmares **+25% health**, and give **×2 Dew** | (the Dew is the reward) |
+| **Elder Night** | nightmares | **+1 elite** in every drift (act 2+) | +1 Dreamlight |
+| **Hollow Wind** | nightmares | the block's **first 2 drifts are all flyers** (act 2+, flyers exist) | next Dream: one card is Rare+ |
+| **Sleepless** | nightmares | nightmares are **immune to Drowsy and Held** | +40 Dew |
+| **Shifting Ground** | the map | **3 Withered Trees sprout** on empty cells at the block's start (never blocking the route or on a Warden) | each tree you clear this run gives **+2 Seeds** instead of 1 |
+
+- **Heavy Rain, Sleepless and Hollow Wind read your build:** they're great or awful depending on
+  what you've built (Heavy Rain feeds Thunderclap and Conductive Soil; Sleepless hurts sleep builds).
+  That's the point: an Omen that's free for *your* build is a reason to take it.
+- **Frozen Ground** still allows selling (at the usual 50%) and clearing; it's only about planting.
+- **Leaf Fall** doubles a boss's leaf cost too, but bosses ignore Omens only for their *own* stats,
+  so a boss leak costs 10. Shown clearly on the Omen card.
+- **Lean Season's Legendary** follows the Legendary rules (any Legendary you could be offered);
+  before act 2 it isn't offered.
+- **Shifting Ground:** clearing is still locked until a clearing card (the trees stay as terrain if
+  you never unlock it); its trees can be cleared at normal cost. Not offered on maps with fewer than
+  3 free cells that don't touch the route.
+- **Offer rules:** each offer's 2 Omens are of **two different kinds**; an Omen never repeats from
+  the previous rest; the reward scaling by act (×1 / ×1.5 / ×2 / ×2.5) applies to Dew and Seeds only.
+- **New `OmenData` fields:** Warden range add / attack-speed multiplier, `no_build_during_drift`,
+  leak multiplier, rest-bonus multiplier below 1, status immunities, always-applied status, extra
+  elites per drift, all-flyer drift count, obstacles to sprout, per-tree Seed bonus; rewards
+  `dreamlight`, `dream_legendary`. Blood Moon and Harvest Moon have no separate reward (their Dew is it); **Heavy Rain keeps +30 Dew**, because its +35% health hurts every build while the Soaked only helps some.
 
 - **Blight Levels** can make Omens harsher or remove Clear Skies ("an Omen is always chosen").
 - **Grove perks** later: a third Omen option, or Omen rewards +25% (`meta_design.md`).

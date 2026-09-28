@@ -255,6 +255,9 @@ func _start_drift() -> void:
 	}
 	add_guaranteed_elite(_arriving[number].schedule, number)
 	_add_blight_elites(_arriving[number].schedule)
+	var omens := get_tree().get_first_node_in_group(OmenDirector.GROUP) as OmenDirector
+	if omens:
+		omens.shape_schedule(_arriving[number].schedule, number)  # Elder Night, Hollow Wind
 	drift_started.emit(number)
 	# Creatures due at t=0 arrive right away, not a frame later.
 	_process(0.0)
