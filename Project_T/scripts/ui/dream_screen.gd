@@ -16,6 +16,7 @@ var _title := Label.new()
 var _cards := HBoxContainer.new()
 var _skip := Button.new()
 var _reroll := Button.new()  # Second Thoughts (Memory Grove)
+var peek: ChoicePeek  # Minimise to look at the map (screens_ui.md "Choice screens")
 
 func _ready() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -48,6 +49,8 @@ func _ready() -> void:
 	skip_row.add_child(_reroll)
 	skip_row.add_child(_skip)
 	box.add_child(skip_row)
+	peek = ChoicePeek.new(self, [dim, center], "Back to the Dream")
+	box.add_child(peek.make_peek_button())
 
 	visible = false
 	dream_state.offer_ready.connect(_show_offer)

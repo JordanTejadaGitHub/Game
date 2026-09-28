@@ -27,6 +27,7 @@ func _run() -> void:
 	_test_reaction_cards()
 	_test_family_review_cards()
 	_test_seedling_gift()
+	_test_peek()
 	print("dream builds test: %s" % ("PASS" if failures == 0 else "%d FAILED" % failures))
 	quit(failures)
 
@@ -365,6 +366,17 @@ func _test_seedling_gift() -> void:
 	for i in 35:
 		dreams.add_dreamlight_shard()
 	_check(dreams.dreamlight == 2 and dreams.dreamlight_shards == 20, "shards: 10 per Dreamlight, 2 per run at most")
+
+# The Dream, Omen and Remember screens can be minimised to look at the map (screens_ui.md).
+func _test_peek() -> void:
+	for name in ["DreamScreen", "OmenScreen", "RememberScreen"]:
+		var screen := main.get_node("HUD/" + name) as Control
+		var peek: ChoicePeek = screen.peek
+		screen.visible = true
+		peek.set_peeking(true)
+		_check(peek.peeking and screen.mouse_filter == Control.MOUSE_FILTER_IGNORE, "%s: peek lets the map through" % name)
+		screen.visible = false
+		_check(not peek.peeking, "%s: closing the screen ends the peek" % name)
 
 func _free_cell(map_generator) -> Vector2:
 	var path: PackedVector2Array = map_generator.get_path_from(map_generator.startPath)
