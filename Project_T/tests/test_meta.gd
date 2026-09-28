@@ -185,6 +185,7 @@ func _run() -> void:
 		taken += dreams.stacks[id]
 	_check(taken == 2, "Kindling: one random Common besides Cleared Ground (%s)" % [dreams.stacks])
 	_check(run_state.free_nurtures == 0 and dreams.rerolls_left == 0, "perks not carried do nothing")
+	_check(not dreams.allow_bittersweet, "no Bittersweet Dreams node: no bittersweet cards")
 	var dew_before := run_state.dew
 	for i in 20:  # 20 dispels of 1 Dew at +15%: 3 whole Dew carried over
 		var enemy := Node2D.new()
@@ -197,6 +198,7 @@ func _run() -> void:
 	await process_frame
 	memory = HeartwoodMemory.load_data()
 	memory.loadout = ["omen_reader", "first_care", "deep_taproot", "second_thoughts", "wider_dreams"]
+	memory.unlocks.bittersweet_dreams = 1
 	HeartwoodMemory.save_data(memory)
 	main = await _new_run()
 	run_state = main.get_node("%RunState")
@@ -207,6 +209,7 @@ func _run() -> void:
 	_check(run_state.max_leaves == run_state.starting_leaves + 3, "Deep Taproot III: +3 max leaves")
 	_check(dreams.rerolls_left == 2 and dreams.cards_per_offer == 4, "Second Thoughts II and Wider Dreams")
 	_check(dreams.banishes_left == 0, "Let Go owned but not carried")
+	_check(dreams.allow_bittersweet and dreams.grove_cards.has("deep_sleep"), "the Bittersweet Dreams node lets bittersweet cards be offered")
 	main.queue_free()
 	await process_frame
 

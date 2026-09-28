@@ -31,6 +31,7 @@ enum Root { WARDENS, DREAMS, PERKS, FORESTS }  # Limbs: Families, Cards, Perks (
 @export var families: Array[String] = []  # Base Warden ids that join the family picks
 @export var dream_cards: Array[String] = []  # Dream card ids (in_start_pool = false) that join the pool
 @export var loadout_slots: int = 0  # Loadout slot nodes: +N perk slots
+@export var allows_bittersweet := false  # Bittersweet Dreams: bittersweet cards can be offered
 
 @export_group("Perk (per level, while carried)")
 @export var starting_dew: int = 0

@@ -11,4 +11,4 @@ root = 1
 costs = Array[int]([40])
 order = 1
 icon = 0
-dream_cards = Array[String](["static_bloom", "static_field"])
+dream_cards = Array[String](["static_bloom", "static_bloom_ii", "static_field", "static_field_ii"])

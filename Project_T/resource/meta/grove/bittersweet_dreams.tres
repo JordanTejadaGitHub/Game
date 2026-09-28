@@ -13,4 +13,5 @@ order = 19
 icon = 7
 requires_any = Array[String](["storm_lore", "guiding_lights", "spore_lore", "reactions", "dawnbreak", "sharpened", "reckless", "full_moon", "tending_hands", "nursery", "the_old_ones", "seedbed", "wild_planting", "rootbound", "one_line", "the_last_light", "dead_wood", "the_long_walk"])
 requires_any_count = 2
+allows_bittersweet = true
 dream_cards = Array[String](["deep_sleep", "borrowed_dew", "wild_growth", "overgrown", "restless_dreams", "hungry_roots", "borrowed_memory"])

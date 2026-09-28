@@ -222,7 +222,8 @@ controller / Steam Deck, accessibility, Steam achievements (milestones map to th
   (`DriftDirector.rest_bonus_perk_multiplier`), `max_leaves`, `dream_rerolls` / `dream_banishes` /
   `extra_dream_cards`, `extra_omens`, `seed_bonus`, `early_bloom`, `starting_dreamlight`,
   `starting_cards` (Clear Sight), `random_common_cards` (Kindling), `sprout_charges`, `free_nurtures`
-  (`RunState.free_nurtures`, spent by Tower Code's nurture hook).
+  (`RunState.free_nurtures`, spent by Tower Code's nurture hook); `allows_bittersweet` (Bittersweet
+  Dreams node sets `DreamState.allow_bittersweet`).
 - `HeartwoodMemory` (VERSION 2; `MIGRATED_IDS` renames v1 Grove ids on load): `unlocks {id: level}`,
   `node_level()` (counts start / milestone growth; use it, not `unlock_level()`, for "owned"),
   `buy()` / `buy_problem()` / `requirements_met()`, `get_unlock(id)`, `grow_milestone_nodes()`,

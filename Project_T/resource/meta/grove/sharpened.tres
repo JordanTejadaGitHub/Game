@@ -11,4 +11,4 @@ root = 1
 costs = Array[int]([50])
 order = 6
 icon = 2
-dream_cards = Array[String](["still_target", "shattering_blow"])
+dream_cards = Array[String](["still_target", "still_target_ii", "shattering_blow", "shattering_blow_ii"])

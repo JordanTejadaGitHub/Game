@@ -133,6 +133,8 @@ func _apply_grove(memory: Dictionary) -> void:
 		for id in unlock.dream_cards:
 			if not cards.has(id):
 				cards.append(id)
+		if unlock.allows_bittersweet:
+			dream_state.allow_bittersweet = true
 		if not unlock.is_perk() or not carried.has(unlock.id):
 			continue
 		dew += unlock.starting_dew * level
