@@ -173,7 +173,8 @@ func _open_in_codex(id: StringName) -> void:
 	if pause != null and pause.has_method("open_codex"):
 		pause.open_codex(&"combos", String(id))
 
-# "Thunderclap 12 · Ignite 3" for `counts`, plus " · longest chain ×N" from 2 up ("" = none).
+# "Thunderclap 12 · Ignite 3" for `counts`, plus " · longest chain: N" from 2 up ("" = none). Chains
+# always read as a count ("Chain 10"), never "×10", which looks like a damage multiplier.
 static func summary(counts: Dictionary, longest_chain: int) -> String:
 	var ids := counts.keys()
 	ids.sort_custom(func(a, b) -> bool: return counts[a] > counts[b])
@@ -183,7 +184,7 @@ static func summary(counts: Dictionary, longest_chain: int) -> String:
 		parts.append("%s %d" % [combo.name if not combo.is_empty() else String(id), counts[id]])
 	var text := " · ".join(parts)
 	if longest_chain >= 2:
-		text += " · longest chain ×%d" % longest_chain
+		text += " · longest chain: %d" % longest_chain
 	return text
 
 # "Damp + Static" for a Reaction (kept for callers from before the Codex).
