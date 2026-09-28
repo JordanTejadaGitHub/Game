@@ -329,6 +329,69 @@ organic: big means low and wide, never bright or harsh.
 | Withering (a leaf lost) | a low, dry **creak** after the leaf-lost sound (soft, not a crack); recovering at a rest: a warm exhale |
 | Nurture ranks | the Nurture sound (see Building) in sap and wood, a little deeper each rank like any Warden |
 
+### Reactions (status combos; tower_design.md "Reactions")
+
+Reactions are the **payoff** the player builds toward, so each gets its own sound, louder than a
+Warden hit and under a boss. The design line is "warm light breaking cold shadow": each Reaction is
+the **two statuses' materials meeting**, resolving warm. Still rounded and organic (no crackle, no
+zaps, no sparkle).
+
+- **One sound per Reaction event**, never one per target: a Thunderclap arcing to 8 nightmares is one
+  sound whose size grows with the count (as with the Great Bell).
+- **Throttled per Reaction type** (~0.15 s) and voice-limited, so a chain reads as a rolling swell.
+- **Bosses:** same sound, the boss's reduced version plays a little smaller.
+
+| Reaction | Statuses | Sound |
+|---|---|---|
+| **Thunderclap** | Damp + Static | a warm **bloom** (the Firefly material) bursting through water: a soft wet *whumpf* + a low, rolling far thunder; size grows with the arcs |
+| **Ignite** | Spored + Static | the spores going up at once: a deep, soft **fwoomp** of warm air (a gas-flame whoosh, lowpassed), no fire crackle |
+| **Mushrooming** | Spored + Damp | wet earth **bursting**: soft, fleshy mushroom pops (low, rounded) + a damp spore exhale for the cloud |
+| **Shatter** | frozen/Held + Damp + a heavy hit | the ice **giving way**: a deep, muffled ice *thunk* and a low slide of shards settling (no glassy tinkle) |
+| **Drown** | Damp + max Drowsy | a slow, soft **sink**: a low water gulp and a sleepy exhale bubbling away |
+| **Pinned** | Marked + Held/Drowsy | a low, tight **held breath**: a soft wooden clench + a faint glow hum, so the player hears "the next hit counts" (the ×3 crit itself is the normal crit, heavier) |
+| **Smother** | Held + Spored | a muffled, low **smothering** hum while it lasts (a quiet loop, one voice per type), the spore breath pressed tight |
+| **Lightning Rod** | Marked + Static | a warm **pull**: the glow material drawn in (a soft reversed swell) landing as a low bloom on the Marked nightmare |
+
+**Chains** (a Reaction set off by another within 1 s)
+- Each link is **fuller and warmer, never higher**. Chain 2–4: the Reaction's own sound with a
+  little more body and a soft warm swell under it that builds link by link. **No rising chime, no
+  climbing pitch**; that reads as coins (third listen). The chain badge's "rising chime" in
+  tower_design.md should become this building swell.
+- **Chain 5 (surge):** a short **warm swell** with a soft low boom; the music ducks ~3 dB for 0.5 s.
+- **Chain 10 (Dawnburst):** the biggest non-boss moment in the game: a deep, warm **boom of light**
+  (sub + a wide soft swell), the music ducks ~8 dB for 1 s, then a **short warm music stinger** in key
+  (a sustained D major chord in the warm instruments, 2–3 s), then the music returns.
+- The **first chain ever** (its whisper) gets the Dream-screen "breath in" under the whisper.
+
+**Crowned Reactions** (a Reaction + a third status; full game only, gold impact tier)
+
+Each is the base Reaction's sound **plus a crown layer**: a slow, warm, low **choir-like swell**
+(hummed "ooh", in key) shared by all eight, so the player learns "that was a Crowned one", then the
+Crowned's own signature. Close to an Ascended event in size; music ducks ~3 dB for 0.5 s. They count
+as 2 chain links for the chain swell too.
+
+| Crowned | Signature layer |
+|---|---|
+| **Tempest** | the storm feeding itself: Thunderclap's far thunder **and** Ignite's fwoomp rolling into each other as one long, rumbling swell (its 2 s cap keeps it from droning). Must never sound like the Whirligig's Ascended "The Tempest" (a wind roar) |
+| **Still Pool** | a deep, glassy-calm **water hush** as the pool forms; the pool loop is near-silent still water; a walker sleeping in it: a soft sinking sigh |
+| **Fever Dream** | Smother's hum releasing at once into a warm, dizzy **exhale** that spreads (a slow, wavering sigh passing to the neighbours) |
+| **Starfall** | the Static bolts **drawn in**: several soft reversed swells converging, then a column of light landing as the deepest warm **boom** of the Reactions. The boss killer should feel like it |
+| **Avalanche** | the lob's landing **spreading**: a rolling ice-and-stone **rumble** moving outward (low, no tinkle) |
+| **Prismstorm** | Shatter's ice thunk + warm blooms **scattering** outward with the shards (soft, overlapping, low) |
+| **Nightbloom** | a violet **lullaby hum** as the cloud glows (two low sung notes in key, very soft); the cloud loop is a slow, sleepy breath |
+| **Fairy Circle** | a ring of soft mushroom **pops around** the nightmare (8 quick, soft, panned in a circle); the ring loop is a faint low hum |
+
+**Discovery cards** (first time a Reaction, Crowned or chain goes off): the Dream-screen breath in and a
+soft shimmer under the card. Crowned discovery adds the crown's choir swell.
+
+**Delivery rules** (small, rare sounds)
+
+| Rule | Sound |
+|---|---|
+| Grafted Harmony (a Graftling applying two statuses) | its copied hit, muffled through bark, with **both** statuses' materials faintly under it |
+| Storm Front (a Gust-carried Reaction) | the Reaction's sound wrapped in a soft **air swirl** |
+| Carried Storm (a Samara seed carrying a Reaction) | the seed's whir **coloured** by the Reaction's material, and the Reaction at 50% on each nightmare it passes (throttled) |
+
 ### Building and the map
 
 | Action | Sound |
