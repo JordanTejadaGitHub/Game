@@ -792,6 +792,35 @@ weight). All **Rare** (was Legendary until 2026-09-28: they enhance a combo, the
   *Dawnbreak*) much easier to reach. If every late drift ends in Dawnburst, drop them to 1 link or
   raise Dawnburst to ×12.
 
+## Kinship cards: going deep
+
+Added 2026-09-28 (user decision) for Kinships (`tower_design.md` "Kinships"). Reactions and
+Crowned Reactions reward going wide; these make **going deep in one family** a full build. They
+change decisions (placement, time, depth), not just numbers. Tag `kinship`; like other family
+cards they're 2× as likely once you have a Kinship on the map.
+
+| # | Card | Rarity | Effect | Changes what you decide | Needs | Pool |
+|---|---|---|---|---|---|---|
+| 124 | **Quick Bonds** | Common, stacks (max 3) | bonds grow **1 drift faster** (Blooming at 4, Old Kin at 9; at III: 2 and 7) | time | — | Start |
+| 125 | **Family Ties** | Common, stacks | Wardens in a Kinship **+8% damage** | payoff | — | Start |
+| 126 | **Sweet Harmony** | Uncommon | Harmony strikes **+50% damage**, cooldown 2 s → **1.5 s** | payoff | a Kinship on the map | Start |
+| 127 | **Close Kin** | Uncommon | Kinship reach **2 → 3 cells** | placement | — | Grove |
+| 128 | **Old Friends** | Uncommon | new bonds **start at Blooming** | time | — | Grove |
+| 129 | **Rooted Bond** | Uncommon | moving a bonded Warden **no longer resets** its bond (selling still does) | the maze | — | Grove |
+| 130 | **Extended Family** | Rare | each Warden can be in **2 Kinships** (with two different kin) | placement | a Kinship on the map | Grove |
+| 131 | **Kin and Kindling** | Rare, **Entwined** (any Kinship on the map + any Reaction card) | Harmony strikes also apply **both Wardens' statuses** (1 stack each) to the nightmare | the bridge to Reactions | — | Grove |
+| 132 | **Grove of Kin** | Legendary | every Kinship on the map gives **all Wardens +3% damage** (max +30%) | the capstone | 2 Kinships on the map | Grove |
+| 133 | **Blood Is Thicker** | Uncommon, **Bittersweet** | Wardens in a Kinship **+30% damage**. **Cost:** Wardens not in a Kinship −15% damage | commitment | a Kinship on the map | Grove |
+
+- **Deepened:** **Sweet Harmony II** +100% and 1 s cooldown; **Close Kin II** reach 4 cells;
+  **Old Friends II** new bonds start at Old Kin.
+- "A Kinship on the map" counts at offer time (like other prerequisites). Kin and Kindling's
+  statuses from Harmony strikes can complete Reactions, but the Harmony strike itself still never
+  counts as a chain link.
+- **In the demo:** the Start-pool three (Quick Bonds, Family Ties, Sweet Harmony).
+- **Watch in playtests:** Extended Family + Grove of Kin + Whole Tree + Monoculture could make an
+  all-kin maze far ahead. The +30% cap on Grove of Kin is the first knob.
+
 ## Data (`UpgradeData`)
 
 `id`, `display_name`, `description`, `rarity`, `kind` (stat / rule / economy; evolutions are
