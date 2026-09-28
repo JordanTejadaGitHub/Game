@@ -137,10 +137,10 @@ func _run() -> void:
 		and profile_after.get("combo_counts", {}) == profile_before.get("combo_counts", {}), "tests never write discoveries")
 	# The Codex: Glossary (search, see-also jumps) and Combos (15, "???" until discovered).
 	var codex: CodexPanel = main.get_node("%PauseMenu").codex
-	ResultsScreen.demo_override = 0  # The full game lists all 15 (the demo only its own: test_demo_scope)
+	ResultsScreen.demo_override = 0  # The full game: every combo in scope (the scope itself: test_codex_scope)
 	codex.open(&"combos")
-	_check(codex.visible and codex.tabs.current_tab == 1 and CodexData.combos().all(func(c: Dictionary) -> bool: return codex._entries.has(String(c.id)))
-		and CodexData.combos().size() == 15, "the Codex lists all 15 combos")
+	_check(codex.visible and codex.tabs.current_tab == 1 and CodexData.combos().filter(CodexData.in_build).all(func(c: Dictionary) -> bool: return codex._entries.has(String(c.id)))
+		and CodexData.combos().size() == 15, "the Codex lists every combo in scope, of 15")
 	ResultsScreen.demo_override = -1
 	# Locked entries are just "???": no ingredient icons or text (they'd give the answer away).
 	var seen_now := ComboFeedback.load_seen()
