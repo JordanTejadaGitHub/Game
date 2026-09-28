@@ -112,6 +112,31 @@ func _run() -> void:
 	midsummer._update_beam(0.1)
 	_check(midsummer.sprite.hframes == midsummer.tower_data.frame_count, "and returns to its idle sheet when the target is gone")
 
+	# --- Swoops fly back to their Warden (they used to fly to the map's top-left corner: the projectile
+	# took its home in _ready before fire_at had placed it) ---
+	var nest: Tower = placer.tower_scene.instantiate()
+	nest.tower_data = load("res://resource/tower/nestling.tres")
+	nest.cell = Vector2(8, 8)
+	nest.position = Tower.MAP_GRID.calculate_map_position(Vector2(8, 8))
+	tower_container.add_child(nest)
+	nest.set_process(false)
+	var prey = _spawn_still(spawner, leaf_bug, nest.global_position + Vector2(100, 0))
+	nest.fire_at(prey)
+	var swoop: Projectile = null
+	for child in nest.get_children():
+		if child is Projectile:
+			swoop = child
+	var start := nest.global_position + nest.tower_data.get_attack_origin()
+	_check(swoop != null and swoop._home.distance_to(start) < 1.0, "a swoop's home is its Warden (%s)" % (swoop._home if swoop else null))
+	var last_seen := Vector2.ZERO
+	for i in 180:
+		if not is_instance_valid(swoop):
+			break
+		last_seen = swoop.global_position
+		await process_frame
+	_check(not is_instance_valid(swoop) and last_seen.distance_to(start) < 20.0,
+		"it flies back and vanishes at the Warden (last seen %s, Warden %s)" % [last_seen, start])
+
 	print("towers test: %s" % ("PASS" if failures == 0 else "%d FAILED" % failures))
 	quit(failures)
 

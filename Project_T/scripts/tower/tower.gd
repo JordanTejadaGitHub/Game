@@ -1254,8 +1254,10 @@ func fire_at(target: Node2D) -> void:
 		# Sudden Bloom / Watchful Rest and a legacy attack's data ride the projectile to where it lands.
 		on_land = _land_as.bind(attack_data, _hit_boost)
 	var projectile := Projectile.new(target, attack_data, on_land)
+	# Placed before it enters the tree: _ready() takes its home (swoops fly back to it) and a lob's arc
+	# length from where it starts. It's top_level, so position is world space.
+	projectile.position = global_position + tower_data.get_attack_origin()
 	add_child(projectile)
-	projectile.global_position = global_position + tower_data.get_attack_origin()
 
 # A projectile fired with `data` at ×`boost` lands. A bound method: the lambda this replaced lost its
 # captures by the time the projectile landed ("Lambda capture was freed") and dealt nothing.
