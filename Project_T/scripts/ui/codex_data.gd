@@ -50,11 +50,17 @@ const GLOSSARY_SOURCE := [
 		["Heartwood Sapling", "A 2×2 offshoot of the Heartwood from drift 51: it yields Dew every drift and Dreamlight every 10 drifts. Permanent.", ["Permanent", "Dreamlight"]],
 		["Permanent", "Can't be sold or moved.", ["Heartwood Sapling"]],
 	]],
+	["Damage types", [
+		["Damage type", "Every Warden deals one type of damage: Spore, Stone, Water, Light, Root, Song, Talon, Wind, or Plain. The Warden panel and the Warden bar say which (\"Light damage\").", ["Resists and Weak to", "Plain damage"]],
+		["Resists and Weak to", "A nightmare that resists a damage type takes half from it (×0.5); one weak to it takes 50% more (×1.5). It's the type that counts, not which Warden deals it.", ["Damage type"]],
+		["Effect damage type", "Effects keep their source's type: {spored} ticks deal the type of the Warden that applied them, {static} bolts deal Light, clouds, rings and seeds deal their maker's type, and Reactions the type of the Warden that set them off.", ["Damage type"]],
+		["Plain damage", "Sprouts, Thornwalls, Acorns and Memory Wardens deal Plain damage: never resisted, never weak.", ["Damage type"]],
+		["Talon", "The Nestling family's damage type: beaks and claws.", ["Damage type"]],
+	]],
 	["Nightmares", [
 		["Nightmare", "The Hollow's dreams turned cruel, hunting the Heartwood's dream. Dispel them before they reach it.", ["Dispel"]],
 		["Dispel", "Breaking a nightmare apart with your Wardens' light. It leaves Dew behind.", ["Nightmare"]],
 		["Deeply Blighted", "An elite nightmare: three times the health and Dew, and it takes two leaves.", ["Leaves"]],
-		["Resists and Weak to", "Some nightmares take less from certain Warden families and more from others.", ["Family"]],
 		["Dread shell", "A shell that soaks chip damage: heavy hits break through.", ["Crit"]],
 		["Hidden", "Lurkers can't be seen or targeted until revealed or close.", ["Nightmare"]],
 		["Flying", "Flies straight over the maze, ignoring walls.", ["Nightmare"]],

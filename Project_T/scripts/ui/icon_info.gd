@@ -47,6 +47,36 @@ const RESOURCES := {
 	&"path": ["Path length", "How many tiles nightmares walk to the Heartwood. Longer is better."],
 }
 
+# Damage types (enemy_design.md "Damage types"): what nightmares resist or fear, shown everywhere as a
+# type icon + name, never a Warden's face. TowerData.line -> [name, colour (icon fallback)]. Any other
+# line (sprout, wall, acorn, memory, heartwood) is Plain: never resisted, never weak.
+const DAMAGE_TYPES := {
+	"spore": ["Spore", Color(0.72, 0.86, 0.45)],
+	"stone": ["Stone", Color(0.72, 0.7, 0.66)],
+	"water": ["Water", Color(0.45, 0.72, 1.0)],
+	"light": ["Light", Color(1.0, 0.9, 0.45)],
+	"root": ["Root", Color(0.7, 0.52, 0.34)],
+	"song": ["Song", Color(0.85, 0.65, 1.0)],
+	"wing": ["Talon", Color(0.95, 0.62, 0.45)],
+	"wind": ["Wind", Color(0.7, 0.95, 0.9)],
+}
+const PLAIN_TYPE := ["Plain", Color(0.75, 0.75, 0.75)]
+
+static func damage_type_name(line: String) -> String:
+	return DAMAGE_TYPES.get(line, PLAIN_TYPE)[0]
+
+static func damage_type_color(line: String) -> Color:
+	return DAMAGE_TYPES.get(line, PLAIN_TYPE)[1]
+
+# "Light damage" for a Warden (its TowerData.line).
+static func damage_type_text(line: String) -> String:
+	return "%s damage" % damage_type_name(line)
+
+# The type's icon from the sheet ("damage_type" group: spore … wind, plain; "wing" = Talon), or null
+# while the art isn't in (callers draw a coloured disc with the initial).
+static func damage_type_icon(line: String) -> Texture2D:
+	return icon(StringName(line if DAMAGE_TYPES.has(line) else "plain"))
+
 # --- Icons (assets/ui/icons.png, one row of 16×16; icons.json maps id -> column) -------------------
 
 const ICON_SHEET := "res://assets/ui/icons.png"
