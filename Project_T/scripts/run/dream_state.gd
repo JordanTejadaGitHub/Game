@@ -65,7 +65,7 @@ const OPPOSITE_WEIGHT := 0.5
 const SOFT_NEED_WEIGHT := 0.4  # A card whose soft Needs are unmet (dream_design.md "Adapt, don't get handed")
 const STRAY_FROM_DRIFT := 10  # The Stray Dream: one slot per offer from this rest on (never at boss rests)
 const STRAY_IN_BUILD_WEIGHT := 0.25
-const HALF_DREAMED_WEIGHT := 0.8  # A combo card whose other family you could still pick
+const HALF_DREAMED_WEIGHT := 1.0  # A combo card whose other family you could still pick
 const HALF_DREAMED_WITHIN := 20  # …offered only when the next family pick is at most this many drifts away
 const HALF_DREAMED_DECLINED_WEIGHT := 0.3  # …after its missing family was offered at a pick and not taken
 # Passed-over cards fade (dream_design.md "How Dream offers work"): left out of the next offer, then
@@ -107,6 +107,49 @@ const HERD_MAX := 0.25
 const BITTER_PER := 0.03
 const BITTER_MAX := 0.15
 const BITTER_TIME := 2.0
+# Generic Commons and Uncommons (142–156) and the second batch (157–168)
+const GATHERED_DEW_PER := 0.10
+const FAIR_TRADE_PER := 0.10
+const FAIR_TRADE_CAPS := [1.0, 0.75]  # [resting, walking] refund shares
+const CALL_OF_THE_WILD_CAP := 20
+const LASTING_DREAMS_PER := 1.0  # Seconds per stack
+const SHORT_ROOTS_RANGE := 2.0
+const SHORT_ROOTS_BONUS := 0.25
+const FORESTS_EDGE_CELLS := 3  # From the start (Chebyshev)
+const FORESTS_EDGE_BONUS := 0.20
+const CROWDED_PER := [0.03, 0.04]
+const CROWDED_MAX := [0.30, 0.40]
+const LONE_HUNTER_BONUS := [0.30, 0.45]
+const LONE_HUNTER_CELLS := 2.0
+const SKYWARD_BONUS := 0.40
+const SKYWARD_RANGE := 1.0  # Against flyers (Tower Code's targeting)
+const FRESH_GROWTH_BONUS := [0.30, 0.45]
+const UNDERDOG := [[3, 0.20], [4, 0.25]]  # [Wardens, damage] (II)
+const WEATHERED_FREE_EVERY := 10
+const HEAVY_AIR_BONUS := 0.20
+const SLOW_STATUSES: Array[StringName] = [&"damp", &"drowsy"]
+const WANDERING_MIND_REROLLS := 2
+const WINDING_PATH_TILES := 10  # +1 Dew per this many path tiles at each rest
+const SHELTER_BONUS := 0.15
+const CLIFFSIDE_RANGE := 1.0
+const THICK_BARK_CHARGES := [1, 2]
+const SUDDEN_BLOOM_ATTACKS := 3
+const LAST_BREATH_SHARE := [0.10, 0.15]
+const LAST_BREATH_BOSS_CAP := 0.05
+const LAST_BREATH_CELLS := 1.0
+const TANGLED_SLOW := 0.10
+const WATCHFUL_REST_TIME := [5.0, 3.0]
+const GLIMMER_CHANCE := 0.30
+const GLIMMER_DREAMLIGHT_MAX := 3  # Per run, its own cap (not the Great Dreamcatcher's)
+const STRAIGHT_TILES := 5
+const STRAIGHTAWAY := [[0.15, 0.5], [0.25, 0.5]]  # [damage, range]
+const HEART_OF_MAZE_BONUS := 0.50
+const ECHO_PER := 0.05
+const ECHO_MAX := 0.25
+# Half-dreamed Commons (169–171, stack to 3)
+const DAMP_ROT_PER := 0.20  # Poisoned (Spored) ticks on Soaked nightmares
+const SPARKING_SPORES_PER := 0.20  # Ignite detonations
+const RAIN_ON_GLASS_PER := 0.12  # Light Wardens vs Soaked
 # Dreamlight (run_design.md "Dreamlight"): sources and unlock costs.
 const FIRST_PICK_DREAMLIGHT := 1
 const BOSS_DREAMLIGHT := 3
@@ -130,6 +173,7 @@ signal offer_closed
 signal dreamlight_changed(dreamlight: int)
 # The Eldest changed (null = the title is free). Tower Code shows its crown and panel line.
 signal eldest_changed(tower: Tower)
+signal bark_changed(charges: int)  # Thick Bark: leaks it can still save this block (HUD shield)
 # The Remember screen should open (after a boss's family pick, from the rest panel or the Warden
 # panel). `focus` = the form to highlight, or null.
 signal remember_requested(focus: TowerData)
@@ -139,7 +183,7 @@ signal remember_requested(focus: TowerData)
 @export var unlock_everything: bool = false  # Debug/tests: every Warden and evolution available
 @export var cards_per_offer: int = 3
 @export var skip_dew: int = 15  # "Let it pass"
-@export var tag_weight: float = 1.4  # Cards sharing a tag you own (family, direction, Legendary archetype)
+@export var tag_weight: float = 2.4  # Cards sharing a tag you own (family, direction, Legendary archetype)
 @export var pity_after: int = 3  # Dreams in a row without Rare+ before one is guaranteed
 # Bittersweet cards stay out of the pool until leaves are tuned (dream_design.md). Act 2+ only,
 # at most one per offer.
@@ -182,6 +226,15 @@ var _taken_cache := {}  # include_dormant -> [state key, taken cards] (_taken_ca
 var _bitter_walls := {}  # Nightmare id -> {wall id: clock it passed} (Bitter Hedges)
 var _first_hits := {}  # "Warden id:nightmare id" -> true (First Light)
 var _herd := {}  # Warden id -> dispels in its range this drift (Thinning the Herd)
+var _walls_planted := 0  # Thornwalls planted this run (Weathered Walls: every 10th is free)
+var bark_charges := 0  # Thick Bark: leaks it can still save this block
+var _echoes := 0  # Echoing Steps: real route changes this drift
+var _last_echo := -INF
+var _last_route := PackedVector2Array()
+var _straight_cells := {}  # Route tiles in a straight stretch of 5+ (Straightaway)
+var _heart_cache := []  # [key, Tower] (get_heart_of_maze)
+var _glimmer_rng := RandomNumberGenerator.new()
+var glimmer_shards := 0  # Glimmering Hunt's shards this run (10 = 1 Dreamlight, own cap)
 var _statuses_cache := []  # [state key, owned statuses] (owned_statuses)
 var _offer_drift := 0  # The drift of the offer being built (half-dreamed checks)
 var _before_offer := {}  # Offer counters from before the current offer (a reroll rolls them back)
@@ -678,6 +731,9 @@ func crossroads_at(cell: Vector2) -> bool:
 # Restless Night: a real call early = the previous drift was still arriving.
 func _on_drift_started(number: int) -> void:
 	_herd.clear()  # Thinning the Herd lasts the rest of the drift
+	_echoes = 0  # Echoing Steps lasts until the drift ends
+	for tower in _towers():
+		_watch_growth(tower)
 	_first_hits.clear()
 	for tower in _towers():  # Steadfast (old_growth): drifts this Warden has stood (growing keeps the node)
 		tower.set_meta(&"drifts_stood", int(tower.get_meta(&"drifts_stood", 0)) + 1)
@@ -857,6 +913,8 @@ func get_status_strength_multiplier(status: StringName) -> float:
 	for card in _taken_cards():
 		if card.status_id == status:
 			bonus += card.status_strength_bonus * stacks[card.id]
+	if SLOW_STATUSES.has(status) and has_rule(&"heavy_air"):
+		bonus += HEAVY_AIR_BONUS  # Heavy Air: every slow 20% stronger
 	return 1.0 + bonus
 
 # Duration of `status` when `data` applies it (its own duration or the default, plus Dreams).
@@ -868,6 +926,7 @@ func get_status_duration(data: TowerData, status: StringName) -> float:
 			continue
 		duration += card.status_duration_add * stacks[card.id]
 		multiplier *= pow(card.status_duration_multiplier, stacks[card.id])
+	duration += LASTING_DREAMS_PER * rule_stacks(&"lasting_dreams")  # Lasting Dreams: every status +1 s
 	return duration * multiplier
 
 # Stack cap of `status` when `data` applies it: its own cap (0 = the status default) plus Dreams
@@ -914,6 +973,8 @@ func get_rest_bonus_add() -> int:
 	var add := 0
 	for card in _taken_cards():
 		add += card.rest_bonus_add * stacks[card.id]
+	if has_rule(&"winding_path"):
+		add += path_length / WINDING_PATH_TILES  # Winding Path: +1 Dew per 10 path tiles
 	return add
 
 # Dew to clear `data` (Cleared Ground: −40% per stack, never below 1 Dew).
@@ -928,6 +989,9 @@ func get_clear_cost(data: ObstacleData) -> int:
 func get_build_cost_at(data: TowerData, cell: Vector2) -> int:
 	if data.get_id() == "sprout" and run_state.sprout_charges > 0:
 		return 0  # The charge is used in _on_tower_built
+	if data.get_id() == "thornwall" and has_rule(&"weathered_walls") \
+			and (_walls_planted + 1) % WEATHERED_FREE_EVERY == 0:
+		return 0  # Weathered Walls: every 10th Thornwall is free
 	var cost := get_build_cost(data)
 	if run_state.fertile_cells.has(cell):
 		cost = roundi(cost * FERTILE_DISCOUNT)
@@ -1029,6 +1093,25 @@ func _update_bends() -> void:
 	for i in range(1, path.size() - 1):
 		if path[i] - path[i - 1] != path[i + 1] - path[i]:
 			_bend_cells[path[i]] = true
+	# Straightaway: tiles of straight stretches of STRAIGHT_TILES+ (a run of equal steps a..b covers
+	# tiles a..b+1)
+	_straight_cells.clear()
+	var run_start := 0
+	for step in range(1, path.size()):
+		if step == path.size() - 1 or path[step + 1] - path[step] != path[step] - path[step - 1]:
+			if step - run_start + 1 >= STRAIGHT_TILES:
+				for i in range(run_start, step + 1):
+					_straight_cells[path[i]] = true
+			run_start = step
+	_heart_cache.clear()
+	# Echoing Steps: a real route change while nightmares walk (max 1 per second)
+	if path != _last_route and not _last_route.is_empty() and not drift_director.resting \
+			and not spawner.get_enemies().is_empty():
+		var now := Time.get_ticks_msec() / 1000.0
+		if now - _last_echo >= 1.0:
+			_last_echo = now
+			_echoes += 1
+	_last_route = path
 
 
 # --- Taking cards -------------------------------------------------------------------------------------
@@ -1040,6 +1123,10 @@ func take(card: UpgradeData) -> void:
 	stacks[card.id] = stacks.get(card.id, 0) + 1
 	_passed_count.erase(card.id)  # Taking a card resets its fade
 	_passed_at.erase(card.id)
+	if card.rule_id == &"wandering_mind":
+		rerolls_left += WANDERING_MIND_REROLLS  # Adds to the Grove perk Second Thoughts
+	if card.rule_id == &"thick_bark":
+		_refill_bark()
 	if card.unlocks != null:
 		unlocked[card.unlocks.get_id()] = true
 		unlocks_changed.emit()
@@ -1099,6 +1186,7 @@ func _on_rest_started(_block: int, is_boss_rest: bool, _bonus: int, _perfect: bo
 	if not drift_director.has_next_drift() or run_state.is_over:
 		return
 	_early_calls = 0  # Restless Night counts per block
+	_rest_rules(_perfect)
 	if is_boss_rest:
 		# The freed light: +3 Dreamlight, and the Remember screen opens before the Dream.
 		add_dreamlight(BOSS_DREAMLIGHT)
@@ -1316,6 +1404,10 @@ func _meets_needs(card: UpgradeData) -> bool:
 	if card.min_reaction_pairs > 0 and count_reaction_pairs() < card.min_reaction_pairs:
 		return false
 	if card.requires_status != &"" and not owned_statuses().has(card.requires_status):
+		return false
+	if not card.requires_any_status.is_empty() and not card.requires_any_status.any(func(s: StringName) -> bool: return owned_statuses().has(s)):
+		return false
+	if card.max_range_owned > 0.0 and not owns_range_at_most(card.max_range_owned):
 		return false
 	if card.min_kinships > 0 and count_kinships() < card.min_kinships:
 		return false
@@ -1565,6 +1657,7 @@ func to_save() -> Dictionary:
 		"eldest_cell": [_eldest_cell.x, _eldest_cell.y], "court_pending": _court_pending,
 		"passed_count": _passed_count.duplicate(), "passed_at": _passed_at.duplicate(),
 		"owed_families": _owed_families.duplicate(), "declined_families": _declined_families.duplicate(),
+		"walls_planted": _walls_planted, "glimmer_shards": glimmer_shards,
 		"rng_state": str(_rng.state),  # A string: JSON would round a 64-bit int
 	}
 
@@ -1599,6 +1692,9 @@ func load_save(data: Dictionary) -> void:
 		for id in saved:
 			into[id] = int(saved[id])  # JSON gives floats
 	_attackers_planted = int(data.get("attackers_planted", 0))
+	_walls_planted = int(data.get("walls_planted", 0))
+	glimmer_shards = int(data.get("glimmer_shards", 0))
+	_refill_bark()  # Saved at a rest, where Thick Bark is full again
 	dreamlight = int(data.get("dreamlight", 0))
 	dreamlight_changed.emit(dreamlight)
 	dreamlight_shards = int(data.get("dreamlight_shards", 0))
@@ -1652,6 +1748,10 @@ func _on_tower_sold(tower: Tower, _refund: int) -> void:
 # The next Warden planted uses the highest memory seed (it still costs its normal Dew). Canopy
 # counts attacking Wardens planted.
 func _on_tower_built(tower: Tower) -> void:
+	if tower.tower_data.get_id() == "thornwall":
+		_walls_planted += 1  # Weathered Walls
+	_mark_fresh(tower)
+	_watch_growth(tower)
 	if tower.tower_data.can_attack:
 		_attackers_planted += 1
 	_watch_nurture(tower)
@@ -1682,6 +1782,8 @@ func _on_obstacle_cleared(cell: Vector2, _data: ObstacleData) -> void:
 # Spore Cascade: a cleansed creature's Spored stacks spread to the nearest creatures.
 func _on_enemy_cleansed(enemy: Node2D) -> void:
 	_count_herd(enemy)
+	_glimmer(enemy)
+	_last_breath(enemy)
 	_hunters_spread(enemy)
 	if not has_rule(&"spore_cascade") or not enemy.statuses.has(EnemyStatuses.SPORED):
 		return
@@ -1862,6 +1964,13 @@ func on_hit_multiplier(tower: Tower, enemy: Node2D) -> float:
 		elif enemy.enemy_data != null and enemy.enemy_data.is_boss:
 			bonus += HUNTERS_PATIENCE_BOSS
 	bonus += get_bitter_bonus(enemy)
+	if has_rule(&"lone_hunter") and _is_alone(enemy):
+		bonus += LONE_HUNTER_BONUS[rule_level(&"lone_hunter")]
+	if tower != null and tower.tower_data.line == "light" and has_rule(&"rain_on_glass") \
+			and enemy.statuses.has(EnemyStatuses.DAMP):
+		bonus += RAIN_ON_GLASS_PER * rule_stacks(&"rain_on_glass")  # Rain on Glass
+	if has_rule(&"skyward_gaze") and enemy.enemy_data != null and enemy.enemy_data.trait_kind == EnemyData.Trait.FLYING:
+		bonus += SKYWARD_BONUS
 	var multiplier := 1.0 + bonus
 	if has_rule(&"first_light") and tower != null:
 		var key := "%d:%d" % [tower.get_instance_id(), enemy.get_instance_id()]
@@ -1917,3 +2026,289 @@ func get_old_growth_bonus(tower: Tower) -> float:
 		if stood >= step[0]:
 			return step[1]
 	return 0.0
+
+
+# --- Generic Commons and Uncommons (142–156) and the second batch (157–168) -------------------------
+# dream_design.md. Per-Warden damage / range report through DreamEffects; per-hit bonuses are in
+# on_hit_multiplier; the rest are hooks other scripts ask (RunState, TowerSeller, DriftDirector).
+
+# Gathered Dew: extra share of dispel Dew (RunState._scaled_dispel_dew adds it to Rich Dew).
+func get_dew_gain_bonus() -> float:
+	return GATHERED_DEW_PER * rule_stacks(&"gathered_dew")
+
+# Fair Trade: the refund share for selling (TowerSeller.get_refund): +10% per stack, capped at
+# 100% resting / 75% walking.
+func get_refund_share(base: float, resting: bool) -> float:
+	var stacks_taken := rule_stacks(&"fair_trade")
+	if stacks_taken == 0:
+		return base
+	return minf(base + FAIR_TRADE_PER * stacks_taken, FAIR_TRADE_CAPS[0] if resting else FAIR_TRADE_CAPS[1])
+
+# Call of the Wild: calling a drift early pays double, capped at 20 (DriftDirector.get_call_early_bonus).
+func get_call_early_bonus(uncapped: int, cap: int) -> int:
+	if not has_rule(&"call_of_the_wild"):
+		return mini(uncapped, cap)
+	return mini(mini(uncapped, cap) * 2, maxi(CALL_OF_THE_WILD_CAP, cap))
+
+# Thick Bark: RunState.lose_leaves asks this first; true = this leak is saved (whole, even a boss's).
+func absorb_leak() -> bool:
+	if bark_charges <= 0 or not has_rule(&"thick_bark"):
+		return false
+	bark_charges -= 1
+	bark_changed.emit(bark_charges)
+	return true
+
+func _refill_bark() -> void:
+	bark_charges = THICK_BARK_CHARGES[rule_level(&"thick_bark")] if has_rule(&"thick_bark") else 0
+	bark_changed.emit(bark_charges)
+
+# At each rest: Mending Bark, Thick Bark refills, Fresh Growth ends, Underdog picks its Wardens,
+# Echoing Steps ends.
+func _rest_rules(perfect: bool) -> void:
+	if perfect and has_rule(&"mending_bark"):
+		run_state.regrow_leaves(1)
+	_refill_bark()
+	_echoes = 0
+	for tower in _towers():
+		tower.remove_meta(&"fresh_growth")
+	_pick_underdogs()
+
+# Fresh Growth: planted or grown during a drift (not at a rest) marks a Warden until the next rest.
+func _mark_fresh(tower: Tower) -> void:
+	if has_rule(&"fresh_growth") and not drift_director.resting:
+		tower.set_meta(&"fresh_growth", true)
+
+func _watch_growth(tower: Tower) -> void:
+	if tower.has_signal("evolved") and not tower.evolved.is_connected(_mark_fresh):
+		tower.evolved.connect(_mark_fresh)
+
+func is_fresh(tower: Tower) -> bool:
+	return tower != null and tower.get_meta(&"fresh_growth", false)
+
+# Underdog: the attacking Wardens that soothed least this block get a mark for the next block
+# (Tower Code's glow reads is_underdog).
+func _pick_underdogs() -> void:
+	for tower in _towers():
+		tower.remove_meta(&"underdog")
+	if not has_rule(&"underdog") or DamageLog.instance == null:
+		return
+	var attackers: Array = _towers().filter(func(t: Tower) -> bool: return t.tower_data.can_attack)
+	attackers.sort_custom(func(a: Tower, b: Tower) -> bool:
+		return float(DamageLog.instance.get_tower_stats(a).get("block", 0.0)) \
+			< float(DamageLog.instance.get_tower_stats(b).get("block", 0.0)))
+	var count: int = UNDERDOG[rule_level(&"underdog")][0]
+	for i in mini(count, attackers.size()):
+		attackers[i].set_meta(&"underdog", true)
+
+func is_underdog(tower: Tower) -> bool:
+	return tower != null and tower.get_meta(&"underdog", false)
+
+# Crowded Path: nightmares in the Warden's range right now.
+var _counting := false  # count_in_range asks the range, whose rows ask Crowded Path again
+
+func count_in_range(tower: Tower) -> int:
+	if _counting:
+		return 0
+	_counting = true
+	var reach: float = tower.get_range_cells() * map_generator.MAP_GRID.cell_size.x
+	var count := 0
+	for enemy in spawner.get_enemies():
+		if tower.global_position.distance_to(enemy.global_position) <= reach:
+			count += 1
+	_counting = false
+	return count
+
+# Lone Hunter: no other nightmare within 2 cells of `enemy`.
+func _is_alone(enemy: Node2D) -> bool:
+	var reach: float = LONE_HUNTER_CELLS * map_generator.MAP_GRID.cell_size.x
+	for other in spawner.get_enemies():
+		if other != enemy and other.global_position.distance_to(enemy.global_position) <= reach:
+			return false
+	return true
+
+# Glimmering Hunt: a dispelled elite has a 30% chance to drop a Dreamlight shard (10 = 1 Dreamlight),
+# up to 3 Dreamlight per run from this card, apart from the Great Dreamcatcher's shards and cap.
+func _glimmer(enemy: Node2D) -> void:
+	if not has_rule(&"glimmering_hunt") or not enemy.elite or _glimmer_rng.randf() >= GLIMMER_CHANCE \
+			or glimmer_shards >= SHARDS_PER_DREAMLIGHT * GLIMMER_DREAMLIGHT_MAX:
+		return
+	glimmer_shards += 1
+	if glimmer_shards % SHARDS_PER_DREAMLIGHT == 0:
+		add_dreamlight(1)
+
+# Last Breath: a dispelled nightmare bursts for 10% (II 15%) of its max health on nightmares within
+# 1 cell; bosses' bursts are capped at 5% of the boss's max health. Effect damage (tag last_breath);
+# a nightmare the burst dispels never bursts itself.
+var _bursting := false
+
+func _last_breath(enemy: Node2D) -> void:
+	if _bursting or not has_rule(&"last_breath"):
+		return
+	var share: float = LAST_BREATH_SHARE[rule_level(&"last_breath")]
+	if enemy.enemy_data != null and enemy.enemy_data.is_boss:
+		share = minf(share, LAST_BREATH_BOSS_CAP)
+	var burst: float = enemy.max_health * share
+	var reach: float = LAST_BREATH_CELLS * map_generator.MAP_GRID.cell_size.x
+	var near: Array = spawner.get_enemies().filter(func(other: Node2D) -> bool:
+		return other != enemy and not other.is_cleansed and other.global_position.distance_to(enemy.global_position) <= reach)
+	_bursting = true
+	for other in near:
+		if is_instance_valid(other) and not other.is_cleansed:
+			other.take_damage(burst, "", true, false, null, &"last_breath")
+	_bursting = false
+
+# Heart of the Maze: the attacking Warden furthest along the path from any other attacking Warden
+# (path steps between their closest route tiles; ties go nearer the Heartwood). Cached until the
+# route or the Wardens change. null with fewer than 2 attackers.
+func get_heart_of_maze() -> Tower:
+	var attackers: Array = _towers().filter(func(t: Tower) -> bool: return t.tower_data.can_attack)
+	var key := hash([attackers.map(func(t: Tower) -> Vector2: return t.cell), path_length])
+	if not _heart_cache.is_empty() and _heart_cache[0] == key:
+		return _heart_cache[1] if is_instance_valid(_heart_cache[1]) else null
+	var best: Tower = null
+	if attackers.size() >= 2 and not _path_index.is_empty():
+		var steps := {}
+		for tower in attackers:
+			steps[tower] = _closest_step(tower.cell)
+		var best_gap := -1
+		for tower in attackers:
+			var gap := 1 << 30
+			for other in attackers:
+				if other != tower:
+					gap = mini(gap, absi(steps[tower] - steps[other]))
+			if gap > best_gap or (gap == best_gap and steps[tower] > steps[best]):
+				best_gap = gap
+				best = tower
+	_heart_cache = [key, best]
+	return best
+
+func _closest_step(cell: Vector2) -> int:
+	var best_step := 0
+	var best_distance := INF
+	for route_cell in _path_index:
+		var distance: float = cell.distance_squared_to(route_cell)
+		if distance < best_distance:
+			best_distance = distance
+			best_step = _path_index[route_cell]
+	return best_step
+
+# Echoing Steps: +5% per real route change this drift (max +25%).
+func get_echo_bonus() -> float:
+	return minf(ECHO_PER * _echoes, ECHO_MAX) if has_rule(&"echoing_steps") else 0.0
+
+# Cliffside: touching the island's rim (the border cells).
+func is_on_cliff(cell: Vector2) -> bool:
+	var size: Vector2 = map_generator.MAP_GRID.size
+	for dx in [-1, 0, 1]:
+		for dy in [-1, 0, 1]:
+			var c: Vector2 = cell + Vector2(dx, dy)
+			if (dx != 0 or dy != 0) and (c.x == 0 or c.y == 0 or c.x == size.x - 1 or c.y == size.y - 1):
+				return true
+	return false
+
+func touches_obstacle(cell: Vector2) -> bool:
+	for dx in [-1, 0, 1]:
+		for dy in [-1, 0, 1]:
+			if (dx != 0 or dy != 0) and map_generator.obstacles.has(cell + Vector2(dx, dy)):
+				return true
+	return false
+
+func beside_straight(cell: Vector2) -> bool:
+	for dx in [-1, 0, 1]:
+		for dy in [-1, 0, 1]:
+			if (dx != 0 or dy != 0) and _straight_cells.has(cell + Vector2(dx, dy)):
+				return true
+	return false
+
+# Short Roots' Need: a Warden you own with range at most `reach`.
+func owns_range_at_most(reach: float) -> bool:
+	var forms := _roster().duplicate()
+	for card in pool:
+		if card.unlocks != null:
+			forms.append(card.unlocks)
+	for data in forms:
+		if is_unlocked(data.get_id()) and data.can_attack and data.attack_range <= reach:
+			return true
+	return false
+
+# Damp Rot: Poisoned (Spored) tick multiplier on `enemy` (enemy.gd's tick asks; 1.0 without it).
+func get_spored_tick_multiplier(enemy: Node2D) -> float:
+	var n := rule_stacks(&"damp_rot")
+	if n == 0 or enemy == null or not enemy.statuses.has(EnemyStatuses.DAMP):
+		return 1.0
+	return 1.0 + DAMP_ROT_PER * n
+
+# Sparking Spores: Ignite detonation multiplier (Reactions._ignite asks; 1.0 without it).
+func get_ignite_multiplier() -> float:
+	return 1.0 + SPARKING_SPORES_PER * rule_stacks(&"sparking_spores")
+
+
+# --- Headless simulation entry points (tools/balance_run.gd, tests) -------------------------------
+# A real rest and family pick without the screens or deferred offers, keeping the offer bookkeeping
+# (fade, half-dreamed, owed families, Stray, pity, Lucid) exactly as in play.
+
+# Dreamlight a run earns at `kind`: &"first" (the first family pick) or &"boss" (a boss rest).
+static func sim_dreamlight_for(kind: StringName) -> int:
+	return FIRST_PICK_DREAMLIGHT if kind == &"first" else (BOSS_DREAMLIGHT if kind == &"boss" else 0)
+
+# The rest after drift `drift`: what _on_rest_started does (rest rules, Sunlit Rest, Seedling Gift,
+# the boss's +3 Dreamlight) and a real offer. `pick.call(offer: Array) -> UpgradeData` (null = let it
+# pass); with Lucid Dreaming it's called again with what's left. Returns the cards taken.
+func sim_rest(drift: int, pick: Callable, perfect: bool = true) -> Array[UpgradeData]:
+	_early_calls = 0
+	_rest_rules(perfect)
+	if drift_director.is_boss_drift(drift):
+		add_dreamlight(sim_dreamlight_for(&"boss"))
+	if has_rule(&"sunlit_rest"):
+		sunlit_rest()
+	if has_rule(&"seedling_gift"):
+		run_state.add_sprout_charges(1)
+	var taken: Array[UpgradeData] = []
+	current_offer_drift = drift
+	current_offer = make_offer(drift)
+	while is_offering():
+		var card: UpgradeData = pick.call(current_offer.duplicate())
+		if card == null or not current_offer.has(card):
+			if can_skip():
+				skip()
+			else:
+				_close_offer()  # Restless Dreams: no skipping, but the sim moves on
+			break
+		taken.append(card)
+		choose(card)
+	return taken
+
+# A family pick (&"first" after drift 1, &"boss" before a boss rest) through FamilyPickScreen's real
+# offer (owed half-dreamed families included), without leaving the game paused or the screen open.
+# `pick.call(offered_ids: Array) -> StringName`; &"" takes a Family Blessing if one is offered.
+# Returns the family taken (&"" = none). The first pick also gives its +1 Dreamlight.
+func sim_family_pick(kind: StringName, pick: Callable) -> StringName:
+	if kind == &"first":
+		add_dreamlight(sim_dreamlight_for(&"first"))
+	var screen := get_node_or_null("%FamilyPickScreen")
+	if screen == null:
+		return &""
+	var speed := get_node_or_null("%GameSpeed")
+	var was_paused: bool = speed.paused if speed else false
+	var was_awaiting := drift_director.awaiting_family_pick
+	drift_director.awaiting_family_pick = false  # An empty offer mustn't start a rest in the sim
+	screen.show_pick(kind)
+	drift_director.awaiting_family_pick = was_awaiting
+	var families: Array = screen.offer.filter(func(d) -> bool: return d is TowerData)
+	var ids: Array = families.map(func(d: TowerData) -> String: return d.get_id())
+	var chosen := StringName(pick.call(ids.duplicate())) if not ids.is_empty() else &""
+	if ids.has(String(chosen)):
+		unlocked[String(chosen)] = true
+		unlocks_changed.emit()
+		note_family_pick(ids, String(chosen))
+	else:
+		chosen = &""
+		var blessings: Array = screen.offer.filter(func(d) -> bool: return d is UpgradeData)
+		if not blessings.is_empty():
+			take(blessings[0])
+		note_family_pick(ids, "")
+	screen.offer = []
+	screen.visible = false
+	if speed:
+		speed.set_paused(was_paused)
+	return chosen

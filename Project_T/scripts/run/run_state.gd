@@ -147,6 +147,9 @@ func earn_dew_at(amount: int, world_position: Vector2) -> void:
 func lose_leaves(amount: int) -> void:
 	if is_over or amount <= 0 or invulnerable:
 		return
+	var dreams := get_tree().get_first_node_in_group(DreamState.GROUP) as DreamState
+	if dreams and dreams.absorb_leak():
+		return  # Thick Bark saved this leak (whole, even a boss's)
 	leaves_lost += mini(amount, leaves)
 	leaves = maxi(leaves - amount, 0)
 	leaves_changed.emit(leaves, max_leaves)
@@ -181,7 +184,8 @@ func _scaled_dispel_dew(dew: int) -> int:
 	var director := get_node_or_null("%DriftDirector") as DriftDirector
 	var act := director.get_act(maxi(director.drifts_started, 1)) if director else 1
 	var multiplier: float = act_dew_multipliers[clampi(act - 1, 0, act_dew_multipliers.size() - 1)]
-	multiplier *= 1.0 + dew_gain_bonus  # Rich Dew (Grove perk)
+	var dreams := get_tree().get_first_node_in_group(DreamState.GROUP) as DreamState
+	multiplier *= 1.0 + dew_gain_bonus + (dreams.get_dew_gain_bonus() if dreams else 0.0)  # Rich Dew (Grove perk), Gathered Dew
 	_dispel_dew_carry += dew * multiplier
 	var paid := floori(_dispel_dew_carry + 0.0001)
 	_dispel_dew_carry -= paid

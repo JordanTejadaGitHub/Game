@@ -197,7 +197,9 @@ func get_call_early_bonus() -> int:
 	if schedule.is_empty():
 		return 0
 	var skipped: float = schedule[-1][0] - arrival.clock
-	return mini(int(skipped / call_early_seconds_per_dew), call_early_cap)
+	var bonus := mini(int(skipped / call_early_seconds_per_dew), call_early_cap)
+	var dreams := get_tree().get_first_node_in_group(DreamState.GROUP) as DreamState
+	return dreams.get_call_early_bonus(int(skipped / call_early_seconds_per_dew), call_early_cap) if dreams else bonus  # Call of the Wild
 
 
 # --- Actions --------------------------------------------------------------------------------------

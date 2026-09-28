@@ -252,15 +252,17 @@ func _test_direction_weighting() -> void:
 	for i in 2000:
 		if dreams._weighted_pick([wide, narrow]) == wide:
 			wide_picks += 1
-	# 1.4× vs 0.5× → 74% wide
-	_check(wide_picks > 1370 and wide_picks < 1580, "wide 1.4×, narrow 0.5× once you've gone wide (%d / 2000)" % wide_picks)
-	# Unmet soft Need: ×0.4 (1.4 × 0.4 = 0.56 vs 0.5 → 53%)
+	var tw := dreams.tag_weight
+	var expected := 2000.0 * tw / (tw + 0.5)  # tag_weight vs the opposite direction's ×0.5
+	_check(absf(wide_picks - expected) < 110, "wide %.1f×, narrow 0.5× once you've gone wide (%d / 2000, expected %d)" % [tw, wide_picks, expected])
+	# Unmet soft Need: ×0.4 on top
 	_clear_towers()
 	wide_picks = 0
 	for i in 2000:
 		if dreams._weighted_pick([wide, narrow]) == wide:
 			wide_picks += 1
-	_check(wide_picks > 960 and wide_picks < 1160, "…an unmet soft Need weighs ×0.4 (%d / 2000)" % wide_picks)
+	expected = 2000.0 * tw * 0.4 / (tw * 0.4 + 0.5)
+	_check(absf(wide_picks - expected) < 110, "…an unmet soft Need weighs ×0.4 (%d / 2000, expected %d)" % [wide_picks, expected])
 	_check(dreams.can_offer(wide) and not dreams.is_eligible(wide), "…but never blocks the card (can_offer)")
 	_clear_towers()
 

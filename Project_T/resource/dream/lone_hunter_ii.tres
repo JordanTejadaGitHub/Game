@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "lone_hunter_ii"
+display_name = "Lone Hunter II"
+description = "Wardens deal 45% more damage to a nightmare with no other nightmare within 2 cells."
+rarity = 1
+kind = 3
+tags = Array[String]([])
+max_stacks = 1
+deepens = "lone_hunter"
+rule_id = &"lone_hunter"

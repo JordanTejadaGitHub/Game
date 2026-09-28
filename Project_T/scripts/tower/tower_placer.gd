@@ -72,6 +72,15 @@ const KIN_SPOT_COLOR := Color(0.78, 0.86, 0.42, 0.4)  # Faint green-gold leaf ou
 var _path_preview := Line2D.new()
 const PREVIEW_COLOR := Color(0.4, 0.9, 1.0, 0.6)  # The route preview (RouteLine: high-contrast setting)
 
+# Settling ground (run_design.md "No maze juggling"): during a drift, the cells a Warden was sold from
+# can't be planted on again for SETTLE_SECONDS of game time (every footprint cell). Rests are exempt and
+# settle everything at once. The rings with their countdown are drawn by a SettlingMarks node in the
+# world (this placer hides outside build mode).
+const SETTLE_SECONDS := 8.0
+const SETTLE_COLOR := Color(0.85, 0.72, 0.5)
+var settling := {}  # cell -> game seconds left
+var _settling_marks: Node2D = null
+
 func _ready() -> void:
 	tower_data = towers[0]
 	_path_preview.width = 6.0
@@ -83,6 +92,72 @@ func _ready() -> void:
 	# Another tower changing the maze invalidates the preview for the hovered cell.
 	map_generator.path_changed.connect(_refresh_hover)
 	set_build_mode(false)
+	var director := get_node_or_null("%DriftDirector")
+	if director:
+		director.build_phase_changed.connect(func(resting: bool) -> void:
+			if resting:
+				clear_settling())  # A rest settles the ground at once
+
+# --- Settling ground ---
+
+# Called by TowerSeller when a Warden is sold (all its cells). Nothing settles during a rest.
+func settle(cells: Array) -> void:
+	var director := get_node_or_null("%DriftDirector")
+	if director == null or director.is_build_phase():
+		return
+	for c in cells:
+		settling[c] = SETTLE_SECONDS
+	_marks().queue_redraw()
+
+# Seconds until every one of `cells` can be planted on again (0 = now).
+func settling_left(cells: Array) -> float:
+	var left := 0.0
+	for c in cells:
+		left = maxf(left, settling.get(c, 0.0))
+	return left
+
+func clear_settling() -> void:
+	settling.clear()
+	if is_instance_valid(_settling_marks):
+		_settling_marks.queue_redraw()
+	queue_redraw()
+
+func _tick_settling(delta: float) -> void:
+	if settling.is_empty() or get_tree().paused:
+		return  # This placer runs while paused; the ground settles in game time (delta has time_scale)
+	for c in settling.keys():
+		settling[c] -= delta
+		if settling[c] <= 0.0:
+			settling.erase(c)
+	_marks().queue_redraw()
+	if build_mode and _hover_cell != NO_CELL:
+		queue_redraw()  # The ghost's "settling (5 s)" counts down (_process re-checks validity)
+
+func _hover_cell_valid() -> bool:
+	return not _hover_path.is_empty() and not _cells_occupied(_footprint(_hover_cell)) \
+		and not is_unique_placed(tower_data) and settling_left(_footprint(_hover_cell)) <= 0.0
+
+func _marks() -> Node2D:
+	if not is_instance_valid(_settling_marks):
+		_settling_marks = Node2D.new()
+		_settling_marks.name = "SettlingMarks"
+		_settling_marks.z_index = 2  # Over the ground, under the nightmares' health bars
+		_settling_marks.draw.connect(_draw_settling)
+		get_parent().add_child(_settling_marks)
+	return _settling_marks
+
+# A dashed ring of loose earth on each settling cell, with its countdown.
+func _draw_settling() -> void:
+	for c in settling:
+		var centre: Vector2 = _settling_marks.to_local(MAP_GRID.calculate_map_position(c))
+		var left: float = settling[c]
+		var radius := MAP_GRID.cell_size.x * 0.36
+		var share := clampf(left / SETTLE_SECONDS, 0.0, 1.0)
+		for i in 12:
+			var from := TAU * i / 12.0
+			_settling_marks.draw_arc(centre, radius, from, from + TAU / 24.0, 4, Color(SETTLE_COLOR, 0.35), 2.0)
+		_settling_marks.draw_arc(centre, radius, -PI / 2.0, -PI / 2.0 + TAU * share, 32, Color(SETTLE_COLOR, 0.9), 2.5)
+		WorldLabel.draw_tag(_settling_marks, centre.x, centre.y + 5.0, "%d" % ceili(left), SETTLE_COLOR)
 
 func set_build_mode(active: bool) -> void:
 	build_mode = active
@@ -124,7 +199,8 @@ func _unhandled_input(event: InputEvent) -> void:
 		_try_build(_hover_cell)
 		get_viewport().set_input_as_handled()
 
-func _process(_delta: float) -> void:
+func _process(delta: float) -> void:
+	_tick_settling(delta)
 	if is_choosing_square():
 		if not is_instance_valid(_grow_choice.tower):
 			cancel_grow_choice()
@@ -138,8 +214,7 @@ func _process(_delta: float) -> void:
 		_hover_cell = cell
 		_refresh_hover()
 	# Enemies move every frame, so re-check whether one is standing on the hovered cell.
-	var valid := not _hover_path.is_empty() and not _cells_occupied(_footprint(_hover_cell)) \
-		and not is_unique_placed(tower_data)
+	var valid := _hover_cell_valid()
 	# Dew changes while hovering (creatures get cleansed), so re-check affordability too.
 	var affordable := run_state.can_afford(get_cost(null, _hover_cell))
 	if valid != _hover_valid or affordable != _hover_affordable:
@@ -179,6 +254,8 @@ func _draw() -> void:
 	var growth := get_hover_path_growth()
 	if is_unique_placed(tower_data):
 		tag += "  ·  already planted (one per run)"
+	elif settling_left(_footprint(_hover_cell)) > 0.0:
+		tag += "  ·  The ground is settling (%d s)" % ceili(settling_left(_footprint(_hover_cell)))
 	elif hover_breaks_path():
 		tag += "  ·  would close the dream"  # The forest's rule: it may bend, never close
 	elif _cells_occupied(_footprint(_hover_cell)):
@@ -323,8 +400,7 @@ func _refresh_hover() -> void:
 	RouteLine.apply(_path_preview, PREVIEW_COLOR)
 	for point in _hover_path:
 		_path_preview.add_point(MAP_GRID.calculate_map_position(point))
-	_hover_valid = not _hover_path.is_empty() and not _cells_occupied(_footprint(_hover_cell)) \
-		and not is_unique_placed(tower_data)
+	_hover_valid = _hover_cell_valid()
 	_hover_affordable = run_state.can_afford(get_cost(null, _hover_cell))
 	_update_dream_preview()
 	queue_redraw()
@@ -343,6 +419,9 @@ func is_unique_placed(data: TowerData) -> bool:
 func _try_build(cell: Vector2) -> bool:
 	if is_unique_placed(tower_data):
 		build_rejected.emit(cell)
+		return false
+	if settling_left(_footprint(cell)) > 0.0:
+		build_rejected.emit(cell)  # Settling ground: sold here moments ago
 		return false
 	if _cells_occupied(_footprint(cell)):
 		build_rejected.emit(cell)
@@ -435,6 +514,8 @@ func get_grow_squares(tower: Tower, into: TowerData) -> Array[Vector2]:
 			others.assign(Tower.footprint_cells(origin, size).filter(func(c) -> bool: return c != tower.cell))
 			if _cells_occupied(others):
 				continue
+			if settling_left(others) > 0.0:
+				continue  # Settling ground: a Warden was sold there moments ago
 			if not free.is_empty() and not map_generator.can_block_cells(free, enemy_cells):
 				continue  # The forest's rule: it may bend, never close
 			squares.append(origin)

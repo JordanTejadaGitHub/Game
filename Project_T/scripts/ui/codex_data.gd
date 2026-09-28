@@ -58,6 +58,8 @@ const GLOSSARY_SOURCE := [
 		["Dread shell", "A shell that soaks chip damage: heavy hits break through.", ["Crit"]],
 		["Hidden", "Lurkers can't be seen or targeted until revealed or close.", ["Nightmare"]],
 		["Flying", "Flies straight over the maze, ignoring walls.", ["Nightmare"]],
+		["Restless", "A nightmare turned back by a change of route: +20% speed per stack, for good. Three make it Unbound. Not a status.", ["Unbound"]],
+		["Unbound", "Turned back three times, it stops listening to the maze: it keeps its route and tramples any Warden planted on it (no refund). Bosses never become Unbound.", ["Restless"]],
 	]],
 	["Statuses", [
 		["{damp}", "{tip:damp}", ["Conducted", "Thunderclap"]],

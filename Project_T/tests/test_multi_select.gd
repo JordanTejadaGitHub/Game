@@ -86,6 +86,18 @@ func _run() -> void:
 		"every selected Warden is gone")
 	_check(seller.selection.is_empty() and seller.get_tower_at(wall.cell) == wall, "the unselected Thornwall stays")
 
+	# --- A selected Warden trampled away (Unbound nightmares) leaves the selection ---
+	var trampled := _build(placer, map_generator, sprout)
+	var kept := _build(placer, map_generator, sprout)
+	seller.set_selection([trampled, kept])
+	var told := []
+	seller.selection_changed.connect(func(towers: Array[Tower]) -> void: told.append(towers.size()), CONNECT_ONE_SHOT)
+	trampled.get_parent().remove_child(trampled)  # What Enemy Code's trample does
+	trampled.queue_free()
+	await process_frame
+	_check(seller.selection == [kept] and seller.selected == kept, "the trampled Warden drops out of the selection")
+	_check(told == [1], "and the panel hears about it")
+
 	print("multi-select test: %s" % ("PASS" if failures == 0 else "%d FAILED" % failures))
 	quit(failures)
 

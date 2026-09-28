@@ -61,6 +61,8 @@ func _ready() -> void:
 	tower_placer.build_mode_changed.connect(func(building: bool) -> void: set_active(not building))
 	# The refund changes when a drift starts or ends.
 	drift_director.build_phase_changed.connect(queue_redraw.unbind(1))
+	# A Warden leaving any other way (trampled by an Unbound nightmare) leaves the selection too.
+	tower_container.child_exiting_tree.connect(_on_tower_leaving)
 
 func set_active(value: bool) -> void:
 	active = value
@@ -77,7 +79,11 @@ func can_sell() -> bool:
 
 # Dew that selling `tower` gives back right now.
 func get_refund(tower: Tower) -> int:
-	var share := build_phase_refund if drift_director.is_build_phase() else drift_refund
+	var resting := drift_director.is_build_phase()
+	var share := build_phase_refund if resting else drift_refund
+	var dreams := get_tree().get_first_node_in_group(DreamState.GROUP) as DreamState
+	if dreams:
+		share = dreams.get_refund_share(share, resting)  # Fair Trade
 	return int(tower.invested_dew * share)
 
 func get_tower_at(cell: Vector2) -> Tower:
@@ -97,6 +103,7 @@ func sell(cell: Vector2) -> bool:
 	tower.queue_free()
 	for c in tower.get_cells():
 		map_generator.unblock_cell(c)  # Emits path_changed -> creatures re-route
+	tower_placer.settle(tower.get_cells())  # Settling ground: not plantable again for a moment (drifts only)
 	run_state.earn_dew_at(refund, tower.position)
 	tower_sold.emit(tower, refund)
 	if selection.has(tower):
@@ -108,6 +115,13 @@ func sell(cell: Vector2) -> bool:
 
 
 # --- Selection ------------------------------------------------------------------------------------------
+
+func _on_tower_leaving(node: Node) -> void:
+	if node is Tower and selection.has(node):
+		selection.erase(node)
+		_selection_updated.call_deferred()  # The panel refreshes once the Warden has gone
+	if _hover_tower == node:
+		_hover_tower = null
 
 # Selects just `tower` (null clears the selection).
 func select(tower: Tower) -> void:

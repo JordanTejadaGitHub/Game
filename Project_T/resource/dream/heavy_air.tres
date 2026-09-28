@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "heavy_air"
+display_name = "Heavy Air"
+description = "Every slow your Wardens apply ({damp}, {drowsy}) is 20% stronger."
+rarity = 1
+kind = 3
+tags = Array[String](["status"])
+max_stacks = 1
+requires_any_status = Array[StringName]([&"damp", &"drowsy"])
+rule_id = &"heavy_air"

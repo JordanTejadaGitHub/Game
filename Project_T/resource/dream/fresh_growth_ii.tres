@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "fresh_growth_ii"
+display_name = "Fresh Growth II"
+description = "A Warden planted or grown during a drift deals 45% more damage until the next rest."
+rarity = 1
+kind = 3
+tags = Array[String](["tempo"])
+max_stacks = 1
+deepens = "fresh_growth"
+rule_id = &"fresh_growth"

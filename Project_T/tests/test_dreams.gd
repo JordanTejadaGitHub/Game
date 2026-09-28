@@ -897,7 +897,7 @@ func _test_stray_dream(main: Node) -> void:
 			print("adapt: %s, drift %d: own-family %d%% of cards, an out-of-build card in %d%% of offers" % [
 				direction if direction != "" else "no direction", drift, roundi(family_share * 100), roundi(out_share * 100)])
 			if drift >= DreamState.STRAY_FROM_DRIFT:
-				_check(family_share > 0.17 and family_share < 0.28, "own-family ≈ 25%% of cards (%.2f)" % family_share)
+				_check(family_share > 0.18 and family_share < 0.30, "own-family ≈ 22–25%% of cards (%.2f)" % family_share)
 				_check(out_share >= 0.7, "an out-of-build card in ≥ 70%% of offers (%.2f)" % out_share)
 	for tower in planted:
 		tower.free()

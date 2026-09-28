@@ -91,7 +91,10 @@ func _refresh() -> void:
 		_title.tooltip_text = IconInfo.stat_tooltip(&"rank") + ("\n" + IconInfo.stat_tooltip(&"focus") if _tower.focus != Tower.Focus.NONE else "")
 	_title.mouse_filter = Control.MOUSE_FILTER_PASS if _title.tooltip_text != "" else Control.MOUSE_FILTER_IGNORE
 	_desc.text = StatusLinks.bbcode(data.description)  # {damp}-style tokens and plain names both work
-	_desc.visible = data.description != ""
+	if _tower.legacy_data != null:
+		# An Ascended form still makes its final form's attack.
+		_desc.text += "\n[i]Still %s: %s[/i]" % [_tower.legacy_data.display_name, StatusLinks.bbcode(_tower.legacy_data.description)]
+	_desc.visible = _desc.text != ""
 	for child in _stats.get_children():
 		child.queue_free()
 	var lines: Array[String] = []

@@ -14,6 +14,8 @@ const KNOCKBACK_TILES := 0.25
 const ANIMATION_FPS := 14.0
 
 var _tower: Tower
+var _data: TowerData
+var _boost := 1.0
 var _points: Array[Vector2] = []  # The way out: start, end (and any ricochet turns)
 var _leg := 0  # Heading toward _points[_leg + 1] on the way out, back down the list on the way home
 var _returning := false
@@ -29,6 +31,8 @@ var _stormed := {}  # Nightmares it already repeated on this throw
 
 func _init(tower: Tower, from: Vector2, direction: Vector2, length: float, damage_multiplier: float) -> void:
 	_tower = tower
+	_data = tower.attack_data  # What it was made with (a legacy attack, a Graftling's copy)
+	_boost = tower._hit_boost  # Sudden Bloom / Watchful Rest
 	_damage_multiplier = damage_multiplier
 	_points = [from, from + direction.normalized() * length]
 	top_level = true
@@ -123,7 +127,7 @@ func _hit_along(from: Vector2, to: Vector2) -> void:
 		if _returning and dreams and dreams.has_rule(&"backspin") \
 				and randf() < _tower.get_crit_chance(enemy) + BACKSPIN_CRIT:
 			crit = Tower.CRIT
-		_tower.hit(enemy, _damage_multiplier, false, crit)
+		_tower.run_as(_data, _boost, func() -> void: _tower.hit(enemy, _damage_multiplier, false, crit))
 		if not _storm.is_empty() and not _stormed.has(id) and is_instance_valid(enemy) and not enemy.is_cleansed:
 			_stormed[id] = true
 			Reactions.carry(_storm.id, enemy, _tower, _storm.applier if is_instance_valid(_storm.applier) else null)
@@ -136,7 +140,7 @@ func _hit_along(from: Vector2, to: Vector2) -> void:
 			enemy.push_back(KNOCKBACK_TILES * Tower.MAP_GRID.cell_size.x)
 
 func _draw() -> void:
-	var texture: Texture2D = _tower.attack_data.projectile_texture if is_instance_valid(_tower) else null
+	var texture: Texture2D = _data.projectile_texture if is_instance_valid(_tower) else null
 	var spin := _anim * 18.0
 	if texture == null:
 		# A maple seed: a round seed and one long wing, spinning.
@@ -145,7 +149,7 @@ func _draw() -> void:
 		draw_circle(Vector2.ZERO, 3.5, Color(0.6, 0.4, 0.2))
 		return
 	draw_set_transform(Vector2.ZERO, spin)
-	var frames: int = _tower.attack_data.projectile_frames
+	var frames: int = _data.projectile_frames
 	var size := Vector2(texture.get_width() / float(frames), texture.get_height())
 	var frame := int(_anim * ANIMATION_FPS) % frames
 	draw_texture_rect_region(texture, Rect2(-size / 2.0, size), Rect2(Vector2(size.x * frame, 0), size))

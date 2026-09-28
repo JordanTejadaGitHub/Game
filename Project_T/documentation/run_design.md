@@ -122,6 +122,20 @@ turn leaks into a hold. Targets for the balance simulation and playtests (averag
     takes 4 cells now), not 7× as measured.
   - Watch sleep: if Asleep damage stays above ~50% after this, look at Caught's +40% and
     Dreamshroom next.
+  - **Rerun after both changes** (2026-09-28): ~200k health per drift, the maze deals ×1.11–1.14 of
+    it, 0–5 leaks, still **without Dreams**. The Great Bell at half-strength set-offs was no better
+    than the Lullaby Bell it grows from (it lost the Lullaby's own effects, ~150k over 10 drifts).
+    Decision: **Ascended forms keep their family final form's signature effects** (the Great Bell
+    keeps the Lullaby Bell's lullaby) **plus** their own; set-offs stay at 50%. That puts the Great
+    Bell near **5× an average final form**, the target. Asleep share still 52–56%: watch.
+  - **Legacy rerun** (17c217a, fixed seeds 7 and 42): with the Lullaby legacy the Great Bell hit
+    **×6.6–8.7** an average final (35–42% of all damage); its own hits (400k+) became the biggest
+    part. The Bell's spot swings its share 2–3×, so single-map numbers are loose. Decision: **Great
+    Bell damage 180 → 130 and the toll every 8 s** (was 6): trims both its hits and its sleep
+    control (Asleep share 44–62% with it). Target ×5–6.
+  - **Next:** the probe with a **realistic run** (Dreams taken by the real offer logic, a Dew
+    budget from simulated income, so the maze is one a player could afford) is the start of the
+    balance simulation. Only then raise act 3 health further.
 - **Demo:** it has no meta, so every demo run is a fresh profile. **Decided (user, 2026-09-28): keep
   that curve** (demo wins are rare: "go deeper in the full game"). Maybe later: **a few Memory Grove
   unlocks in the demo** (a small taste of the meta), decided after playtests.
@@ -294,11 +308,43 @@ risk: players set their own difficulty block by block.
   rule always applies: no placement may leave any creature (or the start) without a route.
 - **Speed:** Pause / 1× / 2× / 3× + hotkeys (Space = pause). Pausing is a normal way to plan.
 
+### No maze juggling (2026-09-28)
+
+The exploit: during a drift, flip the route back and forth (plant a wall, sell it, plant another)
+so nightmares keep turning around and never arrive. Refunds don't stop it (a Thornwall flip costs a
+few Dew). Two rules make it a losing trade while leaving ordinary mid-drift re-mazing alone:
+
+1. **Restless nightmares.** When a route change makes a nightmare **turn back** (its next step is
+   the tile it just came from), it gains **1 Restless**: **+20% speed** for the rest of its life,
+   stacking. At **3 Restless** it becomes **Unbound**: it stops listening to the maze, keeps its
+   current route and **tramples** any Warden planted on it afterwards (the wall is destroyed, like
+   the Hollow Stag's trample; no refund).
+   - A single re-maze that turns a crowd around gives each of them only 1 stack, so honest
+     adjustments cost a little speed, never a Warden. Juggling the same nightmares is what triggers it.
+   - Flyers ignore the maze anyway; bosses gain Restless but never become Unbound (their own rules
+     cover them). **Nothing stops an Unbound nightmare's trample** (not Weathered Walls), and the
+     Hollow Oak never plants a sapling on an Unbound route: it no longer re-routes, so a wall that
+     held would trap it (as built, Enemy Code 2026-09-28). Restless doesn't count as a status (can't be cleansed, no Reactions).
+   - **Readable:** Restless shows as small backward-arrow marks over the nightmare (one per stack);
+     Unbound glows red-hot with a trail. The nightmare info explains both; the first Unbound ever
+     triggers a whisper: *"Turn them too often, and they stop listening."*
+2. **Settling ground.** During a drift, a cell where a Warden was just **sold** can't be planted
+   again for **8 seconds** (a settling ring with a countdown on the tile). It stops
+   sell-and-replant toggling on the same cell. Rests are exempt.
+
+Not added: a delay before new walls block, and higher mid-drift costs (both would also punish
+honest play). If juggling still pays after this, raise the speed per stack first.
+
 ## Selling
 
 - Refund is based on **all Dew invested** in that Warden (build + evolutions).
 - **During a rest: 75%** (was 100%; difficulty pass v1). Rearranging still pays, but mistakes
   cost something.
+- **Placed this rest: 100%** (user, 2026-09-28: "if you just placed it incorrectly"). A Warden
+  planted (or grown / nurtured) during the **current** rest refunds everything spent on it this
+  rest in full, until Start is pressed. Once it has stood through a drift, the 75% applies. The
+  Sell button says which: "+40 Dew (placed this rest: full refund)". Not during drifts (that would
+  make juggling free).
 - **While creatures are walking: 50%.**
 - Dreams are unlocks, not refunded. Obstacle clears are permanent and never refunded.
 

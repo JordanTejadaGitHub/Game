@@ -85,7 +85,9 @@ func save_now() -> bool:
 			towers.append({"cell": [tower.cell.x, tower.cell.y], "data": tower.tower_data.resource_path,
 				"invested": tower.invested_dew, "rank": tower.rank, "focus": tower.focus,
 				"target_mode": tower.target_mode, "kin_branch": tower.kin_branch, "size": tower.get_footprint(),
-				"drifts_stood": int(tower.get_meta(&"drifts_stood", 0))})  # Old Growth (DreamState counts it)
+				"legacy": tower.legacy_data.resource_path if tower.legacy_data else "",  # An Ascended form's final
+				"drifts_stood": int(tower.get_meta(&"drifts_stood", 0)),  # Old Growth (DreamState counts it)
+				"underdog": bool(tower.get_meta(&"underdog", false))})  # Underdog's mark (set at each rest)
 	var data := {
 		"version": VERSION,
 		"map_seed": map_generator.map_seed,
@@ -153,8 +155,12 @@ func _restore(data: Dictionary) -> void:
 		tower.focus = int(saved.get("focus", 0)) as Tower.Focus
 		tower.target_mode = int(saved.get("target_mode", 0)) as TowerData.TargetMode  # Snipers' aim
 		tower.kin_branch = String(saved.get("kin_branch", ""))  # An Ascended form's branch (Kinships)
+		if String(saved.get("legacy", "")) != "":
+			tower.legacy_data = load(saved.legacy)  # The final form it grew from (its legacy attack)
 		if int(saved.get("drifts_stood", 0)) > 0:  # Old Growth: drifts this Warden has stood
 			tower.set_meta(&"drifts_stood", int(saved.drifts_stood))
+		if bool(saved.get("underdog", false)):
+			tower.set_meta(&"underdog", true)
 		# Ascended forms grew to 2×2: one saved before that (no "size") stays on its one cell.
 		var size := int(saved.get("size", 1 if tower.tower_data.tier >= DreamState.ASCENDED_TIER else 0))
 		if size > 0 and size != tower.tower_data.footprint:

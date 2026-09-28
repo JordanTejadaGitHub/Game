@@ -203,6 +203,41 @@ func _run() -> void:
 	await _wait(0.5)
 	_check(enemy.health < enemy.max_health, "the patrol strikes nightmares it passes")
 
+	# --- Legacy: an Ascended form keeps its final form's attack (the Great Bell still rings the Lullaby) ---
+	var bell := _build(placer, map_generator, load("res://resource/tower/lullaby_bell.tres"))
+	bell.evolve(load("res://resource/tower/great_bell.tres"), 0)
+	_check(bell.legacy_data != null and bell.legacy_data.get_id() == "lullaby_bell", "the Great Bell remembers the Lullaby Bell")
+	_check(bell.attack_data.get_id() == "great_bell", "its own attack is still the toll")
+	var sleeper := _spawn(main, bell.global_position + Vector2(64, 0))
+	var legacy_fired := [0]
+	bell.legacy_released.connect(func(_t) -> void: legacy_fired[0] += 1)
+	bell._update_legacy(0.1)
+	_check(legacy_fired[0] == 1 and sleeper.health < sleeper.max_health, "it pulses like the Lullaby Bell too")
+	_check(sleeper.statuses.has(EnemyStatuses.DROWSY), "and sings Drowsy")
+	_check(bell.attack_data.get_id() == "great_bell" and not bell._legacy_active, "then goes back to its own data")
+	bell._update_legacy(0.1)
+	_check(legacy_fired[0] == 1, "on the Lullaby's own cadence")
+	var mountain := _build(placer, map_generator, load("res://resource/tower/moonstone.tres"))
+	mountain.evolve(load("res://resource/tower/old_mountain.tres"), 0)
+	for old in main.get_node("%EnemyContainer").get_children():
+		old.queue_free()  # The stone goes for whoever is furthest along
+	await process_frame
+	var lobbed := _spawn(main, mountain.global_position + Vector2(64 * 3, 0))  # Moonstone has a min range of 2
+	lobbed.coat = 0.0  # The blight coat would soak the one stone
+	mountain._update_legacy(0.1)
+	var shot: Node = null
+	for child in mountain.get_children():
+		if child is Projectile:
+			shot = child
+	_check(shot != null, "Old Mountain still throws Moonstone's stones")
+	var saved_legacy := mountain.legacy_data
+	await _wait(1.0)
+	_check(lobbed.health < lobbed.max_health, "and they land with Moonstone's data (%d)" % (lobbed.max_health - lobbed.health))
+	_check(mountain.attack_data.get_id() == "old_mountain" and mountain.legacy_data == saved_legacy, "the stone's landing leaves Old Mountain as it was")
+	var sprout_asc := _build(placer, map_generator, load("res://resource/tower/sprout.tres"))
+	sprout_asc.evolve(load("res://resource/tower/dawnwing.tres"), 0)
+	_check(sprout_asc.legacy_data == null, "only a final form becomes a legacy")
+
 	print("late game test: %s" % ("PASS" if failures == 0 else "%d FAILED" % failures))
 	quit(failures)
 
