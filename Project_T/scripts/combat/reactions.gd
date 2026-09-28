@@ -162,10 +162,29 @@ static func effect_multiplier(enemy: Node2D, source: Tower) -> float:
 		multiplier *= 1.0 + dreams.get_effect_bonus(enemy)
 	return multiplier
 
-# Nightshade: effect ticks can crit with the source's crit chance.
-static func effect_crits(enemy: Node2D, source: Tower) -> bool:
+# Nightshade (reworked Legendary): whenever an effect on a nightmare deals damage, every OTHER effect
+# on it deals 25% of its own tick: Poisoned (stacks × strength per 0.5 s tick) and Charged (a spark:
+# charges × strength × 0.5). Credited to each effect's applier, tagged "nightshade" (which doesn't
+# set off more Nightshade).
+const NIGHTSHADE_SHARE := 0.25
+const NIGHTSHADE_TICK := 0.5
+
+static func has_nightshade(enemy: Node2D) -> bool:
 	var dreams := _dreams(enemy)
-	return dreams != null and dreams.has_rule(&"nightshade") and randf() < source.get_crit_chance(enemy)
+	return dreams != null and dreams.has_rule(&"nightshade")
+
+static func nightshade(enemy: Node2D, tag: StringName) -> void:
+	if not is_instance_valid(enemy) or enemy.is_cleansed:
+		return
+	var s: EnemyStatuses = enemy.statuses
+	var from_spores := tag == &"spored" or tag == &"ignite" or tag == &"popped" or tag == &"fever_dream"
+	var from_charge := tag == &"static" or tag == &"thunderclap" or tag == &"lightning_rod" or tag == &"starfall"
+	if not from_spores and s.has(SPORED):
+		var tick := s.stacks(SPORED) * s.potency(SPORED) * NIGHTSHADE_TICK * NIGHTSHADE_SHARE
+		enemy.take_damage(tick, s.spore_line(), true, false, s.source(SPORED), &"nightshade")
+	if is_instance_valid(enemy) and not enemy.is_cleansed and not from_charge and s.has(STATIC):
+		var spark := s.stacks(STATIC) * s.potency(STATIC) * NIGHTSHADE_TICK * NIGHTSHADE_SHARE
+		enemy.take_damage(spark, "light", true, false, s.source(STATIC), &"nightshade")
 
 static func is_crowned(id: StringName) -> bool:
 	return CROWNED_BASE.has(id)

@@ -16,13 +16,14 @@ const TARGET_NAMES := {
 
 var _tower: Tower = null
 var _title := Label.new()
-var _desc := Label.new()  # What it does
+var _desc: RichTextLabel  # What it does, with its status words as links (StatusLinks)
 var _stats := VBoxContainer.new()  # Stat rows: each stat explains itself on hover and tap (IconInfo)
 var _body := Label.new()
 var _groups := VBoxContainer.new()  # Several selected: one row per kind with its portrait
 var _buttons := VBoxContainer.new()
 var _confirm_sell := false  # Selling a group during a drift asks once more
 var _confirm_unlock: TowerData = null  # Unlocking a form with Dreamlight asks once more
+var _confirm_eldest := false  # Rank VI would crown the Eldest: asks once more
 
 func _ready() -> void:
 	custom_minimum_size = Vector2(300, 0)
@@ -31,7 +32,7 @@ func _ready() -> void:
 	add_child(box)
 	_title.add_theme_font_size_override("font_size", 20)
 	box.add_child(_title)
-	_desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_desc = StatusLinks.make_label("", 16)
 	_desc.custom_minimum_size = Vector2(280, 0)
 	box.add_child(_desc)
 	_stats.add_theme_constant_override("separation", 2)
@@ -47,6 +48,7 @@ func _ready() -> void:
 	tower_seller.selection_changed.connect(func(_towers: Array[Tower]) -> void:
 		_confirm_sell = false
 		_confirm_unlock = null
+		_confirm_eldest = false
 		_refresh())
 	run_state.dew_changed.connect(_refresh.unbind(1))
 	dream_state.unlocks_changed.connect(_refresh)
@@ -79,14 +81,16 @@ func _refresh() -> void:
 	var data := _tower.tower_data
 	_title.text = data.display_name
 	if _tower.rank > 0:
-		_title.text += " · Rank %s" % Tower.RANK_NAMES[_tower.rank]
+		_title.text += " · Rank %s" % Tower.rank_name(_tower.rank)
+		if _is_eldest(_tower):
+			_title.text += " · Eldest"
 		if _tower.focus != Tower.Focus.NONE:
 			_title.text += " · %s" % Tower.FOCUS_NAMES[_tower.focus]
 	_title.tooltip_text = ""
 	if _tower.rank > 0:
 		_title.tooltip_text = IconInfo.stat_tooltip(&"rank") + ("\n" + IconInfo.stat_tooltip(&"focus") if _tower.focus != Tower.Focus.NONE else "")
 	_title.mouse_filter = Control.MOUSE_FILTER_PASS if _title.tooltip_text != "" else Control.MOUSE_FILTER_IGNORE
-	_desc.text = data.description
+	_desc.text = StatusLinks.bbcode(data.description)  # {damp}-style tokens and plain names both work
 	_desc.visible = data.description != ""
 	for child in _stats.get_children():
 		child.queue_free()
@@ -132,6 +136,10 @@ func _refresh() -> void:
 	var links := Synergies.find_links(data, _tower.cell, _tower.get_parent().get_children())
 	if not links.is_empty():
 		lines.append("Combos with: " + ", ".join(links.map(func(l: Array) -> String: return l[1])))
+	if dream_state.has_method("get_crossroads_bonus") and dream_state.has_rule(&"crossroads"):
+		var crossroads: float = dream_state.get_crossroads_bonus(_tower)
+		if crossroads > 0.0:
+			lines.append("Crossroads: +%d%%" % roundi(crossroads * 100))
 	_body.text = "\n".join(lines)
 
 	for child in _buttons.get_children():
@@ -160,7 +168,7 @@ func _refresh() -> void:
 		var cost := _tower.get_nurture_cost()
 		for which in [Tower.Focus.POWER, Tower.Focus.SWIFT, Tower.Focus.REACH, Tower.Focus.DEEP]:
 			# Usually rank III; a Warden planted at a higher rank (Remembered Care) chooses on its next one.
-			var button := _add_button("Rank %s · %s: %s per rank · %s" % [Tower.RANK_NAMES[_tower.rank + 1],
+			var button := _add_button("Rank %s · %s: %s per rank · %s" % [Tower.rank_name(_tower.rank + 1),
 				Tower.FOCUS_NAMES[which], Tower.FOCUS_TEXT[which], _price(cost)])
 			button.tooltip_text = "The usual rank gains, plus this Focus at ranks III, IV and V. Can't be changed later."
 			button.disabled = not run_state.can_afford(cost)
@@ -169,26 +177,51 @@ func _refresh() -> void:
 					_refresh())
 	elif _tower.can_nurture():
 		var cost := _tower.get_nurture_cost()
-		var nurture := _add_button("Nurture to rank %s · %s (R)" % [Tower.RANK_NAMES[_tower.rank + 1], _price(cost)])
-		nurture.tooltip_text = "+10%% damage, +4%% attack speed, +0.1 range%s. Kept when it grows." % (
-			", and %s" % Tower.FOCUS_TEXT[_tower.focus] if _tower.focus != Tower.Focus.NONE else "")
-		nurture.disabled = not run_state.can_afford(cost)
-		nurture.pressed.connect(func() -> void:
-			if tower_placer.nurture(_tower):
+		# The Eldest (a Legendary): rank VI crowns the one Warden that can grow past V, so ask first.
+		var eldest_ask: bool = dream_state.has_method("needs_eldest_confirm") and dream_state.needs_eldest_confirm(_tower)
+		if eldest_ask and _confirm_eldest:
+			_add_button("Make this the Eldest? Only one Warden can grow past rank V").disabled = true
+			var yes := _add_button("Yes: make it the Eldest · rank %s · %s" % [Tower.rank_name(_tower.rank + 1), _price(cost)])
+			yes.disabled = not run_state.can_afford(cost)
+			yes.pressed.connect(func() -> void:
+				_confirm_eldest = false
+				if dream_state.make_eldest(_tower):
+					tower_placer.nurture(_tower)
+				_refresh())
+			_add_button("Not now").pressed.connect(func() -> void:
+				_confirm_eldest = false
+				_refresh())
+		else:
+			var nurture := _add_button("Nurture to rank %s · %s (R)" % [Tower.rank_name(_tower.rank + 1), _price(cost)])
+			nurture.tooltip_text = "+10%% damage, +4%% attack speed, +0.1 range%s. Kept when it grows." % (
+				", and %s" % Tower.FOCUS_TEXT[_tower.focus] if _tower.focus != Tower.Focus.NONE else "")
+			nurture.disabled = not run_state.can_afford(cost)
+			nurture.pressed.connect(func() -> void:
+				if eldest_ask:
+					_confirm_eldest = true
+				else:
+					tower_placer.nurture(_tower)
 				_refresh())
 	elif _tower.can_be_nurtured() and _tower.rank > 0:
-		_add_button("Rank %s: fully nurtured" % Tower.RANK_NAMES[_tower.rank]).disabled = true
+		var others_can: bool = dream_state.has_method("get_max_rank") and dream_state.get_max_rank() > _tower.rank
+		if others_can and not _is_eldest(_tower):
+			_add_button("Rank %s: only the Eldest grows further" % Tower.rank_name(_tower.rank)).disabled = true
+		else:
+			_add_button("Rank %s: fully nurtured" % Tower.rank_name(_tower.rank)).disabled = true
 	var refund := tower_seller.get_refund(_tower)
 	var sell := _add_button("Sell · +%d Dew%s" % [refund, "" if drift_director.is_build_phase() else " (half during a drift)"])
 	sell.pressed.connect(func() -> void: tower_seller.sell(_tower.cell))
 	if _tower.tower_data.rooted:
-		sell.text = "Planted for good: the Sapling can't be sold"
+		sell.text = "Permanent: the Sapling can't be sold or moved"
 		sell.disabled = true
 	elif not tower_seller.can_sell():
 		sell.text = "Overgrown: no selling while nightmares walk"
 		sell.disabled = true
 	var close := _add_button("Close")
 	close.pressed.connect(tower_seller.select.bind(null))
+
+func _is_eldest(tower: Tower) -> bool:
+	return dream_state.has_method("is_eldest") and dream_state.is_eldest(tower)
 
 # One row of stats ("Damage 24 · 1.00/s · range 2.50"): each part is its icon and a label, both
 # explaining the stat on hover and on tap (IconInfo). `parts`: [[text, stat id], …] or

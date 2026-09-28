@@ -246,6 +246,10 @@ func nurture(tower: Tower, focus: Tower.Focus = Tower.Focus.NONE) -> bool:
 		return false
 	if tower.needs_focus() and focus == Tower.Focus.NONE:
 		return false
+	# Rank VI would make it the Eldest (only one Warden grows past V): the panel asks first and calls
+	# DreamState.make_eldest; group Nurture and the hotkey never crown one by accident.
+	if dream_state.has_method("needs_eldest_confirm") and dream_state.needs_eldest_confirm(tower):
+		return false
 	var cost := tower.get_nurture_cost()
 	if cost == 0 and tower.free_nurtures_left() > 0:
 		run_state.free_nurtures -= 1  # First Care: a free rank (nothing invested, nothing refunded)

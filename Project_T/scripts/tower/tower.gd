@@ -63,6 +63,17 @@ const RANK_DAMAGE := 0.10
 const RANK_SPEED := 0.04
 const RANK_RANGE := 0.1  # Cells
 const RANK_NAMES: Array[String] = ["", "I", "II", "III", "IV", "V", "VI", "VII"]
+
+# "IV", "XII"…: rank names past VII (Endless Rings) are worked out.
+static func rank_name(value: int) -> String:
+	if value < RANK_NAMES.size():
+		return RANK_NAMES[maxi(value, 0)]
+	var out := ""
+	for pair in [[90, "XC"], [50, "L"], [40, "XL"], [10, "X"], [9, "IX"], [5, "V"], [4, "IV"], [1, "I"]]:
+		while value >= pair[0]:
+			out += pair[1]
+			value -= pair[0]
+	return out
 const FOCUS_RANK := 3  # The rank that asks for a Focus; its bonus counts from here on
 const FOCUS_TOP_RANK := 5  # The Focus bonus stops here (Endless Rings: ranks past it only add damage)
 const STAT_TOP_RANK := 7  # Attack speed and range from ranks stop at VII (Endless Rings: VIII+ is damage only)
@@ -143,6 +154,12 @@ var focus_strongest := false  # Jewelwing Court's toggle: all birds on the stron
 var _echo_tracker: ReactionTracker = null
 var _patrol: PatrolFlight = null
 var _aura_count := 0  # Other Wardens inside this Warden's aura (Grove Heart)
+var _hits_landed := 0  # Eternal Static / Rooted Nightmares count this Warden's hits
+var _hunted := {}  # Hunter's Moon: nightmares this Warden has hit (instance ids)
+const ETERNAL_STATIC_EVERY := 4
+const ROOTED_NIGHTMARES_EVERY := 8
+const ROOTED_TIME := 1.0
+const ROOTED_BOSS_TIME := 0.5
 var _ability_timer := 0.0  # Rootcurl / Tangleroot / Beacon: seconds until the timed ability
 const INTEREST_CAP := 80  # Wellspring: all Wellsprings together pay at most this per rest
 var _drifts_yielded := 0  # Sapling: drifts since planted (Dreamlight every N)
@@ -251,7 +268,7 @@ func get_damage() -> float:
 
 func get_attacks_per_second() -> float:
 	var ranks := mini(get_effective_rank(), STAT_TOP_RANK)
-	var speed := 1.0 + RANK_SPEED * ranks + (FOCUS_SWIFT * _focus_ranks(ranks) if focus == Focus.SWIFT else 0.0)
+	var speed := 1.0 + RANK_SPEED * (ranks + get_court_ranks()) + (FOCUS_SWIFT * _focus_ranks(ranks) if focus == Focus.SWIFT else 0.0)
 	var dreams := 1.0
 	if _dream_state:
 		dreams = _dream_state.get_attack_speed_multiplier(tower_data)
@@ -261,7 +278,7 @@ func get_attacks_per_second() -> float:
 
 func get_range_cells() -> float:
 	var ranks := mini(get_effective_rank(), STAT_TOP_RANK)
-	var reach := RANK_RANGE * ranks + (FOCUS_REACH * _focus_ranks(ranks) if focus == Focus.REACH else 0.0)
+	var reach := RANK_RANGE * (ranks + get_court_ranks()) + (FOCUS_REACH * _focus_ranks(ranks) if focus == Focus.REACH else 0.0)
 	if _dream_state and _dream_state.has_method("get_tower_range_bonus"):
 		reach += _dream_state.get_tower_range_bonus(self)  # Solitude
 	var total := get_range_for(attack_data, _dream_state) + _aura_range + reach
@@ -288,7 +305,14 @@ func get_rank_damage_multiplier() -> float:
 	var per_rank := RANK_DAMAGE
 	if _dream_state and _dream_state.has_method("get_rank_damage_bonus"):
 		per_rank += _dream_state.get_rank_damage_bonus()
-	return 1.0 + per_rank * ranks + (FOCUS_POWER * _focus_ranks(ranks) if focus == Focus.POWER else 0.0)
+	return 1.0 + per_rank * (ranks + get_court_ranks()) + (FOCUS_POWER * _focus_ranks(ranks) if focus == Focus.POWER else 0.0)
+
+# Court of the Eldest: rank-equivalents from touching the Eldest (25% of its rank). They count for the
+# per-rank damage, attack speed and range, never the Focus.
+func get_court_ranks() -> float:
+	if _dream_state and _dream_state.has_method("get_court_rank_share"):
+		return _dream_state.get_court_rank_share(self)
+	return 0.0
 
 # Potency: the multiplier on this Warden's effect damage (Spored, Static bolts, clouds, pops, Reactions
 # it completes, echoes). The Warden's own (100% by default) + Dreams (Bitter Sap, Venom Bloom,
@@ -306,6 +330,8 @@ func get_status_focus_multiplier() -> float:
 	return 1.0 + FOCUS_DEEP * _focus_ranks(get_effective_rank()) if focus == Focus.DEEP else 1.0
 
 func get_max_rank() -> int:
+	if _dream_state and _dream_state.has_method("get_max_rank_for"):
+		return _dream_state.get_max_rank_for(self)  # Past V only for the Eldest
 	if _dream_state and _dream_state.has_method("get_max_rank"):
 		return _dream_state.get_max_rank()
 	return RANK_MAX
@@ -666,12 +692,42 @@ func hit(enemy: Node2D, soothe_multiplier: float = 1.0, is_area: bool = false, c
 	hit_landed.emit(self, enemy, is_area, is_crit)
 	apply_status_to(enemy, soothe)
 	_after_hit(enemy, is_crit)
+	_legendary_hit_rules(enemy, soothe)
 	if is_crit:
 		crit_landed.emit(self, enemy)
 	if attack_data.pop_at_stacks > 0 and is_instance_valid(enemy) and not enemy.is_cleansed \
 			and enemy.statuses.stacks(EnemyStatuses.SPORED) >= attack_data.pop_at_stacks:
 		pop(enemy)
 	return is_crit
+
+# Hit rules of the new Legendaries (dream_design.md "New Legendaries"), read by rule id:
+# Hunter's Moon (a Warden's first hit on a nightmare Exposes it, and that never runs out), Eternal
+# Static (every 4th hit adds a Charge, and Charge never decays), Rooted Nightmares (every 8th hit Roots
+# it for 1 s, bosses 0.5 s).
+func _legendary_hit_rules(enemy: Node2D, soothe: float) -> void:
+	if _dream_state == null or not is_instance_valid(enemy) or enemy.is_cleansed:
+		return
+	_hits_landed += 1
+	var s: EnemyStatuses = enemy.statuses
+	if _dream_state.has_rule(&"hunters_moon"):
+		s.marked_forever = true
+		var id := enemy.get_instance_id()
+		if not _hunted.has(id):
+			_hunted[id] = true
+			if _hunted.size() > 512:
+				_hunted.clear()  # Forget long-gone nightmares now and then
+			_apply_one_status(enemy, EnemyStatuses.MARKED, 1, soothe)
+	if not is_instance_valid(enemy) or enemy.is_cleansed:
+		return
+	if _dream_state.has_rule(&"eternal_static"):
+		s.static_forever = true
+		if _hits_landed % ETERNAL_STATIC_EVERY == 0:
+			enemy.apply_status(EnemyStatuses.STATIC, 1, 0.0, soothe, 0, "light", self)
+	if not is_instance_valid(enemy) or enemy.is_cleansed:
+		return
+	if _dream_state.has_rule(&"rooted_nightmares") and _hits_landed % ROOTED_NIGHTMARES_EVERY == 0:
+		var time := ROOTED_BOSS_TIME if s.is_boss else ROOTED_TIME
+		enemy.apply_status(EnemyStatuses.HELD, 1, time, 0.0, 0, tower_data.line, self)
 
 # Puffball: `enemy`'s Spored stacks burst. Pop damage (6 × stacks, Dreams included) hits it and every
 # nightmare within pop_radius as an area spore hit that never crits, logged as a "popped" combo.
@@ -1185,6 +1241,8 @@ const WITHER_PER_LEAF := 0.05  # Sapling: each leaf lost since the last rest
 func _connect_yield() -> void:
 	if _dream_state == null or not is_inside_tree():
 		return
+	if _dream_state.has_signal("eldest_changed") and not _dream_state.eldest_changed.is_connected(_on_eldest_changed):
+		_dream_state.eldest_changed.connect(_on_eldest_changed)
 	var director: DriftDirector = _dream_state.drift_director
 	if tower_data.rest_interest > 0.0 and not director.rest_started.is_connected(_on_rest_interest):
 		director.rest_started.connect(_on_rest_interest)  # Wellspring
@@ -1198,6 +1256,9 @@ func _connect_yield() -> void:
 		var run_state: RunState = _dream_state.run_state
 		_last_leaves = run_state.leaves
 		run_state.leaves_changed.connect(_on_leaves_changed)
+
+func _on_eldest_changed(_eldest) -> void:
+	queue_redraw()  # The crown moves
 
 func _on_leaves_changed(leaves: int, _max_leaves: int) -> void:
 	if tower_data.rooted and _last_leaves >= 0 and leaves < _last_leaves:
@@ -1608,6 +1669,11 @@ func _draw() -> void:
 			from = to  # Midsummer's beam carries on from the target to the one behind it
 	if attack_data != null and attack_data.attack_kind == TowerData.AttackKind.AURA:
 		draw_arc(Vector2.ZERO, get_range_pixels(), 0.0, TAU, 64, Color(0.85, 0.9, 1.0, 0.12), 3.0)
+	if _dream_state and _dream_state.has_method("is_eldest") and _dream_state.is_eldest(self):
+		# The Eldest: a small crown of three golden rings over the slab.
+		var top := Vector2(0, -MAP_GRID.cell_size.y * 0.5 - 4.0) + tower_data.sprite_offset
+		for i in 3:
+			draw_arc(top + Vector2((i - 1) * 7.0, -absf(i - 1) * -2.0), 3.5, 0.0, TAU, 12, Color(1.0, 0.85, 0.4, 0.95), 1.5)
 
 # Small warm pips along the bottom of the tile, one per Nurture rank, with the Focus icon after them.
 # Drawn on a child so they sit over the sprite.

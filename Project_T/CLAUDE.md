@@ -382,9 +382,15 @@ accessibility, Steam achievements (milestones map to them). Acts 3–4 and all f
 - **Potency** (effect damage): `TowerData.potency` (1.0; Puffball 1.3, …), `Tower.get_potency()` (+ Dream
   `get_potency_bonus`, + Deep Focus 10% per rank III–V; Deep no longer boosts status strength).
   `Enemy.take_damage` multiplies damage whose tag is in `Reactions.EFFECT_TAGS` by the source's
-  Potency × Seeping (`DreamState.get_effect_bonus`); Nightshade lets those crit. Venom Bloom =
+  Potency × Seeping (`DreamState.get_effect_bonus`); Nightshade (`Reactions.nightshade`): an effect's damage makes
+  the nightmare's other effects deal 25% of their tick (tag "nightshade"). Venom Bloom =
   `get_hit_damage_multiplier` in `Tower.hit`. New effect damage must use an effect tag. Ranks: attack
   speed/range stop at VII (`STAT_TOP_RANK`), Focus at V (`FOCUS_TOP_RANK`). `tests/test_potency.gd`.
+- The Eldest (Legendary): `Tower.get_max_rank()` asks `DreamState.get_max_rank_for(tower)`; rank VI needs
+  `make_eldest` first (Warden panel asks; `TowerPlacer.nurture` refuses while `needs_eldest_confirm`), crown
+  drawn in `Tower._draw`. Court: `Tower.get_court_ranks()` adds to per-rank damage/speed/range. Hit rules in
+  `Tower._legendary_hit_rules`: hunters_moon, eternal_static, rooted_nightmares (`EnemyStatuses.marked_forever`
+  / `static_forever`). `Tower.rank_name(n)` for ranks past VII. `tests/test_legendary_hits.gd`.
 - Family review Wardens (tower_design.md 7e574e0): Bellflower family (`song` line; `status_every`,
   `extra_status`, `sets_off_static_at`), Dreamcatchers (`caught_bonus`: `EnemyStatuses.caught_*`,
   sleep via `EnemyStatuses.sleep_time`; shards → `DreamState.add_dreamlight_shard`), Echo Hollow
