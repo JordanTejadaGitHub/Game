@@ -7,8 +7,13 @@ is a starting point for playtesting.
 
 ## Principles
 
-**Cost tiers:** Sprout 10 → base 25–30 (Sprout + 15–20) → branch +45 → final form +90. A final form
-costs ~160 Dew in total.
+**Cost tiers (economy pass v2, 2026-09-27):** Sprout 10 → base 25–30 (Sprout + 15–20) → branch
+**+80** (was 45) → final form **+200** (was 90) → **Ascended +400** (new, `tower_design.md`). A final
+form costs ~310 Dew in total. **Power per tier goes up to match:** branch ≈ **2.5×** its base (was
+2×), final form ≈ **3×** its branch (was 2×), Ascended ≈ 3× a final form. Existing Warden numbers
+below are the pre-pass values; scale branch and final-form damage by ×1.25 and ×1.5 respectively
+when applying the pass. **Nurture base costs** rise to **25 / 40 / 60 / 90 / 135** (× tier:
+Sprout 0.5, base 1, branch 2, final 3, Ascended 4, Memory Warden 2).
 
 **Dew-efficiency falls, space-efficiency rises.** Each tier is roughly **2× as strong per cell**
 as the one before, but costs ~2.3× as much. Early on, Dew is what limits you, so cheap Wardens are

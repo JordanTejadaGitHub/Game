@@ -101,6 +101,36 @@ Playtests found the game too easy, and Warden ranks (below) add player power, so
 | Leaves | 20, +3 per act break | **15, +1 per act break** |
 | Boss health | base values in `enemy_design.md` | **×1.5** |
 
+**Economy pass v2** (2026-09-27; playtest: "after a while I have infinite money"):
+
+| Lever | Was | Now |
+|---|---|---|
+| Rest bonus | 20 + 10 × block (220 at drift 100) | **30 + 4 × block** (≈ 110 at drift 100) |
+| Dew per nightmare | the same every act | **× 1.0 / 0.8 / 0.65 / 0.5 by act** ("the dream thins") |
+| Elite Dew | × 3 | **× 2** |
+| Branch / final form cost | +45 / +90 | **+80 / +200** (with more power per tier; `warden_stats.md`) |
+| Nurture base costs | 15 / 25 / 40 / 60 / 90 | **25 / 40 / 60 / 90 / 135** (× tier) |
+| Endgame | — | **Ascended forms** (one per family, from drift 51; `tower_design.md`) and the **Heartwood Sapling** (below) |
+
+Target: by act 3 a player should have to **choose** between an Ascended form, nurturing, more
+Wardens and the Sapling, never afford all of them.
+
+### The Heartwood Sapling (economy, from drift 51)
+
+After the act 2 boss (drift 50), the Heartwood offers **one Sapling** of itself to plant in the maze.
+
+- **Free to plant, 2×2 cells**, anywhere the path rule allows (it's a wall like any Warden, so it
+  reshapes the maze: a real placement decision). **Rooted:** once planted it **can't be sold or
+  moved**.
+- **It doesn't attack.** At the end of every drift it yields **+20 Dew**, and every **10 drifts**
+  it ripens **+1 Dreamlight** (feeding Ascended unlocks).
+- **Nurture it** (ranks I–V at the final-form price) to raise the yield: **+10 Dew per rank**
+  (rank V: +70 Dew per drift) and, at rank III and above, Dreamlight every **7** drifts instead of 10.
+- **Leaks hurt it:** each leaf lost withers it slightly (−5% yield, recovering at each rest), so a
+  greedy maze that leaks pays twice.
+- Offered on its own card right after the drift 50 family pick (*"The Heartwood offers a seedling
+  of itself"*). If declined, it can be planted later from the rest panel.
+
 **Mid-game rework** (2026-09-27; playtest: "upgrading without thought wins the mid-game"):
 
 | Lever | Was | Now |

@@ -154,6 +154,10 @@ above its family's final forms, so veterans keep finding new playstyles. Reviewe
   Remember screen.
 - A family's own Dream cards (`dream_design.md`, "Cards for the new Wardens") come with its family
   or hidden-branch node automatically.
+- **Ascension nodes** (added 2026-09-27): each family gets one more node at the top of its stack,
+  **Ascension (120 Seeds)**, after its hidden branch (or its final forms where a family has no
+  hidden-branch node). It makes that family's **Ascended** endgame Warden exist in runs
+  (`tower_design.md`); in-run it still needs 3 Dreamlight and 400 Dew. 9 nodes, ≈ 1,080 Seeds.
 - **Memory Wardens** aren't bought: dispelling a boss for the first time grows its Memory Warden as a
   free bloom on this limb, and it's offered after that boss in later runs.
 - Total ≈ 1,390 Seeds (was ≈ 1,100 before Bellflower and the Nestling/Whirligig hidden nodes;

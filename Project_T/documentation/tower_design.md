@@ -37,6 +37,36 @@ Sporeling  Dewdrop  Firefly Jar  Pebbling  Rootling  Bellflower  Acorn  (+ Nestl
 - **Nestling and Whirligig** are Grove unlocks for the full game (not in the demo). A run still
   gets **4 families**; more families means more variety between runs.
 - **Memory Wardens** (below) are unique Wardens freed from the act bosses.
+- **Ascended forms** (below): each family's endgame Warden, a 4th tier above the final forms.
+
+### Ascended forms: each family's endgame Warden
+
+Added 2026-09-27 (user request: late game felt easy; wanted an endgame Warden per family). An
+Ascended Warden is the family's final word: a huge, unique presence that anchors a late maze.
+
+- **When:** from **drift 51** (act 3). **Unlock:** **3 Dreamlight** on the Remember screen, once
+  that family has any final form unlocked. **Grow:** from **any final form** of that family, for
+  **400 Dew** (the Warden keeps its rank and Focus).
+- **One per family per run** (at most 4 in a run, one per family you own). Unique like Memory
+  Wardens.
+- **Power:** about **3× a final form** per cell, plus a family-wide effect. Nurture costs × 4.
+- **Memory Grove:** each family's limb gets an **Ascension** node above its hidden branch
+  (`meta_design.md`); until it's planted the Ascended form shows *"Memory Grove"*.
+
+| Family | Ascended Warden | What it does |
+|---|---|---|
+| Sporeling | **Sporemother** | a constant spore storm (range 3): every nightmare in it gains 2 Spored per second; any that reach 10 stacks pop like a Puffball |
+| Dewdrop | **Tidecaller** | every 6 s a tide rolls along the path in range 4: heavy damage, Damp, and it washes nightmares **back 1 tile** |
+| Firefly Jar | **Stormheart** | lightning chains to **every** nightmare in range 4 (each jump −15%), adding 2 Static each |
+| Pebbling | **Old Mountain** | every 3 s a boulder crushes a 3×3 area, stunning for 0.5 s; guaranteed crits on Held or Drowsy nightmares |
+| Rootling | **World Root** | every 5 s, roots Hold **every** nightmare in range 3 for 1 s; Held nightmares take +30% damage from everything |
+| Bellflower | **The Great Bell** | every 6 s it tolls (range 5): full Drowsy on everything (bosses: 3), and every Static charge in range goes off |
+| Acorn | **Grandmother Oak** | aura radius 3: Wardens +40% damage and +20% attack speed; +10 Dew per drift |
+| Nestling | **Dawnwing** | a great bird circles a long stretch of the path, striking everything it passes; faster the more nightmares there are |
+| Whirligig | **The Tempest** | a slow cyclone drifts along the path, carrying every status it touches to every nightmare it passes |
+
+Art: large (a 64 px base with the spirit rising above it, like the bosses' scale), a unique idle
+glow; one per family.
 
 ### Family design rules (reviewed 2026-09-27)
 
@@ -309,6 +339,51 @@ Final forms get one unmistakable moment each, so reaching one feels like a rewar
 | Moonstone | its first shot on each nightmare is a **moonbeam from above** | `moonstone_beam` |
 | Puffball | each pop is a **big bloom of light** | `puffball_bloom` |
 | Long Way Home | you see the **roots drag** the nightmare back along the path | `long_way_home_drag` |
+
+### Crowned Reactions: three families at once
+
+Added 2026-09-27 (proposed by the Tower Assets chat, set chosen by the user). A **Crowned
+Reaction** is an existing Reaction going off on a nightmare that **already carries a third
+status**. It's a bigger, named version of that Reaction. Like Reactions, it reads **statuses, never
+Wardens**, so side sources count (Bloomcap's Drowsy, Frostfern's freeze, Chime Stone's Static), and
+three families are reachable with 4 per run.
+
+| Crowned | Reaction + 3rd status | Families | What happens | Effect (`assets/effects/`) |
+|---|---|---|---|---|
+| **Tempest** | Thunderclap + Spored | Dewdrop, Firefly Jar, Sporeling | every arc also sets off **Ignite** on Spored targets; the spores carry Static onto wet nightmares, so new Thunderclaps follow. The strongest chain engine | `crowned_tempest` |
+| **Still Pool** | Drown + Held | Dewdrop, Bellflower, Rootling | the nightmare sinks and leaves a **still pool** on its tile for 5 s: the first time each walker enters, it sleeps 1 s | `crowned_still_pool`, `still_pool` (ground loop) |
+| **Fever Dream** | Smother ends + max Drowsy | Sporeling, Rootling, Bellflower | its remaining Spored ticks resolve **at once**, and it passes Spored + Drowsy to adjacent nightmares: a sleep plague | `crowned_fever_dream` |
+| **Starfall** | Pinned + Static | Firefly Jar, Rootling or Bellflower | the ×3 crit **pulls every Static bolt within 3 cells** into it, each bolt also crits, and a column of light falls. The boss killer | `crowned_starfall` |
+| **Avalanche** | Shatter set off by a Cairn/Rockslide lob | Dewdrop, Rootling, Pebbling (Cairn) | the Shatter spreads to **every Damp + Held nightmare under the lob** | `crowned_avalanche` |
+| **Prismstorm** | Shatter + Static | Dewdrop (Frostfern), Rootling, Firefly Jar | the ice shards carry lightning: each shard adds **2 Static** to what it hits, so wet neighbours Thunderclap | `crowned_prismstorm` |
+| **Nightbloom** | Mushrooming + max Drowsy | Sporeling, Dewdrop, Bellflower | the spore cloud glows violet and **nothing inside can wake**, not even by the Watcher (the Bellflower counter's counter) | `crowned_nightbloom`, `nightbloom_cloud` (ground loop) |
+| **Fairy Circle** | Mushrooming + Held | Sporeling, Dewdrop, Rootling | a **ring of mushrooms** sprouts around the held nightmare (the 8 tiles around it, path tiles only, 6 s): the first walker crossing each ring tile gets Spored + Damp, so more Mushrooming follows | `crowned_fairy_circle`, `fairy_circle_ring` (ground loop) |
+
+**Delivery rules** (so families that apply no status can take part):
+
+| Rule | Family | What happens | Effect |
+|---|---|---|---|
+| **Grafted Harmony** | Acorn (Graftling) | a Graftling touching Wardens of **two different status families** applies both statuses at half strength, so it's a Reaction source by itself. A placement puzzle, since Wardens are walls | `grafted_harmony` (two-colour glow on the Graftling) |
+| **Storm Front** | Whirligig (Gust) | when a status Gust copied completes a Reaction on its new host, that Reaction **counts as a chain link and reaches one tile further** | `storm_front` (a wind swirl wrapped around the Reaction) |
+| **Carried Storm** | Whirligig (Samara) | a Samara seed passing through a Reaction **carries it down the rest of its line**: the Reaction fires again (50%) on everything the seed hits after | `carried_storm` (the seed trails the Reaction's colour) |
+
+**Rules**
+1. **Every pair still works.** The third status only upgrades a Reaction; it's never required.
+2. **Woven cards:** each Crowned Reaction has a **Woven** Legendary (an Entwined card with a third
+   vine, 3 ingredients), guaranteed in the next offer once all 3 are owned (`dream_design.md`).
+   Crowned Reactions work without their Woven card; the card makes them stronger.
+3. A Crowned Reaction **counts as 2 chain links**, uses the **gold impact tier** (a crown mark on the
+   callout, gold-edged effect) and has its own first-time discovery card.
+4. **Bosses** get a reduced version (numbers in `dream_design.md`).
+5. **Tempest cap:** a nightmare hit by a Tempest can't start another Tempest for 2 s, so the loop
+   (Thunderclap → Ignite → Static → Thunderclap) always burns out.
+6. **Discovery:** Crowned Reactions are **hidden in the Codex** until found, shown as silhouettes
+   with their three family icons as hints.
+7. **Not in the demo** (it has only 2 family picks). Tempest is a full-game reason to buy and a
+   trailer moment; the demo's big moment stays a Thunderclap chain into Dawnburst.
+
+**Later (post-launch ideas):** Rooted Storm (Thunderclap + Held: a grounded pylon), Undertow (Drown
++ Marked: dragged back, every hit crits), Flare (Ignite + Marked: the burst Marks and reveals).
 
 How Reactions are shown (impact tiers, light threads, discovery cards, settings): `screens_ui.md`,
 "Combat feedback".
