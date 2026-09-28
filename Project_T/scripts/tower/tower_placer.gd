@@ -66,6 +66,9 @@ var _hover_affordable := false
 var _ghost_rows: Array = []  # The ghost's position cards here (DreamState.get_card_effects rows)
 var _neighbour_changes: Array = []  # [[tower, card name, now on], …]
 var _range_gain := 0.0  # Cells of range position cards would add here
+var _kin_spots := {}  # Cells where the selected Warden would find a kin (Kinships.kin_spots)
+var _kin_here := ""  # The Kinship it would form on the hovered cell
+const KIN_SPOT_COLOR := Color(0.78, 0.86, 0.42, 0.4)  # Faint green-gold leaf outline
 var _path_preview := Line2D.new()
 const PREVIEW_COLOR := Color(0.4, 0.9, 1.0, 0.6)  # The route preview (RouteLine: high-contrast setting)
 
@@ -125,6 +128,7 @@ func _process(_delta: float) -> void:
 		queue_redraw()
 
 func _draw() -> void:
+	_draw_kin_spots()
 	if _hover_cell == NO_CELL or not MAP_GRID.is_within_bounds(_hover_cell):
 		return
 	draw_set_transform(Tower.footprint_centre(_hover_cell, tower_data.footprint))
@@ -158,6 +162,8 @@ func _draw() -> void:
 		tag += "  ·  nightmare here"
 	elif growth != 0:
 		tag += "  ·  %+d path" % growth  # "Wardens are walls": how much longer the walk gets
+	if _kin_here != "":
+		tag += "  ·  Kin spot: forms %s" % _kin_here
 	var broken := get_neighbour_changes().filter(func(change: Array) -> bool: return not change[2])
 	if not broken.is_empty():
 		# Placing a Warden should never silently weaken others.
@@ -213,6 +219,10 @@ func _update_dream_preview() -> void:
 		if row.get("positional", false):
 			_ghost_rows.append(row)
 	_range_gain = maxf(dream_state.get_range_bonus_at(tower_data, _hover_cell) - dream_state.get_range_bonus(tower_data), 0.0)
+	# Kinships: the cells where this Warden would find a kin, and the one it would form here.
+	var kin := Kinships.find(self)
+	_kin_spots = kin.kin_spots(tower_data) if kin else {}
+	_kin_here = kin.preview(tower_data, _hover_cell).get("name", "") if kin else ""
 	var reach: float = dream_state.max_card_radius()
 	if reach <= 0.0:
 		return
@@ -236,6 +246,23 @@ static func _active_positional(rows: Array) -> Array:
 		if row.get("positional", false) and row.active:
 			names.append(row.name)
 	return names
+
+# Kin spots: a faint leaf-coloured outline on each free cell within reach of an unbonded Warden of the
+# selected Warden's other family branch ("plant here to form Night Chimes"). Drawn in world space.
+func _draw_kin_spots() -> void:
+	if _kin_spots.is_empty() or not build_mode:
+		return
+	draw_set_transform(Vector2.ZERO)
+	var half := MAP_GRID.cell_size / 2.0 - Vector2(5, 5)
+	for cell in _kin_spots:
+		if not MAP_GRID.is_within_bounds(cell) or not map_generator.is_buildable(cell):
+			continue
+		var centre := MAP_GRID.calculate_map_position(cell)
+		draw_rect(Rect2(centre - half, half * 2.0), KIN_SPOT_COLOR, false, 2.0)
+		# A small leaf in the corner.
+		var leaf := centre + Vector2(half.x - 7.0, -half.y + 7.0)
+		draw_colored_polygon(PackedVector2Array([leaf + Vector2(-4, 3), leaf + Vector2(0, -4), leaf + Vector2(4, 3),
+			leaf + Vector2(0, 1)]), Color(KIN_SPOT_COLOR, 0.7))
 
 # A dashed outline of each owned position card's area around the ghost (Solitude's 2 cells), so
 # "within 2 cells" is something the player can see. Cells count as a square (Chebyshev).

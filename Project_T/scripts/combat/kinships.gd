@@ -30,7 +30,7 @@ const HARMONY_COOLDOWN := 2.0  # Per pair
 const HARMONY_OLD_KIN := 1.5
 const KINDRED_BONUS := 0.10
 const WHOLE_TREE_BONUS := 0.20
-const DIM_ALPHA := 0.3  # Vines in combat
+const DIM_ALPHA := 0.5  # Vines during drifts (playtest: 0.3 was easy to miss)
 # Kinship cards (dream_design.md "Kinship cards: going deep")
 const FAMILY_TIES_PER := 0.08  # Family Ties: Wardens in a Kinship, per stack
 const BLOOD_BONDED := 0.30  # Blood is Thicker (bittersweet): in a Kinship…
@@ -101,7 +101,7 @@ static func find(near: Node) -> Kinships:
 
 func _ready() -> void:
 	add_to_group(GROUP)
-	z_index = -1
+	z_index = 0  # Over the ground and path (drawn after the map), behind the Wardens (a later sibling)
 	var scene := get_parent()
 	_placer = scene.get_node_or_null("%TowerPlacer")
 	_seller = scene.get_node_or_null("%TowerSeller")
@@ -156,6 +156,13 @@ static func branch_of(data: TowerData) -> String:
 	_load_branches()
 	return _branch_of.get(data.get_id(), "")
 
+# A planted Warden's branch: its form's, or for an Ascended form the branch it grew from.
+static func branch_for(tower: Tower) -> String:
+	var branch := branch_of(tower.tower_data)
+	if branch == "" and tower.tower_data.tier >= DreamState.ASCENDED_TIER:
+		return tower.kin_branch
+	return branch
+
 # The Kinship two branches form ("" if none).
 static func kinship_for(branch_a: String, branch_b: String) -> StringName:
 	for id in KINSHIPS:
@@ -187,14 +194,14 @@ func refresh() -> void:
 	var edges := []
 	for i in towers.size():
 		var ta: Tower = towers[i]
-		var ba := branch_of(ta.tower_data)
+		var ba := branch_for(ta)
 		if ba == "":
 			continue
 		for j in range(i + 1, towers.size()):
 			var tb: Tower = towers[j]
 			if tb.tower_data.line != ta.tower_data.line:
 				continue
-			var bb := branch_of(tb.tower_data)
+			var bb := branch_for(tb)
 			if bb == "" or bb == ba:
 				continue
 			var id := kinship_for(ba, bb)
@@ -248,7 +255,11 @@ func refresh() -> void:
 	for key in ages.keys():
 		if not keys.has(key):
 			ages.erase(key)
+	var changed := pairs.size() != new_pairs.size() or pairs.any(func(p) -> bool: return not keys.has(p.key))
 	pairs = new_pairs
+	if changed:
+		for tower in towers:
+			tower.queue_redraw()  # Their leaf badges come and go
 	_partner.clear()
 	for pair in pairs:
 		for tower in [pair.a, pair.b]:
@@ -326,7 +337,7 @@ func damage_bonus(tower: Tower) -> float:
 func _count_families(towers: Array) -> void:
 	var present := {}
 	for tower in towers:
-		var branch := branch_of(tower.tower_data)
+		var branch := branch_for(tower)
 		if branch == "":
 			continue
 		var line: String = tower.tower_data.line
@@ -409,6 +420,51 @@ func describe(tower: Tower) -> String:
 		lines.append(text)
 	return "\n".join(lines)
 
+# For a branch Warden with no kin, what would bond it: "No kin. A Chime Stone within 2 cells would form
+# Night Chimes." (+ "(unlock Chime Stone with Dreamlight)" if that branch is locked). "" otherwise.
+func no_kin_hint(tower: Tower) -> String:
+	if not get_pairs(tower).is_empty():
+		return ""
+	var branch := branch_for(tower)
+	if branch == "":
+		return ""
+	for id in KINSHIPS:
+		var row: Array = KINSHIPS[id]
+		if not is_available(id) or (row[2] != branch and row[3] != branch):
+			continue
+		var other: String = row[3] if row[2] == branch else row[2]
+		var other_data := load("res://resource/tower/%s.tres" % other) as TowerData
+		var name := other_data.display_name if other_data else other.capitalize()
+		var text := "No kin. A %s within %d cells would form %s." % [name, int(get_reach()), row[0]]
+		var dreams := _dreams()
+		if dreams and not dreams.is_unlocked(other):
+			text += " (unlock %s with Dreamlight)" % name
+		return text
+	return ""
+
+# Cells where a Warden of `data` would find a kin: within reach of an unbonded Warden of its family's
+# other branch (for the build ghost's leaf outlines). {cell: Kinship id}.
+func kin_spots(data: TowerData) -> Dictionary:
+	var branch := branch_of(data)
+	var spots := {}
+	if branch == "":
+		return spots
+	var reach := int(get_reach())
+	var capacity := 2 if _has(&"extended_family") else 1
+	for tower in _towers():
+		if tower.tower_data.line != data.line or get_pairs(tower).size() >= capacity:
+			continue
+		var other := branch_for(tower)
+		var id := kinship_for(branch, other) if other != "" and other != branch else &""
+		if id == &"" or not is_available(id):
+			continue
+		for dx in range(-reach, reach + 1):
+			for dy in range(-reach, reach + 1):
+				var cell: Vector2 = tower.cell + Vector2(dx, dy)
+				if cell != tower.cell:
+					spots[cell] = id
+	return spots
+
 # The Kinship a Warden of `data` planted on `cell` would form ({} = none): {id, name, partner}. For the
 # build ghost's PlacementLinks ("Forms Kinship: Slumber Rot").
 func preview(data: TowerData, cell: Vector2) -> Dictionary:
@@ -420,7 +476,7 @@ func preview(data: TowerData, cell: Vector2) -> Dictionary:
 	for tower in _towers():
 		if tower.tower_data.line != data.line or get_pairs(tower).size() >= (2 if _has(&"extended_family") else 1):
 			continue
-		var other := branch_of(tower.tower_data)
+		var other := branch_for(tower)
 		if other == "" or other == branch:
 			continue
 		var id := kinship_for(branch, other)
@@ -569,6 +625,12 @@ func _draw() -> void:
 		var stage := get_stage(pair)
 		var from := to_local(pair.a.global_position)
 		var to := to_local(pair.b.global_position)
+		# Start and end the vine at each Warden's edge, not under its sprite (Ascended art is big).
+		var direction := (to - from).normalized()
+		from += direction * _edge(pair.a)
+		to -= direction * _edge(pair.b)
+		if from.distance_to(to) < 8.0:
+			continue
 		var colour := Color(_colour(pair), alpha)
 		var sheet: StringName = [&"kin_vine_sapling", &"kin_vine_blooming", &"kin_vine_oldkin"][stage]
 		var tex := Fx.texture(sheet)
@@ -601,6 +663,10 @@ func _draw() -> void:
 				draw_circle(points[i] + bend.normalized() * 3.0, 2.0 + stage, Color(0.45, 0.75, 0.35, alpha))
 		if stage >= 2:
 			draw_circle(points[4], 3.5, Color(1.0, 0.85, 0.9, alpha))  # A flower (Old Kin)
+
+# How far from a Warden's centre its vine starts: past the slab, and past an Ascended form's big art.
+static func _edge(tower: Tower) -> float:
+	return 34.0 if tower.tower_data.tier >= DreamState.ASCENDED_TIER else 20.0
 
 func _burst(at: Vector2, pair: Dictionary) -> void:
 	var burst := Fx.play(&"kin_bond_burst", at, get_parent())

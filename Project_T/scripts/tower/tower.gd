@@ -203,6 +203,7 @@ var _echo_tracker: ReactionTracker = null
 var _patrol: PatrolFlight = null
 var _aura_count := 0  # Other Wardens inside this Warden's aura (Grove Heart)
 var _kin: Kinships = null  # The run's Kinships (two branches of one family bond)
+var kin_branch := ""  # The branch an Ascended form grew from (Kinships); saved with the run
 var _hits_landed := 0  # Eternal Charge / Rooted Nightmares count this Warden's hits
 var _hunted := {}  # Hunter's Moon: nightmares this Warden has hit (instance ids)
 const ETERNAL_STATIC_EVERY := 4
@@ -243,6 +244,9 @@ func _apply_data() -> void:
 
 # Grows into `data` in place (the cell and path don't change). `cost` is added to invested Dew.
 func evolve(data: TowerData, cost: int) -> void:
+	# An Ascended form keeps the branch it grew from, so its Kinship stays ("evolving keeps it").
+	if data.tier >= DreamState.ASCENDED_TIER and kin_branch == "":
+		kin_branch = Kinships.branch_of(tower_data)
 	tower_data = data
 	invested_dew += cost
 	_apply_data()
@@ -1846,22 +1850,44 @@ func _draw() -> void:
 			from = to  # Midsummer's beam carries on from the target to the one behind it
 	if attack_data != null and attack_data.attack_kind == TowerData.AttackKind.AURA:
 		draw_arc(Vector2.ZERO, get_range_pixels(), 0.0, TAU, 64, Color(0.85, 0.9, 1.0, 0.12), 3.0)
-	if badges_visible() and not _badge_cards.is_empty():
-		# A small card badge at the base per active position card (its rarity's colour): Solitude is on.
-		var x := -(_badge_cards.size() - 1) * 7.0
-		for row in _badge_cards:
-			var rarity: int = row.card.rarity if row.get("card") != null else 0
-			var colour: Color = BADGE_COLORS[clampi(rarity, 0, BADGE_COLORS.size() - 1)]
-			var at := Vector2(x, MAP_GRID.cell_size.y / 2.0 - 7.0)
-			var diamond := PackedVector2Array([at + Vector2(0, -5), at + Vector2(5, 0), at + Vector2(0, 5), at + Vector2(-5, 0)])
-			draw_colored_polygon(diamond, colour)
-			draw_polyline(diamond + PackedVector2Array([diamond[0]]), Color(0.1, 0.08, 0.05, 0.8), 1.0)
-			x += 14.0
+	_draw_badges()
 	if _dream_state and _dream_state.has_method("is_eldest") and _dream_state.is_eldest(self):
 		# The Eldest: a small crown of three golden rings over the slab.
 		var top := Vector2(0, -MAP_GRID.cell_size.y * 0.5 - 4.0) + tower_data.sprite_offset
 		for i in 3:
 			draw_arc(top + Vector2((i - 1) * 7.0, -absf(i - 1) * -2.0), 3.5, 0.0, TAU, 12, Color(1.0, 0.85, 0.4, 0.95), 1.5)
+
+# Badges in one column up the tile's left edge, clear of the rank pips along the bottom (so nothing
+# stacks on top of anything else): a leaf pair when the Warden is in a Kinship (always shown, tinted
+# with its family), then one rarity-coloured diamond per active position card (in build mode or while
+# Wardens are selected). Tapping the Warden opens its panel, which names them.
+func _draw_badges() -> void:
+	var items: Array = []
+	if is_instance_valid(_kin) and not _kin.get_pairs(self).is_empty():
+		items.append(["kin", _kin.get_pair(self)])
+	if badges_visible():
+		for row in _badge_cards:
+			items.append(["card", row])
+	var x := -MAP_GRID.cell_size.x / 2.0 + 7.0
+	var y := MAP_GRID.cell_size.y / 2.0 - 8.0
+	for item in items:
+		var at := Vector2(x, y)
+		if item[0] == "kin":
+			var colour: Color = Kinships.FAMILY_COLORS.get(tower_data.line, Color(0.78, 0.86, 0.42))
+			var leaf := Fx.texture(&"kin_leaf_icon")
+			if leaf:
+				draw_texture_rect(leaf, Rect2(at - Vector2(7, 7), Vector2(14, 14)), false, colour)
+			else:
+				for side in [-1.0, 1.0]:
+					draw_colored_polygon(PackedVector2Array([at, at + Vector2(3 * side, -6), at + Vector2(6 * side, -1)]), colour)
+		else:
+			var row: Dictionary = item[1]
+			var rarity: int = row.card.rarity if row.get("card") != null else 0
+			var colour: Color = BADGE_COLORS[clampi(rarity, 0, BADGE_COLORS.size() - 1)]
+			var diamond := PackedVector2Array([at + Vector2(0, -5), at + Vector2(5, 0), at + Vector2(0, 5), at + Vector2(-5, 0)])
+			draw_colored_polygon(diamond, colour)
+			draw_polyline(diamond + PackedVector2Array([diamond[0]]), Color(0.1, 0.08, 0.05, 0.8), 1.0)
+		y -= 13.0
 
 # Small warm pips along the bottom of the tile, one per Nurture rank, with the Focus icon after them.
 # Drawn on a child so they sit over the sprite.
