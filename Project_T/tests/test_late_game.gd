@@ -48,6 +48,11 @@ func _run() -> void:
 	_check(sprout.get_tier_cost_multiplier() == 0.5, "a Sprout still nurtures at ×0.5")
 
 	# --- The Sapling ---
+	director.drifts_started = 50
+	TowerPlacer.sapling_enabled = false
+	_check(not placer.can_take_sapling(), "switched off (sapling_enabled): never offered")
+	TowerPlacer.sapling_enabled = true
+	director.drifts_started = 0
 	_check(not placer.can_take_sapling(), "no Sapling before drift 50")
 	director.drifts_started = 50
 	_check(placer.can_take_sapling(), "the Sapling is offered from drift 50")

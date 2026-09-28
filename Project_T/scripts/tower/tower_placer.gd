@@ -16,6 +16,9 @@ signal sapling_planted(tower: Tower)
 const SAPLING_ID := "heartwood_sapling"
 var sapling: TowerData = preload("res://resource/tower/heartwood_sapling.tres")
 var sapling_taken := false
+# The Sapling is switched off in runs for now (design chat): never offered. A save that already has one
+# planted keeps it. Static so screens outside a run (the Codex) can read it too.
+static var sapling_enabled := false
 
 @export var tower_scene: PackedScene = preload("res://scenes/tower/tower.tscn")
 # Wardens that can be planted directly. Only the ones DreamState has unlocked show in the tower bar.
@@ -395,7 +398,7 @@ func _cells_occupied(cells: Array[Vector2]) -> bool:
 # The Sapling can be taken (free) once drift 50 has begun, once per run.
 func can_take_sapling() -> bool:
 	var director := get_node_or_null("%DriftDirector")
-	if sapling_taken or director == null:
+	if not sapling_enabled or sapling_taken or director == null:
 		return false
 	return director.drifts_started >= 50
 
@@ -409,7 +412,7 @@ func take_sapling() -> void:
 
 # Taken but not planted yet (the HUD keeps reminding the player).
 func has_unplanted_sapling() -> bool:
-	return sapling_taken and not is_unique_placed(sapling)
+	return sapling_enabled and sapling_taken and not is_unique_placed(sapling)
 
 # True if an enemy is standing in, or walking into, `cell`.
 func _is_occupied_by_enemy(cell: Vector2) -> bool:
