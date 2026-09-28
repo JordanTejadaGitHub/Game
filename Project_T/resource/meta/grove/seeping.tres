@@ -11,4 +11,4 @@ root = 1
 costs = Array[int]([50])
 order = 32
 icon = 9
-dream_cards = Array[String](["seeping"])
+dream_cards = Array[String](["seeping", "seeping_ii"])
