@@ -39,9 +39,9 @@ living maze. Hold back the nightmares.* (`pitch.md`, `story.md`)
 
 ```
 New run (new random forest) → only Sprout + Thornwall
-  → drift 1 → pick your first Warden family (1 of 3)
-  → drifts flow in blocks of 5 → rest: Dream (pick 1 of 3), rebuild at full refund
-  → … every 25th drift is a boss → soothe it → new Warden family + a Rare-or-better Dream
+  → drift 1 → pick your first Warden family (1 of 3), +1 Dreamlight
+  → drifts flow in blocks of 5 → rest: Dream (pick 1 of 3), Omen, rebuild at a 75% refund
+  → … every 25th drift is a boss → dispel it → new Warden family, +3 Dreamlight, a Rare-or-better Dream
   → drift 100: The Hollow Oak → win   (or all leaves fall → the Heartwood goes dormant)
   → Results (Seeds earned) → Memory Grove (spend Seeds, unlock Memories) → next run
 ```
@@ -52,7 +52,8 @@ New run (new random forest) → only Sprout + Thornwall
   **Dew**.
 - **Leaves**: each nightmare reaching the Heartwood feeds on the dream: a leaf blackens and falls
   (bosses: 5). 0 leaves = the Heartwood sinks into dreamless sleep, run over.
-- **Rests** after every 5th drift: time pauses, a Dream, free rearranging, autosave.
+- **Rests** after every 5th drift: time pauses, a Dream (and an Omen from drift 10), rearranging at a
+  75% refund, spending Dreamlight on the Remember screen, autosave.
 
 ## Run structure (`run_design.md`)
 
@@ -63,15 +64,16 @@ New run (new random forest) → only Sprout + Thornwall
 | 3. Misty Hollow | 51–75 | the other one |
 | 4. Heartwood Glade | 76–100 | The Hollow Oak (always) |
 
-One map per run. Act breaks: the season changes, 3 leaves regrow. Creature health ×1.035 per drift
-(×30 by drift 100), plus more and tougher creatures.
+One map per run. Act breaks: the season changes, 1 leaf regrows. Nightmare health grows ×1.045 per
+drift (×1.055 in act 2; ≈ ×11 by drift 50, ×100 by drift 100), plus more nightmares, elites in every
+drift from 26 (two from 76) and tougher kinds.
 
 ## Rules
 
 | Rule | Decision |
 |---|---|
 | Building | any time, during drifts and rests; the path must always stay open |
-| Selling | full refund during a rest, half while creatures are walking |
+| Selling | 75% refund during a rest, half while nightmares are walking |
 | Speed | pause, 1×, 2×, 3×; building works while paused |
 | Call early | start the next drift sooner for a small Dew bonus |
 | Saving | autosave at every rest; Save & Quit any time (resumes from the last rest) |

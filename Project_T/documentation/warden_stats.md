@@ -164,7 +164,7 @@ Caught and Marked stack multiplicatively (a Caught, Marked nightmare takes ×1.4
 never sleep, but their Drowsy cap is 3, and **3 counts as max for them**, so bosses can be Caught.
 Caught bosses give no Dreamlight shards.
 
-## Rootling family (root) — not built yet
+## Rootling family (root)
 
 | Warden | Tier | Cost | Range | Soothe × /s | DPS | Kind | Effect |
 |---|---|---|---|---|---|---|---|
@@ -176,7 +176,7 @@ Caught bosses give no Dreamlight shards.
 | ✓ Rootlight *(hidden)* | branch | +45 | 3 | 10 × 1.0 | 10 (area) | pulse + light | lights path tiles in range: **reveals Lurkers**, **Gravecrawlers can't burrow** on lit tiles, nightmares on lit tiles are **Marked** |
 | ✓ Starcave *(hidden)* | final | +90 | 4 | 16 × 1.0 | 16 (area) | pulse + light | as Rootlight; Marked **lingers 2 s** after leaving the light |
 
-## Acorn family (support, economy) — not built yet
+## Acorn family (support, economy)
 
 | Warden | Tier | Cost | Range | Soothe × /s | DPS | Kind | Effect |
 |---|---|---|---|---|---|---|---|

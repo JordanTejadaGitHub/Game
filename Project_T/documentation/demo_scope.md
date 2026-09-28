@@ -59,6 +59,12 @@ While testing, note for each Warden: fun?, readable?, too strong / too weak?, ne
 work? Then pick the demo families (2–3) and branches from the notes. Must be off (and hidden) in
 demo and release builds, and **Test Grove runs don't bank Seeds**.
 
+**Demo mode toggle** (added 2026-09-27, user request): Settings → Developer → **Demo mode** on/off,
+overriding the `game/demo` project setting at runtime, so the full game (Memory Grove, Blight
+Levels, Seeds spending) and the demo (Grove teaser, Wishlist) can both be tested from one build.
+Debug builds only; exported builds always use the project setting. Switching returns to the title
+screen. Full-game runs made this way use the real profile, so it's clearly labelled.
+
 **Unlock all families** (added 2026-09-27): a second developer toggle for testing the *core game*:
 normal runs (family picks, Dreams, Dew, difficulty all as usual) but with **every family in the
 pick pool** and their Grove Dream cards, as if the Memory Grove had unlocked everything. Doesn't

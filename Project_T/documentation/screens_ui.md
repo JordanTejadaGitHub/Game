@@ -70,13 +70,32 @@ results screens; results lead back to the title.
 **Dev panels (Test Grove tools, damage meter):** docked on the **right side**, under the
 resources, collapsible with one key (F10), never overlapping the Warden panel or the Warden bar.
 
+### The Clear tool
+
+Added 2026-09-27 (user request). Clearing trees and rocks is a **tool on the Warden bar**, like
+planting a Warden, instead of clicking obstacles directly. That also stops clears clashing with
+drag-select and works on touch (`platforms.md`).
+
+- **The button** sits at the **left end of the Warden bar**, set slightly apart, with its own icon
+  (tending hands around a small sprout; art to make) and hotkey **0** (and **C**). A small badge
+  shows **free clears** from Heartwood's Reach when you have any.
+- **Before clearing is unlocked** (no clearing Dream yet, `dream_design.md`): the button shows
+  **locked**; tapping it explains *"Take a clearing Dream to tend the forest."* Once unlocked it
+  lights up with a short glow and the whisper *"Tend the forest, and it will remember you."*
+- **Using it:** select the tool (click / 0 / C) → the cursor changes → hovering an obstacle shows
+  its outline, cost (or "free") and the **route preview** → click to clear. The tool **stays
+  active** for more clears until Esc, right-click or picking a Warden. On touch: tap an obstacle,
+  then **✓**.
+- **Without the tool**, clicking an obstacle does nothing but show its name (so box-select can start
+  anywhere).
+
 ## In the world
 
 | Element | Design |
 |---|---|
 | **Build ghost** | the Warden on the hovered cell, green/red; range circle; **route preview line**; tag above: **"+12 path"** (or "−4 path") and the cost, red if unaffordable |
 | **Invalid placement** | red ghost + a short reason tag ("would close the dream", "nightmare here", "can't afford") |
-| **Obstacle hover** | before a clearing card: the obstacle's name + *"Needs a clearing Dream"* (no outline, no click). After: outline + "Tend Withered Tree · 5 Dew" + route preview if clearing changes it |
+| **Obstacle hover** | name only (e.g. "Withered Tree"); clearing happens through the **Clear tool** (below). With the tool active: outline + "Tend Withered Tree · 5 Dew" + route preview if clearing changes it |
 | **Health bars** | only once a nightmare is hit (setting: always) |
 | **Status icons** | up to 3 small icons above a nightmare, most important first; each status has its own **shape** (Damp droplet, Drowsy "z", Spored dots, Marked ring, Static bolt, Held vine) and a stack number where relevant |
 | **Elites** | Deeply Blighted nightmares: black haze + a small swirl icon, larger sprite |
@@ -271,6 +290,7 @@ Side: a run summary (Dreams, families, active Omen, time played).
 |---|---|
 | Select Warden / place | 1–9, left click |
 | Select several | click and drag; double-click (same kind on screen); Ctrl + double-click (whole map); Shift adds/removes |
+| Clear tool (trees and rocks) | 0 or C, then click obstacles (once clearing is unlocked) |
 | Cancel / deselect | right click, Esc |
 | Build mode | B |
 | Start drift / call early | Enter |
