@@ -55,6 +55,10 @@ func _process(_delta: float) -> void:
 			_target.statuses.time_left(id)])
 	if not statuses.is_empty():
 		lines.append(", ".join(statuses))
+	# The Nightshade Legendary: +20% effect damage per status it carries (Reactions.nightshade_bonus).
+	var nightshade := Reactions.nightshade_bonus(_target)
+	if nightshade > 0.0:
+		lines.append("Nightshade +%d%% effect damage" % roundi(nightshade * 100.0))
 	var body := StatusLinks.bbcode("\n".join(lines))
 	if body != _body.text:  # Only on change, so a link's hover isn't reset every frame
 		_body.text = body
