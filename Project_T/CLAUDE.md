@@ -389,7 +389,7 @@ accessibility, Steam achievements (milestones map to them). Acts 3–4 and all f
 - The Eldest (Legendary): `Tower.get_max_rank()` asks `DreamState.get_max_rank_for(tower)`; rank VI needs
   `make_eldest` first (Warden panel asks; `TowerPlacer.nurture` refuses while `needs_eldest_confirm`), crown
   drawn in `Tower._draw`. Court: `Tower.get_court_ranks()` adds to per-rank damage/speed/range. Hit rules in
-  `Tower._legendary_hit_rules`: hunters_moon, eternal_static, rooted_nightmares (`EnemyStatuses.marked_forever`
+  `Tower._legendary_hit_rules`: hunters_moon, eternal_static (Eternal Charge), rooted_nightmares (`EnemyStatuses.marked_forever`
   / `static_forever`). `Tower.rank_name(n)` for ranks past VII. `tests/test_legendary_hits.gd`.
 - Family review Wardens (tower_design.md 7e574e0): Bellflower family (`song` line; `status_every`,
   `extra_status`, `sets_off_static_at`), Dreamcatchers (`caught_bonus`: `EnemyStatuses.caught_*`,

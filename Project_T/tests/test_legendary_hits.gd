@@ -1,7 +1,7 @@
 extends SceneTree
 
 # Headless test for the Legendary rules Tower Code reads (dream_design.md "New Legendaries", "The
-# Eldest"): Hunter's Moon, Eternal Static, Rooted Nightmares, the reworked Nightshade, the Eldest's
+# Eldest"): Hunter's Moon, Eternal Charge, Rooted Nightmares, the reworked Nightshade, the Eldest's
 # rank cap and confirm, Court of the Eldest's shared ranks, and rank names past VII. Run from the
 # project folder:
 #   godot --headless --path . --script res://tests/test_legendary_hits.gd --fixed-fps 60
@@ -44,13 +44,13 @@ func _run() -> void:
 	_check(a.statuses.has(EnemyStatuses.MARKED), "and it never runs out")
 	await _clean()
 
-	# --- Eternal Static: every 4th hit adds a Charge; Charges never decay ---
+	# --- Eternal Charge: every 4th hit adds a Charge; Charges never decay ---
 	_take("eternal_static")
 	var b := _spawn(sprout.global_position + Vector2(CELL, 0))
 	sprout._hits_landed = 0
 	for i in 4:
 		sprout.hit(b, 0.0, false, Tower.NO_CRIT)
-	_check(b.statuses.stacks(EnemyStatuses.STATIC) == 1, "Eternal Static: the 4th hit adds a Charge (%d)" % b.statuses.stacks(EnemyStatuses.STATIC))
+	_check(b.statuses.stacks(EnemyStatuses.STATIC) == 1, "Eternal Charge: the 4th hit adds a Charge (%d)" % b.statuses.stacks(EnemyStatuses.STATIC))
 	b.statuses.tick(30.0)
 	_check(b.statuses.stacks(EnemyStatuses.STATIC) == 1, "and it never decays")
 	await _clean()

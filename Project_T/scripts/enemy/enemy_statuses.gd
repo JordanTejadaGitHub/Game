@@ -80,7 +80,7 @@ var gust_time := 0.0
 var prism_pending := false
 var smother_ended := false
 var marked_extra := 0.0  # Beacon: its Marked is stronger (+35% instead of +25%) until Marked ends
-# Hunter's Moon / Eternal Static (Legendary rules): Marked / Static on this nightmare never run out.
+# Hunter's Moon / Eternal Charge (Legendary rules): Marked / Static on this nightmare never run out.
 var marked_forever := false
 var static_forever := false
 # Caught (Dreamcatcher): asleep or at max Drowsy inside a Dreamcatcher's range; takes more damage.
@@ -151,7 +151,7 @@ func apply(id: StringName, stacks: int = 1, duration: float = 0.0, potency: floa
 	if id == STATIC and status.stacks >= cap and not has(DAMP):
 		_active.erase(STATIC)
 		if static_forever and potency > 0.0:
-			return potency * STATIC_BOLT_MULTIPLIER  # Eternal Static: the Warden that added the last charge
+			return potency * STATIC_BOLT_MULTIPLIER  # Eternal Charge: the Warden that added the last charge
 		return status.potency * STATIC_BOLT_MULTIPLIER
 	return 0.0
 
