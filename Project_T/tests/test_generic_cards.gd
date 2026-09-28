@@ -161,16 +161,21 @@ func _test_hit_rules() -> void:
 	dreams._last_breath(a)  # Test nightmares aren't wired to the spawner's enemy_cleansed
 	_check(b.health < before and is_equal_approx(before - b.health, a.max_health * 0.1) or b.is_cleansed,
 		"Last Breath: 10%% of its max health on the nightmare beside it (%.1f)" % (before - b.health))
-	# Glimmering Hunt: elites drop a shard 10% of the time
+	# Glimmering Hunt: 30% of elites drop a shard (10 = 1 Dreamlight), its own cap of 3 Dreamlight per run
 	dreams.take(_card("glimmering_hunt"))
 	dreams._glimmer_rng.seed = 3
-	var shards := dreams.dreamlight_shards
+	dreams.glimmer_shards = 0
+	var light := dreams.dreamlight
+	var catcher_shards := dreams.dreamlight_shards
 	var elite := _spawn(map_generator.startPath + Vector2(0, 2))
 	elite.elite = true
-	for i in 200:
+	for i in 50:
 		dreams._glimmer(elite)
-	var dropped := dreams.dreamlight_shards - shards
-	_check(dropped > 5 and dropped < 40, "Glimmering Hunt: ~10%% of elites drop a shard (%d / 200)" % dropped)
+	_check(dreams.glimmer_shards > 8 and dreams.glimmer_shards < 25 and dreams.dreamlight_shards == catcher_shards,
+		"Glimmering Hunt: ~30%% of elites drop a shard, apart from the Dreamcatcher's (%d / 50)" % dreams.glimmer_shards)
+	for i in 500:
+		dreams._glimmer(elite)
+	_check(dreams.glimmer_shards == 30 and dreams.dreamlight == light + 3, "…capped at 3 Dreamlight per run (%d shards, +%d)" % [dreams.glimmer_shards, dreams.dreamlight - light])
 	# Half-dreamed Commons 169–171 (stack to 3)
 	var soaked := _spawn(map_generator.startPath + Vector2(0, 4))
 	var jar := _plant("firefly_jar", Vector2(110, 100))

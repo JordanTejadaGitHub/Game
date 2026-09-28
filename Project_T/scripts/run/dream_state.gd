@@ -139,7 +139,8 @@ const LAST_BREATH_BOSS_CAP := 0.05
 const LAST_BREATH_CELLS := 1.0
 const TANGLED_SLOW := 0.10
 const WATCHFUL_REST_TIME := [5.0, 3.0]
-const GLIMMER_CHANCE := 0.10
+const GLIMMER_CHANCE := 0.30
+const GLIMMER_DREAMLIGHT_MAX := 3  # Per run, its own cap (not the Great Dreamcatcher's)
 const STRAIGHT_TILES := 5
 const STRAIGHTAWAY := [[0.15, 0.5], [0.25, 0.5]]  # [damage, range]
 const HEART_OF_MAZE_BONUS := 0.50
@@ -233,6 +234,7 @@ var _last_route := PackedVector2Array()
 var _straight_cells := {}  # Route tiles in a straight stretch of 5+ (Straightaway)
 var _heart_cache := []  # [key, Tower] (get_heart_of_maze)
 var _glimmer_rng := RandomNumberGenerator.new()
+var glimmer_shards := 0  # Glimmering Hunt's shards this run (10 = 1 Dreamlight, own cap)
 var _statuses_cache := []  # [state key, owned statuses] (owned_statuses)
 var _offer_drift := 0  # The drift of the offer being built (half-dreamed checks)
 var _before_offer := {}  # Offer counters from before the current offer (a reroll rolls them back)
@@ -1655,7 +1657,7 @@ func to_save() -> Dictionary:
 		"eldest_cell": [_eldest_cell.x, _eldest_cell.y], "court_pending": _court_pending,
 		"passed_count": _passed_count.duplicate(), "passed_at": _passed_at.duplicate(),
 		"owed_families": _owed_families.duplicate(), "declined_families": _declined_families.duplicate(),
-		"walls_planted": _walls_planted,
+		"walls_planted": _walls_planted, "glimmer_shards": glimmer_shards,
 		"rng_state": str(_rng.state),  # A string: JSON would round a 64-bit int
 	}
 
@@ -1691,6 +1693,7 @@ func load_save(data: Dictionary) -> void:
 			into[id] = int(saved[id])  # JSON gives floats
 	_attackers_planted = int(data.get("attackers_planted", 0))
 	_walls_planted = int(data.get("walls_planted", 0))
+	glimmer_shards = int(data.get("glimmer_shards", 0))
 	_refill_bark()  # Saved at a rest, where Thick Bark is full again
 	dreamlight = int(data.get("dreamlight", 0))
 	dreamlight_changed.emit(dreamlight)
@@ -2123,10 +2126,15 @@ func _is_alone(enemy: Node2D) -> bool:
 			return false
 	return true
 
-# Glimmering Hunt: a dispelled elite may drop a Dreamlight shard.
+# Glimmering Hunt: a dispelled elite has a 30% chance to drop a Dreamlight shard (10 = 1 Dreamlight),
+# up to 3 Dreamlight per run from this card, apart from the Great Dreamcatcher's shards and cap.
 func _glimmer(enemy: Node2D) -> void:
-	if has_rule(&"glimmering_hunt") and enemy.elite and _glimmer_rng.randf() < GLIMMER_CHANCE:
-		add_dreamlight_shard()
+	if not has_rule(&"glimmering_hunt") or not enemy.elite or _glimmer_rng.randf() >= GLIMMER_CHANCE \
+			or glimmer_shards >= SHARDS_PER_DREAMLIGHT * GLIMMER_DREAMLIGHT_MAX:
+		return
+	glimmer_shards += 1
+	if glimmer_shards % SHARDS_PER_DREAMLIGHT == 0:
+		add_dreamlight(1)
 
 # Last Breath: a dispelled nightmare bursts for 10% (II 15%) of its max health on nightmares within
 # 1 cell; bosses' bursts are capped at 5% of the boss's max health. Effect damage (tag last_breath);
