@@ -18,6 +18,7 @@ const TEXT := {
 	&"cage": "A dream can bend, but never close.",
 	&"grow": "This Sprout could grow.",
 	&"kin": "Two of one family, planted close, learn from each other.",
+	&"unbound": "Turn them too often, and they stop listening.",
 	&"dead_wood": "Dead wood. I can't move it… yet.",
 	&"tend": "Tend the forest, and it will remember you.",
 	&"chain": "One reaction set off another: a chain. Reach 10 for a Dawnburst.",
