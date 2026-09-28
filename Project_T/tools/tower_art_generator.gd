@@ -295,8 +295,21 @@ func _make(tower_name: String, draw: Callable) -> Image:
 		var canvas := _layer()
 		draw.call(canvas, _idle_state(f))
 		sheet.blit_rect(canvas, Rect2i(0, 0, S, S), Vector2i(f * S, 0))
+	sheet = _detail_pass(sheet, Vector2i(S, S))
 	sheet.save_png(OUT + tower_name + ".png")
 	return sheet
+
+# The Heartwood 32 palette and the detailed-64 pass (tools/art/detail_pass.gd, art_direction.md
+# "Rendering style"): every Warden sheet goes through it before saving, frame by frame. Loaded by
+# path so the generator still runs where the tools aren't present (then the art is left as drawn).
+const DETAIL_PASS := "res://tools/art/detail_pass.gd"
+
+func _detail_pass(sheet: Image, frame: Vector2i) -> Image:
+	if not ResourceLoader.exists(DETAIL_PASS):
+		push_warning("tools/art/detail_pass.gd not found: saving Warden art without the palette pass")
+		return sheet
+	var pass_script: Script = load(DETAIL_PASS)
+	return pass_script.apply_sheet(sheet, frame, pass_script.Kind.WARDEN)
 
 # <name>_attack.png: the Warden's body in attack poses plus its attack effect on top.
 func _make_attack(tower_name: String) -> Image:
@@ -307,6 +320,7 @@ func _make_attack(tower_name: String) -> Image:
 		call("_draw_" + tower_name, canvas, st)
 		call("_attack_" + tower_name, canvas, st)
 		sheet.blit_rect(canvas, Rect2i(0, 0, S, S), Vector2i(a * S, 0))
+	sheet = _detail_pass(sheet, Vector2i(S, S))
 	sheet.save_png(OUT + tower_name + "_attack.png")
 	return sheet
 
