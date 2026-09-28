@@ -8,6 +8,5 @@ id = "sleepless"
 display_name = "Sleepless"
 description = "Nightmares are immune to {drowsy} and {held}."
 kind = 0
-waiting_for_hook = true
 status_immune = Array[StringName]([&"drowsy", &"held"])
 reward_dew = 40
