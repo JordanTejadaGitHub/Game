@@ -255,6 +255,9 @@ func _test_sim_policy() -> void:
 	wide_bot.spend_dreamlight()
 	_check(wide_bot.choices.any(func(c: String) -> bool: return c.contains("bramble") or c.contains("honeysuckle")),
 		"Wide: Dreamlight on Thornwall growths (%s)" % ", ".join(wide_bot.choices))
+	var sprout_bot := DreamSimPolicy.new(dreams, DreamSimPolicy.Style.SPROUT)
+	_check(sprout_bot.pick_dream([_card("few_and_mighty"), _card("many_hands"), _card("seedfall")]) == _card("seedfall")
+		and sprout_bot.pick_family(["dewdrop", "sporeling"]) == &"sporeling", "Sprout style: its own cards on top, Sporeling first")
 	_check(balanced.pick_omen([]) == null, "Omens: Clear Skies")
 	_clear()
 	_reset()
