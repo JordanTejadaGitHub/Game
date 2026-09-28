@@ -65,7 +65,7 @@ const OPPOSITE_WEIGHT := 0.5
 const SOFT_NEED_WEIGHT := 0.4  # A card whose soft Needs are unmet (dream_design.md "Adapt, don't get handed")
 const STRAY_FROM_DRIFT := 10  # The Stray Dream: one slot per offer from this rest on (never at boss rests)
 const STRAY_IN_BUILD_WEIGHT := 0.25
-const HALF_DREAMED_WEIGHT := 0.8  # A combo card whose other family you could still pick
+const HALF_DREAMED_WEIGHT := 1.0  # A combo card whose other family you could still pick
 const HALF_DREAMED_WITHIN := 20  # …offered only when the next family pick is at most this many drifts away
 const HALF_DREAMED_DECLINED_WEIGHT := 0.3  # …after its missing family was offered at a pick and not taken
 # Passed-over cards fade (dream_design.md "How Dream offers work"): left out of the next offer, then
@@ -178,7 +178,7 @@ signal remember_requested(focus: TowerData)
 @export var unlock_everything: bool = false  # Debug/tests: every Warden and evolution available
 @export var cards_per_offer: int = 3
 @export var skip_dew: int = 15  # "Let it pass"
-@export var tag_weight: float = 1.4  # Cards sharing a tag you own (family, direction, Legendary archetype)
+@export var tag_weight: float = 2.4  # Cards sharing a tag you own (family, direction, Legendary archetype)
 @export var pity_after: int = 3  # Dreams in a row without Rare+ before one is guaranteed
 # Bittersweet cards stay out of the pool until leaves are tuned (dream_design.md). Act 2+ only,
 # at most one per offer.
