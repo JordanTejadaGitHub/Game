@@ -40,9 +40,20 @@ costs scale with the Warden's tier, gains per rank are smaller, and **rank III a
 | V | 90 | the same again + the Focus bonus (230 base in total) |
 
 **Cost × tier:** Sprout **×0.5** (115 to rank V), base **×1** (230), branch **×2** (460), final form
-**×3** (690), Memory Warden **×2**. The cost is set by the Warden's tier *when you buy the rank*, so
-ranking a Sprout before it evolves is cheap (ranks still carry through evolution) and ranking a
-final form is a big, deliberate spend.
+**×3** (690), Memory Warden **×2**. (Base costs are now 25/40/60/90/135, economy pass v2; Ascended ×4.)
+
+**Growing a ranked Warden pays the rank difference** (changed 2026-09-28, user: "you can nurture for
+less Dew, then upgrade your Warden"; was: ranks bought cheap on a Sprout carried through for free).
+When a Warden with ranks grows into a higher tier, the grow cost adds, for every rank it holds,
+**that rank's cost at the new tier minus its cost at the old tier** (with the current Dream
+discounts). Ranks never get cheaper by being bought early.
+- The Grow button shows the total and the split: *"Grow into Stormcap · 140 Dew (80 + 60 for rank
+  III)"*. Unaffordable = the usual faded button with "needs 140 Dew".
+- Free ranks (First Care, `free_nurtures`) pay the difference too: they were free at their tier, not
+  at every tier.
+- The difference counts as Dew invested (sell refunds it like any rank Dew). Group grow and the G
+  hotkey use the same total.
+- It applies per step (Sprout → base, base → branch, branch → final, final → Ascended).
 
 **Focus (chosen at rank III, kept through evolution, can't be changed):**
 
