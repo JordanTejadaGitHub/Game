@@ -72,6 +72,8 @@ func _ready() -> void:
 	move_child(dossier, %PauseMenu.get_index())
 	# Resist / weak pips and the immune flash, drawn in the world over the nightmares.
 	owner.add_child.call_deferred(ResistPips.new())
+	# Touch: Plant / Cancel for a pending drag-to-build stroke, two-finger pan and pinch (TouchBuild).
+	add_child(TouchBuild.new(tower_placer, owner.get_node_or_null("GameCameraNode")))
 	# Dream card marks: Heart of the Maze's heart (world), Thick Bark's shield by the leaves.
 	owner.add_child.call_deferred(DreamMarks.new())
 	bark_shield = DreamMarks.BarkShield.new(leaves_label)
