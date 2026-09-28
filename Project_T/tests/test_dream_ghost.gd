@@ -67,6 +67,43 @@ func _run() -> void:
 	_check(Tower.badges_visible(), "and shown while a Warden is selected")
 	seller.select(null)
 
+	# Heart of the Maze: the ghost says when the Warden planted there would become the heart (the one
+	# furthest along the route from every other attacker).
+	for card in dreams.pool:
+		if card.id == "heart_of_the_maze":
+			dreams.take(card)
+	var map_generator = main.get_node("%MapGenerator")
+	var route: PackedVector2Array = map_generator.get_path_from(map_generator.startPath)
+	var near_planted: Vector2 = planted.cell + Vector2(0, 1)
+	var far_cell := Vector2(-1, -1)
+	for i in range(route.size() - 3, 0, -1):  # A buildable cell beside the far end of the route
+		for offset in [Vector2.LEFT, Vector2.RIGHT, Vector2.UP, Vector2.DOWN]:
+			var c: Vector2 = route[i] + offset
+			if not route.has(c) and map_generator.can_block(c) and c.distance_to(planted.cell) > 6.0:
+				far_cell = c
+				break
+		if far_cell != Vector2(-1, -1):
+			break
+	placer.set_build_mode(true)
+	placer.select_tower(sprout)
+	_check(placer.becomes_heart(far_cell, map_generator.get_path_if_blocked_cells([far_cell])),
+		"far along the route from the other Warden: it becomes the Heart of the Maze")
+	placer._hover_cell = far_cell
+	placer._refresh_hover()
+	_check(placer._heart_here, "and the ghost tag says so")
+	var wall: TowerData = load("res://resource/tower/thornwall.tres")
+	placer.select_tower(wall)
+	_check(not placer.becomes_heart(far_cell, map_generator.get_path_if_blocked_cells([far_cell])), "a Thornwall never does")
+	placer.select_tower(sprout)
+	var second: Tower = placer.tower_scene.instantiate()
+	second.tower_data = sprout
+	second.cell = far_cell
+	second.position = Tower.MAP_GRID.calculate_map_position(far_cell)
+	container.add_child(second)
+	second.set_process(false)
+	_check(not placer.becomes_heart(near_planted, map_generator.get_path_if_blocked_cells([near_planted])),
+		"right next to another Warden: it doesn't")
+
 	print("dream ghost test: %s" % ("PASS" if failures == 0 else "%d FAILED" % failures))
 	quit(failures)
 

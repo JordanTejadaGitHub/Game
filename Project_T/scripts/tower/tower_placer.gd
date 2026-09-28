@@ -68,6 +68,7 @@ var _neighbour_changes: Array = []  # [[tower, card name, now on], …]
 var _range_gain := 0.0  # Cells of range position cards would add here
 var _kin_spots := {}  # Cells where the selected Warden would find a kin (Kinships.kin_spots)
 var _kin_here := ""  # The Kinship it would form on the hovered cell
+var _heart_here := false  # Heart of the Maze would move to the Warden planted here
 const KIN_SPOT_COLOR := Color(0.78, 0.86, 0.42, 0.4)  # Faint green-gold leaf outline
 var _path_preview := Line2D.new()
 const PREVIEW_COLOR := Color(0.4, 0.9, 1.0, 0.6)  # The route preview (RouteLine: high-contrast setting)
@@ -280,6 +281,8 @@ func _draw() -> void:
 		tag += "  ·  %+d path" % growth  # "Wardens are walls": how much longer the walk gets
 	if _kin_here != "":
 		tag += "  ·  Kin spot: forms %s" % _kin_here
+	if _heart_here:
+		tag += "  ·  Becomes the Heart of the Maze"
 	var broken := get_neighbour_changes().filter(func(change: Array) -> bool: return not change[2])
 	if not broken.is_empty():
 		# Placing a Warden should never silently weaken others.
@@ -420,6 +423,7 @@ func _refresh_hover() -> void:
 	for point in _hover_path:
 		_path_preview.add_point(MAP_GRID.calculate_map_position(point))
 	_hover_valid = _hover_cell_valid()
+	_heart_here = becomes_heart(_hover_cell, _hover_path)
 	_hover_affordable = run_state.can_afford(get_cost(null, _hover_cell))
 	_update_dream_preview()
 	queue_redraw()
@@ -906,3 +910,38 @@ func _draw_stroke() -> void:
 	var tag := get_stroke_tag() + ("  ·  %s" % last_why if last_why != "" else "")
 	WorldLabel.draw_tag(self, 0.0, MAP_GRID.cell_size.y / 2.0 + 18.0, tag, WorldLabel.cost_color(true))
 	draw_set_transform(Vector2.ZERO)
+
+# Heart of the Maze (card, screens_ui.md "Marks that are always on the map"): whether planting the
+# selected Warden on `cell` would make it the heart. Same rule as DreamState.get_heart_of_maze (the
+# attacker whose nearest route step is furthest from every other attacker's; ties: further along),
+# worked out on `route`, the one this placement would make.
+func becomes_heart(cell: Vector2, route: PackedVector2Array) -> bool:
+	if cell == NO_CELL or route.is_empty() or not tower_data.can_attack or not dream_state.has_card("heart_of_the_maze"):
+		return false
+	var cells: Array[Vector2] = [cell]
+	for tower in tower_container.get_children():
+		if tower is Tower and not tower.is_queued_for_deletion() and tower.tower_data.can_attack:
+			cells.append(tower.cell)
+	if cells.size() < 2:
+		return false
+	var steps: Array[int] = []
+	for c in cells:
+		var best_step := 0
+		var best_distance := INF
+		for i in route.size():
+			var distance := c.distance_squared_to(route[i])
+			if distance < best_distance:
+				best_distance = distance
+				best_step = i
+		steps.append(best_step)
+	var best := -1
+	var best_gap := -1
+	for i in cells.size():
+		var gap := 1 << 30
+		for j in cells.size():
+			if i != j:
+				gap = mini(gap, absi(steps[i] - steps[j]))
+		if gap > best_gap or (gap == best_gap and steps[i] > steps[best]):
+			best_gap = gap
+			best = i
+	return best == 0
