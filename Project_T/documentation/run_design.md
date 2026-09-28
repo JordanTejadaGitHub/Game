@@ -109,6 +109,19 @@ turn leaks into a hold. Targets for the balance simulation and playtests (averag
 - Current state (playtests 2026-09-28): too easy from act 2 on, even with a thin Grove. Fixes so far:
   the Sapling removed, one Ascended per family, Nurture's rank difference, resistances corrected.
   The balance simulation measures the rest.
+- **Act 3 probe** (Tower Code, `tools/balance_act3.gd`, 2026-09-28): drifts 61–70, 12 final forms at
+  rank IV (Power), **no Dreams**: the maze dealt ~155–160k damage per drift against **~100–115k
+  health spawned, 0 leaks**. Act 3 is too easy with a plain final-form maze, before Dreams or the
+  Great Bell. The Great Bell took 40% of all damage, 74% of it from Charged stacks its toll set off;
+  damage on Asleep nightmares was 56–63% of everything (sleep control is the other big lever).
+  **Interim changes** (until the balance simulation, which also has to check what a player can
+  really afford by drift 60):
+  - **Acts 3–4 nightmare health ×1.4** (a flat act multiplier on top of growth; bosses included).
+  - **The Great Bell's toll sets off Charged stacks at 50%** of their bolt damage (its own hits
+    unchanged). Target: an Ascended form deals about **5× an average final form** in total (it
+    takes 4 cells now), not 7× as measured.
+  - Watch sleep: if Asleep damage stays above ~50% after this, look at Caught's +40% and
+    Dreamshroom next.
 - **Demo:** it has no meta, so every demo run is a fresh profile. **Decided (user, 2026-09-28): keep
   that curve** (demo wins are rare: "go deeper in the full game"). Maybe later: **a few Memory Grove
   unlocks in the demo** (a small taste of the meta), decided after playtests.
