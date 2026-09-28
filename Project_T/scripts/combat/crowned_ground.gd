@@ -80,7 +80,7 @@ func _pool(enemy: Node2D) -> void:
 	if not _cells.has(enemy.get_current_cell()):
 		return
 	var s: EnemyStatuses = enemy.statuses
-	if s.is_boss or EnemyStatuses.HELD in s.immune:
+	if s.is_boss or Reactions.cant_be_held(enemy):
 		s.slow_time = maxf(s.slow_time, TICK * 1.6)
 		s.slow_amount = maxf(s.slow_amount, POOL_BOSS_SLOW)
 		return

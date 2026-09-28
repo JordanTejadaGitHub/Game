@@ -171,6 +171,20 @@ func _run() -> void:
 	_check(_lost(t) > 0, "Carried Storm repeats a Thunderclap at 50%% (%d)" % _lost(t))
 	await _clean()
 
+	# --- A sprinting Night Hound can't be Held: Drown slows it instead of putting it to sleep ---
+	var hound := _spawn(origin)
+	hound.enemy_data = hound.enemy_data.duplicate()
+	hound.enemy_data.immune_while_sprinting = [&"held"] as Array[StringName]
+	hound.rolling = true
+	_check(Reactions.cant_be_held(hound), "a sprinting Night Hound can't be Held")
+	hound.apply_status(EnemyStatuses.DAMP)
+	hound.apply_status(EnemyStatuses.DROWSY, 5)
+	_check(hound.statuses.sleep_time <= 0.0 and hound.statuses.slow_time > 0.0,
+		"so Drown slows it instead of putting it to sleep")
+	hound.rolling = false
+	_check(not Reactions.cant_be_held(hound), "once it stops sprinting it can be Held again")
+	await _clean()
+
 	# --- Grafted Harmony: a Graftling touching two status families applies both at half ---
 	var graft := _plant("graftling", Vector2(8, 3))
 	var jar2 := _plant("firefly_jar", Vector2(8, 4))

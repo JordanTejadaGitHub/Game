@@ -207,6 +207,13 @@ static func on_smother_ended(enemy: Node2D) -> void:
 			var cap := FEVER_BOSS_DROWSY_CAP if other.statuses.is_boss else 0
 			other.apply_status(DROWSY, FEVER_DROWSY, 0.0, 0.0, cap, "song", s.source(DROWSY))
 
+# True if `enemy` can't be Held right now: immune, or a Night Hound sprinting (Enemy.apply_status refuses
+# HELD then). Drown, Still Pool and Carried Storm slow it instead.
+static func cant_be_held(enemy: Node2D) -> bool:
+	if HELD in enemy.statuses.immune:
+		return true
+	return enemy.rolling and HELD in enemy.enemy_data.immune_while_sprinting
+
 static func is_asleep(enemy: Node2D) -> bool:
 	return enemy.statuses.is_asleep()
 
@@ -515,7 +522,7 @@ static func _drown(enemy: Node2D, source: Node) -> void:
 		container.get_parent().add_child(pool)
 		container.get_parent().move_child(pool, container.get_index())
 	var deep := 1 if level > 0 else 0
-	if s.is_boss or HELD in s.immune:
+	if s.is_boss or cant_be_held(enemy):
 		s.slow_time = DROWN_SLEEP[0]
 		s.slow_amount = DROWN_BOSS_SLOW[deep]
 	else:
@@ -571,7 +578,7 @@ static func echo(id: StringName, spot: Vector2, share: float, echo_tower: Tower,
 		var s: EnemyStatuses = enemy.statuses
 		match id:
 			&"drown":
-				if s.is_boss or HELD in s.immune:
+				if s.is_boss or cant_be_held(enemy):
 					s.slow_time = maxf(s.slow_time, DROWN_SLEEP[0] * share)
 					s.slow_amount = maxf(s.slow_amount, DROWN_BOSS_SLOW[0])
 				else:
@@ -687,7 +694,7 @@ static func carry(id: StringName, enemy: Node2D, seed_tower: Tower, applier: Tow
 	var base: StringName = CROWNED_BASE.get(id, id)
 	match base:
 		&"drown":
-			if s.is_boss or HELD in s.immune:
+			if s.is_boss or cant_be_held(enemy):
 				s.slow_time = maxf(s.slow_time, DROWN_SLEEP[0] * CARRIED_SHARE)
 				s.slow_amount = maxf(s.slow_amount, DROWN_BOSS_SLOW[0])
 			else:
