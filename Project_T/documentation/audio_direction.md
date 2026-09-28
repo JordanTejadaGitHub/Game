@@ -315,7 +315,7 @@ organic: big means low and wide, never bright or harsh.
 | **World Root** (root) | a faint **deep creak** of huge roots | every 5 s the hold: a vast, low **root heave** under everything in range (sub boom + slow wooden groan), felt more than heard |
 | **The Great Bell** (song) | silent between tolls | every 6 s the **toll**: one deep, soft bell (D2–D3, felt mallet, long hum tail). If Static goes off with it, a soft warm bloom under the tail, not one sound per charge |
 | **Grandmother Oak** (acorn) | a slow, warm **wooden heartbeat** and leaves stirring very low (no rustle hiss) | the Dew per drift: a soft **welling** of sap (never a coin, never a bell) |
-| **Dawnwing** (wing) | great, slow **wingbeats** circling, panned as it moves | each strike: a soft, heavy feathered **thump**; when it speeds up (many nightmares), the wingbeats quicken, not the strikes' volume |
+| **Dawnwing** (wing) | great, slow **wingbeats** circling, panned as it moves | each strike: a soft, heavy feathered **thump**; when it speeds up (many nightmares), the wingbeats quicken, not the strikes' volume. How: two synced wingbeat loops (calm and busy) crossfaded by the number of nightmares in its path, not a sped-up recording (that would raise the pitch) |
 | **The Tempest** (wind) | the cyclone: a low, rotating **wind roar** that follows it along the path | carrying statuses: soft **swirls** as it passes each nightmare (throttled). *Name clash:* the Crowned Reaction **Tempest** (dream_design.md) needs its own sound, a Thunderclap + Ignite, and the two should never be confused; consider renaming one |
 
 **The Heartwood Sapling** (economy, from drift 51; no attack)
@@ -327,7 +327,7 @@ organic: big means low and wide, never bright or harsh.
 | Yield at each drift's end | a soft **welling of sap** (the same family as Grandmother Oak's, smaller). Never a coin |
 | Dreamlight ripening | a slow, warm **glow swell** with a faint hummed note in key |
 | Withering (a leaf lost) | a low, dry **creak** after the leaf-lost sound (soft, not a crack); recovering at a rest: a warm exhale |
-| Nurture ranks | the normal nurture sound, a little deeper each rank |
+| Nurture ranks | the Nurture sound (see Building) in sap and wood, a little deeper each rank like any Warden |
 
 ### Building and the map
 
@@ -335,6 +335,9 @@ organic: big means low and wide, never bright or harsh.
 |---|---|
 | Plant a Warden | earth rumble + wood creak as the roots rise |
 | Evolve | a rising bloom chime |
+| **Nurture** (rank up) | a soft, rising **swell of the Warden's own family material** (spore breath, stone settling, water welling, warm glow, root creak, low bell hum, bark, wingbeat, gust), ~0.6 s, ending in a gentle settle. **Each rank is a little deeper and fuller** (about −1 semitone and a touch more body per rank, rank V/VII the fullest). Quieter and shorter than Evolve: it's frequent. |
+| Nurture: choosing a Focus (rank III) | the nurture swell + a short **leaning** of the material toward the Focus: Power = heavier body, Swift = a quick double pulse, Reach = a longer airy tail, Deep = a lower, slower settle |
+| Nurture a group (G / R on a selection) | the swells **stagger** with the visual bloom (nearest the Heartwood first), voice-limited so ten Wardens read as one rolling swell, not ten |
 | Sell | roots withdrawing into the ground |
 | Invalid placement | a muted wooden knock |
 | Tend a Withered Tree / move a Mossy Boulder | a soft creak and a low wooden settle / low stone rumble |
