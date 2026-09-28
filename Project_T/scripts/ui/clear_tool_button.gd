@@ -1,0 +1,109 @@
+extends Button
+class_name ClearToolButton
+
+# The Clear tool on the Warden bar (screens_ui.md "The Clear tool"): the left end of the bar, set
+# apart, hotkey 0 / C (action clear_tool). Locked until the run's first clearing Dream (tapping says
+# why); then it glows once. Selecting it turns on ObstacleClearer's tool mode (Roguelite Code's:
+# outline, cost, route preview, click to clear, stays on until Esc / right-click / picking a Warden).
+# A badge shows free clears (Heartwood's Reach). On touch, a marked obstacle gets Clear / Cancel
+# buttons above the tool. The icon is drawn (tending hands around a sprout) until its art exists.
+
+const LOCKED_TEXT := "Take a clearing Dream to tend the forest."
+const HAND_COLOR := Color(0.78, 0.62, 0.45)
+const SPROUT_COLOR := Color(0.55, 0.85, 0.4)
+const LOCKED_TINT := Color(0.5, 0.5, 0.55)
+const BADGE_COLOR := Color(0.75, 0.95, 0.6)
+
+var clearer: ObstacleClearer
+var run_state: RunState
+var toast: Callable  # show_toast(text)
+var _confirm := HBoxContainer.new()
+var _glow := 0.0  # 1 → 0 after unlocking
+
+func setup(obstacle_clearer: ObstacleClearer, state: RunState, show_toast: Callable) -> void:
+	clearer = obstacle_clearer
+	run_state = state
+	toast = show_toast
+
+func _ready() -> void:
+	name = "ClearTool"
+	toggle_mode = true
+	focus_mode = Control.FOCUS_NONE
+	tooltip_text = "Clear tool (0 / C): tend withered trees and move boulders."
+	pressed.connect(toggle_tool)
+	clearer.tool_changed.connect(func(active: bool) -> void: set_pressed_no_signal(active))
+	clearer.tool_refused.connect(func() -> void: toast.call(LOCKED_TEXT))
+	clearer.lock_changed.connect(_on_lock_changed)
+	clearer.clear_pending.connect(_on_clear_pending)
+	run_state.free_clears_changed.connect(func(_n: int) -> void: queue_redraw())
+	# Touch: Clear / Cancel for the marked obstacle, just above the tool.
+	_confirm.visible = false
+	_confirm.position = Vector2(0, -56)
+	_confirm.add_theme_constant_override("separation", 6)
+	for pair in [["Clear", func() -> void: clearer.confirm_pending()],
+			["Cancel", func() -> void: clearer.set_tool_active(false)]]:
+		var button := Button.new()
+		button.text = pair[0]
+		button.focus_mode = Control.FOCUS_NONE
+		button.custom_minimum_size = Vector2(88, 48)
+		button.pressed.connect(pair[1])
+		_confirm.add_child(button)
+	add_child(_confirm)
+
+func _unhandled_input(event: InputEvent) -> void:
+	if event.is_action_pressed("clear_tool"):
+		toggle_tool()
+		get_viewport().set_input_as_handled()
+
+# Turns the tool on or off; while clearing is locked it explains why instead.
+func toggle_tool() -> void:
+	if clearer.is_locked():
+		set_pressed_no_signal(false)
+		toast.call(LOCKED_TEXT)
+		return
+	clearer.set_tool_active(not clearer.is_tool_active())
+	set_pressed_no_signal(clearer.is_tool_active())
+
+func _on_lock_changed(locked: bool) -> void:
+	if not locked:
+		_glow = 1.0  # A short glow as the tool lights up
+	queue_redraw()
+
+func _on_clear_pending(cell: Vector2) -> void:
+	_confirm.visible = cell != ObstacleClearer.NO_CELL
+
+func _process(delta: float) -> void:
+	if _glow > 0.0:
+		_glow = maxf(_glow - delta / 1.5, 0.0)
+		queue_redraw()
+	if _confirm.visible and not clearer.is_tool_active():
+		_confirm.visible = false
+
+func _draw() -> void:
+	var locked := clearer.is_locked()
+	var centre := Vector2(size.x / 2.0, size.y / 2.0 - 4.0)
+	if _glow > 0.0:
+		draw_circle(centre, 22.0, Color(SPROUT_COLOR, 0.35 * _glow))
+	var hands := LOCKED_TINT if locked else HAND_COLOR
+	var sprout := LOCKED_TINT if locked else SPROUT_COLOR
+	# Two cupped hands…
+	draw_arc(centre + Vector2(-3, 6), 12.0, PI * 0.55, PI * 1.05, 10, hands, 4.0, true)
+	draw_arc(centre + Vector2(3, 6), 12.0, -PI * 0.05, PI * 0.45, 10, hands, 4.0, true)
+	# …around a small sprout.
+	draw_line(centre + Vector2(0, 8), centre + Vector2(0, -6), sprout, 2.5, true)
+	draw_circle(centre + Vector2(-4, -6), 3.5, sprout)
+	draw_circle(centre + Vector2(4, -8), 3.5, sprout)
+	var font := ThemeDB.fallback_font
+	_text(font, Vector2(3, 12), "0", 11, Color(0.85, 0.88, 0.8))
+	if locked:
+		# A little padlock in the corner.
+		var at := Vector2(size.x - 12, 10)
+		draw_arc(at + Vector2(0, -1), 3.5, PI, TAU, 8, LOCKED_TINT.lightened(0.3), 1.5, true)
+		draw_rect(Rect2(at + Vector2(-4.5, 0), Vector2(9, 7)), LOCKED_TINT.lightened(0.3))
+	elif run_state.free_clears > 0:
+		_text(font, Vector2(size.x - 14, 12), str(run_state.free_clears), 11, BADGE_COLOR)
+	_text(font, Vector2(size.x / 2.0 - 12, size.y - 6), "Clear", 11, Color(0.85, 0.88, 0.8) if not locked else LOCKED_TINT)
+
+func _text(font: Font, at: Vector2, text: String, font_size: int, colour: Color) -> void:
+	draw_string_outline(font, at, text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size, 4, Color(0.05, 0.06, 0.08))
+	draw_string(font, at, text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size, colour)

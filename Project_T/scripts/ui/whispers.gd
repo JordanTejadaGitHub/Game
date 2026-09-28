@@ -60,6 +60,11 @@ func _ready() -> void:
 	enabled = memory.settings.whispers
 	_seen = memory.get("whispers_seen", [])
 	modulate.a = 0.0
+	# The Clear tool lights up with the first clearing Dream (screens_ui.md "The Clear tool").
+	# Connected even while whispers are off: whisper() checks `enabled` itself.
+	obstacle_clearer.lock_changed.connect(func(locked: bool) -> void:
+		if not locked:
+			whisper(&"tend"))
 	if not enabled:
 		set_process(false)
 		return
@@ -133,8 +138,8 @@ func _process(_delta: float) -> void:
 	if tower_placer.hover_breaks_path():
 		whisper(&"cage")
 	# Obstacles can't be cleared until the run's first clearing Dream (run_design.md).
-	if obstacle_clearer._hover_obstacle != null:
-		whisper(&"dead_wood" if obstacle_clearer.is_locked() else &"tend")
+	if obstacle_clearer._hover_obstacle != null and obstacle_clearer.is_locked():
+		whisper(&"dead_wood")
 	for id in EnemyStatuses.ALL:
 		if not _seen.has(String(id)) and _any_creature_has(id):
 			whisper(id)

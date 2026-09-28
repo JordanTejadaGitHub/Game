@@ -40,9 +40,12 @@ func _run() -> void:
 	for screen in [Vector2i(1920, 1080), Vector2i(1280, 800)]:
 		root.size = screen
 		await _frames(2)
-		var bar_rect := bar.get_global_rect()
-		_check(bar_rect.end.y > screen.y - 100 and absf(bar_rect.get_center().x - screen.x / 2.0) < 2.0,
-			"the Warden bar sits at the bottom centre at %s (%s)" % [screen, bar_rect])
+		# The Clear tool + the Warden bar, centred together at the bottom.
+		var tool_rect := (main.get_node("HUD/ClearTool") as Control).get_global_rect()
+		var bar_rect := bar.get_global_rect().merge(tool_rect)
+		_check(bar_rect.end.y > screen.y - 100 and absf(bar_rect.get_center().x - screen.x / 2.0) < 2.0
+			and tool_rect.end.x < bar.get_global_rect().position.x,
+			"the Clear tool and Warden bar sit at the bottom centre at %s (%s)" % [screen, bar_rect])
 		for name in ["WardenPanel", "DriftPanel", "DriftBanner"]:
 			var other := (main.get_node("HUD/" + name) as Control).get_global_rect()
 			_check(not bar_rect.intersects(other), "the Warden bar doesn't overlap %s at %s (%s vs %s)" % [name, screen, bar_rect, other])
@@ -111,9 +114,20 @@ func _run() -> void:
 	whispers._process(0.0)
 	_check(whispers._queue.has(&"dead_wood") and not whispers._queue.has(&"tend"), "a locked obstacle whispers Dead wood, not Tend")
 	dreams.clearing_open = true
-	whispers._process(0.0)
+	clearer.lock_changed.emit(false)
 	_check(whispers._queue.has(&"tend"), "Tend comes once clearing opens")
+
+	# --- The Clear tool: locked until clearing opens, then a toggle for ObstacleClearer's tool mode ---
+	var tool: ClearToolButton = main.get_node("HUD/ClearTool")
+	tool.toggle_tool()
+	_check(clearer.is_tool_active() and tool.button_pressed, "the Clear tool turns the clear mode on")
+	tool.toggle_tool()
+	_check(not clearer.is_tool_active() and not tool.button_pressed, "and off again")
 	dreams.clearing_open = false
+	tool.toggle_tool()
+	_check(not clearer.is_tool_active() and (main.get_node("%ToastLabel") as Label).text == ClearToolButton.LOCKED_TEXT,
+		"while locked it explains why instead")
+	_check(InputMap.has_action("clear_tool"), "0 / C pick the Clear tool")
 	clearer._hover_obstacle = null
 	clearer.set_process(true)
 	whispers.set_enabled(false)
