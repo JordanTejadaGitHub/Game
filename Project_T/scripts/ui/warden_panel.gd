@@ -275,7 +275,9 @@ static func _plural(data: TowerData, count: int) -> String:
 
 # During a drift, the first press asks for confirmation; the second sells.
 func _sell_group() -> void:
-	if not drift_director.is_build_phase() and not _confirm_sell:
+	# Settings > Gameplay "confirm before selling during a drift" (on by default).
+	var ask: bool = HeartwoodMemory.get_settings().get("confirm_sell", true)
+	if ask and not drift_director.is_build_phase() and not _confirm_sell:
 		_confirm_sell = true
 		_refresh()
 		return
