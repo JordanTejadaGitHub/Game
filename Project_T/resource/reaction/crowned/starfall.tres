@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="ReactionData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/reaction/script/reaction_data.gd" id="1_rx"]
+
+[resource]
+script = ExtResource("1_rx")
+id = &"starfall"
+display_name = "Starfall"
+statuses = Array[StringName]([&"marked", &"held", &"static"])
+description = "A Pinned hit on a charged nightmare: every Static bolt within 3 cells falls into it at once, each ×2 and a crit."
+callout_color = Color(1.000, 0.902, 0.431, 1)
+effect = &"crowned_starfall"
+effect_scale = 1.0
+cooldown = 1.5

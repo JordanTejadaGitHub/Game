@@ -35,6 +35,7 @@ signal ascended_event(tower: Tower, where: Vector2, targets: int)  # One per Asc
 signal sap_yielded(tower: Tower, dew: int)  # The Sapling / Grandmother Oak paid out at a drift's end
 signal dreamlight_ripened(tower: Tower)  # The Sapling gave a Dreamlight
 signal withered(tower: Tower)  # A leaf lost withered the Sapling's yield
+signal statics_set_off(tower: Tower, where: Vector2, count: int)  # An Ascended pulse (the Great Bell) set off Static charges
 
 @export var tower_data: TowerData
 @onready var sprite: Sprite2D = $Sprite2D
@@ -63,6 +64,8 @@ const RANK_SPEED := 0.04
 const RANK_RANGE := 0.1  # Cells
 const RANK_NAMES: Array[String] = ["", "I", "II", "III", "IV", "V", "VI", "VII"]
 const FOCUS_RANK := 3  # The rank that asks for a Focus; its bonus counts from here on
+const FOCUS_TOP_RANK := 5  # The Focus bonus stops here (Endless Rings: ranks past it only add damage)
+const STAT_TOP_RANK := 7  # Attack speed and range from ranks stop at VII (Endless Rings: VIII+ is damage only)
 enum Focus { NONE, POWER, SWIFT, REACH, DEEP }
 const FOCUS_NAMES := {Focus.POWER: "Power", Focus.SWIFT: "Swift", Focus.REACH: "Reach", Focus.DEEP: "Deep"}
 const FOCUS_TEXT := {Focus.POWER: "+8% damage", Focus.SWIFT: "+6% attack speed", Focus.REACH: "+0.2 range",
@@ -123,6 +126,10 @@ var _aura_crit := 0.0  # From a White Stag in range
 var _aura_range := 0.0  # From a Moon Moth nearby
 var _aura_damage := 0.0  # From a Grandmother Oak nearby
 var _aura_speed := 0.0
+# Grafted Harmony (a Crowned delivery rule): a Graftling touching Wardens of 2+ status families also
+# applies each of their statuses at half strength. Status id -> stacks; its two-tone glow.
+var _harmony := {}
+var _harmony_glow: Array = []
 var _lit_cells: Array[Vector2] = []  # Rootlight: path tiles it lights
 var _out: Array = []  # Hummingbirds / seeds that are away (the next attack waits for them)
 var _catch_tick := 0.0
@@ -238,7 +245,7 @@ func get_damage() -> float:
 		* (_dream_state.get_soothe_multiplier(self) if _dream_state else 1.0)
 
 func get_attacks_per_second() -> float:
-	var ranks := get_effective_rank()
+	var ranks := mini(get_effective_rank(), STAT_TOP_RANK)
 	var speed := 1.0 + RANK_SPEED * ranks + (FOCUS_SWIFT * _focus_ranks(ranks) if focus == Focus.SWIFT else 0.0)
 	var dreams := 1.0
 	if _dream_state:
@@ -248,7 +255,7 @@ func get_attacks_per_second() -> float:
 	return attack_data.attacks_per_second * speed * dreams * (1.0 + _aura_speed)
 
 func get_range_cells() -> float:
-	var ranks := get_effective_rank()
+	var ranks := mini(get_effective_rank(), STAT_TOP_RANK)
 	var reach := RANK_RANGE * ranks + (FOCUS_REACH * _focus_ranks(ranks) if focus == Focus.REACH else 0.0)
 	if _dream_state and _dream_state.has_method("get_tower_range_bonus"):
 		reach += _dream_state.get_tower_range_bonus(self)  # Solitude
@@ -268,7 +275,7 @@ func get_effective_rank() -> int:
 
 # Ranks from III up (the ones that carry the Focus bonus).
 static func _focus_ranks(ranks: int) -> int:
-	return maxi(ranks - FOCUS_RANK + 1, 0)
+	return maxi(mini(ranks, FOCUS_TOP_RANK) - FOCUS_RANK + 1, 0)  # Focus stops at V
 
 # Damage multiplier from ranks: +10% each (+ Warm Hands), + Power's +8% from rank III.
 func get_rank_damage_multiplier() -> float:
@@ -277,6 +284,17 @@ func get_rank_damage_multiplier() -> float:
 	if _dream_state and _dream_state.has_method("get_rank_damage_bonus"):
 		per_rank += _dream_state.get_rank_damage_bonus()
 	return 1.0 + per_rank * ranks + (FOCUS_POWER * _focus_ranks(ranks) if focus == Focus.POWER else 0.0)
+
+# Potency: the multiplier on this Warden's effect damage (Spored, Static bolts, clouds, pops, Reactions
+# it completes, echoes). The Warden's own (100% by default) + Dreams (Bitter Sap, Venom Bloom,
+# Nightshade) + the Deep Focus (+10% per rank III–V).
+func get_potency() -> float:
+	var total := attack_data.potency
+	if _dream_state and _dream_state.has_method("get_potency_bonus"):
+		total += _dream_state.get_potency_bonus(tower_data)
+	if focus == Focus.DEEP:
+		total += FOCUS_DEEP * _focus_ranks(get_effective_rank())
+	return total
 
 # Deep Focus: status strength and duration multiplier.
 func get_status_focus_multiplier() -> float:
@@ -446,6 +464,7 @@ func _refresh_neighbours() -> void:
 	_aura_range = 0.0
 	_aura_damage = 0.0
 	_aura_speed = 0.0
+	var harmony := {}
 	var best: Tower = null
 	var best_dps := 0.0
 	for other in _other_towers():
@@ -456,17 +475,18 @@ func _refresh_neighbours() -> void:
 		if (data.aura_damage_bonus > 0.0 or data.aura_speed_bonus > 0.0) and distance <= data.attack_range:
 			_aura_damage = maxf(_aura_damage, data.aura_damage_bonus)  # Grandmother Oak
 			_aura_speed = maxf(_aura_speed, data.aura_speed_bonus)
-		if (data.aura_damage_bonus > 0.0 or data.aura_speed_bonus > 0.0) and distance <= data.attack_range:
-			_aura_damage = maxf(_aura_damage, data.aura_damage_bonus)  # Grandmother Oak
-			_aura_speed = maxf(_aura_speed, data.aura_speed_bonus)
 		if data.range_aura_bonus > 0.0 and distance <= data.range_aura_radius:
 			_aura_range = maxf(_aura_range, data.range_aura_bonus)
+		if tower_data.attack_kind == TowerData.AttackKind.COPY and data.applies_status != &"" \
+				and absf(other.cell.x - cell.x) <= 1 and absf(other.cell.y - cell.y) <= 1:
+			harmony[data.applies_status] = maxi(harmony.get(data.applies_status, 0), data.status_stacks)
 		if tower_data.attack_kind == TowerData.AttackKind.COPY and _can_copy(other) \
 				and absf(other.cell.x - cell.x) <= 1 and absf(other.cell.y - cell.y) <= 1:
 			var dps: float = other.get_damage() * other.get_attacks_per_second()
 			if dps > best_dps:
 				best_dps = dps
 				best = other
+	_set_harmony(harmony if harmony.size() >= 2 else {})
 	if tower_data.attack_kind != TowerData.AttackKind.COPY:
 		return
 	var copied: TowerData = best.tower_data if best != null else tower_data
@@ -534,6 +554,7 @@ func _release() -> void:
 	match attack_data.attack_kind:
 		TowerData.AttackKind.PULSE:
 			var in_range := get_enemies_in_range()
+			var statics := 0
 			if attack_data.tier >= 4:
 				ascended_event.emit(self, global_position, in_range.size())
 			for enemy in in_range:
@@ -543,7 +564,10 @@ func _release() -> void:
 						enemy.global_position.x < global_position.x)
 				hit(enemy, 1.0, true)
 				_push(enemy)
-				_set_off_static(enemy)
+				if _set_off_static(enemy):
+					statics += 1
+			if statics > 0 and attack_data.tier >= 4:
+				statics_set_off.emit(self, global_position, statics)  # The Great Bell's toll
 		TowerData.AttackKind.CHAIN:
 			var target := find_target()
 			if target != null:
@@ -590,6 +614,8 @@ func hit(enemy: Node2D, soothe_multiplier: float = 1.0, is_area: bool = false, c
 	if attack_data.dew_mark:
 		enemy.bonus_dew = maxi(enemy.bonus_dew, 1)  # Before the hit, so a dispelling hit counts
 	var soothe := get_damage() * soothe_multiplier * _damage_against(enemy)
+	if _dream_state and _dream_state.has_method("get_hit_damage_multiplier"):
+		soothe *= _dream_state.get_hit_damage_multiplier()  # Venom Bloom: hits weaker, effects stronger
 	# Reactions that change a hit: Pinned (a guaranteed ×3 crit) and Shatter (×2.5, shards).
 	var reaction := Reactions.before_hit(enemy, self, is_crit)
 	is_crit = reaction.crit
@@ -748,7 +774,28 @@ func apply_status_to(enemy: Node2D, soothe: float) -> void:
 		_apply_one_status(enemy, attack_data.applies_status, attack_data.status_stacks, soothe)
 	if attack_data.extra_status != &"":
 		_apply_one_status(enemy, attack_data.extra_status, attack_data.extra_status_stacks, soothe)  # Lullaby Bell
+	for status in _harmony:  # Grafted Harmony: each neighbour family's status at half strength
+		_apply_one_status(enemy, status, maxi(_harmony[status] / 2, 1), soothe * 0.5)
 	_put_to_sleep(enemy)
+
+# Grafted Harmony turns on or off (a Graftling touching Wardens of 2+ status families), with a glow
+# whose left and right halves are tinted with two of the statuses' colours.
+func _set_harmony(harmony: Dictionary) -> void:
+	if harmony.keys() == _harmony.keys():
+		return
+	_harmony = harmony
+	for glow in _harmony_glow:
+		if is_instance_valid(glow):
+			glow.queue_free()
+	_harmony_glow.clear()
+	if _harmony.is_empty() or not is_inside_tree():
+		return
+	var ids: Array = _harmony.keys()
+	for i in 2:
+		var glow := Fx.play([&"grafted_harmony_a", &"grafted_harmony_b"][i], global_position, self, 1.0, false, 1e6)
+		if glow != null:
+			glow.modulate = EnemyStatuses.COLORS.get(ids[i], Color.WHITE)
+			_harmony_glow.append(glow)
 
 # Dreamshroom: a nightmare at full Drowsy falls asleep (once each; bosses never sleep, their cap is 3).
 func _put_to_sleep(enemy: Node2D) -> void:
@@ -783,8 +830,7 @@ func _apply_one_status(enemy: Node2D, status: StringName, stacks: int, soothe: f
 	if deep != 1.0:
 		if duration <= 0.0:
 			duration = EnemyStatuses.DEFAULT_DURATION[status]
-		duration *= deep
-		potency *= deep
+		duration *= deep  # Its strength side is Potency (get_potency)
 	var at: Vector2 = enemy.global_position
 	enemy.apply_status(status, stacks, duration, potency, max_stacks, tower_data.line, self)
 	# Guiding Light: Marked spreads to nightmares within 1 tile of the target (II: 2 tiles).
@@ -972,18 +1018,20 @@ func _plant_ring() -> void:
 # --- Bellflower family (song and sleep) -----------------------------------------------------------------
 
 # Chime Stone / Lullaby Bell: a pulse sets off a Static bolt on nightmares carrying enough charge.
-func _set_off_static(enemy: Node2D) -> void:
+# Returns whether it set one off.
+func _set_off_static(enemy: Node2D) -> bool:
 	var at := attack_data.sets_off_static_at
 	if at <= 0 or not is_instance_valid(enemy) or enemy.is_cleansed:
-		return
+		return false
 	var s: EnemyStatuses = enemy.statuses
 	if s.stacks(EnemyStatuses.STATIC) < at:
-		return
+		return false
 	var bolt := s.potency(EnemyStatuses.STATIC) * EnemyStatuses.STATIC_BOLT_MULTIPLIER
 	var source := s.source(EnemyStatuses.STATIC)
 	s.remove(EnemyStatuses.STATIC)
 	Reactions.strike_bolt(enemy, bolt, source if source else self, &"static")
 	ComboFeedback.report(&"set_off", self)  # Codex: a pulse set off Static
+	return true
 
 # Dreamcatcher: every AURA_TICK, nightmares in range that are asleep or at full Drowsy are Caught
 # (+damage taken). Great Dreamcatcher also lengthens sleep once per nightmare and marks them for
@@ -1319,6 +1367,7 @@ func _spread() -> void:
 	var copied: Array = source.statuses.snapshot()
 	var points := PackedVector2Array()
 	for i in mini(attack_data.spread_targets, others.size()):
+		others[i].statuses.gust_time = 0.5  # Storm Front: a Reaction these statuses complete reaches further
 		for status in copied:
 			others[i].apply_status(status.id, maxi(ceili(status.stacks / 2.0), 1), status.time,
 				status.potency, 0, status.line, status.source)

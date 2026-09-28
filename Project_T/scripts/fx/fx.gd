@@ -34,6 +34,15 @@ const REACTIONS := {
 	&"pinned": [&"pinned", "Pinned!"],
 	&"smother": [&"smother", "Smother!"],
 	&"lightning_rod": [&"lightning_rod", "Lightning Rod!"],
+	# Crowned Reactions: gold tier, a crown on the callout.
+	&"tempest": [&"crowned_tempest", "Tempest!"],
+	&"still_pool": [&"crowned_still_pool", "Still Pool!"],
+	&"fever_dream": [&"crowned_fever_dream", "Fever Dream!"],
+	&"starfall": [&"crowned_starfall", "Starfall!"],
+	&"avalanche": [&"crowned_avalanche", "Avalanche!"],
+	&"prismstorm": [&"crowned_prismstorm", "Prismstorm!"],
+	&"nightbloom": [&"crowned_nightbloom", "Nightbloom!"],
+	&"fairy_circle": [&"crowned_fairy_circle", "Fairy Circle!"],
 }
 # Sheets that peak small in their frame: shown bigger (screens_ui.md "Size check").
 const DEFAULT_SCALE := {&"thunderclap": 1.5, &"thunderclap_lite": 1.5, &"ignite": 1.5, &"ignite_lite": 1.5,
@@ -160,6 +169,8 @@ static func reaction(reaction: StringName, at: Vector2, parent: Node, towers: Ar
 	var colour := Color(info(effect).get("callout", "#fff0c0"))
 	if row[1] != "":
 		callout(row[1], colour, at, parent, reaction)
+		if String(effect).begins_with("crowned_"):
+			play(&"crowned_crown", at + Vector2(0, -34), parent)  # The crown mark over the callout
 	for tower in towers:
 		if tower is Node2D and is_instance_valid(tower):
 			segment(&"light_thread", tower.global_position, at, parent, THREAD_SECONDS)

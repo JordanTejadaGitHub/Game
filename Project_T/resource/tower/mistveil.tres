@@ -27,3 +27,4 @@ cloud_fog = true
 attack_texture = ExtResource("4_atk")
 attack_frame_count = 6
 attack_release_frame = 2
+potency = 1.15

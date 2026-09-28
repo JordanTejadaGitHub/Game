@@ -86,8 +86,14 @@ func _refresh() -> void:
 		if attack.min_range > 0.0:
 			range_text = "range %.1f–%.1f" % [attack.min_range, _tower.get_range_cells()]
 		lines.append("Damage %.0f · %.2f/s · %s" % [_tower.get_damage(), _tower.get_attacks_per_second(), range_text])
+		var crit_line := ""
 		if _tower.get_crit_chance() > 0.0:
-			lines.append("Crit %d%% · ×%s" % [roundi(_tower.get_crit_chance() * 100), str(attack.crit_multiplier)])
+			crit_line = "Crit %d%% · ×%s" % [roundi(_tower.get_crit_chance() * 100), str(attack.crit_multiplier)]
+		var potency := _tower.get_potency()
+		if not is_equal_approx(potency, 1.0):
+			crit_line += (" · " if crit_line != "" else "") + "Potency %d%%" % roundi(potency * 100)  # Effect damage
+		if crit_line != "":
+			lines.append(crit_line)
 		if attack.applies_status != &"":
 			lines.append("Applies %s%s" % [STATUS_NAMES.get(attack.applies_status, attack.applies_status),
 				" ×%d" % attack.status_stacks if attack.status_stacks > 1 else ""])

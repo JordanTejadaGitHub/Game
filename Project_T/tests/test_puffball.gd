@@ -66,7 +66,7 @@ func _run() -> void:
 	tower.popped.connect(func(_t: Tower, e: Node2D, stacks: int) -> void: pops.append([e, stacks]))
 	var health: int = target.health
 	tower.hit(target)  # +2 -> 11 stacks -> pop
-	var burst := int(data.pop_damage_per_stack * 11)
+	var burst := int(data.pop_damage_per_stack * 11 * data.potency)  # Pops are effects: × Potency
 	_check(pops.size() == 1 and pops[0][1] == 11, "11 stacks pop (popped signal)")
 	_check(target.health == health - data.damage - burst, "the pop deals pop_damage_per_stack × stacks to the nightmare (%d)" % (health - target.health))
 	_check(target.statuses.stacks(EnemyStatuses.SPORED) == 0, "its stacks are used up")
@@ -82,7 +82,7 @@ func _run() -> void:
 	if log != null:
 		var stats: Dictionary = log.get_tower_stats(tower)
 		var popped: float = stats.get("combos", {}).get(&"popped", 0.0)
-		_check(is_equal_approx(popped, burst * 2.0), "the DamageLog credits the pop to the Puffball as \"popped\" (%.0f)" % popped)
+		_check(absf(popped - data.pop_damage_per_stack * 11 * data.potency * 2.0) < 1.0, "the DamageLog credits the pop to the Puffball as \"popped\" (%.0f)" % popped)
 		var events: Array = target.recent_hits.filter(func(e: DamageLog.Event) -> bool: return e.combos.has(&"popped"))
 		_check(events.size() == 1 and events[0].kind == &"pop", "logged as a pop event")
 	else:

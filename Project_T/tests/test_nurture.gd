@@ -79,14 +79,14 @@ func _run() -> void:
 	placer.nurture(tower)
 	_check(tower.rank == 5 and not tower.can_nurture() and not placer.nurture(tower), "rank V is the most")
 
-	# Deep: +10% status strength and duration per rank from III.
+	# Deep: +10% Potency (effect damage) and status duration per rank from III.
 	var deep := _build(placer, map_generator, sporeling_data)
 	deep.rank = 2
 	placer.nurture(deep, Tower.Focus.DEEP)
 	var soaked := _spawn(main, deep.global_position + Vector2(64, 0))
 	deep.hit(soaked, 1.0, false, Tower.NO_CRIT)
-	_check(is_equal_approx(soaked.statuses.potency(EnemyStatuses.SPORED), deep.get_damage() * Tower.SPORE_POTENCY * 1.1),
-		"Deep: +10% status strength at rank III")
+	_check(is_equal_approx(soaked.statuses.potency(EnemyStatuses.SPORED), deep.get_damage() * Tower.SPORE_POTENCY)
+		and is_equal_approx(deep.get_potency(), 1.1), "Deep: +10% Potency at rank III (the status keeps the plain strength)")
 	_check(is_equal_approx(soaked.statuses.time_left(EnemyStatuses.SPORED), EnemyStatuses.DEFAULT_DURATION[EnemyStatuses.SPORED] * 1.1),
 		"Deep: +10% status duration at rank III")
 

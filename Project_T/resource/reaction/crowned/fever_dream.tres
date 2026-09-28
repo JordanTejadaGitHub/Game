@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="ReactionData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/reaction/script/reaction_data.gd" id="1_rx"]
+
+[resource]
+script = ExtResource("1_rx")
+id = &"fever_dream"
+display_name = "Fever Dream"
+statuses = Array[StringName]([&"held", &"spored", &"drowsy"])
+description = "Smother ends on a nightmare at full Drowsy: its remaining Spored damage lands at once, and adjacent nightmares get 3 Spored and 2 Drowsy."
+callout_color = Color(0.812, 0.831, 0.376, 1)
+effect = &"crowned_fever_dream"
+effect_scale = 1.0
+cooldown = 1.5

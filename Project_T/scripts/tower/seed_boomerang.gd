@@ -24,6 +24,8 @@ var _carried: Array = []  # Statuses picked up from the first nightmare hit
 var _hit_anything := false
 var _anim := 0.0
 var _turns_left := 0
+var _storm := {}  # Carried Storm: the Reaction this seed passed through ({id, applier, colour})
+var _stormed := {}  # Nightmares it already repeated on this throw
 
 func _init(tower: Tower, from: Vector2, direction: Vector2, length: float, damage_multiplier: float) -> void:
 	_tower = tower
@@ -46,6 +48,7 @@ func _process(delta: float) -> void:
 	var goal: Vector2 = _points[_leg + 1] if not _returning else _points[_leg]
 	var before := global_position
 	global_position = global_position.move_toward(goal, step)
+	_carry_storm(before)
 	_hit_along(before, global_position)
 	if global_position.distance_to(goal) > 0.5:
 		return
@@ -65,6 +68,23 @@ func _process(delta: float) -> void:
 		else:
 			_tower.catch_seed(_hit_anything)
 			queue_free()
+
+# Carried Storm (a delivery rule): passing through a Reaction's spot within 0.5 s, the seed carries it
+# down the rest of its line, repeating it at 50% on each nightmare it hits after (once each per throw).
+func _carry_storm(before: Vector2) -> void:
+	var tracker := ReactionTracker.find(_tower)
+	if tracker == null:
+		return
+	if _storm.is_empty():
+		var spot := tracker.spot_near(global_position, Reactions.CARRIED_REACH * Tower.MAP_GRID.cell_size.x)
+		if spot.is_empty():
+			return
+		var data := Reactions.get_data(Reactions.CROWNED_BASE.get(spot.id, spot.id))
+		_storm = {"id": spot.id, "applier": spot.applier, "colour": data.callout_color if data else Color.WHITE}
+		return
+	var trail := Fx.segment(&"carried_storm", before, global_position, tracker.get_parent(), 0.3)
+	if trail != null:
+		trail.modulate = _storm.colour  # The seed trails the Reaction's colour
 
 # Ricochet: a 90° turn toward the nearest nightmare, half the line's length.
 func _ricochet() -> bool:
@@ -104,6 +124,9 @@ func _hit_along(from: Vector2, to: Vector2) -> void:
 				and randf() < _tower.get_crit_chance(enemy) + BACKSPIN_CRIT:
 			crit = Tower.CRIT
 		_tower.hit(enemy, _damage_multiplier, false, crit)
+		if not _storm.is_empty() and not _stormed.has(id) and is_instance_valid(enemy) and not enemy.is_cleansed:
+			_stormed[id] = true
+			Reactions.carry(_storm.id, enemy, _tower, _storm.applier if is_instance_valid(_storm.applier) else null)
 		if not is_instance_valid(enemy) or enemy.is_cleansed:
 			continue
 		if dreams and dreams.has_rule(&"windborne_rain"):

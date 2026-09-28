@@ -185,6 +185,10 @@ func _process(delta: float) -> void:
 			&"spored")
 		if is_cleansed:
 			return
+	if statuses.smother_ended:
+		Reactions.on_smother_ended(self)  # Fever Dream (a Crowned Reaction)
+		if is_cleansed:
+			return
 	_bolt_flash = maxf(_bolt_flash - delta, 0.0)
 	if elite:
 		_haze_phase += ELITE_HAZE_SPEED * delta
@@ -760,6 +764,11 @@ func take_damage(amount: float, line: String = "", is_area: bool = false, is_cri
 		source: Node = null, tag: StringName = &"") -> void:
 	if is_cleansed:
 		return
+	if source is Tower and Reactions.is_effect(tag):
+		amount *= Reactions.effect_multiplier(self, source)  # Potency (and Seeping)
+		if not is_crit and Reactions.effect_crits(self, source):
+			is_crit = true  # Nightshade
+			amount *= source.attack_data.crit_multiplier
 	if is_crit:
 		_crit_flash = CRIT_FLASH_TIME
 		var world := Reactions._world(self)

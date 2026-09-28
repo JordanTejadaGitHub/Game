@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="ReactionData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/reaction/script/reaction_data.gd" id="1_rx"]
+
+[resource]
+script = ExtResource("1_rx")
+id = &"nightbloom"
+display_name = "Nightbloom"
+statuses = Array[StringName]([&"spored", &"damp", &"drowsy"])
+description = "Mushrooming at full Drowsy: the spore cloud glows violet and nothing inside can wake (bosses stay at full Drowsy)."
+callout_color = Color(0.863, 0.659, 0.718, 1)
+effect = &"crowned_nightbloom"
+effect_scale = 1.0
+cooldown = 1.5

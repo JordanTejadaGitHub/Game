@@ -345,6 +345,20 @@ accessibility, Steam achievements (milestones map to them). Acts 3–4 and all f
   `assets/effects/effects.json`: `play`, `segment`, `reaction`, `chain`, `crit`, `status_flash`;
   budget/lite and reduce_flashes inside). Never parent effects under `%EnemyContainer` (its children
   are all nightmares); use `Reactions._world(node)`.
+- **Crowned Reactions** (a Reaction on a nightmare with a third status; `Reactions.CROWNED_BASE`):
+  tempest, still_pool, fever_dream, starfall, avalanche, prismstorm, nightbloom, fairy_circle, handled
+  inside the base Reaction's code (same cooldown key, `_fire(..., links = 2, cooldown_id)`); data in
+  `resource/reaction/crowned/` (`Reactions.crowned()`; `all()` stays the base 8). Ground effects:
+  `CrownedGround` (pool, violet cloud, fairy rings). Fever Dream comes from `EnemyStatuses.smother_ended`
+  → `Reactions.on_smother_ended`. Delivery rules: Grafted Harmony (`Tower._harmony`), Storm Front
+  (`EnemyStatuses.gust_time`, set by Gust), Carried Storm (`ReactionTracker.note_spot` / `spot_near`,
+  `SeedBoomerang._carry_storm`, `Reactions.carry`). Woven rules 100–107 by rule id. `tests/test_crowned.gd`.
+- **Potency** (effect damage): `TowerData.potency` (1.0; Puffball 1.3, …), `Tower.get_potency()` (+ Dream
+  `get_potency_bonus`, + Deep Focus 10% per rank III–V; Deep no longer boosts status strength).
+  `Enemy.take_damage` multiplies damage whose tag is in `Reactions.EFFECT_TAGS` by the source's
+  Potency × Seeping (`DreamState.get_effect_bonus`); Nightshade lets those crit. Venom Bloom =
+  `get_hit_damage_multiplier` in `Tower.hit`. New effect damage must use an effect tag. Ranks: attack
+  speed/range stop at VII (`STAT_TOP_RANK`), Focus at V (`FOCUS_TOP_RANK`). `tests/test_potency.gd`.
 - Family review Wardens (tower_design.md 7e574e0): Bellflower family (`song` line; `status_every`,
   `extra_status`, `sets_off_static_at`), Dreamcatchers (`caught_bonus`: `EnemyStatuses.caught_*`,
   sleep via `EnemyStatuses.sleep_time`; shards → `DreamState.add_dreamlight_shard`), Echo Hollow

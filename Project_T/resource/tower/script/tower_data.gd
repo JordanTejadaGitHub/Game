@@ -54,6 +54,7 @@ const ASCENDED_JSON := "res://assets/towers/ascended/ascended.json"  # 128×128 
 @export_group("Crits and targeting")
 @export var crit_chance: float = 0.0  # 0.05 = 5% of hits deal crit_multiplier × damage
 @export var crit_multiplier: float = 2.0
+@export var potency: float = 1.0  # Effect damage (Spored, bolts, clouds, pops, Reactions, echoes) ×this; 1.15 = 115%
 @export var crit_bonus_vs_held: float = 0.0  # Extra crit chance against Held nightmares (Hoarfrost)
 @export var first_hit_crits: bool = false  # First hit on each nightmare always crits (Moonstone)
 @export var target_mode: TargetMode = TargetMode.FIRST
