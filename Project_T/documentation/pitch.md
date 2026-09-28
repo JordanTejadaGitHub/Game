@@ -17,12 +17,12 @@ Everything else (roguelite Dreams, evolving Wardens, the Memory Grove) supports 
 
 ## One-liner
 
-The old tagline ("…Nobody gets hurt.") no longer fits. **Proposed new tagline (B):**
+**Decided (2026-09-28): tagline B.** (The old "…Nobody gets hurt." no longer fits.)
 
 | | Line | Use |
 |---|---|---|
 | A | *A maze-building tower defense roguelite. Grow a living maze of Warden spirits and hold back the nightmares hunting a dreaming forest.* | store description, first line |
-| **B** *(proposed tagline)* | *Grow a living maze. Hold back the nightmares.* | capsule, trailer, social |
+| **B** *(tagline, chosen)* | *Grow a living maze. Hold back the nightmares.* | capsule, trailer, social |
 | C | *The forest is dreaming. Something is coming for the dream.* | trailer opener, teasers |
 
 ## Steam short description (≤ 300 characters)
@@ -94,7 +94,7 @@ Most viewers decide in the first 5 seconds. Show both hooks immediately; no logo
 
 ## Title
 
-"The Heartwood Remembers" is the working title and still fits (the story is about memory). Before
+**Title decided (2026-09-28): "Heartwood TD"** (was "The Heartwood Remembers"). Before
 the store page goes up:
 - **Check it's free:** search Steam, itch.io and the trademark databases for "Heartwood".
 - **Test it for search:** a title or subtitle that hints at the genre helps.

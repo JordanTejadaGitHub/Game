@@ -179,8 +179,15 @@ icon explains itself**: hover on PC, tap on touch, a small tooltip in plain word
 - **Resource icons**: Dew, Dreamlight, Leaves, Seeds (already exist; get tooltips too).
 - **Combos get no icons** anywhere a player hasn't discovered them yet: callouts are words, locked
   Codex entries are "???" (user decision: icons hint at the answer).
-- **Status names** are under review: keep the themed names with icons + tooltips (recommended),
-  maybe renaming Static → Charged and Damp → Soaked; or switch to generic names.
+- **Status names (decided 2026-09-28):** Damp → **Soaked**, Drowsy → **Slowed**, Spored →
+  **Poisoned**, Marked → **Exposed**, Static → **Charged**, Held → **Rooted**; Caught and Frozen
+  unchanged. Display names only: code ids and older design docs keep the internal names (table in
+  `story.md`). The Heartwood Sapling's "can't be sold or moved" term becomes **Permanent** (not
+  Rooted).
+- **Every status word is a link, everywhere** (user decision): in tooltips, Dream cards, the Warden
+  panel, nightmare info, the Codex, whispers and results, each status name is **underlined** and
+  **hover (PC) / tap (touch)** shows its definition popup (the same IconInfo text + icon), with a
+  "More in the Codex" link.
 
 ## The Codex: Glossary and Combos
 
@@ -394,7 +401,7 @@ Side: a run summary (Dreams, families, active Omen, time played).
 | Start drift / call early | Enter |
 | Pause | Space |
 | Speed | Tab (cycle) |
-| Sell selected Warden | Delete (proposed) |
+| Sell selected Warden | Delete, or the panel's Sell button. **Right-click never sells** (decided 2026-09-28; it only cancels / deselects) |
 | Grow selected Warden | G (proposed; first option) |
 | Centre on the Heartwood / on the start | H / F (proposed) |
 | Camera | WASD, mouse wheel zoom |

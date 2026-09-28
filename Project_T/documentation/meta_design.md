@@ -26,7 +26,7 @@ Revised for 100-drift runs (`run_design.md`).
 
 Examples: a loss around drift 20 ≈ **30 Seeds**; a loss at drift 60 ≈ **120**; a win ≈ **350**.
 Averaging ~280 across a player's first runs, the full tech tree (**~5,960 Seeds** as built:
-Perks ~2,090, Families ~2,470 incl. Ascension, Cards ~1,400) takes **~21 runs ≈ 30 hours**.
+Perks ~2,090, Families ~2,470 incl. Ascension, Cards ~1,400) takes **~21 runs ≈ 30 hours** (confirmed as the target, 2026-09-28).
 (Raised twice on 2026-09-27 as the Grove grew; the first unlocks still come every run, and a full
 Grove is a long-term goal next to Blight Levels.)
 

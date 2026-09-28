@@ -63,7 +63,7 @@ Each drift track is written as **synced stems** that fade in and out on bar line
 | **Title** | the Heartwood theme: slow, warm, a single cold note under it |
 | **Rest** | the act's warm base alone, calmer tempo; the exhale |
 | **Drift** | base + dread layers by intensity |
-| **Boss** | a boss theme per boss (Hollow Stag: heavy drums and bowed bass; Mire Hag: bubbling low reeds and a crooked waltz). Below half health a **warm counter-melody** enters: the player is winning |
+| **Boss** | **one theme per boss** (decided 2026-09-28) (Hollow Stag: heavy drums and bowed bass; Mire Hag: bubbling low reeds and a crooked waltz). Below half health a **warm counter-melody** enters: the player is winning |
 | **Choice screens** (family pick, Dream, Omen) | music drops to a soft pad; time has stopped |
 | **Memory Grove** | the Heartwood theme, gentle, with music box |
 | **Win / loss** | short stingers: a warm resolving chord / a slow fall into a single cold note |
@@ -467,7 +467,7 @@ Music slider controls both). Rules for it:
 - **Every sound cue has a visual one**: Phantom and Lurker approach indicators, the leak flash, the
   low-leaves screen tint (see `screens_ui.md`).
 - Separate volume sliders per bus; a **mono** option.
-- A **"Softer nightmares"** option that tones down shrieks and whispers for players who find them
+- A **"Softer nightmares"** option (decided 2026-09-28: include it) that tones down shrieks and whispers for players who find them
   too intense.
 - Boss lines and whispers are already on screen as text.
 
@@ -483,7 +483,7 @@ Music slider controls both). Rules for it:
 ## Demo shopping list
 
 **Music (~6 pieces):** title / Heartwood theme; act 1 drift (base + 3 layers); act 2 drift (base +
-3 layers); rest variant for each act; boss theme (Hollow Stag, Mire Hag, or one shared theme with a
+3 layers); rest variant for each act; boss themes (one per boss: Hollow Stag, Mire Hag, Moth Queen, Hollow Oak; not a shared theme with a
 motif per boss); win and loss stingers.
 
 **SFX (~40):** the dispel (with variants); signatures for Shade, Husk, Mourner/Sob, Phantom, Night

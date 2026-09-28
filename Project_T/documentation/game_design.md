@@ -1,4 +1,4 @@
-# Game Design — *The Heartwood Remembers*
+# Game Design — *Heartwood TD*
 
 The overview. Each section summarises a detailed doc; **the detailed doc wins** if they disagree.
 Goal: commercial release on Steam, all art original (the Foozle packs in `assets/` are

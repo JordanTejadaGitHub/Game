@@ -10,11 +10,9 @@ replayable run, then leave players wanting the Deep Wood and the Memory Grove.
 - **Now (2026-09-27, user decision): the demo runs all 100 drifts**, like the full game: the Hollow
   Stag (25), the Mire Hag (50), the Moth Queen (75), the Hollow Oak (100; `acts_3_4.md`). About
   1.5–2 hours at 1×.
-- **Trade-off to revisit before the public demo:** a 100-drift demo is the whole run minus the
-  meta, so the full game's reasons to buy become the Memory Grove, more families, Memories and the
-  true ending, Blight Levels. It also means every nightmare needs finished art and sound before the
-  demo is public. Options then: keep 100, or end the public demo at drift 50 (the old plan: the
-  Mire Hag, ~45 minutes).
+- **Decided (2026-09-28): the public demo is 100 drifts.** The full game's reasons to buy are the
+  Memory Grove, more families, Memories and the true ending, Blight Levels. Every nightmare needs
+  finished art and sound before the demo is public.
 - **Unlimited replays, no progression.** Every run starts the same way (new random map, new
   Dreams), with nothing carried between demo runs.
 - **Seeds are still earned and saved** (not spendable in the demo). They carry into the full game

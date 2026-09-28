@@ -1,4 +1,4 @@
-# Story — *The Heartwood Remembers*
+# Story — *Heartwood TD*
 
 **Revised 2026-09-27: from cozy to dark fairytale.** The enemies are no longer lost, friendly
 creatures; they're **nightmares**: evil spirits, ghosts and shadow things that want to devour the
@@ -91,6 +91,20 @@ a path of Wardens all the way out through its nightmares and ending its grief.
 
 Unchanged: Heartwood, Wardens (all names), Dew, leaves, drifts, Dreams, Seeds, Memories, Omens, the
 Blight (the dark rot nightmares carry; Blight Levels, Deeply Blighted elites).
+
+**Status display names** (decided 2026-09-28; code ids and older design docs keep the internal names):
+
+| Internal name (code, older docs) | Player-facing name |
+|---|---|
+| Damp | **Soaked** |
+| Drowsy | **Slowed** (at full stacks: **Asleep**) |
+| Spored | **Poisoned** |
+| Marked | **Exposed** |
+| Static | **Charged** |
+| Held | **Rooted** |
+| Caught, Frozen | unchanged |
+
+The game's title is **Heartwood TD** (decided 2026-09-28).
 
 ## Wardens
 
