@@ -2,16 +2,17 @@ extends RefCounted
 class_name DreamBonusView
 
 # "Dream bonuses on Wardens" (screens_ui.md, 2a93fa6): shows which Dream cards act on a Warden, for
-# Tower Code's Warden panel and build ghost. Built on DreamState's query (Roguelite Code):
-#   get_warden_dreams(data, cell, tower) -> [{card, active, conditional, run_wide, effect, reason}]
-#   get_stat_parts(data, cell, stat, tower) -> {base, final, parts: [[label, text], …]}
-# Until that query exists everything here degrades quietly (no rows, plain stat text).
+# Tower Code's Warden panel and build ghost. Built on Roguelite's DreamState API:
+#   get_card_effects(data, cell, tower) -> [{card, name, active, reason, effect, note, conditional,
+#     positional, run_wide, …}]; get_stat_parts(data, cell, stat, tower) -> {base, final, parts}
+# (Dream parts only; Nurture and Focus come from the Warden itself). If the API is missing, it shows
+# no rows and plain stat text.
 #
 #   make_rows(tower) / make_rows_at(data, cell)            "Dreams on this Warden" rows (a Control)
 #   stat_breakdown(tower, stat) / stat_breakdown_at(…)     "Damage 18 → 27: base 18 · Nurture II +20% · …"
 #   is_boosted(tower, stat)                                for the warm tint and up-arrow
 #   group_summary(towers)                                  ["Solitude: 3 of 5", …] for a multi-selection
-# Stat ids are IconInfo.STATS' (damage, attack_speed, range, crit_chance, crit_damage, potency).
+# Breakdowns cover damage, attack_speed, range and cost; other stats read as just their name.
 
 const ACTIVE_COLOR := Color(0.95, 0.93, 0.85)
 const OFF_COLOR := Color(0.55, 0.57, 0.6)
@@ -90,7 +91,34 @@ static func get_line(entry: Dictionary) -> String:
 	if not entry.get("active", false):
 		var reason: String = entry.get("reason", "")
 		return "off: " + reason if reason != "" else "off"
+	if entry.get("run_wide", false) and String(entry.get("note", "")) != "":
+		return entry.note  # A run-wide card's live value
 	return entry.get("effect", "")
+
+# --- Chips (the build ghost) ------------------------------------------------------------------------------
+
+# One compact line per card for the ghost: "Solitude ✓ +30% damage" / "Solitude ✗ Rain Lily is 1 cell
+# away" (status names filled in). Draw them with your own chip drawer.
+static func chip_text(entry: Dictionary) -> String:
+	var name: String = entry.card.display_name
+	if entry.get("active", false):
+		var effect: String = entry.get("effect", "")
+		return IconInfo.format("%s ✓ %s" % [name, effect] if effect != "" else "%s ✓" % name)
+	var reason: String = entry.get("reason", "")
+	return IconInfo.format("%s ✗ %s" % [name, reason] if reason != "" else "%s ✗" % name)
+
+# Whether a card depends on where the Warden stands (neighbours, distance, counts): the ghost's chips
+# that change as it moves. Run-wide cards don't.
+static func is_positional(entry: Dictionary) -> bool:
+	if entry.has("positional"):
+		return bool(entry.positional)
+	return entry.get("conditional", false) and not entry.get("run_wide", false)
+
+# The chips for a hypothetical Warden at `cell`: [[text, active, positional], …], active first.
+static func chips_at(data: TowerData, cell: Vector2) -> Array:
+	var dreams := get_dreams(data, cell)
+	dreams.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return _rank(a) < _rank(b))
+	return dreams.map(func(e: Dictionary) -> Array: return [chip_text(e), e.get("active", false), is_positional(e)])
 
 # --- Stats --------------------------------------------------------------------------------------------
 
@@ -159,19 +187,62 @@ static func group_summary(towers: Array) -> Array[String]:
 
 # --- The query (Roguelite's DreamState) ----------------------------------------------------------------
 
+# Roguelite's rows for `data` at `cell` (tower = the planted one, or null for the ghost):
+# DreamState.get_card_effects -> [{card, name, active, reason, effect, note, conditional, positional,
+# run_wide, damage, speed, range, cost, radius}].
 static func get_dreams(data: TowerData, cell: Vector2, tower: Tower = null) -> Array:
-	var dreams = _dream_state()  # Untyped: the query is guarded with has_method until it lands
-	if dreams == null or not dreams.has_method("get_warden_dreams"):
+	var dreams = _dream_state()  # Untyped so this still loads if the API moves
+	if dreams == null or not dreams.has_method("get_card_effects"):
 		return []
-	return dreams.get_warden_dreams(data, cell, tower).filter(func(e) -> bool:
+	return dreams.get_card_effects(data, cell, tower).filter(func(e) -> bool:
 		return e is Dictionary and e.get("card") is UpgradeData)
 
+# {base, final, parts: [[label, text], …]} for one stat. DreamState gives the Dream parts (amounts:
+# fractions for damage / speed, cells for range, Dew for cost; base = the TowerData value). For a
+# planted Warden the final value is its real getter (so it matches combat), and whatever Nurture and
+# Focus (and its court) add becomes one "Nurture II" part.
 static func get_stat_parts(data: TowerData, cell: Vector2, stat: StringName, tower: Tower = null) -> Dictionary:
-	var dreams = _dream_state()  # Untyped: the query is guarded with has_method until it lands
-	if dreams == null or not dreams.has_method("get_stat_parts"):
+	var dreams = _dream_state()
+	if dreams == null or not dreams.has_method("get_stat_parts") or not DREAM_STATS.has(stat):
 		return {}
-	var parts = dreams.get_stat_parts(data, cell, stat, tower)
-	return parts if parts is Dictionary else {}
+	var raw = dreams.get_stat_parts(data, cell, String(stat), tower)
+	if not raw is Dictionary:
+		return {}
+	var base := float(raw.get("base", 0.0))
+	var final := float(raw.get("final", base))
+	var parts: Array = []
+	for part in raw.get("parts", []):
+		parts.append([String(part.get("name", "")), _amount_text(stat, float(part.get("amount", 0.0)))])
+	if tower != null and stat != &"cost":
+		var actual := _actual(tower, stat)
+		if not is_equal_approx(actual, final) and final != 0.0:
+			var label := "Nurture %s" % Tower.rank_name(tower.rank) if tower.rank > 0 else "Other"
+			var extra := actual - final if stat == &"range" else actual / final - 1.0
+			parts.push_front([label, _amount_text(stat, extra)])
+			final = actual
+	return {"base": base, "final": final, "parts": parts}
+
+const DREAM_STATS: Array[StringName] = [&"damage", &"attack_speed", &"range", &"cost"]
+
+static func _actual(tower: Tower, stat: StringName) -> float:
+	match stat:
+		&"damage":
+			return tower.get_damage()
+		&"attack_speed":
+			return tower.get_attacks_per_second()
+		&"range":
+			return tower.get_range_cells()
+	return 0.0
+
+# "+30%" (damage, speed), "+0.5" (range, cells), "−10 Dew" (cost).
+static func _amount_text(stat: StringName, amount: float) -> String:
+	match stat:
+		&"range":
+			return "%+.1f" % amount
+		&"cost":
+			return "%+d Dew" % roundi(amount)
+		_:
+			return "%+d%%" % roundi(amount * 100.0)
 
 static func _dream_state() -> DreamState:
 	var tree := Engine.get_main_loop() as SceneTree

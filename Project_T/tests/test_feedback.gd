@@ -86,7 +86,12 @@ func _run() -> void:
 	feedback.block_new.clear()
 	feedback._card.visible = false
 	var profile_before: Dictionary = HeartwoodMemory.load_data()
-	ComboFeedback.report(&"set_off", main)  # A synergy reported from game code
+	ComboFeedback.pause_in_tests = true  # A discovery pauses the game (screens_ui.md)
+	var game_speed: GameSpeed = main.get_node("%GameSpeed")
+	game_speed.set_paused(false)
+	ComboFeedback.report(&"set_off", main, shade)  # A synergy reported from game code, on a nightmare
+	_check(game_speed.paused and feedback._buttons.visible and is_instance_valid(feedback._ring),
+		"a first discovery pauses the game, with Continue and the nightmare ringed")
 	var whispers = main.get_node("%Whispers")
 	whispers.enabled = true
 	whispers._seen = []
@@ -106,6 +111,24 @@ func _run() -> void:
 	_check(ComboFeedback.discovery_text(&"thunderclap").contains("Soaked + Charged") and ComboFeedback.discovery_text(&"thunderclap").ends_with("Added to the Codex."),
 		"the card names the ingredients and says it's in the Codex")
 	_check(feedback.block_counts.get(&"thunderclap", 0) == 2 and feedback.block_longest_chain == 3, "Reactions are counted per block")
+	feedback.continue_on()
+	_check(feedback._card.visible and feedback._card_label.text.begins_with("Combo discovered: Thunderclap") and game_speed.paused,
+		"Continue shows the next discovery, still paused")
+	feedback.continue_on()
+	_check(not feedback._card.visible and not game_speed.paused and not is_instance_valid(feedback._ring),
+		"the last Continue resumes at the previous speed")
+	# While the pause menu is open, a discovery waits; it shows once the menu closes.
+	var pause_menu = main.get_node("%PauseMenu")
+	pause_menu.open()
+	feedback._seen.erase("caught")
+	ComboFeedback.report(&"caught", main)
+	_check(not feedback._card.visible and feedback._queue == [&"caught"], "a discovery waits behind the pause menu")
+	pause_menu.close()
+	await process_frame
+	_check(feedback._card.visible and game_speed.paused, "and pauses once the menu closes")
+	feedback.continue_on()
+	_check(not game_speed.paused, "resumed")
+	ComboFeedback.pause_in_tests = false
 	report.show_report(1)
 	_check(report._label.get_parsed_text().contains("Reactions: Thunderclap 2 · longest chain: 3") and report._label.get_parsed_text().contains("New combos: Set Off, Thunderclap"),
 		"the rest report shows Reactions and new combos (%s)" % report._label.get_parsed_text())

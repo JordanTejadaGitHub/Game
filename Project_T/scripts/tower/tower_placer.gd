@@ -43,6 +43,10 @@ const MAP_GRID = preload("res://resource/map/map_grid.tres")
 const VALID_TINT := Color(0.4, 1.0, 0.5, 0.65)
 const INVALID_TINT := Color(1.0, 0.35, 0.35, 0.65)
 const NO_CELL := Vector2(-1, -1)
+const BONUS_ON := Color(0.55, 1.0, 0.6)  # A position card that would be on here
+const BONUS_OFF := Color(0.7, 0.72, 0.76)  # …off (grey, with the reason)
+const BONUS_LOST := Color(1.0, 0.45, 0.4)  # A planted Warden this placement would switch a card off for
+const CHIP_STEP := 20.0
 
 @onready var map_generator = %MapGenerator
 @onready var tower_container: Node2D = %TowerContainer
@@ -56,6 +60,9 @@ var _hover_cell := NO_CELL
 var _hover_path := PackedVector2Array()
 var _hover_valid := false  # The cell itself allows building (ignores cost)
 var _hover_affordable := false
+var _ghost_rows: Array = []  # The ghost's position cards here (DreamState.get_card_effects rows)
+var _neighbour_changes: Array = []  # [[tower, card name, now on], …]
+var _range_gain := 0.0  # Cells of range position cards would add here
 var _path_preview := Line2D.new()
 const PREVIEW_COLOR := Color(0.4, 0.9, 1.0, 0.6)  # The route preview (RouteLine: high-contrast setting)
 
@@ -73,6 +80,7 @@ func _ready() -> void:
 
 func set_build_mode(active: bool) -> void:
 	build_mode = active
+	Tower.set_badges_visible(&"build", active)  # Card badges show in build mode
 	visible = active
 	_hover_cell = NO_CELL
 	build_mode_changed.emit(active)
@@ -119,9 +127,17 @@ func _draw() -> void:
 	draw_set_transform(Tower.footprint_centre(_hover_cell, tower_data.footprint))
 	var tint := VALID_TINT if _hover_valid and _hover_affordable else INVALID_TINT
 	if tower_data.can_attack:
-		var range_pixels := Tower.range_to_pixels(Tower.get_range_for(tower_data, dream_state))
+		# The range this Warden would really have on this cell (position cards included). A gain shows
+		# as the base range faint and the boosted range bright.
+		var base_pixels := Tower.range_to_pixels(Tower.get_range_for(tower_data, dream_state))
+		var range_pixels := Tower.range_to_pixels(Tower.get_range_for(tower_data, dream_state) + _range_gain)
 		draw_circle(Vector2.ZERO, range_pixels, Color(tint, 0.12))
-		draw_arc(Vector2.ZERO, range_pixels, 0.0, TAU, 64, Color(tint, 0.5), 2.0)
+		if _range_gain > 0.0:
+			draw_arc(Vector2.ZERO, base_pixels, 0.0, TAU, 64, Color(tint, 0.22), 1.5)
+			draw_arc(Vector2.ZERO, range_pixels, 0.0, TAU, 64, Color(BONUS_ON, 0.85), 2.5)
+		else:
+			draw_arc(Vector2.ZERO, range_pixels, 0.0, TAU, 64, Color(tint, 0.5), 2.0)
+	_draw_card_areas()
 	if tower_data.texture == null:
 		Tower.draw_placeholder(self, tint)
 	else:
@@ -139,8 +155,99 @@ func _draw() -> void:
 		tag += "  ·  nightmare here"
 	elif growth != 0:
 		tag += "  ·  %+d path" % growth  # "Wardens are walls": how much longer the walk gets
+	var broken := get_neighbour_changes().filter(func(change: Array) -> bool: return not change[2])
+	if not broken.is_empty():
+		# Placing a Warden should never silently weaken others.
+		var names := {}
+		for change in broken:
+			names[change[1]] = names.get(change[1], 0) + 1
+		for name in names:
+			tag += "  ·  breaks %s on %d Warden%s" % [name, names[name], "" if names[name] == 1 else "s"]
 	WorldLabel.draw_tag(self, 0.0, MAP_GRID.cell_size.y / 2.0 + 18.0, tag,
 		WorldLabel.cost_color(_hover_affordable))
+	# Bonus chips above the ghost: each position card, on (green, what it gives) or off (grey, why).
+	var y := -MAP_GRID.cell_size.y / 2.0 - 10.0 + minf(tower_data.sprite_offset.y, 0.0)
+	for chip in get_ghost_chips():
+		WorldLabel.draw_tag(self, 0.0, y, chip[0], BONUS_ON if chip[1] else BONUS_OFF)
+		y -= CHIP_STEP
+	# Planted Wardens this placement would switch a card off (red) or on (green) for.
+	for change in get_neighbour_changes():
+		var tower: Tower = change[0]
+		if not is_instance_valid(tower):
+			continue
+		draw_set_transform(to_local(tower.global_position))
+		WorldLabel.draw_tag(self, 0.0, -MAP_GRID.cell_size.y / 2.0 - 6.0,
+			("gains %s" if change[2] else "loses %s") % change[1], BONUS_ON if change[2] else BONUS_LOST)
+	draw_set_transform(Vector2.ZERO)
+
+# --- Dream bonuses on the ghost (screens_ui.md "Dream bonuses on Wardens") ---
+
+# Chips for the ghost's position cards: [[text, on], …] ("Solitude ✓ +30% damage, +0.5 range" /
+# "Solitude ✗ Rain Lily is 1 cell away").
+func get_ghost_chips() -> Array:
+	var chips := []
+	for row in _ghost_rows:
+		if row.active:
+			chips.append(["%s ✓ %s" % [row.name, row.get("effect", "")], true])
+		else:
+			chips.append(["%s ✗ %s" % [row.name, row.get("reason", "")], false])
+	return chips
+
+# Planted Wardens whose position cards this placement would turn off or on: [[tower, card name, on]].
+func get_neighbour_changes() -> Array:
+	return _neighbour_changes
+
+# Recomputes the ghost's card rows, its range gain and the neighbour check for the hovered cell (only
+# when the cell or the maze changes; the query walks the whole card list).
+func _update_dream_preview() -> void:
+	_ghost_rows.clear()
+	_neighbour_changes.clear()
+	_range_gain = 0.0
+	if _hover_cell == NO_CELL or not MAP_GRID.is_within_bounds(_hover_cell) \
+			or not dream_state.has_method("get_card_effects"):
+		return
+	for row in dream_state.get_card_effects(tower_data, _hover_cell):
+		if row.get("positional", false):
+			_ghost_rows.append(row)
+	_range_gain = maxf(dream_state.get_range_bonus_at(tower_data, _hover_cell) - dream_state.get_range_bonus(tower_data), 0.0)
+	var reach: float = dream_state.max_card_radius()
+	if reach <= 0.0:
+		return
+	var ghost := {"cell": _hover_cell, "data": tower_data}
+	for tower in tower_container.get_children():
+		if not tower is Tower or tower.is_queued_for_deletion() \
+				or maxf(absf(tower.cell.x - _hover_cell.x), absf(tower.cell.y - _hover_cell.y)) > reach:
+			continue
+		var before := _active_positional(dream_state.get_card_effects(tower.tower_data, tower.cell, tower))
+		var after := _active_positional(dream_state.get_card_effects(tower.tower_data, tower.cell, tower, ghost))
+		for name in before:
+			if not after.has(name):
+				_neighbour_changes.append([tower, name, false])
+		for name in after:
+			if not before.has(name):
+				_neighbour_changes.append([tower, name, true])
+
+static func _active_positional(rows: Array) -> Array:
+	var names := []
+	for row in rows:
+		if row.get("positional", false) and row.active:
+			names.append(row.name)
+	return names
+
+# A dashed outline of each owned position card's area around the ghost (Solitude's 2 cells), so
+# "within 2 cells" is something the player can see. Cells count as a square (Chebyshev).
+func _draw_card_areas() -> void:
+	var done := {}
+	for row in _ghost_rows:
+		var radius: float = row.get("radius", 0.0)
+		if radius <= 0.0 or done.has(radius):
+			continue
+		done[radius] = true
+		var half := (radius + 0.5) * MAP_GRID.cell_size.x
+		var corners := [Vector2(-half, -half), Vector2(half, -half), Vector2(half, half), Vector2(-half, half)]
+		var colour := Color(BONUS_ON if row.active else BONUS_OFF, 0.7)
+		for i in 4:
+			draw_dashed_line(corners[i], corners[(i + 1) % 4], colour, 2.0, 8.0)
 
 # How many tiles longer creatures would walk if the ghost were built (0 if it can't be).
 func get_hover_path_growth() -> int:
@@ -166,6 +273,7 @@ func _refresh_hover() -> void:
 	_hover_valid = not _hover_path.is_empty() and not _cells_occupied(_footprint(_hover_cell)) \
 		and not is_unique_placed(tower_data)
 	_hover_affordable = run_state.can_afford(get_cost(null, _hover_cell))
+	_update_dream_preview()
 	queue_redraw()
 
 # Memory Wardens are one per run: true if `data` is one and it's already on the map.

@@ -120,6 +120,7 @@ func set_selection(towers: Array) -> void:
 func _selection_updated() -> void:
 	selection = selection.filter(func(t: Tower) -> bool: return is_instance_valid(t) and not t.is_queued_for_deletion())
 	selected = selection[0] if not selection.is_empty() else null
+	Tower.set_badges_visible(&"selection", not selection.is_empty())  # Card badges show while Wardens are selected
 	tower_selected.emit(selected)
 	selection_changed.emit(selection)
 	queue_redraw()

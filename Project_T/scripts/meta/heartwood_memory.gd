@@ -50,6 +50,7 @@ static func defaults() -> Dictionary:
 			"window_size": 0,  # Index into SettingsPanel.WINDOW_SIZES (windowed mode)
 			"high_contrast_route": false,  # RouteLine: bright, thick route previews
 			"confirm_sell": true,  # Warden panel: confirm "Sell N" while nightmares walk
+			"pause_on_combo": true,  # A first-ever combo discovery pauses the game (off: a 5 s slide-in card)
 			"health_bars": 0,  # Nightmare health bars: 0 once hit, 1 always (read by Enemy via Fx.setting)
 			"blight_outline": false,  # Accessibility: outline Deeply Blighted nightmares
 			"softer_nightmares": false,  # Accessibility (audio_direction.md): quieter nightmare shrieks and whispers

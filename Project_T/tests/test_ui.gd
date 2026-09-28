@@ -108,6 +108,23 @@ func _run() -> void:
 	var some_card: UpgradeData = main.get_node("%DreamState").pool[0]
 	_check(DreamBonusView.get_line({"card": some_card, "active": false, "reason": "Rain Lily is 1 cell away"}) == "off: Rain Lily is 1 cell away"
 		and DreamBonusView.get_line({"card": some_card, "active": true, "effect": "+30% damage"}) == "+30% damage", "row lines: the effect, or why it's off")
+	_check(DreamBonusView.chip_text({"card": some_card, "active": true, "effect": "+30% damage"}) == some_card.display_name + " ✓ +30% damage"
+		and DreamBonusView.chip_text({"card": some_card, "active": false, "reason": "Rain Lily is 1 cell away"}).ends_with("✗ Rain Lily is 1 cell away"),
+		"ghost chips: ✓ with the effect, ✗ with the reason")
+	_check(DreamBonusView.is_positional({"conditional": true}) and not DreamBonusView.is_positional({"conditional": true, "run_wide": true}),
+		"positional chips are the conditional, non-run-wide ones")
+	# With Roguelite's API: a planted Warden's breakdown ends on its real value (what combat uses).
+	var bonus_placer: TowerPlacer = main.get_node("%TowerPlacer")
+	main.get_node("%RunState").dew = 500
+	bonus_placer.tower_data = load("res://resource/tower/sprout.tres")
+	var bonus_cell := _free_cell(main.get_node("%MapGenerator"))
+	if bonus_placer._try_build(bonus_cell):
+		var planted: Tower = main.get_node("%TowerSeller").get_tower_at(bonus_cell)
+		var parts := DreamBonusView.get_stat_parts(planted.tower_data, planted.cell, &"damage", planted)
+		_check(not parts.is_empty() and is_equal_approx(parts.final, planted.get_damage())
+			and is_equal_approx(parts.base, planted.tower_data.damage), "the damage breakdown runs from base to the real value (%s)" % [parts])
+		_check(DreamBonusView.make_rows(planted) is Control, "rows build for a planted Warden")
+		main.get_node("%TowerSeller").sell(bonus_cell)
 	var off_row := DreamBonusView._row({"card": some_card, "active": false, "reason": "not alone"})
 	_check(off_row.get_child(0).modulate.a < 1.0, "an off card is greyed")
 	off_row.free()

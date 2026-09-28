@@ -386,6 +386,13 @@ accessibility, Steam achievements (milestones map to them). Acts 3–4 and all f
   +20% per status the nightmare carries, adding with Seeping. `PathCloud` damage is tagged "cloud" (an effect). Venom Bloom =
   `get_hit_damage_multiplier` in `Tower.hit`. New effect damage must use an effect tag. Ranks: attack
   speed/range stop at VII (`STAT_TOP_RANK`), Focus at V (`FOCUS_TOP_RANK`). `tests/test_potency.gd`.
+- Dream bonuses on Wardens (screens_ui.md): every card effect comes from `DreamState.get_card_effects(data,
+  cell, tower, ghost)` rows (Roguelite's `DreamEffects`). Build ghost (`TowerPlacer._update_dream_preview`,
+  on hover change): real range with position cards (faint base ring + bright boosted ring), chips
+  `get_ghost_chips()`, `get_neighbour_changes()` (planted Wardens a placement switches a card off/on for,
+  "breaks Solitude on 2 Wardens"), dashed square of each card's radius. Card badges at a Warden's base
+  (`Tower.get_badge_cards`, `Tower.set_badges_visible(reason, on)`: build mode, selection). Warden panel
+  uses Main's `DreamBonusView`. Sprouts list only picked families (`Tower.grow_options`). `tests/test_dream_ghost.gd`.
 - The Eldest (Legendary): `Tower.get_max_rank()` asks `DreamState.get_max_rank_for(tower)`; rank VI needs
   `make_eldest` first (Warden panel asks; `TowerPlacer.nurture` refuses while `needs_eldest_confirm`), crown
   drawn in `Tower._draw`. Court: `Tower.get_court_ranks()` adds to per-rank damage/speed/range. Hit rules in

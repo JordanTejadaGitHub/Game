@@ -75,6 +75,43 @@ static func grow_options(dreams: DreamState, data: TowerData) -> Array:
 
 const NO_FAMILY_YET := "Pick a family after the first drift to grow Sprouts."
 
+const GROUP := &"wardens"
+const BADGE_COLORS: Array[Color] = [Color(0.85, 0.85, 0.8), Color(0.55, 0.9, 0.6), Color(0.5, 0.75, 1.0), Color(1.0, 0.8, 0.35)]  # Common … Legendary
+
+# Card badges (screens_ui.md "Dream bonuses on Wardens", On the map): a Warden with an active position
+# card shows a small badge at its base while in build mode or while Wardens are selected.
+static var _badge_reasons := {}
+var _badge_cards: Array = []  # Its active position cards (rows), refreshed with its neighbours
+
+static func set_badges_visible(reason: StringName, on: bool) -> void:
+	if on == _badge_reasons.has(reason):
+		return
+	if on:
+		_badge_reasons[reason] = true
+	else:
+		_badge_reasons.erase(reason)
+	var tree := Engine.get_main_loop() as SceneTree
+	if tree:
+		for tower in tree.get_nodes_in_group(GROUP):
+			tower.queue_redraw()
+
+static func badges_visible() -> bool:
+	return not _badge_reasons.is_empty()
+
+# The active position cards on this Warden ([] = no badge).
+func get_badge_cards() -> Array:
+	return _badge_cards
+
+func _refresh_badge() -> void:
+	var cards := []
+	if _dream_state and _dream_state.has_method("get_card_effects") and is_inside_tree():
+		for row in _dream_state.get_card_effects(tower_data, cell, self):
+			if row.get("positional", false) and row.active:
+				cards.append(row)
+	if cards.size() != _badge_cards.size():
+		queue_redraw()
+	_badge_cards = cards
+
 # "IV", "XII"…: rank names past VII (Endless Rings) are worked out.
 static func rank_name(value: int) -> String:
 	if value < RANK_NAMES.size():
@@ -181,6 +218,7 @@ var _crit_dew_given := 0
 
 func _ready() -> void:
 	_dream_state = get_tree().get_first_node_in_group(DreamState.GROUP) as DreamState
+	add_to_group(GROUP)
 	_apply_data()
 	# Start each tower at a random point in its idle loop so neighbours don't breathe in sync.
 	_anim_time = randf() * tower_data.frame_count / tower_data.animation_fps
@@ -548,6 +586,7 @@ func _refresh_neighbours() -> void:
 				best = other
 	_aura_count = aura_count
 	_set_harmony(harmony if harmony.size() >= 2 else {})
+	_refresh_badge()
 	if tower_data.attack_kind != TowerData.AttackKind.COPY:
 		return
 	var copied: TowerData = best.tower_data if best != null else tower_data
@@ -1680,6 +1719,17 @@ func _draw() -> void:
 			from = to  # Midsummer's beam carries on from the target to the one behind it
 	if attack_data != null and attack_data.attack_kind == TowerData.AttackKind.AURA:
 		draw_arc(Vector2.ZERO, get_range_pixels(), 0.0, TAU, 64, Color(0.85, 0.9, 1.0, 0.12), 3.0)
+	if badges_visible() and not _badge_cards.is_empty():
+		# A small card badge at the base per active position card (its rarity's colour): Solitude is on.
+		var x := -(_badge_cards.size() - 1) * 7.0
+		for row in _badge_cards:
+			var rarity: int = row.card.rarity if row.get("card") != null else 0
+			var colour: Color = BADGE_COLORS[clampi(rarity, 0, BADGE_COLORS.size() - 1)]
+			var at := Vector2(x, MAP_GRID.cell_size.y / 2.0 - 7.0)
+			var diamond := PackedVector2Array([at + Vector2(0, -5), at + Vector2(5, 0), at + Vector2(0, 5), at + Vector2(-5, 0)])
+			draw_colored_polygon(diamond, colour)
+			draw_polyline(diamond + PackedVector2Array([diamond[0]]), Color(0.1, 0.08, 0.05, 0.8), 1.0)
+			x += 14.0
 	if _dream_state and _dream_state.has_method("is_eldest") and _dream_state.is_eldest(self):
 		# The Eldest: a small crown of three golden rings over the slab.
 		var top := Vector2(0, -MAP_GRID.cell_size.y * 0.5 - 4.0) + tower_data.sprite_offset

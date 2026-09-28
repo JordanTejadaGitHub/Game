@@ -66,6 +66,7 @@ func _ready() -> void:
 	_toggle(gameplay, "Auto-drift on by default", "auto_drift")
 	_choice(gameplay, "Damage numbers", "damage_numbers", ["Off", "Big hits", "All"])
 	_toggle(gameplay, "Confirm selling several Wardens during a drift", "confirm_sell", true)
+	_toggle(gameplay, "Pause on new combos", ComboFeedback.PAUSE_SETTING, true)
 	_choice(gameplay, "Health bars", "health_bars", ["On hit", "Always"], 0)
 
 	var box := _tab("Accessibility")

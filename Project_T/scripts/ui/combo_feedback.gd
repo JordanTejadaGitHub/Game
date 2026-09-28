@@ -2,9 +2,11 @@ extends Control
 class_name ComboFeedback
 
 # Combos in play (screens_ui.md "The Codex: Glossary and Combos"): the 7 synergies and the 8
-# Reactions (CodexData.combos()). Discovered the first time each one fires, ever: a card slides in
-# at the top for ~5 s ("Combo discovered: Thunderclap", ingredients, one line, "Added to the Codex"),
-# without pausing; several queue; tapping the card opens its Codex entry. Saved in the profile
+# Reactions (CodexData.combos()). Discovered the first time each one fires, ever: the game pauses on
+# the moment (the nightmare ringed) with a card near the top ("Combo discovered: Thunderclap",
+# ingredients, one line, "Added to the Codex"; Continue / Open in Codex); several queue behind one
+# pause, and it waits while a choice screen or the pause menu is open. With the Gameplay setting
+# "Pause on new combos" off, the old 5 s slide-in card instead. Saved in the profile
 # (`combos_seen`, lifetime `combo_counts`; also in the demo; never tests or developer runs), with the
 # "all_combos" milestone once all are found. Also counts Reactions per block for the rest report
 # (Fx shows their callouts). Sources: DamageLog combo tags (conducted, popped, fog), ReactionTracker
@@ -36,16 +38,24 @@ var _card_label := Label.new()
 var _card_id: StringName = &""
 var _card_tween: Tween
 var _crown_corners := Control.new()  # Gold corners, shown on Crowned discovery cards
+var _buttons := HBoxContainer.new()  # Continue / Open in Codex (pausing cards)
+var _pausing := false  # A pausing discovery is holding the game
+var _was_paused := false  # Whether the game was paused before it
+var _enemies := {}  # Combo id -> the nightmare it was discovered on (for the ring)
+var _ring: Node2D = null
+
+const PAUSE_SETTING := "pause_on_combo"
 
 const CROWN_ACCENT := preload("res://assets/effects/crowned_card_accent.png")
 
-# Reports combo `id` (e.g. &"set_off") firing, from anywhere in the run's scene.
-static func report(id: StringName, near: Node) -> void:
+# Reports combo `id` (e.g. &"set_off") firing, from anywhere in the run's scene; pass the nightmare
+# it happened on, if known, so a first discovery can ring it.
+static func report(id: StringName, near: Node, enemy: Node2D = null) -> void:
 	if near == null or not near.is_inside_tree():
 		return
 	var feedback := near.get_tree().get_first_node_in_group(GROUP) as ComboFeedback
 	if feedback != null:
-		feedback.record(id)
+		feedback.record(id, enemy)
 
 # Discovered combo ids (from the profile; the old reactions_seen counts too).
 static func load_seen() -> Array:
@@ -70,7 +80,21 @@ func _ready() -> void:
 	_card_label.custom_minimum_size = Vector2(380, 0)
 	_card_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_card_label.add_theme_font_size_override("font_size", 16)
-	_card.add_child(_card_label)
+	var card_box := VBoxContainer.new()
+	card_box.add_theme_constant_override("separation", 10)
+	_card.add_child(card_box)
+	card_box.add_child(_card_label)
+	# Pausing cards: Continue (also Space / Enter / a tap on the card) and Open in Codex.
+	_buttons.alignment = BoxContainer.ALIGNMENT_CENTER
+	_buttons.add_theme_constant_override("separation", 12)
+	card_box.add_child(_buttons)
+	for pair in [["Continue", continue_on], ["Open in Codex", _continue_to_codex]]:
+		var button := Button.new()
+		button.text = pair[0]
+		button.focus_mode = Control.FOCUS_NONE
+		button.custom_minimum_size = Vector2(150, 48)
+		button.pressed.connect(pair[1])
+		_buttons.add_child(button)
 	# Crowned Reactions get gold corners (effects.json crowned_card_accent: the top-left corner,
 	# mirrored for the others).
 	_crown_corners.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -84,9 +108,12 @@ func _ready() -> void:
 		piece.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		piece.set_anchors_and_offsets_preset(corner[0], Control.PRESET_MODE_MINSIZE)
 		_crown_corners.add_child(piece)
-	_card.gui_input.connect(func(event: InputEvent) -> void:  # Tap: open the entry in the Codex
-		if event is InputEventMouseButton and event.pressed:
-			_open_in_codex(_card_id))
+	_card.gui_input.connect(func(event: InputEvent) -> void:
+		if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
+			if _pausing:
+				continue_on()  # A tap on a pausing card continues
+			else:
+				_open_in_codex(_card_id))  # A tap on the slide-in card opens its entry
 	add_child(_card)
 	drift_director.rest_ended.connect(func(_block: int) -> void:
 		block_counts.clear()
@@ -113,15 +140,15 @@ func _hook(tracker: ReactionTracker) -> void:
 func _on_damage(event: DamageLog.Event) -> void:
 	for tag in event.combos:
 		if DAMAGE_TAGS.has(tag):
-			record(tag)
+			record(tag, event.enemy)
 
-func _on_reaction(id: StringName, _enemy: Node2D, chain: int, _towers: Array) -> void:
+func _on_reaction(id: StringName, enemy: Node2D, chain: int, _towers: Array) -> void:
 	block_counts[id] = block_counts.get(id, 0) + 1
 	block_longest_chain = maxi(block_longest_chain, chain)
-	record(id)
+	record(id, enemy)
 
-# One firing of combo `id`: counted, and discovered if it's the first time ever.
-func record(id: StringName) -> void:
+# One firing of combo `id` (on `enemy`, if known): counted, and discovered if it's the first time ever.
+func record(id: StringName, enemy: Node2D = null) -> void:
 	run_counts[id] = run_counts.get(id, 0) + 1
 	_unsaved[id] = _unsaved.get(id, 0) + 1
 	if _seen.has(String(id)) or CodexData.get_any(id).is_empty():
@@ -131,8 +158,101 @@ func record(id: StringName) -> void:
 	_remember_discovery()
 	combo_discovered.emit(id)
 	_queue.append(id)
+	_enemies[id] = enemy
 	if not _card.visible:
+		_try_show()
+
+# --- Pausing discoveries (screens_ui.md "Combos (discovered in play)") -----------------------------
+# A discovery freezes the world on the moment (the nightmare ringed), with the card near the top and
+# the map visible. Continue resumes at the previous speed (already paused stays paused); several
+# queue behind one pause. While a choice screen or the pause menu is open, it waits. The Gameplay
+# setting "Pause on new combos" (pause_on_combo, default on) off = the old 5 s slide-in card.
+
+# Headless test scripts never pause on a discovery (a drift would stall mid-test) unless a test
+# turns it on with `pause_in_tests`.
+static var pause_in_tests := false
+
+static func pause_setting() -> bool:
+	if OS.get_cmdline_args().has("--script"):
+		return pause_in_tests
+	return bool(HeartwoodMemory.get_settings().get(PAUSE_SETTING, true))
+
+func _try_show() -> void:
+	if _queue.is_empty() or _card.visible:
+		return
+	if pause_setting() and _blocked():
+		return  # _process tries again once the screen closes
+	_show_next()
+
+# A choice screen, the pause menu or the results are up: the discovery waits.
+func _blocked() -> bool:
+	for path in ["%PauseMenu", "%FamilyPickScreen", "%RememberScreen", "%ResultsScreen"]:
+		var node := get_node_or_null(path) as Control
+		if node != null and node.visible:
+			return true
+	var dreams = get_node_or_null("%DreamState")
+	if dreams != null and dreams.is_offering():
+		return true
+	var omens := get_tree().get_first_node_in_group(&"omens")
+	return omens != null and omens.has_method("is_offering") and omens.is_offering()
+
+func _process(_delta: float) -> void:
+	if not _queue.is_empty() and not _card.visible:
+		_try_show()
+
+func _unhandled_input(event: InputEvent) -> void:
+	if not (_card.visible and _pausing):
+		return
+	if event.is_action_pressed("pause_game") or event.is_action_pressed("start_drift") or event.is_action_pressed("ui_accept"):
+		continue_on()
+		get_viewport().set_input_as_handled()
+
+# Continue: the next queued discovery, or the end of the pause (back to the previous speed).
+func continue_on() -> void:
+	_clear_highlight()
+	if not _queue.is_empty():
 		_show_next()
+		return
+	_card.visible = false
+	if _pausing:
+		_pausing = false
+		var speed = get_node_or_null("%GameSpeed")
+		if speed != null:
+			speed.set_paused(_was_paused)
+
+func _continue_to_codex() -> void:
+	var id := _card_id
+	_queue.clear()  # Straight to the book; the rest are in it too
+	continue_on()
+	_open_in_codex(id)
+
+func _highlight(enemy: Node2D) -> void:
+	_clear_highlight()
+	if is_instance_valid(enemy) and enemy.is_inside_tree():
+		_ring = ComboRing.new()
+		enemy.add_child(_ring)
+
+func _clear_highlight() -> void:
+	if is_instance_valid(_ring):
+		_ring.queue_free()
+	_ring = null
+
+# A pulsing ring round the nightmare a combo was discovered on (runs while the tree is paused).
+class ComboRing extends Node2D:
+	var _time := 0.0
+
+	func _ready() -> void:
+		process_mode = Node.PROCESS_MODE_ALWAYS
+		z_index = 20
+
+	func _process(delta: float) -> void:
+		_time += delta
+		queue_redraw()
+
+	func _draw() -> void:
+		var pulse := 0.5 + 0.5 * sin(_time * 4.0)
+		draw_arc(Vector2.ZERO, 26.0 + pulse * 4.0, 0.0, TAU, 40, Color(1.0, 0.95, 0.6, 0.9), 3.0, true)
+		draw_arc(Vector2.ZERO, 36.0 + pulse * 6.0, 0.0, TAU, 40, Color(1.0, 0.95, 0.6, 0.35 * (1.0 - pulse)), 2.0, true)
 
 static func discovery_text(id: StringName) -> String:
 	var combo := CodexData.get_any(id)
@@ -155,6 +275,17 @@ func _show_next() -> void:
 	var reaction := Reactions.get_data(_card_id)
 	_card_label.add_theme_color_override("font_color", reaction.callout_color if reaction != null else Color(0.9, 1.0, 0.8))
 	_crown_corners.visible = CodexData.CROWNED.has(_card_id)
+	var pausing := pause_setting()
+	_buttons.visible = pausing
+	if pausing and not _pausing:  # The first of a queue freezes the world; the last Continue thaws it
+		_pausing = true
+		var speed = get_node_or_null("%GameSpeed")
+		if speed != null:
+			_was_paused = speed.paused
+			speed.set_paused(true)
+	if pausing:
+		_highlight(_enemies.get(_card_id))
+	_enemies.erase(_card_id)
 	_card.visible = true
 	_card.reset_size()
 	_card.offset_left = -_card.size.x / 2.0
@@ -164,7 +295,9 @@ func _show_next() -> void:
 		_card_tween.kill()
 	_card_tween = create_tween()
 	_card_tween.tween_property(_card, "modulate:a", 1.0, 0.3)
-	_card_tween.tween_interval(CARD_TIME)
+	if pausing:
+		return  # Stays until Continue
+	_card_tween.tween_interval(CARD_TIME)  # Setting off: the old slide-in card, for 5 s
 	_card_tween.tween_property(_card, "modulate:a", 0.0, 0.5)
 	_card_tween.tween_callback(_show_next)
 

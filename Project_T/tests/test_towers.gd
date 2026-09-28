@@ -90,7 +90,7 @@ func _run() -> void:
 	var far = _spawn_still(spawner, leaf_bug, rootling.global_position + Vector2(1000, 0))
 	await process_frame
 	rootling._release()
-	var damage := rootling.tower_data.damage
+	var damage := int(rootling.get_damage())  # Its real damage (an Acorn built beside it adds its aura; fractions carry)
 	_check(near_a.health == near_a.max_health - damage and near_b.health == near_b.max_health - damage,
 		"Rootling's pulse soothes every creature in range")
 	_check(far.health == far.max_health, "Rootling's pulse doesn't reach creatures out of range")
