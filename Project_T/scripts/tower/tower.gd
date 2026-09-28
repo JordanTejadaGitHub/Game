@@ -167,6 +167,8 @@ var focus: Focus = Focus.NONE:
 var attack_data: TowerData
 # Who snipers shoot at (the player can change it in the Warden panel).
 var target_mode: TowerData.TargetMode = TowerData.TargetMode.FIRST
+var target_chosen := false  # The player set target_mode (kept through growing, saved with the run)
+var is_selected := false  # In TowerSeller's selection (the targeting pip shows)
 
 var _cooldown := 0.0  # Seconds until the tower can attack again
 var _anim_time := 0.0
@@ -244,8 +246,8 @@ func _ready() -> void:
 func _apply_data() -> void:
 	attack_data = tower_data
 	_damage_share = 1.0
-	if not tower_data.has_target_priority:
-		target_mode = tower_data.target_mode
+	if not target_chosen:
+		target_mode = tower_data.target_mode  # A mode the player chose is kept through growing
 	_attack_time = -1.0
 	_stop_beam()
 	sprite.offset = tower_data.sprite_offset
@@ -1659,7 +1661,7 @@ func find_targets(count: int) -> Array:
 	if count <= 1:
 		var one := find_target()
 		return [one] if one != null else []
-	var mode := target_mode if tower_data.has_target_priority else attack_data.target_mode
+	var mode := get_target_mode()
 	var ranked := get_enemies_in_range()
 	ranked.sort_custom(func(a: Node2D, b: Node2D) -> bool: return _target_score(a, mode) > _target_score(b, mode))
 	return ranked.slice(0, count)
@@ -1979,6 +1981,7 @@ func _draw() -> void:
 	if attack_data != null and attack_data.attack_kind == TowerData.AttackKind.AURA:
 		draw_arc(Vector2.ZERO, get_range_pixels(), 0.0, TAU, 64, Color(0.85, 0.9, 1.0, 0.12), 3.0)
 	_draw_badges()
+	_draw_target_pip()
 	if _dream_state and _dream_state.has_method("is_eldest") and _dream_state.is_eldest(self):
 		# The Eldest: a small crown of three golden rings over the slab.
 		var top := Vector2(0, -MAP_GRID.cell_size.y * 0.5 - 4.0) + tower_data.sprite_offset
@@ -2126,10 +2129,54 @@ static func draw_focus_icon(canvas: CanvasItem, at: Vector2, which: Focus, size:
 func get_range_pixels() -> float:
 	return range_to_pixels(get_range_cells())
 
+# Targeting (screens_ui.md "Targeting"): the three modes the player picks from, in the switch's order.
+const PLAYER_TARGET_MODES: Array[TowerData.TargetMode] = [TowerData.TargetMode.FIRST,
+	TowerData.TargetMode.STRONGEST, TowerData.TargetMode.CLOSEST]
+const TARGET_MODE_NAMES := {TowerData.TargetMode.FIRST: "First", TowerData.TargetMode.STRONGEST: "Strongest",
+	TowerData.TargetMode.CLOSEST: "Closest", TowerData.TargetMode.BOSSES: "Bosses",
+	TowerData.TargetMode.FASTEST: "Fastest"}
+# Attacks that don't pick a target: pulses, auras, traps / rings, spins, patrols and lit tiles.
+const UNTARGETED_KINDS := [TowerData.AttackKind.PULSE, TowerData.AttackKind.AURA, TowerData.AttackKind.TRAP,
+	TowerData.AttackKind.SPIN, TowerData.AttackKind.PATROL, TowerData.AttackKind.LIGHT]
+
+# The mode this Warden aims with: the player's choice, else its data's (Wren's Nest: fastest).
+func get_target_mode() -> TowerData.TargetMode:
+	return target_mode if target_chosen else attack_data.target_mode
+
+# Whether the Targeting switch shows for this Warden (Thornwalls and untargeted attacks: no).
+func can_choose_target() -> bool:
+	return tower_data.can_attack and attack_data != null and not UNTARGETED_KINDS.has(attack_data.attack_kind)
+
+func set_target_mode(mode: TowerData.TargetMode) -> void:
+	target_mode = mode
+	target_chosen = true
+	queue_redraw()
+
+# T: First -> Strongest -> Closest -> First.
+func cycle_target_mode() -> void:
+	var index := PLAYER_TARGET_MODES.find(get_target_mode())
+	set_target_mode(PLAYER_TARGET_MODES[(index + 1) % PLAYER_TARGET_MODES.size()])
+
+# A tiny pip at the tile's top-right while selected: an arrow (First), a filled diamond (Strongest)
+# or a ring (Closest).
+func _draw_target_pip() -> void:
+	if not (is_selected and can_choose_target()):
+		return
+	var at := Vector2(MAP_GRID.cell_size.x / 2.0 - 8.0, -MAP_GRID.cell_size.y / 2.0 + 8.0)
+	draw_circle(at, 6.0, Color(0.1, 0.08, 0.05, 0.85))
+	var ink := Color(1.0, 0.92, 0.7)
+	match get_target_mode():
+		TowerData.TargetMode.STRONGEST:
+			draw_colored_polygon(PackedVector2Array([at + Vector2(0, -3.5), at + Vector2(3.5, 0), at + Vector2(0, 3.5), at + Vector2(-3.5, 0)]), ink)
+		TowerData.TargetMode.CLOSEST:
+			draw_arc(at, 3.0, 0.0, TAU, 12, ink, 1.5)
+		_:
+			draw_colored_polygon(PackedVector2Array([at + Vector2(-2.5, -3.5), at + Vector2(3.5, 0), at + Vector2(-2.5, 3.5)]), ink)
+
 # The nightmare in range this Warden should attack, or null. Most Wardens pick the one furthest
 # along the path; snipers let the player choose, and Wren's Nest hunts the fastest.
 func find_target() -> Node2D:
-	var mode := target_mode if tower_data.has_target_priority else attack_data.target_mode
+	var mode := get_target_mode()
 	if kin_share(&"flock_together", "b") > 0.0:
 		mode = TowerData.TargetMode.FASTEST  # Flock Together: hunts the fastest nightmare
 	var best: Node2D = null
@@ -2142,7 +2189,7 @@ func find_target() -> Node2D:
 	return best
 
 # How much this Warden wants to shoot `enemy` under `mode` (higher = sooner).
-static func _target_score(enemy: Node2D, mode: TowerData.TargetMode) -> float:
+func _target_score(enemy: Node2D, mode: TowerData.TargetMode) -> float:
 	match mode:
 		TowerData.TargetMode.STRONGEST:
 			return enemy.health
@@ -2150,6 +2197,8 @@ static func _target_score(enemy: Node2D, mode: TowerData.TargetMode) -> float:
 			return -enemy.get_remaining_distance() + (1e9 if enemy.enemy_data.is_boss else 0.0)
 		TowerData.TargetMode.FASTEST:
 			return enemy.get_move_speed()
+		TowerData.TargetMode.CLOSEST:
+			return -global_position.distance_squared_to(enemy.global_position)
 	return -enemy.get_remaining_distance()
 
 # Blighted enemies within attack range (and outside a sniper's minimum range).
