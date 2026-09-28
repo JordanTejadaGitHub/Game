@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "full_moon"
+display_name = "Full Moon"
+description = "All Wardens +10% crit chance. Crit chance above 100% becomes crit damage (each 1% over = +1% crit multiplier)."
+rarity = 3
+kind = 3
+tags = Array[String](["crit"])
+max_stacks = 1
+min_act = 2
+rule_id = &"full_moon"
+in_start_pool = false

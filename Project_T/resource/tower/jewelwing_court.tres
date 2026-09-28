@@ -1,0 +1,34 @@
+[gd_resource type="Resource" script_class="TowerData" load_steps=6 format=3]
+
+[ext_resource type="Script" path="res://resource/tower/script/tower_data.gd" id="1_tdata"]
+[ext_resource type="Texture2D" path="res://assets/towers/jewelwing_court.png" id="2_tex"]
+[ext_resource type="Texture2D" path="res://assets/towers/projectiles/hummingbird.png" id="3_proj"]
+[ext_resource type="Texture2D" path="res://assets/towers/jewelwing_court_attack.png" id="4_atk"]
+[ext_resource type="Resource" path="res://resource/tower/dawnwing.tres" id="asc_1"]
+
+[resource]
+script = ExtResource("1_tdata")
+display_name = "Jewelwing Court"
+description = "Three hummingbirds, eight pecks each; every sixth peck is a guaranteed crit. They spread out or all focus the strongest."
+cost = 0
+texture = ExtResource("2_tex")
+frame_count = 8
+line = "wing"
+tier = 3
+buildable_directly = false
+evolve_cost = 200
+attack_kind = 14
+attack_range = 3.5
+damage = 9
+attacks_per_second = 0.667
+pecks = 8
+peck_time = 1.0
+peck_birds = 3
+flurry_every = 6
+has_bird_toggle = true
+crit_chance = 0.05
+projectile_texture = ExtResource("3_proj")
+attack_texture = ExtResource("4_atk")
+attack_frame_count = 6
+attack_release_frame = 2
+evolves_to = Array[Resource]([ExtResource("asc_1")])

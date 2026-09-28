@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="UnlockData" format=3]
+
+[ext_resource type="Script" path="res://resource/meta/script/unlock_data.gd" id="1_unlock"]
+
+[resource]
+script = ExtResource("1_unlock")
+id = "rich_dew"
+display_name = "Rich Dew"
+description = "+5% Dew from dispelled nightmares per level (+15% at most)."
+root = 2
+costs = Array[int]([30, 60, 90])
+order = 2
+icon = 1
+requires_all = Array[String](["morning_stores"])
+dew_gain = 0.05

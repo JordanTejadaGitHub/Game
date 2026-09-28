@@ -1,0 +1,30 @@
+[gd_resource type="Resource" script_class="TowerData" load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://resource/tower/script/tower_data.gd" id="1_tdata"]
+[ext_resource type="Texture2D" path="res://assets/towers/pinwheel.png" id="2_tex"]
+[ext_resource type="Texture2D" path="res://assets/towers/pinwheel_attack.png" id="4_atk"]
+[ext_resource type="Resource" path="res://resource/tower/windmill.tres" id="ev_1"]
+
+[resource]
+script = ExtResource("1_tdata")
+display_name = "Pinwheel"
+description = "Spinning blades hit every nightmare on the 8 tiles around it; stronger the more of them are path."
+cost = 0
+texture = ExtResource("2_tex")
+frame_count = 8
+line = "wind"
+tier = 2
+buildable_directly = false
+evolve_cost = 80
+attack_kind = 10
+attack_range = 1.5
+damage = 15
+attacks_per_second = 2.0
+spin_free_path_tiles = 2
+spin_bonus = 0.2
+spin_bonus_max = 1.0
+crit_chance = 0.05
+attack_texture = ExtResource("4_atk")
+attack_frame_count = 6
+attack_release_frame = 2
+evolves_to = Array[Resource]([ExtResource("ev_1")])

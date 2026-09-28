@@ -1,0 +1,2138 @@
+{
+ "size": [
+  1280,
+  960
+ ],
+ "nodes": [
+  {
+   "id": "morning_stores",
+   "section": "perks",
+   "name": "Morning Stores",
+   "pos": [
+    452,
+    490
+   ],
+   "parent": null,
+   "from": [
+    389,
+    542
+   ],
+   "levels": 3,
+   "start": false,
+   "legendary": false,
+   "branch": {
+    "offset": [
+     353,
+     425
+    ],
+    "frame_size": [
+     134,
+     153
+    ],
+    "frames": 5
+   }
+  },
+  {
+   "id": "rich_dew",
+   "section": "perks",
+   "name": "Rich Dew",
+   "pos": [
+    446,
+    432
+   ],
+   "parent": "morning_stores",
+   "from": null,
+   "levels": 3,
+   "start": false,
+   "legendary": false,
+   "branch": {
+    "offset": [
+     403,
+     396
+    ],
+    "frame_size": [
+     86,
+     131
+    ],
+    "frames": 5
+   }
+  },
+  {
+   "id": "rested_roots",
+   "section": "perks",
+   "name": "Rested Roots",
+   "pos": [
+    383,
+    336
+   ],
+   "parent": "rich_dew",
+   "from": null,
+   "levels": 2,
+   "start": false,
+   "legendary": false,
+   "branch": {
+    "offset": [
+     349,
+     302
+    ],
+    "frame_size": [
+     132,
+     165
+    ],
+    "frames": 5
+   }
+  },
+  {
+   "id": "sprout_bed",
+   "section": "perks",
+   "name": "Sprout Bed",
+   "pos": [
+    520,
+    454
+   ],
+   "parent": "morning_stores",
+   "from": null,
+   "levels": 1,
+   "start": false,
+   "legendary": false,
+   "branch": {
+    "offset": [
+     416,
+     418
+    ],
+    "frame_size": [
+     139,
+     108
+    ],
+    "frames": 5
+   }
+  },
+  {
+   "id": "seed_pouch",
+   "section": "perks",
+   "name": "Seed Pouch",
+   "pos": [
+    480,
+    534
+   ],
+   "parent": null,
+   "from": [
+    389,
+    542
+   ],
+   "levels": 1,
+   "start": false,
+   "legendary": false,
+   "branch": {
+    "offset": [
+     349,
+     488
+    ],
+    "frame_size": [
+     170,
+     94
+    ],
+    "frames": 5
+   }
+  },
+  {
+   "id": "clear_sight",
+   "section": "perks",
+   "name": "Clear Sight",
+   "pos": [
+    380,
+    411
+   ],
+   "parent": null,
+   "from": [
+    389,
+    542
+   ],
+   "levels": 1,
+   "start": false,
+   "legendary": false,
+   "branch": {
+    "offset": [
+     312,
+     377
+    ],
+    "frame_size": [
+     113,
+     201
+    ],
+    "frames": 5
+   }
+  },
+  {
+   "id": "kindling",
+   "section": "perks",
+   "name": "Kindling",
+   "pos": [
+    289,
+    442
+   ],
+   "parent": null,
+   "from": [
+    346,
+    523
+   ],
+   "levels": 1,
+   "start": false,
+   "legendary": false,
+   "branch": {
+    "offset": [
+     255,
+     408
+    ],
+    "frame_size": [
+     126,
+     150
+    ],
+    "frames": 5
+   }
+  },
+  {
+   "id": "early_bloom",
+   "section": "perks",
+   "name": "Early Bloom",
+   "pos": [
+    378,
+    495
+   ],
+   "parent": null,
+   "from": [
+    350,
+    526
+   ],
+   "levels": 1,
+   "start": false,
+   "legendary": false,
+   "branch": {
+    "offset": [
+     314,
+     459
+    ],
+    "frame_size": [
+     100,
+     103
+    ],
+    "frames": 5
+   }
+  },
+  {
+   "id": "early_light",
+   "section": "perks",
+   "name": "Early Light",
+   "pos": [
+    307,
+    515
+   ],
+   "parent": "early_bloom",
+   "from": null,
+   "levels": 1,
+   "start": false,
+   "legendary": false,
+   "branch": {
+    "offset": [
+     271,
+     458
+    ],
+    "frame_size": [
+     144,
+     126
+    ],
+    "frames": 5
+   }
+  },
+  {
+   "id": "first_care",
+   "section": "perks",
+   "name": "First Care",
+   "pos": [
+    317,
+    366
+   ],
+   "parent": null,
+   "from": [
+    262,
+    478
+   ],
+   "levels": 1,
+   "start": false,
+   "legendary": false,
+   "branch": {
+    "offset": [
+     225,
+     332
+    ],
+    "frame_size": [
+     129,
+     183
+    ],
+    "frames": 5
+   }
+  },
+  {
+   "id": "deep_taproot",
+   "section": "perks",
+   "name": "Deep Taproot",
+   "pos": [
+    239,
+    495
+   ],
+   "parent": null,
+   "from": [
+    230,
+    458
+   ],
+   "levels": 3,
+   "start": false,
+   "legendary": false,
+   "branch": {
+    "offset": [
+     164,
+     418
+    ],
+    "frame_size": [
+     115,
+     117
+    ],
+    "frames": 5
+   }
+  },
+  {
+   "id": "second_thoughts",
+   "section": "perks",
+   "name": "Second Thoughts",
+   "pos": [
+    179,
+    381
+   ],
+   "parent": null,
+   "from": [
+    176,
+    406
+   ],
+   "levels": 2,
+   "start": false,
+   "legendary": false,
+   "branch": {
+    "offset": [
+     139,
+     344
+    ],
+    "frame_size": [
+     77,
+     99
+    ],
+    "frames": 5
+   }
+  },
+  {
+   "id": "let_go",
+   "section": "perks",
+   "name": "Let Go",
+   "pos": [
+    297,
+    306
+   ],
+   "parent": "second_thoughts",
+   "from": null,
+   "levels": 1,
+   "start": false,
+   "legendary": false,
+   "branch": {
+    "offset": [
+     144,
+     269
+    ],
+    "frame_size": [
+     184,
+     147
+    ],
+    "frames": 5
+   }
+  },
+  {
+   "id": "wider_dreams",
+   "section": "perks",
+   "name": "Wider Dreams",
+   "pos": [
+    267,
+    342
+   ],
+   "parent": "second_thoughts",
+   "from": null,
+   "levels": 1,
+   "start": false,
+   "legendary": false,
+   "branch": {
+    "offset": [
+     145,
+     300
+    ],
+    "frame_size": [
+     154,
+     115
+    ],
+    "frames": 5
+   }
+  },
+  {
+   "id": "omen_reader",
+   "section": "perks",
+   "name": "Omen Reader",
+   "pos": [
+    197,
+    441
+   ],
+   "parent": null,
+   "from": [
+    150,
+    390
+   ],
+   "levels": 1,
+   "start": false,
+   "legendary": false,
+   "branch": {
+    "offset": [
+     114,
+     354
+    ],
+    "frame_size": [
+     150,
+     123
+    ],
+    "frames": 5
+   }
+  },
+  {
+   "id": "slot_2",
+   "section": "perks",
+   "name": "Loadout slot 2",
+   "pos": [
+    229,
+    357
+   ],
+   "parent": null,
+   "from": [
+    346,
+    523
+   ],
+   "levels": 1,
+   "start": false,
+   "legendary": false,
+   "branch": {
+    "offset": [
+     192,
+     321
+    ],
+    "frame_size": [
+     193,
+     241
+    ],
+    "frames": 5
+   }
+  },
+  {
+   "id": "slot_3",
+   "section": "perks",
+   "name": "Loadout slot 3",
+   "pos": [
+    239,
+    271
+   ],
+   "parent": "slot_2",
+   "from": null,
+   "levels": 1,
+   "start": false,
+   "legendary": false,
+   "branch": {
+    "offset": [
+     183,
+     235
+    ],
+    "frame_size": [
+     113,
+     159
+    ],
+    "frames": 5
+   }
+  },
+  {
+   "id": "slot_4",
+   "section": "perks",
+   "name": "Loadout slot 4",
+   "pos": [
+    303,
+    223
+   ],
+   "parent": "slot_3",
+   "from": null,
+   "levels": 1,
+   "start": false,
+   "legendary": false,
+   "branch": {
+    "offset": [
+     204,
+     188
+    ],
+    "frame_size": [
+     133,
+     118
+    ],
+    "frames": 5
+   }
+  },
+  {
+   "id": "slot_5",
+   "section": "perks",
+   "name": "Loadout slot 5",
+   "pos": [
+    381,
+    196
+   ],
+   "parent": "slot_4",
+   "from": null,
+   "levels": 1,
+   "start": false,
+   "legendary": false,
+   "branch": {
+    "offset": [
+     268,
+     161
+    ],
+    "frame_size": [
+     147,
+     97
+    ],
+    "frames": 5
+   }
+  },
+  {
+   "id": "sporeling",
+   "section": "families",
+   "name": "Sporeling",
+   "pos": [
+    621,
+    505
+   ],
+   "parent": null,
+   "from": [
+    644,
+    505
+   ],
+   "levels": 1,
+   "start": true,
+   "legendary": false,
+   "branch": {
+    "offset": [
+     583,
+     465
+    ],
+    "frame_size": [
+     99,
+     80
+    ],
+    "frames": 5
+   }
+  },
+  {
+   "id": "sporeling_final",
+   "section": "families",
+   "name": "Sporeling: final forms",
+   "pos": [
+    588,
+    487
+   ],
+   "parent": "sporeling",
+   "from": null,
+   "levels": 1,
+   "start": false,
+   "legendary": false,
+   "branch": {
+    "offset": [
+     550,
+     449
+    ],
+    "frame_size": [
+     109,
+     94
+    ],
+    "frames": 5
+   }
+  },
+  {
+   "id": "sporeling_hidden",
+   "section": "families",
+   "name": "Sporeling: hidden branch",
+   "pos": [
+    559,
+    462
+   ],
+   "parent": "sporeling_final",
+   "from": null,
+   "levels": 1,
+   "start": false,
+   "legendary": false,
+   "branch": {
+    "offset": [
+     524,
+     427
+    ],
+    "frame_size": [
+     99,
+     95
+    ],
+    "frames": 5
+   }
+  },
+  {
+   "id": "sporeling_ascension",
+   "section": "families",
+   "name": "Sporeling: Ascension",
+   "pos": [
+    519,
+    502
+   ],
+   "parent": "sporeling_hidden",
+   "from": null,
+   "levels": 1,
+   "start": false,
+   "legendary": false,
+   "branch": {
+    "offset": [
+     484,
+     427
+    ],
+    "frame_size": [
+     110,
+     109
+    ],
+    "frames": 5
+   }
+  },
+  {
+   "id": "firefly_jar",
+   "section": "families",
+   "name": "Firefly Jar",
+   "pos": [
+    671,
+    484
+   ],
+   "parent": null,
+   "from": [
+    644,
+    505
+   ],
+   "levels": 1,
+   "start": true,
+   "legendary": false,
+   "branch": {
+    "offset": [
+     605,
+     445
+    ],
+    "frame_size": [
+     105,
+     99
+    ],
+    "frames": 5
+   }
+  },
+  {
+   "id": "firefly_jar_final",
+   "section": "families",
+   "name": "Firefly Jar: final forms",
+   "pos": [
+    720,
+    473
+   ],
+   "parent": "firefly_jar",
+   "from": null,
+   "levels": 1,
+   "start": false,
+   "legendary": false,
+   "branch": {
+    "offset": [
+     635,
+     420
+    ],
+    "frame_size": [
+     120,
+     100
+    ],
+    "frames": 5
+   }
+  },
+  {
+   "id": "firefly_jar_hidden",
+   "section": "families",
+   "name": "Firefly Jar: hidden branch",
+   "pos": [
+    730,
+    412
+   ],
+   "parent": "firefly_jar_final",
+   "from": null,
+   "levels": 1,
+   "start": false,
+   "legendary": false,
+   "branch": {
+    "offset": [
+     682,
+     379
+    ],
+    "frame_size": [
+     85,
+     128
+    ],
+    "frames": 5
+   }
+  },
+  {
+   "id": "firefly_jar_ascension",
+   "section": "families",
+   "name": "Firefly Jar: Ascension",
+   "pos": [
+    793,
+    383
+   ],
+   "parent": "firefly_jar_hidden",
+   "from": null,
+   "levels": 1,
+   "start": false,
+   "legendary": false,
+   "branch": {
+    "offset": [
+     696,
+     349
+    ],
+    "frame_size": [
+     130,
+     97
+    ],
+    "frames": 5
+   }
+  },
+  {
+   "id": "dewdrop",
+   "section": "families",
+   "name": "Dewdrop",
+   "pos": [
+    621,
+    442
+   ],
+   "parent": null,
+   "from": [
+    643.5847688041198,
+    504
+   ],
+   "levels": 1,
+   "start": true,
+   "legendary": false,
+   "branch": {
+    "offset": [
+     583,
+     405
+    ],
+    "frame_size": [
+     100,
+     137
+    ],
+    "frames": 5
+   }
+  },
+  {
+   "id": "dewdrop_final",
+   "section": "families",
+   "name": "Dewdrop: final forms",
+   "pos": [
+    564,
+    406
+   ],
+   "parent": "dewdrop",
+   "from": null,
+   "levels": 1,
+   "start": false,
+   "legendary": false,
+   "branch": {
+    "offset": [
+     528,
+     369
+    ],
+    "frame_size": [
+     130,
+     110
+    ],
+    "frames": 5
+   }
+  },
+  {
+   "id": "dewdrop_hidden",
+   "section": "families",
+   "name": "Dewdrop: hidden branch",
+   "pos": [
+    507,
+    381
+   ],
+   "parent": "dewdrop_final",
+   "from": null,
+   "levels": 1,
+   "start": false,
+   "legendary": false,
+   "branch": {
+    "offset": [
+     472,
+     344
+    ],
+    "frame_size": [
+     128,
+     98
+    ],
+    "frames": 5
+   }
+  },
+  {
+   "id": "dewdrop_ascension",
+   "section": "families",
+   "name": "Dewdrop: Ascension",
+   "pos": [
+    454,
+    356
+   ],
+   "parent": "dewdrop_hidden",
+   "from": null,
+   "levels": 1,
+   "start": false,
+   "legendary": false,
+   "branch": {
+    "offset": [
+     420,
+     321
+    ],
+    "frame_size": [
+     122,
+     95
+    ],
+    "frames": 5
+   }
+  },
+  {
+   "id": "pebbling",
+   "section": "families",
+   "name": "Pebbling",
+   "pos": [
+    674,
+    416
+   ],
+   "parent": null,
+   "from": [
+    643.981631831007,
+    454
+   ],
+   "levels": 1,
+   "start": false,
+   "legendary": false,
+   "branch": {
+    "offset": [
+     607,
+     380
+    ],
+    "frame_size": [
+     103,
+     110
+    ],
+    "frames": 5
+   }
+  },
+  {
+   "id": "pebbling_final",
+   "section": "families",
+   "name": "Pebbling: final forms",
+   "pos": [
+    718,
+    359
+   ],
+   "parent": "pebbling",
+   "from": null,
+   "levels": 1,
+   "start": false,
+   "legendary": false,
+   "branch": {
+    "offset": [
+     637,
+     323
+    ],
+    "frame_size": [
+     118,
+     130
+    ],
+    "frames": 5
+   }
+  },
+  {
+   "id": "pebbling_hidden",
+   "section": "families",
+   "name": "Pebbling: hidden branch",
+   "pos": [
+    765,
+    331
+   ],
+   "parent": "pebbling_final",
+   "from": null,
+   "levels": 1,
+   "start": false,
+   "legendary": false,
+   "branch": {
+    "offset": [
+     684,
+     293
+    ],
+    "frame_size": [
+     151,
+     100
+    ],
+    "frames": 5
+   }
+  },
+  {
+   "id": "pebbling_ascension",
+   "section": "families",
+   "name": "Pebbling: Ascension",
+   "pos": [
+    838,
+    269
+   ],
+   "parent": "pebbling_hidden",
+   "from": null,
+   "levels": 1,
+   "start": false,
+   "legendary": false,
+   "branch": {
+    "offset": [
+     731,
+     236
+    ],
+    "frame_size": [
+     141,
+     129
+    ],
+    "frames": 5
+   }
+  },
+  {
+   "id": "rootling",
+   "section": "families",
+   "name": "Rootling",
+   "pos": [
+    619,
+    382
+   ],
+   "parent": null,
+   "from": [
+    643.1808802280922,
+    404
+   ],
+   "levels": 1,
+   "start": false,
+   "legendary": false,
+   "branch": {
+    "offset": [
+     581,
+     344
+    ],
+    "frame_size": [
+     101,
+     98
+    ],
+    "frames": 5
+   }
+  },
+  {
+   "id": "rootling_final",
+   "section": "families",
+   "name": "Rootling: final forms",
+   "pos": [
+    570,
+    336
+   ],
+   "parent": "rootling",
+   "from": null,
+   "levels": 1,
+   "start": false,
+   "legendary": false,
+   "branch": {
+    "offset": [
+     533,
+     298
+    ],
+    "frame_size": [
+     124,
+     122
+    ],
+    "frames": 5
+   }
+  },
+  {
+   "id": "rootling_hidden",
+   "section": "families",
+   "name": "Rootling: hidden branch",
+   "pos": [
+    502,
+    298
+   ],
+   "parent": "rootling_final",
+   "from": null,
+   "levels": 1,
+   "start": false,
+   "legendary": false,
+   "branch": {
+    "offset": [
+     466,
+     264
+    ],
+    "frame_size": [
+     139,
+     121
+    ],
+    "frames": 5
+   }
+  },
+  {
+   "id": "rootling_ascension",
+   "section": "families",
+   "name": "Rootling: Ascension",
+   "pos": [
+    421,
+    278
+   ],
+   "parent": "rootling_hidden",
+   "from": null,
+   "levels": 1,
+   "start": false,
+   "legendary": false,
+   "branch": {
+    "offset": [
+     386,
+     239
+    ],
+    "frame_size": [
+     152,
+     95
+    ],
+    "frames": 5
+   }
+  },
+  {
+   "id": "bellflower",
+   "section": "families",
+   "name": "Bellflower",
+   "pos": [
+    662,
+    349
+   ],
+   "parent": null,
+   "from": [
+    641.4233679656043,
+    354
+   ],
+   "levels": 1,
+   "start": false,
+   "legendary": false,
+   "branch": {
+    "offset": [
+     602,
+     310
+    ],
+    "frame_size": [
+     99,
+     84
+    ],
+    "frames": 5
+   }
+  },
+  {
+   "id": "bellflower_final",
+   "section": "families",
+   "name": "Bellflower: final forms",
+   "pos": [
+    695,
+    294
+   ],
+   "parent": "bellflower",
+   "from": null,
+   "levels": 1,
+   "start": false,
+   "legendary": false,
+   "branch": {
+    "offset": [
+     627,
+     260
+    ],
+    "frame_size": [
+     108,
+     124
+    ],
+    "frames": 5
+   }
+  },
+  {
+   "id": "bellflower_hidden",
+   "section": "families",
+   "name": "Bellflower: hidden branch",
+   "pos": [
+    746,
+    268
+   ],
+   "parent": "bellflower_final",
+   "from": null,
+   "levels": 1,
+   "start": false,
+   "legendary": false,
+   "branch": {
+    "offset": [
+     659,
+     197
+    ],
+    "frame_size": [
+     122,
+     133
+    ],
+    "frames": 5
+   }
+  },
+  {
+   "id": "bellflower_ascension",
+   "section": "families",
+   "name": "Bellflower: Ascension",
+   "pos": [
+    790,
+    232
+   ],
+   "parent": "bellflower_hidden",
+   "from": null,
+   "levels": 1,
+   "start": false,
+   "legendary": false,
+   "branch": {
+    "offset": [
+     712,
+     184
+    ],
+    "frame_size": [
+     111,
+     118
+    ],
+    "frames": 5
+   }
+  },
+  {
+   "id": "acorn",
+   "section": "families",
+   "name": "Acorn",
+   "pos": [
+    621,
+    302
+   ],
+   "parent": null,
+   "from": [
+    639.237728148498,
+    304
+   ],
+   "levels": 1,
+   "start": false,
+   "legendary": false,
+   "branch": {
+    "offset": [
+     558,
+     260
+    ],
+    "frame_size": [
+     122,
+     89
+    ],
+    "frames": 5
+   }
+  },
+  {
+   "id": "acorn_final",
+   "section": "families",
+   "name": "Acorn: final forms",
+   "pos": [
+    570,
+    257
+   ],
+   "parent": "acorn",
+   "from": null,
+   "levels": 1,
+   "start": false,
+   "legendary": false,
+   "branch": {
+    "offset": [
+     536,
+     222
+    ],
+    "frame_size": [
+     120,
+     115
+    ],
+    "frames": 5
+   }
+  },
+  {
+   "id": "acorn_hidden",
+   "section": "families",
+   "name": "Acorn: hidden branch",
+   "pos": [
+    516,
+    223
+   ],
+   "parent": "acorn_final",
+   "from": null,
+   "levels": 1,
+   "start": false,
+   "legendary": false,
+   "branch": {
+    "offset": [
+     464,
+     159
+    ],
+    "frame_size": [
+     143,
+     135
+    ],
+    "frames": 5
+   }
+  },
+  {
+   "id": "acorn_ascension",
+   "section": "families",
+   "name": "Acorn: Ascension",
+   "pos": [
+    454,
+    221
+   ],
+   "parent": "acorn_hidden",
+   "from": null,
+   "levels": 1,
+   "start": false,
+   "legendary": false,
+   "branch": {
+    "offset": [
+     421,
+     161
+    ],
+    "frame_size": [
+     129,
+     96
+    ],
+    "frames": 5
+   }
+  },
+  {
+   "id": "nestling",
+   "section": "families",
+   "name": "Nestling",
+   "pos": [
+    658,
+    266
+   ],
+   "parent": null,
+   "from": [
+    645,
+    485
+   ],
+   "levels": 1,
+   "start": false,
+   "legendary": false,
+   "branch": {
+    "offset": [
+     604,
+     235
+    ],
+    "frame_size": [
+     89,
+     285
+    ],
+    "frames": 5
+   }
+  },
+  {
+   "id": "nestling_final",
+   "section": "families",
+   "name": "Nestling: final forms",
+   "pos": [
+    734,
+    199
+   ],
+   "parent": "nestling",
+   "from": null,
+   "levels": 1,
+   "start": false,
+   "legendary": false,
+   "branch": {
+    "offset": [
+     621,
+     164
+    ],
+    "frame_size": [
+     150,
+     139
+    ],
+    "frames": 5
+   }
+  },
+  {
+   "id": "nestling_hidden",
+   "section": "families",
+   "name": "Nestling: hidden branch",
+   "pos": [
+    695,
+    149
+   ],
+   "parent": "nestling_final",
+   "from": null,
+   "levels": 1,
+   "start": false,
+   "legendary": false,
+   "branch": {
+    "offset": [
+     661,
+     114
+    ],
+    "frame_size": [
+     108,
+     120
+    ],
+    "frames": 5
+   }
+  },
+  {
+   "id": "nestling_ascension",
+   "section": "families",
+   "name": "Nestling: Ascension",
+   "pos": [
+    790,
+    158
+   ],
+   "parent": "nestling_hidden",
+   "from": null,
+   "levels": 1,
+   "start": false,
+   "legendary": false,
+   "branch": {
+    "offset": [
+     660,
+     92
+    ],
+    "frame_size": [
+     164,
+     113
+    ],
+    "frames": 5
+   }
+  },
+  {
+   "id": "whirligig",
+   "section": "families",
+   "name": "Whirligig",
+   "pos": [
+    628,
+    268
+   ],
+   "parent": null,
+   "from": [
+    645,
+    485
+   ],
+   "levels": 1,
+   "start": false,
+   "legendary": false,
+   "branch": {
+    "offset": [
+     591,
+     238
+    ],
+    "frame_size": [
+     135,
+     283
+    ],
+    "frames": 5
+   }
+  },
+  {
+   "id": "whirligig_final",
+   "section": "families",
+   "name": "Whirligig: final forms",
+   "pos": [
+    624,
+    143
+   ],
+   "parent": "whirligig",
+   "from": null,
+   "levels": 1,
+   "start": false,
+   "legendary": false,
+   "branch": {
+    "offset": [
+     562,
+     108
+    ],
+    "frame_size": [
+     112,
+     197
+    ],
+    "frames": 5
+   }
+  },
+  {
+   "id": "whirligig_hidden",
+   "section": "families",
+   "name": "Whirligig: hidden branch",
+   "pos": [
+    540,
+    156
+   ],
+   "parent": "whirligig_final",
+   "from": null,
+   "levels": 1,
+   "start": false,
+   "legendary": false,
+   "branch": {
+    "offset": [
+     504,
+     106
+    ],
+    "frame_size": [
+     157,
+     128
+    ],
+    "frames": 5
+   }
+  },
+  {
+   "id": "whirligig_ascension",
+   "section": "families",
+   "name": "Whirligig: Ascension",
+   "pos": [
+    459,
+    161
+   ],
+   "parent": "whirligig_hidden",
+   "from": null,
+   "levels": 1,
+   "start": false,
+   "legendary": false,
+   "branch": {
+    "offset": [
+     426,
+     118
+    ],
+    "frame_size": [
+     148,
+     86
+    ],
+    "frames": 5
+   }
+  },
+  {
+   "id": "storm_lore",
+   "section": "cards",
+   "name": "Storm Lore",
+   "pos": [
+    782,
+    499
+   ],
+   "parent": null,
+   "from": [
+    878,
+    546
+   ],
+   "levels": 1,
+   "start": false,
+   "legendary": false,
+   "branch": {
+    "offset": [
+     746,
+     461
+    ],
+    "frame_size": [
+     170,
+     123
+    ],
+    "frames": 5
+   }
+  },
+  {
+   "id": "guiding_lights",
+   "section": "cards",
+   "name": "Guiding Lights",
+   "pos": [
+    862,
+    406
+   ],
+   "parent": "storm_lore",
+   "from": null,
+   "levels": 1,
+   "start": false,
+   "legendary": false,
+   "branch": {
+    "offset": [
+     746,
+     358
+    ],
+    "frame_size": [
+     151,
+     177
+    ],
+    "frames": 5
+   }
+  },
+  {
+   "id": "spore_lore",
+   "section": "cards",
+   "name": "Spore Lore",
+   "pos": [
+    852,
+    469
+   ],
+   "parent": null,
+   "from": [
+    878,
+    546
+   ],
+   "levels": 1,
+   "start": false,
+   "legendary": false,
+   "branch": {
+    "offset": [
+     813,
+     433
+    ],
+    "frame_size": [
+     104,
+     150
+    ],
+    "frames": 5
+   }
+  },
+  {
+   "id": "reactions",
+   "section": "cards",
+   "name": "Reactions",
+   "pos": [
+    913,
+    372
+   ],
+   "parent": "spore_lore",
+   "from": null,
+   "levels": 1,
+   "start": false,
+   "legendary": false,
+   "branch": {
+    "offset": [
+     816,
+     337
+    ],
+    "frame_size": [
+     132,
+     168
+    ],
+    "frames": 5
+   }
+  },
+  {
+   "id": "dawnbreak",
+   "section": "cards",
+   "name": "Dawnbreak",
+   "pos": [
+    913,
+    278
+   ],
+   "parent": "reactions",
+   "from": null,
+   "levels": 1,
+   "start": false,
+   "legendary": true,
+   "branch": {
+    "offset": [
+     879,
+     245
+    ],
+    "frame_size": [
+     72,
+     161
+    ],
+    "frames": 5
+   }
+  },
+  {
+   "id": "sharpened",
+   "section": "cards",
+   "name": "Sharpened",
+   "pos": [
+    990,
+    425
+   ],
+   "parent": null,
+   "from": [
+    942,
+    516
+   ],
+   "levels": 1,
+   "start": false,
+   "legendary": false,
+   "branch": {
+    "offset": [
+     907,
+     391
+    ],
+    "frame_size": [
+     116,
+     160
+    ],
+    "frames": 5
+   }
+  },
+  {
+   "id": "reckless",
+   "section": "cards",
+   "name": "Reckless",
+   "pos": [
+    970,
+    351
+   ],
+   "parent": "sharpened",
+   "from": null,
+   "levels": 1,
+   "start": false,
+   "legendary": false,
+   "branch": {
+    "offset": [
+     934,
+     316
+    ],
+    "frame_size": [
+     92,
+     145
+    ],
+    "frames": 5
+   }
+  },
+  {
+   "id": "full_moon",
+   "section": "cards",
+   "name": "Full Moon",
+   "pos": [
+    956,
+    217
+   ],
+   "parent": "reckless",
+   "from": null,
+   "levels": 1,
+   "start": false,
+   "legendary": true,
+   "branch": {
+    "offset": [
+     920,
+     183
+    ],
+    "frame_size": [
+     121,
+     204
+    ],
+    "frames": 5
+   }
+  },
+  {
+   "id": "tending_hands",
+   "section": "cards",
+   "name": "Tending Hands",
+   "pos": [
+    1066,
+    416
+   ],
+   "parent": null,
+   "from": [
+    1044,
+    465
+   ],
+   "levels": 1,
+   "start": false,
+   "legendary": false,
+   "branch": {
+    "offset": [
+     1008,
+     357
+    ],
+    "frame_size": [
+     94,
+     144
+    ],
+    "frames": 5
+   }
+  },
+  {
+   "id": "nursery",
+   "section": "cards",
+   "name": "Nursery",
+   "pos": [
+    1038,
+    347
+   ],
+   "parent": "tending_hands",
+   "from": null,
+   "levels": 1,
+   "start": false,
+   "legendary": false,
+   "branch": {
+    "offset": [
+     1002,
+     311
+    ],
+    "frame_size": [
+     101,
+     142
+    ],
+    "frames": 5
+   }
+  },
+  {
+   "id": "the_old_ones",
+   "section": "cards",
+   "name": "The Old Ones",
+   "pos": [
+    1054,
+    228
+   ],
+   "parent": "nursery",
+   "from": null,
+   "levels": 1,
+   "start": false,
+   "legendary": true,
+   "branch": {
+    "offset": [
+     995,
+     196
+    ],
+    "frame_size": [
+     95,
+     185
+    ],
+    "frames": 5
+   }
+  },
+  {
+   "id": "seedbed",
+   "section": "cards",
+   "name": "Seedbed",
+   "pos": [
+    1118,
+    356
+   ],
+   "parent": null,
+   "from": [
+    1134,
+    404
+   ],
+   "levels": 1,
+   "start": false,
+   "legendary": false,
+   "branch": {
+    "offset": [
+     1078,
+     317
+    ],
+    "frame_size": [
+     96,
+     127
+    ],
+    "frames": 5
+   }
+  },
+  {
+   "id": "wild_planting",
+   "section": "cards",
+   "name": "Wild Planting",
+   "pos": [
+    1085,
+    297
+   ],
+   "parent": "seedbed",
+   "from": null,
+   "levels": 1,
+   "start": false,
+   "legendary": false,
+   "branch": {
+    "offset": [
+     1050,
+     261
+    ],
+    "frame_size": [
+     104,
+     131
+    ],
+    "frames": 5
+   }
+  },
+  {
+   "id": "rootbound",
+   "section": "cards",
+   "name": "Rootbound",
+   "pos": [
+    1003,
+    279
+   ],
+   "parent": "wild_planting",
+   "from": null,
+   "levels": 1,
+   "start": false,
+   "legendary": true,
+   "branch": {
+    "offset": [
+     968,
+     243
+    ],
+    "frame_size": [
+     153,
+     90
+    ],
+    "frames": 5
+   }
+  },
+  {
+   "id": "one_line",
+   "section": "cards",
+   "name": "One Line",
+   "pos": [
+    816,
+    438
+   ],
+   "parent": null,
+   "from": [
+    878,
+    546
+   ],
+   "levels": 1,
+   "start": false,
+   "legendary": false,
+   "branch": {
+    "offset": [
+     780,
+     403
+    ],
+    "frame_size": [
+     135,
+     180
+    ],
+    "frames": 5
+   }
+  },
+  {
+   "id": "the_last_light",
+   "section": "cards",
+   "name": "The Last Light",
+   "pos": [
+    768,
+    447
+   ],
+   "parent": "one_line",
+   "from": null,
+   "levels": 1,
+   "start": false,
+   "legendary": true,
+   "branch": {
+    "offset": [
+     730,
+     400
+    ],
+    "frame_size": [
+     124,
+     85
+    ],
+    "frames": 5
+   }
+  },
+  {
+   "id": "dead_wood",
+   "section": "cards",
+   "name": "Dead Wood",
+   "pos": [
+    900,
+    526
+   ],
+   "parent": null,
+   "from": [
+    944,
+    518
+   ],
+   "levels": 1,
+   "start": false,
+   "legendary": false,
+   "branch": {
+    "offset": [
+     841,
+     469
+    ],
+    "frame_size": [
+     142,
+     128
+    ],
+    "frames": 5
+   }
+  },
+  {
+   "id": "the_long_walk",
+   "section": "cards",
+   "name": "The Long Walk",
+   "pos": [
+    836,
+    514
+   ],
+   "parent": "dead_wood",
+   "from": null,
+   "levels": 1,
+   "start": false,
+   "legendary": true,
+   "branch": {
+    "offset": [
+     801,
+     478
+    ],
+    "frame_size": [
+     135,
+     86
+    ],
+    "frames": 5
+   }
+  },
+  {
+   "id": "bittersweet_dreams",
+   "section": "cards",
+   "name": "Bittersweet Dreams",
+   "pos": [
+    1116,
+    467
+   ],
+   "parent": null,
+   "from": [
+    1128,
+    410
+   ],
+   "levels": 1,
+   "start": false,
+   "legendary": false,
+   "branch": {
+    "offset": [
+     1062,
+     372
+    ],
+    "frame_size": [
+     105,
+     132
+    ],
+    "frames": 5
+   }
+  },
+  {
+   "id": "woven_dreams_1",
+   "section": "cards",
+   "name": "Woven Dreams I",
+   "pos": [
+    847,
+    333
+   ],
+   "parent": "reactions",
+   "from": null,
+   "levels": 1,
+   "start": false,
+   "legendary": false,
+   "branch": {
+    "offset": [
+     814,
+     299
+    ],
+    "frame_size": [
+     133,
+     107
+    ],
+    "frames": 5
+   }
+  },
+  {
+   "id": "woven_dreams_2",
+   "section": "cards",
+   "name": "Woven Dreams II",
+   "pos": [
+    875,
+    197
+   ],
+   "parent": "woven_dreams_1",
+   "from": null,
+   "levels": 1,
+   "start": false,
+   "legendary": false,
+   "branch": {
+    "offset": [
+     813,
+     165
+    ],
+    "frame_size": [
+     97,
+     202
+    ],
+    "frames": 5
+   }
+  },
+  {
+   "id": "seeping",
+   "section": "cards",
+   "name": "Seeping",
+   "pos": [
+    1047,
+    487
+   ],
+   "parent": null,
+   "from": [
+    1087,
+    438
+   ],
+   "levels": 1,
+   "start": false,
+   "legendary": false,
+   "branch": {
+    "offset": [
+     1009,
+     400
+    ],
+    "frame_size": [
+     116,
+     124
+    ],
+    "frames": 5
+   }
+  },
+  {
+   "id": "venom",
+   "section": "cards",
+   "name": "Venom",
+   "pos": [
+    979,
+    510
+   ],
+   "parent": "seeping",
+   "from": null,
+   "levels": 1,
+   "start": false,
+   "legendary": false,
+   "branch": {
+    "offset": [
+     944,
+     451
+    ],
+    "frame_size": [
+     139,
+     112
+    ],
+    "frames": 5
+   }
+  },
+  {
+   "id": "nightshade",
+   "section": "cards",
+   "name": "Nightshade",
+   "pos": [
+    925,
+    453
+   ],
+   "parent": "venom",
+   "from": null,
+   "levels": 1,
+   "start": false,
+   "legendary": true,
+   "branch": {
+    "offset": [
+     891,
+     412
+    ],
+    "frame_size": [
+     123,
+     133
+    ],
+    "frames": 5
+   }
+  }
+ ],
+ "fruit_spots": [
+  [
+   560,
+   521
+  ],
+  [
+   720,
+   521
+  ],
+  [
+   380,
+   553
+  ],
+  [
+   900,
+   565
+  ],
+  [
+   280,
+   569
+  ],
+  [
+   1050,
+   539
+  ],
+  [
+   480,
+   581
+  ],
+  [
+   800,
+   541
+  ],
+  [
+   640,
+   529
+  ],
+  [
+   1200,
+   -8
+  ]
+ ],
+ "loadout_stones": [
+  [
+   478,
+   906
+  ],
+  [
+   558,
+   926
+  ],
+  [
+   640,
+   934
+  ],
+  [
+   722,
+   926
+  ],
+  [
+   802,
+   906
+  ]
+ ],
+ "moon": [
+  1062,
+  118
+ ],
+ "node_cell": 32,
+ "legendary_cell": 48,
+ "fruit_cell": 48
+}

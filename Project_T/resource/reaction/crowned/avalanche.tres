@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="ReactionData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/reaction/script/reaction_data.gd" id="1_rx"]
+
+[resource]
+script = ExtResource("1_rx")
+id = &"avalanche"
+display_name = "Avalanche"
+statuses = Array[StringName]([&"damp", &"held"])
+description = "A Shatter set off by a lobbed stone (Cairn, Rockslide): every Soaked and Rooted nightmare under the lob Shatters too."
+callout_color = Color(0.863, 0.906, 0.718, 1)
+effect = &"crowned_avalanche"
+effect_scale = 1.0
+cooldown = 1.5

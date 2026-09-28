@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "cleared_ground"
+display_name = "Cleared Ground"
+description = "Clearing obstacles costs 40% less Dew."
+rarity = 0
+kind = 4
+tags = Array[String](["clearing", "economy"])
+max_stacks = 0
+min_obstacles = 8
+clear_discount = 0.4

@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="EnemyData" load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://resource/enemy/script/enemy_data.gd" id="1_edata"]
+[ext_resource type="SpriteFrames" path="res://animation/enemy/puffcap.tres" id="2_frames"]
+[ext_resource type="Resource" path="res://resource/enemy/puffcaplet.tres" id="3_split"]
+
+[resource]
+script = ExtResource("1_edata")
+sprite_frames = ExtResource("2_frames")
+display_name = "Mourner"
+health = 150
+speed = 76.8
+dew_reward = 4
+split_into = ExtResource("3_split")
+split_count = 3
+resists = Array[String](["spore"])
+weak_to = Array[String](["stone"])
+trait_text = "Breaks into three Sobs when dispelled."

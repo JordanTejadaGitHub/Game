@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="UnlockData" format=3]
+
+[ext_resource type="Script" path="res://resource/meta/script/unlock_data.gd" id="1_unlock"]
+
+[resource]
+script = ExtResource("1_unlock")
+id = "guiding_lights"
+display_name = "Guiding Lights"
+description = "Light Dreams join the pool: Guiding Light, Starlit Aim."
+root = 1
+costs = Array[int]([60])
+order = 2
+icon = 0
+requires_all = Array[String](["storm_lore"])
+dream_cards = Array[String](["guiding_light", "guiding_light_ii", "starlit_aim"])

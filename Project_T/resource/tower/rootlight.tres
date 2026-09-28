@@ -1,0 +1,29 @@
+[gd_resource type="Resource" script_class="TowerData" load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://resource/tower/script/tower_data.gd" id="1_tdata"]
+[ext_resource type="Texture2D" path="res://assets/towers/rootlight.png" id="2_tex"]
+[ext_resource type="Texture2D" path="res://assets/towers/rootlight_attack.png" id="4_atk"]
+[ext_resource type="Resource" path="res://resource/tower/starcave.tres" id="ev_1"]
+
+[resource]
+script = ExtResource("1_tdata")
+display_name = "Rootlight"
+description = "Glowing roots light the path around it; nightmares in the light are Exposed."
+cost = 0
+texture = ExtResource("2_tex")
+frame_count = 8
+line = "root"
+tier = 2
+buildable_directly = false
+evolve_cost = 80
+attack_kind = 12
+attack_range = 3.0
+damage = 13
+attacks_per_second = 1.0
+applies_status = &"marked"
+status_duration = 1.2
+crit_chance = 0.05
+attack_texture = ExtResource("4_atk")
+attack_frame_count = 6
+attack_release_frame = 2
+evolves_to = Array[Resource]([ExtResource("ev_1")])

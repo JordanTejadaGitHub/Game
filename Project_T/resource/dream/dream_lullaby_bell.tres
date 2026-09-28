@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+[ext_resource type="Resource" path="res://resource/tower/lullaby_bell.tres" id="2_tower"]
+
+[resource]
+script = ExtResource("1_card")
+id = "dream_lullaby_bell"
+display_name = "Lullaby Bell"
+description = "Chime Stones can now grow into Lullaby Bells (200 Dew): a bigger pulse that charges Static and sings nightmares Drowsy, setting off bolts like Chime Stone."
+rarity = 2
+kind = 1
+tags = Array[String](["song"])
+requires = Array[String](["chime_stone"])
+max_stacks = 1
+unlocks = ExtResource("2_tower")

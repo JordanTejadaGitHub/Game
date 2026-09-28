@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="UnlockData" format=3]
+
+[ext_resource type="Script" path="res://resource/meta/script/unlock_data.gd" id="1_unlock"]
+
+[resource]
+script = ExtResource("1_unlock")
+id = "bellflower_hidden"
+display_name = "Hidden branch: Echo Hollow"
+description = "Bellflowers can grow into Echo Hollows (and Whispering Hollows)."
+root = 0
+costs = Array[int]([60])
+order = 25
+icon = 5
+requires_all = Array[String](["bellflower_final"])
+dream_cards = Array[String](["dream_echo_hollow", "dream_whispering_hollow", "encore"])

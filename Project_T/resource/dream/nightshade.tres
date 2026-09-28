@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "nightshade"
+display_name = "Nightshade"
+description = "Effects tick together: whenever any effect on a nightmare deals damage, every other effect on it deals 25% of its own tick too."
+rarity = 3
+kind = 3
+tags = Array[String](["potency"])
+max_stacks = 1
+min_act = 2
+rule_id = &"nightshade"
+in_start_pool = false

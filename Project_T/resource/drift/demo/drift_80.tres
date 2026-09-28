@@ -1,0 +1,32 @@
+[gd_resource type="Resource" script_class="DriftData" format=3]
+
+[ext_resource type="Script" path="res://resource/drift/script/drift_group.gd" id="1_oa28j"]
+[ext_resource type="Script" path="res://resource/drift/script/drift_entry.gd" id="2_cufio"]
+[ext_resource type="Resource" path="res://resource/enemy/mother_spider.tres" id="3_n2h2n"]
+[ext_resource type="Resource" path="res://resource/enemy/leaf_bug.tres" id="4_x6wdc"]
+[ext_resource type="Resource" path="res://resource/enemy/shellbound.tres" id="5_gj1ab"]
+[ext_resource type="Script" path="res://resource/drift/script/drift_data.gd" id="6_r7qis"]
+
+[sub_resource type="Resource" id="Resource_553tp"]
+script = ExtResource("2_cufio")
+enemy = ExtResource("3_n2h2n")
+count = 8
+
+[sub_resource type="Resource" id="Resource_rsm7g"]
+script = ExtResource("2_cufio")
+enemy = ExtResource("4_x6wdc")
+count = 12
+
+[sub_resource type="Resource" id="Resource_cfbli"]
+script = ExtResource("2_cufio")
+enemy = ExtResource("5_gj1ab")
+count = 4
+
+[sub_resource type="Resource" id="Resource_ce50l"]
+script = ExtResource("1_oa28j")
+entries = Array[ExtResource("2_cufio")]([SubResource("Resource_553tp"), SubResource("Resource_rsm7g"), SubResource("Resource_cfbli")])
+spacing = 1.25
+
+[resource]
+script = ExtResource("6_r7qis")
+groups = Array[ExtResource("1_oa28j")]([SubResource("Resource_ce50l")])

@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "kindred_roots"
+display_name = "Kindred Roots"
+description = "Each Warden gets +2% damage per rank of the Wardens touching it (up to +30%)."
+rarity = 1
+kind = 3
+tags = Array[String](["nurture", "maze"])
+max_stacks = 1
+requires_tag = "nurture"
+min_rank_count = 2
+rule_id = &"kindred_roots"

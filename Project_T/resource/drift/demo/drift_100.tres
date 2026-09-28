@@ -1,0 +1,42 @@
+[gd_resource type="Resource" script_class="DriftData" format=3]
+
+[ext_resource type="Script" path="res://resource/drift/script/drift_group.gd" id="1_4rhsw"]
+[ext_resource type="Script" path="res://resource/drift/script/drift_entry.gd" id="2_py534"]
+[ext_resource type="Resource" path="res://resource/enemy/mother_duck.tres" id="3_fviad"]
+[ext_resource type="Resource" path="res://resource/enemy/puffcap.tres" id="4_w2gj4"]
+[ext_resource type="Resource" path="res://resource/enemy/weeper.tres" id="5_5n55l"]
+[ext_resource type="Resource" path="res://resource/enemy/hollow_oak.tres" id="6_2cunh"]
+[ext_resource type="Script" path="res://resource/drift/script/drift_data.gd" id="7_k7h6v"]
+
+[sub_resource type="Resource" id="Resource_2jpsm"]
+script = ExtResource("2_py534")
+enemy = ExtResource("3_fviad")
+count = 3
+
+[sub_resource type="Resource" id="Resource_1kvpp"]
+script = ExtResource("2_py534")
+enemy = ExtResource("4_w2gj4")
+count = 8
+
+[sub_resource type="Resource" id="Resource_2ylwj"]
+script = ExtResource("2_py534")
+enemy = ExtResource("5_5n55l")
+count = 4
+
+[sub_resource type="Resource" id="Resource_dkqs1"]
+script = ExtResource("1_4rhsw")
+entries = Array[ExtResource("2_py534")]([SubResource("Resource_2jpsm"), SubResource("Resource_1kvpp"), SubResource("Resource_2ylwj")])
+spacing = 2.0
+
+[sub_resource type="Resource" id="Resource_7scue"]
+script = ExtResource("2_py534")
+enemy = ExtResource("6_2cunh")
+
+[sub_resource type="Resource" id="Resource_cg8gb"]
+script = ExtResource("1_4rhsw")
+entries = Array[ExtResource("2_py534")]([SubResource("Resource_7scue")])
+delay = 3.0
+
+[resource]
+script = ExtResource("7_k7h6v")
+groups = Array[ExtResource("1_4rhsw")]([SubResource("Resource_dkqs1"), SubResource("Resource_cg8gb")])

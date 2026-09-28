@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="ReactionData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/reaction/script/reaction_data.gd" id="1_rx"]
+
+[resource]
+script = ExtResource("1_rx")
+id = &"thunderclap"
+display_name = "Thunderclap"
+statuses = Array[StringName]([&"damp", &"static"])
+description = "Soaked + 3 Charged: 4x damage, and lightning arcs to every Soaked nightmare nearby, adding a charge."
+callout_color = Color(0.749, 0.878, 1, 1)
+effect = &"thunderclap"
+effect_scale = 1.75

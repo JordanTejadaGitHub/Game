@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "rolling_thunder_ii"
+display_name = "Rolling Thunder II"
+description = "Thunderclap arcs reach 4.5 cells and add 2 {static} stacks."
+rarity = 1
+kind = 3
+tags = Array[String](["storm", "water", "reaction"])
+requires = Array[String](["stormcap", "dewdrop"])
+max_stacks = 1
+deepens = "rolling_thunder"
+rule_id = &"rolling_thunder"

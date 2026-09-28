@@ -1,0 +1,338 @@
+# Run Design: pacing, rules and economy
+
+Phase 1 of `design_plan.md`. Revised 2026-09-27 to **100-drift runs** ("drift" = wave). This
+replaces the earlier 15-drift version and the "10 drifts per run" prototype target in
+`game_design.md`. All numbers are starting points for playtesting; they live in data (`RunState`
+exports, `TowerData`, `EnemyData`, `DriftData`), so tuning never needs code changes.
+
+## Decisions
+
+| Question | Decision |
+|---|---|
+| Run length | **1–2 hours** (100 drifts); saved and resumable |
+| Structure | **4 acts of 25 drifts**, a boss every 25th drift |
+| Rewards | **A Dream every 5 drifts**; **each boss (25, 50, 75) unlocks a new Warden family** |
+| First Warden | picked **after drift 1** (pick 1 of 3 base Wardens) |
+| Mid-run save | **Yes**, at every rest (every 5 drifts) |
+| Building during drifts | **Allowed** (build, evolve, sell and clear at any time) |
+| Clearing obstacles | **Locked until you take a clearing Dream card** (`dream_design.md`, cards 54–58) |
+| Selling | **75%** refund during a **rest**, half while nightmares are walking (difficulty pass v1) |
+| Warden ranks | each Warden can be **Nurtured** up to **rank V** with Dew; ranks carry through evolution (`warden_stats.md`) |
+| Speed controls | **Pause, 1×, 2×, 3×.** Building works while paused |
+| Obstacle payoff | **+1 Seed per cleared obstacle** at run end; Withered Tree / Mossy Boulder |
+| Call early | **Yes**, small Dew bonus |
+| Final boss | **Always The Hollow Oak** (drift 100) |
+
+## Run structure
+
+**100 drifts in 4 acts of 25.** One map for the whole run, so the maze keeps paying off.
+
+| Act | Drifts | Feel | Boss |
+|---|---|---|---|
+| 1. Forest's Edge | 1–25 | learn the maze, first Wardens | **The Hollow Stag** (25) |
+| 2. Deep Wood | 26–50 | maze testers arrive, builds take shape | **The Mire Hag** or **The Moth Queen** (50) |
+| 3. Misty Hollow | 51–75 | status testers, bigger drifts | the other of the two (75) |
+| 4. Heartwood Glade | 76–100 | full builds, everything mixed | **The Hollow Oak** (100, story climax) |
+
+- **Win:** dispel The Hollow Oak and every nightmare still in the dream.
+- **Between acts:** the season changes (spring dusk → summer night → autumn fog → winter dark;
+  `art_direction.md`), the Heartwood regrows 1 leaf (up to its
+  maximum), and the boss rewards (below).
+- **No endless mode for v1.** Blight Levels are the replay hook.
+
+### Blocks and rests: how 100 drifts flow
+
+Drifts come in **blocks of 5**:
+
+```
+[rest] → drift 1 → (quick rest: pick your first Warden) → drifts 2–5 flow → [rest: Dream]
+       → drifts 6–10 flow → [rest: Dream] → … → drift 25 (boss) → [rest: Warden family + Dream] → …
+```
+
+- **Within a block, drifts flow.** The next drift starts automatically a few seconds after the
+  previous one has finished *arriving* (not after it's dispelled), so drifts overlap and there's
+  no dead time. An **Auto-drift** toggle lets players turn this off and start each drift by hand.
+- **A rest** comes after every 5th drift, once the field is clear: time pauses, the Dream (or boss
+  reward) appears, and you can rebuild at a 75% refund. Press **Start** when ready. No timer.
+- **Call early:** starting the next drift before the previous one has finished arriving gives
+  +1 Dew per 2 seconds skipped (capped per drift).
+
+### Time budget
+
+A drift's creatures arrive over ~20–40 seconds, but a creature takes 1.5–3 minutes to walk a
+built maze, so drifts overlap. A block of 5 drifts takes ~4 minutes early, ~6 minutes late.
+
+| | Per block at 1× | Act at 1× |
+|---|---|---|
+| Act 1 | ~4 min | ~20 min |
+| Act 2 | ~4.5 min | ~23 min |
+| Act 3 | ~5 min | ~25 min |
+| Act 4 | ~6 min | ~30 min |
+
+**Total ≈ 100 minutes at 1×, ~60 with 2×/3×**, plus rests. If playtests run long, shorten the
+arrival windows or speed creatures up before cutting drifts.
+
+### Mid-run save
+
+- **Autosave at every rest** (every 5 drifts): the map, Wardens, Dew, leaves, Dreams, drift number
+  and the random state, so a resumed run continues exactly.
+- **Save & Quit** is available any time; quitting mid-block resumes from the **start of that
+  block's last rest** (at most ~5 minutes lost). Simple, fair, and no save-scumming of single drifts.
+- One run in progress at a time. The title screen shows **Continue** when one exists.
+
+## Leaves (lives)
+
+- **Start with 15** (was 20; difficulty pass v1). A normal nightmare costs 1 leaf; big ones
+  (`EnemyData.leaf_cost`) cost 2; bosses cost 5.
+- Regrow **1** at each act break (was 3). Perks and Dreams can raise the maximum.
+- 0 leaves = the Heartwood goes dormant, run over (Seeds are still earned).
+- **Tune in playtests.**
+
+## Difficulty pass v1 (2026-09-27)
+
+Playtests found the game too easy, and Warden ranks (below) add player power, so:
+
+| Lever | Was | Now |
+|---|---|---|
+| Nightmare health growth | ×1.035 per drift (×5.4 by drift 50) | **×1.045 per drift** (×8.6 by drift 50, ×78 by drift 100) |
+| Nightmares per drift | as listed in `acts_1_2.md` | **+25% from drift 10**, applied only to kinds with 3+ in the drift (rounded up); single/paired specials, elites and bosses unchanged; intro drifts unchanged |
+| Starting Dew | 60 | ~~45~~ **60** (reverted: drift 1 became unwinnable without leaks; see below) |
+| Refund during a rest | 100% | **75%** |
+| Leaves | 20, +3 per act break | **15, +1 per act break** |
+| Boss health | base values in `enemy_design.md` | **×1.5** |
+
+**Economy pass v2** (2026-09-27; playtest: "after a while I have infinite money"):
+
+| Lever | Was | Now |
+|---|---|---|
+| Rest bonus | 20 + 10 × block (220 at drift 100) | **30 + 4 × block** (≈ 110 at drift 100) |
+| Dew per nightmare | the same every act | **× 1.0 / 0.8 / 0.65 / 0.5 by act** ("the dream thins") |
+| Elite Dew | × 3 | **× 2** |
+| Branch / final form cost | +45 / +90 | **+80 / +200** (with more power per tier; `warden_stats.md`) |
+| Nurture base costs | 15 / 25 / 40 / 60 / 90 | **25 / 40 / 60 / 90 / 135** (× tier) |
+| Endgame | — | **Ascended forms** (one per family, from drift 51; `tower_design.md`) and the **Heartwood Sapling** (below) |
+
+Target: by act 3 a player should have to **choose** between an Ascended form, nurturing, more
+Wardens and the Sapling, never afford all of them.
+
+### The Heartwood Sapling (economy, from drift 51)
+
+After the act 2 boss (drift 50), the Heartwood offers **one Sapling** of itself to plant in the maze.
+
+- **Free to plant, 2×2 cells**, anywhere the path rule allows (it's a wall like any Warden, so it
+  reshapes the maze: a real placement decision). **Rooted:** once planted it **can't be sold or
+  moved**.
+- **It doesn't attack.** At the end of every drift it yields **+20 Dew**, and every **10 drifts**
+  it ripens **+1 Dreamlight** (feeding Ascended unlocks).
+- **Nurture it** (ranks I–V at the final-form price) to raise the yield: **+10 Dew per rank**
+  (rank V: +70 Dew per drift) and, at rank III and above, Dreamlight every **7** drifts instead of 10.
+- **Leaks hurt it:** each leaf lost withers it slightly (−5% yield, recovering at each rest), so a
+  greedy maze that leaks pays twice.
+- Offered on its own card right after the drift 50 family pick (*"The Heartwood offers a seedling
+  of itself"*). If declined, it can be planted later from the rest panel.
+
+**Mid-game rework** (2026-09-27; playtest: "upgrading without thought wins the mid-game"):
+
+| Lever | Was | Now |
+|---|---|---|
+| Health growth | ×1.045 per drift all run | **×1.045 for drifts 1–25, ×1.055 for 26–50, ×1.045 from 51** (≈ ×11 by drift 50, ×100 by drift 100; `acts_3_4.md`) |
+| Elites | block finales only | **one Deeply Blighted nightmare in every drift from drift 26** (a random non-boss kind from that drift) |
+| Family resist / weak | ×0.65 / ×1.35 | **×0.5 / ×1.5** (`enemy_design.md`) |
+| Nurture | flat cost, +15% damage per rank | **Nurture v2**: cost × tier, +10% per rank, a Focus at rank III (`warden_stats.md`) |
+
+Plus new build-direction cards (wide / narrow, `dream_design.md` 69–76), so the mid-game asks
+*which* Wardens, not just *more* upgrades. Act 1 (drifts 1–25) is unchanged.
+
+**Opening rule** (added after playtest: drift 1 couldn't be held): **drifts 1–3 must be clearable
+without losing a leaf** by a sensible player using only Sprouts and Thornwalls. Difficulty comes
+from later drifts, not the opening. So starting Dew stays **60** and drift 1 is lighter (6 Shades,
+2 s apart; `acts_1_2.md`). A headless test should check it: drift 1 with 5 Sprouts placed beside
+the route leaks nothing.
+
+All the levers are data (global multipliers), so any that overshoot can be loosened quickly. Next
+playtest: note the drift where it first gets hard, and how many leaves were left at each boss.
+
+## Rewards
+
+### Dreams: every 5 drifts
+
+**19 Dreams per run**: after drifts 5, 10, 15, … 95. Pick 1 of 3 (`dream_design.md`). Dreams no
+longer unlock base Wardens; they give stats, branches, final forms and rules.
+
+### Warden families: at the start and from bosses
+
+| When | Reward |
+|---|---|
+| After drift 1 | **Pick your first family**: 1 of 3, drawn at random from **all families you've unlocked** (incl. Grove unlocks), **+1 Dreamlight** |
+| Boss at 25, 50, 75 | **Pick a new family**: 1 of 3 base Wardens you don't have yet, **+3 Dreamlight**, **plus** a Dream that's guaranteed Rare or better |
+| Boss at 100 | the win |
+
+That's **4 Warden families per run** (out of 7, or 9 in the full game), so every run leans a
+different way. The run starts
+with only Sprout + Thornwall. **Act 1 is about one family**: you deepen it through its branches
+before a second family arrives at drift 25. When fewer than 3 new families are available (early
+in the meta, before the Grove unlocks Pebbling, Rootling and Acorn), empty slots become **Family
+Blessings** for a family you own (`meta_design.md`).
+
+### Dreamlight: choosing your build paths
+
+Added 2026-09-27 (user decision): a second in-run currency so build paths come from **choice, not
+card luck**. Dispelling a great nightmare frees the light it stole from the dream.
+
+| Source | Dreamlight |
+|---|---|
+| First family pick (after drift 1) | **1** (so act 1 can take one branch) |
+| Each boss (drifts 25, 50, 75) | **3** |
+| Dream cards (Sudden Insight, Borrowed Memory) | +1 / +2 |
+| Grove perk *Early Light* | +1 at run start |
+
+**Spending (per run, like the old unlock cards):**
+
+| Unlock | Cost |
+|---|---|
+| A **branch** of a family you own (Stormcap, Rain Lily, Driftspore, …) | **1** |
+| A **final form** (needs its branch unlocked) | **2** |
+| A **hidden branch** (only if the Grove has unlocked it) | **1** |
+| A **wall growth** (Bramble, Honeysuckle) | **1** |
+
+- About **10 Dreamlight per run** against 4 families × (2 branches + 2 finals) = 24 possible: you
+  can't have everything, so each run is a set of real choices. Unspent Dreamlight carries over.
+- **Where:** a **Remember** screen (a branching tree per owned family) opens right after each boss's
+  family pick, and can be reopened at any rest from the rest panel. The Warden panel's disabled
+  "Grow into Stormcap" button says *"Unlock with 1 Dreamlight"* and opens it.
+- Unlocking makes the form available; **evolving each Warden still costs Dew**, as before.
+- **Dreams** no longer unlock evolutions (`dream_design.md`); they're stats, rules, combos and
+  economy. The Rare-or-better boss Dream stays.
+- **Test Grove:** everything unlocked, as now. **Demo:** same rules.
+- HUD: a Dreamlight counter next to Dew (a small glowing mote icon).
+
+### Omens: choose the next block's twist
+
+Added 2026-09-27. Aimed at "does the middle of the run stay interesting?". **At every rest from
+drift 10 on**, after the Dream, the wind brings **2 Omens**. Pick one to change the next block
+(5 drifts) for a reward, or keep **Clear Skies** (the default: nothing changes). This is optional
+risk: players set their own difficulty block by block.
+
+- An Omen affects only the **next block**. Bosses themselves ignore Omens (their escorts don't).
+- Rewards are paid at the rest **after** the block, and only if the Heartwood is still standing.
+  Losing leaves doesn't cancel the reward.
+- Offers only include Omens that make sense (e.g. no flyer Omen before flyers exist).
+- Omen rewards scale with the act (×1 / ×1.5 / ×2 / ×2.5 for Dew and Seeds).
+
+| Omen | The next block | Reward |
+|---|---|---|
+| **Moth Night** | +40% flying creatures | next Dream: one card is Rare+ |
+| **Thick Blight** | creatures +20% health | next Dream offers 4 cards |
+| **Crowded Paths** | +30% creatures per drift | +40 Dew |
+| **Hard Bark** | blight coats +50% | next Dream: one card is Rare+ |
+| **Swift Stream** | creatures +15% speed | +3 Seeds |
+| **Dry Spell** | creatures give no Dew | rest bonus ×2 |
+| **Stubborn Blight** | status durations halved | regrow 2 leaves |
+| **Restless Wind** | drifts arrive 30% closer together | +1 max leaf |
+
+- **Blight Levels** can make Omens harsher or remove Clear Skies ("an Omen is always chosen").
+- **Grove perks** later: a third Omen option, or Omen rewards +25% (`meta_design.md`).
+- **Data:** `OmenData` resource: `display_name`, `description`, `min_drift`, `requires` (e.g.
+  flyers), next-block multipliers (health, speed, count, coat, flyer share, creature Dew, status
+  duration, arrival spacing) and a reward (Dew, Seeds, leaves, max leaves, Dream min rarity, Dream
+  extra cards, rest-bonus multiplier). `DriftDirector` applies the multipliers to the next block.
+- **To check:** is one more choice per rest too much? If it is, offer Omens only every other rest.
+
+## Build rules
+
+- **Anything, any time:** build, evolve, sell and (once unlocked by a clearing card) tend obstacles
+  during drifts and rests. The path
+  rule always applies: no placement may leave any creature (or the start) without a route.
+- **Speed:** Pause / 1× / 2× / 3× + hotkeys (Space = pause). Pausing is a normal way to plan.
+
+## Selling
+
+- Refund is based on **all Dew invested** in that Warden (build + evolutions).
+- **During a rest: 75%** (was 100%; difficulty pass v1). Rearranging still pays, but mistakes
+  cost something.
+- **While creatures are walking: 50%.**
+- Dreams are unlocks, not refunded. Obstacle clears are permanent and never refunded.
+
+## Economy (Dew)
+
+### Income
+
+| Source | Amount |
+|---|---|
+| Starting Dew | 60 |
+| Shade | 3 (≈3 per 100 base health; other nightmares follow the same ratio) |
+| Rest bonus (every 5 drifts) | 20 + 10 × block number (30 after drift 5, 220 after drift 100) |
+| Perfect block (no leaf lost) | +10 |
+| Boss | 40 / 60 / 80 / 100 by act |
+
+Creature Dew does **not** scale with the per-drift health increase; more creatures come instead.
+
+### Costs
+
+| Thing | Cost | Notes |
+|---|---|---|
+| Thornwall | 3 | Bramble growth: +10 |
+| Sprout | 10 | |
+| Sprout → base Warden | 15–20 | = building the base directly (25–30, current values) |
+| Base → branch | 45 | branch unlocked with **1 Dreamlight** |
+| Branch → final form | 90 | final form unlocked with **2 Dreamlight** |
+| Tend a Withered Tree / move a Mossy Boulder | 5 / 8 | needs a clearing Dream first |
+| Nurture a Warden (rank I → V) | 15 / 25 / 40 / 60 / 90 | 230 for rank V; see `warden_stats.md` |
+
+### Target curve (use this to tune)
+
+| After drift | Roughly |
+|---|---|
+| 5 | 6–8 Sprouts/Wardens, a few walls |
+| 25 (boss) | ~14 Wardens, first branches |
+| 50 | ~24 Wardens, 2 families evolved to branches |
+| 75 | ~32 Wardens, first final forms |
+| 100 | ~40 Wardens, several final forms |
+
+Measure real Dew totals at each boss in playtests and compare.
+
+## Creature scaling
+
+- **Health × 1.045 per drift** (difficulty pass v1; drift 100 ≈ ×78 of drift 1), speed unchanged.
+  Was ×1.035; the original ×1.12 would reach ×75,000 by drift 100.
+- Difficulty also rises through **composition**: more creatures per drift, tougher types, maze
+  testers from act 2, status testers from act 3, mixed everything in act 4.
+- **Variety matters over 100 drifts**: every block should feel different (a new creature, a
+  "special drift" like a Haunting of Phantoms or a Funeral of Processions, or a mini-boss). Needs a bigger creature
+  roster than 15 drifts did (`enemy_design.md`).
+- Bosses have fixed health per act (base 3,000 / 8,000 / 16,000 / 30,000, **× 1.5** from difficulty
+  pass v1; tune).
+
+## Act 1 plan (first playable)
+
+Nightmares: Shade, Husk, Mourner, **the Hollow Stag** (stats in `enemy_design.md`).
+
+| Block | Drifts | Contents |
+|---|---|---|
+| 1 | 1–5 | Shades only, 8 → 16 per drift. First Warden pick after drift 1 |
+| 2 | 6–10 | **Husks introduced** (drift 6: 3 Husks alone), then mixed in |
+| 3 | 11–15 | bigger mixed drifts; drift 15 is a Swarm (35 fast Shades) |
+| 4 | 16–20 | **Mourners introduced** (drift 16: 4 alone), then mixed in |
+| 5 | 21–25 | everything mixed, growing; **drift 25: the Hollow Stag** with an escort |
+
+Exact counts per drift: `acts_1_2.md`.
+
+## Obstacles: why clear them?
+
+**Clearing starts locked**: obstacles are fixed terrain until the player takes a clearing Dream
+card, which unlocks clearing for the rest of the run. The map you're dealt matters more, and
+clearing becomes a choice you commit to.
+
+**Each cleared obstacle adds +1 Seed to the run's end payout** ("the forest remembers you tended
+it"): a trade-off between in-run power and long-term progress. Shown on the results screen
+("Tended: 14 → +14 Seeds").
+
+Named to fit the fiction: **Withered Tree** ("Tend") and **Mossy Boulder** ("Move"), later
+**Blight Bramble**.
+
+## To check in playtests
+
+- Run length: ~100 min at 1×? Does the middle of the run (drifts 30–70) stay interesting?
+- Leaves: are 15 (+1 per act break) right over 100 drifts?
+- Dew curve vs the target table; health scaling (×1.035) vs player power.
+- Do overlapping drifts feel good, or do players prefer Auto-drift off?

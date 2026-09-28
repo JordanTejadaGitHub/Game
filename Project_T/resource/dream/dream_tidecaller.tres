@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+[ext_resource type="Resource" path="res://resource/tower/tidecaller.tres" id="2_tower"]
+
+[resource]
+script = ExtResource("1_card")
+id = "dream_tidecaller"
+display_name = "Tidecaller"
+description = "Any water final form can ascend into Tidecaller (400 Dew, one per run): Every 6 seconds a great wave soaks everything in range, pushes it back a tile and freezes the already Soaked."
+rarity = 3
+kind = 1
+tags = Array[String](["water"])
+max_stacks = 1
+min_act = 3
+unlocks = ExtResource("2_tower")
+in_start_pool = false

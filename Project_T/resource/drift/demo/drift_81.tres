@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="DriftData" format=3]
+
+[ext_resource type="Script" path="res://resource/drift/script/drift_group.gd" id="1_66jiy"]
+[ext_resource type="Script" path="res://resource/drift/script/drift_entry.gd" id="2_ol0ns"]
+[ext_resource type="Resource" path="res://resource/enemy/whisper_swarm.tres" id="3_h58lj"]
+[ext_resource type="Script" path="res://resource/drift/script/drift_data.gd" id="4_hh6wx"]
+
+[sub_resource type="Resource" id="Resource_eujp0"]
+script = ExtResource("2_ol0ns")
+enemy = ExtResource("3_h58lj")
+count = 2
+
+[sub_resource type="Resource" id="Resource_vommc"]
+script = ExtResource("1_66jiy")
+entries = Array[ExtResource("2_ol0ns")]([SubResource("Resource_eujp0")])
+spacing = 5.0
+
+[resource]
+script = ExtResource("4_hh6wx")
+groups = Array[ExtResource("1_66jiy")]([SubResource("Resource_vommc")])

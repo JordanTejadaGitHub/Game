@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="UnlockData" format=3]
+
+[ext_resource type="Script" path="res://resource/meta/script/unlock_data.gd" id="1_unlock"]
+
+[resource]
+script = ExtResource("1_unlock")
+id = "firefly_jar_ascension"
+display_name = "Ascension: Stormheart"
+description = "Firefly Jar's Ascended form, Stormheart, can grow in your runs (from drift 51: 3 Dreamlight, then 400 Dew on a final form). Lightning chains to every nightmare in range."
+root = 0
+costs = Array[int]([120])
+order = 31
+icon = 1
+requires_all = Array[String](["firefly_jar_final"])
+dream_cards = Array[String](["dream_stormheart"])

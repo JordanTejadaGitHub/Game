@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="OmenData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/omen/script/omen_data.gd" id="1_omen"]
+
+[resource]
+script = ExtResource("1_omen")
+id = "thick_blight"
+display_name = "Thick Blight"
+description = "Nightmares have 20% more health."
+health_multiplier = 1.2
+reward_extra_dream_cards = 1

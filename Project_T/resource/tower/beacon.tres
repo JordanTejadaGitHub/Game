@@ -1,0 +1,34 @@
+[gd_resource type="Resource" script_class="TowerData" load_steps=6 format=3]
+
+[ext_resource type="Script" path="res://resource/tower/script/tower_data.gd" id="1_tdata"]
+[ext_resource type="Texture2D" path="res://assets/towers/beacon.png" id="2_tex"]
+[ext_resource type="Texture2D" path="res://assets/towers/beacon_attack.png" id="4_atk"]
+[ext_resource type="Resource" path="res://resource/tower/stormheart.tres" id="ev_1"]
+[ext_resource type="Texture2D" path="res://assets/towers/projectiles/light_orb.png" id="3_proj"]
+
+[resource]
+script = ExtResource("1_tdata")
+display_name = "Beacon"
+description = "Every 2 s, Exposes every nightmare in range, and its Exposed is stronger: +35% damage taken."
+cost = 0
+line = "light"
+tier = 3
+buildable_directly = false
+evolve_cost = 200
+attack_range = 5.0
+damage = 24
+attacks_per_second = 1.0
+projectile_speed = 460
+projectile_texture = ExtResource("3_proj")
+projectile_color = Color(1, 0.9, 0.5, 1)
+applies_status = &"marked"
+ability_every = 2.0
+mark_all = true
+marked_bonus = 0.35
+crit_chance = 0.05
+texture = ExtResource("2_tex")
+frame_count = 8
+attack_texture = ExtResource("4_atk")
+attack_frame_count = 6
+attack_release_frame = 2
+evolves_to = Array[Resource]([ExtResource("ev_1")])

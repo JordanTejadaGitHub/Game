@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+[ext_resource type="Resource" path="res://resource/tower/dawnwing.tres" id="2_tower"]
+
+[resource]
+script = ExtResource("1_card")
+id = "dream_dawnwing"
+display_name = "Dawnwing"
+description = "Any wing final form can ascend into Dawnwing (400 Dew, one per run): A great bird patrols the path in its range, striking every nightmare it passes; it flies faster the more nightmares there are."
+rarity = 3
+kind = 1
+tags = Array[String](["wing"])
+max_stacks = 1
+min_act = 3
+unlocks = ExtResource("2_tower")
+in_start_pool = false

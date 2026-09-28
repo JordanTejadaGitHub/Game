@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="DriftData" format=3]
+
+[ext_resource type="Script" path="res://resource/drift/script/drift_group.gd" id="1_xdlnl"]
+[ext_resource type="Script" path="res://resource/drift/script/drift_entry.gd" id="2_ticxg"]
+[ext_resource type="Resource" path="res://resource/enemy/shellbound.tres" id="3_qa8b7"]
+[ext_resource type="Script" path="res://resource/drift/script/drift_data.gd" id="4_a1dmb"]
+
+[sub_resource type="Resource" id="Resource_nju02"]
+script = ExtResource("2_ticxg")
+enemy = ExtResource("3_qa8b7")
+count = 3
+
+[sub_resource type="Resource" id="Resource_oirey"]
+script = ExtResource("1_xdlnl")
+entries = Array[ExtResource("2_ticxg")]([SubResource("Resource_nju02")])
+spacing = 4.0
+
+[resource]
+script = ExtResource("4_a1dmb")
+groups = Array[ExtResource("1_xdlnl")]([SubResource("Resource_oirey")])

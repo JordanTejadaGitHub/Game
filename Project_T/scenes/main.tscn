@@ -1,185 +1,44 @@
-[gd_scene load_steps=18 format=3 uid="uid://ct33vhcgulg0g"]
+[gd_scene load_steps=32 format=3 uid="uid://ct33vhcgulg0g"]
 
 [ext_resource type="Script" path="res://scripts/main.gd" id="1_bjgx8"]
 [ext_resource type="Script" path="res://scripts/map/map_generator.gd" id="2_888hw"]
-[ext_resource type="Texture2D" uid="uid://c0uybpni16dsf" path="res://assets/Foozle_2DT0012_Spire_Tileset_1/Tileset/PNGs/Grass Tileset.png" id="3_4m67i"]
 [ext_resource type="Script" path="res://scripts/map/ground_generator.gd" id="3_mrllr"]
 [ext_resource type="Script" path="res://scripts/map/path.gd" id="4_qmsg7"]
 [ext_resource type="Script" path="res://scripts/map/enivornment_object_generator.gd" id="5_1t7p4"]
 [ext_resource type="Script" path="res://scripts/game_camera_node.gd" id="5_kbv55"]
 [ext_resource type="Script" path="res://scripts/enemy/enemy_spawner.gd" id="7_pm83a"]
-
-[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_vgjl1"]
-texture = ExtResource("3_4m67i")
-texture_region_size = Vector2i(64, 64)
-11:9/0 = 0
-12:9/0 = 0
-2:3/0 = 0
-2:1/0 = 0
-1:2/0 = 0
-3:2/0 = 0
-6:2/0 = 0
-6:7/0 = 0
-
-[sub_resource type="TileSet" id="TileSet_v02te"]
-tile_size = Vector2i(64, 64)
-sources/0 = SubResource("TileSetAtlasSource_vgjl1")
-
-[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_8o703"]
-texture = ExtResource("3_4m67i")
-texture_region_size = Vector2i(64, 64)
-1:7/0 = 0
-2:7/0 = 0
-3:7/0 = 0
-2:6/0 = 0
-2:8/0 = 0
-5:6/0 = 0
-5:7/0 = 0
-6:7/0 = 0
-6:8/0 = 0
-7:8/0 = 0
-7:7/0 = 0
-7:6/0 = 0
-6:6/0 = 0
-5:8/0 = 0
-8:6/0 = 0
-8:7/0 = 0
-9:7/0 = 0
-9:6/0 = 0
-10:6/0 = 0
-10:7/0 = 0
-11:7/0 = 0
-11:6/0 = 0
-5:1/0 = 0
-5:2/0 = 0
-5:3/0 = 0
-6:3/0 = 0
-7:3/0 = 0
-7:2/0 = 0
-7:1/0 = 0
-6:1/0 = 0
-6:2/0 = 0
-9:1/0 = 0
-9:2/0 = 0
-9:3/0 = 0
-11:1/0 = 0
-11:2/0 = 0
-11:3/0 = 0
-11:4/0 = 0
-12:4/0 = 0
-13:4/0 = 0
-14:4/0 = 0
-14:3/0 = 0
-14:2/0 = 0
-14:1/0 = 0
-13:1/0 = 0
-12:1/0 = 0
-12:2/0 = 0
-12:3/0 = 0
-13:3/0 = 0
-13:2/0 = 0
-13:6/0 = 0
-13:7/0 = 0
-14:7/0 = 0
-14:6/0 = 0
-13:9/0 = 0
-13:10/0 = 0
-14:10/0 = 0
-14:9/0 = 0
-12:9/0 = 0
-11:9/0 = 0
-13:12/0 = 0
-13:13/0 = 0
-14:13/0 = 0
-14:12/0 = 0
-11:12/0 = 0
-11:13/0 = 0
-11:14/0 = 0
-9:14/0 = 0
-8:14/0 = 0
-7:14/0 = 0
-9:13/0 = 0
-8:13/0 = 0
-7:13/0 = 0
-7:10/0 = 0
-7:11/0 = 0
-7:12/0 = 0
-8:11/0 = 0
-8:12/0 = 0
-9:12/0 = 0
-9:11/0 = 0
-8:9/0 = 0
-8:10/0 = 0
-9:10/0 = 0
-10:10/0 = 0
-10:9/0 = 0
-9:9/0 = 0
-6:10/0 = 0
-6:11/0 = 0
-6:12/0 = 0
-4:10/0 = 0
-4:11/0 = 0
-3:11/0 = 0
-2:11/0 = 0
-1:11/0 = 0
-1:10/0 = 0
-2:10/0 = 0
-3:10/0 = 0
-1:12/0 = 0
-1:13/0 = 0
-2:13/0 = 0
-3:13/0 = 0
-4:13/0 = 0
-4:12/0 = 0
-3:12/0 = 0
-2:12/0 = 0
-2:2/0 = 0
-2:1/0 = 0
-2:3/0 = 0
-3:2/0 = 0
-1:2/0 = 0
-
-[sub_resource type="TileSet" id="TileSet_y2xp1"]
-tile_size = Vector2i(64, 64)
-sources/1 = SubResource("TileSetAtlasSource_8o703")
-
-[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_msyte"]
-texture = ExtResource("3_4m67i")
-texture_region_size = Vector2i(64, 64)
-6:11/0 = 0
-6:10/0 = 0
-6:12/0 = 0
-7:12/0 = 0
-7:11/0 = 0
-7:10/0 = 0
-8:10/0 = 0
-9:10/0 = 0
-10:10/0 = 0
-10:9/0 = 0
-8:9/0 = 0
-9:9/0 = 0
-8:11/0 = 0
-8:12/0 = 0
-9:12/0 = 0
-9:11/0 = 0
-13:6/0 = 0
-13:7/0 = 0
-14:7/0 = 0
-14:6/0 = 0
-13:9/0 = 0
-13:10/0 = 0
-14:10/0 = 0
-14:9/0 = 0
-12:9/0 = 0
-11:9/0 = 0
-14:12/0 = 0
-14:13/0 = 0
-13:13/0 = 0
-13:12/0 = 0
-
-[sub_resource type="TileSet" id="TileSet_pu0sk"]
-tile_size = Vector2i(64, 64)
-sources/2 = SubResource("TileSetAtlasSource_msyte")
+[ext_resource type="Script" path="res://scripts/tower/tower_placer.gd" id="8_twrpl"]
+[ext_resource type="Script" path="res://scripts/ui/hud.gd" id="9_hud"]
+[ext_resource type="Script" path="res://scripts/map/obstacle_clearer.gd" id="10_obclr"]
+[ext_resource type="Script" path="res://scripts/run/run_state.gd" id="11_runst"]
+[ext_resource type="Script" path="res://scripts/run/drift_director.gd" id="12_drift"]
+[ext_resource type="Script" path="res://scripts/run/game_speed.gd" id="13_speed"]
+[ext_resource type="Script" path="res://scripts/tower/tower_seller.gd" id="14_sell"]
+[ext_resource type="Script" path="res://scripts/ui/drift_panel.gd" id="15_dpanel"]
+[ext_resource type="Script" path="res://scripts/run/dream_state.gd" id="16_dream"]
+[ext_resource type="Script" path="res://scripts/ui/warden_panel.gd" id="17_wpanel"]
+[ext_resource type="Script" path="res://scripts/ui/dream_screen.gd" id="18_dscreen"]
+[ext_resource type="Script" path="res://scripts/ui/family_pick_screen.gd" id="19_family"]
+[ext_resource type="Script" path="res://scripts/run/omen_director.gd" id="30_omen"]
+[ext_resource type="Script" path="res://scripts/ui/omen_screen.gd" id="31_oscreen"]
+[ext_resource type="Script" path="res://scripts/run/run_saver.gd" id="32_saver"]
+[ext_resource type="Script" path="res://scripts/ui/results_screen.gd" id="33_results"]
+[ext_resource type="Script" path="res://scripts/ui/pause_menu.gd" id="34_pause"]
+[ext_resource type="Script" path="res://scripts/ui/whispers.gd" id="35_whisper"]
+[ext_resource type="Script" path="res://scripts/run/seasons.gd" id="36_seasons"]
+[ext_resource type="Script" path="res://scripts/audio/sound_hooks.gd" id="37_sound"]
+[ext_resource type="Script" path="res://scripts/run/test_grove.gd" id="38_grove"]
+[ext_resource type="Script" path="res://scripts/run/damage_log.gd" id="39_damage"]
+[ext_resource type="Script" path="res://scripts/ui/drift_banner.gd" id="40_banner"]
+[ext_resource type="Script" path="res://scripts/ui/nightmare_info.gd" id="41_ninfo"]
+[ext_resource type="Script" path="res://scripts/ui/leak_effect.gd" id="42_leak"]
+[ext_resource type="Script" path="res://scripts/meta/meta_run.gd" id="43_meta"]
+[ext_resource type="Script" path="res://scripts/ui/combat_callouts.gd" id="44_callouts"]
+[ext_resource type="Script" path="res://scripts/ui/placement_links.gd" id="45_links"]
+[ext_resource type="Script" path="res://scripts/ui/rest_report.gd" id="46_report"]
+[ext_resource type="Script" path="res://scripts/ui/dreams_row.gd" id="47_dreams"]
+[ext_resource type="Script" path="res://scripts/ui/remember_screen.gd" id="48_remember"]
+[ext_resource type="Script" path="res://scripts/ui/combo_feedback.gd" id="49_reactions"]
 
 [sub_resource type="Gradient" id="Gradient_5toel"]
 interpolation_mode = 1
@@ -197,39 +56,358 @@ noise = SubResource("FastNoiseLite_1wtqj")
 [node name="Main" type="Node2D"]
 script = ExtResource("1_bjgx8")
 
+[node name="RunState" type="Node" parent="."]
+unique_name_in_owner = true
+script = ExtResource("11_runst")
+
+[node name="GameSpeed" type="Node" parent="."]
+unique_name_in_owner = true
+process_mode = 3
+script = ExtResource("13_speed")
+
+[node name="RunSaver" type="Node" parent="."]
+unique_name_in_owner = true
+process_mode = 3
+script = ExtResource("32_saver")
+
 [node name="MapGenerator" type="Node2D" parent="."]
 unique_name_in_owner = true
 script = ExtResource("2_888hw")
 
 [node name="GroundTileMapLayer" type="TileMapLayer" parent="MapGenerator"]
 unique_name_in_owner = true
-tile_set = SubResource("TileSet_v02te")
 script = ExtResource("3_mrllr")
 
 [node name="PathTileMapLayer" type="TileMapLayer" parent="MapGenerator"]
 unique_name_in_owner = true
-tile_set = SubResource("TileSet_y2xp1")
 script = ExtResource("4_qmsg7")
 
 [node name="EnvironmentObjectTileMapLayer" type="TileMapLayer" parent="MapGenerator"]
 unique_name_in_owner = true
-tile_set = SubResource("TileSet_pu0sk")
 script = ExtResource("5_1t7p4")
 noise_texture = SubResource("NoiseTexture2D_4gt3b")
 
 [node name="TowerContainer" type="Node2D" parent="."]
+unique_name_in_owner = true
 
 [node name="EnemyContainer" type="Node2D" parent="."]
+unique_name_in_owner = true
 script = ExtResource("7_pm83a")
 
+[node name="DamageLog" type="Node2D" parent="."]
+unique_name_in_owner = true
+script = ExtResource("39_damage")
+
+[node name="DriftDirector" type="Node" parent="."]
+unique_name_in_owner = true
+script = ExtResource("12_drift")
+
+[node name="DreamState" type="Node" parent="."]
+unique_name_in_owner = true
+process_mode = 3
+script = ExtResource("16_dream")
+
+[node name="OmenDirector" type="Node" parent="."]
+unique_name_in_owner = true
+process_mode = 3
+script = ExtResource("30_omen")
+
+[node name="MetaRun" type="Node" parent="."]
+unique_name_in_owner = true
+script = ExtResource("43_meta")
+
+[node name="TestGrove" type="CanvasLayer" parent="."]
+unique_name_in_owner = true
+script = ExtResource("38_grove")
+
+[node name="TowerPlacer" type="Node2D" parent="."]
+unique_name_in_owner = true
+process_mode = 3
+script = ExtResource("8_twrpl")
+
+[node name="ObstacleClearer" type="Node2D" parent="."]
+unique_name_in_owner = true
+process_mode = 3
+script = ExtResource("10_obclr")
+
+[node name="TowerSeller" type="Node2D" parent="."]
+unique_name_in_owner = true
+process_mode = 3
+script = ExtResource("14_sell")
+
 [node name="HUD" type="CanvasLayer" parent="."]
+process_mode = 3
+script = ExtResource("9_hud")
+
+[node name="TowerBar" type="HBoxContainer" parent="HUD"]
+unique_name_in_owner = true
+anchors_preset = 7
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -20.0
+offset_top = -76.0
+offset_right = 20.0
+offset_bottom = -16.0
+grow_horizontal = 2
+grow_vertical = 0
+theme_override_constants/separation = 3
+
+[node name="DewLabel" type="Label" parent="HUD"]
+unique_name_in_owner = true
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -216.0
+offset_top = 16.0
+offset_right = -16.0
+offset_bottom = 56.0
+grow_horizontal = 0
+theme_override_colors/font_color = Color(0.7, 0.9, 1, 1)
+theme_override_colors/font_outline_color = Color(0.08, 0.1, 0.14, 1)
+theme_override_constants/outline_size = 8
+theme_override_font_sizes/font_size = 26
+text = "Dew 0"
+horizontal_alignment = 2
+vertical_alignment = 1
+
+[node name="LeavesLabel" type="Label" parent="HUD"]
+unique_name_in_owner = true
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -216.0
+offset_top = 56.0
+offset_right = -16.0
+offset_bottom = 92.0
+grow_horizontal = 0
+theme_override_colors/font_color = Color(0.6, 0.9, 0.5, 1)
+theme_override_colors/font_outline_color = Color(0.08, 0.1, 0.14, 1)
+theme_override_constants/outline_size = 8
+theme_override_font_sizes/font_size = 22
+text = "Leaves 20 / 20"
+horizontal_alignment = 2
+vertical_alignment = 1
+
+[node name="PathLabel" type="Label" parent="HUD"]
+unique_name_in_owner = true
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -216.0
+offset_top = 90.0
+offset_right = -16.0
+offset_bottom = 118.0
+grow_horizontal = 0
+tooltip_text = "How many tiles creatures walk from the forest's edge to the Heartwood."
+mouse_filter = 1
+theme_override_colors/font_color = Color(0.85, 0.8, 0.6, 1)
+theme_override_colors/font_outline_color = Color(0.08, 0.1, 0.14, 1)
+theme_override_constants/outline_size = 8
+theme_override_font_sizes/font_size = 18
+text = "Path 0 tiles"
+horizontal_alignment = 2
+vertical_alignment = 1
+
+[node name="DriftBanner" type="Control" parent="HUD"]
+unique_name_in_owner = true
+layout_mode = 3
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -320.0
+offset_top = 4.0
+offset_right = 320.0
+offset_bottom = 68.0
+grow_horizontal = 2
+mouse_filter = 2
+script = ExtResource("40_banner")
+
+[node name="NightmareInfo" type="PanelContainer" parent="HUD"]
+unique_name_in_owner = true
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -276.0
+offset_top = 150.0
+offset_right = -16.0
+offset_bottom = 250.0
+grow_horizontal = 0
+mouse_filter = 2
+script = ExtResource("41_ninfo")
+
+[node name="Whispers" type="RichTextLabel" parent="HUD"]
+unique_name_in_owner = true
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -360.0
+offset_top = 150.0
+offset_right = 360.0
+offset_bottom = 186.0
+grow_horizontal = 2
+mouse_filter = 2
+theme_override_colors/default_color = Color(0.85, 0.95, 0.8, 1)
+theme_override_colors/font_outline_color = Color(0.05, 0.08, 0.06, 1)
+theme_override_constants/outline_size = 8
+theme_override_font_sizes/normal_font_size = 20
+bbcode_enabled = true
+scroll_active = false
+script = ExtResource("35_whisper")
+
+[node name="ToastLabel" type="Label" parent="HUD"]
+unique_name_in_owner = true
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -300.0
+offset_top = 72.0
+offset_right = 300.0
+offset_bottom = 140.0
+grow_horizontal = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(1, 0.95, 0.75, 1)
+theme_override_colors/font_outline_color = Color(0.08, 0.1, 0.14, 1)
+theme_override_constants/outline_size = 8
+theme_override_font_sizes/font_size = 24
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="DriftPanel" type="VBoxContainer" parent="HUD"]
+anchors_preset = 3
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -288.0
+offset_top = -136.0
+offset_right = -16.0
+offset_bottom = -16.0
+grow_horizontal = 0
+grow_vertical = 0
+script = ExtResource("15_dpanel")
+
+[node name="WardenPanel" type="PanelContainer" parent="HUD"]
+anchors_preset = 2
+anchor_top = 1.0
+anchor_bottom = 1.0
+offset_left = 16.0
+offset_top = -56.0
+offset_right = 316.0
+offset_bottom = -16.0
+grow_vertical = 0
+script = ExtResource("17_wpanel")
+
+[node name="DreamsRow" type="VBoxContainer" parent="HUD"]
+unique_name_in_owner = true
+offset_left = 16.0
+offset_top = 16.0
+offset_right = 376.0
+offset_bottom = 58.0
+mouse_filter = 2
+script = ExtResource("47_dreams")
+
+[node name="ComboFeedback" type="Control" parent="HUD"]
+unique_name_in_owner = true
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("49_reactions")
+
+[node name="RestReport" type="PanelContainer" parent="HUD"]
+unique_name_in_owner = true
+offset_left = 16.0
+offset_top = 124.0
+offset_right = 296.0
+offset_bottom = 244.0
+script = ExtResource("46_report")
+
+[node name="FamilyPickScreen" type="Control" parent="HUD"]
+unique_name_in_owner = true
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("19_family")
+
+[node name="DreamScreen" type="Control" parent="HUD"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("18_dscreen")
+
+[node name="OmenScreen" type="Control" parent="HUD"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("31_oscreen")
+
+[node name="RememberScreen" type="Control" parent="HUD"]
+unique_name_in_owner = true
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("48_remember")
+
+[node name="ResultsScreen" type="Control" parent="HUD"]
+unique_name_in_owner = true
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("33_results")
+
+[node name="PauseMenu" type="Control" parent="HUD"]
+unique_name_in_owner = true
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("34_pause")
+
+[node name="SoundHooks" type="Node" parent="."]
+unique_name_in_owner = true
+process_mode = 3
+script = ExtResource("37_sound")
+
+[node name="LeakEffect" type="Node2D" parent="."]
+script = ExtResource("42_leak")
+
+[node name="CombatCallouts" type="Node2D" parent="."]
+unique_name_in_owner = true
+script = ExtResource("44_callouts")
+
+[node name="PlacementLinks" type="Node2D" parent="."]
+unique_name_in_owner = true
+script = ExtResource("45_links")
+
+[node name="Seasons" type="CanvasModulate" parent="."]
+script = ExtResource("36_seasons")
 
 [node name="GameCameraNode" type="Node2D" parent="."]
+process_mode = 3
 script = ExtResource("5_kbv55")
 
 [node name="Camera2D" type="Camera2D" parent="GameCameraNode"]
 unique_name_in_owner = true
 position = Vector2(640, 384)
-limit_smoothed = true
-position_smoothing_enabled = true
-position_smoothing_speed = 50.0

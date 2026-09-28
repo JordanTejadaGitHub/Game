@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="EnemyData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://resource/enemy/script/enemy_data.gd" id="1_edata"]
+[ext_resource type="SpriteFrames" path="res://animation/enemy/bark_beetle.tres" id="2_frames"]
+
+[resource]
+script = ExtResource("1_edata")
+sprite_frames = ExtResource("2_frames")
+display_name = "Husk"
+health = 300
+speed = 57.6
+dew_reward = 8
+leaf_cost = 1
+resists = Array[String](["stone"])
+weak_to = Array[String](["spore"])
+trait_text = "Slow, under a thick shell of blight."

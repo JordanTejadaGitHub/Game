@@ -1,0 +1,33 @@
+[gd_resource type="Resource" script_class="TowerData" load_steps=6 format=3]
+
+[ext_resource type="Script" path="res://resource/tower/script/tower_data.gd" id="1_tdata"]
+[ext_resource type="Texture2D" path="res://assets/towers/ascended/heartwood_sapling.png" id="art_idle"]
+[ext_resource type="Texture2D" path="res://assets/towers/ascended/heartwood_sapling_ripen.png" id="art_ripen"]
+[ext_resource type="Texture2D" path="res://assets/towers/ascended/heartwood_sapling_withered.png" id="art_withered"]
+[ext_resource type="Texture2D" path="res://assets/towers/ascended/heartwood_sapling_ranks.png" id="art_ranks"]
+
+[resource]
+script = ExtResource("1_tdata")
+display_name = "Heartwood Sapling"
+description = "A seedling of the Heartwood, 2×2 and rooted for good. Gives 20 Dew after every drift and 1 Dreamlight every 10 drifts. Each Nurture rank adds 10 Dew; from rank III, Dreamlight every 7 drifts. Each leaf lost withers the yield 5% until the next rest."
+cost = 0
+texture = ExtResource("art_idle")
+frame_count = 8
+can_attack = false
+line = "heartwood"
+tier = 0
+evolve_cost = 0
+is_unique = true
+dew_per_drift = 20
+dew_per_rank = 10
+dreamlight_every = 10
+dreamlight_every_ranked = 7
+footprint = 2
+rooted = true
+nurture_cost_multiplier = 3.0
+sprite_offset = Vector2(0, -16)
+ripen_texture = ExtResource("art_ripen")
+ripen_frames = 6
+withered_texture = ExtResource("art_withered")
+rank_overlay_texture = ExtResource("art_ranks")
+rank_overlay_frames = 5

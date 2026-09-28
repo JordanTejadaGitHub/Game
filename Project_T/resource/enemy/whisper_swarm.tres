@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="EnemyData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://resource/enemy/script/enemy_data.gd" id="1_edata"]
+[ext_resource type="SpriteFrames" path="res://animation/enemy/whisper_swarm.tres" id="2_frames"]
+
+[resource]
+script = ExtResource("1_edata")
+sprite_frames = ExtResource("2_frames")
+display_name = "Whisper Swarm"
+health = 180
+speed = 105.0
+dew_reward = 5
+weak_to = Array[String](["wind"])
+single_target_multiplier = 0.5
+trait_text = "Made of many: single-target hits do half."

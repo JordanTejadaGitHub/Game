@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "court_of_the_eldest"
+display_name = "Court of the Eldest"
+description = "Your highest-rank Warden becomes the Eldest now. Wardens touching the Eldest get 25% of its rank bonuses."
+rarity = 3
+kind = 3
+tags = Array[String](["nurture"])
+max_stacks = 1
+min_act = 2
+rule_id = &"court_of_the_eldest"

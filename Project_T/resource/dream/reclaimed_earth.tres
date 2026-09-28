@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "reclaimed_earth"
+display_name = "Reclaimed Earth"
+description = "Every obstacle you clear gives 8 Dew and leaves the ground fertile: the first Warden planted there costs half."
+rarity = 0
+kind = 3
+tags = Array[String](["clearing", "economy"])
+max_stacks = 1
+min_obstacles = 8
+dew_per_obstacle_clear = 8
+rule_id = &"reclaimed_earth"

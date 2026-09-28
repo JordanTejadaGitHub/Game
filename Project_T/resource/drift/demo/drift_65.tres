@@ -1,0 +1,26 @@
+[gd_resource type="Resource" script_class="DriftData" format=3]
+
+[ext_resource type="Script" path="res://resource/drift/script/drift_group.gd" id="1_7bu7q"]
+[ext_resource type="Script" path="res://resource/drift/script/drift_entry.gd" id="2_rf7f4"]
+[ext_resource type="Resource" path="res://resource/enemy/drowned_one.tres" id="3_l2rhd"]
+[ext_resource type="Resource" path="res://resource/enemy/hedgehog.tres" id="4_q8s51"]
+[ext_resource type="Script" path="res://resource/drift/script/drift_data.gd" id="5_lnvud"]
+
+[sub_resource type="Resource" id="Resource_7iu01"]
+script = ExtResource("2_rf7f4")
+enemy = ExtResource("3_l2rhd")
+count = 16
+
+[sub_resource type="Resource" id="Resource_e6e4j"]
+script = ExtResource("2_rf7f4")
+enemy = ExtResource("4_q8s51")
+count = 8
+
+[sub_resource type="Resource" id="Resource_raagj"]
+script = ExtResource("1_7bu7q")
+entries = Array[ExtResource("2_rf7f4")]([SubResource("Resource_7iu01"), SubResource("Resource_e6e4j")])
+spacing = 1.25
+
+[resource]
+script = ExtResource("5_lnvud")
+groups = Array[ExtResource("1_7bu7q")]([SubResource("Resource_raagj")])

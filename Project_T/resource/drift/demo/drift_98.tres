@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="DriftData" format=3]
+
+[ext_resource type="Script" path="res://resource/drift/script/drift_group.gd" id="1_rw2ok"]
+[ext_resource type="Script" path="res://resource/drift/script/drift_entry.gd" id="2_go4cs"]
+[ext_resource type="Resource" path="res://resource/enemy/leaf_bug.tres" id="3_4nntd"]
+[ext_resource type="Script" path="res://resource/drift/script/drift_data.gd" id="4_frx0d"]
+
+[sub_resource type="Resource" id="Resource_f4eid"]
+script = ExtResource("2_go4cs")
+enemy = ExtResource("3_4nntd")
+count = 80
+
+[sub_resource type="Resource" id="Resource_sd0ew"]
+script = ExtResource("1_rw2ok")
+entries = Array[ExtResource("2_go4cs")]([SubResource("Resource_f4eid")])
+spacing = 0.2
+
+[resource]
+script = ExtResource("4_frx0d")
+groups = Array[ExtResource("1_rw2ok")]([SubResource("Resource_sd0ew")])

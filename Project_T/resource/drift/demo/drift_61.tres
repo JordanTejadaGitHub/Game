@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="DriftData" format=3]
+
+[ext_resource type="Script" path="res://resource/drift/script/drift_group.gd" id="1_mbget"]
+[ext_resource type="Script" path="res://resource/drift/script/drift_entry.gd" id="2_sdjdd"]
+[ext_resource type="Resource" path="res://resource/enemy/drowned_one.tres" id="3_x1ky1"]
+[ext_resource type="Script" path="res://resource/drift/script/drift_data.gd" id="4_og334"]
+
+[sub_resource type="Resource" id="Resource_qfp33"]
+script = ExtResource("2_sdjdd")
+enemy = ExtResource("3_x1ky1")
+count = 4
+
+[sub_resource type="Resource" id="Resource_u4qg2"]
+script = ExtResource("1_mbget")
+entries = Array[ExtResource("2_sdjdd")]([SubResource("Resource_qfp33")])
+spacing = 2.5
+
+[resource]
+script = ExtResource("4_og334")
+groups = Array[ExtResource("1_mbget")]([SubResource("Resource_u4qg2")])

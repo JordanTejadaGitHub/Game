@@ -1,0 +1,33 @@
+[gd_resource type="Resource" script_class="TowerData" load_steps=6 format=3]
+
+[ext_resource type="Script" path="res://resource/tower/script/tower_data.gd" id="1_tdata"]
+[ext_resource type="Texture2D" path="res://assets/towers/autumn_gale.png" id="2_tex"]
+[ext_resource type="Texture2D" path="res://assets/towers/projectiles/autumn_seed.png" id="3_proj"]
+[ext_resource type="Texture2D" path="res://assets/towers/autumn_gale_attack.png" id="4_atk"]
+[ext_resource type="Resource" path="res://resource/tower/tempest.tres" id="asc_1"]
+
+[resource]
+script = ExtResource("1_tdata")
+display_name = "Autumn Gale"
+description = "Two seeds down the two busiest lines; each caught seed that hit something makes the next throw 10% stronger (up to 50%)."
+cost = 0
+texture = ExtResource("2_tex")
+frame_count = 8
+line = "wind"
+tier = 3
+buildable_directly = false
+evolve_cost = 200
+attack_kind = 15
+attack_range = 5.0
+damage = 53
+attacks_per_second = 0.625
+boomerang_length = 5.0
+boomerang_seeds = 2
+catch_bonus = 0.1
+catch_bonus_max = 0.5
+crit_chance = 0.05
+projectile_texture = ExtResource("3_proj")
+attack_texture = ExtResource("4_atk")
+attack_frame_count = 6
+attack_release_frame = 2
+evolves_to = Array[Resource]([ExtResource("asc_1")])

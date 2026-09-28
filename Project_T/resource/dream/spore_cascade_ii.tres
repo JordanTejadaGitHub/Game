@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "spore_cascade_ii"
+display_name = "Spore Cascade II"
+description = "A dispelled nightmare's {spored} stacks spread to the 3 nearest nightmares."
+rarity = 2
+kind = 3
+tags = Array[String](["spore"])
+max_stacks = 1
+deepens = "spore_cascade"
+rule_id = &"spore_cascade"

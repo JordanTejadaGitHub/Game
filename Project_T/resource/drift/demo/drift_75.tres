@@ -1,0 +1,41 @@
+[gd_resource type="Resource" script_class="DriftData" format=3]
+
+[ext_resource type="Script" path="res://resource/drift/script/drift_group.gd" id="1_5123q"]
+[ext_resource type="Script" path="res://resource/drift/script/drift_entry.gd" id="2_o1eqs"]
+[ext_resource type="Resource" path="res://resource/enemy/dusk_moth.tres" id="3_5cud0"]
+[ext_resource type="Resource" path="res://resource/enemy/moth_queen.tres" id="4_iho8q"]
+[ext_resource type="Resource" path="res://resource/enemy/hedgehog.tres" id="5_mop7e"]
+[ext_resource type="Script" path="res://resource/drift/script/drift_data.gd" id="6_yi451"]
+
+[sub_resource type="Resource" id="Resource_q8w4y"]
+script = ExtResource("2_o1eqs")
+enemy = ExtResource("3_5cud0")
+count = 12
+
+[sub_resource type="Resource" id="Resource_ubgir"]
+script = ExtResource("1_5123q")
+entries = Array[ExtResource("2_o1eqs")]([SubResource("Resource_q8w4y")])
+
+[sub_resource type="Resource" id="Resource_x8b1s"]
+script = ExtResource("2_o1eqs")
+enemy = ExtResource("4_iho8q")
+
+[sub_resource type="Resource" id="Resource_kknhm"]
+script = ExtResource("1_5123q")
+entries = Array[ExtResource("2_o1eqs")]([SubResource("Resource_x8b1s")])
+delay = 3.0
+
+[sub_resource type="Resource" id="Resource_hthxt"]
+script = ExtResource("2_o1eqs")
+enemy = ExtResource("5_mop7e")
+count = 6
+
+[sub_resource type="Resource" id="Resource_g7q4g"]
+script = ExtResource("1_5123q")
+entries = Array[ExtResource("2_o1eqs")]([SubResource("Resource_hthxt")])
+spacing = 1.5
+delay = 3.0
+
+[resource]
+script = ExtResource("6_yi451")
+groups = Array[ExtResource("1_5123q")]([SubResource("Resource_ubgir"), SubResource("Resource_kknhm"), SubResource("Resource_g7q4g")])

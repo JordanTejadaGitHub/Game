@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="EnemyData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://resource/enemy/script/enemy_data.gd" id="1_edata"]
+[ext_resource type="SpriteFrames" path="res://animation/enemy/great_toad.tres" id="2_frames"]
+
+[resource]
+script = ExtResource("1_edata")
+sprite_frames = ExtResource("2_frames")
+health = 8000
+is_boss = true
+dew_reward = 60
+leaf_cost = 5
+speed = 38.4
+trait_kind = 4
+display_name = "The Mire Hag"
+cleanse_line = "The Mire Hag is gone. The Deep Wood is quiet, for now."
+trait_text = "Sinks into the mire and rises further along; nightmares where she surfaces are {damp}."

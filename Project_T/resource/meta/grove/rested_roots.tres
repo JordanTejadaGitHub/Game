@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="UnlockData" format=3]
+
+[ext_resource type="Script" path="res://resource/meta/script/unlock_data.gd" id="1_unlock"]
+
+[resource]
+script = ExtResource("1_unlock")
+id = "rested_roots"
+display_name = "Rested Roots"
+description = "+10% rest bonus per level (+20% at most)."
+root = 2
+costs = Array[int]([40, 80])
+order = 3
+icon = 2
+requires_all = Array[String](["rich_dew"])
+rest_bonus = 0.1

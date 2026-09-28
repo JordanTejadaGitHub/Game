@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+[ext_resource type="Resource" path="res://resource/tower/autumn_gale.tres" id="2_tower"]
+
+[resource]
+script = ExtResource("1_card")
+id = "dream_autumn_gale"
+display_name = "Autumn Gale"
+description = "Samaras can now grow into Autumn Gales (200 Dew): two seeds down the two busiest lines; each caught seed that hit something makes the next throw 10% stronger (up to 50%)."
+rarity = 2
+kind = 1
+tags = Array[String](["wind"])
+requires = Array[String](["samara"])
+max_stacks = 1
+unlocks = ExtResource("2_tower")
+in_start_pool = false

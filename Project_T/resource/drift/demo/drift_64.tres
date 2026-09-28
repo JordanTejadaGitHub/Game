@@ -1,0 +1,38 @@
+[gd_resource type="Resource" script_class="DriftData" format=3]
+
+[ext_resource type="Script" path="res://resource/drift/script/drift_group.gd" id="1_4x8cm"]
+[ext_resource type="Script" path="res://resource/drift/script/drift_entry.gd" id="2_qowy1"]
+[ext_resource type="Resource" path="res://resource/enemy/leaf_bug.tres" id="3_8bgge"]
+[ext_resource type="Resource" path="res://resource/enemy/barrow_wight.tres" id="4_ystfx"]
+[ext_resource type="Resource" path="res://resource/enemy/puffcap.tres" id="5_pekis"]
+[ext_resource type="Resource" path="res://resource/enemy/dusk_moth.tres" id="6_g37gd"]
+[ext_resource type="Script" path="res://resource/drift/script/drift_data.gd" id="7_xv8ft"]
+
+[sub_resource type="Resource" id="Resource_jk7jd"]
+script = ExtResource("2_qowy1")
+enemy = ExtResource("3_8bgge")
+count = 34
+
+[sub_resource type="Resource" id="Resource_5xmgq"]
+script = ExtResource("2_qowy1")
+enemy = ExtResource("4_ystfx")
+count = 3
+
+[sub_resource type="Resource" id="Resource_7uf8a"]
+script = ExtResource("2_qowy1")
+enemy = ExtResource("5_pekis")
+count = 8
+
+[sub_resource type="Resource" id="Resource_nbkur"]
+script = ExtResource("2_qowy1")
+enemy = ExtResource("6_g37gd")
+count = 6
+
+[sub_resource type="Resource" id="Resource_cfkkf"]
+script = ExtResource("1_4x8cm")
+entries = Array[ExtResource("2_qowy1")]([SubResource("Resource_jk7jd"), SubResource("Resource_5xmgq"), SubResource("Resource_7uf8a"), SubResource("Resource_nbkur")])
+spacing = 0.5882352941176471
+
+[resource]
+script = ExtResource("7_xv8ft")
+groups = Array[ExtResource("1_4x8cm")]([SubResource("Resource_cfkkf")])

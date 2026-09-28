@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "seed_storm"
+display_name = "Seed Storm"
+description = "Every 5th throw bursts into 5 seeds in a fan."
+rarity = 2
+kind = 3
+tags = Array[String](["wind"])
+requires = Array[String](["samara"])
+max_stacks = 1
+min_act = 2
+rule_id = &"seed_storm"
+in_start_pool = false

@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="EnemyData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://resource/enemy/script/enemy_data.gd" id="1_edata"]
+[ext_resource type="SpriteFrames" path="res://animation/enemy/drowned_one.tres" id="2_frames"]
+
+[resource]
+script = ExtResource("1_edata")
+sprite_frames = ExtResource("2_frames")
+display_name = "Drowned One"
+health = 120
+speed = 95.0
+dew_reward = 4
+resists = Array[String](["water"])
+weak_to = Array[String](["light"])
+status_immune = Array[StringName]([&"drowsy", &"held"])
+always_damp = true
+ignores_slows = true
+trait_text = "Always {damp}, and nothing slows it."

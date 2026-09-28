@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "still_target"
+display_name = "Still Target"
+description = "+15% crit chance against {drowsy}, {held} or frozen nightmares."
+rarity = 1
+kind = 3
+tags = Array[String](["crit", "sleep"])
+requires_any = Array[String](["bloomcap", "honeysuckle", "frostfern", "rootling", "tangleroot", "snugroot"])
+max_stacks = 1
+rule_id = &"still_target"
+in_start_pool = false

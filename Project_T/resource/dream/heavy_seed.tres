@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "heavy_seed"
+display_name = "Heavy Seed"
+description = "Each pass knocks nightmares back 0.25 tiles (once per throw)."
+rarity = 1
+kind = 3
+tags = Array[String](["wind"])
+requires = Array[String](["samara"])
+max_stacks = 1
+rule_id = &"heavy_seed"
+in_start_pool = false

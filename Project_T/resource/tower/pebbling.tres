@@ -1,0 +1,31 @@
+[gd_resource type="Resource" script_class="TowerData" load_steps=8 format=3]
+
+[ext_resource type="Script" path="res://resource/tower/script/tower_data.gd" id="1_tdata"]
+[ext_resource type="Texture2D" path="res://assets/towers/pebbling.png" id="2_tex"]
+[ext_resource type="Texture2D" path="res://assets/towers/projectiles/pebble.png" id="3_proj"]
+[ext_resource type="Texture2D" path="res://assets/towers/pebbling_attack.png" id="4_atk"]
+[ext_resource type="Resource" path="res://resource/tower/standing_stone.tres" id="ev_1"]
+[ext_resource type="Resource" path="res://resource/tower/cairn.tres" id="ev_2"]
+[ext_resource type="Resource" path="res://resource/tower/mossback.tres" id="ev_3"]
+
+[resource]
+script = ExtResource("1_tdata")
+display_name = "Pebbling"
+cost = 30
+texture = ExtResource("2_tex")
+frame_count = 8
+attack_range = 2
+damage = 40
+attacks_per_second = 0.5
+projectile_speed = 350
+projectile_texture = ExtResource("3_proj")
+projectile_color = Color(0.6, 0.6, 0.6, 1)
+attack_texture = ExtResource("4_atk")
+attack_frame_count = 6
+attack_release_frame = 2
+attack_origin = Vector2(14, -18)
+description = "A slow, heavy pebble."
+line = "stone"
+tier = 1
+evolve_cost = 20
+evolves_to = Array[Resource]([ExtResource("ev_3"), ExtResource("ev_1"), ExtResource("ev_2")])

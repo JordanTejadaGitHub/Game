@@ -1,0 +1,38 @@
+[gd_resource type="Resource" script_class="DriftData" format=3]
+
+[ext_resource type="Script" path="res://resource/drift/script/drift_group.gd" id="1_7mgp7"]
+[ext_resource type="Script" path="res://resource/drift/script/drift_entry.gd" id="2_2vdbq"]
+[ext_resource type="Resource" path="res://resource/enemy/leaf_bug.tres" id="3_kucfi"]
+[ext_resource type="Resource" path="res://resource/enemy/whisper_swarm.tres" id="4_rntld"]
+[ext_resource type="Resource" path="res://resource/enemy/hedgehog.tres" id="5_xs1ey"]
+[ext_resource type="Resource" path="res://resource/enemy/gravecrawler.tres" id="6_pqlce"]
+[ext_resource type="Script" path="res://resource/drift/script/drift_data.gd" id="7_cjsto"]
+
+[sub_resource type="Resource" id="Resource_isa6r"]
+script = ExtResource("2_2vdbq")
+enemy = ExtResource("3_kucfi")
+count = 38
+
+[sub_resource type="Resource" id="Resource_0nefw"]
+script = ExtResource("2_2vdbq")
+enemy = ExtResource("4_rntld")
+count = 4
+
+[sub_resource type="Resource" id="Resource_v7ebx"]
+script = ExtResource("2_2vdbq")
+enemy = ExtResource("5_xs1ey")
+count = 10
+
+[sub_resource type="Resource" id="Resource_lmxgf"]
+script = ExtResource("2_2vdbq")
+enemy = ExtResource("6_pqlce")
+count = 6
+
+[sub_resource type="Resource" id="Resource_qw1hi"]
+script = ExtResource("1_7mgp7")
+entries = Array[ExtResource("2_2vdbq")]([SubResource("Resource_isa6r"), SubResource("Resource_0nefw"), SubResource("Resource_v7ebx"), SubResource("Resource_lmxgf")])
+spacing = 0.5172413793103449
+
+[resource]
+script = ExtResource("7_cjsto")
+groups = Array[ExtResource("1_7mgp7")]([SubResource("Resource_qw1hi")])

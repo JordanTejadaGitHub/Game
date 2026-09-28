@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="ReactionData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/reaction/script/reaction_data.gd" id="1_rx"]
+
+[resource]
+script = ExtResource("1_rx")
+id = &"smother"
+display_name = "Smother"
+statuses = Array[StringName]([&"held", &"spored"])
+description = "Rooted + Poisoned: spores tick three times as fast while it is rooted."
+callout_color = Color(0.659, 0.816, 0.376, 1)
+effect = &"smother"
+effect_scale = 1.5

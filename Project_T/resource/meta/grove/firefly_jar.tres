@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="UnlockData" format=3]
+
+[ext_resource type="Script" path="res://resource/meta/script/unlock_data.gd" id="1_unlock"]
+
+[resource]
+script = ExtResource("1_unlock")
+id = "firefly_jar"
+display_name = "Firefly Jar family"
+description = "Firefly Jar is in your family picks from the start: light and Static."
+root = 0
+costs = Array[int]([])
+order = 1
+icon = 1
+start = true

@@ -1,0 +1,31 @@
+[gd_resource type="Resource" script_class="TowerData" load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://resource/tower/script/tower_data.gd" id="1_tdata"]
+[ext_resource type="Texture2D" path="res://assets/towers/ascended/the_great_bell.png" id="art_idle"]
+[ext_resource type="Texture2D" path="res://assets/towers/ascended/the_great_bell_attack.png" id="art_attack"]
+
+[resource]
+script = ExtResource("1_tdata")
+display_name = "The Great Bell"
+description = "Every 6 seconds it tolls across a huge range: every nightmare falls Asleep and all Charges go off."
+cost = 0
+line = "song"
+tier = 4
+buildable_directly = false
+evolve_cost = 400
+attack_kind = 1
+attack_range = 5.0
+damage = 180
+attacks_per_second = 0.1667
+applies_status = &"drowsy"
+status_stacks = 99
+extra_status = &"static"
+sets_off_static_at = 1
+crit_chance = 0.05
+texture = ExtResource("art_idle")
+frame_count = 8
+sprite_offset = Vector2(0, -24)
+attack_texture = ExtResource("art_attack")
+attack_frame_count = 6
+attack_release_frame = 2
+art_id = "the_great_bell"

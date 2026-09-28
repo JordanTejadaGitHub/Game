@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="DriftData" format=3]
+
+[ext_resource type="Script" path="res://resource/drift/script/drift_group.gd" id="1_d6m64"]
+[ext_resource type="Script" path="res://resource/drift/script/drift_entry.gd" id="2_qcp2c"]
+[ext_resource type="Resource" path="res://resource/enemy/ash_crawler.tres" id="3_go8vj"]
+[ext_resource type="Script" path="res://resource/drift/script/drift_data.gd" id="4_e31ym"]
+
+[sub_resource type="Resource" id="Resource_h2r6d"]
+script = ExtResource("2_qcp2c")
+enemy = ExtResource("3_go8vj")
+count = 3
+
+[sub_resource type="Resource" id="Resource_6wr76"]
+script = ExtResource("1_d6m64")
+entries = Array[ExtResource("2_qcp2c")]([SubResource("Resource_h2r6d")])
+spacing = 3.0
+
+[resource]
+script = ExtResource("4_e31ym")
+groups = Array[ExtResource("1_d6m64")]([SubResource("Resource_6wr76")])

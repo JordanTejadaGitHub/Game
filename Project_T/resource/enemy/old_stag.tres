@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="EnemyData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://resource/enemy/script/enemy_data.gd" id="1_edata"]
+[ext_resource type="SpriteFrames" path="res://animation/enemy/old_stag.tres" id="2_frames"]
+
+[resource]
+script = ExtResource("1_edata")
+sprite_frames = ExtResource("2_frames")
+display_name = "The Hollow Stag"
+health = 3000
+speed = 44.8
+dew_reward = 40
+leaf_cost = 5
+is_boss = true
+resists = Array[String](["stone","root"])
+weak_to = Array[String](["water"])
+trait_kind = 3
+cleanse_line = "The Hollow Stag is gone. Something the Heartwood had forgotten comes back to it."
+trait_text = "Tramples walls. Charges when hurt."

@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "tended_forest"
+display_name = "Tended Forest"
+description = "+1% damage for every obstacle cleared this run (up to +25%), counting earlier clears."
+rarity = 0
+kind = 3
+tags = Array[String](["clearing", "maze"])
+max_stacks = 1
+min_obstacles = 8
+rule_id = &"tended_forest"

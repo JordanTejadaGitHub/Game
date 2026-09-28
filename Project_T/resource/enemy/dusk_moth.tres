@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="EnemyData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://resource/enemy/script/enemy_data.gd" id="1_edata"]
+[ext_resource type="SpriteFrames" path="res://animation/enemy/dusk_moth.tres" id="2_frames"]
+[resource]
+script = ExtResource("1_edata")
+sprite_frames = ExtResource("2_frames")
+display_name = "Lurker"
+health = 70
+speed = 140.0
+dew_reward = 4
+resists = Array[String](["spore"])
+weak_to = Array[String](["wing"])
+trait_text = "Fast, and hidden in the fog."
+hidden = true

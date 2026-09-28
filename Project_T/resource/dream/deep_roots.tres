@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "deep_roots"
+display_name = "Deep Roots"
+description = "The Heartwood can hold 2 more leaves, and regrows 2 now."
+rarity = 0
+kind = 4
+tags = Array[String](["leaves"])
+requires = Array[String]([])
+max_stacks = 1
+leaves_now = 2
+max_leaves_add = 2

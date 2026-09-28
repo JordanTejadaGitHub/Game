@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+[ext_resource type="Resource" path="res://resource/tower/starcave.tres" id="2_tower"]
+
+[resource]
+script = ExtResource("1_card")
+id = "dream_starcave"
+display_name = "Starcave"
+description = "Rootlights can now grow into Starcaves (200 Dew): a bigger lit area; Marked lingers 2 s after a nightmare leaves the light."
+rarity = 2
+kind = 1
+tags = Array[String](["root"])
+requires = Array[String](["rootlight"])
+max_stacks = 1
+unlocks = ExtResource("2_tower")
+in_start_pool = false

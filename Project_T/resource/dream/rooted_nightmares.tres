@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "rooted_nightmares"
+display_name = "Rooted Nightmares"
+description = "Every 8th hit from a Warden Roots the nightmare for 1 s (bosses 0.5 s). A {held} nightmare blocks its cell: others re-route around it or wait."
+rarity = 3
+kind = 3
+tags = Array[String](["held"])
+max_stacks = 1
+min_act = 2
+rule_id = &"rooted_nightmares"

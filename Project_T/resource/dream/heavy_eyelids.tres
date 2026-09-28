@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "heavy_eyelids"
+display_name = "Heavy Eyelids"
+description = "Nightmares can hold 2 more {drowsy} stacks (bosses 1 more)."
+rarity = 1
+kind = 3
+tags = Array[String](["song", "sleep"])
+max_stacks = 1
+requires_status = &"drowsy"
+rule_id = &"heavy_eyelids"
+in_start_pool = false

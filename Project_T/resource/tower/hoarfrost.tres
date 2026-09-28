@@ -1,0 +1,34 @@
+[gd_resource type="Resource" script_class="TowerData" load_steps=6 format=3]
+
+[ext_resource type="Script" path="res://resource/tower/script/tower_data.gd" id="1_tdata"]
+[ext_resource type="Texture2D" path="res://assets/towers/hoarfrost.png" id="2_tex"]
+[ext_resource type="Texture2D" path="res://assets/towers/projectiles/frost_shard.png" id="3_proj"]
+[ext_resource type="Texture2D" path="res://assets/towers/hoarfrost_attack.png" id="4_atk"]
+[ext_resource type="Resource" path="res://resource/tower/tidecaller.tres" id="asc_1"]
+
+[resource]
+script = ExtResource("1_tdata")
+display_name = "Hoarfrost"
+description = "Splashing frost shards and a longer freeze; more crits on Rooted nightmares."
+cost = 0
+texture = ExtResource("2_tex")
+frame_count = 8
+line = "water"
+tier = 3
+buildable_directly = false
+evolve_cost = 200
+attack_range = 3.0
+damage = 39
+attacks_per_second = 1.0
+splash_radius = 0.75
+projectile_speed = 450
+crit_chance = 0.05
+crit_bonus_vs_held = 0.2
+freeze_duration = 1.0
+freeze_needs = &"damp"
+freeze_cooldown = 4.0
+projectile_texture = ExtResource("3_proj")
+attack_texture = ExtResource("4_atk")
+attack_frame_count = 6
+attack_release_frame = 2
+evolves_to = Array[Resource]([ExtResource("asc_1")])

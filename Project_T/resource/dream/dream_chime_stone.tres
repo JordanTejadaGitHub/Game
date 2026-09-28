@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+[ext_resource type="Resource" path="res://resource/tower/chime_stone.tres" id="2_tower"]
+
+[resource]
+script = ExtResource("1_card")
+id = "dream_chime_stone"
+display_name = "Chime Stone"
+description = "Bellflowers can now grow into Chime Stones (80 Dew): a weak pulse that charges everything around it with Static, and sets off a bolt on nightmares holding 3 or more."
+rarity = 1
+kind = 1
+tags = Array[String](["song"])
+requires = Array[String](["bellflower"])
+max_stacks = 1
+unlocks = ExtResource("2_tower")

@@ -1,0 +1,619 @@
+
+// ================= Memory Grove: the Heartwood as a tech tree =================
+// Tree space is 1280×960 px (native pixel art); every position below is in that space.
+const GW = 1280, GH = 960;
+// Night bark: deep warm browns (the Heartwood is the warm side), grain runs along the wood.
+// Night bark: deep warm browns (the Heartwood is the warm side), grain runs along the wood.
+const HB6 = ["#120a08", "#22150e", "#362216", "#4c3020", "#66442c", "#80583a"];
+const LEAFG = ["#1e3a14", "#2e5a1e", "#4a7e2a", "#78a83c", "#a8cc5c"];
+const SECTION = {
+  perks:    { name: "Perks",    petals: ["#6a3c0c", "#b87818", "#e8b440", "#ffe39a"], mid: "#fff6d0", glow: "255,200,90" },
+  families: { name: "Families", petals: ["#1a4222", "#338236", "#72c05a", "#c4ec98"], mid: "#f2ffd8", glow: "150,230,120" },
+  cards:    { name: "Cards",    petals: ["#341a52", "#6e40a6", "#ae86e2", "#e4d4ff"], mid: "#fff0ff", glow: "190,150,255" },
+};
+// The three great limbs (Catmull-Rom through these points), with their widths at base and tip.
+const LIMBS = {
+  perks:    { pts: [[628, 648], [540, 604], [440, 562], [340, 520], [250, 470], [170, 410], [104, 334], [74, 250]], w: [38, 9] },
+  families: { pts: [[640, 648], [640, 560], [645, 480], [636, 400], [641, 320], [645, 240], [638, 160], [640, 104]], w: [44, 10] },
+  cards:    { pts: [[652, 648], [740, 604], [840, 562], [940, 517], [1040, 467], [1130, 407], [1192, 342], [1222, 280]], w: [38, 9] },
+};
+// The trunk leans in an S-curve (roots to the limbs' fork); trunkX(y) is its centre line.
+const TRUNK_PTS = [[640, 905], [618, 846], [608, 786], [650, 730], [674, 668], [640, 610]];
+const trunkX = y => { for (let k = 1; k < TRUNK_PTS.length; k++) if (y >= TRUNK_PTS[k][1]) { const [x0, y0] = TRUNK_PTS[k - 1], [x1, y1] = TRUNK_PTS[k]; return x0 + (x1 - x0) * (y0 - y) / (y0 - y1); } return 640; };
+// Nodes: id, section, name, position, and either `parent` (another node) or `from` (a point on a limb).
+// These positions are only starting points: spreadNodes() moves every node inside the crown's
+// leaves and spreads them evenly before the branches and the layout are made.
+// `lv` = levels (one node, pips shown by the game); `start` = grown from the beginning.
+const NODES = [];
+const N = (id, section, name, x, y, link, extra = {}) => NODES.push({ id, section, name, x, y, ...(typeof link === "string" ? { parent: link } : { from: link }), ...extra });
+// Perks
+N("morning_stores", "perks", "Morning Stores", 500, 530, [540, 604], { lv: 3 });
+N("rich_dew", "perks", "Rich Dew", 452, 468, "morning_stores", { lv: 3 });
+N("rested_roots", "perks", "Rested Roots", 430, 402, "rich_dew", { lv: 2 });
+N("sprout_bed", "perks", "Sprout Bed", 524, 456, "morning_stores");
+N("seed_pouch", "perks", "Seed Pouch", 430, 640, [446, 564]);
+N("clear_sight", "perks", "Clear Sight", 384, 474, [410, 550]);
+N("kindling", "perks", "Kindling", 318, 440, [340, 520]);
+N("early_bloom", "perks", "Early Bloom", 318, 600, [350, 526]);
+N("early_light", "perks", "Early Light", 250, 620, "early_bloom");
+N("first_care", "perks", "First Care", 262, 392, [262, 478]);
+N("deep_taproot", "perks", "Deep Taproot", 200, 540, [230, 458], { lv: 3 });
+N("second_thoughts", "perks", "Second Thoughts", 196, 330, [176, 406], { lv: 2 });
+N("let_go", "perks", "Let Go", 248, 268, "second_thoughts");
+N("wider_dreams", "perks", "Wider Dreams", 164, 256, "second_thoughts");
+N("omen_reader", "perks", "Omen Reader", 118, 470, [150, 390]);
+N("slot_2", "perks", "Loadout slot 2", 58, 300, [96, 318]);
+N("slot_3", "perks", "Loadout slot 3", 40, 236, "slot_2");
+N("slot_4", "perks", "Loadout slot 4", 42, 170, "slot_3");
+N("slot_5", "perks", "Loadout slot 5", 70, 110, "slot_4");
+// Families: a short branch of four per family (family, final forms, hidden branch, Ascension),
+// alternating sides up the middle limb.
+[["sporeling", "Sporeling", true], ["firefly_jar", "Firefly Jar", true], ["dewdrop", "Dewdrop", true], ["pebbling", "Pebbling"],
+ ["rootling", "Rootling"], ["bellflower", "Bellflower"], ["acorn", "Acorn"], ["nestling", "Nestling"], ["whirligig", "Whirligig"]]
+  .forEach(([id, name, start], i) => {
+    const side = i % 2 ? 1 : -1, ay = 604 - i * 50, ax = 640 + Math.sin((604 - ay) / 90) * 4;
+    N(id, "families", name, ax + side * 38, ay - 20, [ax, ay], start ? { start: true } : {});
+    N(id + "_final", "families", name + ": final forms", ax + side * 60, ay - 52, id);
+    N(id + "_hidden", "families", name + ": hidden branch", ax + side * 72, ay - 86, id + "_final");
+    N(id + "_ascension", "families", name + ": Ascension", ax + side * 96, ay - 108, id + "_hidden");
+  });
+// Cards: one branch per build style, Legendary flower at the tip.
+N("storm_lore", "cards", "Storm Lore", 760, 522, [742, 602]);
+N("guiding_lights", "cards", "Guiding Lights", 790, 452, "storm_lore");
+N("spore_lore", "cards", "Spore Lore", 852, 482, [842, 560]);
+N("reactions", "cards", "Reactions", 870, 410, "spore_lore");
+N("dawnbreak", "cards", "Dawnbreak", 884, 330, "reactions", { legendary: true });
+N("sharpened", "cards", "Sharpened", 952, 440, [942, 516]);
+N("reckless", "cards", "Reckless", 980, 370, "sharpened");
+N("full_moon", "cards", "Full Moon", 1000, 288, "reckless", { legendary: true });
+N("tending_hands", "cards", "Tending Hands", 1062, 392, [1044, 465]);
+N("nursery", "cards", "Nursery", 1090, 320, "tending_hands");
+N("the_old_ones", "cards", "The Old Ones", 1102, 238, "nursery", { legendary: true });
+N("seedbed", "cards", "Seedbed", 1172, 340, [1134, 404]);
+N("wild_planting", "cards", "Wild Planting", 1208, 278, "seedbed");
+N("rootbound", "cards", "Rootbound", 1228, 206, "wild_planting", { legendary: true });
+N("one_line", "cards", "One Line", 832, 640, [846, 562]);
+N("the_last_light", "cards", "The Last Light", 800, 710, "one_line", { legendary: true });
+N("dead_wood", "cards", "Dead Wood", 962, 600, [944, 518]);
+N("the_long_walk", "cards", "The Long Walk", 992, 676, "dead_wood", { legendary: true });
+N("bittersweet_dreams", "cards", "Bittersweet Dreams", 1152, 482, [1128, 410]);
+// Woven (Crowned Reactions) branches off Reactions; Deep Poison hangs under the limb past Keen Edges.
+N("woven_dreams_1", "cards", "Woven Dreams I", 814, 370, "reactions");
+N("woven_dreams_2", "cards", "Woven Dreams II", 818, 298, "woven_dreams_1");
+N("seeping", "cards", "Seeping", 1102, 552, [1090, 436]);
+N("venom", "cards", "Venom", 1120, 622, "seeping");
+N("nightshade", "cards", "Nightshade", 1132, 702, "venom", { legendary: true });
+const byId = Object.fromEntries(NODES.map(n => [n.id, n]));
+NODES.forEach(n => { n.depth = n.parent ? byId[n.parent].depth + 1 : 1; });
+// Where dream-fruit (Memories) hang, in the order they appear: the point under a limb the vine
+// hangs from (the fruit sprite's top centre goes here). Picked clear of the branches that droop.
+function limbUnderside(limb, x) {
+  const pts = catmull(LIMBS[limb].pts, 14);
+  let best = pts[0], bi = 0; pts.forEach((p, i) => { if (Math.abs(p[0] - x) < Math.abs(best[0] - x)) { best = p; bi = i; } });
+  const w = LIMBS[limb].w[0] + (LIMBS[limb].w[1] - LIMBS[limb].w[0]) * bi / (pts.length - 1);
+  return [Math.round(best[0]), Math.round(best[1] + w / 2 - 3)];
+}
+// The crown: one shared mass of foliage over all three limbs (lobes, with a noisy edge).
+const CROWN_LOBES = [[640, 330, 560, 250], [330, 392, 300, 190], [950, 392, 300, 190], [640, 190, 380, 160], [150, 300, 150, 160], [1130, 300, 150, 160]];
+function crownIn(x, y) {
+  const n = (pnoise(x, y, 60, 811) - .5) * .35;
+  return CROWN_LOBES.some(([cx, cy, rx, ry]) => ((x - cx) / rx) ** 2 + ((y - cy) / ry) ** 2 < 1 + n);
+}
+function crownBottom(x) { let y = GH - 1; while (y > 0 && !crownIn(x, y)) y--; return y; }
+// Fruit hang from the crown's underside, clear of the branches that droop below it.
+const FRUIT_SPOTS = [560, 720, 380, 900, 280, 1050, 480, 800, 640, 1200].map(x => [x, crownBottom(x) - 8]);
+
+// ---- curves ----
+function catmull(pts, samples) {
+  const out = [];
+  for (let i = 0; i < pts.length - 1; i++) {
+    const p0 = pts[Math.max(0, i - 1)], p1 = pts[i], p2 = pts[i + 1], p3 = pts[Math.min(pts.length - 1, i + 2)];
+    for (let s = 0; s < samples; s++) {
+      const t = s / samples, t2 = t * t, t3 = t2 * t;
+      out.push([0, 1].map(k => .5 * (2 * p1[k] + (-p0[k] + p2[k]) * t + (2 * p0[k] - 5 * p1[k] + 4 * p2[k] - p3[k]) * t2 + (-p0[k] + 3 * p1[k] - 3 * p2[k] + p3[k]) * t3)));
+    }
+  }
+  out.push(pts[pts.length - 1]);
+  return out;
+}
+const barkBig = seed => (x, y, nx) => {
+  const grain = pnoise(x * 4, y, 14, seed + 1) - .5;
+  const t = .55 - nx * .42 + (pnoise(x, y, 7, seed) - .5) * .2 + grain * .45 + (hash(x, y >> 1, seed) < .06 ? -.2 : 0);
+  return pick(HB6.slice(1), clamp(t, 0, 1), x, y, .5);
+};
+// Draws a thick tapered path (list of points) with bark shading; returns the sampled centre line.
+function thickPath(L, pts, w0, w1, fn) {
+  let len = 0; const cum = [0];
+  for (let i = 1; i < pts.length; i++) { len += Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]); cum.push(len); }
+  for (let i = 1; i < pts.length; i++) stroke(L, pts[i - 1][0], pts[i - 1][1], pts[i][0], pts[i][1], w0 + (w1 - w0) * cum[i - 1] / len, w0 + (w1 - w0) * cum[i] / len, fn);
+  return len;
+}
+
+// ---- the base tree: roots, trunk, three limbs, always visible ----
+function groveTree() {
+  const out = new Img(GW, GH), L = new Img(GW, GH), M = new Img(GW, GH);
+  // Earth mound with moss.
+  ellipse(out, 640, 952, 560, 90, (x, y, dx, dy) => pick(["#0c0806", "#140e0a", "#1c140e"], clamp(.6 - dy * .5 + (pnoise(x, y, 9, 3) - .5) * .4, 0, 1), x, y));
+  for (let k = 0; k < 900; k++) {
+    const x = 120 + hash(k, 1, 4) * 1040, y = 880 + hash(k, 2, 4) * 80;
+    if (hash(k, 3, 4) < .6) { out.set(x, y, LEAFG[1]); out.set(x, y - 1, LEAFG[2]); if (hash(k, 4, 4) < .4) out.set(x + 1, y - 2, LEAFG[3]); }
+  }
+  // A soft flat shadow under the whole tree.
+  ellipse(out, 640, 918, 400, 42, SHADOW(.45));
+  // Roots: big flared roots with ridges running along them.
+  const rootFn = seed => (x, y, nx) => {
+    const ridge = Math.abs(((pnoise(x * 3, y, 12, seed) * 7) % 1) - .5) < .1;
+    return pick(HB6.slice(1), clamp(.58 - nx * .45 + (ridge ? -.28 : 0) + (pnoise(x, y, 6, seed + 1) - .5) * .12, 0, 1), x, y, .5);
+  };
+  const roots = [[[596, 870], [520, 884], [446, 912], [372, 944], [330, 952]], [[684, 870], [760, 884], [834, 912], [908, 944], [950, 952]],
+    [[612, 890], [578, 924], [556, 960]], [[668, 890], [702, 924], [724, 960]], [[590, 856], [512, 852], [440, 868], [388, 890]],
+    [[690, 856], [768, 852], [840, 868], [892, 890]], [[640, 900], [646, 962]]];
+  roots.forEach((r, i) => thickPath(L, catmull(r, 12), [46, 46, 34, 34, 28, 28, 30][i], 8, rootFn(20 + i)));
+  // Twisted strands: each sample's segments are drawn back to front (by where they are in the
+  // twist), and each strand's edge is darkened so the strands read apart.
+  // Each strand is a shaded cylinder: dark edges, a lit band toward the key light (top left), and
+  // bark lines running along it, broken into dashes.
+  const strandFn = seed => (x, y, nx) => {
+    if (Math.abs(nx) > .84) return HB6[1];
+    let t = .6 - nx * .55;
+    if (nx > -.6 && nx < -.28) t += .16;
+    const line = Math.abs(((nx + 1) * 3.5 + (pnoise(x, y, 18, seed) - .5) * .8) % 1 - .5);
+    if (line > .4 && pnoise(x, y, 5, seed + 3) > .35) t -= .22;
+    return pick(HB6.slice(1), clamp(t, 0, 1), x, y, .35);
+  };
+  const twist = (centre, widthAt, count, turns, seed) => {
+    const N = centre.length - 1;
+    for (let i = 0; i < N; i++) {
+      const [x0, y0] = centre[i], [x1, y1] = centre[i + 1], dx = x1 - x0, dy = y1 - y0, d = Math.hypot(dx, dy) || 1, px = -dy / d, py = dx / d;
+      const segs = [];
+      for (let k = 0; k < count; k++) {
+        const ang0 = (i / N) * turns * Math.PI * 2 + k * Math.PI * 2 / count, ang1 = ((i + 1) / N) * turns * Math.PI * 2 + k * Math.PI * 2 / count;
+        const w0 = widthAt(i / N), w1 = widthAt((i + 1) / N), sw0 = w0 * (count > 2 ? .5 : .62), sw1 = w1 * (count > 2 ? .5 : .62);
+        const o0 = Math.sin(ang0) * (w0 - sw0) * .5, o1 = Math.sin(ang1) * (w1 - sw1) * .5;
+        segs.push({ depth: Math.cos(ang0), a: [x0 + px * o0, y0 + py * o0], b: [x1 + px * o1, y1 + py * o1], w0: sw0, w1: sw1, k });
+      }
+      segs.sort((p, q) => p.depth - q.depth).forEach(s => stroke(L, s.a[0], s.a[1], s.b[0], s.b[1], s.w0, s.w1, strandFn(seed + s.k * 13)));
+    }
+  };
+  const trunk = catmull(TRUNK_PTS, 24);
+  twist(trunk, t => 128 - t * 40, 3, .9, 30);
+  // The three great limbs grow out of the twist as pairs of strands and vanish into the crown.
+  for (const [k, limb] of Object.entries(LIMBS)) {
+    const pts = catmull([[640, 690], ...limb.pts], 16);
+    twist(pts, t => (limb.w[0] + 18) * (1 - t) + limb.w[1] * t, 2, 1.4, k.length * 7);
+  }
+  // Moss along the lit tops of the limbs and trunk.
+  for (let y = 1; y < GH; y++) for (let x = 0; x < GW; x++) {
+    if (!L.alpha(x, y) || L.alpha(x, y - 3)) continue;
+    const n = pnoise(x, y, 11, 41);
+    if (n > .45) for (let d = 0; d < 1 + Math.floor((n - .45) * 8); d++) if (L.alpha(x, y + d)) M.set(x, y + d, LEAFG[Math.min(4, 2 + d % 3)]);
+  }
+  out.stamp(L, HB6[0]);
+  // Moonlight rims the tree's upper-right edges (the moon is up and to the right).
+  for (let y = 1; y < GH - 1; y++) for (let x = 1; x < GW - 1; x++)
+    if (L.alpha(x, y) && !L.alpha(x + 1, y - 1) && L.alpha(x - 1, y + 1)) out.set(x, y, hash(x, y, 5) < .7 ? "#8a8ea8" : "#6a6a88");
+  out.put(M);
+  // Bark knots on the trunk and limb bases.
+  for (const [x, y, r] of [[618, 700, 6], [664, 836, 5], [610, 870, 4], [588, 612, 4], [700, 612, 4], [646, 520, 4], [470, 574, 4], [900, 540, 4]]) {
+    ellipse(out, x, y, r, r * 1.3, (xx, yy, dx, dy) => { const q = Math.hypot(dx, dy); return q > .75 ? HB6[1] : q > .4 ? HB6[3] : HB6[0]; });
+  }
+  // Ivy spiralling up the trunk.
+  for (let i = 0; i < 260; i++) {
+    const t = i / 260, y = 900 - t * 270, x = trunkX(y) + Math.sin(t * 11) * (56 - t * 22);
+    if (Math.cos(t * 11) < -.2) continue;  // behind the trunk
+    out.set(x, y, LEAFG[1]); out.set(x + 1, y, LEAFG[2]);
+    if (i % 7 === 0) { petal(out, x, y, -Math.PI / 2 + (i % 14 ? .8 : -.8), 5, 2, LEAFG.slice(1)); }
+  }
+  // Glowing sigils at the base of each limb: which section is which.
+  const sigil = (cx, cy, sec, shape) => {
+    const [R, G, B] = SECTION[sec].glow.split(",").map(Number);
+    ellipse(out, cx, cy, 22, 22, (x, y, dx, dy) => [R, G, B, Math.round(110 * Math.max(0, 1 - Math.hypot(dx, dy)) ** 1.5)]);
+    shape.forEach(([x, y]) => { for (const [a, b] of [[0, 0], [1, 0], [0, 1], [1, 1]]) out.set(cx + x * 2 + a, cy + y * 2 + b, SECTION[sec].petals[3]); });
+  };
+  const ring = []; for (let a = 0; a < Math.PI * 2; a += .35) ring.push([Math.round(Math.cos(a) * 5), Math.round(Math.sin(a) * 5)]);
+  sigil(600, 640, "perks", [...ring, [0, 0], [0, -1], [0, 1], [-1, 0], [1, 0]]);
+  sigil(641, 596, "families", [[0, -6], [0, -5], [0, -4], [0, -3], [0, -2], [0, -1], [0, 0], [0, 1], [0, 2], [0, 3], [-1, -3], [-2, -4], [1, -1], [2, -2], [-1, 1], [-2, 0], [1, 3], [2, 2]]);
+  sigil(684, 640, "cards", [[-3, -5], [-2, -5], [-1, -5], [0, -5], [1, -5], [2, -5], [3, -5], [-3, 5], [-2, 5], [-1, 5], [0, 5], [1, 5], [2, 5], [3, 5], [-3, -4], [-3, -3], [-3, -2], [-3, -1], [-3, 0], [-3, 1], [-3, 2], [-3, 3], [-3, 4], [3, -4], [3, -3], [3, -2], [3, -1], [3, 0], [3, 1], [3, 2], [3, 3], [3, 4], [0, -1], [0, 0], [0, 1], [-1, 0], [1, 0]]);
+  // Pale glowing mushrooms on the roots.
+  for (const [x, y, s] of [[470, 896, 1], [486, 900, .7], [812, 894, 1.1], [828, 899, .8], [560, 928, .8], [742, 930, .9], [372, 930, .7]]) {
+    ellipse(out, x, y + 3 * s, 1.6 * s, 3 * s, "#c8c0d8");
+    ellipse(out, x, y, 4.5 * s, 2.8 * s, (xx, yy, dx, dy) => dy < -.1 && dx < .2 ? "#d8ccf0" : "#9a88c8");
+    out.set(x - 1, y - 1, "#f4f0ff"); ellipse(out, x, y, 9 * s, 7 * s, (xx, yy, dx, dy) => CA("#c8b0ff", Math.max(0, 1 - Math.hypot(dx, dy)) * .22));
+  }
+  // The loadout's waystones: five small carved stones in an arc at the roots ("Carry into the dream").
+  LOADOUT_STONES.forEach(([x, y], i) => {
+    const S = new Img(GW, GH);
+    ellipse(out, x, y + 13, 20, 5, SHADOW(.4));
+    blob(S, x, y, 16, 13, [ST.d1, ST.m, ST.l1, ST.l2, ST.hi], { tex: .1, rim: true, seed: i });
+    blob(S, x - 6, y - 9, 7, 3, [LEAFG[1], LEAFG[2], LEAFG[3]], { tex: .2 });
+    out.stamp(S, ST.out);
+    for (let a = 0; a < Math.PI * 2; a += .3) out.set(x + Math.cos(a) * 6, y + 2 + Math.sin(a) * 4.5, "#8ad8c8");
+    out.set(x, y + 2, "#c8fff0");
+  });
+  hollow(out, 610, 824);
+  // Hanging moss strands under the limbs.
+  for (let k = 0; k < 160; k++) {
+    const x = Math.floor(80 + hash(k, 1, 50) * 1120);
+    let y = 120; while (y < 700 && !(L.alpha(x, y) && !L.alpha(x, y + 1))) y++;
+    if (y >= 700 || hash(k, 2, 50) < .45) continue;
+    const len = 6 + hash(k, 3, 50) * 16;
+    for (let i = 1; i < len; i++) out.set(x + Math.round(Math.sin(i * .3 + k)), y + i, i % 3 ? "#56624e" : "#3e4a3a");
+  }
+  return out;
+}
+
+// The hollow: a doorway grown into the trunk. A pointed opening that leans with the trunk, a rolled
+// bark lip (lit outside, warm where the glow catches its inner edge), grain curling round it, warm
+// light spilling onto the bark and the ground, and a root for a doorstep.
+function hollow(img, cx, by) {
+  const y0 = by - 68, halfW = y => { const k = clamp((y - y0) / 24, 0, 1); return (15.5 * Math.sqrt(k) + (y > by - 20 ? (y - (by - 20)) * .08 : 0)) + (pnoise(0, y, 6, 991) - .5) * 2.4; };
+  const inOpen = (x, y, g = 0) => y >= y0 - g && y <= by && Math.abs(x + .5 - cx - (y - by) * .06) <= halfW(y + g * .3) + g;
+  for (let y = by - 140; y < by + 40; y++) for (let x = cx - 90; x < cx + 90; x++) {
+    const r = Math.hypot((x - cx) / 90, (y - (by - 34)) / 110); if (r >= 1 || !img.alpha(x, y) || inOpen(x, y, 7)) continue;
+    img.set(x, y, CA("#ffb060", .3 * (1 - r) ** 1.6));
+  }
+  ellipse(img, cx + 2, by + 8, 38, 9, (x, y, dx, dy) => CA("#ffc070", .28 * (1 - Math.hypot(dx, dy))));
+  for (const k of [10, 15, 21]) for (let y = y0 - k - 8; y <= by; y++) for (let x = cx - 50; x <= cx + 50; x++) {
+    const q = Math.hypot((x + .5 - cx) / (17 + k), Math.min(0, y - (by - 34)) / (36 + k)), q2 = Math.hypot((x + .5 - cx) / (18 + k), Math.min(0, y - (by - 34)) / (37 + k));
+    if (!img.alpha(x, y) || q <= 1 || q2 > 1 || inOpen(x, y, 7) || pnoise(x, y, 5, 992 + k) > .62) continue;
+    img.set(x, y, HB6[1]); if (k === 10 && hash(x, y, 993) < .5) img.set(x - 1, y - 1, HB6[4]);
+  }
+  for (let y = y0 - 8; y <= by + 1; y++) for (let x = cx - 40; x <= cx + 40; x++) {
+    if (!inOpen(x, y, 6) || inOpen(x, y)) continue;
+    const inner = inOpen(x, y, 2), mid = inOpen(x, y, 4), left = x < cx;
+    img.set(x, y, inner ? (left ? "#8a4a22" : "#b8703a") : mid ? (left || y < y0 + 6 ? HB6[4] : HB6[3]) : (left && y < by - 20 ? HB6[5] : HB6[2]));
+  }
+  for (let y = y0; y <= by; y++) for (let x = cx - 30; x <= cx + 30; x++) {
+    if (!inOpen(x, y)) continue;
+    const e = inOpen(x, y, -2) ? (inOpen(x, y, -4) ? 0 : .5) : 1, r = Math.hypot((x - cx) / 20, (y - (by - 16)) / 42) + (bay(x, y) - .5) * .12;
+    let c = r < .3 ? "#fff4c8" : r < .55 ? "#ffd27a" : r < .8 ? "#e0883a" : r < 1.05 ? "#8a4a1a" : "#4a2410";
+    if (e === 1) c = x < cx || y < y0 + 10 ? "#1a0e08" : "#4a2410"; else if (e === .5 && (x < cx - 4 || y < y0 + 12)) c = r < .55 ? "#e0883a" : "#4a2410";
+    img.set(x, y, c);
+  }
+  stroke(img, cx - 24, by + 2, cx - 4, by - 1, 5, 4, (x, y, nx) => nx < -.3 ? HB6[4] : nx > .4 ? HB6[1] : HB6[3]);
+  stroke(img, cx - 4, by - 1, cx + 22, by + 3, 4, 3, (x, y, nx) => nx < -.3 ? "#c07840" : nx > .4 ? HB6[1] : HB6[3]);
+  for (let x = cx - 22; x < cx + 20; x += 2) if (hash(x, 1, 994) < .6) { img.set(x, by - 4 + Math.round(Math.abs(x - cx + 4) * .05), LEAFG[2]); img.set(x + 1, by - 5 + Math.round(Math.abs(x - cx + 4) * .05), LEAFG[3]); }
+  for (let x = cx - 8; x <= cx + 8; x++) if (hash(x, 2, 994) < .7) { const yy = y0 - 6 + Math.round(Math.abs(x - cx) * .5); img.set(x, yy, LEAFG[2]); if (hash(x, 3, 994) < .5) img.set(x, yy - 1, LEAFG[4]); }
+}
+
+// The loadout stones at the roots (centres), left to right = slot 1 … 5.
+const LOADOUT_STONES = [[478, 906], [558, 926], [640, 934], [722, 926], [802, 906]];
+const MOON = [1062, 118];
+
+// ---- the night sky behind it: moon, stars, two layers of distant forest, low fog ----
+function grovesky() {
+  const out = new Img(GW, GH), cols = ["#06051a", "#0a0820", "#0e0b28", "#131030", "#1a1434", "#241a36", "#2e2034"];
+  for (let y = 0; y < GH; y++) for (let x = 0; x < GW; x++) {
+    const glow = Math.max(0, 1 - Math.hypot((x - 640) / 620, (y - 700) / 520));
+    const moon = Math.max(0, 1 - Math.hypot(x - MOON[0], y - MOON[1]) / 230);
+    let t = y / GH * .55 + glow * .55 + moon * .35 + (pnoise(x, y, 90, 61) - .5) * .12;
+    out.set(x, y, pick(cols, clamp(t, 0, 1), x, y, .9));
+    const h = hash(x, y, 62);
+    if (y < 760 && h < .0016 * (1 - glow) * (1 - moon)) out.set(x, y, h < .0004 ? "#e8ecff" : "#8a8ac0");
+  }
+  // The moon, with a soft halo and a few darker seas.
+  ellipse(out, MOON[0], MOON[1], 70, 70, (x, y, dx, dy) => CA("#b8c4ff", Math.max(0, 1 - Math.hypot(dx, dy)) ** 2 * .35));
+  ellipse(out, MOON[0], MOON[1], 30, 30, (x, y, dx, dy) => {
+    const sea = pnoise(x, y, 9, 64) > .6;
+    return pick(["#9aa0c8", "#c4c8e4", "#e8eaf8", "#fbfcff"], clamp(.75 - dx * .3 - dy * .3 - (sea ? .3 : 0), 0, 1), x, y, .5);
+  });
+  // Far forest (bluer), then nearer forest (darker), then fog lying between them.
+  const band = (base, amp, cell, seed, fill, edge) => {
+    for (let x = 0; x < GW; x++) {
+      const spikes = Math.max(0, Math.sin(x / (cell * .45) + seed) * 12) + (hash(Math.floor(x / 7), 0, seed) < .3 ? 6 : 0);
+      const top = base - pnoise(x, 0, cell, seed) * amp - spikes;
+      for (let y = Math.floor(top); y < GH; y++) out.set(x, y, y < top + 2 ? edge : fill);
+    }
+  };
+  band(770, 70, 50, 63, "#161a30", "#262c48");
+  for (let y = 770; y < 872; y++) for (let x = 0; x < GW; x++) {
+    const edge = (Math.abs(y - 820) / 50) ** 2;
+    if (pnoise(x, y, 40, 66) > .45 + edge * .6) out.set(x, y, CA("#5a5a8a", .16));
+  }
+  band(830, 50, 34, 65, "#0a0c16", "#141828");
+  return out;
+}
+
+// ---- the crown: big lit lobes made of small leaf clusters, in chunky 2× pixels ----
+// A few big lobes carry the light (bright top-left, a dark belly underneath); the texture is many
+// small leaf clusters, each one flat tone from the lobe under it with a lit tip and a dark rim along
+// its bottom, upper clusters overlapping lower ones. Drawn at half resolution and scaled up 2×.
+// The night greens (colours unchanged), seven tiers.
+const CROWN_P = ["#050b08", "#07100b", "#0c1a10", "#132816", "#1c381c", "#284a24", "#3a5e30"];
+const CROWN_PX = 2, CROWN_SEED = 970;
+// Stages grow the crown outward: the clusters over the limbs are always there, the edges fill in.
+const CROWN_SHARE = [.72, .8, .9, 1];
+const CROWN = (() => {
+  const s = CROWN_PX, W = Math.ceil(GW / s), H = Math.ceil(GH / s), seed = CROWN_SEED;
+  const inCrown = (x, y) => crownIn(x * s, y * s);
+  // Lobes: big packed discs inside the crown's outline; upper ones in front.
+  const lobes = [], cand = [];
+  for (let k = 0; k < 4000; k++) {
+    const x = hash(k, 1, seed) * W, y = hash(k, 2, seed) * H * .7, r = 110 / s + hash(k, 3, seed) * 90 / s;
+    if (inCrown(x, y) && inCrown(x, y + r * .5)) cand.push([x, y, r]);
+  }
+  cand.sort((a, b) => b[2] - a[2]);
+  for (const c of cand) if (lobes.every(l => Math.hypot(l[0] - c[0], l[1] - c[1]) > (l[2] + c[2]) * .62)) lobes.push(c);
+  lobes.sort((a, b) => b[1] - a[1]);
+  // How lit a point is: its lobe's dome shading, brighter at the top of the crown, darker low and right.
+  const macro = (x, y) => {
+    if (!inCrown(x, y + 14 / s)) return -1;
+    let t = -1;
+    lobes.forEach(([lx, ly, r]) => {
+      const dx = (x - lx) / r, dy = (y - ly) / (r * .85), q = dx * dx + dy * dy;
+      if (q <= 1) t = clamp((-dx * .5 - dy * .8 + Math.sqrt(1 - q) * .45 + .25) / 1.3, 0, 1);  // the front lobe wins
+    });
+    return t < 0 ? -1 : t * .95 + .42 - (y * s - 150) / 520 * .62 - (x * s - 560) / 1280 * .1;
+  };
+  // Leaf clusters on a jittered grid: [x, y, r, light, rank] (rank orders the stages, centre first).
+  const clusters = [], sp = 22 / s;
+  for (let gy = 0; gy < H * .78; gy += sp * .8) for (let gx = 0; gx < W; gx += sp) {
+    const x = gx + (hash(gx * 7, gy * 3, seed + 1) - .5) * sp * .9 + (Math.round(gy / (sp * .8)) % 2) * sp / 2, y = gy + (hash(gx * 5, gy * 11, seed + 2) - .5) * sp * .7;
+    const m = macro(x, y); if (m < -.5) continue;
+    clusters.push([x, y, (12 + hash(gx, gy, seed + 3) * 7) / s, m, Math.hypot((x * s - 640) / 620, (y * s - 380) / 330) + hash(gx * 3, gy * 5, 840) * .08]);
+  }
+  clusters.sort((a, b) => b[1] - a[1]);
+  const ranks = clusters.map(c => c[4]).sort((a, b) => a - b);
+  return { W, H, clusters, cut: CROWN_SHARE.map(sh => ranks[Math.max(0, Math.round(ranks.length * sh) - 1)]) };
+})();
+// A drip: a chain of shrinking blobs hanging straight down from the crown's belly.
+function crownDrip(cx, cy, len, w, k) {
+  const b = [[cx, cy, w * 1.2, w]];
+  for (let y = 0, r = w; y < len && r > 2.5; y += r * .9, r *= .86) b.push([cx + Math.sin(y * .08 + k) * 2, cy + y, r, r * 1.1]);
+  return b;
+}
+function groveCanopy(stage) {
+  const { W, H, clusters, cut } = CROWN, s = CROWN_PX, P = CROWN_P, seed = CROWN_SEED;
+  const L = new Img(W, H), TIER = new Int8Array(W * H).fill(-1), shown = clusters.filter(c => c[4] <= cut[stage]);
+  shown.forEach(([cx, cy, r, m], k) => {
+    const base = clamp(1 + Math.floor(m * 5), 1, 5);
+    for (let y = Math.floor(cy - r); y <= cy + r; y++) for (let x = Math.floor(cx - r * 1.2); x <= cx + r * 1.2; x++) {
+      if (x < 0 || y < 0 || x >= W || y >= H) continue;
+      const dx = (x + .5 - cx) / (r * 1.15), dy = (y + .5 - cy) / r, a = Math.atan2(dy, dx);
+      const q = Math.hypot(dx, dy) / (1 + .16 * Math.sin(a * 3 + k) + .1 * Math.sin(a * 5 + k * 1.3)); if (q > 1) continue;
+      let t = base;
+      if (dy > .3 && q > .72) t = base - 2;                                   // dark rim under the cluster
+      else if (dy > .05 && q > .55) t = base - 1;
+      else if (dx < .15 && dy < -.02 && q < .72 && base >= 2) t = base + 1;   // lit tip
+      TIER[y * W + x] = clamp(t, 1, 6);
+    }
+  });
+  // The dark belly along the crown's underside, and a few rounded drips hanging from it.
+  const bottomAt = x => { for (let y = Math.floor(H * .78); y > 0; y--) if (TIER[y * W + x] >= 0) return y; return -1; };
+  for (let x = 0; x < W; x++) {
+    const bottom = bottomAt(x); if (bottom < 0) continue;
+    for (let y = bottom - Math.floor(16 / s); y <= bottom; y++) if (y > 0 && TIER[y * W + x] >= 0) TIER[y * W + x] = y > bottom - 7 / s ? 1 : Math.min(TIER[y * W + x], 2);
+  }
+  for (let X = 4; X < W; X += Math.round(30 / s)) {
+    if (hash(X, 0, seed + 5) > .55) continue;
+    const bottom = bottomAt(X); if (bottom < 60 / s) continue;
+    const w = (5 + hash(X, 1, seed + 5) * 6) / s, len = (8 + hash(X, 2, seed + 5) ** 2 * 44) / s;
+    crownDrip(X, bottom - w * .5, len, w, X).forEach(([bx, by, rx, ry]) => {
+      for (let y = Math.floor(by - ry); y <= by + ry; y++) for (let x = Math.floor(bx - rx); x <= bx + rx; x++)
+        if (x >= 0 && y >= 0 && x < W && y < H && ((x + .5 - bx) / rx) ** 2 + ((y + .5 - by) / ry) ** 2 <= 1) TIER[y * W + x] = 1;
+    });
+  }
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    const t = TIER[y * W + x]; if (t < 0) continue;
+    L.set(x, y, P[t === 5 && hash(x, y, seed + 6) < .03 ? 6 : t]);  // sparse bright sparks on the lit tops
+  }
+  const small = new Img(W, H); small.stamp(L, P[0]);
+  for (let y = 1; y < H - 1; y++) for (let x = 1; x < W - 1; x++)
+    if (L.alpha(x, y) && !L.alpha(x + 1, y - 1) && L.alpha(x - 1, y + 1)) small.set(x, y, "#3e5e4c");  // moonlit edge
+  // Scale up 2× into the tree's space.
+  const out = new Img(GW, GH);
+  for (let y = 0; y < GH; y++) for (let x = 0; x < GW; x++) { const X = x / s | 0, Y = y / s | 0; if (small.alpha(X, Y)) out.set(x, y, small.get(X, Y)); }
+  // Dream-leaves catch the light: more of them, brighter, the fuller the tree.
+  for (let k = 0; k < 20 + stage * 60; k++) {
+    const c = shown[Math.floor(hash(k, 5, 831) * shown.length)], x = Math.floor(c[0] * s), y = Math.floor((c[1] - c[2] * .3) * s);
+    if (!out.alpha(x, y)) continue;
+    out.set(x, y, CA("#ffe9a0", .45 + stage * .15)); if (k % 3 === 0) { out.set(x + 1, y, CA("#ffd27a", .5)); out.set(x, y + 1, CA("#ffd27a", .4)); }
+  }
+  return out;
+}
+
+// ---- node layout: every node inside the leaves, spread evenly ----
+// Runs once the full crown (stage 3) exists: nodes outside it slide toward its centre, then each
+// node repeatedly moves toward the middle of the leaf area nearest to it (Lloyd relaxation), so the
+// nodes fill the crown, gaps between the limbs included, while staying within reach of their parent.
+let CROWN_MASK = null;
+const inMask = (x, y, m) => !CROWN_MASK || [[0, 0], [m, 0], [-m, 0], [0, m], [0, -m]].every(([a, b]) => CROWN_MASK.alpha(Math.round(x + a), Math.round(y + b)));
+// The great limbs end where they would leave the crown's leaves (they enter the leaves low down and
+// run up inside them); `cut` keeps the part that's left, for moving branch starts onto it.
+function trimLimbs(mask) {
+  CROWN_MASK = mask;
+  for (const limb of Object.values(LIMBS)) {
+    const curve = catmull(limb.pts, 16);
+    let last = curve.length - 1, entered = false;
+    for (let i = 0; i < curve.length; i++) {
+      if (inMask(curve[i][0], curve[i][1], 22)) { entered = true; last = i; } else if (entered) break;
+    }
+    const keep = Math.floor(last / 16);
+    limb.pts = [...limb.pts.slice(0, keep + 1), ...(last % 16 ? [curve[last].map(Math.round)] : [])];
+    limb.cut = curve.slice(0, last + 1);
+  }
+}
+function spreadNodes(mask) {
+  CROWN_MASK = mask;
+  const list = NODES, anchor = n => n.parent ? byId[n.parent] : { x: n.from[0], y: n.from[1] };
+  // Branches that grew off a cut-away limb tip start from the nearest point left on that limb.
+  for (const n of list) if (n.from && LIMBS[n.section].cut && !inMask(n.from[0], n.from[1], 16)) {
+    const inside = LIMBS[n.section].cut.filter(([x, y]) => inMask(x, y, 16));
+    if (inside.length) n.from = inside.reduce((b, p) => Math.hypot(p[0] - n.from[0], p[1] - n.from[1]) < Math.hypot(b[0] - n.from[0], b[1] - n.from[1]) ? p : b).map(Math.round);
+  }
+  for (const n of list) for (let k = 0; k < 250 && !inMask(n.x, n.y, 24); k++) {
+    const dx = 640 - n.x, dy = 300 - n.y, d = Math.hypot(dx, dy) || 1;
+    n.x = Math.round(n.x + dx / d * 4); n.y = Math.round(n.y + dy / d * 4);
+  }
+  let area = 0; for (let y = 0; y < GH; y += 4) for (let x = 0; x < GW; x += 4) if (inMask(x, y, 26)) area += 16;
+  const R = Math.sqrt(area / list.length) * 1.08;
+  const samples = []; for (let y = 0; y < GH; y += 8) for (let x = 0; x < GW; x += 8) if (inMask(x, y, 26)) samples.push([x, y]);
+  for (let it = 0; it < 60; it++) {
+    const sx = new Float64Array(list.length), sy = new Float64Array(list.length), sc = new Float64Array(list.length);
+    for (const [x, y] of samples) {
+      let best = 0, bd = 1e12;
+      for (let i = 0; i < list.length; i++) { const d = (list[i].x - x) ** 2 + (list[i].y - y) ** 2; if (d < bd) { bd = d; best = i; } }
+      sx[best] += x; sy[best] += y; sc[best]++;
+    }
+    list.forEach((n, i) => {
+      if (!sc[i]) return;
+      let mx = (sx[i] / sc[i] - n.x) * .6, my = (sy[i] / sc[i] - n.y) * .6;
+      const p = anchor(n); if (Math.hypot(p.x - n.x - mx, p.y - n.y - my) > R * 2.8) { mx *= .3; my *= .3; }
+      mx = clamp(mx, -8, 8); my = clamp(my, -8, 8);
+      if (inMask(n.x + mx, n.y + my, 26)) { n.x += mx; n.y += my; }
+    });
+  }
+  // A last nudge: close neighbours push apart, far-flung children pull back toward their parent.
+  for (let it = 0; it < 40; it++) {
+    const mv = list.map(() => [0, 0]);
+    for (let i = 0; i < list.length; i++) for (let j = i + 1; j < list.length; j++) {
+      const a = list[i], b = list[j], dx = b.x - a.x, dy = b.y - a.y, d = Math.hypot(dx, dy) || .01, f = (R * .7 - d) / R * 2.4;
+      if (f <= 0) continue;
+      mv[i][0] -= dx / d * f; mv[i][1] -= dy / d * f; mv[j][0] += dx / d * f; mv[j][1] += dy / d * f;
+    }
+    list.forEach((n, i) => {
+      const p = anchor(n), dx = p.x - n.x, dy = p.y - n.y, d = Math.hypot(dx, dy);
+      if (d > R * 2) { mv[i][0] += dx / d * (d - R * 2) * .1; mv[i][1] += dy / d * (d - R * 2) * .1; }
+    });
+    list.forEach((n, i) => {
+      const mx = clamp(mv[i][0], -4, 4), my = clamp(mv[i][1], -4, 4);
+      if (inMask(n.x + mx, n.y + my, 26)) { n.x += mx; n.y += my; } else if (inMask(n.x + mx, n.y, 26)) n.x += mx; else if (inMask(n.x, n.y + my, 26)) n.y += my;
+    });
+  }
+  list.forEach(n => { n.x = Math.round(n.x); n.y = Math.round(n.y); });
+}
+// The lowest leafy pixel in a column (where dream-fruit hang from).
+function maskBottom(x) { let y = 780; while (y > 0 && !CROWN_MASK.alpha(x, y)) y--; return y; }
+
+// ---- branch segments: [bare twig, growing 25/50/75%, grown] ----
+// Every branch is its own jagged zig-zag of 1-5 straight pieces with sharp joints, with its own
+// wander, thickness and 0-3 side twigs; about half also carry node-less "false" branches that grow
+// with them and stay inside the leaves.
+function bez(a, c, b, t) { const u = 1 - t; return [u * u * a[0] + 2 * u * t * c[0] + t * t * b[0], u * u * a[1] + 2 * u * t * c[1] + t * t * b[1]]; }
+function geomAB(a, b, depth) {
+  const mx = (a[0] + b[0]) / 2, my = (a[1] + b[1]) / 2, dx = b[0] - a[0], dy = b[1] - a[1], len = Math.hypot(dx, dy);
+  let px = -dy / len, py = dx / len; if (py > 0) { px = -px; py = -py; }
+  const bend = len * (hash(b[0], b[1], 70) - .4) * .4;
+  const w0 = [0, 7, 5.5, 4.5, 4][Math.min(4, depth)] * (.65 + hash(b[0], b[1], 72) * .75);
+  return { a, b, c: [mx + px * bend, my + py * bend], len, w0, w1: Math.max(2.5, w0 * .62) };
+}
+function segGeom(n) { return geomAB(n.parent ? [byId[n.parent].x, byId[n.parent].y] : n.from, [n.x, n.y], n.depth); }
+const JCACHE = new Map();
+function joints(g) {
+  const key = g.a.join() + "|" + g.b.join();
+  if (JCACHE.has(key)) return JCACHE.get(key);
+  const sd = hash(Math.round(g.b[0]), Math.round(g.b[1]), 77) * 1e4 | 0, H = i => hash(sd, i, 79);
+  const n = 1 + Math.floor(H(0) * 4.5), mag = .04 + H(1) * .12, zig = H(2) < .45;
+  const dx = g.b[0] - g.a[0], dy = g.b[1] - g.a[1], d = Math.hypot(dx, dy) || 1, px = -dy / d, py = dx / d;
+  const pts = [g.a];
+  for (let i = 1; i <= n; i++) {
+    const t = clamp(i / (n + 1) + (H(10 + i) - .5) * .6 / (n + 1), .08, .92), base = bez(g.a, g.c, g.b, t);
+    const sign = zig ? (i % 2 ? 1 : -1) * (H(3) < .5 ? 1 : -1) : (H(20 + i) < .5 ? 1 : -1);
+    const off = sign * (.4 + H(30 + i) * .6) * g.len * mag;
+    pts.push([Math.round(base[0] + px * off), Math.round(base[1] + py * off)]);
+  }
+  pts.push(g.b);
+  const cum = [0]; for (let i = 1; i < pts.length; i++) cum.push(cum[i - 1] + Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]));
+  const J = { pts, cum, total: cum[cum.length - 1], sd, twigs: Math.floor(H(4) * 3.6) };
+  JCACHE.set(key, J); return J;
+}
+// A point along the branch's zig-zag (t = 0 at its start, 1 at its node).
+function along(g, t) {
+  const J = joints(g), L = clamp(t, 0, 1) * J.total;
+  let i = 1; while (i < J.pts.length - 1 && J.cum[i] < L) i++;
+  const f = (L - J.cum[i - 1]) / ((J.cum[i] - J.cum[i - 1]) || 1), p = J.pts[i - 1], q = J.pts[i];
+  return [p[0] + (q[0] - p[0]) * f, p[1] + (q[1] - p[1]) * f];
+}
+// Node-less branches off this one: tip and middle inside the leaves, clear of every node.
+function falseBranches(n, g) {
+  const out = [], hs = i => hash(n.x, n.y, 990 + i), count = hs(1) < .55 ? 1 : hs(2) < .35 ? 2 : 0;
+  for (let k = 0; k < count; k++) {
+    const t = .2 + hs(10 + k) * .55, [x, y] = along(g, t), [x2, y2] = along(g, Math.min(1, t + .02));
+    const ang = Math.atan2(y2 - y, x2 - x) + (hs(20 + k) < .5 ? -1 : 1) * (.55 + hs(30 + k) * .7);
+    let len = 22 + hs(40 + k) * 34, ex, ey, ok = false;
+    for (let tries = 0; tries < 4 && !ok; tries++, len *= .72) {
+      ex = Math.round(x + Math.cos(ang) * len); ey = Math.round(y + Math.sin(ang) * len - len * .15);
+      ok = inMask(ex, ey, 12) && inMask((x + ex) / 2, (y + ey) / 2, 6);
+    }
+    if (!ok || !inMask(x, y, 4) || NODES.some(m => Math.hypot(m.x - ex, m.y - ey) < 26)) continue;
+    out.push({ t, g: geomAB([Math.round(x), Math.round(y)], [ex, ey], Math.min(4, n.depth + 1) + 1) });
+  }
+  return out;
+}
+function segBox(gs) {
+  let x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9;
+  for (const g of gs) {
+    const m = Math.ceil(g.w0) + 30;
+    for (let t = 0; t <= 1; t += .02) { const [x, y] = along(g, t); x0 = Math.min(x0, x - m); y0 = Math.min(y0, y - m); x1 = Math.max(x1, x + m); y1 = Math.max(y1, y + m); }
+  }
+  return [Math.floor(x0), Math.floor(y0), Math.ceil(x1), Math.ceil(y1)];
+}
+function drawTwig(L, g, ox, oy, seed) {
+  const steps = Math.ceil(g.len * 2);
+  for (let i = 0; i <= steps; i++) { const [x, y] = along(g, i / steps); L.set(x - ox, y - oy, "#3a2616"); L.set(x - ox, y - oy + 1, "#24160c"); }
+  for (const t of [.35, .7]) {
+    const [x, y] = along(g, t), s = hash(Math.floor(t * 10), 1, seed) < .5 ? -1 : 1;
+    for (let i = 1; i < 5; i++) L.set(x - ox + s * i, y - oy - i, "#3a2616");
+  }
+}
+function drawLiving(L, g, ox, oy, upto, seed) {
+  const steps = Math.ceil(g.len * 2 * upto), fn = barkBig(seed);
+  let last = g.a;
+  for (let i = 1; i <= steps; i++) {
+    const t = i / Math.ceil(g.len * 2), [x, y] = along(g, t), w = g.w0 + (g.w1 - g.w0) * t;
+    stroke(L, last[0] - ox, last[1] - oy, x - ox, y - oy, w, w, fn); last = [x, y];
+  }
+  return last;
+}
+// Short side twigs off the grown part, each tipped with a leaf pair.
+function sideTwigs(L, g, ox, oy, upto, seed) {
+  const J = joints(g), fn = barkBig(seed);
+  for (let k = 0; k < J.twigs; k++) {
+    const t = .25 + hash(J.sd, 40 + k, 80) * .55; if (t > upto) continue;
+    const [x, y] = along(g, t), [x2, y2] = along(g, Math.min(1, t + .02));
+    const ang = Math.atan2(y2 - y, x2 - x) + (hash(J.sd, 50 + k, 80) < .5 ? -1 : 1) * (.6 + hash(J.sd, 60 + k, 80) * .6);
+    const len = 7 + hash(J.sd, 70 + k, 80) * 11, ex = x + Math.cos(ang) * len, ey = y + Math.sin(ang) * len - len * .25;
+    stroke(L, x - ox, y - oy, ex - ox, ey - oy, Math.max(2, g.w0 * .5), 1.4, fn);
+    L.set(ex - ox, ey - oy - 1, LEAFG[3]); L.set(ex - ox + 1, ey - oy - 1, LEAFG[4]); L.set(ex - ox - 1, ey - oy, LEAFG[2]);
+  }
+}
+// The living wood of one branch up to `upto`: bark, side twigs, and moss with leaf pairs along it.
+function growWood(L, g, box, upto, seed) {
+  const tip = drawLiving(L, g, box[0], box[1], upto, seed);
+  sideTwigs(L, g, box[0], box[1], upto, seed);
+  for (let k = 1; k < 12; k++) {
+    const t = k / 12; if (t > upto) break;
+    const [x, y] = along(g, t), s = k % 2 ? -1 : 1, lx = x - box[0], ly = y - box[1] - g.w0 * .4;
+    L.set(lx + s * 2, ly - 2, LEAFG[3]); L.set(lx + s * 3, ly - 2, LEAFG[3]); L.set(lx + s * 3, ly - 3, LEAFG[4]); L.set(lx + s * 2, ly - 1, LEAFG[2]);
+  }
+  return tip;
+}
+function segment(n) {
+  const g = segGeom(n), fbs = falseBranches(n, g), box = segBox([g, ...fbs.map(f => f.g)]), W = box[2] - box[0], H = box[3] - box[1];
+  const seed = hash(n.x, n.y, 71) * 1000 | 0, frames = [];
+  const fbGrowth = (f, upto) => clamp((upto - f.t) / (1 - f.t) * 1.6, 0, 1);  // starts once the branch reaches it
+  for (const upto of [0, .25, .5, .75, 1]) {
+    const out = new Img(W, H), T = new Img(W, H), L = new Img(W, H);
+    drawTwig(T, g, box[0], box[1], seed);
+    fbs.forEach(f => {
+      drawTwig(T, f.g, box[0], box[1], seed + 5);
+      const [ex, ey] = f.g.b; [[1, -1], [2, -2], [-1, -1]].forEach(([dx, dy]) => T.set(ex - box[0] + dx, ey - box[1] + dy, "#3a2616"));  // bare split tip
+    });
+    out.put(T);
+    if (upto > 0) {
+      // False branches first, so the real branch lies over them.
+      const growing = fbs.filter(f => fbGrowth(f, upto) > 0);
+      growing.forEach(f => growWood(L, f.g, box, fbGrowth(f, upto), seed + 5));
+      const tip = growWood(L, g, box, upto, seed);
+      out.stamp(L, HB6[0]);
+      growing.forEach(f => {
+        if (fbGrowth(f, upto) < 1) return;
+        const [ex, ey] = f.g.b;  // a leaf tuft on the false branch's tip
+        [[0, -1, 3], [1, -2, 4], [-1, -2, 3], [2, -1, 2], [-2, 0, 2], [0, -3, 4], [1, 0, 2]].forEach(([dx, dy, c]) => out.set(ex - box[0] + dx, ey - box[1] + dy, LEAFG[c]));
+      });
+      if (upto < 1) { out.set(tip[0] - box[0], tip[1] - box[1], LEAFG[4]); out.set(tip[0] - box[0] + 1, tip[1] - box[1] - 1, "#d8f0a0"); }
+    }
+    frames.push(out);
+  }
+  return { frames, box, W, H };
+}

@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+[ext_resource type="Resource" path="res://resource/tower/honeysuckle.tres" id="2_tower"]
+
+[resource]
+script = ExtResource("1_card")
+id = "dream_honeysuckle"
+display_name = "Honeysuckle"
+description = "Thornwalls can now grow into Honeysuckles (10 Dew): its sweet scent makes nightmares walking past it slowly Drowsy."
+rarity = 1
+kind = 1
+tags = Array[String](["wall"])
+requires = Array[String](["thornwall"])
+max_stacks = 1
+unlocks = ExtResource("2_tower")

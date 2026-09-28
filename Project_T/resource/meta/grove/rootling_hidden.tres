@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="UnlockData" format=3]
+
+[ext_resource type="Script" path="res://resource/meta/script/unlock_data.gd" id="1_unlock"]
+
+[resource]
+script = ExtResource("1_unlock")
+id = "rootling_hidden"
+display_name = "Hidden branch: Rootlight"
+description = "Rootlings can grow into Rootlights (and Starcaves): light that reveals and Marks."
+root = 0
+costs = Array[int]([40])
+order = 24
+icon = 4
+requires_all = Array[String](["rootling_final"])
+dream_cards = Array[String](["dream_rootlight", "dream_starcave"])

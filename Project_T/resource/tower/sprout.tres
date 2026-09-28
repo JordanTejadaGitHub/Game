@@ -1,0 +1,37 @@
+[gd_resource type="Resource" script_class="TowerData" load_steps=14 format=3]
+
+[ext_resource type="Script" path="res://resource/tower/script/tower_data.gd" id="1_tdata"]
+[ext_resource type="Texture2D" path="res://assets/towers/sprout.png" id="2_tex"]
+[ext_resource type="Texture2D" path="res://assets/towers/projectiles/spore.png" id="3_proj"]
+[ext_resource type="Texture2D" path="res://assets/towers/sprout_attack.png" id="4_atk"]
+[ext_resource type="Resource" path="res://resource/tower/sporeling.tres" id="ev_1"]
+[ext_resource type="Resource" path="res://resource/tower/firefly_jar.tres" id="ev_2"]
+[ext_resource type="Resource" path="res://resource/tower/dewdrop.tres" id="ev_3"]
+[ext_resource type="Resource" path="res://resource/tower/pebbling.tres" id="ev_4"]
+[ext_resource type="Resource" path="res://resource/tower/rootling.tres" id="ev_5"]
+[ext_resource type="Resource" path="res://resource/tower/acorn.tres" id="ev_6"]
+[ext_resource type="Resource" path="res://resource/tower/nestling.tres" id="ev_7"]
+[ext_resource type="Resource" path="res://resource/tower/whirligig.tres" id="ev_8"]
+[ext_resource type="Resource" path="res://resource/tower/bellflower.tres" id="ev_9"]
+
+[resource]
+script = ExtResource("1_tdata")
+display_name = "Sprout"
+cost = 10
+texture = ExtResource("2_tex")
+frame_count = 8
+attack_range = 2.5
+damage = 10
+attacks_per_second = 1
+projectile_speed = 400
+projectile_texture = ExtResource("3_proj")
+projectile_color = Color(0.7, 0.9, 0.5, 1)
+attack_texture = ExtResource("4_atk")
+attack_frame_count = 6
+attack_release_frame = 2
+attack_origin = Vector2(14, -23)
+description = "A weak spore puff. Grows into any Warden you have dreamed of."
+line = "sprout"
+tier = 0
+evolve_cost = 0
+evolves_to = Array[Resource]([ExtResource("ev_1"), ExtResource("ev_2"), ExtResource("ev_3"), ExtResource("ev_4"), ExtResource("ev_5"), ExtResource("ev_6"), ExtResource("ev_7"), ExtResource("ev_8"), ExtResource("ev_9")])

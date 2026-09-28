@@ -1,0 +1,32 @@
+[gd_resource type="Resource" script_class="TowerData" load_steps=6 format=3]
+
+[ext_resource type="Script" path="res://resource/tower/script/tower_data.gd" id="1_tdata"]
+[ext_resource type="Texture2D" path="res://assets/towers/magpie_perch.png" id="2_tex"]
+[ext_resource type="Texture2D" path="res://assets/towers/projectiles/magpie.png" id="3_proj"]
+[ext_resource type="Texture2D" path="res://assets/towers/magpie_perch_attack.png" id="4_atk"]
+[ext_resource type="Resource" path="res://resource/tower/magpies_hoard.tres" id="ev_1"]
+
+[resource]
+script = ExtResource("1_tdata")
+display_name = "Magpie Perch"
+description = "Nightmares its magpie hits drop +1 Dew when dispelled."
+cost = 0
+texture = ExtResource("2_tex")
+frame_count = 8
+line = "wing"
+tier = 2
+buildable_directly = false
+evolve_cost = 80
+attack_kind = 7
+attack_range = 3.0
+damage = 15
+attacks_per_second = 1.0
+projectile_speed = 420
+projectile_returns = true
+dew_mark = true
+crit_chance = 0.1
+projectile_texture = ExtResource("3_proj")
+attack_texture = ExtResource("4_atk")
+attack_frame_count = 6
+attack_release_frame = 2
+evolves_to = Array[Resource]([ExtResource("ev_1")])

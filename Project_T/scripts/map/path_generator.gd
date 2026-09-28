@@ -1,80 +1,59 @@
 extends RefCounted
 class_name FindPath
 
-# We will use that constant in "for" loops later. It defines the directions in which we allow a unit
-# to move in the game: up, left, right, down.
-const DIRECTIONS = [Vector2.LEFT, Vector2.RIGHT, Vector2.UP, Vector2.DOWN]
+# Grid pathfinding for enemies, backed by Godot's AStarGrid2D. Every cell of the map is a point on
+# the grid; cells enemies can't walk through (border, trees, towers) are marked "solid".
+# Movement is limited to up, down, left and right.
 
-var _grid: Resource
-# This variable holds an AStar2D instance that will do the actual pathfinding. Our script is mostly
-# here to initialize that object.
-var _astar := AStar2D.new()
+var _grid: Grid
+var _astar := AStarGrid2D.new()
+
+# Stepping off the preferred route costs this much extra per cell. It's tiny (the total over the
+# longest possible route stays under 1 step), so paths are still always shortest; it only breaks
+# ties between equally short routes in favour of the one that reuses the most of the old route.
+# Without it, blocking one cell on open ground can make the route jump to a far-away equal-length one.
+var _off_route_weight: float
+var _preferred_cells := PackedVector2Array()
 
 
-# Initializes the Astar2D object upon creation.
+# Builds the pathfinding grid. Only `walkable_cells` start out open; everything else is solid.
 func _init(grid: Grid, walkable_cells: Array) -> void:
-	# Because we will instantiate the `PathFinder` from our UnitPath's script, we pass it the data it
-	# needs to initialize itself via its constructor function, _init().
 	_grid = grid
-	# To create our AStar graph, we will need the index value corresponding to each grid cell. Here,
-	# we cache a mapping between cell coordinates and their unique index. Doing so here slightly
-	# simplifies the code and improves performance a bit.
-	var cell_mappings := {}
+	_astar.region = Rect2i(Vector2i.ZERO, Vector2i(grid.size))
+	_astar.diagonal_mode = AStarGrid2D.DIAGONAL_MODE_NEVER
+	_astar.default_compute_heuristic = AStarGrid2D.HEURISTIC_MANHATTAN
+	_astar.default_estimate_heuristic = AStarGrid2D.HEURISTIC_MANHATTAN
+	_astar.update()
+	_astar.fill_solid_region(_astar.region, true)
 	for cell in walkable_cells:
-		# For each cell, we define a key-value pair of cell coordinates: index.
-		cell_mappings[cell] = _grid.as_index(cell)
-	# We then add all the cells to our AStar2D instance and connect them to create our pathfinding
-	# graph.
-	_add_and_connect_points(cell_mappings)
+		_astar.set_point_solid(Vector2i(cell), false)
+	_off_route_weight = 1.0 + 1.0 / (grid.size.x * grid.size.y + 1.0)
+	_astar.fill_weight_scale_region(_astar.region, _off_route_weight)
 
 
-# Returns the path found between `start` and `end` as an array of Vector2 coordinates.
+# Makes future paths stick to `cells` (the current route) when there's a tie.
+func set_preferred_cells(cells: PackedVector2Array) -> void:
+	for cell in _preferred_cells:
+		_astar.set_point_weight_scale(Vector2i(cell), _off_route_weight)
+	_preferred_cells = cells.duplicate()
+	for cell in _preferred_cells:
+		_astar.set_point_weight_scale(Vector2i(cell), 1.0)
+
+
+# Returns the path found between `start` and `end` as an array of cell coordinates (start and end
+# included), or an empty array if there is no path.
 func calculate_point_path(start: Vector2, end: Vector2) -> PackedVector2Array:
-	# With the AStar algorithm, we have to use the points' indices to get a path. This is why we
-	# need a reliable way to calculate an index given some input coordinates.
-	# Our Grid.as_index() method does just that.
-	var start_index: int = _grid.as_index(start)
-	var end_index: int = _grid.as_index(end)
-	# We just ensure that the AStar graph has both points defined. If not, we return an empty
-	# PoolVector2Array() to avoid errors.
-	print(_astar.has_point(start_index))
-	print(_astar.has_point(end_index))
-	if _astar.has_point(start_index) and _astar.has_point(end_index):
-		# The AStar2D object then finds the best path between the two indices.
-		return _astar.get_point_path(start_index, end_index)
-	else:
+	if not is_walkable(start) or not is_walkable(end):
 		return PackedVector2Array()
+	# With the default cell_size of (1, 1), point positions are the cell coordinates themselves.
+	return _astar.get_point_path(Vector2i(start), Vector2i(end))
 
 
-# Adds and connects the walkable cells to the Astar2D object.
-func _add_and_connect_points(cell_mappings: Dictionary) -> void:
-	# This function works with two loops. First, we register all our points in the AStar graph.
-	# We pass each cell's unique index and the corresponding Vector2 coordinates to the
-	# AStar2D.add_point() function.
-	for point in cell_mappings:
-		_astar.add_point(cell_mappings[point], point)
-
-	# Then, we loop over the points again, and we connect them with all their neighbors. We use
-	# another function to find the neighbors given a cell's coordinates.
-	for point in cell_mappings:
-		for neighbor_index in _find_neighbor_indices(point, cell_mappings):
-			# The AStar2D.connect_points() function connects two points on the graph by index, *not*
-			# by coordinates.
-			_astar.connect_points(cell_mappings[point], neighbor_index)
+func is_walkable(cell: Vector2) -> bool:
+	return _astar.is_in_boundsv(Vector2i(cell)) and not _astar.is_point_solid(Vector2i(cell))
 
 
-# Returns an array of the `cell`'s connectable neighbors.
-func _find_neighbor_indices(cell: Vector2, cell_mappings: Dictionary) -> Array:
-	var out := []
-	# To find the neighbors, we try to move one cell in every possible direction and is ensure that
-	# this cell is walkable and not already connected.
-	for direction in DIRECTIONS:
-		var neighbor: Vector2 = cell + direction
-		# This line ensures that the neighboring cell is part of our walkable cells.
-		if not cell_mappings.has(neighbor):
-			continue
-		# Because we call the function for every cell, we will get neighbors that are already
-		# connected. If you don't don't check for existing connections, you'll get many errors.
-		if not _astar.are_points_connected(cell_mappings[cell], cell_mappings[neighbor]):
-			out.push_back(cell_mappings[neighbor])
-	return out
+# Marks a cell as blocked (e.g. a tower was built on it) or open again.
+func set_blocked(cell: Vector2, blocked: bool) -> void:
+	if _astar.is_in_boundsv(Vector2i(cell)):
+		_astar.set_point_solid(Vector2i(cell), blocked)

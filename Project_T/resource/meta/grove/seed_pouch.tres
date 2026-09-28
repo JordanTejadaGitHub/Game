@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="UnlockData" format=3]
+
+[ext_resource type="Script" path="res://resource/meta/script/unlock_data.gd" id="1_unlock"]
+
+[resource]
+script = ExtResource("1_unlock")
+id = "seed_pouch"
+display_name = "Seed Pouch"
+description = "+10% Seeds from every run."
+root = 2
+costs = Array[int]([100])
+order = 4
+icon = 3
+seed_bonus = 0.1

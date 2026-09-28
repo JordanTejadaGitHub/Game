@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="UnlockData" format=3]
+
+[ext_resource type="Script" path="res://resource/meta/script/unlock_data.gd" id="1_unlock"]
+
+[resource]
+script = ExtResource("1_unlock")
+id = "wider_dreams"
+display_name = "Wider Dreams"
+description = "Dreams offer 4 cards instead of 3."
+root = 2
+costs = Array[int]([150])
+order = 15
+icon = 14
+requires_all = Array[String](["second_thoughts:2"])
+extra_dream_cards = 1

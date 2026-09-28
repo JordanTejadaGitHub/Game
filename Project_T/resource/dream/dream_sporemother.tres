@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+[ext_resource type="Resource" path="res://resource/tower/sporemother.tres" id="2_tower"]
+
+[resource]
+script = ExtResource("1_card")
+id = "dream_sporemother"
+display_name = "Sporemother"
+description = "Any spore final form can ascend into Sporemother (400 Dew, one per run): Every second she breathes spores over everything in range (4 Poisoned each); nightmares at 10 stacks burst and spread them."
+rarity = 3
+kind = 1
+tags = Array[String](["spore"])
+max_stacks = 1
+min_act = 3
+unlocks = ExtResource("2_tower")
+in_start_pool = false

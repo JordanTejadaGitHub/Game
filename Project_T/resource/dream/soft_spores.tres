@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "soft_spores"
+display_name = "Soft Spores"
+description = "{spored} deals 25% more damage."
+rarity = 0
+kind = 2
+tags = Array[String](["spore"])
+requires = Array[String](["sporeling"])
+max_stacks = 0
+status_id = &"spored"
+status_strength_bonus = 0.25

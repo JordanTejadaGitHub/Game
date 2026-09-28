@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="UnlockData" format=3]
+
+[ext_resource type="Script" path="res://resource/meta/script/unlock_data.gd" id="1_unlock"]
+
+[resource]
+script = ExtResource("1_unlock")
+id = "second_thoughts"
+display_name = "Second Thoughts"
+description = "+1 Dream reroll per run per level (2 at most)."
+root = 2
+costs = Array[int]([50, 100])
+order = 12
+icon = 11
+dream_rerolls = 1

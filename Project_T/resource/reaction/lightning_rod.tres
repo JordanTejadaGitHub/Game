@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="ReactionData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/reaction/script/reaction_data.gd" id="1_rx"]
+
+[resource]
+script = ExtResource("1_rx")
+id = &"lightning_rod"
+display_name = "Lightning Rod"
+statuses = Array[StringName]([&"marked", &"static"])
+description = "Exposed + Charged: nearby Charged bolts strike it instead, at 2x."
+callout_color = Color(1, 0.949, 0.478, 1)
+effect = &"lightning_rod"
+effect_scale = 1

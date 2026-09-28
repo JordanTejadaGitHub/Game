@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "hedge_maze_ii"
+display_name = "Hedge Maze II"
+description = "+1% damage for every 4 Thornwalls you have (up to +30%)."
+rarity = 1
+kind = 3
+tags = Array[String](["wall", "maze"])
+max_stacks = 1
+deepens = "hedge_maze"
+rule_id = &"hedge_maze"
