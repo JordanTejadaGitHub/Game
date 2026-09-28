@@ -222,6 +222,19 @@ Every combo starts **locked** and is **discovered the first time it actually fir
 | Reaction | **Shatter** | Held + Damp, then a crit or heavy hit | that hit does 2.5× and shards fly |
 | Reaction | **Smother** | Held + Spored | spores tick three times as fast while held |
 | Reaction | **Thunderclap** | Damp + 3 Static | 4× damage; lightning arcs to nearby Damp nightmares |
+| Crowned | **Tempest** | Thunderclap + Spored | arcs also Ignite spored nightmares; the storm feeds itself |
+| Crowned | **Still Pool** | Drown + Held | leaves a pool that puts walkers to sleep |
+| Crowned | **Fever Dream** | Smother ends on full Drowsy | spores go off at once; spores and sleep spread to neighbours |
+| Crowned | **Starfall** | Pinned + Static | nearby Static bolts all strike the pinned nightmare as crits |
+| Crowned | **Avalanche** | a Cairn lob sets off Shatter | the Shatter spreads to every wet, held nightmare under the lob |
+| Crowned | **Prismstorm** | Shatter + Static | ice shards carry lightning to nearby nightmares |
+| Crowned | **Nightbloom** | Mushrooming + full Drowsy | a glowing cloud where nothing can wake, even with a Watcher |
+| Crowned | **Fairy Circle** | Mushrooming + Held | a ring of mushrooms that spores and soaks the next walkers |
+
+**Crowned entries** (added 2026-09-27, `tower_design.md` "Crowned Reactions"): locked ones show
+*"???"* with the **three family icons** (not status icons) as the hint, and a gold crown frame. The
+counter becomes *"N / 23 combos discovered"*. Their discovery card uses the gold tier accent. Full
+game only (they can't happen in the demo).
 
 New combos (new Wardens, Reactions) are added to this table and the Codex automatically.
 
