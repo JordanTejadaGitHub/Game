@@ -75,15 +75,53 @@ points.
   now purely stats, rules, combos and economy. Build paths are a **choice**, not luck. (History: the
   growth slot had reached 92–95% of runs with a cross-family combo by the act 1 boss; Dreamlight
   makes that deterministic.)
-- **Tag weighting:** cards tagged with a family you own are **2× as likely**. Builds converge
-  without being forced.
+- **Tag weighting:** cards tagged with a family you own are **1.4× as likely** (was 2×; see
+  *Adapt, don't get handed* below). Builds lean together without being forced.
 - **Prerequisites:** a card never appears if it can't do anything yet (e.g. Stormcap cards need
   Firefly Jar). Full rules in *Card requirements* below.
+
+### Adapt, don't get handed (2026-09-28)
+
+**Playtest:** *"When I'm playing a build, the cards give me the build I'm building most of the
+time."* Measured (Roguelite Code, 400 seeded offers): ~35% of offered cards came from the player's own
+family cards (6–8 cards weighted 2×), 0% from other families, and the other ~65% "general" cards
+were mostly gated by Needs that read the board (few attackers → narrow cards, ranks → nurture cards,
+statuses → Reaction cards). The Dreams **recognised** the build instead of **tempting** the player
+with good things they'd have to adapt to. The genre's tension is the second one.
+
+**Goal:** most offers still have something for your build, but **most offers also hold one real
+alternative**: a strong card you can use now if you bend the plan.
+
+1. **Tag weighting 2× → 1.4×** (`tag_weight`), for owned families, directions (wide / narrow /
+   nurture) and Legendary archetypes alike. Wide vs narrow opposition (×0.5) stays.
+2. **Soft Needs.** A Need is *hard* if the card would do nothing without it, *soft* if it only
+   checks what you've built so far:
+   - **Hard (still gate):** owning a Warden or family, card Needs (follow-ups need their opener,
+     Deepened, Entwined, `requires_tag`), status Needs (`requires_status`, `min_owned_statuses`,
+     Reaction pairs), clearing's obstacles left, leaf safety, Grove unlocks.
+   - **Soft (now a weight, ×0.4 when unmet):** attacker counts (wide / narrow cards), Nurture
+     openers' rank checks (`min_rank_dew`, `min_rank_count`), Warden counts (`count_warden`). So a
+     narrow card can turn up in a wide maze (0.4 × 0.5 opposition = rare) and a Nurture opener can
+     tempt a player who never nurtured.
+3. **The Stray Dream: one wildcard slot per offer** (from the rest after drift 10; not at boss
+   rests, which stay Rare+ as they are). One slot draws with the weighting **turned around**: cards
+   sharing any tag with your build (owned families, directions, Legendary archetypes) ×0.25, the
+   rest ×1, soft Needs ignored, hard Needs still apply (it's always usable). The card wears a small
+   **"Stray"** wisp tag: *"Something the Heartwood hasn't dreamed of yet."* Rarity is rolled as
+   normal; the skip fade applies. With Entwined due, the offer is Entwined + Stray + one normal.
+4. **Pivot cards (proposed, needs the user's call):** a few Rare Dreams that bring a **new family**
+   into the run (e.g. *Wandering Seed*: pick 1 of 2 unlocked families you don't have). Today base
+   Wardens only come from family picks (drift 1 and bosses), so this would reverse that rule.
+
+**Targets (offer simulation):** own-family cards ≈ **25%** of offered cards (was 35%); **≥1 card
+outside the current build in ~70% of offers**; the Storm Grid reachability check still lands near
+its 33% target (Entwined drives it, so 1.4× shouldn't sink it; if it does, raise Entwined, not
+`tag_weight`).
 
 ### Card requirements (the "Needs" column)
 
 Clarified 2026-09-27 (user rule: cards that need other cards work like the clearing cards). Every
-card lists its **Needs**; it is **never offered until all of them are met**. There are three kinds:
+card lists its **Needs**; it is **never offered until all of its hard Needs are met** (soft Needs only lower its weight since 2026-09-28: see *Adapt, don't get handed*). There are three kinds:
 
 | Kind | Meaning | Example | Data |
 |---|---|---|---|
