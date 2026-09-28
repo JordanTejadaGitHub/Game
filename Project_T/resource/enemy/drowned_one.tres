@@ -15,4 +15,4 @@ weak_to = Array[String](["light"])
 status_immune = Array[StringName]([&"drowsy", &"held"])
 always_damp = true
 ignores_slows = true
-trait_text = "Always Damp, and nothing slows it."
+trait_text = "Always Soaked, and nothing slows it."
