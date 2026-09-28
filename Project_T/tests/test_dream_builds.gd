@@ -33,6 +33,7 @@ func _run() -> void:
 	_test_new_forms()
 	_test_ascended()
 	_test_woven()
+	_test_potency_and_endless()
 	print("dream builds test: %s" % ("PASS" if failures == 0 else "%d FAILED" % failures))
 	quit(failures)
 
@@ -559,6 +560,51 @@ func _test_woven() -> void:
 	dreams.unlocked["chime_stone"] = true
 	_check(dreams.is_eligible(stars, 2) and not dreams.is_eligible(stars, 1), "…Chime Stone (or Bellflower) completes it, act 2+")
 	_check(dreams.make_offer(30).has(stars), "a Woven card is guaranteed once all three are owned")
+
+# Potency cards 109–112 and Endless Rings (108).
+func _test_potency_and_endless() -> void:
+	_reset()
+	var sporeling: TowerData = load("res://resource/tower/sporeling.tres")
+	dreams.take(_card("bitter_sap"))
+	dreams.take(_card("bitter_sap"))
+	_check(is_equal_approx(dreams.get_potency_bonus(sporeling), 0.16), "Bitter Sap stacks: +8% Potency each")
+	var seeping := _card("seeping")
+	dreams.grove_cards.assign(["seeping", "seeping_ii", "venom_bloom", "nightshade", "endless_rings", "deeper_rings"])
+	_check(not dreams.is_eligible(seeping), "Seeping needs 2 status families")
+	dreams.unlocked["sporeling"] = true
+	dreams.unlocked["dewdrop"] = true
+	_check(dreams.is_eligible(seeping), "…Spored + Damp is enough")
+	dreams.take(seeping)
+	var target: Node2D = main.get_node("%EnemyContainer").enemy_scene.instantiate()
+	target.enemy_data = TestGrove._load_enemy_types()[0]
+	main.get_node("%EnemyContainer").add_child(target)
+	target.set_process(false)
+	target.apply_status(EnemyStatuses.DAMP)
+	target.apply_status(EnemyStatuses.MARKED)
+	_check(is_equal_approx(dreams.get_effect_bonus(target), 0.10), "Seeping: +5% per status (2 → +10%)")
+	dreams.take(_card("seeping_ii"))
+	_check(is_equal_approx(dreams.get_effect_bonus(target), 0.14), "Seeping II: +7% per status")
+	target.free()
+	dreams.take(_card("venom_bloom"))
+	_check(is_equal_approx(dreams.get_hit_damage_multiplier(), 0.85), "Venom Bloom: hits −15%")
+
+	# Endless Rings: no max rank, ×1.2 per rank past VII; free ranks stop at VII
+	_reset()
+	dreams.grove_cards.assign(["deeper_rings", "endless_rings"])
+	var endless := _card("endless_rings")
+	dreams.take(_card("tender_care"))
+	var tall := _plant("sporeling", 0, 6)
+	_check(not dreams.is_eligible(endless, 2), "Endless Rings needs Deeper Rings")
+	dreams.take(_card("deeper_rings"))
+	_check(dreams.is_eligible(endless, 2), "…and a rank VI Warden")
+	dreams.take(endless)
+	_check(dreams.get_max_rank() > 20, "no max rank")
+	_check(dreams.get_extra_rank_cost(7) == 180 and dreams.get_extra_rank_cost(8) == 216
+		and dreams.get_extra_rank_cost(9) == 259 and dreams.get_extra_rank_cost(10) == 311, "VIII 216, IX 259, X 311")
+	tall.rank = 7
+	dreams.take(_card("sunlit_rest"))
+	_check(dreams.sunlit_rest().is_empty() and tall.rank == 7, "Sunlit Rest never lifts past VII")
+	_clear_towers()
 
 func _click() -> InputEventAction:
 	var click := InputEventAction.new()
