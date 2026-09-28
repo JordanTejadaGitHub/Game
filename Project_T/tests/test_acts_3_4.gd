@@ -303,6 +303,16 @@ func _run() -> void:
 	wight2.apply_status(EnemyStatuses.HELD)
 	wight2.apply_status(EnemyStatuses.HELD)
 	_check(refused == [&"held"], "an immune status is refused with one signal, throttled (%s)" % [refused])
+	var hound_data: EnemyData = load("res://resource/enemy/hedgehog.tres")
+	_check(hound_data.get_defences().conditional.get(&"held") == "while sprinting" and not hound_data.get_defences().immune.has(&"held"),
+		"the Night Hound shows Held immunity as 'while sprinting'")
+	var hound := _still("hedgehog", route[6])
+	hound.rolling = true
+	hound.apply_status(EnemyStatuses.HELD)
+	_check(not hound.statuses.is_held() and refused.size() == 2 and refused[1] == &"held", "a sprinting Night Hound can't be Held")
+	hound.rolling = false
+	hound.apply_status(EnemyStatuses.HELD)
+	_check(hound.statuses.is_held(), "a walking one can")
 	_clear_enemies()
 
 	# --- Display settings: health bars "always", the Deeply Blighted outline ---

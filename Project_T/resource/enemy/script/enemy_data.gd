@@ -121,6 +121,8 @@ enum Trait { NONE, FLYING, ROLLING, TRAMPLE, LEAP, BURROW, WANDER }
 @export var cracked_frames: SpriteFrames  # Swapped in once the coat breaks (Shellbound's cracked shell)
 # Statuses that don't take (e.g. &"held", &"drowsy"), and {status id: duration multiplier}.
 @export var status_immune: Array[StringName] = []
+# Statuses that don't take while it sprints (Night Hound: Held; ROLLING trait only).
+@export var immune_while_sprinting: Array[StringName] = []
 @export var status_duration_multipliers: Dictionary = {}
 
 const RESIST_MULTIPLIER := 0.5
@@ -131,6 +133,7 @@ const BOSS_HELD_SHARE := 0.5  # Holds last half as long on bosses (Tower.ROOTED_
 # dossier, "Coming this block"):
 #   resists / weak_to   Warden families (TowerData.line), ×RESIST_MULTIPLIER / ×WEAK_MULTIPLIER
 #   immune              status ids that never take (shown crossed out)
+#   conditional         {status id: "while sprinting"}: immune only at those times (crossed out + label)
 #   shorter             {status id: duration share} for statuses that wear off faster (shown "½")
 #   traits              trait icon ids: through_walls / flying, hidden, dread_shell, always_damp,
 #                       ignores_slows, sprints, burrows, wanders, splits
@@ -159,8 +162,12 @@ func get_defences() -> Dictionary:
 		traits.append(&"ignores_slows")
 	if split_into != null and split_count > 0:
 		traits.append(&"splits")
+	var conditional := {}
+	if trait_kind == Trait.ROLLING:
+		for id in immune_while_sprinting:
+			conditional[id] = "while sprinting"
 	var result := {"resists": resists.duplicate(), "weak_to": weak_to.duplicate(),
-		"immune": status_immune.duplicate(), "shorter": shorter, "traits": traits}
+		"immune": status_immune.duplicate(), "conditional": conditional, "shorter": shorter, "traits": traits}
 	if single_target_multiplier != 1.0:
 		result["single_target"] = single_target_multiplier
 	if area_multiplier != 1.0:

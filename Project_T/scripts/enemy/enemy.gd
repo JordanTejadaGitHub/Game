@@ -886,8 +886,8 @@ func apply_status(id: StringName, stacks: int = 1, duration: float = 0.0, potenc
 		max_stacks: int = 0, line: String = "", source: Node = null) -> void:
 	if is_cleansed:
 		return
-	if id in statuses.immune:
-		_refuse_status(id)
+	if id in statuses.immune or (rolling and id in enemy_data.immune_while_sprinting):
+		_refuse_status(id)  # Night Hound: can't be Held mid-sprint
 		return
 	if id == EnemyStatuses.DROWSY:
 		statuses.drowsy_cap_bonus = Reactions.drowsy_cap_bonus(self)  # Heavy Eyelids
