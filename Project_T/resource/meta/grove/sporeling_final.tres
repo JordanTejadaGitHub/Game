@@ -12,4 +12,4 @@ costs = Array[int]([50])
 order = 10
 icon = 0
 requires_all = Array[String](["sporeling"])
-dream_cards = Array[String](["dream_puffball"])
+dream_cards = Array[String](["dream_puffball", "dream_dreamshroom"])
