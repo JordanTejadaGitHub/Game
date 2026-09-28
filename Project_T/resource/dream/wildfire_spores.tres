@@ -12,5 +12,4 @@ kind = 3
 tags = Array[String](["spore", "storm", "reaction"])
 requires = Array[String](["sporeling", "firefly_jar"])
 max_stacks = 1
-in_start_pool = false
 rule_id = &"wildfire_spores"

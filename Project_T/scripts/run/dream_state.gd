@@ -67,6 +67,7 @@ const STRAY_FROM_DRIFT := 10  # The Stray Dream: one slot per offer from this re
 const STRAY_IN_BUILD_WEIGHT := 0.25
 const HALF_DREAMED_WEIGHT := 0.6  # A combo card whose other family you could still pick
 const HALF_DREAMED_WITHIN := 20  # …offered only when the next family pick is at most this many drifts away
+const HALF_DREAMED_DECLINED_WEIGHT := 0.3  # …after its missing family was offered at a pick and not taken
 # Passed-over cards fade (dream_design.md "How Dream offers work"): left out of the next offer, then
 # weight ×0.6 per time passed this run (floor ×0.1); taking the card resets it.
 const PASSED_FADE := 0.6
@@ -162,6 +163,9 @@ var _taken_this_offer: Array[String] = []
 var _guaranteed_id := ""  # The Entwined guaranteed card of the current offer (never fades)
 var current_stray: UpgradeData = null  # The Stray Dream card of the current offer (null = none)
 var _owed_families: Array[String] = []  # Half-dreamed cards taken: the next family pick includes one
+var _declined_families: Array[String] = []  # Offered at the last family pick, not taken (half-dreamed ×0.3)
+var _taken_cache := {}  # include_dormant -> [state key, taken cards] (_taken_cards)
+var _statuses_cache := []  # [state key, owned statuses] (owned_statuses)
 var _offer_drift := 0  # The drift of the offer being built (half-dreamed checks)
 var _before_offer := {}  # Offer counters from before the current offer (a reroll rolls them back)
 var _attackers_planted := 0  # Attacking Wardens planted this run (Canopy)
@@ -966,12 +970,17 @@ func _applies_to(card: UpgradeData, data: TowerData) -> bool:
 
 # The cards taken this run whose effect counts (for the Dreams row and reports).
 func get_taken_cards() -> Array[UpgradeData]:
-	return _taken_cards(true)  # Dormant half-dreamed cards too (is_dormant: shown asleep)
+	return _taken_cards(true).duplicate()  # Dormant half-dreamed cards too (is_dormant: shown asleep)
 
 # Cards whose effect counts: taken, and not replaced by their Deepened version.
 # A taken half-dreamed card whose families aren't all yours yet sleeps (no effect) unless
-# `include_dormant`.
+# `include_dormant`. Cached per state (has_rule and friends run per hit and per pool card in offers);
+# the key covers stacks and unlocks, which tests also change directly.
 func _taken_cards(include_dormant: bool = false) -> Array[UpgradeData]:
+	var key := hash([stacks, unlocked, unlock_everything, pool.size(), _family_roots_seen])
+	var cached: Array = _taken_cache.get(include_dormant, [])
+	if not cached.is_empty() and cached[0] == key:
+		return cached[1]
 	var replaced := {}
 	for card in pool:
 		if card.is_deepened() and stacks.get(card.id, 0) > 0:
@@ -980,6 +989,7 @@ func _taken_cards(include_dormant: bool = false) -> Array[UpgradeData]:
 	for card in pool:
 		if stacks.get(card.id, 0) > 0 and not replaced.has(card.id) and (include_dormant or not _is_asleep(card)):
 			taken.append(card)
+	_taken_cache[include_dormant] = [key, taken]
 	return taken
 
 func _update_bends() -> void:
@@ -1319,10 +1329,14 @@ func count_reaction_pairs() -> int:
 			count += 1
 	return count
 
-# Statuses applied by Wardens unlocked this run.
+# Statuses applied by Wardens unlocked this run (cached per unlock state).
 func owned_statuses() -> Dictionary:
+	var roster := _roster()
+	var key := hash([unlocked, unlock_everything, roster.size(), pool.size()])
+	if not _statuses_cache.is_empty() and _statuses_cache[0] == key:
+		return _statuses_cache[1]
 	var statuses := {}
-	var forms := _roster().duplicate()
+	var forms := roster.duplicate()
 	for card in pool:
 		if card.unlocks != null:
 			forms.append(card.unlocks)
@@ -1338,6 +1352,7 @@ func owned_statuses() -> Dictionary:
 	for id in HELD_SOURCES:  # Also when only unlocked by id (not in the roster or a card yet)
 		if is_unlocked(id) and not unlock_everything:
 			statuses[EnemyStatuses.HELD] = true
+	_statuses_cache = [key, statuses]
 	return statuses
 
 # Taken cards carrying `tag` (each card once, however many stacks).
@@ -1472,8 +1487,10 @@ func _weighted_pick(cards: Array, stray: bool = false) -> UpgradeData:
 					weight *= OPPOSITE_WEIGHT
 		if clearing_locked and card.tags.has("clearing"):
 			weight *= CLEARING_LOCKED_WEIGHT  # Until the first one unlocks clearing
-		if is_half_dreamed(card):
-			weight *= HALF_DREAMED_WEIGHT
+		var half_missing := half_dreamed_missing(card)
+		if not half_missing.is_empty():
+			var declined := half_missing.any(func(family: String) -> bool: return _declined_families.has(family))
+			weight *= HALF_DREAMED_DECLINED_WEIGHT if declined else HALF_DREAMED_WEIGHT
 		weight *= get_passed_weight(card)  # Passed-over cards fade (all 0 = a plain random pick below)
 		weights.append(weight)
 		total += weight
@@ -1511,7 +1528,7 @@ func to_save() -> Dictionary:
 		"dreamlight_shards": dreamlight_shards, "sprout_charges": run_state.sprout_charges,
 		"eldest_cell": [_eldest_cell.x, _eldest_cell.y], "court_pending": _court_pending,
 		"passed_count": _passed_count.duplicate(), "passed_at": _passed_at.duplicate(),
-		"owed_families": _owed_families.duplicate(),
+		"owed_families": _owed_families.duplicate(), "declined_families": _declined_families.duplicate(),
 		"rng_state": str(_rng.state),  # A string: JSON would round a 64-bit int
 	}
 
@@ -1537,6 +1554,7 @@ func load_save(data: Dictionary) -> void:
 	for id in data.get("banished", []):
 		_banished[id] = true
 	_owed_families.assign(data.get("owed_families", []))
+	_declined_families.assign(data.get("declined_families", []))
 	_passed_count.clear()
 	_passed_at.clear()
 	for key in ["passed_count", "passed_at"]:
@@ -1771,3 +1789,11 @@ func _is_asleep(card: UpgradeData) -> bool:
 		if family != "":
 			families[family] = true
 	return families.size() >= 2
+
+# A family pick was made (FamilyPickScreen): the families it offered but the player didn't take are
+# "declined" until the next pick (their half-dreamed cards ×0.3). `chosen` = "" for a Blessing.
+func note_family_pick(offered: Array, chosen: String) -> void:
+	_declined_families.clear()
+	for id in offered:
+		if id != chosen:
+			_declined_families.append(id)

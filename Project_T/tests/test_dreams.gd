@@ -199,6 +199,8 @@ func _test_dream_flow(main: Node) -> void:
 	var saw_rare_by_4 := true
 	for trial in 20:
 		dreams._dreams_without_rare = 3
+		dreams._passed_count.clear()  # Not about the fade: a faded lone Rare falls to Uncommon in act 1
+		dreams._passed_at.clear()
 		var pity_offer := dreams.make_offer(10)
 		if not pity_offer.any(func(c: UpgradeData) -> bool: return c.is_rare_or_better()):
 			saw_rare_by_4 = false
@@ -505,6 +507,7 @@ func _test_meta_hooks(main: Node) -> void:
 	dreams._entwined_offered.clear()
 	dreams._offer_drift = 0
 	dreams._owed_families.clear()
+	dreams._declined_families.clear()
 	dreams._passed_count.clear()
 	dreams._passed_at.clear()
 	dreams.unlocked.erase("puffball")
@@ -880,7 +883,7 @@ func _test_stray_dream(main: Node) -> void:
 			print("adapt: %s, drift %d: own-family %d%% of cards, an out-of-build card in %d%% of offers" % [
 				direction if direction != "" else "no direction", drift, roundi(family_share * 100), roundi(out_share * 100)])
 			if drift >= DreamState.STRAY_FROM_DRIFT:
-				_check(family_share > 0.17 and family_share < 0.30, "own-family ≈ 25%% of cards (%.2f)" % family_share)
+				_check(family_share > 0.17 and family_share < 0.33, "own-family ≈ 25%% of cards (%.2f; combo cards like Wildfire Spores count)" % family_share)
 				_check(out_share >= 0.7, "an out-of-build card in ≥ 70%% of offers (%.2f)" % out_share)
 	for tower in planted:
 		tower.free()
@@ -912,6 +915,17 @@ func _test_half_dreamed(main: Node) -> void:
 	for i in 300:
 		forced_soil += 1 if dreams._draw_card(1, [], true) == soil else 0
 	_check(dreams.is_half_dreamed(soil) and forced_soil == 0, "…never in a guaranteed Rare slot")
+	# Declined: Dewdrop was offered at the last pick and not taken → ×0.3 instead of ×0.6
+	var plain := _card(dreams, "quickened_sap")
+	var shares := []
+	for declined in [false, true]:
+		dreams.note_family_pick(["dewdrop", "sporeling"] if declined else [], "sporeling")
+		var picks := 0
+		for i in 3000:
+			picks += 1 if dreams._weighted_pick([thunder, plain]) == thunder else 0
+		shares.append(picks / 3000.0)
+	_check(shares[1] < shares[0] * 0.75 and shares[1] > 0.2, "…×0.3 after its family was declined at a pick (%.2f vs %.2f)" % [shares[1], shares[0]])
+	dreams.note_family_pick([], "")
 	dreams.unlocked.erase("firefly_jar")
 	_check(not dreams.is_half_dreamed(thunder), "…needs one of its families already yours")
 	dreams.unlocked["firefly_jar"] = true
@@ -934,35 +948,52 @@ func _test_half_dreamed(main: Node) -> void:
 	_check(not dreams.is_dormant(thunder) and dreams.has_rule(thunder.rule_id), "…and wakes once it's all yours")
 	_reset_dreams(main)
 
-	# How often one is offered per run, taking some other card at each rest.
-	var grove_ids: Array[String] = []
-	for card in dreams.pool:
-		if not card.in_start_pool:
-			grove_ids.append(card.id)
-	for scenario in [["demo pool, owning Firefly Jar", "firefly_jar", false], ["every Grove card, owning Sporeling", "sporeling", true]]:
-		const RUNS := 300
+	# How often one is offered per run, for each starting family, with the family picks at 25 and 50:
+	# half the time the player takes a half-dreamed card, and takes the owed family at the next pick
+	# half the time (else a random offered one).
+	var rng := RandomNumberGenerator.new()
+	for start in ["sporeling", "firefly_jar", "dewdrop"]:
+		const RUNS := 150
 		var before_pick := 0
 		var through_70 := 0
 		dreams._rng.seed = 21
+		rng.seed = 5
+		seed(9)  # The family pick's shuffle
 		for run in RUNS:
 			_reset_dreams_quiet(dreams)
 			dreams._passed_count.clear()
 			dreams._passed_at.clear()
 			dreams._owed_families.clear()
-			dreams.grove_cards.assign(grove_ids if scenario[2] else [])
-			dreams.unlocked[scenario[1]] = true
+			dreams._declined_families.clear()
+			dreams.unlocked[start] = true
 			for drift in range(5, 75, 5):
+				if drift % 25 == 0:  # The boss's family pick comes before its rest
+					var owed := dreams._owed_families.duplicate()
+					screen.show_pick(&"boss")
+					var families: Array = screen.offer.filter(func(d) -> bool: return d is TowerData)
+					if not families.is_empty():
+						var pick: TowerData = families[rng.randi_range(0, families.size() - 1)]
+						for data in families:
+							if owed.has(data.get_id()) and rng.randf() < 0.5:
+								pick = data
+						dreams.unlocked[pick.get_id()] = true
+						dreams.note_family_pick(families.map(func(d: TowerData) -> String: return d.get_id()), pick.get_id())
+					screen.offer = []
+					screen.visible = false
+				dreams._offer_drift = drift
 				var offer := dreams.make_offer(drift)
-				var half := offer.filter(func(c: UpgradeData) -> bool: return dreams.is_half_dreamed(c)).size()
-				before_pick += half if drift < 25 else 0
-				through_70 += half
+				var half := offer.filter(func(c: UpgradeData) -> bool: return dreams.is_half_dreamed(c))
+				before_pick += half.size() if drift < 25 else 0
+				through_70 += half.size()
 				var other := offer.filter(func(c: UpgradeData) -> bool: return not dreams.is_half_dreamed(c))
-				if not other.is_empty():
+				if not half.is_empty() and (other.is_empty() or rng.randf() < 0.5):
+					dreams.take(half[0])
+				elif not other.is_empty():
 					dreams.take(other[0])
-		print("half-dreamed (%s): %.2f offered per run before the drift 25 pick, %.2f through drift 70" % [
-			scenario[0], float(before_pick) / RUNS, float(through_70) / RUNS])
-		_check(before_pick > 0, "half-dreamed cards turn up before the drift 25 pick (%s)" % scenario[0])
-	dreams.grove_cards.clear()
+		main.get_node("%GameSpeed").set_paused(false)
+		print("half-dreamed (start %s): %.2f offered per run before the drift 25 pick, %.2f through drift 70" % [
+			start, float(before_pick) / RUNS, float(through_70) / RUNS])
+		_check(before_pick > 0, "half-dreamed cards turn up before the drift 25 pick (start %s)" % start)
 	_reset_dreams(main)
 
 func _card(dreams: DreamState, id: String) -> UpgradeData:
@@ -1018,6 +1049,7 @@ func _reset_dreams(main: Node) -> void:
 	dreams._entwined_offered.clear()
 	dreams._offer_drift = 0
 	dreams._owed_families.clear()
+	dreams._declined_families.clear()
 	dreams._passed_count.clear()
 	dreams._passed_at.clear()
 	dreams.unlocks_changed.emit()
@@ -1033,6 +1065,7 @@ func _reset_dreams_quiet(dreams: DreamState) -> void:
 	dreams._entwined_offered.clear()
 	dreams._offer_drift = 0
 	dreams._owed_families.clear()
+	dreams._declined_families.clear()
 	dreams._passed_count.clear()
 	dreams._passed_at.clear()
 

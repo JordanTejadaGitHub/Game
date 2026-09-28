@@ -150,6 +150,7 @@ func _blessing_for(data: TowerData) -> UpgradeData:
 func choose(data: Resource) -> void:
 	if not offer.has(data):
 		return
+	dream_state.note_family_pick(_ids(offer), data.get_id() if data is TowerData else "")  # Declined families (half-dreamed)
 	offer = []
 	if data is UpgradeData:
 		dream_state.take(data)  # A Family Blessing
