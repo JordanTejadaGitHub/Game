@@ -12,6 +12,7 @@ extends Control
 signal sapling_offered  # The Heartwood Sapling's card appears (once, after the drift 50 pick)
 
 const CARD_SIZE := Vector2(250, 300)
+const CARD_PADDING := 24.0  # The box's top + bottom offsets inside a card
 const SAPLING_DRIFT := 50  # The act 2 boss: the Heartwood Sapling is offered after its family pick
 const TITLES := {
 	&"first": "The Heartwood stirs, and remembers an old friend…",
@@ -213,6 +214,15 @@ func _show_sapling() -> void:
 	card.add_child(row)
 	_cards.add_child(card)
 
+# A card's content sits in `box` inside the button (a Button doesn't size to its children), so the
+# card grows to fit it, at least CARD_SIZE tall; the row then gives every card the tallest's height.
+func _fit_card(button: Button, box: Control) -> void:
+	var fit := func() -> void:
+		var needed := box.get_combined_minimum_size().y + CARD_PADDING
+		button.custom_minimum_size = Vector2(CARD_SIZE.x, maxf(CARD_SIZE.y, needed))
+	box.minimum_size_changed.connect(fit)
+	fit.call_deferred()
+
 func _make_card(data: TowerData) -> Button:
 	var button := Button.new()
 	button.custom_minimum_size = CARD_SIZE
@@ -237,6 +247,7 @@ func _make_card(data: TowerData) -> Button:
 	box.offset_bottom = -12
 	box.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	button.add_child(box)
+	_fit_card(button, box)
 	if data.texture != null:
 		var icon := TextureRect.new()
 		var atlas := AtlasTexture.new()
@@ -332,6 +343,7 @@ func _make_blessing_card(card: UpgradeData) -> Button:
 	box.offset_bottom = -12
 	box.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	button.add_child(box)
+	_fit_card(button, box)
 	for line in [["Blessing", 14, Color(0.95, 0.8, 0.4)], [card.display_name, 22, Color.WHITE], [card.description, 15, Color(0.95, 0.92, 0.85)]]:
 		var label := Label.new()
 		label.text = line[0]

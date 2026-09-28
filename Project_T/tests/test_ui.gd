@@ -215,6 +215,12 @@ func _run() -> void:
 	_check(family.get_status_text(sporeling) == "Applies Poisoned", "the family card names its status (%s)" % family.get_status_text(sporeling))
 	_check(family.get_branches(sporeling).size() == 2, "the family card previews two branches")
 	family.show_pick(&"first")
+	await _frames(3)
+	# Each card holds all of its content (the "Grows into" rows used to spill out of the bottom).
+	for card in family._cards.get_children():
+		var content: Control = card.get_child(0)
+		_check(card.size.y >= content.get_combined_minimum_size().y + family.CARD_PADDING - 1.0,
+			"a family card fits its content (%.0f for %.0f)" % [card.size.y, content.get_combined_minimum_size().y])
 	family.peek.set_peeking(true)
 	_check(family.visible and family.mouse_filter == Control.MOUSE_FILTER_IGNORE and paused, "Peek shows the map, time still stopped")
 	family.peek.set_peeking(false)
