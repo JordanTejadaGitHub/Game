@@ -187,7 +187,8 @@ icon explains itself**: hover on PC, tap on touch, a small tooltip in plain word
 - **Every status word is a link, everywhere** (user decision): in tooltips, Dream cards, the Warden
   panel, nightmare info, the Codex, whispers and results, each status name is **underlined** and
   **hover (PC) / tap (touch)** shows its definition popup (the same IconInfo text + icon), with a
-  "More in the Codex" link.
+  "More in the Codex" link. **Exception:** family pick cards keep plain status names, because tapping
+  anywhere on the card picks it. Built in 1e811ee (StatusLinks + IconInfo tokens; renames live only in IconInfo).
 
 ## The Codex: Glossary and Combos
 
