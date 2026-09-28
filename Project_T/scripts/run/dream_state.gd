@@ -63,10 +63,9 @@ const DIRECTION_TAGS: Array[String] = ["nurture", "wide", "narrow"]
 const OPPOSITE_DIRECTION := {"wide": "narrow", "narrow": "wide"}
 const OPPOSITE_WEIGHT := 0.5
 # Passed-over cards fade (dream_design.md "How Dream offers work"): left out of the next offer, then
-# back at these weights for the offers after it (full from then on); passed over 3+ times = ×0.25.
-const PASSED_WEIGHTS: Array[float] = [0.0, 0.5, 0.75]
-const PASSED_OFTEN := 3
-const PASSED_OFTEN_WEIGHT := 0.25
+# weight ×0.6 per time passed this run (floor ×0.1); taking the card resets it.
+const PASSED_FADE := 0.6
+const PASSED_FLOOR := 0.1
 const NO_CELL := Vector2(-1, -1)
 # New Legendaries (dream_design.md "New Legendaries", 113–123).
 const CROSSROADS_BONUS := 0.40
@@ -988,6 +987,8 @@ func _update_bends() -> void:
 
 func take(card: UpgradeData) -> void:
 	stacks[card.id] = stacks.get(card.id, 0) + 1
+	_passed_count.erase(card.id)  # Taking a card resets its fade
+	_passed_at.erase(card.id)
 	if card.unlocks != null:
 		unlocked[card.unlocks.get_id()] = true
 		unlocks_changed.emit()
@@ -1138,13 +1139,12 @@ func _note_passed(offer: Array[UpgradeData], offer_number: int) -> void:
 
 # Weight multiplier for `card` in the current offer (0 = left out: passed over in the one before).
 func get_passed_weight(card: UpgradeData) -> float:
-	if not _passed_at.has(card.id):
+	var passed := times_passed(card.id)
+	if passed == 0:
 		return 1.0
-	var since: int = dreams_seen - int(_passed_at[card.id]) - 1
-	var weight: float = PASSED_WEIGHTS[since] if since >= 0 and since < PASSED_WEIGHTS.size() else 1.0
-	if int(_passed_count.get(card.id, 0)) >= PASSED_OFTEN:
-		weight = minf(weight, PASSED_OFTEN_WEIGHT)
-	return weight
+	if int(_passed_at.get(card.id, -1)) == dreams_seen - 1:
+		return 0.0
+	return maxf(pow(PASSED_FADE, passed), PASSED_FLOOR)
 
 func times_passed(card_id: String) -> int:
 	return int(_passed_count.get(card_id, 0))

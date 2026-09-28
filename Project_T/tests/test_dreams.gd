@@ -626,39 +626,46 @@ func _test_passed_over(main: Node) -> void:
 	dreams.dreams_seen += 1
 	_check(dreams.get_passed_weight(watched) == 0.0, "passed over: left out of the next offer")
 	dreams.dreams_seen += 1
-	_check(dreams.get_passed_weight(watched) == 0.5, "…then back at ×0.5")
+	_check(is_equal_approx(dreams.get_passed_weight(watched), 0.6), "…then back at ×0.6")
+	dreams._note_passed([watched] as Array[UpgradeData], dreams.dreams_seen)
 	dreams.dreams_seen += 2
-	_check(dreams.get_passed_weight(watched) == 1.0, "…full again after 2 more offers")
-	for i in 2:
+	_check(is_equal_approx(dreams.get_passed_weight(watched), 0.36), "…×0.6 per time passed (0.36)")
+	for i in 5:
 		dreams._note_passed([watched] as Array[UpgradeData], dreams.dreams_seen)
-	dreams.dreams_seen += 5
-	_check(dreams.times_passed(watched.id) == 3 and dreams.get_passed_weight(watched) == 0.25,
-		"passed over 3 times: ×0.25 for the rest of the run")
+	dreams.dreams_seen += 2
+	_check(dreams.times_passed(watched.id) == 7 and is_equal_approx(dreams.get_passed_weight(watched), 0.1),
+		"…never below ×0.1")
 	var saved := dreams.to_save()
 	_reset_dreams(main)
 	dreams.load_save(JSON.parse_string(JSON.stringify(saved)))
-	_check(dreams.times_passed(watched.id) == 3 and dreams.get_passed_weight(watched) == 0.25,
+	_check(dreams.times_passed(watched.id) == 7 and is_equal_approx(dreams.get_passed_weight(watched), 0.1),
 		"passed-over counters survive a save")
+	dreams.take(watched)
+	_check(dreams.times_passed(watched.id) == 0 and dreams.get_passed_weight(watched) == 1.0,
+		"taking a card resets its fade")
 
-	# Taking other cards but always passing over the watched one (the playtest case): it never comes
-	# in two offers in a row, and comes far less often than with fading switched off.
-	var repeats := []  # Times it came back after it was first passed over, over 200 runs of 7 Dreams
+	# The playtest case: take some other card at every offer, always pass over the watched one. Target
+	# (dream_design.md): after its second pass it's in at most about 1 offer in 4.
+	var rates := []  # Share of offers with it, after its second pass (200 runs of 20 Dreams)
 	var back_to_back := 0
 	for fading in [false, true]:
-		var total := 0
-		dreams._rng.seed = 7  # Same draws both ways, so the comparison never flakes
+		var offers := 0
+		var with_it := 0
+		dreams._rng.seed = 7  # Same draws both ways, so the numbers never flake
 		for run in 200:
 			_reset_dreams_quiet(dreams)
-			var seen := 0
+			var passes := 0
 			var last := false
-			for i in 7:
+			for i in 20:
 				dreams.current_offer = dreams.make_offer(2)
 				var has_it := dreams.current_offer.has(watched)
-				if has_it:
-					seen += 1
-					if fading and last:
-						back_to_back += 1
+				if passes >= 2:
+					offers += 1
+					with_it += 1 if has_it else 0
+				if fading and has_it and last:
+					back_to_back += 1
 				last = has_it
+				passes += 1 if has_it else 0
 				var other: Array = dreams.current_offer.filter(func(c: UpgradeData) -> bool: return c != watched)
 				if other.is_empty():
 					dreams.skip()
@@ -670,11 +677,11 @@ func _test_passed_over(main: Node) -> void:
 				if not fading:
 					dreams._passed_count.clear()
 					dreams._passed_at.clear()
-			total += maxi(seen - 1, 0)
-		repeats.append(total)
-	print("passed-over: %s came back %d times without fading, %d with (200 runs × 7 Dreams)" % [watched.id, repeats[0], repeats[1]])
+		rates.append(float(with_it) / maxi(offers, 1))
+	print("passed-over: after 2 passes %s is in %.0f%% of offers without fading, %.0f%% with" % [watched.id,
+		rates[0] * 100, rates[1] * 100])
 	_check(back_to_back == 0, "a passed-over card never comes back in the very next offer")
-	_check(repeats[1] < repeats[0] * 0.85, "passed-over cards come back less often (%d vs %d)" % [repeats[1], repeats[0]])
+	_check(rates[1] <= 0.25 and rates[1] < rates[0], "after 2 passes: at most ~1 offer in 4 (%.2f)" % rates[1])
 
 	# A reroll passes over every card it replaced.
 	_reset_dreams(main)
