@@ -253,15 +253,18 @@ const NIGHTMARE_ICONS := ["flying", "dread_shell", "through_walls", "sprints", "
 	"trample", "charge", "sink", "bog_water", "eclipse", "brood", "sapling", "grief",
 	"wanders", "splits", "ignores_slows", "leap", "mender", "waker", "revealer", "ash", "thief",
 	"followers", "swarm", "bulky"]
+# Run resources for the HUD counters (ui_style.md): leaves, path length, Seeds. Dew and Dreamlight
+# reuse the cost icons (aliases "dew", "dreamlight").
+const RESOURCE_ICONS := ["leaves", "path_length", "seeds"]
 # Ids that share another icon's column.
-const ICON_ALIASES := {"always_damp": "damp", "burrows": "rises"}
+const ICON_ALIASES := {"always_damp": "damp", "burrows": "rises", "dew": "dew_cost", "dreamlight": "dreamlight_cost"}
 
 var _cells := {}  # Vector2i -> ramp index
 var _ramps: Array = []  # [light, mid, dark]
 var _details: Array = []  # [Vector2i, Color], painted last
 
 func _make_icons() -> void:
-	var ids: Array = STATUS_ICONS + STAT_ICONS + NIGHTMARE_ICONS
+	var ids: Array = STATUS_ICONS + STAT_ICONS + NIGHTMARE_ICONS + RESOURCE_ICONS
 	var sheet := Image.create(ICON * ids.size(), ICON, false, Image.FORMAT_RGBA8)
 	var index := {}
 	for i in ids.size():
@@ -271,7 +274,7 @@ func _make_icons() -> void:
 		index[alias] = index[ICON_ALIASES[alias]]
 	sheet.save_png(OUT + "icons.png")
 	var data := {frame_size = ICON, icons = index, statuses = STATUS_ICONS, stats = STAT_ICONS,
-		nightmare = NIGHTMARE_ICONS + ["hidden"] + ICON_ALIASES.keys(),
+		nightmare = NIGHTMARE_ICONS + ["hidden", "always_damp", "burrows"], resources = RESOURCE_ICONS + ["dew", "dreamlight"],
 		note = "One row of 16x16 icons; column = icons[id]. Readable at 12 px; for 24-32 px panels scale by whole numbers with nearest filtering."}
 	var file := FileAccess.open(OUT + "icons.json", FileAccess.WRITE)
 	file.store_string(JSON.stringify(data, "\t") + "\n")
@@ -903,3 +906,33 @@ func _ic_bulky() -> void:
 	_dt(7, 3, NM_EYE)
 	_dt(9, 3, NM_EYE)
 	_dt_line(Vector2i(4, 12), Vector2i(12, 12), Color("#302a48"))
+
+# Run resources ----------------------------------------------------------------------------------
+
+func _ic_leaves() -> void:
+	# One warm green leaf with a gold midrib and a short stem (the Heartwood's leaves).
+	var k := _rp("#d8f8a0", "#6ab04a", "#2e6a2a")
+	var stem := _rp("#e0b078", "#9a6a3a", "#5a3a1a")
+	_c_ell(Vector2(8.8, 7.0), Vector2(6.4, 3.8), k, -PI * 0.25)
+	_c_line([Vector2(1.6, 14.4), Vector2(4.4, 11.6)], 1.3, stem)
+	_dt_line(Vector2i(4, 11), Vector2i(12, 3), Color("#e8d070"))
+	_dt(7, 5, Color("#f0ffd0"))
+	_dt(6, 6, Color("#f0ffd0"))
+
+func _ic_path_length() -> void:
+	# A pale winding path between two dark banks, like the moonlit path on the map.
+	var k := _rp("#f4ecd8", "#d0c0a0", "#8a7a60")
+	_c_line([Vector2(3, 15), Vector2(4, 11), Vector2(11, 9), Vector2(12, 5), Vector2(6, 2.5)], 2.4, k)
+	_dt(12, 1, Color("#ffe890"))
+	_dt(11, 1, Color("#ffe890"))
+	_dt(12, 2, Color("#ffe890"))
+
+func _ic_seeds() -> void:
+	# An acorn-brown seed with a small green sprout (Seeds, the meta currency).
+	var k := _rp("#f0c890", "#b07a44", "#6a4222")
+	var leaf := _rp("#d8f8a0", "#6ab04a", "#2e6a2a")
+	_c_ell(Vector2(8, 10.4), Vector2(4.2, 4.8), k)
+	_c_line([Vector2(8, 5.6), Vector2(8, 3.4)], 1.2, leaf)
+	_c_ell(Vector2(10.6, 2.8), Vector2(2.2, 1.3), leaf, -0.4)
+	_dt(6, 9, Color("#fff0d0"))
+	_dt(6, 10, Color("#fff0d0"))
