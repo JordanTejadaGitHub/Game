@@ -206,6 +206,9 @@ func _process(delta: float) -> void:
 
 	var spore_soothe := statuses.tick(delta)
 	if spore_soothe > 0.0:
+		var dreams := get_tree().get_first_node_in_group(DreamState.GROUP) as DreamState
+		if dreams != null:
+			spore_soothe *= dreams.get_spored_tick_multiplier(self)  # Damp Rot: harder on Soaked nightmares
 		take_damage(spore_soothe, statuses.spore_line(), true, false, statuses.source(EnemyStatuses.SPORED),
 			&"spored")
 		if is_cleansed:

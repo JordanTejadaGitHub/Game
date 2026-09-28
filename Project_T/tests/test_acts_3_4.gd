@@ -340,6 +340,26 @@ func _run() -> void:
 	wall_tower.free()
 	_clear_enemies()
 
+	# --- Damp Rot (Dream 169): Poisoned ticks +20% per stack on Soaked nightmares ---
+	_clear_enemies()
+	var rot_dry := _still("leaf_bug", route[5])
+	var rot_wet := _still("leaf_bug", route[5])
+	rot_wet.apply_status(EnemyStatuses.DAMP)
+	for rotting in [rot_dry, rot_wet]:
+		rotting.max_health = 100000
+		rotting.health = 100000
+		rotting.apply_status(EnemyStatuses.SPORED, 1, 10.0, 100.0)
+	dreams.unlocked["sporeling"] = true  # Damp Rot needs both families, or it lies dormant
+	dreams.unlocked["dewdrop"] = true
+	_take_card(dreams, "damp_rot")
+	for rotting in [rot_dry, rot_wet]:
+		rotting._process(0.5)  # One Poisoned tick
+	var dry_loss: int = 100000 - rot_dry.health
+	var wet_loss: int = 100000 - rot_wet.health
+	_check(dry_loss > 0 and is_equal_approx(float(wet_loss) / dry_loss, 1.2),
+		"Damp Rot: a Soaked nightmare's Poisoned tick is +20%% (%d vs %d)" % [wet_loss, dry_loss])
+	_clear_enemies()
+
 	# --- No maze juggling: Restless and Unbound ---
 	_clear_enemies()
 	route = map_generator.get_path_from(map_generator.startPath)
