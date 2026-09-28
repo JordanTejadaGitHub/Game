@@ -1460,8 +1460,17 @@ func _owned_tags() -> Array:
 
 # Whether `card` belongs to the build (shares a tag the run has committed to).
 func is_in_build(card: UpgradeData) -> bool:
-	var owned: Dictionary = _owned_tags()[0]
-	return card.tags.any(func(tag: String) -> bool: return owned.has(tag))
+	return _card_in_build(card, _owned_tags()[0])
+
+# Shares a tag the run owns. A cross-family combo card counts its family tags only once all its
+# families are yours (while half-dreamed it's a temptation toward a new family, not more of the build).
+func _card_in_build(card: UpgradeData, owned: Dictionary) -> bool:
+	var families := _combo_families(card)
+	var skip := {}
+	if families.size() >= 2 and families.keys().any(func(family: String) -> bool: return not is_unlocked(family)):
+		for root in _family_roots():
+			skip[root.line] = true
+	return card.tags.any(func(tag: String) -> bool: return owned.has(tag) and not skip.has(tag))
 
 # Picks one of `cards` by weight: build tags (×tag_weight), unmet soft Needs, opposed directions, the
 # clearing boost, the passed-over fade. `stray` turns the build weighting around (the Stray Dream):
@@ -1474,7 +1483,7 @@ func _weighted_pick(cards: Array, stray: bool = false) -> UpgradeData:
 	var total := 0.0
 	var clearing_locked := not can_clear()
 	for card in cards:
-		var in_build: bool = card.tags.any(func(tag: String) -> bool: return owned.has(tag))
+		var in_build := _card_in_build(card, owned)
 		var weight := 1.0
 		if stray:
 			weight = STRAY_IN_BUILD_WEIGHT if in_build else 1.0
@@ -1676,6 +1685,7 @@ func count_kinships() -> int:
 
 var _family_by_warden := {}  # Warden id -> its family's base id
 var _family_roots_seen := -1
+var _combo_cache := {}  # Card id -> {family: true} its requires name (_combo_families)
 
 # The family (base Warden id) `warden_id` belongs to; "" for Sprout, Thornwall and non-Wardens.
 func family_of(warden_id: String) -> String:
@@ -1683,6 +1693,7 @@ func family_of(warden_id: String) -> String:
 	if roots.size() != _family_roots_seen:  # MetaRun adds Grove families at run start
 		_family_roots_seen = roots.size()
 		_family_by_warden.clear()
+		_combo_cache.clear()
 		for root in roots:
 			_map_family(root, root.get_id())
 	return _family_by_warden.get(warden_id, "")
@@ -1783,12 +1794,20 @@ func take_owed_families() -> Array[String]:
 func _is_asleep(card: UpgradeData) -> bool:
 	if card.requires.size() < 2 or _requires_met(card):
 		return false
+	return _combo_families(card).size() >= 2
+
+# The families (base Warden ids) a card's `requires` names Wardens from (cached per card).
+func _combo_families(card: UpgradeData) -> Dictionary:
+	family_of("")  # Refreshes the maps (and this cache) when the family roster changed
+	if _combo_cache.has(card.id):
+		return _combo_cache[card.id]
 	var families := {}
 	for id in card.requires:
 		var family := family_of(id)
 		if family != "":
 			families[family] = true
-	return families.size() >= 2
+	_combo_cache[card.id] = families
+	return families
 
 # A family pick was made (FamilyPickScreen): the families it offered but the player didn't take are
 # "declined" until the next pick (their half-dreamed cards ×0.3). `chosen` = "" for a Blessing.

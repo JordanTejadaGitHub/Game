@@ -871,7 +871,8 @@ func _test_stray_dream(main: Node) -> void:
 				var any_out := false
 				for card in dreams.make_offer(drift):
 					shown += 1
-					if card.tags.any(func(t: String) -> bool: return family_lines.has(t) and owned.has(t)):
+					# Own-family: an owned family tag (a half-dreamed combo's family tags don't count yet)
+					if not dreams.is_half_dreamed(card) and card.tags.any(func(t: String) -> bool: return family_lines.has(t) and owned.has(t)):
 						own_family += 1
 					# Out of build: points at a family / direction / archetype you don't have, or its soft Need is unmet
 					if not dreams.is_in_build(card) and (card.tags.any(func(t: String) -> bool: return build_tags.has(t))
@@ -883,7 +884,7 @@ func _test_stray_dream(main: Node) -> void:
 			print("adapt: %s, drift %d: own-family %d%% of cards, an out-of-build card in %d%% of offers" % [
 				direction if direction != "" else "no direction", drift, roundi(family_share * 100), roundi(out_share * 100)])
 			if drift >= DreamState.STRAY_FROM_DRIFT:
-				_check(family_share > 0.17 and family_share < 0.33, "own-family ≈ 25%% of cards (%.2f; combo cards like Wildfire Spores count)" % family_share)
+				_check(family_share > 0.17 and family_share < 0.28, "own-family ≈ 25%% of cards (%.2f)" % family_share)
 				_check(out_share >= 0.7, "an out-of-build card in ≥ 70%% of offers (%.2f)" % out_share)
 	for tower in planted:
 		tower.free()
