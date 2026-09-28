@@ -17,8 +17,9 @@ Tree space is **1280×960 px** (native pixels; the screen pans and zooms). Every
 
 | File | Size | Layout | Use |
 |---|---|---|---|
-| `grove_sky.png` | 1280×960 | 1 | back layer: night sky, stars, a warm glow behind the trunk, distant forest |
-| `grove_tree.png` | 1280×960 | 1, transparent | the Heartwood, always shown: roots, trunk with the lit hollow, the three great limbs (Perks left, Families middle, Cards right), moss |
+| `grove_sky.png` | 1280×960 | 1 | back layer: night sky with stars, the moon (`moon` in the layout) and its halo, a warm glow behind the trunk, two layers of distant forest with fog between |
+| `grove_canopy_0.png` … `_3.png` | 1280×960 each | 1, transparent | dark dream-leaves behind the branches, **fuller at each stage** (about 25 / 50 / 75 / 100% of the foliage, with more lit dream-leaves). Show the stage for the share of nodes owned (e.g. 0–24% → 0), crossfading when it changes: the tree visibly fills in |
+| `grove_tree.png` | 1280×960 | 1, transparent | the Heartwood, always shown: roots with pale mushrooms, trunk with ivy, knots and the lit hollow, the three great limbs (Perks left, Families middle, Cards right) with side twigs and moss, a moonlit rim, a **glowing sigil at the base of each limb** (gold ring = Perks, green sprig = Families, violet card = Cards), and **five waystones at the roots** (`loadout_stones`: the loadout slots in the world) |
 | `branches/<node_id>.png` | per node | **5 frames**: 0 bare twig (locked), 1–3 the branch growing 25/50/75%, 4 grown | one per node (65); draw at `branch.offset`; planting plays 1→4 |
 | `grove_nodes.png` | 352×96 | 32×32; **rows**: 0 Perks (gold), 1 Families (green), 2 Cards (violet); **columns**: 0 locked bud, 1–4 affordable glow (loop), 5–8 bud opening (play once), 9–10 bloomed (loop) | node sprite, centred on `pos` |
 | `grove_legendary.png` | 528×48 | 48×48, same 11 columns, violet | Legendary tips (Dawnbreak, Full Moon, The Old Ones, Rootbound, The Last Light, The Long Walk) |
@@ -38,6 +39,9 @@ Tree space is **1280×960 px** (native pixels; the screen pans and zooms). Every
 - Loadout slots are Perks nodes `slot_2` … `slot_5`.
 - `fruit_spots`: 10 points under the Perks and Cards limbs, in the order fruit appear (one per 3
   nodes planted).
+- `loadout_stones`: the centres of the 5 waystones at the roots, slot 1 to 5 left to right (light the
+  ones the player has unlocked, set a perk icon glowing on each filled one).
+- `moon`: the moon's centre (for a light or a parallax offset).
 
 ### How the states fit together
 
@@ -48,7 +52,9 @@ Tree space is **1280×960 px** (native pixels; the screen pans and zooms). Every
 | Planting | 1 → 4 (about 0.1 s each) | then columns 5–8 once |
 | Owned | 4 | columns 9–10, looping |
 
-Draw order: sky, tree, branches (parents before children), fruit, nodes.
+Draw order: sky, canopy stage, tree, branches (parents before children), fruit, nodes. Nice to have
+in the scene: a slow parallax on the sky, fireflies and dream motes as particles, a warm light on
+the hollow.
 
 ## Loadout (`ui/`)
 
