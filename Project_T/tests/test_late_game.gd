@@ -117,7 +117,7 @@ func _check_data() -> void:
 		_check(data != null and data.tier == 4 and not data.buildable_directly and data.evolve_cost == 400,
 			"%s is an Ascended form (tier 4, 400 Dew)" % id)
 		_check(data.line == ASCENDED[id], "%s belongs to the %s family" % [id, ASCENDED[id]])
-		_check(data.texture != null and data.attack_texture != null and data.sprite_offset == Vector2(0, -32),
+		_check(data.texture != null and data.attack_texture != null and data.sprite_offset == Vector2(0, -24),
 			"%s has its Ascended art" % id)
 		var card: UpgradeData = load("res://resource/dream/dream_%s.tres" % id)
 		_check(card != null and card.unlocks == data and not card.in_start_pool, "%s has its card" % id)
