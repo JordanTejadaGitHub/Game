@@ -109,6 +109,11 @@ turn leaks into a hold. Targets for the balance simulation and playtests (averag
 - Current state (playtests 2026-09-28): too easy from act 2 on, even with a thin Grove. Fixes so far:
   the Sapling removed, one Ascended per family, Nurture's rank difference, resistances corrected.
   The balance simulation measures the rest.
+- **Interim acts 1–2 tightening** (2026-09-28; two playtests: a fresh profile at drift 23 and
+  again at drift 43 with **15/15 leaves**, ~800 and **1,925 Dew banked**, "haven't done much in the
+  past 10 drifts"): nightmare health **×1.0 for drifts 1–10, ramping to ×1.3 by drift 25, ×1.3
+  through act 2** (acts 3–4 keep their ×1.4), and **Dew per dispel ×0.85 in acts 1–2**. Interim
+  numbers, as exports, until the balance simulation's quick batch replaces them.
 - **Act 3 probe** (Tower Code, `tools/balance_act3.gd`, 2026-09-28): drifts 61–70, 12 final forms at
   rank IV (Power), **no Dreams**: the maze dealt ~155–160k damage per drift against **~100–115k
   health spawned, 0 leaks**. Act 3 is too easy with a plain final-form maze, before Dreams or the

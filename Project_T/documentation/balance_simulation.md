@@ -33,7 +33,8 @@ with no hand-placed maze: everything is bought from the Dew the run earns.
 | Style | Plays like |
 |---|---|
 | **Balanced** | a sensible first-time player: a medium maze, grows the Wardens nearest the Heartwood |
-| **Wide** | many cheap Wardens, Sprouts and Thornwalls, few ranks |
+| **Wide** | many cheap Wardens and Thornwalls, few ranks |
+| **Sprout** | the Sprout swarm build: Sprouts as walls and attackers, takes Seedfall, Sprout Surge, Sprout Chorus, Root Network, Seedling Gift, Nursery |
 | **Narrow** | few Wardens, heavy Nurture |
 | **Combo** | seeks the family pair with the most combo cards (e.g. Storm Grid) |
 | **Sleep** | Bellflower-led (full game only) |
@@ -121,7 +122,7 @@ Income only for drifts 1–60 (assumed perfect blocks), then drifts 61–70 foug
 - **Watch:** Nurture is the only big Dew sink before finals. If Dew still piles up in act 2 of a
   fresh run, the fix is a sink or less income, not more health.
 
-- **Watch: mass-Sprout mazes** (playtest 2026-09-28, fresh profile, drift 23: 60+ Sprouts with Sprout Surge, **15/15 leaves and 782 Dew banked**, far easier than the 5–8 leaves lost by 25 target). The user chose to wait for the numbers: the **Wide** style must be in the first batches, with Sprouts as its walls (Seedfall, Sprout Surge, Root Network). If Wide beats the 1.5× Balanced limit, the leading fix is **Sprouts cost +1 Dew per Sprout on the map**.
+- **Watch: mass-Sprout mazes. User: "Sprout spam should be a build"** (2026-09-28): a real archetype you commit to through Sprout cards, not the default. Plan if the numbers confirm it's too strong **without** those cards: Sprouts cost +1 Dew per Sprout on the map, and **Seedfall** becomes "Sprouts cost 6 and their price never rises" (the door into the build). The **Sprout** style is its own bot style. Playtest ( fresh profile, drift 23: 60+ Sprouts with Sprout Surge, **15/15 leaves and 782 Dew banked**, far easier than the 5–8 leaves lost by 25 target). The user chose to wait for the numbers: the **Wide** style must be in the first batches, with Sprouts as its walls (Seedfall, Sprout Surge, Root Network). If Wide beats the 1.5× Balanced limit, the leading fix is **Sprouts cost +1 Dew per Sprout on the map**.
 
 ## Later
 

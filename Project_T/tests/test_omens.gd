@@ -62,11 +62,11 @@ func _test_twists(main: Node) -> void:
 	var stag: EnemyData = load("res://resource/enemy/old_stag.tres")
 
 	_activate(omens, "thick_blight", 3)
-	_check(is_equal_approx(director.get_health_scale(bug, 11), pow(director.health_growth_per_drift, 10) * 1.2),
+	_check(is_equal_approx(director.get_health_scale(bug, 11), pow(director.health_growth_per_drift, 10) * director.get_early_multiplier(11) * 1.2),
 		"Thick Blight: +20% health in its block")
-	_check(is_equal_approx(director.get_health_scale(bug, 16), pow(director.health_growth_per_drift, 15)),
+	_check(is_equal_approx(director.get_health_scale(bug, 16), pow(director.health_growth_per_drift, 15) * director.get_early_multiplier(16)),
 		"Thick Blight: only its own block")
-	_check(is_equal_approx(director.get_health_scale(stag, 15), director.boss_health_multiplier), "bosses ignore Omens")
+	_check(is_equal_approx(director.get_health_scale(stag, 15), director.boss_health_multiplier * director.get_early_multiplier(15)), "bosses ignore Omens")
 
 	_activate(omens, "crowded_paths", 3)
 	var drift: DriftData = director.drifts[10]

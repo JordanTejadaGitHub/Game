@@ -2324,6 +2324,7 @@ func sim_family_pick(kind: StringName, pick: Callable) -> StringName:
 		return &""
 	var speed := get_node_or_null("%GameSpeed")
 	var was_paused: bool = speed.paused if speed else false
+	var time_scale := Engine.time_scale  # GameSpeed.set_paused re-applies its own speed; a headless runner's stays
 	var was_awaiting := drift_director.awaiting_family_pick
 	drift_director.awaiting_family_pick = false  # An empty offer mustn't start a rest in the sim
 	screen.show_pick(kind)
@@ -2345,4 +2346,5 @@ func sim_family_pick(kind: StringName, pick: Callable) -> StringName:
 	screen.visible = false
 	if speed:
 		speed.set_paused(was_paused)
+	Engine.time_scale = time_scale
 	return chosen

@@ -14,7 +14,7 @@ class_name DreamSimPolicy
 # Dreamlight: the next form (branch → its finals → the other branch → Ascended) of the family with
 # the most Wardens on the map (Wide also counts its Thornwalls and may grow them). Omens: Clear Skies.
 
-enum Style { BALANCED, WIDE, NARROW, COMBO, SLEEP }
+enum Style { BALANCED, WIDE, NARROW, COMBO, SLEEP, SPROUT }
 
 # Tag scores per style (a card sums its tags; in-build cards get IN_BUILD on top).
 const TAG_SCORES := {
@@ -23,9 +23,13 @@ const TAG_SCORES := {
 	Style.NARROW: {"narrow": 3.0, "nurture": 3.0, "crit": 1.0, "wide": -3.0, "sprout": -1.0},
 	Style.COMBO: {"reaction": 3.0, "kinship": 1.0, "potency": 1.0, "status": 1.0},
 	Style.SLEEP: {"sleep": 3.0, "song": 3.0, "status": 1.0, "reaction": 1.0},
+	Style.SPROUT: {"sprout": 3.0, "wide": 2.0, "wall": 1.0, "narrow": -3.0, "nurture": -1.0},
 }
 const IN_BUILD := 2.0
 const COMBO_ENTWINED := 3.0  # Combo: Entwined / Woven cards
+# Sprout: the Sprout build's own cards come first (balance_simulation.md "Sprout spam should be a build").
+const SPROUT_CARDS: Array[String] = ["seedfall", "sprout_surge", "sprout_chorus", "root_network", "root_network_ii", "seedling_gift", "nursery"]
+const SPROUT_TOP := 10.0
 const COMBO_HALF_DREAMED := 2.0  # Combo: a half-dreamed card is a lead, not a dead pick
 const HALF_DREAMED := -1.0  # Other styles: a card that sleeps for now
 # Family order per style (the first offered one is taken); Combo picks by combo cards instead.
@@ -35,6 +39,7 @@ const FAMILIES := {
 	Style.NARROW: ["firefly_jar", "pebbling", "nestling", "dewdrop", "sporeling", "acorn", "rootling", "samara", "bellflower"],
 	Style.COMBO: [],
 	Style.SLEEP: ["bellflower", "dewdrop", "sporeling", "firefly_jar", "pebbling", "acorn", "rootling", "nestling", "samara"],
+	Style.SPROUT: ["sporeling", "acorn", "rootling", "samara", "dewdrop", "firefly_jar", "pebbling", "nestling", "bellflower"],
 }
 
 var dreams: DreamState
@@ -56,6 +61,8 @@ func score(card: UpgradeData) -> float:
 		value += IN_BUILD
 	if dreams.is_half_dreamed(card):
 		value += COMBO_HALF_DREAMED if style == Style.COMBO else HALF_DREAMED
+	if style == Style.SPROUT and SPROUT_CARDS.has(card.id):
+		value += SPROUT_TOP
 	if style == Style.COMBO and card.entwined:
 		value += COMBO_ENTWINED
 	return value * 10.0 + card.rarity  # Tag match first, then rarity
@@ -120,7 +127,7 @@ func _combo_cards_with(family: String) -> int:
 func spend_dreamlight() -> void:
 	var trees := dreams.get_remember_trees().filter(func(tree: Array) -> bool:
 		return dreams.family_of(tree[0].get_id()) != "" \
-			or (style == Style.WIDE and tree[0].get_id() == "thornwall"))  # Families; Wide also grows its walls
+			or (style in [Style.WIDE, Style.SPROUT] and tree[0].get_id() == "thornwall"))  # Families; Wide / Sprout also grow walls
 	if trees.is_empty():
 		return
 	var counts := {}
