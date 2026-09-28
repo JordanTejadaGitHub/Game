@@ -25,7 +25,6 @@ const SEED_COLOR := Color(0.6, 0.85, 0.4)
 const LEAVES_COLOR := Color(0.6, 0.9, 0.5)
 const DREAMLIGHT_COLOR := Color(1.0, 0.88, 0.55)
 const MENU_BUTTON_RIGHT := -284.0  # Left of the Dreamlight counter and the Dew
-const DREAMLIGHT_HELP := "Unlocks branches and final forms on the Remember screen (at rests)."  # As IconInfo
 const LEAF_LOST_COLOR := Color(1.0, 0.6, 0.3)
 const TOAST_TIME := 2.5
 
@@ -281,11 +280,11 @@ func _add_dreamlight_counter() -> void:
 	label.offset_left = label.offset_right - 110
 	label.add_theme_color_override("font_color", DREAMLIGHT_COLOR)
 	label.mouse_filter = Control.MOUSE_FILTER_STOP
-	label.tooltip_text = DREAMLIGHT_HELP
+	label.tooltip_text = IconInfo.resource_tooltip(&"dreamlight")
 	# Tap / click says the same as the tooltip (platforms.md: no hover-only information).
 	label.gui_input.connect(func(event: InputEvent) -> void:
 		if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
-			show_toast("Dreamlight %d. %s" % [dream_state.dreamlight, DREAMLIGHT_HELP]))
+			show_toast("%s (you have %d)" % [IconInfo.resource_tooltip(&"dreamlight"), dream_state.dreamlight]))
 	add_child(label)
 	var mote := Control.new()
 	mote.mouse_filter = Control.MOUSE_FILTER_IGNORE
