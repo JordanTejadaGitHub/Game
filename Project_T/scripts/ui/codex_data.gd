@@ -44,8 +44,8 @@ const GLOSSARY := [
 		["Clear tool", "Tend withered trees and move boulders to reshape the maze. Opens with a clearing Dream.", ["Dew"]],
 	]],
 	["Nightmares", [
-		["Nightmare", "The Hollow's creatures, hunting the Heartwood's dream. Dispel them before they reach it.", ["Dispel"]],
-		["Dispel", "Soothing a nightmare until it breaks apart into light.", ["Nightmare"]],
+		["Nightmare", "The Hollow's dreams turned cruel, hunting the Heartwood's dream. Dispel them before they reach it.", ["Dispel"]],
+		["Dispel", "Breaking a nightmare apart with your Wardens' light. It leaves Dew behind.", ["Nightmare"]],
 		["Deeply Blighted", "An elite nightmare: three times the health and Dew, and it takes two leaves.", ["Leaves"]],
 		["Resists and Weak to", "Some nightmares take less from certain Warden families and more from others.", ["Family"]],
 		["Dread shell", "A shell that soaks chip damage: heavy hits break through.", ["Crit"]],
@@ -59,13 +59,13 @@ const GLOSSARY := [
 		["Marked", "Every Warden hits it harder.", ["Marked Blow", "Lightning Rod"]],
 		["Static", "Charges build up to a free lightning bolt.", ["Set Off", "Thunderclap"]],
 		["Held", "It can't move. Now's the time.", ["Shatter", "Smother"]],
-		["Caught", "Held in a Dreamcatcher's web: it takes extra damage from everything.", ["Drowsy", "Held"]],
+		["Caught", "Asleep or fully Drowsy near a Dreamcatcher: it takes extra damage from everything.", ["Drowsy", "Asleep"]],
 		["Frozen", "Frost stops it for a moment.", ["Damp"]],
 	]],
 	["Dreams", [
 		["Rarity", "Common, Uncommon, Rare, Legendary: the shape and colour of a Dream card's gem.", ["Legendary"]],
 		["Deepened", "A stronger \"II\" version of a rule card you already own. It replaces the first.", ["Dream"]],
-		["Entwined", "Offered once you own all its ingredient cards; guaranteed a slot once.", ["Dream"]],
+		["Entwined", "A combo card offered once you own all its ingredients (cards or Wardens); guaranteed a slot the first time.", ["Dream"]],
 		["Bittersweet", "A strong Dream with a cost written on it.", ["Dream"]],
 		["Legendary", "The rarest Dreams, grown in the Memory Grove.", ["Memory Grove"]],
 		["Let it pass", "Skip a Dream offer for a little Dew.", ["Dream"]],
@@ -91,7 +91,7 @@ const SYNERGIES := {
 	&"fog": ["Spore Fog", [&"spored", &"damp"], "Spores tick harder inside Mistveil fog.", "Mistveil"],
 	&"set_off": ["Set Off", [&"static", &"static"], "A pulse sets off a Static bolt.", "Chime Stone, Lullaby Bell"],
 	&"marked_blow": ["Marked Blow", [&"marked", &"marked"], "A heavy hit does double damage on Marked nightmares.", "Mossback, Boulderback"],
-	&"caught": ["Caught", [&"drowsy", &"held"], "Asleep or full Drowsy in a Dreamcatcher's web: it takes extra damage from everything.", "Dreamcatcher"],
+	&"caught": ["Caught", [&"drowsy", &"drowsy"], "Asleep or full Drowsy near a Dreamcatcher: it takes extra damage from everything.", "Dreamcatcher"],
 }
 const STATUS_NAMES := {&"damp": "Damp", &"drowsy": "Drowsy", &"spored": "Spored", &"marked": "Marked",
 	&"static": "Static", &"held": "Held"}
