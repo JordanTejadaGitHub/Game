@@ -274,6 +274,12 @@ accessibility, Steam achievements (milestones map to them). Acts 3–4 and all f
   milestones, migration, screen smoke test with a temp profile).
 
 ## Audio (placeholder, audio_direction.md)
+- **Heartwood 32 + detail pass** (art_direction.md "Rendering style"; Theme Code owns `tools/art/`):
+  `HeartwoodPalette` (`color("gold")` by name, `snap(c, cold)`, `snap_image(img, cold)`, OKLab nearest;
+  cold = nightmares) and `DetailPass.apply(img, Kind.WARDEN/OBSTACLE/NIGHTMARE/TILE)` /
+  `apply_sheet(sheet, Vector2i(64, 64), kind)` (rim, dither seams, texture, banded glow, smoke, then snap).
+  Every art generator runs its frames through it. `tools/art/palette_export.gd` writes
+  `assets/palette/heartwood32.{gpl,hex,json,png}` for non-Godot tools. `tests/test_palette.gd`.
 - `tools/sound_generator.gd` synthesizes every sound into `assets/audio/` (sfx 44.1 kHz; music
   stems + ambience 22 kHz, D minor 72 bpm 3/4, 20 s loops of equal length). Re-run it, then `--import`.
 - `Sound` autoload (`scripts/audio/sound.gd`): buses Music/SFX/Ambience/UI (reverb on Music/SFX,
