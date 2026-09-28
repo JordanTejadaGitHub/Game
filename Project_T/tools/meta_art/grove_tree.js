@@ -72,6 +72,12 @@ N("the_last_light", "cards", "The Last Light", 800, 710, "one_line", { legendary
 N("dead_wood", "cards", "Dead Wood", 962, 600, [944, 518]);
 N("the_long_walk", "cards", "The Long Walk", 992, 676, "dead_wood", { legendary: true });
 N("bittersweet_dreams", "cards", "Bittersweet Dreams", 1152, 482, [1128, 410]);
+// Woven (Crowned Reactions) branches off Reactions; Deep Poison hangs under the limb past Keen Edges.
+N("woven_dreams_1", "cards", "Woven Dreams I", 814, 370, "reactions");
+N("woven_dreams_2", "cards", "Woven Dreams II", 818, 298, "woven_dreams_1");
+N("seeping", "cards", "Seeping", 1102, 552, [1090, 436]);
+N("venom", "cards", "Venom", 1120, 622, "seeping");
+N("nightshade", "cards", "Nightshade", 1132, 702, "venom", { legendary: true });
 const byId = Object.fromEntries(NODES.map(n => [n.id, n]));
 NODES.forEach(n => { n.depth = n.parent ? byId[n.parent].depth + 1 : 1; });
 // Where dream-fruit (Memories) hang, in the order they appear: the point under a limb the vine

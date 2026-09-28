@@ -310,6 +310,12 @@ func _update_card() -> void:
 	_carry.disabled = not carried and HeartwoodMemory.get_loadout(_memory).size() >= HeartwoodMemory.loadout_slots(_memory)
 	if _carry.disabled:
 		_carry.text = "Loadout full"
+	# Shrink to the content (a card with fewer lines than the last one), still centred on the right.
+	_fit_card.call_deferred()  # After the labels have re-measured
+
+func _fit_card() -> void:
+	_card.reset_size()
+	_card.set_anchors_and_offsets_preset(Control.PRESET_CENTER_RIGHT, Control.PRESET_MODE_MINSIZE, 20)
 
 # "Pebbling or Rootling", "Second Thoughts II", "2 of …"
 func _needs_text(unlock: UnlockData) -> String:

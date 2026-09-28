@@ -1934,6 +1934,134 @@
     ],
     "frames": 5
    }
+  },
+  {
+   "id": "woven_dreams_1",
+   "section": "cards",
+   "name": "Woven Dreams I",
+   "pos": [
+    814,
+    370
+   ],
+   "parent": "reactions",
+   "from": null,
+   "levels": 1,
+   "start": false,
+   "legendary": false,
+   "branch": {
+    "offset": [
+     802,
+     357
+    ],
+    "frame_size": [
+     81,
+     66
+    ],
+    "frames": 5
+   }
+  },
+  {
+   "id": "woven_dreams_2",
+   "section": "cards",
+   "name": "Woven Dreams II",
+   "pos": [
+    818,
+    298
+   ],
+   "parent": "woven_dreams_1",
+   "from": null,
+   "levels": 1,
+   "start": false,
+   "legendary": false,
+   "branch": {
+    "offset": [
+     798,
+     287
+    ],
+    "frame_size": [
+     32,
+     95
+    ],
+    "frames": 5
+   }
+  },
+  {
+   "id": "seeping",
+   "section": "cards",
+   "name": "Seeping",
+   "pos": [
+    1102,
+    552
+   ],
+   "parent": null,
+   "from": [
+    1090,
+    436
+   ],
+   "levels": 1,
+   "start": false,
+   "legendary": false,
+   "branch": {
+    "offset": [
+     1075,
+     421
+    ],
+    "frame_size": [
+     47,
+     144
+    ],
+    "frames": 5
+   }
+  },
+  {
+   "id": "venom",
+   "section": "cards",
+   "name": "Venom",
+   "pos": [
+    1120,
+    622
+   ],
+   "parent": "seeping",
+   "from": null,
+   "levels": 1,
+   "start": false,
+   "legendary": false,
+   "branch": {
+    "offset": [
+     1088,
+     538
+    ],
+    "frame_size": [
+     47,
+     97
+    ],
+    "frames": 5
+   }
+  },
+  {
+   "id": "nightshade",
+   "section": "cards",
+   "name": "Nightshade",
+   "pos": [
+    1132,
+    702
+   ],
+   "parent": "venom",
+   "from": null,
+   "levels": 1,
+   "start": false,
+   "legendary": true,
+   "branch": {
+    "offset": [
+     1107,
+     609
+    ],
+    "frame_size": [
+     40,
+     105
+    ],
+    "frames": 5
+   }
   }
  ],
  "fruit_spots": [
