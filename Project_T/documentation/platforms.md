@@ -18,6 +18,19 @@ made now must not block it**. This doc is the checklist.
 5. **Performance budget:** a full late-game maze (40 Wardens, 100+ nightmares, effects, lighting) at
    60 fps on a mid-range phone. Keep particle counts, lights and per-frame pathfinding in check;
    profile on a mid-range Android device before the port.
+   **Revised 2026-09-28** (playtest: "super laggy" with ~150 Sprouts at drift 46; Sprout swarms are a
+   real build, so huge mazes are normal): the worst case is **every buildable cell filled (~200
+   Wardens) + 150 nightmares + a Reaction chain**. Targets: **60 fps on PC at 3×**, 60 fps on a
+   mid-range phone at 1×. Rules:
+   - No per-frame work that scales with **Wardens × nightmares** (targeting uses a spatial grid or a
+     cheap interval, not a scan of every nightmare every frame).
+   - Card / Kinship / network / Heart of the Maze queries are **cached** and only recomputed when
+     the map changes (a Warden planted, grown or sold, or the route changing), never per hit.
+   - **Lights and glows are pooled or merged:** no PointLight2D per Warden; one light per cluster
+     or a baked glow layer.
+   - Idle animations and UI marks (badges, pips, chips) are cheap draws, updated only when changed.
+   - A headless **stress test** (`tests/test_perf_stress.gd`: the worst case above) reports
+     frame-time percentiles and fails over budget.
 6. **Short sessions work:** the mid-run save at every rest already allows 5-minute play; keep it.
 
 ## Touch controls (target design for the port)
