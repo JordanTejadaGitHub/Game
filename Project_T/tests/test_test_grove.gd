@@ -65,6 +65,7 @@ func _run() -> void:
 	_check(main.get_node("%EnemyContainer").get_enemies().is_empty(), "clear the field dispels everything")
 
 	await _test_tools(main, grove)
+	_test_harmony_numbers(main)
 	TestGrove.force_on = false
 	print("test grove test: %s" % ("PASS" if failures == 0 else "%d FAILED" % failures))
 	quit(failures)
@@ -181,6 +182,20 @@ func _test_tools(main: Node, grove: TestGrove) -> void:
 	_check(bloom != null and dreams.is_eligible(bloom, 2), "Grove-only Dreams can be offered in Test Grove")
 	_check(grove.take_dream(bloom) and dreams.has_rule(&"chain_bloom"), "Take any Dream applies it now")
 	_check(not grove.take_dream(bloom), "a once-only Dream can't be taken twice")
+
+# Kinship's Harmony strikes join their hit's damage number (green), never a number of their own.
+func _test_harmony_numbers(main: Node) -> void:
+	var log: DamageLog = main.get_node("%DamageLog")
+	log.numbers_mode = DamageLog.NumbersMode.ALL
+	var tower := _build(main, "sporeling")
+	var enemy := _spawn_near(main, tower.cell, Vector2(0, 64))
+	var before := log.get_child_count()
+	enemy.take_damage(40.0, tower.tower_data.line, false, false, tower, &"")
+	enemy.take_damage(12.0, tower.tower_data.line, false, false, tower, &"harmony")
+	_check(log.get_child_count() == before + 1, "Harmony: no number of its own")
+	var number = log.get_child(log.get_child_count() - 1)
+	_check(number._amount > 40.0 and number._color.g > number._color.r, "…it joins the hit's number, tinted green")
+	_free_enemies(main)
 
 func _build(main: Node, id: String) -> Tower:
 	var placer: TowerPlacer = main.get_node("%TowerPlacer")

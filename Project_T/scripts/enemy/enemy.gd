@@ -895,6 +895,7 @@ func _report_damage(amount: float, family: float, taken: float, soaked: float, d
 	event.source = source
 	event.enemy = self
 	event.kind = &"status" if tag == &"spored" else (&"bolt" if tag == &"static" else (&"pop" if tag == &"popped" else &"hit"))
+	event.tag = tag
 	if tag in REACTION_TAGS:
 		event.kind = &"reaction"
 	event.amount = dealt

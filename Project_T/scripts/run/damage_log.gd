@@ -11,6 +11,9 @@ class_name DamageLog
 signal damage_dealt(event: Event)
 
 const DPS_WINDOW := 5.0  # Seconds of recent events kept for damage-per-second
+const HARMONY_TAG := &"harmony"
+const HARMONY_COLOR := Color(0.55, 1.0, 0.55)
+const HARMONY_MERGE_WINDOW := 0.3  # Seconds: a Harmony strike right after its hit
 
 # Combo tags (combo_amount = the part of the hit the combo added):
 #   crit       a critical hit (× the Warden's crit multiplier)
@@ -43,6 +46,7 @@ class Event:
 	var source_name := "Unknown"
 	var enemy: Node2D
 	var kind := &"hit"  # hit, status (Spored tick), bolt (Static)
+	var tag := &""  # The damage tag take_damage got (&"harmony", &"spored", a Reaction id…)
 	var amount := 0.0  # Soothe dealt, after every multiplier and the blight coat
 	var combos: Array[StringName] = []
 	var combo_amount := 0.0  # Part of `amount` that combos added
@@ -79,6 +83,7 @@ var _stats := {}
 var _recent: Array[Event] = []
 var _clock := 0.0
 var drift_label := 0  # The drift the "drift" totals started at
+var _last_hit_number := {}  # Nightmare id -> [FloatingNumber, source, clock] of its latest hit number
 
 func _ready() -> void:
 	instance = self
@@ -236,6 +241,9 @@ func _combo_share(event: Event, tag: StringName) -> float:
 # --- Damage numbers ---------------------------------------------------------------------------------
 
 func _show_number(event: Event) -> void:
+	if event.tag == HARMONY_TAG:
+		_merge_harmony(event)
+		return
 	if numbers_mode == NumbersMode.OFF or not is_instance_valid(event.enemy) or event.amount < 0.5:
 		return
 	var big: bool = event.combos.has(&"crit") or event.combos.has(&"weak") or event.combos.has(&"conducted") \
@@ -257,21 +265,46 @@ func _show_number(event: Event) -> void:
 	if event.kind == &"status":
 		size = 11
 		color = color.darkened(0.15)
-	add_child(FloatingNumber.new(event.enemy.global_position + Vector2(randf_range(-10, 10), -30),
-		str(roundi(event.amount)), color, size))
+	var number := FloatingNumber.new(event.enemy.global_position + Vector2(randf_range(-10, 10), -30),
+		event.amount, color, size)
+	add_child(number)
+	if event.kind == &"hit":
+		if _last_hit_number.size() > 256:
+			_last_hit_number.clear()  # Forget long-gone nightmares now and then
+		_last_hit_number[event.enemy.get_instance_id()] = [number, event.source, _clock]
+
+# Kinship's Harmony strikes (screens_ui.md "Kinship feedback"): no number of their own; the bonus
+# joins the number of the hit it followed (same Warden and nightmare, just now), tinted green.
+func _merge_harmony(event: Event) -> void:
+	if not is_instance_valid(event.enemy):
+		return
+	var last: Array = _last_hit_number.get(event.enemy.get_instance_id(), [])
+	if last.is_empty() or not is_instance_valid(last[0]) or last[1] != event.source \
+			or _clock - last[2] > HARMONY_MERGE_WINDOW:
+		return  # Its hit showed no number (Big numbers only, or off): nothing to add to
+	last[0].add(event.amount, HARMONY_COLOR)
 
 # A number that rises and fades (world space).
 class FloatingNumber:
 	extends Node2D
 	const LIFE := 0.8
+	var _amount: float
 	var _text: String
 	var _color: Color
 	var _size: int
 	var _age := 0.0
 
-	func _init(at: Vector2, text: String, color: Color, size: int) -> void:
+	# Adds `amount` to the number, tinting it toward `tint` (Harmony).
+	func add(amount: float, tint: Color) -> void:
+		_amount += amount
+		_text = str(roundi(_amount))
+		_color = _color.lerp(tint, 0.7)
+		queue_redraw()
+
+	func _init(at: Vector2, amount: float, color: Color, size: int) -> void:
 		global_position = at
-		_text = text
+		_amount = amount
+		_text = str(roundi(amount))
 		_color = color
 		_size = size
 
