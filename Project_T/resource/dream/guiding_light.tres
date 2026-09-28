@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "guiding_light"
 display_name = "Guiding Light"
-description = "Marked spreads to nightmares within 1 tile of the target."
+description = "Exposed spreads to nightmares within 1 tile of the target."
 rarity = 2
 kind = 3
 tags = Array[String](["mark"])

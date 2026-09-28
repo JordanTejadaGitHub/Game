@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "lingering_spores_ii"
 display_name = "Lingering Spores II"
-description = "Spored lasts 5 s longer and stacks 2 higher."
+description = "Poisoned lasts 5 s longer and stacks 2 higher."
 rarity = 1
 kind = 2
 tags = Array[String](["spore"])

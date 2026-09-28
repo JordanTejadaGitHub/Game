@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "hunters_moon"
 display_name = "Hunter's Moon"
-description = "Each Warden's first hit on a nightmare Marks it, and Marked never wears off. A dispelled Marked nightmare Marks the 2 nearest within 3 cells."
+description = "Each Warden's first hit on a nightmare Exposes it, and Exposed never wears off. A dispelled Exposed nightmare Exposes the 2 nearest within 3 cells."
 rarity = 3
 kind = 3
 tags = Array[String](["mark"])

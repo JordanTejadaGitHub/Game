@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "heavy_eyelids"
 display_name = "Heavy Eyelids"
-description = "Nightmares can hold 2 more Drowsy stacks (bosses 1 more)."
+description = "Nightmares can hold 2 more Slowed stacks (bosses 1 more)."
 rarity = 1
 kind = 3
 tags = Array[String](["song", "sleep"])

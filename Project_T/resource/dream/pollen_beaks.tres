@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "pollen_beaks"
 display_name = "Pollen Beaks"
-description = "Each peck applies 1 Spored."
+description = "Each peck applies 1 Poisoned stack."
 rarity = 2
 kind = 3
 tags = Array[String](["wing", "spore", "on-hit"])
