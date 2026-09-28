@@ -31,3 +31,4 @@ art_id = "the_tempest"
 patrol_texture = ExtResource("fx_1")
 patrol_frames = 8
 patrol_anchor = Vector2(32, 72)
+footprint = 2

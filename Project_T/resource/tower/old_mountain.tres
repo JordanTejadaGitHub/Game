@@ -38,3 +38,4 @@ projectile_frames = 4
 impact_texture = ExtResource("fx_2")
 impact_frames = 6
 impact_anchor = Vector2(96, 96)
+footprint = 2

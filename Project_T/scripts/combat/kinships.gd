@@ -187,6 +187,39 @@ func _towers() -> Array:
 static func _cheb(a: Vector2, b: Vector2) -> float:
 	return maxf(absf(a.x - b.x), absf(a.y - b.y))
 
+# Kinship distance is from the nearest footprint cells (a 2×2 Ascended form reaches from any of its four).
+static func _distance(a: Tower, b: Tower) -> float:
+	var best := INF
+	for ca in a.get_cells():
+		for cb in b.get_cells():
+			best = minf(best, _cheb(ca, cb))
+	return best
+
+static func _distance_to_cell(tower: Tower, cell: Vector2) -> float:
+	var best := INF
+	for c in tower.get_cells():
+		best = minf(best, _cheb(c, cell))
+	return best
+
+# A Warden's origin cell moved (growing into a 2×2 form): its bonds keep their age.
+func note_moved(tower: Tower, old_cell: Vector2) -> void:
+	var old := "%d,%d" % [old_cell.x, old_cell.y]
+	var now := "%d,%d" % [tower.cell.x, tower.cell.y]
+	for pair in pairs:
+		if pair.a != tower and pair.b != tower:
+			continue
+		var parts: PackedStringArray = String(pair.key).split(":")
+		if parts.size() != 3:
+			continue  # Rooted Bond keys by the Wardens: nothing to move
+		for i in [1, 2]:
+			if parts[i] == old:
+				parts[i] = now
+		var key := ":".join(parts)
+		if key != pair.key and ages.has(pair.key):
+			ages[key] = ages[pair.key]
+			ages.erase(pair.key)
+			pair.key = key
+
 # Re-pairs every Warden (nearest kin first) and recounts the family bonuses.
 func refresh() -> void:
 	_refresh_timer = REFRESH
@@ -207,7 +240,7 @@ func refresh() -> void:
 			var id := kinship_for(ba, bb)
 			if id == &"" or not is_available(id):
 				continue
-			var distance := _cheb(ta.cell, tb.cell)
+			var distance := _distance(ta, tb)
 			if distance <= get_reach():
 				# Side A is the Warden from the table's first branch.
 				var first: bool = KINSHIPS[id][2] == ba
@@ -458,11 +491,13 @@ func kin_spots(data: TowerData) -> Dictionary:
 		var id := kinship_for(branch, other) if other != "" and other != branch else &""
 		if id == &"" or not is_available(id):
 			continue
-		for dx in range(-reach, reach + 1):
-			for dy in range(-reach, reach + 1):
-				var cell: Vector2 = tower.cell + Vector2(dx, dy)
-				if cell != tower.cell:
-					spots[cell] = id
+		var own: Array[Vector2] = tower.get_cells()
+		for base in own:
+			for dx in range(-reach, reach + 1):
+				for dy in range(-reach, reach + 1):
+					var cell: Vector2 = base + Vector2(dx, dy)
+					if not own.has(cell):
+						spots[cell] = id
 	return spots
 
 # The Kinship a Warden of `data` planted on `cell` would form ({} = none): {id, name, partner}. For the
@@ -480,7 +515,7 @@ func preview(data: TowerData, cell: Vector2) -> Dictionary:
 		if other == "" or other == branch:
 			continue
 		var id := kinship_for(branch, other)
-		var distance := _cheb(tower.cell, cell)
+		var distance := _distance_to_cell(tower, cell)
 		if id != &"" and is_available(id) and distance <= REACH and distance < best_distance:
 			best_distance = distance
 			best = {"id": id, "name": KINSHIPS[id][0], "partner": tower}

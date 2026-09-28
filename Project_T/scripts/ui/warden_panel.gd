@@ -184,6 +184,10 @@ func _refresh() -> void:
 			if awake != "":
 				button.text = "Grow into %s · %s" % [next.display_name, awake]  # One per family
 				button.disabled = true
+			elif next.footprint > _tower.get_footprint() and tower_placer.get_grow_squares(_tower, next).is_empty():
+				# A 2×2 form needs three free cells (or Thornwalls) beside it, and the path must stay open.
+				button.text = "Grow into %s · Needs room: 3 free cells next to it (2×2)" % next.display_name
+				button.disabled = true
 			button.pressed.connect(_evolve.bind(next))
 		else:
 			_locked_form_button(button, "Grow into %s" % next.display_name, next)
@@ -481,5 +485,10 @@ func _cycle_target() -> void:
 	_refresh()
 
 func _evolve(into: TowerData) -> void:
+	if into.footprint > _tower.get_footprint():
+		# A 2×2 form: pick the square on the map (one valid square grows there at once).
+		if tower_placer.begin_grow_choice(_tower, into):
+			_refresh()
+		return
 	if tower_placer.evolve(_tower, into):
 		_refresh()

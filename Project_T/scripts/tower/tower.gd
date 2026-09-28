@@ -204,6 +204,7 @@ var _patrol: PatrolFlight = null
 var _aura_count := 0  # Other Wardens inside this Warden's aura (Grove Heart)
 var _kin: Kinships = null  # The run's Kinships (two branches of one family bond)
 var kin_branch := ""  # The branch an Ascended form grew from (Kinships); saved with the run
+var footprint_size := 0  # 0 = the data's footprint; 1 keeps an old save's 1-cell Ascended form
 var _hits_landed := 0  # Eternal Charge / Rooted Nightmares count this Warden's hits
 var _hunted := {}  # Hunter's Moon: nightmares this Warden has hit (instance ids)
 const ETERNAL_STATIC_EVERY := 4
@@ -247,7 +248,12 @@ func evolve(data: TowerData, cost: int) -> void:
 	# An Ascended form keeps the branch it grew from, so its Kinship stays ("evolving keeps it").
 	if data.tier >= DreamState.ASCENDED_TIER and kin_branch == "":
 		kin_branch = Kinships.branch_of(tower_data)
+	# A Warden keeps its size unless it was given room: TowerPlacer takes the 2×2 square first (and sets
+	# footprint_size); growing any other way stays on the cells it has.
+	var size := get_footprint()
 	tower_data = data
+	if size != data.footprint:
+		footprint_size = size
 	invested_dew += cost
 	_apply_data()
 	evolved.emit(self)
@@ -1512,7 +1518,12 @@ func _play_ripen() -> void:
 
 # The cells this Warden stands on (the Sapling covers 2×2 from `cell`).
 func get_cells() -> Array[Vector2]:
-	return footprint_cells(cell, tower_data.footprint)
+	return footprint_cells(cell, get_footprint())
+
+# Cells per side this Warden covers: its data's (Ascended forms and the Sapling: 2), or 1 for an
+# Ascended form from a save made before they grew to 2×2.
+func get_footprint() -> int:
+	return footprint_size if footprint_size > 0 else tower_data.footprint
 
 static func footprint_cells(origin: Vector2, size: int) -> Array[Vector2]:
 	var cells: Array[Vector2] = []

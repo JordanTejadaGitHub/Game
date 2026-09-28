@@ -32,3 +32,4 @@ attack_release_frame = 2
 hit_effect_texture = ExtResource("fx_1")
 hit_effect_frames = 6
 hit_effect_anchor = Vector2(32, 44)
+footprint = 2

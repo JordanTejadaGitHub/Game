@@ -29,3 +29,4 @@ attack_texture = ExtResource("art_attack")
 attack_frame_count = 6
 attack_release_frame = 2
 art_id = "the_great_bell"
+footprint = 2

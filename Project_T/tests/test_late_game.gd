@@ -9,6 +9,7 @@ const ASCENDED := {
 	"tempest": "wind",
 }
 
+const MAP_SEED := 42
 var failures := 0
 
 func _initialize() -> void:
@@ -18,6 +19,8 @@ func _run() -> void:
 	_check_data()
 
 	var main: Node = load("res://scenes/main.tscn").instantiate()
+	# A fixed map: the 2×2 checks need open ground, which a crowded random map may not leave.
+	main.get_node("%MapGenerator").map_seed = MAP_SEED
 	root.add_child(main)
 	await process_frame
 	var map_generator = main.get_node("%MapGenerator")
@@ -107,18 +110,78 @@ func _run() -> void:
 	# --- One Ascended form per family on the map (selling it frees the slot) ---
 	var bell_data: TowerData = load("res://resource/tower/great_bell.tres")
 	var lullaby: TowerData = load("res://resource/tower/lullaby_bell.tres")
-	var bell_a := _build(placer, map_generator, lullaby)
-	var bell_b := _build(placer, map_generator, lullaby)
+	var bell_a := _build_at(placer, lullaby, _open_area(map_generator, placer.tower_container))  # Room for its 2×2
+	var bell_b := _build_at(placer, lullaby, _open_area(map_generator, placer.tower_container))
 	_check(placer.evolve(bell_a, bell_data), "the first Lullaby Bell wakes as The Great Bell")
 	_check(placer.ascended_blocker(bell_data) == "The Great Bell is already awake", "the slot is taken")
 	_check(not placer.evolve(bell_b, bell_data) and bell_b.tower_data == lullaby, "a second can't wake while it's there")
-	var both := [bell_b, _build(placer, map_generator, lullaby)]
+	var both := [bell_b, _build_at(placer, lullaby, _open_area(map_generator, placer.tower_container))]
 	_check(seller.plan_grow(both, bell_data)[0] == 0, "group grow and G grow none")
 	var sell_cell: Vector2 = bell_a.cell
 	seller.sell(sell_cell)
 	await process_frame
 	_check(placer.ascended_blocker(bell_data) == "" and seller.plan_grow(both, bell_data)[0] == 1,
 		"selling it frees the slot, and group grow wakes only one")
+
+	# --- Ascended forms are 2×2 (tower_design.md "Ascended forms", Size) ---
+	var storm_data: TowerData = load("res://resource/tower/tidecaller.tres")  # (a Stormheart is already awake above)
+	var thunder: TowerData = load("res://resource/tower/hoarfrost.tres")
+	var open := _open_area(map_generator, container_of(placer))
+	_check(open != Vector2(-1, -1), "found an open 3×3 area")
+	# (a) A free square: the Warden grows onto it, all four cells blocked, centred on the 2×2.
+	var t1 := _build_at(placer, thunder, open)
+	var squares := placer.get_grow_squares(t1, storm_data)
+	_check(squares.size() == 4, "all four squares around it are free (%d)" % squares.size())
+	_check(placer.evolve(t1, storm_data, squares[0]) and t1.get_footprint() == 2, "it grows into a 2×2 Tidecaller")
+	for c in Tower.footprint_cells(squares[0], 2):
+		_check(not map_generator.is_buildable(c) and seller.get_tower_at(c) == t1, "cell %s is the Tidecaller's" % c)
+	_check(t1.position == Tower.footprint_centre(squares[0], 2), "it stands at the 2×2 centre")
+	seller.sell(t1.cell)
+	await process_frame
+	for c in Tower.footprint_cells(squares[0], 2):
+		_check(map_generator.is_buildable(c), "selling frees cell %s" % c)
+	# (b) Thornwalls around it are absorbed, their Dew back in full.
+	var t2 := _build_at(placer, thunder, open)
+	var walls := []
+	for offset in [Vector2(1, 0), Vector2(0, 1), Vector2(1, 1), Vector2(-1, 0), Vector2(-1, -1), Vector2(0, -1), Vector2(1, -1), Vector2(-1, 1)]:
+		walls.append(_build_at(placer, load("res://resource/tower/thornwall.tres"), open + offset))
+	var wall_dew := 0
+	for w in walls.slice(0, 3):
+		wall_dew += w.invested_dew
+	var dew_now := run_state.dew
+	var cost: int = t2.get_grow_cost(storm_data).total
+	_check(placer.get_grow_squares(t2, storm_data).has(open), "a square of Thornwalls is a valid square")
+	_check(placer.evolve(t2, storm_data, open), "it grows over them")
+	_check(walls.slice(0, 3).all(func(w) -> bool: return not is_instance_valid(w) or w.is_queued_for_deletion()),
+		"the three Thornwalls in the square are absorbed")
+	_check(run_state.dew == dew_now - cost + wall_dew, "and refunded in full (%d)" % (run_state.dew - dew_now + cost))
+	seller.sell(t2.cell)
+	await process_frame
+	for w in walls.slice(3):
+		if is_instance_valid(w) and not w.is_queued_for_deletion():
+			seller.sell(w.cell)
+	await process_frame
+	# (c) No room: Wardens (not Thornwalls) all round.
+	var t3 := _build_at(placer, thunder, open)
+	for offset in [Vector2(1, 0), Vector2(0, 1), Vector2(1, 1), Vector2(-1, 0), Vector2(-1, -1), Vector2(0, -1), Vector2(1, -1), Vector2(-1, 1)]:
+		_build_at(placer, load("res://resource/tower/sprout.tres"), open + offset)
+	_check(placer.get_grow_squares(t3, storm_data).is_empty() and not placer.evolve(t3, storm_data),
+		"with no room it can't grow")
+	_check(seller.plan_grow([t3], storm_data)[0] == 0, "group grow and G skip it")
+	# (d) The path rule: every square offered next to the route keeps a way through.
+	var route: PackedVector2Array = map_generator.get_path_from(map_generator.startPath)
+	var by_path: Tower = null
+	for i in range(4, route.size() - 4):
+		for side in [Vector2.LEFT, Vector2.RIGHT, Vector2.UP, Vector2.DOWN]:
+			var cell: Vector2 = route[i] + side
+			if by_path == null and not route.has(cell) and map_generator.can_block(cell):
+				by_path = _build_at(placer, thunder, cell)
+	var ok := by_path != null
+	if by_path:
+		for square in placer.get_grow_squares(by_path, storm_data):
+			var cells: Array[Vector2] = Tower.footprint_cells(square, 2)
+			ok = ok and not map_generator.get_path_if_blocked_cells(cells.filter(func(c) -> bool: return c != by_path.cell)).is_empty()
+	_check(ok, "every square offered beside the route leaves the path open")
 
 	# --- Ascended: Grandmother Oak's aura, Dawnwing's patrol ---
 	var oak := _build(placer, map_generator, load("res://resource/tower/sprout.tres"))
@@ -216,3 +279,33 @@ func _build(placer: TowerPlacer, map_generator, data: TowerData) -> Tower:
 				built.set_process(false)
 				return built
 	return null
+
+func container_of(placer: TowerPlacer) -> Node:
+	return placer.tower_container
+
+# Builds `data` on exactly `cell` (null if it can't be built there).
+func _build_at(placer: TowerPlacer, data: TowerData, cell: Vector2) -> Tower:
+	placer.run_state.dew = maxi(placer.run_state.dew, 10000)
+	placer.tower_data = data
+	var container: Node = placer.tower_container
+	var count := container.get_child_count()
+	if not placer._try_build(cell):
+		return null
+	var built: Tower = container.get_child(count)
+	built.set_process(false)
+	return built
+
+# A cell whose 3×3 surroundings are open ground away from the route (for the 2×2 tests).
+func _open_area(map_generator, container: Node) -> Vector2:
+	var route: PackedVector2Array = map_generator.get_path_from(map_generator.startPath)
+	for y in range(3, Tower.MAP_GRID.size.y - 3):
+		for x in range(3, Tower.MAP_GRID.size.x - 3):
+			var ok := true
+			for dy in range(-1, 2):
+				for dx in range(-1, 2):
+					var c := Vector2(x + dx, y + dy)
+					if route.has(c) or not map_generator.is_buildable(c):
+						ok = false
+			if ok:
+				return Vector2(x, y)
+	return Vector2(-1, -1)

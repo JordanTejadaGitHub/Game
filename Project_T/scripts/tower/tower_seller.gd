@@ -186,7 +186,7 @@ func get_selection_groups() -> Array:
 # `towers` sorted closest to the Heartwood first (they usually matter most).
 func sort_by_heartwood(towers: Array) -> Array:
 	var heart: Vector2 = map_generator.endPath
-	var sorted := towers.duplicate()
+	var sorted := towers.filter(func(t) -> bool: return is_instance_valid(t) and t is Tower)  # Skip gone ones
 	sorted.sort_custom(func(a: Tower, b: Tower) -> bool:
 		return a.cell.distance_squared_to(heart) < b.cell.distance_squared_to(heart))
 	return sorted
@@ -207,6 +207,8 @@ func plan_grow(towers: Array, into: TowerData) -> Array:
 	for tower in sort_by_heartwood(towers):
 		if not is_instance_valid(tower) or count >= limit:
 			continue
+		if into.footprint > tower.get_footprint() and tower_placer.get_grow_squares(tower, into).is_empty():
+			continue  # No room for the 2×2 form: skipped (grow_group picks the best square for the rest)
 		var cost: int = tower.get_grow_cost(into).total
 		if total + cost > run_state.dew:
 			continue
