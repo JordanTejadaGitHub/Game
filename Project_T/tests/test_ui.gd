@@ -100,6 +100,14 @@ func _run() -> void:
 	_check(dew_tip.visible and dew_tip._label.text == dew_label.tooltip_text, "tapping Dew shows the same text")
 	dew_tip.toggle()
 	_check(IconInfo.status_tooltip(&"damp").begins_with("Damp: 10% slower"), "status tooltips in plain words")
+	# The icon sheet (assets/ui/icons.png + icons.json): every status and stat id has a 16×16 icon.
+	for id in [&"damp", &"static", &"elite", &"hidden", &"damage", &"potency", &"focus_deep", &"dreamlight_cost"]:
+		var art := IconInfo.icon(id) as AtlasTexture
+		_check(art != null and art.region.size == Vector2(16, 16), "icon for %s" % id)
+	_check(IconInfo.status_tooltip(&"deeply_blighted") == IconInfo.status_tooltip(&"elite"), "sheet ids find their tooltips")
+	var made := IconInfo.make_icon(&"range", 2)
+	_check(made.custom_minimum_size == Vector2(32, 32) and made.tooltip_text.begins_with("Range:"), "make_icon: ×2, with its tooltip")
+	made.free()
 	var drift_panel = main.get_node("HUD/DriftPanel")
 	var saved_started := director.drifts_started
 	director.drifts_started = 0

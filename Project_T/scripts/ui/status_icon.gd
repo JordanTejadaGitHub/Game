@@ -11,14 +11,24 @@ var dim := false
 func _init(id: StringName = &"", greyed: bool = false) -> void:
 	status = id
 	dim = greyed
-	custom_minimum_size = Vector2(24, 24)
+	custom_minimum_size = Vector2(32, 32)  # The 16 px sheet icon at ×2
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
+	texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 
 func _ready() -> void:
 	# Explains itself on hover and on tap ("Damp: 10% slower. …").
 	TapTip.attach(self, IconInfo.status_tooltip(status))
 
 func _draw() -> void:
+	# The pixel-art icon from the sheet (IconInfo), scaled ×1 or ×2 with nearest filtering; the drawn
+	# shapes below are only the fallback.
+	var art := IconInfo.icon(status)
+	if art != null:
+		var scale := maxi(floori(minf(size.x, size.y) / 16.0), 1)
+		var side := Vector2(16, 16) * scale
+		draw_texture_rect(art, Rect2((size - side) / 2.0, side), false,
+			Color(0.6, 0.6, 0.65) if dim else Color.WHITE)
+		return
 	var colour: Color = EnemyStatuses.COLORS.get(status, Color.WHITE)
 	if dim:
 		colour = colour.lerp(Color(0.5, 0.5, 0.55), 0.5)
