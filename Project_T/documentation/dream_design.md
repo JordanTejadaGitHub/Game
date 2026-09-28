@@ -75,7 +75,7 @@ points.
   now purely stats, rules, combos and economy. Build paths are a **choice**, not luck. (History: the
   growth slot had reached 92–95% of runs with a cross-family combo by the act 1 boss; Dreamlight
   makes that deterministic.)
-- **Tag weighting:** cards tagged with a family you own are **1.4× as likely** (was 2×; see
+- **Tag weighting:** cards tagged with a family you own are **2× as likely** (1.4× for a while, back to 2× once the pool grew by 27 generic cards; see
   *Adapt, don't get handed* below). Builds lean together without being forced.
 - **Prerequisites:** a card never appears if it can't do anything yet (e.g. Stormcap cards need
   Firefly Jar). Full rules in *Card requirements* below.
@@ -92,7 +92,7 @@ with good things they'd have to adapt to. The genre's tension is the second one.
 **Goal:** most offers still have something for your build, but **most offers also hold one real
 alternative**: a strong card you can use now if you bend the plan.
 
-1. **Tag weighting 2× → 1.4×** (`tag_weight`), for owned families, directions (wide / narrow /
+1. **Tag weighting 2× → 1.4× → 2×** (`tag_weight`; back to 2× on 2026-09-28 after cards 142–168 grew the generic pool and own-family cards fell to 16–18%; the target is the **share**, ~22–25%, not the number), for owned families, directions (wide / narrow /
    nurture) and Legendary archetypes alike. Wide vs narrow opposition (×0.5) stays.
 2. **Soft Needs.** A Need is *hard* if the card would do nothing without it, *soft* if it only
    checks what you've built so far:
@@ -122,7 +122,7 @@ alternative**: a strong card you can use now if you bend the plan.
      this run: unlocked, not owned, and a family pick is still ahead (never after the drift 75 pick).
      Needs on a specific form (Stormcap) count as its family for this check; the form itself is still
      unlocked with Dreamlight as usual.
-   - **Weight ×0.8** while half-dreamed (was ×0.6; raised after the generic Rares thinned it to ~0.5 per run before drift 25), so it's an occasional temptation, not a flood. Normal
+   - **Weight ×1.0** while half-dreamed (×0.6 → ×0.8 → ×1.0 as the generic Rares and cards 142–168 thinned it; target 0.4–0.8 per run before drift 25), so it's an occasional temptation, not a flood. Normal
      rarity; the skip fade applies.
    - **Timing (playtest fix, 2026-09-28):** only offered when the next family pick is **at most 20
      drifts away** (so not in the rest right after a pick, when it would sleep 25 drifts), and
