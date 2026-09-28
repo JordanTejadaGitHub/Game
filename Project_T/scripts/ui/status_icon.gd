@@ -14,6 +14,10 @@ func _init(id: StringName = &"", greyed: bool = false) -> void:
 	custom_minimum_size = Vector2(24, 24)
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 
+func _ready() -> void:
+	# Explains itself on hover and on tap ("Damp: 10% slower. …").
+	TapTip.attach(self, IconInfo.status_tooltip(status))
+
 func _draw() -> void:
 	var colour: Color = EnemyStatuses.COLORS.get(status, Color.WHITE)
 	if dim:

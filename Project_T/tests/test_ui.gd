@@ -92,6 +92,14 @@ func _run() -> void:
 	tap.pressed = true
 	light.gui_input.emit(tap)
 	_check((main.get_node("%ToastLabel") as Label).text.begins_with("Dreamlight"), "tapping the counter explains it (no hover-only info)")
+	# Resources explain themselves on hover and tap (IconInfo, TapTip).
+	var dew_label: Label = main.get_node("%DewLabel")
+	_check(dew_label.tooltip_text == IconInfo.resource_tooltip(&"dew") and dew_label.tooltip_text.begins_with("Dew: "), "Dew has a plain-words tooltip")
+	var dew_tip: TapTip = dew_label.get_children().filter(func(c: Node) -> bool: return c is TapTip)[0]
+	dew_label.gui_input.emit(tap)
+	_check(dew_tip.visible and dew_tip._label.text == dew_label.tooltip_text, "tapping Dew shows the same text")
+	dew_tip.toggle()
+	_check(IconInfo.status_tooltip(&"damp").begins_with("Damp: 10% slower"), "status tooltips in plain words")
 	var drift_panel = main.get_node("HUD/DriftPanel")
 	var saved_started := director.drifts_started
 	director.drifts_started = 0

@@ -6,7 +6,7 @@ class_name CodexPanel
 # - Glossary: every term (CodexData.GLOSSARY), grouped and searchable, with "see also" links that
 #   jump (to another term, or to a combo); bosses and late nightmares appear once met
 #   (profile nightmares_seen).
-# - Combos: all 15 (CodexData.combos()); locked ones are "???" with their ingredient icons as a hint;
+# - Combos: all 15 (CodexData.combos()); locked ones are just "???" (no icons: they would give it away);
 #   discovered ones (ComboFeedback, profile combos_seen) show what they do, which of your Wardens
 #   apply each ingredient, and how often you've set them off. "N / 15 combos discovered".
 # Everything is tap-based. Built in code.
@@ -19,7 +19,6 @@ const TERM_COLOR := Color(0.95, 0.9, 0.7)
 const HIGHLIGHT := Color(1.0, 0.95, 0.6, 0.18)
 const CROWN_COLOR := Color(1.0, 0.82, 0.35)  # Crowned Reactions: the gold tier
 const CROWN_SILHOUETTE := preload("res://assets/effects/crowned_codex_silhouette.png")
-const SILHOUETTE_SLOTS: Array[Vector2] = [Vector2(22, 80), Vector2(48, 84), Vector2(74, 80)]  # Family icon centres
 
 var tabs := TabContainer.new()
 var _search := LineEdit.new()
@@ -210,7 +209,7 @@ func _build_combos() -> void:
 		_entries[String(combo.id)] = card
 	_combo_count.text = "%d / %d combos discovered" % [found, all.size()]
 	tabs.set_tab_title(1, "Combos %d / %d" % [found, all.size()])
-	# Crowned Reactions: hidden (a silhouette + their three family icons) until found; full game only.
+	# Crowned Reactions: hidden ("???" in a gold crown frame) until found; full game only.
 	if ResultsScreen.is_demo():
 		return
 	var crowned := CodexData.crowned()
@@ -227,8 +226,8 @@ func _build_combos() -> void:
 		_combos.add_child(card)
 		_entries[String(c.id)] = card
 
-# An undiscovered Crowned Reaction (effects.json crowned_codex_silhouette, 96×96): the silhouette with
-# the three family icons (18 px) in its slots.
+# An undiscovered Crowned Reaction (effects.json crowned_codex_silhouette, 96×96): the gold crown
+# frame alone, no family icons.
 func _crowned_silhouette(c: Dictionary) -> Control:
 	var holder := Control.new()
 	holder.custom_minimum_size = Vector2(96, 96)
@@ -236,16 +235,7 @@ func _crowned_silhouette(c: Dictionary) -> Control:
 	var art := TextureRect.new()
 	art.texture = CROWN_SILHOUETTE
 	art.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	holder.add_child(art)
-	for i in mini(c.families.size(), SILHOUETTE_SLOTS.size()):
-		var icon := TextureRect.new()
-		icon.texture = CodexData.family_icon(c.families[i])
-		icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-		icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-		icon.size = Vector2(18, 18)
-		icon.position = SILHOUETTE_SLOTS[i] - Vector2(9, 9)
-		icon.tooltip_text = CodexData.FAMILY_NAMES.get(c.families[i], c.families[i])
-		holder.add_child(icon)
+	holder.add_child(art)  # No family icons: they'd give the recipe away (screens_ui.md, user decision)
 	return holder
 
 func _crowned_card(c: Dictionary, discovered: bool, times: int) -> Control:
@@ -263,7 +253,7 @@ func _crowned_card(c: Dictionary, discovered: bool, times: int) -> Control:
 	row.add_theme_constant_override("separation", 6)
 	box.add_child(row)
 	if not discovered:
-		row.add_child(_crowned_silhouette(c))  # The hint: the silhouette with its three family icons
+		row.add_child(_crowned_silhouette(c))  # Only the crown frame while undiscovered
 	else:
 		for family in c.families:
 			var icon := TextureRect.new()
@@ -281,12 +271,12 @@ func _crowned_card(c: Dictionary, discovered: bool, times: int) -> Control:
 	var families: Array[String] = []
 	for family in c.families:
 		families.append(CodexData.FAMILY_NAMES.get(family, family))
-	var hint := Label.new()
-	hint.text = ", ".join(families) if not discovered else "%s  ·  %s" % [CodexData.crowned_recipe(c), ", ".join(families)]
-	hint.add_theme_font_size_override("font_size", 14)
-	hint.add_theme_color_override("font_color", Color(0.9, 0.82, 0.6) if discovered else LOCKED_COLOR)
-	box.add_child(hint)
-	if discovered:
+	if discovered:  # Locked: the crown frame and "???" only
+		var hint := Label.new()
+		hint.text = "%s  ·  %s" % [CodexData.crowned_recipe(c), ", ".join(families)]
+		hint.add_theme_font_size_override("font_size", 14)
+		hint.add_theme_color_override("font_color", Color(0.9, 0.82, 0.6))
+		box.add_child(hint)
 		var text := Label.new()
 		text.text = c.text
 		text.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -310,21 +300,22 @@ func _combo_card(combo: Dictionary, discovered: bool, times: int) -> Control:
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 6)
 	box.add_child(row)
-	for status in combo.statuses:
-		row.add_child(StatusIcon.new(status, not discovered))
+	if discovered:  # Locked combos are just "???": icons would give the answer away (screens_ui.md)
+		for status in combo.statuses:
+			row.add_child(StatusIcon.new(status))
 	var name := Label.new()
 	name.text = "%s  ·  %s" % [combo.name, combo.kind] if discovered else "???"
 	name.add_theme_font_size_override("font_size", 18)
 	var reaction := Reactions.get_data(combo.id)
 	name.add_theme_color_override("font_color", (reaction.callout_color if reaction else TERM_COLOR) if discovered else LOCKED_COLOR)
 	row.add_child(name)
+	if not discovered:
+		return panel  # Just "???" (no ingredients either)
 	var ingredients := Label.new()
 	ingredients.text = CodexData.ingredients_text(combo)
 	ingredients.add_theme_font_size_override("font_size", 14)
-	ingredients.add_theme_color_override("font_color", Color(0.75, 0.85, 1.0) if discovered else LOCKED_COLOR)
+	ingredients.add_theme_color_override("font_color", Color(0.75, 0.85, 1.0))
 	box.add_child(ingredients)
-	if not discovered:
-		return panel
 	var text := Label.new()
 	text.text = combo.text
 	text.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -357,7 +348,7 @@ static func get_sources_text(combo: Dictionary) -> String:
 		for data in get_player_wardens():
 			if (data.applies_status == status or data.extra_status == status) and names.size() < 4:
 				names.append(data.display_name)
-		parts.append("%s: %s" % [CodexData.STATUS_NAMES.get(status, String(status)), ", ".join(names) if not names.is_empty() else "none of your Wardens yet"])
+		parts.append("%s: %s" % [IconInfo.status_name(status), ", ".join(names) if not names.is_empty() else "none of your Wardens yet"])
 	return " · ".join(parts)
 
 static var _wardens: Array[TowerData] = []

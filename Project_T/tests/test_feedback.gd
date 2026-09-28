@@ -113,6 +113,15 @@ func _run() -> void:
 	codex.open(&"combos")
 	_check(codex.visible and codex.tabs.current_tab == 1 and codex._combos.get_child_count() == CodexData.combos().size()
 		and CodexData.combos().size() == 15, "the Codex lists all 15 combos")
+	# Locked entries are just "???": no ingredient icons or text (they'd give the answer away).
+	var seen_now := ComboFeedback.load_seen()
+	for combo in CodexData.combos():
+		if not seen_now.has(String(combo.id)):
+			var locked_card: Control = codex._entries[String(combo.id)]
+			var labels := locked_card.find_children("*", "Label", true, false).map(func(l: Label) -> String: return l.text)
+			_check(locked_card.find_children("*", "StatusIcon", true, false).is_empty() and labels == ["???"],
+				"a locked combo shows only ??? (%s: %s)" % [combo.id, labels])
+			break
 	codex._search.text = "dreamlight"
 	codex._build_glossary()
 	await process_frame

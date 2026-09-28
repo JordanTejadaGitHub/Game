@@ -108,13 +108,11 @@ const SYNERGIES := {
 	&"marked_blow": ["Marked Blow", [&"marked", &"marked"], "A heavy hit does double damage on Marked nightmares.", "Mossback, Boulderback"],
 	&"caught": ["Caught", [&"drowsy", &"drowsy"], "Asleep or full Drowsy near a Dreamcatcher: it takes extra damage from everything.", "Dreamcatcher"],
 }
-const STATUS_NAMES := {&"damp": "Damp", &"drowsy": "Drowsy", &"spored": "Spored", &"marked": "Marked",
-	&"static": "Static", &"held": "Held"}
 
 # Crowned Reactions (tower_design.md "Crowned Reactions: three families at once"): a Reaction going
 # off on a nightmare that already carries a third status. id -> [name, base Reaction, the third
 # status, its three families (Warden ids), what happens]. Hidden in the Codex until found (a
-# silhouette + the three family icons), not in the demo, and not part of the 15 combos' count.
+# gold crown frame, "???"), not in the demo, and not part of the 15 combos' count.
 const CROWNED := {
 	&"tempest": ["Tempest", &"thunderclap", &"spored", ["dewdrop", "firefly_jar", "sporeling"],
 		"Every arc also sets off Ignite on Spored nightmares, and the spores carry Static onto wet ones: new Thunderclaps follow."],
@@ -166,7 +164,7 @@ static func get_any(id: StringName) -> Dictionary:
 static func crowned_recipe(c: Dictionary) -> String:
 	var base := Reactions.get_data(c.base)
 	return "%s + %s" % [base.display_name if base else String(c.base).capitalize(),
-		STATUS_NAMES.get(c.statuses[-1], String(c.statuses[-1]))]
+		IconInfo.status_name(c.statuses[-1])]
 
 static func family_icon(family: String) -> Texture2D:
 	var index := FAMILY_ICON_ORDER.find(family)
@@ -204,7 +202,7 @@ static func get_combo(id: StringName) -> Dictionary:
 static func ingredients_text(combo: Dictionary) -> String:
 	var names: Array[String] = []
 	for status in combo.statuses:
-		var name: String = STATUS_NAMES.get(status, String(status).capitalize())
+		var name := IconInfo.status_name(status)
 		if not names.has(name):
 			names.append(name)
 	return " + ".join(names)

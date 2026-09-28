@@ -6,8 +6,6 @@ extends PanelContainer
 # HeartwoodMemory, by the real game only). Built in code.
 
 const HOVER_RADIUS := 30.0  # Pixels (world) around a nightmare that count as hovering it
-const STATUS_NAMES := {&"damp": "Damp", &"drowsy": "Drowsy", &"spored": "Spored", &"marked": "Marked",
-	&"static": "Static", &"held": "Held"}
 
 var _target: Node2D = null
 var _known := {}  # Nightmare kinds met before this run (for the "New" tag)
@@ -54,7 +52,7 @@ func _process(_delta: float) -> void:
 	var statuses: Array[String] = []
 	for id in _target.statuses.active_ids():
 		var stacks: int = _target.statuses.stacks(id)
-		statuses.append("%s%s %.0fs" % [STATUS_NAMES.get(id, String(id)), " ×%d" % stacks if stacks > 1 else "",
+		statuses.append("%s%s %.0fs" % [IconInfo.status_name(id), " ×%d" % stacks if stacks > 1 else "",
 			_target.statuses.time_left(id)])
 	if not statuses.is_empty():
 		lines.append(", ".join(statuses))

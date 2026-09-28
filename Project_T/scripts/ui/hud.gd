@@ -25,7 +25,7 @@ const SEED_COLOR := Color(0.6, 0.85, 0.4)
 const LEAVES_COLOR := Color(0.6, 0.9, 0.5)
 const DREAMLIGHT_COLOR := Color(1.0, 0.88, 0.55)
 const MENU_BUTTON_RIGHT := -284.0  # Left of the Dreamlight counter and the Dew
-const DREAMLIGHT_HELP := "Unlock branches and final forms on the Remember screen (at rests)."
+const DREAMLIGHT_HELP := "Unlocks branches and final forms on the Remember screen (at rests)."  # As IconInfo
 const LEAF_LOST_COLOR := Color(1.0, 0.6, 0.3)
 const TOAST_TIME := 2.5
 
@@ -66,6 +66,10 @@ func _ready() -> void:
 	_on_leaves_changed(run_state.leaves, run_state.max_leaves)
 	_add_dreamlight_counter()
 	_add_menu_button()
+	# Every resource explains itself on hover and tap (screens_ui.md "Stat and status icons").
+	TapTip.attach(dew_label, IconInfo.resource_tooltip(&"dew"))
+	TapTip.attach(leaves_label, IconInfo.resource_tooltip(&"leaves"))
+	TapTip.attach(%PathLabel, IconInfo.resource_tooltip(&"path"))
 	dream_state.card_taken.connect(func(card: UpgradeData) -> void: show_toast("Dreamed: %s" % card.display_name))
 	drift_director.rest_started.connect(_on_rest_started)
 	# Path length ("Wardens are walls: make their walk longer").
