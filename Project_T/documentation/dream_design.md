@@ -128,6 +128,13 @@ alternative**: a strong card you can use now if you bend the plan.
      drifts away** (so not in the rest right after a pick, when it would sleep 25 drifts), and
      **never in a guaranteed Rare slot** (boss rests, pity, owed Rares): a guaranteed reward must
      work now.
+   - **Declined:** if a family pick offered the missing family and the player took another, that
+     family's half-dreamed cards drop to **×0.3** until the next pick (they said no once).
+   - **Coverage:** every pair of starting families has at least one combo card in the start pool:
+     Firefly Jar + Dewdrop (Rolling Thunder, Conductive Soil), Sporeling + Firefly Jar (Wildfire
+     Spores), Sporeling + Dewdrop (Mushroom Rain, 134). New families should bring one per pair.
+   - **As built (ec61852):** ~0.9 offers per run before the drift 25 pick when owning Firefly Jar
+     (demo pool).
    - **Card face:** a pale **"Half-dreamed"** vine tag and the missing piece in plain words:
      *"Needs Dewdrop: a family you can pick after the Hollow Stag (drift 25)."* The card's effect
      works only once everything it needs is owned (it never pretends to do something now).
@@ -738,7 +745,8 @@ Design and effects: `tower_design.md`, "Reactions". Starting points for tuning.
 | # | Card | Rarity | Effect | Tags | Needs | Pool |
 |---|---|---|---|---|---|---|
 | 79 | **Rolling Thunder** | Uncommon | Thunderclap arcs reach 3.5 cells | storm, water, reaction | Stormcap + any Dewdrop | Start |
-| 80 | **Wildfire Spores** | Uncommon | Ignite spreads 2 stacks, within 1.5 cells | spore, storm, reaction | Sporeling + Firefly Jar | Grove |
+| 80 | **Wildfire Spores** | Uncommon | Ignite spreads 2 stacks, within 1.5 cells | spore, storm, reaction | Sporeling + Firefly Jar | **Start** (moved from Grove 2026-09-28: every pair of starting families needs a combo card) |
+| 134 | **Mushroom Rain** | Uncommon | Mushrooming's spore cloud lasts **twice as long** and covers the **8 tiles around** it too | spore, water, reaction | Sporeling + Dewdrop | Start (added 2026-09-28, same reason) |
 | 81 | **Deep Water** | Uncommon | Drown sleeps 3 s; bosses −40% speed | water, sleep, reaction | Dewdrop | Grove |
 | 82 | **Quick Reactions** | Rare | Reaction cooldowns 1.5 s → 0.75 s | reaction | own 2 Reaction pairs | Grove |
 | 83 | **Dawnbreak** | Legendary | a **×10 chain** Dawnburst deals 10% of max health to every nightmare within 4 cells (bosses 2%) | reaction | — | Grove |
