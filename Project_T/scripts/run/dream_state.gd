@@ -2177,6 +2177,8 @@ func _last_breath(enemy: Node2D) -> void:
 # (path steps between their closest route tiles; ties go nearer the Heartwood). Cached until the
 # route or the Wardens change. null with fewer than 2 attackers.
 func get_heart_of_maze() -> Tower:
+	if not has_rule(&"heart_of_the_maze"):
+		return null  # No card, no heart (DreamMarks draws whatever this returns)
 	var attackers: Array = _towers().filter(func(t: Tower) -> bool: return t.tower_data.can_attack)
 	var key := hash([attackers.map(func(t: Tower) -> Vector2: return t.cell), path_length])
 	if not _heart_cache.is_empty() and _heart_cache[0] == key:

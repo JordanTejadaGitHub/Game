@@ -308,6 +308,15 @@ func _test_map_rules() -> void:
 	var far := _plant("sporeling", route[route.size() - 3])
 	_check(dreams.get_heart_of_maze() == far and _row(sporeling, far.cell, "heart_of_the_maze", far).active
 		and not _row(sporeling, early.cell, "heart_of_the_maze", early).active, "Heart of the Maze: the furthest one")
+	# Without the card: no heart (DreamMarks draws what get_heart_of_maze returns) and no bonus
+	var base_far := dreams.get_soothe_multiplier(far)
+	dreams.stacks.erase("heart_of_the_maze")
+	_check(dreams.get_heart_of_maze() == null and is_equal_approx(base_far - dreams.get_soothe_multiplier(far), 0.5),
+		"no Heart of the Maze card: no heart and no +50%")
+	# The other markers are card-gated too: no bark, no underdog, no fresh growth, no echo without their cards
+	dreams._rest_rules(true)
+	_check(dreams.bark_charges == 0 and not dreams.is_underdog(far) and not dreams.is_fresh(far) and dreams.get_echo_bonus() == 0.0,
+		"markers stay off without their cards")
 	_clear()
 	# Echoing Steps: real route changes while nightmares walk
 	dreams.take(_card("echoing_steps"))
