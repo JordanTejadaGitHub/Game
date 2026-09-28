@@ -32,10 +32,12 @@ func _init() -> void:
 	_signatures()
 	_family_review()
 	_crowned()
+	_kinship()
 	var file := FileAccess.open(OUT + "effects.json", FileAccess.WRITE)
 	file.store_string(JSON.stringify({effects = index}, "\t") + "\n")
 	_save_preview()
 	_save_crowned_preview()
+	_save_kinship_preview()
 	quit()
 
 # Renders `frames` frames of `size` with draw.call(img, f), saves <name>.png, records it in the index.
@@ -1445,6 +1447,338 @@ func _save_crowned_preview() -> void:
 		y += sheet.get_height() + pad
 	out.resize(out.get_width() * 2, out.get_height() * 2, Image.INTERPOLATE_NEAREST)
 	out.save_png("res://tools/previews/effects_crowned.png")
+
+# --- Kinships (tower_design.md "Kinships", screens_ui.md "Kinship feedback") ------------------------
+# Same-family combos: the forest growing between Wardens (vines, leaves, petals), not light bursting
+# on nightmares. Everything is drawn in white-to-grey so the code tints it with the family's colour
+# (modulate); outlines stay dark. Quiet on purpose: thin vines, small bursts, a tiny harmony spark.
+
+const K_WHITE := Color("#ffffff")
+const K_LIGHT := Color("#e4e4e4")
+const K_MID := Color("#b4b4b4")
+const K_DARK := Color("#787878")
+const K_EDGE := Color("#343434")
+
+var kinship_from := 0
+
+func _kinship() -> void:
+	kinship_from = previews.size()
+	var seg := {note = "Ground vine between two kin Wardens: stretch or tile along x (tiles every 32 px), y = 5 on the line. Tint with the family colour; drawn under the Wardens, ~30% alpha most of the time."}
+	_sheet("kin_vine_sapling", Vector2i(32, 10), 4, 4, Vector2i(0, 5), true, "kinship", _kin_vine.bind(0), seg)
+	_sheet("kin_vine_blooming", Vector2i(32, 10), 4, 4, Vector2i(0, 5), true, "kinship", _kin_vine.bind(1), seg)
+	_sheet("kin_vine_oldkin", Vector2i(32, 10), 4, 4, Vector2i(0, 5), true, "kinship", _kin_vine.bind(2), seg)
+	_sheet("kin_vine_grow", Vector2i(64, 10), 8, 14, Vector2i(0, 5), false, "kinship", _kin_vine_grow,
+		{note = "The bond moment: a blooming vine grows left to right with a bright bud at its tip. Stretch it between the two Wardens (or clip kin_vine_blooming instead)."})
+	_sheet("kin_bond_burst", Vector2i(64, 64), 8, 13, Vector2i(32, 32), false, "kinship", _kin_bond_burst,
+		{note = "Plays on both Wardens when a bond forms (~0.6 s). Tint with the family colour."})
+	_sheet("kin_stage_up", Vector2i(64, 64), 8, 12, Vector2i(32, 40), false, "kinship", _kin_stage_up,
+		{note = "A Kinship grows a stage: leaves unfurl and a small flower opens. Anchor = its base."})
+	_sheet("harmony_spark_a", Vector2i(24, 24), 6, 20, Vector2i(12, 12), false, "kinship", _harmony_spark.bind(0),
+		{note = "Tiny: a petal spirals in from the left and sparks. Tint with the first Warden's colour; play with harmony_spark_b.", lite = "harmony_spark_lite"})
+	_sheet("harmony_spark_b", Vector2i(24, 24), 6, 20, Vector2i(12, 12), false, "kinship", _harmony_spark.bind(1),
+		{note = "The other petal, from the right; tint with the second Warden's colour."})
+	_sheet("harmony_spark_lite", Vector2i(16, 16), 4, 20, Vector2i(8, 8), false, "kinship", _harmony_spark_lite)
+	_sheet("whole_tree_sigil", Vector2i(128, 128), 12, 10, Vector2i(64, 112), false, "kinship", _whole_tree_sigil,
+		{note = "Blooms above the Heartwood (~1.2 s, the last frames fade). Anchor = the trunk's foot."})
+	_sheet("whole_tree_badge", Vector2i(16, 16), 1, 0, Vector2i(8, 8), false, "kinship", _whole_tree_badge,
+		{note = "Small leaf badge on the family's Wardens after a Whole Tree."})
+	_sheet("kin_callout_frame", Vector2i(64, 22), 1, 0, Vector2i(32, 11), false, "ui_frame", _kin_callout_frame,
+		{note = "Nine-patch behind a Kinship callout: patch margins 7 px left/right, 5 px top/bottom."})
+	_sheet("kin_leaf_icon", Vector2i(16, 16), 1, 0, Vector2i(8, 8), false, "ui", _kin_leaf_icon,
+		{note = "Kinship mark for callouts and the Codex."})
+	_sheet("kin_codex_frame", Vector2i(96, 96), 1, 0, Vector2i(48, 48), false, "ui_frame", _kin_codex_frame,
+		{note = "Locked \"???\" Kinship entry: a vine border round a dark panel (nine-patch margins 14 px)."})
+
+# A small leaf pointing along `dir` from `base`, shaded light on its upper half.
+func _kin_leaf(img: Image, base: Vector2, dir: Vector2, length: float, width: float) -> void:
+	var tip := base + dir * length
+	var side := dir.orthogonal() * width
+	var mid := base + dir * length * 0.5
+	var pts := PackedVector2Array([base, mid + side, tip, mid - side])
+	var box := Rect2(base, Vector2.ZERO).expand(tip).expand(mid + side).expand(mid - side).grow(1)
+	for y in range(maxi(0, floori(box.position.y)), mini(img.get_height(), ceili(box.end.y))):
+		for x in range(maxi(0, floori(box.position.x)), mini(img.get_width(), ceili(box.end.x))):
+			var p := Vector2(x + 0.5, y + 0.5)
+			if Geometry2D.is_point_in_polygon(p, pts):
+				img.set_pixel(x, y, K_LIGHT if (p - mid).dot(side) > 0.0 else K_MID)
+	_line(img, base, tip, K_DARK)
+
+# A small flower: rounded petals round a dark centre (four when tiny, five when bigger).
+func _kin_flower(img: Image, c: Vector2, r: float, open: float = 1.0) -> void:
+	if r < 3.0 and open >= 1.0:
+		# Too small for round petals: a pixel blossom (white petals on the cross, pale between).
+		var p := Vector2i(c.round())
+		for d: Vector2i in [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]:
+			_px(img, p.x + d.x, p.y + d.y, K_WHITE)
+			_px(img, p.x + d.x * 2, p.y + d.y * 2, K_LIGHT if d.y <= 0 else K_MID)
+		_px(img, p.x, p.y, K_DARK)
+		return
+	var n := 4 if r < 3.0 else 5
+	for k in n:
+		var d := Vector2.from_angle(k * TAU / n + (PI / 4.0 if n == 4 else -PI * 0.5))
+		_disc(img, c + d * r * 0.7 * open, maxf(r * 0.5, 0.9), K_WHITE)
+	_disc(img, c, maxf(r * 0.35, 0.7), K_DARK)
+
+# Stage 0 sapling (thin), 1 blooming (thicker, leaves), 2 old kin (flowers too). Tiles every 32 px.
+func _kin_vine(img: Image, f: int, stage: int) -> void:
+	var sway := sin(f * TAU / 4.0) * 0.6
+	var pts: Array = []
+	for x in 33:
+		pts.append(Vector2(x, 5 + sin(x * TAU / 32.0) * 1.5 + sway * sin(x * TAU / 16.0)))
+	if stage >= 1:
+		_poly_line(img, pts, K_EDGE, 2)
+		for i in pts.size() - 1:
+			var p: Vector2 = pts[i]
+			_px(img, int(p.x), int(round(p.y)), K_MID)
+			_px(img, int(p.x), int(round(p.y)) - 1, K_LIGHT)
+	else:
+		_poly_line(img, pts, K_MID)
+		for p: Vector2 in pts:
+			_px(img, int(p.x), int(round(p.y)) + 1, K_EDGE)
+	if stage >= 1:
+		for leaf: Array in [[8.0, -1.0], [24.0, 1.0]]:
+			var x: float = leaf[0]
+			var up: float = leaf[1]
+			var base: Vector2 = pts[int(x)]
+			_kin_leaf(img, base, Vector2(0.7, -0.7 * up + sway * 0.2).normalized(), 5.5, 2.2)
+	else:
+		var b: Vector2 = pts[16]
+		_px(img, int(b.x) + 1, int(b.y) - 1, K_LIGHT)
+	if stage >= 2:
+		var c: Vector2 = pts[16]
+		_kin_flower(img, c + Vector2(0, -2), 2.2)
+
+func _kin_vine_grow(img: Image, f: int) -> void:
+	var reach := int(64.0 * (f + 1) / 8.0)
+	var pts: Array = []
+	for x in reach:
+		pts.append(Vector2(x, 5 + sin(x * TAU / 32.0) * 1.5))
+	if pts.size() >= 2:
+		_poly_line(img, pts, K_EDGE, 2)
+		for p: Vector2 in pts:
+			_px(img, int(p.x), int(round(p.y)), K_MID)
+			_px(img, int(p.x), int(round(p.y)) - 1, K_LIGHT)
+	for x: int in [8, 24, 40, 56]:
+		if x < reach - 3:
+			var base: Vector2 = pts[x]
+			var grow := clampf((reach - x) / 10.0, 0.3, 1.0)
+			_kin_leaf(img, base, Vector2(0.55, -0.85 if x % 16 == 8 else 0.85).normalized(), 4.0 * grow, 1.6 * grow)
+	# The bright bud at the growing tip.
+	if pts.size() >= 1 and f < 7:
+		var tip: Vector2 = pts[pts.size() - 1]
+		_disc(img, tip, 1.8, K_WHITE)
+		_px(img, int(tip.x) + 1, int(tip.y) - 2, K_WHITE)
+	if f == 7:
+		_kin_flower(img, Vector2(60, 3), 2.0)
+
+func _kin_bond_burst(img: Image, f: int) -> void:
+	var c := Vector2(32, 34)
+	var t := f / 7.0
+	if f <= 1:
+		_ring(img, c, Vector2(6 + f * 5, 4 + f * 3), 1, K_WHITE)
+	for k in 10:
+		var a := k * TAU / 10.0 + 0.3 + t * 1.2
+		var r := 6.0 + t * 24.0
+		var p := c + Vector2(cos(a) * r, sin(a) * r * 0.75 - t * 8.0)
+		var fade := f >= 6 and (k + f) % 2 == 0
+		if fade:
+			continue
+		if k % 2 == 0:
+			# A petal: a small oval tumbling outward.
+			var d := Vector2.from_angle(a + f * 0.9)
+			_disc(img, p, 1.6, K_WHITE)
+			_px(img, int(p.x + d.x * 2), int(p.y + d.y * 2), K_LIGHT)
+		else:
+			_kin_leaf(img, p, Vector2.from_angle(a + f * 0.6), 4.0 - t * 1.5, 1.4)
+	if f >= 1 and f <= 3:
+		_sparks(img, c, 6, 10 + f * 4, 2, K_LIGHT, 0.2 + f * 0.3)
+
+func _kin_stage_up(img: Image, f: int) -> void:
+	var base := Vector2(32, 40)
+	var grow: float = [0.2, 0.45, 0.7, 0.9, 1.0, 1.0, 1.0, 1.0][f]
+	_line(img, base, base + Vector2(0, -12 * grow), K_DARK, 2)
+	_kin_leaf(img, base + Vector2(0, -3), Vector2(-0.8, -0.55).normalized(), 7.0 * grow, 2.2 * grow)
+	_kin_leaf(img, base + Vector2(0, -6), Vector2(0.8, -0.55).normalized(), 7.0 * grow, 2.2 * grow)
+	if f >= 3:
+		var open: float = [0.0, 0.0, 0.0, 0.4, 0.8, 1.0, 1.0, 1.0][f]
+		_kin_flower(img, base + Vector2(0, -14), 3.2, open)
+	if f >= 4 and f <= 6:
+		var r := 8.0 + (f - 4) * 6.0
+		for k in 8:
+			var p := base + Vector2(0, -14) + Vector2.from_angle(k * TAU / 8.0 + f * 0.2) * r
+			if (k + f) % 2 == 0:
+				_px(img, int(p.x), int(p.y), K_WHITE)
+	if f >= 6:
+		_ellipse(img, base + Vector2(0, 1), Vector2(9, 2), Color(K_MID, 0.5), true, f)
+
+# Two tiny petals spiral in and meet in a spark; side 0 = from the left, 1 = from the right.
+func _harmony_spark(img: Image, f: int, side: int) -> void:
+	var c := Vector2(12, 12)
+	var sgn := -1.0 if side == 0 else 1.0
+	if f <= 3:
+		var t := f / 3.0
+		var a := (PI if side == 0 else 0.0) + t * PI * 0.9 * sgn
+		var r := 9.0 * (1.0 - t)
+		var p := c + Vector2(cos(a), sin(a)) * r
+		_disc(img, p, 1.5, K_WHITE)
+		_px(img, int(p.x - cos(a) * 2), int(p.y - sin(a) * 2), K_LIGHT)
+	else:
+		var arm: int = [0, 0, 0, 0, 3, 2][f]
+		for k in range(1, arm + 1):
+			_px(img, int(c.x) + k * int(sgn), int(c.y), K_WHITE if k < arm else K_LIGHT)
+			_px(img, int(c.x), int(c.y) - k if side == 0 else int(c.y) + k, K_WHITE if k < arm else K_LIGHT)
+		_px(img, int(c.x), int(c.y), K_WHITE)
+
+func _harmony_spark_lite(img: Image, f: int) -> void:
+	var c := Vector2(8, 8)
+	var arm: int = [1, 2, 2, 1][f]
+	for k in range(-arm, arm + 1):
+		_px(img, int(c.x) + k, int(c.y), K_LIGHT)
+		_px(img, int(c.x), int(c.y) + k, K_LIGHT)
+	_px(img, int(c.x), int(c.y), K_WHITE)
+
+# The Whole Tree: a sigil of a tree drawn in light: the trunk rises, branches split, a ring of
+# leaves closes into a canopy, it glows, then fades.
+func _whole_tree_sigil(img: Image, f: int) -> void:
+	var foot := Vector2(64, 112)
+	var grow := clampf(f / 5.0, 0.0, 1.0)
+	var fade := f >= 9
+	var col := K_WHITE if not fade else K_LIGHT
+	var dither := f >= 10
+	# Trunk.
+	var top := foot + Vector2(0, -58 * clampf(f / 2.0, 0.0, 1.0))
+	for w in 3:
+		_line(img, foot + Vector2(w - 1, 0), top + Vector2(w - 1, 0), col if (not dither or w == 1) else Color(0, 0, 0, 0))
+	# Roots.
+	if f >= 1:
+		for d: Vector2 in [Vector2(-14, 6), Vector2(14, 6), Vector2(-7, 9), Vector2(7, 9)]:
+			_line(img, foot, foot + d * minf(1.0, f / 2.0), K_LIGHT)
+	# Branches.
+	if f >= 2:
+		var b := clampf((f - 1) / 3.0, 0.0, 1.0)
+		for br: Array in [[Vector2(0, -34), Vector2(-26, -58)], [Vector2(0, -34), Vector2(26, -58)], [Vector2(0, -46), Vector2(-14, -70)], [Vector2(0, -46), Vector2(14, -70)], [Vector2(0, -56), Vector2(0, -78)]]:
+			var s: Vector2 = foot + (br[0] as Vector2)
+			var e: Vector2 = s.lerp(foot + (br[1] as Vector2), b)
+			_line(img, s, e, col, 2)
+	# Canopy ring of leaves.
+	if f >= 3:
+		var cc := foot + Vector2(0, -66)
+		var n := int(16 * clampf((f - 2) / 3.0, 0.0, 1.0))
+		for k in n:
+			var a := -PI * 0.5 + k * TAU / 16.0
+			var p := cc + Vector2(cos(a) * 42, sin(a) * 34)
+			if dither and k % 2 == 1:
+				continue
+			_kin_leaf(img, p, Vector2(cos(a), sin(a)), 9.0, 3.2)
+		if n >= 16 and not fade:
+			_ring(img, cc, Vector2(36, 28), 1, K_LIGHT, true, f)
+	# Glow and blossoms at the peak.
+	if f >= 5 and f <= 8:
+		var cc := foot + Vector2(0, -66)
+		for k in 6:
+			var p := cc + Vector2.from_angle(k * TAU / 6.0 + f * 0.1) * Vector2(22, 16)
+			_kin_flower(img, p, 2.4)
+		if f == 6:
+			_ring(img, cc, Vector2(46, 38), 1, K_WHITE, true, f)
+			_ring(img, cc, Vector2(50, 42), 1, K_LIGHT, true, f + 1)
+	# Rising leaves while it fades.
+	if f >= 8:
+		for k in 5:
+			var p := foot + Vector2(-40 + k * 20, -30 - (f - 8) * 10 - (k % 2) * 8)
+			_kin_leaf(img, p, Vector2(0.6, -0.8), 4.0, 1.4)
+
+func _whole_tree_badge(img: Image, _f: int) -> void:
+	_disc(img, Vector2(8, 8), 7.2, K_EDGE)
+	_disc(img, Vector2(8, 8), 6.2, K_DARK)
+	_disc(img, Vector2(8, 8), 5.2, K_MID)
+	_kin_leaf(img, Vector2(4.5, 11.5), Vector2(0.7, -0.7), 8.5, 2.6)
+	_px(img, 6, 5, K_WHITE)
+
+func _kin_leaf_icon(img: Image, _f: int) -> void:
+	# A leaf with a curled stem and a smaller leaf beside it: kinship, growing together.
+	_kin_leaf(img, Vector2(3, 13), Vector2(0.6, -0.8), 12.0, 3.6)
+	_kin_leaf(img, Vector2(6, 13), Vector2(0.95, -0.3), 7.0, 2.2)
+	var src := img.duplicate() as Image
+	for y in 16:
+		for x in 16:
+			if src.get_pixel(x, y).a > 0.0:
+				continue
+			for d: Vector2i in [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]:
+				var q := Vector2i(x, y) + d
+				if q.x >= 0 and q.y >= 0 and q.x < 16 and q.y < 16 and src.get_pixelv(q).a > 0.0:
+					img.set_pixel(x, y, K_EDGE)
+					break
+	_px(img, 2, 14, K_DARK)
+	_px(img, 1, 15, K_DARK)
+
+func _kin_callout_frame(img: Image, _f: int) -> void:
+	var w := 64
+	var h := 22
+	var dark := Color(0.08, 0.08, 0.08, 0.85)
+	for y in range(2, h - 2):
+		for x in range(3, w - 3):
+			img.set_pixel(x, y, dark)
+	# A vine along the top and bottom edges, small leaves at the ends.
+	for x in range(3, w - 3):
+		_px(img, x, 1 + (1 if x % 8 < 4 else 0), K_LIGHT)
+		_px(img, x, h - 2 - (1 if (x + 4) % 8 < 4 else 0), K_MID)
+	for y in range(3, h - 3):
+		_px(img, 2, y, K_LIGHT)
+		_px(img, w - 3, y, K_MID)
+	for s: int in [0, 1]:
+		var x0 := 1 if s == 0 else w - 2
+		var dir := Vector2(-1, -0.6) if s == 0 else Vector2(1, -0.6)
+		_kin_leaf(img, Vector2(x0, h / 2.0), dir.normalized(), 3.0, 1.2)
+
+func _kin_codex_frame(img: Image, _f: int) -> void:
+	var dark := Color(0.07, 0.07, 0.08, 0.9)
+	for y in range(6, 90):
+		for x in range(6, 90):
+			img.set_pixel(x, y, dark)
+	# A vine running round the border, leaves every so often, a bud at each corner.
+	var pts: Array = []
+	for i in 80:
+		var t := i / 80.0 * 4.0
+		var side := int(t)
+		var u := t - side
+		var p: Vector2 = [Vector2(8 + u * 80, 6), Vector2(88, 8 + u * 80), Vector2(88 - u * 80, 89), Vector2(7, 88 - u * 80)][side]
+		p += Vector2(0, 1).rotated(side * PI * 0.5) * sin(i * 0.8) * 1.2
+		pts.append(p)
+	pts.append(pts[0])
+	_poly_line(img, pts, K_EDGE, 2)
+	_poly_line(img, pts, K_MID)
+	for i in range(0, 80, 7):
+		var p: Vector2 = pts[i]
+		var inward := (Vector2(48, 48) - p).normalized()
+		_kin_leaf(img, p, (inward.orthogonal() * (1.0 if i % 14 == 0 else -1.0) - inward * 0.6).normalized(), 5.0, 1.8)
+	for c: Vector2 in [Vector2(7, 7), Vector2(88, 7), Vector2(88, 88), Vector2(7, 88)]:
+		_disc(img, c, 2.5, K_WHITE)
+		_px(img, int(c.x), int(c.y), K_MID)
+
+func _save_kinship_preview() -> void:
+	# On a green-gold tint, the way the game shows them.
+	var pad := 6
+	var width := 0
+	var height := pad
+	for i in range(kinship_from, previews.size()):
+		var sheet: Image = previews[i][1]
+		width = maxi(width, sheet.get_width() + pad * 2)
+		height += sheet.get_height() + pad
+	var out := Image.create_empty(width, height, false, Image.FORMAT_RGBA8)
+	out.fill(Color("#1c2a1c"))
+	var tint := Color("#b8e070")
+	var y := pad
+	for i in range(kinship_from, previews.size()):
+		var sheet: Image = (previews[i][1] as Image).duplicate()
+		for py in sheet.get_height():
+			for px in sheet.get_width():
+				var c := sheet.get_pixel(px, py)
+				if c.a > 0.0:
+					sheet.set_pixel(px, py, Color(c.r * tint.r, c.g * tint.g, c.b * tint.b, c.a))
+		out.blend_rect(sheet, Rect2i(Vector2i.ZERO, sheet.get_size()), Vector2i(pad, y))
+		y += sheet.get_height() + pad
+	out.resize(out.get_width() * 2, out.get_height() * 2, Image.INTERPOLATE_NEAREST)
+	out.save_png("res://tools/previews/effects_kinship.png")
 
 # --- Preview ----------------------------------------------------------------------------------------
 

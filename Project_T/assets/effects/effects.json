@@ -510,6 +510,54 @@
 			"loop": true,
 			"note": "Right half; tint with the second status colour."
 		},
+		"harmony_spark_a": {
+			"anchor": [
+				12,
+				12
+			],
+			"file": "harmony_spark_a.png",
+			"fps": 20.0,
+			"frame_size": [
+				24,
+				24
+			],
+			"frames": 6,
+			"kind": "kinship",
+			"lite": "harmony_spark_lite",
+			"loop": false,
+			"note": "Tiny: a petal spirals in from the left and sparks. Tint with the first Warden's colour; play with harmony_spark_b."
+		},
+		"harmony_spark_b": {
+			"anchor": [
+				12,
+				12
+			],
+			"file": "harmony_spark_b.png",
+			"fps": 20.0,
+			"frame_size": [
+				24,
+				24
+			],
+			"frames": 6,
+			"kind": "kinship",
+			"loop": false,
+			"note": "The other petal, from the right; tint with the second Warden's colour."
+		},
+		"harmony_spark_lite": {
+			"anchor": [
+				8,
+				8
+			],
+			"file": "harmony_spark_lite.png",
+			"fps": 20.0,
+			"frame_size": [
+				16,
+				16
+			],
+			"frames": 4,
+			"kind": "kinship",
+			"loop": false
+		},
 		"ignite": {
 			"anchor": [
 				32,
@@ -542,6 +590,150 @@
 			"frames": 6,
 			"kind": "reaction",
 			"loop": false
+		},
+		"kin_bond_burst": {
+			"anchor": [
+				32,
+				32
+			],
+			"file": "kin_bond_burst.png",
+			"fps": 13.0,
+			"frame_size": [
+				64,
+				64
+			],
+			"frames": 8,
+			"kind": "kinship",
+			"loop": false,
+			"note": "Plays on both Wardens when a bond forms (~0.6 s). Tint with the family colour."
+		},
+		"kin_callout_frame": {
+			"anchor": [
+				32,
+				11
+			],
+			"file": "kin_callout_frame.png",
+			"fps": 0.0,
+			"frame_size": [
+				64,
+				22
+			],
+			"frames": 1,
+			"kind": "ui_frame",
+			"loop": false,
+			"note": "Nine-patch behind a Kinship callout: patch margins 7 px left/right, 5 px top/bottom."
+		},
+		"kin_codex_frame": {
+			"anchor": [
+				48,
+				48
+			],
+			"file": "kin_codex_frame.png",
+			"fps": 0.0,
+			"frame_size": [
+				96,
+				96
+			],
+			"frames": 1,
+			"kind": "ui_frame",
+			"loop": false,
+			"note": "Locked \"???\" Kinship entry: a vine border round a dark panel (nine-patch margins 14 px)."
+		},
+		"kin_leaf_icon": {
+			"anchor": [
+				8,
+				8
+			],
+			"file": "kin_leaf_icon.png",
+			"fps": 0.0,
+			"frame_size": [
+				16,
+				16
+			],
+			"frames": 1,
+			"kind": "ui",
+			"loop": false,
+			"note": "Kinship mark for callouts and the Codex."
+		},
+		"kin_stage_up": {
+			"anchor": [
+				32,
+				40
+			],
+			"file": "kin_stage_up.png",
+			"fps": 12.0,
+			"frame_size": [
+				64,
+				64
+			],
+			"frames": 8,
+			"kind": "kinship",
+			"loop": false,
+			"note": "A Kinship grows a stage: leaves unfurl and a small flower opens. Anchor = its base."
+		},
+		"kin_vine_blooming": {
+			"anchor": [
+				0,
+				5
+			],
+			"file": "kin_vine_blooming.png",
+			"fps": 4.0,
+			"frame_size": [
+				32,
+				10
+			],
+			"frames": 4,
+			"kind": "kinship",
+			"loop": true,
+			"note": "Ground vine between two kin Wardens: stretch or tile along x (tiles every 32 px), y = 5 on the line. Tint with the family colour; drawn under the Wardens, ~30% alpha most of the time."
+		},
+		"kin_vine_grow": {
+			"anchor": [
+				0,
+				5
+			],
+			"file": "kin_vine_grow.png",
+			"fps": 14.0,
+			"frame_size": [
+				64,
+				10
+			],
+			"frames": 8,
+			"kind": "kinship",
+			"loop": false,
+			"note": "The bond moment: a blooming vine grows left to right with a bright bud at its tip. Stretch it between the two Wardens (or clip kin_vine_blooming instead)."
+		},
+		"kin_vine_oldkin": {
+			"anchor": [
+				0,
+				5
+			],
+			"file": "kin_vine_oldkin.png",
+			"fps": 4.0,
+			"frame_size": [
+				32,
+				10
+			],
+			"frames": 4,
+			"kind": "kinship",
+			"loop": true,
+			"note": "Ground vine between two kin Wardens: stretch or tile along x (tiles every 32 px), y = 5 on the line. Tint with the family colour; drawn under the Wardens, ~30% alpha most of the time."
+		},
+		"kin_vine_sapling": {
+			"anchor": [
+				0,
+				5
+			],
+			"file": "kin_vine_sapling.png",
+			"fps": 4.0,
+			"frame_size": [
+				32,
+				10
+			],
+			"frames": 4,
+			"kind": "kinship",
+			"loop": true,
+			"note": "Ground vine between two kin Wardens: stretch or tile along x (tiles every 32 px), y = 5 on the line. Tint with the family colour; drawn under the Wardens, ~30% alpha most of the time."
 		},
 		"landing_dust": {
 			"anchor": [
@@ -951,6 +1143,38 @@
 			"kind": "signature",
 			"loop": false,
 			"note": "Thunderhead's every 5th strike. Anchor = ground impact; the bolt comes from the sky above."
+		},
+		"whole_tree_badge": {
+			"anchor": [
+				8,
+				8
+			],
+			"file": "whole_tree_badge.png",
+			"fps": 0.0,
+			"frame_size": [
+				16,
+				16
+			],
+			"frames": 1,
+			"kind": "kinship",
+			"loop": false,
+			"note": "Small leaf badge on the family's Wardens after a Whole Tree."
+		},
+		"whole_tree_sigil": {
+			"anchor": [
+				64,
+				112
+			],
+			"file": "whole_tree_sigil.png",
+			"fps": 10.0,
+			"frame_size": [
+				128,
+				128
+			],
+			"frames": 12,
+			"kind": "kinship",
+			"loop": false,
+			"note": "Blooms above the Heartwood (~1.2 s, the last frames fade). Anchor = the trunk's foot."
 		}
 	}
 }
