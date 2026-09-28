@@ -273,6 +273,38 @@ func _run() -> void:
 	spawner._update_rooted_cells()
 	_check(spawner.rooted_cells.is_empty(), "once the Hold ends the cell opens again")
 
+	# --- Boss dossier data, defences, immune feedback ---
+	for kind in ["old_stag", "great_toad", "moth_queen", "hollow_oak"]:
+		var boss: EnemyData = load("res://resource/enemy/%s.tres" % kind)
+		_check(boss.title != "" and boss.abilities.size() >= 2 and boss.tips.size() >= 2, "%s has a title, abilities and tips" % kind)
+		for i in boss.abilities.size():
+			var ability := boss.get_ability(i)
+			var shown := IconInfo.format(ability.text + " " + ability.when)
+			_check(not shown.contains("{") and ability.name != "", "%s ability %d reads fully: %s" % [kind, i, shown])
+		for tip in boss.tips:
+			_check(not IconInfo.format(tip).contains("{"), "%s tip reads fully" % kind)
+	var stag_charge: Dictionary = load("res://resource/enemy/old_stag.tres").get_ability(1)
+	_check(stag_charge.text.contains("+50%") and stag_charge.text.contains("4 s"), "numbers come from the data (%s)" % stag_charge.text)
+	var oak_grief: Dictionary = load("res://resource/enemy/hollow_oak.tres").get_ability(1)
+	_check(oak_grief.when == "at 67% and 33% health" and oak_grief.text.contains("6 Mourners"), "Grief: %s / %s" % [oak_grief.when, oak_grief.text])
+	var summons: Array = load("res://resource/enemy/moth_queen.tres").get_summons()
+	_check(summons.size() == 1 and summons[0].data.display_name == "Lurker" and summons[0].how == "every 4 s", "the Moth Queen brings Lurkers")
+	var wight_defences: Dictionary = load("res://resource/enemy/barrow_wight.tres").get_defences()
+	_check(wight_defences.immune.has(&"held") and is_equal_approx(wight_defences.shorter[&"drowsy"], 0.5), "Barrow Wight: immune to Held, Drowsy ×0.5")
+	_check(load("res://resource/enemy/dandelion_seed.tres").get_defences().traits.has(&"through_walls"), "the Phantom passes through walls")
+	_check(load("res://resource/enemy/moth_queen.tres").get_defences().traits.has(&"flying"), "the Moth Queen flies")
+	_check(load("res://resource/enemy/shellbound.tres").get_defences().traits.has(&"dread_shell"), "the Shellbound has a dread shell")
+	_check(load("res://resource/enemy/dusk_moth.tres").get_defences().traits.has(&"hidden"), "the Lurker is hidden")
+	_check(is_equal_approx(load("res://resource/enemy/old_stag.tres").get_defences().shorter[&"held"], 0.5), "bosses: Held lasts half as long")
+	_clear_enemies()
+	var refused := []
+	spawner.status_refused.connect(func(_e: Node2D, status: StringName) -> void: refused.append(status))
+	var wight2 := _still("barrow_wight", route[5])
+	wight2.apply_status(EnemyStatuses.HELD)
+	wight2.apply_status(EnemyStatuses.HELD)
+	_check(refused == [&"held"], "an immune status is refused with one signal, throttled (%s)" % [refused])
+	_clear_enemies()
+
 	# --- Display settings: health bars "always", the Deeply Blighted outline ---
 	_clear_enemies()
 	Fx._settings = {}  # Defaults, whatever the player's profile says

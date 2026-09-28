@@ -80,6 +80,17 @@ enum Trait { NONE, FLYING, ROLLING, TRAMPLE, LEAP, BURROW, WANDER }
 # fast (0 = never).
 @export var rises_from_blight: int = 0
 
+@export_group("Dossier")
+# Boss dossier (screens_ui.md): the boss's title ("the gaunt king of the old wood"), one entry per
+# ability {"name", "icon" (IconInfo id), "text", "when"} and 2–3 `tips` (no numbers, never a
+# solution). Text and "when" put numbers in as {field} tokens read from this resource (see
+# format_text), so they follow the data; status tokens like {damp} are left for IconInfo.format.
+@export var title: String = ""
+@export var abilities: Array[Dictionary] = []
+@export var tips: Array[String] = []
+# Trait icon for FLYING: &"through_walls" (Phantom, glides through them) or &"flying" (Moth Queen).
+@export var flying_icon: StringName = &"through_walls"
+
 @export_group("Followers")
 # Mother Duck: spawns `follower_count` `followers` right behind her in single file. If she's
 # cleansed first, they get lost and slow to `lost_speed`.
@@ -114,6 +125,105 @@ enum Trait { NONE, FLYING, ROLLING, TRAMPLE, LEAP, BURROW, WANDER }
 
 const RESIST_MULTIPLIER := 0.5
 const WEAK_MULTIPLIER := 1.5
+const BOSS_HELD_SHARE := 0.5  # Holds last half as long on bosses (Tower.ROOTED_BOSS_TIME, freezes)
+
+# Everything the UI shows about how this nightmare takes damage and statuses (nightmare info, boss
+# dossier, "Coming this block"):
+#   resists / weak_to   Warden families (TowerData.line), ×RESIST_MULTIPLIER / ×WEAK_MULTIPLIER
+#   immune              status ids that never take (shown crossed out)
+#   shorter             {status id: duration share} for statuses that wear off faster (shown "½")
+#   traits              trait icon ids: through_walls / flying, hidden, dread_shell, always_damp,
+#                       ignores_slows, sprints, burrows, wanders, splits
+#   single_target / area   attack-shape multipliers when not 1 (Whisper Swarm)
+func get_defences() -> Dictionary:
+	var shorter := status_duration_multipliers.duplicate()
+	if is_boss and not &"held" in status_immune:
+		shorter[&"held"] = BOSS_HELD_SHARE
+	var traits: Array[StringName] = []
+	match trait_kind:
+		Trait.FLYING:
+			traits.append(flying_icon)
+		Trait.ROLLING:
+			traits.append(&"sprints")
+		Trait.BURROW:
+			traits.append(&"burrows")
+		Trait.WANDER:
+			traits.append(&"wanders")
+	if hidden:
+		traits.append(&"hidden")
+	if coat_total > 0:
+		traits.append(&"dread_shell")
+	if always_damp:
+		traits.append(&"always_damp")
+	if ignores_slows:
+		traits.append(&"ignores_slows")
+	if split_into != null and split_count > 0:
+		traits.append(&"splits")
+	var result := {"resists": resists.duplicate(), "weak_to": weak_to.duplicate(),
+		"immune": status_immune.duplicate(), "shorter": shorter, "traits": traits}
+	if single_target_multiplier != 1.0:
+		result["single_target"] = single_target_multiplier
+	if area_multiplier != 1.0:
+		result["area"] = area_multiplier
+	return result
+
+# The nightmares this one brings with it (for "It brings"): [{"data": EnemyData, "count": int,
+# "how": "follows" | "when dispelled" | "every N s" | "at 67% and 33% health"}]. Drift escorts
+# (the boss drift's other arrivals) come from the drift data, not from here.
+func get_summons() -> Array:
+	var summons := []
+	if followers != null and follower_count > 0:
+		summons.append({"data": followers, "count": follower_count, "how": "follows"})
+	if split_into != null and split_count > 0:
+		summons.append({"data": split_into, "count": split_count, "how": "when dispelled"})
+	if brood != null:
+		summons.append({"data": brood, "count": 1, "how": format_text("every {brood_interval} s")})
+	if grief_spawn != null and grief_count > 0:
+		summons.append({"data": grief_spawn, "count": grief_count, "how": format_text("at {grief_at:list_pct} health")})
+	return summons
+
+# Ability text with this resource's numbers filled in: {field} → its value ({leap_tiles} → "3",
+# {brood_interval} → "4"), {field:pct} → "50%", {field:plus_pct} → "+50%" (a multiplier),
+# {field:list_pct} → "67% and 33%", {field:name} → a linked resource's display_name. Tokens that
+# aren't fields of this resource (status tokens like {damp}) are left for IconInfo.format.
+func format_text(text: String) -> String:
+	if not text.contains("{"):
+		return text
+	var token := RegEx.create_from_string("\\{(\\w+)(?::(\\w+))?\\}")
+	var fields := {}
+	for property in get_property_list():
+		fields[property.name] = true
+	var result := text
+	for found in token.search_all(text):
+		var field := found.get_string(1)
+		if not fields.has(field):
+			continue
+		result = result.replace(found.get_string(), _format_value(get(field), found.get_string(2)))
+	return result
+
+static func _format_value(value: Variant, style: String) -> String:
+	match style:
+		"pct":
+			return "%d%%" % roundi(float(value) * 100.0)
+		"plus_pct":
+			return "+%d%%" % roundi((float(value) - 1.0) * 100.0)
+		"list_pct":
+			var parts: Array[String] = []
+			for share in value:
+				parts.append("%d%%" % roundi(float(share) * 100.0))
+			return " and ".join(parts) if parts.size() <= 2 else ", ".join(parts)
+		"name":
+			return value.display_name if value is EnemyData or value is ObstacleData else str(value)
+	if value is float:
+		return str(roundi(value)) if is_equal_approx(value, roundf(value)) else "%.1f" % value
+	return str(value)
+
+# An ability entry with its numbers filled in (see format_text); status tokens stay for IconInfo.
+func get_ability(index: int) -> Dictionary:
+	var ability: Dictionary = abilities[index].duplicate()
+	ability["text"] = format_text(ability.get("text", ""))
+	ability["when"] = format_text(ability.get("when", ""))
+	return ability
 
 # Soothe multiplier for a hit from Warden family `line` (area or single-target).
 func get_soothe_multiplier(line: String, is_area: bool) -> float:

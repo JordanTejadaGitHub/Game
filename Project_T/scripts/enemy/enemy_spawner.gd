@@ -10,6 +10,8 @@ signal enemy_reached_goal(enemy: Node2D)
 signal enemy_split(parent: Node2D, child: Node2D)
 # The Old Stag knocked a Thornwall down (it's gone for good; the path re-routes).
 signal wall_trampled(cell: Vector2, by: Node2D)
+# A nightmare shrugged off a status it's immune to (throttled per nightmare; see Enemy.status_refused).
+signal status_refused(enemy: Node2D, status: StringName)
 
 const SPLIT_SPACING := 14.0  # Pixels between creatures that pop out of a split
 const GRIEF_RING := 40.0  # Pixels from the Hollow Oak that its Grief Mourners rise
@@ -68,6 +70,7 @@ func _create(enemy_data: EnemyData, health_scale: float, modifiers: Dictionary =
 	enemy.eclipse_started.connect(func(_by: Node2D, seconds: float) -> void: eclipse_left = maxf(eclipse_left, seconds))
 	enemy.sapling_requested.connect(_on_sapling_requested)
 	enemy.grief_requested.connect(_on_grief_requested)
+	enemy.status_refused.connect(status_refused.emit)
 	add_child(enemy)
 	return enemy
 
