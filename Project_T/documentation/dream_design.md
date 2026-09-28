@@ -92,7 +92,7 @@ with good things they'd have to adapt to. The genre's tension is the second one.
 **Goal:** most offers still have something for your build, but **most offers also hold one real
 alternative**: a strong card you can use now if you bend the plan.
 
-1. **Tag weighting 2× → 1.4× → 2×** (`tag_weight`; back to 2× on 2026-09-28 after cards 142–168 grew the generic pool and own-family cards fell to 16–18%; the target is the **share**, ~22–25%, not the number), for owned families, directions (wide / narrow /
+1. **Tag weighting 2× → 1.4× → 2.4×** (`tag_weight`; raised to 2.4 on 2026-09-28 (measured, 15f07aa) after cards 142–168 grew the generic pool and own-family cards fell to 16–18%; the target is the **share**, ~22–25%, not the number), for owned families, directions (wide / narrow /
    nurture) and Legendary archetypes alike. Wide vs narrow opposition (×0.5) stays.
 2. **Soft Needs.** A Need is *hard* if the card would do nothing without it, *soft* if it only
    checks what you've built so far:
@@ -133,6 +133,19 @@ alternative**: a strong card you can use now if you bend the plan.
    - **Coverage:** every pair of starting families has at least one combo card in the start pool:
      Firefly Jar + Dewdrop (Rolling Thunder, Conductive Soil), Sporeling + Firefly Jar (Wildfire
      Spores), Sporeling + Dewdrop (Mushroom Rain, 134). New families should bring one per pair.
+   - **Common combo cards** (added 2026-09-28: after cards 142–168 and `tag_weight` 2.4, Sporeling
+     and Dewdrop starts fell to ~0.35 half-dreamed offers before drift 25, because each pair's combos
+     were Uncommon or Rare and lost the Common-heavy rarity roll). One small, stackable **Common** per
+     starting pair, Start pool; they only amplify:
+
+     | # | Card | Rarity | Effect | Tags | Needs |
+     |---|---|---|---|---|---|
+     | 169 | **Damp Rot** | Common, stacks (max 3) | Poisoned ticks on **Soaked** nightmares deal **+20%** | spore, water, reaction | Sporeling + Dewdrop |
+     | 170 | **Sparking Spores** | Common, stacks (max 3) | **Ignite** detonations deal **+20%** | spore, storm, reaction | Sporeling + Firefly Jar |
+     | 171 | **Rain on Glass** | Common, stacks (max 3) | light Wardens deal **+12%** to **Soaked** nightmares | water, storm, reaction | Dewdrop + Firefly Jar |
+
+     Target after these: **≥ 0.4** per starting family before drift 25 (guard back to 0.4), with the
+     half-dreamed weight left at ×1.0.
    - **As built (2c1612b, with the generic Rares and real family picks):** **0.5–0.8 offers per run
      before the drift 25 pick** (Sporeling 0.53, Firefly Jar 0.76, Dewdrop 0.68), ~1 through drift 70.
      **Accepted** (2026-09-28): a temptation should be occasional, so no stronger weight (it would
