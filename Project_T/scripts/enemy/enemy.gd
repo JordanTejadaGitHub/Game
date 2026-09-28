@@ -30,6 +30,7 @@ const ELITE_HAZE_SPEED := 0.6  # Radians per second the haze drifts round
 const ELITE_HAZE_COLOR := Color(0.1, 0.08, 0.14, 0.32)
 const ELITE_HAZE_RIM := Color(0.62, 0.58, 0.72, 0.16)  # Keeps the haze visible on dark ground
 const ELITE_SWIRL_COLOR := Color(0.78, 0.7, 0.95)
+const ELITE_OUTLINE_COLOR := Color(0.9, 0.85, 1.0, 0.9)  # Setting "blight_outline" (accessibility)
 const LEAP_TIME := 0.45  # Seconds to sink, move under the mire and rise again
 
 # Group of nightmares that are still walking and targetable. Dispelled ones leave it.
@@ -98,6 +99,10 @@ var modifiers := {}
 
 var elite := false  # Deeply Blighted (set before adding to the tree)
 var _haze_phase := 0.0
+# Cached display settings (Fx.setting): health bars at full health too ("health_bars" 1), and the
+# elite outline ("blight_outline"). Re-read on the presence tick so the settings panel applies live.
+var _bars_always := false
+var _outlined := false
 var _status_flash := {}  # {status id: seconds left} for icons a combo just used
 var hold_time := 0.0  # Seconds to stand still before setting off (Wraiths in single file)
 var rolling := false  # Night Hound sprinting down a straight
@@ -164,6 +169,7 @@ func _ready() -> void:
 	blight_material.shader = BLIGHT_SHADER
 	sprite.material = blight_material
 
+	_refresh_display_settings()
 	if enemy_data.always_damp:
 		statuses.apply(EnemyStatuses.DAMP, 1, ALWAYS_DAMP_TIME)
 	if enemy_data.hidden:
@@ -292,7 +298,7 @@ func _draw() -> void:
 		x += STATUS_DOT_RADIUS * 3.0
 	# Health bar once the enemy has been hit, with the blight coat as a grey bar on top of it
 	var bar := Rect2(HEALTH_BAR_OFFSET - HEALTH_BAR_SIZE / 2, HEALTH_BAR_SIZE)
-	if health < max_health:
+	if health < max_health or _bars_always:
 		draw_rect(bar.grow(1), Color(0.1, 0.1, 0.12, 0.8))
 		var fill := bar
 		fill.size.x *= float(health) / max_health
@@ -618,6 +624,7 @@ func _update_presence(delta: float) -> void:
 	var hide := (enemy_data.hidden or _is_eclipsed()) and not _is_revealed()
 	if hide != _hidden:
 		_set_hidden(hide)
+	_refresh_display_settings()
 	if enemy_data.wake_radius > 0.0:  # Watcher
 		for other in _others_within(enemy_data.wake_radius):
 			if other.statuses.has(EnemyStatuses.DROWSY):
@@ -649,7 +656,25 @@ func _set_hidden(value: bool) -> void:
 	else:
 		add_to_group(GROUP)
 	sprite.self_modulate.a = HIDDEN_ALPHA if value else 1.0
+	_refresh_display_settings()
 	queue_redraw()
+
+# Health bars "always" (setting health_bars = 1; 0 = once hit, the default) and the Deeply Blighted
+# outline (blight_outline), which stays off while the nightmare is hidden or cracking apart.
+func _refresh_display_settings() -> void:
+	var always := int(Fx.setting("health_bars", 0)) == 1
+	if always != _bars_always:
+		_bars_always = always
+		queue_redraw()
+	var outlined := elite and not _hidden and not is_cleansed and bool(Fx.setting("blight_outline", false))
+	if outlined != _outlined:
+		_outlined = outlined
+		(sprite.material as ShaderMaterial).set_shader_parameter("outline_color",
+			ELITE_OUTLINE_COLOR if outlined else Color(0, 0, 0, 0))
+
+func _outline_alpha() -> float:
+	var color = (sprite.material as ShaderMaterial).get_shader_parameter("outline_color")
+	return color.a if color is Color else 0.0
 
 # The Moth Queen's Eclipse hides every nightmare but bosses.
 func _is_eclipsed() -> bool:
@@ -859,6 +884,7 @@ func _cleanse() -> void:
 	cleansed.emit(self)
 	queue_redraw()
 	sprite.self_modulate.a = 1.0  # A hidden nightmare shows itself as it cracks apart
+	_refresh_display_settings()  # No outline while it cracks
 
 	if _leap_tween:
 		_leap_tween.kill()  # Dispelled mid-sink: surface right here to crack apart

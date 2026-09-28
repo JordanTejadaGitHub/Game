@@ -237,6 +237,23 @@ func _run() -> void:
 	_check(planted.all(func(c: Vector2) -> bool: return map_generator.get_obstacle(c) == null), "its saplings wither")
 	_check(sapling_sprites.size() == 1 and sapling_sprites[0].animation == &"wither", "crumbling to ash (wither animation)")
 
+	# --- Display settings: health bars "always", the Deeply Blighted outline ---
+	_clear_enemies()
+	Fx._settings = {}  # Defaults, whatever the player's profile says
+	Fx._settings_at = Time.get_ticks_msec()
+	var plain: Node2D = spawner.spawn_enemy(load("res://resource/enemy/leaf_bug.tres"), 1.0, {}, true)
+	_check(not plain._bars_always and plain._outline_alpha() == 0.0, "by default: bars once hit, no outline")
+	Fx._settings = {"health_bars": 1, "blight_outline": true}
+	Fx._settings_at = Time.get_ticks_msec()
+	var shown: Node2D = spawner.spawn_enemy(load("res://resource/enemy/leaf_bug.tres"), 1.0, {}, true)
+	var normal: Node2D = spawner.spawn_enemy(load("res://resource/enemy/leaf_bug.tres"))
+	_check(shown._bars_always and shown._outline_alpha() > 0.0, "settings on: bars always, elites outlined")
+	_check(normal._outline_alpha() == 0.0, "only Deeply Blighted nightmares get the outline")
+	plain._update_presence(0.2)
+	_check(plain._bars_always and plain._outline_alpha() > 0.0, "a nightmare already out picks the change up")
+	Fx.reset_run()
+	_clear_enemies()
+
 	print("acts 3-4 test: %s" % ("PASS" if failures == 0 else "%d FAILED" % failures))
 	quit(failures)
 
