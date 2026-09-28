@@ -32,6 +32,7 @@ func _run() -> void:
 	_test_clear_tool()
 	_test_new_forms()
 	_test_ascended()
+	_test_woven()
 	print("dream builds test: %s" % ("PASS" if failures == 0 else "%d FAILED" % failures))
 	quit(failures)
 
@@ -540,6 +541,24 @@ func _test_ascended() -> void:
 	thunderhead.evolves_to.erase(stormheart)
 	dreams.pool.erase(card)
 	director.drifts_started = 0
+
+# Woven cards 100–107: three ingredients, guaranteed once all are owned, Legendary, Grove-only.
+func _test_woven() -> void:
+	_reset()
+	var ids := ["eye_of_the_tempest", "deep_stillness", "fever_pitch", "falling_stars", "mountains_fall",
+		"prism_heart", "endless_night", "ring_of_rings"]
+	for id in ids:
+		var card := _card(id)
+		_check(card.woven and card.entwined and card.rarity == UpgradeData.Rarity.LEGENDARY and not card.in_start_pool,
+			"%s is a Woven Legendary from the Grove" % id)
+	dreams.grove_cards.assign(ids)
+	var stars := _card("falling_stars")
+	dreams.unlocked["firefly_jar"] = true
+	dreams.unlocked["tangleroot"] = true
+	_check(not dreams.is_eligible(stars, 2), "Falling Stars needs its third vine")
+	dreams.unlocked["chime_stone"] = true
+	_check(dreams.is_eligible(stars, 2) and not dreams.is_eligible(stars, 1), "…Chime Stone (or Bellflower) completes it, act 2+")
+	_check(dreams.make_offer(30).has(stars), "a Woven card is guaranteed once all three are owned")
 
 func _click() -> InputEventAction:
 	var click := InputEventAction.new()

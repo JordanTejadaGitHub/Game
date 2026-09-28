@@ -89,7 +89,10 @@ func _make_card(card: UpgradeData) -> Button:
 	var style := StyleBoxFlat.new()
 	style.bg_color = Color(0.12, 0.13, 0.2, 0.95)
 	style.border_color = ENTWINED_COLOR if card.entwined else UpgradeData.rarity_color(card.rarity)
-	style.set_border_width_all(5 if card.entwined else 3)
+	style.set_border_width_all(7 if card.woven else (5 if card.entwined else 3))  # Woven: triple vine
+	if card.woven:
+		style.shadow_color = Color(UpgradeData.rarity_color(card.rarity), 0.6)  # Legendary glow round the vines
+		style.shadow_size = 4
 	style.set_corner_radius_all(10)
 	style.set_content_margin_all(14)
 	button.add_theme_stylebox_override("normal", style)
@@ -120,7 +123,9 @@ func _make_card(card: UpgradeData) -> Button:
 	box.add_child(name_label)
 	if card.entwined:
 		var names := card.requires.map(dream_state.get_display_name)
-		_add_line(box, "Entwined  ·  %s" % " + ".join(names), ENTWINED_COLOR, 14)
+		if not card.requires_any.is_empty():  # One "either" ingredient (Falling Stars)
+			names.append(" or ".join(card.requires_any.map(dream_state.get_display_name)))
+		_add_line(box, "%s  ·  %s" % ["Woven" if card.woven else "Entwined", " + ".join(names)], ENTWINED_COLOR, 14)
 	elif card.is_deepened():
 		_add_line(box, "Deepened  ·  replaces %s" % dream_state.get_display_name(card.deepens), DEEPENED_COLOR, 14)
 	elif card.is_bittersweet():

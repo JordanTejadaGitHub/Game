@@ -24,6 +24,9 @@ enum Kind { UNLOCK_WARDEN, UNLOCK_EVOLUTION, STAT, RULE, ECONOMY }
 # Entwined card: `requires` lists its ingredients. Once all are owned it's guaranteed in the next
 # Dream offer (once; after that it's drawn normally).
 @export var entwined: bool = false
+# Woven (Legendary): an Entwined card with 3 ingredients (`requires`, plus `requires_any` as one
+# "either" ingredient). Same guarantee; shown with a triple vine.
+@export var woven: bool = false
 # Bittersweet cards (tag "bittersweet"): the lasting cost, shown on its own line in plum.
 @export_multiline var cost_description: String = ""
 

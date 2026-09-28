@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "prism_heart"
+display_name = "Prism Heart"
+description = "Prismstorm shards add 3 Static and fly 0.5 cells further."
+rarity = 3
+kind = 3
+tags = Array[String](["reaction"])
+requires = Array[String](["frostfern", "tangleroot", "stormcap"])
+max_stacks = 1
+min_act = 2
+in_start_pool = false
+entwined = true
+woven = true
+rule_id = &"prism_heart"
