@@ -100,6 +100,8 @@ silent. Target: one 100-drift run in under 5 minutes, so a full batch fits in a 
 - **Roguelite Code:** the Dream, family-pick, Dreamlight and Omen policies (`sim_rest`,
   `sim_family_pick`), and the style scoring for cards.
 - **Meta Game Code:** the four Grove profile presets.
+
+**As built so far (2026-09-28):** Grove presets `MetaRun.load_preset(&"fresh" | &"early" | &"half" | &"full")` (a separate sim profile; meta applies only with `game/demo` off). Card and pick policies `DreamSimPolicy` (`scripts/run/dream_sim_policy.gd`, 147ee8e): card score = style tag score × 10 + rarity; in-build cards +2; half-dreamed −1 (Combo +2); Dreamlight to the most-built family's next form (Wide may also buy Thornwall growths); Omens: Clear Skies. Tuning lives in the file's consts.
 - **Design chat:** owns the targets above; adjusts them when the design changes.
 
 ## Later
