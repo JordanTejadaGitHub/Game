@@ -6,15 +6,11 @@
 script = ExtResource("1_card")
 id = "the_old_ones"
 display_name = "The Old Ones"
-description = "Each rank also gives +2% crit chance. Rank V+ Wardens make the Wardens touching them count one rank higher."
+description = "Rank V+ Wardens make the Wardens touching them count one rank higher."
 rarity = 3
 kind = 3
-tags = Array[String](["nurture", "crit"])
+tags = Array[String](["nurture"])
 max_stacks = 1
 min_act = 2
 in_start_pool = false
-requires_tag = "nurture"
-min_rank_count = 1
-min_rank_owned = 5
-rank_crit_bonus = 0.02
 rule_id = &"old_ones"

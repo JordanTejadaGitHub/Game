@@ -62,6 +62,27 @@ const RECKLESS_PENALTY := 0.15
 const DIRECTION_TAGS: Array[String] = ["nurture", "wide", "narrow"]
 const OPPOSITE_DIRECTION := {"wide": "narrow", "narrow": "wide"}
 const OPPOSITE_WEIGHT := 0.5
+const NO_CELL := Vector2(-1, -1)
+# New Legendaries (dream_design.md "New Legendaries", 113–123).
+const CROSSROADS_BONUS := 0.40
+const CROSSROADS_STEPS := 6
+const BRIAR_SHARE := 0.25
+const BRIAR_COOLDOWN := 1.0  # Seconds, per wall per nightmare
+const MENAGERIE_PER := 0.08
+const MENAGERIE_MAX := 0.80
+const RESTLESS_PER := 0.08
+const RESTLESS_MAX := 0.40
+const LAST_LEAF_PER := 0.06
+const LAST_LEAF_MAX := 0.60
+const LUCID_EXTRA_CARDS := 1  # 3 → 4
+const LUCID_PICKS := 2
+const COURT_SHARE := 0.25  # Of the Eldest's rank bonuses, for Wardens touching it
+const HUNTERS_SPREAD := 2
+const HUNTERS_RANGE := 3.0  # Cells
+const HUNTERS_DURATION := 3600.0  # Marked "never expires" (EnemyStatuses keeps it; this is the fallback)
+const WILDWOOD_BASE := 0.30
+const WILDWOOD_PER_CLEAR := 0.02
+const WILDWOOD_MAX := 0.60
 # Dreamlight (run_design.md "Dreamlight"): sources and unlock costs.
 const FIRST_PICK_DREAMLIGHT := 1
 const BOSS_DREAMLIGHT := 3
@@ -83,6 +104,8 @@ signal card_taken(card: UpgradeData)
 signal offer_ready(cards: Array[UpgradeData], drift_number: int)
 signal offer_closed
 signal dreamlight_changed(dreamlight: int)
+# The Eldest changed (null = the title is free). Tower Code shows its crown and panel line.
+signal eldest_changed(tower: Tower)
 # The Remember screen should open (after a boss's family pick, from the rest panel or the Warden
 # panel). `focus` = the form to highlight, or null.
 signal remember_requested(focus: TowerData)
@@ -126,6 +149,14 @@ var _entwined_offered := {}  # Entwined card id -> true once its guaranteed offe
 var _banished := {}  # Card id -> true: Let Go took it out of this run's pool
 var _before_offer := {}  # Offer counters from before the current offer (a reroll rolls them back)
 var _attackers_planted := 0  # Attacking Wardens planted this run (Canopy)
+var picks_left := 1  # Cards still to take from the current offer (Lucid Dreaming: 2)
+var _early_calls := 0  # Drifts called early this block (Restless Night)
+var _path_index := {}  # Route cell -> its step along the route (Crossroads, Briar Crown)
+var _eldest_cell := NO_CELL  # The Eldest's cell (NO_CELL = no Eldest yet)
+var _court_pending := false  # Court of the Eldest with nothing ranked: the next nurtured one
+var _briar_clock := 0.0
+var _briar_cells := {}  # Nightmare instance id -> the cell it was last seen on (Briar Crown)
+var _briar_hits := {}  # "nightmare id:wall id" -> clock of its last Briar Crown hit
 var _pending_drifts: Array[int] = []
 var _bend_cells := {}  # Path cells where the route turns (Cozy Corners)
 var path_length := 0  # Tiles in the current route (The Long Walk); updated with the bends
@@ -157,6 +188,7 @@ func _ready() -> void:
 	var seller := get_node_or_null("%TowerSeller")
 	if seller:
 		seller.tower_sold.connect(_on_tower_sold)
+	drift_director.drift_started.connect(_on_drift_started)
 	_update_bends()
 
 static func load_pool() -> Array[UpgradeData]:
@@ -362,6 +394,7 @@ func get_soothe_multiplier(tower: Tower) -> float:
 	bonus += _nurture_damage_bonus(tower) + _count_damage_bonus(tower)
 	if has_rule(&"the_long_walk"):
 		bonus += LONG_WALK_PER * (path_length / LONG_WALK_TILES)
+	bonus += _legendary_damage_bonus(tower)
 	if has_rule(&"monoculture") and tower.tower_data.can_attack and is_monoculture():
 		bonus += MONOCULTURE_BONUS
 	return 1.0 + bonus
@@ -491,10 +524,184 @@ func _towers() -> Array[Tower]:
 	return result
 
 # Wardens sharing an edge with `tower`.
+# --- The Eldest (dream_design.md "The Eldest") ----------------------------------------------------------
+# Ranks above V belong to one Warden per run. Tower asks get_max_rank_for(tower); when a Warden at
+# rank V would buy VI and there's no Eldest yet, its panel confirms, then calls make_eldest(tower).
+
+func eldest_available() -> bool:
+	return get_max_rank() > BASE_MAX_RANK or has_rule(&"court_of_the_eldest")
+
+func get_eldest() -> Tower:
+	if _eldest_cell == NO_CELL:
+		return null
+	for tower in _towers():
+		if tower.cell == _eldest_cell:
+			return tower
+	return null
+
+func is_eldest(tower: Tower) -> bool:
+	return tower != null and _eldest_cell != NO_CELL and tower.cell == _eldest_cell
+
+# `tower`'s rank cap: past V only for the Eldest (or anyone, until there's an Eldest: buying VI names it).
+func get_max_rank_for(tower: Tower) -> int:
+	var cap := get_max_rank()
+	if cap <= BASE_MAX_RANK or tower == null:
+		return cap
+	var eldest := get_eldest()
+	return cap if eldest == null or eldest == tower else BASE_MAX_RANK
+
+# Buying rank VI for `tower` would make it the Eldest (the panel asks first).
+func needs_eldest_confirm(tower: Tower) -> bool:
+	return tower != null and tower.rank == BASE_MAX_RANK and get_max_rank() > BASE_MAX_RANK and get_eldest() == null
+
+func make_eldest(tower: Tower) -> bool:
+	var eldest := get_eldest()
+	if tower == null or (eldest != null and eldest != tower):
+		return false
+	set_eldest(tower)
+	return true
+
+# Sets (or clears, with null) the Eldest. Selling it frees the title (its ranks above V go with it).
+func set_eldest(tower: Tower) -> void:
+	_eldest_cell = tower.cell if tower != null else NO_CELL
+	_court_pending = _court_pending and tower == null
+	eldest_changed.emit(tower)
+
+# Court of the Eldest: the highest-rank Warden becomes the Eldest now (ties: nearest the Heartwood);
+# with nothing ranked, the next Warden nurtured.
+func _crown_court_eldest() -> void:
+	if get_eldest() != null:
+		return
+	var ranked: Array = _towers().filter(func(t: Tower) -> bool: return t.rank > 0)
+	if ranked.is_empty():
+		_court_pending = true
+		for tower in _towers():
+			_watch_nurture(tower)
+		return
+	var seller := get_node_or_null("%TowerSeller")
+	if seller and seller.has_method("sort_by_heartwood"):
+		ranked = seller.sort_by_heartwood(ranked)
+	var best: Tower = ranked[0]
+	for tower in ranked:
+		if tower.rank > best.rank:
+			best = tower
+	set_eldest(best)
+
+func _watch_nurture(tower: Tower) -> void:
+	if tower.has_signal("nurtured") and not tower.nurtured.is_connected(_on_tower_nurtured):
+		tower.nurtured.connect(_on_tower_nurtured)
+
+func _on_tower_nurtured(tower: Tower) -> void:
+	if _court_pending and get_eldest() == null and is_instance_valid(tower):
+		set_eldest(tower)
+
+# Court of the Eldest: rank-equivalents a Warden touching the Eldest gets (25% of its rank), for
+# Tower's per-rank damage, attack speed and range (not the Focus).
+func get_court_rank_share(tower: Tower) -> float:
+	if not has_rule(&"court_of_the_eldest"):
+		return 0.0
+	var eldest := get_eldest()
+	if eldest == null or eldest == tower or not _touching(tower).has(eldest):
+		return 0.0
+	return COURT_SHARE * eldest.rank
+
+
+# --- New Legendaries: damage ------------------------------------------------------------------------
+
+# Crossroads, Menagerie, Restless Night, Last Leaf, Wildwood Reclaimed.
+func _legendary_damage_bonus(tower: Tower) -> float:
+	var bonus := 0.0
+	if has_rule(&"crossroads"):
+		bonus += get_crossroads_bonus(tower)
+	if has_rule(&"menagerie") and tower.tower_data.can_attack:
+		var kinds := {}
+		for other in _towers():
+			if other.tower_data.can_attack:
+				kinds[other.tower_data.get_id()] = true
+		bonus += minf(MENAGERIE_PER * kinds.size(), MENAGERIE_MAX)
+	if has_rule(&"restless_night"):
+		bonus += minf(RESTLESS_PER * _early_calls, RESTLESS_MAX)
+	if has_rule(&"last_leaf"):
+		bonus += minf(LAST_LEAF_PER * maxi(run_state.max_leaves - run_state.leaves, 0), LAST_LEAF_MAX)
+	if has_rule(&"wildwood_reclaimed") and run_state.tended_cells.has(tower.cell):
+		bonus += minf(WILDWOOD_BASE + WILDWOOD_PER_CLEAR * run_state.tended_cells.size(), WILDWOOD_MAX)
+	return bonus
+
+# Crossroads: +40% for a Warden touching two route tiles at least 6 steps apart (0 otherwise).
+func get_crossroads_bonus(tower: Tower) -> float:
+	if not tower.tower_data.can_attack:
+		return 0.0
+	var low := 1 << 30
+	var high := -1
+	for dx in [-1, 0, 1]:
+		for dy in [-1, 0, 1]:
+			var step: int = _path_index.get(tower.cell + Vector2(dx, dy), -1)
+			if step >= 0:
+				low = mini(low, step)
+				high = maxi(high, step)
+	return CROSSROADS_BONUS if high - low >= CROSSROADS_STEPS else 0.0
+
+# Restless Night: a real call early = the previous drift was still arriving.
+func _on_drift_started(number: int) -> void:
+	if number > 1 and drift_director._arriving.has(number - 1):
+		_early_calls += 1
+
+# Briar Crown: a nightmare stepping onto a route tile beside a wall takes 25% of the strongest
+# attacking Warden touching that wall (its line, area, no crit; once per wall per nightmare per s).
+func _process(delta: float) -> void:
+	if get_tree().paused or not has_rule(&"briar_crown"):
+		return
+	_briar_clock += delta
+	for enemy in spawner.get_enemies():
+		var id: int = enemy.get_instance_id()
+		var cell: Vector2 = enemy.get_current_cell()
+		if _briar_cells.get(id) == cell:
+			continue
+		_briar_cells[id] = cell
+		if _path_index.has(cell):
+			_briar_strike(enemy, cell)
+	if _briar_cells.size() > 512:
+		_briar_cells.clear()  # Forget long-gone nightmares now and then
+		_briar_hits.clear()
+
+func _briar_strike(enemy: Node2D, cell: Vector2) -> void:
+	for wall in _towers():
+		if wall.tower_data.line != "wall" or absf(wall.cell.x - cell.x) + absf(wall.cell.y - cell.y) != 1.0:
+			continue
+		var key := "%d:%d" % [enemy.get_instance_id(), wall.get_instance_id()]
+		if _briar_clock - _briar_hits.get(key, -INF) < BRIAR_COOLDOWN:
+			continue
+		var strongest: Tower = null
+		for other in _touching(wall):
+			if other.tower_data.can_attack and (strongest == null or other.get_damage() > strongest.get_damage()):
+				strongest = other
+		if strongest == null:
+			continue
+		_briar_hits[key] = _briar_clock
+		enemy.take_damage(strongest.get_damage() * BRIAR_SHARE, strongest.tower_data.line, true, false,
+			strongest, &"briar_crown")
+		if enemy.is_cleansed:
+			return
+
+# Hunter's Moon: a dispelled Marked nightmare Marks the 2 nearest within 3 cells.
+func _hunters_spread(enemy: Node2D) -> void:
+	if not has_rule(&"hunters_moon") or not enemy.statuses.has(EnemyStatuses.MARKED):
+		return
+	var reach: float = HUNTERS_RANGE * map_generator.MAP_GRID.cell_size.x
+	var others := get_tree().get_nodes_in_group(Tower.ENEMY_GROUP).filter(func(e: Node2D) -> bool:
+		return e != enemy and e.global_position.distance_to(enemy.global_position) <= reach)
+	others.sort_custom(func(a: Node2D, b: Node2D) -> bool:
+		return a.global_position.distance_squared_to(enemy.global_position) \
+			< b.global_position.distance_squared_to(enemy.global_position))
+	for i in mini(HUNTERS_SPREAD, others.size()):
+		others[i].apply_status(EnemyStatuses.MARKED, 1, HUNTERS_DURATION, 0.0, 0, "",
+			enemy.statuses.source(EnemyStatuses.MARKED))
+
+# Wardens touching `tower`: the 8 cells around it (dream_design.md, as for Rootbound).
 func _touching(tower: Tower) -> Array[Tower]:
 	var result: Array[Tower] = []
 	for other in _towers():
-		if other != tower and absf(other.cell.x - tower.cell.x) + absf(other.cell.y - tower.cell.y) == 1.0:
+		if other != tower and maxf(absf(other.cell.x - tower.cell.x), absf(other.cell.y - tower.cell.y)) == 1.0:
 			result.append(other)
 	return result
 
@@ -763,6 +970,9 @@ func _update_bends() -> void:
 	_bend_cells.clear()
 	var path: PackedVector2Array = map_generator.get_path_from(map_generator.startPath)
 	path_length = path.size()
+	_path_index.clear()
+	for i in path.size():
+		_path_index[path[i]] = i  # Crossroads, Briar Crown
 	for i in range(1, path.size() - 1):
 		if path[i] - path[i - 1] != path[i + 1] - path[i]:
 			_bend_cells[path[i]] = true
@@ -788,6 +998,8 @@ func take(card: UpgradeData) -> void:
 		add_dreamlight(card.dreamlight_now)
 	if card.free_clears_add > 0:
 		run_state.add_free_clears(card.free_clears_add)
+	if card.rule_id == &"court_of_the_eldest":
+		_crown_court_eldest()
 	if card.clears_obstacle != null:
 		_clear_all(card.clears_obstacle)
 	if card.set_cost_warden != "":
@@ -828,6 +1040,7 @@ func has_pending_offer() -> bool:
 func _on_rest_started(_block: int, is_boss_rest: bool, _bonus: int, _perfect: bool) -> void:
 	if not drift_director.has_next_drift() or run_state.is_over:
 		return
+	_early_calls = 0  # Restless Night counts per block
 	if is_boss_rest:
 		# The freed light: +3 Dreamlight, and the Remember screen opens before the Dream.
 		add_dreamlight(BOSS_DREAMLIGHT)
@@ -856,6 +1069,11 @@ func choose(card: UpgradeData) -> void:
 	if not current_offer.has(card):
 		return
 	take(card)
+	picks_left -= 1
+	if picks_left > 0 and current_offer.size() > 1:  # Lucid Dreaming: take a second card
+		current_offer.erase(card)
+		offer_ready.emit(current_offer, current_offer_drift)
+		return
 	_close_offer()
 
 # "Let it pass": no card, a little Dew instead.
@@ -915,6 +1133,10 @@ func _restore_offer_counters(counters: Dictionary) -> void:
 func make_offer(drift_number: int) -> Array[UpgradeData]:
 	dreams_seen += 1
 	var size := cards_per_offer + _extra_cards_next
+	picks_left = 1
+	if has_rule(&"lucid_dreaming"):  # 4 cards, take 2, no Commons
+		size += LUCID_EXTRA_CARDS
+		picks_left = LUCID_PICKS
 	_extra_cards_next = 0
 	var offer: Array[UpgradeData] = []
 	var act := drift_director.get_act(drift_number)
@@ -1045,6 +1267,8 @@ func _draw_card(act: int, exclude: Array[UpgradeData], want_rare: bool) -> Upgra
 	for card in pool:
 		if exclude.has(card) or (has_bittersweet and card.is_bittersweet()):
 			continue  # At most one bittersweet card per offer
+		if card.rarity == UpgradeData.Rarity.COMMON and has_rule(&"lucid_dreaming"):
+			continue  # Lucid Dreaming: no Commons
 		if is_eligible(card, act):
 			eligible.append(card)
 	if eligible.is_empty():
@@ -1082,6 +1306,10 @@ func _roll_rarity(act: int, want_rare: bool) -> int:
 # Picks one of `cards` by tag weighting (owned families and build directions, the clearing boost).
 func _weighted_pick(cards: Array) -> UpgradeData:
 	var owned_lines := {}
+	for card in _taken_cards():  # A taken Legendary's archetype counts as a family (Legendary rules)
+		if card.rarity == UpgradeData.Rarity.LEGENDARY:
+			for tag in card.tags:
+				owned_lines[tag] = true
 	for tower_id in unlocked:
 		var line := _line_of(tower_id)
 		if line != "":
@@ -1141,6 +1369,7 @@ func to_save() -> Dictionary:
 		"rerolls_left": rerolls_left, "banishes_left": banishes_left, "banished": _banished.keys(),
 		"attackers_planted": _attackers_planted, "dreamlight": dreamlight,
 		"dreamlight_shards": dreamlight_shards, "sprout_charges": run_state.sprout_charges,
+		"eldest_cell": [_eldest_cell.x, _eldest_cell.y], "court_pending": _court_pending,
 		"rng_state": str(_rng.state),  # A string: JSON would round a 64-bit int
 	}
 
@@ -1169,6 +1398,9 @@ func load_save(data: Dictionary) -> void:
 	dreamlight = int(data.get("dreamlight", 0))
 	dreamlight_changed.emit(dreamlight)
 	dreamlight_shards = int(data.get("dreamlight_shards", 0))
+	var eldest: Array = data.get("eldest_cell", [-1, -1])
+	_eldest_cell = Vector2(eldest[0], eldest[1])
+	_court_pending = bool(data.get("court_pending", false))
 	run_state.add_sprout_charges(int(data.get("sprout_charges", 0)) - run_state.sprout_charges)
 	if data.has("rng_state"):
 		_rng.state = str(data.rng_state).to_int()
@@ -1192,7 +1424,7 @@ func sunlit_rest() -> Array[Tower]:
 	var raised: Array[Tower] = []
 	var seller := get_node_or_null("%TowerSeller")
 	var ranked: Array = _towers().filter(func(t: Tower) -> bool:
-		return t.rank > 0 and t.rank != 2 and t.rank < FREE_RANK_MAX and t.can_nurture())  # Free ranks stop at VII
+		return t.rank > 0 and t.rank != 2 and t.rank < mini(FREE_RANK_MAX, get_max_rank_for(t)) and t.can_nurture())  # Free ranks stop at VII (V unless the Eldest)
 	if seller and seller.has_method("sort_by_heartwood"):
 		ranked = seller.sort_by_heartwood(ranked)  # Same order as group Nurture
 	for tower in ranked:
@@ -1204,9 +1436,11 @@ func sunlit_rest() -> Array[Tower]:
 
 # Remembered Care: selling a ranked Warden leaves a memory seed (II: keeps two, highest first).
 func _on_tower_sold(tower: Tower, _refund: int) -> void:
+	if is_eldest(tower):
+		set_eldest(null)  # The title is free again; its ranks above V are lost
 	if not has_rule(&"remembered_care") or tower.rank <= 0:
 		return
-	run_state.memory_seeds.append(tower.rank)
+	run_state.memory_seeds.append(mini(tower.rank, BASE_MAX_RANK))  # A seed holds at most rank V
 	run_state.memory_seeds.sort()
 	run_state.memory_seeds.reverse()
 	run_state.memory_seeds.resize(mini(run_state.memory_seeds.size(), MEMORY_SEEDS[rule_level(&"remembered_care")]))
@@ -1216,6 +1450,7 @@ func _on_tower_sold(tower: Tower, _refund: int) -> void:
 func _on_tower_built(tower: Tower) -> void:
 	if tower.tower_data.can_attack:
 		_attackers_planted += 1
+	_watch_nurture(tower)
 	# Seedling Gift: a free Sprout (0 Dew) used a charge; with Nursery it arrives at rank II.
 	if tower.tower_data.get_id() == "sprout" and tower.invested_dew == 0 and run_state.sprout_charges > 0:
 		run_state.add_sprout_charges(-1)
@@ -1223,7 +1458,7 @@ func _on_tower_built(tower: Tower) -> void:
 			tower.rank = maxi(tower.rank, mini(NURSERY_RANK, get_max_rank()))
 	if run_state.memory_seeds.is_empty() or not tower.tower_data.can_attack:
 		return
-	tower.rank = mini(run_state.memory_seeds.pop_front(), mini(get_max_rank(), FREE_RANK_MAX))
+	tower.rank = mini(run_state.memory_seeds.pop_front(), mini(get_max_rank_for(tower), FREE_RANK_MAX))
 	if tower.has_signal("nurtured"):
 		tower.nurtured.emit(tower)
 
@@ -1242,6 +1477,7 @@ func _on_obstacle_cleared(cell: Vector2, _data: ObstacleData) -> void:
 
 # Spore Cascade: a cleansed creature's Spored stacks spread to the nearest creatures.
 func _on_enemy_cleansed(enemy: Node2D) -> void:
+	_hunters_spread(enemy)
 	if not has_rule(&"spore_cascade") or not enemy.statuses.has(EnemyStatuses.SPORED):
 		return
 	var spores: int = enemy.statuses.stacks(EnemyStatuses.SPORED)

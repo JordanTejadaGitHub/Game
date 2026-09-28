@@ -92,7 +92,7 @@ func _test_nurture_effects() -> void:
 	_check(dreams.get_build_cost(sprout) == roundi(before * 0.7), "Overgrowth: planting 30% cheaper")
 	_reset()
 	dreams.take(_card("the_old_ones"))
-	_check(is_equal_approx(dreams.get_rank_crit_bonus(), 0.02), "The Old Ones: +2% crit per rank")
+	_check(is_equal_approx(dreams.get_rank_crit_bonus(), 0.0), "The Old Ones no longer adds crit (one archetype)")
 	var elder := _plant("sporeling", 0, 5)
 	var young := _plant("sporeling", 1, 2)
 	var far := _plant("sporeling", 6, 2)
@@ -392,11 +392,10 @@ func _test_grove_cards() -> void:
 	dreams.unlocked["bloomcap"] = true
 	_check(dreams.make_offer(10).has(_card("static_bloom")), "…then guaranteed")
 	_check(dreams.is_eligible(_card("still_target")), "Still Target: a Drowsy / Held Warden (Bloomcap)")
-	_check(not dreams.is_eligible(_card("full_moon"), 2), "Full Moon needs 2 crit cards")
+	_check(dreams.is_eligible(_card("full_moon"), 2) and not dreams.is_eligible(_card("full_moon"), 1),
+		"Full Moon: a Legendary with no Needs, act 2+")
 	dreams.take(_card("still_target"))
 	dreams.take(_card("shattering_blow"))
-	_check(dreams.is_eligible(_card("full_moon"), 2) and not dreams.is_eligible(_card("full_moon"), 1),
-		"…offered with 2, act 2+")
 
 	# Crit getters (Tower adds them)
 	var tower := _plant("sporeling", 0, 0)
@@ -539,8 +538,8 @@ func _test_woven() -> void:
 		"prism_heart", "endless_night", "ring_of_rings"]
 	for id in ids:
 		var card := _card(id)
-		_check(card.woven and card.entwined and card.rarity == UpgradeData.Rarity.LEGENDARY and not card.in_start_pool,
-			"%s is a Woven Legendary from the Grove" % id)
+		_check(card.woven and card.entwined and card.rarity == UpgradeData.Rarity.RARE and not card.in_start_pool,
+			"%s is a Woven Rare from the Grove" % id)
 	dreams.grove_cards.assign(ids)
 	var stars := _card("falling_stars")
 	dreams.unlocked["firefly_jar"] = true
@@ -583,10 +582,9 @@ func _test_potency_and_endless() -> void:
 	var endless := _card("endless_rings")
 	dreams.take(_card("tender_care"))
 	var tall := _plant("sporeling", 0, 6)
-	_check(not dreams.is_eligible(endless, 2), "Endless Rings needs Deeper Rings")
-	dreams.take(_card("deeper_rings"))
-	_check(dreams.is_eligible(endless, 2), "…and a rank VI Warden")
+	_check(dreams.is_eligible(endless, 2), "Endless Rings: a Legendary with no Needs")
 	dreams.take(endless)
+	dreams.make_eldest(tall)  # Ranks past V are the Eldest's
 	_check(dreams.get_max_rank() > 20, "no max rank")
 	_check(dreams.get_extra_rank_cost(7) == 180 and dreams.get_extra_rank_cost(8) == 216
 		and dreams.get_extra_rank_cost(9) == 259 and dreams.get_extra_rank_cost(10) == 311, "VIII 216, IX 259, X 311")

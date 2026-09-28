@@ -4,13 +4,12 @@
 
 [resource]
 script = ExtResource("1_card")
-id = "the_last_light"
-display_name = "The Last Light"
-description = "If you have 5 or fewer attacking Wardens, they attack twice as fast."
+id = "crossroads"
+display_name = "Crossroads"
+description = "A Warden touching two path tiles at least 6 steps apart along the route deals 40% more damage."
 rarity = 3
 kind = 3
-tags = Array[String](["narrow"])
+tags = Array[String](["maze"])
 max_stacks = 1
 min_act = 2
-in_start_pool = false
-rule_id = &"last_light"
+rule_id = &"crossroads"

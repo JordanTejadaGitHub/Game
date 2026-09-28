@@ -4,13 +4,12 @@
 
 [resource]
 script = ExtResource("1_card")
-id = "the_last_light"
-display_name = "The Last Light"
-description = "If you have 5 or fewer attacking Wardens, they attack twice as fast."
+id = "last_leaf"
+display_name = "Last Leaf"
+description = "All Wardens +6% damage for each leaf below your maximum (up to +60%)."
 rarity = 3
 kind = 3
-tags = Array[String](["narrow"])
+tags = Array[String](["leaves"])
 max_stacks = 1
 min_act = 2
-in_start_pool = false
-rule_id = &"last_light"
+rule_id = &"last_leaf"

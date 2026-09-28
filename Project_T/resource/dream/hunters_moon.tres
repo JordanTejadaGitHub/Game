@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "hunters_moon"
+display_name = "Hunter's Moon"
+description = "Each Warden's first hit on a nightmare Marks it, and Marked never wears off. A dispelled Marked nightmare Marks the 2 nearest within 3 cells."
+rarity = 3
+kind = 3
+tags = Array[String](["mark"])
+max_stacks = 1
+min_act = 2
+rule_id = &"hunters_moon"

@@ -4,13 +4,12 @@
 
 [resource]
 script = ExtResource("1_card")
-id = "the_last_light"
-display_name = "The Last Light"
-description = "If you have 5 or fewer attacking Wardens, they attack twice as fast."
+id = "court_of_the_eldest"
+display_name = "Court of the Eldest"
+description = "Your highest-rank Warden becomes the Eldest now. Wardens touching the Eldest get 25% of its rank bonuses."
 rarity = 3
 kind = 3
-tags = Array[String](["narrow"])
+tags = Array[String](["nurture"])
 max_stacks = 1
 min_act = 2
-in_start_pool = false
-rule_id = &"last_light"
+rule_id = &"court_of_the_eldest"

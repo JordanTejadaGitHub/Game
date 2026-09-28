@@ -12,7 +12,5 @@ kind = 3
 tags = Array[String](["crit"])
 max_stacks = 1
 min_act = 2
-requires_tag = "crit"
-requires_tag_count = 2
 rule_id = &"full_moon"
 in_start_pool = false

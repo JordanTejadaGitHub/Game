@@ -61,6 +61,8 @@ func _show_offer(cards: Array[UpgradeData], drift_number: int) -> void:
 		_was_paused = game_speed.paused
 	game_speed.set_paused(true)
 	_title.text = "A Dream, after drift %d" % drift_number
+	if dream_state.has_rule(&"lucid_dreaming"):  # Take 2 of 4
+		_title.text += "  ·  take %d" % dream_state.picks_left if dream_state.picks_left > 1 else "  ·  take 1 more"
 	_skip.text = "Let it pass  (+%d Dew)" % dream_state.skip_dew if dream_state.skip_dew > 0 else "Let it pass"
 	_skip.visible = dream_state.can_skip()  # Restless Dreams
 	_reroll.text = "Dream again  (%d left)" % dream_state.rerolls_left

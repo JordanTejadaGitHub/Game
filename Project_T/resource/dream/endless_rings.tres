@@ -6,15 +6,12 @@
 script = ExtResource("1_card")
 id = "endless_rings"
 display_name = "Endless Rings"
-description = "No max rank. Past VII each rank costs 1.2 times the one before (VIII 216, IX 259, …, times the tier) and gives +10% damage."
+description = "The Eldest has no max rank. Past VII each rank costs 1.2 times the one before (VIII 216, IX 259, …, times the tier) and gives +10% damage."
 rarity = 3
 kind = 3
 tags = Array[String](["nurture"])
-requires = Array[String](["deeper_rings"])
 max_stacks = 1
 min_act = 2
-min_rank_count = 1
-min_rank_owned = 6
 max_rank_set = 99
 rule_id = &"endless_rings"
 in_start_pool = false
