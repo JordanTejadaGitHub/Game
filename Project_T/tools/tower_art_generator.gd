@@ -252,6 +252,8 @@ var light := Vector3(0.45, -0.55, 0.7).normalized()
 var poses: Array[Dictionary] = []
 
 func _init() -> void:
+	if _is_extension():
+		return
 	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(OUT))
 	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(PREVIEWS))
 	# Stretched pose: the head rows (template rows 0-12) move up 1px, the chin row is doubled.
@@ -272,6 +274,11 @@ func _init() -> void:
 		_make_projectile(p)
 	_save_projectile_preview()
 	quit()
+# Generators that extend this one (ascended_art_generator.gd) return true to reuse its helpers
+# without drawing the whole roster.
+func _is_extension() -> bool:
+	return false
+
 func _idle_state(f: int) -> Dictionary:
 	var pose: int = FRAME_POSE[f]
 	return {f = f, n = FRAMES, attack = -1, pose = poses[pose], dy = POSE_DY[pose], sway = SWAY[f],
