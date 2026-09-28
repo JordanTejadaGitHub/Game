@@ -257,9 +257,21 @@ cards: crit cards grow hits, these grow effects (Spored, Static bolts, clouds, f
 | 109 | **Bitter Sap** | Common | all Wardens +8% Potency (stacks) | potency | — | Start |
 | 110 | **Seeping** | Uncommon | effects deal **+5% per status** the nightmare carries (max +30%) | potency, reaction | any 2 status families | Grove |
 | 111 | **Venom Bloom** | Uncommon, **Bittersweet** | all Wardens +30% Potency. **Cost:** hits do −15% damage | potency, bittersweet | — | Grove |
-| 112 | **Nightshade** | Legendary | **effects tick together:** whenever any effect on a nightmare deals damage, every *other* effect on it deals 25% of its own tick too. *(2026-09-28, replaces "+15% Potency, effect ticks can crit", which mixed in crit; proposal)* | potency | — | Grove |
+| 112 | **Nightshade** | Legendary | effects deal **+20% damage for every status** the nightmare carries (**no cap**) | potency | — | Grove |
 
 Deepened: **Seeping II** +7% per status (max +42%).
+
+**Nightshade** (reworked twice on 2026-09-28; user-approved). The Legendary version of Seeping: the
+build is "load every nightmare with as many statuses as you can, then let effects do the work".
+- **Effects** = effect damage as defined above: Poisoned ticks, Charged bolts, clouds, fog and
+  Reactions. Hits aren't effects, so hits get nothing.
+- **Every status counts**, damaging or not (Soaked, Drowsy, Marked, Held, Poisoned, Charged, …),
+  including the one that's dealing the damage. One count per status, not per stack.
+- **No cap:** it's naturally limited by how many statuses exist (all of them at once ≈ +140%).
+- **Stacks with Seeping** (both add: 4 statuses = +80% + 20%).
+- Shown live on the nightmare's info card ("Nightshade +60%").
+- *History:* first "+15% Potency, effect ticks can crit" (mixed in crit); then "effects tick
+  together" (only Poisoned and Charged tick, so it became a two-status card).
 
 ## Cards for the new Wardens
 
