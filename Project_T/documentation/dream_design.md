@@ -811,7 +811,7 @@ Kinship on the map.
 | 126 | **Sweet Harmony** | Uncommon | Harmony strikes **+50% damage**, cooldown 2 s → **1.5 s** | payoff | a Kinship on the map | Start |
 | 127 | **Close Kin** | Uncommon | Kinship reach **2 → 3 cells** | placement | — | Grove |
 | 128 | **Old Friends** | Uncommon | new bonds **start at Blooming** | time | — | Grove |
-| 129 | **Rooted Bond** | Uncommon | moving a bonded Warden **no longer resets** its bond (selling still does) | the maze | — | Grove |
+| 129 | **Rooted Bond** | Uncommon | if you **sell a bonded Warden and plant a new kin** of its partner (another branch of that family) within reach **during the same rest**, the bond **keeps its stage** | the maze: rebuild without losing progress | — | Grove |
 | 130 | **Extended Family** | Rare | each Warden can be in **2 Kinships** (with two different kin) | placement | a Kinship on the map | Grove |
 | 131 | **Kin and Kindling** | Rare, **Entwined** (any Kinship on the map + any Reaction card) | Harmony strikes also apply **both Wardens' statuses** (1 stack each) to the nightmare | the bridge to Reactions | — | Grove |
 | 132 | **Grove of Kin** | Legendary | every Kinship on the map gives **all Wardens +3% damage** (max +30%) | the capstone | 2 Kinships on the map | Grove |

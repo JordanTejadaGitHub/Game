@@ -407,7 +407,8 @@ going **deep** in one. The two are kept visibly different:
 from the other** ("they teach each other"), so one Kinship explains them all. Each Warden is in at
 most one Kinship; if several kin are in reach, it bonds with the nearest.
 
-**The bond grows** the longer the pair stands together (moving or selling either resets it;
+**The bond grows** the longer the pair stands together (Wardens can't be moved, so **selling
+either one** resets it, unless the *Rooted Bond* card is owned;
 evolving keeps it):
 
 | Stage | When | Borrowed traits | Look |
