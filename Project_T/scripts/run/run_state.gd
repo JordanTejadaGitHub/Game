@@ -18,6 +18,9 @@ signal run_ended(won: bool)
 @export var starting_dew: int = 60  # run_design.md "Opening rule": enough Sprouts for drift 1
 @export var starting_leaves: int = 15  # Difficulty pass v1: was 20
 @export var max_leaves: int = 15
+# Dispel Dew by act (economy pass v2, run_design.md): acts 1–4.
+@export var act_dew_multipliers: Array[float] = [1.0, 0.8, 0.65, 0.5]
+var _dispel_dew_carry := 0.0
 
 var dew: int
 var leaves: int
@@ -168,7 +171,18 @@ func end_run(did_win: bool) -> void:
 
 func _on_enemy_cleansed(enemy: Node2D) -> void:
 	creatures_cleansed += 1
-	earn_dew_at(enemy.get_dew_reward(), enemy.global_position)
+	earn_dew_at(_scaled_dispel_dew(enemy.get_dew_reward()), enemy.global_position)
+
+# Economy pass v2 (run_design.md): dispel Dew × act_dew_multipliers for the current act, with the
+# fraction carried to the next dispel so small rewards aren't rounded away.
+func _scaled_dispel_dew(dew: int) -> int:
+	var director := get_node_or_null("%DriftDirector") as DriftDirector
+	var act := director.get_act(maxi(director.drifts_started, 1)) if director else 1
+	var multiplier: float = act_dew_multipliers[clampi(act - 1, 0, act_dew_multipliers.size() - 1)]
+	_dispel_dew_carry += dew * multiplier
+	var paid := floori(_dispel_dew_carry + 0.0001)
+	_dispel_dew_carry -= paid
+	return paid
 
 func _on_enemy_reached_goal(enemy: Node2D) -> void:
 	lose_leaves(enemy.get_leaf_cost())
