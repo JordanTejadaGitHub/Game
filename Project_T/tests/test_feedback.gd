@@ -91,10 +91,14 @@ func _run() -> void:
 	whispers.enabled = true
 	whispers._seen = []
 	whispers.set_process(false)
+	whispers._queue.clear()
+	var shown := []
+	whispers.whispered.connect(func(id: StringName) -> void: shown.append(id))
 	var tracker := ReactionTracker.find(main)
 	tracker.record(&"thunderclap", shade, 1, [storm])
 	tracker.record(&"thunderclap", shade, 3, [storm])
 	_check(whispers._queue.has(&"chain"), "the first chain ever whispers what a chain is")
+	_check(shown == [&"chain"], "whispered fires when it's shown (%s)" % [shown])
 	whispers.set_enabled(false)
 	_check(feedback._card.visible and feedback._card_label.text.begins_with("Combo discovered: Set Off"),
 		"the first Set Off shows a discovery card (%s)" % feedback._card_label.text)
