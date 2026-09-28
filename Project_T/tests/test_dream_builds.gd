@@ -31,6 +31,7 @@ func _run() -> void:
 	_test_grove_cards()
 	_test_clear_tool()
 	_test_new_forms()
+	_test_ascended()
 	print("dream builds test: %s" % ("PASS" if failures == 0 else "%d FAILED" % failures))
 	quit(failures)
 
@@ -503,6 +504,42 @@ func _test_new_forms() -> void:
 	var pebbling_tree: Array = trees.filter(func(t: Array) -> bool: return t[0].get_id() == "pebbling")
 	_check(not pebbling_tree.is_empty() and pebbling_tree[0][1].any(func(b: Array) -> bool:
 		return b[0] == mossback and b[1].has(boulderback)), "Remember shows Pebbling → Mossback → Boulderback")
+
+# Ascended forms: tier 4 above the finals, 3 Dreamlight, from drift 51, needs a final form and the
+# Grove's Ascension node. A stand-in form is hung off Thunderhead for the test.
+func _test_ascended() -> void:
+	_reset()
+	var director: DriftDirector = main.get_node("%DriftDirector")
+	var thunderhead: TowerData = load("res://resource/tower/thunderhead.tres")
+	var stormheart := TowerData.new()
+	stormheart.id = "test_stormheart"
+	stormheart.display_name = "Stormheart"
+	stormheart.tier = 4
+	stormheart.buildable_directly = false
+	thunderhead.evolves_to.append(stormheart)
+	var card := UpgradeData.new()
+	card.id = "dream_test_stormheart"
+	card.kind = UpgradeData.Kind.UNLOCK_EVOLUTION
+	card.unlocks = stormheart
+	card.in_start_pool = false
+	dreams.pool.append(card)
+	dreams.unlocked["firefly_jar"] = true
+	dreams.dreamlight = 5
+	director.drifts_started = 40
+	_check(dreams.get_unlock_cost(stormheart) == 3, "Ascended: 3 Dreamlight")
+	_check(dreams.get_unlock_blocker(stormheart) == "from drift 51", "not before drift 51")
+	director.drifts_started = 50
+	_check(dreams.get_unlock_blocker(stormheart) == "needs a final form", "needs a final form of the family")
+	dreams.unlocked["thunderhead"] = true
+	_check(dreams.get_unlock_blocker(stormheart) == "Memory Grove", "needs the Grove's Ascension node")
+	dreams.grove_cards.assign(["dream_test_stormheart"])
+	_check(dreams.can_unlock(stormheart), "unlockable at the rest before drift 51")
+	var tree: Array = dreams.get_remember_trees().filter(func(t: Array) -> bool: return t[0].get_id() == "firefly_jar")
+	_check(not tree.is_empty() and tree[0][2] == stormheart, "Remember shows it as the family's Ascended row")
+	_check(dreams.unlock_with_dreamlight(stormheart) and dreams.dreamlight == 2, "unlocking spends 3")
+	thunderhead.evolves_to.erase(stormheart)
+	dreams.pool.erase(card)
+	director.drifts_started = 0
 
 func _click() -> InputEventAction:
 	var click := InputEventAction.new()

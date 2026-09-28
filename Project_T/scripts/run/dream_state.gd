@@ -62,6 +62,10 @@ const FIRST_PICK_DREAMLIGHT := 1
 const BOSS_DREAMLIGHT := 3
 const BRANCH_DREAMLIGHT := 1  # Branch, hidden branch, wall growth
 const FINAL_DREAMLIGHT := 2  # Final form (needs its branch)
+# Ascended forms (tower_design.md): tier 4, grown from any of the family's final forms.
+const ASCENDED_TIER := 4
+const ASCENDED_DREAMLIGHT := 3
+const ASCENDED_FROM_DRIFT := 51  # Unlockable from the rest before drift 51
 const SHARDS_PER_DREAMLIGHT := 10  # Great Dreamcatcher: shards from Caught nightmares
 const SHARD_DREAMLIGHT_MAX := 2  # Per run
 const NURSERY_RANK := 2  # Seedling Gift Sprouts with Nursery
@@ -228,14 +232,22 @@ func add_dreamlight_shard() -> void:
 func get_unlock_cost(data: TowerData) -> int:
 	if is_unlocked(data.get_id()):
 		return 0
+	if data.tier >= ASCENDED_TIER:
+		return ASCENDED_DREAMLIGHT
 	return FINAL_DREAMLIGHT if data.tier >= 3 else BRANCH_DREAMLIGHT
 
 # Why `data` can't be unlocked yet ("" = it can, given enough Dreamlight): its parent form isn't
-# unlocked, or it's a hidden branch the Memory Grove hasn't opened.
+# unlocked, or it's a hidden branch the Memory Grove hasn't opened. Ascended forms: from drift 51,
+# once the family has any final form, and with the Grove's Ascension node.
 func get_unlock_blocker(data: TowerData) -> String:
 	if data.buildable_directly:
 		return "family pick"  # Base families (and Memory Wardens) aren't bought with Dreamlight
-	var parent := get_parent_form(data)
+	if data.tier >= ASCENDED_TIER:
+		if drift_director.drifts_started + 1 < ASCENDED_FROM_DRIFT:
+			return "from drift %d" % ASCENDED_FROM_DRIFT
+		if not _has_unlocked_final(data):
+			return "needs a final form"
+	var parent := get_parent_form(data) if data.tier < ASCENDED_TIER else null
 	if parent != null and not is_unlocked(parent.get_id()):
 		return "needs %s" % parent.display_name
 	var card := _unlock_card_for(data)
@@ -298,13 +310,28 @@ func get_remember_trees() -> Array:
 		if not (is_family or is_wall) or root.evolves_to.is_empty():
 			continue
 		var branches := []
+		var ascended: TowerData = null
 		for branch in root.evolves_to:
 			var finals := []
 			for final in branch.evolves_to:
 				finals.append(final)
+				for next in final.evolves_to:
+					if next.tier >= ASCENDED_TIER:
+						ascended = next
 			branches.append([branch, finals])
-		trees.append([root, branches])
+		trees.append([root, branches, ascended])  # ascended: the family's Ascended form, or null
 	return trees
+
+# Whether any final form that grows into Ascended `data` is unlocked this run.
+func _has_unlocked_final(data: TowerData) -> bool:
+	var forms := _roster().duplicate()
+	for card in pool:
+		if card.unlocks != null:
+			forms.append(card.unlocks)
+	for form in forms:
+		if form.tier == 3 and form.evolves_to.has(data) and is_unlocked(form.get_id()):
+			return true
+	return false
 
 # `data`'s evolutions this run: [[TowerData, available: bool], ...].
 func get_evolutions(data: TowerData) -> Array:

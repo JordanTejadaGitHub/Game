@@ -95,9 +95,11 @@ func _rebuild() -> void:
 		none.text = "No family to remember yet."
 		_trees.add_child(none)
 	for tree in trees:
-		_trees.add_child(_make_tree(tree[0], tree[1]))
+		_trees.add_child(_make_tree(tree[0], tree[1], tree[2] if tree.size() > 2 else null))
 
-func _make_tree(root: TowerData, branches: Array) -> Control:
+# A family's column: its name, its Ascended form (endgame, above everything), then each branch
+# with its final forms.
+func _make_tree(root: TowerData, branches: Array, ascended: TowerData = null) -> Control:
 	var panel := PanelContainer.new()
 	var style := StyleBoxFlat.new()
 	style.bg_color = Color(0.1, 0.1, 0.16, 0.95)
@@ -112,6 +114,11 @@ func _make_tree(root: TowerData, branches: Array) -> Control:
 	name_label.text = root.display_name
 	name_label.add_theme_font_size_override("font_size", 20)
 	column.add_child(name_label)
+	if ascended != null:
+		var row := _make_form(ascended, 0)
+		row.text = "★ " + row.text  # Ascended: the family's endgame Warden
+		column.add_child(row)
+		column.add_child(HSeparator.new())
 	for branch in branches:
 		column.add_child(_make_form(branch[0], 0))
 		for final in branch[1]:
