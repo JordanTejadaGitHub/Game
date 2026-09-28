@@ -1,0 +1,34 @@
+[gd_resource type="Resource" script_class="TowerData" load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://resource/tower/script/tower_data.gd" id="1_tdata"]
+[ext_resource type="Texture2D" path="res://assets/towers/ascended/world_root.png" id="art_idle"]
+[ext_resource type="Texture2D" path="res://assets/towers/ascended/world_root_attack.png" id="art_attack"]
+[ext_resource type="Texture2D" path="res://assets/towers/ascended/root_grasp.png" id="fx_1"]
+
+[resource]
+script = ExtResource("1_tdata")
+display_name = "World Root"
+description = "Every 5 seconds roots erupt, Holding everything in range for 1 s; Held nightmares take 30% more from every Warden."
+cost = 0
+line = "root"
+tier = 4
+buildable_directly = false
+evolve_cost = 400
+attack_kind = 1
+attack_range = 3.0
+damage = 150
+attacks_per_second = 0.2
+freeze_duration = 1.0
+freeze_needs = &""
+freeze_cooldown = 0.0
+held_damage_bonus = 0.3
+crit_chance = 0.05
+texture = ExtResource("art_idle")
+frame_count = 8
+sprite_offset = Vector2(0, -24)
+attack_texture = ExtResource("art_attack")
+attack_frame_count = 6
+attack_release_frame = 2
+hit_effect_texture = ExtResource("fx_1")
+hit_effect_frames = 6
+hit_effect_anchor = Vector2(32, 44)

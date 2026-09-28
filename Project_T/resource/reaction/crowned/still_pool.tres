@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="ReactionData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/reaction/script/reaction_data.gd" id="1_rx"]
+
+[resource]
+script = ExtResource("1_rx")
+id = &"still_pool"
+display_name = "Still Pool"
+statuses = Array[StringName]([&"damp", &"drowsy", &"held"])
+description = "A Drown on a Held nightmare: it sinks, and a still pool stays on its tile for 5 s. Each nightmare entering it the first time sleeps 1 s (bosses are slowed 30% inside)."
+callout_color = Color(0.678, 0.761, 0.718, 1)
+effect = &"crowned_still_pool"
+effect_scale = 1.0
+cooldown = 1.5

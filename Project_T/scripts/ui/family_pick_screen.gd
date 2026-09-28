@@ -9,10 +9,10 @@ extends Control
 # every family. Pauses the game while open; "Peek at the map" minimises it. Cards show the statuses
 # the family applies and its two branches (screens_ui.md "Family pick"). Built in code.
 
+signal sapling_offered  # The Heartwood Sapling's card appears (once, after the drift 50 pick)
+
 const CARD_SIZE := Vector2(250, 300)
 const SAPLING_DRIFT := 50  # The act 2 boss: the Heartwood Sapling is offered after its family pick
-const STATUS_NAMES := {&"damp": "Damp", &"drowsy": "Drowsy", &"spored": "Spored", &"marked": "Marked",
-	&"static": "Static", &"held": "Held"}
 const TITLES := {
 	&"first": "The Heartwood stirs, and remembers an old friend…",
 	&"boss": "It's gone, and something I'd forgotten came back.",
@@ -171,6 +171,7 @@ func should_offer_sapling() -> bool:
 		and drift_director.drifts_started == SAPLING_DRIFT
 
 func _show_sapling() -> void:
+	sapling_offered.emit()  # For its own swell (SoundHooks; audio_direction.md)
 	var placer = %TowerPlacer
 	_title.text = "The Heartwood offers a seedling of itself"
 	for child in _cards.get_children():
@@ -290,8 +291,8 @@ func _make_card(data: TowerData) -> Button:
 static func get_status_text(data: TowerData) -> String:
 	var names: Array[String] = []
 	for status in [data.applies_status, data.extra_status]:
-		if status != &"" and not names.has(STATUS_NAMES.get(status, String(status).capitalize())):
-			names.append(STATUS_NAMES.get(status, String(status).capitalize()))
+		if status != &"" and not names.has(IconInfo.status_name(status)):
+			names.append(IconInfo.status_name(status))
 	return "Applies " + " and ".join(names) if not names.is_empty() else ""
 
 # The branches this family grows into in this run (up to 2), without hidden ones the Memory Grove
@@ -305,12 +306,7 @@ func get_branches(data: TowerData) -> Array[TowerData]:
 	return result
 
 func _frame(data: TowerData) -> Texture2D:
-	if data.texture == null:
-		return null
-	var atlas := AtlasTexture.new()
-	atlas.atlas = data.texture
-	atlas.region = data.get_frame_rect(0)
-	return atlas
+	return WardenIcon.make(data)
 
 # A Family Blessing: the same card shape, with a golden blessing border.
 func _make_blessing_card(card: UpgradeData) -> Button:

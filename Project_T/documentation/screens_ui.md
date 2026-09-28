@@ -164,6 +164,24 @@ each tier is clearly louder than the one below. Effects are in `assets/effects/`
   always apply in full; only visuals are capped.
 - **Rest report / results:** add Reactions triggered per type and the **longest chain**.
 
+## Stat and status icons
+
+Added 2026-09-27 (user request). **Every stat and every status has a pixel-art icon**, and **every
+icon explains itself**: hover on PC, tap on touch, a small tooltip in plain words.
+
+- **Status icons** (on nightmares, in panels, in the Codex): Damp, Drowsy, Spored, Marked, Static,
+  Held, Caught, Frozen, plus Deeply Blighted and Hidden. Distinct **shapes**, not just colours
+  (accessibility). Tooltip example: *"Damp: 10% slower. Lightning jumps further between Damp
+  nightmares."* (names may change, see below).
+- **Warden stat icons** (Warden panel, build tooltips, Dream cards): Damage, Attack speed, Range,
+  Crit chance, Crit damage, Potency, Rank, Focus (Power / Swift / Reach / Deep), Dew cost,
+  Dreamlight cost. Tooltip example: *"Attack speed: attacks per second."*
+- **Resource icons**: Dew, Dreamlight, Leaves, Seeds (already exist; get tooltips too).
+- **Combos get no icons** anywhere a player hasn't discovered them yet: callouts are words, locked
+  Codex entries are "???" (user decision: icons hint at the answer).
+- **Status names** are under review: keep the themed names with icons + tooltips (recommended),
+  maybe renaming Static → Charged and Damp → Soaked; or switch to generic names.
+
 ## The Codex: Glossary and Combos
 
 Added 2026-09-27 (user request). One **Codex** book, opened from the pause menu, the title screen
@@ -178,13 +196,14 @@ one-line definition, a small icon, and "see also" links. Terms in tooltips, card
 
 | Group | Terms |
 |---|---|
-| **Resources** | Dew, Dreamlight, Leaves, Seeds |
+| **Resources** | Dew, Dreamlight, Dreamlight shard, Leaves, Seeds, The thinning dream (Dew per nightmare falls each act) |
 | **The run** | Drift, Block, Rest, Act, Boss, Family pick, Family Blessing, Dream, Omen, Call early, Auto-drift, Remember screen |
-| **Wardens** | Warden, Family, Branch, Final form, Hidden branch, Memory Warden, Grow (evolve), Nurture, Rank, Focus (Power / Swift / Reach / Deep), Thornwall and wall growths, Crit, Potency, Clear tool / Tend |
+| **Combos** | Reaction, Crowned Reaction, **Chain** (Reactions setting each other off within 1 s; shown "Chain 5", never "×5"; not a damage multiplier), Dawnburst (a Chain 10) |
+| **Wardens** | Warden, Family, Branch, Final form, Hidden branch, **Ascended** (a family's endgame Warden, from drift 51), Memory Warden, **Heartwood Sapling** (the 2×2 economy offshoot, from drift 51), **Rooted** (can't be sold or moved), Grow (evolve), Nurture, Rank, Focus (Power / Swift / Reach / Deep), Thornwall and wall growths, Crit, Potency, Clear tool / Tend |
 | **Nightmares** | Nightmare, Dispel, Deeply Blighted (elite), Resists / Weak to (families), Dread shell, Hidden (Lurkers), Flying |
 | **Statuses** | Damp, Drowsy, Spored, Marked, Static, Held, Caught, Frozen |
-| **Dreams** | Rarity, Deepened, Entwined, Bittersweet, Legendary, Let it pass, Reroll, Banish |
-| **The Memory Grove** | Memory Grove, Memories, Loadout, Blight Levels, Milestones |
+| **Dreams** | Rarity, Deepened, Entwined, **Woven** (a three-ingredient Legendary for a Crowned Reaction), Bittersweet, Legendary, Let it pass, Reroll, Banish |
+| **The Memory Grove** | Memory Grove, Memories, Loadout (waystones), **Ascension** (the Grove node that lets a family ascend), Blight Levels, Milestones |
 
 Boss names and late nightmares only show once met, to avoid spoilers (the rest is always visible).
 
@@ -192,8 +211,8 @@ Boss names and late nightmares only show once met, to avoid spoilers (the rest i
 
 Every combo starts **locked** and is **discovered the first time it actually fires** in a run.
 
-- **Locked entry:** a dark card with *"???"* and the **two ingredient status icons** as a hint
-  (e.g. Damp + Static), so players know what to try without being told the answer.
+- **Locked entry:** a dark card with just *"???"*: **no ingredient icons or hints** (user decision
+  2026-09-27: icons gave the combos away). Players find combos by experimenting.
 - **Discovery:** the first time a combo fires, a card **slides in at the top of the screen for ~5
   seconds** (the game doesn't pause): *"Combo discovered: Thunderclap"*, the two ingredients, one
   line on what it does, and *"Added to the Codex."* A short chime (distinct from the dispel). If
@@ -232,7 +251,7 @@ Every combo starts **locked** and is **discovered the first time it actually fir
 | Crowned | **Fairy Circle** | Mushrooming + Held | a ring of mushrooms that spores and soaks the next walkers |
 
 **Crowned entries** (added 2026-09-27, `tower_design.md` "Crowned Reactions"): locked ones show
-*"???"* with the **three family icons** (not status icons) as the hint, and a gold crown frame.
+*"???"* in a gold crown frame, **with no hint icons** (same rule as the combos).
 As built (57a551e): they live in **their own hidden Codex section**, separate from the 15 combos
 (which keep their own counter), with their own first-ever discovery card in the gold tier accent.
 Full game only (they can't happen in the demo).

@@ -17,10 +17,30 @@ var counts := {}  # Reaction id -> times it fired this run
 var longest_chain := 0
 # > 0 while an echo (Echo Hollow) is going off: Hollows don't echo echoes (Encore: once more).
 var echo_depth := 0
+# Carried Storm: where Reactions went off in the last moment ({id, at, time, applier}).
+var recent_spots: Array = []
+var _clock := 0.0
 
 func _ready() -> void:
 	add_to_group(GROUP)
 	Fx.reset_run()  # A new run's first Reaction: fresh longest chain and settings
+
+func _process(delta: float) -> void:
+	_clock += delta
+
+# Remembers where Reaction `id` went off (a Samara seed passing through within the window carries it).
+func note_spot(id: StringName, at: Vector2, applier: Node) -> void:
+	recent_spots = recent_spots.filter(func(r: Dictionary) -> bool:
+		return _clock - r.time <= Reactions.CARRIED_WINDOW)
+	recent_spots.append({"id": id, "at": at, "time": _clock, "applier": applier})
+
+# The newest Reaction within `reach` pixels of `at` in the last CARRIED_WINDOW seconds, or {}.
+func spot_near(at: Vector2, reach: float) -> Dictionary:
+	for i in range(recent_spots.size() - 1, -1, -1):
+		var r: Dictionary = recent_spots[i]
+		if _clock - r.time <= Reactions.CARRIED_WINDOW and r.at.distance_to(at) <= reach:
+			return r
+	return {}
 
 func record(id: StringName, enemy: Node2D, chain: int, towers: Array) -> void:
 	counts[id] = counts.get(id, 0) + 1

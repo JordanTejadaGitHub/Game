@@ -34,6 +34,15 @@ const REACTIONS := {
 	&"pinned": [&"pinned", "Pinned!"],
 	&"smother": [&"smother", "Smother!"],
 	&"lightning_rod": [&"lightning_rod", "Lightning Rod!"],
+	# Crowned Reactions: gold tier, a crown on the callout.
+	&"tempest": [&"crowned_tempest", "Tempest!"],
+	&"still_pool": [&"crowned_still_pool", "Still Pool!"],
+	&"fever_dream": [&"crowned_fever_dream", "Fever Dream!"],
+	&"starfall": [&"crowned_starfall", "Starfall!"],
+	&"avalanche": [&"crowned_avalanche", "Avalanche!"],
+	&"prismstorm": [&"crowned_prismstorm", "Prismstorm!"],
+	&"nightbloom": [&"crowned_nightbloom", "Nightbloom!"],
+	&"fairy_circle": [&"crowned_fairy_circle", "Fairy Circle!"],
 }
 # Sheets that peak small in their frame: shown bigger (screens_ui.md "Size check").
 const DEFAULT_SCALE := {&"thunderclap": 1.5, &"thunderclap_lite": 1.5, &"ignite": 1.5, &"ignite_lite": 1.5,
@@ -160,6 +169,8 @@ static func reaction(reaction: StringName, at: Vector2, parent: Node, towers: Ar
 	var colour := Color(info(effect).get("callout", "#fff0c0"))
 	if row[1] != "":
 		callout(row[1], colour, at, parent, reaction)
+		if String(effect).begins_with("crowned_"):
+			play(&"crowned_crown", at + Vector2(0, -34), parent)  # The crown mark over the callout
 	for tower in towers:
 		if tower is Node2D and is_instance_valid(tower):
 			segment(&"light_thread", tower.global_position, at, parent, THREAD_SECONDS)
@@ -201,7 +212,8 @@ static func chain(count: int, where: Vector2, parent: Node, towers: Array = []) 
 		_badge.queue_free()
 	var badge_entry := info(&"chain_badge")
 	if not badge_entry.is_empty():
-		_badge = FxBadge.new(badge_entry, texture(&"chain_badge"), info(&"chain_digits"), texture(&"chain_digits"), count)
+		var link := StringName(info(&"chain_link").get("bright", "chain_link")) if count >= 5 else &"chain_link"
+		_badge = FxBadge.new(badge_entry, texture(&"chain_badge"), info(link), texture(link), count)
 		parent.add_child(_badge)
 		_badge.global_position = where + BADGE_OFFSET
 	if count == 5 or count == 10:
@@ -416,25 +428,30 @@ class FxCallout extends Node2D:
 # The chain badge: pops in, shows "x" + the count in its window, holds, then fades.
 class FxBadge extends Node2D:
 	const HOLD := 0.9
+	const TEXT_SIZE := 8  # Drawn at 2× (the badge is scaled up)
+	const LINK_SIZE := Vector2(16, 16)  # Room for the icon (its sheet is 16×16 frames)
 	var _tex: Texture2D
 	var _size: Vector2
 	var _frames: int
 	var _fps: float
-	var _digits: Texture2D
-	var _glyph: Vector2
-	var _glyphs: String
+	var _link: Texture2D  # The chain-link icon (bright from Chain 5), a looping glint
+	var _link_size: Vector2
+	var _link_frames: int
+	var _link_fps: float
 	var _text: String
 	var _age := 0.0
 
-	func _init(entry: Dictionary, tex: Texture2D, digit_entry: Dictionary, digits: Texture2D, count: int) -> void:
+	func _init(entry: Dictionary, tex: Texture2D, link_entry: Dictionary, link: Texture2D, count: int) -> void:
 		_tex = tex
 		_size = Vector2(entry.frame_size[0], entry.frame_size[1])
 		_frames = maxi(int(entry.frames), 1)
 		_fps = maxf(float(entry.fps), 1.0)
-		_digits = digits
-		_glyph = Vector2(digit_entry.get("frame_size", [8, 12])[0], digit_entry.get("frame_size", [8, 12])[1])
-		_glyphs = digit_entry.get("glyphs", "x0123456789")
-		_text = "x" + str(count)
+		_link = link
+		var frame_size: Array = link_entry.get("frame_size", [16, 16])
+		_link_size = Vector2(frame_size[0], frame_size[1])
+		_link_frames = maxi(int(link_entry.get("frames", 1)), 1)
+		_link_fps = maxf(float(link_entry.get("fps", 8.0)), 1.0)
+		_text = "Chain %d" % count  # Never "×N": × means a damage multiplier elsewhere (crit ×2)
 		z_index = Fx.Z + 3
 		texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 		scale = Vector2(2, 2)
@@ -450,14 +467,32 @@ class FxBadge extends Node2D:
 		var frame := mini(int(_age * _fps), _frames - 1)
 		var alpha := clampf((HOLD + 0.3 - _age) / 0.3, 0.0, 1.0)
 		var tint := Color(1, 1, 1, alpha)
-		draw_texture_rect_region(_tex, Rect2(-_size / 2.0, _size), Rect2(_size.x * frame, 0, _size.x, _size.y), tint)
-		if frame < 2 or _digits == null:
-			return  # Digits appear once the badge has popped open
-		var advance := 7.0
-		var x := -advance * _text.length() / 2.0 - 0.5
-		for ch in _text:
-			var index := _glyphs.find(ch)
-			if index >= 0:
-				draw_texture_rect_region(_digits, Rect2(Vector2(x, -_glyph.y / 2.0 + 1), _glyph),
-					Rect2(_glyph.x * index, 0, _glyph.x, _glyph.y), tint)
-			x += advance
+		# The badge stretches to fit "Chain N" and its link icon.
+		var font := ThemeDB.fallback_font
+		var text_width := font.get_string_size(_text, HORIZONTAL_ALIGNMENT_LEFT, -1, TEXT_SIZE).x
+		var content := LINK_SIZE.x + 2.0 + text_width
+		var width := maxf(_size.x, content + 10.0)
+		draw_texture_rect_region(_tex, Rect2(Vector2(-width / 2.0, -_size.y / 2.0), Vector2(width, _size.y)),
+			Rect2(_size.x * frame, 0, _size.x, _size.y), tint)
+		if frame < 2:
+			return  # The words appear once the badge has popped open
+		var x := -content / 2.0
+		_draw_link(Vector2(x + LINK_SIZE.x / 2.0, 0.0), tint)
+		var baseline := font.get_ascent(TEXT_SIZE) / 2.0 - 1.0
+		draw_string_outline(font, Vector2(x + LINK_SIZE.x + 2.0, baseline), _text, HORIZONTAL_ALIGNMENT_LEFT, -1,
+			TEXT_SIZE, 2, Color(0.1, 0.07, 0.04, alpha))
+		draw_string(font, Vector2(x + LINK_SIZE.x + 2.0, baseline), _text, HORIZONTAL_ALIGNMENT_LEFT, -1, TEXT_SIZE,
+			Color(1.0, 0.93, 0.7, alpha))
+
+	# The chain-link icon (chain_link / chain_link_bright), centred on `at`; drawn links if the art is missing.
+	func _draw_link(at: Vector2, tint: Color) -> void:
+		if _link != null:
+			var frame := int(_age * _link_fps) % _link_frames
+			draw_texture_rect_region(_link, Rect2(at - _link_size / 2.0, _link_size),
+				Rect2(_link_size.x * frame, 0, _link_size.x, _link_size.y), tint)
+			return
+		var colour := Color(1.0, 0.85, 0.45, tint.a)
+		for offset in [Vector2(-1.5, 1.0), Vector2(1.5, -1.0)]:
+			draw_set_transform(at + offset, -0.6, Vector2(1.0, 0.55))
+			draw_arc(Vector2.ZERO, 3.0, 0.0, TAU, 12, colour, 1.2)
+		draw_set_transform(Vector2.ZERO)

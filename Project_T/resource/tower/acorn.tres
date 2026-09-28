@@ -1,9 +1,11 @@
-[gd_resource type="Resource" script_class="TowerData" load_steps=5 format=3]
+[gd_resource type="Resource" script_class="TowerData" load_steps=7 format=3]
 
 [ext_resource type="Script" path="res://resource/tower/script/tower_data.gd" id="1_tdata"]
 [ext_resource type="Texture2D" path="res://assets/towers/acorn.png" id="2_tex"]
 [ext_resource type="Texture2D" path="res://assets/towers/acorn_attack.png" id="4_atk"]
 [ext_resource type="Resource" path="res://resource/tower/graftling.tres" id="ev_1"]
+[ext_resource type="Resource" path="res://resource/tower/elder_stump.tres" id="ev_es"]
+[ext_resource type="Resource" path="res://resource/tower/dewcatcher.tres" id="ev_dc"]
 
 [resource]
 script = ExtResource("1_tdata")
@@ -23,4 +25,6 @@ description = "A little oak that damages everything around it."
 line = "acorn"
 tier = 1
 evolve_cost = 15
-evolves_to = Array[Resource]([ExtResource("ev_1")])
+evolves_to = Array[Resource]([ExtResource("ev_es"), ExtResource("ev_dc"), ExtResource("ev_1")])
+aura_damage_bonus = 0.05
+aura_radius = 1.5

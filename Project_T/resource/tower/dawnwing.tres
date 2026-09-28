@@ -1,0 +1,35 @@
+[gd_resource type="Resource" script_class="TowerData" load_steps=6 format=3]
+
+[ext_resource type="Script" path="res://resource/tower/script/tower_data.gd" id="1_tdata"]
+[ext_resource type="Texture2D" path="res://assets/towers/ascended/dawnwing.png" id="art_idle"]
+[ext_resource type="Texture2D" path="res://assets/towers/ascended/dawnwing_attack.png" id="art_attack"]
+[ext_resource type="Texture2D" path="res://assets/towers/ascended/dawnwing_bird.png" id="fx_1"]
+[ext_resource type="Texture2D" path="res://assets/towers/ascended/dawnwing_empty.png" id="fx_2"]
+
+[resource]
+script = ExtResource("1_tdata")
+display_name = "Dawnwing"
+description = "A great bird patrols the path in its range, striking every nightmare it passes; it flies faster the more nightmares there are."
+cost = 0
+line = "wing"
+tier = 4
+buildable_directly = false
+evolve_cost = 400
+attack_kind = 16
+attack_range = 5.0
+damage = 75
+attacks_per_second = 1.0
+patrol_speed = 180.0
+patrol_speed_per_nightmare = 0.1
+patrol_speed_max = 2.5
+crit_chance = 0.15
+texture = ExtResource("art_idle")
+frame_count = 8
+sprite_offset = Vector2(0, -24)
+attack_texture = ExtResource("art_attack")
+attack_frame_count = 6
+attack_release_frame = 2
+patrol_texture = ExtResource("fx_1")
+patrol_frames = 8
+patrol_anchor = Vector2(32, 32)
+patrol_idle_texture = ExtResource("fx_2")

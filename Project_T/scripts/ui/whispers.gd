@@ -19,6 +19,7 @@ const TEXT := {
 	&"grow": "This Sprout could grow.",
 	&"dead_wood": "Dead wood. I can't move it… yet.",
 	&"tend": "Tend the forest, and it will remember you.",
+	&"chain": "One reaction set off another: a chain. Reach 10 for a Dawnburst.",
 	&"leaf": "It fed. A leaf blackens and falls.",
 	&"sell": "Selling gives everything back during a rest, and half while nightmares walk.",
 	&"boss": "Something old has found the dream.",
@@ -68,6 +69,11 @@ func _ready() -> void:
 	obstacle_clearer.lock_changed.connect(func(locked: bool) -> void:
 		if not locked:
 			whisper(&"tend"))
+	# The first chain ever (tower_design.md "Chains"). ReactionTracker joins the run with the first
+	# Reaction, so catch it when it arrives.
+	owner.child_entered_tree.connect(func(node: Node) -> void:
+		if node is ReactionTracker:
+			node.chain_reached.connect(func(_count: int, _where: Vector2, _towers: Array) -> void: whisper(&"chain")))
 	if not enabled:
 		set_process(false)
 		return

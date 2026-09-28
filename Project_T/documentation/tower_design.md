@@ -63,7 +63,7 @@ Ascended Warden is the family's final word: a huge, unique presence that anchors
 | Bellflower | **The Great Bell** | every 6 s it tolls (range 5): full Drowsy on everything (bosses: 3), and every Static charge in range goes off |
 | Acorn | **Grandmother Oak** | aura radius 3: Wardens +40% damage and +20% attack speed; +10 Dew per drift |
 | Nestling | **Dawnwing** | a great bird circles a long stretch of the path, striking everything it passes; faster the more nightmares there are |
-| Whirligig | **The Tempest** | a slow cyclone drifts along the path, carrying every status it touches to every nightmare it passes |
+| Whirligig | **The Whirlwind** | a slow cyclone drifts along the path, carrying every status it touches to every nightmare it passes |
 
 Art: large (a 64 px base with the spirit rising above it, like the bosses' scale), a unique idle
 glow; one per family.
@@ -320,10 +320,14 @@ Thunderclaps), Ignite spreads spores onto charged ones (more Ignites), Mushroomi
 Spored into Damp crowds. When a Reaction is caused by another within **1 s**, or a different
 Reaction hits the same nightmare within 1 s, it's a **chain**:
 
-- **Chain badge** over the latest Reaction: *×2, ×3, ×4…* with a rising chime (`chain_badge`,
-  `chain_digits`).
-- **×5**: a short hitstop and a warm colour surge over the screen (`surge`).
-- **×10: Dawnburst.** A big radial flare (`dawnburst`), every Warden that took part flares, every
+- **Chain badge** over the latest Reaction: *"Chain 2", "Chain 3"…* with a small chain-link icon and
+  a rising chime (`chain_badge`, `chain_digits`). **Never "×N"**: "×" means a damage multiplier
+  everywhere else (crit ×2, Pinned ×3), and a playtest read "×5" as five times the damage. A chain
+  count is a celebration, not a multiplier; only the *Dawnbreak* card turns it into damage.
+- **First chain ever:** a one-time whisper, *"One reaction set off another: a chain. Reach 10 for a
+  Dawnburst."*, and the Codex entry "Chain" unlocks its details.
+- **Chain 5**: a short hitstop and a warm colour surge over the screen (`surge`).
+- **Chain 10: Dawnburst.** A big radial flare (`dawnburst`), every Warden that took part flares, every
   nightmare dispelled in the chain cracks with extra light, and a short music stinger. This is the
   screenshot and trailer moment.
 - Chains are tracked per run (longest chain, shown on the results screen).
@@ -363,7 +367,7 @@ three families are reachable with 4 per run.
 
 | Rule | Family | What happens | Effect |
 |---|---|---|---|
-| **Grafted Harmony** | Acorn (Graftling) | a Graftling touching Wardens of **two different status families** applies both statuses at half strength, so it's a Reaction source by itself. A placement puzzle, since Wardens are walls | `grafted_harmony` (two-colour glow on the Graftling) |
+| **Grafted Harmony** | Acorn (Graftling) | a Graftling touching Wardens of **two different status families** applies both statuses at half strength, so it's a Reaction source by itself. A placement puzzle, since Wardens are walls | `grafted_harmony_a` + `_b` (left and right halves of a glow, each tinted with one status colour) |
 | **Storm Front** | Whirligig (Gust) | when a status Gust copied completes a Reaction on its new host, that Reaction **counts as a chain link and reaches one tile further** | `storm_front` (a wind swirl wrapped around the Reaction) |
 | **Carried Storm** | Whirligig (Samara) | a Samara seed passing through a Reaction **carries it down the rest of its line**: the Reaction fires again (50%) on everything the seed hits after | `carried_storm` (the seed trails the Reaction's colour) |
 

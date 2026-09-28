@@ -72,6 +72,14 @@ var smothering := false  # Held + Spored right now (Spored ticks faster)
 var sleep_time := 0.0
 var sleep_extended := false  # Great Dreamcatcher's +1 s happened already
 var dreamshroom_slept := false  # Dreamshroom puts each nightmare to sleep once
+var held_bonus := 0.0  # World Root: +damage taken while Held (set when it Holds this nightmare)
+# Crowned Reactions (Reactions): the Tempest cap, Storm Front (a Gust just copied statuses here), a
+# Prismstorm Shatter about to throw its shards, and Smother having just ended (Fever Dream).
+var tempest_time := 0.0
+var gust_time := 0.0
+var prism_pending := false
+var smother_ended := false
+var marked_extra := 0.0  # Beacon: its Marked is stronger (+35% instead of +25%) until Marked ends
 # Caught (Dreamcatcher): asleep or at max Drowsy inside a Dreamcatcher's range; takes more damage.
 var caught_time := 0.0
 var caught_bonus := 0.0
@@ -231,7 +239,7 @@ func get_speed_multiplier() -> float:
 func get_damage_taken_multiplier() -> float:
 	var multiplier := 1.0
 	if has(MARKED):
-		multiplier += MARKED_EXTRA
+		multiplier += maxf(MARKED_EXTRA, marked_extra)
 	if is_in_stag_aura():
 		multiplier += STAG_EXTRA
 	# Caught multiplies with the rest (a Caught, Marked nightmare takes ×1.4 × ×1.25).
@@ -239,10 +247,15 @@ func get_damage_taken_multiplier() -> float:
 		multiplier *= 1.0 + caught_bonus
 	if cut_stacks > 0:
 		multiplier *= 1.0 + CUT_BONUS * cut_stacks
+	if held_bonus > 0.0 and is_held():
+		multiplier *= 1.0 + held_bonus  # World Root: Held nightmares take more from everything
 	return multiplier
 
 # Advances timers. Returns the Spored soothe to deal this frame (already fog-boosted).
 func tick(delta: float) -> float:
+	var was_smothering := smothering
+	tempest_time = maxf(tempest_time - delta, 0.0)
+	gust_time = maxf(gust_time - delta, 0.0)
 	_fog_time = maxf(_fog_time - delta, 0.0)
 	_stag_time = maxf(_stag_time - delta, 0.0)
 	chain_time = maxf(chain_time - delta, 0.0)
@@ -269,6 +282,7 @@ func tick(delta: float) -> float:
 	else:
 		_spore_timer = 0.0
 		smothering = false
+	smother_ended = was_smothering and not smothering
 
 	for id in _active.keys():
 		var status: Dictionary = _active[id]
@@ -280,4 +294,6 @@ func tick(delta: float) -> float:
 			status.time = STATIC_DECAY_TIME
 		else:
 			_active.erase(id)
+	if not has(MARKED):
+		marked_extra = 0.0
 	return spore_damage

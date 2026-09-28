@@ -144,7 +144,7 @@ func _test_echo() -> void:
 	_check(after_clap > 0, "a Thunderclap goes off next to the Hollow")
 	await _wait(1.2)
 	var echo := _lost(wet) - after_clap
-	var expected := int(Reactions.ECHO_DAMAGE[&"thunderclap"] * jar.get_damage() * 0.5)
+	var expected := int(Reactions.ECHO_DAMAGE[&"thunderclap"] * jar.get_damage() * 0.5 * hollow.get_potency())  # Echoes are effects: × Potency
 	_check(absi(echo - expected) <= 1, "1 s later it echoes at 50% (%d, expected %d)" % [echo, expected])
 	var tracker := main.get_tree().get_first_node_in_group(ReactionTracker.GROUP) as ReactionTracker
 	var claps: int = tracker.counts.get(&"thunderclap", 0)

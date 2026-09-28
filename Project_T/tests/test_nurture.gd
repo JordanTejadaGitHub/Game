@@ -1,6 +1,6 @@
 extends SceneTree
 
-# Headless test for Warden ranks (warden_stats.md "Nurture v2"): base costs 15/25/40/60/90 × the tier
+# Headless test for Warden ranks (warden_stats.md "Nurture v2"): base costs 25/40/60/90/135 × the tier
 # multiplier at purchase (Sprout ×0.5, base ×1, branch ×2, final ×3, Memory Warden ×2), +10% damage,
 # +4% attack speed, +0.1 range per rank, a Focus chosen at rank III (Power / Swift / Reach / Deep),
 # ranks and Focus kept through evolution, walls and auras can't be nurtured, status potency uses the
@@ -40,13 +40,13 @@ func _run() -> void:
 	var base_range := tower.get_range_cells()
 	var invested := tower.invested_dew
 
-	# A Sprout ranks at half price: I 8, II 13 (15 and 25 × 0.5, rounded).
+	# A Sprout ranks at half price: I 13, II 20 (25 and 40 × 0.5, rounded).
 	var dew := run_state.dew
-	_check(tower.get_nurture_cost() == 8, "Sprout rank I costs 15 × 0.5 = 8 (%d)" % tower.get_nurture_cost())
+	_check(tower.get_nurture_cost() == 13, "Sprout rank I costs 25 × 0.5 = 13 (%d)" % tower.get_nurture_cost())
 	placer.nurture(tower)
-	_check(tower.get_nurture_cost() == 13, "Sprout rank II costs 25 × 0.5 = 13")
+	_check(tower.get_nurture_cost() == 20, "Sprout rank II costs 40 × 0.5 = 20")
 	placer.nurture(tower)
-	_check(tower.rank == 2 and run_state.dew == dew - 21, "ranks I-II on a Sprout cost 21")
+	_check(tower.rank == 2 and run_state.dew == dew - 33, "ranks I-II on a Sprout cost 33")
 	_check(is_equal_approx(tower.get_damage(), base_damage * 1.2), "rank II: +20% damage")
 	_check(is_equal_approx(tower.get_attacks_per_second(), base_speed * 1.08), "rank II: +8% attack speed")
 	_check(is_equal_approx(tower.get_range_cells(), base_range + 0.2), "rank II: +0.2 range")
@@ -56,22 +56,22 @@ func _run() -> void:
 	_check(placer.nurture(tower, Tower.Focus.POWER) and tower.rank == 3 and tower.focus == Tower.Focus.POWER,
 		"rank III with the Power Focus")
 	_check(is_equal_approx(tower.get_damage(), base_damage * (1.0 + 0.3 + 0.08)), "rank III Power: +30% +8% damage")
-	_check(tower.invested_dew == invested + 8 + 13 + 20, "rank Dew counts as invested")
+	_check(tower.invested_dew == invested + 13 + 20 + 30, "rank Dew counts as invested")
 	_check(seller.get_refund(tower) == int(tower.invested_dew * seller.build_phase_refund),
 		"selling refunds rank Dew with the normal rules")
 	if "rank_dew_spent" in run_state:
-		_check(run_state.rank_dew_spent == 41, "RunState counts Dew spent on ranks")
+		_check(run_state.rank_dew_spent == 63, "RunState counts Dew spent on ranks")
 
 	# Ranks and Focus carry through evolution; costs follow the tier at purchase time.
 	placer.evolve(tower, sporeling_data)
 	_check(tower.tower_data == sporeling_data and tower.rank == 3 and tower.focus == Tower.Focus.POWER,
 		"a rank III Power Sprout grows into a rank III Power Sporeling")
 	_check(is_equal_approx(tower.get_damage(), sporeling_data.damage * 1.38), "with the rank's damage")
-	_check(tower.get_nurture_cost() == 60, "a base Warden's rank IV costs 60 × 1")
+	_check(tower.get_nurture_cost() == 90, "a base Warden's rank IV costs 90 × 1")
 	placer.nurture(tower)
 	_check(is_equal_approx(tower.get_damage(), sporeling_data.damage * (1.0 + 0.4 + 0.16)), "rank IV Power: +40% +16%")
 	placer.evolve(tower, driftspore_data)
-	_check(tower.get_nurture_cost() == 180, "a branch's rank V costs 90 × 2")
+	_check(tower.get_nurture_cost() == 270, "a branch's rank V costs 135 × 2")
 	var shade := _spawn(main, tower.global_position + Vector2(64, 0))
 	tower.hit(shade, 1.0, false, Tower.NO_CRIT)
 	_check(is_equal_approx(shade.statuses.potency(EnemyStatuses.SPORED), tower.get_damage() * Tower.SPORE_POTENCY),
@@ -79,14 +79,14 @@ func _run() -> void:
 	placer.nurture(tower)
 	_check(tower.rank == 5 and not tower.can_nurture() and not placer.nurture(tower), "rank V is the most")
 
-	# Deep: +10% status strength and duration per rank from III.
+	# Deep: +10% Potency (effect damage) and status duration per rank from III.
 	var deep := _build(placer, map_generator, sporeling_data)
 	deep.rank = 2
 	placer.nurture(deep, Tower.Focus.DEEP)
 	var soaked := _spawn(main, deep.global_position + Vector2(64, 0))
 	deep.hit(soaked, 1.0, false, Tower.NO_CRIT)
-	_check(is_equal_approx(soaked.statuses.potency(EnemyStatuses.SPORED), deep.get_damage() * Tower.SPORE_POTENCY * 1.1),
-		"Deep: +10% status strength at rank III")
+	_check(is_equal_approx(soaked.statuses.potency(EnemyStatuses.SPORED), deep.get_damage() * Tower.SPORE_POTENCY)
+		and is_equal_approx(deep.get_potency(), 1.1), "Deep: +10% Potency at rank III (the status keeps the plain strength)")
 	_check(is_equal_approx(soaked.statuses.time_left(EnemyStatuses.SPORED), EnemyStatuses.DEFAULT_DURATION[EnemyStatuses.SPORED] * 1.1),
 		"Deep: +10% status duration at rank III")
 
@@ -115,7 +115,7 @@ func _run() -> void:
 	var keeper: Tower = placer.tower_scene.instantiate()
 	keeper.tower_data = load("res://resource/tower/pond_keeper.tres")
 	container.add_child(keeper)
-	_check(keeper.get_nurture_cost() == 30, "a Memory Warden's rank I costs 15 × 2")
+	_check(keeper.get_nurture_cost() == 50, "a Memory Warden's rank I costs 25 × 2")
 	stag.queue_free()
 	keeper.queue_free()
 
@@ -124,11 +124,11 @@ func _run() -> void:
 	for i in 3:
 		group.append(_build(placer, map_generator, sprout_data))
 	seller.set_selection(group)
-	run_state.dew = 18  # Two of the three (8 each)
+	run_state.dew = 28  # Two of the three (13 each)
 	var plan: Array = seller.plan_nurture(group)
 	var nearest: Array = seller.sort_by_heartwood(group).slice(0, 2)
-	_check(plan[0].size() == 2 and plan[1] == 16, "can nurture 2 of 3 for 16 Dew")
-	_check(seller.full_nurture_cost(group) == [3, 24], "all three would cost 24")
+	_check(plan[0].size() == 2 and plan[1] == 26, "can nurture 2 of 3 for 26 Dew")
+	_check(seller.full_nurture_cost(group) == [3, 39], "all three would cost 39")
 	_check(seller.nurture_group(group) == 2 and run_state.dew == 2, "group Nurture raises 2 of 3")
 	_check(nearest.all(func(t: Tower) -> bool: return t.rank == 1), "the 2 nearest the Heartwood")
 

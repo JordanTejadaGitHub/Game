@@ -586,6 +586,11 @@ scales with the applier, as for Reactions. Each counts as **2 chain links**.
 | **Nightbloom** | Mushrooming's cloud (4 s) also keeps nightmares inside **unable to wake** (sleep and max Drowsy don't end while inside, and the Watcher's wake-up does nothing there) | bosses don't sleep; they keep max Drowsy while inside |
 | **Fairy Circle** | instead of one cloud: mushroom rings on the **path tiles among the 8 around** the nightmare, **6 s**; each ring tile gives the first walker **2 Spored + Damp** | same |
 
+**Priority when two crowns fit (as built, ae816ed):** Mushrooming on a nightmare that is both Held
+and at full Drowsy becomes **Fairy Circle** (not Nightbloom); a Shatter from a Cairn/Rockslide lob
+on a nightmare with Static becomes **Avalanche** (not Prismstorm). Fever Dream fires when Smother
+ends because the Held ran out, on a nightmare at full Drowsy.
+
 **Delivery rules**
 
 | Rule | Numbers |

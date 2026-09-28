@@ -13,6 +13,8 @@ const GLOSSARY := [
 		["Dreamlight", "Freed by great nightmares (bosses, the first family pick): unlocks branches and final forms on the Remember screen.", ["Remember screen", "Branch", "Final form"]],
 		["Leaves", "The Heartwood's life. A nightmare that reaches it takes leaves; lose them all and the dream goes dark.", ["Act"]],
 		["Seeds", "Earned every run, win or lose; spent in the Memory Grove between runs.", ["Memory Grove"]],
+		["Dreamlight shard", "Dreamcatchers gather shards from caught nightmares: 10 shards make 1 Dreamlight (at most 2 per run this way).", ["Dreamlight", "Caught"]],
+		["The thinning dream", "Each act, nightmares leave less Dew: all of it in act 1, then 80%, 65% and half.", ["Dew", "Act"]],
 	]],
 	["The run", [
 		["Drift", "A wave of nightmares. A run is 100 drifts in 4 acts.", ["Block", "Act"]],
@@ -43,6 +45,9 @@ const GLOSSARY := [
 		["Crit", "A critical hit: some Wardens sometimes hit much harder.", ["Pinned", "Potency"]],
 		["Potency", "Effect damage: scales status and spore damage and Reactions the way crit scales hits.", ["Crit", "Spored"]],
 		["Clear tool", "Tend withered trees and move boulders to reshape the maze. Opens with a clearing Dream.", ["Dew"]],
+		["Ascended", "A family's endgame Warden, from drift 51: 3 Dreamlight, then grown from a final form for 400 Dew. One per family per run.", ["Final form", "Ascension"]],
+		["Heartwood Sapling", "A 2×2 offshoot of the Heartwood from drift 51: it yields Dew every drift and Dreamlight every 10 drifts. Rooted.", ["Rooted", "Dreamlight"]],
+		["Rooted", "Can't be sold or moved.", ["Heartwood Sapling"]],
 	]],
 	["Nightmares", [
 		["Nightmare", "The Hollow's dreams turned cruel, hunting the Heartwood's dream. Dispel them before they reach it.", ["Dispel"]],
@@ -63,6 +68,13 @@ const GLOSSARY := [
 		["Caught", "Asleep or fully Drowsy near a Dreamcatcher: it takes extra damage from everything.", ["Drowsy", "Asleep"]],
 		["Frozen", "Frost stops it for a moment.", ["Damp"]],
 	]],
+	["Combos", [
+		["Reaction", "Two statuses meeting on one nightmare set off a named effect, like Thunderclap (Damp + Static).", ["Chain", "Crowned Reaction"]],
+		["Crowned Reaction", "A Reaction going off on a nightmare that already carries a third status: a bigger, named version.", ["Reaction", "Woven"]],
+		["Chain", "Reactions setting each other off within 1 s. Shown as Chain 5, not a damage multiplier; Chain 10 is a Dawnburst.", ["Reaction", "Dawnburst"]],
+		["Dawnburst", "A Chain 10: a flash of dawn over the whole fight. With the Dawnbreak Legendary it also takes a tenth of the health of every nightmare within 4 cells (bosses: 2%).", ["Chain", "Dawnbreak"]],
+		["Dawnbreak", "The Legendary Dream that gives a Dawnburst its bite (grown in the Memory Grove).", ["Dawnburst", "Legendary"]],
+	]],
 	["Dreams", [
 		["Rarity", "Common, Uncommon, Rare, Legendary: the shape and colour of a Dream card's gem.", ["Legendary"]],
 		["Deepened", "A stronger \"II\" version of a rule card you already own. It replaces the first.", ["Dream"]],
@@ -72,11 +84,13 @@ const GLOSSARY := [
 		["Let it pass", "Skip a Dream offer for a little Dew.", ["Dream"]],
 		["Reroll", "Redraw a Dream offer (a Memory Grove perk).", ["Loadout"]],
 		["Banish", "Remove a card from this run's pool (a Memory Grove perk).", ["Loadout"]],
+		["Woven", "A three-ingredient Legendary that strengthens a Crowned Reaction.", ["Crowned Reaction", "Entwined"]],
 	]],
 	["The Memory Grove", [
 		["Memory Grove", "The Heartwood's tree of lasting unlocks, grown with Seeds between runs.", ["Seeds", "Loadout"]],
 		["Memories", "The Hollow's story, told in ten Memories that ripen as the Grove grows.", ["Memory Grove"]],
-		["Loadout", "The perks you carry into a run, from those grown in the Grove.", ["Memory Grove"]],
+		["Loadout", "The perks you carry into a run, set on the waystones at the Heartwood's roots: one at first, up to five as the Grove grows.", ["Memory Grove"]],
+		["Ascension", "The Grove node that lets a family's Ascended Warden appear in runs.", ["Ascended", "Memory Grove"]],
 		["Blight Levels", "Harder runs for more Seeds, opened by your first win.", ["Seeds"]],
 		["Milestones", "Feats that unlock things for free (and are Steam achievements).", ["Memory Grove"]],
 	]],
@@ -94,13 +108,11 @@ const SYNERGIES := {
 	&"marked_blow": ["Marked Blow", [&"marked", &"marked"], "A heavy hit does double damage on Marked nightmares.", "Mossback, Boulderback"],
 	&"caught": ["Caught", [&"drowsy", &"drowsy"], "Asleep or full Drowsy near a Dreamcatcher: it takes extra damage from everything.", "Dreamcatcher"],
 }
-const STATUS_NAMES := {&"damp": "Damp", &"drowsy": "Drowsy", &"spored": "Spored", &"marked": "Marked",
-	&"static": "Static", &"held": "Held"}
 
 # Crowned Reactions (tower_design.md "Crowned Reactions: three families at once"): a Reaction going
 # off on a nightmare that already carries a third status. id -> [name, base Reaction, the third
 # status, its three families (Warden ids), what happens]. Hidden in the Codex until found (a
-# silhouette + the three family icons), not in the demo, and not part of the 15 combos' count.
+# gold crown frame, "???"), not in the demo, and not part of the 15 combos' count.
 const CROWNED := {
 	&"tempest": ["Tempest", &"thunderclap", &"spored", ["dewdrop", "firefly_jar", "sporeling"],
 		"Every arc also sets off Ignite on Spored nightmares, and the spores carry Static onto wet ones: new Thunderclaps follow."],
@@ -152,7 +164,7 @@ static func get_any(id: StringName) -> Dictionary:
 static func crowned_recipe(c: Dictionary) -> String:
 	var base := Reactions.get_data(c.base)
 	return "%s + %s" % [base.display_name if base else String(c.base).capitalize(),
-		STATUS_NAMES.get(c.statuses[-1], String(c.statuses[-1]))]
+		IconInfo.status_name(c.statuses[-1])]
 
 static func family_icon(family: String) -> Texture2D:
 	var index := FAMILY_ICON_ORDER.find(family)
@@ -190,7 +202,7 @@ static func get_combo(id: StringName) -> Dictionary:
 static func ingredients_text(combo: Dictionary) -> String:
 	var names: Array[String] = []
 	for status in combo.statuses:
-		var name: String = STATUS_NAMES.get(status, String(status).capitalize())
+		var name := IconInfo.status_name(status)
 		if not names.has(name):
 			names.append(name)
 	return " + ".join(names)

@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+[ext_resource type="Resource" path="res://resource/tower/grove_heart.tres" id="2_tower"]
+
+[resource]
+script = ExtResource("1_card")
+id = "dream_grove_heart"
+display_name = "Grove Heart"
+description = "Elder Stumps can now grow into Grove Hearts (200 Dew): Wardens within 2 tiles get +15% damage and speed, more the more Wardens there are."
+rarity = 2
+kind = 1
+tags = Array[String](["acorn"])
+requires = Array[String](["elder_stump"])
+max_stacks = 1
+unlocks = ExtResource("2_tower")
+in_start_pool = false

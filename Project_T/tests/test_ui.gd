@@ -92,6 +92,22 @@ func _run() -> void:
 	tap.pressed = true
 	light.gui_input.emit(tap)
 	_check((main.get_node("%ToastLabel") as Label).text.begins_with("Dreamlight"), "tapping the counter explains it (no hover-only info)")
+	# Resources explain themselves on hover and tap (IconInfo, TapTip).
+	var dew_label: Label = main.get_node("%DewLabel")
+	_check(dew_label.tooltip_text == IconInfo.resource_tooltip(&"dew") and dew_label.tooltip_text.begins_with("Dew: "), "Dew has a plain-words tooltip")
+	var dew_tip: TapTip = dew_label.get_children().filter(func(c: Node) -> bool: return c is TapTip)[0]
+	dew_label.gui_input.emit(tap)
+	_check(dew_tip.visible and dew_tip._label.text == dew_label.tooltip_text, "tapping Dew shows the same text")
+	dew_tip.toggle()
+	_check(IconInfo.status_tooltip(&"damp").begins_with("Damp: 10% slower"), "status tooltips in plain words")
+	# The icon sheet (assets/ui/icons.png + icons.json): every status and stat id has a 16×16 icon.
+	for id in [&"damp", &"static", &"elite", &"hidden", &"damage", &"potency", &"focus_deep", &"dreamlight_cost"]:
+		var art := IconInfo.icon(id) as AtlasTexture
+		_check(art != null and art.region.size == Vector2(16, 16), "icon for %s" % id)
+	_check(IconInfo.status_tooltip(&"deeply_blighted") == IconInfo.status_tooltip(&"elite"), "sheet ids find their tooltips")
+	var made := IconInfo.make_icon(&"range", 2)
+	_check(made.custom_minimum_size == Vector2(32, 32) and made.tooltip_text.begins_with("Range:"), "make_icon: ×2, with its tooltip")
+	made.free()
 	var drift_panel = main.get_node("HUD/DriftPanel")
 	var saved_started := director.drifts_started
 	director.drifts_started = 0
@@ -187,11 +203,14 @@ func _run() -> void:
 		var started_before := director.drifts_started
 		director.drifts_started = 50
 		director.awaiting_family_pick = true
+		var offered := []
+		family.sapling_offered.connect(func() -> void: offered.append(true))
 		family.show_pick(&"boss")
 		if not family.offer.is_empty():
 			family.choose(family.offer[0])
 		_check(family.visible and family._title.text == "The Heartwood offers a seedling of itself",
 			"the Sapling's card follows the drift 50 family pick")
+		_check(offered.size() == 1, "sapling_offered fires once (for its sound)")
 		var not_now: Button = family._cards.get_child(0).get_child(-1).get_child(1)
 		not_now.pressed.emit()
 		_check(not family.visible and sapling_placer.can_take_sapling(), "Not now keeps it for later")
@@ -202,6 +221,9 @@ func _run() -> void:
 		_check(sapling_placer.has_unplanted_sapling() and sapling_placer.build_mode, "Sapling: taken and ready to place")
 		sapling_placer.set_build_mode(false)
 		director.drifts_started = started_before
+		if sapling_placer.sapling != null and sapling_placer.sapling.texture != null:
+			var crop := WardenIcon.region(sapling_placer.sapling)
+			_check(crop.size == Vector2(64, 64), "the Sapling's big frame is cropped to a 64×64 icon (%s)" % crop)
 
 	# --- Settings: tabs, and the high-contrast route line ---
 	var settings := SettingsPanel.new()

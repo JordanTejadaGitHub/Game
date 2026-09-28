@@ -1,0 +1,40 @@
+[gd_resource type="Resource" script_class="TowerData" load_steps=6 format=3]
+
+[ext_resource type="Script" path="res://resource/tower/script/tower_data.gd" id="1_tdata"]
+[ext_resource type="Texture2D" path="res://assets/towers/ascended/old_mountain.png" id="art_idle"]
+[ext_resource type="Texture2D" path="res://assets/towers/ascended/old_mountain_attack.png" id="art_attack"]
+[ext_resource type="Texture2D" path="res://assets/towers/ascended/mountain_boulder.png" id="fx_1"]
+[ext_resource type="Texture2D" path="res://assets/towers/ascended/mountain_impact.png" id="fx_2"]
+
+[resource]
+script = ExtResource("1_tdata")
+display_name = "Old Mountain"
+description = "Every 3 seconds it drops a boulder: Holds what it hits for 0.5 s and always crits on Held or Drowsy nightmares."
+cost = 0
+line = "stone"
+tier = 4
+buildable_directly = false
+evolve_cost = 400
+attack_range = 6.0
+damage = 900
+attacks_per_second = 0.3333
+splash_radius = 1.5
+lob = true
+projectile_speed = 300
+freeze_duration = 0.5
+freeze_needs = &""
+freeze_cooldown = 0.0
+crits_vs_drowsy = true
+crits_vs_held = true
+crit_chance = 0.1
+texture = ExtResource("art_idle")
+frame_count = 8
+sprite_offset = Vector2(0, -24)
+attack_texture = ExtResource("art_attack")
+attack_frame_count = 6
+attack_release_frame = 2
+projectile_texture = ExtResource("fx_1")
+projectile_frames = 4
+impact_texture = ExtResource("fx_2")
+impact_frames = 6
+impact_anchor = Vector2(96, 96)

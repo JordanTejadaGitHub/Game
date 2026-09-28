@@ -1,0 +1,185 @@
+{
+	"anchor": [
+		80,
+		104
+	],
+	"attack_frames": 6,
+	"dawnwing_empty": "dawnwing_empty.png",
+	"effects": {
+		"dawnwing_bird": {
+			"anchor": [
+				32,
+				32
+			],
+			"faces": "right",
+			"frame_size": [
+				64,
+				64
+			],
+			"frames": 8,
+			"loop": true
+		},
+		"mountain_boulder": {
+			"anchor": [
+				16,
+				16
+			],
+			"frame_size": [
+				32,
+				32
+			],
+			"frames": 4,
+			"loop": true
+		},
+		"mountain_impact": {
+			"anchor": [
+				96,
+				96
+			],
+			"frame_size": [
+				192,
+				192
+			],
+			"frames": 6,
+			"loop": false
+		},
+		"root_grasp": {
+			"anchor": [
+				32,
+				44
+			],
+			"frame_size": [
+				64,
+				64
+			],
+			"frames": 6,
+			"loop": false
+		},
+		"tempest_cyclone": {
+			"anchor": [
+				32,
+				72
+			],
+			"frame_size": [
+				64,
+				80
+			],
+			"frames": 8,
+			"loop": true
+		},
+		"tide_wave": {
+			"anchor": [
+				32,
+				48
+			],
+			"faces": "right",
+			"frame_size": [
+				64,
+				64
+			],
+			"frames": 8,
+			"loop": true
+		}
+	},
+	"frame_size": [
+		160,
+		160
+	],
+	"frames": 8,
+	"release_frame": 2,
+	"sapling": {
+		"anchor": [
+			64,
+			96
+		],
+		"cells": [
+			2,
+			2
+		],
+		"frame_size": [
+			128,
+			160
+		],
+		"idle": "heartwood_sapling.png",
+		"idle_frames": 8,
+		"rank_frames": 5,
+		"ranks": "heartwood_sapling_ranks.png",
+		"ripen": "heartwood_sapling_ripen.png",
+		"ripen_frames": 6,
+		"ripen_release_frame": 3,
+		"sprite_offset": [
+			0,
+			-16
+		],
+		"withered": "heartwood_sapling_withered.png"
+	},
+	"sprite_offset": [
+		0,
+		-24
+	],
+	"wardens": {
+		"dawnwing": {
+			"kind": "circle",
+			"point": [
+				80,
+				22
+			]
+		},
+		"grandmother_oak": {
+			"kind": "aura",
+			"point": [
+				80,
+				104
+			]
+		},
+		"old_mountain": {
+			"kind": "crush",
+			"point": [
+				79,
+				14
+			]
+		},
+		"sporemother": {
+			"kind": "storm",
+			"point": [
+				79,
+				28
+			]
+		},
+		"stormheart": {
+			"kind": "chain",
+			"point": [
+				80,
+				84
+			]
+		},
+		"the_great_bell": {
+			"kind": "toll",
+			"point": [
+				80,
+				92
+			]
+		},
+		"the_tempest": {
+			"kind": "cyclone",
+			"point": [
+				80,
+				18
+			]
+		},
+		"tidecaller": {
+			"kind": "tide",
+			"point": [
+				116,
+				48
+			]
+		},
+		"world_root": {
+			"kind": "hold",
+			"point": [
+				80,
+				104
+			]
+		}
+	}
+}

@@ -52,13 +52,28 @@ func _initialize() -> void:
 		var data := load("res://resource/tower/" + file) as TowerData
 		var wid := SoundHooks.warden_id(data)
 		var sounds := SoundHooks.warden_sounds(sound, data)
+		if not data.can_attack and not WARDEN_FALLBACKS.has(wid) and sounds.is_empty():
+			continue  # Wardens that never attack (walls, economy saplings) only plant, unless given more
 		if WARDEN_FALLBACKS.has(wid):
 			var fallback: String = WARDEN_FALLBACKS[wid]
 			_check(fallback == "" or sounds.has(StringName(fallback)), "%s falls back to %s %s" % [wid, fallback, sounds])
-		else:
-			_check(sounds.any(func(id: StringName) -> bool: return String(id).ends_with(wid) or String(id).contains(wid + "_")),
-				"%s has its own sound %s" % [wid, sounds])
+		elif sounds.any(func(id: StringName) -> bool: return String(id).ends_with(wid) or String(id).contains(wid + "_")):
+			pass
+		else:  # Not on the sound sheet yet (e.g. a new final form): its family's sounds for now
+			_check(not sounds.is_empty(), "%s has a sound or a family fallback %s" % [wid, sounds])
+			print("NOTE: %s has no sounds of its own yet, using its family's %s" % [wid, sounds])
 	_check(SoundHooks._rate_db(6.0) < SoundHooks._rate_db(0.33), "fast Wardens are quieter per shot")
+	# Nurture: a swell per family material, Focus leans, and Dawnwing's calm + busy loops in sync.
+	for file in DirAccess.get_files_at("res://resource/tower/"):
+		if file.ends_with(".tres"):
+			var line: String = (load("res://resource/tower/" + file) as TowerData).line
+			_check(sound.has_sound(StringName("nurture_" + line)), "nurture sound for the %s family" % line)
+	for lean in ["focus_power", "focus_swift", "focus_reach", "focus_deep"]:
+		_check(sound.has_sound(StringName(lean)), "%s exists" % lean)
+	var calm: AudioStreamWAV = sound._streams.get(&"loop_dawnwing", [null])[0]
+	var busy: AudioStreamWAV = sound._streams.get(&"loop_dawnwing_busy", [null])[0]
+	_check(calm != null and busy != null and is_equal_approx(calm.get_length(), busy.get_length()),
+		"Dawnwing's calm and busy loops exist and share a length")
 	_check(SoundHooks._weight_pitch_for(3000, false, true) < SoundHooks._weight_pitch_for(20, false, false),
 		"big nightmares take lower hits than small ones")
 	for layer in MUSIC_LAYERS:

@@ -77,20 +77,22 @@ func get_refund(tower: Tower) -> int:
 
 func get_tower_at(cell: Vector2) -> Tower:
 	for tower in tower_container.get_children():
-		if tower is Tower and tower.cell == cell and not tower.is_queued_for_deletion():
+		if tower is Tower and not tower.is_queued_for_deletion() \
+				and (tower.cell == cell or tower.get_cells().has(cell)):
 			return tower
 	return null
 
 # Sells the Warden on `cell`. Returns false if there's none.
 func sell(cell: Vector2) -> bool:
 	var tower := get_tower_at(cell)
-	if tower == null or not can_sell():
-		return false
+	if tower == null or not can_sell() or tower.tower_data.rooted:
+		return false  # The Heartwood Sapling is rooted: never sold or moved
 	var refund := get_refund(tower)
 	tower_container.remove_child(tower)
 	tower.queue_free()
-	map_generator.unblock_cell(cell)  # Emits path_changed -> creatures re-route
-	run_state.earn_dew_at(refund, MAP_GRID.calculate_map_position(cell))
+	for c in tower.get_cells():
+		map_generator.unblock_cell(c)  # Emits path_changed -> creatures re-route
+	run_state.earn_dew_at(refund, tower.position)
 	tower_sold.emit(tower, refund)
 	if selection.has(tower):
 		selection.erase(tower)

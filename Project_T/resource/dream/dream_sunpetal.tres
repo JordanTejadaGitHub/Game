@@ -7,7 +7,7 @@
 script = ExtResource("1_card")
 id = "dream_sunpetal"
 display_name = "Sunpetal"
-description = "Firefly Jars can now grow into Sunpetals (45 Dew): a beam that grows stronger the longer it holds one nightmare; twice as fast on Drowsy or Held ones."
+description = "Firefly Jars can now grow into Sunpetals (80 Dew): a beam that grows stronger the longer it holds one nightmare; twice as fast on Drowsy or Held ones."
 rarity = 1
 kind = 1
 tags = Array[String](["light"])

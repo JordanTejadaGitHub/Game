@@ -7,7 +7,7 @@
 script = ExtResource("1_card")
 id = "dream_samara"
 display_name = "Samara"
-description = "Whirligigs can now grow into Samaras (45 Dew): throws a spinning maple seed down a straight line and back through everything, carrying the first nightmare's statuses along it."
+description = "Whirligigs can now grow into Samaras (80 Dew): throws a spinning maple seed down a straight line and back through everything, carrying the first nightmare's statuses along it."
 rarity = 1
 kind = 1
 tags = Array[String](["wind"])

@@ -86,7 +86,7 @@ func _run() -> void:
 	Fx.chain(1, Vector2.ZERO, world)
 	_check(not is_instance_valid(Fx._badge), "no badge for a single Reaction")
 	Fx.chain(2, Vector2(100, 100), world)
-	_check(is_instance_valid(Fx._badge) and Fx._badge._text == "x2", "x2 shows the badge")
+	_check(is_instance_valid(Fx._badge) and Fx._badge._text == "Chain 2", "Chain 2 shows the badge")
 	Engine.time_scale = 1.0
 	layers_before = _canvas_layers()
 	Fx.chain(5, Vector2(100, 100), world)

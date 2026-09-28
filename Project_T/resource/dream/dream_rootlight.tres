@@ -7,7 +7,7 @@
 script = ExtResource("1_card")
 id = "dream_rootlight"
 display_name = "Rootlight"
-description = "Rootlings can now grow into Rootlights (45 Dew): glowing roots light the path around it; nightmares in the light are Marked."
+description = "Rootlings can now grow into Rootlights (80 Dew): glowing roots light the path around it; nightmares in the light are Marked."
 rarity = 1
 kind = 1
 tags = Array[String](["root"])

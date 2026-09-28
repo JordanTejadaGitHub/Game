@@ -59,7 +59,10 @@ var health_scale := 1.0
 # Damp, Drowsy, Spored, Marked, Static (see EnemyStatuses). Wardens apply them via apply_status().
 var statuses := EnemyStatuses.new()
 
-const STATUS_DOT_RADIUS := 3.0
+const STATUS_DOT_RADIUS := 3.0  # Fallback when the icon sheet has no icon for a status
+const STATUS_ICON_STEP := 17.0  # 16 px icons, 1 px apart
+const STACK_FONT_SIZE := 8
+static var _icons := {}  # {status id: Texture2D or null}, shared by every nightmare
 const BOLT_FLASH_TIME := 0.2
 const HIT_MARK_TIME := 0.35  # Grey puff (resisted) / sparkle (weak) after a hit
 # Damage that only happened because of a Reaction (DamageLog: whole-hit combos, event kind "reaction").
@@ -185,6 +188,10 @@ func _process(delta: float) -> void:
 			&"spored")
 		if is_cleansed:
 			return
+	if statuses.smother_ended:
+		Reactions.on_smother_ended(self)  # Fever Dream (a Crowned Reaction)
+		if is_cleansed:
+			return
 	_bolt_flash = maxf(_bolt_flash - delta, 0.0)
 	if elite:
 		_haze_phase += ELITE_HAZE_SPEED * delta
@@ -284,18 +291,30 @@ func _draw() -> void:
 		_draw_hit_mark(_hit_mark_time / HIT_MARK_TIME)
 	if statuses.is_in_stag_aura():
 		draw_arc(Vector2(0, 6), 18.0, 0.0, TAU, 24, Color(0.9, 0.95, 1.0, 0.35), 2.0)
-	# One coloured dot per status, just above where the health bar sits
+	# One icon per status (IconInfo's pixel-art sheet; a coloured dot if it has none), in a row just
+	# above the health bar, with the stack count when there's more than one.
 	var ids := statuses.active_ids()
-	var x := -(ids.size() - 1) * STATUS_DOT_RADIUS * 1.5
+	var x := -(ids.size() - 1) * STATUS_ICON_STEP / 2.0
 	for id in ids:
-		var dot := HEALTH_BAR_OFFSET + Vector2(x, -8)
-		draw_circle(dot, STATUS_DOT_RADIUS + 1, Color(0.1, 0.1, 0.12, 0.8))
-		draw_circle(dot, STATUS_DOT_RADIUS, EnemyStatuses.COLORS[id])
+		var at := HEALTH_BAR_OFFSET + Vector2(x, -12)
+		var color: Color = EnemyStatuses.COLORS.get(id, Color.WHITE)
+		var texture := _status_icon(id)
+		if texture != null:
+			draw_texture(texture, (at - texture.get_size() / 2.0).round())
+		else:
+			draw_circle(at, STATUS_DOT_RADIUS + 1, Color(0.1, 0.1, 0.12, 0.8))
+			draw_circle(at, STATUS_DOT_RADIUS, color)
+		var stacks := statuses.stacks(id)
+		if stacks > 1:
+			draw_string_outline(ThemeDB.fallback_font, at + Vector2(3, 8), str(stacks), HORIZONTAL_ALIGNMENT_LEFT,
+				-1, STACK_FONT_SIZE, 3, Color(0.08, 0.08, 0.1))
+			draw_string(ThemeDB.fallback_font, at + Vector2(3, 8), str(stacks), HORIZONTAL_ALIGNMENT_LEFT, -1,
+				STACK_FONT_SIZE, Color.WHITE)
 		if _status_flash.has(id):
 			var f: float = _status_flash[id] / STATUS_FLASH_TIME  # 1 -> 0
-			draw_circle(dot, STATUS_DOT_RADIUS, Color(1, 1, 1, 0.7 * f))
-			draw_arc(dot, STATUS_DOT_RADIUS + 1.0 + 4.0 * (1.0 - f), 0.0, TAU, 12, Color(EnemyStatuses.COLORS[id], f), 1.5)
-		x += STATUS_DOT_RADIUS * 3.0
+			draw_circle(at, 7.0, Color(1, 1, 1, 0.55 * f))
+			draw_arc(at, 9.0 + 4.0 * (1.0 - f), 0.0, TAU, 16, Color(color, f), 1.5)
+		x += STATUS_ICON_STEP
 	# Health bar once the enemy has been hit, with the blight coat as a grey bar on top of it
 	var bar := Rect2(HEALTH_BAR_OFFSET - HEALTH_BAR_SIZE / 2, HEALTH_BAR_SIZE)
 	if health < max_health or _bars_always:
@@ -318,6 +337,10 @@ func _draw_elite_haze() -> void:
 		draw_circle(at, size + 2.0, ELITE_HAZE_RIM)
 		draw_circle(at, size, ELITE_HAZE_COLOR)
 	var centre := HEALTH_BAR_OFFSET + Vector2(-HEALTH_BAR_SIZE.x / 2 - 8.0, 0)
+	var mark := _status_icon(&"elite")
+	if mark != null:  # The sheet's Deeply Blighted icon; the drawn swirl otherwise
+		draw_texture(mark, (centre - mark.get_size() / 2.0).round())
+		return
 	var swirl := PackedVector2Array()
 	for s in 14:
 		var t := s / 13.0
@@ -672,6 +695,12 @@ func _refresh_display_settings() -> void:
 		(sprite.material as ShaderMaterial).set_shader_parameter("outline_color",
 			ELITE_OUTLINE_COLOR if outlined else Color(0, 0, 0, 0))
 
+# The 16×16 pixel-art icon for a status id (or "elite"), cached; null if the sheet has none.
+static func _status_icon(id: StringName) -> Texture2D:
+	if not _icons.has(id):
+		_icons[id] = IconInfo.icon(id)
+	return _icons[id]
+
 func _outline_alpha() -> float:
 	var color = (sprite.material as ShaderMaterial).get_shader_parameter("outline_color")
 	return color.a if color is Color else 0.0
@@ -760,6 +789,11 @@ func take_damage(amount: float, line: String = "", is_area: bool = false, is_cri
 		source: Node = null, tag: StringName = &"") -> void:
 	if is_cleansed:
 		return
+	if source is Tower and Reactions.is_effect(tag):
+		amount *= Reactions.effect_multiplier(self, source)  # Potency (and Seeping)
+		if not is_crit and Reactions.effect_crits(self, source):
+			is_crit = true  # Nightshade
+			amount *= source.attack_data.crit_multiplier
 	if is_crit:
 		_crit_flash = CRIT_FLASH_TIME
 		var world := Reactions._world(self)

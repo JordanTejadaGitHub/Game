@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+[ext_resource type="Resource" path="res://resource/tower/grandmother_oak.tres" id="2_tower"]
+
+[resource]
+script = ExtResource("1_card")
+id = "dream_grandmother_oak"
+display_name = "Grandmother Oak"
+description = "Any acorn final form can ascend into Grandmother Oak (400 Dew, one per run): Wardens in her range deal 40% more and attack 20% faster; she gives 10 Dew after every drift."
+rarity = 3
+kind = 1
+tags = Array[String](["acorn"])
+max_stacks = 1
+min_act = 3
+unlocks = ExtResource("2_tower")
+in_start_pool = false

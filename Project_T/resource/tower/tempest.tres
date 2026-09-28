@@ -1,0 +1,33 @@
+[gd_resource type="Resource" script_class="TowerData" load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://resource/tower/script/tower_data.gd" id="1_tdata"]
+[ext_resource type="Texture2D" path="res://assets/towers/ascended/the_tempest.png" id="art_idle"]
+[ext_resource type="Texture2D" path="res://assets/towers/ascended/the_tempest_attack.png" id="art_attack"]
+[ext_resource type="Texture2D" path="res://assets/towers/ascended/tempest_cyclone.png" id="fx_1"]
+
+[resource]
+script = ExtResource("1_tdata")
+display_name = "The Whirlwind"
+description = "A cyclone roams the path in its range, hitting everything it passes; statuses it touches travel with it and settle on the rest."
+cost = 0
+line = "wind"
+tier = 4
+buildable_directly = false
+evolve_cost = 400
+attack_kind = 16
+attack_range = 5.0
+damage = 60
+attacks_per_second = 1.0
+patrol_speed = 140.0
+patrol_carries_statuses = true
+crit_chance = 0.05
+texture = ExtResource("art_idle")
+frame_count = 8
+sprite_offset = Vector2(0, -24)
+attack_texture = ExtResource("art_attack")
+attack_frame_count = 6
+attack_release_frame = 2
+art_id = "the_tempest"
+patrol_texture = ExtResource("fx_1")
+patrol_frames = 8
+patrol_anchor = Vector2(32, 72)

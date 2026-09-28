@@ -87,9 +87,15 @@ func _run() -> void:
 	feedback._card.visible = false
 	var profile_before: Dictionary = HeartwoodMemory.load_data()
 	ComboFeedback.report(&"set_off", main)  # A synergy reported from game code
+	var whispers = main.get_node("%Whispers")
+	whispers.enabled = true
+	whispers._seen = []
+	whispers.set_process(false)
 	var tracker := ReactionTracker.find(main)
 	tracker.record(&"thunderclap", shade, 1, [storm])
 	tracker.record(&"thunderclap", shade, 3, [storm])
+	_check(whispers._queue.has(&"chain"), "the first chain ever whispers what a chain is")
+	whispers.set_enabled(false)
 	_check(feedback._card.visible and feedback._card_label.text.begins_with("Combo discovered: Set Off"),
 		"the first Set Off shows a discovery card (%s)" % feedback._card_label.text)
 	_check(feedback._queue == [&"thunderclap"], "Thunderclap waits its turn (%s)" % [feedback._queue])
@@ -97,7 +103,7 @@ func _run() -> void:
 		"the card names the ingredients and says it's in the Codex")
 	_check(feedback.block_counts.get(&"thunderclap", 0) == 2 and feedback.block_longest_chain == 3, "Reactions are counted per block")
 	report.show_report(1)
-	_check(report._label.text.contains("Reactions: Thunderclap 2 · longest chain ×3") and report._label.text.contains("New combos: Set Off, Thunderclap"),
+	_check(report._label.text.contains("Reactions: Thunderclap 2 · longest chain: 3") and report._label.text.contains("New combos: Set Off, Thunderclap"),
 		"the rest report shows Reactions and new combos (%s)" % report._label.text)
 	var profile_after: Dictionary = HeartwoodMemory.load_data()
 	_check(profile_after.get("combos_seen", []) == profile_before.get("combos_seen", [])
@@ -107,6 +113,15 @@ func _run() -> void:
 	codex.open(&"combos")
 	_check(codex.visible and codex.tabs.current_tab == 1 and codex._combos.get_child_count() == CodexData.combos().size()
 		and CodexData.combos().size() == 15, "the Codex lists all 15 combos")
+	# Locked entries are just "???": no ingredient icons or text (they'd give the answer away).
+	var seen_now := ComboFeedback.load_seen()
+	for combo in CodexData.combos():
+		if not seen_now.has(String(combo.id)):
+			var locked_card: Control = codex._entries[String(combo.id)]
+			var labels := locked_card.find_children("*", "Label", true, false).map(func(l: Label) -> String: return l.text)
+			_check(locked_card.find_children("*", "StatusIcon", true, false).is_empty() and labels == ["???"],
+				"a locked combo shows only ??? (%s: %s)" % [combo.id, labels])
+			break
 	codex._search.text = "dreamlight"
 	codex._build_glossary()
 	await process_frame

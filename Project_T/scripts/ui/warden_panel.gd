@@ -3,7 +3,6 @@ extends PanelContainer
 # Bottom-left panel for the selected Warden: what it does, its stats (including Dreams), what it
 # can grow into (Dew cost, or which Dream it needs) and Sell. Built in code; hidden with no selection.
 
-const STATUS_NAMES := {&"damp": "Damp", &"drowsy": "Drowsy", &"spored": "Spored", &"marked": "Marked", &"static": "Static", &"held": "Held"}
 const TARGET_NAMES := {
 	TowerData.TargetMode.FIRST: "Furthest along", TowerData.TargetMode.STRONGEST: "Strongest",
 	TowerData.TargetMode.BOSSES: "Bosses first", TowerData.TargetMode.FASTEST: "Fastest",
@@ -17,6 +16,8 @@ const TARGET_NAMES := {
 
 var _tower: Tower = null
 var _title := Label.new()
+var _desc := Label.new()  # What it does
+var _stats := VBoxContainer.new()  # Stat rows: each stat explains itself on hover and tap (IconInfo)
 var _body := Label.new()
 var _groups := VBoxContainer.new()  # Several selected: one row per kind with its portrait
 var _buttons := VBoxContainer.new()
@@ -30,6 +31,11 @@ func _ready() -> void:
 	add_child(box)
 	_title.add_theme_font_size_override("font_size", 20)
 	box.add_child(_title)
+	_desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_desc.custom_minimum_size = Vector2(280, 0)
+	box.add_child(_desc)
+	_stats.add_theme_constant_override("separation", 2)
+	box.add_child(_stats)
 	_body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_body.custom_minimum_size = Vector2(280, 0)
 	box.add_child(_body)
@@ -58,6 +64,11 @@ func _refresh() -> void:
 		child.queue_free()
 	if tower_seller.selection.size() > 1:
 		visible = true
+		_desc.visible = false
+		for child in _stats.get_children():
+			child.queue_free()
+		_body.visible = true
+		_title.tooltip_text = ""
 		_refresh_group()
 		return
 	if not is_instance_valid(_tower) or _tower.is_queued_for_deletion():
@@ -71,12 +82,18 @@ func _refresh() -> void:
 		_title.text += " · Rank %s" % Tower.RANK_NAMES[_tower.rank]
 		if _tower.focus != Tower.Focus.NONE:
 			_title.text += " · %s" % Tower.FOCUS_NAMES[_tower.focus]
+	_title.tooltip_text = ""
+	if _tower.rank > 0:
+		_title.tooltip_text = IconInfo.stat_tooltip(&"rank") + ("\n" + IconInfo.stat_tooltip(&"focus") if _tower.focus != Tower.Focus.NONE else "")
+	_title.mouse_filter = Control.MOUSE_FILTER_PASS if _title.tooltip_text != "" else Control.MOUSE_FILTER_IGNORE
+	_desc.text = data.description
+	_desc.visible = data.description != ""
+	for child in _stats.get_children():
+		child.queue_free()
 	var lines: Array[String] = []
-	if data.description != "":
-		lines.append(data.description)
 	var attack := _tower.attack_data
 	if data.attack_kind == TowerData.AttackKind.AURA:
-		lines.append("Aura · range %.2f" % _tower.get_range_cells())
+		_stat_row([["Aura", &""], ["range %.2f" % _tower.get_range_cells(), &"range"]])
 	elif data.attack_kind == TowerData.AttackKind.COPY and _tower.get_copied() == null:
 		lines.append("Nothing to copy: plant it beside an attacking Warden.")
 	elif data.can_attack:
@@ -85,12 +102,21 @@ func _refresh() -> void:
 		var range_text := "range %.2f" % _tower.get_range_cells()
 		if attack.min_range > 0.0:
 			range_text = "range %.1f–%.1f" % [attack.min_range, _tower.get_range_cells()]
-		lines.append("Damage %.0f · %.2f/s · %s" % [_tower.get_damage(), _tower.get_attacks_per_second(), range_text])
+		_stat_row([["Damage %.0f" % _tower.get_damage(), &"damage"],
+			["%.2f/s" % _tower.get_attacks_per_second(), &"attack_speed"],
+			[range_text, &"range"]])
+		var second: Array = []
 		if _tower.get_crit_chance() > 0.0:
-			lines.append("Crit %d%% · ×%s" % [roundi(_tower.get_crit_chance() * 100), str(attack.crit_multiplier)])
+			second.append(["Crit %d%%" % roundi(_tower.get_crit_chance() * 100), &"crit_chance"])
+			second.append(["×%s" % str(attack.crit_multiplier), &"crit_damage"])
+		var potency := _tower.get_potency()
+		if not is_equal_approx(potency, 1.0):
+			second.append(["Potency %d%%" % roundi(potency * 100), &"potency"])  # Effect damage
+		if not second.is_empty():
+			_stat_row(second)
 		if attack.applies_status != &"":
-			lines.append("Applies %s%s" % [STATUS_NAMES.get(attack.applies_status, attack.applies_status),
-				" ×%d" % attack.status_stacks if attack.status_stacks > 1 else ""])
+			_stat_row([["Applies %s%s" % [IconInfo.status_name(attack.applies_status),
+				" ×%d" % attack.status_stacks if attack.status_stacks > 1 else ""], attack.applies_status, true]])
 	else:
 		lines.append("A wall: no attack.")
 	if data.is_unique:
@@ -155,11 +181,43 @@ func _refresh() -> void:
 	var refund := tower_seller.get_refund(_tower)
 	var sell := _add_button("Sell · +%d Dew%s" % [refund, "" if drift_director.is_build_phase() else " (half during a drift)"])
 	sell.pressed.connect(func() -> void: tower_seller.sell(_tower.cell))
-	if not tower_seller.can_sell():
+	if _tower.tower_data.rooted:
+		sell.text = "Rooted: the Sapling stays where it grew"
+		sell.disabled = true
+	elif not tower_seller.can_sell():
 		sell.text = "Rooted: no selling while nightmares walk (Overgrown)"
 		sell.disabled = true
 	var close := _add_button("Close")
 	close.pressed.connect(tower_seller.select.bind(null))
+
+# One row of stats ("Damage 24 · 1.00/s · range 2.50"): each part is its icon and a label, both
+# explaining the stat on hover and on tap (IconInfo). `parts`: [[text, stat id], …] or
+# [text, status id, true] for a status (&"" = plain text).
+func _stat_row(parts: Array) -> void:
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 0)
+	for i in parts.size():
+		var part: Array = parts[i]
+		if i > 0:
+			var dot := Label.new()
+			dot.text = " · "
+			row.add_child(dot)
+		var id: StringName = part[1]
+		var is_status: bool = part.size() > 2 and part[2]
+		var tip := IconInfo.status_tooltip(id) if is_status else IconInfo.stat_tooltip(id)
+		if id != &"" and IconInfo.icon(id) != null:
+			var icon := IconInfo.make_icon(id, 1)  # Carries its own TapTip
+			icon.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+			row.add_child(icon)
+			var gap := Control.new()
+			gap.custom_minimum_size = Vector2(3, 0)
+			row.add_child(gap)
+		var label := Label.new()
+		label.text = part[0]
+		if tip != "":
+			TapTip.attach(label, tip)
+		row.add_child(label)
+	_stats.add_child(row)
 
 # Several Wardens selected: grouped by kind, with totals, group grow buttons and Sell all.
 func _refresh_group() -> void:
