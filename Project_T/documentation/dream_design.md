@@ -329,11 +329,11 @@ Evolving is still the better buy when a Dream allows it; Nurture cards make rank
 | 62 | **Kindred Roots** | Uncommon | each Warden gets **+2% damage per rank of the Wardens touching it** (max +30%) | nurture, maze | any `nurture` card + 2 ranked Wardens | Start |
 | 63 | **Remembered Care** | Uncommon | selling a ranked Warden leaves a **memory seed** on the HUD; the next Warden you plant starts at that rank (one seed at a time, the highest one is kept) | nurture | any `nurture` card + a rank III+ Warden | Start |
 | 64 | **Sunlit Rest** | Uncommon | at every rest, your ranked Warden **nearest the Heartwood** that isn't at max rank gains a free rank | nurture | any `nurture` card | Grove |
-| 65 | **Deeper Rings** | Rare | max rank **VII**: VI costs 130, VII costs 180 (same gains per rank) | nurture | any `nurture` card + a rank V Warden | Grove |
+| 65 | **Deeper Rings** | Rare | **one Warden, the Eldest,** can grow past V to rank **VII**: VI costs 130, VII costs 180 (same gains per rank) | nurture | any `nurture` card + a rank V Warden | Grove |
 | 66 | **Nursery** | Rare, **Entwined** | Seedling Gift's free Sprouts arrive at **rank II**, and Sprouts nurture for half price | nurture, sprout | Tender Care + Seedling Gift | Grove |
 | 67 | **The Old Ones** | Legendary | each rank also gives **+2% crit chance**; rank V+ Wardens make the Wardens touching them count **one rank higher** (doesn't stack with itself) | nurture, crit | any `nurture` card + a rank V Warden | Grove |
 | 68 | **Chosen Few** | Rare, **Bittersweet** | rank V+ Wardens **+50% damage**. **Cost:** Wardens below rank III do −15% damage | nurture, bittersweet | a rank V Warden | Grove |
-| 108 | **Endless Rings** | Legendary | **no max rank.** Past VII, each rank costs **×1.2** the one before (VIII 216, IX 259, X 311, … × tier) and gives **+10% damage** | nurture | Deeper Rings + a **rank VI** Warden | Grove |
+| 108 | **Endless Rings** | Legendary | **the Eldest has no max rank.** Past VII, each rank costs **×1.2** the one before (VIII 216, IX 259, X 311, … × tier) and gives **+10% damage** | nurture | Deeper Rings + a **rank VI** Warden | Grove |
 
 **Endless Rings** (added 2026-09-27, user idea: "infinite Nurture once you reach rank VI"). The tall
 build's capstone and the run's last Dew sink.
@@ -346,6 +346,21 @@ build's capstone and the run's last Dew sink.
   rank above VII. Only Dew buys endless ranks.
 - **Shown as** the rank VII art plus a Roman numeral ("XII") on the Warden, and in its panel.
 - **Grove:** joins The Old Ones at the tip of the Tending branch (`meta_design.md`).
+
+**The Eldest** (user decision, 2026-09-28: "only one tower can have them, to make it fair"). Ranks
+above V belong to **one Warden per run**, the Eldest:
+- The **first Warden you nurture to rank VI** becomes the Eldest. Its panel asks you to confirm
+  ("Make this the Eldest? Only one Warden can grow past rank V"), since the choice is lasting.
+- While the Eldest lives, every other Warden stops at rank V; their panels say "Only the Eldest
+  grows further".
+- **Kept through evolution** (a rank VI Stormcap growing into a Thunderhead stays the Eldest).
+- **If you sell the Eldest,** the title is free again and the next Warden nurtured to VI takes it.
+  Its ranks above V are lost; with Remembered Care the seed holds at most rank V.
+- **Shown as** a small crown of rings on the Warden and "Eldest" in its panel.
+- **Why:** rank VII or endless ranks on every Warden would make every late run a Nurture run. One
+  Eldest makes it a build: you pick the Warden, the spot and the line, and shape the maze around it
+  (Cozy Corners bends, Kindred Roots neighbours, Marked nightmares fed to it). The Old Ones'
+  neighbour bonus and Chosen Few still work on every rank V Warden.
 
 - **Openers and follow-ups** (see *Card requirements*): Tender Care and Warm Hands are the
   **openers**, offered once you've **spent 30+ Dew on ranks** this run (a "you've tried it" gate,
