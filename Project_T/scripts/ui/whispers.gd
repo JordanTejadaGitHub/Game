@@ -17,6 +17,7 @@ const TEXT := {
 	&"save": "The forest will wait for you.",
 	&"cage": "A dream can bend, but never close.",
 	&"grow": "This Sprout could grow.",
+	&"kin": "Two of one family, planted close, learn from each other.",
 	&"dead_wood": "Dead wood. I can't move it… yet.",
 	&"tend": "Tend the forest, and it will remember you.",
 	&"chain": "One reaction set off another: a chain. Reach 10 for a Dawnburst.",
@@ -177,6 +178,9 @@ func _process(_delta: float) -> void:
 	for id in EnemyStatuses.ALL:
 		if not _seen.has(String(id)) and _any_creature_has(id):
 			whisper(id)
+	# Kinships (screens_ui.md "Kinship feedback", playtest fix): two branches of one family planted.
+	if not _seen.has("kin") and RestReport.two_branch_family(tower_container.get_children()) != "":
+		whisper(&"kin")
 	if not _seen.has("grow"):
 		for tower in tower_container.get_children():
 			if tower is Tower and tower.tower_data.get_id() == "sprout":

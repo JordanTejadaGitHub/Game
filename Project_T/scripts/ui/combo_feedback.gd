@@ -37,6 +37,8 @@ var harmony_block := 0
 var harmony_run := 0
 var whole_block: Array[String] = []
 var whole_run: Array[String] = []
+# "Night Chimes (Chime Stone + Dreamcatcher)" per bond formed this block (rest report).
+var kin_names_block: Array[String] = []
 const KINSHIPS_GROUP := &"kinships"
 var run_counts := {}  # Combo id -> times this run
 var _seen: Array = []  # Combo ids (String) discovered ever
@@ -146,6 +148,7 @@ func _ready() -> void:
 		block_longest_chain = 0
 		block_new.clear()
 		kin_formed_block = 0
+		kin_names_block.clear()
 		harmony_block = 0
 		whole_block.clear())
 	drift_director.rest_started.connect(func(_b: int, _boss: bool, _bonus: int, _perfect: bool) -> void: _save_counts())
@@ -184,9 +187,17 @@ func _hook_kinships(node: Node) -> void:
 			whole_block.append(family)
 			whole_run.append(family))
 
-func _on_kinship(kinship: StringName, a: Node, _b: Node) -> void:
+func _on_kinship(kinship: StringName, a: Node, b: Node) -> void:
 	kin_formed_block += 1
 	kin_formed_run += 1
+	var names: Array[String] = []
+	for tower in [a, b]:
+		if tower is Tower:
+			names.append(tower.tower_data.display_name)
+	var entry := CodexData.get_any(kinship)
+	if names.size() < 2:  # The pair from the Codex when the Wardens aren't known
+		names.assign([entry.get("a", "?"), entry.get("b", "?")])
+	kin_names_block.append("%s (%s)" % [entry.get("name", String(kinship).capitalize()), " + ".join(names)])
 	record(kinship, a as Node2D)
 
 func _on_damage(event: DamageLog.Event) -> void:

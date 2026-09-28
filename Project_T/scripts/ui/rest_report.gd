@@ -44,7 +44,12 @@ func show_report(block: int) -> void:
 			names.append(CodexData.get_any(id).get("name", String(id)))
 		text += "\nNew combos: " + ", ".join(names)
 	if combos:
-		text += kinship_text(combos.kin_formed_block, combos.harmony_block, combos.whole_block)
+		# A line per Kinship formed this block (screens_ui.md "Kinship feedback", playtest fix).
+		for kin in combos.kin_names_block:
+			text += "\nKinship: " + kin
+		text += kinship_text(0 if not combos.kin_names_block.is_empty() else combos.kin_formed_block,
+			combos.harmony_block, combos.whole_block)
+	text += _kin_hint()
 	_label.text = StatusLinks.bbcode(text)
 	visible = true
 
@@ -63,6 +68,36 @@ static func kinship_text(formed: int, harmony: int, whole: Array) -> String:
 		var family: String = CodexData.LINE_FAMILIES.get(String(line), String(line))
 		text += "\nThe %s line is whole." % CodexData.FAMILY_NAMES.get(family, family.capitalize())
 	return text
+
+var _kin_hint_shown := false
+
+# Once per run, at the first rest where two branches of one family are planted but no Kinship has
+# formed: how Kinships work (screens_ui.md "Kinship feedback", playtest fix).
+func _kin_hint() -> String:
+	if _kin_hint_shown:
+		return ""
+	var towers := get_node("%TowerContainer").get_children()
+	if two_branch_family(towers) == "" or Kinships.count_on_map(self) > 0:
+		return ""
+	_kin_hint_shown = true
+	return "\nNo Kinships yet: two branches of one family within 2 cells"
+
+# A family (damage line) with Wardens from two of its branches planted, or "" (Kinships.branch_of).
+static func two_branch_family(towers: Array) -> String:
+	var branches := {}  # line -> {branch: true}
+	for tower in towers:
+		if not tower is Tower:
+			continue
+		var branch := Kinships.branch_of(tower.tower_data)
+		if branch == "":
+			continue
+		var line: String = tower.tower_data.line
+		if not branches.has(line):
+			branches[line] = {}
+		branches[line][branch] = true
+		if branches[line].size() >= 2:
+			return line
+	return ""
 
 func _link_open() -> bool:
 	return _label.get_children().any(func(c: Node) -> bool: return c is StatusLinks and c.visible)
