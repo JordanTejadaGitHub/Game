@@ -4,15 +4,14 @@
 
 [resource]
 script = ExtResource("1_card")
-id = "wild_growth"
-display_name = "Wild Growth"
-description = "Growing Wardens costs 40% less Dew."
-cost_description = "Nightmares have 10% more health."
+id = "reckless_bloom"
+display_name = "Reckless Bloom"
+description = "All Wardens +20% crit chance."
+cost_description = "Hits that don't crit deal 15% less damage."
 rarity = 1
-kind = 4
-tags = Array[String](["bittersweet"])
+kind = 3
+tags = Array[String](["crit", "bittersweet"])
 max_stacks = 1
 min_act = 2
-evolve_discount = 0.4
-creature_health_bonus = 0.1
+rule_id = &"reckless_bloom"
 in_start_pool = false

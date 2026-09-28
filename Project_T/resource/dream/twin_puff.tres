@@ -4,15 +4,13 @@
 
 [resource]
 script = ExtResource("1_card")
-id = "wild_growth"
-display_name = "Wild Growth"
-description = "Growing Wardens costs 40% less Dew."
-cost_description = "Nightmares have 10% more health."
+id = "twin_puff"
+display_name = "Twin Puff"
+description = "Every 3rd Sporeling attack fires twice."
 rarity = 1
-kind = 4
-tags = Array[String](["bittersweet"])
+kind = 3
+tags = Array[String](["spore"])
+requires = Array[String](["sporeling"])
 max_stacks = 1
-min_act = 2
-evolve_discount = 0.4
-creature_health_bonus = 0.1
+rule_id = &"twin_puff"
 in_start_pool = false

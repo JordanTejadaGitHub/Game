@@ -4,15 +4,14 @@
 
 [resource]
 script = ExtResource("1_card")
-id = "overgrown"
-display_name = "Overgrown"
-description = "All Wardens +1 range."
-cost_description = "No selling while nightmares are walking."
+id = "starlit_aim"
+display_name = "Starlit Aim"
+description = "Marked nightmares take +25% crit chance from every Warden."
 rarity = 2
 kind = 3
-tags = Array[String](["bittersweet"])
+tags = Array[String](["crit", "mark"])
+requires = Array[String](["standing_stone", "lanternmoth"])
 max_stacks = 1
-min_act = 2
-range_bonus = 1.0
-rule_id = &"overgrown"
+entwined = true
+rule_id = &"starlit_aim"
 in_start_pool = false

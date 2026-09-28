@@ -4,15 +4,14 @@
 
 [resource]
 script = ExtResource("1_card")
-id = "overgrown"
-display_name = "Overgrown"
-description = "All Wardens +1 range."
-cost_description = "No selling while nightmares are walking."
+id = "guiding_light"
+display_name = "Guiding Light"
+description = "Marked spreads to nightmares within 1 tile of the target."
 rarity = 2
 kind = 3
-tags = Array[String](["bittersweet"])
+tags = Array[String](["mark"])
+requires = Array[String](["lanternmoth", "cozy_corners"])
 max_stacks = 1
-min_act = 2
-range_bonus = 1.0
-rule_id = &"overgrown"
+entwined = true
+rule_id = &"guiding_light"
 in_start_pool = false

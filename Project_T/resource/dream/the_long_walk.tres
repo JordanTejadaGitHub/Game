@@ -4,15 +4,13 @@
 
 [resource]
 script = ExtResource("1_card")
-id = "wild_growth"
-display_name = "Wild Growth"
-description = "Growing Wardens costs 40% less Dew."
-cost_description = "Nightmares have 10% more health."
-rarity = 1
-kind = 4
-tags = Array[String](["bittersweet"])
+id = "the_long_walk"
+display_name = "The Long Walk"
+description = "+1% damage for every 4 path tiles."
+rarity = 3
+kind = 3
+tags = Array[String](["maze"])
 max_stacks = 1
 min_act = 2
-evolve_discount = 0.4
-creature_health_bonus = 0.1
+rule_id = &"the_long_walk"
 in_start_pool = false

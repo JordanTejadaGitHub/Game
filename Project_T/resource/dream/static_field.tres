@@ -4,15 +4,13 @@
 
 [resource]
 script = ExtResource("1_card")
-id = "overgrown"
-display_name = "Overgrown"
-description = "All Wardens +1 range."
-cost_description = "No selling while nightmares are walking."
+id = "static_field"
+display_name = "Static Field"
+description = "Static bolts also hit nightmares within 1 tile."
 rarity = 2
 kind = 3
-tags = Array[String](["bittersweet"])
+tags = Array[String](["storm"])
+requires = Array[String](["firefly_jar"])
 max_stacks = 1
-min_act = 2
-range_bonus = 1.0
-rule_id = &"overgrown"
+rule_id = &"static_field"
 in_start_pool = false

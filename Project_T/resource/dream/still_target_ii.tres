@@ -4,15 +4,13 @@
 
 [resource]
 script = ExtResource("1_card")
-id = "wild_growth"
-display_name = "Wild Growth"
-description = "Growing Wardens costs 40% less Dew."
-cost_description = "Nightmares have 10% more health."
+id = "still_target_ii"
+display_name = "Still Target II"
+description = "+25% crit chance against Drowsy, Held or frozen nightmares."
 rarity = 1
-kind = 4
-tags = Array[String](["bittersweet"])
+kind = 3
+tags = Array[String](["crit", "sleep"])
 max_stacks = 1
-min_act = 2
-evolve_discount = 0.4
-creature_health_bonus = 0.1
+deepens = "still_target"
+rule_id = &"still_target"
 in_start_pool = false

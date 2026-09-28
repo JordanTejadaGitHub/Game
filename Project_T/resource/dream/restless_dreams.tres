@@ -15,3 +15,4 @@ max_stacks = 1
 min_act = 2
 rare_dreams_add = 3
 rule_id = &"restless_dreams"
+in_start_pool = false

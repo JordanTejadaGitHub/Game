@@ -4,15 +4,14 @@
 
 [resource]
 script = ExtResource("1_card")
-id = "overgrown"
-display_name = "Overgrown"
-description = "All Wardens +1 range."
-cost_description = "No selling while nightmares are walking."
+id = "static_bloom"
+display_name = "Static Bloom"
+description = "Stormcap chains also make nightmares Drowsy (1 stack)."
 rarity = 2
 kind = 3
-tags = Array[String](["bittersweet"])
+tags = Array[String](["storm", "sleep"])
+requires = Array[String](["stormcap", "bloomcap"])
 max_stacks = 1
-min_act = 2
-range_bonus = 1.0
-rule_id = &"overgrown"
+entwined = true
+rule_id = &"static_bloom"
 in_start_pool = false

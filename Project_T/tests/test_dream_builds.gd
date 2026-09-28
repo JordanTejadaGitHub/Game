@@ -28,6 +28,7 @@ func _run() -> void:
 	_test_family_review_cards()
 	_test_seedling_gift()
 	_test_peek()
+	_test_grove_cards()
 	print("dream builds test: %s" % ("PASS" if failures == 0 else "%d FAILED" % failures))
 	quit(failures)
 
@@ -366,6 +367,70 @@ func _test_seedling_gift() -> void:
 	for i in 35:
 		dreams.add_dreamlight_shard()
 	_check(dreams.dreamlight == 2 and dreams.dreamlight_shards == 20, "shards: 10 per Dreamlight, 2 per run at most")
+
+# The Grove's Cards limb (meta_design.md Section 3): 12 cards + Deepened, and Bittersweet Dreams.
+func _test_grove_cards() -> void:
+	_reset()
+	var ids := ["static_bloom", "static_field", "guiding_light", "starlit_aim", "twin_puff", "still_target",
+		"shattering_blow", "reckless_bloom", "full_moon", "rootbound", "monoculture", "the_long_walk",
+		"deep_sleep", "borrowed_dew", "wild_growth", "overgrown", "restless_dreams", "hungry_roots"]
+	for id in ids:
+		_check(not _card(id).in_start_pool, "%s waits for its Grove node" % id)
+	dreams.grove_cards.assign(ids)
+	dreams.allow_bittersweet = true
+	_check(dreams.is_eligible(_card("deep_sleep"), 2), "Bittersweet Dreams node opens the bittersweet cards")
+	dreams.allow_bittersweet = false
+
+	# Needs
+	dreams.unlocked["stormcap"] = true
+	_check(not dreams.is_eligible(_card("static_bloom")), "Static Bloom: Entwined, needs Bloomcap too")
+	dreams.unlocked["bloomcap"] = true
+	_check(dreams.make_offer(10).has(_card("static_bloom")), "…then guaranteed")
+	_check(dreams.is_eligible(_card("still_target")), "Still Target: a Drowsy / Held Warden (Bloomcap)")
+	_check(not dreams.is_eligible(_card("full_moon"), 2), "Full Moon needs 2 crit cards")
+	dreams.take(_card("still_target"))
+	dreams.take(_card("shattering_blow"))
+	_check(dreams.is_eligible(_card("full_moon"), 2) and not dreams.is_eligible(_card("full_moon"), 1),
+		"…offered with 2, act 2+")
+
+	# Crit getters (Tower adds them)
+	var tower := _plant("sporeling", 0, 0)
+	var sleepy: Node2D = main.get_node("%EnemyContainer").enemy_scene.instantiate()
+	sleepy.enemy_data = TestGrove._load_enemy_types()[0]
+	main.get_node("%EnemyContainer").add_child(sleepy)
+	sleepy.set_process(false)
+	_check(dreams.get_crit_chance_bonus(tower, sleepy) == 0.0, "no bonus against an unaffected nightmare")
+	sleepy.apply_status(EnemyStatuses.DROWSY, 1, 3.0)
+	_check(is_equal_approx(dreams.get_crit_chance_bonus(tower, sleepy), 0.15), "Still Target: +15% vs Drowsy")
+	dreams.take(_card("full_moon"))
+	_check(is_equal_approx(dreams.get_crit_chance_bonus(tower, sleepy), 0.25)
+		and is_equal_approx(dreams.get_crit_overflow_multiplier(1.3), 0.3), "Full Moon: +10%, overflow → crit damage")
+	dreams.take(_card("reckless_bloom"))
+	_check(is_equal_approx(dreams.get_non_crit_multiplier(), 0.85), "Reckless Bloom: non-crits −15%")
+	sleepy.free()
+	_clear_towers()
+
+	# The Long Walk, Monoculture, Rootbound
+	_reset()
+	var a := _plant("sporeling", 0, 0)
+	var base := dreams.get_soothe_multiplier(a)
+	dreams.take(_card("the_long_walk"))
+	_check(is_equal_approx(dreams.get_soothe_multiplier(a) - base, 0.01 * (dreams.path_length / 4)), "The Long Walk: +1% per 4 path tiles")
+	_reset()
+	a = _plant("sporeling", 0, 0)
+	_plant("driftspore", 5, 0)
+	base = dreams.get_soothe_multiplier(a)
+	dreams.take(_card("monoculture"))
+	_check(is_equal_approx(dreams.get_soothe_multiplier(a) - base, 0.6), "Monoculture: one line = +60%")
+	_plant("dewdrop", 10, 0)
+	_check(is_equal_approx(dreams.get_soothe_multiplier(a) - base, 0.0), "…not with two lines")
+	_reset()
+	var hub := _plant_at("sporeling", Vector2(100, 100), 0)
+	for offset in [Vector2.LEFT, Vector2.RIGHT, Vector2.UP]:
+		_plant_at("thornwall", Vector2(100, 100) + offset, 0)
+	dreams.take(_card("rootbound"))
+	_check(is_equal_approx(dreams.get_tower_attack_speed_bonus(hub), 1.0), "Rootbound: touching 3 Wardens attacks twice")
+	_clear_towers()
 
 # The Dream, Omen and Remember screens can be minimised to look at the map (screens_ui.md).
 func _test_peek() -> void:
