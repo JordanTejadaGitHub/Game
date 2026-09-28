@@ -164,6 +164,34 @@ each tier is clearly louder than the one below. Effects are in `assets/effects/`
   always apply in full; only visuals are capped.
 - **Rest report / results:** add Reactions triggered per type and the **longest chain**.
 
+### Kinship feedback: rewarding at rests, quiet in combat
+
+Added 2026-09-28 (`tower_design.md` "Kinships"). Kinships should feel as rewarding as Reactions but
+look different: **Reactions are light bursting on nightmares; Kinships are the forest growing
+between Wardens** (green-gold vines, petals, harmony). To avoid clutter, **the loud moments happen
+at rests**, when the screen is calm; in combat Kinships are nearly invisible.
+
+| Moment | When it plays | Feedback |
+|---|---|---|
+| **Preview** | while placing | the build ghost's vine to its kin reads *"Forms Kinship: Slumber Rot"* |
+| **Bond forms** | when placed or evolved (almost always at a rest) | a vine grows along the ground between them, both flare in the family colour, petals burst, callout *"Kinship: Slumber Rot"*, a two-note chord (one note per Warden). First time ever: discovery card + Codex entry |
+| **Bond grows** (Blooming, Old Kin) | **queued to the next rest** even if reached mid-drift | the vine thickens / flowers, a soft chime, a small line in the rest report |
+| **Whole Tree** | once per family per run; **held until the next rest** if reached mid-drift | every Warden of the family flares at once, a tree sigil blooms over the Heartwood, banner *"The Sporeling line is whole."*; a lasting small badge on those Wardens |
+| **Harmony strike** | in combat | **a small two-colour spark** (crit-glint size) on the nightmare; the bonus damage merges into the hit's number, tinted green. **No callout in combat.** Counted in the rest report ("Harmony strikes: 84") |
+| **Vines** | always | on the ground under the Wardens, **~30% brightness, still during drifts**; full brightness in build mode, when one of the pair is selected, and during the rest moments |
+
+**Screen priority** (what wins when things overlap): Crowned Reactions and Dawnburst > Reactions
+and chains > crits and weakness hits > Harmony sparks > vines.
+
+- Harmony sparks share the Reaction effect budget and **always lose to Reactions**; when the budget
+  is full they skip the spark and only deal their damage. Reduce flashes: no petal bursts, vines
+  never brighten.
+- A 23×18 map holds about 8–10 kin pairs, so vines never become a web.
+- Setting **Kinship effects: Full / Subtle / Off** (Gameplay tab). Subtle hides vines outside build
+  mode and drops the Harmony spark. Rules and bonuses always apply in full.
+- Warden panel: *"Kin: Bloomcap · Slumber Rot · Blooming (3 drifts to Old Kin)"*.
+- Rest report / results: Kinships formed, Harmony strikes, families made Whole.
+
 ## Stat and status icons
 
 Added 2026-09-27 (user request). **Every stat and every status has a pixel-art icon**, and **every
@@ -276,6 +304,11 @@ Every combo starts **locked** and is **discovered the first time it actually fir
 As built (57a551e): they live in **their own hidden Codex section**, separate from the 15 combos
 (which keep their own counter), with their own first-ever discovery card in the gold tier accent.
 Full game only (they can't happen in the demo).
+
+**Kinships** (added 2026-09-28, `tower_design.md` "Kinships"): their own Codex section, locked as
+*"???"* with a leaf frame, discovered the first time the bond forms. The entry shows both Wardens,
+what each borrows, and the bond stages. 9 main (Slumber Rot, Rainfog and Storm Beacon are in the
+demo) and 9 hidden ones later. Kindred and Whole Tree are explained on the section's first page.
 
 New combos (new Wardens, Reactions) are added to this table and the Codex automatically.
 
@@ -458,7 +491,7 @@ Side: a run summary (Dreams, families, active Omen, time played).
 |---|---|
 | Audio | master, music, effects |
 | Display | fullscreen/windowed, resolution, V-sync, **UI scale** |
-| Gameplay | Heartwood whispers, Auto-drift default, health bars (hit / always), screen shake, confirm before selling during a drift |
+| Gameplay | Heartwood whispers, Auto-drift default, health bars (hit / always), screen shake, confirm before selling during a drift, **Kinship effects** (Full / Subtle / Off) |
 | Controls | rebind every action, controller layout (see controller topic) |
 | Accessibility | colour-blind-friendly blight cue (outline/haze), text size, reduced motion, high-contrast route line, **reduce flashes** (photosensitivity: lite effects everywhere, no `surge`/Dawnburst flash), **hitstop and slow-motion** on/off |
 | Language | once translations exist |

@@ -29,6 +29,7 @@ replayable run, then leave players wanting the Deep Wood and the Memory Grove.
 | Wardens | **To be decided after playtesting** (2026-09-27): a **Test Grove** mode unlocks every Warden so all of them can be tried first (below). Starting proposal: Sprout, Thornwall (+ Bramble); **Sporeling, Firefly Jar, Dewdrop** as family picks, with their 6 branches |
 | Family picks | after drift 1 and after the bosses at 25, 50 and 75 (with only the demo's families, empty slots become Family Blessings) |
 | Final forms | **shown but locked** ("in the full game") on Dream cards |
+| Kinships | **Slumber Rot, Rainfog, Storm Beacon** (the demo families' main Kinships) and **Kindred** (`tower_design.md` "Kinships"). Whole Tree and hidden Kinships need Grove unlocks, so full game only |
 | Dreams | after drifts 5, 10, … 95 (**19 per run**; boss Dreams guaranteed Rare+), from the Start pool |
 | Nightmares | acts 1–2 as in `acts_1_2.md` (Shade, Husk, Mourner, Phantom, Night Hound, Procession, the Hollow Stag, the Mire Hag) and acts 3–4 as in `acts_3_4.md` (the whole roster, the Moth Queen, the Hollow Oak) |
 | Act 2 boss | **always the Mire Hag** in the demo (the full game picks the Hag or the Moth Queen); the Hag needs no extra nightmares, the Moth Queen needs Lurkers and flying |

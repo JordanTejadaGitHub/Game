@@ -389,6 +389,86 @@ three families are reachable with 4 per run.
 **Later (post-launch ideas):** Rooted Storm (Thunderclap + Held: a grounded pylon), Undertow (Drown
 + Marked: dragged back, every hit crits), Flare (Ignite + Marked: the burst Marks and reveals).
 
+## Kinships: two branches of one family
+
+Added 2026-09-28 (user decision). Reactions reward going **wide** (2–3 families); Kinships reward
+going **deep** in one. The two are kept visibly different:
+
+| | Reactions | Kinships |
+|---|---|---|
+| Triggered by | two **statuses** meeting on a nightmare | two **Wardens** of one family standing close |
+| What changes | the **nightmare** (a burst, sleep, a crit) | the **Wardens** (how they attack) |
+| When | an **event**, with cooldowns and chains | **always on** while they stand together |
+| Looks like | light bursting on the nightmare | the forest growing between Wardens: vines, petals |
+| Chains | yes | no, but Kinships can set up Reactions |
+
+**The rule:** a Warden from one branch and a Warden from a **different branch of the same family**
+(branch or final form), within **2 cells** of each other, form a Kinship. **Each borrows one trait
+from the other** ("they teach each other"), so one Kinship explains them all. Each Warden is in at
+most one Kinship; if several kin are in reach, it bonds with the nearest.
+
+**The bond grows** the longer the pair stands together (moving or selling either resets it;
+evolving keeps it):
+
+| Stage | When | Borrowed traits | Look |
+|---|---|---|---|
+| **Sapling** | when formed | 50% | a thin vine on the ground |
+| **Blooming** | 5 drifts together | 75% | the vine thickens and leafs |
+| **Old Kin** | 10 drifts together | 100% | the vine flowers, both share a glow; Harmony strikes ×1.5 |
+
+**Harmony strike:** when both kin hit the same nightmare within 1 s, two petals in their colours
+spiral in and burst for bonus damage (1× the weaker Warden's hit; ×1.5 at Old Kin). It's effect
+damage (Potency applies, no crit), 2 s cooldown per pair, and **never counts toward Reaction
+chains** (it has its own counter).
+
+**Family depth bonus:**
+- **Kindred:** Wardens from **two** branches of a family on the map → that family +10% damage.
+- **Whole Tree:** Wardens from **all three** branches (the hidden one included) → +20% damage
+  (replaces Kindred) and a family perk: +1 stack cap on its status (Spored 9, Damp duration +1 s,
+  Static bolts at 4, Held +0.25 s, Drowsy 6), or for status-less families: Pebbling +10% crit
+  chance, Acorn +1 aura radius, Nestling +10% crit chance, Whirligig Gust copies onto +1. Stacks
+  with *Monoculture*. Celebrated once per family per run.
+
+### The 9 Kinships (build first)
+
+Borrowed traits at full strength (Old Kin); Sapling 50%, Blooming 75%.
+
+| Family | Pair | Kinship | A borrows from B | B borrows from A |
+|---|---|---|---|---|
+| Sporeling | Driftspore + Bloomcap | **Slumber Rot** | puffs add 1 Drowsy | clouds add 1 Spored per tick |
+| Dewdrop | Rain Lily + Mistveil | **Rainfog** | splashes leave a fog patch (1 tile, 2 s) | the fog deals Rain Lily's splash damage to nightmares entering it |
+| Firefly Jar | Stormcap + Lanternmoth | **Storm Beacon** | chain jumps Mark for 2 s | shots add 1 Static |
+| Pebbling | Mossback + Standing Stone | **Hammer and Anvil** | +10% crit chance at ×2.5 (the sniper's eye) | ×2 damage vs Marked (Mossback's weight) |
+| Rootling | Rootcurl + Tangleroot | **Snare** | a pull ends in a 0.5 s hold | a hold drags the nightmare back half a tile |
+| Bellflower | Chime Stone + Dreamcatcher | **Night Chimes** | pulses deal +40% to Caught nightmares | threads set off Static at 3 stacks, like a chime |
+| Acorn | Elder Stump + Dewcatcher | **Old Growth** | +2 Dew per drift | gains a small aura: neighbours +10% attack speed |
+| Nestling | Wren's Nest + Magpie Perch | **Flock Together** | nightmares it hits drop +1 Dew | hunts the fastest nightmare, +25% vs Phantoms |
+| Whirligig | Gust + Pinwheel | **Dust Devil** | each copy also deals one blade hit | blades copy statuses (half stacks) onto what they hit |
+
+### The 9 hidden Kinships (later: need the hidden branch)
+
+| Family | Pair | Kinship | Hidden borrows | Its kin borrows |
+|---|---|---|---|---|
+| Sporeling | Fairy Ring + Driftspore | **Spore Nursery** | rings apply 2 Spored (double) | puffs plant a mushroom ring where they land (one at a time) |
+| Dewdrop | Frostfern + Mistveil | **Hoar Fog** | shots leave a fog puff (1 tile) | the fog freezes nightmares that stay 2 s |
+| Firefly Jar | Sunpetal + Lanternmoth | **Sunspot** | the beam Marks its target | shots ramp +10% per hit on the same target (max +50%) |
+| Pebbling | Cairn + Standing Stone | **Spotter** | lobs at the sniper's target; the landing crits | shots splash 30% within 0.75 cells |
+| Rootling | Rootlight + Tangleroot | **Lantern Roots** | lit tiles hold a nightmare entering them for 0.3 s (once) | held nightmares are Marked |
+| Bellflower | Echo Hollow + Chime Stone | **Resonant Hollow** | echoes set off Static like a chime | pulses echo once at 30% |
+| Acorn | Graftling + Elder Stump | **True Graft** | copies at 100% | the aura adds the strongest neighbour's status to its pulse |
+| Nestling | Hummingbird Bower + Magpie Perch | **Jewel Thieves** | every 6th peck steals +1 Dew | pecks twice per swoop |
+| Whirligig | Samara + Gust | **Tailwind** | the seed carries full stacks | copies reach nightmares up to 3 cells away in a line |
+
+**In the demo:** Slumber Rot, Rainfog and Storm Beacon (the starting families) and Kindred. They
+give demo players a second layer of combos, since Crowned Reactions need 3 families. Whole Tree
+needs a hidden branch, so it's full game only.
+
+**Watch in playtests:** a Kinship can give one family two statuses (Storm Beacon: Marked + Static,
+which is Lightning Rod). That's intended, but check that deep one-family runs don't match wide ones.
+
+**Feedback and clutter:** loud moments happen at **rests**; in combat Kinships are nearly invisible
+(dim vines, a tiny Harmony spark). Details: `screens_ui.md`, "Kinship feedback".
+
 How Reactions are shown (impact tiers, light threads, discovery cards, settings): `screens_ui.md`,
 "Combat feedback".
 
