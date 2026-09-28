@@ -5,7 +5,7 @@ class_name MoonDivider
 # Divider inside a panel (ui_style.md "Parts"): a 1 px gold line across the middle of the rect,
 # fading out at both ends. The theme's HSeparator uses it.
 
-@export var colour := Color("f1cd7a", 0.5):
+@export var colour := Color("fcd47c", 0.5):  # Glow (Heartwood 32)
 	set(v): colour = v; emit_changed()
 
 func _draw(to_canvas_item: RID, rect: Rect2) -> void:

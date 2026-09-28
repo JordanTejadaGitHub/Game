@@ -12,20 +12,22 @@ enum TopLine { NONE, GOLD, FULL }
 
 const THREAD_INSET := 0.1  # Of the width, at each end (GOLD)
 const DIAMOND_HALF := 5.0  # An 8 px square turned 45°
-const DIAMOND_FILL := Color("0b0a14")
+const DIAMOND_FILL := Color("05050d")  # Void (Heartwood 32)
 const UNDERLINE_INSET := 14.0
 
-@export var fog_color := Color("06050e"):
+@export var fog_color := Color("05050d"):  # Void (Heartwood 32)
 	set(v): fog_color = v; _changed()
 @export_range(0.0, 1.0) var center_alpha := 0.78:  # The middle of the fog
 	set(v): center_alpha = v; _changed()
 @export_range(0.0, 1.0) var edge_alpha := 0.35:  # The rim (and the corners)
 	set(v): edge_alpha = v; _changed()
+@export var glow_color := Color(0, 0, 0, 0):  # The lit middle's colour (cards: Night over Void); clear = fog_color
+	set(v): glow_color = v; emit_changed()
 @export var corner_radius := 4:
 	set(v): corner_radius = v; _changed()
 @export var thread := TopLine.GOLD:
 	set(v): thread = v; emit_changed()
-@export var thread_color := Color("f1cd7a", 0.8):
+@export var thread_color := Color("fcd47c", 0.8):  # Glow
 	set(v): thread_color = v; emit_changed()
 @export var diamond := true:  # GOLD threads only
 	set(v): diamond = v; emit_changed()
@@ -60,7 +62,7 @@ func _draw(to_canvas_item: RID, rect: Rect2) -> void:
 	if center_alpha > edge_alpha:
 		var extra := 1.0 - (1.0 - center_alpha) / (1.0 - edge_alpha)
 		rs.canvas_item_add_texture_rect(to_canvas_item, rect, _radial_texture().get_rid(), false,
-			Color(fog_color, extra))
+			Color(glow_color if glow_color.a > 0.0 else fog_color, extra))
 	if side_edges:
 		var edge := Color(1, 1, 1, 0.05)
 		rs.canvas_item_add_line(to_canvas_item, Vector2(rect.position.x + 0.5, rect.position.y),

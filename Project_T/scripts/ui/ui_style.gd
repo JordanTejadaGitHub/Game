@@ -9,16 +9,22 @@ class_name UiStyle
 
 const THEME_PATH := "res://assets/ui/ui_theme.tres"
 
-# Colours (ui_style.md "Colours")
-const INK := Color("efe8d8")
-const INK_DIM := Color("aaa3bb")
-const GOLD := Color("f1cd7a")
-const GOLD_TEXT := Color("ffe3a0")
-const WHISPER := Color("f3e3b8")
-const POOR := Color("f08a8a")
-const FOG := Color("06050e")
-const CARD_BG := Color("0e0c1a")
-const RARITY := [Color("bdb5cf"), Color("79c98f"), Color("6fa9ff"), Color("f0c050")]  # Common → Legendary
+# Colours (ui_style.md "Colours"): Heartwood 32 (HeartwoodPalette, art_direction.md). Constants so
+# other scripts can use them in their own consts; tests/test_ui_style.gd checks each one still equals
+# its palette colour (PALETTE_NAMES).
+const INK := Color("fff4dc")  # Heartlight: text
+const INK_DIM := Color("b4b0c8")  # Mist: labels, secondary text
+const GOLD := Color("fcd47c")  # Glow: numbers, threads, links
+const BUTTON_GOLD := Color("e9a83c")  # Gold: button outlines, primary fill and glow
+const GOLD_TEXT := Color("fff4dc")  # Heartlight: text on primary buttons
+const WHISPER := Color("dccdb2")  # Moonpath
+const POOR := Color("b8662c")  # Ember: unaffordable (with the 50% fade; the palette has no red)
+const FOG := Color("05050d")  # Void: panel fog
+const CARD_BG := Color("24243c")  # Night: the lit middle of a card, over Void
+const RARITY := [Color("b4b0c8"), Color("9cc46c"), Color("9cd4fc"), Color("e9a83c")]  # Mist, Sprig, Dewlight, Gold
+const PALETTE_NAMES := {"INK": "Heartlight", "INK_DIM": "Mist", "GOLD": "Glow", "BUTTON_GOLD": "Gold",
+	"GOLD_TEXT": "Heartlight", "WHISPER": "Moonpath", "POOR": "Ember", "FOG": "Void", "CARD_BG": "Night"}
+const RARITY_NAMES := ["Mist", "Sprig", "Dewlight", "Gold"]
 const DISABLED_ALPHA := 0.45
 const UNAFFORDABLE_ALPHA := 0.5
 
@@ -113,8 +119,9 @@ static func fog_patch(margin_x: float = 12.0, margin_y: float = 6.0) -> MoonStyl
 # `colour` (the rarity).
 static func card(colour: Color, hover: bool = false) -> MoonStyleBox:
 	var box := panel(18.0, 16.0)
-	box.fog_color = CARD_BG.lightened(0.06) if hover else CARD_BG
-	box.center_alpha = 0.94 if hover else 0.92
+	box.fog_color = FOG  # Night in the middle fading to Void at the rim, ~90% (ui_style.md)
+	box.glow_color = CARD_BG.lightened(0.08) if hover else CARD_BG
+	box.center_alpha = 0.96
 	box.edge_alpha = 0.9
 	box.corner_radius = 2
 	box.side_edges = true
@@ -134,7 +141,7 @@ static func slot(selected: bool, hover: bool = false) -> MoonStyleBox:
 static func button_box(hover: bool = false) -> StyleBoxFlat:
 	var box := StyleBoxFlat.new()
 	box.bg_color = Color(FOG, 0.62 if hover else 0.55)
-	box.border_color = Color(GOLD, 0.8 if hover else 0.45)
+	box.border_color = Color(BUTTON_GOLD, 0.8 if hover else 0.45)
 	box.set_border_width_all(1)
 	box.set_corner_radius_all(2)
 	_margins(box, 14.0, 6.0)
@@ -143,9 +150,9 @@ static func button_box(hover: bool = false) -> StyleBoxFlat:
 # Primary and toggled buttons: gold at 16% fill, solid gold outline, a soft gold glow.
 static func primary_box(hover: bool = false) -> StyleBoxFlat:
 	var box := button_box()
-	box.bg_color = Color(GOLD, 0.24 if hover else 0.16)
-	box.border_color = GOLD.lightened(0.2) if hover else GOLD
-	box.shadow_color = Color(GOLD, 0.3)
+	box.bg_color = Color(BUTTON_GOLD, 0.24 if hover else 0.16)
+	box.border_color = GOLD if hover else BUTTON_GOLD
+	box.shadow_color = Color(BUTTON_GOLD, 0.3)
 	box.shadow_size = 8
 	return box
 
