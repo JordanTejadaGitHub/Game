@@ -45,8 +45,37 @@ is the reference (made automatically; hand-tuned generator art should do better)
 **Exceptions:** the Heartwood stays 128×128 (2×2 cells). The Steam capsule, key art and trailer
 close-ups are separate showcase art and can be drawn at a higher resolution.
 
-**Still open:** a shared master palette of about 32 colours for every generator, recommended by
-the design chat to keep art from several chats consistent.
+### Decision (2026-09-28): the Heartwood 32 palette
+
+**Final.** Every piece of game art uses only these 32 colours: Wardens, nightmares, effects, tiles,
+meta art and UI. Art comes from several chats, and one shared palette is what makes it match.
+Reference page, applied to all 108 existing Warden and nightmare sprites:
+https://claude.ai/artifact/BbGHs9cDsKvm8kZEDH1Bra
+
+| Ramp (dark → light) | Colours | Used for |
+|---|---|---|
+| Ink | Void `#05050d`, Night `#24243c`, Dusk `#3c3c5c`, Slate `#5c5a78` | outlines, shadows, the night sky |
+| Nightmare | Dread `#140f26`, Shade `#2c2444`, Bruise `#4c3c74`, Wraithlight `#9a84e8` | nightmare bodies, rims, cold glow |
+| Stone & moon | Stone `#8c8cac`, Mist `#b4b0c8`, Moonlight `#dce8f4` | boulders, mist, cold highlights, eyes |
+| Moss | Deepmoss `#1c3c2c`, Moss `#34643c`, Leaf `#5c944c`, Sprig `#9cc46c`, Newleaf `#d4ec9c` | ground, leaves, the canopy |
+| Bark | Root `#241c14`, Bark `#5c3c24`, Oak `#8c5c34`, Deadwood `#bca48c` | trunks, roots, dead trees |
+| Path | Loam `#6c5c5c`, Path `#b4a494`, Moonpath `#dccdb2` | the path; Moonpath is the palest ground |
+| Warm light | Ember `#b8662c`, Gold `#e9a83c`, Glow `#fcd47c`, Heartlight `#fff4dc` | attacks, the hollow, dream-fruit, fireflies |
+| Blossom | Orchid `#bc44dc`, Blossom `#ec9cf4` | Sporeling and flower Wardens |
+| Dew | Pool `#2c4c5c`, Dew `#4c8ca4`, Dewlight `#9cd4fc` | water Wardens, jars, dew pools |
+
+- **Pick colours by name, never raw hex.** Generators read the shared palette file (once it
+  exists) and snap every pixel they write to the nearest palette colour (OKLab distance).
+- **Nightmares use only the cold ramps:** Ink, Nightmare, Stone & moon and Dew. No warm colour
+  ever lands on a nightmare.
+- **Glow and translucency** use palette colours with alpha steps (Gold, Glow, Wraithlight).
+- **The value order holds:** Deepmoss ground < Stone obstacles < Moonpath.
+- **The acts' seasons** come from the lighting pass (`Seasons` / `EnvironmentLighting` tinting),
+  not from extra colours. If an act later needs its own ground colours, it can add at most 4 and
+  record them here.
+- **UI (Moonlit Thread)** uses the same Ink, Moonlight and Gold ramps.
+- **Exempt:** the Steam capsule, key art and trailer (showcase art), and third-party packs that
+  aren't used in the game.
 
 ## Environment
 
