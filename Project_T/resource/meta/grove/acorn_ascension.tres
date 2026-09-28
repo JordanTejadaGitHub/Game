@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="UnlockData" format=3]
+
+[ext_resource type="Script" path="res://resource/meta/script/unlock_data.gd" id="1_unlock"]
+
+[resource]
+script = ExtResource("1_unlock")
+id = "acorn_ascension"
+display_name = "Ascension: Grandmother Oak"
+description = "Acorn's Ascended form, Grandmother Oak, can grow in your runs (from drift 51: 3 Dreamlight, then 400 Dew on a final form). An aura of damage and speed for nearby Wardens, and Dew every drift."
+root = 0
+costs = Array[int]([120])
+order = 36
+icon = 6
+requires_all = Array[String](["acorn_hidden"])
+dream_cards = Array[String](["dream_grandmother_oak"])

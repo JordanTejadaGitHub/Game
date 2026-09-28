@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="UnlockData" format=3]
+
+[ext_resource type="Script" path="res://resource/meta/script/unlock_data.gd" id="1_unlock"]
+
+[resource]
+script = ExtResource("1_unlock")
+id = "nestling_ascension"
+display_name = "Ascension: Dawnwing"
+description = "Nestling's Ascended form, Dawnwing, can grow in your runs (from drift 51: 3 Dreamlight, then 400 Dew on a final form). A great bird circles the path, striking everything it passes."
+root = 0
+costs = Array[int]([120])
+order = 37
+icon = 7
+requires_all = Array[String](["nestling_hidden"])
+dream_cards = Array[String](["dream_dawnwing"])

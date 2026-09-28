@@ -283,7 +283,7 @@ static func get_player_wardens() -> Array[TowerData]:
 	var families: Array = START_FAMILIES.duplicate()
 	var memory := HeartwoodMemory.load_data()
 	for unlock in HeartwoodMemory.load_grove():
-		if HeartwoodMemory.unlock_level(memory, unlock.id) > 0:
+		if HeartwoodMemory.node_level(memory, unlock) > 0:
 			families.append_array(unlock.families)
 	var lines := {}
 	for data in _wardens:

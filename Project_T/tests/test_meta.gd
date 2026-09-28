@@ -32,12 +32,13 @@ func _run() -> void:
 	HeartwoodMemory.save_data(memory)
 	var grove := HeartwoodMemory.load_grove()
 	_check_layout(grove)
-	# The Families limb (meta_design.md): 7 families + final forms + hidden branches ≈ 1,390 Seeds.
+	# The Families limb (meta_design.md): 6 bought families + final forms + hidden branches ≈ 1,390
+	# Seeds, plus 9 Ascension nodes at 120 = 1,080.
 	var limb := 0
 	for unlock in grove:
 		if unlock.root == UnlockData.Root.WARDENS and not unlock.costs.is_empty():
 			limb += unlock.costs[0]
-	_check(limb == 1390, "the Families limb costs 1,390 Seeds (%d)" % limb)
+	_check(limb == 1390 + 1080, "the Families limb costs 2,470 Seeds (%d)" % limb)
 	_check(_unlock(grove, "bellflower").requires_any == ["pebbling", "rootling"], "Bellflower needs Pebbling or Rootling")
 	for family: String in ["sporeling", "dewdrop", "pebbling", "rootling", "bellflower", "acorn", "nestling", "whirligig"]:
 		var hidden := family + "_hidden"
@@ -80,6 +81,10 @@ func _run() -> void:
 	_check(family_ids.has("pebbling") and family_ids.has("acorn") and family_ids.has("nestling"), "Grove families join the picks (%s)" % [family_ids])
 	_check(dreams.grove_cards.has("dream_wrens_nest") and not dreams.grove_cards.has("dream_magpies_hoard"),
 		"family nodes bring their branches, not their final forms")
+	for line: String in ["sporeling", "firefly_jar", "dewdrop", "pebbling", "rootling", "bellflower", "acorn", "nestling", "whirligig"]:
+		var ascension := _unlock(grove, line + "_ascension")
+		_check(ascension != null and ascension.costs == [120] and ascension.requires_all == [line + "_hidden"] and ascension.dream_cards.size() == 1,
+			"%s Ascension: 120 Seeds, needs the hidden branch, opens the Ascended Warden" % line)
 	_check(_unlock(grove, "pebbling_hidden").dream_cards.has("dream_cairn") and _unlock(grove, "whirligig_hidden").dream_cards.has("dream_autumn_gale"),
 		"hidden nodes open their hidden Wardens")
 	_check(is_equal_approx(director.blight_health_multiplier, 1.1) and is_equal_approx(director.blight_boss_health_multiplier, 1.25)
@@ -313,7 +318,7 @@ func _layout_node(id: String) -> Dictionary:
 # art, and every UnlockData is on the tree.
 func _check_layout(grove: Array[UnlockData]) -> void:
 	var nodes: Array = GroveTreeView.load_layout().nodes
-	_check(nodes.size() == 65 and grove.size() == 65, "65 Grove nodes (layout %d, data %d)" % [nodes.size(), grove.size()])
+	_check(nodes.size() == 74 and grove.size() == 74, "74 Grove nodes (layout %d, data %d)" % [nodes.size(), grove.size()])
 	for node in nodes:
 		var unlock := HeartwoodMemory.get_unlock(node.id)
 		if unlock == null:

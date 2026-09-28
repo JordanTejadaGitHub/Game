@@ -588,6 +588,31 @@
    }
   },
   {
+   "id": "sporeling_ascension",
+   "section": "families",
+   "name": "Sporeling: Ascension",
+   "pos": [
+    544,
+    496
+   ],
+   "parent": "sporeling_hidden",
+   "from": null,
+   "levels": 1,
+   "start": false,
+   "legendary": false,
+   "branch": {
+    "offset": [
+     532,
+     484
+    ],
+    "frame_size": [
+     48,
+     46
+    ],
+    "frames": 5
+   }
+  },
+  {
    "id": "firefly_jar",
    "section": "families",
    "name": "Firefly Jar",
@@ -661,6 +686,31 @@
     "frame_size": [
      38,
      60
+    ],
+    "frames": 5
+   }
+  },
+  {
+   "id": "firefly_jar_ascension",
+   "section": "families",
+   "name": "Firefly Jar: Ascension",
+   "pos": [
+    738.1096615430874,
+    446
+   ],
+   "parent": "firefly_jar_hidden",
+   "from": null,
+   "levels": 1,
+   "start": false,
+   "legendary": false,
+   "branch": {
+    "offset": [
+     702,
+     434
+    ],
+    "frame_size": [
+     48,
+     46
     ],
     "frames": 5
    }
@@ -744,6 +794,31 @@
    }
   },
   {
+   "id": "dewdrop_ascension",
+   "section": "families",
+   "name": "Dewdrop: Ascension",
+   "pos": [
+    547.5847688041198,
+    396
+   ],
+   "parent": "dewdrop_hidden",
+   "from": null,
+   "levels": 1,
+   "start": false,
+   "legendary": false,
+   "branch": {
+    "offset": [
+     536,
+     384
+    ],
+    "frame_size": [
+     48,
+     46
+    ],
+    "frames": 5
+   }
+  },
+  {
    "id": "pebbling",
    "section": "families",
    "name": "Pebbling",
@@ -817,6 +892,31 @@
     "frame_size": [
      39,
      60
+    ],
+    "frames": 5
+   }
+  },
+  {
+   "id": "pebbling_ascension",
+   "section": "families",
+   "name": "Pebbling: Ascension",
+   "pos": [
+    739.981631831007,
+    346
+   ],
+   "parent": "pebbling_hidden",
+   "from": null,
+   "levels": 1,
+   "start": false,
+   "legendary": false,
+   "branch": {
+    "offset": [
+     703,
+     334
+    ],
+    "frame_size": [
+     49,
+     46
     ],
     "frames": 5
    }
@@ -900,6 +1000,31 @@
    }
   },
   {
+   "id": "rootling_ascension",
+   "section": "families",
+   "name": "Rootling: Ascension",
+   "pos": [
+    547.1808802280922,
+    296
+   ],
+   "parent": "rootling_hidden",
+   "from": null,
+   "levels": 1,
+   "start": false,
+   "legendary": false,
+   "branch": {
+    "offset": [
+     535,
+     284
+    ],
+    "frame_size": [
+     49,
+     46
+    ],
+    "frames": 5
+   }
+  },
+  {
    "id": "bellflower",
    "section": "families",
    "name": "Bellflower",
@@ -973,6 +1098,31 @@
     "frame_size": [
      38,
      60
+    ],
+    "frames": 5
+   }
+  },
+  {
+   "id": "bellflower_ascension",
+   "section": "families",
+   "name": "Bellflower: Ascension",
+   "pos": [
+    737.4233679656043,
+    246
+   ],
+   "parent": "bellflower_hidden",
+   "from": null,
+   "levels": 1,
+   "start": false,
+   "legendary": false,
+   "branch": {
+    "offset": [
+     701,
+     234
+    ],
+    "frame_size": [
+     48,
+     46
     ],
     "frames": 5
    }
@@ -1056,6 +1206,31 @@
    }
   },
   {
+   "id": "acorn_ascension",
+   "section": "families",
+   "name": "Acorn: Ascension",
+   "pos": [
+    543.237728148498,
+    196
+   ],
+   "parent": "acorn_hidden",
+   "from": null,
+   "levels": 1,
+   "start": false,
+   "legendary": false,
+   "branch": {
+    "offset": [
+     531,
+     184
+    ],
+    "frame_size": [
+     49,
+     46
+    ],
+    "frames": 5
+   }
+  },
+  {
    "id": "nestling",
    "section": "families",
    "name": "Nestling",
@@ -1134,6 +1309,31 @@
    }
   },
   {
+   "id": "nestling_ascension",
+   "section": "families",
+   "name": "Nestling: Ascension",
+   "pos": [
+    733.281368174429,
+    146
+   ],
+   "parent": "nestling_hidden",
+   "from": null,
+   "levels": 1,
+   "start": false,
+   "legendary": false,
+   "branch": {
+    "offset": [
+     697,
+     134
+    ],
+    "frame_size": [
+     48,
+     46
+    ],
+    "frames": 5
+   }
+  },
+  {
    "id": "whirligig",
    "section": "families",
    "name": "Whirligig",
@@ -1207,6 +1407,31 @@
     "frame_size": [
      39,
      60
+    ],
+    "frames": 5
+   }
+  },
+  {
+   "id": "whirligig_ascension",
+   "section": "families",
+   "name": "Whirligig: Ascension",
+   "pos": [
+    540.1427315322849,
+    96
+   ],
+   "parent": "whirligig_hidden",
+   "from": null,
+   "levels": 1,
+   "start": false,
+   "legendary": false,
+   "branch": {
+    "offset": [
+     528,
+     84
+    ],
+    "frame_size": [
+     49,
+     46
     ],
     "frames": 5
    }

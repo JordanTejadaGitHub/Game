@@ -227,10 +227,10 @@ accessibility, Steam achievements (milestones map to them). Acts 3–4 and all f
   saves profile `reactions_seen` (real game only). `CodexPanel` (pause menu + Grove) lists all 8.
 
 ## Meta (meta_design.md; full game only — `game/demo` true = nothing applied or recorded)
-- Grove = tech tree on the Heartwood: 65 `UnlockData` nodes (`resource/meta/grove/<id>.tres`, ids =
+- Grove = tech tree on the Heartwood: 74 `UnlockData` nodes (`resource/meta/grove/<id>.tres`, ids =
   `assets/meta/grove/grove_layout.json` ids; limbs `root` WARDENS = Families, DREAMS = Cards, PERKS =
   Perks). `costs` per level, `requires_all` ("id" or "id:level") / `requires_any` (+count), `icon`,
-  `start` (Sporeling / Firefly Jar / Dewdrop, never bought), `milestone` (grows free, refunds a
+  `start` (Sporeling / Firefly Jar / Dewdrop, never bought), `<family>_ascension` (Ascended Warden card), `milestone` (grows free, refunds a
   purchase; no `costs` = milestone-only: Sunpetal), `legendary`. Effects: `families`, `dream_cards`
   (→ `DreamState.grove_cards`), `loadout_slots` (slot_2..5), perks per level (only while carried):
   `starting_dew`, `dew_gain` (`RunState.dew_gain_bonus`, fraction carry), `rest_bonus`

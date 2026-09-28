@@ -20,7 +20,7 @@ Tree space is **1280×960 px** (native pixels; the screen pans and zooms). Every
 | `grove_sky.png` | 1280×960 | 1 | back layer: night sky with stars, the moon (`moon` in the layout) and its halo, a warm glow behind the trunk, two layers of distant forest with fog between |
 | `grove_canopy_0.png` … `_3.png` | 1280×960 each | 1, transparent | **the crown**: one shared mass of cauliflower foliage clumps (each a cluster of bubbles lit from the top left, with creases under each bump, leaf texture, and a dark gap where a lower clump sits in front; the crown darkens toward its underside) over all three limbs, so the tree reads as one crown, not three horns. Stage 0 is the core over the limbs (always shown); each stage fills out the edges (about 55 / 70 / 85 / 100% of the clumps) with more lit dream-leaves. Show the stage for the share of nodes owned (e.g. 0–24% → 0), crossfading when it changes |
 | `grove_tree.png` | 1280×960 | 1, transparent | the Heartwood, always shown: ridged roots with pale mushrooms, a twisted three-strand trunk (each strand a shaded cylinder with a lit band and bark lines along it) with ivy, knots and the lit hollow, the three great limbs (Perks left, Families middle, Cards right) as twisted strands running up into the crown, a moonlit rim, a **glowing sigil at the base of each limb** (gold ring = Perks, green sprig = Families, violet card = Cards), and **five waystones at the roots** (`loadout_stones`: the loadout slots in the world) |
-| `branches/<node_id>.png` | per node | **5 frames**: 0 bare twig (locked), 1–3 the branch growing 25/50/75%, 4 grown | one per node (65); draw at `branch.offset`; planting plays 1→4 |
+| `branches/<node_id>.png` | per node | **5 frames**: 0 bare twig (locked), 1–3 the branch growing 25/50/75%, 4 grown | one per node (74); draw at `branch.offset`; planting plays 1→4 |
 | `grove_nodes.png` | 352×96 | 32×32; **rows**: 0 Perks (gold), 1 Families (green), 2 Cards (violet); **columns**: 0 locked bud, 1–4 affordable glow (loop), 5–8 bud opening (play once), 9–10 bloomed (loop) | node sprite, centred on `pos` |
 | `grove_legendary.png` | 528×48 | 48×48, same 11 columns, violet | Legendary tips (Dawnbreak, Full Moon, The Old Ones, Rootbound, The Last Light, The Long Walk) |
 | `dream_fruit.png` | 432×48 | 48×48: 0–3 idle glow (loop), 4–7 opening (play once), 8 opened | Memories; the **vine's top is the sprite's top centre**, hang it at a `fruit_spots` point |
@@ -29,13 +29,13 @@ Tree space is **1280×960 px** (native pixels; the screen pans and zooms). Every
 ### `grove_layout.json`
 
 - `size`: [1280, 960].
-- `nodes`: one entry per node (65), in `meta_design.md` order: `id`, `section` (`perks` /
+- `nodes`: one entry per node (74), in `meta_design.md` order: `id`, `section` (`perks` /
   `families` / `cards`), `name`, `pos` (flower centre), `parent` (node id) **or** `from` (the point on
   a great limb it grows from), `levels` (Morning Stores 3, Rich Dew 3, Rested Roots 2, Deep Taproot 3,
   Second Thoughts 2; the game shows pips), `start` (Sporeling, Firefly Jar, Dewdrop: grown from the
   start), `legendary`, and `branch` (`offset` = where to draw its branch sheet's frame, `frame_size`,
   `frames` = 5).
-- Family ids: `<family>`, `<family>_final`, `<family>_hidden` (e.g. `pebbling_final`).
+- Family ids: `<family>`, `<family>_final`, `<family>_hidden`, `<family>_ascension` (e.g. `pebbling_final`).
 - Loadout slots are Perks nodes `slot_2` … `slot_5`.
 - `fruit_spots`: 10 points under the Perks and Cards limbs, in the order fruit appear (one per 3
   nodes planted).
