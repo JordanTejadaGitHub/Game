@@ -9,5 +9,6 @@ display_name = "Second Thoughts"
 description = "+1 Dream reroll per run per level (2 at most)."
 root = 2
 costs = Array[int]([50, 100])
-order = 4
+order = 12
+icon = 11
 dream_rerolls = 1

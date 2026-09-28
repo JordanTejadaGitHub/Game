@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="UnlockData" format=3]
+
+[ext_resource type="Script" path="res://resource/meta/script/unlock_data.gd" id="1_unlock"]
+
+[resource]
+script = ExtResource("1_unlock")
+id = "bellflower"
+display_name = "Bellflower family"
+description = "Bellflower joins your family picks: sleep and its payoffs. Its Dream cards join the pool. Needs Pebbling or Rootling."
+root = 0
+costs = Array[int]([60])
+order = 5
+icon = 5
+requires_any = Array[String](["pebbling", "rootling"])
+families = Array[String](["bellflower"])
+dream_cards = Array[String](["hush", "heavy_eyelids", "heavy_eyelids_ii", "bad_dreams", "bad_dreams_ii"])

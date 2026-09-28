@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="UnlockData" format=3]
+
+[ext_resource type="Script" path="res://resource/meta/script/unlock_data.gd" id="1_unlock"]
+
+[resource]
+script = ExtResource("1_unlock")
+id = "storm_lore"
+display_name = "Storm Lore"
+description = "Storm Dreams join the pool: Static Bloom, Static Field."
+root = 1
+costs = Array[int]([40])
+order = 1
+icon = 0
+dream_cards = Array[String](["static_bloom", "static_field"])

@@ -9,5 +9,6 @@ display_name = "Early Bloom"
 description = "The first family pick offers every family you own, not 3 at random."
 root = 2
 costs = Array[int]([80])
-order = 3
+order = 8
+icon = 7
 early_bloom = true

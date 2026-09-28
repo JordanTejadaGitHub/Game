@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="UnlockData" format=3]
+
+[ext_resource type="Script" path="res://resource/meta/script/unlock_data.gd" id="1_unlock"]
+
+[resource]
+script = ExtResource("1_unlock")
+id = "sprout_bed"
+display_name = "Sprout Bed"
+description = "Start with 2 free Sprouts to plant."
+root = 2
+costs = Array[int]([60])
+order = 6
+icon = 5
+requires_all = Array[String](["morning_stores"])
+sprout_charges = 2

@@ -2,9 +2,10 @@ extends Node
 class_name MetaRun
 
 # Brings the meta (meta_design.md) into a run and back out:
-# - Run start: Memory Grove perks (starting Dew, max leaves, Dream rerolls / banishes / cards per
-#   offer, Seed bonus, Early Bloom), unlocked families join the family picks, unlocked Dream cards
-#   join the pool, Family Blessings are made available, and the chosen Blight Level's modifiers.
+# - Run start: the Memory Grove perks carried in the loadout (starting Dew, Dew gain, rest bonus,
+#   max leaves, Dream rerolls / banishes / cards per offer, Omens, starting Dreams, Sprouts, free
+#   Nurture, Seed bonus, Early Bloom), every owned node's families (family picks) and Dream cards
+#   (pool), Family Blessings are made available, and the chosen Blight Level's modifiers.
 # - Run end (the real full game only, never tests / Test Grove / the demo): lifetime counters,
 #   milestones (and what they unlock), the highest Blight Level won.
 # The demo has no meta (demo_scope.md): nothing is applied or recorded there.
@@ -12,8 +13,8 @@ class_name MetaRun
 const TOWER_DIR := "res://resource/tower/"
 const BLESSING_DIR := "res://resource/meta/blessing/"
 const SHADE_KIND := "leaf_bug"
-# Milestones (meta_design.md "Milestones"): id -> what it unlocks.
-const MILESTONE_CARDS := {"shades_500": ["dream_sunpetal", "dream_midsummer"]}
+# Milestones (meta_design.md "Milestones"): id -> the cosmetic it grows. Grove nodes with a
+# `milestone` grow by themselves (HeartwoodMemory.node_level; Sunpetal, One Line, The Long Walk).
 const MILESTONE_COSMETICS := {"flawless_win": "golden_leaf", "blight_10_win": "blossoms"}
 
 # Chosen on the title screen before a run (0 = none); saved with the run.
@@ -42,6 +43,7 @@ static func is_dev_run() -> bool:
 @onready var run_state: RunState = %RunState
 @onready var drift_director: DriftDirector = %DriftDirector
 @onready var dream_state: DreamState = %DreamState
+@onready var omen_director: OmenDirector = %OmenDirector
 @onready var family_screen: Control = %FamilyPickScreen
 @onready var spawner = %EnemyContainer
 
@@ -105,16 +107,23 @@ func _apply_all_families() -> void:
 				if not dream_state.grove_cards.has(id):
 					dream_state.grove_cards.append(id)
 
+# Owned Grove nodes: families join the picks and Dream cards join the pool (every owned node);
+# perks work only while carried in the loadout, at their highest owned level.
 func _apply_grove(memory: Dictionary) -> void:
 	var cards: Array[String] = []
+	var carried := HeartwoodMemory.get_loadout(memory)
 	var dew := 0
 	var leaves := 0
 	var rerolls := 0
 	var banishes := 0
 	var extra_cards := 0
 	var dreamlight := 0
+	var start_cards: Array[String] = []
+	var random_commons := 0
+	var sprouts := 0
+	var nurtures := 0
 	for unlock in HeartwoodMemory.load_grove():
-		var level := HeartwoodMemory.unlock_level(memory, unlock.id)
+		var level := HeartwoodMemory.node_level(memory, unlock)
 		if level == 0:
 			continue
 		for id in unlock.families:
@@ -124,24 +133,31 @@ func _apply_grove(memory: Dictionary) -> void:
 		for id in unlock.dream_cards:
 			if not cards.has(id):
 				cards.append(id)
+		if not unlock.is_perk() or not carried.has(unlock.id):
+			continue
 		dew += unlock.starting_dew * level
+		run_state.dew_gain_bonus += unlock.dew_gain * level
+		drift_director.rest_bonus_perk_multiplier += unlock.rest_bonus * level
 		leaves += unlock.max_leaves * level
 		rerolls += unlock.dream_rerolls * level
 		banishes += unlock.dream_banishes * level
 		extra_cards += unlock.extra_dream_cards * level
+		omen_director.omens_per_offer += unlock.extra_omens * level
 		seed_bonus += unlock.seed_bonus * level
 		dreamlight += unlock.starting_dreamlight * level
+		start_cards.append_array(unlock.starting_cards)
+		random_commons += unlock.random_common_cards * level
+		sprouts += unlock.sprout_charges * level
+		nurtures += unlock.free_nurtures * level
 		if unlock.early_bloom:
 			family_screen.offer_all_first = true
-	for milestone in MILESTONE_CARDS:
-		if memory.milestones.has(milestone):
-			for id in MILESTONE_CARDS[milestone]:
-				if not cards.has(id):
-					cards.append(id)
 	run_state.add_dew(dew)
 	run_state.max_leaves += leaves
 	run_state.leaves += leaves
 	run_state.leaves_changed.emit(run_state.leaves, run_state.max_leaves)
+	if sprouts > 0:  # Sprout Bed
+		run_state.add_sprout_charges(sprouts)
+	run_state.free_nurtures += nurtures  # First Care
 	# Dream hooks (DreamState owns the Dream rules; these names are its public knobs).
 	if "grove_cards" in dream_state:
 		dream_state.grove_cards.assign(cards)
@@ -152,6 +168,22 @@ func _apply_grove(memory: Dictionary) -> void:
 		dream_state.rerolls_left += rerolls
 	if "banishes_left" in dream_state:
 		dream_state.banishes_left += banishes
+	# Clear Sight's Cleared Ground, then Kindling's random Commons (a resumed run's save replaces them).
+	for id in start_cards:
+		var card := _card(id)
+		if card != null:
+			dream_state.take(card)
+	for i in random_commons:
+		var commons := dream_state.pool.filter(func(c: UpgradeData) -> bool:
+			return c.rarity == UpgradeData.Rarity.COMMON and not c.is_bittersweet() and dream_state.is_eligible(c))
+		if not commons.is_empty():
+			dream_state.take(commons.pick_random())
+
+func _card(id: String) -> UpgradeData:
+	for card in dream_state.pool:
+		if card.id == id:
+			return card
+	return null
 
 # Blight Levels (meta_design.md): each level includes the ones below it. +10% Seeds per level.
 func _apply_blight(level: int) -> void:
@@ -211,6 +243,7 @@ func _on_run_ended(won: bool) -> void:
 	for id in reached:
 		if not memory.milestones.has(id):
 			memory.milestones[id] = true
+			HeartwoodMemory.grow_milestone_nodes(memory, id)  # Refunds a node it grows, if bought
 			if MILESTONE_COSMETICS.has(id) and not memory.cosmetics.has(MILESTONE_COSMETICS[id]):
 				memory.cosmetics.append(MILESTONE_COSMETICS[id])
 	HeartwoodMemory.save_data(memory)

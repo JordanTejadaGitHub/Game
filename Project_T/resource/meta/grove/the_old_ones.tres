@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="UnlockData" format=3]
+
+[ext_resource type="Script" path="res://resource/meta/script/unlock_data.gd" id="1_unlock"]
+
+[resource]
+script = ExtResource("1_unlock")
+id = "the_old_ones"
+display_name = "The Old Ones"
+description = "The Legendary The Old Ones joins the pool."
+root = 1
+costs = Array[int]([120])
+order = 11
+icon = 3
+requires_all = Array[String](["nursery"])
+legendary = true
+dream_cards = Array[String](["the_old_ones"])

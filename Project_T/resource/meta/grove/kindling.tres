@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="UnlockData" format=3]
+
+[ext_resource type="Script" path="res://resource/meta/script/unlock_data.gd" id="1_unlock"]
+
+[resource]
+script = ExtResource("1_unlock")
+id = "kindling"
+display_name = "Kindling"
+description = "Start with a random Common Dream already taken."
+root = 2
+costs = Array[int]([90])
+order = 7
+icon = 6
+random_common_cards = 1

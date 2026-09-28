@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="UnlockData" format=3]
+
+[ext_resource type="Script" path="res://resource/meta/script/unlock_data.gd" id="1_unlock"]
+
+[resource]
+script = ExtResource("1_unlock")
+id = "spore_lore"
+display_name = "Spore Lore"
+description = "Spore Dreams join the pool: Twin Puff, Chain Bloom."
+root = 1
+costs = Array[int]([40])
+order = 3
+icon = 1
+dream_cards = Array[String](["twin_puff", "chain_bloom"])

@@ -8,7 +8,7 @@ class_name HeartwoodMemory
 # Static helpers only: every caller loads, changes and saves. The file is tiny.
 
 const PATH := "user://heartwood.json"
-const VERSION := 1
+const VERSION := 2  # 2: Grove ids match grove_layout.json (MIGRATED_IDS), perk loadout
 
 # Where the profile lives (tests point this elsewhere so they never touch the player's Seeds).
 static var file_path := PATH
@@ -32,6 +32,8 @@ static func defaults() -> Dictionary:
 		"highest_blight_won": -1,
 		"cosmetics": [],
 		"grove_welcome_shown": false,
+		"loadout": [],  # Perk ids carried into the next run (Memory Grove loadout)
+		"memories_seen": 0,  # Memories already opened in the Grove (dream-fruit stay open)
 		"settings": {
 			"master_volume": 1.0,
 			"music_volume": 0.55,  # audio_direction.md: music sits well under the sound effects
@@ -57,7 +59,31 @@ static func load_data() -> Dictionary:
 		push_warning("Heartwood save unreadable; starting fresh")
 		return data
 	_merge(data, parsed)
+	_migrate(data)
 	return data
+
+# Grove ids before version 2 -> the grove_layout.json ids.
+const MIGRATED_IDS := {
+	"pebbling_line": "pebbling", "rootling_line": "rootling", "bellflower_line": "bellflower",
+	"acorn_line": "acorn", "nestling_family": "nestling", "whirligig_family": "whirligig",
+	"sporeling_finals": "sporeling_final", "firefly_jar_finals": "firefly_jar_final",
+	"dewdrop_finals": "dewdrop_final", "pebbling_finals": "pebbling_final",
+	"rootling_finals": "rootling_final", "bellflower_finals": "bellflower_final",
+	"acorn_finals": "acorn_final", "nestling_finals": "nestling_final",
+	"whirligig_finals": "whirligig_final", "fairy_ring": "sporeling_hidden",
+	"frostfern": "dewdrop_hidden", "cairn": "pebbling_hidden", "rootlight": "rootling_hidden",
+	"echo_hollow": "bellflower_hidden", "graftling": "acorn_hidden",
+	"hummingbird_bower": "nestling_hidden", "samara": "whirligig_hidden",
+}
+
+static func _migrate(data: Dictionary) -> void:
+	if int(data.get("version", VERSION)) >= 2:
+		return
+	var unlocks := {}
+	for id in data.unlocks:
+		unlocks[MIGRATED_IDS.get(id, id)] = data.unlocks[id]
+	data.unlocks = unlocks
+	data.version = VERSION
 
 static func save_data(data: Dictionary) -> void:
 	data["version"] = VERSION
@@ -103,6 +129,8 @@ const MEMORIES: Array[String] = [
 # Milestones that reveal a Memory (the rest reward cards, Wardens or cosmetics).
 const MEMORY_MILESTONES: Array[String] = ["first_boss", "first_win", "tend_100", "blight_5"]
 
+static var _grove_by_id := {}
+
 static func load_grove() -> Array[UnlockData]:
 	var result: Array[UnlockData] = []
 	for file in ResourceLoader.list_directory(GROVE_DIR):
@@ -114,22 +142,52 @@ static func load_grove() -> Array[UnlockData]:
 		return a.root < b.root or (a.root == b.root and a.order < b.order))
 	return result
 
+# The Grove node with this id, or null.
+static func get_unlock(id: String) -> UnlockData:
+	if _grove_by_id.is_empty():
+		for unlock in load_grove():
+			_grove_by_id[unlock.id] = unlock
+	return _grove_by_id.get(id)
+
+# Levels bought (the profile's raw count; start and milestone growth aren't in it).
 static func unlock_level(data: Dictionary, id: String) -> int:
 	return int(data.unlocks.get(id, 0))
 
+# Levels a node has grown: bought levels, or all of them for a start node or a reached milestone.
+static func node_level(data: Dictionary, unlock: UnlockData) -> int:
+	if unlock.start or (unlock.milestone != "" and data.milestones.has(unlock.milestone)):
+		return maxi(unlock.get_levels(), 1)
+	return unlock_level(data, unlock.id)
+
+static func is_grown(data: Dictionary, unlock: UnlockData) -> bool:
+	return node_level(data, unlock) >= maxi(unlock.get_levels(), 1)
+
+# `requirement` is "id" (owned at all) or "id:level".
+static func _meets(data: Dictionary, requirement: String) -> bool:
+	var parts := requirement.split(":")
+	var unlock := get_unlock(parts[0])
+	var level := node_level(data, unlock) if unlock != null else unlock_level(data, parts[0])
+	return level >= (int(parts[1]) if parts.size() > 1 else 1)
+
+static func requirements_met(data: Dictionary, unlock: UnlockData) -> bool:
+	for requirement in unlock.requires_all:
+		if not _meets(data, requirement):
+			return false
+	if not unlock.requires_any.is_empty():
+		var owned := unlock.requires_any.filter(func(id: String) -> bool: return _meets(data, id)).size()
+		if owned < unlock.requires_any_count:
+			return false
+	return true
+
 # Why `unlock` can't be bought now ("" = it can).
 static func buy_problem(data: Dictionary, unlock: UnlockData) -> String:
-	var level := unlock_level(data, unlock.id)
-	if level >= unlock.get_levels():
+	if is_grown(data, unlock):
 		return "Grown"
-	for id in unlock.requires_all:
-		if unlock_level(data, id) == 0:
-			return "Needs another unlock first"
-	if not unlock.requires_any.is_empty():
-		var owned := unlock.requires_any.filter(func(id: String) -> bool: return unlock_level(data, id) > 0).size()
-		if owned < unlock.requires_any_count:
-			return "Needs another unlock first"
-	if data.seeds < unlock.get_cost(level):
+	if unlock.is_free():
+		return "Grows by itself"
+	if not requirements_met(data, unlock):
+		return "Needs another unlock first"
+	if data.seeds < unlock.get_cost(unlock_level(data, unlock.id)):
 		return "Not enough Seeds"
 	return ""
 
@@ -142,6 +200,50 @@ static func buy(unlock: UnlockData) -> bool:
 	data.unlocks[unlock.id] = unlock_level(data, unlock.id) + 1
 	save_data(data)
 	return true
+
+# A milestone was just reached (MetaRun, at run end): nodes it grows are now owned, and any Seeds
+# already spent on them come back (meta_design.md: free unlocks refund a duplicate purchase).
+static func grow_milestone_nodes(data: Dictionary, milestone: String) -> void:
+	for unlock in load_grove():
+		if unlock.milestone == milestone:
+			data.seeds += unlock.get_spent(unlock_level(data, unlock.id))
+
+# The share of the tree grown (0..1), for the canopy stage. Start nodes don't count.
+static func grown_share(data: Dictionary) -> float:
+	var total := 0
+	var grown := 0
+	for unlock in load_grove():
+		if unlock.start:
+			continue
+		total += 1
+		if node_level(data, unlock) > 0:
+			grown += 1
+	return float(grown) / maxf(total, 1.0)
+
+# --- Perk loadout ("Carry into the dream") ---
+
+const BASE_LOADOUT_SLOTS := 1
+
+static func loadout_slots(data: Dictionary) -> int:
+	var slots := BASE_LOADOUT_SLOTS
+	for unlock in load_grove():
+		if unlock.loadout_slots > 0:
+			slots += unlock.loadout_slots * node_level(data, unlock)
+	return slots
+
+# The perk ids carried: owned perks from the saved loadout, at most one per slot.
+static func get_loadout(data: Dictionary) -> Array[String]:
+	var result: Array[String] = []
+	for id in data.get("loadout", []):
+		var unlock := get_unlock(str(id))
+		if unlock != null and unlock.is_perk() and node_level(data, unlock) > 0 and not result.has(unlock.id):
+			result.append(unlock.id)
+	return result.slice(0, loadout_slots(data))
+
+static func save_loadout(ids: Array[String]) -> void:
+	var data := load_data()
+	data.loadout = ids.slice(0, loadout_slots(data))
+	save_data(data)
 
 static func total_unlock_levels(data: Dictionary) -> int:
 	var total := 0

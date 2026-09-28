@@ -6,7 +6,7 @@ Hollow's story: 10 Memories"); look: `art_direction.md` (warm dream vs cold nigh
 **Waystone pixel** like the environment (`environment_assets.md`). Created 2026-09-27, drawn from code
 with a fixed seed. **Generator:** `tools/meta_art/` (`grove_*.js` sources, `grove_gen.html`; `powershell -File tools/meta_art/export.ps1 [-Rebuild]` rewrites `assets/meta/`, then `--import`).
 
-**Art only.** Nothing here is wired into a scene yet.
+**In the game:** `scenes/grove.tscn` draws all of it (`scripts/meta/grove_tree_view.gd`, `loadout_panel.gd`; see CLAUDE.md "Meta"). Node ids here = the `UnlockData` ids in `resource/meta/grove/`.
 
 All under `assets/meta/`. Frames run left to right. Sprites include their own glow and outline.
 

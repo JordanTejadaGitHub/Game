@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="UnlockData" format=3]
+
+[ext_resource type="Script" path="res://resource/meta/script/unlock_data.gd" id="1_unlock"]
+
+[resource]
+script = ExtResource("1_unlock")
+id = "sporeling_final"
+display_name = "Sporeling final forms"
+description = "Sporeling final forms can grow in your runs: Puffball, Dreamshroom."
+root = 0
+costs = Array[int]([50])
+order = 10
+icon = 0
+requires_all = Array[String](["sporeling"])
+dream_cards = Array[String](["dream_puffball"])
