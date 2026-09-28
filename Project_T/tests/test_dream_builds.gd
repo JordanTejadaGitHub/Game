@@ -34,6 +34,7 @@ func _run() -> void:
 	_test_ascended()
 	_test_woven()
 	_test_potency_and_endless()
+	_test_card_effects()
 	print("dream builds test: %s" % ("PASS" if failures == 0 else "%d FAILED" % failures))
 	quit(failures)
 
@@ -621,6 +622,55 @@ func _free_cell(map_generator) -> Vector2:
 	return Vector2(-1, -1)
 
 # --- Helpers --------------------------------------------------------------------------------------
+
+# "Dream bonuses on Wardens": get_card_effects rows for planted and hypothetical Wardens, ghosts,
+# and that the real stat getters equal the active rows.
+func _test_card_effects() -> void:
+	_reset()
+	var spore: TowerData = load("res://resource/tower/sporeling.tres")
+	dreams.take(_card("solitude"))
+	dreams.take(_card("many_hands"))
+	var alone := _plant("sporeling", 0, 0)
+	var rows := dreams.get_card_effects(spore, alone.cell, alone)
+	var solitude := _row(rows, "solitude")
+	_check(not solitude.is_empty() and solitude.active and solitude.positional and solitude.radius == 2.0,
+		"card effects: Solitude on, positional, radius 2")
+	_check(_row(rows, "many_hands").run_wide and not _row(rows, "many_hands").active
+		and _row(rows, "many_hands").reason != "", "…Many Hands off with a reason")
+	_check(is_equal_approx(dreams.get_soothe_multiplier(alone), 1.0 + solitude.damage),
+		"…the real damage equals the active rows")
+	var near := Vector2(alone.cell.x + 2, alone.cell.y)
+	var hypo := _row(dreams.get_card_effects(spore, near), "solitude")
+	_check(not hypo.active and "away" in hypo.reason, "…a hypothetical Warden 2 cells away: off, says why")
+	_check(not dreams.is_solitary_at(spore, near) and dreams.is_solitary_at(spore, Vector2(alone.cell.x + 5, 100)),
+		"is_solitary_at for a Warden type at a cell")
+	var ghosted := _row(dreams.get_card_effects(spore, alone.cell, alone, {"cell": near, "data": spore}), "solitude")
+	_check(not ghosted.active, "…a ghost beside a planted Warden turns its Solitude off")
+	_check(dreams.get_range_bonus_at(spore, Vector2(alone.cell.x + 5, 100)) == 0.5
+		and dreams.get_range_bonus_at(spore, near) == 0.0, "get_range_bonus_at: Solitude's range for the ghost")
+	_check(dreams.max_card_radius() == 2.0, "max_card_radius")
+	var parts := dreams.get_stat_parts(spore, alone.cell, "damage", alone)
+	_check(parts.parts.size() == 1 and is_equal_approx(parts.final, spore.damage * 1.3), "get_stat_parts: damage")
+	_clear_towers()
+
+	# Plain stat cards report from their fields
+	_reset()
+	var plain: UpgradeData = null
+	for card in dreams.pool:
+		if card.rule_id == &"" and card.soothe_bonus > 0.0 and card.stat_line == "" and card.stat_warden == "":
+			plain = card
+			break
+	if plain:
+		dreams.take(plain)
+		var row := _row(dreams.get_card_effects(spore, Vector2(100, 100)), plain.id)
+		_check(row.plain and row.active and is_equal_approx(row.damage, plain.soothe_bonus) and row.effect != "",
+			"a plain stat card reports itself (%s)" % plain.id)
+
+func _row(rows: Array[Dictionary], id: String) -> Dictionary:
+	for row in rows:
+		if row.id == id:
+			return row
+	return {}
 
 func _reset() -> void:
 	dreams.stacks.clear()

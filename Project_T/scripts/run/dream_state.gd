@@ -161,6 +161,7 @@ var _pending_drifts: Array[int] = []
 var _bend_cells := {}  # Path cells where the route turns (Cozy Corners)
 var path_length := 0  # Tiles in the current route (The Long Walk); updated with the bends
 var _rng := RandomNumberGenerator.new()
+var _effects: DreamEffects = null  # effects(): card rows per Warden
 
 @onready var run_state: RunState = %RunState
 @onready var drift_director: DriftDirector = %DriftDirector
@@ -380,70 +381,83 @@ func get_evolutions(data: TowerData) -> Array:
 
 # --- Stats for Wardens --------------------------------------------------------------------------------
 
+# Dream stat bonuses are sums of DreamEffects rows (the same rows the Warden panel and ghost show):
+# plain stat cards from their fields, rule cards from their reporters.
 func get_soothe_multiplier(tower: Tower) -> float:
-	var bonus := _sum_stat(tower.tower_data, "soothe_bonus")
-	if has_rule(&"cozy_corners"):
-		var level := rule_level(&"cozy_corners")
-		if is_beside_bend(tower.cell, COZY_CORNERS_REACH[level]):
-			bonus += COZY_CORNERS_BONUS[level]
-	if has_rule(&"hedge_maze"):
-		var level := rule_level(&"hedge_maze")
-		bonus += minf(HEDGE_BONUS_PER * (count_walls() / HEDGE_PER_WALLS[level]), HEDGE_BONUS_MAX[level])
-	if has_rule(&"tended_forest"):
-		bonus += minf(TENDED_FOREST_PER_CLEAR * run_state.tended_cells.size(), TENDED_FOREST_MAX)
-	bonus += _nurture_damage_bonus(tower) + _count_damage_bonus(tower)
-	if has_rule(&"the_long_walk"):
-		bonus += LONG_WALK_PER * (path_length / LONG_WALK_TILES)
-	bonus += _legendary_damage_bonus(tower)
-	if has_rule(&"monoculture") and tower.tower_data.can_attack and is_monoculture():
-		bonus += MONOCULTURE_BONUS
-	return 1.0 + bonus
+	return 1.0 + _sum_stat(tower.tower_data, "soothe_bonus") + effects().rule_total(DreamEffects.spot_for(tower), "damage")
 
-# Kindred Roots (ranks of touching Wardens) and Chosen Few (rank V+ strong, below III weak).
-func _nurture_damage_bonus(tower: Tower) -> float:
-	var bonus := 0.0
-	if has_rule(&"kindred_roots"):
-		var level := rule_level(&"kindred_roots")
-		var ranks := 0
-		for other in _touching(tower):
-			ranks += other.rank
-		bonus += minf(KINDRED_PER_RANK[level] * ranks, KINDRED_MAX[level])
-	if has_rule(&"chosen_few") and tower.tower_data.can_attack:
-		if tower.rank >= 5:
-			bonus += CHOSEN_FEW_BONUS
-		elif tower.rank < 3:
-			bonus -= CHOSEN_FEW_PENALTY
-	return bonus
-
-# Wide and narrow cards: bonuses from how many attacking Wardens there are.
-func _count_damage_bonus(tower: Tower) -> float:
-	var bonus := 0.0
-	var needs_count := has_rule(&"many_hands") or has_rule(&"few_and_mighty")
-	var attackers := count_attackers() if needs_count else 0
-	if has_rule(&"many_hands"):
-		bonus += minf(0.01 * (attackers / MANY_HANDS_PER), MANY_HANDS_MAX)
-	if has_rule(&"few_and_mighty"):
-		bonus += FEW_AND_MIGHTY_PER * maxi(FEW_AND_MIGHTY_BELOW - attackers, 0)
-	if has_rule(&"canopy"):
-		bonus += CANOPY_BONUS * canopy_steps_reached()
-	if has_rule(&"solitude") and is_solitary(tower):
-		bonus += SOLITUDE_BONUS
-	return bonus
-
-# Per-Warden attack speed from Dreams (Tower adds it to its multiplier): Sprout Chorus, The Last Light.
+# Per-Warden attack speed from Dreams (Tower adds it to its multiplier): Sprout Chorus, The Last
+# Light, Rootbound.
 func get_tower_attack_speed_bonus(tower: Tower) -> float:
-	var bonus := 0.0
-	if has_rule(&"sprout_chorus") and tower.tower_data.get_id() == "sprout":
-		var sprouts := 0
-		for other in _attackers_near(tower, NEARBY_CELLS):
-			if other.tower_data.get_id() == "sprout":
-				sprouts += 1
-		bonus += minf(SPROUT_CHORUS_PER * sprouts, SPROUT_CHORUS_MAX)
-	if has_rule(&"last_light") and tower.tower_data.can_attack and count_attackers() <= LAST_LIGHT_MAX:
-		bonus += 1.0  # Twice as fast
-	if has_rule(&"rootbound") and tower.tower_data.can_attack and _touching(tower).size() >= ROOTBOUND_TOUCHING:
-		bonus += 1.0  # Attacks twice
-	return bonus
+	return effects().rule_total(DreamEffects.spot_for(tower), "speed")
+
+# The card reporter (built on first use).
+func effects() -> DreamEffects:
+	if _effects == null:
+		_effects = DreamEffects.new(self)
+	return _effects
+
+# "Dream bonuses on Wardens" (screens_ui.md): every taken card touching `data` on `cell` (see
+# DreamEffects for the row fields). `tower` = that planted Warden; null = a hypothetical one (the
+# build ghost; whatever stands on `cell` is ignored). `ghost` {cell, data} = pretend one more Warden
+# stands there (a ghost's effect on a planted Warden's cards).
+func get_card_effects(data: TowerData, cell: Vector2, tower: Tower = null, ghost: Dictionary = {}) -> Array[Dictionary]:
+	return effects().rows(DreamEffects.spot_at(data, cell, tower), ghost)
+
+# Dream parts of one stat ("damage", "attack_speed", "range", "cost") for a Warden: {base, final,
+# parts: [{name, amount, card}]} with amounts as fractions (damage, speed), cells (range) or Dew
+# (cost). Only Dreams: Nurture and Focus come from Tower. base = the TowerData value.
+func get_stat_parts(data: TowerData, cell: Vector2, stat: String, tower: Tower = null, ghost: Dictionary = {}) -> Dictionary:
+	var key: String = DreamEffects.STAT_KEYS.get(StringName(stat), stat)
+	var parts := []
+	var total := 0.0
+	for row in get_card_effects(data, cell, tower, ghost):
+		if row.active and row.get(key, 0) != 0:
+			parts.append({"name": row.name, "amount": row[key], "card": row.card})
+			total += row[key]
+	var base: float
+	var final: float
+	match key:
+		"damage":
+			base = data.damage
+			final = base * (1.0 + total)
+		"speed":
+			base = data.attacks_per_second
+			final = base * (1.0 + total)
+		"range":
+			base = data.attack_range
+			final = base + total
+		_:
+			base = data.cost
+			final = get_build_cost_at(data, cell) if tower == null else get_build_cost(data)
+	return {"base": base, "final": final, "parts": parts}
+
+# The largest area (cells) of any taken card, so the ghost knows how far its effect on others reaches.
+func max_card_radius() -> float:
+	var radius := 0.0
+	for card in _taken_cards():
+		match card.rule_id:
+			&"cozy_corners":
+				radius = maxf(radius, COZY_CORNERS_REACH[rule_level(&"cozy_corners")])
+			&"solitude", &"sprout_chorus":
+				radius = maxf(radius, NEARBY_CELLS)
+			&"kindred_roots", &"rootbound", &"court_of_the_eldest", &"old_ones", &"crossroads":
+				radius = maxf(radius, 1.0)
+	return radius
+
+# Range from Dreams for `data` planted on `cell` (card fields + Solitude), for the ghost's circle.
+func get_range_bonus_at(data: TowerData, cell: Vector2, ghost: Dictionary = {}) -> float:
+	return get_range_bonus(data) + effects().rule_total(DreamEffects.spot_at(data, cell), "range", ghost)
+
+# Solitude's check for a hypothetical `data` on `cell` (whatever stands there is ignored).
+func is_solitary_at(data: TowerData, cell: Vector2, ghost: Dictionary = {}) -> bool:
+	if not data.can_attack:
+		return false
+	var spot := DreamEffects.spot_at(data, cell)
+	for other in effects()._others(spot, ghost):
+		if other.data.can_attack and DreamEffects._cheb(other.cell, cell) <= NEARBY_CELLS:
+			return false
+	return true
 
 # Monoculture: every attacking Warden is of one line.
 func is_monoculture() -> bool:
@@ -480,11 +494,11 @@ func get_non_crit_multiplier() -> float:
 
 # Per-Warden range from Dreams, in cells (Tower adds it): Solitude.
 func get_tower_range_bonus(tower: Tower) -> float:
-	return SOLITUDE_RANGE if has_rule(&"solitude") and is_solitary(tower) else 0.0
+	return effects().rule_total(DreamEffects.spot_for(tower), "range")
 
 # Solitude: an attacking Warden with no other attacking Warden within 2 cells.
 func is_solitary(tower: Tower) -> bool:
-	return tower.tower_data.can_attack and _attackers_near(tower, NEARBY_CELLS).is_empty()
+	return is_solitary_at(tower.tower_data, tower.cell) if tower.tower_data.can_attack else false
 
 func canopy_steps_reached() -> int:
 	var steps := 0
@@ -608,38 +622,21 @@ func get_court_rank_share(tower: Tower) -> float:
 
 # --- New Legendaries: damage ------------------------------------------------------------------------
 
-# Crossroads, Menagerie, Restless Night, Last Leaf, Wildwood Reclaimed.
-func _legendary_damage_bonus(tower: Tower) -> float:
-	var bonus := 0.0
-	if has_rule(&"crossroads"):
-		bonus += get_crossroads_bonus(tower)
-	if has_rule(&"menagerie") and tower.tower_data.can_attack:
-		var kinds := {}
-		for other in _towers():
-			if other.tower_data.can_attack:
-				kinds[other.tower_data.get_id()] = true
-		bonus += minf(MENAGERIE_PER * kinds.size(), MENAGERIE_MAX)
-	if has_rule(&"restless_night"):
-		bonus += minf(RESTLESS_PER * _early_calls, RESTLESS_MAX)
-	if has_rule(&"last_leaf"):
-		bonus += minf(LAST_LEAF_PER * maxi(run_state.max_leaves - run_state.leaves, 0), LAST_LEAF_MAX)
-	if has_rule(&"wildwood_reclaimed") and run_state.tended_cells.has(tower.cell):
-		bonus += minf(WILDWOOD_BASE + WILDWOOD_PER_CLEAR * run_state.tended_cells.size(), WILDWOOD_MAX)
-	return bonus
-
 # Crossroads: +40% for a Warden touching two route tiles at least 6 steps apart (0 otherwise).
 func get_crossroads_bonus(tower: Tower) -> float:
-	if not tower.tower_data.can_attack:
-		return 0.0
+	return CROSSROADS_BONUS if tower.tower_data.can_attack and crossroads_at(tower.cell) else 0.0
+
+# Whether `cell` touches two route tiles at least CROSSROADS_STEPS apart along the route.
+func crossroads_at(cell: Vector2) -> bool:
 	var low := 1 << 30
 	var high := -1
 	for dx in [-1, 0, 1]:
 		for dy in [-1, 0, 1]:
-			var step: int = _path_index.get(tower.cell + Vector2(dx, dy), -1)
+			var step: int = _path_index.get(cell + Vector2(dx, dy), -1)
 			if step >= 0:
 				low = mini(low, step)
 				high = maxi(high, step)
-	return CROSSROADS_BONUS if high - low >= CROSSROADS_STEPS else 0.0
+	return high - low >= CROSSROADS_STEPS
 
 # Restless Night: a real call early = the previous drift was still arriving.
 func _on_drift_started(number: int) -> void:
