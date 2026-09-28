@@ -293,6 +293,13 @@ New combos (new Wardens, Reactions) are added to this table and the Codex automa
 - **This run:** damage dealt, nightmares dispelled (helps players judge placements).
 - **Grow into:** one button per next form: "Grow into Stormcap · 45 Dew", or "Thunderhead · needs a
   Dream" (disabled, with the Dream's name).
+  - **A Sprout lists only the families you have this run** (added 2026-09-28, user request).
+    Families not picked yet are **hidden**, not greyed ("family pick" buttons read as clutter and
+    spoil which families exist). With none picked yet (before drift 1's pick), the section shows
+    one quiet line: *"Pick a family after the first drift to grow Sprouts."*
+  - Branches and final forms of families you **do** have still show when locked ("unlock with
+    Dreamlight"), since those are goals within reach.
+  - Developer modes that unlock everything (Test Grove) show every family.
 - **Sell:** "+62 Dew" (full during a rest, half while nightmares walk; the button says which).
 - **Targeting** (proposed): *First* (default) / *Strongest* / *Closest* for attacking Wardens. Adds
   real decisions (bosses, elites, Lantern Bearers) at little cost.
