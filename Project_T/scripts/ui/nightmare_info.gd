@@ -11,7 +11,7 @@ var _target: Node2D = null
 var _known := {}  # Nightmare kinds met before this run (for the "New" tag)
 var _saved := {}  # Kinds already written to the profile (so the file is touched once per kind)
 var _title := Label.new()
-var _body := Label.new()
+var _body := StatusLinks.make_label("", 15)  # Status names are links (hover / tap)
 
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -20,7 +20,6 @@ func _ready() -> void:
 	add_child(box)
 	_title.add_theme_font_size_override("font_size", 18)
 	box.add_child(_title)
-	_body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_body.custom_minimum_size = Vector2(220, 0)
 	box.add_child(_body)
 	visible = false
@@ -56,7 +55,9 @@ func _process(_delta: float) -> void:
 			_target.statuses.time_left(id)])
 	if not statuses.is_empty():
 		lines.append(", ".join(statuses))
-	_body.text = "\n".join(lines)
+	var body := StatusLinks.bbcode("\n".join(lines))
+	if body != _body.text:  # Only on change, so a link's hover isn't reset every frame
+		_body.text = body
 
 func _hovered_nightmare() -> Node2D:
 	var mouse: Vector2 = get_viewport().get_canvas_transform().affine_inverse() * get_viewport().get_mouse_position()

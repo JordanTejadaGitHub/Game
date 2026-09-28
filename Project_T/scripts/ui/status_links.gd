@@ -1,0 +1,154 @@
+extends PanelContainer
+class_name StatusLinks
+
+# Every status word is a link (screens_ui.md "Stat and status icons"): in any text, status names
+# (Soaked, Charged, … and {damp}-style tokens) are underlined; hovering (PC) or tapping (touch) one
+# shows a small popup with its icon, name and IconInfo definition, and "More in the Codex".
+#
+# For any screen:
+#   var label := StatusLinks.make_label("Applies {damp}. Loves Charged nightmares.")
+#   parent.add_child(label)
+# or, on your own RichTextLabel: label.text = StatusLinks.bbcode(text); StatusLinks.hook(label).
+# "More in the Codex" opens the Codex's glossary on that status: inside the Codex it jumps there,
+# elsewhere it calls open_codex(&"glossary", name) on the first node in group "codex_host" (the pause
+# menu in a run, the title screen).
+
+const META_PREFIX := "status:"
+const CODEX_HOST_GROUP := &"codex_host"
+const HIDE_DELAY := 0.5  # Seconds after the pointer leaves the word (or the popup) before it hides
+const LINK_COLOR := Color(0.85, 0.95, 1.0)
+
+static var _pattern: RegEx = null
+
+var _icon := TextureRect.new()
+var _name := Label.new()
+var _text := Label.new()
+var _status: StringName = &""
+var _hide_in := -1.0
+
+# `text` with every status name (and {damp}-style token) as a [url] link, other "[" escaped.
+static func bbcode(text: String) -> String:
+	text = IconInfo.format(text).replace("[", "[lb]")
+	if _pattern == null:
+		var names: Array = []
+		for id in IconInfo.STATUSES:
+			names.append(_escape(IconInfo.STATUSES[id][0]))
+		names.sort_custom(func(a: String, b: String) -> bool: return a.length() > b.length())
+		_pattern = RegEx.new()
+		_pattern.compile("\\b(" + "|".join(names) + ")\\b")
+	var out := ""
+	var at := 0
+	for found in _pattern.search_all(text):
+		var id := IconInfo.status_id(found.get_string())
+		out += text.substr(at, found.get_start() - at)
+		out += "[url=%s%s][color=#%s]%s[/color][/url]" % [META_PREFIX, id, LINK_COLOR.to_html(false), found.get_string()]
+		at = found.get_end()
+	return out + text.substr(at)
+
+# A RichTextLabel showing `text` with its status names as links (wraps, sizes to its content).
+static func make_label(text: String, font_size: int = 15, colour: Color = Color(0.92, 0.94, 0.9)) -> RichTextLabel:
+	var label := RichTextLabel.new()
+	label.bbcode_enabled = true
+	label.fit_content = true
+	label.scroll_active = false
+	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	label.custom_minimum_size = Vector2(60, 0)
+	label.add_theme_font_size_override("normal_font_size", font_size)
+	label.add_theme_color_override("default_color", colour)
+	label.text = bbcode(text)
+	hook(label)
+	return label
+
+# Makes the status links in `label` show their popup on hover and on tap.
+static func hook(label: RichTextLabel) -> void:
+	label.meta_underlined = true
+	if label.mouse_filter == Control.MOUSE_FILTER_IGNORE:
+		label.mouse_filter = Control.MOUSE_FILTER_PASS
+	var popup := StatusLinks.new()
+	label.add_child(popup)
+	label.meta_clicked.connect(func(meta: Variant) -> void: popup._show_for(String(meta), label, true))
+	label.meta_hover_started.connect(func(meta: Variant) -> void: popup._show_for(String(meta), label, false))
+	label.meta_hover_ended.connect(func(_meta: Variant) -> void: popup._hide_soon())
+
+static func _escape(s: String) -> String:
+	var out := ""
+	for c in s:
+		out += ("\\" + c) if "\\.^$|?*+()[]{}".contains(c) else c
+	return out
+
+func _init() -> void:
+	top_level = true
+	visible = false
+	z_index = 60
+	process_mode = Node.PROCESS_MODE_ALWAYS
+	mouse_filter = Control.MOUSE_FILTER_STOP
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 8)
+	add_child(row)
+	_icon.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	_icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	_icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	_icon.custom_minimum_size = Vector2(32, 32)
+	row.add_child(_icon)
+	var box := VBoxContainer.new()
+	row.add_child(box)
+	_name.add_theme_font_size_override("font_size", 16)
+	_name.add_theme_color_override("font_color", LINK_COLOR)
+	box.add_child(_name)
+	_text.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_text.custom_minimum_size = Vector2(240, 0)
+	_text.add_theme_font_size_override("font_size", 14)
+	box.add_child(_text)
+	var more := LinkButton.new()
+	more.text = "More in the Codex"
+	more.focus_mode = Control.FOCUS_NONE
+	more.pressed.connect(_open_codex)
+	box.add_child(more)
+	mouse_entered.connect(func() -> void: _hide_in = -1.0)
+	mouse_exited.connect(_hide_soon)
+
+func _show_for(meta: String, host: Control, tapped: bool) -> void:
+	if not meta.begins_with(META_PREFIX):
+		return
+	var id := StringName(meta.trim_prefix(META_PREFIX))
+	if tapped and visible and id == _status:
+		visible = false  # Tapping the same word again closes it
+		return
+	_status = id
+	_icon.texture = IconInfo.icon(id)
+	_icon.visible = _icon.texture != null
+	_name.text = IconInfo.status_name(id)
+	_text.text = IconInfo.format(IconInfo.STATUSES.get(id, ["", ""])[1])
+	visible = true
+	reset_size()
+	var mouse := host.get_global_mouse_position()
+	var screen := get_viewport_rect().size
+	global_position = Vector2(clampf(mouse.x - size.x / 2.0, 4, screen.x - size.x - 4),
+		mouse.y - size.y - 12 if mouse.y - size.y - 12 > 4 else mouse.y + 20)
+	_hide_in = -1.0
+
+func _hide_soon() -> void:
+	if visible:
+		_hide_in = HIDE_DELAY
+
+func _process(delta: float) -> void:
+	if _hide_in < 0.0:
+		return
+	_hide_in -= delta / maxf(Engine.time_scale, 0.001)
+	if _hide_in <= 0.0:
+		_hide_in = -1.0
+		if not get_global_rect().has_point(get_global_mouse_position()):
+			visible = false
+
+func _open_codex() -> void:
+	visible = false
+	var name := IconInfo.status_name(_status)
+	var node: Node = get_parent()
+	while node != null:  # Inside the Codex: just jump there
+		if node is CodexPanel:
+			node.jump(name)
+			return
+		node = node.get_parent()
+	var host := get_tree().get_first_node_in_group(CODEX_HOST_GROUP)
+	if host != null and host.has_method("open_codex"):
+		host.open_codex(&"glossary", name)

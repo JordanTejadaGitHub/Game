@@ -14,8 +14,8 @@ func _run() -> void:
 	var dewdrop: TowerData = load("res://resource/tower/dewdrop.tres")
 	var stormcap: TowerData = load("res://resource/tower/stormcap.tres")
 	var sprout: TowerData = load("res://resource/tower/sprout.tres")
-	_check(Synergies.link(dewdrop, stormcap) == "Damp → Stormcap", "Dewdrop and Stormcap combo through Damp (%s)" % Synergies.link(dewdrop, stormcap))
-	_check(Synergies.link(stormcap, dewdrop) == "Damp → Stormcap", "the link works both ways")
+	_check(Synergies.link(dewdrop, stormcap) == "Soaked → Stormcap", "Dewdrop and Stormcap combo through Soaked (%s)" % Synergies.link(dewdrop, stormcap))
+	_check(Synergies.link(stormcap, dewdrop) == "Soaked → Stormcap", "the link works both ways")
 	_check(Synergies.link(sprout, stormcap) == "", "a Sprout doesn't combo with Stormcap")
 
 	var main: Node = load("res://scenes/main.tscn").instantiate()
@@ -66,8 +66,8 @@ func _run() -> void:
 	# Rest report card
 	var report: RestReport = main.get_node("%RestReport")
 	report.show_report(1)
-	_check(report.visible and report._label.text.contains("Stormcap") and report._label.text.contains("Lightning through Damp: 2 times"),
-		"the rest report shows the top Warden and the combos (%s)" % report._label.text)
+	_check(report.visible and report._label.get_parsed_text().contains("Stormcap") and report._label.get_parsed_text().contains("Lightning through Soaked: 2 times"),
+		"the rest report shows the top Warden and the combos (%s)" % report._label.get_parsed_text())
 
 	# Warden panel lines
 	var seller: TowerSeller = main.get_node("%TowerSeller")
@@ -103,12 +103,12 @@ func _run() -> void:
 	_check(feedback._card.visible and feedback._card_label.text.begins_with("Combo discovered: Set Off"),
 		"the first Set Off shows a discovery card (%s)" % feedback._card_label.text)
 	_check(feedback._queue == [&"thunderclap"], "Thunderclap waits its turn (%s)" % [feedback._queue])
-	_check(ComboFeedback.discovery_text(&"thunderclap").contains("Damp + Static") and ComboFeedback.discovery_text(&"thunderclap").ends_with("Added to the Codex."),
+	_check(ComboFeedback.discovery_text(&"thunderclap").contains("Soaked + Charged") and ComboFeedback.discovery_text(&"thunderclap").ends_with("Added to the Codex."),
 		"the card names the ingredients and says it's in the Codex")
 	_check(feedback.block_counts.get(&"thunderclap", 0) == 2 and feedback.block_longest_chain == 3, "Reactions are counted per block")
 	report.show_report(1)
-	_check(report._label.text.contains("Reactions: Thunderclap 2 · longest chain: 3") and report._label.text.contains("New combos: Set Off, Thunderclap"),
-		"the rest report shows Reactions and new combos (%s)" % report._label.text)
+	_check(report._label.get_parsed_text().contains("Reactions: Thunderclap 2 · longest chain: 3") and report._label.get_parsed_text().contains("New combos: Set Off, Thunderclap"),
+		"the rest report shows Reactions and new combos (%s)" % report._label.get_parsed_text())
 	var profile_after: Dictionary = HeartwoodMemory.load_data()
 	_check(profile_after.get("combos_seen", []) == profile_before.get("combos_seen", [])
 		and profile_after.get("combo_counts", {}) == profile_before.get("combo_counts", {}), "tests never write discoveries")
@@ -138,7 +138,7 @@ func _run() -> void:
 	# Crowned Reactions: their own discovery card, a hidden entry until found, outside the 15.
 	_check(CodexData.crowned().size() == 8 and CodexData.combos().size() == 15, "8 Crowned Reactions, apart from the 15 combos")
 	_check(ComboFeedback.discovery_text(&"tempest").begins_with("Crowned Reaction discovered: Tempest")
-		and ComboFeedback.discovery_text(&"tempest").contains("Thunderclap + Spored"), "a Crowned discovery card names its recipe")
+		and ComboFeedback.discovery_text(&"tempest").contains("Thunderclap + Poisoned"), "a Crowned discovery card names its recipe")
 	var was_demo = ProjectSettings.get_setting("game/demo", false)
 	ProjectSettings.set_setting("game/demo", false)
 	codex.open(&"combos")

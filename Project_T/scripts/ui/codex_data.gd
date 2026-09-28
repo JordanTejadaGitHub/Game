@@ -2,12 +2,13 @@ extends RefCounted
 class_name CodexData
 
 # What the Codex holds (screens_ui.md "The Codex: Glossary and Combos"):
-# - GLOSSARY: every term, always listed: [group, [[term, one-line definition, [see also…]], …]].
+# - glossary(): every term, always listed: [group, [[term, one-line definition, [see also…]], …]],
+#   from GLOSSARY_SOURCE with the status names filled in ({damp}, and {tip:damp} = its IconInfo text).
 #   Bosses and late nightmares aren't here; they join the "Nightmares you've met" group once met.
 # - The 15 combos: 7 synergies (SYNERGIES, below) + the 8 Reactions (resource/reaction, via
 #   Reactions.all()). New Reactions join automatically. ComboFeedback discovers them in play.
 
-const GLOSSARY := [
+const GLOSSARY_SOURCE := [
 	["Resources", [
 		["Dew", "The run's currency: earned by dispelling nightmares and at rests, spent on Wardens, growth, Nurture and clearing.", ["Rest", "Nurture"]],
 		["Dreamlight", "Freed by great nightmares (bosses, the first family pick): unlocks branches and final forms on the Remember screen.", ["Remember screen", "Branch", "Final form"]],
@@ -43,11 +44,11 @@ const GLOSSARY := [
 		["Focus", "At rank III a Warden takes a focus: Power, Swift, Reach or Deep.", ["Rank"]],
 		["Thornwall", "A cheap wall that doesn't attack; grows into Bramble or Honeysuckle.", ["Warden"]],
 		["Crit", "A critical hit: some Wardens sometimes hit much harder.", ["Pinned", "Potency"]],
-		["Potency", "Effect damage: scales status and spore damage and Reactions the way crit scales hits.", ["Crit", "Spored"]],
+		["Potency", "Effect damage: scales status and poison damage and Reactions the way crit scales hits.", ["Crit", "{spored}"]],
 		["Clear tool", "Tend withered trees and move boulders to reshape the maze. Opens with a clearing Dream.", ["Dew"]],
 		["Ascended", "A family's endgame Warden, from drift 51: 3 Dreamlight, then grown from a final form for 400 Dew. One per family per run.", ["Final form", "Ascension"]],
-		["Heartwood Sapling", "A 2×2 offshoot of the Heartwood from drift 51: it yields Dew every drift and Dreamlight every 10 drifts. Rooted.", ["Rooted", "Dreamlight"]],
-		["Rooted", "Can't be sold or moved.", ["Heartwood Sapling"]],
+		["Heartwood Sapling", "A 2×2 offshoot of the Heartwood from drift 51: it yields Dew every drift and Dreamlight every 10 drifts. Permanent.", ["Permanent", "Dreamlight"]],
+		["Permanent", "Can't be sold or moved.", ["Heartwood Sapling"]],
 	]],
 	["Nightmares", [
 		["Nightmare", "The Hollow's dreams turned cruel, hunting the Heartwood's dream. Dispel them before they reach it.", ["Dispel"]],
@@ -59,17 +60,18 @@ const GLOSSARY := [
 		["Flying", "Flies straight over the maze, ignoring walls.", ["Nightmare"]],
 	]],
 	["Statuses", [
-		["Damp", "Slower, and lightning loves it.", ["Conducted", "Thunderclap"]],
-		["Drowsy", "Heavy-eyed and slow; full Drowsy puts it to sleep with the right Warden.", ["Asleep", "Drown"]],
-		["Spored", "Spores keep eating at it over time.", ["Popped", "Ignite"]],
-		["Marked", "Every Warden hits it harder.", ["Marked Blow", "Lightning Rod"]],
-		["Static", "Charges build up to a free lightning bolt.", ["Set Off", "Thunderclap"]],
-		["Held", "It can't move. Now's the time.", ["Shatter", "Smother"]],
-		["Caught", "Asleep or fully Drowsy near a Dreamcatcher: it takes extra damage from everything.", ["Drowsy", "Asleep"]],
-		["Frozen", "Frost stops it for a moment.", ["Damp"]],
+		["{damp}", "{tip:damp}", ["Conducted", "Thunderclap"]],
+		["{drowsy}", "{tip:drowsy}", ["{asleep}", "Drown"]],
+		["{asleep}", "{tip:asleep}", ["{drowsy}", "Caught"]],
+		["{spored}", "{tip:spored}", ["Popped", "Ignite"]],
+		["{marked}", "{tip:marked}", ["Exposed Blow", "Lightning Rod"]],
+		["{static}", "{tip:static}", ["Set Off", "Thunderclap"]],
+		["{held}", "{tip:held}", ["Shatter", "Smother"]],
+		["{caught}", "{tip:caught}", ["{drowsy}", "{asleep}"]],
+		["{frozen}", "{tip:frozen}", ["{damp}"]],
 	]],
 	["Combos", [
-		["Reaction", "Two statuses meeting on one nightmare set off a named effect, like Thunderclap (Damp + Static).", ["Chain", "Crowned Reaction"]],
+		["Reaction", "Two statuses meeting on one nightmare set off a named effect, like Thunderclap ({damp} + {static}).", ["Chain", "Crowned Reaction"]],
 		["Crowned Reaction", "A Reaction going off on a nightmare that already carries a third status: a bigger, named version.", ["Reaction", "Woven"]],
 		["Chain", "Reactions setting each other off within 1 s. Shown as Chain 5, not a damage multiplier; Chain 10 is a Dawnburst.", ["Reaction", "Dawnburst"]],
 		["Dawnburst", "A Chain 10: a flash of dawn over the whole fight. With the Dawnbreak Legendary it also takes a tenth of the health of every nightmare within 4 cells (bosses: 2%).", ["Chain", "Dawnbreak"]],
@@ -100,13 +102,13 @@ const GLOSSARY := [
 # The id is also the DamageLog combo tag where one exists (conducted, popped, fog); the rest are
 # reported with ComboFeedback.report(id, …) where they happen.
 const SYNERGIES := {
-	&"conducted": ["Conducted", [&"damp", &"static"], "Lightning jumps further and more often between Damp nightmares.", "Stormcap"],
-	&"popped": ["Popped", [&"spored", &"spored"], "10+ Spored bursts over the nightmare and its neighbours.", "Puffball"],
-	&"asleep": ["Asleep", [&"drowsy", &"drowsy"], "Full Drowsy: the nightmare falls asleep.", "Dreamshroom"],
-	&"fog": ["Spore Fog", [&"spored", &"damp"], "Spores tick harder inside Mistveil fog.", "Mistveil"],
-	&"set_off": ["Set Off", [&"static", &"static"], "A pulse sets off a Static bolt.", "Chime Stone, Lullaby Bell"],
-	&"marked_blow": ["Marked Blow", [&"marked", &"marked"], "A heavy hit does double damage on Marked nightmares.", "Mossback, Boulderback"],
-	&"caught": ["Caught", [&"drowsy", &"drowsy"], "Asleep or full Drowsy near a Dreamcatcher: it takes extra damage from everything.", "Dreamcatcher"],
+	&"conducted": ["Conducted", [&"damp", &"static"], "Lightning jumps further and more often between {damp} nightmares.", "Stormcap"],
+	&"popped": ["Popped", [&"spored", &"spored"], "10+ {spored} bursts over the nightmare and its neighbours.", "Puffball"],
+	&"asleep": ["Asleep", [&"drowsy", &"drowsy"], "Full {drowsy}: the nightmare falls {asleep}.", "Dreamshroom"],
+	&"fog": ["Spore Fog", [&"spored", &"damp"], "{spored} ticks harder inside Mistveil fog.", "Mistveil"],
+	&"set_off": ["Set Off", [&"static", &"static"], "A pulse sets off a {static} bolt.", "Chime Stone, Lullaby Bell"],
+	&"marked_blow": ["Exposed Blow", [&"marked", &"marked"], "A heavy hit does double damage on {marked} nightmares.", "Mossback, Boulderback"],
+	&"caught": ["Caught", [&"drowsy", &"drowsy"], "{asleep} or full {drowsy} near a Dreamcatcher: it takes extra damage from everything.", "Dreamcatcher"],
 }
 
 # Crowned Reactions (tower_design.md "Crowned Reactions: three families at once"): a Reaction going
@@ -115,21 +117,21 @@ const SYNERGIES := {
 # gold crown frame, "???"), not in the demo, and not part of the 15 combos' count.
 const CROWNED := {
 	&"tempest": ["Tempest", &"thunderclap", &"spored", ["dewdrop", "firefly_jar", "sporeling"],
-		"Every arc also sets off Ignite on Spored nightmares, and the spores carry Static onto wet ones: new Thunderclaps follow."],
+		"Every arc also sets off Ignite on {spored} nightmares, and the spores carry {static} onto {damp} ones: new Thunderclaps follow."],
 	&"still_pool": ["Still Pool", &"drown", &"held", ["dewdrop", "bellflower", "rootling"],
 		"The nightmare sinks and leaves a still pool for 5 s: every walker that enters it sleeps for a moment."],
 	&"fever_dream": ["Fever Dream", &"smother", &"drowsy", ["sporeling", "rootling", "bellflower"],
-		"Its spores all go off at once, and it passes Spored + Drowsy to its neighbours: a sleep plague."],
+		"Its spores all go off at once, and it passes {spored} + {drowsy} to its neighbours: a sleep plague."],
 	&"starfall": ["Starfall", &"pinned", &"static", ["firefly_jar", "rootling", "bellflower"],
-		"The crit pulls every Static bolt within 3 cells into it; each bolt crits too, and a column of light falls."],
+		"The crit pulls every {static} bolt within 3 cells into it; each bolt crits too, and a column of light falls."],
 	&"avalanche": ["Avalanche", &"shatter", &"held", ["dewdrop", "rootling", "pebbling"],
-		"A Cairn or Rockslide lob sets off the Shatter on every Damp + Held nightmare under it."],
+		"A Cairn or Rockslide lob sets off the Shatter on every {damp} + {held} nightmare under it."],
 	&"prismstorm": ["Prismstorm", &"shatter", &"static", ["dewdrop", "rootling", "firefly_jar"],
-		"The ice shards carry lightning: each adds Static to what it hits, so wet neighbours Thunderclap."],
+		"The ice shards carry lightning: each adds {static} to what it hits, so {damp} neighbours Thunderclap."],
 	&"nightbloom": ["Nightbloom", &"mushrooming", &"drowsy", ["sporeling", "dewdrop", "bellflower"],
 		"The spore cloud glows violet and nothing inside can wake."],
 	&"fairy_circle": ["Fairy Circle", &"mushrooming", &"held", ["sporeling", "dewdrop", "rootling"],
-		"A ring of mushrooms sprouts around the held nightmare: walkers crossing it get Spored + Damp."],
+		"A ring of mushrooms sprouts around the held nightmare: walkers crossing it get {spored} + {damp}."],
 }
 # assets/meta/icons/family_icons.png: 32×32 icons in this order.
 const FAMILY_ICON_ORDER := ["sporeling", "firefly_jar", "dewdrop", "pebbling", "rootling", "bellflower",
@@ -148,7 +150,7 @@ static func crowned() -> Array[Dictionary]:
 		var statuses: Array = (base.statuses.duplicate() if base else []) + [c[2]]
 		var data := Reactions.get_data(id)
 		list.append({"id": id, "name": data.display_name if data else c[0], "kind": "Crowned", "base": c[1],
-			"statuses": statuses, "families": c[3], "text": data.description if data else c[4], "by": ""})
+			"statuses": statuses, "families": c[3], "text": IconInfo.format(data.description if data else c[4]), "by": ""})
 	return list
 
 # A combo or a Crowned Reaction by id ({} if neither).
@@ -160,7 +162,7 @@ static func get_any(id: StringName) -> Dictionary:
 				return c
 	return found
 
-# "Thunderclap + Spored" for a Crowned Reaction.
+# "Thunderclap + Poisoned" for a Crowned Reaction.
 static func crowned_recipe(c: Dictionary) -> String:
 	var base := Reactions.get_data(c.base)
 	return "%s + %s" % [base.display_name if base else String(c.base).capitalize(),
@@ -182,14 +184,14 @@ static func combos() -> Array[Dictionary]:
 	var list: Array[Dictionary] = []
 	for id in SYNERGIES:
 		var s: Array = SYNERGIES[id]
-		list.append({"id": id, "name": s[0], "kind": "Synergy", "statuses": s[1], "text": s[2], "by": s[3]})
+		list.append({"id": id, "name": s[0], "kind": "Synergy", "statuses": s[1], "text": IconInfo.format(s[2]), "by": s[3]})
 	var reactions := Reactions.all()
 	reactions.sort_custom(func(a: ReactionData, b: ReactionData) -> bool: return a.display_name < b.display_name)
 	for data in reactions:
 		if CROWNED.has(data.id):
 			continue  # Crowned Reactions are their own list (crowned())
 		list.append({"id": data.id, "name": data.display_name, "kind": "Reaction", "statuses": data.statuses,
-			"text": data.description, "by": ""})
+			"text": IconInfo.format(data.description), "by": ""})
 	return list
 
 static func get_combo(id: StringName) -> Dictionary:
@@ -198,7 +200,7 @@ static func get_combo(id: StringName) -> Dictionary:
 			return combo
 	return {}
 
-# "Damp + Static" (a synergy on one status reads just "Spored").
+# "Soaked + Charged" (a synergy on one status reads just "Poisoned").
 static func ingredients_text(combo: Dictionary) -> String:
 	var names: Array[String] = []
 	for status in combo.statuses:
@@ -208,10 +210,26 @@ static func ingredients_text(combo: Dictionary) -> String:
 	return " + ".join(names)
 
 # Glossary entries whose term (or group) contains `query` (case-insensitive); all when empty.
+static var _glossary: Array = []
+
+# The glossary with today's status names and IconInfo's definitions filled in (built once).
+static func glossary() -> Array:
+	if _glossary.is_empty():
+		for group in GLOSSARY_SOURCE:
+			var entries: Array = []
+			for entry in group[1]:
+				var text: String = entry[1]
+				if text.begins_with("{tip:"):
+					text = IconInfo.STATUSES.get(StringName(text.trim_prefix("{tip:").trim_suffix("}")), ["", ""])[1]
+				entries.append([IconInfo.format(entry[0]), IconInfo.format(text),
+					entry[2].map(func(s: String) -> String: return IconInfo.format(s))])
+			_glossary.append([group[0], entries])
+	return _glossary
+
 static func search(query: String) -> Array:
 	var found: Array = []
 	var q := query.strip_edges().to_lower()
-	for group in GLOSSARY:
+	for group in glossary():
 		for entry in group[1]:
 			if q == "" or entry[0].to_lower().contains(q) or entry[1].to_lower().contains(q):
 				found.append([group[0], entry])
@@ -224,7 +242,7 @@ static var _term_patterns := {}  # Term -> RegEx matching it as whole words (plu
 static func find_term(text: String) -> String:
 	var best := ""
 	var best_at := 1 << 30
-	for group in GLOSSARY:
+	for group in glossary():
 		for entry in group[1]:
 			if not _term_patterns.has(entry[0]):
 				var regex := RegEx.new()

@@ -7,7 +7,7 @@ extends Control
 
 const GAME_SCENE := "res://scenes/main.tscn"
 const GROVE_SCENE := "res://scenes/grove.tscn"
-const TITLE := "The Heartwood Remembers"
+const TITLE := "Heartwood TD"  # The game's title (project.godot config/name too)
 
 var _menu := VBoxContainer.new()
 var _settings: SettingsPanel
@@ -15,8 +15,27 @@ var _codex: CodexPanel
 var _confirm: ConfirmationDialog
 var _blight := BlightPicker.new()
 
+# The game was renamed from "Project_T" to "Heartwood TD" (project.godot config/name), which moves
+# Godot's user:// folder. Once, copy the profile and run save across if the new folder has none.
+const OLD_USER_DIR := "Project_T"
+const SAVE_FILES := ["heartwood.json", "run.json"]
+
+static func migrate_old_saves() -> void:
+	var new_dir := OS.get_user_data_dir()
+	var old_dir := new_dir.get_base_dir().path_join(OLD_USER_DIR)
+	if old_dir == new_dir or not DirAccess.dir_exists_absolute(old_dir):
+		return
+	for file in SAVE_FILES:
+		var target := new_dir.path_join(file)
+		var source := old_dir.path_join(file)
+		if not FileAccess.file_exists(target) and FileAccess.file_exists(source):
+			DirAccess.make_dir_recursive_absolute(new_dir)
+			DirAccess.copy_absolute(source, target)
+
 func _ready() -> void:
+	migrate_old_saves()
 	HeartwoodMemory.apply_settings()
+	add_to_group(StatusLinks.CODEX_HOST_GROUP)  # Status links' "More in the Codex"
 	set_anchors_preset(Control.PRESET_FULL_RECT)
 	var background := ColorRect.new()
 	background.color = Color(0.07, 0.11, 0.09)
@@ -91,6 +110,12 @@ func _ready() -> void:
 	_blight.picked.connect(func(level: int) -> void:
 		MetaRun.blight_level = level
 		_go())
+
+# The Codex on a tab / entry (a status link's "More in the Codex").
+func open_codex(tab: StringName = &"", entry: String = "") -> void:
+	_menu.visible = false
+	_settings.visible = false
+	_codex.open(tab, entry)
 
 func _add_button(text: String, action: Callable) -> Button:
 	var button := Button.new()

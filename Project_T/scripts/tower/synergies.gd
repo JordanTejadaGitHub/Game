@@ -16,14 +16,14 @@ const PAYOFFS := {
 }
 const LINK_RANGE := 1.0  # Cells beyond the larger attack range that still count as "nearby"
 
-# How `a` and `b` combo, e.g. "Damp → Stormcap", or "" if they don't.
+# How `a` and `b` combo, e.g. "Soaked → Stormcap" (IconInfo names), or "" if they don't.
 static func link(a: TowerData, b: TowerData) -> String:
 	for pair in [[a, b], [b, a]]:
 		var applier: TowerData = pair[0]
 		var payoff: TowerData = pair[1]
 		var status := applier.applies_status
 		if status != &"" and PAYOFFS.get(status, []).has(payoff.get_id()):
-			return "%s → %s" % [String(status).capitalize(), payoff.display_name]
+			return "%s → %s" % [IconInfo.status_name(status), payoff.display_name]
 	return ""
 
 # Wardens in `towers` near `cell` that combo with `data`: [[Tower, description], …].

@@ -52,6 +52,7 @@ static func defaults() -> Dictionary:
 			"confirm_sell": true,  # Warden panel: confirm "Sell N" while nightmares walk
 			"health_bars": 0,  # Nightmare health bars: 0 once hit, 1 always (read by Enemy via Fx.setting)
 			"blight_outline": false,  # Accessibility: outline Deeply Blighted nightmares
+			"softer_nightmares": false,  # Accessibility (audio_direction.md): quieter nightmare shrieks and whispers
 			"demo_mode": -1,  # Developer (debug builds): -1 = project setting game/demo, 0 = full game, 1 = demo
 			"keybinds": {},  # {action: [physical keycodes]}; empty = project defaults
 		},
@@ -293,6 +294,11 @@ static func apply_settings(settings: Dictionary = {}) -> void:
 	_set_bus_volume("Ambience", settings.music_volume)
 	_set_bus_volume("SFX", settings.sfx_volume)
 	_set_bus_volume("UI", settings.sfx_volume)
+	# Softer nightmares: the Sound autoload tones them down (it also reads the setting on start).
+	var sound_tree := Engine.get_main_loop() as SceneTree
+	var sound := sound_tree.root.get_node_or_null("Sound") if sound_tree and sound_tree.root else null
+	if sound and sound.has_method("set_softer_nightmares"):
+		sound.set_softer_nightmares(bool(settings.get("softer_nightmares", false)))
 	var tree := Engine.get_main_loop() as SceneTree
 	if tree != null and tree.root != null:
 		tree.root.content_scale_factor = clampf(float(settings.get("ui_scale", 1.0)), 0.5, 2.0)

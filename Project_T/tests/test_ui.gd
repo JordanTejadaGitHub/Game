@@ -99,7 +99,31 @@ func _run() -> void:
 	dew_label.gui_input.emit(tap)
 	_check(dew_tip.visible and dew_tip._label.text == dew_label.tooltip_text, "tapping Dew shows the same text")
 	dew_tip.toggle()
-	_check(IconInfo.status_tooltip(&"damp").begins_with("Damp: 10% slower"), "status tooltips in plain words")
+	_check(IconInfo.status_tooltip(&"damp").begins_with("Soaked: 10% slower"), "status tooltips in plain words")
+	# Status display names (story.md): ids unchanged, names from IconInfo; {tokens} fill them in.
+	_check(IconInfo.status_name(&"damp") == "Soaked" and IconInfo.status_name(&"static") == "Charged"
+		and IconInfo.status_name(&"held") == "Rooted" and IconInfo.format("{spored} + {marked}") == "Poisoned + Exposed",
+		"the new status names")
+	# Every status word is a link: underlined, with a popup (icon, definition, More in the Codex).
+	var linked := StatusLinks.bbcode("Soaked nightmares, {static} bolts, and a soaking rain.")
+	_check(linked.contains("[url=status:damp]") and linked.contains("[url=status:static]") and not linked.contains("soaking[/url]"),
+		"status names (and tokens) become links, whole words only (%s)" % linked)
+	var link_label := StatusLinks.make_label("Applies Soaked.")
+	main.get_node("HUD").add_child(link_label)
+	await process_frame
+	link_label.meta_clicked.emit("status:damp")
+	var popup: StatusLinks = link_label.get_children().filter(func(c: Node) -> bool: return c is StatusLinks)[0]
+	_check(popup.visible and popup._name.text == "Soaked" and popup._text.text.begins_with("10% slower"), "tapping a status shows its definition")
+	link_label.meta_clicked.emit("status:damp")
+	_check(not popup.visible, "tapping it again closes it")
+	link_label.queue_free()
+	var whisper_node = main.get_node("%Whispers")
+	whisper_node.enabled = true
+	whisper_node._seen = []
+	whisper_node._queue.clear()
+	whisper_node.whisper(&"damp")
+	_check(whisper_node.text.contains("[url=status:damp]Soaked") or whisper_node.text.contains("status:damp"), "whispers link their status words (%s)" % whisper_node.text)
+	whisper_node.set_enabled(false)
 	# The icon sheet (assets/ui/icons.png + icons.json): every status and stat id has a 16×16 icon.
 	for id in [&"damp", &"static", &"elite", &"hidden", &"damage", &"potency", &"focus_deep", &"dreamlight_cost"]:
 		var art := IconInfo.icon(id) as AtlasTexture
@@ -188,7 +212,7 @@ func _run() -> void:
 	# --- Family pick: statuses, branch previews, and Peek (screens_ui.md "Choice screens") ---
 	var family = main.get_node("%FamilyPickScreen")
 	var sporeling: TowerData = load("res://resource/tower/sporeling.tres")
-	_check(family.get_status_text(sporeling) == "Applies Spored", "the family card names its status (%s)" % family.get_status_text(sporeling))
+	_check(family.get_status_text(sporeling) == "Applies Poisoned", "the family card names its status (%s)" % family.get_status_text(sporeling))
 	_check(family.get_branches(sporeling).size() == 2, "the family card previews two branches")
 	family.show_pick(&"first")
 	family.peek.set_peeking(true)

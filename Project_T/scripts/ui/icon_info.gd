@@ -3,18 +3,22 @@ class_name IconInfo
 
 # One place for the names and plain-words tooltips of every status, Warden stat and resource
 # (screens_ui.md "Stat and status icons": every icon explains itself on hover and on tap). Status
-# names are under review (e.g. Static → Charged), so every screen reads them from here:
+# display names can change (they did: Static became Charged), so every screen reads them here:
 # status_name(id), status_tooltip(id), stat_tooltip(id), resource_tooltip(id). Icons from Tower
 # Assets' sheet: icon(id) / make_icon(id, scale) (the sheet's ids; "elite" maps to deeply_blighted).
 
+# Display names (story.md "Status display names", screens_ui.md): the code ids never change, only
+# these names. Text anywhere can say {damp} / {static} …; format() puts in the current names, and
+# StatusLinks turns them into links.
 const STATUSES := {
-	&"damp": ["Damp", "10% slower. Lightning jumps further between Damp nightmares."],
-	&"drowsy": ["Drowsy", "8% slower per stack. Fully Drowsy nightmares can be put to sleep."],
-	&"spored": ["Spored", "Spores eat at it over time, more with every stack."],
-	&"marked": ["Marked", "Takes 25% more from every Warden."],
-	&"static": ["Static", "Charges build up; at 5, a free lightning bolt strikes it."],
-	&"held": ["Held", "Can't move for a moment."],
-	&"caught": ["Caught", "Asleep or fully Drowsy near a Dreamcatcher: takes extra damage from everything."],
+	&"damp": ["Soaked", "10% slower. Lightning jumps further between {damp} nightmares."],
+	&"drowsy": ["Drowsy", "8% slower per stack. At full stacks it's {asleep}."],
+	&"spored": ["Poisoned", "Poison eats at it over time, more with every stack."],
+	&"marked": ["Exposed", "Takes 25% more from every Warden."],
+	&"static": ["Charged", "Charges build up; at 5, a free lightning bolt strikes it."],
+	&"held": ["Rooted", "Can't move for a moment."],
+	&"asleep": ["Asleep", "Fully {drowsy}: it stops moving until it wakes."],
+	&"caught": ["Caught", "{asleep} or fully {drowsy} near a Dreamcatcher: takes extra damage from everything."],
 	&"frozen": ["Frozen", "Frost stops it for a moment."],
 	&"elite": ["Deeply Blighted", "An elite: 3× health, 2× Dew, and it takes 2 leaves."],
 	&"hidden": ["Hidden", "Can't be seen or targeted until something reveals it, or it comes close."],
@@ -25,7 +29,7 @@ const STATS := {
 	&"range": ["Range", "How far it reaches, in tiles."],
 	&"crit_chance": ["Crit chance", "The chance a hit is a critical hit."],
 	&"crit_damage": ["Crit damage", "How much harder a critical hit lands."],
-	&"potency": ["Potency", "Effect damage: scales status and spore damage and Reactions."],
+	&"potency": ["Potency", "Effect damage: scales status and poison damage and Reactions."],
 	&"rank": ["Rank", "How nurtured it is (I–V): each rank adds damage, speed and range."],
 	&"focus": ["Focus", "Chosen at rank III: Power, Swift, Reach or Deep."],
 	&"focus_power": ["Power focus", "+8% damage."],
@@ -99,10 +103,26 @@ static func stat_tooltip(id: StringName) -> String:
 static func resource_tooltip(id: StringName) -> String:
 	return _tip(RESOURCES, id)
 
-# "Damp: 10% slower. …" (a sheet id like deeply_blighted finds its IconInfo entry, elite).
+# "Soaked: 10% slower. …" (a sheet id like deeply_blighted finds its IconInfo entry, elite).
 static func _tip(table: Dictionary, id: StringName) -> String:
 	if not table.has(id):
 		for key in ICON_ALIASES:
 			if ICON_ALIASES[key] == id:
 				id = key
-	return "%s: %s" % table[id] if table.has(id) else ""
+	return format("%s: %s" % table[id]) if table.has(id) else ""
+
+# Puts the current status names into `text`: "{damp} + {static}" -> "Soaked + Charged". Unknown
+# tokens stay as they are.
+static func format(text: String) -> String:
+	if not text.contains("{"):
+		return text
+	for id in STATUSES:
+		text = text.replace("{%s}" % id, STATUSES[id][0])
+	return text
+
+# The status id for a display name ("Soaked" -> &"damp"), or &"" (StatusLinks uses it).
+static func status_id(name: String) -> StringName:
+	for id in STATUSES:
+		if STATUSES[id][0].to_lower() == name.to_lower():
+			return id
+	return &""

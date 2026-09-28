@@ -52,6 +52,7 @@ func _ready() -> void:
 	_slider(audio, "Volume", "master_volume")
 	_slider(audio, "Music", "music_volume")
 	_slider(audio, "Sounds", "sfx_volume")
+	_toggle(audio, "Softer nightmares (quieter shrieks and whispers)", "softer_nightmares", false)
 
 	var display := _tab("Display")
 	_toggle(display, "Fullscreen", "fullscreen")

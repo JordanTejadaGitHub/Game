@@ -29,6 +29,7 @@ var _confirm_abandon := ConfirmationDialog.new()
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
+	add_to_group(StatusLinks.CODEX_HOST_GROUP)  # Status links' "More in the Codex"
 	set_anchors_preset(Control.PRESET_FULL_RECT)
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	var dim := ColorRect.new()

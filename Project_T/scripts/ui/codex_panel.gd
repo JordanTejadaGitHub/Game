@@ -3,7 +3,7 @@ class_name CodexPanel
 
 # The Codex (screens_ui.md "The Codex: Glossary and Combos"), from the pause menu, the title, the
 # Memory Grove and the HUD "?" button. Two tabs:
-# - Glossary: every term (CodexData.GLOSSARY), grouped and searchable, with "see also" links that
+# - Glossary: every term (CodexData.glossary()), grouped and searchable, with "see also" links that
 #   jump (to another term, or to a combo); bosses and late nightmares appear once met
 #   (profile nightmares_seen).
 # - Combos: all 15 (CodexData.combos()); locked ones are just "???" (no icons: they would give it away);
@@ -126,7 +126,7 @@ func _build_glossary() -> void:
 	var groups := {}
 	for found in CodexData.search(_search.text):
 		groups.get_or_add(found[0], []).append(found[1])
-	for group in CodexData.GLOSSARY:
+	for group in CodexData.glossary():
 		if groups.has(group[0]):
 			_add_group(group[0], groups[group[0]])
 	var met := get_met_nightmares()
@@ -154,11 +154,7 @@ func _add_group(title: String, entries: Array) -> void:
 		term.add_theme_font_size_override("font_size", 17)
 		term.add_theme_color_override("font_color", TERM_COLOR)
 		card.add_child(term)
-		var text := Label.new()
-		text.text = entry[1]
-		text.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		text.add_theme_font_size_override("font_size", 15)
-		card.add_child(text)
+		card.add_child(StatusLinks.make_label(entry[1], 15))  # Status names are links
 		if entry.size() > 2 and not entry[2].is_empty():
 			var links := HFlowContainer.new()
 			var see := Label.new()
@@ -185,7 +181,8 @@ static func get_met_nightmares() -> Array:
 			continue
 		var data := load(path) as EnemyData
 		if data != null:
-			list.append([data.display_name, data.trait_text if data.trait_text != "" else "A nightmare of the Hollow.", []])
+			# Traits may name statuses as {tokens}: fill them in, so search finds "Soaked".
+			list.append([data.display_name, IconInfo.format(data.trait_text) if data.trait_text != "" else "A nightmare of the Hollow.", []])
 	list.sort_custom(func(a: Array, b: Array) -> bool: return a[0] < b[0])
 	return list
 
@@ -277,11 +274,7 @@ func _crowned_card(c: Dictionary, discovered: bool, times: int) -> Control:
 		hint.add_theme_font_size_override("font_size", 14)
 		hint.add_theme_color_override("font_color", Color(0.9, 0.82, 0.6))
 		box.add_child(hint)
-		var text := Label.new()
-		text.text = c.text
-		text.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		text.add_theme_font_size_override("font_size", 15)
-		box.add_child(text)
+		box.add_child(StatusLinks.make_label(c.text, 15))  # Status names are links
 		var count := Label.new()
 		count.text = "Set off %d time%s" % [times, "" if times == 1 else "s"]
 		count.add_theme_font_size_override("font_size", 13)
@@ -311,16 +304,8 @@ func _combo_card(combo: Dictionary, discovered: bool, times: int) -> Control:
 	row.add_child(name)
 	if not discovered:
 		return panel  # Just "???" (no ingredients either)
-	var ingredients := Label.new()
-	ingredients.text = CodexData.ingredients_text(combo)
-	ingredients.add_theme_font_size_override("font_size", 14)
-	ingredients.add_theme_color_override("font_color", Color(0.75, 0.85, 1.0))
-	box.add_child(ingredients)
-	var text := Label.new()
-	text.text = combo.text
-	text.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	text.add_theme_font_size_override("font_size", 15)
-	box.add_child(text)
+	box.add_child(StatusLinks.make_label(CodexData.ingredients_text(combo), 14, Color(0.75, 0.85, 1.0)))
+	box.add_child(StatusLinks.make_label(combo.text, 15))  # Status names are links
 	var by := Label.new()
 	by.text = get_sources_text(combo)
 	by.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART

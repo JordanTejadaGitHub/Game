@@ -187,7 +187,7 @@ func _show_sapling() -> void:
 		icon.stretch_mode = TextureRect.STRETCH_KEEP_CENTERED
 		card.add_child(icon)
 	for line in [["The Heartwood Sapling", 22, Color.WHITE],
-			["Free to plant, 2×2, a wall like any Warden. Rooted: once planted it can't be sold or moved.", 15, Color(0.9, 0.95, 0.9)],
+			["Free to plant, 2×2, a wall like any Warden. Permanent: once planted it can't be sold or moved.", 15, Color(0.9, 0.95, 0.9)],
 			["It doesn't attack. After every drift it yields +20 Dew, and every 10 drifts +1 Dreamlight. Nurture it for more; leaks wither it a little.", 15, Color(0.85, 0.9, 1.0)],
 			["Not now? You can plant it later from the rest panel.", 13, Color(0.7, 0.8, 0.7)]]:
 		var label := Label.new()

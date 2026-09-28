@@ -1,4 +1,4 @@
-extends Label
+extends RichTextLabel
 
 # Heartwood whispers (onboarding.md): one-line italic hints at the top of the screen, in the story's
 # voice, each shown the first time it matters and then never again (remembered in HeartwoodMemory).
@@ -25,12 +25,12 @@ const TEXT := {
 	&"boss": "Something old has found the dream.",
 	&"after_boss": "It's gone, and something I'd forgotten came back.",
 	&"again": "The Heartwood dreams again.",
-	&"damp": "Damp: slower, and lightning loves it.",
-	&"drowsy": "Drowsy: heavy-eyed and slow.",
-	&"spored": "Spored: the spores keep eating at it.",
-	&"marked": "Marked: every Warden hits it harder.",
-	&"static": "Static: five charges, and a bolt.",
-	&"held": "Held: it can't move. Now's the time.",
+	&"damp": "{damp}: slower, and lightning loves it.",
+	&"drowsy": "{drowsy}: heavy-eyed and slow.",
+	&"spored": "{spored}: the poison keeps eating at it.",
+	&"marked": "{marked}: every Warden hits it harder.",
+	&"static": "{static}: five charges, and a bolt.",
+	&"held": "{held}: it can't move. Now's the time.",
 }
 
 @onready var run_state: RunState = %RunState
@@ -46,6 +46,7 @@ signal whispered(id: StringName)
 
 var enabled := true
 var term := ""  # The Codex term the showing whisper mentions ("" = none): tapping opens it
+var plain := ""  # The showing whisper's text without link markup
 var _seen: Array = []
 
 # The pause menu's toggle. Turning off hides the current whisper and drops the queue.
@@ -64,6 +65,8 @@ var _tween: Tween
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
+	StatusLinks.hook(self)  # Status names in whispers are links
+	mouse_filter = Control.MOUSE_FILTER_IGNORE  # On only while a whisper with links or a term shows
 	var memory := HeartwoodMemory.load_data()
 	enabled = memory.settings.whispers
 	_seen = memory.get("whispers_seen", [])
@@ -135,11 +138,15 @@ func _show_next() -> void:
 	var id: StringName = _queue[0]
 	_seen.append(String(id))
 	_remember()
-	text = TEXT.get(id, "")
+	plain = IconInfo.format(TEXT.get(id, ""))  # {damp} … become today's status names
+	var linked := StatusLinks.bbcode(plain)
+	text = "[center]%s[/center]" % linked
 	whispered.emit(id)
-	# Tappable while shown when it names a Codex term (screens_ui.md "The Codex").
-	term = CodexData.find_term(text)
-	mouse_filter = Control.MOUSE_FILTER_STOP if term != "" else Control.MOUSE_FILTER_IGNORE
+	# Status names are links of their own (hover / tap: their definition). A whisper without one is
+	# tappable as a whole when it names a Codex term (screens_ui.md "The Codex").
+	var has_links := linked != plain.replace("[", "[lb]")
+	term = "" if has_links else CodexData.find_term(plain)
+	mouse_filter = Control.MOUSE_FILTER_STOP if has_links or term != "" else Control.MOUSE_FILTER_IGNORE
 	tooltip_text = "Tap to read about %s in the Codex" % term if term != "" else ""
 	if _tween:
 		_tween.kill()
