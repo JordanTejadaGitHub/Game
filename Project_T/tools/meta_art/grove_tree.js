@@ -418,19 +418,43 @@ function groveCanopy(stage) {
 // nodes fill the crown, gaps between the limbs included, while staying within reach of their parent.
 let CROWN_MASK = null;
 const inMask = (x, y, m) => !CROWN_MASK || [[0, 0], [m, 0], [-m, 0], [0, m], [0, -m]].every(([a, b]) => CROWN_MASK.alpha(Math.round(x + a), Math.round(y + b)));
-// The great limbs end where they would leave the crown's leaves (they enter the leaves low down and
-// run up inside them); `cut` keeps the part that's left, for moving branch starts onto it.
+// The great limbs run up through the crown and end just inside its outer edge (only a tip that
+// would poke out of the leaves is cut); `cut` is the part that's left, for branch starts.
 function trimLimbs(mask) {
   CROWN_MASK = mask;
   for (const limb of Object.values(LIMBS)) {
     const curve = catmull(limb.pts, 16);
-    let last = curve.length - 1, entered = false;
-    for (let i = 0; i < curve.length; i++) {
-      if (inMask(curve[i][0], curve[i][1], 8)) { entered = true; last = i; } else if (entered) break;
-    }
+    let last = curve.length - 1;
+    while (last > 0 && !inMask(curve[last][0], curve[last][1], 18)) last--;
     const keep = Math.floor(last / 16);
     limb.pts = [...limb.pts.slice(0, keep + 1), ...(last % 16 ? [curve[last].map(Math.round)] : [])];
     limb.cut = curve.slice(0, last + 1);
+  }
+}
+// The limbs' parts inside the crown, drawn over a canopy stage so they show through the leaves up
+// to their tips: they come out of the leaves at the crown's belly, taper as they rise,
+// and carry a little moss and a few leaf tufts so they sit in the foliage.
+function limbsInCrown(img) {
+  for (const [sec, limb] of Object.entries(LIMBS)) {
+    const pts = limb.cut, n = pts.length;
+    let i0 = 0; while (i0 < n - 1 && !inMask(pts[i0][0], pts[i0][1], 20)) i0++;
+    const L = new Img(GW, GH), S = new Img(GW, GH), wAt = i => (limb.w[0] + 8) + (limb.w[1] - limb.w[0] - 8) * i / (n - 1);
+    thickPath(L, pts.slice(i0), wAt(i0), Math.max(5, limb.w[1]), barkBig(sec.length * 13));
+    for (let y = 1; y < GH; y++) for (let x = 0; x < GW; x++)  // moss along the top
+      if (L.alpha(x, y) && !L.alpha(x, y - 2) && pnoise(x, y, 9, 44) > .5) L.set(x, y, LEAFG[2 + (x % 3 === 0)]);
+    S.stamp(L, HB6[0]);
+    const [sx, sy] = pts[i0];
+    for (let y = 0; y < GH; y++) for (let x = 0; x < GW; x++) {
+      if (!S.alpha(x, y)) continue;
+      img.set(x, y, S.get(x, y));
+    }
+    // Leaves close over the join where the limb enters the crown.
+    for (let k = 0; k < 4; k++) blob(img, Math.floor(sx / 2) * 2 + (k - 1.5) * 12, Math.floor(sy / 2) * 2 + 4 - (k % 2) * 6, 12, 8, CROWN_P.slice(1, 4), { seed: 50 + k, dither: 0 });
+    for (let k = 0; k < 7; k++) {  // leaf tufts over the limb
+      const [x, y] = pts[Math.floor(i0 + (n - 1 - i0) * (.12 + hash(k, 1, 45) * .8))];
+      const cx = Math.floor(x / CROWN_PX) * CROWN_PX, cy = Math.floor(y / CROWN_PX) * CROWN_PX;
+      blob(img, cx + (hash(k, 2, 45) - .5) * 14, cy + (hash(k, 3, 45) - .5) * 8, 7 + hash(k, 4, 45) * 5, 5 + hash(k, 5, 45) * 3, CROWN_P.slice(2, 6), { seed: k, dither: 0 });
+    }
   }
 }
 function spreadNodes(mask) {

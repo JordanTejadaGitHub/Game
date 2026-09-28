@@ -10,8 +10,9 @@ const nodeRow = (sec, big) => strip([nodeSprite(sec, "locked", 0, big), ...[0, 1
 // branch pokes out of the leaves at any stage: the great limbs end inside it, the nodes are spread
 // evenly over it, and the dream-fruit hang just under its belly. The tree and branches come after.
 const canopies = [0, 1, 2, 3].map(groveCanopy);
-canopies.forEach((c, i) => emitImg("grove/grove_canopy_" + i + ".png", c));
 trimLimbs(canopies[0]);
+canopies.forEach(limbsInCrown);  // the limbs show through every stage's leaves
+canopies.forEach((c, i) => emitImg("grove/grove_canopy_" + i + ".png", c));
 const tree = groveTree(), sky = grovesky();
 emitImg("grove/grove_sky.png", sky);
 emitImg("grove/grove_tree.png", tree);
