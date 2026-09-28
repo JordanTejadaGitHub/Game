@@ -8,7 +8,7 @@
 [resource]
 script = ExtResource("1_tdata")
 display_name = "Starcave"
-description = "A bigger lit area; Marked lingers 2 s after a nightmare leaves the light."
+description = "A bigger lit area; Exposed lingers 2 s after a nightmare leaves the light."
 cost = 0
 texture = ExtResource("2_tex")
 frame_count = 8

@@ -1,7 +1,8 @@
 extends Node2D
 class_name TowerSeller
 
-# Outside build mode: hovering a Warden highlights it; right-click (or Delete) sells it straight away.
+# Outside build mode: hovering a Warden highlights it; Delete sells it straight away (right-click never
+# sells: it only cancels or deselects).
 # Selecting (screens_ui.md, "Selecting several Wardens"):
 #   click                  one Warden (empty ground clears the selection)
 #   click and drag         every Warden in the box (Thornwalls only if the box has nothing else);
@@ -309,7 +310,7 @@ func _dreams() -> DreamState:
 func _unhandled_input(event: InputEvent) -> void:
 	if not active:
 		return
-	if event.is_action_pressed("sell_tower") and _hover_tower != null:
+	if event.is_action_pressed("sell_tower") and _hover_tower != null and not (event is InputEventMouseButton):
 		sell(_hover_cell)
 		get_viewport().set_input_as_handled()
 	elif event.is_action_pressed("clear_obstacle") and _starts_selection(event):
@@ -424,8 +425,8 @@ func _draw() -> void:
 	var center: Vector2 = MAP_GRID.calculate_map_position(_hover_cell)
 	var rect := Rect2(center - MAP_GRID.cell_size / 2, MAP_GRID.cell_size).grow(-2)
 	draw_rect(rect, HIGHLIGHT_COLOR, false, 2.0)
-	var label := "%s · click: details · right-click: sell +%d Dew" % [_hover_tower.tower_data.display_name,
+	var label := "%s · click: details · Delete: sell +%d Dew" % [_hover_tower.tower_data.display_name,
 		get_refund(_hover_tower)]
 	if not can_sell():
-		label = "%s · click: details · rooted (Overgrown) until the rest" % _hover_tower.tower_data.display_name
+		label = "%s · click: details · Overgrown: no selling until the rest" % _hover_tower.tower_data.display_name
 	WorldLabel.draw_tag(self, center.x, rect.position.y - 8, label)

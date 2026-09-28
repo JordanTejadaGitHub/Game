@@ -8,7 +8,7 @@
 [resource]
 script = ExtResource("1_tdata")
 display_name = "Tangleroot"
-description = "Every 3 s, Holds the nightmare furthest along for 1 s."
+description = "Every 3 s, Roots the nightmare furthest along for 1 s."
 cost = 0
 line = "root"
 tier = 2

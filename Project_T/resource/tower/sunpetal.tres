@@ -8,7 +8,7 @@
 [resource]
 script = ExtResource("1_tdata")
 display_name = "Sunpetal"
-description = "A beam that grows stronger the longer it holds one nightmare; twice as fast on Drowsy or Held ones."
+description = "A beam that grows stronger the longer it roots one nightmare; twice as fast on Drowsy or Rooted ones."
 cost = 0
 texture = ExtResource("2_tex")
 frame_count = 8

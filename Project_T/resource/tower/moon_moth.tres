@@ -8,7 +8,7 @@
 [resource]
 script = ExtResource("1_tdata")
 display_name = "The Moon Moth"
-description = "Long-range shots that Mark; Wardens within 3 cells get +1 range."
+description = "Long-range shots that Expose; Wardens within 3 cells get +1 range."
 cost = 0
 texture = ExtResource("2_tex")
 frame_count = 8

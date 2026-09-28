@@ -8,7 +8,7 @@
 [resource]
 script = ExtResource("1_tdata")
 display_name = "Mistveil"
-description = "Fog on the path: nightmares stay Damp, and Spored ticks harder inside."
+description = "Fog on the path: nightmares stay Soaked, and Poisoned ticks harder inside."
 cost = 0
 texture = ExtResource("2_tex")
 frame_count = 8

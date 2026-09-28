@@ -9,7 +9,7 @@
 [resource]
 script = ExtResource("1_tdata")
 display_name = "Mossback"
-description = "One huge, slow hit at short range; double damage against Marked nightmares."
+description = "One huge, slow hit at short range; double damage against Exposed nightmares."
 cost = 0
 texture = ExtResource("2_tex")
 frame_count = 8

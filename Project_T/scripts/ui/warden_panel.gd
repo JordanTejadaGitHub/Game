@@ -182,10 +182,10 @@ func _refresh() -> void:
 	var sell := _add_button("Sell · +%d Dew%s" % [refund, "" if drift_director.is_build_phase() else " (half during a drift)"])
 	sell.pressed.connect(func() -> void: tower_seller.sell(_tower.cell))
 	if _tower.tower_data.rooted:
-		sell.text = "Rooted: the Sapling stays where it grew"
+		sell.text = "Planted for good: the Sapling can't be sold"
 		sell.disabled = true
 	elif not tower_seller.can_sell():
-		sell.text = "Rooted: no selling while nightmares walk (Overgrown)"
+		sell.text = "Overgrown: no selling while nightmares walk"
 		sell.disabled = true
 	var close := _add_button("Close")
 	close.pressed.connect(tower_seller.select.bind(null))
@@ -301,7 +301,7 @@ func _refresh_group() -> void:
 		sell.text = "Really sell %d while nightmares walk? +%d Dew" % [selection.size(), refund]
 	sell.pressed.connect(_sell_group)
 	if not tower_seller.can_sell():
-		sell.text = "Rooted: no selling while nightmares walk (Overgrown)"
+		sell.text = "Overgrown: no selling while nightmares walk"
 		sell.disabled = true
 	var close := _add_button("Close")
 	close.pressed.connect(tower_seller.select.bind(null))

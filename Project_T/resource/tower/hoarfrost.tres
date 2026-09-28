@@ -9,7 +9,7 @@
 [resource]
 script = ExtResource("1_tdata")
 display_name = "Hoarfrost"
-description = "Splashing frost shards and a longer freeze; more crits on Held nightmares."
+description = "Splashing frost shards and a longer freeze; more crits on Rooted nightmares."
 cost = 0
 texture = ExtResource("2_tex")
 frame_count = 8

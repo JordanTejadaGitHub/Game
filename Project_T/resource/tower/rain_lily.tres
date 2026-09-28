@@ -9,7 +9,7 @@
 [resource]
 script = ExtResource("1_tdata")
 display_name = "Rain Lily"
-description = "A bigger splash that keeps nightmares Damp for longer."
+description = "A bigger splash that keeps nightmares Soaked for longer."
 cost = 0
 texture = ExtResource("2_tex")
 frame_count = 8

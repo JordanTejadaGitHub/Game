@@ -7,7 +7,7 @@
 [resource]
 script = ExtResource("1_tdata")
 display_name = "The Pond Keeper"
-description = "Every 4 s its tongue drags the nightmare furthest along back beside the pond, and makes it Damp."
+description = "Every 4 s its tongue drags the nightmare furthest along back beside the pond, and makes it Soaked."
 cost = 0
 texture = ExtResource("2_tex")
 frame_count = 8

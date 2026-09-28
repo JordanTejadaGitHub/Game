@@ -8,7 +8,7 @@
 [resource]
 script = ExtResource("1_tdata")
 display_name = "World Root"
-description = "Every 5 seconds roots erupt, Holding everything in range for 1 s; Held nightmares take 30% more from every Warden."
+description = "Every 5 seconds roots erupt, Rooting everything in range for 1 s; Rooted nightmares take 30% more from every Warden."
 cost = 0
 line = "root"
 tier = 4

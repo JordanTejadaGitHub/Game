@@ -9,7 +9,7 @@
 [resource]
 script = ExtResource("1_tdata")
 display_name = "Beacon"
-description = "Every 2 s, Marks every nightmare in range, and its Marked is stronger: +35% damage taken."
+description = "Every 2 s, Exposes every nightmare in range, and its Exposed is stronger: +35% damage taken."
 cost = 0
 line = "light"
 tier = 3

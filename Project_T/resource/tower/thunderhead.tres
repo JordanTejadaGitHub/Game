@@ -8,7 +8,7 @@
 [resource]
 script = ExtResource("1_tdata")
 display_name = "Thunderhead"
-description = "Chains to 4; every 5th strike hits every Damp nightmare in range."
+description = "Chains to 4; every 5th strike hits every Soaked nightmare in range."
 cost = 0
 texture = ExtResource("2_tex")
 frame_count = 8

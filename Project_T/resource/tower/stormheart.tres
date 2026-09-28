@@ -7,7 +7,7 @@
 [resource]
 script = ExtResource("1_tdata")
 display_name = "Stormheart"
-description = "Its lightning jumps to every nightmare in range (−15% per jump) and leaves 2 Static."
+description = "Its lightning jumps to every nightmare in range (−15% per jump) and leaves 2 Charged."
 cost = 0
 line = "light"
 tier = 4

@@ -7,7 +7,7 @@
 [resource]
 script = ExtResource("1_tdata")
 display_name = "Sporemother"
-description = "Every second she breathes spores over everything in range (4 Spored each); nightmares at 10 stacks burst and spread them."
+description = "Every second she breathes spores over everything in range (4 Poisoned each); nightmares at 10 stacks burst and spread them."
 cost = 0
 line = "spore"
 tier = 4

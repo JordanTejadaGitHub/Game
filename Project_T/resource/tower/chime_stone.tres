@@ -8,7 +8,7 @@
 [resource]
 script = ExtResource("1_tdata")
 display_name = "Chime Stone"
-description = "A weak pulse that charges everything around it with Static, and sets off a bolt on nightmares holding 3 or more."
+description = "A weak pulse that charges everything around it with Charged, and sets off a bolt on nightmares rooting 3 or more."
 cost = 0
 texture = ExtResource("2_tex")
 frame_count = 8

@@ -8,7 +8,7 @@
 [resource]
 script = ExtResource("1_tdata")
 display_name = "Rootlight"
-description = "Glowing roots light the path around it; nightmares in the light are Marked."
+description = "Glowing roots light the path around it; nightmares in the light are Exposed."
 cost = 0
 texture = ExtResource("2_tex")
 frame_count = 8

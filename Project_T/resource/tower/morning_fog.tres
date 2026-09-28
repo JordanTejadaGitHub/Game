@@ -8,7 +8,7 @@
 [resource]
 script = ExtResource("1_tdata")
 display_name = "Morning Fog"
-description = "A wide fog on the path: nightmares inside are Damp, 15% slower and grow Drowsy every second, and Spored ticks harder."
+description = "A wide fog on the path: nightmares inside are Soaked, 15% slower and grow Drowsy every second, and Poisoned ticks harder."
 cost = 0
 line = "water"
 tier = 3

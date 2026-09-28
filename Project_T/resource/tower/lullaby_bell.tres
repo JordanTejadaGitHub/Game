@@ -8,7 +8,7 @@
 [resource]
 script = ExtResource("1_tdata")
 display_name = "Lullaby Bell"
-description = "A bigger pulse that charges Static and sings nightmares Drowsy, setting off bolts like Chime Stone."
+description = "A bigger pulse that charges Charged and sings nightmares Drowsy, setting off bolts like Chime Stone."
 cost = 0
 texture = ExtResource("2_tex")
 frame_count = 8

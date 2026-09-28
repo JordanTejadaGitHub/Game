@@ -155,7 +155,7 @@ accessibility, Steam achievements (milestones map to them). Acts 3–4 and all f
   start→end and are skipped by `get_maze_walkers()` (the path rule / re-routing); signals
   `enemy_cleansed`, `enemy_reached_goal`, `enemy_split` (split children and followers, emitted
   before the parent's cleanse), `wall_trampled`. `tests/test_creatures.gd`.
-- Selling: `TowerSeller` (`%TowerSeller`): outside build mode, hover a Warden, RMB / Delete sells for
+- Selling: `TowerSeller` (`%TowerSeller`): outside build mode, hover a Warden, Delete (or the panel's Sell) sells for
   `Tower.invested_dew` × 100% (resting) or 50% (walking); `MapGenerator.unblock_cell`.
   It also owns selection (`selection`, `selected` = first; `selection_changed`): click, drag box
   (after 8 px; Thornwalls only if alone), double-click = same kind on screen (Ctrl: whole map), Shift
@@ -402,7 +402,7 @@ accessibility, Steam achievements (milestones map to them). Acts 3–4 and all f
   `world_label.gd` (`WorldLabel.draw_tag` for world-space text tags, `cost_color`),
   `dew_popup.gd` (`DewPopup`).
 - Input actions: `toggle_build_mode` (B), `place_tower` (LMB), `cancel_build` (RMB / Esc),
-  `sell_tower` (RMB / Delete), `start_drift` (Enter), `pause_game` (Space), `cycle_speed` (Tab).
+  `sell_tower` (Delete only: right-click never sells, it only cancels or deselects), `start_drift` (Enter), `pause_game` (Space), `cycle_speed` (Tab).
 - `resource/` — data resources + their scripts: `map_grid.tres` (`Grid`: 23x18 cells, 64px; small on purpose so each Warden matters),
   `obstacle/*.tres` (`ObstacleData`), `enemy/*.tres` (`EnemyData`),
   `tower/*.tres` (`TowerData`).

@@ -9,7 +9,7 @@
 [resource]
 script = ExtResource("1_tdata")
 display_name = "Boulderback"
-description = "A crushing hit that splashes half its damage around; double damage on Marked, and it always crits on Drowsy nightmares."
+description = "A crushing hit that splashes half its damage around; double damage on Exposed, and it always crits on Drowsy nightmares."
 cost = 0
 texture = ExtResource("2_tex")
 frame_count = 8
