@@ -14,4 +14,4 @@ resists = Array[String](["wing"])
 weak_to = Array[String](["stone"])
 status_immune = Array[StringName]([&"drowsy"])
 wake_radius = 1.5
-trait_text = "Never sleeps, and shakes nearby nightmares out of Slowed and Asleep."
+trait_text = "Never sleeps, and shakes nearby nightmares out of {drowsy} and Asleep."

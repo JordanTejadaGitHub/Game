@@ -237,6 +237,42 @@ func _run() -> void:
 	_check(planted.all(func(c: Vector2) -> bool: return map_generator.get_obstacle(c) == null), "its saplings wither")
 	_check(sapling_sprites.size() == 1 and sapling_sprites[0].animation == &"wither", "crumbling to ash (wither animation)")
 
+	# --- Rooted Nightmares (Dream 122): a Held nightmare blocks its cell for other walkers ---
+	_clear_enemies()
+	route = map_generator.get_path_from(map_generator.startPath)
+	var holder := _still("leaf_bug", route[9])
+	holder.apply_status(EnemyStatuses.HELD, 1, 30.0)
+	var walker := _still("leaf_bug", route[8])
+	walker.set_path(route.slice(8))
+	walker._path_index = 1
+	spawner._update_rooted_cells()
+	_check(not walker._is_blocked_ahead(1.0) and walker._path[1] == route[9], "without the card, Held nightmares don't block")
+	var dreams: DreamState = main.get_node("%DreamState")
+	for card in dreams.pool:
+		if card.id == "rooted_nightmares":
+			dreams.take(card)
+	_check(dreams.has_rule(&"rooted_nightmares"), "took Rooted Nightmares")
+	spawner._update_rooted_cells()
+	_check(spawner.rooted_cells.get(route[9]) == holder, "with it, the Held nightmare's cell is rooted")
+	var blocked: bool = walker._is_blocked_ahead(1.0)
+	_check((blocked and walker.waiting) or (not blocked and walker._path[1] != route[9]),
+		"the walker behind goes round it or waits (%s)" % ("waits" if blocked else "goes round"))
+	_check(walker.position == walker.grid.calculate_map_position(route[8]), "it never steps into the Held one's cell")
+	walker.waiting = true  # Waiting at route[8]: the next walker queues behind, not in the same cell
+	var follower := _still("leaf_bug", route[7])
+	follower.set_path(route.slice(7))
+	follower._path_index = 1
+	spawner._update_rooted_cells()
+	_check(follower._is_blocked_ahead(1.0), "a walker behind a waiting one queues")
+	var phantom := _still("dandelion_seed", route[8])
+	phantom.set_path(PackedVector2Array([route[8], route[9]]))
+	phantom._path_index = 1
+	_check(not phantom._is_blocked_ahead(1.0), "flyers ignore rooted cells")
+	holder.statuses.remove(EnemyStatuses.HELD)
+	walker.waiting = false
+	spawner._update_rooted_cells()
+	_check(spawner.rooted_cells.is_empty(), "once the Hold ends the cell opens again")
+
 	# --- Display settings: health bars "always", the Deeply Blighted outline ---
 	_clear_enemies()
 	Fx._settings = {}  # Defaults, whatever the player's profile says

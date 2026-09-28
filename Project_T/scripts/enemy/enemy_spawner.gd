@@ -20,6 +20,9 @@ var eclipse_left := 0.0
 # Health scale of the latest drift's (non-boss) arrivals: what boss spawns (brood, Grief) grow by,
 # since bosses themselves have a fixed health scale.
 var drift_health_scale := 1.0
+const ROOTED_RULE := &"rooted_nightmares"
+var rooted_cells := {}  # {cell: Held nightmare} (Rooted Nightmares; see _update_rooted_cells)
+var waiting_cells := {}  # {cell: nightmare waiting behind a rooted one}
 var _saplings := {}  # {Hollow Oak: [cells it planted]}
 var _sapling_sprites := {}  # {cell: AnimatedSprite2D} the saplings' grow / idle / wither animation
 
@@ -102,6 +105,35 @@ func get_maze_walkers() -> Array[Node]:
 
 func _process(delta: float) -> void:
 	eclipse_left = maxf(eclipse_left - delta, 0.0)
+	_update_rooted_cells()
+
+# Rooted Nightmares (Dream card 122): with the card, every Held maze walker blocks its cell for the
+# others ({cell: nightmare}), and walkers waiting behind one block theirs so nobody stacks up. Rebuilt
+# every frame before the nightmares move (they're this node's children). Empty without the card.
+func _update_rooted_cells() -> void:
+	rooted_cells.clear()
+	waiting_cells.clear()
+	var dreams := get_tree().get_first_node_in_group(DreamState.GROUP) as DreamState
+	if dreams == null or not dreams.has_rule(ROOTED_RULE):
+		return
+	for enemy in get_maze_walkers():
+		if enemy.statuses.is_held():
+			rooted_cells[enemy.get_current_cell()] = enemy
+		elif enemy.waiting:
+			waiting_cells[enemy.get_current_cell()] = enemy
+
+# A route from `from` to the Heartwood that avoids every rooted cell (except `from` itself), without
+# changing the map. Empty if the Held nightmares close every way (then the walker waits).
+func route_around(from: Vector2) -> PackedVector2Array:
+	var closed: Array[Vector2] = []
+	for cell: Vector2 in rooted_cells:
+		if cell != from and not map_generator.path_layer.is_cell_blocked(cell):
+			map_generator.path_layer.set_cell_blocked(cell, true)
+			closed.append(cell)
+	var route: PackedVector2Array = map_generator.get_path_from(from)
+	for cell in closed:
+		map_generator.path_layer.set_cell_blocked(cell, false)
+	return route
 
 func _on_enemy_cleansed(enemy: Node2D) -> void:
 	_wither_saplings(enemy)

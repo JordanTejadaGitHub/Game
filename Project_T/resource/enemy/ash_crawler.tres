@@ -13,4 +13,4 @@ dew_reward = 7
 resists = Array[String](["wind"])
 weak_to = Array[String](["stone"])
 ash_trail_time = 3.0
-trait_text = "Its burning ash clears Poisoned from nightmares behind it."
+trait_text = "Its burning ash clears {spored} from nightmares behind it."

@@ -117,6 +117,11 @@ var _trampled := 0
 var _startled := false
 var _charge_left := 0.0
 var _leaping := false  # Sinking / underground / rising (Mire Hag, Gravecrawler): not walking
+# Rooted Nightmares (Dream card 122): a Held nightmare blocks its cell. Walkers re-route round it,
+# or wait at the cell before it (`waiting`; others then queue behind rather than stack in one cell).
+const REROUTE_RETRY := 0.25  # Seconds between re-route attempts while waiting
+var waiting := false
+var _reroute_wait := 0.0
 var _leap_tween: Tween
 var _burrows := 0
 var _pose_left := 0.0  # Seconds a special animation (eclipse, grief) keeps the walk animation off
@@ -224,6 +229,8 @@ func _process(delta: float) -> void:
 	_update_trait(delta)
 	if _leaping:
 		return
+	if _is_blocked_ahead(delta):
+		return  # Rooted Nightmares: waiting for a Held nightmare in the next cell
 
 	var previous_position := position
 	# Walk toward the next cell centre; carry leftover distance into the following cell so speed
@@ -240,6 +247,8 @@ func _process(delta: float) -> void:
 			_on_cell_reached()
 			if _leaping:
 				return  # Started burrowing: the tween moves it now
+			if _is_blocked_ahead(0.0):
+				break  # Stops at this cell's centre and waits
 		else:
 			position += to_target / distance * remaining
 			remaining = 0.0
@@ -535,6 +544,35 @@ func _swap_frames(frames: SpriteFrames) -> void:
 		sprite.play(animation)
 	else:
 		sprite.play(&"walk_side")
+
+# Rooted Nightmares: true while the next cell on the route is blocked for this walker, by a Held
+# nightmare (it tries a way round every REROUTE_RETRY s, else waits) or a nightmare already waiting
+# there (it queues). Only checked at a cell centre, so walkers never stop halfway between cells.
+# Flyers ignore it. The spawner rebuilds the blocked cells each frame (rooted_cells / waiting_cells).
+func _is_blocked_ahead(delta: float) -> bool:
+	var spawner := get_parent()
+	if is_flying() or _path_index < 1 or _path_index >= _path.size() or spawner == null \
+			or spawner.get("rooted_cells") == null or spawner.rooted_cells.is_empty() \
+			or not position.is_equal_approx(grid.calculate_map_position(_path[_path_index - 1])):
+		waiting = false
+		return false
+	var next := _path[_path_index]
+	var holder = spawner.rooted_cells.get(next)
+	if holder != null and holder != self:
+		_reroute_wait -= delta
+		if _reroute_wait <= 0.0:
+			_reroute_wait = REROUTE_RETRY
+			var around: PackedVector2Array = spawner.route_around(get_current_cell())
+			if not around.is_empty():
+				set_path(around)  # Heads for this cell first (already here), then round the blocker
+				_path_index = 1
+				waiting = false
+				return false
+		waiting = true
+		return true
+	var queued = spawner.waiting_cells.get(next)
+	waiting = queued != null and queued != self
+	return waiting
 
 # Gravecrawler: if a Warden or wall is right beside it and the cell past it leads to the Heartwood by
 # a route at least `burrow_min_saving` cells shorter, it sinks under and surfaces there.
