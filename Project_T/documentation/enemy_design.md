@@ -128,7 +128,7 @@ is a property of the Warden (`TowerData.line`), not of a named Warden: by defaul
 deals one type, but a branch or hidden form may deal another where it fits the fiction, so a
 type can span families.
 
-| Type | Icon (new art) | Default family | Fiction |
+| Type | Icon (`damage_type` group, 1e4017c: a warm symbol on a small gold-rimmed badge, so types never read as statuses) | Default family | Fiction |
 |---|---|---|---|
 | **Spore** | a puff of spores | Sporeling | rot and spores |
 | **Stone** | a cracked pebble | Pebbling | weight and impact |
