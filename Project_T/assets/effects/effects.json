@@ -1,5 +1,21 @@
 {
 	"effects": {
+		"carried_storm": {
+			"anchor": [
+				0,
+				4
+			],
+			"file": "carried_storm.png",
+			"fps": 16.0,
+			"frame_size": [
+				32,
+				8
+			],
+			"frames": 4,
+			"kind": "segment",
+			"loop": true,
+			"note": "Samara seed trail. White: tint with the carried Reaction's callout colour; stretch along the seed's path like light_thread."
+		},
 		"caught": {
 			"anchor": [
 				32,
@@ -62,6 +78,275 @@
 			],
 			"frames": 5,
 			"kind": "hit",
+			"loop": false
+		},
+		"crowned_avalanche": {
+			"anchor": [
+				64,
+				64
+			],
+			"callout": "dce7b7",
+			"crown": "crowned_crown",
+			"file": "crowned_avalanche.png",
+			"fps": 16.0,
+			"frame_size": [
+				128,
+				96
+			],
+			"frames": 8,
+			"kind": "crowned",
+			"loop": false,
+			"note": "Anchor = where the stone lands; the ice spreads over the lob's area (about 3 cells wide).",
+			"reaction": "Shatter from a lob",
+			"tier": "gold"
+		},
+		"crowned_callout_frame": {
+			"anchor": [
+				32,
+				11
+			],
+			"file": "crowned_callout_frame.png",
+			"fps": 0.0,
+			"frame_size": [
+				64,
+				22
+			],
+			"frames": 1,
+			"kind": "ui_frame",
+			"loop": false,
+			"note": "Nine-patch behind a Crowned callout: patch margins 6 px left/right, 5 px top/bottom."
+		},
+		"crowned_card_accent": {
+			"anchor": [
+				0,
+				0
+			],
+			"file": "crowned_card_accent.png",
+			"fps": 0.0,
+			"frame_size": [
+				32,
+				32
+			],
+			"frames": 1,
+			"kind": "ui",
+			"loop": false,
+			"note": "Gold corner for a Crowned discovery card: top-left corner, mirror it for the other three."
+		},
+		"crowned_codex_silhouette": {
+			"anchor": [
+				48,
+				48
+			],
+			"file": "crowned_codex_silhouette.png",
+			"fps": 0.0,
+			"frame_size": [
+				96,
+				96
+			],
+			"frames": 1,
+			"kind": "ui",
+			"loop": false,
+			"note": "Undiscovered Crowned Reaction in the Codex. Family icon slots (18 px, centres): (22, 80), (48, 84), (74, 80); put the family icons (assets/meta/icons/family_icons.png) in them."
+		},
+		"crowned_crown": {
+			"anchor": [
+				7,
+				11
+			],
+			"file": "crowned_crown.png",
+			"fps": 8.0,
+			"frame_size": [
+				16,
+				12
+			],
+			"frames": 4,
+			"kind": "ui",
+			"loop": true,
+			"note": "Crown mark for a Crowned callout: sits centred on top of the callout text (anchor = its base)."
+		},
+		"crowned_fairy_circle": {
+			"anchor": [
+				48,
+				48
+			],
+			"callout": "dca8b7",
+			"crown": "crowned_crown",
+			"file": "crowned_fairy_circle.png",
+			"fps": 14.0,
+			"frame_size": [
+				96,
+				96
+			],
+			"frames": 8,
+			"kind": "crowned",
+			"loop": false,
+			"reaction": "Mushrooming + Held",
+			"then": "fairy_circle_ring",
+			"tier": "gold"
+		},
+		"crowned_fever_dream": {
+			"anchor": [
+				48,
+				48
+			],
+			"callout": "cfd460",
+			"crown": "crowned_crown",
+			"file": "crowned_fever_dream.png",
+			"fps": 14.0,
+			"frame_size": [
+				96,
+				96
+			],
+			"frames": 8,
+			"kind": "crowned",
+			"loop": false,
+			"reaction": "Smother ends + max Drowsy",
+			"tier": "gold"
+		},
+		"crowned_nightbloom": {
+			"anchor": [
+				48,
+				64
+			],
+			"callout": "dca8b7",
+			"crown": "crowned_crown",
+			"file": "crowned_nightbloom.png",
+			"fps": 14.0,
+			"frame_size": [
+				96,
+				96
+			],
+			"frames": 8,
+			"kind": "crowned",
+			"loop": false,
+			"reaction": "Mushrooming + max Drowsy",
+			"then": "nightbloom_cloud",
+			"tier": "gold"
+		},
+		"crowned_prismstorm": {
+			"anchor": [
+				48,
+				48
+			],
+			"callout": "dce7b7",
+			"crown": "crowned_crown",
+			"file": "crowned_prismstorm.png",
+			"fps": 18.0,
+			"frame_size": [
+				96,
+				96
+			],
+			"frames": 8,
+			"kind": "crowned",
+			"lite": "crowned_prismstorm_lite",
+			"loop": false,
+			"reaction": "Shatter + Static",
+			"tier": "gold"
+		},
+		"crowned_prismstorm_lite": {
+			"anchor": [
+				48,
+				48
+			],
+			"file": "crowned_prismstorm_lite.png",
+			"fps": 18.0,
+			"frame_size": [
+				96,
+				96
+			],
+			"frames": 8,
+			"kind": "crowned",
+			"loop": false
+		},
+		"crowned_starfall": {
+			"anchor": [
+				32,
+				150
+			],
+			"callout": "ffe66e",
+			"crown": "crowned_crown",
+			"file": "crowned_starfall.png",
+			"fps": 16.0,
+			"frame_size": [
+				64,
+				160
+			],
+			"frames": 7,
+			"kind": "crowned",
+			"lite": "crowned_starfall_lite",
+			"loop": false,
+			"note": "Anchor = the impact point; the column falls from the top.",
+			"reaction": "Pinned + Static",
+			"tier": "gold"
+		},
+		"crowned_starfall_lite": {
+			"anchor": [
+				32,
+				150
+			],
+			"file": "crowned_starfall_lite.png",
+			"fps": 16.0,
+			"frame_size": [
+				64,
+				160
+			],
+			"frames": 7,
+			"kind": "crowned",
+			"loop": false
+		},
+		"crowned_still_pool": {
+			"anchor": [
+				48,
+				48
+			],
+			"callout": "adc2b7",
+			"crown": "crowned_crown",
+			"file": "crowned_still_pool.png",
+			"fps": 14.0,
+			"frame_size": [
+				96,
+				96
+			],
+			"frames": 8,
+			"kind": "crowned",
+			"loop": false,
+			"reaction": "Drown + Held",
+			"then": "still_pool",
+			"tier": "gold"
+		},
+		"crowned_tempest": {
+			"anchor": [
+				48,
+				48
+			],
+			"callout": "dcdcb7",
+			"crown": "crowned_crown",
+			"file": "crowned_tempest.png",
+			"fps": 18.0,
+			"frame_size": [
+				96,
+				96
+			],
+			"frames": 8,
+			"kind": "crowned",
+			"lite": "crowned_tempest_lite",
+			"loop": false,
+			"reaction": "Thunderclap + Spored",
+			"tier": "gold"
+		},
+		"crowned_tempest_lite": {
+			"anchor": [
+				48,
+				48
+			],
+			"file": "crowned_tempest_lite.png",
+			"fps": 18.0,
+			"frame_size": [
+				96,
+				96
+			],
+			"frames": 8,
+			"kind": "crowned",
 			"loop": false
 		},
 		"dawnburst": {
@@ -144,6 +429,54 @@
 			"kind": "overlay",
 			"loop": false,
 			"note": "Echo Hollow: play with the repeated Reaction (which can also be drawn at ~60% alpha, lilac-tinted)."
+		},
+		"fairy_circle_ring": {
+			"anchor": [
+				32,
+				32
+			],
+			"file": "fairy_circle_ring.png",
+			"fps": 8.0,
+			"frame_size": [
+				64,
+				64
+			],
+			"frames": 8,
+			"kind": "ground_loop",
+			"loop": true,
+			"note": "One ring tile (the 8 around the held nightmare, path tiles only), loops for 6 s. Draw under nightmares."
+		},
+		"grafted_harmony_a": {
+			"anchor": [
+				32,
+				32
+			],
+			"file": "grafted_harmony_a.png",
+			"fps": 8.0,
+			"frame_size": [
+				64,
+				64
+			],
+			"frames": 8,
+			"kind": "overlay_loop",
+			"loop": true,
+			"note": "Graftling's two-colour glow, left half. White: tint it with the first status colour (modulate). Pair with grafted_harmony_b."
+		},
+		"grafted_harmony_b": {
+			"anchor": [
+				32,
+				32
+			],
+			"file": "grafted_harmony_b.png",
+			"fps": 8.0,
+			"frame_size": [
+				64,
+				64
+			],
+			"frames": 8,
+			"kind": "overlay_loop",
+			"loop": true,
+			"note": "Right half; tint with the second status colour."
 		},
 		"ignite": {
 			"anchor": [
@@ -291,6 +624,22 @@
 			"kind": "signature",
 			"loop": false,
 			"note": "Moonstone's first shot on each nightmare: a moonbeam from above. Anchor = where it lands."
+		},
+		"nightbloom_cloud": {
+			"anchor": [
+				32,
+				32
+			],
+			"file": "nightbloom_cloud.png",
+			"fps": 10.0,
+			"frame_size": [
+				64,
+				64
+			],
+			"frames": 8,
+			"kind": "ground_loop",
+			"loop": true,
+			"note": "One path tile, loops while the cloud lasts. Draw under nightmares."
 		},
 		"overgrowth": {
 			"anchor": [
@@ -457,6 +806,38 @@
 				"static",
 				"held"
 			]
+		},
+		"still_pool": {
+			"anchor": [
+				32,
+				32
+			],
+			"file": "still_pool.png",
+			"fps": 8.0,
+			"frame_size": [
+				64,
+				64
+			],
+			"frames": 8,
+			"kind": "ground_loop",
+			"loop": true,
+			"note": "One path tile, loops for the pool's 5 s. Draw under nightmares."
+		},
+		"storm_front": {
+			"anchor": [
+				48,
+				48
+			],
+			"file": "storm_front.png",
+			"fps": 14.0,
+			"frame_size": [
+				96,
+				96
+			],
+			"frames": 8,
+			"kind": "overlay_loop",
+			"loop": true,
+			"note": "Wraps a Reaction set off by a status Gust carried: play over the Reaction's effect."
 		},
 		"surge": {
 			"anchor": [
