@@ -178,6 +178,7 @@ var _released := false  # The current attack's shot / pulse has happened
 var _attack_count := 0  # For "every Nth attack" effects (Thunderhead)
 var _damage_share := 1.0  # Graftling: share of the copied Warden's damage
 var _dream_state: DreamState
+var _omens: OmenDirector  # Fog Bank (range) and Wilting (attack speed) Omens
 var _hit_before := {}  # Nightmare instance ids already hit (Moonstone's first-hit crit)
 var _rings: Array[FairyRing] = []
 var _beam_target: Node2D = null
@@ -238,6 +239,7 @@ var _crit_dew_given := 0
 
 func _ready() -> void:
 	_dream_state = get_tree().get_first_node_in_group(DreamState.GROUP) as DreamState
+	_omens = get_tree().get_first_node_in_group(OmenDirector.GROUP) as OmenDirector
 	add_to_group(GROUP)
 	_apply_data()
 	# Start each tower at a random point in its idle loop so neighbours don't breathe in sync.
@@ -363,7 +365,8 @@ func get_attacks_per_second() -> float:
 		dreams = _dream_state.get_attack_speed_multiplier(tower_data)
 		if _dream_state.has_method("get_tower_attack_speed_bonus"):
 			dreams += _dream_state.get_tower_attack_speed_bonus(self)  # Sprout Chorus, The Last Light
-	return attack_data.attacks_per_second * speed * dreams * (1.0 + _aura_speed)
+	var omen := _omens.get_warden_speed_multiplier() if _omens and _omens.has_method("get_warden_speed_multiplier") else 1.0  # Wilting
+	return attack_data.attacks_per_second * speed * dreams * (1.0 + _aura_speed) * omen
 
 func get_range_cells() -> float:
 	var ranks := mini(get_effective_rank(), STAT_TOP_RANK)
@@ -373,6 +376,10 @@ func get_range_cells() -> float:
 	var total := get_range_for(attack_data, _dream_state) + _aura_range + reach
 	if tower_data.line == "song" and attack_data.attack_kind == TowerData.AttackKind.PULSE:
 		total *= 1.0 + HUSH_RADIUS * _rule_stacks(&"hush")  # Hush: wider song pulses
+	if _omens and _omens.has_method("get_warden_range_add"):
+		var fog: float = _omens.get_warden_range_add()  # Fog Bank: -1 range, never below 1
+		if fog != 0.0:
+			total = maxf(total + fog, minf(total, 1.0))
 	return total
 
 

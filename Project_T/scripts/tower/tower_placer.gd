@@ -135,7 +135,7 @@ func _tick_settling(delta: float) -> void:
 		queue_redraw()  # The ghost's "settling (5 s)" counts down (_process re-checks validity)
 
 func _hover_cell_valid() -> bool:
-	return not _hover_path.is_empty() and not _cells_occupied(_footprint(_hover_cell)) \
+	return not frozen_ground() and not _hover_path.is_empty() and not _cells_occupied(_footprint(_hover_cell)) \
 		and not is_unique_placed(tower_data) and settling_left(_footprint(_hover_cell)) <= 0.0
 
 func _marks() -> Node2D:
@@ -269,7 +269,9 @@ func _draw() -> void:
 	if run_state.fertile_cells.has(_hover_cell):
 		tag += " (fertile)"
 	var growth := get_hover_path_growth()
-	if is_unique_placed(tower_data):
+	if frozen_ground():
+		tag += "  ·  Frozen Ground: plant at the rest"
+	elif is_unique_placed(tower_data):
 		tag += "  ·  already planted (one per run)"
 	elif settling_left(_footprint(_hover_cell)) > 0.0:
 		tag += "  ·  The ground is settling (%d s)" % ceili(settling_left(_footprint(_hover_cell)))
@@ -440,6 +442,10 @@ func is_unique_placed(data: TowerData) -> bool:
 # Builds a tower on `cell` and charges its Dew cost. Returns false (and charges nothing) if the cell
 # can't be built on or the player can't afford it.
 func _try_build(cell: Vector2) -> bool:
+	if frozen_ground():
+		_toast_frozen()
+		build_rejected.emit(cell)
+		return false
 	if is_unique_placed(tower_data):
 		build_rejected.emit(cell)
 		return false
@@ -497,6 +503,9 @@ func get_buildable_towers() -> Array[TowerData]:
 # (its top-left cell); with none given, the best one (the longest route) is used.
 func evolve(tower: Tower, into: TowerData, origin: Vector2 = NO_CELL) -> bool:
 	if not tower.tower_data.evolves_to.has(into) or not dream_state.is_unlocked(into.get_id()):
+		return false
+	if frozen_ground():
+		_toast_frozen()
 		return false
 	if ascended_blocker(into) != "":
 		return false  # One Ascended form per family on the map
@@ -693,6 +702,9 @@ func ascended_blocker(into: TowerData) -> String:
 func nurture(tower: Tower, focus: Tower.Focus = Tower.Focus.NONE) -> bool:
 	if not is_instance_valid(tower) or not tower.can_nurture():
 		return false
+	if frozen_ground():
+		_toast_frozen()
+		return false
 	if tower.needs_focus() and focus == Tower.Focus.NONE:
 		return false
 	# Rank VI would make it the Eldest (only one Warden grows past V): the panel asks first and calls
@@ -864,7 +876,9 @@ func _plan_stroke() -> void:
 	for c in _stroke:
 		var cells: Array[Vector2] = [c]
 		var why := ""
-		if blocked.has(c) or not map_generator.is_buildable(c):
+		if frozen_ground():
+			why = "Frozen Ground: plant at the rest"
+		elif blocked.has(c) or not map_generator.is_buildable(c):
 			why = "can't plant here"
 		elif _cells_occupied(cells):
 			why = "nightmare here"
@@ -945,3 +959,20 @@ func becomes_heart(cell: Vector2, route: PackedVector2Array) -> bool:
 			best_gap = gap
 			best = i
 	return best == 0
+
+# Frozen Ground (Omen): no planting, growing or nurturing while one of its block's drifts is on (rests,
+# selling and clearing are fine). OmenDirector.blocks_building() knows whether it's active.
+func frozen_ground() -> bool:
+	var omens := get_tree().get_first_node_in_group(OmenDirector.GROUP) as OmenDirector
+	return omens != null and omens.has_method("blocks_building") and omens.blocks_building()
+
+var _frozen_toast_at := -100000
+
+func _toast_frozen() -> void:
+	var now := Time.get_ticks_msec()
+	if now - _frozen_toast_at < 1500:
+		return  # One toast per attempt burst (a stroke plants several)
+	_frozen_toast_at = now
+	var hud := owner.get_node_or_null("HUD") if owner else null
+	if hud and hud.has_method("show_toast"):
+		hud.show_toast("Frozen Ground: plant at the rest")
