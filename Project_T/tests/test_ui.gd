@@ -100,6 +100,17 @@ func _run() -> void:
 	_check(dew_tip.visible and dew_tip._label.text == dew_label.tooltip_text, "tapping Dew shows the same text")
 	dew_tip.toggle()
 	_check(IconInfo.status_tooltip(&"damp").begins_with("Soaked: 10% slower"), "status tooltips in plain words")
+	# Dream bonuses on Wardens (DreamBonusView): breakdown text, and rows styled active / off.
+	_check(DreamBonusView.format_breakdown(&"damage", {"base": 18.0, "final": 27.0,
+		"parts": [["Nurture II", "+20%"], ["Solitude", "+30%"]]}) == "Damage 18 → 27: base 18 · Nurture II +20% · Solitude +30%",
+		"a stat breakdown reads base → final with each part")
+	_check(DreamBonusView.format_breakdown(&"range", {"base": 2.5, "final": 2.5, "parts": []}) == "Range 2.5", "an unchanged stat is just its value")
+	var some_card: UpgradeData = main.get_node("%DreamState").pool[0]
+	_check(DreamBonusView.get_line({"card": some_card, "active": false, "reason": "Rain Lily is 1 cell away"}) == "off: Rain Lily is 1 cell away"
+		and DreamBonusView.get_line({"card": some_card, "active": true, "effect": "+30% damage"}) == "+30% damage", "row lines: the effect, or why it's off")
+	var off_row := DreamBonusView._row({"card": some_card, "active": false, "reason": "not alone"})
+	_check(off_row.get_child(0).modulate.a < 1.0, "an off card is greyed")
+	off_row.free()
 	# Status display names (story.md): ids unchanged, names from IconInfo; {tokens} fill them in.
 	_check(IconInfo.status_name(&"damp") == "Soaked" and IconInfo.status_name(&"static") == "Charged"
 		and IconInfo.status_name(&"held") == "Rooted" and IconInfo.format("{spored} + {marked}") == "Poisoned + Exposed",
