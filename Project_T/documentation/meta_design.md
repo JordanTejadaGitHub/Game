@@ -63,6 +63,10 @@ roots, with **three sections**. Each node costs Seeds and needs its parent node(
 - **Planting a node grows the branch** out to it with a short animation, and **a flower blooms**
   there, its colour by section (e.g. gold for Perks, green for Families, violet for Cards). Owned
   nodes stay in bloom, so **the more you unlock, the fuller and brighter the Heartwood gets**.
+- **The canopy fills in** behind the branches in four stages as the share of owned nodes grows, so
+  the whole tree gets fuller, not just its flowers (`meta_assets.md`).
+- **The perk loadout slots are five waystones at the Heartwood's roots**: you "carry" perks by
+  setting them on the stones (the same waystones the Wardens sleep on; Memory 8).
 - **Memories hang as dream-fruit** (the glowing fruit from the Heartwood's art): a new fruit appears
   every 3 nodes planted; tapping it plays that Memory.
 - Tap or click a node for its card and a **Plant** button (no hover needed). Pan and zoom like the
