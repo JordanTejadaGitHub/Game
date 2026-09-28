@@ -50,7 +50,7 @@ trigger at these moments:
    unlock.
 4. **The Memory Grove opens for the first time.** Memory 1 plays (*"Before the Heartwood, there
    were two trees…"*). The Heartwood guides the first purchase: 2–3 cheap unlocks glow (e.g.
-   Morning Stores I, Static Bloom, Pebbling line).
+   Morning Stores I, Charged Bloom, Pebbling line).
 5. *"The Heartwood dreams again."* → Start run 2.
 
 ## Run 2: seeing the meta pay off

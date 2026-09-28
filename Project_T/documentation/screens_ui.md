@@ -238,7 +238,7 @@ Every combo starts **locked** and is **discovered the first time it actually fir
 | Synergy | **Asleep** | full Drowsy + Dreamshroom | the nightmare falls asleep |
 | Synergy | **Spore Fog** | Spored + Mistveil fog | spores tick harder inside the fog |
 | Synergy | **Set Off** | Static + a pulse (Chime Stone, Lullaby Bell) | the pulse sets off a Static bolt |
-| Synergy | **Marked Blow** | Marked + a heavy hitter (Mossback, Boulderback) | double damage on Marked nightmares |
+| Synergy | **Exposed Blow** | Marked + a heavy hitter (Mossback, Boulderback) | double damage on Marked nightmares |
 | Synergy | **Caught** | asleep / full Drowsy + Dreamcatcher | the nightmare takes extra damage from everything |
 | Reaction | **Drown** | Damp + full Drowsy | falls asleep for 2 s |
 | Reaction | **Ignite** | 3 Spored + Static | every spore stack goes off, and sparks spread |

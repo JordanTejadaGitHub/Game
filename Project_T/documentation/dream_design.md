@@ -16,7 +16,7 @@ points.
   just damage.
 - **Cards never gate a combo** (user rule, 2026-09-27). If you own the Wardens, their combo works on
   its own (e.g. Rain Lily's Damp already gives Stormcap +2 jumps and longer jumps). Combo cards like
-  Conductive Soil, Static Bloom, Chain Bloom and Spore Cascade only **amplify** a combo or **add a
+  Conductive Soil, Charged Bloom, Chain Bloom and Spore Cascade only **amplify** a combo or **add a
   new twist**. Any new card must follow this.
 
 ## Where Warden families come from (not Dreams)
@@ -133,7 +133,7 @@ Rootling, Acorn) brings its own cards.
 | 23 | **Evergreen** | evolving costs 25% less Dew | economy | — | Start |
 | 24 | **Lingering Spores** | Spored lasts 3 s longer | spore | Sporeling | Start |
 | 25 | **Soaked Through** | Damp lasts twice as long | water | Dewdrop | Start |
-| 26 | **Static Bloom** | Stormcap chains also apply 1 Drowsy | storm, sleep | Stormcap | Grove |
+| 26 | **Charged Bloom** | Stormcap chains also apply 1 Drowsy | storm, sleep | Stormcap | Grove |
 | 27 | **Twin Puff** | every 3rd Sporeling attack fires twice | spore | Sporeling | Grove |
 
 ### Rare: combo enablers and final forms
@@ -143,7 +143,7 @@ Rootling, Acorn) brings its own cards.
 | 28 | **Thunderhead** | Stormcaps can grow into Thunderheads (90 Dew) | storm | Stormcap | Start |
 | 29 | **Conductive Soil** | lightning jumps to *every* Damp creature in range | storm, water | Entwined: Stormcap + Rain Lily | Start |
 | 30 | **Spore Cascade** | a dispelled nightmare's Spored stacks spread to the 2 nearest nightmares | spore | Sporeling | Start |
-| 31 | **Static Field** | Static bolts also hit creatures within 1 tile | storm | Firefly Jar | Grove |
+| 31 | **Charged Field** | Static bolts also hit creatures within 1 tile | storm | Firefly Jar | Grove |
 | 32 | **Guiding Light** | Marked spreads to creatures within 1 tile of the target | mark | Lanternmoth | Grove |
 | 33 | **Seedling Gift** | at every rest, gain **1 free Sprout** (a charge; you plant it) | sprout, economy | — | Grove |
 
@@ -198,7 +198,7 @@ be playtested; where each sits in the Memory Grove is for `meta_design.md` to de
 | 118 | **Lucid Dreaming** | dreams | Dream offers show **4 cards and you take 2**; **Commons are no longer offered** | drafting two halves of a combo at once |
 | 119 | **Court of the Eldest** | nurture | your highest-rank Warden becomes **the Eldest** now (ties: nearest the Heartwood; if nothing is ranked, the next Warden you nurture). Wardens touching the Eldest get **25% of its rank bonuses** | a ring of Wardens around one great one |
 | 120 | **Hunter's Moon** | mark | each Warden's **first hit on a nightmare Marks it**; Marked **never expires**; when a Marked nightmare is dispelled, the **2 nearest within 3 cells** become Marked | marking at the maze's entrance, damage behind |
-| 121 | **Eternal Static** | storm | **every 4th hit** from any Warden adds **1 Static**; Static **never decays** | long mazes that build charge on every nightmare |
+| 121 | **Eternal Charge** | storm | **every 4th hit** from any Warden adds **1 Static**; Static **never decays** | long mazes that build charge on every nightmare |
 | 122 | **Rooted Nightmares** | held | **every 8th hit** from a Warden **Holds** for 1 s (bosses 0.5 s); a Held nightmare **blocks its cell**: other walkers re-route around it, or wait if there's no way round | a maze that grows while it runs |
 | 123 | **Wildwood Reclaimed** | clearing | **unlocks clearing** (counts as a clearing card); Wardens on cells you've cleared get **+30% damage, +2% per obstacle cleared this run** (max +60%) | clearing exactly where your best Wardens will stand |
 
@@ -220,7 +220,7 @@ be playtested; where each sits in the Memory Grove is for `meta_design.md` to de
   speed and range, not the Focus.
 - **Hunter's Moon:** the Marked it applies is normal Marked (+25%; Beacon's +35% still wins).
   Bosses are Marked too.
-- **Eternal Static:** the free bolt uses the soothe of the Warden that added the 5th stack. Bosses
+- **Eternal Charge:** the free bolt uses the soothe of the Warden that added the 5th stack. Bosses
   still bolt at 8.
 - **Rooted Nightmares:** flyers ignore blocked cells. Waiting walkers never stack in one cell; if a
   Held nightmare would trap one, it waits (no damage to the rule that a path always exists). Held
@@ -517,9 +517,9 @@ stack; now **rule cards** can come back too, as a stronger **Deepened** version 
 | Lingering Spores | Spored +3 s | Spored +5 s, and max stacks +2 |
 | Soaked Through | Damp lasts ×2 | Damp lasts ×3 and slows −15% instead of −10% |
 | Twin Puff | every 3rd Sporeling attack fires twice | every 2nd |
-| Static Bloom | Stormcap chains apply 1 Drowsy | apply 2 Drowsy |
+| Charged Bloom | Stormcap chains apply 1 Drowsy | apply 2 Drowsy |
 | Spore Cascade | spreads to the 2 nearest | spreads to the 3 nearest |
-| Static Field | bolts also hit within 1 tile | within 1.5 tiles, and splashed creatures gain 1 Static |
+| Charged Field | bolts also hit within 1 tile | within 1.5 tiles, and splashed creatures gain 1 Static |
 | Guiding Light | Marked spreads within 1 tile | within 2 tiles |
 | Seedling Gift | a free Sprout at every rest | a free Sprout, or a free Sprout → base growth, at every rest |
 
@@ -534,7 +534,7 @@ prerequisite on these cards.
 | Entwined card | Ingredients | Replaces "Needs" |
 |---|---|---|
 | **Conductive Soil** | Stormcap + Rain Lily | Firefly Jar + Dewdrop |
-| **Static Bloom** | Stormcap + Bloomcap | Stormcap |
+| **Charged Bloom** | Stormcap + Bloomcap | Stormcap |
 | **Spore Cascade** | Driftspore + Lingering Spores | Sporeling |
 | **Guiding Light** | Lanternmoth + Cozy Corners | Lanternmoth |
 
