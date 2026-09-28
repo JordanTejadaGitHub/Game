@@ -60,6 +60,16 @@ const NURTURE_GROUP_MIN_DB := -6.0
 # Dawnwing: its calm and busy wingbeat loops crossfade over this many nightmares.
 const DAWNWING_BUSY_COUNT := 10.0
 const GREAT_BELL_BLOOM_DB := -6.0
+# Reactions: louder than a Warden hit, under a boss; sized by the nightmares caught.
+const REACTION_DB := -1.0
+const REACTION_BOSS_DB := -2.0  # A boss's reduced version plays a little smaller
+const REACTION_THROTTLE_MS := 150
+const REACTION_REACH_CELLS := 2.5
+const CHAIN_SWELL_DB := -9.0
+const CHAIN_SWELL_STEP_DB := 1.2  # Fuller each link, never higher
+const SURGE_LINKS := 5
+const DAWNBURST_LINKS := 10
+const STINGER_DELAY := 0.9  # After the Dawnburst boom and its duck
 const HIT_FAMILIES := ["stone", "root", "water", "light", "spore", "sprout"]  # Others sound like sprout
 const HIT_GROUP_MS := 90  # A pulse or splash hitting many nightmares at once is one impact
 const CHAIN_STEP_DB := -4.0  # Each jump of a chain ripples a little quieter
@@ -97,6 +107,9 @@ var _ducked_at := {}  # Tower instance id -> msec of its last Ascended duck
 var _nurture_frame := -1  # Group nurtures arrive in one frame
 var _nurture_index := 0
 var _focus_heard := {}  # Tower instance id -> its Focus lean already played
+var _reaction_at := {}  # Reaction id -> msec of its last sound
+var _last_reaction_crowned := false  # The Reaction just before a chain_reached (Crowned = 2 links)
+var _dawnburst_played := false
 
 func _ready() -> void:
 	if sound == null:
@@ -166,8 +179,26 @@ func _ready() -> void:
 			sound.play(&"offer_heartwood_sapling", null, -3.0, 1.0, 0.0, &"UI"))
 	var combo_feedback := owner.get_node_or_null("%ComboFeedback")
 	if combo_feedback != null and combo_feedback.has_signal("combo_discovered"):
-		combo_feedback.combo_discovered.connect(func(_id: StringName) -> void:
-			sound.play(&"combo_found", null, -3.0, 1.0, 0.0, &"UI"))
+		# Reactions and Crowned: the Dream-screen breath in and a soft shimmer (+ the crown swell);
+		# other combos keep their discovery chime.
+		combo_feedback.combo_discovered.connect(func(id: StringName) -> void:
+			if Reactions.get_data(id) != null or Reactions.is_crowned(id):
+				sound.play(&"discover_reaction", null, -3.0, 1.0, 0.0, &"UI")
+				if Reactions.is_crowned(id):
+					sound.play(&"crown_swell", null, -5.0, 1.0, 0.0, &"UI")
+			else:
+				sound.play(&"combo_found", null, -3.0, 1.0, 0.0, &"UI"))
+	# The first chain ever: the Dream-screen breath in under its whisper (Main's Whispers, 8d17562).
+	var whispers := owner.get_node_or_null("%Whispers")
+	if whispers != null and whispers.has_signal("whispered"):
+		whispers.whispered.connect(func(id: StringName) -> void:
+			if id == &"chain":
+				sound.play(&"discover_reaction", null, -6.0, 1.0, 0.0, &"UI"))
+	# Reactions: ReactionTracker joins the run on the first one.
+	get_tree().node_added.connect(_on_node_added)
+	var tracker := get_tree().get_first_node_in_group(ReactionTracker.GROUP)
+	if tracker != null:
+		_on_node_added(tracker)
 
 	sound.play_music(&"act1", [&"base"])
 	sound.play_ambience(&"act1")
@@ -199,6 +230,7 @@ func _process(_delta: float) -> void:
 		sound.set_ambience_trim(AMBIENCE_REST_DB)
 	else:
 		sound.set_ambience_trim(AMBIENCE_THIN_DB * minf(float(enemies.size()) / AMBIENCE_THIN_COUNT, 1.0))
+	_update_smother()
 	_update_loops()
 
 func _on_enemy_added(enemy: Node) -> void:
@@ -577,6 +609,74 @@ static func _weight_pitch_for(base_health: int, elite: bool, boss: bool) -> floa
 		return 0.8
 	var health := float(base_health) * (3.0 if elite else 1.0)  # Deeply Blighted: ×3 health
 	return clampf(1.0 - 0.12 * log(maxf(health, 1.0) / 100.0) / log(2.0), 0.82, 1.15)
+
+# --- Reactions (audio_direction.md 5594129) --------------------------------------------------------
+# One sound per Reaction event, sized by how many nightmares it caught (counted around where it
+# landed), throttled per type. Crowned ones add the shared crown swell, their signature and a small
+# duck, and count as 2 links. Chains build a warm swell link by link, never higher; ×5 surges,
+# ×10 is the Dawnburst with its stinger.
+
+func _on_node_added(node: Node) -> void:
+	if node is ReactionTracker and not node.reaction_fired.is_connected(_on_reaction):
+		node.reaction_fired.connect(_on_reaction)
+		node.chain_reached.connect(_on_chain)
+
+func _on_reaction(id: StringName, enemy: Node2D, _chain: int, _towers: Array) -> void:
+	if not is_instance_valid(enemy):
+		return
+	var crowned := Reactions.is_crowned(id)
+	_last_reaction_crowned = crowned
+	var now := Time.get_ticks_msec()
+	if now - int(_reaction_at.get(id, -100000)) < REACTION_THROTTLE_MS:
+		return
+	_reaction_at[id] = now
+	var base: StringName = Reactions.CROWNED_BASE.get(id, id)
+	var where := enemy.global_position
+	var caught := _nightmares_near(where, REACTION_REACH_CELLS)
+	var growth := minf(ASCENDED_GROWTH_DB * log(1.0 + caught) / log(2.0), ASCENDED_GROWTH_MAX)
+	var volume := REACTION_DB - ASCENDED_GROWTH_MAX + growth + (REACTION_BOSS_DB if enemy.enemy_data.is_boss else 0.0)
+	var reaction_id := StringName("reaction_" + base)
+	if sound.has_sound(reaction_id):
+		sound.play(reaction_id, where, volume, 1.0, 0.03)
+	if crowned:
+		sound.duck(3.0, 0.5)
+		sound.play(&"crown_swell", where, volume - 3.0, 1.0, 0.0)
+		var signature := StringName("crowned_" + id)
+		if sound.has_sound(signature):
+			sound.play(signature, where, volume, 1.0, 0.02)
+
+# A chain reached `count` links: the warm swell under it builds each link (a Crowned counts 2).
+func _on_chain(count: int, where: Vector2, _towers: Array) -> void:
+	var links := count + (1 if _last_reaction_crowned else 0)
+	if count >= DAWNBURST_LINKS and not _dawnburst_played:
+		_dawnburst_played = true
+		sound.duck(8.0, 1.0)
+		sound.play(&"chain_dawnburst", where, REACTION_DB + 2.0, 1.0, 0.0)
+		get_tree().create_timer(STINGER_DELAY).timeout.connect(func() -> void:
+			sound.play(&"stinger_dawnburst", null, -4.0, 1.0, 0.0, &"Music"))
+		return
+	if count < DAWNBURST_LINKS:
+		_dawnburst_played = false
+	if count == SURGE_LINKS:
+		sound.duck(3.0, 0.5)
+		sound.play(&"chain_surge", where, REACTION_DB, 1.0, 0.0)
+		return
+	sound.play(&"chain_swell", where, CHAIN_SWELL_DB + CHAIN_SWELL_STEP_DB * minf(links - 2, 6), 1.0, 0.0)
+
+func _nightmares_near(where: Vector2, cells: float) -> int:
+	var reach := cells * MAP_GRID.cell_size.x
+	var count := 0
+	for enemy in enemy_container.get_enemies():
+		if enemy.global_position.distance_to(where) <= reach:
+			count += 1
+	return maxi(count, 1)
+
+# Smother's hum lasts while any nightmare is smothered (its effect node is kept on the nightmare).
+func _update_smother() -> void:
+	for enemy in enemy_container.get_enemies():
+		if enemy.has_meta(&"smother_fx"):
+			_touch_loop("loop_smother", 1.0, 0.2)
+			return
 
 func _on_path_changed() -> void:
 	_path_pixels = maxf(map_generator.get_path_from(map_generator.startPath).size() * MAP_GRID.cell_size.x, 1.0)

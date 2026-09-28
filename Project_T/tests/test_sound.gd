@@ -63,6 +63,18 @@ func _initialize() -> void:
 			_check(not sounds.is_empty(), "%s has a sound or a family fallback %s" % [wid, sounds])
 			print("NOTE: %s has no sounds of its own yet, using its family's %s" % [wid, sounds])
 	_check(SoundHooks._rate_db(6.0) < SoundHooks._rate_db(0.33), "fast Wardens are quieter per shot")
+	# Reactions: every Reaction has its sound, every Crowned one its signature (+ the shared crown), and
+	# the chain swell / surge / Dawnburst / stinger exist.
+	for dir in ["res://resource/reaction/", "res://resource/reaction/crowned/"]:
+		for file in DirAccess.get_files_at(dir):
+			if not file.ends_with(".tres"):
+				continue
+			var rid := StringName(file.get_basename())
+			var needed := StringName(("crowned_%s" if Reactions.is_crowned(rid) else "reaction_%s") % rid)
+			_check(sound.has_sound(needed), "Reaction %s has %s" % [rid, needed])
+	for id in [&"crown_swell", &"chain_swell", &"chain_surge", &"chain_dawnburst", &"stinger_dawnburst",
+			&"discover_reaction", &"loop_smother"]:
+		_check(sound.has_sound(id), "%s exists" % id)
 	# Nurture: a swell per family material, Focus leans, and Dawnwing's calm + busy loops in sync.
 	for file in DirAccess.get_files_at("res://resource/tower/"):
 		if file.ends_with(".tres"):

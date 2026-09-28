@@ -894,6 +894,87 @@ func _make_nurture() -> void:
 	# The Great Bell's toll setting off Static: one soft warm bloom under the tail.
 	_ws("bloom_great_bell", 2, 0.45, func(_v: int) -> PackedFloat32Array:
 		return _lowpass(_layers([[_glow_swell(1.4), 1.0], [_air(1.4, 600.0, 0.2, 1.0), 0.4]]), 1500.0))
+	_make_reactions()
+
+# Reactions (audio_direction.md 5594129): two statuses' materials meeting and resolving warm; no
+# crackle, zaps or sparkle. reaction_<id>, the shared crown layer (crown_swell), each Crowned
+# Reaction's signature (crowned_<id>), the chain swell, surge and Dawnburst (+ its music stinger),
+# Smother's loop and the discovery breath. SoundHooks sizes each by how many nightmares it caught.
+func _make_reactions() -> void:
+	_ws("reaction_thunderclap", 2, 0.75, func(v: int) -> PackedFloat32Array:  # A warm bloom bursting through water
+		return _layers([[_splash(1.3, 0.3), 0.7], [_lowpass(_hit("light", v, false), 1500.0), 0.8], [_thunder_roll(), 0.6, 0.1]]))
+	_ws("reaction_ignite", 2, 0.75, func(_v: int) -> PackedFloat32Array:  # A deep, soft fwoomp of warm air
+		return _layers([[_thump(0.7, 75.0, 0.18), 1.0], [_lowpass(_air(0.9, 450.0, 0.04, 0.7, 0.9), 900.0), 0.8], [_rumble(0.9, 160.0, 0.03, 0.6), 0.4]]))
+	_ws("reaction_mushrooming", 2, 0.65, func(_v: int) -> PackedFloat32Array:  # Wet earth bursting, a damp spore exhale
+		return _layers([[_earth_pops(6), 1.0], [_thump(0.4, 110.0, 0.08), 0.6], [_exhale(1.0, 420.0), 0.6, 0.2]]))
+	_ws("reaction_shatter", 2, 0.7, func(_v: int) -> PackedFloat32Array:  # The ice giving way: a muffled thunk, shards settling
+		return _layers([[_lowpass(_ring(0.5, [180.0, 420.0, 700.0], [0.8, 0.4, 0.2], 0.06), 900.0), 1.0], [_thump(0.4, 90.0, 0.09), 0.8],
+			[_lowpass(_pebbles(10, 0.6, 0.6), 1200.0), 0.35, 0.08]]))
+	_ws("reaction_drown", 2, 0.6, func(_v: int) -> PackedFloat32Array:  # A slow sink: a low gulp, a sleepy exhale bubbling away
+		return _layers([[_wobble(_ring(0.5, [150.0, 230.0], [0.8, 0.4], 0.12), 6.0), 1.0], [_thump(0.4, 100.0, 0.1), 0.6],
+			[_wobble(_exhale(1.2, 380.0), 5.0), 0.6, 0.25]]))
+	_ws("reaction_pinned", 2, 0.5, func(_v: int) -> PackedFloat32Array:  # A low, tight held breath: a wooden clench, a glow hum
+		return _layers([[_air(0.35, 500.0, 0.25, 0.08), 0.5], [_lowpass(_wood_knock(150.0), 900.0), 1.0, 0.25], [_soft_hum([57], 0.9), 0.3, 0.25]]))
+	_ws("reaction_smother", 1, 0.5, func(_v: int) -> PackedFloat32Array:  # The spore breath pressed tight
+		return _layers([[_lowpass(_air(0.8, 350.0, 0.05, 0.5), 600.0), 1.0], [_thump(0.3, 100.0, 0.06), 0.5]]))
+	_wloop("loop_smother", func() -> PackedFloat32Array:  # A muffled, low smothering hum while it lasts
+		return _layers([[_hum_bed([43]), 0.7], [_breath_bed(300.0, 0.4), 1.0]]))
+	_ws("reaction_lightning_rod", 2, 0.6, func(v: int) -> PackedFloat32Array:  # A warm pull: a reversed swell landing in a low bloom
+		var out := _seg(1.2, SFX_RATE)
+		_mix(out, _normalize(_reverse(_glow_swell(0.6)), 1.0), SFX_RATE, 0.0, 0.8)
+		_mix(out, _normalize(_lowpass(_hit("light", v, false), 1400.0), 1.0), SFX_RATE, 0.55, 1.0)
+		return out)
+
+	# Crowned Reactions: the shared crown (a slow, warm, low hummed swell in key) + each signature.
+	_ws("crown_swell", 1, 0.5, func(_v: int) -> PackedFloat32Array: return _soft_hum([50, 57, 62], 1.8))
+	_ws("crowned_tempest", 1, 0.8, func(_v: int) -> PackedFloat32Array:  # Thunder and fwoomp rolling into one swell (no wind)
+		return _layers([[_thunder_roll(), 1.0], [_thump(0.7, 75.0, 0.18), 0.7, 0.3], [_rumble(2.0, 140.0, 0.4, 1.2), 0.5, 0.5]]))
+	_ws("crowned_still_pool", 1, 0.55, func(_v: int) -> PackedFloat32Array:  # A deep, glassy-calm water hush
+		return _layers([[_rumble(1.8, 300.0, 0.5, 1.2), 1.0], [_ring(1.6, [90.0, 135.0], [0.5, 0.3], 0.6), 0.4]]))
+	_ws("crowned_fever_dream", 1, 0.55, func(_v: int) -> PackedFloat32Array:  # A warm, dizzy, wavering exhale spreading
+		return _wobble(_exhale(1.8, 450.0), 2.5))
+	_ws("crowned_starfall", 1, 0.85, func(_v: int) -> PackedFloat32Array:  # Bolts drawn in, then the deepest warm boom
+		var out := _seg(3.0, SFX_RATE)
+		for k in 3:
+			_mix(out, _normalize(_reverse(_air(0.9 - k * 0.15, 500.0 + k * 150.0, 0.05, 0.6)), 1.0), SFX_RATE, 0.1 + k * 0.15, 0.5)
+		_mix(out, _layers([[_thump(1.0, 50.0, 0.3), 1.0], [_rumble(1.8, 70.0, 0.02, 1.3), 0.8], [_glow_swell(1.4), 0.5]]), SFX_RATE, 1.0, 1.0)
+		return out)
+	_ws("crowned_avalanche", 1, 0.8, func(_v: int) -> PackedFloat32Array:  # A rolling ice-and-stone rumble moving outward
+		return _layers([[_rumble(2.0, 110.0, 0.1, 1.5), 1.0], [_lowpass(_pebbles(18, 1.6, 0.6), 1200.0), 0.4, 0.1], [_thump(0.6, 80.0, 0.15), 0.7]]))
+	_ws("crowned_prismstorm", 1, 0.7, func(v: int) -> PackedFloat32Array:  # Shatter's thunk + warm blooms scattering
+		var out := _layers([[_lowpass(_ring(0.5, [180.0, 420.0], [0.8, 0.4], 0.06), 900.0), 1.0], [_thump(0.4, 90.0, 0.09), 0.7]])
+		for k in 4:
+			_mix(out, _normalize(_lowpass(_hit("light", (v + k) % 3, false), 1400.0), 1.0), SFX_RATE, 0.1 + k * 0.09, 0.45 - k * 0.07)
+		return out)
+	_ws("crowned_nightbloom", 1, 0.45, func(_v: int) -> PackedFloat32Array:  # Two low sung notes in key, very soft
+		return _layers([[_soft_hum([57], 1.0), 1.0], [_soft_hum([62], 1.2), 0.9, 0.7], [_breath_bed(300.0, 0.4), 0.2]]))
+	_ws("crowned_fairy_circle", 1, 0.55, func(_v: int) -> PackedFloat32Array:  # A ring of 8 quick, soft pops
+		var out := _seg(1.0, SFX_RATE)
+		for k in 8:
+			_mix(out, _layers([[_thump(0.08, 280.0, 0.012), 1.0], [_ring(0.08, [500.0 + 40.0 * k], [1.0], 0.01), 0.2]]), SFX_RATE, k * 0.06, 0.8)
+		return out)
+
+	# Chains: fuller and warmer each link, never higher (no rising chime: coins).
+	_ws("chain_swell", 2, 0.45, func(_v: int) -> PackedFloat32Array:
+		return _layers([[_soft_hum([50, 57], 1.0), 0.8], [_air(1.0, 400.0, 0.3, 0.6), 0.5]]))
+	_ws("chain_surge", 1, 0.7, func(_v: int) -> PackedFloat32Array:  # Chain 5: a short warm swell, a soft low boom
+		return _layers([[_soft_hum([50, 57, 62], 1.4), 0.7], [_thump(0.8, 65.0, 0.2), 1.0, 0.2], [_air(1.4, 400.0, 0.4, 0.8), 0.4]]))
+	_ws("chain_dawnburst", 1, 0.9, func(_v: int) -> PackedFloat32Array:  # Chain 10: a deep, warm boom of light
+		return _layers([[_thump(1.4, 45.0, 0.4), 1.0], [_rumble(2.4, 70.0, 0.02, 1.8), 0.8], [_air(2.4, 450.0, 0.2, 1.8, 0.7), 0.6],
+			[_glow_swell(2.0), 0.4]]))
+	_ws("stinger_dawnburst", 1, 0.6, func(_v: int) -> PackedFloat32Array:  # A sustained warm D major chord, 2–3 s
+		var chord := _seg(3.0, SFX_RATE)
+		for m in [38, 50, 54, 57, 62]:
+			_mix(chord, _choir(SFX_RATE, hz(m), 3.0), SFX_RATE, 0.0, 0.3)
+		_mix(chord, _lowpass(_bell(SFX_RATE, hz(50), 0.5, 1.2, BELL, 3.0), 1400.0), SFX_RATE, 0.0, 0.5)
+		return _env(_lowpass(chord, 1800.0), SFX_RATE, swell(0.25, 1.2, 3.0)))
+
+	# Discovery (first time a Reaction, Crowned or chain goes off): the Dream-screen breath in, a soft shimmer.
+	_ws("discover_reaction", 1, 0.45, func(_v: int) -> PackedFloat32Array:
+		var out := _normalize(_lowpass(_filter(_noise(SFX_RATE, 0.7, swell(0.6, 0.08, 0.7)), SFX_RATE, glide(300.0, 1400.0, 0.7), 0.6, "bp"), 1800.0), 1.0)
+		for k in 3:
+			_mix(out, _lowpass(_bell(SFX_RATE, hz([62, 66, 69][k]), 0.25, 0.4, MUSIC_BOX, 1.1), 1600.0), SFX_RATE, 0.65, 0.5)
+		return out)
 
 func _wingbeat_bed(beats: float) -> PackedFloat32Array:  # Phase 0, a whole number of beats per loop: in sync
 	var length := LOOP_LEN + 0.5
