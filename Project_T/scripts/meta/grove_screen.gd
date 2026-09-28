@@ -103,6 +103,12 @@ func _build_header() -> void:
 	_seeds_label.add_theme_color_override("font_outline_color", Color(0.02, 0.03, 0.05))
 	_seeds_label.add_theme_constant_override("outline_size", 6)
 	header.add_child(_seeds_label)
+	if DevGrove.is_active():  # A dev profile, not the player's
+		var dev := Label.new()
+		dev.text = DevGrove.tag()
+		dev.add_theme_font_size_override("font_size", 14)
+		dev.add_theme_color_override("font_color", Color(1.0, 0.7, 0.4))
+		header.add_child(dev)
 	add_child(header)
 	_message.grow_horizontal = Control.GROW_DIRECTION_BOTH
 	_message.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER

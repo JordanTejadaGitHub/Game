@@ -275,6 +275,11 @@ accessibility, Steam achievements (milestones map to them). Acts 3–4 and all f
 - Balance simulation profiles (balance_simulation.md): `GrovePresets` (`scripts/meta/grove_presets.gd`)
   fresh / early / half / full; `MetaRun.load_preset(&"half")` writes it to `user://sim_heartwood.json`
   and points `HeartwoodMemory.file_path` there (real profile untouched), `GrovePresets.unload()`.
+- Dev Grove (demo_scope.md, debug builds): `DevGrove` (`scripts/meta/dev_grove.gd`), setting `dev_grove`
+  off/early/half/full; `DevGrove.apply()` (title, and when the setting changes) switches
+  `HeartwoodMemory.file_path` to the preset's dev profile (settings stay in the real one via
+  `real_settings_path`), forces the full game (`ResultsScreen.demo_override = 0`), counts as
+  `MetaRun.is_dev_run()`; HUD / Grove tag `DevGrove.tag()`. `DevGrove.force` for tests.
 
 ## Audio (placeholder, audio_direction.md)
 - `tools/sound_generator.gd` synthesizes every sound into `assets/audio/` (sfx 44.1 kHz; music

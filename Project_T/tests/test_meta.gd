@@ -291,6 +291,52 @@ func _run() -> void:
 	_delete(GrovePresets.PATH)
 	HeartwoodMemory.file_path = real_path
 
+	# --- Dev Grove (demo_scope.md): runs and the Grove use a preset's dev profile; the real profile
+	# (settings aside) is never read or written, and it's a dev run in the full game ---
+	var real := HeartwoodMemory.defaults()
+	real.seeds = 7
+	real.settings.ui_scale = 1.3
+	HeartwoodMemory.save_data(real)
+	var real_text := FileAccess.get_file_as_string(PROFILE_PATH)
+	ProjectSettings.set_setting("game/demo", true)
+	DevGrove.force = &"full"
+	DevGrove.apply()
+	_check(DevGrove.is_active() and HeartwoodMemory.file_path == GrovePresets.PATH and not ResultsScreen.is_demo() and MetaRun.is_dev_run(),
+		"Dev Grove Full: the dev profile, the full game, a dev run")
+	_check(is_equal_approx(float(HeartwoodMemory.get_settings().ui_scale), 1.3), "settings still come from the real profile")
+	_check(DevGrove.tag() == "Dev Grove: Full", "the tag names the level")
+	main = await _new_run()
+	(main.get_node("%ResultsScreen") as ResultsScreen).bank_in_tests = true
+	_check(not (main.get_node("%MetaRun") as MetaRun).records, "a Dev Grove run records nothing")
+	_check((main.get_node("%FamilyPickScreen").families as Array).size() >= 9, "a Dev Grove Full run has every family")
+	main.get_node("%RunState").end_run(true)
+	await process_frame
+	main.queue_free()
+	await process_frame
+	grove_screen = load("res://scenes/grove.tscn").instantiate()
+	root.add_child(grove_screen)
+	await process_frame
+	view = grove_screen.tree_view
+	_check(grove.all(func(u: UnlockData) -> bool: return view.state_of(u) == GroveTreeView.State.OWNED), "the Grove shows every node owned")
+	grove_screen.queue_free()
+	await process_frame
+	var dev_profile := HeartwoodMemory.load_data()
+	dev_profile.loadout = ["seed_pouch"]
+	HeartwoodMemory.save_data(dev_profile)
+	DevGrove.apply()  # Same level again (next launch): the dev profile keeps its changes
+	_check(HeartwoodMemory.load_data().loadout == ["seed_pouch"], "Dev Grove keeps its loadout at the same level")
+	DevGrove.force = &"early"
+	DevGrove.apply()
+	_check(HeartwoodMemory.load_data().loadout == ["morning_stores"], "another level resets the dev profile to its preset")
+	DevGrove.force = &"off"
+	DevGrove.apply()
+	_check(not DevGrove.is_active() and HeartwoodMemory.file_path == PROFILE_PATH and ResultsScreen.demo_override == -1,
+		"Dev Grove off: back to the real profile")
+	_check(FileAccess.get_file_as_string(PROFILE_PATH) == real_text, "the real profile was never written")
+	DevGrove.force = &""
+	_delete(GrovePresets.PATH)
+	ProjectSettings.set_setting("game/demo", false)
+
 	# --- Developer "Unlock all families": a fresh profile, even in the demo, gets every family and
 	# their Grove Dream cards, without touching the profile, and banks nothing ---
 	HeartwoodMemory.save_data(HeartwoodMemory.defaults())
