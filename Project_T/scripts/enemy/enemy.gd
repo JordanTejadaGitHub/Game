@@ -155,6 +155,7 @@ const DIRECTIONS: Array[Vector2] = [Vector2.LEFT, Vector2.RIGHT, Vector2.UP, Vec
 var _hidden := false
 var _presence_elapsed := 0.0
 var _ash_cells := {}  # {cell: seconds the ash still burns}
+var _always_statuses: Array[StringName] = []  # See _keep_always_statuses
 var _heal_carry := 0.0
 var _brood_timer := 0.0
 var _sapling_timer := 0.0
@@ -176,7 +177,16 @@ func _ready() -> void:
 	speed = enemy_data.speed * modifiers.get("speed", 1.0)
 	statuses.is_boss = enemy_data.is_boss
 	statuses.ignores_slows = enemy_data.ignores_slows
-	statuses.immune = enemy_data.status_immune
+	# A copy: Omens (Sleepless) add to it per nightmare, never to the shared EnemyData.
+	statuses.immune = enemy_data.status_immune.duplicate()
+	for id: StringName in modifiers.get("status_immune", []):
+		if not id in statuses.immune:
+			statuses.immune.append(id)
+	if enemy_data.always_damp:
+		_always_statuses.append(EnemyStatuses.DAMP)
+	var omen_status: StringName = modifiers.get("always_status", &"")  # Heavy Rain: always Soaked
+	if omen_status != &"" and not omen_status in _always_statuses:
+		_always_statuses.append(omen_status)
 	statuses.duration_multipliers = enemy_data.status_duration_multipliers
 	statuses.duration_multiplier_all = modifiers.get("status_duration", 1.0)
 	coat_max = enemy_data.coat_total * health_scale * modifiers.get("coat", 1.0)
@@ -195,8 +205,7 @@ func _ready() -> void:
 	sprite.material = blight_material
 
 	_refresh_display_settings()
-	if enemy_data.always_damp:
-		statuses.apply(EnemyStatuses.DAMP, 1, ALWAYS_DAMP_TIME)
+	_keep_always_statuses()
 	if enemy_data.hidden:
 		_set_hidden(true)  # Revealed on the first presence tick if something sees it
 
@@ -781,9 +790,15 @@ func _tower_cells() -> Dictionary:
 func is_hidden() -> bool:
 	return _hidden
 
+# Statuses it always carries (Drowned One: Damp; the Heavy Rain Omen: Damp), put back at once if
+# anything clears them. Straight on `statuses`, so re-soaking never sets off Reactions.
+func _keep_always_statuses() -> void:
+	for id in _always_statuses:
+		if not statuses.has(id):
+			statuses.apply(id, 1, ALWAYS_DAMP_TIME)
+
 func _update_presence(delta: float) -> void:
-	if enemy_data.always_damp and not statuses.has(EnemyStatuses.DAMP):
-		statuses.apply(EnemyStatuses.DAMP, 1, ALWAYS_DAMP_TIME)
+	_keep_always_statuses()
 	for cell: Vector2 in _ash_cells.keys():
 		_ash_cells[cell] -= delta
 		if _ash_cells[cell] <= 0.0:

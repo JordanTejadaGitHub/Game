@@ -360,6 +360,23 @@ func _run() -> void:
 		"Damp Rot: a Soaked nightmare's Poisoned tick is +20%% (%d vs %d)" % [wet_loss, dry_loss])
 	_clear_enemies()
 
+	# --- Omens: Sleepless (immune to Drowsy and Held), Heavy Rain (always Soaked) ---
+	var omened: Node2D = spawner.spawn_enemy(load("res://resource/enemy/leaf_bug.tres"), 1.0,
+		{"status_immune": [&"drowsy", &"held"], "always_status": &"damp"})
+	omened.set_process(false)
+	omened.apply_status(EnemyStatuses.DROWSY)
+	omened.apply_status(EnemyStatuses.HELD)
+	_check(not omened.statuses.has(EnemyStatuses.DROWSY) and not omened.statuses.is_held(), "Sleepless: no Drowsy, no Held")
+	_check(omened.statuses.has(EnemyStatuses.DAMP), "Heavy Rain: Soaked from the start")
+	omened.statuses.remove(EnemyStatuses.DAMP)
+	omened._update_presence(0.0)
+	_check(omened.statuses.has(EnemyStatuses.DAMP), "and soaked again at once")
+	_check(load("res://resource/enemy/leaf_bug.tres").status_immune.is_empty(), "the Omen doesn't change the Shade's data")
+	var plain_shade := _still("leaf_bug", route[5])
+	plain_shade.apply_status(EnemyStatuses.DROWSY)
+	_check(plain_shade.statuses.has(EnemyStatuses.DROWSY) and not plain_shade.statuses.has(EnemyStatuses.DAMP), "other Shades are unaffected")
+	_clear_enemies()
+
 	# --- No maze juggling: Restless and Unbound ---
 	_clear_enemies()
 	route = map_generator.get_path_from(map_generator.startPath)
