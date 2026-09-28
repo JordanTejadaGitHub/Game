@@ -307,7 +307,9 @@ func _rays(frame: Image, st: Dictionary, halo: Color) -> void:
 				var q := p + Vector2.from_angle(a + PI * 0.5) * o
 				var x := roundi(q.x)
 				var y := roundi(q.y)
-				if _in(frame, x, y) and (x + y + st.f) % 2 == 0:
+				# Thin out towards the end so the beams fade instead of hitting the frame edge.
+				var sparse: int = 2 if s < len * 0.45 else (4 if s < len * 0.75 else 8)
+				if _in(frame, x, y) and y > 2 and (x + y * 3 + st.f) % sparse == 0:
 					frame.set_pixel(x, y, col)
 
 # The great dais under the waystone: an isometric plinth in the theme's stone, flagstones on top, a
@@ -458,7 +460,7 @@ func _place_figure() -> void:
 			var p := Vector2i(i % S, i / S)
 			box = Rect2i(p, Vector2i.ONE) if first else box.expand(p)
 			first = false
-	fo = Vector2(roundf(64.0 - (box.position.x + box.size.x * 0.5) * K), roundf(110.0 - (box.end.y + 1) * K))
+	fo = Vector2(roundf(67.0 - (box.position.x + box.size.x * 0.5) * K), roundf(119.0 - (box.end.y + 1) * K))
 	HEAD = fo + HEAD_T * K
 
 func _golem(canvas: Image, st: Dictionary, fig: Dictionary, opts: Dictionary = {}) -> Image:
@@ -1080,8 +1082,8 @@ func _asc_the_tempest(canvas: Image, st: Dictionary, fig: Dictionary) -> void:
 	var dy: int = st.dy
 	var gather: float = st.power if st.attack >= 0 else 0.0
 	var seeds := func(front: bool) -> void:
-		for k in 8:
-			var a: float = k * TAU / 8.0 + float(st.f) / st.n * TAU * 0.25
+		for k in 6:
+			var a: float = k * TAU / 6.0 + float(st.f) / st.n * TAU * 0.25
 			var rad := lerpf(46.0, 18.0, gather)
 			var p := Vector2(64 + cos(a) * rad, 70 - k * 4.5 + sin(a) * 10 + dy - gather * 30)
 			if (sin(a) >= 0.0) != front:
@@ -1116,7 +1118,7 @@ func _asc_the_tempest(canvas: Image, st: Dictionary, fig: Dictionary) -> void:
 func _maple_seed(canvas: Image, p: Vector2i, a: float) -> void:
 	var d := Vector2(cos(a), sin(a) * 0.6).normalized()
 	var l := _gnew(canvas)
-	_gell(l, Vector2(p) + d * 4.5, Vector2(5.5, 3.4), _ramp(["#d8904a", "#f0b878", "#fbe0b0", "#fff6e4"]), d.angle() + 0.3)
+	_gell(l, Vector2(p) + d * 3.6, Vector2(4.4, 2.6), _ramp(["#d8904a", "#f0b878", "#fbe0b0", "#fff6e4"]), d.angle() + 0.3)
 	_gell(l, Vector2(p), Vector2(2.4, 2.4), _ramp(["#4a200a", "#7a3a14", "#a8561e", "#c87434"]))
 	_gstamp(canvas, l, Color("#2a140a"))
 
