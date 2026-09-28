@@ -109,9 +109,28 @@ alternative**: a strong card you can use now if you bend the plan.
    rest ×1, soft Needs ignored, hard Needs still apply (it's always usable). The card wears a small
    **"Stray"** wisp tag: *"Something the Heartwood hasn't dreamed of yet."* Rarity is rolled as
    normal; the skip fade applies. With Entwined due, the offer is Entwined + Stray + one normal.
-4. **Pivot cards (proposed, needs the user's call):** a few Rare Dreams that bring a **new family**
-   into the run (e.g. *Wandering Seed*: pick 1 of 2 unlocked families you don't have). Today base
-   Wardens only come from family picks (drift 1 and bosses), so this would reverse that rule.
+4. **No pivot cards** (user decision 2026-09-28): families still come **only from the family picks**
+   (after drift 1 and each boss).
+5. **Half-dreamed combo cards** (user idea, 2026-09-28): a combo card that crosses two families can
+   be offered once you own **one** of them, as a reason to take the other at the next family pick.
+   Example: you have Firefly Jar; *Rolling Thunder* (Thunderclap, Charged + Soaked) or *Conductive
+   Soil* can turn up before you have Dewdrop.
+   - **Which cards:** cards whose Needs name Wardens from **two or more families** (the Reaction
+     cards such as Rolling Thunder and Wildfire Spores, and cross-family Entwined cards such as
+     Conductive Soil).
+   - **When:** you own at least one of those families, and each missing family is still **pickable**
+     this run: unlocked, not owned, and a family pick is still ahead (never after the drift 75 pick).
+     Needs on a specific form (Stormcap) count as its family for this check; the form itself is still
+     unlocked with Dreamlight as usual.
+   - **Weight ×0.6** while half-dreamed, so it's an occasional temptation, not a flood. Normal
+     rarity; the skip fade applies.
+   - **Card face:** a pale **"Half-dreamed"** vine tag and the missing piece in plain words:
+     *"Needs Dewdrop: a family you can pick after the Hollow Stag (drift 25)."* The card's effect
+     works only once everything it needs is owned (it never pretends to do something now).
+   - **Taking one makes the next family pick offer the missing family** as one of its 3 choices
+     (if several are missing, one of them). The player still chooses; it's never auto-picked.
+   - Entwined's guaranteed slot is unchanged (it still fires once all ingredients are owned).
+     A half-dreamed Entwined card you already took simply isn't offered again.
 
 **Targets (offer simulation):** own-family cards ≈ **25%** of offered cards (was 35%); **≥1 card
 outside the current build in ~70% of offers**; the Storm Grid reachability check still lands near
