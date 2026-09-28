@@ -36,6 +36,8 @@ const MUSHROOM_MIN_SPORES := 3
 const MUSHROOM_TIME := 4.0
 const MUSHROOM_CLOUD_RADIUS := 0.6  # Cells
 const MUSHROOM_CLOUD_TIME := 4.0
+const MUSHROOM_RAIN_TIME := 2.0  # Mushroom Rain: ×2 duration…
+const MUSHROOM_RAIN_RADIUS := 1.5  # …and the 3×3 around its tile (cells from the centre, reaching the corners' middles)
 const SHATTER_MULTIPLIER := 2.5
 const SHATTER_SPLASH := 0.5  # Share of the hit the shards deal within 1 cell
 const DROWN_SLEEP: Array[float] = [2.0, 3.0]  # Seconds: base, Deep Water
@@ -486,9 +488,13 @@ static func _mushrooming(enemy: Node2D, source: Node) -> void:
 	if id == &"nightbloom" and dreams and dreams.has_rule(&"endless_night"):
 		wide = NIGHTBLOOM_WIDTH[1]
 		time = NIGHTBLOOM_TIME[1]
-	var cloud := ReactionCloud.new(Tower.MAP_GRID.calculate_map_position(cell),
-		(MUSHROOM_CLOUD_RADIUS * wide + _storm_front(enemy)) * CELL, time, s.potency(SPORED), s.spore_line(),
-		spore_source, chain)
+	var radius := (MUSHROOM_CLOUD_RADIUS * wide + _storm_front(enemy)) * CELL
+	if dreams and dreams.has_rule(&"mushroom_rain"):
+		# Mushroom Rain (card 134): the cloud lasts twice as long and covers the 8 tiles around it too.
+		time *= MUSHROOM_RAIN_TIME
+		radius = maxf(radius, MUSHROOM_RAIN_RADIUS * CELL)
+	var cloud := ReactionCloud.new(Tower.MAP_GRID.calculate_map_position(cell), radius, time, s.potency(SPORED),
+		s.spore_line(), spore_source, chain)
 	# In the world just before the nightmares' container, so it draws on the ground under them (the
 	# container's children are all nightmares; nothing else may go in there).
 	var container := enemy.get_parent()

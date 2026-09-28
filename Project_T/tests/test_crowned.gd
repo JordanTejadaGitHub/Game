@@ -183,6 +183,24 @@ func _run() -> void:
 	await _wait(Fx.CALLOUT_LIFE + 0.3)
 	_check(_find_named(main, "Fx_crowned_crown").is_empty(), "and goes when the callout does")
 
+	# --- Mushroom Rain (card 134): the Mushrooming cloud lasts twice as long and covers the 3×3 ---
+	var dreams_node: DreamState = main.get_node("%DreamState")
+	var rain_card := UpgradeData.new()
+	rain_card.id = "test_mushroom_rain"
+	rain_card.rule_id = &"mushroom_rain"
+	rain_card.kind = UpgradeData.Kind.RULE
+	dreams_node.pool.append(rain_card)
+	dreams_node.take(rain_card)
+	var rained := _spawn(origin)
+	rained.apply_status(EnemyStatuses.SPORED, 3, 5.0, 2.0, 0, "spore", sporeling)
+	rained.apply_status(EnemyStatuses.DAMP)
+	var rain_clouds := main.get_children().filter(func(n: Node) -> bool: return n is ReactionCloud)
+	_check(rain_clouds.size() == 1 and is_equal_approx(rain_clouds[0]._duration, Reactions.MUSHROOM_CLOUD_TIME * 2.0)
+		and rain_clouds[0]._radius >= CELL * 1.45, "Mushroom Rain: twice as long, over the 8 tiles around too")
+	dreams_node.stacks.erase(rain_card.id)
+	dreams_node.pool.erase(rain_card)
+	await _clean()
+
 	# --- A sprinting Night Hound can't be Held: Drown slows it instead of putting it to sleep ---
 	var hound := _spawn(origin)
 	hound.enemy_data = hound.enemy_data.duplicate()
