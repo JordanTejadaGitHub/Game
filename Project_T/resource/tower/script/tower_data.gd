@@ -93,6 +93,7 @@ const ASCENDED_JSON := "res://assets/towers/ascended/ascended.json"  # 128×128 
 @export var extra_status_stacks: int = 1
 # Pulses set off a Static bolt on nightmares with this many Static stacks or more (Chime Stone). 0 = no.
 @export var sets_off_static_at: int = 0
+@export var set_off_share: float = 1.0  # Bolts its pulse sets off deal this share (The Great Bell: 0.5)
 # Dreamcatcher: nightmares in range that are asleep or at max Drowsy are Caught and take this much
 # more damage from everything (0 = not a Dreamcatcher).
 @export var caught_bonus: float = 0.0

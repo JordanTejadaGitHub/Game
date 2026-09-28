@@ -203,6 +203,7 @@ var _echo_tracker: ReactionTracker = null
 var _patrol: PatrolFlight = null
 var _aura_count := 0  # Other Wardens inside this Warden's aura (Grove Heart)
 var _kin: Kinships = null  # The run's Kinships (two branches of one family bond)
+var _root_links: Array[Vector2] = []  # Root Network: directions to touching Sprouts (glow on shared edges)
 var kin_branch := ""  # The branch an Ascended form grew from (Kinships); saved with the run
 var footprint_size := 0  # 0 = the data's footprint; 1 keeps an old save's 1-cell Ascended form
 var _hits_landed := 0  # Eternal Charge / Rooted Nightmares count this Warden's hits
@@ -632,6 +633,7 @@ func _refresh_neighbours() -> void:
 	_aura_count = aura_count
 	_set_harmony(harmony if harmony.size() >= 2 else {})
 	_refresh_badge()
+	_refresh_root_links()
 	if tower_data.attack_kind != TowerData.AttackKind.COPY:
 		return
 	var copied: TowerData = best.tower_data if best != null else tower_data
@@ -765,6 +767,9 @@ func hit(enemy: Node2D, soothe_multiplier: float = 1.0, is_area: bool = false, c
 	var soothe := get_damage() * soothe_multiplier * _damage_against(enemy)
 	if _dream_state and _dream_state.has_method("get_hit_damage_multiplier"):
 		soothe *= _dream_state.get_hit_damage_multiplier()  # Venom Bloom: hits weaker, effects stronger
+	if _dream_state and _dream_state.has_method("on_hit_multiplier"):
+		# First Light, Last Stand, Hunter's Patience, Bitter Hedges (tracked inside: once per hit).
+		soothe *= _dream_state.on_hit_multiplier(self, enemy)
 	# Reactions that change a hit: Pinned (a guaranteed ×3 crit) and Shatter (×2.5, shards).
 	var reaction := Reactions.before_hit(enemy, self, is_crit)
 	is_crit = reaction.crit
@@ -1330,7 +1335,7 @@ func _set_off_static(enemy: Node2D) -> bool:
 	var s: EnemyStatuses = enemy.statuses
 	if s.stacks(EnemyStatuses.STATIC) < at:
 		return false
-	var bolt := s.potency(EnemyStatuses.STATIC) * EnemyStatuses.STATIC_BOLT_MULTIPLIER
+	var bolt := s.potency(EnemyStatuses.STATIC) * EnemyStatuses.STATIC_BOLT_MULTIPLIER * attack_data.set_off_share
 	var source := s.source(EnemyStatuses.STATIC)
 	s.remove(EnemyStatuses.STATIC)
 	Reactions.strike_bolt(enemy, bolt, source if source else self, &"static")
@@ -1842,6 +1847,7 @@ func _update_aura(delta: float) -> void:
 # --- Drawing and targeting ------------------------------------------------------------------------------
 
 func _draw() -> void:
+	_draw_root_links()  # Under the sprite (children draw on top)
 	if tower_data.texture == null:
 		draw_placeholder(self, tower_data.placeholder_color)
 	_draw_rank_pips()
@@ -1867,6 +1873,32 @@ func _draw() -> void:
 		var top := Vector2(0, -MAP_GRID.cell_size.y * 0.5 - 4.0) + tower_data.sprite_offset
 		for i in 3:
 			draw_arc(top + Vector2((i - 1) * 7.0, -absf(i - 1) * -2.0), 3.5, 0.0, TAU, 12, Color(1.0, 0.85, 0.4, 0.95), 1.5)
+
+# Root Network (card, rule root_network): Sprouts touching side by side (II: diagonally too) glow along
+# their shared edges. Each Sprout draws its half of every link, so a pair reads as one glowing root.
+const ROOT_GLOW := Color(0.7, 1.0, 0.55)
+
+func _refresh_root_links() -> void:
+	var links: Array[Vector2] = []
+	if tower_data.get_id() == "sprout" and _dream_state and _dream_state.has_rule(&"root_network"):
+		var diagonals := _dream_state.rule_level(&"root_network") > 0
+		for other in _other_towers():
+			if other.tower_data.get_id() != "sprout":
+				continue
+			var d: Vector2 = other.cell - cell
+			var side := absf(d.x) + absf(d.y) == 1.0
+			var corner := absf(d.x) == 1.0 and absf(d.y) == 1.0
+			if side or (diagonals and corner):
+				links.append(d)
+	if links != _root_links:
+		_root_links = links
+		queue_redraw()
+
+func _draw_root_links() -> void:
+	for d in _root_links:
+		var to := d * MAP_GRID.cell_size / 2.0  # Half-way: the neighbour draws the rest
+		draw_line(Vector2.ZERO, to, Color(ROOT_GLOW, 0.25), 7.0)
+		draw_line(Vector2.ZERO, to, Color(ROOT_GLOW, 0.8), 2.0)
 
 # Badges in one column up the tile's left edge, clear of the rank pips along the bottom (so nothing
 # stacks on top of anything else): a leaf pair when the Warden is in a Kinship (always shown, tinted

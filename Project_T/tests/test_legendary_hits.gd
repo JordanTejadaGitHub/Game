@@ -83,6 +83,27 @@ func _run() -> void:
 	_check(before - d.health == 100, "a hit gets nothing (%d)" % (before - d.health))
 	await _clean()
 
+	# --- Generic Rares: First Light (×3 first hit, via on_hit_multiplier) and Root Network's glow ---
+	_take("first_light")
+	var fresh := _spawn(sprout.global_position + Vector2(CELL, 0))
+	var before_first: int = fresh.health
+	sprout.hit(fresh, 1.0, false, Tower.NO_CRIT)
+	var first_hit: int = before_first - fresh.health
+	var before_second: int = fresh.health
+	sprout.hit(fresh, 1.0, false, Tower.NO_CRIT)
+	var second_hit: int = before_second - fresh.health
+	_check(first_hit > second_hit * 2, "First Light: the first hit on a nightmare lands much harder (%d vs %d)" % [first_hit, second_hit])
+	await _clean()
+	_take("root_network")
+	var root_a := _plant("sprout", Vector2(10, 14))
+	var root_b := _plant("sprout", Vector2(11, 14))
+	var root_c := _plant("sprout", Vector2(12, 15))  # Only diagonal to root_b
+	for t in [root_a, root_b, root_c]:
+		t._refresh_neighbours()
+	_check(root_a._root_links == [Vector2(1, 0)] and root_b._root_links.has(Vector2(-1, 0)),
+		"Root Network: Sprouts side by side glow along their shared edge")
+	_check(root_c._root_links.is_empty(), "a diagonal one doesn't (only with Root Network II)")
+
 	# --- The Eldest and its Court ---
 	_take("endless_rings")
 	var elder := _plant("sprout", Vector2(6, 6))
