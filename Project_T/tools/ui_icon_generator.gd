@@ -35,6 +35,7 @@ func _init() -> void:
 		sheet.blit_rect(_clear_tool(state), Rect2i(0, 0, S, S), Vector2i(S * state, 0))
 	sheet.save_png(OUT + "clear_tool.png")
 	_save_preview(sheet)
+	_make_icons()
 	print("ui icons written")
 	quit()
 
@@ -234,3 +235,388 @@ func _save_preview(sheet: Image) -> void:
 		frame.resize(34, 34, Image.INTERPOLATE_BILINEAR)
 		preview.blend_rect(frame, Rect2i(0, 0, 34, 34), Vector2i(8 + i * S * 4 + S * 2 - 17, S * 4 + 16))
 	preview.save_png(PREVIEW)
+
+# --- Status and stat icons (screens_ui.md "Stat and status icons") -------------------------------
+# 16 px icons in one row (assets/ui/icons.png) with assets/ui/icons.json ({id: column}). Each icon
+# is built from shapes on a 16x16 grid of cells; every cell gets its ramp's light colour on its
+# top/left edge, dark on its bottom/right edge, mid inside, and the shape gets a dark 1 px outline.
+# Statuses differ by SHAPE, not only colour. No icons for combos or Reactions: they are discovered.
+
+const ICON := 16
+const ICON_OUTLINE := Color("#1a1420")
+const STATUS_ICONS := ["damp", "drowsy", "spored", "marked", "static", "held", "caught", "frozen", "deeply_blighted", "hidden"]
+const STAT_ICONS := ["damage", "attack_speed", "range", "crit_chance", "crit_damage", "potency", "rank",
+	"focus_power", "focus_swift", "focus_reach", "focus_deep", "dew_cost", "dreamlight_cost"]
+
+var _cells := {}  # Vector2i -> ramp index
+var _ramps: Array = []  # [light, mid, dark]
+var _details: Array = []  # [Vector2i, Color], painted last
+
+func _make_icons() -> void:
+	var ids: Array = STATUS_ICONS + STAT_ICONS
+	var sheet := Image.create(ICON * ids.size(), ICON, false, Image.FORMAT_RGBA8)
+	var index := {}
+	for i in ids.size():
+		sheet.blit_rect(_icon(ids[i]), Rect2i(0, 0, ICON, ICON), Vector2i(i * ICON, 0))
+		index[ids[i]] = i
+	sheet.save_png(OUT + "icons.png")
+	var data := {frame_size = ICON, icons = index, statuses = STATUS_ICONS, stats = STAT_ICONS,
+		note = "One row of 16x16 icons; column = icons[id]. Readable at 12 px; for 24-32 px panels scale by whole numbers with nearest filtering."}
+	var file := FileAccess.open(OUT + "icons.json", FileAccess.WRITE)
+	file.store_string(JSON.stringify(data, "\t") + "\n")
+	# Preview: 4x on a dark panel, then 2x and 1x on grass.
+	var n := ids.size()
+	var pre := Image.create(n * 72 + 8, 168, false, Image.FORMAT_RGBA8)
+	pre.fill(Color("#1c2230"))
+	var grass := Image.create(n * 72 + 8, 84, false, Image.FORMAT_RGBA8)
+	grass.fill(Color("#5fa844"))
+	pre.blit_rect(grass, Rect2i(0, 0, n * 72 + 8, 84), Vector2i(0, 84))
+	for i in n:
+		var ic := sheet.get_region(Rect2i(i * ICON, 0, ICON, ICON))
+		var big := ic.duplicate() as Image
+		big.resize(64, 64, Image.INTERPOLATE_NEAREST)
+		pre.blend_rect(big, Rect2i(0, 0, 64, 64), Vector2i(8 + i * 72, 8))
+		var mid := ic.duplicate() as Image
+		mid.resize(32, 32, Image.INTERPOLATE_NEAREST)
+		pre.blend_rect(mid, Rect2i(0, 0, 32, 32), Vector2i(8 + i * 72, 100))
+		pre.blend_rect(ic, Rect2i(0, 0, ICON, ICON), Vector2i(48 + i * 72, 108))
+	pre.save_png("res://tools/previews/ui_icon_set.png")
+
+func _icon(id: String) -> Image:
+	_cells = {}
+	_ramps = []
+	_details = []
+	call("_ic_" + id)
+	var img := Image.create(ICON, ICON, false, Image.FORMAT_RGBA8)
+	for cell: Vector2i in _cells:
+		var k: int = _cells[cell]
+		var r: Array = _ramps[k]
+		var up: bool = _cells.get(cell + Vector2i.UP, -1) != k
+		var left: bool = _cells.get(cell + Vector2i.LEFT, -1) != k
+		var down: bool = _cells.get(cell + Vector2i.DOWN, -1) != k
+		var right: bool = _cells.get(cell + Vector2i.RIGHT, -1) != k
+		var col: Color = r[1]
+		if up or left:
+			col = r[0]
+		elif down or right:
+			col = r[2]
+		img.set_pixelv(cell, col)
+	for y in ICON:
+		for x in ICON:
+			var p := Vector2i(x, y)
+			if _cells.has(p):
+				continue
+			for d: Vector2i in [Vector2i.UP, Vector2i.DOWN, Vector2i.LEFT, Vector2i.RIGHT]:
+				if _cells.has(p + d):
+					img.set_pixelv(p, ICON_OUTLINE)
+					break
+	for d: Array in _details:
+		var p: Vector2i = d[0]
+		if p.x >= 0 and p.y >= 0 and p.x < ICON and p.y < ICON:
+			img.set_pixelv(p, d[1])
+	return img
+
+func _rp(light: String, mid: String, dark: String) -> int:
+	_ramps.append([Color(light), Color(mid), Color(dark)])
+	return _ramps.size() - 1
+
+func _cset(x: int, y: int, k: int) -> void:
+	if x >= 0 and y >= 0 and x < ICON and y < ICON:
+		_cells[Vector2i(x, y)] = k
+
+func _c_disc(c: Vector2, r: float, k: int) -> void:
+	for y in ICON:
+		for x in ICON:
+			if Vector2(x + 0.5, y + 0.5).distance_to(c) <= r:
+				_cset(x, y, k)
+
+func _c_ring(c: Vector2, ro: float, ri: float, k: int) -> void:
+	for y in ICON:
+		for x in ICON:
+			var d := Vector2(x + 0.5, y + 0.5).distance_to(c)
+			if d <= ro and d > ri:
+				_cset(x, y, k)
+
+func _c_ell(c: Vector2, r: Vector2, k: int, angle: float = 0.0) -> void:
+	for y in ICON:
+		for x in ICON:
+			if ((Vector2(x + 0.5, y + 0.5) - c).rotated(-angle) / r).length() <= 1.0:
+				_cset(x, y, k)
+
+func _c_poly(pts: PackedVector2Array, k: int) -> void:
+	for y in ICON:
+		for x in ICON:
+			if Geometry2D.is_point_in_polygon(Vector2(x + 0.5, y + 0.5), pts):
+				_cset(x, y, k)
+
+func _c_line(pts: Array, w: float, k: int) -> void:
+	for i in pts.size() - 1:
+		var a: Vector2 = pts[i]
+		var b: Vector2 = pts[i + 1]
+		for y in ICON:
+			for x in ICON:
+				var p := Vector2(x + 0.5, y + 0.5)
+				var t := clampf((p - a).dot(b - a) / maxf((b - a).length_squared(), 0.001), 0.0, 1.0)
+				if p.distance_to(a.lerp(b, t)) <= w * 0.5:
+					_cset(x, y, k)
+
+func _c_rect(r: Rect2i, k: int) -> void:
+	for y in range(r.position.y, r.end.y):
+		for x in range(r.position.x, r.end.x):
+			_cset(x, y, k)
+
+func _dt(x: int, y: int, col: Color) -> void:
+	_details.append([Vector2i(x, y), col])
+
+func _dt_line(a: Vector2i, b: Vector2i, col: Color) -> void:
+	var steps := maxi(absi(b.x - a.x), absi(b.y - a.y))
+	for s in steps + 1:
+		var p := Vector2(a).lerp(Vector2(b), s / maxf(steps, 1.0)).round()
+		_dt(int(p.x), int(p.y), col)
+
+# Statuses ---------------------------------------------------------------------------------------
+
+func _ic_damp() -> void:
+	var k := _rp("#d8f0ff", "#6ab0f0", "#3a70c0")
+	_c_disc(Vector2(7, 9.6), 4.2, k)
+	_c_poly(PackedVector2Array([Vector2(7, 1.6), Vector2(3.0, 8.6), Vector2(11.0, 8.6)]), k)
+	_c_disc(Vector2(12.6, 12.4), 1.8, k)
+	_c_poly(PackedVector2Array([Vector2(12.6, 8.8), Vector2(11.0, 11.8), Vector2(14.2, 11.8)]), k)
+	_dt(5, 8, Color.WHITE)
+	_dt(5, 9, Color("#f0faff"))
+
+func _ic_drowsy() -> void:
+	var k := _rp("#f4ecff", "#c8a8f0", "#8a6ac8")
+	_c_rect(Rect2i(2, 2, 8, 2), k)
+	_c_line([Vector2(9, 4.2), Vector2(3, 9.8)], 2.2, k)
+	_c_rect(Rect2i(2, 10, 8, 2), k)
+	_c_rect(Rect2i(10, 9, 4, 1), k)
+	_c_line([Vector2(13.4, 10), Vector2(10.6, 12.6)], 1.3, k)
+	_c_rect(Rect2i(10, 13, 4, 1), k)
+
+func _ic_spored() -> void:
+	var k := _rp("#e8f8b0", "#a8d860", "#5a8a30")
+	_c_disc(Vector2(9.6, 5), 3.2, k)
+	_c_disc(Vector2(4.6, 10.2), 3.0, k)
+	_c_disc(Vector2(11.8, 12), 2.3, k)
+	for p: Vector2i in [Vector2i(8, 3), Vector2i(3, 8), Vector2i(11, 11)]:
+		_dt(p.x, p.y, Color.WHITE)
+	for p: Vector2i in [Vector2i(10, 6), Vector2i(5, 11)]:
+		_dt(p.x, p.y, Color("#5a8a30"))
+
+func _ic_marked() -> void:
+	var k := _rp("#fff4b0", "#f0c040", "#a87818")
+	_c_ring(Vector2(8, 8), 6.3, 4.1, k)
+	_c_disc(Vector2(8, 8), 1.7, k)
+	_dt(7, 7, Color.WHITE)
+
+func _ic_static() -> void:
+	var k := _rp("#fffbe0", "#fff27a", "#d0a820")
+	_c_poly(PackedVector2Array([Vector2(9.5, 1), Vector2(3.4, 8.6), Vector2(7, 8.6), Vector2(5.4, 14.8),
+		Vector2(12.6, 6.4), Vector2(8.8, 6.4), Vector2(11.6, 1)]), k)
+
+func _ic_held() -> void:
+	# A small dark nightmare tied up by two vine bands.
+	var shade := _rp("#6a5a90", "#3e3060", "#241a3a")
+	var vine := _rp("#c8f0a0", "#6ab04a", "#2e6a2a")
+	_c_disc(Vector2(8, 8.5), 5.2, shade)
+	_c_line([Vector2(1.2, 5.2), Vector2(8, 6.6), Vector2(14.8, 5.8)], 1.9, vine)
+	_c_line([Vector2(1.2, 11.4), Vector2(8, 10.4), Vector2(14.8, 11.8)], 1.9, vine)
+	_dt(6, 8, Color("#ffd0e0"))
+	_dt(10, 8, Color("#ffd0e0"))
+	_dt(14, 4, Color("#a8dc7a"))
+	_dt(13, 3, Color("#a8dc7a"))
+
+func _ic_caught() -> void:
+	var k := _rp("#f4ecff", "#c8a8f0", "#7a5ab8")
+	var gold := _rp("#fff0b0", "#f0c050", "#a87020")
+	_c_ring(Vector2(8, 6.2), 5.4, 3.7, k)
+	_c_ell(Vector2(4.5, 13.2), Vector2(1.3, 1.9), gold)
+	_c_ell(Vector2(11.5, 13.2), Vector2(1.3, 1.9), gold)
+	var web := Color("#b898e8")
+	_dt_line(Vector2i(8, 3), Vector2i(8, 9), web)
+	_dt_line(Vector2i(5, 6), Vector2i(11, 6), web)
+	_dt(8, 6, Color("#ffe890"))
+	_dt(5, 11, web)
+	_dt(11, 11, web)
+
+func _ic_frozen() -> void:
+	var k := _rp("#f4fcff", "#9ad8f0", "#4a90c8")
+	var c := Vector2(8, 8)
+	for i in 3:
+		var d := Vector2.from_angle(PI * 0.5 + i * PI / 3.0)
+		_c_line([c - d * 6.3, c + d * 6.3], 1.3, k)
+		for s: float in [-1.0, 1.0]:
+			var p := c + d * 4.2 * s
+			_c_line([p, p + d.rotated(0.8) * 1.8 * s], 1.1, k)
+			_c_line([p, p + d.rotated(-0.8) * 1.8 * s], 1.1, k)
+	_c_disc(c, 1.8, k)
+	_dt(8, 8, Color.WHITE)
+
+func _ic_deeply_blighted() -> void:
+	var k := _rp("#7a5aa8", "#4a3270", "#2a1a40")
+	_c_disc(Vector2(8, 9), 5.0, k)
+	_c_poly(PackedVector2Array([Vector2(4.2, 6), Vector2(2.6, 1.2), Vector2(6.8, 4.4)]), k)
+	_c_poly(PackedVector2Array([Vector2(6.8, 4.4), Vector2(8, 1.0), Vector2(9.4, 4.4)]), k)
+	_c_poly(PackedVector2Array([Vector2(11.8, 6), Vector2(13.4, 1.2), Vector2(9.2, 4.4)]), k)
+	_c_poly(PackedVector2Array([Vector2(3.4, 8), Vector2(1.0, 10), Vector2(3.6, 11)]), k)
+	_c_poly(PackedVector2Array([Vector2(12.6, 8), Vector2(15.0, 10), Vector2(12.4, 11)]), k)
+	for x in range(6, 10):
+		_dt(x, 8, Color("#ffd0e0"))
+		_dt(x, 9, Color("#ffd0e0"))
+	_dt(7, 8, Color("#ff3a6a"))
+	_dt(8, 8, Color("#ff3a6a"))
+	_dt(7, 9, Color("#c01a4a"))
+	_dt(8, 9, Color("#c01a4a"))
+	_dt(6, 13, Color("#2a1a40"))
+	_dt(10, 14, Color("#2a1a40"))
+
+func _ic_hidden() -> void:
+	var k := _rp("#ffffff", "#e0dcf0", "#8a84b0")
+	for y in ICON:
+		for x in ICON:
+			var p := Vector2(x + 0.5, y + 0.5)
+			if p.distance_to(Vector2(8, 15.5)) <= 10.5 and p.distance_to(Vector2(8, 0.5)) <= 10.5 and x >= 1 and x <= 14:
+				_cset(x, y, k)
+	for y in range(6, 10):
+		for x in range(6, 10):
+			if Vector2(x + 0.5, y + 0.5).distance_to(Vector2(8, 8)) <= 2.2:
+				_dt(x, y, Color("#6a4ab0"))
+	_dt(7, 7, Color("#241634"))
+	_dt(8, 7, Color("#241634"))
+	_dt(7, 8, Color("#241634"))
+	_dt(8, 8, Color("#241634"))
+	_dt(7, 7, Color.WHITE)
+	# The slash: a light stroke with a dark edge, over everything.
+	_dt_line(Vector2i(3, 14), Vector2i(14, 3), ICON_OUTLINE)
+	_dt_line(Vector2i(2, 13), Vector2i(13, 2), Color("#fff4f8"))
+	_dt_line(Vector2i(1, 13), Vector2i(12, 2), ICON_OUTLINE)
+
+# Warden stats -----------------------------------------------------------------------------------
+
+func _ic_damage() -> void:
+	var k := _rp("#ffe8b0", "#f09040", "#b05020")
+	var c := Vector2(8, 8)
+	for i in 8:
+		var d := Vector2.from_angle(i * PI / 4.0 - PI * 0.5)
+		var tip := c + d * (6.9 if i % 2 == 0 else 5.4)
+		var perp := d.orthogonal() * 1.7
+		_c_poly(PackedVector2Array([c + d * 2.5 + perp, tip, c + d * 2.5 - perp]), k)
+	_c_disc(c, 3.6, k)
+	_dt(7, 7, Color.WHITE)
+	_dt(8, 7, Color("#fff8e0"))
+	_dt(7, 8, Color("#fff8e0"))
+
+func _ic_attack_speed() -> void:
+	var k := _rp("#e8fff0", "#7ad8a8", "#2e8a60")
+	_c_line([Vector2(3, 2.6), Vector2(7.4, 8), Vector2(3, 13.4)], 2.3, k)
+	_c_line([Vector2(8.4, 2.6), Vector2(12.8, 8), Vector2(8.4, 13.4)], 2.3, k)
+
+func _ic_range() -> void:
+	var k := _rp("#f0f6ff", "#9ab8e8", "#4a68a8")
+	_c_line([Vector2(4, 8), Vector2(12, 8)], 2.0, k)
+	_c_poly(PackedVector2Array([Vector2(1.0, 8), Vector2(5.2, 3.8), Vector2(5.2, 12.2)]), k)
+	_c_poly(PackedVector2Array([Vector2(15.0, 8), Vector2(10.8, 3.8), Vector2(10.8, 12.2)]), k)
+
+func _ic_crit_chance() -> void:
+	# A four-leaf clover: leaves on the cross, gaps on the diagonals, a stem.
+	var leaf := _rp("#d8f8b0", "#6ab04a", "#2e6a2a")
+	_c_line([Vector2(9, 10), Vector2(13.6, 14.6)], 1.3, leaf)
+	for d: Vector2 in [Vector2(0, -1), Vector2(1, 0), Vector2(0, 1), Vector2(-1, 0)]:
+		_c_disc(Vector2(7.5, 7.5) + d * 3.4, 2.5, leaf)
+	_dt(7, 7, Color("#fff27a"))
+	_dt(8, 8, Color("#e8c040"))
+
+func _ic_crit_damage() -> void:
+	var k := _rp("#fffbe0", "#ffd24a", "#c08a10")
+	_c_poly(PackedVector2Array([Vector2(8, 0.8), Vector2(9.9, 6.1), Vector2(15.2, 8), Vector2(9.9, 9.9),
+		Vector2(8, 15.2), Vector2(6.1, 9.9), Vector2(0.8, 8), Vector2(6.1, 6.1)]), k)
+	_dt(8, 8, Color.WHITE)
+	_dt(7, 7, Color.WHITE)
+
+func _ic_potency() -> void:
+	var glass := _rp("#f4f0ff", "#c8c0e0", "#7a70a0")
+	var liquid := _rp("#f0b8ff", "#b050e0", "#6a2090")
+	_c_disc(Vector2(8, 10.2), 4.5, glass)
+	_c_rect(Rect2i(6, 3, 4, 4), glass)
+	for cell: Vector2i in _cells.keys():
+		if cell.y >= 10:
+			_cells[cell] = liquid
+	for p: Vector2i in [Vector2i(6, 1), Vector2i(9, 1), Vector2i(6, 2), Vector2i(9, 2)]:
+		_dt(p.x, p.y, Color("#9a6a3a"))
+	for p: Vector2i in [Vector2i(7, 1), Vector2i(8, 1), Vector2i(7, 2), Vector2i(8, 2)]:
+		_dt(p.x, p.y, Color("#c8904a"))
+	_dt(6, 12, Color("#fff0ff"))
+	_dt(9, 11, Color("#f0c8ff"))
+	_dt(5, 8, Color.WHITE)
+
+func _ic_rank() -> void:
+	var ribbon := _rp("#ff9a9a", "#d84a4a", "#8a2020")
+	var gold := _rp("#fff0b0", "#f0c050", "#a87020")
+	_c_poly(PackedVector2Array([Vector2(3.5, 0.8), Vector2(7.2, 0.8), Vector2(7.8, 6), Vector2(5.4, 6)]), ribbon)
+	_c_poly(PackedVector2Array([Vector2(12.5, 0.8), Vector2(8.8, 0.8), Vector2(8.2, 6), Vector2(10.6, 6)]), ribbon)
+	_c_disc(Vector2(8, 10), 4.9, gold)
+	for y in range(8, 13):
+		_dt(7, y, Color("#7a4a10"))
+		_dt(8, y, Color("#7a4a10"))
+	for x in range(6, 10):
+		_dt(x, 8, Color("#7a4a10"))
+		_dt(x, 12, Color("#7a4a10"))
+
+func _ic_focus_power() -> void:
+	var stone := _rp("#e8ecf8", "#9aa0c0", "#5a6080")
+	var wood := _rp("#e0b078", "#9a6a3a", "#5a3a1a")
+	_c_line([Vector2(8, 7), Vector2(8, 14.6)], 2.2, wood)
+	_c_rect(Rect2i(2, 2, 12, 5), stone)
+	_dt(4, 4, Color("#5a6080"))
+	_dt(11, 4, Color("#5a6080"))
+
+func _ic_focus_swift() -> void:
+	var k := _rp("#fffbf0", "#a8e0d0", "#4a9a8a")
+	_c_ell(Vector2(8.6, 6.8), Vector2(6.6, 2.9), k, -PI * 0.25)
+	_c_line([Vector2(1.4, 14.6), Vector2(5, 11)], 1.2, k)
+	_dt_line(Vector2i(4, 11), Vector2i(12, 3), Color("#4a9a8a"))
+	_dt(10, 3, Color("#fffbf0"))
+
+func _ic_focus_reach() -> void:
+	var brass := _rp("#fff0c0", "#d8a848", "#8a6020")
+	var a := Vector2(2.6, 12.4)
+	var b := Vector2(12.6, 3.4)
+	var d := (b - a).normalized()
+	var perp := d.orthogonal()
+	_c_poly(PackedVector2Array([a + perp * 1.9, a - perp * 1.9, b - perp * 2.6, b + perp * 2.6]), brass)
+	for t: float in [0.35, 0.68]:
+		var p := a.lerp(b, t)
+		_dt_line(Vector2i((p + perp * 2.0).round()), Vector2i((p - perp * 2.0).round()), Color("#8a6020"))
+	_dt(12, 3, Color("#bfe8ff"))
+	_dt(13, 4, Color("#e8f8ff"))
+
+func _ic_focus_deep() -> void:
+	var leaf := _rp("#d8f8b0", "#6ab04a", "#2e6a2a")
+	var earth := _rp("#b08a60", "#7a5234", "#4a3020")
+	var root := _rp("#f0dcb8", "#b08858", "#6a4a28")
+	_c_ell(Vector2(5.4, 3.4), Vector2(2.6, 1.5), leaf, 0.35)
+	_c_ell(Vector2(10.6, 3.4), Vector2(2.6, 1.5), leaf, -0.35)
+	_c_line([Vector2(8, 3.8), Vector2(8, 6.4)], 1.2, leaf)
+	_c_rect(Rect2i(1, 7, 14, 2), earth)
+	_c_line([Vector2(8, 9), Vector2(8, 14.6)], 1.3, root)
+	_c_line([Vector2(7.5, 10), Vector2(4, 13.8)], 1.2, root)
+	_c_line([Vector2(8.5, 10), Vector2(12, 13.8)], 1.2, root)
+	_dt(8, 15, Color("#ffd860"))
+
+func _ic_dew_cost() -> void:
+	var k := _rp("#e8fffa", "#7ae0d0", "#2a9a90")
+	_c_disc(Vector2(7.4, 10), 4.6, k)
+	_c_poly(PackedVector2Array([Vector2(7.4, 1.2), Vector2(3.0, 8.4), Vector2(11.8, 8.4)]), k)
+	_dt(5, 8, Color.WHITE)
+	_dt(5, 9, Color.WHITE)
+	_dt(6, 7, Color("#f0fffc"))
+	for p: Vector2i in [Vector2i(13, 2), Vector2i(12, 3), Vector2i(14, 3), Vector2i(13, 4)]:
+		_dt(p.x, p.y, Color("#fff4c0"))
+	_dt(13, 3, Color.WHITE)
+
+func _ic_dreamlight_cost() -> void:
+	var k := _rp("#fff8e0", "#d8b8ff", "#8a60c8")
+	_c_poly(PackedVector2Array([Vector2(8, 0.8), Vector2(13.2, 8), Vector2(8, 15.2), Vector2(2.8, 8)]), k)
+	_dt_line(Vector2i(6, 4), Vector2i(6, 8), Color("#fffbe8"))
+	_dt(8, 8, Color("#ffe890"))
