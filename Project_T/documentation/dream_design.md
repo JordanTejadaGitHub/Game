@@ -133,8 +133,11 @@ alternative**: a strong card you can use now if you bend the plan.
    - **Coverage:** every pair of starting families has at least one combo card in the start pool:
      Firefly Jar + Dewdrop (Rolling Thunder, Conductive Soil), Sporeling + Firefly Jar (Wildfire
      Spores), Sporeling + Dewdrop (Mushroom Rain, 134). New families should bring one per pair.
-   - **As built (ec61852):** ~0.9 offers per run before the drift 25 pick when owning Firefly Jar
-     (demo pool).
+   - **As built (2c1612b, with the generic Rares and real family picks):** **0.5–0.8 offers per run
+     before the drift 25 pick** (Sporeling 0.53, Firefly Jar 0.76, Dewdrop 0.68), ~1 through drift 70.
+     **Accepted** (2026-09-28): a temptation should be occasional, so no stronger weight (it would
+     become a lure). The number grows naturally as the pool gets more cross-family combo cards
+     (`design_plan.md`, Dream pool to ~70).
    - **Card face:** a pale **"Half-dreamed"** vine tag and the missing piece in plain words:
      *"Needs Dewdrop: a family you can pick after the Hollow Stag (drift 25)."* The card's effect
      works only once everything it needs is owned (it never pretends to do something now).
