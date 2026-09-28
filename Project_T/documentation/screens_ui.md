@@ -433,10 +433,63 @@ Name, one-line trait ("Rolls fast down straight corridors"), health, speed, leaf
 statuses with remaining time. First time a nightmare type appears: a **"New"** tag and the whisper
 from `onboarding.md`.
 
+**Resistances and immunities as icons** (added 2026-09-28, user request: "enemy statuses should be
+more clear with icons of their resistances"):
+
+- **Family icons:** each Warden family (damage line) is shown by its **base Warden's face**
+  (Sporeling = spore, Pebbling = stone, Dewdrop = water, Firefly Jar = light, Rootling = root,
+  Bellflower = song, Nestling = wing, Whirligig = wind, Acorn = support). No new art: the
+  `WardenIcon` portraits, small, in a round frame.
+- In the nightmare info, three rows under the stats, each hidden when empty:
+  - **Resists** (grey frame, small shield): the family icons, "×0.5".
+  - **Weak to** (warm frame, small spark): the family icons, "×1.5".
+  - **Immune / shrugs off**: the **status icons** crossed out for immunities (Barrow Wight: Rooted),
+    or with "½" for shorter durations (Barrow Wight: Drowsy wears off fast). Traits get their own
+    icons too (Flying, Hidden, Dread shell, Passes through walls).
+  - Every icon is tappable / hoverable for its definition (same popup as status words), e.g.
+    "Resists Pebbling: stone Wardens deal half damage to it."
+- **On the map, in context:** while placing a Warden or with Wardens selected, nightmares on the field
+  that **resist** that Warden's family show a small grey shield pip beside their health bar, and
+  those **weak** to it a small warm spark pip. Nothing otherwise (setting: always show).
+- **Immune feedback:** when a Warden tries to apply a status a nightmare is immune to, the crossed
+  status icon flashes once over it (throttled), instead of nothing happening.
+- **Coming this block:** at every rest, a strip above Start shows the nightmare **types** in the next
+  block (portraits, "New" tag, boss portrait last), each with its resist / weak icons underneath.
+  Tap one for its full info. This is where players plan around resistances.
+
+### Boss dossier (the rest before a boss block)
+
+Added 2026-09-28, user request. At the rest that **opens a boss block** (after drifts 20, 45, 70,
+95), a dossier card for the coming boss appears **last in the rest order** (after the Omen, before
+free building) so the player plans the build with it. It can be closed and **reopened any time
+until the boss is dispelled**: tap the "Boss in N" countdown in the drift banner, or its portrait in
+*Coming this block*.
+
+| Part | Content |
+|---|---|
+| **Header** | the boss's animated portrait (full art, not a silhouette), name and title ("The Hollow Stag · the gaunt king of the old wood"), one line of whisper (*"Something old has found the dream."*), and "Arrives in drift 25" |
+| **Numbers** | health (the real number with this run's scaling and Blight), speed, leaves it takes if it reaches the Heartwood |
+| **Resists / Weak to / Immune** | the same icon rows as the nightmare info, larger |
+| **What it does** | one row per ability: an icon, a name, what it does in one plain sentence, and **when** ("from the start", "every 8 s", "**at 50% health**", "when it takes a hit from…"). The 50% line matches the marker on the boss bar |
+| **It brings** | escorts and summons (portraits, count, with their own resist icons), e.g. the Mire Hag's bog spawn |
+| **What helps** | 2–3 short hints written per boss (e.g. *"Long straight corridors let it charge: bend the path"*), no numbers, never a solution |
+| **Your record** | after the first meeting: times dispelled, best time. First meeting: a "New" tag |
+
+- Spoilers: the Codex still hides boss names until met; the dossier doesn't, because the boss is
+  arriving anyway.
+- Touch: all rows and icons tappable; the card scrolls on small screens.
+- During the boss drift the existing name plate and boss bar stay; the boss bar's 50% marker is
+  tappable and shows that ability's line.
+
+**Data (for the build):** per boss in `EnemyData`: a `title`, an ability list (name, icon, text,
+when; stat numbers filled from the data, never hand-typed), `tips` (2–3 lines), and the escort list
+from the existing followers / summon fields. Normal nightmares reuse `trait_text` plus the new
+resist / immune rows.
+
 ## Choice screens (time stops)
 
 **Rest order:** rest bonus toast → **family pick** (boss rests) → **Dream** → **Omen** (from drift 10)
-→ free building → Start. Each choice screen can be **minimised** to look at the map first (a
+→ **boss dossier** (rests opening a boss block) → free building → Start. Each choice screen can be **minimised** to look at the map first (a
 "peek" button), then reopened.
 
 ### Family pick
@@ -522,6 +575,9 @@ For the coding chat. Items likely missing or different (verify in the game):
 - [ ] Dreams-this-run row and list
 - [ ] Active Omen badge
 - [ ] Creature info on hover; "New" tag for first sightings
+- [ ] Resist / weak / immune icon rows (family = base Warden face), map pips in context, immune
+      flash, "Coming this block" strip
+- [ ] Boss dossier at the rest opening a boss block (reopen from "Boss in N")
 - [ ] Status icons with distinct shapes and stack numbers
 - [ ] "+N path" and invalid-placement reason tags on the build ghost
 - [ ] Rarity gem shapes; Deepened / Entwined / Bittersweet card styles
