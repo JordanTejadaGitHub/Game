@@ -9,6 +9,8 @@ extends Control
 # every family. Pauses the game while open; "Peek at the map" minimises it. Cards show the statuses
 # the family applies and its two branches (screens_ui.md "Family pick"). Built in code.
 
+signal sapling_offered  # The Heartwood Sapling's card appears (once, after the drift 50 pick)
+
 const CARD_SIZE := Vector2(250, 300)
 const SAPLING_DRIFT := 50  # The act 2 boss: the Heartwood Sapling is offered after its family pick
 const STATUS_NAMES := {&"damp": "Damp", &"drowsy": "Drowsy", &"spored": "Spored", &"marked": "Marked",
@@ -171,6 +173,7 @@ func should_offer_sapling() -> bool:
 		and drift_director.drifts_started == SAPLING_DRIFT
 
 func _show_sapling() -> void:
+	sapling_offered.emit()  # For its own swell (SoundHooks; audio_direction.md)
 	var placer = %TowerPlacer
 	_title.text = "The Heartwood offers a seedling of itself"
 	for child in _cards.get_children():

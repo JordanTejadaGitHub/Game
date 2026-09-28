@@ -187,11 +187,14 @@ func _run() -> void:
 		var started_before := director.drifts_started
 		director.drifts_started = 50
 		director.awaiting_family_pick = true
+		var offered := []
+		family.sapling_offered.connect(func() -> void: offered.append(true))
 		family.show_pick(&"boss")
 		if not family.offer.is_empty():
 			family.choose(family.offer[0])
 		_check(family.visible and family._title.text == "The Heartwood offers a seedling of itself",
 			"the Sapling's card follows the drift 50 family pick")
+		_check(offered.size() == 1, "sapling_offered fires once (for its sound)")
 		var not_now: Button = family._cards.get_child(0).get_child(-1).get_child(1)
 		not_now.pressed.emit()
 		_check(not family.visible and sapling_placer.can_take_sapling(), "Not now keeps it for later")
