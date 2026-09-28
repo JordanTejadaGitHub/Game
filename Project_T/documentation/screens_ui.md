@@ -475,7 +475,7 @@ Side: a run summary (Dreams, families, active Omen, time played).
 | Start drift / call early | Enter |
 | Pause | Space |
 | Speed | Tab (cycle) |
-| Sell selected Warden | Delete, or the panel's Sell button. **Right-click never sells** (decided 2026-09-28; it only cancels / deselects) |
+| Sell selected Warden | **X** or Delete (added 2026-09-28: Delete is hard to reach on many keyboards; rebindable), or the panel's Sell button. During a drift the first press shows the half refund and a second press within 2 s sells (unless `confirm_sell` is off). **Right-click never sells** (decided 2026-09-28; it only cancels / deselects) |
 | Grow selected Warden | G (proposed; first option) |
 | Centre on the Heartwood / on the start | H / F (proposed) |
 | Camera | WASD, mouse wheel zoom |
