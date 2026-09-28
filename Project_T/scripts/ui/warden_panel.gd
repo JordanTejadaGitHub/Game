@@ -169,8 +169,11 @@ func _refresh() -> void:
 		var next: TowerData = option[0]
 		var button := _add_button("")
 		if option[1]:
-			var cost := dream_state.get_evolve_cost(next)
+			var grow := _tower.get_grow_cost(next)  # Ranked Wardens also pay the rank difference
+			var cost: int = grow.total
 			button.text = "Grow into %s · %d Dew" % [next.display_name, cost]
+			if grow.ranks > 0:
+				button.text += " (%d + %d for rank %s)" % [grow.base, grow.ranks, Tower.rank_name(_tower.rank)]
 			button.tooltip_text = next.description
 			button.disabled = not run_state.can_afford(cost)
 			button.pressed.connect(_evolve.bind(next))
@@ -307,15 +310,16 @@ func _refresh_group() -> void:
 			if not option[1]:
 				_locked_form_button(button, "%s → %s" % [_plural(data, towers.size()), next.display_name], next)
 				continue
-			var cost := dream_state.get_evolve_cost(next)
-			var affordable := tower_seller.count_affordable(towers, next)
+			# Each pays Tower.get_grow_cost (ranked ones their rank difference too).
+			var plan: Array = tower_seller.plan_grow(towers, next)
+			var affordable: int = plan[0]
 			if affordable >= towers.size():
 				button.text = "Grow %d %s into %s · %d Dew" % [towers.size(), _plural(data, towers.size()),
-					next.display_name, cost * towers.size()]
+					next.display_name, plan[1]]
 			else:
 				# Grows as many as the Dew allows, closest to the Heartwood first.
 				button.text = "Grow %d of %d %s into %s · %d Dew" % [affordable, towers.size(),
-					_plural(data, towers.size()), next.display_name, cost * affordable]
+					_plural(data, towers.size()), next.display_name, plan[1]]
 				button.disabled = affordable == 0
 			button.pressed.connect(func() -> void: tower_seller.grow_group(towers, next))
 	# Nurture all: one rank each, as far as the Dew goes (nearest the Heartwood first).

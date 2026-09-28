@@ -332,7 +332,9 @@ accessibility, Steam achievements (milestones map to them). Acts 3–4 and all f
   a button per Warden (hotkeys 1-9). Thornwall has `can_attack = false`.
   Ranks (Nurture v2): `Tower.rank` 0-5 (VII with Deeper Rings), cost `RANK_COSTS` 25/40/60/90/135 ×
   tier multiplier × Dreams; +10% dmg, +4% speed, +0.1 range each; `Tower.focus` (Power/Swift/Reach/
-  Deep) chosen at rank III (`needs_focus()`, `TowerPlacer.nurture(tower, focus)`); rank art children
+  Deep) chosen at rank III (`needs_focus()`, `TowerPlacer.nurture(tower, focus)`). Growing a ranked Warden
+  pays the rank difference: `Tower.get_grow_cost(into)` {total, base, ranks}, used by every grow path
+  (`TowerSeller.plan_grow` for groups); rank art children
   RankUnder/RankOver. `TowerSeller.plan_nurture` / `nurture_group`, R = `nurture_warden`; kept
   through evolution and in the run save. Nurture Dream cards feed in via DreamState getters.
   Towers can't go on border/trees/towers/start/end, on a cell an enemy occupies, or anywhere that

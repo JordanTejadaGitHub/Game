@@ -193,13 +193,31 @@ func sort_by_heartwood(towers: Array) -> Array:
 
 # How many of `towers` the player can afford to grow into `into` right now.
 func count_affordable(towers: Array, into: TowerData) -> int:
-	var dreams := _dreams()
-	if dreams == null:
-		return 0
-	var cost := dreams.get_evolve_cost(into)
-	if cost <= 0:
-		return towers.size()
-	return mini(towers.size(), run_state.dew / cost)
+	return plan_grow(towers, into)[0]
+
+# Which of `towers` group grow would grow into `into` with the Dew there is, nearest the Heartwood
+# first (each pays Tower.get_grow_cost: ranked Wardens pay their rank difference too), skipping ones
+# that don't fit so a cheaper one further out still can: [count, total Dew].
+func plan_grow(towers: Array, into: TowerData) -> Array:
+	var count := 0
+	var total := 0
+	for tower in sort_by_heartwood(towers):
+		if not is_instance_valid(tower):
+			continue
+		var cost: int = tower.get_grow_cost(into).total
+		if total + cost > run_state.dew:
+			continue
+		count += 1
+		total += cost
+	return [count, total]
+
+# What growing all of `towers` into `into` would cost.
+func full_grow_cost(towers: Array, into: TowerData) -> int:
+	var total := 0
+	for tower in towers:
+		if is_instance_valid(tower):
+			total += tower.get_grow_cost(into).total
+	return total
 
 # Grows as many of `towers` into `into` as the player can afford, closest to the Heartwood first.
 # Returns how many grew. Each grown Warden blooms, staggered.

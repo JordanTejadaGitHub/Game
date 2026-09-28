@@ -340,7 +340,7 @@ func get_buildable_towers() -> Array[TowerData]:
 func evolve(tower: Tower, into: TowerData) -> bool:
 	if not tower.tower_data.evolves_to.has(into) or not dream_state.is_unlocked(into.get_id()):
 		return false
-	var cost := dream_state.get_evolve_cost(into)
+	var cost: int = tower.get_grow_cost(into).total  # Evolve cost + the rank difference; all invested
 	if not run_state.spend_dew(cost):
 		return false
 	tower.evolve(into, cost)

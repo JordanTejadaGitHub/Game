@@ -406,13 +406,18 @@ func needs_focus() -> bool:
 # Cost multiplier from the Warden's tier right now: Sprout ×0.5, base ×1, branch ×2, final ×3,
 # Memory Warden ×2.
 func get_tier_cost_multiplier() -> float:
-	if tower_data.nurture_cost_multiplier > 0.0:
-		return tower_data.nurture_cost_multiplier  # The Heartwood Sapling ranks at the final-form price
-	if tower_data.tier >= 4:
+	return tier_cost_multiplier_for(tower_data)
+
+# Nurture price multiplier for a Warden of `data`: Sprout ×0.5, base ×1, branch ×2, final ×3,
+# Ascended ×4, Memory Wardens ×2, the Sapling its own.
+static func tier_cost_multiplier_for(data: TowerData) -> float:
+	if data.nurture_cost_multiplier > 0.0:
+		return data.nurture_cost_multiplier  # The Heartwood Sapling ranks at the final-form price
+	if data.tier >= 4:
 		return 4.0  # Ascended
-	if tower_data.is_unique:
+	if data.is_unique:
 		return 2.0
-	match tower_data.tier:
+	match data.tier:
 		0:
 			return 0.5
 		1:
@@ -420,6 +425,28 @@ func get_tier_cost_multiplier() -> float:
 		2:
 			return 2.0
 	return 3.0
+
+# The Dew rank `which` (1 = I) costs for a Warden of `data`, with today's Dream discounts. `self_price`:
+# this Warden's own discounts (Nursery's Sprout half price); otherwise the ones a grown form would get.
+func _rank_price_for(which: int, data: TowerData, self_price: bool) -> int:
+	var base: float = RANK_COSTS[which - 1] if which <= RANK_COSTS.size() else 0.0
+	if which > RANK_COSTS.size() and _dream_state and _dream_state.has_method("get_extra_rank_cost"):
+		base = _dream_state.get_extra_rank_cost(which)
+	var multiplier := tier_cost_multiplier_for(data)
+	if _dream_state and _dream_state.has_method("get_nurture_cost_multiplier"):
+		multiplier *= _dream_state.get_nurture_cost_multiplier(self if self_price else null)
+	return maxi(roundi(base * multiplier), 1)
+
+# What growing into `into` costs (warden_stats.md "Growing a ranked Warden pays the rank difference"):
+# the evolve cost plus, for each rank held, that rank's price at the new tier minus its price at this
+# one (free ranks pay it too). {"total", "base", "ranks"}. Every Grow button, group grow, the G hotkey
+# and TowerPlacer.evolve use this, so they all agree.
+func get_grow_cost(into: TowerData) -> Dictionary:
+	var base: int = _dream_state.get_evolve_cost(into) if _dream_state else into.evolve_cost
+	var ranks := 0
+	for which in range(1, rank + 1):
+		ranks += maxi(_rank_price_for(which, into, false) - _rank_price_for(which, tower_data, true), 0)
+	return {"total": base + ranks, "base": base, "ranks": ranks}
 
 # Dew for the next rank (0 when it can't be nurtured further).
 func get_nurture_cost() -> int:
