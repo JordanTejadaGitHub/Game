@@ -255,6 +255,18 @@ func _add_menu_button() -> void:
 		if pause != null and not pause.visible and not run_state.is_over:
 			pause.open())
 	add_child(button)
+	# The Codex ("?", screens_ui.md "The Codex"), just left of Menu.
+	var codex := button.duplicate() as Button
+	codex.name = "CodexButton"
+	codex.text = "?"
+	codex.tooltip_text = "Codex: glossary and combos"
+	codex.offset_right = button.offset_left - 8
+	codex.offset_left = codex.offset_right - 48
+	codex.pressed.connect(func() -> void:
+		var pause := get_node_or_null("%PauseMenu")
+		if pause != null and not run_state.is_over:
+			pause.open_codex())
+	add_child(codex)
 
 # Dreamlight (run_design.md "Dreamlight"): a glowing mote and the count, just left of the Dew.
 func _add_dreamlight_counter() -> void:

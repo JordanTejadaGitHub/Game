@@ -38,7 +38,7 @@
 [ext_resource type="Script" path="res://scripts/ui/rest_report.gd" id="46_report"]
 [ext_resource type="Script" path="res://scripts/ui/dreams_row.gd" id="47_dreams"]
 [ext_resource type="Script" path="res://scripts/ui/remember_screen.gd" id="48_remember"]
-[ext_resource type="Script" path="res://scripts/ui/reaction_feedback.gd" id="49_reactions"]
+[ext_resource type="Script" path="res://scripts/ui/combo_feedback.gd" id="49_reactions"]
 
 [sub_resource type="Gradient" id="Gradient_5toel"]
 interpolation_mode = 1
@@ -308,7 +308,7 @@ offset_bottom = 58.0
 mouse_filter = 2
 script = ExtResource("47_dreams")
 
-[node name="ReactionFeedback" type="Control" parent="HUD"]
+[node name="ComboFeedback" type="Control" parent="HUD"]
 unique_name_in_owner = true
 layout_mode = 3
 anchors_preset = 15

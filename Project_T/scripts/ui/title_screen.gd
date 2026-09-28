@@ -11,6 +11,7 @@ const TITLE := "The Heartwood Remembers"
 
 var _menu := VBoxContainer.new()
 var _settings: SettingsPanel
+var _codex: CodexPanel
 var _confirm: ConfirmationDialog
 var _blight := BlightPicker.new()
 
@@ -55,6 +56,9 @@ func _ready() -> void:
 	else:
 		_add_button("Memory Grove", func() -> void: get_tree().change_scene_to_file(GROVE_SCENE))
 	_add_button("Settings", _show_settings)
+	_add_button("Codex", func() -> void:  # screens_ui.md "The Codex"
+		_menu.visible = false
+		_codex.open())
 	_add_button("Credits", _show_credits)
 	_add_button("Quit", func() -> void: get_tree().quit())
 
@@ -73,6 +77,11 @@ func _ready() -> void:
 		_settings.visible = false
 		_menu.visible = true)
 	center.add_child(_settings)
+	_codex = CodexPanel.new()
+	_codex.visibility_changed.connect(func() -> void:
+		if not _codex.visible:
+			_menu.visible = true)
+	center.add_child(_codex)
 
 	_confirm = ConfirmationDialog.new()
 	_confirm.dialog_text = "Start a new run? The run in progress will be lost."

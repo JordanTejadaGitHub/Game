@@ -33,9 +33,14 @@ func show_report(block: int) -> void:
 	var log := DamageLog.instance
 	if log == null:
 		return
-	var reactions := get_node_or_null("%ReactionFeedback") as ReactionFeedback
+	var combos := get_node_or_null("%ComboFeedback") as ComboFeedback
 	_label.text = get_report_text(log, "block", log.combo_counts_block, "Block %d" % block,
-		reactions.block_counts if reactions else {}, reactions.block_longest_chain if reactions else 0)
+		combos.block_counts if combos else {}, combos.block_longest_chain if combos else 0)
+	if combos and not combos.block_new.is_empty():  # screens_ui.md "The Codex": "New combos: …"
+		var names: Array[String] = []
+		for id in combos.block_new:
+			names.append(CodexData.get_combo(id).get("name", String(id)))
+		_label.text += "\nNew combos: " + ", ".join(names)
 	visible = true
 
 # Shared with the results screen (the whole run). `reactions` {id: n} and `longest_chain` add a
@@ -55,5 +60,5 @@ static func get_report_text(log: DamageLog, period: String, counts: Dictionary, 
 	for tag in tags.slice(0, 3):
 		lines.append("%s: %d times" % [COMBO_LINES.get(tag, String(tag)), counts[tag]])
 	if not reactions.is_empty():
-		lines.append("Reactions: " + ReactionFeedback.summary(reactions, longest_chain))
+		lines.append("Reactions: " + ComboFeedback.summary(reactions, longest_chain))
 	return "\n".join(lines)
