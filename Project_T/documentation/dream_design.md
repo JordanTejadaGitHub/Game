@@ -158,6 +158,14 @@ Warden growth costs 0).
 
 ### Legendary: changes how you play (act 2+ only)
 
+**Legendary rules** (user, 2026-09-28):
+- **A build you play around.** A Legendary changes what you build or where, has a shape or
+  condition to aim for, and drives your next choices. No flat stat cards.
+- **One archetype only.** A Legendary belongs to a single archetype (nurture, crit, potency, maze,
+  narrow, wide, a status, walls…) and never mixes in another's mechanic. Its tags list one
+  archetype; its Needs only name cards or Wardens of that same archetype. Mixing archetypes is what
+  Entwined (Rare) cards are for.
+
 | # | Card | Effect | Tags | Pool |
 |---|---|---|---|---|
 | 34 | **The Long Walk** | +1% soothe per 4 path tiles | maze | Grove |
@@ -193,7 +201,7 @@ cards: crit cards grow hits, these grow effects (Spored, Static bolts, clouds, f
 | 109 | **Bitter Sap** | Common | all Wardens +8% Potency (stacks) | potency | — | Start |
 | 110 | **Seeping** | Uncommon | effects deal **+5% per status** the nightmare carries (max +30%) | potency, reaction | any 2 status families | Grove |
 | 111 | **Venom Bloom** | Uncommon, **Bittersweet** | all Wardens +30% Potency. **Cost:** hits do −15% damage | potency, bittersweet | — | Grove |
-| 112 | **Nightshade** | Legendary | all Wardens +15% Potency; **effect ticks can crit** using the applier's crit chance and multiplier | potency, crit | — | Grove |
+| 112 | **Nightshade** | Legendary | **effects tick together:** whenever any effect on a nightmare deals damage, every *other* effect on it deals 25% of its own tick too. *(2026-09-28, replaces "+15% Potency, effect ticks can crit", which mixed in crit; proposal)* | potency | — | Grove |
 
 Deepened: **Seeping II** +7% per status (max +42%).
 
@@ -331,7 +339,7 @@ Evolving is still the better buy when a Dream allows it; Nurture cards make rank
 | 64 | **Sunlit Rest** | Uncommon | at every rest, your ranked Warden **nearest the Heartwood** that isn't at max rank gains a free rank | nurture | any `nurture` card | Grove |
 | 65 | **Deeper Rings** | Rare | **one Warden, the Eldest,** can grow past V to rank **VII**: VI costs 130, VII costs 180 (same gains per rank) | nurture | any `nurture` card + a rank V Warden | Grove |
 | 66 | **Nursery** | Rare, **Entwined** | Seedling Gift's free Sprouts arrive at **rank II**, and Sprouts nurture for half price | nurture, sprout | Tender Care + Seedling Gift | Grove |
-| 67 | **The Old Ones** | Legendary | each rank also gives **+2% crit chance**; rank V+ Wardens make the Wardens touching them count **one rank higher** (doesn't stack with itself) | nurture, crit | any `nurture` card + a rank V Warden | Grove |
+| 67 | **The Old Ones** | Legendary | rank V+ Wardens make the Wardens touching them count **one rank higher** (doesn't stack with itself). *(2026-09-28: the "+2% crit chance per rank" half was removed: one archetype per Legendary)* | nurture | any `nurture` card + a rank V Warden | Grove |
 | 68 | **Chosen Few** | Rare, **Bittersweet** | rank V+ Wardens **+50% damage**. **Cost:** Wardens below rank III do −15% damage | nurture, bittersweet | a rank V Warden | Grove |
 | 108 | **Endless Rings** | Legendary | **the Eldest has no max rank.** Past VII, each rank costs **×1.2** the one before (VIII 216, IX 259, X 311, … × tier) and gives **+10% damage** | nurture | Deeper Rings + a **rank VI** Warden | Grove |
 
