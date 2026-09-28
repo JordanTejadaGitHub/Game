@@ -86,6 +86,7 @@ enum Trait { NONE, FLYING, ROLLING, TRAMPLE, LEAP, BURROW, WANDER }
 # solution). Text and "when" put numbers in as {field} tokens read from this resource (see
 # format_text), so they follow the data; status tokens like {damp} are left for IconInfo.format.
 @export var title: String = ""
+@export var whisper: String = ""  # The dossier header's line (story.md), e.g. "The Hollow Stag has found the dream."
 @export var abilities: Array[Dictionary] = []
 @export var tips: Array[String] = []
 # Trait icon for FLYING: &"through_walls" (Phantom, glides through them) or &"flying" (Moth Queen).
