@@ -50,7 +50,8 @@ points.
     every eligible card of the rolled rarity is faded, keep that rarity only with a chance equal to
     their best weight; otherwise re-roll among the other rarities (a forced Rare+ offer falls through
     to Legendary **only where Legendaries can appear (act 2+)**; in act 1 it falls to Uncommon and
-    the pity counter isn't reset, so the next offer tries for a Rare again). A card that's alone in its rarity therefore fades like any other, and the
+    the pity counter isn't reset, so the next offer tries for a Rare again). A forced offer rolls
+    the faded-rarity chance **once per offer** (first slot only), not once per slot. A card that's alone in its rarity therefore fades like any other, and the
     next-offer exclusion holds unless the offer can't be filled at all.
   - **Content gap:** the Rare tier is thin for many boards (in that simulation Few and Mighty was the
     only Rare eligible in act 1). The pool needs more Rares with loose Needs; see the design todo in
