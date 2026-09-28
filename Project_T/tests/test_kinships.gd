@@ -131,6 +131,28 @@ func _run() -> void:
 	kin.load_save(saved)
 	_check(kin.ages.size() == saved.ages.size(), "bond ages survive a save and load")
 
+	# --- Playtest fixes: ascending keeps a bond; a lone branch Warden says what would bond it ---
+	var chime := _plant("lullaby_bell", Vector2(19, 2))  # The Chime Stone branch's final form
+	var catcher_kin := _plant("dreamcatcher", Vector2(20, 2))
+	await process_frame
+	kin.refresh()
+	_check(kin.get_pair(chime).get("id") == &"night_chimes", "Lullaby Bell + Dreamcatcher: Night Chimes")
+	var chime_key: String = kin.get_pair(chime).key
+	kin.ages[chime_key] = 6
+	chime.evolve(load("res://resource/tower/great_bell.tres"), 0)
+	kin.refresh()
+	_check(chime.kin_branch == "chime_stone" and kin.get_pair(chime).get("id") == &"night_chimes"
+		and kin.ages.get(kin.get_pair(chime).get("key", ""), 0) == 6,
+		"ascending into The Great Bell keeps the bond and its age")
+	var lone := _plant("gust", Vector2(1, 16))
+	await process_frame
+	kin.refresh()
+	_check(kin.no_kin_hint(lone).begins_with("No kin. A Pinwheel within 2 cells would form Dust Devil."),
+		"a lone Warden says what would bond it (%s)" % kin.no_kin_hint(lone))
+	var spots := kin.kin_spots(load("res://resource/tower/pinwheel.tres"))
+	_check(spots.has(Vector2(2, 16)) and spots.get(Vector2(3, 16)) == &"dust_devil" and not spots.has(Vector2(4, 16)),
+		"kin spots: the cells within 2 of the lone Gust")
+
 	# --- Kinship cards (dream_design.md "Kinship cards: going deep"), with stand-in cards by rule id ---
 	var dreams: DreamState = main.get_node("%DreamState")
 	_check(Kinships.count_on_map(drift) == kin.count() and kin.count() >= 3, "Kinships on the map can be counted (%d)" % kin.count())
@@ -168,6 +190,33 @@ func _run() -> void:
 	far_c.hit(target, 1.0, false, Tower.NO_CRIT)
 	_check(kin.harmony_run > harmony_before and target.statuses.has(EnemyStatuses.DROWSY),
 		"Kin and Kindling: the Harmony strike also applies the Bloomcap's Drowsy")
+
+	# --- Rooted Bond: sell a bonded Warden and plant a new kin in the same rest: it keeps the stage ---
+	_rule(dreams, &"rooted_bond")
+	var director_node: DriftDirector = main.get_node("%DriftDirector")
+	kin._resting = true
+	var ra := _plant("driftspore", Vector2(8, 1))
+	var rb := _plant("bloomcap", Vector2(9, 1))
+	await process_frame
+	kin.refresh()
+	var old_pair := kin.get_pair(ra)
+	_check(kin.get_partner(ra) == rb, "a fresh pair to test Rooted Bond with")
+	kin.ages[old_pair.key] = 7  # Blooming, 7 drifts together
+	seller.sell(rb.cell)
+	await process_frame
+	var rc := _plant("bloomcap", Vector2(10, 1))
+	await process_frame
+	kin.refresh()
+	_check(kin.get_partner(ra) == rc and kin.ages.get(kin.get_pair(ra).get("key", ""), -1) == 7,
+		"a new kin planted in the same rest bonds at the old stage and drift count")
+	seller.sell(rc.cell)
+	await process_frame
+	director_node.rest_ended.emit(2)  # The rest ends: the remembered stage is dropped
+	var rd := _plant("bloomcap", Vector2(10, 1))
+	await process_frame
+	kin.refresh()
+	_check(kin.get_partner(ra) == rd and kin.ages.get(kin.get_pair(ra).get("key", ""), -1) == kin._start_age(),
+		"after the rest the new bond starts fresh")
 
 	# --- The demo has only its three ---
 	Kinships.force_full = false

@@ -10,7 +10,7 @@ class_name RunSaver
 # counters, drift progress, Dreams and Omens (their own to_save()/load_save()).
 
 const PATH := "user://run.json"
-const VERSION := 2  # 2: the map shrank to 23x18, so older saves' cells don't fit
+const VERSION := 3  # 2: the map shrank to 23x18; 3: ridges taper (same seed, different map)
 
 # Where the save lives (tests point this elsewhere so they never touch the player's run).
 static var file_path := PATH
@@ -84,7 +84,8 @@ func save_now() -> bool:
 		if tower is Tower and not tower.is_queued_for_deletion():
 			towers.append({"cell": [tower.cell.x, tower.cell.y], "data": tower.tower_data.resource_path,
 				"invested": tower.invested_dew, "rank": tower.rank, "focus": tower.focus,
-				"target_mode": tower.target_mode})
+				"target_mode": tower.target_mode, "kin_branch": tower.kin_branch, "size": tower.get_footprint(),
+				"drifts_stood": int(tower.get_meta(&"drifts_stood", 0))})  # Old Growth (DreamState counts it)
 	var data := {
 		"version": VERSION,
 		"map_seed": map_generator.map_seed,
@@ -151,7 +152,14 @@ func _restore(data: Dictionary) -> void:
 		tower.rank = int(saved.get("rank", 0))  # Saves from before Nurture have none
 		tower.focus = int(saved.get("focus", 0)) as Tower.Focus
 		tower.target_mode = int(saved.get("target_mode", 0)) as TowerData.TargetMode  # Snipers' aim
-		tower.position = Tower.footprint_centre(tower.cell, tower.tower_data.footprint)
+		tower.kin_branch = String(saved.get("kin_branch", ""))  # An Ascended form's branch (Kinships)
+		if int(saved.get("drifts_stood", 0)) > 0:  # Old Growth: drifts this Warden has stood
+			tower.set_meta(&"drifts_stood", int(saved.drifts_stood))
+		# Ascended forms grew to 2×2: one saved before that (no "size") stays on its one cell.
+		var size := int(saved.get("size", 1 if tower.tower_data.tier >= DreamState.ASCENDED_TIER else 0))
+		if size > 0 and size != tower.tower_data.footprint:
+			tower.footprint_size = size
+		tower.position = Tower.footprint_centre(tower.cell, tower.get_footprint())
 		tower_container.add_child(tower)
 		for c in tower.get_cells():  # The Sapling covers 2×2
 			map_generator.path_layer.set_cell_blocked(c, true)

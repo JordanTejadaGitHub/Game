@@ -4,10 +4,15 @@ extends Control
 # while open (restoring the previous pause state after). Built in code.
 
 const CARD_SIZE := Vector2(250, 220)
+const CARD_PADDING := 24.0  # The box's top + bottom offsets inside a card
+const SECONDARY_SIZE := 12  # Entwined / Deepened / Half-dreamed / Stray lines
+const SECONDARY_MIN_SIZE := 10
+const SCREEN_MARGIN := 240.0  # Title, buttons and gaps around the cards
 const ENTWINED_COLOR := Color(0.45, 0.8, 0.4)  # Vine border
 const DEEPENED_COLOR := Color(0.6, 0.85, 1.0)
 const BITTERSWEET_COLOR := Color(0.72, 0.5, 0.68)  # Muted plum, for the cost line
 const STRAY_COLOR := Color(0.75, 0.85, 0.95)  # Pale wisp
+const HALF_DREAMED_COLOR := Color(0.62, 0.82, 0.6, 0.85)  # Pale vine
 
 @onready var dream_state: DreamState = %DreamState
 @onready var game_speed: GameSpeed = %GameSpeed
@@ -122,26 +127,54 @@ func _make_card(card: UpgradeData) -> Button:
 	box.add_child(rarity)
 	var name_label := Label.new()
 	name_label.text = card.display_name
+	name_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	name_label.add_theme_font_size_override("font_size", 22)
 	box.add_child(name_label)
+	# The effect comes right after the name; it never shrinks.
+	_add_linked_line(box, card.description, Color(0.92, 0.92, 0.95), 16)
+	if card.cost_description != "":
+		_add_linked_line(box, card.cost_description, BITTERSWEET_COLOR, 15)
+	# Secondary lines below, smaller and muted; they shrink first when a card runs out of room.
+	var spacer := Control.new()
+	spacer.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	spacer.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	box.add_child(spacer)
+	var secondary: Array[Label] = []
 	if card.entwined:
 		var names := card.requires.map(dream_state.get_display_name)
 		if not card.requires_any.is_empty():  # One "either" ingredient (Falling Stars)
 			names.append(" or ".join(card.requires_any.map(dream_state.get_display_name)))
-		_add_line(box, "%s  ·  %s" % ["Woven" if card.woven else "Entwined", " + ".join(names)], ENTWINED_COLOR, 14)
+		secondary.append(_add_line(box, "%s  ·  %s" % ["Woven" if card.woven else "Entwined", " + ".join(names)], ENTWINED_COLOR, SECONDARY_SIZE))
 	elif card.is_deepened():
-		_add_line(box, "Deepened  ·  replaces %s" % dream_state.get_display_name(card.deepens), DEEPENED_COLOR, 14)
+		secondary.append(_add_line(box, "Deepened  ·  replaces %s" % dream_state.get_display_name(card.deepens), DEEPENED_COLOR, SECONDARY_SIZE))
 	elif card.is_bittersweet():
-		_add_line(box, "Bittersweet", BITTERSWEET_COLOR, 14)
+		secondary.append(_add_line(box, "Bittersweet", BITTERSWEET_COLOR, SECONDARY_SIZE))
+	if dream_state.is_half_dreamed(card):  # A combo card whose other family you could still pick
+		secondary.append(_add_line(box, "Half-dreamed  ·  " + dream_state.half_dreamed_text(card) + ". Sleeps until then.", HALF_DREAMED_COLOR, SECONDARY_SIZE))
 	if dream_state.is_stray(card):  # The Stray Dream slot (dream_design.md "Adapt, don't get handed")
-		_add_line(box, "✧ Stray  ·  something the Heartwood hasn't dreamed of yet", STRAY_COLOR, 13)
-	var description := _add_linked_line(box, card.description, Color(0.92, 0.92, 0.95), 16)
-	description.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	if card.cost_description != "":
-		_add_linked_line(box, card.cost_description, BITTERSWEET_COLOR, 15)
+		secondary.append(_add_line(box, "✧ Stray  ·  something the Heartwood hasn't dreamed of yet", STRAY_COLOR, SECONDARY_SIZE))
+	for label in secondary:
+		label.modulate.a = 0.85  # Muted
 	for label in [rarity, name_label]:
 		label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	button.size_flags_vertical = Control.SIZE_EXPAND_FILL  # The row gives every card the tallest's height
+	_fit_card(button, box, secondary)
 	return button
+
+# A card grows to fit its content (a Button doesn't size to its children), at least CARD_SIZE tall.
+# If that would pass the screen, the secondary lines shrink first, never the effect.
+func _fit_card(button: Button, box: Control, secondary: Array[Label]) -> void:
+	var fit := func() -> void:
+		if not is_instance_valid(button):
+			return
+		var needed := box.get_combined_minimum_size().y + CARD_PADDING
+		if needed > get_viewport_rect().size.y - SCREEN_MARGIN:
+			for label in secondary:
+				if label.get_theme_font_size("font_size") > SECONDARY_MIN_SIZE:
+					label.add_theme_font_size_override("font_size", SECONDARY_MIN_SIZE)  # Refits via minimum_size_changed
+		button.custom_minimum_size = Vector2(CARD_SIZE.x, maxf(CARD_SIZE.y, needed))
+	box.minimum_size_changed.connect(fit)
+	fit.call_deferred()
 
 func _add_line(box: VBoxContainer, text: String, color: Color, font_size: int) -> Label:
 	var label := Label.new()

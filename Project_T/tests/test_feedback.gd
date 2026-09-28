@@ -172,6 +172,40 @@ func _run() -> void:
 			"the rest report's Kinship lines")
 		feedback._queue.clear()
 		feedback._card.visible = false
+		# Playtest fix: a line per Kinship formed, the once-per-run hint, the once-ever whisper.
+		var kin_seller: TowerSeller = main.get_node("%TowerSeller")
+		placer.select_tower(load("res://resource/tower/driftspore.tres"))
+		var drift_cell := _free_cell(map_generator, 10)
+		placer._try_build(drift_cell)
+		placer.select_tower(load("res://resource/tower/bloomcap.tres"))
+		var bloom_cell := _free_cell(map_generator, 16)
+		placer._try_build(bloom_cell)
+		placer.set_build_mode(false)
+		var drift_tower := kin_seller.get_tower_at(drift_cell)
+		var bloom_tower := kin_seller.get_tower_at(bloom_cell)
+		_check(RestReport.two_branch_family([drift_tower, bloom_tower]) == "spore", "two spore branches planted")
+		report._kin_hint_shown = false
+		var kin_count := Kinships.count_on_map(report)
+		report.show_report(2)
+		if kin_count == 0:
+			_check(report._label.get_parsed_text().contains("No Kinships yet: two branches of one family within 2 cells"),
+				"the no-Kinship hint at the first rest with two branches")
+			report.show_report(2)
+			_check(not report._label.get_parsed_text().contains("No Kinships yet"), "…once per run")
+		feedback.kin_names_block.clear()
+		feedback._on_kinship(&"slumber_rot", drift_tower, bloom_tower)
+		report.show_report(2)
+		_check(report._label.get_parsed_text().contains("Kinship: Slumber Rot (Driftspore + Bloomcap)"),
+			"a rest report line per Kinship formed (%s)" % report._label.get_parsed_text())
+		feedback._queue.clear()
+		feedback._card.visible = false
+		whispers.enabled = true
+		whispers._seen = []
+		whispers._queue.clear()
+		whispers._process(0.0)
+		_check(whispers._seen.has("kin") or whispers._queue.has(&"kin"), "the Kinship whisper, once two branches of a family are planted")
+		whispers._queue.clear()
+		whispers.set_enabled(false)
 	# Crowned Reactions: their own discovery card, a hidden entry until found, outside the 15.
 	_check(CodexData.crowned().size() == 8 and CodexData.combos().size() == 15, "8 Crowned Reactions, apart from the 15 combos")
 	_check(ComboFeedback.discovery_text(&"tempest").begins_with("Crowned Reaction discovered: Tempest")

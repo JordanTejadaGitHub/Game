@@ -7,7 +7,7 @@
 script = ExtResource("1_card")
 id = "dream_great_bell"
 display_name = "The Great Bell"
-description = "Any song final form can ascend into The Great Bell (400 Dew, one per run): Every 6 seconds it tolls across a huge range: every nightmare falls Asleep and all Charges go off."
+description = "Any song final form can ascend into The Great Bell (400 Dew, one per run): Every 6 seconds it tolls across a huge range: every nightmare falls Asleep and all Charges go off at half strength."
 rarity = 3
 kind = 1
 tags = Array[String](["song"])

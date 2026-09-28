@@ -122,8 +122,22 @@ alternative**: a strong card you can use now if you bend the plan.
      this run: unlocked, not owned, and a family pick is still ahead (never after the drift 75 pick).
      Needs on a specific form (Stormcap) count as its family for this check; the form itself is still
      unlocked with Dreamlight as usual.
-   - **Weight ×0.6** while half-dreamed, so it's an occasional temptation, not a flood. Normal
+   - **Weight ×0.8** while half-dreamed (was ×0.6; raised after the generic Rares thinned it to ~0.5 per run before drift 25), so it's an occasional temptation, not a flood. Normal
      rarity; the skip fade applies.
+   - **Timing (playtest fix, 2026-09-28):** only offered when the next family pick is **at most 20
+     drifts away** (so not in the rest right after a pick, when it would sleep 25 drifts), and
+     **never in a guaranteed Rare slot** (boss rests, pity, owed Rares): a guaranteed reward must
+     work now.
+   - **Declined:** if a family pick offered the missing family and the player took another, that
+     family's half-dreamed cards drop to **×0.3** until the next pick (they said no once).
+   - **Coverage:** every pair of starting families has at least one combo card in the start pool:
+     Firefly Jar + Dewdrop (Rolling Thunder, Conductive Soil), Sporeling + Firefly Jar (Wildfire
+     Spores), Sporeling + Dewdrop (Mushroom Rain, 134). New families should bring one per pair.
+   - **As built (2c1612b, with the generic Rares and real family picks):** **0.5–0.8 offers per run
+     before the drift 25 pick** (Sporeling 0.53, Firefly Jar 0.76, Dewdrop 0.68), ~1 through drift 70.
+     **Accepted** (2026-09-28): a temptation should be occasional, so no stronger weight (it would
+     become a lure). The number grows naturally as the pool gets more cross-family combo cards
+     (`design_plan.md`, Dream pool to ~70).
    - **Card face:** a pale **"Half-dreamed"** vine tag and the missing piece in plain words:
      *"Needs Dewdrop: a family you can pick after the Hollow Stag (drift 25)."* The card's effect
      works only once everything it needs is owned (it never pretends to do something now).
@@ -212,7 +226,7 @@ Rootling, Acorn) brings its own cards.
 | 18 | **Rain Lily** | unlock branch | water | Dewdrop | Start |
 | 19 | **Mistveil** | unlock branch | water, fog | Dewdrop | Start |
 | 20 | **Bramble** | Thornwalls can grow into Brambles (+10 Dew each) | wall | — | Start |
-| 21 | **Cozy Corners** | Wardens beside a bend in the path +15% soothe | maze | — | Start |
+| 21 | **Cozy Corners** | Wardens beside a bend in the path +15% damage. "Beside" = any of the **8 cells around** the Warden, diagonals included (clarified 2026-09-28: the inside of a U-turn is diagonal to its corners) | maze | — | Start |
 | 22 | **Hedge Maze** | +1% soothe per 5 Thornwalls you have (max +20%) | wall, maze | — | Start |
 | 23 | **Evergreen** | evolving costs 25% less Dew | economy | — | Start |
 | 24 | **Lingering Spores** | Spored lasts 3 s longer | spore | Sporeling | Start |
@@ -607,7 +621,7 @@ stack; now **rule cards** can come back too, as a stronger **Deepened** version 
 
 | Card | Base | Deepened (II) |
 |---|---|---|
-| Cozy Corners | +15% soothe beside a bend | +25%, and bends up to 2 tiles away count |
+| Cozy Corners | +15% soothe beside a bend | +25%, and bends up to 2 tiles away count (the 5×5 square around the Warden) |
 | Hedge Maze | +1% per 5 Thornwalls (max 20%) | +1% per 4 Thornwalls (max 30%) |
 | Evergreen | evolving −25% Dew | evolving −40% Dew |
 | Lingering Spores | Spored +3 s | Spored +5 s, and max stacks +2 |
@@ -734,7 +748,8 @@ Design and effects: `tower_design.md`, "Reactions". Starting points for tuning.
 | # | Card | Rarity | Effect | Tags | Needs | Pool |
 |---|---|---|---|---|---|---|
 | 79 | **Rolling Thunder** | Uncommon | Thunderclap arcs reach 3.5 cells | storm, water, reaction | Stormcap + any Dewdrop | Start |
-| 80 | **Wildfire Spores** | Uncommon | Ignite spreads 2 stacks, within 1.5 cells | spore, storm, reaction | Sporeling + Firefly Jar | Grove |
+| 80 | **Wildfire Spores** | Uncommon | Ignite spreads 2 stacks, within 1.5 cells | spore, storm, reaction | Sporeling + Firefly Jar | **Start** (moved from Grove 2026-09-28: every pair of starting families needs a combo card) |
+| 134 | **Mushroom Rain** | Uncommon | Mushrooming's spore cloud lasts **twice as long** and covers the **8 tiles around** it too | spore, water, reaction | Sporeling + Dewdrop | Start (added 2026-09-28, same reason) |
 | 81 | **Deep Water** | Uncommon | Drown sleeps 3 s; bosses −40% speed | water, sleep, reaction | Dewdrop | Grove |
 | 82 | **Quick Reactions** | Rare | Reaction cooldowns 1.5 s → 0.75 s | reaction | own 2 Reaction pairs | Grove |
 | 83 | **Dawnbreak** | Legendary | a **×10 chain** Dawnburst deals 10% of max health to every nightmare within 4 cells (bosses 2%) | reaction | — | Grove |
@@ -822,9 +837,116 @@ Kinship on the map.
 - "A Kinship on the map" counts at offer time (like other prerequisites). Kin and Kindling's
   statuses from Harmony strikes can complete Reactions, but the Harmony strike itself still never
   counts as a chain link.
+- **Rooted Bond as built:** the partner remembers the bond's drift count until the rest ends; only
+  the **first kin planted after the sale** within reach inherits it (a kin already standing nearby
+  doesn't). With Extended Family each partner remembers its own. `tests/test_kinships.gd`.
 - **In the demo:** the Start-pool three (Quick Bonds, Family Ties, Sweet Harmony).
 - **Watch in playtests:** Extended Family + Grove of Kin + Whole Tree + Monoculture could make an
   all-kin maze far ahead. The +30% cap on Grove of Kin is the first knob.
+
+## Generic Rares (2026-09-28: filling the Rare tier)
+
+Why: many boards qualify for 0–1 Rares through act 2 (the Few and Mighty simulation, c64183a), because
+most Rares are Entwined, Bittersweet or need a specific family. These seven work with **any family**
+and have loose or no Needs. Each rewards a way of building, not a family; all only **amplify**
+(they never gate a combo). All **Start** pool, so the demo has them.
+
+| # | Card | Rarity | Effect | Tags | Needs | Pool |
+|---|---|---|---|---|---|---|
+| 135 | **Root Network** | Rare | Sprouts that **touch each other** (side by side, not diagonal) form a network: each Sprout gets **+6% damage per Sprout in its network** (a line of 8 = +48% each; max +60%). The networks glow faintly along their shared edges | sprout, wide | 4+ Sprouts (soft) | Start |
+| 136 | **First Light** | Rare | each Warden's **first hit on a nightmare** deals **×3** damage | — | — | Start |
+| 137 | **Last Stand** | Rare | nightmares within **4 cells of the Heartwood** take **+35% damage** from every Warden | maze | — | Start |
+| 138 | **Steadfast** (id `old_growth`; "Deep Roots" and "Old Growth" were taken) | Rare | Wardens that have stood **5 drifts** (never sold; growing keeps the count) deal **+15% damage**; **15 drifts: +30%** | — | — | Start |
+| 139 | **Hunter's Patience** | Rare | Wardens deal **+50% damage to Deeply Blighted** nightmares and **+20% to bosses** | — | act 2+ | Start |
+| 140 | **Thinning the Herd** | Rare | each nightmare dispelled within a Warden's range gives that Warden **+1% damage for the rest of the drift** (max +25%) | — | — | Start |
+| 141 | **Bitter Hedges** | Rare | nightmares walking past a **Thornwall** (next to the path) take **+3% damage** from every Warden for 2 s, **+3% more per extra Thornwall** they pass in that time (max +15%) | wall, maze | 6+ Thornwalls (soft) | Start |
+
+- **Root Network** is the user's idea ("for each Sprout that's connected, increase damage"): it
+  makes a Sprout build a real choice beside Sprout Chorus (attack speed, within 2 cells), Seedfall
+  and Sprout Surge. A Sprout that grows leaves the network (it's no longer a Sprout), so the build
+  asks *when* to grow. Deepened (**Root Network II**): +8% per Sprout, max +80%, and diagonals count.
+- The Warden panel's "Dreams on this Warden" lists each of these with its current value (e.g. "Root
+  Network · +36% (network of 6)"); the build ghost shows the network it would join.
+- After these, an act 1 board with any family has **~5–7 eligible Rares** instead of 0–1.
+
+## Generic Commons and Uncommons (2026-09-28: filling the lower tiers)
+
+Why: only ~14 Commons/Uncommons work with any family (the stat cards, Cozy Corners, Hedge Maze,
+Evergreen, Glinting Dew, Bitter Sap, Seedfall, Solitude…), so over 19 Dreams the same few repeat.
+These are **enhancers** for any build: small rules and trade-offs rather than more flat stats.
+All **Start** pool, no family Needs (a few have a soft run-state Need so they're never dead).
+
+| # | Card | Rarity | Effect | Tags | Needs | Pool |
+|---|---|---|---|---|---|---|
+| 142 | **Gathered Dew** | Common | nightmares give **+10% Dew** (stacks, max +30%) | economy | — | Start |
+| 143 | **Fair Trade** | Common | selling refunds **+10%** more (rest 85%, drift 60%; stacks to 100% / 75%) | economy | — | Start |
+| 144 | **Call of the Wild** | Common | calling a drift early gives **double Dew** (cap 20 per drift) | tempo, economy | — | Start |
+| 145 | **Mending Bark** | Common | a **perfect block** (no leaf lost) regrows **1 leaf** | leaves | — | Start |
+| 146 | **Lasting Dreams** | Common | every status your Wardens apply lasts **+1 s** (stacks, max +3 s) | status | a Warden that applies a status (soft) | Start |
+| 147 | **Short Roots** | Common | Wardens with **range 2 or less** deal **+25% damage** | — | a Warden with range ≤ 2 (soft) | Start |
+| 148 | **Forest's Edge** | Common | Wardens within **3 cells of the start** deal **+20% damage** | maze | — | Start |
+| 149 | **Crowded Path** | Uncommon | Wardens get **+3% damage per nightmare in their range** (max +30%) | — | — | Start |
+| 150 | **Lone Hunter** | Uncommon | **+30% damage** to a nightmare with **no other nightmare within 2 cells** | — | — | Start |
+| 151 | **Skyward Gaze** | Uncommon | **+40% damage and +1 range** against **flying** nightmares | — | act 2+ (flyers exist) | Start |
+| 152 | **Fresh Growth** | Uncommon | a Warden planted or grown during a drift deals **+30% damage until the next rest** | tempo | — | Start |
+| 153 | **Underdog** | Uncommon | at each rest, your **3 Wardens that soothed least** in that block get **+20% damage** for the next block | — | 6+ attacking Wardens (soft) | Start |
+| 154 | **Weathered Walls** | Uncommon | Thornwalls **can't be trampled**, and every 10th Thornwall is free | wall | — | Start |
+| 155 | **Heavy Air** | Uncommon | every slow your Wardens apply (Soaked, Drowsy, frost…) is **20% stronger** | status | a Warden that slows (soft) | Start |
+| 156 | **Wandering Mind** | Uncommon | gain **2 Dream rerolls** (reroll one offer's cards) | dreams | — | Grove |
+
+- **Pairs of opposites:** Crowded Path (swarms) vs Lone Hunter (spread-out nightmares, bosses);
+  Forest's Edge (fight early) vs Last Stand (fight at the Heartwood); Short Roots vs Long Shadows.
+  An offer showing both halves of a pair is a real choice about your maze.
+- **Economy check:** Gathered Dew ×3 = +30% creature Dew, which is only part of income (rest
+  bonuses don't change). Fair Trade makes rebuilding cheap but never profitable (max 100%, and
+  Remembered Care still keeps rank Dew in the seed).
+- **Underdog** uses the rest report's per-Warden totals (`DamageLog`), and its glow shows on the
+  3 chosen Wardens. Thornwalls don't count.
+- **Wandering Mind** stacks with the Grove perk Second Thoughts (rerolls add).
+- **Deepened:** Crowded Path II (+4%, max +40%), Lone Hunter II (+45%), Fresh Growth II (+45%),
+  Underdog II (4 Wardens, +25%).
+- **Name clash fixed (2026-09-28):** Commons #10 and Rares #138 were both called **Deep Roots**; #138 is now
+  **Steadfast** (id `old_growth`). Wandering Mind is a **Grove** card (rerolls stay a Grove thing).
+
+### Generic cards, second batch (2026-09-28)
+
+User-approved. Mostly about parts of the map no card used yet (obstacles, the island's edge, path
+length, straights) and the moment a nightmare is dispelled. All **Start** pool, no family Needs.
+"Touching" = the 8 cells around a Warden.
+
+| # | Card | Rarity | Effect | Tags | Needs | Pool |
+|---|---|---|---|---|---|---|
+| 157 | **Winding Path** | Common | at each rest, **+1 Dew per 10 path tiles** | maze, economy | — | Start |
+| 158 | **Shelter of Stones** | Common | Wardens touching an **obstacle** (Withered Tree, Mossy Boulder…) deal **+15% damage** | maze | 4+ obstacles left (soft) | Start |
+| 159 | **Cliffside** | Common | Wardens touching the **island's edge** get **+1 range** | maze | — | Start |
+| 160 | **Thick Bark** | Common | the **first leaf you'd lose** each block (between two rests) is saved | leaves | — | Start |
+| 161 | **Sudden Bloom** | Common | growing (evolving) a Warden makes its **next 3 attacks deal ×2** | — | — | Start |
+| 162 | **Last Breath** | Uncommon | a dispelled nightmare **bursts for 10% of its max health** on nightmares within **1 cell** (never chains) | — | — | Start |
+| 163 | **Tangled** | Uncommon | nightmares carrying **2+ statuses** move **10% slower** | status | a Warden that applies a status (soft) | Start |
+| 164 | **Watchful Rest** | Uncommon | a Warden with **nothing in range for 5 s** stores a charge; its **next attack deals ×2** (one charge at a time) | — | — | Start |
+| 165 | **Glimmering Hunt** | Uncommon | elites (Deeply Blighted) have a **10% chance to drop a Dreamlight shard** | dreamlight | act 2+ (elites appear) | Start |
+| 166 | **Straightaway** | Uncommon | Wardens beside a **straight stretch of 5+ path tiles** get **+15% damage and +0.5 range** | maze | — | Start |
+| 167 | **Heart of the Maze** | Rare | the attacking Warden **furthest (along the path) from any other attacking Warden** gets **+50% damage** | maze | 4+ attacking Wardens (soft) | Start |
+| 168 | **Echoing Steps** | Rare | each time **the route changes during a drift**, all Wardens get **+5% damage** until the drift ends (max +25%) | maze, tempo | — | Start |
+
+- **Opposites:** Straightaway vs Cozy Corners (stretch the maze or fold it); Shelter of Stones vs
+  Wildwood Reclaimed / clearing cards (keep obstacles or clear them); Watchful Rest vs Crowded Path.
+- **Winding Path** counts the route's length at the rest (the `%PathLabel` number). With a 23×18
+  map, a strong maze is ~100–150 tiles = +10–15 Dew per rest.
+- **Shelter of Stones:** a cleared obstacle no longer counts. Obstacle tiles only, not the border.
+- **Cliffside:** "edge" = the `island_edge` rim cells. Range only, so it's for snipers and pulses.
+- **Thick Bark:** once per block; resets at each rest. Bosses' 5-leaf hits are saved whole (it's
+  "the first leak", not "one leaf"). Shown as a small bark shield on the leaves counter while ready.
+- **Last Breath:** the burst counts as effect damage (Potency, Seeping, Nightshade apply); it
+  doesn't trigger another Last Breath. Bosses' bursts are capped at 5% of the boss's max health.
+- **Tangled:** a slow like Soaked; stacks with other slows (Heavy Air doesn't boost it).
+- **Heart of the Maze:** "furthest" = the largest path distance to the nearest other attacking
+  Warden's closest path tile; recomputed on `path_changed` and on build/sell; ties go to the one
+  nearer the Heartwood. The chosen Warden gets a small heart mark.
+- **Echoing Steps:** only real route changes count (building, selling or clearing while nightmares
+  walk, or Rooted Nightmares' blocking), max 1 per second.
+- **Deepened:** Last Breath II (15%), Watchful Rest II (charge after 3 s), Straightaway II (+25%,
+  +0.5 range), Thick Bark II (first 2 leaks each block).
 
 ## Data (`UpgradeData`)
 

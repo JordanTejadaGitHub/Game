@@ -29,7 +29,16 @@ const BRIDGE_CELLS := 3  # Rope bridge from the start out into the void (DreamVo
 @export_range(0.1, 1.0) var ridge_length_max: float = 0.85
 @export var ridge_min_spacing: int = 4  # Rows between ridge centres (and walls); ridges span ±1, so keep >= 4
 @export_range(0.0, 1.0) var ridge_wander_chance: float = 0.3  # Per cell: step up/down a row (max 1 from its base)
-@export_range(0.0, 1.0) var ridge_thicken_chance: float = 0.2  # Per cell: add a second cell above/below
+# Ridges taper from the wall to the tip, all inside their band (base row ±1) so neighbours never touch:
+# a thicket/outcrop root, a two-row middle, a one-row tip, then a few strays so they thin out.
+@export_range(0.0, 1.0) var ridge_root_fraction: float = 0.3  # Share of the length at the wall that's up to 3 rows thick
+@export_range(0.0, 1.0) var ridge_tip_fraction: float = 0.3  # Share of the length at the tip that's 1 row
+@export_range(0.0, 1.0) var ridge_root_fill_chance: float = 0.7  # Root: chance for each of the other 2 band rows
+@export_range(0.0, 1.0) var ridge_middle_fill_chance: float = 0.5  # Middle: chance for a second row
+@export var ridge_stray_min: int = 1  # Lone obstacles past the tip, in the band
+@export var ridge_stray_max: int = 3
+@export var ridge_stray_gap_min: int = 1  # Open columns before each stray
+@export var ridge_stray_gap_max: int = 2
 @onready var path_tile_map_layer: PathGenerator = %PathTileMapLayer
 
 var unwalkable_cells: PackedVector2Array
@@ -91,18 +100,36 @@ func _generate_ridges(rng: RandomNumberGenerator, skip_cells: PackedVector2Array
 	for base_row in rows:
 		var length := int(inner_width * rng.randf_range(ridge_length_min, ridge_length_max))
 		var rock_share := rng.randf()
+		var root_end := roundi(length * ridge_root_fraction)
+		var tip_start := length - roundi(length * ridge_tip_fraction)
 		var row := base_row
 		for i in length:
 			if rng.randf() < ridge_wander_chance:
 				row = clampi(row + (1 if rng.randf() < 0.5 else -1), base_row - 1, base_row + 1)
 			var x := 1 + i if from_left else inner_width - i
 			_place_ridge_cell(rng, Vector2(x, row), rock_share, skip_cells, obstacles)
-			if rng.randf() < ridge_thicken_chance:
-				# Thicken within the ridge's band (base row ±1) so neighbouring ridges never touch.
+			if i < root_end:
+				# Root: a thicket or outcrop across the whole band, not a solid block.
+				for other in range(base_row - 1, base_row + 2):
+					if other != row and rng.randf() < ridge_root_fill_chance:
+						_place_ridge_cell(rng, Vector2(x, other), rock_share, skip_cells, obstacles)
+			elif i < tip_start and rng.randf() < ridge_middle_fill_chance:
+				# Middle: one neighbouring row, kept inside the band.
 				var side := 1 if rng.randf() < 0.5 else -1
 				if absi(row + side - base_row) > 1:
 					side = -side
 				_place_ridge_cell(rng, Vector2(x, row + side), rock_share, skip_cells, obstacles)
+		# Past the tip the ridge breaks up: strays with open columns between them. They aren't ridge cells:
+		# every column before the first stray is open, so the route already passes the solid part (the
+		# zig-zag holds), and carving may clear a stray rather than break a ridge.
+		var i := length - 1
+		for stray in rng.randi_range(ridge_stray_min, ridge_stray_max):
+			i += rng.randi_range(ridge_stray_gap_min, ridge_stray_gap_max) + 1
+			var x := 1 + i if from_left else inner_width - i
+			var cell := Vector2(x, base_row + rng.randi_range(-1, 1))
+			if x < 1 or x > inner_width or skip_cells.has(cell) or obstacles.has(cell):
+				continue
+			_place_obstacle(rng, cell, rock_obstacle if rng.randf() < rock_share else tree_obstacle, obstacles)
 		from_left = not from_left
 
 func _place_ridge_cell(rng: RandomNumberGenerator, cell: Vector2, rock_share: float,

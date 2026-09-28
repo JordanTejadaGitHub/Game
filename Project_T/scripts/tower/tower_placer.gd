@@ -16,6 +16,9 @@ signal sapling_planted(tower: Tower)
 const SAPLING_ID := "heartwood_sapling"
 var sapling: TowerData = preload("res://resource/tower/heartwood_sapling.tres")
 var sapling_taken := false
+# The Sapling is switched off in runs for now (design chat): never offered. A save that already has one
+# planted keeps it. Static so screens outside a run (the Codex) can read it too.
+static var sapling_enabled := false
 
 @export var tower_scene: PackedScene = preload("res://scenes/tower/tower.tscn")
 # Wardens that can be planted directly. Only the ones DreamState has unlocked show in the tower bar.
@@ -63,6 +66,9 @@ var _hover_affordable := false
 var _ghost_rows: Array = []  # The ghost's position cards here (DreamState.get_card_effects rows)
 var _neighbour_changes: Array = []  # [[tower, card name, now on], …]
 var _range_gain := 0.0  # Cells of range position cards would add here
+var _kin_spots := {}  # Cells where the selected Warden would find a kin (Kinships.kin_spots)
+var _kin_here := ""  # The Kinship it would form on the hovered cell
+const KIN_SPOT_COLOR := Color(0.78, 0.86, 0.42, 0.4)  # Faint green-gold leaf outline
 var _path_preview := Line2D.new()
 const PREVIEW_COLOR := Color(0.4, 0.9, 1.0, 0.6)  # The route preview (RouteLine: high-contrast setting)
 
@@ -91,6 +97,20 @@ func select_tower(data: TowerData) -> void:
 	set_build_mode(true)
 	queue_redraw()
 
+# While picking a square for a 2×2 growth, clicks go to the choice first (before selection handles them).
+func _input(event: InputEvent) -> void:
+	if not is_choosing_square():
+		return
+	if event.is_action_pressed("cancel_build"):
+		cancel_grow_choice()
+		get_viewport().set_input_as_handled()
+	elif event.is_action_pressed("place_tower"):
+		var origin := _choice_at(get_global_mouse_position())
+		if origin != NO_CELL:
+			evolve(_grow_choice.tower, _grow_choice.into, origin)
+			cancel_grow_choice()
+		get_viewport().set_input_as_handled()
+
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("toggle_build_mode"):
 		set_build_mode(not build_mode)
@@ -105,6 +125,12 @@ func _unhandled_input(event: InputEvent) -> void:
 		get_viewport().set_input_as_handled()
 
 func _process(_delta: float) -> void:
+	if is_choosing_square():
+		if not is_instance_valid(_grow_choice.tower):
+			cancel_grow_choice()
+		else:
+			_update_grow_choice()
+		return
 	if not build_mode:
 		return
 	var cell: Vector2 = MAP_GRID.calculate_grid_coordinates(get_global_mouse_position())
@@ -122,6 +148,10 @@ func _process(_delta: float) -> void:
 		queue_redraw()
 
 func _draw() -> void:
+	if is_choosing_square():
+		_draw_grow_choice()
+		return
+	_draw_kin_spots()
 	if _hover_cell == NO_CELL or not MAP_GRID.is_within_bounds(_hover_cell):
 		return
 	draw_set_transform(Tower.footprint_centre(_hover_cell, tower_data.footprint))
@@ -155,6 +185,8 @@ func _draw() -> void:
 		tag += "  ·  nightmare here"
 	elif growth != 0:
 		tag += "  ·  %+d path" % growth  # "Wardens are walls": how much longer the walk gets
+	if _kin_here != "":
+		tag += "  ·  Kin spot: forms %s" % _kin_here
 	var broken := get_neighbour_changes().filter(func(change: Array) -> bool: return not change[2])
 	if not broken.is_empty():
 		# Placing a Warden should never silently weaken others.
@@ -210,6 +242,10 @@ func _update_dream_preview() -> void:
 		if row.get("positional", false):
 			_ghost_rows.append(row)
 	_range_gain = maxf(dream_state.get_range_bonus_at(tower_data, _hover_cell) - dream_state.get_range_bonus(tower_data), 0.0)
+	# Kinships: the cells where this Warden would find a kin, and the one it would form here.
+	var kin := Kinships.find(self)
+	_kin_spots = kin.kin_spots(tower_data) if kin else {}
+	_kin_here = kin.preview(tower_data, _hover_cell).get("name", "") if kin else ""
 	var reach: float = dream_state.max_card_radius()
 	if reach <= 0.0:
 		return
@@ -233,6 +269,23 @@ static func _active_positional(rows: Array) -> Array:
 		if row.get("positional", false) and row.active:
 			names.append(row.name)
 	return names
+
+# Kin spots: a faint leaf-coloured outline on each free cell within reach of an unbonded Warden of the
+# selected Warden's other family branch ("plant here to form Night Chimes"). Drawn in world space.
+func _draw_kin_spots() -> void:
+	if _kin_spots.is_empty() or not build_mode:
+		return
+	draw_set_transform(Vector2.ZERO)
+	var half := MAP_GRID.cell_size / 2.0 - Vector2(5, 5)
+	for cell in _kin_spots:
+		if not MAP_GRID.is_within_bounds(cell) or not map_generator.is_buildable(cell):
+			continue
+		var centre := MAP_GRID.calculate_map_position(cell)
+		draw_rect(Rect2(centre - half, half * 2.0), KIN_SPOT_COLOR, false, 2.0)
+		# A small leaf in the corner.
+		var leaf := centre + Vector2(half.x - 7.0, -half.y + 7.0)
+		draw_colored_polygon(PackedVector2Array([leaf + Vector2(-4, 3), leaf + Vector2(0, -4), leaf + Vector2(4, 3),
+			leaf + Vector2(0, 1)]), Color(KIN_SPOT_COLOR, 0.7))
 
 # A dashed outline of each owned position card's area around the ghost (Solitude's 2 cells), so
 # "within 2 cells" is something the player can see. Cells count as a square (Chebyshev).
@@ -335,16 +388,199 @@ func get_buildable_towers() -> Array[TowerData]:
 			result.append(data)
 	return result
 
-# Grows `tower` into `into` in place, if that evolution is unlocked and affordable. The path never
-# changes, so evolving is always allowed, including mid-drift and while paused.
-func evolve(tower: Tower, into: TowerData) -> bool:
+# Grows `tower` into `into` in place, if that evolution is unlocked and affordable. A same-size growth
+# never changes the path, so it's always allowed (mid-drift and while paused too). Growing into a
+# bigger form (Ascended: 2×2) takes one of the squares from get_grow_squares(): `origin` picks it
+# (its top-left cell); with none given, the best one (the longest route) is used.
+func evolve(tower: Tower, into: TowerData, origin: Vector2 = NO_CELL) -> bool:
 	if not tower.tower_data.evolves_to.has(into) or not dream_state.is_unlocked(into.get_id()):
 		return false
-	var cost := dream_state.get_evolve_cost(into)
+	if ascended_blocker(into) != "":
+		return false  # One Ascended form per family on the map
+	var grows := into.footprint > tower.get_footprint()
+	if grows:
+		var squares := get_grow_squares(tower, into)
+		if squares.is_empty():
+			return false  # Needs room
+		if origin == NO_CELL:
+			origin = best_grow_square(squares)
+		elif not squares.has(origin):
+			return false
+	var cost: int = tower.get_grow_cost(into).total  # Evolve cost + the rank difference; all invested
 	if not run_state.spend_dew(cost):
 		return false
+	if grows:
+		_take_square(tower, into, origin)
 	tower.evolve(into, cost)
 	return true
+
+# The 2×2 squares (top-left cells) `tower` could grow into `into` on (tower_design.md "Ascended forms",
+# Size): each of the four squares that include its cell, whose other cells are empty buildable ground
+# or the player's own Thornwalls, with no nightmare on them, and where the path rule still holds.
+func get_grow_squares(tower: Tower, into: TowerData) -> Array[Vector2]:
+	var squares: Array[Vector2] = []
+	var size := into.footprint
+	if size <= tower.get_footprint():
+		return squares
+	var enemy_cells := PackedVector2Array()
+	for enemy in enemy_spawner.get_maze_walkers():
+		enemy_cells.append(enemy.get_target_cell())
+	for dy in range(-(size - 1), 1):
+		for dx in range(-(size - 1), 1):
+			var origin: Vector2 = tower.cell + Vector2(dx, dy)
+			var free = _square_free_cells(tower, origin, size)  # Array[Vector2] or null
+			if free == null:
+				continue
+			var others: Array[Vector2] = []
+			others.assign(Tower.footprint_cells(origin, size).filter(func(c) -> bool: return c != tower.cell))
+			if _cells_occupied(others):
+				continue
+			if not free.is_empty() and not map_generator.can_block_cells(free, enemy_cells):
+				continue  # The forest's rule: it may bend, never close
+			squares.append(origin)
+	return squares
+
+# The cells of the square at `origin` that are open ground now (to be blocked), or null if one is
+# another Warden (other than a lone Thornwall), an obstacle, start/end or off the map.
+func _square_free_cells(tower: Tower, origin: Vector2, size: int):
+	var free: Array[Vector2] = []
+	for c in Tower.footprint_cells(origin, size):
+		if c == tower.cell:
+			continue
+		if not MAP_GRID.is_within_bounds(c):
+			return null
+		if map_generator.is_buildable(c):
+			free.append(c)
+		elif _thornwall_at(c) == null:
+			return null  # Another Warden, an obstacle, start / end, the border
+	return free
+
+# The player's own Thornwall on `cell` (absorbed by a growing Ascended form), or null.
+func _thornwall_at(cell: Vector2) -> Tower:
+	for other in tower_container.get_children():
+		if other is Tower and not other.is_queued_for_deletion() and other.cell == cell \
+				and other.tower_data.get_id() == "thornwall" and other.get_footprint() == 1:
+			return other
+	return null
+
+# Of several valid squares, the one that leaves the longest route (group grow and G pick for you).
+func best_grow_square(squares: Array[Vector2]) -> Vector2:
+	var best := squares[0]
+	var best_length := -1
+	for origin in squares:
+		var cells: Array[Vector2] = Tower.footprint_cells(origin, 2)
+		var length: int = map_generator.get_path_if_blocked_cells(cells).size()
+		if length > best_length:
+			best_length = length
+			best = origin
+	return best
+
+# Grows `tower` onto the square at `origin`: absorbs Thornwalls there (their Dew back in full), blocks
+# the open cells, and moves the Warden to the square's centre.
+func _take_square(tower: Tower, into: TowerData, origin: Vector2) -> void:
+	var size := into.footprint
+	var free: Array[Vector2] = []
+	for c in Tower.footprint_cells(origin, size):
+		if c == tower.cell:
+			continue
+		var wall := _thornwall_at(c)
+		if wall != null:
+			run_state.earn_dew_at(wall.invested_dew, wall.global_position)  # Absorbed: refunded in full
+			tower_container.remove_child(wall)
+			wall.queue_free()
+		else:
+			free.append(c)
+	var old_cell := tower.cell
+	tower.cell = origin
+	tower.position = Tower.footprint_centre(origin, size)
+	tower.footprint_size = size  # It has its room now (Tower.evolve keeps the size it's given)
+	var kin := Kinships.find(self)
+	if kin:
+		kin.note_moved(tower, old_cell)  # The bond keeps its age (evolving keeps it)
+	if not free.is_empty():
+		map_generator.block_cells(free)  # Emits path_changed: nightmares re-route
+	else:
+		map_generator.path_changed.emit()
+
+
+# --- Choosing the square (a Grow into a bigger form with several places to go) ---
+
+signal grow_choice_changed(active: bool)
+var _grow_choice := {}  # {tower, into, squares, hover} while the player picks a square
+
+# Starts picking a square for growing `tower` into `into`: the valid squares show as ghosts with their
+# route preview; clicking one grows there, Esc / right-click cancels. With one square it grows at once.
+func begin_grow_choice(tower: Tower, into: TowerData) -> bool:
+	var squares := get_grow_squares(tower, into)
+	if squares.is_empty():
+		return false
+	if squares.size() == 1:
+		return evolve(tower, into, squares[0])
+	set_build_mode(false)
+	_grow_choice = {"tower": tower, "into": into, "squares": squares, "hover": NO_CELL}
+	visible = true
+	grow_choice_changed.emit(true)
+	queue_redraw()
+	return true
+
+func is_choosing_square() -> bool:
+	return not _grow_choice.is_empty()
+
+func cancel_grow_choice() -> void:
+	if _grow_choice.is_empty():
+		return
+	_grow_choice = {}
+	visible = build_mode
+	_path_preview.clear_points()
+	grow_choice_changed.emit(false)
+	queue_redraw()
+
+# The square under `world` (a point on the map), or NO_CELL.
+func _choice_at(world: Vector2) -> Vector2:
+	var cell := MAP_GRID.calculate_grid_coordinates(world)
+	for origin in _grow_choice.squares:
+		if Tower.footprint_cells(origin, 2).has(cell):
+			return origin
+	return NO_CELL
+
+func _update_grow_choice() -> void:
+	var hover := _choice_at(get_global_mouse_position())
+	if hover == _grow_choice.hover:
+		return
+	_grow_choice.hover = hover
+	_path_preview.clear_points()
+	if hover != NO_CELL:
+		for point in map_generator.get_path_if_blocked_cells(Tower.footprint_cells(hover, 2)):
+			_path_preview.add_point(MAP_GRID.calculate_map_position(point))
+	queue_redraw()
+
+func _draw_grow_choice() -> void:
+	draw_set_transform(Vector2.ZERO)
+	var into: TowerData = _grow_choice.into
+	for origin in _grow_choice.squares:
+		var rect := Rect2(MAP_GRID.calculate_map_position(origin) - MAP_GRID.cell_size / 2.0, MAP_GRID.cell_size * 2.0)
+		var hovered: bool = origin == _grow_choice.hover
+		draw_rect(rect.grow(-3), Color(VALID_TINT, 0.18 if hovered else 0.08))
+		draw_rect(rect.grow(-3), Color(VALID_TINT, 0.9 if hovered else 0.5), false, 2.0)
+		if hovered and into.texture != null:
+			var frame := into.get_frame_rect(0)
+			var centre := Tower.footprint_centre(origin, 2)
+			draw_texture_rect_region(into.texture, Rect2(centre - frame.size / 2.0 + into.sprite_offset, frame.size), frame,
+				Color(1, 1, 1, 0.6))
+	var tower: Tower = _grow_choice.tower
+	if is_instance_valid(tower):
+		WorldLabel.draw_tag(self, tower.global_position.x, tower.global_position.y - MAP_GRID.cell_size.y,
+			"Grow into %s: pick a square (Esc to cancel)" % into.display_name, WorldLabel.cost_color(true))
+
+# Ascended forms are one per family (tower_design.md): while one is on the map, nothing else can grow
+# into it (selling it frees the slot). The reason to show on the Grow button, or "".
+func ascended_blocker(into: TowerData) -> String:
+	if into.tier < DreamState.ASCENDED_TIER:
+		return ""
+	for tower in tower_container.get_children():
+		if tower is Tower and not tower.is_queued_for_deletion() and tower.tower_data.get_id() == into.get_id():
+			return "%s is already awake" % into.display_name
+	return ""
 
 # Nurtures `tower` one rank (warden_stats.md "Nurture v2"), if it can go higher and the player can
 # afford it. The rank that asks for a Focus (III) needs `focus`; without one it refuses. Ranks never
@@ -383,7 +619,7 @@ func _cells_occupied(cells: Array[Vector2]) -> bool:
 # The Sapling can be taken (free) once drift 50 has begun, once per run.
 func can_take_sapling() -> bool:
 	var director := get_node_or_null("%DriftDirector")
-	if sapling_taken or director == null:
+	if not sapling_enabled or sapling_taken or director == null:
 		return false
 	return director.drifts_started >= 50
 
@@ -397,7 +633,7 @@ func take_sapling() -> void:
 
 # Taken but not planted yet (the HUD keeps reminding the player).
 func has_unplanted_sapling() -> bool:
-	return sapling_taken and not is_unique_placed(sapling)
+	return sapling_enabled and sapling_taken and not is_unique_placed(sapling)
 
 # True if an enemy is standing in, or walking into, `cell`.
 func _is_occupied_by_enemy(cell: Vector2) -> bool:

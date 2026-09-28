@@ -52,7 +52,7 @@ func _process(delta: float) -> void:
 # Rebuilds the icons when the cards changed, and updates every live bonus.
 func refresh() -> void:
 	var cards := dream_state.get_taken_cards()
-	var key := ",".join(cards.map(func(c: UpgradeData) -> String: return "%s:%d" % [c.id, dream_state.card_stacks(c.id)]))
+	var key := ",".join(cards.map(func(c: UpgradeData) -> String: return "%s:%d:%s" % [c.id, dream_state.card_stacks(c.id), _dormant(c)]))
 	if key != _shown_key:
 		_shown_key = key
 		for icon in _icons:
@@ -62,6 +62,8 @@ func refresh() -> void:
 			var icon := DreamIcon.new()
 			icon.card = card
 			icon.stacks = dream_state.card_stacks(card.id)
+			icon.dormant = _dormant(card)
+			icon.modulate = Color(0.6, 0.6, 0.65, 0.6) if icon.dormant else Color.WHITE
 			icon.custom_minimum_size = ICON_SIZE + Vector2(0, 12)
 			icon.pressed.connect(_toggle_list)
 			_row.add_child(icon)
@@ -78,12 +80,18 @@ func get_list_text() -> String:
 		var line := icon.card.display_name
 		if icon.stacks > 1:
 			line += " ×%d" % icon.stacks
-		if icon.live != "":
+		if icon.dormant:
+			line += "  (half-dreamed: waits for a family)"
+		elif icon.live != "":
 			line += "  (%s)" % icon.live
 		lines.append("%s: %s" % [line, icon.card.description])
 	if _icons.is_empty():
 		lines.append("None yet. Dreams come at every rest.")
 	return "\n".join(lines)
+
+# A half-dreamed card still asleep (dream_design.md "Adapt, don't get handed"): shown greyed.
+func _dormant(card: UpgradeData) -> bool:
+	return dream_state.has_method("is_dormant") and dream_state.is_dormant(card)
 
 func _toggle_list() -> void:
 	_list.visible = not _list.visible
@@ -96,6 +104,7 @@ class DreamIcon extends Control:
 	var card: UpgradeData
 	var stacks := 1
 	var live := ""  # The live bonus under the icon ("" = none)
+	var dormant := false  # Half-dreamed and still asleep: greyed, "Half-dreamed" in the tooltip
 
 	func _ready() -> void:
 		mouse_filter = Control.MOUSE_FILTER_STOP
@@ -106,7 +115,8 @@ class DreamIcon extends Control:
 			return
 		live = text
 		tooltip_text = "%s (%s%s)\n%s%s" % [card.display_name, UpgradeData.rarity_name(card.rarity),
-			" ×%d" % stacks if stacks > 1 else "", card.description, "\nNow: " + live if live != "" else ""]
+			" ×%d" % stacks if stacks > 1 else "", card.description,
+			"\nHalf-dreamed: it works once you own every family it needs." if dormant else ("\nNow: " + live if live != "" else "")]
 		queue_redraw()
 
 	func _gui_input(event: InputEvent) -> void:

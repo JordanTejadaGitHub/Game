@@ -33,3 +33,4 @@ patrol_texture = ExtResource("fx_1")
 patrol_frames = 8
 patrol_anchor = Vector2(32, 32)
 patrol_idle_texture = ExtResource("fx_2")
+footprint = 2

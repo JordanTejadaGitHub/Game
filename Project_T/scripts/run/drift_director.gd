@@ -53,6 +53,10 @@ const DEMO_DRIFTS_DIR := "res://resource/drift/demo/"
 @export var guaranteed_elite_from: int = 26
 @export var second_elite_from: int = 76  # Two Deeply Blighted per drift from here
 @export var boss_health_multiplier: float = 1.5  # On the bosses' base health
+# Acts 3–4 (run_design.md "Act 3 probe", interim): a flat health multiplier for every nightmare from
+# `late_acts_from_act`, bosses included, on top of the growth / boss multiplier.
+@export var late_acts_health_multiplier: float = 1.4
+@export var late_acts_from_act: int = 3
 @export var extra_nightmares: float = 1.25  # Nightmares per drift (rounded up) from `extra_nightmares_from`
 @export var extra_nightmares_from: int = 10  # The intro drifts before it are unchanged
 # Rest bonus = base + per_block × block number (economy pass v2, run_design.md: was 20 + 10 × block,
@@ -261,10 +265,12 @@ func _next_is_in_block() -> bool:
 func get_extra_nightmares(number: int) -> float:
 	return extra_nightmares if number >= extra_nightmares_from else 1.0
 
-# Health multiplier for `data` in drift `number` (get_growth; bosses fixed at ×1.5 their
+# Health multiplier for `data` in drift `number` (get_growth; bosses fixed at ×1.5 their; ×1.4 in acts 3–4;
 # base). Dreams / Omens multiply on top (hook: see get_health_multiplier).
 func get_health_scale(data: EnemyData, number: int) -> float:
 	var scale := boss_health_multiplier if data.is_boss else get_growth(number)
+	if get_act(number) >= late_acts_from_act:
+		scale *= late_acts_health_multiplier
 	return scale * get_health_multiplier(data, number)
 
 # The per-drift health growth for drift `number`, compounding: ×1.045 per drift to 25, ×1.055 for

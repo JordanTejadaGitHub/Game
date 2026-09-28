@@ -203,6 +203,9 @@ var _echo_tracker: ReactionTracker = null
 var _patrol: PatrolFlight = null
 var _aura_count := 0  # Other Wardens inside this Warden's aura (Grove Heart)
 var _kin: Kinships = null  # The run's Kinships (two branches of one family bond)
+var _root_links: Array[Vector2] = []  # Root Network: directions to touching Sprouts (glow on shared edges)
+var kin_branch := ""  # The branch an Ascended form grew from (Kinships); saved with the run
+var footprint_size := 0  # 0 = the data's footprint; 1 keeps an old save's 1-cell Ascended form
 var _hits_landed := 0  # Eternal Charge / Rooted Nightmares count this Warden's hits
 var _hunted := {}  # Hunter's Moon: nightmares this Warden has hit (instance ids)
 const ETERNAL_STATIC_EVERY := 4
@@ -243,7 +246,15 @@ func _apply_data() -> void:
 
 # Grows into `data` in place (the cell and path don't change). `cost` is added to invested Dew.
 func evolve(data: TowerData, cost: int) -> void:
+	# An Ascended form keeps the branch it grew from, so its Kinship stays ("evolving keeps it").
+	if data.tier >= DreamState.ASCENDED_TIER and kin_branch == "":
+		kin_branch = Kinships.branch_of(tower_data)
+	# A Warden keeps its size unless it was given room: TowerPlacer takes the 2×2 square first (and sets
+	# footprint_size); growing any other way stays on the cells it has.
+	var size := get_footprint()
 	tower_data = data
+	if size != data.footprint:
+		footprint_size = size
 	invested_dew += cost
 	_apply_data()
 	evolved.emit(self)
@@ -406,13 +417,18 @@ func needs_focus() -> bool:
 # Cost multiplier from the Warden's tier right now: Sprout ×0.5, base ×1, branch ×2, final ×3,
 # Memory Warden ×2.
 func get_tier_cost_multiplier() -> float:
-	if tower_data.nurture_cost_multiplier > 0.0:
-		return tower_data.nurture_cost_multiplier  # The Heartwood Sapling ranks at the final-form price
-	if tower_data.tier >= 4:
+	return tier_cost_multiplier_for(tower_data)
+
+# Nurture price multiplier for a Warden of `data`: Sprout ×0.5, base ×1, branch ×2, final ×3,
+# Ascended ×4, Memory Wardens ×2, the Sapling its own.
+static func tier_cost_multiplier_for(data: TowerData) -> float:
+	if data.nurture_cost_multiplier > 0.0:
+		return data.nurture_cost_multiplier  # The Heartwood Sapling ranks at the final-form price
+	if data.tier >= 4:
 		return 4.0  # Ascended
-	if tower_data.is_unique:
+	if data.is_unique:
 		return 2.0
-	match tower_data.tier:
+	match data.tier:
 		0:
 			return 0.5
 		1:
@@ -420,6 +436,28 @@ func get_tier_cost_multiplier() -> float:
 		2:
 			return 2.0
 	return 3.0
+
+# The Dew rank `which` (1 = I) costs for a Warden of `data`, with today's Dream discounts. `self_price`:
+# this Warden's own discounts (Nursery's Sprout half price); otherwise the ones a grown form would get.
+func _rank_price_for(which: int, data: TowerData, self_price: bool) -> int:
+	var base: float = RANK_COSTS[which - 1] if which <= RANK_COSTS.size() else 0.0
+	if which > RANK_COSTS.size() and _dream_state and _dream_state.has_method("get_extra_rank_cost"):
+		base = _dream_state.get_extra_rank_cost(which)
+	var multiplier := tier_cost_multiplier_for(data)
+	if _dream_state and _dream_state.has_method("get_nurture_cost_multiplier"):
+		multiplier *= _dream_state.get_nurture_cost_multiplier(self if self_price else null)
+	return maxi(roundi(base * multiplier), 1)
+
+# What growing into `into` costs (warden_stats.md "Growing a ranked Warden pays the rank difference"):
+# the evolve cost plus, for each rank held, that rank's price at the new tier minus its price at this
+# one (free ranks pay it too). {"total", "base", "ranks"}. Every Grow button, group grow, the G hotkey
+# and TowerPlacer.evolve use this, so they all agree.
+func get_grow_cost(into: TowerData) -> Dictionary:
+	var base: int = _dream_state.get_evolve_cost(into) if _dream_state else into.evolve_cost
+	var ranks := 0
+	for which in range(1, rank + 1):
+		ranks += maxi(_rank_price_for(which, into, false) - _rank_price_for(which, tower_data, true), 0)
+	return {"total": base + ranks, "base": base, "ranks": ranks}
 
 # Dew for the next rank (0 when it can't be nurtured further).
 func get_nurture_cost() -> int:
@@ -595,6 +633,7 @@ func _refresh_neighbours() -> void:
 	_aura_count = aura_count
 	_set_harmony(harmony if harmony.size() >= 2 else {})
 	_refresh_badge()
+	_refresh_root_links()
 	if tower_data.attack_kind != TowerData.AttackKind.COPY:
 		return
 	var copied: TowerData = best.tower_data if best != null else tower_data
@@ -728,6 +767,9 @@ func hit(enemy: Node2D, soothe_multiplier: float = 1.0, is_area: bool = false, c
 	var soothe := get_damage() * soothe_multiplier * _damage_against(enemy)
 	if _dream_state and _dream_state.has_method("get_hit_damage_multiplier"):
 		soothe *= _dream_state.get_hit_damage_multiplier()  # Venom Bloom: hits weaker, effects stronger
+	if _dream_state and _dream_state.has_method("on_hit_multiplier"):
+		# First Light, Last Stand, Hunter's Patience, Bitter Hedges (tracked inside: once per hit).
+		soothe *= _dream_state.on_hit_multiplier(self, enemy)
 	# Reactions that change a hit: Pinned (a guaranteed ×3 crit) and Shatter (×2.5, shards).
 	var reaction := Reactions.before_hit(enemy, self, is_crit)
 	is_crit = reaction.crit
@@ -1293,7 +1335,7 @@ func _set_off_static(enemy: Node2D) -> bool:
 	var s: EnemyStatuses = enemy.statuses
 	if s.stacks(EnemyStatuses.STATIC) < at:
 		return false
-	var bolt := s.potency(EnemyStatuses.STATIC) * EnemyStatuses.STATIC_BOLT_MULTIPLIER
+	var bolt := s.potency(EnemyStatuses.STATIC) * EnemyStatuses.STATIC_BOLT_MULTIPLIER * attack_data.set_off_share
 	var source := s.source(EnemyStatuses.STATIC)
 	s.remove(EnemyStatuses.STATIC)
 	Reactions.strike_bolt(enemy, bolt, source if source else self, &"static")
@@ -1481,7 +1523,12 @@ func _play_ripen() -> void:
 
 # The cells this Warden stands on (the Sapling covers 2×2 from `cell`).
 func get_cells() -> Array[Vector2]:
-	return footprint_cells(cell, tower_data.footprint)
+	return footprint_cells(cell, get_footprint())
+
+# Cells per side this Warden covers: its data's (Ascended forms and the Sapling: 2), or 1 for an
+# Ascended form from a save made before they grew to 2×2.
+func get_footprint() -> int:
+	return footprint_size if footprint_size > 0 else tower_data.footprint
 
 static func footprint_cells(origin: Vector2, size: int) -> Array[Vector2]:
 	var cells: Array[Vector2] = []
@@ -1731,12 +1778,12 @@ func _light() -> void:
 func _update_beam(delta: float) -> void:
 	var target := find_target()
 	if target != _beam_target:
+		if target == null:
+			_stop_beam()  # Back to the idle sheet (it knows a beam was on only before the target is cleared)
+			return
 		_beam_ramp = 1.0
 		_beam_tick = 0.0
 		_beam_target = target
-		if target == null:
-			_stop_beam()
-			return
 		_show_attack_pose()
 	if _beam_target == null:
 		return
@@ -1753,7 +1800,7 @@ func _update_beam(delta: float) -> void:
 		if is_instance_valid(_beam_behind):
 			hit(_beam_behind, share * attack_data.beam_behind_share)
 	if not is_instance_valid(_beam_target) or _beam_target.is_cleansed:
-		_beam_target = null
+		_stop_beam()  # The target is gone: back to the idle sheet (8 frames), not the 6-frame pose
 	queue_redraw()
 
 func _stop_beam() -> void:
@@ -1800,6 +1847,7 @@ func _update_aura(delta: float) -> void:
 # --- Drawing and targeting ------------------------------------------------------------------------------
 
 func _draw() -> void:
+	_draw_root_links()  # Under the sprite (children draw on top)
 	if tower_data.texture == null:
 		draw_placeholder(self, tower_data.placeholder_color)
 	_draw_rank_pips()
@@ -1819,22 +1867,70 @@ func _draw() -> void:
 			from = to  # Midsummer's beam carries on from the target to the one behind it
 	if attack_data != null and attack_data.attack_kind == TowerData.AttackKind.AURA:
 		draw_arc(Vector2.ZERO, get_range_pixels(), 0.0, TAU, 64, Color(0.85, 0.9, 1.0, 0.12), 3.0)
-	if badges_visible() and not _badge_cards.is_empty():
-		# A small card badge at the base per active position card (its rarity's colour): Solitude is on.
-		var x := -(_badge_cards.size() - 1) * 7.0
-		for row in _badge_cards:
-			var rarity: int = row.card.rarity if row.get("card") != null else 0
-			var colour: Color = BADGE_COLORS[clampi(rarity, 0, BADGE_COLORS.size() - 1)]
-			var at := Vector2(x, MAP_GRID.cell_size.y / 2.0 - 7.0)
-			var diamond := PackedVector2Array([at + Vector2(0, -5), at + Vector2(5, 0), at + Vector2(0, 5), at + Vector2(-5, 0)])
-			draw_colored_polygon(diamond, colour)
-			draw_polyline(diamond + PackedVector2Array([diamond[0]]), Color(0.1, 0.08, 0.05, 0.8), 1.0)
-			x += 14.0
+	_draw_badges()
 	if _dream_state and _dream_state.has_method("is_eldest") and _dream_state.is_eldest(self):
 		# The Eldest: a small crown of three golden rings over the slab.
 		var top := Vector2(0, -MAP_GRID.cell_size.y * 0.5 - 4.0) + tower_data.sprite_offset
 		for i in 3:
 			draw_arc(top + Vector2((i - 1) * 7.0, -absf(i - 1) * -2.0), 3.5, 0.0, TAU, 12, Color(1.0, 0.85, 0.4, 0.95), 1.5)
+
+# Root Network (card, rule root_network): Sprouts touching side by side (II: diagonally too) glow along
+# their shared edges. Each Sprout draws its half of every link, so a pair reads as one glowing root.
+const ROOT_GLOW := Color(0.7, 1.0, 0.55)
+
+func _refresh_root_links() -> void:
+	var links: Array[Vector2] = []
+	if tower_data.get_id() == "sprout" and _dream_state and _dream_state.has_rule(&"root_network"):
+		var diagonals := _dream_state.rule_level(&"root_network") > 0
+		for other in _other_towers():
+			if other.tower_data.get_id() != "sprout":
+				continue
+			var d: Vector2 = other.cell - cell
+			var side := absf(d.x) + absf(d.y) == 1.0
+			var corner := absf(d.x) == 1.0 and absf(d.y) == 1.0
+			if side or (diagonals and corner):
+				links.append(d)
+	if links != _root_links:
+		_root_links = links
+		queue_redraw()
+
+func _draw_root_links() -> void:
+	for d in _root_links:
+		var to := d * MAP_GRID.cell_size / 2.0  # Half-way: the neighbour draws the rest
+		draw_line(Vector2.ZERO, to, Color(ROOT_GLOW, 0.25), 7.0)
+		draw_line(Vector2.ZERO, to, Color(ROOT_GLOW, 0.8), 2.0)
+
+# Badges in one column up the tile's left edge, clear of the rank pips along the bottom (so nothing
+# stacks on top of anything else): a leaf pair when the Warden is in a Kinship (always shown, tinted
+# with its family), then one rarity-coloured diamond per active position card (in build mode or while
+# Wardens are selected). Tapping the Warden opens its panel, which names them.
+func _draw_badges() -> void:
+	var items: Array = []
+	if is_instance_valid(_kin) and not _kin.get_pairs(self).is_empty():
+		items.append(["kin", _kin.get_pair(self)])
+	if badges_visible():
+		for row in _badge_cards:
+			items.append(["card", row])
+	var x := -MAP_GRID.cell_size.x / 2.0 + 7.0
+	var y := MAP_GRID.cell_size.y / 2.0 - 8.0
+	for item in items:
+		var at := Vector2(x, y)
+		if item[0] == "kin":
+			var colour: Color = Kinships.FAMILY_COLORS.get(tower_data.line, Color(0.78, 0.86, 0.42))
+			var leaf := Fx.texture(&"kin_leaf_icon")
+			if leaf:
+				draw_texture_rect(leaf, Rect2(at - Vector2(7, 7), Vector2(14, 14)), false, colour)
+			else:
+				for side in [-1.0, 1.0]:
+					draw_colored_polygon(PackedVector2Array([at, at + Vector2(3 * side, -6), at + Vector2(6 * side, -1)]), colour)
+		else:
+			var row: Dictionary = item[1]
+			var rarity: int = row.card.rarity if row.get("card") != null else 0
+			var colour: Color = BADGE_COLORS[clampi(rarity, 0, BADGE_COLORS.size() - 1)]
+			var diamond := PackedVector2Array([at + Vector2(0, -5), at + Vector2(5, 0), at + Vector2(0, 5), at + Vector2(-5, 0)])
+			draw_colored_polygon(diamond, colour)
+			draw_polyline(diamond + PackedVector2Array([diamond[0]]), Color(0.1, 0.08, 0.05, 0.8), 1.0)
+		y -= 13.0
 
 # Small warm pips along the bottom of the tile, one per Nurture rank, with the Focus icon after them.
 # Drawn on a child so they sit over the sprite.

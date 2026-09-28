@@ -1,7 +1,8 @@
 extends PanelContainer
 
 # Right-hand panel for the hovered nightmare (screens_ui.md "Nightmare info"): name, one-line trait,
-# health, speed, leaf cost and its statuses with time left. Follows the most recently hovered one
+# health, speed, leaf cost and its statuses with time left, then its Resists / Weak to / Immune /
+# Traits icon rows (NightmareIcons; each icon explains itself on hover and tap). Follows the most recently hovered one
 # and hides when it's gone. A nightmare type never met before gets a "New" tag (remembered in
 # HeartwoodMemory, by the real game only). Built in code.
 
@@ -12,6 +13,8 @@ var _known := {}  # Nightmare kinds met before this run (for the "New" tag)
 var _saved := {}  # Kinds already written to the profile (so the file is touched once per kind)
 var _title := Label.new()
 var _body := StatusLinks.make_label("", 15)  # Status names are links (hover / tap)
+var _rows_box := VBoxContainer.new()  # Resists / Weak to / Immune / Traits icons (NightmareIcons)
+var _rows_for: EnemyData = null
 
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -22,6 +25,7 @@ func _ready() -> void:
 	box.add_child(_title)
 	_body.custom_minimum_size = Vector2(220, 0)
 	box.add_child(_body)
+	box.add_child(_rows_box)
 	visible = false
 	for kind in HeartwoodMemory.load_data().get("nightmares_seen", []):
 		_known[kind] = true
@@ -62,6 +66,11 @@ func _process(_delta: float) -> void:
 	var body := StatusLinks.bbcode("\n".join(lines))
 	if body != _body.text:  # Only on change, so a link's hover isn't reset every frame
 		_body.text = body
+	if data != _rows_for:  # The icon rows (resists, weak to, immune, traits): rebuilt per kind
+		_rows_for = data
+		for child in _rows_box.get_children():
+			child.queue_free()
+		_rows_box.add_child(NightmareIcons.make_rows(data, 26.0))
 
 func _hovered_nightmare() -> Node2D:
 	var mouse: Vector2 = get_viewport().get_canvas_transform().affine_inverse() * get_viewport().get_mouse_position()

@@ -49,7 +49,18 @@ Ascended Warden is the family's final word: a huge, unique presence that anchors
   **400 Dew** (the Warden keeps its rank and Focus).
 - **One per family per run** (at most 4 in a run, one per family you own). Unique like Memory
   Wardens.
-- **Power:** about **3× a final form** per cell, plus a family-wide effect. Nurture costs × 4.
+- **Power:** about **5× an average final form in total** (revised 2026-09-28: it now takes 4 cells; the act 3 probe measured The Great Bell at ~7×), plus a family-wide effect. Nurture costs × 4.
+- **Size: 2×2 cells** (decided 2026-09-28; playtest: the art is ~2×2 but the Warden took 1 cell, so
+  it spilled over its neighbours and the path). Growing into an Ascended form needs room:
+  - It takes one of the **four 2×2 squares** that include the Warden's cell. The other 3 cells
+    must be **empty buildable ground or your own Thornwalls** (they're absorbed; their Dew is
+    refunded in full), never another Warden, an obstacle, the path's start / end or a nightmare's
+    cell, and the path rule must still hold (a 2×2 wall is a real maze decision).
+  - Pressing Grow shows the valid squares as ghosts (with the route preview for each); tap one to
+    confirm. With only one valid square it's preselected.
+  - No valid square: the button is disabled with *"Needs room: 3 free cells next to it (2×2)"*.
+  - Range and auras are measured from the centre of the 2×2. Selling frees all 4 cells.
+  - Reuses the Sapling's footprint support (`footprint` 2, `Tower.get_cells()`, `can_block_cells`).
 - **Memory Grove:** each family's limb gets an **Ascension** node above its hidden branch
   (`meta_design.md`); until it's planted the Ascended form shows *"Memory Grove"*.
 

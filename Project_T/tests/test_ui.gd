@@ -256,6 +256,13 @@ func _run() -> void:
 	family.choose(family.offer[0])
 
 	# --- The Heartwood Sapling: its card after the drift 50 family pick, then the rest panel ---
+	# The Sapling is out of runs (TowerPlacer.sapling_enabled, run_design.md): no Codex terms for it.
+	var sapling_terms := func() -> bool:
+		return CodexData.glossary().any(func(group: Array) -> bool:
+			return group[1].any(func(entry: Array) -> bool: return entry[0] == "Permanent"))
+	_check(not TowerPlacer.sapling_enabled and not sapling_terms.call(), "no Sapling terms in the Codex while it's off")
+	TowerPlacer.sapling_enabled = true  # The rest of this part checks the Sapling's UI when it's on
+	_check(sapling_terms.call(), "…and they come back with it")
 	var sapling_placer = main.get_node("%TowerPlacer")
 	if sapling_placer.has_method("can_take_sapling"):
 		var started_before := director.drifts_started
@@ -282,6 +289,7 @@ func _run() -> void:
 		if sapling_placer.sapling != null and sapling_placer.sapling.texture != null:
 			var crop := WardenIcon.region(sapling_placer.sapling)
 			_check(crop.size == Vector2(64, 64), "the Sapling's big frame is cropped to a 64×64 icon (%s)" % crop)
+	TowerPlacer.sapling_enabled = false
 
 	# --- Settings: tabs, and the high-contrast route line ---
 	var settings := SettingsPanel.new()

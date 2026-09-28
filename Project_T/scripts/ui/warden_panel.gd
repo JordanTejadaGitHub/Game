@@ -142,6 +142,10 @@ func _refresh() -> void:
 		var kin_line := kin.describe(_tower)  # "Kin: Bloomcap · Slumber Rot · Blooming (3 drifts to Old Kin)"
 		if kin_line != "":
 			lines.append(kin_line)
+		else:
+			var hint := kin.no_kin_hint(_tower)  # "No kin. A Chime Stone within 2 cells would form Night Chimes."
+			if hint != "":
+				lines.append(hint)
 		var family := kin.family_bonus(data.line)
 		if family > 0.0:
 			lines.append("%s: +%d%% damage for the family" % ["Whole Tree" if family > Kinships.KINDRED_BONUS else "Kindred",
@@ -169,10 +173,21 @@ func _refresh() -> void:
 		var next: TowerData = option[0]
 		var button := _add_button("")
 		if option[1]:
-			var cost := dream_state.get_evolve_cost(next)
+			var grow := _tower.get_grow_cost(next)  # Ranked Wardens also pay the rank difference
+			var cost: int = grow.total
 			button.text = "Grow into %s · %d Dew" % [next.display_name, cost]
+			if grow.ranks > 0:
+				button.text += " (%d + %d for rank %s)" % [grow.base, grow.ranks, Tower.rank_name(_tower.rank)]
 			button.tooltip_text = next.description
 			button.disabled = not run_state.can_afford(cost)
+			var awake := tower_placer.ascended_blocker(next)
+			if awake != "":
+				button.text = "Grow into %s · %s" % [next.display_name, awake]  # One per family
+				button.disabled = true
+			elif next.footprint > _tower.get_footprint() and tower_placer.get_grow_squares(_tower, next).is_empty():
+				# A 2×2 form needs three free cells (or Thornwalls) beside it, and the path must stay open.
+				button.text = "Grow into %s · Needs room: 3 free cells next to it (2×2)" % next.display_name
+				button.disabled = true
 			button.pressed.connect(_evolve.bind(next))
 		else:
 			_locked_form_button(button, "Grow into %s" % next.display_name, next)
@@ -307,16 +322,21 @@ func _refresh_group() -> void:
 			if not option[1]:
 				_locked_form_button(button, "%s → %s" % [_plural(data, towers.size()), next.display_name], next)
 				continue
-			var cost := dream_state.get_evolve_cost(next)
-			var affordable := tower_seller.count_affordable(towers, next)
+			# Each pays Tower.get_grow_cost (ranked ones their rank difference too).
+			var plan: Array = tower_seller.plan_grow(towers, next)
+			var affordable: int = plan[0]
 			if affordable >= towers.size():
 				button.text = "Grow %d %s into %s · %d Dew" % [towers.size(), _plural(data, towers.size()),
-					next.display_name, cost * towers.size()]
+					next.display_name, plan[1]]
 			else:
 				# Grows as many as the Dew allows, closest to the Heartwood first.
 				button.text = "Grow %d of %d %s into %s · %d Dew" % [affordable, towers.size(),
-					_plural(data, towers.size()), next.display_name, cost * affordable]
+					_plural(data, towers.size()), next.display_name, plan[1]]
 				button.disabled = affordable == 0
+			var awake := tower_placer.ascended_blocker(next)
+			if awake != "":
+				button.text = "%s → %s · %s" % [_plural(data, towers.size()), next.display_name, awake]
+				button.disabled = true
 			button.pressed.connect(func() -> void: tower_seller.grow_group(towers, next))
 	# Nurture all: one rank each, as far as the Dew goes (nearest the Heartwood first).
 	var full: Array = tower_seller.full_nurture_cost(selection)
@@ -465,5 +485,10 @@ func _cycle_target() -> void:
 	_refresh()
 
 func _evolve(into: TowerData) -> void:
+	if into.footprint > _tower.get_footprint():
+		# A 2×2 form: pick the square on the map (one valid square grows there at once).
+		if tower_placer.begin_grow_choice(_tower, into):
+			_refresh()
+		return
 	if tower_placer.evolve(_tower, into):
 		_refresh()

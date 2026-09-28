@@ -137,7 +137,7 @@ accessibility, Steam achievements (milestones map to them). Acts 3–4 and all f
   (+1 leaf, `act_started`). `family_pick_requested(&"first"|&"boss")` fires after drift 1 and
   before a boss rest; `FamilyPickScreen` calls `family_picked()` (first pick: 3 random of every
   unlocked family, never the last run's offer again, profile `last_first_pick`). `is_build_phase()`
-  = resting (75% refunds). Health `get_growth(n)`: × 1.045 per drift, × 1.055 from drift 26 (`late_growth_from`), × 1.045 from 51 (`endgame_growth_from`); bosses × 1.5. From drift 26 a drift listing no elites gets one, two from 76 (`add_guaranteed_elite`). Hooks for Dreams/Omens:
+  = resting (75% refunds). Health `get_growth(n)`: × 1.045 per drift, × 1.055 from drift 26 (`late_growth_from`), × 1.045 from 51 (`endgame_growth_from`); bosses × 1.5; acts 3–4 × 1.4 on top, bosses too (`late_acts_health_multiplier`). From drift 26 a drift listing no elites gets one, two from 76 (`add_guaranteed_elite`). Hooks for Dreams/Omens:
   `get_health_multiplier`, `get_schedule_modifiers`, `get_spawn_modifiers`, `_pay_rest_bonus`.
 - Drift data: `DriftData.groups: Array[DriftGroup]`; `DriftGroup.entries: Array[DriftEntry]`
   (enemy + count + `elite`; several entries mix evenly), `spacing`, `delay`. `get_schedule()` →
@@ -213,6 +213,15 @@ accessibility, Steam achievements (milestones map to them). Acts 3–4 and all f
   (`set_tool_active`, `tool_changed`, `tool_refused`, `lock_changed`, touch `clear_pending` /
   `confirm_pending`). Developer "Demo mode": `settings.demo_mode` (-1 project setting / 0 full / 1
   demo) read by `ResultsScreen.is_demo()` in debug builds, never in headless tests.
+  Resistances as icons + boss dossier (screens_ui.md "Nightmare info" / "Boss dossier"), all on Enemy
+  Code's `EnemyData.get_defences()` / `get_ability(i)` / `get_summons()` / `tips` / `title`:
+  `NightmareIcons` (family = base Warden face with shield/spark, crossed / "½" status, trait glyphs;
+  `make_rows(data, side, compact)`), `NightmareCard` (tap info for a kind not on the field; portrait,
+  `health_at`, `is_new`), `ComingStrip` (DriftPanel, at rests), `ResistPips` (world; context = build
+  ghost / selection, setting `resist_pips` = always; immune flash on `EnemyContainer.status_refused`),
+  `BossDossier` (HUD, group `boss_dossier`, `open_for(tree, drift)`; shows itself last at the rest
+  opening a boss block, reopen from the banner's "Boss in N" / strip; profile `boss_records`, real game
+  only). DriftBanner's 50% marker taps to the "at 50% health" ability. `tests/test_nightmare_icons.gd`.
 - Combat feedback (screens_ui.md), all on `DamageLog` events: `CombatCallouts` (world; combo tag →
   "Conducted!" / "Popped!" / "Asleep!" / "Shattered!" / "Weak!", throttled; calls
   `enemy.flash_status`), `PlacementLinks` (vines from the build ghost to Wardens it combos with),
@@ -323,7 +332,9 @@ accessibility, Steam achievements (milestones map to them). Acts 3–4 and all f
   a button per Warden (hotkeys 1-9). Thornwall has `can_attack = false`.
   Ranks (Nurture v2): `Tower.rank` 0-5 (VII with Deeper Rings), cost `RANK_COSTS` 25/40/60/90/135 ×
   tier multiplier × Dreams; +10% dmg, +4% speed, +0.1 range each; `Tower.focus` (Power/Swift/Reach/
-  Deep) chosen at rank III (`needs_focus()`, `TowerPlacer.nurture(tower, focus)`); rank art children
+  Deep) chosen at rank III (`needs_focus()`, `TowerPlacer.nurture(tower, focus)`). Growing a ranked Warden
+  pays the rank difference: `Tower.get_grow_cost(into)` {total, base, ranks}, used by every grow path
+  (`TowerSeller.plan_grow` for groups); rank art children
   RankUnder/RankOver. `TowerSeller.plan_nurture` / `nurture_group`, R = `nurture_warden`; kept
   through evolution and in the run save. Nurture Dream cards feed in via DreamState getters.
   Towers can't go on border/trees/towers/start/end, on a cell an enemy occupies, or anywhere that
@@ -396,7 +407,8 @@ accessibility, Steam achievements (milestones map to them). Acts 3–4 and all f
   `harmony_struck`, `family_whole`; `kinship_formed` for discovery. Setting `kinship_effects` (0 Full /
   1 Subtle / 2 Off). Saved via `to_save` / `load_save` in RunSaver. Demo: 3 Kinships, no Whole Tree
   (`force_full` for tests). Kinship cards by rule id (quick_bonds, family_ties, sweet_harmony, close_kin, old_friends, rooted_bond,
-  extended_family, kin_and_kindling, grove_of_kin, blood_is_thicker): `get_reach`, `get_stage_drifts`,
+  extended_family, kin_and_kindling, grove_of_kin, blood_is_thicker; rooted_bond = a Warden sold during a rest
+  leaves its partner remembering the bond, and a new kin planted that rest bonds at the old age): `get_reach`, `get_stage_drifts`,
   `damage_bonus(tower)`, `get_pairs(tower)` (two with Extended Family); `Kinships.count_on_map(node)` for
   card prerequisites. The 9 hidden Kinships and the Whole Tree perks are still to build. `tests/test_kinships.gd`.
 - Dream bonuses on Wardens (screens_ui.md): every card effect comes from `DreamState.get_card_effects(data,

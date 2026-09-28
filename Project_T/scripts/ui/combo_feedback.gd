@@ -7,7 +7,8 @@ class_name ComboFeedback
 # ingredients, one line, "Added to the Codex"; Continue / Open in Codex); several queue behind one
 # pause, and it waits while a choice screen or the pause menu is open. With the Gameplay setting
 # "Pause on new combos" off, the old 5 s slide-in card instead. Saved in the profile
-# (`combos_seen`, lifetime `combo_counts`; also in the demo; never tests or developer runs), with the
+# (`combos_seen`, lifetime `combo_counts`; also in the demo; never tests; developer runs keep theirs
+# for the session only: `session_seen`, a "dev" mark in the Codex), with the
 # "all_combos" milestone once all are found. Also counts Reactions per block for the rest report
 # (Fx shows their callouts). Sources: DamageLog combo tags (conducted, popped, fog), ReactionTracker
 # (Reactions), and ComboFeedback.report(id, near) from game code where a synergy happens (set_off,
@@ -36,6 +37,8 @@ var harmony_block := 0
 var harmony_run := 0
 var whole_block: Array[String] = []
 var whole_run: Array[String] = []
+# "Night Chimes (Chime Stone + Dreamcatcher)" per bond formed this block (rest report).
+var kin_names_block: Array[String] = []
 const KINSHIPS_GROUP := &"kinships"
 var run_counts := {}  # Combo id -> times this run
 var _seen: Array = []  # Combo ids (String) discovered ever
@@ -65,14 +68,31 @@ static func report(id: StringName, near: Node, enemy: Node2D = null) -> void:
 	if feedback != null:
 		feedback.record(id, enemy)
 
-# Discovered combo ids (from the profile; the old reactions_seen counts too).
+# Developer runs (Test Grove / Unlock all families; screens_ui.md "Saved in the profile"): their
+# discoveries are kept for this session only (until the game closes), never written to the profile or
+# counted for the milestone. The Codex shows them with a small "dev" mark; each pauses once a session.
+static var session_seen: Array = []
+
+# Discovered combo ids: the profile's (the old reactions_seen counts too) plus this session's dev
+# discoveries.
 static func load_seen() -> Array:
+	var seen := profile_seen()
+	for id in session_seen:
+		if not seen.has(String(id)):
+			seen.append(String(id))
+	return seen
+
+static func profile_seen() -> Array:
 	var memory := HeartwoodMemory.load_data()
 	var seen: Array = memory.get(SEEN_KEY, []).duplicate()
 	for id in memory.get(LEGACY_KEY, []):
 		if not seen.has(String(id)):
 			seen.append(String(id))
 	return seen
+
+# Found only in a developer run this session (the Codex's "dev" mark).
+static func is_dev_discovery(id: StringName, profile: Array) -> bool:
+	return session_seen.has(String(id)) and not profile.has(String(id))
 
 func _ready() -> void:
 	add_to_group(GROUP)
@@ -128,6 +148,7 @@ func _ready() -> void:
 		block_longest_chain = 0
 		block_new.clear()
 		kin_formed_block = 0
+		kin_names_block.clear()
 		harmony_block = 0
 		whole_block.clear())
 	drift_director.rest_started.connect(func(_b: int, _boss: bool, _bonus: int, _perfect: bool) -> void: _save_counts())
@@ -166,9 +187,17 @@ func _hook_kinships(node: Node) -> void:
 			whole_block.append(family)
 			whole_run.append(family))
 
-func _on_kinship(kinship: StringName, a: Node, _b: Node) -> void:
+func _on_kinship(kinship: StringName, a: Node, b: Node) -> void:
 	kin_formed_block += 1
 	kin_formed_run += 1
+	var names: Array[String] = []
+	for tower in [a, b]:
+		if tower is Tower:
+			names.append(tower.tower_data.display_name)
+	var entry := CodexData.get_any(kinship)
+	if names.size() < 2:  # The pair from the Codex when the Wardens aren't known
+		names.assign([entry.get("a", "?"), entry.get("b", "?")])
+	kin_names_block.append("%s (%s)" % [entry.get("name", String(kinship).capitalize()), " + ".join(names)])
 	record(kinship, a as Node2D)
 
 func _on_damage(event: DamageLog.Event) -> void:
@@ -189,7 +218,9 @@ func record(id: StringName, enemy: Node2D = null) -> void:
 		return
 	_seen.append(String(id))
 	block_new.append(id)
-	_remember_discovery()
+	if MetaRun.is_dev_run() and not session_seen.has(String(id)):
+		session_seen.append(String(id))
+	_remember_discovery(id)
 	combo_discovered.emit(id)
 	_queue.append(id)
 	_enemies[id] = enemy
@@ -363,13 +394,18 @@ static func pair_text(data: ReactionData) -> String:
 func _may_write() -> bool:
 	return get_tree().current_scene == owner and not MetaRun.is_dev_run()
 
-func _remember_discovery() -> void:
+func _remember_discovery(id: StringName) -> void:
 	if not _may_write():
 		return
+	# Only the profile's own list plus this find: a dev discovery from earlier this session stays out.
 	var memory := HeartwoodMemory.load_data()
-	memory[SEEN_KEY] = _seen.duplicate()
+	var seen: Array = memory.get(SEEN_KEY, []).duplicate()
+	if not seen.has(String(id)):
+		seen.append(String(id))
+	memory[SEEN_KEY] = seen
+	var all_seen := profile_seen() + seen
 	# The milestone counts the 15 combos only (Crowned Reactions aren't part of it).
-	if CodexData.combos().all(func(c: Dictionary) -> bool: return _seen.has(String(c.id))):
+	if CodexData.combos().all(func(c: Dictionary) -> bool: return all_seen.has(String(c.id))):
 		memory.milestones[MILESTONE] = true  # meta_design.md "Discover every combo"
 	HeartwoodMemory.save_data(memory)
 

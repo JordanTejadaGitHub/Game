@@ -171,6 +171,50 @@ func _run() -> void:
 	_check(_lost(t) > 0, "Carried Storm repeats a Thunderclap at 50%% (%d)" % _lost(t))
 	await _clean()
 
+	# --- The crown mark rides its callout and never stays behind (it's a looping sheet) ---
+	await _wait(Fx.CALLOUT_LIFE + 0.3)  # Earlier steps' callouts (and their crowns) are gone
+	Fx._callout_cooldown.clear()
+	var world_node: Node = main
+	Fx.reaction(&"tempest", origin, world_node)
+	Fx.reaction(&"tempest", origin + Vector2(0, CELL), world_node)  # Throttled: no callout, so no crown
+	var crowns := _find_named(main, "Fx_crowned_crown")
+	_check(crowns.size() <= 1, "one crown for one callout, none for a throttled one (%d)" % crowns.size())
+	_check(crowns.all(func(c) -> bool: return c.get_parent() is Fx.FxCallout), "the crown belongs to its callout")
+	await _wait(Fx.CALLOUT_LIFE + 0.3)
+	_check(_find_named(main, "Fx_crowned_crown").is_empty(), "and goes when the callout does")
+
+	# --- Mushroom Rain (card 134): the Mushrooming cloud lasts twice as long and covers the 3×3 ---
+	var dreams_node: DreamState = main.get_node("%DreamState")
+	var rain_card := UpgradeData.new()
+	rain_card.id = "test_mushroom_rain"
+	rain_card.rule_id = &"mushroom_rain"
+	rain_card.kind = UpgradeData.Kind.RULE
+	dreams_node.pool.append(rain_card)
+	dreams_node.take(rain_card)
+	var rained := _spawn(origin)
+	rained.apply_status(EnemyStatuses.SPORED, 3, 5.0, 2.0, 0, "spore", sporeling)
+	rained.apply_status(EnemyStatuses.DAMP)
+	var rain_clouds := main.get_children().filter(func(n: Node) -> bool: return n is ReactionCloud)
+	_check(rain_clouds.size() == 1 and is_equal_approx(rain_clouds[0]._duration, Reactions.MUSHROOM_CLOUD_TIME * 2.0)
+		and rain_clouds[0]._radius >= CELL * 1.45, "Mushroom Rain: twice as long, over the 8 tiles around too")
+	dreams_node.stacks.erase(rain_card.id)
+	dreams_node.pool.erase(rain_card)
+	await _clean()
+
+	# --- A sprinting Night Hound can't be Held: Drown slows it instead of putting it to sleep ---
+	var hound := _spawn(origin)
+	hound.enemy_data = hound.enemy_data.duplicate()
+	hound.enemy_data.immune_while_sprinting = [&"held"] as Array[StringName]
+	hound.rolling = true
+	_check(Reactions.cant_be_held(hound), "a sprinting Night Hound can't be Held")
+	hound.apply_status(EnemyStatuses.DAMP)
+	hound.apply_status(EnemyStatuses.DROWSY, 5)
+	_check(hound.statuses.sleep_time <= 0.0 and hound.statuses.slow_time > 0.0,
+		"so Drown slows it instead of putting it to sleep")
+	hound.rolling = false
+	_check(not Reactions.cant_be_held(hound), "once it stops sprinting it can be Held again")
+	await _clean()
+
 	# --- Grafted Harmony: a Graftling touching two status families applies both at half ---
 	var graft := _plant("graftling", Vector2(8, 3))
 	var jar2 := _plant("firefly_jar", Vector2(8, 4))
@@ -223,3 +267,14 @@ func _clean() -> void:
 		if node is ReactionCloud or node is CrownedGround:
 			node.queue_free()
 	await process_frame
+
+func _find_named(node: Node, prefix: String) -> Array:
+	var found := []
+	for child in node.get_children():
+		if String(child.name).begins_with(prefix):
+			found.append(child)
+		found.append_array(_find_named(child, prefix))
+	return found
+
+func _wait(seconds: float) -> void:
+	await create_timer(seconds, true, false, true).timeout

@@ -86,6 +86,7 @@ func show_pick(reason: StringName = &"first") -> void:
 			if _ids(available.slice(0, count)) != previous_first_offer:
 				break
 			available.shuffle()
+	_include_owed_family(available, count)
 	offer = []  # Untyped: families (TowerData) and Blessings (UpgradeData) share it
 	offer.append_array(available.slice(0, count))
 	if reason == &"first":
@@ -149,6 +150,7 @@ func _blessing_for(data: TowerData) -> UpgradeData:
 func choose(data: Resource) -> void:
 	if not offer.has(data):
 		return
+	dream_state.note_family_pick(_ids(offer), data.get_id() if data is TowerData else "")  # Declined families (half-dreamed)
 	offer = []
 	if data is UpgradeData:
 		dream_state.take(data)  # A Family Blessing
@@ -353,3 +355,17 @@ func _make_blessing_card(card: UpgradeData) -> Button:
 		label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		box.add_child(label)
 	return button
+
+# A half-dreamed Dream taken since the last pick owes this pick its missing family (one of them if
+# several): it's moved into the offered slots; the player still chooses (dream_design.md
+# "Adapt, don't get handed" 5).
+func _include_owed_family(available: Array[TowerData], count: int) -> void:
+	for id in dream_state.take_owed_families():
+		for i in available.size():
+			if available[i].get_id() != id:
+				continue
+			if i >= count and count > 0:
+				var swapped := available[count - 1]
+				available[count - 1] = available[i]
+				available[i] = swapped
+			return

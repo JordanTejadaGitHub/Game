@@ -36,6 +36,7 @@ func _run() -> void:
 	_test_potency_and_endless()
 	_test_card_effects()
 	_test_kinship_cards()
+	_test_generic_rares()
 	print("dream builds test: %s" % ("PASS" if failures == 0 else "%d FAILED" % failures))
 	quit(failures)
 
@@ -321,6 +322,8 @@ func _test_family_review_cards() -> void:
 	var encore := _card("encore")
 	dreams.unlocked["echo_hollow"] = true
 	_check(not dreams.is_eligible(encore), "Encore needs a Reaction card as well as Echo Hollow")
+	dreams.unlocked["stormcap"] = true  # Rolling Thunder's Wardens (else it sleeps: half-dreamed)
+	dreams.unlocked["dewdrop"] = true
 	dreams.take(_card("rolling_thunder"))
 	_check(dreams.is_eligible(encore) and dreams.make_offer(10).has(encore), "…then Entwined: guaranteed next offer")
 
@@ -720,6 +723,71 @@ func _test_kinship_cards() -> void:
 	_check(offer.has(kindling), "…and gets the guaranteed slot")
 	kin.pairs = saved
 	_reset()
+
+# Generic Rares 135–141 (dream_design.md "Generic Rares").
+func _test_generic_rares() -> void:
+	_reset()
+	var sprout: TowerData = load("res://resource/tower/sprout.tres")
+	# Root Network: sides only; II adds diagonals
+	var network := _card("root_network")
+	_check(dreams.can_offer(network) and not dreams.is_eligible(network), "Root Network: 4+ Sprouts is a soft Need")
+	dreams.take(network)
+	var a := _plant("sprout", 0, 0)
+	_plant("sprout", 1, 0)
+	_plant("sprout", 2, 0)
+	var alone := _plant_at("sprout", Vector2(100, 102), 0)
+	var diagonal := _plant_at("sprout", Vector2(103, 101), 0)
+	var row := _find(dreams.get_card_effects(sprout, a.cell, a), "root_network")
+	_check(row.active and is_equal_approx(row.damage, 0.18) and row.note == "network of 3", "Root Network: 3 in a row = +18% each (%s)" % row)
+	_check(is_equal_approx(dreams.get_soothe_multiplier(a), 1.18), "…and it's real damage")
+	_check(not _find(dreams.get_card_effects(sprout, alone.cell, alone), "root_network").active, "…a lone Sprout has no network")
+	_check(not _find(dreams.get_card_effects(sprout, diagonal.cell, diagonal), "root_network").active, "…diagonals don't join")
+	dreams.take(_card("root_network_ii"))
+	row = _find(dreams.get_card_effects(sprout, a.cell, a), "root_network_ii")
+	_check(row.active and is_equal_approx(row.damage, 0.32), "Root Network II: diagonals join, +8% each (%s)" % row)
+	_clear_towers()
+
+	# Old Growth and Thinning the Herd (per-Warden damage)
+	_reset()
+	dreams.take(_card("old_growth"))
+	dreams.take(_card("thinning_the_herd"))
+	var warden := _plant("sporeling", 0, 0)
+	var base := dreams.get_soothe_multiplier(warden)
+	warden.set_meta(&"drifts_stood", 5)
+	_check(is_equal_approx(dreams.get_soothe_multiplier(warden) - base, 0.15), "Old Growth: 5 drifts = +15%")
+	warden.set_meta(&"drifts_stood", 15)
+	_check(is_equal_approx(dreams.get_soothe_multiplier(warden) - base, 0.30), "…15 drifts = +30%")
+	var victim := Node2D.new()
+	main.add_child(victim)
+	victim.global_position = warden.global_position
+	dreams._count_herd(victim)
+	dreams._count_herd(victim)
+	_check(is_equal_approx(dreams.get_herd_bonus(warden), 0.02), "Thinning the Herd: +1% per dispel in range")
+	dreams._on_drift_started(1)
+	_check(dreams.get_herd_bonus(warden) == 0.0 and DreamState.drifts_stood(warden) == 16, "…until the drift ends; a drift start counts a drift stood")
+
+	# First Light and Bitter Hedges (per hit)
+	dreams.take(_card("first_light"))
+	_check(dreams.on_hit_multiplier(warden, victim) == 3.0 and dreams.on_hit_multiplier(warden, victim) == 1.0,
+		"First Light: ×3 on a Warden's first hit on a nightmare only")
+	dreams.take(_card("bitter_hedges"))
+	var wall := _plant_at("thornwall", Vector2(105, 101), 0)
+	_plant_at("thornwall", Vector2(106, 101), 0)
+	dreams._bitter_pass(victim, Vector2(105, 100))
+	_check(is_equal_approx(dreams.get_bitter_bonus(victim), 0.03), "Bitter Hedges: +3% after passing a wall")
+	dreams._bitter_pass(victim, Vector2(106, 100))
+	_check(is_equal_approx(dreams.on_hit_multiplier(warden, victim), 1.06), "…+3% per wall, on every hit")
+	dreams._briar_clock += 2.5
+	_check(dreams.get_bitter_bonus(victim) == 0.0, "…for 2 s")
+	_check(wall != null, "walls planted")
+	victim.free()
+	_clear_towers()
+
+func _find(rows: Array[Dictionary], id: String) -> Dictionary:
+	for row in rows:
+		if row.id == id:
+			return row
+	return {"active": false, "damage": 0.0, "note": ""}
 
 func _reset() -> void:
 	dreams.stacks.clear()

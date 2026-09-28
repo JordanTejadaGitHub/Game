@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "old_growth"
+display_name = "Steadfast"
+description = "Wardens that have stood 5 drifts deal 15% more damage; 15 drifts: 30% (growing keeps the count, selling resets it)."
+rarity = 2
+kind = 3
+tags = Array[String]([])
+max_stacks = 1
+rule_id = &"old_growth"

@@ -62,8 +62,18 @@ func _run() -> void:
 	if "rank_dew_spent" in run_state:
 		_check(run_state.rank_dew_spent == 63, "RunState counts Dew spent on ranks")
 
-	# Ranks and Focus carry through evolution; costs follow the tier at purchase time.
+	# Growing a ranked Warden pays the rank difference (warden_stats.md): for each rank held, its price
+	# at the new tier minus its price at the old one. Sprout ×0.5 → Sporeling ×1: (25-13)+(40-20)+(60-30).
+	var grow := tower.get_grow_cost(sporeling_data)
+	var evolve_base: int = dreams.get_evolve_cost(sporeling_data)
+	_check(grow.base == evolve_base and grow.ranks == 12 + 20 + 30 and grow.total == evolve_base + 62,
+		"a rank III Sprout growing into a Sporeling pays %d + 62 (%s)" % [evolve_base, grow])
+	var invested_before := tower.invested_dew
+	var dew_before: int = run_state.dew
+	# Ranks and Focus carry through evolution.
 	placer.evolve(tower, sporeling_data)
+	_check(run_state.dew == dew_before - grow.total and tower.invested_dew == invested_before + grow.total,
+		"the whole grow cost is charged and counts as invested (selling refunds it)")
 	_check(tower.tower_data == sporeling_data and tower.rank == 3 and tower.focus == Tower.Focus.POWER,
 		"a rank III Power Sprout grows into a rank III Power Sporeling")
 	_check(is_equal_approx(tower.get_damage(), sporeling_data.damage * 1.38), "with the rank's damage")

@@ -15,3 +15,5 @@ speed = 70.4
 followers = ExtResource("3_follow")
 display_name = "Lantern Bearer"
 trait_text = "Leads a line of Wraiths. Without her light, they slow."
+resists = Array[String](["water"])
+weak_to = Array[String](["root"])

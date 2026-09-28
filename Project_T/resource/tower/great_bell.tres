@@ -7,7 +7,7 @@
 [resource]
 script = ExtResource("1_tdata")
 display_name = "The Great Bell"
-description = "Every 6 seconds it tolls across a huge range: every nightmare falls Asleep and all Charges go off."
+description = "Every 6 seconds it tolls across a huge range: every nightmare falls Asleep and all Charges go off at half strength."
 cost = 0
 line = "song"
 tier = 4
@@ -29,3 +29,5 @@ attack_texture = ExtResource("art_attack")
 attack_frame_count = 6
 attack_release_frame = 2
 art_id = "the_great_bell"
+footprint = 2
+set_off_share = 0.5

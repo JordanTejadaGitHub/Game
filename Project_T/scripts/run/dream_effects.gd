@@ -25,6 +25,9 @@ const REPORTERS := {
 	&"wildwood_reclaimed": "_wildwood", &"sprout_chorus": "_sprout_chorus", &"last_light": "_last_light",
 	&"rootbound": "_rootbound", &"court_of_the_eldest": "_court", &"old_ones": "_old_ones",
 	&"reclaimed_earth": "_reclaimed_earth",
+	&"root_network": "_root_network", &"first_light": "_first_light", &"last_stand": "_last_stand",
+	&"old_growth": "_old_growth", &"hunters_patience": "_hunters_patience", &"thinning_the_herd": "_thinning_the_herd",
+	&"bitter_hedges": "_bitter_hedges",
 }
 const STAT_KEYS := {&"damage": "damage", &"attack_speed": "speed", &"range": "range", &"cost": "cost"}
 
@@ -146,7 +149,7 @@ func _cozy_corners(spot: Dictionary, _others: Array, _card: UpgradeData) -> Dict
 	var reach: int = DreamState.COZY_CORNERS_REACH[level]
 	var on := ds.is_beside_bend(spot.cell, reach)
 	return {"positional": true, "radius": float(reach), "active": on, "damage": DreamState.COZY_CORNERS_BONUS[level],
-		"reason": "" if on else "no bend in the path within %s" % _cells_word(reach)}
+		"reason": "" if on else ("no bend in the path in the 8 cells around it" if reach == 1 else "no bend in the path within %d cells, diagonals included" % reach)}
 
 func _hedge_maze(spot: Dictionary, others: Array, _card: UpgradeData) -> Dictionary:
 	var level := ds.rule_level(&"hedge_maze")
@@ -315,3 +318,65 @@ func _reclaimed_earth(spot: Dictionary, _others: Array, _card: UpgradeData) -> D
 	var cost := ds.get_build_cost(spot.data)
 	return {"positional": true, "active": on, "cost": roundi(cost * DreamState.FERTILE_DISCOUNT) - cost,
 		"reason": "" if on else "not a fertile cell"}
+
+# Generic Rares (dream_design.md "Generic Rares")
+func _root_network(spot: Dictionary, others: Array, _card: UpgradeData) -> Dictionary:
+	if spot.data.get_id() != "sprout":
+		return {}
+	var level := ds.rule_level(&"root_network")
+	var sprouts := {}
+	for o in others:
+		if o.data.get_id() == "sprout":
+			sprouts[o.cell] = true
+	# Flood fill from the spot: sides only (II: diagonals too)
+	var steps: Array[Vector2] = [Vector2.LEFT, Vector2.RIGHT, Vector2.UP, Vector2.DOWN]
+	if level > 0:
+		steps.append_array([Vector2(-1, -1), Vector2(1, -1), Vector2(-1, 1), Vector2(1, 1)])
+	var network := {spot.cell: true}
+	var frontier: Array[Vector2] = [spot.cell]
+	while not frontier.is_empty():
+		var cell: Vector2 = frontier.pop_back()
+		for step in steps:
+			var next: Vector2 = cell + step
+			if sprouts.has(next) and not network.has(next):
+				network[next] = true
+				frontier.append(next)
+	var size := network.size()
+	var on := size >= 2
+	return {"positional": true, "radius": 1.0, "active": on,
+		"damage": minf(DreamState.ROOT_NETWORK_PER[level] * size, DreamState.ROOT_NETWORK_MAX[level]),
+		"note": "network of %d" % size,
+		"reason": "" if on else ("no Sprout beside it" if level == 0 else "no Sprout around it")}
+
+func _first_light(_spot: Dictionary, _others: Array, _card: UpgradeData) -> Dictionary:
+	return {"effect": "first hit on each nightmare ×3"}
+
+func _last_stand(_spot: Dictionary, _others: Array, _card: UpgradeData) -> Dictionary:
+	return {"effect": "+%d%% damage to nightmares within %d cells of the Heartwood" % [
+		roundi(DreamState.LAST_STAND_BONUS * 100), DreamState.LAST_STAND_CELLS]}
+
+func _old_growth(spot: Dictionary, _others: Array, _card: UpgradeData) -> Dictionary:
+	var stood := DreamState.drifts_stood(spot.node)
+	var bonus := ds.get_old_growth_bonus(spot.node)
+	var next: Array = []
+	for step in DreamState.OLD_GROWTH_STEPS:
+		if stood < step[0]:
+			next = step
+	return {"active": bonus > 0.0, "damage": bonus if bonus > 0.0 else DreamState.OLD_GROWTH_STEPS[-1][1],
+		"note": "stood %d drifts" % stood + ("" if next.is_empty() else " (%d for +%d%%)" % [next[0], roundi(next[1] * 100)]),
+		"reason": "" if bonus > 0.0 else "has stood %d of %d drifts" % [stood, DreamState.OLD_GROWTH_STEPS[-1][0]]}
+
+func _hunters_patience(_spot: Dictionary, _others: Array, _card: UpgradeData) -> Dictionary:
+	return {"effect": "+%d%% damage to Deeply Blighted nightmares, +%d%% to bosses" % [
+		roundi(DreamState.HUNTERS_PATIENCE_ELITE * 100), roundi(DreamState.HUNTERS_PATIENCE_BOSS * 100)]}
+
+func _thinning_the_herd(spot: Dictionary, _others: Array, _card: UpgradeData) -> Dictionary:
+	if not spot.data.can_attack:
+		return {}
+	var bonus := ds.get_herd_bonus(spot.node)
+	return {"active": bonus > 0.0, "damage": bonus, "note": "+%d%% this drift" % roundi(bonus * 100),
+		"reason": "" if bonus > 0.0 else "no nightmare dispelled in its range this drift"}
+
+func _bitter_hedges(_spot: Dictionary, _others: Array, _card: UpgradeData) -> Dictionary:
+	return {"effect": "nightmares passing Thornwalls take +%d%% per wall for %d s (up to +%d%%)" % [
+		roundi(DreamState.BITTER_PER * 100), DreamState.BITTER_TIME, roundi(DreamState.BITTER_MAX * 100)]}

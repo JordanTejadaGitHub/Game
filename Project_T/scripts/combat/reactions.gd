@@ -36,6 +36,8 @@ const MUSHROOM_MIN_SPORES := 3
 const MUSHROOM_TIME := 4.0
 const MUSHROOM_CLOUD_RADIUS := 0.6  # Cells
 const MUSHROOM_CLOUD_TIME := 4.0
+const MUSHROOM_RAIN_TIME := 2.0  # Mushroom Rain: ×2 duration…
+const MUSHROOM_RAIN_RADIUS := 1.5  # …and the 3×3 around its tile (cells from the centre, reaching the corners' middles)
 const SHATTER_MULTIPLIER := 2.5
 const SHATTER_SPLASH := 0.5  # Share of the hit the shards deal within 1 cell
 const DROWN_SLEEP: Array[float] = [2.0, 3.0]  # Seconds: base, Deep Water
@@ -72,6 +74,7 @@ const NIGHTBLOOM_WIDTH: Array[float] = [1.0, 1.5]
 const FAIRY_RING_TIME := 6.0
 const FAIRY_RING_MAX := 8  # Ring of Rings: rings last until stepped on, at most this many
 const STORM_FRONT_REACH := 1.0  # Cells added to a Reaction a Gust-copied status completed
+const STORM_FRONT_SECONDS := 0.8  # How long the swirl shows
 const CARRIED_SHARE := 0.5  # Carried Storm: a Samara seed repeats a Reaction it passes through at 50%
 const CARRIED_WINDOW := 0.5  # Seconds after the Reaction
 const CARRIED_REACH := 0.75  # Cells from the Reaction's spot
@@ -206,6 +209,13 @@ static func on_smother_ended(enemy: Node2D) -> void:
 		if is_instance_valid(other) and not other.is_cleansed:
 			var cap := FEVER_BOSS_DROWSY_CAP if other.statuses.is_boss else 0
 			other.apply_status(DROWSY, FEVER_DROWSY, 0.0, 0.0, cap, "song", s.source(DROWSY))
+
+# True if `enemy` can't be Held right now: immune, or a Night Hound sprinting (Enemy.apply_status refuses
+# HELD then). Drown, Still Pool and Carried Storm slow it instead.
+static func cant_be_held(enemy: Node2D) -> bool:
+	if HELD in enemy.statuses.immune:
+		return true
+	return enemy.rolling and HELD in enemy.enemy_data.immune_while_sprinting
 
 static func is_asleep(enemy: Node2D) -> bool:
 	return enemy.statuses.is_asleep()
@@ -478,9 +488,13 @@ static func _mushrooming(enemy: Node2D, source: Node) -> void:
 	if id == &"nightbloom" and dreams and dreams.has_rule(&"endless_night"):
 		wide = NIGHTBLOOM_WIDTH[1]
 		time = NIGHTBLOOM_TIME[1]
-	var cloud := ReactionCloud.new(Tower.MAP_GRID.calculate_map_position(cell),
-		(MUSHROOM_CLOUD_RADIUS * wide + _storm_front(enemy)) * CELL, time, s.potency(SPORED), s.spore_line(),
-		spore_source, chain)
+	var radius := (MUSHROOM_CLOUD_RADIUS * wide + _storm_front(enemy)) * CELL
+	if dreams and dreams.has_rule(&"mushroom_rain"):
+		# Mushroom Rain (card 134): the cloud lasts twice as long and covers the 8 tiles around it too.
+		time *= MUSHROOM_RAIN_TIME
+		radius = maxf(radius, MUSHROOM_RAIN_RADIUS * CELL)
+	var cloud := ReactionCloud.new(Tower.MAP_GRID.calculate_map_position(cell), radius, time, s.potency(SPORED),
+		s.spore_line(), spore_source, chain)
 	# In the world just before the nightmares' container, so it draws on the ground under them (the
 	# container's children are all nightmares; nothing else may go in there).
 	var container := enemy.get_parent()
@@ -515,7 +529,7 @@ static func _drown(enemy: Node2D, source: Node) -> void:
 		container.get_parent().add_child(pool)
 		container.get_parent().move_child(pool, container.get_index())
 	var deep := 1 if level > 0 else 0
-	if s.is_boss or HELD in s.immune:
+	if s.is_boss or cant_be_held(enemy):
 		s.slow_time = DROWN_SLEEP[0]
 		s.slow_amount = DROWN_BOSS_SLOW[deep]
 	else:
@@ -571,7 +585,7 @@ static func echo(id: StringName, spot: Vector2, share: float, echo_tower: Tower,
 		var s: EnemyStatuses = enemy.statuses
 		match id:
 			&"drown":
-				if s.is_boss or HELD in s.immune:
+				if s.is_boss or cant_be_held(enemy):
 					s.slow_time = maxf(s.slow_time, DROWN_SLEEP[0] * share)
 					s.slow_amount = maxf(s.slow_amount, DROWN_BOSS_SLOW[0])
 				else:
@@ -637,7 +651,7 @@ static func _fire(enemy: Node2D, id: StringName, towers: Array, ignore_cooldown:
 		if id == &"smother" and node != null:
 			enemy.set_meta(&"smother_fx", node)  # Loops while held; the nightmare frees it after
 		if storm_front:
-			Fx.play(&"storm_front", enemy.global_position, world)  # A wind swirl round the Reaction
+			Fx.play(&"storm_front", enemy.global_position, world, 1.0, true, STORM_FRONT_SECONDS)  # A wind swirl (it loops: give it a life)
 	var tracker := ReactionTracker.find(enemy)
 	if tracker:
 		tracker.record(id, enemy, chain, all_towers)
@@ -687,7 +701,7 @@ static func carry(id: StringName, enemy: Node2D, seed_tower: Tower, applier: Tow
 	var base: StringName = CROWNED_BASE.get(id, id)
 	match base:
 		&"drown":
-			if s.is_boss or HELD in s.immune:
+			if s.is_boss or cant_be_held(enemy):
 				s.slow_time = maxf(s.slow_time, DROWN_SLEEP[0] * CARRIED_SHARE)
 				s.slow_amount = maxf(s.slow_amount, DROWN_BOSS_SLOW[0])
 			else:

@@ -11,6 +11,6 @@ health = 180
 speed = 75.0
 dew_reward = 5
 resists = Array[String](["wing"])
-weak_to = Array[String](["stone"])
+weak_to = Array[String](["song"])
 trait_kind = 5
 trait_text = "Burrows under one Warden or wall per trip."

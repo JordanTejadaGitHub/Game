@@ -102,6 +102,17 @@ func _run() -> void:
 	_check(Fx.longest_chain == 10, "the run's longest chain is tracked")
 	Engine.time_scale = 1.0
 
+	# --- Overlapping hitstops end on the speed from before the first (they used to leave the game at 5%) ---
+	_use_settings({"hitstop": true})
+	Engine.time_scale = 4.0
+	Fx._hitstop(world)
+	await create_timer(Fx.HITSTOP_SECONDS * 0.5, true, false, true).timeout
+	Fx._hitstop(world)  # A second chain inside the first
+	_check(is_equal_approx(Engine.time_scale, 4.0 * Fx.HITSTOP_SCALE), "one hitstop at a time, not nested (%.3f)" % Engine.time_scale)
+	await create_timer(Fx.HITSTOP_SECONDS * 2.0, true, false, true).timeout
+	_check(is_equal_approx(Engine.time_scale, 4.0), "and the speed comes back to where it was (%.3f)" % Engine.time_scale)
+	Engine.time_scale = 1.0
+
 	# --- Monsoon rain ---
 	_check(Fx.rain_sweep(Vector2(200, 200), 150.0, world) != null, "Monsoon's rain sweep plays")
 

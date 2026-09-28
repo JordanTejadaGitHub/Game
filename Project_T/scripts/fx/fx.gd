@@ -48,11 +48,13 @@ const REACTIONS := {
 const DEFAULT_SCALE := {&"thunderclap": 1.5, &"thunderclap_lite": 1.5, &"ignite": 1.5, &"ignite_lite": 1.5,
 	&"pinned": 1.5, &"shatter": 1.5, &"crit_flare": 1.25}
 const THREAD_SECONDS := 0.3
+const CROWN_OFFSET := Vector2(0, -34)  # The Crowned crown mark over its callout
 const CALLOUT_LIFE := 0.9
 const CALLOUT_COOLDOWN := 0.5  # Per reaction, so a chain doesn't wall the screen with words
 const MAX_CALLOUTS := 3
 const BADGE_OFFSET := Vector2(0, -60)
 const HITSTOP_SECONDS := 0.07
+const HITSTOP_SCALE := 0.05  # Speed during a hitstop
 const SURGE_SECONDS := 0.5
 const DAWNBURST_SCALE := 2.0
 
@@ -95,6 +97,8 @@ static func reduce_flashes() -> bool:
 static func reset_run() -> void:
 	_settings_at = -SETTINGS_REFRESH_MS
 	longest_chain = 0
+	_hitstop_base = -1.0  # A hitstop cut short by leaving the last run never ends here
+	_hitstop_pending = 0
 
 # The sheet to actually show: its _lite variant when flashes are reduced or the budget is spent.
 static func _pick(effect: StringName, lite_ok: bool) -> StringName:
@@ -168,9 +172,11 @@ static func reaction(reaction: StringName, at: Vector2, parent: Node, towers: Ar
 	var node := play(effect, at, parent, 1.0, true, seconds)
 	var colour := Color(info(effect).get("callout", "#fff0c0"))
 	if row[1] != "":
-		callout(row[1], colour, at, parent, reaction)
-		if String(effect).begins_with("crowned_"):
-			play(&"crowned_crown", at + Vector2(0, -34), parent)  # The crown mark over the callout
+		var shown := callout(row[1], colour, at, parent, reaction)
+		if shown != null and String(effect).begins_with("crowned_"):
+			# The crown mark sits on the callout and goes with it (the sheet loops: never leave it in the
+			# world, or every Crowned Reaction leaves a crown behind).
+			play(&"crowned_crown", at + CROWN_OFFSET, shown)
 	for tower in towers:
 		if tower is Node2D and is_instance_valid(tower):
 			segment(&"light_thread", tower.global_position, at, parent, THREAD_SECONDS)
@@ -178,16 +184,18 @@ static func reaction(reaction: StringName, at: Vector2, parent: Node, towers: Ar
 	return node
 
 # A word popping over the nightmare in `colour` (throttled: a few at a time, one per reaction).
-static func callout(text: String, colour: Color, at: Vector2, parent: Node, key: StringName = &"") -> void:
+# Returns the callout, or null when it was throttled.
+static func callout(text: String, colour: Color, at: Vector2, parent: Node, key: StringName = &"") -> Node2D:
 	var now := Time.get_ticks_msec()
 	_callouts_alive = _callouts_alive.filter(func(c): return is_instance_valid(c))
 	if _callouts_alive.size() >= MAX_CALLOUTS or now < _callout_cooldown.get(key, 0):
-		return
+		return null
 	_callout_cooldown[key] = now + int(CALLOUT_COOLDOWN * 1000)
 	var node := FxCallout.new(text, colour)
 	parent.add_child(node)
 	node.global_position = at
 	_callouts_alive.append(node)
+	return node
 
 # Monsoon's signature: a sheet of warm-lit rain over a square of `radius` pixels round `center`.
 static func rain_sweep(center: Vector2, radius: float, parent: Node, seconds: float = 0.8) -> Node2D:
@@ -226,14 +234,28 @@ static func chain(count: int, where: Vector2, parent: Node, towers: Array = []) 
 			if tower is Node2D and is_instance_valid(tower):
 				play(&"crit_flare", tower.global_position + Vector2(0, -16), parent, 1.6)
 
+# A brief slow-down on a big chain. Overlapping hitstops extend one hitstop instead of stacking: the
+# old version saved "the speed before" each time, so a second hitstop inside the first saved the
+# slowed speed and restored to it, leaving the game at 5% speed for good (found by the act 3 probe).
+static var _hitstop_base := -1.0  # The speed to return to (-1 = no hitstop on)
+static var _hitstop_pending := 0  # Hitstop timers still running (the last one to end restores the speed)
+
 static func _hitstop(parent: Node) -> void:
 	if not bool(setting("hitstop", true)) or Engine.time_scale <= 0.0:
 		return
-	var before := Engine.time_scale
-	Engine.time_scale = before * 0.05
-	parent.get_tree().create_timer(HITSTOP_SECONDS, true, false, true).timeout.connect(func() -> void:
-		if is_equal_approx(Engine.time_scale, before * 0.05):
-			Engine.time_scale = before)
+	if _hitstop_base < 0.0 or not is_equal_approx(Engine.time_scale, _hitstop_base * HITSTOP_SCALE):
+		_hitstop_base = Engine.time_scale  # Not in a hitstop (or the speed was changed meanwhile)
+		Engine.time_scale = _hitstop_base * HITSTOP_SCALE
+	_hitstop_pending += 1
+	parent.get_tree().create_timer(HITSTOP_SECONDS, true, false, true).timeout.connect(_end_hitstop)
+
+static func _end_hitstop() -> void:
+	_hitstop_pending = maxi(_hitstop_pending - 1, 0)
+	if _hitstop_base < 0.0 or _hitstop_pending > 0:
+		return  # A later hitstop extended it; its own timer ends it
+	if is_equal_approx(Engine.time_scale, _hitstop_base * HITSTOP_SCALE):
+		Engine.time_scale = _hitstop_base  # (If the player changed speed meanwhile, keep theirs)
+	_hitstop_base = -1.0
 
 static func _surge(parent: Node) -> void:
 	var tex := texture(&"surge")

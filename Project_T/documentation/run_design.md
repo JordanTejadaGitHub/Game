@@ -88,6 +88,44 @@ arrival windows or speed creatures up before cutting drifts.
 - 0 leaves = the Heartwood goes dormant, run over (Seeds are still earned).
 - **Tune in playtests.**
 
+## Difficulty curve targets (2026-09-28)
+
+User direction: **"They should be leaking early until you're able to unlock some perks from meta and
+cards."** A new Heartwood should feel outmatched; Memory Grove perks and a run's Dream cards are what
+turn leaks into a hold. Targets for the balance simulation and playtests (average, sensible play):
+
+| Player | By the Hollow Stag (25) | Typical run end | Wins |
+|---|---|---|---|
+| **Fresh profile** (no Grove) | first leaks around **drift 12–18**; **5–8 of 15 leaves** lost | act 2 (drift 30–50) | rare (<5%, strong play + good Dreams) |
+| **~5 Grove unlocks** (~3 h in) | a few leaks, 2–4 leaves lost | act 3 | occasional |
+| **Half the tree** (~15 h) | few leaks | act 4 | the first win |
+| **Full tree** | clean | wins reliably at Blight 0 | Blight Levels bring the leaking back |
+
+- **Within a run, Dreams are the cure:** the leak rate should **fall** between drifts 10 and 25 as
+  cards stack (the board catches up), then rise again in act 2, so each block's Dream visibly matters.
+- **Leaks must be readable, not random:** a leak should come from a nightmare the maze doesn't
+  answer (a Hound on a straight, a Phantom through walls, a resisted family), so the rest report and
+  the boss dossier point at the fix.
+- Current state (playtests 2026-09-28): too easy from act 2 on, even with a thin Grove. Fixes so far:
+  the Sapling removed, one Ascended per family, Nurture's rank difference, resistances corrected.
+  The balance simulation measures the rest.
+- **Act 3 probe** (Tower Code, `tools/balance_act3.gd`, 2026-09-28): drifts 61–70, 12 final forms at
+  rank IV (Power), **no Dreams**: the maze dealt ~155–160k damage per drift against **~100–115k
+  health spawned, 0 leaks**. Act 3 is too easy with a plain final-form maze, before Dreams or the
+  Great Bell. The Great Bell took 40% of all damage, 74% of it from Charged stacks its toll set off;
+  damage on Asleep nightmares was 56–63% of everything (sleep control is the other big lever).
+  **Interim changes** (until the balance simulation, which also has to check what a player can
+  really afford by drift 60):
+  - **Acts 3–4 nightmare health ×1.4** (a flat act multiplier on top of growth; bosses included).
+  - **The Great Bell's toll sets off Charged stacks at 50%** of their bolt damage (its own hits
+    unchanged). Target: an Ascended form deals about **5× an average final form** in total (it
+    takes 4 cells now), not 7× as measured.
+  - Watch sleep: if Asleep damage stays above ~50% after this, look at Caught's +40% and
+    Dreamshroom next.
+- **Demo:** it has no meta, so every demo run is a fresh profile. **Decided (user, 2026-09-28): keep
+  that curve** (demo wins are rare: "go deeper in the full game"). Maybe later: **a few Memory Grove
+  unlocks in the demo** (a small taste of the meta), decided after playtests.
+
 ## Difficulty pass v1 (2026-09-27)
 
 Playtests found the game too easy, and Warden ranks (below) add player power, so:
@@ -110,22 +148,33 @@ Playtests found the game too easy, and Warden ranks (below) add player power, so
 | Elite Dew | × 3 | **× 2** |
 | Branch / final form cost | +45 / +90 | **+80 / +200** (with more power per tier; `warden_stats.md`) |
 | Nurture base costs | 15 / 25 / 40 / 60 / 90 | **25 / 40 / 60 / 90 / 135** (× tier) |
-| Endgame | — | **Ascended forms** (one per family, from drift 51; `tower_design.md`) and the **Heartwood Sapling** (below) |
+| Endgame | — | **Ascended forms** (one per family, from drift 51; `tower_design.md`) (the Heartwood Sapling was removed 2026-09-28, below) |
 
-Target: by act 3 a player should have to **choose** between an Ascended form, nurturing, more
-Wardens and the Sapling, never afford all of them.
+Target: by act 3 a player should have to **choose** between an Ascended form, nurturing and more
+Wardens, never afford all of them.
 
-### The Heartwood Sapling (economy, from drift 51)
+### The Heartwood Sapling (REMOVED 2026-09-28; kept for reference)
+
+**Removed** (user, 2026-09-28: after tuning it down, "maybe remove the sapling?"). The late game's
+problems were too much Dew and too little challenge, and the Sapling only added Dew. It is **switched
+off, not deleted**: the code, art and sound stay behind a setting (`DriftDirector` / `TowerPlacer`
+flag, off), so it can return later, e.g. as a Memory Grove perk. Its Dreamlight (~5 over drifts
+51–100) isn't replaced: bosses and the other sources cover Ascended unlocks. Design as it was:
 
 After the act 2 boss (drift 50), the Heartwood offers **one Sapling** of itself to plant in the maze.
 
 - **Free to plant, 2×2 cells**, anywhere the path rule allows (it's a wall like any Warden, so it
   reshapes the maze: a real placement decision). **Rooted:** once planted it **can't be sold or
   moved**.
-- **It doesn't attack.** At the end of every drift it yields **+20 Dew**, and every **10 drifts**
+- **It doesn't attack.** At the end of every drift it yields **+8 Dew**, and every **10 drifts**
   it ripens **+1 Dreamlight** (feeding Ascended unlocks).
-- **Nurture it** (ranks I–V at the final-form price) to raise the yield: **+10 Dew per rank**
-  (rank V: +70 Dew per drift) and, at rank III and above, Dreamlight every **7** drifts instead of 10.
+- **Nurture it** (ranks I–V at the **base-form** price, 350 Dew in all) to raise the yield: **+4 Dew
+  per rank** (rank V: +28 Dew per drift) and, at rank III and above, Dreamlight every **8** drifts
+  instead of 10.
+- **Tuned down 2026-09-28** (playtest: "the Sapling is giving too much economy"). Was +20 Dew per
+  drift, +10 per rank (rank V +70 per drift = 350 per block, over 4× the ~80 rest bonus of act 3).
+  Now: ~40 Dew per block unranked (about half a rest bonus), ~140 at rank V; the 350 Dew of ranks
+  pays back in roughly 18 drifts, a real bet rather than a free win.
 - **Leaks hurt it:** each leaf lost withers it slightly (−5% yield, recovering at each rest), so a
   greedy maze that leaks pays twice.
 - Offered on its own card right after the drift 50 family pick (*"The Heartwood offers a seedling

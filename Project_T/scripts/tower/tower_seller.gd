@@ -186,20 +186,43 @@ func get_selection_groups() -> Array:
 # `towers` sorted closest to the Heartwood first (they usually matter most).
 func sort_by_heartwood(towers: Array) -> Array:
 	var heart: Vector2 = map_generator.endPath
-	var sorted := towers.duplicate()
+	var sorted := towers.filter(func(t) -> bool: return is_instance_valid(t) and t is Tower)  # Skip gone ones
 	sorted.sort_custom(func(a: Tower, b: Tower) -> bool:
 		return a.cell.distance_squared_to(heart) < b.cell.distance_squared_to(heart))
 	return sorted
 
 # How many of `towers` the player can afford to grow into `into` right now.
 func count_affordable(towers: Array, into: TowerData) -> int:
-	var dreams := _dreams()
-	if dreams == null:
-		return 0
-	var cost := dreams.get_evolve_cost(into)
-	if cost <= 0:
-		return towers.size()
-	return mini(towers.size(), run_state.dew / cost)
+	return plan_grow(towers, into)[0]
+
+# Which of `towers` group grow would grow into `into` with the Dew there is, nearest the Heartwood
+# first (each pays Tower.get_grow_cost: ranked Wardens pay their rank difference too), skipping ones
+# that don't fit so a cheaper one further out still can: [count, total Dew].
+func plan_grow(towers: Array, into: TowerData) -> Array:
+	var count := 0
+	var total := 0
+	if tower_placer.ascended_blocker(into) != "":
+		return [0, 0]  # One Ascended form per family is already on the map
+	var limit := 1 if into.tier >= DreamState.ASCENDED_TIER else towers.size()  # …and only one can wake
+	for tower in sort_by_heartwood(towers):
+		if not is_instance_valid(tower) or count >= limit:
+			continue
+		if into.footprint > tower.get_footprint() and tower_placer.get_grow_squares(tower, into).is_empty():
+			continue  # No room for the 2×2 form: skipped (grow_group picks the best square for the rest)
+		var cost: int = tower.get_grow_cost(into).total
+		if total + cost > run_state.dew:
+			continue
+		count += 1
+		total += cost
+	return [count, total]
+
+# What growing all of `towers` into `into` would cost.
+func full_grow_cost(towers: Array, into: TowerData) -> int:
+	var total := 0
+	for tower in towers:
+		if is_instance_valid(tower):
+			total += tower.get_grow_cost(into).total
+	return total
 
 # Grows as many of `towers` into `into` as the player can afford, closest to the Heartwood first.
 # Returns how many grew. Each grown Warden blooms, staggered.

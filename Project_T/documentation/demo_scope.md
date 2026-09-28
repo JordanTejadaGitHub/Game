@@ -96,7 +96,7 @@ Levels, the true ending, the Forest Journal.
 
 | Question | Decision |
 |---|---|
-| Meta in the demo | **None**; replay freely, no progression |
+| Meta in the demo | **None** for now; replay freely, no progression. Demo runs play the fresh-profile curve (`run_design.md` "Difficulty curve targets": wins are rare). **Maybe later: a few Memory Grove unlocks** as a taste of the meta (user, 2026-09-28) |
 | Seeds | **Earned and saved; all of them carry into the full game** |
 | Mid-run save | **Yes** |
 | Length | **Drifts 1–50** (acts 1–2, two bosses, two family picks) |

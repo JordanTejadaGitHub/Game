@@ -18,6 +18,11 @@ signal sapling_requested(enemy: Node2D)
 signal grief_requested(enemy: Node2D)
 # The Hollow Oak (Blight Level 10) rose again at half health instead of being dispelled.
 signal rose_again(enemy: Node2D)
+# A Warden tried a status this nightmare is immune to (the UI flashes the crossed-out icon). At most
+# once per status every REFUSED_THROTTLE seconds per nightmare.
+signal status_refused(enemy: Node2D, status: StringName)
+const REFUSED_THROTTLE := 1.0
+var _refused_at := {}  # {status id: Time.get_ticks_msec() of the last status_refused}
 
 # Deeply Blighted elites (acts_1_2.md): ×3 health, ×2 Dew, 2 leaves, 20% bigger, wrapped in a slow
 # haze with a swirl mark by the health bar (not darkened: the nightmare art is already dark).
@@ -262,6 +267,13 @@ func _process(delta: float) -> void:
 			return
 		reached_goal.emit(self)
 		queue_free()
+
+func _refuse_status(id: StringName) -> void:
+	var now := Time.get_ticks_msec()
+	if now - int(_refused_at.get(id, -100000)) < REFUSED_THROTTLE * 1000.0:
+		return
+	_refused_at[id] = now
+	status_refused.emit(self, id)
 
 # A combo just used this status (e.g. lightning jumped through Damp): its icon flashes briefly.
 # Called by the HUD's combat callouts. Does nothing if the status isn't on this nightmare.
@@ -873,6 +885,9 @@ func take_damage(amount: float, line: String = "", is_area: bool = false, is_cri
 func apply_status(id: StringName, stacks: int = 1, duration: float = 0.0, potency: float = 0.0,
 		max_stacks: int = 0, line: String = "", source: Node = null) -> void:
 	if is_cleansed:
+		return
+	if id in statuses.immune or (rolling and id in enemy_data.immune_while_sprinting):
+		_refuse_status(id)  # Night Hound: can't be Held mid-sprint
 		return
 	if id == EnemyStatuses.DROWSY:
 		statuses.drowsy_cap_bonus = Reactions.drowsy_cap_bonus(self)  # Heavy Eyelids
