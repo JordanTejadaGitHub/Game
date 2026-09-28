@@ -139,5 +139,8 @@ Full brief per nightmare in `enemy_design.md` ("Art direction" and the "Looks li
 ## Still to do
 
 - ~~Audio direction~~: done in `audio_direction.md`.
-- **UI style:** frames, cards, fonts, icons (the shape-based icon language in `screens_ui.md`).
+- ~~UI style~~: decided 2026-09-28, **Moonlit Thread** (fog panels, a 1 px gold thread with a
+  hollow diamond, Cormorant Garamond / Cormorant SC / Alegreya Sans, pixel icons scaled by whole
+  numbers). The spec is in `ui_style.md` (owned by the UI Asset chat); icons keep the shape-based
+  language in `screens_ui.md`. UI colours come from Heartwood 32 (Ink, Moonlight and Gold ramps).
 - **Accessibility pass:** make sure warm vs cold never relies on colour alone.
