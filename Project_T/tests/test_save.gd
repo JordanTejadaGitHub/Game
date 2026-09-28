@@ -45,6 +45,7 @@ func _run() -> void:
 	placer.tower_data = load("res://resource/tower/sprout.tres")
 	var cell := _free_cell(map_generator)
 	placer._try_build(cell)
+	main.get_node("%TowerSeller").get_tower_at(cell).set_meta(&"drifts_stood", 7)  # Old Growth
 	var obstacle_cell: Vector2 = map_generator.obstacles.keys()[0]
 	clearer.try_clear(obstacle_cell)
 	run_state.add_free_clears(2)  # Clearing Dream cards
@@ -72,6 +73,7 @@ func _run() -> void:
 		"Seed counters restored")
 	var tower: Tower = main.get_node("%TowerSeller").get_tower_at(cell)
 	_check(tower != null and tower.tower_data.get_id() == "sprout" and tower.invested_dew == 10, "the Sprout is back")
+	_check(tower != null and int(tower.get_meta(&"drifts_stood", 0)) == 7, "Old Growth: its drifts stood are kept")
 	_check(not map_generator.is_buildable(cell), "and it blocks its cell again")
 	_check(map_generator.get_obstacle(obstacle_cell) == null, "the tended obstacle stays gone")
 	_check(dreams.is_unlocked(family_id), "the family pick is remembered")
