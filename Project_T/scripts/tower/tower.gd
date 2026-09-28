@@ -353,12 +353,18 @@ func get_splash_cells() -> float:
 	return attack_data.splash_radius * (_dream_state.get_splash_multiplier(tower_data) if _dream_state else 1.0)
 
 func get_crit_chance(enemy: Node2D = null) -> float:
+	return minf(get_raw_crit_chance(enemy), 1.0)
+
+# Crit chance before the 100% cap (Full Moon turns what's above 100% into crit damage).
+func get_raw_crit_chance(enemy: Node2D = null) -> float:
 	var chance := attack_data.crit_chance + _aura_crit
 	if _dream_state and _dream_state.has_method("get_rank_crit_bonus"):
 		chance += _dream_state.get_rank_crit_bonus() * get_effective_rank()  # The Old Ones
+	if _dream_state and _dream_state.has_method("get_crit_chance_bonus"):
+		chance += _dream_state.get_crit_chance_bonus(self, enemy)  # Still Target, Starlit Aim, Full Moon…
 	if enemy != null and enemy.statuses.is_held():
 		chance += attack_data.crit_bonus_vs_held
-	return minf(chance, 1.0)
+	return chance
 
 # Range in cells for `data` including Dreams (shared with the build ghost).
 static func get_range_for(data: TowerData, dream_state: DreamState) -> float:
@@ -494,6 +500,8 @@ func _release() -> void:
 			# Starling Murmuration swoops at several different nightmares at once.
 			for target in find_targets(attack_data.multi_targets):
 				fire_at(target)
+				if _twin_puff():
+					fire_at(target)  # Twin Puff: this Sporeling attack fires twice
 
 # Soothes `enemy` and applies this Warden's status. `is_area`: splash, pulse and cloud hits (creatures
 # with an attack-shape resistance, like the Bee Swarm, take these differently). `crit`: ROLL_CRIT,
@@ -511,12 +519,20 @@ func hit(enemy: Node2D, soothe_multiplier: float = 1.0, is_area: bool = false, c
 	# Reactions that change a hit: Pinned (a guaranteed ×3 crit) and Shatter (×2.5, shards).
 	var reaction := Reactions.before_hit(enemy, self, is_crit)
 	is_crit = reaction.crit
-	var dealt: float = soothe * (reaction.crit_multiplier if is_crit else 1.0) * reaction.multiplier
+	var crit_multiplier: float = reaction.crit_multiplier
+	if is_crit and _dream_state and _dream_state.has_method("get_crit_overflow_multiplier"):
+		crit_multiplier += _dream_state.get_crit_overflow_multiplier(get_raw_crit_chance(enemy))  # Full Moon
+	var non_crit := 1.0
+	if not is_crit and _dream_state and _dream_state.has_method("get_non_crit_multiplier"):
+		non_crit = _dream_state.get_non_crit_multiplier()  # Reckless Bloom
+	var dealt: float = soothe * (crit_multiplier if is_crit else non_crit) * reaction.multiplier
 	if reaction.tag != &"":
 		combo = reaction.tag
 	enemy.take_damage(dealt, tower_data.line, is_area, is_crit, self, combo)
 	if reaction.shatter:
 		Reactions.shatter_splash(enemy, self, dealt)
+	if is_crit:
+		_shattering_blow(enemy, dealt)
 	if _dream_state and _dream_state.has_rule(&"thousand_cuts") and is_instance_valid(enemy):
 		enemy.statuses.add_cut()  # Every hit within 2 s: +2% damage taken from everyone (max +60%)
 	hit_landed.emit(self, enemy, is_area, is_crit)
@@ -573,6 +589,26 @@ func pop(enemy: Node2D, chain: Dictionary = {}) -> void:
 		if chain_bloom and is_instance_valid(other) and not other.is_cleansed \
 				and other.statuses.stacks(EnemyStatuses.SPORED) >= attack_data.pop_at_stacks:
 			pop(other, chain)
+
+# Twin Puff: every 3rd Sporeling attack (II: every 2nd) fires twice.
+func _twin_puff() -> bool:
+	if tower_data.get_id() != "sporeling" or _dream_state == null or not _dream_state.has_rule(&"twin_puff"):
+		return false
+	var every := 2 if _dream_state.rule_level(&"twin_puff") > 0 else 3
+	return _attack_count % every == 0
+
+# Shattering Blow: a crit splashes 50% of its damage within 1 cell (II: 75% within 1.5). The splash
+# is area damage and never crits itself.
+func _shattering_blow(enemy: Node2D, dealt: float) -> void:
+	if _dream_state == null or not _dream_state.has_rule(&"shattering_blow"):
+		return
+	var deep := _dream_state.rule_level(&"shattering_blow") > 0
+	var share := 0.75 if deep else 0.5
+	var reach := (1.5 if deep else 1.0) * MAP_GRID.cell_size.x
+	var at := enemy.global_position
+	for other in get_tree().get_nodes_in_group(ENEMY_GROUP):
+		if other != enemy and other.global_position.distance_to(at) <= reach:
+			other.take_damage(dealt * share, tower_data.line, true, false, self, &"shattering_blow")
 
 # Rolls for a crit on `enemy` (Moonstone: the first hit on each nightmare always crits).
 func roll_crit(enemy: Node2D) -> bool:
@@ -649,7 +685,14 @@ func _apply_one_status(enemy: Node2D, status: StringName, stacks: int, soothe: f
 			duration = EnemyStatuses.DEFAULT_DURATION[status]
 		duration *= deep
 		potency *= deep
+	var at: Vector2 = enemy.global_position
 	enemy.apply_status(status, stacks, duration, potency, max_stacks, tower_data.line, self)
+	# Guiding Light: Marked spreads to nightmares within 1 tile of the target (II: 2 tiles).
+	if status == EnemyStatuses.MARKED and _dream_state and _dream_state.has_rule(&"guiding_light"):
+		var reach := (2.0 if _dream_state.rule_level(&"guiding_light") > 0 else 1.0) * MAP_GRID.cell_size.x
+		for other in get_tree().get_nodes_in_group(ENEMY_GROUP):
+			if other != enemy and other.global_position.distance_to(at) <= reach:
+				other.apply_status(status, stacks, duration, potency, max_stacks, tower_data.line, self)
 
 # Projectile landed at `where` (on `target` if it's still there): soothe it, or everything in the
 # splash radius (the splash shares the main hit's crit roll).
@@ -736,10 +779,16 @@ func _chain_strike(first: Node2D) -> void:
 
 	# Jumps past the normal count only happened through Damp (DamageLog: "conducted").
 	var points := PackedVector2Array([global_position + tower_data.get_attack_origin()])
+	# Static Bloom: every nightmare the chain strikes also gets Drowsy (II: 2 stacks).
+	var bloom := 0
+	if _dream_state and _dream_state.has_rule(&"static_bloom"):
+		bloom = 2 if _dream_state.rule_level(&"static_bloom") > 0 else 1
 	for i in hits.size():
 		var enemy := hits[i]
 		points.append(enemy.global_position)
 		hit(enemy, 1.0, false, ROLL_CRIT, &"conducted" if i >= attack_data.chain_targets else &"")
+		if bloom > 0 and is_instance_valid(enemy) and not enemy.is_cleansed:
+			enemy.apply_status(EnemyStatuses.DROWSY, bloom, 0.0, 0.0, 0, tower_data.line, self)
 	var bolt := ChainBolt.new(points)
 	add_child(bolt)
 

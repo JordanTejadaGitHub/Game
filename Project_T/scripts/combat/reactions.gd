@@ -146,11 +146,32 @@ static func shatter_splash(enemy: Node2D, tower: Tower, dealt: float) -> void:
 static func strike_bolt(target: Node2D, damage: float, tower: Node, tag: StringName = &"static") -> Node2D:
 	var rod := _find_rod(target)
 	if rod == null:
+		var at := target.global_position
 		target.take_damage(damage, "light", false, false, tower, tag)
+		if tag == &"static":
+			_static_field(target, at, damage, tower)
 		return target
 	_fire(rod, &"lightning_rod", [tower] if tower else [], true)
 	rod.take_damage(damage * ROD_MULTIPLIER, "light", false, false, tower, &"lightning_rod")
 	return rod
+
+# Static Field: a Static bolt also hits nightmares within 1 tile of where it struck (II: 1.5 tiles,
+# and they gain 1 Static, which can set off their own bolt).
+static func _static_field(struck: Node2D, at: Vector2, damage: float, tower: Node) -> void:
+	var dreams := _dreams(struck)
+	if dreams == null or not dreams.has_rule(&"static_field"):
+		return
+	var deep := dreams.rule_level(&"static_field") > 0
+	var reach := (1.5 if deep else 1.0) * CELL
+	var potency := damage / EnemyStatuses.STATIC_BOLT_MULTIPLIER
+	var nearby := _field(struck).filter(func(e: Node2D) -> bool:
+		return e != struck and e.global_position.distance_to(at) <= reach)
+	for other in nearby:
+		if not is_instance_valid(other) or other.is_cleansed:
+			continue
+		other.take_damage(damage, "light", true, false, tower, &"static")
+		if deep and is_instance_valid(other) and not other.is_cleansed:
+			other.apply_status(STATIC, 1, 0.0, potency, 0, "light", tower)
 
 static func _find_rod(near: Node2D) -> Node2D:
 	var best: Node2D = null
