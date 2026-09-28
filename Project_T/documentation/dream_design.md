@@ -908,6 +908,46 @@ All **Start** pool, no family Needs (a few have a soft run-state Need so they're
 - **Name clash fixed (2026-09-28):** Commons #10 and Rares #138 were both called **Deep Roots**; #138 is now
   **Steadfast** (id `old_growth`). Wandering Mind is a **Grove** card (rerolls stay a Grove thing).
 
+### Generic cards, second batch (2026-09-28)
+
+User-approved. Mostly about parts of the map no card used yet (obstacles, the island's edge, path
+length, straights) and the moment a nightmare is dispelled. All **Start** pool, no family Needs.
+"Touching" = the 8 cells around a Warden.
+
+| # | Card | Rarity | Effect | Tags | Needs | Pool |
+|---|---|---|---|---|---|---|
+| 157 | **Winding Path** | Common | at each rest, **+1 Dew per 10 path tiles** | maze, economy | — | Start |
+| 158 | **Shelter of Stones** | Common | Wardens touching an **obstacle** (Withered Tree, Mossy Boulder…) deal **+15% damage** | maze | 4+ obstacles left (soft) | Start |
+| 159 | **Cliffside** | Common | Wardens touching the **island's edge** get **+1 range** | maze | — | Start |
+| 160 | **Thick Bark** | Common | the **first leaf you'd lose** each block (between two rests) is saved | leaves | — | Start |
+| 161 | **Sudden Bloom** | Common | growing (evolving) a Warden makes its **next 3 attacks deal ×2** | — | — | Start |
+| 162 | **Last Breath** | Uncommon | a dispelled nightmare **bursts for 10% of its max health** on nightmares within **1 cell** (never chains) | — | — | Start |
+| 163 | **Tangled** | Uncommon | nightmares carrying **2+ statuses** move **10% slower** | status | a Warden that applies a status (soft) | Start |
+| 164 | **Watchful Rest** | Uncommon | a Warden with **nothing in range for 5 s** stores a charge; its **next attack deals ×2** (one charge at a time) | — | — | Start |
+| 165 | **Glimmering Hunt** | Uncommon | elites (Deeply Blighted) have a **10% chance to drop a Dreamlight shard** | dreamlight | act 2+ (elites appear) | Start |
+| 166 | **Straightaway** | Uncommon | Wardens beside a **straight stretch of 5+ path tiles** get **+15% damage and +0.5 range** | maze | — | Start |
+| 167 | **Heart of the Maze** | Rare | the attacking Warden **furthest (along the path) from any other attacking Warden** gets **+50% damage** | maze | 4+ attacking Wardens (soft) | Start |
+| 168 | **Echoing Steps** | Rare | each time **the route changes during a drift**, all Wardens get **+5% damage** until the drift ends (max +25%) | maze, tempo | — | Start |
+
+- **Opposites:** Straightaway vs Cozy Corners (stretch the maze or fold it); Shelter of Stones vs
+  Wildwood Reclaimed / clearing cards (keep obstacles or clear them); Watchful Rest vs Crowded Path.
+- **Winding Path** counts the route's length at the rest (the `%PathLabel` number). With a 23×18
+  map, a strong maze is ~100–150 tiles = +10–15 Dew per rest.
+- **Shelter of Stones:** a cleared obstacle no longer counts. Obstacle tiles only, not the border.
+- **Cliffside:** "edge" = the `island_edge` rim cells. Range only, so it's for snipers and pulses.
+- **Thick Bark:** once per block; resets at each rest. Bosses' 5-leaf hits are saved whole (it's
+  "the first leak", not "one leaf"). Shown as a small bark shield on the leaves counter while ready.
+- **Last Breath:** the burst counts as effect damage (Potency, Seeping, Nightshade apply); it
+  doesn't trigger another Last Breath. Bosses' bursts are capped at 5% of the boss's max health.
+- **Tangled:** a slow like Soaked; stacks with other slows (Heavy Air doesn't boost it).
+- **Heart of the Maze:** "furthest" = the largest path distance to the nearest other attacking
+  Warden's closest path tile; recomputed on `path_changed` and on build/sell; ties go to the one
+  nearer the Heartwood. The chosen Warden gets a small heart mark.
+- **Echoing Steps:** only real route changes count (building, selling or clearing while nightmares
+  walk, or Rooted Nightmares' blocking), max 1 per second.
+- **Deepened:** Last Breath II (15%), Watchful Rest II (charge after 3 s), Straightaway II (+25%,
+  +0.5 range), Thick Bark II (first 2 leaks each block).
+
 ## Data (`UpgradeData`)
 
 `id`, `display_name`, `description`, `rarity`, `kind` (stat / rule / economy; evolutions are
