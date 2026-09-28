@@ -25,6 +25,7 @@ func _run() -> void:
 	await _test_dreamlight(main)
 	_test_passed_over(main)
 	_test_few_and_mighty_sim(main)
+	_test_stray_dream(main)
 	print("dreams test: %s" % ("PASS" if failures == 0 else "%d FAILED" % failures))
 	quit(failures)
 
@@ -779,6 +780,95 @@ func _test_few_and_mighty_sim(main: Node) -> void:
 	var faded: Array = results[1]
 	_check(faded[1] < results[0][1], "Few and Mighty: fading lowers how often it's offered")
 	_check(float(faded[3]) / maxi(faded[2], 1) <= 0.25, "Few and Mighty: after its 2nd pass at most ~1 offer in 4")
+
+# "Adapt, don't get handed" (dream_design.md): the Stray Dream slot, and how much of an offer is
+# your build. Targets: own-family ≈ 25% of cards, an out-of-build card in ≥ ~70% of offers.
+func _test_stray_dream(main: Node) -> void:
+	var dreams: DreamState = main.get_node("%DreamState")
+	_reset_dreams(main)
+	dreams.unlocked = {"sprout": true, "thornwall": true, "sporeling": true, "firefly_jar": true}
+	dreams.make_offer(5)
+	_check(dreams.current_stray == null, "Stray: none before drift 10")
+	dreams.make_offer(25)
+	_check(dreams.current_stray == null, "…none at a boss rest")
+	var offer := dreams.make_offer(15)
+	_check(dreams.current_stray != null and offer.has(dreams.current_stray) and dreams.is_stray(dreams.current_stray),
+		"…one Stray slot from drift 10")
+	# Weighting turned around: build cards ×0.25, soft Needs ignored
+	var in_build := _card(dreams, "cozy_corners")
+	dreams.take(_card(dreams, "crossroads"))  # Its archetype ("maze") joins the build
+	var plain := _card(dreams, "quickened_sap")
+	var build_picks := 0
+	var soft_picks := 0
+	var soft := _card(dreams, "many_hands")  # Soft Need unmet (15 attackers)
+	for i in 2000:
+		build_picks += 1 if dreams._weighted_pick([in_build, plain], true) == in_build else 0
+		soft_picks += 1 if dreams._weighted_pick([soft, plain], true) == soft else 0
+	_check(build_picks > 300 and build_picks < 500, "Stray: build cards ×0.25 (%d / 2000)" % build_picks)
+	_check(soft_picks > 900 and soft_picks < 1100, "Stray: soft Needs ignored (%d / 2000)" % soft_picks)
+	# Entwined due: Entwined + Stray + one normal (Storm Grid's Conductive Soil keeps its slot)
+	_reset_dreams(main)
+	dreams.unlocked = {"sprout": true, "thornwall": true, "stormcap": true, "rain_lily": true}
+	offer = dreams.make_offer(15)
+	var soil := _card(dreams, "conductive_soil")
+	_check(offer.size() == 3 and offer[0] == soil and dreams.current_stray == offer[1],
+		"Entwined due: Entwined + Stray + one normal")
+
+	# The measurement: Sporeling + Firefly Jar, 10 attackers, 400 offers per case.
+	var planted: Array[Tower] = []
+	for i in 10:
+		var tower: Tower = load("res://scenes/tower/tower.tscn").instantiate()
+		tower.tower_data = load("res://resource/tower/sporeling.tres")
+		tower.cell = Vector2(100 + i * 3, 100)  # Off the map: only counted
+		main.get_node("%TowerContainer").add_child(tower)
+		tower.set_process(false)
+		planted.append(tower)
+	var family_lines := {"sprout": true, "wall": true}
+	for card in dreams.pool:
+		if card.unlocks != null:
+			family_lines[card.unlocks.line] = true
+	var build_tags := family_lines.duplicate()
+	for tag in DreamState.DIRECTION_TAGS:
+		build_tags[tag] = true
+	for card in dreams.pool:
+		if card.rarity == UpgradeData.Rarity.LEGENDARY:
+			for tag in card.tags:
+				build_tags[tag] = true
+	for direction in ["", "seedfall"]:
+		for drift in [5, 15, 35]:
+			_reset_dreams(main)
+			dreams.unlocked = {"sprout": true, "thornwall": true, "sporeling": true, "firefly_jar": true}
+			if direction != "":
+				dreams.take(_card(dreams, direction))
+			var owned: Dictionary = dreams._owned_tags()[0]
+			var shown := 0
+			var own_family := 0
+			var offers_out := 0
+			dreams._rng.seed = 3
+			for i in 400:
+				dreams.dreams_seen = 0
+				dreams._passed_count.clear()
+				dreams._passed_at.clear()
+				var any_out := false
+				for card in dreams.make_offer(drift):
+					shown += 1
+					if card.tags.any(func(t: String) -> bool: return family_lines.has(t) and owned.has(t)):
+						own_family += 1
+					# Out of build: points at a family / direction / archetype you don't have, or its soft Need is unmet
+					if not dreams.is_in_build(card) and (card.tags.any(func(t: String) -> bool: return build_tags.has(t))
+							or not dreams.soft_needs_met(card)):
+						any_out = true
+				offers_out += 1 if any_out else 0
+			var family_share := float(own_family) / shown
+			var out_share := offers_out / 400.0
+			print("adapt: %s, drift %d: own-family %d%% of cards, an out-of-build card in %d%% of offers" % [
+				direction if direction != "" else "no direction", drift, roundi(family_share * 100), roundi(out_share * 100)])
+			if drift >= DreamState.STRAY_FROM_DRIFT:
+				_check(family_share > 0.17 and family_share < 0.30, "own-family ≈ 25%% of cards (%.2f)" % family_share)
+				_check(out_share >= 0.7, "an out-of-build card in ≥ 70%% of offers (%.2f)" % out_share)
+	for tower in planted:
+		tower.free()
+	_reset_dreams(main)
 
 func _card(dreams: DreamState, id: String) -> UpgradeData:
 	for card in dreams.pool:

@@ -238,18 +238,29 @@ func _test_wide_and_narrow() -> void:
 	dreams._attackers_planted = 0
 	_clear_towers()
 
-# Owning a direction makes its cards likelier (2×) and the opposite direction's half as likely.
+# Owning a direction makes its cards likelier (tag_weight 1.4×) and the opposite direction's half as likely.
 func _test_direction_weighting() -> void:
 	_reset()
 	dreams.take(_card("seedfall"))  # Wide
 	var wide := _card("many_hands")
 	var narrow := _card("solitude")
+	for i in 15:  # Many Hands' soft Need (15 attacking Wardens) met, so only the tags count
+		_plant("sporeling", 60 + i * 3, 0)
 	var wide_picks := 0
 	for i in 2000:
 		if dreams._weighted_pick([wide, narrow]) == wide:
 			wide_picks += 1
-	# 2× vs 0.5× → 80% wide
-	_check(wide_picks > 1500 and wide_picks < 1700, "wide 2×, narrow 0.5× once you've gone wide (%d / 2000)" % wide_picks)
+	# 1.4× vs 0.5× → 74% wide
+	_check(wide_picks > 1370 and wide_picks < 1580, "wide 1.4×, narrow 0.5× once you've gone wide (%d / 2000)" % wide_picks)
+	# Unmet soft Need: ×0.4 (1.4 × 0.4 = 0.56 vs 0.5 → 53%)
+	_clear_towers()
+	wide_picks = 0
+	for i in 2000:
+		if dreams._weighted_pick([wide, narrow]) == wide:
+			wide_picks += 1
+	_check(wide_picks > 960 and wide_picks < 1160, "…an unmet soft Need weighs ×0.4 (%d / 2000)" % wide_picks)
+	_check(dreams.can_offer(wide) and not dreams.is_eligible(wide), "…but never blocks the card (can_offer)")
+	_clear_towers()
 
 
 # Reaction cards 79–83: Needs, "own 2 Reaction pairs", and the rule ids the Reaction code reads.

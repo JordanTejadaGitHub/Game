@@ -62,6 +62,9 @@ const RECKLESS_PENALTY := 0.15
 const DIRECTION_TAGS: Array[String] = ["nurture", "wide", "narrow"]
 const OPPOSITE_DIRECTION := {"wide": "narrow", "narrow": "wide"}
 const OPPOSITE_WEIGHT := 0.5
+const SOFT_NEED_WEIGHT := 0.4  # A card whose soft Needs are unmet (dream_design.md "Adapt, don't get handed")
+const STRAY_FROM_DRIFT := 10  # The Stray Dream: one slot per offer from this rest on (never at boss rests)
+const STRAY_IN_BUILD_WEIGHT := 0.25
 # Passed-over cards fade (dream_design.md "How Dream offers work"): left out of the next offer, then
 # weight ×0.6 per time passed this run (floor ×0.1); taking the card resets it.
 const PASSED_FADE := 0.6
@@ -119,7 +122,7 @@ signal remember_requested(focus: TowerData)
 @export var unlock_everything: bool = false  # Debug/tests: every Warden and evolution available
 @export var cards_per_offer: int = 3
 @export var skip_dew: int = 15  # "Let it pass"
-@export var tag_weight: float = 2.0  # Cards tagged with a line you own are this much likelier
+@export var tag_weight: float = 1.4  # Cards sharing a tag you own (family, direction, Legendary archetype)
 @export var pity_after: int = 3  # Dreams in a row without Rare+ before one is guaranteed
 # Bittersweet cards stay out of the pool until leaves are tuned (dream_design.md). Act 2+ only,
 # at most one per offer.
@@ -155,6 +158,7 @@ var _passed_count := {}  # Card id -> times offered and not taken this run
 var _passed_at := {}  # Card id -> the offer number (dreams_seen) it was last passed over in
 var _taken_this_offer: Array[String] = []
 var _guaranteed_id := ""  # The Entwined guaranteed card of the current offer (never fades)
+var current_stray: UpgradeData = null  # The Stray Dream card of the current offer (null = none)
 var _before_offer := {}  # Offer counters from before the current offer (a reroll rolls them back)
 var _attackers_planted := 0  # Attacking Wardens planted this run (Canopy)
 var picks_left := 1  # Cards still to take from the current offer (Lucid Dreaming: 2)
@@ -1092,6 +1096,7 @@ func skip() -> void:
 	_close_offer()
 
 func _close_offer() -> void:
+	current_stray = null
 	_note_passed(current_offer, dreams_seen)
 	current_offer = []
 	offer_closed.emit()
@@ -1118,7 +1123,10 @@ func banish(card: UpgradeData) -> bool:
 	_banished[card.id] = true
 	var index := current_offer.find(card)
 	current_offer.remove_at(index)
-	var replacement := _draw_card(drift_director.get_act(current_offer_drift), current_offer, false)
+	var was_stray := card == current_stray
+	var replacement := _draw_card(drift_director.get_act(current_offer_drift), current_offer, false, was_stray)
+	if was_stray:
+		current_stray = replacement
 	if replacement != null:
 		current_offer.insert(index, replacement)
 	if current_offer.is_empty():
@@ -1145,6 +1153,10 @@ func get_passed_weight(card: UpgradeData) -> float:
 	if int(_passed_at.get(card.id, -1)) == dreams_seen - 1:
 		return 0.0
 	return maxf(pow(PASSED_FADE, passed), PASSED_FLOOR)
+
+# Whether `card` is the current offer's Stray Dream (DreamScreen shows the wisp tag).
+func is_stray(card: UpgradeData) -> bool:
+	return card != null and card == current_stray
 
 func times_passed(card_id: String) -> int:
 	return int(_passed_count.get(card_id, 0))
@@ -1183,6 +1195,12 @@ func make_offer(drift_number: int) -> Array[UpgradeData]:
 				_guaranteed_id = card.id
 				offer.append(card)
 				break
+	# The Stray Dream: from drift 10's rest (never a boss rest), one slot leans away from the build.
+	current_stray = null
+	if offer.size() < size and drift_number >= STRAY_FROM_DRIFT and not drift_director.is_boss_drift(drift_number):
+		current_stray = _draw_card(act, offer, false, true)
+		if current_stray != null:
+			offer.append(current_stray)
 	var force_rare := drift_director.is_boss_drift(drift_number) or _dreams_without_rare >= pity_after \
 		or _rare_dreams_left > 0
 	_rare_dreams_left = maxi(_rare_dreams_left - 1, 0)
@@ -1202,7 +1220,14 @@ func make_offer(drift_number: int) -> Array[UpgradeData]:
 			_rare_dreams_left = maxi(_rare_dreams_left, 1)
 	return offer
 
+# Whether `card` could be offered with every Need met (hard and soft): the "offered with 7 Wardens"
+# sense, for tests, tools and the Needs text.
 func is_eligible(card: UpgradeData, act: int = 1) -> bool:
+	return can_offer(card, act) and soft_needs_met(card)
+
+# Whether `card` can be drawn at all (hard Needs). Unmet soft Needs only lower its weight
+# (dream_design.md "Adapt, don't get handed").
+func can_offer(card: UpgradeData, act: int = 1) -> bool:
 	if not (card.in_start_pool or grove_cards.has(card.id)) or _banished.has(card.id):
 		return false
 	if act < card.min_act or card.kind == UpgradeData.Kind.UNLOCK_WARDEN:
@@ -1232,22 +1257,14 @@ func is_eligible(card: UpgradeData, act: int = 1) -> bool:
 			return false
 	return true
 
-# The run-state and card Needs (dream_design.md "Card requirements"). Only gates new offers: losing
-# a requirement never takes a card away.
+# The hard run-state and card Needs (dream_design.md "Card requirements"). Only gates new offers:
+# losing a requirement never takes a card away. A follow-up's rank Needs stay hard.
 func _meets_needs(card: UpgradeData) -> bool:
 	if card.requires_tag != "" and count_taken_with_tag(card.requires_tag) < card.requires_tag_count:
 		return false
 	if not card.requires_any.is_empty() and not card.requires_any.any(owns):
 		return false
-	if card.min_rank_dew > 0 and run_state.rank_dew_spent < card.min_rank_dew:
-		return false
-	if card.min_rank_count > 0 and count_ranked(card.min_rank_owned) < card.min_rank_count:
-		return false
-	if card.min_attackers > 0 or card.max_attackers > 0:
-		var attackers := count_attackers()
-		if attackers < card.min_attackers or (card.max_attackers > 0 and attackers > card.max_attackers):
-			return false
-	if card.count_warden != "" and count_wardens(card.count_warden) < card.min_warden_count:
+	if card.requires_tag != "" and not _rank_needs_met(card):
 		return false
 	if card.min_reaction_pairs > 0 and count_reaction_pairs() < card.min_reaction_pairs:
 		return false
@@ -1256,6 +1273,24 @@ func _meets_needs(card: UpgradeData) -> bool:
 	if card.min_owned_statuses > 0 and owned_statuses().size() < card.min_owned_statuses:
 		return false
 	return true
+
+# Soft Needs (×SOFT_NEED_WEIGHT when unmet, never a gate): attacker counts, count_warden, and the
+# Nurture openers' rank Needs (cards with no requires_tag).
+func soft_needs_met(card: UpgradeData) -> bool:
+	if card.requires_tag == "" and not _rank_needs_met(card):
+		return false
+	if card.min_attackers > 0 or card.max_attackers > 0:
+		var attackers := count_attackers()
+		if attackers < card.min_attackers or (card.max_attackers > 0 and attackers > card.max_attackers):
+			return false
+	if card.count_warden != "" and count_wardens(card.count_warden) < card.min_warden_count:
+		return false
+	return true
+
+func _rank_needs_met(card: UpgradeData) -> bool:
+	if card.min_rank_dew > 0 and run_state.rank_dew_spent < card.min_rank_dew:
+		return false
+	return card.min_rank_count <= 0 or count_ranked(card.min_rank_owned) >= card.min_rank_count
 
 # How many Reactions (Reactions.all(), dream_design.md "Reaction numbers") your owned Wardens could
 # set off together: the first status and the second (or one of its alternatives, e.g. Pinned's
@@ -1301,7 +1336,7 @@ func count_taken_with_tag(tag: String) -> int:
 			count += 1
 	return count
 
-func _draw_card(act: int, exclude: Array[UpgradeData], want_rare: bool) -> UpgradeData:
+func _draw_card(act: int, exclude: Array[UpgradeData], want_rare: bool, stray: bool = false) -> UpgradeData:
 	var has_bittersweet := exclude.any(func(c: UpgradeData) -> bool: return c.is_bittersweet())
 	var eligible: Array[UpgradeData] = []
 	for card in pool:
@@ -1309,7 +1344,7 @@ func _draw_card(act: int, exclude: Array[UpgradeData], want_rare: bool) -> Upgra
 			continue  # At most one bittersweet card per offer
 		if card.rarity == UpgradeData.Rarity.COMMON and has_rule(&"lucid_dreaming"):
 			continue  # Lucid Dreaming: no Commons
-		if is_eligible(card, act):
+		if can_offer(card, act):
 			eligible.append(card)
 	if eligible.is_empty():
 		return null
@@ -1329,7 +1364,7 @@ func _draw_card(act: int, exclude: Array[UpgradeData], want_rare: bool) -> Upgra
 		for card in of_rarity:
 			best = maxf(best, get_passed_weight(card))
 		if best >= 1.0 or (best > 0.0 and _rng.randf() < best):
-			return _weighted_pick(of_rarity.filter(func(c: UpgradeData) -> bool: return get_passed_weight(c) > 0.0))
+			return _weighted_pick(of_rarity.filter(func(c: UpgradeData) -> bool: return get_passed_weight(c) > 0.0), stray)
 		tried.append(rarity)
 		rarity = _roll_rarity(act, want_rare, tried)
 	# Nothing else can fill the slot: faded cards after all (passed over in the offer before only if
@@ -1338,7 +1373,7 @@ func _draw_card(act: int, exclude: Array[UpgradeData], want_rare: bool) -> Upgra
 	if want_rare and eligible.any(func(c: UpgradeData) -> bool: return c.is_rare_or_better()):
 		left = eligible.filter(func(c: UpgradeData) -> bool: return c.is_rare_or_better())
 	var fresh := left.filter(func(c: UpgradeData) -> bool: return get_passed_weight(c) > 0.0)
-	return _weighted_pick(fresh if not fresh.is_empty() else left)
+	return _weighted_pick(fresh if not fresh.is_empty() else left, stray)
 
 # A rarity for the next card (-1 = every rarity is in `skip`).
 func _roll_rarity(act: int, want_rare: bool, skip: Array[int] = []) -> int:
@@ -1371,38 +1406,56 @@ func _roll_rarity(act: int, want_rare: bool, skip: Array[int] = []) -> int:
 			return i
 	return 0
 
-# Picks one of `cards` by tag weighting (owned families and build directions, the clearing boost).
-func _weighted_pick(cards: Array) -> UpgradeData:
-	var owned_lines := {}
+# Tags the run has committed to: owned families (lines), started build directions, taken
+# Legendaries' archetypes. Returns [owned {tag: true}, opposed {direction: true}].
+func _owned_tags() -> Array:
+	var owned := {}
 	for card in _taken_cards():  # A taken Legendary's archetype counts as a family (Legendary rules)
 		if card.rarity == UpgradeData.Rarity.LEGENDARY:
 			for tag in card.tags:
-				owned_lines[tag] = true
+				owned[tag] = true
 	for tower_id in unlocked:
 		var line := _line_of(tower_id)
 		if line != "":
-			owned_lines[line] = true
+			owned[line] = true
 	# Build directions you've started count like families; wide and narrow push each other away.
 	var opposed := {}
 	for tag in DIRECTION_TAGS:
 		if count_taken_with_tag(tag) > 0:
-			owned_lines[tag] = true
+			owned[tag] = true
 			if OPPOSITE_DIRECTION.has(tag):
 				opposed[OPPOSITE_DIRECTION[tag]] = true
+	return [owned, opposed]
+
+# Whether `card` belongs to the build (shares a tag the run has committed to).
+func is_in_build(card: UpgradeData) -> bool:
+	var owned: Dictionary = _owned_tags()[0]
+	return card.tags.any(func(tag: String) -> bool: return owned.has(tag))
+
+# Picks one of `cards` by weight: build tags (×tag_weight), unmet soft Needs, opposed directions, the
+# clearing boost, the passed-over fade. `stray` turns the build weighting around (the Stray Dream):
+# build cards ×STRAY_IN_BUILD_WEIGHT, soft Needs ignored.
+func _weighted_pick(cards: Array, stray: bool = false) -> UpgradeData:
+	var tags := _owned_tags()
+	var owned: Dictionary = tags[0]
+	var opposed: Dictionary = tags[1]
 	var weights: Array[float] = []
 	var total := 0.0
 	var clearing_locked := not can_clear()
 	for card in cards:
+		var in_build: bool = card.tags.any(func(tag: String) -> bool: return owned.has(tag))
 		var weight := 1.0
-		for tag in card.tags:
-			if owned_lines.has(tag):
-				weight = tag_weight
-				break
+		if stray:
+			weight = STRAY_IN_BUILD_WEIGHT if in_build else 1.0
+		else:
+			weight = tag_weight if in_build else 1.0
+			if not soft_needs_met(card):
+				weight *= SOFT_NEED_WEIGHT
+			for tag in opposed:  # e.g. a narrow card while you've gone wide
+				if card.tags.has(tag) and not card.tags.has(OPPOSITE_DIRECTION[tag]):
+					weight *= OPPOSITE_WEIGHT
 		if clearing_locked and card.tags.has("clearing"):
 			weight *= CLEARING_LOCKED_WEIGHT  # Until the first one unlocks clearing
-		for tag in opposed:  # e.g. a narrow card while you've gone wide
-			if card.tags.has(tag) and not card.tags.has(OPPOSITE_DIRECTION[tag]):
-				weight *= OPPOSITE_WEIGHT
 		weight *= get_passed_weight(card)  # Passed-over cards fade (all 0 = a plain random pick below)
 		weights.append(weight)
 		total += weight

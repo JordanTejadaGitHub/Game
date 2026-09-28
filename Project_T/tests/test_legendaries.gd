@@ -89,7 +89,7 @@ func _test_court() -> void:
 	_check(dreams.get_eldest() == first, "with nothing ranked, the next Warden nurtured becomes the Eldest")
 	_clear_towers()
 
-# After taking a Legendary its archetype counts as an owned family (2×).
+# After taking a Legendary its archetype counts as an owned family (tag_weight 1.4×).
 func _test_legendary_weighting() -> void:
 	_reset()
 	var maze_card := _card("cozy_corners")  # tags: maze
@@ -99,7 +99,7 @@ func _test_legendary_weighting() -> void:
 	for i in 2000:
 		if dreams._weighted_pick([maze_card, plain]) == maze_card:
 			maze_picks += 1
-	_check(maze_picks > 1200, "a taken Legendary's tag is weighted 2× (%d / 2000)" % maze_picks)
+	_check(maze_picks > 1080 and maze_picks < 1260, "a taken Legendary's tag is weighted 1.4× (%d / 2000)" % maze_picks)
 
 func _test_lucid_dreaming() -> void:
 	_reset()
