@@ -45,6 +45,15 @@ points.
     fades and never counts as passed. Rerolls, Banish and Let it pass work as before.
   - Measure: in a test run that skips the same card at every offer, it should turn up in at most
     ~1 offer in 4 after its second skip.
+  - **The fade crosses rarities** (added the same day; simulation c64183a: Few and Mighty was often
+    the *only* eligible Rare, so every Rare roll landed on it, ~50% of offers, fade or not). When
+    every eligible card of the rolled rarity is faded, keep that rarity only with a chance equal to
+    their best weight; otherwise re-roll among the other rarities (a forced Rare+ offer falls through
+    to Legendary). A card that's alone in its rarity therefore fades like any other, and the
+    next-offer exclusion holds unless the offer can't be filled at all.
+  - **Content gap:** the Rare tier is thin for many boards (in that simulation Few and Mighty was the
+    only Rare eligible in act 1). The pool needs more Rares with loose Needs; see the design todo in
+    `design_plan.md`.
 - **Rarity weights by act:**
 
   | Act | Common | Uncommon | Rare | Legendary |
