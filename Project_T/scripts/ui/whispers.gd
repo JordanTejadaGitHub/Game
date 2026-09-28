@@ -40,6 +40,10 @@ const TEXT := {
 @onready var tower_container: Node2D = %TowerContainer
 @onready var dream_state: DreamState = %DreamState
 
+# A whisper is shown now (after any queued ahead of it; never for ones already seen). SoundHooks
+# gives the first chain's whisper the Dream-screen breath-in (audio_direction.md).
+signal whispered(id: StringName)
+
 var enabled := true
 var term := ""  # The Codex term the showing whisper mentions ("" = none): tapping opens it
 var _seen: Array = []
@@ -132,6 +136,7 @@ func _show_next() -> void:
 	_seen.append(String(id))
 	_remember()
 	text = TEXT.get(id, "")
+	whispered.emit(id)
 	# Tappable while shown when it names a Codex term (screens_ui.md "The Codex").
 	term = CodexData.find_term(text)
 	mouse_filter = Control.MOUSE_FILTER_STOP if term != "" else Control.MOUSE_FILTER_IGNORE
