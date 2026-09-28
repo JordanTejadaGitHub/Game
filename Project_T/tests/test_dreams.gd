@@ -246,7 +246,20 @@ func _test_new_cards(main: Node) -> void:
 	var bends: Dictionary = dreams._bend_cells
 	dreams._bend_cells = {Vector2(10, 10): true}
 	_check(dreams.is_beside_bend(Vector2(12, 10), 2) and not dreams.is_beside_bend(Vector2(12, 10), 1)
-		and not dreams.is_beside_bend(Vector2(12, 11), 2), "bend reach counts orthogonal steps")
+		and dreams.is_beside_bend(Vector2(12, 12), 2) and not dreams.is_beside_bend(Vector2(13, 10), 2),
+		"bend reach is a square (diagonals included): II = the 5×5 around")
+	# A U-turn: the path turns at (12, 10) and (12, 12); the Warden inside it at (11, 11) is diagonal
+	# to both corners and counts as beside a bend (the user's Dreamcatcher bug).
+	dreams._bend_cells = {Vector2(12, 10): true, Vector2(12, 12): true}
+	var catcher: TowerData = load("res://resource/tower/sporeling.tres")
+	var cozy: Array = dreams.get_card_effects(catcher, Vector2(11, 11)).filter(func(r: Dictionary) -> bool:
+		return r.id == "cozy_corners_ii" or r.id == "cozy_corners")
+	_check(dreams.is_beside_bend(Vector2(11, 11), 1) and not cozy.is_empty() and cozy[0].active,
+		"a Warden inside a U-turn is beside a bend")
+	dreams._bend_cells = {}
+	cozy = dreams.get_card_effects(catcher, Vector2(11, 11)).filter(func(r: Dictionary) -> bool:
+		return r.id == "cozy_corners_ii" or r.id == "cozy_corners")
+	_check(not cozy[0].active and "diagonals included" in cozy[0].reason, "…off-reason: %s" % cozy[0].reason)
 	dreams._bend_cells = bends
 
 	# Entwined: guaranteed in the next offer once the ingredients come together, then drawn normally

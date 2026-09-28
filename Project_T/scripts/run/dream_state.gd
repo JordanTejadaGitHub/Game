@@ -12,7 +12,7 @@ const DREAM_DIR := "res://resource/dream/"
 const RARITY_WEIGHTS := [[65, 28, 7, 0], [50, 32, 15, 3], [38, 34, 22, 6]]
 # Rule numbers: [base, Deepened (II)].
 const COZY_CORNERS_BONUS := [0.15, 0.25]
-const COZY_CORNERS_REACH := [1, 2]  # Tiles from a bend (orthogonal steps)
+const COZY_CORNERS_REACH := [1, 2]  # Cells from a bend, diagonals included (1 = the 8 around, 2 = 5×5)
 const HEDGE_PER_WALLS := [5, 4]
 const HEDGE_BONUS_PER := 0.01
 const HEDGE_BONUS_MAX := [0.20, 0.30]
@@ -942,11 +942,12 @@ func count_walls() -> int:
 			count += 1
 	return count
 
-# Whether a bend in the path is within `reach` orthogonal steps of `cell`.
+# Whether a bend in the path is within `reach` cells of `cell`, diagonals included (Chebyshev: 1 =
+# the 8 cells around it, 2 = the 5×5 square; dream_design.md card 21). A Warden inside a U-turn is
+# diagonal to its corners, so it counts.
 func is_beside_bend(cell: Vector2, reach: int = 1) -> bool:
 	for dx in range(-reach, reach + 1):
-		var rest := reach - absi(dx)
-		for dy in range(-rest, rest + 1):
+		for dy in range(-reach, reach + 1):
 			if (dx != 0 or dy != 0) and _bend_cells.has(cell + Vector2(dx, dy)):
 				return true
 	return false

@@ -146,7 +146,7 @@ func _cozy_corners(spot: Dictionary, _others: Array, _card: UpgradeData) -> Dict
 	var reach: int = DreamState.COZY_CORNERS_REACH[level]
 	var on := ds.is_beside_bend(spot.cell, reach)
 	return {"positional": true, "radius": float(reach), "active": on, "damage": DreamState.COZY_CORNERS_BONUS[level],
-		"reason": "" if on else "no bend in the path within %s" % _cells_word(reach)}
+		"reason": "" if on else ("no bend in the path in the 8 cells around it" if reach == 1 else "no bend in the path within %d cells, diagonals included" % reach)}
 
 func _hedge_maze(spot: Dictionary, others: Array, _card: UpgradeData) -> Dictionary:
 	var level := ds.rule_level(&"hedge_maze")
