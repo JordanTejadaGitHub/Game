@@ -133,9 +133,13 @@ alternative**: a strong card you can use now if you bend the plan.
      A half-dreamed Entwined card you already took simply isn't offered again.
 
 **Targets (offer simulation):** own-family cards ≈ **25%** of offered cards (was 35%); **≥1 card
-outside the current build in ~70% of offers**; the Storm Grid reachability check still lands near
-its 33% target (Entwined drives it, so 1.4× shouldn't sink it; if it does, raise Entwined, not
-`tag_weight`).
+outside the current build in ~70% of offers**. Storm Grid is unaffected: its Wardens now come from
+family picks and Dreamlight, and Conductive Soil keeps its Entwined slot.
+
+**As built (65bbe5c, 400 seeded offers per case, `tests/test_dreams.gd`):** own-family share
+22–25% from drift 15 (31% at drift 5, before the Stray slot; was ~35%); an out-of-build card in
+90–95% of offers (high early partly because no direction is picked yet). Half-dreamed cards: in
+progress.
 
 ### Card requirements (the "Needs" column)
 
