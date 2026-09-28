@@ -25,6 +25,7 @@ placeholders).
 | `onboarding.md` | teaching across the first runs |
 | `screens_ui.md` | screen flow, HUD layout, panels, choice screens, settings, controls |
 | `demo_scope.md` | what's in the demo, timeline, success measures |
+| `balance_simulation.md` | the balance bot: profiles, build styles, what it records, pass / fail checks against the difficulty targets |
 | `design_plan.md` | what's designed and what still needs fleshing out |
 
 ## Hook
