@@ -47,6 +47,7 @@ static func defaults() -> Dictionary:
 			"vsync": true,
 			"window_size": 0,  # Index into SettingsPanel.WINDOW_SIZES (windowed mode)
 			"high_contrast_route": false,  # RouteLine: bright, thick route previews
+			"confirm_sell": true,  # Warden panel: confirm "Sell N" while nightmares walk
 			"keybinds": {},  # {action: [physical keycodes]}; empty = project defaults
 		},
 	}

@@ -62,6 +62,7 @@ func _ready() -> void:
 	_toggle(gameplay, "Heartwood whispers (hints)", "whispers")
 	_toggle(gameplay, "Auto-drift on by default", "auto_drift")
 	_choice(gameplay, "Damage numbers", "damage_numbers", ["Off", "Big hits", "All"])
+	_toggle(gameplay, "Confirm selling several Wardens during a drift", "confirm_sell", true)
 
 	var box := _tab("Accessibility")
 	_toggle(box, "Reduced motion", "reduced_motion")
