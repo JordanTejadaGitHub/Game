@@ -198,6 +198,11 @@ controller / Steam Deck, accessibility, Steam achievements (milestones map to th
   run, whispers toggle, run summary. Settings: UI scale, Auto-drift default, reduced motion, damage
   numbers (`damage_numbers` 0/1/2). Hotkeys G (grow selected), H / F (centre on goal / start).
   Results show run stats (`RunState.leaves_lost`, `longest_path`, `play_time`). `tests/test_ui.gd`.
+  platforms.md (no hover/keyboard-only): HUD `MenuButton` opens the pause menu; `ChoicePeek`
+  (`choice_peek.gd`) = "Peek at the map" for choice screens (family pick uses it). `SettingsPanel` is
+  tabbed (Audio / Display / Gameplay / Accessibility / Controls / Developer); `apply_display`
+  (V-sync, window size) runs from `HeartwoodMemory.apply_settings`; `RouteLine` styles the route
+  previews for `high_contrast_route` (cached; the panel calls `reload()`).
 - Combat feedback (screens_ui.md), all on `DamageLog` events: `CombatCallouts` (world; combo tag →
   "Conducted!" / "Popped!" / "Asleep!" / "Shattered!" / "Weak!", throttled; calls
   `enemy.flash_status`), `PlacementLinks` (vines from the build ghost to Wardens it combos with),
