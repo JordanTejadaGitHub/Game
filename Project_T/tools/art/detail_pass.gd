@@ -36,15 +36,18 @@ const RIM := {
 ## Runs the full pass on one frame in place (converted to RGBA8) and returns it. `glow_radius` (px)
 ## sets how far the glow halo and nightmare smoke spread; 0 = from the frame width, max(3, w / 32)
 ## (64 → 3, 112 → 4, 144 → 5, 176 → 6). Rim, seams, texture and motes are always 1 px.
-static func apply(img: Image, kind: Kind, glow_radius := 0) -> Image:
+## `texture` (0..1) thins the grain, material texture and motes: 1 = the reference, 0.5 = half as
+## many pixels, 0 = none (for art that is already shaded, or calm ground tiles). Rim, seams, form
+## light, glow and smoke stay.
+static func apply(img: Image, kind: Kind, glow_radius := 0, texture := 1.0) -> Image:
 	if img.get_format() != Image.FORMAT_RGBA8:
 		img.convert(Image.FORMAT_RGBA8)
 	var w := img.get_width()
 	var h := img.get_height()
 	var p := _read(img)
 	var tile := kind == Kind.TILE
-	_refine(p, w, h, tile, _hex(RIM[kind][0]), RIM[kind][1])
-	_enrich(p, w, h, kind, glow_radius if glow_radius > 0 else maxi(3, roundi(w / 32.0)))
+	_refine(p, w, h, tile, _hex(RIM[kind][0]), RIM[kind][1], texture)
+	_enrich(p, w, h, kind, glow_radius if glow_radius > 0 else maxi(3, roundi(w / 32.0)), texture)
 	_write(img, p)
 	HeartwoodPalette.snap_image(img, kind == Kind.NIGHTMARE)
 	return img
@@ -52,7 +55,7 @@ static func apply(img: Image, kind: Kind, glow_radius := 0) -> Image:
 
 ## Runs the pass on each `frame`-sized cell of a sheet separately, so blur and edges never bleed
 ## between frames. Returns the sheet.
-static func apply_sheet(sheet: Image, frame: Vector2i, kind: Kind, glow_radius := 0) -> Image:
+static func apply_sheet(sheet: Image, frame: Vector2i, kind: Kind, glow_radius := 0, texture := 1.0) -> Image:
 	if sheet.get_format() != Image.FORMAT_RGBA8:
 		sheet.convert(Image.FORMAT_RGBA8)
 	for y in range(0, sheet.get_height() - frame.y + 1, frame.y):
@@ -61,7 +64,7 @@ static func apply_sheet(sheet: Image, frame: Vector2i, kind: Kind, glow_radius :
 			var cell := sheet.get_region(rect)
 			if cell.is_invisible():
 				continue
-			apply(cell, kind, glow_radius)
+			apply(cell, kind, glow_radius, texture)
 			sheet.blit_rect(cell, Rect2i(Vector2i.ZERO, frame), rect.position)
 	return sheet
 
@@ -138,7 +141,7 @@ static func _inner(p: PackedInt64Array, w: int, h: int, tile: bool, x: int, y: i
 
 # ---- 1. refine: dithered band seams, the upper-left rim of light, grain
 
-static func _refine(p: PackedInt64Array, w: int, h: int, tile: bool, rim: int, rim_k: float) -> void:
+static func _refine(p: PackedInt64Array, w: int, h: int, tile: bool, rim: int, rim_k: float, texture: float) -> void:
 	var base := p.duplicate()
 	var white := _hex("fff4dc")
 	var black := _hex("05060a")
@@ -163,9 +166,9 @@ static func _refine(p: PackedInt64Array, w: int, h: int, tile: bool, rim: int, r
 			if not tile and (_edge(base, w, h, tile, x, y - 1) or _edge(base, w, h, tile, x - 1, y)):
 				v = _mix(v, rim, rim_k)
 			var hh := _hash(x, y)
-			if hh < 0.05:
+			if hh < 0.05 * texture:
 				v = _mix(v, black, 0.09)
-			elif hh > 0.96:
+			elif hh > 1.0 - 0.04 * texture:
 				v = _mix(v, white, 0.07)
 			p[y * w + x] = v
 
@@ -214,7 +217,7 @@ static func _box_blur(a: PackedFloat32Array, w: int, h: int, r: int) -> PackedFl
 	return o
 
 
-static func _enrich(p: PackedInt64Array, w: int, h: int, kind: Kind, radius: int) -> void:
+static func _enrich(p: PackedInt64Array, w: int, h: int, kind: Kind, radius: int, texture: float) -> void:
 	var base := p.duplicate()
 	var tile := kind == Kind.TILE
 	var night := kind == Kind.NIGHTMARE
@@ -270,6 +273,9 @@ static func _enrich(p: PackedInt64Array, w: int, h: int, kind: Kind, radius: int
 				elif k < 0.0:
 					v = _mix(v, shadow_c, -k)
 			var hr := _hash(x, y)
+			if _hash(x + 101, y + 59) >= texture:  # `texture` < 1 skips material texture here
+				p[i] = v
+				continue
 			if hu > 65 and hu < 165 and s > 0.25:
 				# Moss and leaves: tiny lit leaf clumps with a shadow under each; grass blades on tiles.
 				if hr < 0.1:
