@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "bad_dreams"
 display_name = "Bad Dreams"
-description = "Caught nightmares also take 1 Slowed stack per second, so they stay Caught."
+description = "Caught nightmares also take 1 Drowsy stack per second, so they stay Caught."
 rarity = 1
 kind = 3
 tags = Array[String](["song", "sleep"])
