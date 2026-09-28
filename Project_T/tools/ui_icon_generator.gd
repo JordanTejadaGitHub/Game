@@ -250,7 +250,11 @@ const STAT_ICONS := ["damage", "attack_speed", "range", "crit_chance", "crit_dam
 # Nightmare traits and boss abilities (screens_ui.md "Nightmare info", "Boss dossier"), in a cold
 # palette (warm is for Wardens). The trait "hidden" reuses the status icon of the same id.
 const NIGHTMARE_ICONS := ["flying", "dread_shell", "through_walls", "sprints", "rises",
-	"trample", "charge", "sink", "bog_water", "eclipse", "brood", "sapling", "grief"]
+	"trample", "charge", "sink", "bog_water", "eclipse", "brood", "sapling", "grief",
+	"wanders", "splits", "ignores_slows", "leap", "mender", "waker", "revealer", "ash", "thief",
+	"followers", "swarm", "bulky"]
+# Ids that share another icon's column.
+const ICON_ALIASES := {"always_damp": "damp", "burrows": "rises"}
 
 var _cells := {}  # Vector2i -> ramp index
 var _ramps: Array = []  # [light, mid, dark]
@@ -263,9 +267,11 @@ func _make_icons() -> void:
 	for i in ids.size():
 		sheet.blit_rect(_icon(ids[i]), Rect2i(0, 0, ICON, ICON), Vector2i(i * ICON, 0))
 		index[ids[i]] = i
+	for alias: String in ICON_ALIASES:
+		index[alias] = index[ICON_ALIASES[alias]]
 	sheet.save_png(OUT + "icons.png")
 	var data := {frame_size = ICON, icons = index, statuses = STATUS_ICONS, stats = STAT_ICONS,
-		nightmare = NIGHTMARE_ICONS + ["hidden"],
+		nightmare = NIGHTMARE_ICONS + ["hidden"] + ICON_ALIASES.keys(),
 		note = "One row of 16x16 icons; column = icons[id]. Readable at 12 px; for 24-32 px panels scale by whole numbers with nearest filtering."}
 	var file := FileAccess.open(OUT + "icons.json", FileAccess.WRITE)
 	file.store_string(JSON.stringify(data, "\t") + "\n")
@@ -777,3 +783,123 @@ func _ic_grief() -> void:
 				_dt(x, y, Color("#120c20"))
 	_dt(9, 7, Color("#8ad8ff"))
 	_dt(9, 8, Color("#bfe8ff"))
+
+func _ic_wanders() -> void:
+	# A sleepwalker's winding trail (an S), ending in an arrowhead.
+	var k := _rp("#c8c0e0", "#7a70a8", "#3e3666")
+	var pts: Array = []
+	for s in 13:
+		var t := s / 12.0
+		pts.append(Vector2(2.5 + sin(t * TAU) * 3.0 + t * 6.0, 14 - t * 10.0))
+	_c_line(pts, 1.5, k)
+	_c_poly(PackedVector2Array([Vector2(7, 3.4), Vector2(13.6, 1.4), Vector2(11, 7)]), k)
+
+func _ic_splits() -> void:
+	# One nightmare blob tearing into two.
+	var k := _rp("#9a8ac8", "#5a4a8a", "#2e2450")
+	_c_ell(Vector2(5.2, 8.4), Vector2(3.8, 4.6), k, 0.35)
+	_c_ell(Vector2(11, 8.4), Vector2(3.4, 4.2), k, -0.35)
+	_dt_line(Vector2i(8, 3), Vector2i(8, 13), Color("#120c20"))
+	_dt(4, 7, NM_EYE)
+	_dt(11, 7, NM_EYE)
+
+func _ic_ignores_slows() -> void:
+	# A broken shackle: slows don't hold it.
+	var k := _rp("#a8b0c8", "#6a7090", "#3a3e58")
+	_c_ring(Vector2(6, 9), 4.6, 2.6, k)
+	# Snap the ring open at the top right.
+	for y in range(3, 8):
+		for x in range(7, 12):
+			_cells.erase(Vector2i(x, y))
+	_c_line([Vector2(10, 7), Vector2(14, 3)], 1.6, k)
+	_c_line([Vector2(9, 3), Vector2(10.6, 1.4)], 1.2, k)
+	_dt(12, 6, Color("#e0e4f4"))
+
+func _ic_leap() -> void:
+	# An arc over a wall.
+	var wall := _rp("#b8b0a8", "#7a7068", "#4a4440")
+	var arc := _rp("#c8f0e8", "#5ab0a0", "#2a6a60")
+	_c_rect(Rect2i(6, 9, 4, 6), wall)
+	var pts: Array = []
+	for s in 11:
+		var t := s / 10.0
+		pts.append(Vector2(2 + t * 11, 12 - sin(t * PI) * 9))
+	_c_line(pts, 1.4, arc)
+	_c_poly(PackedVector2Array([Vector2(11, 9.4), Vector2(15, 10), Vector2(12.6, 13.6)]), arc)
+
+func _ic_mender() -> void:
+	# A cold, stitched cross: it mends other nightmares.
+	var k := _rp("#9ae0d0", "#3a9a90", "#1e5a58")
+	_c_rect(Rect2i(6, 2, 4, 12), k)
+	_c_rect(Rect2i(2, 6, 12, 4), k)
+	for p: Vector2i in [Vector2i(7, 4), Vector2i(8, 5), Vector2i(4, 7), Vector2i(5, 8), Vector2i(10, 7), Vector2i(11, 8), Vector2i(7, 10), Vector2i(8, 11)]:
+		_dt(p.x, p.y, Color("#1e5a58"))
+
+func _ic_waker() -> void:
+	# A crossed-out Z: it wakes sleepers.
+	var k := _rp("#e0a0c8", "#a84a8a", "#5a1e4a")
+	_c_rect(Rect2i(3, 3, 9, 2), k)
+	_c_line([Vector2(11, 5.2), Vector2(4, 11)], 2.2, k)
+	_c_rect(Rect2i(3, 11, 9, 2), k)
+	_dt_line(Vector2i(1, 15), Vector2i(15, 1), Color("#fff4f8"))
+	_dt_line(Vector2i(2, 15), Vector2i(15, 2), ICON_OUTLINE)
+	_dt_line(Vector2i(1, 14), Vector2i(14, 1), ICON_OUTLINE)
+
+func _ic_revealer() -> void:
+	# A will-o'-wisp: a floating cold orb trailing a wispy tail, rays round it.
+	var k := _rp("#e8f8ff", "#8ad0f0", "#3a78a8")
+	_c_line([Vector2(9.4, 7), Vector2(6, 10), Vector2(6.4, 12.6), Vector2(3, 14.4)], 1.4, k)
+	_c_disc(Vector2(10, 5.6), 3.6, k)
+	for p: Vector2i in [Vector2i(9, 5), Vector2i(10, 5), Vector2i(9, 6)]:
+		_dt(p.x, p.y, Color.WHITE)
+	for d: Vector2i in [Vector2i(10, 0), Vector2i(15, 5), Vector2i(14, 10), Vector2i(4, 3), Vector2i(15, 1)]:
+		_dt(d.x, d.y, Color("#bfe8ff"))
+
+func _ic_ash() -> void:
+	# A grey ash flame with dull embers in it.
+	var k := _rp("#c0bcc8", "#7a7688", "#3e3a4a")
+	_c_disc(Vector2(8, 11), 3.8, k)
+	_c_poly(PackedVector2Array([Vector2(4.4, 10), Vector2(6, 3), Vector2(8, 6.6), Vector2(10, 1.6), Vector2(11.6, 10)]), k)
+	for p: Vector2i in [Vector2i(7, 11), Vector2i(9, 9), Vector2i(8, 13), Vector2i(6, 8)]:
+		_dt(p.x, p.y, Color("#d8503a"))
+	_dt(8, 12, Color("#ff8a5a"))
+
+func _ic_thief() -> void:
+	# A tied sack with a stolen dew drop on it.
+	var sack := _rp("#c8b8a0", "#8a7458", "#4a3a2a")
+	_c_disc(Vector2(8, 10), 5.0, sack)
+	_c_rect(Rect2i(6, 3, 4, 3), sack)
+	_dt_line(Vector2i(5, 5), Vector2i(10, 5), Color("#4a3a2a"))
+	for p: Vector2i in [Vector2i(8, 8), Vector2i(7, 10), Vector2i(8, 10), Vector2i(9, 10), Vector2i(7, 11), Vector2i(8, 11), Vector2i(9, 11), Vector2i(8, 12)]:
+		_dt(p.x, p.y, Color("#7ae0d0"))
+	_dt(7, 10, Color.WHITE)
+
+func _ic_followers() -> void:
+	# A lantern leading a little train of followers.
+	var lamp := _rp("#e0e8ff", "#8a90c8", "#3a3e70")
+	var small := _rp("#9a8ac8", "#5a4a8a", "#2e2450")
+	_c_rect(Rect2i(10, 4, 4, 6), lamp)
+	_c_rect(Rect2i(11, 2, 2, 2), lamp)
+	_dt(11, 6, Color("#bfe8ff"))
+	_dt(12, 7, Color("#bfe8ff"))
+	_c_disc(Vector2(7, 12), 1.8, small)
+	_c_disc(Vector2(2.8, 12.6), 1.5, small)
+	_dt(7, 12, NM_EYE)
+	_dt(3, 12, NM_EYE)
+
+func _ic_swarm() -> void:
+	# A cloud of tiny specks with eyes.
+	var k := _rp("#9a8ac8", "#5a4a8a", "#2e2450")
+	for c: Vector2 in [Vector2(4, 4), Vector2(9, 3), Vector2(13, 6), Vector2(3, 9), Vector2(8, 8), Vector2(12, 11), Vector2(5, 13), Vector2(10, 14)]:
+		_c_disc(c, 1.2, k)
+	for c: Vector2i in [Vector2i(8, 8), Vector2i(4, 4), Vector2i(12, 11)]:
+		_dt(c.x, c.y, NM_EYE)
+
+func _ic_bulky() -> void:
+	# A huge hulking body, a tiny head.
+	var k := _rp("#a8a0c0", "#5e5680", "#302a48")
+	_c_ell(Vector2(8, 10), Vector2(6.8, 5.2), k)
+	_c_disc(Vector2(8, 3.6), 2.2, k)
+	_dt(7, 3, NM_EYE)
+	_dt(9, 3, NM_EYE)
+	_dt_line(Vector2i(4, 12), Vector2i(12, 12), Color("#302a48"))
