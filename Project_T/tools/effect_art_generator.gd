@@ -1478,8 +1478,8 @@ func _kinship() -> void:
 	_sheet("harmony_spark_b", Vector2i(24, 24), 6, 20, Vector2i(12, 12), false, "kinship", _harmony_spark.bind(1),
 		{note = "The other petal, from the right; tint with the second Warden's colour."})
 	_sheet("harmony_spark_lite", Vector2i(16, 16), 4, 20, Vector2i(8, 8), false, "kinship", _harmony_spark_lite)
-	_sheet("whole_tree_sigil", Vector2i(128, 128), 12, 10, Vector2i(64, 112), false, "kinship", _whole_tree_sigil,
-		{note = "Blooms above the Heartwood (~1.2 s, the last frames fade). Anchor = the trunk's foot."})
+	_sheet("whole_tree_sigil", Vector2i(128, 128), 12, 10, Vector2i(64, 88), false, "kinship", _whole_tree_sigil,
+		{note = "Plays ON the Heartwood: same 128x128 frame as its sprite, anchor (64, 88) = the Heartwood's position, so Fx.play at heartwood.global_position lines it up. Draw above the Heartwood (~1.2 s, settles at the end). Tint with the family colour."})
 	_sheet("whole_tree_badge", Vector2i(16, 16), 1, 0, Vector2i(8, 8), false, "kinship", _whole_tree_badge,
 		{note = "Small leaf badge on the family's Wardens after a Whole Tree."})
 	_sheet("kin_callout_frame", Vector2i(64, 22), 1, 0, Vector2i(32, 11), false, "ui_frame", _kin_callout_frame,
@@ -1637,55 +1637,103 @@ func _harmony_spark_lite(img: Image, f: int) -> void:
 		_px(img, int(c.x), int(c.y) + k, K_LIGHT)
 	_px(img, int(c.x), int(c.y), K_WHITE)
 
-# The Whole Tree: a sigil of a tree drawn in light: the trunk rises, branches split, a ring of
-# leaves closes into a canopy, it glows, then fades.
-func _whole_tree_sigil(img: Image, f: int) -> void:
-	var foot := Vector2(64, 112)
-	var grow := clampf(f / 5.0, 0.0, 1.0)
-	var fade := f >= 9
-	var col := K_WHITE if not fade else K_LIGHT
-	var dither := f >= 10
-	# Trunk.
-	var top := foot + Vector2(0, -58 * clampf(f / 2.0, 0.0, 1.0))
-	for w in 3:
-		_line(img, foot + Vector2(w - 1, 0), top + Vector2(w - 1, 0), col if (not dither or w == 1) else Color(0, 0, 0, 0))
-	# Roots.
-	if f >= 1:
-		for d: Vector2 in [Vector2(-14, 6), Vector2(14, 6), Vector2(-7, 9), Vector2(7, 9)]:
-			_line(img, foot, foot + d * minf(1.0, f / 2.0), K_LIGHT)
-	# Branches.
-	if f >= 2:
-		var b := clampf((f - 1) / 3.0, 0.0, 1.0)
-		for br: Array in [[Vector2(0, -34), Vector2(-26, -58)], [Vector2(0, -34), Vector2(26, -58)], [Vector2(0, -46), Vector2(-14, -70)], [Vector2(0, -46), Vector2(14, -70)], [Vector2(0, -56), Vector2(0, -78)]]:
-			var s: Vector2 = foot + (br[0] as Vector2)
-			var e: Vector2 = s.lerp(foot + (br[1] as Vector2), b)
-			_line(img, s, e, col, 2)
-	# Canopy ring of leaves.
-	if f >= 3:
-		var cc := foot + Vector2(0, -66)
-		var n := int(16 * clampf((f - 2) / 3.0, 0.0, 1.0))
-		for k in n:
-			var a := -PI * 0.5 + k * TAU / 16.0
-			var p := cc + Vector2(cos(a) * 42, sin(a) * 34)
-			if dither and k % 2 == 1:
+# The Whole Tree happens ON the Heartwood (same 128x128 frame and anchor as its sprite, so it lays
+# exactly over the tree): light runs up the trunk's cracks and out along the roots, the canopy
+# bursts into blossom from the middle outward, its rim glows, a ring pulses round the base, petals
+# drift up, and it all settles. Masks come from the Heartwood's own art (its shape is the same in
+# every act). White-to-grey so the code tints it with the family colour.
+const HEARTWOOD_ART := "res://assets/environment/forest_edge/heartwood.png"
+var _hw_canopy := {}
+var _hw_bark := {}
+var _hw_blossoms: Array = []
+
+func _heartwood_masks() -> void:
+	if not _hw_canopy.is_empty():
+		return
+	var art := Image.load_from_file(ProjectSettings.globalize_path(HEARTWOOD_ART))
+	art.convert(Image.FORMAT_RGBA8)
+	for y in 128:
+		for x in 128:
+			var c := art.get_pixel(x, y)
+			if c.a < 0.9:
 				continue
-			_kin_leaf(img, p, Vector2(cos(a), sin(a)), 9.0, 3.2)
-		if n >= 16 and not fade:
-			_ring(img, cc, Vector2(36, 28), 1, K_LIGHT, true, f)
-	# Glow and blossoms at the peak.
-	if f >= 5 and f <= 8:
-		var cc := foot + Vector2(0, -66)
-		for k in 6:
-			var p := cc + Vector2.from_angle(k * TAU / 6.0 + f * 0.1) * Vector2(22, 16)
-			_kin_flower(img, p, 2.4)
-		if f == 6:
-			_ring(img, cc, Vector2(46, 38), 1, K_WHITE, true, f)
-			_ring(img, cc, Vector2(50, 42), 1, K_LIGHT, true, f + 1)
-	# Rising leaves while it fades.
-	if f >= 8:
-		for k in 5:
-			var p := foot + Vector2(-40 + k * 20, -30 - (f - 8) * 10 - (k % 2) * 8)
-			_kin_leaf(img, p, Vector2(0.6, -0.8), 4.0, 1.4)
+			if c.g > c.r + 0.04 and c.g > c.b:
+				_hw_canopy[Vector2i(x, y)] = true
+			elif c.r > c.g and c.g >= c.b and c.get_luminance() < 0.45 and y > 50:
+				_hw_bark[Vector2i(x, y)] = c.get_luminance()
+	# Blossom spots: a loose grid over the canopy, only where there's leaf all round.
+	var centre := Vector2(64, 36)
+	for y in range(5, 70, 8):
+		for x in range(6, 124, 10):
+			var p := Vector2i(x + (y / 8 % 2) * 5 + (x * 7 + y * 3) % 5 - 2, y + (x * 5 + y) % 5 - 2)
+			if (x * 13 + y * 7) % 10 < 3:
+				continue
+			var inside := true
+			for d: Vector2i in [Vector2i(-2, 0), Vector2i(2, 0), Vector2i(0, -2), Vector2i(0, 2)]:
+				if not _hw_canopy.has(p + d):
+					inside = false
+			if inside:
+				_hw_blossoms.append([p, (Vector2(p) - centre).length()])
+
+func _whole_tree_sigil(img: Image, f: int) -> void:
+	_heartwood_masks()
+	var fading := f >= 9
+	# 1. Light runs up through the bark (frames 0-4): the darker bark pixels (its cracks) light up
+	#    as a wave climbs from the roots to the crown, then glow and dim.
+	var wave := 118.0 - f * 16.0
+	for p: Vector2i in _hw_bark:
+		# Only the bark's crack lines: pixels darker than the bark on both sides of them.
+		var lum: float = _hw_bark[p]
+		if not (_hw_bark.has(p + Vector2i.LEFT) and _hw_bark.has(p + Vector2i.RIGHT)):
+			continue
+		if float(_hw_bark[p + Vector2i.LEFT]) <= lum + 0.02 or float(_hw_bark[p + Vector2i.RIGHT]) <= lum + 0.02:
+			continue
+		if f <= 4 and p.y >= wave and p.y < wave + 10.0:
+			img.set_pixel(p.x, p.y, K_WHITE)
+		elif f >= 1 and f <= 8 and p.y >= wave + 10.0 and (p.x + p.y) % 2 == 0:
+			img.set_pixel(p.x, p.y, K_LIGHT if f < 7 else K_MID)
+	# 2. The canopy's rim glows while it blooms.
+	if f >= 3 and f <= 8:
+		for p: Vector2i in _hw_canopy:
+			var edge := false
+			for d: Vector2i in [Vector2i(0, -1), Vector2i(-1, 0), Vector2i(1, 0)]:
+				if not _hw_canopy.has(p + d):
+					edge = true
+					break
+			if edge and (p.x + f) % (2 if f < 7 else 3) == 0:
+				img.set_pixel(p.x, p.y, K_WHITE if f < 7 else K_LIGHT)
+	# 3. Blossoms burst open from the middle of the crown outward, then some drop away.
+	for b: Array in _hw_blossoms:
+		var p: Vector2i = b[0]
+		var born := 2.0 + (b[1] as float) / 22.0
+		if f < born:
+			continue
+		var age := f - born
+		if fading and (p.x * 7 + p.y * 3) % 3 <= f - 9:
+			continue
+		_kin_flower(img, Vector2(p), 2.2 if age >= 1.0 else 1.2, 1.0 if age >= 1.0 else 0.5)
+		if age < 1.0:
+			_px(img, p.x, p.y - 3, K_WHITE)
+	# 4. A ring of light pulses out round the base, over the roots.
+	if f >= 4 and f <= 8:
+		var r := 20.0 + (f - 4) * 10.0
+		_ring(img, Vector2(64, 104), Vector2(r, r * 0.35), 1, K_WHITE if f < 7 else K_LIGHT, f >= 6, f)
+	# 5. Petals drift up off the crown and away.
+	if f >= 5:
+		for k in 9:
+			var t := (f - 5) / 6.0
+			var x := 18 + k * 12 + roundi(sin(k * 1.7 + f * 0.6) * 4)
+			var y := roundi(40 - (k % 3) * 10 - t * 40)
+			if y < 1 or (fading and (k + f) % 2 == 0):
+				continue
+			_px(img, x, y, K_WHITE)
+			_px(img, x + 1, y, K_LIGHT)
+			_px(img, x, y + 1, K_MID)
+	# A soft sheen over the crown at the peak.
+	if f == 6:
+		for p: Vector2i in _hw_canopy:
+			if (p.x + p.y) % 4 == 0 and img.get_pixelv(p).a == 0.0:
+				img.set_pixelv(p, Color(K_WHITE, 0.35))
 
 func _whole_tree_badge(img: Image, _f: int) -> void:
 	_disc(img, Vector2(8, 8), 7.2, K_EDGE)

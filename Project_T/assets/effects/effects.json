@@ -1163,7 +1163,7 @@
 		"whole_tree_sigil": {
 			"anchor": [
 				64,
-				112
+				88
 			],
 			"file": "whole_tree_sigil.png",
 			"fps": 10.0,
@@ -1174,7 +1174,7 @@
 			"frames": 12,
 			"kind": "kinship",
 			"loop": false,
-			"note": "Blooms above the Heartwood (~1.2 s, the last frames fade). Anchor = the trunk's foot."
+			"note": "Plays ON the Heartwood: same 128x128 frame as its sprite, anchor (64, 88) = the Heartwood's position, so Fx.play at heartwood.global_position lines it up. Draw above the Heartwood (~1.2 s, settles at the end). Tint with the family colour."
 		}
 	}
 }
