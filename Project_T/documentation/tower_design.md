@@ -433,6 +433,13 @@ chains** (it has its own counter).
 
 Borrowed traits at full strength (Old Kin); Sapling 50%, Blooming 75%.
 
+**As built (Tower Code, 2026-09-28):** below Old Kin, **per-hit traits fire as a chance** equal to
+the share (Slumber Rot's Drowsy, Storm Beacon's Static, Flock Together's Dew, Dust Devil's status
+copy: 50% or 75% of hits); durations and bonuses scale by the share instead. **Rainfog's** fog deals
+the Rain Lily kin's splash damage × share to each nightmare entering the Mistveil's cloud, once per
+cloud. A Warden's branch comes from its tier-2 form (so finals keep their branch). Whole Tree
+family perks and the 9 hidden Kinships are still to build (the +20% damage is in).
+
 | Family | Pair | Kinship | A borrows from B | B borrows from A |
 |---|---|---|---|---|
 | Sporeling | Driftspore + Bloomcap | **Slumber Rot** | puffs add 1 Drowsy | clouds add 1 Spored per tick |
