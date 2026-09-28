@@ -97,7 +97,7 @@ func _save_info() -> void:
 			root_grasp = {frame_size = [64, 64], frames = 6, anchor = [32, 44], loop = false},
 		},
 		sapling = {
-			frame_size = [128, 160], anchor = [64, 96], sprite_offset = [0, -32], cells = [2, 2],
+			frame_size = [128, 160], anchor = [64, 96], sprite_offset = [0, -16], cells = [2, 2],
 			idle = "heartwood_sapling.png", idle_frames = FRAMES,
 			ripen = "heartwood_sapling_ripen.png", ripen_frames = 6, ripen_release_frame = 3,
 			withered = "heartwood_sapling_withered.png",
