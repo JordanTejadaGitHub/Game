@@ -5,7 +5,7 @@
 [resource]
 script = ExtResource("1_card")
 id = "static_field"
-display_name = "Static Field"
+display_name = "Charged Field"
 description = "Charged bolts also hit nightmares within 1 tile."
 rarity = 2
 kind = 3

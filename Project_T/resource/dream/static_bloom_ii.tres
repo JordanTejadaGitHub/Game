@@ -5,7 +5,7 @@
 [resource]
 script = ExtResource("1_card")
 id = "static_bloom_ii"
-display_name = "Static Bloom II"
+display_name = "Charged Bloom II"
 description = "Stormcap chains also make nightmares Slowed (2 stacks)."
 rarity = 2
 kind = 3

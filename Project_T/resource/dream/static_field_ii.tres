@@ -5,7 +5,7 @@
 [resource]
 script = ExtResource("1_card")
 id = "static_field_ii"
-display_name = "Static Field II"
+display_name = "Charged Field II"
 description = "Charged bolts also hit nightmares within 1.5 tiles, and give them 1 Charged stack."
 rarity = 2
 kind = 3
