@@ -119,8 +119,12 @@ func _run() -> void:
 
 	# --- The Clear tool: locked until clearing opens, then a toggle for ObstacleClearer's tool mode ---
 	var tool: ClearToolButton = main.get_node("HUD/ClearTool")
+	tool._update_icon()
+	_check(tool._frame == ClearToolButton.FRAME_AVAILABLE, "the icon shows the tool available once clearing opens")
 	tool.toggle_tool()
-	_check(clearer.is_tool_active() and tool.button_pressed, "the Clear tool turns the clear mode on")
+	tool._update_icon()
+	_check(clearer.is_tool_active() and tool.button_pressed and tool._frame == ClearToolButton.FRAME_ACTIVE,
+		"the Clear tool turns the clear mode on (active icon)")
 	tool.toggle_tool()
 	_check(not clearer.is_tool_active() and not tool.button_pressed, "and off again")
 	dreams.clearing_open = false
