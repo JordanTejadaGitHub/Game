@@ -79,18 +79,18 @@ func _run() -> void:
 
 	# Yields.
 	await process_frame
-	_check(sapling.get_drift_yield() == 20, "20 Dew per drift at rank 0")
+	_check(sapling.get_drift_yield() == 8, "8 Dew per drift at rank 0")
 	dew_before = run_state.dew
 	director.drift_cleared.emit(51, 0, true)
-	_check(run_state.dew == dew_before + 20, "+20 Dew at the end of a drift")
+	_check(run_state.dew == dew_before + 8, "+8 Dew at the end of a drift")
 	sapling.rank = 3
-	_check(sapling.get_drift_yield() == 50, "+10 Dew per Nurture rank")
+	_check(sapling.get_drift_yield() == 20, "+4 Dew per Nurture rank")
 	_check(sapling.can_be_nurtured() and not sapling.needs_focus(), "the Sapling nurtures, without a Focus")
-	_check(sapling.get_tier_cost_multiplier() == 3.0, "the Sapling nurtures at the final-form price")
+	_check(sapling.get_tier_cost_multiplier() == 1.0, "the Sapling nurtures at the base-form price")
 	run_state.lose_leaves(2)
-	_check(sapling.get_drift_yield() == 45, "each leaf lost withers the yield 5%")
+	_check(sapling.get_drift_yield() == 18, "each leaf lost withers the yield 5%")
 	director.rest_started.emit(11, false, 0, false)
-	_check(sapling.get_drift_yield() == 50, "the wither lifts at the rest")
+	_check(sapling.get_drift_yield() == 20, "the wither lifts at the rest")
 	var light := dream_state.dreamlight
 	sapling.rank = 0
 	for i in 9:
