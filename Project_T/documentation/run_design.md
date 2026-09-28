@@ -340,6 +340,11 @@ honest play). If juggling still pays after this, raise the speed per stack first
 - Refund is based on **all Dew invested** in that Warden (build + evolutions).
 - **During a rest: 75%** (was 100%; difficulty pass v1). Rearranging still pays, but mistakes
   cost something.
+- **Placed this rest: 100%** (user, 2026-09-28: "if you just placed it incorrectly"). A Warden
+  planted (or grown / nurtured) during the **current** rest refunds everything spent on it this
+  rest in full, until Start is pressed. Once it has stood through a drift, the 75% applies. The
+  Sell button says which: "+40 Dew (placed this rest: full refund)". Not during drifts (that would
+  make juggling free).
 - **While creatures are walking: 50%.**
 - Dreams are unlocks, not refunded. Obstacle clears are permanent and never refunded.
 

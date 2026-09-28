@@ -357,8 +357,15 @@ New combos (new Wardens, Reactions) are added to this table and the Codex automa
     Dreamlight"), since those are goals within reach.
   - Developer modes that unlock everything (Test Grove) show every family.
 - **Sell:** "+62 Dew" (full during a rest, half while nightmares walk; the button says which).
-- **Targeting** (proposed): *First* (default) / *Strongest* / *Closest* for attacking Wardens. Adds
-  real decisions (bosses, elites, Lantern Bearers) at little cost.
+- **Targeting** (**decided 2026-09-28**, user): three modes for attacking Wardens that pick a target:
+  - **First** (default): the nightmare closest to the Heartwood (today's rule).
+  - **Strongest**: the most current health (bosses, elites, Husks).
+  - **Closest**: the nearest to the Warden (good for short-range and splash Wardens).
+  - Set per Warden with a 3-way switch in its panel (icons + words); with several selected, the
+    group panel sets all of them. **T** cycles the selected Wardens' mode. Kept through growing
+    and in the run save. The Warden shows a tiny mode pip only while selected.
+  - Hidden for Wardens that don't pick a target (pulses, auras, traps, rings, Thornwalls). Snipers'
+    existing target-priority button becomes this switch.
 
 ### Dream bonuses on Wardens (added 2026-09-28, user request)
 
@@ -412,6 +419,23 @@ circle all read from it.
 
 Touch: chips and badges are tappable (no hover-only); on touch the ghost's chips show above the
 confirm button.
+
+### Planting several Wardens: drag to build (2026-09-28, user request)
+
+In build mode, **press and drag** to plant the chosen Warden on every cell you drag over, like
+drawing a wall.
+- **While dragging:** each cell passed shows a ghost: green = will plant, red = skipped (not
+  buildable, would break the path rule given the cells before it, a nightmare on it, settling
+  ground, or out of Dew). The route preview and "+N path" update for the whole stroke, and the tag
+  shows the count and total cost: *"6 Thornwalls · 30 Dew · +14 path"*.
+- **Straight lines:** after the first two cells the stroke locks to that row or column; hold
+  **Alt** for a free stroke. Diagonal jumps fill the corner cell.
+- **Release** plants them all at once (one bloom, one sound, cells in drag order so the path rule
+  is checked cell by cell). **Right-click or Esc** during the drag cancels the whole stroke.
+- A single click still plants one, as now. Works for any Warden, but mostly for Thornwalls and
+  Sprouts. It stops at the Dew you have: cells past that are red with "not enough Dew".
+- **Touch:** in build mode, a one-finger drag draws the stroke and a Plant button confirms it (two
+  fingers pan the camera). Placed this rest = full refund, so a wrong stroke costs nothing.
 
 ### Selecting several Wardens
 
