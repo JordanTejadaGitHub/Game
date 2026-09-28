@@ -88,6 +88,31 @@ arrival windows or speed creatures up before cutting drifts.
 - 0 leaves = the Heartwood goes dormant, run over (Seeds are still earned).
 - **Tune in playtests.**
 
+## Difficulty curve targets (2026-09-28)
+
+User direction: **"They should be leaking early until you're able to unlock some perks from meta and
+cards."** A new Heartwood should feel outmatched; Memory Grove perks and a run's Dream cards are what
+turn leaks into a hold. Targets for the balance simulation and playtests (average, sensible play):
+
+| Player | By the Hollow Stag (25) | Typical run end | Wins |
+|---|---|---|---|
+| **Fresh profile** (no Grove) | first leaks around **drift 12–18**; **5–8 of 15 leaves** lost | act 2 (drift 30–50) | rare (<5%, strong play + good Dreams) |
+| **~5 Grove unlocks** (~3 h in) | a few leaks, 2–4 leaves lost | act 3 | occasional |
+| **Half the tree** (~15 h) | few leaks | act 4 | the first win |
+| **Full tree** | clean | wins reliably at Blight 0 | Blight Levels bring the leaking back |
+
+- **Within a run, Dreams are the cure:** the leak rate should **fall** between drifts 10 and 25 as
+  cards stack (the board catches up), then rise again in act 2, so each block's Dream visibly matters.
+- **Leaks must be readable, not random:** a leak should come from a nightmare the maze doesn't
+  answer (a Hound on a straight, a Phantom through walls, a resisted family), so the rest report and
+  the boss dossier point at the fix.
+- Current state (playtests 2026-09-28): too easy from act 2 on, even with a thin Grove. Fixes so far:
+  the Sapling removed, one Ascended per family, Nurture's rank difference, resistances corrected.
+  The balance simulation measures the rest.
+- **Demo:** it has no meta, so every demo run is a fresh profile. **Open question for the user:**
+  keep that curve (demo wins are rare; "go deeper in the full game") or give the demo a fixed boon
+  equal to ~5 Grove unlocks so a good player can finish it.
+
 ## Difficulty pass v1 (2026-09-27)
 
 Playtests found the game too easy, and Warden ranks (below) add player power, so:

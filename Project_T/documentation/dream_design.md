@@ -841,6 +841,31 @@ Kinship on the map.
 - **Watch in playtests:** Extended Family + Grove of Kin + Whole Tree + Monoculture could make an
   all-kin maze far ahead. The +30% cap on Grove of Kin is the first knob.
 
+## Generic Rares (2026-09-28: filling the Rare tier)
+
+Why: many boards qualify for 0–1 Rares through act 2 (the Few and Mighty simulation, c64183a), because
+most Rares are Entwined, Bittersweet or need a specific family. These seven work with **any family**
+and have loose or no Needs. Each rewards a way of building, not a family; all only **amplify**
+(they never gate a combo). All **Start** pool, so the demo has them.
+
+| # | Card | Rarity | Effect | Tags | Needs | Pool |
+|---|---|---|---|---|---|---|
+| 135 | **Root Network** | Rare | Sprouts that **touch each other** (side by side, not diagonal) form a network: each Sprout gets **+6% damage per Sprout in its network** (a line of 8 = +48% each; max +60%). The networks glow faintly along their shared edges | sprout, wide | 4+ Sprouts (soft) | Start |
+| 136 | **First Light** | Rare | each Warden's **first hit on a nightmare** deals **×3** damage | — | — | Start |
+| 137 | **Last Stand** | Rare | nightmares within **4 cells of the Heartwood** take **+35% damage** from every Warden | maze | — | Start |
+| 138 | **Deep Roots** | Rare | Wardens that have stood **5 drifts** (never sold; growing keeps the count) deal **+15% damage**; **15 drifts: +30%** | — | — | Start |
+| 139 | **Hunter's Patience** | Rare | Wardens deal **+50% damage to Deeply Blighted** nightmares and **+20% to bosses** | — | act 2+ | Start |
+| 140 | **Thinning the Herd** | Rare | each nightmare dispelled within a Warden's range gives that Warden **+1% damage for the rest of the drift** (max +25%) | — | — | Start |
+| 141 | **Bitter Hedges** | Rare | nightmares walking past a **Thornwall** (next to the path) take **+3% damage** from every Warden for 2 s, **+3% more per extra Thornwall** they pass in that time (max +15%) | wall, maze | 6+ Thornwalls (soft) | Start |
+
+- **Root Network** is the user's idea ("for each Sprout that's connected, increase damage"): it
+  makes a Sprout build a real choice beside Sprout Chorus (attack speed, within 2 cells), Seedfall
+  and Sprout Surge. A Sprout that grows leaves the network (it's no longer a Sprout), so the build
+  asks *when* to grow. Deepened (**Root Network II**): +8% per Sprout, max +80%, and diagonals count.
+- The Warden panel's "Dreams on this Warden" lists each of these with its current value (e.g. "Root
+  Network · +36% (network of 6)"); the build ghost shows the network it would join.
+- After these, an act 1 board with any family has **~5–7 eligible Rares** instead of 0–1.
+
 ## Data (`UpgradeData`)
 
 `id`, `display_name`, `description`, `rarity`, `kind` (stat / rule / economy; evolutions are
