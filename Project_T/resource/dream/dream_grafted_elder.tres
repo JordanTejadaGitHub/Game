@@ -7,7 +7,7 @@
 script = ExtResource("1_card")
 id = "dream_grafted_elder"
 display_name = "Grafted Elder"
-description = "Graftlings can now grow into Grafted Elders (90 Dew): copies its strongest neighbour's attack at 85%."
+description = "Graftlings can now grow into Grafted Elders (200 Dew): copies its strongest neighbour's attack at 85%."
 rarity = 2
 kind = 1
 tags = Array[String](["acorn"])

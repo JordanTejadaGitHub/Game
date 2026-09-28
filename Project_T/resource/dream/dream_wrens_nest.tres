@@ -7,7 +7,7 @@
 script = ExtResource("1_card")
 id = "dream_wrens_nest"
 display_name = "Wren's Nest"
-description = "Nestlings can now grow into Wren's Nests (45 Dew): quick wrens hunt the fastest nightmare in range; extra damage to Phantoms and sprinting Night Hounds."
+description = "Nestlings can now grow into Wren's Nests (80 Dew): quick wrens hunt the fastest nightmare in range; extra damage to Phantoms and sprinting Night Hounds."
 rarity = 1
 kind = 1
 tags = Array[String](["wing"])

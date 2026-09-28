@@ -7,7 +7,7 @@
 script = ExtResource("1_card")
 id = "dream_cairn"
 display_name = "Cairn"
-description = "Pebblings can now grow into Cairns (45 Dew): a mortar: lobs its top stone over the maze onto a tile up to 6 cells away, splashing everything there."
+description = "Pebblings can now grow into Cairns (80 Dew): a mortar: lobs its top stone over the maze onto a tile up to 6 cells away, splashing everything there."
 rarity = 1
 kind = 1
 tags = Array[String](["stone"])

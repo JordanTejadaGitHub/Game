@@ -7,7 +7,7 @@
 script = ExtResource("1_card")
 id = "dream_dreamshroom"
 display_name = "Dreamshroom"
-description = "Bloomcaps can now grow into Dreamshrooms (90 Dew): a bigger sleepy cloud; nightmares at full Drowsy fall asleep for 1.5 s."
+description = "Bloomcaps can now grow into Dreamshrooms (200 Dew): a bigger sleepy cloud; nightmares at full Drowsy fall asleep for 1.5 s."
 rarity = 2
 kind = 1
 tags = Array[String](["spore"])

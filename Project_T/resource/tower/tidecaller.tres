@@ -1,0 +1,37 @@
+[gd_resource type="Resource" script_class="TowerData" load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://resource/tower/script/tower_data.gd" id="1_tdata"]
+[ext_resource type="Texture2D" path="res://assets/towers/ascended/tidecaller.png" id="art_idle"]
+[ext_resource type="Texture2D" path="res://assets/towers/ascended/tidecaller_attack.png" id="art_attack"]
+[ext_resource type="Texture2D" path="res://assets/towers/ascended/tide_wave.png" id="fx_1"]
+
+[resource]
+script = ExtResource("1_tdata")
+display_name = "Tidecaller"
+description = "Every 6 seconds a great wave soaks everything in range, pushes it back a tile and freezes the already Damp."
+cost = 0
+line = "water"
+tier = 4
+buildable_directly = false
+evolve_cost = 400
+attack_kind = 1
+attack_range = 4.0
+damage = 240
+attacks_per_second = 0.1667
+applies_status = &"damp"
+status_stacks = 3
+push_back_tiles = 1.0
+push_cooldown = 0.0
+freeze_duration = 1.0
+freeze_needs = &"damp"
+freeze_cooldown = 4.0
+crit_chance = 0.05
+texture = ExtResource("art_idle")
+frame_count = 8
+sprite_offset = Vector2(0, -32)
+attack_texture = ExtResource("art_attack")
+attack_frame_count = 6
+attack_release_frame = 2
+hit_effect_texture = ExtResource("fx_1")
+hit_effect_frames = 8
+hit_effect_anchor = Vector2(32, 48)

@@ -7,7 +7,7 @@
 script = ExtResource("1_card")
 id = "dream_hummingbird_bower"
 display_name = "Hummingbird Bower"
-description = "Nestlings can now grow into Hummingbird Bowers (45 Dew): a hummingbird pecks one nightmare six times in a second; every peck is a full hit."
+description = "Nestlings can now grow into Hummingbird Bowers (80 Dew): a hummingbird pecks one nightmare six times in a second; every peck is a full hit."
 rarity = 1
 kind = 1
 tags = Array[String](["wing"])

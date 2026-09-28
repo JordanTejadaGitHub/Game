@@ -7,7 +7,7 @@
 script = ExtResource("1_card")
 id = "dream_fairy_ring"
 display_name = "Fairy Ring"
-description = "Sporelings can now grow into Fairy Rings (45 Dew): plants mushroom rings on the path; a nightmare stepping on one sets off a spore burst."
+description = "Sporelings can now grow into Fairy Rings (80 Dew): plants mushroom rings on the path; a nightmare stepping on one sets off a spore burst."
 rarity = 1
 kind = 1
 tags = Array[String](["spore"])

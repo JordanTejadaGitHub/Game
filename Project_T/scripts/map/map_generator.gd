@@ -172,6 +172,42 @@ func block_cell(cell: Vector2) -> void:
 	path_layer.draw()
 	path_changed.emit()
 
+# --- Several cells at once (the 2×2 Heartwood Sapling) ---
+
+# The start-to-end path if all of `cells` were blocked (empty = no way through). Changes nothing.
+func get_path_if_blocked_cells(cells: Array) -> PackedVector2Array:
+	for c in cells:
+		path_layer.set_cell_blocked(c, true)
+	var path := path_layer.find_path_from(startPath)
+	for c in cells:
+		path_layer.set_cell_blocked(c, false)
+	return path
+
+# True if every cell is buildable and blocking them all keeps the end reachable from the start and
+# from every cell in `also_from`.
+func can_block_cells(cells: Array, also_from: PackedVector2Array = PackedVector2Array()) -> bool:
+	for c in cells:
+		if not is_buildable(c):
+			return false
+	for c in cells:
+		path_layer.set_cell_blocked(c, true)
+	var ok := not path_layer.find_path_from(startPath).is_empty()
+	for from_cell in also_from:
+		if not ok:
+			break
+		ok = not path_layer.find_path_from(from_cell).is_empty()
+	for c in cells:
+		path_layer.set_cell_blocked(c, false)
+	return ok
+
+# Blocks all of `cells` at once (call can_block_cells() first); one redraw, one path_changed.
+func block_cells(cells: Array) -> void:
+	for c in cells:
+		path_layer.set_cell_blocked(c, true)
+		environment_object_layer.erase_cell(Vector2i(c))
+	path_layer.draw()
+	path_changed.emit()
+
 # Opens a cell a Warden stood on (it was sold), redraws the path and notifies enemies.
 # Opening a cell never cuts a route, so this is always allowed.
 func unblock_cell(cell: Vector2) -> void:

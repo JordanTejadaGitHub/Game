@@ -72,6 +72,7 @@ var smothering := false  # Held + Spored right now (Spored ticks faster)
 var sleep_time := 0.0
 var sleep_extended := false  # Great Dreamcatcher's +1 s happened already
 var dreamshroom_slept := false  # Dreamshroom puts each nightmare to sleep once
+var held_bonus := 0.0  # World Root: +damage taken while Held (set when it Holds this nightmare)
 # Caught (Dreamcatcher): asleep or at max Drowsy inside a Dreamcatcher's range; takes more damage.
 var caught_time := 0.0
 var caught_bonus := 0.0
@@ -239,6 +240,8 @@ func get_damage_taken_multiplier() -> float:
 		multiplier *= 1.0 + caught_bonus
 	if cut_stacks > 0:
 		multiplier *= 1.0 + CUT_BONUS * cut_stacks
+	if held_bonus > 0.0 and is_held():
+		multiplier *= 1.0 + held_bonus  # World Root: Held nightmares take more from everything
 	return multiplier
 
 # Advances timers. Returns the Spored soothe to deal this frame (already fog-boosted).

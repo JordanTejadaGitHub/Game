@@ -1,9 +1,10 @@
-[gd_resource type="Resource" script_class="TowerData" load_steps=5 format=3]
+[gd_resource type="Resource" script_class="TowerData" load_steps=6 format=3]
 
 [ext_resource type="Script" path="res://resource/tower/script/tower_data.gd" id="1_tdata"]
 [ext_resource type="Texture2D" path="res://assets/towers/elf_circle.png" id="2_tex"]
 [ext_resource type="Texture2D" path="res://assets/towers/projectiles/elf_circle.png" id="5_trap"]
 [ext_resource type="Texture2D" path="res://assets/towers/elf_circle_attack.png" id="4_atk"]
+[ext_resource type="Resource" path="res://resource/tower/sporemother.tres" id="asc_1"]
 
 [resource]
 script = ExtResource("1_tdata")
@@ -15,10 +16,10 @@ frame_count = 8
 line = "spore"
 tier = 3
 buildable_directly = false
-evolve_cost = 90
+evolve_cost = 200
 attack_kind = 4
 attack_range = 3.0
-damage = 60
+damage = 90
 attacks_per_second = 0.667
 applies_status = &"spored"
 status_stacks = 3
@@ -31,3 +32,4 @@ trap_texture = ExtResource("5_trap")
 attack_texture = ExtResource("4_atk")
 attack_frame_count = 6
 attack_release_frame = 2
+evolves_to = Array[Resource]([ExtResource("asc_1")])

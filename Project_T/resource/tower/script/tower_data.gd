@@ -12,12 +12,15 @@ class_name TowerData
 # Marks nightmares on them (Rootlight); AURA never attacks but affects everything in range (White Stag).
 # PECK sends birds that peck one nightmare several times, each a full hit (Hummingbird Bower);
 # BOOMERANG throws a seed along a straight line and back through everything (Samara).
+# PATROL: something that travels back and forth along the path in range, hitting what it passes
+# (Dawnwing's great bird, The Tempest's cyclone).
 enum AttackKind { PROJECTILE, PULSE, CHAIN, CLOUD, TRAP, BEAM, COPY, SWOOP, SWEEP, SPREAD, SPIN, PULL, LIGHT, AURA,
-	PECK, BOOMERANG }
+	PECK, BOOMERANG, PATROL }
 # Who a Warden shoots at. FIRST = furthest along the path. Snipers let the player choose.
 enum TargetMode { FIRST, STRONGEST, BOSSES, FASTEST }
 
 const ATTACKS_JSON := "res://assets/towers/attacks.json"
+const ASCENDED_JSON := "res://assets/towers/ascended/ascended.json"  # 128×128 Ascended art: anchor + points
 
 @export var id: String = ""  # Unique id (Dream prerequisites, unlocks). Empty = the .tres file name
 @export var display_name: String = "Tower"  # Name shown in the UI
@@ -124,6 +127,42 @@ const ATTACKS_JSON := "res://assets/towers/attacks.json"
 # Dreamshroom: a nightmare it brings to full Drowsy falls asleep for this long, once (bosses never).
 @export var sleep_at_max_drowsy: float = 0.0
 
+@export_group("Ascended and the Sapling")
+@export var chain_all_in_range: bool = false  # Stormheart: the chain reaches every nightmare in range…
+@export var chain_falloff: float = 0.0  # …each jump doing this much less (0.15 = −15%)
+@export var crits_vs_held: bool = false  # Old Mountain: always crits on Held nightmares
+@export var held_damage_bonus: float = 0.0  # World Root: nightmares it Holds take this much more damage
+@export var aura_damage_bonus: float = 0.0  # Grandmother Oak: Wardens in range +damage…
+@export var aura_speed_bonus: float = 0.0  # …and +attack speed
+@export var slows_in_aura: bool = false  # The White Stag: nightmares in its aura are slower and take more
+@export var patrol_speed: float = 150.0  # PATROL: pixels per second along the path…
+@export var patrol_speed_per_nightmare: float = 0.0  # …+this share per nightmare in range (Dawnwing)…
+@export var patrol_speed_max: float = 1.0  # …up to this multiple
+@export var patrol_carries_statuses: bool = false  # The Tempest: statuses it touches travel with it
+@export var dew_per_drift: int = 0  # Dew at the end of every drift (Grandmother Oak, the Sapling)
+@export var dew_per_rank: int = 0  # Sapling: +Dew per drift for each Nurture rank
+@export var dreamlight_every: int = 0  # Sapling: +1 Dreamlight every N drifts…
+@export var dreamlight_every_ranked: int = 0  # …every M from rank III
+@export var footprint: int = 1  # Cells per side (the Sapling is 2×2)
+@export var rooted: bool = false  # Can't be sold or moved once planted (the Sapling)
+@export var nurture_cost_multiplier: float = 0.0  # Overrides the tier's Nurture price (Sapling: 3, like a final form)
+@export var sprite_offset: Vector2 = Vector2.ZERO  # Tall art (Ascended, the Sapling): (0, −32) puts the slab on the cell
+@export var patrol_texture: Texture2D  # PATROL: the bird / cyclone sheet (drawn at its own size)…
+@export var patrol_frames: int = 8
+@export var patrol_anchor: Vector2 = Vector2(32, 32)  # …the pixel that sits on the path
+@export var patrol_idle_texture: Texture2D  # Dawnwing: the idle while its bird is out (the perch empty)
+@export var hit_effect_texture: Texture2D  # One-shot on every nightmare a pulse hits (tide wave, root grasp)…
+@export var hit_effect_frames: int = 6
+@export var hit_effect_anchor: Vector2 = Vector2(32, 32)
+@export var impact_texture: Texture2D  # One-shot where a lob lands (Old Mountain's crush)…
+@export var impact_frames: int = 6
+@export var impact_anchor: Vector2 = Vector2(96, 96)
+@export var ripen_texture: Texture2D  # Sapling: plays when it yields (Dew drop + Dreamlight mote)…
+@export var ripen_frames: int = 6
+@export var withered_texture: Texture2D  # …crossfaded over the idle by how withered it is…
+@export var rank_overlay_texture: Texture2D  # …and one overlay frame per rank I–V (instead of the rank rings)
+@export var rank_overlay_frames: int = 5
+
 @export_group("Pop")
 # Puffball: when a hit leaves a nightmare with pop_at_stacks+ Spored, it pops: pop_damage_per_stack
 # × stacks to it and every nightmare within pop_radius cells (area, never crits), its stacks are used
@@ -201,7 +240,10 @@ func get_id() -> String:
 
 func get_attack_origin() -> Vector2:
 	if _origin_from_json == null:
-		_origin_from_json = _read_attack_point(art_id if art_id != "" else get_id())
+		var key := art_id if art_id != "" else get_id()
+		_origin_from_json = _read_attack_point(key)
+		if not _origin_from_json is Vector2:
+			_origin_from_json = _read_ascended_point(key)
 	return _origin_from_json if _origin_from_json is Vector2 else attack_origin
 
 # Region of `texture` holding idle frame `frame`.
@@ -221,3 +263,14 @@ static func _read_attack_point(key: String):
 		return false
 	var half: float = json.get("frame_size", 64) / 2.0
 	return Vector2(point[0] - half, point[1] - half)
+
+# Ascended art: the point relative to the cell centre (the json's anchor), or false.
+static func _read_ascended_point(key: String):
+	if not FileAccess.file_exists(ASCENDED_JSON):
+		return false
+	var json = JSON.parse_string(FileAccess.get_file_as_string(ASCENDED_JSON))
+	if typeof(json) != TYPE_DICTIONARY or not json.get("wardens", {}).has(key):
+		return false
+	var point = json.wardens[key].get("point")
+	var anchor = json.get("anchor", [64, 96])
+	return Vector2(point[0] - anchor[0], point[1] - anchor[1])

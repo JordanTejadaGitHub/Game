@@ -155,7 +155,10 @@ func _refresh() -> void:
 	var refund := tower_seller.get_refund(_tower)
 	var sell := _add_button("Sell · +%d Dew%s" % [refund, "" if drift_director.is_build_phase() else " (half during a drift)"])
 	sell.pressed.connect(func() -> void: tower_seller.sell(_tower.cell))
-	if not tower_seller.can_sell():
+	if _tower.tower_data.rooted:
+		sell.text = "Rooted: the Sapling stays where it grew"
+		sell.disabled = true
+	elif not tower_seller.can_sell():
 		sell.text = "Rooted: no selling while nightmares walk (Overgrown)"
 		sell.disabled = true
 	var close := _add_button("Close")

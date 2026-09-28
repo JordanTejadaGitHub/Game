@@ -66,9 +66,9 @@ func _run() -> void:
 	tower.popped.connect(func(_t: Tower, e: Node2D, stacks: int) -> void: pops.append([e, stacks]))
 	var health: int = target.health
 	tower.hit(target)  # +2 -> 11 stacks -> pop
-	var burst := int(6.0 * 11)
+	var burst := int(data.pop_damage_per_stack * 11)
 	_check(pops.size() == 1 and pops[0][1] == 11, "11 stacks pop (popped signal)")
-	_check(target.health == health - data.damage - burst, "the pop deals 6 × stacks to the nightmare (%d)" % (health - target.health))
+	_check(target.health == health - data.damage - burst, "the pop deals pop_damage_per_stack × stacks to the nightmare (%d)" % (health - target.health))
 	_check(target.statuses.stacks(EnemyStatuses.SPORED) == 0, "its stacks are used up")
 	_check(close.max_health - close.health == burst, "and bursts on nightmares within 1 cell")
 	_check(b.health == b.max_health and far.health == far.max_health, "but not further away")

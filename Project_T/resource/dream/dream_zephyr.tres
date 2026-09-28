@@ -7,7 +7,7 @@
 script = ExtResource("1_card")
 id = "dream_zephyr"
 display_name = "Zephyr"
-description = "Gusts can now grow into Zephyrs (90 Dew): spreads the most-afflicted nightmare's statuses to up to 5 others."
+description = "Gusts can now grow into Zephyrs (200 Dew): spreads the most-afflicted nightmare's statuses to up to 5 others."
 rarity = 2
 kind = 1
 tags = Array[String](["wind"])

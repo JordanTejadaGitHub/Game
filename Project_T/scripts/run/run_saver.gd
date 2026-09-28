@@ -146,9 +146,12 @@ func _restore(data: Dictionary) -> void:
 		tower.rank = int(saved.get("rank", 0))  # Saves from before Nurture have none
 		tower.focus = int(saved.get("focus", 0)) as Tower.Focus
 		tower.target_mode = int(saved.get("target_mode", 0)) as TowerData.TargetMode  # Snipers' aim
-		tower.position = map_generator.MAP_GRID.calculate_map_position(tower.cell)
+		tower.position = Tower.footprint_centre(tower.cell, tower.tower_data.footprint)
 		tower_container.add_child(tower)
-		map_generator.path_layer.set_cell_blocked(tower.cell, true)
+		for c in tower.get_cells():  # The Sapling covers 2×2
+			map_generator.path_layer.set_cell_blocked(c, true)
+		if tower.tower_data.get_id() == TowerPlacer.SAPLING_ID:
+			tower_placer.sapling_taken = true
 	map_generator.path_layer.draw()
 	map_generator.path_changed.emit()
 

@@ -1,0 +1,24 @@
+[gd_resource type="Resource" script_class="TowerData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/tower/script/tower_data.gd" id="1_tdata"]
+
+[resource]
+script = ExtResource("1_tdata")
+display_name = "Stormheart"
+description = "Its lightning jumps to every nightmare in range (−15% per jump) and leaves 2 Static."
+cost = 0
+line = "light"
+tier = 4
+buildable_directly = false
+evolve_cost = 400
+attack_kind = 2
+attack_range = 4.0
+damage = 90
+attacks_per_second = 1.3
+chain_all_in_range = true
+chain_falloff = 0.15
+chain_jump_range = 2.0
+applies_status = &"static"
+status_stacks = 2
+storm_every = 4
+crit_chance = 0.05

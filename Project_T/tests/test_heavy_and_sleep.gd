@@ -47,8 +47,8 @@ func _run() -> void:
 	marked.statuses.apply(EnemyStatuses.MARKED)
 	moss.hit(plain, 1.0, false, Tower.NO_CRIT)
 	moss.hit(marked, 1.0, false, Tower.NO_CRIT)
-	_check(_lost(plain) == 110, "Mossback: 110 on a plain nightmare (%d)" % _lost(plain))
-	_check(_lost(marked) == int(110 * 2.0 * (1.0 + EnemyStatuses.MARKED_EXTRA)), "×2 on Marked, on top of Marked's +25%% (%d)" % _lost(marked))
+	_check(_lost(plain) == 138, "Mossback: 138 on a plain nightmare (%d)" % _lost(plain))
+	_check(_lost(marked) == int(138 * 2.0 * (1.0 + EnemyStatuses.MARKED_EXTRA)), "×2 on Marked, on top of Marked's +25%% (%d)" % _lost(marked))
 	await _clean()
 
 	# Boulderback: full hit on its target, 50% to the rest within 1 cell; always crits on Drowsy.
@@ -57,8 +57,8 @@ func _run() -> void:
 	var near := _spawn(target.global_position + Vector2(0.8, 0) * CELL)
 	var far := _spawn(target.global_position + Vector2(2, 0) * CELL)
 	boulder.projectile_landed(target, target.global_position)
-	_check(_lost(target) == 220 and _lost(near) == 110 and _lost(far) == 0,
-		"Boulderback: 220 on the target, 110 splash within 1 cell (%d / %d / %d)" % [_lost(target), _lost(near), _lost(far)])
+	_check(_lost(target) == 330 and _lost(near) == 165 and _lost(far) == 0,
+		"Boulderback: 330 on the target, 165 splash within 1 cell (%d / %d / %d)" % [_lost(target), _lost(near), _lost(far)])
 	var sleepy := _spawn(boulder.global_position + Vector2(CELL, 0))
 	sleepy.statuses.apply(EnemyStatuses.DROWSY)
 	_check(boulder.roll_crit(sleepy), "Boulderback always crits on a Drowsy nightmare")

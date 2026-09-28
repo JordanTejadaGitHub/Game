@@ -7,7 +7,7 @@
 script = ExtResource("1_card")
 id = "dream_magpies_hoard"
 display_name = "Magpie's Hoard"
-description = "Magpie Perches can now grow into Magpie's Hoards (90 Dew): as Magpie Perch, and every crit it lands gives +1 Dew (up to 15 per drift)."
+description = "Magpie Perches can now grow into Magpie's Hoards (200 Dew): as Magpie Perch, and every crit it lands gives +1 Dew (up to 15 per drift)."
 rarity = 2
 kind = 1
 tags = Array[String](["wing"])
