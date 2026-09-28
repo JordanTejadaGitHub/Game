@@ -225,6 +225,14 @@ func _run() -> void:
 			juggled.restless = 2
 			var restless_line: String = load("res://scripts/ui/nightmare_info.gd").restless_text(juggled)
 			_check(restless_line == "Restless ×2: +40% speed (Unbound at 3)", "the nightmare info's Restless line (" + restless_line + ")")
+			# Omens that change a live nightmare (Sleepless, Heavy Rain) show on its info.
+			var info_script = load("res://scripts/ui/nightmare_info.gd")
+			_check(info_script.omen_text(juggled) == "", "no Omen line for a plain nightmare")
+			juggled.statuses.immune.append(&"drowsy")
+			juggled.modifiers["always_status"] = &"damp"
+			var omen_line: String = info_script.omen_text(juggled)
+			_check(omen_line.begins_with("Omen") and omen_line.contains("immune to Drowsy") and omen_line.contains("always Soaked"),
+				"the Omen's extra traits (" + omen_line + ")")
 		juggled.queue_free()
 	# Crowned Reactions: their own discovery card, a hidden entry until found, outside the 15.
 	_check(CodexData.crowned().size() == 8 and CodexData.combos().size() == 15, "8 Crowned Reactions, apart from the 15 combos")
