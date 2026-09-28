@@ -19,10 +19,10 @@ signal grief_requested(enemy: Node2D)
 # The Hollow Oak (Blight Level 10) rose again at half health instead of being dispelled.
 signal rose_again(enemy: Node2D)
 
-# Deeply Blighted elites (acts_1_2.md): ×3 health, ×3 Dew, 2 leaves, 20% bigger, wrapped in a slow
+# Deeply Blighted elites (acts_1_2.md): ×3 health, ×2 Dew, 2 leaves, 20% bigger, wrapped in a slow
 # haze with a swirl mark by the health bar (not darkened: the nightmare art is already dark).
 const ELITE_HEALTH := 3.0
-const ELITE_DEW := 3
+const ELITE_DEW := 2
 const ELITE_LEAVES := 2
 const ELITE_SCALE := 1.2
 const ELITE_HAZE_PUFFS := 6

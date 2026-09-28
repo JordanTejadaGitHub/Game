@@ -5,7 +5,7 @@ class_name DriftEntry
 
 @export var enemy: EnemyData
 @export var count: int = 1
-@export var elite: bool = false  # Deeply Blighted: ×3 health, ×3 Dew, 2 leaves (acts_1_2.md)
+@export var elite: bool = false  # Deeply Blighted: ×3 health, ×2 Dew, 2 leaves (acts_1_2.md)
 
 # Kinds with fewer than this many stay as listed under the difficulty's extra nightmares (lone
 # specials like a Lantern Bearer are the drift's key threat; doubling them isn't the point).

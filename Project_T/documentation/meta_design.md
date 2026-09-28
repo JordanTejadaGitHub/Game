@@ -18,15 +18,17 @@ Revised for 100-drift runs (`run_design.md`).
 | Source | Seeds |
 |---|---|
 | Every 2 drifts survived | 1 (max 50) |
-| Nightmares dispelled | 1 per 25 (~60 in a full run) |
-| Each boss dispelled | **15** (was 10) |
+| Nightmares dispelled | 1 per **20** (~75 in a full run) |
+| Each boss dispelled | **20** |
 | Each obstacle tended | 1 (see `run_design.md`) |
-| Winning | **+80** (was 50) |
+| Winning | **+120** |
 | Blight Level | +10% per level (Level 10 = double) |
 
-Examples: a loss around drift 20 ≈ **25 Seeds**; a loss at drift 60 ≈ **95**; a win ≈ **270**.
-Averaging ~220 across a player's first runs, the tech tree below (~3,600 Seeds, with the larger
-perk limb) takes **~16 runs ≈ 22 hours**. (Raised 2026-09-27 when the Grove grew into the tech tree.)
+Examples: a loss around drift 20 ≈ **30 Seeds**; a loss at drift 60 ≈ **120**; a win ≈ **350**.
+Averaging ~280 across a player's first runs, the full tech tree (**~5,960 Seeds** as built:
+Perks ~2,090, Families ~2,470 incl. Ascension, Cards ~1,400) takes **~21 runs ≈ 30 hours**.
+(Raised twice on 2026-09-27 as the Grove grew; the first unlocks still come every run, and a full
+Grove is a long-term goal next to Blight Levels.)
 
 **Every run should buy something early on**: the cheapest unlocks cost 20–25, so even a bad first
 run grows the Grove. Losing early in a long run is also cushioned by the mid-run save: players can
@@ -158,6 +160,8 @@ above its family's final forms, so veterans keep finding new playstyles. Reviewe
   **Ascension (120 Seeds)**, after its hidden branch (or its final forms where a family has no
   hidden-branch node). It makes that family's **Ascended** endgame Warden exist in runs
   (`tower_design.md`); in-run it still needs 3 Dreamlight and 400 Dew. 9 nodes, ≈ 1,080 Seeds.
+  **Firefly Jar exception:** its hidden branch (Sunpetal) comes from a milestone, so **Stormheart's
+  Ascension needs the Firefly Jar final-forms node** instead, never a milestone.
 - **Memory Wardens** aren't bought: dispelling a boss for the first time grows its Memory Warden as a
   free bloom on this limb, and it's offered after that boss in later runs.
 - Total ≈ 1,390 Seeds (was ≈ 1,100 before Bellflower and the Nestling/Whirligig hidden nodes;
@@ -177,7 +181,8 @@ styles a player has grown into.
 | **Spores and Reactions** | *Spore Lore*: Twin Puff, Chain Bloom (40) | *Reactions*: Wildfire Spores, Deep Water, Quick Reactions (70) | **Dawnbreak** (120) |
 | **Woven** (Crowned Reactions) | *Woven Dreams I*: Eye of the Tempest, Deep Stillness, Fever Pitch, Falling Stars (90; needs *Reactions*) | *Woven Dreams II*: Mountain's Fall, Prism Heart, Endless Night, Ring of Rings (90) | — (Crowned Reactions always work; these cards strengthen them) |
 | **Keen Edges** (crit) | *Sharpened*: Still Target, Shattering Blow (50) | *Reckless*: Reckless Bloom (40) | **Full Moon** (120) |
-| **Tending** (nurture, tall) | *Tending Hands*: Sunlit Rest, Deeper Rings (60) | *Nursery*: Nursery, Chosen Few (70) | **The Old Ones** (120) |
+| **Deep Poison** (Potency) | *Seeping* (50) | *Venom*: Venom Bloom (40) | **Nightshade** (120) |
+| **Tending** (nurture, tall) | *Tending Hands*: Sunlit Rest, Deeper Rings (60) | *Nursery*: Nursery, Chosen Few (70) | **The Old Ones** + **Endless Rings** (150) |
 | **Overgrowth** (wide) | *Seedbed*: Seedling Gift, Canopy (60) | *Wild Planting*: Overgrowth (50) | **Rootbound** (100) |
 | **Lone Lantern** (narrow) | *One Line*: Monoculture (80) | — | **The Last Light** (120) |
 | **The Long Way** (maze, clearing) | *Dead Wood*: Burn Back the Dead Wood (40) | — | **The Long Walk** (100) |

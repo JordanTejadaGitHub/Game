@@ -141,7 +141,10 @@ func _test_evolution(main: Node) -> void:
 	dreams.take(_card(dreams, "evergreen"))
 	dreams.take(_card(dreams, "dream_driftspore"))
 	dew = run_state.dew
-	_check(placer.evolve(tower, driftspore) and run_state.dew == dew - 34, "Evergreen: branch costs 45 → 34")
+	run_state.dew = 1000
+	dew = run_state.dew
+	var evergreen_cost := roundi(driftspore.evolve_cost * 0.75)
+	_check(placer.evolve(tower, driftspore) and run_state.dew == dew - evergreen_cost, "Evergreen: branch costs 25%% less (%d)" % evergreen_cost)
 	seller.sell(cell)
 	_clear(main)
 	# Reset the Dream state for the flow test
@@ -220,7 +223,7 @@ func _test_new_cards(main: Node) -> void:
 	dreams.take(_card(dreams, "evergreen"))
 	_check(dreams.is_eligible(_card(dreams, "evergreen_ii")), "Evergreen II offered once Evergreen is owned")
 	dreams.take(_card(dreams, "evergreen_ii"))
-	_check(dreams.get_evolve_cost(driftspore) == 27, "Evergreen II: 45 → 27, replacing Evergreen (got %d)" % dreams.get_evolve_cost(driftspore))
+	_check(dreams.get_evolve_cost(driftspore) == roundi(driftspore.evolve_cost * 0.6), "Evergreen II: 40%% off, replacing Evergreen (got %d)" % dreams.get_evolve_cost(driftspore))
 	_check(not dreams.is_eligible(_card(dreams, "evergreen_ii")), "a card deepens once")
 	dreams.take(_card(dreams, "lingering_spores"))
 	dreams.take(_card(dreams, "lingering_spores_ii"))

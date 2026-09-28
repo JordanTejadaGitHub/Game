@@ -18,6 +18,9 @@ signal run_ended(won: bool)
 @export var starting_dew: int = 60  # run_design.md "Opening rule": enough Sprouts for drift 1
 @export var starting_leaves: int = 15  # Difficulty pass v1: was 20
 @export var max_leaves: int = 15
+# Dispel Dew by act (economy pass v2, run_design.md): acts 1–4.
+@export var act_dew_multipliers: Array[float] = [1.0, 0.8, 0.65, 0.5]
+var _dispel_dew_carry := 0.0
 
 var dew: int
 var leaves: int
@@ -47,7 +50,6 @@ var leaves_lost := 0
 var seed_bonus := 0.0  # +share of Seeds at run end (Seed Pouch, Blight Levels); set by MetaRun
 var dew_gain_bonus := 0.0  # +share of Dew from dispelled nightmares (Rich Dew); set by MetaRun
 var free_nurtures := 0  # Nurture ranks left that cost no Dew (First Care); set by MetaRun
-var _dew_gain_carry := 0.0  # Rich Dew fractions, paid once they add up to 1
 var longest_path := 0  # Longest route the maze reached this run, in tiles
 var play_time := 0.0  # Seconds of unpaused play this run
 var is_over := false
@@ -171,12 +173,19 @@ func end_run(did_win: bool) -> void:
 
 func _on_enemy_cleansed(enemy: Node2D) -> void:
 	creatures_cleansed += 1
-	var reward: int = enemy.get_dew_reward()
-	if dew_gain_bonus > 0.0:  # Rich Dew: whole Dew now, the fraction carried to the next dispel
-		_dew_gain_carry += reward * dew_gain_bonus
-		reward += floori(_dew_gain_carry)
-		_dew_gain_carry -= floorf(_dew_gain_carry)
-	earn_dew_at(reward, enemy.global_position)
+	earn_dew_at(_scaled_dispel_dew(enemy.get_dew_reward()), enemy.global_position)
+
+# Economy pass v2 (run_design.md): dispel Dew × act_dew_multipliers for the current act (× Rich Dew),
+# with the fraction carried to the next dispel so small rewards aren't rounded away.
+func _scaled_dispel_dew(dew: int) -> int:
+	var director := get_node_or_null("%DriftDirector") as DriftDirector
+	var act := director.get_act(maxi(director.drifts_started, 1)) if director else 1
+	var multiplier: float = act_dew_multipliers[clampi(act - 1, 0, act_dew_multipliers.size() - 1)]
+	multiplier *= 1.0 + dew_gain_bonus  # Rich Dew (Grove perk)
+	_dispel_dew_carry += dew * multiplier
+	var paid := floori(_dispel_dew_carry + 0.0001)
+	_dispel_dew_carry -= paid
+	return paid
 
 func _on_enemy_reached_goal(enemy: Node2D) -> void:
 	lose_leaves(enemy.get_leaf_cost())

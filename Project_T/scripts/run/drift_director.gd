@@ -55,8 +55,10 @@ const DEMO_DRIFTS_DIR := "res://resource/drift/demo/"
 @export var boss_health_multiplier: float = 1.5  # On the bosses' base health
 @export var extra_nightmares: float = 1.25  # Nightmares per drift (rounded up) from `extra_nightmares_from`
 @export var extra_nightmares_from: int = 10  # The intro drifts before it are unchanged
-@export var rest_bonus_base: int = 20  # Rest bonus = base + per_block × block number
-@export var rest_bonus_per_block: int = 10
+# Rest bonus = base + per_block × block number (economy pass v2, run_design.md: was 20 + 10 × block,
+# which made the late game "infinite money")
+@export var rest_bonus_base: int = 30
+@export var rest_bonus_per_block: int = 4
 @export var perfect_block_bonus: int = 10  # No leaf lost in the whole block
 @export var act_break_leaves: int = 1
 @export var auto_drift: bool = true  # Drifts in a block start by themselves

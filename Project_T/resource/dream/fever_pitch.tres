@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "fever_pitch"
+display_name = "Fever Pitch"
+description = "Fever Dream spreads to nightmares within 1.5 cells, not just next to it."
+rarity = 3
+kind = 3
+tags = Array[String](["reaction"])
+requires = Array[String](["driftspore", "tangleroot", "bellflower"])
+max_stacks = 1
+min_act = 2
+in_start_pool = false
+entwined = true
+woven = true
+rule_id = &"fever_pitch"

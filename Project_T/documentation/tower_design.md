@@ -411,6 +411,32 @@ Crit synergies: **Held and sleeping nightmares** (Hoarfrost bonus, *Still Target
 (*Starlit Aim*), **Magpie's Hoard** (Dew from crits), **White Stag** aura, and the crit cards in
 `dream_design.md`.
 
+## Potency: effect damage
+
+Added 2026-09-27 (user request). Crit scales **hits**; **Potency** scales **effects**, the damage
+that isn't a hit. Spored is the game's poison, and Potency is what makes poison builds grow. So
+every Warden has two damage axes, and builds lean one way:
+
+| | Hit builds | Effect builds |
+|---|---|---|
+| Damage from | projectile hits, chain jumps, pulses, beams, pecks, trap bursts | Spored ticks, Static bolts, clouds and fog, Puffball pops, rubble, **Reactions, Crowned Reactions, echoes** |
+| Scales with | crit chance and multiplier | **Potency** |
+| Signature Wardens | Pebbling, snipers, Hummingbird | Driftspore/Puffball, Mistveil, Thunderhead, Echo Hollow |
+
+- **Potency** is a % on each Warden, **100% by default**. It multiplies the effect damage of the
+  statuses *that Warden* applied (the applier's Potency is stored with the status, like its damage).
+- **Reactions** use the Potency of the Warden that completed them (the "applier" in
+  `dream_design.md`), so Potency is the main way to make Reactions hit harder late in a run.
+- **What it doesn't touch:** hits, status *duration* and stacks (those have their own cards and the
+  Deep focus), slows and control.
+- **Order:** `effect damage × Potency × family resist/weak × Marked` (no crit, no attack shape
+  except the Whisper Swarm's area rule, as before).
+- **Sources:** a few Wardens start above 100% (`warden_stats.md`), the Nurture **Deep** focus
+  (+10% Potency and duration per rank III–V), and the Potency cards in `dream_design.md`.
+- **Shown** in the Warden tooltip next to crit (e.g. "Crit 5% · ×2 · Potency 130%"). Effect damage
+  numbers use the status's colour, so a poison build *looks* different from a crit build.
+- *Nightshade* (Legendary) bridges the two: effect ticks can crit.
+
 ## Target priority
 
 Most Wardens target the nightmare **furthest along** the path. **Standing Stone and Moonstone** let
@@ -452,6 +478,7 @@ simple.
 | **Thousand Cuts** | Jewelwing Court + Firefly Jar/Rain Lily + Beacon | *Charged Feathers*, *Thousand Cuts* | every flurry charges a wet, marked nightmare into a Thunderclap |
 | **Encore** | Whispering Hollow + any two Reaction families | *Quick Reactions* | every Reaction goes off twice; the easiest road to Dawnburst |
 | **Rockfall** | Rockslide + Snugroot + Bloomcap | *Shattering Blow* | hold a crowd in a sleepy cloud and drop stones on it |
+| **Deep Poison** | Puffball + Mistveil + Echo Hollow (+ Deep-focus Wardens) | *Seeping*, *Nightshade* | no big hits at all: stacked spores in fog, Potency on everything, and every Reaction echoes |
 | **Thunder Chimes** | Stormcap + Chime Stone | *Resonance* (pulses count as lightning) | Static bolts go off constantly |
 | **Bramble Maze** | mostly Thornwalls (Bramble) + Snugroot | *Thornheart* (+damage per wall) | the maze itself is the weapon |
 | **The Grove** | Grove Heart surrounded by any Wardens | *Rootbound* | one tight fortress at a chokepoint |

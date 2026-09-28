@@ -70,6 +70,15 @@ func _test_blocks_and_rests() -> void:
 	_check(run_state.leaves == 15 and run_state.max_leaves == 15 and run_state.dew == 60, "15 leaves, 60 Dew")
 	_check(spawner.get_enemies().is_empty(), "no creatures before Start")
 	_check(director.get_extra_nightmares(9) == 1.0 and director.get_extra_nightmares(10) == 1.25, "extra nightmares from drift 10")
+	# Economy pass v2: dispel Dew × 1.0 / 0.8 / 0.65 / 0.5 by act, fractions carried over.
+	_check(run_state._scaled_dispel_dew(3) == 3, "act 1 pays dispel Dew in full")
+	var started := director.drifts_started
+	director.drifts_started = 80  # Act 4
+	run_state._dispel_dew_carry = 0.0
+	var act_4_paid := run_state._scaled_dispel_dew(3) + run_state._scaled_dispel_dew(3)
+	director.drifts_started = started
+	run_state._dispel_dew_carry = 0.0
+	_check(act_4_paid == 3, "act 4 pays half, the halves adding up (3 + 3 → %d)" % act_4_paid)
 	# Mid-game rework: ×1.045 per drift to 25, ×1.055 for 26–50 (≈ ×11 by drift 50), ×1.045 from 51
 	# (≈ ×33 at 75, ×100 at 100).
 	_check(is_equal_approx(director.get_growth(25), pow(1.045, 24)) and is_equal_approx(director.get_growth(26), pow(1.045, 24) * 1.055)
@@ -142,7 +151,7 @@ func _test_blocks_and_rests() -> void:
 	_check(director.drifts_started >= 3, "drift 3 starts by itself (Auto-drift)")
 	await _play_until(main, func() -> bool: return not rests.is_empty(), 0, 9000)
 	_check(director.drifts_started == 5 and director.is_resting(), "rest after drift 5")
-	_check(rests[0] == [1, false, 40, true], "rest bonus 20 + 10×1 + perfect 10 = 40 (%s)" % [rests[0]])
+	_check(rests[0] == [1, false, 44, true], "rest bonus 30 + 4×1 + perfect 10 = 44 (%s)" % [rests[0]])
 
 	await _settle(main)  # Let the rest's Dream (built a frame later) show and be dismissed
 	# Block 2: call early, a leak, health growth
@@ -167,7 +176,7 @@ func _test_blocks_and_rests() -> void:
 	_check(director.drifts_started == 7, "Auto-drift off: the next drift waits for the button")
 	director.set_auto_drift(true)
 	await _play_until(main, func() -> bool: return rests.size() >= 2, 0, 9000)
-	_check(rests[1] == [2, false, 40, false], "leaky block: 20 + 10×2, no perfect bonus (%s)" % [rests[1]])
+	_check(rests[1] == [2, false, 38, false], "leaky block: 30 + 4×2, no perfect bonus (%s)" % [rests[1]])
 	main.queue_free()
 	await process_frame
 

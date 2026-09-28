@@ -183,6 +183,20 @@ additively like other stats.
 Deepened: **Sharpened Light II** +1.0 multiplier; **Still Target II** +25%; **Shattering Blow II**
 splash 75% within 1.5 cells.
 
+## Potency cards: effect damage
+
+Added 2026-09-27 with Potency (`tower_design.md`, "Potency: effect damage"). The mirror of the crit
+cards: crit cards grow hits, these grow effects (Spored, Static bolts, clouds, fog, Reactions).
+
+| # | Card | Rarity | Effect | Tags | Needs | Pool |
+|---|---|---|---|---|---|---|
+| 109 | **Bitter Sap** | Common | all Wardens +8% Potency (stacks) | potency | — | Start |
+| 110 | **Seeping** | Uncommon | effects deal **+5% per status** the nightmare carries (max +30%) | potency, reaction | any 2 status families | Grove |
+| 111 | **Venom Bloom** | Uncommon, **Bittersweet** | all Wardens +30% Potency. **Cost:** hits do −15% damage | potency, bittersweet | — | Grove |
+| 112 | **Nightshade** | Legendary | all Wardens +15% Potency; **effect ticks can crit** using the applier's crit chance and multiplier | potency, crit | — | Grove |
+
+Deepened: **Seeping II** +7% per status (max +42%).
+
 ## Cards for the new Wardens
 
 Each hidden branch, final form and full-game family brings its own cards (the "6–8 per family"
@@ -319,6 +333,19 @@ Evolving is still the better buy when a Dream allows it; Nurture cards make rank
 | 66 | **Nursery** | Rare, **Entwined** | Seedling Gift's free Sprouts arrive at **rank II**, and Sprouts nurture for half price | nurture, sprout | Tender Care + Seedling Gift | Grove |
 | 67 | **The Old Ones** | Legendary | each rank also gives **+2% crit chance**; rank V+ Wardens make the Wardens touching them count **one rank higher** (doesn't stack with itself) | nurture, crit | any `nurture` card + a rank V Warden | Grove |
 | 68 | **Chosen Few** | Rare, **Bittersweet** | rank V+ Wardens **+50% damage**. **Cost:** Wardens below rank III do −15% damage | nurture, bittersweet | a rank V Warden | Grove |
+| 108 | **Endless Rings** | Legendary | **no max rank.** Past VII, each rank costs **×1.2** the one before (VIII 216, IX 259, X 311, … × tier) and gives **+10% damage** | nurture | Deeper Rings + a **rank VI** Warden | Grove |
+
+**Endless Rings** (added 2026-09-27, user idea: "infinite Nurture once you reach rank VI"). The tall
+build's capstone and the run's last Dew sink.
+- **Damage only past VII.** Attack speed and range stop at VII (endless range would cover the whole
+  23×18 map, and endless speed breaks attack animations); the Focus bonus stops at V as always.
+- **Soft cap by design:** each rank adds a flat +10% damage, while its cost grows 20%. Ranks VIII–XII
+  on a base Warden cost ~1,600 Dew for +50% damage, so you stop when another Warden or growth is the
+  better buy, and there's always *something* to put late Dew into.
+- **Free ranks stop at VII:** Sunlit Rest, Nursery and The Old Ones' neighbour bonus never give a
+  rank above VII. Only Dew buys endless ranks.
+- **Shown as** the rank VII art plus a Roman numeral ("XII") on the Warden, and in its panel.
+- **Grove:** joins The Old Ones at the tip of the Tending branch (`meta_design.md`).
 
 - **Openers and follow-ups** (see *Card requirements*): Tender Care and Warm Hands are the
   **openers**, offered once you've **spent 30+ Dew on ranks** this run (a "you've tried it" gate,
@@ -332,7 +359,11 @@ Evolving is still the better buy when a Dream allows it; Nurture cards make rank
   ~1.8×; on a final form, 380. A branch costs 45 for ~2×. Evolving still wins on Dew; ranks win on
   space. Deeper Rings (VI and VII, also × tier) is a late-run Dew sink on purpose.
 - **Remembered Care** makes rearranging the maze painless for a tall build: sell a rank V to move
-  it and the next plant is rank V again (it still costs the plant's normal Dew). The seed survives
+  it and the next plant is rank V again (it still costs the plant's normal Dew). **The rank Dew goes
+  into the seed, not back to you** (fix, 2026-09-27): selling a ranked Warden while Remembered Care
+  makes a seed refunds only its build and growth Dew. Otherwise sell + replant is a Dew machine (a
+  rank V refunds ~170 Dew at a rest, then comes back for free). If the seed is later replaced by a
+  higher one, that Dew is lost. The seed survives
   the run save. It's shown as a small glowing seed next to the Dew counter.
 - **Sunlit Rest** picks the Warden nearest the Heartwood by path distance (the same order as group
   Nurture). If none is ranked, nothing happens (you need to nurture once first).

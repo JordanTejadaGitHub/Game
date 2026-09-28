@@ -111,7 +111,7 @@ Wardens mattered. Builds are the heart of the roguelite, so **the game must show
 | Feedback | Design |
 |---|---|
 | **Combo callouts** | a short word pops over the nightmare when a synergy fires, in the triggering Warden's colour: *Conducted!* (lightning through Damp), *Popped!* (Puffball burst), *Asleep!* (Dreamshroom), *Splintered!* (crit splash from *Shattering Blow*), *Weak!* (family weakness). Reactions have their own callouts (below). Throttled so a busy maze shows a few at a time, never a wall of text |
-| **Damage numbers** | setting: **off / big hits only (default) / all**. Crits larger with a ping; weakness hits bright; resisted hits small and grey; status ticks tiny |
+| **Damage numbers** | setting: **off / big hits only (default) / all**. Crits larger with a ping; weakness hits bright; resisted hits small and grey; status ticks tiny, **in the status's colour** (Spored violet, Static yellow…), and slightly larger for Wardens above 100% Potency |
 | **Status icons** | always visible on nightmares, with stack counts (already specced above); flash when a status is *used* by a combo (Damp flashes as lightning jumps) |
 | **Placement links** | while placing, a small vine icon links the ghost to nearby Wardens it combos with ("combos with Rain Lily"); the Warden panel lists its active links |
 | **Warden panel stats** | damage this run, damage per second over the last drift, and **"from combos: N%"** |
@@ -180,7 +180,7 @@ one-line definition, a small icon, and "see also" links. Terms in tooltips, card
 |---|---|
 | **Resources** | Dew, Dreamlight, Leaves, Seeds |
 | **The run** | Drift, Block, Rest, Act, Boss, Family pick, Family Blessing, Dream, Omen, Call early, Auto-drift, Remember screen |
-| **Wardens** | Warden, Family, Branch, Final form, Hidden branch, Memory Warden, Grow (evolve), Nurture, Rank, Focus (Power / Swift / Reach / Deep), Thornwall and wall growths, Crit, Clear tool / Tend |
+| **Wardens** | Warden, Family, Branch, Final form, Hidden branch, Memory Warden, Grow (evolve), Nurture, Rank, Focus (Power / Swift / Reach / Deep), Thornwall and wall growths, Crit, Potency, Clear tool / Tend |
 | **Nightmares** | Nightmare, Dispel, Deeply Blighted (elite), Resists / Weak to (families), Dread shell, Hidden (Lurkers), Flying |
 | **Statuses** | Damp, Drowsy, Spored, Marked, Static, Held, Caught, Frozen |
 | **Dreams** | Rarity, Deepened, Entwined, Bittersweet, Legendary, Let it pass, Reroll, Banish |
@@ -222,6 +222,19 @@ Every combo starts **locked** and is **discovered the first time it actually fir
 | Reaction | **Shatter** | Held + Damp, then a crit or heavy hit | that hit does 2.5× and shards fly |
 | Reaction | **Smother** | Held + Spored | spores tick three times as fast while held |
 | Reaction | **Thunderclap** | Damp + 3 Static | 4× damage; lightning arcs to nearby Damp nightmares |
+| Crowned | **Tempest** | Thunderclap + Spored | arcs also Ignite spored nightmares; the storm feeds itself |
+| Crowned | **Still Pool** | Drown + Held | leaves a pool that puts walkers to sleep |
+| Crowned | **Fever Dream** | Smother ends on full Drowsy | spores go off at once; spores and sleep spread to neighbours |
+| Crowned | **Starfall** | Pinned + Static | nearby Static bolts all strike the pinned nightmare as crits |
+| Crowned | **Avalanche** | a Cairn lob sets off Shatter | the Shatter spreads to every wet, held nightmare under the lob |
+| Crowned | **Prismstorm** | Shatter + Static | ice shards carry lightning to nearby nightmares |
+| Crowned | **Nightbloom** | Mushrooming + full Drowsy | a glowing cloud where nothing can wake, even with a Watcher |
+| Crowned | **Fairy Circle** | Mushrooming + Held | a ring of mushrooms that spores and soaks the next walkers |
+
+**Crowned entries** (added 2026-09-27, `tower_design.md` "Crowned Reactions"): locked ones show
+*"???"* with the **three family icons** (not status icons) as the hint, and a gold crown frame. The
+counter becomes *"N / 23 combos discovered"*. Their discovery card uses the gold tier accent. Full
+game only (they can't happen in the demo).
 
 New combos (new Wardens, Reactions) are added to this table and the Codex automatically.
 
