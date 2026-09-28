@@ -17,6 +17,7 @@ const TARGET_TIPS := {
 
 var _tower: Tower = null
 var _title := Label.new()
+var _damage_type := HBoxContainer.new()  # Under the title: the damage type icon + name (one Warden)
 var _desc: RichTextLabel  # What it does, with its status words as links (StatusLinks)
 var _stats := VBoxContainer.new()  # Stat rows: each stat explains itself on hover and tap (IconInfo)
 var _body := Label.new()
@@ -33,6 +34,14 @@ func _ready() -> void:
 	add_child(box)
 	_title.add_theme_font_size_override("font_size", 20)
 	box.add_child(_title)
+	# Damage type (enemy_design.md "Damage types"): the type's icon and "Light damage" in its colour.
+	_damage_type.add_theme_constant_override("separation", 4)
+	_damage_type.add_child(TextureRect.new())
+	_damage_type.get_child(0).stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	_damage_type.get_child(0).expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	_damage_type.get_child(0).custom_minimum_size = Vector2(16, 16)
+	_damage_type.add_child(Label.new())
+	box.add_child(_damage_type)
 	_desc = StatusLinks.make_label("", 16)
 	_desc.custom_minimum_size = Vector2(280, 0)
 	box.add_child(_desc)
@@ -81,6 +90,7 @@ func _refresh() -> void:
 	visible = true
 	var data := _tower.tower_data
 	_title.text = data.display_name
+	_show_damage_type(data)
 	if _tower.rank > 0:
 		_title.text += " · Rank %s" % Tower.rank_name(_tower.rank)
 		if _is_eldest(_tower):
@@ -301,6 +311,7 @@ func _refresh_group() -> void:
 	var selection := tower_seller.selection
 	var groups := tower_seller.get_selection_groups()
 	_title.text = "%d Wardens selected" % selection.size()
+	_damage_type.visible = false
 	var kinds: Array[String] = []
 	var damage_per_second := 0.0
 	for group in groups:
@@ -502,3 +513,16 @@ func _evolve(into: TowerData) -> void:
 		return
 	if tower_placer.evolve(_tower, into):
 		_refresh()
+
+# The Warden's damage type under the title (screens_ui.md "Damage-type icons"); hidden for Wardens
+# that don't attack (Thornwalls).
+func _show_damage_type(data: TowerData) -> void:
+	_damage_type.visible = data.can_attack
+	if not data.can_attack:
+		return
+	var icon := _damage_type.get_child(0) as TextureRect
+	var label := _damage_type.get_child(1) as Label
+	icon.texture = IconInfo.damage_type_icon(data.line)
+	label.text = IconInfo.damage_type_text(data.line)
+	label.add_theme_color_override("font_color", IconInfo.damage_type_color(data.line))
+	_damage_type.tooltip_text = "Nightmares can resist or be weak to a damage type."
