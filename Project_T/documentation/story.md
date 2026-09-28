@@ -97,7 +97,7 @@ Blight (the dark rot nightmares carry; Blight Levels, Deeply Blighted elites).
 | Internal name (code, older docs) | Player-facing name |
 |---|---|
 | Damp | **Soaked** |
-| Drowsy | **Slowed** (at full stacks: **Asleep**) |
+| Drowsy | **Drowsy** (kept: it builds up to **Asleep**; "Slowed" read the same as Soaked) |
 | Spored | **Poisoned** |
 | Marked | **Exposed** |
 | Static | **Charged** |

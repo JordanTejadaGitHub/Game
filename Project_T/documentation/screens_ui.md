@@ -179,7 +179,7 @@ icon explains itself**: hover on PC, tap on touch, a small tooltip in plain word
 - **Resource icons**: Dew, Dreamlight, Leaves, Seeds (already exist; get tooltips too).
 - **Combos get no icons** anywhere a player hasn't discovered them yet: callouts are words, locked
   Codex entries are "???" (user decision: icons hint at the answer).
-- **Status names (decided 2026-09-28):** Damp → **Soaked**, Drowsy → **Slowed**, Spored →
+- **Status names (decided 2026-09-28):** Damp → **Soaked**, Drowsy **stays Drowsy** (Slowed read the same as Soaked), Spored →
   **Poisoned**, Marked → **Exposed**, Static → **Charged**, Held → **Rooted**; Caught and Frozen
   unchanged. Display names only: code ids and older design docs keep the internal names (table in
   `story.md`). The Heartwood Sapling's "can't be sold or moved" term becomes **Permanent** (not
