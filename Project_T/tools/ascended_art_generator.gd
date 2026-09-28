@@ -438,6 +438,7 @@ func _halo(canvas: Image, st: Dictionary, color: Color) -> void:
 const K := 2.0
 const HEAD_T := Vector2(30.0, 11.5)  # head centre in template px
 const BELLY_T := Vector2(34.0, 30.0)
+const BELL_HAND_T := Vector2(42.0, 32.0)  # the side arm's hand, template px
 var fo := Vector2(0, 0)  # frame position of template (0, 0)
 var gh := Vector2.ZERO
 var gb := Vector2.ZERO
@@ -886,21 +887,24 @@ func _asc_the_great_bell(canvas: Image, st: Dictionary, fig: Dictionary) -> void
 	_gstamp(canvas, hood, fig.o)
 	for k in 3:
 		_gline(canvas, [Vector2(52 + k * 11, 25 + dy), Vector2(50 + k * 12, 36 + dy)], Color("#6a4aa8"))
-	# The great bell, cradled in the lap.
-	var bc := Vector2(64 + swing, 74 + dy)
+	# The great bell hangs from its side hand (the golem's own arm), swinging.
+	var hand := fo + BELL_HAND_T * K + Vector2(0, dy)
+	var bz := 0.8
+	var bc := hand + Vector2(swing * 0.6, 17)
 	var bell := _gnew(canvas)
 	var gold := _ramp(GOLD)
-	_gpoly(bell, PackedVector2Array([bc + Vector2(-8, -12), bc + Vector2(8, -12), bc + Vector2(11, -2), bc + Vector2(14, 10), bc + Vector2(17, 16), bc + Vector2(-17, 16), bc + Vector2(-14, 10), bc + Vector2(-11, -2)]), gold)
-	_gell(bell, bc + Vector2(0, -12), Vector2(8, 4), gold)
+	var pts := PackedVector2Array()
+	for p: Vector2 in [Vector2(-8, -12), Vector2(8, -12), Vector2(11, -2), Vector2(14, 10), Vector2(17, 16), Vector2(-17, 16), Vector2(-14, 10), Vector2(-11, -2)]:
+		pts.append(bc + p * bz)
+	_gpoly(bell, pts, gold)
+	_gell(bell, bc + Vector2(0, -12) * bz, Vector2(8, 4) * bz, gold)
 	_gstamp(canvas, bell, Color("#5a3200"))
-	_gline(canvas, [bc + Vector2(-15, 12), bc + Vector2(15, 12)], Color("#a86a1a"))
-	_gline(canvas, [bc + Vector2(-7, -6), bc + Vector2(-9, 8)], Color("#fff8d0"))
-	_gflat(canvas, bc + Vector2(0, 18), Vector2(3, 2), Color("#7a4a10"))
-	# The arms wrap round the bell's sides.
-	var arms := _gnew(canvas)
-	_gell(arms, Vector2(45, 82 + dy), Vector2(7, 11), fig.ramp, -0.5)
-	_gell(arms, Vector2(83, 82 + dy), Vector2(7, 11), fig.ramp, 0.5)
-	_gstamp(canvas, arms, fig.o)
+	_gline(canvas, [bc + Vector2(-15, 12) * bz, bc + Vector2(15, 12) * bz], Color("#a86a1a"))
+	_gline(canvas, [bc + Vector2(-7, -6) * bz, bc + Vector2(-9, 8) * bz], Color("#fff8d0"))
+	_gflat(canvas, bc + Vector2(0, 18) * bz, Vector2(2.5, 1.8), Color("#7a4a10"))
+	# The bell's loop, gripped in the hand.
+	_gring(canvas, hand + Vector2(swing * 0.3, 2), Vector2(3, 3), Color("#a86a1a"))
+	_gline(canvas, [hand + Vector2(swing * 0.3, 5), bc + Vector2(0, -15) * bz], Color("#a86a1a"))
 	_gmotes(canvas, st, [34, 94, 26, 102], 60, 40, [Color("#ffe8a0"), Color("#c8b0f0")])
 	for k in 2:
 		var t: float = fposmod(float(st.f) / st.n + k * 0.5, 1.0)
