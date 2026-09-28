@@ -72,7 +72,8 @@ const GLOSSARY := [
 		["Reaction", "Two statuses meeting on one nightmare set off a named effect, like Thunderclap (Damp + Static).", ["Chain", "Crowned Reaction"]],
 		["Crowned Reaction", "A Reaction going off on a nightmare that already carries a third status: a bigger, named version.", ["Reaction", "Woven"]],
 		["Chain", "Reactions setting each other off within 1 s. Shown as Chain 5, not a damage multiplier; Chain 10 is a Dawnburst.", ["Reaction", "Dawnburst"]],
-		["Dawnburst", "What a Chain 10 becomes: a flash of dawn that takes a tenth of the health of every nightmare within 4 cells.", ["Chain"]],
+		["Dawnburst", "A Chain 10: a flash of dawn over the whole fight. With the Dawnbreak Legendary it also takes a tenth of the health of every nightmare within 4 cells (bosses: 2%).", ["Chain", "Dawnbreak"]],
+		["Dawnbreak", "The Legendary Dream that gives a Dawnburst its bite (grown in the Memory Grove).", ["Dawnburst", "Legendary"]],
 	]],
 	["Dreams", [
 		["Rarity", "Common, Uncommon, Rare, Legendary: the shape and colour of a Dream card's gem.", ["Legendary"]],
