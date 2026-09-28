@@ -6,9 +6,12 @@ extends Control
 # previous run's first offer. The pick unlocks it (Sprouts can grow into it, or
 # plant it directly). When fewer than 3 new families are left, the empty slots become Family
 # Blessings for families you own (meta_design.md). Early Bloom (Grove perk) makes the first pick offer
-# every family. Pauses the game while open. Built in code.
+# every family. Pauses the game while open; "Peek at the map" minimises it. Cards show the statuses
+# the family applies and its two branches (screens_ui.md "Family pick"). Built in code.
 
-const CARD_SIZE := Vector2(250, 230)
+const CARD_SIZE := Vector2(250, 300)
+const STATUS_NAMES := {&"damp": "Damp", &"drowsy": "Drowsy", &"spored": "Spored", &"marked": "Marked",
+	&"static": "Static", &"held": "Held"}
 const TITLES := {
 	&"first": "The Heartwood stirs, and remembers an old friend…",
 	&"boss": "It's gone, and something I'd forgotten came back.",
@@ -33,6 +36,7 @@ var offer: Array = []  # TowerData (a new family) or UpgradeData (a Family Bless
 var _was_paused := false
 var _title := Label.new()
 var _cards := HBoxContainer.new()
+var peek: ChoicePeek  # Minimise to look at the map (screens_ui.md "Choice screens")
 
 func _ready() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -54,6 +58,8 @@ func _ready() -> void:
 	_cards.add_theme_constant_override("separation", 16)
 	_cards.alignment = BoxContainer.ALIGNMENT_CENTER
 	box.add_child(_cards)
+	peek = ChoicePeek.new(self, [dim, center], "Back to the family pick")
+	box.add_child(peek.make_peek_button())
 	visible = false
 	previous_first_offer = HeartwoodMemory.load_data().get("last_first_pick", [])
 	previous_first_offer.sort()
@@ -178,8 +184,13 @@ func _make_card(data: TowerData) -> Button:
 		icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		box.add_child(icon)
 	var sprout_cost := dream_state.get_evolve_cost(data)
-	for line in [[data.display_name, 22, Color.WHITE], [data.description, 15, Color(0.9, 0.95, 0.9)],
-			["Sprouts can grow into it (%d Dew), or plant one directly (%d Dew)." % [sprout_cost, data.cost], 13, Color(0.7, 0.9, 0.7)]]:
+	# screens_ui.md "Family pick": name, identity, the statuses it applies, previews of its branches.
+	var lines := [[data.display_name, 22, Color.WHITE], [data.description, 15, Color(0.9, 0.95, 0.9)]]
+	var statuses := get_status_text(data)
+	if statuses != "":
+		lines.append([statuses, 14, Color(0.75, 0.85, 1.0)])
+	lines.append(["Sprouts can grow into it (%d Dew), or plant one directly (%d Dew)." % [sprout_cost, data.cost], 13, Color(0.7, 0.9, 0.7)])
+	for line in lines:
 		var label := Label.new()
 		label.text = line[0]
 		label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -187,7 +198,57 @@ func _make_card(data: TowerData) -> Button:
 		label.add_theme_color_override("font_color", line[2])
 		label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		box.add_child(label)
+	var branches := get_branches(data)
+	if not branches.is_empty():
+		var grows := Label.new()
+		grows.text = "Grows into"
+		grows.add_theme_font_size_override("font_size", 13)
+		grows.add_theme_color_override("font_color", Color(0.7, 0.8, 0.7))
+		box.add_child(grows)
+		for branch in branches:
+			var row := HBoxContainer.new()
+			row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			row.add_theme_constant_override("separation", 6)
+			box.add_child(row)
+			var preview := TextureRect.new()
+			preview.texture = _frame(branch)
+			preview.custom_minimum_size = Vector2(32, 32)
+			preview.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+			preview.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+			preview.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			row.add_child(preview)
+			var name_label := Label.new()
+			name_label.text = branch.display_name
+			name_label.add_theme_font_size_override("font_size", 13)
+			row.add_child(name_label)
 	return button
+
+# "Applies Spored" / "Applies Drowsy and Static": the statuses this family's base Warden puts on
+# nightmares ("" = none).
+static func get_status_text(data: TowerData) -> String:
+	var names: Array[String] = []
+	for status in [data.applies_status, data.extra_status]:
+		if status != &"" and not names.has(STATUS_NAMES.get(status, String(status).capitalize())):
+			names.append(STATUS_NAMES.get(status, String(status).capitalize()))
+	return "Applies " + " and ".join(names) if not names.is_empty() else ""
+
+# The branches this family grows into in this run (up to 2), without hidden ones the Memory Grove
+# hasn't opened.
+func get_branches(data: TowerData) -> Array[TowerData]:
+	var result: Array[TowerData] = []
+	for next in data.evolves_to:
+		var branch := next as TowerData
+		if branch != null and dream_state.get_unlock_blocker(branch) != "Memory Grove" and result.size() < 2:
+			result.append(branch)
+	return result
+
+func _frame(data: TowerData) -> Texture2D:
+	if data.texture == null:
+		return null
+	var atlas := AtlasTexture.new()
+	atlas.atlas = data.texture
+	atlas.region = data.get_frame_rect(0)
+	return atlas
 
 # A Family Blessing: the same card shape, with a golden blessing border.
 func _make_blessing_card(card: UpgradeData) -> Button:

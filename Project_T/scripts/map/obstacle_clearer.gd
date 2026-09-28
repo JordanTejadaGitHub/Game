@@ -108,6 +108,7 @@ func _refresh_hover() -> void:
 	if _hover_obstacle != before:
 		obstacle_hovered.emit(_hover_obstacle, is_locked())
 	_path_preview.clear_points()
+	RouteLine.apply(_path_preview, Color(HIGHLIGHT_COLOR, 0.6))
 	if _hover_obstacle != null and not is_locked():
 		# Only preview when clearing actually changes the route creatures take.
 		var new_path: PackedVector2Array = map_generator.get_path_if_cleared(_hover_cell)

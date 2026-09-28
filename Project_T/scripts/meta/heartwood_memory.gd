@@ -44,6 +44,9 @@ static func defaults() -> Dictionary:
 			"damage_numbers": 1,  # 0 off, 1 big hits, 2 all (read by the combat feedback)
 			"reduce_flashes": false,  # Reactions: softer, shorter flashes (accessibility)
 			"hitstop": true,  # Reactions: a tiny freeze on big hits
+			"vsync": true,
+			"window_size": 0,  # Index into SettingsPanel.WINDOW_SIZES (windowed mode)
+			"high_contrast_route": false,  # RouteLine: bright, thick route previews
 			"keybinds": {},  # {action: [physical keycodes]}; empty = project defaults
 		},
 	}
@@ -188,8 +191,12 @@ static func apply_settings(settings: Dictionary = {}) -> void:
 	if tree != null and tree.root != null:
 		tree.root.content_scale_factor = clampf(float(settings.get("ui_scale", 1.0)), 0.5, 2.0)
 	if DisplayServer.get_name() != "headless":
-		DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_FULLSCREEN if settings.fullscreen
-			else DisplayServer.WINDOW_MODE_WINDOWED)
+		var mode := DisplayServer.WINDOW_MODE_FULLSCREEN if settings.fullscreen else DisplayServer.WINDOW_MODE_WINDOWED
+		var changed := DisplayServer.window_get_mode() != mode
+		if changed:
+			DisplayServer.window_set_mode(mode)
+		# V-sync always; the window size at startup and when leaving fullscreen.
+		SettingsPanel.apply_display(settings, changed)
 	for action in settings.keybinds:
 		if not InputMap.has_action(action):
 			continue

@@ -51,11 +51,12 @@ var _hover_path := PackedVector2Array()
 var _hover_valid := false  # The cell itself allows building (ignores cost)
 var _hover_affordable := false
 var _path_preview := Line2D.new()
+const PREVIEW_COLOR := Color(0.4, 0.9, 1.0, 0.6)  # The route preview (RouteLine: high-contrast setting)
 
 func _ready() -> void:
 	tower_data = towers[0]
 	_path_preview.width = 6.0
-	_path_preview.default_color = Color(0.4, 0.9, 1.0, 0.6)
+	_path_preview.default_color = PREVIEW_COLOR
 	_path_preview.joint_mode = Line2D.LINE_JOINT_ROUND
 	_path_preview.begin_cap_mode = Line2D.LINE_CAP_ROUND
 	_path_preview.end_cap_mode = Line2D.LINE_CAP_ROUND
@@ -152,6 +153,7 @@ func _refresh_hover() -> void:
 	if map_generator.is_buildable(_hover_cell):
 		_hover_path = map_generator.get_path_if_blocked(_hover_cell)
 	_path_preview.clear_points()
+	RouteLine.apply(_path_preview, PREVIEW_COLOR)
 	for point in _hover_path:
 		_path_preview.add_point(MAP_GRID.calculate_map_position(point))
 	_hover_valid = not _hover_path.is_empty() and not _is_occupied_by_enemy(_hover_cell) \

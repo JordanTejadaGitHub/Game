@@ -23,6 +23,7 @@ const SEED_COLOR := Color(0.6, 0.85, 0.4)
 
 const LEAVES_COLOR := Color(0.6, 0.9, 0.5)
 const DREAMLIGHT_COLOR := Color(1.0, 0.88, 0.55)
+const MENU_BUTTON_RIGHT := -284.0  # Left of the Dreamlight counter and the Dew
 const DREAMLIGHT_HELP := "Unlock branches and final forms on the Remember screen (at rests)."
 const LEAF_LOST_COLOR := Color(1.0, 0.6, 0.3)
 const TOAST_TIME := 2.5
@@ -53,6 +54,7 @@ func _ready() -> void:
 	run_state.leaves_changed.connect(_on_leaves_changed)
 	_on_leaves_changed(run_state.leaves, run_state.max_leaves)
 	_add_dreamlight_counter()
+	_add_menu_button()
 	dream_state.card_taken.connect(func(card: UpgradeData) -> void: show_toast("Dreamed: %s" % card.display_name))
 	drift_director.rest_started.connect(_on_rest_started)
 	# Path length ("Wardens are walls: make their walk longer").
@@ -214,6 +216,26 @@ func _on_dew_short() -> void:
 		_dew_flash.tween_property(dew_label, "rotation_degrees", offset * 0.5, 0.04)
 	_dew_flash.tween_interval(0.25)
 	_dew_flash.tween_callback(dew_label.add_theme_color_override.bind("font_color", DEW_COLOR))
+
+# The pause menu on screen (screens_ui.md "Top right: … Menu"; platforms.md: Esc is only a
+# shortcut), left of the resources.
+func _add_menu_button() -> void:
+	var button := Button.new()
+	button.name = "MenuButton"
+	button.text = "Menu"
+	button.tooltip_text = "Pause menu (Esc)"
+	button.focus_mode = Control.FOCUS_NONE
+	button.set_anchors_preset(Control.PRESET_TOP_RIGHT)
+	button.offset_left = MENU_BUTTON_RIGHT - 84
+	button.offset_right = MENU_BUTTON_RIGHT
+	button.offset_top = 12
+	button.offset_bottom = 60
+	button.grow_horizontal = Control.GROW_DIRECTION_BEGIN
+	button.pressed.connect(func() -> void:
+		var pause := get_node_or_null("%PauseMenu")
+		if pause != null and not pause.visible and not run_state.is_over:
+			pause.open())
+	add_child(button)
 
 # Dreamlight (run_design.md "Dreamlight"): a glowing mote and the count, just left of the Dew.
 func _add_dreamlight_counter() -> void:
