@@ -190,6 +190,24 @@ and chains > crits and weakness hits > Harmony sparks > vines.
 - Setting **Kinship effects: Full / Subtle / Off** (Gameplay tab). Subtle hides vines outside build
   mode and drops the Harmony spark. Rules and bonuses always apply in full.
 - Warden panel: *"Kin: Bloomcap · Slumber Rot · Blooming (3 drifts to Old Kin)"*.
+
+**Playtest fix (2026-09-28: "I wasn't seeing any Kinship"; one Kinship formed in a 65-drift run):**
+the rule was never taught and the bond was nearly invisible. Changes:
+- **Teach the rule where it matters.** A Warden without kin says so in its panel, with the way to
+  get one: *"No kin. A Chime Stone within 2 cells would form Night Chimes."* (the other branch of
+  its family; greyed if that branch isn't unlocked yet: *"…(unlock Chime Stone with Dreamlight)"*).
+- **Kin spots while placing.** When the ghost is a branch or final form, cells within 2 of an
+  unbonded Warden of the family's *other* branch get a faint green-gold leaf outline, and the tag
+  reads *"Kin spot: forms Night Chimes"*. Placing there plays the "Bond forms" moment.
+- **A whisper the first time** a run has two branches of one family: *"Two of one family, planted
+  close, learn from each other."* (once ever).
+- **Always-visible sign:** both kin wear a small **leaf-pair badge** at their base (tap = the Kinship
+  and its stage). Vines during drifts go from ~30% to **~50%** brightness and are drawn **in front
+  of the ground and path, behind Wardens**, and routed around large sprites (Ascended), never under
+  them.
+- **Rest report:** a line per Kinship formed this block (*"Kinship: Night Chimes (Chime Stone +
+  Dreamcatcher)"*), and *"No Kinships yet: two branches of one family within 2 cells"* once, at the
+  first rest where the player owns two branches of a family but has no Kinship.
 - Rest report / results: Kinships formed, Harmony strikes, families made Whole.
 
 ## Stat and status icons
