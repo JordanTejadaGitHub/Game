@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "root_network_ii"
+display_name = "Root Network II"
+description = "Sprouts touching (diagonals too) form a network: each Sprout gets +8% damage per Sprout in its network (up to +80%)."
+rarity = 2
+kind = 3
+tags = Array[String](["sprout", "wide"])
+max_stacks = 1
+deepens = "root_network"
+rule_id = &"root_network"

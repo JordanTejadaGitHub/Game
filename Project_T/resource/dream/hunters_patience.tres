@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "hunters_patience"
+display_name = "Hunter's Patience"
+description = "Wardens deal 50% more damage to Deeply Blighted nightmares and 20% more to bosses."
+rarity = 2
+kind = 3
+tags = Array[String]([])
+max_stacks = 1
+min_act = 2
+rule_id = &"hunters_patience"

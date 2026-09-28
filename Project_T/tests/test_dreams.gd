@@ -734,6 +734,17 @@ func _test_few_and_mighty_sim(main: Node) -> void:
 		container.add_child(tower)
 		tower.set_process(false)
 		planted.append(tower)
+	# Eligible Rares on an act 1 board (this one: 10 attackers, 6 Thornwalls) with each starting family
+	# (dream_design.md "Generic Rares": target ~5–7). Drawable = hard Needs met; full = soft Needs too.
+	for family in ["sporeling", "firefly_jar", "dewdrop"]:
+		_reset_dreams_quiet(dreams)
+		dreams.unlocked[family] = true
+		var drawable: Array = dreams.pool.filter(func(c: UpgradeData) -> bool:
+			return c.rarity == UpgradeData.Rarity.RARE and dreams.can_offer(c, 1))
+		var full := drawable.filter(func(c: UpgradeData) -> bool: return dreams.is_eligible(c, 1))
+		print("act 1 Rares with %s: %d drawable, %d with every Need met (%s)" % [family, drawable.size(), full.size(),
+			", ".join(drawable.map(func(c: UpgradeData) -> String: return c.id))])
+		_check(full.size() >= 5 and full.size() <= 8, "act 1 board with %s: ~5–7 eligible Rares (%d)" % [family, full.size()])
 	const RUNS := 300
 	var results := []  # Per mode: [offers by 35, by 50, offers after 2nd pass, of them with it]
 	for fading in [false, true]:
@@ -767,7 +778,7 @@ func _test_few_and_mighty_sim(main: Node) -> void:
 					dreams._passed_count.clear()
 					dreams._passed_at.clear()
 		results.append(r)
-	# Act 1 boss rest with its only Rare faded: never a Legendary (none in act 1); without a Rare the
+	# Act 1 boss rest with every Rare faded: never a Legendary (none in act 1); without a Rare the
 	# next offer owes one.
 	var legendary := 0
 	dreams._rng.seed = 5
@@ -778,14 +789,16 @@ func _test_few_and_mighty_sim(main: Node) -> void:
 		dreams._passed_count.clear()
 		dreams._passed_at.clear()
 		dreams.unlocked["sporeling"] = true
-		dreams._passed_count[few.id] = 3  # ×0.22
-		dreams._passed_at[few.id] = -5
+		for card in dreams.pool:  # Every Rare faded ×0.22 (passed 3 times, not just now)
+			if card.rarity == UpgradeData.Rarity.RARE:
+				dreams._passed_count[card.id] = 3
+				dreams._passed_at[card.id] = -5
 		var offer := dreams.make_offer(25)
 		legendary += 1 if offer.any(func(c: UpgradeData) -> bool: return c.rarity == UpgradeData.Rarity.LEGENDARY) else 0
-		if not offer.has(few):
+		if not offer.any(func(c: UpgradeData) -> bool: return c.rarity == UpgradeData.Rarity.RARE):
 			fell += 1
 			owed += 1 if dreams._rare_dreams_left == 1 else 0
-	print("act 1 boss rest with Few and Mighty faded ×0.22: fell to Uncommon in %d of 200" % fell)
+	print("act 1 boss rest with every Rare faded ×0.22: fell to Uncommon in %d of 200" % fell)
 	_check(legendary == 0, "act 1: a faded forced Rare slot never falls to Legendary")
 	_check(fell > 140 and owed == fell, "…one chance per offer (~22%): it falls to Uncommon and the next offer tries for a Rare again")
 	for tower in planted:

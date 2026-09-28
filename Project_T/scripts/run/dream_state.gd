@@ -93,6 +93,20 @@ const HUNTERS_DURATION := 3600.0  # Marked "never expires" (EnemyStatuses keeps 
 const WILDWOOD_BASE := 0.30
 const WILDWOOD_PER_CLEAR := 0.02
 const WILDWOOD_MAX := 0.60
+# Generic Rares (dream_design.md "Generic Rares", 135–141)
+const ROOT_NETWORK_PER := [0.06, 0.08]  # Per Sprout in the network (II: diagonals count too)
+const ROOT_NETWORK_MAX := [0.60, 0.80]
+const FIRST_LIGHT_MULTIPLIER := 3.0
+const LAST_STAND_CELLS := 4  # From the Heartwood (Chebyshev)
+const LAST_STAND_BONUS := 0.35
+const OLD_GROWTH_STEPS := [[15, 0.30], [5, 0.15]]  # [drifts stood, damage], highest first
+const HUNTERS_PATIENCE_ELITE := 0.50
+const HUNTERS_PATIENCE_BOSS := 0.20
+const HERD_PER := 0.01
+const HERD_MAX := 0.25
+const BITTER_PER := 0.03
+const BITTER_MAX := 0.15
+const BITTER_TIME := 2.0
 # Dreamlight (run_design.md "Dreamlight"): sources and unlock costs.
 const FIRST_PICK_DREAMLIGHT := 1
 const BOSS_DREAMLIGHT := 3
@@ -165,6 +179,9 @@ var current_stray: UpgradeData = null  # The Stray Dream card of the current off
 var _owed_families: Array[String] = []  # Half-dreamed cards taken: the next family pick includes one
 var _declined_families: Array[String] = []  # Offered at the last family pick, not taken (half-dreamed ×0.3)
 var _taken_cache := {}  # include_dormant -> [state key, taken cards] (_taken_cards)
+var _bitter_walls := {}  # Nightmare id -> {wall id: clock it passed} (Bitter Hedges)
+var _first_hits := {}  # "Warden id:nightmare id" -> true (First Light)
+var _herd := {}  # Warden id -> dispels in its range this drift (Thinning the Herd)
 var _statuses_cache := []  # [state key, owned statuses] (owned_statuses)
 var _offer_drift := 0  # The drift of the offer being built (half-dreamed checks)
 var _before_offer := {}  # Offer counters from before the current offer (a reroll rolls them back)
@@ -660,13 +677,19 @@ func crossroads_at(cell: Vector2) -> bool:
 
 # Restless Night: a real call early = the previous drift was still arriving.
 func _on_drift_started(number: int) -> void:
+	_herd.clear()  # Thinning the Herd lasts the rest of the drift
+	_first_hits.clear()
+	for tower in _towers():  # Old Growth: drifts this Warden has stood (growing keeps the node)
+		tower.set_meta(&"drifts_stood", int(tower.get_meta(&"drifts_stood", 0)) + 1)
 	if number > 1 and drift_director._arriving.has(number - 1):
 		_early_calls += 1
 
 # Briar Crown: a nightmare stepping onto a route tile beside a wall takes 25% of the strongest
 # attacking Warden touching that wall (its line, area, no crit; once per wall per nightmare per s).
 func _process(delta: float) -> void:
-	if get_tree().paused or not has_rule(&"briar_crown"):
+	var briar := has_rule(&"briar_crown")
+	var bitter := has_rule(&"bitter_hedges")
+	if get_tree().paused or not (briar or bitter):
 		return
 	_briar_clock += delta
 	for enemy in spawner.get_enemies():
@@ -676,10 +699,14 @@ func _process(delta: float) -> void:
 			continue
 		_briar_cells[id] = cell
 		if _path_index.has(cell):
-			_briar_strike(enemy, cell)
+			if bitter:
+				_bitter_pass(enemy, cell)
+			if briar:
+				_briar_strike(enemy, cell)
 	if _briar_cells.size() > 512:
 		_briar_cells.clear()  # Forget long-gone nightmares now and then
 		_briar_hits.clear()
+		_bitter_walls.clear()
 
 func _briar_strike(enemy: Node2D, cell: Vector2) -> void:
 	for wall in _towers():
@@ -1654,6 +1681,7 @@ func _on_obstacle_cleared(cell: Vector2, _data: ObstacleData) -> void:
 
 # Spore Cascade: a cleansed creature's Spored stacks spread to the nearest creatures.
 func _on_enemy_cleansed(enemy: Node2D) -> void:
+	_count_herd(enemy)
 	_hunters_spread(enemy)
 	if not has_rule(&"spore_cascade") or not enemy.statuses.has(EnemyStatuses.SPORED):
 		return
@@ -1816,3 +1844,76 @@ func note_family_pick(offered: Array, chosen: String) -> void:
 	for id in offered:
 		if id != chosen:
 			_declined_families.append(id)
+
+
+# --- Generic Rares (dream_design.md "Generic Rares", 135–141) ---------------------------------------
+
+# Once per hit, from Tower.hit (after get_hit_damage_multiplier): First Light (×3 on a Warden's first
+# hit on each nightmare), Last Stand, Hunter's Patience and Bitter Hedges. 1.0 without those cards.
+func on_hit_multiplier(tower: Tower, enemy: Node2D) -> float:
+	if enemy == null or not is_instance_valid(enemy):
+		return 1.0
+	var bonus := 0.0
+	if has_rule(&"last_stand") and is_near_heartwood(enemy):
+		bonus += LAST_STAND_BONUS
+	if has_rule(&"hunters_patience"):
+		if enemy.elite:
+			bonus += HUNTERS_PATIENCE_ELITE
+		elif enemy.enemy_data != null and enemy.enemy_data.is_boss:
+			bonus += HUNTERS_PATIENCE_BOSS
+	bonus += get_bitter_bonus(enemy)
+	var multiplier := 1.0 + bonus
+	if has_rule(&"first_light") and tower != null:
+		var key := "%d:%d" % [tower.get_instance_id(), enemy.get_instance_id()]
+		if not _first_hits.has(key):
+			_first_hits[key] = true
+			multiplier *= FIRST_LIGHT_MULTIPLIER
+			if _first_hits.size() > 4096:
+				_first_hits.clear()  # Forget long-gone nightmares now and then
+	return multiplier
+
+# Last Stand: within LAST_STAND_CELLS of the Heartwood.
+func is_near_heartwood(enemy: Node2D) -> bool:
+	var cell: Vector2 = enemy.get_current_cell()
+	var heart: Vector2 = map_generator.endPath
+	return maxf(absf(cell.x - heart.x), absf(cell.y - heart.y)) <= LAST_STAND_CELLS
+
+# Bitter Hedges: +3% per Thornwall passed in the last 2 s (max +15%).
+func get_bitter_bonus(enemy: Node2D) -> float:
+	var passed: Dictionary = _bitter_walls.get(enemy.get_instance_id(), {})
+	var count := 0
+	for wall in passed:
+		if _briar_clock - passed[wall] <= BITTER_TIME:
+			count += 1
+	return minf(BITTER_PER * count, BITTER_MAX)
+
+func _bitter_pass(enemy: Node2D, cell: Vector2) -> void:
+	for wall in _towers():
+		if wall.tower_data.line == "wall" and absf(wall.cell.x - cell.x) + absf(wall.cell.y - cell.y) == 1.0:
+			var passed: Dictionary = _bitter_walls.get_or_add(enemy.get_instance_id(), {})
+			passed[wall.get_instance_id()] = _briar_clock
+
+# Thinning the Herd: a dispel counts for every attacking Warden with the nightmare in range.
+func _count_herd(enemy: Node2D) -> void:
+	if not has_rule(&"thinning_the_herd"):
+		return
+	var cell_size: float = map_generator.MAP_GRID.cell_size.x
+	for tower in _towers():
+		if tower.tower_data.can_attack \
+				and tower.global_position.distance_to(enemy.global_position) <= tower.get_range_cells() * cell_size:
+			_herd[tower.get_instance_id()] = int(_herd.get(tower.get_instance_id(), 0)) + 1
+
+func get_herd_bonus(tower: Tower) -> float:
+	return minf(HERD_PER * int(_herd.get(tower.get_instance_id(), 0)), HERD_MAX) if tower != null else 0.0
+
+# Old Growth: drifts `tower` has stood (a node meta, so growing in place keeps it; RunSaver keeps it
+# across a save).
+static func drifts_stood(tower: Tower) -> int:
+	return int(tower.get_meta(&"drifts_stood", 0)) if tower != null else 0
+
+func get_old_growth_bonus(tower: Tower) -> float:
+	var stood := drifts_stood(tower)
+	for step in OLD_GROWTH_STEPS:
+		if stood >= step[0]:
+			return step[1]
+	return 0.0
