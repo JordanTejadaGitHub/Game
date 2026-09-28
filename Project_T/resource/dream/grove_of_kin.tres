@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "grove_of_kin"
+display_name = "Grove of Kin"
+description = "Every Kinship on the map gives all Wardens +3% damage (up to +30%)."
+rarity = 3
+kind = 3
+tags = Array[String](["kinship"])
+max_stacks = 1
+min_act = 2
+min_kinships = 2
+rule_id = &"grove_of_kin"
+in_start_pool = false

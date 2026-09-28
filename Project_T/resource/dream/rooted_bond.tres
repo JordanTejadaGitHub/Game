@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "rooted_bond"
+display_name = "Rooted Bond"
+description = "Moving a bonded Warden no longer resets its Kinship (selling still does)."
+rarity = 1
+kind = 3
+tags = Array[String](["kinship", "maze"])
+max_stacks = 1
+rule_id = &"rooted_bond"
+in_start_pool = false

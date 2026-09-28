@@ -1270,6 +1270,8 @@ func _meets_needs(card: UpgradeData) -> bool:
 		return false
 	if card.requires_status != &"" and not owned_statuses().has(card.requires_status):
 		return false
+	if card.min_kinships > 0 and count_kinships() < card.min_kinships:
+		return false
 	if card.min_owned_statuses > 0 and owned_statuses().size() < card.min_owned_statuses:
 		return false
 	return true
@@ -1418,6 +1420,8 @@ func _owned_tags() -> Array:
 		var line := _line_of(tower_id)
 		if line != "":
 			owned[line] = true
+	if count_kinships() > 0:  # A Kinship on the map: Kinship cards count as your build
+		owned["kinship"] = true
 	# Build directions you've started count like families; wide and narrow push each other away.
 	var opposed := {}
 	for tag in DIRECTION_TAGS:
@@ -1622,3 +1626,10 @@ func _on_enemy_cleansed(enemy: Node2D) -> void:
 	for i in mini(SPORE_CASCADE_TARGETS[rule_level(&"spore_cascade")], others.size()):
 		others[i].apply_status(EnemyStatuses.SPORED, spores, duration, potency, 0, line,
 			enemy.statuses.source(EnemyStatuses.SPORED))
+
+# Kinships on the map (Tower Code's Kinships; 0 outside a run or before it exists).
+func count_kinships() -> int:
+	var kinships = Kinships.find(self)
+	if kinships == null or not kinships.has_method("count"):
+		return 0
+	return int(kinships.call("count"))

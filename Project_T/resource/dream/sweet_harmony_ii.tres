@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "sweet_harmony_ii"
+display_name = "Sweet Harmony II"
+description = "Harmony strikes +100% damage; they come every 1 s."
+rarity = 1
+kind = 3
+tags = Array[String](["kinship"])
+max_stacks = 1
+deepens = "sweet_harmony"
+rule_id = &"sweet_harmony"
+in_start_pool = true

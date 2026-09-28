@@ -35,6 +35,7 @@ func _run() -> void:
 	_test_woven()
 	_test_potency_and_endless()
 	_test_card_effects()
+	_test_kinship_cards()
 	print("dream builds test: %s" % ("PASS" if failures == 0 else "%d FAILED" % failures))
 	quit(failures)
 
@@ -682,6 +683,43 @@ func _row(rows: Array[Dictionary], id: String) -> Dictionary:
 		if row.id == id:
 			return row
 	return {}
+
+# Kinship cards 124–133 (dream_design.md "Kinship cards: going deep"): pools, the "Kinships on the
+# map" Need, Entwined Kin and Kindling, and the kinship tag counting as your build.
+func _test_kinship_cards() -> void:
+	_reset()
+	var start := ["quick_bonds", "family_ties", "sweet_harmony", "sweet_harmony_ii"]
+	for id in ["quick_bonds", "family_ties", "sweet_harmony", "sweet_harmony_ii", "close_kin", "close_kin_ii",
+			"old_friends", "old_friends_ii", "rooted_bond", "extended_family", "kin_and_kindling", "grove_of_kin",
+			"blood_is_thicker"]:
+		var card := _card(id)
+		if card:
+			_check(card.in_start_pool == start.has(id) and card.tags.has("kinship"), "Kinship card %s: pool and tag" % id)
+	_check(_card("quick_bonds").max_stacks == 3 and _card("family_ties").max_stacks == 0, "Quick Bonds max 3, Family Ties stacks")
+	var kin := Kinships.find(dreams)
+	_check(kin != null, "Kinships found in the run")
+	if kin == null:
+		return
+	var harmony := _card("sweet_harmony")
+	var grove := _card("grove_of_kin")
+	var kindling := _card("kin_and_kindling")
+	var saved: Array = kin.pairs
+	kin.pairs = []
+	_check(dreams.count_kinships() == 0 and not dreams.is_eligible(harmony), "Sweet Harmony needs a Kinship on the map")
+	_check(not dreams.is_in_build(harmony), "…and kinship cards aren't your build yet")
+	kin.pairs = [{}]
+	_check(dreams.is_eligible(harmony) and dreams.is_in_build(harmony), "…offered with one, and weighted as your build")
+	dreams.grove_cards.assign(["grove_of_kin", "kin_and_kindling"])
+	_check(not dreams.is_eligible(grove, 2), "Grove of Kin needs 2 Kinships")
+	kin.pairs = [{}, {}]
+	_check(dreams.is_eligible(grove, 2) and not dreams.is_eligible(grove, 1), "…offered with 2, from act 2")
+	_check(not dreams.is_eligible(kindling), "Kin and Kindling needs a Reaction card too")
+	dreams.take(_card("seeping"))  # A Reaction card
+	_check(dreams.is_eligible(kindling), "…Entwined once a Kinship and a Reaction card are both there")
+	var offer := dreams.make_offer(12)
+	_check(offer.has(kindling), "…and gets the guaranteed slot")
+	kin.pairs = saved
+	_reset()
 
 func _reset() -> void:
 	dreams.stacks.clear()

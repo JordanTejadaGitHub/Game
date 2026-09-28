@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "blood_is_thicker"
+display_name = "Blood Is Thicker"
+description = "Wardens in a Kinship +30% damage."
+rarity = 1
+kind = 3
+tags = Array[String](["kinship", "bittersweet"])
+max_stacks = 1
+cost_description = "Wardens not in a Kinship deal 15% less damage."
+min_act = 2
+min_kinships = 1
+rule_id = &"blood_is_thicker"
+in_start_pool = false
