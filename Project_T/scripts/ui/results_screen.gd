@@ -7,6 +7,7 @@ class_name ResultsScreen
 # (demo_scope.md). Built in code.
 
 const DEMO_SETTING := "game/demo"
+const DEMO_MODE_SETTING := "demo_mode"
 const WISHLIST_SETTING := "game/wishlist_url"
 const TITLE_SCENE := "res://scenes/title.tscn"
 const MEMORY_1 := "Before the Heartwood, there were two trees, and both of them dreamed."
@@ -25,7 +26,14 @@ func _ready() -> void:
 	visible = false
 	run_state.run_ended.connect(_on_run_ended)
 
+# The demo or the full game. The project setting game/demo decides, except in debug builds where the
+# Developer "Demo mode" setting (demo_scope.md "Demo mode toggle", `demo_mode`: -1 = project
+# setting, 0 = full game, 1 = demo) can override it. Headless test scripts ignore the override.
 static func is_demo() -> bool:
+	if OS.is_debug_build() and not OS.get_cmdline_args().has("--script"):
+		var override := int(HeartwoodMemory.get_settings().get(DEMO_MODE_SETTING, -1))
+		if override >= 0:
+			return override == 1
 	return ProjectSettings.get_setting(DEMO_SETTING, false)
 
 func _on_run_ended(won: bool) -> void:

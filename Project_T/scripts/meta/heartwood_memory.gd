@@ -50,6 +50,7 @@ static func defaults() -> Dictionary:
 			"confirm_sell": true,  # Warden panel: confirm "Sell N" while nightmares walk
 			"health_bars": 0,  # Nightmare health bars: 0 once hit, 1 always (read by Enemy via Fx.setting)
 			"blight_outline": false,  # Accessibility: outline Deeply Blighted nightmares
+			"demo_mode": -1,  # Developer (debug builds): -1 = project setting game/demo, 0 = full game, 1 = demo
 			"keybinds": {},  # {action: [physical keycodes]}; empty = project defaults
 		},
 	}

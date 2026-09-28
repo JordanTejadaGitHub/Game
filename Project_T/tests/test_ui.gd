@@ -180,6 +180,16 @@ func _run() -> void:
 	RouteLine._high = -1
 	line.free()
 
+	# --- Demo mode override: developer setting, never applied in headless tests (temp profile) ---
+	var real_profile := HeartwoodMemory.file_path
+	HeartwoodMemory.file_path = "user://test_ui_profile.json"
+	var profile := HeartwoodMemory.defaults()
+	profile.settings[ResultsScreen.DEMO_MODE_SETTING] = 0 if ProjectSettings.get_setting("game/demo", false) else 1
+	HeartwoodMemory.save_data(profile)
+	_check(ResultsScreen.is_demo() == ProjectSettings.get_setting("game/demo", false), "tests ignore the Demo mode override")
+	DirAccess.remove_absolute(ProjectSettings.globalize_path(HeartwoodMemory.file_path))
+	HeartwoodMemory.file_path = real_profile
+
 	# --- Pause summary and Abandon run ---
 	var pause = main.get_node("%PauseMenu")
 	(main.get_node("HUD/MenuButton") as Button).pressed.emit()

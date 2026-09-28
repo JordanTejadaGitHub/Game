@@ -19,6 +19,7 @@ const REBINDABLE := [
 	["center_start", "Centre on the forest's edge"],
 ]
 
+const TITLE_SCENE := "res://scenes/title.tscn"
 const VSYNC_SETTING := "vsync"
 const WINDOW_SIZE_SETTING := "window_size"  # Index into WINDOW_SIZES (windowed mode)
 const WINDOW_SIZES: Array[Vector2i] = [Vector2i(1280, 720), Vector2i(1280, 800), Vector2i(1600, 900),
@@ -88,6 +89,18 @@ func _ready() -> void:
 		families.focus_mode = Control.FOCUS_NONE
 		families.toggled.connect(func(on: bool) -> void: _set_value(MetaRun.ALL_FAMILIES_SETTING, on))
 		box.add_child(families)
+		# Demo mode (demo_scope.md): overrides game/demo in this build; switching goes back to the title.
+		var demo := CheckButton.new()
+		demo.text = "Demo mode (off = FULL GAME: Memory Grove, Blight Levels, Seeds spent from your real profile)"
+		demo.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		demo.tooltip_text = "Overrides the project's game/demo setting in this debug build only.\nExported builds always use the project setting. Switching returns to the title screen."
+		demo.button_pressed = ResultsScreen.is_demo()
+		demo.focus_mode = Control.FOCUS_NONE
+		demo.toggled.connect(func(on: bool) -> void:
+			_set_value(ResultsScreen.DEMO_MODE_SETTING, 1 if on else 0)
+			get_tree().paused = false
+			get_tree().change_scene_to_file.call_deferred(TITLE_SCENE))
+		box.add_child(demo)
 
 	var keys_title := Label.new()
 	keys_title.text = "Keys (click, then press a key)"
