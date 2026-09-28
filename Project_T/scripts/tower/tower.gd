@@ -206,7 +206,7 @@ func _process(delta: float) -> void:
 			return
 		TowerData.AttackKind.PATROL:
 			if not is_instance_valid(_patrol):
-				_patrol = PatrolFlight.new(self)  # Dawnwing's bird / The Tempest's cyclone
+				_patrol = PatrolFlight.new(self)  # Dawnwing's bird / The Whirlwind's cyclone
 				add_child(_patrol)
 			if attack_data.patrol_idle_texture != null:
 				# Dawnwing: the perch is empty while the bird is out.

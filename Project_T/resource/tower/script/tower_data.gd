@@ -13,7 +13,7 @@ class_name TowerData
 # PECK sends birds that peck one nightmare several times, each a full hit (Hummingbird Bower);
 # BOOMERANG throws a seed along a straight line and back through everything (Samara).
 # PATROL: something that travels back and forth along the path in range, hitting what it passes
-# (Dawnwing's great bird, The Tempest's cyclone).
+# (Dawnwing's great bird, The Whirlwind's cyclone).
 enum AttackKind { PROJECTILE, PULSE, CHAIN, CLOUD, TRAP, BEAM, COPY, SWOOP, SWEEP, SPREAD, SPIN, PULL, LIGHT, AURA,
 	PECK, BOOMERANG, PATROL }
 # Who a Warden shoots at. FIRST = furthest along the path. Snipers let the player choose.
@@ -139,7 +139,7 @@ const ASCENDED_JSON := "res://assets/towers/ascended/ascended.json"  # 128×128 
 @export var patrol_speed: float = 150.0  # PATROL: pixels per second along the path…
 @export var patrol_speed_per_nightmare: float = 0.0  # …+this share per nightmare in range (Dawnwing)…
 @export var patrol_speed_max: float = 1.0  # …up to this multiple
-@export var patrol_carries_statuses: bool = false  # The Tempest: statuses it touches travel with it
+@export var patrol_carries_statuses: bool = false  # The Whirlwind: statuses it touches travel with it
 @export var dew_per_drift: int = 0  # Dew at the end of every drift (Grandmother Oak, the Sapling)
 @export var dew_per_rank: int = 0  # Sapling: +Dew per drift for each Nurture rank
 @export var dreamlight_every: int = 0  # Sapling: +1 Dreamlight every N drifts…

@@ -329,7 +329,7 @@ accessibility, Steam achievements (milestones map to them). Acts 3–4 and all f
   `RANK_COSTS` 25/40/60/90/135. **Ascended** forms (tier 4, 400 Dew, Nurture ×4, 3 Dreamlight from
   drift 51): `resource/tower/<id>.tres` + `dream_<id>.tres`, listed in `evolves_to` of every final form
   of the family (Sporemother, Tidecaller, Stormheart, Old Mountain, World Root, Great Bell,
-  Grandmother Oak, Dawnwing, Tempest). `AttackKind.PATROL` = `PatrolFlight` (Dawnwing / Tempest).
+  Grandmother Oak, Dawnwing, The Whirlwind = id `tempest`). `AttackKind.PATROL` = `PatrolFlight` (Dawnwing / Whirlwind).
   Signals `ascended`, `ascended_event`, `sap_yielded`, `dreamlight_ripened`, `withered` for Sound.
   **Heartwood Sapling** (`heartwood_sapling.tres`): `footprint` 2 (placer/seller/saver use
   `Tower.get_cells()` / `footprint_cells` / `footprint_centre`, map `can_block_cells` / `block_cells`),

@@ -1,10 +1,10 @@
 extends Node2D
 class_name PatrolFlight
 
-# An Ascended Warden's travelling attack (PATROL): Dawnwing's great bird or The Tempest's cyclone.
+# An Ascended Warden's travelling attack (PATROL): Dawnwing's great bird or The Whirlwind's cyclone.
 # It goes back and forth along the stretch of path in the Warden's range and hits every nightmare it
 # passes (each at most once per HIT_COOLDOWN). Dawnwing flies faster the more nightmares there are;
-# The Tempest picks up the statuses of what it touches and leaves them (half stacks) on everything
+# The Whirlwind picks up the statuses of what it touches and leaves them (half stacks) on everything
 # else it passes. Script-only, world space; the Warden keeps one alive while it can attack.
 
 const HIT_RADIUS := 36.0  # Pixels
@@ -116,7 +116,7 @@ func _hit_nearby() -> void:
 			_leave_on(enemy)
 		_tower.hit(enemy, 1.0, true)
 
-# The Tempest: the strongest version of each status it touches travels with it.
+# The Whirlwind: the strongest version of each status it touches travels with it.
 func _pick_up(enemy: Node2D) -> void:
 	for status in enemy.statuses.snapshot():
 		var have: Dictionary = _carried.get(status.id, {})
