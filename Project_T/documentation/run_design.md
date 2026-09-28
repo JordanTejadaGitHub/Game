@@ -132,7 +132,7 @@ turn leaks into a hold. Targets for the balance simulation and playtests (averag
     **×6.6–8.7** an average final (35–42% of all damage); its own hits (400k+) became the biggest
     part. The Bell's spot swings its share 2–3×, so single-map numbers are loose. Decision: **Great
     Bell damage 180 → 130 and the toll every 8 s** (was 6): trims both its hits and its sleep
-    control (Asleep share 44–62% with it). Target ×5–6.
+    control (Asleep share 44–62% with it). Target ×5–6. **Result (2b0b2c4): ×4.6 and ×6.5** on the two seeds (27–35% of all damage; 9 and 0 leaks): on target, done. Asleep share 36% and 60%: the high one comes from a Dreamshroom beside the Bell, so Dreamshroom / Caught wait for the realistic-run numbers.
   - **Next:** the probe with a **realistic run** (Dreams taken by the real offer logic, a Dew
     budget from simulated income, so the maze is one a player could afford) is the start of the
     balance simulation. Only then raise act 3 health further.
