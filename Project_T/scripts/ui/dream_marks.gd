@@ -82,6 +82,7 @@ class BarkShield extends Control:
 		var font := _label.get_theme_font("font")
 		var font_size := _label.get_theme_font_size("font_size")
 		var width := font.get_string_size(_label.text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size).x
+		width += float(_label.get_meta(&"icon_width", 0.0))  # The HUD's leaf icon sits left of the text
 		position = Vector2(_label.size.x - width - size.x - 8.0, (_label.size.y - size.y) / 2.0)
 
 	func _draw() -> void:
