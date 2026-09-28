@@ -15,6 +15,7 @@ const REBINDABLE := [
 	["toggle_build_mode", "Build mode"], ["start_drift", "Start / next drift"],
 	["pause_game", "Pause"], ["cycle_speed", "Change speed"], ["sell_tower", "Sell Warden"],
 	["grow_warden", "Grow selected Warden"], ["nurture_warden", "Nurture selected Warden"],
+	["clear_tool", "Clear tool"],
 	["center_heartwood", "Centre on the Heartwood"],
 	["center_start", "Centre on the forest's edge"],
 ]
