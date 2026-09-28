@@ -153,14 +153,51 @@ static func crowned() -> Array[Dictionary]:
 			"statuses": statuses, "families": c[3], "text": IconInfo.format(data.description if data else c[4]), "by": ""})
 	return list
 
-# A combo or a Crowned Reaction by id ({} if neither).
+# A combo, a Crowned Reaction or a Kinship by id ({} if none).
 static func get_any(id: StringName) -> Dictionary:
 	var found := get_combo(id)
 	if found.is_empty():
-		for c in crowned():
+		for c in crowned() + kinships():
 			if c.id == id:
 				return c
 	return found
+
+# Kinships (tower_design.md "Kinships"; Tower Code's Kinships.KINSHIPS: id -> [name, line, branch A,
+# branch B, …]): two branches of one family side by side, each borrowing a trait from the other.
+# What they borrow, in the players' words ({tokens} = status names):
+const KINSHIP_TEXT := {
+	&"slumber_rot": "Driftspore's puffs add 1 {drowsy}; Bloomcap's clouds add 1 {spored} per tick.",
+	&"rainfog": "Rain Lily's splashes leave a fog patch; the fog deals Rain Lily's splash damage to nightmares entering it.",
+	&"storm_beacon": "Stormcap's jumps leave nightmares {marked} for 2 s; Lanternmoth's shots add 1 {static}.",
+	&"hammer_and_anvil": "Mossback gains the sniper's eye (+10% crit chance at ×2.5); Standing Stone deals ×2 to {marked} nightmares.",
+	&"snare": "Rootcurl's pulls end in a 0.5 s hold; Tangleroot's holds drag the nightmare back half a tile.",
+	&"night_chimes": "Chime Stone's pulses deal +40% to {caught} nightmares; Dreamcatcher's threads set off {static} at 3 stacks.",
+	&"old_growth": "Elder Stump yields +2 Dew per drift; Dewcatcher gains a small aura: neighbours +10% attack speed.",
+	&"flock_together": "Nightmares Wren's Nest hits drop +1 Dew; Magpie Perch hunts the fastest nightmare, +25% vs Phantoms.",
+	&"dust_devil": "Gust's copies also deal a blade hit; Pinwheel's blades copy statuses (half stacks) onto what they hit.",
+}
+const KINSHIPS_SCRIPT := "res://scripts/combat/kinships.gd"
+const KINSHIP_GROWTH := "Within 2 cells they bond; the bond grows (Blooming at 5 drifts, Old Kin at 10) and both strike in Harmony."
+
+# [{id, name, kind "Kinship", line, a, b (Warden names), text}], or [] before Kinships exist.
+static func kinships() -> Array[Dictionary]:
+	var list: Array[Dictionary] = []
+	if not ResourceLoader.exists(KINSHIPS_SCRIPT):
+		return list
+	var table = (load(KINSHIPS_SCRIPT) as Script).get_script_constant_map().get("KINSHIPS")
+	if not table is Dictionary:
+		return list
+	for id in table:
+		var k: Array = table[id]
+		list.append({"id": id, "name": k[0], "kind": "Kinship", "line": k[1], "a": _warden_name(k[2]),
+			"b": _warden_name(k[3]), "statuses": [],
+			"text": IconInfo.format(KINSHIP_TEXT.get(id, "")) + " " + KINSHIP_GROWTH, "by": ""})
+	return list
+
+static func _warden_name(id: String) -> String:
+	var path := "res://resource/tower/%s.tres" % id
+	var data := load(path) as TowerData if ResourceLoader.exists(path) else null
+	return data.display_name if data != null else id.capitalize()
 
 # "Thunderclap + Poisoned" for a Crowned Reaction.
 static func crowned_recipe(c: Dictionary) -> String:

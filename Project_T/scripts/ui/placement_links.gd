@@ -1,10 +1,12 @@
 extends Node2D
 
 # Placement links (screens_ui.md "Combat feedback"): while placing a Warden, a small vine links the
-# build ghost to nearby Wardens it combos with, tagged with the combo ("Damp → Stormcap"). Reads the
-# TowerPlacer's hover state and the Synergies table; draws in the world, over the ghost.
+# build ghost to nearby Wardens it combos with, tagged with the combo ("Soaked → Stormcap"), and a
+# green-gold one to the Warden it would form a Kinship with ("Forms Kinship: Slumber Rot",
+# Kinships.preview). Reads the TowerPlacer's hover state; draws in the world, over the ghost.
 
 const VINE := Color(0.55, 0.95, 0.5)
+const KIN_VINE := Color(0.85, 0.9, 0.4)  # A Kinship: green-gold (a link's optional third element is its colour)
 
 @onready var tower_placer: TowerPlacer = %TowerPlacer
 @onready var tower_container: Node2D = %TowerContainer
@@ -30,6 +32,12 @@ func _process(_delta: float) -> void:
 		_cell = cell
 		_data = tower_placer.tower_data
 		_links = Synergies.find_links(_data, _cell, tower_container.get_children())
+		# Kinships (screens_ui.md "Kinship feedback"): the vine to its kin reads "Forms Kinship: …".
+		var kin := get_tree().get_first_node_in_group(&"kinships")
+		if kin != null and kin.has_method("preview"):
+			var bond: Dictionary = kin.preview(_data, _cell)
+			if not bond.is_empty() and is_instance_valid(bond.get("partner")):
+				_links.append([bond.partner, "Forms Kinship: %s" % bond.get("name", ""), KIN_VINE])
 		queue_redraw()
 
 func _draw() -> void:
@@ -48,6 +56,7 @@ func _draw() -> void:
 		for i in 13:
 			var t := i / 12.0
 			points.append(from.lerp(mid, t).lerp(mid.lerp(to, t), t))
-		draw_polyline(points, Color(VINE, 0.8), 3.0, true)
-		draw_circle(mid, 4.0, VINE)
-		WorldLabel.draw_tag(self, mid.x, mid.y - 8.0, link[1], VINE)
+		var colour: Color = link[2] if link.size() > 2 else VINE
+		draw_polyline(points, Color(colour, 0.8), 3.0, true)
+		draw_circle(mid, 4.0, colour)
+		WorldLabel.draw_tag(self, mid.x, mid.y - 8.0, link[1], colour)

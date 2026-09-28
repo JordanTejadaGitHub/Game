@@ -29,6 +29,14 @@ const DAMAGE_TAGS: Array[StringName] = [&"conducted", &"popped", &"fog"]
 var block_counts := {}  # Reaction id -> times this block (rest report)
 var block_longest_chain := 0
 var block_new: Array[StringName] = []  # Combos discovered this block
+# Kinships: bonds formed, Harmony strikes, families made Whole (family lines), per block and run.
+var kin_formed_block := 0
+var kin_formed_run := 0
+var harmony_block := 0
+var harmony_run := 0
+var whole_block: Array[String] = []
+var whole_run: Array[String] = []
+const KINSHIPS_GROUP := &"kinships"
 var run_counts := {}  # Combo id -> times this run
 var _seen: Array = []  # Combo ids (String) discovered ever
 var _unsaved := {}  # Combo id -> count not yet added to the profile's lifetime counts
@@ -118,15 +126,20 @@ func _ready() -> void:
 	drift_director.rest_ended.connect(func(_block: int) -> void:
 		block_counts.clear()
 		block_longest_chain = 0
-		block_new.clear())
+		block_new.clear()
+		kin_formed_block = 0
+		harmony_block = 0
+		whole_block.clear())
 	drift_director.rest_started.connect(func(_b: int, _boss: bool, _bonus: int, _perfect: bool) -> void: _save_counts())
 	run_state.run_ended.connect(func(_won: bool) -> void: _save_counts())
 	owner.child_entered_tree.connect(func(node: Node) -> void:
 		if node is ReactionTracker:
-			_hook(node))
+			_hook(node)
+		_hook_kinships.call_deferred(node))  # Joins its group in _ready
 	var tracker := get_tree().get_first_node_in_group(ReactionTracker.GROUP)
 	if tracker != null:
 		_hook(tracker)
+	_hook_kinships.call_deferred(get_tree().get_first_node_in_group(KINSHIPS_GROUP))
 	_connect_log.call_deferred()  # DamageLog readies later in the scene
 
 func _connect_log() -> void:
@@ -136,6 +149,27 @@ func _connect_log() -> void:
 func _hook(tracker: ReactionTracker) -> void:
 	if not tracker.reaction_fired.is_connected(_on_reaction):
 		tracker.reaction_fired.connect(_on_reaction)
+
+# Kinships (Tower Code's node, group "kinships"; tower_design.md "Kinships"): the first-ever bond of
+# each kind is a discovery like a combo, and bonds formed / Harmony strikes / families made Whole are
+# counted here for the rest report and results (so they don't depend on when Kinships resets).
+func _hook_kinships(node: Node) -> void:
+	if node == null or not node.is_in_group(KINSHIPS_GROUP) or node.is_connected("kinship_formed", _on_kinship):
+		return
+	node.connect("kinship_formed", _on_kinship)
+	if node.has_signal("harmony_struck"):
+		node.connect("harmony_struck", func(_tower: Node, _enemy: Node2D) -> void:
+			harmony_block += 1
+			harmony_run += 1)
+	if node.has_signal("family_whole"):
+		node.connect("family_whole", func(family: String) -> void:
+			whole_block.append(family)
+			whole_run.append(family))
+
+func _on_kinship(kinship: StringName, a: Node, _b: Node) -> void:
+	kin_formed_block += 1
+	kin_formed_run += 1
+	record(kinship, a as Node2D)
 
 func _on_damage(event: DamageLog.Event) -> void:
 	for tag in event.combos:
@@ -258,6 +292,8 @@ static func discovery_text(id: StringName) -> String:
 	var combo := CodexData.get_any(id)
 	if combo.is_empty():
 		return ""
+	if combo.kind == "Kinship":  # screens_ui.md "Kinship feedback": first time ever, a card + Codex entry
+		return "Kinship discovered: %s\n%s + %s\n%s\nAdded to the Codex." % [combo.name, combo.a, combo.b, combo.text]
 	if combo.kind == "Crowned":  # Its own card (tower_design.md "Crowned Reactions", rule 3)
 		var families: Array[String] = []
 		for family in combo.families:

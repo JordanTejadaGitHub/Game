@@ -43,8 +43,25 @@ func show_report(block: int) -> void:
 		for id in combos.block_new:
 			names.append(CodexData.get_any(id).get("name", String(id)))
 		text += "\nNew combos: " + ", ".join(names)
+	if combos:
+		text += kinship_text(combos.kin_formed_block, combos.harmony_block, combos.whole_block)
 	_label.text = StatusLinks.bbcode(text)
 	visible = true
+
+# Kinships (screens_ui.md "Kinship feedback"): "Kinships formed: 2 · Harmony strikes: 84" and "The
+# Sporeling line is whole." ("" when there's nothing). Shared with the results screen (the run).
+static func kinship_text(formed: int, harmony: int, whole: Array) -> String:
+	var text := ""
+	var parts: Array[String] = []
+	if formed > 0:
+		parts.append("Kinships formed: %d" % formed)
+	if harmony > 0:
+		parts.append("Harmony strikes: %d" % harmony)
+	if not parts.is_empty():
+		text += "\n" + " · ".join(parts)
+	for family in whole:
+		text += "\nThe %s line is whole." % CodexData.FAMILY_NAMES.get(family, String(family).capitalize())
+	return text
 
 func _link_open() -> bool:
 	return _label.get_children().any(func(c: Node) -> bool: return c is StatusLinks and c.visible)

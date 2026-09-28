@@ -80,9 +80,11 @@ func _build(won: bool) -> void:
 	var tracker := get_tree().get_first_node_in_group(ReactionTracker.GROUP) as ReactionTracker
 	if DamageLog.instance != null and not DamageLog.instance.get_top_towers("run", 1).is_empty():
 		# The run report, with its status names as links (hover / tap).
+		var combos := get_node_or_null("%ComboFeedback") as ComboFeedback
+		var kin := RestReport.kinship_text(combos.kin_formed_run, combos.harmony_run, combos.whole_run) if combos else ""
 		box.add_child(StatusLinks.make_label(RestReport.get_report_text(DamageLog.instance, "run",
 			DamageLog.instance.combo_counts_run, "Wardens this run", tracker.counts if tracker else {},
-			tracker.longest_chain if tracker else 0), 14, Color(0.8, 0.9, 1.0)))
+			tracker.longest_chain if tracker else 0) + kin, 14, Color(0.8, 0.9, 1.0)))
 	box.add_child(HSeparator.new())
 	for line in breakdown:
 		var row := HBoxContainer.new()

@@ -19,6 +19,9 @@ const TERM_COLOR := Color(0.95, 0.9, 0.7)
 const HIGHLIGHT := Color(1.0, 0.95, 0.6, 0.18)
 const CROWN_COLOR := Color(1.0, 0.82, 0.35)  # Crowned Reactions: the gold tier
 const CROWN_SILHOUETTE := preload("res://assets/effects/crowned_codex_silhouette.png")
+const KIN_COLOR := Color(0.7, 0.9, 0.45)  # Kinships: green-gold, the forest growing between Wardens
+const KIN_FRAME := preload("res://assets/effects/kin_codex_frame.png")
+const KIN_LEAF := preload("res://assets/effects/kin_leaf_icon.png")
 
 var tabs := TabContainer.new()
 var _search := LineEdit.new()
@@ -110,7 +113,7 @@ func _focus(scroll: ScrollContainer, target: Control) -> void:
 	tween.tween_property(target, "modulate", Color.WHITE, 0.8)
 
 func _find_combo(name: String) -> Dictionary:
-	for combo in CodexData.combos() + CodexData.crowned():
+	for combo in CodexData.combos() + CodexData.crowned() + CodexData.kinships():
 		if String(combo.id) == name or combo.name == name:
 			return combo
 	return {}
@@ -206,6 +209,7 @@ func _build_combos() -> void:
 		_entries[String(combo.id)] = card
 	_combo_count.text = "%d / %d combos discovered" % [found, all.size()]
 	tabs.set_tab_title(1, "Combos %d / %d" % [found, all.size()])
+	_build_kinships(seen, counts, live)
 	# Crowned Reactions: hidden ("???" in a gold crown frame) until found; full game only.
 	if ResultsScreen.is_demo():
 		return
@@ -222,6 +226,81 @@ func _build_combos() -> void:
 		var card := _crowned_card(c, discovered, times)
 		_combos.add_child(card)
 		_entries[String(c.id)] = card
+
+# Kinships (screens_ui.md "Kinship feedback"): "???" in a vine frame until the first bond of that kind
+# ever, then the pair, what each borrows, and how often it has formed.
+func _build_kinships(seen: Array, counts: Dictionary, live: ComboFeedback) -> void:
+	var kin := CodexData.kinships()
+	if kin.is_empty():
+		return
+	var found := kin.filter(func(k: Dictionary) -> bool: return seen.has(String(k.id))).size()
+	var header := Label.new()
+	header.text = "Kinships  %d / %d" % [found, kin.size()]
+	header.add_theme_font_size_override("font_size", 20)
+	header.add_theme_color_override("font_color", KIN_COLOR)
+	_combos.add_child(header)
+	for k in kin:
+		var discovered := seen.has(String(k.id))
+		var times := int(counts.get(String(k.id), 0)) + (int(live._unsaved.get(k.id, 0)) if live else 0)
+		var card := _kinship_card(k, discovered, times)
+		_combos.add_child(card)
+		_entries[String(k.id)] = card
+
+func _kinship_card(k: Dictionary, discovered: bool, times: int) -> Control:
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation", 4)
+	if not discovered:
+		# The vine-bordered dark panel (effects.json kin_codex_frame, nine-patch margins 14) with "???".
+		var frame := NinePatchRect.new()
+		frame.texture = KIN_FRAME
+		for side in [SIDE_LEFT, SIDE_TOP, SIDE_RIGHT, SIDE_BOTTOM]:
+			frame.set_patch_margin(side, 14)
+		frame.custom_minimum_size = Vector2(0, 56)
+		var unknown := Label.new()
+		unknown.text = "???"
+		unknown.add_theme_font_size_override("font_size", 18)
+		unknown.add_theme_color_override("font_color", LOCKED_COLOR)
+		unknown.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
+		frame.add_child(unknown)
+		box.add_child(frame)
+		return box
+	var panel := PanelContainer.new()
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color(0.08, 0.12, 0.08, 0.95)
+	style.border_color = KIN_COLOR
+	style.set_border_width_all(2)
+	style.set_corner_radius_all(8)
+	style.set_content_margin_all(10)
+	panel.add_theme_stylebox_override("panel", style)
+	var inner := VBoxContainer.new()
+	panel.add_child(inner)
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 6)
+	var leaf := TextureRect.new()
+	leaf.texture = KIN_LEAF
+	leaf.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	leaf.custom_minimum_size = Vector2(32, 32)
+	leaf.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	leaf.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	row.add_child(leaf)
+	var name := Label.new()
+	name.text = "%s  ·  Kinship" % k.name
+	name.add_theme_font_size_override("font_size", 18)
+	name.add_theme_color_override("font_color", KIN_COLOR)
+	row.add_child(name)
+	inner.add_child(row)
+	var pair := Label.new()
+	pair.text = "%s + %s" % [k.a, k.b]
+	pair.add_theme_font_size_override("font_size", 14)
+	pair.add_theme_color_override("font_color", Color(0.8, 0.95, 0.75))
+	inner.add_child(pair)
+	inner.add_child(StatusLinks.make_label(k.text, 15))
+	var count := Label.new()
+	count.text = "Formed %d time%s" % [times, "" if times == 1 else "s"]
+	count.add_theme_font_size_override("font_size", 13)
+	inner.add_child(count)
+	box.add_child(panel)
+	return box
 
 # An undiscovered Crowned Reaction (effects.json crowned_codex_silhouette, 96×96): the gold crown
 # frame alone, no family icons.

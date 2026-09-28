@@ -138,7 +138,7 @@ func _run() -> void:
 	# The Codex: Glossary (search, see-also jumps) and Combos (15, "???" until discovered).
 	var codex: CodexPanel = main.get_node("%PauseMenu").codex
 	codex.open(&"combos")
-	_check(codex.visible and codex.tabs.current_tab == 1 and codex._combos.get_child_count() == CodexData.combos().size()
+	_check(codex.visible and codex.tabs.current_tab == 1 and CodexData.combos().all(func(c: Dictionary) -> bool: return codex._entries.has(String(c.id)))
 		and CodexData.combos().size() == 15, "the Codex lists all 15 combos")
 	# Locked entries are just "???": no ingredient icons or text (they'd give the answer away).
 	var seen_now := ComboFeedback.load_seen()
@@ -158,6 +158,20 @@ func _run() -> void:
 	_check(CodexData.find_term("Tend the forest, and it will remember you.") == "" and CodexData.find_term("Wardens are walls.") == "Warden",
 		"in-game text finds whole-word terms only")
 	_check(main.get_node("HUD/CodexButton") != null, "a ? button on the HUD opens the Codex")
+	# Kinships: a discovery card the first time ever, a Codex section, counts for the rest report.
+	if ResourceLoader.exists(CodexData.KINSHIPS_SCRIPT):
+		_check(CodexData.kinships().size() == 9 and CodexData.get_any(&"slumber_rot").get("a") == "Driftspore",
+			"the 9 Kinships, with their pairs")
+		_check(ComboFeedback.discovery_text(&"slumber_rot").begins_with("Kinship discovered: Slumber Rot\nDriftspore + Bloomcap"),
+			"a Kinship discovery card names the pair (%s)" % ComboFeedback.discovery_text(&"slumber_rot"))
+		feedback._seen.erase("slumber_rot")
+		feedback._on_kinship(&"slumber_rot", null, null)
+		_check(feedback.kin_formed_block == 1 and feedback._queue.has(&"slumber_rot") or feedback._card_id == &"slumber_rot",
+			"a first bond is discovered and counted")
+		_check(RestReport.kinship_text(2, 84, ["sporeling"]) == "\nKinships formed: 2 · Harmony strikes: 84\nThe Sporeling line is whole.",
+			"the rest report's Kinship lines")
+		feedback._queue.clear()
+		feedback._card.visible = false
 	# Crowned Reactions: their own discovery card, a hidden entry until found, outside the 15.
 	_check(CodexData.crowned().size() == 8 and CodexData.combos().size() == 15, "8 Crowned Reactions, apart from the 15 combos")
 	_check(ComboFeedback.discovery_text(&"tempest").begins_with("Crowned Reaction discovered: Tempest")
