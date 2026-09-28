@@ -61,6 +61,8 @@ func _ready() -> void:
 	tower_placer.build_mode_changed.connect(func(building: bool) -> void: set_active(not building))
 	# The refund changes when a drift starts or ends.
 	drift_director.build_phase_changed.connect(queue_redraw.unbind(1))
+	# A Warden leaving any other way (trampled by an Unbound nightmare) leaves the selection too.
+	tower_container.child_exiting_tree.connect(_on_tower_leaving)
 
 func set_active(value: bool) -> void:
 	active = value
@@ -112,6 +114,13 @@ func sell(cell: Vector2) -> bool:
 
 
 # --- Selection ------------------------------------------------------------------------------------------
+
+func _on_tower_leaving(node: Node) -> void:
+	if node is Tower and selection.has(node):
+		selection.erase(node)
+		_selection_updated.call_deferred()  # The panel refreshes once the Warden has gone
+	if _hover_tower == node:
+		_hover_tower = null
 
 # Selects just `tower` (null clears the selection).
 func select(tower: Tower) -> void:
