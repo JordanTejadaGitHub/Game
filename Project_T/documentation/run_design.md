@@ -109,9 +109,9 @@ turn leaks into a hold. Targets for the balance simulation and playtests (averag
 - Current state (playtests 2026-09-28): too easy from act 2 on, even with a thin Grove. Fixes so far:
   the Sapling removed, one Ascended per family, Nurture's rank difference, resistances corrected.
   The balance simulation measures the rest.
-- **Demo:** it has no meta, so every demo run is a fresh profile. **Open question for the user:**
-  keep that curve (demo wins are rare; "go deeper in the full game") or give the demo a fixed boon
-  equal to ~5 Grove unlocks so a good player can finish it.
+- **Demo:** it has no meta, so every demo run is a fresh profile. **Decided (user, 2026-09-28): keep
+  that curve** (demo wins are rare: "go deeper in the full game"). Maybe later: **a few Memory Grove
+  unlocks in the demo** (a small taste of the meta), decided after playtests.
 
 ## Difficulty pass v1 (2026-09-27)
 
