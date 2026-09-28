@@ -35,10 +35,23 @@ const SLEEP_INTERVAL_MS := 1500
 # Each family's base Warden (the last fallback for a Warden without sounds of its own).
 const FAMILY_BASE := {"spore": "sporeling", "stone": "pebbling", "water": "dewdrop", "light": "firefly_jar",
 	"root": "rootling", "song": "bellflower", "acorn": "acorn", "wing": "nestling", "wind": "whirligig"}
-const PULSE_THROTTLE_MS := {"bramble": 800, "honeysuckle": 3000, "acorn": 5000}
+const PULSE_THROTTLE_MS := {"bramble": 800, "honeysuckle": 3000, "acorn": 5000, "tempest": 400}
 # Sound id prefixes a Warden can have (warden_sounds, tests).
 const EVENT_PREFIXES := ["attack_", "hit_", "drowsy_", "pop_", "cloud_", "fog_", "sleep_", "trap_", "trigger_",
-	"crit_", "storm_", "loop_", "echo_", "shard_", "place_", "plop_", "dew_", "turn_", "catch_"]
+	"crit_", "storm_", "loop_", "echo_", "shard_", "place_", "plop_", "dew_", "turn_", "catch_", "event_",
+	"ascend_", "plant_", "sap_", "ripen_", "wither_", "recover_"]
+# Ascended Wardens (tier 4, audio_direction.md 4d1f283): their big events are the loudest Warden
+# sounds, just under a boss, growing with the number hit, with a small music duck.
+const ASCENDED_TIER := 4
+const ASCENDED_EVENT_DB := -2.0
+const ASCENDED_GROWTH_DB := 1.5  # Per doubling of nightmares hit, up to ASCENDED_GROWTH_MAX
+const ASCENDED_GROWTH_MAX := 4.0
+const ASCENDED_DUCK_INTERVAL_MS := 1500  # Stormheart chains often; its duck doesn't pump
+const ASCENDED_POP_MS := 300  # Sporemother's crowds popping read as one rolling fwoomp
+const PRESENCE_LEVEL := 0.45  # Presence loops: very quiet, a little fuller while nightmares walk
+const ASCEND_SWELL_DELAY := 0.8  # Evolve bloom, then the material swell, then the first event
+const ASCEND_EVENT_DELAY := 2.6
+const WITHER_DELAY := 0.7  # The Sapling's creak comes after the leaf-lost sound
 const HIT_FAMILIES := ["stone", "root", "water", "light", "spore", "sprout"]  # Others sound like sprout
 const HIT_GROUP_MS := 90  # A pulse or splash hitting many nightmares at once is one impact
 const CHAIN_STEP_DB := -4.0  # Each jump of a chain ripples a little quieter
@@ -70,6 +83,9 @@ var _released_at := {}  # Tower instance id -> msec of its last attack release
 var _attack_counts := {}  # Tower instance id -> attacks released (storms, sleepier bells)
 var _loop_until := {}  # loop id -> [until msec, level]
 var _slept_at := {}  # Warden id -> msec of its last sleep drone
+var _withered := {}  # Tower instance id -> Sapling withered since the last rest
+var _popped_at := {}  # Tower instance id -> msec of its last pop sound (Sporemother)
+var _ducked_at := {}  # Tower instance id -> msec of its last Ascended duck
 
 func _ready() -> void:
 	if sound == null:
@@ -96,7 +112,8 @@ func _ready() -> void:
 
 	tower_container.child_entered_tree.connect(_on_tower_added)
 	tower_placer.tower_built.connect(func(tower: Tower) -> void:
-		sound.play(&"plant", tower.global_position)
+		var own_plant := StringName("plant_" + warden_id(tower.tower_data))  # The Sapling's big rooting
+		sound.play(own_plant if sound.has_sound(own_plant) else &"plant", tower.global_position)
 		_event("place_", tower, tower.global_position))  # The White Stag arriving
 	tower_placer.build_rejected.connect(func(_cell: Vector2) -> void: sound.ui(&"invalid"))
 	tower_seller.tower_sold.connect(func(tower: Tower, _refund: int) -> void:
@@ -113,6 +130,10 @@ func _ready() -> void:
 	drift_director.drift_started.connect(func(_number: int) -> void: sound.play(&"drift_start", null, -4.0, 1.0, 0.0))
 	drift_director.rest_started.connect(func(_block: int, _boss: bool, bonus: int, _perfect: bool) -> void:
 		sound.play(&"rest", null, -2.0, 1.0, 0.0)
+		for t in _withered.values():  # The Sapling recovers at a rest: a warm exhale
+			if is_instance_valid(t):
+				_event("recover_", t, t.global_position)
+		_withered.clear()
 		if bonus > 0:
 			sound.play(&"dew", null, DEW_DB, 1.0, 0.0))
 	omen_director.omen_rewarded.connect(func(_omen: OmenData, _summary: String) -> void:
@@ -248,9 +269,14 @@ func _touch_loop(id: String, level: float, hold: float) -> void:
 func _update_loops() -> void:
 	var now := Time.get_ticks_msec()
 	for tower in tower_container.get_children():
-		if tower is Tower and tower.attack_data.attack_kind == TowerData.AttackKind.AURA:
+		if not tower is Tower:
+			continue
+		var walking: bool = not enemy_container.get_enemies().is_empty()
+		if tower.attack_data.attack_kind == TowerData.AttackKind.AURA:
 			# The White Stag: a faint breathing presence, fuller while nightmares walk.
-			_touch_loop("loop_" + warden_id(tower.attack_data), 1.0 if not enemy_container.get_enemies().is_empty() else 0.35, 0.2)
+			_touch_loop("loop_" + warden_id(tower.attack_data), 1.0 if walking else 0.35, 0.2)
+		elif tower.tower_data.tier >= ASCENDED_TIER:  # An Ascended Warden's presence
+			_touch_loop("loop_" + warden_id(tower.tower_data), PRESENCE_LEVEL * (1.0 if walking else 0.6), 0.2)
 	for id in _loop_until.keys():
 		var entry: Array = _loop_until[id]
 		var active: bool = now < int(entry[0])
@@ -267,6 +293,8 @@ func _on_tower_added(node: Node) -> void:
 	# Evolving: the bloom, then the new form's hit once as a "first breath".
 	tower.evolved.connect(func(t: Tower) -> void:
 		sound.play(&"evolve", t.global_position)
+		if t.tower_data.tier >= ASCENDED_TIER:
+			return  # Ascending has its own moment (below)
 		get_tree().create_timer(FIRST_BREATH_DELAY).timeout.connect(func() -> void:
 			if is_instance_valid(t):
 				var id := _sound_for("hit_", t.attack_data)
@@ -284,10 +312,30 @@ func _on_tower_added(node: Node) -> void:
 		if t.attack_data.crit_dew > 0:
 			_event("dew_", t, enemy.global_position, EVENT_DB - 3.0))
 	tower.popped.connect(func(t: Tower, enemy: Node2D, _stacks: int) -> void:
+		if t.tower_data.tier >= ASCENDED_TIER:  # A crowd popping reads as one rolling fwoomp
+			var now := Time.get_ticks_msec()
+			if now - int(_popped_at.get(t.get_instance_id(), -100000)) < ASCENDED_POP_MS:
+				return
+			_popped_at[t.get_instance_id()] = now
 		_event("pop_", t, enemy.global_position))
 	# Beams (Sunpetal / Midsummer): one warm loop per Warden type, swelling with the ramp (1 -> 4 or 5).
 	tower.beam_ticked.connect(func(t: Tower, ramp: float) -> void:
 		_touch_loop("loop_" + warden_id(t.attack_data), 0.5 + 0.5 * clampf((ramp - 1.0) / 3.0, 0.0, 1.0), BEAM_HOLD))
+	# Ascended Wardens and the Sapling (Tower Code a187e96); connected only if present.
+	if tower.has_signal("ascended"):
+		tower.ascended.connect(_on_ascended)
+	if tower.has_signal("ascended_event"):
+		tower.ascended_event.connect(_on_ascended_event)
+	if tower.has_signal("sap_yielded"):
+		tower.sap_yielded.connect(func(t: Tower, _dew: int) -> void: _event("sap_", t, t.global_position))
+	if tower.has_signal("dreamlight_ripened"):
+		tower.dreamlight_ripened.connect(func(t: Tower) -> void: _event("ripen_", t, t.global_position))
+	if tower.has_signal("withered"):
+		tower.withered.connect(func(t: Tower) -> void:
+			_withered[t.get_instance_id()] = t
+			get_tree().create_timer(WITHER_DELAY).timeout.connect(func() -> void:
+				if is_instance_valid(t):
+					_event("wither_", t, t.global_position)))
 	# Events from Tower Code (abbc0f9); connected only if present.
 	if tower.has_signal("cloud_formed"):
 		tower.cloud_formed.connect(func(t: Tower, where: Vector2, duration: float) -> void:
@@ -321,6 +369,38 @@ func _on_tower_added(node: Node) -> void:
 		_released_at.erase(id)
 		_attack_counts.erase(id))
 
+# Ascending: the evolve bloom (evolved), then a slow, deep swell of the family's material, then the
+# Warden's first event (or its hit, for Wardens without one).
+func _on_ascended(tower: Tower) -> void:
+	get_tree().create_timer(ASCEND_SWELL_DELAY).timeout.connect(func() -> void:
+		if is_instance_valid(tower):
+			_event("ascend_", tower, tower.global_position, ASCENDED_EVENT_DB))
+	get_tree().create_timer(ASCEND_EVENT_DELAY).timeout.connect(func() -> void:
+		if not is_instance_valid(tower):
+			return
+		var id := StringName("event_" + warden_id(tower.tower_data))
+		if not sound.has_sound(id):
+			id = _sound_for("hit_", tower.tower_data)
+		if id != &"":
+			sound.play(id, tower.global_position, ASCENDED_EVENT_DB, 1.0, 0.0))
+
+# One big event (a pulse, the tide, the toll, a Stormheart chain): one sound that grows with the
+# number of nightmares hit, never one per target, and a small music duck.
+func _on_ascended_event(tower: Tower, where: Vector2, targets: int) -> void:
+	var id := StringName("event_" + warden_id(tower.tower_data))
+	if not sound.has_sound(id):
+		return
+	var growth := minf(ASCENDED_GROWTH_DB * log(1.0 + maxf(targets, 0)) / log(2.0), ASCENDED_GROWTH_MAX)
+	_ascended_duck(tower)
+	sound.play(id, where, ASCENDED_EVENT_DB - ASCENDED_GROWTH_MAX + growth + minf(_rate_db(tower.tower_data.attacks_per_second), 0.0),
+		1.0, 0.0 if tower.tower_data.line == "song" else 0.03)
+
+func _ascended_duck(tower: Tower) -> void:
+	var now := Time.get_ticks_msec()
+	if now - int(_ducked_at.get(tower.get_instance_id(), -100000)) >= ASCENDED_DUCK_INTERVAL_MS:
+		_ducked_at[tower.get_instance_id()] = now
+		sound.duck(3.0, 0.5)
+
 func _on_cloud(tower: Tower, where: Vector2, duration: float) -> void:
 	if tower.attack_data.cloud_fog:
 		_event("fog_", tower, where)
@@ -337,6 +417,9 @@ func _on_attack(tower: Tower) -> void:
 	var count: int = _attack_counts.get(key, 0) + 1
 	_attack_counts[key] = count
 	var wid := warden_id(data)
+	if tower.tower_data.tier >= ASCENDED_TIER and (data.attack_kind == TowerData.AttackKind.PULSE
+			or data.attack_kind == TowerData.AttackKind.CHAIN):
+		return  # The big event carries it
 	match data.attack_kind:
 		TowerData.AttackKind.BEAM, TowerData.AttackKind.AURA, TowerData.AttackKind.PULSE:
 			return
@@ -384,6 +467,11 @@ func _on_hit(tower: Tower, enemy: Node2D, _is_area: bool, _is_crit: bool) -> voi
 			if tower.has_signal("trap_triggered"):
 				return
 	var wid := warden_id(data)
+	if tower.tower_data.tier >= ASCENDED_TIER:
+		if kind == TowerData.AttackKind.PULSE or kind == TowerData.AttackKind.CHAIN:
+			return  # Its ascended_event is the one sound for all the targets
+		if kind == TowerData.AttackKind.PROJECTILE:
+			_ascended_duck(tower)  # Old Mountain's boulder: a small boss moment too
 	var group: Array = _hit_groups.get(key, [-100000, 0])
 	var hits_before := 0
 	if now - int(group[0]) < HIT_GROUP_MS:

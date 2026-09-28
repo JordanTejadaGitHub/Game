@@ -783,6 +783,94 @@ func _make_wardens() -> void:
 	_ws("hit_autumn_gale", 3, 0.25, func(_v: int) -> PackedFloat32Array: return _air_cut(0.12, 850.0))
 	_ws("catch_autumn_gale", 2, 0.4, func(_v: int) -> PackedFloat32Array:  # Signature: a gust rising in volume
 		return _layers([[_clack(), 1.0], [_air(0.8, 400.0, 0.6, 0.15), 0.5]]))
+	_make_ascended()
+
+# Ascended Wardens and the Heartwood Sapling (audio_direction.md 4d1f283). Each Ascended Warden: a very
+# quiet presence loop (loop_<id>), its big periodic event (event_<id>, or its hit when it has no
+# event), and its ascension swell (ascend_<id>: the family's material, slow and deep). Big = low and
+# wide, never bright.
+func _make_ascended() -> void:
+	# Presence loops.
+	_wloop("loop_sporemother", func() -> PackedFloat32Array:  # Slow, deep fungal breathing
+		return _layers([[_breathing(), 1.0], [_breath_bed(600.0, 0.6), 0.3]]))
+	_wloop("loop_tidecaller", func() -> PackedFloat32Array: return _surf_bed())  # Distant, low surf
+	_wloop("loop_stormheart", func() -> PackedFloat32Array:  # A warm, low storm hum
+		return _layers([[_hum_bed([38, 45]), 1.0], [_breath_bed(120.0, 0.5), 0.6]]))
+	_wloop("loop_old_mountain", func() -> PackedFloat32Array:  # A very low, slow earth groan
+		return _layers([[_breath_bed(70.0, 0.6), 1.0], [_slow_creak_bed(2.0, 120.0), 0.4]]))
+	_wloop("loop_world_root", func() -> PackedFloat32Array:  # A faint, deep creak of huge roots
+		return _layers([[_slow_creak_bed(3.0, 160.0), 1.0], [_breath_bed(90.0, 0.4), 0.6]]))
+	_wloop("loop_grandmother_oak", func() -> PackedFloat32Array:  # A slow warm wooden heartbeat, leaves stirring low
+		return _layers([[_heartbeat_bed(4), 1.0], [_breath_bed(300.0, 0.3), 0.35]]))
+	_wloop("loop_dawnwing", func() -> PackedFloat32Array:  # Great, slow wingbeats circling
+		return _flutter(LOOP_LEN + 0.5, 1.5, 500.0))
+	_wloop("loop_tempest", func() -> PackedFloat32Array:  # The cyclone: a low, rotating wind roar
+		return _layers([[_wobble(_breath_bed(260.0, 0.3), 0.5), 1.0], [_breath_bed(90.0, 0.4), 0.6]]))
+
+	# The big events.
+	_ws("event_sporemother", 2, 0.75, func(_v: int) -> PackedFloat32Array:  # The spore storm: a soft wind and a rolling fwoomp
+		return _layers([[_air(1.8, 450.0, 0.3, 1.2, 0.9), 0.8], [_thump(0.8, 80.0, 0.2), 1.0, 0.2], [_rumble(1.8, 150.0, 0.2, 1.2), 0.5]]))
+	_ws("pop_sporemother", 2, 0.6, func(_v: int) -> PackedFloat32Array:  # The Puffball pop, for its crowds
+		return _layers([[_thump(0.6, 90.0, 0.15), 1.0], [_air(0.9, 500.0, 0.02, 0.65, 0.9), 0.6], [_rumble(0.9, 200.0, 0.02, 0.55), 0.4]]))
+	_ws("event_tidecaller", 2, 0.8, func(_v: int) -> PackedFloat32Array:  # The tide: a long low wave, then a heavy wash
+		return _layers([[_rumble(2.4, 300.0, 0.8, 1.2), 1.0], [_air(2.4, 500.0, 0.9, 1.0, 0.8), 0.5], [_splash(2.0, 0.6), 0.7, 1.0]]))
+	_ws("event_stormheart", 2, 0.8, func(v: int) -> PackedFloat32Array:  # One big warm bloom over a far thunder roll
+		return _layers([[_lowpass(_hit("light", v, false), 1600.0), 1.0], [_glow_swell(1.2), 0.5], [_thunder_roll(), 0.8]]))
+	_ws("attack_old_mountain", 2, 0.5, func(_v: int) -> PackedFloat32Array: return _stone_grunt(90.0))
+	_ws("hit_old_mountain", 3, 0.9, func(_v: int) -> PackedFloat32Array:  # The heaviest thud, a ground shake, rubble
+		return _layers([[_lowpass(_stone_thud(2.2), 1200.0), 1.0], [_rumble(1.2, 70.0, 0.02, 0.9), 0.8], [_pebbles(10, 0.8, 0.5), 0.35, 0.1]]))
+	_ws("event_world_root", 2, 0.8, func(_v: int) -> PackedFloat32Array:  # A vast root heave: sub boom and a slow groan
+		return _layers([[_thump(1.0, 60.0, 0.3), 1.0], [_lowpass(_creak(SFX_RATE, 1.4, 4.0, 9.0, 160.0), 500.0), 0.6, 0.1],
+			[_rumble(1.6, 80.0, 0.1, 1.2), 0.8]]))
+	var toll_notes := [38, 45, 50]  # D2 A2 D3
+	for i in toll_notes.size():  # The toll: one deep, soft bell with a long hum tail
+		var n: int = toll_notes[i]
+		_w("event_great_bell_%02d" % (i + 1), _own("great_bell%d" % i, func() -> PackedFloat32Array:
+			return _layers([[_lowpass(_bell(SFX_RATE, hz(n), 0.7, 2.2, BELL, 6.0), 1400.0), 1.0], [_soft_hum([n + 12], 5.0), 0.2]])), 0.85)
+	_ws("sap_grandmother_oak", 2, 0.4, func(_v: int) -> PackedFloat32Array: return _sap_welling(1.0))  # Never a coin
+	_ws("hit_dawnwing", 3, 0.5, func(_v: int) -> PackedFloat32Array:  # A soft, heavy feathered thump
+		return _layers([[_thump(0.35, 120.0, 0.08), 1.0], [_air(0.3, 500.0, 0.02, 0.2), 0.35]]))
+	_ws("hit_tempest", 3, 0.3, func(_v: int) -> PackedFloat32Array: return _swirl(0.5))  # Soft swirls as it passes
+
+	# Ascending: a slow, deep swell of the family's material (after the evolve bloom, before the first event).
+	var materials := {"sporemother": [450.0, 90.0], "tidecaller": [400.0, 120.0], "stormheart": [700.0, 100.0],
+		"old_mountain": [250.0, 60.0], "world_root": [300.0, 60.0], "great_bell": [350.0, 80.0],
+		"grandmother_oak": [350.0, 90.0], "dawnwing": [500.0, 100.0], "tempest": [400.0, 90.0]}
+	for id in materials:
+		var m: Array = materials[id]
+		_w("ascend_" + id, _own("ascend_" + id, func() -> PackedFloat32Array:
+			return _layers([[_air(2.2, m[0], 1.2, 0.9, 0.7), 0.6], [_rumble(2.2, m[1], 1.1, 1.0), 1.0]])), 0.7)
+
+	# The Heartwood Sapling (no attack).
+	_ws("plant_heartwood_sapling", 1, 0.7, func(_v: int) -> PackedFloat32Array:  # A big rooting, the earth settling
+		return _layers([[_rumble(1.6, 90.0, 0.3, 1.0), 1.0], [_lowpass(_creak(SFX_RATE, 1.0, 10.0, 25.0, 250.0), 700.0), 0.5, 0.3],
+			[_pebbles(8, 0.8, 0.4), 0.25, 0.6]]))
+	_ws("sap_heartwood_sapling", 2, 0.3, func(_v: int) -> PackedFloat32Array: return _sap_welling(0.7))
+	_ws("ripen_heartwood_sapling", 1, 0.4, func(_v: int) -> PackedFloat32Array:  # A slow warm glow swell, a hummed D
+		return _layers([[_glow_swell(1.6), 0.7], [_soft_hum([62], 1.6), 0.4]]))
+	_ws("wither_heartwood_sapling", 2, 0.3, func(_v: int) -> PackedFloat32Array:  # A low, dry creak (soft, not a crack)
+		return _lowpass(_creak(SFX_RATE, 0.7, 8.0, 14.0, 260.0), 700.0))
+	_ws("recover_heartwood_sapling", 1, 0.3, func(_v: int) -> PackedFloat32Array: return _exhale(1.2, 400.0))  # A warm exhale
+
+func _sap_welling(size: float) -> PackedFloat32Array:  # Sap welling up: slow, low, liquid
+	return _layers([[_wobble(_rumble(1.2 * size, 250.0, 0.4, 0.6), 3.0), 1.0], [_ring(0.8 * size, [180.0, 260.0], [0.5, 0.3], 0.25), 0.4, 0.2],
+		[_air(1.0 * size, 350.0, 0.3, 0.6), 0.3]])
+
+func _surf_bed() -> PackedFloat32Array:  # Two slow waves per loop, far away
+	var length := LOOP_LEN + 0.5
+	var n := _noise(SFX_RATE, length, func(t: float) -> float: return 0.3 + 0.7 * pow(sin(PI * 2.0 * t / LOOP_LEN), 2.0))
+	return _normalize(_lowpass(_lowpass(n, 300.0), 300.0), 1.0)
+
+func _slow_creak_bed(clicks_hz: float, body: float) -> PackedFloat32Array:
+	return _normalize(_lowpass(_creak(SFX_RATE, LOOP_LEN + 0.5, clicks_hz, clicks_hz * 1.6, body), 600.0), 1.0)
+
+func _heartbeat_bed(beats: int) -> PackedFloat32Array:
+	var out := _seg(LOOP_LEN + 0.5, SFX_RATE)
+	for k in beats:
+		var at := k * LOOP_LEN / beats
+		_mix(out, _wood_knock(110.0), SFX_RATE, at, 1.0)
+		_mix(out, _wood_knock(95.0), SFX_RATE, at + 0.28, 0.6)
+	return _normalize(_lowpass(out, 800.0), 1.0)
 
 # Saves `count` variants of `id` (id_01.. when more than one), each from its own seeded RNG.
 func _ws(id: String, count: int, peak: float, make: Callable) -> void:
