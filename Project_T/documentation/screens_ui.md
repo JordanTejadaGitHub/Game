@@ -152,8 +152,8 @@ each tier is clearly louder than the one below. Effects are in `assets/effects/`
 - **Light threads:** when a Reaction fires, a thin warm line (`light_thread`, stretched) runs
   for ~0.3 s from **each Warden whose status was part of it** to the nightmare. Players can see
   *who made that happen*, the thing the first playtest said was missing.
-- **Discovery:** the first time a Reaction fires (ever, saved in `HeartwoodMemory`), a small card
-  slides in: *"Reaction discovered: Thunderclap. Damp + Static."* Discovered Reactions fill a
+- **Discovery:** the first time a Reaction fires (ever, saved in `HeartwoodMemory`), the game
+  pauses and a card shows (see "Combos (discovered in play)" below): *"Reaction discovered: Thunderclap. Damp + Static."* Discovered Reactions fill a
   **Codex** page (reachable from the pause menu and the Grove), with undiscovered ones shown as
   silhouettes. Finding them all can be a Steam achievement.
 - **Size check (first playtest with effects):** Thunderclap's burst, Ignite, Pinned and Shatter
@@ -221,10 +221,23 @@ Every combo starts **locked** and is **discovered the first time it actually fir
 
 - **Locked entry:** a dark card with just *"???"*: **no ingredient icons or hints** (user decision
   2026-09-27: icons gave the combos away). Players find combos by experimenting.
-- **Discovery:** the first time a combo fires, a card **slides in at the top of the screen for ~5
-  seconds** (the game doesn't pause): *"Combo discovered: Thunderclap"*, the two ingredients, one
-  line on what it does, and *"Added to the Codex."* A short chime (distinct from the dispel). If
-  several fire at once they queue. The rest report lists *"New combos: Thunderclap"*.
+- **Discovery:** the first time a combo fires, the **game pauses** (changed 2026-09-28, user
+  request; was: a card for ~5 s without pausing) and a discovery card appears near the top of the
+  screen, leaving the map visible: *"Combo discovered: Thunderclap"*, the two ingredients, one line on
+  what it does, and *"Added to the Codex."* A short chime (distinct from the dispel). The world stays
+  frozen on the moment, with the nightmare it fired on highlighted (the light threads hold), so the
+  player sees what happened.
+  - **Continue** (button, click or tap the card, Space, Enter) resumes at the speed the player had
+    before (1×/2×/3×). If the game was already paused, it stays paused. "Open in Codex" is a second
+    button.
+  - **Several at once** (same frame, or a new one while a card is open): the cards queue behind one
+    pause; Continue shows the next, and the last one resumes.
+  - Each combo pauses **once ever** (saved in the profile), so it only interrupts while the player
+    is learning. Crowned Reactions pause the same way.
+  - No pause while a choice screen or the pause menu is open: the card waits and shows when it
+    closes (and pauses then).
+  - Setting (Gameplay): **"Pause on new combos"**, on by default; off = the old 5 s slide-in card.
+  - The rest report lists *"New combos: Thunderclap"*.
 - **Unlocked entry:** name, ingredients, what it does, which Wardens apply each ingredient (from your
   families seen so far), and how many times you've set it off.
 - **Counter:** *"12 / 15 combos discovered"* on the tab; discovering every one is a **milestone**
