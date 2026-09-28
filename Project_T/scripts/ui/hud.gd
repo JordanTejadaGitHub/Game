@@ -95,15 +95,15 @@ func _ready() -> void:
 	map_generator.path_changed.connect(update_path)
 	update_path.call()
 	drift_director.act_started.connect(_on_act_started)
-	# Free clears (Heartwood's Reach), under the path length; hidden when there are none.
+	# Half-price clears (Heartwood's Reach; clearing always costs Dew), under the path length; hidden when there are none.
 	var clears_label := path_label.duplicate() as Label
 	clears_label.unique_name_in_owner = false
 	clears_label.offset_top = path_label.offset_bottom
 	clears_label.offset_bottom = path_label.offset_bottom + (path_label.offset_bottom - path_label.offset_top)
-	clears_label.tooltip_text = "Free clears: tending a tree or moving a rock costs no Dew."
+	clears_label.tooltip_text = "Half-price clears: tending a tree or moving a rock costs half (never less than half its base price)."
 	add_child(clears_label)
 	var update_clears := func(n: int) -> void:
-		clears_label.text = "Free clears %d" % n
+		clears_label.text = "Half-price clears %d" % n
 		clears_label.visible = n > 0
 	run_state.free_clears_changed.connect(update_clears)
 	update_clears.call(run_state.free_clears)
