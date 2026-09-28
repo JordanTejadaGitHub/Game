@@ -83,6 +83,10 @@ N("woven_dreams_2", "cards", "Woven Dreams II", 818, 298, "woven_dreams_1");
 N("seeping", "cards", "Seeping", 1102, 552, [1090, 436]);
 N("venom", "cards", "Venom", 1120, 622, "seeping");
 N("nightshade", "cards", "Nightshade", 1132, 702, "venom", { legendary: true });
+// Kinship (going deep) hangs under the limb near the trunk.
+N("kin_lore", "cards", "Kin Lore", 768, 664, [764, 594]);
+N("deep_bonds", "cards", "Deep Bonds", 756, 734, "kin_lore");
+N("grove_of_kin", "cards", "Grove of Kin", 742, 808, "deep_bonds", { legendary: true });
 const byId = Object.fromEntries(NODES.map(n => [n.id, n]));
 NODES.forEach(n => { n.depth = n.parent ? byId[n.parent].depth + 1 : 1; });
 // Where dream-fruit (Memories) hang, in the order they appear: the point under a limb the vine
