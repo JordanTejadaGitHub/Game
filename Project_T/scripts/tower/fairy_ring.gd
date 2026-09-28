@@ -13,14 +13,18 @@ const BURST_TIME := 0.3
 
 var cell: Vector2
 var _tower: Tower
+var _data: TowerData
+var _boost := 1.0
 var _lifetime: float
 var _age := 0.0
 var _burst := -1.0  # Seconds into the burst effect; negative until triggered
 
 func _init(tower: Tower, at_cell: Vector2) -> void:
 	_tower = tower
+	_data = tower.attack_data  # What it was made with (a legacy attack, a Graftling's copy)
+	_boost = tower._hit_boost  # Sudden Bloom / Watchful Rest
 	cell = at_cell
-	_lifetime = tower.attack_data.trap_lifetime
+	_lifetime = _data.trap_lifetime
 	top_level = true
 	z_index = 1  # Under the nightmares, over the path
 	position = Tower.MAP_GRID.calculate_map_position(at_cell)
@@ -49,14 +53,14 @@ func _set_off() -> void:
 	if not is_instance_valid(_tower):
 		return
 	_tower.trap_triggered.emit(_tower, global_position)
-	var reach := _tower.attack_data.trap_radius * Tower.MAP_GRID.cell_size.x
+	var reach := _data.trap_radius * Tower.MAP_GRID.cell_size.x
 	var caught: Array[Node2D] = []
 	for enemy in get_tree().get_nodes_in_group(Tower.ENEMY_GROUP):
 		if enemy.global_position.distance_to(global_position) <= reach:
 			caught.append(enemy)
 	var crit := _tower.roll_crit(caught[0]) if not caught.is_empty() else false
 	for enemy in caught:
-		_tower.hit(enemy, 1.0, true, Tower.CRIT if crit else Tower.NO_CRIT)
+		_tower.run_as(_data, _boost, func() -> void: _tower.hit(enemy, 1.0, true, Tower.CRIT if crit else Tower.NO_CRIT))
 
 func _draw() -> void:
 	if _burst >= 0.0:
@@ -67,7 +71,7 @@ func _draw() -> void:
 			var dir := Vector2.from_angle(TAU * i / 8.0)
 			draw_circle(dir * (8.0 + 22.0 * t), 3.0, color)
 		return
-	var texture: Texture2D = _tower.attack_data.trap_texture if is_instance_valid(_tower) else null
+	var texture: Texture2D = _data.trap_texture if is_instance_valid(_tower) else null
 	# Fade in when planted and out in the last second of a limited lifetime.
 	var alpha := minf(_age / 0.3, 1.0)
 	if _lifetime > 0.0:
@@ -75,7 +79,7 @@ func _draw() -> void:
 	if texture == null:
 		draw_arc(Vector2.ZERO, 12.0, 0.0, TAU, 16, Color(0.8, 0.95, 0.6, alpha), 3.0)
 		return
-	var frames: int = _tower.attack_data.trap_frames
+	var frames: int = _data.trap_frames
 	var size := Vector2(texture.get_width() / float(frames), texture.get_height())
 	var frame := int(_age * ANIMATION_FPS) % frames
 	draw_texture_rect_region(texture, Rect2(-size * SCALE / 2.0, size * SCALE),

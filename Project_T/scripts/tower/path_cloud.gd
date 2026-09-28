@@ -8,6 +8,8 @@ class_name PathCloud
 const TICK := 0.5
 
 var _tower: Tower
+var _data: TowerData
+var _boost := 1.0
 var _radius: float
 var _duration: float
 var _fog: bool
@@ -19,11 +21,13 @@ var _seen := {}  # Nightmares that have been inside (instance ids): "entering" f
 
 func _init(tower: Tower, center: Vector2) -> void:
 	_tower = tower
+	_data = tower.attack_data  # What it was made with (a legacy attack, a Graftling's copy)
+	_boost = tower._hit_boost  # Sudden Bloom / Watchful Rest
 	# attack_data: a Graftling copying a Bloomcap drops the Bloomcap's cloud.
-	_radius = tower.attack_data.cloud_radius * Tower.MAP_GRID.cell_size.x
-	_duration = tower.attack_data.cloud_duration
-	_fog = tower.attack_data.cloud_fog
-	_color = tower.attack_data.projectile_color
+	_radius = _data.cloud_radius * Tower.MAP_GRID.cell_size.x
+	_duration = _data.cloud_duration
+	_fog = _data.cloud_fog
+	_color = _data.projectile_color
 	top_level = true
 	z_index = 4
 	position = center
@@ -48,7 +52,7 @@ func _tick() -> void:
 			continue
 		if _fog:
 			enemy.statuses.set_in_fog(TICK * 1.5)
-		var data: TowerData = _tower.attack_data if is_instance_valid(_tower) else null
+		var data: TowerData = _data if is_instance_valid(_tower) else null
 		if data and data.cloud_slow > 0.0:
 			enemy.statuses.slow_time = maxf(enemy.statuses.slow_time, TICK * 1.6)
 			enemy.statuses.slow_amount = maxf(enemy.statuses.slow_amount, data.cloud_slow * _tower.get_slow_multiplier())  # Heavy Air
@@ -65,7 +69,7 @@ func _tick() -> void:
 		if not is_instance_valid(enemy) or enemy.is_cleansed:
 			continue
 		# A cloud's soothe per tick is a share of one attack, spread over its lifetime.
-		_tower.hit(enemy, TICK / _duration, true, Tower.NO_CRIT, &"cloud")  # Clouds never crit; an effect (Potency)
+		_tower.run_as(_data, _boost, func() -> void: _tower.hit(enemy, TICK / _duration, true, Tower.NO_CRIT, &"cloud"))  # Clouds never crit; an effect (Potency)
 
 func _draw() -> void:
 	var fade := minf(1.0, (_duration - _age) / 0.5) * minf(1.0, _age / 0.2 + 0.3)

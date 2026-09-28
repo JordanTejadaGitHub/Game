@@ -36,6 +36,7 @@ signal sap_yielded(tower: Tower, dew: int)  # The Sapling / Grandmother Oak paid
 signal dreamlight_ripened(tower: Tower)  # The Sapling gave a Dreamlight
 signal withered(tower: Tower)  # A leaf lost withered the Sapling's yield
 signal statics_set_off(tower: Tower, where: Vector2, count: int)  # An Ascended pulse (the Great Bell) set off Static charges
+signal legacy_released(tower: Tower)  # An Ascended form made its final form's attack (no wind-up; sound)
 
 @export var tower_data: TowerData
 @onready var sprite: Sprite2D = $Sprite2D
@@ -213,6 +214,9 @@ var watch_charged := false  # Watchful Rest: a stored charge (its next attack de
 var _watch_time := 0.0  # Watchful Rest: seconds with nothing in range
 var _hit_boost := 1.0  # ×2 while a boosted attack's hits land (Sudden Bloom, Watchful Rest)
 var _underdog_drawn := false
+var legacy_data: TowerData = null  # An Ascended form's final form (its legacy attack); saved with the run
+var _legacy_cooldown := 0.0
+var _legacy_active := false  # Inside the legacy attack (a legacy beam leaves the sprite alone)
 const EMPOWERED_MULTIPLIER := 2.0
 const WATCH_CHECK := 0.25  # Watchful Rest looks for nightmares this often
 var _watch_check := 0.0
@@ -260,6 +264,8 @@ func evolve(data: TowerData, cost: int) -> void:
 	# A Warden keeps its size unless it was given room: TowerPlacer takes the 2×2 square first (and sets
 	# footprint_size); growing any other way stays on the cells it has.
 	var size := get_footprint()
+	if data.tier >= DreamState.ASCENDED_TIER and tower_data.tier == DreamState.ASCENDED_TIER - 1:
+		legacy_data = tower_data  # It keeps its final form's attack
 	tower_data = data
 	if size != data.footprint:
 		footprint_size = size
@@ -294,6 +300,7 @@ func _process(delta: float) -> void:
 		_update_catch(delta)  # Dreamcatchers catch sleepy nightmares whether or not they're shooting
 	if attack_data.ability_every > 0.0:
 		_update_ability(delta)
+	_update_legacy(delta)
 	match attack_data.attack_kind:
 		TowerData.AttackKind.AURA:
 			_update_aura(delta)
@@ -702,7 +709,7 @@ func _show_idle() -> void:
 
 # Holds the attack pose (the release frame) while beaming.
 func _show_attack_pose() -> void:
-	if tower_data.attack_texture == null:
+	if tower_data.attack_texture == null or _legacy_active:
 		return
 	sprite.texture = tower_data.attack_texture
 	sprite.hframes = tower_data.attack_frame_count
@@ -734,10 +741,40 @@ func _take_empowered() -> float:
 
 # Runs `action` with every hit it lands at ×`boost` (projectiles carry it to where they land).
 func _boosted(boost: float, action: Callable) -> void:
-	var before := _hit_boost
+	run_as(attack_data, boost, action)
+
+# Runs `action` as this Warden attacking with `data` (null = its own) at ×`boost`. Delayed attack nodes
+# (projectiles, clouds, rings, birds, seeds) keep what they were made with and land through this, so an
+# Ascended form's legacy attack and a Sudden Bloom / Watchful Rest boost reach them.
+func run_as(data: TowerData, boost: float, action: Callable) -> void:
+	var own_data := attack_data
+	var own_boost := _hit_boost
+	if data != null:
+		attack_data = data
 	_hit_boost = boost
 	action.call()
-	_hit_boost = before
+	attack_data = own_data
+	_hit_boost = own_boost
+
+# Legacy (run_design.md "Act 3 probe"): an Ascended form keeps the final form it grew from and still
+# makes that attack on the final's own cadence (and ranks, Dreams), besides its own. A Graftling
+# final's copy has nothing to copy on its own, so Grandmother Oak keeps none.
+func _update_legacy(delta: float) -> void:
+	if legacy_data == null or not legacy_data.can_attack or legacy_data.attack_kind == TowerData.AttackKind.COPY:
+		return
+	var own := attack_data
+	attack_data = legacy_data
+	_legacy_active = true
+	if legacy_data.attack_kind == TowerData.AttackKind.BEAM:
+		_update_beam(delta)  # Stormheart keeps Midsummer's beam (its own attack is a chain)
+	else:
+		_legacy_cooldown = maxf(_legacy_cooldown - delta, 0.0)
+		if _legacy_cooldown <= 0.0 and _has_work():
+			_legacy_cooldown = 1.0 / get_attacks_per_second()
+			_release_attack()
+			legacy_released.emit(self)
+	_legacy_active = false
+	attack_data = own
 
 # Watchful Rest (card, rule watchful_rest): nothing in range for WATCHFUL_REST_TIME seconds (II: less)
 # stores one charge.
@@ -1205,12 +1242,17 @@ func _lob_landed(where: Vector2, splash: float) -> void:
 
 func fire_at(target: Node2D) -> void:
 	var on_land := projectile_landed
-	if _hit_boost != 1.0:
-		var boost := _hit_boost  # Sudden Bloom / Watchful Rest: the boost rides the projectile
-		on_land = func(t, where: Vector2) -> void: _boosted(boost, projectile_landed.bind(t, where))
+	if _hit_boost != 1.0 or _legacy_active:
+		# Sudden Bloom / Watchful Rest and a legacy attack's data ride the projectile to where it lands.
+		on_land = _land_as.bind(attack_data, _hit_boost)
 	var projectile := Projectile.new(target, attack_data, on_land)
 	add_child(projectile)
 	projectile.global_position = global_position + tower_data.get_attack_origin()
+
+# A projectile fired with `data` at ×`boost` lands. A bound method: the lambda this replaced lost its
+# captures by the time the projectile landed ("Lambda capture was freed") and dealt nothing.
+func _land_as(target, where: Vector2, data: TowerData, boost: float) -> void:
+	run_as(data, boost, projectile_landed.bind(target, where))
 
 # Whirligig: pulses nudge nightmares back a little (each at most once per push_cooldown).
 # The timed ability (warden_stats.md, Rootling and Firefly Jar families): every ability_every seconds
@@ -1870,7 +1912,7 @@ func _stop_beam() -> void:
 	_beam_target = null
 	_beam_behind = null
 	_beam_ramp = 1.0
-	if was_beaming and is_node_ready():
+	if was_beaming and is_node_ready() and not _legacy_active:
 		_show_idle()
 	queue_redraw()
 
@@ -1925,7 +1967,7 @@ func _draw() -> void:
 			if not is_instance_valid(target):
 				continue
 			var to := to_local(target.global_position)
-			draw_line(from, to, Color(attack_data.beam_color, 0.35), width * 2.0)
+			draw_line(from, to, Color(_beam_data().beam_color, 0.35), width * 2.0)
 			draw_line(from, to, Color(1.0, 1.0, 0.9, 0.9), maxf(width * 0.5, 1.5))
 			from = to  # Midsummer's beam carries on from the target to the one behind it
 	if attack_data != null and attack_data.attack_kind == TowerData.AttackKind.AURA:
@@ -1951,6 +1993,12 @@ func _draw_empowered() -> void:
 	if bloom_attacks > 0 or watch_charged:
 		draw_arc(Vector2(0, 6), radius, 0.0, TAU, 32, Color(EMPOWERED_GLOW, 0.3), 5.0)
 		draw_arc(Vector2(0, 6), radius, 0.0, TAU, 32, Color(EMPOWERED_GLOW, 0.85), 1.5)
+
+# Whose beam is drawn: Stormheart's is Midsummer's (its legacy).
+func _beam_data() -> TowerData:
+	if legacy_data != null and legacy_data.attack_kind == TowerData.AttackKind.BEAM:
+		return legacy_data
+	return attack_data
 
 func _is_underdog() -> bool:
 	return _dream_state != null and _dream_state.has_method("is_underdog") and _dream_state.is_underdog(self)

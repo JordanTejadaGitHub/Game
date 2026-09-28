@@ -10,6 +10,8 @@ const HOVER := Vector2(10, -18)  # Where it hovers, relative to the nightmare
 const ANIMATION_FPS := 18.0
 
 var _tower: Tower
+var _data: TowerData
+var _boost := 1.0
 var _target: Node2D
 var _pecks_left: int
 var _peck_every: float
@@ -19,6 +21,8 @@ var _anim := 0.0
 
 func _init(tower: Tower, target: Node2D, pecks: int, peck_time: float) -> void:
 	_tower = tower
+	_data = tower.attack_data  # What it was made with (a legacy attack, a Graftling's copy)
+	_boost = tower._hit_boost  # Sudden Bloom / Watchful Rest
 	_target = target
 	_pecks_left = pecks
 	_peck_every = peck_time / maxf(pecks, 1)
@@ -46,7 +50,7 @@ func _process(delta: float) -> void:
 			while _peck_timer >= _peck_every and _pecks_left > 0:
 				_peck_timer -= _peck_every
 				_pecks_left -= 1
-				_tower.peck(_target)
+				_tower.run_as(_data, _boost, _tower.peck.bind(_target))
 			if _pecks_left <= 0:
 				_state = 2
 		2:
@@ -56,7 +60,7 @@ func _process(delta: float) -> void:
 				queue_free()
 
 func _draw() -> void:
-	var texture: Texture2D = _tower.attack_data.projectile_texture if is_instance_valid(_tower) else null
+	var texture: Texture2D = _data.projectile_texture if is_instance_valid(_tower) else null
 	var bob := Vector2(0, sin(_anim * 30.0) * 1.5)
 	if texture == null:
 		# A tiny bright bird: body and a blur of wings.
@@ -64,7 +68,7 @@ func _draw() -> void:
 		draw_circle(bob + Vector2(-3, -2), 3.0, Color(1, 1, 1, 0.35))
 		draw_line(bob + Vector2(3, 0), bob + Vector2(8, 1), Color(0.2, 0.2, 0.2), 1.0)
 		return
-	var frames: int = _tower.attack_data.projectile_frames
+	var frames: int = _data.projectile_frames
 	var size := Vector2(texture.get_width() / float(frames), texture.get_height())
 	var frame := int(_anim * ANIMATION_FPS) % frames
 	draw_texture_rect_region(texture, Rect2(bob - size / 2.0, size), Rect2(Vector2(size.x * frame, 0), size))
