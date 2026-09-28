@@ -32,6 +32,11 @@ const DUCK_RELEASE := 16.0
 const SOFTEN_SHELF_HZ := 6000.0
 const SOFTEN_SHELF_DB := -6.0
 const SOFTEN_CEILING_DB := -1.5
+const LOOP_DB := -14.0  # Continuous Warden loops sit quietly under the hits
+const LOOP_FADE := 0.6  # Seconds to fade a loop fully in or out
+# Muffled SFX: resisted hits, and a Graftling copying another Warden "through bark" (Grafted Elder
+# less so). Both send into SFX, so the Sounds slider and the softening still apply.
+const MUFFLED_BUSES := {&"SFXMuffled": 1000.0, &"SFXBark": 2200.0}
 # Dispels landing this close together blend into one softer swell (third listen: no climbing combo,
 # a dispel is a nightmare ending, never a reward sound). Each one in a cluster is this much quieter.
 const DISPEL_CLUSTER_MS := 700
@@ -62,6 +67,7 @@ var _scene: Node
 # Headless (tests, CI) uses the dummy audio driver, which never mixes, so playbacks it starts are
 # never released and show up as leaks at exit. Everything runs the same, it just doesn't start.
 var _silent := DisplayServer.get_name() == "headless"
+var _loops := {}  # loop id -> {player, level, target}
 
 # Set up in _init, not _ready: a test script's _init can add main.tscn (and so SoundHooks) before
 # the autoloads are ready.
@@ -102,6 +108,7 @@ func _process(delta: float) -> void:
 		var gain: float = _music_level[layer] * LAYER_GAIN.get(layer, 1.0)
 		_music[layer].volume_db = linear_to_db(maxf(gain, 0.0001)) + music_db
 	_ambience.volume_db = _ambience_db + _ambience_trim - _duck_db
+	_update_loops(delta)
 	if _muffle:
 		var target := MUFFLED_HZ if _muffled else 20000.0
 		_muffle.cutoff_hz = lerpf(_muffle.cutoff_hz, target, 1.0 - exp(-6.0 * delta))
@@ -240,6 +247,37 @@ func play_ambience(set_name: StringName, volume_db := AMBIENCE_DB) -> void:
 	if not _silent:
 		_ambience.play()
 
+# Continuous Warden sounds (beams, fog, blades, auras, lit tiles): one quiet loop per id
+# (loop_<warden>.wav), faded toward `level` (0 = silent, 1 = full). Callers set the level every frame
+# they're active and 0 when idle; a silent loop stops playing.
+func set_loop(id: StringName, level: float) -> void:
+	if not _loops.has(id):
+		if level <= 0.0 or not _streams.has(id):
+			return
+		var player := AudioStreamPlayer.new()
+		player.stream = _looping(_streams[id][0])
+		player.bus = &"SFX"
+		player.process_mode = Node.PROCESS_MODE_ALWAYS
+		player.volume_db = -80.0
+		add_child(player)
+		_loops[id] = {"player": player, "level": 0.0, "target": 0.0}
+	_loops[id].target = clampf(level, 0.0, 1.0)
+
+func stop_loops() -> void:
+	for loop in _loops.values():
+		loop.player.queue_free()
+	_loops.clear()
+
+func _update_loops(delta: float) -> void:
+	for loop in _loops.values():
+		loop.level = move_toward(loop.level, loop.target, delta / LOOP_FADE)
+		var player: AudioStreamPlayer = loop.player
+		player.volume_db = LOOP_DB + linear_to_db(maxf(loop.level, 0.0001))
+		if loop.level > 0.0 and not player.playing and not _silent:
+			player.play()
+		elif loop.level <= 0.0 and player.playing:
+			player.stop()
+
 func stop_ambience() -> void:
 	_ambience.stop()
 
@@ -275,6 +313,16 @@ func _setup_buses() -> void:
 	var ui_bus := AudioServer.get_bus_index(&"UI")
 	if AudioServer.get_bus_effect_count(ui_bus) == 0:
 		_add_softening(ui_bus)
+	for bus_name in MUFFLED_BUSES:
+		if AudioServer.get_bus_index(bus_name) != -1:
+			continue
+		AudioServer.add_bus()
+		var index := AudioServer.bus_count - 1
+		AudioServer.set_bus_name(index, bus_name)
+		AudioServer.set_bus_send(index, &"SFX")
+		var lowpass := AudioEffectLowPassFilter.new()
+		lowpass.cutoff_hz = MUFFLED_BUSES[bus_name]
+		AudioServer.add_bus_effect(index, lowpass)
 	HeartwoodMemory.apply_settings()  # Bus volumes now that the buses exist
 
 # The SFX/UI safety net (audio_direction.md "Mix rules"): a gentle high shelf (−6 dB above ~6 kHz)
