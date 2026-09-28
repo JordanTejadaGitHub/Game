@@ -12,7 +12,7 @@ class_name DreamSimPolicy
 # Dreams: the highest style score (tag match first, then rarity); never lets one pass.
 # Family picks: the style's families in order, then the owed half-dreamed family, then any.
 # Dreamlight: the next form (branch → its finals → the other branch → Ascended) of the family with
-# the most Wardens on the map. Omens: Clear Skies (null).
+# the most Wardens on the map (Wide also counts its Thornwalls and may grow them). Omens: Clear Skies.
 
 enum Style { BALANCED, WIDE, NARROW, COMBO, SLEEP }
 
@@ -119,12 +119,15 @@ func _combo_cards_with(family: String) -> int:
 # (ties: the first owned family in the Remember order).
 func spend_dreamlight() -> void:
 	var trees := dreams.get_remember_trees().filter(func(tree: Array) -> bool:
-		return dreams.family_of(tree[0].get_id()) != "")  # Families only (not Thornwall's growths)
+		return dreams.family_of(tree[0].get_id()) != "" \
+			or (style == Style.WIDE and tree[0].get_id() == "thornwall"))  # Families; Wide also grows its walls
 	if trees.is_empty():
 		return
 	var counts := {}
 	for tower in dreams._towers():
 		var family := dreams.family_of(tower.tower_data.get_id())
+		if family == "" and tower.tower_data.line == "wall":
+			family = "thornwall"  # Wide: Thornwall growths compete by how many walls stand
 		if family != "":
 			counts[family] = int(counts.get(family, 0)) + 1
 	trees.sort_custom(func(a: Array, b: Array) -> bool:

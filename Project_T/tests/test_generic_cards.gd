@@ -247,6 +247,14 @@ func _test_sim_policy() -> void:
 	for next in load("res://resource/tower/sporeling.tres").evolves_to:
 		branch_unlocked = branch_unlocked or dreams.is_unlocked(next.get_id())
 	_check(branch_unlocked and dreams.dreamlight < 5, "Dreamlight: a Sporeling branch first (%s)" % ", ".join(balanced.choices))
+	# Wide also grows Thornwalls with Dreamlight when walls are its most-built "family"
+	for i in 3:
+		_plant("thornwall", Vector2(100 + i, 105))
+	dreams.add_dreamlight(3 - dreams.dreamlight)
+	var wide_bot := DreamSimPolicy.new(dreams, DreamSimPolicy.Style.WIDE)
+	wide_bot.spend_dreamlight()
+	_check(wide_bot.choices.any(func(c: String) -> bool: return c.contains("bramble") or c.contains("honeysuckle")),
+		"Wide: Dreamlight on Thornwall growths (%s)" % ", ".join(wide_bot.choices))
 	_check(balanced.pick_omen([]) == null, "Omens: Clear Skies")
 	_clear()
 	_reset()
