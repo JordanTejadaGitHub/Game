@@ -313,7 +313,12 @@ demo) and 9 hidden ones later. Kindred and Whole Tree are explained on the secti
 New combos (new Wardens, Reactions) are added to this table and the Codex automatically.
 
 - **Saved in the profile**, including in the demo (carried into the full game like Seeds). Not
-  recorded in developer runs (Test Grove, Unlock all families).
+  saved from developer runs (Test Grove, Unlock all families), **but** (changed 2026-09-28, user
+  playtest: "unlocking stuff in the codex doesn't display after") discoveries in a developer run are
+  kept **for the session** (until the game closes): the Codex shows them with a small "dev" mark, the
+  discovery pause happens once per session, and nothing is written to the profile or counted for
+  the "Discover every combo" milestone. The Codex header says "Developer run: discoveries aren't
+  saved" while one is active.
 - Touch: everything is tap-based; the discovery card can be tapped to open the entry.
 
 ## Panels
