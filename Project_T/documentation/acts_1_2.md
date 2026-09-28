@@ -30,7 +30,7 @@ trip) and **Sleepwalker** (wanders into dead ends) join act 2 and replace some m
 
 ### Deeply Blighted (elites)
 
-Any nightmare can appear **Deeply Blighted**: **×3 health, ×3 Dew, costs 2 leaves** (more if it
+Any nightmare can appear **Deeply Blighted**: **×3 health, ×2 Dew, costs 2 leaves** (more if it
 already costs more), 20% larger, darker, with a slow black haze and a small swirl icon. They're the
 "mini-bosses" that give blocks a finale. First seen at drift 23. (Blight Level 5 uses the same rule:
 one Deeply Blighted nightmare per drift.)

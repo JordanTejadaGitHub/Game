@@ -21,8 +21,8 @@ func _run() -> void:
 	# --- Deeply Blighted ---
 	var bug_data: EnemyData = load("res://resource/enemy/leaf_bug.tres")
 	var elite: Node2D = spawner.spawn_enemy(bug_data, 1.0, {}, true)
-	_check(elite.max_health == 300 and elite.get_dew_reward() == 9 and elite.get_leaf_cost() == 2,
-		"elite: ×3 health (%d), ×3 Dew (%d), 2 leaves" % [elite.max_health, elite.get_dew_reward()])
+	_check(elite.max_health == 300 and elite.get_dew_reward() == 6 and elite.get_leaf_cost() == 2,
+		"elite: ×3 health (%d), ×2 Dew (%d), 2 leaves" % [elite.max_health, elite.get_dew_reward()])
 	_check(is_equal_approx(elite.sprite.scale.x, 1.2), "elite is drawn 20% bigger")
 	elite.free()
 
