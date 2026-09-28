@@ -470,6 +470,7 @@ func _golem(canvas: Image, st: Dictionary, fig: Dictionary, opts: Dictionary = {
 	var pose: Dictionary = st.pose
 	var dy: int = st.get("tdy", st.dy)
 	var colors := {a = fig.a, b = fig.b, c = fig.c, o = fig.o}
+	var no_arm: bool = opts.get("no_side_arm", false)
 	var body := _gnew(canvas)
 	for y in 128:
 		for x in 128:
@@ -477,6 +478,10 @@ func _golem(canvas: Image, st: Dictionary, fig: Dictionary, opts: Dictionary = {
 			var tx := floori(t.x)
 			var ty := floori(t.y)
 			var ch := _fig_at(pose, tx, ty)
+			if no_arm and tx >= 39 and tx <= 46 and ty >= 24 - dy and ty <= 36:
+				# The side arm is lifted off (drawn again elsewhere): the gap above the thigh opens, the
+				# thigh below it fills in.
+				ch = "." if ty < 31 else "a"
 			if ch == ".":
 				continue
 			if ch == "o":
@@ -878,7 +883,7 @@ func _asc_the_great_bell(canvas: Image, st: Dictionary, fig: Dictionary) -> void
 		_gpoly(l, PackedVector2Array([b + Vector2(-4, 0), b + Vector2(4, 0), b + Vector2(6, 9), b + Vector2(-6, 9)]), violet)
 		_gstamp(canvas, l, fig.o)
 	var swing: float = [0.0, -3.0, 4.0, -2.0, 1.0, 0.0][st.attack] if st.attack >= 0 else [0.0, 0.5, 1.0, 0.5, 0.0, -0.5, -1.0, -0.5][st.f % 8]
-	var mask := _golem(canvas, st, fig, {raise = 0.0, asleep = st.attack < 0})
+	var mask := _golem(canvas, st, fig, {raise = 0.0, asleep = st.attack < 0, no_side_arm = true})
 	# The bellflower hood: a violet petal cap with a scalloped rim.
 	var hood := _gnew(canvas)
 	_gell(hood, Vector2(63, 34 + dy), Vector2(20, 13), violet, 0.0, 38 + dy)
@@ -887,9 +892,10 @@ func _asc_the_great_bell(canvas: Image, st: Dictionary, fig: Dictionary) -> void
 	_gstamp(canvas, hood, fig.o)
 	for k in 3:
 		_gline(canvas, [Vector2(52 + k * 11, 25 + dy), Vector2(50 + k * 12, 36 + dy)], Color("#6a4aa8"))
-	# The great bell hangs from its side hand (the golem's own arm), swinging.
-	var hand := fo + BELL_HAND_T * K + Vector2(0, dy)
-	var bz := 0.8
+	# The great bell, held up in front of the body by the side arm, now reaching to the middle.
+	var shoulder := fo + Vector2(41, 24) * K + Vector2(0, dy)
+	var hand := fo + Vector2(34, 30) * K + Vector2(0, dy)
+	var bz := 0.85
 	var bc := hand + Vector2(swing * 0.6, 17)
 	var bell := _gnew(canvas)
 	var gold := _ramp(GOLD)
@@ -902,9 +908,17 @@ func _asc_the_great_bell(canvas: Image, st: Dictionary, fig: Dictionary) -> void
 	_gline(canvas, [bc + Vector2(-15, 12) * bz, bc + Vector2(15, 12) * bz], Color("#a86a1a"))
 	_gline(canvas, [bc + Vector2(-7, -6) * bz, bc + Vector2(-9, 8) * bz], Color("#fff8d0"))
 	_gflat(canvas, bc + Vector2(0, 18) * bz, Vector2(2.5, 1.8), Color("#7a4a10"))
-	# The bell's loop, gripped in the hand.
-	_gring(canvas, hand + Vector2(swing * 0.3, 2), Vector2(3, 3), Color("#a86a1a"))
-	_gline(canvas, [hand + Vector2(swing * 0.3, 5), bc + Vector2(0, -15) * bz], Color("#a86a1a"))
+	_gline(canvas, [hand + Vector2(swing * 0.3, 3), bc + Vector2(0, -15) * bz], Color("#a86a1a"))
+	# The arm: from the shoulder, across the body, the hand gripping the bell's loop.
+	var arm := _gnew(canvas)
+	var along := hand - shoulder
+	_gell(arm, shoulder + along * 0.5, Vector2(along.length() * 0.5 + 5, 8), fig.ramp, along.angle())
+	_gell(arm, hand, Vector2(7, 6), fig.ramp)
+	_gstamp(canvas, arm, fig.o)
+	_gring(canvas, hand + Vector2(swing * 0.3, 1), Vector2(3.5, 3), Color("#a86a1a"))
+	# Knuckles over the loop.
+	for k in 3:
+		_gpx(canvas, int(hand.x) - 3 + k * 3, int(hand.y) + 2, fig.c)
 	_gmotes(canvas, st, [34, 94, 26, 102], 60, 40, [Color("#ffe8a0"), Color("#c8b0f0")])
 	for k in 2:
 		var t: float = fposmod(float(st.f) / st.n + k * 0.5, 1.0)
