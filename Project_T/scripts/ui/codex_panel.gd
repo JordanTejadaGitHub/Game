@@ -30,6 +30,9 @@ var _glossary_scroll := ScrollContainer.new()
 var _combos := VBoxContainer.new()
 var _combos_scroll := ScrollContainer.new()
 var _combo_count := Label.new()
+var _dev_note := Label.new()
+var _profile_seen: Array = []  # Discoveries saved in the profile (the rest are this session's dev ones)
+const DEV_COLOR := Color(0.95, 0.7, 0.4)
 var _entries := {}  # Term or combo id -> its Control (for jumps)
 
 func _ready() -> void:
@@ -44,6 +47,13 @@ func _ready() -> void:
 	title.add_theme_font_size_override("font_size", 24)
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	box.add_child(title)
+	# Developer runs keep discoveries for the session only (screens_ui.md "Saved in the profile").
+	_dev_note.text = "Developer run: discoveries aren't saved"
+	_dev_note.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_dev_note.add_theme_font_size_override("font_size", 13)
+	_dev_note.add_theme_color_override("font_color", DEV_COLOR)
+	_dev_note.visible = false
+	box.add_child(_dev_note)
 	tabs.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	box.add_child(tabs)
 
@@ -195,6 +205,8 @@ func _build_combos() -> void:
 	for child in _combos.get_children():
 		child.queue_free()
 	var seen := ComboFeedback.load_seen()
+	_profile_seen = ComboFeedback.profile_seen()
+	_dev_note.visible = MetaRun.is_dev_run()
 	var counts: Dictionary = HeartwoodMemory.load_data().get(ComboFeedback.COUNTS_KEY, {})
 	var live := get_tree().get_first_node_in_group(ComboFeedback.GROUP) as ComboFeedback if is_inside_tree() else null
 	var all := CodexData.combos()
@@ -205,7 +217,7 @@ func _build_combos() -> void:
 			found += 1
 		var times := int(counts.get(String(combo.id), 0)) + (int(live._unsaved.get(combo.id, 0)) if live else 0)
 		var card := _combo_card(combo, discovered, times)
-		_combos.add_child(card)
+		_add_card(card, combo.id, discovered)
 		_entries[String(combo.id)] = card
 	_combo_count.text = "%d / %d combos discovered" % [found, all.size()]
 	tabs.set_tab_title(1, "Combos %d / %d" % [found, all.size()])
@@ -224,8 +236,24 @@ func _build_combos() -> void:
 		var discovered := seen.has(String(c.id))
 		var times := int(counts.get(String(c.id), 0)) + (int(live._unsaved.get(c.id, 0)) if live else 0)
 		var card := _crowned_card(c, discovered, times)
-		_combos.add_child(card)
+		_add_card(card, c.id, discovered)
 		_entries[String(c.id)] = card
+
+# Adds a combo / Crowned / Kinship card; one found only in a developer run this session gets a small
+# "dev" mark in its top-right corner (not saved: screens_ui.md "Saved in the profile").
+func _add_card(card: Control, id: StringName, discovered: bool) -> void:
+	_combos.add_child(card)
+	if discovered and ComboFeedback.is_dev_discovery(id, _profile_seen):
+		var mark := Label.new()
+		mark.name = "DevMark"
+		mark.text = "dev"
+		mark.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+		mark.vertical_alignment = VERTICAL_ALIGNMENT_TOP
+		mark.add_theme_font_size_override("font_size", 12)
+		mark.add_theme_color_override("font_color", DEV_COLOR)
+		mark.tooltip_text = "Found in a developer run: kept until the game closes, never saved."
+		mark.mouse_filter = Control.MOUSE_FILTER_PASS
+		card.add_child(mark)
 
 # Kinships (screens_ui.md "Kinship feedback"): "???" in a vine frame until the first bond of that kind
 # ever, then the pair, what each borrows, and how often it has formed.
@@ -243,7 +271,7 @@ func _build_kinships(seen: Array, counts: Dictionary, live: ComboFeedback) -> vo
 		var discovered := seen.has(String(k.id))
 		var times := int(counts.get(String(k.id), 0)) + (int(live._unsaved.get(k.id, 0)) if live else 0)
 		var card := _kinship_card(k, discovered, times)
-		_combos.add_child(card)
+		_add_card(card, k.id, discovered)
 		_entries[String(k.id)] = card
 
 func _kinship_card(k: Dictionary, discovered: bool, times: int) -> Control:

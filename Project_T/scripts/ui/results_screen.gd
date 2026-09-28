@@ -29,7 +29,12 @@ func _ready() -> void:
 # The demo or the full game. The project setting game/demo decides, except in debug builds where the
 # Developer "Demo mode" setting (demo_scope.md "Demo mode toggle", `demo_mode`: -1 = project
 # setting, 0 = full game, 1 = demo) can override it. Headless test scripts ignore the override.
+# Tests: 0 = full game, 1 = demo, -1 = as configured.
+static var demo_override := -1
+
 static func is_demo() -> bool:
+	if demo_override >= 0:
+		return demo_override == 1
 	if OS.is_debug_build() and not OS.get_cmdline_args().has("--script"):
 		var override := int(HeartwoodMemory.get_settings().get(DEMO_MODE_SETTING, -1))
 		if override >= 0:
