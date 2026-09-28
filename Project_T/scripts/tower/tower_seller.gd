@@ -103,6 +103,7 @@ func sell(cell: Vector2) -> bool:
 	tower.queue_free()
 	for c in tower.get_cells():
 		map_generator.unblock_cell(c)  # Emits path_changed -> creatures re-route
+	tower_placer.settle(tower.get_cells())  # Settling ground: not plantable again for a moment (drifts only)
 	run_state.earn_dew_at(refund, tower.position)
 	tower_sold.emit(tower, refund)
 	if selection.has(tower):
