@@ -1439,6 +1439,85 @@ func _make_music() -> void:
 	_pan_mix(left, right, _filter(_whisper(r, 1.2, 1.0), r, 1200.0, 0.7), 16.5, 0.16, 0.8)
 	_music_stereo("amb_act1", left, right, 0.5)
 
+	_make_boss_themes()
+
+# One theme per boss (audio_direction.md "Music"): a stem that replaces the generic boss drums while
+# that boss walks (mus_act1_boss_<boss>), and a warm counter-melody that enters below half health
+# (mus_act1_boss_<boss>_warm). Same 20 s loop, key and waltz as the act's stems, so they stay in sync.
+# Each has its own seeded RNG, so the act stems above never change.
+func _make_boss_themes() -> void:
+	var r := MUSIC_RATE
+	var total := LOOP + TAIL
+	var beats := BARS * BEATS_PER_BAR
+	# The Hollow Stag: heavy drums and a bowed bass.
+	_music("mus_act1_boss_stag", _own("boss_stag", func() -> PackedFloat32Array:
+		var s := _seg(total, r)
+		for beat in beats:
+			var accent := beat % BEATS_PER_BAR == 0
+			_mix(s, _tom(r, 50.0 if accent else 72.0), r, beat * BEAT, 1.0 if accent else 0.5)
+		for bar in BARS:
+			var root: int = CHORDS[bar][0] - 12
+			var bow := _tone(r, BEAT * 3.3, hz(root) * 1.002, swell(0.5, 0.6, BEAT * 3.3), "saw")
+			_mix(s, _filter(bow, r, 380.0, 0.5), r, bar * BEATS_PER_BAR * BEAT, 0.5)
+		return s), 0.6)
+	# The Mire Hag: bubbling low reeds and a crooked waltz (the second beat always a little late).
+	_music("mus_act1_boss_hag", _own("boss_hag", func() -> PackedFloat32Array:
+		var s := _seg(total, r)
+		for bar in BARS:
+			var t0 := bar * BEATS_PER_BAR * BEAT
+			var root: int = CHORDS[bar][0]
+			var reed := _tone(r, BEAT * 3.2, hz(root - 12), func(t: float) -> float:
+				return swell(0.2, 0.4, BEAT * 3.2).call(t) * (0.7 + 0.3 * sin(t * 37.0 + sin(t * 11.0))), "square")
+			_mix(s, _filter(reed, r, 520.0, 0.35), r, t0, 0.35)
+			_mix(s, _knock(r, 70.0, 0.12), r, t0, 0.8)
+			_mix(s, _knock(r, 95.0, 0.08), r, t0 + BEAT * 1.28, 0.5)  # Crooked
+			_mix(s, _knock(r, 95.0, 0.08), r, t0 + BEAT * 2.0, 0.45)
+		return s), 0.55)
+	# The Moth Queen: a tremolo shimmer on a cold minor second over a soft wingbeat pulse.
+	_music("mus_act1_boss_moth", _own("boss_moth", func() -> PackedFloat32Array:
+		var s := _seg(total, r)
+		for m in [57, 58]:
+			var strings := _tone(r, total, hz(m), func(t: float) -> float: return 0.3 * (0.55 + 0.45 * sin(t * 6.0 * TAU)), "saw")
+			_mix(s, _filter(strings, r, 900.0, 0.6), r, 0.0, 0.4)
+		var wings := _noise(r, total, func(t: float) -> float: return pow(maxf(sin(TAU * t / BEAT), 0.0), 3.0))
+		_mix(s, _filter(_filter(wings, r, 400.0, 0.7), r, 400.0, 0.7), r, 0.0, 2.0)
+		return s), 0.5, true)
+	# The Hollow Oak: deep wooden drums and a low hummed drone with a slow creak.
+	_music("mus_act1_boss_oak", _own("boss_oak", func() -> PackedFloat32Array:
+		var s := _seg(total, r)
+		for beat in beats:
+			if beat % BEATS_PER_BAR != 1:
+				_mix(s, _knock(r, 48.0 if beat % BEATS_PER_BAR == 0 else 62.0, 0.2), r, beat * BEAT, 1.0 if beat % BEATS_PER_BAR == 0 else 0.6)
+		for m in [38, 45]:
+			_mix(s, _filter(_choir(r, hz(m), total), r, 500.0, 0.7), r, 0.0, 0.5)
+		_mix(s, _filter(_creak(r, total, 1.5, 3.0, 180.0), r, 600.0, 0.7), r, 0.0, 0.4)
+		return s), 0.6)
+	# The warm counter-melodies (the player is winning): chord tones in the warm instruments, never the
+	# boss's own colour. Stag: a warm low horn; Hag: a harp; Moth Queen: a breathy flute; Oak: a choir.
+	for boss in ["stag", "hag", "moth", "oak"]:
+		_music("mus_act1_boss_%s_warm" % boss, _own("warm_" + boss, func() -> PackedFloat32Array:
+			var s := _seg(total, r)
+			for bar in BARS:
+				var root: int = CHORDS[bar][0]
+				var third: int = CHORDS[bar][1]
+				var t0 := bar * BEATS_PER_BAR * BEAT
+				var notes := [root + 12 + third, root + 19] if bar % 2 == 0 else [root + 19, root + 24]
+				for k in 2:
+					var n: int = notes[k]
+					var at := t0 + k * BEAT * 1.5
+					var length := BEAT * 1.6
+					match boss:
+						"stag":
+							_mix(s, _filter(_tone(r, length, hz(n - 12), swell(0.15, 0.5, length), "saw"), r, 700.0, 0.6), r, at, 0.35)
+						"hag":
+							_mix(s, _pluck(r, hz(n), 0.4, length * 1.5, 0.6, 0.998), r, at)
+						"moth":
+							_mix(s, _tone(r, length, hz(n), swell(0.12, 0.5, length), "tri"), r, at, 0.3)
+							_mix(s, _filter(_noise(r, length, swell(0.1, 0.4, length)), r, hz(n) * 2.0, 0.5, "bp"), r, at, 0.08)
+						"oak":
+							_mix(s, _choir(r, hz(n - 12), length), r, at, 0.5)
+			return s), 0.45)
+
 # Trims to exactly one loop and saves. Notes (`sustained` false): the tail past the loop end is
 # added back onto the start, so they ring across the loop point. Drones and beds (`sustained`):
 # the tail is crossfaded into the start instead, so there's no seam and no doubled level.

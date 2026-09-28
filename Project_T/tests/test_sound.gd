@@ -15,7 +15,8 @@ const HOOK_IDS := [&"dispel", &"dispel_release", &"dispel_boss", &"split", &"lea
 const WARDEN_FALLBACKS := {"sprout": "hit_sprout", "firefly_jar": "hit_light", "graftling": "", "grafted_elder": "",
 	"thornwall": ""}
 const HIT_FAMILIES :=["stone", "root", "water", "light", "spore", "sprout"]
-const MUSIC_LAYERS := ["base", "dread1", "dread2", "heartbeat", "boss"]
+const MUSIC_LAYERS := ["base", "dread1", "dread2", "heartbeat", "boss", "boss_stag", "boss_stag_warm", "boss_hag",
+	"boss_hag_warm", "boss_moth", "boss_moth_warm", "boss_oak", "boss_oak_warm"]
 
 var failures := 0
 
@@ -132,6 +133,14 @@ func _initialize() -> void:
 	sound.play_dispel(Vector2.ZERO)
 	_check(sound._dispel_cluster == 1, "a second dispel joins the cluster")
 	_check(HeartwoodMemory.defaults().settings.music_volume == 0.55, "music defaults to 55%")
+	# One theme per boss: every boss has its stem and a warm counter-melody (the lengths check above keeps
+	# them in sync), and Softer nightmares halves the whispering dread layer.
+	for key in SoundHooks.BOSS_THEMES:
+		_check(ResourceLoader.exists("res://resource/enemy/%s.tres" % key), "boss %s exists" % key)
+	sound.set_softer_nightmares(true)
+	_check(is_equal_approx(sound._layer_gain(&"dread2"), Sound.LAYER_GAIN[&"dread2"] * Sound.SOFTER_DREAD2), "softer nightmares: quieter whispers")
+	sound.set_softer_nightmares(false)
+	_check(is_equal_approx(sound._layer_gain(&"dread2"), Sound.LAYER_GAIN[&"dread2"]), "normal nightmares")
 
 	print("test_sound: %s" % ("PASS" if failures == 0 else "%d FAILED" % failures))
 	quit(failures)

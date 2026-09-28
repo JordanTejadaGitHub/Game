@@ -17,6 +17,9 @@ const SIGNATURES := {
 }
 const SIGNATURE_INTERVAL_MS := 2500  # One signature per nightmare type this often at most
 const DREAD2_COUNT := 12
+# One music theme per boss (audio_direction.md): EnemyData file name -> its stems (mus_act1_boss_<key>,
+# + _warm below half health).
+const BOSS_THEMES := {"old_stag": "stag", "great_toad": "hag", "moth_queen": "moth", "hollow_oak": "oak"}
 const LOW_LEAVES := 5
 const QUIET_LINES := ["wall"]  # Wardens that never attack
 # Attacks (audio_direction.md "Wardens"): a quiet launch when the Warden fires, the impact on the hit.
@@ -216,13 +219,23 @@ func _process(_delta: float) -> void:
 	var enemies: Array = enemy_container.get_enemies()
 	var near := false
 	var boss := false
+	var theme := ""  # The walking boss's own theme (BOSS_THEMES), if it has one
+	var winning := false  # That boss is below half health: its warm counter-melody enters
 	for enemy in enemies:
-		boss = boss or enemy.enemy_data.is_boss
+		if enemy.enemy_data.is_boss:
+			boss = true
+			var key: String = BOSS_THEMES.get(enemy.enemy_data.resource_path.get_file().get_basename(), "")
+			if key != "" and theme == "":
+				theme = key
+				winning = enemy.health * 2 <= enemy.max_health
 		near = near or enemy.get_remaining_distance() < _path_pixels / 3.0
 	sound.set_layer(&"dread1", not enemies.is_empty())
 	sound.set_layer(&"dread2", enemies.size() >= DREAD2_COUNT or near)
 	sound.set_layer(&"heartbeat", run_state.leaves <= LOW_LEAVES and not run_state.is_over)
-	sound.set_layer(&"boss", boss)
+	sound.set_layer(&"boss", boss and theme == "")  # A boss without a theme of its own: the shared drums
+	for key in BOSS_THEMES.values():
+		sound.set_layer(StringName("boss_" + key), theme == key)
+		sound.set_layer(StringName("boss_%s_warm" % key), theme == key and winning)
 	sound.set_muffled(_choice_screens.any(func(screen: Control) -> bool: return screen.visible))
 	var resting: bool = drift_director.is_build_phase()
 	sound.set_drifting(not resting)

@@ -9,7 +9,8 @@ extends Node
 const SFX_DIR := "res://assets/audio/sfx/"
 const MUSIC_DIR := "res://assets/audio/music/"
 const BUSES := [&"Music", &"SFX", &"Ambience", &"UI"]
-const LAYERS := [&"base", &"dread1", &"dread2", &"heartbeat", &"boss"]
+const LAYERS := [&"base", &"dread1", &"dread2", &"heartbeat", &"boss", &"boss_stag", &"boss_stag_warm", &"boss_hag",
+	&"boss_hag_warm", &"boss_moth", &"boss_moth_warm", &"boss_oak", &"boss_oak_warm"]
 const TITLE_SCENE := "res://scenes/title.tscn"
 
 const MAX_VOICES := 4  # Per sound id at once; a 40-Warden maze doesn't become noise
@@ -25,7 +26,14 @@ const MUFFLED_HZ := 900.0  # Music lowpass on choice screens ("time has stopped"
 const MUSIC_DB := -6.0
 const DRIFT_MUSIC_DB := -3.0  # During drifts, relative to rests: combat owns the space
 const AMBIENCE_DB := -16.0
-const LAYER_GAIN := {&"base": 1.0, &"dread1": 0.55, &"dread2": 0.45, &"heartbeat": 0.6, &"boss": 0.7}
+const LAYER_GAIN := {&"base": 1.0, &"dread1": 0.55, &"dread2": 0.45, &"heartbeat": 0.6, &"boss": 0.7,
+	&"boss_stag": 0.7, &"boss_hag": 0.7, &"boss_moth": 0.65, &"boss_oak": 0.7, &"boss_stag_warm": 0.6, &"boss_hag_warm": 0.6,
+	&"boss_moth_warm": 0.6, &"boss_oak_warm": 0.6}
+# Softer nightmares (accessibility setting): nightmare shrieks and whispers play this much quieter,
+# muffled, and the whispering dread layer is halved.
+const SOFTER_DB := -8.0
+const SOFTER_IDS := [&"dispel", &"dispel_boss", &"hound_howl", &"hag_rise", &"hag_sink", &"drift_start"]
+const SOFTER_DREAD2 := 0.5
 const LEVEL_SMOOTHING := 1.5  # Phase and ambience changes ease in over a second or two
 const DUCK_ATTACK := 150.0  # dB per second
 const DUCK_RELEASE := 16.0
@@ -68,6 +76,7 @@ var _scene: Node
 # never released and show up as leaks at exit. Everything runs the same, it just doesn't start.
 var _silent := DisplayServer.get_name() == "headless"
 var _loops := {}  # loop id -> {player, level, target}
+var _softer := false  # Softer nightmares (settings)
 
 # Set up in _init, not _ready: a test script's _init can add main.tscn (and so SoundHooks) before
 # the autoloads are ready.
@@ -81,6 +90,7 @@ func _init() -> void:
 
 func _ready() -> void:
 	get_tree().node_added.connect(_on_node_added)
+	set_softer_nightmares(bool(HeartwoodMemory.get_settings().get("softer_nightmares", false)))
 
 func _process(delta: float) -> void:
 	var scene := get_tree().current_scene
@@ -100,12 +110,12 @@ func _process(delta: float) -> void:
 	for layer in _music:
 		var level: float = move_toward(_music_level[layer], _music_target[layer], delta / LAYER_FADE)
 		_music_level[layer] = level
-		energy += pow(level * LAYER_GAIN.get(layer, 1.0), 2.0)
+		energy += pow(level * _layer_gain(layer), 2.0)
 	# More layers playing: all of them come down together, so the total stays about as loud as the base.
 	var trim := -10.0 * log(maxf(energy, 1.0)) / log(10.0)
 	var music_db := MUSIC_DB + _phase_db + trim - _duck_db
 	for layer in _music:
-		var gain: float = _music_level[layer] * LAYER_GAIN.get(layer, 1.0)
+		var gain: float = _music_level[layer] * _layer_gain(layer)
 		_music[layer].volume_db = linear_to_db(maxf(gain, 0.0001)) + music_db
 	_ambience.volume_db = _ambience_db + _ambience_trim - _duck_db
 	_update_loops(delta)
@@ -122,6 +132,10 @@ func _process(delta: float) -> void:
 func play(id: StringName, at: Variant = null, volume_db := 0.0, pitch := 1.0, jitter := PITCH_JITTER,
 		bus := &"SFX") -> Node:
 	var variants: Array = _streams.get(id, [])
+	if _softer and (SOFTER_IDS.has(id) or String(id).begins_with("sig_")):
+		volume_db += SOFTER_DB  # Softer nightmares: quieter and muffled
+		if bus == &"SFX":
+			bus = &"SFXMuffled"
 	if variants.is_empty():
 		return null
 	var now := Time.get_ticks_msec()
@@ -363,3 +377,11 @@ static func _looping(stream: AudioStream) -> AudioStream:
 func _on_node_added(node: Node) -> void:
 	if node is BaseButton:
 		node.pressed.connect(ui.bind(&"ui_click", -4.0))
+
+# Softer nightmares (Settings; HeartwoodMemory.apply_settings calls this when it changes).
+func set_softer_nightmares(on: bool) -> void:
+	_softer = on
+
+func _layer_gain(layer: StringName) -> float:
+	var gain: float = LAYER_GAIN.get(layer, 1.0)
+	return gain * SOFTER_DREAD2 if _softer and layer == &"dread2" else gain
