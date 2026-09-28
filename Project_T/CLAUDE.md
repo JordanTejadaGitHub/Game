@@ -227,24 +227,42 @@ accessibility, Steam achievements (milestones map to them). Acts 3–4 and all f
   saves profile `reactions_seen` (real game only). `CodexPanel` (pause menu + Grove) lists all 8.
 
 ## Meta (meta_design.md; full game only — `game/demo` true = nothing applied or recorded)
-- `UnlockData` (`resource/meta/grove/*.tres`): root (WARDENS/DREAMS/PERKS/FORESTS), `costs` per
-  level, `requires_all` / `requires_any` (+count), effects: `families` (join family picks),
-  `dream_cards` (→ `DreamState.grove_cards`), perks per level (`starting_dew`, `max_leaves`,
-  `dream_rerolls`, `dream_banishes`, `extra_dream_cards`, `seed_bonus`, `early_bloom`).
-- `HeartwoodMemory`: `unlocks {id: level}`, `buy()` / `buy_problem()`, `load_grove()`, `MEMORIES`
-  (10) + `memories_unlocked()` (1 after the first run, +1 per 3 unlock levels, +1 per Memory
-  milestone), `milestones`, `counters`, `highest_blight_won`, `max_blight_level()`, `cosmetics`.
-- `MetaRun` (`%MetaRun`, `scripts/meta/meta_run.gd`): applies Grove perks, families, cards and the
-  Blight Level (`MetaRun.blight_level`, static, chosen by `BlightPicker`, saved with the run) at
-  run start; records counters / milestones / highest Blight won at run end (real game only).
-  Blight hooks: `DriftDirector.blight_*` multipliers, `act_break_leaves`, `DreamState.skip_dew` /
-  `lean_common`, `MetaRun.clear_cost_multiplier()`. `RunState.seed_bonus` adds a Seeds line.
+- Grove = tech tree on the Heartwood: 79 `UnlockData` nodes (`resource/meta/grove/<id>.tres`, ids =
+  `assets/meta/grove/grove_layout.json` ids; limbs `root` WARDENS = Families, DREAMS = Cards, PERKS =
+  Perks). `costs` per level, `requires_all` ("id" or "id:level") / `requires_any` (+count), `icon`,
+  `start` (Sporeling / Firefly Jar / Dewdrop, never bought), `<family>_ascension` (Ascended Warden card), `milestone` (grows free, refunds a
+  purchase; no `costs` = milestone-only: Sunpetal), `legendary`. Effects: `families`, `dream_cards`
+  (→ `DreamState.grove_cards`), `loadout_slots` (slot_2..5), perks per level (only while carried):
+  `starting_dew`, `dew_gain` (`RunState.dew_gain_bonus`, fraction carry), `rest_bonus`
+  (`DriftDirector.rest_bonus_perk_multiplier`), `max_leaves`, `dream_rerolls` / `dream_banishes` /
+  `extra_dream_cards`, `extra_omens`, `seed_bonus`, `early_bloom`, `starting_dreamlight`,
+  `starting_cards` (Clear Sight), `random_common_cards` (Kindling), `sprout_charges`, `free_nurtures`
+  (`RunState.free_nurtures`, spent by Tower Code's nurture hook); `allows_bittersweet` (Bittersweet
+  Dreams node sets `DreamState.allow_bittersweet`).
+- `HeartwoodMemory` (VERSION 2; `MIGRATED_IDS` renames v1 Grove ids on load): `unlocks {id: level}`,
+  `node_level()` (counts start / milestone growth; use it, not `unlock_level()`, for "owned"),
+  `buy()` / `buy_problem()` / `requirements_met()`, `get_unlock(id)`, `grow_milestone_nodes()`,
+  `grown_share()`, loadout (`loadout`, `loadout_slots()`, `get_loadout()`, `save_loadout()`),
+  `memories_seen`, `MEMORIES` (10) + `memories_unlocked()` (1 after the first run, +1 per 3 unlock
+  levels, +1 per Memory milestone), `milestones`, `counters`, `highest_blight_won`,
+  `max_blight_level()`, `cosmetics`.
+- `MetaRun` (`%MetaRun`, `scripts/meta/meta_run.gd`): at run start applies every owned node's
+  families and cards, the carried perks, and the Blight Level (`MetaRun.blight_level`, static, chosen
+  by `BlightPicker`, saved with the run); records counters / milestones (+ milestone nodes) / highest
+  Blight won at run end (real game only). Blight hooks: `DriftDirector.blight_*` multipliers,
+  `act_break_leaves`, `DreamState.skip_dew` / `lean_common`, `MetaRun.clear_cost_multiplier()`.
+  `RunState.seed_bonus` adds a Seeds line. `RunSaver` saves `sprout_charges` / `free_nurtures`.
 - Family Blessings: `resource/meta/blessing/blessing_<family>.tres` (UpgradeData, +25% damage and
   25% cheaper growth for that family), put in the Dream pool by MetaRun (never offered); the family
   pick fills empty slots with them.
-- `scenes/grove.tscn` (`GroveScreen`): roots of plants (seed / glowing / grown), Memories shelf +
-  viewer, Start run (Blight picker after the first win), "The forest remembered you" on the first
-  visit with Seeds. Title: Memory Grove button (demo: greyed + Wishlist). `tests/test_meta.gd`.
+- `scenes/grove.tscn` (`grove_screen.gd`): `GroveTreeView` (the art from `assets/meta/`, layered
+  sky → tree → canopy stage (by `grown_share`, crossfades) → branches → dream-fruit → waystones →
+  nodes; pan / wheel / pinch zoom, tap only), node card + Plant (planting grows the branch 1→4, then
+  the bud opens; a new perk goes into a free slot), dream-fruit = Memories (`memories_seen`, viewer
+  with art), waystones / Carry = `LoadoutPanel` ("Carry into the dream"; Start run opens it first
+  when perks are owned), Blight picker after the first win, Codex, "The forest remembered you".
+  Title: Memory Grove button (demo: greyed + Wishlist). `tests/test_meta.gd` (layout ↔ data, perks,
+  milestones, migration, screen smoke test with a temp profile).
 
 ## Audio (placeholder, audio_direction.md)
 - `tools/sound_generator.gd` synthesizes every sound into `assets/audio/` (sfx 44.1 kHz; music

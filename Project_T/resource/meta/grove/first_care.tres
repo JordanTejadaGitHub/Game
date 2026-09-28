@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="UnlockData" format=3]
+
+[ext_resource type="Script" path="res://resource/meta/script/unlock_data.gd" id="1_unlock"]
+
+[resource]
+script = ExtResource("1_unlock")
+id = "first_care"
+display_name = "First Care"
+description = "Your first 3 Nurture ranks each run are free."
+root = 2
+costs = Array[int]([70])
+order = 10
+icon = 9
+free_nurtures = 3

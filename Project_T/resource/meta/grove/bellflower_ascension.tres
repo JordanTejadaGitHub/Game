@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="UnlockData" format=3]
+
+[ext_resource type="Script" path="res://resource/meta/script/unlock_data.gd" id="1_unlock"]
+
+[resource]
+script = ExtResource("1_unlock")
+id = "bellflower_ascension"
+display_name = "Ascension: The Great Bell"
+description = "Bellflower's Ascended form, The Great Bell, can grow in your runs (from drift 51: 3 Dreamlight, then 400 Dew on a final form). Its toll puts everything to sleep and sets off every Static charge."
+root = 0
+costs = Array[int]([120])
+order = 35
+icon = 5
+requires_all = Array[String](["bellflower_hidden"])
+dream_cards = Array[String](["dream_great_bell"])

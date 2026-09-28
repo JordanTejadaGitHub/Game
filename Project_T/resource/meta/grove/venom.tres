@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="UnlockData" format=3]
+
+[ext_resource type="Script" path="res://resource/meta/script/unlock_data.gd" id="1_unlock"]
+
+[resource]
+script = ExtResource("1_unlock")
+id = "venom"
+display_name = "Venom"
+description = "Venom Bloom joins the pool."
+root = 1
+costs = Array[int]([40])
+order = 33
+icon = 9
+requires_all = Array[String](["seeping"])
+dream_cards = Array[String](["venom_bloom"])

@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="UnlockData" format=3]
+
+[ext_resource type="Script" path="res://resource/meta/script/unlock_data.gd" id="1_unlock"]
+
+[resource]
+script = ExtResource("1_unlock")
+id = "sporeling_ascension"
+display_name = "Ascension: Sporemother"
+description = "Sporeling's Ascended form, Sporemother, can grow in your runs (from drift 51: 3 Dreamlight, then 400 Dew on a final form). A constant spore storm that pops nightmares like a Puffball."
+root = 0
+costs = Array[int]([120])
+order = 30
+icon = 0
+requires_all = Array[String](["sporeling_hidden"])
+dream_cards = Array[String](["dream_sporemother"])

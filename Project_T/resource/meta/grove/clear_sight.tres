@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="UnlockData" format=3]
+
+[ext_resource type="Script" path="res://resource/meta/script/unlock_data.gd" id="1_unlock"]
+
+[resource]
+script = ExtResource("1_unlock")
+id = "clear_sight"
+display_name = "Clear Sight"
+description = "Start the run holding Cleared Ground: clearing trees and rocks works from drift 1, and costs less."
+root = 2
+costs = Array[int]([80])
+order = 5
+icon = 4
+starting_cards = Array[String](["cleared_ground"])

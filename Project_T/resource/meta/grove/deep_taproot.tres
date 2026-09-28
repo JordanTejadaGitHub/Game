@@ -9,5 +9,6 @@ display_name = "Deep Taproot"
 description = "+1 max leaf per level (+3 at most)."
 root = 2
 costs = Array[int]([25, 50, 75])
-order = 2
+order = 11
+icon = 10
 max_leaves = 1

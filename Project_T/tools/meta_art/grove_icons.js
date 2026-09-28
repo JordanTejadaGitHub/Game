@@ -62,6 +62,8 @@ const CARD_ICONS = {
   lone_lantern: e => { for (let y = 10; y <= 22; y++) for (let x = 12; x <= 20; x++) e.set(x, y, (x === 12 || x === 20 || y === 10 || y === 22) ? HB6[2] : pick(GOLDC.slice(1), .9 - (y - 10) / 14, x, y)); for (let x = 14; x <= 18; x++) e.set(x, 8, HB6[3]); e.set(16, 7, HB6[3]); },
   the_long_way: e => { let px = 10, py = 25; for (let i = 1; i <= 20; i++) { const y = 25 - i * .85, x = 16 + Math.sin(i * .55) * 6; stroke(e, px, py, x, y, 3.2 - i * .08, 3 - i * .08, PARCH[3]); px = x; py = y; } },
   bittersweet: e => { ellipse(e, 16, 17, 6, 6, (x, y, dx, dy) => dx < 0 ? pick(["#8a1a2a", "#c83a4a", "#f07a8a"], .6 - dx * .3 - dy * .3, x, y) : pick(["#1a1420", "#2c2438", "#40364c"], .5 - dy * .3, x, y)); stroke(e, 16, 11, 18, 6, 1.4, 1.2, LEAFG[2]); },
+  woven: e => { for (let i = 0; i < 3; i++) { const y = 11 + i * 5; stroke(e, 9, y, 23, y + 3, 1.6, 1.4, i % 2 ? GOLDC[3] : "#c8a8ff"); stroke(e, 11 + i * 5, 8, 14 + i * 5, 25, 1.6, 1.4, i % 2 ? "#c8a8ff" : GOLDC[3]); } },
+  deep_poison: e => { ellipse(e, 16, 19, 5.5, 5.5, (x, y, dx, dy) => Math.hypot(dx + .4, dy + .4) < .35 ? "#d8b8ff" : pick(["#2a1438", "#4a2468", "#7a44a0"], .55 - dx * .3 - dy * .3, x, y)); for (let y = 8; y <= 13; y++) e.set(16 + (13 - y) * .3, y, LEAFG[2]); stroke(e, 16, 12, 21, 9, 1.3, 1, LEAFG[1]); },
 };
 function cardIcon(key) {
   return icon((L, o) => {

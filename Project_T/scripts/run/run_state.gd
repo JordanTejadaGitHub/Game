@@ -48,6 +48,8 @@ func add_sprout_charges(amount: int) -> void:
 var creatures_cleansed := 0
 var leaves_lost := 0
 var seed_bonus := 0.0  # +share of Seeds at run end (Seed Pouch, Blight Levels); set by MetaRun
+var dew_gain_bonus := 0.0  # +share of Dew from dispelled nightmares (Rich Dew); set by MetaRun
+var free_nurtures := 0  # Nurture ranks left that cost no Dew (First Care); set by MetaRun
 var longest_path := 0  # Longest route the maze reached this run, in tiles
 var play_time := 0.0  # Seconds of unpaused play this run
 var is_over := false
@@ -173,12 +175,13 @@ func _on_enemy_cleansed(enemy: Node2D) -> void:
 	creatures_cleansed += 1
 	earn_dew_at(_scaled_dispel_dew(enemy.get_dew_reward()), enemy.global_position)
 
-# Economy pass v2 (run_design.md): dispel Dew × act_dew_multipliers for the current act, with the
-# fraction carried to the next dispel so small rewards aren't rounded away.
+# Economy pass v2 (run_design.md): dispel Dew × act_dew_multipliers for the current act (× Rich Dew),
+# with the fraction carried to the next dispel so small rewards aren't rounded away.
 func _scaled_dispel_dew(dew: int) -> int:
 	var director := get_node_or_null("%DriftDirector") as DriftDirector
 	var act := director.get_act(maxi(director.drifts_started, 1)) if director else 1
 	var multiplier: float = act_dew_multipliers[clampi(act - 1, 0, act_dew_multipliers.size() - 1)]
+	multiplier *= 1.0 + dew_gain_bonus  # Rich Dew (Grove perk)
 	_dispel_dew_carry += dew * multiplier
 	var paid := floori(_dispel_dew_carry + 0.0001)
 	_dispel_dew_carry -= paid

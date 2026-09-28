@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="UnlockData" format=3]
+
+[ext_resource type="Script" path="res://resource/meta/script/unlock_data.gd" id="1_unlock"]
+
+[resource]
+script = ExtResource("1_unlock")
+id = "bellflower_final"
+display_name = "Bellflower final forms"
+description = "Bellflower final forms can grow in your runs: Lullaby Bell, Great Dreamcatcher."
+root = 0
+costs = Array[int]([50])
+order = 15
+icon = 5
+requires_all = Array[String](["bellflower"])

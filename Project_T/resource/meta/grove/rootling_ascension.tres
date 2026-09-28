@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="UnlockData" format=3]
+
+[ext_resource type="Script" path="res://resource/meta/script/unlock_data.gd" id="1_unlock"]
+
+[resource]
+script = ExtResource("1_unlock")
+id = "rootling_ascension"
+display_name = "Ascension: World Root"
+description = "Rootling's Ascended form, World Root, can grow in your runs (from drift 51: 3 Dreamlight, then 400 Dew on a final form). Roots Hold every nightmare in range; Held ones take more damage."
+root = 0
+costs = Array[int]([120])
+order = 34
+icon = 4
+requires_all = Array[String](["rootling_hidden"])
+dream_cards = Array[String](["dream_world_root"])

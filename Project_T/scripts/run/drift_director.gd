@@ -71,6 +71,7 @@ var blight_health_multiplier := 1.0  # Nightmares (not bosses)
 var blight_boss_health_multiplier := 1.0
 var blight_speed_multiplier := 1.0
 var blight_rest_bonus_multiplier := 1.0  # The block's rest bonus (before perfect / Dreams)
+var rest_bonus_perk_multiplier := 1.0  # Rested Roots (Grove perk), same part of the rest bonus
 var blight_elites_per_drift := 0  # Nightmares per drift made Deeply Blighted
 
 @onready var run_state: RunState = %RunState
@@ -420,7 +421,8 @@ func _begin_rest() -> void:
 func _pay_rest_bonus() -> Array:
 	var block := get_block(drifts_started)
 	var perfect := not _block_leaked
-	var bonus := roundi(get_rest_bonus(block) * blight_rest_bonus_multiplier) + (perfect_block_bonus if perfect else 0)
+	var bonus := roundi(get_rest_bonus(block) * blight_rest_bonus_multiplier * rest_bonus_perk_multiplier) \
+		+ (perfect_block_bonus if perfect else 0)
 	var dreams := get_tree().get_first_node_in_group(DreamState.GROUP) as DreamState
 	if dreams:
 		bonus += dreams.get_dew_per_clear()  # Morning Dew

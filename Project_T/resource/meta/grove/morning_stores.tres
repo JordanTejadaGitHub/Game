@@ -10,4 +10,5 @@ description = "+10 starting Dew per level (+30 at most)."
 root = 2
 costs = Array[int]([20, 40, 60])
 order = 1
+icon = 0
 starting_dew = 10

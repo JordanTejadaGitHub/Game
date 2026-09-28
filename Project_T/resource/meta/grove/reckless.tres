@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="UnlockData" format=3]
+
+[ext_resource type="Script" path="res://resource/meta/script/unlock_data.gd" id="1_unlock"]
+
+[resource]
+script = ExtResource("1_unlock")
+id = "reckless"
+display_name = "Reckless"
+description = "Reckless Bloom joins the pool."
+root = 1
+costs = Array[int]([40])
+order = 7
+icon = 2
+requires_all = Array[String](["sharpened"])
+dream_cards = Array[String](["reckless_bloom"])

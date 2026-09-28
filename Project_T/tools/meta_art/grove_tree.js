@@ -46,7 +46,8 @@ N("slot_2", "perks", "Loadout slot 2", 58, 300, [96, 318]);
 N("slot_3", "perks", "Loadout slot 3", 40, 236, "slot_2");
 N("slot_4", "perks", "Loadout slot 4", 42, 170, "slot_3");
 N("slot_5", "perks", "Loadout slot 5", 70, 110, "slot_4");
-// Families: a short branch of three per family, alternating sides up the middle limb.
+// Families: a short branch of four per family (family, final forms, hidden branch, Ascension),
+// alternating sides up the middle limb.
 [["sporeling", "Sporeling", true], ["firefly_jar", "Firefly Jar", true], ["dewdrop", "Dewdrop", true], ["pebbling", "Pebbling"],
  ["rootling", "Rootling"], ["bellflower", "Bellflower"], ["acorn", "Acorn"], ["nestling", "Nestling"], ["whirligig", "Whirligig"]]
   .forEach(([id, name, start], i) => {
@@ -54,6 +55,7 @@ N("slot_5", "perks", "Loadout slot 5", 70, 110, "slot_4");
     N(id, "families", name, ax + side * 38, ay - 20, [ax, ay], start ? { start: true } : {});
     N(id + "_final", "families", name + ": final forms", ax + side * 60, ay - 52, id);
     N(id + "_hidden", "families", name + ": hidden branch", ax + side * 72, ay - 86, id + "_final");
+    N(id + "_ascension", "families", name + ": Ascension", ax + side * 96, ay - 108, id + "_hidden");
   });
 // Cards: one branch per build style, Legendary flower at the tip.
 N("storm_lore", "cards", "Storm Lore", 760, 522, [742, 602]);
@@ -75,6 +77,12 @@ N("the_last_light", "cards", "The Last Light", 800, 710, "one_line", { legendary
 N("dead_wood", "cards", "Dead Wood", 962, 600, [944, 518]);
 N("the_long_walk", "cards", "The Long Walk", 992, 676, "dead_wood", { legendary: true });
 N("bittersweet_dreams", "cards", "Bittersweet Dreams", 1152, 482, [1128, 410]);
+// Woven (Crowned Reactions) branches off Reactions; Deep Poison hangs under the limb past Keen Edges.
+N("woven_dreams_1", "cards", "Woven Dreams I", 814, 370, "reactions");
+N("woven_dreams_2", "cards", "Woven Dreams II", 818, 298, "woven_dreams_1");
+N("seeping", "cards", "Seeping", 1102, 552, [1090, 436]);
+N("venom", "cards", "Venom", 1120, 622, "seeping");
+N("nightshade", "cards", "Nightshade", 1132, 702, "venom", { legendary: true });
 const byId = Object.fromEntries(NODES.map(n => [n.id, n]));
 NODES.forEach(n => { n.depth = n.parent ? byId[n.parent].depth + 1 : 1; });
 // Where dream-fruit (Memories) hang, in the order they appear: the point under a limb the vine

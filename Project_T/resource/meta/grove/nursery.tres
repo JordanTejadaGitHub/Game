@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="UnlockData" format=3]
+
+[ext_resource type="Script" path="res://resource/meta/script/unlock_data.gd" id="1_unlock"]
+
+[resource]
+script = ExtResource("1_unlock")
+id = "nursery"
+display_name = "Nursery"
+description = "Nurture Dreams join the pool: Nursery, Chosen Few."
+root = 1
+costs = Array[int]([70])
+order = 10
+icon = 3
+requires_all = Array[String](["tending_hands"])
+dream_cards = Array[String](["nursery", "chosen_few"])
