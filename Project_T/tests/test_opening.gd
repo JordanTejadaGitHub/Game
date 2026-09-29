@@ -38,7 +38,7 @@ func _play_opening(map_seed: int) -> void:
 
 	for i in OPENING_SPROUTS:
 		_check(_plant_best(main, sprout), "map %d: Sprout %d planted beside the route" % [map_seed, i + 1])
-	# Sprouts get pricier as you plant (+5 Dew per 5 on the map: the first five are 10 each).
+	# Sprouts get pricier as you plant (+3 Dew per 5 on the map: the first five are 10 each).
 	var opening_price := 0
 	for i in OPENING_SPROUTS:
 		opening_price += sprout.cost + i / TowerPlacer.SPROUTS_PER_STEP * TowerPlacer.SPROUT_STEP_DEW
