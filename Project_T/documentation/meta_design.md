@@ -96,7 +96,9 @@ Perks are **unlocked** in the tree, then **equipped** in a small **loadout** bef
 **Three paths** (user decision 2026-09-29; was loose nodes that read like a shop): the limb grows
 from the trunk as **Economy**, **Survival** and **Choice** paths, each in a clear order, and the
 two slot nodes sit **where the paths meet**, so more room to carry comes from growing the limb.
-Costs are unchanged (~30 h total stays). A levelled parent counts from its level I.
+Costs are unchanged (~30 h total stays). A levelled parent counts from its level I. The paths are
+**rules, not a layout**: the Grove keeps its natural spread of branches (user 2026-09-29: three
+visibly separate paths look too neat, not like a real tree).
 
 **Economy path** (more Dew, more Seeds)
 
