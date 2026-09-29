@@ -58,6 +58,7 @@ results screens; results lead back to the title.
 |---|---|---|
 | **Top right: resources** (as built) | Dew, Dreamlight, leaves (current / max), path length | leaves flash and shake when one is lost; Dew flashes red when you can't afford something; Dew motes float up from dispelled nightmares; path length pulses when it changes |
 | **Top left: Dreams** (as built) | one small icon per Dream taken this run (rarity shape + colour, stack count, live bonus) | hover or tap for the card; click opens "Dreams this run" (all cards + stack counts) |
+| **"Dreams this run" panel** (redesigned 2026-09-28, user: "should be more distinct") | was a plain list of card texts. Now **one row per card**: its rarity icon (shape + colour) on the left, the **name in the rarity's colour** (bold), a stack badge ("II", "×3"), then the effect in the body style with **status words as links** (never raw tokens like "{spored}"), and on the right the **live value** in gold ("+36%", "network of 6", "off: needs 4 Sprouts"). Rows are grouped under small headers: **Damage and stats · Wardens and maze · Combos and statuses · Economy · Legendary**, with thin dividers; Legendaries get a gold rim; Half-dreamed (sleeping) cards are dimmed with their "needs …" line. Tapping a row opens the full card. Scrolls when long | — |
 | **Top centre: drift** | act and name, drift / 100, **5 pips for the current block**, countdown to the next boss | pips fill as drifts arrive; the boss countdown turns into the **boss health bar** during a boss drift |
 | **Under drift: Omen** | the active Omen, if any | hover for its effect and reward |
 | **Top centre, lower: whispers and toasts** | Heartwood whispers (italic, teaching) and event toasts (plain: rest bonus, act start, trampled wall, boss lines) | whispers stay until done; toasts fade after ~2.5 s |
@@ -521,9 +522,27 @@ more clear with icons of their resistances"):
   those **weak** to it a small warm spark pip. Nothing otherwise (setting: always show).
 - **Immune feedback:** when a Warden tries to apply a status a nightmare is immune to, the crossed
   status icon flashes once over it (throttled), instead of nothing happening.
-- **Coming this block:** at every rest, a strip above Start shows the nightmare **types** in the next
-  block (portraits, "New" tag, boss portrait last), each with its resist / weak icons underneath.
-  Tap one for its full info. This is where players plan around resistances.
+- **Coming this block:** at every rest, a strip shows the nightmare **types** in the next block
+  (portraits, "New" tag, boss portrait last), each with its resist / weak icons underneath. Tap one
+  for its full info. This is where players plan around resistances.
+  - **Moved (2026-09-28, user: "hard to see and notice" bottom right):** it sits **top centre, right
+    under the drift banner**. At rests it's full size (portraits ~40 px, with the damage-type icons);
+    during a drift it shrinks to a row of small portraits for the **rest of the current block**, the
+    next drift's types lit, the others dimmed. It never covers the path's start or the boss bar
+    (during a boss drift it hides; the boss bar takes its place).
+- **New nightmare introduction** (2026-09-28, user: "new enemies should have a display window in
+  the middle like bosses"): the first time **ever** a nightmare type is about to appear (profile
+  `nightmares_seen`), the rest before its block opens a **centred card**, in the boss dossier's style
+  but smaller: animated portrait, name, the one-line trait, **what it does** (1–2 plain lines, e.g.
+  *"Breaks into 3 Sobs when dispelled"*), resist / weak / immune icons, and one hint (*"Splash and
+  pulses catch the Sobs"*). Several new types in one block: one card each, in order, with "Next".
+  - Shown after the Dream / Omen and before the boss dossier, like the other rest screens; dismissed
+    by click, tap or Esc; reopen from its portrait in the Coming strip.
+  - A type that first appears mid-block also gets a **2-second name plate** when the first one
+    spawns (no pause), like the boss name plate.
+  - Once ever per type (dev runs: per session). Off with the "Heartwood whispers" setting.
+  - Data: the nightmare's `trait_text` plus a new `intro_lines` (what it does) and `hint`
+    (Enemy Code, same voice as the boss tips).
 
 ### Boss dossier (the rest before a boss block)
 
