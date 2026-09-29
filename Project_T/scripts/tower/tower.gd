@@ -3011,12 +3011,19 @@ func clear_dream_cache() -> void:
 # A Warden planted, sold or grown: Dream rows and neighbours (auras, copies, Root Network) look again
 # soon, spread over the next few frames rather than all at once.
 # This Warden grew or ranked up: its neighbours' auras and copies look again soon (spread out).
+const NUDGE_SPREAD := 0.3  # Seconds a nudge spreads the neighbours' looks over
+const NUDGE_SELF_SPREAD := 0.1  # …and the nudged Warden's own look
+
 func _nudge_neighbours() -> void:
-	_neighbour_timer = minf(_neighbour_timer, 0.05)
+	if _neighbour_timer > NUDGE_SELF_SPREAD:  # Soon, but spread: a group grow / Nurture ranks many at once
+		_neighbour_timer = randf_range(0.0, NUDGE_SELF_SPREAD)
 	if not is_inside_tree():
 		return
 	for other in _other_towers():
-		other._neighbour_timer = minf(other._neighbour_timer, randf_range(0.0, 0.3))
+		# Only reschedule ones not already due within the spread: taking the min of many random draws
+		# (group Nurture nudges every Warden 200 times) lands them all at ~0, in the same frame.
+		if other._neighbour_timer > NUDGE_SPREAD:
+			other._neighbour_timer = randf_range(0.0, NUDGE_SPREAD)
 
 func _on_map_changed() -> void:
 	_dream_cache.clear()
