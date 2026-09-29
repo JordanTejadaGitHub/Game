@@ -54,6 +54,12 @@ discounts). Ranks never get cheaper by being bought early.
 - The difference counts as Dew invested (sell refunds it like any rank Dew). Group grow and the G
   hotkey use the same total.
 - It applies per step (Sprout → base, base → branch, branch → final, final → Ascended).
+- **Don't let it trap players** (2026-09-29: the balance bot nurtured branches, then found their
+  final form cost 300+ Dew and never grew one; a new player can fall into the same trap). The
+  **Nurture button shows what a rank adds to the Warden's next growth** when that growth is
+  unlocked or unlockable: *"Rank III · 60 Dew (and +60 when it grows into Thunderhead)"*. The total
+  is the same whether you nurture before or after growing; only the timing changes, and a big
+  grow price shouldn't come as a surprise. No rule change.
 
 **Sprouts get pricier as you plant** (2026-09-28, user-approved after the first balance batch: a Sprout swarm on a fresh profile was 1.6× the Balanced style with no Sprout cards at all). **Every 5 Sprouts on the map add +3 Dew** to the next Sprout's price (10 for the first 5, then 13, 16, 19…; 40 Sprouts ≈ 34 each). The balance batch (1a4d494) showed +5 per 5 left a Seedfall-less Sprout maze at ×0.20 of Balanced (stalled at ~20 Sprouts, dead by drift 13), so it settled at +3 (2026-09-29). History: +1 per Sprout (too much), then +1 per 5 (user: "very minimal, didn't feel like it changed anything", a run without Seedfall), then this, the user's own suggestion (2026-09-29). Walls should be Thornwalls; Sprouts are the flexible attacker. Selling or growing a Sprout lowers it again. **Seedfall** opens the swarm build: Sprouts cost a **flat 6 and the price never rises** (2026-09-29; balance batch 62af1fd: the swarm at ×1.05 of Balanced, where half-speed rising added nothing). The Warden bar shows the current price. Sprouts planted for free (Seedling Gift charges) don't add to the price.
 
