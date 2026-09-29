@@ -201,6 +201,46 @@ instead of offering payoff cards for a direction you never started.
 - **Branch cards** say what they allow, e.g. *"Stormcap: Firefly Jars can now grow into
   Stormcaps (45 Dew)."*
 
+### Discovery unlocks: you dream of what you've seen (2026-09-29)
+
+User decision. **Cards named after a combo, a Kinship or a Warden only enter the Dream pool once you
+have discovered that thing**, and then they stay in the pool **for good** (every future run; saved in
+the profile like the Codex). The forest dreams of what it has seen.
+
+| Discovery | When it counts | Cards it unlocks |
+|---|---|---|
+| **A Reaction** | the first time that Reaction fires, ever (profile `reactions_seen`) | cards that name that Reaction: Thunderclap → Rolling Thunder, Rain on Glass, Conductive Soil; Ignite → Wildfire Spores, Sparking Spores; Mushrooming → Mushroom Rain, Damp Rot; Drown → Deep Water. **Any 2 Reactions** → Quick Reactions |
+| **A Crowned Reaction** | the first time it fires | its Woven card (Tempest → Eye of the Tempest, Still Pool → Deep Stillness, …) |
+| **A chain** | the first ×5 chain ever | Dawnbreak (a ×10 chain is too rare to be the gate) |
+| **A Kinship** | the first time **any** Kinship forms | the Kinship cards (124–133) |
+| **A Warden** | the first time you **build or grow into** that Warden | cards whose Needs name it (Soft Spores → Sporeling, Shiny Things → Magpie Perch, Heavy Stones → Pebbling, Twin Puff → Sporeling, …) and its branch / final-form unlock cards |
+
+- **It counts at once:** a discovery puts its cards in the pool **from that moment**, including the
+  rest of the current run (so the next Dream can already offer them). The card's normal Needs still
+  apply on top (e.g. you still need to own Stormcap for Rolling Thunder this run).
+- **Shown:** the discovery card that already appears on a first Reaction / Kinship adds a line
+  *"New Dreams: Rolling Thunder, Rain on Glass"*. The Codex shows each entry's cards, greyed until
+  discovered (*"Discover Thunderclap to dream of this"*). A first build of a Warden shows a small
+  toast with its new Dreams.
+- **Cards never gate a combo** still holds: Reactions, Kinships and Wardens all work without any
+  card, so discovery always comes from playing, never from the pool.
+- **Grove overlap:** where a discovery card was also sold on a Memory Grove node (Wildfire Spores,
+  Deep Water, Quick Reactions, Dawnbreak, the Woven cards, Close Kin …), **discovery gives it for
+  free**; the node keeps its other contents and its price drops by that card's share. The meta
+  chat should rebalance `meta_design.md`'s node list.
+- **Half-dreamed cards** (see *Adapt, don't get handed*) still need their Reaction discovered first.
+  So in a player's first runs they won't tempt toward a combo they've never seen; the Codex's greyed
+  entries do that job instead.
+- **Not covered** (stay as they are): generic cards, stat cards, Legendaries (they start builds and
+  need no discovery), clearing and Nurture cards (their openers already read the run).
+- **Demo:** nothing is saved, so discoveries count **for the current run only**. **Dev modes** (Test
+  Grove, Unlock all families) treat everything as discovered.
+- **Data:** `UpgradeData.discovered_by` (a list: `reaction:<id>`, `crowned:<id>`, `chain:5`,
+  `kinship:any`, `warden:<id>`, `reactions:2`); `HeartwoodMemory` keeps `reactions_seen` (exists),
+  `crowned_seen`, `kinships_seen`, `wardens_built`, `best_chain`. A card with a non-empty
+  `discovered_by` is offered only when every entry is met. `test_dreams` checks a fresh profile
+  never sees them and a discovery adds them mid-run.
+
 ## Pool size over 100 drifts
 
 19 Dreams from the first-playable pool (33 cards) will repeat within a run. Stacking commons soften
