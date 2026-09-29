@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "dew_bowl"
+display_name = "Dew Bowl"
+description = "+10 Dew now."
+rarity = 0
+kind = 3
+tags = Array[String](["seed", "acorn", "economy"])
+max_stacks = 3
+dew_now = 10
+rule_id = &"dew_bowl"
+in_start_pool = false
+grows_with = Array[String](["dewcatcher", "wellspring"])
+grows_text = "Dewcatcher and Wellspring catch 15% more Dew (per stack)."
+calls_family = "acorn"

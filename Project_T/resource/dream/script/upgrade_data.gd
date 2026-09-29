@@ -86,6 +86,12 @@ enum Kind { UNLOCK_WARDEN, UNLOCK_EVOLUTION, STAT, RULE, ECONOMY }
 @export var min_kinships: int = 0  # Kinships on the map at offer time (Kinship cards; hard Need)
 @export var requires_any_status: Array[StringName] = []  # Own a Warden applying any of these (Heavy Air: a slow)
 @export var max_range_owned: float = 0.0  # Own an attacking Warden with range at most this (Short Roots: 2); 0 = no check
+# Seed cards (dream_design.md "Seed cards"): offered without their Wardens. `description` is the "Now"
+# effect; `grows_text` the bigger one once you have a Warden in `grows_with` (ids); `calls_family`
+# (a base id) is guaranteed in the next family pick while the card is held.
+@export var grows_with: Array[String] = []
+@export var grows_text: String = ""
+@export var calls_family: String = ""
 
 @export_group("Nurture")
 @export var nurture_discount: float = 0.0  # 0.15 = ranks cost 15% less (all cards together max 45%)

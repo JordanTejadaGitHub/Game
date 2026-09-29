@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "shared_light"
+display_name = "Shared Light"
+description = "Every Warden gives the Wardens touching it +2% damage (up to +10% on one Warden)."
+rarity = 2
+kind = 3
+tags = Array[String](["seed", "acorn"])
+max_stacks = 1
+rule_id = &"shared_light"
+in_start_pool = false
+grows_with = Array[String](["acorn", "elder_stump", "grove_heart"])
+grows_text = "Aura Wardens' bonuses are 50% stronger."
+calls_family = "acorn"

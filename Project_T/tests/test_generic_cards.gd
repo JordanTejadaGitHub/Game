@@ -39,6 +39,7 @@ func _run() -> void:
 	_test_sim_entry()
 	_test_sim_policy()
 	_test_rows_cache()
+	_test_seed_cards()
 	print("generic cards test: %s" % ("PASS" if failures == 0 else "%d FAILED" % failures))
 	quit(failures)
 
@@ -279,6 +280,58 @@ func _test_rows_cache() -> void:
 	_check(first.size() == fx.rows(DreamEffects.spot_for(a)).size() and first[0].active, "rows_cached: same rows as rows() (Solitude on)")
 	_plant("sporeling", Vector2(101, 100))  # Planting bumps the board version
 	_check(not fx.rows_cached(a)[0].active, "…refreshes when a Warden is planted beside it")
+	_clear()
+	_reset()
+
+# Seed cards (dream_design.md "Seed cards: plant now, grow later").
+func _test_seed_cards() -> void:
+	_reset()
+	var ids := ["dew_bowl", "harvest_moon", "deep_well", "kind_canopy", "shared_light", "bramble_oath", "patient_roots", "golden_harvest"]
+	for id in ids:
+		var card := _card(id)
+		if card:
+			_check(card.tags.has("seed") and card.in_start_pool == (id == "bramble_oath") and card.grows_text != "", "%s: a Seed card" % id)
+	_check(_card("golden_harvest").rarity == UpgradeData.Rarity.LEGENDARY and _card("golden_harvest").min_act == 2, "Golden Harvest: Legendary, act 2+")
+	# Offered without their Wardens
+	dreams.grove_cards.assign(ids)
+	_check(dreams.can_offer(_card("dew_bowl")) and dreams.can_offer(_card("patient_roots")), "offered without their Wardens")
+	# Calls its family: the next family pick offers it
+	var screen = main.get_node("%FamilyPickScreen")
+	var acorn: TowerData = load("res://resource/tower/acorn.tres")
+	var families_before: Array[TowerData] = screen.families.duplicate()
+	if not screen.families.has(acorn):
+		screen.families.append(acorn)  # As if the Grove had unlocked Acorn
+	dreams.family_of("")  # Refresh the family maps
+	dreams.take(_card("dew_bowl"))
+	_check(Array(dreams.get_called_families()) == ["acorn"], "Dew Bowl calls Acorn")
+	var per_pick: int = screen.cards_per_pick
+	screen.cards_per_pick = 1
+	screen.show_pick(&"boss")
+	_check(screen.offer.size() == 1 and screen.offer[0] == acorn, "…the next family pick offers Acorn")
+	screen.cards_per_pick = per_pick
+	screen.visible = false
+	main.get_node("%GameSpeed").set_paused(false)
+	screen.families = families_before
+	# Deep Well: 3% interest at the rest, up to 20
+	dreams.take(_card("deep_well"))
+	run_state.dew = 300
+	dreams._rest_rules(false)
+	_check(run_state.dew == 309, "Deep Well: 3%% interest on 300 banked Dew (%d)" % run_state.dew)
+	run_state.dew = 5000
+	dreams._rest_rules(false)
+	_check(run_state.dew == 5020, "…up to 20")
+	# Kind Canopy and Shared Light (touching Wardens)
+	dreams.take(_card("kind_canopy"))
+	dreams.take(_card("shared_light"))
+	var centre := _plant("sporeling", Vector2(101, 101))
+	for c in [Vector2(100, 100), Vector2(102, 100), Vector2(100, 102)]:
+		_plant("sporeling", c)
+	var canopy := _row(centre.tower_data, centre.cell, "kind_canopy", centre)
+	var light := _row(centre.tower_data, centre.cell, "shared_light", centre)
+	_check(canopy.active and is_equal_approx(light.damage, 0.06), "Kind Canopy on with 3 touching; Shared Light +2%% each (%.2f)" % light.damage)
+	# Patient Roots and Bramble Oath's measure
+	dreams.take(_card("patient_roots"))
+	_check(dreams.get_held_bonus() == 0.25 and dreams.walls_added_tiles() >= 0, "Patient Roots: Held +0.25 s; walls' path tiles measured")
 	_clear()
 	_reset()
 

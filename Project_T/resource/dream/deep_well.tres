@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "deep_well"
+display_name = "Deep Well"
+description = "At every rest, 3% interest on your banked Dew (up to 20)."
+rarity = 2
+kind = 3
+tags = Array[String](["seed", "acorn", "economy"])
+max_stacks = 1
+rule_id = &"deep_well"
+in_start_pool = false
+grows_with = Array[String](["wellspring"])
+grows_text = "Wellspring's interest cap is 30 higher (90)."
+calls_family = "acorn"

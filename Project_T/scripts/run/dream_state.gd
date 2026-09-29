@@ -153,6 +153,18 @@ const ECHO_MAX := 0.25
 const DAMP_ROT_PER := 0.20  # Poisoned (Spored) ticks on Soaked nightmares
 const SPARKING_SPORES_PER := 0.20  # Ignite detonations
 const RAIN_ON_GLASS_PER := 0.12  # Light Wardens vs Soaked
+# Seed cards (dream_design.md "Seed cards", 169–176 there)
+const DEEP_WELL_RATE := 0.03
+const DEEP_WELL_MAX := 20
+const KIND_CANOPY_TOUCHING := 3
+const KIND_CANOPY_BONUS := 0.05
+const SHARED_LIGHT_PER := 0.02
+const SHARED_LIGHT_MAX := 0.10
+const BRAMBLE_OATH_PER := 0.02  # Per 10 path tiles the walls add
+const BRAMBLE_OATH_MAX := 0.15
+const PATIENT_ROOTS_HELD := 0.25
+const GOLDEN_HARVEST_PER := 0.02  # Per 100 Dew harvested / earned as interest
+const GOLDEN_HARVEST_MAX := 0.30
 # Dreamlight (run_design.md "Dreamlight"): sources and unlock costs.
 const FIRST_PICK_DREAMLIGHT := 1
 const BOSS_DREAMLIGHT := 3
@@ -2128,6 +2140,8 @@ func _refill_bark() -> void:
 # At each rest: Mending Bark, Thick Bark refills, Fresh Growth ends, Underdog picks its Wardens,
 # Echoing Steps ends.
 func _rest_rules(perfect: bool) -> void:
+	if has_rule(&"deep_well"):  # Deep Well: interest on banked Dew
+		run_state.add_dew(mini(DEEP_WELL_MAX, floori(run_state.dew * DEEP_WELL_RATE)))
 	if perfect and has_rule(&"mending_bark"):
 		run_state.regrow_leaves(1)
 	_refill_bark()
@@ -2434,3 +2448,52 @@ func needs_note(card: UpgradeData, act: int = -1) -> String:
 	if needs.is_empty() and not is_eligible(card, act):
 		needs.append("a board or run state (e.g. Wardens, statuses, obstacles)")
 	return "" if needs.is_empty() else "not normally offered: needs " + ", ".join(needs)
+
+
+# --- Seed cards (dream_design.md "Seed cards: plant now, grow later") --------------------------------
+
+# The families held Seed cards call: the next family pick is guaranteed to offer each one that the
+# profile can pick and the run doesn't own yet (FamilyPickScreen).
+func get_called_families() -> Array[String]:
+	var pickable: Array = _family_roots().map(func(d: TowerData) -> String: return d.get_id())
+	var called: Array[String] = []
+	for card in _taken_cards(true):
+		var family := card.calls_family
+		if family != "" and not called.has(family) and pickable.has(family) and not is_unlocked(family):
+			called.append(family)
+	return called
+
+# Whether a Seed card has grown: a Warden it names is on the map.
+func seed_grown(card: UpgradeData) -> bool:
+	return card.grows_with.any(func(id: String) -> bool: return count_wardens(id) > 0)
+
+# Patient Roots: seconds added to Held from any source (Tower / Enemy code add it).
+func get_held_bonus() -> float:
+	return PATIENT_ROOTS_HELD if has_rule(&"patient_roots") else 0.0
+
+# Bramble Oath: path tiles the walls add (the route with walls vs without them), cached per route.
+var _walls_tiles_cache := [-1, 0]  # [board_version, tiles]
+
+func walls_added_tiles() -> int:
+	if _walls_tiles_cache[0] == board_version:
+		return _walls_tiles_cache[1]
+	var cells: Array[Vector2] = []
+	for tower in _towers():
+		if tower.tower_data.line == "wall":
+			cells.append(tower.cell)
+	var tiles := 0
+	if not cells.is_empty():
+		var layer = map_generator.path_layer
+		for cell in cells:
+			layer.set_cell_blocked(cell, false)
+		var without: int = layer.find_path_from(map_generator.startPath).size()
+		for cell in cells:
+			layer.set_cell_blocked(cell, true)
+		tiles = maxi(path_length - without, 0)
+	_walls_tiles_cache = [board_version, tiles]
+	return tiles
+
+# Golden Harvest: Dew the catchers harvested (and Wellspring interest) this run, from RunState.
+func dew_harvested() -> int:
+	var value = run_state.get("dew_harvested")
+	return int(value) if value != null else 0

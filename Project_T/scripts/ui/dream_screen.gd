@@ -12,6 +12,7 @@ const ENTWINED_COLOR := Color(0.45, 0.8, 0.4)  # Vine border
 const DEEPENED_COLOR := Color(0.6, 0.85, 1.0)
 const BITTERSWEET_COLOR := Color(0.72, 0.5, 0.68)  # Muted plum, for the cost line
 const STRAY_COLOR := Color(0.75, 0.85, 0.95)  # Pale wisp
+const SEED_COLOR := Color("d4ec9c")  # Heartwood 32 "Newleaf": what a Seed card grows into
 const HALF_DREAMED_COLOR := Color(0.62, 0.82, 0.6, 0.85)  # Pale vine
 
 @onready var dream_state: DreamState = %DreamState
@@ -141,6 +142,8 @@ func _make_card(card: UpgradeData) -> Button:
 	_add_linked_line(box, card.description, UiStyle.INK, 16)
 	if card.cost_description != "":
 		_add_linked_line(box, card.cost_description, BITTERSWEET_COLOR, 15)
+	if card.grows_text != "":  # Seed cards: the bigger effect once its Wardens are yours
+		_add_linked_line(box, "🌱 Grows with %s: %s" % [_grows_with_names(card), card.grows_text], SEED_COLOR, 14)
 	# Secondary lines below, smaller and muted; they shrink first when a card runs out of room.
 	var spacer := Control.new()
 	spacer.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -158,6 +161,8 @@ func _make_card(card: UpgradeData) -> Button:
 		secondary.append(_add_line(box, "Bittersweet", BITTERSWEET_COLOR, SECONDARY_SIZE))
 	if dream_state.is_half_dreamed(card):  # A combo card whose other family you could still pick
 		secondary.append(_add_line(box, "Half-dreamed  ·  " + dream_state.half_dreamed_text(card) + ". Sleeps until then.", HALF_DREAMED_COLOR, SECONDARY_SIZE))
+	if card.calls_family != "":  # A Seed card calls its family to the next family pick
+		secondary.append(_add_line(box, "Seed  ·  calls %s to your next family pick" % dream_state.get_display_name(card.calls_family), SEED_COLOR, SECONDARY_SIZE))
 	if dream_state.is_stray(card):  # The Stray Dream slot (dream_design.md "Adapt, don't get handed")
 		secondary.append(_add_line(box, "✧ Stray  ·  something the Heartwood hasn't dreamed of yet", STRAY_COLOR, SECONDARY_SIZE))
 	for label in secondary:
@@ -209,3 +214,10 @@ func _on_closed() -> void:
 static func _roman(n: int) -> String:
 	var numerals := ["I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X"]
 	return numerals[n - 1] if n <= numerals.size() else str(n)
+
+# "Dewcatcher, Wellspring", or "the Rootling line" when a Seed names a whole line.
+func _grows_with_names(card: UpgradeData) -> String:
+	if card.grows_with.size() > 3:
+		var family := card.calls_family if card.calls_family != "" else dream_state.family_of(card.grows_with[0])
+		return "the %s line" % dream_state.get_display_name(family)
+	return ", ".join(card.grows_with.map(dream_state.get_display_name))

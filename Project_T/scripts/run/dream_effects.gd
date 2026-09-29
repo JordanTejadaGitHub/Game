@@ -34,6 +34,8 @@ const REPORTERS := {
 	&"sudden_bloom": "_sudden_bloom", &"watchful_rest": "_watchful_rest", &"straightaway": "_straightaway",
 	&"heart_of_the_maze": "_heart_of_the_maze", &"echoing_steps": "_echoing_steps",
 	&"rain_on_glass": "_rain_on_glass",
+	&"kind_canopy": "_kind_canopy", &"shared_light": "_shared_light", &"bramble_oath": "_bramble_oath",
+	&"golden_harvest": "_golden_harvest",
 }
 const STAT_KEYS := {&"damage": "damage", &"attack_speed": "speed", &"range": "range", &"cost": "cost"}
 
@@ -568,3 +570,29 @@ func _rain_on_glass(spot: Dictionary, _board: Board, _card: UpgradeData) -> Dict
 	if spot.data.line != "light":
 		return {}
 	return {"effect": "+%d%% damage to Soaked nightmares" % roundi(DreamState.RAIN_ON_GLASS_PER * ds.rule_stacks(&"rain_on_glass") * 100)}
+
+# Seed cards (dream_design.md "Seed cards"): the "Now" effects that change a Warden's damage.
+func _kind_canopy(spot: Dictionary, board: Board, _card: UpgradeData) -> Dictionary:
+	var touching := board.touching(spot).size()
+	var on := touching >= DreamState.KIND_CANOPY_TOUCHING
+	return {"positional": true, "radius": 1.0, "active": on, "damage": DreamState.KIND_CANOPY_BONUS,
+		"reason": "" if on else "touches %d Wardens (needs %d)" % [touching, DreamState.KIND_CANOPY_TOUCHING]}
+
+func _shared_light(spot: Dictionary, board: Board, _card: UpgradeData) -> Dictionary:
+	var touching := board.touching(spot).size()
+	var bonus := minf(DreamState.SHARED_LIGHT_PER * touching, DreamState.SHARED_LIGHT_MAX)
+	return {"positional": true, "radius": 1.0, "active": bonus > 0.0, "damage": bonus,
+		"note": "%d Wardens touching" % touching, "reason": "" if bonus > 0.0 else "no Warden touching it"}
+
+func _bramble_oath(_spot: Dictionary, _board: Board, _card: UpgradeData) -> Dictionary:
+	var tiles := ds.walls_added_tiles()
+	var bonus := minf(DreamState.BRAMBLE_OATH_PER * (tiles / 10), DreamState.BRAMBLE_OATH_MAX)
+	return {"run_wide": true, "active": bonus > 0.0, "damage": bonus, "note": "walls add %d path tiles" % tiles,
+		"reason": "" if bonus > 0.0 else "your walls add fewer than 10 path tiles"}
+
+func _golden_harvest(_spot: Dictionary, _board: Board, card: UpgradeData) -> Dictionary:
+	var dew := ds.dew_harvested()
+	var bonus := minf(DreamState.GOLDEN_HARVEST_PER * (dew / 100), DreamState.GOLDEN_HARVEST_MAX)
+	var grown := ds.seed_grown(card)
+	return {"run_wide": true, "active": grown and bonus > 0.0, "damage": bonus, "note": "%d Dew harvested" % dew,
+		"reason": "" if grown and bonus > 0.0 else ("no catcher yet" if not grown else "harvest 100 Dew")}

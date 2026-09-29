@@ -342,12 +342,22 @@ func _make_blessing_card(card: UpgradeData) -> Button:
 # several): it's moved into the offered slots; the player still chooses (dream_design.md
 # "Adapt, don't get handed" 5).
 func _include_owed_family(available: Array[TowerData], count: int) -> void:
+	# Seed cards held call their families (every one); a half-dreamed Dream owes one of its missing ones.
+	var wanted: Array = dream_state.get_called_families()
 	for id in dream_state.take_owed_families():
+		if not wanted.has(id) and available.any(func(d: TowerData) -> bool: return d.get_id() == id):
+			wanted.append(id)
+			break
+	var slot := 0
+	for id in wanted:
+		if slot >= count:
+			break
 		for i in available.size():
 			if available[i].get_id() != id:
 				continue
-			if i >= count and count > 0:
-				var swapped := available[count - 1]
-				available[count - 1] = available[i]
+			if i >= slot:  # Move it into the next offered slot
+				var swapped := available[slot]
+				available[slot] = available[i]
 				available[i] = swapped
-			return
+				slot += 1
+			break
