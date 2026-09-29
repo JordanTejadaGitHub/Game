@@ -203,6 +203,10 @@ func _run() -> void:
 		_check(intro.visible and intro.shown.display_name == load("res://resource/enemy/bark_beetle.tres").display_name and intro.queue.is_empty(),
 			"a second card replaces the first (no stacking)")
 		_check(speed_node.paused, "the card stops the game, even at a rest")
+		await process_frame
+		var card_centre: Vector2 = intro._panel.get_global_rect().get_center()
+		var screen_centre: Vector2 = intro.get_viewport_rect().size / 2.0
+		_check(card_centre.distance_to(screen_centre) < 2.0, "the card is centred on screen (%s vs %s)" % [card_centre, screen_centre])
 		intro.close()
 		_check(not speed_node.paused, "closing it resumes")
 		_check(NightmareIntro.enabled(), "introductions are always on")
