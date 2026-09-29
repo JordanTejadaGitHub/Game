@@ -70,6 +70,8 @@ func _ready() -> void:
 	_toggle(gameplay, "Pause on new combos", ComboFeedback.PAUSE_SETTING, true)
 	_toggle(gameplay, "Always show resist / weak pips on nightmares", ResistPips.SETTING, false)
 	_choice(gameplay, "Kinship effects", "kinship_effects", ["Full", "Subtle", "Off"], 0)
+	# Omens (run_design.md "Ask first"): "ask" at each Omen rest, or "never" = always Clear Skies.
+	_choice_values(gameplay, "Omens", OmenDirector.MODE_SETTING, ["Ask each rest", "Never"], ["ask", "never"], "ask")
 	_choice(gameplay, "Health bars", "health_bars", ["On hit", "Always"], 0)
 
 	var box := _tab("Accessibility")
@@ -255,3 +257,19 @@ func _refresh_keys() -> void:
 			if event is InputEventKey:
 				names.append(OS.get_keycode_string(event.physical_keycode))
 		_key_buttons[action].text = ", ".join(names) if not names.is_empty() else "—"
+
+# Like _choice, but saves `values[index]` (a string) instead of the index.
+func _choice_values(box: VBoxContainer, text: String, key: String, options: Array, values: Array, default: String) -> void:
+	var row := HBoxContainer.new()
+	var label := Label.new()
+	label.text = text
+	label.custom_minimum_size = Vector2(120, 0)
+	row.add_child(label)
+	var pick := OptionButton.new()
+	for option in options:
+		pick.add_item(option)
+	pick.selected = maxi(values.find(str(_settings.get(key, default))), 0)
+	pick.focus_mode = Control.FOCUS_NONE
+	pick.item_selected.connect(func(index: int) -> void: _set_value(key, values[index]))
+	row.add_child(pick)
+	box.add_child(row)

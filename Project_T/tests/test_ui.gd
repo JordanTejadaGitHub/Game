@@ -348,6 +348,11 @@ func _run() -> void:
 	var settings := SettingsPanel.new()
 	main.add_child(settings)
 	var tab_names: Array = settings.tabs.get_children().map(func(c: Node) -> String: return c.name)
+	var omen_pick: OptionButton = null
+	for pick in settings.find_children("*", "OptionButton", true, false):
+		if pick.item_count == 2 and pick.get_item_text(0) == "Ask each rest":
+			omen_pick = pick
+	_check(omen_pick != null and omen_pick.get_item_text(1) == "Never", "Gameplay: Omens Ask each rest / Never")
 	_check(tab_names.has("Audio") and tab_names.has("Display") and tab_names.has("Accessibility") and tab_names.has("Controls"),
 		"settings are in tabs (%s)" % [tab_names])
 	settings.queue_free()
