@@ -88,6 +88,10 @@ N("nightshade", "cards", "Nightshade", 1132, 702, "venom", { legendary: true });
 N("kin_lore", "cards", "Kin Lore", 768, 664, [764, 594]);
 N("deep_bonds", "cards", "Deep Bonds", 756, 734, "kin_lore");
 N("grove_of_kin", "cards", "Grove of Kin", 742, 808, "deep_bonds", { legendary: true });
+// Seeds (support and economy bets).
+N("planted_promises", "cards", "Planted Promises", 1010, 470, [1000, 480]);
+N("deep_promises", "cards", "Deep Promises", 1030, 400, "planted_promises");
+N("golden_harvest", "cards", "Golden Harvest", 1050, 330, "deep_promises", { legendary: true });
 const byId = Object.fromEntries(NODES.map(n => [n.id, n]));
 NODES.forEach(n => { n.depth = n.parent ? byId[n.parent].depth + 1 : 1; });
 // Where dream-fruit (Memories) hang, in the order they appear: the point under a limb the vine

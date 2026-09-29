@@ -65,6 +65,7 @@ const CARD_ICONS = {
   woven: e => { for (let i = 0; i < 3; i++) { const y = 11 + i * 5; stroke(e, 9, y, 23, y + 3, 1.6, 1.4, i % 2 ? GOLDC[3] : "#c8a8ff"); stroke(e, 11 + i * 5, 8, 14 + i * 5, 25, 1.6, 1.4, i % 2 ? "#c8a8ff" : GOLDC[3]); } },
   deep_poison: e => { ellipse(e, 16, 19, 5.5, 5.5, (x, y, dx, dy) => Math.hypot(dx + .4, dy + .4) < .35 ? "#d8b8ff" : pick(["#2a1438", "#4a2468", "#7a44a0"], .55 - dx * .3 - dy * .3, x, y)); for (let y = 8; y <= 13; y++) e.set(16 + (13 - y) * .3, y, LEAFG[2]); stroke(e, 16, 12, 21, 9, 1.3, 1, LEAFG[1]); },
   kinship: e => { sprout(e, 12, 24, 10); sprout(e, 20, 24, 10); for (const [x, y] of [[15, 12], [17, 12], [14, 13], [18, 13], [16, 15]]) e.set(x, y, "#f07a8a"); e.set(16, 14, "#f07a8a"); e.set(15, 14, "#f07a8a"); e.set(17, 14, "#f07a8a"); },
+  seeds: e => { for (const [x, y] of [[11, 20], [16, 16], [21, 20]]) ellipse(e, x, y, 3, 4, (xx, yy, dx, dy) => pick(["#6a4a1c", "#b88a3a", "#f2d27a"], .55 - dx * .3 - dy * .35, xx, yy)); for (let y = 8; y <= 12; y++) e.set(16, y, LEAFG[2]); stroke(e, 16, 10, 20, 7, 1.2, 1, LEAFG[1]); },
 };
 function cardIcon(key) {
   return icon((L, o) => {

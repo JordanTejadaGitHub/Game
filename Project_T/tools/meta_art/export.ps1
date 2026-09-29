@@ -7,7 +7,7 @@ $gen = Join-Path $here "grove_gen.html"
 if ($Rebuild) {
 	$old = Get-Content -Raw -Encoding UTF8 $gen
 	$s = $old.IndexOf('"use strict";'); $e = $old.IndexOf('const HW32 ='); if ($e -lt 0) { $e = $old.IndexOf('// ================= Memory Grove') }
-	$helpers = $old.Substring($s, $e - $s)
+	$helpers = $old.Substring($s, $e - $s).TrimEnd()  # TrimEnd: no extra newline per rebuild
 	$parts = ("grove_tree.js","grove_parts.js","grove_icons.js","grove_memories.js","grove_export.js" | ForEach-Object { Get-Content -Raw -Encoding UTF8 (Join-Path $here $_) }) -join ""
 	$palette = Get-Content -Raw -Encoding UTF8 (Join-Path (Split-Path -Parent (Split-Path -Parent $here)) "assets/palette/heartwood32.json")
 	$parts = "const HW32 = $palette;`n" + $parts

@@ -401,7 +401,7 @@ func _layout_node(id: String) -> Dictionary:
 # art, and every UnlockData is on the tree.
 func _check_layout(grove: Array[UnlockData]) -> void:
 	var nodes: Array = GroveTreeView.load_layout().nodes
-	_check(nodes.size() == 82 and grove.size() == 82, "82 Grove nodes (layout %d, data %d)" % [nodes.size(), grove.size()])
+	_check(nodes.size() == 85 and grove.size() == 85, "85 Grove nodes (layout %d, data %d)" % [nodes.size(), grove.size()])
 	for node in nodes:
 		var unlock := HeartwoodMemory.get_unlock(node.id)
 		if unlock == null:

@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="UnlockData" format=3]
+
+[ext_resource type="Script" path="res://resource/meta/script/unlock_data.gd" id="1_unlock"]
+
+[resource]
+script = ExtResource("1_unlock")
+id = "planted_promises"
+display_name = "Planted Promises"
+description = "Seed Dreams join the pool: Dew Bowl, Harvest Moon, Kind Canopy, Patient Roots."
+root = 1
+costs = Array[int]([50])
+order = 50
+icon = 11
+dream_cards = Array[String](["dew_bowl", "harvest_moon", "kind_canopy", "patient_roots"])
