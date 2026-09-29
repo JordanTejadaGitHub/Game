@@ -431,3 +431,33 @@ static func combo_for_link(status: StringName, payoff: TowerData) -> Dictionary:
 				and entry.statuses.has(payoff.applies_status):
 			return entry
 	return {}
+
+# --- Discovery unlocks (dream_design.md "Discovery unlocks") ---------------------------------------
+# The Dream cards a discovery lets into the pool, by their `discovered_by` key ("reaction:thunderclap",
+# "crowned:tempest", "kinship:any"). The Codex lists them under a discovered entry; an undiscovered one
+# stays "???" (it names nothing).
+static var _dreams_by_key := {}
+
+static func dreams_for(key: String) -> Array[String]:
+	if _dreams_by_key.is_empty():
+		for file in ResourceLoader.list_directory(DREAM_DIR):
+			if not file.ends_with(".tres"):
+				continue
+			var card := load(DREAM_DIR + file) as UpgradeData
+			if card == null:
+				continue
+			for k in card.get("discovered_by") if card.get("discovered_by") != null else []:
+				if not _dreams_by_key.has(k):
+					_dreams_by_key[k] = []
+				_dreams_by_key[k].append(card.display_name)
+	var names: Array[String] = []
+	names.assign(_dreams_by_key.get(key, []))
+	return names
+
+# The key an entry's discovery counts as ("" for synergies: no cards wait on them).
+static func discovery_key(entry: Dictionary) -> String:
+	match entry.get("kind", ""):
+		"Reaction": return "reaction:" + String(entry.id)
+		"Crowned": return "crowned:" + String(entry.id)
+		"Kinship": return "kinship:any"
+	return ""

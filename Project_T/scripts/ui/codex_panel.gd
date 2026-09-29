@@ -335,6 +335,13 @@ func _build_kinships(seen: Array, counts: Dictionary, live: ComboFeedback, kin_a
 	header.add_theme_font_size_override("font_size", 20)
 	header.add_theme_color_override("font_color", KIN_COLOR)
 	_combos.add_child(header)
+	if found > 0:  # Any Kinship found lets the Kinship Dreams into the pool (discovery unlocks)
+		var holder := VBoxContainer.new()
+		_add_dreams_line(holder, {"kind": "Kinship"})
+		if holder.get_child_count() > 0:
+			_combos.add_child(holder)
+		else:
+			holder.free()
 	for k in kin:
 		var discovered := seen.has(String(k.id))
 		var times := int(counts.get(String(k.id), 0)) + (int(live._unsaved.get(k.id, 0)) if live else 0)
@@ -443,6 +450,7 @@ func _crowned_card(c: Dictionary, discovered: bool, times: int) -> Control:
 		count.text = "Set off %d time%s" % [times, "" if times == 1 else "s"]
 		count.add_theme_font_size_override("font_size", 13)
 		box.add_child(count)
+		_add_dreams_line(box, c)
 	return panel
 
 func _combo_card(combo: Dictionary, discovered: bool, times: int) -> Control:
@@ -476,6 +484,7 @@ func _combo_card(combo: Dictionary, discovered: bool, times: int) -> Control:
 	count.text = "Set off %d time%s" % [times, "" if times == 1 else "s"]
 	count.add_theme_font_size_override("font_size", 13)
 	box.add_child(count)
+	_add_dreams_line(box, combo)
 	return panel
 
 # "Set off by: Stormcap" (synergies), or per ingredient which of your Wardens apply it:
@@ -660,3 +669,17 @@ func _form_icon(data: TowerData, shown: bool, side: float) -> TextureRect:
 	if not shown:
 		icon.modulate = SILHOUETTE  # A silhouette: the shape, not the Warden
 	return icon
+
+# "Dreams: Rolling Thunder, Rain on Glass": the cards this (discovered) entry let into the Dream pool
+# (dream_design.md "Discovery unlocks"). Nothing for synergies or entries without cards.
+func _add_dreams_line(box: Control, entry: Dictionary) -> void:
+	var names := CodexData.dreams_for(CodexData.discovery_key(entry))
+	if names.is_empty():
+		return
+	var line := Label.new()
+	line.name = "Dreams"
+	line.text = "Dreams: " + ", ".join(names)
+	line.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	line.add_theme_font_size_override("font_size", 13)
+	line.add_theme_color_override("font_color", GROVE_COLOR)
+	box.add_child(line)
