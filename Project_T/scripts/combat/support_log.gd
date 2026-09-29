@@ -51,11 +51,11 @@ static func credit(tower: Node, key: StringName, amount: float) -> void:
 
 func _ready() -> void:
 	add_to_group(GROUP)
-	var director := get_node_or_null("%DriftDirector") as DriftDirector
+	var director := get_parent().get_node_or_null("%DriftDirector") as DriftDirector
 	if director:
 		director.drift_started.connect(_on_drift_started)
 		director.rest_started.connect(func(_b: int, _boss: bool, _bonus: int, _p: bool) -> void: _block_open = true)
-	var damage := DamageLog.instance if DamageLog.instance else get_node_or_null("%DamageLog") as DamageLog
+	var damage := DamageLog.instance if DamageLog.instance else get_parent().get_node_or_null("%DamageLog") as DamageLog
 	if damage:
 		damage.damage_dealt.connect(_on_damage_dealt)
 
@@ -218,7 +218,7 @@ func get_walls_path_tiles() -> int:
 
 # Path tiles one Thornwall adds (the route with it vs without it), cached per board.
 func get_path_tiles(wall: Tower) -> int:
-	var map = get_node_or_null("%MapGenerator")
+	var map = get_parent().get_node_or_null("%MapGenerator")
 	var dreams := get_tree().get_first_node_in_group(DreamState.GROUP) as DreamState
 	if map == null or dreams == null:
 		return 0

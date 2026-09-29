@@ -1865,6 +1865,8 @@ func _connect_yield() -> void:
 	if not is_inside_tree():
 		return
 	_kin = Kinships.find(self)  # Made on the first Warden of the run
+	SupportLog.find(self)  # Support credit and the drift meter listen from the run's first Warden on
+	WardenMeter.find(self)
 	if _dream_state == null:
 		return
 	if _dream_state.has_signal("eldest_changed") and not _dream_state.eldest_changed.is_connected(_on_eldest_changed):
