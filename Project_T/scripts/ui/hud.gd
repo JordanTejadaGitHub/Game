@@ -88,6 +88,10 @@ func _ready() -> void:
 	drift_meter.name = "DriftMeter"
 	add_child(drift_meter)
 	owner.add_child.call_deferred(DpsTags.new())
+	# Close calls (run_design.md): a nightmare past 85% of the route trembles the Heartwood (world).
+	var close_calls := CloseCalls.new()
+	close_calls.name = "CloseCalls"
+	owner.add_child.call_deferred(close_calls)
 	# The Codex's Dreams: every card offered is seen on the account (DreamCodex).
 	add_child(DreamCodex.new(dream_state, run_state))
 	_raise_overlays.call_deferred()  # After everything above (and deferred adds) is in

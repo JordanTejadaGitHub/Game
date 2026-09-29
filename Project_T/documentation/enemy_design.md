@@ -201,7 +201,7 @@ some are hard, so every drift plays a little differently. They must never make a
 - Regular nightmares have **at most one resistance and one weakness**; bosses up to two
   resistances and one weakness. Shades and the little ones (Sob, Creep, Wraith) have none, so the
   baseline stays readable.
-- **Act 1 is fair to one family** (2026-09-28): before the drift 25 pick most players have one family, so **no act 1 drift may have more than ~40% of its health resistant to one damage type the player can own by then** (the starting three families' types: Spore, Water, Light; Plain never counts) (the old Wake, all Mourners, broke single-family spore boards).
+- **Act 1 is fair to one family** (2026-09-28): before the drift 25 pick most players have one family, so **no act 1 drift may have more than ~40% of its health resistant to one damage type** (rolled drifts count every family; the hand-made reference tables were checked against only the starting three families' types; Plain never counts) (the old Wake, all Mourners, broke single-family spore boards).
 - **Spread them out.** Each family is resisted and favoured by roughly the same number of
   nightmares (see the tally below). Drift composition mixes resistances so no drift hard-counters
   a single family.

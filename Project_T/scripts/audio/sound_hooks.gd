@@ -86,6 +86,9 @@ const DEW_CATCH_DB := -16.0
 const DEW_CATCH_THROTTLE_MS := 400
 const HARVEST_DB := -3.0
 const HARVEST_WINDOW_MS := 4000  # Pours within this of the first belong to the same Harvest
+# Close calls: a soft tension cue, one per 2 s at most (like the Heartwood's tremble).
+const CLOSE_CALL_DB := -8.0
+const CLOSE_CALL_THROTTLE_MS := 2000
 const HIT_FAMILIES := ["stone", "root", "water", "light", "spore", "sprout"]  # Others sound like sprout
 const HIT_GROUP_MS := 90  # A pulse or splash hitting many nightmares at once is one impact
 const CHAIN_STEP_DB := -4.0  # Each jump of a chain ripples a little quieter
@@ -131,6 +134,7 @@ var _scan_left := 0.0  # Seconds (real time) until the next field scan
 var _resting := true
 var _presence := {}  # Tower instance id -> a Warden with a presence loop
 var _dew_catch_at := -100000
+var _close_call_at := -100000
 var _harvest_at := -100000  # msec of this rest's harvest sound (later pours add droplets)
 
 func _ready() -> void:
@@ -751,7 +755,8 @@ func _on_family_whole(_family: String) -> void:
 # very quiet, throttled droplet; the rest's harvest gathers every catcher's pour in that frame into
 # one warm pour, fuller with the amount; the Wellspring's interest is a gentle ripple.
 func _hook_economy(node: Node) -> void:
-	for pair in [["dew_caught", _on_dew_caught], ["harvest_poured", _on_harvest_poured], ["interest_paid", _on_interest_paid]]:
+	for pair in [["dew_caught", _on_dew_caught], ["harvest_poured", _on_harvest_poured], ["interest_paid", _on_interest_paid],
+			["close_call", _on_close_call]]:
 		if node.has_signal(pair[0]) and not node.is_connected(pair[0], pair[1]):
 			node.connect(pair[0], pair[1])
 
@@ -777,6 +782,15 @@ func _on_harvest_poured(_tower: Node = null, amount = 0) -> void:
 
 func _on_interest_paid(_tower: Node = null, _amount = 0) -> void:
 	sound.play(&"interest_ripple", null, KIN_DB, 1.0, 0.0, &"UI")
+
+# Close calls (Main's CloseCalls, 6d95009; added deferred, so hooked as it joins the tree): a nightmare
+# past 85% of its route. A soft tension cue, throttled like the visual (one per 2 s).
+func _on_close_call(enemy: Node2D = null) -> void:
+	var now := Time.get_ticks_msec()
+	if now - _close_call_at < CLOSE_CALL_THROTTLE_MS:
+		return
+	_close_call_at = now
+	sound.play(&"close_call", enemy.global_position if is_instance_valid(enemy) else null, CLOSE_CALL_DB, 1.0, 0.03)
 
 func _on_reaction(id: StringName, enemy: Node2D, _chain: int, _towers: Array) -> void:
 	if not is_instance_valid(enemy):

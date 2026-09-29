@@ -101,7 +101,7 @@ resumes with the same drifts, and two players on the same seed meet the same nig
 5. The hand-made tables in `acts_1_2.md` / `acts_3_4.md` remain the reference for budgets,
 introductions, templates and boss escorts.
 
-**As built** (Enemy Code, 0cd0fa2 + b056b94): rolled once at run start from the seed (a resume gets the same drifts); each rolled drift keeps its hand-made drift's health budget (±5%), arrival window and **designed elites** (those count outside the fairness caps: a fixed design choice); the "one resisted type in at most 2 drifts per block" rule applies in acts 2–4 only (act 1 has too few types); tested over 200 seeds (~14,600 drifts). The rest report can name each drift's template (`DriftRoller.template_name`).
+**As built** (Enemy Code, 0cd0fa2 + b056b94): rolled once at run start from the seed (a resume gets the same drifts); each rolled drift keeps its hand-made drift's health budget (±5%), arrival window and **designed elites** (those count outside the fairness caps: a fixed design choice); the caps count **every family a nightmare resists**, not only the starting three (stricter, and right for the full game, where any unlocked family can open a run); the "one resisted type in at most 2 drifts per block" rule applies in acts 2–4 only (act 1 has too few types); tested over 200 seeds (~14,600 drifts). The rest report can name each drift's template (`DriftRoller.template_name`).
 
 ### Time budget
 
@@ -151,6 +151,20 @@ turn leaks into a hold. Targets for the balance simulation and playtests (averag
   with few leaks, even with no Grove); **from drift 25 it gets hard**, as combos, the second family
   and Dreamlight arrive: leaks start in act 2 unless the Dreams and combos come together, so each
   block's Dream visibly matters there.
+- **Spend or save: the early tension** (2026-09-29, user: "we want users early to be using the Dew
+  as drifts happen, or take the risk to save the Dew for bigger upgrades; if they save, nightmares
+  should come close to reaching the Heartwood"). Act 1 is tuned so that:
+  - **Spending as it comes** (planting and growing whenever affordable, building the maze) is safe:
+    nightmares rarely get past **about 70% of the route**.
+  - **Saving** (holding Dew for up to a block to afford a bigger growth, e.g. a branch or an early
+    final) is a real gamble: nightmares reach **about 85–100% of the route**, the Heartwood shakes,
+    maybe **0–2 leaves** fall, but a decent maze survives it and the upgrade then pays off.
+  - **Neither choice is always right:** saving should win over a whole act if you survive the
+    gamble, and spending should win if your maze is weak. The maze itself (its length, its bends)
+    is what makes saving affordable, so building the maze stays central.
+  - Feedback that sells the gamble: the Heartwood's leaves tremble and the route near it glows
+    faintly cold when a nightmare passes 85% of the route (a "close call"), and the rest report
+    counts close calls.
 - **Leaks must be readable, not random:** a leak should come from a nightmare the maze doesn't
   answer (a Hound on a straight, a Phantom through walls, a resisted family), so the rest report and
   the boss dossier point at the fix.

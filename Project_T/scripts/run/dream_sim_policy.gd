@@ -14,7 +14,7 @@ class_name DreamSimPolicy
 # Dreamlight: the next form (branch → its finals → the other branch → Ascended) of the family with
 # the most Wardens on the map (Wide also counts its Thornwalls and may grow them). Omens: Clear Skies.
 
-enum Style { BALANCED, WIDE, NARROW, COMBO, SLEEP, SPROUT }
+enum Style { BALANCED, WIDE, NARROW, COMBO, SLEEP, SPROUT, MIXED }  # Append only
 
 # Tag scores per style (a card sums its tags; in-build cards get IN_BUILD on top).
 const TAG_SCORES := {
@@ -25,6 +25,8 @@ const TAG_SCORES := {
 	Style.COMBO: {"reaction": 3.0, "kinship": 1.0, "potency": 1.0, "status": 1.0},
 	Style.SLEEP: {"sleep": 3.0, "song": 3.0, "status": 1.0, "reaction": 1.0},
 	Style.SPROUT: {"sprout": 3.0, "wide": 2.0, "wall": 1.0, "narrow": -3.0, "nurture": -1.0},
+	# Mixed opening: a family plus ~40% Sprouts on Thornwall walls; Balanced, but Sprout cards count.
+	Style.MIXED: {"maze": 1.0, "reaction": 1.0, "crit": 1.0, "economy": 0.5, "sprout": 1.5, "clearing": -2.0},
 }
 const IN_BUILD := 2.0
 const COMBO_ENTWINED := 3.0  # Combo: Entwined / Woven cards
@@ -44,6 +46,7 @@ const FAMILIES := {
 	Style.COMBO: [],
 	Style.SLEEP: ["bellflower", "dewdrop", "sporeling", "firefly_jar", "pebbling", "acorn", "rootling", "nestling", "whirligig"],
 	Style.SPROUT: ["sporeling", "acorn", "rootling", "whirligig", "dewdrop", "firefly_jar", "pebbling", "nestling", "bellflower"],
+	Style.MIXED: ["sporeling", "firefly_jar", "dewdrop", "pebbling", "acorn", "rootling", "nestling", "whirligig", "bellflower"],
 }
 
 var dreams: DreamState
