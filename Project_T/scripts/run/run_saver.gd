@@ -31,6 +31,25 @@ var _dirty := false  # A rest began or a choice closed: save once nothing is ope
 var autosave := true
 var _saved_data := {}  # Loaded save, applied once the scene is ready
 
+const QUIT_FRAMES := 3  # Frames between freeing the run and quitting
+
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_WM_CLOSE_REQUEST:
+		safe_quit(get_tree())
+	elif what == NOTIFICATION_EXIT_TREE:
+		get_tree().auto_accept_quit = true  # Back to the title / Grove: their close is the engine's
+
+# Quits without tearing the run scene down during exit: frees the current scene, waits a few frames,
+# then quits. Static, so it keeps going after this node is freed with the scene. Tests that quit with
+# main.tscn loaded can use it too.
+static func safe_quit(tree: SceneTree, exit_code: int = 0) -> void:
+	var scene := tree.current_scene
+	if scene != null and is_instance_valid(scene):
+		scene.queue_free()
+	for i in QUIT_FRAMES:
+		await tree.process_frame
+	tree.quit(exit_code)
+
 static func has_save() -> bool:
 	return FileAccess.file_exists(file_path)
 
@@ -40,6 +59,10 @@ static func delete_save() -> void:
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS  # Choice screens pause the tree
+	# Closing the window mid-run: free the run first, quit a few frames later (safe_quit). The engine
+	# can crash tearing this scene down at exit (Tower Code, ~5% under load). Only while a run is open;
+	# other scenes keep the engine's own close.
+	get_tree().auto_accept_quit = false
 	# Never in tests, and never in Test Grove (a dev playtest would overwrite the real saved run).
 	autosave = get_tree().current_scene == owner and not TestGrove.is_active()
 	# Runs before MapGenerator (earlier sibling), so the map is rebuilt from the saved seed.
