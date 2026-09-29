@@ -23,7 +23,7 @@ const SPEND_EVERY := 2.0  # Game seconds between mid-drift spending checks
 const SAVE_REST_BONUSES := 6  # Saves up for a growth costing up to this many rest bonuses (finals with ranks: 300+)
 const MAX_FAMILIES := 2  # Mixed styles build their first two families deep
 var _saving_for_final := false  # The cheapest open growth is a final form (saves longer for it)
-const STYLES := {"balanced": 0, "wide": 1, "narrow": 2, "combo": 3, "sleep": 4, "sprout": 5}  # DreamSimPolicy.Style
+const STYLES := {"balanced": 0, "wide": 1, "narrow": 2, "combo": 3, "sleep": 4, "sprout": 5, "grove": 3}  # DreamSimPolicy.Style; grove = the hand-written Grove player (Combo cards, --families)
 const COLUMNS := ["drift", "act", "seconds", "health_spawned", "damage", "leaks", "leaves_lost", "leaves_left",
 	"dew_rest", "dew_other", "spent_plant", "spent_walls", "spent_grow", "spent_nurture", "banked",
 	"attackers", "walls", "tier1", "tier2", "tier3", "tier4", "avg_rank", "route", "families", "cards",
@@ -47,6 +47,7 @@ var speed := 8.0
 var last_drift := 100
 var out_dir := "res://tools/balance_out"
 var start_cards: Array[String] = []
+var forced_families: Array[String] = []
 
 var main: Node
 var map
@@ -84,6 +85,7 @@ func _run() -> void:
 			"--last": last_drift = int(value)
 			"--out": out_dir = value
 			"--card": start_cards.append(value)  # e.g. --card=seedfall: taken at the start of the run
+			"--families": forced_families.assign(value.split(","))  # e.g. firefly_jar,dewdrop: the family picks, in order; later picks take none
 	if profile != "fresh":
 		var meta: Script = load("res://scripts/meta/meta_run.gd")
 		if not meta.get_script_method_list().any(func(m: Dictionary) -> bool: return m.name == "load_preset"):
@@ -157,7 +159,10 @@ func _take_over_choices() -> void:
 
 func _on_family_pick(kind: StringName) -> void:
 	_busy = true
-	policy.family_pick(kind)
+	if forced_families.is_empty():
+		policy.family_pick(kind)
+	else:
+		_forced_family_pick(kind)
 	paused = false
 	director.family_picked()
 	_busy = false
@@ -202,8 +207,10 @@ func _next_buy() -> String:
 	# A sensible player saves up for an unlocked growth (a branch is 80 Dew, a final 200 plus the ranks it
 	# carries) instead of spending every Dew on ranks; Narrow nurtures anyway.
 	var saving := _cheapest_growth()
-	if style != "narrow" and saving > 0 and saving <= (SAVE_REST_BONUSES if _saving_for_final else 3) * director.get_rest_bonus(director.get_block(maxi(director.drifts_started, 1))):
-		return ""
+	var bonus := director.get_rest_bonus(director.get_block(maxi(director.drifts_started, 1)))
+	if style != "narrow" and saving > 0 and not _leaked_last_drift() \
+			and (_saving_for_final or saving <= 3 * bonus):
+		return ""  # Finals come before ranks (any price); cheaper growths only while within 3 rest bonuses
 	if _nurture():
 		return "nurture"
 	# Keep nothing in reserve (the spec): nothing else to buy (ranks capped at II without a Nurture
@@ -495,3 +502,23 @@ func _open_growth(tower: Tower) -> TowerData:
 func _waits_for_final(tower: Tower) -> bool:
 	var form := _open_growth(tower)
 	return form != null and form.tier >= 3
+
+# Whether the last finished drift leaked: the bot spends instead of saving up then.
+func _leaked_last_drift() -> bool:
+	return not rows.is_empty() and int(rows.back().get("leaks", 0)) > 0
+
+# --families: the picks go to these families in order (the family is unlocked as a pick would); once the
+# list is used up, a pick takes nothing (a fixed pair stays a pair).
+func _forced_family_pick(kind: StringName) -> void:
+	if kind == &"first":
+		dreams.add_dreamlight(dreams.sim_dreamlight_for(&"first"))
+	var chosen := ""
+	for id in forced_families:
+		if not dreams.is_unlocked(id):
+			chosen = id
+			break
+	if chosen != "":
+		dreams.unlocked[chosen] = true
+		dreams.unlocks_changed.emit()
+	policy.choices.append("family pick (%s): %s" % [kind, chosen if chosen != "" else "none (fixed families)"])
+	policy.spend_dreamlight()
