@@ -32,7 +32,7 @@ replayable run, then leave players wanting the Deep Wood and the Memory Grove.
 | Kinships | **Slumber Rot, Rainfog, Storm Beacon** (the demo families' main Kinships) and **Kindred** (`tower_design.md` "Kinships"). Whole Tree and hidden Kinships need Grove unlocks, so full game only |
 | Dreams | after drifts 5, 10, … 95 (**19 per run**; boss Dreams guaranteed Rare+), from the Start pool |
 | Nightmares | acts 1–2 as in `acts_1_2.md` (Shade, Husk, Mourner, Phantom, Night Hound, Procession, the Hollow Stag, the Mire Hag) and acts 3–4 as in `acts_3_4.md` (the whole roster, the Moth Queen, the Hollow Oak) |
-| Act 2 boss | **always the Mire Hag** in the demo (the full game picks the Hag or the Moth Queen); the Hag needs no extra nightmares, the Moth Queen needs Lurkers and flying |
+| Act 2 boss | **always the Mire Hag** in the demo; the full game draws from a pool of 3 per act (`enemy_design.md`, boss pools). Open question: should the demo's act 1 already draw from its pool (Hollow Stag / Night Mare / Scarecrow) to show off the feature, at the cost of two more bosses before launch? |
 | Map | the forest biome, fully procedural (ridges, tending) |
 | Story | the intro, and **Memory 1** as a story hook on the victory screen |
 | Onboarding | everything in `onboarding.md` for run 1 (Grove parts replaced by the teaser) |
