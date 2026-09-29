@@ -12,12 +12,14 @@ class_name DriftMeter
 
 const WIDTH := 300.0
 const REFRESH := 0.5
-const CARRYING_COLOR := Color("fcd47c")  # UiStyle.GOLD
-const FINE_COLOR := Color("fff4dc")  # UiStyle.INK
-const UNDERUSED_COLOR := Color("7f9cc8")  # Dim blue
-const GOOD := Color(0.55, 0.9, 0.5)
-const CLOSE := Color(1.0, 0.8, 0.35)
-const SHORT := Color(0.95, 0.45, 0.4)
+# Heartwood 32 (ui_style.md). Ratings: Glow / Heartlight / Stone; benchmark: Sprig / Gold / Ember (the
+# palette has no red; the words say it too).
+const CARRYING_COLOR := UiStyle.GOLD
+const FINE_COLOR := UiStyle.INK
+const UNDERUSED_COLOR := UiStyle.OFF
+const GOOD := Color("9cc46c")  # Sprig
+const CLOSE := UiStyle.BUTTON_GOLD
+const SHORT := UiStyle.POOR
 const OPEN_SETTING := "meter_open"
 
 var drift_director: DriftDirector
@@ -102,6 +104,7 @@ func _ready() -> void:
 	_header.focus_mode = Control.FOCUS_NONE
 	_header.alignment = HORIZONTAL_ALIGNMENT_LEFT
 	_header.custom_minimum_size = Vector2(0, 36)
+	UiStyle.caps(_header, 16, UiStyle.INK)
 	_header.tooltip_text = "Drift meter: tap to open or close"
 	_header.pressed.connect(func() -> void: set_open(not _body.visible))
 	box.add_child(_header)
@@ -111,6 +114,9 @@ func _ready() -> void:
 	_sort.flat = true
 	_sort.focus_mode = Control.FOCUS_NONE
 	_sort.custom_minimum_size = Vector2(0, 32)
+	_sort.add_theme_font_override("font", UiStyle.caps_font())
+	_sort.add_theme_font_size_override("font_size", 14)
+	_sort.add_theme_color_override("font_color", UiStyle.INK_DIM)
 	_sort.pressed.connect(func() -> void:
 		sort_by_share = not sort_by_share
 		_sort.text = "Sort: share" if sort_by_share else "Sort: DPS"
@@ -178,6 +184,8 @@ func _row(r: Dictionary) -> Control:
 		button.icon = WardenIcon.make(tower.tower_data)
 	button.expand_icon = false
 	button.add_theme_constant_override("icon_max_width", 26)
+	button.add_theme_font_override("font", UiStyle.body_font())  # Data rows: the body face reads best small
+	button.add_theme_font_size_override("font_size", 15)
 	var star := " ★" if r.get("most_improved", false) else ""
 	button.text = "%s  %s DPS · %d%%  %s%s" % [r.name, fmt(r.dps), roundi(float(r.share) * 100.0), change_text(r.get("change")), star]
 	button.alignment = HORIZONTAL_ALIGNMENT_LEFT
