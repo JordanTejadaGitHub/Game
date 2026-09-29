@@ -1,0 +1,302 @@
+extends SceneTree
+
+# Headless test for the economy Wardens and support credit (warden_stats.md / screens_ui.md
+# "Support and economy feedback", 2026-09-29; the Seed and Support Warden cards' Tower side):
+# Dewcatcher / Wellspring catch (+40% / +60% of a dispel's Dew into the bowl, highest catch only, ranks
+# add catch not damage), the Harvest and interest at the rest, Harvest Moon / Deep Well / Still Waters /
+# Overflowing Well / Dew Bowl / Wide Bowl / Dew Trail, aura cards (Acorn Cache, Shared Light, Kind
+# Canopy, Grandfather Stump, The Quiet Ones), Bramble Oath, Patient Roots, Many Threads, and
+# SupportLog's credit (Dew caught and paid, aura damage, Held seconds, tiles pulled, Drowsy).
+#   godot --headless --path . --script res://tests/test_catchers.gd --fixed-fps 60
+
+const CELL := 64.0
+
+var failures := 0
+var main: Node
+var spawner
+var placer: TowerPlacer
+var container: Node
+var run_state: RunState
+var director: DriftDirector
+var dreams: DreamState
+
+func _initialize() -> void:
+	_run.call_deferred()
+
+func _run() -> void:
+	main = load("res://scenes/main.tscn").instantiate()
+	main.get_node("%MapGenerator").map_seed = 42
+	root.add_child(main)
+	await process_frame
+	spawner = main.get_node("%EnemyContainer")
+	placer = main.get_node("%TowerPlacer")
+	container = main.get_node("%TowerContainer")
+	run_state = main.get_node("%RunState")
+	director = main.get_node("%DriftDirector")
+	dreams = main.get_node("%DreamState")
+	dreams.unlock_everything = true
+	for child in spawner.get_children():
+		child.queue_free()
+	await process_frame
+	var multiplier := run_state.get_dispel_multiplier()
+
+	# --- Dewcatcher: +40% of a dispel's Dew into the bowl, within 2.5 cells ---
+	var catcher := _plant("dewcatcher", Vector2(5, 5))
+	var caught := []
+	catcher.dew_caught.connect(func(_t, _w, amount: float) -> void: caught.append(amount))
+	var near := _spawn(catcher.global_position + Vector2(2 * CELL, 0))
+	var reward: int = near.get_dew_reward()
+	var dew := run_state.dew
+	await _dispel(near)
+	_check(run_state.dew == dew + roundi(reward * multiplier) or run_state.dew >= dew, "the dispel still pays its own Dew now")
+	_check(is_equal_approx(catcher.bowl, reward * multiplier * 0.4), "Dewcatcher: +40%% into the bowl (%.2f of %d)" % [catcher.bowl, reward])
+	_check(caught.size() == 1, "dew_caught fires once")
+	var far := _spawn(catcher.global_position + Vector2(3 * CELL, 0))
+	var bowl := catcher.bowl
+	await _dispel(far)
+	_check(is_equal_approx(catcher.bowl, bowl), "nothing caught 3 cells away")
+	_check(catcher.get_node_or_null("Sprite2D/BowlFill") != null, "the bowl overlay shows")
+
+	# Ranks: +10% catch each, no damage
+	var plain := catcher.get_damage()
+	catcher.rank = 2
+	var probe := _spawn(catcher.global_position)
+	_check(is_equal_approx(catcher.get_catch_share(probe), 0.6), "rank II: +60%% catch (%.2f)" % catcher.get_catch_share(probe))
+	_check(is_equal_approx(catcher.get_damage(), plain), "ranks don't add damage to a catcher")
+	catcher.rank = 0
+
+	# Highest catch only: a Wellspring next to it takes the dispel, the Dewcatcher gets nothing
+	var well := _plant("wellspring", Vector2(6, 5))
+	var both := _spawn(catcher.global_position + Vector2(CELL, 0))
+	bowl = catcher.bowl
+	var well_bowl := well.bowl
+	await _dispel(both)
+	_check(is_equal_approx(catcher.bowl, bowl) and well.bowl > well_bowl, "two catchers never stack: the Wellspring's +60% applies")
+	_check(is_equal_approx(well.bowl - well_bowl, reward * multiplier * 0.6), "Wellspring: +60%% (%.2f)" % (well.bowl - well_bowl))
+
+	# Drift Dew goes into the bowl too
+	bowl = catcher.bowl
+	catcher._on_drift_cleared(1, 0, true)
+	_check(is_equal_approx(catcher.bowl, bowl + 4), "Dewcatcher: +4 Dew per drift, into the bowl")
+
+	# --- The Harvest, then interest ---
+	var poured := []
+	catcher.harvest_poured.connect(func(_t, amount: int) -> void: poured.append(amount))
+	var interest := []
+	well.interest_paid.connect(func(_t, amount: int) -> void: interest.append(amount))
+	var harvest := floori(catcher.bowl + 0.0001) + floori(well.bowl + 0.0001)
+	run_state.dew = 500
+	director.rest_started.emit(1, false, 0, true)
+	var expected_interest := mini(floori((500 + harvest) * 0.08), 60)
+	_check(poured.size() == 1 and catcher.bowl == 0.0, "the Harvest pours the bowl")
+	_check(interest == [expected_interest], "then the Wellspring pays 8%% interest (%s, expected %d)" % [str(interest), expected_interest])
+	_check(run_state.dew == 500 + harvest + expected_interest, "Dew: harvest + interest (%d)" % (run_state.dew - 500))
+	_check(run_state.dew_harvested == harvest + expected_interest, "dew_harvested counts both (%d)" % run_state.dew_harvested)
+	director.rest_started.emit(1, false, 0, true)
+	_check(interest.size() == 1, "one Harvest per rest")
+	var log := SupportLog.find(catcher)
+	_check(log != null and log.get_stats(catcher).dew_caught > 0.0 and log.get_stats(well).dew_paid > 0.0,
+		"SupportLog: Dew caught and paid per catcher")
+	_check(log.get_panel_line(catcher).begins_with("Caught this run: "), "panel line (%s)" % log.get_panel_line(catcher))
+
+	# Interest caps: 60 each, 120 together
+	var well2 := _plant("wellspring", Vector2(8, 5))
+	var well3 := _plant("wellspring", Vector2(10, 5))
+	run_state.dew = 5000
+	director.rest_started.emit(2, false, 0, true)
+	_check(run_state.dew == 5000 + 120, "all Wellsprings together pay at most 120 (%d)" % (run_state.dew - 5000))
+	well3.queue_free()
+	await process_frame
+
+	# Deep Well: each cap +30; Still Waters: +4% when nothing was spent; Overflowing Well: shards
+	# (Deep Well's own 3% at the rest is Roguelite's; these read only the Wellsprings' interest_paid.)
+	var paid_now := []
+	for w in [well, well2]:
+		w.interest_paid.connect(func(_t, amount: int) -> void: paid_now.append(amount))
+	_take("deep_well")
+	run_state.dew = 1500
+	director.drift_started.emit(11)  # A new block: Still Waters watches
+	director.rest_started.emit(3, false, 0, true)
+	_check(paid_now.max() == 90 and paid_now.reduce(func(a, b): return a + b) == 120,
+		"Deep Well: a Wellspring's cap is 90, all together still 120 (%s)" % str(paid_now))
+	_take("still_waters")
+	paid_now.clear()
+	run_state.dew = 500
+	run_state.set_meta(&"last_dew", 500)
+	director.drift_started.emit(16)
+	director.rest_started.emit(4, false, 0, true)
+	_check(paid_now.max() >= 60, "Still Waters: 12%% when nothing was spent (%s)" % str(paid_now))
+	paid_now.clear()
+	run_state.dew = 500
+	director.drift_started.emit(21)
+	run_state.spend_dew(10)
+	director.rest_started.emit(5, false, 0, true)
+	_check(paid_now.max() <= 45, "…but 8%% after spending (%s)" % str(paid_now))
+	_take("overflowing_well")
+	var shards := dreams.dreamlight_shards
+	run_state.dew = 3000
+	director.rest_started.emit(6, false, 0, true)
+	_check(dreams.dreamlight_shards > shards, "Overflowing Well: interest over the cap becomes shards (%d)" % (dreams.dreamlight_shards - shards))
+
+	# Harvest Moon: the Harvest +50%
+	_take("harvest_moon")
+	catcher.add_to_bowl(10.0)
+	dew = run_state.dew
+	poured.clear()
+	var paid_before := run_state.dew_harvested
+	director.drift_started.emit(26)
+	for w in [well, well2]:
+		w.queue_free()
+	await process_frame
+	director.rest_started.emit(7, false, 0, true)
+	_check(poured == [15], "Harvest Moon: the Harvest pays +50%% (%s)" % str(poured))
+	_check(run_state.dew_harvested == paid_before + 15, "and counts it")
+
+	# Dew Bowl / Wide Bowl / Dew Trail
+	_take("dew_bowl")
+	var damp := _spawn(catcher.global_position + Vector2(CELL, 0))
+	_check(is_equal_approx(catcher.get_catch_share(damp), 0.55), "Dew Bowl: +15%% catch (%.2f)" % catcher.get_catch_share(damp))
+	_take("wide_bowl")
+	_check(is_equal_approx(catcher.get_catch_radius(), 3.0), "Wide Bowl: +0.5 cells")
+	_take("dew_trail")
+	damp.apply_status(EnemyStatuses.DAMP, 1, 5.0, 1.0)
+	_check(is_equal_approx(catcher.get_catch_share(damp), 0.75), "Dew Trail: +20%% on a Damp nightmare (%.2f)" % catcher.get_catch_share(damp))
+	catcher.queue_free()
+	await _clean()
+
+	# --- Auras: Acorn Cache, Shared Light, Kind Canopy, Grandfather Stump; credit ---
+	var acorn := _plant("acorn", Vector2(5, 12))
+	var buddy := _plant("sporeling", Vector2(6, 12))
+	buddy._refresh_neighbours()
+	_check(is_equal_approx(buddy._aura_damage, 0.05) and buddy._aura_damage_from == acorn, "Acorn: +5%, and its source is remembered")
+	var target := _spawn(buddy.global_position + Vector2(CELL, 0))
+	buddy.hit(target)
+	await process_frame
+	var slog := SupportLog.find(acorn)
+	_check(slog.get_stats(acorn).aura_damage > 0.0, "SupportLog: the Acorn is credited with the extra damage (%.2f)" % slog.get_stats(acorn).aura_damage)
+	_check(slog.get_panel_line(acorn).begins_with("Added this run:"), "aura panel line (%s)" % slog.get_panel_line(acorn))
+	_take("acorn_cache")
+	buddy._refresh_neighbours()
+	_check(is_equal_approx(buddy._aura_damage, 0.08), "Acorn Cache: +8%% (%.3f)" % buddy._aura_damage)
+	_take("shared_light")
+	buddy._refresh_neighbours()
+	_check(is_equal_approx(buddy._aura_damage, 0.12), "Shared Light: aura bonuses +50%% (%.3f)" % buddy._aura_damage)
+	_check(is_equal_approx(acorn.get_aura_reach(), 1.5), "no Kind Canopy yet")
+	_take("kind_canopy")
+	_check(is_equal_approx(acorn.get_aura_reach(), 2.5), "Kind Canopy: +1 cell")
+	var stump := _plant("elder_stump", Vector2(12, 12))
+	for i in 4:
+		_plant("sporeling", Vector2(11 + i % 3, 11 + (2 if i >= 3 else 0)))
+	stump._refresh_neighbours()
+	var before_grandfather := stump.get_aura_bonus(true)
+	_take("grandfather_stump")
+	stump._refresh_neighbours()
+	_check(stump.get_aura_bonus(true) > before_grandfather, "Grandfather Stump: the Elder Stump's aura grows with Wardens around it (%.3f → %.3f)" % [before_grandfather, stump.get_aura_bonus(true)])
+	await _clean_towers()
+
+	# --- Walls: Bramble Oath, The Quiet Ones; Honeysuckle's Drowsy credit ---
+	var bramble := _plant("bramble", Vector2(5, 14))
+	var bramble_damage := bramble.get_damage()
+	var honey := _plant("honeysuckle", Vector2(7, 14))
+	var honey_rate := honey.get_attacks_per_second()
+	_take("bramble_oath")
+	bramble.clear_dream_cache()
+	honey.clear_dream_cache()
+	_check(is_equal_approx(bramble.get_damage(), bramble_damage * 1.5), "Bramble Oath: Bramble +50%% damage (%.2f → %.2f)" % [bramble_damage, bramble.get_damage()])
+	_check(is_equal_approx(honey.get_attacks_per_second(), honey_rate * 1.5), "Bramble Oath: Honeysuckle scents 50% faster")
+	var sleepy := _spawn(honey.global_position + Vector2(CELL, 0))
+	honey.apply_status_to(sleepy, 0.0)
+	_check(slog.get_stats(honey).drowsy > 0.0, "SupportLog: Honeysuckle's Drowsy applied")
+	_check(slog.get_panel_line(honey).begins_with("Drowsy applied:"), "wall panel line (%s)" % slog.get_panel_line(honey))
+	var wall := _plant("thornwall", Vector2(9, 14))
+	_check(wall.is_quiet() and not bramble.is_quiet(), "Thornwall is quiet, Bramble isn't")
+	_take("the_quiet_ones")
+	honey.clear_dream_cache()
+	_check(is_equal_approx(honey.get_attacks_per_second(), honey_rate * 1.5 * 1.5), "The Quiet Ones: Honeysuckle another +50%")
+	await _clean_towers()
+	await _clean()
+
+	# --- Control: Patient Roots, credit ---
+	var tangle := _plant("tangleroot", Vector2(5, 5))
+	var held := _spawn(tangle.global_position + Vector2(CELL, 0))
+	tangle.hold(held, 1.0)
+	_check(is_equal_approx(held.statuses.time_left(EnemyStatuses.HELD), 1.0), "a Hold lasts its time (%.2f)" % held.statuses.time_left(EnemyStatuses.HELD))
+	_check(is_equal_approx(slog.get_stats(tangle).held_seconds, 1.0), "SupportLog: seconds Held")
+	_take("patient_roots")
+	var held2 := _spawn(tangle.global_position + Vector2(CELL, CELL))
+	tangle.hold(held2, 1.0)
+	_check(is_equal_approx(held2.statuses.time_left(EnemyStatuses.HELD), 1.5), "Patient Roots: the Rootling line holds +0.5 s (%.2f)" % held2.statuses.time_left(EnemyStatuses.HELD))
+	var map = main.get_node("%MapGenerator")
+	var route: PackedVector2Array = map.get_path_from(map.startPath)
+	var walker := _spawn(Tower.MAP_GRID.calculate_map_position(route[0]))
+	walker.set_path(route)
+	walker._path_index = 11
+	walker.global_position = Tower.MAP_GRID.calculate_map_position(route[10])
+	tangle.pull(walker, 1.0)
+	_check(is_equal_approx(slog.get_stats(tangle).tiles_pulled, 1.5), "Patient Roots: pulls 0.5 further, credited (%.2f)" % slog.get_stats(tangle).tiles_pulled)
+	_check(slog.get_panel_line(tangle).begins_with("Held "), "control panel line (%s)" % slog.get_panel_line(tangle))
+	_check(not slog.get_support_rows("run").is_empty() and not slog.get_top_support("run").is_empty(), "support rows and a top supporter")
+	await _clean_towers()
+	await _clean()
+
+	# --- Many Threads: Dreamcatchers Catch at 4 Drowsy ---
+	var catcher2 := _plant("dreamcatcher", Vector2(5, 5))
+	var drowsy := _spawn(catcher2.global_position + Vector2(CELL, 0))
+	drowsy.apply_status(EnemyStatuses.DROWSY, 4, 10.0, 1.0)
+	catcher2._update_catch(1.0)
+	var caught_before: bool = drowsy.statuses.is_caught()
+	_take("many_threads")
+	catcher2._catch_tick = 0.0
+	catcher2._update_catch(1.0)
+	_check(drowsy.statuses.is_caught() and (not caught_before or drowsy.statuses.get_max_stacks(EnemyStatuses.DROWSY) <= 4),
+		"Many Threads: Caught at 4 Drowsy")
+
+	print("catchers test: %s" % ("PASS" if failures == 0 else "%d FAILED" % failures))
+	main.queue_free()
+	await process_frame
+	quit(failures)
+
+func _check(condition: bool, label: String) -> void:
+	if not condition:
+		failures += 1
+		printerr("FAIL: " + label)
+
+func _take(id: String) -> void:
+	for card in dreams.pool:
+		if card.id == id:
+			dreams.take(card)
+			return
+	_check(false, "card %s exists" % id)
+
+func _plant(id: String, cell: Vector2) -> Tower:
+	var tower: Tower = placer.tower_scene.instantiate()
+	tower.tower_data = load("res://resource/tower/%s.tres" % id)
+	tower.cell = cell
+	tower.position = cell * CELL + Vector2(CELL, CELL) / 2
+	container.add_child(tower)
+	tower.set_process(false)
+	return tower
+
+func _spawn(at: Vector2) -> Node2D:
+	spawner.spawn_enemy(load("res://resource/enemy/leaf_bug.tres"))
+	var enemy = spawner.get_child(spawner.get_child_count() - 1)
+	enemy.set_process(false)
+	enemy.global_position = at
+	enemy.max_health = 1000000
+	enemy.health = 1000000
+	return enemy
+
+func _dispel(enemy: Node2D) -> void:
+	enemy.coat = 0.0
+	enemy.take_damage(100000000.0)
+	await process_frame
+
+func _clean() -> void:
+	for child in spawner.get_children():
+		child.queue_free()
+	await process_frame
+
+func _clean_towers() -> void:
+	for child in container.get_children():
+		child.queue_free()
+	await process_frame

@@ -122,26 +122,13 @@ func _run() -> void:
 		t.queue_free()
 	await process_frame
 
-	# --- Dewcatcher: +3 Dew per drift; Wellspring: 5% of banked Dew at a rest ---
+	# --- Dewcatcher / Wellspring: the catch, the Harvest and interest are in test_catchers.gd ---
 	var catcher := _plant("dewcatcher", Vector2(3, 10))
-	catcher.set_process(false)
 	await process_frame
 	var dew := run_state.dew
 	director.drift_cleared.emit(5, 0, true)
-	_check(run_state.dew == dew + 3, "Dewcatcher: +3 Dew after a drift (%d)" % (run_state.dew - dew))
-	catcher.evolve(load("res://resource/tower/wellspring.tres"), 0)
-	var well2 := _plant("wellspring", Vector2(3, 12))
-	await process_frame
-	run_state.dew = 1000
-	director.rest_started.emit(3, false, 0, true)
-	_check(run_state.dew == 1000 + 40 + 40, "two Wellsprings: 5%% each, capped at 40 each (%d)" % (run_state.dew - 1000))
-	run_state.dew = 3000
-	var well3 := _plant("wellspring", Vector2(3, 14))
-	await process_frame
-	director.rest_started.emit(4, false, 0, true)
-	_check(run_state.dew == 3000 + Tower.INTEREST_CAP, "all Wellsprings together pay at most 80 a rest (%d)" % (run_state.dew - 3000))
-	for t in [catcher, well2, well3]:
-		t.queue_free()
+	_check(run_state.dew == dew and is_equal_approx(catcher.bowl, 4.0), "Dewcatcher: +4 Dew per drift, into the bowl (%.1f)" % catcher.bowl)
+	catcher.queue_free()
 	await process_frame
 	paused = false
 

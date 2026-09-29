@@ -183,7 +183,13 @@ const ASCENDED_JSON := "res://assets/towers/ascended/ascended.json"  # 128×128 
 @export var aura_per_warden: float = 0.0
 @export var aura_max: float = 0.0
 @export var rest_interest: float = 0.0  # Wellspring: at every rest, this share of your banked Dew…
-@export var rest_interest_max: int = 0  # …up to this per Wellspring (all together: Tower.INTEREST_CAP)
+@export var rest_interest_max: int = 0  # …up to this per Wellspring (all together: DewCatch.INTEREST_CAP)
+# Catchers (Dewcatcher, Wellspring; warden_stats.md 2026-09-29): nightmares dispelled within catch_radius
+# cells drop catch_share more Dew (+catch_per_rank per Nurture rank, instead of damage), caught into the
+# bowl and poured out at the rest (the Harvest). Several catchers never stack: the highest applies.
+@export var catch_share: float = 0.0
+@export var catch_radius: float = 0.0
+@export var catch_per_rank: float = 0.1
 @export var cloud_slow: float = 0.0  # Morning Fog: nightmares inside are this much slower…
 @export var cloud_drowsy_per_second: float = 0.0  # …and gain Drowsy at this rate
 

@@ -117,9 +117,9 @@ func _run() -> void:
 	_check(kin.get_pair(curl).get("id") == &"snare", "Rootcurl + Tangleroot: Snare")
 	_check(is_equal_approx(stone.get_raw_crit_chance() - stone.attack_data.crit_chance, 0.05),
 		"Hammer and Anvil: the Mossback gets +5% crit at Sapling")
-	var dew := run_state.dew
-	kin._on_drift_cleared(20, 0, true)
-	_check(run_state.dew == dew + 1, "Old Growth: the Elder Stump side gives +1 Dew a drift at Sapling (%d)" % (run_state.dew - dew))
+	var probe := _spawn(elder.global_position + Vector2(64, 0))
+	_check(is_equal_approx(elder.get_catch_share(probe), DewCatch.OLD_GROWTH_CATCH * 0.5),
+		"Old Growth: the Elder Stump catches +25%% in its aura, at Sapling's share (%.3f)" % elder.get_catch_share(probe))
 	var near := _plant("sprout", Vector2(5, 13))
 	await process_frame
 	near._refresh_neighbours()

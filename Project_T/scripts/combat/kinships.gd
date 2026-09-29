@@ -582,13 +582,6 @@ func _on_formed(pair: Dictionary) -> void:
 				grow.modulate = _colour(pair)
 
 func _on_drift_cleared(_number: int, _bonus: int, _perfect: bool) -> void:
-	# Old Growth (Elder Stump line): +2 Dew per drift, at the bond's share.
-	var run_state: RunState = get_parent().get_node_or_null("%RunState")
-	for pair in pairs:
-		if pair.id == &"old_growth" and is_instance_valid(pair.a) and run_state:
-			var dew := roundi(2.0 * share(pair.a, &"old_growth", "a"))
-			if dew > 0:
-				run_state.earn_dew_at(dew, pair.a.global_position)
 	for pair in pairs:
 		var before := get_stage(pair)
 		ages[pair.key] = ages.get(pair.key, 0) + 1

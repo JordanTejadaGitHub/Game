@@ -8,9 +8,12 @@ const DURATION := 0.9
 const COLOR := Color(0.55, 0.85, 1.0)
 
 var _text: String
+var _color := COLOR
 
-func _init(amount: int, world_position: Vector2) -> void:
-	_text = "+%d Dew" % amount
+# `color` / `text`: caught Dew is gold, and the Harvest says so (DewCatch).
+func _init(amount: int, world_position: Vector2, color: Color = COLOR, text: String = "") -> void:
+	_text = text if text != "" else "+%d Dew" % amount
+	_color = color
 	position = world_position
 	z_index = 10  # Above creatures and Wardens
 
@@ -22,4 +25,4 @@ func _ready() -> void:
 	tween.tween_callback(queue_free)
 
 func _draw() -> void:
-	WorldLabel.draw_tag(self, 0.0, -32.0, _text, COLOR)
+	WorldLabel.draw_tag(self, 0.0, -32.0, _text, _color)
