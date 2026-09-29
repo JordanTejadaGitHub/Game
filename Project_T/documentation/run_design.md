@@ -101,6 +101,8 @@ resumes with the same drifts, and two players on the same seed meet the same nig
 5. The hand-made tables in `acts_1_2.md` / `acts_3_4.md` remain the reference for budgets,
 introductions, templates and boss escorts.
 
+**As built** (Enemy Code, 0cd0fa2 + b056b94): rolled once at run start from the seed (a resume gets the same drifts); each rolled drift keeps its hand-made drift's health budget (±5%), arrival window and **designed elites** (those count outside the fairness caps: a fixed design choice); the "one resisted type in at most 2 drifts per block" rule applies in acts 2–4 only (act 1 has too few types); tested over 200 seeds (~14,600 drifts). The rest report can name each drift's template (`DriftRoller.template_name`).
+
 ### Time budget
 
 A drift's creatures arrive over ~20–40 seconds, but a creature takes 1.5–3 minutes to walk a
