@@ -12,11 +12,13 @@ class_name DevGrove
 const SETTING := "dev_grove"
 const LEVELS: Array[StringName] = [&"off", &"early", &"half", &"full"]
 const PRESET_KEY := "dev_grove_preset"  # In the dev profile: the preset it was made from
+const RUN_PATH := "user://sim_run.json"  # Dev runs save here, never over the real run in progress
 
 static var force := &""  # Tests: this level instead of the setting
 static var active := &""  # The level applied now (&"" = off)
 static var _real_path := ""
 static var _demo_override_before := -1
+static var _real_run_path := ""
 
 # The level chosen in the settings (always off outside debug builds and in headless test scripts).
 static func chosen() -> StringName:
@@ -43,13 +45,16 @@ static func apply() -> void:
 			HeartwoodMemory.file_path = _real_path
 			HeartwoodMemory.real_settings_path = ""
 			ResultsScreen.demo_override = _demo_override_before
+			RunSaver.file_path = _real_run_path
 			active = &""
 		return
 	if not is_active():
 		_real_path = HeartwoodMemory.file_path
 		_demo_override_before = ResultsScreen.demo_override
+		_real_run_path = RunSaver.file_path
 	HeartwoodMemory.real_settings_path = _real_path
 	HeartwoodMemory.file_path = GrovePresets.PATH
+	RunSaver.file_path = RUN_PATH
 	# Switched to another level (or no dev profile for this one yet): start again from its preset.
 	# The same level next launch keeps the dev profile's purchases and loadout.
 	if (is_active() and level != active) or str(HeartwoodMemory.load_data().get(PRESET_KEY, "")) != String(level):

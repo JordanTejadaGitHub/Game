@@ -32,9 +32,13 @@ static func migrate_old_saves() -> void:
 			DirAccess.make_dir_recursive_absolute(new_dir)
 			DirAccess.copy_absolute(source, target)
 
+const GROUP := &"title_screen"
+
 func _ready() -> void:
 	migrate_old_saves()
+	DevGrove.apply()  # Dev Grove (debug builds): the dev profile, before anything reads the profile
 	HeartwoodMemory.apply_settings()
+	add_to_group(GROUP)
 	add_to_group(StatusLinks.CODEX_HOST_GROUP)  # Status links' "More in the Codex"
 	set_anchors_preset(Control.PRESET_FULL_RECT)
 	var background := ColorRect.new()
@@ -113,6 +117,10 @@ func _ready() -> void:
 	_blight.picked.connect(func(level: int) -> void:
 		MetaRun.blight_level = level
 		_go())
+
+# Rebuilds the title (Continue, the Memory Grove button, Seeds) after a developer setting changes.
+func refresh() -> void:
+	get_tree().reload_current_scene.call_deferred()
 
 # The Codex on a tab / entry (a status link's "More in the Codex").
 func open_codex(tab: StringName = &"", entry: String = "") -> void:
