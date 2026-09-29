@@ -100,7 +100,7 @@ perks can modify them.
   trees would help"): about **40% fewer** obstacles than now: at most **2 ridges** (shorter, with
   gaps), smaller and rarer tree groves and rock clusters, and most scattered single rocks gone. The
   player's Wardens should build most of the maze, not the map. Keep at least **10 obstacles** so the
-  clearing cards (need 8+) still show up; Blight 9's extra ridge still applies. As built (77eb3cd): 46–89 obstacles (mean 60, was 105), 2 ridges. **One of the two ridges has no gaps**, so the starting route always bends at least once (a hint of shape), while the player builds the rest of the zig-zag.
+  clearing cards (need 8+) still show up; Blight 9's extra ridge still applies. As built (77eb3cd): 46–89 obstacles (mean 60, was 105), 2 ridges. **The starting route always bends at least once** (b50aa3b: the far ridge has no gaps, and the first ridge's gaps sit only over the far ridge's solid part, so any shortcut still doubles back; 44–88 obstacles, mean 63), a hint of shape while the player builds the rest of the zig-zag.
 - **Obstacles**: **Withered Trees** ("Tend", 5 Dew) and **Mossy Boulders** ("Move", 8 Dew) block
   nightmares and building. **Clearing is locked until you take a clearing Dream card**; after that,
   tending one opens space (and often a shortcut) and adds **+1 Seed** at
