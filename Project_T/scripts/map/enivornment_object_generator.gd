@@ -185,6 +185,17 @@ func mark_cleared(cell: Vector2, data: ObstacleData) -> void:
 	else:
 		erase_cell(Vector2i(cell))
 
+# Decorations the path wears away when it's drawn over them (ground details, clearing marks). Obstacles,
+# the start's mist and the island's rim are never worn: obstacles are blocked, so no path lies on them.
+const WORN_BY_PATH: Array[int] = [EnvironmentTiles.GROUND_DETAILS, EnvironmentTiles.TENDED_STUMP,
+	EnvironmentTiles.MOVED_HOLLOW]
+
+# The path now runs over `cell`: erase any decoration there. It stays bare if the path moves away.
+func wear_away(cell: Vector2i) -> void:
+	if get_cell_source_id(cell) in WORN_BY_PATH:
+		erase_cell(cell)
+
+
 # Sprinkles grass details (decoration only) on cells not in `skip_cells`. Call after generate_obstacles().
 func generate_details(rng: RandomNumberGenerator, skip_cells: PackedVector2Array) -> void:
 	var noise: FastNoiseLite = noise_texture.noise

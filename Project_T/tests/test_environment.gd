@@ -48,13 +48,23 @@ func _init() -> void:
 			_check(false, "obstacle %s drawn from its sheet" % cell)
 			break
 
-	# Clearing leaves the obstacle's mark.
+	# Clearing leaves the obstacle's mark (on a cell the route doesn't then take).
 	for cell in map.obstacles.keys():
 		var data: ObstacleData = map.obstacles[cell]
+		if map.get_path_if_cleared(cell).has(cell):
+			continue
 		if map.clear_obstacle(cell):
 			_check(env.get_cell_source_id(Vector2i(cell)) == data.cleared_source_id,
 				"clearing a %s leaves its mark" % data.display_name)
 			break
+
+	# The path wears away decorations it's drawn over, and the cell stays bare if it moves away.
+	var route: PackedVector2Array = map.get_path_from(map.startPath)
+	var worn := Vector2i(route[route.size() / 2])
+	env.set_cell(worn, EnvironmentTiles.GROUND_DETAILS, Vector2i.ZERO)
+	path.call("draw")  # PathGenerator.draw(), not CanvasItem's draw signal
+	_check(env.get_cell_source_id(worn) == -1, "the path wears away a ground detail under it")
+	_check(env.get_cell_source_id(Vector2i(map.startPath)) == EnvironmentTiles.EDGE_MIST, "but not the start's mist")
 
 	# The Heartwood blackens as leaves are lost.
 	var heartwood: Heartwood = map.heartwood
