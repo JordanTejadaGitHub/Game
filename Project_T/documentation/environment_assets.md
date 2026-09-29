@@ -39,7 +39,7 @@ two trees pulse in step.
 
 | File | Size | Layout | Use |
 |---|---|---|---|
-| `grass.png` | 256×64 | 4 variants | ground; any variant tiles with any other |
+| `grass.png` | 512×64 | 8 variants: 0 plain, 1/4/6 tufts, 2 flowers, 3 clover, 5 pebbles, 7 fallen twig | ground; any variant tiles with any other. Each has its own grain (the sheet goes through the detail pass as one image at texture 0.15), so the ground doesn't repeat. Shares: `GroundGenerator.GRASS_WEIGHTS` |
 | `path.png` | 1024×64 | 16 tiles, **column = neighbour mask** (N=1, E=2, S=4, W=8) | the creature path; e.g. column 5 = N+S straight, 15 = crossroads |
 | `border_wall.png` | 128×64 | 2 variants, seamless | the map's stone border |
 | `withered_tree.png` | 256×576 | 9 dead trees (rows) × 4 frames: 0–2 gnarled Withered Tree, 3 split trunk, 4 broken hollow snag (eyes glint), 5 weeping dead willow (strands sway), 6 dead pine, 7 dead birch, 8 thorn tree | obstacle, "Tend"; all 9 are in `tree.tres` |

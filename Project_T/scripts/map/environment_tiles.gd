@@ -13,7 +13,7 @@ const ROOT := "res://assets/environment/"
 const ACT_FOLDERS: Array[String] = ["forest_edge", "deep_wood", "misty_hollow", "heartwood_glade"]
 
 # Source ids.
-const GRASS := 0  # 4 variants
+const GRASS := 0  # 8 variants
 const PATH := 1  # Column = neighbour mask (N=1, E=2, S=4, W=8)
 const WITHERED_TREE := 3  # Animated, 9 dead trees (rows)
 const TENDED_STUMP := 4
