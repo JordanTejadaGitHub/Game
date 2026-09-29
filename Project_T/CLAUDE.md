@@ -200,7 +200,7 @@ accessibility, Steam achievements (milestones map to them). Acts 3–4 and all f
   camera along the path (`GameCameraNode.glide`). The build ghost shows "+N path".
 - HUD from screens_ui.md: `DriftBanner` (top centre: act/drift, block pips, "Boss in N", boss
   health bar with 50% marker), `NightmareInfo` (hover panel; `EnemyData.trait_text`; "New" tag via
-  profile `nightmares_seen`), `LeakEffect` (pulse + falling leaf at the goal). Pause menu: Abandon
+  profile `nightmares_seen`), `LeakEffect` (pulse + falling leaf at the goal), `CloseCalls` (world, made by the HUD: a nightmare past 85% of its route trembles the Heartwood + a cold glow on the last stretch, throttled; signal `close_call(enemy)` for Sound; rest report "Close calls: N"; `tests/test_close_calls.gd`). Pause menu: Abandon
   run, whispers toggle, run summary. Settings: UI scale, Auto-drift default, reduced motion, damage
   numbers (`damage_numbers` 0/1/2). Hotkeys G (grow selected), H / F (centre on goal / start).
   Results show run stats (`RunState.leaves_lost`, `longest_path`, `play_time`). `tests/test_ui.gd`.

@@ -64,6 +64,9 @@ func show_report(block: int) -> void:
 	text += _kin_hint()
 	text += support_text(self, "block")
 	text += templates_text(drift_director, block)
+	var close_calls := CloseCalls.find(self)
+	if close_calls != null and close_calls.block_count > 0:
+		text += "\nClose calls: %d" % close_calls.block_count
 	if unbound_block > 0:
 		text += "\nUnbound: %d" % unbound_block
 	_label.text = StatusLinks.bbcode(text)
