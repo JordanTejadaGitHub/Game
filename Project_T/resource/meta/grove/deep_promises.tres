@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="UnlockData" format=3]
+
+[ext_resource type="Script" path="res://resource/meta/script/unlock_data.gd" id="1_unlock"]
+
+[resource]
+script = ExtResource("1_unlock")
+id = "deep_promises"
+display_name = "Deep Promises"
+description = "Seed Dreams join the pool: Deep Well, Shared Light."
+root = 1
+costs = Array[int]([70])
+order = 51
+icon = 11
+requires_all = Array[String](["planted_promises"])
+dream_cards = Array[String](["deep_well", "shared_light"])
