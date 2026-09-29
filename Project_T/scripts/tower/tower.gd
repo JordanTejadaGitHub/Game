@@ -2325,7 +2325,12 @@ static func _nightmares_this_frame(tree: SceneTree) -> Array:
 	return _nightmares
 
 func _nightmares_near(at: Vector2, reach: float) -> Array:
-	_nightmares_this_frame(get_tree())
+	return nightmares_near(get_tree(), at, reach)
+
+# The nightmares whose bucket is within `reach` px of `at` (a superset: callers check the distance and
+# is_cleansed). Also used by Reactions (Thunderclap arcs, neighbours).
+static func nightmares_near(tree: SceneTree, at: Vector2, reach: float) -> Array:
+	_nightmares_this_frame(tree)
 	var r := int(ceil(reach / BUCKET))  # A bucket either side reaches at least BUCKET px past this one
 	var centre := Vector2i((at / BUCKET).floor())
 	if (2 * r + 1) * (2 * r + 1) >= _buckets.size():

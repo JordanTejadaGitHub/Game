@@ -394,8 +394,8 @@ static func _thunderclap(enemy: Node2D, source: Node) -> void:
 	if dreams and dreams.has_rule(&"conductive_soil") and tower:
 		reach = maxf(reach, tower.get_range_pixels())  # The Storm Grid capstone
 	var arcs: Array = []
-	for other in _field(enemy):
-		if other != enemy and other.statuses.has(DAMP) and other.global_position.distance_to(enemy.global_position) <= reach:
+	for other in Tower.nightmares_near(enemy.get_tree(), enemy.global_position, reach):
+		if other != enemy and is_instance_valid(other) and not other.is_cleansed and other.statuses.has(DAMP) and other.global_position.distance_to(enemy.global_position) <= reach:
 			arcs.append(other)
 	enemy.take_damage(base * THUNDERCLAP_DAMAGE, _line(tower, "light"), false, false, tower, &"thunderclap")
 	for other in arcs:
@@ -720,8 +720,9 @@ static func _field(near: Node2D) -> Array:
 	return near.get_tree().get_nodes_in_group(Tower.ENEMY_GROUP)
 
 static func _others_within(enemy: Node2D, cells: float) -> Array:
-	return _field(enemy).filter(func(e: Node2D) -> bool:
-		return e != enemy and e.global_position.distance_to(enemy.global_position) <= cells * CELL)
+	# Performance: only the nightmares bucketed near it (Tower.nightmares_near), not the whole field.
+	return Tower.nightmares_near(enemy.get_tree(), enemy.global_position, cells * CELL).filter(func(e) -> bool:
+		return is_instance_valid(e) and not e.is_cleansed and e != enemy and e.global_position.distance_to(enemy.global_position) <= cells * CELL)
 
 static func _tower_of(first, fallback) -> Tower:
 	if is_instance_valid(first) and first is Tower:
