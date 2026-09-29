@@ -356,7 +356,7 @@ func sell_key() -> bool:
 	targets = targets.filter(func(t) -> bool: return is_instance_valid(t) and not t.tower_data.rooted)
 	if targets.is_empty() or not can_sell():
 		return false
-	var ask: bool = not drift_director.is_build_phase() and HeartwoodMemory.get_settings().get("confirm_sell", true)
+	var ask: bool = not drift_director.is_build_phase() and Fx.setting("confirm_sell", true)  # Cached (get_settings reads the profile)
 	var now := Time.get_ticks_msec()
 	if ask and not (now < _sell_armed_until and _sell_armed == targets):
 		_sell_armed = targets

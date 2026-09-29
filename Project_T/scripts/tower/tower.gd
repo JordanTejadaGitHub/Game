@@ -492,7 +492,7 @@ var _stats_until := -1.0
 
 func _stats_fresh() -> bool:
 	var key := [attack_data, rank, focus, _aura_range, _aura_damage, _aura_speed, _damage_share, _aura_crit,
-		_dream_state.board_version if _dream_state else 0, hash(_dream_state.stacks) if _dream_state else 0,
+		_dream_state.board_version if _dream_state else 0, _dream_state.stacks.size() if _dream_state else 0,
 		_kin.get_pairs(self).size() if is_instance_valid(_kin) else 0,
 		_kin.families.hash() if is_instance_valid(_kin) else 0,
 		_omens.active if _omens else null]
@@ -2401,15 +2401,16 @@ func _busiest_lines(from: Vector2, length: float, count: int) -> Array[Vector2]:
 	return result
 
 # Performance: Dream rule lookups are cached for every Warden together (DreamState.rule_stacks walks the
-# taken cards; Wardens asked ~500 times a frame). The key changes with any card taken or stacked, a
-# board change (dormant cards waking) and unlock_everything, so a lookup never sees a stale set.
+# taken cards; Wardens asked ~500 times a frame). The key changes with any card taken or stacked (take()
+# bumps the board version), a card added or dropped, a board change (dormant cards waking) and
+# unlock_everything, so a lookup never sees a stale set.
 static var _rules := {}  # rule -> [stacks (uncapped), level]
 static var _rules_key := []
 
 func _rule_entry(rule: StringName) -> Array:
 	if _dream_state == null or not _dream_state.has_method("rule_stacks"):
 		return [0, 0]
-	var key := [_dream_state.get_instance_id(), _dream_state.board_version, hash(_dream_state.stacks),
+	var key := [_dream_state.get_instance_id(), _dream_state.board_version, _dream_state.stacks.size(),
 		_dream_state.pool.size(), _dream_state.unlock_everything]
 	if key != _rules_key:
 		_rules_key = key
