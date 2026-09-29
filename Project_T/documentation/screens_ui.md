@@ -717,6 +717,15 @@ Three large cards, one per family: portrait, name, one-line identity ("soothe ov
 statuses it applies, and small previews of its two branches. Family Blessings (when fewer than 3
 new families remain) use the same card with a blessing border.
 
+**Memory Warden card** (2026-09-29, user): in the family pick right after a boss whose Memory
+Warden the player has grown (first dispel of that boss, `meta_design.md`), the Memory Warden gets
+its **own card**, not a normal family card, so it reads as that boss's reward:
+- **Gold / dream-fruit border** instead of a family colour, with a soft glow.
+- Heading *"A Memory returns"* above the Warden's name and portrait.
+- One flavour line tied to the boss just dispelled (e.g. *"The Hollow Stag's light remembers
+  you."*), then its identity line and statuses like any family card.
+- A small **"Unique"** tag: only one on the map at a time.
+
 ### Dream
 
 - Three cards. **Rarity** is shown by frame colour **and** a gem shape: Common circle, Uncommon
