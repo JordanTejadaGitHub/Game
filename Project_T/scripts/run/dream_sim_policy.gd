@@ -18,7 +18,8 @@ enum Style { BALANCED, WIDE, NARROW, COMBO, SLEEP, SPROUT }
 
 # Tag scores per style (a card sums its tags; in-build cards get IN_BUILD on top).
 const TAG_SCORES := {
-	Style.BALANCED: {"maze": 1.0, "reaction": 1.0, "crit": 1.0, "economy": 0.5},
+	# Balanced keeps its 5 opening Sprouts and never clears obstacles: Sprout and clearing cards are last.
+	Style.BALANCED: {"maze": 1.0, "reaction": 1.0, "crit": 1.0, "economy": 0.5, "sprout": -1.5, "clearing": -2.0},
 	Style.WIDE: {"wide": 3.0, "sprout": 2.0, "wall": 2.0, "maze": 1.0, "economy": 1.0, "narrow": -3.0, "nurture": -2.0},
 	Style.NARROW: {"narrow": 3.0, "nurture": 3.0, "crit": 1.0, "wide": -3.0, "sprout": -1.0},
 	Style.COMBO: {"reaction": 3.0, "kinship": 1.0, "potency": 1.0, "status": 1.0},
@@ -32,6 +33,9 @@ const SPROUT_CARDS: Array[String] = ["seedfall", "sprout_surge", "sprout_chorus"
 const SPROUT_TOP := 10.0
 const COMBO_HALF_DREAMED := 2.0  # Combo: a half-dreamed card is a lead, not a dead pick
 const HALF_DREAMED := -1.0  # Other styles: a card that sleeps for now
+# A card whose effect needs what the run doesn't have yet (an unmet soft Need: none of its Warden on
+# the map; a Kinship card with no Kinship): a wasted pick for now.
+const DEAD_FOR_NOW := -2.0
 # Family order per style (the first offered one is taken); Combo picks by combo cards instead.
 const FAMILIES := {
 	Style.BALANCED: ["sporeling", "firefly_jar", "dewdrop", "pebbling", "acorn", "rootling", "nestling", "samara", "bellflower"],
@@ -61,6 +65,8 @@ func score(card: UpgradeData) -> float:
 		value += IN_BUILD
 	if dreams.is_half_dreamed(card):
 		value += COMBO_HALF_DREAMED if style == Style.COMBO else HALF_DREAMED
+	if not dreams.soft_needs_met(card) or (card.tags.has("kinship") and dreams.count_kinships() == 0):
+		value += DEAD_FOR_NOW
 	if style == Style.SPROUT and SPROUT_CARDS.has(card.id):
 		value += SPROUT_TOP
 	if style == Style.COMBO and card.entwined:

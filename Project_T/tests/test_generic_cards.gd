@@ -238,6 +238,13 @@ func _test_sim_policy() -> void:
 		"styles score by tags: Wide takes Many Hands, Narrow Few and Mighty")
 	var balanced := DreamSimPolicy.new(dreams, DreamSimPolicy.Style.BALANCED)
 	_check(balanced.pick_family(["dewdrop", "sporeling"]) == &"sporeling", "Balanced: its family order")
+	# Dead for now: a card about a Warden with none on the map scores lower (Tower Code's dead-card list).
+	var twin := _card("twin_puff")
+	var dead := balanced.score(twin)
+	var puff := _plant("sporeling", Vector2(100, 100))
+	_check(balanced.score(twin) > dead, "the bot skips Twin Puff with no Sporeling on the map")
+	puff.free()
+	_check(balanced.score(_card("tended_forest")) < balanced.score(_card("cozy_corners")), "Balanced never clears: clearing cards come last")
 	dreams._owed_families.assign(["dewdrop"])
 	var sleep := DreamSimPolicy.new(dreams, DreamSimPolicy.Style.SLEEP)
 	_check(sleep.pick_family(["pebbling", "dewdrop"]) == &"dewdrop", "family order before the owed family")

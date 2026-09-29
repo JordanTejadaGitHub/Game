@@ -10,6 +10,7 @@ description = "If you sell a bonded Warden and plant a new kin of its partner wi
 rarity = 1
 kind = 3
 tags = Array[String](["kinship", "maze"])
+min_kinships = 1
 discovered_by = Array[String](["kinship:any"])
 max_stacks = 1
 rule_id = &"rooted_bond"
