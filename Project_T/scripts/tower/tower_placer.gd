@@ -47,6 +47,7 @@ var tower_data: TowerData
 
 const MAP_GRID = preload("res://resource/map/map_grid.tres")
 const VALID_TINT := Color(0.4, 1.0, 0.5, 0.65)
+const CATCH_TINT := Color(1.0, 0.85, 0.44, 0.16)  # Path tiles in a catcher's reach (placement preview)
 const INVALID_TINT := Color(1.0, 0.35, 0.35, 0.65)
 const NO_CELL := Vector2(-1, -1)
 const BONUS_ON := Color(0.55, 1.0, 0.6)  # A position card that would be on here
@@ -249,8 +250,13 @@ func _draw() -> void:
 		_draw_stroke()
 		return
 	_draw_kin_spots()
+	if not _catch_preview.is_empty():
+		_draw_catch_zone(_catch_preview.at, _catch_preview.radius)
 	if _hover_cell == NO_CELL or not MAP_GRID.is_within_bounds(_hover_cell):
 		return
+	if tower_data.catch_share > 0.0:
+		_draw_catch_zone(Tower.footprint_centre(_hover_cell, tower_data.footprint), tower_data.catch_radius \
+			+ DewCatch.WIDE_BOWL_STEP * mini(dream_state.rule_stacks(&"wide_bowl"), 3))
 	draw_set_transform(Tower.footprint_centre(_hover_cell, tower_data.footprint))
 	var tint := VALID_TINT if _hover_valid and _hover_affordable else INVALID_TINT
 	if tower_data.can_attack:
@@ -323,6 +329,38 @@ func _draw() -> void:
 		WorldLabel.draw_tag(self, 0.0, -MAP_GRID.cell_size.y / 2.0 - 6.0,
 			("gains %s" if change[2] else "loses %s") % change[1], BONUS_ON if change[2] else BONUS_LOST)
 	draw_set_transform(Vector2.ZERO)
+
+# --- Catcher placement preview (screens_ui.md "Support and economy feedback") ---------------------
+
+var _catch_preview := {}  # {"at": world position, "radius": cells} while the Warden panel asks
+
+# Shades the path tiles a catcher at `at` (world) would catch on, with the share of last block's
+# dispels there. The Warden panel shows it for a selected catcher and while "Grow into Dewcatcher" is
+# pointed at; the build ghost shows it for a catcher.
+func show_catch_preview(at: Vector2, radius: float) -> void:
+	_catch_preview = {"at": at, "radius": radius}
+	queue_redraw()
+
+func hide_catch_preview() -> void:
+	if not _catch_preview.is_empty():
+		_catch_preview = {}
+		queue_redraw()
+
+func _draw_catch_zone(at: Vector2, radius: float) -> void:
+	var reach := radius * MAP_GRID.cell_size.x
+	var half := MAP_GRID.cell_size / 2.0
+	for cell in map_generator.get_path_from(map_generator.startPath):
+		var centre := MAP_GRID.calculate_map_position(cell)
+		if centre.distance_to(at) <= reach:
+			draw_rect(Rect2(to_local(centre) - half + Vector2(3, 3), MAP_GRID.cell_size - Vector2(6, 6)), CATCH_TINT)
+	draw_arc(to_local(at), reach, 0.0, TAU, 64, Color(DewCatch.GOLD, 0.55), 1.5)
+	var log := SupportLog.find(self)
+	var share := log.dispel_share_near(at, radius) if log else -1.0
+	if share >= 0.0:
+		var local := to_local(at)
+		WorldLabel.draw_tag(self, local.x, local.y - reach - 8.0,
+			"~%d%% of dispels last block happened here" % roundi(share * 100.0), DewCatch.GOLD)
+
 
 # --- Dream bonuses on the ghost (screens_ui.md "Dream bonuses on Wardens") ---
 
@@ -504,11 +542,12 @@ func get_cost(data: TowerData = null, cell: Vector2 = NO_CELL, planned_sprouts: 
 	var cost: int = dream_state.get_build_cost(warden) if cell == NO_CELL else dream_state.get_build_cost_at(warden, cell)
 	# Sprouts get pricier as you plant (warden_stats.md, card 69): every SPROUTS_PER_STEP Sprouts on the map
 	# add SPROUT_STEP_DEW to the next one (10, 13, 16, …); Seedling Gift Sprouts don't count and a free one
-	# stays free. Seedfall: starts at 6 and rises half as fast (+3 per 10). `planned_sprouts`: Sprouts
-	# earlier in the same drag stroke.
+	# stays free. Seedfall: 6 Dew, and the price never rises (SEEDFALL_SPROUTS_PER_STEP 0). `planned_sprouts`:
+	# Sprouts earlier in the same drag stroke.
 	if warden.get_id() == "sprout" and cost > 0:
-		var per_step := SPROUTS_PER_STEP * (2 if sprout_price_halved() else 1)
-		cost += (count_paid_sprouts() + planned_sprouts) / per_step * SPROUT_STEP_DEW
+		var per_step := SEEDFALL_SPROUTS_PER_STEP if sprout_price_halved() else SPROUTS_PER_STEP
+		if per_step > 0:
+			cost += (count_paid_sprouts() + planned_sprouts) / per_step * SPROUT_STEP_DEW
 	return cost
 
 func sprout_price_halved() -> bool:
@@ -516,7 +555,8 @@ func sprout_price_halved() -> bool:
 
 const SEEDFALL_CARD := "seedfall"
 const SPROUTS_PER_STEP := 5  # Every 5 Sprouts on the map…
-const SPROUT_STEP_DEW := 3  # …add +3 Dew to the next one (Seedfall: every 10)
+const SPROUT_STEP_DEW := 3  # …add +3 Dew to the next one
+const SEEDFALL_SPROUTS_PER_STEP := 0  # Seedfall: 0 = the price never rises
 
 # Sprouts on the map that raise the price (not the free ones from Seedling Gift charges).
 func count_paid_sprouts() -> int:

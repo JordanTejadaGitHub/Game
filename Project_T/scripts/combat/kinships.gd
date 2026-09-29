@@ -39,6 +39,7 @@ const GROVE_OF_KIN_PER := 0.03  # Grove of Kin: every Warden, per Kinship on the
 const GROVE_OF_KIN_MAX := 0.30
 const SWEET_BONUS: Array[float] = [0.5, 1.0]  # Sweet Harmony (II)
 const SWEET_COOLDOWN: Array[float] = [1.5, 1.0]
+const BEAD_COOLDOWN := 0.6  # Seconds between light beads on one vine
 
 # id -> [name, family line, branch A, branch B, in the demo]
 const KINSHIPS := {
@@ -51,12 +52,37 @@ const KINSHIPS := {
 	&"old_growth": ["Old Growth", "acorn", "elder_stump", "dewcatcher", false],
 	&"flock_together": ["Flock Together", "wing", "wrens_nest", "magpie_perch", false],
 	&"dust_devil": ["Dust Devil", "wind", "gust", "pinwheel", false],
+	# The 9 hidden Kinships: the hidden branch is A (full game only; a final form counts as its branch).
+	&"spore_nursery": ["Spore Nursery", "spore", "fairy_ring", "driftspore", false],
+	&"hoar_fog": ["Hoar Fog", "water", "frostfern", "mistveil", false],
+	&"sunspot": ["Sunspot", "light", "sunpetal", "lanternmoth", false],
+	&"spotter": ["Spotter", "stone", "cairn", "standing_stone", false],
+	&"lantern_roots": ["Lantern Roots", "root", "rootlight", "tangleroot", false],
+	&"resonant_hollow": ["Resonant Hollow", "song", "echo_hollow", "chime_stone", false],
+	&"true_graft": ["True Graft", "acorn", "graftling", "elder_stump", false],
+	&"jewel_thieves": ["Jewel Thieves", "wing", "hummingbird_bower", "magpie_perch", false],
+	&"tailwind": ["Tailwind", "wind", "samara", "gust", false],
 }
 # The colours of each family, for vines and Harmony sparks.
 const FAMILY_COLORS := {"spore": Color(0.7, 0.9, 0.4), "water": Color(0.45, 0.7, 1.0),
 	"light": Color(1.0, 0.95, 0.55), "stone": Color(0.8, 0.75, 0.65), "root": Color(0.65, 0.85, 0.45),
 	"song": Color(0.8, 0.65, 1.0), "acorn": Color(0.85, 0.7, 0.45), "wing": Color(1.0, 0.8, 0.55),
 	"wind": Color(0.8, 0.95, 0.95)}
+
+# Each branch's own colour: a bonded Warden's attacks carry its kin's (borrowed looks, 2026-09-29).
+const BRANCH_COLORS := {"driftspore": Color(0.6, 0.9, 0.4), "bloomcap": Color(0.8, 0.65, 1.0),
+	"rain_lily": Color(0.5, 0.8, 1.0), "mistveil": Color(0.82, 0.88, 0.95), "stormcap": Color(0.7, 0.85, 1.0),
+	"lanternmoth": Color(1.0, 0.85, 0.4), "mossback": Color(0.55, 0.78, 0.4), "standing_stone": Color(0.78, 0.74, 0.88),
+	"rootcurl": Color(0.75, 0.55, 0.35), "tangleroot": Color(0.5, 0.82, 0.35), "chime_stone": Color(0.82, 0.68, 1.0),
+	"dreamcatcher": Color(0.58, 0.62, 1.0), "elder_stump": Color(0.72, 0.56, 0.36), "dewcatcher": Color(1.0, 0.85, 0.45),
+	"wrens_nest": Color(0.88, 0.66, 0.45), "magpie_perch": Color(0.6, 0.75, 1.0), "gust": Color(0.8, 0.96, 0.96),
+	"pinwheel": Color(1.0, 0.62, 0.5), "fairy_ring": Color(0.75, 0.95, 0.5), "frostfern": Color(0.72, 0.95, 1.0),
+	"sunpetal": Color(1.0, 0.9, 0.4), "cairn": Color(0.74, 0.7, 0.62), "rootlight": Color(1.0, 0.8, 0.5),
+	"echo_hollow": Color(0.76, 0.7, 1.0), "graftling": Color(0.62, 0.86, 0.45), "hummingbird_bower": Color(0.4, 0.9, 0.8),
+	"samara": Color(0.95, 0.62, 0.3)}
+const ARCH_ALPHA := 0.6  # The Old Kin arch over a pair
+const ARCH_FOOT := Vector2(0, 24)  # Where a Warden's base (its slab's front) is, from its centre
+const HARMONY_GOLD := Color("ffe890")  # Old Kin beams lean 30% toward this
 
 static var _branch_of := {}  # Warden id -> its branch's id (tier 2 forms and their final forms)
 static var _branches_by_family := {}  # line -> [branch ids] (the hidden one included)
@@ -70,12 +96,15 @@ var formed_run := 0
 var harmony_block := 0
 var harmony_run := 0
 var whole_families: Array[String] = []  # Celebrated this run
+var kindred_shown := false  # The run's first Kindred was called out
 var _partner := {}  # Tower instance id -> pair
 var _refresh_timer := 0.0
 var _clock := 0.0
 var _harmony_ready := {}  # Pair key -> clock time it can strike again
 var _queued: Array = []  # Stage-ups and Whole Trees waiting for the rest
 var _remembered := {}  # Rooted Bond: partner instance id -> the sold kin's bond age, until the rest ends
+var _bead_ready := {}  # Pair key -> clock time the vine can carry another bead
+var _synced := {}  # Pair keys whose idle animations were synced
 var _resting := true
 var _placer: TowerPlacer
 var _seller: TowerSeller
@@ -298,7 +327,18 @@ func refresh() -> void:
 			if not _partner.has(tower.get_instance_id()):
 				_partner[tower.get_instance_id()] = []
 			_partner[tower.get_instance_id()].append(pair)
+		_breathe_together(pair)
 	_count_families(towers)
+
+# Breathing together: a bonded pair's idle animations sync (the Warden planted later takes its kin's
+# phase), once per bond. Kept in Subtle, off when Kinship effects are Off.
+func _breathe_together(pair: Dictionary) -> void:
+	if _effects() == 2 or _synced.has(pair.key) or not is_instance_valid(pair.a) or not is_instance_valid(pair.b):
+		return
+	_synced[pair.key] = true
+	var later: Tower = pair.b if pair.b.get_instance_id() > pair.a.get_instance_id() else pair.a
+	var first: Tower = pair.a if later == pair.b else pair.b
+	later._anim_time = first._anim_time * first.tower_data.animation_fps / maxf(later.tower_data.animation_fps, 0.01)
 
 # A bond's identity: the two Wardens' cells (moving or selling resets), or with Rooted Bond the two
 # Wardens themselves (moving keeps it; selling still ends it).
@@ -384,6 +424,10 @@ func _count_families(towers: Array) -> void:
 			families[line] = 2
 		elif count >= 2:
 			families[line] = 1
+	for line in families:
+		if not kindred_shown and before.get(line, 0) == 0:
+			kindred_shown = true  # The first Kindred of the run gets one quiet callout
+			_queue(["kindred", line])
 	for line in families:
 		if families[line] == 2 and before.get(line, 0) < 2 and not whole_families.has(line):
 			whole_families.append(line)
@@ -549,7 +593,7 @@ func note_hit(tower: Tower, enemy: Node2D, dealt: float) -> void:
 			damage *= 1.0 + SWEET_BONUS[sweet]
 		harmony_block += 1
 		harmony_run += 1
-		_spark(enemy.global_position, pair)
+		_harmony_look(enemy.global_position, pair)
 		harmony_struck.emit(tower, enemy)
 		# Credited to the Warden whose hit just landed, so DamageLog merges it into that hit's number (green).
 		enemy.take_damage(damage, tower.tower_data.line, true, false, tower, &"harmony")
@@ -618,6 +662,13 @@ func _announce(event: Array) -> void:
 					var up := Fx.play(&"kin_stage_up", tower.global_position, get_parent())
 					if up:
 						up.modulate = _colour(pair)
+		"kindred":
+			var line: String = event[1]
+			var kin_towers := _towers().filter(func(t: Tower) -> bool: return t.tower_data.line == line and branch_for(t) != "")
+			if _effects() != 2 and not kin_towers.is_empty():
+				var at: Vector2 = kin_towers[-1].global_position + Vector2(0, -40)
+				Fx.callout("Kindred: the %s family +%d%%" % [NightmareIcons.family_name(line), roundi(KINDRED_BONUS * 100)],
+					FAMILY_COLORS.get(line, Color(0.85, 0.9, 0.6)), at, get_parent(), &"kinship")
 		"whole_tree":
 			family_whole.emit(event[1])
 			var map = get_parent().get_node_or_null("%MapGenerator")
@@ -658,6 +709,8 @@ func _draw() -> void:
 		to -= direction * _edge(pair.b)
 		if from.distance_to(to) < 8.0:
 			continue
+		if stage == 2 and mode == 0:
+			_draw_arch(pair)
 		var colour := Color(_colour(pair), alpha)
 		var sheet: StringName = [&"kin_vine_sapling", &"kin_vine_blooming", &"kin_vine_oldkin"][stage]
 		var tex := Fx.texture(sheet)
@@ -691,6 +744,30 @@ func _draw() -> void:
 		if stage >= 2:
 			draw_circle(points[4], 3.5, Color(1.0, 0.85, 0.9, alpha))  # A flower (Old Kin)
 
+# Old Kin: a small flowering arch (kin_oldkin_arch, 64x32, feet at (0,31) and (63,31)) spans the pair's
+# bases, stretched along x only, never upside down. Full effects only.
+func _draw_arch(pair: Dictionary) -> void:
+	var tex := Fx.texture(&"kin_oldkin_arch")
+	if tex == null:
+		return
+	var entry := Fx.info(&"kin_oldkin_arch")
+	var frames: int = maxi(int(entry.get("frames", 4)), 1)
+	var frame := int(_clock * float(entry.get("fps", 4.0))) % frames
+	var size := Vector2(tex.get_width() / float(frames), tex.get_height())
+	var left: Vector2 = to_local(pair.a.global_position + ARCH_FOOT)
+	var right: Vector2 = to_local(pair.b.global_position + ARCH_FOOT)
+	if left.x > right.x:
+		var swap := left
+		left = right
+		right = swap
+	var length := left.distance_to(right)
+	if length < 8.0:
+		return
+	draw_set_transform(left, left.angle_to_point(right), Vector2(length / (size.x - 1.0), 1.0))
+	draw_texture_rect_region(tex, Rect2(Vector2(0, -(size.y - 1.0)), size), Rect2(Vector2(size.x * frame, 0), size),
+		Color(branch_colour(pair.a).lerp(branch_colour(pair.b), 0.5).lightened(0.4), ARCH_ALPHA))
+	draw_set_transform(Vector2.ZERO)
+
 # How far from a Warden's centre its vine starts: past the slab, and past an Ascended form's big art.
 static func _edge(tower: Tower) -> float:
 	return 34.0 if tower.tower_data.tier >= DreamState.ASCENDED_TIER else 20.0
@@ -703,6 +780,41 @@ func _burst(at: Vector2, pair: Dictionary) -> void:
 	var fallback := KinBurst.new(_colour(pair), 0.5, 26.0)
 	get_parent().add_child(fallback)
 	fallback.global_position = at
+
+# A Harmony strike's look grows with the bond (2026-09-29): Sapling = the tiny spark; Blooming = petals
+# spiral in from both Wardens' sides in their colours; Old Kin = two warm beams from both Wardens
+# meeting on the nightmare, a bloom in both colours, then the petals. Subtle / reduce flashes: the spark.
+func _harmony_look(at: Vector2, pair: Dictionary) -> void:
+	var stage := get_stage(pair)
+	if stage == 0 or _effects() != 0 or Fx.reduce_flashes():
+		_spark(at, pair)
+		return
+	var left: Tower = pair.a if pair.a.global_position.x <= pair.b.global_position.x else pair.b
+	var right: Tower = pair.b if left == pair.a else pair.a
+	var left_colour := branch_colour(left)
+	var right_colour := branch_colour(right)
+	var shown := false
+	if stage == 2:
+		for side in [[left, left_colour], [right, right_colour]]:
+			var beam := Fx.segment(&"harmony_beam", side[0].global_position + side[0].tower_data.get_attack_origin(), at,
+				get_parent(), 0.35)
+			if beam:
+				beam.modulate = side[1].lerp(HARMONY_GOLD, 0.3)
+				shown = true
+		var bloom := Fx.play(&"harmony_bloom", at, get_parent())
+		if bloom:
+			bloom.modulate = left_colour.lerp(right_colour, 0.5)
+	for side in [[&"harmony_petals_a", left_colour], [&"harmony_petals_b", right_colour]]:
+		var petals := Fx.play(side[0], at, get_parent())
+		if petals:
+			petals.modulate = side[1]
+			shown = true
+	if not shown:
+		_spark(at, pair)
+
+# A Warden's own branch colour (BRANCH_COLORS; its family's when the branch has none).
+static func branch_colour(tower: Tower) -> Color:
+	return BRANCH_COLORS.get(branch_for(tower), FAMILY_COLORS.get(tower.tower_data.line, Color(0.9, 0.95, 0.7)))
 
 # A tiny two-colour spark (the harmony_spark sheets; lite when Subtle). Never a callout.
 func _spark(at: Vector2, pair: Dictionary) -> void:
@@ -725,6 +837,34 @@ func _spark(at: Vector2, pair: Dictionary) -> void:
 		get_parent().add_child(fallback)
 		fallback.global_position = at
 
+# Borrowed looks: the colour `tower`'s attacks carry while it's bonded (its kin's branch colour), or a
+# transparent colour (not bonded, or Kinship effects Off).
+func look_for(tower: Tower) -> Color:
+	if _effects() == 2:
+		return Color(0, 0, 0, 0)
+	var partner := get_partner(tower)
+	if partner == null:
+		return Color(0, 0, 0, 0)
+	return branch_colour(partner)
+
+# A borrowed trait went off on `learner` (Tower._kin_fired): a small bead of light runs along the vine
+# from its kin (the teacher) to it. Full effects only, at most one per pair every BEAD_COOLDOWN.
+func trait_fired(learner: Tower, id: StringName) -> void:
+	if _effects() != 0 or Fx.reduce_flashes():
+		return
+	for pair in get_pairs(learner):
+		if pair.id != id or not is_instance_valid(pair.a) or not is_instance_valid(pair.b):
+			continue
+		if _clock < _bead_ready.get(pair.key, 0.0):
+			return
+		_bead_ready[pair.key] = _clock + BEAD_COOLDOWN
+		var teacher: Tower = pair.b if pair.a == learner else pair.a
+		var direction := (learner.global_position - teacher.global_position).normalized()
+		var bead := KinBead.new(teacher.global_position + direction * _edge(teacher),
+			learner.global_position - direction * _edge(learner), _colour(pair))
+		get_parent().add_child(bead)
+		return
+
 # Rainfog (Rain Lily line): a fog patch where a splash landed (1 tile, `seconds`).
 func fog_patch(at: Vector2, seconds: float) -> void:
 	if seconds <= 0.0:
@@ -738,13 +878,14 @@ func fog_patch(at: Vector2, seconds: float) -> void:
 
 func to_save() -> Dictionary:
 	return {"ages": ages.duplicate(), "whole": whole_families.duplicate(), "formed": formed_run,
-		"harmony": harmony_run}
+		"harmony": harmony_run, "kindred": kindred_shown}
 
 func load_save(data: Dictionary) -> void:
 	ages = data.get("ages", {}).duplicate()
 	whole_families.assign(data.get("whole", []))
 	formed_run = int(data.get("formed", 0))
 	harmony_run = int(data.get("harmony", 0))
+	kindred_shown = bool(data.get("kindred", false))
 	refresh()  # Saved pairs keep their age and aren't announced again
 
 
@@ -803,3 +944,30 @@ class KinBurst extends Node2D:
 			var dir := Vector2.from_angle(TAU * i / 6.0 + t * 2.0)
 			var colour := _colour if i % 2 == 0 else Color(1.0, 0.92, 0.95)
 			draw_circle(dir * _size * t, 3.0 * (1.0 - t) + 1.0, Color(colour, 1.0 - t))
+
+
+# A bead of light (kin_vine_bead, tinted) running along a vine, then gone. Drawn over the vines.
+class KinBead extends Node2D:
+	const TIME := 0.35
+	var _from: Vector2
+	var _to: Vector2
+	var _age := 0.0
+
+	func _init(from: Vector2, to: Vector2, colour: Color) -> void:
+		_from = from
+		_to = to
+		modulate = colour.lightened(0.3)
+		z_index = 2
+		rotation = from.angle_to_point(to)
+
+	func _ready() -> void:
+		global_position = _from
+		if Fx.play(&"kin_vine_bead", _from, self) == null:
+			var dot := KinBurst.new(modulate, TIME, 2.0)
+			add_child(dot)
+
+	func _process(delta: float) -> void:
+		_age += delta
+		global_position = _from.lerp(_to, minf(_age / TIME, 1.0))
+		if _age >= TIME:
+			queue_free()

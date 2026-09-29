@@ -218,9 +218,18 @@ func record(id: StringName, enemy: Node2D = null) -> void:
 		if _dev_flagged.has(String(id)) and not MetaRun.is_dev_run():
 			_clear_dev_flag(id)  # Found in a normal run now: it counts (no second discovery card)
 		return
+	# Discovery unlocks (dream_design.md): the Dreams this find lets into the pool, for the card.
+	var dreams := get_tree().get_first_node_in_group(DreamState.GROUP)
+	var before: Array = dreams.undiscovered_cards() if dreams != null and dreams.has_method("undiscovered_cards") else []
 	_seen.append(String(id))
 	block_new.append(id)
 	_remember_discovery(id)
+	if not before.is_empty():
+		var typed: Array[UpgradeData] = []
+		typed.assign(before)
+		var names: Array = dreams.newly_discovered(typed)
+		if not names.is_empty():
+			new_dreams[id] = names
 	combo_discovered.emit(id)
 	_queue.append(id)
 	_enemies[id] = enemy
@@ -339,6 +348,8 @@ func _show_next() -> void:
 		return
 	_card_id = _queue.pop_front()
 	_card_label.text = discovery_text(_card_id)
+	if new_dreams.has(_card_id):  # "New Dreams: Rolling Thunder, Rain on Glass" (discovery unlocks)
+		_card_label.text += "\nNew Dreams: " + ", ".join(new_dreams[_card_id])
 	var reaction := Reactions.get_data(_card_id)
 	_card_label.add_theme_color_override("font_color", reaction.callout_color if reaction != null else Color(0.9, 1.0, 0.8))
 	_crown_corners.visible = CodexData.CROWNED.has(_card_id)
@@ -396,6 +407,7 @@ func _may_write() -> bool:
 	return get_tree().current_scene == owner
 
 var _dev_flagged: Array = []  # Ids found only in developer runs (loaded at _ready)
+var new_dreams := {}  # Combo id -> names of the Dreams its discovery let into the pool
 
 func _remember_discovery(id: StringName) -> void:
 	if MetaRun.is_dev_run() and not _dev_flagged.has(String(id)):

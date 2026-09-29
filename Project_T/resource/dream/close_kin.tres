@@ -13,4 +13,3 @@ tags = Array[String](["kinship"])
 discovered_by = Array[String](["kinship:any"])
 max_stacks = 1
 rule_id = &"close_kin"
-in_start_pool = false

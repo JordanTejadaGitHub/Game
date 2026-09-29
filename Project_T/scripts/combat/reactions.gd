@@ -687,6 +687,8 @@ static func echo(id: StringName, spot: Vector2, share: float, echo_tower: Tower,
 				if strength > 0.0:
 					enemy.take_damage(strength * share, _line(applier, echo_tower.tower_data.line), true, false,
 						echo_tower, &"echo")
+		if is_instance_valid(enemy) and not enemy.is_cleansed:
+			echo_tower.resonant_set_off(enemy)  # Resonant Hollow: the echo rings like a chime
 	if id == &"mushrooming" and not nearby.is_empty():
 		var first: Node2D = nearby[0]
 		var cloud := ReactionCloud.new(spot, MUSHROOM_CLOUD_RADIUS * CELL, MUSHROOM_CLOUD_TIME * share,

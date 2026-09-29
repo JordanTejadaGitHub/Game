@@ -19,10 +19,12 @@ var _lifetime: float
 var _age := 0.0
 var _burst := -1.0  # Seconds into the burst effect; negative until triggered
 
-func _init(tower: Tower, at_cell: Vector2) -> void:
+# `data` / `strength`: a ring planted with another Warden's ring (Spore Nursery: a Driftspore's puff plants
+# its Fairy Ring kin's ring, at the bond's share).
+func _init(tower: Tower, at_cell: Vector2, data: TowerData = null, strength: float = 1.0) -> void:
 	_tower = tower
-	_data = tower.attack_data  # What it was made with (a legacy attack, a Graftling's copy)
-	_boost = tower._hit_boost  # Sudden Bloom / Watchful Rest
+	_data = data if data != null else tower.attack_data  # What it was made with (a legacy attack, a Graftling's copy)
+	_boost = tower._hit_boost * strength  # Sudden Bloom / Watchful Rest
 	cell = at_cell
 	_lifetime = _data.trap_lifetime
 	top_level = true

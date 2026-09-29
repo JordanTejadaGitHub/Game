@@ -74,6 +74,7 @@ func _show(tower: Tower) -> void:
 func _refresh() -> void:
 	for child in _groups.get_children():
 		child.queue_free()
+	tower_placer.hide_catch_preview()
 	if tower_seller.selection.size() > 1:
 		visible = true
 		_desc.visible = false
@@ -89,6 +90,8 @@ func _refresh() -> void:
 		return
 	visible = true
 	var data := _tower.tower_data
+	if _tower.is_catcher():
+		tower_placer.show_catch_preview(_tower.global_position, _tower.get_catch_radius())  # Its catch zone
 	_title.text = data.display_name
 	_show_damage_type(data)
 	if _tower.rank > 0:
@@ -162,8 +165,11 @@ func _refresh() -> void:
 				lines.append(hint)
 		var family := kin.family_bonus(data.line)
 		if family > 0.0:
-			lines.append("%s: +%d%% damage for the family" % ["Whole Tree" if family > Kinships.KINDRED_BONUS else "Kindred",
-				roundi(family * 100)])
+			_stats.add_child(_kindred_row(data.line, family))  # The family icon + "Kindred +10%"
+	var support := SupportLog.find(_tower)
+	var support_line := support.get_panel_line(_tower) if support else ""
+	if support_line != "":
+		lines.append(support_line)  # "Caught this run: 240 Dew · paid back ✓", "Held 42 s · …"
 	if dream_state.has_method("get_crossroads_bonus") and dream_state.has_rule(&"crossroads"):
 		var crossroads: float = dream_state.get_crossroads_bonus(_tower)
 		if crossroads > 0.0:
@@ -204,6 +210,10 @@ func _refresh() -> void:
 				button.text = "Grow into %s · Needs room: 3 free cells next to it (2×2)" % next.display_name
 				button.disabled = true
 			button.pressed.connect(_evolve.bind(next))
+			if next.catch_share > 0.0 and not _tower.is_catcher():  # Where it would catch (placement preview)
+				var radius := next.catch_radius + DewCatch.WIDE_BOWL_STEP * mini(dream_state.rule_stacks(&"wide_bowl"), 3)
+				button.mouse_entered.connect(func() -> void: tower_placer.show_catch_preview(_tower.global_position, radius))
+				button.mouse_exited.connect(tower_placer.hide_catch_preview)
 		else:
 			_locked_form_button(button, "Grow into %s" % next.display_name, next)
 	if _tower.needs_focus():
@@ -566,3 +576,26 @@ func _refresh_unless_hovered() -> void:
 		_dew_dirty = true  # Rebuilt once the pointer leaves
 	else:
 		_refresh()
+
+# Kindred / Whole Tree (tower_design.md "Kinships"): a quiet marker, the family's icon and its bonus.
+func _kindred_row(line: String, bonus: float) -> HBoxContainer:
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 4)
+	var whole := bonus > Kinships.KINDRED_BONUS
+	var name := "Whole Tree" if whole else "Kindred"
+	row.tooltip_text = ("All three branches of the %s family are planted: its Wardens deal +%d%% damage." if whole \
+		else "Two branches of the %s family are planted: its Wardens deal +%d%% damage.") \
+		% [NightmareIcons.family_name(line), roundi(bonus * 100)]
+	var icon := TextureRect.new()
+	icon.texture = IconInfo.damage_type_icon(line)
+	icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	icon.custom_minimum_size = Vector2(16, 16)
+	icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	row.add_child(icon)
+	var label := Label.new()
+	label.text = "%s +%d%%" % [name, roundi(bonus * 100)]
+	label.add_theme_color_override("font_color", Kinships.FAMILY_COLORS.get(line, Color(0.85, 0.9, 0.6)))
+	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	row.add_child(label)
+	return row

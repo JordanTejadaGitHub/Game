@@ -1,6 +1,9 @@
 extends Node2D
 class_name PathCloud
 
+const HOAR_FOG_STAY := 2.0  # Hoar Fog (Kinship): seconds in the fog before it freezes…
+const HOAR_FOG_FREEZE := 0.75  # …for this long (Frostfern's freeze), x the bond's share
+
 # A lingering cloud on a path tile (Bloomcap's sleepy cloud, Mistveil's fog). Every TICK seconds
 # it soothes the creatures inside a little and applies the Warden's status; fog clouds also make
 # Spored tick harder. Script-only node, a child of the Warden that dropped it.
@@ -25,6 +28,9 @@ var _age := 0.0
 var _tick_timer := 0.0
 var _drowsy_time := {}  # Morning Fog: nightmare instance id -> seconds inside since its last Drowsy
 var _seen := {}  # Nightmares that have been inside (instance ids): "entering" for Rainfog
+var _stay := {}  # Hoar Fog: nightmare instance id -> seconds inside
+var _frozen := {}  # Hoar Fog: nightmares this cloud froze
+var flecks := Color(0, 0, 0, 0)  # Borrowed looks: a bonded Warden's cloud carries flecks of its kin's colour
 
 func _init(tower: Tower, center: Vector2) -> void:
 	_tower = tower
@@ -69,6 +75,15 @@ func _tick() -> void:
 			if _drowsy_time[id] >= 1.0 / data.cloud_drowsy_per_second:
 				_drowsy_time[id] = 0.0
 				enemy.apply_status(EnemyStatuses.DROWSY, 1, 0.0, 0.0, 0, data.line, _tower)
+		# Hoar Fog B: a Mistveil's fog freezes a nightmare that stays in it 2 s (once per cloud).
+		if _fog and is_instance_valid(_tower) and not _frozen.has(enemy.get_instance_id()):
+			var stay: float = _stay.get(enemy.get_instance_id(), 0.0) + TICK
+			_stay[enemy.get_instance_id()] = stay
+			var hoar := _tower.kin_share(&"hoar_fog", "b")
+			if hoar > 0.0 and stay >= HOAR_FOG_STAY:
+				_frozen[enemy.get_instance_id()] = true
+				_tower.hold(enemy, HOAR_FOG_FREEZE * hoar)
+				_tower._kin_fired(&"hoar_fog")
 		# Kinships: Slumber Rot adds Spored per tick, Rainfog's fog hits nightmares entering it.
 		var entered := not _seen.has(enemy.get_instance_id())
 		_seen[enemy.get_instance_id()] = true
@@ -80,6 +95,11 @@ func _tick() -> void:
 
 func _draw() -> void:
 	var fade := minf(1.0, (_duration - _age) / 0.5) * minf(1.0, _age / 0.2 + 0.3)
+	if flecks.a > 0.0:
+		for i in 6:
+			var spin := TAU * i / 6.0 - _age * 0.6
+			draw_circle(Vector2.from_angle(spin) * Vector2(_radius * 0.45, _radius * 0.3) + Vector2(0, sin(_age * 2.0 + i) * 3.0),
+				2.0, Color(flecks, 0.6 * fade))
 	var tint := _color.lerp(Color.WHITE, 0.25)
 	# A ring of puffs turning slowly round the middle, bobbing, back ones drawn first.
 	var n := 4 + roundi(_radius / 24.0)

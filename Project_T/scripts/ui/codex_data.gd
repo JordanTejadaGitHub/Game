@@ -185,6 +185,16 @@ const KINSHIP_TEXT := {
 	&"night_chimes": "Chime Stone's pulses Catch nightmares at full {drowsy}, as if a Dreamcatcher stood by; Dreamcatcher's threads set off {static} at 3 stacks.",
 	&"old_growth": "Nightmares dispelled inside Elder Stump's aura drop +25% Dew; Dewcatcher gains a small aura: neighbours +10% attack speed.",
 	&"flock_together": "Wren's Nest hits strip a buff (a shell chips twice as fast, a Weeper stops mending, Omen boosts fall away) and the robbed nightmare drops +1 Dew; Magpie Perch hunts the fastest nightmare, +25% vs Phantoms.",
+	# The 9 hidden Kinships (a hidden branch first; full game only, Tower Code 6ba79b8).
+	&"spore_nursery": "Fairy Ring's rings apply double {spored}; Driftspore's puffs plant a mushroom ring where they land (one at a time).",
+	&"hoar_fog": "Frostfern's shots leave a fog puff; Mistveil's fog freezes nightmares that stay in it 2 s.",
+	&"sunspot": "Sunpetal's beam makes its target {marked}; Lanternmoth's shots grow +10% per hit on the same target (up to +50%).",
+	&"spotter": "Cairn lobs at the Standing Stone's target and the landing crits; Standing Stone's shots splash 30% beside the target.",
+	&"lantern_roots": "Rootlight's lit tiles hold a nightmare stepping on them for 0.3 s (once); Tangleroot's holds reveal {hidden} nightmares and stop burrowing.",
+	&"resonant_hollow": "Echo Hollow's echoes set off {static} like a chime; Chime Stone's pulses echo once at 30%.",
+	&"true_graft": "Graftling copies at 100%; Elder Stump's pulse adds its strongest neighbour's status.",
+	&"jewel_thieves": "Every 6th peck steals a nightmare's buff (+1 Dew if there's none); the Magpie pecks twice per swoop.",
+	&"tailwind": "Samara's seed carries full stacks; Gust's copies reach nightmares up to 3 cells away.",
 	&"dust_devil": "Gust's copies also deal a blade hit; Pinwheel's blades copy statuses (half stacks) onto what they hit.",
 }
 const KINSHIPS_SCRIPT := "res://scripts/combat/kinships.gd"
@@ -421,3 +431,33 @@ static func combo_for_link(status: StringName, payoff: TowerData) -> Dictionary:
 				and entry.statuses.has(payoff.applies_status):
 			return entry
 	return {}
+
+# --- Discovery unlocks (dream_design.md "Discovery unlocks") ---------------------------------------
+# The Dream cards a discovery lets into the pool, by their `discovered_by` key ("reaction:thunderclap",
+# "crowned:tempest", "kinship:any"). The Codex lists them under a discovered entry; an undiscovered one
+# stays "???" (it names nothing).
+static var _dreams_by_key := {}
+
+static func dreams_for(key: String) -> Array[String]:
+	if _dreams_by_key.is_empty():
+		for file in ResourceLoader.list_directory(DREAM_DIR):
+			if not file.ends_with(".tres"):
+				continue
+			var card := load(DREAM_DIR + file) as UpgradeData
+			if card == null:
+				continue
+			for k in card.get("discovered_by") if card.get("discovered_by") != null else []:
+				if not _dreams_by_key.has(k):
+					_dreams_by_key[k] = []
+				_dreams_by_key[k].append(card.display_name)
+	var names: Array[String] = []
+	names.assign(_dreams_by_key.get(key, []))
+	return names
+
+# The key an entry's discovery counts as ("" for synergies: no cards wait on them).
+static func discovery_key(entry: Dictionary) -> String:
+	match entry.get("kind", ""):
+		"Reaction": return "reaction:" + String(entry.id)
+		"Crowned": return "crowned:" + String(entry.id)
+		"Kinship": return "kinship:any"
+	return ""

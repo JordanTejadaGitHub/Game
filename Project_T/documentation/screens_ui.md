@@ -132,7 +132,10 @@ compared against what the drift needs and against last drift. All of it is built
 **1. The drift benchmark ("what's good").** During a drift, the DriftPanel shows a bar:
 *"Your maze 1,240 DPS · this drift needs ~980 · 127%"*.
 - **Needed DPS** = the drift's total nightmare health (with health scaling, elites and bosses) ÷
-  how long an average nightmare spends walking the **current** path (path length ÷ average speed).
+  (the drift's **arrival span** + how long an average nightmare spends walking the **current**
+  path: path length ÷ average speed). As built (abcc477, `WardenMeter`): the arrival span is
+  included because nightmares arrive over 25–30 s; walk time alone would make a maze that exactly
+  keeps up read under 100%.
   A longer maze lowers the number needed, which teaches the maze pillar.
 - Colour: **green** at 110%+, **amber** 90–110%, **red** under 90% ("you'll leak").
 - At a rest it becomes a forecast: *"Next drift needs ~1,100 · your maze did 1,240 last drift"*.
@@ -406,6 +409,21 @@ Full game only (they can't happen in the demo).
 *"???"* with a leaf frame, discovered the first time the bond forms. The entry shows both Wardens,
 what each borrows, and the bond stages. 9 main (Slumber Rot, Rainfog and Storm Beacon are in the
 demo) and 9 hidden ones later. Kindred and Whole Tree are explained on the section's first page.
+
+**Dreams** (added 2026-09-29, user: "add a card Codex for all cards; all cards start as ??? but once
+you see them once in your account, it adds into it"): a Codex section listing **every Dream card in
+the game**.
+- **Every card starts as "???"** in a plain card frame (no name, rarity, text or hint).
+- A card is **seen** the first time it's **offered** to you in any Dream (taking it isn't needed);
+  from then on its entry shows the full card: rarity gem, name, text with status links, tags, its
+  Needs, its Deepened version (once that's seen too), and your **times taken** / **runs won with
+  it**. Saved to the **account** immediately (profile `dreams_seen`, like the combos), in every
+  run; dev-run sightings carry the hidden dev flag.
+- Grouped like the "Dreams this run" panel (Damage and stats, Wardens and maze, Combos and
+  statuses, Economy, Legendary), with filters by rarity, tag and family, and a counter:
+  *"84 / 180 Dreams seen"*. Newly seen cards wear the gold "New" tag until you look.
+- The "Dev: any card…" grid does **not** mark cards as seen (only real offers do).
+- Milestone: **"Dream of everything"** (every card seen, normal runs only); a Steam achievement.
 
 New combos (new Wardens, Reactions) are added to this table and the Codex automatically.
 

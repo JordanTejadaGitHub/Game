@@ -175,6 +175,16 @@ func _run() -> void:
 	var slog := SupportLog.find(acorn)
 	_check(slog.get_stats(acorn).aura_damage > 0.0, "SupportLog: the Acorn is credited with the extra damage (%.2f)" % slog.get_stats(acorn).aura_damage)
 	_check(slog.get_panel_line(acorn).begins_with("Added this run:"), "aura panel line (%s)" % slog.get_panel_line(acorn))
+	acorn._refresh_neighbours()
+	_check(acorn.get_node_or_null("AuraRing") != null, "the Acorn's aura ring breathes")
+	_check(is_instance_valid(buddy._leaf_mote), "a boosted Warden carries a leaf mote")
+	# Catcher placement preview: the share of last block's dispels near a spot
+	var spots_log := SupportLog.find(acorn)
+	spots_log._dispels = {"block": [], "last_block": [acorn.global_position, acorn.global_position, Vector2(-5000, 0), Vector2(-5000, 0)]}
+	_check(is_equal_approx(spots_log.dispel_share_near(acorn.global_position, 2.5), 0.5), "half of last block's dispels were here")
+	placer.show_catch_preview(acorn.global_position, 2.5)
+	_check(not placer._catch_preview.is_empty(), "the placer shows the catch zone")
+	placer.hide_catch_preview()
 	_take("acorn_cache")
 	buddy._refresh_neighbours()
 	_check(is_equal_approx(buddy._aura_damage, 0.08), "Acorn Cache: +8%% (%.3f)" % buddy._aura_damage)

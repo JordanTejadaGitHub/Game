@@ -242,9 +242,10 @@ the profile like the Codex). The forest dreams of what it has seen.
   rest of the current run (so the next Dream can already offer them). The card's normal Needs still
   apply on top (e.g. you still need to own Stormcap for Rolling Thunder this run).
 - **Shown:** the discovery card that already appears on a first Reaction / Kinship adds a line
-  *"New Dreams: Rolling Thunder, Rain on Glass"*. The Codex shows each entry's cards, greyed until
-  discovered (*"Discover Thunderclap to dream of this"*). A first build of a Warden shows a small
-  toast with its new Dreams.
+  *"New Dreams: Rolling Thunder, Rain on Glass"*. A **discovered** Codex entry lists its Dreams;
+  an undiscovered one stays **"???" and names no cards** (the user's "??? everywhere" rule wins;
+  the earlier "greyed until discovered" idea is dropped, 2026-09-29). A first build of a Warden
+  shows a small toast with its new Dreams.
 - **Cards never gate a combo** still holds: Reactions, Kinships and Wardens all work without any
   card, so discovery always comes from playing, never from the pool.
 - **Grove overlap:** where a discovery card was also sold on a Memory Grove node (Wildfire Spores,
@@ -253,16 +254,16 @@ the profile like the Codex). The forest dreams of what it has seen.
   chat should rebalance `meta_design.md`'s node list.
   - **Resolved 2026-09-29** (Meta Game Code's audit: 8 nodes, 700 Seeds, were *fully* covered):
     **Legendaries are never discovery-gated**, so **Dawnbreak** and **Grove of Kin** drop
-    `discovered_by` and stay **Grove tips** (bought, as before). The **6 other fully covered nodes
+    `discovered_by` and stay **Grove tips** (bought, as before). The **5 other fully covered nodes
     are removed**: Reactions, Woven Dreams I and II, Kin Lore, Deep Bonds (and the Reactions →
     Dawnbreak link: Dawnbreak now hangs off Spore Lore; Grove of Kin off the nearest remaining Cards
     node). **Bittersweet Dreams** loses Blood Is Thicker and costs 52. Cards that are only
-    implicitly Warden-gated (Acorn Cache, Twin Puff, …) stay on their nodes. The tree loses about
-    **560 Seeds** (~5,960 → ~5,400, ~27 h instead of ~30 h), which is fine: those cards now come from
+    implicitly Warden-gated (Acorn Cache, Twin Puff, …) stay on their nodes. The tree (as built, 763f228) is
+    **6,722 Seeds** (~34 h; the earlier 5,960 figure was out of date), and those cards now come from
     playing instead.
 - **Half-dreamed cards** (see *Adapt, don't get handed*) still need their Reaction discovered first.
-  So in a player's first runs they won't tempt toward a combo they've never seen; the Codex's greyed
-  entries do that job instead. **They skip the Warden gate** (ruling 2026-09-29): the Reaction is the
+  So in a player's first runs they won't tempt toward a combo they've never seen; finding combos
+  by experimenting (the Codex's "???" entries) does that job instead. **They skip the Warden gate** (ruling 2026-09-29): the Reaction is the
   discovery that matters, and their Needs line shows statuses, not Wardens. Otherwise Conductive
   Soil would stay hidden for a player who found Thunderclap with a plain Firefly Jar but never grew
   a Stormcap, which defeats a card meant to tempt toward the other family.
@@ -675,7 +676,7 @@ from walls (Hedge Maze, Bramble).
 
 | # | Card | Rarity | Effect | Tags | Needs | Pool |
 |---|---|---|---|---|---|---|
-| 69 | **Seedfall** | Common | Sprouts cost **6** Dew and their price rises **half as fast** (+3 per 10 Sprouts instead of per 5; opens the Sprout swarm build; 2026-09-29) | sprout, wide | — | Start |
+| 69 | **Seedfall** | Common | Sprouts cost **6** Dew **and their price never rises** (opens the Sprout swarm build; the base price rises +3 per 5 Sprouts; tested ×1.05 of Balanced, 2026-09-29) | sprout, wide | — | Start |
 | 70 | **Many Hands** | Uncommon | all Wardens **+1% damage per 4 attacking Wardens** you have (max +25%) | wide | 15+ attacking Wardens | Start |
 | 71 | **Sprout Chorus** | Uncommon | Sprouts **+5% attack speed per other Sprout within 2 cells** (max +40%) | sprout, wide | 6+ Sprouts | Start |
 | 72 | **Canopy** | Rare | when you reach **20, 30 and 40** attacking Wardens (planted this run), every Warden gets **+8% damage** permanently, each time | wide | 15+ attacking Wardens | Grove |

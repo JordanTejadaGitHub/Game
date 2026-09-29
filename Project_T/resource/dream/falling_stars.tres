@@ -16,7 +16,6 @@ requires = Array[String](["firefly_jar", "tangleroot"])
 requires_any = Array[String](["chime_stone", "bellflower"])
 max_stacks = 1
 min_act = 2
-in_start_pool = false
 entwined = true
 woven = true
 rule_id = &"falling_stars"

@@ -16,4 +16,3 @@ entwined = true
 requires_tag = "reaction"
 min_kinships = 1
 rule_id = &"kin_and_kindling"
-in_start_pool = false

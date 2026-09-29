@@ -36,6 +36,14 @@ func _run() -> void:
 	var codex: CodexPanel = pause_menu.codex
 	_check(_shown(codex, "thunderclap", "Thunderclap"), "the pause menu's Codex shows Thunderclap right away")
 	_check(_shown(codex, "tempest", "Tempest"), "…and the Crowned Tempest")
+	# Discovery unlocks: a discovered Reaction lists the Dreams it let in; the discovery card says so.
+	_check(CodexData.dreams_for("reaction:thunderclap").size() >= 1, "Thunderclap unlocks Dreams (" + str(CodexData.dreams_for("reaction:thunderclap")) + ")")
+	_check(CodexData.discovery_key(CodexData.get_any(&"thunderclap")) == "reaction:thunderclap" and CodexData.discovery_key(CodexData.get_any(&"conducted")) == "",
+		"entries map to their discovery keys (synergies have none)")
+	var probe_card := VBoxContainer.new()
+	codex._add_dreams_line(probe_card, CodexData.get_any(&"thunderclap"))
+	_check(probe_card.get_node_or_null("Dreams") != null and probe_card.get_node("Dreams").text.begins_with("Dreams: "), "a discovered Reaction's card lists its Dreams")
+	probe_card.free()
 	_check(not _has_dev_mark(codex, "thunderclap"), "no dev mark")
 	pause_menu.close()
 	await _end_run(main)

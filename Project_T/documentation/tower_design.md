@@ -488,8 +488,8 @@ Borrowed traits at full strength (Old Kin); Sapling 50%, Blooming 75%.
 the share (Slumber Rot's Drowsy, Storm Beacon's Static, Flock Together's theft (was Dew until 2026-09-29), Dust Devil's status
 copy: 50% or 75% of hits); durations and bonuses scale by the share instead. **Rainfog's** fog deals
 the Rain Lily kin's splash damage × share to each nightmare entering the Mistveil's cloud, once per
-cloud. A Warden's branch comes from its tier-2 form (so finals keep their branch). Whole Tree
-family perks and the 9 hidden Kinships are still to build (the +20% damage is in).
+cloud. A Warden's branch comes from its tier-2 form (so finals keep their branch). The 9 hidden
+Kinships are built too (6ba79b8). Whole Tree family perks: check with Tower Code (the +20% damage is in).
 
 | Family | Pair | Kinship | A borrows from B | B borrows from A |
 |---|---|---|---|---|
@@ -503,7 +503,7 @@ family perks and the 9 hidden Kinships are still to build (the +20% damage is in
 | Nestling | Wren's Nest + Magpie Perch | **Flock Together** | hits strip nightmare buffs (the magpie's theft) | hunts the fastest nightmare, +25% vs Phantoms |
 | Whirligig | Gust + Pinwheel | **Dust Devil** | each copy also deals one blade hit | blades copy statuses (half stacks) onto what they hit |
 
-### The 9 hidden Kinships (later: need the hidden branch)
+### The 9 hidden Kinships (built 6ba79b8; need the hidden branch)
 
 | Family | Pair | Kinship | Hidden borrows | Its kin borrows |
 |---|---|---|---|---|
