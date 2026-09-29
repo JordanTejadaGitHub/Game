@@ -64,6 +64,7 @@ func _run() -> void:
 	for tower in tower_container.get_children():
 		tower.set_process(false)
 		tower._cooldown = 0.0
+		tower._idle_search = 0.0  # Idle searches wait a jittered time: look right away
 	var spawner = main.get_node("%EnemyContainer")
 	var leaf_bug: EnemyData = load("res://resource/enemy/leaf_bug.tres")
 	# Clear creatures spawned before the spawner was stopped, so only the test's own are targets.
