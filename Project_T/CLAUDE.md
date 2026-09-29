@@ -220,9 +220,11 @@ accessibility, Steam achievements (milestones map to them). Acts 3–4 and all f
   `make_rows(data, side, compact)`), `NightmareCard` (tap info for a kind not on the field; portrait,
   `health_at`, `is_new`), `ComingStrip` (DriftPanel, at rests), `ResistPips` (world; context = build
   ghost / selection, setting `resist_pips` = always; immune flash on `EnemyContainer.status_refused`),
-  `BossDossier` (HUD, group `boss_dossier`, `open_for(tree, drift)`; shows itself last at the rest
-  opening a boss block, reopen from the banner's "Boss in N" / strip; profile `boss_records`, real game
-  only). DriftBanner's 50% marker taps to the "at 50% health" ability. `tests/test_nightmare_icons.gd`.
+  `BossDossier` (HUD, group `boss_dossier`, `open_for(tree, drift)`; opens itself at the start of each act:
+  the run's first rest (after the onboarding whisper, ≤ 8 s) and each act-break rest (the next act's boss,
+  last in the rest order); the rest opening a boss block only shows the `BossReminder` panel under the
+  Coming strip (`is_reminding()`); reopen from the banner's "Boss in N" / strip; profile `boss_records`,
+  real game only). DriftBanner's 50% marker taps to the "at 50% health" ability. `tests/test_nightmare_icons.gd`.
 - Combat feedback (screens_ui.md), all on `DamageLog` events: `CombatCallouts` (world; combo tag →
   "Conducted!" / "Popped!" / "Asleep!" / "Shattered!" / "Weak!", throttled; calls
   `enemy.flash_status`), `PlacementLinks` (vines from the build ghost to Wardens it combos with),

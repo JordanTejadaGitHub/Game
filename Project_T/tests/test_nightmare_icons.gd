@@ -153,6 +153,11 @@ func _run() -> void:
 	await _settle(dossier, dreams, omens, intro, func() -> bool: return dossier.is_reminding())
 	_check(dossier.is_reminding() and not dossier.visible, "the boss-block rest only shows a reminder")
 	_check(_text(dossier._reminder).contains("arrives in 5 drifts"), "\"The Hollow Stag arrives in 5 drifts\" (%s)" % _text(dossier._reminder))
+	await process_frame  # Placed each frame
+	for coming in dossier.get_parent().get_children():
+		if coming is ComingStrip and coming.visible:
+			_check(dossier._reminder.position.y >= coming.position.y + coming.size.y,
+				"the reminder sits under the Coming strip, not on it (%.0f vs %.0f)" % [dossier._reminder.position.y, coming.position.y + coming.size.y])
 	var open_button: Button = dossier._reminder.find_children("*", "Button", true, false)[0]
 	open_button.pressed.emit()
 	_check(dossier.visible and dossier.shown_drift == 25 and not dossier.is_reminding(), "Open dossier opens the card")
