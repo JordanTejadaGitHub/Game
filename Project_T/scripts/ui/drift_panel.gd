@@ -16,6 +16,7 @@ const BUTTON_FONT_SIZE := 19
 @onready var dream_state: DreamState = %DreamState
 
 var _status_label := Label.new()
+var benchmark := Label.new()  # The drift benchmark line
 var _remember_button := Button.new()
 var _sapling_button := Button.new()
 var _start_button := Button.new()
@@ -26,6 +27,15 @@ var _speed_buttons: Array[Button] = []
 func _ready() -> void:
 	alignment = BoxContainer.ALIGNMENT_END
 	# Status line, with the Remember button (run_design.md "Dreamlight") beside it during rests.
+	# Damage that means something (screens_ui.md): "Your maze 1,240 DPS · this drift needs ~980 · 127%",
+	# green / amber / red; a forecast at rests (WardenMeter.get_benchmark via DriftMeter.benchmark_text).
+	benchmark.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	benchmark.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	benchmark.add_theme_font_size_override("font_size", 14)
+	benchmark.add_theme_color_override("font_outline_color", Color(0.08, 0.1, 0.14))
+	benchmark.add_theme_constant_override("outline_size", 6)
+	benchmark.visible = false
+	add_child(benchmark)
 	var status_row := HBoxContainer.new()
 	add_child(status_row)
 	_remember_button.text = "Remember"
@@ -113,9 +123,13 @@ func _unhandled_input(event: InputEvent) -> void:
 		get_viewport().set_input_as_handled()
 
 # The call-early bonus changes every frame as creatures walk, so refresh continuously.
-func _process(_delta: float) -> void:
+func _process(delta: float) -> void:
 	var latest := drift_director.drifts_started
 	var next := latest + 1
+	_benchmark_clock -= delta / maxf(Engine.time_scale, 0.001)
+	if _benchmark_clock <= 0.0:
+		_benchmark_clock = 0.5
+		_update_benchmark()
 
 	_start_button.disabled = not drift_director.can_start_next_drift()
 	# Remember moved to the top right (HUD RememberButton, run_design.md); this one stays hidden.
@@ -148,3 +162,15 @@ func _on_speed_changed(paused: bool, speed: float) -> void:
 	_pause_button.set_pressed_no_signal(paused)
 	for i in _speed_buttons.size():
 		_speed_buttons[i].set_pressed_no_signal(not paused and game_speed.speeds[i] == speed)
+
+var _benchmark_clock := 0.0
+
+func _update_benchmark() -> void:
+	var meter := WardenMeter.find(drift_director) if drift_director.drifts_started > 0 else null
+	var b: Dictionary = meter.get_benchmark() if meter != null else {}
+	var text := DriftMeter.benchmark_text(b)
+	benchmark.visible = text != "" and not run_state.is_over
+	if text != "" and text != benchmark.text:
+		benchmark.text = text
+	if text != "":
+		benchmark.add_theme_color_override("font_color", DriftMeter.ratio_color(float(b.ratio)))

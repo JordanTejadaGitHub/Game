@@ -45,6 +45,11 @@ func show_report(block: int) -> void:
 	var combos := get_node_or_null("%ComboFeedback") as ComboFeedback
 	var text := get_report_text(log, "block", log.combo_counts_block, "Block %d" % block,
 		combos.block_counts if combos else {}, combos.block_longest_chain if combos else 0)
+	# The maze line first, under the heading (screens_ui.md "Damage that means something").
+	var meter_lines := meter_text(self)
+	if meter_lines != "":
+		var at := text.find("\n")
+		text = (text + meter_lines) if at < 0 else text.substr(0, at) + meter_lines + text.substr(at)
 	if combos and not combos.block_new.is_empty():  # screens_ui.md "The Codex": "New combos: …"
 		var names: Array[String] = []
 		for id in combos.block_new:
@@ -158,3 +163,30 @@ static func get_report_text(log: DamageLog, period: String, counts: Dictionary, 
 	if not reactions.is_empty():
 		lines.append("Reactions: " + ComboFeedback.summary(reactions, longest_chain))
 	return "\n".join(lines)
+
+# The block against the next drift (Tower Code's WardenMeter.get_block_summary): "Maze 1,240 DPS ·
+# ↑12% vs last block · next drift needs ~980", then Carrying / Underused (with the reason) / Most
+# improved. "" before there's a meter.
+static func meter_text(near: Node) -> String:
+	var meter := WardenMeter.find(near)
+	if meter == null:
+		return ""
+	var s: Dictionary = meter.get_block_summary()
+	if float(s.get("maze_dps", 0.0)) <= 0.0:
+		return ""
+	var line := "Maze %s DPS" % DriftMeter.fmt(s.maze_dps)
+	var change := DriftMeter.change_text(s.get("change"))
+	if change != "":
+		line += " · %s vs last block" % change
+	if float(s.get("needed_dps", 0.0)) > 0.0:
+		line += " · next drift needs ~%s" % DriftMeter.fmt(s.needed_dps)
+	var lines: Array[String] = [line]
+	var carrying: Array = s.get("carrying", [])
+	if not carrying.is_empty():
+		lines.append("Carrying: " + ", ".join(carrying.map(func(r: Dictionary) -> String: return r.name)))
+	for r in s.get("underused", []):
+		lines.append("Underused: %s%s" % [r.name, " (%s)" % r.reason if String(r.get("reason", "")) != "" else ""])
+	var improved: Dictionary = s.get("most_improved", {})
+	if not improved.is_empty():
+		lines.append("Most improved: %s %s" % [improved.name, DriftMeter.change_text(improved.get("change"))])
+	return "\n" + "\n".join(lines)

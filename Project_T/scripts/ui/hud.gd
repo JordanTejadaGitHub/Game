@@ -83,6 +83,11 @@ func _ready() -> void:
 	var dossier := BossDossier.new(drift_director)
 	add_child(dossier)
 	dossier.name = "BossDossier"
+	# Damage that means something (screens_ui.md): the drift meter (right edge) and DPS tags (world).
+	var drift_meter := DriftMeter.new(drift_director)
+	drift_meter.name = "DriftMeter"
+	add_child(drift_meter)
+	owner.add_child.call_deferred(DpsTags.new())
 	_raise_overlays.call_deferred()  # After everything above (and deferred adds) is in
 	# Resist / weak pips and the immune flash, drawn in the world over the nightmares.
 	owner.add_child.call_deferred(ResistPips.new())
