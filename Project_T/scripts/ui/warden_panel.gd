@@ -224,7 +224,7 @@ func _refresh() -> void:
 		for which in [Tower.Focus.POWER, Tower.Focus.SWIFT, Tower.Focus.REACH, Tower.Focus.DEEP]:
 			# Usually rank III; a Warden planted at a higher rank (Remembered Care) chooses on its next one.
 			var button := _add_button("Rank %s · %s: %s per rank · %s" % [Tower.rank_name(_tower.rank + 1),
-				Tower.FOCUS_NAMES[which], Tower.FOCUS_TEXT[which], _price(cost)])
+				Tower.FOCUS_NAMES[which], Tower.FOCUS_TEXT[which], _price(cost)] + _growth_note())
 			button.tooltip_text = "The usual rank gains, plus this Focus at ranks III, IV and V. Can't be changed later."
 			button.disabled = not run_state.can_afford(cost)
 			button.set_meta(&"cost", cost)  # Affordability updates in place on Dew changes
@@ -249,7 +249,7 @@ func _refresh() -> void:
 				_confirm_eldest = false
 				_refresh())
 		else:
-			var nurture := _add_button("Nurture to rank %s · %s (R)" % [Tower.rank_name(_tower.rank + 1), _price(cost)])
+			var nurture := _add_button("Nurture to rank %s · %s (R)" % [Tower.rank_name(_tower.rank + 1), _price(cost)] + _growth_note())
 			nurture.tooltip_text = "+10%% damage, +4%% attack speed, +0.1 range%s. Kept when it grows." % (
 				", and %s" % Tower.FOCUS_TEXT[_tower.focus] if _tower.focus != Tower.Focus.NONE else "")
 			nurture.disabled = not run_state.can_afford(cost)
@@ -610,3 +610,12 @@ func _kindred_row(line: String, bonus: float) -> HBoxContainer:
 	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	row.add_child(label)
 	return row
+
+# " (and +60 when it grows into Thunderhead)": what this rank adds to the Warden's next growth
+# (warden_stats.md; growing pays the ranks held). "" when it adds nothing or there's no growth.
+func _growth_note() -> String:
+	var next := _tower.next_growth()
+	if next == null:
+		return ""
+	var extra := _tower.get_next_rank_growth_extra(next)
+	return " (and +%d when it grows into %s)" % [extra, next.display_name] if extra > 0 else ""

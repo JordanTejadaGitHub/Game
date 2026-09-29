@@ -645,6 +645,20 @@ func get_grow_cost(into: TowerData) -> Dictionary:
 		ranks += maxi(_rank_price_for(which, into, false) - _rank_price_for(which, tower_data, true), 0)
 	return {"total": base + ranks, "base": base, "ranks": ranks}
 
+# What the next rank adds to growing into `into` (warden_stats.md: growing pays the ranks held; the
+# Nurture button says so, so players don't rank a Warden out of its growth).
+func get_next_rank_growth_extra(into: TowerData) -> int:
+	var which := rank + 1
+	return maxi(_rank_price_for(which, into, false) - _rank_price_for(which, tower_data, true), 0)
+
+# The growth the Nurture button warns about: the first form open now, else the first that can be unlocked.
+func next_growth() -> TowerData:
+	var options := grow_options(_dream_state, tower_data) if _dream_state else []
+	for option in options:
+		if option[1]:
+			return option[0]
+	return options[0][0] if not options.is_empty() else null
+
 # Dew for the next rank (0 when it can't be nurtured further).
 func get_nurture_cost() -> int:
 	if not can_nurture():

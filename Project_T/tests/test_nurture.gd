@@ -204,6 +204,15 @@ func _run() -> void:
 		"the save keeps a Warden's rank and Focus")
 	RunSaver.delete_save()
 
+	# The Nurture button says what a rank adds to the next growth (warden_stats.md; growing pays the ranks).
+	var drift := _build(placer, map_generator, driftspore_data)
+	var next := drift.next_growth()
+	_check(next != null and next.tier == 3, "a branch's next growth is its final (%s)" % (next.get_id() if next else "none"))
+	_check(drift.get_next_rank_growth_extra(next) > 0, "and rank I adds to what that growth costs (+%d)" % drift.get_next_rank_growth_extra(next))
+	var before_grow: int = drift.get_grow_cost(next).total
+	var extra := drift.get_next_rank_growth_extra(next)
+	placer.nurture(drift)
+	_check(drift.get_grow_cost(next).total == before_grow + extra, "the note matches the new grow cost (%d -> %d)" % [before_grow, drift.get_grow_cost(next).total])
 	print("nurture test: %s" % ("PASS" if failures == 0 else "%d FAILED" % failures))
 	quit(failures)
 
