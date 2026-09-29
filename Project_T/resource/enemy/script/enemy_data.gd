@@ -43,8 +43,11 @@ enum Trait { NONE, FLYING, ROLLING, TRAMPLE, LEAP, BURROW, WANDER }
 @export var wander_chance: float = 0.35
 @export var wander_depth: int = 4
 @export var wander_cooldown_cells: int = 5
-# FLYING: weaves up to this many cells either side of its straight line (Moth Queen; 0 = straight).
+# FLYING: weaves up to this many cells either side of its straight line (0 = straight).
 @export var flight_weave: float = 0.0
+# FLYING along the nightmares' route instead of straight over the maze (the Moth Queen): it keeps
+# the route it spawned with, above it, so walls never block or re-route it.
+@export var flies_along_route: bool = false
 
 @export_group("Presence")
 # Hidden in fog (Lurker): untargetable unless a Warden is within 1.5 cells, a Marking Warden has

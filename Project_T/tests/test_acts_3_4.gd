@@ -180,8 +180,14 @@ func _run() -> void:
 	spawner.drift_health_scale = 3.0
 	var queen: Node2D = spawner.spawn_enemy(load("res://resource/enemy/moth_queen.tres"))
 	queen.set_process(false)
-	_check(queen.is_flying() and queen._path.size() > 2 and queen._path[queen._path.size() - 1] == map_generator.endPath,
-		"the Moth Queen weaves over the maze to the Heartwood")
+	var maze_route: PackedVector2Array = map_generator.get_path_from(map_generator.startPath)
+	_check(queen.is_flying() and queen._path == maze_route, "the Moth Queen flies along the nightmares' route")
+	_check(not spawner.get_maze_walkers().has(queen), "as a flyer: the path rule and re-routes leave her alone")
+	var queen_route: PackedVector2Array = queen._path.duplicate()
+	spawner._on_path_changed()
+	_check(queen._path == queen_route, "a path change doesn't re-route her")
+	queen.apply_status(EnemyStatuses.HELD)
+	_check(not queen.statuses.is_held(), "nothing on the ground holds her (Held / Rooted)")
 	_check(spawner.drift_health_scale == 3.0, "bosses don't change the drift's health scale")
 	var brood := []
 	var on_brood := func(parent: Node2D, child: Node2D) -> void:
