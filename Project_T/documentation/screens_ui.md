@@ -466,8 +466,9 @@ Added 2026-09-27. Mazes reach 30–40 Wardens, so upgrading one at a time gets t
 |---|---|
 | Click | one Warden (as now) |
 | **Click and drag** on the map | every Warden inside the box (a thin warm outline shows the box) |
-| **Double-click** a Warden | every Warden **of the same kind visible on screen** |
-| Ctrl + double-click | every Warden of that kind on the whole map |
+| **Double-click** a Warden | every Warden **of the same kind and the same Nurture rank** visible on screen (2026-09-28, user; was same kind at any rank) |
+| Ctrl + double-click | the same, on the whole map |
+| Alt + double-click | same kind at **any** rank (on screen; with Ctrl, the whole map) |
 | Shift + click / Shift + drag | add to or remove from the selection |
 | Esc, right-click, click empty ground | clear the selection |
 
@@ -621,7 +622,7 @@ Side: a run summary (Dreams, families, active Omen, time played).
 | Action | Key |
 |---|---|
 | Select Warden / place | 1–9, left click |
-| Select several | click and drag; double-click (same kind on screen); Ctrl + double-click (whole map); Shift adds/removes |
+| Select several | click and drag; double-click (same kind and rank on screen); Ctrl + double-click (whole map); Alt + double-click (any rank); Shift adds/removes |
 | Clear tool (trees and rocks) | 0 or C, then click obstacles (once clearing is unlocked) |
 | Cancel / deselect | right click, Esc |
 | Build mode | B |
