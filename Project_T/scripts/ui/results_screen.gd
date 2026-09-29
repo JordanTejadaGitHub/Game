@@ -89,7 +89,7 @@ func _build(won: bool) -> void:
 		var kin := RestReport.kinship_text(combos.kin_formed_run, combos.harmony_run, combos.whole_run) if combos else ""
 		box.add_child(StatusLinks.make_label(RestReport.get_report_text(DamageLog.instance, "run",
 			DamageLog.instance.combo_counts_run, "Wardens this run", tracker.counts if tracker else {},
-			tracker.longest_chain if tracker else 0) + kin, 14, Color(0.8, 0.9, 1.0)))
+			tracker.longest_chain if tracker else 0) + kin + support_lines(), 14, Color(0.8, 0.9, 1.0)))
 	box.add_child(HSeparator.new())
 	for line in breakdown:
 		var row := HBoxContainer.new()
@@ -162,3 +162,11 @@ func _button(parent: Control, text: String) -> Button:
 	button.custom_minimum_size = Vector2(150, 40)
 	parent.add_child(button)
 	return button
+
+# screens_ui.md "Support and economy feedback": the run's best supporter (next to the best Wardens)
+# and the Dew the catchers harvested.
+func support_lines() -> String:
+	var text := RestReport.support_text(self, "run")
+	if run_state.dew_harvested > 0:
+		text += "\nDew harvested: %d" % run_state.dew_harvested
+	return text
