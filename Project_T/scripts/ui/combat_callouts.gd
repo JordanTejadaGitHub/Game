@@ -19,6 +19,7 @@ const PRIORITY: Array[StringName] = [&"popped", &"asleep", &"conducted", &"crit"
 var _cooldowns := {}  # tag -> seconds left
 var _alive: Array = []  # [age, text, colour, enemy (weak ref target), offset]
 var _weak_shown := {}  # enemy instance id -> true ("Weak!" once per nightmare)
+var _drawn := false  # Words were on screen last frame
 
 func _ready() -> void:
 	z_index = 21  # Over the damage numbers
@@ -72,8 +73,9 @@ func _process(delta: float) -> void:
 			callout[4] = callout[3].global_position
 		if callout[0] >= LIFE:
 			_alive.remove_at(i)
-	if not _alive.is_empty() or visible:
+	if not _alive.is_empty() or _drawn:  # Once more after the last word goes, then idle
 		queue_redraw()
+		_drawn = not _alive.is_empty()
 
 func _draw() -> void:
 	var font := ThemeDB.fallback_font
