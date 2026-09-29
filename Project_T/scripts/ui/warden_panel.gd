@@ -67,11 +67,13 @@ func _ready() -> void:
 		dream_state.dreamlight_changed.connect(_refresh_unless_hovered.unbind(1))  # Shards arrive mid-drift
 	drift_director.build_phase_changed.connect(_refresh.unbind(1))
 
+# TowerSeller emits tower_selected right before selection_changed, which refreshes: refreshing here
+# too built the panel twice per selection change (slow with a big selection).
 func _show(tower: Tower) -> void:
 	_tower = tower
-	_refresh()
 
 func _refresh() -> void:
+	_group_refresh_queued = false  # This refresh already shows the current Dew
 	for child in _groups.get_children():
 		child.queue_free()
 	tower_placer.hide_catch_preview()
@@ -551,6 +553,9 @@ func _show_damage_type(data: TowerData) -> void:
 # closed any tooltip under the pointer. Affordability updates in place; anything else that depends on Dew
 # (group counts) waits until the pointer leaves the panel.
 var _dew_dirty := false
+var _group_refresh_queued := false  # Dew changed with a group selected: refresh soon (throttled)
+var _group_refreshed_at := 0  # Ticks (ms) of the last Dew-driven group refresh
+const GROUP_REFRESH_MS := 250  # A big selection's refresh walks every Warden: at most 4 times a second
 
 func _on_dew_changed() -> void:
 	for button in _buttons.get_children():
@@ -561,14 +566,20 @@ func _on_dew_changed() -> void:
 	if _pointer_inside():
 		_dew_dirty = true
 	elif tower_seller.selection.size() > 1:
-		_refresh()  # Group counts ("grow 3 of 5") follow the Dew
+		# Group counts ("grow 3 of 5") follow the Dew, throttled: nurturing 200 Sprouts at once changes
+		# the Dew 200 times, drifts change it on every dispel, and each refresh walks the whole selection.
+		_group_refresh_queued = true
 
 func _pointer_inside() -> bool:
 	return is_visible_in_tree() and get_global_rect().has_point(get_global_mouse_position())
 
 func _process(_delta: float) -> void:
-	if _dew_dirty and not _pointer_inside():
+	var now := Time.get_ticks_msec()
+	var group_due := _group_refresh_queued and now - _group_refreshed_at >= GROUP_REFRESH_MS
+	if (_dew_dirty and not _pointer_inside()) or group_due:
 		_dew_dirty = false
+		_group_refresh_queued = false
+		_group_refreshed_at = now
 		_refresh()
 
 func _refresh_unless_hovered() -> void:
