@@ -2379,3 +2379,58 @@ func sim_family_pick(kind: StringName, pick: Callable) -> StringName:
 		speed.set_paused(was_paused)
 	Engine.time_scale = time_scale
 	return chosen
+
+
+# --- Developer: pick any card, unlock free (demo_scope.md "Pick any card") -------------------------
+
+# Dev tools are on in a dev run (Test Grove, Unlock all families, Dev Grove) of a debug build only.
+static func dev_tools_on() -> bool:
+	return OS.is_debug_build() and MetaRun.is_dev_run()
+
+# "Dev: any card…": takes `card` (any Dream in the game) as this Dream's pick (one of Lucid Dreaming's).
+func choose_any(card: UpgradeData) -> bool:
+	if card == null or not is_offering() or (card.max_stacks > 0 and card_stacks(card.id) >= card.max_stacks):
+		return false
+	take(card)
+	_taken_this_offer.append(card.id)
+	picks_left -= 1
+	if picks_left > 0 and current_offer.size() > 1:  # Lucid Dreaming: still one to take
+		offer_ready.emit(current_offer, current_offer_drift)
+	else:
+		_close_offer()
+	return true
+
+# "Dev: unlock free": unlocks `form` without Dreamlight or its branch (not base families: those
+# come from family picks).
+func dev_unlock(form: TowerData) -> bool:
+	if form == null or form.buildable_directly or is_unlocked(form.get_id()):
+		return false
+	unlocked[form.get_id()] = true
+	unlocks_changed.emit()
+	return true
+
+# Why `card` wouldn't be offered now ("" = it could be): "needs …" for the dev card grid.
+func needs_note(card: UpgradeData, act: int = -1) -> String:
+	if act < 0:
+		act = drift_director.get_act(maxi(drift_director.drifts_started, 1))
+	var needs: Array[String] = []
+	if not (card.in_start_pool or grove_cards.has(card.id)):
+		needs.append("its Memory Grove node")
+	if act < card.min_act:
+		needs.append("act %d" % card.min_act)
+	if card.kind == UpgradeData.Kind.UNLOCK_WARDEN or card.kind == UpgradeData.Kind.UNLOCK_EVOLUTION:
+		needs.append("never offered (family picks / Dreamlight)")
+	if card.max_stacks > 0 and card_stacks(card.id) >= card.max_stacks:
+		needs.append("no more stacks")
+	if card.is_deepened() and not has_card(card.deepens):
+		needs.append(get_display_name(card.deepens))
+	if card.is_bittersweet() and not allow_bittersweet:
+		needs.append("Bittersweet Dreams (Grove)")
+	var missing: Array = card.requires.filter(func(id: String) -> bool: return not owns(id))
+	if not missing.is_empty():
+		needs.append(" + ".join(missing.map(get_display_name)))
+	if card.requires_tag != "" and count_taken_with_tag(card.requires_tag) < card.requires_tag_count:
+		needs.append("%d %s card%s" % [card.requires_tag_count, card.requires_tag, "" if card.requires_tag_count == 1 else "s"])
+	if needs.is_empty() and not is_eligible(card, act):
+		needs.append("a board or run state (e.g. Wardens, statuses, obstacles)")
+	return "" if needs.is_empty() else "not normally offered: needs " + ", ".join(needs)

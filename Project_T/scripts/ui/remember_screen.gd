@@ -40,6 +40,7 @@ var _body: BoxContainer
 var _canvas: TreeCanvas
 var _side := PanelContainer.new()
 var _side_box := VBoxContainer.new()
+var _dev_free := CheckButton.new()  # "Dev: unlock free" (dev runs of debug builds)
 
 func _ready() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -93,6 +94,10 @@ func _ready() -> void:
 	done.custom_minimum_size = Vector2(160, 48)
 	done.pressed.connect(close)
 	footer.add_child(done)
+	_dev_free.text = "Dev: unlock free"
+	_dev_free.focus_mode = Control.FOCUS_NONE
+	_dev_free.toggled.connect(func(_on: bool) -> void: _fill_side(selected))
+	footer.add_child(_dev_free)
 	peek = ChoicePeek.new(self, [dim, center], "Back to Remember")
 	footer.add_child(peek.make_peek_button())
 	visible = false
@@ -117,6 +122,9 @@ func open(focus_form: TowerData = null) -> void:
 	if focus != null:
 		_tab_root = _root_of(focus)
 	_layout_for_screen()
+	_dev_free.visible = DreamState.dev_tools_on()
+	if not _dev_free.visible:
+		_dev_free.button_pressed = false
 	_rebuild()
 
 func close() -> void:
@@ -266,6 +274,8 @@ func _fill_side(data: TowerData) -> void:
 	kind.add_child(tier)
 	if grove:
 		_line("A form the Memory Grove hasn't grown yet.", UiStyle.INK_DIM, 15)
+		if _dev_free.button_pressed:
+			_add_unlock(data)  # Dev: even Grove-hidden forms
 		return
 	var what := StatusLinks.make_label(data.description, 15, UiStyle.INK)
 	what.custom_minimum_size = Vector2(SIDE_WIDTH - 30, 0)
@@ -376,6 +386,18 @@ func _open_in_codex(id: StringName) -> void:
 func _add_unlock(data: TowerData) -> void:
 	var cost := dream_state.get_unlock_cost(data)
 	if cost == 0:
+		return
+	if _dev_free.button_pressed and not data.buildable_directly:
+		var free := Button.new()
+		free.text = "Unlock free (dev)"
+		free.focus_mode = Control.FOCUS_NONE
+		free.custom_minimum_size = Vector2(0, 48)
+		free.pressed.connect(func() -> void:
+			if dream_state.dev_unlock(data):
+				selected = data
+				_rebuild()
+				_canvas.bloom(data))
+		_side_box.add_child(free)
 		return
 	var blocker := dream_state.get_unlock_blocker(data)
 	if blocker != "":

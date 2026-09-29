@@ -22,6 +22,7 @@ var _title := Label.new()
 var _cards := HBoxContainer.new()
 var _skip := Button.new()
 var _reroll := Button.new()  # Second Thoughts (Memory Grove)
+var _dev_any := Button.new()  # "Dev: any card…" (dev runs of debug builds; demo_scope.md "Pick any card")
 var peek: ChoicePeek  # Minimise to look at the map (screens_ui.md "Choice screens")
 
 func _ready() -> void:
@@ -53,6 +54,10 @@ func _ready() -> void:
 	skip_row.add_theme_constant_override("separation", 16)
 	skip_row.add_child(_reroll)
 	skip_row.add_child(_skip)
+	_dev_any.text = "Dev: any card…"
+	_dev_any.focus_mode = Control.FOCUS_NONE
+	_dev_any.pressed.connect(func() -> void: DevCardPicker.open(self, dream_state, dream_state.choose_any))
+	skip_row.add_child(_dev_any)
 	box.add_child(skip_row)
 	peek = ChoicePeek.new(self, [dim, center], "Back to the Dream")
 	box.add_child(peek.make_peek_button())
@@ -70,6 +75,7 @@ func _show_offer(cards: Array[UpgradeData], drift_number: int) -> void:
 		_title.text += "  ·  take %d" % dream_state.picks_left if dream_state.picks_left > 1 else "  ·  take 1 more"
 	_skip.text = "Let it pass  (+%d Dew)" % dream_state.skip_dew if dream_state.skip_dew > 0 else "Let it pass"
 	_skip.visible = dream_state.can_skip()  # Restless Dreams
+	_dev_any.visible = DreamState.dev_tools_on()
 	_reroll.text = "Dream again  (%d left)" % dream_state.rerolls_left
 	_reroll.visible = dream_state.rerolls_left > 0
 	for child in _cards.get_children():
