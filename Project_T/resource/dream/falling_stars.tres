@@ -10,6 +10,7 @@ description = "Starfall pulls bolts from 5 cells away."
 rarity = 2
 kind = 3
 tags = Array[String](["reaction"])
+discovered_by = Array[String](["crowned:starfall"])
 shows_statuses = Array[StringName]([&"marked", &"held", &"static"])
 requires = Array[String](["firefly_jar", "tangleroot"])
 requires_any = Array[String](["chime_stone", "bellflower"])

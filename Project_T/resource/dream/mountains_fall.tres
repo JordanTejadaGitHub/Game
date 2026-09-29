@@ -10,6 +10,7 @@ description = "Avalanche also leaves rubble where each spread Shatter lands."
 rarity = 2
 kind = 3
 tags = Array[String](["reaction"])
+discovered_by = Array[String](["crowned:avalanche"])
 shows_statuses = Array[StringName]([&"damp", &"held"])
 requires = Array[String](["cairn", "frostfern", "tangleroot"])
 max_stacks = 1

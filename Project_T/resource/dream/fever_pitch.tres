@@ -10,6 +10,7 @@ description = "Fever Dream spreads to nightmares within 1.5 cells, not just next
 rarity = 2
 kind = 3
 tags = Array[String](["reaction"])
+discovered_by = Array[String](["crowned:fever_dream"])
 shows_statuses = Array[StringName]([&"held", &"spored", &"drowsy"])
 requires = Array[String](["driftspore", "tangleroot", "bellflower"])
 max_stacks = 1

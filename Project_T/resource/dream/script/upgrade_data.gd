@@ -96,6 +96,10 @@ enum Kind { UNLOCK_WARDEN, UNLOCK_EVOLUTION, STAT, RULE, ECONOMY }
 # The statuses a combo card works with, shown as its Needs line (dream_design.md "How Needs are shown
 # on a card"): the card never names a Warden you don't have.
 @export var shows_statuses: Array[StringName] = []
+# Discovery unlocks (dream_design.md "Discovery unlocks"): offered only once every entry is discovered
+# ("reaction:<id>", "crowned:<id>", "chain:5", "kinship:any", "warden:<id>", "reactions:2"). Cards
+# whose Needs name Wardens also need them built once (implicit), except combo and Legendary cards.
+@export var discovered_by: Array[String] = []
 
 @export_group("Nurture")
 @export var nurture_discount: float = 0.0  # 0.15 = ranks cost 15% less (all cards together max 45%)

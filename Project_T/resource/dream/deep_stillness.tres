@@ -10,6 +10,7 @@ description = "Still Pools last 8 s and pull walkers under for 1.5 s."
 rarity = 2
 kind = 3
 tags = Array[String](["reaction"])
+discovered_by = Array[String](["crowned:still_pool"])
 shows_statuses = Array[StringName]([&"damp", &"drowsy", &"held"])
 requires = Array[String](["rain_lily", "tangleroot", "bellflower"])
 max_stacks = 1

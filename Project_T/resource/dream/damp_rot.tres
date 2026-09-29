@@ -10,6 +10,7 @@ description = "{spored} ticks on {damp} nightmares deal 20% more."
 rarity = 0
 kind = 3
 tags = Array[String](["spore", "water", "reaction"])
+discovered_by = Array[String](["reaction:mushrooming"])
 shows_statuses = Array[StringName]([&"spored", &"damp"])
 requires = Array[String](["sporeling", "dewdrop"])
 max_stacks = 3

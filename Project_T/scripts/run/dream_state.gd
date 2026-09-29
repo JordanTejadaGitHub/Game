@@ -285,6 +285,8 @@ func _ready() -> void:
 	for id in starting_unlocks:
 		unlocked[id] = true
 	drift_director.rest_started.connect(_on_rest_started)
+	drift_director.rest_started.connect(_save_discoveries.unbind(4))
+	run_state.run_ended.connect(_save_discoveries.unbind(1))
 	drift_director.family_pick_requested.connect(func(reason: StringName) -> void:
 		if reason == &"first":
 			add_dreamlight(FIRST_PICK_DREAMLIGHT))  # Act 1 can take one branch
@@ -1456,6 +1458,8 @@ func can_offer(card: UpgradeData, act: int = 1) -> bool:
 		return false
 	if not _meets_needs(card):
 		return false
+	if not discovery_met(card):
+		return false  # Discovery unlocks: combo, Kinship and Warden cards wait until seen once
 	if card.unlocks != null and is_unlocked(card.unlocks.get_id()):
 		return false
 	if not _requires_met(card) and not is_half_dreamed(card):
@@ -1826,6 +1830,7 @@ func _on_tower_built(tower: Tower) -> void:
 		_walls_planted += 1  # Weathered Walls
 	_mark_fresh(tower)
 	_watch_growth(tower)
+	_discover_warden(tower)
 	if tower.tower_data.can_attack:
 		_attackers_planted += 1
 	_watch_nurture(tower)
@@ -2165,6 +2170,8 @@ func _mark_fresh(tower: Tower) -> void:
 func _watch_growth(tower: Tower) -> void:
 	if tower.has_signal("evolved") and not tower.evolved.is_connected(_mark_fresh):
 		tower.evolved.connect(_mark_fresh)
+	if tower.has_signal("evolved") and not tower.evolved.is_connected(_discover_warden):
+		tower.evolved.connect(_discover_warden)
 
 func is_fresh(tower: Tower) -> bool:
 	return tower != null and tower.get_meta(&"fresh_growth", false)
@@ -2580,3 +2587,149 @@ func needs_text(card: UpgradeData) -> String:
 	if not parts.cards.is_empty():
 		bits.append(" + ".join(parts.cards))
 	return "" if bits.is_empty() else "Needs: " + " · ".join(bits)
+
+
+# --- Discovery unlocks (dream_design.md "Discovery unlocks: you dream of what you've seen") ---------
+# A card named after a combo, Kinship or Warden enters the pool once it's been discovered, then stays
+# (profile). A discovery counts at once, mid-run too; its normal Needs still apply. Explicit keys are
+# UpgradeData.discovered_by; cards whose Needs name Wardens (requires / requires_any) also need one
+# of them built or grown into once (not combo-status cards, not Legendaries). Reactions, Crowned and
+# Kinships come from the profile's combos_seen (ComboFeedback); the profile's wardens_built and
+# best_chain are saved here. The demo counts the current run only; dev runs have everything
+# discovered; tests too, unless a test sets `discovery_profile`.
+
+const WARDENS_BUILT_KEY := "wardens_built"
+const BEST_CHAIN_KEY := "best_chain"
+const DISCOVERY_CHAIN := 5
+
+# Tests: {"seen": [combo ids], "wardens_built": [ids], "best_chain": n} stands in for the profile.
+var discovery_profile = null
+var _built_this_run := {}  # Warden id -> true (built or grown into this run)
+var _profile_discovery := {}  # Loaded once per run
+
+func _discovery_profile() -> Dictionary:
+	if discovery_profile != null:
+		return discovery_profile
+	if _profile_discovery.is_empty():
+		if ResultsScreen.is_demo():
+			_profile_discovery = {"seen": [], WARDENS_BUILT_KEY: [], BEST_CHAIN_KEY: 0}
+		else:
+			var memory := HeartwoodMemory.load_data()
+			_profile_discovery = {"seen": ComboFeedback.profile_seen(),
+				WARDENS_BUILT_KEY: memory.get(WARDENS_BUILT_KEY, []).duplicate(),
+				BEST_CHAIN_KEY: int(memory.get(BEST_CHAIN_KEY, 0))}
+	return _profile_discovery
+
+# Everything counts as discovered: dev runs, and tests that don't set a profile.
+func _discovers_all() -> bool:
+	if MetaRun.is_dev_run():
+		return true
+	return discovery_profile == null and not _is_real_game()
+
+func _is_real_game() -> bool:
+	return is_inside_tree() and get_tree().current_scene == owner
+
+# Combo ids found: the profile's plus this run's (ComboFeedback's run counts).
+func _combos_found() -> Array:
+	var found: Array = _discovery_profile().get("seen", []).duplicate()
+	var feedback := get_tree().get_first_node_in_group(ComboFeedback.GROUP) as ComboFeedback
+	if feedback != null:
+		for id in feedback.run_counts:
+			if not found.has(String(id)):
+				found.append(String(id))
+	return found
+
+func _best_chain() -> int:
+	var best := int(_discovery_profile().get(BEST_CHAIN_KEY, 0))
+	var tracker := get_tree().get_first_node_in_group(ReactionTracker.GROUP) as ReactionTracker
+	return maxi(best, tracker.longest_chain) if tracker != null else best
+
+func warden_discovered(id: String) -> bool:
+	return _built_this_run.has(id) or _discovery_profile().get(WARDENS_BUILT_KEY, []).has(id)
+
+# The keys a card waits on: its discovered_by, plus "warden:<id>" entries for the Wardens its Needs
+# name (any one of them, "warden_any:a,b" for requires_any).
+func discovery_keys(card: UpgradeData) -> Array[String]:
+	var keys: Array[String] = card.discovered_by.duplicate()
+	if not card.shows_statuses.is_empty() or card.rarity == UpgradeData.Rarity.LEGENDARY:
+		return keys
+	for id in card.requires:
+		if _is_warden_id(id):
+			keys.append("warden:" + id)
+	var any: Array = card.requires_any.filter(_is_warden_id)
+	if not any.is_empty():
+		keys.append("warden_any:" + ",".join(any))
+	return keys
+
+static func _is_warden_id(id: String) -> bool:
+	return ResourceLoader.exists("res://resource/tower/%s.tres" % id)
+
+func discovery_met(card: UpgradeData) -> bool:
+	if _discovers_all():
+		return true
+	var keys := discovery_keys(card)
+	if keys.is_empty():
+		return true
+	var found := _combos_found()
+	return keys.all(func(key: String) -> bool: return _key_met(key, found))
+
+func _key_met(key: String, found: Array) -> bool:
+	var kind := key.get_slice(":", 0)
+	var arg := key.get_slice(":", 1)
+	match kind:
+		"reaction", "crowned":
+			return found.has(arg)
+		"kinship":
+			return Kinships.KINSHIPS.keys().any(func(id) -> bool: return found.has(String(id)))
+		"reactions":
+			return Reactions.all().filter(func(r: ReactionData) -> bool: return found.has(String(r.id))).size() >= int(arg)
+		"chain":
+			return _best_chain() >= int(arg)
+		"warden":
+			return warden_discovered(arg)
+		"warden_any":
+			return Array(arg.split(",")).any(warden_discovered)
+	return true
+
+# Cards in this run's pool still waiting on a discovery (the Codex / "New Dreams" lines).
+func undiscovered_cards() -> Array[UpgradeData]:
+	var waiting: Array[UpgradeData] = []
+	for card in pool:
+		if (card.in_start_pool or grove_cards.has(card.id)) and not discovery_met(card):
+			waiting.append(card)
+	return waiting
+
+# Names of this pool's cards that a discovery just let in: pass what undiscovered_cards() returned
+# before it.
+func newly_discovered(before: Array[UpgradeData]) -> Array[String]:
+	var names: Array[String] = []
+	for card in before:
+		if discovery_met(card):
+			names.append(card.display_name)
+	return names
+
+# A Warden built or grown into: discovered (a toast names the Dreams it lets in, the first time).
+func _discover_warden(tower: Tower) -> void:
+	var id := tower.tower_data.get_id()
+	if _built_this_run.has(id):
+		return
+	var before := undiscovered_cards() if not _discovers_all() else ([] as Array[UpgradeData])
+	_built_this_run[id] = true
+	var names := newly_discovered(before)
+	if not names.is_empty():
+		var hud := owner.get_node_or_null("HUD") if owner != null else null
+		if hud != null and hud.has_method("show_toast"):
+			hud.show_toast("New Dreams: " + ", ".join(names))
+
+# The profile keeps built Wardens and the best chain (the real game only; not the demo or dev runs).
+func _save_discoveries() -> void:
+	if not _is_real_game() or ResultsScreen.is_demo() or MetaRun.is_dev_run():
+		return
+	var memory := HeartwoodMemory.load_data()
+	var built: Array = memory.get(WARDENS_BUILT_KEY, []).duplicate()
+	for id in _built_this_run:
+		if not built.has(id):
+			built.append(id)
+	memory[WARDENS_BUILT_KEY] = built
+	memory[BEST_CHAIN_KEY] = maxi(int(memory.get(BEST_CHAIN_KEY, 0)), _best_chain())
+	HeartwoodMemory.save_data(memory)

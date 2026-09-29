@@ -10,6 +10,7 @@ description = "Wardens in a Kinship +30% damage."
 rarity = 1
 kind = 3
 tags = Array[String](["kinship", "bittersweet"])
+discovered_by = Array[String](["kinship:any"])
 max_stacks = 1
 cost_description = "Wardens not in a Kinship deal 15% less damage."
 min_act = 2

@@ -10,6 +10,7 @@ description = "Light Wardens deal 12% more damage to {damp} nightmares."
 rarity = 0
 kind = 3
 tags = Array[String](["water", "storm", "reaction"])
+discovered_by = Array[String](["reaction:thunderclap"])
 shows_statuses = Array[StringName]([&"damp", &"static"])
 requires = Array[String](["dewdrop", "firefly_jar"])
 max_stacks = 3

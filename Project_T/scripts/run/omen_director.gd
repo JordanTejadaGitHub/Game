@@ -106,8 +106,9 @@ func get_schedule_modifiers(drift_number: int) -> Dictionary:
 func get_spawn_modifiers(drift_number: int) -> Dictionary:
 	if not is_active_for(drift_number):
 		return {}
-	var modifiers := {"speed": active.speed_multiplier, "coat": active.coat_multiplier,
+	var modifiers := {"speed": active.speed_multiplier, "omen_speed": active.speed_multiplier, "coat": active.coat_multiplier,
 		"dew": active.creature_dew_multiplier, "status_duration": active.status_duration_multiplier}
+	# omen_speed: the Omen's share of "speed" (DriftDirector folds Dreams and Blight into it); Magpies strip it.
 	if not active.status_immune.is_empty():
 		modifiers["status_immune"] = active.status_immune  # Sleepless (Enemy Code adds them)
 	if active.always_status != &"":

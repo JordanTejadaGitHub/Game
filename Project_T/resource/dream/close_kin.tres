@@ -10,6 +10,7 @@ description = "Kinships reach 3 cells instead of 2."
 rarity = 1
 kind = 3
 tags = Array[String](["kinship"])
+discovered_by = Array[String](["kinship:any"])
 max_stacks = 1
 rule_id = &"close_kin"
 in_start_pool = false

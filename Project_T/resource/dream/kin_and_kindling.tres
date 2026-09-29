@@ -10,6 +10,7 @@ description = "Harmony strikes also apply both Wardens' statuses (1 stack each) 
 rarity = 2
 kind = 3
 tags = Array[String](["kinship", "reaction"])
+discovered_by = Array[String](["kinship:any"])
 max_stacks = 1
 entwined = true
 requires_tag = "reaction"

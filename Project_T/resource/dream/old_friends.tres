@@ -10,6 +10,7 @@ description = "New Kinships start at Blooming."
 rarity = 1
 kind = 3
 tags = Array[String](["kinship"])
+discovered_by = Array[String](["kinship:any"])
 max_stacks = 1
 rule_id = &"old_friends"
 in_start_pool = false

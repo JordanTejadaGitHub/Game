@@ -10,6 +10,7 @@ description = "Mushrooming's spore cloud lasts twice as long and covers the 8 ti
 rarity = 1
 kind = 3
 tags = Array[String](["spore", "water", "reaction"])
+discovered_by = Array[String](["reaction:mushrooming"])
 shows_statuses = Array[StringName]([&"spored", &"damp"])
 requires = Array[String](["sporeling", "dewdrop"])
 max_stacks = 1

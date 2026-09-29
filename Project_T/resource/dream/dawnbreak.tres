@@ -10,6 +10,7 @@ description = "A ×10 Reaction chain sets off a Dawnburst: 10% of max health to 
 rarity = 3
 kind = 3
 tags = Array[String](["reaction"])
+discovered_by = Array[String](["chain:5"])
 max_stacks = 1
 min_act = 2
 in_start_pool = false
