@@ -20,7 +20,7 @@ made now must not block it**. This doc is the checklist.
    profile on a mid-range Android device before the port.
    **Revised 2026-09-28** (playtest: "super laggy" with ~150 Sprouts at drift 46; Sprout swarms are a
    real build, so huge mazes are normal): the worst case is **every buildable cell filled (~200
-   Wardens) + 150 nightmares + a Reaction chain**. Targets: **60 fps on PC at 3×**, 60 fps on a
+   Wardens) + 150 nightmares + a Reaction chain**. Targets (revised again 2026-09-29, user decision via Main): scripts **≤ 10 ms at p95** (60% of a 60 fps frame) in the stress case **at 1×** on PC; **3× is a stretch goal**, measured and printed by `test_perf_stress` and revisited before release (so far: 1× p95 ~11 ms on a loaded machine, borderline; 3× ~22 ms; the manager-node refactor was dropped, no measurable gain); 60 fps on a
    mid-range phone at 1×. Rules:
    - No per-frame work that scales with **Wardens × nightmares** (targeting uses a spatial grid or a
      cheap interval, not a scan of every nightmare every frame).
