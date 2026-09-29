@@ -514,14 +514,19 @@ func _golem(canvas: Image, st: Dictionary, fig: Dictionary, opts: Dictionary = {
 			if not colors.has(ch):
 				continue
 			body.set_pixel(x, y, colors[ch])
-	# Where the front rock stood: the body carries straight down to the ground (the seat), in the
-	# body's shading bands.
+	# Where the front rock stood: the backside. From the feet (front middle, on the ground) its
+	# outline curves round and up to the body's right side, a tapering quarter-oval.
+	var butt_c := Vector2(34.0, 37.0)  # template px: the curve's corner, above the feet
+	var butt_r := Vector2(12.0, 8.5)
 	for y in 128:
 		for x in 128:
 			var t := (Vector2(x + 0.5, y + 0.5) - fo - Vector2(0, dy)) / K
-			if t.x < 32.5 or t.x > 46.0 or t.y < 37.0 or t.y > 46.5 or body.get_pixel(x, y).a > 0.0:
+			if t.x < butt_c.x or t.y < butt_c.y or body.get_pixel(x, y).a > 0.0:
 				continue
-			body.set_pixel(x, y, colors["c" if t.y > 45.5 else ("a" if t.x > 41.0 else "b")])
+			var d := (t - butt_c) / butt_r
+			if d.length_squared() > 1.0:
+				continue
+			body.set_pixel(x, y, colors["c" if d.length_squared() > 0.72 else ("a" if t.x > 41.0 else "b")])
 	# Fresh 1 px outline round the silhouette.
 	var mask := _gnew(canvas)
 	for y in 128:
@@ -536,12 +541,6 @@ func _golem(canvas: Image, st: Dictionary, fig: Dictionary, opts: Dictionary = {
 					col = fig.o
 					break
 			canvas.set_pixel(x, y, col)
-	# The right foot, resting on the ground in front of the seat and pointing out to the right, like
-	# the left one: its own outline so it reads as a foot.
-	var foot := _gnew(canvas)
-	_gell(foot, fo + Vector2(41.5, 45.0) * K + Vector2(0, dy), Vector2(6.0, 2.6) * K, fig.ramp)
-	_gstamp(canvas, foot, fig.o)
-	_gstamp(mask, foot)
 	# Detail: dither where the shading bands meet, a few speckles, and a rim light (the Ascended
 	# glow) on the silhouette's lit edge.
 	var rim: Color = fig.a.lerp(st.get("halo", Color.WHITE), 0.55).lightened(0.15)
