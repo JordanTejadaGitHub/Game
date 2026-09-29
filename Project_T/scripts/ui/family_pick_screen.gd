@@ -410,7 +410,41 @@ func _make_memory_card(data: TowerData) -> Button:
 		label.add_theme_color_override("font_color", line[2])
 		label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		box.add_child(label)
+	_add_memory_border(button)
 	return button
+
+# The Memory Warden card's dream-fruit border (meta_assets.md "memory_card_border.png"): a 9-slice
+# drawn over the card, grown 12 px on every side, the vine sides tiled; 4 frames pulse at 4 fps.
+const MEMORY_BORDER := preload("res://assets/meta/ui/memory_card_border.png")
+const MEMORY_BORDER_FRAME := Vector2(274, 324)
+const MEMORY_BORDER_MARGIN := 42
+const MEMORY_BORDER_GROW := 12
+const MEMORY_BORDER_FPS := 4.0
+
+func _add_memory_border(button: Button) -> void:
+	var border := NinePatchRect.new()
+	border.name = "MemoryBorder"
+	border.texture = MEMORY_BORDER
+	border.region_rect = Rect2(Vector2.ZERO, MEMORY_BORDER_FRAME)
+	for side in [SIDE_LEFT, SIDE_TOP, SIDE_RIGHT, SIDE_BOTTOM]:
+		border.set_patch_margin(side, MEMORY_BORDER_MARGIN)
+	border.axis_stretch_horizontal = NinePatchRect.AXIS_STRETCH_MODE_TILE  # The vine repeats every 24 px
+	border.axis_stretch_vertical = NinePatchRect.AXIS_STRETCH_MODE_TILE
+	border.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	border.set_anchors_preset(Control.PRESET_FULL_RECT)
+	border.offset_left = -MEMORY_BORDER_GROW
+	border.offset_top = -MEMORY_BORDER_GROW
+	border.offset_right = MEMORY_BORDER_GROW
+	border.offset_bottom = MEMORY_BORDER_GROW
+	button.add_child(border)
+	var pulse := Timer.new()
+	pulse.wait_time = 1.0 / MEMORY_BORDER_FPS
+	pulse.autostart = true
+	pulse.process_mode = Node.PROCESS_MODE_ALWAYS  # The pick pauses the game
+	pulse.timeout.connect(func() -> void:
+		var frame := (int(border.region_rect.position.x / MEMORY_BORDER_FRAME.x) + 1) % 4
+		border.region_rect = Rect2(Vector2(frame * MEMORY_BORDER_FRAME.x, 0), MEMORY_BORDER_FRAME))
+	border.add_child(pulse)
 
 # A half-dreamed Dream taken since the last pick owes this pick its missing family (one of them if
 # several): it's moved into the offered slots; the player still chooses (dream_design.md
