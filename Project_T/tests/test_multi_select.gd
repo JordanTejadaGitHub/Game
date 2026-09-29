@@ -45,6 +45,20 @@ func _run() -> void:
 	var wall_box := Rect2(wall.position - Vector2(8, 8), Vector2(16, 16))
 	_check(seller.get_towers_in_rect(wall_box) == [wall], "a box with only a Thornwall selects it")
 	_check(seller.get_same_kind(sprout, true).size() == 5, "Ctrl + double-click: every Sprout on the map")
+	# Double-click picks the same kind AND the same Nurture rank; Alt: any rank (screens_ui.md).
+	sprouts[0].rank = 2
+	sprouts[1].rank = 2
+	seller.select_same_as(sprouts[0], true, false)
+	_check(seller.selection.size() == 2 and seller.selection.has(sprouts[1]), "same kind and rank: the two rank-II Sprouts")
+	seller.select_same_as(sprouts[2], true, false)
+	_check(seller.selection.size() == 3 and not seller.selection.has(sprouts[0]), "from a rank-0 Sprout: the three at rank 0")
+	seller.select_same_as(sprouts[2], true, true)
+	_check(seller.selection.size() == 5, "Alt: the same kind at any rank")
+	seller.select_same_as(sprouts[0], true, false, true)
+	_check(seller.selection.size() == 5, "Shift adds (nothing new here)")
+	sprouts[0].rank = 0
+	sprouts[1].rank = 0
+	seller.select(null)
 
 	# Group grow: total cost, and partial affordability grows the ones nearest the Heartwood first.
 	seller.set_selection(sprouts)
