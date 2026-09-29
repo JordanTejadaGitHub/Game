@@ -55,6 +55,8 @@ discounts). Ranks never get cheaper by being bought early.
   hotkey use the same total.
 - It applies per step (Sprout → base, base → branch, branch → final, final → Ascended).
 
+**Sprouts get pricier as you plant** (2026-09-28, user-approved after the first balance batch: a Sprout swarm on a fresh profile was 1.6× the Balanced style with no Sprout cards at all). Each Sprout on the map adds **+1 Dew** to the next Sprout's price (10, 11, 12…; 40 Sprouts ≈ 50 each). Selling or growing a Sprout lowers it again. **Seedfall** switches the rule off (Sprouts cost 6, flat), so the swarm is a build you open with a card, as the user wants. The Warden bar shows the current price. Free Sprouts (Seedling Gift, Nursery) don't count toward it.
+
 **Ranks III–V need a Nurture Dream** (2026-09-28, user: "the maze aspect is getting lost with a
 few strong Wardens through upgrades… focusing on strong Wardens should only happen when you get the
 cards for them"). Every Warden can be nurtured to **rank II**; **ranks III–V** (and Focus) open once
