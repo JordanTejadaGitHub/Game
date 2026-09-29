@@ -7,8 +7,8 @@ class_name ComingStrip
 #   in a red frame), each with its resist / weak damage-type icons underneath.
 # - During a drift: a compact row of small portraits for the rest of the current block, the next
 #   drift's kinds lit and the others dimmed. Hidden in a boss drift (the boss bar has the spot).
-# Tap a portrait: a new kind reopens its introduction (NightmareIntro), a known one shows its info
-# (NightmareCard), the boss opens the boss dossier. Made by the HUD.
+# Tap a portrait: its centred card (NightmareIntro; one card at a time), the boss: the dossier.
+# Made by the HUD.
 
 const FACE := 48.0  # screens_ui.md "Readable on the night sky": 48 px at rests, 36 in drifts
 const FACE_SMALL := 36.0
@@ -21,7 +21,6 @@ var drift_director: DriftDirector
 var compact := false  # A drift is walking: the small row
 var _caption := Label.new()
 var _row := HFlowContainer.new()
-var _card := NightmareCard.new()
 var _built_for := ""  # "mode:first:last" of what's shown ("" = nothing)
 var _fog := UiStyle.panel()
 
@@ -41,7 +40,6 @@ func _ready() -> void:
 	_row.add_theme_constant_override("h_separation", 4)
 	_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(_row)
-	add_child(_card)
 	visible = false
 	resized.connect(queue_redraw)
 
@@ -53,7 +51,6 @@ func _process(_delta: float) -> void:
 	var span := shown_span()
 	visible = span.y >= span.x
 	if not visible:
-		_card.visible = false
 		_built_for = ""
 		return
 	var key := "%s:%d:%d" % [compact, span.x, span.y]
@@ -117,7 +114,6 @@ static func kinds_in_block(director: DriftDirector, block: int) -> Array:
 	return kinds_in_range(director, first, mini(block * director.drifts_per_block, director.get_total_drifts()))
 
 func _build(span: Vector2i) -> void:
-	_card.visible = false
 	_caption.text = "Still to come this block" if compact else "Coming this block"
 	for child in _row.get_children():
 		_row.remove_child(child)
@@ -156,10 +152,8 @@ func _make_item(data: EnemyData, drift: int, count: int = 1) -> Control:
 	if data.is_boss:
 		UiStyle.moon_disc_button(face, BOSS_COLOR)  # The boss: the moon disc rimmed in the boss colour
 		face.pressed.connect(func() -> void: BossDossier.open_for(get_tree(), drift))
-	elif is_new:
+	else:  # One centred card for every nightmare (user: no small popup beside the portrait, no stacking)
 		face.pressed.connect(func() -> void: NightmareIntro.open_for(get_tree(), [data], drift))
-	else:
-		face.pressed.connect(func() -> void: _card.toggle_for(data, drift, drift_director, face))
 	item.add_child(face)
 	if is_new:
 		var tag := Label.new()

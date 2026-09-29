@@ -24,6 +24,8 @@ func _run() -> void:
 		var entry: Dictionary = index[effect]
 		if entry.kind in ["segment", "font", "overlay"]:
 			continue
+		if float(entry.get("fps", 12.0)) <= 1.0:
+			continue  # Variant / fill-level sheets (cloud_puffs, fog_wisps, catcher_fill_*): picked by frame, never played
 		var node := Fx.play(StringName(effect), Vector2(100, 100), world, 1.0, false, 0.5)
 		_check(node != null, "plays %s" % effect)
 		if node != null and not entry.loop:

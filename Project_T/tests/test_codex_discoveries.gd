@@ -104,6 +104,30 @@ func _run() -> void:
 	_check(probe.milestones.has(ComboFeedback.MILESTONE), "all found in normal runs: the milestone")
 	await _end_run(main)
 
+
+	# --- The Codex's Dreams: an offered card is seen on the account; the rest stay "???" ------------
+	main = await _start_run()
+	var dreams: DreamState = main.get_node("%DreamState")
+	var all_cards := DreamCodex.all_cards()
+	var offered: Array[UpgradeData] = [all_cards[0], all_cards[1]]
+	dreams.offer_ready.emit(offered, 1)
+	var seen_now := DreamCodex.seen()
+	_check(seen_now.has(all_cards[0].id) and seen_now.has(all_cards[1].id) and not seen_now.has(all_cards[2].id),
+		"offered cards are seen on the account, others not")
+	dreams.card_taken.emit(all_cards[0])
+	_check(int(HeartwoodMemory.load_data().get(DreamCodex.TAKEN_KEY, {}).get(all_cards[0].id, 0)) == 1, "taking one counts it")
+	pause_menu = main.get_node("%PauseMenu")
+	pause_menu.open_codex(&"combos")
+	await process_frame
+	codex = pause_menu.codex
+	var seen_entry: Control = codex.dream_entries.get(all_cards[0].id)
+	var unseen_entry: Control = codex.dream_entries.get(all_cards[2].id)
+	_check(seen_entry != null and _labels(seen_entry).has(all_cards[0].display_name) and seen_entry.find_child("New", true, false) != null,
+		"a seen card shows in full, with New")
+	_check(unseen_entry != null and _labels(unseen_entry) == ["???"], "an unseen card is just ???")
+	_check(codex._dreams_count.text == "2 / %d Dreams seen" % all_cards.size(), "the Dreams count (" + codex._dreams_count.text + ")")
+	pause_menu.close()
+	await _end_run(main)
 	ResultsScreen.demo_override = -1
 	_clean()
 	print("codex discoveries test: %s" % ("PASS" if failures == 0 else "%d FAILED" % failures))
@@ -145,3 +169,6 @@ func _check(condition: bool, label: String) -> void:
 	if not condition:
 		failures += 1
 		printerr("FAIL: " + label)
+
+func _labels(node: Node) -> Array:
+	return node.find_children("*", "Label", true, false).map(func(l: Label) -> String: return l.text)

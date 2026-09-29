@@ -10,9 +10,11 @@ class_name NightmareIntro
 # dossier. Dismissed by the button, a tap outside or Esc; reopened from its portrait in the Coming
 # strip (open_for), or by clicking / tapping the nightmare on the map (paused; bosses open the dossier;
 # the card adds its live health, statuses and Restless). A kind that first appears mid-block without
-# a card (a Mourner's Sobs) pauses on its card too (it was a 2-second name plate). Once ever per kind
-# (profile "intros_seen"; dev runs and tests: this session only). Off with the "Heartwood whispers"
-# setting (clicking a nightmare always works). Made by the HUD.
+# a card (a Mourner's Sobs) pauses on its card too (it was a 2-second name plate). Block 1's kinds are
+# introduced at the run's opening rest. Once ever per kind, per account (profile "intros_seen", dev
+# runs included; tests: this session only). Always on (user, 2026-09-29), not tied to the whispers.
+# One centred card at a time: every nightmare portrait and click opens this card, replacing the one
+# up; it stops the game while it's up. Made by the HUD.
 
 const GROUP := &"nightmare_intro"
 const SEEN_KEY := "intros_seen"
@@ -49,16 +51,16 @@ func _init(director: DriftDirector = null) -> void:
 func _ready() -> void:
 	add_to_group(GROUP)
 	process_mode = Node.PROCESS_MODE_ALWAYS
-	set_anchors_preset(Control.PRESET_FULL_RECT)
+	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)  # Offsets too: exactly the screen
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	visible = false
 	var shade := ColorRect.new()
 	shade.color = Color(UiStyle.FOG, 0.45)
-	shade.set_anchors_preset(Control.PRESET_FULL_RECT)
+	shade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)  # Offsets too: exactly the screen
 	shade.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(shade)
 	var centre := CenterContainer.new()
-	centre.set_anchors_preset(Control.PRESET_FULL_RECT)
+	centre.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)  # Offsets too: exactly the screen
 	centre.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(centre)
 	_panel.add_theme_stylebox_override("panel", UiStyle.panel(18.0, 14.0))
@@ -91,6 +93,7 @@ func _ready() -> void:
 		_met[kind] = true
 	if drift_director != null:
 		drift_director.rest_started.connect(_on_rest_started)
+		_on_opening_rest.call_deferred()  # The run starts resting: block 1's new kinds too
 		var spawner := drift_director.get_node_or_null("%EnemyContainer")
 		if spawner != null:
 			spawner.child_entered_tree.connect(_on_spawned)
@@ -162,7 +165,7 @@ func nightmare_at(screen_at: Vector2) -> Node2D:
 # --- Which kinds, when ---------------------------------------------------------------------------
 
 static func enabled() -> bool:
-	return bool(HeartwoodMemory.get_settings().get("whispers", true))
+	return true  # Always (user, 2026-09-29): a never-seen kind stops the game on its card, whispers or not
 
 static func kind_of(data: EnemyData) -> String:
 	return data.resource_path.get_file().get_basename()
@@ -233,10 +236,13 @@ func _process(delta: float) -> void:
 # --- Open / next / close -------------------------------------------------------------------------
 
 # `enemy`: a nightmare clicked on the map; its card adds its live health, statuses and Restless.
-func open(kinds: Array, drift: int = 0, enemy: Node2D = null) -> void:
+# One card at a time: a click (`replace`) swaps the card showing for this one, while new kinds found
+# mid-drift queue behind it (Next). Either way the pause state carries over. The card always stops
+# the game while it's up (at a rest too, so Enter can't start a drift under it).
+func open(kinds: Array, drift: int = 0, enemy: Node2D = null, replace := true) -> void:
 	if kinds.is_empty():
 		return
-	if visible:  # A card is up already: these follow it (keeps its pause state)
+	if visible and not replace:
 		for kind in kinds:
 			if not queue.has(kind) and kind != shown:
 				queue.append(kind)
@@ -247,8 +253,8 @@ func open(kinds: Array, drift: int = 0, enemy: Node2D = null) -> void:
 	live = enemy
 	_show_next()
 	var speed := drift_director.get_node_or_null("%GameSpeed") as GameSpeed if drift_director else null
-	_paused_it = speed != null and not drift_director.is_resting() and not speed.paused
-	if _paused_it:
+	if speed != null and not speed.paused:
+		_paused_it = true
 		speed.set_paused(true)
 
 func advance() -> void:
@@ -285,7 +291,7 @@ func _remember(data: EnemyData) -> void:
 	session_seen[kind] = true
 	_met[kind] = true
 	var main := drift_director.owner if drift_director else null
-	if main == null or get_tree().current_scene != main or MetaRun.is_dev_run():
+	if main == null or get_tree().current_scene != main:  # Per account, dev runs included (never tests)
 		return
 	var profile := HeartwoodMemory.load_data()
 	var seen: Array = profile.get(SEEN_KEY, [])
@@ -369,4 +375,15 @@ func _on_spawned(node: Node) -> void:
 	_met[kind] = true
 	if OS.get_cmdline_args().has("--script") and not pause_in_tests:
 		return
-	open.call_deferred([data], 0, node)  # Paused, centred: meet it now
+	open.call_deferred([data], 0, node, false)  # Paused, centred: meet it now (queues behind a card)
+
+# The run's opening rest has no rest_started: introduce block 1's never-seen kinds there (not on a
+# resumed run, which starts mid-way).
+func _on_opening_rest() -> void:
+	if drift_director == null or drift_director.drifts_started != 0 or not drift_director.is_resting():
+		return
+	var kinds := new_kinds_in_block(1)
+	if not kinds.is_empty():
+		_pending = kinds
+		_drift = 1
+		_wait = OPEN_DELAY

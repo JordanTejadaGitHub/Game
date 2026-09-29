@@ -410,6 +410,21 @@ Full game only (they can't happen in the demo).
 what each borrows, and the bond stages. 9 main (Slumber Rot, Rainfog and Storm Beacon are in the
 demo) and 9 hidden ones later. Kindred and Whole Tree are explained on the section's first page.
 
+**Dreams** (added 2026-09-29, user: "add a card Codex for all cards; all cards start as ??? but once
+you see them once in your account, it adds into it"): a Codex section listing **every Dream card in
+the game**.
+- **Every card starts as "???"** in a plain card frame (no name, rarity, text or hint).
+- A card is **seen** the first time it's **offered** to you in any Dream (taking it isn't needed);
+  from then on its entry shows the full card: rarity gem, name, text with status links, tags, its
+  Needs, its Deepened version (once that's seen too), and your **times taken** / **runs won with
+  it**. Saved to the **account** immediately (profile `dreams_seen`, like the combos), in every
+  run; dev-run sightings carry the hidden dev flag.
+- Grouped like the "Dreams this run" panel (Damage and stats, Wardens and maze, Combos and
+  statuses, Economy, Legendary), with filters by rarity, tag and family, and a counter:
+  *"84 / 180 Dreams seen"*. Newly seen cards wear the gold "New" tag until you look.
+- The "Dev: any card…" grid does **not** mark cards as seen (only real offers do).
+- Milestone: **"Dream of everything"** (every card seen, normal runs only); a Steam achievement.
+
 New combos (new Wardens, Reactions) are added to this table and the Codex automatically.
 
 **What the Codex covers** (2026-09-28, user): **the families you can get in a run**: the three
