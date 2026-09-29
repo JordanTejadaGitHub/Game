@@ -144,12 +144,27 @@ func _row(spot: Dictionary, board: Board, card: UpgradeData) -> Dictionary:
 		row = _plain(spot, card)
 	return {} if row.is_empty() else _finish(row, card)
 
+# A Warden's rank changed (Nurture): only its own rows and the touching Wardens' rows read it
+# (Kindred Roots, Court of the Eldest, Old Ones), so only those are refreshed, never the whole
+# board (a group Nurture of 200 Sprouts would otherwise rebuild every Warden's rows in one frame).
+var _near_rank := {}  # Tower instance id -> times a touching Warden's rank changed
+
+func rank_changed(tower: Tower) -> void:
+	var spot := spot_for(tower)
+	for o in [spot] + _shared_board().touching(spot):
+		if o.node == null or not is_instance_valid(o.node):
+			continue
+		var id: int = o.node.get_instance_id()
+		_near_rank[id] = _near_rank.get(id, 0) + 1
+		if o.node.has_method("clear_dream_cache"):
+			o.node.clear_dream_cache()
+
 # rows() for a planted Warden, cached until the board or the cards change (DreamState.board_version,
 # the taken cards, its rank and form); the LIVE_RULES rows are recomputed on every call. For the
 # per-frame stat reads (Tower) and the badge poll.
 func rows_cached(tower: Tower) -> Array[Dictionary]:
 	var spot := spot_for(tower)
-	var key := hash([ds.board_version, ds.stacks, tower.rank, tower.tower_data, tower.cell])
+	var key := hash([ds.board_version, ds.stacks, tower.rank, tower.tower_data, tower.cell, _near_rank.get(tower.get_instance_id(), 0)])
 	var id := tower.get_instance_id()
 	var cached: Array = _row_cache.get(id, [])
 	var out: Array[Dictionary] = []

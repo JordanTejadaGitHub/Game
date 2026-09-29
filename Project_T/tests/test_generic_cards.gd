@@ -284,6 +284,24 @@ func _test_rows_cache() -> void:
 	_check(not fx.rows_cached(a)[0].active, "…refreshes when a Warden is planted beside it")
 	_clear()
 	_reset()
+	_reset()
+	# Nurture refreshes only the Warden and those touching it, never the whole board (group Nurture).
+	dreams.take(_card("kindred_roots"))
+	var centre := _plant("sporeling", Vector2(100, 100))
+	var side := _plant("sporeling", Vector2(101, 100))
+	var far := _plant("sporeling", Vector2(110, 100))
+	_check(not fx.rows_cached(centre).any(func(r: Dictionary) -> bool: return r.card.id == "kindred_roots" and r.active),
+		"Kindred Roots off with no ranked Warden touching")
+	fx.rows_cached(far)
+	var version := dreams.board_version
+	side.rank = 2
+	side.nurtured.emit(side)
+	_check(dreams.board_version == version, "a Nurture doesn't bump the whole board")
+	_check(fx.rows_cached(centre).any(func(r: Dictionary) -> bool: return r.card.id == "kindred_roots" and r.active),
+		"…but the Warden touching it sees the new rank")
+	_check(fx._near_rank.get(far.get_instance_id(), 0) == 0, "…and a Warden far away keeps its cached rows")
+	_clear()
+	_reset()
 
 # Seed cards (dream_design.md "Seed cards: plant now, grow later").
 func _test_seed_cards() -> void:

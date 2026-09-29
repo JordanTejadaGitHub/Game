@@ -318,12 +318,16 @@ func _ready() -> void:
 func bump_board() -> void:
 	board_version += 1
 
+# Nurture: only the Warden and those touching it look again (DreamEffects.rank_changed).
+func _on_rank_changed(tower: Tower) -> void:
+	effects().rank_changed(tower)
+
 func _on_tower_added(node: Node) -> void:
 	bump_board()
 	if node.has_signal("evolved") and not node.evolved.is_connected(bump_board.unbind(1)):
 		node.evolved.connect(bump_board.unbind(1))
-	if node.has_signal("nurtured") and not node.nurtured.is_connected(bump_board.unbind(1)):
-		node.nurtured.connect(bump_board.unbind(1))
+	if node.has_signal("nurtured") and not node.nurtured.is_connected(_on_rank_changed):
+		node.nurtured.connect(_on_rank_changed)
 
 static func load_pool() -> Array[UpgradeData]:
 	var cards: Array[UpgradeData] = []
