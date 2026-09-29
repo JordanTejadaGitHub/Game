@@ -130,6 +130,9 @@ func _run() -> void:
 	var meta: MetaRun = main.get_node("%MetaRun")
 	meta.records = true
 	(main.get_node("%ResultsScreen") as ResultsScreen).bank_in_tests = true  # Counts the win (temp profile)
+	var combos_found := HeartwoodMemory.load_data()  # The Codex sets this mid-run
+	combos_found.milestones.all_combos = true
+	HeartwoodMemory.save_data(combos_found)
 	director.bosses_cleansed = 1
 	run_state.longest_path = 320
 	run_state.end_run(true)
@@ -139,6 +142,7 @@ func _run() -> void:
 		_check(memory.milestones.has(id), "milestone %s" % id)
 	_check(int(memory.highest_blight_won) == 5 and HeartwoodMemory.max_blight_level(memory) == 6, "Blight 5 won: level 6 opens")
 	_check(memory.cosmetics.has("golden_leaf"), "a flawless win grows the Golden Leaf")
+	_check(memory.cosmetics.has("gilded_pages"), "Discover every combo: the gilded Codex pages")
 	_check(HeartwoodMemory.memories_unlocked(memory) > 1 + 7 / 3, "milestones reveal Memories too")
 
 	main.queue_free()

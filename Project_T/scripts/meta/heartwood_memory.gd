@@ -162,7 +162,7 @@ const MEMORIES: Array[String] = [
 	"The path to the Hollow is still there, under the nightmares.",
 ]
 # Milestones that reveal a Memory (the rest reward cards, Wardens or cosmetics).
-const MEMORY_MILESTONES: Array[String] = ["first_boss", "first_win", "tend_100", "blight_5"]
+const MEMORY_MILESTONES: Array[String] = ["first_boss", "first_win", "tend_100", "blight_5", "all_combos"]
 
 static var _grove_by_id := {}
 
