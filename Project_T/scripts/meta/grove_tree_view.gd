@@ -58,6 +58,7 @@ var _reduced_motion := false
 var _branch_textures := {}
 var _nodes_texture: Texture2D = load(ART + "grove/grove_nodes.png")
 var _legendary_texture: Texture2D = load(ART + "grove/grove_legendary.png")
+var _memory_nodes_texture: Texture2D = load(ART + "grove/grove_memory_nodes.png")  # Same 11 columns
 var _fruit_texture: Texture2D = load(ART + "grove/dream_fruit.png")
 var _sixth_rise: Texture2D = load(ART + "grove/waystone_6_rise.png")
 var _sixth_idle: Texture2D = load(ART + "grove/waystone_6_idle.png")
@@ -84,6 +85,13 @@ static func vec(value) -> Vector2:
 
 # The icon for `unlock` (its limb's 32×32 sheet), or null.
 func get_icon(unlock: UnlockData) -> Texture2D:
+	if unlock.memory_warden != "":  # A Memory Warden bloom: its bloomed frame (column 9) on its row
+		for node in load_layout().get("nodes", []):
+			if node.id == unlock.id and node.get("memory_row") != null:
+				var bloom := AtlasTexture.new()
+				bloom.atlas = _memory_nodes_texture
+				bloom.region = Rect2(9 * NODE_FRAME, int(node.memory_row) * NODE_FRAME, NODE_FRAME, NODE_FRAME)
+				return bloom
 	var sheet: Texture2D = _icons.get(unlock.get_section())
 	if sheet == null or unlock.icon < 0:
 		return null
@@ -388,6 +396,9 @@ func _draw_node(node: Dictionary, font: Font) -> void:
 	var texture := _legendary_texture if legendary else _nodes_texture
 	var frame_px := LEGENDARY_FRAME if legendary else NODE_FRAME
 	var row := 0 if legendary else int(SECTION_ROW.get(node.section, 0))
+	if node.get("memory_row") != null:  # Memory Warden blooms: their own sheet, a row per boss
+		texture = _memory_nodes_texture
+		row = int(node.memory_row)
 	var state := state_of(unlock)
 	var column := 0
 	var step := _plant_step(node.id)
