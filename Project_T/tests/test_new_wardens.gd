@@ -73,7 +73,7 @@ func _test_data(dream_state: DreamState) -> void:
 			continue
 		_check(data.texture != null and data.get_frame_rect(0).size == Vector2(64, 64), "%s has a 64x64 idle sheet" % id)
 		_check(data.attack_kind == TowerData.AttackKind.AURA or data.attack_texture != null, "%s has an attack sheet" % id)
-		_check(reachable.has(id), "%s can be reached (planted or grown into)" % id)
+		_check(reachable.has(id) != data.parked, "%s can be reached (planted or grown into), unless parked (Memory Wardens, cut for now)" % id)
 		if not data.is_unique:
 			var card := load("res://resource/dream/dream_%s.tres" % id) as UpgradeData
 			_check(card != null and card.unlocks == data, "%s has a Dream card" % id)

@@ -267,6 +267,9 @@ const ASCENDED_JSON := "res://assets/towers/ascended/ascended.json"  # 128×128 
 @export_group("Memory")
 # Memory Wardens (from bosses): one per run each, free, can't evolve.
 @export var is_unique: bool = false
+# Parked (cut for now, kept for a possible return; Tower Discussion 3288e88): never in a run's roster,
+# Test Grove and Unlock all included. The Memory Wardens (White Stag, Pond Keeper, Moon Moth).
+@export var parked: bool = false
 
 @export_group("Attack animation")
 @export var attack_kind: AttackKind = AttackKind.PROJECTILE

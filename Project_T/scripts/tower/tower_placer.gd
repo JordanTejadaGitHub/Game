@@ -89,6 +89,9 @@ var _settling_marks: Node2D = null
 func _ready() -> void:
 	if tower_scene == null:
 		tower_scene = load(TOWER_SCENE_PATH)
+	# Parked Wardens (the Memory Wardens, cut for now) never join the roster: not in the bar, not buildable,
+	# not with Test Grove or Unlock all.
+	towers.assign(towers.filter(func(t: TowerData) -> bool: return t != null and not t.parked))
 	tower_data = towers[0]
 	_path_preview.width = 6.0
 	_path_preview.default_color = PREVIEW_COLOR
@@ -496,6 +499,9 @@ func is_unique_placed(data: TowerData) -> bool:
 # Builds a tower on `cell` and charges its Dew cost. Returns false (and charges nothing) if the cell
 # can't be built on or the player can't afford it.
 func _try_build(cell: Vector2) -> bool:
+	if tower_data == null or tower_data.parked:
+		build_rejected.emit(cell)
+		return false  # Parked Wardens (cut for now) are never planted
 	if frozen_ground():
 		_toast_frozen()
 		build_rejected.emit(cell)

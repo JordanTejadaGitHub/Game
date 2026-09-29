@@ -15,6 +15,7 @@ line = "memory"
 tier = 0
 evolve_cost = 0
 is_unique = true
+parked = true
 attack_kind = 13
 attack_range = 4.0
 damage = 0

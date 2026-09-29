@@ -24,7 +24,11 @@ func _run() -> void:
 	dream_state.unlock_everything = true  # Test the whole roster
 	dream_state.unlocks_changed.emit()
 	await process_frame
-	_check(placer.towers.size() == 14, "all fourteen plantable Wardens are in the roster")
+	_check(placer.towers.size() == 11, "all eleven plantable Wardens are in the roster (%d)" % placer.towers.size())
+	_check(not placer.towers.any(func(t: TowerData) -> bool: return t.parked), "parked Wardens (the Memory Wardens, cut for now) never are, even with Unlock all")
+	placer.tower_data = load("res://resource/tower/white_stag.tres")
+	_check(not placer._try_build(Vector2(3, 3)), "and can't be planted")
+	placer.tower_data = placer.towers[0]
 	_check(main.get_node("%TowerBar").get_child_count() == placer.towers.size(), "one HUD button per Warden")
 
 	for data in placer.towers:
