@@ -297,8 +297,11 @@ accessibility, Steam achievements (milestones map to them). Acts 3–4 and all f
   partials above 6 kHz; SFX/UI buses get a −6 dB high shelf + a limiter (`Sound._add_softening`).
 
 ## Layout
-- `scenes/main.tscn` — root scene: MapGenerator (Ground / Path / EnvironmentObject TileMapLayers),
-  TowerContainer, EnemyContainer (spawner), HUD, GameCameraNode.
+- `scenes/main.tscn` — root scene: MapGenerator (Ground / Path / EnvironmentObject TileMapLayers,
+  TowerContainer, EnemyContainer (spawner)), HUD, GameCameraNode. **MapGenerator is the one y-sort root**:
+  the object layer, TowerContainer and EnemyContainer are y-sorted by cell centre (64×96 sprites put
+  their bottom 64 px on their cell and overhang the one above); Ground/Path are z −1. Ground effects
+  (vines, rubble, rings, clouds) go in Main at z −1; effects above everything keep a positive z.
 - `scripts/map/` — `map_generator.gd` orchestrates generation. Note the confusing names:
   `path.gd` defines `class_name PathGenerator` (draws path tiles), `path_generator.gd` defines
   `class_name FindPath` (AStar2D wrapper; routes are "sticky": a tiny off-route weight makes ties
