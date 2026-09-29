@@ -423,7 +423,7 @@ const ROCK_TOUCH_WARDENS := {
 }
 # Rocks hidden where a Warden's own props stand (left / right / front of the golem).
 const HIDDEN_ROCKS := {
-	"echo_hollow": ["left"], "whispering_hollow": ["left"],
+	"echo_hollow": ["left"], "whispering_hollow": ["left"], "starcave": ["left"],
 }
 
 func _hidden_rocks() -> Array:
@@ -2484,13 +2484,14 @@ func _draw_long_way_home(canvas: Image, st: Dictionary) -> void:
 	var fig := _pal(BARK[0], BARK[1], BARK[2], BARK[3])
 	_root_golem(canvas, st, fig, true)
 	var staff := _layer()
-	_stroke(staff, [Vector2(52, 46), Vector2(51, 10)], 1.2, Color("#8a6a4a"))
-	_flat_ellipse(staff, Vector2(51, 9), Vector2(2, 2), Color("#8a6a4a"))
+	_stroke(staff, [Vector2(52, 46), Vector2(51, 12), Vector2(52, 8), Vector2(55, 7.5), Vector2(57, 9)], 1.2, Color("#8a6a4a"))
+	_flat_ellipse(staff, Vector2(51.5, 9), Vector2(1.6, 1.6), Color("#8a6a4a"))
 	_stamp(canvas, staff, fig.o)
 	var lamp := _layer()
-	_round_rect(lamp, Rect2i(53, 11, 5, 6), 1, Color("#fff0b0") if st.f % 4 < 2 else Color("#f8d890"))
+	_round_rect(lamp, Rect2i(55, 12, 5, 6), 1, Color("#fff0b0") if st.f % 4 < 2 else Color("#f8d890"))
 	_stamp(canvas, lamp, fig.o)
-	_px(canvas, 55, 10, fig.o)
+	_px(canvas, 57, 10, fig.o)
+	_px(canvas, 57, 11, fig.o)
 	_curls(canvas, st, fig)
 	_golem_face(canvas, st, fig)
 	var beard := _layer()
@@ -2506,8 +2507,8 @@ func _curls(canvas: Image, st: Dictionary, fig: Dictionary) -> void:
 	var dy: int = st.dy
 	var lift: int = st.lift
 	var layer := _layer()
-	_stroke(layer, _spiral_pts(Vector2(21, 23 + dy), Vector2(14, 14 + dy + lift), 4.5, 1.25, 0.0), 1.2, fig.a)
-	_stroke(layer, _spiral_pts(Vector2(42, 23 + dy), Vector2(48, 13 + dy + lift), 4.5, 1.25, PI), 1.2, fig.a)
+	_stroke(layer, _spiral_pts(Vector2(23, 26 + dy), Vector2(14, 14 + dy + lift), 4.5, 1.25, 0.0), 1.4, fig.a)
+	_stroke(layer, _spiral_pts(Vector2(40, 26 + dy), Vector2(48, 13 + dy + lift), 4.5, 1.25, PI), 1.4, fig.a)
 	_stamp(canvas, layer, fig.o)
 
 # Tangleroot: a mossy Rootling wrapped in its own roots, more roots climbing up from the stump
@@ -3145,12 +3146,16 @@ func _rootlight_body(canvas: Image, st: Dictionary, cave: bool) -> void:
 	var glow := Color("#ffe890") if st.f % 4 < 2 or st.power > 0.5 else Color("#f0c860")
 	_draw_waystone(canvas, st, "stump", cave)
 	if cave:
+		# The star cave: a geode sat on the slab where the left rock was, crystals growing out of it.
 		var geode := _layer()
-		_ellipse(geode, Vector2(14, 22 + dy), Vector2(9, 8), _ramp(["#3a3050", "#5a4a70", "#7a6a90"]))
+		_ellipse(geode, Vector2(9.5, 38.5), Vector2(7.5, 5), _ramp(["#4a3e66", "#6a5a88", "#8e7eac", "#b0a2cc"]))
 		_stamp(canvas, geode, fig.o)
+		var mouth := _layer()
+		_flat_ellipse(mouth, Vector2(9.5, 37), Vector2(4.5, 2), Color("#241c3a"))
+		_stamp(canvas, mouth)
 		var gems := _ramp(["#8a60d0", "#c0a0ff", "#f0e8ff"])
-		for c: Vector3 in [Vector3(10, 25, 5), Vector3(14, 24, 8), Vector3(18, 26, 4)]:
-			_prism(canvas, Vector2(c.x, c.y + dy), 1.6, c.z, 0.3, gems, fig.o)
+		for c: Vector3 in [Vector3(6, 37, 6), Vector3(10, 37, 11), Vector3(13.5, 38, 6)]:
+			_prism(canvas, Vector2(c.x, c.y), 2.0, c.z, 0.4, gems, fig.o)
 	var roots := _layer()
 	for root: Array in [[Vector2(16, 44), Vector2(10, 46), Vector2(5, 44)], [Vector2(27, 47), Vector2(25, 53)],
 			[Vector2(40, 48), Vector2(46, 52), Vector2(53, 50)], [Vector2(52, 42), Vector2(57, 41), Vector2(61, 42)]]:
@@ -3168,7 +3173,7 @@ func _rootlight_body(canvas: Image, st: Dictionary, cave: bool) -> void:
 	if cave:
 		for k in 4:
 			if (st.f + k) % 2 == 0:
-				_sparkle(canvas, [Vector2i(8, 12), Vector2i(56, 6), Vector2i(12, 26), Vector2i(58, 30)][k], Color("#f0e8ff"))
+				_sparkle(canvas, [Vector2i(5, 27), Vector2i(56, 6), Vector2i(15, 30), Vector2i(58, 30)][k], Color("#f0e8ff"))
 
 # Graftling: an Acorn with a sapling grafted onto its head (bound with twine) and a patched body,
 # ready to borrow a neighbour's knack.
