@@ -86,49 +86,58 @@ Perks are **unlocked** in the tree, then **equipped** in a small **loadout** bef
   at the start): slots 1–3 are open from the first run. Slots **4 (140)** and **5 (220)** are
   Perks nodes. Growing this limb = **more perks to choose from and more room to carry them**.
 - **The secret 6th slot:** not shown anywhere (no waystone, no node, no Codex hint) until the
-  player owns **every Grove node at its max level**, including the free milestone and Memory
-  Warden blooms. Then a sixth waystone rises at the roots (milestone *"The Heartwood in full
+  player owns **every Grove node at its max level**, including the free milestone blooms (Memory
+  Warden blooms too, if they return from being parked). Then a sixth waystone rises at the roots (milestone *"The Heartwood in full
   bloom"*, a Steam achievement). It's a trophy for completing the tree, so its power doesn't matter
   for balance: by then everything else is owned.
 - A perk with levels (e.g. Morning Stores I–III) takes one slot at its highest owned level.
 - Loadout is kept between runs; change it any time before starting.
 
-**Economy perks**
+**Three paths** (user decision 2026-09-29; was loose nodes that read like a shop): the limb grows
+from the trunk as **Economy**, **Survival** and **Choice** paths, each in a clear order, and the
+two slot nodes sit **where the paths meet**, so more room to carry comes from growing the limb.
+Costs are unchanged (~30 h total stays). A levelled parent counts from its level I.
 
-| Perk | Levels | Cost per level | Effect (at max) | Needs |
-|---|---|---|---|---|
-| Morning Stores | 3 | 20 / 40 / 60 | **+30 starting Dew** (+10 per level) | — |
-| Rich Dew | 3 | 30 / 60 / 90 | **+15% Dew** from dispelled nightmares (+5% per level) | Morning Stores I |
-| Rested Roots | 2 | 40 / 80 | rest bonus **+20%** (+10% per level) | Rich Dew I |
-| Seed Pouch | 1 | 100 | +10% Seeds at run end | — |
+**Economy path** (more Dew, more Seeds)
 
-**Starting-advantage perks**
+| # | Perk | Levels | Cost per level | Effect (at max) | Needs |
+|---|---|---|---|---|---|
+| 1 | Morning Stores | 3 | 20 / 40 / 60 | **+30 starting Dew** (+10 per level) | — (trunk) |
+| 2 | Rich Dew | 3 | 30 / 60 / 90 | **+15% Dew** from dispelled nightmares (+5% per level) | Morning Stores |
+| 3 | Rested Roots | 2 | 40 / 80 | rest bonus **+20%** (+10% per level) | Rich Dew |
+| 4 | Seed Pouch | 1 | 100 | +10% Seeds at run end | Rested Roots |
+| side | Sprout Bed | 1 | 60 | start with **2 free Sprouts** to place | Morning Stores |
 
-| Perk | Levels | Cost | Effect | Needs |
-|---|---|---|---|---|
-| Clear Sight | 1 | 80 | start the run holding **Cleared Ground** (so clearing trees and rocks is unlocked from drift 1, and cheaper) | — |
-| Sprout Bed | 1 | 60 | start with **2 free Sprouts** to place | Morning Stores I |
-| Kindling | 1 | 90 | start with **a random Common Dream** already taken | — |
-| Early Bloom | 1 | 80 | the first family pick offers **every** unlocked family | — |
-| Early Light | 1 | 120 | **+1 Dreamlight** at run start | Early Bloom |
-| First Care | 1 | 70 | your **first 3 Nurture ranks** each run are free | — |
+**Survival path** (leaves and a stronger start)
 
-**Survival and choice perks**
+| # | Perk | Levels | Cost per level | Effect (at max) | Needs |
+|---|---|---|---|---|---|
+| 1 | Deep Taproot | 3 | 25 / 50 / 75 | **+3 max leaves** | — (trunk) |
+| 2 | First Care | 1 | 70 | your **first 3 Nurture ranks** each run are free | Deep Taproot |
+| 3 | Clear Sight | 1 | 80 | start the run holding **Cleared Ground** (so clearing trees and rocks is unlocked from drift 1, and cheaper) | First Care |
 
-| Perk | Levels | Cost per level | Effect (at max) | Needs |
-|---|---|---|---|---|
-| Deep Taproot | 3 | 25 / 50 / 75 | **+3 max leaves** | — |
-| Second Thoughts | 2 | 50 / 100 | 2 Dream rerolls per run | — |
-| Let Go | 1 | 60 | banish 1 card per run | Second Thoughts I |
-| Omen Reader | 1 | 80 | Omen rests offer 3 Omens instead of 2 | — |
-| Wider Dreams | 1 | 150 | 4 cards per Dream instead of 3 | Second Thoughts II |
+**Choice path** (Dreams, families, Omens)
+
+| # | Perk | Levels | Cost per level | Effect (at max) | Needs |
+|---|---|---|---|---|---|
+| 1 | Second Thoughts | 2 | 50 / 100 | 2 Dream rerolls per run | — (trunk) |
+| 2 | Let Go | 1 | 60 | banish 1 card per run | Second Thoughts |
+| 3 | Omen Reader | 1 | 80 | Omen rests offer 3 Omens instead of 2 | Let Go |
+| 4 | Wider Dreams | 1 | 150 | 4 cards per Dream instead of 3 | Omen Reader + Second Thoughts II |
+| side 1 | Early Bloom | 1 | 80 | the first family pick offers **every** unlocked family | Second Thoughts |
+| side 2 | Early Light | 1 | 120 | **+1 Dreamlight** at run start | Early Bloom |
+| side 3 | Kindling | 1 | 90 | start with **a random Common Dream** already taken | Early Light |
+
+**Slots, where the paths meet**
 
 | Slot node | Cost | Needs |
 |---|---|---|
-| Loadout slot 4 / 5 | 140 / 220 | slot 5 needs slot 4 |
+| Loadout slot 4 | 140 | the **2nd node of any path** (Rich Dew, First Care or Let Go) |
+| Loadout slot 5 | 220 | slot 4 + the **3rd node of two paths** (2 of Rested Roots, Clear Sight, Omen Reader) |
 | *(secret)* Loadout slot 6 | free | every other Grove node owned at max level |
 
-Slot nodes 2 and 3 are gone (2026-09-29), so the tree is 120 Seeds cheaper.
+Slot nodes 2 and 3 are gone (2026-09-29), so the tree is 120 Seeds cheaper. Seed Pouch now sits at
+the end of the Economy path, so it can't be rushed first for faster Seeds.
 
 **Power budget:** 15 perks, carry 3 at the start, up to 5 (6 once the whole tree is grown). A full economy loadout (Morning Stores III, Rich Dew
 III, Rested Roots II, Sprout Bed, Clear Sight) makes the early game noticeably smoother, which is
