@@ -394,6 +394,10 @@ func _run() -> void:
 	before_water = soaked.health
 	soaked.take_damage(100.0, "stone")
 	_check(before_water - soaked.health == 100, "other families aren't boosted")
+	soaked.apply_status(EnemyStatuses.DAMP, 1, 0.0, 1.5)  # Soaked Through II: Damp at potency 1.5
+	before_water = soaked.health
+	soaked.take_damage(100.0, "water")
+	_check(before_water - soaked.health == 130, "Soaked Through II: water hits +30%% (%d)" % (before_water - soaked.health))
 	var hit_sleeper := _still("leaf_bug", route[6])
 	hit_sleeper.statuses.sleep_time = 3.0
 	hit_sleeper.take_damage(5.0, "", false, false, null, &"spored")

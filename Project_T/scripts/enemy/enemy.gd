@@ -1012,7 +1012,8 @@ func take_damage(amount: float, line: String = "", is_area: bool = false, is_cri
 			Fx.crit(global_position, world)  # The crit_flare glint (drawn by the effects player)
 	var family := enemy_data.get_soothe_multiplier(line, is_area)
 	if line == "water" and statuses.has(EnemyStatuses.DAMP):
-		family *= 1.0 + EnemyStatuses.DAMP_WATER_BONUS  # Soaked conducts: water hits +20%
+		# Soaked conducts: water hits +20% (Damp's potency 1.5 with Soaked Through II: +30%)
+		family *= 1.0 + EnemyStatuses.DAMP_WATER_BONUS * maxf(1.0, statuses.potency(EnemyStatuses.DAMP))
 	var taken := statuses.get_damage_taken_multiplier()
 	var soothe := amount * family * taken
 	var soothe_before_coat := soothe
