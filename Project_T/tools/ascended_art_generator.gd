@@ -479,8 +479,8 @@ func _golem(canvas: Image, st: Dictionary, fig: Dictionary, opts: Dictionary = {
 			var tx := floori(t.x)
 			var ty := floori(t.y)
 			var ch := _fig_at(pose, tx, ty)
-			if ch == ".":
-				continue
+			if ch == "." or tx < 18 or tx > 47:
+				continue  # (outside columns 18-47: the mock's little rocks, out of place on the dais)
 			if ch == "o":
 				var first_x := floori((x - 1 - fo.x) / K) != tx
 				var first_y := floori((y - 1 - fo.y) / K) != ty
