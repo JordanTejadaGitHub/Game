@@ -16,7 +16,7 @@ class_name BossDossier
 const GROUP := &"boss_dossier"
 const RECORDS_KEY := "boss_records"  # Profile: {kind: {"dispelled": n, "best": seconds}}
 const WIDTH := 600.0
-const BOSS_COLOR := Color(0.95, 0.45, 0.4)
+const BOSS_COLOR := UiStyle.BOSS  # Heartwood 32 (ui_style.md)
 const TITLE_COLOR := Color(1.0, 0.85, 0.75)
 const WHISPER_COLOR := Color(0.75, 0.9, 0.8)
 const SECTION_COLOR := Color(0.95, 0.8, 0.55)
@@ -350,7 +350,7 @@ func _escort_row(data: EnemyData, count: int, how: String, drift: int) -> Contro
 	face.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	face.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	TapTip.attach(face, "%s: %s" % [data.display_name, NightmareCard.numbers_text(data, drift, drift_director)])
-	row.add_child(face)
+	row.add_child(UiStyle.on_moon_disc(face))  # Readable on the night sky (screens_ui.md)
 	var label := Label.new()
 	label.text = "%s ×%d · %s" % [data.display_name, count, how]
 	label.add_theme_font_size_override("font_size", 15)
@@ -440,5 +440,5 @@ class BossPortrait extends Control:
 		_sprite.position = size / 2.0
 
 	func _draw() -> void:
-		draw_circle(size / 2.0, size.x / 2.0, Color(0.15, 0.06, 0.07))
-		draw_arc(size / 2.0, size.x / 2.0 - 1.0, 0.0, TAU, 40, BOSS_COLOR, 2.0, true)
+		# The moon disc, rimmed in the boss colour (screens_ui.md "Readable on the night sky").
+		UiStyle.draw_moon_disc(self, size / 2.0, size.x / 2.0, BOSS_COLOR)

@@ -8,7 +8,7 @@ const WIDTH := 460.0
 const PIP_RADIUS := 5.0
 const TEXT_COLOR := UiStyle.INK
 const DIM_COLOR := Color(0.55, 0.6, 0.55)
-const BOSS_COLOR := Color(0.95, 0.45, 0.4)
+const BOSS_COLOR := UiStyle.BOSS  # Heartwood 32 (ui_style.md)
 const FONT_SIZE := 22
 const SMALL_FONT_SIZE := 16
 

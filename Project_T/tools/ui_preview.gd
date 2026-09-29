@@ -47,6 +47,11 @@ func _run() -> void:
 	dreams.offer_ready.emit(offer, 5)
 	await _frames(10)
 	_save("dream")
+	main.get_node("HUD/DreamScreen").visible = false
+	dreams.dreamlight = 3
+	dreams.open_remember()
+	await _frames(20)
+	_save("remember")
 	main.queue_free()
 	await _frames(2)
 

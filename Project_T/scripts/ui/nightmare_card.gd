@@ -52,7 +52,7 @@ static func build(data: EnemyData, drift: int, director: DriftDirector) -> VBoxC
 	face.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	face.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	face.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	head.add_child(face)
+	head.add_child(UiStyle.on_moon_disc(face))  # Readable on the night sky (screens_ui.md)
 	var name := Label.new()
 	name.text = data.display_name + ("   · New" if is_new(data) else "")
 	name.add_theme_font_size_override("font_size", 18)

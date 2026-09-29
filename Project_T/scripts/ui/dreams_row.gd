@@ -10,9 +10,9 @@ class_name DreamsRow
 
 const ICON_SIZE := Vector2(30, 30)
 const REFRESH_TIME := 0.25  # Live bonuses are re-read this often (real time, also while paused)
-const TEXT_COLOR := Color(0.9, 0.92, 0.85)
-const LIVE_COLOR := Color(0.75, 0.95, 0.6)
-const OFF_COLOR := Color(0.6, 0.6, 0.6)
+const TEXT_COLOR := UiStyle.INK
+const LIVE_COLOR := UiStyle.LIVE
+const OFF_COLOR := UiStyle.OFF
 
 @onready var dream_state: DreamState = %DreamState
 
@@ -178,12 +178,15 @@ func _card_row(source: DreamIcon) -> Control:
 	frame.name = "Row_" + card.id
 	frame.mouse_filter = Control.MOUSE_FILTER_STOP
 	var legendary := card.rarity == UpgradeData.Rarity.LEGENDARY
-	var style := StyleBoxFlat.new()  # A gold rim for Legendaries; the others sit flat on the panel
-	style.bg_color = Color(UiStyle.CARD_BG, 0.35 if legendary else 0.0)
-	style.border_color = UiStyle.RARITY[UpgradeData.Rarity.LEGENDARY] if legendary else Color(0, 0, 0, 0)
-	style.set_border_width_all(2 if legendary else 0)
-	style.set_corner_radius_all(6)
-	style.set_content_margin_all(6)
+	# Legendaries get a card of their own (Moonlit Thread: solid fog, the thread in Legendary gold); the
+	# others sit flat on the panel.
+	var style: StyleBox = UiStyle.card(UiStyle.rarity_color(card.rarity)) if legendary else StyleBoxEmpty.new()
+	style.content_margin_left = 6
+	style.content_margin_right = 6
+	style.content_margin_top = 6
+	style.content_margin_bottom = 6
+	if legendary:
+		(style as MoonStyleBox).shadow_size = 0
 	frame.add_theme_stylebox_override("panel", style)
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 8)
@@ -277,11 +280,11 @@ class DreamIcon extends Control:
 		var font := UiStyle.number_font()
 		if stacks > 1:
 			var count := str(stacks)
-			draw_string_outline(font, centre + Vector2(4, 11), count, HORIZONTAL_ALIGNMENT_LEFT, -1, 11, 4, Color(0.05, 0.06, 0.08))
+			draw_string_outline(font, centre + Vector2(4, 11), count, HORIZONTAL_ALIGNMENT_LEFT, -1, 11, 4, UiStyle.FOG)
 			draw_string(font, centre + Vector2(4, 11), count, HORIZONTAL_ALIGNMENT_LEFT, -1, 11, TEXT_COLOR)
 		if live != "":
 			var width := font.get_string_size(live, HORIZONTAL_ALIGNMENT_LEFT, -1, 10).x
 			var at := Vector2((size.x - width) / 2.0, size.y)
 			var tint := OFF_COLOR if live == "off" else LIVE_COLOR
-			draw_string_outline(font, at, live, HORIZONTAL_ALIGNMENT_LEFT, -1, 10, 4, Color(0.05, 0.06, 0.08))
+			draw_string_outline(font, at, live, HORIZONTAL_ALIGNMENT_LEFT, -1, 10, 4, UiStyle.FOG)
 			draw_string(font, at, live, HORIZONTAL_ALIGNMENT_LEFT, -1, 10, tint)

@@ -10,7 +10,8 @@ const CARD_SIZE := Vector2(270, 200)
 const OMEN_COLOR := UiStyle.BUTTON_GOLD  # Heartwood 32 "Gold"
 const TWIST_COLOR := Color("9a84e8")  # Heartwood 32 "Wraithlight": the nightmares' side of the deal
 const REWARD_COLOR := UiStyle.GOLD  # Heartwood 32 "Glow": the reward in gold (run_design.md)
-const CLEAR_SKIES_COLOR := UiStyle.INK_DIM  # A calm moonlit card (UI Code does its look)
+const CLEAR_SKIES_COLOR := UiStyle.MOONLIGHT  # A calm moonlit card: Moonlight thread and title
+const CLEAR_SKIES_GLOW := Color("3c3c5c")  # Dusk: a cooler, lighter middle than an Omen's Night
 
 @onready var omens: OmenDirector = %OmenDirector
 @onready var drift_director: DriftDirector = %DriftDirector
@@ -96,7 +97,7 @@ func _make_card(omen: OmenData, act: int) -> Button:
 	box.offset_bottom = -12
 	box.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	button.add_child(box)
-	_add_line(box, omen.display_name, Color(0.95, 0.93, 0.9), 22)
+	UiStyle.title(_add_line(box, omen.display_name, UiStyle.INK, 22), UiStyle.CARD_NAME_SIZE)
 	var twist := StatusLinks.make_label(omen.description, 16, TWIST_COLOR)  # Status words as links
 	twist.mouse_filter = Control.MOUSE_FILTER_PASS  # A click still picks the Omen
 	twist.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -151,6 +152,9 @@ func _make_clear_skies_card() -> Button:
 	button.focus_mode = Control.FOCUS_NONE
 	button.pressed.connect(omens.choose.bind(null))
 	UiStyle.card_button(button, CLEAR_SKIES_COLOR)
+	for state in ["normal", "hover", "pressed", "hover_pressed"]:
+		var style := button.get_theme_stylebox(state) as MoonStyleBox
+		style.glow_color = CLEAR_SKIES_GLOW.lightened(0.08) if state.begins_with("hover") else CLEAR_SKIES_GLOW
 	var box := VBoxContainer.new()
 	box.set_anchors_preset(Control.PRESET_FULL_RECT)
 	box.offset_left = 14
@@ -159,8 +163,9 @@ func _make_clear_skies_card() -> Button:
 	box.offset_bottom = -12
 	box.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	button.add_child(box)
-	_add_line(box, "Clear Skies", Color(0.95, 0.93, 0.9), 22)
-	var calm := _add_line(box, "Nothing changes. No reward.", CLEAR_SKIES_COLOR, 16)
+	UiStyle.title(_add_line(box, "Clear Skies", CLEAR_SKIES_COLOR, 22), UiStyle.CARD_NAME_SIZE, CLEAR_SKIES_COLOR)
+	var calm := _add_line(box, "Nothing changes. No reward.", UiStyle.WHISPER, 16)
+	UiStyle.whisper(calm, 19)  # Calm: the whisper face
 	calm.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	_add_line(box, "The default", UiStyle.INK_DIM, 13)
+	UiStyle.caps(_add_line(box, "The default", UiStyle.INK_DIM, 13), 14)
 	return button
