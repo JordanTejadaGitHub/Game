@@ -144,7 +144,7 @@ Income only for drifts 1–60 (assumed perfect blocks), then drifts 61–70 foug
 | Sprout, no Seedfall | 45 (39–66) | ×1.00 | 45 | 0 | 0/5 |
 | Sprout + Seedfall | 45 (39–46) | ×1.00 | 44 | 0 | 0/5 |
 
-**Every target passes.** Watch: Balanced's spread by map is wide (one seed dies at the drift 25 boss); **Seedfall adds no survival** (it only saves Dew), so as the door into the swarm build it's too weak: next test is Seedfall = flat 6, price never rises (target ≤1.5× Balanced; fall back to +3 per 15 if over).
+**Every target passes.** Watch: Balanced's spread by map is wide (one seed dies at the drift 25 boss); **Seedfall adds no survival** (it only saves Dew), so as the door into the swarm build it's too weak: **Flat Seedfall tested (62af1fd): ×1.05 of Balanced, first leak 50, kept.**
 
 ## Later
 
