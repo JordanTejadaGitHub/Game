@@ -234,7 +234,7 @@ the profile like the Codex). The forest dreams of what it has seen.
 |---|---|---|
 | **A Reaction** | the first time that Reaction fires, ever (profile `reactions_seen`) | cards that name that Reaction: Thunderclap → Rolling Thunder, Rain on Glass, Conductive Soil; Ignite → Wildfire Spores, Sparking Spores; Mushrooming → Mushroom Rain, Damp Rot; Drown → Deep Water. **Any 2 Reactions** → Quick Reactions |
 | **A Crowned Reaction** | the first time it fires | its Woven card (Tempest → Eye of the Tempest, Still Pool → Deep Stillness, …) |
-| **A chain** | the first ×5 chain ever | Dawnbreak (a ×10 chain is too rare to be the gate) |
+| ~~**A chain**~~ | — | (Dawnbreak is a Legendary: not discovery-gated, it stays a Grove tip; resolved 2026-09-29) |
 | **A Kinship** | the first time **any** Kinship forms | the Kinship cards (124–133) |
 | **A Warden** | the first time you **build or grow into** that Warden | cards whose Needs name it (Soft Spores → Sporeling, Shiny Things → Magpie Perch, Heavy Stones → Pebbling, Twin Puff → Sporeling, …) and its branch / final-form unlock cards |
 
@@ -251,6 +251,15 @@ the profile like the Codex). The forest dreams of what it has seen.
   Deep Water, Quick Reactions, Dawnbreak, the Woven cards, Close Kin …), **discovery gives it for
   free**; the node keeps its other contents and its price drops by that card's share. The meta
   chat should rebalance `meta_design.md`'s node list.
+  - **Resolved 2026-09-29** (Meta Game Code's audit: 8 nodes, 700 Seeds, were *fully* covered):
+    **Legendaries are never discovery-gated**, so **Dawnbreak** and **Grove of Kin** drop
+    `discovered_by` and stay **Grove tips** (bought, as before). The **6 other fully covered nodes
+    are removed**: Reactions, Woven Dreams I and II, Kin Lore, Deep Bonds (and the Reactions →
+    Dawnbreak link: Dawnbreak now hangs off Spore Lore; Grove of Kin off the nearest remaining Cards
+    node). **Bittersweet Dreams** loses Blood Is Thicker and costs 52. Cards that are only
+    implicitly Warden-gated (Acorn Cache, Twin Puff, …) stay on their nodes. The tree loses about
+    **560 Seeds** (~5,960 → ~5,400, ~27 h instead of ~30 h), which is fine: those cards now come from
+    playing instead.
 - **Half-dreamed cards** (see *Adapt, don't get handed*) still need their Reaction discovered first.
   So in a player's first runs they won't tempt toward a combo they've never seen; the Codex's greyed
   entries do that job instead. **They skip the Warden gate** (ruling 2026-09-29): the Reaction is the
