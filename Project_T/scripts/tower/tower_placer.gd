@@ -685,6 +685,7 @@ func _take_square(tower: Tower, into: TowerData, origin: Vector2) -> void:
 	var old_cell := tower.cell
 	tower.cell = origin
 	tower.position = Tower.footprint_centre(origin, size)
+	Tower.towers_moved()  # Its neighbour buckets
 	tower.footprint_size = size  # It has its room now (Tower.evolve keeps the size it's given)
 	var kin := Kinships.find(self)
 	if kin:

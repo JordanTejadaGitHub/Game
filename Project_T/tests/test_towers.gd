@@ -85,6 +85,10 @@ func _run() -> void:
 
 	# Pulse: soothes every creature in range at once, no projectile.
 	var rootling: Tower = tower_container.get_child(6)
+	var no_crit: TowerData = rootling.tower_data.duplicate()
+	no_crit.crit_chance = 0.0  # A crit would make the exact-damage check flake
+	rootling.tower_data = no_crit
+	rootling._apply_data()
 	for tower in tower_container.get_children():
 		tower.set_process(false)  # Only the pulse below: any Warden's own cooldown could fire too (a timing flake)
 	var near_a = _spawn_still(spawner, leaf_bug, rootling.global_position + Vector2(40, 0))
