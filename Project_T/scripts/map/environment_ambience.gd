@@ -11,7 +11,11 @@ const AMBIENCE_Z := 6  # Over attack effects, under Dew popups
 const CONCEPT_SIZE := Vector2(960, 576)  # The concept page's sample map, in px
 const FOG_COLOR := Color(16 / 255.0, 10 / 255.0, 30 / 255.0)
 
+const CLOUD_SIZE := Vector2(256, 128)  # One cloud shadow in dream/cloud_shadows.png (a row of them)
+
 @export var edge_fog_per_edge_cell := 0.46
+@export var crossing_clouds := 4  # Cloud shadows drifting across the whole map with the wind
+@export var cloud_wind := Vector2(9, 3)  # px/s; each cloud varies it a little
 @export var particle_scale := 1.0  # Multiplies every act's particle count
 
 var act := 1
@@ -19,17 +23,24 @@ var heartwood_position := Vector2.ZERO  # Where act 1's warm motes rise from
 var _time := 0.0
 var _size: Vector2
 var _area_scale: float  # Map area / concept area
+var _clouds: Texture2D  # Cloud shadow shapes (null = fall back to plain ovals)
+var _cloud_count := 1
 
 func _ready() -> void:
 	z_index = AMBIENCE_Z
 	_size = MAP_GRID.size * MAP_GRID.cell_size
 	_area_scale = (_size.x * _size.y) / (CONCEPT_SIZE.x * CONCEPT_SIZE.y)
+	var path := EnvironmentTiles.shared_path("cloud_shadows")
+	if ResourceLoader.exists(path):
+		_clouds = load(path)
+		_cloud_count = maxi(1, int(_clouds.get_width() / CLOUD_SIZE.x))
 
 func _process(delta: float) -> void:
 	_time += delta
 	queue_redraw()
 
 func _draw() -> void:
+	_draw_crossing_clouds()
 	_draw_edge_fog()
 	match act:
 		1:
@@ -53,7 +64,24 @@ func _ellipse(center: Vector2, radii: Vector2, color: Color) -> void:
 	draw_circle(Vector2.ZERO, radii.x, color)
 	draw_set_transform(Vector2.ZERO)
 
-# Nightmare fog drifting round the map's edge, one side per blob.
+# One cloud shadow centred on `center`; its darkness is baked into the sheet, `alpha` scales it.
+func _cloud(center: Vector2, variant: int, alpha: float) -> void:
+	if _clouds == null:
+		_ellipse(center, Vector2(110, 46), Color(FOG_COLOR, alpha * 0.7))
+		return
+	var src := Rect2(Vector2((variant % _cloud_count) * CLOUD_SIZE.x, 0), CLOUD_SIZE)
+	draw_texture_rect_region(_clouds, Rect2((center - CLOUD_SIZE / 2).floor(), CLOUD_SIZE), src, Color(1, 1, 1, alpha))
+
+# A few cloud shadows crossing the whole map with the wind, wrapping round once they're past it.
+func _draw_crossing_clouds() -> void:
+	var span := _size + CLOUD_SIZE * 2
+	for k in crossing_clouds:
+		var wind := cloud_wind * (0.8 + _rand(k, 7) * 0.4)
+		var p := Vector2(_rand(k, 5) * span.x, _rand(k, 6) * span.y) + wind * _time
+		var at := Vector2(fposmod(p.x, span.x), fposmod(p.y, span.y)) - CLOUD_SIZE
+		_cloud(at, k * 2 + 1, 0.7 + 0.1 * sin(_time * 0.3 + k))
+
+# Nightmare fog drifting round the map's edge as cloud shadows, one side per cloud.
 func _draw_edge_fog() -> void:
 	var edge_cells := 2 * (MAP_GRID.size.x + MAP_GRID.size.y)
 	var speed_scale := CONCEPT_SIZE.x / _size.x  # Same px/s as the concept on a bigger map
@@ -70,8 +98,7 @@ func _draw_edge_fog() -> void:
 				at = Vector2((1.0 - u) * _size.x, _size.y - 18)
 			_:
 				at = Vector2(20, (1.0 - u) * _size.y)
-		var alpha := 0.22 + 0.1 * sin(_time * 0.8 + k)
-		_ellipse(at, Vector2(110, 46), Color(FOG_COLOR, alpha))
+		_cloud(at, k, 0.85 + 0.15 * sin(_time * 0.8 + k))
 
 func _mote(at: Vector2, rgb: Color, alpha: float) -> void:
 	var p := at.floor()
