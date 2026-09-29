@@ -242,9 +242,10 @@ the profile like the Codex). The forest dreams of what it has seen.
   rest of the current run (so the next Dream can already offer them). The card's normal Needs still
   apply on top (e.g. you still need to own Stormcap for Rolling Thunder this run).
 - **Shown:** the discovery card that already appears on a first Reaction / Kinship adds a line
-  *"New Dreams: Rolling Thunder, Rain on Glass"*. The Codex shows each entry's cards, greyed until
-  discovered (*"Discover Thunderclap to dream of this"*). A first build of a Warden shows a small
-  toast with its new Dreams.
+  *"New Dreams: Rolling Thunder, Rain on Glass"*. A **discovered** Codex entry lists its Dreams;
+  an undiscovered one stays **"???" and names no cards** (the user's "??? everywhere" rule wins;
+  the earlier "greyed until discovered" idea is dropped, 2026-09-29). A first build of a Warden
+  shows a small toast with its new Dreams.
 - **Cards never gate a combo** still holds: Reactions, Kinships and Wardens all work without any
   card, so discovery always comes from playing, never from the pool.
 - **Grove overlap:** where a discovery card was also sold on a Memory Grove node (Wildfire Spores,
@@ -261,8 +262,8 @@ the profile like the Codex). The forest dreams of what it has seen.
     **6,722 Seeds** (~34 h; the earlier 5,960 figure was out of date), and those cards now come from
     playing instead.
 - **Half-dreamed cards** (see *Adapt, don't get handed*) still need their Reaction discovered first.
-  So in a player's first runs they won't tempt toward a combo they've never seen; the Codex's greyed
-  entries do that job instead. **They skip the Warden gate** (ruling 2026-09-29): the Reaction is the
+  So in a player's first runs they won't tempt toward a combo they've never seen; finding combos
+  by experimenting (the Codex's "???" entries) does that job instead. **They skip the Warden gate** (ruling 2026-09-29): the Reaction is the
   discovery that matters, and their Needs line shows statuses, not Wardens. Otherwise Conductive
   Soil would stay hidden for a player who found Thunderclap with a plain Firefly Jar but never grew
   a Stormcap, which defeats a card meant to tempt toward the other family.
