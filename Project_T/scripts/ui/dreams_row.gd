@@ -206,6 +206,11 @@ func _card_row(source: DreamIcon) -> Control:
 	name.text = card.display_name + (("  ×%d" % source.stacks) if source.stacks > 1 else "")
 	UiStyle.title(name, 16, UpgradeData.rarity_color(card.rarity))
 	text.add_child(name)
+	if dream_state.has_method("opened_clearing") and dream_state.opened_clearing(card):
+		var opened := Label.new()
+		opened.text = DreamState.OPENED_CLEARING_LINE  # dream_design.md "Make the unlock obvious"
+		UiStyle.caps(opened, 13, UiStyle.GOLD)
+		text.add_child(opened)
 	var body := StatusLinks.make_label(card.description, 14, UiStyle.INK)
 	body.mouse_filter = Control.MOUSE_FILTER_PASS
 	text.add_child(body)

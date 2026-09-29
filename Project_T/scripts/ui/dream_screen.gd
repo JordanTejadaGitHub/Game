@@ -140,6 +140,8 @@ func _make_card(card: UpgradeData) -> Button:
 	name_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	UiStyle.title(name_label, UiStyle.CARD_NAME_SIZE)
 	box.add_child(name_label)
+	if dream_state.opens_clearing(card):
+		_add_opens_clearing(button, box)
 	# The effect comes right after the name; it never shrinks.
 	_add_linked_line(box, card.description, UiStyle.INK, 16)
 	if card.cost_description != "":
@@ -172,6 +174,42 @@ func _make_card(card: UpgradeData) -> Button:
 	button.size_flags_vertical = Control.SIZE_EXPAND_FILL  # The row gives every card the tallest's height
 	_fit_card(button, box, secondary)
 	return button
+
+# While clearing is locked, a clearing card leads with what it unlocks (dream_design.md "Clearing
+# cards" / "Make the unlock obvious"): the Clear tool icon + "Unlocks clearing", what clearing is, a
+# thin divider, then the card's own effect; and a gold "Opens clearing" tag in the corner.
+func _add_opens_clearing(button: Button, box: VBoxContainer) -> void:
+	var row := HBoxContainer.new()
+	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	row.add_theme_constant_override("separation", 6)
+	var icon := TextureRect.new()
+	var frame := AtlasTexture.new()
+	frame.atlas = ClearToolButton.ICON_SHEET
+	frame.region = Rect2(64, 0, 64, 64)  # The "available" frame
+	icon.texture = frame
+	icon.custom_minimum_size = Vector2(24, 24)
+	icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	row.add_child(icon)
+	var line := Label.new()
+	line.text = DreamState.OPENS_CLEARING_LINE
+	line.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	UiStyle.caps(line, 16, UiStyle.GOLD)
+	row.add_child(line)
+	box.add_child(row)
+	_add_line(box, DreamState.OPENS_CLEARING_TEXT, UiStyle.INK, 14)
+	var divider := HSeparator.new()
+	divider.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	box.add_child(divider)
+	var tag := Label.new()
+	tag.name = "OpensClearingTag"
+	tag.text = DreamState.OPENS_CLEARING_TAG
+	tag.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	UiStyle.caps(tag, 12, UiStyle.GOLD)
+	tag.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT, Control.PRESET_MODE_MINSIZE, 10)
+	tag.grow_horizontal = Control.GROW_DIRECTION_BEGIN
+	button.add_child(tag)
 
 # A card grows to fit its content (a Button doesn't size to its children), at least CARD_SIZE tall.
 # If that would pass the screen, the secondary lines shrink first, never the effect.

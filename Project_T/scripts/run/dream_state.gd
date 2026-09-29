@@ -1067,6 +1067,22 @@ func can_clear() -> bool:
 			return true
 	return false
 
+
+# Make the clearing unlock obvious (dream_design.md "Clearing cards" / "Make the unlock obvious"):
+# while clearing is locked, every clearing card leads with these lines and a corner tag; the card
+# that opened it says so in Dreams this run and the Codex.
+const OPENS_CLEARING_LINE := "Unlocks clearing"
+const OPENS_CLEARING_TEXT := "Tend Withered Trees and move Mossy Boulders for Dew (Clear tool, C)."
+const OPENS_CLEARING_TAG := "Opens clearing"
+const OPENED_CLEARING_LINE := "Unlocked clearing"
+var clearing_opened_by := ""  # The card id that unlocked clearing this run (saved)
+
+func opens_clearing(card: UpgradeData) -> bool:
+	return card != null and card.tags.has("clearing") and not can_clear()
+
+func opened_clearing(card: UpgradeData) -> bool:
+	return card != null and clearing_opened_by != "" and card.id == clearing_opened_by
+
 # Obstacles left on the map, of `kind` only if given.
 func count_obstacles(kind: ObstacleData = null) -> int:
 	if kind == null:
@@ -1176,6 +1192,8 @@ func _update_bends() -> void:
 # --- Taking cards -------------------------------------------------------------------------------------
 
 func take(card: UpgradeData) -> void:
+	if opens_clearing(card):
+		clearing_opened_by = card.id  # "Unlocked clearing" in Dreams this run and the Codex
 	for family in half_dreamed_missing(card):  # The next family pick will include one of them
 		if not _owed_families.has(family):
 			_owed_families.append(family)
@@ -1739,6 +1757,7 @@ func to_save() -> Dictionary:
 		"owed_families": _owed_families.duplicate(), "declined_families": _declined_families.duplicate(),
 		"walls_planted": _walls_planted, "glimmer_shards": glimmer_shards,
 		"legendary_next": _legendary_next,
+		"clearing_opened_by": clearing_opened_by,
 		"rng_state": str(_rng.state),  # A string: JSON would round a 64-bit int
 	}
 
@@ -1775,6 +1794,7 @@ func load_save(data: Dictionary) -> void:
 	_attackers_planted = int(data.get("attackers_planted", 0))
 	_walls_planted = int(data.get("walls_planted", 0))
 	glimmer_shards = int(data.get("glimmer_shards", 0))
+	clearing_opened_by = String(data.get("clearing_opened_by", ""))
 	_legendary_next = int(data.get("legendary_next", 0))
 	_refill_bark()  # Saved at a rest, where Thick Bark is full again
 	dreamlight = int(data.get("dreamlight", 0))
