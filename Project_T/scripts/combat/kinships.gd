@@ -39,6 +39,7 @@ const GROVE_OF_KIN_PER := 0.03  # Grove of Kin: every Warden, per Kinship on the
 const GROVE_OF_KIN_MAX := 0.30
 const SWEET_BONUS: Array[float] = [0.5, 1.0]  # Sweet Harmony (II)
 const SWEET_COOLDOWN: Array[float] = [1.5, 1.0]
+const BEAD_COOLDOWN := 0.6  # Seconds between light beads on one vine
 
 # id -> [name, family line, branch A, branch B, in the demo]
 const KINSHIPS := {
@@ -51,6 +52,16 @@ const KINSHIPS := {
 	&"old_growth": ["Old Growth", "acorn", "elder_stump", "dewcatcher", false],
 	&"flock_together": ["Flock Together", "wing", "wrens_nest", "magpie_perch", false],
 	&"dust_devil": ["Dust Devil", "wind", "gust", "pinwheel", false],
+	# The 9 hidden Kinships: the hidden branch is A (full game only; a final form counts as its branch).
+	&"spore_nursery": ["Spore Nursery", "spore", "fairy_ring", "driftspore", false],
+	&"hoar_fog": ["Hoar Fog", "water", "frostfern", "mistveil", false],
+	&"sunspot": ["Sunspot", "light", "sunpetal", "lanternmoth", false],
+	&"spotter": ["Spotter", "stone", "cairn", "standing_stone", false],
+	&"lantern_roots": ["Lantern Roots", "root", "rootlight", "tangleroot", false],
+	&"resonant_hollow": ["Resonant Hollow", "song", "echo_hollow", "chime_stone", false],
+	&"true_graft": ["True Graft", "acorn", "graftling", "elder_stump", false],
+	&"jewel_thieves": ["Jewel Thieves", "wing", "hummingbird_bower", "magpie_perch", false],
+	&"tailwind": ["Tailwind", "wind", "samara", "gust", false],
 }
 # The colours of each family, for vines and Harmony sparks.
 const FAMILY_COLORS := {"spore": Color(0.7, 0.9, 0.4), "water": Color(0.45, 0.7, 1.0),
@@ -70,12 +81,14 @@ var formed_run := 0
 var harmony_block := 0
 var harmony_run := 0
 var whole_families: Array[String] = []  # Celebrated this run
+var kindred_shown := false  # The run's first Kindred was called out
 var _partner := {}  # Tower instance id -> pair
 var _refresh_timer := 0.0
 var _clock := 0.0
 var _harmony_ready := {}  # Pair key -> clock time it can strike again
 var _queued: Array = []  # Stage-ups and Whole Trees waiting for the rest
 var _remembered := {}  # Rooted Bond: partner instance id -> the sold kin's bond age, until the rest ends
+var _bead_ready := {}  # Pair key -> clock time the vine can carry another bead
 var _resting := true
 var _placer: TowerPlacer
 var _seller: TowerSeller
@@ -385,6 +398,10 @@ func _count_families(towers: Array) -> void:
 		elif count >= 2:
 			families[line] = 1
 	for line in families:
+		if not kindred_shown and before.get(line, 0) == 0:
+			kindred_shown = true  # The first Kindred of the run gets one quiet callout
+			_queue(["kindred", line])
+	for line in families:
 		if families[line] == 2 and before.get(line, 0) < 2 and not whole_families.has(line):
 			whole_families.append(line)
 			_queue(["whole_tree", line])
@@ -618,6 +635,13 @@ func _announce(event: Array) -> void:
 					var up := Fx.play(&"kin_stage_up", tower.global_position, get_parent())
 					if up:
 						up.modulate = _colour(pair)
+		"kindred":
+			var line: String = event[1]
+			var kin_towers := _towers().filter(func(t: Tower) -> bool: return t.tower_data.line == line and branch_for(t) != "")
+			if _effects() != 2 and not kin_towers.is_empty():
+				var at: Vector2 = kin_towers[-1].global_position + Vector2(0, -40)
+				Fx.callout("Kindred: the %s family +%d%%" % [NightmareIcons.family_name(line), roundi(KINDRED_BONUS * 100)],
+					FAMILY_COLORS.get(line, Color(0.85, 0.9, 0.6)), at, get_parent(), &"kinship")
 		"whole_tree":
 			family_whole.emit(event[1])
 			var map = get_parent().get_node_or_null("%MapGenerator")
@@ -725,6 +749,24 @@ func _spark(at: Vector2, pair: Dictionary) -> void:
 		get_parent().add_child(fallback)
 		fallback.global_position = at
 
+# A borrowed trait went off on `learner` (Tower._kin_fired): a small bead of light runs along the vine
+# from its kin (the teacher) to it. Full effects only, at most one per pair every BEAD_COOLDOWN.
+func trait_fired(learner: Tower, id: StringName) -> void:
+	if _effects() != 0 or Fx.reduce_flashes():
+		return
+	for pair in get_pairs(learner):
+		if pair.id != id or not is_instance_valid(pair.a) or not is_instance_valid(pair.b):
+			continue
+		if _clock < _bead_ready.get(pair.key, 0.0):
+			return
+		_bead_ready[pair.key] = _clock + BEAD_COOLDOWN
+		var teacher: Tower = pair.b if pair.a == learner else pair.a
+		var direction := (learner.global_position - teacher.global_position).normalized()
+		var bead := KinBead.new(teacher.global_position + direction * _edge(teacher),
+			learner.global_position - direction * _edge(learner), _colour(pair))
+		get_parent().add_child(bead)
+		return
+
 # Rainfog (Rain Lily line): a fog patch where a splash landed (1 tile, `seconds`).
 func fog_patch(at: Vector2, seconds: float) -> void:
 	if seconds <= 0.0:
@@ -738,13 +780,14 @@ func fog_patch(at: Vector2, seconds: float) -> void:
 
 func to_save() -> Dictionary:
 	return {"ages": ages.duplicate(), "whole": whole_families.duplicate(), "formed": formed_run,
-		"harmony": harmony_run}
+		"harmony": harmony_run, "kindred": kindred_shown}
 
 func load_save(data: Dictionary) -> void:
 	ages = data.get("ages", {}).duplicate()
 	whole_families.assign(data.get("whole", []))
 	formed_run = int(data.get("formed", 0))
 	harmony_run = int(data.get("harmony", 0))
+	kindred_shown = bool(data.get("kindred", false))
 	refresh()  # Saved pairs keep their age and aren't announced again
 
 
@@ -803,3 +846,30 @@ class KinBurst extends Node2D:
 			var dir := Vector2.from_angle(TAU * i / 6.0 + t * 2.0)
 			var colour := _colour if i % 2 == 0 else Color(1.0, 0.92, 0.95)
 			draw_circle(dir * _size * t, 3.0 * (1.0 - t) + 1.0, Color(colour, 1.0 - t))
+
+
+# A bead of light (kin_vine_bead, tinted) running along a vine, then gone. Drawn over the vines.
+class KinBead extends Node2D:
+	const TIME := 0.35
+	var _from: Vector2
+	var _to: Vector2
+	var _age := 0.0
+
+	func _init(from: Vector2, to: Vector2, colour: Color) -> void:
+		_from = from
+		_to = to
+		modulate = colour.lightened(0.3)
+		z_index = 2
+		rotation = from.angle_to_point(to)
+
+	func _ready() -> void:
+		global_position = _from
+		if Fx.play(&"kin_vine_bead", _from, self) == null:
+			var dot := KinBurst.new(modulate, TIME, 2.0)
+			add_child(dot)
+
+	func _process(delta: float) -> void:
+		_age += delta
+		global_position = _from.lerp(_to, minf(_age / TIME, 1.0))
+		if _age >= TIME:
+			queue_free()
