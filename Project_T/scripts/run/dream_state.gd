@@ -1479,6 +1479,8 @@ func _meets_needs(card: UpgradeData) -> bool:
 		return false
 	if card.max_range_owned > 0.0 and not owns_range_at_most(card.max_range_owned):
 		return false
+	if card.min_non_attackers > 0 and _towers().size() - count_attackers() < card.min_non_attackers:
+		return false
 	if card.min_kinships > 0 and count_kinships() < card.min_kinships:
 		return false
 	if card.min_owned_statuses > 0 and owned_statuses().size() < card.min_owned_statuses:

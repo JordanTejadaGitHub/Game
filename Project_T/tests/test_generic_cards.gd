@@ -40,6 +40,7 @@ func _run() -> void:
 	_test_sim_policy()
 	_test_rows_cache()
 	_test_seed_cards()
+	_test_support_cards()
 	print("generic cards test: %s" % ("PASS" if failures == 0 else "%d FAILED" % failures))
 	quit(failures)
 
@@ -332,6 +333,29 @@ func _test_seed_cards() -> void:
 	# Patient Roots and Bramble Oath's measure
 	dreams.take(_card("patient_roots"))
 	_check(dreams.get_held_bonus() == 0.25 and dreams.walls_added_tiles() >= 0, "Patient Roots: Held +0.25 s; walls' path tiles measured")
+	_clear()
+	_reset()
+
+# Support Warden cards (dream_design.md "Support Warden cards: the quiet Wardens").
+func _test_support_cards() -> void:
+	_reset()
+	var start := ["thorn_snare", "thorn_snare_ii", "scented_hedge"]
+	for id in ["wide_bowl", "dew_trail", "dew_trail_ii", "still_waters", "overflowing_well", "acorn_cache", "hedgerow_roots",
+			"grandfather_stump", "thorn_snare", "thorn_snare_ii", "scented_hedge", "living_walls", "many_threads", "the_quiet_ones"]:
+		var card := _card(id)
+		if card:
+			_check(card.tags.has("support") and card.in_start_pool == start.has(id), "%s: support card, pool" % id)
+	_check(dreams.can_offer(_card("thorn_snare")) and not dreams.can_offer(_card("scented_hedge")), "Thorn Snare needs nothing; Scented Hedge needs Honeysuckle")
+	dreams.grove_cards.assign(["acorn_cache", "the_quiet_ones"])
+	var acorn: TowerData = load("res://resource/tower/acorn.tres")
+	dreams.unlocked["acorn"] = true
+	dreams.take(_card("acorn_cache"))
+	_check(dreams.get_build_cost(acorn) == 15, "Acorn Cache: Acorns cost 15 Dew")
+	var quiet := _card("the_quiet_ones")
+	_check(not dreams.can_offer(quiet, 2), "The Quiet Ones needs 3+ non-attacking Wardens")
+	for i in 3:
+		_plant("thornwall", Vector2(100 + i, 100))
+	_check(dreams.can_offer(quiet, 2) and not dreams.can_offer(quiet, 1), "…offered with 3 walls, from act 2")
 	_clear()
 	_reset()
 

@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "the_quiet_ones"
+display_name = "The Quiet Ones"
+description = "All non-attacking Wardens (catchers, auras, walls, Dreamcatchers) are 50% stronger."
+rarity = 3
+kind = 3
+tags = Array[String](["support"])
+max_stacks = 1
+min_act = 2
+min_non_attackers = 3
+rule_id = &"the_quiet_ones"
+in_start_pool = false

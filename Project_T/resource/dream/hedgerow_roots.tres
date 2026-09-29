@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "hedgerow_roots"
+display_name = "Hedgerow Roots"
+description = "Auras flow through Thornwalls: a Warden touching a Thornwall that touches an aura Warden also gets that aura."
+rarity = 2
+kind = 3
+tags = Array[String](["support", "acorn", "wall"])
+max_stacks = 1
+requires_any = Array[String](["acorn", "elder_stump", "grove_heart"])
+rule_id = &"hedgerow_roots"
+in_start_pool = false

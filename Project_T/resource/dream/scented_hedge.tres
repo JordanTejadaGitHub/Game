@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "scented_hedge"
+display_name = "Scented Hedge"
+description = "Every Thornwall touching a Honeysuckle gives off its scent at half strength."
+rarity = 1
+kind = 3
+tags = Array[String](["support", "wall"])
+max_stacks = 1
+requires = Array[String](["honeysuckle"])
+rule_id = &"scented_hedge"
+in_start_pool = true

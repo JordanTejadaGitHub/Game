@@ -92,6 +92,7 @@ enum Kind { UNLOCK_WARDEN, UNLOCK_EVOLUTION, STAT, RULE, ECONOMY }
 @export var grows_with: Array[String] = []
 @export var grows_text: String = ""
 @export var calls_family: String = ""
+@export var min_non_attackers: int = 0  # Non-attacking Wardens (walls, catchers, auras…) on the map; hard Need
 
 @export_group("Nurture")
 @export var nurture_discount: float = 0.0  # 0.15 = ranks cost 15% less (all cards together max 45%)
