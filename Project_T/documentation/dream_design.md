@@ -186,6 +186,29 @@ Directions that are always available but need investment (Nurture) have **opener
 run-state check) and **follow-ups** (need an opener card too). So the pool grows with your build
 instead of offering payoff cards for a direction you never started.
 
+**How Needs are shown on a card** (user rule, 2026-09-29): a card never shows the name of a Warden
+you don't have. The Needs line says *what the card works with*, not which Warden to find:
+- **Combo cards** (Reaction cards, half-dreamed cards, Entwined / Woven cards built on statuses) show
+  the **statuses** the combo needs, as status icons + names: *"Needs: Soaked + Charged"*
+  (Thunderclap: Rolling Thunder, Rain on Glass, Conductive Soil), *"Poisoned + Charged"* (Ignite:
+  Wildfire Spores, Sparking Spores), *"Poisoned + Soaked"* (Mushrooming: Mushroom Rain, Damp Rot),
+  *"Soaked + Drowsy"* (Drown: Deep Water). A status you can already apply is lit; a missing one is
+  dim. Woven cards show their Crowned Reaction's three statuses.
+- **Warden cards** (cards whose Needs name a Warden: Soft Spores, Shiny Things, Heavy Stones, branch
+  and final-form unlocks…) show only the **family**, with its icon: *"Needs: Nestling family"*, never
+  "Magpie Perch".
+- **Card ingredients** (Nursery: Tender Care + Seedling Gift; Spore Cascade: Lingering Spores; Deepened
+  bases) are shown by name: cards aren't spoilers.
+- **Entwined cards whose ingredients are two Wardens without a status combo** (e.g. Starlit Aim:
+  Standing Stone + Lanternmoth) show the two **families**: *"Pebbling + Firefly Jar families"*.
+- The same rule applies to the other card lines that named Wardens: the **half-dreamed** line
+  (*"Needs Charged: a family that brings it may come at the next pick"* instead of naming the
+  family's Warden), the **Seed** "Grows with" line (the family, e.g. *"Grows with the Acorn line"*),
+  and the Codex's card list.
+- **Data:** `UpgradeData.shows_statuses` (e.g. `["soaked", "charged"]`) for combo cards; Warden
+  Needs are turned into families with `DreamState.family_of()`. The card's **effect text** keeps its
+  wording; with discovery unlocks you've already met any Warden a card's text names.
+
 - **Deepened cards** always need their base card.
 - **Entwined cards** need all their ingredients (and are then guaranteed once).
 - **Grove cards** also need their Grove unlock (outside the run).
@@ -713,7 +736,7 @@ prerequisite on these cards.
 | **Spore Cascade** | Driftspore + Lingering Spores | Sporeling |
 | **Guiding Light** | Lanternmoth + Cozy Corners | Lanternmoth |
 
-- The card UI shows the ingredients (small icons) so players can plan toward a combo.
+- The card UI shows what the ingredients add up to (statuses, or families; never an unowned Warden's name: see *How Needs are shown on a card*) so players can plan toward a combo.
 - An Entwined card shows up in the offer with a vine border and "Entwined" under its name.
 - **Re-run the Storm Grid simulation** (`tests/test_dreams.gd`) with this rule. If it overshoots
   33%, loosen "guaranteed" to "2× weight"; if it's still short, also make Entwined ingredients get
