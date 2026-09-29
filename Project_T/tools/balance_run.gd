@@ -19,8 +19,9 @@ extends SceneTree
 # (add --grove=all for a veteran profile: every Grove card and family; without it, final forms that
 # need the Memory Grove stay locked, as on a fresh profile).
 
-const FIRST_FIGHT := 61
-const LAST_FIGHT := 70
+var first_fight := 61  # --first=N
+var last_fight := 70  # --last=N
+var profile := "fresh"  # --profile=early|half|full (Meta's Grove presets; the game runs as the full game)
 const SPEED := 4.0
 const CALL_EARLY_DEW := 5  # Average Dew for calling a drift early (cap 10)
 const MAX_ATTACKERS := 16  # Past this the plan grows and nurtures instead of planting
@@ -52,6 +53,7 @@ var on_asleep := 0.0
 var spawned_health := 0.0
 var leaked_health := 0.0
 var leaked := 0
+var _window := [0.0, 0.0, 0]  # spawned_health, total, leaked at the last drift cleared (per-drift lines)
 var dispelled := 0
 var game_time := 0.0
 
@@ -60,12 +62,21 @@ func _initialize() -> void:
 
 func _run() -> void:
 	for arg in OS.get_cmdline_user_args():
+		if arg.begins_with("--first="):
+			first_fight = int(arg.get_slice("=", 1))
+		if arg.begins_with("--last="):
+			last_fight = int(arg.get_slice("=", 1))
+		if arg.begins_with("--profile="):
+			profile = arg.get_slice("=", 1)
 		if arg.begins_with("--seed="):
 			map_seed = int(arg.get_slice("=", 1))
 		if arg == "--grove=all":
 			grove_all = true
 	rng.seed = map_seed
 	MetaRun.force_all_families = grove_all  # Every family can come up in the picks
+	if profile != "fresh":
+		ProjectSettings.set_setting("game/demo", false)  # Meta applies only in the full game
+		MetaRun.load_preset(StringName(profile))  # A separate sim profile (the real one is untouched)
 	main = load("res://scenes/main.tscn").instantiate()
 	main.get_node("%MapGenerator").map_seed = map_seed
 	root.add_child(main)
@@ -87,7 +98,7 @@ func _run() -> void:
 
 	# --- Drifts 1-60 on paper, building at each rest ---
 	_spend()  # The opening: 60 Dew of Sprouts
-	for n in range(1, FIRST_FIGHT):
+	for n in range(1, first_fight):
 		director.drifts_started = n
 		director.drifts_cleared = n
 		_earn_drift(n)
@@ -109,14 +120,24 @@ func _run() -> void:
 	spawner.enemy_reached_goal.connect(func(e) -> void:
 		leaked += 1
 		leaked_health += e.health)
-	director.drifts_started = FIRST_FIGHT - 1
-	director.drifts_cleared = FIRST_FIGHT - 1
+	director.drift_cleared.connect(func(n, _b, _p) -> void:
+		print("  drift %d: health spawned %.0f, damage %.0f (x%.2f), leaks %d, leaves left %d" % [n, spawned_health - _window[0],
+			total - _window[1], (total - _window[1]) / maxf(spawned_health - _window[0], 1.0), leaked - _window[2], run_state.leaves])
+		_window = [spawned_health, total, leaked])
+	if OS.get_cmdline_user_args().has("--isolate"):
+		await _fight_isolated(spawner)
+		if profile != "fresh":
+			GrovePresets.unload()
+		quit(0)
+		return
+	director.drifts_started = first_fight - 1
+	director.drifts_cleared = first_fight - 1
 	Engine.time_scale = SPEED
 	var frames := 0
-	var rested_at := FIRST_FIGHT - 1
-	while director.drifts_cleared < LAST_FIGHT and frames < 60 * 60 * 40:
+	var rested_at := first_fight - 1
+	while director.drifts_cleared < last_fight and frames < 60 * 60 * 40:
 		paused = false
-		if director.is_resting() and director.drifts_started < LAST_FIGHT:
+		if director.is_resting() and director.drifts_started < last_fight:
 			if director.drifts_cleared > rested_at:
 				rested_at = director.drifts_cleared
 				Engine.time_scale = 1.0
@@ -129,6 +150,8 @@ func _run() -> void:
 		game_time += SPEED / 60.0
 	Engine.time_scale = 1.0
 	_report()
+	if profile != "fresh":
+		GrovePresets.unload()  # Back to the real profile path
 	quit(0)
 
 # --- Income --------------------------------------------------------------------------------------------
@@ -364,8 +387,8 @@ func _print_maze(title: String) -> void:
 	print("  Dreams (%d): %s" % [cards_taken.size(), ", ".join(cards_taken)])
 
 func _report() -> void:
-	var drifts := director.drifts_cleared - FIRST_FIGHT + 1
-	print("=== drifts %d-%d (map seed %d): %d cleared ===" % [FIRST_FIGHT, LAST_FIGHT, map_seed, drifts])
+	var drifts := director.drifts_cleared - first_fight + 1
+	print("=== drifts %d-%d (map seed %d): %d cleared ===" % [first_fight, last_fight, map_seed, drifts])
 	var rows := by_tower.keys()
 	rows.sort_custom(func(a, b) -> bool: return by_tower[a] > by_tower[b])
 	for name in rows.slice(0, 3):
@@ -379,3 +402,31 @@ func _report() -> void:
 # Wardens on the map from `base`'s family (its line).
 func _family_count(base: TowerData) -> int:
 	return _attackers().filter(func(t) -> bool: return t.tower_data.line == base.line).size()
+
+# --isolate: each drift first..last fought alone on the same board (drifts flow into each other in a
+# real block, so per-drift numbers there mix drifts). Starts drift d from a rest, waits until it has
+# arrived and the field is clear, and prints its own leaks, leaf cost and damage vs health.
+var _leaf_cost := 0
+
+func _fight_isolated(spawner) -> void:
+	director.set_auto_drift(false)
+	spawner.enemy_reached_goal.connect(func(e) -> void: _leaf_cost += e.get_leaf_cost())
+	print("=== isolated drifts %d-%d (map seed %d, %s) ===" % [first_fight, last_fight, map_seed, profile])
+	for d in range(first_fight, last_fight + 1):
+		var before := [spawned_health, total, leaked, _leaf_cost]
+		director.resting = true
+		director.drifts_started = d - 1
+		director.drifts_cleared = d - 1
+		director.start_next_block()
+		Engine.time_scale = SPEED
+		var frames := 0
+		await process_frame
+		while frames < 60 * 60 * 10 and (not director._arriving.is_empty() or not spawner.get_enemies().is_empty()):
+			paused = false
+			await process_frame
+			frames += 1
+		Engine.time_scale = 1.0
+		var hp: float = spawned_health - before[0]
+		print("  drift %d: health spawned %.0f, damage x%.2f of it, leaks %d, leaf cost %d, %.0f s" % [d, hp,
+			(total - before[1]) / maxf(hp, 1.0), leaked - before[2], _leaf_cost - before[3], frames * SPEED / 60.0])
+		await _close_real_offers()
