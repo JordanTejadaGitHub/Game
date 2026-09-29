@@ -107,6 +107,25 @@ func _ready() -> void:
 			get_tree().paused = false
 			get_tree().change_scene_to_file.call_deferred(TITLE_SCENE))
 		box.add_child(demo)
+		# Dev Grove (demo_scope.md): runs and the Memory Grove on a preset profile, never the real one.
+		var dev_row := HBoxContainer.new()
+		var dev_label := Label.new()
+		dev_label.text = "Dev Grove"
+		dev_label.custom_minimum_size = Vector2(120, 0)
+		dev_row.add_child(dev_label)
+		var dev := OptionButton.new()
+		for level in DevGrove.LEVELS:
+			dev.add_item(String(level).capitalize())
+		dev.selected = maxi(DevGrove.LEVELS.find(StringName(str(_settings.get(DevGrove.SETTING, "off")))), 0)
+		dev.tooltip_text = "Play runs and the Memory Grove as if that much of the tree were grown (a separate dev\nprofile; your real Seeds, unlocks and records are never touched; the full game while on).\nApplies at the title screen."
+		dev.focus_mode = Control.FOCUS_NONE
+		dev.item_selected.connect(func(index: int) -> void:
+			_set_value(DevGrove.SETTING, String(DevGrove.LEVELS[index]))
+			var title := get_tree().get_first_node_in_group(&"title_screen")
+			if title and get_tree().current_scene == title:
+				title.refresh())  # Mid-run it waits for the title, so the run keeps its profile
+		dev_row.add_child(dev)
+		box.add_child(dev_row)
 
 	var keys_title := Label.new()
 	keys_title.text = "Keys (click, then press a key)"

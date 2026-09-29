@@ -305,6 +305,7 @@ func _run() -> void:
 		"Dev Grove Full: the dev profile, the full game, a dev run")
 	_check(is_equal_approx(float(HeartwoodMemory.get_settings().ui_scale), 1.3), "settings still come from the real profile")
 	_check(DevGrove.tag() == "Dev Grove: Full", "the tag names the level")
+	_check(RunSaver.file_path == DevGrove.RUN_PATH, "dev runs save apart from the real run in progress")
 	main = await _new_run()
 	(main.get_node("%ResultsScreen") as ResultsScreen).bank_in_tests = true
 	_check(not (main.get_node("%MetaRun") as MetaRun).records, "a Dev Grove run records nothing")
@@ -330,8 +331,8 @@ func _run() -> void:
 	_check(HeartwoodMemory.load_data().loadout == ["morning_stores"], "another level resets the dev profile to its preset")
 	DevGrove.force = &"off"
 	DevGrove.apply()
-	_check(not DevGrove.is_active() and HeartwoodMemory.file_path == PROFILE_PATH and ResultsScreen.demo_override == -1,
-		"Dev Grove off: back to the real profile")
+	_check(not DevGrove.is_active() and HeartwoodMemory.file_path == PROFILE_PATH and ResultsScreen.demo_override == -1 and RunSaver.file_path == RunSaver.PATH,
+		"Dev Grove off: back to the real profile and run save")
 	_check(FileAccess.get_file_as_string(PROFILE_PATH) == real_text, "the real profile was never written")
 	DevGrove.force = &""
 	_delete(GrovePresets.PATH)
