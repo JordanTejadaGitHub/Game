@@ -306,6 +306,29 @@ func _run() -> void:
 	# Kindred: one quiet callout the first time in the run
 	_check(kin.kindred_shown, "the first Kindred of the run was called out")
 
+	# --- Kinships you can see in combat (2026-09-29) ---
+	var moth_look := moth.kin_look()
+	_check(moth_look.a > 0.0 and moth_look.is_equal_approx(Kinships.BRANCH_COLORS["sunpetal"]),
+		"borrowed looks: a bonded Lanternmoth's attacks carry its Sunpetal kin's colour")
+	var lone_moth := _plant("lanternmoth", Vector2(21, 1))
+	await process_frame
+	kin.refresh()
+	_check(lone_moth.kin_look().a == 0.0, "an unbonded Warden has no borrowed look")
+	var sun_pair: Dictionary = kin.get_pair(moth)
+	_check(kin._synced.has(sun_pair.key) and int(moth._anim_time * moth.tower_data.animation_fps) \
+		== int(made[&"sunspot"][0]._anim_time * made[&"sunspot"][0].tower_data.animation_fps) or moth.get_instance_id() < made[&"sunspot"][0].get_instance_id(),
+		"breathing together: the pair's idle animations were synced")
+	var beads := kin.get_parent().get_children().filter(func(n) -> bool: return n is Kinships.KinBead).size()
+	kin._resting = true
+	kin.trait_fired(moth, &"sunspot")
+	kin.trait_fired(moth, &"sunspot")
+	_check(kin.get_parent().get_children().filter(func(n) -> bool: return n is Kinships.KinBead).size() == beads + 1,
+		"the vine's light bead runs once per cooldown")
+	# Harmony at Old Kin: beams, a bloom and petals (the sheets exist; without them, the spark)
+	var fx_before := kin.get_parent().get_child_count()
+	kin._harmony_look(moth.global_position + Vector2(0, 64), sun_pair)
+	_check(kin.get_parent().get_child_count() > fx_before + 2, "an Old Kin Harmony strike shows beams, a bloom and petals")
+
 	# --- The demo has only its three ---
 	Kinships.force_full = false
 	if ResultsScreen.is_demo():

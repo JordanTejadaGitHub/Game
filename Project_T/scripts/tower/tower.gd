@@ -1078,6 +1078,7 @@ func hit(enemy: Node2D, soothe_multiplier: float = 1.0, is_area: bool = false, c
 		if enemy.has_method("strip_buff"):
 			enemy.strip_buff(self)
 		enemy.bonus_dew = maxi(enemy.bonus_dew, 1)
+		_kin_fired(&"flock_together")
 	if is_crit and _dream_state and _dream_state.has_method("get_crit_overflow_multiplier"):
 		crit_multiplier += _dream_state.get_crit_overflow_multiplier(get_raw_crit_chance(enemy))  # Full Moon
 	var non_crit := 1.0
@@ -1114,6 +1115,10 @@ func hit(enemy: Node2D, soothe_multiplier: float = 1.0, is_area: bool = false, c
 func kin_share(id: StringName, side: String) -> float:
 	return _kin.share(self, id, side) if is_instance_valid(_kin) else 0.0
 
+# Borrowed looks (2026-09-29): the colour this Warden's attacks carry while bonded (transparent if not).
+func kin_look() -> Color:
+	return _kin.look_for(self) if is_instance_valid(_kin) else Color(0, 0, 0, 0)
+
 func _kin_partner() -> Tower:
 	return _kin.get_partner(self) if is_instance_valid(_kin) else null
 
@@ -1127,11 +1132,13 @@ static func _kin_roll(share: float) -> bool:
 func kin_cloud_tick(enemy: Node2D, entered: bool) -> void:
 	if _kin_roll(kin_share(&"slumber_rot", "b")):
 		enemy.apply_status(EnemyStatuses.SPORED, 1, 0.0, get_damage() * SPORE_POTENCY, 0, tower_data.line, self)
+		_kin_fired(&"slumber_rot")
 	var fog := kin_share(&"rainfog", "b")
 	if entered and fog > 0.0 and is_instance_valid(enemy) and not enemy.is_cleansed:
 		var partner := _kin_partner()
 		if partner:
 			enemy.take_damage(partner.get_damage() * fog, partner.tower_data.line, true, false, partner, &"fog")
+			_kin_fired(&"rainfog")
 
 # Night Chimes A (Chime Stone line; status jobs, 2026-09-29): its pulses Catch full-Drowsy nightmares as if
 # a Dreamcatcher were there (statuses stop wearing off), until the next pulse. No damage bonus any more.
@@ -1332,8 +1339,10 @@ func apply_status_to(enemy: Node2D, soothe: float) -> void:
 		_apply_one_status(enemy, attack_data.extra_status, attack_data.extra_status_stacks, soothe)  # Lullaby Bell
 	if _kin_roll(kin_share(&"slumber_rot", "a")):
 		_apply_one_status(enemy, EnemyStatuses.DROWSY, 1, soothe)  # Slumber Rot: puffs add Drowsy
+		_kin_fired(&"slumber_rot")
 	if _kin_roll(kin_share(&"storm_beacon", "b")):
 		_apply_one_status(enemy, EnemyStatuses.STATIC, 1, soothe)  # Storm Beacon: shots add Static
+		_kin_fired(&"storm_beacon")
 	if attack_data.attack_kind == TowerData.AttackKind.TRAP and _kin_roll(kin_share(&"spore_nursery", "a")):
 		_apply_one_status(enemy, attack_data.applies_status, attack_data.status_stacks, soothe)  # Spore Nursery: rings apply double
 		_kin_fired(&"spore_nursery")
@@ -1439,6 +1448,7 @@ func projectile_landed(target: Node2D, where: Vector2) -> void:
 		var rainfog := kin_share(&"rainfog", "a")
 		if rainfog > 0.0 and is_instance_valid(_kin):
 			_kin.fog_patch(where, 2.0 * rainfog)  # Rainfog: the splash leaves a fog patch
+		_kin_fired(&"rainfog")
 	if attack_data.lob:
 		_lob_landed(where, splash)
 	if attack_data.impact_texture != null:  # Old Mountain's crush
@@ -1484,6 +1494,7 @@ func fire_at(target: Node2D) -> void:
 		# Sudden Bloom / Watchful Rest and a legacy attack's data ride the projectile to where it lands.
 		on_land = _land_as.bind(attack_data, _hit_boost)
 	var projectile := Projectile.new(target, attack_data, on_land)
+	projectile.trail = kin_look()
 	# Placed before it enters the tree: _ready() takes its home (swoops fly back to it) and a lob's arc
 	# length from where it starts. It's top_level, so position is world space.
 	projectile.position = global_position + tower_data.get_attack_origin()
@@ -1524,6 +1535,7 @@ func _update_ability(delta: float) -> void:
 			var snare := kin_share(&"snare", "a")
 			if snare > 0.0:
 				hold(enemy, 0.5 * snare)  # Snare: the pull ends in a hold
+				_kin_fired(&"snare")
 			if attack_data.pull_once:
 				enemy.set_meta(&"pulled_home", true)
 			var world := Reactions._world(self)
@@ -1536,6 +1548,7 @@ func _update_ability(delta: float) -> void:
 			var drag := kin_share(&"snare", "b")
 			if drag > 0.0 and is_instance_valid(enemy):
 				pull(enemy, 0.5 * drag)  # Snare: the hold drags it back
+				_kin_fired(&"snare")
 
 # Holds `enemy` for `seconds` (+ Patient Roots: +0.25 s, the Rootling line another +0.25 s), credited to
 # this Warden (SupportLog "held_seconds").
@@ -1659,6 +1672,13 @@ func pull(enemy: Node2D, tiles: float) -> void:
 		tiles += PATIENT_ROOTS_PULL
 	enemy.push_back(tiles * MAP_GRID.cell_size.x)
 	SupportLog.credit(self, &"tiles_pulled", tiles)
+	var look := kin_look()
+	if look.a > 0.0 and is_instance_valid(enemy):  # Borrowed looks: the pull ends in a small wrap in the kin's colour
+		var world := Reactions._world(self)
+		if world:
+			var wrap := Kinships.KinBurst.new(look, 0.4, 14.0)
+			world.add_child(wrap)
+			wrap.global_position = enemy.global_position
 
 func _push(enemy: Node2D) -> void:
 	if attack_data.push_back_tiles <= 0.0 or not is_instance_valid(enemy) or enemy.is_cleansed \
@@ -1712,6 +1732,7 @@ func _chain_strike(first: Node2D) -> void:
 	if attack_data.tier >= 4:
 		ascended_event.emit(self, first.global_position, hits.size())
 	var bolt := ChainBolt.new(points)
+	bolt.edge = kin_look()
 	add_child(bolt)
 
 # The unstruck creature closest to any creature already struck, within jump range (longer between
@@ -1736,6 +1757,7 @@ func _nearest_jump(struck: Array[Node2D]) -> Node2D:
 func _drop_cloud(target: Node2D) -> void:
 	var center: Vector2 = MAP_GRID.calculate_map_position(target.get_current_cell())
 	var cloud := PathCloud.new(self, center)
+	cloud.flecks = kin_look()
 	add_child(cloud)
 	cloud_formed.emit(self, center, attack_data.cloud_duration)
 
@@ -2292,6 +2314,7 @@ func _spread() -> void:
 		var blade := _kin_partner()
 		if devil > 0.0 and blade and is_instance_valid(others[i]):
 			blade.hit(others[i], devil, true)  # Dust Devil: each copy also deals one blade hit
+			_kin_fired(&"dust_devil")
 		points.append(source.global_position)
 		points.append(others[i].global_position)
 	for i in range(0, points.size(), 2):

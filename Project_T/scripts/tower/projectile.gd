@@ -9,6 +9,7 @@ class_name Projectile
 
 const RADIUS := 6.0
 const ANIMATION_FPS := 12.0
+const TRAIL_POINTS := 7
 
 var speed: float
 var color: Color
@@ -28,6 +29,8 @@ var _returning := false
 var _lob := false
 var _lob_height := 0.0
 var _lob_distance := 1.0
+var trail := Color(0, 0, 0, 0)  # Borrowed looks: a bonded Warden's shots trail its kin's colour
+var _trail: Array[Vector2] = []  # Recent world positions for the trail
 
 func _init(target: Node2D, data: TowerData, on_land: Callable) -> void:
 	_target = target
@@ -53,6 +56,10 @@ func is_returning() -> bool:
 
 func _process(delta: float) -> void:
 	var step := speed * delta
+	if trail.a > 0.0:
+		_trail.append(global_position + Vector2(0, -_lob_lift()))
+		if _trail.size() > TRAIL_POINTS:
+			_trail.pop_front()
 	if _returning:
 		if global_position.distance_to(_home) <= step:
 			queue_free()
@@ -89,6 +96,9 @@ func _lob_lift() -> float:
 
 func _draw() -> void:
 	var lift := _lob_lift()
+	for i in _trail.size():  # Borrowed looks: a fading trail in the kin's colour, oldest faintest
+		var t := float(i + 1) / (_trail.size() + 1)
+		draw_circle(to_local(_trail[i]), 1.5 + 2.0 * t, Color(trail, trail.a * 0.55 * t))
 	if _lob:
 		draw_circle(Vector2.ZERO, RADIUS * (1.0 - lift / (_lob_height * 2.0)), Color(0, 0, 0, 0.25))  # Its shadow
 	var at := Vector2(0, -lift)
