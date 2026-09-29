@@ -7,7 +7,7 @@
 [resource]
 script = ExtResource("1_tdata")
 display_name = "Wellspring"
-description = "Catches more: nightmares dispelled within 3 tiles drop +60% Dew for the Harvest. At every rest, +8% of your banked Dew (up to 60; all Wellsprings together up to 120)."
+description = "Catches more: nightmares dispelled within 3 tiles drop +60% Dew for the Harvest. At every rest, +8% of your banked Dew (up to 60; all Wellsprings together up to 120). Also +4 Dew each drift."
 cost = 0
 line = "acorn"
 tier = 3
@@ -18,6 +18,7 @@ attack_range = 3.0
 damage = 10
 attacks_per_second = 1.0
 crit_chance = 0.05
+dew_per_drift = 4
 rest_interest = 0.08
 catch_share = 0.6
 catch_radius = 3.0

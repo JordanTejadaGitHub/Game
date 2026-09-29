@@ -515,7 +515,6 @@ func get_max_rank() -> int:
 	return cap
 
 const UNDREAMED_MAX_RANK := 2
-const WATER_ON_DAMP := 0.20  # Water hits on a Damp nightmare, x Damp's strength
 
 func has_nurture_dream() -> bool:
 	return _dream_state == null or not _dream_state.has_method("count_taken_with_tag") \
@@ -1253,12 +1252,6 @@ func roll_crit(enemy: Node2D) -> bool:
 # Damage multiplier for this Warden against `enemy`: sniper distance bonus, favoured prey.
 func _damage_against(enemy: Node2D) -> float:
 	var multiplier := 1.0
-	# Status jobs (tower_design.md, 2026-09-29): water hits on a Damp nightmare deal +20% x Damp's strength.
-	# Enemy.take_damage applies the plain +20% (EnemyStatuses.DAMP_WATER_BONUS); this adds only what a
-	# stronger Damp gives on top (Soaked Through II: x1.5 = +30% in all).
-	if tower_data.line == "water" and is_instance_valid(enemy) and enemy.statuses.has(EnemyStatuses.DAMP):
-		var strength := maxf(enemy.statuses.potency(EnemyStatuses.DAMP), 1.0)
-		multiplier *= (1.0 + WATER_ON_DAMP * strength) / (1.0 + EnemyStatuses.DAMP_WATER_BONUS)
 	if attack_data.distance_bonus_per_cell > 0.0:
 		var cells := global_position.distance_to(enemy.global_position) / MAP_GRID.cell_size.x
 		multiplier += clampf((cells - attack_data.distance_bonus_from) * attack_data.distance_bonus_per_cell,
@@ -1359,7 +1352,7 @@ func _apply_one_status(enemy: Node2D, status: StringName, stacks: int, soothe: f
 	if status == EnemyStatuses.SPORED:
 		potency = soothe * SPORE_POTENCY
 	elif status == EnemyStatuses.DAMP:
-		potency = 1.0  # Damp's potency is its strength: it scales the water-hit bonus (WATER_ON_DAMP), not soothe
+		potency = 1.0  # Damp's potency is its strength: it scales the water-hit bonus in Enemy.take_damage, not soothe
 	var duration := attack_data.status_duration
 	var max_stacks := attack_data.status_max_stacks
 	if _dream_state:

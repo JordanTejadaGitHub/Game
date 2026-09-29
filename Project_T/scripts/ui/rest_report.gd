@@ -24,7 +24,8 @@ func _ready() -> void:
 	_label.mouse_filter = Control.MOUSE_FILTER_PASS  # Clicks reach the card (dismiss) too
 	add_child(_label)
 	visible = false
-	drift_director.rest_started.connect(func(block: int, _boss: bool, _bonus: int, _perfect: bool) -> void: show_report(block))
+	# Deferred: the Harvest pours on rest_started too, so its totals are in by then.
+	drift_director.rest_started.connect(func(block: int, _boss: bool, _bonus: int, _perfect: bool) -> void: show_report.call_deferred(block))
 	drift_director.rest_ended.connect(func(_block: int) -> void:
 		visible = false
 		unbound_block = 0)
@@ -56,10 +57,38 @@ func show_report(block: int) -> void:
 		text += kinship_text(0 if not combos.kin_names_block.is_empty() else combos.kin_formed_block,
 			combos.harmony_block, combos.whole_block)
 	text += _kin_hint()
+	text += support_text(self, "block")
 	if unbound_block > 0:
 		text += "\nUnbound: %d" % unbound_block
 	_label.text = StatusLinks.bbcode(text)
 	visible = true
+
+# Support and economy (screens_ui.md "Support and economy feedback", Tower Code's SupportLog): the
+# Harvest, the top supporter, what the walls and the control Wardens did. "block" for the rest
+# report, "run" for the results ("Best supporter"). "" when there's nothing.
+static func support_text(near: Node, period: String) -> String:
+	var support = SupportLog.find(near)
+	if support == null:
+		return ""
+	var lines: Array[String] = []
+	var totals: Dictionary = support.get_totals(period)
+	if period == "block" and int(totals.get("dew_paid", 0)) > 0:
+		lines.append("Harvest +%d Dew" % int(totals.dew_paid))
+	var top: Dictionary = support.get_top_support(period)
+	if not top.is_empty():
+		lines.append("%s: %s" % ["Top support" if period == "block" else "Best supporter", top.get("text", "")])
+	if period == "block" and int(totals.get("path_tiles", 0)) > 0:
+		lines.append("Your walls added %d path tiles" % int(totals.path_tiles))
+	var held := float(totals.get("held_seconds", 0.0))
+	var pulled := int(totals.get("tiles_pulled", 0))
+	if held >= 1.0 or pulled > 0:
+		var parts: Array[String] = []
+		if held >= 1.0:
+			parts.append("Held for %d s" % roundi(held))
+		if pulled > 0:
+			parts.append("pulled back %d tiles" % pulled)
+		lines.append(" · ".join(parts))
+	return "" if lines.is_empty() else "\n" + "\n".join(lines)
 
 # Kinships (screens_ui.md "Kinship feedback"): "Kinships formed: 2 · Harmony strikes: 84" and "The
 # Sporeling line is whole." ("" when there's nothing). Shared with the results screen (the run).

@@ -136,6 +136,16 @@ Income only for drifts 1–60 (assumed perfect blocks), then drifts 61–70 foug
 - **Wide** died at drift 20 in 4 of 5: the old **Wake** (10 Mourners, all spore-resistant) wiped single-family Sporeling boards. Fixed in `acts_1_2.md` plus a new rule: no act 1 drift over ~40% of its health resistant to one type (`enemy_design.md`).
 - **Sprout** is too strong **without its cards** (a seed with 0 Sprout cards reached drift 67 losing nothing) and ends in sudden wipes, not leaks. Decision pending with the user: the planned Sprout price rule.
 
+## Second batch (2026-09-29; Sprout +3 per 5, act 2 ramp ×1.55, acts 3–4 ×1.6)
+
+| Style | Survival (median, range) | vs Balanced | First leak | Leaves lost by 25 | Wins |
+|---|---|---|---|---|---|
+| Balanced | 45 (25–74) | — | 28 | 0 (per seed 0/5/9/0/0) | 0/5 |
+| Sprout, no Seedfall | 45 (39–66) | ×1.00 | 45 | 0 | 0/5 |
+| Sprout + Seedfall | 45 (39–46) | ×1.00 | 44 | 0 | 0/5 |
+
+**Every target passes.** Watch: Balanced's spread by map is wide (one seed dies at the drift 25 boss); **Seedfall adds no survival** (it only saves Dew), so as the door into the swarm build it's too weak: next test is Seedfall = flat 6, price never rises (target ≤1.5× Balanced; fall back to +3 per 15 if over).
+
 ## Later
 
 A **human baseline**: the same CSV written from real playtests (debug builds only), so the bot's
