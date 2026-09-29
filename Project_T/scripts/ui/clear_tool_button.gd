@@ -22,11 +22,7 @@ var clearer: ObstacleClearer
 var run_state: RunState
 var toast: Callable  # show_toast(text)
 var _confirm := HBoxContainer.new()
-var _glow := 0.0  # 1 → 0: the unlock bloom
-var _waiting := false  # Unlocked but not used yet this run: a soft pulsing glow (dream_design.md "Make the unlock obvious")
-var _pulse := 0.0
-var tip: PanelContainer  # The one-time "Clearing unlocked" tip above the tool (null when not shown)
-var _tip_time := 0.0
+var _glow := 0.0  # 1 → 0 after unlocking
 var _frame := -1  # The icon frame shown
 
 func setup(obstacle_clearer: ObstacleClearer, state: RunState, show_toast: Callable) -> void:
@@ -48,10 +44,7 @@ func _ready() -> void:
 	_update_icon()
 	tooltip_text = "Clear tool (0 / C): tend withered trees and move boulders."
 	pressed.connect(toggle_tool)
-	clearer.tool_changed.connect(func(active: bool) -> void:
-		set_pressed_no_signal(active)
-		if active:
-			_first_use())
+	clearer.tool_changed.connect(func(active: bool) -> void: set_pressed_no_signal(active))
 	clearer.tool_refused.connect(func() -> void: toast.call(LOCKED_TEXT))
 	clearer.lock_changed.connect(_on_lock_changed)
 	clearer.clear_pending.connect(_on_clear_pending)
@@ -84,57 +77,9 @@ func toggle_tool() -> void:
 	clearer.set_tool_active(not clearer.is_tool_active())
 	set_pressed_no_signal(clearer.is_tool_active())
 
-# Clearing unlocks (dream_design.md "Make the unlock obvious"): a bloom, then a soft glow until the
-# tool is first used, and once ever a tip pointing at it. The whisper ("Tend the forest…") is Whispers'.
 func _on_lock_changed(locked: bool) -> void:
-	_waiting = not locked
 	if not locked:
-		_glow = 1.0
-		_show_tip()
-	elif tip != null:
-		_close_tip()
-	queue_redraw()
-
-func _first_use() -> void:
-	_waiting = false
-	_close_tip()
-	queue_redraw()
-
-const TIP_KEY := "clear_tool"  # In profile tips_seen
-const TIP_TEXT := "Clearing unlocked: press C or tap the tool, then an obstacle."
-const TIP_TIME := 12.0  # Seconds (real time) before it goes by itself
-
-# Once ever (profile tips_seen; the real game writes it, tests don't).
-func _show_tip() -> void:
-	if tip != null or HeartwoodMemory.load_data().get("tips_seen", []).has(TIP_KEY):
-		return
-	tip = PanelContainer.new()
-	tip.name = "ClearTip"
-	tip.mouse_filter = Control.MOUSE_FILTER_STOP
-	tip.gui_input.connect(func(event: InputEvent) -> void:
-		if (event is InputEventMouseButton or event is InputEventScreenTouch) and event.pressed:
-			_close_tip())
-	var label := Label.new()
-	label.text = TIP_TEXT
-	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	label.custom_minimum_size = Vector2(240, 0)
-	label.add_theme_font_size_override("font_size", 15)
-	tip.add_child(label)
-	add_child(tip)
-	tip.reset_size()
-	tip.position = Vector2((size.x - tip.size.x) / 2.0, -tip.size.y - 14.0)  # Above the tool, pointing down
-	_tip_time = TIP_TIME
-	if clearer.owner != null and get_tree().current_scene == clearer.owner:
-		var profile := HeartwoodMemory.load_data()
-		var seen: Array = profile.get("tips_seen", [])
-		seen.append(TIP_KEY)
-		profile["tips_seen"] = seen
-		HeartwoodMemory.save_data(profile)
-
-func _close_tip() -> void:
-	if tip != null:
-		tip.queue_free()
-		tip = null
+		_glow = 1.0  # A short glow as the tool lights up
 	queue_redraw()
 
 func _on_clear_pending(cell: Vector2) -> void:
@@ -142,17 +87,9 @@ func _on_clear_pending(cell: Vector2) -> void:
 
 func _process(delta: float) -> void:
 	_update_icon()  # Cheap: only swaps the texture when the state changes
-	var real := delta / maxf(Engine.time_scale, 0.001)
 	if _glow > 0.0:
-		_glow = maxf(_glow - real / 1.5, 0.0)
+		_glow = maxf(_glow - delta / 1.5, 0.0)
 		queue_redraw()
-	if _waiting:
-		_pulse += real
-		queue_redraw()
-	if tip != null:
-		_tip_time -= real
-		if _tip_time <= 0.0:
-			_close_tip()
 	if _confirm.visible and not clearer.is_tool_active():
 		_confirm.visible = false
 
@@ -171,16 +108,8 @@ func _update_icon() -> void:
 func _draw() -> void:
 	# The icon and "Clear" are the button's own; the glow, hotkey and free-clears badge go on top
 	# (the sheet leaves every frame's top-right corner empty for the badge).
-	var centre := Vector2(size.x / 2.0, size.y / 2.0 - 6.0)
-	if _glow > 0.0:  # The bloom: a ring opening out and a bright core fading
-		var t := 1.0 - _glow
-		draw_circle(centre, 22.0, Color(SPROUT_COLOR, 0.45 * _glow))
-		draw_arc(centre, 22.0 + 26.0 * t, 0.0, TAU, 40, Color(SPROUT_COLOR, 0.8 * _glow), 3.0)
-	if _waiting:  # Until first used: a soft breathing glow
-		draw_circle(centre, 24.0, Color(SPROUT_COLOR, 0.12 + 0.1 * (0.5 + 0.5 * sin(_pulse * 3.0))))
-	if tip != null:  # The tip's pointer, down to the tool
-		var x := size.x / 2.0
-		draw_colored_polygon(PackedVector2Array([Vector2(x - 8, -14), Vector2(x + 8, -14), Vector2(x, -4)]), Color(UiStyle.FOG, 0.95))
+	if _glow > 0.0:
+		draw_circle(Vector2(size.x / 2.0, size.y / 2.0 - 6.0), 22.0, Color(SPROUT_COLOR, 0.35 * _glow))
 	var font := ThemeDB.fallback_font
 	_text(font, Vector2(3, 12), "0", 11, UiStyle.INK_DIM)
 	if not clearer.is_locked() and run_state.free_clears > 0:

@@ -209,23 +209,14 @@ func _run() -> void:
 	whispers._process(0.0)
 	_check(whispers._queue.has(&"dead_wood") and not whispers._queue.has(&"tend"), "a locked obstacle whispers Dead wood, not Tend")
 	dreams.clearing_open = true
-	var player_profile := HeartwoodMemory.file_path  # A fresh profile: the one-time tip must not be seen yet
-	HeartwoodMemory.file_path = "user://test_ui_tip_%d.json" % OS.get_process_id()
 	clearer.lock_changed.emit(false)
-	DirAccess.remove_absolute(ProjectSettings.globalize_path(HeartwoodMemory.file_path))
-	HeartwoodMemory.file_path = player_profile
 	_check(whispers._queue.has(&"tend"), "Tend comes once clearing opens")
 
 	# --- The Clear tool: locked until clearing opens, then a toggle for ObstacleClearer's tool mode ---
 	var tool: ClearToolButton = main.get_node("HUD/ClearTool")
 	tool._update_icon()
 	_check(tool._frame == ClearToolButton.FRAME_AVAILABLE, "the icon shows the tool available once clearing opens")
-	# Make the unlock obvious (dream_design.md): a bloom, a glow until first used, the tip once ever.
-	_check(tool._glow > 0.0 and tool._waiting, "unlocking blooms the tool and it keeps glowing")
-	_check(tool.tip != null and (tool.tip.get_child(0) as Label).text == ClearToolButton.TIP_TEXT
-		and tool.tip.position.y + tool.tip.size.y <= 0.0, "the one-time tip points at the tool from above")
 	tool.toggle_tool()
-	_check(not tool._waiting and tool.tip == null, "using the tool ends the glow and the tip")
 	tool._update_icon()
 	_check(clearer.is_tool_active() and tool.button_pressed and tool._frame == ClearToolButton.FRAME_ACTIVE,
 		"the Clear tool turns the clear mode on (active icon)")
