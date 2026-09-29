@@ -108,18 +108,18 @@ func _test_dreamcatcher() -> void:
 	drowsy.apply_status(EnemyStatuses.DROWSY, 5)
 	catcher._update_catch(1.0)
 	_check(drowsy.statuses.is_caught() and not plain.statuses.is_caught(), "full Drowsy in range is Caught")
-	_check(is_equal_approx(drowsy.statuses.get_damage_taken_multiplier(), 1.4), "Caught: +40% damage taken")
+	_check(is_equal_approx(drowsy.statuses.get_damage_taken_multiplier(), 1.25), "Caught: +25% damage taken")
 	# Straight onto the statuses: through apply_status, Marked + full Drowsy would set off Pinned (which
 	# uses up the Marked).
 	drowsy.statuses.apply(EnemyStatuses.MARKED)
-	_check(is_equal_approx(drowsy.statuses.get_damage_taken_multiplier(), 1.25 * 1.4), "Caught multiplies with Marked")
+	_check(is_equal_approx(drowsy.statuses.get_damage_taken_multiplier(), 1.25 * 1.25), "Caught multiplies with Marked")
 	await _clean()
 
 	var great := _plant("great_dreamcatcher", Vector2(5, 5))
 	var sleeper := _spawn(great.global_position + Vector2(CELL, 0))
 	sleeper.statuses.sleep_time = 2.0
 	great._update_catch(1.0)
-	_check(sleeper.statuses.is_caught() and is_equal_approx(sleeper.statuses.caught_bonus, 0.6), "Great: asleep is Caught at +60%")
+	_check(sleeper.statuses.is_caught() and is_equal_approx(sleeper.statuses.caught_bonus, 0.4), "Great: asleep is Caught at +40%")
 	_check(is_equal_approx(sleeper.statuses.sleep_time, 3.0), "sleep in its range lasts 1 s longer")
 	great._catch_tick = 0.0
 	great._update_catch(1.0)
