@@ -153,6 +153,8 @@ func _process(delta: float) -> void:
 			_boss_time[id] += delta
 	if _reminder_drift > 0 and not drift_director.is_resting():
 		_hide_reminder()  # The boss block started
+	elif _reminder_drift > 0:
+		_place_reminder()
 	if _pending_first:
 		# The run's first rest, once RunSaver has restored a save (a resumed run isn't at drift 0)
 		_pending_first = false
@@ -222,9 +224,17 @@ func _show_reminder(drift: int) -> void:
 	row.add_child(button)
 	_reminder.add_child(row)
 	_reminder.reset_size()
-	_reminder.position.x = (get_viewport_rect().size.x - _reminder.get_combined_minimum_size().x) / 2.0
 	_reminder.visible = true
 	_reminder_drift = drift
+	_place_reminder()
+
+# Centred under the drift banner, and under the "Coming this block" strip (same spot at rests).
+func _place_reminder() -> void:
+	var top := 96.0
+	for node in get_parent().get_children():
+		if node is ComingStrip and node.visible:
+			top = maxf(top, node.position.y + node.size.y + 16.0)  # Clear of its fog panel
+	_reminder.position = Vector2((get_viewport_rect().size.x - _reminder.size.x) / 2.0, top)
 
 func _hide_reminder() -> void:
 	if _reminder != null:
