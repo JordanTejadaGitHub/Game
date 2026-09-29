@@ -373,7 +373,14 @@ func _add_combos(data: TowerData) -> void:
 	var flow := HFlowContainer.new()
 	flow.custom_minimum_size = Vector2(SIDE_WIDTH - 30, 0)
 	_side_box.add_child(flow)
+	var seen := ComboFeedback.load_seen()
 	for combo in found.slice(0, 6):
+		if not CodexData.is_discovered(StringName(combo.id), seen):
+			var unknown := Label.new()  # Undiscovered: "???" only, no name, statuses or link
+			unknown.text = "???"
+			unknown.add_theme_color_override("font_color", UiStyle.INK_DIM)
+			flow.add_child(unknown)
+			continue
 		var link := LinkButton.new()
 		link.text = combo.name
 		link.focus_mode = Control.FOCUS_NONE

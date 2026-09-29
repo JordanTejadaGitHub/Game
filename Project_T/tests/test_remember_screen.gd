@@ -45,6 +45,14 @@ func _run() -> void:
 	screen._select(branch)
 	var texts: Array = screen._side_box.get_children().filter(func(c: Node) -> bool: return c is Label).map(func(l: Label) -> String: return l.text)
 	_check(texts.any(func(t: String) -> bool: return t.begins_with("Grow from Sporeling")), "the side panel shows the Dew to grow (%s)" % " | ".join(texts))
+	var combo_names: Array = []
+	for n in screen._side_box.find_children("*", "", true, false):
+		if n is LinkButton or (n is Label and n.get_parent() is HFlowContainer):
+			combo_names.append(n.text)
+	var seen := ComboFeedback.load_seen()
+	for combo in CodexData.combos():
+		if combo_names.has(combo.name):
+			_check(CodexData.is_discovered(StringName(combo.id), seen), "only discovered combos show their name (%s)" % combo.name)
 	_check(screen.unlock(branch) and dreams.is_unlocked(branch.get_id()) and dreams.dreamlight == 0,
 		"Unlock spends Dreamlight and unlocks the branch")
 	_check(screen.state_of(branch) == RememberScreen.State.UNLOCKED and not screen._canvas._bloom_edge.is_empty(),
