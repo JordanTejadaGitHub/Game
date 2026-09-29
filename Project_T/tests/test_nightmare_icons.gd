@@ -2,8 +2,9 @@ extends SceneTree
 
 # Headless test for resistances as icons and the boss dossier (screens_ui.md "Nightmare info" and
 # "Boss dossier", added 2026-09-28): the icon rows, the nightmare info's rows, map pips in context,
-# the immune flash, "Coming this block", the dossier at the rest opening a boss block (after the
-# Dream and the Omen), its content, reopening, the boss bar's 50% line and the boss record.
+# the immune flash, "Coming this block", the dossier at the start of each act (after the Dream, the
+# Omen and the introductions), the boss-block reminder, its content, reopening, the boss bar's 50% line
+# and the boss record.
 #   godot --headless --path . --script res://tests/test_nightmare_icons.gd --fixed-fps 60
 
 const PROFILE_PATH := "user://test_nightmare_icons_profile.json"
@@ -114,39 +115,25 @@ func _run() -> void:
 				listed += entry.count
 	_check(d10[0][2] >= listed, "counts include the extra nightmares (drift 10: %d listed, %d shown)" % [listed, d10[0][2]])
 
-	# --- The dossier at the rest opening block 5 (after drift 20) ----------------------------------
+	# --- The dossier at the start of each act (screens_ui.md, 2026-09-29) ---------------------------
+	# Act 1: it opens by itself at the run's first rest, after the new kinds' introductions (the test
+	# profile has met nothing).
 	var dossier := root.get_tree().get_first_node_in_group(BossDossier.GROUP) as BossDossier
-	_check(dossier != null and not dossier.visible, "the dossier exists, closed")
-	director.drifts_started = 20
-	director.rest_started.emit(4, false, 0, true)
-	for i in 40:
-		await process_frame
 	var omens := root.get_tree().get_first_node_in_group(OmenDirector.GROUP) as OmenDirector
-	if dreams.is_offering() or dreams.has_pending_offer():
-		_check(not dossier.visible, "the dossier waits for the Dream")
-		dreams.skip()
-		for i in 5:
-			await process_frame
-	if omens != null and omens.is_offering():
-		_check(not dossier.visible, "the dossier waits for the Omen")
-		omens.choose(null)
-	for i in 40:
-		await process_frame
-	# New nightmares are introduced before the dossier (the test profile has met nothing).
 	var intro := root.get_tree().get_first_node_in_group(NightmareIntro.GROUP) as NightmareIntro
-	_check(intro != null, "the introduction card exists")
-	if intro != null and NightmareIntro.enabled():
-		_check(intro.visible and not dossier.visible, "a new kind's introduction comes before the dossier")
-		var introduced := 0
-		while intro.visible and introduced < 10:
-			introduced += 1
-			_check(intro._content.get_child_count() > 1, "the card shows " + (intro.shown.display_name if intro.shown else "?"))
+	_check(dossier != null and intro != null, "the dossier and the introduction card exist")
+	main.get_node("%Whispers").set_enabled(false)  # Deterministic: no onboarding whispers to wait for
+	var intro_first := false
+	for i in 150:
+		await process_frame
+		if intro.visible:
+			intro_first = intro_first or not dossier.visible
 			intro.advance()
-		_check(introduced >= 1 and not intro.visible, "Next goes through each new kind (%d)" % introduced)
-		_check(intro.new_kinds_in_block(5).is_empty(), "once shown, never again (session)")
-		for i in 40:
-			await process_frame
-	_check(dossier.visible and dossier.shown_drift == 25, "the dossier shows itself last in the rest (drift %d)" % dossier.shown_drift)
+		if dossier.visible:
+			break
+	if NightmareIntro.enabled():
+		_check(intro_first, "a new kind's introduction comes before the dossier")
+	_check(dossier.visible and dossier.shown_drift == 25, "act 1: the dossier opens by itself at the first rest (drift %d)" % dossier.shown_drift)
 	var text := _text(dossier._content)
 	var health := NightmareCard.health_at(stag, 25, director)
 	_check(health == maxi(roundi(stag.health * director.get_health_scale(stag, 25)), 1) and text.contains(str(health)),
@@ -159,6 +146,25 @@ func _run() -> void:
 	BossDossier.open_for(root.get_tree())
 	_check(dossier.visible and dossier.shown_drift == 25, "reopens for the next boss")
 	dossier.close_dossier()
+
+	# The rest opening the boss block (after drift 20): only a reminder, with "Open dossier".
+	director.drifts_started = 20
+	director.rest_started.emit(4, false, 0, true)
+	await _settle(dossier, dreams, omens, intro, func() -> bool: return dossier.is_reminding())
+	_check(dossier.is_reminding() and not dossier.visible, "the boss-block rest only shows a reminder")
+	_check(_text(dossier._reminder).contains("arrives in 5 drifts"), "\"The Hollow Stag arrives in 5 drifts\" (%s)" % _text(dossier._reminder))
+	var open_button: Button = dossier._reminder.find_children("*", "Button", true, false)[0]
+	open_button.pressed.emit()
+	_check(dossier.visible and dossier.shown_drift == 25 and not dossier.is_reminding(), "Open dossier opens the card")
+	dossier.close_dossier()
+
+	# The act break (the boss rest after drift 25): the NEXT act's boss, last in the rest.
+	director.drifts_started = 25
+	director.rest_started.emit(5, true, 0, true)
+	await _settle(dossier, dreams, omens, intro, func() -> bool: return dossier.visible)
+	_check(dossier.visible and dossier.shown_drift == 50, "act 2 begins: the dossier shows the Mire Hag's drift (%d)" % dossier.shown_drift)
+	dossier.close_dossier()
+	director.drifts_started = 0
 
 	# --- The boss bar's 50% marker -----------------------------------------------------------------
 	var banner = main.get_node("%DriftBanner")
@@ -251,6 +257,26 @@ func _text(node: Node) -> String:
 		elif child is RichTextLabel:
 			parts.append(child.get_parsed_text())
 	return " | ".join(parts)
+
+# Runs frames through a rest's screens (Dream offer skipped, Omen passed, introductions advanced)
+# until `done` is true or ~4 s pass.
+func _settle(dossier: BossDossier, dreams: DreamState, omens: OmenDirector, intro: NightmareIntro, done: Callable) -> void:
+	var remember := dossier.drift_director.owner.get_node_or_null("HUD/RememberScreen") as RememberScreen
+	for i in 240:
+		await process_frame
+		if dreams.is_offering() or dreams.has_pending_offer():
+			_check(not dossier.visible, "the dossier waits for the Dream")
+			dreams.skip()
+		if omens != null and omens.is_offering():
+			_check(not dossier.visible, "the dossier waits for the Omen")
+			omens.choose(null)
+		if intro != null and intro.visible:
+			intro.advance()
+		if remember != null and remember.visible:
+			_check(not dossier.visible, "the dossier waits for Remember")
+			remember.close()
+		if done.call():
+			return
 
 func _check(condition: bool, label: String) -> void:
 	if not condition:
