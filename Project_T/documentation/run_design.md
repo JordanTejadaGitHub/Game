@@ -57,6 +57,45 @@ Drifts come in **blocks of 5**:
 - **Call early:** starting the next drift before the previous one has finished arriving gives
   +1 Dew per 2 seconds skipped (capped per drift).
 
+### Random drifts: every block rolls its nightmares (2026-09-29)
+
+User: *"Enemies should be random every block, to add versatility and not predictability."* Until
+now every run met the same drifts in the same order (`acts_1_2.md`, `acts_3_4.md`), so a learned run
+played the same way. From now on **the drifts are rolled per block**, while the difficulty curve,
+the teaching and the bosses stay fixed.
+
+**What stays fixed**
+- **Bosses** at 25, 50, 75, 100 (with their escorts) and the **drift budget**: each drift's total
+  nightmare health follows the existing curve (growth, act multipliers, extra nightmares, elites),
+  so difficulty doesn't change, only *what* the health is made of.
+- **Introductions:** each nightmare type still **first appears** at its scheduled drift (the tables'
+  "intro" drifts: Mourner at 16, Phantom, Night Hound, … and acts 3–4's), with its intro card. A type
+  enters the random pool **only after** it has been introduced in this run.
+- **Drift 1–5** stay hand-made (the first block teaches the basics).
+
+**What's rolled** (at the rest before each block, so the Coming strip shows the real roll):
+- Each drift draws a **template** from its act's list, weighted: *Mixed* (the common case), *Swarm*
+  (many small), *Heavy* (few tough), *Fast* (Hounds, Phantoms, …), *Procession* (followers), *Special*
+  (one trait-heavy type, like the old Wake or Vigil), *Elite hunt* (fewer, more elites, act 2+). The
+  old named drifts become templates.
+- The template picks its **types** from the unlocked pool and splits the drift's health budget among
+  them (each type's share at least 15%, so a drift mixes 2–4 types unless it's a Swarm or Special).
+- **At most one Special or Swarm per block**, and never two of the same template in a row.
+- **Fairness:** act 1 keeps the rule that no drift has more than ~40% of its health resistant to one
+  damage type the player can own; **acts 2–4: at most ~60%**, and a block never leans on the same
+  resisted type for more than two drifts. No block is all flyers or all through-walls.
+- **Omens** apply on top of the roll (e.g. Moth Night adds flyers to whatever was rolled).
+
+**Seeded and fair to compare:** the roll uses the run's seed (from the map seed), so a saved run
+resumes with the same drifts, and two players on the same seed meet the same nightmares.
+
+**Shown:** the Coming strip lists the rolled types and counts at every rest; the rest report can say
+*"This block: Swarm, Mixed, Heavy, Fast, Mixed"*. The boss dossier is unchanged.
+
+**Balance:** the simulation now also varies by seed on drifts, so batches use **10 seeds** instead of
+5. The hand-made tables in `acts_1_2.md` / `acts_3_4.md` remain the reference for budgets,
+introductions, templates and boss escorts.
+
 ### Time budget
 
 A drift's creatures arrive over ~20–40 seconds, but a creature takes 1.5–3 minutes to walk a
