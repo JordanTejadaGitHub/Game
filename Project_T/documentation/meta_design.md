@@ -124,7 +124,7 @@ Perks are **unlocked** in the tree, then **equipped** in a small **loadout** bef
 **Power budget:** 15 perks, carry at most 5. A full economy loadout (Morning Stores III, Rich Dew
 III, Rested Roots II, Sprout Bed, Clear Sight) makes the early game noticeably smoother, which is
 why **Blight Levels** exist: each level takes back some of that power. Caps: starting Dew +30,
-Dew gain +15%, leaves +3, rerolls 2.
+Dew gain +15%, leaves +3, rerolls 2 (3 with the "Dream of everything" milestone).
 
 ### Section 2: Families and family upgrades
 
@@ -230,6 +230,7 @@ A Memory fragment appears **every 3 nodes planted** (plus the milestone ones bel
 | Reach Blight Level 5 | Memory fragment |
 | Win at Blight Level 10 | Blossom cosmetic for all Wardens |
 | Discover every combo (Codex, `screens_ui.md`) | Memory fragment + a Codex cosmetic (gilded pages) |
+| **Dream of everything**: see every Dream card (Codex, normal runs only; id `all_dreams`) | **Starlit card backs** (cosmetic: Dream offer cards get a night-sky frame) + **+1 Dream reroll per run**, on top of Second Thoughts (user decision 2026-09-29) |
 
 Free unlocks that duplicate a Grove purchase refund its Seeds if already bought.
 
