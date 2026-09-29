@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "deep_water"
 display_name = "Deep Water"
-description = "Drown sleeps for 3 s; bosses are slowed 40% instead."
+description = "Drown lasts 4 s and its damage grows 50% faster; bosses are slowed 40% instead."
 rarity = 1
 kind = 3
 tags = Array[String](["water", "sleep", "reaction"])
