@@ -466,6 +466,12 @@ func _ascended_pose(pose: Dictionary) -> Dictionary:
 	for i in S * S:
 		if grid[i] != "." and outside[i] == 0 and _is_rock(pose, i % S, i / S):
 			grid[i] = "."
+	# The front rock's top edge left a tangle of lines across the body's lower right: smooth them out.
+	for ty in range(38, 42):
+		for tx in range(36, 47):
+			var i := ty * S + tx
+			if grid[i] == "o" and outside[i] == 0:
+				grid[i] = "b"
 	var result := {grid = grid, outside = outside}
 	_asc_pose_cache[key] = result
 	return result
@@ -541,11 +547,6 @@ func _golem(canvas: Image, st: Dictionary, fig: Dictionary, opts: Dictionary = {
 					col = fig.o
 					break
 			canvas.set_pixel(x, y, col)
-	# The right foot: a small upright rounded foot at the front, where the backside meets the ground.
-	var foot := _gnew(canvas)
-	_gell(foot, fo + Vector2(36.5, 44.5) * K + Vector2(0, dy), Vector2(2.4, 3.4) * K, fig.ramp)
-	_gstamp(canvas, foot, fig.o)
-	_gstamp(mask, foot)
 	# Detail: dither where the shading bands meet, a few speckles, and a rim light (the Ascended
 	# glow) on the silhouette's lit edge.
 	var rim: Color = fig.a.lerp(st.get("halo", Color.WHITE), 0.55).lightened(0.15)
