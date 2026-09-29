@@ -287,6 +287,13 @@ func _test_sim_policy() -> void:
 	var sprout_bot := DreamSimPolicy.new(dreams, DreamSimPolicy.Style.SPROUT)
 	_check(sprout_bot.pick_dream([_card("few_and_mighty"), _card("many_hands"), _card("seedfall")]) == _card("seedfall")
 		and sprout_bot.pick_family(["dewdrop", "sporeling"]) == &"sporeling", "Sprout style: its own cards on top, Sporeling first")
+	var mixed := DreamSimPolicy.new(dreams, DreamSimPolicy.Style.MIXED)
+	_check(mixed.score(_card("seedfall")) > balanced.score(_card("seedfall")) and mixed.score(_card("seedfall")) > 0.0,
+		"Mixed: Sprout cards count")
+	dreams.add_dreamlight(3 - dreams.dreamlight)
+	mixed.spend_dreamlight()
+	_check(not mixed.choices.any(func(c: String) -> bool: return c.contains("bramble") or c.contains("honeysuckle")),
+		"Mixed: Dreamlight on families only, never Thornwall growths (%s)" % ", ".join(mixed.choices))
 	_check(balanced.pick_omen([]) == null, "Omens: Clear Skies")
 	_clear()
 	_reset()
