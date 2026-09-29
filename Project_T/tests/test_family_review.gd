@@ -119,7 +119,7 @@ func _test_dreamcatcher() -> void:
 	var sleeper := _spawn(great.global_position + Vector2(CELL, 0))
 	sleeper.statuses.sleep_time = 2.0
 	great._update_catch(1.0)
-	_check(sleeper.statuses.is_caught() and is_equal_approx(sleeper.statuses.caught_bonus, 0.4), "Great: asleep is Caught at +40%")
+	_check(sleeper.statuses.is_caught() and is_equal_approx(sleeper.statuses.caught_bonus, 0.6), "Great: asleep is Caught at +60%")
 	_check(is_equal_approx(sleeper.statuses.sleep_time, 3.0), "sleep in its range lasts 1 s longer")
 	great._catch_tick = 0.0
 	great._update_catch(1.0)
