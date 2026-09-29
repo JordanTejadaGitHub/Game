@@ -26,7 +26,7 @@ func _init(tower: Tower, at_cell: Vector2) -> void:
 	cell = at_cell
 	_lifetime = _data.trap_lifetime
 	top_level = true
-	z_index = 1  # Under the nightmares, over the path
+	z_index = -1  # On the path (after the ground and path layers), under the y-sorted nightmares
 	position = Tower.MAP_GRID.calculate_map_position(at_cell)
 
 func is_spent() -> bool:

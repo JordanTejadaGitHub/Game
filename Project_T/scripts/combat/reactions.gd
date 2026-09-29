@@ -458,7 +458,7 @@ static func _mushrooming(enemy: Node2D, source: Node) -> void:
 	s.mushroom_time = MUSHROOM_TIME
 	var cell: Vector2 = enemy.get_current_cell()
 	var dreams := _dreams(enemy)
-	var ground_parent := enemy.get_parent().get_parent()
+	var ground_parent := _world(enemy)  # Ground effects: in the world at z -1 (under the y-sorted map)
 	if id == &"fairy_circle":
 		# Mushroom rings on the path tiles among the 8 around it, instead of the one cloud.
 		var ring_of_rings := dreams != null and dreams.has_rule(&"ring_of_rings")
@@ -476,7 +476,6 @@ static func _mushrooming(enemy: Node2D, source: Node) -> void:
 		rings.source = spore_source
 		rings.chain = chain
 		ground_parent.add_child(rings)
-		ground_parent.move_child(rings, enemy.get_parent().get_index())
 		return
 	if id == &"nightbloom":
 		var level := 1 if dreams and dreams.has_rule(&"endless_night") else 0
@@ -484,7 +483,6 @@ static func _mushrooming(enemy: Node2D, source: Node) -> void:
 			Tower.MAP_GRID.calculate_map_position(cell),
 			(MUSHROOM_CLOUD_RADIUS * NIGHTBLOOM_WIDTH[level] + _storm_front(enemy)) * CELL)
 		ground_parent.add_child(bloom)
-		ground_parent.move_child(bloom, enemy.get_parent().get_index())
 	var wide := 1.0
 	var time := MUSHROOM_CLOUD_TIME
 	if id == &"nightbloom" and dreams and dreams.has_rule(&"endless_night"):
@@ -497,12 +495,9 @@ static func _mushrooming(enemy: Node2D, source: Node) -> void:
 		radius = maxf(radius, MUSHROOM_RAIN_RADIUS * CELL)
 	var cloud := ReactionCloud.new(Tower.MAP_GRID.calculate_map_position(cell), radius, time, s.potency(SPORED),
 		s.spore_line(), spore_source, chain)
-	# In the world just before the nightmares' container, so it draws on the ground under them (the
-	# container's children are all nightmares; nothing else may go in there).
-	var container := enemy.get_parent()
-	var world := container.get_parent()
-	world.add_child(cloud)
-	world.move_child(cloud, container.get_index())
+	# In the world at z -1 (ReactionCloud), so it draws on the ground under the y-sorted map (never in the
+	# nightmares' container: its children are all nightmares).
+	_world(enemy).add_child(cloud)
 
 # Damp + full Drowsy: falls asleep for 2 s, once per nightmare (bosses and nightmares that can't be
 # held are slowed instead). Uses up the Drowsy.
@@ -527,9 +522,7 @@ static func _drown(enemy: Node2D, source: Node) -> void:
 		var cells: Array[Vector2] = [enemy.get_current_cell()]
 		var pool := CrownedGround.new(CrownedGround.Kind.STILL_POOL, cells, STILL_POOL_TIME[deep_still])
 		pool.sleep_seconds = STILL_POOL_SLEEP[deep_still]
-		var container := enemy.get_parent()
-		container.get_parent().add_child(pool)
-		container.get_parent().move_child(pool, container.get_index())
+		_world(enemy).add_child(pool)  # z -1: on the ground, under the y-sorted map
 	var deep := 1 if level > 0 else 0
 	if s.is_boss or cant_be_held(enemy):
 		s.slow_time = DROWN_SLEEP[0]
@@ -602,9 +595,7 @@ static func echo(id: StringName, spot: Vector2, share: float, echo_tower: Tower,
 		var first: Node2D = nearby[0]
 		var cloud := ReactionCloud.new(spot, MUSHROOM_CLOUD_RADIUS * CELL, MUSHROOM_CLOUD_TIME * share,
 			first.statuses.potency(SPORED), first.statuses.spore_line(), applier, chain)
-		var container := first.get_parent()
-		container.get_parent().add_child(cloud)
-		container.get_parent().move_child(cloud, container.get_index())
+		_world(first).add_child(cloud)  # z -1: on the ground, under the y-sorted map
 	if as_chain_link and not nearby.is_empty() and tracker:
 		var link: Node2D = nearby[0]
 		link.statuses.mark_chain(chain + 1, [echo_tower], CHAIN_WINDOW)

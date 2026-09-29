@@ -1306,10 +1306,8 @@ func _lob_landed(where: Vector2, splash: float) -> void:
 	if not cells.is_empty():
 		var rubble := RubblePatch.new(cells, attack_data.rubble_slow * get_slow_multiplier(), attack_data.rubble_time)
 		var world := Reactions._world(self)
-		var any_nightmare := get_tree().get_first_node_in_group(Tower.ENEMY_GROUP)
+		rubble.z_index = -1  # On the ground: after the ground and path layers, under the y-sorted map
 		world.add_child(rubble)
-		if any_nightmare:  # On the ground: just before the nightmares' container, so it draws under them
-			world.move_child(rubble, any_nightmare.get_parent().get_index())
 
 func fire_at(target: Node2D) -> void:
 	var on_land := projectile_landed
