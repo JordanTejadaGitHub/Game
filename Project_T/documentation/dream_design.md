@@ -253,7 +253,10 @@ the profile like the Codex). The forest dreams of what it has seen.
   chat should rebalance `meta_design.md`'s node list.
 - **Half-dreamed cards** (see *Adapt, don't get handed*) still need their Reaction discovered first.
   So in a player's first runs they won't tempt toward a combo they've never seen; the Codex's greyed
-  entries do that job instead.
+  entries do that job instead. **They skip the Warden gate** (ruling 2026-09-29): the Reaction is the
+  discovery that matters, and their Needs line shows statuses, not Wardens. Otherwise Conductive
+  Soil would stay hidden for a player who found Thunderclap with a plain Firefly Jar but never grew
+  a Stormcap, which defeats a card meant to tempt toward the other family.
 - **Not covered** (stay as they are): generic cards, stat cards, Legendaries (they start builds and
   need no discovery), clearing and Nurture cards (their openers already read the run).
 - **Demo:** nothing is saved, so discoveries count **for the current run only**. **Dev modes** (Test
