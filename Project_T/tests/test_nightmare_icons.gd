@@ -173,6 +173,35 @@ func _run() -> void:
 	banner._boss.queue_free()
 	boss.queue_free()
 
+	# Click / tap a nightmare: its centred card with live state; a boss: the dossier; a never-seen
+	# kind spawning mid-block opens its card too.
+	if intro != null:
+		var click_spawner = main.get_node("%EnemyContainer")
+		var clicked: Node2D = click_spawner.spawn_enemy(load("res://resource/enemy/bark_beetle.tres"))
+		clicked.set_process(false)
+		await process_frame
+		var at: Vector2 = main.get_viewport().get_canvas_transform() * clicked.global_position
+		for pressed in [true, false]:
+			var click := InputEventMouseButton.new()
+			click.button_index = MOUSE_BUTTON_LEFT
+			click.pressed = pressed
+			click.position = at
+			intro._unhandled_input(click)
+		_check(intro.visible and intro.shown == clicked.enemy_data and intro._live_label != null
+			and intro._live_label.text.begins_with("Health"), "clicking a nightmare opens its card with live health")
+		intro.close()
+		clicked.queue_free()
+		var kind := NightmareIntro.kind_of(load("res://resource/enemy/puffcaplet.tres"))
+		NightmareIntro.session_seen.erase(kind)
+		intro._met.erase(kind)
+		var sob: Node2D = click_spawner.spawn_enemy(load("res://resource/enemy/puffcaplet.tres"))
+		sob.set_process(false)
+		await process_frame
+		await process_frame
+		_check(not NightmareIntro.enabled() or (intro.visible and intro.shown.display_name == "Sob"),
+			"a never-seen kind appearing mid-block opens its centred card")
+		intro.close()
+		sob.queue_free()
 	# --- Record ----------------------------------------------------------------------------------
 	BossDossier.record_dispel(stag, 65.0)
 	BossDossier.record_dispel(stag, 80.0)
