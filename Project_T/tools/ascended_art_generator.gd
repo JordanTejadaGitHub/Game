@@ -541,6 +541,11 @@ func _golem(canvas: Image, st: Dictionary, fig: Dictionary, opts: Dictionary = {
 					col = fig.o
 					break
 			canvas.set_pixel(x, y, col)
+	# The right foot: a small upright rounded foot at the front, where the backside meets the ground.
+	var foot := _gnew(canvas)
+	_gell(foot, fo + Vector2(36.5, 44.5) * K + Vector2(0, dy), Vector2(2.4, 3.4) * K, fig.ramp)
+	_gstamp(canvas, foot, fig.o)
+	_gstamp(mask, foot)
 	# Detail: dither where the shading bands meet, a few speckles, and a rim light (the Ascended
 	# glow) on the silhouette's lit edge.
 	var rim: Color = fig.a.lerp(st.get("halo", Color.WHITE), 0.55).lightened(0.15)
