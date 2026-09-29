@@ -8,7 +8,7 @@
 [resource]
 script = ExtResource("1_tdata")
 display_name = "Morning Fog"
-description = "A wide fog on the path: nightmares inside are Soaked, 15% slower and grow Drowsy every second, and Poisoned ticks harder."
+description = "A wide fog on the path: nightmares inside are Soaked (it lingers 3 s after they leave), and Poisoned ticks harder inside."
 cost = 0
 line = "water"
 tier = 3
@@ -23,8 +23,7 @@ applies_status = &"damp"
 cloud_radius = 1.25
 cloud_duration = 5.0
 cloud_fog = true
-cloud_slow = 0.15
-cloud_drowsy_per_second = 1.0
+status_duration = 3.0
 potency = 1.15
 texture = ExtResource("2_tex")
 frame_count = 8

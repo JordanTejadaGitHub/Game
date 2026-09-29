@@ -202,6 +202,10 @@ const ASCENDED_JSON := "res://assets/towers/ascended/ascended.json"  # 128×128 
 @export var freeze_duration: float = 0.0
 @export var freeze_needs: StringName = &"damp"
 @export var freeze_needs_stacks: int = 1  # Hoarfrost: freezes at 2 Soaked
+# Rootling (status jobs, 2026-09-29): every `pulse_hold_every`-th pulse Holds the nightmare furthest along
+# in range for `pulse_hold_time` s.
+@export var pulse_hold_every: int = 0
+@export var pulse_hold_time: float = 0.0
 @export var freeze_cooldown: float = 4.0
 
 @export_group("Trap")

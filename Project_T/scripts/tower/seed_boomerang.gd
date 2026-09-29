@@ -10,7 +10,6 @@ class_name SeedBoomerang
 const SPEED := 420.0  # Pixels per second
 const HIT_RADIUS := 26.0  # Pixels either side of the line
 const BACKSPIN_CRIT := 0.25
-const KNOCKBACK_TILES := 0.25
 const ANIMATION_FPS := 14.0
 
 var _tower: Tower
@@ -21,7 +20,6 @@ var _leg := 0  # Heading toward _points[_leg + 1] on the way out, back down the 
 var _returning := false
 var _damage_multiplier := 1.0
 var _hit_this_pass := {}
-var _knocked := {}
 var _carried: Array = []  # Statuses picked up from the first nightmare hit
 var _hit_anything := false
 var _anim := 0.0
@@ -127,7 +125,9 @@ func _hit_along(from: Vector2, to: Vector2) -> void:
 		if _returning and dreams and dreams.has_rule(&"backspin") \
 				and randf() < _tower.get_crit_chance(enemy) + BACKSPIN_CRIT:
 			crit = Tower.CRIT
-		_tower.run_as(_data, _boost, func() -> void: _tower.hit(enemy, _damage_multiplier, false, crit))
+		# Heavy Seed (card): the return pass hits for double (status jobs review: no knockback any more).
+		var pass_multiplier := _damage_multiplier * (2.0 if _returning and dreams and dreams.has_rule(&"heavy_seed") else 1.0)
+		_tower.run_as(_data, _boost, func() -> void: _tower.hit(enemy, pass_multiplier, false, crit))
 		if not _storm.is_empty() and not _stormed.has(id) and is_instance_valid(enemy) and not enemy.is_cleansed:
 			_stormed[id] = true
 			Reactions.carry(_storm.id, enemy, _tower, _storm.applier if is_instance_valid(_storm.applier) else null)
@@ -135,9 +135,6 @@ func _hit_along(from: Vector2, to: Vector2) -> void:
 			continue
 		if dreams and dreams.has_rule(&"windborne_rain"):
 			enemy.apply_status(EnemyStatuses.DAMP, 1, 0.0, 1.0, 0, "water", _tower)
-		if dreams and dreams.has_rule(&"heavy_seed") and not _knocked.has(id):
-			_knocked[id] = true
-			enemy.push_back(KNOCKBACK_TILES * Tower.MAP_GRID.cell_size.x)
 
 func _draw() -> void:
 	var texture: Texture2D = _data.projectile_texture if is_instance_valid(_tower) else null

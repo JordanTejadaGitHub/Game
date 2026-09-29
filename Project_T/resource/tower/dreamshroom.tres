@@ -8,7 +8,7 @@
 [resource]
 script = ExtResource("1_tdata")
 display_name = "Dreamshroom"
-description = "A bigger sleepy cloud that adds 2 Drowsy per tick; once its Drowsy stacks are full, a nightmare is Asleep for 1.5 s (once)."
+description = "A bigger sleepy cloud that adds 2 Drowsy per tick; once its Drowsy stacks are full, a nightmare is Asleep for 3 s (once)."
 cost = 0
 texture = ExtResource("2_tex")
 frame_count = 8
@@ -24,7 +24,7 @@ applies_status = &"drowsy"
 status_stacks = 2
 cloud_radius = 1.0
 cloud_duration = 4.0
-sleep_at_max_drowsy = 1.5
+sleep_at_max_drowsy = 3.0
 projectile_color = Color(0.7, 0.55, 1, 1)
 attack_texture = ExtResource("4_atk")
 attack_frame_count = 6

@@ -477,6 +477,7 @@ func get_max_rank() -> int:
 	return cap
 
 const UNDREAMED_MAX_RANK := 2
+const WATER_ON_DAMP := 0.20  # Water hits on a Damp nightmare, x Damp's strength
 
 func has_nurture_dream() -> bool:
 	return _dream_state == null or not _dream_state.has_method("count_taken_with_tag") \
@@ -888,6 +889,8 @@ func _release_attack() -> void:
 					statics += 1
 			if statics > 0 and attack_data.tier >= 4:
 				statics_set_off.emit(self, global_position, statics)  # The Great Bell's toll
+			if attack_data.pulse_hold_every > 0 and _attack_count % attack_data.pulse_hold_every == 0:
+				_pulse_hold(in_range)
 		TowerData.AttackKind.CHAIN:
 			var target := find_target()
 			if target != null:
@@ -1129,6 +1132,10 @@ func roll_crit(enemy: Node2D) -> bool:
 # Damage multiplier for this Warden against `enemy`: sniper distance bonus, favoured prey.
 func _damage_against(enemy: Node2D) -> float:
 	var multiplier := 1.0
+	# Status jobs (tower_design.md, 2026-09-29): Damp no longer slows; water (Dewdrop family) hits on a
+	# Damp nightmare deal +20% x Damp's strength (Soaked Through II: x1.5 = +30%).
+	if tower_data.line == "water" and is_instance_valid(enemy) and enemy.statuses.has(EnemyStatuses.DAMP):
+		multiplier *= 1.0 + WATER_ON_DAMP * maxf(enemy.statuses.potency(EnemyStatuses.DAMP), 1.0)
 	if attack_data.distance_bonus_per_cell > 0.0:
 		var cells := global_position.distance_to(enemy.global_position) / MAP_GRID.cell_size.x
 		multiplier += clampf((cells - attack_data.distance_bonus_from) * attack_data.distance_bonus_per_cell,
@@ -1232,7 +1239,7 @@ func _apply_one_status(enemy: Node2D, status: StringName, stacks: int, soothe: f
 	if status == EnemyStatuses.SPORED:
 		potency = soothe * SPORE_POTENCY
 	elif status == EnemyStatuses.DAMP:
-		potency = 1.0  # Damp's potency is its slow strength, not soothe
+		potency = 1.0  # Damp's potency is its strength: it scales the water-hit bonus (WATER_ON_DAMP), not soothe
 	var duration := attack_data.status_duration
 	var max_stacks := attack_data.status_max_stacks
 	if _dream_state:
@@ -2083,8 +2090,18 @@ func _beam_data() -> TowerData:
 func _is_underdog() -> bool:
 	return _dream_state != null and _dream_state.has_method("is_underdog") and _dream_state.is_underdog(self)
 
-# Heavy Air (card, rule heavy_air): slows that aren't statuses (Morning Fog's cloud, Rockslide's rubble)
-# are 20% stronger too; Soaked / Drowsy get it in DreamState.get_status_strength_multiplier.
+# Rootling: every pulse_hold_every-th pulse Holds the nightmare furthest along (not ones that can't be held).
+func _pulse_hold(in_range: Array) -> void:
+	var furthest: Node2D = null
+	for enemy in in_range:
+		if is_instance_valid(enemy) and not enemy.is_cleansed and not Reactions.cant_be_held(enemy) \
+				and (furthest == null or enemy.get_remaining_distance() < furthest.get_remaining_distance()):
+			furthest = enemy
+	if furthest:
+		furthest.apply_status(EnemyStatuses.HELD, 1, attack_data.pulse_hold_time, 0.0, 0, tower_data.line, self)
+
+# Heavy Air (card, rule heavy_air): slows that aren't statuses (Rockslide's rubble, Drown's pull-under)
+# are 20% stronger too; Drowsy gets it in DreamState.get_status_strength_multiplier (fog no longer slows).
 func get_slow_multiplier() -> float:
 	return 1.0 + DreamState.HEAVY_AIR_BONUS if _rule_stacks(&"heavy_air") > 0 else 1.0
 
@@ -2381,14 +2398,15 @@ static func draw_placeholder(canvas: CanvasItem, color: Color) -> void:
 # a frame. One DreamEffects.rows() pass now gives the damage / speed / range bonuses and the badge cards
 # together; it's dropped when a card is taken, the maze changes or the Warden grows or ranks up, and
 # redone every DREAM_CACHE_TIME for cards that change with the field (staggered across Wardens).
-const DREAM_CACHE_TIME := 3.0
+const DREAM_CACHE_TIME := 1.0  # Only for cards that follow the live field (Crowded Path); the board version covers the rest
+var _dream_cache_board := -1
 var _dream_cache := {}
 var _dream_cache_left := 0.0
 
 func _dream_bonus(key: StringName) -> float:
 	if _dream_state == null:
 		return 1.0 if key == &"soothe" else 0.0
-	if _dream_cache.is_empty():
+	if _dream_cache.is_empty() or ("board_version" in _dream_state and _dream_state.board_version != _dream_cache_board):
 		_refresh_dream_rows()
 	return _dream_cache.get(key, 1.0 if key == &"soothe" else 0.0)
 
@@ -2402,7 +2420,11 @@ func _refresh_dream_rows() -> void:
 	var speed := 0.0
 	var reach := 0.0
 	var cards := []
-	for row in _dream_state.effects().rows(DreamEffects.spot_for(self)):
+	# Roguelite's rows_cached: one Board per DreamState.board_version, live-field cards recomputed.
+	var rows: Array = _dream_state.effects().rows_cached(self) if _dream_state.effects().has_method("rows_cached") \
+		else _dream_state.effects().rows(DreamEffects.spot_for(self))
+	_dream_cache_board = _dream_state.board_version if "board_version" in _dream_state else -1
+	for row in rows:
 		if not row.active:
 			continue
 		if not row.plain:
@@ -2411,7 +2433,9 @@ func _refresh_dream_rows() -> void:
 			reach += row.get("range", 0.0)
 		if row.get("positional", false):
 			cards.append(row)
-	_dream_cache = {&"soothe": 1.0 + _dream_state._sum_stat(tower_data, "soothe_bonus") + damage,
+	var stat: float = _dream_state.get_stat_bonus(tower_data, "soothe_bonus") if _dream_state.has_method("get_stat_bonus") \
+		else _dream_state._sum_stat(tower_data, "soothe_bonus")
+	_dream_cache = {&"soothe": 1.0 + stat + damage,
 		&"speed": speed, &"range": reach}
 	if cards.size() != _badge_cards.size():
 		queue_redraw()

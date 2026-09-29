@@ -9,7 +9,7 @@
 [resource]
 script = ExtResource("1_tdata")
 display_name = "Great Dreamcatcher"
-description = "Caught nightmares take 60% more damage; sleep in its range lasts 1 s longer, and Caught nightmares leave Dreamlight shards."
+description = "A wider net: Caught nightmares' statuses stop wearing off and tick 25% harder; sleep in its range lasts 1 s longer, and Caught nightmares leave Dreamlight shards."
 cost = 0
 texture = ExtResource("2_tex")
 frame_count = 8
@@ -17,7 +17,7 @@ line = "song"
 tier = 3
 buildable_directly = false
 evolve_cost = 200
-attack_range = 3.0
+attack_range = 3.5
 damage = 24
 attacks_per_second = 1.0
 projectile_speed = 440
