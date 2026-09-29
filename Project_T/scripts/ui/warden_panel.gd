@@ -60,11 +60,11 @@ func _ready() -> void:
 		_confirm_unlock = null
 		_confirm_eldest = false
 		_refresh())
-	run_state.dew_changed.connect(_refresh.unbind(1))
+	run_state.dew_changed.connect(_on_dew_changed.unbind(1))
 	dream_state.unlocks_changed.connect(_refresh)
 	dream_state.card_taken.connect(_refresh.unbind(1))
 	if dream_state.has_signal("dreamlight_changed"):
-		dream_state.dreamlight_changed.connect(_refresh.unbind(1))
+		dream_state.dreamlight_changed.connect(_refresh_unless_hovered.unbind(1))  # Shards arrive mid-drift
 	drift_director.build_phase_changed.connect(_refresh.unbind(1))
 
 func _show(tower: Tower) -> void:
@@ -194,6 +194,7 @@ func _refresh() -> void:
 				button.text += " (%d + %d for rank %s)" % [grow.base, grow.ranks, Tower.rank_name(_tower.rank)]
 			button.tooltip_text = IconInfo.format(next.description)  # {spored}-style tokens as words
 			button.disabled = not run_state.can_afford(cost)
+			button.set_meta(&"cost", cost)  # Affordability updates in place on Dew changes
 			var awake := tower_placer.ascended_blocker(next)
 			if awake != "":
 				button.text = "Grow into %s · %s" % [next.display_name, awake]  # One per family
@@ -214,6 +215,7 @@ func _refresh() -> void:
 				Tower.FOCUS_NAMES[which], Tower.FOCUS_TEXT[which], _price(cost)])
 			button.tooltip_text = "The usual rank gains, plus this Focus at ranks III, IV and V. Can't be changed later."
 			button.disabled = not run_state.can_afford(cost)
+			button.set_meta(&"cost", cost)  # Affordability updates in place on Dew changes
 			button.pressed.connect(func() -> void:
 				if tower_placer.nurture(_tower, which):
 					_refresh())
@@ -225,6 +227,7 @@ func _refresh() -> void:
 			_add_button("Make this the Eldest? Only one Warden can grow past rank V").disabled = true
 			var yes := _add_button("Yes: make it the Eldest · rank %s · %s" % [Tower.rank_name(_tower.rank + 1), _price(cost)])
 			yes.disabled = not run_state.can_afford(cost)
+			yes.set_meta(&"cost", cost)
 			yes.pressed.connect(func() -> void:
 				_confirm_eldest = false
 				if dream_state.make_eldest(_tower):
@@ -238,6 +241,7 @@ func _refresh() -> void:
 			nurture.tooltip_text = "+10%% damage, +4%% attack speed, +0.1 range%s. Kept when it grows." % (
 				", and %s" % Tower.FOCUS_TEXT[_tower.focus] if _tower.focus != Tower.Focus.NONE else "")
 			nurture.disabled = not run_state.can_afford(cost)
+			nurture.set_meta(&"cost", cost)
 			nurture.pressed.connect(func() -> void:
 				if eldest_ask:
 					_confirm_eldest = true
@@ -532,3 +536,33 @@ func _show_damage_type(data: TowerData) -> void:
 	label.text = IconInfo.damage_type_text(data.line)
 	label.add_theme_color_override("font_color", IconInfo.damage_type_color(data.line))
 	_damage_type.tooltip_text = "Nightmares can resist or be weak to a damage type."
+
+# Hover and tap tips stay (screens_ui.md): Dew changes on every dispel, and rebuilding the panel then
+# closed any tooltip under the pointer. Affordability updates in place; anything else that depends on Dew
+# (group counts) waits until the pointer leaves the panel.
+var _dew_dirty := false
+
+func _on_dew_changed() -> void:
+	for button in _buttons.get_children():
+		if button is Button and button.has_meta(&"cost"):
+			var disabled: bool = not run_state.can_afford(int(button.get_meta(&"cost")))
+			if button.disabled != disabled:
+				button.disabled = disabled
+	if _pointer_inside():
+		_dew_dirty = true
+	elif tower_seller.selection.size() > 1:
+		_refresh()  # Group counts ("grow 3 of 5") follow the Dew
+
+func _pointer_inside() -> bool:
+	return is_visible_in_tree() and get_global_rect().has_point(get_global_mouse_position())
+
+func _process(_delta: float) -> void:
+	if _dew_dirty and not _pointer_inside():
+		_dew_dirty = false
+		_refresh()
+
+func _refresh_unless_hovered() -> void:
+	if _pointer_inside():
+		_dew_dirty = true  # Rebuilt once the pointer leaves
+	else:
+		_refresh()

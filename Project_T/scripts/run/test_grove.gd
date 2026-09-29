@@ -388,6 +388,9 @@ func _build_dreams(box: VBoxContainer) -> void:
 	_dream.fit_to_longest_item = false
 	_dream.clip_text = true
 	box.add_child(_dream)
+	_button(box, "Open the card grid…", func() -> void:
+		var hud := get_parent().get_node_or_null("HUD")  # A screen overlay, not in the world
+		DevCardPicker.open(hud if hud else self, dream_state, take_dream))
 	_button(box, "Take this Dream now", func() -> void:
 		if _dream.selected >= 0:
 			take_dream(_dream_cards[_dream.selected]))

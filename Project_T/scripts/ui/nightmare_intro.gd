@@ -8,15 +8,16 @@ class_name NightmareIntro
 # resist / weak / immune icons, and one hint (EnemyData.hint). Several new kinds: one card each, with
 # "Next" (a kind's split / follower kinds right after it). After the Dream / Omen, before the boss
 # dossier. Dismissed by the button, a tap outside or Esc; reopened from its portrait in the Coming
-# strip (open_for). A kind that first appears mid-block without a card (a Mourner's Sobs) gets a
-# 2-second name plate when the first one spawns. Once ever per kind (profile "intros_seen"; dev runs
-# and tests: this session only). Off with the "Heartwood whispers" setting. Made by the HUD.
+# strip (open_for), or by clicking / tapping the nightmare on the map (paused; bosses open the dossier;
+# the card adds its live health, statuses and Restless). A kind that first appears mid-block without
+# a card (a Mourner's Sobs) pauses on its card too (it was a 2-second name plate). Once ever per kind
+# (profile "intros_seen"; dev runs and tests: this session only). Off with the "Heartwood whispers"
+# setting (clicking a nightmare always works). Made by the HUD.
 
 const GROUP := &"nightmare_intro"
 const SEEN_KEY := "intros_seen"
 const WIDTH := 460.0
 const OPEN_DELAY := 0.35
-const PLATE_TIME := 2.0
 const NEW_COLOR := UiStyle.GOLD  # Glow
 
 static var session_seen := {}  # Kind -> true: shown this session (dev runs, tests)
@@ -31,8 +32,6 @@ var _paused_it := false
 var _panel := PanelContainer.new()
 var _content := VBoxContainer.new()
 var _next := Button.new()
-var _plate := Label.new()
-var _plate_time := 0.0
 var _met := {}  # Kinds met before or introduced this run (no name plate for them)
 
 # Opens the card for `kinds` (in order), e.g. from a Coming strip portrait.
@@ -65,6 +64,17 @@ func _ready() -> void:
 	var outer := VBoxContainer.new()
 	outer.add_theme_constant_override("separation", 10)
 	_panel.add_child(outer)
+	var top := HBoxContainer.new()  # ✕ in the corner (tap-sized)
+	top.alignment = BoxContainer.ALIGNMENT_END
+	var cross := Button.new()
+	cross.text = "✕"
+	cross.flat = true
+	cross.focus_mode = Control.FOCUS_NONE
+	cross.custom_minimum_size = Vector2(44, 44)
+	cross.tooltip_text = "Close (Esc)"
+	cross.pressed.connect(close)
+	top.add_child(cross)
+	outer.add_child(top)
 	_content.custom_minimum_size = Vector2(WIDTH, 0)
 	_content.add_theme_constant_override("separation", 8)
 	outer.add_child(_content)
@@ -74,17 +84,6 @@ func _ready() -> void:
 	UiStyle.primary(_next)
 	_next.pressed.connect(advance)
 	outer.add_child(_next)
-	# The mid-block name plate (screen space, top centre, under the strip).
-	_plate.set_anchors_and_offsets_preset(Control.PRESET_CENTER_TOP)
-	_plate.grow_horizontal = Control.GROW_DIRECTION_BOTH
-	_plate.offset_top = 150.0
-	_plate.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_plate.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	UiStyle.title(_plate, 22, NEW_COLOR)
-	_plate.add_theme_color_override("font_outline_color", UiStyle.FOG)
-	_plate.add_theme_constant_override("outline_size", 8)
-	_plate.visible = false
-	get_parent().add_child.call_deferred(_plate)
 	for kind in HeartwoodMemory.load_data().get("nightmares_seen", []):
 		_met[kind] = true
 	if drift_director != null:
@@ -103,6 +102,59 @@ func _unhandled_input(event: InputEvent) -> void:
 	if visible and event.is_action_pressed("cancel_build"):
 		close()
 		get_viewport().set_input_as_handled()
+		return
+	# Click / tap a nightmare on the map (screens_ui.md "New nightmare introduction"): its centred
+	# card, paused (a boss: the dossier). A click, not a drag; build mode, a Warden selection and the
+	# Clear tool keep their own click.
+	if not (event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT) or visible:
+		return
+	if event.pressed:
+		_press_at = event.position
+		_press_free = _map_click_free()
+		return
+	if not _press_free or event.position.distance_to(_press_at) > CLICK_SLOP:
+		return
+	var enemy := nightmare_at(event.position)
+	if enemy == null:
+		return
+	if enemy.enemy_data.is_boss:
+		BossDossier.open_for(get_tree())
+	else:
+		open([enemy.enemy_data], 0, enemy)
+	get_viewport().set_input_as_handled()
+
+const CLICK_RADIUS := 30.0  # World px around a nightmare that count as clicking it
+const CLICK_SLOP := 8.0  # Screen px a click may move (more = a drag box)
+var _press_at := Vector2.ZERO
+var _press_free := false
+var live: Node2D = null  # The clicked nightmare (its health, statuses and Restless on the card)
+var _live_label: Label = null
+
+# Nothing else owns a map click right now.
+func _map_click_free() -> bool:
+	var placer = drift_director.get_node_or_null("%TowerPlacer")
+	var seller = drift_director.get_node_or_null("%TowerSeller")
+	var clearer = drift_director.get_node_or_null("%ObstacleClearer")
+	if placer != null and placer.build_mode:
+		return false
+	if seller != null and not seller.selection.is_empty():
+		return false
+	return not (clearer != null and clearer.has_method("is_tool_active") and clearer.is_tool_active())
+
+# The nightmare under screen point `screen_at` (nearest within CLICK_RADIUS), or null. Hidden ones
+# can't be picked.
+func nightmare_at(screen_at: Vector2) -> Node2D:
+	var world := get_viewport().get_canvas_transform().affine_inverse() * screen_at
+	var best: Node2D = null
+	var best_distance := CLICK_RADIUS
+	for enemy in get_tree().get_nodes_in_group(Tower.ENEMY_GROUP):
+		if enemy.get("enemy_data") == null or enemy.is_cleansed or (enemy.has_method("is_hidden") and enemy.is_hidden()):
+			continue
+		var distance: float = enemy.global_position.distance_to(world)
+		if distance < best_distance:
+			best_distance = distance
+			best = enemy
+	return best
 
 # --- Which kinds, when ---------------------------------------------------------------------------
 
@@ -162,10 +214,8 @@ func is_busy() -> bool:
 
 func _process(delta: float) -> void:
 	var real := delta / maxf(Engine.time_scale, 0.001)
-	if _plate_time > 0.0:
-		_plate_time -= real
-		_plate.modulate.a = clampf(_plate_time / 0.4, 0.0, 1.0)
-		_plate.visible = _plate_time > 0.0
+	if visible:
+		_update_live()
 	if _pending.is_empty():
 		return
 	if not drift_director.is_resting():
@@ -179,11 +229,19 @@ func _process(delta: float) -> void:
 
 # --- Open / next / close -------------------------------------------------------------------------
 
-func open(kinds: Array, drift: int = 0) -> void:
+# `enemy`: a nightmare clicked on the map; its card adds its live health, statuses and Restless.
+func open(kinds: Array, drift: int = 0, enemy: Node2D = null) -> void:
 	if kinds.is_empty():
+		return
+	if visible:  # A card is up already: these follow it (keeps its pause state)
+		for kind in kinds:
+			if not queue.has(kind) and kind != shown:
+				queue.append(kind)
+		_next.text = "Next"
 		return
 	queue = kinds.duplicate()
 	_drift = drift
+	live = enemy
 	_show_next()
 	var speed := drift_director.get_node_or_null("%GameSpeed") as GameSpeed if drift_director else null
 	_paused_it = speed != null and not drift_director.is_resting() and not speed.paused
@@ -210,6 +268,8 @@ func close() -> void:
 	visible = false
 	queue.clear()
 	shown = null
+	live = null
+	_live_label = null
 	if _paused_it:
 		_paused_it = false
 		var speed := drift_director.get_node_or_null("%GameSpeed") as GameSpeed
@@ -266,8 +326,36 @@ func _build(data: EnemyData) -> void:
 		when.text = "Arrives in drift %d" % _drift
 		UiStyle.caps(when, 13)
 		_content.add_child(when)
+	_live_label = null
+	if is_instance_valid(live) and live.enemy_data == data:  # Clicked on the map: this one, right now
+		_live_label = Label.new()
+		_live_label.name = "Live"
+		_live_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		UiStyle.number(_live_label, 15, UiStyle.GOLD)
+		_content.add_child(_live_label)
+		_update_live()
 
-# A kind that first shows up mid-block without a card (a split or follower): its name for 2 s.
+# "Health 180 / 240 · Soaked ×2 8s · Restless ×1", or "Dispelled" once it's gone.
+func live_text() -> String:
+	if not is_instance_valid(live) or live.is_cleansed:
+		return "Dispelled"
+	var parts: Array[String] = ["Health %d / %d" % [live.health, live.max_health]]
+	for id in live.statuses.active_ids():
+		var stacks: int = live.statuses.stacks(id)
+		parts.append("%s%s %.0fs" % [IconInfo.status_name(id), " ×%d" % stacks if stacks > 1 else "", live.statuses.time_left(id)])
+	var restless: String = load("res://scripts/ui/nightmare_info.gd").restless_text(live)
+	if restless != "":
+		parts.append(restless)
+	return " · ".join(parts)
+
+func _update_live() -> void:
+	if _live_label != null and is_instance_valid(_live_label):
+		var text := live_text()
+		if text != _live_label.text:
+			_live_label.text = text
+
+# A kind that first shows up mid-block without a card (a split, a summon, an Omen extra): the game
+# pauses on its centred card (screens_ui.md; it was a 2-second name plate).
 func _on_spawned(node: Node) -> void:
 	var data = node.get("enemy_data")
 	if data == null or data.is_boss or not enabled():
@@ -276,7 +364,4 @@ func _on_spawned(node: Node) -> void:
 	if _met.has(kind) or session_seen.has(kind):
 		return
 	_met[kind] = true
-	_plate.text = "New nightmare: %s" % data.display_name
-	_plate_time = PLATE_TIME
-	_plate.modulate.a = 1.0
-	_plate.visible = true
+	open.call_deferred([data], 0, node)  # Paused, centred: meet it now

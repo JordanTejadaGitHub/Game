@@ -77,10 +77,40 @@ func _unhandled_input(event: InputEvent) -> void:
 	elif event.is_action_pressed("center_start"):
 		target_position = MAP_GRID.calculate_map_position(map_generator.startPath)
 		_glide_points = PackedVector2Array()
+	# Wheel zoom here, not polled: a wheel over a panel (the Codex, Dreams this run, settings …) is
+	# used by the UI and never reaches this (screens_ui.md: UI scrolling never moves the map).
+	elif event.is_action_pressed("zoom_in") and not modal_open():
+		zoom_by_step(1.0)
+	elif event.is_action_pressed("zoom_out") and not modal_open():
+		zoom_by_step(-1.0)
 
-# Handle keyboard input for movement and zoom
+func zoom_by_step(direction: float) -> void:
+	var zoom_min := _get_zoom_out_min()
+	target_zoom = (target_zoom + Vector2.ONE * zoom_speed * direction).clamp(Vector2.ONE * zoom_min,
+		Vector2.ONE * maxf(camera_zoom_in_max, zoom_min))
+
+# A full-screen screen is up (pause menu with its Codex / settings, Dream, Omen, Remember, family
+# pick, results, boss dossier, nightmare card): the map stays put under it.
+const MODAL_SCREENS := ["HUD/PauseMenu", "HUD/DreamScreen", "HUD/OmenScreen", "HUD/RememberScreen",
+	"HUD/FamilyPickScreen", "HUD/ResultsScreen", "HUD/BossDossier", "HUD/NightmareIntro"]
+
+func modal_open() -> bool:
+	var main := owner if owner != null else get_parent()
+	for path in MODAL_SCREENS:
+		var screen := main.get_node_or_null(path) as CanvasItem
+		if screen != null and screen.visible:
+			return true
+	return false
+
+# Typing in a text field (the Codex search, the dev card search): the keys are letters, not panning.
+func _typing() -> bool:
+	var focus := get_viewport().gui_get_focus_owner()
+	return focus is LineEdit or focus is TextEdit
+
+# Keyboard panning (WASD / arrows). Zoom is the wheel, in _unhandled_input.
 func _handle_input(delta: float) -> void:
-	# Handle WASD movement
+	if modal_open() or _typing():
+		return
 	var direction = Vector2.ZERO
 	if Input.is_action_pressed("move_camera_up"):  # W
 		direction.y -= 1
@@ -92,13 +122,7 @@ func _handle_input(delta: float) -> void:
 		direction.x += 1
 	if direction != Vector2.ZERO:
 		target_position += direction.normalized() * camera_speed * delta
-
-	# Handle zoom input
 	var zoom_min := _get_zoom_out_min()
-	if Input.is_action_just_released("zoom_in"):  # Zoom in
-		target_zoom += Vector2.ONE * zoom_speed
-	if Input.is_action_just_released("zoom_out"):  # Zoom out
-		target_zoom -= Vector2.ONE * zoom_speed
 	target_zoom = target_zoom.clamp(Vector2.ONE * zoom_min, Vector2.ONE * maxf(camera_zoom_in_max, zoom_min))
 
 # Touch (TouchBuild: two-finger drag / pinch): move the view by `screen_px` (the fingers' movement,

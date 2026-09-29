@@ -85,6 +85,8 @@ func _init() -> void:
 	_check(grass_source.texture.resource_path.contains("deep_wood"), "act 2 uses the Deep Wood sheets")
 	_check(heartwood.texture.resource_path.contains("deep_wood"), "and the Heartwood follows")
 	_check(map.ambience.act == 2, "the ambience follows the act")
+	_check(map.ambience.z_index + map.ambience.get_node("CloudShadows").z_index == EnvironmentAmbience.CLOUD_SHADOW_Z,
+		"crossing cloud shadows sit over the Wardens, under the glows and effects")
 	main.get_node("Seasons").set_act(1, false)
 	run_state.regrow_leaves(run_state.max_leaves)
 

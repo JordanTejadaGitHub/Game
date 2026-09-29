@@ -190,6 +190,9 @@ func _add_group(title: String, entries: Array) -> void:
 			see.add_theme_font_size_override("font_size", 13)
 			links.add_child(see)
 			for other in entry[2]:
+				var combo := _find_combo(other)
+				if not combo.is_empty() and not CodexData.is_discovered(combo.id):
+					continue  # An undiscovered combo isn't named anywhere (screens_ui.md)
 				var link := LinkButton.new()
 				link.text = other
 				link.focus_mode = Control.FOCUS_NONE
@@ -620,8 +623,14 @@ func _family_section(root: TowerData, seen: Array) -> Control:
 	caption.add_theme_font_size_override("font_size", 14)
 	links.add_child(caption)
 	for entry in family_combos(root):
+		if not CodexData.is_discovered(entry.id, seen):  # "???": no name, no link (screens_ui.md)
+			var unknown := Label.new()
+			unknown.text = "???"
+			unknown.add_theme_color_override("font_color", LOCKED_COLOR)
+			links.add_child(unknown)
+			continue
 		var link := LinkButton.new()
-		link.text = entry.name if seen.has(String(entry.id)) else "???"
+		link.text = CodexData.combo_name(entry, seen)
 		link.focus_mode = Control.FOCUS_NONE
 		link.pressed.connect(func() -> void: jump(String(entry.id)))
 		links.add_child(link)

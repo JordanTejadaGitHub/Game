@@ -224,6 +224,11 @@ icon explains itself**: hover on PC, tap on touch, a small tooltip in plain word
   Crit chance, Crit damage, Potency, Rank, Focus (Power / Swift / Reach / Deep), Dew cost,
   Dreamlight cost. Tooltip example: *"Attack speed: attacks per second."*
 - **Resource icons**: Dew, Dreamlight, Leaves, Seeds (already exist; get tooltips too).
+- **Hover and tap tips stay** (2026-09-28, user: "it never stays when a nightmare dies"): a tip
+  stays until the pointer leaves its target. Live values update in place and never rebuild or close
+  the tip (nothing is rewritten while it's pointed at, unless it changed). If the hovered target
+  itself is gone (the hovered nightmare is dispelled), the nightmare info reads **"Dispelled"** for
+  ~1 s and then clears; it never jumps to another nightmare until the pointer moves.
 - **Combos get no icons** anywhere a player hasn't discovered them yet: callouts are words, locked
   Codex entries are "???" (user decision: icons hint at the answer).
 - **Status names (decided 2026-09-28):** Damp → **Soaked**, Drowsy **stays Drowsy** (Slowed read the same as Soaked), Spored →
@@ -344,13 +349,20 @@ entry arrives as "???" with a small leaf "New from the Grove" mark.
 - A **Families** page lists the families you have, with their branches and final forms (locked ones
   as silhouettes with "unlock with Dreamlight" / "Memory Grove"), each linking to its combos.
 
-- **Saved in the profile**, including in the demo (carried into the full game like Seeds). Not
-  saved from developer runs (Test Grove, Unlock all families), **but** (changed 2026-09-28, user
-  playtest: "unlocking stuff in the codex doesn't display after") discoveries in a developer run are
-  kept **for the session** (until the game closes): the Codex shows them with a small "dev" mark, the
-  discovery pause happens once per session, and nothing is written to the profile or counted for
-  the "Discover every combo" milestone. The Codex header says "Developer run: discoveries aren't
-  saved" while one is active.
+- **Saved to the account (profile), always** (revised 2026-09-28, user: "discovering it should
+  persist for the account"): every discovery is written to the profile the moment it happens,
+  including in the demo (carried into the full game like Seeds) **and in developer runs** (Test
+  Grove, Unlock all families, Dev Grove). Discoveries from a dev run carry a small hidden flag, so
+  the **"Discover every combo" milestone** (and its Steam achievement) only counts ones found in
+  normal runs; the Codex shows them like any other entry. (Replaces the earlier "kept for the
+  session" rule.)
+- **Undiscovered combos are "???" everywhere, not just in the Codex** (user: "combos should only
+  appear on the tech tree if you discover it, otherwise ???"). Every place that lists a Warden's or
+  a family's combos shows an undiscovered one as a **"???" entry with no name, statuses or hints**:
+  the Remember screen's side panel, the Codex Families page, the Warden panel's "Combos with",
+  the build ghost's placement links, the Memory Grove's node cards, and the rest report. Once
+  discovered it shows its name and links to its Codex entry. (Dream card texts that amplify a
+  combo still name it, since a card must say what it does; taking one doesn't discover it.)
 - Touch: everything is tap-based; the discovery card can be tapped to open the entry.
 
 ## Panels
@@ -548,6 +560,17 @@ more clear with icons of their resistances"):
     by click, tap or Esc; reopen from its portrait in the Coming strip.
   - A type that first appears mid-block also gets a **2-second name plate** when the first one
     spawns (no pause), like the boss name plate.
+  - **Always centred** (2026-09-28, user: "make the new enemies appear in the middle of the screen"):
+    the intro card is a centred modal, like the boss dossier and the Dream screen, never a side
+    panel or corner toast. When the first one of a never-seen type **spawns** without having been
+    introduced at a rest (a split child, a summon, an Omen extra), the game **pauses** and shows the
+    centred card then, instead of the name plate.
+  - **Click or tap any nightmare** on the map (user: "also when you click on the enemies, same with
+    bosses"): the game pauses and opens its **centred card**: the intro card for a regular nightmare,
+    the **boss dossier** for a boss, plus that nightmare's live state (health, statuses, Restless
+    stacks). Close with a click outside, Esc or the ✕; the game resumes at its previous speed. Hover
+    still shows the small nightmare info at the side. (With a Warden selected or in build mode, a
+    click on a nightmare still does that mode's action first.)
   - Once ever per type (dev runs: per session). Off with the "Heartwood whispers" setting.
   - Data: the nightmare's `trait_text` plus a new `intro_lines` (what it does) and `hint`
     (Enemy Code, same voice as the boss tips).
