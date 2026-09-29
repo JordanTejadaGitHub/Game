@@ -283,6 +283,14 @@ drift 10 on**, after the Dream, the wind brings **2 Omens**. Pick one to change 
 (5 drifts) for a reward, or keep **Clear Skies** (the default: nothing changes). This is optional
 risk: players set their own difficulty block by block.
 
+- **Ask first** (2026-09-28, user: "it seems like Omens are mandatory"). The rest shows a small
+  prompt, not the choice screen: *"The wind carries an Omen. Face one for a reward?"* with
+  **See the Omens** and **Clear Skies** (the default, highlighted; Esc / right-click / tapping
+  outside picks it). Only **See the Omens** opens the two cards, which also have a **Back to Clear
+  Skies** button. The prompt sits beside Start and doesn't pause or block building; pressing Start
+  without answering means Clear Skies. Setting (Gameplay): **Omens: Ask each rest / Never** (Never
+  = always Clear Skies, no prompt). Blight Levels that force an Omen skip the prompt and show the
+  cards with "An Omen must be faced".
 - An Omen affects only the **next block**. Bosses themselves ignore Omens (their escorts don't).
 - Rewards are paid at the rest **after** the block, and only if the Heartwood is still standing.
   Losing leaves doesn't cancel the reward.
