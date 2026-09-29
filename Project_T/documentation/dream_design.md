@@ -906,6 +906,35 @@ weight (1.4×). Legendary and Bittersweet rules as usual.
 - **Watch in playtests:** whether Seed cards get picked at all before the family (the call rule is
   the lever), and whether Golden Harvest turns economy into a must-have damage build.
 
+
+## Support Warden cards: the quiet Wardens
+
+Added 2026-09-29 (user request). Cards for the specific Wardens whose value isn't damage:
+catchers, auras, walls, Dreamcatchers. Unlike Seed cards, these **need their Warden** (normal
+prerequisites). Each one changes **how that Warden is used**, mostly where you put it, not just a
+bigger number. Tag `support` plus the family tag.
+
+| # | Card | Rarity | Effect | Changes | Needs | Pool |
+|---|---|---|---|---|---|---|
+| 177 | **Wide Bowl** | Common, stacks (max 2) | catch radius **+0.5 cells** | placement: one catcher covers a whole bend | Dewcatcher | Grove |
+| 178 | **Dew Trail** | Uncommon | nightmares that are **Damp** when caught drop **+20% more** Dew | a reason to soak your kill zone (Dewdrop + Acorn) | Dewcatcher | Grove |
+| 179 | **Still Waters** | Uncommon | Wellspring interest **+4%** at a rest if you **spent no Dew** during that block | the saving decision | Wellspring | Grove |
+| 180 | **Overflowing Well** | Rare | interest above the cap isn't lost: every **50 Dew over** becomes a **Dreamlight shard** | the Greedy Gardener payoff (`tower_design.md` archetypes) | Wellspring | Grove |
+| 181 | **Acorn Cache** | Common | Acorns cost **15 Dew** (was 25) and their aura is **+8%** (was +5%) | cheap aura seeding across the maze | Acorn | Grove |
+| 182 | **Hedgerow Roots** | Rare | auras **flow through Thornwalls**: a Warden touching a Thornwall that touches an aura Warden also gets that aura (one wall hop) | maze-building: walls carry support | Acorn, Elder Stump or Grove Heart | Grove |
+| 183 | **Grandfather Stump** | Uncommon | Grove Heart's bonus per nearby Warden **+4%** (was +3%), max **+45%** (was +30%) | pack the cluster tighter | Grove Heart | Grove |
+| 184 | **Thorn Snare** | Uncommon | Phantoms passing **through** a Thornwall and Gravecrawlers passing **under** one are **Held 0.5 s** | walls answer the wall-ignoring nightmares | — (Thornwall is always yours) | Start |
+| 185 | **Scented Hedge** | Uncommon | every Thornwall **touching a Honeysuckle** also gives off its scent at half strength | long scented corridors from one Honeysuckle | Honeysuckle | Start |
+| 186 | **Living Walls** | Rare | a Thornwall that stands **5 drifts** grows into a **Bramble** for free (a wall that never moved) | patience; pairs with Steadfast | Bramble unlocked | Grove |
+| 187 | **Many Threads** | Uncommon | Dreamcatchers Catch nightmares at **4 Drowsy** (not only full) | Caught comes sooner and lasts longer | Dreamcatcher | Grove |
+| 188 | **The Quiet Ones** | Legendary | all non-attacking Wardens (catchers, auras, walls, Dreamcatchers, Memory auras) are **50% stronger**: catch, interest, aura bonuses and wall effects | the support capstone | 3+ non-attacking Wardens | Grove |
+
+- **Deepened:** **Dew Trail II** +35%; **Thorn Snare II** 1 s, and
+  Night Hounds sprinting past a Thornwall are Held too.
+- **In the demo:** Thorn Snare and Scented Hedge (walls are in the demo; Acorn isn't).
+- **Pairs with:** the Seed cards above (*Dew Bowl*, *Kind Canopy*, *Golden Harvest*) and the
+  Kinship Old Growth.
+
 ## Generic Rares (2026-09-28: filling the Rare tier)
 
 Why: many boards qualify for 0–1 Rares through act 2 (the Few and Mighty simulation, c64183a), because
