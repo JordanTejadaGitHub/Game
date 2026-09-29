@@ -78,6 +78,12 @@ static func sixth_slot_dev_active() -> bool:
 # Memory Wardens (tower_design.md): a boss's first dispel records milestone "boss_<kind>", which grows
 # its bloom on the Families limb; in later runs its Warden is offered in the pick after that boss.
 const MEMORY_BOSS_PREFIX := "boss_"
+# The Memory Warden card's flavour line (screens_ui.md "Memory Warden card"), by Warden id.
+const MEMORY_FLAVOUR := {
+	"white_stag": "The Hollow Stag's light remembers you.",
+	"pond_keeper": "The Mire Hag's still water remembers you.",
+	"moon_moth": "The Moth Queen's moonlight remembers you.",
+}
 
 # Balance simulation: play the next run with a Grove profile preset (&"fresh" / &"early" / &"half" /
 # &"full", GrovePresets) from a temp file; the real profile is untouched. GrovePresets.unload() undoes it.

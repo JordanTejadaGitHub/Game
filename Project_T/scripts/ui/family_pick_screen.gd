@@ -121,7 +121,12 @@ func show_pick(reason: StringName = &"first") -> void:
 		_cards.remove_child(child)
 		child.queue_free()
 	for data in offer:
-		_cards.add_child(_make_blessing_card(data) if data is UpgradeData else _make_card(data))
+		if data is UpgradeData:
+			_cards.add_child(_make_blessing_card(data))
+		elif data.line == "memory":
+			_cards.add_child(_make_memory_card(data))  # A boss's reward, not a family
+		else:
+			_cards.add_child(_make_card(data))
 	visible = true
 
 # Sorted Warden ids of the families in `datas`.
@@ -337,6 +342,67 @@ func _make_blessing_card(card: UpgradeData) -> Button:
 	button.add_child(box)
 	_fit_card(button, box)
 	for line in [["Blessing", 14, Color(0.95, 0.8, 0.4)], [card.display_name, 22, Color.WHITE], [IconInfo.format(card.description), 15, Color(0.95, 0.92, 0.85)]]:
+		var label := Label.new()
+		label.text = line[0]
+		label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		label.add_theme_font_size_override("font_size", line[1])
+		label.add_theme_color_override("font_color", line[2])
+		label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		box.add_child(label)
+	return button
+
+# A Memory Warden (screens_ui.md "Memory Warden card"): the boss's reward, not a family. Gold /
+# dream-fruit thread and a warm glow, "A Memory returns", the boss's flavour line, its identity and
+# statuses, and a "Unique" tag. Placeholder look until the bloom art exists.
+const MEMORY_GOLD := Color(1.0, 0.82, 0.42)
+const MEMORY_GLOW := Color("3a2a10")
+
+func _make_memory_card(data: TowerData) -> Button:
+	var button := Button.new()
+	button.custom_minimum_size = CARD_SIZE
+	button.focus_mode = Control.FOCUS_NONE
+	button.pressed.connect(choose.bind(data))
+	UiStyle.card_button(button, MEMORY_GOLD)
+	for state in ["normal", "hover", "pressed", "hover_pressed"]:
+		var style := button.get_theme_stylebox(state) as MoonStyleBox
+		if style:
+			style = style.duplicate()
+			style.glow_color = MEMORY_GLOW  # The soft warm glow
+			button.add_theme_stylebox_override(state, style)
+	var box := VBoxContainer.new()
+	box.set_anchors_preset(Control.PRESET_FULL_RECT)
+	box.offset_left = 14
+	box.offset_top = 12
+	box.offset_right = -14
+	box.offset_bottom = -12
+	box.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	button.add_child(box)
+	_fit_card(button, box)
+	var heading := Label.new()
+	heading.text = "A Memory returns"
+	heading.add_theme_font_size_override("font_size", 14)
+	heading.add_theme_color_override("font_color", MEMORY_GOLD)
+	heading.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	box.add_child(heading)
+	if data.texture != null:
+		var icon := TextureRect.new()
+		var atlas := AtlasTexture.new()
+		atlas.atlas = data.texture
+		atlas.region = data.get_frame_rect(0)
+		icon.texture = atlas
+		icon.stretch_mode = TextureRect.STRETCH_KEEP_CENTERED
+		icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		box.add_child(icon)
+	var lines := [[data.display_name, 22, Color.WHITE]]
+	var flavour: String = MetaRun.MEMORY_FLAVOUR.get(data.get_id(), "")
+	if flavour != "":
+		lines.append([flavour, 14, Color(1.0, 0.9, 0.7)])
+	lines.append([IconInfo.format(data.description), 15, Color(0.95, 0.92, 0.85)])
+	var statuses := get_status_text(data)
+	if statuses != "":
+		lines.append([statuses, 14, Color(0.75, 0.85, 1.0)])
+	lines.append(["Unique: one on the map at a time. Free to plant.", 12, MEMORY_GOLD])
+	for line in lines:
 		var label := Label.new()
 		label.text = line[0]
 		label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
