@@ -6,7 +6,10 @@ extends SceneTree
 # cold nightmares is the game's core look. Each sheet has one row per animation (walk_side facing
 # right, walk_down, walk_up, then extras such as the Night Hound's sprint, which the game still calls
 # "roll") of FRAMES frames. Files keep the old creature names (see CREATURES) until the code renames
-# them. The preview ends each row with a frame as shaders/blight.gdshader shows it in game.
+# them. Colours are Heartwood 32 names (tools/art/heartwood_palette.gd, never raw hex) and every
+# sheet goes through DetailPass (NIGHTMARE: cold ramps only) before saving; the Dream Thief's stolen
+# light is the one warm exception, laid on top after the pass. The preview ends each row with a
+# frame as shaders/blight.gdshader shows it in game.
 # Run:  Godot --headless --path . --script res://tools/creature_art_generator.gd
 # then once with --import so new sheets are imported (re-running afterwards adds their uids to the
 # SpriteFrames; existing SpriteFrames keep their own uid, so references to them stay valid).
@@ -55,23 +58,23 @@ const CREATURES := {
 	"weeper": {fps = 5.0},
 	"hollow_oak": {fps = 5.0, size = 176, extra = ["grief"], extra_fps = 8.0},
 	# Not a nightmare: the obstacle the Hollow Oak plants. No walks, just its own rows.
-	"thorn_sapling": {fps = 4.0, anims = ["idle", "grow", "wither"], extra_fps = 8.0, once = ["grow", "wither"]},
+	"thorn_sapling": {fps = 4.0, obstacle = true, anims = ["idle", "grow", "wither"], extra_fps = 8.0, once = ["grow", "wither"]},
 }
 # Defaults of shaders/blight.gdshader, for the in-game frame at the end of each preview row.
 const SHADER_TRANSLUCENCY := 0.85
 const SHADER_GLOW_START := 0.6
 const SHADER_GLOW_STRENGTH := 0.5
 
-# Shadow-stuff, lit from the upper right like the Wardens: [deep, dark, mid, rim].
-const NIGHT := ["#0e0c18", "#1a1730", "#2a2646", "#3e3962"]
-const NIGHT_O := Color("#05040a")
-const HOLLOW := Color("#030206")
-const EYE := Color("#dff8ff")  # cold glow
-const EYE_HALO := Color(0.37, 0.72, 0.88, 0.55)
-const SHADOW := Color(0.02, 0.02, 0.06, 0.38)
+# Shadow-stuff, lit from the upper left like the Wardens: [deep, dark, mid, rim].
+const NIGHT := ["Void", "Dread", "Shade", "Bruise"]
+var NIGHT_O := _c("Void")
+var HOLLOW := _c("Void")
+var EYE := _c("Moonlight")  # cold glow
+var EYE_HALO := _c("Dewlight", 0.55)
+var SHADOW := _c("Void", 0.38)
 const BAYER := [0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5]
 
-var light := Vector3(0.45, -0.55, 0.7).normalized()
+var light := Vector3(-0.45, -0.55, 0.7).normalized()  # from the upper left (art_direction.md)
 var sheets: Array[Image] = []
 var S := 64  # frame size of the nightmare being drawn
 
@@ -89,13 +92,23 @@ func _make(creature: String, info: Dictionary) -> void:
 	var draw := Callable(self, "_draw_" + info.get("draw", creature))
 	S = info.get("size", 64)
 	var sheet := Image.create_empty(S * FRAMES, S * anims.size(), false, Image.FORMAT_RGBA8)
+	# Stolen Heartwood light, the one warm thing allowed on a nightmare (art_direction.md): drawn to
+	# st.warm, kept out of the cold detail pass and laid on top afterwards.
+	var warm_sheet := Image.create_empty(S * FRAMES, S * anims.size(), false, Image.FORMAT_RGBA8)
 	for row in anims.size():
 		for f in FRAMES:
 			var canvas := _layer()
+			var warm := _layer()
 			var st := {anim = anims[row], dir = row if walks and row < WALKS.size() else -1, f = f,
-				ph = TAU * f / FRAMES, k = info.get("k", 1.0), variant = info.get("variant", "")}
+				ph = TAU * f / FRAMES, k = info.get("k", 1.0), variant = info.get("variant", ""), warm = warm}
 			draw.call(canvas, st)
 			sheet.blit_rect(canvas, Rect2i(0, 0, S, S), Vector2i(f * S, row * S))
+			warm_sheet.blit_rect(warm, Rect2i(0, 0, S, S), Vector2i(f * S, row * S))
+	# The detailed-64 pass; glow radius 3 so boss frames get the same px spread as 64px ones.
+	var kind := DetailPass.Kind.OBSTACLE if info.get("obstacle", false) else DetailPass.Kind.NIGHTMARE
+	sheet = DetailPass.apply_sheet(sheet, Vector2i(S, S), kind, 3)
+	HeartwoodPalette.snap_image(warm_sheet)
+	sheet.blend_rect(warm_sheet, Rect2i(Vector2i.ZERO, sheet.get_size()), Vector2i.ZERO)
 	sheet.save_png(OUT + creature + ".png")
 	sheets.append(sheet)
 	_save_sprite_frames(creature, anims, info.fps, info.get("extra_fps", info.fps), info.get("once", []))
@@ -148,7 +161,7 @@ func _save_preview() -> void:
 		widest[col] = maxi(widest[col], _frame_size(sheet))
 	var block_w: Array[int] = [(FRAMES + 1) * (widest[0] + pad) + pad, (FRAMES + 1) * (widest[1] + pad) + pad]
 	var preview := Image.create_empty(block_w[0] + block_w[1], maxi(heights[0], heights[1]), false, Image.FORMAT_RGBA8)
-	preview.fill(Color("#5fa844"))
+	preview.fill(_c("Leaf"))
 	for col in 2:
 		var y := pad
 		for sheet: Image in cols[col]:
@@ -196,10 +209,15 @@ func _blend_px(canvas: Image, x: int, y: int, color: Color) -> void:
 	if x >= 0 and y >= 0 and x < S and y < S:
 		canvas.set_pixel(x, y, canvas.get_pixel(x, y).blend(color))
 
-func _ramp(hexes: Array) -> Array[Color]:
+# A Heartwood 32 colour by name (art_direction.md): generators never use raw hex.
+func _c(color_name: String, alpha: float = 1.0) -> Color:
+	return HeartwoodPalette.color(color_name, alpha)
+
+# A shading ramp from palette names, dark to light.
+func _ramp(names: Array) -> Array[Color]:
 	var out: Array[Color] = []
-	for h in hexes:
-		out.append(Color(h))
+	for n: String in names:
+		out.append(_c(n))
 	return out
 
 # One step darker within a ramp (colours not in it are kept).
@@ -349,7 +367,7 @@ func _wisps(canvas: Image, origin: Vector2, dir: Vector2, f: int, count: int = 3
 		var t := fposmod(float(f) / FRAMES + float(k) / count, 1.0)
 		var p := origin + dir * t * reach + dir.orthogonal() * sin(t * TAU + k) * 1.5
 		var r := size * (1.0 - t) + 0.6
-		var col := Color(NIGHT[2])
+		var col := _c(NIGHT[2])
 		col.a = 0.8 * (1.0 - t)
 		_blend_ellipse(canvas, p, Vector2(r, r), col)
 
@@ -390,8 +408,8 @@ func _crack(layer: Image, c: Vector2, r: Vector2, polys: Array, color: Color) ->
 	return out
 
 # A cold light crawling along crack pixels: something alive inside.
-func _crawl(canvas: Image, pixels: Array[Vector2i], f: int, count: int = 2, core: Color = Color("#a8ecff"),
-		edge: Color = Color("#2e6478")) -> void:
+func _crawl(canvas: Image, pixels: Array[Vector2i], f: int, count: int = 2, core: Color = _c("Moonlight"),
+		edge: Color = _c("Slate")) -> void:
 	var n := pixels.size()
 	if n == 0:
 		return
@@ -466,7 +484,7 @@ func _grooves(layer: Image, c: Vector2, r: Vector2, ramp: Array[Color], lengthwi
 
 func _draw_bark_beetle(canvas: Image, st: Dictionary) -> void:
 	var o := NIGHT_O
-	var bark := _ramp(["#1c1818", "#2c2626", "#403834", "#564a42"])
+	var bark := _ramp(["Void", "Night", "Dusk", "Slate"])
 	var f: int = st.f
 	var ph: float = st.ph
 	var bob: int = [0, 0, 0, -1, 0, 0][f]  # a heavy lurch, then still
@@ -555,7 +573,7 @@ func _twig(canvas: Image, p: Vector2i, color: Color) -> void:
 # shifts every frame) and a band of it slips sideways now and then; only its eyes stay solid.
 
 func _draw_dusk_moth(canvas: Image, st: Dictionary) -> void:
-	var body := _ramp(["#16142a", "#24203e", "#36305a", "#4a4278"])
+	var body := _ramp(["Dread", "Shade", "Bruise", "Wraithlight"])
 	var f: int = st.f
 	var ph: float = st.ph
 	var keep: float = [0.62, 0.5, 0.7, 0.38, 0.58, 0.46][f]
@@ -604,8 +622,8 @@ func _draw_dusk_moth(canvas: Image, st: Dictionary) -> void:
 # mouth, arms reaching ahead, its tail streaming behind and a faint after-image where it just was.
 
 func _draw_dandelion_seed(canvas: Image, st: Dictionary) -> void:
-	var body := _ramp(["#5a7a98", "#86aac8", "#b6d8ee", "#e6f8ff"])
-	var o := Color("#26384e")
+	var body := _ramp(["Dew", "Stone", "Dewlight", "Moonlight"])
+	var o := _c("Dusk")
 	var f: int = st.f
 	var ph: float = st.ph
 	var h := roundi(sin(ph) * 2.0)
@@ -653,9 +671,9 @@ func _face_hole(canvas: Image, x: int, y: int, w: int, h: int) -> void:
 
 func _draw_puffcap(canvas: Image, st: Dictionary) -> void:
 	var k: float = st.k
-	var veil := _ramp(["#262c44", "#3e4764", "#5c6688", "#8089ac"])
-	var o := Color("#0a0c18")
-	var tear := Color("#8fdcff")
+	var veil := _ramp(["Night", "Dusk", "Slate", "Stone"])
+	var o := _c("Dread")
+	var tear := _c("Dewlight")
 	var f: int = st.f
 	var ph: float = st.ph
 	var h := roundf(sin(ph) * 1.5 * k)
@@ -698,7 +716,7 @@ func _draw_mother_spider(canvas: Image, st: Dictionary) -> void:
 	var k: float = st.k
 	var thin := k < 0.7
 	var o := NIGHT_O
-	var body := _ramp(["#0e0a16", "#1c1428", "#2c2040", "#40305a"])
+	var body := _ramp(["Void", "Dread", "Shade", "Dusk"])
 	var f: int = st.f
 	var ph: float = st.ph
 	var bob: float = 0.0 if thin else float([0, -1, 0, 0, -1, 0][f])
@@ -860,7 +878,7 @@ func _hound_sprint(canvas: Image, f: int, ph: float, body: Array[Color], o: Colo
 	_shadow(canvas, Vector2(32, 44), Vector2(18, 2.5))
 	for k in 3:  # smoke streaming off the back
 		var t := fposmod(float(f) / FRAMES + k / 3.0, 1.0)
-		var col := Color(NIGHT[2])
+		var col := _c(NIGHT[2])
 		col.a = 0.7 * (1.0 - t)
 		_blend_ellipse(canvas, Vector2(14 - t * 12, y - 3 + k * 2), Vector2(3.0 - t * 2.0, 1.2), col)
 	var fig := _layer()
@@ -880,17 +898,17 @@ func _hound_sprint(canvas: Image, f: int, ph: float, body: Array[Color], o: Colo
 	_lens(fig, Vector2(48, y - 4), Vector2(41, y - 6), 1.6, body[2], body[1])
 	_stamp(canvas, fig, o)
 	for i in 4:  # eye streak
-		_px(canvas, 50 - i, y - 3, [EYE, EYE, Color("#5fa8c8"), Color("#2e5a70")][i])
+		_px(canvas, 50 - i, y - 3, [EYE, EYE, _c("Stone"), _c("Pool")][i])
 
 # --- Sleepwalker (wandering_hare) ---------------------------------------------------------------
 # Sometimes takes a wrong turn: a drifting figure in a pale gown, eyes closed, arms held out in
 # front, head lolling. It floats, never quite walking.
 
 func _draw_wandering_hare(canvas: Image, st: Dictionary) -> void:
-	var gown := _ramp(["#322e48", "#4c466a", "#6c6690", "#948eb8"])
-	var skin := _ramp(["#58546e", "#7a7694", "#a09cb8"])
-	var hair := Color("#0c0a14")
-	var o := Color("#100e1a")
+	var gown := _ramp(["Dusk", "Slate", "Stone", "Mist"])
+	var skin := _ramp(["Slate", "Stone", "Mist"])
+	var hair := _c("Void")
+	var o := _c("Dread")
 	var f: int = st.f
 	var ph: float = st.ph
 	var h := roundi(sin(ph) * 1.5)
@@ -938,7 +956,7 @@ func _draw_wandering_hare(canvas: Image, st: Dictionary) -> void:
 # swinging lantern. Its light pools on the ground; one eye glints under the hood.
 
 func _draw_mother_duck(canvas: Image, st: Dictionary) -> void:
-	var robe := _ramp(["#141222", "#221e36", "#322c4c", "#463e66"])
+	var robe := _ramp(["Void", "Dread", "Shade", "Bruise"])
 	var o := NIGHT_O
 	var f: int = st.f
 	var ph: float = st.ph
@@ -984,20 +1002,20 @@ func _draw_mother_duck(canvas: Image, st: Dictionary) -> void:
 			_px(ghost, 33, 13 + h, EYE)
 	_merge(canvas, ghost, 0.92)
 	if st.dir != UP:
-		_line(canvas, [hand, lantern + Vector2(0, -4)], Color("#4a4a5a"))
+		_line(canvas, [hand, lantern + Vector2(0, -4)], _c("Pool"))
 		_lantern(canvas, lantern, f, ground)
 
 # A cold lantern: dark cap and base, glowing glass, a flickering halo and light pooled on the ground.
 func _lantern(canvas: Image, p: Vector2, f: int, ground: float) -> void:
 	var halo_r: float = [6.0, 6.5, 5.5, 6.5, 6.0, 7.0][f]
-	_blend_ellipse(canvas, Vector2(p.x, ground), Vector2(8, 2.5), Color(0.55, 0.9, 1.0, 0.14))
+	_blend_ellipse(canvas, Vector2(p.x, ground), Vector2(8, 2.5), _c("Dewlight", 0.14))
 	for y in range(floori(p.y - halo_r), ceili(p.y + halo_r) + 1):
 		for x in range(floori(p.x - halo_r), ceili(p.x + halo_r) + 1):
 			var d := Vector2(x + 0.5, y + 0.5).distance_to(p)
 			if d > 2.5 and d < halo_r and (x + y + f) % 2 == 0:
-				_blend_px(canvas, x, y, Color(0.45, 0.8, 0.95, 0.35 * (1.0 - d / halo_r)))
+				_blend_px(canvas, x, y, _c("Dewlight", 0.35 * (1.0 - d / halo_r)))
 	var q := Vector2i(p.round())
-	var metal := Color("#2a2a38")
+	var metal := _c("Night")
 	_px(canvas, q.x, q.y - 4, metal)
 	for x in range(q.x - 1, q.x + 2):
 		_px(canvas, x, q.y - 3, metal)
@@ -1006,8 +1024,8 @@ func _lantern(canvas: Image, p: Vector2, f: int, ground: float) -> void:
 		_px(canvas, q.x + 2, y, metal)
 		for x in range(q.x - 1, q.x + 2):
 			_px(canvas, x, y, EYE)
-	_px(canvas, q.x, q.y - 1, Color.WHITE)
-	_px(canvas, q.x, q.y, Color.WHITE)
+	_px(canvas, q.x, q.y - 1, _c("Moonlight"))
+	_px(canvas, q.x, q.y, _c("Moonlight"))
 	for x in range(q.x - 2, q.x + 3):
 		_px(canvas, x, q.y + 2, metal)
 
@@ -1016,7 +1034,7 @@ func _lantern(canvas: Image, p: Vector2, f: int, ground: float) -> void:
 # eyes under the hood. Every so often its head jerks.
 
 func _draw_duckling(canvas: Image, st: Dictionary) -> void:
-	var robe := _ramp(["#141222", "#221e36", "#322c4c", "#463e66"])
+	var robe := _ramp(["Void", "Dread", "Shade", "Bruise"])
 	var f: int = st.f
 	var ph: float = st.ph
 	var h := roundi(sin(ph))
@@ -1033,7 +1051,7 @@ func _draw_duckling(canvas: Image, st: Dictionary) -> void:
 	if st.dir != UP:
 		_flat_ellipse(ghost, Vector2(fx, 30.5 + h), Vector2(2.4, 2.2), HOLLOW)
 		for x: int in ([fx + 1] if side_view else [fx - 2, fx + 1]):
-			_px(ghost, x, 30 + h, Color("#a8c8ff"))
+			_px(ghost, x, 30 + h, _c("Dewlight"))
 	_merge(canvas, ghost, 0.85)
 
 # --- The Hollow Stag (old_stag) -----------------------------------------------------------------
@@ -1043,8 +1061,8 @@ func _draw_duckling(canvas: Image, st: Dictionary) -> void:
 
 func _draw_old_stag(canvas: Image, st: Dictionary) -> void:
 	var o := NIGHT_O
-	var bark := _ramp(["#1a1616", "#2a2424", "#3e3632", "#54483e"])
-	var bone := _ramp(["#8a8478", "#b8b0a0", "#e0d8c6"])
+	var bark := _ramp(["Void", "Night", "Dusk", "Slate"])
+	var bone := _ramp(["Stone", "Mist", "Moonlight"])
 	var f: int = st.f
 	var ph: float = st.ph
 	var bob: int = [0, -1, -1, 0, -1, -1][f]
@@ -1158,7 +1176,7 @@ func _bone_antler(canvas: Image, root: Vector2, sx: float, scale: float, ramp: A
 	if burning:
 		for y in S:
 			for x in S:
-				if layer.get_pixel(x, y).a > 0.0 and (x + 1 >= S or layer.get_pixel(x + 1, y).a == 0.0):
+				if layer.get_pixel(x, y).a > 0.0 and (x == 0 or layer.get_pixel(x - 1, y).a == 0.0):
 					layer.set_pixel(x, y, ramp[2])
 	_stamp(canvas, layer, o)
 	if burning:
@@ -1170,7 +1188,7 @@ func _bone_antler(canvas: Image, root: Vector2, sx: float, scale: float, ramp: A
 func _ghost_fire(canvas: Image, p: Vector2, f: int) -> void:
 	var height: float = [5.0, 7.0, 4.5, 6.5, 5.5, 7.5][f % FRAMES]
 	for layer_i in 2:
-		var col := Color(0.25, 0.72, 0.8, 0.85) if layer_i == 0 else Color("#d8ffff")
+		var col := _c("Dew", 0.85) if layer_i == 0 else _c("Moonlight")
 		var r0 := 2.2 if layer_i == 0 else 1.0
 		for s in 10:
 			var t := s / 9.0
@@ -1184,9 +1202,9 @@ func _ghost_fire(canvas: Image, p: Vector2, f: int) -> void:
 # The cold fire in its chest, pulsing.
 func _heart_fire(canvas: Image, c: Vector2, f: int) -> void:
 	var r: float = [1.6, 2.0, 2.4, 2.0, 1.6, 1.4][f]
-	_blend_ellipse(canvas, c, Vector2(r + 2.0, r + 2.0), Color(0.3, 0.75, 0.85, 0.35))
-	_flat_ellipse(canvas, c, Vector2(r, r), Color("#8ff0f0"))
-	_px(canvas, int(c.x), int(c.y), Color.WHITE)
+	_blend_ellipse(canvas, c, Vector2(r + 2.0, r + 2.0), _c("Dew", 0.35))
+	_flat_ellipse(canvas, c, Vector2(r, r), _c("Dewlight"))
+	_px(canvas, int(c.x), int(c.y), _c("Moonlight"))
 
 # --- The Mire Hag (great_toad) ------------------------------------------------------------------
 # Act 2 boss, sinks into the mire and rises 3 tiles ahead: a bent bog witch wading waist-deep in a
@@ -1194,14 +1212,14 @@ func _heart_fire(canvas: Image, c: Vector2, f: int) -> void:
 # clawed hand reaching ahead; her eyes glow a sickly cold green. Drawn on a 144px frame.
 
 func _draw_great_toad(canvas: Image, st: Dictionary) -> void:
-	var o := Color("#040506")
-	var robe := _ramp(["#0e1210", "#18201a", "#243026", "#324236"])
-	var skin := _ramp(["#3a4a40", "#566a5a", "#7a8e7c"])
-	var hair := _ramp(["#080c0a", "#121a14", "#1e2a20"])
-	var reed := Color("#3e5230")
-	var wood := Color("#2a2018")
-	var eye := Color("#c8ffe8")
-	var eye_halo := Color(0.4, 0.9, 0.7, 0.5)
+	var o := _c("Void")
+	var robe := _ramp(["Void", "Dread", "Night", "Dusk"])
+	var skin := _ramp(["Dusk", "Slate", "Stone"])
+	var hair := _ramp(["Void", "Dread", "Night"])
+	var reed := _c("Pool")
+	var wood := _c("Night")
+	var eye := _c("Moonlight")
+	var eye_halo := _c("Dewlight", 0.5)
 	var f: int = st.f
 	var ph: float = st.ph
 	var b: int = [0, 1, 2, 1, 0, -1][f]
@@ -1275,8 +1293,8 @@ func _draw_great_toad(canvas: Image, st: Dictionary) -> void:
 # The black pool she wades in. The back half and ripples go under her; `front` draws the near
 # edge of the water over her waist.
 func _mire(canvas: Image, c: Vector2, f: int, front: bool) -> void:
-	var water := Color("#06080a")
-	var sheen := Color("#1e2c34")
+	var water := _c("Void")
+	var sheen := _c("Pool")
 	var r := Vector2(36, 8)
 	for y in range(floori(c.y - r.y), ceili(c.y + r.y) + 1):
 		for x in range(floori(c.x - r.x), ceili(c.x + r.x) + 1):
@@ -1329,20 +1347,20 @@ func _claws(canvas: Image, hand: Vector2, forward: float, color: Color) -> void:
 # dark eyes in its core. It flickers, and every so often it stutters dim.
 
 func _draw_will_o_wisp(canvas: Image, st: Dictionary) -> void:
-	var glow := _ramp(["#2a8a78", "#5fd8b8", "#bfffe8", "#ffffff"])
+	var glow := _ramp(["Pool", "Dew", "Dewlight", "Moonlight"])
 	var f: int = st.f
 	var ph: float = st.ph
 	var h := roundi(sin(ph) * 2.0)
 	var flick: float = [1.0, 0.85, 1.1, 0.6, 1.0, 0.9][f]
 	var c := Vector2(32, 25 + h)
 	var back := Vector2(-1, -0.5) if st.dir == SIDE else Vector2(0, -1)  # flames rise
-	_blend_ellipse(canvas, Vector2(32, 45), Vector2(9 * flick, 2.5), Color(0.4, 0.95, 0.8, 0.16 * flick))
+	_blend_ellipse(canvas, Vector2(32, 45), Vector2(9 * flick, 2.5), _c("Dewlight", 0.16 * flick))
 	var halo_r := 9.0 * flick
 	for y in range(floori(c.y - halo_r), ceili(c.y + halo_r) + 1):
 		for x in range(floori(c.x - halo_r), ceili(c.x + halo_r) + 1):
 			var d := Vector2(x + 0.5, y + 0.5).distance_to(c)
 			if d > 3.0 and d < halo_r and (x + y + f) % 2 == 0:
-				_blend_px(canvas, x, y, Color(0.37, 0.85, 0.72, 0.4 * (1.0 - d / halo_r)))
+				_blend_px(canvas, x, y, _c("Dewlight", 0.4 * (1.0 - d / halo_r)))
 	var flame := _layer()
 	for s in 12:
 		var t := s / 11.0
@@ -1370,8 +1388,8 @@ func _draw_will_o_wisp(canvas: Image, st: Dictionary) -> void:
 # clawed arms, elbows high. "burrow" sinks it into the earth (played backwards, it surfaces).
 
 func _draw_gravecrawler(canvas: Image, st: Dictionary) -> void:
-	var body := _ramp(["#141018", "#221c28", "#342a3a", "#4a3e50"])
-	var claw := Color("#8a8288")
+	var body := _ramp(["Void", "Dread", "Shade", "Bruise"])
+	var claw := _c("Stone")
 	var o := NIGHT_O
 	var f: int = st.f
 	var ph: float = st.ph
@@ -1429,8 +1447,8 @@ func _crawler_arm(canvas: Image, shoulder: Vector2, elbow: Vector2, hand: Vector
 func _gravecrawler_burrow(canvas: Image, st: Dictionary) -> void:
 	var f: int = st.f
 	var sink: int = [0, 3, 6, 10, 14, 19][f]
-	var earth := _ramp(["#1a130e", "#2a2018", "#3e3024"])
-	_flat_ellipse(canvas, Vector2(32, 41), Vector2(14, 4), Color("#0a0706"))
+	var earth := _ramp(["Void", "Dread", "Night"])
+	_flat_ellipse(canvas, Vector2(32, 41), Vector2(14, 4), _c("Void"))
 	var fig := _layer()
 	_draw_gravecrawler(fig, {anim = "walk_down", dir = DOWN, f = 0, ph = 0.0, k = 1.0})
 	var sunk := _layer()
@@ -1452,10 +1470,10 @@ func _gravecrawler_burrow(canvas: Image, st: Dictionary) -> void:
 # streaming down it and trailing behind in puddles.
 
 func _draw_drowned_one(canvas: Image, st: Dictionary) -> void:
-	var skin := _ramp(["#142228", "#223840", "#34525a", "#4c6e74"])
-	var o := Color("#03070a")
-	var water := Color("#05080a")
-	var sheen := Color("#2a4a58")
+	var skin := _ramp(["Night", "Dusk", "Pool", "Slate"])
+	var o := _c("Void")
+	var water := _c("Void")
+	var sheen := _c("Pool")
 	var f: int = st.f
 	var ph: float = st.ph
 	var b: int = [0, 1, 1, 0, 1, 1][f]
@@ -1513,10 +1531,10 @@ func _draw_drowned_one(canvas: Image, st: Dictionary) -> void:
 # crown on a bone-pale face, a grey beard, leaning on an iron staff. It holds still, then shuffles.
 
 func _draw_barrow_wight(canvas: Image, st: Dictionary) -> void:
-	var cloak := _ramp(["#121216", "#202026", "#303038", "#46464f"])
-	var bone := _ramp(["#4e4a44", "#7a746a", "#a49c8e"])
-	var crown := _ramp(["#3a3020", "#5a4a30", "#8a7448"])
-	var iron := Color("#34343c")
+	var cloak := _ramp(["Void", "Night", "Dusk", "Slate"])
+	var bone := _ramp(["Slate", "Stone", "Mist"])
+	var crown := _ramp(["Night", "Dusk", "Stone"])
+	var iron := _c("Dusk")
 	var o := NIGHT_O
 	var f: int = st.f
 	var ph: float = st.ph
@@ -1604,26 +1622,26 @@ func _draw_watcher(canvas: Image, st: Dictionary) -> void:
 
 func _watch_eye(canvas: Image, c: Vector2, r: float, look: Vector2) -> void:
 	var layer := _layer()
-	_flat_ellipse(layer, c, Vector2(r, r * 0.85), Color("#d8e2ea"))
+	_flat_ellipse(layer, c, Vector2(r, r * 0.85), _c("Moonlight"))
 	for y in S:
 		for x in S:
 			if layer.get_pixel(x, y).a > 0.0 and y + 0.5 > c.y + r * 0.3:
-				layer.set_pixel(x, y, Color("#98a4b0"))
-	_flat_ellipse(layer, c + look * r * 0.35, Vector2.ONE * maxf(r * 0.55, 0.8), Color("#5fc8e0"))
+				layer.set_pixel(x, y, _c("Mist"))
+	_flat_ellipse(layer, c + look * r * 0.35, Vector2.ONE * maxf(r * 0.55, 0.8), _c("Dewlight"))
 	var pupil := Vector2i((c + look * r * 0.45).floor())
 	layer.set_pixelv(pupil, HOLLOW)
 	_stamp(canvas, layer, NIGHT_O)
 
 # --- Ash Crawler --------------------------------------------------------------------------------
-# Its burning ash clears Spored behind it: a slow segmented crawler of charcoal, embers glowing
-# in its cracks, ash flaking off and left in a grey trail.
+# Its burning ash clears Spored behind it: a slow segmented crawler of charcoal, cold ghost-fire
+# smouldering in its cracks (never warm, art_direction.md), ash flaking off and left in a grey trail.
 
 func _draw_ash_crawler(canvas: Image, st: Dictionary) -> void:
-	var coal := _ramp(["#141212", "#221f1e", "#332e2b", "#48413b"])
-	var ember := Color("#c8502a")
-	var ember_dim := Color("#5a2014")
-	var hot := Color("#ffb070")
-	var ash := Color("#6a6662")
+	var coal := _ramp(["Void", "Night", "Dusk", "Slate"])
+	var ember := _c("Wraithlight")
+	var ember_dim := _c("Bruise")
+	var hot := _c("Moonlight")
+	var ash := _c("Slate")
 	var o := NIGHT_O
 	var f: int = st.f
 	var ph: float = st.ph
@@ -1701,9 +1719,9 @@ func _draw_moth_queen(canvas: Image, st: Dictionary) -> void:
 	canvas.blend_rect(pose, Rect2i(0, 0, S, S), Vector2i.ZERO)
 
 func _moth_queen_pose(canvas: Image, f: int, ph: float, open: float, eclipse: bool, h: int) -> void:
-	var wing := _ramp(["#16121e", "#241e30", "#342c44", "#4a405c"])
-	var fur := _ramp(["#1a1620", "#2a2430", "#3c3444", "#544a5c"])
-	var bone := _ramp(["#6a6460", "#968e86", "#bcb4a8"])
+	var wing := _ramp(["Void", "Dread", "Shade", "Bruise"])
+	var fur := _ramp(["Void", "Night", "Dusk", "Slate"])
+	var bone := _ramp(["Slate", "Stone", "Mist"])
 	var o := NIGHT_O
 	var c := Vector2(72, 62 + h)
 	var lift := (1.0 - open) * 16.0 if eclipse else 0.0
@@ -1742,7 +1760,7 @@ func _moth_wing(canvas: Image, c: Vector2, r: Vector2, angle: float, ramp: Array
 			if q > 1.0 or (q > 0.92 and (x * 7 + y * 3) % 5 == 0):
 				continue
 			var inner := -d.x * side  # 1 = towards the body
-			var col: Color = ramp[1] if side < 0 else ramp[2]
+			var col: Color = ramp[2] if side < 0 else ramp[1]
 			if q > 0.82:
 				col = ramp[3] if (x + y) % 2 == 0 else ramp[2]
 			elif posmod(roundi(atan2(d.y, d.x * side) * 9.0), 4) == 0 and q > 0.35:
@@ -1755,7 +1773,7 @@ func _moth_wing(canvas: Image, c: Vector2, r: Vector2, angle: float, ramp: Array
 					if sd.length() < 1.0:
 						col = HOLLOW
 					elif sd.length() < 1.35 and (x + y + f) % 2 == 0:
-						col = Color("#4a8aa0")
+						col = _c("Dew")
 			elif inner > 0.45 and d.y < 0.2 and posmod(roundi(d.y * r.y), 4) != 0 and absf(fposmod(inner * 8.0, 1.0) - 0.5) < 0.3:
 				col = bone[1]
 			layer.set_pixel(x, y, col)
@@ -1777,7 +1795,7 @@ func _feather_antenna(canvas: Image, a: Vector2, b: Vector2, stem: Color, barb: 
 
 func _draw_shellbound(canvas: Image, st: Dictionary) -> void:
 	var body := _ramp(NIGHT)
-	var shell := _ramp(["#120e1c", "#261c3a", "#3e2e5c", "#7a66a8"])
+	var shell := _ramp(["Dread", "Shade", "Bruise", "Wraithlight"])
 	var o := NIGHT_O
 	var cracked: bool = st.variant == "cracked"
 	var f: int = st.f
@@ -1835,7 +1853,7 @@ func _draw_shellbound(canvas: Image, st: Dictionary) -> void:
 			var pts: Array = []
 			for p: Vector2 in sc:
 				pts.append(p + off)
-			_line(canvas, pts, Color("#9a88d8"))
+			_line(canvas, pts, _c("Wraithlight"))
 		var shard: Array = plates[1]
 		_plate(canvas, [shard[0] + off, shard[1] + off, (shard[1] + shard[2]) / 2 + off], shell, o)
 		return
@@ -1885,9 +1903,9 @@ func _draw_whisper_swarm(canvas: Image, st: Dictionary) -> void:
 	var dir: Vector2 = Vector2(1, 0) if st.dir == SIDE else (Vector2(0, 1) if st.dir == DOWN else Vector2(0, -1))
 	var c := Vector2(32, 27 + roundi(sin(ph)))
 	_shadow(canvas, Vector2(32, 46), Vector2(10, 2))
-	var haze := Color(NIGHT[1])
+	var haze := _c(NIGHT[1])
 	for k in 3:
-		haze.a = 0.5 - k * 0.12
+		haze.a = 0.28 - k * 0.08  # thin: the detail pass adds its own smoke
 		_blend_ellipse(canvas, c - dir * k * 4.0, Vector2(12, 9) - Vector2.ONE * k * 2.0, haze)
 	for i in 24:
 		var a := i * 2.39996 + ph * (0.5 + (i % 3) * 0.35) * (1.0 if i % 2 == 0 else -1.0)
@@ -1895,14 +1913,14 @@ func _draw_whisper_swarm(canvas: Image, st: Dictionary) -> void:
 		var p := (c + Vector2(cos(a) * rad, sin(a) * rad * 0.75) - dir * (i % 5) * 1.3).round()
 		var q := Vector2i(p)
 		if i % 6 == 0:  # a glinting mote
-			_glow(canvas, q, Color("#c8dcff"))
+			_glow(canvas, q, _c("Moonlight"))
 			continue
-		_px(canvas, q.x, q.y, Color(NIGHT[3]))
-		_px(canvas, q.x + 1, q.y, Color(NIGHT[1]))
-		_px(canvas, q.x, q.y + 1, Color(NIGHT[1]))
+		_px(canvas, q.x, q.y, _c(NIGHT[3]))
+		_px(canvas, q.x + 1, q.y, _c(NIGHT[1]))
+		_px(canvas, q.x, q.y + 1, _c(NIGHT[1]))
 		_px(canvas, q.x + 1, q.y + 1, NIGHT_O)
 	for k in 3:  # whispers curling off behind
-		var col := Color(NIGHT[3])
+		var col := _c(NIGHT[3])
 		for s in 6:
 			var t := s / 5.0
 			var p := c - dir * (10.0 + t * 8.0) + dir.orthogonal() * (k - 1) * 5.0 + dir.orthogonal() * sin(ph + t * 4.0 + k) * 2.0
@@ -1917,8 +1935,8 @@ func _draw_whisper_swarm(canvas: Image, st: Dictionary) -> void:
 func _draw_dream_thief(canvas: Image, st: Dictionary) -> void:
 	var body := _ramp(NIGHT)
 	var o := NIGHT_O
-	var warm := _ramp(["#c8902a", "#ffd27a", "#fff4d0"])
-	var teeth := Color("#e8f4ff")
+	var warm := _ramp(["Gold", "Glow", "Heartlight"])
+	var teeth := _c("Moonlight")
 	var f: int = st.f
 	var ph: float = st.ph
 	var b: int = [0, -2, -1, 0, -2, -1][f]
@@ -1966,30 +1984,30 @@ func _draw_dream_thief(canvas: Image, st: Dictionary) -> void:
 				orb = Vector2(32, 34 + b)
 			else:
 				for side: int in [-1, 1]:  # its light spilling out past its sides
-					_blend_ellipse(canvas, Vector2(32 + side * 7, 33 + b), Vector2(2, 3), Color(1.0, 0.85, 0.5, 0.35))
+					_blend_ellipse(st.warm, Vector2(32 + side * 7, 33 + b), Vector2(2, 3), _c("Glow", 0.35))
 	if orb != Vector2.ZERO:
-		_blend_ellipse(canvas, orb, Vector2(5, 5), Color(1.0, 0.85, 0.5, 0.3))
-		_flat_ellipse(canvas, orb, Vector2(3, 3), warm[1])
-		_flat_ellipse(canvas, orb + Vector2(0.5, -0.5), Vector2(1.5, 1.5), warm[2])
+		_blend_ellipse(st.warm, orb, Vector2(4, 4), _c("Glow", 0.3))
+		_flat_ellipse(st.warm, orb, Vector2(3, 3), warm[1])
+		_flat_ellipse(st.warm, orb + Vector2(0.5, -0.5), Vector2(1.5, 1.5), warm[2])
 		var claws := _layer()  # thin arms wrapped round it
 		_stroke(claws, [orb + Vector2(-4, -3), orb + Vector2(-3, 2), orb + Vector2(1, 3)], 0.7, body[2])
-		_stamp(canvas, claws, o)
+		_stamp(st.warm, claws, o)  # over the orb, so on the warm layer too
 	for k in 2:  # sparks of stolen light dribbling behind
 		var t := fposmod(float(f) / FRAMES + k * 0.5, 1.0)
 		var back := Vector2(-1, 0) if st.dir == SIDE else (Vector2(0, -1) if st.dir == DOWN else Vector2(0, 1))
 		var p := Vector2(32, 34) + back * (8.0 + t * 10.0) + Vector2(0, t * 6.0)
 		var col := warm[1]
 		col.a = 1.0 - t
-		_blend_px(canvas, roundi(p.x), roundi(p.y), col)
+		_blend_px(st.warm, roundi(p.x), roundi(p.y), col)
 
 # --- Weeper -------------------------------------------------------------------------------------
 # Mends nearby nightmares: a hunched figure in a grey shroud, bald pale head bowed low, long arms
 # hanging to the ground, pale slit eyes streaming black tears that drip and pool.
 
 func _draw_weeper(canvas: Image, st: Dictionary) -> void:
-	var shroud := _ramp(["#1c1c22", "#2c2c34", "#40404a", "#585864"])
-	var skin := _ramp(["#5a5660", "#7e7a86", "#a29eaa"])
-	var tear := Color("#020203")
+	var shroud := _ramp(["Night", "Dusk", "Slate", "Stone"])
+	var skin := _ramp(["Slate", "Stone", "Mist"])
+	var tear := _c("Void")
 	var o := NIGHT_O
 	var f: int = st.f
 	var ph: float = st.ph
@@ -2017,14 +2035,14 @@ func _draw_weeper(canvas: Image, st: Dictionary) -> void:
 			_px(canvas, 41, 27 + h, EYE)
 			_line(canvas, [Vector2(41, 28 + h), Vector2(41, 32 + h)], tear)
 			_px(canvas, 41, 34 + h + drip, tear)
-			_blend_ellipse(canvas, Vector2(42, 44), Vector2(3, 1), Color(0, 0, 0, 0.8))
+			_blend_ellipse(canvas, Vector2(42, 44), Vector2(3, 1), _c("Void", 0.8))
 		DOWN:
 			for x: int in [29, 30, 33, 34]:
 				_px(canvas, x, 27 + h, EYE)
 			for x: int in [29, 34]:
 				_line(canvas, [Vector2(x, 28 + h), Vector2(x, 31 + h + (1 if x == 29 else 0))], tear)
 				_px(canvas, x, 33 + h + drip, tear)
-			_blend_ellipse(canvas, Vector2(32, 44), Vector2(4, 1.2), Color(0, 0, 0, 0.8))
+			_blend_ellipse(canvas, Vector2(32, 44), Vector2(4, 1.2), _c("Void", 0.8))
 
 # --- The Hollow Oak -----------------------------------------------------------------------------
 # Act 4 boss and the run's end: the Hollow's corrupted heart, a huge dead oak walking on its roots,
@@ -2033,8 +2051,8 @@ func _draw_weeper(canvas: Image, st: Dictionary) -> void:
 # a 176px frame.
 
 func _draw_hollow_oak(canvas: Image, st: Dictionary) -> void:
-	var bark := _ramp(["#151212", "#231d1c", "#342a28", "#4a3c36"])
-	var thorn := Color("#070505")
+	var bark := _ramp(["Void", "Night", "Dusk", "Slate"])
+	var thorn := _c("Void")
 	var o := NIGHT_O
 	var f: int = st.f
 	var ph: float = st.ph
@@ -2116,7 +2134,7 @@ func _draw_hollow_oak(canvas: Image, st: Dictionary) -> void:
 			for x in S:
 				var q := ((Vector2(x + 0.5, y + 0.5) - Vector2(88, 72)) / Vector2(r, r * 0.7)).length()
 				if absf(q - 1.0) * r < 0.8 and (x + y) % 2 == 0:
-					_blend_px(canvas, x, y, Color(0.7, 0.9, 1.0, 0.4 * (1.0 - f / 6.0)))
+					_blend_px(canvas, x, y, _c("Moonlight", 0.4 * (1.0 - f / 6.0)))
 
 # The hollow mouth: dark, splintered at the rim, the heart's cold fire burning in its depths.
 func _oak_mouth(canvas: Image, c: Vector2, r: Vector2, bark: Array[Color], f: int) -> void:
@@ -2135,8 +2153,8 @@ func _oak_mouth(canvas: Image, c: Vector2, r: Vector2, bark: Array[Color], f: in
 # crumbles it to ash when the Oak is dispelled.
 
 func _draw_thorn_sapling(canvas: Image, st: Dictionary) -> void:
-	var bark := _ramp(["#141010", "#221a18", "#342826", "#4a3a34"])
-	var thorn := Color("#070505")
+	var bark := _ramp(["Void", "Night", "Dusk", "Slate"])
+	var thorn := _c("Void")
 	var o := NIGHT_O
 	var f: int = st.f
 	var g: float = [0.12, 0.3, 0.5, 0.7, 0.88, 1.0][f] if st.anim == "grow" else 1.0
@@ -2146,7 +2164,7 @@ func _draw_thorn_sapling(canvas: Image, st: Dictionary) -> void:
 		for x in range(18, 47):
 			var q := ((Vector2(x + 0.5, y + 0.5) - Vector2(32, 44)) / Vector2(13, 4)).length()
 			if q < 1.0 and not (q > 0.75 and (x + y) % 2 == 0):
-				_px(canvas, x, y, Color("#140e0c") if (x * 3 + y) % 7 else Color("#221816"))
+				_px(canvas, x, y, _c("Dread") if (x * 3 + y) % 7 else _c("Dread"))
 	var tree := _layer()
 	var height := 26.0 * g
 	var trunk: Array = [Vector2(32, 44), Vector2(33, 44 - height * 0.4), Vector2(31, 44 - height * 0.75), Vector2(32 + sway, 44 - height)]
@@ -2172,7 +2190,7 @@ func _draw_thorn_sapling(canvas: Image, st: Dictionary) -> void:
 	var knot := Vector2i(Vector2(32, 44 - height * 0.45).round())
 	if crumble < 0.5:
 		var pulse: float = [1.0, 0.8, 0.6, 0.5, 0.6, 0.8][f]
-		_glow(ghost, knot, EYE.lerp(Color("#5fb8e0"), 1.0 - pulse), EYE_HALO)
+		_glow(ghost, knot, EYE.lerp(_c("Mist"), 1.0 - pulse), EYE_HALO)
 	if crumble > 0.0:  # crumbling from the top down into grey ash
 		for y in S:
 			for x in S:
@@ -2183,8 +2201,8 @@ func _draw_thorn_sapling(canvas: Image, st: Dictionary) -> void:
 				if not _keep(x, y, 1.0 - crumble * 1.3 + from_top * -0.3 + 0.3):
 					ghost.set_pixel(x, y, Color(0, 0, 0, 0))
 				else:
-					ghost.set_pixel(x, y, c.lerp(Color("#5a5652"), crumble))
+					ghost.set_pixel(x, y, c.lerp(_c("Slate"), crumble))
 		for k in 5:  # ash falling
 			var p := Vector2(26 + k * 3, 20 + crumble * 20 + (k % 2) * 3)
-			_px(ghost, roundi(p.x), roundi(p.y), Color("#6a6662"))
+			_px(ghost, roundi(p.x), roundi(p.y), _c("Slate"))
 	_merge(canvas, ghost)
