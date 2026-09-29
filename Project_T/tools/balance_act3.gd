@@ -80,6 +80,13 @@ func _run() -> void:
 			tower.focus = Tower.Focus.POWER
 	if DamageLog.instance:
 		DamageLog.instance.damage_dealt.connect(_on_damage)
+	var tracker_hook := func(n) -> void:
+		if n is ReactionTracker:
+			n.reaction_fired.connect(func(id, _e, _chain, towers) -> void:
+				_reaction_towers[id] = [Engine.get_process_frames(), towers])
+	main.child_entered_tree.connect(tracker_hook)
+	for n in main.get_children():
+		tracker_hook.call(n)
 	spawner.child_entered_tree.connect(func(n) -> void:
 		if n.has_method("take_damage"):
 			(func() -> void: spawned_health += n.max_health).call_deferred())
@@ -119,6 +126,7 @@ func _run() -> void:
 
 func _on_damage(event) -> void:
 	total += event.amount
+	_contribute(event)
 	var name: String = event.source_name
 	by_tower[name] = by_tower.get(name, 0.0) + event.amount
 	if is_instance_valid(event.source) and event.source is Tower:
@@ -136,11 +144,13 @@ func _on_damage(event) -> void:
 
 func _report(with_bell: bool, director: DriftDirector) -> void:
 	print("=== map seed %d, drifts %d-%d, %s, finals at rank %d, drifts cleared %d ===" % [map_seed, FIRST, LAST,
-		"with The Great Bell" if with_bell else "with a Lullaby Bell instead", RANK, director.drifts_cleared])
+		("board " + maze) if maze != "" else ("with The Great Bell" if with_bell else "with a Lullaby Bell instead"), RANK, director.drifts_cleared])
 	var rows := by_tower.keys()
 	rows.sort_custom(func(a, b) -> bool: return by_tower[a] > by_tower[b])
+	print("  %-22s %10s  %6s  %s" % ["Warden", "damage", "share", "contribution"])
 	for name in rows:
-		print("  %-22s %10.0f  %5.1f%%" % [name, by_tower[name], 100.0 * by_tower[name] / maxf(total, 1.0)])
+		print("  %-22s %10.0f  %5.1f%%  %5.1f%%" % [name, by_tower[name], 100.0 * by_tower[name] / maxf(total, 1.0),
+			100.0 * by_contrib.get(name, 0.0) / maxf(total, 1.0)])
 	if maze != "":
 		print("  board: %s (%s-led)" % [maze, "Bellflower" if maze == "bell" else "Firefly / Dewdrop"])
 		for line in by_line:
@@ -181,3 +191,87 @@ func _report_stall(director: DriftDirector, spawner) -> void:
 			enemy.enemy_data.display_name, enemy.health, enemy.max_health, enemy.is_cleansed,
 			enemy.get_current_cell(), enemy.get_target_cell(), s.sleep_time, s.is_held(), s.active_ids(),
 			enemy.is_processing(), enemy.get_move_speed(), s.get_speed_multiplier(), s.slow_time, s.slow_amount])
+
+# --- Contribution (design chat: credit support, not only direct damage) --------------------------------
+# Each damage event starts as its dealer's; parts of it move to the Warden that made it possible:
+# - Exposed (Marked): the extra damage-taken share -> the Marked applier.
+# - Caught: the extra share -> the nearest Dreamcatcher line Warden.
+# - Reactions: damage tagged with a Reaction -> split evenly among the Wardens that set it up
+#   (ReactionTracker.reaction_fired's towers).
+# - Slows: a slowed nightmare stays in range 1/speed longer, so (1 - speed) of the damage it takes ->
+#   whoever slows it, split by slow strength: Damp / Drowsy appliers, the PathCloud it stands in
+#   (Morning Fog), the rubble (the nearest Rockslide).
+# - Held / Asleep: half the damage taken meanwhile -> the Held / Drowsy applier (a stand-in for the
+#   extra time the hold buys).
+var by_contrib := {}  # Warden name -> contribution
+var _reaction_towers := {}  # Reaction id -> [frame, towers] (the last one that fired)
+
+func _contribute(event) -> void:
+	var source_name: String = event.source_name
+	var parts := {}  # name -> amount moved to it
+	var amount: float = event.amount
+	var e = event.enemy
+	if is_instance_valid(e) and not e.is_cleansed:
+		var s: EnemyStatuses = e.statuses
+		var taken: float = maxf(event.taken_multiplier, 1.0)
+		if s.has(EnemyStatuses.MARKED) and _is_tower(s.source(EnemyStatuses.MARKED)):
+			var extra := maxf(EnemyStatuses.MARKED_EXTRA, s.marked_extra)
+			_move(parts, s.source(EnemyStatuses.MARKED), amount * extra / taken)
+		if s.is_caught() and s.caught_bonus > 0.0:
+			var catcher := _nearest_tower(e.global_position, func(t: Tower) -> bool: return t.tower_data.caught_bonus > 0.0)
+			if catcher:
+				_move(parts, catcher, amount * (1.0 - 1.0 / (1.0 + s.caught_bonus)))
+		if s.is_held() or s.is_asleep():
+			var holder = s.source(EnemyStatuses.HELD) if s.is_held() else s.source(EnemyStatuses.DROWSY)
+			if _is_tower(holder):
+				_move(parts, holder, amount * 0.5)
+		else:
+			var slows := {}  # Tower -> slow strength
+			if s.has(EnemyStatuses.DAMP) and _is_tower(s.source(EnemyStatuses.DAMP)):
+				slows[s.source(EnemyStatuses.DAMP)] = EnemyStatuses.DAMP_SLOW * maxf(s.potency(EnemyStatuses.DAMP), 1.0)
+			if s.has(EnemyStatuses.DROWSY) and _is_tower(s.source(EnemyStatuses.DROWSY)):
+				var drowsy = s.source(EnemyStatuses.DROWSY)
+				slows[drowsy] = slows.get(drowsy, 0.0) + EnemyStatuses.DROWSY_SLOW_PER_STACK * s.stacks(EnemyStatuses.DROWSY)
+			if s.slow_time > 0.0 and s.slow_amount > 0.0:
+				var slower := _cloud_or_rubble_tower(e.global_position)
+				if slower:
+					slows[slower] = slows.get(slower, 0.0) + s.slow_amount
+			var total_slow := 0.0
+			for t in slows:
+				total_slow += slows[t]
+			if total_slow > 0.0:
+				var share := amount * (1.0 - s.get_speed_multiplier())
+				for t in slows:
+					_move(parts, t, share * slows[t] / total_slow)
+	if _reaction_towers.has(event.tag):
+		var towers: Array = _reaction_towers[event.tag][1].filter(func(t) -> bool: return _is_tower(t))
+		for t in towers:
+			_move(parts, t, amount / towers.size())
+	var moved := 0.0
+	for name in parts:
+		moved += parts[name]
+	var scale := minf(1.0, amount / moved) if moved > 0.0 else 1.0  # Several supports never give more than the hit
+	for name in parts:
+		by_contrib[name] = by_contrib.get(name, 0.0) + parts[name] * scale
+	by_contrib[source_name] = by_contrib.get(source_name, 0.0) + amount - moved * scale
+
+func _move(parts: Dictionary, tower, amount: float) -> void:
+	var name: String = tower.tower_data.display_name
+	parts[name] = parts.get(name, 0.0) + amount
+
+static func _is_tower(node) -> bool:
+	return is_instance_valid(node) and node is Tower
+
+func _nearest_tower(at: Vector2, want: Callable) -> Tower:
+	var best: Tower = null
+	for t in main.get_node("%TowerContainer").get_children():
+		if t is Tower and want.call(t) and (best == null or t.global_position.distance_to(at) < best.global_position.distance_to(at)):
+			best = t
+	return best
+
+# The Warden whose cloud (PathCloud) covers `at`, else the nearest Warden that makes rubble.
+func _cloud_or_rubble_tower(at: Vector2) -> Tower:
+	for node in main.get_children():
+		if node is PathCloud and is_instance_valid(node._tower) and node.global_position.distance_to(at) <= node._radius:
+			return node._tower
+	return _nearest_tower(at, func(t: Tower) -> bool: return t.attack_data.rubble_slow > 0.0)
