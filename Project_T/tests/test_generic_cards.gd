@@ -52,7 +52,9 @@ func _test_pool() -> void:
 	_check(not dreams.is_eligible(_card("heavy_air")) and dreams.is_eligible(_card("tangled")),
 		"Heavy Air needs a Warden that slows; Tangled any status (Spored)")
 	dreams.unlocked["dewdrop"] = true
-	_check(dreams.is_eligible(_card("heavy_air")), "…Dewdrop (Soaked) is enough")
+	_check(not dreams.is_eligible(_card("heavy_air")), "…Dewdrop isn't (Soaked no longer slows)")
+	dreams.unlocked["bellflower"] = true
+	_check(dreams.is_eligible(_card("heavy_air")), "…Bellflower (Drowsy) is")
 	_check(dreams.is_eligible(_card("short_roots")) == dreams.owns_range_at_most(2.0), "Short Roots needs a Warden with range 2 or less")
 
 func _test_economy() -> void:
@@ -96,7 +98,8 @@ func _test_stat_rules() -> void:
 	dreams.take(_card("lasting_dreams"))
 	_check(is_equal_approx(dreams.get_status_duration(dewdrop, EnemyStatuses.DAMP), damp + 2.0), "Lasting Dreams ×2: +2 s")
 	dreams.take(_card("heavy_air"))
-	_check(is_equal_approx(dreams.get_status_strength_multiplier(EnemyStatuses.DAMP), 1.2)
+	_check(is_equal_approx(dreams.get_status_strength_multiplier(EnemyStatuses.DROWSY), 1.2)
+		and dreams.get_status_strength_multiplier(EnemyStatuses.DAMP) == 1.0
 		and dreams.get_status_strength_multiplier(EnemyStatuses.MARKED) == 1.0, "Heavy Air: slows 20% stronger, nothing else")
 	# Short Roots and Forest's Edge
 	dreams.take(_card("short_roots"))
