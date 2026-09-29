@@ -46,6 +46,7 @@ Tree space is **1280×960 px** (native pixels; the screen pans and zooms). Every
   ones the player has unlocked, set a perk icon glowing on each filled one). Plus a 6th point for
   the **secret sixth stone**: hidden (not even sealed) until the whole tree is grown, then it rises
   out of the roots with its own short animation.
+- The sixth stone (`loadout_stones[5]`, at the trunk's foot) is never in `grove_tree.png`: draw `grove/waystone_6_rise.png` once (24 frames of 96×96, 12 fps = 2 s: the roots part over a crack of gold light, the stone pushes up through the soil, a flash, the light settles), then loop `grove/waystone_6_idle.png` (4 frames of 96×96, about 4 fps). Both have the stone's centre at (48, 60) in the frame: draw at `loadout_stones[5] − (48, 60)`.
 - `moon`: the moon's centre (for a light or a parallax offset).
 
 ### How the states fit together
@@ -66,6 +67,8 @@ the hollow.
 | File | Size | Layout | Use |
 |---|---|---|---|
 | `loadout_slots.png` | 256×64 | 64×64: 0 locked (sealed by a vine), 1 empty socket, 2 filled (gold rim), 3 filled and selected | "Carry into the dream": draw a 32×32 perk icon centred on a filled slot |
+| `loadout_slot_6.png` | 192×64 | 64×64: 0 empty socket, 1 filled, 2 filled and selected (no locked frame: it is never shown locked) | the **secret sixth** slot: the same socket with a starlight ring, four small stars and the Hollow's arch carved in gold at its top |
+| `starlit_card.png` | 1000×220 | 4 frames of 250×220 (the Dream card size), a slow twinkle loop | **Starlit card backs** ("Dream of everything"): a night-sky frame for Dream offer cards. 9-slice, 28 px margins on every side, **tile** the edges and the middle (NinePatchRect `axis_stretch` TILE) so taller cards stay seamless. Stars live only in the border band; the middle is plain dark for text and the top edge's middle is left clear. Draw it **behind** the card's own style (e.g. a child with `show_behind_parent`), and lighten that style's fog (about 0.2 edge / 0.45 centre) so the stars show: the rarity / Entwined thread, the gem, the Bittersweet line stay on top, unchanged |
 
 ## Icons (`icons/`, 32×32)
 

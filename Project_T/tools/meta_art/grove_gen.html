@@ -1413,6 +1413,165 @@ const MEMORY_SCENES = [
 ];
 function memory(i) { const img = new Img(MW, MH); MEMORY_SCENES[i](img); return img; }
 
+// ---------- Starlit card backs (milestone "Dream of everything", meta_design.md) ----------
+// A night-sky background for a Dream offer card: 250×220 (DreamScreen CARD_SIZE), drawn in 2× chunky
+// pixels, 9-slice with STARLIT_MARGIN on every side. The card's own style (the rarity / Entwined thread
+// along the top, the gem, the text) draws over it, so the frame keeps the top edge's middle clear and
+// the middle calm and dark for text. Only the border band has stars, so the edges tile (NinePatchRect
+// axis_stretch TILE) when a card grows taller. Four frames make a slow twinkle loop.
+const STARLIT_W = 250, STARLIT_H = 220, STARLIT_MARGIN = 28, STARLIT_FRAMES = 4;
+function starlitCard(frame) {
+  const s = 2, W = STARLIT_W / s | 0, H = STARLIT_H / s | 0, M = STARLIT_MARGIN / s, L = new Img(W, H);
+  const band = (x, y) => Math.min(x, y, W - 1 - x, H - 1 - y);  // distance to the edge, in chunky px
+  // Sky: deep blue-violet, lightest at the rim (a glow of dusk), darkest behind the text.
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    const d = band(x, y), t = Math.max(0, 1 - d / M) ** 1.6;  // fades out inside the 9-slice margin (the middle tiles)
+    L.set(x, y, pick([HW.Void, HW.Dread, HW.Night, HW.Shade], clamp(.1 + t * .95, 0, 1), x, y, .9));
+  }
+  // A faint band of the Milky Way across the bottom-left corner and the top-right one.
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    if (band(x, y) >= M - 1) continue;
+    const m = Math.abs((x / W - y / H) * 1.4) - .55;
+    if (m > 0 && m < .12 && hash(x, y, 1301) < .35 + (.12 - m) * 3) L.set(x, y, HW.Bruise);
+  }
+  // Stars in the border band only. Positions repeat every 27 chunky px down the sides, so a stretched
+  // card tiles cleanly; each star twinkles on its own phase over the four frames.
+  const stars = [];
+  for (let k = 0; k < 96; k++) {
+    const side = k % 4, u = hash(k, 1, 1302), v = hash(k, 2, 1302) * (M - 3) + 1;
+    let x, y;
+    if (side === 0) { x = u * W; y = v; } else if (side === 1) { x = u * W; y = H - 1 - v; }
+    else if (side === 2) { x = v; y = M + (u * 27 | 0) + (k % 3) * 27; } else { x = W - 1 - v; y = M + (u * 27 | 0) + (k % 3) * 27; }
+    if (y < 3 && Math.abs(x - W / 2) < W * .3) continue;  // leave the thread's middle clear
+    stars.push([Math.round(x), Math.round(y), hash(k, 3, 1302), (hash(k, 4, 1302) * 4) | 0]);
+  }
+  for (const [x, y, size, phase] of stars) {
+    const lit = (frame + phase) % 4, dim = lit === 3;
+    const c = size > .85 ? HW.Moonlight : size > .5 ? HW.Mist : HW.Wraithlight;
+    if (size > .85 && !dim) {  // a small four-point star
+      L.set(x, y, lit === 0 ? HW.Moonlight : HW.Mist);
+      for (const [a, b] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) L.set(x + a, y + b, lit === 0 ? HW.Mist : HW.Wraithlight);
+    } else L.set(x, y, dim ? HW.Dusk : c);
+  }
+  // A few faint stars drifting in from the band (never behind the text in the middle).
+  for (let k = 0; k < 40; k++) {
+    const x = hash(k, 5, 1303) * W | 0, y = hash(k, 6, 1303) * H | 0, d = band(x, y);
+    if (d >= M * .55 && d < M - 1 && !(y < 3)) L.set(x, y, (frame + k) % 4 === 0 ? HW.Wraithlight : HW.Dusk);
+  }
+  // Corner ornaments: a bright four-point star in each corner, with a soft halo.
+  for (const [cx, cy] of [[6, 6], [W - 7, 6], [6, H - 7], [W - 7, H - 7]]) {
+    ellipse(L, cx, cy, 5, 5, (x, y, dx, dy) => CA(HW.Wraithlight, .25 * (1 - Math.hypot(dx, dy))));
+    const r = frame % 2 ? 3 : 4;
+    for (let i = -r; i <= r; i++) { L.set(cx + i, cy, Math.abs(i) < 2 ? HW.Moonlight : HW.Mist); L.set(cx, cy + i, Math.abs(i) < 2 ? HW.Moonlight : HW.Mist); }
+  }
+  // A thin rim: Dusk, lit Slate along the top and left.
+  for (let x = 0; x < W; x++) for (const y of [0, H - 1]) if (!(y === 0 && Math.abs(x - W / 2) < W * .3)) L.set(x, y, y ? HW.Dusk : HW.Slate);
+  for (let y = 1; y < H - 1; y++) { L.set(0, y, HW.Slate); L.set(W - 1, y, HW.Dusk); }
+  // Scale up 2×.
+  const out = new Img(STARLIT_W, STARLIT_H);
+  for (let y = 0; y < STARLIT_H; y++) for (let x = 0; x < STARLIT_W; x++) { const X = x / s | 0, Y = y / s | 0; if (L.alpha(X, Y)) out.set(x, y, L.get(X, Y)); }
+  return out;
+}
+// A stretched card for the preview: 9-slice with tiled edges, the way the game draws it.
+function nineTile(src, W, H, m) {
+  const out = new Img(W, H), sw = src.w - 2 * m, sh = src.h - 2 * m;
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    const sx = x < m ? x : x >= W - m ? src.w - (W - x) : m + (x - m) % sw, sy = y < m ? y : y >= H - m ? src.h - (H - y) : m + (y - m) % sh;
+    if (src.alpha(sx, sy)) out.set(x, y, src.get(sx, sy));
+  }
+  return out;
+}
+
+// ---------- The secret sixth waystone (milestone "The Heartwood in full bloom", meta_design.md) ----------
+// Never drawn in grove_tree.png: it stays hidden until every Grove node is owned, then rises out of the
+// roots at the Hollow's threshold. World sprites are 96×96 with the stone's centre at SIXTH_ANCHOR
+// (draw a frame at loadout_stones[5] − SIXTH_ANCHOR).
+const SECRET_STONE = [640, 893];
+const SIXTH_CELL = 96, SIXTH_ANCHOR = [48, 60], SIXTH_RISE_FRAMES = 24, SIXTH_IDLE_FRAMES = 4;
+const ease = t => { t = clamp(t, 0, 1); return t * t * (3 - 2 * t); };
+// The stone itself: like the other five, a touch larger, the Hollow's arch carved in gold on its
+// face and a starlight rim along its lit edge. `twinkle` picks which rim stars are lit.
+function sixthStone(img, cx, cy, twinkle, clipY = 1e9, glow = 1) {
+  const S = new Img(img.w, img.h), O = new Img(img.w, img.h);
+  blob(S, cx, cy, 18, 15, [ST.d1, ST.m, ST.l1, ST.l2, ST.hi], { tex: .1, rim: true, seed: 6 });
+  blob(S, cx - 7, cy - 10, 8, 3, [LEAFG[1], LEAFG[2], LEAFG[3]], { tex: .2 });
+  O.stamp(S, ST.out);
+  // The carved arch: a doorway outline in Gold with a warm light inside it.
+  for (let y = -7; y <= 6; y++) for (let x = -5; x <= 5; x++) {
+    const inside = Math.abs(x) <= 4 && (y >= -2 || Math.hypot(x, (y + 2) * 1.1) <= 4.5), edge = inside && (Math.abs(x) === 4 || (y < -2 && Math.hypot(x, (y + 2) * 1.1) > 3.4) || y === 6);
+    if (!inside) continue;
+    O.set(cx + x, cy + 2 + y, edge ? HW.Gold : CA(y > 1 ? HW.Glow : HW.Ember, .55 + .45 * glow));
+  }
+  O.set(cx, cy + 5, HW.Heartlight);
+  // Starlight rim: moonlit pixels along the upper-left edge, and three little stars that twinkle.
+  for (let a = Math.PI * 1.05; a < Math.PI * 1.75; a += .05) O.set(cx + Math.cos(a) * 17.5, cy + Math.sin(a) * 14.5, HW.Moonlight);
+  [[-15, -9], [14, -11], [17, 3]].forEach(([dx, dy], k) => {
+    const lit = (twinkle + k) % 3 === 0;
+    O.set(cx + dx, cy + dy, lit ? HW.Moonlight : HW.Mist);
+    if (lit) for (const [a, b] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) O.set(cx + dx + a, cy + dy + b, HW.Wraithlight);
+  });
+  for (let y = 0; y < O.h && y <= clipY; y++) for (let x = 0; x < O.w; x++) if (O.alpha(x, y)) img.set(x, y, O.get(x, y));
+}
+// Two roots that lie across the spot and part to let the stone through (0 = closed, 1 = open).
+function partingRoots(img, cx, groundY, open) {
+  const L = new Img(img.w, img.h), gap = open * 22;
+  const fn = barkBig(66);
+  stroke(L, cx - 40, groundY + 2, cx - 4 - gap, groundY - 5 + open * 3, 8, 5, fn);
+  stroke(L, cx + 40, groundY + 3, cx + 4 + gap, groundY - 4 + open * 3, 8, 5, fn);
+  for (let x = 0; x < L.w; x++) for (let y = 1; y < L.h; y++) if (L.alpha(x, y) && !L.alpha(x, y - 1) && hash(x, y, 67) < .5) L.set(x, y, LEAFG[1 + (x % 2)]);  // moss on top
+  img.stamp(L, HB6[0]);
+}
+function sixthRiseFrame(f) {
+  const img = new Img(SIXTH_CELL, SIXTH_CELL), [cx, cy] = SIXTH_ANCHOR, groundY = cy + 15;
+  const open = ease(f / 6), rise = ease((f - 5) / 10), flash = f < 12 ? 0 : f <= 15 ? (f - 11) / 4 : Math.max(0, 1 - (f - 15) / 8);
+  // Soft ground shadow and, once the stone is up, the soil pushed aside around it.
+  ellipse(img, cx, groundY + 1, 24, 5, SHADOW(.4));
+  if (rise > 0) ellipse(img, cx, groundY, 20 + rise * 3, 4, (x, y, dx, dy) => pick([HW.Root, HW.Bark, HW.Loam], .4 - dy * .4, x, y, .6));
+  // A crack of golden light opens between the roots before the stone appears.
+  if (f >= 2 && f <= 9) {
+    const a = Math.min(1, (f - 1) / 4) * (f > 7 ? (10 - f) / 3 : 1);
+    ellipse(img, cx, groundY - 1, 4 + open * 14, 2, (x, y, dx, dy) => CA(Math.abs(dx) < .4 ? HW.Heartlight : HW.Glow, a * (1 - Math.abs(dx))));
+    for (let k = 0; k < 6; k++) img.set(cx + (hash(k, f, 68) - .5) * 30, groundY - 3 - hash(k, 1, 68) * (f - 1) * 3, HW.Loam);  // crumbs thrown up
+  }
+  // The stone pushes up through the soil (drawn only above the ground line).
+  if (rise > 0) sixthStone(img, cx, cy + (1 - rise) * 32, f % 3, groundY, 1);
+  partingRoots(img, cx, groundY, open);
+  // The light: a burst when it arrives, settling into a soft glow; sparkles fly up and fade.
+  const glowR = 26 + flash * 14, glowA = .18 + flash * .35;
+  if (f >= 12) ellipse(img, cx, cy + 2, glowR, glowR * .85, (x, y, dx, dy) => { const r = Math.hypot(dx, dy); return r > 1 ? null : CA(r < .35 ? HW.Heartlight : HW.Glow, glowA * (1 - r) ** 1.5); });
+  if (f >= 13 && f <= 22) for (let k = 0; k < 10; k++) {
+    const a = hash(k, 2, 69) * Math.PI * 2, d = 14 + (f - 13) * 3 * (.6 + hash(k, 3, 69) * .6), fade = 1 - (f - 13) / 10;
+    img.set(cx + Math.cos(a) * d, cy + Math.sin(a) * d * .7 - (f - 13) * 1.5, CA(k % 3 ? HW.Glow : HW.Moonlight, fade));
+  }
+  return img;
+}
+// At rest: the stone between its parted roots, a soft glow, the rim stars taking turns.
+function sixthIdleFrame(f) {
+  const img = new Img(SIXTH_CELL, SIXTH_CELL), [cx, cy] = SIXTH_ANCHOR, groundY = cy + 15;
+  ellipse(img, cx, groundY + 1, 24, 5, SHADOW(.4));
+  ellipse(img, cx, groundY, 23, 4, (x, y, dx, dy) => pick([HW.Root, HW.Bark, HW.Loam], .4 - dy * .4, x, y, .6));
+  sixthStone(img, cx, cy, f, groundY, .85 + (f % 2) * .15);
+  partingRoots(img, cx, groundY, 1);
+  ellipse(img, cx, cy + 2, 26, 22, (x, y, dx, dy) => { const r = Math.hypot(dx, dy); return r > 1 ? null : CA(HW.Glow, (.14 + (f % 2) * .04) * (1 - r) ** 1.5); });
+  return img;
+}
+// Its loadout slot (UI, 64×64 like loadout_slots.png): 0 empty socket, 1 filled, 2 filled + selected.
+// The same socket as the other five, with a starlight ring and the Hollow's arch carved at its top.
+function sixthSlot(state) {
+  const out = slotSprite(state + 1), c = 32;
+  for (let a = 0; a < Math.PI * 2; a += .045) {
+    const x = c + Math.cos(a) * 25.5, y = c + 2 + Math.sin(a) * 25.5;
+    if (Math.sin(a) < -.93) continue;  // the arch sits here
+    out.set(x, y, Math.cos(a - 3.9) > .6 ? HW.Moonlight : HW.Wraithlight);
+  }
+  [[8, 10], [55, 14], [58, 46], [7, 50]].forEach(([x, y], k) => { out.set(x, y, HW.Moonlight); if (k % 2 === 0) for (const [a, b] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) out.set(x + a, y + b, HW.Wraithlight); });
+  for (let y = -5; y <= 2; y++) for (let x = -3; x <= 3; x++) {
+    const inside = Math.abs(x) <= 3 && (y >= -2 || Math.hypot(x, y + 2) <= 3.2);
+    if (inside) out.set(c + x, 6 + y, Math.abs(x) === 3 || Math.hypot(x, y + 2) > 2.4 && y < -2 ? HW.Gold : HW.Glow);
+  }
+  return out;
+}
+
 // ---------- export (assets/meta/...) ----------
 function strip(imgs) { const w = imgs.reduce((s, i) => s + i.w, 0), h = Math.max(...imgs.map(i => i.h)), S = new Img(w, h); let x = 0; for (const i of imgs) { S.put(i, x, 0); x += i.w; } return S; }
 function stack(rows) { const w = Math.max(...rows.map(r => r.w)), h = rows.reduce((s, r) => s + r.h, 0), S = new Img(w, h); let y = 0; for (const r of rows) { S.put(r, 0, y); y += r.h; } return S; }
@@ -1478,7 +1637,7 @@ emitImg("grove/grove_sky.png", sky);
 emitImg("grove/grove_tree.png", tree);
 spreadNodes(canopies[0]);
 FRUIT_SPOTS.forEach(s => { s[1] = maskBottom(s[0]) - 8; });
-const layout = { size: [GW, GH], nodes: [], fruit_spots: FRUIT_SPOTS, loadout_stones: LOADOUT_STONES, moon: MOON, node_cell: 32, legendary_cell: 48, fruit_cell: 48 };
+const layout = { size: [GW, GH], nodes: [], fruit_spots: FRUIT_SPOTS, loadout_stones: [...LOADOUT_STONES, SECRET_STONE], moon: MOON, node_cell: 32, legendary_cell: 48, fruit_cell: 48 };
 const segs = {};
 for (const n of NODES) {
   const s = segment(n); segs[n.id] = s;
@@ -1491,6 +1650,40 @@ emitImg("grove/grove_nodes.png", stack(["perks", "families", "cards"].map(s => n
 emitImg("grove/grove_legendary.png", nodeRow("cards", true));
 emitImg("grove/dream_fruit.png", strip([0, 1, 2, 3, 4, 5, 6, 7, 8].map(fruitSprite)));
 emitImg("ui/loadout_slots.png", strip([0, 1, 2, 3].map(slotSprite)));
+// The secret sixth waystone: its rise (24 frames), its idle loop (4), and its loadout slot (3 states).
+const riseFrames = [...Array(SIXTH_RISE_FRAMES).keys()].map(sixthRiseFrame);
+emitImg("grove/waystone_6_rise.png", strip(riseFrames));
+emitImg("grove/waystone_6_idle.png", strip([...Array(SIXTH_IDLE_FRAMES).keys()].map(sixthIdleFrame)));
+emitImg("ui/loadout_slot_6.png", strip([0, 1, 2].map(sixthSlot)));
+// Preview: the rise on the tree (every 3rd frame, then the idle), cropped around the Hollow.
+{
+  const frames = [0, 3, 6, 9, 12, 15, 18, 23].map(i => riseFrames[i]), cw = 200, ch = 150, P = new Img(cw * 4, ch * 2);
+  frames.forEach((fr, k) => {
+    const T = new Img(GW, GH); T.put(sky); T.put(tree); T.put(fr, SECRET_STONE[0] - SIXTH_ANCHOR[0], SECRET_STONE[1] - SIXTH_ANCHOR[1]);
+    const ox = SECRET_STONE[0] - cw / 2, oy = SECRET_STONE[1] - ch + 40;
+    for (let y = 0; y < ch; y++) for (let x = 0; x < cw; x++) if (T.alpha(ox + x, oy + y)) P.set((k % 4) * cw + x, (k / 4 | 0) * ch + y, T.get(ox + x, oy + y));
+  });
+  emitImg("_preview/waystone_6_preview.png", P);
+}
+// Starlit card backs: 4 twinkle frames of 250×220 side by side.
+const starlit = [0, 1, 2, 3].map(starlitCard);
+emitImg("ui/starlit_card.png", strip(starlit));
+// Preview: a standard card and a tall one (tiled edges) under a mock of the card's own style
+// (light fog, the rarity thread along the top, the gem, text lines).
+{
+  const P = new Img(560, 340); for (let y = 0; y < P.h; y++) for (let x = 0; x < P.w; x++) P.set(x, y, HW.Void);
+  [[20, 20, 220, HW.Wraithlight], [290, 20, 310, LEAFG[3]]].forEach(([ox, oy, h, thread]) => {
+    const card = nineTile(starlit[0], STARLIT_W, h, STARLIT_MARGIN);
+    for (let y = 0; y < h; y++) for (let x = 0; x < STARLIT_W; x++) {
+      card.set(x, y, CA(HW.Void, .2 + .25 * Math.max(0, 1 - Math.hypot((x - 125) / 125, (y - h / 2) / (h / 2)))));
+    }
+    for (let x = 0; x < STARLIT_W; x++) card.set(x, 0, CA(thread, .3 + .7 * (1 - Math.abs(x - 125) / 125)));
+    ellipse(card, 36, 36, 7, 7, thread);
+    for (const [y, w] of [[32, 120], [64, 170], [92, 190], [106, 150], [120, 175]]) for (let x = 56; x < 56 + w && x < 224; x++) for (let k = 0; k < 6; k++) card.set(x, y + k, y === 32 ? thread : HW.Mist);
+    P.put(card, ox, oy);
+  });
+  emitImg("_preview/starlit_preview.png", P);
+}
 const PERK_ORDER = ["morning_stores", "rich_dew", "rested_roots", "seed_pouch", "clear_sight", "sprout_bed", "kindling", "early_bloom", "early_light", "first_care", "deep_taproot", "second_thoughts", "let_go", "omen_reader", "wider_dreams"];
 emitImg("icons/perk_icons.png", strip(PERK_ORDER.map(k => PERK_ICONS[k]())));
 const FAMILY_ORDER = ["sporeling", "firefly_jar", "dewdrop", "pebbling", "rootling", "bellflower", "acorn", "nestling", "whirligig"];
