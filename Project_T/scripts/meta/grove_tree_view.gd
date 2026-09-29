@@ -59,6 +59,13 @@ var _branch_textures := {}
 var _nodes_texture: Texture2D = load(ART + "grove/grove_nodes.png")
 var _legendary_texture: Texture2D = load(ART + "grove/grove_legendary.png")
 var _fruit_texture: Texture2D = load(ART + "grove/dream_fruit.png")
+var _sixth_rise: Texture2D = load(ART + "grove/waystone_6_rise.png")
+var _sixth_idle: Texture2D = load(ART + "grove/waystone_6_idle.png")
+var _sixth_rise_started := -1.0
+const SIXTH_STONE := 5  # loadout_stones index of the secret 6th waystone
+const SIXTH_STONE_ANCHOR := Vector2(48, 60)
+const SIXTH_RISE_FPS := 12.0
+const SIXTH_IDLE_FPS := 4.0
 var _icons := {
 	"perks": load(ART + "icons/perk_icons.png") as Texture2D,
 	"families": load(ART + "icons/family_icons.png") as Texture2D,
@@ -301,8 +308,11 @@ func tap(point: Vector2) -> void:
 		if point.distance_to(vec(spots[i]) + Vector2(0, FRUIT_FRAME * 0.6)) < TAP_RADIUS * 1.2:
 			fruit_pressed.emit(i)
 			return
-	for stone in load_layout().get("loadout_stones", []):
-		if point.distance_to(vec(stone)) < TAP_RADIUS * 1.5:
+	var stones: Array = load_layout().get("loadout_stones", [])
+	for i in stones.size():
+		if i == SIXTH_STONE and not HeartwoodMemory.has_sixth_slot(_memory):
+			continue  # The secret stone gives no hint until it has risen
+		if point.distance_to(vec(stones[i])) < TAP_RADIUS * 1.5:
 			stones_pressed.emit()
 			return
 	selected_id = ""
@@ -427,21 +437,46 @@ func _draw_fruit() -> void:
 			Rect2(frame * FRUIT_FRAME, 0, FRUIT_FRAME, FRUIT_FRAME))
 
 # The waystones at the roots: unlocked slots glow, filled ones hold their perk's icon.
+# The waystones at the roots: stones 0–4 are slots 1–5 (painted in the tree; unlocked ones glow),
+# stone 5 is the secret 6th (drawn here: it rises once, then idles). Filled ones hold their perk's icon.
 func _draw_stones() -> void:
 	var stones: Array = load_layout().get("loadout_stones", [])
-	var slots := HeartwoodMemory.loadout_slots(_memory)
+	var sixth := HeartwoodMemory.has_sixth_slot(_memory)
+	var normal := HeartwoodMemory.loadout_slots(_memory) - (1 if sixth else 0)
 	var carried := HeartwoodMemory.get_loadout(_memory)
-	for i in stones.size():
-		if i >= slots:
-			continue
+	var lit: Array[int] = []  # Stone index per slot, in loadout order
+	for i in mini(normal, SIXTH_STONE):
+		lit.append(i)
+	if sixth and stones.size() > SIXTH_STONE:
+		lit.append(SIXTH_STONE)
+		_draw_sixth_stone(vec(stones[SIXTH_STONE]))
+	for k in lit.size():
+		var i: int = lit[k]
 		var centre := vec(stones[i])
 		var pulse := 0.5 + 0.5 * sin(_time * 2.0 + i)
 		_layer.draw_circle(centre, 16.0, Color(1.0, 0.8, 0.45, 0.10 + 0.06 * pulse))
 		_layer.draw_circle(centre, 9.0, Color(1.0, 0.85, 0.5, 0.12 + 0.08 * pulse))
-		if i < carried.size():
-			var icon := get_icon(_unlocks[carried[i]])
+		if k < carried.size() and not (i == SIXTH_STONE and is_sixth_rising()):
+			var icon := get_icon(_unlocks[carried[k]])
 			if icon:
 				_layer.draw_texture_rect(icon, Rect2(centre - Vector2(12, 26), Vector2(24, 24)), false)
+
+# The secret 6th waystone (meta_assets.md): 24-frame rise at 12 fps played once, then a 4-frame idle
+# loop; the stone's centre is at (48, 60) in its 96×96 frame.
+func _draw_sixth_stone(centre: Vector2) -> void:
+	var texture := _sixth_idle
+	var frame := int(_time * SIXTH_IDLE_FPS) % 4
+	if is_sixth_rising():
+		texture = _sixth_rise
+		frame = mini(int((_time - _sixth_rise_started) * SIXTH_RISE_FPS), 23)
+	_layer.draw_texture_rect_region(texture, Rect2(centre - SIXTH_STONE_ANCHOR, Vector2(96, 96)),
+		Rect2(frame * 96, 0, 96, 96))
+
+func play_sixth_rise() -> void:
+	_sixth_rise_started = _time
+
+func is_sixth_rising() -> bool:
+	return _sixth_rise_started >= 0.0 and _time - _sixth_rise_started < 24.0 / SIXTH_RISE_FPS
 
 func _draw_motes() -> void:
 	for mote in _motes:

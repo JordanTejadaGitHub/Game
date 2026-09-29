@@ -175,26 +175,45 @@ func _make_card(card: UpgradeData) -> Button:
 
 # A card grows to fit its content (a Button doesn't size to its children), at least CARD_SIZE tall.
 # If that would pass the screen, the secondary lines shrink first, never the effect.
-# Starlit card backs ("Dream of everything", meta_design.md): a night sky in the card. Placeholder
-# (a deep-blue glow and a few drawn stars) until the art exists.
-const STARLIT_GLOW := Color("16244f")
+# Starlit card backs ("Dream of everything", meta_design.md; art: meta_assets.md "starlit_card.png"):
+# a night-sky 9-slice frame drawn behind the card's own style, whose fog is thinned so the stars show.
+# The thread, gem and Bittersweet line stay on top. Four twinkle frames cycle slowly.
+const STARLIT_TEXTURE := preload("res://assets/meta/ui/starlit_card.png")
+const STARLIT_FRAME := Vector2(250, 220)
+const STARLIT_MARGIN := 28
+const STARLIT_FRAMES := 4
+const STARLIT_FPS := 3.5
+const STARLIT_FOG_EDGE := 0.2
+const STARLIT_FOG_CENTRE := 0.45
 
-func _add_starlit_back(button: Button, card: UpgradeData) -> void:
+func _add_starlit_back(button: Button, _card: UpgradeData) -> void:
 	for state in ["normal", "hover", "pressed", "hover_pressed"]:
 		var style := button.get_theme_stylebox(state) as MoonStyleBox
 		if style:
-			style.glow_color = STARLIT_GLOW
-	var sky := Control.new()
+			style = style.duplicate()  # Only this card's fog thins
+			style.edge_alpha = STARLIT_FOG_EDGE
+			style.center_alpha = STARLIT_FOG_CENTRE
+			button.add_theme_stylebox_override(state, style)
+	var sky := NinePatchRect.new()
 	sky.name = "StarlitBack"
+	sky.texture = STARLIT_TEXTURE
+	sky.region_rect = Rect2(Vector2.ZERO, STARLIT_FRAME)
+	for side in [SIDE_LEFT, SIDE_TOP, SIDE_RIGHT, SIDE_BOTTOM]:
+		sky.set_patch_margin(side, STARLIT_MARGIN)
+	sky.axis_stretch_horizontal = NinePatchRect.AXIS_STRETCH_MODE_TILE
+	sky.axis_stretch_vertical = NinePatchRect.AXIS_STRETCH_MODE_TILE
+	sky.show_behind_parent = true
 	sky.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	sky.set_anchors_preset(Control.PRESET_FULL_RECT)
-	sky.draw.connect(func() -> void:
-		var rng := RandomNumberGenerator.new()
-		rng.seed = hash(card.id)  # The same sky for the same card
-		for i in 18:
-			var at := Vector2(rng.randf_range(8, sky.size.x - 8), rng.randf_range(8, sky.size.y - 8))
-			sky.draw_circle(at, rng.randf_range(0.6, 1.4), Color(0.85, 0.9, 1.0, rng.randf_range(0.25, 0.6))))
 	button.add_child(sky)
+	var twinkle := Timer.new()
+	twinkle.wait_time = 1.0 / STARLIT_FPS
+	twinkle.autostart = true
+	twinkle.process_mode = Node.PROCESS_MODE_ALWAYS  # The Dream screen pauses the game
+	twinkle.timeout.connect(func() -> void:
+		var frame := (int(sky.region_rect.position.x / STARLIT_FRAME.x) + 1) % STARLIT_FRAMES
+		sky.region_rect = Rect2(Vector2(frame * STARLIT_FRAME.x, 0), STARLIT_FRAME))
+	sky.add_child(twinkle)
 
 func _fit_card(button: Button, box: Control, secondary: Array[Label]) -> void:
 	var fit := func() -> void:

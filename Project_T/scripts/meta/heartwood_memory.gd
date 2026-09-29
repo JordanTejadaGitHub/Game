@@ -8,7 +8,7 @@ class_name HeartwoodMemory
 # Static helpers only: every caller loads, changes and saves. The file is tiny.
 
 const PATH := "user://heartwood.json"
-const VERSION := 3  # 2: Grove ids match grove_layout.json (MIGRATED_IDS), perk loadout; 3: REFUNDED_V3
+const VERSION := 4  # 2: Grove ids match grove_layout.json (MIGRATED_IDS), perk loadout; 3: REFUNDED_V3; 4: REFUNDED_V4
 
 # Where the profile lives (tests point this elsewhere so they never touch the player's Seeds).
 static var file_path := PATH
@@ -122,6 +122,9 @@ const REFUNDED_V3 := {
 	"reactions": 70, "woven_dreams_1": 90, "woven_dreams_2": 90, "kin_lore": 50, "deep_bonds": 70,
 }
 const PRICE_DROPS_V3 := {"bittersweet_dreams": 8}  # Kept, 8 Seeds back (60 -> 52)
+# Version 4 (meta_design.md "Section 1: Perks", 2026-09-29): slots 1–3 are open from the start, so the
+# slot_2 / slot_3 nodes are gone and their Seeds come back.
+const REFUNDED_V4 := {"slot_2": 40, "slot_3": 80}
 
 static func _migrate(data: Dictionary) -> void:
 	var version := int(data.get("version", VERSION))
@@ -138,6 +141,11 @@ static func _migrate(data: Dictionary) -> void:
 		for id in PRICE_DROPS_V3:
 			if int(data.unlocks.get(id, 0)) > 0:
 				data.seeds = int(data.seeds) + PRICE_DROPS_V3[id]
+	if version < 4:
+		for id in REFUNDED_V4:
+			if int(data.unlocks.get(id, 0)) > 0:
+				data.seeds = int(data.seeds) + REFUNDED_V4[id]
+				data.unlocks.erase(id)
 	data.version = VERSION
 
 static func save_data(data: Dictionary) -> void:
@@ -278,14 +286,33 @@ static func grown_share(data: Dictionary) -> float:
 
 # --- Perk loadout ("Carry into the dream") ---
 
-const BASE_LOADOUT_SLOTS := 1
+const BASE_LOADOUT_SLOTS := 3  # Slots 1–3 are open from the start; 4 and 5 are Perks nodes
+const FULL_BLOOM := "full_bloom"  # Milestone: every Grove node at max level (the secret 6th slot)
 
 static func loadout_slots(data: Dictionary) -> int:
 	var slots := BASE_LOADOUT_SLOTS
 	for unlock in load_grove():
 		if unlock.loadout_slots > 0:
 			slots += unlock.loadout_slots * node_level(data, unlock)
+	if has_sixth_slot(data):
+		slots += 1
 	return slots
+
+# The secret 6th slot (and its waystone): "The Heartwood in full bloom", or the developer toggle.
+static func has_sixth_slot(data: Dictionary) -> bool:
+	return data.milestones.has(FULL_BLOOM) or MetaRun.sixth_slot_dev_active()
+
+# Every Grove node at its max level, the free milestone and Memory Warden blooms included.
+static func tree_complete(data: Dictionary) -> bool:
+	return load_grove().all(func(u: UnlockData) -> bool: return is_grown(data, u))
+
+# Records "The Heartwood in full bloom" in `data` the first time the tree is complete (the caller
+# saves). Returns true when it was just reached.
+static func check_full_bloom(data: Dictionary) -> bool:
+	if data.milestones.has(FULL_BLOOM) or not tree_complete(data):
+		return false
+	data.milestones[FULL_BLOOM] = true
+	return true
 
 # The perk ids carried: owned perks from the saved loadout, at most one per slot.
 static func get_loadout(data: Dictionary) -> Array[String]:

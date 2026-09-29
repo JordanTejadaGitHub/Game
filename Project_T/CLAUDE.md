@@ -237,22 +237,22 @@ accessibility, Steam achievements (milestones map to them). Acts 3–4 and all f
   saves profile `reactions_seen` (real game only). `CodexPanel` (pause menu + Grove): Glossary / Combos / Families; lists what `CodexData.scope()` covers (starting three + Grove-planted families and forms; demo its three; dev runs all), "N more wait in the Memory Grove.", "New from the Grove" leaf (profile `codex_covered`). `tests/test_codex_scope.gd`.
 
 ## Meta (meta_design.md; full game only — `game/demo` true = nothing applied or recorded)
-- Grove = tech tree on the Heartwood: 83 `UnlockData` nodes (`resource/meta/grove/<id>.tres`, ids =
+- Grove = tech tree on the Heartwood: 84 `UnlockData` nodes (`resource/meta/grove/<id>.tres`, ids =
   `assets/meta/grove/grove_layout.json` ids; limbs `root` WARDENS = Families, DREAMS = Cards, PERKS =
   Perks). `costs` per level, `requires_all` ("id" or "id:level") / `requires_any` (+count), `icon`,
   `start` (Sporeling / Firefly Jar / Dewdrop, never bought), `<family>_ascension` (Ascended Warden card), `milestone` (grows free, refunds a
   purchase; no `costs` = milestone-only: Sunpetal), `legendary`. Effects: `families`, `dream_cards`
-  (→ `DreamState.grove_cards`), `loadout_slots` (slot_2..5), perks per level (only while carried):
+  (→ `DreamState.grove_cards`), `loadout_slots` (slot_4 / slot_5), `memory_warden` + `memory_boss` (Memory Warden blooms: milestone `boss_<kind>` on a first boss dispel; `MetaRun.memory_wardens` → `FamilyPickScreen.pending_memory_warden` offers it in the boss pick), perks per level (only while carried):
   `starting_dew`, `dew_gain` (`RunState.dew_gain_bonus`, fraction carry), `rest_bonus`
   (`DriftDirector.rest_bonus_perk_multiplier`), `max_leaves`, `dream_rerolls` / `dream_banishes` /
   `extra_dream_cards`, `extra_omens`, `seed_bonus`, `early_bloom`, `starting_dreamlight`,
   `starting_cards` (Clear Sight), `random_common_cards` (Kindling), `sprout_charges`, `free_nurtures`
   (`RunState.free_nurtures`, spent by Tower Code's nurture hook); `allows_bittersweet` (Bittersweet
   Dreams node sets `DreamState.allow_bittersweet`).
-- `HeartwoodMemory` (VERSION 3; `MIGRATED_IDS` renames v1 Grove ids, `REFUNDED_V3` refunds nodes removed for discovery unlocks): `unlocks {id: level}`,
+- `HeartwoodMemory` (VERSION 4; `MIGRATED_IDS` renames v1 Grove ids, `REFUNDED_V3` / `REFUNDED_V4` refund removed nodes): `unlocks {id: level}`,
   `node_level()` (counts start / milestone growth; use it, not `unlock_level()`, for "owned"),
   `buy()` / `buy_problem()` / `requirements_met()`, `get_unlock(id)`, `grow_milestone_nodes()`,
-  `grown_share()`, loadout (`loadout`, `loadout_slots()`, `get_loadout()`, `save_loadout()`),
+  `grown_share()`, loadout (`loadout`, `loadout_slots()`: 3 open + slot_4/5 + the secret 6th via `has_sixth_slot()` = milestone `full_bloom` (`check_full_bloom`, `tree_complete`) or `MetaRun.sixth_slot_dev_active()`; `get_loadout()`, `save_loadout()`),
   `memories_seen`, `MEMORIES` (10) + `memories_unlocked()` (1 after the first run, +1 per 3 unlock
   levels, +1 per Memory milestone), `milestones`, `counters`, `highest_blight_won`,
   `max_blight_level()`, `cosmetics`.

@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://p82svrup1icx"
-path="res://.godot/imported/slot_2.png-1ee63a5a2f56ce98c7560d0c9641aabf.ctex"
+uid="uid://phsbm7icb2tq"
+path="res://.godot/imported/memory_white_stag.png-19e4d58eed7ebabcda8650bc48f69d58.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/meta/grove/branches/slot_2.png"
-dest_files=["res://.godot/imported/slot_2.png-1ee63a5a2f56ce98c7560d0c9641aabf.ctex"]
+source_file="res://assets/meta/grove/branches/memory_white_stag.png"
+dest_files=["res://.godot/imported/memory_white_stag.png-19e4d58eed7ebabcda8650bc48f69d58.ctex"]
 
 [params]
 

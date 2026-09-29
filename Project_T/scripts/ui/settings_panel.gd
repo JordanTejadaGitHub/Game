@@ -105,6 +105,13 @@ func _ready() -> void:
 		dreams_rewards.focus_mode = Control.FOCUS_NONE
 		dreams_rewards.toggled.connect(func(on: bool) -> void: _set_value(MetaRun.ALL_DREAMS_SETTING, on))
 		box.add_child(dreams_rewards)
+		var sixth_slot := CheckButton.new()  # meta_design.md: the secret 6th loadout slot, for testing
+		sixth_slot.text = "Secret 6th loadout slot (no milestone recorded, no Seeds banked)"
+		sixth_slot.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		sixth_slot.button_pressed = _settings.get(MetaRun.SIXTH_SLOT_SETTING, false)
+		sixth_slot.focus_mode = Control.FOCUS_NONE
+		sixth_slot.toggled.connect(func(on: bool) -> void: _set_value(MetaRun.SIXTH_SLOT_SETTING, on))
+		box.add_child(sixth_slot)
 		# Demo mode (demo_scope.md): overrides game/demo in this build; switching goes back to the title.
 		var demo := CheckButton.new()
 		demo.text = "Demo mode (off = FULL GAME: Memory Grove, Blight Levels, Seeds spent from your real profile)"
