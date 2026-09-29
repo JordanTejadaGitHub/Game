@@ -27,13 +27,14 @@ const BLIGHT_PATCH := 14
 const ISLAND_EDGE := 15  # The island's rim: column = neighbour mask of island cells (N=1, E=2, S=4, W=8)
 const CLIFF := 16  # Under the bottom row: column bit 1 = cliff to the west, bit 2 = to the east; rows = variants
 const ROPE_BRIDGE := 17  # Shared (dream/): column 0 = east-west, 1 = north-south
+const PATH_RIM := 18  # path.png's art, transparent outside the path: for the start and goal, over the rim
 # (Ids 2 and 8-10 were the drystone wall and healthy trees; the island and the void replaced them.)
 
 const SHEETS := {
 	GRASS: "grass", PATH: "path", WITHERED_TREE: "withered_tree",
 	TENDED_STUMP: "tended_stump", MOSSY_BOULDER: "mossy_boulder", MOVED_HOLLOW: "moved_hollow",
 	EDGE_MIST: "edge_mist", GROUND_DETAILS: "ground_details", WAYSTONE: "waystone",
-	DEW_POOL: "dew_pool", BLIGHT_PATCH: "blight_patch", ISLAND_EDGE: "island_edge", CLIFF: "cliff",
+	DEW_POOL: "dew_pool", BLIGHT_PATCH: "blight_patch", ISLAND_EDGE: "island_edge", CLIFF: "cliff", PATH_RIM: "path_rim",
 }
 # The dream's outer layer, the same in every act (assets/environment/dream/).
 const DREAM_FOLDER := "dream"
@@ -96,6 +97,12 @@ static func _anchor_bottom(source: TileSetAtlasSource, coords: Vector2i, region:
 static func set_act(tile_set: TileSet, act: int) -> void:
 	for id: int in SHEETS:
 		(tile_set.get_source(id) as TileSetAtlasSource).texture = load(sheet_path(SHEETS[id], act))
+
+# The island-edge rim tile for a border cell: which neighbours are island (N=1, E=2, S=4, W=8).
+static func rim_mask(cell: Vector2i, map_size: Vector2i) -> int:
+	var last := map_size - Vector2i.ONE
+	return ((1 if cell.y > 0 else 0) | (2 if cell.x < last.x else 0) | (4 if cell.y < last.y else 0)
+		| (8 if cell.x > 0 else 0))
 
 # Path tile for a neighbour mask (N=1, E=2, S=4, W=8).
 static func path_tile(mask: int) -> Vector2i:
