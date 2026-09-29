@@ -109,6 +109,25 @@ func _init() -> void:
 	await process_frame
 	_check(lighting.get_glowing_warden_count() == glowing_before + 1, "a sold Warden's glow goes with it")
 
+	# Build mode: a cold hatch on every unbuildable cell (screens_ui.md: the edge must look unbuildable).
+	var hatch: BuildHatch = map.build_hatch
+	_check(not hatch.visible, "no hatch outside build mode")
+	main.get_node("%TowerPlacer").build_mode_changed.emit(true)
+	var hatched := hatch.get_hatched_cells()
+	var an_obstacle: Vector2 = map.obstacles.keys()[0]
+	_check(hatch.visible and hatched.has(Vector2(0, 5)) and hatched.has(map.startPath) and hatched.has(map.endPath)
+		and hatched.has(an_obstacle), "build mode hatches the rim, the start, the end and obstacles")
+	var open_cell := Vector2(-1, -1)
+	_check(hatched.all(func(cell: Vector2) -> bool: return not map.is_buildable(cell)), "only unbuildable cells are hatched")
+	for x in range(1, 22):
+		if map.is_buildable(Vector2(x, 9)):
+			open_cell = Vector2(x, 9)
+			break
+	_check(not hatched.has(open_cell) and not hatched.has(Vector2(12, 10)),
+		"buildable cells and a Warden's own cell stay clear")
+	main.get_node("%TowerPlacer").build_mode_changed.emit(false)
+	_check(not hatch.visible, "leaving build mode hides the hatch")
+
 	for arg in OS.get_cmdline_user_args():
 		if arg.begins_with("--preview="):
 			_render(main, [ground, path, env], arg.trim_prefix("--preview="))
