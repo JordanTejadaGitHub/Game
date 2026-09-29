@@ -33,7 +33,7 @@ func _run() -> void:
 	enemy._path_index = index
 	enemy.position = map_generator.MAP_GRID.calculate_map_position(route[index])
 	calls._check(enemy)
-	_check(calls.block_count == 1 and heard == [enemy], "past 85%: one close call, signalled (%d)" % calls.block_count)
+	_check(calls.block_count == 1 and heard == [enemy], "past 85%%: one close call, signalled (%d)" % calls.block_count)
 	_check(calls._glow_age >= 0.0 and not calls._glow_cells.is_empty(), "the last stretch glows")
 	calls._check(enemy)
 	_check(calls.block_count == 1, "the same nightmare counts once")
@@ -46,6 +46,7 @@ func _run() -> void:
 
 	main.queue_free()
 	await process_frame
+	print("close calls test: " + ("PASS" if failures == 0 else "%d FAILED" % failures))
 	quit(failures)
 
 func _check(condition: bool, label: String) -> void:
