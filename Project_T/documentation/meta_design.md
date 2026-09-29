@@ -183,6 +183,7 @@ styles a player has grown into.
 | **Keen Edges** (crit) | *Sharpened*: Still Target, Shattering Blow (50) | *Reckless*: Reckless Bloom (40) | **Full Moon** (120) |
 | **Deep Poison** (Potency) | *Seeping* (50) | *Venom*: Venom Bloom (40) | **Nightshade** (120) |
 | **Kinship** (going deep) | *Kin Lore*: Close Kin, Old Friends (50) | *Deep Bonds*: Rooted Bond, Extended Family (70) | **Grove of Kin** (120) |
+| **Seeds** (support and economy bets) | *Planted Promises*: Dew Bowl, Harvest Moon, Kind Canopy, Patient Roots (50) | *Deep Promises*: Deep Well, Shared Light (70) | **Golden Harvest** (120) |
 | **Tending** (nurture, tall) | *Tending Hands*: Sunlit Rest, Deeper Rings (60) | *Nursery*: Nursery, Chosen Few (70) | **The Old Ones** + **Endless Rings** (150) |
 | **Overgrowth** (wide) | *Seedbed*: Seedling Gift, Canopy (60) | *Wild Planting*: Overgrowth (50) | **Rootbound** (100) |
 | **Lone Lantern** (narrow) | *One Line*: Monoculture (80) | — | **The Last Light** (120) |

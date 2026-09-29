@@ -78,7 +78,8 @@ points.
 - **Tag weighting:** cards tagged with a family you own are **2× as likely** (1.4× for a while, back to 2× once the pool grew by 27 generic cards; see
   *Adapt, don't get handed* below). Builds lean together without being forced.
 - **Prerequisites:** a card never appears if it can't do anything yet (e.g. Stormcap cards need
-  Firefly Jar). Full rules in *Card requirements* below.
+  Firefly Jar). Full rules in *Card requirements* below. **Exception: Seed cards** (tag `seed`,
+  "Seed cards: plant now, grow later") are offered without their Wardens, on purpose.
 
 ### Adapt, don't get handed (2026-09-28)
 
@@ -869,6 +870,41 @@ Kinship on the map.
 - **In the demo:** the Start-pool three (Quick Bonds, Family Ties, Sweet Harmony).
 - **Watch in playtests:** Extended Family + Grove of Kin + Whole Tree + Monoculture could make an
   all-kin maze far ahead. The +30% cap on Grove of Kin is the first knob.
+
+
+## Seed cards: plant now, grow later
+
+Added 2026-09-29 (user request). Cards for the Wardens whose value isn't damage (catchers, auras,
+walls, control) that **don't need those Wardens to be offered**. Taking one early is a bet on
+getting the family later. Two rules keep the bet fair:
+
+1. **Never dead:** every Seed card has a small effect **on its own** ("Now"), and a bigger one once
+   you have the Wardens it names ("Grows with"). The one exception is *Golden Harvest*, the
+   Legendary gamble.
+2. **It calls its family:** while you hold a Seed card, the **next family pick is guaranteed to
+   offer** the family it grows with (if that family is unlocked in the Grove and not owned yet). The
+   card shows a small sprout and *"Grows with: Dewcatcher, Wellspring · calls Acorn"*.
+
+Tag `seed` plus the family's tag; normal weight (1×) until you own the family, then the family
+weight (1.4×). Legendary and Bittersweet rules as usual.
+
+| # | Card | Rarity | Now (on its own) | Grows with | Pool |
+|---|---|---|---|---|---|
+| 169 | **Dew Bowl** | Common, stacks (max 3) | +10 Dew now | **Dewcatcher, Wellspring:** catch +15% (per stack) | Grove |
+| 170 | **Harvest Moon** | Uncommon | +5 Dew at every rest | **catchers:** the Harvest pays **+50%** | Grove |
+| 171 | **Deep Well** | Rare | at every rest, **3% interest** on banked Dew (max 20) | **Wellspring:** its interest cap +30 each (90) | Grove |
+| 172 | **Kind Canopy** | Uncommon | Wardens touching 3+ other Wardens +5% damage | **Acorn, Elder Stump, Grove Heart:** aura radius **+1** | Grove |
+| 173 | **Shared Light** | Rare | every Warden gives the Wardens touching it **+2% damage** (max +10% on one Warden) | **aura Wardens:** their bonuses **+50%** | Grove |
+| 174 | **Bramble Oath** | Common | +2% damage for every 10 path tiles your walls add (max +15%) | **Bramble, Honeysuckle:** 50% stronger | Start |
+| 175 | **Patient Roots** | Uncommon | Held lasts **+0.25 s** from any source (Frostfern, Snugroot, World Root…) | **Rootling line:** pulls go 0.5 tiles further, holds another +0.25 s | Grove |
+| 176 | **Golden Harvest** | Legendary | nothing: the gamble | **catchers:** every **100 Dew** harvested or earned as interest this run gives **all Wardens +2% damage** (max +30%) | Grove |
+
+- **Calls:** Dew Bowl, Harvest Moon, Deep Well, Kind Canopy, Shared Light and Golden Harvest call
+  **Acorn**; Patient Roots calls **Rootling**; Bramble Oath calls nothing (walls are always yours).
+  If two held cards call different families, the next pick offers both.
+- **In the demo:** only Bramble Oath (Acorn and Rootling are Grove families).
+- **Watch in playtests:** whether Seed cards get picked at all before the family (the call rule is
+  the lever), and whether Golden Harvest turns economy into a must-have damage build.
 
 ## Generic Rares (2026-09-28: filling the Rare tier)
 
