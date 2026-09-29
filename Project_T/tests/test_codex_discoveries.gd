@@ -8,8 +8,8 @@ extends SceneTree
 # Uses temp profile / run-save files; never the player's.
 #   godot --headless --path . --script res://tests/test_codex_discoveries.gd --fixed-fps 60
 
-const PROFILE_PATH := "user://test_codex_discoveries_profile.json"
-const RUN_PATH := "user://test_codex_discoveries_run.json"
+var PROFILE_PATH := "user://test_codex_discoveries_profile_%d.json" % OS.get_process_id()  # Per process: parallel sessions share user://
+var RUN_PATH := "user://test_codex_discoveries_run_%d.json" % OS.get_process_id()  # Per process: parallel sessions share user://
 
 var failures := 0
 
