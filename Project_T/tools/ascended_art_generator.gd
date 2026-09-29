@@ -514,19 +514,17 @@ func _golem(canvas: Image, st: Dictionary, fig: Dictionary, opts: Dictionary = {
 			if not colors.has(ch):
 				continue
 			body.set_pixel(x, y, colors[ch])
-	# Where the front rock stood: the backside. From the feet (front middle, on the ground) its
-	# outline curves round and up to the body's right side, a tapering quarter-oval.
-	var butt_c := Vector2(33.0, 39.0)  # template px: from the ground by the left thigh ...
-	var butt_r := Vector2(13.0, 8.8)  # ... round and up to the body's right side
+	# Where the front rock stood, the body's lower edge (as the user outlined it): flat between the
+	# left foot and the centre foot, then a straight diagonal up from the centre foot to under the
+	# hand. Fill the body in behind that outline; nothing below it.
+	var lower := PackedVector2Array([Vector2(40, 84), Vector2(40, 109.5), Vector2(72, 109.5),
+		Vector2(84, 96.5), Vector2(95, 99.5), Vector2(95, 84)])  # layer px
 	for y in 128:
 		for x in 128:
-			var t := (Vector2(x + 0.5, y + 0.5) - fo - Vector2(0, dy)) / K
-			if t.x < butt_c.x or t.y < butt_c.y or body.get_pixel(x, y).a > 0.0:
+			var p := Vector2(x + 0.5, y + 0.5) - Vector2(0, dy * K)
+			if body.get_pixel(x, y).a > 0.0 or not Geometry2D.is_point_in_polygon(p, lower):
 				continue
-			var d := (t - butt_c) / butt_r
-			if d.length_squared() > 1.0:
-				continue
-			body.set_pixel(x, y, colors["c" if d.length_squared() > 0.72 else ("a" if t.x > 41.0 else "b")])
+			body.set_pixel(x, y, colors["c" if p.x < 50.0 else ("a" if p.x > 80.0 else "b")])
 	# Fresh 1 px outline round the silhouette.
 	var mask := _gnew(canvas)
 	for y in 128:
