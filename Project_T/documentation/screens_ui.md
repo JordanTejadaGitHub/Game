@@ -224,6 +224,11 @@ icon explains itself**: hover on PC, tap on touch, a small tooltip in plain word
   Crit chance, Crit damage, Potency, Rank, Focus (Power / Swift / Reach / Deep), Dew cost,
   Dreamlight cost. Tooltip example: *"Attack speed: attacks per second."*
 - **Resource icons**: Dew, Dreamlight, Leaves, Seeds (already exist; get tooltips too).
+- **Hover and tap tips stay** (2026-09-28, user: "it never stays when a nightmare dies"): a tip
+  stays until the pointer leaves its target. Live values update in place and never rebuild or close
+  the tip (nothing is rewritten while it's pointed at, unless it changed). If the hovered target
+  itself is gone (the hovered nightmare is dispelled), the nightmare info reads **"Dispelled"** for
+  ~1 s and then clears; it never jumps to another nightmare until the pointer moves.
 - **Combos get no icons** anywhere a player hasn't discovered them yet: callouts are words, locked
   Codex entries are "???" (user decision: icons hint at the answer).
 - **Status names (decided 2026-09-28):** Damp → **Soaked**, Drowsy **stays Drowsy** (Slowed read the same as Soaked), Spored →

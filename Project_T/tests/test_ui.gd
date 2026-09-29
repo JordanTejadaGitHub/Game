@@ -193,7 +193,7 @@ func _run() -> void:
 	dreams.add_dreamlight(saved_light - dreams.dreamlight)
 	if not had_sporeling:
 		dreams.unlocked.erase("sporeling")
-	main.get_node("%GameSpeed").set_paused(false)  # Opening it mid-drift paused the game
+	main.get_node("%GameSpeed").set_paused(false)  # The screen paused mid-drift; the test leaves it open
 
 	# --- Whispers: a locked obstacle says "Dead wood…", Tend waits for the first clearing Dream ---
 	var whispers = main.get_node("%Whispers")
@@ -237,7 +237,7 @@ func _run() -> void:
 	await process_frame
 	_check(info.visible and info._title.text.begins_with(shade.enemy_data.display_name), "hover panel shows the nightmare")
 	_check(info._title.text.contains("New"), "a never-met nightmare gets the New tag")
-	_check(info._body.text.contains(shade.enemy_data.trait_text) and info._body.text.contains("Health"),
+	_check(info._body.text.contains(shade.enemy_data.trait_text) and info._numbers.text.contains("Health"),
 		"hover panel shows the trait and health")
 
 	# --- Leak feedback ---
@@ -332,6 +332,51 @@ func _run() -> void:
 	touch.set_touch_mode(false)
 	_check(touch_placer.confirm_on_release, "a mouse plants on release again")
 	touch_placer.set_build_mode(false)
+	# Full-screen overlays draw above the strip and the top-right buttons; the pause menu tops them all.
+	var order_hud := main.get_node("HUD")
+	var idx := func(n: String) -> int: return order_hud.get_node(n).get_index()
+	_check(idx.call("RememberScreen") > idx.call("RememberButton") and idx.call("DreamScreen") > idx.call("MenuButton")
+		and idx.call("PauseMenu") == order_hud.get_child_count() - 1, "overlays draw above the HUD, the pause menu on top")
+	var strip_node: Node = order_hud.get_children().filter(func(c: Node) -> bool: return c is ComingStrip).front()
+	_check(strip_node.get_index() < idx.call("OmenScreen"), "the Coming strip stays under the Omen screen")
+	# Hover tips stay until the pointer leaves (screens_ui.md "Hover and tap tips"): another dispel
+	# doesn't reset the nightmare info or its status hov_popup; its own dispel shows "Dispelled", then it
+	# clears without jumping to the nightmare now under a still pointer.
+	var hov_spawner = main.get_node("%EnemyContainer")
+	var hov_info = main.get_node("%NightmareInfo")
+	var shade_kind: EnemyData = load("res://resource/enemy/leaf_bug.tres")
+	var watched: Node2D = hov_spawner.spawn_enemy(shade_kind)
+	var other: Node2D = hov_spawner.spawn_enemy(shade_kind)
+	for e in [watched, other]:
+		e.set_process(false)
+	watched.apply_status(&"damp", 1, 30.0)
+	hov_info._target = watched
+	for i in 3:
+		await process_frame
+	var hov_popup: StatusLinks = hov_info._body.get_children().filter(func(c: Node) -> bool: return c is StatusLinks).front()
+	hov_popup._show_for("status:damp", hov_info._body, true)
+	other.take_damage(other.max_health * 10.0)
+	for i in 20:
+		await process_frame
+	_check(hov_info._target == watched and hov_info.visible and hov_popup.visible,
+		"another nightmare's dispel keeps the hovered info and its status hov_popup")
+	hov_popup.visible = false
+	var under_pointer: Node2D = hov_spawner.spawn_enemy(shade_kind)
+	under_pointer.set_process(false)
+	under_pointer.global_position = main.get_viewport().get_canvas_transform().affine_inverse() * main.get_viewport().get_mouse_position()
+	watched.take_damage(watched.max_health * 10.0)
+	await process_frame
+	await process_frame
+	_check(hov_info.visible and hov_info._title.text.contains("Dispelled"), "its own dispel reads Dispelled (" + hov_info._title.text + ")")
+	for i in 80:
+		await process_frame
+	_check(not hov_info.visible and hov_info._target == null, "then it clears, without jumping to the nightmare under the pointer")
+	under_pointer.queue_free()
+	# The Warden bar isn't rewritten on every Dew change (a hovered button's tooltip would reset).
+	var bar_button: Button = main.get_node("HUD").get("_tower_buttons")[0]
+	var state_before = bar_button.get_meta(&"bar_state", "")
+	main.get_node("HUD")._on_dew_changed(main.get_node("%RunState").dew)
+	_check(state_before != "" and bar_button.get_meta(&"bar_state") == state_before, "the bar skips unchanged buttons")
 	# --- The Heartwood Sapling: its card after the drift 50 family pick, then the rest panel ---
 	# The Sapling is out of runs (TowerPlacer.sapling_enabled, run_design.md): no Codex terms for it.
 	var sapling_terms := func() -> bool:

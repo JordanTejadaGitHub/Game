@@ -76,14 +76,14 @@ func _ready() -> void:
 	# card (before the dossier in the rest order), both from screens_ui.md.
 	var strip := ComingStrip.new(drift_director)
 	add_child(strip)
-	move_child(strip, %PauseMenu.get_index())
 	var intro := NightmareIntro.new(drift_director)
 	add_child(intro)
-	move_child(intro, %PauseMenu.get_index())
+	intro.name = "NightmareIntro"
 	# Boss dossier (screens_ui.md): under the pause menu, above the rest of the HUD.
 	var dossier := BossDossier.new(drift_director)
 	add_child(dossier)
-	move_child(dossier, %PauseMenu.get_index())
+	dossier.name = "BossDossier"
+	_raise_overlays.call_deferred()  # After everything above (and deferred adds) is in
 	# Resist / weak pips and the immune flash, drawn in the world over the nightmares.
 	owner.add_child.call_deferred(ResistPips.new())
 	# Touch: Plant / Cancel for a pending drag-to-build stroke, two-finger pan and pinch (TouchBuild).
@@ -259,8 +259,14 @@ func _on_dew_changed(dew: int) -> void:
 	# (Costs can change with Dreams, so the cost text is refreshed here too.)
 	for i in _tower_buttons.size():
 		var cost := tower_placer.get_cost(_bar_towers[i])
-		_tower_buttons[i].text = str(cost)
 		var affordable := run_state.can_afford(cost)
+		# Only when something changed: rewriting text / theme on every Dew change (each dispel) would
+		# reset a hovered button's tooltip (screens_ui.md "Hover and tap tips").
+		var bar_state := "%d:%s" % [cost, affordable]
+		if _tower_buttons[i].get_meta(&"bar_state", "") == bar_state:
+			continue
+		_tower_buttons[i].set_meta(&"bar_state", bar_state)
+		_tower_buttons[i].text = str(cost)
 		_tower_buttons[i].modulate.a = 1.0 if affordable else UNAFFORDABLE_BUTTON_ALPHA
 		# Colour is never alone (ui_style.md): faded AND the cost in red.
 		for state in ["font_color", "font_hover_color", "font_pressed_color", "font_hover_pressed_color"]:
@@ -433,8 +439,7 @@ func _tower_icon(data: TowerData) -> Texture2D:
 # --- Remember (run_design.md "The Remember screen, fleshed out") ----------------------------------
 # Top right beside the Dreamlight counter, always there: opens the Remember screen (DreamState
 # .open_remember; the screen is Roguelite's). It glows while something can be unlocked with the
-# Dreamlight you have (DreamState.can_unlock). Mid-drift it pauses the game first (the screen's
-# close resumes through GameSpeed if it was running).
+# Dreamlight you have (DreamState.can_unlock). The screen pauses mid-drift and restores it on close.
 
 var remember_button := Button.new()
 var _remember_glow := 0.0
@@ -457,10 +462,7 @@ func _add_remember_button() -> void:
 func open_remember() -> void:
 	if run_state.is_over:
 		return
-	var speed := get_node_or_null("%GameSpeed") as GameSpeed
-	if speed != null and not drift_director.is_resting() and not speed.paused:
-		speed.set_paused(true)  # A drift is walking: time stops while you choose
-	dream_state.open_remember()
+	dream_state.open_remember()  # RememberScreen pauses (and restores the pause on close) itself
 
 # Something the Dreamlight on hand can unlock now (a branch, final or Ascended form of a family you own).
 func can_remember_something() -> bool:
@@ -491,3 +493,15 @@ func _process(delta: float) -> void:
 	_remember_glow += real
 	remember_button.modulate = Color.WHITE.lerp(Color(1.35, 1.2, 0.8), 0.5 + 0.5 * sin(_remember_glow * 4.0)) \
 		if _remember_ready else Color.WHITE
+
+# Full-screen overlays draw above the rest of the HUD (the Coming strip, the top-right buttons and
+# the counters are added in code after the scene's screens): they go last, in rest order, with the
+# pause menu on top of everything.
+const OVERLAY_ORDER := ["FamilyPickScreen", "DreamScreen", "OmenScreen", "RememberScreen", "NightmareIntro",
+	"BossDossier", "ResultsScreen", "PauseMenu"]
+
+func _raise_overlays() -> void:
+	for overlay_name in OVERLAY_ORDER:
+		var overlay := get_node_or_null(overlay_name)
+		if overlay != null:
+			move_child(overlay, get_child_count() - 1)
