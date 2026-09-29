@@ -11,4 +11,5 @@ root = 2
 costs = Array[int]([70])
 order = 10
 icon = 9
+requires_all = Array[String](["deep_taproot"])
 free_nurtures = 3

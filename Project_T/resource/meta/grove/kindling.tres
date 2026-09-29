@@ -11,4 +11,5 @@ root = 2
 costs = Array[int]([90])
 order = 7
 icon = 6
+requires_all = Array[String](["early_light"])
 random_common_cards = 1

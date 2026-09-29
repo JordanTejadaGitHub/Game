@@ -6,10 +6,12 @@
 script = ExtResource("1_unlock")
 id = "slot_5"
 display_name = "Loadout slot 5"
-description = "Carry one more perk into the dream (5 slots)."
+description = "Carry one more perk into the dream (5 slots). Needs slot 4 and the third perk of 2 paths."
 root = 2
 costs = Array[int]([220])
 order = 23
 icon = -1
 requires_all = Array[String](["slot_4"])
+requires_any = Array[String](["rested_roots", "clear_sight", "omen_reader"])
+requires_any_count = 2
 loadout_slots = 1
