@@ -112,7 +112,7 @@ Wardens mattered. Builds are the heart of the roguelite, so **the game must show
 | Feedback | Design |
 |---|---|
 | **Combo callouts** | a short word pops over the nightmare when a synergy fires, in the triggering Warden's colour: *Conducted!* (lightning through Damp), *Popped!* (Puffball burst), *Asleep!* (Dreamshroom), *Splintered!* (crit splash from *Shattering Blow*), *Weak!* (family weakness). Reactions have their own callouts (below). Throttled so a busy maze shows a few at a time, never a wall of text |
-| **Damage numbers** | setting: **off / big hits only (default) / all**. Crits larger with a ping; weakness hits bright; resisted hits small and grey; status ticks tiny, **in the status's colour** (Spored violet, Static yellow…), and slightly larger for Wardens above 100% Potency |
+| **Damage numbers** | setting: **off (default) / big hits only / all**. Crits larger with a ping; weakness hits bright; resisted hits small and grey; status ticks tiny, **in the status's colour** (Spored violet, Static yellow…), and slightly larger for Wardens above 100% Potency. **Reworked 2026-09-29:** raw hit numbers don't tell the player what's *good*, so the default is now the **Warden DPS tags** and the **drift meter** (below, "Damage that means something"); hit numbers are for players who want them. **Clicking a hit number selects its Warden** |
 | **Status icons** | always visible on nightmares, with stack counts (already specced above); flash when a status is *used* by a combo (Damp flashes as lightning jumps) |
 | **Placement links** | while placing, a small vine icon links the ghost to nearby Wardens it combos with ("combos with Rain Lily"); the Warden panel lists its active links |
 | **Warden panel stats** | damage this run, damage per second over the last drift, and **"from combos: N%"** |
@@ -121,6 +121,53 @@ Wardens mattered. Builds are the heart of the roguelite, so **the game must show
 
 These double as teaching: a new player sees *Conducted!* once and understands why Rain Lily and
 Stormcap belong together.
+
+### Damage that means something
+
+Added 2026-09-29 (user: "damage numbers feel useless; I don't know what's good damage for a
+wave"). Raw hit numbers don't answer the player's real questions: *is my maze strong enough, which
+Wardens are pulling their weight, and is it getting better?* So the default feedback is now DPS,
+compared against what the drift needs and against last drift. All of it is built on `DamageLog`.
+
+**1. The drift benchmark ("what's good").** During a drift, the DriftPanel shows a bar:
+*"Your maze 1,240 DPS · this drift needs ~980 · 127%"*.
+- **Needed DPS** = the drift's total nightmare health (with health scaling, elites and bosses) ÷
+  how long an average nightmare spends walking the **current** path (path length ÷ average speed).
+  A longer maze lowers the number needed, which teaches the maze pillar.
+- Colour: **green** at 110%+, **amber** 90–110%, **red** under 90% ("you'll leak").
+- At a rest it becomes a forecast: *"Next drift needs ~1,100 · your maze did 1,240 last drift"*.
+- It's an estimate (flyers, splits and leaks aren't exact); the tooltip says so.
+
+**2. Warden DPS tags.** A small tag under each attacking Warden: its DPS this drift.
+- Shown **at rests, while paused and in build mode**; during a drift only on the selected or
+  hovered Warden (setting: *Warden DPS tags: rests only (default) / always / off*).
+- A small **↑12% / ↓8%** beside it compares with **the Warden's own last drift**.
+
+**3. Colour by performance, not by size.** A Warden's colour rates how much it did **for what it
+cost**, so a cheap Warden that does a lot shines, and a big one that coasts doesn't:
+- **Rating** = its share of the maze's damage this drift ÷ its share of the Dew invested (Nurture
+  included). Support Wardens are rated on what they *enabled* (support credit: damage added, Dew
+  caught).
+- **Gold** (1.5× or more): *carrying*. **White** (0.75–1.5×): *pulling its weight*. **Dim blue**
+  (under 0.75×): *underused*.
+- An **underused** Warden's tooltip says why, when the game can tell: *"few nightmares in range"*
+  (placement), *"mostly resisted"*, *"overkill: its hits land on nearly-dispelled nightmares"*.
+- The **most improved** Warden of the drift (the biggest ↑ vs its last drift) gets a small star.
+
+**4. The drift meter.** A collapsible panel on the right edge (like the Test Grove damage meter):
+one row per Warden with portrait, name, DPS, % of the maze, rating colour and ↑↓ vs last drift,
+sorted by DPS (or by rating). A header line: *"Maze 1,240 DPS · ↑8% vs last drift · needs ~980"*.
+
+**5. Click to find it.** Clicking a meter row, a DPS tag or a hit number **selects that Warden and
+glides the camera to it** (`GameCameraNode.glide`); with several Wardens of the same kind, it goes
+to the exact one.
+
+**6. At the rest.** The rest report opens with the maze line (*"Maze 1,240 DPS, ↑8% vs last block,
+needs ~980"*), then **Carrying** (top gold Wardens), **Underused** (with the reason) and **Most
+improved**, next to the existing top damage and top support lines.
+
+- Hit numbers still exist (setting above), and clicking one selects its Warden.
+- Touch: tags and meter rows are tap targets; nothing is hover-only (mobile port).
 
 ### Impact tiers: bigger combos must feel bigger
 
@@ -178,8 +225,10 @@ at rests**, when the screen is calm; in combat Kinships are nearly invisible.
 | **Bond forms** | when placed or evolved (almost always at a rest) | a vine grows along the ground between them, both flare in the family colour, petals burst, callout *"Kinship: Slumber Rot"*, a two-note chord (one note per Warden). First time ever: discovery card + Codex entry |
 | **Bond grows** (Blooming, Old Kin) | **queued to the next rest** even if reached mid-drift | the vine thickens / flowers, a soft chime, a small line in the rest report |
 | **Whole Tree** | once per family per run; **held until the next rest** if reached mid-drift | every Warden of the family flares at once, **the Heartwood itself blossoms** in the family's colour (light climbs its bark, the crown bursts into bloom, a ring pulses over the roots; `whole_tree_sigil`, drawn above the Heartwood sprite), banner *"The Sporeling line is whole."*; a lasting small badge on those Wardens |
-| **Harmony strike** | in combat | **a small two-colour spark** (crit-glint size) on the nightmare; the bonus damage merges into the hit's number, tinted green. **No callout in combat.** Counted in the rest report ("Harmony strikes: 84") |
-| **Vines** | always | on the ground under the Wardens, **~30% brightness, still during drifts**; full brightness in build mode, when one of the pair is selected, and during the rest moments |
+| **Harmony strike** | in combat | grows with the bond: **Sapling** a small two-colour spark (crit-glint size); **Blooming** petals spiral in from both Wardens; **Old Kin** two beams of light leave both Wardens and meet on the nightmare, bursting into petals. The bonus damage merges into the hit's number, tinted green. **No callout in combat.** Counted in the rest report ("Harmony strikes: 84") |
+| **Vines** | always | on the ground under the Wardens, **~30% brightness, still during drifts**; full brightness in build mode, when one of the pair is selected, and during the rest moments. When a borrowed trait fires, a **bead of light runs along the vine** from teacher to learner |
+| **Borrowed looks** | in combat | a kin Warden's attacks carry its sibling's colour and a hint of the borrowed trait (a lilac sleep-swirl on Driftspore's puffs, a gold edge on Stormcap's lightning…) |
+| **Breathing together** | always | bonded Wardens' idle animations sync; at **Old Kin** a small flowering arch grows over the pair |
 
 **Screen priority** (what wins when things overlap): Crowned Reactions and Dawnburst > Reactions
 and chains > crits and weakness hits > Harmony sparks > vines.

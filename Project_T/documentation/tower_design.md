@@ -527,6 +527,24 @@ which is Lightning Rod). That's intended, but check that deep one-family runs do
 **Feedback and clutter:** loud moments happen at **rests**; in combat Kinships are nearly invisible
 (dim vines, a tiny Harmony spark). Details: `screens_ui.md`, "Kinship feedback".
 
+**Kinships you can see in combat** (added 2026-09-29, user request: make Kinships more visually
+impactful without clutter). The impact goes **on the Wardens and the vine**, not on extra screen
+effects:
+1. **Borrowed looks:** a kin Warden's attacks carry its sibling's colour and a hint of the borrowed
+   trait (Slumber Rot: Driftspore's puffs trail a lilac sleep-swirl, Bloomcap's clouds get green
+   spore flecks; Storm Beacon: Stormcap's lightning gets a lantern-gold edge, Lanternmoth's shots
+   crackle; Snare: Rootcurl's pull ends in a small root-wrap). You can tell who's bonded by watching
+   them fight.
+2. **Light along the vine:** when a borrowed trait fires, a small bead of light runs along the
+   vine from the teacher to the learner. Vines stay dim but visibly *work*.
+3. **Breathing together:** bonded Wardens' idle animations sync. At **Old Kin** the pair also grows
+   a small **flowering arch** over them, so a mature bond reads at a glance.
+4. **Harmony strikes grow with the bond:** Sapling = the tiny spark; Blooming = petals spiral in
+   from both Wardens; **Old Kin = two beams of light leave both Wardens and meet on the nightmare**,
+   bursting into petals (still on the 2 s cooldown, so occasional).
+
+Not added (the user's call): *Kin Surge*, a synchronized free attack every 10 Harmony strikes.
+
 How Reactions are shown (impact tiers, light threads, discovery cards, settings): `screens_ui.md`,
 "Combat feedback".
 
