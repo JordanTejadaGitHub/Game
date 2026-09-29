@@ -22,7 +22,7 @@ Tree space is **1280×960 px** (native pixels; the screen pans and zooms). Every
 | `grove_sky.png` | 1280×960 | 1 | back layer: night sky with stars, the moon (`moon` in the layout) and its halo, a warm glow behind the trunk, two layers of distant forest with fog between |
 | `grove_canopy_0.png` … `_3.png` | 1280×960 each | 1, transparent | **the crown**: one shared mass in chunky 2× pixels: a few big lobes carry the light (bright top-left, a dark belly with rounded drips underneath), textured by many small leaf clusters (each one flat tone with a lit tip and a dark rim along its bottom) over all three limbs, so the tree reads as one crown, not three horns. Stage 0 (about 72% of the leaf clusters, always shown) already covers every node and branch; the three great limbs are drawn over every stage's leaves, running up through the crown (a leaf tuft covers where each enters), so lines branch off along their whole length; each stage grows the crown outward as one solid shape (80 / 90 / 100%) with more lit dream-leaves. Show the stage for the share of nodes owned (e.g. 0–24% → 0), crossfading when it changes |
 | `grove_tree.png` | 1280×960 | 1, transparent | the Heartwood, always shown: ridged roots with pale mushrooms, a twisted three-strand trunk leaning in an S-curve (each strand a shaded cylinder with a lit band and bark lines along it) with ivy and knots, the **hollow**: a doorway grown into the trunk (rolled bark lip, grain curling round it, warm light spilling onto the bark and the ground, a root doorstep), the three great limbs (Perks left, Families middle, Cards right) as twisted strands running up into the crown, a moonlit rim, a **glowing sigil at the base of each limb** (gold ring = Perks, green sprig = Families, violet card = Cards), and **five waystones at the roots** (`loadout_stones`: the loadout slots in the world) |
-| `branches/<node_id>.png` | per node | **5 frames**: 0 bare twig (locked), 1–3 the branch growing 25/50/75%, 4 grown | one per node (85); draw at `branch.offset`; planting plays 1→4. Each branch is a jagged zig-zag with its own thickness and side twigs; about half carry node-less **false branches** baked into the same sheet (bare twigs while locked, leafy with a tuft once grown), which never end near a node |
+| `branches/<node_id>.png` | per node | **5 frames**: 0 bare twig (locked), 1–3 the branch growing 25/50/75%, 4 grown | one per node (88); draw at `branch.offset`; planting plays 1→4. Each branch is a jagged zig-zag with its own thickness and side twigs; about half carry node-less **false branches** baked into the same sheet (bare twigs while locked, leafy with a tuft once grown), which never end near a node |
 | `grove_nodes.png` | 352×96 | 32×32; **rows**: 0 Perks (gold), 1 Families (green), 2 Cards (violet); **columns**: 0 locked bud, 1–4 affordable glow (loop), 5–8 bud opening (play once), 9–10 bloomed (loop) | node sprite, centred on `pos` |
 | `grove_legendary.png` | 528×48 | 48×48, same 11 columns, violet | Legendary tips (Dawnbreak, Full Moon, The Old Ones, Rootbound, The Last Light, The Long Walk) |
 | `dream_fruit.png` | 432×48 | 48×48: 0–3 idle glow (loop), 4–7 opening (play once), 8 opened | Memories; the **vine's top is the sprite's top centre**, hang it at a `fruit_spots` point |
@@ -31,7 +31,7 @@ Tree space is **1280×960 px** (native pixels; the screen pans and zooms). Every
 ### `grove_layout.json`
 
 - `size`: [1280, 960].
-- `nodes`: one entry per node (85), in `meta_design.md` order: `id`, `section` (`perks` /
+- `nodes`: one entry per node (88), in `meta_design.md` order: `id`, `section` (`perks` /
   `families` / `cards`), `name`, `pos` (flower centre; the generator places every node inside the stage 0 crown and spreads them evenly over it, keeping each node near its parent, a line's first node next to its limb, and untangling crossing branches; positions move when nodes are added. `from` is set to the nearest point on the limb), `parent` (node id) **or** `from` (the point on
   a great limb it grows from), `levels` (Morning Stores 3, Rich Dew 3, Rested Roots 2, Deep Taproot 3,
   Second Thoughts 2; the game shows pips), `start` (Sporeling, Firefly Jar, Dewdrop: grown from the
@@ -70,7 +70,7 @@ the hollow.
 |---|---|
 | `perk_icons.png` (480×32) | Morning Stores, Rich Dew, Rested Roots, Seed Pouch, Clear Sight, Sprout Bed, Kindling, Early Bloom, Early Light, First Care, Deep Taproot, Second Thoughts, Let Go, Omen Reader, Wider Dreams |
 | `family_icons.png` (288×32) | Sporeling, Firefly Jar, Dewdrop, Pebbling, Rootling, Bellflower, Acorn, Nestling, Whirligig |
-| `card_bundle_icons.png` (384×32) | Storm, Spores and Reactions, Keen Edges, Tending, Overgrowth, Lone Lantern, The Long Way, Bittersweet, Woven, Deep Poison, Kinship, Seeds (a small stack of Dream cards with the branch's emblem) |
+| `card_bundle_icons.png` (416×32) | Storm, Spores and Reactions, Keen Edges, Tending, Overgrowth, Lone Lantern, The Long Way, Bittersweet, Woven, Deep Poison, Kinship, Seeds, The Quiet Ones (a small stack of Dream cards with the branch's emblem) |
 
 Family nodes can also show the Warden's own sprite (`assets/towers/<warden>.png`, frame 0) on the
 node card; the icons are for small spots where a 64 px Warden won't fit. Bellflower, Nestling and
