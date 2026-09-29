@@ -98,6 +98,13 @@ const RESONANT_ECHO_DELAY := 0.5  # …this long after
 const RESONANT_CHARGES := 3  # Resonant Hollow A: echoes set off Static at 3 charges, like a chime
 const JEWEL_THIEVES_EVERY := 6  # Jewel Thieves A: every 6th peck strips a buff (+1 Dew if there's none)
 const TAILWIND_REACH := 3.0  # Tailwind B: Gust's copies reach this far
+const AURA_RING_RADIUS := 28.0  # aura_ring_breath: its ring's radius in the 64 px sheet (1 cell)
+const AURA_RING_SOFT := 0.22
+const AURA_RING_BRIGHT := 0.55  # In build mode or with a selection
+const LEAF_MOTE_AT := Vector2(8, -20)  # Where a boosted Warden's leaf mote starts, from its centre
+const LEAF_MOTE_ALPHA := 0.35
+const LEAF_MOTE_RISE := 6.0  # Pixels a second…
+const LEAF_MOTE_SPAN := 14.0  # …over this far, then again
 const RANK_SPEED := 0.04
 const RANK_RANGE := 0.1  # Cells
 const RANK_NAMES: Array[String] = ["", "I", "II", "III", "IV", "V", "VI", "VII"]
@@ -232,6 +239,7 @@ var _ramp_hits := 0  # …and how many in a row
 var _nursery_ring: FairyRing = null  # Spore Nursery B: the one ring its puffs planted
 var _jewel_pecks := 0  # Jewel Thieves A
 var _graft_status: Array = []  # True Graft B: [status, stacks] of the strongest neighbour
+var _leaf_mote: Node2D = null  # Drifts up in _process while an aura boosts this Warden
 # Grafted Harmony (a Crowned delivery rule): a Graftling touching Wardens of 2+ status families also
 # applies each of their statuses at half strength. Status id -> stacks; its two-tone glow.
 var _harmony := {}
@@ -335,6 +343,8 @@ func evolve(data: TowerData, cost: int) -> void:
 
 func _process(delta: float) -> void:
 	_anim_time += delta
+	if is_instance_valid(_leaf_mote):
+		_leaf_mote.position = LEAF_MOTE_AT + Vector2(0, -fmod(_anim_time * LEAF_MOTE_RISE, LEAF_MOTE_SPAN))
 	_tick_dream_cache(delta)
 	_neighbour_timer -= delta
 	if _neighbour_timer <= 0.0:
@@ -842,6 +852,7 @@ func _refresh_neighbours() -> void:
 				best = other
 	_aura_count = aura_count
 	_graft_status = _strongest_neighbour_status() if kin_share(&"true_graft", "b") > 0.0 else []
+	_update_support_looks()
 	_set_harmony(harmony if harmony.size() >= 2 else {})
 	if badges_visible() or _dream_cache.is_empty():
 		_refresh_badge()  # Only while badges show (build mode, a selection); else the cache refresh does it
@@ -1575,6 +1586,39 @@ func _strongest_neighbour_status() -> Array:
 			best_dps = dps
 			best = [other.attack_data.applies_status, maxi(other.attack_data.status_stacks, 1)]
 	return best
+
+# --- Support looks (screens_ui.md "Support and economy feedback") --------------------------------
+
+# Aura Wardens: the aura_ring_breath ring, scaled to its reach, soft (brighter in build mode or with a
+# selection). Boosted Wardens: a faint leaf_mote drifting up, in the aura's colour.
+func _update_support_looks() -> void:
+	var ring := get_node_or_null("AuraRing") as Node2D
+	var is_aura := tower_data.aura_damage_bonus > 0.0 or tower_data.aura_speed_bonus > 0.0
+	if is_aura and ring == null and is_inside_tree():
+		ring = Fx.play(&"aura_ring_breath", global_position, self, get_aura_reach() * MAP_GRID.cell_size.x / AURA_RING_RADIUS)
+		if ring:
+			ring.name = "AuraRing"
+			ring.z_index = -1  # On the ground, under the Wardens
+			ring.modulate = Kinships.FAMILY_COLORS.get(tower_data.line, Color(0.85, 0.7, 0.45))
+	elif ring and not is_aura:
+		ring.queue_free()
+		ring = null
+	if ring:
+		ring.scale = Vector2.ONE * get_aura_reach() * MAP_GRID.cell_size.x / AURA_RING_RADIUS
+		ring.modulate.a = AURA_RING_BRIGHT if badges_visible() else AURA_RING_SOFT
+	var mote := get_node_or_null("LeafMote") as Node2D
+	var aura: Tower = _aura_damage_from if is_instance_valid(_aura_damage_from) else \
+		(_aura_speed_from if is_instance_valid(_aura_speed_from) else null)
+	if aura and mote == null and is_inside_tree():
+		mote = Fx.play(&"leaf_mote", global_position + LEAF_MOTE_AT, self)
+		if mote:
+			mote.name = "LeafMote"
+			mote.modulate = Color(Kinships.FAMILY_COLORS.get(aura.tower_data.line, Color(0.85, 0.7, 0.45)), LEAF_MOTE_ALPHA)
+	elif mote and aura == null:
+		mote.queue_free()
+		mote = null
+	_leaf_mote = mote
+
 
 # --- The hidden Kinships' helpers -------------------------------------------------------------------
 

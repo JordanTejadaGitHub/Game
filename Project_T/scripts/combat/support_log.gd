@@ -24,6 +24,7 @@ const WALLS := ["thornwall", "bramble", "honeysuckle"]
 var _rows := {}
 var _path_tiles := {}  # Thornwall id -> [board version, tiles]
 var _block_open := false  # A rest ended: the next drift starts a new block's totals
+var _dispels := {"block": [], "last_block": []}  # World positions of this / last block's dispels
 
 static func find(near: Node) -> SupportLog:
 	if near == null or not near.is_inside_tree():
@@ -55,6 +56,9 @@ func _ready() -> void:
 	if director:
 		director.drift_started.connect(_on_drift_started)
 		director.rest_started.connect(func(_b: int, _boss: bool, _bonus: int, _p: bool) -> void: _block_open = true)
+	var spawner := get_parent().get_node_or_null("%EnemyContainer")
+	if spawner and spawner.has_signal("enemy_cleansed"):
+		spawner.enemy_cleansed.connect(_on_enemy_cleansed)
 	var damage := DamageLog.instance if DamageLog.instance else get_parent().get_node_or_null("%DamageLog") as DamageLog
 	if damage:
 		damage.damage_dealt.connect(_on_damage_dealt)
@@ -87,6 +91,9 @@ func _on_drift_started(_number: int) -> void:
 		if _block_open:
 			row.block = {}
 			row.boosted.block = {}
+	if _block_open:
+		_dispels.last_block = _dispels.block
+		_dispels.block = []
 	_block_open = false
 
 # A boosted Warden dealt damage: its aura's share of it goes to the aura Warden.
@@ -105,6 +112,23 @@ func _credit_aura(boosted: Tower, aura: Tower, bonus: float, amount: float) -> v
 	for period in PERIODS:
 		if period != "last_drift":
 			row.boosted[period][boosted.get_instance_id()] = true
+
+# --- Where nightmares are dispelled (the catcher placement preview) ------------------------------
+
+func _on_enemy_cleansed(enemy: Node2D) -> void:
+	if is_instance_valid(enemy):
+		_dispels.block.append(enemy.global_position)
+
+# The share of dispels last block (this block's while there's no last one) within `radius` cells of
+# `at` (world): "~31% of dispels last block happened here". -1 when there's nothing to go on.
+func dispel_share_near(at: Vector2, radius: float) -> float:
+	var spots: Array = _dispels.last_block if not _dispels.last_block.is_empty() else _dispels.block
+	if spots.is_empty():
+		return -1.0
+	var reach := radius * Tower.MAP_GRID.cell_size.x
+	var inside := spots.filter(func(p: Vector2) -> bool: return p.distance_to(at) <= reach).size()
+	return float(inside) / spots.size()
+
 
 # --- Getters (Main's panels, rest report, results) ---------------------------------------------
 

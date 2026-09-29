@@ -74,6 +74,7 @@ func _show(tower: Tower) -> void:
 func _refresh() -> void:
 	for child in _groups.get_children():
 		child.queue_free()
+	tower_placer.hide_catch_preview()
 	if tower_seller.selection.size() > 1:
 		visible = true
 		_desc.visible = false
@@ -89,6 +90,8 @@ func _refresh() -> void:
 		return
 	visible = true
 	var data := _tower.tower_data
+	if _tower.is_catcher():
+		tower_placer.show_catch_preview(_tower.global_position, _tower.get_catch_radius())  # Its catch zone
 	_title.text = data.display_name
 	_show_damage_type(data)
 	if _tower.rank > 0:
@@ -207,6 +210,10 @@ func _refresh() -> void:
 				button.text = "Grow into %s · Needs room: 3 free cells next to it (2×2)" % next.display_name
 				button.disabled = true
 			button.pressed.connect(_evolve.bind(next))
+			if next.catch_share > 0.0 and not _tower.is_catcher():  # Where it would catch (placement preview)
+				var radius := next.catch_radius + DewCatch.WIDE_BOWL_STEP * mini(dream_state.rule_stacks(&"wide_bowl"), 3)
+				button.mouse_entered.connect(func() -> void: tower_placer.show_catch_preview(_tower.global_position, radius))
+				button.mouse_exited.connect(tower_placer.hide_catch_preview)
 		else:
 			_locked_form_button(button, "Grow into %s" % next.display_name, next)
 	if _tower.needs_focus():
