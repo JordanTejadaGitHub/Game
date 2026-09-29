@@ -168,8 +168,8 @@ func _run() -> void:
 	_check(main.get_node("HUD/CodexButton") != null, "a ? button on the HUD opens the Codex")
 	# Kinships: a discovery card the first time ever, a Codex section, counts for the rest report.
 	if ResourceLoader.exists(CodexData.KINSHIPS_SCRIPT):
-		_check(CodexData.kinships().size() == 9 and CodexData.get_any(&"slumber_rot").get("a") == "Driftspore",
-			"the 9 Kinships, with their pairs")
+		_check(CodexData.kinships().size() == 18 and CodexData.get_any(&"slumber_rot").get("a") == "Driftspore",
+			"the 18 Kinships (9 hidden), with their pairs")
 		_check(ComboFeedback.discovery_text(&"slumber_rot").begins_with("Kinship discovered: Slumber Rot\nDriftspore + Bloomcap"),
 			"a Kinship discovery card names the pair (%s)" % ComboFeedback.discovery_text(&"slumber_rot"))
 		feedback._seen.erase("slumber_rot")

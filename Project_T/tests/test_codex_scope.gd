@@ -28,6 +28,8 @@ func _run() -> void:
 	root.add_child(codex)
 	codex.open(&"combos")
 	_check(not codex._entries.has("marked_blow"), "without Pebbling, Exposed Blow isn't listed")
+	_check(not codex._entries.has("spore_nursery") and codex._entries.has("slumber_rot"),
+		"a hidden Kinship (Fairy Ring, a hidden branch) waits for its Grove node; Slumber Rot is listed")
 	var waiting := codex._combos.find_children("Waiting", "Label", false, false)
 	_check(not waiting.is_empty() and (waiting[0] as Label).text.ends_with("wait in the Memory Grove."),
 		"…one line says how many wait in the Memory Grove (%s)" % ((waiting[0] as Label).text if not waiting.is_empty() else "none"))
