@@ -274,7 +274,6 @@ func _base(canvas: Image, st: Dictionary, theme: String) -> void:
 	canvas.blend_rect(slab, Rect2i(0, 0, S, S), BASE_AT)
 
 func _draw_ascended(warden: String, frame: Image, st: Dictionary) -> void:
-	_ascended_name = warden
 	var info: Array = ASCENDED[warden]
 	var pal: Array = info[1]
 	var fig := {o = Color(pal[0]), a = Color(pal[1]), b = Color(pal[2]), c = Color(pal[3]), ramp = _ramp_of(pal)}
@@ -439,15 +438,6 @@ func _halo(canvas: Image, st: Dictionary, color: Color) -> void:
 # outline runs keep only their first row / column, and the silhouette gets a fresh 1 px outline).
 # Sets gh (head centre) and gb (belly centre) in frame px for the accessories. Returns its mask.
 const K := 2.0
-const GROUND_T := 48  # the template's floor row (under the golem's feet)
-# Where each rock sits at 1x: its bottom centre, on the waystone top.
-const ROCK_SPOTS := {"left": Vector2i(41, 108), "right": Vector2i(87, 108), "front": Vector2i(64, 121)}  # on the waystone top (layer px)
-const ASCENDED_ROCK_TOUCH := {
-	"sporemother": "spores", "tidecaller": "wet", "stormheart": "fireflies", "old_mountain": "lichen",
-	"world_root": "roots", "the_great_bell": "bells", "grandmother_oak": "acorns", "dawnwing": "twigs",
-	"the_tempest": "seeds",
-}
-var _ascended_name := ""
 const HEAD_T := Vector2(30.0, 11.5)  # head centre in template px
 const BELLY_T := Vector2(34.0, 30.0)
 const BELL_HAND_T := Vector2(42.0, 32.0)  # the side arm's hand, template px
@@ -489,8 +479,14 @@ func _golem(canvas: Image, st: Dictionary, fig: Dictionary, opts: Dictionary = {
 			var tx := floori(t.x)
 			var ty := floori(t.y)
 			var ch := _fig_at(pose, tx, ty)
-			if ch == "." or (_is_rock(pose, tx, ty) and (tx <= 17 or tx >= 47)):
-				continue  # The side rocks are drawn below, at 1x; the rest stays the golem's lap and feet.
+			if ch == ".":
+				continue
+			if _is_rock(pose, tx, ty):
+				# No rocks on the Ascended: the side rocks go, and where a rock met or sat in front of
+				# the body, the golem's lap and feet carry on in plain body colour (no facet lines).
+				if tx <= 17 or tx >= 47:
+					continue
+				ch = "b"
 			if ch == "o":
 				var first_x := floori((x - 1 - fo.x) / K) != tx
 				var first_y := floori((y - 1 - fo.y) / K) != ty
@@ -521,39 +517,6 @@ func _golem(canvas: Image, st: Dictionary, fig: Dictionary, opts: Dictionary = {
 					col = fig.o
 					break
 			canvas.set_pixel(x, y, col)
-	# The mock's three little rocks, kept at their original 1x size (at 2x they read as boulders),
-	# set ON the waystone's top face (left corner, right corner, front edge) so they sit flush: the
-	# bottom row sinks into the stone and a soft contact shadow sits under each.
-	var groups := {}  # group -> [min x, max x, max y] in template px
-	for ty in S:
-		for tx in S:
-			if _is_rock(pose, tx, ty) and ROCK_PAL.has(_fig_at(pose, tx, ty)):
-				var g := _rock_group(tx, ty)
-				var b: Array = groups.get(g, [tx, tx, ty])
-				groups[g] = [mini(b[0], tx), maxi(b[1], tx), maxi(b[2], ty)]
-	var rock_px := {}
-	for g: String in groups:
-		var b: Array = groups[g]
-		var spot: Vector2i = ROCK_SPOTS[g]
-		var cx: int = (b[0] + b[1]) / 2
-		var bottom: int = b[2]
-		var half: int = (b[1] - b[0]) / 2 + 2
-		for sx in range(-half, half + 1):
-			var sp := spot + Vector2i(sx, 0)
-			if _in(canvas, sp.x, sp.y) and canvas.get_pixelv(sp).a > 0.0:
-				canvas.set_pixelv(sp, canvas.get_pixelv(sp).darkened(0.35))
-		for ty in range(bottom - 12, bottom):  # the bottom row is left out: sunk into the stone
-			for tx in range(b[0], b[1] + 1):
-				if not _is_rock(pose, tx, ty) or _rock_group(tx, ty) != g:
-					continue
-				var ch := _fig_at(pose, tx, ty)
-				if not ROCK_PAL.has(ch):
-					continue
-				var p := spot + Vector2i(tx - cx, ty - bottom)
-				if _in(canvas, p.x, p.y):
-					canvas.set_pixelv(p, ROCK_PAL[ch])
-					rock_px[p] = true
-	_touch_rocks(canvas, rock_px, ASCENDED_ROCK_TOUCH.get(_ascended_name, ""))
 	# Detail: dither where the shading bands meet, a few speckles, and a rim light (the Ascended
 	# glow) on the silhouette's lit edge.
 	var rim: Color = fig.a.lerp(st.get("halo", Color.WHITE), 0.55).lightened(0.15)
