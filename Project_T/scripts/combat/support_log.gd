@@ -101,6 +101,8 @@ func _on_damage_dealt(event: DamageLog.Event) -> void:
 	var tower := event.source as Tower
 	if tower == null or not is_instance_valid(tower) or event.amount <= 0.0:
 		return
+	if tower._aura_damage_from == null and tower._aura_speed_from == null:
+		return  # Performance: most hits have no aura behind them (this runs for every damage event)
 	_credit_aura(tower, tower._aura_damage_from, tower._aura_damage, event.amount)
 	_credit_aura(tower, tower._aura_speed_from, tower._aura_speed, event.amount)
 
