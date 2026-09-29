@@ -19,8 +19,9 @@ data-driven enemies, **tower building** (build mode, placement validation, enemi
 **combat** (towers target the enemy closest to the goal and fire homing spore puffs; nightmares are
 *dispelled*: they crack with light and burst into motes. Code identifiers still say
 `cleansed` / `is_cleansed` / `cleanse_line` from the old cozy theme; player-facing text says dispel),
-**clearable obstacles** (random map each run: ridges of rocks/trees from alternating walls make
-the route zig-zag, plus noise tree clusters and scattered rocks; outside build mode, hover shows
+**clearable obstacles** (random map each run: 2 short, gappy ridges of rocks/trees from alternating walls
+(3 at Blight 9), small tree groves and rock clusters, ~60 obstacles (min 10; `tests/test_map_density.gd`) so
+the Wardens build most of the maze; outside build mode, hover shows
 cost + the route that would open, left-click clears. Obstacles are "Withered Tree" (Tend) and
 "Mossy Boulder" (Move); `RunState.obstacles_tended` counts clears for +1 Seed each at run end).
 **Run structure** (`run_design.md`, `acts_1_2.md`, `acts_3_4.md`, `demo_scope.md`): runs (demo too)

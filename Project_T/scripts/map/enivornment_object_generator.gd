@@ -9,32 +9,35 @@ const BRIDGE_CELLS := 3  # Rope bridge from the start out into the void (DreamVo
 @export var rock_obstacle: ObstacleData = preload("res://resource/obstacle/rock.tres")
 @export_group("Trees")
 # Share of the noise range that becomes trees; each map rolls a value in this range.
-@export_range(0.0, 0.6) var tree_density_min: float = 0.14
-@export_range(0.0, 0.6) var tree_density_max: float = 0.3
+@export_range(0.0, 0.6) var tree_density_min: float = 0.13
+@export_range(0.0, 0.6) var tree_density_max: float = 0.24
 # Each map scales the noise frequency by a random factor in this range: low = big groves, high = small copses.
-@export var tree_cluster_scale_min: float = 0.7
-@export var tree_cluster_scale_max: float = 1.4
+@export var tree_cluster_scale_min: float = 1.1
+@export var tree_cluster_scale_max: float = 1.8
 @export_group("Rocks")
-@export_range(0.0, 1.0) var rock_chance: float = 0.02  # Chance for any free cell to get a lone rock
-@export var rock_cluster_count_min: int = 1
-@export var rock_cluster_count_max: int = 3
-@export var rock_cluster_radius_min: float = 1.0  # In cells
-@export var rock_cluster_radius_max: float = 2.5
+@export_range(0.0, 1.0) var rock_chance: float = 0.004  # Chance for any free cell to get a lone rock (rare: few scattered singles)
+@export var rock_cluster_count_min: int = 0
+@export var rock_cluster_count_max: int = 2
+@export var rock_cluster_radius_min: float = 0.8  # In cells
+@export var rock_cluster_radius_max: float = 1.6
 @export_group("Ridges")
 # Ridges are wobbly lines of rocks and trees running in from the left or right wall. They make the
 # starting route snake back and forth; clearing one of their cells opens a shortcut.
 @export var ridge_count_min: int = 2
-@export var ridge_count_max: int = 5
-@export_range(0.1, 1.0) var ridge_length_min: float = 0.55  # Fraction of the map's width (>0.5 so opposite ridges overlap)
-@export_range(0.1, 1.0) var ridge_length_max: float = 0.85
+@export var ridge_count_max: int = 2  # The Wardens should build most of the maze, not the map
+@export_range(0.1, 1.0) var ridge_length_min: float = 0.5  # Fraction of the map's width
+@export_range(0.1, 1.0) var ridge_length_max: float = 0.7
 @export var ridge_min_spacing: int = 4  # Rows between ridge centres (and walls); ridges span ±1, so keep >= 4
 @export_range(0.0, 1.0) var ridge_wander_chance: float = 0.3  # Per cell: step up/down a row (max 1 from its base)
 # Ridges taper from the wall to the tip, all inside their band (base row ±1) so neighbours never touch:
 # a thicket/outcrop root, a two-row middle, a one-row tip, then a few strays so they thin out.
 @export_range(0.0, 1.0) var ridge_root_fraction: float = 0.3  # Share of the length at the wall that's up to 3 rows thick
 @export_range(0.0, 1.0) var ridge_tip_fraction: float = 0.3  # Share of the length at the tip that's 1 row
-@export_range(0.0, 1.0) var ridge_root_fill_chance: float = 0.7  # Root: chance for each of the other 2 band rows
-@export_range(0.0, 1.0) var ridge_middle_fill_chance: float = 0.5  # Middle: chance for a second row
+@export_range(0.0, 1.0) var ridge_root_fill_chance: float = 0.6  # Root: chance for each of the other 2 band rows
+@export_range(0.0, 1.0) var ridge_middle_fill_chance: float = 0.4  # Middle: chance for a second row
+@export_range(0.0, 1.0) var ridge_gap_chance: float = 0.15  # Middle and tip: chance a cell is left open (a gap)
+@export var blight_extra_ridges: int = 1  # Blight Level 9+: maps get one extra ridge (meta_design.md)
+@export var min_obstacles: int = 10  # Floor per map, so the clearing Dream cards (need 8+) still show up
 @export var ridge_stray_min: int = 1  # Lone obstacles past the tip, in the band
 @export var ridge_stray_max: int = 3
 @export var ridge_stray_gap_min: int = 1  # Open columns before each stray
@@ -45,6 +48,7 @@ var unwalkable_cells: PackedVector2Array
 # Cells that belong to a ridge (set of Vector2 -> true), so route carving can avoid breaking them.
 var ridge_cells: Dictionary = {}
 var bridge_end: Vector2i  # The void cell just past the rope bridge's far end
+var ridge_count := 0  # Ridges the last generate_obstacles() placed
 
 # Noise thresholds (set by generate_obstacles): below `_tree_level` = tree, below `_detail_level` =
 # grass detail, above = bare grass. Tree level is rolled per map; detail level comes from the noise
@@ -86,7 +90,18 @@ func generate_obstacles(rng: RandomNumberGenerator, skip_cells: PackedVector2Arr
 				_place_obstacle(rng, cell, tree_obstacle, obstacles)
 			elif rng.randf() < rock_chance:
 				_place_obstacle(rng, cell, rock_obstacle, obstacles)
+	_fill_to_minimum(rng, skip_cells, obstacles)
 	return obstacles
+
+# Tops a sparse map up to `min_obstacles` with lone trees and rocks on random free cells (route carving
+# still guarantees a way through).
+func _fill_to_minimum(rng: RandomNumberGenerator, skip_cells: PackedVector2Array, obstacles: Dictionary) -> void:
+	for attempt in 500:
+		if obstacles.size() >= min_obstacles:
+			return
+		var cell := Vector2(rng.randi_range(1, int(MAP_GRID.size.x) - 2), rng.randi_range(1, int(MAP_GRID.size.y) - 2))
+		if not skip_cells.has(cell) and not obstacles.has(cell):
+			_place_obstacle(rng, cell, tree_obstacle if rng.randf() < 0.5 else rock_obstacle, obstacles)
 
 # Wobbly ridges on well-spaced rows, each attached to the left or right wall (alternating, so the
 # route has to zig-zag between their open ends). Each ridge has its own rock/tree mix. Diagonal
@@ -95,7 +110,11 @@ func generate_obstacles(rng: RandomNumberGenerator, skip_cells: PackedVector2Arr
 # it back. Starting on the far side would let the route slip past both without doubling back.
 func _generate_ridges(rng: RandomNumberGenerator, skip_cells: PackedVector2Array, obstacles: Dictionary) -> void:
 	var inner_width := int(MAP_GRID.size.x) - 2  # Columns between the side walls
-	var rows := _pick_ridge_rows(rng, rng.randi_range(ridge_count_min, ridge_count_max))
+	var count := rng.randi_range(ridge_count_min, ridge_count_max)
+	if MetaRun.blight_level >= 9:
+		count += blight_extra_ridges  # Blight Level 9: one extra ridge
+	var rows := _pick_ridge_rows(rng, count)
+	ridge_count = rows.size()
 	var from_left := _start_on_left
 	for base_row in rows:
 		var length := int(inner_width * rng.randf_range(ridge_length_min, ridge_length_max))
@@ -106,6 +125,8 @@ func _generate_ridges(rng: RandomNumberGenerator, skip_cells: PackedVector2Array
 		for i in length:
 			if rng.randf() < ridge_wander_chance:
 				row = clampi(row + (1 if rng.randf() < 0.5 else -1), base_row - 1, base_row + 1)
+			if i >= root_end and rng.randf() < ridge_gap_chance:
+				continue  # A gap: this column of the ridge is left open
 			var x := 1 + i if from_left else inner_width - i
 			_place_ridge_cell(rng, Vector2(x, row), rock_share, skip_cells, obstacles)
 			if i < root_end:
