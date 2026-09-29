@@ -12,6 +12,8 @@ All under `assets/meta/`. Frames run left to right. Sprites include their own gl
 
 ## The Grove (`grove/`)
 
+**Palette:** every meta sheet is Heartwood 32 (`assets/palette/heartwood32.json`, art_direction.md "Rendering style"). The generator picks its main ramps by name (bark Root / Bark / Oak, leaves Deepmoss to Newleaf, crown Void / Dread / Night in the shadows then Deepmoss / Pool / Moss / Leaf), and `grove_export.js` snaps every pixel of every sheet to the nearest palette colour (OKLab) on the way out, keeping alpha, so glows are palette colours at partial alpha. PNGs are encoded by the generator itself (not `canvas.toDataURL`, which shifts faint pixels off the palette).
+
 Tree space is **1280×960 px** (native pixels; the screen pans and zooms). Every position in
 `grove_layout.json` is in that space.
 

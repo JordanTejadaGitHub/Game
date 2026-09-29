@@ -2,10 +2,11 @@
 // ================= Memory Grove: the Heartwood as a tech tree =================
 // Tree space is 1280×960 px (native pixel art); every position below is in that space.
 const GW = 1280, GH = 960;
-// Night bark: deep warm browns (the Heartwood is the warm side), grain runs along the wood.
-// Night bark: deep warm browns (the Heartwood is the warm side), grain runs along the wood.
-const HB6 = ["#120a08", "#22150e", "#362216", "#4c3020", "#66442c", "#80583a"];
-const LEAFG = ["#1e3a14", "#2e5a1e", "#4a7e2a", "#78a83c", "#a8cc5c"];
+// Heartwood 32 (assets/palette/heartwood32.json, injected by export.ps1 -Rebuild): colours by name.
+const HW = Object.fromEntries(HW32.ramps.flatMap(r => r.colors.map(c => [c.name, c.hex])));
+// Night bark: the Bark ramp (the Heartwood is the warm side), grain runs along the wood.
+const HB6 = [HW.Void, HW.Root, HW.Root, HW.Bark, HW.Bark, HW.Oak];
+const LEAFG = [HW.Deepmoss, HW.Moss, HW.Leaf, HW.Sprig, HW.Newleaf];
 const SECTION = {
   perks:    { name: "Perks",    petals: ["#6a3c0c", "#b87818", "#e8b440", "#ffe39a"], mid: "#fff6d0", glow: "255,200,90" },
   families: { name: "Families", petals: ["#1a4222", "#338236", "#72c05a", "#c4ec98"], mid: "#f2ffd8", glow: "150,230,120" },
@@ -323,7 +324,8 @@ function grovesky() {
 // small leaf clusters, each one flat tone from the lobe under it with a lit tip and a dark rim along
 // its bottom, upper clusters overlapping lower ones. Drawn at half resolution and scaled up 2×.
 // The night greens (colours unchanged), seven tiers.
-const CROWN_P = ["#050b08", "#07100b", "#0c1a10", "#132816", "#1c381c", "#284a24", "#3a5e30"];
+// The crown: indigo night in the shadows and the belly, cold moonlit Pool, then Moss where the light reaches.
+const CROWN_P = [HW.Void, HW.Dread, HW.Night, HW.Deepmoss, HW.Pool, HW.Moss, HW.Leaf];
 const CROWN_PX = 2, CROWN_SEED = 970;
 // Stages grow the crown outward: the clusters over the limbs are always there, the edges fill in.
 const CROWN_SHARE = [.72, .8, .9, 1];
@@ -403,7 +405,7 @@ function groveCanopy(stage) {
   }
   const small = new Img(W, H); small.stamp(L, P[0]);
   for (let y = 1; y < H - 1; y++) for (let x = 1; x < W - 1; x++)
-    if (L.alpha(x, y) && !L.alpha(x + 1, y - 1) && L.alpha(x - 1, y + 1)) small.set(x, y, "#3e5e4c");  // moonlit edge
+    if (L.alpha(x, y) && !L.alpha(x + 1, y - 1) && L.alpha(x - 1, y + 1)) small.set(x, y, HW.Moss);  // moonlit edge
   // Scale up 2× into the tree's space.
   const out = new Img(GW, GH);
   for (let y = 0; y < GH; y++) for (let x = 0; x < GW; x++) { const X = x / s | 0, Y = y / s | 0; if (small.alpha(X, Y)) out.set(x, y, small.get(X, Y)); }
