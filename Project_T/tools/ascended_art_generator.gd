@@ -501,19 +501,21 @@ func _golem(canvas: Image, st: Dictionary, fig: Dictionary, opts: Dictionary = {
 			if not colors.has(ch):
 				continue
 			body.set_pixel(x, y, colors[ch])
-	# The golem's seat: its body carries straight down to the waystone, the bottom-right corner
-	# rounded, shaded like the body's bands (mid on the left, lit on the right, shadow at the base).
-	var seat := Rect2(Vector2(33.5, 38.5), Vector2(12.5, 9.5))  # template px
+	# The golem's round bottom (like Baymax sitting down): an oval that bulges out below the belly
+	# and sits flat on the waystone, shaded as a round form.
+	var seat_c := Vector2(38.5, 40.5)  # template px
+	var seat_r := Vector2(8.5, 7.5)
+	var floor_y := 47.5  # where it rests on the ground: flat below this
 	for y in 128:
 		for x in 128:
-			var t := (Vector2(x, y) - fo - Vector2(0, dy)) / K
-			if not seat.has_point(t) or body.get_pixel(x, y).a > 0.0:
+			var t := (Vector2(x + 0.5, y + 0.5) - fo - Vector2(0, dy)) / K
+			if t.y > floor_y or body.get_pixel(x, y).a > 0.0:
 				continue
-			var corner := Vector2(seat.end.x - 3.0, seat.end.y - 3.0)
-			if t.x > corner.x and t.y > corner.y and t.distance_to(corner) > 3.0:
+			var d := (t - seat_c) / seat_r
+			var q := d.length_squared()
+			if q > 1.0:
 				continue
-			var ch := "c" if t.y > seat.end.y - 1.5 else ("a" if t.x > 40.0 else "b")
-			body.set_pixel(x, y, colors[ch])
+			body.set_pixel(x, y, _shade(fig.ramp, Vector3(d.x, d.y, sqrt(1.0 - q)).normalized()))
 	# Fresh 1 px outline round the silhouette.
 	var mask := _gnew(canvas)
 	for y in 128:
