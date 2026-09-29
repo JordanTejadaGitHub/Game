@@ -175,6 +175,13 @@ func _build_prompt() -> void:
 func _show_prompt(_block: int) -> void:
 	_prompt.visible = true
 	_place_prompt.call_deferred()
+	var drift_panel := get_parent().get_node_or_null("DriftPanel") as Control
+	if drift_panel and not drift_panel.resized.is_connected(_on_drift_panel_resized):
+		drift_panel.resized.connect(_on_drift_panel_resized)  # It grows at rests (Coming this block)
+
+func _on_drift_panel_resized() -> void:
+	if _prompt.visible:
+		_place_prompt.call_deferred()
 
 # Beside Start: just left of the DriftPanel, bottom-aligned with it.
 func _place_prompt() -> void:
