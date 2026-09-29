@@ -244,7 +244,7 @@ accessibility, Steam achievements (milestones map to them). Acts 3–4 and all f
   Perks). `costs` per level, `requires_all` ("id" or "id:level") / `requires_any` (+count), `icon`,
   `start` (Sporeling / Firefly Jar / Dewdrop, never bought), `<family>_ascension` (Ascended Warden card), `milestone` (grows free, refunds a
   purchase; no `costs` = milestone-only: Sunpetal), `legendary`. Effects: `families`, `dream_cards`
-  (→ `DreamState.grove_cards`), `loadout_slots` (slot_4 / slot_5), `memory_warden` + `memory_boss` (Memory Warden blooms: milestone `boss_<kind>` on a first boss dispel; `MetaRun.memory_wardens` → `FamilyPickScreen.pending_memory_warden` offers it in the boss pick), perks per level (only while carried):
+  (→ `DreamState.grove_cards`), `loadout_slots` (slot_4 / slot_5), `memory_warden` + `memory_boss` (Memory Warden blooms, PARKED 2026-09-29: `MetaRun.MEMORY_WARDENS_ENABLED` false keeps them off the tree (`load_grove` skips them) and out of the boss pick; first boss dispels still record `boss_<kind>`; code, art and resources kept), perks per level (only while carried):
   `starting_dew`, `dew_gain` (`RunState.dew_gain_bonus`, fraction carry), `rest_bonus`
   (`DriftDirector.rest_bonus_perk_multiplier`), `max_leaves`, `dream_rerolls` / `dream_banishes` /
   `extra_dream_cards`, `extra_omens`, `seed_bonus`, `early_bloom`, `starting_dreamlight`,

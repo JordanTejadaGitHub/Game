@@ -75,6 +75,12 @@ static func sixth_slot_dev_active() -> bool:
 		return false
 	return bool(HeartwoodMemory.get_settings().get(SIXTH_SLOT_SETTING, false))
 
+# PARKED (user decision 2026-09-29, tower_design.md / meta_design.md): Memory Wardens are switched off.
+# Their blooms are left out of the Grove (HeartwoodMemory.load_grove), so none grows or shows and the
+# boss pick never offers one. Code, art and resources stay; boss first-dispels are still recorded
+# quietly, so turning this back on restores the blooms a player has earned.
+const MEMORY_WARDENS_ENABLED := false
+
 # Memory Wardens (tower_design.md): a boss's first dispel records milestone "boss_<kind>", which grows
 # its bloom on the Families limb; in later runs its Warden is offered in the pick after that boss.
 const MEMORY_BOSS_PREFIX := "boss_"

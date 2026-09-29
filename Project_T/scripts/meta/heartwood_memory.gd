@@ -200,8 +200,11 @@ static func load_grove() -> Array[UnlockData]:
 	for file in ResourceLoader.list_directory(GROVE_DIR):
 		if file.ends_with(".tres") or file.ends_with(".res"):
 			var unlock := load(GROVE_DIR + file) as UnlockData
-			if unlock != null:
-				result.append(unlock)
+			if unlock == null:
+				continue
+			if unlock.memory_warden != "" and not MetaRun.MEMORY_WARDENS_ENABLED:
+				continue  # Memory Wardens are parked: their blooms aren't on the tree (saved data kept)
+			result.append(unlock)
 	result.sort_custom(func(a: UnlockData, b: UnlockData) -> bool:
 		return a.root < b.root or (a.root == b.root and a.order < b.order))
 	return result
