@@ -87,6 +87,8 @@ func _maze_row() -> Dictionary:
 
 # --- Measuring ---------------------------------------------------------------------------------
 
+# Performance: this runs for every damage event (hits and ticks, several a frame at 3x), so no throwaway
+# arrays and no string-keyed property reads.
 func _on_damage_dealt(event: DamageLog.Event) -> void:
 	var amount := event.amount
 	if amount <= 0.0:
@@ -95,28 +97,41 @@ func _on_damage_dealt(event: DamageLog.Event) -> void:
 	var enemy := event.enemy
 	if is_instance_valid(enemy):
 		var id := enemy.get_instance_id()
-		var before: float = _last_health.get(id, float(enemy.get("max_health")))
-		var after := float(enemy.get("health"))
+		var after: float = enemy.health
+		var before: float = _last_health.get(id, float(enemy.max_health))
 		overkill = maxf(amount - maxf(before - after, 0.0), 0.0)
 		_last_health[id] = after
-	var resisted := amount * (1.0 / event.family_multiplier - 1.0) if event.family_multiplier > 0.0 and event.family_multiplier < 1.0 else 0.0
-	for period in ["drift", "block"]:
-		_maze[period].damage += amount
+	var family := event.family_multiplier
+	var resisted := amount * (1.0 / family - 1.0) if family > 0.0 and family < 1.0 else 0.0
+	_maze.drift.damage += amount
+	_maze.block.damage += amount
 	var tower := event.source as Tower
 	if tower == null or not is_instance_valid(tower):
 		return
 	var row := _row(tower)
-	for period in ["drift", "block"]:
-		row[period].damage += amount
-		row[period].resisted += resisted
-		row[period].overkill += overkill
+	var drift: Dictionary = row.drift
+	var block: Dictionary = row.block
+	drift.damage += amount
+	block.damage += amount
+	if resisted > 0.0:
+		drift.resisted += resisted
+		block.resisted += resisted
+	if overkill > 0.0:
+		drift.overkill += overkill
+		block.overkill += overkill
 	# Support credit: the aura that boosted this hit is credited its share (as SupportLog does).
-	for pair in [[tower._aura_damage_from, tower._aura_damage], [tower._aura_speed_from, tower._aura_speed]]:
-		var aura = pair[0]
-		if aura != null and is_instance_valid(aura) and pair[1] > 0.0:
-			var aura_row := _row(aura)
-			for period in ["drift", "block"]:
-				aura_row[period].credit += amount * pair[1] / (1.0 + pair[1])
+	if tower._aura_damage_from != null:
+		_credit(tower._aura_damage_from, tower._aura_damage, amount)
+	if tower._aura_speed_from != null:
+		_credit(tower._aura_speed_from, tower._aura_speed, amount)
+
+func _credit(aura: Tower, bonus: float, amount: float) -> void:
+	if not is_instance_valid(aura) or bonus <= 0.0:
+		return
+	var share := amount * bonus / (1.0 + bonus)
+	var aura_row := _row(aura)
+	aura_row.drift.credit += share
+	aura_row.block.credit += share
 
 func _process(delta: float) -> void:
 	if _director == null or _director.is_resting() or get_tree().paused:
