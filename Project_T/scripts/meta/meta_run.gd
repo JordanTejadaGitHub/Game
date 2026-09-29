@@ -36,9 +36,14 @@ static func all_families_active() -> bool:
 		return false
 	return bool(HeartwoodMemory.get_settings().get(ALL_FAMILIES_SETTING, false))
 
-# A developer run (Test Grove or Unlock all families): nothing is banked or recorded.
+# Balance simulation: play the next run with a Grove profile preset (&"fresh" / &"early" / &"half" /
+# &"full", GrovePresets) from a temp file; the real profile is untouched. GrovePresets.unload() undoes it.
+static func load_preset(preset: StringName) -> String:
+	return GrovePresets.load_preset(preset)
+
+# A developer run (Test Grove, Unlock all families or Dev Grove): nothing is banked or recorded.
 static func is_dev_run() -> bool:
-	return TestGrove.is_active() or all_families_active()
+	return TestGrove.is_active() or all_families_active() or DevGrove.is_active()
 
 @onready var run_state: RunState = %RunState
 @onready var drift_director: DriftDirector = %DriftDirector
@@ -55,6 +60,8 @@ var _shades_this_run := 0
 func _ready() -> void:
 	active = not ResultsScreen.is_demo()
 	records = active and get_tree().current_scene == owner and not is_dev_run()
+	if DevGrove.is_active():
+		_add_dev_tag.call_deferred()
 	# Family Blessings are in the Dream pool (never offered; the family pick grants them), so their
 	# effects count and saved runs find them.
 	for blessing in load_blessings():
@@ -258,3 +265,19 @@ func _one_family_only() -> bool:
 		if tower is Tower and tower.tower_data.can_attack and tower.tower_data.line not in ["sprout", "wall", "memory"]:
 			lines[tower.tower_data.line] = true
 	return lines.size() == 1
+
+# "Dev Grove: Full" in a corner of the HUD, so a dev run is never mistaken for a real one.
+func _add_dev_tag() -> void:
+	var hud := owner.get_node_or_null("HUD") if owner else null
+	if hud == null:
+		return
+	var tag := Label.new()
+	tag.name = "DevGroveTag"
+	tag.text = DevGrove.tag()
+	tag.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	tag.add_theme_font_size_override("font_size", 13)
+	tag.add_theme_color_override("font_color", Color(1.0, 0.7, 0.4, 0.85))
+	tag.add_theme_color_override("font_outline_color", Color(0, 0, 0))
+	tag.add_theme_constant_override("outline_size", 4)
+	hud.add_child(tag)
+	tag.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_RIGHT, Control.PRESET_MODE_MINSIZE, 6)

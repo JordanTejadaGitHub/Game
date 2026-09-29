@@ -12,6 +12,8 @@ const VERSION := 2  # 2: Grove ids match grove_layout.json (MIGRATED_IDS), perk 
 
 # Where the profile lives (tests point this elsewhere so they never touch the player's Seeds).
 static var file_path := PATH
+# Dev Grove (DevGrove): while set, the profile is a dev one but settings stay in this real file.
+static var real_settings_path := ""
 
 static func defaults() -> Dictionary:
 	return {
@@ -62,6 +64,12 @@ static func defaults() -> Dictionary:
 	}
 
 static func load_data() -> Dictionary:
+	var data := _load_file()
+	if real_settings_path != "" and real_settings_path != file_path:
+		data.settings = _real_settings()  # Dev Grove: settings live in the real profile
+	return data
+
+static func _load_file() -> Dictionary:
 	var data := defaults()
 	if not FileAccess.file_exists(file_path):
 		return data
@@ -283,9 +291,20 @@ static func get_settings() -> Dictionary:
 	return load_data().settings
 
 static func save_settings(settings: Dictionary) -> void:
+	var path := file_path
+	if real_settings_path != "":
+		file_path = real_settings_path  # Dev Grove: settings always go to the real profile
 	var data := load_data()
 	data.settings = settings
 	save_data(data)
+	file_path = path
+
+static func _real_settings() -> Dictionary:
+	var path := file_path
+	file_path = real_settings_path
+	var settings: Dictionary = _load_file().settings
+	file_path = path
+	return settings
 
 # Applies settings to the engine: volume, window mode and key rebinds.
 static func apply_settings(settings: Dictionary = {}) -> void:

@@ -259,6 +259,86 @@ func _run() -> void:
 	grove_screen.queue_free()
 	await process_frame
 
+	# --- Balance simulation presets (balance_simulation.md "Profiles") ---
+	var tree_total := 0
+	for unlock in grove:
+		tree_total += unlock.get_spent(unlock.get_levels())
+	var spent_share := func(data: Dictionary) -> float:
+		var spent := 0
+		for unlock in grove:
+			spent += unlock.get_spent(HeartwoodMemory.unlock_level(data, unlock.id))
+		return float(spent) / tree_total
+	var fresh := GrovePresets.profile(&"fresh")
+	_check(fresh.unlocks.is_empty() and fresh.loadout.is_empty(), "Fresh: nothing grown")
+	var early := GrovePresets.profile(&"early")
+	_check(early.unlocks.size() == 5 and early.loadout == ["morning_stores"] and HeartwoodMemory.loadout_slots(early) == 1,
+		"Early: 5 cheap unlocks, Morning Stores carried (%s)" % [early.loadout])
+	var half := GrovePresets.profile(&"half")
+	var share: float = spent_share.call(half)
+	_check(share >= 0.5 and share < 0.56 and HeartwoodMemory.loadout_slots(half) == 3 and half.loadout.size() == 3,
+		"Half: about half the tree by Seeds (%.2f), 3 slots, 3 perks carried (%s)" % [share, half.loadout])
+	var full := GrovePresets.profile(&"full")
+	_check(is_equal_approx(spent_share.call(full), 1.0) and HeartwoodMemory.loadout_slots(full) == 5 and full.loadout.size() == 5
+		and grove.all(func(u: UnlockData) -> bool: return HeartwoodMemory.is_grown(full, u)), "Full: every node grown, 5 perks carried")
+	var real_path := HeartwoodMemory.file_path
+	MetaRun.load_preset(&"full")
+	_check(HeartwoodMemory.file_path == GrovePresets.PATH, "a preset loads from its own temp profile")
+	main = await _new_run()
+	family = main.get_node("%FamilyPickScreen")
+	run_state = main.get_node("%RunState")
+	_check(family.families.size() >= 9 and run_state.max_leaves == run_state.starting_leaves + 3,
+		"a Full run: every family in the picks, Deep Taproot III carried (%d families)" % family.families.size())
+	main.queue_free()
+	await process_frame
+	_delete(GrovePresets.PATH)
+	HeartwoodMemory.file_path = real_path
+
+	# --- Dev Grove (demo_scope.md): runs and the Grove use a preset's dev profile; the real profile
+	# (settings aside) is never read or written, and it's a dev run in the full game ---
+	var real := HeartwoodMemory.defaults()
+	real.seeds = 7
+	real.settings.ui_scale = 1.3
+	HeartwoodMemory.save_data(real)
+	var real_text := FileAccess.get_file_as_string(PROFILE_PATH)
+	ProjectSettings.set_setting("game/demo", true)
+	DevGrove.force = &"full"
+	DevGrove.apply()
+	_check(DevGrove.is_active() and HeartwoodMemory.file_path == GrovePresets.PATH and not ResultsScreen.is_demo() and MetaRun.is_dev_run(),
+		"Dev Grove Full: the dev profile, the full game, a dev run")
+	_check(is_equal_approx(float(HeartwoodMemory.get_settings().ui_scale), 1.3), "settings still come from the real profile")
+	_check(DevGrove.tag() == "Dev Grove: Full", "the tag names the level")
+	main = await _new_run()
+	(main.get_node("%ResultsScreen") as ResultsScreen).bank_in_tests = true
+	_check(not (main.get_node("%MetaRun") as MetaRun).records, "a Dev Grove run records nothing")
+	_check((main.get_node("%FamilyPickScreen").families as Array).size() >= 9, "a Dev Grove Full run has every family")
+	main.get_node("%RunState").end_run(true)
+	await process_frame
+	main.queue_free()
+	await process_frame
+	grove_screen = load("res://scenes/grove.tscn").instantiate()
+	root.add_child(grove_screen)
+	await process_frame
+	view = grove_screen.tree_view
+	_check(grove.all(func(u: UnlockData) -> bool: return view.state_of(u) == GroveTreeView.State.OWNED), "the Grove shows every node owned")
+	grove_screen.queue_free()
+	await process_frame
+	var dev_profile := HeartwoodMemory.load_data()
+	dev_profile.loadout = ["seed_pouch"]
+	HeartwoodMemory.save_data(dev_profile)
+	DevGrove.apply()  # Same level again (next launch): the dev profile keeps its changes
+	_check(HeartwoodMemory.load_data().loadout == ["seed_pouch"], "Dev Grove keeps its loadout at the same level")
+	DevGrove.force = &"early"
+	DevGrove.apply()
+	_check(HeartwoodMemory.load_data().loadout == ["morning_stores"], "another level resets the dev profile to its preset")
+	DevGrove.force = &"off"
+	DevGrove.apply()
+	_check(not DevGrove.is_active() and HeartwoodMemory.file_path == PROFILE_PATH and ResultsScreen.demo_override == -1,
+		"Dev Grove off: back to the real profile")
+	_check(FileAccess.get_file_as_string(PROFILE_PATH) == real_text, "the real profile was never written")
+	DevGrove.force = &""
+	_delete(GrovePresets.PATH)
+	ProjectSettings.set_setting("game/demo", false)
+
 	# --- Developer "Unlock all families": a fresh profile, even in the demo, gets every family and
 	# their Grove Dream cards, without touching the profile, and banks nothing ---
 	HeartwoodMemory.save_data(HeartwoodMemory.defaults())
@@ -320,7 +400,7 @@ func _layout_node(id: String) -> Dictionary:
 # art, and every UnlockData is on the tree.
 func _check_layout(grove: Array[UnlockData]) -> void:
 	var nodes: Array = GroveTreeView.load_layout().nodes
-	_check(nodes.size() == 79 and grove.size() == 79, "79 Grove nodes (layout %d, data %d)" % [nodes.size(), grove.size()])
+	_check(nodes.size() == 82 and grove.size() == 82, "82 Grove nodes (layout %d, data %d)" % [nodes.size(), grove.size()])
 	for node in nodes:
 		var unlock := HeartwoodMemory.get_unlock(node.id)
 		if unlock == null:

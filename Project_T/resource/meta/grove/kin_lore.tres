@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="UnlockData" format=3]
+
+[ext_resource type="Script" path="res://resource/meta/script/unlock_data.gd" id="1_unlock"]
+
+[resource]
+script = ExtResource("1_unlock")
+id = "kin_lore"
+display_name = "Kin Lore"
+description = "Kinship Dreams join the pool: Close Kin, Old Friends."
+root = 1
+costs = Array[int]([50])
+order = 40
+icon = 10
+dream_cards = Array[String](["close_kin", "close_kin_ii", "old_friends", "old_friends_ii"])

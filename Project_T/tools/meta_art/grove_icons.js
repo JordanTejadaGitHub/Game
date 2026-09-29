@@ -64,6 +64,7 @@ const CARD_ICONS = {
   bittersweet: e => { ellipse(e, 16, 17, 6, 6, (x, y, dx, dy) => dx < 0 ? pick(["#8a1a2a", "#c83a4a", "#f07a8a"], .6 - dx * .3 - dy * .3, x, y) : pick(["#1a1420", "#2c2438", "#40364c"], .5 - dy * .3, x, y)); stroke(e, 16, 11, 18, 6, 1.4, 1.2, LEAFG[2]); },
   woven: e => { for (let i = 0; i < 3; i++) { const y = 11 + i * 5; stroke(e, 9, y, 23, y + 3, 1.6, 1.4, i % 2 ? GOLDC[3] : "#c8a8ff"); stroke(e, 11 + i * 5, 8, 14 + i * 5, 25, 1.6, 1.4, i % 2 ? "#c8a8ff" : GOLDC[3]); } },
   deep_poison: e => { ellipse(e, 16, 19, 5.5, 5.5, (x, y, dx, dy) => Math.hypot(dx + .4, dy + .4) < .35 ? "#d8b8ff" : pick(["#2a1438", "#4a2468", "#7a44a0"], .55 - dx * .3 - dy * .3, x, y)); for (let y = 8; y <= 13; y++) e.set(16 + (13 - y) * .3, y, LEAFG[2]); stroke(e, 16, 12, 21, 9, 1.3, 1, LEAFG[1]); },
+  kinship: e => { sprout(e, 12, 24, 10); sprout(e, 20, 24, 10); for (const [x, y] of [[15, 12], [17, 12], [14, 13], [18, 13], [16, 15]]) e.set(x, y, "#f07a8a"); e.set(16, 14, "#f07a8a"); e.set(15, 14, "#f07a8a"); e.set(17, 14, "#f07a8a"); },
 };
 function cardIcon(key) {
   return icon((L, o) => {

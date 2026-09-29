@@ -237,7 +237,7 @@ accessibility, Steam achievements (milestones map to them). Acts 3–4 and all f
   saves profile `reactions_seen` (real game only). `CodexPanel` (pause menu + Grove): Glossary / Combos / Families; lists what `CodexData.scope()` covers (starting three + Grove-planted families and forms; demo its three; dev runs all), "N more wait in the Memory Grove.", "New from the Grove" leaf (profile `codex_covered`). `tests/test_codex_scope.gd`.
 
 ## Meta (meta_design.md; full game only — `game/demo` true = nothing applied or recorded)
-- Grove = tech tree on the Heartwood: 79 `UnlockData` nodes (`resource/meta/grove/<id>.tres`, ids =
+- Grove = tech tree on the Heartwood: 82 `UnlockData` nodes (`resource/meta/grove/<id>.tres`, ids =
   `assets/meta/grove/grove_layout.json` ids; limbs `root` WARDENS = Families, DREAMS = Cards, PERKS =
   Perks). `costs` per level, `requires_all` ("id" or "id:level") / `requires_any` (+count), `icon`,
   `start` (Sporeling / Firefly Jar / Dewdrop, never bought), `<family>_ascension` (Ascended Warden card), `milestone` (grows free, refunds a
@@ -273,6 +273,14 @@ accessibility, Steam achievements (milestones map to them). Acts 3–4 and all f
   when perks are owned), Blight picker after the first win, Codex, "The forest remembered you".
   Title: Memory Grove button (demo: greyed + Wishlist). `tests/test_meta.gd` (layout ↔ data, perks,
   milestones, migration, screen smoke test with a temp profile).
+- Balance simulation profiles (balance_simulation.md): `GrovePresets` (`scripts/meta/grove_presets.gd`)
+  fresh / early / half / full; `MetaRun.load_preset(&"half")` writes it to `user://sim_heartwood.json`
+  and points `HeartwoodMemory.file_path` there (real profile untouched), `GrovePresets.unload()`.
+- Dev Grove (demo_scope.md, debug builds): `DevGrove` (`scripts/meta/dev_grove.gd`), setting `dev_grove`
+  off/early/half/full; `DevGrove.apply()` (title, and when the setting changes) switches
+  `HeartwoodMemory.file_path` to the preset's dev profile (settings stay in the real one via
+  `real_settings_path`), forces the full game (`ResultsScreen.demo_override = 0`), counts as
+  `MetaRun.is_dev_run()`; HUD / Grove tag `DevGrove.tag()`. `DevGrove.force` for tests.
 
 ## Audio (placeholder, audio_direction.md)
 - `tools/sound_generator.gd` synthesizes every sound into `assets/audio/` (sfx 44.1 kHz; music
