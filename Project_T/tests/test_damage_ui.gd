@@ -51,6 +51,11 @@ func _run() -> void:
 	_check(first.get_theme_color("font_color") == DriftMeter.CARRYING_COLOR, "the carrying Warden's row is gold")
 	var far_row: Button = meter._rows.get_child(meter._rows.get_child_count() - 1)
 	_check(far_row.tooltip_text.contains("Underused: few nightmares in range"), "the underused reason in its tooltip")
+	# Crowding: the meter never reaches the DriftPanel (its rows scroll) and sits below the nightmare info.
+	meter._fit()
+	var drift_panel_top: float = main.get_node("HUD/DriftPanel").get_global_rect().position.y
+	_check(meter.get_global_rect().end.y <= drift_panel_top + 1.0 or meter._scroll.custom_minimum_size.y <= 72.0,
+		"the open meter stays above the DriftPanel (%.0f vs %.0f)" % [meter.get_global_rect().end.y, drift_panel_top])
 	seller.set_selection([])
 
 	# DPS tags: at a rest (or paused / build mode) every attacking Warden, during a drift only the selected.

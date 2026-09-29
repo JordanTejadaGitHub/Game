@@ -27,6 +27,7 @@ var sort_by_share := false
 var _header := Button.new()
 var _sort := Button.new()
 var _rows := VBoxContainer.new()
+var _scroll := ScrollContainer.new()  # The rows scroll when they'd reach the DriftPanel
 var _body := VBoxContainer.new()
 var _clock := 0.0
 
@@ -91,10 +92,10 @@ func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	set_anchors_preset(Control.PRESET_CENTER_RIGHT)
 	grow_horizontal = Control.GROW_DIRECTION_BEGIN
-	grow_vertical = Control.GROW_DIRECTION_BOTH
+	grow_vertical = Control.GROW_DIRECTION_END  # Down from offset_top (set by _fit)
 	offset_right = -16.0
 	offset_left = offset_right - WIDTH
-	offset_top = 40.0  # Below the nightmare info's usual spot
+	offset_top = BASE_TOP  # _fit moves it below the nightmare info while that shows
 	custom_minimum_size = Vector2(WIDTH, 0)
 	add_theme_stylebox_override("panel", UiStyle.panel(10.0, 8.0))
 	var box := VBoxContainer.new()
@@ -122,7 +123,10 @@ func _ready() -> void:
 		_sort.text = "Sort: share" if sort_by_share else "Sort: DPS"
 		refresh())
 	_body.add_child(_sort)
-	_body.add_child(_rows)
+	_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	_rows.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_scroll.add_child(_rows)
+	_body.add_child(_scroll)
 	_body.visible = bool(HeartwoodMemory.get_settings().get(OPEN_SETTING, false))
 	visible = false
 
@@ -142,10 +146,32 @@ func period() -> String:
 	return "drift" if drift_director != null and not drift_director.is_resting() else "block"
 
 func _process(delta: float) -> void:
+	_fit()
 	_clock -= delta / maxf(Engine.time_scale, 0.001)
 	if _clock > 0.0:
 		return
 	_clock = REFRESH
+
+# Never crowd the neighbours (UI Code measured it at 1280×800): the meter sits below the nightmare
+# info when that's showing, and its rows scroll instead of reaching the DriftPanel.
+const GAP := 8.0
+const BASE_TOP := 40.0  # Offset from the vertical centre, as anchored
+func _fit() -> void:
+	var hud := get_parent()
+	if hud == null:
+		return
+	var screen_mid := get_viewport_rect().size.y / 2.0
+	var top := screen_mid + BASE_TOP
+	var info := hud.get_node_or_null("NightmareInfo") as Control
+	if info != null and info.visible:
+		top = maxf(top, info.get_global_rect().end.y + GAP)
+	offset_top = top - screen_mid
+	var panel := hud.get_node_or_null("DriftPanel") as Control
+	var bottom := panel.get_global_rect().position.y - GAP if panel != null else get_viewport_rect().size.y - 16.0
+	var used := _header.size.y + _sort.size.y + 24.0  # Header, sort, margins
+	var room := maxf(bottom - top - used, 72.0)  # At least two rows
+	var wanted := _rows.get_combined_minimum_size().y
+	_scroll.custom_minimum_size = Vector2(0, minf(wanted, room))
 	refresh()
 
 func refresh() -> void:
