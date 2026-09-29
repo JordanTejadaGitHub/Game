@@ -110,7 +110,7 @@ SH = Shade, HU = Husk, MO = Mourner. ★ = elite (Deeply Blighted). **Rest** aft
 | 12 | 20 SH, 4 HU | |
 | 13 | 16 SH, 6 HU | |
 | 14 | 22 SH, 5 HU | |
-| 15 | **Swarm:** 35 SH (0.3 s apart) | rest |
+| 15 | **Swarm:** 26 SH (0.45 s apart; was 35 at 0.3 s, too hard for a fresh profile, 2026-09-28) | rest |
 | 16 | 4 MO (2.5 s apart) | Mourner intro |
 | 17 | 16 SH, 3 HU, 3 MO | |
 | 18 | 18 SH, 4 HU, 4 MO | |

@@ -96,13 +96,15 @@ turn leaks into a hold. Targets for the balance simulation and playtests (averag
 
 | Player | By the Hollow Stag (25) | Typical run end | Wins |
 |---|---|---|---|
-| **Fresh profile** (no Grove) | first leaks around **drift 12–18**; **5–8 of 15 leaves** lost | act 2 (drift 30–50) | rare (<5%, strong play + good Dreams) |
+| **Fresh profile** (no Grove) | **reaches the Hollow Stag** with few leaks (**0–3 leaves** lost; revised 2026-09-28, user: "players should be able to get to 25 even without perks and unlocks; 25 is when they start getting combos") | act 2 (drift 35–50): **it gets harder after 25** | rare (<5%, strong play + good Dreams) |
 | **~5 Grove unlocks** (~3 h in) | a few leaks, 2–4 leaves lost | act 3 | occasional |
 | **Half the tree** (~15 h) | few leaks | act 4 | the first win |
 | **Full tree** | clean | wins reliably at Blight 0 | Blight Levels bring the leaking back |
 
-- **Within a run, Dreams are the cure:** the leak rate should **fall** between drifts 10 and 25 as
-  cards stack (the board catches up), then rise again in act 2, so each block's Dream visibly matters.
+- **The shape of a run** (revised 2026-09-28): **act 1 teaches** (a sensible maze reaches drift 25
+  with few leaks, even with no Grove); **from drift 25 it gets hard**, as combos, the second family
+  and Dreamlight arrive: leaks start in act 2 unless the Dreams and combos come together, so each
+  block's Dream visibly matters there.
 - **Leaks must be readable, not random:** a leak should come from a nightmare the maze doesn't
   answer (a Hound on a straight, a Phantom through walls, a resisted family), so the rest report and
   the boss dossier point at the fix.
@@ -111,8 +113,8 @@ turn leaks into a hold. Targets for the balance simulation and playtests (averag
   The balance simulation measures the rest.
 - **Interim acts 1–2 tightening** (2026-09-28; two playtests: a fresh profile at drift 23 and
   again at drift 43 with **15/15 leaves**, ~800 and **1,925 Dew banked**, "haven't done much in the
-  past 10 drifts"): nightmare health **×1.0 for drifts 1–10, ramping to ×1.3 by drift 25, ×1.3
-  through act 2** (acts 3–4 keep their ×1.4), and **Dew per dispel ×0.85 in acts 1–2**. Interim
+  past 10 drifts"). **Revised the same day** (later playtests: "too hard from early drifts, especially 15 with the swarm"): nightmare health **×1.0 through drift 25** (act 1 as it was), **act 2 ramping from ×1.0 at drift 26 to ×1.35 by drift 40, ×1.35
+  to 50** (acts 3–4 keep their ×1.4), and **Dew per dispel ×0.85 in act 2 only** (act 1 back to ×1.0). Drift 15's Swarm is lighter (`acts_1_2.md`). Interim
   numbers, as exports, until the balance simulation's quick batch replaces them.
 - **Act 3 probe** (Tower Code, `tools/balance_act3.gd`, 2026-09-28): drifts 61–70, 12 final forms at
   rank IV (Power), **no Dreams**: the maze dealt ~155–160k damage per drift against **~100–115k

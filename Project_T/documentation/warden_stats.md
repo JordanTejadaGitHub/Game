@@ -55,6 +55,14 @@ discounts). Ranks never get cheaper by being bought early.
   hotkey use the same total.
 - It applies per step (Sprout → base, base → branch, branch → final, final → Ascended).
 
+**Ranks III–V need a Nurture Dream** (2026-09-28, user: "the maze aspect is getting lost with a
+few strong Wardens through upgrades… focusing on strong Wardens should only happen when you get the
+cards for them"). Every Warden can be nurtured to **rank II**; **ranks III–V** (and Focus) open once
+you own **any `nurture` card** (Tender Care and Warm Hands are Commons, opened by 30 Dew spent on
+ranks, which ranks I–II provide). Deeper Rings still opens VI–VII. Until then the Nurture button
+reads *"Rank III needs a Nurture Dream"*. So the default plan is **a good maze plus light ranks**,
+and a tall build is a choice the cards make possible (Nurture, narrow cards, Solitude).
+
 **Focus (chosen at rank III, kept through evolution, can't be changed):**
 
 | Focus | Ranks III, IV and V each add | At rank V (on top of the base gains) |
