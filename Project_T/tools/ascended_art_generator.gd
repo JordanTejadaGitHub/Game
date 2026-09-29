@@ -453,6 +453,23 @@ func _fig_at(pose: Dictionary, tx: int, ty: int) -> String:
 		return "."
 	return pose.grid[i]
 
+# The Ascended golem's template: no rocks (the body and right foot behind the front one are drawn in
+# _golem, since the golem is bigger than the rocks now).
+var _asc_pose_cache := {}
+
+func _ascended_pose(pose: Dictionary) -> Dictionary:
+	var key: int = pose.grid.hash()
+	if _asc_pose_cache.has(key):
+		return _asc_pose_cache[key]
+	var grid: Array = pose.grid.duplicate()
+	var outside: PackedByteArray = pose.outside.duplicate()
+	for i in S * S:
+		if grid[i] != "." and outside[i] == 0 and _is_rock(pose, i % S, i / S):
+			grid[i] = "."
+	var result := {grid = grid, outside = outside}
+	_asc_pose_cache[key] = result
+	return result
+
 func _place_figure() -> void:
 	# Centre the figure on the slab, feet on its top face.
 	var pose: Dictionary = poses[0]
@@ -469,7 +486,7 @@ func _place_figure() -> void:
 func _golem(canvas: Image, st: Dictionary, fig: Dictionary, opts: Dictionary = {}) -> Image:
 	if fo == Vector2.ZERO:
 		_place_figure()
-	var pose: Dictionary = st.pose
+	var pose: Dictionary = _ascended_pose(st.pose)
 	var dy: int = st.get("tdy", st.dy)
 	var colors := {a = fig.a, b = fig.b, c = fig.c, o = fig.o}
 	var body := _gnew(canvas)
@@ -481,10 +498,6 @@ func _golem(canvas: Image, st: Dictionary, fig: Dictionary, opts: Dictionary = {
 			var ch := _fig_at(pose, tx, ty)
 			if ch == ".":
 				continue
-			if _is_rock(pose, tx, ty):
-				continue  # No rocks on the Ascended (the body behind the front one is drawn below).
-			if tx >= 34 and tx <= 45 and ty >= 39 and ty <= 48:
-				continue  # The lumpy front of the seat; redrawn below as the golem's plain rounded seat.
 			if ch == "o":
 				var first_x := floori((x - 1 - fo.x) / K) != tx
 				var first_y := floori((y - 1 - fo.y) / K) != ty
@@ -501,21 +514,14 @@ func _golem(canvas: Image, st: Dictionary, fig: Dictionary, opts: Dictionary = {
 			if not colors.has(ch):
 				continue
 			body.set_pixel(x, y, colors[ch])
-	# The golem's round bottom (like Baymax sitting down): an oval that bulges out below the belly
-	# and sits flat on the waystone, shaded as a round form.
-	var seat_c := Vector2(38.5, 40.5)  # template px
-	var seat_r := Vector2(8.5, 7.5)
-	var floor_y := 47.5  # where it rests on the ground: flat below this
+	# Where the front rock stood: the body carries straight down to the ground (the seat), in the
+	# body's shading bands.
 	for y in 128:
 		for x in 128:
 			var t := (Vector2(x + 0.5, y + 0.5) - fo - Vector2(0, dy)) / K
-			if t.y > floor_y or body.get_pixel(x, y).a > 0.0:
+			if t.x < 32.5 or t.x > 46.0 or t.y < 37.0 or t.y > 46.5 or body.get_pixel(x, y).a > 0.0:
 				continue
-			var d := (t - seat_c) / seat_r
-			var q := d.length_squared()
-			if q > 1.0:
-				continue
-			body.set_pixel(x, y, _shade(fig.ramp, Vector3(d.x, d.y, sqrt(1.0 - q)).normalized()))
+			body.set_pixel(x, y, colors["c" if t.y > 45.5 else ("a" if t.x > 41.0 else "b")])
 	# Fresh 1 px outline round the silhouette.
 	var mask := _gnew(canvas)
 	for y in 128:
@@ -530,6 +536,12 @@ func _golem(canvas: Image, st: Dictionary, fig: Dictionary, opts: Dictionary = {
 					col = fig.o
 					break
 			canvas.set_pixel(x, y, col)
+	# The right foot, resting on the ground in front of the seat and pointing out to the right, like
+	# the left one: its own outline so it reads as a foot.
+	var foot := _gnew(canvas)
+	_gell(foot, fo + Vector2(41.5, 45.0) * K + Vector2(0, dy), Vector2(6.0, 2.6) * K, fig.ramp)
+	_gstamp(canvas, foot, fig.o)
+	_gstamp(mask, foot)
 	# Detail: dither where the shading bands meet, a few speckles, and a rim light (the Ascended
 	# glow) on the silhouette's lit edge.
 	var rim: Color = fig.a.lerp(st.get("halo", Color.WHITE), 0.55).lightened(0.15)
