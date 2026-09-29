@@ -41,6 +41,7 @@ two trees pulse in step.
 |---|---|---|---|
 | `grass.png` | 512×64 | 8 variants: 0 plain, 1/4/6 tufts, 2 flowers, 3 clover, 5 pebbles, 7 fallen twig | ground; any variant tiles with any other. Each has its own grain (the sheet goes through the detail pass as one image with no added grain: texture 0, the user's pick), so the ground doesn't repeat. Shares: `GroundGenerator.GRASS_WEIGHTS` |
 | `path.png` | 1024×64 | 16 tiles, **column = neighbour mask** (N=1, E=2, S=4, W=8) | the creature path; e.g. column 5 = N+S straight, 15 = crossroads |
+| `path_rim.png` | 1024×64 | 16 tiles, **column = neighbour mask** like `path.png` | the path on the start and goal cells, which sit in the rim ring: the same path, transparent outside it (no grass border). Draw it over the matching `island_edge` tile so the rim's earth runs up to the path |
 | `border_wall.png` | 128×64 | 2 variants, seamless | the map's stone border |
 | `withered_tree.png` | 256×864 | **64×96 cells**: bottom 64 px = the cell (trunk base and shadow), top 32 px overhangs the cell above. 9 dead trees (rows) × 4 frames: 0–2 gnarled Withered Tree, 3 split trunk, 4 broken hollow snag (eyes glint), 5 weeping dead willow (strands sway), 6 dead pine, 7 dead birch, 8 thorn tree | obstacle, "Tend"; all 9 are in `tree.tres` |
 | `tended_stump.png` | 64×64 | 1 | walkable mark left after Tend |
@@ -52,7 +53,7 @@ two trees pulse in step.
 | `edge_mist.png` | 256×64 | 4 frames, transparent overlay | start cell / map edge mist |
 | `tree_round.png`, `tree_pine.png`, `tree_flowering.png` | 64×64 | 1 each | scenery on cells the maze never uses |
 | `ground_details.png` | 256×64 | 4 variants: mushrooms, ferns, pebbles, leaf litter | walkable decoration |
-| `island_edge.png` | 1024×64 | 16 tiles, **column = neighbour mask** (N=1, E=2, S=4, W=8: which neighbours are island) | the dream's outer layer: the island's rim; transparent where the void shows. Assumes a convex (blocky) island: no inner-corner tiles |
+| `island_edge.png` | 1024×64 | 16 tiles, **column = neighbour mask** (N=1, E=2, S=4, W=8: which neighbours are island) | the map's unbuildable rim (screens_ui.md): **no grass**, a sunken ledge of crumbled dark earth (value below the ground's; the pipeline checks it) whose open sides crumble and fade into the void, roots hanging off the lip, and a shadow step with overhanging grass where it meets the buildable ground; the south lip meets the cliff tops. Assumes a convex (blocky) island: no inner-corner tiles |
 | `cliff.png` | 256×256 | columns: bit 1 = the cell to the west also has cliff, bit 2 = the east does; rows: 4 variants | cliff face under island cells whose south neighbour is void; transparent below its ragged, dripping underside |
 | `heartwood.png` | 512×2688 | 128×128 frames: **row = leaves lost (0–20)**, 4 frames per row | the goal; anchor its bottom centre about 8 px below the goal cell's bottom centre, so it overhangs the cells around it |
 

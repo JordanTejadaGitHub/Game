@@ -10,7 +10,8 @@ const OUT := "res://assets/environment"
 
 # Detail pass kind per sheet.
 const KINDS := {
-	"grass": DetailPass.Kind.TILE, "path": DetailPass.Kind.TILE, "island_edge": DetailPass.Kind.TILE,
+	"grass": DetailPass.Kind.TILE, "path": DetailPass.Kind.TILE, "path_rim": DetailPass.Kind.TILE,
+	"island_edge": DetailPass.Kind.TILE,
 	"cliff": DetailPass.Kind.TILE, "dew_pool": DetailPass.Kind.TILE, "blight_patch": DetailPass.Kind.TILE,
 	"border_wall": DetailPass.Kind.TILE, "rope_bridge": DetailPass.Kind.TILE,
 	"withered_tree": DetailPass.Kind.OBSTACLE, "mossy_boulder": DetailPass.Kind.OBSTACLE,
@@ -65,6 +66,12 @@ func _init() -> void:
 			print("%s value order ground %.3f < rocks %.3f < path %.3f: %s" % [folder, means["grass"],
 				means["mossy_boulder"], means["path"], "ok" if ok else "BROKEN"])
 			if not ok:
+				failures += 1
+		if means.has("island_edge") and means.has("grass"):
+			# The rim is unbuildable edge, so it must read darker than the buildable ground.
+			var rim_ok: bool = means["island_edge"] < means["grass"]
+			print("%s rim %.3f < ground %.3f: %s" % [folder, means["island_edge"], means["grass"], "ok" if rim_ok else "BROKEN"])
+			if not rim_ok:
 				failures += 1
 	print("processed %d sheets" % count)
 	quit(failures)

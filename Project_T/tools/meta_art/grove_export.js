@@ -64,7 +64,7 @@ emitImg("grove/grove_sky.png", sky);
 emitImg("grove/grove_tree.png", tree);
 spreadNodes(canopies[0]);
 FRUIT_SPOTS.forEach(s => { s[1] = maskBottom(s[0]) - 8; });
-const layout = { size: [GW, GH], nodes: [], fruit_spots: FRUIT_SPOTS, loadout_stones: LOADOUT_STONES, moon: MOON, node_cell: 32, legendary_cell: 48, fruit_cell: 48 };
+const layout = { size: [GW, GH], nodes: [], fruit_spots: FRUIT_SPOTS, loadout_stones: [...LOADOUT_STONES, SECRET_STONE], moon: MOON, node_cell: 32, legendary_cell: 48, fruit_cell: 48 };
 const segs = {};
 for (const n of NODES) {
   const s = segment(n); segs[n.id] = s;
@@ -77,6 +77,40 @@ emitImg("grove/grove_nodes.png", stack(["perks", "families", "cards"].map(s => n
 emitImg("grove/grove_legendary.png", nodeRow("cards", true));
 emitImg("grove/dream_fruit.png", strip([0, 1, 2, 3, 4, 5, 6, 7, 8].map(fruitSprite)));
 emitImg("ui/loadout_slots.png", strip([0, 1, 2, 3].map(slotSprite)));
+// The secret sixth waystone: its rise (24 frames), its idle loop (4), and its loadout slot (3 states).
+const riseFrames = [...Array(SIXTH_RISE_FRAMES).keys()].map(sixthRiseFrame);
+emitImg("grove/waystone_6_rise.png", strip(riseFrames));
+emitImg("grove/waystone_6_idle.png", strip([...Array(SIXTH_IDLE_FRAMES).keys()].map(sixthIdleFrame)));
+emitImg("ui/loadout_slot_6.png", strip([0, 1, 2].map(sixthSlot)));
+// Preview: the rise on the tree (every 3rd frame, then the idle), cropped around the Hollow.
+{
+  const frames = [0, 3, 6, 9, 12, 15, 18, 23].map(i => riseFrames[i]), cw = 200, ch = 150, P = new Img(cw * 4, ch * 2);
+  frames.forEach((fr, k) => {
+    const T = new Img(GW, GH); T.put(sky); T.put(tree); T.put(fr, SECRET_STONE[0] - SIXTH_ANCHOR[0], SECRET_STONE[1] - SIXTH_ANCHOR[1]);
+    const ox = SECRET_STONE[0] - cw / 2, oy = SECRET_STONE[1] - ch + 40;
+    for (let y = 0; y < ch; y++) for (let x = 0; x < cw; x++) if (T.alpha(ox + x, oy + y)) P.set((k % 4) * cw + x, (k / 4 | 0) * ch + y, T.get(ox + x, oy + y));
+  });
+  emitImg("_preview/waystone_6_preview.png", P);
+}
+// Starlit card backs: 4 twinkle frames of 250×220 side by side.
+const starlit = [0, 1, 2, 3].map(starlitCard);
+emitImg("ui/starlit_card.png", strip(starlit));
+// Preview: a standard card and a tall one (tiled edges) under a mock of the card's own style
+// (light fog, the rarity thread along the top, the gem, text lines).
+{
+  const P = new Img(560, 340); for (let y = 0; y < P.h; y++) for (let x = 0; x < P.w; x++) P.set(x, y, HW.Void);
+  [[20, 20, 220, HW.Wraithlight], [290, 20, 310, LEAFG[3]]].forEach(([ox, oy, h, thread]) => {
+    const card = nineTile(starlit[0], STARLIT_W, h, STARLIT_MARGIN);
+    for (let y = 0; y < h; y++) for (let x = 0; x < STARLIT_W; x++) {
+      card.set(x, y, CA(HW.Void, .2 + .25 * Math.max(0, 1 - Math.hypot((x - 125) / 125, (y - h / 2) / (h / 2)))));
+    }
+    for (let x = 0; x < STARLIT_W; x++) card.set(x, 0, CA(thread, .3 + .7 * (1 - Math.abs(x - 125) / 125)));
+    ellipse(card, 36, 36, 7, 7, thread);
+    for (const [y, w] of [[32, 120], [64, 170], [92, 190], [106, 150], [120, 175]]) for (let x = 56; x < 56 + w && x < 224; x++) for (let k = 0; k < 6; k++) card.set(x, y + k, y === 32 ? thread : HW.Mist);
+    P.put(card, ox, oy);
+  });
+  emitImg("_preview/starlit_preview.png", P);
+}
 const PERK_ORDER = ["morning_stores", "rich_dew", "rested_roots", "seed_pouch", "clear_sight", "sprout_bed", "kindling", "early_bloom", "early_light", "first_care", "deep_taproot", "second_thoughts", "let_go", "omen_reader", "wider_dreams"];
 emitImg("icons/perk_icons.png", strip(PERK_ORDER.map(k => PERK_ICONS[k]())));
 const FAMILY_ORDER = ["sporeling", "firefly_jar", "dewdrop", "pebbling", "rootling", "bellflower", "acorn", "nestling", "whirligig"];

@@ -25,8 +25,8 @@ with no hand-placed maze: everything is bought from the Dew the run earns.
 |---|---|---|
 | **Fresh** | nothing | first runs, and every demo run |
 | **Early** | ~5 cheap unlocks (a starting-Dew perk, Morning Stores I, one family, two card bundles) | ~3 hours in |
-| **Half** | about half the tree by Seed cost, 3 perk slots | ~15 hours in |
-| **Full** | everything, 5 perk slots | endgame (Blight 0) |
+| **Half** | about half the tree by Seed cost, 3–4 perk slots (3 are free from the start) | ~15 hours in |
+| **Full** | everything, 6 perk slots (incl. the secret one) | endgame (Blight 0) |
 
 **Build styles** (the bot's preferences; each is a scoring rule, not a script):
 

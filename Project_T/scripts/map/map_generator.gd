@@ -25,6 +25,7 @@ var obstacles: Dictionary = {}
 var tile_set: TileSet  # Shared by the ground, path and object layers (EnvironmentTiles)
 var heartwood: Heartwood  # The goal tree on the end cell
 var dream_void: DreamVoid  # The starry void around the island
+var build_hatch: BuildHatch  # In build mode: a cold hatch on every unbuildable cell
 var lighting: EnvironmentLighting  # Cold edges, warm Warden lights
 var ambience: EnvironmentAmbience  # Edge fog and the act's particles
 
@@ -76,6 +77,12 @@ func _ready() -> void:
 	dream_void.map_seed = map_seed
 	add_child(dream_void)
 	move_child(dream_void, 0)  # Behind the tile layers
+
+	build_hatch = BuildHatch.new()
+	build_hatch.map_generator = self
+	build_hatch.tower_container = get_node_or_null("%TowerContainer")
+	build_hatch.tower_placer = get_node_or_null("%TowerPlacer")
+	add_child(build_hatch)
 
 	lighting = EnvironmentLighting.new()
 	lighting.tower_container = get_node_or_null("%TowerContainer")
