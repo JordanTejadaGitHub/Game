@@ -149,11 +149,11 @@ const STRAIGHTAWAY := [[0.15, 0.5], [0.25, 0.5]]  # [damage, range]
 const HEART_OF_MAZE_BONUS := 0.50
 const ECHO_PER := 0.05
 const ECHO_MAX := 0.25
-# Half-dreamed Commons (169–171, stack to 3)
+# Half-dreamed Commons (189–191, stack to 3)
 const DAMP_ROT_PER := 0.20  # Poisoned (Spored) ticks on Soaked nightmares
 const SPARKING_SPORES_PER := 0.20  # Ignite detonations
 const RAIN_ON_GLASS_PER := 0.12  # Light Wardens vs Soaked
-# Seed cards (dream_design.md "Seed cards", 169–176 there)
+# Seed cards (dream_design.md "Seed cards", 169–176)
 const DEEP_WELL_RATE := 0.03
 const DEEP_WELL_MAX := 20
 const KIND_CANOPY_TOUCHING := 3

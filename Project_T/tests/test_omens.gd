@@ -91,6 +91,11 @@ func _test_flow(main: Node) -> void:
 	omens.current_offer = []
 	omens.load_save(JSON.parse_string(JSON.stringify(saved)))
 	_check(omens.current_offer.size() == 2 and omens.current_offer_block == 4 and not omens.showing, "an open Omen offer comes back after a save")
+	omens.load_save({"active": "harvest_moon", "active_block": 4, "last_offer": ["harvest_moon"]})
+	_check(omens.active != null and omens.active.id == "bountiful_night" and Array(omens._last_offer_ids) == ["bountiful_night"],
+		"an old save's Harvest Moon Omen loads as Bountiful Night")
+	omens.active = null
+	omens._last_offer_ids.clear()
 	omens.current_offer = []
 	omens._offer_waiting = false
 
@@ -210,6 +215,11 @@ func _test_new_omens(main: Node) -> void:
 	omens.current_offer = []
 	omens.load_save(JSON.parse_string(JSON.stringify(saved)))
 	_check(omens.current_offer.size() == 2 and omens.current_offer_block == 4 and not omens.showing, "an open Omen offer comes back after a save")
+	omens.load_save({"active": "harvest_moon", "active_block": 4, "last_offer": ["harvest_moon"]})
+	_check(omens.active != null and omens.active.id == "bountiful_night" and Array(omens._last_offer_ids) == ["bountiful_night"],
+		"an old save's Harvest Moon Omen loads as Bountiful Night")
+	omens.active = null
+	omens._last_offer_ids.clear()
 	omens.current_offer = []
 	omens._offer_waiting = false
 	var previous: Array = []
@@ -262,8 +272,8 @@ func _test_new_omens(main: Node) -> void:
 		"Heavy Rain: always Soaked, +35% health")
 	omens.active = by_id["sleepless"]
 	_check(Array(omens.get_spawn_modifiers(51).get("status_immune", [])) == [&"drowsy", &"held"], "Sleepless: immune to Drowsy and Held")
-	_check(omens.describe_reward(by_id["blood_moon"], 3) == "" and omens.describe_reward(by_id["harvest_moon"], 3) == "",
-		"Blood Moon / Harvest Moon: no separate reward")
+	_check(omens.describe_reward(by_id["blood_moon"], 3) == "" and omens.describe_reward(by_id["bountiful_night"], 3) == "",
+		"Blood Moon / Bountiful Night: no separate reward")
 	var bug: EnemyData = load("res://resource/enemy/leaf_bug.tres")
 	omens.active = by_id["elder_night"]
 	var schedule := []

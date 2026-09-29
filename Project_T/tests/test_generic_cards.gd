@@ -182,7 +182,7 @@ func _test_hit_rules() -> void:
 	for i in 500:
 		dreams._glimmer(elite)
 	_check(dreams.glimmer_shards == 30 and dreams.dreamlight == light + 3, "…capped at 3 Dreamlight per run (%d shards, +%d)" % [dreams.glimmer_shards, dreams.dreamlight - light])
-	# Half-dreamed Commons 169–171 (stack to 3)
+	# Half-dreamed Commons 189–191 (stack to 3)
 	var soaked := _spawn(map_generator.startPath + Vector2(0, 4))
 	var jar := _plant("firefly_jar", Vector2(110, 100))
 	dreams.unlocked["dewdrop"] = true  # Cross-family combos sleep until both families are yours
