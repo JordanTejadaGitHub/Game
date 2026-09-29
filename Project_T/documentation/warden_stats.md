@@ -187,7 +187,7 @@ Owns **Drowsy**. Chime Stone and Lullaby Bell moved here from Pebbling (numbers 
 |---|---|---|---|---|---|---|---|
 | Bellflower | base | 25 (+15) | 2 | 10 × 1.0 | 10 (area) | pulse | every 2nd pulse: **1 Drowsy** to everything in range |
 | Chime Stone | branch | +45 | 2 | 22 × 0.8 | 18 (area) | pulse | Static 1; each pulse **sets off** a Static bolt on nightmares with 3+ stacks |
-| Lullaby Bell | final | +90 | 2.5 | 40 × 0.8 | 32 (area) | pulse | Static 1 + **Drowsy 1** per pulse; sets off Static like Chime Stone |
+| Lullaby Bell | final | +90 | 2.5 | 40 × 0.8 | 32 (area) | pulse | Static 1 + **Drowsy 1** per pulse; sets off Static like Chime Stone. **Tuned 2026-09-28** (probe: ~20% of a 12-Warden board each, vs 8% average): pulse every **1.75 s** (was 1.25 s) and sets off Static at **4** stacks (was 3); target ~12% |
 | Dreamcatcher | branch | +45 | 2.5 | 10 × 1.0 | 10 | projectile | nightmares in range that are **asleep or at max Drowsy** are **Caught**: +40% damage taken from all sources |
 | Great Dreamcatcher | final | +90 | 3 | 16 × 1.0 | 16 | projectile | Caught +60%; sleep in range lasts **+1 s** (once per nightmare); each Caught nightmare dispelled drops a **Dreamlight shard** (10 shards = 1 Dreamlight; max 2 Dreamlight per run from shards) |
 | Echo Hollow *(hidden)* | branch | +45 | 2.5 | 8 × 1.0 | 8 (area) | echo | a Reaction within range **repeats 1 s later at 50%** on the same spot (echoes don't echo) |
