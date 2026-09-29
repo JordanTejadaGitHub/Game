@@ -30,7 +30,7 @@ func _run() -> void:
 
 	# --- Buying ---
 	var memory := HeartwoodMemory.defaults()
-	memory.seeds = 600
+	memory.seeds = 700
 	memory.runs_played = 1
 	HeartwoodMemory.save_data(memory)
 	var grove := HeartwoodMemory.load_grove()
@@ -61,8 +61,10 @@ func _run() -> void:
 		_check(HeartwoodMemory.buy(stores), "Morning Stores level %d" % (i + 1))
 	_check(HeartwoodMemory.buy_problem(HeartwoodMemory.load_data(), stores) == "Grown", "Morning Stores maxes at 3")
 	memory = HeartwoodMemory.load_data()
-	_check(int(memory.seeds) == 600 - 50 - 70 - 120 - 20 - 40 - 60, "Seeds spent (%d left)" % int(memory.seeds))
+	_check(int(memory.seeds) == 700 - 50 - 70 - 120 - 20 - 40 - 60, "Seeds spent (%d left)" % int(memory.seeds))
 	_check(HeartwoodMemory.memories_unlocked(memory) == 1 + 6 / 3, "Memories: 1 + one per 3 unlocks")
+	_check(HeartwoodMemory.buy_problem(HeartwoodMemory.load_data(), _unlock(grove, "early_bloom")) != "", "Early Bloom grows off Second Thoughts")
+	_check(HeartwoodMemory.buy(_unlock(grove, "second_thoughts")), "buy Second Thoughts")
 	_check(HeartwoodMemory.buy(_unlock(grove, "early_bloom")), "buy Early Bloom")
 	_check(HeartwoodMemory.buy(_unlock(grove, "early_light")), "buy Early Light")
 	_check(HeartwoodMemory.loadout_slots(HeartwoodMemory.load_data()) == 3, "3 loadout slots are open from the start")
@@ -176,10 +178,38 @@ func _run() -> void:
 		"Sporeling is grown from the start")
 	var wider := _unlock(grove, "wider_dreams")
 	memory.seeds = 1000
+	memory.unlocks.omen_reader = 1
 	memory.unlocks.second_thoughts = 1
 	_check(HeartwoodMemory.buy_problem(memory, wider) == "Needs another unlock first", "Wider Dreams needs Second Thoughts II")
 	memory.unlocks.second_thoughts = 2
-	_check(HeartwoodMemory.buy_problem(memory, wider) == "", "…and opens with it")
+	memory.unlocks.erase("omen_reader")
+	_check(HeartwoodMemory.buy_problem(memory, wider) == "Needs another unlock first", "…and Omen Reader")
+	memory.unlocks.omen_reader = 1
+	_check(HeartwoodMemory.buy_problem(memory, wider) == "", "…and opens with both")
+
+	# The Perks limb's three paths (meta_design.md "Section 1: Perks"): Economy, Survival, Choice.
+	var paths := {"seed_pouch": "rested_roots", "first_care": "deep_taproot", "clear_sight": "first_care",
+		"omen_reader": "let_go", "early_bloom": "second_thoughts", "kindling": "early_light"}
+	for id in paths:
+		_check(_unlock(grove, id).requires_all.has(paths[id]), "%s grows off %s" % [id, paths[id]])
+	var path_data := HeartwoodMemory.defaults()
+	path_data.seeds = 1000
+	var slot4 := _unlock(grove, "slot_4")
+	var slot5 := _unlock(grove, "slot_5")
+	_check(HeartwoodMemory.buy_problem(path_data, slot4) != "", "slot 4 needs a second perk")
+	path_data.unlocks.first_care = 1
+	_check(HeartwoodMemory.buy_problem(path_data, slot4) == "", "…any path's (First Care)")
+	path_data.unlocks.slot_4 = 1
+	path_data.unlocks.clear_sight = 1
+	_check(HeartwoodMemory.buy_problem(path_data, slot5) != "", "slot 5 needs the third perk of 2 paths")
+	path_data.unlocks.omen_reader = 1
+	_check(HeartwoodMemory.buy_problem(path_data, slot5) == "", "…Clear Sight and Omen Reader")
+	# Old profiles keep what they own, even out of the new order (no refunds, no re-locking).
+	var legacy := HeartwoodMemory.defaults()
+	legacy.unlocks = {"seed_pouch": 1, "kindling": 1}
+	legacy.loadout = ["seed_pouch", "kindling"]
+	_check(HeartwoodMemory.node_level(legacy, _unlock(grove, "seed_pouch")) == 1 and HeartwoodMemory.get_loadout(legacy) == ["seed_pouch", "kindling"],
+		"an old profile keeps and carries Seed Pouch and Kindling without their new parents")
 
 	# --- Every perk, carried: 5 slots, two loadouts ---
 	memory = HeartwoodMemory.load_data()

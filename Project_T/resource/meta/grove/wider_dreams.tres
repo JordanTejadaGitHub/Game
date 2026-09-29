@@ -11,5 +11,5 @@ root = 2
 costs = Array[int]([150])
 order = 15
 icon = 14
-requires_all = Array[String](["second_thoughts:2"])
+requires_all = Array[String](["omen_reader", "second_thoughts:2"])
 extra_dream_cards = 1

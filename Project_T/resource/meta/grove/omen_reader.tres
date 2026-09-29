@@ -11,4 +11,5 @@ root = 2
 costs = Array[int]([80])
 order = 14
 icon = 13
+requires_all = Array[String](["let_go"])
 extra_omens = 1

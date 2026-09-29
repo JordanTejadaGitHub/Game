@@ -11,4 +11,5 @@ root = 2
 costs = Array[int]([80])
 order = 5
 icon = 4
+requires_all = Array[String](["first_care"])
 starting_cards = Array[String](["cleared_ground"])
