@@ -364,8 +364,7 @@ func _kinship_card(k: Dictionary, discovered: bool, times: int) -> Control:
 		frame.custom_minimum_size = Vector2(0, 56)
 		var unknown := Label.new()
 		unknown.text = "???"
-		unknown.add_theme_font_size_override("font_size", 18)
-		unknown.add_theme_color_override("font_color", LOCKED_COLOR)
+		UiStyle.title(unknown, 20, LOCKED_COLOR)
 		unknown.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
 		frame.add_child(unknown)
 		box.add_child(frame)
@@ -706,6 +705,7 @@ func _setup_dreams_page() -> void:
 	page.name = "Dreams"
 	tabs.add_child(page)
 	_dreams_count.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	UiStyle.caps(_dreams_count, 16)
 	page.add_child(_dreams_count)
 	var filters := HFlowContainer.new()
 	filters.add_theme_constant_override("h_separation", 6)
@@ -776,10 +776,14 @@ func _build_dreams() -> void:
 
 func _dream_entry(card: UpgradeData, seen: Array, viewed: Array, taken: Dictionary, won: Dictionary) -> Control:
 	var panel := PanelContainer.new()
-	var style := StyleBoxFlat.new()
-	style.bg_color = Color(0.1, 0.12, 0.15, 0.95) if seen.has(card.id) else Color(0.06, 0.07, 0.09, 0.95)
-	style.set_corner_radius_all(8)
+	# Moonlit Thread (ui_style.md): a seen card is a card threaded in its rarity colour; an unseen one a
+	# plain fog card with no thread (nothing about it is known yet).
+	var style := UiStyle.card(UpgradeData.rarity_color(card.rarity))
+	style.shadow_size = 0
 	style.set_content_margin_all(10)
+	if not seen.has(card.id):
+		style.thread = MoonStyleBox.TopLine.NONE
+		style.glow_color = Color(0, 0, 0, 0)
 	panel.add_theme_stylebox_override("panel", style)
 	var box := VBoxContainer.new()
 	box.add_theme_constant_override("separation", 3)
@@ -787,8 +791,7 @@ func _dream_entry(card: UpgradeData, seen: Array, viewed: Array, taken: Dictiona
 	if not seen.has(card.id):  # Never offered: "???", nothing else (no rarity, text or hints)
 		var unknown := Label.new()
 		unknown.text = "???"
-		unknown.add_theme_font_size_override("font_size", 18)
-		unknown.add_theme_color_override("font_color", LOCKED_COLOR)
+		UiStyle.title(unknown, 20, LOCKED_COLOR)
 		box.add_child(unknown)
 		return panel
 	var head := HBoxContainer.new()
@@ -800,15 +803,14 @@ func _dream_entry(card: UpgradeData, seen: Array, viewed: Array, taken: Dictiona
 	head.add_child(gem)
 	var name := Label.new()
 	name.text = card.display_name
-	name.add_theme_font_size_override("font_size", 18)
-	name.add_theme_color_override("font_color", UpgradeData.rarity_color(card.rarity))
+	UiStyle.title(name, 20, UpgradeData.rarity_color(card.rarity))
 	head.add_child(name)
 	if not viewed.has(card.id):
 		var fresh := Label.new()
 		fresh.name = "New"
 		fresh.text = "New"
-		fresh.add_theme_font_size_override("font_size", 13)
-		fresh.add_theme_color_override("font_color", CROWN_COLOR)
+		UiStyle.caps(fresh, 14, UiStyle.GOLD)
+		fresh.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 		head.add_child(fresh)
 	box.add_child(head)
 	box.add_child(StatusLinks.make_label(card.description, 15))
@@ -817,14 +819,13 @@ func _dream_entry(card: UpgradeData, seen: Array, viewed: Array, taken: Dictiona
 		facts.append(IconInfo.damage_type_name(tag) if IconInfo.DAMAGE_TYPES.has(tag) else tag.capitalize())
 	var tags := Label.new()
 	tags.text = " · ".join(facts)
-	tags.add_theme_font_size_override("font_size", 13)
-	tags.add_theme_color_override("font_color", LOCKED_COLOR)
+	UiStyle.caps(tags, 14)  # Plain small caps separated by " · " (ui_style.md "Dream card")
 	box.add_child(tags)
 	var dreams := get_tree().get_first_node_in_group(DreamState.GROUP) if is_inside_tree() else null
 	if dreams != null and dreams.has_method("needs_text"):
 		var needs: String = dreams.needs_text(card)
 		if needs != "":
-			box.add_child(StatusLinks.make_label(needs, 13, Color(0.75, 0.85, 1.0)))
+			box.add_child(StatusLinks.make_label(needs, 14, Color("9cd4fc")))  # Dewlight
 	for other in DreamCodex.all_cards():  # Its Deepened version, once that's been seen too
 		if other.deepens == card.id and seen.has(other.id):
 			var deeper := Label.new()
