@@ -141,6 +141,7 @@ var waiting := false
 var _reroute_wait := 0.0
 var _leap_tween: Tween
 var _burrows := 0
+var _revealed_time := 0.0  # Seconds it stays revealed whatever else (see reveal_for)
 var _pose_left := 0.0  # Seconds a special animation (eclipse, grief) keeps the walk animation off
 var _wander_cooldown := 0
 
@@ -740,6 +741,16 @@ func _is_blocked_ahead(delta: float) -> bool:
 	waiting = queued != null and queued != self
 	return waiting
 
+# Lantern Roots (Kinship): a Gravecrawler held by a bonded Tangleroot can't burrow again this trip.
+func stop_burrowing() -> void:
+	_burrows = maxi(_burrows, enemy_data.burrow_max)
+
+# Lantern Roots (Kinship): stays revealed for `seconds` (hidden Lurkers, the Eclipse), at once.
+func reveal_for(seconds: float) -> void:
+	_revealed_time = maxf(_revealed_time, seconds)
+	if _hidden:
+		_set_hidden(false)
+
 # Gravecrawler: if a Warden or wall is right beside it and the cell past it leads to the Heartwood by
 # a route at least `burrow_min_saving` cells shorter, it sinks under and surfaces there.
 func _try_burrow() -> void:
@@ -855,6 +866,7 @@ func _update_presence(delta: float) -> void:
 	var elapsed := _presence_elapsed
 	_presence_elapsed = 0.0
 
+	_revealed_time = maxf(_revealed_time - elapsed, 0.0)
 	var hide := (enemy_data.hidden or _is_eclipsed()) and not _is_revealed()
 	if hide != _hidden:
 		_set_hidden(hide)
@@ -927,6 +939,8 @@ func _is_eclipsed() -> bool:
 # Seen by a Warden within CLOSE_REVEAL_CELLS, a Marking Warden (Lanternmoth, Moon Moth, Rootlight)
 # that has it in range, or a Will-o'-Wisp's glow.
 func _is_revealed() -> bool:
+	if _revealed_time > 0.0:
+		return true  # Held in the light a while (Lantern Roots)
 	var towers = get_parent().get("tower_container") if get_parent() else null
 	if towers:
 		for tower in towers.get_children():

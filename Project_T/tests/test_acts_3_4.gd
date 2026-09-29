@@ -47,6 +47,12 @@ func _run() -> void:
 		_check(not lurker.is_hidden(), "a Lanternmoth (Marks) reveals it from range")
 		lantern.free()
 	lurker._update_presence(0.2)
+	lurker.reveal_for(1.0)
+	_check(not lurker.is_hidden(), "Lantern Roots: reveal_for shows it at once")
+	lurker._update_presence(0.5)
+	_check(not lurker.is_hidden(), "and keeps it shown for the time")
+	lurker._update_presence(0.6)
+	_check(lurker.is_hidden(), "then it hides again")
 	var wisp := _still("will_o_wisp", route[11])
 	lurker._update_presence(0.2)
 	_check(not lurker.is_hidden(), "a Will-o'-Wisp one cell away reveals it")
@@ -155,6 +161,12 @@ func _run() -> void:
 		var path_before: PackedVector2Array = grave._path.duplicate()
 		grave._try_burrow()
 		_check(not grave._leaping and grave._path == path_before, "only once per trip")
+		var held_grave := _still("gravecrawler", burrow.here)
+		held_grave.set_path(long_way)
+		held_grave._path_index = 1
+		held_grave.stop_burrowing()
+		held_grave._try_burrow()
+		_check(not held_grave._leaping, "Lantern Roots: stop_burrowing keeps it from burrowing this trip")
 		_clear_enemies()
 
 	# --- Sleepwalker wanders into a dead end and back ---
