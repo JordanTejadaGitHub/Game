@@ -64,14 +64,14 @@ func _run() -> void:
 	_check(boulder.roll_crit(sleepy), "Boulderback always crits on a Drowsy nightmare")
 	await _clean()
 
-	# Dreamshroom: 2 Drowsy per application; at full Drowsy a nightmare sleeps 1.5 s, once.
+	# Dreamshroom: 2 Drowsy per application; at full Drowsy a nightmare sleeps 3 s (status jobs, 2026-09-29), once.
 	var shroom := _plant(dreamshroom, Vector2(5, 5))
 	var dreamer := _spawn(shroom.global_position + Vector2(CELL, 0))
 	for i in 2:
 		shroom.apply_status_to(dreamer, shroom.get_damage())
 	_check(dreamer.statuses.stacks(EnemyStatuses.DROWSY) == 4 and not dreamer.statuses.is_asleep(), "4 Drowsy: still awake")
 	shroom.apply_status_to(dreamer, shroom.get_damage())
-	_check(dreamer.statuses.is_asleep() and is_equal_approx(dreamer.statuses.sleep_time, 1.5), "full Drowsy: asleep for 1.5 s")
+	_check(dreamer.statuses.is_asleep() and is_equal_approx(dreamer.statuses.sleep_time, 3.0), "full Drowsy: asleep for 3 s")
 	dreamer.statuses.sleep_time = 0.0
 	shroom.apply_status_to(dreamer, shroom.get_damage())
 	_check(not dreamer.statuses.is_asleep(), "only once per nightmare")
