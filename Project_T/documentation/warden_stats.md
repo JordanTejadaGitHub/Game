@@ -256,7 +256,7 @@ walls get path tiles added (Thornwall), damage (Bramble) or Drowsy applied (Hone
 | Warden | Tier | Cost | Range | Damage × /s | DPS | Kind | Effect |
 |---|---|---|---|---|---|---|---|
 | ✓ Nestling | base | 25 (+15) | 3 | 14 × 1.2 | 17 | swoop | bird flies out and back; ×1.25 vs Phantoms |
-| ✓ Wren's Nest | branch | +45 | 3.5 | 8 × 3.0 | 24 | swoop | targets the **fastest** nightmare in range; ×1.5 vs Phantoms and sprinting Night Hounds; crit 15% |
+| ✓ Wren's Nest | branch | +45 | 3.5 | 8 × 3.0 | 24 | swoop | targets the **fastest** nightmare in range; ×1.5 vs Phantoms and sprinting Night Hounds; crit 15%; **each swoop also strikes a second nightmare it passes (50%)** (2026-09-29: an early multi-target tool for Nestling) |
 | ✓ Starling Murmuration | final | +90 | 4 | 3 birds × 10 × 1.5 | 45 (split) | swoop | **changed 2026-09-27:** 3 starlings each hunt one of the **3 fastest** nightmares in range; ×1.5 vs Phantoms and sprinting Night Hounds; crit 15%. (Was: sweeps the 5 busiest path tiles) |
 | ✓ Magpie Perch | branch | +45 | 3 | 12 × 1.0 | 12 | swoop | **thief** (2026-09-29): each hit strips a nightmare buff: removes **2× its normal chip** of dread shell, stops a Weeper's mending for **3 s**, removes an Omen's boosts from that nightmare; **+1 Dew** when a nightmare it stripped is dispelled; crit 10% |
 | ✓ Magpie's Hoard | final | +90 | 3.5 | 20 × 1.0 | 20 | swoop | as Magpie Perch (every hit strips); **each crit +1 Dew** (max 15 per drift); crit 15% |

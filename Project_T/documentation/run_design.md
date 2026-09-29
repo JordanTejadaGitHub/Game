@@ -85,6 +85,7 @@ the teaching and the bosses stay fixed.
 - The template picks its **types** from the unlocked pool and splits the drift's health budget among
   them (each type's share at least 15%, so a drift mixes 2–4 types unless it's a Swarm or Special).
 - **At most one Special or Swarm per block**, and never two of the same template in a row.
+- **Act 1 density cap** (2026-09-29, family-opening check: single-target families died at the densest Shade drifts): in act 1, **small nightmares (Shades, Sobs, Creeps) at least 0.9 s apart** in every drift outside the Swarm template, and a Swarm in act 1 at most 20 of them. Single-target families (Pebbling, Nestling) must be able to keep up.
 - **Fairness:** act 1 keeps the rule that no drift has more than ~40% of its health resistant to one
   damage type the player can own; **acts 2–4: at most ~60%**, and a block never leans on the same
   resisted type for more than two drifts. No block is all flyers or all through-walls.
