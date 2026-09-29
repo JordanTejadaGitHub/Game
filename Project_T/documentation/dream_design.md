@@ -557,9 +557,8 @@ effect:
 - A small gold **"Opens clearing"** tag in the corner of the card (like Entwined / Half-dreamed).
 - Once clearing is unlocked, these lines disappear from later clearing cards (they then show only
   their own effect).
-- **On taking it:** the Clear tool button on the Warden bar plays an unlock bloom and glows until
-  first used, the whisper *"Tend the forest, and it will remember you."* plays, and a one-time tip
-  points at it: *"Clearing unlocked: press C or tap the tool, then an obstacle."*
+- The change is **on the card only** (user clarification); nothing new happens elsewhere when you
+  take it (the existing whisper stays as it was).
 
 | # | Card | Rarity | Effect | Tags | Pool |
 |---|---|---|---|---|---|
