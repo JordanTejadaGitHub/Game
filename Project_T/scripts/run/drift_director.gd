@@ -304,7 +304,7 @@ func get_health_scale(data: EnemyData, number: int) -> float:
 	var scale := boss_health_multiplier if data.is_boss else get_growth(number)
 	if get_act(number) >= late_acts_from_act:
 		scale *= late_acts_health_multiplier
-	else:
+	elif not (data.is_boss and get_act(number) == 1):  # Act 1's boss stays ×1.5 (its escort takes the ramp)
 		scale *= get_early_multiplier(number)
 	return scale * get_health_multiplier(data, number)
 
