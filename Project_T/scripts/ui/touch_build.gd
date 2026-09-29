@@ -85,7 +85,10 @@ func _input(event: InputEvent) -> void:
 			_touches.erase(event.index)
 	elif event is InputEventScreenDrag:
 		set_touch_mode(true)
-		if _touches.size() >= 2 and _touches.has(event.index):
+		if _touches.size() >= 2 and _touches.has(event.index) and camera != null and camera.has_method("modal_open") \
+				and camera.modal_open():
+			_touches[event.index] = event.position  # A screen is up: its own scrolling, not the map
+		elif _touches.size() >= 2 and _touches.has(event.index):
 			var before: Vector2 = _touches[event.index]
 			var other := _other_touch(event.index)
 			_touches[event.index] = event.position

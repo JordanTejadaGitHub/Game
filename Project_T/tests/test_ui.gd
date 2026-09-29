@@ -190,6 +190,9 @@ func _run() -> void:
 	dreams.remember_requested.connect(func(_focus) -> void: asked.append(true), CONNECT_ONE_SHOT)
 	hud_rem.remember_button.pressed.emit()
 	_check(asked.size() == 1, "the button opens the Remember screen")
+	var remember_screen = main.get_node_or_null("HUD/RememberScreen")
+	if remember_screen != null and remember_screen.visible:
+		remember_screen.close()
 	dreams.add_dreamlight(saved_light - dreams.dreamlight)
 	if not had_sporeling:
 		dreams.unlocked.erase("sporeling")
@@ -339,6 +342,34 @@ func _run() -> void:
 		and idx.call("PauseMenu") == order_hud.get_child_count() - 1, "overlays draw above the HUD, the pause menu on top")
 	var strip_node: Node = order_hud.get_children().filter(func(c: Node) -> bool: return c is ComingStrip).front()
 	_check(strip_node.get_index() < idx.call("OmenScreen"), "the Coming strip stays under the Omen screen")
+	# UI scrolling never moves the map: a wheel over the open Codex leaves the zoom alone; over the
+	# map it zooms (screens_ui.md). WASD waits while a text field has focus.
+	var wheel_cam = main.get_node("GameCameraNode")
+	var wheel_pause = main.get_node("%PauseMenu")
+	wheel_pause.open_codex(&"glossary")
+	await process_frame
+	var zoom_before: Vector2 = wheel_cam.target_zoom
+	var wheel := InputEventMouseButton.new()
+	wheel.button_index = MOUSE_BUTTON_WHEEL_UP
+	wheel.pressed = true
+	wheel.position = wheel_pause.codex.get_global_rect().get_center()
+	wheel.global_position = wheel.position
+	root.push_input(wheel)
+	var wheel_up := wheel.duplicate()
+	wheel_up.pressed = false
+	root.push_input(wheel_up)
+	await process_frame
+	_check(wheel_cam.target_zoom == zoom_before, "a wheel over the Codex doesn't zoom the map")
+	wheel_pause.close()
+	await process_frame
+	wheel_cam.target_zoom = Vector2.ONE * 0.8
+	wheel_cam._unhandled_input(wheel)
+	_check(wheel_cam.target_zoom.x > 0.8, "a wheel over the map zooms")
+	var search := LineEdit.new()
+	main.get_node("HUD").add_child(search)
+	search.grab_focus()
+	_check(wheel_cam._typing(), "typing in a text field: WASD stays in the field")
+	search.queue_free()
 	# Hover tips stay until the pointer leaves (screens_ui.md "Hover and tap tips"): another dispel
 	# doesn't reset the nightmare info or its status hov_popup; its own dispel shows "Dispelled", then it
 	# clears without jumping to the nightmare now under a still pointer.
@@ -444,6 +475,30 @@ func _run() -> void:
 	_check(ResultsScreen.is_demo() == ProjectSettings.get_setting("game/demo", false), "tests ignore the Demo mode override")
 	DirAccess.remove_absolute(ProjectSettings.globalize_path(HeartwoodMemory.file_path))
 	HeartwoodMemory.file_path = real_profile
+
+	# --- Hover and tap tips stay (screens_ui.md): a Dew change doesn't rebuild the Warden panel ---
+	var tip_tower := seller.get_tower_at(seller.selected.cell) if seller.selected else null
+	if tip_tower == null:
+		for t in main.get_node("%TowerContainer").get_children():
+			if t is Tower and t.tower_data.can_attack:
+				tip_tower = t
+				break
+	if tip_tower:
+		seller.select(tip_tower)
+		await process_frame
+		var panel := main.find_child("WardenPanel", true, false)
+		var priced: Array = panel._buttons.get_children().filter(func(b) -> bool: return b.has_meta(&"cost"))
+		var ids: Array = panel._buttons.get_children().map(func(b) -> int: return b.get_instance_id())
+		run_state.dew = 0
+		run_state.dew_changed.emit(0)
+		await process_frame
+		var ids_after: Array = panel._buttons.get_children().map(func(b) -> int: return b.get_instance_id())
+		_check(ids_after == ids, "a Dew change keeps the Warden panel's buttons (a tooltip under the pointer stays)")
+		_check(priced.all(func(b) -> bool: return b.disabled), "and their affordability updates in place")
+		run_state.dew = 100000
+		run_state.dew_changed.emit(100000)
+		_check(priced.all(func(b) -> bool: return not b.disabled or b.text.contains("Dreamlight")), "back when there's Dew")
+		seller.select(null)
 
 	# --- Pause summary and Abandon run ---
 	var pause = main.get_node("%PauseMenu")
