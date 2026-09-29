@@ -10,7 +10,7 @@
 [resource]
 script = ExtResource("1_tdata")
 display_name = "Whirligig"
-description = "Gusts nudge nightmares back a little."
+description = "Gusts carry trouble along: every 3 s it copies one status (half the stacks) from the most afflicted nightmare in range onto a neighbour."
 cost = 25
 texture = ExtResource("2_tex")
 frame_count = 8
@@ -21,8 +21,7 @@ attack_kind = 1
 attack_range = 2.0
 damage = 10
 attacks_per_second = 1.0
-push_back_tiles = 0.25
-push_cooldown = 3.0
+copy_status_every = 3.0
 crit_chance = 0.05
 attack_texture = ExtResource("4_atk")
 attack_frame_count = 6

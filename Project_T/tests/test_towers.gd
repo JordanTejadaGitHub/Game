@@ -31,8 +31,8 @@ func _run() -> void:
 		_check(data.texture != null, "%s has a sprite" % data.display_name)
 		_check(data.get_frame_rect(0).size == Vector2(64, 64), "%s frames are 64x64" % data.display_name)
 		if data.can_attack and data.projectile_texture != null:
-			_check(data.projectile_texture.get_width() / data.projectile_frames == 16,
-				"%s projectile frames are 16x16" % data.display_name)
+			var side: int = data.projectile_texture.get_width() / data.projectile_frames
+			_check(side == data.projectile_texture.get_height() and side >= 16, "%s projectile frames are square (%dpx)" % [data.display_name, side])
 
 		run_state.dew = 1000  # Test the roster, not the economy
 		placer.select_tower(data)

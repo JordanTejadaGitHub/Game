@@ -22,7 +22,7 @@ var _radius := 0.0  # NIGHTBLOOM, pixels
 var _duration := 0.0
 var _age := 0.0
 var _tick := 0.0
-var sleep_seconds := 1.0  # STILL_POOL: sleep on first entry (Deep Stillness: 1.5)
+var sleep_seconds := 1.0  # STILL_POOL: seconds a walker entering is pulled under (Deep Stillness: 1.5)
 var until_stepped := false  # FAIRY_RING: Ring of Rings
 var potency := 0.0  # FAIRY_RING: the Spored it gives, credited to…
 var line := ""
@@ -90,7 +90,7 @@ func _pool(enemy: Node2D) -> void:
 	if _visited.has(id):
 		return
 	_visited[id] = true
-	s.sleep_time = maxf(s.sleep_time, sleep_seconds)
+	Reactions.pull_under(enemy, source, sleep_seconds)  # Status jobs: pulled under (was: asleep)
 
 func _nightbloom(enemy: Node2D) -> void:
 	if enemy.global_position.distance_to(global_position) > _radius:
@@ -101,6 +101,7 @@ func _nightbloom(enemy: Node2D) -> void:
 		s.apply(EnemyStatuses.DROWSY, 1)  # Refreshes it; it can't run out in here
 	if not s.is_boss and s.is_asleep():
 		s.sleep_time = maxf(s.sleep_time, TICK * 2.0)
+		s.sleep_locked_time = maxf(s.sleep_locked_time, TICK * 2.0)  # Hits can't wake it in here (Enemy's wake rule)
 
 func _ring(enemy: Node2D) -> void:
 	var cell: Vector2 = enemy.get_current_cell()

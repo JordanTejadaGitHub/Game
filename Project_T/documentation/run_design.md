@@ -113,8 +113,8 @@ turn leaks into a hold. Targets for the balance simulation and playtests (averag
   The balance simulation measures the rest.
 - **Interim acts 1–2 tightening** (2026-09-28; two playtests: a fresh profile at drift 23 and
   again at drift 43 with **15/15 leaves**, ~800 and **1,925 Dew banked**, "haven't done much in the
-  past 10 drifts"). **Revised the same day** (later playtests: "too hard from early drifts, especially 15 with the swarm"): nightmare health **×1.0 through drift 25** (act 1 as it was), **act 2 ramping from ×1.0 at drift 26 to ×1.35 by drift 40, ×1.35
-  to 50** (acts 3–4 keep their ×1.4), and **Dew per dispel ×0.85 in act 2 only** (act 1 back to ×1.0). Drift 15's Swarm is lighter (`acts_1_2.md`). Interim
+  past 10 drifts"). **Revised the same day** (later playtests: "too hard from early drifts, especially 15 with the swarm"): nightmare health **×1.0 through drift 25** (act 1 as it was), **act 2 ramping from ×1.0 at drift 26 to **×1.55** by drift 40 (was ×1.35; the 2026-09-29 batch had Balanced surviving to a median drift 66 with a win), ×1.55
+  to 50** (acts 3–4 go from ×1.4 to **×1.6**, 2026-09-29), and **Dew per dispel ×0.85 in act 2 only** (act 1 back to ×1.0). Drift 15's Swarm is lighter (`acts_1_2.md`). Interim
   numbers, as exports, until the balance simulation's quick batch replaces them.
 - **Act 3 probe** (Tower Code, `tools/balance_act3.gd`, 2026-09-28): drifts 61–70, 12 final forms at
   rank IV (Power), **no Dreams**: the maze dealt ~155–160k damage per drift against **~100–115k
@@ -348,7 +348,7 @@ the map or the rules**. That makes ~20; aim for no Omen twice in a row and each 
 | **Lean Season** | your side | **rest bonus halved** at the end of the block | next Dream **includes a Legendary** (act 2+) |
 | **Heavy Rain** | double-edged | every nightmare is **always Soaked**, but has **+35% health** | +30 Dew |
 | **Blood Moon** | double-edged | nightmares **+25% speed**, and give **+50% Dew** | (the Dew is the reward) |
-| **Harvest Moon** | double-edged | nightmares **+25% health**, and give **×2 Dew** | (the Dew is the reward) |
+| **Bountiful Night** | double-edged | nightmares **+25% health**, and give **×2 Dew** | (the Dew is the reward) |
 | **Elder Night** | nightmares | **+1 elite** in every drift (act 2+) | +1 Dreamlight |
 | **Hollow Wind** | nightmares | the block's **first 2 drifts are all flyers** (act 2+, flyers exist) | next Dream: one card is Rare+ |
 | **Sleepless** | nightmares | nightmares are **immune to Drowsy and Held** | +40 Dew |
@@ -370,7 +370,7 @@ the map or the rules**. That makes ~20; aim for no Omen twice in a row and each 
 - **New `OmenData` fields:** Warden range add / attack-speed multiplier, `no_build_during_drift`,
   leak multiplier, rest-bonus multiplier below 1, status immunities, always-applied status, extra
   elites per drift, all-flyer drift count, obstacles to sprout, per-tree Seed bonus; rewards
-  `dreamlight`, `dream_legendary`. Blood Moon and Harvest Moon have no separate reward (their Dew is it); **Heavy Rain keeps +30 Dew**, because its +35% health hurts every build while the Soaked only helps some.
+  `dreamlight`, `dream_legendary`. Blood Moon and Bountiful Night have no separate reward (their Dew is it); **Heavy Rain keeps +30 Dew**, because its +35% health hurts every build while the Soaked only helps some.
 
 - **Blight Levels** can make Omens harsher or remove Clear Skies ("an Omen is always chosen").
 - **Grove perks** later: a third Omen option, or Omen rewards +25% (`meta_design.md`).

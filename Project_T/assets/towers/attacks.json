@@ -1,4 +1,46 @@
 {
+	"bowls": {
+		"dewcatcher": {
+			"dy_by_frame": [
+				0,
+				0,
+				1,
+				1,
+				0,
+				0,
+				1,
+				1
+			],
+			"point": [
+				30,
+				5
+			],
+			"radius": [
+				11,
+				2
+			]
+		},
+		"wellspring": {
+			"dy_by_frame": [
+				0,
+				0,
+				1,
+				1,
+				0,
+				0,
+				1,
+				1
+			],
+			"point": [
+				30,
+				5
+			],
+			"radius": [
+				7,
+				1
+			]
+		}
+	},
 	"frame_size": 64,
 	"frames": 6,
 	"release_frame": 2,

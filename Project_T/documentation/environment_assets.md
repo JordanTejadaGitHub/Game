@@ -77,5 +77,12 @@ healthy trees are no longer used.
 
 - The Heartwood uses the same warm moss-gold in every act; only its surroundings change.
 - Sprites (trees, obstacles, Heartwood) include their own soft ground shadow.
-- Regenerating: the drawing code lives in the concept page; the files were exported from it with a
-  fixed seed. To change the art, change the page, re-export, and keep this table in sync.
+- **Regenerating** (`tools/environment_art/`): `powershell -File tools/environment_art/export.ps1`
+  from the project folder, then Godot `--import`. It runs the generator (`heartwood_grounds.html`,
+  fixed seed 1207, with `export_tail.js`) in headless Chrome, then `process_environment.gd` puts every
+  sheet through Theme Code's `DetailPass` and `HeartwoodPalette` (`tools/art/`) into
+  `assets/environment/`: no added grain on grass / island rim / dew pool / blight patch, 0.3 on the
+  other ground tiles, full detail on obstacles and the Heartwood, 64×96 tree cells, palette snap only
+  for mist, void and cloud shadows. It prints the value order per act and fails if it breaks. A run
+  on unchanged sources reproduces the committed sheets byte for byte. Only PNGs are written (UIDs stay).
+  To change the art, change the generator, re-run, and keep this table in sync.

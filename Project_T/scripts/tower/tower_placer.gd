@@ -502,18 +502,23 @@ func _try_build(cell: Vector2) -> bool:
 func get_cost(data: TowerData = null, cell: Vector2 = NO_CELL, planned_sprouts: int = 0) -> int:
 	var warden := data if data != null else tower_data
 	var cost: int = dream_state.get_build_cost(warden) if cell == NO_CELL else dream_state.get_build_cost_at(warden, cell)
-	# Sprouts get pricier as you plant (warden_stats.md, card 69): +1 Dew per 5 Sprouts on the map (gift
-	# Sprouts from Seedling Gift don't count; a free one stays free). Seedfall: a flat 6, never rising.
-	# `planned_sprouts`: Sprouts earlier in the same drag stroke.
-	if warden.get_id() == "sprout" and cost > 0 and not sprout_price_fixed():
-		cost += (count_paid_sprouts() + planned_sprouts) / SPROUTS_PER_DEW
+	# Sprouts get pricier as you plant (warden_stats.md, card 69): every SPROUTS_PER_STEP Sprouts on the map
+	# add SPROUT_STEP_DEW to the next one (10, 13, 16, …); Seedling Gift Sprouts don't count and a free one
+	# stays free. Seedfall: 6 Dew, and the price never rises (SEEDFALL_SPROUTS_PER_STEP 0). `planned_sprouts`:
+	# Sprouts earlier in the same drag stroke.
+	if warden.get_id() == "sprout" and cost > 0:
+		var per_step := SEEDFALL_SPROUTS_PER_STEP if sprout_price_halved() else SPROUTS_PER_STEP
+		if per_step > 0:
+			cost += (count_paid_sprouts() + planned_sprouts) / per_step * SPROUT_STEP_DEW
 	return cost
 
-func sprout_price_fixed() -> bool:
+func sprout_price_halved() -> bool:
 	return dream_state.has_card(SEEDFALL_CARD)
 
 const SEEDFALL_CARD := "seedfall"
-const SPROUTS_PER_DEW := 5  # Every 5 Sprouts on the map add +1 Dew to the next one (10 for the first 5, 11 at 5-9, …)
+const SPROUTS_PER_STEP := 5  # Every 5 Sprouts on the map…
+const SPROUT_STEP_DEW := 3  # …add +3 Dew to the next one
+const SEEDFALL_SPROUTS_PER_STEP := 0  # Seedfall: 0 = the price never rises
 
 # Sprouts on the map that raise the price (not the free ones from Seedling Gift charges).
 func count_paid_sprouts() -> int:

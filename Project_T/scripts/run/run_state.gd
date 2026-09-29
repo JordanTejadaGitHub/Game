@@ -53,6 +53,7 @@ var dew_gain_bonus := 0.0  # +share of Dew from dispelled nightmares (Rich Dew);
 var free_nurtures := 0  # Nurture ranks left that cost no Dew (First Care); set by MetaRun
 var longest_path := 0  # Longest route the maze reached this run, in tiles
 var play_time := 0.0  # Seconds of unpaused play this run
+var dew_harvested := 0  # Dew the catchers poured at rests (the Harvest) plus Wellspring interest (Golden Harvest reads it)
 var is_over := false
 var won := false
 
@@ -137,13 +138,13 @@ func add_dew(amount: int) -> void:
 	dew_changed.emit(dew)
 
 # Adds Dew and shows a "+N Dew" popup at `world_position`.
-func earn_dew_at(amount: int, world_position: Vector2) -> void:
+func earn_dew_at(amount: int, world_position: Vector2, color: Color = DewPopup.COLOR) -> void:
 	if amount <= 0:
 		return
 	add_dew(amount)
 	dew_earned.emit(amount, world_position)
 	# Popup lives in the world (the main scene), not on whatever earned it, which may be freed.
-	get_parent().add_child(DewPopup.new(amount, world_position))
+	get_parent().add_child(DewPopup.new(amount, world_position, color))
 
 func lose_leaves(amount: int) -> void:
 	if is_over or amount <= 0 or invulnerable:
@@ -177,20 +178,25 @@ func end_run(did_win: bool) -> void:
 
 func _on_enemy_cleansed(enemy: Node2D) -> void:
 	creatures_cleansed += 1
-	earn_dew_at(_scaled_dispel_dew(enemy.get_dew_reward()), enemy.global_position)
+	var reward: int = enemy.get_dew_reward()
+	# A catcher nearby (Dewcatcher, Wellspring) catches a share more into its bowl, for the Harvest.
+	var caught := DewCatch.catch(enemy, reward * get_dispel_multiplier())
+	earn_dew_at(_scaled_dispel_dew(reward), enemy.global_position, DewCatch.GOLD if caught else DewPopup.COLOR)
 
 # Economy pass v2 (run_design.md): dispel Dew × act_dew_multipliers for the current act (× Rich Dew),
 # with the fraction carried to the next dispel so small rewards aren't rounded away.
 func _scaled_dispel_dew(dew: int) -> int:
+	_dispel_dew_carry += dew * get_dispel_multiplier()
+	var paid := floori(_dispel_dew_carry + 0.0001)
+	_dispel_dew_carry -= paid
+	return paid
+
+func get_dispel_multiplier() -> float:
 	var director := get_node_or_null("%DriftDirector") as DriftDirector
 	var act := director.get_act(maxi(director.drifts_started, 1)) if director else 1
 	var multiplier: float = act_dew_multipliers[clampi(act - 1, 0, act_dew_multipliers.size() - 1)]
 	var dreams := get_tree().get_first_node_in_group(DreamState.GROUP) as DreamState
-	multiplier *= 1.0 + dew_gain_bonus + (dreams.get_dew_gain_bonus() if dreams else 0.0)  # Rich Dew (Grove perk), Gathered Dew
-	_dispel_dew_carry += dew * multiplier
-	var paid := floori(_dispel_dew_carry + 0.0001)
-	_dispel_dew_carry -= paid
-	return paid
+	return multiplier * (1.0 + dew_gain_bonus + (dreams.get_dew_gain_bonus() if dreams else 0.0))  # Rich Dew (Grove perk), Gathered Dew
 
 func _on_enemy_reached_goal(enemy: Node2D) -> void:
 	var omens := get_tree().get_first_node_in_group(OmenDirector.GROUP) as OmenDirector

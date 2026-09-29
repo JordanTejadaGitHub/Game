@@ -6,10 +6,10 @@
 script = ExtResource("1_card")
 id = "heavy_air"
 display_name = "Heavy Air"
-description = "Every slow your Wardens apply ({damp}, {drowsy}) is 20% stronger."
+description = "Every slow your Wardens apply ({drowsy}, Drown, rubble…) is 20% stronger."
 rarity = 1
 kind = 3
 tags = Array[String](["status"])
 max_stacks = 1
-requires_any_status = Array[StringName]([&"damp", &"drowsy"])
+requires_any_status = Array[StringName]([&"drowsy"])
 rule_id = &"heavy_air"

@@ -8,7 +8,7 @@ class_name HeartwoodMemory
 # Static helpers only: every caller loads, changes and saves. The file is tiny.
 
 const PATH := "user://heartwood.json"
-const VERSION := 2  # 2: Grove ids match grove_layout.json (MIGRATED_IDS), perk loadout
+const VERSION := 3  # 2: Grove ids match grove_layout.json (MIGRATED_IDS), perk loadout; 3: REFUNDED_V3
 
 # Where the profile lives (tests point this elsewhere so they never touch the player's Seeds).
 static var file_path := PATH
@@ -45,7 +45,8 @@ static func defaults() -> Dictionary:
 			"ui_scale": 1.0,
 			"auto_drift": true,  # Auto-drift toggle's default at run start
 			"reduced_motion": false,  # No camera glide, shakes or hops in the UI
-			"damage_numbers": 1,  # 0 off, 1 big hits, 2 all (read by the combat feedback)
+			"dps_tags": 0,  # Warden DPS tags: 0 rests only (and paused / build mode), 1 always, 2 off
+			"damage_numbers": 0,  # 0 off (default: DPS tags and the drift meter say more), 1 big hits, 2 all
 			"reduce_flashes": false,  # Reactions: softer, shorter flashes (accessibility)
 			"hitstop": true,  # Reactions: a tiny freeze on big hits
 			"vsync": true,
@@ -96,13 +97,28 @@ const MIGRATED_IDS := {
 	"hummingbird_bower": "nestling_hidden", "samara": "whirligig_hidden",
 }
 
+# Version 3 (discovery unlocks, dream_design.md "Grove overlap"): Seeds back for Grove nodes that were
+# removed (their cards come from discovery now), and for a node whose price dropped. {id: Seeds}
+const REFUNDED_V3 := {
+	"reactions": 70, "woven_dreams_1": 90, "woven_dreams_2": 90, "kin_lore": 50, "deep_bonds": 70,
+}
+const PRICE_DROPS_V3 := {"bittersweet_dreams": 8}  # Kept, 8 Seeds back (60 -> 52)
+
 static func _migrate(data: Dictionary) -> void:
-	if int(data.get("version", VERSION)) >= 2:
-		return
-	var unlocks := {}
-	for id in data.unlocks:
-		unlocks[MIGRATED_IDS.get(id, id)] = data.unlocks[id]
-	data.unlocks = unlocks
+	var version := int(data.get("version", VERSION))
+	if version < 2:
+		var unlocks := {}
+		for id in data.unlocks:
+			unlocks[MIGRATED_IDS.get(id, id)] = data.unlocks[id]
+		data.unlocks = unlocks
+	if version < 3:
+		for id in REFUNDED_V3:
+			if int(data.unlocks.get(id, 0)) > 0:
+				data.seeds = int(data.seeds) + REFUNDED_V3[id]
+				data.unlocks.erase(id)
+		for id in PRICE_DROPS_V3:
+			if int(data.unlocks.get(id, 0)) > 0:
+				data.seeds = int(data.seeds) + PRICE_DROPS_V3[id]
 	data.version = VERSION
 
 static func save_data(data: Dictionary) -> void:

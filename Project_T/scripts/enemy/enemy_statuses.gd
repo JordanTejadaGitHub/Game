@@ -31,7 +31,10 @@ const COLORS := {
 const STAG_SLOW := 0.15
 const STAG_EXTRA := 0.15
 
-const DAMP_SLOW := 0.10
+const DAMP_WATER_BONUS := 0.20  # Damp (Soaked) conducts: water (Dewdrop-family) hits +20% (Enemy.take_damage)
+const WAKE_HIT_SHARE := 0.10  # One hit dealing this share of max health wakes a sleeper (not effect ticks)
+const FOG_STATIC_BONUS := 0.25  # Static bolts +25% in fog (Morning Fog: "Static ticks +25% inside")
+const CAUGHT_GREAT_TICK_BONUS := 0.25  # Great Dreamcatcher: Caught statuses tick +25%
 const DROWSY_SLOW_PER_STACK := 0.08
 const MARKED_EXTRA := 0.25
 const STATIC_BOLT_MULTIPLIER := 3.0
@@ -63,6 +66,9 @@ var chain_towers: Array = []  # Wardens that took part in that chain so far
 var pinned := false  # Pinned: the next Warden hit is a guaranteed ×3 crit
 var drowned := 0  # Times Drown made it sleep (once per nightmare; Deep Water II: twice)
 var mushroom_time := 0.0  # Mushrooming: Spored ticks harder while > 0
+var burn_time := 0.0  # Ignite (status jobs, 2026-09-29): Spored ticks burn_rate x as fast while > 0 (Reactions.burn)
+var burn_rate := 3.0
+var sleep_locked_time := 0.0  # Nightbloom: while > 0, sleep neither breaks on a big hit nor ends (Enemy's wake rule reads it)
 var slow_time := 0.0  # Drown on bosses (and Held-immune nightmares): an extra slow instead of sleep
 var slow_amount := 0.0
 var smothering := false  # Held + Spored right now (Spored ticks faster)
@@ -103,6 +109,15 @@ func is_asleep() -> bool:
 
 func is_caught() -> bool:
 	return caught_time > 0.0
+
+# Caught by a Great Dreamcatcher (the one that drops shards): its statuses tick +25% (Spored ticks,
+# Static bolts). A plain Dreamcatcher only preserves them. `caught_bonus` is no longer read.
+func get_caught_tick_bonus() -> float:
+	return CAUGHT_GREAT_TICK_BONUS if is_caught() and caught_shard else 0.0
+
+# A single hit this big (share of max health) wakes a sleeper, unless Nightbloom locks the sleep.
+func can_wake_from_hit() -> bool:
+	return sleep_time > 0.0 and sleep_locked_time <= 0.0
 
 # Asleep or at full Drowsy (bosses: their cap of 3 counts): what Dreamcatchers catch.
 func is_catchable() -> bool:
@@ -151,8 +166,8 @@ func apply(id: StringName, stacks: int = 1, duration: float = 0.0, potency: floa
 	if id == STATIC and status.stacks >= cap and not has(DAMP):
 		_active.erase(STATIC)
 		if static_forever and potency > 0.0:
-			return potency * STATIC_BOLT_MULTIPLIER  # Eternal Charge: the Warden that added the last charge
-		return status.potency * STATIC_BOLT_MULTIPLIER
+			return potency * STATIC_BOLT_MULTIPLIER * _static_tick_multiplier()  # Eternal Charge: the Warden that added the last charge
+		return status.potency * STATIC_BOLT_MULTIPLIER * _static_tick_multiplier()
 	return 0.0
 
 func get_max_stacks(id: StringName, override: int = 0) -> int:
@@ -230,10 +245,8 @@ func is_held() -> bool:
 func get_speed_multiplier(extra_slow: float = 0.0) -> float:
 	if ignores_slows:
 		return 1.0
+	# Slowing belongs to Drowsy (status jobs, 2026-09-29): Damp conducts instead (Enemy.take_damage).
 	var slow := extra_slow
-	if has(DAMP):
-		# Damp's potency is a strength multiplier (Soaked Through II: ×1.5 = −15%); 0 = plain Damp.
-		slow += DAMP_SLOW * maxf(potency(DAMP), 1.0)
 	slow += DROWSY_SLOW_PER_STACK * stacks(DROWSY)
 	if is_in_stag_aura():
 		slow += STAG_SLOW
@@ -248,9 +261,6 @@ func get_damage_taken_multiplier() -> float:
 		multiplier += maxf(MARKED_EXTRA, marked_extra)
 	if is_in_stag_aura():
 		multiplier += STAG_EXTRA
-	# Caught multiplies with the rest (a Caught, Marked nightmare takes ×1.4 × ×1.25).
-	if is_caught():
-		multiplier *= 1.0 + caught_bonus
 	if cut_stacks > 0:
 		multiplier *= 1.0 + CUT_BONUS * cut_stacks
 	if held_bonus > 0.0 and is_held():
@@ -266,8 +276,13 @@ func tick(delta: float) -> float:
 	_stag_time = maxf(_stag_time - delta, 0.0)
 	chain_time = maxf(chain_time - delta, 0.0)
 	mushroom_time = maxf(mushroom_time - delta, 0.0)
+	burn_time = maxf(burn_time - delta, 0.0)
+	sleep_locked_time = maxf(sleep_locked_time - delta, 0.0)
 	slow_time = maxf(slow_time - delta, 0.0)
-	sleep_time = maxf(sleep_time - delta, 0.0)
+	if is_boss:
+		sleep_time = 0.0  # Bosses never sleep
+	elif sleep_locked_time <= 0.0:
+		sleep_time = maxf(sleep_time - delta, 0.0)  # Nightbloom's lock: sleep doesn't end
 	caught_time = maxf(caught_time - delta, 0.0)
 	cut_time = maxf(cut_time - delta, 0.0)
 	if cut_time <= 0.0:
@@ -279,11 +294,12 @@ func tick(delta: float) -> float:
 	var spore_damage := 0.0
 	if has(SPORED):
 		smothering = has(HELD)
-		_spore_timer += delta * (SMOTHER_SPORE_RATE if smothering else 1.0)
+		_spore_timer += delta * (SMOTHER_SPORE_RATE if smothering else 1.0) * (burn_rate if burn_time > 0.0 else 1.0)
 		while _spore_timer >= SPORE_TICK:
 			_spore_timer -= SPORE_TICK
 			var per_tick: float = _active[SPORED].stacks * _active[SPORED].potency * SPORE_TICK
-			var bonus := (FOG_SPORE_BONUS if is_in_fog() else 0.0) + (MUSHROOM_SPORE_BONUS if mushroom_time > 0.0 else 0.0)
+			var bonus := (FOG_SPORE_BONUS if is_in_fog() else 0.0) + (MUSHROOM_SPORE_BONUS if mushroom_time > 0.0 else 0.0) \
+				+ get_caught_tick_bonus()
 			spore_damage += per_tick * (1.0 + bonus)
 	else:
 		_spore_timer = 0.0
@@ -291,6 +307,8 @@ func tick(delta: float) -> float:
 	smother_ended = was_smothering and not smothering
 
 	for id in _active.keys():
+		if is_caught():
+			break  # Caught: statuses stop wearing off (Static doesn't bleed, timers pause); Spored still ticks
 		var status: Dictionary = _active[id]
 		status.time -= delta
 		if status.time > 0.0:
@@ -306,3 +324,7 @@ func tick(delta: float) -> float:
 	if not has(MARKED):
 		marked_extra = 0.0
 	return spore_damage
+
+# Static bolts in fog (Morning Fog) and on a nightmare Caught by a Great Dreamcatcher hit harder.
+func _static_tick_multiplier() -> float:
+	return 1.0 + (FOG_STATIC_BONUS if is_in_fog() else 0.0) + get_caught_tick_bonus()

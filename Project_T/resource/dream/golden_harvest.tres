@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "golden_harvest"
+display_name = "Golden Harvest"
+description = "Nothing yet: the gamble."
+rarity = 3
+kind = 3
+tags = Array[String](["seed", "acorn", "economy"])
+max_stacks = 1
+min_act = 2
+rule_id = &"golden_harvest"
+in_start_pool = false
+grows_with = Array[String](["dewcatcher", "wellspring"])
+grows_text = "Every 100 Dew your catchers harvest or earn as interest this run gives all Wardens +2% damage (up to +30%)."
+calls_family = "acorn"

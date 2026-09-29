@@ -141,6 +141,7 @@ var waiting := false
 var _reroute_wait := 0.0
 var _leap_tween: Tween
 var _burrows := 0
+var _revealed_time := 0.0  # Seconds it stays revealed whatever else (see reveal_for)
 var _pose_left := 0.0  # Seconds a special animation (eclipse, grief) keeps the walk animation off
 var _wander_cooldown := 0
 
@@ -156,6 +157,9 @@ var _hidden := false
 var _presence_elapsed := 0.0
 var _ash_cells := {}  # {cell: seconds the ash still burns}
 var _always_statuses: Array[StringName] = []  # See _keep_always_statuses
+# Magpies, the thieves (status jobs): see strip_buff.
+const MEND_STRIP_TIME := 3.0  # Seconds a stripped Weeper stops mending
+var _mend_stopped := 0.0
 var _heal_carry := 0.0
 var _brood_timer := 0.0
 var _sapling_timer := 0.0
@@ -605,6 +609,49 @@ func _swap_frames(frames: SpriteFrames) -> void:
 	else:
 		sprite.play(&"walk_side")
 
+# Magpie Perch / Magpie's Hoard (and Wrens with Flock Together) strip nightmare buffs on a hit,
+# called before the hit lands (tower_design.md "status jobs"):
+#   - a dread shell loses a double chunk (this extra one, then the hit's own),
+#   - a Weeper stops mending for MEND_STRIP_TIME s,
+#   - its Omen boosts go: extra immunities (Sleepless), shorter statuses (Stubborn Blight), the
+#     thicker shell (Hard Bark), and the Omen's speed ("omen_speed"; Dreams / Blight speed stays).
+#     Heavy Rain's Soaked is the player's gain, so it stays.
+# Returns true if anything was stripped (the thief's +1 Dew is Tower Code's).
+func strip_buff(_by: Node) -> bool:
+	if is_cleansed:
+		return false
+	modifiers = modifiers.duplicate()  # Split-offs and followers share their parent's dictionary
+	var stripped := false
+	if coat > 0.0:
+		coat = maxf(coat - _coat_per_hit, 0.0)
+		stripped = true
+	if enemy_data.mend_radius > 0.0:
+		_mend_stopped = MEND_STRIP_TIME
+		stripped = true
+	if modifiers.has("status_immune"):
+		statuses.immune = enemy_data.status_immune.duplicate()
+		modifiers.erase("status_immune")
+		stripped = true
+	if float(modifiers.get("status_duration", 1.0)) < 1.0:
+		statuses.duration_multiplier_all = 1.0
+		modifiers.erase("status_duration")
+		stripped = true
+	var coat_boost := float(modifiers.get("coat", 1.0))
+	if coat_boost > 1.0:
+		coat /= coat_boost
+		coat_max /= coat_boost
+		_coat_per_hit /= coat_boost
+		modifiers.erase("coat")
+		stripped = true
+	var omen_speed := float(modifiers.get("omen_speed", 1.0))
+	if omen_speed > 1.0:
+		speed /= omen_speed
+		modifiers.erase("omen_speed")
+		stripped = true
+	if stripped:
+		queue_redraw()
+	return stripped
+
 # --- No maze juggling (run_design.md) -----------------------------------------------------------
 
 # Restless stacks (+RESTLESS_SPEED speed each, for the rest of its life).
@@ -693,6 +740,16 @@ func _is_blocked_ahead(delta: float) -> bool:
 	var queued = spawner.waiting_cells.get(next)
 	waiting = queued != null and queued != self
 	return waiting
+
+# Lantern Roots (Kinship): a Gravecrawler held by a bonded Tangleroot can't burrow again this trip.
+func stop_burrowing() -> void:
+	_burrows = maxi(_burrows, enemy_data.burrow_max)
+
+# Lantern Roots (Kinship): stays revealed for `seconds` (hidden Lurkers, the Eclipse), at once.
+func reveal_for(seconds: float) -> void:
+	_revealed_time = maxf(_revealed_time, seconds)
+	if _hidden:
+		_set_hidden(false)
 
 # Gravecrawler: if a Warden or wall is right beside it and the cell past it leads to the Heartwood by
 # a route at least `burrow_min_saving` cells shorter, it sinks under and surfaces there.
@@ -809,6 +866,7 @@ func _update_presence(delta: float) -> void:
 	var elapsed := _presence_elapsed
 	_presence_elapsed = 0.0
 
+	_revealed_time = maxf(_revealed_time - elapsed, 0.0)
 	var hide := (enemy_data.hidden or _is_eclipsed()) and not _is_revealed()
 	if hide != _hidden:
 		_set_hidden(hide)
@@ -818,7 +876,10 @@ func _update_presence(delta: float) -> void:
 			if other.statuses.has(EnemyStatuses.DROWSY):
 				other.statuses.remove(EnemyStatuses.DROWSY)
 				other.queue_redraw()
-	if enemy_data.mend_radius > 0.0:  # Weeper
+			if other.statuses.sleep_time > 0.0 and other.statuses.sleep_locked_time <= 0.0:
+				other.statuses.sleep_time = 0.0  # Wakes sleepers too (not under Nightbloom's lock)
+	_mend_stopped = maxf(_mend_stopped - elapsed, 0.0)
+	if enemy_data.mend_radius > 0.0 and _mend_stopped <= 0.0:  # Weeper (a magpie can stop it)
 		for other in _others_within(enemy_data.mend_radius):
 			other.heal(other.max_health * enemy_data.mend_rate * elapsed)
 	if not _ash_cells.is_empty():  # Ash Crawler
@@ -878,6 +939,8 @@ func _is_eclipsed() -> bool:
 # Seen by a Warden within CLOSE_REVEAL_CELLS, a Marking Warden (Lanternmoth, Moon Moth, Rootlight)
 # that has it in range, or a Will-o'-Wisp's glow.
 func _is_revealed() -> bool:
+	if _revealed_time > 0.0:
+		return true  # Held in the light a while (Lantern Roots)
 	var towers = get_parent().get("tower_container") if get_parent() else null
 	if towers:
 		for tower in towers.get_children():
@@ -962,6 +1025,9 @@ func take_damage(amount: float, line: String = "", is_area: bool = false, is_cri
 		if world:
 			Fx.crit(global_position, world)  # The crit_flare glint (drawn by the effects player)
 	var family := enemy_data.get_soothe_multiplier(line, is_area)
+	if line == "water" and statuses.has(EnemyStatuses.DAMP):
+		# Soaked conducts: water hits +20% (Damp's potency 1.5 with Soaked Through II: +30%)
+		family *= 1.0 + EnemyStatuses.DAMP_WATER_BONUS * maxf(1.0, statuses.potency(EnemyStatuses.DAMP))
 	var taken := statuses.get_damage_taken_multiplier()
 	var soothe := amount * family * taken
 	var soothe_before_coat := soothe
@@ -986,6 +1052,10 @@ func take_damage(amount: float, line: String = "", is_area: bool = false, is_cri
 	_soothe_carry -= whole
 	health = maxi(health - whole, 1 if unkillable else 0)
 	queue_redraw()
+	# Asleep is long but fragile: one hit (not an effect tick) of 10%+ of max health wakes it.
+	if statuses.can_wake_from_hit() and not Reactions.is_effect(tag) \
+			and soothe >= max_health * EnemyStatuses.WAKE_HIT_SHARE:
+		statuses.sleep_time = 0.0
 	_report_damage(amount, family, taken, soothe_before_coat - soothe, soothe, line, is_crit, source, tag)
 	if health == 0 and not _try_rise():
 		_cleanse()

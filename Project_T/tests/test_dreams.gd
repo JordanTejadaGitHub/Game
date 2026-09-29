@@ -27,15 +27,16 @@ func _run() -> void:
 	_test_few_and_mighty_sim(main)
 	_test_stray_dream(main)
 	_test_half_dreamed(main)
+	await _test_discovery(main)
 	print("dreams test: %s" % ("PASS" if failures == 0 else "%d FAILED" % failures))
 	quit(failures)
 
 func _test_status_numbers() -> void:
 	var s := EnemyStatuses.new()
 	s.apply(EnemyStatuses.DAMP)
-	_check(is_equal_approx(s.get_speed_multiplier(), 0.9), "Damp slows 10%")
+	_check(is_equal_approx(s.get_speed_multiplier(), 1.0), "Damp no longer slows (status jobs: it conducts)")
 	s.apply(EnemyStatuses.DROWSY, 3)
-	_check(is_equal_approx(s.get_speed_multiplier(), 0.9 - 0.24), "3 Drowsy stacks slow 24% more")
+	_check(is_equal_approx(s.get_speed_multiplier(), 1.0 - 0.24), "3 Drowsy stacks slow 24%")
 	s.apply(EnemyStatuses.DROWSY, 10)
 	_check(s.stacks(EnemyStatuses.DROWSY) == 5, "Drowsy caps at 5")
 	s.apply(EnemyStatuses.MARKED)
@@ -240,7 +241,7 @@ func _test_new_cards(main: Node) -> void:
 	_check(is_equal_approx(dreams.get_status_duration(dewdrop, EnemyStatuses.DAMP), 12.0), "Soaked Through II: Damp ×3")
 	var soaked := EnemyStatuses.new()
 	soaked.apply(EnemyStatuses.DAMP, 1, 0.0, dreams.get_status_strength_multiplier(EnemyStatuses.DAMP))
-	_check(is_equal_approx(soaked.get_speed_multiplier(), 0.85), "Soaked Through II: Damp slows 15%")
+	_check(is_equal_approx(soaked.potency(EnemyStatuses.DAMP), 1.5), "Soaked Through II: Damp at 1.5× strength (water +30%)")
 	dreams.take(_card(dreams, "cozy_corners"))
 	_check(dreams.rule_level(&"cozy_corners") == 0, "Cozy Corners starts at its base level")
 	dreams.take(_card(dreams, "cozy_corners_ii"))
@@ -928,7 +929,8 @@ func _test_half_dreamed(main: Node) -> void:
 	_check(dreams.can_offer(thunder) and not dreams.is_eligible(thunder), "…can be offered, but isn't whole")
 	var text := dreams.half_dreamed_text(thunder)
 	print("half-dreamed text: " + text)
-	_check(text.begins_with("Needs Dewdrop: a family you can pick after") and "(drift 25)" in text, "…says what's missing and when")
+	_check(text.begins_with("Needs Soaked: a family that brings it may come after") and "(drift 25)" in text and not text.contains("Dewdrop"),
+		"…says the missing status and when, never the Warden")
 	dreams._offer_drift = 80
 	_check(not dreams.is_half_dreamed(thunder), "…never after the drift 75 family pick")
 	dreams._offer_drift = 25  # The boss rest: the next pick (drift 50) is 25 drifts away
@@ -1021,6 +1023,66 @@ func _test_half_dreamed(main: Node) -> void:
 			start, float(before_pick) / RUNS, float(through_70) / RUNS])
 		_check(float(before_pick) / RUNS >= 0.4, "half-dreamed cards: at least 0.4 per run before the drift 25 pick (start %s: %.2f)" % [start, float(before_pick) / RUNS])
 	_reset_dreams(main)
+
+
+# Discovery unlocks (dream_design.md): combo, Kinship and Warden cards wait until seen once; a
+# discovery mid-run lets them in at once.
+func _test_discovery(main: Node) -> void:
+	var dreams: DreamState = main.get_node("%DreamState")
+	_reset_dreams(main)
+	var feedback := root.get_tree().get_first_node_in_group(ComboFeedback.GROUP) as ComboFeedback
+	var run_counts: Dictionary = feedback.run_counts.duplicate() if feedback != null else {}
+	if feedback != null:
+		feedback.run_counts.clear()
+	var tracker := root.get_tree().get_first_node_in_group(ReactionTracker.GROUP) as ReactionTracker
+	var chain := tracker.longest_chain if tracker != null else 0
+	if tracker != null:
+		tracker.longest_chain = 0
+	dreams._built_this_run.clear()
+	dreams.discovery_profile = {"seen": [], "wardens_built": [], "best_chain": 0}
+	var waiting := dreams.pool.filter(func(c: UpgradeData) -> bool: return not dreams.discovery_keys(c).is_empty())
+	_check(waiting.size() >= 31, "discovery cards in the pool (%d)" % waiting.size())
+	_check(waiting.all(func(c: UpgradeData) -> bool: return not dreams.can_offer(c, 4)),
+		"a fresh profile is never offered a discovery card")
+	var thunder := _card(dreams, "rolling_thunder")
+	_check(not dreams.discovery_met(thunder), "Rolling Thunder waits for Thunderclap")
+	if feedback != null:
+		feedback.run_counts[&"thunderclap"] = 1
+		_check(dreams.discovery_met(thunder), "…and counts the moment Thunderclap fires this run")
+		var quick := _card(dreams, "quick_reactions")
+		_check(not dreams.discovery_met(quick), "Quick Reactions needs 2 Reactions")
+		feedback.run_counts[&"drown"] = 1
+		_check(dreams.discovery_met(quick), "…two found")
+		_check(not dreams.discovery_met(_card(dreams, "eye_of_the_tempest")), "a Woven card waits for its Crowned Reaction")
+	dreams.discovery_profile["seen"] = [String(Kinships.KINSHIPS.keys()[0])]
+	_check(dreams.discovery_met(_card(dreams, "close_kin")), "any Kinship lets the Kinship cards in")
+	_check(dreams.discovery_met(_card(dreams, "dawnbreak")), "Legendaries are never discovery-gated")
+	_check(not dreams._key_met("chain:5", []), "a ×5 chain key waits…")
+	dreams.discovery_profile["best_chain"] = 5
+	_check(dreams._key_met("chain:5", []), "…the profile's best chain counts")
+	var cache := _card(dreams, "acorn_cache")
+	_check(not dreams.discovery_met(cache), "Acorn Cache waits for an Acorn to be built")
+	var before: Array[UpgradeData] = [cache]  # A Grove card: not in this run's pool
+	var acorn := _build(main, "acorn")
+	_check(dreams.discovery_met(cache) and dreams.newly_discovered(before).has(cache.display_name),
+		"building an Acorn lets its cards in at once")
+	# Half-dreamed cards skip the Warden gate (keep a Reaction gate); whole again, it applies.
+	dreams.unlocked["firefly_jar"] = true
+	dreams._offer_drift = 10
+	var beaks := _card(dreams, "static_bloom")  # Stormcap (Firefly Jar's) + Bloomcap
+	_check(dreams.is_half_dreamed(beaks) and dreams.discovery_met(beaks), "a half-dreamed card skips the Warden gate (%s)" % [dreams.half_dreamed_missing(beaks)])
+	for family in dreams.half_dreamed_missing(beaks):
+		dreams.unlocked[family] = true
+	_check(not dreams.is_half_dreamed(beaks) and not dreams.discovery_met(beaks), "…whole again, it waits for its Wardens")
+	dreams._offer_drift = 0
+	acorn.queue_free()
+	dreams.discovery_profile = null
+	dreams._built_this_run.clear()
+	if feedback != null:
+		feedback.run_counts = run_counts
+	if tracker != null:
+		tracker.longest_chain = chain
+	_check(dreams.discovery_met(thunder), "tests without a profile have everything discovered")
 
 func _card(dreams: DreamState, id: String) -> UpgradeData:
 	for card in dreams.pool:

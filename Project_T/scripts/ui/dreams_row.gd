@@ -211,7 +211,7 @@ func _card_row(source: DreamIcon) -> Control:
 	text.add_child(body)
 	if source.dormant:  # Half-dreamed and asleep: what it waits for
 		var needs := Label.new()
-		needs.text = "Half-dreamed: needs " + _missing_text(card)
+		needs.text = "Half-dreamed · " + _needs_text(card)
 		needs.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		UiStyle.caps(needs, 13)
 		text.add_child(needs)
@@ -230,6 +230,15 @@ func _card_row(source: DreamIcon) -> Control:
 			_card_tip.show_card(frame, card, frame.get_global_rect().get_center(), DreamMarks.MarkTip.TAP_TIME)
 			frame.accept_event())
 	return frame
+
+# "Needs: Soaked + Charged" / "Needs: Nestling family" (DreamState.needs_text, dream_design.md "How
+# Needs are shown on a card": never the name of a Warden you don't have).
+func _needs_text(card: UpgradeData) -> String:
+	if dream_state.has_method("needs_text"):
+		var text: String = dream_state.needs_text(card)
+		if text != "":
+			return IconInfo.format(text)
+	return "Needs: " + _missing_text(card)
 
 # "Dewdrop (a family pick after the next boss)" for a sleeping half-dreamed card.
 func _missing_text(card: UpgradeData) -> String:

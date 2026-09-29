@@ -12,6 +12,7 @@ const ENTWINED_COLOR := Color(0.45, 0.8, 0.4)  # Vine border
 const DEEPENED_COLOR := Color(0.6, 0.85, 1.0)
 const BITTERSWEET_COLOR := Color(0.72, 0.5, 0.68)  # Muted plum, for the cost line
 const STRAY_COLOR := Color(0.75, 0.85, 0.95)  # Pale wisp
+const SEED_COLOR := Color("d4ec9c")  # Heartwood 32 "Newleaf": what a Seed card grows into
 const HALF_DREAMED_COLOR := Color(0.62, 0.82, 0.6, 0.85)  # Pale vine
 
 @onready var dream_state: DreamState = %DreamState
@@ -141,6 +142,8 @@ func _make_card(card: UpgradeData) -> Button:
 	_add_linked_line(box, card.description, UiStyle.INK, 16)
 	if card.cost_description != "":
 		_add_linked_line(box, card.cost_description, BITTERSWEET_COLOR, 15)
+	if card.grows_text != "":  # Seed cards: the bigger effect once its Wardens are yours
+		_add_linked_line(box, "🌱 Grows with %s: %s" % [_grows_with_names(card), card.grows_text], SEED_COLOR, 14)
 	# Secondary lines below, smaller and muted; they shrink first when a card runs out of room.
 	var spacer := Control.new()
 	spacer.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -148,16 +151,16 @@ func _make_card(card: UpgradeData) -> Button:
 	box.add_child(spacer)
 	var secondary: Array[Label] = []
 	if card.entwined:
-		var names := card.requires.map(dream_state.get_display_name)
-		if not card.requires_any.is_empty():  # One "either" ingredient (Falling Stars)
-			names.append(" or ".join(card.requires_any.map(dream_state.get_display_name)))
-		secondary.append(_add_line(box, "%s  ·  %s" % ["Woven" if card.woven else "Entwined", " + ".join(names)], ENTWINED_COLOR, SECONDARY_SIZE))
+		secondary.append(_add_line(box, "Woven" if card.woven else "Entwined", ENTWINED_COLOR, SECONDARY_SIZE))
 	elif card.is_deepened():
 		secondary.append(_add_line(box, "Deepened  ·  replaces %s" % dream_state.get_display_name(card.deepens), DEEPENED_COLOR, SECONDARY_SIZE))
 	elif card.is_bittersweet():
 		secondary.append(_add_line(box, "Bittersweet", BITTERSWEET_COLOR, SECONDARY_SIZE))
 	if dream_state.is_half_dreamed(card):  # A combo card whose other family you could still pick
 		secondary.append(_add_line(box, "Half-dreamed  ·  " + dream_state.half_dreamed_text(card) + ". Sleeps until then.", HALF_DREAMED_COLOR, SECONDARY_SIZE))
+	_add_needs_row(box, card)  # "Needs: Soaked + Charged" / "Nestling family": never a Warden's name
+	if card.calls_family != "":  # A Seed card calls its family to the next family pick
+		secondary.append(_add_line(box, "Seed  ·  calls %s to your next family pick" % dream_state.get_display_name(card.calls_family), SEED_COLOR, SECONDARY_SIZE))
 	if dream_state.is_stray(card):  # The Stray Dream slot (dream_design.md "Adapt, don't get handed")
 		secondary.append(_add_line(box, "✧ Stray  ·  something the Heartwood hasn't dreamed of yet", STRAY_COLOR, SECONDARY_SIZE))
 	for label in secondary:
@@ -209,3 +212,48 @@ func _on_closed() -> void:
 static func _roman(n: int) -> String:
 	var numerals := ["I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X"]
 	return numerals[n - 1] if n <= numerals.size() else str(n)
+
+# "Dewcatcher, Wellspring", or "the Rootling line" when a Seed names a whole line.
+# "the Acorn line": a Seed card always names the family, never a Warden you may not have.
+func _grows_with_names(card: UpgradeData) -> String:
+	var id := card.calls_family if card.calls_family != "" else (card.grows_with[0] if not card.grows_with.is_empty() else "")
+	return "the %s line" % dream_state.family_name_for(id)
+
+# The Needs row (dream_design.md "How Needs are shown on a card"): status icons + names, lit when one
+# of your Wardens applies it, dim when not; families and card ingredients as text.
+func _add_needs_row(box: VBoxContainer, card: UpgradeData) -> void:
+	var parts := dream_state.needs_parts(card)
+	if parts.statuses.is_empty() and parts.families.is_empty() and parts.cards.is_empty():
+		return
+	var row := HFlowContainer.new()
+	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	row.add_theme_constant_override("h_separation", 4)
+	box.add_child(row)
+	row.add_child(_needs_label("Needs:", UiStyle.INK_DIM))
+	for i in parts.statuses.size():
+		var status: StringName = parts.statuses[i][0]
+		var lit: bool = parts.statuses[i][1]
+		if i > 0:
+			row.add_child(_needs_label("+", UiStyle.INK_DIM))
+		var icon := IconInfo.make_icon(status)
+		if icon != null:
+			icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			icon.modulate.a = 1.0 if lit else 0.4
+			row.add_child(icon)
+		var name := _needs_label(IconInfo.status_name(status), UiStyle.INK if lit else UiStyle.INK_DIM)
+		name.modulate.a = 1.0 if lit else 0.6
+		row.add_child(name)
+	var text := dream_state.needs_text(card).trim_prefix("Needs: ")
+	if not parts.statuses.is_empty():
+		var rest := text.split(" · ")
+		text = " · ".join(rest.slice(1)) if rest.size() > 1 else ""
+	if text != "":
+		row.add_child(_needs_label(text, UiStyle.INK_DIM))
+
+func _needs_label(text: String, colour: Color) -> Label:
+	var label := Label.new()
+	label.text = text
+	label.add_theme_color_override("font_color", colour)
+	label.add_theme_font_size_override("font_size", SECONDARY_SIZE)
+	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	return label

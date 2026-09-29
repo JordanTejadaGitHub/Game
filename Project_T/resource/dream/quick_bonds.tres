@@ -10,6 +10,7 @@ description = "Kinships grow 1 drift faster (Blooming at 4, Old Kin at 9)."
 rarity = 0
 kind = 3
 tags = Array[String](["kinship"])
+discovered_by = Array[String](["kinship:any"])
 max_stacks = 3
 rule_id = &"quick_bonds"
 in_start_pool = true

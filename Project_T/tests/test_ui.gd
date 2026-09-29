@@ -111,7 +111,7 @@ func _run() -> void:
 	dew_label.gui_input.emit(tap)
 	_check(dew_tip.visible and dew_tip._label.text == dew_label.tooltip_text, "tapping Dew shows the same text")
 	dew_tip.toggle()
-	_check(IconInfo.status_tooltip(&"damp").begins_with("Soaked: 10% slower"), "status tooltips in plain words")
+	_check(IconInfo.status_tooltip(&"damp").begins_with("Soaked: Water hits deal 20% more"), "status tooltips in plain words")
 	# Dream bonuses on Wardens (DreamBonusView): breakdown text, and rows styled active / off.
 	_check(DreamBonusView.format_breakdown(&"damage", {"base": 18.0, "final": 27.0,
 		"parts": [["Nurture II", "+20%"], ["Solitude", "+30%"]]}) == "Damage 18 → 27: base 18 · Nurture II +20% · Solitude +30%",
@@ -153,7 +153,7 @@ func _run() -> void:
 	await process_frame
 	link_label.meta_clicked.emit("status:damp")
 	var popup: StatusLinks = link_label.get_children().filter(func(c: Node) -> bool: return c is StatusLinks)[0]
-	_check(popup.visible and popup._name.text == "Soaked" and popup._text.text.begins_with("10% slower"), "tapping a status shows its definition")
+	_check(popup.visible and popup._name.text == "Soaked" and popup._text.text.begins_with("Water hits deal 20% more"), "tapping a status shows its definition")
 	link_label.meta_clicked.emit("status:damp")
 	_check(not popup.visible, "tapping it again closes it")
 	link_label.queue_free()

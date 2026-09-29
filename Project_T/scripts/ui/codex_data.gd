@@ -70,11 +70,11 @@ const GLOSSARY_SOURCE := [
 	["Statuses", [
 		["{damp}", "{tip:damp}", ["Conducted", "Thunderclap"]],
 		["{drowsy}", "{tip:drowsy}", ["{asleep}", "Drown"]],
-		["{asleep}", "{tip:asleep}", ["{drowsy}", "Caught"]],
 		["{spored}", "{tip:spored}", ["Popped", "Ignite"]],
 		["{marked}", "{tip:marked}", ["Exposed Blow", "Lightning Rod"]],
 		["{static}", "{tip:static}", ["Set Off", "Thunderclap"]],
 		["{held}", "{tip:held}", ["Shatter", "Smother"]],
+		["{asleep}", "{tip:asleep}", ["{drowsy}", "Caught"]],
 		["{caught}", "{tip:caught}", ["{drowsy}", "{asleep}"]],
 		["{frozen}", "{tip:frozen}", ["{damp}"]],
 	]],
@@ -112,11 +112,11 @@ const GLOSSARY_SOURCE := [
 const SYNERGIES := {
 	&"conducted": ["Conducted", [&"damp", &"static"], "Lightning jumps further and more often between {damp} nightmares.", "Stormcap"],
 	&"popped": ["Popped", [&"spored", &"spored"], "10+ {spored} bursts over the nightmare and its neighbours.", "Puffball"],
-	&"asleep": ["Asleep", [&"drowsy", &"drowsy"], "Full {drowsy}: the nightmare falls {asleep}.", "Dreamshroom"],
+	&"asleep": ["Asleep", [&"drowsy", &"drowsy"], "Full {drowsy}: the nightmare falls {asleep} for 3 s; a big hit (10%+ of its health) wakes it.", "Dreamshroom"],
 	&"fog": ["Spore Fog", [&"spored", &"damp"], "{spored} ticks harder inside Mistveil fog.", "Mistveil"],
 	&"set_off": ["Set Off", [&"static", &"static"], "A pulse sets off a {static} bolt.", "Chime Stone, Lullaby Bell"],
 	&"marked_blow": ["Exposed Blow", [&"marked", &"marked"], "A heavy hit does double damage on {marked} nightmares.", "Mossback, Boulderback"],
-	&"caught": ["Caught", [&"drowsy", &"drowsy"], "{asleep} or full {drowsy} near a Dreamcatcher: it takes extra damage from everything.", "Dreamcatcher"],
+	&"caught": ["Caught", [&"drowsy", &"drowsy"], "{asleep} or full {drowsy} near a Dreamcatcher: the nightmare's statuses stop wearing off.", "Dreamcatcher"],
 }
 
 # Crowned Reactions (tower_design.md "Crowned Reactions: three families at once"): a Reaction going
@@ -182,9 +182,19 @@ const KINSHIP_TEXT := {
 	&"storm_beacon": "Stormcap's jumps leave nightmares {marked} for 2 s; Lanternmoth's shots add 1 {static}.",
 	&"hammer_and_anvil": "Mossback gains the sniper's eye (+10% crit chance at ×2.5); Standing Stone deals ×2 to {marked} nightmares.",
 	&"snare": "Rootcurl's pulls end in a 0.5 s hold; Tangleroot's holds drag the nightmare back half a tile.",
-	&"night_chimes": "Chime Stone's pulses deal +40% to {caught} nightmares; Dreamcatcher's threads set off {static} at 3 stacks.",
-	&"old_growth": "Elder Stump yields +2 Dew per drift; Dewcatcher gains a small aura: neighbours +10% attack speed.",
-	&"flock_together": "Nightmares Wren's Nest hits drop +1 Dew; Magpie Perch hunts the fastest nightmare, +25% vs Phantoms.",
+	&"night_chimes": "Chime Stone's pulses Catch nightmares at full {drowsy}, as if a Dreamcatcher stood by; Dreamcatcher's threads set off {static} at 3 stacks.",
+	&"old_growth": "Nightmares dispelled inside Elder Stump's aura drop +25% Dew; Dewcatcher gains a small aura: neighbours +10% attack speed.",
+	&"flock_together": "Wren's Nest hits strip a buff (a shell chips twice as fast, a Weeper stops mending, Omen boosts fall away) and the robbed nightmare drops +1 Dew; Magpie Perch hunts the fastest nightmare, +25% vs Phantoms.",
+	# The 9 hidden Kinships (a hidden branch first; full game only, Tower Code 6ba79b8).
+	&"spore_nursery": "Fairy Ring's rings apply double {spored}; Driftspore's puffs plant a mushroom ring where they land (one at a time).",
+	&"hoar_fog": "Frostfern's shots leave a fog puff; Mistveil's fog freezes nightmares that stay in it 2 s.",
+	&"sunspot": "Sunpetal's beam makes its target {marked}; Lanternmoth's shots grow +10% per hit on the same target (up to +50%).",
+	&"spotter": "Cairn lobs at the Standing Stone's target and the landing crits; Standing Stone's shots splash 30% beside the target.",
+	&"lantern_roots": "Rootlight's lit tiles hold a nightmare stepping on them for 0.3 s (once); Tangleroot's holds reveal {hidden} nightmares and stop burrowing.",
+	&"resonant_hollow": "Echo Hollow's echoes set off {static} like a chime; Chime Stone's pulses echo once at 30%.",
+	&"true_graft": "Graftling copies at 100%; Elder Stump's pulse adds its strongest neighbour's status.",
+	&"jewel_thieves": "Every 6th peck steals a nightmare's buff (+1 Dew if there's none); the Magpie pecks twice per swoop.",
+	&"tailwind": "Samara's seed carries full stacks; Gust's copies reach nightmares up to 3 cells away.",
 	&"dust_devil": "Gust's copies also deal a blade hit; Pinwheel's blades copy statuses (half stacks) onto what they hit.",
 }
 const KINSHIPS_SCRIPT := "res://scripts/combat/kinships.gd"

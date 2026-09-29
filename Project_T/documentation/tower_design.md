@@ -23,7 +23,7 @@ Sporeling  Dewdrop  Firefly Jar  Pebbling  Rootling  Bellflower  Acorn  (+ Nestl
 | Base | Role | Owns | Branch A → final | Branch B → final | Hidden (late) → final |
 |---|---|---|---|---|---|
 | **Sporeling** | damage over time | Spored | Driftspore → Puffball | Bloomcap → Dreamshroom | Fairy Ring → Elf Circle |
-| **Dewdrop** | water: splash, fog, ice | Damp | Rain Lily → Monsoon | Mistveil → Morning Fog | Frostfern → Hoarfrost |
+| **Dewdrop** | water: splash, fog, ice; the conductor | Damp | Rain Lily → Monsoon | Mistveil → Morning Fog | Frostfern → Hoarfrost |
 | **Firefly Jar** | light: lightning, marking, beams | Static, Marked | Stormcap → Thunderhead | Lanternmoth → Beacon | Sunpetal → Midsummer |
 | **Pebbling** | heavy hits | — (payoff family) | Mossback → Boulderback | Standing Stone → Moonstone | Cairn → Rockslide |
 | **Rootling** | crowd control | Held | Rootcurl → Long Way Home | Tangleroot → Snugroot | Rootlight → Starcave |
@@ -69,7 +69,7 @@ Ascended Warden is the family's final word: a huge, unique presence that anchors
 | Sporeling | **Sporemother** | a constant spore storm (range 3): every nightmare in it gains 2 Spored per second; any that reach 10 stacks pop like a Puffball |
 | Dewdrop | **Tidecaller** | every 6 s a tide rolls along the path in range 4: heavy damage, Damp, and it washes nightmares **back 1 tile** |
 | Firefly Jar | **Stormheart** | lightning chains to **every** nightmare in range 4 (each jump −15%), adding 2 Static each |
-| Pebbling | **Old Mountain** | every 3 s a boulder crushes a 3×3 area, stunning for 0.5 s; guaranteed crits on Held or Drowsy nightmares |
+| Pebbling | **Old Mountain** | every 3 s a boulder crushes a 3×3 area, Holding what it hits for 0.5 s; guaranteed crits on Held or Drowsy nightmares |
 | Rootling | **World Root** | every 5 s, roots Hold **every** nightmare in range 3 for 1 s; Held nightmares take +30% damage from everything |
 | Bellflower | **The Great Bell** | every 6 s it tolls (range 5): full Drowsy on everything (bosses: 3), and every Static charge in range goes off |
 | Acorn | **Grandmother Oak** | aura radius 3: Wardens +40% damage and +20% attack speed; +10 Dew per drift |
@@ -152,8 +152,8 @@ it's the family that **cashes in** Marked, Held and Drowsy, and the answer to th
 | Base | Dewdrop | small splash | Damp | groups |
 | A | Rain Lily | bigger splash, longer Damp | Damp | groups |
 | A+ | Monsoon | rains on everything in range every few seconds | Damp | — |
-| B | Mistveil | fog on path tiles: slows, keeps nightmares Damp; Spored ticks harder in fog | Damp | Spored, Held |
-| B+ | Morning Fog | fog covers a longer stretch of path, also applies Drowsy | Damp, Drowsy | Spored, Held |
+| B | Mistveil | fog on path tiles: keeps nightmares Damp; Spored ticks harder in fog | Damp | Spored, Held |
+| B+ | Morning Fog | fog covers a longer stretch of path; Damp from it lingers 3 s after leaving, and Spored and Static tick +25% inside | Damp | Spored, Static, Held |
 | Hidden | Frostfern | hits on **Damp** nightmares freeze them briefly (counts as Held) | Held | Damp |
 | Hidden+ | Hoarfrost | splash, longer freeze; hits on Held nightmares get +20% crit chance | Held | Damp, Held |
 
@@ -173,13 +173,13 @@ it's the family that **cashes in** Marked, Held and Drowsy, and the answer to th
 
 | Tier | Warden | Does | Applies | Loves |
 |---|---|---|---|---|
-| Base | Rootling | roots nip at feet (slight slow) | — | long paths |
+| Base | Rootling | roots nip at feet: every 4th pulse Holds the nightmare furthest along for 0.3 s (weak damage: a control family) | Held | long paths |
 | A | Rootcurl | pulls a nightmare back 1 tile every few seconds | — | Spored, long paths |
 | A+ | Long Way Home | pulls back 3 tiles; can't pull the same nightmare twice | — | Spored, long paths |
 | B | Tangleroot | holds a nightmare in place for 1 s | Held | area effects |
 | B+ | Snugroot | holds up to 3 nightmares at once | Held | area effects |
-| Hidden | Rootlight | glowing roots light up path tiles in range: **reveals Lurkers**, **Gravecrawlers can't burrow** there, nightmares on lit tiles are Marked | Marked | long paths |
-| Hidden+ | Starcave | bigger lit area; Marked from it lingers 2 s after leaving the light | Marked | long paths |
+| Hidden | Rootlight | glowing roots light up path tiles in range: **reveals Lurkers**, **Gravecrawlers can't burrow** there, and **Held lasts 50% longer** on lit tiles | — | Held, long paths |
+| Hidden+ | Starcave | bigger lit area; Held lasts **twice as long** on lit tiles | — | Held, long paths |
 
 **Bellflower line**: song and sleep. Bell-flower spirits that ring, hum and sing nightmares to
 sleep, then make sleep dangerous. Owns **Drowsy**.
@@ -189,8 +189,8 @@ sleep, then make sleep dangerous. Owns **Drowsy**.
 | Base | Bellflower | a soft ringing pulse around it; every 2nd pulse adds Drowsy | Drowsy | chokepoints |
 | A | Chime Stone | weak pulse hitting everything around it; pulses set off Static | Static ×1 | Static, Held |
 | A+ | Lullaby Bell | bigger pulse that also applies Drowsy | Drowsy | Static, Held |
-| B | Dreamcatcher | hangs a dreamcatcher over the path: **sleeping or max-Drowsy nightmares in range are Caught** and take **+25%** damage from everything (was +40%; Bellflower too strong, 2026-09-28) | — | Drowsy, sleep |
-| B+ | Great Dreamcatcher | **+60%** (briefly cut to +40%, restored 2026-09-28: the probe showed it at 1.5% of damage; the Bellflower strength was the Lullaby Bell); sleep in its range lasts 1 s longer; Caught nightmares that are dispelled drop **Dreamlight shards** | — | Drowsy, sleep |
+| B | Dreamcatcher | hangs a dreamcatcher over the path: **sleeping or max-Drowsy nightmares in range are Caught**: **their statuses stop wearing off** while Caught (Spored keeps ticking, Static doesn't decay, Damp / Marked / Held timers pause). *Reworked 2026-09-29 (overlap review): it was +25–60% damage taken, which duplicated Marked, and measured at 1.5% of damage.* | — | Drowsy, sleep, any status |
+| B+ | Great Dreamcatcher | a bigger range, and Caught statuses also tick **+25%**; sleep in its range lasts 1 s longer; Caught nightmares that are dispelled drop **Dreamlight shards** | — | Drowsy, sleep |
 | Hidden | Echo Hollow | a hollow log that **echoes Reactions**: a Reaction nearby repeats 1 s later at 50% | — | Reactions |
 | Hidden+ | Whispering Hollow | 75%, bigger radius; **echoes count as chain links** | — | Reactions, chains |
 
@@ -201,8 +201,8 @@ sleep, then make sleep dangerous. Owns **Drowsy**.
 | Base | Acorn | +5% damage to adjacent Wardens | — | neighbours |
 | A | Elder Stump | adjacent Wardens attack 20% faster | — | tight clusters |
 | A+ | Grove Heart | radius 2; bonus grows per nearby Warden | — | tight clusters |
-| B | Dewcatcher | +Dew each drift | — | time |
-| B+ | Wellspring | interest on saved Dew (capped) | — | saving Dew |
+| B | Dewcatcher | **catches Dew:** nightmares dispelled nearby drop +40% Dew (plus a little each drift); place it where the most nightmares die | — | kill zones, bends |
+| B+ | Wellspring | a bigger catch (+60%), and interest on saved Dew at every rest | — | kill zones, saving Dew |
 | Hidden | Graftling | **copies the attack of its strongest adjacent Warden** at 60% (including its statuses) | copied | clusters |
 | Hidden+ | Grafted Elder | copies at 85% | copied | clusters |
 
@@ -214,8 +214,8 @@ wall-ignoring nightmares.
 | Base | Nestling | a bird swoops at a nightmare and returns | — | fast nightmares |
 | A | Wren's Nest | quick wrens hunt the **fastest** nightmare in range; bonus vs Phantoms and sprinting Night Hounds | — | fast, gliding |
 | A+ | Starling Murmuration | a flock of starlings hunts the **3 fastest** nightmares in range at once | — | fast, gliding |
-| B | Magpie Perch | nightmares it hits drop +1 Dew when dispelled | — | economy |
-| B+ | Magpie's Hoard | **each crit it lands gives +1 Dew** (capped per drift) | — | crits |
+| B | Magpie Perch | **thief**: hits strip nightmare buffs: a double chunk of dread shell, a Weeper's mending stops for 3 s, an Omen's boosts are removed from that nightmare; +1 Dew when a nightmare it stripped is dispelled | — | support nightmares |
+| B+ | Magpie's Hoard | steals harder: every hit strips, and **each crit it lands gives +1 Dew** (capped per drift) | — | crits, support nightmares |
 | Hidden | Hummingbird Bower | **multi-hit**: a hummingbird pecks one nightmare **6 times in 1 s**, then returns. Every peck is a full hit (crit roll, Marked, on-hit effects) | — | crits, Marked, on-hit cards |
 | Hidden+ | Jewelwing Court | 3 hummingbirds, 8 pecks each; **Flurry**: every 6th peck is a guaranteed crit | — | crits, Marked, on-hit cards |
 
@@ -228,7 +228,7 @@ it makes every other family's statuses go further.
 
 | Tier | Warden | Does | Applies | Loves |
 |---|---|---|---|---|
-| Base | Whirligig | gusts nudge nightmares back a little | — | — |
+| Base | Whirligig | every 3 s copies one status (half stacks) from the most-afflicted nightmare in range onto one neighbour | copied | any status |
 | A | Gust | copies the statuses of the most-afflicted nightmare in range onto 2 nearby ones (half stacks) | copied | any status |
 | A+ | Zephyr | spreads to up to 5 | copied | any status |
 | B | Pinwheel | spinning blades hit every path tile next to it; stronger the more path tiles it touches | — | corners, hairpin bends |
@@ -280,14 +280,53 @@ set small. (Nightmares that resist or exploit these: see `enemy_design.md`.)
 
 | Effect | What it does | Applied by | Paid off by | Why it works |
 |---|---|---|---|---|
-| **Damp** | slight slow | Dewdrop line | Stormcap, Thunderhead | lightning jumps further and more often |
-| **Drowsy** | strong slow, stacks to a cap | **Bellflower line**; also Bloomcap, Morning Fog, Honeysuckle | Mossback, Boulderback, Dreamshroom, Dreamcatcher, Sunpetal | crits, full sleep, Caught, faster beam ramp |
+| **Damp** | **Soaked**: no slow. Water (Dewdrop-family) hits +20%, and it **conducts**: lightning jumps further, ice freezes, spores sprout | Dewdrop line | Dewdrop line, Stormcap, Thunderhead, Frostfern | the conductor for Thunderclap, Shatter, Mushrooming and Drown |
+| **Drowsy** | **the slow**: stacks to a cap, and full Drowsy leads to sleep | **Bellflower line**; also Bloomcap, Honeysuckle | Mossback, Boulderback, Dreamshroom, Dreamcatcher, Sunpetal | crits, full sleep, Caught, faster beam ramp |
 | **Spored** | damage over time, stacks | Sporeling, Driftspore, Fairy Ring | Puffball, Mistveil, Rootcurl, Long Way Home | bursts, harder ticks; pulled nightmares walk the spores again |
-| **Marked** | takes extra damage | Lanternmoth, Beacon, Rootlight, Moon Moth | Mossback, Boulderback, Standing Stone | double damage on Marked |
+| **Marked** | **exposed**: the only "takes extra damage" status | Lanternmoth, Beacon, Moon Moth | Mossback, Boulderback, Standing Stone | double damage on Marked |
 | **Static** | builds charge; at 5 stacks, a free bolt | Firefly Jar, Stormcap, Chime Stone | Chime Stone, Lullaby Bell | pulses set off Static bolts |
-| **Held** | can't move for a moment | Tangleroot, Snugroot, Frostfern (freeze) | Bloomcap, Mistveil, Chime Stone, Bramble, Sunpetal, Hoarfrost, Standing Stone, Cairn | held nightmares sit inside area effects and are easy targets |
+| **Held** | **stopped**: can't move, short and firm (nothing breaks it) | Tangleroot, Snugroot, Frostfern (freeze) | Bloomcap, Mistveil, Chime Stone, Bramble, Sunpetal, Hoarfrost, Standing Stone, Cairn | held nightmares sit inside area effects and are easy targets |
 
 Towers also interact **through placement** and **through Dreams** (rule changes that link lines).
+
+### Status jobs (overlap review, 2026-09-29)
+
+Several statuses and Wardens did the same thing (many slows, four kinds of "takes more damage",
+Asleep and Held both "stops"). After this review **each status has one job**:
+
+| Status | Job | Owner |
+|---|---|---|
+| **Damp** | conducts (and water hits +20%) | Dewdrop |
+| **Drowsy** | slows, and leads to sleep | Bellflower |
+| **Spored** | poisons | Sporeling |
+| **Static** | charges | Firefly Jar |
+| **Marked** | exposes (the only +damage-taken status) | Firefly Jar |
+| **Held** | stops, short and firm | Rootling |
+| **Asleep** | stops, long but fragile: **breaks when a single hit deals 10%+ of max health** (effect ticks don't break it) | Dreamshroom, Fever Dream |
+| **Caught** | preserves: statuses stop wearing off | Dreamcatcher |
+
+- **Slowing belongs to Drowsy.** Damp, Mistveil's fog and Rootling's nip no longer slow. Exceptions
+  that stay on purpose: Drown's pull-under, rubble (terrain), the White Stag (a Memory Warden).
+- **Pulling back belongs to Rootling.** Whirligig's base copies a status instead of nudging; the
+  *Heavy Seed* card became a double-strength return pass. The Pond Keeper and Tidecaller stay
+  (a unique Warden and an Ascended form may overlap).
+- **Spore bursts:** Puffball's pop is *the* burst. Ignite now **burns** (faster ticks and spread),
+  and Fever Dream **puts to sleep and spreads** instead of detonating.
+- **Sleep vs Drown:** Dreamshroom owns sleep (3 s, breaks on big hits); Drown is **pulled under**
+  (a heavy slow plus drowning damage).
+- **Marked belongs to Firefly Jar:** Rootlight is now the Held and burrower specialist.
+- **Magpies became thieves** of nightmare buffs (shell, mending, Omen boosts), so Nestling doesn't
+  copy Acorn's economy.
+- **Support and control base pulses** (Acorn, Rootling) deal half damage, so those families don't
+  read as weak attackers. Morning Fog no longer applies Drowsy (that blurred Dewdrop into
+  Bellflower). Old Mountain's stun is now Held.
+- Fine by design, unchanged: Crowned Reactions are bigger versions of their base Reaction, Ascended
+  forms do their family's job at map scale, and a Kinship may recreate a Reaction.
+
+**Damp alone is still strong:** Dewdrop has the best base damage (18/s, splash), and the +20%
+water bonus on Damp makes it about 21.6/s against groups: the best early answer to swarms (Sobs,
+Creeps, Wraiths). Control returns late through Frostfern and the Tidecaller. Watch Dewdrop's pick
+rate.
 
 ## Reactions: combos you can see
 
@@ -300,10 +339,10 @@ the bigger the combo, the more of the screen fills with the Heartwood's light.
 | Reaction | Statuses | What happens | Effect (`assets/effects/`) |
 |---|---|---|---|
 | **Thunderclap** | Damp + 3 Static | discharges and **arcs to every Damp nightmare within 2.5 cells**; each arc adds Static, so wet crowds chain | `thunderclap`, `thunderclap_arc` |
-| **Ignite** | Spored + Static | all Spored stacks **detonate at once**; 1 stack spreads to neighbours (which may Ignite too) | `ignite` |
+| **Ignite** | Spored + Static | the spores **burn** for 3 s: Spored ticks 3× as fast, and a stack spreads to each neighbour every second (which may start burning too). Puffball's pop is the burst; Ignite is acceleration | `ignite` |
 | **Mushrooming** | Spored + Damp | mushrooms burst out of the nightmare and leave a **spore cloud** on the tile that spreads Spored | `overgrowth`, `overgrowth_cloud` |
 | **Shatter** | frozen/Held + Damp, then a crit or heavy hit | that hit does ×2.5 and ice shards splash nearby; the freeze ends | `shatter` |
-| **Drown** | Damp + max Drowsy | falls asleep for 2 s, **no Dreamshroom needed** | `drown` |
+| **Drown** | Damp + max Drowsy | **pulled under** for 3 s: −60% speed and drowning damage that grows each second (no sleep: Dreamshroom owns sleep) | `drown` |
 | **Pinned** | Marked + (Held or max Drowsy) | the next hit is a **guaranteed ×3 crit** | `pinned` |
 | **Smother** | Held + Spored | Spored ticks 3× as fast while Held | `smother` (loops) |
 | **Lightning Rod** | Marked + Static | Static bolts nearby **redirect** to the Marked nightmare at ×2 | `lightning_rod` |
@@ -365,13 +404,13 @@ three families are reachable with 4 per run.
 
 | Crowned | Reaction + 3rd status | Families | What happens | Effect (`assets/effects/`) |
 |---|---|---|---|---|
-| **Tempest** | Thunderclap + Spored | Dewdrop, Firefly Jar, Sporeling | every arc also sets off **Ignite** on Spored targets; the spores carry Static onto wet nightmares, so new Thunderclaps follow. The strongest chain engine | `crowned_tempest` |
-| **Still Pool** | Drown + Held | Dewdrop, Bellflower, Rootling | the nightmare sinks and leaves a **still pool** on its tile for 5 s: the first time each walker enters, it sleeps 1 s | `crowned_still_pool`, `still_pool` (ground loop) |
-| **Fever Dream** | Smother ends + max Drowsy | Sporeling, Rootling, Bellflower | its remaining Spored ticks resolve **at once**, and it passes Spored + Drowsy to adjacent nightmares: a sleep plague | `crowned_fever_dream` |
+| **Tempest** | Thunderclap + Spored | Dewdrop, Firefly Jar, Sporeling | every arc sets Spored targets **burning** (Ignite); the burning spores carry Static onto wet nightmares, so new Thunderclaps follow. The strongest chain engine | `crowned_tempest` |
+| **Still Pool** | Drown + Held | Dewdrop, Bellflower, Rootling | the nightmare sinks and leaves a **still pool** on its tile for 5 s: the first time each walker enters, it's **pulled under** for 1 s | `crowned_still_pool`, `still_pool` (ground loop) |
+| **Fever Dream** | Smother ends + max Drowsy | Sporeling, Rootling, Bellflower | the nightmare **falls asleep** (2 s) and passes Spored + Drowsy to adjacent nightmares: a sleep plague | `crowned_fever_dream` |
 | **Starfall** | Pinned + Static | Firefly Jar, Rootling or Bellflower | the ×3 crit **pulls every Static bolt within 3 cells** into it, each bolt also crits, and a column of light falls. The boss killer | `crowned_starfall` |
 | **Avalanche** | Shatter set off by a Cairn/Rockslide lob | Dewdrop, Rootling, Pebbling (Cairn) | the Shatter spreads to **every Damp + Held nightmare under the lob** | `crowned_avalanche` |
 | **Prismstorm** | Shatter + Static | Dewdrop (Frostfern), Rootling, Firefly Jar | the ice shards carry lightning: each shard adds **2 Static** to what it hits, so wet neighbours Thunderclap | `crowned_prismstorm` |
-| **Nightbloom** | Mushrooming + max Drowsy | Sporeling, Dewdrop, Bellflower | the spore cloud glows violet and **nothing inside can wake**, not even by the Watcher (the Bellflower counter's counter) | `crowned_nightbloom`, `nightbloom_cloud` (ground loop) |
+| **Nightbloom** | Mushrooming + max Drowsy | Sporeling, Dewdrop, Bellflower | the spore cloud glows violet: sleep inside **doesn't end and doesn't break from hits**, and the Watcher can't wake anything there (the Bellflower counter's counter) | `crowned_nightbloom`, `nightbloom_cloud` (ground loop) |
 | **Fairy Circle** | Mushrooming + Held | Sporeling, Dewdrop, Rootling | a **ring of mushrooms** sprouts around the held nightmare (the 8 tiles around it, path tiles only, 6 s): the first walker crossing each ring tile gets Spored + Damp, so more Mushrooming follows | `crowned_fairy_circle`, `fairy_circle_ring` (ground loop) |
 
 **Delivery rules** (so families that apply no status can take part):
@@ -446,11 +485,11 @@ chains** (it has its own counter).
 Borrowed traits at full strength (Old Kin); Sapling 50%, Blooming 75%.
 
 **As built (Tower Code, 2026-09-28):** below Old Kin, **per-hit traits fire as a chance** equal to
-the share (Slumber Rot's Drowsy, Storm Beacon's Static, Flock Together's Dew, Dust Devil's status
+the share (Slumber Rot's Drowsy, Storm Beacon's Static, Flock Together's theft (was Dew until 2026-09-29), Dust Devil's status
 copy: 50% or 75% of hits); durations and bonuses scale by the share instead. **Rainfog's** fog deals
 the Rain Lily kin's splash damage × share to each nightmare entering the Mistveil's cloud, once per
-cloud. A Warden's branch comes from its tier-2 form (so finals keep their branch). Whole Tree
-family perks and the 9 hidden Kinships are still to build (the +20% damage is in).
+cloud. A Warden's branch comes from its tier-2 form (so finals keep their branch). The 9 hidden
+Kinships are built too (6ba79b8). Whole Tree family perks: check with Tower Code (the +20% damage is in).
 
 | Family | Pair | Kinship | A borrows from B | B borrows from A |
 |---|---|---|---|---|
@@ -459,12 +498,12 @@ family perks and the 9 hidden Kinships are still to build (the +20% damage is in
 | Firefly Jar | Stormcap + Lanternmoth | **Storm Beacon** | chain jumps Mark for 2 s | shots add 1 Static |
 | Pebbling | Mossback + Standing Stone | **Hammer and Anvil** | +10% crit chance at ×2.5 (the sniper's eye) | ×2 damage vs Marked (Mossback's weight) |
 | Rootling | Rootcurl + Tangleroot | **Snare** | a pull ends in a 0.5 s hold | a hold drags the nightmare back half a tile |
-| Bellflower | Chime Stone + Dreamcatcher | **Night Chimes** | pulses deal +40% to Caught nightmares | threads set off Static at 3 stacks, like a chime |
-| Acorn | Elder Stump + Dewcatcher | **Old Growth** | +2 Dew per drift | gains a small aura: neighbours +10% attack speed |
-| Nestling | Wren's Nest + Magpie Perch | **Flock Together** | nightmares it hits drop +1 Dew | hunts the fastest nightmare, +25% vs Phantoms |
+| Bellflower | Chime Stone + Dreamcatcher | **Night Chimes** | pulses Catch full-Drowsy nightmares, as if a Dreamcatcher were there | threads set off Static at 3 stacks, like a chime |
+| Acorn | Elder Stump + Dewcatcher | **Old Growth** | nightmares dispelled inside its aura drop +25% Dew (was +2 Dew per drift) | gains a small aura: neighbours +10% attack speed |
+| Nestling | Wren's Nest + Magpie Perch | **Flock Together** | hits strip nightmare buffs (the magpie's theft) | hunts the fastest nightmare, +25% vs Phantoms |
 | Whirligig | Gust + Pinwheel | **Dust Devil** | each copy also deals one blade hit | blades copy statuses (half stacks) onto what they hit |
 
-### The 9 hidden Kinships (later: need the hidden branch)
+### The 9 hidden Kinships (built 6ba79b8; need the hidden branch)
 
 | Family | Pair | Kinship | Hidden borrows | Its kin borrows |
 |---|---|---|---|---|
@@ -472,10 +511,10 @@ family perks and the 9 hidden Kinships are still to build (the +20% damage is in
 | Dewdrop | Frostfern + Mistveil | **Hoar Fog** | shots leave a fog puff (1 tile) | the fog freezes nightmares that stay 2 s |
 | Firefly Jar | Sunpetal + Lanternmoth | **Sunspot** | the beam Marks its target | shots ramp +10% per hit on the same target (max +50%) |
 | Pebbling | Cairn + Standing Stone | **Spotter** | lobs at the sniper's target; the landing crits | shots splash 30% within 0.75 cells |
-| Rootling | Rootlight + Tangleroot | **Lantern Roots** | lit tiles hold a nightmare entering them for 0.3 s (once) | held nightmares are Marked |
+| Rootling | Rootlight + Tangleroot | **Lantern Roots** | lit tiles hold a nightmare entering them for 0.3 s (once) | its holds reveal hidden nightmares and stop burrowing |
 | Bellflower | Echo Hollow + Chime Stone | **Resonant Hollow** | echoes set off Static like a chime | pulses echo once at 30% |
 | Acorn | Graftling + Elder Stump | **True Graft** | copies at 100% | the aura adds the strongest neighbour's status to its pulse |
-| Nestling | Hummingbird Bower + Magpie Perch | **Jewel Thieves** | every 6th peck steals +1 Dew | pecks twice per swoop |
+| Nestling | Hummingbird Bower + Magpie Perch | **Jewel Thieves** | every 6th peck strips a nightmare buff (+1 Dew if there's none) | pecks twice per swoop |
 | Whirligig | Samara + Gust | **Tailwind** | the seed carries full stacks | copies reach nightmares up to 3 cells away in a line |
 
 **In the demo:** Slumber Rot, Rainfog and Storm Beacon (the starting families) and Kindred. They
@@ -487,6 +526,24 @@ which is Lightning Rod). That's intended, but check that deep one-family runs do
 
 **Feedback and clutter:** loud moments happen at **rests**; in combat Kinships are nearly invisible
 (dim vines, a tiny Harmony spark). Details: `screens_ui.md`, "Kinship feedback".
+
+**Kinships you can see in combat** (added 2026-09-29, user request: make Kinships more visually
+impactful without clutter). The impact goes **on the Wardens and the vine**, not on extra screen
+effects:
+1. **Borrowed looks:** a kin Warden's attacks carry its sibling's colour and a hint of the borrowed
+   trait (Slumber Rot: Driftspore's puffs trail a lilac sleep-swirl, Bloomcap's clouds get green
+   spore flecks; Storm Beacon: Stormcap's lightning gets a lantern-gold edge, Lanternmoth's shots
+   crackle; Snare: Rootcurl's pull ends in a small root-wrap). You can tell who's bonded by watching
+   them fight.
+2. **Light along the vine:** when a borrowed trait fires, a small bead of light runs along the
+   vine from the teacher to the learner. Vines stay dim but visibly *work*.
+3. **Breathing together:** bonded Wardens' idle animations sync. At **Old Kin** the pair also grows
+   a small **flowering arch** over them, so a mature bond reads at a glance.
+4. **Harmony strikes grow with the bond:** Sapling = the tiny spark; Blooming = petals spiral in
+   from both Wardens; **Old Kin = two beams of light leave both Wardens and meet on the nightmare**,
+   bursting into petals (still on the 2 s cooldown, so occasional).
+
+Not added (the user's call): *Kin Surge*, a synchronized free attack every 10 Harmony strikes.
 
 How Reactions are shown (impact tiers, light threads, discovery cards, settings): `screens_ui.md`,
 "Combat feedback".

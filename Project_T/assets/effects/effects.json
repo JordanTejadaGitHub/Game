@@ -1,5 +1,21 @@
 {
 	"effects": {
+		"aura_ring_breath": {
+			"anchor": [
+				32,
+				32
+			],
+			"file": "aura_ring_breath.png",
+			"fps": 6.0,
+			"frame_size": [
+				64,
+				64
+			],
+			"frames": 8,
+			"kind": "support",
+			"loop": true,
+			"note": "White, tint it and scale it to the aura's range (64 px = 1 cell radius 28). Brighter (higher alpha) in build mode."
+		},
 		"carried_storm": {
 			"anchor": [
 				0,
@@ -15,6 +31,38 @@
 			"kind": "segment",
 			"loop": true,
 			"note": "Samara seed trail. White: tint with the carried Reaction's callout colour; stretch along the seed's path like light_thread."
+		},
+		"catcher_fill_dewcatcher": {
+			"anchor": [
+				32,
+				32
+			],
+			"file": "catcher_fill_dewcatcher.png",
+			"fps": 1.0,
+			"frame_size": [
+				64,
+				64
+			],
+			"frames": 4,
+			"kind": "support",
+			"loop": false,
+			"note": "Frame = fill level (0 empty .. 3 full), not animation. Same origin as the Warden sprite; add bowls.dewcatcher.dy_by_frame[idle frame] to y."
+		},
+		"catcher_fill_wellspring": {
+			"anchor": [
+				32,
+				32
+			],
+			"file": "catcher_fill_wellspring.png",
+			"fps": 1.0,
+			"frame_size": [
+				64,
+				64
+			],
+			"frames": 4,
+			"kind": "support",
+			"loop": false,
+			"note": "Frame = fill level (0 empty .. 3 full). Same origin as the Warden sprite; add bowls.wellspring.dy_by_frame[idle frame] to y."
 		},
 		"caught": {
 			"anchor": [
@@ -96,6 +144,22 @@
 			"frames": 4,
 			"kind": "ui",
 			"loop": true
+		},
+		"cloud_puffs": {
+			"anchor": [
+				24,
+				20
+			],
+			"file": "cloud_puffs.png",
+			"fps": 1.0,
+			"frame_size": [
+				48,
+				32
+			],
+			"frames": 4,
+			"kind": "ground",
+			"loop": false,
+			"note": "Variants, not frames: PathCloud picks one per puff and tints it with projectile_color."
 		},
 		"crit_flare": {
 			"anchor": [
@@ -413,6 +477,38 @@
 			"kind": "screen",
 			"loop": false
 		},
+		"dew_catch_droplet": {
+			"anchor": [
+				7,
+				7
+			],
+			"file": "dew_catch_droplet.png",
+			"fps": 12.0,
+			"frame_size": [
+				14,
+				14
+			],
+			"frames": 6,
+			"kind": "support",
+			"loop": true,
+			"note": "Drawn flying right; rotate to its travel. Arc it into the catcher; harvest_pour reuses it."
+		},
+		"dew_pop_gold": {
+			"anchor": [
+				12,
+				12
+			],
+			"file": "dew_pop_gold.png",
+			"fps": 14.0,
+			"frame_size": [
+				24,
+				24
+			],
+			"frames": 6,
+			"kind": "support",
+			"loop": false,
+			"note": "Behind the \"+N Dew\" of caught Dew; draw that text in gold (#ffd870) instead of blue."
+		},
 		"dreamlight_shard": {
 			"anchor": [
 				8,
@@ -478,6 +574,22 @@
 			"loop": true,
 			"note": "One ring tile (the 8 around the held nightmare, path tiles only), loops for 6 s. Draw under nightmares."
 		},
+		"fog_wisps": {
+			"anchor": [
+				28,
+				7
+			],
+			"file": "fog_wisps.png",
+			"fps": 1.0,
+			"frame_size": [
+				56,
+				14
+			],
+			"frames": 3,
+			"kind": "ground",
+			"loop": false,
+			"note": "Variants: fog strands PathCloud drifts across fog clouds (cloud_fog)."
+		},
 		"grafted_harmony_a": {
 			"anchor": [
 				32,
@@ -509,6 +621,70 @@
 			"kind": "overlay_loop",
 			"loop": true,
 			"note": "Right half; tint with the second status colour."
+		},
+		"harmony_beam": {
+			"anchor": [
+				0,
+				4
+			],
+			"file": "harmony_beam.png",
+			"fps": 16.0,
+			"frame_size": [
+				32,
+				8
+			],
+			"frames": 4,
+			"kind": "segment",
+			"loop": true,
+			"note": "Old Kin Harmony strike: a beam from each Warden to the nightmare (stretch or tile along x, y = 4 on the line, 0.3-0.4 s). White: tint with the Warden's colour lerped ~30% to warm gold (#ffe890)."
+		},
+		"harmony_bloom": {
+			"anchor": [
+				16,
+				16
+			],
+			"file": "harmony_bloom.png",
+			"fps": 16.0,
+			"frame_size": [
+				32,
+				32
+			],
+			"frames": 6,
+			"kind": "kinship",
+			"loop": false,
+			"note": "Where the two harmony_beams meet on the nightmare. Tint with a mix of the two colours (or warm white)."
+		},
+		"harmony_petals_a": {
+			"anchor": [
+				16,
+				16
+			],
+			"file": "harmony_petals_a.png",
+			"fps": 16.0,
+			"frame_size": [
+				32,
+				32
+			],
+			"frames": 6,
+			"kind": "kinship",
+			"loop": false,
+			"note": "Blooming Harmony strike: petals spiral in from the left and open half a flower. Tint with the first Warden's colour; play with harmony_petals_b."
+		},
+		"harmony_petals_b": {
+			"anchor": [
+				16,
+				16
+			],
+			"file": "harmony_petals_b.png",
+			"fps": 16.0,
+			"frame_size": [
+				32,
+				32
+			],
+			"frames": 6,
+			"kind": "kinship",
+			"loop": false,
+			"note": "The other half, from the right; tint with the second Warden's colour."
 		},
 		"harmony_spark_a": {
 			"anchor": [
@@ -557,6 +733,38 @@
 			"frames": 4,
 			"kind": "kinship",
 			"loop": false
+		},
+		"harvest_pour": {
+			"anchor": [
+				20,
+				32
+			],
+			"file": "harvest_pour.png",
+			"fps": 14.0,
+			"frame_size": [
+				40,
+				40
+			],
+			"frames": 8,
+			"kind": "support",
+			"loop": false,
+			"note": "At the bowl (anchor = bowl surface): droplets leap up and out. Then fly dew_catch_droplet beads to the Dew counter (~0.8 s)."
+		},
+		"harvest_splash": {
+			"anchor": [
+				16,
+				16
+			],
+			"file": "harvest_splash.png",
+			"fps": 14.0,
+			"frame_size": [
+				32,
+				32
+			],
+			"frames": 6,
+			"kind": "support",
+			"loop": false,
+			"note": "UI: where the harvested Dew lands on the Dew counter."
 		},
 		"ignite": {
 			"anchor": [
@@ -655,6 +863,22 @@
 			"loop": false,
 			"note": "Kinship mark for callouts and the Codex."
 		},
+		"kin_oldkin_arch": {
+			"anchor": [
+				0,
+				31
+			],
+			"file": "kin_oldkin_arch.png",
+			"fps": 4.0,
+			"frame_size": [
+				64,
+				32
+			],
+			"frames": 4,
+			"kind": "kinship",
+			"loop": true,
+			"note": "Old Kin: a flowering arch over the pair. Anchor (0, 31) = left foot, right foot at (63, 31): stretch along x between the two Wardens' bases (don't scale y). Gentle: ~50-70% alpha. Tint with the family colour."
+		},
 		"kin_stage_up": {
 			"anchor": [
 				32,
@@ -670,6 +894,22 @@
 			"kind": "kinship",
 			"loop": false,
 			"note": "A Kinship grows a stage: leaves unfurl and a small flower opens. Anchor = its base."
+		},
+		"kin_vine_bead": {
+			"anchor": [
+				4,
+				4
+			],
+			"file": "kin_vine_bead.png",
+			"fps": 12.0,
+			"frame_size": [
+				8,
+				8
+			],
+			"frames": 4,
+			"kind": "kinship",
+			"loop": true,
+			"note": "Runs along the vine from one Warden to the other when a borrowed trait fires (~0.3 s). Drawn moving right: rotate to the vine. Tint with the family colour."
 		},
 		"kin_vine_blooming": {
 			"anchor": [
@@ -750,6 +990,22 @@
 			"kind": "hit",
 			"loop": false,
 			"note": "Cairn / Rockslide: where the lobbed stone lands. Anchor = impact point."
+		},
+		"leaf_mote": {
+			"anchor": [
+				5,
+				5
+			],
+			"file": "leaf_mote.png",
+			"fps": 6.0,
+			"frame_size": [
+				10,
+				10
+			],
+			"frames": 8,
+			"kind": "support",
+			"loop": true,
+			"note": "Near-white, tint it. Very subtle: drift it slowly upward over aura-boosted Wardens, low alpha."
 		},
 		"light_thread": {
 			"anchor": [

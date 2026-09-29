@@ -219,26 +219,212 @@ let LOST = 0;
 
 let SEED = 1207;
 let ACT = ACTS[0];
-
-
-
-
-
-
-
-
-
-
-
-
+const HW32 = {
+	"name": "Heartwood 32",
+	"ramps": [
+		{
+			"cold": true,
+			"colors": [
+				{
+					"hex": "#05050d",
+					"name": "Void"
+				},
+				{
+					"hex": "#24243c",
+					"name": "Night"
+				},
+				{
+					"hex": "#3c3c5c",
+					"name": "Dusk"
+				},
+				{
+					"hex": "#5c5a78",
+					"name": "Slate"
+				}
+			],
+			"name": "Ink",
+			"role": "outlines, shadows, the night sky"
+		},
+		{
+			"cold": true,
+			"colors": [
+				{
+					"hex": "#140f26",
+					"name": "Dread"
+				},
+				{
+					"hex": "#2c2444",
+					"name": "Shade"
+				},
+				{
+					"hex": "#4c3c74",
+					"name": "Bruise"
+				},
+				{
+					"hex": "#9a84e8",
+					"name": "Wraithlight"
+				}
+			],
+			"name": "Nightmare",
+			"role": "nightmare bodies, rims, cold glow"
+		},
+		{
+			"cold": true,
+			"colors": [
+				{
+					"hex": "#8c8cac",
+					"name": "Stone"
+				},
+				{
+					"hex": "#b4b0c8",
+					"name": "Mist"
+				},
+				{
+					"hex": "#dce8f4",
+					"name": "Moonlight"
+				}
+			],
+			"name": "Stone & moon",
+			"role": "boulders, mist, cold highlights, eyes"
+		},
+		{
+			"cold": false,
+			"colors": [
+				{
+					"hex": "#1c3c2c",
+					"name": "Deepmoss"
+				},
+				{
+					"hex": "#34643c",
+					"name": "Moss"
+				},
+				{
+					"hex": "#5c944c",
+					"name": "Leaf"
+				},
+				{
+					"hex": "#9cc46c",
+					"name": "Sprig"
+				},
+				{
+					"hex": "#d4ec9c",
+					"name": "Newleaf"
+				}
+			],
+			"name": "Moss",
+			"role": "ground, leaves, the canopy"
+		},
+		{
+			"cold": false,
+			"colors": [
+				{
+					"hex": "#241c14",
+					"name": "Root"
+				},
+				{
+					"hex": "#5c3c24",
+					"name": "Bark"
+				},
+				{
+					"hex": "#8c5c34",
+					"name": "Oak"
+				},
+				{
+					"hex": "#bca48c",
+					"name": "Deadwood"
+				}
+			],
+			"name": "Bark",
+			"role": "trunks, roots, dead trees"
+		},
+		{
+			"cold": false,
+			"colors": [
+				{
+					"hex": "#6c5c5c",
+					"name": "Loam"
+				},
+				{
+					"hex": "#b4a494",
+					"name": "Path"
+				},
+				{
+					"hex": "#dccdb2",
+					"name": "Moonpath"
+				}
+			],
+			"name": "Path",
+			"role": "the path; Moonpath is the palest ground"
+		},
+		{
+			"cold": false,
+			"colors": [
+				{
+					"hex": "#b8662c",
+					"name": "Ember"
+				},
+				{
+					"hex": "#e9a83c",
+					"name": "Gold"
+				},
+				{
+					"hex": "#fcd47c",
+					"name": "Glow"
+				},
+				{
+					"hex": "#fff4dc",
+					"name": "Heartlight"
+				}
+			],
+			"name": "Warm light",
+			"role": "attacks, the hollow, dream-fruit, fireflies"
+		},
+		{
+			"cold": false,
+			"colors": [
+				{
+					"hex": "#bc44dc",
+					"name": "Orchid"
+				},
+				{
+					"hex": "#ec9cf4",
+					"name": "Blossom"
+				}
+			],
+			"name": "Blossom",
+			"role": "Sporeling and flower Wardens"
+		},
+		{
+			"cold": true,
+			"colors": [
+				{
+					"hex": "#2c4c5c",
+					"name": "Pool"
+				},
+				{
+					"hex": "#4c8ca4",
+					"name": "Dew"
+				},
+				{
+					"hex": "#9cd4fc",
+					"name": "Dewlight"
+				}
+			],
+			"name": "Dew",
+			"role": "water Wardens, jars, dew pools"
+		}
+	]
+}
+;
 
 // ================= Memory Grove: the Heartwood as a tech tree =================
 // Tree space is 1280×960 px (native pixel art); every position below is in that space.
 const GW = 1280, GH = 960;
-// Night bark: deep warm browns (the Heartwood is the warm side), grain runs along the wood.
-// Night bark: deep warm browns (the Heartwood is the warm side), grain runs along the wood.
-const HB6 = ["#120a08", "#22150e", "#362216", "#4c3020", "#66442c", "#80583a"];
-const LEAFG = ["#1e3a14", "#2e5a1e", "#4a7e2a", "#78a83c", "#a8cc5c"];
+// Heartwood 32 (assets/palette/heartwood32.json, injected by export.ps1 -Rebuild): colours by name.
+const HW = Object.fromEntries(HW32.ramps.flatMap(r => r.colors.map(c => [c.name, c.hex])));
+// Night bark: the Bark ramp (the Heartwood is the warm side), grain runs along the wood.
+const HB6 = [HW.Void, HW.Root, HW.Root, HW.Bark, HW.Bark, HW.Oak];
+const LEAFG = [HW.Deepmoss, HW.Moss, HW.Leaf, HW.Sprig, HW.Newleaf];
 const SECTION = {
   perks:    { name: "Perks",    petals: ["#6a3c0c", "#b87818", "#e8b440", "#ffe39a"], mid: "#fff6d0", glow: "255,200,90" },
   families: { name: "Families", petals: ["#1a4222", "#338236", "#72c05a", "#c4ec98"], mid: "#f2ffd8", glow: "150,230,120" },
@@ -294,8 +480,7 @@ N("slot_5", "perks", "Loadout slot 5", 70, 110, "slot_4");
 N("storm_lore", "cards", "Storm Lore", 760, 522, [742, 602]);
 N("guiding_lights", "cards", "Guiding Lights", 790, 452, "storm_lore");
 N("spore_lore", "cards", "Spore Lore", 852, 482, [842, 560]);
-N("reactions", "cards", "Reactions", 870, 410, "spore_lore");
-N("dawnbreak", "cards", "Dawnbreak", 884, 330, "reactions", { legendary: true });
+N("dawnbreak", "cards", "Dawnbreak", 884, 330, "spore_lore", { legendary: true });  // Reactions and Woven are discovery unlocks now
 N("sharpened", "cards", "Sharpened", 952, 440, [942, 516]);
 N("reckless", "cards", "Reckless", 980, 370, "sharpened");
 N("full_moon", "cards", "Full Moon", 1000, 288, "reckless", { legendary: true });
@@ -310,16 +495,20 @@ N("the_last_light", "cards", "The Last Light", 800, 710, "one_line", { legendary
 N("dead_wood", "cards", "Dead Wood", 962, 600, [944, 518]);
 N("the_long_walk", "cards", "The Long Walk", 992, 676, "dead_wood", { legendary: true });
 N("bittersweet_dreams", "cards", "Bittersweet Dreams", 1152, 482, [1128, 410]);
-// Woven (Crowned Reactions) branches off Reactions; Deep Poison hangs under the limb past Keen Edges.
-N("woven_dreams_1", "cards", "Woven Dreams I", 814, 370, "reactions");
-N("woven_dreams_2", "cards", "Woven Dreams II", 818, 298, "woven_dreams_1");
+// Deep Poison hangs under the limb past Keen Edges.
 N("seeping", "cards", "Seeping", 1102, 552, [1090, 436]);
 N("venom", "cards", "Venom", 1120, 622, "seeping");
 N("nightshade", "cards", "Nightshade", 1132, 702, "venom", { legendary: true });
-// Kinship (going deep) hangs under the limb near the trunk.
-N("kin_lore", "cards", "Kin Lore", 768, 664, [764, 594]);
-N("deep_bonds", "cards", "Deep Bonds", 756, 734, "kin_lore");
-N("grove_of_kin", "cards", "Grove of Kin", 742, 808, "deep_bonds", { legendary: true });
+// Grove of Kin: the Kinship Legendary (its cards come from discovering a Kinship).
+N("grove_of_kin", "cards", "Grove of Kin", 742, 808, "storm_lore", { legendary: true });  // Kin Lore / Deep Bonds became discovery unlocks
+// Seeds (support and economy bets).
+N("planted_promises", "cards", "Planted Promises", 1010, 470, [1000, 480]);
+N("deep_promises", "cards", "Deep Promises", 1030, 400, "planted_promises");
+N("golden_harvest", "cards", "Golden Harvest", 1050, 330, "deep_promises", { legendary: true });
+// The Quiet Ones (support Wardens).
+N("catchers", "cards", "Catchers", 900, 620, [900, 540]);
+N("old_wood", "cards", "Old Wood", 890, 690, "catchers");
+N("the_quiet_ones", "cards", "The Quiet Ones", 880, 760, "old_wood", { legendary: true });
 const byId = Object.fromEntries(NODES.map(n => [n.id, n]));
 NODES.forEach(n => { n.depth = n.parent ? byId[n.parent].depth + 1 : 1; });
 // Where dream-fruit (Memories) hang, in the order they appear: the point under a limb the vine
@@ -556,7 +745,8 @@ function grovesky() {
 // small leaf clusters, each one flat tone from the lobe under it with a lit tip and a dark rim along
 // its bottom, upper clusters overlapping lower ones. Drawn at half resolution and scaled up 2×.
 // The night greens (colours unchanged), seven tiers.
-const CROWN_P = ["#050b08", "#07100b", "#0c1a10", "#132816", "#1c381c", "#284a24", "#3a5e30"];
+// The crown: indigo night in the shadows and the belly, cold moonlit Pool, then Moss where the light reaches.
+const CROWN_P = [HW.Void, HW.Dread, HW.Night, HW.Deepmoss, HW.Pool, HW.Moss, HW.Leaf];
 const CROWN_PX = 2, CROWN_SEED = 970;
 // Stages grow the crown outward: the clusters over the limbs are always there, the edges fill in.
 const CROWN_SHARE = [.72, .8, .9, 1];
@@ -636,7 +826,7 @@ function groveCanopy(stage) {
   }
   const small = new Img(W, H); small.stamp(L, P[0]);
   for (let y = 1; y < H - 1; y++) for (let x = 1; x < W - 1; x++)
-    if (L.alpha(x, y) && !L.alpha(x + 1, y - 1) && L.alpha(x - 1, y + 1)) small.set(x, y, "#3e5e4c");  // moonlit edge
+    if (L.alpha(x, y) && !L.alpha(x + 1, y - 1) && L.alpha(x - 1, y + 1)) small.set(x, y, HW.Moss);  // moonlit edge
   // Scale up 2× into the tree's space.
   const out = new Img(GW, GH);
   for (let y = 0; y < GH; y++) for (let x = 0; x < GW; x++) { const X = x / s | 0, Y = y / s | 0; if (small.alpha(X, Y)) out.set(x, y, small.get(X, Y)); }
@@ -1123,6 +1313,8 @@ const CARD_ICONS = {
   woven: e => { for (let i = 0; i < 3; i++) { const y = 11 + i * 5; stroke(e, 9, y, 23, y + 3, 1.6, 1.4, i % 2 ? GOLDC[3] : "#c8a8ff"); stroke(e, 11 + i * 5, 8, 14 + i * 5, 25, 1.6, 1.4, i % 2 ? "#c8a8ff" : GOLDC[3]); } },
   deep_poison: e => { ellipse(e, 16, 19, 5.5, 5.5, (x, y, dx, dy) => Math.hypot(dx + .4, dy + .4) < .35 ? "#d8b8ff" : pick(["#2a1438", "#4a2468", "#7a44a0"], .55 - dx * .3 - dy * .3, x, y)); for (let y = 8; y <= 13; y++) e.set(16 + (13 - y) * .3, y, LEAFG[2]); stroke(e, 16, 12, 21, 9, 1.3, 1, LEAFG[1]); },
   kinship: e => { sprout(e, 12, 24, 10); sprout(e, 20, 24, 10); for (const [x, y] of [[15, 12], [17, 12], [14, 13], [18, 13], [16, 15]]) e.set(x, y, "#f07a8a"); e.set(16, 14, "#f07a8a"); e.set(15, 14, "#f07a8a"); e.set(17, 14, "#f07a8a"); },
+  seeds: e => { for (const [x, y] of [[11, 20], [16, 16], [21, 20]]) ellipse(e, x, y, 3, 4, (xx, yy, dx, dy) => pick(["#6a4a1c", "#b88a3a", "#f2d27a"], .55 - dx * .3 - dy * .35, xx, yy)); for (let y = 8; y <= 12; y++) e.set(16, y, LEAFG[2]); stroke(e, 16, 10, 20, 7, 1.2, 1, LEAFG[1]); },
+  quiet_ones: e => { for (let x = 9; x <= 23; x++) { const d = Math.abs(x - 16) / 7, y = 18 + Math.round(Math.sqrt(Math.max(0, 1 - d * d)) * 5); for (let yy = 18; yy <= y; yy++) e.set(x, yy, yy === y ? PARCH[1] : PARCH[3]); } ellipse(e, 16, 12, 2.5, 3.5, (xx, yy, dx, dy) => pick(["#3a7ab8", "#7ab8e8", "#d8f0ff"], .5 - dx * .3 - dy * .4, xx, yy)); },
 };
 function cardIcon(key) {
   return icon((L, o) => {
@@ -1224,7 +1416,53 @@ function memory(i) { const img = new Img(MW, MH); MEMORY_SCENES[i](img); return 
 // ---------- export (assets/meta/...) ----------
 function strip(imgs) { const w = imgs.reduce((s, i) => s + i.w, 0), h = Math.max(...imgs.map(i => i.h)), S = new Img(w, h); let x = 0; for (const i of imgs) { S.put(i, x, 0); x += i.w; } return S; }
 function stack(rows) { const w = Math.max(...rows.map(r => r.w)), h = rows.reduce((s, r) => s + r.h, 0), S = new Img(w, h); let y = 0; for (const r of rows) { S.put(r, 0, y); y += r.h; } return S; }
-function emitImg(name, img) { const p = document.createElement("pre"); p.dataset.name = name; p.textContent = toCanvas(img).toDataURL("image/png").split(",")[1]; document.body.appendChild(p); }
+// Every sheet is snapped to Heartwood 32 on the way out: each pixel takes the nearest palette colour
+// by OKLab distance and keeps its alpha (glows stay palette colours at partial alpha).
+const OKLAB = (r, g, b) => {
+  const lin = c => (c /= 255) <= .04045 ? c / 12.92 : ((c + .055) / 1.055) ** 2.4, R = lin(r), G = lin(g), B = lin(b);
+  const l = Math.cbrt(.4122214708 * R + .5363325363 * G + .0514459929 * B), m = Math.cbrt(.2119034982 * R + .6806995451 * G + .1073969566 * B), s = Math.cbrt(.0883024619 * R + .2817188376 * G + .6299787005 * B);
+  return [.2104542553 * l + .793617785 * m - .0040720468 * s, 1.9779984951 * l - 2.428592205 * m + .4505937099 * s, .0259040371 * l + .7827717662 * m - .808675766 * s];
+};
+const HW_RGB = HW32.ramps.flatMap(r => r.colors.map(c => [1, 3, 5].map(i => parseInt(c.hex.slice(i, i + 2), 16)))), HW_LAB = HW_RGB.map(c => OKLAB(...c)), SNAP = new Map();
+function snapToPalette(img) {
+  const d = img.d;
+  for (let i = 0; i < d.length; i += 4) {
+    if (!d[i + 3]) continue;
+    const key = d[i] << 16 | d[i + 1] << 8 | d[i + 2];
+    let k = SNAP.get(key);
+    if (k === undefined) {
+      const q = OKLAB(d[i], d[i + 1], d[i + 2]); let bd = 1e9; k = 0;
+      HW_LAB.forEach((p, j) => { const e = (p[0] - q[0]) ** 2 + (p[1] - q[1]) ** 2 + (p[2] - q[2]) ** 2; if (e < bd) { bd = e; k = j; } });
+      SNAP.set(key, k);
+    }
+    [d[i], d[i + 1], d[i + 2]] = HW_RGB[k];
+  }
+  return img;
+}
+// PNGs are written here, not by canvas.toDataURL: a canvas stores colour premultiplied by alpha, which
+// shifts the colour of faint glow pixels off the palette. This keeps RGBA exact (zlib via the browser).
+const CRC = new Uint32Array(256).map((_, n) => { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1; return c >>> 0; });
+function pngChunk(type, data) {
+  const out = new Uint8Array(12 + data.length), dv = new DataView(out.buffer);
+  dv.setUint32(0, data.length); for (let i = 0; i < 4; i++) out[4 + i] = type.charCodeAt(i); out.set(data, 8);
+  let c = 0xffffffff; for (let i = 4; i < 8 + data.length; i++) c = CRC[(c ^ out[i]) & 255] ^ (c >>> 8);
+  dv.setUint32(8 + data.length, (c ^ 0xffffffff) >>> 0); return out;
+}
+async function encodePng(img) {
+  const raw = new Uint8Array((img.w * 4 + 1) * img.h);
+  for (let y = 0; y < img.h; y++) raw.set(img.d.subarray(y * img.w * 4, (y + 1) * img.w * 4), y * (img.w * 4 + 1) + 1);
+  const z = new Uint8Array(await new Response(new Blob([raw]).stream().pipeThrough(new CompressionStream("deflate"))).arrayBuffer());
+  const ihdr = new Uint8Array(13), dv = new DataView(ihdr.buffer); dv.setUint32(0, img.w); dv.setUint32(4, img.h); ihdr.set([8, 6, 0, 0, 0], 8);
+  const parts = [new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10]), pngChunk("IHDR", ihdr), pngChunk("IDAT", z), pngChunk("IEND", new Uint8Array(0))];
+  let s = ""; for (const p of parts) for (let i = 0; i < p.length; i += 32768) s += String.fromCharCode(...p.subarray(i, i + 32768));
+  return btoa(s);
+}
+const PENDING = [];
+function emitImg(name, img) {
+  snapToPalette(img);
+  const p = document.createElement("pre"); p.dataset.name = name; document.body.appendChild(p);
+  PENDING.push(encodePng(img).then(b64 => { p.textContent = b64; }));
+}
 function emitText(name, text) { const p = document.createElement("pre"); p.dataset.name = name; p.textContent = btoa(unescape(encodeURIComponent(text))); document.body.appendChild(p); }
 const nodeRow = (sec, big) => strip([nodeSprite(sec, "locked", 0, big), ...[0, 1, 2, 3].map(f => nodeSprite(sec, "afford", f, big)), ...[0, 1, 2, 3].map(f => nodeSprite(sec, "open", f, big)), nodeSprite(sec, "bloom", 0, big), nodeSprite(sec, "bloom", 1, big)]);
 
@@ -1257,7 +1495,7 @@ const PERK_ORDER = ["morning_stores", "rich_dew", "rested_roots", "seed_pouch", 
 emitImg("icons/perk_icons.png", strip(PERK_ORDER.map(k => PERK_ICONS[k]())));
 const FAMILY_ORDER = ["sporeling", "firefly_jar", "dewdrop", "pebbling", "rootling", "bellflower", "acorn", "nestling", "whirligig"];
 emitImg("icons/family_icons.png", strip(FAMILY_ORDER.map(k => FAMILY_ICONS[k]())));
-const CARD_ORDER = ["storm", "spores_and_reactions", "keen_edges", "tending", "overgrowth", "lone_lantern", "the_long_way", "bittersweet", "woven", "deep_poison", "kinship"];
+const CARD_ORDER = ["storm", "spores_and_reactions", "keen_edges", "tending", "overgrowth", "lone_lantern", "the_long_way", "bittersweet", "woven", "deep_poison", "kinship", "seeds", "quiet_ones"];
 emitImg("icons/card_bundle_icons.png", strip(CARD_ORDER.map(cardIcon)));
 for (let i = 0; i < 10; i++) emitImg("memories/memory_" + String(i + 1).padStart(2, "0") + ".png", memory(i));
 
@@ -1273,6 +1511,6 @@ for (const n of NODES) {
 }
 FRUIT_SPOTS.slice(0, 4).forEach(([x, y], i) => prev.put(fruitSprite(i === 3 ? 8 : 0), x - 24, y));
 emitImg("_preview/grove_preview.png", prev);
-document.body.appendChild(Object.assign(document.createElement("p"), { id: "done", textContent: "done" }));
+Promise.all(PENDING).then(() => document.body.appendChild(Object.assign(document.createElement("p"), { id: "done", textContent: "done" })));
 
 })();</script></body>

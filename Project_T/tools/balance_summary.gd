@@ -24,7 +24,7 @@ func _initialize() -> void:
 		return
 	var groups := {}  # "profile/style" -> [run, …]
 	for run in runs:
-		groups.get_or_add("%s/%s" % [run.profile, run.style], []).append(run)
+		groups.get_or_add("%s/%s%s" % [run.profile, run.style, ("+" + str(run.get("cards_start", ""))) if str(run.get("cards_start", "")) != "" else ""], []).append(run)
 	var table := {}
 	print("=== balance batch: %d runs ===" % runs.size())
 	print("  %-18s %4s %9s %11s %10s %8s %8s %6s  %s" % ["profile/style", "runs", "survival", "(spread)",

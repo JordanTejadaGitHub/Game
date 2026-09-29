@@ -130,7 +130,7 @@ const FRESH_GROWTH_BONUS := [0.30, 0.45]
 const UNDERDOG := [[3, 0.20], [4, 0.25]]  # [Wardens, damage] (II)
 const WEATHERED_FREE_EVERY := 10
 const HEAVY_AIR_BONUS := 0.20
-const SLOW_STATUSES: Array[StringName] = [&"damp", &"drowsy"]
+const SLOW_STATUSES: Array[StringName] = [&"drowsy"]  # Damp and fog no longer slow; frost is a freeze (5821d9f)
 const WANDERING_MIND_REROLLS := 2
 const WINDING_PATH_TILES := 10  # +1 Dew per this many path tiles at each rest
 const SHELTER_BONUS := 0.15
@@ -149,10 +149,22 @@ const STRAIGHTAWAY := [[0.15, 0.5], [0.25, 0.5]]  # [damage, range]
 const HEART_OF_MAZE_BONUS := 0.50
 const ECHO_PER := 0.05
 const ECHO_MAX := 0.25
-# Half-dreamed Commons (169–171, stack to 3)
+# Half-dreamed Commons (189–191, stack to 3)
 const DAMP_ROT_PER := 0.20  # Poisoned (Spored) ticks on Soaked nightmares
 const SPARKING_SPORES_PER := 0.20  # Ignite detonations
 const RAIN_ON_GLASS_PER := 0.12  # Light Wardens vs Soaked
+# Seed cards (dream_design.md "Seed cards", 169–176)
+const DEEP_WELL_RATE := 0.03
+const DEEP_WELL_MAX := 20
+const KIND_CANOPY_TOUCHING := 3
+const KIND_CANOPY_BONUS := 0.05
+const SHARED_LIGHT_PER := 0.02
+const SHARED_LIGHT_MAX := 0.10
+const BRAMBLE_OATH_PER := 0.02  # Per 10 path tiles the walls add
+const BRAMBLE_OATH_MAX := 0.15
+const PATIENT_ROOTS_HELD := 0.25
+const GOLDEN_HARVEST_PER := 0.02  # Per 100 Dew harvested / earned as interest
+const GOLDEN_HARVEST_MAX := 0.30
 # Dreamlight (run_design.md "Dreamlight"): sources and unlock costs.
 const FIRST_PICK_DREAMLIGHT := 1
 const BOSS_DREAMLIGHT := 3
@@ -273,6 +285,8 @@ func _ready() -> void:
 	for id in starting_unlocks:
 		unlocked[id] = true
 	drift_director.rest_started.connect(_on_rest_started)
+	drift_director.rest_started.connect(_save_discoveries.unbind(4))
+	run_state.run_ended.connect(_save_discoveries.unbind(1))
 	drift_director.family_pick_requested.connect(func(reason: StringName) -> void:
 		if reason == &"first":
 			add_dreamlight(FIRST_PICK_DREAMLIGHT))  # Act 1 can take one branch
@@ -1444,6 +1458,8 @@ func can_offer(card: UpgradeData, act: int = 1) -> bool:
 		return false
 	if not _meets_needs(card):
 		return false
+	if not discovery_met(card):
+		return false  # Discovery unlocks: combo, Kinship and Warden cards wait until seen once
 	if card.unlocks != null and is_unlocked(card.unlocks.get_id()):
 		return false
 	if not _requires_met(card) and not is_half_dreamed(card):
@@ -1466,6 +1482,8 @@ func _meets_needs(card: UpgradeData) -> bool:
 	if not card.requires_any_status.is_empty() and not card.requires_any_status.any(func(s: StringName) -> bool: return owned_statuses().has(s)):
 		return false
 	if card.max_range_owned > 0.0 and not owns_range_at_most(card.max_range_owned):
+		return false
+	if card.min_non_attackers > 0 and _towers().size() - count_attackers() < card.min_non_attackers:
 		return false
 	if card.min_kinships > 0 and count_kinships() < card.min_kinships:
 		return false
@@ -1812,6 +1830,7 @@ func _on_tower_built(tower: Tower) -> void:
 		_walls_planted += 1  # Weathered Walls
 	_mark_fresh(tower)
 	_watch_growth(tower)
+	_discover_warden(tower)
 	if tower.tower_data.can_attack:
 		_attackers_planted += 1
 	_watch_nurture(tower)
@@ -1958,15 +1977,20 @@ func half_dreamed_text(card: UpgradeData) -> String:
 	var missing := half_dreamed_missing(card)
 	if missing.is_empty():
 		return ""
-	var names: Array = missing.map(get_display_name)
 	var drift := next_family_pick_drift()
 	var boss := _boss_name(drift)
 	if boss.begins_with("The "):
 		boss = "the " + boss.substr(4)  # "after the Hollow Stag"
 	var when := "after %s (drift %d)" % [boss, drift] if boss != "" else "at the family pick after drift %d" % drift
-	if names.size() == 1:
-		return "Needs %s: a family you can pick %s" % [names[0], when]
-	return "Needs %s: families you can pick %s" % [" and ".join(names), when]
+	# Never a Warden's name (dream_design.md "How Needs are shown on a card"): the missing statuses,
+	# else the missing families.
+	var owned := owned_statuses()
+	var statuses: Array = card.shows_statuses.filter(func(s: StringName) -> bool: return not owned.has(s))
+	if not statuses.is_empty():
+		var names: Array = statuses.map(func(s: StringName) -> String: return IconInfo.status_name(s))
+		return "Needs %s: a family that brings it may come %s" % [" + ".join(names), when]
+	var families: Array = missing.map(get_display_name)
+	return "Needs the %s %s: you can pick it %s" % [" and ".join(families), "family" if families.size() == 1 else "families", when]
 
 func _boss_name(drift: int) -> String:
 	if drift < 1 or drift > drift_director.drifts.size():
@@ -2128,6 +2152,8 @@ func _refill_bark() -> void:
 # At each rest: Mending Bark, Thick Bark refills, Fresh Growth ends, Underdog picks its Wardens,
 # Echoing Steps ends.
 func _rest_rules(perfect: bool) -> void:
+	if has_rule(&"deep_well"):  # Deep Well: interest on banked Dew
+		run_state.add_dew(mini(DEEP_WELL_MAX, floori(run_state.dew * DEEP_WELL_RATE)))
 	if perfect and has_rule(&"mending_bark"):
 		run_state.regrow_leaves(1)
 	_refill_bark()
@@ -2144,6 +2170,8 @@ func _mark_fresh(tower: Tower) -> void:
 func _watch_growth(tower: Tower) -> void:
 	if tower.has_signal("evolved") and not tower.evolved.is_connected(_mark_fresh):
 		tower.evolved.connect(_mark_fresh)
+	if tower.has_signal("evolved") and not tower.evolved.is_connected(_discover_warden):
+		tower.evolved.connect(_discover_warden)
 
 func is_fresh(tower: Tower) -> bool:
 	return tower != null and tower.get_meta(&"fresh_growth", false)
@@ -2434,3 +2462,279 @@ func needs_note(card: UpgradeData, act: int = -1) -> String:
 	if needs.is_empty() and not is_eligible(card, act):
 		needs.append("a board or run state (e.g. Wardens, statuses, obstacles)")
 	return "" if needs.is_empty() else "not normally offered: needs " + ", ".join(needs)
+
+
+# --- Seed cards (dream_design.md "Seed cards: plant now, grow later") --------------------------------
+
+# The families held Seed cards call: the next family pick is guaranteed to offer each one that the
+# profile can pick and the run doesn't own yet (FamilyPickScreen).
+func get_called_families() -> Array[String]:
+	var pickable: Array = _family_roots().map(func(d: TowerData) -> String: return d.get_id())
+	var called: Array[String] = []
+	for card in _taken_cards(true):
+		var family := card.calls_family
+		if family != "" and not called.has(family) and pickable.has(family) and not is_unlocked(family):
+			called.append(family)
+	return called
+
+# Whether a Seed card has grown: a Warden it names is on the map.
+func seed_grown(card: UpgradeData) -> bool:
+	return card.grows_with.any(func(id: String) -> bool: return count_wardens(id) > 0)
+
+# Patient Roots: seconds added to Held from any source (Tower / Enemy code add it).
+func get_held_bonus() -> float:
+	return PATIENT_ROOTS_HELD if has_rule(&"patient_roots") else 0.0
+
+# Bramble Oath: path tiles the walls add (the route with walls vs without them), cached per route.
+var _walls_tiles_cache := [-1, 0]  # [board_version, tiles]
+
+func walls_added_tiles() -> int:
+	if _walls_tiles_cache[0] == board_version:
+		return _walls_tiles_cache[1]
+	var cells: Array[Vector2] = []
+	for tower in _towers():
+		if tower.tower_data.line == "wall":
+			cells.append(tower.cell)
+	var tiles := 0
+	if not cells.is_empty():
+		var layer = map_generator.path_layer
+		for cell in cells:
+			layer.set_cell_blocked(cell, false)
+		var without: int = layer.find_path_from(map_generator.startPath).size()
+		for cell in cells:
+			layer.set_cell_blocked(cell, true)
+		tiles = maxi(path_length - without, 0)
+	_walls_tiles_cache = [board_version, tiles]
+	return tiles
+
+# Golden Harvest: Dew the catchers harvested (and Wellspring interest) this run, from RunState.
+func dew_harvested() -> int:
+	var value = run_state.get("dew_harvested")
+	return int(value) if value != null else 0
+
+
+# --- How Needs are shown on a card (dream_design.md, "Card requirements") ---------------------------
+# A card never names a Warden you don't have: combo cards show their statuses (lit if one of your
+# Wardens applies it, dim if not), Warden Needs show the family, card ingredients stay by name.
+
+# {"statuses": [[status id, lit]], "families": [display names], "cards": [display names], "either": bool}
+func needs_parts(card: UpgradeData) -> Dictionary:
+	var parts := {"statuses": [], "families": [], "cards": [], "either": false}
+	if not card.shows_statuses.is_empty():
+		var owned := owned_statuses()
+		for status in card.shows_statuses:
+			parts.statuses.append([status, owned.has(status)])
+	var ids: Array = card.requires.duplicate()
+	if card.requires.is_empty() and not card.requires_any.is_empty():
+		ids = card.requires_any.duplicate()
+		parts.either = true
+	elif not card.requires_any.is_empty():
+		ids.append_array(card.requires_any)
+	for id in ids:
+		var family := family_name_for(id)
+		if family != "":
+			if card.shows_statuses.is_empty() and not parts.families.has(family):
+				parts.families.append(family)
+		elif pool.any(func(c: UpgradeData) -> bool: return c.id == id):
+			var name := get_display_name(id)
+			if not parts.cards.has(name):
+				parts.cards.append(name)
+	return parts
+
+# The family (display name) a Warden id belongs to: "Nestling", "Thornwall" for walls; "" when `id`
+# isn't a Warden.
+func family_name_for(id: String) -> String:
+	var family := family_of(id)
+	if family == "":
+		family = _every_family().get(id, "")  # A family the pick roster doesn't hold (Grove families)
+	if family == "wall":
+		return "Thornwall"
+	return get_display_name(family) if family != "" else ""
+
+# Every Warden id -> its family's base id ("wall" for Thornwall's growths), from all Warden resources.
+static var _families_of_all := {}
+
+static func _every_family() -> Dictionary:
+	if not _families_of_all.is_empty():
+		return _families_of_all
+	var dir := "res://resource/tower/"
+	for file in ResourceLoader.list_directory(dir):
+		if not file.ends_with(".tres"):
+			continue
+		var data := load(dir + file) as TowerData
+		if data == null or data.tier != 1:
+			continue
+		var family := "wall" if data.line == "wall" else data.get_id()
+		var todo: Array = [data]
+		while not todo.is_empty():
+			var form := todo.pop_back() as TowerData
+			if form == null or _families_of_all.has(form.get_id()):
+				continue
+			_families_of_all[form.get_id()] = family
+			todo.append_array(form.evolves_to)
+	return _families_of_all
+
+# "Needs: Soaked + Charged", "Needs: Nestling family", "Needs: Pebbling + Firefly Jar families",
+# "Needs: Tender Care + Seedling Gift" ("" = no Needs to show).
+func needs_text(card: UpgradeData) -> String:
+	var parts := needs_parts(card)
+	var bits: Array[String] = []
+	if not parts.statuses.is_empty():
+		bits.append(" + ".join(parts.statuses.map(func(s: Array) -> String: return IconInfo.status_name(s[0]))))
+	if not parts.families.is_empty():
+		var joiner := " or " if parts.either else " + "
+		bits.append(joiner.join(parts.families) + (" family" if parts.families.size() == 1 else " families"))
+	if not parts.cards.is_empty():
+		bits.append(" + ".join(parts.cards))
+	return "" if bits.is_empty() else "Needs: " + " · ".join(bits)
+
+
+# --- Discovery unlocks (dream_design.md "Discovery unlocks: you dream of what you've seen") ---------
+# A card named after a combo, Kinship or Warden enters the pool once it's been discovered, then stays
+# (profile). A discovery counts at once, mid-run too; its normal Needs still apply. Explicit keys are
+# UpgradeData.discovered_by; cards whose Needs name Wardens (requires / requires_any) also need one
+# of them built or grown into once (not combo-status cards; half-dreamed cards skip it). Legendaries
+# are never gated. Reactions, Crowned and
+# Kinships come from the profile's combos_seen (ComboFeedback); the profile's wardens_built and
+# best_chain are saved here. The demo counts the current run only; dev runs have everything
+# discovered; tests too, unless a test sets `discovery_profile`.
+
+const WARDENS_BUILT_KEY := "wardens_built"
+const BEST_CHAIN_KEY := "best_chain"
+const DISCOVERY_CHAIN := 5
+
+# Tests: {"seen": [combo ids], "wardens_built": [ids], "best_chain": n} stands in for the profile.
+var discovery_profile = null
+var _built_this_run := {}  # Warden id -> true (built or grown into this run)
+var _profile_discovery := {}  # Loaded once per run
+
+func _discovery_profile() -> Dictionary:
+	if discovery_profile != null:
+		return discovery_profile
+	if _profile_discovery.is_empty():
+		if ResultsScreen.is_demo():
+			_profile_discovery = {"seen": [], WARDENS_BUILT_KEY: [], BEST_CHAIN_KEY: 0}
+		else:
+			var memory := HeartwoodMemory.load_data()
+			_profile_discovery = {"seen": ComboFeedback.profile_seen(),
+				WARDENS_BUILT_KEY: memory.get(WARDENS_BUILT_KEY, []).duplicate(),
+				BEST_CHAIN_KEY: int(memory.get(BEST_CHAIN_KEY, 0))}
+	return _profile_discovery
+
+# Everything counts as discovered: dev runs, and tests that don't set a profile.
+func _discovers_all() -> bool:
+	if MetaRun.is_dev_run():
+		return true
+	return discovery_profile == null and not _is_real_game()
+
+func _is_real_game() -> bool:
+	return is_inside_tree() and get_tree().current_scene == owner
+
+# Combo ids found: the profile's plus this run's (ComboFeedback's run counts).
+func _combos_found() -> Array:
+	var found: Array = _discovery_profile().get("seen", []).duplicate()
+	var feedback := get_tree().get_first_node_in_group(ComboFeedback.GROUP) as ComboFeedback
+	if feedback != null:
+		for id in feedback.run_counts:
+			if not found.has(String(id)):
+				found.append(String(id))
+	return found
+
+func _best_chain() -> int:
+	var best := int(_discovery_profile().get(BEST_CHAIN_KEY, 0))
+	var tracker := get_tree().get_first_node_in_group(ReactionTracker.GROUP) as ReactionTracker
+	return maxi(best, tracker.longest_chain) if tracker != null else best
+
+func warden_discovered(id: String) -> bool:
+	return _built_this_run.has(id) or _discovery_profile().get(WARDENS_BUILT_KEY, []).has(id)
+
+# The keys a card waits on: its discovered_by, plus "warden:<id>" entries for the Wardens its Needs
+# name (any one of them, "warden_any:a,b" for requires_any).
+func discovery_keys(card: UpgradeData) -> Array[String]:
+	if card.rarity == UpgradeData.Rarity.LEGENDARY:
+		return []  # Legendaries are never discovery-gated (Grove tips)
+	var keys: Array[String] = card.discovered_by.duplicate()
+	if not card.shows_statuses.is_empty():
+		return keys
+	for id in card.requires:
+		if _is_warden_id(id):
+			keys.append("warden:" + id)
+	var any: Array = card.requires_any.filter(_is_warden_id)
+	if not any.is_empty():
+		keys.append("warden_any:" + ",".join(any))
+	return keys
+
+static func _is_warden_id(id: String) -> bool:
+	return ResourceLoader.exists("res://resource/tower/%s.tres" % id)
+
+func discovery_met(card: UpgradeData) -> bool:
+	if _discovers_all():
+		return true
+	var keys := discovery_keys(card)
+	if is_half_dreamed(card):  # Half-dreamed: only its Reaction gate (the Needs line shows statuses)
+		keys = keys.filter(func(key: String) -> bool: return not key.begins_with("warden"))
+	if keys.is_empty():
+		return true
+	var found := _combos_found()
+	return keys.all(func(key: String) -> bool: return _key_met(key, found))
+
+func _key_met(key: String, found: Array) -> bool:
+	var kind := key.get_slice(":", 0)
+	var arg := key.get_slice(":", 1)
+	match kind:
+		"reaction", "crowned":
+			return found.has(arg)
+		"kinship":
+			return Kinships.KINSHIPS.keys().any(func(id) -> bool: return found.has(String(id)))
+		"reactions":
+			return Reactions.all().filter(func(r: ReactionData) -> bool: return found.has(String(r.id))).size() >= int(arg)
+		"chain":
+			return _best_chain() >= int(arg)
+		"warden":
+			return warden_discovered(arg)
+		"warden_any":
+			return Array(arg.split(",")).any(warden_discovered)
+	return true
+
+# Cards in this run's pool still waiting on a discovery (the Codex / "New Dreams" lines).
+func undiscovered_cards() -> Array[UpgradeData]:
+	var waiting: Array[UpgradeData] = []
+	for card in pool:
+		if (card.in_start_pool or grove_cards.has(card.id)) and not discovery_met(card):
+			waiting.append(card)
+	return waiting
+
+# Names of this pool's cards that a discovery just let in: pass what undiscovered_cards() returned
+# before it.
+func newly_discovered(before: Array[UpgradeData]) -> Array[String]:
+	var names: Array[String] = []
+	for card in before:
+		if discovery_met(card):
+			names.append(card.display_name)
+	return names
+
+# A Warden built or grown into: discovered (a toast names the Dreams it lets in, the first time).
+func _discover_warden(tower: Tower) -> void:
+	var id := tower.tower_data.get_id()
+	if _built_this_run.has(id):
+		return
+	var before := undiscovered_cards() if not _discovers_all() else ([] as Array[UpgradeData])
+	_built_this_run[id] = true
+	var names := newly_discovered(before)
+	if not names.is_empty():
+		var hud := owner.get_node_or_null("HUD") if owner != null else null
+		if hud != null and hud.has_method("show_toast"):
+			hud.show_toast("New Dreams: " + ", ".join(names))
+
+# The profile keeps built Wardens and the best chain (the real game only; not the demo or dev runs).
+func _save_discoveries() -> void:
+	if not _is_real_game() or ResultsScreen.is_demo() or MetaRun.is_dev_run():
+		return
+	var memory := HeartwoodMemory.load_data()
+	var built: Array = memory.get(WARDENS_BUILT_KEY, []).duplicate()
+	for id in _built_this_run:
+		if not built.has(id):
+			built.append(id)
+	memory[WARDENS_BUILT_KEY] = built
+	memory[BEST_CHAIN_KEY] = maxi(int(memory.get(BEST_CHAIN_KEY, 0)), _best_chain())
+	HeartwoodMemory.save_data(memory)

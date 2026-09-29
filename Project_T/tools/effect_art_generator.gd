@@ -33,6 +33,9 @@ func _init() -> void:
 	_family_review()
 	_crowned()
 	_kinship()
+	_kinship_combat()
+	_clouds()
+	_support()
 	var file := FileAccess.open(OUT + "effects.json", FileAccess.WRITE)
 	file.store_string(JSON.stringify({effects = index}, "\t") + "\n")
 	_save_preview()
@@ -1827,6 +1830,376 @@ func _save_kinship_preview() -> void:
 		y += sheet.get_height() + pad
 	out.resize(out.get_width() * 2, out.get_height() * 2, Image.INTERPOLATE_NEAREST)
 	out.save_png("res://tools/previews/effects_kinship.png")
+
+
+# --- Kinships in combat (tower_design.md "Kinships": impact on the Wardens and vines) -------------
+func _kinship_combat() -> void:
+	_sheet("kin_vine_bead", Vector2i(8, 8), 4, 12, Vector2i(4, 4), true, "kinship", _kin_vine_bead,
+		{note = "Runs along the vine from one Warden to the other when a borrowed trait fires (~0.3 s). Drawn moving right: rotate to the vine. Tint with the family colour."})
+	_sheet("kin_oldkin_arch", Vector2i(64, 32), 4, 4, Vector2i(0, 31), true, "kinship", _kin_oldkin_arch,
+		{note = "Old Kin: a flowering arch over the pair. Anchor (0, 31) = left foot, right foot at (63, 31): stretch along x between the two Wardens' bases (don't scale y). Gentle: ~50-70% alpha. Tint with the family colour."})
+	_sheet("harmony_petals_a", Vector2i(32, 32), 6, 16, Vector2i(16, 16), false, "kinship", _harmony_petals.bind(0),
+		{note = "Blooming Harmony strike: petals spiral in from the left and open half a flower. Tint with the first Warden's colour; play with harmony_petals_b."})
+	_sheet("harmony_petals_b", Vector2i(32, 32), 6, 16, Vector2i(16, 16), false, "kinship", _harmony_petals.bind(1),
+		{note = "The other half, from the right; tint with the second Warden's colour."})
+	_sheet("harmony_beam", Vector2i(32, 8), 4, 16, Vector2i(0, 4), true, "segment", _harmony_beam,
+		{note = "Old Kin Harmony strike: a beam from each Warden to the nightmare (stretch or tile along x, y = 4 on the line, 0.3-0.4 s). White: tint with the Warden's colour lerped ~30% to warm gold (#ffe890)."})
+	_sheet("harmony_bloom", Vector2i(32, 32), 6, 16, Vector2i(16, 16), false, "kinship", _harmony_bloom,
+		{note = "Where the two harmony_beams meet on the nightmare. Tint with a mix of the two colours (or warm white)."})
+
+func _kin_vine_bead(img: Image, f: int) -> void:
+	var c := Vector2(5, 4)
+	var pulse: float = [0.0, 0.5, 1.0, 0.5][f]
+	# Soft halo, a short trail behind (left), the bright bead.
+	for y in 8:
+		for x in 8:
+			var q := Vector2(x + 0.5, y + 0.5).distance_to(c) / (3.2 + pulse * 0.6)
+			if q < 1.0:
+				img.set_pixel(x, y, Color(K_LIGHT, snappedf(0.45 * (1.0 - q), 0.05)))
+	_px(img, 1, 4, Color(K_MID, 0.5))
+	_px(img, 2, 4, Color(K_LIGHT, 0.7))
+	_px(img, 3, 4, K_LIGHT)
+	_disc(img, c + Vector2(0.5, 0.5), 1.4, K_WHITE)
+
+func _kin_oldkin_arch(img: Image, f: int) -> void:
+	# A vine arch from foot to foot (peak at y 6), leaves along it, little five-petal flowers.
+	var pts: Array = []
+	for s in 33:
+		var t := s / 32.0
+		pts.append(Vector2(0.5 + t * 63.0, 31.0 - pow(sin(t * PI), 0.55) * 24.0 + sin(t * TAU * 2.0 + f * PI / 2.0) * 0.4 * sin(t * PI)))
+	for i in pts.size() - 1:
+		_line(img, pts[i], pts[i + 1], K_MID)
+		_line(img, (pts[i] as Vector2) + Vector2(0, 1), (pts[i + 1] as Vector2) + Vector2(0, 1), K_DARK)
+	# Leaves alternate sides, turning with the arch.
+	for i in range(3, 30, 4):
+		var p: Vector2 = pts[i]
+		var along: Vector2 = ((pts[i + 1] as Vector2) - (pts[i - 1] as Vector2)).normalized()
+		var side := along.orthogonal() * (1.0 if i % 8 == 3 else -1.0)
+		var sway := 0.15 * sin(f * PI / 2.0 + i)
+		_kin_leaf(img, p, (side * 0.8 + along * 0.4).rotated(sway).normalized(), 4.0, 1.4)
+	# Flowers along the top, one twinkling in turn.
+	var flowers := [8, 13, 16, 19, 24]
+	for k in flowers.size():
+		var p: Vector2 = pts[flowers[k]] + Vector2(0, -1)
+		var lit := k == f % flowers.size() or k == (f + 2) % flowers.size()
+		for d: Vector2i in [Vector2i.LEFT, Vector2i.RIGHT, Vector2i.UP, Vector2i(-1, 1), Vector2i(1, 1)]:
+			_px(img, floori(p.x) + d.x, floori(p.y) + d.y, K_LIGHT)
+		_px(img, floori(p.x), floori(p.y), K_WHITE if lit else K_MID)
+		if lit:
+			_px(img, floori(p.x), floori(p.y) - 2, Color(K_WHITE, 0.6))
+
+func _harmony_petals(img: Image, f: int, side: int) -> void:
+	var c := Vector2(16, 16)
+	var sgn := -1.0 if side == 0 else 1.0
+	if f <= 3:
+		# Three petals spiral in from this side, tumbling as they come.
+		var t := f / 3.0
+		for k in 3:
+			var a := (PI if side == 0 else 0.0) + (k - 1) * 0.7 + t * PI * 0.8 * -sgn
+			var r := 14.0 * (1.0 - t) + 2.0 + k
+			var p := c + Vector2(cos(a), sin(a)) * r
+			var dir := (c - p).normalized().rotated(0.6 * sgn + f * 0.8)
+			_kin_leaf(img, p - dir * 2.5, dir, 5.0, 2.0)
+			_px(img, floori(p.x - dir.x * 3.0), floori(p.y - dir.y * 3.0), Color(K_LIGHT, 0.5))
+	else:
+		# Half a flower opens on the point (this side's petals), then fades.
+		var open: float = [0.0, 0.0, 0.0, 0.0, 0.7, 1.0][f]
+		for k in 3:
+			var d := Vector2.from_angle(PI * 0.5 + (k + 0.5) * PI / 3.0)  # 120..240 degrees: the left half
+			var dir := d if side == 0 else Vector2(-d.x, d.y)
+			_kin_leaf(img, c + dir * 1.0, dir, 3.5 + open * 3.5, 2.0 + open * 0.6)
+		_disc(img, c, 1.5, K_WHITE)
+		if f == 5:
+			for k in 3:
+				var p := c + Vector2(sgn * (5 + k * 2), -3 + k * 3)
+				_px(img, floori(p.x), floori(p.y), Color(K_WHITE, 0.6))
+
+func _harmony_beam(img: Image, f: int) -> void:
+	# A bright core, a soft two-pixel glow either side, a pulse running along; light motes above.
+	for x in 32:
+		var run := (x + f * 3) % 12
+		var core := K_WHITE if run < 9 else K_LIGHT
+		_px(img, x, 4, core)
+		_px(img, x, 3, Color(K_LIGHT, 0.75))
+		_px(img, x, 5, Color(K_LIGHT, 0.75))
+		_px(img, x, 2, Color(K_MID, 0.3))
+		_px(img, x, 6, Color(K_MID, 0.3))
+	var dot := (f * 8) % 32
+	for d in [-1, 0, 1]:
+		_px(img, dot + d, 3, K_WHITE)
+		_px(img, dot + d, 5, K_WHITE)
+	_px(img, (dot + 12) % 32, 1, Color(K_WHITE, 0.5))
+	_px(img, (dot + 22) % 32, 7, Color(K_WHITE, 0.4))
+
+func _harmony_bloom(img: Image, f: int) -> void:
+	var c := Vector2(16, 16)
+	var t := f / 5.0
+	if f < 2:
+		_disc(img, c, 4.0 - f * 1.5, K_WHITE)
+		_ring(img, c, Vector2(5.5 + f * 2.0, 5.5 + f * 2.0), 1.0, Color(K_LIGHT, 0.9))
+	# Five petals open outward, then drift and fade.
+	var reach := 3.0 + t * 8.0
+	for k in 5:
+		var dir := Vector2.from_angle(k * TAU / 5.0 - PI / 2.0 + t * 0.4)
+		if f >= 1:
+			_kin_leaf(img, c + dir * (reach - 3.0), dir, 3.5 + (1.0 - t) * 2.0, 2.0)
+	if f >= 2:
+		_ring(img, c, Vector2(8.0 + t * 6.0, 8.0 + t * 6.0), 1.0, Color(K_MID, 0.8 - t * 0.6))
+	for k in 6:
+		var p := c + Vector2.from_angle(k * TAU / 6.0 + 0.3) * (4.0 + t * 11.0)
+		_px(img, floori(p.x), floori(p.y), Color(K_WHITE, 1.0 - t * 0.8))
+
+# --- Support and economy feedback (screens_ui.md "Support and economy feedback") -------------------
+# Kind "support". Gold is caught / harvested Dew (the ordinary Dew pop stays blue).
+#   dew_catch_droplet: a gold dew bead, drawn flying right (rotate to travel), shimmering; the code
+#     arcs it from a dispelled nightmare into a Dewcatcher / Wellspring. harvest_pour reuses it.
+#   dew_pop_gold: a small gold sparkle burst to play behind the "+N Dew" of caught Dew.
+#   catcher_fill_dewcatcher / catcher_fill_wellspring: 64x64 overlays drawn to line up with the
+#     Warden sprite (same origin), frame = fill level 0 empty, 1 quarter, 2 half, 3 full. Add the
+#     idle frame's bob (attacks.json bowls.<id>.dy_by_frame) to y.
+#   harvest_pour: droplets leaping out of the bowl at a rest (play at the bowl; then fly
+#     dew_catch_droplet beads to the Dew counter). harvest_splash: where they land on the counter.
+#   leaf_mote: a faint tiny leaf drifting and turning, near-white so it can be tinted.
+#   aura_ring_breath: a soft ring that breathes; white, tint it and scale it to the aura's range.
+
+const DEW_GOLD := [Color("#a8641c"), Color("#e8a830"), Color("#ffd870"), Color("#fff4c8")]
+
+func _support() -> void:
+	_sheet("dew_catch_droplet", Vector2i(14, 14), 6, 12, Vector2i(7, 7), true, "support", _dew_droplet,
+		{note = "Drawn flying right; rotate to its travel. Arc it into the catcher; harvest_pour reuses it."})
+	_sheet("dew_pop_gold", Vector2i(24, 24), 6, 14, Vector2i(12, 12), false, "support", _dew_pop_gold,
+		{note = "Behind the \"+N Dew\" of caught Dew; draw that text in gold (#ffd870) instead of blue."})
+	_sheet("catcher_fill_dewcatcher", Vector2i(64, 64), 4, 1, Vector2i(32, 32), false, "support", _catcher_fill.bind(false),
+		{note = "Frame = fill level (0 empty .. 3 full), not animation. Same origin as the Warden sprite; add bowls.dewcatcher.dy_by_frame[idle frame] to y."})
+	_sheet("catcher_fill_wellspring", Vector2i(64, 64), 4, 1, Vector2i(32, 32), false, "support", _catcher_fill.bind(true),
+		{note = "Frame = fill level (0 empty .. 3 full). Same origin as the Warden sprite; add bowls.wellspring.dy_by_frame[idle frame] to y."})
+	_sheet("harvest_pour", Vector2i(40, 40), 8, 14, Vector2i(20, 32), false, "support", _harvest_pour,
+		{note = "At the bowl (anchor = bowl surface): droplets leap up and out. Then fly dew_catch_droplet beads to the Dew counter (~0.8 s)."})
+	_sheet("harvest_splash", Vector2i(32, 32), 6, 14, Vector2i(16, 16), false, "support", _harvest_splash,
+		{note = "UI: where the harvested Dew lands on the Dew counter."})
+	_sheet("leaf_mote", Vector2i(10, 10), 8, 6, Vector2i(5, 5), true, "support", _leaf_mote,
+		{note = "Near-white, tint it. Very subtle: drift it slowly upward over aura-boosted Wardens, low alpha."})
+	_sheet("aura_ring_breath", Vector2i(64, 64), 8, 6, Vector2i(32, 32), true, "support", _aura_ring,
+		{note = "White, tint it and scale it to the aura's range (64 px = 1 cell radius 28). Brighter (higher alpha) in build mode."})
+
+func _dew_droplet(img: Image, f: int) -> void:
+	# A bead with a short tail behind it (pointing right), the glint sliding round.
+	var c := Vector2(8.5, 7.5)
+	for step in 8:
+		var t := step / 7.0
+		var r := 3.2 * (1.0 - t * 0.85)
+		_disc(img, c + Vector2(-t * 5.0, 0), r, DEW_GOLD[1])
+	_disc(img, c, 3.2, DEW_GOLD[1])
+	_disc(img, c + Vector2(-0.4, -0.6), 2.2, DEW_GOLD[2])
+	var glint: Vector2i = [Vector2i(9, 5), Vector2i(10, 6), Vector2i(10, 7), Vector2i(9, 6), Vector2i(8, 5), Vector2i(8, 6)][f]
+	_px(img, glint.x, glint.y, DEW_GOLD[3])
+	_px(img, glint.x, glint.y - 1 if f % 3 == 0 else glint.y, DEW_GOLD[3])
+	# Outline, then a faint warm glow.
+	var outline := img.duplicate()
+	for y in img.get_height():
+		for x in img.get_width():
+			if img.get_pixel(x, y).a > 0.0:
+				continue
+			for d: Vector2i in [Vector2i.LEFT, Vector2i.RIGHT, Vector2i.UP, Vector2i.DOWN]:
+				var q := Vector2i(x, y) + d
+				if q.x >= 0 and q.y >= 0 and q.x < img.get_width() and q.y < img.get_height() and img.get_pixelv(q).a > 0.9:
+					outline.set_pixel(x, y, DEW_GOLD[0])
+					break
+	img.copy_from(outline)
+	for y in img.get_height():
+		for x in img.get_width():
+			if img.get_pixel(x, y).a == 0.0:
+				var q := Vector2(x + 0.5, y + 0.5).distance_to(c) / 6.5
+				if q < 1.0:
+					img.set_pixel(x, y, Color(DEW_GOLD[2], snappedf(0.3 * (1.0 - q), 0.05)))
+
+func _dew_pop_gold(img: Image, f: int) -> void:
+	var c := Vector2(12, 12)
+	var t := f / 5.0
+	# A quick ring and eight motes flying out and fading.
+	if f < 3:
+		_ring(img, c, Vector2(3.0 + f * 3.0, 3.0 + f * 3.0), 1.0, Color(DEW_GOLD[2], 0.9 - f * 0.25))
+	for k in 8:
+		var d := Vector2.from_angle(k * TAU / 8.0 + 0.2)
+		var p := c + d * (3.0 + t * 8.0)
+		var col: Color = DEW_GOLD[3] if k % 2 == 0 else DEW_GOLD[2]
+		_px(img, floori(p.x), floori(p.y), Color(col, 1.0 - t * 0.8))
+		if f < 2 and k % 2 == 0:
+			_px(img, floori(p.x - d.x), floori(p.y - d.y), Color(DEW_GOLD[1], 0.7))
+	if f == 0:
+		_disc(img, c, 2.5, DEW_GOLD[3])
+
+func _catcher_fill(img: Image, f: int, well: bool) -> void:
+	# The bowl's inside (same ellipse as the sprite's water), empty-dark first, then gold dew from
+	# the middle out. Full glows and brims over with a sparkle.
+	var c := Vector2(30.5, 5.5) if well else Vector2(30.5, 5.0)
+	var r := Vector2(7.5, 1.6) if well else Vector2(11, 2.2)
+	var empty := Color("#3a2a1c") if well else Color("#2a3a20")
+	_ellipse(img, c, r, empty)
+	if f == 0:
+		_px(img, floori(c.x) - 2, floori(c.y), Color("#5a4a34") if well else Color("#3e5430"))
+		return
+	var share: float = [0.0, 0.4, 0.7, 1.0][f]
+	var fill_r := Vector2(r.x * share, maxf(r.y * (0.55 + share * 0.45), 1.0))
+	_ellipse(img, c, fill_r, DEW_GOLD[1])
+	_line(img, c + Vector2(-fill_r.x * 0.6, -fill_r.y * 0.4), c + Vector2(fill_r.x * 0.5, -fill_r.y * 0.4), DEW_GOLD[2])
+	if f >= 2:
+		_px(img, floori(c.x) + 1, floori(c.y) - 1, DEW_GOLD[3])
+	if f == 3:
+		# Brimming: the glow rises off it, a bead on the rim, a sparkle.
+		for x in range(floori(c.x - r.x) - 1, ceili(c.x + r.x) + 2):
+			for y in range(0, floori(c.y)):
+				var q := ((Vector2(x + 0.5, y + 0.5) - c) / Vector2(r.x + 2.0, 5.0)).length()
+				if q < 1.0 and img.get_pixel(x, y).a == 0.0:
+					img.set_pixel(x, y, Color(DEW_GOLD[2], snappedf(0.35 * (1.0 - q), 0.05)))
+		_px(img, floori(c.x + r.x) - 1, floori(c.y) + 1, DEW_GOLD[2])
+		_px(img, floori(c.x + r.x) - 1, floori(c.y) + 2, DEW_GOLD[1])
+		for d: Vector2i in [Vector2i.ZERO, Vector2i.LEFT, Vector2i.RIGHT, Vector2i.UP]:
+			_px(img, floori(c.x) - 4 + d.x, floori(c.y) - 2 + d.y, DEW_GOLD[3])
+
+func _harvest_pour(img: Image, f: int) -> void:
+	# Beads leap out of the bowl (anchor (20, 32)) in fountain arcs, rising and spreading.
+	var base := Vector2(20, 32)
+	if f < 3:
+		_ellipse(img, base, Vector2(6 - f, 1.5), Color(DEW_GOLD[2], 0.8 - f * 0.2))
+	for k in 6:
+		var start := k * 0.6
+		var t := (f - start) / 5.0
+		if t <= 0.0 or t > 1.2:
+			continue
+		var side := -1.0 if k % 2 == 0 else 1.0
+		var p := base + Vector2(side * (2.0 + k) * t * 2.2, -t * 26.0 + t * t * 6.0)
+		_disc(img, p, 1.8 if k < 4 else 1.3, DEW_GOLD[2])
+		_px(img, floori(p.x), floori(p.y) - 1, DEW_GOLD[3])
+		_px(img, floori(p.x), floori(p.y) + 2, Color(DEW_GOLD[1], 0.6))
+
+func _harvest_splash(img: Image, f: int) -> void:
+	var c := Vector2(16, 16)
+	var t := f / 5.0
+	if f < 2:
+		_disc(img, c, 4.5 - f * 1.5, DEW_GOLD[3])
+	_ring(img, c, Vector2(4.0 + t * 11.0, 4.0 + t * 11.0), 1.5 if f < 3 else 1.0, Color(DEW_GOLD[2], 1.0 - t * 0.85))
+	for k in 6:
+		var d := Vector2.from_angle(k * TAU / 6.0 - PI / 2.0)
+		var p := c + d * (5.0 + t * 9.0) + Vector2(0, t * t * 4.0)
+		_px(img, floori(p.x), floori(p.y), Color(DEW_GOLD[3] if k % 2 == 0 else DEW_GOLD[1], 1.0 - t * 0.7))
+
+func _leaf_mote(img: Image, f: int) -> void:
+	# A tiny leaf turning as it drifts: its width swings with the turn so it seems to tumble.
+	var turn := sin(f * TAU / 8.0)
+	var c := Vector2(5, 5 + sin(f * TAU / 8.0 + 1.0) * 0.8)
+	var w := maxf(0.6, absf(turn) * 1.8)
+	var a := 0.6 + f * TAU / 16.0
+	var along := Vector2.from_angle(a)
+	for y in 10:
+		for x in 10:
+			var d := Vector2(x + 0.5, y + 0.5) - c
+			var u := d.dot(along)
+			var v := d.dot(along.orthogonal())
+			if absf(u) <= 3.4 and absf(v) <= w * (1.0 - pow(u / 3.4, 2.0)):
+				img.set_pixel(x, y, Color("#f4fff0") if v * turn < 0.0 else Color("#c8dcc0"))
+	var stem := c - along * 4.0
+	_px(img, floori(stem.x), floori(stem.y), Color("#c8dcc0", 0.8))
+
+func _aura_ring(img: Image, f: int) -> void:
+	# Radius 28 breathing ±1.5 px; bright thread with a soft inside fade, four small nodes turning.
+	var c := Vector2(32, 32)
+	var br := sin(f * TAU / 8.0)
+	var r := 28.0 + br * 1.5
+	for y in 64:
+		for x in 64:
+			var d := Vector2(x + 0.5, y + 0.5).distance_to(c)
+			var edge := absf(d - r)
+			if edge < 0.8:
+				img.set_pixel(x, y, Color(1, 1, 1, 0.75 + br * 0.1))
+			elif d < r and r - d < 6.0:
+				img.set_pixel(x, y, Color(1, 1, 1, snappedf(0.22 * (1.0 - (r - d) / 6.0), 0.04)))
+	for k in 4:
+		var p := c + Vector2.from_angle(k * TAU / 4.0 + f * TAU / 32.0) * r
+		for dd: Vector2i in [Vector2i.ZERO, Vector2i.LEFT, Vector2i.RIGHT, Vector2i.UP, Vector2i.DOWN]:
+			_px(img, floori(p.x) + dd.x, floori(p.y) + dd.y, Color(1, 1, 1, 0.95 if dd == Vector2i.ZERO else 0.6))
+
+# --- Lingering clouds (PathCloud: Bloomcap / Dreamshroom sleepy clouds, Mistveil / Morning Fog) ----
+# Near-white so PathCloud can tint them with the Warden's colour (modulate multiplies). Drawn at 1x.
+#   cloud_puffs: 4 variants (not an animation) of a fairytale cloud puff: round lobes lit from the
+#     top left, a soft seam between lobes, a curl in the biggest one, soft translucent edges.
+#   fog_wisps: 3 variants of a long tapering fog strand ending in a curl, drifted across fog clouds.
+
+const CLOUD_LIGHT := Color("#ffffff")
+const CLOUD_MID := Color("#eef0f8")
+const CLOUD_SHADE := Color("#d0d6ea")
+const CLOUD_DEEP := Color("#a8b0cc")
+const CLOUD_SEAM := Color("#b8c0da")
+
+func _clouds() -> void:
+	_sheet("cloud_puffs", Vector2i(48, 32), 4, 1, Vector2i(24, 20), false, "ground", _cloud_puff,
+		{note = "Variants, not frames: PathCloud picks one per puff and tints it with projectile_color."})
+	_sheet("fog_wisps", Vector2i(56, 14), 3, 1, Vector2i(28, 7), false, "ground", _fog_wisp,
+		{note = "Variants: fog strands PathCloud drifts across fog clouds (cloud_fog)."})
+
+func _cloud_puff(img: Image, f: int) -> void:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 7100 + f * 31
+	# Lobes: a low row of four, one or two on top; the front (lower) ones are drawn over the back.
+	var blobs: Array = []
+	var base_y := 22.0
+	for k in 4:
+		var r := rng.randf_range(6.5, 8.5)
+		blobs.append([Vector2(8.5 + k * 10.3 + rng.randf_range(-1.0, 1.0), base_y - r * 0.3 + rng.randf_range(-1, 1)), r])
+	for k in (2 if f % 2 == 0 else 1):
+		var r := rng.randf_range(8.5, 11.0)
+		blobs.append([Vector2(18.0 + k * 13.0 + rng.randf_range(-2, 2), 13.5 + rng.randf_range(-1.5, 1.0)), r])
+	var owner := {}
+	for y in img.get_height():
+		for x in img.get_width():
+			var p := Vector2(x + 0.5, y + 0.5)
+			var best := -1
+			var best_v := 0.0
+			for i in blobs.size():
+				var c: Vector2 = blobs[i][0]
+				var r: float = blobs[i][1]
+				var v := 1.0 - p.distance_to(c) / r
+				# Lobes in front (lower centre) win where they overlap, so seams follow their tops.
+				if v > 0.0 and (best < 0 or c.y > (blobs[best][0] as Vector2).y + 0.5 or (v > best_v and absf(c.y - (blobs[best][0] as Vector2).y) <= 0.5)):
+					best = i
+					best_v = v
+			if best < 0 or y > 29:
+				continue
+			owner[Vector2i(x, y)] = best
+			var c: Vector2 = blobs[best][0]
+			var r: float = blobs[best][1]
+			var n2 := (p - c) / r
+			# Lit from above like a painted cloud (not a sphere): bright crown, soft middle, shaded base.
+			var i := -n2.y * 0.85 - n2.x * 0.25
+			var col := CLOUD_LIGHT if i > 0.5 else (CLOUD_MID if i > -0.05 else (CLOUD_SHADE if i > -0.6 else CLOUD_DEEP))
+			if y >= 27:
+				col = CLOUD_DEEP  # the flat underside
+			var a := 0.92
+			if best_v < 0.1:
+				a = 0.5  # soft edge
+			img.set_pixel(x, y, Color(col, a))
+	# Seams: where a front lobe's top edge crosses a back lobe.
+	for key: Vector2i in owner:
+		var up := key + Vector2i(0, -1)
+		if owner.has(up) and owner[up] != owner[key] and (blobs[owner[key]][0] as Vector2).y > (blobs[owner[up]][0] as Vector2).y:
+			img.set_pixel(key.x, key.y, Color(CLOUD_SEAM, 0.95))
+
+func _fog_wisp(img: Image, f: int) -> void:
+	var w := img.get_width()
+	var phase := f * 1.7
+	for x in range(2, w - 6):
+		var t := x / float(w - 6)
+		var cy := 7.0 + sin(x * 0.16 + phase) * 1.8
+		var thick := 3.2 * pow(sin(PI * clampf(t * 1.1, 0.0, 1.0)), 0.7)
+		for y in img.get_height():
+			var d := (y + 0.5 - cy) / maxf(thick, 0.01)
+			if absf(d) > 1.0:
+				continue
+			var col := CLOUD_LIGHT if d < -0.3 else (CLOUD_MID if d < 0.4 else CLOUD_SHADE)
+			var a := 0.75 * (1.0 - t * 0.35)
+			if absf(d) > 0.7:
+				a *= 0.55
+			img.set_pixel(x, y, Color(col, a))
 
 # --- Preview ----------------------------------------------------------------------------------------
 

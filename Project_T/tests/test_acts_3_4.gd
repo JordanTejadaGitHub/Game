@@ -47,6 +47,12 @@ func _run() -> void:
 		_check(not lurker.is_hidden(), "a Lanternmoth (Marks) reveals it from range")
 		lantern.free()
 	lurker._update_presence(0.2)
+	lurker.reveal_for(1.0)
+	_check(not lurker.is_hidden(), "Lantern Roots: reveal_for shows it at once")
+	lurker._update_presence(0.5)
+	_check(not lurker.is_hidden(), "and keeps it shown for the time")
+	lurker._update_presence(0.6)
+	_check(lurker.is_hidden(), "then it hides again")
 	var wisp := _still("will_o_wisp", route[11])
 	lurker._update_presence(0.2)
 	_check(not lurker.is_hidden(), "a Will-o'-Wisp one cell away reveals it")
@@ -155,6 +161,12 @@ func _run() -> void:
 		var path_before: PackedVector2Array = grave._path.duplicate()
 		grave._try_burrow()
 		_check(not grave._leaping and grave._path == path_before, "only once per trip")
+		var held_grave := _still("gravecrawler", burrow.here)
+		held_grave.set_path(long_way)
+		held_grave._path_index = 1
+		held_grave.stop_burrowing()
+		held_grave._try_burrow()
+		_check(not held_grave._leaping, "Lantern Roots: stop_burrowing keeps it from burrowing this trip")
 		_clear_enemies()
 
 	# --- Sleepwalker wanders into a dead end and back ---
@@ -346,8 +358,8 @@ func _run() -> void:
 	_take_card(dreams, "tangled")
 	spawner._process(0.0)
 	_check(is_equal_approx(tangle.get_move_speed(), tangle.speed * (1.0 - DreamState.TANGLED_SLOW)), "Tangled: 2 statuses, 10% slower")
-	tangle.apply_status(EnemyStatuses.DAMP)
-	_check(is_equal_approx(tangle.get_move_speed(), tangle.speed * (1.0 - DreamState.TANGLED_SLOW - EnemyStatuses.DAMP_SLOW)),
+	tangle.apply_status(EnemyStatuses.DROWSY)
+	_check(is_equal_approx(tangle.get_move_speed(), tangle.speed * (1.0 - DreamState.TANGLED_SLOW - EnemyStatuses.DROWSY_SLOW_PER_STACK)),
 		"and it adds to other slows")
 	var one := _still("leaf_bug", route[7])
 	one.apply_status(EnemyStatuses.MARKED)
@@ -379,6 +391,83 @@ func _run() -> void:
 	var wet_loss: int = 100000 - rot_wet.health
 	_check(dry_loss > 0 and is_equal_approx(float(wet_loss) / dry_loss, 1.2),
 		"Damp Rot: a Soaked nightmare's Poisoned tick is +20%% (%d vs %d)" % [wet_loss, dry_loss])
+	_clear_enemies()
+
+	# --- Status jobs (tower_design.md, 2026-09-29) ---
+	_clear_enemies()
+	var soaked := _still("leaf_bug", route[5])
+	soaked.max_health = 100000
+	soaked.health = 100000
+	soaked.apply_status(EnemyStatuses.DAMP)
+	_check(is_equal_approx(soaked.get_move_speed(), soaked.speed), "Soaked no longer slows")
+	var before_water: int = soaked.health
+	soaked.take_damage(100.0, "water")
+	_check(before_water - soaked.health == 120, "water hits on Soaked +20%% (%d)" % (before_water - soaked.health))
+	before_water = soaked.health
+	soaked.take_damage(100.0, "stone")
+	_check(before_water - soaked.health == 100, "other families aren't boosted")
+	soaked.apply_status(EnemyStatuses.DAMP, 1, 0.0, 1.5)  # Soaked Through II: Damp at potency 1.5
+	before_water = soaked.health
+	soaked.take_damage(100.0, "water")
+	_check(before_water - soaked.health == 130, "Soaked Through II: water hits +30%% (%d)" % (before_water - soaked.health))
+	var hit_sleeper := _still("leaf_bug", route[6])
+	hit_sleeper.statuses.sleep_time = 3.0
+	hit_sleeper.take_damage(5.0, "", false, false, null, &"spored")
+	_check(hit_sleeper.statuses.is_asleep(), "an effect tick doesn't wake it")
+	hit_sleeper.take_damage(5.0)
+	_check(hit_sleeper.statuses.is_asleep(), "a small hit doesn't wake it")
+	hit_sleeper.take_damage(hit_sleeper.max_health * 0.1 + 1)
+	_check(not hit_sleeper.statuses.is_asleep(), "a hit of 10%+ of max health wakes it")
+	var locked := _still("leaf_bug", route[7])
+	locked.max_health = 1000
+	locked.health = 1000
+	locked.statuses.sleep_time = 1.0
+	locked.statuses.sleep_locked_time = 5.0
+	locked.take_damage(500.0)
+	locked.statuses.tick(2.0)
+	_check(locked.statuses.is_asleep(), "Nightbloom's lock: sleep neither breaks nor ends")
+	var sleepy_watcher := _still("watcher", route[8])
+	var near_sleeper := _still("leaf_bug", route[8])
+	near_sleeper.statuses.sleep_time = 3.0
+	sleepy_watcher._update_presence(0.2)
+	_check(not near_sleeper.statuses.is_asleep(), "the Watcher wakes sleepers near it")
+	var boss_sleep := _still("old_stag", route[9])
+	boss_sleep.statuses.sleep_time = 3.0
+	boss_sleep.statuses.tick(0.1)
+	_check(not boss_sleep.statuses.is_asleep(), "bosses never sleep")
+	var caught := _still("leaf_bug", route[10])
+	caught.apply_status(EnemyStatuses.MARKED)
+	caught.apply_status(EnemyStatuses.STATIC, 3)
+	caught.statuses.caught_time = 10.0
+	caught.statuses.caught_bonus = 0.6
+	_check(is_equal_approx(caught.statuses.get_damage_taken_multiplier(), 1.0 + EnemyStatuses.MARKED_EXTRA), "Caught adds no damage")
+	caught.statuses.tick(8.0)
+	_check(caught.statuses.has(EnemyStatuses.MARKED) and caught.statuses.stacks(EnemyStatuses.STATIC) == 3,
+		"Caught: statuses stop wearing off")
+	caught.statuses.caught_shard = true
+	_check(is_equal_approx(caught.statuses.get_caught_tick_bonus(), 0.25), "Great Dreamcatcher: Caught statuses tick +25 percent")
+	# Magpies strip buffs
+	var shell_data: EnemyData = load("res://resource/enemy/shellbound.tres")
+	var shared_mods := {"status_immune": [&"drowsy"], "coat": 1.5, "omen_speed": 1.25, "speed": 1.25, "status_duration": 0.5}
+	var robbed: Node2D = spawner.spawn_enemy(shell_data, 1.0, shared_mods)
+	robbed.set_process(false)
+	var shell_before: float = robbed.coat
+	_check(robbed.strip_buff(null), "strip_buff reports it stripped something")
+	_check(is_equal_approx(robbed.coat, (shell_before - 9.0) / 1.5), "shell: an extra chunk, and Hard Bark's thicker shell gone (%.1f)" % robbed.coat)
+	_check(robbed.statuses.immune.is_empty() and is_equal_approx(robbed.statuses.duration_multiplier_all, 1.0),
+		"Omen immunities and shorter statuses gone")
+	_check(is_equal_approx(robbed.speed, shell_data.speed), "the Omen's speed gone")
+	_check(shared_mods.has("status_immune"), "the shared modifiers aren't touched (split-offs keep theirs)")
+	var weeper_robbed := _still("weeper", route[11])
+	var weeper_patient := _still("leaf_bug", route[11])
+	weeper_patient.health = 50
+	weeper_robbed.strip_buff(null)
+	weeper_robbed._update_presence(1.0)
+	_check(weeper_patient.health == 50, "a robbed Weeper stops mending")
+	weeper_robbed._update_presence(2.5)
+	weeper_robbed._update_presence(1.0)
+	_check(weeper_patient.health > 50, "for 3 s")
+	_check(not _still("leaf_bug", route[12]).strip_buff(null), "nothing to steal from a plain Shade")
 	_clear_enemies()
 
 	# --- Omens: Sleepless (immune to Drowsy and Held), Heavy Rain (always Soaked) ---

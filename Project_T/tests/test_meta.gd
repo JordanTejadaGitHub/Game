@@ -230,6 +230,13 @@ func _run() -> void:
 		migrated[id] = int(memory.unlocks[id])
 	_check(migrated == {"pebbling": 1, "pebbling_hidden": 1, "sporeling_final": 1, "morning_stores": 2}, "v1 ids migrate (%s)" % [migrated])
 	_check(memory.loadout == [] and int(memory.seeds) == 5, "a migrated profile keeps its Seeds, empty loadout")
+	old = FileAccess.open(PROFILE_PATH, FileAccess.WRITE)
+	old.store_string(JSON.stringify({"version": 2, "seeds": 10, "unlocks": {"reactions": 1, "kin_lore": 1, "bittersweet_dreams": 1, "spore_lore": 1}}))
+	old.close()
+	memory = HeartwoodMemory.load_data()
+	_check(int(memory.seeds) == 10 + 70 + 50 + 8 and not memory.unlocks.has("reactions") and not memory.unlocks.has("kin_lore")
+		and memory.unlocks.has("bittersweet_dreams") and memory.unlocks.has("spore_lore"),
+		"v2 profiles: removed discovery nodes refund their Seeds, Bittersweet 8 back (%d, %s)" % [int(memory.seeds), memory.unlocks.keys()])
 
 	# --- The Grove screen: the tree, tapping a bud, planting, the canopy ---
 	memory = HeartwoodMemory.defaults()
@@ -401,7 +408,7 @@ func _layout_node(id: String) -> Dictionary:
 # art, and every UnlockData is on the tree.
 func _check_layout(grove: Array[UnlockData]) -> void:
 	var nodes: Array = GroveTreeView.load_layout().nodes
-	_check(nodes.size() == 82 and grove.size() == 82, "82 Grove nodes (layout %d, data %d)" % [nodes.size(), grove.size()])
+	_check(nodes.size() == 83 and grove.size() == 83, "83 Grove nodes (layout %d, data %d)" % [nodes.size(), grove.size()])
 	for node in nodes:
 		var unlock := HeartwoodMemory.get_unlock(node.id)
 		if unlock == null:

@@ -112,7 +112,7 @@ Wardens mattered. Builds are the heart of the roguelite, so **the game must show
 | Feedback | Design |
 |---|---|
 | **Combo callouts** | a short word pops over the nightmare when a synergy fires, in the triggering Warden's colour: *Conducted!* (lightning through Damp), *Popped!* (Puffball burst), *Asleep!* (Dreamshroom), *Splintered!* (crit splash from *Shattering Blow*), *Weak!* (family weakness). Reactions have their own callouts (below). Throttled so a busy maze shows a few at a time, never a wall of text |
-| **Damage numbers** | setting: **off / big hits only (default) / all**. Crits larger with a ping; weakness hits bright; resisted hits small and grey; status ticks tiny, **in the status's colour** (Spored violet, Static yellow…), and slightly larger for Wardens above 100% Potency |
+| **Damage numbers** | setting: **off (default) / big hits only / all**. Crits larger with a ping; weakness hits bright; resisted hits small and grey; status ticks tiny, **in the status's colour** (Spored violet, Static yellow…), and slightly larger for Wardens above 100% Potency. **Reworked 2026-09-29:** raw hit numbers don't tell the player what's *good*, so the default is now the **Warden DPS tags** and the **drift meter** (below, "Damage that means something"); hit numbers are for players who want them. **Clicking a hit number selects its Warden** |
 | **Status icons** | always visible on nightmares, with stack counts (already specced above); flash when a status is *used* by a combo (Damp flashes as lightning jumps) |
 | **Placement links** | while placing, a small vine icon links the ghost to nearby Wardens it combos with ("combos with Rain Lily"); the Warden panel lists its active links |
 | **Warden panel stats** | damage this run, damage per second over the last drift, and **"from combos: N%"** |
@@ -121,6 +121,56 @@ Wardens mattered. Builds are the heart of the roguelite, so **the game must show
 
 These double as teaching: a new player sees *Conducted!* once and understands why Rain Lily and
 Stormcap belong together.
+
+### Damage that means something
+
+Added 2026-09-29 (user: "damage numbers feel useless; I don't know what's good damage for a
+wave"). Raw hit numbers don't answer the player's real questions: *is my maze strong enough, which
+Wardens are pulling their weight, and is it getting better?* So the default feedback is now DPS,
+compared against what the drift needs and against last drift. All of it is built on `DamageLog`.
+
+**1. The drift benchmark ("what's good").** During a drift, the DriftPanel shows a bar:
+*"Your maze 1,240 DPS · this drift needs ~980 · 127%"*.
+- **Needed DPS** = the drift's total nightmare health (with health scaling, elites and bosses) ÷
+  (the drift's **arrival span** + how long an average nightmare spends walking the **current**
+  path: path length ÷ average speed). As built (abcc477, `WardenMeter`): the arrival span is
+  included because nightmares arrive over 25–30 s; walk time alone would make a maze that exactly
+  keeps up read under 100%.
+  A longer maze lowers the number needed, which teaches the maze pillar.
+- Colour: **green** at 110%+, **amber** 90–110%, **red** under 90% ("you'll leak").
+- At a rest it becomes a forecast: *"Next drift needs ~1,100 · your maze did 1,240 last drift"*.
+- It's an estimate (flyers, splits and leaks aren't exact); the tooltip says so.
+
+**2. Warden DPS tags.** A small tag under each attacking Warden: its DPS this drift.
+- Shown **at rests, while paused and in build mode**; during a drift only on the selected or
+  hovered Warden (setting: *Warden DPS tags: rests only (default) / always / off*).
+- A small **↑12% / ↓8%** beside it compares with **the Warden's own last drift**.
+
+**3. Colour by performance, not by size.** A Warden's colour rates how much it did **for what it
+cost**, so a cheap Warden that does a lot shines, and a big one that coasts doesn't:
+- **Rating** = its share of the maze's damage this drift ÷ its share of the Dew invested (Nurture
+  included). Support Wardens are rated on what they *enabled* (support credit: damage added, Dew
+  caught).
+- **Gold** (1.5× or more): *carrying*. **White** (0.75–1.5×): *pulling its weight*. **Dim blue**
+  (under 0.75×): *underused*.
+- An **underused** Warden's tooltip says why, when the game can tell: *"few nightmares in range"*
+  (placement), *"mostly resisted"*, *"overkill: its hits land on nearly-dispelled nightmares"*.
+- The **most improved** Warden of the drift (the biggest ↑ vs its last drift) gets a small star.
+
+**4. The drift meter.** A collapsible panel on the right edge (like the Test Grove damage meter):
+one row per Warden with portrait, name, DPS, % of the maze, rating colour and ↑↓ vs last drift,
+sorted by DPS (or by rating). A header line: *"Maze 1,240 DPS · ↑8% vs last drift · needs ~980"*.
+
+**5. Click to find it.** Clicking a meter row, a DPS tag or a hit number **selects that Warden and
+glides the camera to it** (`GameCameraNode.glide`); with several Wardens of the same kind, it goes
+to the exact one.
+
+**6. At the rest.** The rest report opens with the maze line (*"Maze 1,240 DPS, ↑8% vs last block,
+needs ~980"*), then **Carrying** (top gold Wardens), **Underused** (with the reason) and **Most
+improved**, next to the existing top damage and top support lines.
+
+- Hit numbers still exist (setting above), and clicking one selects its Warden.
+- Touch: tags and meter rows are tap targets; nothing is hover-only (mobile port).
 
 ### Impact tiers: bigger combos must feel bigger
 
@@ -178,8 +228,10 @@ at rests**, when the screen is calm; in combat Kinships are nearly invisible.
 | **Bond forms** | when placed or evolved (almost always at a rest) | a vine grows along the ground between them, both flare in the family colour, petals burst, callout *"Kinship: Slumber Rot"*, a two-note chord (one note per Warden). First time ever: discovery card + Codex entry |
 | **Bond grows** (Blooming, Old Kin) | **queued to the next rest** even if reached mid-drift | the vine thickens / flowers, a soft chime, a small line in the rest report |
 | **Whole Tree** | once per family per run; **held until the next rest** if reached mid-drift | every Warden of the family flares at once, **the Heartwood itself blossoms** in the family's colour (light climbs its bark, the crown bursts into bloom, a ring pulses over the roots; `whole_tree_sigil`, drawn above the Heartwood sprite), banner *"The Sporeling line is whole."*; a lasting small badge on those Wardens |
-| **Harmony strike** | in combat | **a small two-colour spark** (crit-glint size) on the nightmare; the bonus damage merges into the hit's number, tinted green. **No callout in combat.** Counted in the rest report ("Harmony strikes: 84") |
-| **Vines** | always | on the ground under the Wardens, **~30% brightness, still during drifts**; full brightness in build mode, when one of the pair is selected, and during the rest moments |
+| **Harmony strike** | in combat | grows with the bond: **Sapling** a small two-colour spark (crit-glint size); **Blooming** petals spiral in from both Wardens; **Old Kin** two beams of light leave both Wardens and meet on the nightmare, bursting into petals. The bonus damage merges into the hit's number, tinted green. **No callout in combat.** Counted in the rest report ("Harmony strikes: 84") |
+| **Vines** | always | on the ground under the Wardens, **~30% brightness, still during drifts**; full brightness in build mode, when one of the pair is selected, and during the rest moments. When a borrowed trait fires, a **bead of light runs along the vine** from teacher to learner |
+| **Borrowed looks** | in combat | a kin Warden's attacks carry its sibling's colour and a hint of the borrowed trait (a lilac sleep-swirl on Driftspore's puffs, a gold edge on Stormcap's lightning…) |
+| **Breathing together** | always | bonded Wardens' idle animations sync; at **Old Kin** a small flowering arch grows over the pair |
 
 **Screen priority** (what wins when things overlap): Crowned Reactions and Dawnburst > Reactions
 and chains > crits and weakness hits > Harmony sparks > vines.
@@ -211,15 +263,39 @@ the rule was never taught and the bond was nearly invisible. Changes:
   first rest where the player owns two branches of a family but has no Kinship.
 - Rest report / results: Kinships formed, Harmony strikes, families made Whole.
 
+### Support and economy feedback: Wardens that don't deal damage
+
+Added 2026-09-29 (user request: economy felt weak, and non-attacking Wardens should feel as
+impactful as attackers). Economy, aura and wall Wardens are credited for what they **enable**, and
+each gets a visible payoff. As with Kinships, **the big moments come at rests**; in combat they stay
+light.
+
+| Warden kind | In combat (light) | At the rest (the payoff) | Panel line |
+|---|---|---|---|
+| **Catchers** (Dewcatcher, Wellspring) | a caught nightmare's Dew pop turns **gold** and a small droplet arcs into the catcher, whose bowl **visibly fills** over the block (no extra numbers) | **The Harvest:** each catcher pours its bowl into the Dew counter in a short cascade, *"Harvest +126 Dew"*, then the Wellspring's interest ripples in on top | *"Caught this run: 240 Dew · paid back ✓"* (shows *"38 Dew to pay back"* until then) |
+| **Auras** (Acorn, Elder Stump, Grove Heart, Grandmother Oak, the White Stag) | boosted Wardens carry a faint leaf mote; the aura ring breathes softly (brighter in build mode or when selected) | a line in the rest report: *"Elder Stump added 3,400 damage"* | *"Added this run: 12,800 damage (+18% to 6 Wardens)"*: the extra damage its bonus caused, credited through `DamageLog` |
+| **Walls** (Thornwall, Bramble, Honeysuckle) | nothing new | rest report: *"Your walls added 34 path tiles"*; Bramble's damage; Honeysuckle's Drowsy applied | Thornwall: *"Adds 3 path tiles"*; Honeysuckle: *"Drowsy applied: 410"* |
+| **Control** (Rootling line, holds and pulls) | nothing new | rest report: *"Held for 42 s · pulled back 31 tiles"* | *"Held 42 s · pulled back 31 tiles this run"* |
+
+- **Rest report "Support" line:** the top supporter of the block by what it enabled (*"Top support:
+  Grove Heart, +9,200 damage to 7 Wardens"*), next to the top-damage Wardens, so support Wardens
+  can be the block's MVP.
+- **Results screen:** a *"Best supporter"* next to *"Best Warden"*, and total Dew harvested.
+- **Placement preview** for catchers: the build ghost shades the path tiles in catch range, with
+  *"~31% of dispels last block happened here"* (from `DamageLog` positions), so the player can
+  find the kill zone.
+- **Clutter:** catch droplets and leaf motes share the effects budget below Harmony sparks; with
+  *reduce flashes* the Harvest is a simple count-up.
+
 ## Stat and status icons
 
 Added 2026-09-27 (user request). **Every stat and every status has a pixel-art icon**, and **every
 icon explains itself**: hover on PC, tap on touch, a small tooltip in plain words.
 
 - **Status icons** (on nightmares, in panels, in the Codex): Damp, Drowsy, Spored, Marked, Static,
-  Held, Caught, Frozen, plus Deeply Blighted and Hidden. Distinct **shapes**, not just colours
-  (accessibility). Tooltip example: *"Damp: 10% slower. Lightning jumps further between Damp
-  nightmares."* (names may change, see below).
+  Held, Asleep, Caught, Frozen, plus Deeply Blighted and Hidden. Distinct **shapes**, not just colours
+  (accessibility). Tooltip example: *"Damp: soaked. Water hits +20%. Lightning jumps further between
+  Damp nightmares."* (names may change, see below).
 - **Warden stat icons** (Warden panel, build tooltips, Dream cards): Damage, Attack speed, Range,
   Crit chance, Crit damage, Potency, Rank, Focus (Power / Swift / Reach / Deep), Dew cost,
   Dreamlight cost. Tooltip example: *"Attack speed: attacks per second."*
@@ -301,26 +377,26 @@ Every combo starts **locked** and is **discovered the first time it actually fir
 |---|---|---|---|
 | Synergy | **Conducted** | Damp + lightning (Stormcap) | lightning jumps further and more often between Damp nightmares |
 | Synergy | **Popped** | Spored 10+ + Puffball | the spores burst over the nightmare and its neighbours |
-| Synergy | **Asleep** | full Drowsy + Dreamshroom | the nightmare falls asleep |
+| Synergy | **Asleep** | full Drowsy + Dreamshroom | the nightmare falls asleep for 3 s; a big hit (10%+ of its health) wakes it |
 | Synergy | **Spore Fog** | Spored + Mistveil fog | spores tick harder inside the fog |
 | Synergy | **Set Off** | Static + a pulse (Chime Stone, Lullaby Bell) | the pulse sets off a Static bolt |
 | Synergy | **Exposed Blow** | Marked + a heavy hitter (Mossback, Boulderback) | double damage on Marked nightmares |
-| Synergy | **Caught** | asleep / full Drowsy + Dreamcatcher | the nightmare takes extra damage from everything |
-| Reaction | **Drown** | Damp + full Drowsy | falls asleep for 2 s |
-| Reaction | **Ignite** | 3 Spored + Static | every spore stack goes off, and sparks spread |
+| Synergy | **Caught** | asleep / full Drowsy + Dreamcatcher | the nightmare's statuses stop wearing off |
+| Reaction | **Drown** | Damp + full Drowsy | pulled under for 3 s: a heavy slow and growing drowning damage |
+| Reaction | **Ignite** | 3 Spored + Static | the spores burn: they tick 3× as fast and spread to neighbours |
 | Reaction | **Lightning Rod** | Marked + Static | nearby Static bolts strike it at 2× |
 | Reaction | **Mushrooming** | 3 Spored + Damp | spores tick harder and a spore cloud grows |
 | Reaction | **Pinned** | Marked + Held or full Drowsy | the next hit is a guaranteed 3× crit |
 | Reaction | **Shatter** | Held + Damp, then a crit or heavy hit | that hit does 2.5× and shards fly |
 | Reaction | **Smother** | Held + Spored | spores tick three times as fast while held |
 | Reaction | **Thunderclap** | Damp + 3 Static | 4× damage; lightning arcs to nearby Damp nightmares |
-| Crowned | **Tempest** | Thunderclap + Spored | arcs also Ignite spored nightmares; the storm feeds itself |
-| Crowned | **Still Pool** | Drown + Held | leaves a pool that puts walkers to sleep |
-| Crowned | **Fever Dream** | Smother ends on full Drowsy | spores go off at once; spores and sleep spread to neighbours |
+| Crowned | **Tempest** | Thunderclap + Spored | arcs set spored nightmares burning; the storm feeds itself |
+| Crowned | **Still Pool** | Drown + Held | leaves a pool that pulls walkers under |
+| Crowned | **Fever Dream** | Smother ends on full Drowsy | it falls asleep, and spores and sleepiness spread to neighbours |
 | Crowned | **Starfall** | Pinned + Static | nearby Static bolts all strike the pinned nightmare as crits |
 | Crowned | **Avalanche** | a Cairn lob sets off Shatter | the Shatter spreads to every wet, held nightmare under the lob |
 | Crowned | **Prismstorm** | Shatter + Static | ice shards carry lightning to nearby nightmares |
-| Crowned | **Nightbloom** | Mushrooming + full Drowsy | a glowing cloud where nothing can wake, even with a Watcher |
+| Crowned | **Nightbloom** | Mushrooming + full Drowsy | a glowing cloud where sleep can't break or end, even with a Watcher |
 | Crowned | **Fairy Circle** | Mushrooming + Held | a ring of mushrooms that spores and soaks the next walkers |
 
 **Crowned entries** (added 2026-09-27, `tower_design.md` "Crowned Reactions"): locked ones show

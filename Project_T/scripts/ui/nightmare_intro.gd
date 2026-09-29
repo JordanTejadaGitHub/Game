@@ -21,6 +21,9 @@ const OPEN_DELAY := 0.35
 const NEW_COLOR := UiStyle.GOLD  # Glow
 
 static var session_seen := {}  # Kind -> true: shown this session (dev runs, tests)
+# Headless scripts (tests, balance sims) never pause on a mid-drift card (a drift would stall), unless
+# a test turns it on, like ComboFeedback.pause_in_tests.
+static var pause_in_tests := false
 
 var drift_director: DriftDirector
 var queue: Array = []  # EnemyData still to show, in order
@@ -364,4 +367,6 @@ func _on_spawned(node: Node) -> void:
 	if _met.has(kind) or session_seen.has(kind):
 		return
 	_met[kind] = true
+	if OS.get_cmdline_args().has("--script") and not pause_in_tests:
+		return
 	open.call_deferred([data], 0, node)  # Paused, centred: meet it now

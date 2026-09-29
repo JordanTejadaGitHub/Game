@@ -11,6 +11,7 @@ const GROUP := &"omens"
 const OMEN_DIR := "res://resource/omen/"
 const ACT_REWARD_SCALE := [1.0, 1.5, 2.0, 2.5]  # Dew and Seed rewards, by act
 const TREE := preload("res://resource/obstacle/tree.tres")  # Shifting Ground's sprouts
+const RENAMED := {"harvest_moon": "bountiful_night"}  # Old Omen ids in saved runs
 
 # The Omens for block `block` (drifts first..last) are ready; the Omen screen pauses and shows them.
 signal offer_ready(omens: Array[OmenData], block: int)
@@ -105,8 +106,9 @@ func get_schedule_modifiers(drift_number: int) -> Dictionary:
 func get_spawn_modifiers(drift_number: int) -> Dictionary:
 	if not is_active_for(drift_number):
 		return {}
-	var modifiers := {"speed": active.speed_multiplier, "coat": active.coat_multiplier,
+	var modifiers := {"speed": active.speed_multiplier, "omen_speed": active.speed_multiplier, "coat": active.coat_multiplier,
 		"dew": active.creature_dew_multiplier, "status_duration": active.status_duration_multiplier}
+	# omen_speed: the Omen's share of "speed" (DriftDirector folds Dreams and Blight into it); Magpies strip it.
 	if not active.status_immune.is_empty():
 		modifiers["status_immune"] = active.status_immune  # Sleepless (Enemy Code adds them)
 	if active.always_status != &"":
@@ -393,7 +395,7 @@ func to_save() -> Dictionary:
 func load_save(data: Dictionary) -> void:
 	active = null
 	active_block = int(data.get("active_block", 0))
-	_last_offer_ids.assign(data.get("last_offer", []))
+	_last_offer_ids.assign(Array(data.get("last_offer", [])).map(func(i: String) -> String: return RENAMED.get(i, i)))
 	tree_seed_bonus = int(data.get("tree_seed_bonus", 0))
 	_sprouted_block = int(data.get("sprouted_block", 0))
 	# An offer still open at a save comes back as the Omen screen
@@ -401,13 +403,13 @@ func load_save(data: Dictionary) -> void:
 	showing = false
 	for offered_id in data.get("offer", []):
 		for omen in pool:
-			if omen.id == offered_id:
+			if omen.id == RENAMED.get(offered_id, offered_id):
 				current_offer.append(omen)
 	current_offer_block = int(data.get("offer_block", 0))
 	if not current_offer.is_empty():
 		_offer_waiting = true
 		_try_show.call_deferred()
-	var id: String = data.get("active", "")
+	var id: String = RENAMED.get(data.get("active", ""), data.get("active", ""))
 	for omen in pool:
 		if omen.id == id:
 			active = omen

@@ -332,7 +332,17 @@ func _save_attack_info() -> void:
 		var info: Dictionary = ATTACKS[warden].duplicate()
 		info.point = [info.point.x, info.point.y]
 		wardens[warden] = info
-	var data := {frame_size = S, frames = ATTACK_FRAMES, release_frame = RELEASE_FRAME, wardens = wardens}
+	# Where the Dew catchers' bowls sit (the bowl's surface centre and radii at dy 0), and how far the
+	# bowl bobs per idle frame (add dy_by_frame[frame] to point.y). Fill overlays in effects.json
+	# (catcher_fill_<id>) are drawn to line up with the sprite already.
+	var idle_dy: Array = []
+	for f in FRAMES:
+		idle_dy.append(_idle_state(f).dy)
+	var bowls := {
+		dewcatcher = {point = [30, 5], radius = [11, 2], dy_by_frame = idle_dy},
+		wellspring = {point = [30, 5], radius = [7, 1], dy_by_frame = idle_dy},
+	}
+	var data := {frame_size = S, frames = ATTACK_FRAMES, release_frame = RELEASE_FRAME, wardens = wardens, bowls = bowls}
 	var file := FileAccess.open(OUT + "attacks.json", FileAccess.WRITE)
 	file.store_string(JSON.stringify(data, "\t") + "\n")
 
@@ -423,7 +433,7 @@ const ROCK_TOUCH_WARDENS := {
 }
 # Rocks hidden where a Warden's own props stand (left / right / front of the golem).
 const HIDDEN_ROCKS := {
-	"echo_hollow": ["left"], "whispering_hollow": ["left"],
+	"echo_hollow": ["left"], "whispering_hollow": ["left"], "starcave": ["left"],
 }
 
 func _hidden_rocks() -> Array:
@@ -537,6 +547,9 @@ func _touch_rocks(canvas: Image, px: Dictionary, touch: String) -> void:
 # fill pixels by its 'o' lines, and every region lying mostly inside a rock zone is rock, plus the
 # 'o' pixels that only border rock (or nothing).
 const ROCK_PAL := {o = Color("#1e1c28"), a = Color("#b9b6c6"), b = Color("#8f8ca2"), c = Color("#65627a")}
+# The same stone as a shading ramp, for loose props that lie on the ground beside the side rocks
+# (pebbles, cairn stacks, rockslide boulders) so they match them instead of the golem's body.
+const ROCK_RAMP := ["#65627a", "#8f8ca2", "#b9b6c6", "#d6d3e0"]
 var _rock_cache := {}  # pose grid -> {index: true}
 
 func _rock_zone(x: int, y: int) -> bool:
@@ -697,10 +710,16 @@ func _pal(o: String, a: String, b: String, c: String) -> Dictionary:
 	return {o = Color(o), a = Color(a), b = Color(b), c = Color(c)}
 
 # --- Projectiles ------------------------------------------------------------------------------
-# 16x16 frames, 4 per sheet, drawn pointing right (+x) so the game can rotate them to face travel.
+# 24x24 frames, 4 per sheet, drawn pointing right (+x) so the game can rotate them to face travel.
+# Drawn round (32, 32) of the work canvas. Projectile / PeckingBird / SeedBoomerang / PatrolFlight
+# read the frame size from the texture.
 
-const P := 16
+const P := 24
 const P_FRAMES := 4
+const P_AT := 20  # the frame's top-left on the work canvas
+# Shots that light themselves in their own colour, and traps (they lie on the path, unlit).
+const P_OWN_GLOW := ["dew_drop", "spark", "light_orb", "moon_shard", "frost_shard", "moon_mote", "dream_mote",
+	"fairy_ring", "elf_circle"]
 var projectile_sheets: Array[Image] = []
 
 func _make_projectile(proj_name: String) -> void:
@@ -708,8 +727,9 @@ func _make_projectile(proj_name: String) -> void:
 	for f in P_FRAMES:
 		var canvas := _layer()
 		call("_proj_" + proj_name, canvas, f)
-		_warm_glow(canvas, Vector2(33, 32), Vector2(7.5, 6.5), f)  # every Warden shot glows warmly
-		sheet.blit_rect(canvas, Rect2i(24, 24, P, P), Vector2i(f * P, 0))
+		if not proj_name in P_OWN_GLOW:
+			_soft_glow(canvas, Vector2(32, 32), Vector2(10.5, 9), f)  # every Warden shot glows warmly
+		sheet.blit_rect(canvas, Rect2i(P_AT, P_AT, P, P), Vector2i(f * P, 0))
 	sheet.save_png(OUT + "projectiles/" + proj_name + ".png")
 	projectile_sheets.append(sheet)
 
@@ -732,17 +752,404 @@ func _spinning_rock(canvas: Image, f: int, r: float, ramp: Array[Color], o: Colo
 		pts.append(Vector2(32, 32) + Vector2.from_angle(a) * r * radii[k])
 	_rock(canvas, pts, ramp, o)
 
+# Soft warm light round a projectile: translucent steps (not dithered) so it reads as a glow at any
+# zoom, breathing a little with the frame. It only lights empty pixels: draw it after the shot.
+func _soft_glow(canvas: Image, c: Vector2, r: Vector2, f: int = 0, col: Color = GLOW_OUTER, strength: float = 0.34) -> void:
+	var rr: Vector2 = r * (1.0 + [0.0, 0.06, 0.1, 0.06][f % 4])
+	for y in S:
+		for x in S:
+			if canvas.get_pixel(x, y).a > 0.0:
+				continue
+			var q: float = ((Vector2(x + 0.5, y + 0.5) - c) / rr).length()
+			if q >= 1.0:
+				continue
+			var a := snappedf(strength * pow(1.0 - q, 1.5), 0.05)
+			if a > 0.0:
+				canvas.set_pixel(x, y, Color(col.lerp(GLOW_INNER, 1.0 - q), a))
+
+# A pixel that only lands on empty canvas (trails and streaks stay behind the shot).
+func _px_under(canvas: Image, x: int, y: int, color: Color) -> void:
+	if x >= 0 and y >= 0 and x < S and y < S and canvas.get_pixel(x, y).a == 0.0:
+		canvas.set_pixel(x, y, color)
+
+# A fading, wavy trail running left (behind the shot) from `from`, broken up towards its end.
+func _trail(canvas: Image, from: Vector2, length: int, col: Color, f: int, wobble: float = 0.0) -> void:
+	for k in length:
+		var t := k / float(length)
+		if t > 0.5 and (k + f) % 2 == 1:
+			continue
+		var p := from + Vector2(-k, sin((k + f * 2) * 0.8) * wobble * t)
+		_px_under(canvas, roundi(p.x), roundi(p.y), Color(col, snappedf(0.95 * (1.0 - t), 0.1)))
+
+# Speed dashes behind a thrown stone.
+func _speed_lines(canvas: Image, at: Vector2, f: int, col: Color) -> void:
+	for k in 3:
+		var y := roundi(at.y) + (k - 1) * 4
+		var x0 := roundi(at.x) - (f + k) % 2 - (1 if k == 1 else 0)
+		var n := 4 if k == 1 else 3
+		for i in n:
+			_px_under(canvas, x0 - i, y, Color(col, 0.8 - i * 0.18))
+
+# Cracks and a moss tuft that turn with a _spinning_rock (TAU/24 per frame).
+func _rock_marks(canvas: Image, c: Vector2, f: int, r: float) -> void:
+	var a := f * TAU / 24.0
+	var crack := c + Vector2.from_angle(a + 0.9) * r * 0.2
+	for i in 3:
+		var p := crack + Vector2.from_angle(a + 0.9 + (0.5 if i == 2 else 0.0)) * i
+		_px(canvas, roundi(p.x), roundi(p.y), Color("#4a4e7a"))
+	var moss := c + Vector2.from_angle(a - 2.1) * r * 0.55
+	_px(canvas, roundi(moss.x), roundi(moss.y), Color("#7cbc5a"))
+	_px(canvas, roundi(moss.x) + 1, roundi(moss.y), Color("#5a9a3a"))
+	_px(canvas, roundi(moss.x), roundi(moss.y) - 1, Color("#a8dc78"))
+	var shine := c + Vector2(-0.35, -0.5) * r
+	_px(canvas, roundi(shine.x), roundi(shine.y), Color("#f4f6ff"))
+
+# A fluffy spore puff trailing loose spores (Sprout, Sporeling, Puffball, Driftspore).
 func _proj_spore(canvas: Image, f: int) -> void:
-	var puff := _ramp(["#9ab04a", "#e0ec98", "#fff6c8", "#ffffff"])  # warm, sunlit spores
-	var grow: float = [0.0, 0.5, 1.0, 0.5][f]
+	var puff := _ramp(["#8aa040", "#c8dc78", "#eef6b0", "#ffffff"])
+	var g: float = [0.0, 0.4, 0.8, 0.4][f]
 	var layer := _layer()
-	_ellipse(layer, Vector2(33, 32), Vector2(4 + grow, 4 + grow), puff)
-	_ellipse(layer, Vector2(28, 33), Vector2(2.5 + grow * 0.5, 2.5 + grow * 0.5), puff)
-	_ellipse(layer, Vector2(31, 28), Vector2(2.5, 2.5), puff)
+	_ellipse(layer, Vector2(34, 32), Vector2(5.0 + g, 4.6 + g), puff)
+	_ellipse(layer, Vector2(29.5, 34), Vector2(3.2, 3.0), puff)
+	_ellipse(layer, Vector2(30.5, 28.5), Vector2(3.0, 2.8), puff)
+	_ellipse(layer, Vector2(37.5, 35.5), Vector2(2.4, 2.2), puff)
 	_stamp(canvas, layer, Color("#2a3a1a"))
-	# Trailing spore dots.
-	_px(canvas, 25 - f % 2, 30 + f % 2, Color("#d8f4a8"))
-	_px(canvas, 26, 35 - f % 2, Color("#a8d468"))
+	for d: Vector2i in [Vector2i(33, 31), Vector2i(36, 33), Vector2i(30, 34), Vector2i(29, 28), Vector2i(35, 29)]:
+		_px(canvas, d.x + (f % 2 if d.x > 32 else 0), d.y, Color("#9ab04a"))
+	_px(canvas, 32, 29, Color.WHITE)
+	_px(canvas, 33, 29, Color.WHITE)
+	for k in 4:
+		var p := Vector2(25.0 - k * 2.5, 32.0 + sin(f * PI / 2.0 + k * 2.0) * 2.5)
+		_px_under(canvas, roundi(p.x), roundi(p.y), Color("#e8f4a8") if k < 2 else Color("#b8d470", 0.7))
+		if k == 0:
+			_px_under(canvas, roundi(p.x) + 1, roundi(p.y), Color("#c8dc78"))
+
+func _proj_pebble(canvas: Image, f: int) -> void:
+	_spinning_rock(canvas, f, 5.5, _ramp(["#686d9a", "#979dc2", "#c4c9e2", "#e4e7f4"]), Color("#1c1c36"))
+	_rock_marks(canvas, Vector2(32, 32), f, 5.5)
+	_speed_lines(canvas, Vector2(25, 32), f, Color("#e4e7f4"))
+
+# A heavy mossy boulder (Boulderback, Mossback).
+func _proj_boulder(canvas: Image, f: int) -> void:
+	var c := Vector2(33, 32)
+	var pts := PackedVector2Array()
+	var radii := [1.0, 0.82, 0.95, 0.78, 1.0, 0.86, 0.92]
+	for k in 7:
+		pts.append(c + Vector2.from_angle(k * TAU / 7.0 + f * TAU / 28.0) * 9.0 * radii[k])
+	_rock(canvas, pts, _ramp(STONE), Color("#1c1c36"))
+	_rock_marks(canvas, c, f, 8.0)
+	# A moss cap on whichever side is up.
+	var top := c + Vector2.from_angle(-PI / 2.0 + f * TAU / 28.0) * 5.0
+	for dx in range(-3, 4):
+		_px(canvas, roundi(top.x) + dx, roundi(top.y) + (1 if absi(dx) == 3 else 0), Color("#5a9a3a" if dx % 2 else "#7cbc5a"))
+	_px(canvas, roundi(top.x), roundi(top.y) - 1, Color("#a8dc78"))
+	_speed_lines(canvas, Vector2(22, 32), f, Color("#e4e7f4"))
+
+# A water bead flying right: round front, wobbling tail, a bubble inside, spray behind.
+func _proj_dew_drop(canvas: Image, f: int) -> void:
+	var water := _ramp(["#2a60b0", "#4a90dc", "#8ac8f8", "#e8faff"])
+	var wob: float = [0.0, 0.3, 0.0, -0.3][f]
+	var layer := _layer()
+	for step in 20:
+		var t := step / 19.0
+		var rr := 5.0 * pow(1.0 - t, 1.25)
+		if rr >= 0.5:
+			_ellipse(layer, Vector2(36 - t * 14, 32 + sin(t * 3.0 + f) * wob * 2.0), Vector2(rr * (1.0 + wob * 0.1), rr * (1.0 - wob * 0.1)), water)
+	_stamp(canvas, layer, Color("#12285a"))
+	_px(canvas, 37, 29, water[3])
+	_px(canvas, 38, 30, water[3])
+	_px(canvas, 36, 29, water[3])
+	_px(canvas, 33, 34, Color("#bfe6ff"))
+	_px(canvas, 34, 33, Color("#bfe6ff"))
+	for k in 3:
+		var p := Vector2(22.0 - k * 2.0, 30.0 + [0, 4, 1][k] + (f + k) % 2)
+		_px_under(canvas, roundi(p.x), roundi(p.y), Color(water[2], 0.9 - k * 0.2))
+	_soft_glow(canvas, Vector2(34, 32), Vector2(9, 8), f, Color("#9ad4ff"), 0.28)
+
+# A firefly: glowing tail, dark head and feelers, flickering wings, a trail of sparks.
+func _proj_spark(canvas: Image, f: int) -> void:
+	var lit: float = [1.0, 0.8, 1.0, 0.9][f]
+	_soft_glow(canvas, Vector2(30, 32), Vector2(7.5, 6.5), f, Color("#d8f060"), 0.45 * lit)
+	var tail := _layer()
+	_ellipse(tail, Vector2(30, 32.5), Vector2(3.8, 3.0), _ramp(["#e8b030", "#ffe060", "#fff6a0", "#ffffff"]))
+	_stamp(canvas, tail, Color("#8a6a18"))
+	for x in range(28, 32):
+		if x % 2 == 0:
+			_px(canvas, x, 31, Color("#ffffff"))
+	var body := _layer()
+	_flat_ellipse(body, Vector2(34.5, 32), Vector2(1.8, 1.8), Color("#4a3620"))
+	_flat_ellipse(body, Vector2(37, 31.5), Vector2(1.3, 1.3), Color("#2a1e14"))
+	_stamp(canvas, body, Color("#140c08"))
+	_px(canvas, 37, 31, Color("#f07050"))
+	_px(canvas, 39, 30, Color("#2a1e14"))
+	_px(canvas, 40, 29, Color("#2a1e14"))
+	var up := f % 2 == 0
+	var wing := _layer()
+	_flat_ellipse(wing, Vector2(32.5, 28.5 if up else 30.0), Vector2(3.2, 1.6 if up else 1.2), Color(0.92, 0.97, 1.0, 0.75))
+	_stamp(canvas, wing, Color(0.55, 0.65, 0.8, 0.8))
+	_trail(canvas, Vector2(25, 33), 7, Color("#f0f090"), f, 2.0)
+	_px_under(canvas, 23 - f % 2, 30, Color("#fff6a0"))
+
+# A lantern-light orb: a flame inside a glowing bead, four rays turning, embers behind.
+func _proj_light_orb(canvas: Image, f: int) -> void:
+	var c := Vector2(33.5, 32.5)  # half-pixel centres keep small orbs round
+	for k in 4:
+		var d := Vector2.from_angle(k * TAU / 4.0 + (PI / 4.0 if f % 2 else 0.0))
+		for i in range(6, 9):
+			_px(canvas, roundi(c.x + d.x * i), roundi(c.y + d.y * i), Color("#fff0b0", 1.0 - (i - 6) * 0.3))
+	var orb := _layer()
+	_ellipse(orb, c, Vector2(4.6, 4.6), _ramp(["#e89040", "#f8c060", "#fff0b0", "#ffffff"]))
+	_stamp(canvas, orb, Color("#a8602a"))
+	# The little flame at its heart, leaning back from the flight.
+	var flame := [Vector2i(0, 1), Vector2i(0, 0), Vector2i(-1, 0), Vector2i(0, -1), Vector2i(-1, -1), Vector2i(-1 - f % 2, -2)]
+	for i in flame.size():
+		var q: Vector2i = flame[i]
+		_px(canvas, floori(c.x) + q.x, floori(c.y) + q.y, Color("#ff9a3a") if i < 2 else Color("#fff6d0"))
+	_trail(canvas, Vector2(27, 32), 8, Color("#f8c060"), f, 2.5)
+	_soft_glow(canvas, c, Vector2(11, 10), f, GLOW_OUTER, 0.4)
+
+# A sling stone with a golden streak behind it (Standing Stone).
+func _proj_sling_stone(canvas: Image, f: int) -> void:
+	_spinning_rock(canvas, f, 4.5, _ramp(STONE), Color("#1c1c36"))
+	_rock_marks(canvas, Vector2(32, 32), f, 4.5)
+	# A carved rune glowing on its face.
+	_px(canvas, 32, 31, MEMORY_GOLD)
+	_px(canvas, 32, 32, MEMORY_GOLD)
+	_px(canvas, 31, 31, Color("#fff0b0"))
+	for k in 10:
+		var col := GLOW_INNER.lerp(GLOW_OUTER, k / 10.0)
+		_px_under(canvas, 27 - k, 32 + (1 if k > 5 and (k + f) % 2 else 0), Color(col, 1.0 - k * 0.09))
+		if k < 6:
+			_px_under(canvas, 27 - k, 31, Color(col, 0.6 - k * 0.1))
+
+# A silver crescent shard, lit on its inner edge, trailing star-glints (Moonstone).
+func _proj_moon_shard(canvas: Image, f: int) -> void:
+	var layer := _layer()
+	_ellipse(layer, Vector2(34, 32), Vector2(6, 6), _ramp(["#8aa0d8", "#c0d4f4", "#e8f2ff", "#ffffff"]))
+	var hole := Vector2(31.2, 30.6)
+	for y in S:
+		for x in S:
+			if Vector2(x + 0.5, y + 0.5).distance_to(hole) < 5.2:
+				layer.set_pixel(x, y, Color(0, 0, 0, 0))
+	_stamp(canvas, layer, Color("#2a2a5a"))
+	_px(canvas, 38, 33, Color.WHITE)
+	_px(canvas, 37, 35, Color.WHITE)
+	for k in 3:
+		var p := Vector2i(27 - k * 3, 33 + (k + f) % 2 * 2 - 1)
+		if (k + f) % 3 == 0:
+			_sparkle(canvas, p, Color("#dfeeff"))
+		else:
+			_px_under(canvas, p.x, p.y, Color("#c8e0ff", 0.8 - k * 0.2))
+	_soft_glow(canvas, Vector2(34, 32), Vector2(9, 9), f, Color("#c8dcff"), 0.3)
+
+# A faceted ice shard pointing right: light top facet, ridge, frost motes behind (Frostfern).
+func _proj_frost_shard(canvas: Image, f: int) -> void:
+	var o := Color("#16305e")
+	var top := PackedVector2Array([Vector2(43, 32), Vector2(35, 28.5), Vector2(24, 29.5), Vector2(27.5, 32.1)])
+	var bottom := PackedVector2Array([Vector2(43, 32), Vector2(27.5, 32), Vector2(24, 34.5), Vector2(35, 35.5)])
+	var layer := _layer()
+	_flat_polygon(layer, top, Color("#e4f6ff"))
+	_flat_polygon(layer, bottom, Color("#8ac4f0"))
+	_stamp(canvas, layer, o)
+	for x in range(28, 42):
+		_px(canvas, x, 32, Color("#ffffff") if x > 33 else Color("#b8e2ff"))
+	for x in range(30, 36):
+		_px(canvas, x, 34, Color("#6aa8e0"))
+	_px(canvas, [29, 32, 35, 38][f], 30, Color.WHITE)
+	_px(canvas, [29, 32, 35, 38][f] + 1, 30, Color.WHITE)
+	for k in 2:
+		var p := Vector2i(20 - k * 3 + f % 2, 30 + k * 4)
+		_px_under(canvas, p.x, p.y, Color("#e4f6ff"))
+		if (k + f) % 2 == 0:
+			for d: Vector2i in [Vector2i.LEFT, Vector2i.RIGHT, Vector2i.UP, Vector2i.DOWN]:
+				_px_under(canvas, p.x + d.x, p.y + d.y, Color("#b8e2ff", 0.7))
+	_soft_glow(canvas, Vector2(33, 32), Vector2(11, 7), f, Color("#b8e2ff"), 0.28)
+
+# Swooping birds: Warden-sized, with a drifting feather behind.
+func _bird_proj(canvas: Image, f: int, body: Array[Color], o: Color, beak: Color = Color("#e8a040")) -> void:
+	_bird(canvas, Vector2(33, 33), 1, body, o, f % 2 == 0, beak, 1.55)
+	var eye := Vector2(33, 33) + Vector2(2.4, -1.6) * 1.55
+	_px(canvas, roundi(eye.x) + 1, roundi(eye.y) - 1, Color.WHITE)
+	for x in range(30, 35):
+		_px(canvas, x, 35, body[2])  # pale belly
+	var fe := Vector2i(22 - f % 2, 29 + [0, 1, 2, 1][f])
+	_px_under(canvas, fe.x, fe.y, body[1])
+	_px_under(canvas, fe.x + 1, fe.y, body[2])
+	_px_under(canvas, fe.x - 1, fe.y + 1, body[1])
+
+func _proj_sparrow(canvas: Image, f: int) -> void:
+	_bird_proj(canvas, f, _ramp(["#8a5a3a", "#b88058", "#e0b890"]), Color(FEATHER[0]))
+
+func _proj_wren(canvas: Image, f: int) -> void:
+	_bird_proj(canvas, f, _ramp(["#6a4020", "#9a6438", "#c89060"]), Color("#2a140a"))
+	for x in [31, 33]:
+		_px(canvas, x, 31, Color("#4a2810"))  # barred wings
+
+func _proj_magpie(canvas: Image, f: int) -> void:
+	_magpie(canvas, Vector2(33, 34), Color("#141420"), f % 2 == 0, f < 2, 1.45, 1)
+
+# Starling Murmuration: an iridescent starling with star-speckles.
+func _proj_starling_bird(canvas: Image, f: int) -> void:
+	_bird_proj(canvas, f, _ramp(["#241c34", "#3e3258", "#7a6a9a"]), Color("#0e0a16"), Color("#f0c050"))
+	for d: Vector2i in [Vector2i(31, 32), Vector2i(34, 33), Vector2i(29, 34), Vector2i(36, 31)]:
+		_px(canvas, d.x, d.y, Color("#f4f0ff") if (d.x + f) % 2 else Color("#7ad0b0"))
+
+# Kept for old saves / art that still names it: a small flock.
+func _proj_starling(canvas: Image, f: int) -> void:
+	for k in 4:
+		var p := Vector2i(36 - k * 4, 31 + [0, 4, -3, 2][k])
+		var up := (f + k) % 2 == 0
+		_px(canvas, p.x, p.y, Color("#241c34"))
+		_px(canvas, p.x + 1, p.y, Color("#3e3258"))
+		_px(canvas, p.x - 1, p.y - (1 if up else 0), Color("#241c34"))
+		_px(canvas, p.x - 2, p.y - (2 if up else -1), Color("#241c34"))
+		_px(canvas, p.x + 2, p.y - 1, Color("#241c34"))
+
+# A little glowing moon moth: pale wings beating round a lit body, gold dust behind (Moon Moth).
+func _proj_moon_mote(canvas: Image, f: int) -> void:
+	# From the side, flying right: big pale wings beating up and down over a lit body, feathery
+	# feelers, a trail of gold dust.
+	var c := Vector2(32.5, 32.5)
+	var lift: float = [1.0, 0.35, -0.6, 0.35][f]  # wings up, level, down, level
+	var wings := _layer()
+	_flat_ellipse(wings, c + Vector2(-2.5, -2.0 * lift), Vector2(3.0, 1.2 + 1.6 * absf(lift)), Color("#c8d0f4"))
+	_flat_ellipse(wings, c + Vector2(0.5, -3.2 * lift), Vector2(3.4, 1.4 + 2.2 * absf(lift)), Color("#eef2ff"))
+	_stamp(canvas, wings, Color("#6a6aa8"))
+	if absf(lift) > 0.5:
+		_px(canvas, floori(c.x) + 1, floori(c.y - 3.2 * lift), MEMORY_GOLD)  # eye-spot
+		_px(canvas, floori(c.x) - 3, floori(c.y - 2.0 * lift), Color("#a8b0e8"))
+	var body := _layer()
+	_ellipse(body, c + Vector2(0, 0.5), Vector2(3.8, 1.8), _ramp(["#a8b0e8", "#e8eeff", "#ffffff"]))
+	_stamp(canvas, body, Color("#5a5a98"))
+	_px(canvas, floori(c.x) + 3, floori(c.y), Color("#2a2a5a"))  # eye
+	for q: Vector2i in [Vector2i(5, -1), Vector2i(6, -2), Vector2i(7, -2), Vector2i(5, -2)]:
+		_px(canvas, floori(c.x) + q.x, floori(c.y) + q.y, Color("#8a8ac8"))
+	for k in 6:
+		var p := Vector2(27.0 - k * 1.6, 33.5 + sin(f * PI / 2.0 + k) * 2.0)
+		_px_under(canvas, floori(p.x), floori(p.y), Color(MEMORY_GOLD if k % 2 else Color("#dfeeff"), 0.9 - k * 0.13))
+	_soft_glow(canvas, c, Vector2(10, 9), f, Color("#dfe4ff"), 0.36)
+
+# Trap sprites (drawn on a path tile, not flying): a ring of little mushrooms, a light running round.
+func _proj_fairy_ring(canvas: Image, f: int) -> void:
+	_trap_ring(canvas, f, ["#b0784a", "#e0b078", "#fff0c8"], Color("#fff0c8"), 6)
+
+func _proj_elf_circle(canvas: Image, f: int) -> void:
+	_trap_ring(canvas, f, ["#2a8878", "#5ad0c0", "#b8fff4"], Color("#7ff0e0"), 7)
+
+func _trap_ring(canvas: Image, f: int, cap: Array, light_col: Color, n: int) -> void:
+	var c := Vector2(32, 33)
+	var r := Vector2(8.5, 5.5)
+	var o := Color("#3a2a20")
+	# A faint glowing ring on the ground.
+	for k in 48:
+		var p := Vector2i((c + Vector2.from_angle(k * TAU / 48.0) * r).round())
+		_px_under(canvas, p.x, p.y, Color(light_col, 0.35))
+	# Back half first so the front caps overlap them.
+	var order: Array = range(n)
+	order.sort_custom(func(a: int, b: int) -> bool: return sin(a * TAU / n + 0.3) < sin(b * TAU / n + 0.3))
+	for i: int in order:
+		var p := Vector2i((c + Vector2.from_angle(i * TAU / n + 0.3) * r).round())
+		var lit := (i + f * 2) % n <= 1
+		# A domed cap on a short pale stem, drawn row by row with the outline outside it (a stamp
+		# would eat such a small cap): top 3 wide, brim 5 wide, a dark gill line, the stem.
+		var rows := [[-4, -1, 1, o], [-3, -2, -2, o], [-3, 2, 2, o], [-3, -1, 1, Color(cap[2])],
+			[-2, -3, -3, o], [-2, 3, 3, o], [-2, -2, 2, Color(cap[1])], [-1, -2, 2, o], [0, -1, -1, o], [0, 1, 1, o]]
+		for row: Array in rows:
+			for x in range(int(row[1]), int(row[2]) + 1):
+				_px(canvas, p.x + x, p.y + int(row[0]), row[3])
+		_px(canvas, p.x, p.y - 1, Color("#f0e4d8"))
+		_px(canvas, p.x, p.y, Color("#d8c8b8"))
+		_px(canvas, p.x + 1, p.y + 1, Color(o, 0.5))
+		_px(canvas, p.x - 2, p.y - 2, Color(cap[0]))
+		_px(canvas, p.x + 2, p.y - 2, Color(cap[0]))
+		_px(canvas, p.x - 1, p.y - 3, Color.WHITE if lit else Color(cap[2]))
+		_px(canvas, p.x + 1, p.y - 2, Color("#ffffff", 0.7))  # a spot
+		if lit:
+			_px_under(canvas, p.x, p.y - 6, Color(light_col, 0.95))
+			_px_under(canvas, p.x - 1, p.y - 6, Color(light_col, 0.45))
+			_px_under(canvas, p.x + 1, p.y - 6, Color(light_col, 0.45))
+			_px_under(canvas, p.x, p.y - 7, Color(light_col, 0.45))
+
+# A dream bead trailing a little dreamcatcher feather (Dreamcatcher).
+func _proj_dream_mote(canvas: Image, f: int) -> void:
+	var c := Vector2(36.5, 32.5)
+	var sway: float = [0.0, 1.0, 0.0, -1.0][f]
+	# The thread, then the feather hanging off it, streaming behind.
+	_line(canvas, [c + Vector2(-3, 0), c + Vector2(-6, sway * 0.4)], Color("#8a6ab8"))
+	_leaf(canvas, c + Vector2(-6, sway * 0.4), c + Vector2(-15, sway), 2.2, _ramp(["#a888d8", "#d8c8f8", "#f4f0ff"]), Color("#5a3a8a"))
+	_line(canvas, [c + Vector2(-7, sway * 0.4), c + Vector2(-14, sway)], Color("#9a7ac8"))  # the quill
+	var bead := _layer()
+	_ellipse(bead, c, Vector2(3.6, 3.6), _ramp(["#e0b048", "#ffe890", "#fff8d0", "#ffffff"]))
+	_stamp(canvas, bead, Color("#6a4a9a"))
+	# A tiny web woven in the bead.
+	var m := Vector2i(floori(c.x), floori(c.y))
+	_px(canvas, m.x, m.y, Color("#a878d8"))
+	_px(canvas, m.x - 1, m.y - 1, Color("#c8a8f0"))
+	_px(canvas, m.x + 1, m.y + 1, Color("#c8a8f0"))
+	_px(canvas, m.x + 1, m.y - 1, Color("#c8a8f0"))
+	_px(canvas, m.x - 1, m.y + 1, Color("#c8a8f0"))
+	_soft_glow(canvas, c, Vector2(8, 7), f, BELL_GLOW, 0.4)
+
+# A flat cairn stone tumbling end over end, strata on its face (Cairn, Rockslide).
+func _proj_lob_stone(canvas: Image, f: int) -> void:
+	var c := Vector2(32, 32)
+	var a := f * TAU / 8.0
+	var pts := PackedVector2Array()
+	for k in 10:
+		var ang := k * TAU / 10.0
+		pts.append(c + Vector2(cos(ang) * 7.0 * (1.0 if k % 3 else 0.9), sin(ang) * 3.8).rotated(a))
+	_rock(canvas, pts, _ramp(STONE), Color("#1c1c36"))
+	for i in range(-4, 5):
+		var p := c + Vector2(i, 0.8).rotated(a)
+		_px(canvas, roundi(p.x), roundi(p.y), Color("#7a80ae"))
+	var moss := c + Vector2(-2, -2.5).rotated(a)
+	_px(canvas, roundi(moss.x), roundi(moss.y), Color("#7cbc5a"))
+	_px(canvas, roundi(moss.x) + 1, roundi(moss.y), Color("#a8dc78"))
+	_speed_lines(canvas, Vector2(23, 32), f, Color("#e4e7f4"))
+
+func _proj_hummingbird(canvas: Image, f: int) -> void:
+	_hummingbird(canvas, Vector2(32, 33), 1, EMERALD, f, 1.5)
+	for k in 5:
+		_px_under(canvas, 23 - k, 33 + (k + f) % 2, Color(Color(EMERALD[2]), 0.8 - k * 0.15))
+
+func _proj_maple_seed(canvas: Image, f: int) -> void:
+	_maple_key(canvas, f, ["#8a4a20", "#c07a40", "#e8b070", "#f8d8a0"])
+
+func _proj_autumn_seed(canvas: Image, f: int) -> void:
+	_maple_key(canvas, f, ["#a02a10", "#d8502a", "#f07a4a", "#ffb07a"])
+
+# A spinning maple key: a round seed with a long veined wing, a quarter turn per frame.
+func _maple_key(canvas: Image, f: int, wing: Array) -> void:
+	var c := Vector2(32.5, 32.5)
+	var a := f * TAU / 4.0 + 0.3
+	var o := Color(MAPLE[0])
+	var outline_pts := [Vector2(1, -2.2), Vector2(5, -5), Vector2(9, -5.5), Vector2(11.8, -3.8), Vector2(12, -1),
+		Vector2(8.5, 1.2), Vector2(4, 1.8), Vector2(1, 1.8)]
+	var pts := PackedVector2Array()
+	for q: Vector2 in outline_pts:
+		pts.append(c + q.rotated(a))
+	var layer := _layer()
+	for y in S:
+		for x in S:
+			var p := Vector2(x + 0.5, y + 0.5)
+			if Geometry2D.is_point_in_polygon(p, pts):
+				# Lighter towards the leading (upper) edge of the wing.
+				var local := (p - c).rotated(-a)
+				layer.set_pixel(x, y, Color(wing[3] if local.y < -3.0 else (wing[2] if local.y < -1.0 else wing[1])))
+	_stamp(canvas, layer, o)
+	for v: Vector2 in [Vector2(10, -3.8), Vector2(10.5, -1.2)]:
+		_line(canvas, [c + Vector2(2, 0).rotated(a), c + v.rotated(a)], Color(wing[0]))
+	var nut := _layer()
+	_ellipse(nut, c, Vector2(2.6, 2.6), _ramp(["#6a3a1a", "#9a5a2a", "#c88a4a"]))
+	_stamp(canvas, nut, o)
+	_spin_blur(canvas, c, f, Color(wing[3]))
+
+# The faint arc a spinning seed's wing leaves behind it.
+func _spin_blur(canvas: Image, c: Vector2, f: int, col: Color) -> void:
+	for k in 5:
+		var ang := f * TAU / 4.0 - 0.35 * (k + 1)
+		var p := c + Vector2.from_angle(ang) * 9.0
+		_px_under(canvas, roundi(p.x), roundi(p.y), Color(col, 0.6 - k * 0.1))
 
 
 func _flat_polygon(layer: Image, pts: PackedVector2Array, color: Color) -> void:
@@ -765,7 +1172,7 @@ const THEMES := {
 	"soil": ["#a8988a", "#6e5a4a", "#3a2e2a"],
 	"bramble": ["#9a9aa8", "#5e5e70", "#2e2e3c"],
 	"fairy_ring": ["#bcb0cc", "#74628e", "#3c2e54"],
-	"cobble": ["#b4b8cc", "#6a6e90", "#34364e"],
+	"cobble": ["#aeabbd", "#6a677e", "#34323f"],
 	"pond": ["#9aaccc", "#4a6090", "#22305a"],
 	"night": ["#6a7098", "#3a3e66", "#1c1e38"],
 	"meadow": ["#aaa4bc", "#6a6484", "#34304c"],
@@ -886,7 +1293,8 @@ func _decor_fairy_ring(canvas: Image, top: Image, _side: Image, st: Dictionary, 
 
 # Cobblestones with mossy mortar.
 func _decor_cobble(canvas: Image, top: Image, _side: Image, _st: Dictionary, lush: bool) -> void:
-	var shades := [Color("#c4c8dc"), Color("#b0b4cc"), Color("#9ea4c0")]
+	# The side rocks' own stone (ROCK_PAL), so they sit on it naturally (bluer greys turn icy in the palette pass).
+	var shades := [Color("#b9b6c6"), Color("#a9a6b8"), Color("#9a97ae")]
 	for y in S:
 		for x in S:
 			if not _on(top, x, y):
@@ -895,7 +1303,7 @@ func _decor_cobble(canvas: Image, top: Image, _side: Image, _st: Dictionary, lus
 			var v := x * 0.5 - y
 			if fposmod(u, 5.0) < 1.0 or fposmod(v, 5.0) < 1.0:
 				var mossy := (x * 13 + y * 7) % (3 if lush else 5) == 0
-				canvas.set_pixel(x, y, Color("#5a9a48") if mossy else Color("#7e82a0"))
+				canvas.set_pixel(x, y, Color("#5a9a48") if mossy else Color("#77748c"))
 			else:
 				canvas.set_pixel(x, y, shades[absi(int(floor(u / 5.0)) * 7 + int(floor(v / 5.0)) * 3) % 3])
 
@@ -1159,8 +1567,8 @@ func _draw_pebbling(canvas: Image, st: Dictionary) -> void:
 	var stone := _ramp(["#686d9a", "#979dc2", "#c4c9e2", "#e4e7f4"])
 	var moss := _ramp(["#3f7a3e", "#5a9a48", "#7cbc5a", "#a8dc7a"])
 	_draw_waystone(canvas, st, "cobble")
-	_rock(canvas, PackedVector2Array([Vector2(4, 43), Vector2(6, 40), Vector2(10, 40), Vector2(11, 43), Vector2(8, 45)]), stone, fig.o)
-	_rock(canvas, PackedVector2Array([Vector2(53, 45), Vector2(55, 42), Vector2(58, 42), Vector2(59, 45), Vector2(56, 47)]), stone, fig.o)
+	_rock(canvas, PackedVector2Array([Vector2(4, 43), Vector2(6, 40), Vector2(10, 40), Vector2(11, 43), Vector2(8, 45)]), _ramp(ROCK_RAMP), ROCK_PAL.o)
+	_rock(canvas, PackedVector2Array([Vector2(53, 45), Vector2(55, 42), Vector2(58, 42), Vector2(59, 45), Vector2(56, 47)]), _ramp(ROCK_RAMP), ROCK_PAL.o)
 	var mask := _draw_template_figure(canvas, st.pose, fig)
 	_line(canvas, [Vector2(36, 9 + dy), Vector2(35, 11 + dy)], fig.c, mask)
 	_line(canvas, [Vector2(21, 30), Vector2(23, 33), Vector2(22, 35)], fig.c, mask)
@@ -1334,46 +1742,6 @@ func _flame(layer: Image, base: Vector2, r: float, height: float, sway: float, c
 		var rr := r * pow(1.0 - t, 1.5)
 		if rr >= 0.5:
 			_flat_ellipse(layer, c, Vector2(rr, rr), color)
-
-# --- Projectiles (new) --------------------------------------------------------------------------
-
-func _proj_pebble(canvas: Image, f: int) -> void:
-	_spinning_rock(canvas, f, 4.5, _ramp(["#686d9a", "#979dc2", "#c4c9e2", "#e4e7f4"]), Color("#1c1c36"))
-	_px(canvas, 31, 30, Color("#7cbc5a"))
-
-# A water bead flying right: round front, tail trailing behind, spray drops.
-func _proj_dew_drop(canvas: Image, f: int) -> void:
-	var water := _ramp(["#3a78c8", "#5aa8ec", "#9ad4ff", "#e8faff"])
-	var layer := _layer()
-	for step in 16:
-		var t := step / 15.0
-		var rr := 4.0 * pow(1.0 - t, 1.3)
-		if rr >= 0.5:
-			_flat_ellipse(layer, Vector2(35 - t * 10, 32), Vector2(rr, rr), water[1])
-	for y in S:
-		for x in S:
-			if layer.get_pixel(x, y).a > 0.0 and y < 32:
-				layer.set_pixel(x, y, water[2])
-	_stamp(canvas, layer, Color("#16305e"))
-	_px(canvas, 35, 30, water[3])
-	_px(canvas, 36, 30, water[3])
-	_px(canvas, 23 - f % 2, 30 + f % 2, water[2])
-	_px(canvas, 25, 35 - f % 2, water[1])
-
-# A firefly spark: glowing core with a flickering halo and a short trail.
-func _proj_spark(canvas: Image, f: int) -> void:
-	var halo: float = 3.5 + [0.0, 0.8, 0.3, 1.0][f]
-	for y in S:
-		for x in S:
-			var q := Vector2(x + 0.5, y + 0.5).distance_to(Vector2(34, 32))
-			if q < halo and q >= 2.0 and (x + y + f) % 2 == 0:
-				canvas.set_pixel(x, y, Color("#c8e060"))
-	var core := _layer()
-	_flat_ellipse(core, Vector2(34, 32), Vector2(2.2, 2.2), Color("#fff27a"))
-	_stamp(canvas, core, Color("#e8b030"))
-	_px(canvas, 34, 32, Color.WHITE)
-	for k in 3:
-		_px(canvas, 29 - k * 2, 32 + ((k + f) % 2), Color("#e8f090") if k == 0 else Color("#a8c868"))
 
 # --- Attack effects ---------------------------------------------------------------------------
 # Drawn over the Warden's attack-pose body. st.attack is the frame (RELEASE_FRAME = the shot).
@@ -2130,13 +2498,14 @@ func _draw_long_way_home(canvas: Image, st: Dictionary) -> void:
 	var fig := _pal(BARK[0], BARK[1], BARK[2], BARK[3])
 	_root_golem(canvas, st, fig, true)
 	var staff := _layer()
-	_stroke(staff, [Vector2(52, 46), Vector2(51, 10)], 1.2, Color("#8a6a4a"))
-	_flat_ellipse(staff, Vector2(51, 9), Vector2(2, 2), Color("#8a6a4a"))
+	_stroke(staff, [Vector2(52, 46), Vector2(51, 12), Vector2(52, 8), Vector2(55, 7.5), Vector2(57, 9)], 1.2, Color("#8a6a4a"))
+	_flat_ellipse(staff, Vector2(51.5, 9), Vector2(1.6, 1.6), Color("#8a6a4a"))
 	_stamp(canvas, staff, fig.o)
 	var lamp := _layer()
-	_round_rect(lamp, Rect2i(53, 11, 5, 6), 1, Color("#fff0b0") if st.f % 4 < 2 else Color("#f8d890"))
+	_round_rect(lamp, Rect2i(55, 12, 5, 6), 1, Color("#fff0b0") if st.f % 4 < 2 else Color("#f8d890"))
 	_stamp(canvas, lamp, fig.o)
-	_px(canvas, 55, 10, fig.o)
+	_px(canvas, 57, 10, fig.o)
+	_px(canvas, 57, 11, fig.o)
 	_curls(canvas, st, fig)
 	_golem_face(canvas, st, fig)
 	var beard := _layer()
@@ -2152,8 +2521,8 @@ func _curls(canvas: Image, st: Dictionary, fig: Dictionary) -> void:
 	var dy: int = st.dy
 	var lift: int = st.lift
 	var layer := _layer()
-	_stroke(layer, _spiral_pts(Vector2(21, 23 + dy), Vector2(14, 14 + dy + lift), 4.5, 1.25, 0.0), 1.2, fig.a)
-	_stroke(layer, _spiral_pts(Vector2(42, 23 + dy), Vector2(48, 13 + dy + lift), 4.5, 1.25, PI), 1.2, fig.a)
+	_stroke(layer, _spiral_pts(Vector2(23, 26 + dy), Vector2(14, 14 + dy + lift), 4.5, 1.25, 0.0), 1.4, fig.a)
+	_stroke(layer, _spiral_pts(Vector2(40, 26 + dy), Vector2(48, 13 + dy + lift), 4.5, 1.25, PI), 1.4, fig.a)
 	_stamp(canvas, layer, fig.o)
 
 # Tangleroot: a mossy Rootling wrapped in its own roots, more roots climbing up from the stump
@@ -2529,29 +2898,6 @@ func _attack_grove_heart(canvas: Image, st: Dictionary) -> void:
 			_px(canvas, p.x + k, p.y + k * 3, Color("#6ab04a"))
 			_px(canvas, p.x + k + 1, p.y + k * 3, Color("#9ad86a"))
 
-# --- Projectiles (evolved) --------------------------------------------------------------------
-
-func _proj_boulder(canvas: Image, f: int) -> void:
-	_spinning_rock(canvas, f, 7.0, _ramp(STONE), Color("#1c1c36"))
-	_px(canvas, 30, 28, Color("#7cbc5a"))
-	_px(canvas, 31, 28, Color("#7cbc5a"))
-
-# A warm orb of lantern light with a flickering halo and a short trail.
-func _proj_light_orb(canvas: Image, f: int) -> void:
-	var halo: float = 4.5 + [0.0, 0.8, 0.3, 1.0][f]
-	for y in S:
-		for x in S:
-			var q := Vector2(x + 0.5, y + 0.5).distance_to(Vector2(34, 32))
-			if q < halo and q >= 3.0 and (x + y + f) % 2 == 0:
-				canvas.set_pixel(x, y, Color("#f8d890"))
-	var core := _layer()
-	_flat_ellipse(core, Vector2(34, 32), Vector2(3, 3), Color("#fff0b0"))
-	_stamp(canvas, core, Color("#c8864a"))
-	_px(canvas, 33, 31, Color.WHITE)
-	_px(canvas, 34, 31, Color.WHITE)
-	for k in 3:
-		_px(canvas, 27 - k * 2, 32 + ((k + f) % 2), Color("#fff0b0") if k == 0 else Color("#f0b060"))
-
 # --- New Wardens (tower_design.md, 2026-09-27) ------------------------------------------------
 # Hidden branches, the Nestling (wing) and Whirligig (wind) lines, Honeysuckle, and the Memory
 # Wardens freed from the act bosses.
@@ -2814,12 +3160,16 @@ func _rootlight_body(canvas: Image, st: Dictionary, cave: bool) -> void:
 	var glow := Color("#ffe890") if st.f % 4 < 2 or st.power > 0.5 else Color("#f0c860")
 	_draw_waystone(canvas, st, "stump", cave)
 	if cave:
+		# The star cave: a geode sat on the slab where the left rock was, crystals growing out of it.
 		var geode := _layer()
-		_ellipse(geode, Vector2(14, 22 + dy), Vector2(9, 8), _ramp(["#3a3050", "#5a4a70", "#7a6a90"]))
+		_ellipse(geode, Vector2(9.5, 38.5), Vector2(7.5, 5), _ramp(["#4a3e66", "#6a5a88", "#8e7eac", "#b0a2cc"]))
 		_stamp(canvas, geode, fig.o)
+		var mouth := _layer()
+		_flat_ellipse(mouth, Vector2(9.5, 37), Vector2(4.5, 2), Color("#241c3a"))
+		_stamp(canvas, mouth)
 		var gems := _ramp(["#8a60d0", "#c0a0ff", "#f0e8ff"])
-		for c: Vector3 in [Vector3(10, 25, 5), Vector3(14, 24, 8), Vector3(18, 26, 4)]:
-			_prism(canvas, Vector2(c.x, c.y + dy), 1.6, c.z, 0.3, gems, fig.o)
+		for c: Vector3 in [Vector3(6, 37, 6), Vector3(10, 37, 11), Vector3(13.5, 38, 6)]:
+			_prism(canvas, Vector2(c.x, c.y), 2.0, c.z, 0.4, gems, fig.o)
 	var roots := _layer()
 	for root: Array in [[Vector2(16, 44), Vector2(10, 46), Vector2(5, 44)], [Vector2(27, 47), Vector2(25, 53)],
 			[Vector2(40, 48), Vector2(46, 52), Vector2(53, 50)], [Vector2(52, 42), Vector2(57, 41), Vector2(61, 42)]]:
@@ -2837,7 +3187,7 @@ func _rootlight_body(canvas: Image, st: Dictionary, cave: bool) -> void:
 	if cave:
 		for k in 4:
 			if (st.f + k) % 2 == 0:
-				_sparkle(canvas, [Vector2i(8, 12), Vector2i(56, 6), Vector2i(12, 26), Vector2i(58, 30)][k], Color("#f0e8ff"))
+				_sparkle(canvas, [Vector2i(5, 27), Vector2i(56, 6), Vector2i(15, 30), Vector2i(58, 30)][k], Color("#f0e8ff"))
 
 # Graftling: an Acorn with a sapling grafted onto its head (bound with twine) and a patched body,
 # ready to borrow a neighbour's knack.
@@ -3483,83 +3833,6 @@ func _attack_white_stag(canvas: Image, st: Dictionary) -> void:
 func _attack_moon_moth(canvas: Image, st: Dictionary) -> void:
 	_flash(canvas, st, Vector2(ATTACKS["moon_moth"].point), Color("#f4f8ff"), MEMORY_GOLD)
 
-# --- Projectiles (new) ---
-
-# A thrown sling stone with a golden streak behind it.
-func _proj_sling_stone(canvas: Image, f: int) -> void:
-	_spinning_rock(canvas, f, 3.5, _ramp(STONE), Color("#1c1c36"))
-	for k in 4:
-		_px(canvas, 28 - k * 2, 32 + (k + f) % 2, GLOW_INNER if k < 2 else GLOW_OUTER)
-
-# A silver crescent shard trailing moonlight.
-func _proj_moon_shard(canvas: Image, f: int) -> void:
-	var layer := _layer()
-	_flat_ellipse(layer, Vector2(34, 32), Vector2(4, 4), Color("#dfeeff"))
-	_flat_ellipse(layer, Vector2(32.5, 31), Vector2(3.4, 3.4), Color(0, 0, 0, 0))
-	_stamp(canvas, layer, Color("#3a3a6a"))
-	_px(canvas, 36, 32, Color.WHITE)
-	for k in 3:
-		_px(canvas, 29 - k * 2, 33 + (k + f) % 2, Color("#c8e0ff"))
-
-# An ice shard pointing right, a glint sliding along it.
-func _proj_frost_shard(canvas: Image, f: int) -> void:
-	var ice := _ramp(["#6aa8e0", "#b4e4ff", "#f4fcff"])
-	var layer := _layer()
-	var pts := PackedVector2Array([Vector2(41, 32), Vector2(34, 29), Vector2(25, 30), Vector2(28, 32), Vector2(25, 34), Vector2(34, 35)])
-	for y in S:
-		for x in S:
-			if Geometry2D.is_point_in_polygon(Vector2(x + 0.5, y + 0.5), pts):
-				layer.set_pixel(x, y, ice[2] if y < 32 else ice[1])
-	_stamp(canvas, layer, Color("#16305e"))
-	_px(canvas, [29, 32, 35, 38][f], 31, Color.WHITE)
-	_px(canvas, 22 - f % 2, 31, ice[2])
-
-func _bird_proj(canvas: Image, f: int, body: Array[Color], o: Color) -> void:
-	_bird(canvas, Vector2(32, 34), 1, body, o, f % 2 == 0, Color("#e8a040"), 1.1)
-
-func _proj_sparrow(canvas: Image, f: int) -> void:
-	_bird_proj(canvas, f, _ramp(["#8a5a3a", "#b88058", "#e0b890"]), Color(FEATHER[0]))
-
-func _proj_wren(canvas: Image, f: int) -> void:
-	_bird_proj(canvas, f, _ramp(["#6a4020", "#9a6438", "#c89060"]), Color("#2a140a"))
-
-func _proj_magpie(canvas: Image, f: int) -> void:
-	_magpie(canvas, Vector2(32, 34), Color("#141420"), f % 2 == 0, false, 1.1, 1)
-
-func _proj_starling(canvas: Image, f: int) -> void:
-	for k in 3:
-		var p := Vector2(34 - k * 4, 31 + [0, 3, -2][k])
-		_px(canvas, int(p.x), int(p.y), Color("#241c34"))
-		_px(canvas, int(p.x) + 1, int(p.y) - (f + k) % 2, Color("#241c34"))
-		_px(canvas, int(p.x) - 1, int(p.y) - (f + k + 1) % 2, Color("#241c34"))
-
-# A pale moth-dust orb.
-func _proj_moon_mote(canvas: Image, f: int) -> void:
-	var core := _layer()
-	_flat_ellipse(core, Vector2(34, 32), Vector2(2.8, 2.8), Color("#f4f8ff"))
-	_stamp(canvas, core, Color("#8a8ac8"))
-	_px(canvas, 33, 31, Color.WHITE)
-	for k in 4:
-		var a := k * TAU / 4.0 + f * 0.4
-		_px(canvas, roundi(34 + cos(a) * 4.5), roundi(32 + sin(a) * 4.5), MEMORY_GOLD if k % 2 else Color("#dfeeff"))
-
-# Trap sprites (drawn on a path tile, not flying): a little mushroom ring that pulses.
-func _proj_fairy_ring(canvas: Image, f: int) -> void:
-	_trap_ring(canvas, f, Color("#fff0c8"), 6)
-
-func _proj_elf_circle(canvas: Image, f: int) -> void:
-	_trap_ring(canvas, f, Color("#7ff0e0"), 8)
-
-func _trap_ring(canvas: Image, f: int, cap: Color, n: int) -> void:
-	for i in n:
-		var p := Vector2i((Vector2(32, 33) + Vector2.from_angle(i * TAU / n) * Vector2(6, 4)).round())
-		_px(canvas, p.x, p.y, Color("#f0e4d8"))
-		_px(canvas, p.x - 1, p.y - 1, cap)
-		_px(canvas, p.x, p.y - 1, cap)
-		_px(canvas, p.x + 1, p.y - 1, cap)
-		if (i + f) % n == 0:
-			_px(canvas, p.x, p.y - 2, Color.WHITE)
-
 # --- Nurture ranks (warden_stats.md "Ranks: Nurture") -----------------------------------------
 # Every Warden stands on the same waystone slab (the mock's), so rank art is drawn once and layered
 # on any Warden: rank_<n>_over.png sits on top of the Warden sprite but only touches the slab's
@@ -4106,7 +4379,7 @@ func _echo_burst(canvas: Image, st: Dictionary, big: bool) -> void:
 
 # A balanced stack of flat stones on the slab beside the golem; the top one bobs (it's next).
 func _cairn(canvas: Image, stones: Array, bob: int, o: Color, lifted: bool) -> void:
-	var stone := _ramp(STONE)
+	var stone := _ramp(ROCK_RAMP)
 	for i in stones.size():
 		var s: Vector3 = stones[i]
 		if lifted and i == stones.size() - 1:
@@ -4115,7 +4388,7 @@ func _cairn(canvas: Image, stones: Array, bob: int, o: Color, lifted: bool) -> v
 		var y := s.y + (bob if i == stones.size() - 1 else 0)
 		_ellipse(layer, Vector2(s.x, y), Vector2(s.z, s.z * 0.45), stone)
 		_stamp(canvas, layer, o)
-		_px(canvas, int(s.x) - 1, int(y) - 1, Color("#e4e7f4"))
+		_px(canvas, int(s.x) - 1, int(y) - 1, Color("#d6d3e0"))
 
 func _draw_cairn(canvas: Image, st: Dictionary) -> void:
 	_cairn_body(canvas, st, false)
@@ -4143,7 +4416,7 @@ func _cairn_body(canvas: Image, st: Dictionary, slide: bool) -> void:
 			var pts := PackedVector2Array()
 			for k in 7:
 				pts.append(c + Vector2.from_angle(k * TAU / 7.0 + c.x * 0.1) * r * radii[k])
-			_rock(canvas, pts, _ramp(STONE), fig.o)
+			_rock(canvas, pts, _ramp(ROCK_RAMP), ROCK_PAL.o)
 		for k in 3:
 			var t: float = fposmod(float(st.f) / st.n + k / 3.0, 1.0)
 			var p := Vector2i((Vector2(44, 12).lerp(Vector2(60, 46), t)).round())
@@ -4186,18 +4459,18 @@ const RUBY := ["#a02040", "#e04a6a", "#ffa0b8"]
 const SAPPHIRE := ["#2a4aa8", "#4a7ae0", "#a0c8ff"]
 
 # A hummingbird hovering: jewel body, long beak, a blur of wings, a bright throat.
-func _hummingbird(canvas: Image, p: Vector2, face: int, jewel: Array, f: int) -> void:
+func _hummingbird(canvas: Image, p: Vector2, face: int, jewel: Array, f: int, s: float = 1.0) -> void:
 	var o := Color("#12101e")
 	var body := _layer()
-	_ellipse(body, p, Vector2(2.6, 1.9), _ramp(jewel))
-	_ellipse(body, p + Vector2(face * 2.2, -1.2), Vector2(1.6, 1.5), _ramp(jewel))
-	_flat_polygon(body, PackedVector2Array([p + Vector2(-face * 2, 0), p + Vector2(-face * 5, 1.5), p + Vector2(-face * 4, -1)]), Color(jewel[0]))
+	_ellipse(body, p, Vector2(2.6, 1.9) * s, _ramp(jewel))
+	_ellipse(body, p + Vector2(face * 2.2, -1.2) * s, Vector2(1.6, 1.5) * s, _ramp(jewel))
+	_flat_polygon(body, PackedVector2Array([p + Vector2(-face * 2, 0) * s, p + Vector2(-face * 5, 1.5) * s, p + Vector2(-face * 4, -1) * s]), Color(jewel[0]))
 	_stamp(canvas, body, o)
-	_line(canvas, [p + Vector2(face * 3.6, -1.4), p + Vector2(face * 6.5, -1)], Color("#2a2030"))
-	_px(canvas, roundi(p.x + face * 2.6), roundi(p.y - 1.8), o)
-	_px(canvas, roundi(p.x + face * 1.6), roundi(p.y), Color("#ff6a8a"))
-	var wing_y := -3.0 if f % 2 == 0 else -1.5
-	_flat_ellipse(canvas, p + Vector2(-face * 0.5, wing_y), Vector2(2.2, 1.0), Color(1, 1, 1, 0.55))
+	_line(canvas, [p + Vector2(face * 3.6, -1.4) * s, p + Vector2(face * 6.5, -1) * s], Color("#2a2030"))
+	_px(canvas, roundi(p.x + face * 2.6 * s), roundi(p.y - 1.8 * s), o)
+	_px(canvas, roundi(p.x + face * 1.6 * s), roundi(p.y), Color("#ff6a8a"))
+	var wing_y := (-3.0 if f % 2 == 0 else -1.5) * s
+	_flat_ellipse(canvas, p + Vector2(-face * 0.5 * s, wing_y), Vector2(2.2, 1.0) * s, Color(1, 1, 1, 0.55))
 
 # A bower: an arch of vine over the golem, hung with trumpet flowers.
 func _bower(canvas: Image, st: Dictionary, big: bool, o: Color) -> void:
@@ -4326,37 +4599,3 @@ func _seed_throw(canvas: Image, st: Dictionary, key: String, wing: Array, seeds:
 		for s in 3:
 			_px(canvas, int(p.x) - 5 - s * 3, int(p.y) + (s % 2), Color("#e8f8f0"))
 		_warm_glow(canvas, p, Vector2(7, 6), k + i)
-
-# --- Projectiles (family review) ---
-
-func _proj_dream_mote(canvas: Image, f: int) -> void:
-	for x in range(24, 30):
-		if (x + f) % 2 == 0:
-			_px(canvas, x, 32, Color("#e8e0ff"))
-	var bead := _layer()
-	_flat_ellipse(bead, Vector2(33, 32), Vector2(2.4, 2.4), BELL_GLOW)
-	_stamp(canvas, bead, Color("#6a4a9a"))
-	_px(canvas, 32, 31, Color.WHITE)
-
-func _proj_lob_stone(canvas: Image, f: int) -> void:
-	var layer := _layer()
-	var c := Vector2(32, 32)
-	var a := f * TAU / 8.0
-	var pts := PackedVector2Array()
-	for k in 8:
-		var ang := a + k * TAU / 8.0
-		pts.append(c + Vector2(cos(ang) * 5.0, sin(ang) * 2.8).rotated(a))
-	_rock(canvas, pts, _ramp(STONE), Color("#1c1c36"))
-	_px(canvas, 31, 30, Color("#7cbc5a"))
-
-func _proj_hummingbird(canvas: Image, f: int) -> void:
-	_hummingbird(canvas, Vector2(31, 33), 1, EMERALD, f)
-
-func _proj_maple_seed(canvas: Image, f: int) -> void:
-	_samara_seed(canvas, Vector2(32, 32), f * TAU / 4.0, ["#b0602e", "#e0a060", "#f8d8a0"], Color(MAPLE[0]), 0.75)
-
-func _proj_autumn_seed(canvas: Image, f: int) -> void:
-	_samara_seed(canvas, Vector2(32, 32), f * TAU / 4.0, ["#c8401a", "#f06a3a", "#ffb07a"], Color(MAPLE[0]), 0.75)
-
-func _proj_starling_bird(canvas: Image, f: int) -> void:
-	_bird(canvas, Vector2(32, 34), 1, _ramp(["#241c34", "#3e3258", "#7a6a9a"]), Color("#0e0a16"), f % 2 == 0, Color("#f0c050"), 1.1)

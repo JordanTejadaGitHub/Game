@@ -26,7 +26,7 @@ Revised for 100-drift runs (`run_design.md`).
 
 Examples: a loss around drift 20 ≈ **30 Seeds**; a loss at drift 60 ≈ **120**; a win ≈ **350**.
 Averaging ~280 across a player's first runs, the full tech tree (**~5,960 Seeds** as built:
-Perks ~2,090, Families ~2,470 incl. Ascension, Cards ~1,400) takes **~21 runs ≈ 30 hours** (confirmed as the target, 2026-09-28).
+Perks ~2,090, Families ~2,470 incl. Ascension, Cards ~1,400) takes **~21 runs ≈ 30 hours** (confirmed as the target, 2026-09-28). **2026-09-29:** discovery unlocks removed 6 fully covered Cards nodes (Reactions, Woven Dreams I–II, Kin Lore, Deep Bonds; `dream_design.md` "Grove overlap"), the cards now come from discovering combos and Kinships in play. **As built (763f228): 5 nodes removed; the tree is 6,722 Seeds** (Families 2,470, Cards 2,162, Perks 2,090; the earlier 5,960 predates the Seeds and Quiet Ones rows and the Ascension nodes), about **24 runs ≈ 34 hours** at ~280 Seeds per run, a little over the 30-hour target.
 (Raised twice on 2026-09-27 as the Grove grew; the first unlocks still come every run, and a full
 Grove is a long-term goal next to Blight Levels.)
 
@@ -183,6 +183,8 @@ styles a player has grown into.
 | **Keen Edges** (crit) | *Sharpened*: Still Target, Shattering Blow (50) | *Reckless*: Reckless Bloom (40) | **Full Moon** (120) |
 | **Deep Poison** (Potency) | *Seeping* (50) | *Venom*: Venom Bloom (40) | **Nightshade** (120) |
 | **Kinship** (going deep) | *Kin Lore*: Close Kin, Old Friends (50) | *Deep Bonds*: Rooted Bond, Extended Family (70) | **Grove of Kin** (120) |
+| **The Quiet Ones** (support Wardens) | *Catchers*: Wide Bowl, Dew Trail, Still Waters, Acorn Cache (50) | *Old Wood*: Overflowing Well, Hedgerow Roots, Grandfather Stump, Living Walls, Many Threads (70) | **The Quiet Ones** (120) |
+| **Seeds** (support and economy bets) | *Planted Promises*: Dew Bowl, Harvest Moon, Kind Canopy, Patient Roots (50) | *Deep Promises*: Deep Well, Shared Light (70) | **Golden Harvest** (120) |
 | **Tending** (nurture, tall) | *Tending Hands*: Sunlit Rest, Deeper Rings (60) | *Nursery*: Nursery, Chosen Few (70) | **The Old Ones** + **Endless Rings** (150) |
 | **Overgrowth** (wide) | *Seedbed*: Seedling Gift, Canopy (60) | *Wild Planting*: Overgrowth (50) | **Rootbound** (100) |
 | **Lone Lantern** (narrow) | *One Line*: Monoculture (80) | — | **The Last Light** (120) |

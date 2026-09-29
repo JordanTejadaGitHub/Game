@@ -117,9 +117,9 @@ func _run() -> void:
 	_check(kin.get_pair(curl).get("id") == &"snare", "Rootcurl + Tangleroot: Snare")
 	_check(is_equal_approx(stone.get_raw_crit_chance() - stone.attack_data.crit_chance, 0.05),
 		"Hammer and Anvil: the Mossback gets +5% crit at Sapling")
-	var dew := run_state.dew
-	kin._on_drift_cleared(20, 0, true)
-	_check(run_state.dew == dew + 1, "Old Growth: the Elder Stump side gives +1 Dew a drift at Sapling (%d)" % (run_state.dew - dew))
+	var probe := _spawn(elder.global_position + Vector2(64, 0))
+	_check(is_equal_approx(elder.get_catch_share(probe), DewCatch.OLD_GROWTH_CATCH * 0.5),
+		"Old Growth: the Elder Stump catches +25%% in its aura, at Sapling's share (%.3f)" % elder.get_catch_share(probe))
 	var near := _plant("sprout", Vector2(5, 13))
 	await process_frame
 	near._refresh_neighbours()
@@ -217,6 +217,117 @@ func _run() -> void:
 	kin.refresh()
 	_check(kin.get_partner(ra) == rd and kin.ages.get(kin.get_pair(ra).get("key", ""), -1) == kin._start_age(),
 		"after the rest the new bond starts fresh")
+
+	# --- The 9 hidden Kinships (the hidden branch is A; a final form counts as its branch) ---
+	for child in container.get_children():
+		child.queue_free()
+	await process_frame
+	var hidden := {&"spore_nursery": ["fairy_ring", "driftspore"], &"hoar_fog": ["frostfern", "mistveil"],
+		&"sunspot": ["sunpetal", "lanternmoth"], &"spotter": ["cairn", "standing_stone"],
+		&"lantern_roots": ["rootlight", "tangleroot"], &"resonant_hollow": ["echo_hollow", "chime_stone"],
+		&"true_graft": ["graftling", "elder_stump"], &"jewel_thieves": ["jewelwing_court", "magpie_perch"],
+		&"tailwind": ["samara", "gust"]}
+	var made := {}
+	var column := 1
+	for id in hidden:
+		var a := _plant(hidden[id][0], Vector2(column, 16))
+		var b := _plant(hidden[id][1], Vector2(column, 14))
+		made[id] = [a, b]
+		column += 2
+	await process_frame
+	kin.refresh()
+	for id in hidden:
+		var pair: Dictionary = kin.get_pair(made[id][0])
+		_check(pair.get("id") == id and kin.get_partner(made[id][0]) == made[id][1],
+			"%s + %s, 2 cells apart: %s (%s)" % [hidden[id][0], hidden[id][1], id, pair.get("id", "none")])
+		kin.ages[pair.get("key", "")] = 10  # Old Kin: every trait at full share
+	_check(is_equal_approx(made[&"jewel_thieves"][0].kin_share(&"jewel_thieves", "a"), 1.0),
+		"Jewel Thieves: Jewelwing Court (the Hummingbird Bower branch) borrows at Old Kin")
+
+	# Jewel Thieves A: the 6th peck steals a buff, or +1 Dew when there's none
+	var court: Tower = made[&"jewel_thieves"][0]
+	var mark := _spawn(court.global_position + Vector2(64, 0))
+	court._jewel_pecks = Tower.JEWEL_THIEVES_EVERY - 1
+	court.peck(mark)
+	_check(mark.bonus_dew >= 1, "Jewel Thieves: the 6th peck gives +1 Dew when there's no buff to steal")
+	# Jewel Thieves B: the magpie pecks twice per swoop
+	var magpie: Tower = made[&"jewel_thieves"][1]
+	var swooped := _spawn(magpie.global_position + Vector2(64, 0))
+	var one_hit := magpie.get_damage()
+	magpie.projectile_landed(swooped, swooped.global_position)
+	_check(swooped.max_health - swooped.health > one_hit * 1.5, "Jewel Thieves: the magpie hits twice (%d)" % (swooped.max_health - swooped.health))
+	# Spotter B: the Standing Stone's shot splashes 30% beside its target; A: the Cairn lobs at its target
+	var stone2: Tower = made[&"spotter"][1]
+	var aimed := _spawn(stone2.global_position + Vector2(128, 0))
+	var beside := _spawn(aimed.global_position + Vector2(20, 0))
+	stone2._last_fired = aimed
+	stone2.projectile_landed(aimed, aimed.global_position)
+	_check(beside.health < beside.max_health, "Spotter: the Standing Stone's shot splashes onto its neighbour")
+	var cairn: Tower = made[&"spotter"][0]
+	var other := _spawn(cairn.global_position + Vector2(0, -64))
+	_check(cairn._spotter_target(other) == aimed or aimed.global_position.distance_to(cairn.global_position) > cairn.get_range_pixels(),
+		"Spotter: the Cairn lobs at the sniper's target")
+	# Sunspot B: Lanternmoth shots ramp on the same target
+	var moth: Tower = made[&"sunspot"][1]
+	var lit := _spawn(moth.global_position + Vector2(64, 0))
+	var before_hits: int = lit.health
+	moth.hit(lit, 1.0, false, Tower.NO_CRIT)
+	var first: int = before_hits - lit.health
+	for i in 5:
+		moth.hit(lit, 1.0, false, Tower.NO_CRIT)
+	before_hits = lit.health
+	moth.hit(lit, 1.0, false, Tower.NO_CRIT)
+	_check(float(before_hits - lit.health) / maxf(first, 1.0) > 1.4, "Sunspot: the 7th hit in a row deals +50%% (x%.2f)" % (float(before_hits - lit.health) / maxf(first, 1.0)))
+	# Resonant Hollow A: the Echo Hollow sets off 3 Static charges like a chime
+	var hollow: Tower = made[&"resonant_hollow"][0]
+	var charged := _spawn(hollow.global_position + Vector2(64, 0))
+	charged.statuses.apply(EnemyStatuses.STATIC, 3, 10.0, 10.0)
+	hollow.resonant_set_off(charged)
+	_check(not charged.statuses.has(EnemyStatuses.STATIC) and charged.health < charged.max_health,
+		"Resonant Hollow: the echo sets off Static at 3 charges")
+	# True Graft A: the Graftling copies at 100%
+	var graft: Tower = made[&"true_graft"][0]
+	_check(is_equal_approx(lerpf(graft.tower_data.copy_share, 1.0, graft.kin_share(&"true_graft", "a")), 1.0),
+		"True Graft: the Graftling copies at 100%")
+	# Hoar Fog A: a Frostfern shot leaves a fog puff; Spore Nursery B: a Driftspore puff plants a ring
+	var fern: Tower = made[&"hoar_fog"][0]
+	var puffs := kin.get_parent().get_children().filter(func(n) -> bool: return n is Kinships.KinFog).size()
+	fern._kin_on_landing(null, fern.global_position + Vector2(64, 0))
+	_check(kin.get_parent().get_children().filter(func(n) -> bool: return n is Kinships.KinFog).size() == puffs + 1,
+		"Hoar Fog: the Frostfern's shot leaves a fog puff")
+	var puffer: Tower = made[&"spore_nursery"][1]
+	var map = main.get_node("%MapGenerator")
+	var route: PackedVector2Array = map.get_path_from(map.startPath)
+	puffer._kin_on_landing(null, Tower.MAP_GRID.calculate_map_position(route[5]))
+	_check(is_instance_valid(puffer._nursery_ring) and puffer._nursery_ring.cell == route[5],
+		"Spore Nursery: the Driftspore's puff plants a mushroom ring on the path")
+	puffer._kin_on_landing(null, Tower.MAP_GRID.calculate_map_position(route[7]))
+	_check(puffer._nursery_ring.cell == route[5], "one ring at a time")
+	# Kindred: one quiet callout the first time in the run
+	_check(kin.kindred_shown, "the first Kindred of the run was called out")
+
+	# --- Kinships you can see in combat (2026-09-29) ---
+	var moth_look := moth.kin_look()
+	_check(moth_look.a > 0.0 and moth_look.is_equal_approx(Kinships.BRANCH_COLORS["sunpetal"]),
+		"borrowed looks: a bonded Lanternmoth's attacks carry its Sunpetal kin's colour")
+	var lone_moth := _plant("lanternmoth", Vector2(21, 1))
+	await process_frame
+	kin.refresh()
+	_check(lone_moth.kin_look().a == 0.0, "an unbonded Warden has no borrowed look")
+	var sun_pair: Dictionary = kin.get_pair(moth)
+	_check(kin._synced.has(sun_pair.key) and int(moth._anim_time * moth.tower_data.animation_fps) \
+		== int(made[&"sunspot"][0]._anim_time * made[&"sunspot"][0].tower_data.animation_fps) or moth.get_instance_id() < made[&"sunspot"][0].get_instance_id(),
+		"breathing together: the pair's idle animations were synced")
+	var beads := kin.get_parent().get_children().filter(func(n) -> bool: return n is Kinships.KinBead).size()
+	kin._resting = true
+	kin.trait_fired(moth, &"sunspot")
+	kin.trait_fired(moth, &"sunspot")
+	_check(kin.get_parent().get_children().filter(func(n) -> bool: return n is Kinships.KinBead).size() == beads + 1,
+		"the vine's light bead runs once per cooldown")
+	# Harmony at Old Kin: beams, a bloom and petals (the sheets exist; without them, the spark)
+	var fx_before := kin.get_parent().get_child_count()
+	kin._harmony_look(moth.global_position + Vector2(0, 64), sun_pair)
+	_check(kin.get_parent().get_child_count() > fx_before + 2, "an Old Kin Harmony strike shows beams, a bloom and petals")
 
 	# --- The demo has only its three ---
 	Kinships.force_full = false

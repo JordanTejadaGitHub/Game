@@ -54,7 +54,9 @@ func _run() -> void:
 	_check(tracker.counts.get(&"thunderclap", 0) == 0, "no plain Thunderclap alongside it")
 	_check(tracker.longest_chain >= 2, "a Crowned Reaction counts as 2 chain links (%d)" % tracker.longest_chain)
 	_check(tracker.counts.get(&"ignite", 0) >= 1, "the arc set off Ignite on the Spored neighbour")
-	_check(c.statuses.has(EnemyStatuses.SPORED) and c.statuses.has(EnemyStatuses.STATIC), "Ignite's spread spores carried Static")
+	_check(b.statuses.burn_time > 0.0, "the arc set the Spored neighbour burning (status jobs: Ignite burns)")
+	await _wait(1.1)
+	_check(c.statuses.has(EnemyStatuses.SPORED) and c.statuses.has(EnemyStatuses.STATIC), "its burning spreads carry Static to its neighbour")
 	_check(a.statuses.tempest_time > 0.0 and b.statuses.tempest_time > 0.0, "the 2 s Tempest cap is set")
 	await _clean()
 
@@ -70,7 +72,8 @@ func _run() -> void:
 	if not pools.is_empty():
 		pools[0]._tick = 0.0
 		pools[0]._process(0.1)
-	_check(walker.statuses.sleep_time >= 1.0 - 0.01, "a walker entering it the first time sleeps 1 s")
+	_check(walker.statuses.sleep_time <= 0.0 and main.get_children().any(func(n) -> bool: return n is Reactions.PullUnder and n.enemy == walker),
+		"a walker entering it the first time is pulled under (status jobs: no sleep)")
 	await _clean()
 
 	# --- Fever Dream: Smother ends at full Drowsy; Spored resolves, neighbours catch Spored + Drowsy ---
@@ -80,7 +83,7 @@ func _run() -> void:
 	f.apply_status(EnemyStatuses.DROWSY, 5)
 	Reactions.on_smother_ended(f)
 	_check(tracker.counts.get(&"fever_dream", 0) == 1, "Fever Dream fires when Smother ends at full Drowsy")
-	_check(_lost(f) > 0 and not f.statuses.has(EnemyStatuses.SPORED), "its Spored resolves at once (%d)" % _lost(f))
+	_check(f.statuses.is_asleep() and f.statuses.has(EnemyStatuses.SPORED), "it falls asleep 2 s, no detonation (status jobs)")
 	_check(g.statuses.stacks(EnemyStatuses.SPORED) >= 3 and g.statuses.stacks(EnemyStatuses.DROWSY) >= 2, "the neighbour gets 3 Spored + 2 Drowsy")
 	await _clean()
 
@@ -209,8 +212,8 @@ func _run() -> void:
 	_check(Reactions.cant_be_held(hound), "a sprinting Night Hound can't be Held")
 	hound.apply_status(EnemyStatuses.DAMP)
 	hound.apply_status(EnemyStatuses.DROWSY, 5)
-	_check(hound.statuses.sleep_time <= 0.0 and hound.statuses.slow_time > 0.0,
-		"so Drown slows it instead of putting it to sleep")
+	_check(hound.statuses.sleep_time <= 0.0 and main.get_children().any(func(n) -> bool: return n is Reactions.PullUnder and n.enemy == hound),
+		"Drown pulls it under like everyone (status jobs: Drown never sleeps)")
 	hound.rolling = false
 	_check(not Reactions.cant_be_held(hound), "once it stops sprinting it can be Held again")
 	await _clean()

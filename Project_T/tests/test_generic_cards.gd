@@ -39,6 +39,9 @@ func _run() -> void:
 	_test_sim_entry()
 	_test_sim_policy()
 	_test_rows_cache()
+	_test_seed_cards()
+	_test_support_cards()
+	_test_needs_text()
 	print("generic cards test: %s" % ("PASS" if failures == 0 else "%d FAILED" % failures))
 	quit(failures)
 
@@ -52,7 +55,9 @@ func _test_pool() -> void:
 	_check(not dreams.is_eligible(_card("heavy_air")) and dreams.is_eligible(_card("tangled")),
 		"Heavy Air needs a Warden that slows; Tangled any status (Spored)")
 	dreams.unlocked["dewdrop"] = true
-	_check(dreams.is_eligible(_card("heavy_air")), "…Dewdrop (Soaked) is enough")
+	_check(not dreams.is_eligible(_card("heavy_air")), "…Dewdrop isn't (Soaked no longer slows)")
+	dreams.unlocked["bellflower"] = true
+	_check(dreams.is_eligible(_card("heavy_air")), "…Bellflower (Drowsy) is")
 	_check(dreams.is_eligible(_card("short_roots")) == dreams.owns_range_at_most(2.0), "Short Roots needs a Warden with range 2 or less")
 
 func _test_economy() -> void:
@@ -96,7 +101,8 @@ func _test_stat_rules() -> void:
 	dreams.take(_card("lasting_dreams"))
 	_check(is_equal_approx(dreams.get_status_duration(dewdrop, EnemyStatuses.DAMP), damp + 2.0), "Lasting Dreams ×2: +2 s")
 	dreams.take(_card("heavy_air"))
-	_check(is_equal_approx(dreams.get_status_strength_multiplier(EnemyStatuses.DAMP), 1.2)
+	_check(is_equal_approx(dreams.get_status_strength_multiplier(EnemyStatuses.DROWSY), 1.2)
+		and dreams.get_status_strength_multiplier(EnemyStatuses.DAMP) == 1.0
 		and dreams.get_status_strength_multiplier(EnemyStatuses.MARKED) == 1.0, "Heavy Air: slows 20% stronger, nothing else")
 	# Short Roots and Forest's Edge
 	dreams.take(_card("short_roots"))
@@ -178,7 +184,7 @@ func _test_hit_rules() -> void:
 	for i in 500:
 		dreams._glimmer(elite)
 	_check(dreams.glimmer_shards == 30 and dreams.dreamlight == light + 3, "…capped at 3 Dreamlight per run (%d shards, +%d)" % [dreams.glimmer_shards, dreams.dreamlight - light])
-	# Half-dreamed Commons 169–171 (stack to 3)
+	# Half-dreamed Commons 189–191 (stack to 3)
 	var soaked := _spawn(map_generator.startPath + Vector2(0, 4))
 	var jar := _plant("firefly_jar", Vector2(110, 100))
 	dreams.unlocked["dewdrop"] = true  # Cross-family combos sleep until both families are yours
@@ -278,6 +284,104 @@ func _test_rows_cache() -> void:
 	_check(not fx.rows_cached(a)[0].active, "…refreshes when a Warden is planted beside it")
 	_clear()
 	_reset()
+
+# Seed cards (dream_design.md "Seed cards: plant now, grow later").
+func _test_seed_cards() -> void:
+	_reset()
+	var ids := ["dew_bowl", "harvest_moon", "deep_well", "kind_canopy", "shared_light", "bramble_oath", "patient_roots", "golden_harvest"]
+	for id in ids:
+		var card := _card(id)
+		if card:
+			_check(card.tags.has("seed") and card.in_start_pool == (id == "bramble_oath") and card.grows_text != "", "%s: a Seed card" % id)
+	_check(_card("golden_harvest").rarity == UpgradeData.Rarity.LEGENDARY and _card("golden_harvest").min_act == 2, "Golden Harvest: Legendary, act 2+")
+	# Offered without their Wardens
+	dreams.grove_cards.assign(ids)
+	_check(dreams.can_offer(_card("dew_bowl")) and dreams.can_offer(_card("patient_roots")), "offered without their Wardens")
+	# Calls its family: the next family pick offers it
+	var screen = main.get_node("%FamilyPickScreen")
+	var acorn: TowerData = load("res://resource/tower/acorn.tres")
+	var families_before: Array[TowerData] = screen.families.duplicate()
+	if not screen.families.has(acorn):
+		screen.families.append(acorn)  # As if the Grove had unlocked Acorn
+	dreams.family_of("")  # Refresh the family maps
+	dreams.take(_card("dew_bowl"))
+	_check(Array(dreams.get_called_families()) == ["acorn"], "Dew Bowl calls Acorn")
+	var per_pick: int = screen.cards_per_pick
+	screen.cards_per_pick = 1
+	screen.show_pick(&"boss")
+	_check(screen.offer.size() == 1 and screen.offer[0] == acorn, "…the next family pick offers Acorn")
+	screen.cards_per_pick = per_pick
+	screen.visible = false
+	main.get_node("%GameSpeed").set_paused(false)
+	screen.families = families_before
+	# Deep Well: 3% interest at the rest, up to 20
+	dreams.take(_card("deep_well"))
+	run_state.dew = 300
+	dreams._rest_rules(false)
+	_check(run_state.dew == 309, "Deep Well: 3%% interest on 300 banked Dew (%d)" % run_state.dew)
+	run_state.dew = 5000
+	dreams._rest_rules(false)
+	_check(run_state.dew == 5020, "…up to 20")
+	# Kind Canopy and Shared Light (touching Wardens)
+	dreams.take(_card("kind_canopy"))
+	dreams.take(_card("shared_light"))
+	var centre := _plant("sporeling", Vector2(101, 101))
+	for c in [Vector2(100, 100), Vector2(102, 100), Vector2(100, 102)]:
+		_plant("sporeling", c)
+	var canopy := _row(centre.tower_data, centre.cell, "kind_canopy", centre)
+	var light := _row(centre.tower_data, centre.cell, "shared_light", centre)
+	_check(canopy.active and is_equal_approx(light.damage, 0.06), "Kind Canopy on with 3 touching; Shared Light +2%% each (%.2f)" % light.damage)
+	# Patient Roots and Bramble Oath's measure
+	dreams.take(_card("patient_roots"))
+	_check(dreams.get_held_bonus() == 0.25 and dreams.walls_added_tiles() >= 0, "Patient Roots: Held +0.25 s; walls' path tiles measured")
+	_clear()
+	_reset()
+
+# Support Warden cards (dream_design.md "Support Warden cards: the quiet Wardens").
+func _test_support_cards() -> void:
+	_reset()
+	var start := ["thorn_snare", "thorn_snare_ii", "scented_hedge"]
+	for id in ["wide_bowl", "dew_trail", "dew_trail_ii", "still_waters", "overflowing_well", "acorn_cache", "hedgerow_roots",
+			"grandfather_stump", "thorn_snare", "thorn_snare_ii", "scented_hedge", "living_walls", "many_threads", "the_quiet_ones"]:
+		var card := _card(id)
+		if card:
+			_check(card.tags.has("support") and card.in_start_pool == start.has(id), "%s: support card, pool" % id)
+	_check(dreams.can_offer(_card("thorn_snare")) and not dreams.can_offer(_card("scented_hedge")), "Thorn Snare needs nothing; Scented Hedge needs Honeysuckle")
+	dreams.grove_cards.assign(["acorn_cache", "the_quiet_ones"])
+	var acorn: TowerData = load("res://resource/tower/acorn.tres")
+	dreams.unlocked["acorn"] = true
+	dreams.take(_card("acorn_cache"))
+	_check(dreams.get_build_cost(acorn) == 15, "Acorn Cache: Acorns cost 15 Dew")
+	var quiet := _card("the_quiet_ones")
+	_check(not dreams.can_offer(quiet, 2), "The Quiet Ones needs 3+ non-attacking Wardens")
+	for i in 3:
+		_plant("thornwall", Vector2(100 + i, 100))
+	_check(dreams.can_offer(quiet, 2) and not dreams.can_offer(quiet, 1), "…offered with 3 walls, from act 2")
+	_clear()
+	_reset()
+
+# How Needs are shown on a card: never the name of a Warden (only statuses, families, card names).
+func _test_needs_text() -> void:
+	_reset()
+	_check(dreams.needs_text(_card("rolling_thunder")) == "Needs: Soaked + Charged", "Rolling Thunder: %s" % dreams.needs_text(_card("rolling_thunder")))
+	_check(dreams.needs_text(_card("starlit_aim")) == "Needs: Pebbling + Firefly Jar families", "Starlit Aim: %s" % dreams.needs_text(_card("starlit_aim")))
+	_check(dreams.needs_text(_card("nursery")) == "Needs: Tender Care + Seedling Gift", "Nursery: %s" % dreams.needs_text(_card("nursery")))
+	var family_names := {}
+	for id in DreamState._every_family().values():
+		family_names[dreams.get_display_name(id) if id != "wall" else "Thornwall"] = true
+	var leaks: Array = []
+	for card in DreamState.load_pool():
+		var text := dreams.needs_text(card)
+		for id in card.requires + card.requires_any + card.grows_with:
+			var path := "res://resource/tower/%s.tres" % id
+			if not ResourceLoader.exists(path):
+				continue
+			var name: String = (load(path) as TowerData).display_name
+			if not family_names.has(name) and text.contains(name):
+				leaks.append("%s: %s" % [card.id, text])
+	_check(leaks.is_empty(), "no Needs text names a Warden (%s)" % ", ".join(leaks))
+	_check(dreams.needs_text(_card("dew_bowl")) == "" and "the Acorn line" == "the %s line" % dreams.family_name_for("acorn"),
+		"Seed cards: the family line")
 
 func _test_rest_rules() -> void:
 	_reset()

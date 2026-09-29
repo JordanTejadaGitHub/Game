@@ -122,26 +122,13 @@ func _run() -> void:
 		t.queue_free()
 	await process_frame
 
-	# --- Dewcatcher: +3 Dew per drift; Wellspring: 5% of banked Dew at a rest ---
+	# --- Dewcatcher / Wellspring: the catch, the Harvest and interest are in test_catchers.gd ---
 	var catcher := _plant("dewcatcher", Vector2(3, 10))
-	catcher.set_process(false)
 	await process_frame
 	var dew := run_state.dew
 	director.drift_cleared.emit(5, 0, true)
-	_check(run_state.dew == dew + 3, "Dewcatcher: +3 Dew after a drift (%d)" % (run_state.dew - dew))
-	catcher.evolve(load("res://resource/tower/wellspring.tres"), 0)
-	var well2 := _plant("wellspring", Vector2(3, 12))
-	await process_frame
-	run_state.dew = 1000
-	director.rest_started.emit(3, false, 0, true)
-	_check(run_state.dew == 1000 + 40 + 40, "two Wellsprings: 5%% each, capped at 40 each (%d)" % (run_state.dew - 1000))
-	run_state.dew = 3000
-	var well3 := _plant("wellspring", Vector2(3, 14))
-	await process_frame
-	director.rest_started.emit(4, false, 0, true)
-	_check(run_state.dew == 3000 + Tower.INTEREST_CAP, "all Wellsprings together pay at most 80 a rest (%d)" % (run_state.dew - 3000))
-	for t in [catcher, well2, well3]:
-		t.queue_free()
+	_check(run_state.dew == dew and is_equal_approx(catcher.bowl, 4.0), "Dewcatcher: +4 Dew per drift, into the bowl (%.1f)" % catcher.bowl)
+	catcher.queue_free()
 	await process_frame
 	paused = false
 
@@ -162,8 +149,8 @@ func _run() -> void:
 	var f1 := _spawn(fog_warden.global_position + Vector2(CELL, 0))
 	for i in 3:
 		fog._tick()
-	_check(f1.statuses.slow_amount >= 0.15 and f1.statuses.slow_time > 0.0, "Morning Fog slows 15%")
-	_check(f1.statuses.stacks(EnemyStatuses.DROWSY) >= 1, "and makes nightmares Drowsy")
+	_check(f1.statuses.slow_time <= 0.0 and f1.statuses.stacks(EnemyStatuses.DROWSY) == 0, "Morning Fog neither slows nor makes Drowsy (status jobs, 2026-09-29)")
+	_check(f1.statuses.has(EnemyStatuses.DAMP) and f1.statuses.time_left(EnemyStatuses.DAMP) >= 2.5, "its Soak lingers ~3 s after the fog (%.1f s)" % f1.statuses.time_left(EnemyStatuses.DAMP))
 	_check(f1.statuses.is_in_fog(), "it's fog (Spored ticks harder)")
 	fog.queue_free()
 	fog_warden.queue_free()
@@ -215,6 +202,29 @@ func _run() -> void:
 			arced += 1
 	_check(arced >= 1 and arced <= Reactions.THUNDERCLAP_MAX_ARCS, "Thunderclap: at most 8 arcs from one clap (%d struck)" % arced)
 	clapper.queue_free()
+	await _clean()
+
+	# --- Status jobs (2026-09-29): Rootling's 4th pulse Holds; water hits on Damp +20% ---
+	var roots := _plant("rootling", Vector2(18, 4))
+	var rooted := _spawn(roots.global_position + Vector2(CELL * 0.5, 0))
+	roots._attack_count = 2
+	roots._release()  # The 3rd pulse
+	_check(not rooted.statuses.is_held(), "Rootling: the 3rd pulse doesn't Hold")
+	roots._release()  # The 4th
+	_check(rooted.statuses.is_held(), "the 4th pulse Holds the nightmare furthest along")
+	roots.queue_free()
+	await _clean()
+	var drop := _plant("dewdrop", Vector2(18, 8))
+	var dry := _spawn(drop.global_position + Vector2(CELL, 0))
+	var wet := _spawn(drop.global_position + Vector2(0, CELL))
+	wet.apply_status(EnemyStatuses.DAMP, 1, 0.0, 1.0)
+	var dry_before: int = dry.health
+	var wet_before: int = wet.health
+	drop.hit(dry, 10.0, false, Tower.NO_CRIT)
+	drop.hit(wet, 10.0, false, Tower.NO_CRIT)
+	var ratio := float(wet_before - wet.health) / maxf(dry_before - dry.health, 1.0)
+	_check(absf(ratio - 1.2) < 0.03, "water hits on a Damp nightmare deal +20%% (x%.2f)" % ratio)
+	drop.queue_free()
 	await _clean()
 
 	print("family finals test: %s" % ("PASS" if failures == 0 else "%d FAILED" % failures))

@@ -78,7 +78,8 @@ points.
 - **Tag weighting:** cards tagged with a family you own are **2× as likely** (1.4× for a while, back to 2× once the pool grew by 27 generic cards; see
   *Adapt, don't get handed* below). Builds lean together without being forced.
 - **Prerequisites:** a card never appears if it can't do anything yet (e.g. Stormcap cards need
-  Firefly Jar). Full rules in *Card requirements* below.
+  Firefly Jar). Full rules in *Card requirements* below. **Exception: Seed cards** (tag `seed`,
+  "Seed cards: plant now, grow later") are offered without their Wardens, on purpose.
 
 ### Adapt, don't get handed (2026-09-28)
 
@@ -140,9 +141,9 @@ alternative**: a strong card you can use now if you bend the plan.
 
      | # | Card | Rarity | Effect | Tags | Needs |
      |---|---|---|---|---|---|
-     | 169 | **Damp Rot** | Common, stacks (max 3) | Poisoned ticks on **Soaked** nightmares deal **+20%** | spore, water, reaction | Sporeling + Dewdrop |
-     | 170 | **Sparking Spores** | Common, stacks (max 3) | **Ignite** detonations deal **+20%** | spore, storm, reaction | Sporeling + Firefly Jar |
-     | 171 | **Rain on Glass** | Common, stacks (max 3) | light Wardens deal **+12%** to **Soaked** nightmares | water, storm, reaction | Dewdrop + Firefly Jar |
+     | 189 | **Damp Rot** | Common, stacks (max 3) | Poisoned ticks on **Soaked** nightmares deal **+20%** | spore, water, reaction | Sporeling + Dewdrop |
+     | 190 | **Sparking Spores** | Common, stacks (max 3) | **Ignite** detonations deal **+20%** | spore, storm, reaction | Sporeling + Firefly Jar |
+     | 191 | **Rain on Glass** | Common, stacks (max 3) | light Wardens deal **+12%** to **Soaked** nightmares | water, storm, reaction | Dewdrop + Firefly Jar |
 
      Target after these: **≥ 0.4** per starting family before drift 25 (guard back to 0.4), with the
      half-dreamed weight left at ×1.0.
@@ -185,6 +186,29 @@ Directions that are always available but need investment (Nurture) have **opener
 run-state check) and **follow-ups** (need an opener card too). So the pool grows with your build
 instead of offering payoff cards for a direction you never started.
 
+**How Needs are shown on a card** (user rule, 2026-09-29): a card never shows the name of a Warden
+you don't have. The Needs line says *what the card works with*, not which Warden to find:
+- **Combo cards** (Reaction cards, half-dreamed cards, Entwined / Woven cards built on statuses) show
+  the **statuses** the combo needs, as status icons + names: *"Needs: Soaked + Charged"*
+  (Thunderclap: Rolling Thunder, Rain on Glass, Conductive Soil), *"Poisoned + Charged"* (Ignite:
+  Wildfire Spores, Sparking Spores), *"Poisoned + Soaked"* (Mushrooming: Mushroom Rain, Damp Rot),
+  *"Soaked + Drowsy"* (Drown: Deep Water). A status you can already apply is lit; a missing one is
+  dim. Woven cards show their Crowned Reaction's three statuses.
+- **Warden cards** (cards whose Needs name a Warden: Soft Spores, Shiny Things, Heavy Stones, branch
+  and final-form unlocks…) show only the **family**, with its icon: *"Needs: Nestling family"*, never
+  "Magpie Perch".
+- **Card ingredients** (Nursery: Tender Care + Seedling Gift; Spore Cascade: Lingering Spores; Deepened
+  bases) are shown by name: cards aren't spoilers.
+- **Entwined cards whose ingredients are two Wardens without a status combo** (e.g. Starlit Aim:
+  Standing Stone + Lanternmoth) show the two **families**: *"Pebbling + Firefly Jar families"*.
+- The same rule applies to the other card lines that named Wardens: the **half-dreamed** line
+  (*"Needs Charged: a family that brings it may come at the next pick"* instead of naming the
+  family's Warden), the **Seed** "Grows with" line (the family, e.g. *"Grows with the Acorn line"*),
+  and the Codex's card list.
+- **Data:** `UpgradeData.shows_statuses` (e.g. `["soaked", "charged"]`) for combo cards; Warden
+  Needs are turned into families with `DreamState.family_of()`. The card's **effect text** keeps its
+  wording; with discovery unlocks you've already met any Warden a card's text names.
+
 - **Deepened cards** always need their base card.
 - **Entwined cards** need all their ingredients (and are then guaranteed once).
 - **Grove cards** also need their Grove unlock (outside the run).
@@ -199,6 +223,58 @@ instead of offering payoff cards for a direction you never started.
 - **Reroll / banish:** not in the base game; Memory Grove perks add them (`meta_design.md`).
 - **Branch cards** say what they allow, e.g. *"Stormcap: Firefly Jars can now grow into
   Stormcaps (45 Dew)."*
+
+### Discovery unlocks: you dream of what you've seen (2026-09-29)
+
+User decision. **Cards named after a combo, a Kinship or a Warden only enter the Dream pool once you
+have discovered that thing**, and then they stay in the pool **for good** (every future run; saved in
+the profile like the Codex). The forest dreams of what it has seen.
+
+| Discovery | When it counts | Cards it unlocks |
+|---|---|---|
+| **A Reaction** | the first time that Reaction fires, ever (profile `reactions_seen`) | cards that name that Reaction: Thunderclap → Rolling Thunder, Rain on Glass, Conductive Soil; Ignite → Wildfire Spores, Sparking Spores; Mushrooming → Mushroom Rain, Damp Rot; Drown → Deep Water. **Any 2 Reactions** → Quick Reactions |
+| **A Crowned Reaction** | the first time it fires | its Woven card (Tempest → Eye of the Tempest, Still Pool → Deep Stillness, …) |
+| ~~**A chain**~~ | — | (Dawnbreak is a Legendary: not discovery-gated, it stays a Grove tip; resolved 2026-09-29) |
+| **A Kinship** | the first time **any** Kinship forms | the Kinship cards (124–133) |
+| **A Warden** | the first time you **build or grow into** that Warden | cards whose Needs name it (Soft Spores → Sporeling, Shiny Things → Magpie Perch, Heavy Stones → Pebbling, Twin Puff → Sporeling, …) and its branch / final-form unlock cards |
+
+- **It counts at once:** a discovery puts its cards in the pool **from that moment**, including the
+  rest of the current run (so the next Dream can already offer them). The card's normal Needs still
+  apply on top (e.g. you still need to own Stormcap for Rolling Thunder this run).
+- **Shown:** the discovery card that already appears on a first Reaction / Kinship adds a line
+  *"New Dreams: Rolling Thunder, Rain on Glass"*. The Codex shows each entry's cards, greyed until
+  discovered (*"Discover Thunderclap to dream of this"*). A first build of a Warden shows a small
+  toast with its new Dreams.
+- **Cards never gate a combo** still holds: Reactions, Kinships and Wardens all work without any
+  card, so discovery always comes from playing, never from the pool.
+- **Grove overlap:** where a discovery card was also sold on a Memory Grove node (Wildfire Spores,
+  Deep Water, Quick Reactions, Dawnbreak, the Woven cards, Close Kin …), **discovery gives it for
+  free**; the node keeps its other contents and its price drops by that card's share. The meta
+  chat should rebalance `meta_design.md`'s node list.
+  - **Resolved 2026-09-29** (Meta Game Code's audit: 8 nodes, 700 Seeds, were *fully* covered):
+    **Legendaries are never discovery-gated**, so **Dawnbreak** and **Grove of Kin** drop
+    `discovered_by` and stay **Grove tips** (bought, as before). The **5 other fully covered nodes
+    are removed**: Reactions, Woven Dreams I and II, Kin Lore, Deep Bonds (and the Reactions →
+    Dawnbreak link: Dawnbreak now hangs off Spore Lore; Grove of Kin off the nearest remaining Cards
+    node). **Bittersweet Dreams** loses Blood Is Thicker and costs 52. Cards that are only
+    implicitly Warden-gated (Acorn Cache, Twin Puff, …) stay on their nodes. The tree (as built, 763f228) is
+    **6,722 Seeds** (~34 h; the earlier 5,960 figure was out of date), and those cards now come from
+    playing instead.
+- **Half-dreamed cards** (see *Adapt, don't get handed*) still need their Reaction discovered first.
+  So in a player's first runs they won't tempt toward a combo they've never seen; the Codex's greyed
+  entries do that job instead. **They skip the Warden gate** (ruling 2026-09-29): the Reaction is the
+  discovery that matters, and their Needs line shows statuses, not Wardens. Otherwise Conductive
+  Soil would stay hidden for a player who found Thunderclap with a plain Firefly Jar but never grew
+  a Stormcap, which defeats a card meant to tempt toward the other family.
+- **Not covered** (stay as they are): generic cards, stat cards, Legendaries (they start builds and
+  need no discovery), clearing and Nurture cards (their openers already read the run).
+- **Demo:** nothing is saved, so discoveries count **for the current run only**. **Dev modes** (Test
+  Grove, Unlock all families) treat everything as discovered.
+- **Data:** `UpgradeData.discovered_by` (a list: `reaction:<id>`, `crowned:<id>`, `chain:5`,
+  `kinship:any`, `warden:<id>`, `reactions:2`); `HeartwoodMemory` keeps `reactions_seen` (exists),
+  `crowned_seen`, `kinships_seen`, `wardens_built`, `best_chain`. A card with a non-empty
+  `discovered_by` is offered only when every entry is met. `test_dreams` checks a fresh profile
+  never sees them and a discovery adds them mid-run.
 
 ## Pool size over 100 drifts
 
@@ -447,7 +523,7 @@ the Grove rules, family-specific cards come with their family or hidden-branch n
 | 94 | **Longer Flight** | Common | Samara line +1 cell (stacks, max +3) | wind, maze | Samara | hidden node |
 | 95 | **Backspin** | Uncommon | the **return pass** gets +25% crit chance | wind, crit | Samara | hidden node |
 | 96 | **Ricochet** | Uncommon | at the end of its line the seed **turns 90° once** toward the nearest nightmare before returning (rewards L-shaped corners) | wind, maze | Samara | hidden node |
-| 97 | **Heavy Seed** | Uncommon | each pass knocks nightmares back 0.25 tiles (once per throw) | wind | Samara | hidden node |
+| 97 | **Heavy Seed** | Uncommon | the seed's **return pass** hits for double (changed 2026-09-29: pulling back is Rootling's job) | wind | Samara | hidden node |
 | 98 | **Windborne Rain** | Rare, **Entwined** (Samara + Rain Lily) | every pass applies **Damp**, so the line becomes a Thunderclap corridor | wind, water, reaction | — | hidden node |
 | 99 | **Seed Storm** | Rare *(was Legendary; enhances one Warden, 2026-09-28)* | every 5th throw bursts into **5 seeds in a fan** | wind | Samara | hidden node |
 
@@ -599,7 +675,7 @@ from walls (Hedge Maze, Bramble).
 
 | # | Card | Rarity | Effect | Tags | Needs | Pool |
 |---|---|---|---|---|---|---|
-| 69 | **Seedfall** | Common | Sprouts cost **6** Dew **and their price never rises** (opens the Sprout swarm build; 2026-09-28) | sprout, wide | — | Start |
+| 69 | **Seedfall** | Common | Sprouts cost **6** Dew **and their price never rises** (opens the Sprout swarm build; the base price rises +3 per 5 Sprouts; tested ×1.05 of Balanced, 2026-09-29) | sprout, wide | — | Start |
 | 70 | **Many Hands** | Uncommon | all Wardens **+1% damage per 4 attacking Wardens** you have (max +25%) | wide | 15+ attacking Wardens | Start |
 | 71 | **Sprout Chorus** | Uncommon | Sprouts **+5% attack speed per other Sprout within 2 cells** (max +40%) | sprout, wide | 6+ Sprouts | Start |
 | 72 | **Canopy** | Rare | when you reach **20, 30 and 40** attacking Wardens (planted this run), every Warden gets **+8% damage** permanently, each time | wide | 15+ attacking Wardens | Grove |
@@ -649,7 +725,7 @@ stack; now **rule cards** can come back too, as a stronger **Deepened** version 
 | Hedge Maze | +1% per 5 Thornwalls (max 20%) | +1% per 4 Thornwalls (max 30%) |
 | Evergreen | evolving −25% Dew | evolving −40% Dew |
 | Lingering Spores | Spored +3 s | Spored +5 s, and max stacks +2 |
-| Soaked Through | Damp lasts ×2 | Damp lasts ×3 and slows −15% instead of −10% |
+| Soaked Through | Damp lasts ×2 | Damp lasts ×3, and water hits on Damp nightmares +30% instead of +20% |
 | Twin Puff | every 3rd Sporeling attack fires twice | every 2nd |
 | Charged Bloom | Stormcap chains apply 1 Drowsy | apply 2 Drowsy |
 | Spore Cascade | spreads to the 2 nearest | spreads to the 3 nearest |
@@ -672,7 +748,7 @@ prerequisite on these cards.
 | **Spore Cascade** | Driftspore + Lingering Spores | Sporeling |
 | **Guiding Light** | Lanternmoth + Cozy Corners | Lanternmoth |
 
-- The card UI shows the ingredients (small icons) so players can plan toward a combo.
+- The card UI shows what the ingredients add up to (statuses, or families; never an unowned Warden's name: see *How Needs are shown on a card*) so players can plan toward a combo.
 - An Entwined card shows up in the offer with a vine border and "Entwined" under its name.
 - **Re-run the Storm Grid simulation** (`tests/test_dreams.gd`) with this rule. If it overshoots
   33%, loosen "guaranteed" to "2× weight"; if it's still short, also make Entwined ingredients get
@@ -723,12 +799,14 @@ up with creature health and benefit from stat Dreams and evolutions.
 
 | Status | Effect | Duration | Stacks | Notes |
 |---|---|---|---|---|
-| **Damp** | −10% speed | 4 s, refreshed on reapply | no | Rain Lily 6 s; Mistveil fog keeps it on |
-| **Drowsy** | −8% speed per stack | 3 s, refreshed | up to 5 (−40%) | Dreamshroom: at 5 stacks, sleep 1.5 s, once per creature |
+| **Damp** | **Soaked**: no slow (changed 2026-09-29). Hits from the Dewdrop family deal **+20%**; the conductor for Reactions | 4 s, refreshed on reapply | no | Rain Lily 6 s; Mistveil fog keeps it on |
+| **Drowsy** | −8% speed per stack (**the** slowing status) | 3 s, refreshed | up to 5 (−40%) | Dreamshroom: at 5 stacks, sleep **3 s**, once per nightmare |
 | **Spored** | soothe per second per stack = 25% of the applier's soothe | 5 s, refreshed | up to 8 (Driftspore 12) | Puffball pops at 10+ |
 | **Marked** | +25% soothe taken from all sources | 5 s | no | Beacon +35% |
 | **Static** | a charge; at 5 stacks, a free bolt worth 3× the applier's soothe, then reset | loses 1 stack per 2 s | up to 5 | |
-| **Held** | can't move | 1 s | no | not in first-playable scope (Rootling line) |
+| **Held** | can't move; **firm** (nothing breaks it) | 1 s | no | Rootling line, Frostfern (Frozen) |
+| **Asleep** | can't move; **fragile**: breaks when a single hit deals **≥10% of its max health** (effect ticks never break it) | 3 s (Dreamshroom), 2 s (Fever Dream) | no | bosses never sleep; Nightbloom's cloud stops it breaking |
+| **Caught** | its statuses **stop wearing off** (Spored keeps ticking, Static doesn't decay, Damp / Marked / Held timers pause) | while asleep or at max Drowsy in a Dreamcatcher's range | no | Great Dreamcatcher: Caught statuses tick +25%; bosses are Caught at 3 Drowsy |
 
 **Bosses:** Drowsy cap 3, Held duration halved, Static bolts at 8 stacks instead of 5.
 
@@ -750,10 +828,10 @@ Design and effects: `tower_design.md`, "Reactions". Starting points for tuning.
 | Reaction | Trigger | Effect | Uses up | Bosses |
 |---|---|---|---|---|
 | **Thunderclap** | Damp + 3 Static | 4× applier damage to the target; arcs to every Damp nightmare within **2.5 cells** for 2× (**at most the 8 nearest per clap**, 2026-09-28, performance), each arc adds **1 Static** | all Static | Static threshold 5 |
-| **Ignite** | 3+ Spored + any Static | deals the target's **remaining Spored damage ×1.5** at once; 1 Spored stack to nightmares within 1 cell | all Spored | same |
+| **Ignite** | 3+ Spored + any Static | the spores **burn** for **3 s**: Spored ticks 3× as fast, and each second 1 stack spreads to every nightmare within 1 cell (which may start burning). Changed 2026-09-29: Puffball's pop is the burst | all Static | same |
 | **Mushrooming** | 3+ Spored + Damp | the target's Spored ticks +50% for 4 s; a spore cloud (radius 0.6, 4 s) on its tile gives 1 Spored per second | Damp | same |
 | **Shatter** | Held (incl. frozen) + Damp, then a crit or a hit from the Pebbling line or a sniper | that hit ×2.5; shards deal 50% of it to nightmares within 1 cell | Held | same (Held is already halved) |
-| **Drown** | Damp + 5 Drowsy | sleeps **2 s**, once per nightmare | all Drowsy | no sleep: −30% speed for 2 s instead |
+| **Drown** | Damp + 5 Drowsy | **pulled under** for **3 s**, once per nightmare: −60% speed and drowning damage of 0.5× / 1× / 1.5× the applier's damage in seconds 1 / 2 / 3 (3× total, effect damage). Changed 2026-09-29: no sleep, Dreamshroom owns sleep | all Drowsy | −30% speed; same damage |
 | **Pinned** | Marked + (Held or 5 Drowsy) | the next hit is a guaranteed crit at **×3** (or the hitter's multiplier if higher) | Marked | same |
 | **Smother** | Held + 1+ Spored | Spored ticks 3× as fast while Held | — (ends with Held) | same |
 | **Lightning Rod** | Marked + 1+ Static | Static bolts (5-stack bolts and Thunderclap arcs) within **3 cells** strike the Marked nightmare instead, at ×2 | — (while Marked) | same |
@@ -774,7 +852,7 @@ Design and effects: `tower_design.md`, "Reactions". Starting points for tuning.
 | 79 | **Rolling Thunder** | Uncommon | Thunderclap arcs reach 3.5 cells | storm, water, reaction | Stormcap + any Dewdrop | Start |
 | 80 | **Wildfire Spores** | Uncommon | Ignite spreads 2 stacks, within 1.5 cells | spore, storm, reaction | Sporeling + Firefly Jar | **Start** (moved from Grove 2026-09-28: every pair of starting families needs a combo card) |
 | 134 | **Mushroom Rain** | Uncommon | Mushrooming's spore cloud lasts **twice as long** and covers the **8 tiles around** it too | spore, water, reaction | Sporeling + Dewdrop | Start (added 2026-09-28, same reason) |
-| 81 | **Deep Water** | Uncommon | Drown sleeps 3 s; bosses −40% speed | water, sleep, reaction | Dewdrop | Grove |
+| 81 | **Deep Water** | Uncommon | Drown lasts 4 s and its damage grows 50% faster; bosses −40% speed | water, sleep, reaction | Dewdrop | Grove |
 | 82 | **Quick Reactions** | Rare | Reaction cooldowns 1.5 s → 0.75 s | reaction | own 2 Reaction pairs | Grove |
 | 83 | **Dawnbreak** | Legendary | a **×10 chain** Dawnburst deals 10% of max health to every nightmare within 4 cells (bosses 2%) | reaction | — | Grove |
 
@@ -791,13 +869,13 @@ scales with the applier, as for Reactions. Each counts as **2 chain links**.
 
 | Crowned | Effect | Bosses |
 |---|---|---|
-| **Tempest** | Thunderclap as normal; each arc also fires **Ignite** on Spored targets (normal Ignite numbers); Ignite's spread stacks carry **1 Static** each. A nightmare hit by a Tempest can't start another Tempest for **2 s** | arcs don't Ignite bosses; they still take the Thunderclap |
-| **Still Pool** | Drown (2 s sleep) + a pool on its tile, **5 s**: each walker entering it the first time sleeps **1 s** | no sleep: −30% speed while in the pool |
-| **Fever Dream** | the nightmare's remaining Spored damage resolves at once (×1.0); adjacent nightmares get **3 Spored + 2 Drowsy** | same (Drowsy capped at 3) |
+| **Tempest** | Thunderclap as normal; each arc also sets Spored targets **burning** (normal Ignite numbers); stacks spread by burning carry **1 Static** each. A nightmare hit by a Tempest can't start another Tempest for **2 s** | arcs don't Ignite bosses; they still take the Thunderclap |
+| **Still Pool** | Drown + a pool on its tile, **5 s**: each walker entering it the first time is **pulled under for 1 s** (−60% speed, drowning 0.5×) | −30% speed while in the pool |
+| **Fever Dream** | the nightmare **falls asleep for 2 s** (changed 2026-09-29: no detonation, Puffball owns bursts); adjacent nightmares get **3 Spored + 2 Drowsy** | no sleep; neighbours as normal (Drowsy capped at 3) |
 | **Starfall** | the Pinned ×3 crit; Static bolts from nightmares within **3 cells** fire at once into it (each ×2 and a crit); uses up their Static | same, bolts count as crits at ×1.5 |
 | **Avalanche** | the lob's Shatter (×2.5) also Shatters every Damp + Held nightmare within the lob's splash | bosses take the ×2.5 hit, no spread from them |
 | **Prismstorm** | Shatter as normal; each nightmare hit by shards gains **2 Static** | same |
-| **Nightbloom** | Mushrooming's cloud (4 s) also keeps nightmares inside **unable to wake** (sleep and max Drowsy don't end while inside, and the Watcher's wake-up does nothing there) | bosses don't sleep; they keep max Drowsy while inside |
+| **Nightbloom** | Mushrooming's cloud (4 s) also keeps nightmares inside **unable to wake**: sleep and max Drowsy don't end while inside, **sleep doesn't break from hits** there, and the Watcher's wake-up does nothing | bosses don't sleep; they keep max Drowsy while inside |
 | **Fairy Circle** | instead of one cloud: mushroom rings on the **path tiles among the 8 around** the nightmare, **6 s**; each ring tile gives the first walker **2 Spored + Damp** | same |
 
 **Priority when two crowns fit (as built, ae816ed):** Mushrooming on a nightmare that is both Held
@@ -822,7 +900,7 @@ weight). All **Rare** (was Legendary until 2026-09-28: they enhance a combo, the
 | # | Card | Ingredients | Effect |
 |---|---|---|---|
 | 100 | **Eye of the Tempest** | Stormcap + Rain Lily + Driftspore | Tempest arcs reach +1 cell and its Ignites spread 2 stacks |
-| 101 | **Deep Stillness** | Rain Lily + Tangleroot + Bellflower | Still Pools last 8 s and their sleep is 1.5 s |
+| 101 | **Deep Stillness** | Rain Lily + Tangleroot + Bellflower | Still Pools last 8 s and pull walkers under for 1.5 s |
 | 102 | **Fever Pitch** | Driftspore + Tangleroot + Bellflower | Fever Dream spreads to nightmares within 1.5 cells, not just adjacent |
 | 103 | **Falling Stars** | Firefly Jar + Tangleroot + Chime Stone or Bellflower | Starfall pulls bolts from 5 cells |
 | 104 | **Mountain's Fall** | Cairn + Frostfern + Tangleroot | Avalanche also leaves rubble where each spread Shatter lands |
@@ -867,6 +945,70 @@ Kinship on the map.
 - **In the demo:** the Start-pool three (Quick Bonds, Family Ties, Sweet Harmony).
 - **Watch in playtests:** Extended Family + Grove of Kin + Whole Tree + Monoculture could make an
   all-kin maze far ahead. The +30% cap on Grove of Kin is the first knob.
+
+
+## Seed cards: plant now, grow later
+
+Added 2026-09-29 (user request). Cards for the Wardens whose value isn't damage (catchers, auras,
+walls, control) that **don't need those Wardens to be offered**. Taking one early is a bet on
+getting the family later. Two rules keep the bet fair:
+
+1. **Never dead:** every Seed card has a small effect **on its own** ("Now"), and a bigger one once
+   you have the Wardens it names ("Grows with"). The one exception is *Golden Harvest*, the
+   Legendary gamble.
+2. **It calls its family:** while you hold a Seed card, the **next family pick is guaranteed to
+   offer** the family it grows with (if that family is unlocked in the Grove and not owned yet). The
+   card shows a small sprout and *"Grows with: Dewcatcher, Wellspring · calls Acorn"*.
+
+Tag `seed` plus the family's tag; normal weight (1×) until you own the family, then the family
+weight (1.4×). Legendary and Bittersweet rules as usual.
+
+| # | Card | Rarity | Now (on its own) | Grows with | Pool |
+|---|---|---|---|---|---|
+| 169 | **Dew Bowl** | Common, stacks (max 3) | +10 Dew now | **Dewcatcher, Wellspring:** catch +15% (per stack) | Grove |
+| 170 | **Harvest Moon** | Uncommon | +5 Dew at every rest | **catchers:** the Harvest pays **+50%** | Grove |
+| 171 | **Deep Well** | Rare | at every rest, **3% interest** on banked Dew (max 20) | **Wellspring:** its interest cap +30 each (90) | Grove |
+| 172 | **Kind Canopy** | Uncommon | Wardens touching 3+ other Wardens +5% damage | **Acorn, Elder Stump, Grove Heart:** aura radius **+1** | Grove |
+| 173 | **Shared Light** | Rare | every Warden gives the Wardens touching it **+2% damage** (max +10% on one Warden) | **aura Wardens:** their bonuses **+50%** | Grove |
+| 174 | **Bramble Oath** | Common | +2% damage for every 10 path tiles your walls add (max +15%) | **Bramble, Honeysuckle:** 50% stronger | Start |
+| 175 | **Patient Roots** | Uncommon | Held lasts **+0.25 s** from any source (Frostfern, Snugroot, World Root…) | **Rootling line:** pulls go 0.5 tiles further, holds another +0.25 s | Grove |
+| 176 | **Golden Harvest** | Legendary | nothing: the gamble | **catchers:** every **100 Dew** harvested or earned as interest this run gives **all Wardens +2% damage** (max +30%) | Grove |
+
+- **Calls:** Dew Bowl, Harvest Moon, Deep Well, Kind Canopy, Shared Light and Golden Harvest call
+  **Acorn**; Patient Roots calls **Rootling**; Bramble Oath calls nothing (walls are always yours).
+  If two held cards call different families, the next pick offers both.
+- **In the demo:** only Bramble Oath (Acorn and Rootling are Grove families).
+- **Watch in playtests:** whether Seed cards get picked at all before the family (the call rule is
+  the lever), and whether Golden Harvest turns economy into a must-have damage build.
+
+
+## Support Warden cards: the quiet Wardens
+
+Added 2026-09-29 (user request). Cards for the specific Wardens whose value isn't damage:
+catchers, auras, walls, Dreamcatchers. Unlike Seed cards, these **need their Warden** (normal
+prerequisites). Each one changes **how that Warden is used**, mostly where you put it, not just a
+bigger number. Tag `support` plus the family tag.
+
+| # | Card | Rarity | Effect | Changes | Needs | Pool |
+|---|---|---|---|---|---|---|
+| 177 | **Wide Bowl** | Common, stacks (max 2) | catch radius **+0.5 cells** | placement: one catcher covers a whole bend | Dewcatcher | Grove |
+| 178 | **Dew Trail** | Uncommon | nightmares that are **Damp** when caught drop **+20% more** Dew | a reason to soak your kill zone (Dewdrop + Acorn) | Dewcatcher | Grove |
+| 179 | **Still Waters** | Uncommon | Wellspring interest **+4%** at a rest if you **spent no Dew** during that block | the saving decision | Wellspring | Grove |
+| 180 | **Overflowing Well** | Rare | interest above the cap isn't lost: every **50 Dew over** becomes a **Dreamlight shard** | the Greedy Gardener payoff (`tower_design.md` archetypes) | Wellspring | Grove |
+| 181 | **Acorn Cache** | Common | Acorns cost **15 Dew** (was 25) and their aura is **+8%** (was +5%) | cheap aura seeding across the maze | Acorn | Grove |
+| 182 | **Hedgerow Roots** | Rare | auras **flow through Thornwalls**: a Warden touching a Thornwall that touches an aura Warden also gets that aura (one wall hop) | maze-building: walls carry support | Acorn, Elder Stump or Grove Heart | Grove |
+| 183 | **Grandfather Stump** | Uncommon | Grove Heart's bonus per nearby Warden **+4%** (was +3%), max **+45%** (was +30%) | pack the cluster tighter | Grove Heart | Grove |
+| 184 | **Thorn Snare** | Uncommon | Phantoms passing **through** a Thornwall and Gravecrawlers passing **under** one are **Held 0.5 s** | walls answer the wall-ignoring nightmares | — (Thornwall is always yours) | Start |
+| 185 | **Scented Hedge** | Uncommon | every Thornwall **touching a Honeysuckle** also gives off its scent at half strength | long scented corridors from one Honeysuckle | Honeysuckle | Start |
+| 186 | **Living Walls** | Rare | a Thornwall that stands **5 drifts** grows into a **Bramble** for free (a wall that never moved) | patience; pairs with Steadfast | Bramble unlocked | Grove |
+| 187 | **Many Threads** | Uncommon | Dreamcatchers Catch nightmares at **4 Drowsy** (not only full) | Caught comes sooner and lasts longer | Dreamcatcher | Grove |
+| 188 | **The Quiet Ones** | Legendary | all non-attacking Wardens (catchers, auras, walls, Dreamcatchers, Memory auras) are **50% stronger**: catch, interest, aura bonuses and wall effects | the support capstone | 3+ non-attacking Wardens | Grove |
+
+- **Deepened:** **Dew Trail II** +35%; **Thorn Snare II** 1 s, and
+  Night Hounds sprinting past a Thornwall are Held too.
+- **In the demo:** Thorn Snare and Scented Hedge (walls are in the demo; Acorn isn't).
+- **Pairs with:** the Seed cards above (*Dew Bowl*, *Kind Canopy*, *Golden Harvest*) and the
+  Kinship Old Growth.
 
 ## Generic Rares (2026-09-28: filling the Rare tier)
 

@@ -59,16 +59,23 @@ func _run() -> void:
 			"the DamageLog credits Thunderclap damage to the Firefly Jar")
 	await _clean()
 
-	# --- Ignite: 3+ Spored + Static. The Spored left goes off ×1.5; 1 stack spreads within 1 cell ---
+	# --- Ignite (status jobs, 2026-09-29): 3+ Spored + Static. The spores burn 3 s (Spored ticks 3x as
+	# fast); each second 1 stack spreads within 1 cell; uses up the Static, not the Spored ---
 	var potency := 2.0
 	var c := _spawn(origin)
 	var beside := _spawn(origin + Vector2(0.8, 0) * CELL)
+	var calm := _spawn(origin + Vector2(0, 4) * CELL)
 	c.apply_status(EnemyStatuses.SPORED, 4, 5.0, potency, 0, "spore", sporeling)
-	var left: float = 4 * potency * c.statuses.time_left(EnemyStatuses.SPORED)
+	calm.apply_status(EnemyStatuses.SPORED, 4, 5.0, potency, 0, "spore", sporeling)
 	c.apply_status(EnemyStatuses.STATIC, 1, 0.0, base, 0, "light", jar)
-	_check(_lost(c) == int(left * 1.5), "Ignite: the Spored left goes off ×1.5 (%d, expected %d)" % [_lost(c), int(left * 1.5)])
-	_check(not c.statuses.has(EnemyStatuses.SPORED), "it uses up the Spored")
-	_check(beside.statuses.stacks(EnemyStatuses.SPORED) == 1, "1 Spored stack spreads to the neighbour")
+	_check(c.statuses.burn_time > 0.0 and c.statuses.has(EnemyStatuses.SPORED), "Ignite: the spores burn, the Spored stays")
+	_check(not c.statuses.has(EnemyStatuses.STATIC), "it uses up the Static")
+	var burning: float = c.statuses.tick(1.0)
+	var calm_tick: float = calm.statuses.tick(1.0)
+	_check(absf(burning - calm_tick * Reactions.BURN_SPORE_RATE) < calm_tick * 0.4, "burning Spored ticks 3x as fast (%.1f vs %.1f)" % [burning, calm_tick])
+	calm.queue_free()
+	await _wait(1.1)
+	_check(beside.statuses.stacks(EnemyStatuses.SPORED) >= 1, "after a second, a Spored stack spreads to the neighbour")
 	await _clean()
 
 	# --- Mushrooming: 3+ Spored + Damp. Spored ticks +50%, a spore cloud on the tile; uses up Damp ---
@@ -83,15 +90,22 @@ func _run() -> void:
 	_check(walker.statuses.has(EnemyStatuses.SPORED), "the cloud gives Spored to nightmares inside")
 	await _clean()
 
-	# --- Drown: Damp + full Drowsy. Sleeps 2 s once; uses up the Drowsy ---
+	# --- Drown (status jobs, 2026-09-29): Damp + full Drowsy. Pulled under 3 s: slowed 60% and drowning
+	# damage each second (0.5x, 1x, 1.5x the applier's damage); no sleep; uses up the Drowsy; once ---
 	var d := _spawn(origin)
-	d.apply_status(EnemyStatuses.DAMP)
-	d.apply_status(EnemyStatuses.DROWSY, 5)
-	_check(d.statuses.sleep_time >= 2.0 and not d.statuses.has(EnemyStatuses.DROWSY), "Drown: asleep for 2 s, Drowsy used up")
-	d.statuses.sleep_time = 0.0
+	d.apply_status(EnemyStatuses.DAMP, 1, 0.0, 0.0, 0, "water", sporeling)
+	d.apply_status(EnemyStatuses.DROWSY, 5, 0.0, 0.0, 0, "song", sporeling)
+	_check(not d.statuses.is_asleep() and not d.statuses.has(EnemyStatuses.DROWSY), "Drown: no sleep, Drowsy used up")
+	var drown_hp: int = d.health
+	await _wait(0.2)
+	_check(d.statuses.slow_time > 0.0 and d.statuses.slow_amount >= 0.59, "pulled under: 60%% slower (%.2f)" % d.statuses.slow_amount)
+	await _wait(1.0)
+	var first_second: int = drown_hp - d.health
+	_check(absi(first_second - roundi(sporeling.get_damage() * 0.5 * sporeling.get_potency())) <= 2,
+		"drowning damage in the first second: 0.5x the applier's damage (%d)" % first_second)
 	d.statuses.reaction_cooldowns.clear()
 	d.apply_status(EnemyStatuses.DROWSY, 5)
-	_check(d.statuses.sleep_time == 0.0, "only once per nightmare")
+	_check(d.statuses.has(EnemyStatuses.DROWSY), "only once per nightmare (the Drowsy stays the second time)")
 	await _clean()
 
 	# --- Pinned: Marked + Held. The next hit is a guaranteed ×3 crit; uses up Marked ---

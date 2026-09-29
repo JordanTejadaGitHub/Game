@@ -34,6 +34,11 @@ signal ascended(tower: Tower)  # Grew into an Ascended form (tier 4)
 signal ascended_event(tower: Tower, where: Vector2, targets: int)  # One per Ascended pulse / chain
 signal sap_yielded(tower: Tower, dew: int)  # The Sapling / Grandmother Oak paid out at a drift's end
 signal dreamlight_ripened(tower: Tower)  # The Sapling gave a Dreamlight
+# Catchers (DewCatch): Dew caught into the bowl on a dispel near it; the bowl poured at the rest (the
+# Harvest); a Wellspring's interest paid at the rest.
+signal dew_caught(tower: Tower, where: Vector2, amount: float)
+signal harvest_poured(tower: Tower, amount: int)
+signal interest_paid(tower: Tower, amount: int)
 signal withered(tower: Tower)  # A leaf lost withered the Sapling's yield
 signal statics_set_off(tower: Tower, where: Vector2, count: int)  # An Ascended pulse (the Great Bell) set off Static charges
 signal legacy_released(tower: Tower)  # An Ascended form made its final form's attack (no wind-up; sound)
@@ -61,6 +66,38 @@ const LIGHT_COLOR := Color(1.0, 0.9, 0.5)
 const RANK_MAX := 5  # Without Dreams (Deeper Rings: VII)
 const RANK_COSTS: Array[int] = [25, 40, 60, 90, 135]  # Base Dew for ranks I-V (economy pass v2)
 const RANK_DAMAGE := 0.10
+const PATIENT_ROOTS_PULL := 0.5  # Patient Roots (Seed card): the Rootling line pulls this much further…
+const PATIENT_ROOTS_ROOT_HOLD := 0.25  # …and holds this much longer, on top of the +0.25 s for every Hold
+const KIND_CANOPY_WARDENS := ["acorn", "elder_stump", "grove_heart"]  # Kind Canopy (Seed card): these auras reach…
+const KIND_CANOPY_REACH := 1.0  # …a cell further
+const ACORN_CACHE_AURA := 0.08  # Acorn Cache: the Acorn's aura
+const GRANDFATHER_PER_WARDEN := 0.04  # Grandfather Stump: the Elder Stump +4% per Warden around it…
+const GRANDFATHER_MAX := 0.45  # …up to this in all
+const SHARED_LIGHT := 0.5  # Shared Light (Seed card): aura bonuses +50%
+const QUIET_ONES := 0.5  # The Quiet Ones: non-attacking Wardens +50%
+const BRAMBLE_OATH_WARDENS := ["bramble", "honeysuckle"]
+const BRAMBLE_OATH := 0.5  # Bramble Oath (Seed card): +50%
+const WALL_TICK := 0.2
+const THORN_SNARE_KINDS := ["dandelion_seed", "gravecrawler"]  # Phantom (through), Gravecrawler (under)
+const THORN_SNARE_REACH := 0.6  # Cells from the wall's centre that count as passing through / under it
+const THORN_SNARE_SPRINT_REACH := 1.5  # II: a Night Hound sprinting past
+const THORN_SNARE_TIME := [0.5, 1.0]
+const SCENTED_HEDGE := 0.5  # Scented Hedge: the Thornwall's scent is half the Honeysuckle's
+const LIVING_WALLS_DRIFTS := 5
+const MANY_THREADS_DROWSY := 4
+# The 9 hidden Kinships (tower_design.md; the hidden branch is side "a" of each)
+const HOAR_FOG_PUFF := 2.0  # Hoar Fog A: Frostfern shots leave a 1-tile fog puff for this long (x share)
+const SUNSPOT_RAMP := 0.10  # Sunspot B: Lanternmoth shots +10% per hit on the same target…
+const SUNSPOT_RAMP_MAX := 0.5  # …up to +50% (x share)
+const SPOTTER_SPLASH := 0.3  # Spotter B: Standing Stone shots splash 30%…
+const SPOTTER_SPLASH_RADIUS := 0.75  # …within this many cells
+const LANTERN_ROOTS_HOLD := 0.3  # Lantern Roots A: a lit tile holds a nightmare entering it (once)
+const LANTERN_ROOTS_REVEAL := 3.0  # Lantern Roots B: Tangleroot's holds reveal hidden nightmares nearby this long
+const RESONANT_ECHO := 0.3  # Resonant Hollow B: Chime Stone pulses echo once at 30%…
+const RESONANT_ECHO_DELAY := 0.5  # …this long after
+const RESONANT_CHARGES := 3  # Resonant Hollow A: echoes set off Static at 3 charges, like a chime
+const JEWEL_THIEVES_EVERY := 6  # Jewel Thieves A: every 6th peck strips a buff (+1 Dew if there's none)
+const TAILWIND_REACH := 3.0  # Tailwind B: Gust's copies reach this far
 const RANK_SPEED := 0.04
 const RANK_RANGE := 0.1  # Cells
 const RANK_NAMES: Array[String] = ["", "I", "II", "III", "IV", "V", "VI", "VII"]
@@ -187,6 +224,14 @@ var _aura_crit := 0.0  # From a White Stag in range
 var _aura_range := 0.0  # From a Moon Moth nearby
 var _aura_damage := 0.0  # From a Grandmother Oak nearby
 var _aura_speed := 0.0
+var _aura_damage_from: Tower = null  # The aura Warden behind _aura_damage (SupportLog credits it)
+var _aura_speed_from: Tower = null
+var _last_fired: Node2D = null  # The nightmare its last projectile flew at (Spotter: the sniper's target)
+var _ramp_target: Node2D = null  # Sunspot B: the nightmare the last hits went to…
+var _ramp_hits := 0  # …and how many in a row
+var _nursery_ring: FairyRing = null  # Spore Nursery B: the one ring its puffs planted
+var _jewel_pecks := 0  # Jewel Thieves A
+var _graft_status: Array = []  # True Graft B: [status, stacks] of the strongest neighbour
 # Grafted Harmony (a Crowned delivery rule): a Graftling touching Wardens of 2+ status families also
 # applies each of their statuses at half strength. Status id -> stacks; its two-tone glow.
 var _harmony := {}
@@ -226,7 +271,6 @@ const ROOTED_NIGHTMARES_EVERY := 8
 const ROOTED_TIME := 1.0
 const ROOTED_BOSS_TIME := 0.5
 var _ability_timer := 0.0  # Rootcurl / Tangleroot / Beacon: seconds until the timed ability
-const INTEREST_CAP := 80  # Wellspring: all Wellsprings together pay at most this per rest
 var _drifts_yielded := 0  # Sapling: drifts since planted (Dreamlight every N)
 var _wither := 0  # Sapling: leaves lost since the last rest (−5% yield each)
 var _last_leaves := -1
@@ -257,6 +301,7 @@ func _apply_data() -> void:
 	_show_idle()
 	_update_withered()
 	_refresh_neighbours()
+	_show_bowl()
 	_connect_echo.call_deferred()  # Echo Hollow listens for Reactions (after entering the tree)
 	_connect_yield.call_deferred()  # Grandmother Oak / the Sapling pay out after each drift
 	if is_instance_valid(_patrol) and attack_data.attack_kind != TowerData.AttackKind.PATROL:
@@ -304,6 +349,8 @@ func _process(delta: float) -> void:
 			_last_idle_frame = idle_frame
 			if _beam_target == null:
 				sprite.frame = idle_frame % tower_data.frame_count
+			if is_catcher():
+				_bob_bowl()
 			if tower_data.withered_texture != null:
 				var withered := get_node_or_null("Withered") as Sprite2D
 				if withered:
@@ -312,12 +359,18 @@ func _process(delta: float) -> void:
 				for art in [get_node_or_null("RankUnder"), get_node_or_null("RankOver")]:
 					if art:
 						art.frame = idle_frame % 8
+	if tower_data.get_id() == "thornwall" and _dream_state:
+		_update_wall(delta)
 	if not tower_data.can_attack:
 		return
 	if tower_data.caught_bonus > 0.0:
 		_update_catch(delta)  # Dreamcatchers catch sleepy nightmares whether or not they're shooting
 	if attack_data.ability_every > 0.0:
 		_update_ability(delta)
+	if attack_data.lit_hold_multiplier > 0.0 and not _lit_cells.is_empty():
+		_update_lit_holds(delta)
+	if attack_data.copy_status_every > 0.0:
+		_update_status_copy(delta)
 	_update_legacy(delta)
 	match attack_data.attack_kind:
 		TowerData.AttackKind.AURA:
@@ -373,7 +426,8 @@ func _has_work() -> bool:
 func get_damage() -> float:
 	return attack_data.damage * _damage_share * get_rank_damage_multiplier() * (1.0 + _aura_damage) \
 		* _dream_bonus(&"soothe") \
-		* (1.0 + (_kin.damage_bonus(self) if is_instance_valid(_kin) else 0.0))  # Kindred / Whole Tree, Kinship cards
+		* (1.0 + (_kin.damage_bonus(self) if is_instance_valid(_kin) else 0.0)) \
+		* get_wall_multiplier()  # Kindred / Whole Tree, Kinship cards; Bramble Oath
 
 func get_attacks_per_second() -> float:
 	var ranks := mini(get_effective_rank(), STAT_TOP_RANK)
@@ -384,7 +438,8 @@ func get_attacks_per_second() -> float:
 		if _dream_state.has_method("get_tower_attack_speed_bonus"):
 			dreams += _dream_bonus(&"speed")  # Sprout Chorus, The Last Light
 	var omen := _omens.get_warden_speed_multiplier() if _omens and _omens.has_method("get_warden_speed_multiplier") else 1.0  # Wilting
-	return attack_data.attacks_per_second * speed * dreams * (1.0 + _aura_speed) * omen
+	return attack_data.attacks_per_second * speed * dreams * (1.0 + _aura_speed) * omen \
+		* (get_wall_multiplier() if attack_data.damage <= 0 else 1.0)  # Honeysuckle: Bramble Oath, The Quiet Ones
 
 func get_range_cells() -> float:
 	# Performance: targeting asks several times a frame; the answer is kept for the frame (tests and
@@ -436,6 +491,8 @@ static func _focus_ranks(ranks: int) -> int:
 
 # Damage multiplier from ranks: +10% each (+ Warm Hands), + Power's +8% from rank III.
 func get_rank_damage_multiplier() -> float:
+	if is_catcher():
+		return 1.0  # Catchers' ranks add catch instead (+catch_per_rank each)
 	var ranks := get_effective_rank()
 	var per_rank := RANK_DAMAGE
 	if _dream_state and _dream_state.has_method("get_rank_damage_bonus"):
@@ -672,16 +729,67 @@ func _other_towers() -> Array:
 	return get_parent().get_children().filter(func(t: Node) -> bool:
 		return t is Tower and t != self and not t.is_queued_for_deletion())
 
-# How far this Warden's aura reaches, in cells (aura_radius, or its attack range).
+# How far this Warden's aura reaches, in cells (aura_radius, or its attack range; Kind Canopy +1 for the
+# Acorn line's auras).
 func get_aura_reach() -> float:
-	return tower_data.aura_radius if tower_data.aura_radius > 0.0 else tower_data.attack_range
+	var reach := tower_data.aura_radius if tower_data.aura_radius > 0.0 else tower_data.attack_range
+	if _rule_stacks(&"kind_canopy") > 0 and KIND_CANOPY_WARDENS.has(tower_data.get_id()):
+		reach += KIND_CANOPY_REACH
+	return reach
 
 # Grove Heart: +aura_per_warden for each Warden in its radius, keeping the total under aura_max.
+# Grandfather Stump (card): the Elder Stump gets +4% per Warden around it too, up to +45% in all.
 func get_aura_extra() -> float:
-	if tower_data.aura_per_warden <= 0.0:
-		return 0.0
 	var base := maxf(tower_data.aura_damage_bonus, tower_data.aura_speed_bonus)
-	return clampf(tower_data.aura_per_warden * _aura_count, 0.0, maxf(tower_data.aura_max - base, 0.0))
+	var extra := 0.0
+	if tower_data.aura_per_warden > 0.0:
+		extra = clampf(tower_data.aura_per_warden * _aura_count, 0.0, maxf(tower_data.aura_max - base, 0.0))
+	if tower_data.get_id() == "elder_stump" and _rule_stacks(&"grandfather_stump") > 0:
+		extra = maxf(extra, clampf(GRANDFATHER_PER_WARDEN * _aura_count, 0.0, maxf(GRANDFATHER_MAX - base, 0.0)))
+	return extra
+
+# The damage (`speed` false) or attack-speed bonus this aura Warden gives right now, cards included:
+# Acorn Cache (the Acorn's +5% is +8%), Shared Light (+50%), The Quiet Ones (non-attackers +50%).
+func get_aura_bonus(speed: bool) -> float:
+	var base := tower_data.aura_speed_bonus if speed else tower_data.aura_damage_bonus
+	if base <= 0.0:
+		return 0.0
+	if not speed and tower_data.get_id() == "acorn" and _rule_stacks(&"acorn_cache") > 0:
+		base = ACORN_CACHE_AURA
+	var bonus := base + get_aura_extra()
+	if _rule_stacks(&"shared_light") > 0:
+		bonus *= 1.0 + SHARED_LIGHT
+	return bonus * get_quiet_multiplier()
+
+# Bramble Oath (Seed card): Bramble and Honeysuckle 50% stronger (Bramble's damage, Honeysuckle's
+# scent rate); The Quiet Ones for Honeysuckle. Scented Hedge's Thornwalls carry it at half strength.
+func get_wall_multiplier() -> float:
+	var multiplier := get_quiet_multiplier()
+	if BRAMBLE_OATH_WARDENS.has(tower_data.get_id()) and _rule_stacks(&"bramble_oath") > 0:
+		multiplier *= 1.0 + BRAMBLE_OATH
+	return multiplier
+
+# The Quiet Ones (card): Wardens that don't attack (walls, Grandmother Oak, the White Stag, Honeysuckle)
+# are 50% stronger.
+func get_quiet_multiplier() -> float:
+	return 1.0 + QUIET_ONES if is_quiet() and _rule_stacks(&"the_quiet_ones") > 0 else 1.0
+
+func is_quiet() -> bool:
+	return not tower_data.can_attack or tower_data.damage <= 0
+
+# Hedgerow Roots (card): the Thornwalls touching this Warden, which auras reach past.
+func _hedge_walls() -> Array:
+	if _rule_stacks(&"hedgerow_roots") <= 0:
+		return []
+	return _other_towers().filter(func(t: Tower) -> bool:
+		return t.tower_data.get_id() == "thornwall" and absf(t.cell.x - cell.x) <= 1 and absf(t.cell.y - cell.y) <= 1)
+
+# Whether this aura reaches one of `walls` (so it hops that Thornwall to the Warden behind it).
+func reaches_past(walls: Array) -> bool:
+	for wall in walls:
+		if wall.global_position.distance_to(global_position) / MAP_GRID.cell_size.x <= get_aura_reach():
+			return true
+	return false
 
 # Refreshes what depends on nearby Wardens: the copied attack (Graftling) and aura bonuses.
 func _refresh_neighbours() -> void:
@@ -693,6 +801,9 @@ func _refresh_neighbours() -> void:
 	_aura_damage = 0.0
 	_aura_speed = 0.0
 	var aura_count := 0
+	_aura_damage_from = null
+	_aura_speed_from = null
+	var hedge_walls := _hedge_walls()  # Hedgerow Roots: auras reach past a Thornwall next to this Warden
 	var harmony := {}
 	var best: Tower = null
 	var best_dps := 0.0
@@ -701,18 +812,23 @@ func _refresh_neighbours() -> void:
 		var data: TowerData = other.tower_data
 		if data.aura_crit_bonus > 0.0 and distance <= data.attack_range:
 			_aura_crit = maxf(_aura_crit, data.aura_crit_bonus)  # Auras don't stack with themselves
-		if (data.aura_damage_bonus > 0.0 or data.aura_speed_bonus > 0.0) and distance <= other.get_aura_reach():
+		if (data.aura_damage_bonus > 0.0 or data.aura_speed_bonus > 0.0) \
+				and (distance <= other.get_aura_reach() or other.reaches_past(hedge_walls)):
 			# Acorn, Elder Stump, Grove Heart, Grandmother Oak. Auras don't stack: the strongest counts.
-			var extra: float = other.get_aura_extra()
-			if data.aura_damage_bonus > 0.0:
-				_aura_damage = maxf(_aura_damage, data.aura_damage_bonus + extra)
-			if data.aura_speed_bonus > 0.0:
-				_aura_speed = maxf(_aura_speed, data.aura_speed_bonus + extra)
+			var bonus: float = other.get_aura_bonus(false)
+			if bonus > _aura_damage:
+				_aura_damage = bonus
+				_aura_damage_from = other
+			bonus = other.get_aura_bonus(true)
+			if bonus > _aura_speed:
+				_aura_speed = bonus
+				_aura_speed_from = other
 		if (tower_data.aura_damage_bonus > 0.0 or tower_data.aura_speed_bonus > 0.0) and distance <= get_aura_reach():
 			aura_count += 1
 		var growth: float = other.kin_share(&"old_growth", "b")
-		if growth > 0.0 and distance <= 1.5:
-			_aura_speed = maxf(_aura_speed, 0.1 * growth)  # Old Growth: the Dewcatcher kin's small aura
+		if growth > 0.0 and distance <= 1.5 and 0.1 * growth > _aura_speed:
+			_aura_speed = 0.1 * growth  # Old Growth: the Dewcatcher kin's small aura
+			_aura_speed_from = other
 		if data.range_aura_bonus > 0.0 and distance <= data.range_aura_radius:
 			_aura_range = maxf(_aura_range, data.range_aura_bonus)
 		if tower_data.attack_kind == TowerData.AttackKind.COPY and data.applies_status != &"" \
@@ -725,6 +841,7 @@ func _refresh_neighbours() -> void:
 				best_dps = dps
 				best = other
 	_aura_count = aura_count
+	_graft_status = _strongest_neighbour_status() if kin_share(&"true_graft", "b") > 0.0 else []
 	_set_harmony(harmony if harmony.size() >= 2 else {})
 	if badges_visible() or _dream_cache.is_empty():
 		_refresh_badge()  # Only while badges show (build mode, a selection); else the cache refresh does it
@@ -735,7 +852,7 @@ func _refresh_neighbours() -> void:
 	if copied != attack_data:
 		_stop_beam()
 		attack_data = copied
-	_damage_share = tower_data.copy_share if best != null else 1.0
+	_damage_share = lerpf(tower_data.copy_share, 1.0, kin_share(&"true_graft", "a")) if best != null else 1.0  # True Graft: 100%
 
 # Graftlings copy attacking, non-unique Wardens, and never other Graftlings.
 static func _can_copy(other: Tower) -> bool:
@@ -886,8 +1003,12 @@ func _release_attack() -> void:
 				_push(enemy)
 				if _set_off_static(enemy):
 					statics += 1
+			_resonant_echo(in_range)
 			if statics > 0 and attack_data.tier >= 4:
 				statics_set_off.emit(self, global_position, statics)  # The Great Bell's toll
+			if attack_data.pulse_hold_every > 0 and _attack_count % attack_data.pulse_hold_every == 0:
+				_pulse_hold(in_range)
+			_kin_chime_catch(in_range)
 		TowerData.AttackKind.CHAIN:
 			var target := find_target()
 			if target != null:
@@ -933,7 +1054,12 @@ func hit(enemy: Node2D, soothe_multiplier: float = 1.0, is_area: bool = false, c
 	var is_crit := roll_crit(enemy) if crit == ROLL_CRIT else crit == CRIT
 	if attack_data.dew_mark:
 		enemy.bonus_dew = maxi(enemy.bonus_dew, 1)  # Before the hit, so a dispelling hit counts
+	if attack_data.strips_buffs and enemy.has_method("strip_buff"):
+		enemy.strip_buff(self)  # Magpie, the thief: shell chip x2, a Weeper's mending stopped, Omen boosts gone (Enemy's side)
 	var soothe := get_damage() * soothe_multiplier * _damage_against(enemy) * _hit_boost
+	if kin_share(&"sunspot", "b") > 0.0:  # Sunspot: hits in a row on one nightmare ramp up
+		_ramp_hits = _ramp_hits + 1 if enemy == _ramp_target else 0
+		_ramp_target = enemy
 	if _dream_state and _dream_state.has_method("get_hit_damage_multiplier"):
 		soothe *= _dream_state.get_hit_damage_multiplier()  # Venom Bloom: hits weaker, effects stronger
 	if _dream_state and _dream_state.has_method("on_hit_multiplier"):
@@ -947,7 +1073,12 @@ func hit(enemy: Node2D, soothe_multiplier: float = 1.0, is_area: bool = false, c
 	if hammer > 0.0:
 		crit_multiplier = maxf(crit_multiplier, 2.0 + 0.5 * hammer)  # Hammer and Anvil: the sniper's eye
 	if _kin_roll(kin_share(&"flock_together", "a")):
-		enemy.bonus_dew = maxi(enemy.bonus_dew, 1)  # Flock Together: it drops +1 Dew
+		# Flock Together A (status jobs): the wren strips a buff like a magpie, and the robbed nightmare
+		# drops +1 Dew when dispelled.
+		if enemy.has_method("strip_buff"):
+			enemy.strip_buff(self)
+		enemy.bonus_dew = maxi(enemy.bonus_dew, 1)
+		_kin_fired(&"flock_together")
 	if is_crit and _dream_state and _dream_state.has_method("get_crit_overflow_multiplier"):
 		crit_multiplier += _dream_state.get_crit_overflow_multiplier(get_raw_crit_chance(enemy))  # Full Moon
 	var non_crit := 1.0
@@ -984,6 +1115,10 @@ func hit(enemy: Node2D, soothe_multiplier: float = 1.0, is_area: bool = false, c
 func kin_share(id: StringName, side: String) -> float:
 	return _kin.share(self, id, side) if is_instance_valid(_kin) else 0.0
 
+# Borrowed looks (2026-09-29): the colour this Warden's attacks carry while bonded (transparent if not).
+func kin_look() -> Color:
+	return _kin.look_for(self) if is_instance_valid(_kin) else Color(0, 0, 0, 0)
+
 func _kin_partner() -> Tower:
 	return _kin.get_partner(self) if is_instance_valid(_kin) else null
 
@@ -997,11 +1132,30 @@ static func _kin_roll(share: float) -> bool:
 func kin_cloud_tick(enemy: Node2D, entered: bool) -> void:
 	if _kin_roll(kin_share(&"slumber_rot", "b")):
 		enemy.apply_status(EnemyStatuses.SPORED, 1, 0.0, get_damage() * SPORE_POTENCY, 0, tower_data.line, self)
+		_kin_fired(&"slumber_rot")
 	var fog := kin_share(&"rainfog", "b")
 	if entered and fog > 0.0 and is_instance_valid(enemy) and not enemy.is_cleansed:
 		var partner := _kin_partner()
 		if partner:
 			enemy.take_damage(partner.get_damage() * fog, partner.tower_data.line, true, false, partner, &"fog")
+			_kin_fired(&"rainfog")
+
+# Night Chimes A (Chime Stone line; status jobs, 2026-09-29): its pulses Catch full-Drowsy nightmares as if
+# a Dreamcatcher were there (statuses stop wearing off), until the next pulse. No damage bonus any more.
+func _kin_chime_catch(in_range: Array) -> void:
+	var share := kin_share(&"night_chimes", "a")
+	if share <= 0.0:
+		return
+	var hold := 1.1 / maxf(get_attacks_per_second(), 0.1)  # Until just after the next pulse
+	for enemy in in_range:
+		if not is_instance_valid(enemy) or enemy.is_cleansed or not _kin_roll(share):
+			continue
+		var s: EnemyStatuses = enemy.statuses
+		if not s.is_catchable():
+			continue
+		if not s.is_caught():
+			Reactions._effect(&"caught", enemy.global_position, self, 1.0, 0.8)
+		s.caught_time = maxf(s.caught_time, hold)
 
 # Night Chimes (Dreamcatcher line): its hits set off Static at 3 charges, like a chime.
 func _kin_night_chimes(enemy: Node2D) -> void:
@@ -1042,7 +1196,7 @@ func _legendary_hit_rules(enemy: Node2D, soothe: float) -> void:
 		return
 	if _dream_state.has_rule(&"rooted_nightmares") and _hits_landed % ROOTED_NIGHTMARES_EVERY == 0:
 		var time := ROOTED_BOSS_TIME if s.is_boss else ROOTED_TIME
-		enemy.apply_status(EnemyStatuses.HELD, 1, time, 0.0, 0, tower_data.line, self)
+		hold(enemy, time)
 
 # Puffball: `enemy`'s Spored stacks burst. Pop damage (6 × stacks, Dreams included) hits it and every
 # nightmare within pop_radius as an area spore hit that never crits, logged as a "popped" combo.
@@ -1145,9 +1299,9 @@ func _damage_against(enemy: Node2D) -> float:
 		var anvil := kin_share(&"hammer_and_anvil", "b")
 		if anvil > 0.0 and enemy.statuses.has(EnemyStatuses.MARKED):
 			multiplier *= 1.0 + anvil  # Hammer and Anvil: Mossback's weight, ×2 vs Marked
-		var chimes := kin_share(&"night_chimes", "a")
-		if chimes > 0.0 and enemy.statuses.is_caught():
-			multiplier *= 1.0 + 0.4 * chimes  # Night Chimes: pulses +40% on Caught nightmares
+		var sun := kin_share(&"sunspot", "b")
+		if sun > 0.0 and enemy == _ramp_target:
+			multiplier *= 1.0 + minf(SUNSPOT_RAMP * _ramp_hits, SUNSPOT_RAMP_MAX) * sun  # Sunspot: the beam's ramp
 		var flock := kin_share(&"flock_together", "b")
 		if flock > 0.0 and enemy.enemy_data.resource_path.get_file().get_basename() == "dandelion_seed":
 			multiplier *= 1.0 + 0.25 * flock  # Flock Together: +25% vs Phantoms
@@ -1158,7 +1312,7 @@ func _after_hit(enemy: Node2D, is_crit: bool) -> void:
 	if attack_data.freeze_duration > 0.0 and enemy.freeze_cooldown <= 0.0 and not enemy.is_cleansed \
 			and (attack_data.freeze_needs == &"" or enemy.statuses.stacks(attack_data.freeze_needs) >= attack_data.freeze_needs_stacks):
 		enemy.freeze_cooldown = attack_data.freeze_cooldown
-		enemy.apply_status(EnemyStatuses.HELD, 1, attack_data.freeze_duration)
+		hold(enemy, attack_data.freeze_duration)
 		if attack_data.held_damage_bonus > 0.0:
 			enemy.statuses.held_bonus = maxf(enemy.statuses.held_bonus, attack_data.held_damage_bonus)  # World Root
 	if is_crit and attack_data.crit_dew > 0:
@@ -1185,8 +1339,16 @@ func apply_status_to(enemy: Node2D, soothe: float) -> void:
 		_apply_one_status(enemy, attack_data.extra_status, attack_data.extra_status_stacks, soothe)  # Lullaby Bell
 	if _kin_roll(kin_share(&"slumber_rot", "a")):
 		_apply_one_status(enemy, EnemyStatuses.DROWSY, 1, soothe)  # Slumber Rot: puffs add Drowsy
+		_kin_fired(&"slumber_rot")
 	if _kin_roll(kin_share(&"storm_beacon", "b")):
 		_apply_one_status(enemy, EnemyStatuses.STATIC, 1, soothe)  # Storm Beacon: shots add Static
+		_kin_fired(&"storm_beacon")
+	if attack_data.attack_kind == TowerData.AttackKind.TRAP and _kin_roll(kin_share(&"spore_nursery", "a")):
+		_apply_one_status(enemy, attack_data.applies_status, attack_data.status_stacks, soothe)  # Spore Nursery: rings apply double
+		_kin_fired(&"spore_nursery")
+	if not _graft_status.is_empty() and _kin_roll(kin_share(&"true_graft", "b")):
+		_apply_one_status(enemy, _graft_status[0], _graft_status[1], soothe)  # True Graft: the strongest neighbour's status
+		_kin_fired(&"true_graft")
 	for status in _harmony:  # Grafted Harmony: each neighbour family's status at half strength
 		_apply_one_status(enemy, status, maxi(_harmony[status] / 2, 1), soothe * 0.5)
 	_put_to_sleep(enemy)
@@ -1232,7 +1394,7 @@ func _apply_one_status(enemy: Node2D, status: StringName, stacks: int, soothe: f
 	if status == EnemyStatuses.SPORED:
 		potency = soothe * SPORE_POTENCY
 	elif status == EnemyStatuses.DAMP:
-		potency = 1.0  # Damp's potency is its slow strength, not soothe
+		potency = 1.0  # Damp's potency is its strength: it scales the water-hit bonus in Enemy.take_damage, not soothe
 	var duration := attack_data.status_duration
 	var max_stacks := attack_data.status_max_stacks
 	if _dream_state:
@@ -1246,6 +1408,8 @@ func _apply_one_status(enemy: Node2D, status: StringName, stacks: int, soothe: f
 		duration *= deep  # Its strength side is Potency (get_potency)
 	var at: Vector2 = enemy.global_position
 	enemy.apply_status(status, stacks, duration, potency, max_stacks, tower_data.line, self)
+	if status == EnemyStatuses.DROWSY:
+		SupportLog.credit(self, &"drowsy", stacks)  # Honeysuckle's panel line and the rest report
 	# Guiding Light: Marked spreads to nightmares within 1 tile of the target (II: 2 tiles).
 	if status == EnemyStatuses.MARKED and _dream_state and _dream_state.has_rule(&"guiding_light"):
 		var reach := (2.0 if _dream_state.rule_level(&"guiding_light") > 0 else 1.0) * MAP_GRID.cell_size.x
@@ -1257,14 +1421,22 @@ func _apply_one_status(enemy: Node2D, status: StringName, stacks: int, soothe: f
 # splash radius (the splash shares the main hit's crit roll).
 func projectile_landed(target: Node2D, where: Vector2) -> void:
 	var splash := get_splash_cells() * MAP_GRID.cell_size.x
+	_kin_on_landing(target, where)
 	if splash <= 0.0:
 		hit(target)
+		if _kin_roll(kin_share(&"jewel_thieves", "b")):
+			hit(target)  # Jewel Thieves: the magpie pecks twice per swoop
+			_kin_fired(&"jewel_thieves")
+		_spotter_splash(target, where)
 		# Sharp Beaks: Wren's Nest's wrens strike again (+1 per stack).
 		if tower_data.get_id() == "wrens_nest":
 			for i in _rule_stacks(&"sharp_beaks"):
 				hit(target)
 		return
 	var crit := CRIT if target != null and is_instance_valid(target) and roll_crit(target) else NO_CRIT
+	if crit == NO_CRIT and target != null and is_instance_valid(target) and _kin_roll(kin_share(&"spotter", "a")):
+		crit = CRIT  # Spotter: a lob at the sniper's target lands as a crit
+		_kin_fired(&"spotter")
 	if attack_data.splash_share < 1.0 and target != null and is_instance_valid(target):
 		# Boulderback: the full hit on its target, a share of it to everything else nearby.
 		hit(target, 1.0, false, crit)
@@ -1276,6 +1448,7 @@ func projectile_landed(target: Node2D, where: Vector2) -> void:
 		var rainfog := kin_share(&"rainfog", "a")
 		if rainfog > 0.0 and is_instance_valid(_kin):
 			_kin.fog_patch(where, 2.0 * rainfog)  # Rainfog: the splash leaves a fog patch
+		_kin_fired(&"rainfog")
 	if attack_data.lob:
 		_lob_landed(where, splash)
 	if attack_data.impact_texture != null:  # Old Mountain's crush
@@ -1313,11 +1486,15 @@ func _lob_landed(where: Vector2, splash: float) -> void:
 		world.add_child(rubble)
 
 func fire_at(target: Node2D) -> void:
+	if kin_share(&"spotter", "a") > 0.0:
+		target = _spotter_target(target)
+	_last_fired = target
 	var on_land := projectile_landed
 	if _hit_boost != 1.0 or _legacy_active:
 		# Sudden Bloom / Watchful Rest and a legacy attack's data ride the projectile to where it lands.
 		on_land = _land_as.bind(attack_data, _hit_boost)
 	var projectile := Projectile.new(target, attack_data, on_land)
+	projectile.trail = kin_look()
 	# Placed before it enters the tree: _ready() takes its home (swoops fly back to it) and a lob's arc
 	# length from where it starts. It's top_level, so position is world space.
 	projectile.position = global_position + tower_data.get_attack_origin()
@@ -1354,10 +1531,11 @@ func _update_ability(delta: float) -> void:
 				continue
 			var tiles: float = attack_data.pull_boss_tiles if enemy.enemy_data.is_boss else attack_data.pull_tiles
 			var before: Vector2 = enemy.global_position
-			enemy.push_back(tiles * MAP_GRID.cell_size.x)
+			pull(enemy, tiles)
 			var snare := kin_share(&"snare", "a")
 			if snare > 0.0:
-				enemy.apply_status(EnemyStatuses.HELD, 1, 0.5 * snare, 0.0, 0, tower_data.line, self)  # Snare: the pull ends in a hold
+				hold(enemy, 0.5 * snare)  # Snare: the pull ends in a hold
+				_kin_fired(&"snare")
 			if attack_data.pull_once:
 				enemy.set_meta(&"pulled_home", true)
 			var world := Reactions._world(self)
@@ -1366,34 +1544,148 @@ func _update_ability(delta: float) -> void:
 			break  # One nightmare per pull
 	if attack_data.hold_targets > 0:
 		for enemy in in_range.slice(0, attack_data.hold_targets):
-			enemy.apply_status(EnemyStatuses.HELD, 1, attack_data.hold_time, 0.0, 0, tower_data.line, self)
+			hold(enemy, attack_data.hold_time)
 			var drag := kin_share(&"snare", "b")
 			if drag > 0.0 and is_instance_valid(enemy):
-				enemy.push_back(0.5 * drag * MAP_GRID.cell_size.x)  # Snare: the hold drags it back
+				pull(enemy, 0.5 * drag)  # Snare: the hold drags it back
+				_kin_fired(&"snare")
 
-# Wellspring: at every rest, a share of your banked Dew (per Wellspring and for all of them together).
-func _on_rest_interest(block: int, _boss: bool, _bonus: int, _perfect: bool) -> void:
-	if not is_inside_tree() or is_queued_for_deletion() or tower_data.rest_interest <= 0.0:
+# Holds `enemy` for `seconds` (+ Patient Roots: +0.25 s, the Rootling line another +0.25 s), credited to
+# this Warden (SupportLog "held_seconds").
+func hold(enemy: Node2D, seconds: float) -> void:
+	if not is_instance_valid(enemy) or enemy.is_cleansed:
 		return
-	var run_state: RunState = _dream_state.run_state
-	if run_state.get_meta(&"interest_block", -1) != block:
-		run_state.set_meta(&"interest_block", block)
-		run_state.set_meta(&"interest_paid", 0)
-	var paid: int = run_state.get_meta(&"interest_paid", 0)
-	var dew := mini(floori(run_state.dew * tower_data.rest_interest), tower_data.rest_interest_max)
-	dew = mini(dew, INTEREST_CAP - paid)
-	if dew <= 0:
+	var bonus: float = _dream_state.get_held_bonus() if _dream_state and _dream_state.has_method("get_held_bonus") else 0.0
+	if bonus > 0.0 and tower_data.line == "root":
+		bonus += PATIENT_ROOTS_ROOT_HOLD
+	enemy.apply_status(EnemyStatuses.HELD, 1, seconds + bonus, 0.0, 0, tower_data.line, self)
+	if is_instance_valid(enemy) and enemy.statuses.is_held():
+		SupportLog.credit(self, &"held_seconds", seconds + bonus)
+		_lantern_reveal(enemy)
+
+# True Graft B: the status of the strongest (damage per second) Warden touching this one, [id, stacks].
+func _strongest_neighbour_status() -> Array:
+	var best: Array = []
+	var best_dps := 0.0
+	for other in _other_towers():
+		if absf(other.cell.x - cell.x) > 1 or absf(other.cell.y - cell.y) > 1 or other.attack_data.applies_status == &"":
+			continue
+		var dps: float = other.get_damage() * other.get_attacks_per_second()
+		if best.is_empty() or dps > best_dps:
+			best_dps = dps
+			best = [other.attack_data.applies_status, maxi(other.attack_data.status_stacks, 1)]
+	return best
+
+# --- The hidden Kinships' helpers -------------------------------------------------------------------
+
+# A borrowed trait went off (the vine's light bead runs from the teacher to this Warden).
+func _kin_fired(id: StringName) -> void:
+	if is_instance_valid(_kin) and _kin.has_method("trait_fired"):
+		_kin.trait_fired(self, id)
+
+# A projectile landed: Spore Nursery B (a Driftspore puff plants a mushroom ring, one at a time) and
+# Hoar Fog A (a Frostfern shot leaves a 1-tile fog puff).
+func _kin_on_landing(_target: Node2D, where: Vector2) -> void:
+	var fog := kin_share(&"hoar_fog", "a")
+	if fog > 0.0 and is_instance_valid(_kin):
+		_kin.fog_patch(where, HOAR_FOG_PUFF * fog)
+		_kin_fired(&"hoar_fog")
+	var nursery := kin_share(&"spore_nursery", "b")
+	if nursery <= 0.0 or (is_instance_valid(_nursery_ring) and not _nursery_ring.is_spent()):
 		return
-	run_state.set_meta(&"interest_paid", paid + dew)
-	run_state.earn_dew_at(dew, global_position)
-	sap_yielded.emit(self, dew)
+	var partner := _kin_partner()
+	var at := MAP_GRID.calculate_grid_coordinates(where)
+	if partner == null or not _route().has(at):
+		return
+	_nursery_ring = FairyRing.new(self, at, partner.attack_data, nursery)
+	add_child(_nursery_ring)
+	trap_set.emit(self, _nursery_ring.global_position)
+	_kin_fired(&"spore_nursery")
+
+# Spotter A: the Cairn lobs at what its Standing Stone kin last shot at, when that's in its range.
+func _spotter_target(fallback: Node2D) -> Node2D:
+	var partner := _kin_partner()
+	var spot: Node2D = partner._last_fired if partner else null
+	if spot == null or not is_instance_valid(spot) or spot.is_cleansed or not spot.is_in_group(ENEMY_GROUP) \
+			or spot.global_position.distance_to(global_position) > get_range_pixels():
+		return fallback
+	return spot
+
+# Spotter B: the Standing Stone's shot splashes a share onto nightmares right beside its target.
+func _spotter_splash(target: Node2D, where: Vector2) -> void:
+	var share := kin_share(&"spotter", "b")
+	if share <= 0.0:
+		return
+	var reach := SPOTTER_SPLASH_RADIUS * MAP_GRID.cell_size.x
+	for enemy in get_tree().get_nodes_in_group(ENEMY_GROUP):
+		if enemy != target and enemy.global_position.distance_to(where) <= reach:
+			hit(enemy, SPOTTER_SPLASH * share, true, NO_CRIT)
+
+# Resonant Hollow B: the Chime Stone's pulse echoes once, a moment later, at 30%.
+func _resonant_echo(in_range: Array) -> void:
+	var share := kin_share(&"resonant_hollow", "b")
+	if share <= 0.0 or in_range.is_empty() or not _kin_roll(share):
+		return
+	var data := attack_data
+	var boost := _hit_boost
+	get_tree().create_timer(RESONANT_ECHO_DELAY, false).timeout.connect(func() -> void:
+		if not is_instance_valid(self) or not is_inside_tree():
+			return
+		for enemy in get_enemies_in_range():
+			run_as(data, boost, func() -> void: hit(enemy, RESONANT_ECHO, true, NO_CRIT, &"echo"))
+		_kin_fired(&"resonant_hollow"))
+
+# Resonant Hollow A: an Echo Hollow's echo sets off Static at 3 charges, like a chime (Reactions.echo).
+func resonant_set_off(enemy: Node2D) -> void:
+	if not _kin_roll(kin_share(&"resonant_hollow", "a")) or not is_instance_valid(enemy) or enemy.is_cleansed:
+		return
+	var s: EnemyStatuses = enemy.statuses
+	if s.stacks(EnemyStatuses.STATIC) < RESONANT_CHARGES:
+		return
+	var bolt := s.potency(EnemyStatuses.STATIC) * EnemyStatuses.STATIC_BOLT_MULTIPLIER
+	var source := s.source(EnemyStatuses.STATIC)
+	s.remove(EnemyStatuses.STATIC)
+	Reactions.strike_bolt(enemy, bolt, source if source else self, &"static")
+	_kin_fired(&"resonant_hollow")
+
+# Lantern Roots B: the Tangleroot's holds reveal hidden nightmares nearby and stop the held one burrowing.
+func _lantern_reveal(held: Node2D) -> void:
+	var share := kin_share(&"lantern_roots", "b")
+	if share <= 0.0:
+		return
+	if held.has_method("stop_burrowing"):
+		held.stop_burrowing()
+	var reach := get_range_pixels()
+	var container: Node = _dream_state.get_node_or_null("%EnemyContainer") if _dream_state else null
+	for enemy in container.get_children() if container else []:
+		if enemy.has_method("is_hidden") and enemy.is_hidden() and enemy.global_position.distance_to(global_position) <= reach \
+				and enemy.has_method("reveal_for"):
+			enemy.reveal_for(LANTERN_ROOTS_REVEAL * share)
+	_kin_fired(&"lantern_roots")
+
+# Pulls `enemy` back `tiles` along its route (Patient Roots: the Rootling line 0.5 further), credited to
+# this Warden (SupportLog "tiles_pulled").
+func pull(enemy: Node2D, tiles: float) -> void:
+	if not is_instance_valid(enemy) or enemy.is_cleansed:
+		return
+	if tower_data.line == "root" and _rule_stacks(&"patient_roots") > 0:
+		tiles += PATIENT_ROOTS_PULL
+	enemy.push_back(tiles * MAP_GRID.cell_size.x)
+	SupportLog.credit(self, &"tiles_pulled", tiles)
+	var look := kin_look()
+	if look.a > 0.0 and is_instance_valid(enemy):  # Borrowed looks: the pull ends in a small wrap in the kin's colour
+		var world := Reactions._world(self)
+		if world:
+			var wrap := Kinships.KinBurst.new(look, 0.4, 14.0)
+			world.add_child(wrap)
+			wrap.global_position = enemy.global_position
 
 func _push(enemy: Node2D) -> void:
 	if attack_data.push_back_tiles <= 0.0 or not is_instance_valid(enemy) or enemy.is_cleansed \
 			or enemy.push_cooldown > 0.0:
 		return
 	enemy.push_cooldown = attack_data.push_cooldown
-	enemy.push_back(attack_data.push_back_tiles * MAP_GRID.cell_size.x)
+	pull(enemy, attack_data.push_back_tiles)
 
 # Lightning: jumps from creature to creature (further between Damp ones). Thunderhead's every Nth
 # strike and the Conductive Soil Dream also hit every Damp creature in range.
@@ -1440,6 +1732,7 @@ func _chain_strike(first: Node2D) -> void:
 	if attack_data.tier >= 4:
 		ascended_event.emit(self, first.global_position, hits.size())
 	var bolt := ChainBolt.new(points)
+	bolt.edge = kin_look()
 	add_child(bolt)
 
 # The unstruck creature closest to any creature already struck, within jump range (longer between
@@ -1464,6 +1757,7 @@ func _nearest_jump(struck: Array[Node2D]) -> Node2D:
 func _drop_cloud(target: Node2D) -> void:
 	var center: Vector2 = MAP_GRID.calculate_map_position(target.get_current_cell())
 	var cloud := PathCloud.new(self, center)
+	cloud.flecks = kin_look()
 	add_child(cloud)
 	cloud_formed.emit(self, center, attack_data.cloud_duration)
 
@@ -1531,12 +1825,13 @@ func _update_catch(delta: float) -> void:
 	var bad_dreams := 0
 	if _dream_state and _dream_state.has_rule(&"bad_dreams"):
 		bad_dreams = 2 if _dream_state.rule_level(&"bad_dreams") > 0 else 1
+	var many_threads := _rule_stacks(&"many_threads") > 0  # Many Threads: Catch at 4 Drowsy
 	for enemy in get_enemies_in_range():
 		var s: EnemyStatuses = enemy.statuses
 		if tower_data.sleep_extend > 0.0 and s.is_asleep() and not s.sleep_extended:
 			s.sleep_extended = true
 			s.sleep_time += tower_data.sleep_extend
-		if not s.is_catchable():
+		if not s.is_catchable() and not (many_threads and s.stacks(EnemyStatuses.DROWSY) >= MANY_THREADS_DROWSY):
 			continue
 		if not s.is_caught():
 			Reactions._effect(&"caught", enemy.global_position, self, 1.0, 0.8)  # The dreamcatcher glyph
@@ -1592,13 +1887,16 @@ func _connect_yield() -> void:
 	if not is_inside_tree():
 		return
 	_kin = Kinships.find(self)  # Made on the first Warden of the run
+	SupportLog.find(self)  # Support credit and the drift meter listen from the run's first Warden on
+	WardenMeter.find(self)
 	if _dream_state == null:
 		return
 	if _dream_state.has_signal("eldest_changed") and not _dream_state.eldest_changed.is_connected(_on_eldest_changed):
 		_dream_state.eldest_changed.connect(_on_eldest_changed)
 	var director: DriftDirector = _dream_state.drift_director
-	if tower_data.rest_interest > 0.0 and not director.rest_started.is_connected(_on_rest_interest):
-		director.rest_started.connect(_on_rest_interest)  # Wellspring
+	DewCatch.hook(director, _dream_state.run_state)  # The Harvest and interest at every rest (once a run)
+	if tower_data.get_id() == "thornwall" and not director.drift_cleared.is_connected(_on_wall_drift_cleared):
+		director.drift_cleared.connect(_on_wall_drift_cleared)  # Living Walls
 	if tower_data.dew_per_drift <= 0:
 		return
 	if not director.drift_cleared.is_connected(_on_drift_cleared):
@@ -1625,6 +1923,12 @@ func _on_drift_cleared(_number: int, _bonus: int, _perfect: bool) -> void:
 	if not is_inside_tree() or is_queued_for_deletion():
 		return
 	var dew := get_drift_yield()
+	if dew > 0 and is_catcher():
+		add_to_bowl(dew)  # A catcher's drift Dew waits in the bowl for the Harvest
+		var log := SupportLog.find(self)
+		if log:
+			log.add(self, &"dew_caught", dew)
+		dew = 0
 	if dew > 0:
 		_dream_state.run_state.earn_dew_at(dew, global_position)
 		sap_yielded.emit(self, dew)
@@ -1637,6 +1941,130 @@ func _on_drift_cleared(_number: int, _bonus: int, _perfect: bool) -> void:
 		if _drifts_yielded % every == 0:
 			_dream_state.add_dreamlight(1)  # The Sapling ripens
 			dreamlight_ripened.emit(self)
+
+
+# --- Catch (Dewcatcher, Wellspring, Old Growth's Elder Stump; DewCatch) ---------------------------
+
+var bowl := 0.0  # Dew caught since the last Harvest
+
+func is_catcher() -> bool:
+	return tower_data.catch_share > 0.0
+
+func get_catch_radius() -> float:
+	return tower_data.catch_radius + DewCatch.WIDE_BOWL_STEP * _rule_stacks(&"wide_bowl")
+
+# The extra share of Dew `enemy` drops if it's dispelled now (0 = out of reach). Nurture ranks add
+# catch instead of damage; Old Growth's Elder Stump catches inside its aura.
+func get_catch_share(enemy: Node2D) -> float:
+	var distance := enemy.global_position.distance_to(global_position) / MAP_GRID.cell_size.x
+	var share := 0.0
+	if is_catcher() and distance <= get_catch_radius():
+		share = tower_data.catch_share + tower_data.catch_per_rank * get_effective_rank() \
+			+ DewCatch.DEW_BOWL_STEP * _rule_stacks(&"dew_bowl")
+	var growth := kin_share(&"old_growth", "a")
+	if growth > 0.0 and distance <= get_aura_reach():
+		share = maxf(share, DewCatch.OLD_GROWTH_CATCH * growth)
+	if share > 0.0 and _rule_stacks(&"dew_trail") > 0 and enemy.statuses.has(EnemyStatuses.DAMP):
+		share += DewCatch.DEW_TRAIL[_dream_state.rule_level(&"dew_trail")]
+	return share
+
+func add_to_bowl(amount: float) -> void:
+	bowl += amount
+	_show_bowl()
+
+func empty_bowl() -> void:
+	bowl = 0.0
+	_show_bowl()
+
+# The bowl overlay (catcher_fill_<id>): frame = how full it is, bobbing with the idle frame.
+func _show_bowl() -> void:
+	var fill := sprite.get_node_or_null("BowlFill") as Sprite2D
+	var effect := StringName("catcher_fill_" + tower_data.get_id())
+	if fill and (not is_catcher() or fill.texture != Fx.texture(effect)):
+		fill.free()  # Sold its bowl, or grew into another catcher
+		fill = null
+	if not is_catcher():
+		return
+	if fill == null:
+		var texture := Fx.texture(effect)
+		if texture == null:
+			return
+		fill = Sprite2D.new()
+		fill.name = "BowlFill"
+		fill.texture = texture
+		fill.hframes = int(Fx.info(effect).get("frames", 4))
+		sprite.add_child(fill)
+	fill.frame = 0 if bowl < 1.0 else clampi(1 + int(bowl * 3.0 / DewCatch.BOWL_FULL), 1, fill.hframes - 1)
+	_bob_bowl()
+
+func _bob_bowl() -> void:
+	var fill := sprite.get_node_or_null("BowlFill") as Sprite2D
+	if fill == null:
+		return
+	var bob: Array = DewCatch.bowl_info(tower_data).get("dy_by_frame", [])
+	var dy: float = bob[sprite.frame % bob.size()] if not bob.is_empty() else 0.0
+	fill.offset = sprite.offset + Vector2(0, dy)
+
+# --- Wall cards (Thornwall; dream_design.md "Support Warden cards") -------------------------------
+
+var _wall_tick := 0.0
+var _scent_time := 0.0
+
+# Thorn Snare: Phantoms passing through and Gravecrawlers passing under this Thornwall are Held (II:
+# longer, and Night Hounds sprinting past too), once each. Scented Hedge: touching a Honeysuckle, it
+# gives off the scent at half strength.
+func _update_wall(delta: float) -> void:
+	_wall_tick -= delta
+	if _wall_tick > 0.0:
+		return
+	_wall_tick = WALL_TICK
+	var snare := _rule_stacks(&"thorn_snare") > 0
+	var scent := _scented_by() if _rule_stacks(&"scented_hedge") > 0 else null
+	if not snare and scent == null:
+		return
+	var level: int = _dream_state.rule_level(&"thorn_snare") if snare else 0
+	var cell_px := MAP_GRID.cell_size.x
+	for enemy in get_tree().get_nodes_in_group(ENEMY_GROUP):
+		if not is_instance_valid(enemy) or enemy.is_cleansed:
+			continue
+		var distance: float = enemy.global_position.distance_to(global_position) / cell_px
+		if snare and not enemy.has_meta(_snare_key()):
+			var kind: String = enemy.enemy_data.resource_path.get_file().get_basename()
+			var caught: bool = distance <= THORN_SNARE_REACH and THORN_SNARE_KINDS.has(kind) \
+				or level > 0 and kind == "hedgehog" and enemy.rolling and distance <= THORN_SNARE_SPRINT_REACH
+			if caught:
+				enemy.set_meta(_snare_key(), true)
+				hold(enemy, THORN_SNARE_TIME[level])
+	if scent != null:
+		_scent_time -= WALL_TICK
+		if _scent_time <= 0.0:
+			_scent_time = 1.0 / maxf(scent.get_attacks_per_second() * SCENTED_HEDGE, 0.01)  # Half as often
+			for enemy in get_tree().get_nodes_in_group(ENEMY_GROUP):
+				if is_instance_valid(enemy) and not enemy.is_cleansed \
+						and enemy.global_position.distance_to(global_position) / cell_px <= scent.tower_data.attack_range:
+					var data: TowerData = scent.tower_data
+					enemy.apply_status(EnemyStatuses.DROWSY, data.status_stacks, data.status_duration, 1.0, data.status_max_stacks, data.line, self)
+					SupportLog.credit(self, &"drowsy", data.status_stacks)
+
+func _snare_key() -> StringName:
+	return StringName("snared_%d" % get_instance_id())
+
+# Scented Hedge: the Honeysuckle touching this Thornwall, or null.
+func _scented_by() -> Tower:
+	for other in _other_towers():
+		if other.tower_data.get_id() == "honeysuckle" and absf(other.cell.x - cell.x) <= 1 and absf(other.cell.y - cell.y) <= 1:
+			return other
+	return null
+
+# Living Walls: a Thornwall that has stood 5 drifts grows into a free Bramble (at the drift's end).
+func _on_wall_drift_cleared(_number: int, _bonus: int, _perfect: bool) -> void:
+	if not is_inside_tree() or is_queued_for_deletion() or tower_data.get_id() != "thornwall" \
+			or _rule_stacks(&"living_walls") <= 0 or DreamState.drifts_stood(self) < LIVING_WALLS_DRIFTS:
+		return
+	for data in tower_data.evolves_to:
+		if data is TowerData and data.get_id() == "bramble":
+			evolve(data, 0)
+			return
 
 # Dew this Warden yields at the end of a drift right now.
 func get_drift_yield() -> int:
@@ -1769,6 +2197,13 @@ func peck(enemy: Node2D) -> void:
 		enemy.pierce_coat_once = true
 	Reactions._effect(&"peck_spark", enemy.global_position + Vector2(randf_range(-6, 6), -14), self)
 	hit(enemy, 1.0, false, crit)
+	if kin_share(&"jewel_thieves", "a") > 0.0 and is_instance_valid(enemy) and not enemy.is_cleansed:
+		_jewel_pecks += 1
+		if _jewel_pecks % JEWEL_THIEVES_EVERY == 0 and _kin_roll(kin_share(&"jewel_thieves", "a")):
+			var stripped: bool = enemy.strip_buff(self) if enemy.has_method("strip_buff") else false
+			if not stripped:
+				enemy.bonus_dew = maxi(enemy.bonus_dew, 1)  # Nothing to steal: +1 Dew instead
+			_kin_fired(&"jewel_thieves")
 	if not is_instance_valid(enemy) or enemy.is_cleansed or _dream_state == null:
 		return
 	if _dream_state.has_rule(&"charged_feathers"):
@@ -1862,7 +2297,7 @@ func _spread() -> void:
 		hit(enemy, 1.0, true)
 	if source == null or not is_instance_valid(source) or source.is_cleansed or source.statuses.total_stacks() == 0:
 		return
-	var reach := attack_data.spread_radius * MAP_GRID.cell_size.x
+	var reach := lerpf(attack_data.spread_radius, TAILWIND_REACH, kin_share(&"tailwind", "b")) * MAP_GRID.cell_size.x  # Tailwind
 	var others := get_tree().get_nodes_in_group(ENEMY_GROUP).filter(func(e: Node2D) -> bool:
 		return e != source and e.global_position.distance_to(source.global_position) <= reach)
 	others.sort_custom(func(a: Node2D, b: Node2D) -> bool:
@@ -1879,6 +2314,7 @@ func _spread() -> void:
 		var blade := _kin_partner()
 		if devil > 0.0 and blade and is_instance_valid(others[i]):
 			blade.hit(others[i], devil, true)  # Dust Devil: each copy also deals one blade hit
+			_kin_fired(&"dust_devil")
 		points.append(source.global_position)
 		points.append(others[i].global_position)
 	for i in range(0, points.size(), 2):
@@ -1927,7 +2363,7 @@ func _grab(target: Node2D) -> void:
 	if not is_instance_valid(target) or target.is_cleansed:
 		return
 	if target.enemy_data.is_boss:
-		target.push_back(attack_data.pull_boss_tiles * MAP_GRID.cell_size.x)
+		pull(target, attack_data.pull_boss_tiles)
 		grab_finished.emit(self, target)
 		return
 	var behind: PackedVector2Array = target.get_cells_behind()
@@ -1978,6 +2414,10 @@ func _update_beam(delta: float) -> void:
 		var share := get_attacks_per_second() * BEAM_TICK * _beam_ramp
 		hit(_beam_target, share)
 		beam_ticked.emit(self, _beam_ramp)
+		if is_instance_valid(_beam_target) and not _beam_target.statuses.has(EnemyStatuses.MARKED) \
+				and _kin_roll(kin_share(&"sunspot", "a")):
+			_apply_one_status(_beam_target, EnemyStatuses.MARKED, 1, get_damage())  # Sunspot: the beam Marks
+			_kin_fired(&"sunspot")
 		if is_instance_valid(_beam_behind):
 			hit(_beam_behind, share * attack_data.beam_behind_share)
 	if not is_instance_valid(_beam_target) or _beam_target.is_cleansed:
@@ -2083,8 +2523,93 @@ func _beam_data() -> TowerData:
 func _is_underdog() -> bool:
 	return _dream_state != null and _dream_state.has_method("is_underdog") and _dream_state.is_underdog(self)
 
-# Heavy Air (card, rule heavy_air): slows that aren't statuses (Morning Fog's cloud, Rockslide's rubble)
-# are 20% stronger too; Soaked / Drowsy get it in DreamState.get_status_strength_multiplier.
+# Whirligig (status jobs, 2026-09-29): every copy_status_every s, the most afflicted nightmare in range
+# (the most status stacks) lends its biggest status, half the stacks, to the nearest other nightmare
+# within COPY_REACH cells. The copy keeps the original's strength and applier.
+const COPY_REACH := 1.5
+const COPYABLE: Array[StringName] = [EnemyStatuses.DAMP, EnemyStatuses.DROWSY, EnemyStatuses.SPORED,
+	EnemyStatuses.MARKED, EnemyStatuses.STATIC]
+var _copy_timer := 0.0
+
+func _update_status_copy(delta: float) -> void:
+	_copy_timer -= delta
+	if _copy_timer > 0.0:
+		return
+	var from: Node2D = null
+	var most := 0
+	for enemy in get_enemies_in_range():
+		var total := 0
+		for id in COPYABLE:
+			total += enemy.statuses.stacks(id)
+		if total > most:
+			most = total
+			from = enemy
+	if from == null:
+		return  # Nothing to carry: look again next frame
+	_copy_timer = attack_data.copy_status_every
+	var s: EnemyStatuses = from.statuses
+	var status := &""
+	for id in COPYABLE:
+		if s.stacks(id) > 0 and (status == &"" or s.stacks(id) > s.stacks(status)):
+			status = id
+	var to: Node2D = null
+	for other in nightmares_near(get_tree(), from.global_position, COPY_REACH * MAP_GRID.cell_size.x):
+		if other != from and is_instance_valid(other) and not other.is_cleansed \
+				and other.global_position.distance_to(from.global_position) <= COPY_REACH * MAP_GRID.cell_size.x \
+				and (to == null or other.global_position.distance_to(from.global_position) < to.global_position.distance_to(from.global_position)):
+			to = other
+	if to == null:
+		return
+	var applier: Node = s.source(status)
+	to.apply_status(status, maxi(s.stacks(status) / 2, 1), s.time_left(status), s.potency(status), 0,
+		applier.tower_data.line if applier is Tower else tower_data.line, applier if applier is Tower else self)
+
+# Rootlight / Starcave (status jobs, 2026-09-29): a Hold on a nightmare standing on a lit tile lasts
+# lit_hold_multiplier times as long. Each Hold is stretched once (remembered until it would have ended).
+const LIT_CHECK := 0.25
+var _lit_check := 0.0
+var _lit_stretched := {}  # nightmare instance id -> _anim_time its stretched Hold ends
+
+func _update_lit_holds(delta: float) -> void:
+	_lit_check -= delta
+	if _lit_check > 0.0:
+		return
+	_lit_check = LIT_CHECK
+	var roots := kin_share(&"lantern_roots", "a")
+	for enemy in get_enemies_in_range():
+		var s: EnemyStatuses = enemy.statuses
+		# Lantern Roots: a nightmare stepping onto a lit tile is held a moment (once each).
+		if roots > 0.0 and not s.is_held() and _lit_cells.has(enemy.get_current_cell()) \
+				and not enemy.has_meta(&"lantern_held") and not Reactions.cant_be_held(enemy):
+			enemy.set_meta(&"lantern_held", true)
+			if _kin_roll(roots):
+				hold(enemy, LANTERN_ROOTS_HOLD)
+				_kin_fired(&"lantern_roots")
+			continue
+		if not s.is_held() or not _lit_cells.has(enemy.get_current_cell()):
+			continue
+		var id: int = enemy.get_instance_id()
+		if _lit_stretched.get(id, -1.0) >= _anim_time:
+			continue  # This Hold was already stretched
+		var longer := s.time_left(EnemyStatuses.HELD) * attack_data.lit_hold_multiplier
+		SupportLog.credit(self, &"held_seconds", longer - s.time_left(EnemyStatuses.HELD))
+		s.apply(EnemyStatuses.HELD, 1, longer)
+		_lit_stretched[id] = _anim_time + longer
+	if _lit_stretched.size() > 256:
+		_lit_stretched.clear()
+
+# Rootling: every pulse_hold_every-th pulse Holds the nightmare furthest along (not ones that can't be held).
+func _pulse_hold(in_range: Array) -> void:
+	var furthest: Node2D = null
+	for enemy in in_range:
+		if is_instance_valid(enemy) and not enemy.is_cleansed and not Reactions.cant_be_held(enemy) \
+				and (furthest == null or enemy.get_remaining_distance() < furthest.get_remaining_distance()):
+			furthest = enemy
+	if furthest:
+		hold(furthest, attack_data.pulse_hold_time)
+
+# Heavy Air (card, rule heavy_air): slows that aren't statuses (Rockslide's rubble, Drown's pull-under)
+# are 20% stronger too; Drowsy gets it in DreamState.get_status_strength_multiplier (fog no longer slows).
 func get_slow_multiplier() -> float:
 	return 1.0 + DreamState.HEAVY_AIR_BONUS if _rule_stacks(&"heavy_air") > 0 else 1.0
 
@@ -2381,14 +2906,15 @@ static func draw_placeholder(canvas: CanvasItem, color: Color) -> void:
 # a frame. One DreamEffects.rows() pass now gives the damage / speed / range bonuses and the badge cards
 # together; it's dropped when a card is taken, the maze changes or the Warden grows or ranks up, and
 # redone every DREAM_CACHE_TIME for cards that change with the field (staggered across Wardens).
-const DREAM_CACHE_TIME := 3.0
+const DREAM_CACHE_TIME := 1.0  # Only for cards that follow the live field (Crowded Path); the board version covers the rest
+var _dream_cache_board := -1
 var _dream_cache := {}
 var _dream_cache_left := 0.0
 
 func _dream_bonus(key: StringName) -> float:
 	if _dream_state == null:
 		return 1.0 if key == &"soothe" else 0.0
-	if _dream_cache.is_empty():
+	if _dream_cache.is_empty() or ("board_version" in _dream_state and _dream_state.board_version != _dream_cache_board):
 		_refresh_dream_rows()
 	return _dream_cache.get(key, 1.0 if key == &"soothe" else 0.0)
 
@@ -2402,7 +2928,11 @@ func _refresh_dream_rows() -> void:
 	var speed := 0.0
 	var reach := 0.0
 	var cards := []
-	for row in _dream_state.effects().rows(DreamEffects.spot_for(self)):
+	# Roguelite's rows_cached: one Board per DreamState.board_version, live-field cards recomputed.
+	var rows: Array = _dream_state.effects().rows_cached(self) if _dream_state.effects().has_method("rows_cached") \
+		else _dream_state.effects().rows(DreamEffects.spot_for(self))
+	_dream_cache_board = _dream_state.board_version if "board_version" in _dream_state else -1
+	for row in rows:
 		if not row.active:
 			continue
 		if not row.plain:
@@ -2411,7 +2941,9 @@ func _refresh_dream_rows() -> void:
 			reach += row.get("range", 0.0)
 		if row.get("positional", false):
 			cards.append(row)
-	_dream_cache = {&"soothe": 1.0 + _dream_state._sum_stat(tower_data, "soothe_bonus") + damage,
+	var stat: float = _dream_state.get_stat_bonus(tower_data, "soothe_bonus") if _dream_state.has_method("get_stat_bonus") \
+		else _dream_state._sum_stat(tower_data, "soothe_bonus")
+	_dream_cache = {&"soothe": 1.0 + stat + damage,
 		&"speed": speed, &"range": reach}
 	if cards.size() != _badge_cards.size():
 		queue_redraw()

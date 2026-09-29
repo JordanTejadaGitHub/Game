@@ -9,7 +9,7 @@
 [resource]
 script = ExtResource("1_tdata")
 display_name = "Dreamcatcher"
-description = "Asleep nightmares in its range are Caught and take 25% more damage from everything."
+description = "Asleep nightmares in its range are Caught: their statuses stop wearing off while they stay Caught."
 cost = 0
 texture = ExtResource("2_tex")
 frame_count = 8

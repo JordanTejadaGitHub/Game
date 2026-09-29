@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "acorn_cache"
+display_name = "Acorn Cache"
+description = "Acorns cost 15 Dew and their aura is +8% (was +5%)."
+rarity = 0
+kind = 3
+tags = Array[String](["support", "acorn"])
+max_stacks = 1
+requires = Array[String](["acorn"])
+set_cost_warden = "acorn"
+set_cost = 15
+rule_id = &"acorn_cache"
+in_start_pool = false

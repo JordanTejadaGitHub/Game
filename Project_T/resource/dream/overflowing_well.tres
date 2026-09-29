@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "overflowing_well"
+display_name = "Overflowing Well"
+description = "Interest above the cap isn't lost: every 50 Dew over it becomes a Dreamlight shard."
+rarity = 2
+kind = 3
+tags = Array[String](["support", "acorn", "dreamlight"])
+max_stacks = 1
+requires = Array[String](["wellspring"])
+rule_id = &"overflowing_well"
+in_start_pool = false

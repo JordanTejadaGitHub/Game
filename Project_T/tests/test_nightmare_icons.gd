@@ -194,6 +194,7 @@ func _run() -> void:
 		var kind := NightmareIntro.kind_of(load("res://resource/enemy/puffcaplet.tres"))
 		NightmareIntro.session_seen.erase(kind)
 		intro._met.erase(kind)
+		NightmareIntro.pause_in_tests = true  # This part checks the mid-drift card
 		var sob: Node2D = click_spawner.spawn_enemy(load("res://resource/enemy/puffcaplet.tres"))
 		sob.set_process(false)
 		await process_frame
@@ -202,6 +203,7 @@ func _run() -> void:
 			"a never-seen kind appearing mid-block opens its centred card")
 		intro.close()
 		sob.queue_free()
+		NightmareIntro.pause_in_tests = false
 	# --- Record ----------------------------------------------------------------------------------
 	BossDossier.record_dispel(stag, 65.0)
 	BossDossier.record_dispel(stag, 80.0)

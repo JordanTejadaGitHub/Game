@@ -11,6 +11,7 @@ var _points: PackedVector2Array
 var _age := 0.0
 var _color := COLOR
 var _jag := JAG
+var edge := Color(0, 0, 0, 0)  # Borrowed looks: a bonded Stormcap's bolt gets its kin's colour at the edge
 
 # `color` / `jag`: other streaks reuse this (Gust's wind, Pond Keeper's tongue with jag 0).
 func _init(points: PackedVector2Array, color: Color = COLOR, jag: float = JAG) -> void:
@@ -35,5 +36,7 @@ func _draw() -> void:
 		var normal := (b - a).orthogonal().normalized()
 		var mid := (a + b) / 2.0 + normal * randf_range(-_jag, _jag)
 		var line := PackedVector2Array([a, mid, b])
+		if edge.a > 0.0:
+			draw_polyline(line, Color(edge, alpha * 0.8), 9.0)
 		draw_polyline(line, Color(_color, alpha * 0.4), 6.0)
 		draw_polyline(line, Color(_color, alpha), 2.0)

@@ -6,14 +6,15 @@
 script = ExtResource("1_card")
 id = "deep_stillness"
 display_name = "Deep Stillness"
-description = "Still Pools last 8 s, and their sleep lasts 1.5 s."
+description = "Still Pools last 8 s and pull walkers under for 1.5 s."
 rarity = 2
 kind = 3
 tags = Array[String](["reaction"])
+discovered_by = Array[String](["crowned:still_pool"])
+shows_statuses = Array[StringName]([&"damp", &"drowsy", &"held"])
 requires = Array[String](["rain_lily", "tangleroot", "bellflower"])
 max_stacks = 1
 min_act = 2
-in_start_pool = false
 entwined = true
 woven = true
 rule_id = &"deep_stillness"

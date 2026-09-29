@@ -183,7 +183,13 @@ const ASCENDED_JSON := "res://assets/towers/ascended/ascended.json"  # 128×128 
 @export var aura_per_warden: float = 0.0
 @export var aura_max: float = 0.0
 @export var rest_interest: float = 0.0  # Wellspring: at every rest, this share of your banked Dew…
-@export var rest_interest_max: int = 0  # …up to this per Wellspring (all together: Tower.INTEREST_CAP)
+@export var rest_interest_max: int = 0  # …up to this per Wellspring (all together: DewCatch.INTEREST_CAP)
+# Catchers (Dewcatcher, Wellspring; warden_stats.md 2026-09-29): nightmares dispelled within catch_radius
+# cells drop catch_share more Dew (+catch_per_rank per Nurture rank, instead of damage), caught into the
+# bowl and poured out at the rest (the Harvest). Several catchers never stack: the highest applies.
+@export var catch_share: float = 0.0
+@export var catch_radius: float = 0.0
+@export var catch_per_rank: float = 0.1
 @export var cloud_slow: float = 0.0  # Morning Fog: nightmares inside are this much slower…
 @export var cloud_drowsy_per_second: float = 0.0  # …and gain Drowsy at this rate
 
@@ -202,6 +208,15 @@ const ASCENDED_JSON := "res://assets/towers/ascended/ascended.json"  # 128×128 
 @export var freeze_duration: float = 0.0
 @export var freeze_needs: StringName = &"damp"
 @export var freeze_needs_stacks: int = 1  # Hoarfrost: freezes at 2 Soaked
+# Rootling (status jobs, 2026-09-29): every `pulse_hold_every`-th pulse Holds the nightmare furthest along
+# in range for `pulse_hold_time` s.
+@export var pulse_hold_every: int = 0
+@export var pulse_hold_time: float = 0.0
+# Rootlight / Starcave (status jobs): Held lasts this many times as long on their lit tiles (0 = no light).
+@export var lit_hold_multiplier: float = 0.0
+# Whirligig (status jobs): every `copy_status_every` s, one status (half its stacks) of the most afflicted
+# nightmare in range goes onto one neighbour within 1.5 cells.
+@export var copy_status_every: float = 0.0
 @export var freeze_cooldown: float = 4.0
 
 @export_group("Trap")
@@ -224,6 +239,7 @@ const ASCENDED_JSON := "res://assets/towers/ascended/ascended.json"  # 128×128 
 @export_group("Birds")
 @export var projectile_returns: bool = false  # The projectile flies back to the Warden (swoop)
 @export var dew_mark: bool = false  # Nightmares it hits drop +1 Dew when dispelled (Magpie Perch)
+@export var strips_buffs: bool = false  # Magpie (status jobs): each hit strips a buff (Enemy.strip_buff)
 @export var crit_dew: int = 0  # Dew per crit (Magpie's Hoard)
 @export var crit_dew_per_drift: int = 0  # Cap on crit Dew per drift
 

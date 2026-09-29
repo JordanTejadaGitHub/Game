@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "harvest_moon"
+display_name = "Harvest Moon"
+description = "+5 Dew at every rest."
+rarity = 1
+kind = 3
+tags = Array[String](["seed", "acorn", "economy"])
+max_stacks = 1
+rest_bonus_add = 5
+rule_id = &"harvest_moon"
+in_start_pool = false
+grows_with = Array[String](["dewcatcher", "wellspring"])
+grows_text = "The Harvest (your catchers' Dew at each rest) pays 50% more."
+calls_family = "acorn"

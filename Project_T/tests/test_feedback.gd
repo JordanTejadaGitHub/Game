@@ -168,8 +168,8 @@ func _run() -> void:
 	_check(main.get_node("HUD/CodexButton") != null, "a ? button on the HUD opens the Codex")
 	# Kinships: a discovery card the first time ever, a Codex section, counts for the rest report.
 	if ResourceLoader.exists(CodexData.KINSHIPS_SCRIPT):
-		_check(CodexData.kinships().size() == 9 and CodexData.get_any(&"slumber_rot").get("a") == "Driftspore",
-			"the 9 Kinships, with their pairs")
+		_check(CodexData.kinships().size() == 18 and CodexData.get_any(&"slumber_rot").get("a") == "Driftspore",
+			"the 18 Kinships (9 hidden), with their pairs")
 		_check(ComboFeedback.discovery_text(&"slumber_rot").begins_with("Kinship discovered: Slumber Rot\nDriftspore + Bloomcap"),
 			"a Kinship discovery card names the pair (%s)" % ComboFeedback.discovery_text(&"slumber_rot"))
 		feedback._seen.erase("slumber_rot")
@@ -205,6 +205,14 @@ func _run() -> void:
 		report.show_report(2)
 		_check(report._label.get_parsed_text().contains("Kinship: Slumber Rot (Driftspore + Bloomcap)"),
 			"a rest report line per Kinship formed (%s)" % report._label.get_parsed_text())
+		# Support and economy lines (SupportLog): the walls line from a Thornwall that lengthens the route,
+		# and the results' Dew harvested.
+		RestReport.support_text(report, "block")  # Runs without a support Warden on the map
+		_check(SupportLog.find(report) != null, "the rest report reaches SupportLog")
+		var results = main.get_node("%ResultsScreen")
+		main.get_node("%RunState").dew_harvested = 126
+		_check(results.support_lines().contains("Dew harvested: 126"), "results: Dew harvested (" + results.support_lines() + ")")
+		main.get_node("%RunState").dew_harvested = 0
 		feedback._queue.clear()
 		feedback._card.visible = false
 		whispers.enabled = true

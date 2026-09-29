@@ -2,10 +2,11 @@
 // ================= Memory Grove: the Heartwood as a tech tree =================
 // Tree space is 1280×960 px (native pixel art); every position below is in that space.
 const GW = 1280, GH = 960;
-// Night bark: deep warm browns (the Heartwood is the warm side), grain runs along the wood.
-// Night bark: deep warm browns (the Heartwood is the warm side), grain runs along the wood.
-const HB6 = ["#120a08", "#22150e", "#362216", "#4c3020", "#66442c", "#80583a"];
-const LEAFG = ["#1e3a14", "#2e5a1e", "#4a7e2a", "#78a83c", "#a8cc5c"];
+// Heartwood 32 (assets/palette/heartwood32.json, injected by export.ps1 -Rebuild): colours by name.
+const HW = Object.fromEntries(HW32.ramps.flatMap(r => r.colors.map(c => [c.name, c.hex])));
+// Night bark: the Bark ramp (the Heartwood is the warm side), grain runs along the wood.
+const HB6 = [HW.Void, HW.Root, HW.Root, HW.Bark, HW.Bark, HW.Oak];
+const LEAFG = [HW.Deepmoss, HW.Moss, HW.Leaf, HW.Sprig, HW.Newleaf];
 const SECTION = {
   perks:    { name: "Perks",    petals: ["#6a3c0c", "#b87818", "#e8b440", "#ffe39a"], mid: "#fff6d0", glow: "255,200,90" },
   families: { name: "Families", petals: ["#1a4222", "#338236", "#72c05a", "#c4ec98"], mid: "#f2ffd8", glow: "150,230,120" },
@@ -61,8 +62,7 @@ N("slot_5", "perks", "Loadout slot 5", 70, 110, "slot_4");
 N("storm_lore", "cards", "Storm Lore", 760, 522, [742, 602]);
 N("guiding_lights", "cards", "Guiding Lights", 790, 452, "storm_lore");
 N("spore_lore", "cards", "Spore Lore", 852, 482, [842, 560]);
-N("reactions", "cards", "Reactions", 870, 410, "spore_lore");
-N("dawnbreak", "cards", "Dawnbreak", 884, 330, "reactions", { legendary: true });
+N("dawnbreak", "cards", "Dawnbreak", 884, 330, "spore_lore", { legendary: true });  // Reactions and Woven are discovery unlocks now
 N("sharpened", "cards", "Sharpened", 952, 440, [942, 516]);
 N("reckless", "cards", "Reckless", 980, 370, "sharpened");
 N("full_moon", "cards", "Full Moon", 1000, 288, "reckless", { legendary: true });
@@ -77,16 +77,20 @@ N("the_last_light", "cards", "The Last Light", 800, 710, "one_line", { legendary
 N("dead_wood", "cards", "Dead Wood", 962, 600, [944, 518]);
 N("the_long_walk", "cards", "The Long Walk", 992, 676, "dead_wood", { legendary: true });
 N("bittersweet_dreams", "cards", "Bittersweet Dreams", 1152, 482, [1128, 410]);
-// Woven (Crowned Reactions) branches off Reactions; Deep Poison hangs under the limb past Keen Edges.
-N("woven_dreams_1", "cards", "Woven Dreams I", 814, 370, "reactions");
-N("woven_dreams_2", "cards", "Woven Dreams II", 818, 298, "woven_dreams_1");
+// Deep Poison hangs under the limb past Keen Edges.
 N("seeping", "cards", "Seeping", 1102, 552, [1090, 436]);
 N("venom", "cards", "Venom", 1120, 622, "seeping");
 N("nightshade", "cards", "Nightshade", 1132, 702, "venom", { legendary: true });
-// Kinship (going deep) hangs under the limb near the trunk.
-N("kin_lore", "cards", "Kin Lore", 768, 664, [764, 594]);
-N("deep_bonds", "cards", "Deep Bonds", 756, 734, "kin_lore");
-N("grove_of_kin", "cards", "Grove of Kin", 742, 808, "deep_bonds", { legendary: true });
+// Grove of Kin: the Kinship Legendary (its cards come from discovering a Kinship).
+N("grove_of_kin", "cards", "Grove of Kin", 742, 808, "storm_lore", { legendary: true });  // Kin Lore / Deep Bonds became discovery unlocks
+// Seeds (support and economy bets).
+N("planted_promises", "cards", "Planted Promises", 1010, 470, [1000, 480]);
+N("deep_promises", "cards", "Deep Promises", 1030, 400, "planted_promises");
+N("golden_harvest", "cards", "Golden Harvest", 1050, 330, "deep_promises", { legendary: true });
+// The Quiet Ones (support Wardens).
+N("catchers", "cards", "Catchers", 900, 620, [900, 540]);
+N("old_wood", "cards", "Old Wood", 890, 690, "catchers");
+N("the_quiet_ones", "cards", "The Quiet Ones", 880, 760, "old_wood", { legendary: true });
 const byId = Object.fromEntries(NODES.map(n => [n.id, n]));
 NODES.forEach(n => { n.depth = n.parent ? byId[n.parent].depth + 1 : 1; });
 // Where dream-fruit (Memories) hang, in the order they appear: the point under a limb the vine
@@ -323,7 +327,8 @@ function grovesky() {
 // small leaf clusters, each one flat tone from the lobe under it with a lit tip and a dark rim along
 // its bottom, upper clusters overlapping lower ones. Drawn at half resolution and scaled up 2×.
 // The night greens (colours unchanged), seven tiers.
-const CROWN_P = ["#050b08", "#07100b", "#0c1a10", "#132816", "#1c381c", "#284a24", "#3a5e30"];
+// The crown: indigo night in the shadows and the belly, cold moonlit Pool, then Moss where the light reaches.
+const CROWN_P = [HW.Void, HW.Dread, HW.Night, HW.Deepmoss, HW.Pool, HW.Moss, HW.Leaf];
 const CROWN_PX = 2, CROWN_SEED = 970;
 // Stages grow the crown outward: the clusters over the limbs are always there, the edges fill in.
 const CROWN_SHARE = [.72, .8, .9, 1];
@@ -403,7 +408,7 @@ function groveCanopy(stage) {
   }
   const small = new Img(W, H); small.stamp(L, P[0]);
   for (let y = 1; y < H - 1; y++) for (let x = 1; x < W - 1; x++)
-    if (L.alpha(x, y) && !L.alpha(x + 1, y - 1) && L.alpha(x - 1, y + 1)) small.set(x, y, "#3e5e4c");  // moonlit edge
+    if (L.alpha(x, y) && !L.alpha(x + 1, y - 1) && L.alpha(x - 1, y + 1)) small.set(x, y, HW.Moss);  // moonlit edge
   // Scale up 2× into the tree's space.
   const out = new Img(GW, GH);
   for (let y = 0; y < GH; y++) for (let x = 0; x < GW; x++) { const X = x / s | 0, Y = y / s | 0; if (small.alpha(X, Y)) out.set(x, y, small.get(X, Y)); }
