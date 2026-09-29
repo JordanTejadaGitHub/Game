@@ -10,7 +10,8 @@ const OUT := "res://assets/environment"
 
 # Detail pass kind per sheet.
 const KINDS := {
-	"grass": DetailPass.Kind.TILE, "path": DetailPass.Kind.TILE, "island_edge": DetailPass.Kind.TILE,
+	"grass": DetailPass.Kind.TILE, "path": DetailPass.Kind.TILE, "path_rim": DetailPass.Kind.TILE,
+	"island_edge": DetailPass.Kind.TILE,
 	"cliff": DetailPass.Kind.TILE, "dew_pool": DetailPass.Kind.TILE, "blight_patch": DetailPass.Kind.TILE,
 	"border_wall": DetailPass.Kind.TILE, "rope_bridge": DetailPass.Kind.TILE,
 	"withered_tree": DetailPass.Kind.OBSTACLE, "mossy_boulder": DetailPass.Kind.OBSTACLE,
