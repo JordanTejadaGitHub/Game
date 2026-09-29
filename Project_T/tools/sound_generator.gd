@@ -896,6 +896,7 @@ func _make_nurture() -> void:
 		return _lowpass(_layers([[_glow_swell(1.4), 1.0], [_air(1.4, 600.0, 0.2, 1.0), 0.4]]), 1500.0))
 	_make_reactions()
 	_make_kinships()
+	_make_economy()
 
 # Reactions (audio_direction.md 5594129): two statuses' materials meeting and resolving warm; no
 # crackle, zaps or sparkle. reaction_<id>, the shared crown layer (crown_swell), each Crowned
@@ -1613,3 +1614,23 @@ func _kin_note(midi: int, colour: String) -> PackedFloat32Array:  # One soft not
 			return _layers([[_env(_tone(SFX_RATE, 1.5, hz(midi), swell(0.15, 0.9, 1.5), "tri"), SFX_RATE, swell(0.1, 0.9, 1.5)), 1.0],
 				[_air(1.5, hz(midi) * 2.0, 0.15, 0.9), 0.15]])
 	return _lowpass(_bell(SFX_RATE, hz(midi), 0.5, 0.7, BELL, 1.6), 1600.0)  # "bell"
+
+# Economy (screens_ui.md "Support and economy feedback", ad1a055). Dew stays "never a tinkle, bell or
+# coin" (third listen): a caught drop is a soft low droplet; the harvest at a rest is a warm pour of
+# low droplets and welling water settling into a low hum, fuller with the amount (never higher); the
+# Wellspring's interest is a gentle ripple.
+func _make_economy() -> void:
+	_ws("dew_catch", 3, 0.25, func(_v: int) -> PackedFloat32Array:
+		return _lowpass(_layers([[_ring(0.2, [rng.randf_range(380.0, 460.0)], [1.0], 0.03), 1.0],
+			[_lowpass(_nburst(0.03, 0.006), 1000.0), 0.3]]), 1500.0))
+	_ws("harvest", 1, 0.55, func(_v: int) -> PackedFloat32Array:
+		var pour := _seg(2.2, SFX_RATE)
+		var t := 0.0
+		while t < 1.3:  # Droplets pouring, denser as the catch runs in
+			_mix(pour, _ring(0.2, [rng.randf_range(260.0, 480.0)], [1.0], 0.03), SFX_RATE, t, rng.randf_range(0.4, 0.8))
+			t += rng.randf_range(0.03, 0.12) * (1.4 - t * 0.6)
+		return _lowpass(_layers([[pour, 0.8], [_wobble(_rumble(1.6, 250.0, 0.3, 0.8), 3.0), 0.6],
+			[_soft_hum([50, 57], 1.4), 0.4, 0.9]]), 1600.0))
+	_ws("interest_ripple", 1, 0.35, func(_v: int) -> PackedFloat32Array:
+		return _lowpass(_layers([[_wobble(_air(1.0, 400.0, 0.2, 0.6), 4.0), 1.0], [_ring(0.3, [300.0], [1.0], 0.05), 0.4, 0.2],
+			[_ring(0.3, [360.0], [1.0], 0.05), 0.3, 0.45]]), 1500.0))

@@ -81,6 +81,10 @@ const WHOLE_DB := -3.0
 # The field (nightmares, presence Wardens) is walked this often (s, real time), not every frame.
 const FIELD_SCAN_INTERVAL := 0.25
 const PRESENCE_HOLD := 0.6  # Longer than a scan, so presence loops stay up between scans
+# Economy: a caught drop is near-silent and rare; the harvest is a rest-time reward, below bosses.
+const DEW_CATCH_DB := -16.0
+const DEW_CATCH_THROTTLE_MS := 400
+const HARVEST_DB := -3.0
 const HIT_FAMILIES := ["stone", "root", "water", "light", "spore", "sprout"]  # Others sound like sprout
 const HIT_GROUP_MS := 90  # A pulse or splash hitting many nightmares at once is one impact
 const CHAIN_STEP_DB := -4.0  # Each jump of a chain ripples a little quieter
@@ -125,6 +129,8 @@ var _harmony_at := -100000  # msec of the last Harmony strike sound
 var _scan_left := 0.0  # Seconds (real time) until the next field scan
 var _resting := true
 var _presence := {}  # Tower instance id -> a Warden with a presence loop
+var _dew_catch_at := -100000
+var _harvest_total := 0  # Dew poured this frame (gathered into one harvest sound)
 
 func _ready() -> void:
 	if sound == null:
@@ -216,6 +222,7 @@ func _ready() -> void:
 		_on_node_added(tracker)
 	for node in owner.find_children("*", "", true, false):  # Kinship nodes already in the scene
 		_hook_kinships(node)
+		_hook_economy(node)
 
 	sound.play_music(&"act1", [&"base"])
 	sound.play_ambience(&"act1")
@@ -681,6 +688,7 @@ func _on_node_added(node: Node) -> void:
 		node.reaction_fired.connect(_on_reaction)
 		node.chain_reached.connect(_on_chain)
 	_hook_kinships(node)
+	_hook_economy(node)
 
 # Kinships (tower_design.md "Kinships"): whichever node carries these signals (Tower Code's), hooked
 # when it joins the tree. Rewarding but quiet: bonds and stage-ups are chords at rests, the Harmony
@@ -713,6 +721,34 @@ func _on_family_whole(_family: String) -> void:
 	sound.duck(3.0, 0.5)
 	sound.play(&"whole_tree", null, WHOLE_DB, 1.0, 0.0, &"UI")
 
+
+# Economy (Tower Code's catchers): any node with these signals, like the Kinships. A caught drop is a
+# very quiet, throttled droplet; the rest's harvest gathers every catcher's pour in that frame into
+# one warm pour, fuller with the amount; the Wellspring's interest is a gentle ripple.
+func _hook_economy(node: Node) -> void:
+	for pair in [["dew_caught", _on_dew_caught], ["harvest_poured", _on_harvest_poured], ["interest_paid", _on_interest_paid]]:
+		if node.has_signal(pair[0]) and not node.is_connected(pair[0], pair[1]):
+			node.connect(pair[0], pair[1])
+
+func _on_dew_caught(_tower: Node = null, where: Variant = null, _amount: int = 0) -> void:
+	var now := Time.get_ticks_msec()
+	if now - _dew_catch_at < DEW_CATCH_THROTTLE_MS:
+		return
+	_dew_catch_at = now
+	sound.play(&"dew_catch", where if where is Vector2 else null, DEW_CATCH_DB, 1.0, 0.04)
+
+func _on_harvest_poured(_tower: Node = null, amount: int = 0) -> void:
+	if _harvest_total == 0:
+		_play_harvest.call_deferred()  # Every catcher pouring this frame: one sound
+	_harvest_total += maxi(amount, 1)
+
+func _play_harvest() -> void:
+	var growth := minf(ASCENDED_GROWTH_DB * log(1.0 + _harvest_total / 10.0) / log(2.0), ASCENDED_GROWTH_MAX)
+	_harvest_total = 0
+	sound.play(&"harvest", null, HARVEST_DB - ASCENDED_GROWTH_MAX + growth, 1.0, 0.0, &"UI")
+
+func _on_interest_paid(_tower: Node = null, _amount: int = 0) -> void:
+	sound.play(&"interest_ripple", null, KIN_DB, 1.0, 0.0, &"UI")
 func _on_reaction(id: StringName, enemy: Node2D, _chain: int, _towers: Array) -> void:
 	if not is_instance_valid(enemy):
 		return
