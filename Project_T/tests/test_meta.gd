@@ -6,7 +6,9 @@ extends SceneTree
 # Family Blessings and Early Bloom, milestones at run end, and the Grove screen (tap, plant, canopy). Uses a temp profile and switches the demo setting off for the test only.
 #   godot --headless --path . --script res://tests/test_meta.gd --fixed-fps 60
 
-const PROFILE_PATH := "user://test_meta_heartwood.json"
+# Per process: every checkout (worktrees, the main folder) shares one user://, and chats run tests at once.
+var PROFILE_PATH := "user://test_meta_heartwood_%d.json" % OS.get_process_id()
+var SIM_PATH := "user://test_meta_sim_%d.json" % OS.get_process_id()
 
 var failures := 0
 var _FakeEnemy := GDScript.new()  # A dispelled nightmare worth 1 Dew (Rich Dew)
@@ -22,6 +24,7 @@ func get_dew_reward() -> int:
 func _run() -> void:
 	HeartwoodMemory.file_path = PROFILE_PATH
 	_delete(PROFILE_PATH)
+	GrovePresets.file_path = SIM_PATH
 	var was_demo: bool = ProjectSettings.get_setting("game/demo", false)
 	ProjectSettings.set_setting("game/demo", false)
 
@@ -313,7 +316,7 @@ func _run() -> void:
 		and grove.all(func(u: UnlockData) -> bool: return HeartwoodMemory.is_grown(full, u)), "Full: every node grown, in full bloom, 6 perks carried")
 	var real_path := HeartwoodMemory.file_path
 	MetaRun.load_preset(&"full")
-	_check(HeartwoodMemory.file_path == GrovePresets.PATH, "a preset loads from its own temp profile")
+	_check(HeartwoodMemory.file_path == GrovePresets.file_path, "a preset loads from its own temp profile")
 	main = await _new_run()
 	family = main.get_node("%FamilyPickScreen")
 	run_state = main.get_node("%RunState")
@@ -321,7 +324,7 @@ func _run() -> void:
 		"a Full run: every family in the picks, Deep Taproot III carried (%d families)" % family.families.size())
 	main.queue_free()
 	await process_frame
-	_delete(GrovePresets.PATH)
+	_delete(GrovePresets.file_path)
 	HeartwoodMemory.file_path = real_path
 
 	# --- Dev Grove (demo_scope.md): runs and the Grove use a preset's dev profile; the real profile
@@ -334,7 +337,7 @@ func _run() -> void:
 	ProjectSettings.set_setting("game/demo", true)
 	DevGrove.force = &"full"
 	DevGrove.apply()
-	_check(DevGrove.is_active() and HeartwoodMemory.file_path == GrovePresets.PATH and not ResultsScreen.is_demo() and MetaRun.is_dev_run(),
+	_check(DevGrove.is_active() and HeartwoodMemory.file_path == GrovePresets.file_path and not ResultsScreen.is_demo() and MetaRun.is_dev_run(),
 		"Dev Grove Full: the dev profile, the full game, a dev run")
 	_check(is_equal_approx(float(HeartwoodMemory.get_settings().ui_scale), 1.3), "settings still come from the real profile")
 	_check(DevGrove.tag() == "Dev Grove: Full", "the tag names the level")
@@ -368,7 +371,7 @@ func _run() -> void:
 		"Dev Grove off: back to the real profile and run save")
 	_check(FileAccess.get_file_as_string(PROFILE_PATH) == real_text, "the real profile was never written")
 	DevGrove.force = &""
-	_delete(GrovePresets.PATH)
+	_delete(GrovePresets.file_path)
 	ProjectSettings.set_setting("game/demo", false)
 
 	# --- v3 profiles: the removed slot_2 / slot_3 nodes refund their Seeds (slots 1–3 are free now) ---
@@ -485,6 +488,8 @@ func _run() -> void:
 	MetaRun.force_all_families = false
 	ProjectSettings.set_setting("game/demo", was_demo)
 	_delete(PROFILE_PATH)
+	_delete(SIM_PATH)
+	GrovePresets.file_path = GrovePresets.PATH
 	print("meta test: %s" % ("PASS" if failures == 0 else "%d FAILED" % failures))
 	quit(failures)
 

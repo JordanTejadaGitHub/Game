@@ -53,7 +53,7 @@ static func apply() -> void:
 		_demo_override_before = ResultsScreen.demo_override
 		_real_run_path = RunSaver.file_path
 	HeartwoodMemory.real_settings_path = _real_path
-	HeartwoodMemory.file_path = GrovePresets.PATH
+	HeartwoodMemory.file_path = GrovePresets.file_path
 	RunSaver.file_path = RUN_PATH
 	# Switched to another level (or no dev profile for this one yet): start again from its preset.
 	# The same level next launch keeps the dev profile's purchases and loadout.

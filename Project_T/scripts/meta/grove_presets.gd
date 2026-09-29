@@ -11,6 +11,7 @@ class_name GrovePresets
 
 const PRESETS: Array[StringName] = [&"fresh", &"early", &"half", &"full"]
 const PATH := "user://sim_heartwood.json"
+static var file_path := PATH  # Tests use a per-process name (every checkout shares user://)
 # Early: Morning Stores I, Deep Taproot I, one family, two card bundles.
 const EARLY := {"morning_stores": 1, "deep_taproot": 1, "pebbling": 1, "spore_lore": 1, "storm_lore": 1}
 # Perks carried, best first (the loadout takes as many as there are slots).
@@ -49,7 +50,9 @@ static func profile(preset: StringName) -> Dictionary:
 	return data
 
 # Writes `preset` to a temp profile and points HeartwoodMemory at it. Returns the path.
-static func load_preset(preset: StringName, path: String = PATH) -> String:
+static func load_preset(preset: StringName, path: String = "") -> String:
+	if path == "":
+		path = file_path
 	HeartwoodMemory.file_path = path
 	HeartwoodMemory.save_data(profile(preset))
 	return path
