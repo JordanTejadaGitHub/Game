@@ -15,7 +15,7 @@ const GLOSSARY_SOURCE := [
 		["Leaves", "The Heartwood's life. A nightmare that reaches it takes leaves; lose them all and the dream goes dark.", ["Act"]],
 		["Seeds", "Earned every run, win or lose; spent in the Memory Grove between runs.", ["Memory Grove"]],
 		["Dreamlight shard", "Dreamcatchers gather shards from caught nightmares: 10 shards make 1 Dreamlight (at most 2 per run this way).", ["Dreamlight", "Caught"]],
-		["The thinning dream", "Each act, nightmares leave less Dew: 85% in act 1, then 68%, 65% and half.", ["Dew", "Act"]],
+		["The thinning dream", "Each act, nightmares leave less Dew: all of it in act 1, then 68%, 65% and half.", ["Dew", "Act"]],
 	]],
 	["The run", [
 		["Drift", "A wave of nightmares. A run is 100 drifts in 4 acts.", ["Block", "Act"]],

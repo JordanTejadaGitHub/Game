@@ -57,11 +57,12 @@ const DEMO_DRIFTS_DIR := "res://resource/drift/demo/"
 # `late_acts_from_act`, bosses included, on top of the growth / boss multiplier.
 @export var late_acts_health_multiplier: float = 1.4
 @export var late_acts_from_act: int = 3
-# Acts 1–2 (run_design.md "Interim acts 1–2 tightening"): ×1.0 to `early_ramp_from`, then a straight
-# ramp to `early_acts_health_multiplier` at `early_ramp_to`, held until acts 3–4 take over (no stacking).
-@export var early_acts_health_multiplier: float = 1.3
-@export var early_ramp_from: int = 10
-@export var early_ramp_to: int = 25
+# Act 2 (run_design.md "Difficulty curve targets", interim): x1.0 through act 1 (a fresh profile
+# should reach drift 25), then a straight ramp from `early_ramp_from` to `early_acts_health_multiplier`
+# at `early_ramp_to`, held until acts 3-4 take over (no stacking).
+@export var early_acts_health_multiplier: float = 1.35
+@export var early_ramp_from: int = 26
+@export var early_ramp_to: int = 40
 @export var extra_nightmares: float = 1.25  # Nightmares per drift (rounded up) from `extra_nightmares_from`
 @export var extra_nightmares_from: int = 10  # The intro drifts before it are unchanged
 # Rest bonus = base + per_block × block number (economy pass v2, run_design.md: was 20 + 10 × block,
@@ -277,7 +278,7 @@ func get_extra_nightmares(number: int) -> float:
 
 # Health multiplier for `data` in drift `number` (get_growth; bosses fixed at ×1.5 their; ×1.4 in acts 3–4;
 # base). Dreams / Omens multiply on top (hook: see get_health_multiplier).
-# Acts 1–2's health multiplier for drift `number`: 1.0 to drift 10, rising evenly to ×1.3 at drift 25.
+# Act 2's health multiplier for drift `number`: 1.0 through drift 26, rising evenly to ×1.35 at drift 40.
 func get_early_multiplier(number: int) -> float:
 	var t := clampf(float(number - early_ramp_from) / maxf(early_ramp_to - early_ramp_from, 1), 0.0, 1.0)
 	return lerpf(1.0, early_acts_health_multiplier, t)
