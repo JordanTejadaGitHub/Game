@@ -547,7 +547,7 @@ func _run() -> void:
 	var normal: Node2D = spawner.spawn_enemy(load("res://resource/enemy/leaf_bug.tres"))
 	_check(shown._bars_always and shown._outline_alpha() > 0.0, "settings on: bars always, elites outlined")
 	_check(normal._outline_alpha() == 0.0, "only Deeply Blighted nightmares get the outline")
-	plain._update_presence(0.2)
+	plain._update_presence(0.6)  # Display settings are re-read every 0.5 s
 	_check(plain._bars_always and plain._outline_alpha() > 0.0, "a nightmare already out picks the change up")
 	Fx.reset_run()
 	_clear_enemies()

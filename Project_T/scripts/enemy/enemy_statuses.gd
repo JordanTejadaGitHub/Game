@@ -68,6 +68,8 @@ var drowned := 0  # Times Drown made it sleep (once per nightmare; Deep Water II
 var mushroom_time := 0.0  # Mushrooming: Spored ticks harder while > 0
 var burn_time := 0.0  # Ignite (status jobs, 2026-09-29): Spored ticks burn_rate x as fast while > 0 (Reactions.burn)
 var burn_rate := 3.0
+# Bumped whenever a status comes, goes or changes stacks: the status icons redraw only then.
+var changes := 0
 var sleep_locked_time := 0.0  # Nightbloom: while > 0, sleep neither breaks on a big hit nor ends (Enemy's wake rule reads it)
 var slow_time := 0.0  # Drown on bosses (and Held-immune nightmares): an extra slow instead of sleep
 var slow_amount := 0.0
@@ -162,9 +164,11 @@ func apply(id: StringName, stacks: int = 1, duration: float = 0.0, potency: floa
 	# Driftspore's higher cap sticks once reached, even if a Sporeling hits next.
 	status["cap"] = maxi(status.get("cap", 0), cap)
 	_active[id] = status
+	changes += 1
 	# On a Damp nightmare Thunderclap goes off at 3 Static first (Reactions), so no bolt here then.
 	if id == STATIC and status.stacks >= cap and not has(DAMP):
 		_active.erase(STATIC)
+		changes += 1
 		if static_forever and potency > 0.0:
 			return potency * STATIC_BOLT_MULTIPLIER * _static_tick_multiplier()  # Eternal Charge: the Warden that added the last charge
 		return status.potency * STATIC_BOLT_MULTIPLIER * _static_tick_multiplier()
@@ -200,7 +204,12 @@ func time_left(id: StringName) -> float:
 	return _active[id].time if _active.has(id) else 0.0
 
 func remove(id: StringName) -> void:
-	_active.erase(id)
+	if _active.erase(id):
+		changes += 1
+
+# How many statuses it carries (no array built: Tangled and the redraw check ask every frame).
+func count() -> int:
+	return _active.size()
 
 func active_ids() -> Array:
 	return _active.keys()
@@ -270,24 +279,38 @@ func get_damage_taken_multiplier() -> float:
 # Advances timers. Returns the Spored soothe to deal this frame (already fog-boosted).
 func tick(delta: float) -> float:
 	var was_smothering := smothering
-	tempest_time = maxf(tempest_time - delta, 0.0)
-	gust_time = maxf(gust_time - delta, 0.0)
-	_fog_time = maxf(_fog_time - delta, 0.0)
-	_stag_time = maxf(_stag_time - delta, 0.0)
-	chain_time = maxf(chain_time - delta, 0.0)
-	mushroom_time = maxf(mushroom_time - delta, 0.0)
-	burn_time = maxf(burn_time - delta, 0.0)
-	sleep_locked_time = maxf(sleep_locked_time - delta, 0.0)
-	slow_time = maxf(slow_time - delta, 0.0)
-	if is_boss:
-		sleep_time = 0.0  # Bosses never sleep
-	elif sleep_locked_time <= 0.0:
-		sleep_time = maxf(sleep_time - delta, 0.0)  # Nightbloom's lock: sleep doesn't end
-	caught_time = maxf(caught_time - delta, 0.0)
-	cut_time = maxf(cut_time - delta, 0.0)
-	if cut_time <= 0.0:
-		cut_stacks = 0
-	for reaction in reaction_cooldowns.keys():
+	# Most timers sit at 0 on most nightmares: only count down the running ones (this runs every
+	# frame for every nightmare).
+	if tempest_time > 0.0:
+		tempest_time = maxf(tempest_time - delta, 0.0)
+	if gust_time > 0.0:
+		gust_time = maxf(gust_time - delta, 0.0)
+	if _fog_time > 0.0:
+		_fog_time = maxf(_fog_time - delta, 0.0)
+	if _stag_time > 0.0:
+		_stag_time = maxf(_stag_time - delta, 0.0)
+	if chain_time > 0.0:
+		chain_time = maxf(chain_time - delta, 0.0)
+	if mushroom_time > 0.0:
+		mushroom_time = maxf(mushroom_time - delta, 0.0)
+	if burn_time > 0.0:
+		burn_time = maxf(burn_time - delta, 0.0)
+	if sleep_locked_time > 0.0:
+		sleep_locked_time = maxf(sleep_locked_time - delta, 0.0)
+	if slow_time > 0.0:
+		slow_time = maxf(slow_time - delta, 0.0)
+	if sleep_time > 0.0:
+		if is_boss:
+			sleep_time = 0.0  # Bosses never sleep
+		elif sleep_locked_time <= 0.0:
+			sleep_time = maxf(sleep_time - delta, 0.0)  # Nightbloom's lock: sleep doesn't end
+	if caught_time > 0.0:
+		caught_time = maxf(caught_time - delta, 0.0)
+	if cut_time > 0.0:
+		cut_time = maxf(cut_time - delta, 0.0)
+		if cut_time <= 0.0:
+			cut_stacks = 0
+	for reaction in (reaction_cooldowns.keys() if not reaction_cooldowns.is_empty() else []):
 		reaction_cooldowns[reaction] -= delta
 		if reaction_cooldowns[reaction] <= 0.0:
 			reaction_cooldowns.erase(reaction)
@@ -306,7 +329,7 @@ func tick(delta: float) -> float:
 		smothering = false
 	smother_ended = was_smothering and not smothering
 
-	for id in _active.keys():
+	for id in (_active.keys() if not _active.is_empty() and not is_caught() else []):
 		if is_caught():
 			break  # Caught: statuses stop wearing off (Static doesn't bleed, timers pause); Spored still ticks
 		var status: Dictionary = _active[id]
@@ -318,9 +341,11 @@ func tick(delta: float) -> float:
 			continue
 		if id == STATIC and status.stacks > 1:
 			status.stacks -= 1  # Static bleeds off one charge at a time
+			changes += 1
 			status.time = STATIC_DECAY_TIME
 		else:
 			_active.erase(id)
+			changes += 1
 	if not has(MARKED):
 		marked_extra = 0.0
 	return spore_damage
