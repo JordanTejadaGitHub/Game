@@ -234,6 +234,11 @@ var _aura_damage := 0.0  # From a Grandmother Oak nearby
 var _aura_speed := 0.0
 var _aura_damage_from: Tower = null  # The aura Warden behind _aura_damage (SupportLog credits it)
 var _aura_speed_from: Tower = null
+# Boss pools (enemy_design.md): the Lamplighter's cold lanterns slow Wardens near them (set each frame
+# by the EnemyContainer; 1.0 = none), and the Withering Oak withers one (no attacks while it lasts).
+var dim_multiplier := 1.0
+var withered_left := 0.0
+const WITHERED_TINT := Color(0.55, 0.55, 0.5)
 var _last_fired: Node2D = null  # The nightmare its last projectile flew at (Spotter: the sniper's target)
 var _ramp_target: Node2D = null  # Sunspot B: the nightmare the last hits went to…
 var _ramp_hits := 0  # …and how many in a row
@@ -348,7 +353,7 @@ func _process(delta: float) -> void:
 		_leaf_mote.position = LEAF_MOTE_AT + Vector2(0, -fmod(_anim_time * LEAF_MOTE_RISE, LEAF_MOTE_SPAN))
 	_tick_dream_cache(delta)
 	_neighbour_timer -= delta
-	if _neighbour_timer <= 0.0:
+	if _neighbour_timer <= 0.0 and _refresh_slot():
 		_refresh_neighbours()
 	if _attack_time >= 0.0:
 		_advance_attack(delta)
@@ -373,6 +378,11 @@ func _process(delta: float) -> void:
 	if tower_data.get_id() == "thornwall" and _dream_state:
 		_update_wall(delta)
 	if not tower_data.can_attack:
+		return
+	if withered_left > 0.0:  # Withering Oak: grey and drooping, no attacks until it comes back
+		withered_left -= delta
+		if withered_left <= 0.0:
+			sprite.self_modulate = Color.WHITE
 		return
 	if tower_data.caught_bonus > 0.0:
 		_update_catch(delta)  # Dreamcatchers catch sleepy nightmares whether or not they're shooting
@@ -410,7 +420,7 @@ func _process(delta: float) -> void:
 	if _idle_search > 0.0:
 		return
 	if not _has_work():
-		_idle_search = IDLE_SEARCH
+		_idle_search = IDLE_SEARCH * randf_range(0.75, 1.25)  # Jittered: Wardens planted together don't all search on one frame
 		return
 	_start_attack()
 
@@ -446,6 +456,14 @@ func _compute_damage() -> float:
 		* (1.0 + (_kin.damage_bonus(self) if is_instance_valid(_kin) else 0.0)) \
 		* get_wall_multiplier()  # Kindred / Whole Tree, Kinship cards; Bramble Oath
 
+# Withering Oak: the Warden withers for `seconds` (grey, no attacks), then comes back unharmed.
+func wither(seconds: float) -> void:
+	withered_left = maxf(withered_left, seconds)
+	sprite.self_modulate = WITHERED_TINT
+
+func is_withered() -> bool:
+	return withered_left > 0.0
+
 func get_attacks_per_second() -> float:
 	if _stats_fresh() and _stats.has(&"speed"):
 		return _stats[&"speed"]
@@ -461,7 +479,7 @@ func _compute_attacks_per_second() -> float:
 		if _dream_state.has_method("get_tower_attack_speed_bonus"):
 			dreams += _dream_bonus(&"speed")  # Sprout Chorus, The Last Light
 	var omen := _omens.get_warden_speed_multiplier() if _omens and _omens.has_method("get_warden_speed_multiplier") else 1.0  # Wilting
-	return attack_data.attacks_per_second * speed * dreams * (1.0 + _aura_speed) * omen \
+	return attack_data.attacks_per_second * speed * dreams * (1.0 + _aura_speed) * omen * dim_multiplier \
 		* (get_wall_multiplier() if attack_data.damage <= 0 else 1.0)  # Honeysuckle: Bramble Oath, The Quiet Ones
 
 func get_range_cells() -> float:
@@ -491,7 +509,7 @@ var _stats_key := []
 var _stats_until := -1.0
 
 func _stats_fresh() -> bool:
-	var key := [attack_data, rank, focus, _aura_range, _aura_damage, _aura_speed, _damage_share, _aura_crit,
+	var key := [attack_data, rank, focus, _aura_range, _aura_damage, _aura_speed, _damage_share, _aura_crit, dim_multiplier,
 		_dream_state.board_version if _dream_state else 0, _dream_state.stacks.size() if _dream_state else 0,
 		_kin.get_pairs(self).size() if is_instance_valid(_kin) else 0,
 		_kin.families.hash() if is_instance_valid(_kin) else 0,
@@ -880,6 +898,22 @@ func reaches_past(walls: Array) -> bool:
 		if wall.global_position.distance_to(global_position) / MAP_GRID.cell_size.x <= get_aura_reach():
 			return true
 	return false
+
+# Performance (platforms.md budget at 1x): at most MAX_REFRESHES_PER_FRAME neighbour looks run in one
+# frame (a nudge after planting sets many due at once); the rest wait a frame or two.
+const MAX_REFRESHES_PER_FRAME := 2
+static var _refresh_frame := -1
+static var _refreshes := 0
+
+static func _refresh_slot() -> bool:
+	var frame := Engine.get_process_frames()
+	if frame != _refresh_frame:
+		_refresh_frame = frame
+		_refreshes = 0
+	if _refreshes >= MAX_REFRESHES_PER_FRAME:
+		return false
+	_refreshes += 1
+	return true
 
 # Refreshes what depends on nearby Wardens: the copied attack (Graftling) and aura bonuses.
 func _refresh_neighbours() -> void:

@@ -130,10 +130,27 @@ static func _load() -> void:
 # --- Triggers ---------------------------------------------------------------------------------------
 
 # A status just landed on `enemy` (applied by `source`, a Warden or null). Checks every Reaction.
+# Performance (platforms.md budget at 1x): area statuses (Mushrooming clouds, pulses) call this for every
+# nightmare they touch, 200-300 times in one frame. Every Reaction needs two statuses, so a nightmare with
+# fewer can't set one off; and within a frame a nightmare with the same status at the same stacks gives
+# the same answer, so repeats are skipped.
+static var _checked_frame := -1
+static var _checked := {}  # "enemy id:status:stacks" -> true, this frame
+
 static func on_status(enemy: Node2D, _id: StringName, source: Node) -> void:
 	if not is_instance_valid(enemy) or enemy.is_cleansed:
 		return
 	var s: EnemyStatuses = enemy.statuses
+	if s.count() < 2:
+		return
+	var frame := Engine.get_process_frames()
+	if frame != _checked_frame:
+		_checked_frame = frame
+		_checked.clear()
+	var key := "%d:%s:%d:%d" % [enemy.get_instance_id(), _id, s.stacks(_id), s.count()]
+	if _checked.has(key):
+		return
+	_checked[key] = true
 	var static_needed := THUNDERCLAP_STATIC_BOSS if s.is_boss else THUNDERCLAP_STATIC
 	if s.has(DAMP) and s.stacks(STATIC) >= static_needed:
 		_thunderclap(enemy, source)
