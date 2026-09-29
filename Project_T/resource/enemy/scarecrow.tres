@@ -1,0 +1,33 @@
+[gd_resource type="Resource" script_class="EnemyData" load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://resource/enemy/script/enemy_data.gd" id="1_edata"]
+[ext_resource type="SpriteFrames" path="res://animation/enemy/wandering_hare.tres" id="2_frames"]
+[ext_resource type="Resource" path="res://resource/enemy/crow.tres" id="3_crow"]
+
+[resource]
+script = ExtResource("1_edata")
+sprite_frames = ExtResource("2_frames")
+display_name = "The Scarecrow"
+health = 2600
+speed = 45.0
+dew_reward = 40
+leaf_cost = 5
+is_boss = true
+sprite_scale = 1.6
+tint = Color(0.8, 0.7, 0.5, 1)
+resists = Array[String](["stone", "talon"])
+weak_to = Array[String](["spore"])
+grief_spawn = ExtResource("3_crow")
+grief_count = 5
+grief_at = Array[float]([0.8, 0.6, 0.4, 0.2])
+grief_pause = 0.5
+split_into = ExtResource("3_crow")
+split_count = 5
+hurt_below = 0.4
+hurt_speed_multiplier = 1.25
+trait_text = "A flock of Crows bursts from its coat as it's hurt."
+cleanse_line = "The Scarecrow falls. The crows scatter, and they don't come back."
+title = "the stitched thing in the field"
+abilities = Array[Dictionary]([{"name": "Crows", "icon": &"grief", "text": "{grief_count} {grief_spawn:name}s burst from its coat and run ahead along the path, and {split_count} more when it falls.", "when": "at {grief_at:list_pct} health"}, {"name": "Stitched", "icon": &"charge", "text": "Its seams give and it walks {hurt_speed_multiplier:plus_pct} faster.", "when": "below {hurt_below:pct} health"}])
+tips = Array[String](["Hit it where many things can be hit at once: the crows come in flocks.", "Keep Wardens further down the maze to catch the crows that slip by.", "Rot eats straw."])
+whisper = "Something in the field is watching."

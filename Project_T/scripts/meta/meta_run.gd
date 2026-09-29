@@ -143,7 +143,7 @@ func _ready() -> void:
 		var kind: String = enemy.enemy_data.resource_path.get_file().get_basename()
 		if kind == SHADE_KIND:
 			_shades_this_run += 1
-		if enemy.enemy_data.is_boss:
+		if enemy.enemy_data.is_boss and not enemy.is_echo:  # Echoes (Remembering Oak) aren't bosses met
 			_on_boss_dispelled(kind))
 	run_state.run_ended.connect(_on_run_ended)
 

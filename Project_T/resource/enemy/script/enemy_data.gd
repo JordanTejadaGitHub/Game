@@ -83,6 +83,54 @@ enum Trait { NONE, FLYING, ROLLING, TRAMPLE, LEAP, BURROW, WANDER }
 # fast (0 = never).
 @export var rises_from_blight: int = 0
 
+# Boss pools (enemy_design.md, 2026-09-29): the new bosses' abilities. 0 / empty = off.
+@export_group("Boss pools")
+# Night Mare: reaching the Heartwood costs `lap_leaves` and it gallops back to the start, ×
+# `lap_speed_multiplier` faster each lap (stacking), until dispelled.
+@export var lap_leaves: int = 0
+@export var lap_speed_multiplier: float = 1.2
+# Night Mare's Bolt: the Hollow Stag's charge (charge_speed_multiplier, charge_time) at half health,
+# without trampling.
+@export var charges_at_half: bool = false
+# Scarecrow's Stitched: below `hurt_below` of its health it walks × `hurt_speed_multiplier`.
+@export var hurt_below: float = 0.0
+@export var hurt_speed_multiplier: float = 1.0
+# Huntsman: while any of its followers (the pack) lives it takes × `pack_shield` damage. Its brood
+# (the horn) only calls while the pack is short, and joins the pack. At half health the whole pack
+# returns at once and the horn falls silent (`pack_regroup_at_half`).
+@export var pack_shield: float = 1.0
+@export var pack_regroup_at_half: bool = false
+# Lamplighter: every `lantern_interval` s lights a cold lantern beside its route (up to `lantern_max`,
+# each burning `lantern_life` s). Wardens within `lantern_radius` cells attack × (1 − `lantern_slow`).
+@export var lantern_interval: float = 0.0
+@export var lantern_max: int = 4
+@export var lantern_life: float = 16.0
+@export var lantern_radius: float = 1.5
+@export var lantern_slow: float = 0.4
+@export var lantern_snuff_dew: int = 2  # Clicking a lantern snuffs it for this much Dew
+# Barrow King: every `shrug_interval` s shrugs off every status on itself and nightmares within
+# `shrug_radius` cells; slows never take it below `min_speed_share` of its speed.
+@export var shrug_interval: float = 0.0
+@export var shrug_radius: float = 2.0
+@export var min_speed_share: float = 0.0
+# Mourning Mother's Sorrow: after `regen_delay` s without a hit, mends `regen_rate` of its max health
+# per second, `regen_cap` of its max health in all.
+@export var regen_rate: float = 0.0
+@export var regen_delay: float = 1.5
+@export var regen_cap: float = 0.25
+# Withering Oak: every `wither_interval` s a root withers the strongest Warden within `wither_reach`
+# cells (not the last one) for `wither_time` s: no attacks. At each share in `wither_burst_at`,
+# Drought withers `wither_burst_count` at once.
+@export var wither_interval: float = 0.0
+@export var wither_time: float = 6.0
+@export var wither_reach: float = 3.0
+@export var wither_burst_at: Array[float] = []
+@export var wither_burst_count: int = 3
+# Remembering Oak: at each share in `echo_at` an echo of the run's drawn boss for the next act (1, 2,
+# 3) rises beside it with `echo_share` of that boss's health.
+@export var echo_at: Array[float] = []
+@export var echo_share: float = 0.2
+
 @export_group("Dossier")
 # Boss dossier (screens_ui.md): the boss's title ("the gaunt king of the old wood"), one entry per
 # ability {"name", "icon" (IconInfo id), "text", "when"} and 2–3 `tips` (no numbers, never a
@@ -204,6 +252,10 @@ func get_summons() -> Array:
 	if grief_spawn != null and grief_count > 0:
 		summons.append({"data": grief_spawn, "count": grief_count, "how": format_text("at {grief_at:list_pct} health")})
 	return summons
+
+# Walks the maze again after reaching the Heartwood (Night Mare).
+func laps() -> bool:
+	return lap_leaves > 0
 
 # Ability text with this resource's numbers filled in: {field} → its value ({leap_tiles} → "3",
 # {brood_interval} → "4"), {field:pct} → "50%", {field:plus_pct} → "+50%" (a multiplier),

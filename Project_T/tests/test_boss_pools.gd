@@ -1,0 +1,272 @@
+extends SceneTree
+
+# Headless test for boss pools (enemy_design.md, "Bosses: a pool of 3 per act", "The Hollow Oak's
+# three variations"): the pools and the draw, the draw replacing the boss drifts, and each new boss's
+# ability (Night Mare laps, Scarecrow crows, Huntsman's pack, Lamplighter's lanterns, Barrow King's
+# shrug, Mourning Mother's Sorrow, Withering and Remembering Oak).
+#   godot --headless --path . --script res://tests/test_boss_pools.gd --fixed-fps 60
+
+var failures := 0
+var spawner: Node
+var map_generator: Node
+var tower_container: Node
+var placer: TowerPlacer
+var director: DriftDirector
+var run_state: RunState
+var route: PackedVector2Array
+
+func _initialize() -> void:
+	_run.call_deferred()
+
+func _run() -> void:
+	# --- The pools ---
+	for act in range(1, 5):
+		var pool := BossPool.get_pool(act)
+		_check(pool.size() == 3, "act %d has 3 bosses (%d)" % [act, pool.size()])
+		_check(BossPool.get_default(act) != null and BossPool.get_default(act).is_default, "act %d has a default" % act)
+		for data in pool:
+			var boss := data.boss
+			_check(boss.is_boss and data.act == act, "%s is a boss of act %d" % [data.get_id(), act])
+			_check(_drift_has(data.drift, boss), "%s's drift brings it" % data.get_id())
+			# Its dossier reads fully (like test_acts_3_4's check for the first four)
+			_check(boss.title != "" and boss.abilities.size() >= 2 and boss.tips.size() >= 2 and boss.whisper != "",
+				"%s has a title, whisper, abilities and tips" % data.get_id())
+			for i in boss.abilities.size():
+				var ability := boss.get_ability(i)
+				_check(not IconInfo.format(ability.text + " " + ability.when).contains("{"), "%s ability %d reads fully" % [data.get_id(), i])
+			_check(boss.weak_to.size() == 1 and boss.resists.size() <= 2, "%s: one weakness, at most two resistances" % data.get_id())
+	_check(BossPool.get_default(1).get_id() == "hollow_stag", "act 1's default is the Hollow Stag")
+	_check(BossPool.get_default(4).get_id() == "hollow_oak_thorned", "act 4's default is the Thorned Oak")
+
+	# --- The draw ---
+	var defaults := BossPool.ids(BossPool.draw(123, true))
+	_check(defaults == ["hollow_stag", "mire_hag", "moth_queen", "hollow_oak_thorned"], "a first run meets the defaults")
+	_check(BossPool.ids(BossPool.draw(99)) == BossPool.ids(BossPool.draw(99)), "the same seed draws the same bosses")
+	var seen := {}
+	var demo_fixed := true
+	for s in 200:
+		var drawn := BossPool.draw(s)
+		for data in drawn:
+			seen[data.get_id()] = true
+		var demo := BossPool.ids(BossPool.draw(s, false, true))
+		demo_fixed = demo_fixed and demo[0] == "hollow_stag" and demo[1] == "mire_hag"
+	_check(seen.size() == 12, "over 200 runs every boss is drawn (%d of 12)" % seen.size())
+	_check(demo_fixed, "the demo always meets the Stag and the Hag")
+	var repeats := 0
+	for s in 600:
+		if BossPool.draw(s, false, false, ["night_mare"])[0].get_id() == "night_mare":
+			repeats += 1
+	_check(repeats > 60 and repeats < 180, "last run's boss is half as likely (%d of 600, ~120)" % repeats)
+	_check(BossPool.ids(BossPool.from_ids(["scarecrow", "huntsman", "barrow_king", "hollow_oak_withering"])) \
+		== ["scarecrow", "huntsman", "barrow_king", "hollow_oak_withering"], "saved ids come back")
+
+	# --- In a run ---
+	var main: Node = load("res://scenes/main.tscn").instantiate()
+	main.get_node("MapGenerator").map_seed = 777
+	root.add_child(main)
+	await process_frame
+	await process_frame
+	spawner = main.get_node("%EnemyContainer")
+	map_generator = main.get_node("%MapGenerator")
+	tower_container = main.get_node("%TowerContainer")
+	placer = main.get_node("%TowerPlacer")
+	director = main.get_node("%DriftDirector")
+	run_state = main.get_node("%RunState")
+	for tower in tower_container.get_children():
+		tower.free()
+	route = map_generator.get_path_from(map_generator.startPath)
+	_check(BossPool.ids(director.bosses) == defaults, "tests meet the defaults")
+	_check(_drift_has(director.drifts[24], load("res://resource/enemy/old_stag.tres")), "drift 25 is the Hollow Stag's")
+	director.preset_bosses = ["night_mare", "huntsman", "mourning_mother", "hollow_oak_remembering"]
+	director._draw_bosses()
+	_check(_drift_has(director.drifts[24], load("res://resource/enemy/night_mare.tres")), "a drawn Night Mare takes drift 25")
+	_check(_drift_has(director.drifts[49], load("res://resource/enemy/huntsman.tres")), "a drawn Huntsman takes drift 50")
+	_check(_drift_has(director.drifts[74], load("res://resource/enemy/mourning_mother.tres")), "a drawn Mourning Mother takes drift 75")
+	_check(_drift_has(director.drifts[99], load("res://resource/enemy/hollow_oak_remembering.tres")), "the Remembering Oak takes drift 100")
+	_check(director.get_drawn_boss(2).get_id() == "huntsman", "get_drawn_boss reads the draw")
+
+	# --- Night Mare: laps ---
+	var mare := _still("night_mare", route[-1])
+	mare.set_path(PackedVector2Array([route[-1]]))
+	var leaves := run_state.leaves
+	var mare_speed: float = mare.speed
+	mare._process(0.016)
+	_check(is_instance_valid(mare) and not mare.is_queued_for_deletion(), "the Night Mare doesn't leave at the Heartwood")
+	_check(run_state.leaves == leaves - 3, "a lap costs 3 leaves (%d → %d)" % [leaves, run_state.leaves])
+	_check(mare.laps == 1 and is_equal_approx(mare.speed, mare_speed * 1.2), "and it goes round again 20% faster")
+	_check(mare.get_target_cell() == route[0] or mare.grid.calculate_grid_coordinates(mare.position) == map_generator.startPath,
+		"back at the start")
+	mare.take_damage(mare.max_health * 0.55)
+	_check(mare._charge_left > 0.0, "it bolts at half health")
+	_clear_enemies()
+
+	# --- Scarecrow: crows at every 20% ---
+	var crow_data: EnemyData = load("res://resource/enemy/crow.tres")
+	var scarecrow := _still("scarecrow", route[8])
+	scarecrow.take_damage(scarecrow.max_health * 0.21)
+	_check(_count(crow_data) == 5, "5 Crows burst out at 80%% (%d)" % _count(crow_data))
+	scarecrow.take_damage(scarecrow.max_health * 0.4)
+	_check(_count(crow_data) == 15, "5 more at 60%% and 40%% (%d)" % _count(crow_data))
+	var walk: float = scarecrow.get_move_speed()
+	_check(is_equal_approx(walk, scarecrow.speed * 1.25), "Stitched: faster below 40% health")
+	_clear_enemies()
+
+	# --- Huntsman: the pack shields him ---
+	var huntsman := _still("huntsman", route[8])
+	_check(huntsman.pack_alive() == 4, "4 Night Hounds run with him (%d)" % huntsman.pack_alive())
+	var before: int = huntsman.health
+	huntsman.take_damage(100.0)
+	_check(before - huntsman.health == 50, "half damage while a hound hunts (%d)" % (before - huntsman.health))
+	for hound in huntsman.pack:
+		hound.dispel()
+	before = huntsman.health
+	huntsman.take_damage(100.0)
+	_check(before - huntsman.health == 100, "full damage once the pack is gone")
+	spawner._on_brood_requested(huntsman)
+	_check(huntsman.pack_alive() == 1, "the horn calls one hound while the pack is short")
+	huntsman.take_damage(huntsman.max_health)  # Down past half (halved: the new hound shields him)
+	_check(huntsman.pack_alive() == 4 and huntsman.is_regrouped(), "The Kill: the whole pack returns at half health")
+	spawner._on_brood_requested(huntsman)
+	_check(huntsman.pack_alive() == 4, "and the horn is silent after")
+	_clear_enemies()
+
+	# --- Lamplighter: cold lanterns slow Wardens near them ---
+	var lamplighter := _still("lamplighter", route[10])
+	lamplighter.set_path(route)
+	lamplighter._path_index = 10
+	spawner._on_lantern_requested(lamplighter)
+	_check(spawner._lanterns.size() == 1, "it lights a lantern beside the route")
+	if spawner._lanterns.size() == 1:
+		var lantern: ColdLantern = spawner._lanterns[0]
+		_check(not route.has(lantern.cell) and map_generator.is_buildable(lantern.cell), "on an empty cell off the route")
+		var warden := _plant("sprout", _free_neighbour_of(lantern.cell))
+		var far := _plant("sprout", _far_cell(lantern.cell))
+		spawner._update_lantern_light()
+		_check(is_equal_approx(warden.dim_multiplier, 0.6), "a Warden in its light attacks 40% slower")
+		_check(far == null or is_equal_approx(far.dim_multiplier, 1.0), "a Warden out of it doesn't")
+		var dew := run_state.dew
+		lantern.snuff(true)
+		spawner._update_lantern_light()
+		_check(is_equal_approx(warden.dim_multiplier, 1.0), "snuffed: the Warden is back to full speed")
+		_check(run_state.dew == dew + 2, "snuffing one by hand pays 2 Dew")
+		for i in 8:  # Walking on, so there's always room beside the route
+			lamplighter._path_index = mini(12 + i * 3, route.size() - 1)
+			spawner._on_lantern_requested(lamplighter)
+		_check(spawner._lanterns.size() == 4, "at most 4 lanterns at once (%d)" % spawner._lanterns.size())
+		lamplighter.dispel()
+		_check(spawner._lanterns.is_empty(), "they go out when it's dispelled")
+		warden.free()
+		if far:
+			far.free()
+	_clear_enemies()
+
+	# --- Barrow King: Iron Will and the Shrug ---
+	var king := _still("barrow_king", route[8])
+	var near := _still("leaf_bug", route[9])
+	king.apply_status(EnemyStatuses.HELD)
+	_check(not king.statuses.is_held(), "the Barrow King can't be Held")
+	king.apply_status(EnemyStatuses.DROWSY, 5)
+	_check(king.get_move_speed() >= king.speed * 0.7 - 0.01, "slows never take him below 70%")
+	near.apply_status(EnemyStatuses.DAMP)
+	king.shrug()
+	_check(king.statuses.active_ids().is_empty() and near.statuses.active_ids().is_empty(), "the Shrug clears his statuses and his neighbours'")
+	_clear_enemies()
+
+	# --- Mourning Mother: Sorrow ---
+	var mother := _still("mourning_mother", route[8])
+	mother.take_damage(mother.max_health * 0.3)
+	var hurt: int = mother.health
+	mother._update_boss_pool_abilities(1.0)
+	_check(mother.health == hurt, "no mending right after a hit")
+	mother._update_boss_pool_abilities(1.0)
+	_check(mother.health > hurt, "she mends once left alone (%d → %d)" % [hurt, mother.health])
+	for i in 60:
+		mother._update_boss_pool_abilities(1.0)
+	_check(mother.health <= roundi(mother.max_health * 0.7 + mother.max_health * 0.25) + 1, "never more than 25% of her health in all")
+	_clear_enemies()
+
+	# --- Withering Oak: withers the strongest Warden near it ---
+	var oak := _still("hollow_oak_withering", route[10])
+	var weak := _plant("sprout", _free_neighbour_of(route[10]))
+	var strong := _plant("dewdrop", _free_neighbour_of(route[11], [weak.cell]))
+	spawner._on_wither_requested(oak, 1)
+	_check(strong.is_withered() and not weak.is_withered(), "the strongest Warden in reach withers")
+	strong._process(7.0)
+	_check(not strong.is_withered(), "and comes back on its own")
+	spawner._on_wither_requested(oak, 1)
+	_check(weak.is_withered(), "never the same one twice in a row")
+	weak.free()
+	strong.free()
+	_clear_enemies()
+
+	# --- Remembering Oak: echoes of this run's bosses ---
+	var remembering := _still("hollow_oak_remembering", route[10])
+	remembering.set_path(route)
+	remembering._path_index = 10
+	remembering.take_damage(remembering.max_health * 0.26)
+	var echo: Node2D = null
+	for enemy in spawner.get_children():
+		if enemy.is_echo:
+			echo = enemy
+	_check(echo != null and echo.enemy_data.resource_path.ends_with("night_mare.tres"), "at 75% the echo of act 1's boss (the Night Mare) rises")
+	if echo:
+		var full := roundi(echo.enemy_data.health * director.get_health_scale(echo.enemy_data, maxi(director.drifts_started, 1)))
+		_check(absi(echo.max_health - roundi(full * 0.2)) <= 1, "with 20%% of its health (%d of %d)" % [echo.max_health, full])
+		var cleansed := director.bosses_cleansed
+		echo.dispel()
+		_check(director.bosses_cleansed == cleansed, "an echo doesn't count as a boss dispelled")
+	remembering.take_damage(remembering.max_health * 0.5)
+	var echoes := spawner.get_children().filter(func(e) -> bool: return e.is_echo and not e.is_cleansed)
+	_check(echoes.size() == 2, "two more at 50%% and 25%% (%d)" % echoes.size())
+	_clear_enemies()
+
+	print("test_boss_pools: %s" % ("ok" if failures == 0 else "%d failures" % failures))
+	quit(failures)
+
+func _drift_has(drift: DriftData, boss: EnemyData) -> bool:
+	for group in drift.groups:
+		for entry in group.entries:
+			if entry.enemy == boss:
+				return true
+	return false
+
+func _count(data: EnemyData) -> int:
+	return spawner.get_children().filter(func(e) -> bool: return e.enemy_data == data and not e.is_cleansed).size()
+
+func _still(kind: String, cell: Vector2) -> Node2D:
+	var enemy: Node2D = spawner.spawn_enemy(load("res://resource/enemy/%s.tres" % kind))
+	enemy.set_process(false)
+	enemy.position = enemy.grid.calculate_map_position(cell)
+	return enemy
+
+func _clear_enemies() -> void:
+	for enemy in spawner.get_children():
+		enemy.free()
+
+func _plant(kind: String, cell: Vector2) -> Tower:
+	var tower: Tower = placer.tower_scene.instantiate()
+	tower.tower_data = load("res://resource/tower/%s.tres" % kind)
+	tower.cell = cell
+	tower.position = map_generator.MAP_GRID.calculate_map_position(cell)
+	tower_container.add_child(tower)
+	return tower
+
+func _free_neighbour_of(cell: Vector2, avoid: Array = []) -> Vector2:
+	for offset in [Vector2.LEFT, Vector2.RIGHT, Vector2.UP, Vector2.DOWN]:
+		var next: Vector2 = cell + offset
+		if not route.has(next) and not avoid.has(next) and map_generator.is_buildable(next):
+			return next
+	return cell
+
+func _far_cell(from: Vector2) -> Vector2:
+	for x in range(1, 22):
+		for y in range(1, 17):
+			var cell := Vector2(x, y)
+			if cell.distance_to(from) > 4.0 and not route.has(cell) and map_generator.is_buildable(cell):
+				return cell
+	return from
+
+func _check(condition: bool, label: String) -> void:
+	if not condition:
+		failures += 1
+		printerr("FAIL: " + label)

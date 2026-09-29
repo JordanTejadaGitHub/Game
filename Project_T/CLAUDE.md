@@ -156,6 +156,18 @@ accessibility, Steam achievements (milestones map to them). Acts 3–4 and all f
   start→end and are skipped by `get_maze_walkers()` (the path rule / re-routing); signals
   `enemy_cleansed`, `enemy_reached_goal`, `enemy_split` (split children and followers, emitted
   before the parent's cleanse), `wall_trampled`. `tests/test_creatures.gd`.
+- **Boss pools** (enemy_design.md, 2026-09-29): `BossData` (`resource/boss/act_N/*.tres`: boss
+  `EnemyData`, its whole boss `drift`, `is_default`); `BossPool` (static) draws one per act from the
+  map seed and `apply()` swaps it into drift 25/50/75/100, so dossier/banner/bookkeeping just read the
+  drift. Defaults: first run ever, tests (unless `BossPool.force_draw`), demo acts 1–2. Last run's
+  boss per act is ×0.5 (profile `last_bosses`); the draw is in the run save (`bosses`,
+  `DriftDirector.preset_bosses`). Only when the drifts are loaded from `resource/drift/demo/`
+  (`_own_drifts`). New boss drifts: `resource/drift/boss/`. New `EnemyData` "Boss pools" fields:
+  laps (Night Mare), `hurt_*` (Scarecrow; its Crows use grief_*), `pack_shield` (Huntsman: followers +
+  brood form `enemy.pack`), lanterns (Lamplighter: `ColdLantern` nodes under MapGenerator,
+  `Tower.dim_multiplier` set each frame by the spawner), shrug + `min_speed_share` (Barrow King),
+  `regen_*` (Mourning Mother), wither (`Tower.wither()` / `withered_left`), echoes (`Enemy.is_echo`:
+  never counted as a boss). New bosses use tinted placeholder art. `tests/test_boss_pools.gd`.
 - Selling: `TowerSeller` (`%TowerSeller`): outside build mode, hover a Warden, Delete (or the panel's Sell) sells for
   `Tower.invested_dew` × 100% (resting) or 50% (walking); `MapGenerator.unblock_cell`.
   It also owns selection (`selection`, `selected` = first; `selection_changed`): click, drag box

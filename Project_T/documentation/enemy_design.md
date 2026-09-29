@@ -109,7 +109,7 @@ Queen an act 3 boss.
 | 1 | **The Scarecrow** *(new)* | a sack-headed scarecrow on a crooked pole, stitched grin, crows under its coat | walks slowly; **every 20% health lost, a flock of 5 Crows bursts out** and runs ahead along the path (fast, 1 leaf each) | area damage near the boss, and Wardens further down the maze to catch the crows | stone, talon | spore |
 | 2 | **The Mire Hag** | a bent bog witch wrapped in reeds | every few seconds **sinks into the mire and rises 3 tiles ahead** along its path; each surfacing soaks nightmares nearby (Damp) | damage spread along the whole maze | water | root |
 | 2 | **The Huntsman** *(new)* | a tall antlered rider without a face, a bone horn at his hip | leads **4 Night Hounds**; **while any hound lives he takes half damage** (the pack shields him); every 12 s he blows his horn and a new hound joins (up to 4) | target priority and area damage; the hounds sprint on straights, so corners matter | spore | stone |
-| 2 | **The Lamplighter** *(new)* | a thin, stooped ghost with a pole of cold blue flame | every 8 s it **lights a cold lantern** on an empty tile beside the path; **Wardens within 1.5 tiles of a lantern attack 40% slower** until the lantern is snuffed (lanterns have health; Wardens hit them once no nightmare is in range, or the player clicks one to target it) | **don't put everything in one kill zone**: the first boss that fights your Wardens, not your maze | light, song | water |
+| 2 | **The Lamplighter** *(new)* | a thin, stooped ghost with a pole of cold blue flame | every 8 s it **lights a cold lantern** on an empty tile beside the path; **Wardens within 1.5 tiles of a lantern attack 40% slower** until it burns out (16 s) or the player clicks it to snuff it | **don't put everything in one kill zone**: the first boss that fights your Wardens, not your maze | light, song | water |
 | 3 | **The Moth Queen** | a vast moth with a skull-like face on its wings | flies along the route above it, dropping Lurkers; Eclipse at half health (`acts_3_4.md`) | detection + a long maze | spore, talon | light |
 | 3 | **The Barrow King** *(new)* | a crowned, mail-clad corpse-king, very tall, dragging a rusted sword | **Iron Will:** never slowed below 70% speed, can't be Held; every 10 s he **shrugs off every status** on himself and nightmares within 2 tiles (Static discharges harmlessly) | status-heavy builds: raw damage and Marked-style burst between shrugs | song, water | root |
 | 3 | **The Mourning Mother** *(new)* | a vast veiled figure weeping black tears, Weepers clinging to her skirts | **Sorrow:** when no Warden has hit her for 1.5 s, she **mends 2% of her max health per second** (and mends nightmares within 2 tiles like a Weeper) | **gaps in the maze**: stretches with no Warden coverage let her heal back | stone, light | song |
@@ -140,10 +140,12 @@ nightmares' family tally below (they're one fight each, not a drift's worth of h
   more horns. Escort: 6 Night Hounds ahead, 2 Processions behind. Dispelled: *"The horn falls
   silent. The hunt is over."* Memory: **The Old Hound**, a faithful grey dog spirit that runs down
   the nightmare closest to the Heartwood.
-- **The Lamplighter** (act 2). *Lanterns:* health = 5% of the boss's; up to 4 at once; never on a
-  Warden or where it would block the path (it doesn't block at all, it's a light). Snuffing one
-  gives 2 Dew. *Long Night* (at half health): all its lanterns flare and slow Wardens by 60% for
-  5 s. Escort: 10 Lurkers ahead (the cold light doesn't reveal them), then the Lamplighter, then
+- **The Lamplighter** (act 2). *Lanterns* (as built 2026-09-29): up to 4 at once, on empty cells
+  beside its route, never on the route or a Warden (they don't block at all, they're a light). Each
+  **burns out after 16 s**, goes out when the Lamplighter is dispelled, or is **snuffed by clicking
+  it (+2 Dew)**. Lanterns having health for Wardens to shoot would need Warden targeting to change;
+  revisit after playtests. *Long Night* (all lanterns flare, −60% for 5 s at half health) is not
+  built yet. Escort: 10 Lurkers ahead (the cold light doesn't reveal them), then the Lamplighter, then
   4 Husks. Dispelled: *"The cold lanterns go out, one by one."* Memory: **The Warm Lamplighter**:
   its lanterns make Wardens near them attack faster: the curse turned around.
 - **The Barrow King** (act 3). *Shrug:* a visible pulse of grave-dust; statuses are cleared, not
@@ -152,7 +154,7 @@ nightmares' family tally below (they're one fight each, not a drift's worth of h
   then the King. Dispelled: *"The Barrow King lies down again, and this time he sleeps."* Memory:
   **The Sleeping King**, an old stone king who lengthens every status on nightmares near him.
 - **The Mourning Mother** (act 3). *Sorrow* shows as black tears falling while she heals, stopping
-  the moment she's hit. Healing is capped at 25% of her max health per lap of the maze. *Her
+  the moment she's hit. Healing is capped at 25% of her max health in all (she doesn't lap). *Her
   Children* (at two-thirds and one-third health): 3 Weepers rise from her skirts. Escort: 4
   Weepers and 6 Mourners. Dispelled: *"She stops weeping. For the first time, the Hollow is
   quiet."* Memory: **The Cradle Song**, a lullaby spirit: the Heartwood regrows 1 leaf at every rest
@@ -171,11 +173,10 @@ variation: it rises once more at half health with its trait twice as fast.
 - **Thorned** (the original, `acts_3_4.md`): thorn-saplings every 8 s re-route the nightmares;
   *Grief* at two-thirds and one-third health raises a ring of 6 Mourners. Escort: 3 Processions, 8
   Mourners, 4 Weepers. 30,000 health. Tests adapting to a changing maze.
-- **Withering**: every 10 s a root surfaces under a Warden within 3 tiles of it (the one that's
-  dealt it the most damage, never the same one twice in a row) and **withers** it for 6 s: grey,
-  drooping, no attacks, no auras. It comes back on its own, unharmed. *Drought* (at two-thirds and
-  one-third health): withers 3 Wardens at once and the dead-leaf trail behind it slows Wardens'
-  projectiles (reduced motion: no trail effect). Escort: 4 Barrow Wights, 8 Husks, 4 Ash Crawlers.
+- **Withering**: every 10 s a root surfaces under a Warden within 3 tiles of it (the strongest one:
+  highest damage × attack speed, never the same one twice in a row) and **withers** it for 6 s: grey,
+  no attacks, no auras. It comes back on its own, unharmed. *Drought* (at two-thirds and one-third
+  health): withers 3 Wardens at once. (The dead-leaf trail slowing projectiles is not built.) Escort: 4 Barrow Wights, 8 Husks, 4 Ash Crawlers.
   30,000 health. Tests redundant coverage: a maze that leans on one great Warden stalls for 6 s at
   a time; a maze with every stretch covered twice doesn't notice. Weak to water (rain wakes what it
   withers).

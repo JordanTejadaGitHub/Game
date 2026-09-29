@@ -1,0 +1,33 @@
+[gd_resource type="Resource" script_class="EnemyData" load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://resource/enemy/script/enemy_data.gd" id="1_edata"]
+[ext_resource type="SpriteFrames" path="res://animation/enemy/barrow_wight.tres" id="2_frames"]
+[ext_resource type="Resource" path="res://resource/enemy/barrow_wight.tres" id="3_wight"]
+
+[resource]
+script = ExtResource("1_edata")
+sprite_frames = ExtResource("2_frames")
+display_name = "The Barrow King"
+health = 16000
+speed = 40.0
+dew_reward = 80
+leaf_cost = 5
+is_boss = true
+sprite_scale = 1.8
+tint = Color(0.8, 0.75, 0.6, 1)
+resists = Array[String](["song", "water"])
+weak_to = Array[String](["root"])
+status_immune = Array[StringName]([&"held"])
+shrug_interval = 10.0
+shrug_radius = 2.0
+min_speed_share = 0.7
+grief_spawn = ExtResource("3_wight")
+grief_count = 4
+grief_at = Array[float]([0.5])
+grief_pause = 1.5
+trait_text = "Shrugs off every status around him. Can't be slowed much, or held."
+cleanse_line = "The Barrow King lies down again, and this time he sleeps."
+title = "the king under the hill"
+abilities = Array[Dictionary]([{"name": "Iron Will", "icon": &"rises", "text": "Slows never take him below {min_speed_share:pct} of his speed, and he can't be {held}.", "when": "always"}, {"name": "Shrug", "icon": &"grief", "text": "Shrugs off every status on himself and every nightmare within {shrug_radius} tiles. Static charges go without a bolt.", "when": "every {shrug_interval} s"}, {"name": "Crown of the Dead", "icon": &"grief", "text": "{grief_count} {grief_spawn:name}s rise around him.", "when": "at {grief_at:list_pct} health"}])
+tips = Array[String](["Statuses won't last on him: hit hard between his shrugs.", "Burst him down before the dead rise.", "Roots pull him back into his barrow."])
+whisper = "The hill has opened. The old king walks."

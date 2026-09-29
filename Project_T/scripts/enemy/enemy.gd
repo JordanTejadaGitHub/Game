@@ -18,6 +18,14 @@ signal sapling_requested(enemy: Node2D)
 signal grief_requested(enemy: Node2D)
 # The Hollow Oak (Blight Level 10) rose again at half health instead of being dispelled.
 signal rose_again(enemy: Node2D)
+# Boss pools (enemy_design.md): the Night Mare reached the Heartwood and gallops round again (the
+# spawner takes its lap leaves); the Lamplighter lights a lantern; the Withering Oak withers `count`
+# Wardens; the Remembering Oak calls up the echo of act `act`'s boss; the Barrow King shrugged.
+signal lapped(enemy: Node2D)
+signal lantern_requested(enemy: Node2D)
+signal wither_requested(enemy: Node2D, count: int)
+signal echo_requested(enemy: Node2D, act: int)
+signal shrugged(enemy: Node2D)
 # A Warden tried a status this nightmare is immune to (the UI flashes the crossed-out icon). At most
 # once per status every REFUSED_THROTTLE seconds per nightmare.
 signal status_refused(enemy: Node2D, status: StringName)
@@ -179,6 +187,22 @@ var _sapling_speed := 1.0
 var _eclipsed := false
 var _griefs := 0  # grief_at thresholds already passed
 var _has_risen := false
+# Boss pools (enemy_design.md)
+const ECHO_ALPHA := 0.6
+const SHRUG_FLASH_TIME := 0.5
+const SHRUG_COLOR := Color(0.72, 0.68, 0.6)
+var is_echo := false  # An echo of an earlier boss (Remembering Oak): not counted as a boss dispelled
+var pack: Array = []  # Huntsman's hounds (set by the spawner); it takes pack_shield damage while one lives
+var laps := 0  # Night Mare: times it has reached the Heartwood and gone round again
+var _lantern_timer := 0.0
+var _shrug_timer := 0.0
+var _shrug_flash := 0.0
+var _since_hit := 0.0  # Seconds since the last hit (Mourning Mother's Sorrow)
+var _regen_left := -1.0  # Health it may still mend (< 0 = not worked out yet)
+var _wither_timer := 0.0
+var _wither_bursts := 0  # wither_burst_at shares already passed
+var _echoes := 0  # echo_at shares already passed
+var _regrouped := false  # Huntsman's pack came back at half health; no more horns
 
 # Cells to walk through, in grid coordinates. `_path_index` is the cell we're currently walking toward.
 var _path: PackedVector2Array
@@ -216,6 +240,8 @@ func _ready() -> void:
 	sprite.sprite_frames = enemy_data.sprite_frames
 	sprite.scale = Vector2.ONE * enemy_data.sprite_scale * (ELITE_SCALE if elite else 1.0)
 	sprite.modulate = enemy_data.tint
+	if is_echo:
+		sprite.modulate.a *= ECHO_ALPHA  # A pale face from the Oak's bark
 	sprite.play("walk_side")
 
 	# Nightmare look: per-enemy material so each one can crack apart on its own
@@ -246,6 +272,7 @@ func _process(delta: float) -> void:
 		if is_cleansed:
 			return
 	_bolt_flash = maxf(_bolt_flash - delta, 0.0)
+	_shrug_flash = maxf(_shrug_flash - delta, 0.0)
 	if elite:
 		_haze_phase += ELITE_HAZE_SPEED * delta
 	_hit_mark_time = maxf(_hit_mark_time - delta, 0.0)
@@ -267,7 +294,7 @@ func _process(delta: float) -> void:
 	# stacks), the Stag aura ring, or an animation that's playing (flashes, haze, embers, glow).
 	# Health / shell bars redraw from take_damage and heal.
 	var aura := statuses.is_in_stag_aura()
-	var animating := _bolt_flash > 0.0 or _hit_mark_time > 0.0 or elite or _crit_flash > 0.0 \
+	var animating := _bolt_flash > 0.0 or _shrug_flash > 0.0 or _hit_mark_time > 0.0 or elite or _crit_flash > 0.0 \
 		or not _status_flash.is_empty() or not _ash_cells.is_empty() or unbound
 	if animating or _was_animating or statuses.changes != _drawn_changes or aura != _drawn_aura:
 		_drawn_changes = statuses.changes
@@ -327,8 +354,20 @@ func _process(delta: float) -> void:
 		if loops_route:
 			_restart_route()
 			return
+		if enemy_data.laps():
+			_lap()
+			return
 		reached_goal.emit(self)
 		queue_free()
+
+# Night Mare: the Heartwood loses its lap leaves (the spawner takes them) and the Mare gallops back to
+# the start, faster each time.
+func _lap() -> void:
+	laps += 1
+	speed *= enemy_data.lap_speed_multiplier
+	_speed_stale = true
+	lapped.emit(self)
+	_restart_route()
 
 func _refuse_status(id: StringName) -> void:
 	var now := Time.get_ticks_msec()
@@ -376,6 +415,12 @@ func _draw() -> void:
 	if _bolt_flash > 0.0:
 		var t := _bolt_flash / BOLT_FLASH_TIME
 		draw_circle(Vector2.ZERO, 26.0 * (1.5 - t), Color(1.0, 1.0, 0.6, 0.5 * t))
+	if _shrug_flash > 0.0:  # Barrow King: a ring of grave-dust out to the shrug's reach
+		var t := _shrug_flash / SHRUG_FLASH_TIME
+		draw_arc(Vector2.ZERO, enemy_data.shrug_radius * grid.cell_size.x * (1.0 - t * 0.6), 0.0, TAU, 48,
+			Color(SHRUG_COLOR, 0.6 * t), 4.0)
+	if enemy_data.pack_shield < 1.0 and pack_alive() > 0:  # Huntsman: the faint ring the pack keeps round him
+		draw_arc(Vector2(0, -8), 30.0 * sprite.scale.x, 0.0, TAU, 32, Color(0.75, 0.8, 1.0, 0.35), 2.0)
 	if _hit_mark_time > 0.0:
 		_draw_hit_mark(_hit_mark_time / HIT_MARK_TIME)
 	if statuses.is_in_stag_aura():
@@ -494,8 +539,13 @@ func get_move_speed() -> float:
 		base = minf(base, enemy_data.lost_speed)
 	if _charge_left > 0.0:
 		base *= enemy_data.charge_speed_multiplier
+	if enemy_data.hurt_below > 0.0 and health <= max_health * enemy_data.hurt_below:
+		base *= enemy_data.hurt_speed_multiplier  # Scarecrow: Stitched
 	base *= 1.0 + RESTLESS_SPEED * restless
-	return base * statuses.get_speed_multiplier(_tangled_slow())
+	var moved := base * statuses.get_speed_multiplier(_tangled_slow())
+	if enemy_data.min_speed_share > 0.0:
+		moved = maxf(moved, base * enemy_data.min_speed_share)  # Barrow King: Iron Will
+	return moved
 
 # Tangled (Dream): carrying 2+ statuses slows it DreamState.TANGLED_SLOW more, like Soaked does (a
 # plain slow; Heavy Air doesn't boost it). The spawner checks the card once a frame.
@@ -936,6 +986,61 @@ func _update_presence(delta: float) -> void:
 		if _sapling_timer >= enemy_data.sapling_interval:
 			_sapling_timer = 0.0
 			sapling_requested.emit(self)
+	_update_boss_pool_abilities(elapsed)
+
+# The new bosses' timed abilities (enemy_design.md "Boss pools"), on the presence tick.
+func _update_boss_pool_abilities(elapsed: float) -> void:
+	if enemy_data.lantern_interval > 0.0:  # Lamplighter
+		_lantern_timer += elapsed
+		if _lantern_timer >= enemy_data.lantern_interval:
+			_lantern_timer = 0.0
+			lantern_requested.emit(self)
+	if enemy_data.shrug_interval > 0.0:  # Barrow King
+		_shrug_timer += elapsed
+		if _shrug_timer >= enemy_data.shrug_interval:
+			_shrug_timer = 0.0
+			shrug()
+	if enemy_data.wither_interval > 0.0:  # Withering Oak (twice as fast once risen, like saplings)
+		_wither_timer += elapsed * _sapling_speed
+		if _wither_timer >= enemy_data.wither_interval:
+			_wither_timer = 0.0
+			wither_requested.emit(self, 1)
+	if enemy_data.regen_rate > 0.0:  # Mourning Mother's Sorrow
+		_since_hit += elapsed
+		if _regen_left < 0.0:
+			_regen_left = max_health * enemy_data.regen_cap
+		if _since_hit >= enemy_data.regen_delay and _regen_left > 0.0 and health < max_health:
+			var amount := minf(max_health * enemy_data.regen_rate * elapsed, _regen_left)
+			_regen_left -= amount
+			heal(amount)
+
+# Barrow King: every status on itself and the nightmares near it is shrugged off (they can be put back
+# straight away). Static charges go without a bolt; sleepers wake.
+func shrug() -> void:
+	for creature in [self] + _others_within(enemy_data.shrug_radius):
+		for id in creature.statuses.active_ids():
+			creature.statuses.remove(id)
+		creature.statuses.sleep_time = 0.0
+		creature.queue_redraw()
+	_shrug_flash = SHRUG_FLASH_TIME
+	shrugged.emit(self)
+	queue_redraw()
+
+# Huntsman: the soothe share it takes while any of its hounds still hunts (1.0 once they're gone).
+func get_pack_multiplier() -> float:
+	if enemy_data.pack_shield >= 1.0:
+		return 1.0
+	for hound in pack:
+		if is_instance_valid(hound) and not hound.is_cleansed:
+			return enemy_data.pack_shield
+	return 1.0
+
+# Hounds of its pack still hunting (Huntsman).
+func pack_alive() -> int:
+	return pack.filter(func(h) -> bool: return is_instance_valid(h) and not h.is_cleansed).size()
+
+func is_regrouped() -> bool:
+	return _regrouped
 
 func _set_hidden(value: bool) -> void:
 	_hidden = value
@@ -1031,6 +1136,15 @@ func _check_health_thresholds() -> void:
 		hold_time = maxf(hold_time, enemy_data.grief_pause)  # It stops and wails
 		_play_pose(&"grief", enemy_data.grief_pause)
 		grief_requested.emit(self)
+	while _wither_bursts < enemy_data.wither_burst_at.size() and health <= max_health * enemy_data.wither_burst_at[_wither_bursts]:
+		_wither_bursts += 1
+		wither_requested.emit(self, enemy_data.wither_burst_count)  # Withering Oak: Drought
+	while _echoes < enemy_data.echo_at.size() and health <= max_health * enemy_data.echo_at[_echoes]:
+		_echoes += 1
+		echo_requested.emit(self, _echoes)  # Remembering Oak: act 1's boss, then 2's, then 3's
+	if enemy_data.pack_regroup_at_half and not _regrouped and health <= max_health / 2:
+		_regrouped = true  # Huntsman: The Kill (the spawner calls the whole pack back)
+		brood_requested.emit(self)
 
 # Blight Level `rises_from_blight`+ (the Hollow Oak remembers): the first dispel doesn't take; it
 # rises again at half health with saplings twice as fast. True if it rose.
@@ -1067,8 +1181,9 @@ func take_damage(amount: float, line: String = "", is_area: bool = false, is_cri
 		# Soaked conducts: water hits +20% (Damp's potency 1.5 with Soaked Through II: +30%)
 		family *= 1.0 + EnemyStatuses.DAMP_WATER_BONUS * maxf(1.0, statuses.potency(EnemyStatuses.DAMP))
 	var taken := statuses.get_damage_taken_multiplier()
-	var soothe := amount * family * taken
+	var soothe := amount * family * taken * get_pack_multiplier()  # Huntsman: the pack shields him
 	var soothe_before_coat := soothe
+	_since_hit = 0.0  # Mourning Mother: Sorrow waits for a quiet moment
 	if line in enemy_data.resists:
 		_mark_hit(-1)
 	elif line in enemy_data.weak_to:
@@ -1099,8 +1214,9 @@ func take_damage(amount: float, line: String = "", is_area: bool = false, is_cri
 		_cleanse()
 		return
 	_check_health_thresholds()
-	if enemy_data.trait_kind == EnemyData.Trait.TRAMPLE and not _startled and health <= max_health / 2:
-		_startled = true  # The Hollow Stag's antlers flare and it charges
+	if (enemy_data.trait_kind == EnemyData.Trait.TRAMPLE or enemy_data.charges_at_half) and not _startled \
+			and health <= max_health / 2:
+		_startled = true  # The Hollow Stag's antlers flare and it charges (the Night Mare bolts)
 		_charge_left = enemy_data.charge_time
 		_speed_stale = true
 

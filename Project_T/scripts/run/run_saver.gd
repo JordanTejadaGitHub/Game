@@ -72,6 +72,7 @@ func _ready() -> void:
 		if not _saved_data.is_empty():
 			map_generator.map_seed = int(_saved_data.map_seed)
 			MetaRun.blight_level = int(_saved_data.get("blight_level", 0))  # Before MetaRun applies it
+			drift_director.preset_bosses = _saved_data.get("bosses", [])  # Before the (deferred) boss draw
 	drift_director.rest_started.connect(func(_b: int, _boss: bool, _bonus: int, _perfect: bool) -> void: _dirty = true)
 	drift_director.family_pick_requested.connect(func(_reason: StringName) -> void: _dirty = true)
 	run_state.run_ended.connect(func(_won: bool) -> void:
@@ -137,6 +138,7 @@ func save_now() -> bool:
 		"blocks_rested": drift_director.blocks_rested,
 		"bosses_cleansed": drift_director.bosses_cleansed,
 		"auto_drift": drift_director.auto_drift,
+		"bosses": BossPool.ids(drift_director.bosses),  # Boss pools: the bosses this run drew
 		"dreams": dream_state.to_save(),
 	}
 	var omens := get_tree().get_first_node_in_group(&"omens")

@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="EnemyData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://resource/enemy/script/enemy_data.gd" id="1_edata"]
+[ext_resource type="SpriteFrames" path="res://animation/enemy/leaf_bug.tres" id="2_frames"]
+
+[resource]
+script = ExtResource("1_edata")
+sprite_frames = ExtResource("2_frames")
+display_name = "Crow"
+health = 40
+speed = 150.0
+dew_reward = 1
+leaf_cost = 1
+sprite_scale = 0.8
+tint = Color(0.35, 0.33, 0.42, 1)
+trait_text = "Bursts from the Scarecrow's coat and runs ahead."
+intro_lines = Array[String](["Small and fast: a flock bursts from the Scarecrow's coat."])
+hint = "Wardens further down the maze catch the ones that slip by."

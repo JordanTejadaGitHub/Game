@@ -39,6 +39,9 @@ const DEMO_DRIFTS_DIR := "res://resource/drift/demo/"
 
 @export var drifts: Array[DriftData] = []  # Empty = load resource/drift/demo/drift_NN.tres in order
 @export var random_drifts := true  # Roll the drifts from the run's seed (DriftRoller); false = the hand-made ones
+# Boss pools (enemy_design.md): draw each act's boss from resource/boss/act_N/ (BossPool). Only when
+# the drifts are the game's own (loaded from DEMO_DRIFTS_DIR), never a test's hand-set ones.
+@export var boss_pools := true
 @export var act_names: Array[String] = ["Forest's Edge", "Deep Wood", "Misty Hollow", "Heartwood Glade"]
 @export var drifts_per_block: int = 5
 @export var drifts_per_act: int = 25  # The act's last drift is its boss
@@ -107,10 +110,17 @@ var _drift_of := {}
 var _arriving := {}
 var _auto_timer := -1.0  # Counts down to the next auto drift; < 0 = not waiting
 var _block_leaked := false
+# The boss drawn for each act (index 0 = act 1; BossPool), set once the run's seed is known.
+var bosses: Array[BossData] = []
+var preset_bosses: Array = []  # Boss ids a resumed run drew (RunSaver sets them before the draw)
+var _own_drifts := false  # The drifts came from DEMO_DRIFTS_DIR (boss pools may replace boss drifts)
 
 func _ready() -> void:
 	if drifts.is_empty():
 		drifts = load_demo_drifts()
+		_own_drifts = true
+	if boss_pools and _own_drifts:
+		_draw_bosses.call_deferred()  # Before the roll: DriftRoller keeps boss drifts as they are
 	if get_tree().current_scene == owner:  # The player's default (tests keep the export's)
 		auto_drift = bool(HeartwoodMemory.get_settings().get("auto_drift", auto_drift))
 	spawner.enemy_split.connect(_on_enemy_split)
@@ -127,6 +137,23 @@ func _ready() -> void:
 func _roll_drifts() -> void:
 	var map := get_node_or_null("%MapGenerator")
 	DriftRoller.roll_run(self, map.map_seed if map else 0)
+
+# Boss pools: one boss per act, from the run's seed (deferred like the roll, so the seed is final).
+func _draw_bosses() -> void:
+	if not preset_bosses.is_empty():
+		bosses = BossPool.from_ids(preset_bosses)
+	else:
+		var map := get_node_or_null("%MapGenerator")
+		var playing := get_tree().current_scene == owner  # Tests meet the defaults unless BossPool.force_draw
+		var real_game := playing and not MetaRun.is_dev_run()  # Dev runs draw but never read / write the profile
+		var defaults := (not playing and not BossPool.force_draw) or (real_game and HeartwoodMemory.is_first_run())
+		bosses = BossPool.draw(map.map_seed if map else 0, defaults, ResultsScreen.is_demo(),
+			BossPool.last_from_profile() if real_game else [])
+	BossPool.apply(self, bosses)
+
+# The boss drawn for `act` (null without boss pools or past the run's acts).
+func get_drawn_boss(act: int) -> BossData:
+	return bosses[act - 1] if act >= 1 and act <= bosses.size() else null
 
 static func load_demo_drifts() -> Array[DriftData]:
 	var files: Array[String] = []
@@ -401,7 +428,7 @@ func _on_enemy_split(parent: Node2D, child: Node2D) -> void:
 	_active[number].remaining += 1
 
 func _on_enemy_cleansed(enemy: Node2D) -> void:
-	if enemy.enemy_data.is_boss and _drift_of.has(enemy):
+	if enemy.enemy_data.is_boss and _drift_of.has(enemy) and not enemy.is_echo:  # Echoes (Remembering Oak) aren't bosses
 		bosses_cleansed += 1
 	_resolve(enemy, false)
 
@@ -474,6 +501,8 @@ func _pay_rest_bonus() -> Array:
 	return [bonus, perfect]
 
 func _on_run_ended(_won: bool) -> void:
+	if not bosses.is_empty() and get_tree().current_scene == owner and not MetaRun.is_dev_run():
+		BossPool.remember(bosses)  # The next run weighs against these
 	_arriving.clear()
 	_auto_timer = -1.0
 	set_process(false)
