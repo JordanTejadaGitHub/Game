@@ -3,7 +3,7 @@ extends SceneTree
 # Headless test for "Sprouts get pricier as you plant" (warden_stats.md, card 69): every 5 Sprouts on
 # the map add +3 Dew to the next one's price (10 for the first 5, 13 at 5-9, …); selling or growing one
 # lowers it; Seedling Gift Sprouts are free and don't count; a drag stroke prices each Sprout after the
-# ones before it; Seedfall starts at 6 and rises half as fast (+3 per 10). Run:
+# ones before it; Seedfall makes them 6 Dew, flat. Run:
 #   godot --headless --path . --script res://tests/test_sprout_price.gd --fixed-fps 60
 
 const MAP_SEED := 42
@@ -60,16 +60,21 @@ func _run() -> void:
 	else:
 		_check(false, "found 3 open cells in a row for the stroke")
 
-	# Seedfall: starts at 6 and rises half as fast (+3 per 10 Sprouts on the map)
+	# Seedfall: 6 Dew, and the price never rises (TowerPlacer.SEEDFALL_SPROUTS_PER_STEP 0 = flat)
 	for card in dreams.pool:
 		if card.id == TowerPlacer.SEEDFALL_CARD:
 			dreams.take(card)
+	var per_step := TowerPlacer.SEEDFALL_SPROUTS_PER_STEP
 	var paid := placer.count_paid_sprouts()  # 7 by now
-	_check(placer.get_cost(sprout) == 6 + paid / 10 * 3, "Seedfall: Sprouts start at 6 (%d with %d)" % [placer.get_cost(sprout), paid])
-	while placer.count_paid_sprouts() < 10:
+	var expected := 6 + (paid / per_step * TowerPlacer.SPROUT_STEP_DEW if per_step > 0 else 0)
+	_check(placer.get_cost(sprout) == expected, "Seedfall: Sprouts cost %d (%d with %d)" % [expected, placer.get_cost(sprout), paid])
+	while placer.count_paid_sprouts() < 16:
 		if _build(placer, map, sprout) == null:
 			break
-	_check(placer.count_paid_sprouts() < 10 or placer.get_cost(sprout) == 9, "and rise +3 at 10 Sprouts, half as fast (%d)" % placer.get_cost(sprout))
+	paid = placer.count_paid_sprouts()
+	expected = 6 + (paid / per_step * TowerPlacer.SPROUT_STEP_DEW if per_step > 0 else 0)
+	_check(paid < 16 or placer.get_cost(sprout) == expected, "and %s with %d on the map (%d)" % [
+		"never rise" if per_step == 0 else "rise +3 per %d" % per_step, paid, placer.get_cost(sprout)])
 
 	print("sprout price test: %s" % ("PASS" if failures == 0 else "%d FAILED" % failures))
 	quit(failures)
