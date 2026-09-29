@@ -17,4 +17,4 @@ always_damp = true
 ignores_slows = true
 trait_text = "Always {damp}, and nothing slows it."
 intro_lines = Array[String](["Always {damp}, and nothing slows it."])
-hint = "Lightning loves anything {damp}."
+hint = "It's always {damp}, and lightning loves the {damp}."
