@@ -416,11 +416,7 @@ func _on_tower_added(node: Node) -> void:
 		_refresh_presence(t)  # Growing into an Ascended form starts its presence
 		if t.tower_data.tier >= ASCENDED_TIER:
 			return  # Ascending has its own moment (below)
-		get_tree().create_timer(FIRST_BREATH_DELAY).timeout.connect(func() -> void:
-			if is_instance_valid(t):
-				var id := _sound_for("hit_", t.attack_data)
-				if id != &"":
-					sound.play(id, t.global_position, HIT_DB, 1.0, 0.03, _bus_for(t))))
+		get_tree().create_timer(FIRST_BREATH_DELAY).timeout.connect(_first_breath.bind(t.get_instance_id())))
 	# The hit's own sound plays too. Most crits add a low punch and a soft, low bell; some Wardens
 	# have their own (Moonstone's bell-stone, Jewelwing's fuller tap), Magpie's Hoard adds its trinkets.
 	tower.crit_landed.connect(func(t: Tower, enemy: Node2D) -> void:
@@ -459,9 +455,7 @@ func _on_tower_added(node: Node) -> void:
 	if tower.has_signal("withered"):
 		tower.withered.connect(func(t: Tower) -> void:
 			_withered[t.get_instance_id()] = t
-			get_tree().create_timer(WITHER_DELAY).timeout.connect(func() -> void:
-				if is_instance_valid(t):
-					_event("wither_", t, t.global_position)))
+			get_tree().create_timer(WITHER_DELAY).timeout.connect(_event_later.bind("wither_", t.get_instance_id(), null)))
 	# Events from Tower Code (abbc0f9); connected only if present.
 	if tower.has_signal("cloud_formed"):
 		tower.cloud_formed.connect(func(t: Tower, where: Vector2, duration: float) -> void:
@@ -486,9 +480,7 @@ func _on_tower_added(node: Node) -> void:
 	if tower.has_signal("grab_finished"):
 		tower.grab_finished.connect(func(t: Tower, enemy: Node2D) -> void:
 			var at: Vector2 = enemy.global_position if is_instance_valid(enemy) else t.global_position
-			get_tree().create_timer(PLOP_DELAY).timeout.connect(func() -> void:
-				if is_instance_valid(t):
-					_event("plop_", t, at)))
+			get_tree().create_timer(PLOP_DELAY).timeout.connect(_event_later.bind("plop_", t.get_instance_id(), at)))
 	var id := tower.get_instance_id()
 	tower.tree_exiting.connect(func() -> void:
 		_hit_groups.erase(id)
@@ -515,31 +507,63 @@ func _on_nurtured(tower: Tower) -> void:
 	if tower.focus != Tower.Focus.NONE and not _focus_heard.has(key):
 		_focus_heard[key] = true
 		lean = StringName("focus_" + String(Tower.Focus.keys()[tower.focus]).to_lower())
-	var play_it := func() -> void:
-		if not is_instance_valid(tower):
-			return
-		sound.play(id, tower.global_position, volume, pitch, 0.0)
-		if lean != &"":
-			sound.play(lean, tower.global_position, volume, 1.0, 0.03)
 	if index == 0:
-		play_it.call()
+		_nurture_swell(key, id, volume, pitch, lean)
 	else:
-		get_tree().create_timer(index * TowerSeller.BLOOM_STAGGER).timeout.connect(play_it)
+		get_tree().create_timer(index * TowerSeller.BLOOM_STAGGER).timeout.connect(
+			_nurture_swell.bind(key, id, volume, pitch, lean))
+
+func _nurture_swell(tower_id: int, id: StringName, volume: float, pitch: float, lean: StringName) -> void:
+	var tower := _tower_from(tower_id)
+	if tower == null:
+		return
+	sound.play(id, tower.global_position, volume, pitch, 0.0)
+	if lean != &"":
+		sound.play(lean, tower.global_position, volume, 1.0, 0.03)
 
 # Ascending: the evolve bloom (evolved), then a slow, deep swell of the family's material, then the
 # Warden's first event (or its hit, for Wardens without one).
 func _on_ascended(tower: Tower) -> void:
-	get_tree().create_timer(ASCEND_SWELL_DELAY).timeout.connect(func() -> void:
-		if is_instance_valid(tower):
-			_event("ascend_", tower, tower.global_position, ASCENDED_EVENT_DB))
-	get_tree().create_timer(ASCEND_EVENT_DELAY).timeout.connect(func() -> void:
-		if not is_instance_valid(tower):
-			return
-		var id := StringName("event_" + warden_id(tower.tower_data))
-		if not sound.has_sound(id):
-			id = _sound_for("hit_", tower.tower_data)
-		if id != &"":
-			sound.play(id, tower.global_position, ASCENDED_EVENT_DB, 1.0, 0.0))
+	get_tree().create_timer(ASCEND_SWELL_DELAY).timeout.connect(_event_later.bind("ascend_", tower.get_instance_id(), null,
+		ASCENDED_EVENT_DB))
+	get_tree().create_timer(ASCEND_EVENT_DELAY).timeout.connect(_ascend_first_event.bind(tower.get_instance_id()))
+
+func _ascend_first_event(tower_id: int) -> void:
+	var tower := _tower_from(tower_id)
+	if tower == null:
+		return
+	var id := StringName("event_" + warden_id(tower.tower_data))
+	if not sound.has_sound(id):
+		id = _sound_for("hit_", tower.tower_data)
+	if id != &"":
+		sound.play(id, tower.global_position, ASCENDED_EVENT_DB, 1.0, 0.0)
+
+# --- Delayed sounds -----------------------------------------------------------------------------------
+# Timers call methods on SoundHooks (Godot drops the connection if SoundHooks is freed) and carry a
+# Warden's instance id, looked up when they fire: a lambda capturing a Warden that was freed before
+# its timer fired errors ("Lambda capture at index 0 was freed") before any validity check can run.
+
+func _tower_from(tower_id: int) -> Tower:
+	var tower := instance_from_id(tower_id) as Tower  # null once the Warden is freed
+	return tower if tower != null and not tower.is_queued_for_deletion() else null
+
+# The evolved Warden's first hit, as a "first breath" after the bloom.
+func _first_breath(tower_id: int) -> void:
+	var tower := _tower_from(tower_id)
+	if tower == null:
+		return
+	var id := _sound_for("hit_", tower.attack_data)
+	if id != &"":
+		sound.play(id, tower.global_position, HIT_DB, 1.0, 0.03, _bus_for(tower))
+
+# `_event(prefix, …)` a moment later (`at` null = at the Warden).
+func _event_later(prefix: String, tower_id: int, at: Variant, volume_db := EVENT_DB) -> void:
+	var tower := _tower_from(tower_id)
+	if tower != null:
+		_event(prefix, tower, at if at is Vector2 else tower.global_position, volume_db)
+
+func _dawnburst_stinger() -> void:
+	sound.play(&"stinger_dawnburst", null, -4.0, 1.0, 0.0, &"Music")
 
 # One big event (a pulse, the tide, the toll, a Stormheart chain): one sound that grows with the
 # number of nightmares hit, never one per target, and a small music duck.
@@ -785,8 +809,7 @@ func _on_chain(count: int, where: Vector2, _towers: Array) -> void:
 		_dawnburst_played = true
 		sound.duck(8.0, 1.0)
 		sound.play(&"chain_dawnburst", where, REACTION_DB + 2.0, 1.0, 0.0)
-		get_tree().create_timer(STINGER_DELAY).timeout.connect(func() -> void:
-			sound.play(&"stinger_dawnburst", null, -4.0, 1.0, 0.0, &"Music"))
+		get_tree().create_timer(STINGER_DELAY).timeout.connect(_dawnburst_stinger)
 		return
 	if count < DAWNBURST_LINKS:
 		_dawnburst_played = false
