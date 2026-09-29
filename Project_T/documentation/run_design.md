@@ -348,7 +348,7 @@ the map or the rules**. That makes ~20; aim for no Omen twice in a row and each 
 | **Lean Season** | your side | **rest bonus halved** at the end of the block | next Dream **includes a Legendary** (act 2+) |
 | **Heavy Rain** | double-edged | every nightmare is **always Soaked**, but has **+35% health** | +30 Dew |
 | **Blood Moon** | double-edged | nightmares **+25% speed**, and give **+50% Dew** | (the Dew is the reward) |
-| **Harvest Moon** | double-edged | nightmares **+25% health**, and give **×2 Dew** | (the Dew is the reward) |
+| **Bountiful Night** | double-edged | nightmares **+25% health**, and give **×2 Dew** | (the Dew is the reward) |
 | **Elder Night** | nightmares | **+1 elite** in every drift (act 2+) | +1 Dreamlight |
 | **Hollow Wind** | nightmares | the block's **first 2 drifts are all flyers** (act 2+, flyers exist) | next Dream: one card is Rare+ |
 | **Sleepless** | nightmares | nightmares are **immune to Drowsy and Held** | +40 Dew |
@@ -370,7 +370,7 @@ the map or the rules**. That makes ~20; aim for no Omen twice in a row and each 
 - **New `OmenData` fields:** Warden range add / attack-speed multiplier, `no_build_during_drift`,
   leak multiplier, rest-bonus multiplier below 1, status immunities, always-applied status, extra
   elites per drift, all-flyer drift count, obstacles to sprout, per-tree Seed bonus; rewards
-  `dreamlight`, `dream_legendary`. Blood Moon and Harvest Moon have no separate reward (their Dew is it); **Heavy Rain keeps +30 Dew**, because its +35% health hurts every build while the Soaked only helps some.
+  `dreamlight`, `dream_legendary`. Blood Moon and Bountiful Night have no separate reward (their Dew is it); **Heavy Rain keeps +30 Dew**, because its +35% health hurts every build while the Soaked only helps some.
 
 - **Blight Levels** can make Omens harsher or remove Clear Skies ("an Omen is always chosen").
 - **Grove perks** later: a third Omen option, or Omen rewards +25% (`meta_design.md`).
