@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="UnlockData" format=3]
+
+[ext_resource type="Script" path="res://resource/meta/script/unlock_data.gd" id="1_unlock"]
+
+[resource]
+script = ExtResource("1_unlock")
+id = "the_quiet_ones"
+display_name = "The Quiet Ones"
+description = "The Legendary The Quiet Ones joins the pool."
+root = 1
+costs = Array[int]([120])
+order = 62
+icon = 12
+requires_all = Array[String](["old_wood"])
+legendary = true
+dream_cards = Array[String](["the_quiet_ones"])

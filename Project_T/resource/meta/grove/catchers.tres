@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="UnlockData" format=3]
+
+[ext_resource type="Script" path="res://resource/meta/script/unlock_data.gd" id="1_unlock"]
+
+[resource]
+script = ExtResource("1_unlock")
+id = "catchers"
+display_name = "Catchers"
+description = "Support Dreams join the pool: Wide Bowl, Dew Trail, Still Waters, Acorn Cache."
+root = 1
+costs = Array[int]([50])
+order = 60
+icon = 12
+dream_cards = Array[String](["wide_bowl", "dew_trail", "still_waters", "acorn_cache"])

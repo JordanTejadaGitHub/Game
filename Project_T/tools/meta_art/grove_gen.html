@@ -510,6 +510,10 @@ N("grove_of_kin", "cards", "Grove of Kin", 742, 808, "deep_bonds", { legendary: 
 N("planted_promises", "cards", "Planted Promises", 1010, 470, [1000, 480]);
 N("deep_promises", "cards", "Deep Promises", 1030, 400, "planted_promises");
 N("golden_harvest", "cards", "Golden Harvest", 1050, 330, "deep_promises", { legendary: true });
+// The Quiet Ones (support Wardens).
+N("catchers", "cards", "Catchers", 900, 620, [900, 540]);
+N("old_wood", "cards", "Old Wood", 890, 690, "catchers");
+N("the_quiet_ones", "cards", "The Quiet Ones", 880, 760, "old_wood", { legendary: true });
 const byId = Object.fromEntries(NODES.map(n => [n.id, n]));
 NODES.forEach(n => { n.depth = n.parent ? byId[n.parent].depth + 1 : 1; });
 // Where dream-fruit (Memories) hang, in the order they appear: the point under a limb the vine
@@ -1315,6 +1319,7 @@ const CARD_ICONS = {
   deep_poison: e => { ellipse(e, 16, 19, 5.5, 5.5, (x, y, dx, dy) => Math.hypot(dx + .4, dy + .4) < .35 ? "#d8b8ff" : pick(["#2a1438", "#4a2468", "#7a44a0"], .55 - dx * .3 - dy * .3, x, y)); for (let y = 8; y <= 13; y++) e.set(16 + (13 - y) * .3, y, LEAFG[2]); stroke(e, 16, 12, 21, 9, 1.3, 1, LEAFG[1]); },
   kinship: e => { sprout(e, 12, 24, 10); sprout(e, 20, 24, 10); for (const [x, y] of [[15, 12], [17, 12], [14, 13], [18, 13], [16, 15]]) e.set(x, y, "#f07a8a"); e.set(16, 14, "#f07a8a"); e.set(15, 14, "#f07a8a"); e.set(17, 14, "#f07a8a"); },
   seeds: e => { for (const [x, y] of [[11, 20], [16, 16], [21, 20]]) ellipse(e, x, y, 3, 4, (xx, yy, dx, dy) => pick(["#6a4a1c", "#b88a3a", "#f2d27a"], .55 - dx * .3 - dy * .35, xx, yy)); for (let y = 8; y <= 12; y++) e.set(16, y, LEAFG[2]); stroke(e, 16, 10, 20, 7, 1.2, 1, LEAFG[1]); },
+  quiet_ones: e => { for (let x = 9; x <= 23; x++) { const d = Math.abs(x - 16) / 7, y = 18 + Math.round(Math.sqrt(Math.max(0, 1 - d * d)) * 5); for (let yy = 18; yy <= y; yy++) e.set(x, yy, yy === y ? PARCH[1] : PARCH[3]); } ellipse(e, 16, 12, 2.5, 3.5, (xx, yy, dx, dy) => pick(["#3a7ab8", "#7ab8e8", "#d8f0ff"], .5 - dx * .3 - dy * .4, xx, yy)); },
 };
 function cardIcon(key) {
   return icon((L, o) => {
@@ -1495,7 +1500,7 @@ const PERK_ORDER = ["morning_stores", "rich_dew", "rested_roots", "seed_pouch", 
 emitImg("icons/perk_icons.png", strip(PERK_ORDER.map(k => PERK_ICONS[k]())));
 const FAMILY_ORDER = ["sporeling", "firefly_jar", "dewdrop", "pebbling", "rootling", "bellflower", "acorn", "nestling", "whirligig"];
 emitImg("icons/family_icons.png", strip(FAMILY_ORDER.map(k => FAMILY_ICONS[k]())));
-const CARD_ORDER = ["storm", "spores_and_reactions", "keen_edges", "tending", "overgrowth", "lone_lantern", "the_long_way", "bittersweet", "woven", "deep_poison", "kinship", "seeds"];
+const CARD_ORDER = ["storm", "spores_and_reactions", "keen_edges", "tending", "overgrowth", "lone_lantern", "the_long_way", "bittersweet", "woven", "deep_poison", "kinship", "seeds", "quiet_ones"];
 emitImg("icons/card_bundle_icons.png", strip(CARD_ORDER.map(cardIcon)));
 for (let i = 0; i < 10; i++) emitImg("memories/memory_" + String(i + 1).padStart(2, "0") + ".png", memory(i));
 
