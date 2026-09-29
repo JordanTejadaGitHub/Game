@@ -34,6 +34,7 @@ func _init() -> void:
 	_crowned()
 	_kinship()
 	_clouds()
+	_support()
 	var file := FileAccess.open(OUT + "effects.json", FileAccess.WRITE)
 	file.store_string(JSON.stringify({effects = index}, "\t") + "\n")
 	_save_preview()
@@ -1828,6 +1829,176 @@ func _save_kinship_preview() -> void:
 		y += sheet.get_height() + pad
 	out.resize(out.get_width() * 2, out.get_height() * 2, Image.INTERPOLATE_NEAREST)
 	out.save_png("res://tools/previews/effects_kinship.png")
+
+# --- Support and economy feedback (screens_ui.md "Support and economy feedback") -------------------
+# Kind "support". Gold is caught / harvested Dew (the ordinary Dew pop stays blue).
+#   dew_catch_droplet: a gold dew bead, drawn flying right (rotate to travel), shimmering; the code
+#     arcs it from a dispelled nightmare into a Dewcatcher / Wellspring. harvest_pour reuses it.
+#   dew_pop_gold: a small gold sparkle burst to play behind the "+N Dew" of caught Dew.
+#   catcher_fill_dewcatcher / catcher_fill_wellspring: 64x64 overlays drawn to line up with the
+#     Warden sprite (same origin), frame = fill level 0 empty, 1 quarter, 2 half, 3 full. Add the
+#     idle frame's bob (attacks.json bowls.<id>.dy_by_frame) to y.
+#   harvest_pour: droplets leaping out of the bowl at a rest (play at the bowl; then fly
+#     dew_catch_droplet beads to the Dew counter). harvest_splash: where they land on the counter.
+#   leaf_mote: a faint tiny leaf drifting and turning, near-white so it can be tinted.
+#   aura_ring_breath: a soft ring that breathes; white, tint it and scale it to the aura's range.
+
+const DEW_GOLD := [Color("#a8641c"), Color("#e8a830"), Color("#ffd870"), Color("#fff4c8")]
+
+func _support() -> void:
+	_sheet("dew_catch_droplet", Vector2i(14, 14), 6, 12, Vector2i(7, 7), true, "support", _dew_droplet,
+		{note = "Drawn flying right; rotate to its travel. Arc it into the catcher; harvest_pour reuses it."})
+	_sheet("dew_pop_gold", Vector2i(24, 24), 6, 14, Vector2i(12, 12), false, "support", _dew_pop_gold,
+		{note = "Behind the \"+N Dew\" of caught Dew; draw that text in gold (#ffd870) instead of blue."})
+	_sheet("catcher_fill_dewcatcher", Vector2i(64, 64), 4, 1, Vector2i(32, 32), false, "support", _catcher_fill.bind(false),
+		{note = "Frame = fill level (0 empty .. 3 full), not animation. Same origin as the Warden sprite; add bowls.dewcatcher.dy_by_frame[idle frame] to y."})
+	_sheet("catcher_fill_wellspring", Vector2i(64, 64), 4, 1, Vector2i(32, 32), false, "support", _catcher_fill.bind(true),
+		{note = "Frame = fill level (0 empty .. 3 full). Same origin as the Warden sprite; add bowls.wellspring.dy_by_frame[idle frame] to y."})
+	_sheet("harvest_pour", Vector2i(40, 40), 8, 14, Vector2i(20, 32), false, "support", _harvest_pour,
+		{note = "At the bowl (anchor = bowl surface): droplets leap up and out. Then fly dew_catch_droplet beads to the Dew counter (~0.8 s)."})
+	_sheet("harvest_splash", Vector2i(32, 32), 6, 14, Vector2i(16, 16), false, "support", _harvest_splash,
+		{note = "UI: where the harvested Dew lands on the Dew counter."})
+	_sheet("leaf_mote", Vector2i(10, 10), 8, 6, Vector2i(5, 5), true, "support", _leaf_mote,
+		{note = "Near-white, tint it. Very subtle: drift it slowly upward over aura-boosted Wardens, low alpha."})
+	_sheet("aura_ring_breath", Vector2i(64, 64), 8, 6, Vector2i(32, 32), true, "support", _aura_ring,
+		{note = "White, tint it and scale it to the aura's range (64 px = 1 cell radius 28). Brighter (higher alpha) in build mode."})
+
+func _dew_droplet(img: Image, f: int) -> void:
+	# A bead with a short tail behind it (pointing right), the glint sliding round.
+	var c := Vector2(8.5, 7.5)
+	for step in 8:
+		var t := step / 7.0
+		var r := 3.2 * (1.0 - t * 0.85)
+		_disc(img, c + Vector2(-t * 5.0, 0), r, DEW_GOLD[1])
+	_disc(img, c, 3.2, DEW_GOLD[1])
+	_disc(img, c + Vector2(-0.4, -0.6), 2.2, DEW_GOLD[2])
+	var glint: Vector2i = [Vector2i(9, 5), Vector2i(10, 6), Vector2i(10, 7), Vector2i(9, 6), Vector2i(8, 5), Vector2i(8, 6)][f]
+	_px(img, glint.x, glint.y, DEW_GOLD[3])
+	_px(img, glint.x, glint.y - 1 if f % 3 == 0 else glint.y, DEW_GOLD[3])
+	# Outline, then a faint warm glow.
+	var outline := img.duplicate()
+	for y in img.get_height():
+		for x in img.get_width():
+			if img.get_pixel(x, y).a > 0.0:
+				continue
+			for d: Vector2i in [Vector2i.LEFT, Vector2i.RIGHT, Vector2i.UP, Vector2i.DOWN]:
+				var q := Vector2i(x, y) + d
+				if q.x >= 0 and q.y >= 0 and q.x < img.get_width() and q.y < img.get_height() and img.get_pixelv(q).a > 0.9:
+					outline.set_pixel(x, y, DEW_GOLD[0])
+					break
+	img.copy_from(outline)
+	for y in img.get_height():
+		for x in img.get_width():
+			if img.get_pixel(x, y).a == 0.0:
+				var q := Vector2(x + 0.5, y + 0.5).distance_to(c) / 6.5
+				if q < 1.0:
+					img.set_pixel(x, y, Color(DEW_GOLD[2], snappedf(0.3 * (1.0 - q), 0.05)))
+
+func _dew_pop_gold(img: Image, f: int) -> void:
+	var c := Vector2(12, 12)
+	var t := f / 5.0
+	# A quick ring and eight motes flying out and fading.
+	if f < 3:
+		_ring(img, c, Vector2(3.0 + f * 3.0, 3.0 + f * 3.0), 1.0, Color(DEW_GOLD[2], 0.9 - f * 0.25))
+	for k in 8:
+		var d := Vector2.from_angle(k * TAU / 8.0 + 0.2)
+		var p := c + d * (3.0 + t * 8.0)
+		var col: Color = DEW_GOLD[3] if k % 2 == 0 else DEW_GOLD[2]
+		_px(img, floori(p.x), floori(p.y), Color(col, 1.0 - t * 0.8))
+		if f < 2 and k % 2 == 0:
+			_px(img, floori(p.x - d.x), floori(p.y - d.y), Color(DEW_GOLD[1], 0.7))
+	if f == 0:
+		_disc(img, c, 2.5, DEW_GOLD[3])
+
+func _catcher_fill(img: Image, f: int, well: bool) -> void:
+	# The bowl's inside (same ellipse as the sprite's water), empty-dark first, then gold dew from
+	# the middle out. Full glows and brims over with a sparkle.
+	var c := Vector2(30.5, 5.5) if well else Vector2(30.5, 5.0)
+	var r := Vector2(7.5, 1.6) if well else Vector2(11, 2.2)
+	var empty := Color("#3a2a1c") if well else Color("#2a3a20")
+	_ellipse(img, c, r, empty)
+	if f == 0:
+		_px(img, floori(c.x) - 2, floori(c.y), Color("#5a4a34") if well else Color("#3e5430"))
+		return
+	var share: float = [0.0, 0.4, 0.7, 1.0][f]
+	var fill_r := Vector2(r.x * share, maxf(r.y * (0.55 + share * 0.45), 1.0))
+	_ellipse(img, c, fill_r, DEW_GOLD[1])
+	_line(img, c + Vector2(-fill_r.x * 0.6, -fill_r.y * 0.4), c + Vector2(fill_r.x * 0.5, -fill_r.y * 0.4), DEW_GOLD[2])
+	if f >= 2:
+		_px(img, floori(c.x) + 1, floori(c.y) - 1, DEW_GOLD[3])
+	if f == 3:
+		# Brimming: the glow rises off it, a bead on the rim, a sparkle.
+		for x in range(floori(c.x - r.x) - 1, ceili(c.x + r.x) + 2):
+			for y in range(0, floori(c.y)):
+				var q := ((Vector2(x + 0.5, y + 0.5) - c) / Vector2(r.x + 2.0, 5.0)).length()
+				if q < 1.0 and img.get_pixel(x, y).a == 0.0:
+					img.set_pixel(x, y, Color(DEW_GOLD[2], snappedf(0.35 * (1.0 - q), 0.05)))
+		_px(img, floori(c.x + r.x) - 1, floori(c.y) + 1, DEW_GOLD[2])
+		_px(img, floori(c.x + r.x) - 1, floori(c.y) + 2, DEW_GOLD[1])
+		for d: Vector2i in [Vector2i.ZERO, Vector2i.LEFT, Vector2i.RIGHT, Vector2i.UP]:
+			_px(img, floori(c.x) - 4 + d.x, floori(c.y) - 2 + d.y, DEW_GOLD[3])
+
+func _harvest_pour(img: Image, f: int) -> void:
+	# Beads leap out of the bowl (anchor (20, 32)) in fountain arcs, rising and spreading.
+	var base := Vector2(20, 32)
+	if f < 3:
+		_ellipse(img, base, Vector2(6 - f, 1.5), Color(DEW_GOLD[2], 0.8 - f * 0.2))
+	for k in 6:
+		var start := k * 0.6
+		var t := (f - start) / 5.0
+		if t <= 0.0 or t > 1.2:
+			continue
+		var side := -1.0 if k % 2 == 0 else 1.0
+		var p := base + Vector2(side * (2.0 + k) * t * 2.2, -t * 26.0 + t * t * 6.0)
+		_disc(img, p, 1.8 if k < 4 else 1.3, DEW_GOLD[2])
+		_px(img, floori(p.x), floori(p.y) - 1, DEW_GOLD[3])
+		_px(img, floori(p.x), floori(p.y) + 2, Color(DEW_GOLD[1], 0.6))
+
+func _harvest_splash(img: Image, f: int) -> void:
+	var c := Vector2(16, 16)
+	var t := f / 5.0
+	if f < 2:
+		_disc(img, c, 4.5 - f * 1.5, DEW_GOLD[3])
+	_ring(img, c, Vector2(4.0 + t * 11.0, 4.0 + t * 11.0), 1.5 if f < 3 else 1.0, Color(DEW_GOLD[2], 1.0 - t * 0.85))
+	for k in 6:
+		var d := Vector2.from_angle(k * TAU / 6.0 - PI / 2.0)
+		var p := c + d * (5.0 + t * 9.0) + Vector2(0, t * t * 4.0)
+		_px(img, floori(p.x), floori(p.y), Color(DEW_GOLD[3] if k % 2 == 0 else DEW_GOLD[1], 1.0 - t * 0.7))
+
+func _leaf_mote(img: Image, f: int) -> void:
+	# A tiny leaf turning as it drifts: its width swings with the turn so it seems to tumble.
+	var turn := sin(f * TAU / 8.0)
+	var c := Vector2(5, 5 + sin(f * TAU / 8.0 + 1.0) * 0.8)
+	var w := maxf(0.6, absf(turn) * 1.8)
+	var a := 0.6 + f * TAU / 16.0
+	var along := Vector2.from_angle(a)
+	for y in 10:
+		for x in 10:
+			var d := Vector2(x + 0.5, y + 0.5) - c
+			var u := d.dot(along)
+			var v := d.dot(along.orthogonal())
+			if absf(u) <= 3.4 and absf(v) <= w * (1.0 - pow(u / 3.4, 2.0)):
+				img.set_pixel(x, y, Color("#f4fff0") if v * turn < 0.0 else Color("#c8dcc0"))
+	var stem := c - along * 4.0
+	_px(img, floori(stem.x), floori(stem.y), Color("#c8dcc0", 0.8))
+
+func _aura_ring(img: Image, f: int) -> void:
+	# Radius 28 breathing ±1.5 px; bright thread with a soft inside fade, four small nodes turning.
+	var c := Vector2(32, 32)
+	var br := sin(f * TAU / 8.0)
+	var r := 28.0 + br * 1.5
+	for y in 64:
+		for x in 64:
+			var d := Vector2(x + 0.5, y + 0.5).distance_to(c)
+			var edge := absf(d - r)
+			if edge < 0.8:
+				img.set_pixel(x, y, Color(1, 1, 1, 0.75 + br * 0.1))
+			elif d < r and r - d < 6.0:
+				img.set_pixel(x, y, Color(1, 1, 1, snappedf(0.22 * (1.0 - (r - d) / 6.0), 0.04)))
+	for k in 4:
+		var p := c + Vector2.from_angle(k * TAU / 4.0 + f * TAU / 32.0) * r
+		for dd: Vector2i in [Vector2i.ZERO, Vector2i.LEFT, Vector2i.RIGHT, Vector2i.UP, Vector2i.DOWN]:
+			_px(img, floori(p.x) + dd.x, floori(p.y) + dd.y, Color(1, 1, 1, 0.95 if dd == Vector2i.ZERO else 0.6))
 
 # --- Lingering clouds (PathCloud: Bloomcap / Dreamshroom sleepy clouds, Mistveil / Morning Fog) ----
 # Near-white so PathCloud can tint them with the Warden's colour (modulate multiplies). Drawn at 1x.

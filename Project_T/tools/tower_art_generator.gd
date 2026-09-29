@@ -332,7 +332,17 @@ func _save_attack_info() -> void:
 		var info: Dictionary = ATTACKS[warden].duplicate()
 		info.point = [info.point.x, info.point.y]
 		wardens[warden] = info
-	var data := {frame_size = S, frames = ATTACK_FRAMES, release_frame = RELEASE_FRAME, wardens = wardens}
+	# Where the Dew catchers' bowls sit (the bowl's surface centre and radii at dy 0), and how far the
+	# bowl bobs per idle frame (add dy_by_frame[frame] to point.y). Fill overlays in effects.json
+	# (catcher_fill_<id>) are drawn to line up with the sprite already.
+	var idle_dy: Array = []
+	for f in FRAMES:
+		idle_dy.append(_idle_state(f).dy)
+	var bowls := {
+		dewcatcher = {point = [30, 5], radius = [11, 2], dy_by_frame = idle_dy},
+		wellspring = {point = [30, 5], radius = [7, 1], dy_by_frame = idle_dy},
+	}
+	var data := {frame_size = S, frames = ATTACK_FRAMES, release_frame = RELEASE_FRAME, wardens = wardens, bowls = bowls}
 	var file := FileAccess.open(OUT + "attacks.json", FileAccess.WRITE)
 	file.store_string(JSON.stringify(data, "\t") + "\n")
 
