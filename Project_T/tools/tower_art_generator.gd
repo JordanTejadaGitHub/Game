@@ -537,6 +537,9 @@ func _touch_rocks(canvas: Image, px: Dictionary, touch: String) -> void:
 # fill pixels by its 'o' lines, and every region lying mostly inside a rock zone is rock, plus the
 # 'o' pixels that only border rock (or nothing).
 const ROCK_PAL := {o = Color("#1e1c28"), a = Color("#b9b6c6"), b = Color("#8f8ca2"), c = Color("#65627a")}
+# The same stone as a shading ramp, for loose props that lie on the ground beside the side rocks
+# (pebbles, cairn stacks, rockslide boulders) so they match them instead of the golem's body.
+const ROCK_RAMP := ["#65627a", "#8f8ca2", "#b9b6c6", "#d6d3e0"]
 var _rock_cache := {}  # pose grid -> {index: true}
 
 func _rock_zone(x: int, y: int) -> bool:
@@ -1159,7 +1162,7 @@ const THEMES := {
 	"soil": ["#a8988a", "#6e5a4a", "#3a2e2a"],
 	"bramble": ["#9a9aa8", "#5e5e70", "#2e2e3c"],
 	"fairy_ring": ["#bcb0cc", "#74628e", "#3c2e54"],
-	"cobble": ["#b4b8cc", "#6a6e90", "#34364e"],
+	"cobble": ["#aeabbd", "#6a677e", "#34323f"],
 	"pond": ["#9aaccc", "#4a6090", "#22305a"],
 	"night": ["#6a7098", "#3a3e66", "#1c1e38"],
 	"meadow": ["#aaa4bc", "#6a6484", "#34304c"],
@@ -1280,7 +1283,8 @@ func _decor_fairy_ring(canvas: Image, top: Image, _side: Image, st: Dictionary, 
 
 # Cobblestones with mossy mortar.
 func _decor_cobble(canvas: Image, top: Image, _side: Image, _st: Dictionary, lush: bool) -> void:
-	var shades := [Color("#c4c8dc"), Color("#b0b4cc"), Color("#9ea4c0")]
+	# The side rocks' own stone (ROCK_PAL), so they sit on it naturally (bluer greys turn icy in the palette pass).
+	var shades := [Color("#b9b6c6"), Color("#a9a6b8"), Color("#9a97ae")]
 	for y in S:
 		for x in S:
 			if not _on(top, x, y):
@@ -1289,7 +1293,7 @@ func _decor_cobble(canvas: Image, top: Image, _side: Image, _st: Dictionary, lus
 			var v := x * 0.5 - y
 			if fposmod(u, 5.0) < 1.0 or fposmod(v, 5.0) < 1.0:
 				var mossy := (x * 13 + y * 7) % (3 if lush else 5) == 0
-				canvas.set_pixel(x, y, Color("#5a9a48") if mossy else Color("#7e82a0"))
+				canvas.set_pixel(x, y, Color("#5a9a48") if mossy else Color("#77748c"))
 			else:
 				canvas.set_pixel(x, y, shades[absi(int(floor(u / 5.0)) * 7 + int(floor(v / 5.0)) * 3) % 3])
 
@@ -1553,8 +1557,8 @@ func _draw_pebbling(canvas: Image, st: Dictionary) -> void:
 	var stone := _ramp(["#686d9a", "#979dc2", "#c4c9e2", "#e4e7f4"])
 	var moss := _ramp(["#3f7a3e", "#5a9a48", "#7cbc5a", "#a8dc7a"])
 	_draw_waystone(canvas, st, "cobble")
-	_rock(canvas, PackedVector2Array([Vector2(4, 43), Vector2(6, 40), Vector2(10, 40), Vector2(11, 43), Vector2(8, 45)]), stone, fig.o)
-	_rock(canvas, PackedVector2Array([Vector2(53, 45), Vector2(55, 42), Vector2(58, 42), Vector2(59, 45), Vector2(56, 47)]), stone, fig.o)
+	_rock(canvas, PackedVector2Array([Vector2(4, 43), Vector2(6, 40), Vector2(10, 40), Vector2(11, 43), Vector2(8, 45)]), _ramp(ROCK_RAMP), ROCK_PAL.o)
+	_rock(canvas, PackedVector2Array([Vector2(53, 45), Vector2(55, 42), Vector2(58, 42), Vector2(59, 45), Vector2(56, 47)]), _ramp(ROCK_RAMP), ROCK_PAL.o)
 	var mask := _draw_template_figure(canvas, st.pose, fig)
 	_line(canvas, [Vector2(36, 9 + dy), Vector2(35, 11 + dy)], fig.c, mask)
 	_line(canvas, [Vector2(21, 30), Vector2(23, 33), Vector2(22, 35)], fig.c, mask)
@@ -4365,7 +4369,7 @@ func _echo_burst(canvas: Image, st: Dictionary, big: bool) -> void:
 
 # A balanced stack of flat stones on the slab beside the golem; the top one bobs (it's next).
 func _cairn(canvas: Image, stones: Array, bob: int, o: Color, lifted: bool) -> void:
-	var stone := _ramp(STONE)
+	var stone := _ramp(ROCK_RAMP)
 	for i in stones.size():
 		var s: Vector3 = stones[i]
 		if lifted and i == stones.size() - 1:
@@ -4374,7 +4378,7 @@ func _cairn(canvas: Image, stones: Array, bob: int, o: Color, lifted: bool) -> v
 		var y := s.y + (bob if i == stones.size() - 1 else 0)
 		_ellipse(layer, Vector2(s.x, y), Vector2(s.z, s.z * 0.45), stone)
 		_stamp(canvas, layer, o)
-		_px(canvas, int(s.x) - 1, int(y) - 1, Color("#e4e7f4"))
+		_px(canvas, int(s.x) - 1, int(y) - 1, Color("#d6d3e0"))
 
 func _draw_cairn(canvas: Image, st: Dictionary) -> void:
 	_cairn_body(canvas, st, false)
@@ -4402,7 +4406,7 @@ func _cairn_body(canvas: Image, st: Dictionary, slide: bool) -> void:
 			var pts := PackedVector2Array()
 			for k in 7:
 				pts.append(c + Vector2.from_angle(k * TAU / 7.0 + c.x * 0.1) * r * radii[k])
-			_rock(canvas, pts, _ramp(STONE), fig.o)
+			_rock(canvas, pts, _ramp(ROCK_RAMP), ROCK_PAL.o)
 		for k in 3:
 			var t: float = fposmod(float(st.f) / st.n + k / 3.0, 1.0)
 			var p := Vector2i((Vector2(44, 12).lerp(Vector2(60, 46), t)).round())
