@@ -4133,8 +4133,26 @@ func _cairn_body(canvas: Image, st: Dictionary, slide: bool) -> void:
 	_draw_waystone(canvas, st, "cobble", slide)
 	_cairn(canvas, stones, bob, fig.o, st.attack >= RELEASE_FRAME and st.attack <= RELEASE_FRAME + 1)
 	if slide:
-		_cairn(canvas, [Vector3(54, 43, 5), Vector3(54, 38, 4), Vector3(55, 34, 3)], 0, fig.o, false)
-		_rock(canvas, PackedVector2Array([Vector2(44, 49), Vector2(46, 47), Vector2(49, 48), Vector2(48, 51)]), _ramp(STONE), fig.o)
+		# The rockslide: a heap of boulders piled up behind the golem's right shoulder, sliding down
+		# onto the slab, with pebbles tumbling down it and dust where they land.
+		var radii := [1.0, 0.8, 0.95, 0.75, 1.0, 0.85, 0.9]
+		for b: Array in [[Vector2(45, 18), 6.0], [Vector2(53, 25), 6.5], [Vector2(40, 24), 4.5],
+				[Vector2(57, 34), 6.0], [Vector2(48, 30), 5.0], [Vector2(59, 44), 5.0], [Vector2(51, 40), 5.5]]:
+			var c: Vector2 = b[0]
+			var r: float = b[1]
+			var pts := PackedVector2Array()
+			for k in 7:
+				pts.append(c + Vector2.from_angle(k * TAU / 7.0 + c.x * 0.1) * r * radii[k])
+			_rock(canvas, pts, _ramp(STONE), fig.o)
+		for k in 3:
+			var t: float = fposmod(float(st.f) / st.n + k / 3.0, 1.0)
+			var p := Vector2i((Vector2(44, 12).lerp(Vector2(60, 46), t)).round())
+			_px(canvas, p.x, p.y, Color("#c4c9e2"))
+			_px(canvas, p.x + 1, p.y, Color("#979dc2"))
+			_px(canvas, p.x, p.y + 1, Color("#686d9a"))
+			if t > 0.8:
+				for d: Vector2i in [Vector2i(-2, 1), Vector2i(2, 1), Vector2i(0, 2)]:
+					_px(canvas, 60 + d.x, 47 + d.y, Color("#d8d4e4"))
 	var mask := _draw_template_figure(canvas, st.pose, fig)
 	for band in [26, 33, 40]:
 		_line(canvas, [Vector2(19, band), Vector2(44, band + 1)], fig.c, mask)
