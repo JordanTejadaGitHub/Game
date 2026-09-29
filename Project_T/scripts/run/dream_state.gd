@@ -1083,6 +1083,12 @@ func is_beside_bend(cell: Vector2, reach: int = 1) -> bool:
 				return true
 	return false
 
+# The plain stat cards' bonus for `data`: "soothe_bonus", "attack_speed_bonus", "range_bonus",
+# "splash_bonus", "potency_bonus" (sum over taken cards covering its line / Warden). Rule cards come
+# from DreamEffects rows (rule_total_cached) on top.
+func get_stat_bonus(data: TowerData, stat: String) -> float:
+	return _sum_stat(data, stat)
+
 func _sum_stat(data: TowerData, stat: String) -> float:
 	var total := 0.0
 	for card in _taken_cards():
