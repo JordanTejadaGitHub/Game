@@ -120,6 +120,9 @@ func screens_clear() -> bool:
 	var omens := get_tree().get_first_node_in_group(OmenDirector.GROUP) as OmenDirector
 	if omens != null and omens.is_offering():
 		return false
+	var intro := get_tree().get_first_node_in_group(NightmareIntro.GROUP) as NightmareIntro
+	if intro != null and intro.is_busy():
+		return false  # New nightmares are introduced before the boss dossier
 	return not drift_director.awaiting_family_pick
 
 func _process(delta: float) -> void:

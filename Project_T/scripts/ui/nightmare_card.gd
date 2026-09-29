@@ -36,7 +36,9 @@ func toggle_for(data: EnemyData, drift: int, director: DriftDirector, anchor: Co
 	reset_size()
 	var screen := get_viewport_rect().size
 	var at := anchor.global_position + Vector2(anchor.size.x / 2.0 - WIDTH / 2.0, -size.y - 8.0)
-	global_position = Vector2(clampf(at.x, 4, screen.x - WIDTH - 4), maxf(at.y, 4))
+	if at.y < 4.0:  # No room above (the strip sits at the top): open below the anchor
+		at.y = anchor.global_position.y + anchor.size.y + 8.0
+	global_position = Vector2(clampf(at.x, 4, screen.x - WIDTH - 4), at.y)
 
 static func build(data: EnemyData, drift: int, director: DriftDirector) -> VBoxContainer:
 	var box := VBoxContainer.new()

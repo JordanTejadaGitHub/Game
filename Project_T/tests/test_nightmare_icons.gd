@@ -92,7 +92,7 @@ func _run() -> void:
 	_check(not kinds.is_empty() and kinds.back()[0].is_boss and kinds.back()[1] == 25,
 		"block 5's kinds end with the boss in drift 25")
 	var strip: ComingStrip = null
-	for child in main.get_node("HUD/DriftPanel").get_children():
+	for child in main.get_node("HUD").get_children():
 		if child is ComingStrip:
 			strip = child
 	await process_frame
@@ -117,6 +117,20 @@ func _run() -> void:
 		omens.choose(null)
 	for i in 40:
 		await process_frame
+	# New nightmares are introduced before the dossier (the test profile has met nothing).
+	var intro := root.get_tree().get_first_node_in_group(NightmareIntro.GROUP) as NightmareIntro
+	_check(intro != null, "the introduction card exists")
+	if intro != null and NightmareIntro.enabled():
+		_check(intro.visible and not dossier.visible, "a new kind's introduction comes before the dossier")
+		var introduced := 0
+		while intro.visible and introduced < 10:
+			introduced += 1
+			_check(intro._content.get_child_count() > 1, "the card shows " + (intro.shown.display_name if intro.shown else "?"))
+			intro.advance()
+		_check(introduced >= 1 and not intro.visible, "Next goes through each new kind (%d)" % introduced)
+		_check(intro.new_kinds_in_block(5).is_empty(), "once shown, never again (session)")
+		for i in 40:
+			await process_frame
 	_check(dossier.visible and dossier.shown_drift == 25, "the dossier shows itself last in the rest (drift %d)" % dossier.shown_drift)
 	var text := _text(dossier._content)
 	var health := NightmareCard.health_at(stag, 25, director)

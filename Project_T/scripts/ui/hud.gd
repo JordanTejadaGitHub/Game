@@ -69,6 +69,14 @@ func _ready() -> void:
 	_on_leaves_changed(run_state.leaves, run_state.max_leaves)
 	_add_dreamlight_counter()
 	_add_menu_button()
+	# "Coming this block" (top centre, under the drift banner) and the new-nightmare introduction
+	# card (before the dossier in the rest order), both from screens_ui.md.
+	var strip := ComingStrip.new(drift_director)
+	add_child(strip)
+	move_child(strip, %PauseMenu.get_index())
+	var intro := NightmareIntro.new(drift_director)
+	add_child(intro)
+	move_child(intro, %PauseMenu.get_index())
 	# Boss dossier (screens_ui.md): under the pause menu, above the rest of the HUD.
 	var dossier := BossDossier.new(drift_director)
 	add_child(dossier)
