@@ -95,10 +95,13 @@ func _test_blocks_and_rests() -> void:
 		and is_equal_approx(director.get_health_scale(shade_data, 51), director.get_growth(51) * 1.6 * director.get_health_multiplier(shade_data, 51))
 		and is_equal_approx(director.get_health_scale(oak_data, 100), director.boss_health_multiplier * 1.6 * director.get_health_multiplier(oak_data, 100)),
 		"acts 3–4 nightmares and bosses have ×1.6 health")
-	# Act 2 (run_design.md "Difficulty curve targets", interim): ×1.0 through 26, ramping to ×1.55 at 40.
-	_check(is_equal_approx(director.get_early_multiplier(1), 1.0) and is_equal_approx(director.get_early_multiplier(26), 1.0)
-		and is_equal_approx(director.get_early_multiplier(40), 1.55) and is_equal_approx(director.get_early_multiplier(50), 1.55)
-		and absf(director.get_early_multiplier(33) - 1.275) < 0.001, "act 2 health ramps from ×1.0 (drift 26) to ×1.55 (40)")
+	# Acts 1–2 (run_design.md 72860af): ×1.0 to 9, ramping to ×1.15 at 20 (held through 30), ramping to ×1.55 at 45.
+	var curve := {1: 1.0, 9: 1.0, 20: 1.15, 25: 1.15, 26: 1.15, 30: 1.15, 45: 1.55, 50: 1.55}
+	for number in curve:
+		_check(is_equal_approx(director.get_early_multiplier(number), curve[number]),
+			"drift %d: health ×%.2f (got %.3f)" % [number, curve[number], director.get_early_multiplier(number)])
+	_check(absf(director.get_early_multiplier(37) - (1.15 + 0.4 * 7.0 / 15.0)) < 0.001 and director.get_early_multiplier(14) > 1.0
+		and director.get_early_multiplier(14) < 1.15, "both ramps are straight lines")
 	# One Deeply Blighted from drift 31 when the drift lists none (boss drifts: from the escort); two from 76.
 	for number in [25, 26, 30, 31, 35, 45, 50, 51, 75, 76, 100]:
 		var schedule: Array = director.drifts[number - 1].get_schedule()
@@ -109,7 +112,8 @@ func _test_blocks_and_rests() -> void:
 		_check(elites.size() == expected and elites.all(func(a: Array) -> bool: return not a[1].is_boss),
 			"drift %d: %d elite(s) (%d listed)" % [number, elites.size(), listed])
 	var stag: EnemyData = load("res://resource/enemy/old_stag.tres")
-	_check(is_equal_approx(director.get_health_scale(stag, 25), 1.5), "bosses have ×1.5 health (act 1: no ramp)")
+	_check(is_equal_approx(director.get_health_scale(stag, 25), 1.5 * 1.15 * director.get_health_multiplier(stag, 25)),
+		"bosses have ×1.5 health, × the act's multiplier (act 1's ×1.15 at 25)")
 
 	# Selling in a rest what was planted this rest: a full refund (75% once it stood through a drift)
 	var sprout: TowerData = placer.towers[0]
