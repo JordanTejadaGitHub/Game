@@ -482,11 +482,7 @@ func _golem(canvas: Image, st: Dictionary, fig: Dictionary, opts: Dictionary = {
 			if ch == ".":
 				continue
 			if _is_rock(pose, tx, ty):
-				# No rocks on the Ascended: the side rocks go, and where a rock met or sat in front of
-				# the body, the golem's lap and feet carry on in plain body colour (no facet lines).
-				if tx <= 17 or tx >= 47:
-					continue
-				ch = "b"
+				continue  # No rocks on the Ascended (the right foot the front rock hid is drawn below).
 			if ch == "o":
 				var first_x := floori((x - 1 - fo.x) / K) != tx
 				var first_y := floori((y - 1 - fo.y) / K) != ty
@@ -503,6 +499,16 @@ func _golem(canvas: Image, st: Dictionary, fig: Dictionary, opts: Dictionary = {
 			if not colors.has(ch):
 				continue
 			body.set_pixel(x, y, colors[ch])
+	# The golem's right foot, which the front rock hid in the template: a rounded foot like its left
+	# one, shaded in the body's colours.
+	var foot_c := fo + Vector2(39.0, 44.5) * K + Vector2(0, dy)
+	var foot_r := Vector2(5.2, 3.4) * K
+	for y in range(int(foot_c.y - foot_r.y) - 1, int(foot_c.y + foot_r.y) + 2):
+		for x in range(int(foot_c.x - foot_r.x) - 1, int(foot_c.x + foot_r.x) + 2):
+			var d := (Vector2(x + 0.5, y + 0.5) - foot_c) / foot_r
+			var q := d.length_squared()
+			if q <= 1.0 and _in(body, x, y):
+				body.set_pixel(x, y, _shade(fig.ramp, Vector3(d.x, d.y, sqrt(1.0 - q))))
 	# Fresh 1 px outline round the silhouette.
 	var mask := _gnew(canvas)
 	for y in 128:
