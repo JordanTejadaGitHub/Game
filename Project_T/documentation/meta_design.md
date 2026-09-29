@@ -234,6 +234,10 @@ A Memory fragment appears **every 3 nodes planted** (plus the milestone ones bel
 
 Free unlocks that duplicate a Grove purchase refund its Seeds if already bought.
 
+**Dev options** (settings "Developer", debug builds only; user 2026-09-29): a toggle that grants the
+"Dream of everything" rewards (starlit card backs + the extra reroll) for testing, without
+recording the milestone or touching the profile.
+
 ## Blight Levels (unlocked by the first win)
 
 Pick a level before a run; each level includes all the ones below it. **+10% Seeds per level.**
