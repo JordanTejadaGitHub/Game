@@ -18,6 +18,16 @@ func _run() -> void:
 	root.add_child(main)
 	await process_frame
 	var director: DriftDirector = main.get_node("%DriftDirector")
+	# The hook: with random_drifts on (the default), DriftDirector rolled the run from the map seed,
+	# and rolling that seed again (a resumed run) gives the same drifts.
+	await process_frame
+	var rolled_any := false
+	for n in range(6, director.drifts.size() + 1):
+		rolled_any = rolled_any or DriftRoller.template_of(director, n) != &""
+	_check(director.random_drifts and rolled_any, "DriftDirector rolls the drifts at startup")
+	var at_start := _describe(director)
+	director._roll_drifts()
+	_check(_describe(director) == at_start, "rolling the run's seed again (a resume) gives the same drifts")
 	DriftRoller.restore(director)
 	var hand_made: Array = director.drifts.duplicate()
 	_check(DriftRoller.get_roster().size() == 19, "19 rollable nightmare types (%d)" % DriftRoller.get_roster().size())
@@ -36,7 +46,7 @@ func _run() -> void:
 	var fallbacks := 0
 	var fallback_drifts := {}  # drift -> seeds that fell back
 	var template_counts := {}
-	var bad := {"budget": 0, "intro": 0, "fixed": 0, "cap": 0, "flyers": 0, "limited": 0, "repeat": 0, "leans": 0}
+	var bad := {"budget": 0, "intro": 0, "fixed": 0, "cap": 0, "flyers": 0, "limited": 0, "repeat": 0, "leans": 0, "density": 0}
 	for seed in SEEDS:
 		DriftRoller.roll_run(director, seed + 1)
 		var previous := &""
@@ -93,6 +103,15 @@ func _run() -> void:
 					block_leans[key] = block_leans.get(key, 0) + 1
 					if block_leans[key] > DriftRoller.MAX_LEANS:
 						bad.leans += 1
+			if director.get_act(n) <= 1:  # Act 1 density cap
+				var small := 0
+				for entry in entries:
+					if &"small" in entry.enemy.roll_tags:
+						small += entry.count
+				if template == &"swarm" and small > DriftRoller.ACT1_SWARM_MAX:
+					bad.density += 1
+				if template != &"swarm" and small > 0 and drift.groups[0].spacing < DriftRoller.ACT1_SMALL_GAP - 0.0001:
+					bad.density += 1
 			if template in [&"swarm", &"special"]:
 				if block_limited.has(block):
 					bad.limited += 1

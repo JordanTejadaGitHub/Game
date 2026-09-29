@@ -38,6 +38,11 @@ const ELITE_COST := 3.0  # Deeply Blighted health (Enemy.ELITE_HEALTH)
 const DEFAULT_WINDOW := 20.0  # Arrival window (s) when the hand-made drift has a single arrival
 const META_HAND_MADE := &"hand_made_drifts"
 const META_TEMPLATE := &"roll_template"
+# Act 1 density cap (acts_1_2.md, balance 2026-09-29): outside a Swarm, small nightmares arrive at
+# least ACT1_SMALL_GAP s apart; an act 1 Swarm has at most ACT1_SWARM_MAX small ones (the rest of its
+# budget goes to a bigger type). Single-target families died on denser act 1 drifts.
+const ACT1_SMALL_GAP := 0.9
+const ACT1_SWARM_MAX := 20
 
 static var _roster: Array[EnemyData] = []
 static var _templates: Array[DriftTemplate] = []
@@ -153,7 +158,7 @@ static func _roll_drift(director: Node, number: int, drift: DriftData, rng: Rand
 		var template := _pick_template(rng, act, pool, previous, state)
 		if template == null:
 			return null
-		var mix := _mix(rng, template, pool, budget, RESIST_CAP_ACT1 if act <= 1 else RESIST_CAP)
+		var mix := _mix(rng, template, pool, budget, RESIST_CAP_ACT1 if act <= 1 else RESIST_CAP, act)
 		if mix.is_empty():
 			continue
 		# Fairness judges the rolled part: the hand-made elites are a fixed design choice (drift 23's
@@ -166,7 +171,7 @@ static func _roll_drift(director: Node, number: int, drift: DriftData, rng: Rand
 			state.leans[family] = state.leans.get(family, 0) + 1
 		if template.limited:
 			state.limited = true
-		return _build(drift, mix, template)
+		return _build(drift, mix, template, act)
 	return null
 
 static func _pick_template(rng: RandomNumberGenerator, act: int, pool: Array[EnemyData], previous: StringName,
@@ -191,7 +196,7 @@ static func _pick_template(rng: RandomNumberGenerator, act: int, pool: Array[Ene
 
 # [[EnemyData, count, elite], …] sharing `budget`, or [] if the counts can't land close enough.
 static func _mix(rng: RandomNumberGenerator, template: DriftTemplate, pool: Array[EnemyData], budget: float,
-		cap: float) -> Array:
+		cap: float, act: int = 2) -> Array:
 	var leads := pool.filter(template.can_lead)
 	var lead: EnemyData = leads[rng.randi() % leads.size()]
 	var max_types := mini(template.max_types, pool.size())
@@ -241,6 +246,32 @@ static func _mix(rng: RandomNumberGenerator, template: DriftTemplate, pool: Arra
 	for i in types.size():
 		total += counts[i] * types[i].get_roll_cost()
 	counts[cheapest] = maxi(1, counts[cheapest] + roundi((budget - total) / types[cheapest].get_roll_cost()))
+	# Act 1 Swarm: at most ACT1_SWARM_MAX small nightmares; the rest of the budget goes to a bigger type.
+	if act <= 1 and template.id == &"swarm":
+		var small := 0
+		for i in types.size():
+			if &"small" in types[i].roll_tags:
+				small += counts[i]
+		var excess := 0.0
+		for i in types.size():
+			if small > ACT1_SWARM_MAX and &"small" in types[i].roll_tags:
+				var cut := mini(small - ACT1_SWARM_MAX, counts[i] - 1)
+				counts[i] -= cut
+				small -= cut
+				excess += cut * types[i].get_roll_cost()
+		if excess > 0.0:
+			var bulky := -1
+			for i in types.size():
+				if not &"small" in types[i].roll_tags:
+					bulky = i
+			if bulky < 0:
+				var bigger := pool.filter(func(data: EnemyData) -> bool: return not &"small" in data.roll_tags)
+				if bigger.is_empty():
+					return []
+				types.append(bigger[rng.randi() % bigger.size()])
+				counts.append(0)
+				bulky = types.size() - 1
+			counts[bulky] += maxi(1, roundi(excess / types[bulky].get_roll_cost()))
 	total = elite_cost
 	for i in types.size():
 		total += counts[i] * types[i].get_roll_cost()
@@ -283,7 +314,7 @@ static func _leans_if_fair(mix: Array, act: int, state: Dictionary) -> Variant:
 	return leans
 
 # One group, the kinds mixed evenly over the hand-made drift's arrival window.
-static func _build(drift: DriftData, mix: Array, template: DriftTemplate) -> DriftData:
+static func _build(drift: DriftData, mix: Array, template: DriftTemplate, act: int = 2) -> DriftData:
 	var schedule := drift.get_schedule()
 	var window: float = schedule[schedule.size() - 1][0] if schedule.size() > 1 else DEFAULT_WINDOW
 	var arrivals := 0
@@ -291,6 +322,8 @@ static func _build(drift: DriftData, mix: Array, template: DriftTemplate) -> Dri
 		arrivals += slot[1]
 	var group := DriftGroup.new()
 	group.spacing = maxf(0.2, window / maxf(arrivals - 1, 1) * template.spacing_multiplier)
+	if act <= 1 and template.id != &"swarm" and mix.any(func(slot: Array) -> bool: return &"small" in slot[0].roll_tags):
+		group.spacing = maxf(group.spacing, ACT1_SMALL_GAP)  # Kinds mix evenly, so two small ones can be neighbours
 	for slot in mix:
 		var entry := DriftEntry.new()
 		entry.enemy = slot[0]

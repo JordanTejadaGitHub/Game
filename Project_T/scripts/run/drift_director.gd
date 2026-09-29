@@ -38,6 +38,7 @@ signal family_pick_requested(reason: StringName)  # &"first" (after drift 1) or 
 const DEMO_DRIFTS_DIR := "res://resource/drift/demo/"
 
 @export var drifts: Array[DriftData] = []  # Empty = load resource/drift/demo/drift_NN.tres in order
+@export var random_drifts := true  # Roll the drifts from the run's seed (DriftRoller); false = the hand-made ones
 @export var act_names: Array[String] = ["Forest's Edge", "Deep Wood", "Misty Hollow", "Heartwood Glade"]
 @export var drifts_per_block: int = 5
 @export var drifts_per_act: int = 25  # The act's last drift is its boss
@@ -112,6 +113,16 @@ func _ready() -> void:
 	spawner.enemy_cleansed.connect(_on_enemy_cleansed)
 	spawner.enemy_reached_goal.connect(_resolve.bind(true))
 	run_state.run_ended.connect(_on_run_ended)
+	if random_drifts:
+		_roll_drifts.call_deferred()
+
+# Random drifts (run_design.md; Enemy Code's DriftRoller): every block but the first, the bosses and
+# the intro drifts is rolled from the run's seed, all at once. Deferred so the seed is final
+# (MapGenerator picks it in its _ready; RunSaver restores a saved one before that): the same run, or
+# a resumed one, always meets the same drifts.
+func _roll_drifts() -> void:
+	var map := get_node_or_null("%MapGenerator")
+	DriftRoller.roll_run(self, map.map_seed if map else 0)
 
 static func load_demo_drifts() -> Array[DriftData]:
 	var files: Array[String] = []
