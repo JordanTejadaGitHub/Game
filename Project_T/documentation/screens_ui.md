@@ -132,7 +132,10 @@ compared against what the drift needs and against last drift. All of it is built
 **1. The drift benchmark ("what's good").** During a drift, the DriftPanel shows a bar:
 *"Your maze 1,240 DPS · this drift needs ~980 · 127%"*.
 - **Needed DPS** = the drift's total nightmare health (with health scaling, elites and bosses) ÷
-  how long an average nightmare spends walking the **current** path (path length ÷ average speed).
+  (the drift's **arrival span** + how long an average nightmare spends walking the **current**
+  path: path length ÷ average speed). As built (abcc477, `WardenMeter`): the arrival span is
+  included because nightmares arrive over 25–30 s; walk time alone would make a maze that exactly
+  keeps up read under 100%.
   A longer maze lowers the number needed, which teaches the maze pillar.
 - Colour: **green** at 110%+, **amber** 90–110%, **red** under 90% ("you'll leak").
 - At a rest it becomes a forecast: *"Next drift needs ~1,100 · your maze did 1,240 last drift"*.
