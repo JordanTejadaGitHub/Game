@@ -271,6 +271,30 @@ card luck**. Dispelling a great nightmare frees the light it stole from the drea
   family pick, and can be reopened at any rest from the rest panel. The Warden panel's disabled
   "Grow into Stormcap" button says *"Unlock with 1 Dreamlight"* and opens it.
 - Unlocking makes the form available; **evolving each Warden still costs Dew**, as before.
+
+**The Remember screen, fleshed out** (2026-09-28, user: "flesh it out more and have it on the top
+right; the family tree should include the portraits"):
+- **Opened from the top right:** a **Remember** button right beside the Dreamlight counter
+  (Dreamlight mote + count), always visible, not only at rests (during a drift it opens paused).
+  It glows softly when Dreamlight can buy something, and at the rest after each boss it opens
+  itself after the family pick, as now. The old DriftPanel button goes.
+- **One tab per owned family** (its base Warden's portrait on the tab), plus a **Thornwall** tab for
+  the wall growths. Each tab is a real **tree drawn with portraits**: the base Warden at the root,
+  lines up to its two branches, each branch to its final form, the hidden branch and its final in
+  a third lane (silhouette until the Grove plants it), and the **Ascended** form at the crown (from
+  drift 51). Each node shows the Warden's **idle-animated portrait** on its waystone.
+- **Node states**, readable at a glance: **grown on your map** (full colour, a small count "×3"),
+  **unlocked** (full colour, no count), **can unlock** (full colour, dimmed, with the Dreamlight
+  cost as motes and a soft pulse), **locked** (needs its branch first: dim, with a thin chain to
+  the parent), **Memory Grove** (a silhouette with a Grove leaf: not in this profile yet).
+- **Selecting a node** opens a side panel: portrait, name, tier, **damage type** icon, what it does
+  (the Warden's description with status links), its main stats (damage, speed, range, statuses,
+  potency), the **Dew to grow** into it from its parent, its Kinship partner if any ("Kin: Chime
+  Stone · Night Chimes"), the combos it's part of (links to the Codex), and the **Unlock (2 ✦)**
+  button. Unlocking plays a small bloom along the tree line.
+- A header line: *"Dreamlight 3 ✦ · unspent carries over"* and a one-line reminder: *"Dreamlight
+  unlocks, Dew grows."*
+- Touch: tabs and nodes are 48 px+, the side panel slides up from the bottom on phones.
 - **Dreams** no longer unlock evolutions (`dream_design.md`); they're stats, rules, combos and
   economy. The Rare-or-better boss Dream stays.
 - **Test Grove:** everything unlocked, as now. **Demo:** same rules.
