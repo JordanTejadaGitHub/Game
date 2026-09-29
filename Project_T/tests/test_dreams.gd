@@ -592,7 +592,7 @@ func _test_dreamlight(main: Node) -> void:
 		if card.kind == UpgradeData.Kind.UNLOCK_EVOLUTION and dreams.is_eligible(card, 2):
 			_check(false, "%s is still a Dream card" % card.id)
 
-	# Sources: +1 with the first family pick, +3 at a boss rest (which opens Remember first)
+	# Sources: +1 with the first family pick, +4 at a boss rest (which opens Remember first)
 	dreams.dreamlight = 0
 	director.family_pick_requested.emit(&"first")
 	_check(dreams.dreamlight == 1, "+1 Dreamlight with the first family pick")
@@ -600,7 +600,8 @@ func _test_dreamlight(main: Node) -> void:
 	dreams.remember_requested.connect(func(focus: TowerData) -> void: remembers.append(focus))
 	director.drifts_started = 25
 	director.rest_started.emit(5, true, 0, true)
-	_check(dreams.dreamlight == 4 and remembers.size() == 1, "+3 at a boss rest, and Remember opens")
+	_check(dreams.dreamlight == 1 + DreamState.BOSS_DREAMLIGHT and remembers.size() == 1, "+4 at a boss rest, and Remember opens")
+	dreams.dreamlight = 4  # The spending checks below start from 4
 	_check(not dreams.is_offering() and dreams.has_pending_offer(), "the Dream waits for Remember")
 	dreams.remember_closed()
 	await process_frame

@@ -167,7 +167,7 @@ const GOLDEN_HARVEST_PER := 0.02  # Per 100 Dew harvested / earned as interest
 const GOLDEN_HARVEST_MAX := 0.30
 # Dreamlight (run_design.md "Dreamlight"): sources and unlock costs.
 const FIRST_PICK_DREAMLIGHT := 1
-const BOSS_DREAMLIGHT := 3
+const BOSS_DREAMLIGHT := 4
 const BRANCH_DREAMLIGHT := 1  # Branch, hidden branch, wall growth
 const FINAL_DREAMLIGHT := 2  # Final form (needs its branch)
 # Ascended forms (tower_design.md): tier 4, grown from any of the family's final forms.
@@ -1253,7 +1253,7 @@ func _on_rest_started(_block: int, is_boss_rest: bool, _bonus: int, _perfect: bo
 	_early_calls = 0  # Restless Night counts per block
 	_rest_rules(_perfect)
 	if is_boss_rest:
-		# The freed light: +3 Dreamlight, and the Remember screen opens before the Dream.
+		# The freed light: +4 Dreamlight, and the Remember screen opens before the Dream.
 		add_dreamlight(BOSS_DREAMLIGHT)
 		_remember_open = true
 		remember_requested.emit(null)
@@ -2349,7 +2349,7 @@ static func sim_dreamlight_for(kind: StringName) -> int:
 	return FIRST_PICK_DREAMLIGHT if kind == &"first" else (BOSS_DREAMLIGHT if kind == &"boss" else 0)
 
 # The rest after drift `drift`: what _on_rest_started does (rest rules, Sunlit Rest, Seedling Gift,
-# the boss's +3 Dreamlight) and a real offer. `pick.call(offer: Array) -> UpgradeData` (null = let it
+# the boss's +4 Dreamlight) and a real offer. `pick.call(offer: Array) -> UpgradeData` (null = let it
 # pass); with Lucid Dreaming it's called again with what's left. Returns the cards taken.
 func sim_rest(drift: int, pick: Callable, perfect: bool = true) -> Array[UpgradeData]:
 	_early_calls = 0
