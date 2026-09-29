@@ -290,6 +290,7 @@ func _attack_state(a: int) -> Dictionary:
 		blink = a < RELEASE_FRAME, lift = ATTACK_LIFT[a], power = ATTACK_POWER[a], wave = ATTACK_LIFT[a] * 2}
 
 func _make(tower_name: String, draw: Callable) -> Image:
+	_warden_name = tower_name
 	var sheet := Image.create_empty(S * FRAMES, S, false, Image.FORMAT_RGBA8)
 	for f in FRAMES:
 		var canvas := _layer()
@@ -313,6 +314,7 @@ func _detail_pass(sheet: Image, frame: Vector2i) -> Image:
 
 # <name>_attack.png: the Warden's body in attack poses plus its attack effect on top.
 func _make_attack(tower_name: String) -> Image:
+	_warden_name = tower_name
 	var sheet := Image.create_empty(S * ATTACK_FRAMES, S, false, Image.FORMAT_RGBA8)
 	for a in ATTACK_FRAMES:
 		var canvas := _layer()
@@ -391,20 +393,210 @@ func _draw_template_figure(canvas: Image, pose: Dictionary, pal: Dictionary) -> 
 	for i in S * S:
 		var ch: String = pose.grid[i]
 		if ch != "." and pose.outside[i] == 0:
-			var rock := _is_rock(i % S, i / S)
+			var rock := _is_rock(pose, i % S, i / S)
+			if rock and _rock_group(i % S, i / S) in _hidden_rocks():
+				continue  # This Warden's own props stand there.
 			canvas.set_pixel(i % S, i / S, ROCK_PAL[ch] if rock else pal[ch])
 			if not rock:
 				mask.set_pixel(i % S, i / S, Color.WHITE)
+	var rock_px := {}
+	for i in S * S:
+		if pose.grid[i] != "." and pose.outside[i] == 0 and _is_rock(pose, i % S, i / S) \
+				and not _rock_group(i % S, i / S) in _hidden_rocks():
+			rock_px[Vector2i(i % S, i / S)] = true
+	_touch_rocks(canvas, rock_px, _rock_touch_for(_warden_name))
 	return mask
 
-# The mock's two rocks, in template pixels: left of the golem (rows 33-41, up to its left foot) and
-# right of it (rows 30-41).
-const ROCK_PAL := {o = Color("#1e1c28"), a = Color("#b9b6c6"), b = Color("#8f8ca2"), c = Color("#65627a")}
+# --- The rocks' family touches -------------------------------------------------------------------
+# The rocks are the same stone everywhere; each family leaves a small mark on them: moss, ice, a
+# wet sheen, tiny mushrooms, resting fireflies... Set per Warden while its sheets are drawn.
 
-func _is_rock(x: int, y: int) -> bool:
+var _warden_name := ""
+const ROCK_TOUCH_LINES := {
+	"sporeling": "spores", "dewdrop": "wet", "firefly_jar": "fireflies", "pebbling": "lichen",
+	"rootling": "roots", "bellflower": "bells", "acorn": "acorns", "nestling": "twigs",
+	"whirligig": "seeds", "memory": "runes", "starters": "leaves",
+}
+const ROCK_TOUCH_WARDENS := {
+	"frostfern": "ice", "hoarfrost": "ice", "sunpetal": "moss", "midsummer": "moss",
+	"thornwall": "thorns", "bramble": "thorns", "honeysuckle": "thorns",
+}
+# Rocks hidden where a Warden's own props stand (left / right / front of the golem).
+const HIDDEN_ROCKS := {
+	"echo_hollow": ["left"], "whispering_hollow": ["left"],
+}
+
+func _hidden_rocks() -> Array:
+	return HIDDEN_ROCKS.get(_warden_name, [])
+
+func _rock_touch_for(warden: String) -> String:
+	if ROCK_TOUCH_WARDENS.has(warden):
+		return ROCK_TOUCH_WARDENS[warden]
+	for line: String in LINES:
+		if warden in LINES[line]:
+			return ROCK_TOUCH_LINES.get(line, "")
+	return ""
+
+# Which of the three rocks a template pixel belongs to.
+func _rock_group(tx: int, ty: int) -> String:
+	if ty >= 42 or (tx >= 32 and tx <= 43 and ty >= 38):
+		return "front"
+	return "left" if tx < 26 else "right"
+
+# Marks the rock pixels `px` ({Vector2i: true}, in canvas pixels) with a family touch. Works on any
+# canvas size (the Ascended layer is 128 px).
+func _touch_rocks(canvas: Image, px: Dictionary, touch: String) -> void:
+	if touch == "" or px.is_empty():
+		return
+	var w := canvas.get_width()
+	var h := canvas.get_height()
+	var put := func(p: Vector2i, c: Color) -> void:
+		if p.x >= 0 and p.y >= 0 and p.x < w and p.y < h:
+			canvas.set_pixelv(p, c)
+	var tops: Array[Vector2i] = []  # rock pixels with open space above: where things settle
+	for p: Vector2i in px:
+		if not px.has(p + Vector2i.UP) and canvas.get_pixelv(p) != ROCK_PAL.o:
+			tops.append(p)
+	tops.sort_custom(func(a: Vector2i, b: Vector2i) -> bool: return a.x < b.x)
+	var hash := func(p: Vector2i) -> int: return absi(p.x * 73 + p.y * 151) % 7
+	match touch:
+		"moss", "lichen", "leaves":
+			var greens: Array = [Color("#5a9a48"), Color("#8ad060")] if touch != "lichen" else [Color("#a8b860"), Color("#d8d890")]
+			for p in tops:
+				put.call(p, greens[1])
+				if hash.call(p) < 4:
+					put.call(p + Vector2i.DOWN, greens[0])
+		"ice":
+			for p: Vector2i in px:
+				var c := canvas.get_pixelv(p)
+				if c != ROCK_PAL.o:
+					put.call(p, c.lerp(Color("#bfe8ff"), 0.4))
+			for p in tops:
+				put.call(p, Color("#eefaff"))
+				if hash.call(p) == 0:
+					put.call(p + Vector2i.DOWN, Color.WHITE)
+		"wet":
+			for p in tops:
+				if hash.call(p) < 5:
+					put.call(p, Color("#9ad4ff"))
+			if tops.size() > 2:
+				put.call(tops[tops.size() / 2] + Vector2i(0, 2), Color("#e8f8ff"))
+		"spores":
+			for k in range(1, tops.size(), 4):
+				var p: Vector2i = tops[k]
+				put.call(p, Color("#f0e4d8"))
+				put.call(p + Vector2i(0, -1), Color("#e070c0"))
+				put.call(p + Vector2i(-1, -1), Color("#e070c0"))
+				put.call(p + Vector2i(1, -1), Color("#f7a8e8"))
+		"fireflies":
+			for k in range(0, tops.size(), 5):
+				var p: Vector2i = tops[k] + Vector2i(0, 1)
+				put.call(p, Color("#fff27a"))
+		"roots":
+			for p: Vector2i in px:
+				if (p.y + p.x / 3) % 4 == 0 and canvas.get_pixelv(p) != ROCK_PAL.o:
+					put.call(p, Color("#7a5234"))
+		"bells":
+			for k in range(1, tops.size(), 5):
+				var p: Vector2i = tops[k] + Vector2i(0, -1)
+				put.call(p, Color("#c0a8ec"))
+				put.call(p + Vector2i(1, 0), Color("#9a80d0"))
+				put.call(p + Vector2i(0, 1), Color("#58964a"))
+		"acorns":
+			for k in range(2, tops.size(), 7):
+				var p: Vector2i = tops[k] + Vector2i(0, -1)
+				put.call(p, Color("#7a5234"))
+				put.call(p + Vector2i(0, 1), Color("#d49c54"))
+				put.call(p + Vector2i(1, 1), Color("#b07a3a"))
+		"twigs":
+			for k in range(0, tops.size(), 6):
+				var p: Vector2i = tops[k]
+				put.call(p + Vector2i(-1, 0), Color("#8a6040"))
+				put.call(p, Color("#a07850"))
+				put.call(p + Vector2i(1, -1), Color("#8a6040"))
+			if tops.size() > 3:
+				put.call(tops[3] + Vector2i(0, -1), Color("#f4f2f0"))
+		"seeds":
+			for k in range(2, tops.size(), 8):
+				var p: Vector2i = tops[k] + Vector2i(0, -1)
+				put.call(p, Color("#b0602e"))
+				put.call(p + Vector2i(1, 0), Color("#f0b070"))
+				put.call(p + Vector2i(2, -1), Color("#f8d8a0"))
+		"runes":
+			for p: Vector2i in px:
+				if hash.call(p) == 0 and canvas.get_pixelv(p) != ROCK_PAL.o:
+					put.call(p, Color("#c8b0ff"))
+		"thorns":
+			for k in range(0, tops.size(), 3):
+				var p: Vector2i = tops[k]
+				put.call(p, Color("#58964a"))
+				put.call(p + Vector2i(0, -1), Color("#d8c090"))
+
+# The mock's three rocks: left of the golem, right of it, and one in front of its feet. The template
+# draws them with facet lines, so a rock is found by region: the template is split into regions of
+# fill pixels by its 'o' lines, and every region lying mostly inside a rock zone is rock, plus the
+# 'o' pixels that only border rock (or nothing).
+const ROCK_PAL := {o = Color("#1e1c28"), a = Color("#b9b6c6"), b = Color("#8f8ca2"), c = Color("#65627a")}
+var _rock_cache := {}  # pose grid -> {index: true}
+
+func _rock_zone(x: int, y: int) -> bool:
 	if y >= 33 and y <= 41 and x <= (17 if y <= 35 else 15):
-		return true
-	return y >= 30 and y <= 41 and x >= 47
+		return true  # left
+	if (y >= 30 and y <= 38 and x >= 47) or (y >= 39 and y <= 41 and x >= 44):
+		return true  # right (its lower-left corner tucks in under the arm; the arm itself is x 43-46)
+	return y >= 39 and y <= 47 and x >= 33 and x <= 45  # in front of the feet
+
+func _is_rock(pose: Dictionary, x: int, y: int) -> bool:
+	if x < 0 or y < 0 or x >= S or y >= S:
+		return false
+	var key: int = pose.grid.hash()
+	if not _rock_cache.has(key):
+		_rock_cache[key] = _find_rocks(pose)
+	return (_rock_cache[key] as Dictionary).has(y * S + x)
+
+func _find_rocks(pose: Dictionary) -> Dictionary:
+	var fill := func(i: int) -> bool:
+		var ch: String = pose.grid[i]
+		return ch != "." and ch != "o" and pose.outside[i] == 0
+	var rocks := {}
+	var seen := {}
+	for start in S * S:
+		if seen.has(start) or not fill.call(start):
+			continue
+		var region: Array[int] = [start]
+		seen[start] = true
+		var k := 0
+		while k < region.size():
+			var i: int = region[k]
+			k += 1
+			for n: int in [i - 1, i + 1, i - S, i + S]:
+				if n < 0 or n >= S * S or seen.has(n) or absi(n % S - i % S) > 1 or not fill.call(n):
+					continue
+				seen[n] = true
+				region.append(n)
+		var inside := 0
+		for i in region:
+			if _rock_zone(i % S, i / S):
+				inside += 1
+		if inside * 2 > region.size():
+			for i in region:
+				rocks[i] = true
+	# Outline pixels that only border rock pixels or empty space belong to the rock too.
+	for i in S * S:
+		if pose.grid[i] != "o" or pose.outside[i] == 1:
+			continue
+		var touches_rock := false
+		var touches_body := false
+		for n: int in [i - 1, i + 1, i - S, i + S]:
+			if n < 0 or n >= S * S or absi(n % S - i % S) > 1:
+				continue
+			if rocks.has(n):
+				touches_rock = true
+			elif fill.call(n):
+				touches_body = true
+		if touches_rock and not touches_body:
+			rocks[i] = true
+	return rocks
 
 func _blink(canvas: Image, dy: int, skin: Color, outline: Color) -> void:
 	for ex: int in EYES:
