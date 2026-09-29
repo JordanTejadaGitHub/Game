@@ -399,6 +399,9 @@ func get_range_cells() -> float:
 
 var _range_frame := -1
 var _last_idle_frame := -1  # The idle animation frame last shown (see _process)
+const BEAM_KEEP_TIME := 1.0  # Midsummer keeps part of its ramp for this long after losing a target
+var _kept_ramp := 1.0
+var _kept_ramp_at := -100.0
 const IDLE_SEARCH := 0.25
 var _idle_search := 0.0  # Seconds until an idle Warden looks for a target again
 var _range_data: TowerData = null
@@ -1153,7 +1156,7 @@ func _damage_against(enemy: Node2D) -> float:
 # On-hit rules: freeze (Frostfern), Dew from crits (Magpie's Hoard).
 func _after_hit(enemy: Node2D, is_crit: bool) -> void:
 	if attack_data.freeze_duration > 0.0 and enemy.freeze_cooldown <= 0.0 and not enemy.is_cleansed \
-			and (attack_data.freeze_needs == &"" or enemy.statuses.has(attack_data.freeze_needs)):
+			and (attack_data.freeze_needs == &"" or enemy.statuses.stacks(attack_data.freeze_needs) >= attack_data.freeze_needs_stacks):
 		enemy.freeze_cooldown = attack_data.freeze_cooldown
 		enemy.apply_status(EnemyStatuses.HELD, 1, attack_data.freeze_duration)
 		if attack_data.held_damage_bonus > 0.0:
@@ -1956,7 +1959,10 @@ func _update_beam(delta: float) -> void:
 		if target == null:
 			_stop_beam()  # Back to the idle sheet (it knows a beam was on only before the target is cleared)
 			return
-		_beam_ramp = 1.0
+		# Midsummer (beam_keep_share): a new target within BEAM_KEEP_TIME of the last keeps part of the ramp.
+		var old_ramp := _beam_ramp if _beam_target != null else \
+			(_kept_ramp if _anim_time - _kept_ramp_at <= BEAM_KEEP_TIME else 1.0)
+		_beam_ramp = 1.0 + (old_ramp - 1.0) * attack_data.beam_keep_share
 		_beam_tick = 0.0
 		_beam_target = target
 		_show_attack_pose()
@@ -1980,6 +1986,9 @@ func _update_beam(delta: float) -> void:
 
 func _stop_beam() -> void:
 	var was_beaming := _beam_target != null
+	if was_beaming:
+		_kept_ramp = _beam_ramp  # A new target soon after keeps part of it (beam_keep_share)
+		_kept_ramp_at = _anim_time
 	_beam_target = null
 	_beam_behind = null
 	_beam_ramp = 1.0

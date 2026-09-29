@@ -26,6 +26,7 @@ const THUNDERCLAP_STATIC := 3
 const THUNDERCLAP_STATIC_BOSS := 5
 const THUNDERCLAP_DAMAGE := 4.0  # × the applier's damage, to the nightmare that discharges
 const THUNDERCLAP_ARC_DAMAGE := 2.0  # × the applier's damage, to each wet nightmare it arcs to
+const THUNDERCLAP_MAX_ARCS := 8
 const THUNDERCLAP_REACH: Array[float] = [2.5, 3.5, 4.5]  # Cells: base, Rolling Thunder, Rolling Thunder II
 const THUNDERCLAP_ARC_STATIC: Array[int] = [1, 1, 2]
 const IGNITE_MIN_SPORES := 3
@@ -397,6 +398,12 @@ static func _thunderclap(enemy: Node2D, source: Node) -> void:
 	for other in Tower.nightmares_near(enemy.get_tree(), enemy.global_position, reach):
 		if other != enemy and is_instance_valid(other) and not other.is_cleansed and other.statuses.has(DAMP) and other.global_position.distance_to(enemy.global_position) <= reach:
 			arcs.append(other)
+	# At most the THUNDERCLAP_MAX_ARCS nearest Soaked nightmares per clap (design chat; also bounds a
+	# chain's cost). Chains still continue from those.
+	if arcs.size() > THUNDERCLAP_MAX_ARCS:
+		var at: Vector2 = enemy.global_position
+		arcs.sort_custom(func(a, b) -> bool: return a.global_position.distance_squared_to(at) < b.global_position.distance_squared_to(at))
+		arcs = arcs.slice(0, THUNDERCLAP_MAX_ARCS)
 	enemy.take_damage(base * THUNDERCLAP_DAMAGE, _line(tower, "light"), false, false, tower, &"thunderclap")
 	for other in arcs:
 		if not is_instance_valid(other) or other.is_cleansed:
