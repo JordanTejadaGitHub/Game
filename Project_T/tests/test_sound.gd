@@ -79,7 +79,7 @@ func _initialize() -> void:
 	# Kinships: a bond chord per family (own colour), stage-up, Harmony strike, Whole.
 	for family in ["spore", "stone", "water", "light", "root", "song", "acorn", "wing", "wind"]:
 		_check(sound.has_sound(StringName("kin_bond_" + family)), "kin_bond_%s exists" % family)
-	for id in [&"kin_bond", &"kin_stage_up", &"harmony_strike", &"whole_tree", &"dew_catch", &"harvest", &"interest_ripple"]:
+	for id in [&"kin_bond", &"kin_stage_up", &"harmony_strike", &"whole_tree", &"dew_catch", &"harvest", &"interest_ripple", &"close_call"]:
 		_check(sound.has_sound(id), "%s exists" % id)
 	# Nurture: a swell per family material, Focus leans, and Dawnwing's calm + busy loops in sync.
 	for file in DirAccess.get_files_at("res://resource/tower/"):
