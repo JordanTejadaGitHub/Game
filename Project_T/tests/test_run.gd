@@ -88,17 +88,17 @@ func _test_blocks_and_rests() -> void:
 	_check(is_equal_approx(director.get_growth(51), director.get_growth(50) * 1.045) and absf(director.get_growth(75) - 33.0) < 1.5
 		and absf(director.get_growth(100) - 100.0) < 3.0, "growth eases to ×1.045 from 51 (×%.0f at 75, ×%.0f at 100)" % [
 		director.get_growth(75), director.get_growth(100)])
-	# Acts 3–4: ×1.4 on top of growth, bosses included (run_design.md "Act 3 probe").
+	# Acts 3–4: ×1.6 on top of growth, bosses included (run_design.md "Act 3 probe").
 	var shade_data: EnemyData = load("res://resource/enemy/leaf_bug.tres")
 	var oak_data: EnemyData = load("res://resource/enemy/hollow_oak.tres")
-	_check(is_equal_approx(director.get_health_scale(shade_data, 50), director.get_growth(50) * 1.35 * director.get_health_multiplier(shade_data, 50))
-		and is_equal_approx(director.get_health_scale(shade_data, 51), director.get_growth(51) * 1.4 * director.get_health_multiplier(shade_data, 51))
-		and is_equal_approx(director.get_health_scale(oak_data, 100), director.boss_health_multiplier * 1.4 * director.get_health_multiplier(oak_data, 100)),
-		"acts 3–4 nightmares and bosses have ×1.4 health")
-	# Act 2 (run_design.md "Difficulty curve targets", interim): ×1.0 through 26, ramping to ×1.35 at 40.
+	_check(is_equal_approx(director.get_health_scale(shade_data, 50), director.get_growth(50) * 1.55 * director.get_health_multiplier(shade_data, 50))
+		and is_equal_approx(director.get_health_scale(shade_data, 51), director.get_growth(51) * 1.6 * director.get_health_multiplier(shade_data, 51))
+		and is_equal_approx(director.get_health_scale(oak_data, 100), director.boss_health_multiplier * 1.6 * director.get_health_multiplier(oak_data, 100)),
+		"acts 3–4 nightmares and bosses have ×1.6 health")
+	# Act 2 (run_design.md "Difficulty curve targets", interim): ×1.0 through 26, ramping to ×1.55 at 40.
 	_check(is_equal_approx(director.get_early_multiplier(1), 1.0) and is_equal_approx(director.get_early_multiplier(26), 1.0)
-		and is_equal_approx(director.get_early_multiplier(40), 1.35) and is_equal_approx(director.get_early_multiplier(50), 1.35)
-		and absf(director.get_early_multiplier(33) - 1.175) < 0.001, "act 2 health ramps from ×1.0 (drift 26) to ×1.35 (40)")
+		and is_equal_approx(director.get_early_multiplier(40), 1.55) and is_equal_approx(director.get_early_multiplier(50), 1.55)
+		and absf(director.get_early_multiplier(33) - 1.275) < 0.001, "act 2 health ramps from ×1.0 (drift 26) to ×1.55 (40)")
 	# One Deeply Blighted from drift 26 when the drift lists none (boss drifts: from the escort); two from 76.
 	for number in [25, 26, 35, 45, 50, 51, 75, 76, 100]:
 		var schedule: Array = director.drifts[number - 1].get_schedule()

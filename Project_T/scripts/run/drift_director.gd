@@ -55,12 +55,12 @@ const DEMO_DRIFTS_DIR := "res://resource/drift/demo/"
 @export var boss_health_multiplier: float = 1.5  # On the bosses' base health
 # Acts 3–4 (run_design.md "Act 3 probe", interim): a flat health multiplier for every nightmare from
 # `late_acts_from_act`, bosses included, on top of the growth / boss multiplier.
-@export var late_acts_health_multiplier: float = 1.4
+@export var late_acts_health_multiplier: float = 1.6
 @export var late_acts_from_act: int = 3
 # Act 2 (run_design.md "Difficulty curve targets", interim): x1.0 through act 1 (a fresh profile
 # should reach drift 25), then a straight ramp from `early_ramp_from` to `early_acts_health_multiplier`
 # at `early_ramp_to`, held until acts 3-4 take over (no stacking).
-@export var early_acts_health_multiplier: float = 1.35
+@export var early_acts_health_multiplier: float = 1.55
 @export var early_ramp_from: int = 26
 @export var early_ramp_to: int = 40
 @export var extra_nightmares: float = 1.25  # Nightmares per drift (rounded up) from `extra_nightmares_from`
@@ -276,13 +276,13 @@ func _next_is_in_block() -> bool:
 func get_extra_nightmares(number: int) -> float:
 	return extra_nightmares if number >= extra_nightmares_from else 1.0
 
-# Act 2's health multiplier for drift `number`: 1.0 through drift 26, rising evenly to ×1.35 at drift 40.
+# Act 2's health multiplier for drift `number`: 1.0 through drift 26, rising evenly to ×1.55 at drift 40.
 func get_early_multiplier(number: int) -> float:
 	var t := clampf(float(number - early_ramp_from) / maxf(early_ramp_to - early_ramp_from, 1), 0.0, 1.0)
 	return lerpf(1.0, early_acts_health_multiplier, t)
 
 # Health multiplier for `data` in drift `number`: get_growth (bosses: ×1.5 their base), × the act 2
-# ramp, or ×1.4 in acts 3–4. Dreams / Omens multiply on top (hook: see get_health_multiplier).
+# ramp, or ×1.6 in acts 3–4. Dreams / Omens multiply on top (hook: see get_health_multiplier).
 func get_health_scale(data: EnemyData, number: int) -> float:
 	var scale := boss_health_multiplier if data.is_boss else get_growth(number)
 	if get_act(number) >= late_acts_from_act:
