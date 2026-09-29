@@ -29,10 +29,14 @@ exports, `TowerData`, `EnemyData`, `DriftData`), so tuning never needs code chan
 
 | Act | Drifts | Feel | Boss |
 |---|---|---|---|
-| 1. Forest's Edge | 1–25 | learn the maze, first Wardens | **The Hollow Stag** (25) |
-| 2. Deep Wood | 26–50 | maze testers arrive, builds take shape | **The Mire Hag** or **The Moth Queen** (50) |
-| 3. Misty Hollow | 51–75 | status testers, bigger drifts | the other of the two (75) |
-| 4. Heartwood Glade | 76–100 | full builds, everything mixed | **The Hollow Oak** (100, story climax) |
+| 1. Forest's Edge | 1–25 | learn the maze, first Wardens | 1 of 3: **Hollow Stag**, Night Mare, Scarecrow (25) |
+| 2. Deep Wood | 26–50 | maze testers arrive, builds take shape | 1 of 3: **Mire Hag**, Huntsman, Lamplighter (50) |
+| 3. Misty Hollow | 51–75 | status testers, bigger drifts | 1 of 3: **Moth Queen**, Barrow King, Mourning Mother (75) |
+| 4. Heartwood Glade | 76–100 | full builds, everything mixed | **The Hollow Oak** (100, story climax, always) |
+
+**Boss pools** (2026-09-29, like Slay the Spire): each run draws one boss per act for acts 1–3,
+shown from the act's first drift so players build toward it. First run ever: always the Hollow
+Stag. Details in `enemy_design.md` ("Bosses: a pool of 3 per act").
 
 - **Win:** dispel The Hollow Oak and every nightmare still in the dream.
 - **Between acts:** the season changes (spring dusk → summer night → autumn fog → winter dark;

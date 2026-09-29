@@ -41,10 +41,16 @@ func _init() -> void:
 		and trees.get_tile_animation_frame_duration(Vector2i(0, 0), 0) != trees.get_tile_animation_frame_duration(Vector2i(0, 0), 1),
 		"each dead-tree type animates at its own pace")
 	for cell in path.get_used_cells():
-		if path.get_cell_source_id(cell) != EnvironmentTiles.PATH:
+		var on_rim: bool = Vector2(cell) == map.startPath or Vector2(cell) == map.endPath
+		if path.get_cell_source_id(cell) != (EnvironmentTiles.PATH_RIM if on_rim else EnvironmentTiles.PATH):
 			_check(false, "path cell %s uses the path sheet" % cell)
 			break
 	var start_mask: int = path.get_cell_atlas_coords(Vector2i(map.startPath)).x
+	_check(path.get_cell_source_id(Vector2i(map.startPath)) == EnvironmentTiles.PATH_RIM
+		and path.get_cell_source_id(Vector2i(map.endPath)) == EnvironmentTiles.PATH_RIM
+		and ground.get_cell_source_id(Vector2i(map.startPath)) == EnvironmentTiles.ISLAND_EDGE
+		and ground.get_cell_source_id(Vector2i(map.endPath)) == EnvironmentTiles.ISLAND_EDGE,
+		"the start and goal draw rim-edge path over the rim, no grass")
 	_check(start_mask & 1, "the start's path tile runs off the top edge (mask %d)" % start_mask)
 	for cell in map.obstacles:
 		var data: ObstacleData = map.obstacles[cell]

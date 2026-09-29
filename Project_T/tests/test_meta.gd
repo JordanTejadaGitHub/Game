@@ -244,6 +244,7 @@ func _run() -> void:
 	var old := FileAccess.open(PROFILE_PATH, FileAccess.WRITE)
 	old.store_string(JSON.stringify({"version": 1, "seeds": 5, "unlocks": {"pebbling_line": 1, "cairn": 1, "sporeling_finals": 1, "morning_stores": 2}}))
 	old.close()
+	HeartwoodMemory.forget()  # Written behind save_data: never read a cached copy
 	memory = HeartwoodMemory.load_data()
 	var migrated := {}
 	for id in memory.unlocks:
@@ -253,6 +254,7 @@ func _run() -> void:
 	old = FileAccess.open(PROFILE_PATH, FileAccess.WRITE)
 	old.store_string(JSON.stringify({"version": 2, "seeds": 10, "unlocks": {"reactions": 1, "kin_lore": 1, "bittersweet_dreams": 1, "spore_lore": 1}}))
 	old.close()
+	HeartwoodMemory.forget()  # Written behind save_data: never read a cached copy
 	memory = HeartwoodMemory.load_data()
 	_check(int(memory.seeds) == 10 + 70 + 50 + 8 and not memory.unlocks.has("reactions") and not memory.unlocks.has("kin_lore")
 		and memory.unlocks.has("bittersweet_dreams") and memory.unlocks.has("spore_lore"),

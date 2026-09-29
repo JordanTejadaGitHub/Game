@@ -51,6 +51,11 @@ func _ready() -> void:
 	ground_layer.z_index = -1
 	path_layer.z_index = -1
 	ground_layer.initialize()
+	# The start and goal sit in the rim ring: the rim goes under their path (path_rim.png is transparent
+	# outside the path), on the ground layer since the object layer draws over the path.
+	for end_cell in [startPath, endPath]:
+		ground_layer.set_cell(Vector2i(end_cell), EnvironmentTiles.ISLAND_EDGE,
+			Vector2i(EnvironmentTiles.rim_mask(Vector2i(end_cell), Vector2i(MAP_GRID.size)), 0))
 	unwalkable_cells = environment_object_layer.initialize(startPath, endPath)
 	path_layer.initialize(get_array_board(), startPath, endPath)
 

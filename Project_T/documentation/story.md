@@ -132,6 +132,12 @@ Dispelling it breaks the twist, and the dream underneath comes back as a unique 
 | The Hollow Stag | **The White Stag**: the forest's old guardian, whose presence slows nightmares |
 | The Mire Hag | **The Pond Keeper**: an old toad spirit who pulls nightmares back into its pond |
 | The Moth Queen | **The Moon Moth**: its light reveals everything hiding in the dark |
+| The Night Mare | **The Carousel Horse**: a painted wooden horse from a child's dream |
+| The Scarecrow | **The Harvest Doll**: a little corn doll the birds love |
+| The Huntsman | **The Old Hound**: a faithful grey dog that still runs down what threatens home |
+| The Lamplighter | **The Warm Lamplighter**: the same lanterns, lit warm again |
+| The Barrow King | **The Sleeping King**: an old king who finally rests, and keeps watch while he does |
+| The Mourning Mother | **The Cradle Song**: the lullaby she used to sing, before she forgot it |
 | The Hollow Oak | none: its memory is the Hollow itself, and freeing it is the true ending |
 
 This is the story's hope in miniature: under every nightmare is something that was once loved. It

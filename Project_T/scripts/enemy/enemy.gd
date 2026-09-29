@@ -142,6 +142,18 @@ var _reroute_wait := 0.0
 var _leap_tween: Tween
 var _burrows := 0
 var _revealed_time := 0.0  # Seconds it stays revealed whatever else (see reveal_for)
+# Performance (test_perf_stress): the EnemyContainer (null outside it), and what the status row last
+# drew, so it only redraws when a status comes, goes or changes stacks.
+var _spawner = null  # Untyped: its script members are read directly
+var _drawn_changes := -1
+var _drawn_aura := false
+var _was_animating := false
+var _speed_cache := 0.0
+var _speed_base := -1.0
+var _speed_changes := -1
+var _speed_stale := true  # Set on each presence tick and whenever speed rules change (below)
+var _settings_elapsed := 0.0  # Display settings are re-read every SETTINGS_TICK s
+const SETTINGS_TICK := 0.5
 var _pose_left := 0.0  # Seconds a special animation (eclipse, grief) keeps the walk animation off
 var _wander_cooldown := 0
 
@@ -174,6 +186,9 @@ var _path_index: int = 0
 
 func _ready() -> void:
 	add_to_group(GROUP)
+	var parent := get_parent()
+	if parent != null and parent.has_method("route_around"):
+		_spawner = parent  # The EnemyContainer: its per-frame flags are read straight, no lookups by name
 
 	# Initialize attributes
 	max_health = maxi(roundi(enemy_data.health * health_scale * (ELITE_HEALTH if elite else 1.0)), 1)
@@ -234,7 +249,7 @@ func _process(delta: float) -> void:
 	if elite:
 		_haze_phase += ELITE_HAZE_SPEED * delta
 	_hit_mark_time = maxf(_hit_mark_time - delta, 0.0)
-	for id: StringName in _status_flash.keys():
+	for id: StringName in (_status_flash.keys() if not _status_flash.is_empty() else []):
 		_status_flash[id] -= delta
 		if _status_flash[id] <= 0.0:
 			_status_flash.erase(id)
@@ -248,9 +263,17 @@ func _process(delta: float) -> void:
 		if is_instance_valid(smother):
 			smother.queue_free()
 		remove_meta(&"smother_fx")
-	if not statuses.active_ids().is_empty() or _bolt_flash > 0.0 or _hit_mark_time > 0.0 or elite \
-			or _crit_flash > 0.0 or statuses.is_in_stag_aura() or not _ash_cells.is_empty() or unbound:
-		queue_redraw()
+	# Redraw only when something drawn changed: the status row (a status came, went or changed
+	# stacks), the Stag aura ring, or an animation that's playing (flashes, haze, embers, glow).
+	# Health / shell bars redraw from take_damage and heal.
+	var aura := statuses.is_in_stag_aura()
+	var animating := _bolt_flash > 0.0 or _hit_mark_time > 0.0 or elite or _crit_flash > 0.0 \
+		or not _status_flash.is_empty() or not _ash_cells.is_empty() or unbound
+	if animating or _was_animating or statuses.changes != _drawn_changes or aura != _drawn_aura:
+		_drawn_changes = statuses.changes
+		_drawn_aura = aura
+		queue_redraw()  # (One more after an animation ends, to clear its last frame.)
+	_was_animating = animating
 	_update_presence(delta)
 
 	if hold_time > 0.0:
@@ -269,8 +292,14 @@ func _process(delta: float) -> void:
 
 	var previous_position := position
 	# Walk toward the next cell centre; carry leftover distance into the following cell so speed
-	# stays constant through corners.
-	var remaining := get_move_speed() * delta
+	# stays constant through corners. The speed is re-worked out when statuses change and on each
+	# presence tick (0.1 s), not every frame.
+	if statuses.changes != _speed_changes or _speed_stale or speed != _speed_base:
+		_speed_cache = get_move_speed()
+		_speed_changes = statuses.changes
+		_speed_stale = false
+		_speed_base = speed
+	var remaining := _speed_cache * delta
 	while remaining > 0.0 and _path_index < _path.size():
 		var target := grid.calculate_map_position(_path[_path_index])
 		var to_target := target - position
@@ -311,7 +340,9 @@ func _refuse_status(id: StringName) -> void:
 # A combo just used this status (e.g. lightning jumped through Damp): its icon flashes briefly.
 # Called by the HUD's combat callouts. Does nothing if the status isn't on this nightmare.
 func flash_status(id: StringName) -> void:
-	if statuses.active_ids().has(id):
+	# Once per flash: combos fire on every tick and hit (a Marked, Spored nightmare reports "marked"
+	# twice a second), and each flash spawns a world effect.
+	if statuses.has(id) and not _status_flash.has(id):
 		_status_flash[id] = STATUS_FLASH_TIME
 		queue_redraw()
 		var world := Reactions._world(self)
@@ -429,18 +460,19 @@ func update_animation(velocity: Vector2) -> void:
 	# Keep the current animation when not moving (e.g. end of path) or while a pose plays
 	if velocity.is_zero_approx() or _pose_left > 0.0:
 		return
-	if rolling and sprite.sprite_frames.has_animation("roll"):
-		sprite.play("roll")
-		sprite.flip_h = velocity.x < 0
+	var animation := &"walk_up"
+	var flip := false
+	if rolling and sprite.sprite_frames.has_animation(&"roll"):
+		animation = &"roll"
+		flip = velocity.x < 0
 	elif abs(velocity.x) >= abs(velocity.y):  # Moving horizontally
-		sprite.play("walk_side")
-		sprite.flip_h = velocity.x < 0  # Flip horizontally if moving left
+		animation = &"walk_side"
+		flip = velocity.x < 0  # Flip horizontally if moving left
 	elif velocity.y > 0:  # Moving down
-		sprite.play("walk_down")
-		sprite.flip_h = false
-	else:  # Moving up
-		sprite.play("walk_up")
-		sprite.flip_h = false
+		animation = &"walk_down"
+	if sprite.animation != animation or not sprite.is_playing():
+		sprite.play(animation)  # Only when it changes: this runs every frame for every nightmare
+	sprite.flip_h = flip
 
 # Dew for dispelling this nightmare (Omens can change it, e.g. Dry Spell = 0).
 func get_dew_reward() -> int:
@@ -468,8 +500,7 @@ func get_move_speed() -> float:
 # Tangled (Dream): carrying 2+ statuses slows it DreamState.TANGLED_SLOW more, like Soaked does (a
 # plain slow; Heavy Air doesn't boost it). The spawner checks the card once a frame.
 func _tangled_slow() -> float:
-	var spawner := get_parent()
-	if spawner == null or not spawner.get("tangled") or statuses.active_ids().size() < 2:
+	if _spawner == null or not _spawner.tangled or statuses.count() < 2:
 		return 0.0
 	return DreamState.TANGLED_SLOW
 
@@ -477,6 +508,7 @@ func _tangled_slow() -> float:
 func set_lost() -> void:
 	if not is_cleansed:
 		lost = true
+		_speed_stale = true
 
 # The spawner knocked down a Thornwall for this creature (TRAMPLE).
 func trampled() -> void:
@@ -525,6 +557,7 @@ func _update_rolling() -> void:
 	# Keeps rolling only while the next step goes the same way; stops at the turn.
 	var next_same := _path_index < _path.size() and _path[_path_index] - _path[_path_index - 1] == step
 	rolling = _straight_steps >= enemy_data.roll_after_tiles and next_same
+	_speed_stale = true
 
 # Mire Hag: sinks into the mire and rises `leap_tiles` ahead along her path, then makes nightmares
 # near where she rose Damp.
@@ -646,6 +679,7 @@ func strip_buff(_by: Node) -> bool:
 	var omen_speed := float(modifiers.get("omen_speed", 1.0))
 	if omen_speed > 1.0:
 		speed /= omen_speed
+		_speed_stale = true
 		modifiers.erase("omen_speed")
 		stripped = true
 	if stripped:
@@ -677,6 +711,7 @@ func add_restless() -> bool:
 	if is_cleansed:
 		return false
 	restless += 1
+	_speed_stale = true
 	queue_redraw()
 	if unbound or restless < UNBOUND_AT or enemy_data.is_boss:
 		return false
@@ -717,9 +752,9 @@ func _start_unbound_trail() -> void:
 # there (it queues). Only checked at a cell centre, so walkers never stop halfway between cells.
 # Flyers ignore it. The spawner rebuilds the blocked cells each frame (rooted_cells / waiting_cells).
 func _is_blocked_ahead(delta: float) -> bool:
-	var spawner := get_parent()
-	if is_flying() or _path_index < 1 or _path_index >= _path.size() or spawner == null \
-			or spawner.get("rooted_cells") == null or spawner.rooted_cells.is_empty() \
+	var spawner = _spawner
+	if spawner == null or spawner.rooted_cells.is_empty() or is_flying() or _path_index < 1 \
+			or _path_index >= _path.size() \
 			or not position.is_equal_approx(grid.calculate_map_position(_path[_path_index - 1])):
 		waiting = false
 		return false
@@ -856,7 +891,7 @@ func _keep_always_statuses() -> void:
 
 func _update_presence(delta: float) -> void:
 	_keep_always_statuses()
-	for cell: Vector2 in _ash_cells.keys():
+	for cell: Vector2 in (_ash_cells.keys() if not _ash_cells.is_empty() else []):
 		_ash_cells[cell] -= delta
 		if _ash_cells[cell] <= 0.0:
 			_ash_cells.erase(cell)
@@ -865,12 +900,16 @@ func _update_presence(delta: float) -> void:
 		return
 	var elapsed := _presence_elapsed
 	_presence_elapsed = 0.0
+	_speed_stale = true  # Timed slows (the Stag's aura, charges) may have run out
 
 	_revealed_time = maxf(_revealed_time - elapsed, 0.0)
 	var hide := (enemy_data.hidden or _is_eclipsed()) and not _is_revealed()
 	if hide != _hidden:
 		_set_hidden(hide)
-	_refresh_display_settings()
+	_settings_elapsed += elapsed
+	if _settings_elapsed >= SETTINGS_TICK:  # The settings panel's changes show within half a second
+		_settings_elapsed = 0.0
+		_refresh_display_settings()
 	if enemy_data.wake_radius > 0.0:  # Watcher
 		for other in _others_within(enemy_data.wake_radius):
 			if other.statuses.has(EnemyStatuses.DROWSY):
@@ -933,8 +972,7 @@ func _outline_alpha() -> float:
 
 # The Moth Queen's Eclipse hides every nightmare but bosses.
 func _is_eclipsed() -> bool:
-	return not enemy_data.is_boss and get_parent() != null and get_parent().get("eclipse_left") != null \
-		and get_parent().eclipse_left > 0.0
+	return not enemy_data.is_boss and _spawner != null and _spawner.eclipse_left > 0.0
 
 # Seen by a Warden within CLOSE_REVEAL_CELLS, a Marking Warden (Lanternmoth, Moon Moth, Rootlight)
 # that has it in range, or a Will-o'-Wisp's glow.
@@ -1064,6 +1102,7 @@ func take_damage(amount: float, line: String = "", is_area: bool = false, is_cri
 	if enemy_data.trait_kind == EnemyData.Trait.TRAMPLE and not _startled and health <= max_health / 2:
 		_startled = true  # The Hollow Stag's antlers flare and it charges
 		_charge_left = enemy_data.charge_time
+		_speed_stale = true
 
 # Applies a status from a Warden (`potency` = its soothe, see EnemyStatuses). A Static charge that
 # fills up sets off a free bolt right away.

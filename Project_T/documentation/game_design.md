@@ -61,10 +61,13 @@ New run (new random forest) → only Sprout + Thornwall
 
 | Act | Drifts | Boss |
 |---|---|---|
-| 1. Forest's Edge | 1–25 | The Hollow Stag |
-| 2. Deep Wood | 26–50 | The Mire Hag or The Moth Queen |
-| 3. Misty Hollow | 51–75 | the other one |
+| 1. Forest's Edge | 1–25 | 1 of 3: The Hollow Stag, The Night Mare, The Scarecrow |
+| 2. Deep Wood | 26–50 | 1 of 3: The Mire Hag, The Huntsman, The Lamplighter |
+| 3. Misty Hollow | 51–75 | 1 of 3: The Moth Queen, The Barrow King, The Mourning Mother |
 | 4. Heartwood Glade | 76–100 | The Hollow Oak (always) |
+
+Boss pools like Slay the Spire: one boss per act drawn at run start and shown from the act's first
+drift (`enemy_design.md`).
 
 One map per run. Act breaks: the season changes, 1 leaf regrows. Nightmare health grows ×1.045 per
 drift (×1.055 in act 2; ≈ ×11 by drift 50, ×100 by drift 100), plus more nightmares, elites in every

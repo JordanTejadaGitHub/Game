@@ -14,6 +14,11 @@ const VERSION := 3  # 2: Grove ids match grove_layout.json (MIGRATED_IDS), perk 
 static var file_path := PATH
 # Dev Grove (DevGrove): while set, the profile is a dev one but settings stay in this real file.
 static var real_settings_path := ""
+# Parsed files, so the many callers don't re-read and re-parse the JSON each time (Tower Code's perf
+# pass: settings reads sat on the combat path). {path: [stamp, migrated dict]}; stamp = modified time +
+# length, so a file written or deleted behind our back re-reads. Callers always get a deep copy (they
+# edit and save it). save_data drops the entry it wrote; forget() drops them all (tests writing directly).
+static var _cache := {}
 
 static func defaults() -> Dictionary:
 	return {
@@ -72,16 +77,30 @@ static func load_data() -> Dictionary:
 	return data
 
 static func _load_file() -> Dictionary:
+	return _shared(file_path).duplicate(true)
+
+# The cached, parsed profile at `path`: shared, so never edit it (callers get copies).
+static func _shared(path: String) -> Dictionary:
+	if not FileAccess.file_exists(path):
+		_cache.erase(path)
+		return defaults()
+	var stamp := "%d:%d" % [FileAccess.get_modified_time(path), FileAccess.get_size(path)]
+	var hit: Array = _cache.get(path, [])
+	if not hit.is_empty() and hit[0] == stamp:
+		return hit[1]
 	var data := defaults()
-	if not FileAccess.file_exists(file_path):
-		return data
-	var parsed = JSON.parse_string(FileAccess.get_file_as_string(file_path))
+	var parsed = JSON.parse_string(FileAccess.get_file_as_string(path))
 	if typeof(parsed) != TYPE_DICTIONARY:
 		push_warning("Heartwood save unreadable; starting fresh")
 		return data
 	_merge(data, parsed)
 	_migrate(data)
+	_cache[path] = [stamp, data]
 	return data
+
+# Drops every cached profile (a test or tool that writes the file without save_data).
+static func forget() -> void:
+	_cache.clear()
 
 # Grove ids before version 2 -> the grove_layout.json ids.
 const MIGRATED_IDS := {
@@ -123,6 +142,7 @@ static func _migrate(data: Dictionary) -> void:
 
 static func save_data(data: Dictionary) -> void:
 	data["version"] = VERSION
+	_cache.erase(file_path)  # The path actually written (save_settings switches it for Dev Grove)
 	var file := FileAccess.open(file_path, FileAccess.WRITE)
 	if file == null:
 		push_error("Could not write %s: %s" % [file_path, error_string(FileAccess.get_open_error())])
@@ -304,8 +324,8 @@ static func max_blight_level(data: Dictionary) -> int:
 		return 0
 	return mini(int(data.highest_blight_won) + 1, 10)
 
-static func get_settings() -> Dictionary:
-	return load_data().settings
+static func get_settings() -> Dictionary:  # Only the settings are copied (read often)
+	return _shared(real_settings_path if real_settings_path != "" else file_path).settings.duplicate(true)
 
 static func save_settings(settings: Dictionary) -> void:
 	var path := file_path
@@ -317,11 +337,7 @@ static func save_settings(settings: Dictionary) -> void:
 	file_path = path
 
 static func _real_settings() -> Dictionary:
-	var path := file_path
-	file_path = real_settings_path
-	var settings: Dictionary = _load_file().settings
-	file_path = path
-	return settings
+	return _shared(real_settings_path).settings.duplicate(true)
 
 # Applies settings to the engine: volume, window mode and key rebinds.
 static func apply_settings(settings: Dictionary = {}) -> void:
