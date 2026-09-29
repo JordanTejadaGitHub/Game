@@ -78,7 +78,19 @@ static func health_at(data: EnemyData, drift: int, director: DriftDirector) -> i
 	return maxi(roundi(data.health * scale), 1)
 
 # Frame 0 of the kind's walk-down (or first) animation, for portraits.
+static var _portraits := {}  # EnemyData path -> its cropped portrait
+
+# The frame cropped to its visible pixels (the 64 px frames carry padding), so the nightmare fills
+# the moon disc behind it (UI Code). Cached per kind.
 static func portrait(data: EnemyData) -> Texture2D:
+	if _portraits.has(data.resource_path):
+		return _portraits[data.resource_path]
+	var frame := _first_frame(data)
+	var cropped := _crop(frame) if frame != null else null
+	_portraits[data.resource_path] = cropped
+	return cropped
+
+static func _first_frame(data: EnemyData) -> Texture2D:
 	var frames := data.sprite_frames
 	if frames == null:
 		return null
@@ -87,6 +99,24 @@ static func portrait(data: EnemyData) -> Texture2D:
 			return frames.get_frame_texture(animation, 0)
 	var names := frames.get_animation_names()
 	return frames.get_frame_texture(names[0], 0) if not names.is_empty() and frames.get_frame_count(names[0]) > 0 else null
+
+static func _crop(frame: Texture2D) -> Texture2D:
+	var image := frame.get_image()
+	if image == null or image.is_empty():
+		return frame
+	if image.is_compressed():
+		image.decompress()
+	var used := image.get_used_rect()
+	if used.size.x <= 0 or used.size.y <= 0 or used.size == image.get_size():
+		return frame
+	var atlas := AtlasTexture.new()
+	if frame is AtlasTexture:  # A frame of a sheet: crop inside its region
+		atlas.atlas = frame.atlas
+		atlas.region = Rect2(frame.region.position + Vector2(used.position), Vector2(used.size))
+	else:
+		atlas.atlas = frame
+		atlas.region = Rect2(used)
+	return atlas
 
 # Never met in any run (profile nightmares_seen, which the nightmare info writes on first sight).
 static func is_new(data: EnemyData) -> bool:
