@@ -55,6 +55,10 @@ A vast moth with a skull-like face on its wings. Health 16,000 × 1.5 = **24,000
 
 ### The Hollow Oak (drift 100: the run's end)
 
+*(2026-09-29: this is the **Thorned** variation, the first a player meets. The Oak comes in 3
+variations, Thorned / Withering / Remembering, drawn per run: `enemy_design.md`, "The Hollow Oak's
+three variations".)*
+
 The Hollow's corrupted heart, walking on its roots. Health 30,000 × 1.5 = **45,000**; 5 leaves; 100
 Dew.
 

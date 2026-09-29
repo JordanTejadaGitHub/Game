@@ -143,6 +143,11 @@ Dispelling it breaks the twist, and the dream underneath comes back as a unique 
 This is the story's hope in miniature: under every nightmare is something that was once loved. It
 also foreshadows the ending: the Hollow Oak is the Hollow's own dream, twisted the same way.
 
+**The Hollow Oak's three shapes.** The Hollow's heart takes the shape of its grief, and grief has
+more than one shape: **Thorned** (it keeps everyone out), **Withering** (it lets everything die), or
+**Remembering** (it can't let go, and wears the faces of every great nightmare you dispelled this
+run). It's always the same Oak, and the ending is the same.
+
 Upgrade names: attack speed = **Quickened Sap**, damage = **Deeper Calm**, range = **Longer Roots**.
 
 ## Nightmares

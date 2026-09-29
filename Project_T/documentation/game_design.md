@@ -64,7 +64,7 @@ New run (new random forest) → only Sprout + Thornwall
 | 1. Forest's Edge | 1–25 | 1 of 3: The Hollow Stag, The Night Mare, The Scarecrow |
 | 2. Deep Wood | 26–50 | 1 of 3: The Mire Hag, The Huntsman, The Lamplighter |
 | 3. Misty Hollow | 51–75 | 1 of 3: The Moth Queen, The Barrow King, The Mourning Mother |
-| 4. Heartwood Glade | 76–100 | The Hollow Oak (always) |
+| 4. Heartwood Glade | 76–100 | The Hollow Oak (always), 1 of 3 variations: Thorned, Withering, Remembering |
 
 Boss pools like Slay the Spire: one boss per act drawn at run start and shown from the act's first
 drift (`enemy_design.md`).

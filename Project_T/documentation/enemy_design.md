@@ -77,7 +77,8 @@ unchanged from the cozy version; only names, fiction and art direction changed.
 ### Bosses: a pool of 3 per act (added 2026-09-29, like Slay the Spire)
 
 Acts 1–3 each have a **pool of 3 great nightmares**; each run draws **one per act**. Act 4 is always
-**the Hollow Oak**: it's the story's climax (like Slay the Spire's fixed final boss). This replaces
+**the Hollow Oak**, the story's climax, but in **one of 3 variations** (Thorned, Withering,
+Remembering), drawn the same way. This replaces
 "the Mire Hag or the Moth Queen at 50, the other at 75": the Hag is now an act 2 boss and the
 Queen an act 3 boss.
 
@@ -110,10 +111,12 @@ Queen an act 3 boss.
 | 3 | **The Moth Queen** | a vast moth with a skull-like face on its wings | flies along the route above it, dropping Lurkers; Eclipse at half health (`acts_3_4.md`) | detection + a long maze | spore, talon | light |
 | 3 | **The Barrow King** *(new)* | a crowned, mail-clad corpse-king, very tall, dragging a rusted sword | **Iron Will:** never slowed below 70% speed, can't be Held; every 10 s he **shrugs off every status** on himself and nightmares within 2 tiles (Static discharges harmlessly) | status-heavy builds: raw damage and Marked-style burst between shrugs | song, water | root |
 | 3 | **The Mourning Mother** *(new)* | a vast veiled figure weeping black tears, Weepers clinging to her skirts | **Sorrow:** when no Warden has hit her for 1.5 s, she **mends 2% of her max health per second** (and mends nightmares within 2 tiles like a Weeper) | **gaps in the maze**: stretches with no Warden coverage let her heal back | stone, light | song |
-| 4 | **The Hollow Oak** | the Hollow's corrupted heart walking on its roots | walks slowly, planting thorn-saplings on empty tiles next to the path; saplings are obstacles that re-route nightmares | adapting to a changing maze | light, song | spore |
+| 4 | **The Hollow Oak: Thorned** | the Hollow's corrupted heart walking on its roots, bristling with black thorns | walks slowly, planting thorn-saplings on empty tiles next to the path; saplings are obstacles that re-route nightmares; Grief rings of Mourners | adapting to a changing maze | light, song | spore |
+| 4 | **The Hollow Oak: Withering** *(new)* | bare, grey and cracked, its roots dragging through dead leaves | every 10 s a root surfaces under a Warden near it and **withers** it (no attacks for 6 s) | redundant coverage: no single Warden the maze can't do without | root, stone | water |
+| 4 | **The Hollow Oak: Remembering** *(new)* | hung with pale faces in the bark, one for every great nightmare | at 75 / 50 / 25% health, an **echo of a boss you dispelled this run** rises beside it | a final exam of your own run | spore, water | light |
 
 **Weakness spread:** act 1 water / light / spore (the three starting families); act 2 root / stone /
-water; act 3 light / root / song; act 4 spore. Bosses are tallied **separately** from the regular
+water; act 3 light / root / song; act 4 spore / water / light. Bosses are tallied **separately** from the regular
 nightmares' family tally below (they're one fight each, not a drift's worth of health).
 
 **New bosses in detail** (escort, phases, Memory Warden; numbers are starting points)
@@ -152,6 +155,37 @@ nightmares' family tally below (they're one fight each, not a drift's worth of h
   Weepers and 6 Mourners. Dispelled: *"She stops weeping. For the first time, the Hollow is
   quiet."* Memory: **The Cradle Song**, a lullaby spirit: the Heartwood regrows 1 leaf at every rest
   while it stands.
+
+**The Hollow Oak's three variations** (act 4, drift 100)
+
+The Hollow's heart takes the shape of its grief: **Thorned** keeps everyone out, **Withering** lets
+everything die, **Remembering** can't let go. All three are the Hollow Oak: same silhouette (a
+walking oak on its roots), same slow walk (35), same finale (*"The Hollow Oak is still. Somewhere
+beyond the dream, the Hollow remembers."*), no Memory Warden. Drawn at run start like the other
+bosses and shown from drift 76; **a player's first act 4 is always Thorned** (the story's version,
+described in `acts_3_4.md`). **Blight Level 10** ("The Hollow Oak remembers") works for every
+variation: it rises once more at half health with its trait twice as fast.
+
+- **Thorned** (the original, `acts_3_4.md`): thorn-saplings every 8 s re-route the nightmares;
+  *Grief* at two-thirds and one-third health raises a ring of 6 Mourners. Escort: 3 Processions, 8
+  Mourners, 4 Weepers. 30,000 health. Tests adapting to a changing maze.
+- **Withering**: every 10 s a root surfaces under a Warden within 3 tiles of it (the one that's
+  dealt it the most damage, never the same one twice in a row) and **withers** it for 6 s: grey,
+  drooping, no attacks, no auras. It comes back on its own, unharmed. *Drought* (at two-thirds and
+  one-third health): withers 3 Wardens at once and the dead-leaf trail behind it slows Wardens'
+  projectiles (reduced motion: no trail effect). Escort: 4 Barrow Wights, 8 Husks, 4 Ash Crawlers.
+  30,000 health. Tests redundant coverage: a maze that leans on one great Warden stalls for 6 s at
+  a time; a maze with every stretch covered twice doesn't notice. Weak to water (rain wakes what it
+  withers).
+- **Remembering**: at 75 / 50 / 25% health an **echo** of each boss you dispelled this run (act 1,
+  then 2, then 3) rises beside it: translucent, **20% of that boss's drift-100 health**, with its full
+  trait (a Night Mare echo laps, a Lamplighter echo lights lanterns, a Huntsman echo brings its
+  hounds). A run that lost no boss faces all three. Escort: 2 Processions, 6 Mourners, 4 Watchers.
+  26,000 health (the echoes carry the rest). Tests the whole run: the bosses you've already beaten,
+  at once, with your final maze. Weak to light (the faces fade in the light).
+
+Each variation's weakness is one of the starting three types (Spore / Water / Light), so the family
+you drafted first always has a variation it's good against.
 
 Dispelling a boss is a big moment: it shatters with light, extra Dew, and a line of text; the
 Heartwood recovers a lost memory (a new Warden family).
@@ -308,7 +342,9 @@ are marked ✓; the rest are proposals to tune.
 | **The Hollow Stag** (Old Stag) ✓ | 3,000 | 51 | 40 | 5 | stone, root | water | tramples Thornwalls |
 | **The Mire Hag** (Great Toad) | 8,000 | 55 (+ rises ahead) | 60 | 5 | water | root | surfaces 3 tiles ahead every 6 s |
 | **The Moth Queen** (Mother Moth) | 16,000 | 65 | 80 | 5 | spore, wing | light | flies; drops a Lurker every 4 s |
-| **The Hollow Oak** | 30,000 | 35 | 100 | 5 | light, song | spore | plants a thorn-sapling every 8 s |
+| **The Hollow Oak: Thorned** | 30,000 | 35 | 100 | 5 | light, song | spore | plants a thorn-sapling every 8 s |
+| **The Hollow Oak: Withering** | 30,000 | 35 | 100 | 5 | root, stone | water | withers a Warden every 10 s |
+| **The Hollow Oak: Remembering** | 26,000 | 35 | 100 | 5 | spore, water | light | echoes of this run's bosses at 75/50/25% |
 | **The Night Mare** *(act 1)* | 2,000 | 110 (+20% per lap) | 40 | 3 per lap | root | light | laps the maze until dispelled |
 | **The Scarecrow** *(act 1)* | 2,600 | 45 | 40 | 5 | stone, talon | spore | Crows at every 20% |
 | Crow (Scarecrow) | 40 | 150 | 1 | 1 | — | — | |
@@ -366,13 +402,14 @@ attack behaviours, so new nightmares are mostly data.
 
 **Boss pools** (2026-09-29): a `BossData` resource per boss (the boss's `EnemyData`, its escort as
 `DriftGroup`s, act, Memory Warden, dossier text, dispel line) and a pool per act
-(`resource/boss/act_1/*.tres` …). The run draws one per act at start (seeded with the map; first
+(`resource/boss/act_1/*.tres` … `act_4/` holds the Oak's 3 variations as 3 `BossData`). The run draws one per act at start (seeded with the map; first
 run ever: act 1 = Hollow Stag; weighted against last run's boss, profile `last_bosses`) and keeps
 the draw in the run save. The boss drift files (25 / 50 / 75) hold a **boss slot** instead of a
 named boss; the director fills it from the draw. The DriftBanner and dossier read the drawn boss.
 New boss mechanics: laps (Night Mare), spawn-on-health-threshold (Scarecrow, and the Hollow Oak's
 Grief already), linked shield (Huntsman), Warden-debuff objects with health (Lamplighter's
-lanterns), status shrug (Barrow King), out-of-combat regen (Mourning Mother).
+lanterns), status shrug (Barrow King), out-of-combat regen (Mourning Mother), Warden wither (Withering Oak),
+echoes (Remembering Oak: spawns this run's dispelled bosses from the draw at a health fraction).
 
 ## Build order
 
