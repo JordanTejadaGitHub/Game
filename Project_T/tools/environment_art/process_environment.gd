@@ -66,6 +66,12 @@ func _init() -> void:
 				means["mossy_boulder"], means["path"], "ok" if ok else "BROKEN"])
 			if not ok:
 				failures += 1
+		if means.has("island_edge") and means.has("grass"):
+			# The rim is unbuildable edge, so it must read darker than the buildable ground.
+			var rim_ok: bool = means["island_edge"] < means["grass"]
+			print("%s rim %.3f < ground %.3f: %s" % [folder, means["island_edge"], means["grass"], "ok" if rim_ok else "BROKEN"])
+			if not rim_ok:
+				failures += 1
 	print("processed %d sheets" % count)
 	quit(failures)
 
