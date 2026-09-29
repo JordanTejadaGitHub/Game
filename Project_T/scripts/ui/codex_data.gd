@@ -70,11 +70,11 @@ const GLOSSARY_SOURCE := [
 	["Statuses", [
 		["{damp}", "{tip:damp}", ["Conducted", "Thunderclap"]],
 		["{drowsy}", "{tip:drowsy}", ["{asleep}", "Drown"]],
-		["{asleep}", "{tip:asleep}", ["{drowsy}", "Caught"]],
 		["{spored}", "{tip:spored}", ["Popped", "Ignite"]],
 		["{marked}", "{tip:marked}", ["Exposed Blow", "Lightning Rod"]],
 		["{static}", "{tip:static}", ["Set Off", "Thunderclap"]],
 		["{held}", "{tip:held}", ["Shatter", "Smother"]],
+		["{asleep}", "{tip:asleep}", ["{drowsy}", "Caught"]],
 		["{caught}", "{tip:caught}", ["{drowsy}", "{asleep}"]],
 		["{frozen}", "{tip:frozen}", ["{damp}"]],
 	]],
@@ -112,11 +112,11 @@ const GLOSSARY_SOURCE := [
 const SYNERGIES := {
 	&"conducted": ["Conducted", [&"damp", &"static"], "Lightning jumps further and more often between {damp} nightmares.", "Stormcap"],
 	&"popped": ["Popped", [&"spored", &"spored"], "10+ {spored} bursts over the nightmare and its neighbours.", "Puffball"],
-	&"asleep": ["Asleep", [&"drowsy", &"drowsy"], "Full {drowsy}: the nightmare falls {asleep}.", "Dreamshroom"],
+	&"asleep": ["Asleep", [&"drowsy", &"drowsy"], "Full {drowsy}: the nightmare falls {asleep} for 3 s; a big hit (10%+ of its health) wakes it.", "Dreamshroom"],
 	&"fog": ["Spore Fog", [&"spored", &"damp"], "{spored} ticks harder inside Mistveil fog.", "Mistveil"],
 	&"set_off": ["Set Off", [&"static", &"static"], "A pulse sets off a {static} bolt.", "Chime Stone, Lullaby Bell"],
 	&"marked_blow": ["Exposed Blow", [&"marked", &"marked"], "A heavy hit does double damage on {marked} nightmares.", "Mossback, Boulderback"],
-	&"caught": ["Caught", [&"drowsy", &"drowsy"], "{asleep} or full {drowsy} near a Dreamcatcher: it takes extra damage from everything.", "Dreamcatcher"],
+	&"caught": ["Caught", [&"drowsy", &"drowsy"], "{asleep} or full {drowsy} near a Dreamcatcher: the nightmare's statuses stop wearing off.", "Dreamcatcher"],
 }
 
 # Crowned Reactions (tower_design.md "Crowned Reactions: three families at once"): a Reaction going

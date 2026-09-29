@@ -11,14 +11,14 @@ class_name IconInfo
 # these names. Text anywhere can say {damp} / {static} …; format() puts in the current names, and
 # StatusLinks turns them into links.
 const STATUSES := {
-	&"damp": ["Soaked", "10% slower. Lightning jumps further between {damp} nightmares."],
+	&"damp": ["Soaked", "Water hits deal 20% more. Lightning jumps further between {damp} nightmares."],
 	&"drowsy": ["Drowsy", "8% slower per stack. At full stacks it's {asleep}."],
 	&"spored": ["Poisoned", "Poison eats at it over time, more with every stack."],
 	&"marked": ["Exposed", "Takes 25% more from every Warden."],
 	&"static": ["Charged", "Charges build up; at 5, a free lightning bolt strikes it."],
 	&"held": ["Rooted", "Can't move for a moment."],
-	&"asleep": ["Asleep", "Fully {drowsy}: it stops moving until it wakes."],
-	&"caught": ["Caught", "{asleep} or fully {drowsy} near a Dreamcatcher: takes extra damage from everything."],
+	&"asleep": ["Asleep", "Stopped for 3 s, long but fragile: a big hit (10%+ of its health) wakes it."],
+	&"caught": ["Caught", "{asleep} or fully {drowsy} near a Dreamcatcher: its statuses stop wearing off."],
 	&"frozen": ["Frozen", "Frost stops it for a moment."],
 	&"elite": ["Deeply Blighted", "An elite: 3× health, 2× Dew, and it takes 2 leaves."],
 	&"hidden": ["Hidden", "Can't be seen or targeted until something reveals it, or it comes close."],
