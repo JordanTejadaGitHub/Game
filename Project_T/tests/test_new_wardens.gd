@@ -50,6 +50,8 @@ func _run() -> void:
 	await _test_memory()
 
 	print("new wardens test: %s" % ("PASS" if failures == 0 else "%d FAILED" % failures))
+	main.queue_free()  # Free the run before quitting: an engine teardown of main.tscn can crash at exit
+	await process_frame
 	quit(failures)
 
 

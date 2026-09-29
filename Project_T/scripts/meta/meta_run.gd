@@ -15,7 +15,9 @@ const BLESSING_DIR := "res://resource/meta/blessing/"
 const SHADE_KIND := "leaf_bug"
 # Milestones (meta_design.md "Milestones"): id -> the cosmetic it grows. Grove nodes with a
 # `milestone` grow by themselves (HeartwoodMemory.node_level; Sunpetal, One Line, The Long Walk).
-const MILESTONE_COSMETICS := {"flawless_win": "golden_leaf", "blight_10_win": "blossoms"}
+const MILESTONE_COSMETICS := {
+	"flawless_win": "golden_leaf", "blight_10_win": "blossoms", "all_combos": "gilded_pages", "all_dreams": "starlit_backs",
+}
 
 # Chosen on the title screen before a run (0 = none); saved with the run.
 static var blight_level := 0
@@ -36,14 +38,38 @@ static func all_families_active() -> bool:
 		return false
 	return bool(HeartwoodMemory.get_settings().get(ALL_FAMILIES_SETTING, false))
 
+# "Dream of everything" (meta_design.md, milestone `all_dreams`, every Dream card seen): starlit card
+# backs on Dream offers + 1 Dream reroll per run on top of Second Thoughts (full game). The developer
+# toggle (settings, debug builds only) grants both for testing without recording or writing anything.
+const ALL_DREAMS := "all_dreams"
+const ALL_DREAMS_SETTING := "all_dreams_rewards"
+const ALL_DREAMS_REROLLS := 1
+static var force_all_dreams := false  # Tests
+
+static func all_dreams_dev_active() -> bool:
+	if not TestGrove.is_available():
+		return false
+	if force_all_dreams:
+		return true
+	if OS.get_cmdline_args().has("--script"):
+		return false
+	return bool(HeartwoodMemory.get_settings().get(ALL_DREAMS_SETTING, false))
+
+# Dream offer cards get the night-sky frame (DreamScreen).
+static func starlit_backs() -> bool:
+	if all_dreams_dev_active():
+		return true
+	return not ResultsScreen.is_demo() and HeartwoodMemory.load_data().milestones.has(ALL_DREAMS)
+
 # Balance simulation: play the next run with a Grove profile preset (&"fresh" / &"early" / &"half" /
 # &"full", GrovePresets) from a temp file; the real profile is untouched. GrovePresets.unload() undoes it.
 static func load_preset(preset: StringName) -> String:
 	return GrovePresets.load_preset(preset)
 
-# A developer run (Test Grove, Unlock all families or Dev Grove): nothing is banked or recorded.
+# A developer run (Test Grove, Unlock all families, Dev Grove or the Dream of everything toggle):
+# nothing is banked or recorded.
 static func is_dev_run() -> bool:
-	return TestGrove.is_active() or all_families_active() or DevGrove.is_active()
+	return TestGrove.is_active() or all_families_active() or DevGrove.is_active() or all_dreams_dev_active()
 
 @onready var run_state: RunState = %RunState
 @onready var drift_director: DriftDirector = %DriftDirector
@@ -67,6 +93,8 @@ func _ready() -> void:
 	for blessing in load_blessings():
 		if not dream_state.pool.has(blessing):
 			dream_state.pool.append(blessing)
+	if all_dreams_dev_active():  # Also in the demo build's debug runs
+		dream_state.rerolls_left += ALL_DREAMS_REROLLS
 	var all_families := all_families_active() and not TestGrove.is_active()
 	if not active:
 		if all_families:  # Also in the demo build's debug runs
@@ -173,6 +201,8 @@ func _apply_grove(memory: Dictionary) -> void:
 	dream_state.cards_per_offer += extra_cards
 	if dreamlight > 0:  # Early Light
 		dream_state.add_dreamlight(dreamlight)
+	if memory.milestones.has(ALL_DREAMS) and not all_dreams_dev_active():
+		rerolls += ALL_DREAMS_REROLLS  # Dream of everything: on top of Second Thoughts
 	if "rerolls_left" in dream_state:
 		dream_state.rerolls_left += rerolls
 	if "banishes_left" in dream_state:
@@ -254,8 +284,10 @@ func _on_run_ended(won: bool) -> void:
 		if not memory.milestones.has(id):
 			memory.milestones[id] = true
 			HeartwoodMemory.grow_milestone_nodes(memory, id)  # Refunds a node it grows, if bought
-			if MILESTONE_COSMETICS.has(id) and not memory.cosmetics.has(MILESTONE_COSMETICS[id]):
-				memory.cosmetics.append(MILESTONE_COSMETICS[id])
+	# Every milestone's cosmetic, including ones set elsewhere mid-run (Discover every combo: the Codex).
+	for id in memory.milestones:
+		if MILESTONE_COSMETICS.has(id) and not memory.cosmetics.has(MILESTONE_COSMETICS[id]):
+			memory.cosmetics.append(MILESTONE_COSMETICS[id])
 	HeartwoodMemory.save_data(memory)
 
 # Won with every attacking Warden from one family line (Sprouts and walls don't count).

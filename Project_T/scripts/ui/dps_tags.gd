@@ -43,7 +43,11 @@ func _shown_towers() -> Array:
 	if mode() == 2 or drift_director == null or drift_director.drifts_started == 0:
 		return []
 	if all_shown():
-		return _rows.values().map(func(r: Dictionary) -> Node: return r.tower)
+		var all: Array = []
+		for r in _rows.values():  # A sold Warden stays in _rows until the next refresh
+			if is_instance_valid(r.tower):
+				all.append(r.tower)
+		return all
 	var only: Array = []
 	if _seller != null:
 		for tower in _seller.selection:

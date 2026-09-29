@@ -66,6 +66,7 @@ const LIGHT_COLOR := Color(1.0, 0.9, 0.5)
 const RANK_MAX := 5  # Without Dreams (Deeper Rings: VII)
 const RANK_COSTS: Array[int] = [25, 40, 60, 90, 135]  # Base Dew for ranks I-V (economy pass v2)
 const RANK_DAMAGE := 0.10
+const COOLDOWN_JITTER := 0.08  # ± share of each attack's cooldown (desyncs Wardens; see _start_attack)
 const PATIENT_ROOTS_PULL := 0.5  # Patient Roots (Seed card): the Rootling line pulls this much further…
 const PATIENT_ROOTS_ROOT_HOLD := 0.25  # …and holds this much longer, on top of the +0.25 s for every Hold
 const KIND_CANOPY_WARDENS := ["acorn", "elder_stump", "grove_heart"]  # Kind Canopy (Seed card): these auras reach…
@@ -880,7 +881,9 @@ func get_copied() -> TowerData:
 
 # Winds up the attack animation; the shot / pulse happens on its release frame.
 func _start_attack() -> void:
-	_cooldown = 1.0 / get_attacks_per_second()
+	# Performance: a little jitter (the same rate on average) so Wardens planted together drift out of
+	# step instead of all releasing on the same frame (test_perf_stress: 25-48 ms spikes every ~0.4 s).
+	_cooldown = randf_range(1.0 - COOLDOWN_JITTER, 1.0 + COOLDOWN_JITTER) / get_attacks_per_second()
 	if tower_data.attack_texture == null:
 		_release()
 		return
@@ -1672,12 +1675,14 @@ func _resonant_echo(in_range: Array) -> void:
 		return
 	var data := attack_data
 	var boost := _hit_boost
-	get_tree().create_timer(RESONANT_ECHO_DELAY, false).timeout.connect(func() -> void:
-		if not is_instance_valid(self) or not is_inside_tree():
-			return
-		for enemy in get_enemies_in_range():
-			run_as(data, boost, func() -> void: hit(enemy, RESONANT_ECHO, true, NO_CRIT, &"echo"))
-		_kin_fired(&"resonant_hollow"))
+	get_tree().create_timer(RESONANT_ECHO_DELAY, false).timeout.connect(_resonant_echo_now.bind(data, boost))
+
+func _resonant_echo_now(data: TowerData, boost: float) -> void:
+	if not is_inside_tree():
+		return
+	for enemy in get_enemies_in_range():
+		run_as(data, boost, func() -> void: hit(enemy, RESONANT_ECHO, true, NO_CRIT, &"echo"))
+	_kin_fired(&"resonant_hollow")
 
 # Resonant Hollow A: an Echo Hollow's echo sets off Static at 3 charges, like a chime (Reactions.echo).
 func resonant_set_off(enemy: Node2D) -> void:
@@ -1919,8 +1924,11 @@ func _on_reaction_nearby(id: StringName, enemy: Node2D, chain: int, towers: Arra
 			applier = t
 			break
 	var as_link := tower_data.echo_is_chain_link
-	get_tree().create_timer(1.0, false).timeout.connect(func() -> void:
-		Reactions.echo(id, spot, share, self, applier, chain, as_link, depth + 1))
+	# Bound, not a lambda: a lambda capturing this Warden errors if it's gone before the timer fires.
+	get_tree().create_timer(1.0, false).timeout.connect(_echo_now.bind(id, spot, share, applier, chain, as_link, depth + 1))
+
+func _echo_now(id: StringName, spot: Vector2, share: float, applier, chain: int, as_link: bool, depth: int) -> void:
+	Reactions.echo(id, spot, share, self, applier if is_instance_valid(applier) else null, chain, as_link, depth)
 
 
 # --- Yields (Grandmother Oak, the Heartwood Sapling) ---------------------------------------------------
@@ -1945,12 +1953,15 @@ func _connect_yield() -> void:
 		return
 	if not director.drift_cleared.is_connected(_on_drift_cleared):
 		director.drift_cleared.connect(_on_drift_cleared)
-		director.rest_started.connect(func(_b, _boss, _bonus, _perfect) -> void:
-			_wither = 0
-			_update_withered())
+		director.rest_started.connect(_on_yield_rest)  # A method, not a lambda: it must not outlive this Warden
 		var run_state: RunState = _dream_state.run_state
 		_last_leaves = run_state.leaves
 		run_state.leaves_changed.connect(_on_leaves_changed)
+
+# The rest: the Sapling's withering from leaks is forgiven.
+func _on_yield_rest(_block: int, _boss: bool, _bonus: int, _perfect: bool) -> void:
+	_wither = 0
+	_update_withered()
 
 func _on_eldest_changed(_eldest) -> void:
 	queue_redraw()  # The crown moves
@@ -3000,12 +3011,19 @@ func clear_dream_cache() -> void:
 # A Warden planted, sold or grown: Dream rows and neighbours (auras, copies, Root Network) look again
 # soon, spread over the next few frames rather than all at once.
 # This Warden grew or ranked up: its neighbours' auras and copies look again soon (spread out).
+const NUDGE_SPREAD := 0.3  # Seconds a nudge spreads the neighbours' looks over
+const NUDGE_SELF_SPREAD := 0.1  # …and the nudged Warden's own look
+
 func _nudge_neighbours() -> void:
-	_neighbour_timer = minf(_neighbour_timer, 0.05)
+	if _neighbour_timer > NUDGE_SELF_SPREAD:  # Soon, but spread: a group grow / Nurture ranks many at once
+		_neighbour_timer = randf_range(0.0, NUDGE_SELF_SPREAD)
 	if not is_inside_tree():
 		return
 	for other in _other_towers():
-		other._neighbour_timer = minf(other._neighbour_timer, randf_range(0.0, 0.3))
+		# Only reschedule ones not already due within the spread: taking the min of many random draws
+		# (group Nurture nudges every Warden 200 times) lands them all at ~0, in the same frame.
+		if other._neighbour_timer > NUDGE_SPREAD:
+			other._neighbour_timer = randf_range(0.0, NUDGE_SPREAD)
 
 func _on_map_changed() -> void:
 	_dream_cache.clear()

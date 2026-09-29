@@ -85,7 +85,8 @@ func _run() -> void:
 
 	# Pulse: soothes every creature in range at once, no projectile.
 	var rootling: Tower = tower_container.get_child(6)
-	rootling.set_process(false)  # Only the pulse below: its own cooldown could fire one too (a map-dependent flake)
+	for tower in tower_container.get_children():
+		tower.set_process(false)  # Only the pulse below: any Warden's own cooldown could fire too (a timing flake)
 	var near_a = _spawn_still(spawner, leaf_bug, rootling.global_position + Vector2(40, 0))
 	var near_b = _spawn_still(spawner, leaf_bug, rootling.global_position + Vector2(0, -40))
 	var far = _spawn_still(spawner, leaf_bug, rootling.global_position + Vector2(1000, 0))
@@ -95,7 +96,7 @@ func _run() -> void:
 	_check(near_a.health == near_a.max_health - damage and near_b.health == near_b.max_health - damage,
 		"Rootling's pulse soothes every creature in range")
 	_check(far.health == far.max_health, "Rootling's pulse doesn't reach creatures out of range")
-	_check(rootling.get_child_count() == 1, "a pulse fires no projectile")
+	_check(not rootling.get_children().any(func(c: Node) -> bool: return c is Projectile), "a pulse fires no projectile")
 
 	# A beam whose target is dispelled goes back to the idle sheet (it held the 6-frame attack pose, and
 	# the idle loop then asked for frames 6 and 7: "Index p_frame out of bounds").
