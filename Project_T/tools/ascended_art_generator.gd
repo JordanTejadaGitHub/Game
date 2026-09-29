@@ -466,12 +466,6 @@ func _ascended_pose(pose: Dictionary) -> Dictionary:
 	for i in S * S:
 		if grid[i] != "." and outside[i] == 0 and _is_rock(pose, i % S, i / S):
 			grid[i] = "."
-	# The front rock's top edge left a tangle of lines across the body's lower right: smooth them out.
-	for ty in range(38, 42):
-		for tx in range(36, 47):
-			var i := ty * S + tx
-			if grid[i] == "o" and outside[i] == 0:
-				grid[i] = "b"
 	var result := {grid = grid, outside = outside}
 	_asc_pose_cache[key] = result
 	return result
@@ -522,8 +516,8 @@ func _golem(canvas: Image, st: Dictionary, fig: Dictionary, opts: Dictionary = {
 			body.set_pixel(x, y, colors[ch])
 	# Where the front rock stood: the backside. From the feet (front middle, on the ground) its
 	# outline curves round and up to the body's right side, a tapering quarter-oval.
-	var butt_c := Vector2(34.0, 37.0)  # template px: the curve's corner, above the feet
-	var butt_r := Vector2(12.0, 8.5)
+	var butt_c := Vector2(33.0, 39.0)  # template px: from the ground by the left thigh ...
+	var butt_r := Vector2(13.0, 8.8)  # ... round and up to the body's right side
 	for y in 128:
 		for x in 128:
 			var t := (Vector2(x + 0.5, y + 0.5) - fo - Vector2(0, dy)) / K
