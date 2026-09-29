@@ -44,7 +44,7 @@ Sporeling  Dewdrop  Firefly Jar  Pebbling  Rootling  Bellflower  Acorn  (+ Nestl
 Added 2026-09-27 (user request: late game felt easy; wanted an endgame Warden per family). An
 Ascended Warden is the family's final word: a huge, unique presence that anchors a late maze.
 
-- **When:** from **drift 51** (act 3). **Unlock:** **3 Dreamlight** on the Remember screen, once
+- **When:** from **drift 51** (act 3). **Unlock:** **3 Dreamlight** (bosses now give 4 each, 2026-09-29, so a run that reaches act 3 can afford one) on the Remember screen, once
   that family has any final form unlocked. **Grow:** from **any final form** of that family, for
   **400 Dew** (the Warden keeps its rank and Focus).
 - **One per family per run** (at most 4 in a run, one per family you own). Unique like Memory

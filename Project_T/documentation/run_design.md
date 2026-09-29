@@ -249,7 +249,7 @@ After the act 2 boss (drift 50), the Heartwood offers **one Sapling** of itself 
 | Lever | Was | Now |
 |---|---|---|
 | Health growth | ×1.045 per drift all run | **×1.045 for drifts 1–25, ×1.055 for 26–50, ×1.045 from 51** (≈ ×11 by drift 50, ×100 by drift 100; `acts_3_4.md`) |
-| Elites | block finales only | **one Deeply Blighted nightmare in every drift from drift 26** (a random non-boss kind from that drift) |
+| Elites | block finales only | **one Deeply Blighted nightmare in every drift from drift 31** (was 26; moved 2026-09-29: the Grove-player batch had half of all runs die at drifts 28–29, the act 2 opening, before any final form could be grown) (a random non-boss kind from that drift) |
 | Family resist / weak | ×0.65 / ×1.35 | **×0.5 / ×1.5** (`enemy_design.md`) |
 | Nurture | flat cost, +15% damage per rank | **Nurture v2**: cost × tier, +10% per rank, a Focus at rank III (`warden_stats.md`) |
 
@@ -295,7 +295,7 @@ card luck**. Dispelling a great nightmare frees the light it stole from the drea
 | Source | Dreamlight |
 |---|---|
 | First family pick (after drift 1) | **1** (so act 1 can take one branch) |
-| Each boss (drifts 25, 50, 75) | **3** |
+| Each boss (drifts 25, 50, 75) | **4** (was 3, 2026-09-29: runs earned only 3–6 Dreamlight, so no run ever reached an Ascended form) |
 | Dream cards (Sudden Insight, Borrowed Memory) | +1 / +2 |
 | Grove perk *Early Light* | +1 at run start |
 
