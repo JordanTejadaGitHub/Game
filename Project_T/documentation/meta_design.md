@@ -171,8 +171,9 @@ above its family's final forms, so veterans keep finding new playstyles. Reviewe
   (`tower_design.md`); in-run it still needs 3 Dreamlight and 400 Dew. 9 nodes, ≈ 1,080 Seeds.
   **Firefly Jar exception:** its hidden branch (Sunpetal) comes from a milestone, so **Stormheart's
   Ascension needs the Firefly Jar final-forms node** instead, never a milestone.
-- **Memory Wardens** aren't bought: dispelling a boss for the first time grows its Memory Warden as a
-  free bloom on this limb, and it's offered after that boss in later runs.
+- **Memory Wardens: parked 2026-09-29** (cut for now, `tower_design.md`). While parked, dispelling a
+  boss grows no Memory bloom on this limb and the family pick offers no Memory Warden card.
+  (Was: a free bloom on the first dispel, then offered after that boss in later runs.)
 - Total ≈ 1,390 Seeds (was ≈ 1,100 before Bellflower and the Nestling/Whirligig hidden nodes;
   re-check the tree's ~3,100 total and the hours estimate).
 - Each hidden-branch node needs its family's final-forms node, so hidden branches really are late.

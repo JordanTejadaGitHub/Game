@@ -279,7 +279,9 @@ As built: Samara aims its line at its **first target**; Autumn Gale picks the **
 most nightmares**. The catch rhythm counts **per throw** (+10% if any seed hit, reset if none did),
 not per seed.
 
-## Memory Wardens (unique, from bosses)
+## Memory Wardens (unique, from bosses): PARKED
+
+**Cut for now (2026-09-29)**, see `tower_design.md`. The numbers are kept for a possible return.
 
 Free, one of each per run, can't evolve or be sold for Dew (selling returns the memory: it can be
 placed again at the next rest).
