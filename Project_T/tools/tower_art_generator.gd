@@ -532,7 +532,7 @@ func _touch_rocks(canvas: Image, px: Dictionary, touch: String) -> void:
 				put.call(p, Color("#58964a"))
 				put.call(p + Vector2i(0, -1), Color("#d8c090"))
 
-# The mock's three rocks: left of the golem, right of it, and one in front of its feet. The template
+# The mock's two rocks, left and right of the golem. The template
 # draws them with facet lines, so a rock is found by region: the template is split into regions of
 # fill pixels by its 'o' lines, and every region lying mostly inside a rock zone is rock, plus the
 # 'o' pixels that only border rock (or nothing).
@@ -542,9 +542,9 @@ var _rock_cache := {}  # pose grid -> {index: true}
 func _rock_zone(x: int, y: int) -> bool:
 	if y >= 33 and y <= 41 and x <= (17 if y <= 35 else 15):
 		return true  # left
-	if (y >= 30 and y <= 38 and x >= 47) or (y >= 39 and y <= 41 and x >= 44):
-		return true  # right (its lower-left corner tucks in under the arm; the arm itself is x 43-46)
-	return y >= 39 and y <= 47 and x >= 33 and x <= 45  # in front of the feet
+	# Right (its lower-left corner tucks in under the arm; the arm itself is x 43-46). The lump in
+	# front of the golem's middle (x 33-45, y 39-47) is NOT a rock: it's its foot and seat.
+	return (y >= 30 and y <= 38 and x >= 47) or (y >= 39 and y <= 41 and x >= 44)
 
 func _is_rock(pose: Dictionary, x: int, y: int) -> bool:
 	if x < 0 or y < 0 or x >= S or y >= S:
