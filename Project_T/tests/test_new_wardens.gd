@@ -285,20 +285,18 @@ func _test_birds() -> void:
 # --- Wind -----------------------------------------------------------------------------------------------
 
 func _test_wind() -> void:
-	# Whirligig: nudges back along the route, at most once per 3 s.
+	# Whirligig (status jobs, 2026-09-29): every 3 s, the most afflicted nightmare in range lends its
+	# biggest status (half the stacks) to its nearest neighbour within 1.5 cells.
 	var whirl: TowerData = load("res://resource/tower/whirligig.tres").duplicate()
-	whirl.crit_chance = 0.0
-	var walker := _spawn_walker()
-	await _wait(3.0)
-	walker.set_process(false)
-	var tower := _plant(whirl, walker.get_current_cell() + Vector2(0, 0))
-	var before: float = walker.get_remaining_distance()
-	tower._release()
-	var pushed: float = walker.get_remaining_distance() - before
-	_check(absf(pushed - 0.25 * CELL) < 1.0, "Whirligig pushes a nightmare back 0.25 tiles (%.1f px)" % pushed)
-	before = walker.get_remaining_distance()
-	tower._release()
-	_check(walker.get_remaining_distance() == before, "not again within 3 s")
+	var tower := _plant(whirl, Vector2(6, 6))
+	var sick := _spawn_at(tower.global_position + Vector2(CELL, 0))
+	var next_door := _spawn_at(tower.global_position + Vector2(CELL, CELL))
+	sick.apply_status(EnemyStatuses.SPORED, 6, 5.0, 2.0, 0, "spore", tower)
+	tower._update_status_copy(0.1)
+	_check(next_door.statuses.stacks(EnemyStatuses.SPORED) == 3, "Whirligig copies half the Spored onto the neighbour (%d)" % next_door.statuses.stacks(EnemyStatuses.SPORED))
+	next_door.statuses.remove(EnemyStatuses.SPORED)
+	tower._update_status_copy(0.1)
+	_check(not next_door.statuses.has(EnemyStatuses.SPORED), "not again within 3 s")
 	await _clean()
 
 	# Gust: copies the most-afflicted nightmare's statuses (half stacks) onto 2 nearby ones.
@@ -359,7 +357,11 @@ func _test_pull_and_light() -> void:
 	await process_frame
 	root_tower._release()
 	_check(not root_tower._lit_cells.is_empty(), "Rootlight lights path tiles in range")
-	_check(lit.statuses.has(EnemyStatuses.MARKED), "nightmares in the light are Marked")
+	lit.statuses.apply(EnemyStatuses.HELD, 1, 1.0)
+	root_tower._lit_check = 0.0
+	root_tower._update_lit_holds(0.1)
+	_check(not lit.statuses.has(EnemyStatuses.MARKED) and lit.statuses.time_left(EnemyStatuses.HELD) >= 1.45,
+		"no Exposed any more; a Hold on a lit tile lasts 50%% longer (%.2f s)" % lit.statuses.time_left(EnemyStatuses.HELD))
 	await _clean()
 
 	var honey := _plant(load("res://resource/tower/honeysuckle.tres"), Vector2(5, 5))

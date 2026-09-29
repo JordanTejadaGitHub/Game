@@ -206,6 +206,11 @@ const ASCENDED_JSON := "res://assets/towers/ascended/ascended.json"  # 128×128 
 # in range for `pulse_hold_time` s.
 @export var pulse_hold_every: int = 0
 @export var pulse_hold_time: float = 0.0
+# Rootlight / Starcave (status jobs): Held lasts this many times as long on their lit tiles (0 = no light).
+@export var lit_hold_multiplier: float = 0.0
+# Whirligig (status jobs): every `copy_status_every` s, one status (half its stacks) of the most afflicted
+# nightmare in range goes onto one neighbour within 1.5 cells.
+@export var copy_status_every: float = 0.0
 @export var freeze_cooldown: float = 4.0
 
 @export_group("Trap")
@@ -228,6 +233,7 @@ const ASCENDED_JSON := "res://assets/towers/ascended/ascended.json"  # 128×128 
 @export_group("Birds")
 @export var projectile_returns: bool = false  # The projectile flies back to the Warden (swoop)
 @export var dew_mark: bool = false  # Nightmares it hits drop +1 Dew when dispelled (Magpie Perch)
+@export var strips_buffs: bool = false  # Magpie (status jobs): each hit strips a buff (Enemy.strip_buff)
 @export var crit_dew: int = 0  # Dew per crit (Magpie's Hoard)
 @export var crit_dew_per_drift: int = 0  # Cap on crit Dew per drift
 

@@ -8,7 +8,7 @@
 [resource]
 script = ExtResource("1_tdata")
 display_name = "Rootlight"
-description = "Glowing roots light the path around it; nightmares in the light are Exposed."
+description = "Glowing roots light the path around it; Held lasts 50% longer on lit tiles, and hidden nightmares show in the light."
 cost = 0
 texture = ExtResource("2_tex")
 frame_count = 8
@@ -17,10 +17,10 @@ tier = 2
 buildable_directly = false
 evolve_cost = 80
 attack_kind = 12
+lit_hold_multiplier = 1.5
 attack_range = 3.0
 damage = 13
 attacks_per_second = 1.0
-applies_status = &"marked"
 status_duration = 1.2
 crit_chance = 0.05
 attack_texture = ExtResource("4_atk")

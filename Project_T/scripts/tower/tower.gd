@@ -318,6 +318,10 @@ func _process(delta: float) -> void:
 		_update_catch(delta)  # Dreamcatchers catch sleepy nightmares whether or not they're shooting
 	if attack_data.ability_every > 0.0:
 		_update_ability(delta)
+	if attack_data.lit_hold_multiplier > 0.0 and not _lit_cells.is_empty():
+		_update_lit_holds(delta)
+	if attack_data.copy_status_every > 0.0:
+		_update_status_copy(delta)
 	_update_legacy(delta)
 	match attack_data.attack_kind:
 		TowerData.AttackKind.AURA:
@@ -891,6 +895,7 @@ func _release_attack() -> void:
 				statics_set_off.emit(self, global_position, statics)  # The Great Bell's toll
 			if attack_data.pulse_hold_every > 0 and _attack_count % attack_data.pulse_hold_every == 0:
 				_pulse_hold(in_range)
+			_kin_chime_catch(in_range)
 		TowerData.AttackKind.CHAIN:
 			var target := find_target()
 			if target != null:
@@ -936,6 +941,8 @@ func hit(enemy: Node2D, soothe_multiplier: float = 1.0, is_area: bool = false, c
 	var is_crit := roll_crit(enemy) if crit == ROLL_CRIT else crit == CRIT
 	if attack_data.dew_mark:
 		enemy.bonus_dew = maxi(enemy.bonus_dew, 1)  # Before the hit, so a dispelling hit counts
+	if attack_data.strips_buffs and enemy.has_method("strip_buff"):
+		enemy.strip_buff(self)  # Magpie, the thief: shell chip x2, a Weeper's mending stopped, Omen boosts gone (Enemy's side)
 	var soothe := get_damage() * soothe_multiplier * _damage_against(enemy) * _hit_boost
 	if _dream_state and _dream_state.has_method("get_hit_damage_multiplier"):
 		soothe *= _dream_state.get_hit_damage_multiplier()  # Venom Bloom: hits weaker, effects stronger
@@ -950,7 +957,11 @@ func hit(enemy: Node2D, soothe_multiplier: float = 1.0, is_area: bool = false, c
 	if hammer > 0.0:
 		crit_multiplier = maxf(crit_multiplier, 2.0 + 0.5 * hammer)  # Hammer and Anvil: the sniper's eye
 	if _kin_roll(kin_share(&"flock_together", "a")):
-		enemy.bonus_dew = maxi(enemy.bonus_dew, 1)  # Flock Together: it drops +1 Dew
+		# Flock Together A (status jobs): the wren strips a buff like a magpie, and the robbed nightmare
+		# drops +1 Dew when dispelled.
+		if enemy.has_method("strip_buff"):
+			enemy.strip_buff(self)
+		enemy.bonus_dew = maxi(enemy.bonus_dew, 1)
 	if is_crit and _dream_state and _dream_state.has_method("get_crit_overflow_multiplier"):
 		crit_multiplier += _dream_state.get_crit_overflow_multiplier(get_raw_crit_chance(enemy))  # Full Moon
 	var non_crit := 1.0
@@ -1005,6 +1016,23 @@ func kin_cloud_tick(enemy: Node2D, entered: bool) -> void:
 		var partner := _kin_partner()
 		if partner:
 			enemy.take_damage(partner.get_damage() * fog, partner.tower_data.line, true, false, partner, &"fog")
+
+# Night Chimes A (Chime Stone line; status jobs, 2026-09-29): its pulses Catch full-Drowsy nightmares as if
+# a Dreamcatcher were there (statuses stop wearing off), until the next pulse. No damage bonus any more.
+func _kin_chime_catch(in_range: Array) -> void:
+	var share := kin_share(&"night_chimes", "a")
+	if share <= 0.0:
+		return
+	var hold := 1.1 / maxf(get_attacks_per_second(), 0.1)  # Until just after the next pulse
+	for enemy in in_range:
+		if not is_instance_valid(enemy) or enemy.is_cleansed or not _kin_roll(share):
+			continue
+		var s: EnemyStatuses = enemy.statuses
+		if not s.is_catchable():
+			continue
+		if not s.is_caught():
+			Reactions._effect(&"caught", enemy.global_position, self, 1.0, 0.8)
+		s.caught_time = maxf(s.caught_time, hold)
 
 # Night Chimes (Dreamcatcher line): its hits set off Static at 3 charges, like a chime.
 func _kin_night_chimes(enemy: Node2D) -> void:
@@ -1152,9 +1180,6 @@ func _damage_against(enemy: Node2D) -> float:
 		var anvil := kin_share(&"hammer_and_anvil", "b")
 		if anvil > 0.0 and enemy.statuses.has(EnemyStatuses.MARKED):
 			multiplier *= 1.0 + anvil  # Hammer and Anvil: Mossback's weight, ×2 vs Marked
-		var chimes := kin_share(&"night_chimes", "a")
-		if chimes > 0.0 and enemy.statuses.is_caught():
-			multiplier *= 1.0 + 0.4 * chimes  # Night Chimes: pulses +40% on Caught nightmares
 		var flock := kin_share(&"flock_together", "b")
 		if flock > 0.0 and enemy.enemy_data.resource_path.get_file().get_basename() == "dandelion_seed":
 			multiplier *= 1.0 + 0.25 * flock  # Flock Together: +25% vs Phantoms
@@ -2089,6 +2114,71 @@ func _beam_data() -> TowerData:
 
 func _is_underdog() -> bool:
 	return _dream_state != null and _dream_state.has_method("is_underdog") and _dream_state.is_underdog(self)
+
+# Whirligig (status jobs, 2026-09-29): every copy_status_every s, the most afflicted nightmare in range
+# (the most status stacks) lends its biggest status, half the stacks, to the nearest other nightmare
+# within COPY_REACH cells. The copy keeps the original's strength and applier.
+const COPY_REACH := 1.5
+const COPYABLE: Array[StringName] = [EnemyStatuses.DAMP, EnemyStatuses.DROWSY, EnemyStatuses.SPORED,
+	EnemyStatuses.MARKED, EnemyStatuses.STATIC]
+var _copy_timer := 0.0
+
+func _update_status_copy(delta: float) -> void:
+	_copy_timer -= delta
+	if _copy_timer > 0.0:
+		return
+	var from: Node2D = null
+	var most := 0
+	for enemy in get_enemies_in_range():
+		var total := 0
+		for id in COPYABLE:
+			total += enemy.statuses.stacks(id)
+		if total > most:
+			most = total
+			from = enemy
+	if from == null:
+		return  # Nothing to carry: look again next frame
+	_copy_timer = attack_data.copy_status_every
+	var s: EnemyStatuses = from.statuses
+	var status := &""
+	for id in COPYABLE:
+		if s.stacks(id) > 0 and (status == &"" or s.stacks(id) > s.stacks(status)):
+			status = id
+	var to: Node2D = null
+	for other in nightmares_near(get_tree(), from.global_position, COPY_REACH * MAP_GRID.cell_size.x):
+		if other != from and is_instance_valid(other) and not other.is_cleansed \
+				and other.global_position.distance_to(from.global_position) <= COPY_REACH * MAP_GRID.cell_size.x \
+				and (to == null or other.global_position.distance_to(from.global_position) < to.global_position.distance_to(from.global_position)):
+			to = other
+	if to == null:
+		return
+	var applier: Node = s.source(status)
+	to.apply_status(status, maxi(s.stacks(status) / 2, 1), s.time_left(status), s.potency(status), 0,
+		applier.tower_data.line if applier is Tower else tower_data.line, applier if applier is Tower else self)
+
+# Rootlight / Starcave (status jobs, 2026-09-29): a Hold on a nightmare standing on a lit tile lasts
+# lit_hold_multiplier times as long. Each Hold is stretched once (remembered until it would have ended).
+const LIT_CHECK := 0.25
+var _lit_check := 0.0
+var _lit_stretched := {}  # nightmare instance id -> _anim_time its stretched Hold ends
+
+func _update_lit_holds(delta: float) -> void:
+	_lit_check -= delta
+	if _lit_check > 0.0:
+		return
+	_lit_check = LIT_CHECK
+	for enemy in get_enemies_in_range():
+		var s: EnemyStatuses = enemy.statuses
+		if not s.is_held() or not _lit_cells.has(enemy.get_current_cell()):
+			continue
+		var id: int = enemy.get_instance_id()
+		if _lit_stretched.get(id, -1.0) >= _anim_time:
+			continue  # This Hold was already stretched
+		var longer := s.time_left(EnemyStatuses.HELD) * attack_data.lit_hold_multiplier
+		s.apply(EnemyStatuses.HELD, 1, longer)
+		_lit_stretched[id] = _anim_time + longer
+	if _lit_stretched.size() > 256:
+		_lit_stretched.clear()
 
 # Rootling: every pulse_hold_every-th pulse Holds the nightmare furthest along (not ones that can't be held).
 func _pulse_hold(in_range: Array) -> void:
