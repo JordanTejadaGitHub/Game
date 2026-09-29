@@ -145,7 +145,9 @@ func _toast(text: String) -> void:
 # the default: its button, Esc, right-click or a tap outside; starting the next drift answers it too.
 
 func _build_prompt() -> void:
-	_prompt.add_theme_stylebox_override("panel", UiStyle.panel(14, 10))
+	# Moonlit Thread (ui_style.md): a panel whose thread is the Omen's colour, the ask as a whisper-like
+	# line, and Clear Skies (the default) in the primary look. Buttons are touch-sized.
+	_prompt.add_theme_stylebox_override("panel", UiStyle.panel_in(OMEN_COLOR, 14.0, 12.0))
 	_prompt.mouse_filter = Control.MOUSE_FILTER_STOP
 	_prompt.visible = false
 	var box := VBoxContainer.new()
@@ -153,6 +155,7 @@ func _build_prompt() -> void:
 	_prompt.add_child(box)
 	var ask := Label.new()
 	ask.text = "The wind carries an Omen.\nFace one for a reward?"
+	UiStyle.whisper(ask, 19)
 	ask.add_theme_color_override("font_color", OMEN_COLOR)
 	box.add_child(ask)
 	var row := HBoxContainer.new()
@@ -161,13 +164,14 @@ func _build_prompt() -> void:
 	var see := Button.new()
 	see.text = "See the Omens"
 	see.focus_mode = Control.FOCUS_NONE
+	see.custom_minimum_size.y = 48
 	see.pressed.connect(omens.see_omens)
 	row.add_child(see)
 	var clear := Button.new()
 	clear.text = "Clear Skies"
 	clear.focus_mode = Control.FOCUS_NONE
-	clear.add_theme_stylebox_override("normal", UiStyle.primary_box())  # The default, highlighted
-	clear.add_theme_stylebox_override("hover", UiStyle.primary_box(true))
+	clear.custom_minimum_size.y = 48
+	UiStyle.primary(clear)  # The default, highlighted
 	clear.pressed.connect(omens.choose.bind(null))
 	row.add_child(clear)
 	get_parent().add_child.call_deferred(_prompt)
