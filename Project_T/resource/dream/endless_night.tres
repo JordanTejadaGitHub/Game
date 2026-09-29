@@ -10,6 +10,7 @@ description = "Nightbloom clouds last 7 s and spread 1.5 times as wide."
 rarity = 2
 kind = 3
 tags = Array[String](["reaction"])
+shows_statuses = Array[StringName]([&"spored", &"damp", &"drowsy"])
 requires = Array[String](["bloomcap", "rain_lily", "bellflower"])
 max_stacks = 1
 min_act = 2

@@ -10,6 +10,7 @@ description = "Lightning also jumps to every {damp} nightmare in range."
 rarity = 2
 kind = 3
 tags = Array[String](["light", "water", "storm"])
+shows_statuses = Array[StringName]([&"damp", &"static"])
 requires = Array[String](["stormcap", "rain_lily"])
 max_stacks = 1
 entwined = true

@@ -41,6 +41,7 @@ func _run() -> void:
 	_test_rows_cache()
 	_test_seed_cards()
 	_test_support_cards()
+	_test_needs_text()
 	print("generic cards test: %s" % ("PASS" if failures == 0 else "%d FAILED" % failures))
 	quit(failures)
 
@@ -358,6 +359,29 @@ func _test_support_cards() -> void:
 	_check(dreams.can_offer(quiet, 2) and not dreams.can_offer(quiet, 1), "…offered with 3 walls, from act 2")
 	_clear()
 	_reset()
+
+# How Needs are shown on a card: never the name of a Warden (only statuses, families, card names).
+func _test_needs_text() -> void:
+	_reset()
+	_check(dreams.needs_text(_card("rolling_thunder")) == "Needs: Soaked + Charged", "Rolling Thunder: %s" % dreams.needs_text(_card("rolling_thunder")))
+	_check(dreams.needs_text(_card("starlit_aim")) == "Needs: Pebbling + Firefly Jar families", "Starlit Aim: %s" % dreams.needs_text(_card("starlit_aim")))
+	_check(dreams.needs_text(_card("nursery")) == "Needs: Tender Care + Seedling Gift", "Nursery: %s" % dreams.needs_text(_card("nursery")))
+	var family_names := {}
+	for id in DreamState._every_family().values():
+		family_names[dreams.get_display_name(id) if id != "wall" else "Thornwall"] = true
+	var leaks: Array = []
+	for card in DreamState.load_pool():
+		var text := dreams.needs_text(card)
+		for id in card.requires + card.requires_any + card.grows_with:
+			var path := "res://resource/tower/%s.tres" % id
+			if not ResourceLoader.exists(path):
+				continue
+			var name: String = (load(path) as TowerData).display_name
+			if not family_names.has(name) and text.contains(name):
+				leaks.append("%s: %s" % [card.id, text])
+	_check(leaks.is_empty(), "no Needs text names a Warden (%s)" % ", ".join(leaks))
+	_check(dreams.needs_text(_card("dew_bowl")) == "" and "the Acorn line" == "the %s line" % dreams.family_name_for("acorn"),
+		"Seed cards: the family line")
 
 func _test_rest_rules() -> void:
 	_reset()

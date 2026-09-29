@@ -10,6 +10,7 @@ description = "Ignite spreads 2 {spored} stacks, within 1.5 cells."
 rarity = 1
 kind = 3
 tags = Array[String](["spore", "storm", "reaction"])
+shows_statuses = Array[StringName]([&"spored", &"static"])
 requires = Array[String](["sporeling", "firefly_jar"])
 max_stacks = 1
 rule_id = &"wildfire_spores"

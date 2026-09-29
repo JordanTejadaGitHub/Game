@@ -10,6 +10,7 @@ description = "Tempest arcs reach 1 cell further, and its Ignites spread 2 stack
 rarity = 2
 kind = 3
 tags = Array[String](["reaction"])
+shows_statuses = Array[StringName]([&"damp", &"static", &"spored"])
 requires = Array[String](["stormcap", "rain_lily", "driftspore"])
 max_stacks = 1
 min_act = 2

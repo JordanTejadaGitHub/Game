@@ -10,6 +10,7 @@ description = "Ignite detonations deal 20% more."
 rarity = 0
 kind = 3
 tags = Array[String](["spore", "storm", "reaction"])
+shows_statuses = Array[StringName]([&"spored", &"static"])
 requires = Array[String](["sporeling", "firefly_jar"])
 max_stacks = 3
 rule_id = &"sparking_spores"

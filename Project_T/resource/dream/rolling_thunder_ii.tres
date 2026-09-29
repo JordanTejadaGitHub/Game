@@ -10,6 +10,7 @@ description = "Thunderclap arcs reach 4.5 cells and add 2 {static} stacks."
 rarity = 1
 kind = 3
 tags = Array[String](["storm", "water", "reaction"])
+shows_statuses = Array[StringName]([&"damp", &"static"])
 requires = Array[String](["stormcap", "dewdrop"])
 max_stacks = 1
 deepens = "rolling_thunder"

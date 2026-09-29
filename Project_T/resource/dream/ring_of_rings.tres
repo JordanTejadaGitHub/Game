@@ -10,6 +10,7 @@ description = "Fairy Circle rings last until stepped on (up to 8 per Circle)."
 rarity = 2
 kind = 3
 tags = Array[String](["reaction"])
+shows_statuses = Array[StringName]([&"spored", &"damp", &"held"])
 requires = Array[String](["fairy_ring", "rain_lily", "tangleroot"])
 max_stacks = 1
 min_act = 2

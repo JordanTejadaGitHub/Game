@@ -93,6 +93,9 @@ enum Kind { UNLOCK_WARDEN, UNLOCK_EVOLUTION, STAT, RULE, ECONOMY }
 @export var grows_text: String = ""
 @export var calls_family: String = ""
 @export var min_non_attackers: int = 0  # Non-attacking Wardens (walls, catchers, auras…) on the map; hard Need
+# The statuses a combo card works with, shown as its Needs line (dream_design.md "How Needs are shown
+# on a card"): the card never names a Warden you don't have.
+@export var shows_statuses: Array[StringName] = []
 
 @export_group("Nurture")
 @export var nurture_discount: float = 0.0  # 0.15 = ranks cost 15% less (all cards together max 45%)

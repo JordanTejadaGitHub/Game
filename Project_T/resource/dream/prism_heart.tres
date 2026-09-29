@@ -10,6 +10,7 @@ description = "Prismstorm shards add 3 {static} stacks and fly 0.5 cells further
 rarity = 2
 kind = 3
 tags = Array[String](["reaction"])
+shows_statuses = Array[StringName]([&"damp", &"held", &"static"])
 requires = Array[String](["frostfern", "tangleroot", "stormcap"])
 max_stacks = 1
 min_act = 2

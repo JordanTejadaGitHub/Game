@@ -1972,15 +1972,20 @@ func half_dreamed_text(card: UpgradeData) -> String:
 	var missing := half_dreamed_missing(card)
 	if missing.is_empty():
 		return ""
-	var names: Array = missing.map(get_display_name)
 	var drift := next_family_pick_drift()
 	var boss := _boss_name(drift)
 	if boss.begins_with("The "):
 		boss = "the " + boss.substr(4)  # "after the Hollow Stag"
 	var when := "after %s (drift %d)" % [boss, drift] if boss != "" else "at the family pick after drift %d" % drift
-	if names.size() == 1:
-		return "Needs %s: a family you can pick %s" % [names[0], when]
-	return "Needs %s: families you can pick %s" % [" and ".join(names), when]
+	# Never a Warden's name (dream_design.md "How Needs are shown on a card"): the missing statuses,
+	# else the missing families.
+	var owned := owned_statuses()
+	var statuses: Array = card.shows_statuses.filter(func(s: StringName) -> bool: return not owned.has(s))
+	if not statuses.is_empty():
+		var names: Array = statuses.map(func(s: StringName) -> String: return IconInfo.status_name(s))
+		return "Needs %s: a family that brings it may come %s" % [" + ".join(names), when]
+	var families: Array = missing.map(get_display_name)
+	return "Needs the %s %s: you can pick it %s" % [" and ".join(families), "family" if families.size() == 1 else "families", when]
 
 func _boss_name(drift: int) -> String:
 	if drift < 1 or drift > drift_director.drifts.size():
@@ -2499,3 +2504,79 @@ func walls_added_tiles() -> int:
 func dew_harvested() -> int:
 	var value = run_state.get("dew_harvested")
 	return int(value) if value != null else 0
+
+
+# --- How Needs are shown on a card (dream_design.md, "Card requirements") ---------------------------
+# A card never names a Warden you don't have: combo cards show their statuses (lit if one of your
+# Wardens applies it, dim if not), Warden Needs show the family, card ingredients stay by name.
+
+# {"statuses": [[status id, lit]], "families": [display names], "cards": [display names], "either": bool}
+func needs_parts(card: UpgradeData) -> Dictionary:
+	var parts := {"statuses": [], "families": [], "cards": [], "either": false}
+	if not card.shows_statuses.is_empty():
+		var owned := owned_statuses()
+		for status in card.shows_statuses:
+			parts.statuses.append([status, owned.has(status)])
+	var ids: Array = card.requires.duplicate()
+	if card.requires.is_empty() and not card.requires_any.is_empty():
+		ids = card.requires_any.duplicate()
+		parts.either = true
+	elif not card.requires_any.is_empty():
+		ids.append_array(card.requires_any)
+	for id in ids:
+		var family := family_name_for(id)
+		if family != "":
+			if card.shows_statuses.is_empty() and not parts.families.has(family):
+				parts.families.append(family)
+		elif pool.any(func(c: UpgradeData) -> bool: return c.id == id):
+			var name := get_display_name(id)
+			if not parts.cards.has(name):
+				parts.cards.append(name)
+	return parts
+
+# The family (display name) a Warden id belongs to: "Nestling", "Thornwall" for walls; "" when `id`
+# isn't a Warden.
+func family_name_for(id: String) -> String:
+	var family := family_of(id)
+	if family == "":
+		family = _every_family().get(id, "")  # A family the pick roster doesn't hold (Grove families)
+	if family == "wall":
+		return "Thornwall"
+	return get_display_name(family) if family != "" else ""
+
+# Every Warden id -> its family's base id ("wall" for Thornwall's growths), from all Warden resources.
+static var _families_of_all := {}
+
+static func _every_family() -> Dictionary:
+	if not _families_of_all.is_empty():
+		return _families_of_all
+	var dir := "res://resource/tower/"
+	for file in ResourceLoader.list_directory(dir):
+		if not file.ends_with(".tres"):
+			continue
+		var data := load(dir + file) as TowerData
+		if data == null or data.tier != 1:
+			continue
+		var family := "wall" if data.line == "wall" else data.get_id()
+		var todo: Array = [data]
+		while not todo.is_empty():
+			var form := todo.pop_back() as TowerData
+			if form == null or _families_of_all.has(form.get_id()):
+				continue
+			_families_of_all[form.get_id()] = family
+			todo.append_array(form.evolves_to)
+	return _families_of_all
+
+# "Needs: Soaked + Charged", "Needs: Nestling family", "Needs: Pebbling + Firefly Jar families",
+# "Needs: Tender Care + Seedling Gift" ("" = no Needs to show).
+func needs_text(card: UpgradeData) -> String:
+	var parts := needs_parts(card)
+	var bits: Array[String] = []
+	if not parts.statuses.is_empty():
+		bits.append(" + ".join(parts.statuses.map(func(s: Array) -> String: return IconInfo.status_name(s[0]))))
+	if not parts.families.is_empty():
+		var joiner := " or " if parts.either else " + "
+		bits.append(joiner.join(parts.families) + (" family" if parts.families.size() == 1 else " families"))
+	if not parts.cards.is_empty():
+		bits.append(" + ".join(parts.cards))
+	return "" if bits.is_empty() else "Needs: " + " · ".join(bits)
