@@ -7,7 +7,8 @@ class_name TowerSeller
 #   click                  one Warden (empty ground clears the selection)
 #   click and drag         every Warden in the box (Thornwalls only if the box has nothing else);
 #                          the drag starts after DRAG_THRESHOLD px so clicks stay clicks
-#   double-click           every Warden of the same kind visible on screen (Ctrl: on the whole map)
+#   double-click           every Warden of the same kind and Nurture rank on screen (Ctrl: the whole map;
+#                          Alt: any rank)
 #   Shift + click / drag   add to / remove from the selection
 #   Esc                    clear
 # The Warden panel shows the selection and grows, nurtures (R) or sells it as a group.
@@ -177,14 +178,22 @@ func get_towers_in_rect(world_rect: Rect2) -> Array[Tower]:
 	return wardens if not wardens.is_empty() else walls
 
 # Every Warden of `data`'s kind, on screen only unless `whole_map`.
-func get_same_kind(data: TowerData, whole_map: bool) -> Array[Tower]:
+# Wardens of `data` on screen (whole_map: anywhere); with `rank` >= 0, only those at that Nurture rank.
+func get_same_kind(data: TowerData, whole_map: bool, rank: int = -1) -> Array[Tower]:
 	var view := _visible_world_rect()
 	var result: Array[Tower] = []
 	for tower in tower_container.get_children():
 		if tower is Tower and not tower.is_queued_for_deletion() and tower.tower_data == data \
-				and (whole_map or view.has_point(tower.position)):
+				and (rank < 0 or tower.rank == rank) and (whole_map or view.has_point(tower.position)):
 			result.append(tower)
 	return result
+
+# Double-click / touch long-press (screens_ui.md "Selecting several Wardens"): the same kind AND the
+# same Nurture rank as `tower`; `any_rank` (Alt) = the same kind at any rank; `whole_map` (Ctrl) = not
+# just on screen; `add` (Shift) = add to the selection.
+func select_same_as(tower: Tower, whole_map: bool, any_rank: bool, add: bool = false) -> void:
+	var same := get_same_kind(tower.tower_data, whole_map, -1 if any_rank else tower.rank)
+	set_selection(selection + same if add else same)
 
 func _visible_world_rect() -> Rect2:
 	var viewport := get_viewport()
@@ -448,12 +457,7 @@ func _on_press(event: InputEvent) -> void:
 	var mouse := event as InputEventMouseButton
 	var shift := mouse != null and mouse.shift_pressed
 	if mouse != null and mouse.double_click and _hover_tower != null:
-		var whole_map := mouse.ctrl_pressed or mouse.meta_pressed
-		var same := get_same_kind(_hover_tower.tower_data, whole_map)
-		if shift:
-			set_selection(selection + same)
-		else:
-			set_selection(same)
+		select_same_as(_hover_tower, mouse.ctrl_pressed or mouse.meta_pressed, mouse.alt_pressed, shift)
 		_pressing = false
 		return
 	_pressing = true

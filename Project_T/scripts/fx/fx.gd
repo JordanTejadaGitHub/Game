@@ -424,6 +424,10 @@ class FxCallout extends Node2D:
 	var _colour: Color
 	var _age := 0.0
 
+	# Out of Fx's static list as it leaves (a static holding freed nodes crashed the engine's teardown).
+	func _exit_tree() -> void:
+		Fx._callouts_alive.erase(self)
+
 	func _init(text: String, colour: Color) -> void:
 		_text = text
 		_colour = colour
@@ -450,6 +454,10 @@ class FxCallout extends Node2D:
 # The chain badge: pops in, shows "x" + the count in its window, holds, then fades.
 class FxBadge extends Node2D:
 	const HOLD := 0.9
+
+	func _exit_tree() -> void:
+		if Fx._badge == self:
+			Fx._badge = null  # (See FxCallout._exit_tree)
 	const TEXT_SIZE := 8  # Drawn at 2× (the badge is scaled up)
 	const LINK_SIZE := Vector2(16, 16)  # Room for the icon (its sheet is 16×16 frames)
 	var _tex: Texture2D

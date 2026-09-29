@@ -69,9 +69,9 @@ leaves lost by 25 / 50 / 75, banked Dew at act starts, the most frequent top War
 
 | Check | Target |
 |---|---|
-| Fresh, Balanced: first leak | drift **12–18** |
-| Fresh, Balanced: leaves lost by drift 25 | **5–8** of 15 |
-| Fresh, Balanced: run end | **act 2** (drift 30–50) in most runs; a win in **< 5%** |
+| Fresh, Balanced: first leak | drift **20 or later** (revised 2026-09-28: act 1 teaches; reach 25) |
+| Fresh, Balanced: leaves lost by drift 25 | **0–3** of 15; **reaches drift 25** in almost every run |
+| Fresh, Balanced: run end | **act 2** (drift 35–50) in most runs; a win in **< 5%** |
 | Early | usually reaches **act 3** |
 | Half | wins sometimes (the first win) |
 | Full | wins in **most** runs at Blight 0 |
@@ -123,6 +123,18 @@ Income only for drifts 1–60 (assumed perfect blocks), then drifts 61–70 foug
   fresh run, the fix is a sink or less income, not more health.
 
 - **Watch: mass-Sprout mazes. User: "Sprout spam should be a build"** (2026-09-28): a real archetype you commit to through Sprout cards, not the default. Plan if the numbers confirm it's too strong **without** those cards: Sprouts cost +1 Dew per Sprout on the map, and **Seedfall** becomes "Sprouts cost 6 and their price never rises" (the door into the build). The **Sprout** style is its own bot style. Playtest ( fresh profile, drift 23: 60+ Sprouts with Sprout Surge, **15/15 leaves and 782 Dew banked**, far easier than the 5–8 leaves lost by 25 target). The user chose to wait for the numbers: the **Wide** style must be in the first batches, with Sprouts as its walls (Seedfall, Sprout Surge, Root Network). If Wide beats the 1.5× Balanced limit, the leading fix is **Sprouts cost +1 Dew per Sprout on the map**.
+
+## First batch (tools/balance_sim.gd, 2026-09-28; Fresh, 5 seeds, every drift fought; baseline `tools/balance_baseline.json`)
+
+| Style | Survival (median, range) | First leak | Leaves lost by 25 | Banked Dew (× rest bonus) |
+|---|---|---|---|---|
+| Balanced | 42 (23–49) | 20 | 4 | 2.1 |
+| Wide | 19 (19–37): **0.45× Balanced** | — | — | — |
+| Sprout | **67 (46–67): 1.6× Balanced** | 50 | 0 | 2.6 |
+
+- **Balanced** is close to the revised act 1 target (one run died at 23; 4 leaves by 25 is one over).
+- **Wide** died at drift 20 in 4 of 5: the old **Wake** (10 Mourners, all spore-resistant) wiped single-family Sporeling boards. Fixed in `acts_1_2.md` plus a new rule: no act 1 drift over ~40% of its health resistant to one type (`enemy_design.md`).
+- **Sprout** is too strong **without its cards** (a seed with 0 Sprout cards reached drift 67 losing nothing) and ends in sudden wipes, not leaks. Decision pending with the user: the planned Sprout price rule.
 
 ## Later
 

@@ -68,6 +68,8 @@ func _process(delta: float) -> void:
 	for enemy in get_tree().get_nodes_in_group(Tower.ENEMY_GROUP):
 		if not is_instance_valid(enemy) or enemy.is_cleansed:
 			continue
+		if kind != Kind.NIGHTBLOOM and enemy.is_flying():
+			continue  # The pool and the rings are on the ground: flyers pass over (Nightbloom is a cloud)
 		match kind:
 			Kind.STILL_POOL:
 				_pool(enemy)

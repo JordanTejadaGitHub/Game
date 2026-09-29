@@ -23,6 +23,12 @@ signal omen_rewarded(omen: OmenData, summary: String)
 @export var first_rest_drift: int = 10
 @export var omens_per_offer: int = 2
 
+const MODE_SETTING := "omens"  # Settings > Gameplay: "ask" (default) or "never"
+var force_omen := false  # Blight Levels that force an Omen: only the two Omen cards, no Clear Skies
+var mode_override := ""  # Tests and tools: "ask" / "never" instead of the player's setting
+var showing := false  # The Omen screen is open
+var forced := false  # The open offer can't be declined ("An Omen must be faced")
+
 var active: OmenData = null
 var active_block := 0  # The block `active` twists
 var current_offer: Array[OmenData] = []
@@ -63,8 +69,19 @@ static func load_pool() -> Array[OmenData]:
 
 # --- Queries (DriftDirector, UI) -------------------------------------------------------------------
 
+# The Omen screen is open (after the Dream, like it: two Omens and Clear Skies; pauses).
 func is_offering() -> bool:
-	return not current_offer.is_empty()
+	return showing and not current_offer.is_empty()
+
+# "ask" (the Omen screen each Omen rest, the default) or "never" (always Clear Skies, no screen).
+func get_mode() -> String:
+	if mode_override != "":
+		return mode_override
+	return str(HeartwoodMemory.get_settings().get(MODE_SETTING, "ask"))
+
+func _show_cards() -> void:
+	showing = true
+	offer_ready.emit(current_offer, current_offer_block)
 
 # First and last drift of block `block`.
 func get_block_range(block: int) -> Vector2i:
@@ -266,9 +283,10 @@ func _on_obstacle_cleared(_cell: Vector2, data: ObstacleData) -> void:
 	if tree_seed_bonus > 0 and data == TREE and not run_state.clearing_without_seeds:
 		run_state.omen_seeds += tree_seed_bonus
 
-# Picks `omen` for the offered block; null = Clear Skies.
+# Picks `omen` for the offered block; null = Clear Skies (its card, Esc, right-click; not when the
+# Omen is forced).
 func choose(omen: OmenData) -> void:
-	if not is_offering() or (omen != null and not current_offer.has(omen)):
+	if current_offer.is_empty() or (omen != null and not current_offer.has(omen)) or (omen == null and forced):
 		return
 	if omen != null:
 		active = omen
@@ -276,7 +294,11 @@ func choose(omen: OmenData) -> void:
 		var drifts := get_block_range(active_block)
 		omen_started.emit(omen, drifts.x, drifts.y)
 	current_offer = []
-	offer_closed.emit()
+	var was_showing := showing
+	showing = false
+	forced = false
+	if was_showing:
+		offer_closed.emit()
 
 func _on_rest_started(block: int, _is_boss_rest: bool, bonus: int, _perfect: bool) -> void:
 	# Pay first, so "next Dream" rewards count for this rest's Dream (its offer is built deferred).
@@ -297,7 +319,13 @@ func _try_show() -> void:
 	if not _offer_waiting or dream_state.is_offering() or dream_state.has_pending_offer():
 		return
 	_offer_waiting = false
-	offer_ready.emit(current_offer, current_offer_block)
+	if force_omen:  # A Blight Level: the cards at once, and one must be taken
+		forced = true
+		_show_cards()
+	elif get_mode() == "never":
+		current_offer = []  # Always Clear Skies, no screen
+	else:
+		_show_cards()  # Shown like a Dream: two Omens and a Clear Skies card
 
 func _pay_reward(rest_bonus: int) -> void:
 	var omen := active
@@ -328,6 +356,8 @@ func _pay_reward(rest_bonus: int) -> void:
 
 # The run was won during an Omen's block: there's no rest after it, so pay now (Seeds still count).
 func _on_run_ended(won: bool) -> void:
+	showing = false
+	forced = false
 	current_offer = []
 	_offer_waiting = false
 	if won and active != null:
@@ -357,6 +387,7 @@ func _block_flyers(drifts: Vector2i) -> Array[EnemyData]:
 func to_save() -> Dictionary:
 	return {"active": active.id if active != null else "", "active_block": active_block,
 		"last_offer": _last_offer_ids.duplicate(), "tree_seed_bonus": tree_seed_bonus, "sprouted_block": _sprouted_block,
+		"offer": current_offer.map(func(o: OmenData) -> String: return o.id), "offer_block": current_offer_block,
 		"rng_state": str(_rng.state)}
 
 func load_save(data: Dictionary) -> void:
@@ -365,6 +396,17 @@ func load_save(data: Dictionary) -> void:
 	_last_offer_ids.assign(data.get("last_offer", []))
 	tree_seed_bonus = int(data.get("tree_seed_bonus", 0))
 	_sprouted_block = int(data.get("sprouted_block", 0))
+	# An offer still open at a save comes back as the Omen screen
+	current_offer = []
+	showing = false
+	for offered_id in data.get("offer", []):
+		for omen in pool:
+			if omen.id == offered_id:
+				current_offer.append(omen)
+	current_offer_block = int(data.get("offer_block", 0))
+	if not current_offer.is_empty():
+		_offer_waiting = true
+		_try_show.call_deferred()
 	var id: String = data.get("active", "")
 	for omen in pool:
 		if omen.id == id:

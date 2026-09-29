@@ -32,9 +32,13 @@ static func migrate_old_saves() -> void:
 			DirAccess.make_dir_recursive_absolute(new_dir)
 			DirAccess.copy_absolute(source, target)
 
+const GROUP := &"title_screen"
+
 func _ready() -> void:
 	migrate_old_saves()
+	DevGrove.apply()  # Dev Grove (debug builds): the dev profile, before anything reads the profile
 	HeartwoodMemory.apply_settings()
+	add_to_group(GROUP)
 	add_to_group(StatusLinks.CODEX_HOST_GROUP)  # Status links' "More in the Codex"
 	set_anchors_preset(Control.PRESET_FULL_RECT)
 	var background := ColorRect.new()
@@ -51,7 +55,7 @@ func _ready() -> void:
 	var title := Label.new()
 	title.text = TITLE
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	title.add_theme_font_size_override("font_size", 44)
+	UiStyle.display(title, 44)
 	title.add_theme_color_override("font_color", Color(0.85, 1.0, 0.8))
 	_menu.add_child(title)
 	if ResultsScreen.is_demo():
@@ -62,9 +66,12 @@ func _ready() -> void:
 		_menu.add_child(demo)
 	_menu.add_child(HSeparator.new())
 
+	# The first choice takes the primary look (ui_style.md "Buttons").
 	if RunSaver.has_save():
-		_add_button("Continue", _continue)
-	_add_button("New run", _new_run)
+		UiStyle.primary(_add_button("Continue", _continue))
+	var new_run := _add_button("New run", _new_run)
+	if not RunSaver.has_save():
+		UiStyle.primary(new_run)
 	if ResultsScreen.is_demo():
 		var grove := _add_button("Memory Grove (in the full game)", func() -> void: pass)
 		grove.disabled = true
@@ -111,6 +118,10 @@ func _ready() -> void:
 		MetaRun.blight_level = level
 		_go())
 
+# Rebuilds the title (Continue, the Memory Grove button, Seeds) after a developer setting changes.
+func refresh() -> void:
+	get_tree().reload_current_scene.call_deferred()
+
 # The Codex on a tab / entry (a status link's "More in the Codex").
 func open_codex(tab: StringName = &"", entry: String = "") -> void:
 	_menu.visible = false
@@ -120,7 +131,7 @@ func open_codex(tab: StringName = &"", entry: String = "") -> void:
 func _add_button(text: String, action: Callable) -> Button:
 	var button := Button.new()
 	button.text = text
-	button.custom_minimum_size = Vector2(0, 44)
+	button.custom_minimum_size = Vector2(0, 48)
 	button.focus_mode = Control.FOCUS_NONE
 	button.pressed.connect(action)
 	_menu.add_child(button)

@@ -18,3 +18,5 @@ coat_per_hit = 6
 coat_total = 100
 trait_text = "A dread shell shrugs off small hits until it breaks."
 cracked_frames = ExtResource("9_cracked")
+intro_lines = Array[String](["A dread shell takes {coat_per_hit} off every hit until it has soaked up {coat_total} (more in later drifts), then cracks off."])
+hint = "Small hits bounce off: break the shell with heavy ones."

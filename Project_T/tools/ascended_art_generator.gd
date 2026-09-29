@@ -47,13 +47,13 @@ func _init() -> void:
 	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(PREVIEWS))
 	var rows: Array = []
 	for warden: String in ASCENDED:
-		var idle := _gsheet(warden + ".png", FRAMES, W, H, func(cv: Image, f: int) -> void: _draw_ascended(warden, cv, _idle_state(f)))
-		var attack := _gsheet(warden + "_attack.png", ATTACK_FRAMES, W, H, func(cv: Image, a: int) -> void: _draw_ascended(warden, cv, _attack_state(a)))
+		var idle := _gsheet(warden + ".png", FRAMES, W, H, func(cv: Image, f: int) -> void: _draw_ascended(warden, cv, _idle_state(f)), true)
+		var attack := _gsheet(warden + "_attack.png", ATTACK_FRAMES, W, H, func(cv: Image, a: int) -> void: _draw_ascended(warden, cv, _attack_state(a)), true)
 		rows.append([idle, attack])
 	var empty := _gsheet("dawnwing_empty.png", FRAMES, W, H, func(cv: Image, f: int) -> void:
 		var st := _idle_state(f)
 		st["empty"] = true
-		_draw_ascended("dawnwing", cv, st))
+		_draw_ascended("dawnwing", cv, st), true)
 	rows.append([empty, null])
 	_save_rows(rows, W, H, PREVIEWS + "ascended.png", 2)
 	var fx: Array = []
@@ -65,21 +65,23 @@ func _init() -> void:
 	fx.append(_gsheet("root_grasp.png", 6, 64, 64, _root_grasp))
 	_save_fx_preview(fx, PREVIEWS + "ascended_effects.png")
 	var sap: Array = []
-	sap.append(_gsheet("heartwood_sapling.png", FRAMES, 128, 160, func(cv: Image, f: int) -> void: _sapling(cv, f, 0, false, -1)))
-	sap.append(_gsheet("heartwood_sapling_ripen.png", 6, 128, 160, func(cv: Image, a: int) -> void: _sapling(cv, a, a, false, -1)))
-	sap.append(_gsheet("heartwood_sapling_withered.png", FRAMES, 128, 160, func(cv: Image, f: int) -> void: _sapling(cv, f, 0, true, -1)))
+	sap.append(_gsheet("heartwood_sapling.png", FRAMES, 128, 160, func(cv: Image, f: int) -> void: _sapling(cv, f, 0, false, -1), true))
+	sap.append(_gsheet("heartwood_sapling_ripen.png", 6, 128, 160, func(cv: Image, a: int) -> void: _sapling(cv, a, a, false, -1), true))
+	sap.append(_gsheet("heartwood_sapling_withered.png", FRAMES, 128, 160, func(cv: Image, f: int) -> void: _sapling(cv, f, 0, true, -1), true))
 	sap.append(_gsheet("heartwood_sapling_ranks.png", 5, 128, 160, func(cv: Image, r: int) -> void: _sapling_rank(cv, r + 1)))
 	_save_rows([[sap[0], sap[1]], [sap[2], null], [sap[3], null]], 128, 160, PREVIEWS + "heartwood_sapling.png", 2)
 	_save_info()
 	print("ascended art written")
 	quit()
 
-func _gsheet(file: String, n: int, w: int, h: int, draw: Callable) -> Image:
+func _gsheet(file: String, n: int, w: int, h: int, draw: Callable, warden_art: bool = false) -> Image:
 	var sheet := Image.create_empty(w * n, h, false, Image.FORMAT_RGBA8)
 	for i in n:
 		var cv := Image.create_empty(w, h, false, Image.FORMAT_RGBA8)
 		draw.call(cv, i)
 		sheet.blit_rect(cv, Rect2i(0, 0, w, h), Vector2i(i * w, 0))
+	if warden_art:
+		sheet = _detail_pass(sheet, Vector2i(w, h))  # the palette pass, like every Warden sheet
 	sheet.save_png(AOUT + file)
 	return sheet
 
@@ -451,6 +453,28 @@ func _fig_at(pose: Dictionary, tx: int, ty: int) -> String:
 		return "."
 	return pose.grid[i]
 
+# The Ascended golem's template: no rocks (the body and right foot behind the front one are drawn in
+# _golem, since the golem is bigger than the rocks now).
+var _asc_pose_cache := {}
+
+func _ascended_pose(pose: Dictionary) -> Dictionary:
+	var key: int = pose.grid.hash()
+	if _asc_pose_cache.has(key):
+		return _asc_pose_cache[key]
+	var grid: Array = pose.grid.duplicate()
+	var outside: PackedByteArray = pose.outside.duplicate()
+	for i in S * S:
+		if grid[i] != "." and outside[i] == 0 and _is_rock(pose, i % S, i / S):
+			grid[i] = "."
+	# The centre foot joins the backside: its right-hand outline (x 33) becomes body.
+	for ty in range(39, 45):
+		var i := ty * S + 33
+		if grid[i] == "o":
+			grid[i] = "b"
+	var result := {grid = grid, outside = outside}
+	_asc_pose_cache[key] = result
+	return result
+
 func _place_figure() -> void:
 	# Centre the figure on the slab, feet on its top face.
 	var pose: Dictionary = poses[0]
@@ -467,7 +491,7 @@ func _place_figure() -> void:
 func _golem(canvas: Image, st: Dictionary, fig: Dictionary, opts: Dictionary = {}) -> Image:
 	if fo == Vector2.ZERO:
 		_place_figure()
-	var pose: Dictionary = st.pose
+	var pose: Dictionary = _ascended_pose(st.pose)
 	var dy: int = st.get("tdy", st.dy)
 	var colors := {a = fig.a, b = fig.b, c = fig.c, o = fig.o}
 	var body := _gnew(canvas)
@@ -495,6 +519,19 @@ func _golem(canvas: Image, st: Dictionary, fig: Dictionary, opts: Dictionary = {
 			if not colors.has(ch):
 				continue
 			body.set_pixel(x, y, colors[ch])
+	# Where the front rock stood: the backside. From the feet (front middle, on the ground) its
+	# outline curves round and up to the body's right side, a tapering quarter-oval.
+	var butt_c := Vector2(33.0, 37.0)  # template px: the curve's corner, right over the centre foot
+	var butt_r := Vector2(12.0, 8.5)
+	for y in 128:
+		for x in 128:
+			var t := (Vector2(x + 0.5, y + 0.5) - fo - Vector2(0, dy)) / K
+			if t.x < butt_c.x or t.y < butt_c.y or body.get_pixel(x, y).a > 0.0:
+				continue
+			var d := (t - butt_c) / butt_r
+			if d.length_squared() > 1.0:
+				continue
+			body.set_pixel(x, y, colors["c" if d.length_squared() > 0.72 else ("a" if t.x > 41.0 else "b")])
 	# Fresh 1 px outline round the silhouette.
 	var mask := _gnew(canvas)
 	for y in 128:

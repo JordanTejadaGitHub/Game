@@ -18,9 +18,9 @@ signal run_ended(won: bool)
 @export var starting_dew: int = 60  # run_design.md "Opening rule": enough Sprouts for drift 1
 @export var starting_leaves: int = 15  # Difficulty pass v1: was 20
 @export var max_leaves: int = 15
-# Dispel Dew by act (economy pass v2, run_design.md): acts 1–4. Acts 1–2 × 0.85 ("Interim acts 1–2
-# tightening": was 1.0, 0.8).
-@export var act_dew_multipliers: Array[float] = [0.85, 0.68, 0.65, 0.5]
+# Dispel Dew by act (economy pass v2, run_design.md): acts 1–4. Act 2 × 0.85 (interim, "Difficulty
+# curve targets": was 0.8; act 1 stays whole so a fresh profile reaches drift 25).
+@export var act_dew_multipliers: Array[float] = [1.0, 0.68, 0.65, 0.5]
 var _dispel_dew_carry := 0.0
 
 var dew: int

@@ -52,6 +52,8 @@ func draw():
 		if cell == cell_start_path:
 			mask |= _edge_mask(cell)
 		set_cell(cell, EnvironmentTiles.PATH, EnvironmentTiles.path_tile(mask))
+		if board != null:
+			board.environment_object_layer.wear_away(Vector2i(cell))  # The path wore the debris away
 		current_path_curve.add_point(grid.calculate_map_position(cell))
 
 # The neighbour bit pointing off the map from an edge cell (N=1, E=2, S=4, W=8), else 0.

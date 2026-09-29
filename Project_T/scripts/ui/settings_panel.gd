@@ -43,7 +43,7 @@ func _ready() -> void:
 	add_child(outer)
 	var title := Label.new()
 	title.text = "Settings"
-	title.add_theme_font_size_override("font_size", 24)
+	UiStyle.display(title, 24)
 	outer.add_child(title)
 	# Tabs as in screens_ui.md "Settings" (Language comes with translations).
 	tabs.custom_minimum_size = Vector2(0, 420)
@@ -70,6 +70,8 @@ func _ready() -> void:
 	_toggle(gameplay, "Pause on new combos", ComboFeedback.PAUSE_SETTING, true)
 	_toggle(gameplay, "Always show resist / weak pips on nightmares", ResistPips.SETTING, false)
 	_choice(gameplay, "Kinship effects", "kinship_effects", ["Full", "Subtle", "Off"], 0)
+	# Omens (run_design.md "Ask first"): "ask" at each Omen rest, or "never" = always Clear Skies.
+	_choice_values(gameplay, "Omens", OmenDirector.MODE_SETTING, ["Ask each rest", "Never"], ["ask", "never"], "ask")
 	_choice(gameplay, "Health bars", "health_bars", ["On hit", "Always"], 0)
 
 	var box := _tab("Accessibility")
@@ -107,6 +109,30 @@ func _ready() -> void:
 			get_tree().paused = false
 			get_tree().change_scene_to_file.call_deferred(TITLE_SCENE))
 		box.add_child(demo)
+		# Dev Grove (demo_scope.md): runs and the Memory Grove on a preset profile, never the real one.
+		var dev_row := HBoxContainer.new()
+		var dev_label := Label.new()
+		dev_label.text = "Dev Grove"
+		dev_label.custom_minimum_size = Vector2(120, 0)
+		dev_row.add_child(dev_label)
+		var dev := OptionButton.new()
+		for level in DevGrove.LEVELS:
+			dev.add_item(String(level).capitalize())
+		dev.selected = maxi(DevGrove.LEVELS.find(StringName(str(_settings.get(DevGrove.SETTING, "off")))), 0)
+		dev.focus_mode = Control.FOCUS_NONE
+		dev.item_selected.connect(func(index: int) -> void:
+			_set_value(DevGrove.SETTING, String(DevGrove.LEVELS[index]))
+			var title_node := get_tree().get_first_node_in_group(&"title_screen")
+			if title_node and get_tree().current_scene == title_node:
+				title_node.refresh())  # Mid-run it waits for the title, so the run keeps its profile
+		dev_row.add_child(dev)
+		box.add_child(dev_row)
+		var dev_note := Label.new()  # Shown, not a tooltip (touch)
+		dev_note.text = "Plays runs and the Memory Grove with that much of the tree unlocked (dev profile; nothing saved to your real profile). The full game while on; applies at the title screen."
+		dev_note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		dev_note.add_theme_font_size_override("font_size", 13)
+		dev_note.modulate = Color(1, 1, 1, 0.7)
+		box.add_child(dev_note)
 
 	var keys_title := Label.new()
 	keys_title.text = "Keys (click, then press a key)"
@@ -255,3 +281,19 @@ func _refresh_keys() -> void:
 			if event is InputEventKey:
 				names.append(OS.get_keycode_string(event.physical_keycode))
 		_key_buttons[action].text = ", ".join(names) if not names.is_empty() else "—"
+
+# Like _choice, but saves `values[index]` (a string) instead of the index.
+func _choice_values(box: VBoxContainer, text: String, key: String, options: Array, values: Array, default: String) -> void:
+	var row := HBoxContainer.new()
+	var label := Label.new()
+	label.text = text
+	label.custom_minimum_size = Vector2(120, 0)
+	row.add_child(label)
+	var pick := OptionButton.new()
+	for option in options:
+		pick.add_item(option)
+	pick.selected = maxi(values.find(str(_settings.get(key, default))), 0)
+	pick.focus_mode = Control.FOCUS_NONE
+	pick.item_selected.connect(func(index: int) -> void: _set_value(key, values[index]))
+	row.add_child(pick)
+	box.add_child(row)

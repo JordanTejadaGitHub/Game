@@ -290,16 +290,31 @@ func _attack_state(a: int) -> Dictionary:
 		blink = a < RELEASE_FRAME, lift = ATTACK_LIFT[a], power = ATTACK_POWER[a], wave = ATTACK_LIFT[a] * 2}
 
 func _make(tower_name: String, draw: Callable) -> Image:
+	_warden_name = tower_name
 	var sheet := Image.create_empty(S * FRAMES, S, false, Image.FORMAT_RGBA8)
 	for f in FRAMES:
 		var canvas := _layer()
 		draw.call(canvas, _idle_state(f))
 		sheet.blit_rect(canvas, Rect2i(0, 0, S, S), Vector2i(f * S, 0))
+	sheet = _detail_pass(sheet, Vector2i(S, S))
 	sheet.save_png(OUT + tower_name + ".png")
 	return sheet
 
+# The Heartwood 32 palette and the detailed-64 pass (tools/art/detail_pass.gd, art_direction.md
+# "Rendering style"): every Warden sheet goes through it before saving, frame by frame. Loaded by
+# path so the generator still runs where the tools aren't present (then the art is left as drawn).
+const DETAIL_PASS := "res://tools/art/detail_pass.gd"
+
+func _detail_pass(sheet: Image, frame: Vector2i) -> Image:
+	if not ResourceLoader.exists(DETAIL_PASS):
+		push_warning("tools/art/detail_pass.gd not found: saving Warden art without the palette pass")
+		return sheet
+	var pass_script: Script = load(DETAIL_PASS)
+	return pass_script.apply_sheet(sheet, frame, pass_script.Kind.WARDEN)
+
 # <name>_attack.png: the Warden's body in attack poses plus its attack effect on top.
 func _make_attack(tower_name: String) -> Image:
+	_warden_name = tower_name
 	var sheet := Image.create_empty(S * ATTACK_FRAMES, S, false, Image.FORMAT_RGBA8)
 	for a in ATTACK_FRAMES:
 		var canvas := _layer()
@@ -307,6 +322,7 @@ func _make_attack(tower_name: String) -> Image:
 		call("_draw_" + tower_name, canvas, st)
 		call("_attack_" + tower_name, canvas, st)
 		sheet.blit_rect(canvas, Rect2i(0, 0, S, S), Vector2i(a * S, 0))
+	sheet = _detail_pass(sheet, Vector2i(S, S))
 	sheet.save_png(OUT + tower_name + "_attack.png")
 	return sheet
 
@@ -370,15 +386,217 @@ func _parse(rows: Array, top: int = TOP) -> Dictionary:
 				stack.append(j)
 	return {grid = grid, outside = outside}
 
-# Draws the figure and returns its mask (for decorations that should only land on the golem).
+# Draws the figure and returns its mask (for decorations that should only land on the golem). The
+# two little rocks beside the golem are the same neutral stone on every Warden (ROCK_PAL).
 func _draw_template_figure(canvas: Image, pose: Dictionary, pal: Dictionary) -> Image:
 	var mask := _layer()
 	for i in S * S:
 		var ch: String = pose.grid[i]
 		if ch != "." and pose.outside[i] == 0:
-			canvas.set_pixel(i % S, i / S, pal[ch])
-			mask.set_pixel(i % S, i / S, Color.WHITE)
+			var rock := _is_rock(pose, i % S, i / S)
+			if rock and _rock_group(i % S, i / S) in _hidden_rocks():
+				continue  # This Warden's own props stand there.
+			canvas.set_pixel(i % S, i / S, ROCK_PAL[ch] if rock else pal[ch])
+			if not rock:
+				mask.set_pixel(i % S, i / S, Color.WHITE)
+	var rock_px := {}
+	for i in S * S:
+		if pose.grid[i] != "." and pose.outside[i] == 0 and _is_rock(pose, i % S, i / S) \
+				and not _rock_group(i % S, i / S) in _hidden_rocks():
+			rock_px[Vector2i(i % S, i / S)] = true
+	_touch_rocks(canvas, rock_px, _rock_touch_for(_warden_name))
 	return mask
+
+# --- The rocks' family touches -------------------------------------------------------------------
+# The rocks are the same stone everywhere; each family leaves a small mark on them: moss, ice, a
+# wet sheen, tiny mushrooms, resting fireflies... Set per Warden while its sheets are drawn.
+
+var _warden_name := ""
+const ROCK_TOUCH_LINES := {
+	"sporeling": "spores", "dewdrop": "wet", "firefly_jar": "fireflies", "pebbling": "lichen",
+	"rootling": "roots", "bellflower": "bells", "acorn": "acorns", "nestling": "twigs",
+	"whirligig": "seeds", "memory": "runes", "starters": "leaves",
+}
+const ROCK_TOUCH_WARDENS := {
+	"frostfern": "ice", "hoarfrost": "ice", "sunpetal": "moss", "midsummer": "moss",
+	"thornwall": "thorns", "bramble": "thorns", "honeysuckle": "thorns",
+}
+# Rocks hidden where a Warden's own props stand (left / right / front of the golem).
+const HIDDEN_ROCKS := {
+	"echo_hollow": ["left"], "whispering_hollow": ["left"],
+}
+
+func _hidden_rocks() -> Array:
+	return HIDDEN_ROCKS.get(_warden_name, [])
+
+func _rock_touch_for(warden: String) -> String:
+	if ROCK_TOUCH_WARDENS.has(warden):
+		return ROCK_TOUCH_WARDENS[warden]
+	for line: String in LINES:
+		if warden in LINES[line]:
+			return ROCK_TOUCH_LINES.get(line, "")
+	return ""
+
+# Which of the three rocks a template pixel belongs to.
+func _rock_group(tx: int, ty: int) -> String:
+	if ty >= 42 or (tx >= 32 and tx <= 43 and ty >= 38):
+		return "front"
+	return "left" if tx < 26 else "right"
+
+# Marks the rock pixels `px` ({Vector2i: true}, in canvas pixels) with a family touch. Works on any
+# canvas size (the Ascended layer is 128 px).
+func _touch_rocks(canvas: Image, px: Dictionary, touch: String) -> void:
+	if touch == "" or px.is_empty():
+		return
+	var w := canvas.get_width()
+	var h := canvas.get_height()
+	var put := func(p: Vector2i, c: Color) -> void:
+		if p.x >= 0 and p.y >= 0 and p.x < w and p.y < h:
+			canvas.set_pixelv(p, c)
+	var tops: Array[Vector2i] = []  # rock pixels with open space above: where things settle
+	for p: Vector2i in px:
+		if not px.has(p + Vector2i.UP) and canvas.get_pixelv(p) != ROCK_PAL.o:
+			tops.append(p)
+	tops.sort_custom(func(a: Vector2i, b: Vector2i) -> bool: return a.x < b.x)
+	var hash := func(p: Vector2i) -> int: return absi(p.x * 73 + p.y * 151) % 7
+	match touch:
+		"moss", "lichen", "leaves":
+			var greens: Array = [Color("#5a9a48"), Color("#8ad060")] if touch != "lichen" else [Color("#a8b860"), Color("#d8d890")]
+			for p in tops:
+				put.call(p, greens[1])
+				if hash.call(p) < 4:
+					put.call(p + Vector2i.DOWN, greens[0])
+		"ice":
+			for p: Vector2i in px:
+				var c := canvas.get_pixelv(p)
+				if c != ROCK_PAL.o:
+					put.call(p, c.lerp(Color("#bfe8ff"), 0.4))
+			for p in tops:
+				put.call(p, Color("#eefaff"))
+				if hash.call(p) == 0:
+					put.call(p + Vector2i.DOWN, Color.WHITE)
+		"wet":
+			for p in tops:
+				if hash.call(p) < 5:
+					put.call(p, Color("#9ad4ff"))
+			if tops.size() > 2:
+				put.call(tops[tops.size() / 2] + Vector2i(0, 2), Color("#e8f8ff"))
+		"spores":
+			for k in range(1, tops.size(), 4):
+				var p: Vector2i = tops[k]
+				put.call(p, Color("#f0e4d8"))
+				put.call(p + Vector2i(0, -1), Color("#e070c0"))
+				put.call(p + Vector2i(-1, -1), Color("#e070c0"))
+				put.call(p + Vector2i(1, -1), Color("#f7a8e8"))
+		"fireflies":
+			for k in range(0, tops.size(), 5):
+				var p: Vector2i = tops[k] + Vector2i(0, 1)
+				put.call(p, Color("#fff27a"))
+		"roots":
+			for p: Vector2i in px:
+				if (p.y + p.x / 3) % 4 == 0 and canvas.get_pixelv(p) != ROCK_PAL.o:
+					put.call(p, Color("#7a5234"))
+		"bells":
+			for k in range(1, tops.size(), 5):
+				var p: Vector2i = tops[k] + Vector2i(0, -1)
+				put.call(p, Color("#c0a8ec"))
+				put.call(p + Vector2i(1, 0), Color("#9a80d0"))
+				put.call(p + Vector2i(0, 1), Color("#58964a"))
+		"acorns":
+			for k in range(2, tops.size(), 7):
+				var p: Vector2i = tops[k] + Vector2i(0, -1)
+				put.call(p, Color("#7a5234"))
+				put.call(p + Vector2i(0, 1), Color("#d49c54"))
+				put.call(p + Vector2i(1, 1), Color("#b07a3a"))
+		"twigs":
+			for k in range(0, tops.size(), 6):
+				var p: Vector2i = tops[k]
+				put.call(p + Vector2i(-1, 0), Color("#8a6040"))
+				put.call(p, Color("#a07850"))
+				put.call(p + Vector2i(1, -1), Color("#8a6040"))
+			if tops.size() > 3:
+				put.call(tops[3] + Vector2i(0, -1), Color("#f4f2f0"))
+		"seeds":
+			for k in range(2, tops.size(), 8):
+				var p: Vector2i = tops[k] + Vector2i(0, -1)
+				put.call(p, Color("#b0602e"))
+				put.call(p + Vector2i(1, 0), Color("#f0b070"))
+				put.call(p + Vector2i(2, -1), Color("#f8d8a0"))
+		"runes":
+			for p: Vector2i in px:
+				if hash.call(p) == 0 and canvas.get_pixelv(p) != ROCK_PAL.o:
+					put.call(p, Color("#c8b0ff"))
+		"thorns":
+			for k in range(0, tops.size(), 3):
+				var p: Vector2i = tops[k]
+				put.call(p, Color("#58964a"))
+				put.call(p + Vector2i(0, -1), Color("#d8c090"))
+
+# The mock's three rocks: left of the golem, right of it, and one in front of its seat. The template
+# draws them with facet lines, so a rock is found by region: the template is split into regions of
+# fill pixels by its 'o' lines, and every region lying mostly inside a rock zone is rock, plus the
+# 'o' pixels that only border rock (or nothing).
+const ROCK_PAL := {o = Color("#1e1c28"), a = Color("#b9b6c6"), b = Color("#8f8ca2"), c = Color("#65627a")}
+var _rock_cache := {}  # pose grid -> {index: true}
+
+func _rock_zone(x: int, y: int) -> bool:
+	if y >= 33 and y <= 41 and x <= (17 if y <= 35 else 15):
+		return true  # left
+	if (y >= 30 and y <= 38 and x >= 47) or (y >= 39 and y <= 41 and x >= 44):
+		return true  # right (its lower-left corner tucks in under the arm; the arm itself is x 43-46)
+	return y >= 39 and y <= 47 and x >= 33 and x <= 45  # in front of the golem's seat
+
+func _is_rock(pose: Dictionary, x: int, y: int) -> bool:
+	if x < 0 or y < 0 or x >= S or y >= S:
+		return false
+	var key: int = pose.grid.hash()
+	if not _rock_cache.has(key):
+		_rock_cache[key] = _find_rocks(pose)
+	return (_rock_cache[key] as Dictionary).has(y * S + x)
+
+func _find_rocks(pose: Dictionary) -> Dictionary:
+	var fill := func(i: int) -> bool:
+		var ch: String = pose.grid[i]
+		return ch != "." and ch != "o" and pose.outside[i] == 0
+	var rocks := {}
+	var seen := {}
+	for start in S * S:
+		if seen.has(start) or not fill.call(start):
+			continue
+		var region: Array[int] = [start]
+		seen[start] = true
+		var k := 0
+		while k < region.size():
+			var i: int = region[k]
+			k += 1
+			for n: int in [i - 1, i + 1, i - S, i + S]:
+				if n < 0 or n >= S * S or seen.has(n) or absi(n % S - i % S) > 1 or not fill.call(n):
+					continue
+				seen[n] = true
+				region.append(n)
+		var inside := 0
+		for i in region:
+			if _rock_zone(i % S, i / S):
+				inside += 1
+		if inside * 2 > region.size():
+			for i in region:
+				rocks[i] = true
+	# Outline pixels that only border rock pixels or empty space belong to the rock too.
+	for i in S * S:
+		if pose.grid[i] != "o" or pose.outside[i] == 1:
+			continue
+		var touches_rock := false
+		var touches_body := false
+		for n: int in [i - 1, i + 1, i - S, i + S]:
+			if n < 0 or n >= S * S or absi(n % S - i % S) > 1:
+				continue
+			if rocks.has(n):
+				touches_rock = true
+			elif fill.call(n):
+				touches_body = true
+		if touches_rock and not touches_body:
+			rocks[i] = true
+	return rocks
 
 func _blink(canvas: Image, dy: int, skin: Color, outline: Color) -> void:
 	for ex: int in EYES:
@@ -2766,10 +2984,36 @@ func _magpie_body(canvas: Image, st: Dictionary, hoard: bool) -> void:
 		_ellipse(coin, coins[i], Vector2(2.2, 1.6), gold)
 		_stamp(canvas, coin, Color("#5a3a10"))
 	if hoard:
-		_sparkle(canvas, Vector2i([Vector2(10, 40), Vector2(52, 41), Vector2(44, 46)][(st.f / 2) % 3]), Color.WHITE)
-		var gem := _layer()
-		_flat_polygon(gem, PackedVector2Array([Vector2(16, 47), Vector2(18, 45), Vector2(20, 47), Vector2(18, 49)]), Color("#e04a6a"))
-		_stamp(canvas, gem, Color("#5a1020"))
+		# The hoard: a heaped mound of coins against the golem's left side, gems pressed into it.
+		var mound := _layer()
+		_ellipse(mound, Vector2(11, 39), Vector2(9, 7), gold, 43)
+		_ellipse(mound, Vector2(11, 42), Vector2(10, 3.4), gold)
+		_stamp(canvas, mound, Color("#5a3a10"))
+		for c: Vector2i in [Vector2i(7, 38), Vector2i(11, 35), Vector2i(15, 37), Vector2i(9, 41), Vector2i(13, 40), Vector2i(5, 42), Vector2i(17, 42)]:
+			_px(canvas, c.x, c.y, Color("#b8862a"))
+			_px(canvas, c.x + 1, c.y, Color("#fff0a0"))
+		for g: Array in [[Vector2(8, 39), Color("#e04a6a"), Color("#5a1020")], [Vector2(15, 40), Color("#4a8ae0"), Color("#102a5a")]]:
+			var gem := _layer()
+			var gp: Vector2 = g[0]
+			_flat_polygon(gem, PackedVector2Array([gp + Vector2(-1.5, 0), gp + Vector2(0, -1.8), gp + Vector2(1.5, 0), gp + Vector2(0, 1.8)]), g[1])
+			_stamp(canvas, gem, g[2])
+		_sparkle(canvas, Vector2i([Vector2(10, 38), Vector2(52, 41), Vector2(16, 40)][(st.f / 2) % 3]), Color.WHITE)
+		# A gold chain with a ruby pendant across the chest.
+		for x in range(24, 43):
+			var y := 21 + dy + roundi(sin((x - 24) / 18.0 * PI) * 3.0)
+			if mask.get_pixel(x, y).a > 0.0:
+				_px(canvas, x, y, Color("#ffe070") if x % 2 == 0 else Color("#c8902a"))
+		_px(canvas, 33, 25 + dy, Color("#e04a6a"))
+		_px(canvas, 34, 25 + dy, Color("#e04a6a"))
+		_px(canvas, 33, 26 + dy, Color("#a02040"))
+		_px(canvas, 34, 26 + dy, Color("#ff8aa8"))
+		# A little gold crown on the hood.
+		for p: Vector2i in [Vector2i(27, 4), Vector2i(28, 4), Vector2i(29, 4), Vector2i(30, 4), Vector2i(31, 4), Vector2i(32, 4), Vector2i(33, 4),
+				Vector2i(27, 3), Vector2i(30, 2), Vector2i(30, 3), Vector2i(33, 3)]:
+			_px(canvas, p.x, p.y + dy, Color("#ffd24a") if p.y == 4 else Color("#fff0a0"))
+		_px(canvas, 30, 4 + dy, Color("#e04a6a"))
+		# A second magpie guarding the hoard.
+		_magpie(canvas, Vector2(11, 29 - (1 if st.f % 4 == 3 else 0)), fig.o, st.f % 4 == 3, true, 1.6, 1)
 	var perch := _layer()
 	_stroke(perch, [Vector2(40, 20 + dy), Vector2(47, 18 + dy), Vector2(53, 19 + dy)], 1.1, Color("#7a5234"))
 	_stamp(canvas, perch, fig.o)
@@ -3889,8 +4133,26 @@ func _cairn_body(canvas: Image, st: Dictionary, slide: bool) -> void:
 	_draw_waystone(canvas, st, "cobble", slide)
 	_cairn(canvas, stones, bob, fig.o, st.attack >= RELEASE_FRAME and st.attack <= RELEASE_FRAME + 1)
 	if slide:
-		_cairn(canvas, [Vector3(54, 43, 5), Vector3(54, 38, 4), Vector3(55, 34, 3)], 0, fig.o, false)
-		_rock(canvas, PackedVector2Array([Vector2(44, 49), Vector2(46, 47), Vector2(49, 48), Vector2(48, 51)]), _ramp(STONE), fig.o)
+		# The rockslide: a heap of boulders piled up behind the golem's right shoulder, sliding down
+		# onto the slab, with pebbles tumbling down it and dust where they land.
+		var radii := [1.0, 0.8, 0.95, 0.75, 1.0, 0.85, 0.9]
+		for b: Array in [[Vector2(45, 18), 6.0], [Vector2(53, 25), 6.5], [Vector2(40, 24), 4.5],
+				[Vector2(57, 34), 6.0], [Vector2(48, 30), 5.0], [Vector2(59, 44), 5.0], [Vector2(51, 40), 5.5]]:
+			var c: Vector2 = b[0]
+			var r: float = b[1]
+			var pts := PackedVector2Array()
+			for k in 7:
+				pts.append(c + Vector2.from_angle(k * TAU / 7.0 + c.x * 0.1) * r * radii[k])
+			_rock(canvas, pts, _ramp(STONE), fig.o)
+		for k in 3:
+			var t: float = fposmod(float(st.f) / st.n + k / 3.0, 1.0)
+			var p := Vector2i((Vector2(44, 12).lerp(Vector2(60, 46), t)).round())
+			_px(canvas, p.x, p.y, Color("#c4c9e2"))
+			_px(canvas, p.x + 1, p.y, Color("#979dc2"))
+			_px(canvas, p.x, p.y + 1, Color("#686d9a"))
+			if t > 0.8:
+				for d: Vector2i in [Vector2i(-2, 1), Vector2i(2, 1), Vector2i(0, 2)]:
+					_px(canvas, 60 + d.x, 47 + d.y, Color("#d8d4e4"))
 	var mask := _draw_template_figure(canvas, st.pose, fig)
 	for band in [26, 33, 40]:
 		_line(canvas, [Vector2(19, band), Vector2(44, band + 1)], fig.c, mask)

@@ -11,3 +11,5 @@ speed = 102.4
 dew_reward = 3
 sprite_frames = ExtResource("2_jud3g")
 trait_text = "Quick, and never alone."
+intro_lines = Array[String](["A small shadow that never comes alone."])
+hint = "Anything dispels a Shade; the trick is catching them all."

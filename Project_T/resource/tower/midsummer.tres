@@ -8,7 +8,7 @@
 [resource]
 script = ExtResource("1_tdata")
 display_name = "Midsummer"
-description = "A brighter beam that ramps higher and carries on to the nightmare right behind its target."
+description = "A brighter beam that ramps higher and carries on to the nightmare right behind its target. Switching targets keeps half its ramp."
 cost = 0
 texture = ExtResource("2_tex")
 frame_count = 8
@@ -18,12 +18,13 @@ buildable_directly = false
 evolve_cost = 200
 attack_kind = 5
 attack_range = 4.0
-damage = 27
+damage = 45
 attacks_per_second = 1.0
 crit_chance = 0.08
 beam_ramp_per_second = 0.35
 beam_ramp_max = 5.0
 beam_behind_share = 0.5
+beam_keep_share = 0.5
 beam_color = Color(1, 0.7, 0.3, 1)
 attack_texture = ExtResource("4_atk")
 attack_frame_count = 6

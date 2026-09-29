@@ -96,13 +96,15 @@ turn leaks into a hold. Targets for the balance simulation and playtests (averag
 
 | Player | By the Hollow Stag (25) | Typical run end | Wins |
 |---|---|---|---|
-| **Fresh profile** (no Grove) | first leaks around **drift 12–18**; **5–8 of 15 leaves** lost | act 2 (drift 30–50) | rare (<5%, strong play + good Dreams) |
+| **Fresh profile** (no Grove) | **reaches the Hollow Stag** with few leaks (**0–3 leaves** lost; revised 2026-09-28, user: "players should be able to get to 25 even without perks and unlocks; 25 is when they start getting combos") | act 2 (drift 35–50): **it gets harder after 25** | rare (<5%, strong play + good Dreams) |
 | **~5 Grove unlocks** (~3 h in) | a few leaks, 2–4 leaves lost | act 3 | occasional |
 | **Half the tree** (~15 h) | few leaks | act 4 | the first win |
 | **Full tree** | clean | wins reliably at Blight 0 | Blight Levels bring the leaking back |
 
-- **Within a run, Dreams are the cure:** the leak rate should **fall** between drifts 10 and 25 as
-  cards stack (the board catches up), then rise again in act 2, so each block's Dream visibly matters.
+- **The shape of a run** (revised 2026-09-28): **act 1 teaches** (a sensible maze reaches drift 25
+  with few leaks, even with no Grove); **from drift 25 it gets hard**, as combos, the second family
+  and Dreamlight arrive: leaks start in act 2 unless the Dreams and combos come together, so each
+  block's Dream visibly matters there.
 - **Leaks must be readable, not random:** a leak should come from a nightmare the maze doesn't
   answer (a Hound on a straight, a Phantom through walls, a resisted family), so the rest report and
   the boss dossier point at the fix.
@@ -111,8 +113,8 @@ turn leaks into a hold. Targets for the balance simulation and playtests (averag
   The balance simulation measures the rest.
 - **Interim acts 1–2 tightening** (2026-09-28; two playtests: a fresh profile at drift 23 and
   again at drift 43 with **15/15 leaves**, ~800 and **1,925 Dew banked**, "haven't done much in the
-  past 10 drifts"): nightmare health **×1.0 for drifts 1–10, ramping to ×1.3 by drift 25, ×1.3
-  through act 2** (acts 3–4 keep their ×1.4), and **Dew per dispel ×0.85 in acts 1–2**. Interim
+  past 10 drifts"). **Revised the same day** (later playtests: "too hard from early drifts, especially 15 with the swarm"): nightmare health **×1.0 through drift 25** (act 1 as it was), **act 2 ramping from ×1.0 at drift 26 to ×1.35 by drift 40, ×1.35
+  to 50** (acts 3–4 keep their ×1.4), and **Dew per dispel ×0.85 in act 2 only** (act 1 back to ×1.0). Drift 15's Swarm is lighter (`acts_1_2.md`). Interim
   numbers, as exports, until the balance simulation's quick batch replaces them.
 - **Act 3 probe** (Tower Code, `tools/balance_act3.gd`, 2026-09-28): drifts 61–70, 12 final forms at
   rank IV (Power), **no Dreams**: the maze dealt ~155–160k damage per drift against **~100–115k
@@ -269,6 +271,30 @@ card luck**. Dispelling a great nightmare frees the light it stole from the drea
   family pick, and can be reopened at any rest from the rest panel. The Warden panel's disabled
   "Grow into Stormcap" button says *"Unlock with 1 Dreamlight"* and opens it.
 - Unlocking makes the form available; **evolving each Warden still costs Dew**, as before.
+
+**The Remember screen, fleshed out** (2026-09-28, user: "flesh it out more and have it on the top
+right; the family tree should include the portraits"):
+- **Opened from the top right:** a **Remember** button right beside the Dreamlight counter
+  (Dreamlight mote + count), always visible, not only at rests (during a drift it opens paused).
+  It glows softly when Dreamlight can buy something, and at the rest after each boss it opens
+  itself after the family pick, as now. The old DriftPanel button goes.
+- **One tab per owned family** (its base Warden's portrait on the tab), plus a **Thornwall** tab for
+  the wall growths. Each tab is a real **tree drawn with portraits**: the base Warden at the root,
+  lines up to its two branches, each branch to its final form, the hidden branch and its final in
+  a third lane (silhouette until the Grove plants it), and the **Ascended** form at the crown (from
+  drift 51). Each node shows the Warden's **idle-animated portrait** on its waystone.
+- **Node states**, readable at a glance: **grown on your map** (full colour, a small count "×3"),
+  **unlocked** (full colour, no count), **can unlock** (full colour, dimmed, with the Dreamlight
+  cost as motes and a soft pulse), **locked** (needs its branch first: dim, with a thin chain to
+  the parent), **Memory Grove** (a silhouette with a Grove leaf: not in this profile yet).
+- **Selecting a node** opens a side panel: portrait, name, tier, **damage type** icon, what it does
+  (the Warden's description with status links), its main stats (damage, speed, range, statuses,
+  potency), the **Dew to grow** into it from its parent, its Kinship partner if any ("Kin: Chime
+  Stone · Night Chimes"), the combos it's part of (links to the Codex), and the **Unlock (2 ✦)**
+  button. Unlocking plays a small bloom along the tree line.
+- A header line: *"Dreamlight 3 ✦ · unspent carries over"* and a one-line reminder: *"Dreamlight
+  unlocks, Dew grows."*
+- Touch: tabs and nodes are 48 px+, the side panel slides up from the bottom on phones.
 - **Dreams** no longer unlock evolutions (`dream_design.md`); they're stats, rules, combos and
   economy. The Rare-or-better boss Dream stays.
 - **Test Grove:** everything unlocked, as now. **Demo:** same rules.
@@ -281,6 +307,16 @@ drift 10 on**, after the Dream, the wind brings **2 Omens**. Pick one to change 
 (5 drifts) for a reward, or keep **Clear Skies** (the default: nothing changes). This is optional
 risk: players set their own difficulty block by block.
 
+- **Shown like a Dream, with Clear Skies as a card** (2026-09-28, user: first "it seems like Omens
+  are mandatory", then "the Omens should appear like a Dream card, not in the bottom right"; this
+  replaces the small ask-first prompt beside Start). After the Dream, the Omen screen opens
+  **centred, in the Dream screen's layout**: the title *"The wind carries Omens"* and **three cards
+  side by side**: the two Omens (name, what changes this block, the reward in gold, the Omen art)
+  and **Clear Skies** (a calm moonlit card: *"Nothing changes. No reward."*), which is highlighted
+  as the default. Esc and right-click pick Clear Skies; "Peek at the map" works as on the Dream
+  screen. Setting (Gameplay): **Omens: Ask each rest / Never** (Never = no screen, always Clear
+  Skies). Blight Levels that force an Omen show only the two Omen cards with "An Omen must be
+  faced".
 - An Omen affects only the **next block**. Bosses themselves ignore Omens (their escorts don't).
 - Rewards are paid at the rest **after** the block, and only if the Heartwood is still standing.
   Losing leaves doesn't cancel the reward.

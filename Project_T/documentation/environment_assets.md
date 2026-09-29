@@ -12,7 +12,7 @@ The Heartwood is `scripts/map/heartwood.gd`. Waystone, Dew Pool and Blight Patch
 TileSet but aren't placed on maps (their rules are still proposals).
 
 Lighting (the tiles stay unlit): `environment_lighting.gd` (a cold multiply toward the map's edges,
-a warm PointLight2D per attacking Warden), `heartwood.gd` (a warm light plus an additive glow over
+a warm additive glow per attacking Warden, all drawn by one canvas item), `heartwood.gd` (a warm light plus an additive glow over
 the multiply, dimming as leaves are lost) and `environment_ambience.gd` (nightmare fog along every
 edge; per act: warm motes, cold wisps, fog banks and embers, snow).
 
@@ -39,12 +39,12 @@ two trees pulse in step.
 
 | File | Size | Layout | Use |
 |---|---|---|---|
-| `grass.png` | 256×64 | 4 variants | ground; any variant tiles with any other |
+| `grass.png` | 512×64 | 8 variants: 0 plain, 1/4/6 tufts, 2 flowers, 3 clover, 5 pebbles, 7 fallen twig | ground; any variant tiles with any other. Each has its own grain (the sheet goes through the detail pass as one image with no added grain: texture 0, the user's pick), so the ground doesn't repeat. Shares: `GroundGenerator.GRASS_WEIGHTS` |
 | `path.png` | 1024×64 | 16 tiles, **column = neighbour mask** (N=1, E=2, S=4, W=8) | the creature path; e.g. column 5 = N+S straight, 15 = crossroads |
 | `border_wall.png` | 128×64 | 2 variants, seamless | the map's stone border |
-| `withered_tree.png` | 256×576 | 9 dead trees (rows) × 4 frames: 0–2 gnarled Withered Tree, 3 split trunk, 4 broken hollow snag (eyes glint), 5 weeping dead willow (strands sway), 6 dead pine, 7 dead birch, 8 thorn tree | obstacle, "Tend"; all 9 are in `tree.tres` |
+| `withered_tree.png` | 256×864 | **64×96 cells**: bottom 64 px = the cell (trunk base and shadow), top 32 px overhangs the cell above. 9 dead trees (rows) × 4 frames: 0–2 gnarled Withered Tree, 3 split trunk, 4 broken hollow snag (eyes glint), 5 weeping dead willow (strands sway), 6 dead pine, 7 dead birch, 8 thorn tree | obstacle, "Tend"; all 9 are in `tree.tres` |
 | `tended_stump.png` | 64×64 | 1 | walkable mark left after Tend |
-| `mossy_boulder.png` | 576×64 | 9 rocks: 0–1 Mossy Boulder, 2 standing stone, 3 cairn, 4 rock cluster, 5 split boulder with dead roots, 6 lichen boulder, 7 ruined waystone, 8 dream-crystal boulder | obstacle, "Move"; all 9 are in `rock.tres` |
+| `mossy_boulder.png` | 576×64 | 9 rocks, each about 68% of their first size (low in the cell with a shadow, clearly smaller than the trees): 0–1 Mossy Boulder, 2 slab stone, 3 cairn, 4 rock cluster, 5 split boulder, 6 lichen boulder, 7 carved boulder, 8 dream-crystal boulder | obstacle, "Move"; all 9 are in `rock.tres` |
 | `moved_hollow.png` | 64×64 | 1 | walkable mark left after Move |
 | `waystone.png` | 256×64 | 4 frames | proposed bonus build spot |
 | `dew_pool.png` | 256×64 | 4 frames (frozen in winter) | proposed special tile |
@@ -71,6 +71,7 @@ healthy trees are no longer used.
 | `void_stars.png` | 256×256 | seamless, transparent | front parallax layer: brighter stars |
 | `void_islets.png` | 256×64 | 4 small floating islands | scatter in the void |
 | `rope_bridge.png` | 128×64 | 2 tiles: east–west, north–south; repeat along the bridge | where nightmares cross from the void to the start cell |
+| `cloud_shadows.png` | 1536×128 | 6 cloud shadows, 256×128 each, transparent | cloud shadows seen from above (lobed, denser in the middle, wisps on the downwind side; 3 banded alpha steps of Dread). `EnvironmentAmbience` draws them drifting round the map edges and a few (`crossing_clouds`) across the whole map with `cloud_wind` |
 
 ## Notes
 

@@ -14,3 +14,5 @@ resists = Array[String](["light"])
 weak_to = Array[String](["wing"])
 steals_dew = 5
 trait_text = "Steals 5 Dew if it gets through. Double Dew if dispelled."
+intro_lines = Array[String](["Steals {steals_dew} Dew if it reaches the Heartwood, and drops double Dew when dispelled."])
+hint = "Fast single hits catch it before it's gone."

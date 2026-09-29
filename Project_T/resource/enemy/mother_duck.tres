@@ -17,3 +17,5 @@ display_name = "Lantern Bearer"
 trait_text = "Leads a line of Wraiths. Without her light, they slow."
 resists = Array[String](["water"])
 weak_to = Array[String](["root"])
+intro_lines = Array[String](["Leads {follower_count} {followers:name}s in single file.", "If it's dispelled first, they lose their way and slow down."])
+hint = "Put out the light first, or catch the whole line at a chokepoint."

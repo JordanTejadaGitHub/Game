@@ -53,7 +53,7 @@ const BEAM_TICK := 0.25  # Seconds between beam hits
 const BEAM_RAMP_FAST := 2.0  # Beams ramp this much faster on Drowsy or Held nightmares
 const AURA_TICK := 0.25  # Seconds between aura refreshes (White Stag)
 const AURA_PULSE_EVERY := 2.5  # Seconds between the White Stag's pulse animations
-const NEIGHBOUR_REFRESH := 0.5  # Seconds between looks at neighbouring Wardens (copy, auras)
+const NEIGHBOUR_REFRESH := 5.0  # Seconds between looks at neighbouring Wardens (copy, auras); map changes, growing and ranks refresh sooner
 const TONGUE_COLOR := Color(0.95, 0.55, 0.6)
 const WIND_COLOR := Color(0.85, 0.95, 1.0)
 const LIGHT_COLOR := Color(1.0, 0.9, 0.5)
@@ -94,6 +94,8 @@ static func set_badges_visible(reason: StringName, on: bool) -> void:
 	var tree := Engine.get_main_loop() as SceneTree
 	if tree:
 		for tower in tree.get_nodes_in_group(GROUP):
+			if on:
+				tower._refresh_badge()  # Badges only refresh while they show
 			tower.queue_redraw()
 
 static func badges_visible() -> bool:
@@ -104,14 +106,8 @@ func get_badge_cards() -> Array:
 	return _badge_cards
 
 func _refresh_badge() -> void:
-	var cards := []
-	if _dream_state and _dream_state.has_method("get_card_effects") and is_inside_tree():
-		for row in _dream_state.get_card_effects(tower_data, cell, self):
-			if row.get("positional", false) and row.active:
-				cards.append(row)
-	if cards.size() != _badge_cards.size():
-		queue_redraw()
-	_badge_cards = cards
+	if is_inside_tree():
+		_refresh_dream_rows()  # The badges come from the same pass as the Dream bonuses
 
 # "IV", "XII"…: rank names past VII (Endless Rings) are worked out.
 static func rank_name(value: int) -> String:
@@ -240,12 +236,17 @@ var _crit_dew_given := 0
 func _ready() -> void:
 	_dream_state = get_tree().get_first_node_in_group(DreamState.GROUP) as DreamState
 	_omens = get_tree().get_first_node_in_group(OmenDirector.GROUP) as OmenDirector
+	if _dream_state:
+		_dream_state.card_taken.connect(clear_dream_cache.unbind(1))
+		if _dream_state.map_generator:
+			_dream_state.map_generator.path_changed.connect(_on_map_changed)
 	add_to_group(GROUP)
 	_apply_data()
 	# Start each tower at a random point in its idle loop so neighbours don't breathe in sync.
 	_anim_time = randf() * tower_data.frame_count / tower_data.animation_fps
 
 func _apply_data() -> void:
+	clear_dream_cache()
 	attack_data = tower_data
 	_damage_share = 1.0
 	if not target_chosen:
@@ -279,6 +280,7 @@ func evolve(data: TowerData, cost: int) -> void:
 	if resting:
 		rest_dew += cost
 	_apply_data()
+	_nudge_neighbours()
 	if _rule_stacks(&"sudden_bloom") > 0:
 		bloom_attacks = maxi(bloom_attacks, DreamState.SUDDEN_BLOOM_ATTACKS)  # Its next attacks deal ×2
 		queue_redraw()
@@ -288,20 +290,28 @@ func evolve(data: TowerData, cost: int) -> void:
 
 func _process(delta: float) -> void:
 	_anim_time += delta
+	_tick_dream_cache(delta)
 	_neighbour_timer -= delta
 	if _neighbour_timer <= 0.0:
 		_refresh_neighbours()
 	if _attack_time >= 0.0:
 		_advance_attack(delta)
-	elif _beam_target == null:
-		sprite.frame = int(_anim_time * tower_data.animation_fps) % tower_data.frame_count
-	if tower_data.withered_texture != null and has_node("Withered"):
-		(get_node("Withered") as Sprite2D).frame = sprite.frame % tower_data.frame_count
-	if rank > 0:
-		var art_frame := int(_anim_time * tower_data.animation_fps) % 8
-		for art in [get_node_or_null("RankUnder"), get_node_or_null("RankOver")]:
-			if art:
-				art.frame = art_frame
+	else:
+		# Performance: frames change a few times a second; only set them when they do (each set redraws),
+		# and the rank art / Withered overlay are looked up by name only when this frame changed.
+		var idle_frame := int(_anim_time * tower_data.animation_fps)
+		if idle_frame != _last_idle_frame:
+			_last_idle_frame = idle_frame
+			if _beam_target == null:
+				sprite.frame = idle_frame % tower_data.frame_count
+			if tower_data.withered_texture != null:
+				var withered := get_node_or_null("Withered") as Sprite2D
+				if withered:
+					withered.frame = sprite.frame % tower_data.frame_count
+			if rank > 0:
+				for art in [get_node_or_null("RankUnder"), get_node_or_null("RankOver")]:
+					if art:
+						art.frame = idle_frame % 8
 	if not tower_data.can_attack:
 		return
 	if tower_data.caught_bonus > 0.0:
@@ -328,7 +338,15 @@ func _process(delta: float) -> void:
 			return  # A Graftling with nothing to copy
 	_update_watch(delta)
 	_cooldown = maxf(_cooldown - delta, 0.0)
-	if _cooldown > 0.0 or _attack_time >= 0.0 or not _has_work():
+	if _cooldown > 0.0 or _attack_time >= 0.0:
+		return
+	# Performance: a Warden with nothing to do looks again IDLE_SEARCH seconds later instead of every
+	# frame (with ~200 Wardens the searches were ~10 ms a frame). A nightmare walks ~20 px meanwhile.
+	_idle_search -= delta
+	if _idle_search > 0.0:
+		return
+	if not _has_work():
+		_idle_search = IDLE_SEARCH
 		return
 	_start_attack()
 
@@ -354,7 +372,7 @@ func _has_work() -> bool:
 
 func get_damage() -> float:
 	return attack_data.damage * _damage_share * get_rank_damage_multiplier() * (1.0 + _aura_damage) \
-		* (_dream_state.get_soothe_multiplier(self) if _dream_state else 1.0) \
+		* _dream_bonus(&"soothe") \
 		* (1.0 + (_kin.damage_bonus(self) if is_instance_valid(_kin) else 0.0))  # Kindred / Whole Tree, Kinship cards
 
 func get_attacks_per_second() -> float:
@@ -364,15 +382,36 @@ func get_attacks_per_second() -> float:
 	if _dream_state:
 		dreams = _dream_state.get_attack_speed_multiplier(tower_data)
 		if _dream_state.has_method("get_tower_attack_speed_bonus"):
-			dreams += _dream_state.get_tower_attack_speed_bonus(self)  # Sprout Chorus, The Last Light
+			dreams += _dream_bonus(&"speed")  # Sprout Chorus, The Last Light
 	var omen := _omens.get_warden_speed_multiplier() if _omens and _omens.has_method("get_warden_speed_multiplier") else 1.0  # Wilting
 	return attack_data.attacks_per_second * speed * dreams * (1.0 + _aura_speed) * omen
 
 func get_range_cells() -> float:
+	# Performance: targeting asks several times a frame; the answer is kept for the frame (tests and
+	# the panel changing a Warden mid-frame call clear_dream_cache, which drops it too).
+	var frame := Engine.get_process_frames()
+	if frame == _range_frame and attack_data == _range_data:
+		return _range_value
+	_range_value = _compute_range_cells()
+	_range_frame = frame
+	_range_data = attack_data
+	return _range_value
+
+var _range_frame := -1
+var _last_idle_frame := -1  # The idle animation frame last shown (see _process)
+const BEAM_KEEP_TIME := 1.0  # Midsummer keeps part of its ramp for this long after losing a target
+var _kept_ramp := 1.0
+var _kept_ramp_at := -100.0
+const IDLE_SEARCH := 0.25
+var _idle_search := 0.0  # Seconds until an idle Warden looks for a target again
+var _range_data: TowerData = null
+var _range_value := 0.0
+
+func _compute_range_cells() -> float:
 	var ranks := mini(get_effective_rank(), STAT_TOP_RANK)
 	var reach := RANK_RANGE * (ranks + get_court_ranks()) + (FOCUS_REACH * _focus_ranks(ranks) if focus == Focus.REACH else 0.0)
 	if _dream_state and _dream_state.has_method("get_tower_range_bonus"):
-		reach += _dream_state.get_tower_range_bonus(self)  # Solitude
+		reach += _dream_bonus(&"range")  # Solitude
 	var total := get_range_for(attack_data, _dream_state) + _aura_range + reach
 	if tower_data.line == "song" and attack_data.attack_kind == TowerData.AttackKind.PULSE:
 		total *= 1.0 + HUSH_RADIUS * _rule_stacks(&"hush")  # Hush: wider song pulses
@@ -426,11 +465,28 @@ func get_status_focus_multiplier() -> float:
 	return 1.0 + FOCUS_DEEP * _focus_ranks(get_effective_rank()) if focus == Focus.DEEP else 1.0
 
 func get_max_rank() -> int:
+	var cap := RANK_MAX
 	if _dream_state and _dream_state.has_method("get_max_rank_for"):
-		return _dream_state.get_max_rank_for(self)  # Past V only for the Eldest
-	if _dream_state and _dream_state.has_method("get_max_rank"):
-		return _dream_state.get_max_rank()
-	return RANK_MAX
+		cap = _dream_state.get_max_rank_for(self)  # Past V only for the Eldest
+	elif _dream_state and _dream_state.has_method("get_max_rank"):
+		cap = _dream_state.get_max_rank()
+	# warden_stats.md (b061d29): every Warden can be nurtured to rank II; III-V (and the Focus) open
+	# once any Nurture Dream is owned. Ranks a Warden already has (old saves) are kept.
+	if not has_nurture_dream():
+		cap = mini(cap, UNDREAMED_MAX_RANK)
+	return cap
+
+const UNDREAMED_MAX_RANK := 2
+
+func has_nurture_dream() -> bool:
+	return _dream_state == null or not _dream_state.has_method("count_taken_with_tag") \
+		or _dream_state.count_taken_with_tag("nurture") > 0
+
+# Why the next rank can't be bought, for the Nurture button ("" = it can, or it's simply the top).
+func nurture_blocker() -> String:
+	if can_be_nurtured() and rank >= UNDREAMED_MAX_RANK and rank < RANK_MAX and not has_nurture_dream():
+		return "Rank %s needs a Nurture Dream" % rank_name(rank + 1)
+	return ""
 
 # Attacking Wardens can be nurtured (not walls or wall growths, not the White Stag's aura).
 func can_be_nurtured() -> bool:
@@ -523,6 +579,8 @@ func nurture(cost: int, chosen: Focus = Focus.NONE) -> void:
 	if focus == Focus.NONE and chosen != Focus.NONE:
 		focus = chosen
 	rank = mini(rank + 1, get_max_rank())
+	clear_dream_cache()
+	_nudge_neighbours()
 	invested_dew += cost
 	if resting:
 		rest_dew += cost
@@ -627,7 +685,7 @@ func get_aura_extra() -> float:
 
 # Refreshes what depends on nearby Wardens: the copied attack (Graftling) and aura bonuses.
 func _refresh_neighbours() -> void:
-	_neighbour_timer = NEIGHBOUR_REFRESH
+	_neighbour_timer = NEIGHBOUR_REFRESH * randf_range(0.75, 1.25)  # Staggered: ~200 Wardens never all look at once
 	if _is_underdog() != _underdog_drawn:
 		queue_redraw()  # DreamState picks the Underdogs at each rest
 	_aura_crit = 0.0
@@ -668,7 +726,8 @@ func _refresh_neighbours() -> void:
 				best = other
 	_aura_count = aura_count
 	_set_harmony(harmony if harmony.size() >= 2 else {})
-	_refresh_badge()
+	if badges_visible() or _dream_cache.is_empty():
+		_refresh_badge()  # Only while badges show (build mode, a selection); else the cache refresh does it
 	_refresh_root_links()
 	if tower_data.attack_kind != TowerData.AttackKind.COPY:
 		return
@@ -1003,7 +1062,7 @@ func pop(enemy: Node2D, chain: Dictionary = {}) -> void:
 	statuses.remove(EnemyStatuses.SPORED)
 	var at := enemy.global_position
 	var damage := attack_data.pop_damage_per_stack * stacks * get_rank_damage_multiplier() \
-		* (_dream_state.get_soothe_multiplier(self) if _dream_state else 1.0)
+		* _dream_bonus(&"soothe")
 	var reach := attack_data.pop_radius * MAP_GRID.cell_size.x
 	for other in get_tree().get_nodes_in_group(ENEMY_GROUP):
 		if other.global_position.distance_to(at) <= reach:
@@ -1097,7 +1156,7 @@ func _damage_against(enemy: Node2D) -> float:
 # On-hit rules: freeze (Frostfern), Dew from crits (Magpie's Hoard).
 func _after_hit(enemy: Node2D, is_crit: bool) -> void:
 	if attack_data.freeze_duration > 0.0 and enemy.freeze_cooldown <= 0.0 and not enemy.is_cleansed \
-			and (attack_data.freeze_needs == &"" or enemy.statuses.has(attack_data.freeze_needs)):
+			and (attack_data.freeze_needs == &"" or enemy.statuses.stacks(attack_data.freeze_needs) >= attack_data.freeze_needs_stacks):
 		enemy.freeze_cooldown = attack_data.freeze_cooldown
 		enemy.apply_status(EnemyStatuses.HELD, 1, attack_data.freeze_duration)
 		if attack_data.held_damage_bonus > 0.0:
@@ -1250,10 +1309,8 @@ func _lob_landed(where: Vector2, splash: float) -> void:
 	if not cells.is_empty():
 		var rubble := RubblePatch.new(cells, attack_data.rubble_slow * get_slow_multiplier(), attack_data.rubble_time)
 		var world := Reactions._world(self)
-		var any_nightmare := get_tree().get_first_node_in_group(Tower.ENEMY_GROUP)
+		rubble.z_index = -1  # On the ground: after the ground and path layers, under the y-sorted map
 		world.add_child(rubble)
-		if any_nightmare:  # On the ground: just before the nightmares' container, so it draws under them
-			world.move_child(rubble, any_nightmare.get_parent().get_index())
 
 func fire_at(target: Node2D) -> void:
 	var on_land := projectile_landed
@@ -1902,7 +1959,10 @@ func _update_beam(delta: float) -> void:
 		if target == null:
 			_stop_beam()  # Back to the idle sheet (it knows a beam was on only before the target is cleared)
 			return
-		_beam_ramp = 1.0
+		# Midsummer (beam_keep_share): a new target within BEAM_KEEP_TIME of the last keeps part of the ramp.
+		var old_ramp := _beam_ramp if _beam_target != null else \
+			(_kept_ramp if _anim_time - _kept_ramp_at <= BEAM_KEEP_TIME else 1.0)
+		_beam_ramp = 1.0 + (old_ramp - 1.0) * attack_data.beam_keep_share
 		_beam_tick = 0.0
 		_beam_target = target
 		_show_attack_pose()
@@ -1926,6 +1986,9 @@ func _update_beam(delta: float) -> void:
 
 func _stop_beam() -> void:
 	var was_beaming := _beam_target != null
+	if was_beaming:
+		_kept_ramp = _beam_ramp  # A new target soon after keeps part of it (beam_keep_share)
+		_kept_ramp_at = _anim_time
 	_beam_target = null
 	_beam_behind = null
 	_beam_ramp = 1.0
@@ -1968,7 +2031,6 @@ func _update_aura(delta: float) -> void:
 # --- Drawing and targeting ------------------------------------------------------------------------------
 
 func _draw() -> void:
-	_draw_root_links()  # Under the sprite (children draw on top)
 	_draw_empowered()
 	if tower_data.texture == null:
 		draw_placeholder(self, tower_data.placeholder_color)
@@ -2044,13 +2106,16 @@ func _refresh_root_links() -> void:
 				links.append(d)
 	if links != _root_links:
 		_root_links = links
-		queue_redraw()
+		_redraw_root_network()
 
-func _draw_root_links() -> void:
-	for d in _root_links:
-		var to := d * MAP_GRID.cell_size / 2.0  # Half-way: the neighbour draws the rest
-		draw_line(Vector2.ZERO, to, Color(ROOT_GLOW, 0.25), 7.0)
-		draw_line(Vector2.ZERO, to, Color(ROOT_GLOW, 0.8), 2.0)
+# The links are drawn once per pair by the board's RootNetworkOverlay (a vertical pair drawn here, under
+# the Sprouts' own sprites, was hidden).
+func _redraw_root_network() -> void:
+	if not is_inside_tree():
+		return
+	var overlay := RootNetworkOverlay.find(get_parent())
+	if overlay:
+		overlay.queue_redraw()
 
 # Badges in one column up the tile's left edge, clear of the rank pips along the bottom (so nothing
 # stacks on top of anything else): a leaf pair when the Warden is in a Kinship (always shown, tinted
@@ -2218,13 +2283,86 @@ func get_enemies_in_range() -> Array[Node2D]:
 	if _rule_stacks(&"skyward_gaze") > 0:
 		sky_squared = range_to_pixels(get_range_cells() + DreamState.SKYWARD_RANGE) ** 2
 	var min_squared := (attack_data.min_range * MAP_GRID.cell_size.x) ** 2
+	# Performance: _has_work, find_target and the attack each asked for this in one frame, each building
+	# the group array again. One list of nightmares per frame is shared, and this Warden's answer is
+	# kept for the frame (nightmares dispelled since are dropped on the way out).
+	var frame := Engine.get_process_frames()
+	_nightmares_this_frame(get_tree())  # Refreshes the shared list first if nightmares came or went
+	if frame == _in_range_frame and _in_range_key == Vector3(range_squared, sky_squared, min_squared) \
+			and _in_range_count == _nightmares.size():
+		return _in_range.filter(func(e) -> bool: return is_instance_valid(e) and not e.is_cleansed)
 	var result: Array[Node2D] = []
-	for enemy in get_tree().get_nodes_in_group(ENEMY_GROUP):
+	var reach := sqrt(maxf(range_squared, sky_squared))
+	for enemy in _nightmares_near(global_position, reach):
+		if not is_instance_valid(enemy) or enemy.is_cleansed:
+			continue
 		var distance_squared := global_position.distance_squared_to(enemy.global_position)
 		var flying: bool = enemy.enemy_data != null and enemy.enemy_data.trait_kind == EnemyData.Trait.FLYING
 		if distance_squared <= (sky_squared if flying else range_squared) and distance_squared >= min_squared:
 			result.append(enemy)
-	return result
+	_in_range_frame = frame
+	_in_range_key = Vector3(range_squared, sky_squared, min_squared)
+	_in_range_count = _nightmares.size()
+	_in_range = result
+	return result.duplicate()
+
+var _in_range_frame := -1
+var _in_range_key := Vector3.ZERO
+var _in_range_count := -1  # How many nightmares there were when it was worked out
+var _in_range: Array[Node2D] = []
+static var _nightmares_frame := -1
+static var _nightmares: Array = []
+
+# The targetable nightmares, fetched once per frame for every Warden, and bucketed by BUCKET-pixel
+# squares so a Warden only looks at the ones near it (the buckets either side of its own always reach
+# at least BUCKET px past it, and a nightmare moves only a few px within a frame).
+const BUCKET := 192.0
+static var _buckets := {}
+
+static func _nightmares_this_frame(tree: SceneTree) -> Array:
+	var frame := Engine.get_process_frames()
+	if frame != _nightmares_frame or tree.get_node_count_in_group(ENEMY_GROUP) != _nightmares.size():
+		_nightmares_frame = frame
+		_nightmares = tree.get_nodes_in_group(ENEMY_GROUP)
+		_buckets = {}
+		for enemy in _nightmares:
+			var key := Vector2i((enemy.global_position / BUCKET).floor())
+			if _buckets.has(key):
+				_buckets[key].append(enemy)
+			else:
+				_buckets[key] = [enemy]
+	return _nightmares
+
+func _nightmares_near(at: Vector2, reach: float) -> Array:
+	return nightmares_near(get_tree(), at, reach)
+
+# The nightmares whose bucket is within `reach` px of `at` (a superset: callers check the distance and
+# is_cleansed). Also used by Reactions (Thunderclap arcs, neighbours).
+# The shared list holds nightmare nodes; left in a static at exit it crashed the engine's teardown about
+# one run in seven (test_late_game, signal 11 after PASS). Any Warden leaving the tree drops it (it's
+# rebuilt on the next query), so it's always empty by the time the scene is freed.
+func _exit_tree() -> void:
+	_nightmares = []
+	_buckets = {}
+	_nightmares_frame = -1
+	if not _root_links.is_empty() and get_parent() and get_parent().owner:
+		var overlay := get_parent().owner.get_node_or_null("RootNetworkOverlay")
+		if overlay:
+			overlay.queue_redraw()  # Its roots go with it (never made here: this may be the exit teardown)
+
+static func nightmares_near(tree: SceneTree, at: Vector2, reach: float) -> Array:
+	_nightmares_this_frame(tree)
+	var r := int(ceil(reach / BUCKET))  # A bucket either side reaches at least BUCKET px past this one
+	var centre := Vector2i((at / BUCKET).floor())
+	if (2 * r + 1) * (2 * r + 1) >= _buckets.size():
+		return _nightmares  # A long reach: every bucket anyway
+	var out: Array = []
+	for dy in range(-r, r + 1):
+		for dx in range(-r, r + 1):
+			var bucket = _buckets.get(centre + Vector2i(dx, dy))
+			if bucket != null:
+				out.append_array(bucket)
+	return out
 
 # Converts a range in cells to pixels. Shared with the build-mode ghost preview.
 static func range_to_pixels(range_cells: float) -> float:
@@ -2236,3 +2374,70 @@ static func draw_placeholder(canvas: CanvasItem, color: Color) -> void:
 	canvas.draw_rect(block, color.darkened(0.45))
 	canvas.draw_rect(block.grow(-4), color)
 	canvas.draw_circle(Vector2.ZERO, 10, color.lightened(0.35))
+
+# --- Cached Dream bonuses (performance: platforms.md "Performance budget") ---------------------------
+# DreamState's per-Warden card rows (position cards: Solitude, Crowded Path, Heart of the Maze, …) look
+# at the whole board, and every stat read and badge poll asked again: with ~200 Wardens that was ~70 ms
+# a frame. One DreamEffects.rows() pass now gives the damage / speed / range bonuses and the badge cards
+# together; it's dropped when a card is taken, the maze changes or the Warden grows or ranks up, and
+# redone every DREAM_CACHE_TIME for cards that change with the field (staggered across Wardens).
+const DREAM_CACHE_TIME := 3.0
+var _dream_cache := {}
+var _dream_cache_left := 0.0
+
+func _dream_bonus(key: StringName) -> float:
+	if _dream_state == null:
+		return 1.0 if key == &"soothe" else 0.0
+	if _dream_cache.is_empty():
+		_refresh_dream_rows()
+	return _dream_cache.get(key, 1.0 if key == &"soothe" else 0.0)
+
+# The one pass: bonuses as DreamState.get_soothe_multiplier / get_tower_attack_speed_bonus /
+# get_tower_range_bonus give them (active, non-plain rows), badges = active positional rows.
+func _refresh_dream_rows() -> void:
+	if _dream_state == null or not _dream_state.has_method("effects"):
+		_dream_cache = {&"soothe": 1.0, &"speed": 0.0, &"range": 0.0}
+		return
+	var damage := 0.0
+	var speed := 0.0
+	var reach := 0.0
+	var cards := []
+	for row in _dream_state.effects().rows(DreamEffects.spot_for(self)):
+		if not row.active:
+			continue
+		if not row.plain:
+			damage += row.get("damage", 0.0)
+			speed += row.get("speed", 0.0)
+			reach += row.get("range", 0.0)
+		if row.get("positional", false):
+			cards.append(row)
+	_dream_cache = {&"soothe": 1.0 + _dream_state._sum_stat(tower_data, "soothe_bonus") + damage,
+		&"speed": speed, &"range": reach}
+	if cards.size() != _badge_cards.size():
+		queue_redraw()
+	_badge_cards = cards
+
+func clear_dream_cache() -> void:
+	_dream_cache.clear()
+	_range_frame = -1
+
+# A Warden planted, sold or grown: Dream rows and neighbours (auras, copies, Root Network) look again
+# soon, spread over the next few frames rather than all at once.
+# This Warden grew or ranked up: its neighbours' auras and copies look again soon (spread out).
+func _nudge_neighbours() -> void:
+	_neighbour_timer = minf(_neighbour_timer, 0.05)
+	if not is_inside_tree():
+		return
+	for other in _other_towers():
+		other._neighbour_timer = minf(other._neighbour_timer, randf_range(0.0, 0.3))
+
+func _on_map_changed() -> void:
+	_dream_cache.clear()
+	_range_frame = -1
+	_neighbour_timer = minf(_neighbour_timer, randf_range(0.0, 0.3))
+
+func _tick_dream_cache(delta: float) -> void:
+	_dream_cache_left -= delta
+	if _dream_cache_left <= 0.0:
+		_dream_cache.clear()  # Rebuilt on the next stat read
+		_dream_cache_left = DREAM_CACHE_TIME * randf_range(0.75, 1.25)  # Spread the refreshes over frames

@@ -16,3 +16,5 @@ split_count = 3
 resists = Array[String](["spore"])
 weak_to = Array[String](["stone"])
 trait_text = "Breaks into three Sobs when dispelled."
+intro_lines = Array[String](["Breaks into {split_count} {split_into:name}s when dispelled."])
+hint = "Splash and pulses catch the Sobs."

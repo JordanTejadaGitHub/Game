@@ -1,0 +1,367 @@
+extends Control
+class_name NightmareIntro
+
+# New nightmare introduction (screens_ui.md "New nightmare introduction", 2026-09-28: "new enemies
+# should have a display window in the middle like bosses"): the first time ever a nightmare kind is
+# about to appear, the rest before its block opens a centred card, the boss dossier's style but
+# smaller: animated portrait, name, its trait line, what it does (EnemyData.get_intro_lines()), its
+# resist / weak / immune icons, and one hint (EnemyData.hint). Several new kinds: one card each, with
+# "Next" (a kind's split / follower kinds right after it). After the Dream / Omen, before the boss
+# dossier. Dismissed by the button, a tap outside or Esc; reopened from its portrait in the Coming
+# strip (open_for), or by clicking / tapping the nightmare on the map (paused; bosses open the dossier;
+# the card adds its live health, statuses and Restless). A kind that first appears mid-block without
+# a card (a Mourner's Sobs) pauses on its card too (it was a 2-second name plate). Once ever per kind
+# (profile "intros_seen"; dev runs and tests: this session only). Off with the "Heartwood whispers"
+# setting (clicking a nightmare always works). Made by the HUD.
+
+const GROUP := &"nightmare_intro"
+const SEEN_KEY := "intros_seen"
+const WIDTH := 460.0
+const OPEN_DELAY := 0.35
+const NEW_COLOR := UiStyle.GOLD  # Glow
+
+static var session_seen := {}  # Kind -> true: shown this session (dev runs, tests)
+
+var drift_director: DriftDirector
+var queue: Array = []  # EnemyData still to show, in order
+var shown: EnemyData = null
+var _drift := 0
+var _pending: Array = []  # Kinds waiting for the rest's other screens
+var _wait := 0.0
+var _paused_it := false
+var _panel := PanelContainer.new()
+var _content := VBoxContainer.new()
+var _next := Button.new()
+var _met := {}  # Kinds met before or introduced this run (no name plate for them)
+
+# Opens the card for `kinds` (in order), e.g. from a Coming strip portrait.
+static func open_for(tree: SceneTree, kinds: Array, drift: int = 0) -> void:
+	var intro := tree.get_first_node_in_group(GROUP) as NightmareIntro
+	if intro != null:
+		intro.open(kinds, drift)
+
+func _init(director: DriftDirector = null) -> void:
+	drift_director = director
+
+func _ready() -> void:
+	add_to_group(GROUP)
+	process_mode = Node.PROCESS_MODE_ALWAYS
+	set_anchors_preset(Control.PRESET_FULL_RECT)
+	mouse_filter = Control.MOUSE_FILTER_STOP
+	visible = false
+	var shade := ColorRect.new()
+	shade.color = Color(UiStyle.FOG, 0.45)
+	shade.set_anchors_preset(Control.PRESET_FULL_RECT)
+	shade.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(shade)
+	var centre := CenterContainer.new()
+	centre.set_anchors_preset(Control.PRESET_FULL_RECT)
+	centre.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(centre)
+	_panel.add_theme_stylebox_override("panel", UiStyle.panel(18.0, 14.0))
+	_panel.mouse_filter = Control.MOUSE_FILTER_STOP
+	centre.add_child(_panel)
+	var outer := VBoxContainer.new()
+	outer.add_theme_constant_override("separation", 10)
+	_panel.add_child(outer)
+	var top := HBoxContainer.new()  # ✕ in the corner (tap-sized)
+	top.alignment = BoxContainer.ALIGNMENT_END
+	var cross := Button.new()
+	cross.text = "✕"
+	cross.flat = true
+	cross.focus_mode = Control.FOCUS_NONE
+	cross.custom_minimum_size = Vector2(44, 44)
+	cross.tooltip_text = "Close (Esc)"
+	cross.pressed.connect(close)
+	top.add_child(cross)
+	outer.add_child(top)
+	_content.custom_minimum_size = Vector2(WIDTH, 0)
+	_content.add_theme_constant_override("separation", 8)
+	outer.add_child(_content)
+	_next.focus_mode = Control.FOCUS_NONE
+	_next.custom_minimum_size = Vector2(180, 44)
+	_next.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	UiStyle.primary(_next)
+	_next.pressed.connect(advance)
+	outer.add_child(_next)
+	for kind in HeartwoodMemory.load_data().get("nightmares_seen", []):
+		_met[kind] = true
+	if drift_director != null:
+		drift_director.rest_started.connect(_on_rest_started)
+		var spawner := drift_director.get_node_or_null("%EnemyContainer")
+		if spawner != null:
+			spawner.child_entered_tree.connect(_on_spawned)
+
+func _gui_input(event: InputEvent) -> void:
+	# A tap outside the card dismisses it (the whole queue).
+	if event is InputEventMouseButton and event.pressed and not _panel.get_global_rect().has_point(event.global_position):
+		close()
+		accept_event()
+
+func _unhandled_input(event: InputEvent) -> void:
+	if visible and event.is_action_pressed("cancel_build"):
+		close()
+		get_viewport().set_input_as_handled()
+		return
+	# Click / tap a nightmare on the map (screens_ui.md "New nightmare introduction"): its centred
+	# card, paused (a boss: the dossier). A click, not a drag; build mode, a Warden selection and the
+	# Clear tool keep their own click.
+	if not (event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT) or visible:
+		return
+	if event.pressed:
+		_press_at = event.position
+		_press_free = _map_click_free()
+		return
+	if not _press_free or event.position.distance_to(_press_at) > CLICK_SLOP:
+		return
+	var enemy := nightmare_at(event.position)
+	if enemy == null:
+		return
+	if enemy.enemy_data.is_boss:
+		BossDossier.open_for(get_tree())
+	else:
+		open([enemy.enemy_data], 0, enemy)
+	get_viewport().set_input_as_handled()
+
+const CLICK_RADIUS := 30.0  # World px around a nightmare that count as clicking it
+const CLICK_SLOP := 8.0  # Screen px a click may move (more = a drag box)
+var _press_at := Vector2.ZERO
+var _press_free := false
+var live: Node2D = null  # The clicked nightmare (its health, statuses and Restless on the card)
+var _live_label: Label = null
+
+# Nothing else owns a map click right now.
+func _map_click_free() -> bool:
+	var placer = drift_director.get_node_or_null("%TowerPlacer")
+	var seller = drift_director.get_node_or_null("%TowerSeller")
+	var clearer = drift_director.get_node_or_null("%ObstacleClearer")
+	if placer != null and placer.build_mode:
+		return false
+	if seller != null and not seller.selection.is_empty():
+		return false
+	return not (clearer != null and clearer.has_method("is_tool_active") and clearer.is_tool_active())
+
+# The nightmare under screen point `screen_at` (nearest within CLICK_RADIUS), or null. Hidden ones
+# can't be picked.
+func nightmare_at(screen_at: Vector2) -> Node2D:
+	var world := get_viewport().get_canvas_transform().affine_inverse() * screen_at
+	var best: Node2D = null
+	var best_distance := CLICK_RADIUS
+	for enemy in get_tree().get_nodes_in_group(Tower.ENEMY_GROUP):
+		if enemy.get("enemy_data") == null or enemy.is_cleansed or (enemy.has_method("is_hidden") and enemy.is_hidden()):
+			continue
+		var distance: float = enemy.global_position.distance_to(world)
+		if distance < best_distance:
+			best_distance = distance
+			best = enemy
+	return best
+
+# --- Which kinds, when ---------------------------------------------------------------------------
+
+static func enabled() -> bool:
+	return bool(HeartwoodMemory.get_settings().get("whispers", true))
+
+static func kind_of(data: EnemyData) -> String:
+	return data.resource_path.get_file().get_basename()
+
+# Never introduced before (this profile, or this session in dev runs and tests).
+func is_unseen(data: EnemyData) -> bool:
+	var kind := kind_of(data)
+	if session_seen.has(kind):
+		return false
+	var profile := HeartwoodMemory.load_data()
+	return not profile.get(SEEN_KEY, []).has(kind) and not profile.get("nightmares_seen", []).has(kind)
+
+# The new kinds of block `block`, each followed by the kinds it splits into / brings.
+func new_kinds_in_block(block: int) -> Array:
+	var out: Array = []
+	for pair in ComingStrip.kinds_in_block(drift_director, block):
+		var data: EnemyData = pair[0]
+		if data.is_boss:
+			continue
+		for kind in [data, data.split_into, data.followers]:
+			if kind != null and not out.has(kind) and is_unseen(kind):
+				out.append(kind)
+	return out
+
+func _on_rest_started(block: int, _boss: bool, _bonus: int, _perfect: bool) -> void:
+	if not enabled() or not drift_director.has_next_drift():
+		return
+	var kinds := new_kinds_in_block(block + 1)
+	if not kinds.is_empty():
+		_pending = kinds
+		_drift = block * drift_director.drifts_per_block + 1
+		_wait = OPEN_DELAY
+
+# The rest's earlier screens (family pick, Dream, Omen, pause, results) are done.
+func screens_clear() -> bool:
+	var main := drift_director.owner
+	for path in ["HUD/FamilyPickScreen", "HUD/DreamScreen", "HUD/OmenScreen", "HUD/RememberScreen", "HUD/PauseMenu", "HUD/ResultsScreen"]:
+		var screen := main.get_node_or_null(path) as CanvasItem if main != null else null
+		if screen != null and screen.visible:
+			return false
+	var dreams := get_tree().get_first_node_in_group(DreamState.GROUP) as DreamState
+	if dreams != null and (dreams.is_offering() or dreams.has_pending_offer()):
+		return false
+	var omens := get_tree().get_first_node_in_group(OmenDirector.GROUP) as OmenDirector
+	if omens != null and omens.is_offering():
+		return false
+	return not drift_director.awaiting_family_pick
+
+# The boss dossier waits while a card is open or about to open.
+func is_busy() -> bool:
+	return visible or not _pending.is_empty()
+
+func _process(delta: float) -> void:
+	var real := delta / maxf(Engine.time_scale, 0.001)
+	if visible:
+		_update_live()
+	if _pending.is_empty():
+		return
+	if not drift_director.is_resting():
+		_pending = []
+		return
+	_wait -= real
+	if _wait <= 0.0 and screens_clear():
+		var kinds := _pending
+		_pending = []
+		open(kinds, _drift)
+
+# --- Open / next / close -------------------------------------------------------------------------
+
+# `enemy`: a nightmare clicked on the map; its card adds its live health, statuses and Restless.
+func open(kinds: Array, drift: int = 0, enemy: Node2D = null) -> void:
+	if kinds.is_empty():
+		return
+	if visible:  # A card is up already: these follow it (keeps its pause state)
+		for kind in kinds:
+			if not queue.has(kind) and kind != shown:
+				queue.append(kind)
+		_next.text = "Next"
+		return
+	queue = kinds.duplicate()
+	_drift = drift
+	live = enemy
+	_show_next()
+	var speed := drift_director.get_node_or_null("%GameSpeed") as GameSpeed if drift_director else null
+	_paused_it = speed != null and not drift_director.is_resting() and not speed.paused
+	if _paused_it:
+		speed.set_paused(true)
+
+func advance() -> void:
+	if queue.is_empty():
+		close()
+	else:
+		_show_next()
+
+func _show_next() -> void:
+	shown = queue.pop_front()
+	_remember(shown)
+	for child in _content.get_children():
+		_content.remove_child(child)
+		child.queue_free()
+	_build(shown)
+	_next.text = "Next" if not queue.is_empty() else "Got it"
+	visible = true
+
+func close() -> void:
+	visible = false
+	queue.clear()
+	shown = null
+	live = null
+	_live_label = null
+	if _paused_it:
+		_paused_it = false
+		var speed := drift_director.get_node_or_null("%GameSpeed") as GameSpeed
+		if speed != null:
+			speed.set_paused(false)
+
+# Once ever: the profile in the real game, the session otherwise (dev runs, tests).
+func _remember(data: EnemyData) -> void:
+	var kind := kind_of(data)
+	session_seen[kind] = true
+	_met[kind] = true
+	var main := drift_director.owner if drift_director else null
+	if main == null or get_tree().current_scene != main or MetaRun.is_dev_run():
+		return
+	var profile := HeartwoodMemory.load_data()
+	var seen: Array = profile.get(SEEN_KEY, [])
+	if not seen.has(kind):
+		seen.append(kind)
+		profile[SEEN_KEY] = seen
+		HeartwoodMemory.save_data(profile)
+
+func _build(data: EnemyData) -> void:
+	var head := HBoxContainer.new()
+	head.add_theme_constant_override("separation", 12)
+	head.add_child(BossDossier.BossPortrait.new(data, 76.0))
+	var titles := VBoxContainer.new()
+	titles.alignment = BoxContainer.ALIGNMENT_CENTER
+	titles.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var tag := Label.new()
+	tag.text = "A new nightmare"
+	UiStyle.caps(tag, 13, NEW_COLOR)
+	titles.add_child(tag)
+	var name := Label.new()
+	name.text = data.display_name
+	UiStyle.title(name, 24)
+	titles.add_child(name)
+	if data.trait_text != "":
+		titles.add_child(StatusLinks.make_label(data.trait_text, 15, UiStyle.INK_DIM))
+	head.add_child(titles)
+	_content.add_child(head)
+	var lines: Array = data.get_intro_lines() if data.has_method("get_intro_lines") else []
+	if not lines.is_empty():
+		_content.add_child(StatusLinks.make_label("\n".join(lines), 16, UiStyle.INK))
+	var rows := NightmareIcons.make_rows(data, 30.0)
+	if rows.get_child_count() > 0:
+		_content.add_child(rows)
+	var hint := String(data.get("hint")) if data.get("hint") != null else ""
+	if hint != "":
+		var tip := StatusLinks.make_label("", 15, UiStyle.WHISPER)
+		tip.text = BossDossier._links_keep_tags("[i]%s[/i]" % hint)
+		_content.add_child(tip)
+	if _drift > 0:
+		var when := Label.new()
+		when.text = "Arrives in drift %d" % _drift
+		UiStyle.caps(when, 13)
+		_content.add_child(when)
+	_live_label = null
+	if is_instance_valid(live) and live.enemy_data == data:  # Clicked on the map: this one, right now
+		_live_label = Label.new()
+		_live_label.name = "Live"
+		_live_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		UiStyle.number(_live_label, 15, UiStyle.GOLD)
+		_content.add_child(_live_label)
+		_update_live()
+
+# "Health 180 / 240 · Soaked ×2 8s · Restless ×1", or "Dispelled" once it's gone.
+func live_text() -> String:
+	if not is_instance_valid(live) or live.is_cleansed:
+		return "Dispelled"
+	var parts: Array[String] = ["Health %d / %d" % [live.health, live.max_health]]
+	for id in live.statuses.active_ids():
+		var stacks: int = live.statuses.stacks(id)
+		parts.append("%s%s %.0fs" % [IconInfo.status_name(id), " ×%d" % stacks if stacks > 1 else "", live.statuses.time_left(id)])
+	var restless: String = load("res://scripts/ui/nightmare_info.gd").restless_text(live)
+	if restless != "":
+		parts.append(restless)
+	return " · ".join(parts)
+
+func _update_live() -> void:
+	if _live_label != null and is_instance_valid(_live_label):
+		var text := live_text()
+		if text != _live_label.text:
+			_live_label.text = text
+
+# A kind that first shows up mid-block without a card (a split, a summon, an Omen extra): the game
+# pauses on its centred card (screens_ui.md; it was a 2-second name plate).
+func _on_spawned(node: Node) -> void:
+	var data = node.get("enemy_data")
+	if data == null or data.is_boss or not enabled():
+		return
+	var kind := kind_of(data)
+	if _met.has(kind) or session_seen.has(kind):
+		return
+	_met[kind] = true
+	open.call_deferred([data], 0, node)  # Paused, centred: meet it now

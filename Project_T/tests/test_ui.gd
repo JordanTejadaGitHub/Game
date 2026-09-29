@@ -82,6 +82,18 @@ func _run() -> void:
 		row.refresh()
 		_check(row._icons[-1].live != live_before, "planting a Warden updates it (%s → %s)" % [live_before, row._icons[-1].live])
 		_check(row.get_list_text().contains("Few and Mighty"), "Dreams this run lists it")
+		# The redesigned list: grouped rows, status tokens filled in, a tap shows the full card.
+		var soft := dreams.pool.filter(func(c: UpgradeData) -> bool: return c.description.contains("{spored}"))
+		if not soft.is_empty():
+			dreams.choose(soft[0]) if dreams.is_offering() else dreams.stacks.set(soft[0].id, 1)
+			row.refresh()
+		row._toggle_list()
+		_check(row._list.visible and row._list_box.get_child_count() > 1, "Dreams this run opens as rows")
+		_check(not row.get_list_text().contains("{"), "no raw status tokens in the list")
+		var row_frame: Control = row._list_box.find_child("Row_few_and_mighty", false, false)
+		_check(row_frame != null, "Few and Mighty has its own row")
+		_check(DreamsRow.group_of(load("res://resource/dream/heart_of_the_maze.tres")) != "", "every card has a group")
+		row._toggle_list()
 
 	# --- Dreamlight: the counter beside the Dew, and Remember at rests ---
 	var light: Label = main.get_node("HUD/DreamlightLabel")
@@ -161,15 +173,30 @@ func _run() -> void:
 	_check(made.custom_minimum_size == Vector2(32, 32) and made.tooltip_text.begins_with("Range:"), "make_icon: ×2, with its tooltip")
 	made.free()
 	var drift_panel = main.get_node("HUD/DriftPanel")
-	var saved_started := director.drifts_started
-	director.drifts_started = 0
+	# Remember: a top-right button beside the Dreamlight counter (run_design.md), glowing when
+	# something can be unlocked; the DriftPanel's old button stays hidden.
+	var hud_rem = main.get_node("HUD")
+	_check(main.get_node_or_null("HUD/RememberButton") != null, "a Remember button at the top right")
 	drift_panel._process(0.0)
-	_check(not drift_panel._remember_button.visible, "no Remember before the first family pick")
-	director.drifts_started = 5
-	drift_panel._process(0.0)
-	_check(drift_panel._remember_button.visible == director.is_resting()
-		and drift_panel._remember_button.text == "Remember (%d)" % dreams.dreamlight, "Remember at a rest, with the Dreamlight")
-	director.drifts_started = saved_started
+	_check(not drift_panel._remember_button.visible, "the rest panel's old Remember button is gone")
+	var saved_light := dreams.dreamlight
+	var had_sporeling := dreams.unlocked.has("sporeling")
+	dreams.unlocked["sporeling"] = true
+	dreams.add_dreamlight(-dreams.dreamlight)
+	_check(not hud_rem.can_remember_something(), "no glow without Dreamlight")
+	dreams.add_dreamlight(5)
+	_check(hud_rem.can_remember_something(), "it glows when a branch can be unlocked")
+	var asked := []
+	dreams.remember_requested.connect(func(_focus) -> void: asked.append(true), CONNECT_ONE_SHOT)
+	hud_rem.remember_button.pressed.emit()
+	_check(asked.size() == 1, "the button opens the Remember screen")
+	var remember_screen = main.get_node_or_null("HUD/RememberScreen")
+	if remember_screen != null and remember_screen.visible:
+		remember_screen.close()
+	dreams.add_dreamlight(saved_light - dreams.dreamlight)
+	if not had_sporeling:
+		dreams.unlocked.erase("sporeling")
+	main.get_node("%GameSpeed").set_paused(false)  # The screen paused mid-drift; the test leaves it open
 
 	# --- Whispers: a locked obstacle says "Dead wood…", Tend waits for the first clearing Dream ---
 	var whispers = main.get_node("%Whispers")
@@ -213,7 +240,7 @@ func _run() -> void:
 	await process_frame
 	_check(info.visible and info._title.text.begins_with(shade.enemy_data.display_name), "hover panel shows the nightmare")
 	_check(info._title.text.contains("New"), "a never-met nightmare gets the New tag")
-	_check(info._body.text.contains(shade.enemy_data.trait_text) and info._body.text.contains("Health"),
+	_check(info._body.text.contains(shade.enemy_data.trait_text) and info._numbers.text.contains("Health"),
 		"hover panel shows the trait and health")
 
 	# --- Leak feedback ---
@@ -308,6 +335,79 @@ func _run() -> void:
 	touch.set_touch_mode(false)
 	_check(touch_placer.confirm_on_release, "a mouse plants on release again")
 	touch_placer.set_build_mode(false)
+	# Full-screen overlays draw above the strip and the top-right buttons; the pause menu tops them all.
+	var order_hud := main.get_node("HUD")
+	var idx := func(n: String) -> int: return order_hud.get_node(n).get_index()
+	_check(idx.call("RememberScreen") > idx.call("RememberButton") and idx.call("DreamScreen") > idx.call("MenuButton")
+		and idx.call("PauseMenu") == order_hud.get_child_count() - 1, "overlays draw above the HUD, the pause menu on top")
+	var strip_node: Node = order_hud.get_children().filter(func(c: Node) -> bool: return c is ComingStrip).front()
+	_check(strip_node.get_index() < idx.call("OmenScreen"), "the Coming strip stays under the Omen screen")
+	# UI scrolling never moves the map: a wheel over the open Codex leaves the zoom alone; over the
+	# map it zooms (screens_ui.md). WASD waits while a text field has focus.
+	var wheel_cam = main.get_node("GameCameraNode")
+	var wheel_pause = main.get_node("%PauseMenu")
+	wheel_pause.open_codex(&"glossary")
+	await process_frame
+	var zoom_before: Vector2 = wheel_cam.target_zoom
+	var wheel := InputEventMouseButton.new()
+	wheel.button_index = MOUSE_BUTTON_WHEEL_UP
+	wheel.pressed = true
+	wheel.position = wheel_pause.codex.get_global_rect().get_center()
+	wheel.global_position = wheel.position
+	root.push_input(wheel)
+	var wheel_up := wheel.duplicate()
+	wheel_up.pressed = false
+	root.push_input(wheel_up)
+	await process_frame
+	_check(wheel_cam.target_zoom == zoom_before, "a wheel over the Codex doesn't zoom the map")
+	wheel_pause.close()
+	await process_frame
+	wheel_cam.target_zoom = Vector2.ONE * 0.8
+	wheel_cam._unhandled_input(wheel)
+	_check(wheel_cam.target_zoom.x > 0.8, "a wheel over the map zooms")
+	var search := LineEdit.new()
+	main.get_node("HUD").add_child(search)
+	search.grab_focus()
+	_check(wheel_cam._typing(), "typing in a text field: WASD stays in the field")
+	search.queue_free()
+	# Hover tips stay until the pointer leaves (screens_ui.md "Hover and tap tips"): another dispel
+	# doesn't reset the nightmare info or its status hov_popup; its own dispel shows "Dispelled", then it
+	# clears without jumping to the nightmare now under a still pointer.
+	var hov_spawner = main.get_node("%EnemyContainer")
+	var hov_info = main.get_node("%NightmareInfo")
+	var shade_kind: EnemyData = load("res://resource/enemy/leaf_bug.tres")
+	var watched: Node2D = hov_spawner.spawn_enemy(shade_kind)
+	var other: Node2D = hov_spawner.spawn_enemy(shade_kind)
+	for e in [watched, other]:
+		e.set_process(false)
+	watched.apply_status(&"damp", 1, 30.0)
+	hov_info._target = watched
+	for i in 3:
+		await process_frame
+	var hov_popup: StatusLinks = hov_info._body.get_children().filter(func(c: Node) -> bool: return c is StatusLinks).front()
+	hov_popup._show_for("status:damp", hov_info._body, true)
+	other.take_damage(other.max_health * 10.0)
+	for i in 20:
+		await process_frame
+	_check(hov_info._target == watched and hov_info.visible and hov_popup.visible,
+		"another nightmare's dispel keeps the hovered info and its status hov_popup")
+	hov_popup.visible = false
+	var under_pointer: Node2D = hov_spawner.spawn_enemy(shade_kind)
+	under_pointer.set_process(false)
+	under_pointer.global_position = main.get_viewport().get_canvas_transform().affine_inverse() * main.get_viewport().get_mouse_position()
+	watched.take_damage(watched.max_health * 10.0)
+	await process_frame
+	await process_frame
+	_check(hov_info.visible and hov_info._title.text.contains("Dispelled"), "its own dispel reads Dispelled (" + hov_info._title.text + ")")
+	for i in 80:
+		await process_frame
+	_check(not hov_info.visible and hov_info._target == null, "then it clears, without jumping to the nightmare under the pointer")
+	under_pointer.queue_free()
+	# The Warden bar isn't rewritten on every Dew change (a hovered button's tooltip would reset).
+	var bar_button: Button = main.get_node("HUD").get("_tower_buttons")[0]
+	var state_before = bar_button.get_meta(&"bar_state", "")
+	main.get_node("HUD")._on_dew_changed(main.get_node("%RunState").dew)
+	_check(state_before != "" and bar_button.get_meta(&"bar_state") == state_before, "the bar skips unchanged buttons")
 	# --- The Heartwood Sapling: its card after the drift 50 family pick, then the rest panel ---
 	# The Sapling is out of runs (TowerPlacer.sapling_enabled, run_design.md): no Codex terms for it.
 	var sapling_terms := func() -> bool:
@@ -348,6 +448,11 @@ func _run() -> void:
 	var settings := SettingsPanel.new()
 	main.add_child(settings)
 	var tab_names: Array = settings.tabs.get_children().map(func(c: Node) -> String: return c.name)
+	var omen_pick: OptionButton = null
+	for pick in settings.find_children("*", "OptionButton", true, false):
+		if pick.item_count == 2 and pick.get_item_text(0) == "Ask each rest":
+			omen_pick = pick
+	_check(omen_pick != null and omen_pick.get_item_text(1) == "Never", "Gameplay: Omens Ask each rest / Never")
 	_check(tab_names.has("Audio") and tab_names.has("Display") and tab_names.has("Accessibility") and tab_names.has("Controls"),
 		"settings are in tabs (%s)" % [tab_names])
 	settings.queue_free()
@@ -370,6 +475,30 @@ func _run() -> void:
 	_check(ResultsScreen.is_demo() == ProjectSettings.get_setting("game/demo", false), "tests ignore the Demo mode override")
 	DirAccess.remove_absolute(ProjectSettings.globalize_path(HeartwoodMemory.file_path))
 	HeartwoodMemory.file_path = real_profile
+
+	# --- Hover and tap tips stay (screens_ui.md): a Dew change doesn't rebuild the Warden panel ---
+	var tip_tower := seller.get_tower_at(seller.selected.cell) if seller.selected else null
+	if tip_tower == null:
+		for t in main.get_node("%TowerContainer").get_children():
+			if t is Tower and t.tower_data.can_attack:
+				tip_tower = t
+				break
+	if tip_tower:
+		seller.select(tip_tower)
+		await process_frame
+		var panel := main.find_child("WardenPanel", true, false)
+		var priced: Array = panel._buttons.get_children().filter(func(b) -> bool: return b.has_meta(&"cost"))
+		var ids: Array = panel._buttons.get_children().map(func(b) -> int: return b.get_instance_id())
+		run_state.dew = 0
+		run_state.dew_changed.emit(0)
+		await process_frame
+		var ids_after: Array = panel._buttons.get_children().map(func(b) -> int: return b.get_instance_id())
+		_check(ids_after == ids, "a Dew change keeps the Warden panel's buttons (a tooltip under the pointer stays)")
+		_check(priced.all(func(b) -> bool: return b.disabled), "and their affordability updates in place")
+		run_state.dew = 100000
+		run_state.dew_changed.emit(100000)
+		_check(priced.all(func(b) -> bool: return not b.disabled or b.text.contains("Dreamlight")), "back when there's Dew")
+		seller.select(null)
 
 	# --- Pause summary and Abandon run ---
 	var pause = main.get_node("%PauseMenu")

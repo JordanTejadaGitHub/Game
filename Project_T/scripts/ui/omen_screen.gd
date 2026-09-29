@@ -1,13 +1,17 @@
 extends Control
 
-# Omen choice at a rest (after the Dream): 2 Omen cards (the twist + its reward) or Clear Skies.
-# Pauses while open, like the Dream screen. Also shows the active Omen in a small tag under the
-# toast, and toasts when one starts and when its reward is paid. Built in code.
+# The Omen screen at a rest, shown like the Dream (run_design.md "Omens: shown like a Dream"): the
+# two Omen cards (the twist + its reward) and a third, Clear Skies (the default: nothing changes, no
+# reward). Esc / right-click = Clear Skies. Pauses and peeks like the Dream screen. Also shows the
+# active Omen in a small tag under the toast, and toasts when one starts and when its reward is paid.
+# Built in code.
 
 const CARD_SIZE := Vector2(270, 200)
-const OMEN_COLOR := Color(0.95, 0.75, 0.45)
-const TWIST_COLOR := Color(1.0, 0.7, 0.6)
-const REWARD_COLOR := Color(0.65, 0.9, 0.6)
+const OMEN_COLOR := UiStyle.BUTTON_GOLD  # Heartwood 32 "Gold"
+const TWIST_COLOR := Color("9a84e8")  # Heartwood 32 "Wraithlight": the nightmares' side of the deal
+const REWARD_COLOR := UiStyle.GOLD  # Heartwood 32 "Glow": the reward in gold (run_design.md)
+const CLEAR_SKIES_COLOR := UiStyle.MOONLIGHT  # A calm moonlit card: Moonlight thread and title
+const CLEAR_SKIES_GLOW := Color("3c3c5c")  # Dusk: a cooler, lighter middle than an Omen's Night
 
 @onready var omens: OmenDirector = %OmenDirector
 @onready var drift_director: DriftDirector = %DriftDirector
@@ -16,7 +20,6 @@ const REWARD_COLOR := Color(0.65, 0.9, 0.6)
 var _was_paused := false
 var _title := Label.new()
 var _cards := HBoxContainer.new()
-var _clear_skies := Button.new()
 var _active_tag := Label.new()
 var peek: ChoicePeek  # Minimise to look at the map (screens_ui.md "Choice screens")
 
@@ -35,18 +38,12 @@ func _ready() -> void:
 	box.add_theme_constant_override("separation", 18)
 	center.add_child(box)
 	_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_title.add_theme_font_size_override("font_size", 28)
+	UiStyle.display(_title, 28)
 	_title.add_theme_color_override("font_color", OMEN_COLOR)
 	box.add_child(_title)
 	_cards.add_theme_constant_override("separation", 16)
 	_cards.alignment = BoxContainer.ALIGNMENT_CENTER
 	box.add_child(_cards)
-	_clear_skies.text = "Clear Skies  (nothing changes)"
-	_clear_skies.focus_mode = Control.FOCUS_NONE
-	_clear_skies.pressed.connect(omens.choose.bind(null))
-	var skip_row := CenterContainer.new()
-	skip_row.add_child(_clear_skies)
-	box.add_child(skip_row)
 	peek = ChoicePeek.new(self, [dim, center], "Back to the Omens")
 	box.add_child(peek.make_peek_button())
 	visible = false
@@ -72,12 +69,17 @@ func _show_offer(offer: Array[OmenData], block: int) -> void:
 		_was_paused = game_speed.paused
 	game_speed.set_paused(true)
 	var drifts := omens.get_block_range(block)
-	_title.text = "The wind brings Omens for drifts %d–%d" % [drifts.x, drifts.y]
+	_title.text = "The wind carries Omens  ·  drifts %d–%d" % [drifts.x, drifts.y]
+	if omens.forced:
+		_title.text = "An Omen must be faced  ·  drifts %d–%d" % [drifts.x, drifts.y]
 	for child in _cards.get_children():
+		_cards.remove_child(child)
 		child.queue_free()
 	var act := drift_director.get_act(drifts.y)
 	for omen in offer:
 		_cards.add_child(_make_card(omen, act))
+	if not omens.forced:
+		_cards.add_child(_make_clear_skies_card())
 	visible = true
 
 func _make_card(omen: OmenData, act: int) -> Button:
@@ -85,16 +87,7 @@ func _make_card(omen: OmenData, act: int) -> Button:
 	button.custom_minimum_size = CARD_SIZE
 	button.focus_mode = Control.FOCUS_NONE
 	button.pressed.connect(omens.choose.bind(omen))
-	var style := StyleBoxFlat.new()
-	style.bg_color = Color(0.16, 0.13, 0.12, 0.95)
-	style.border_color = OMEN_COLOR
-	style.set_border_width_all(3)
-	style.set_corner_radius_all(10)
-	button.add_theme_stylebox_override("normal", style)
-	var hover := style.duplicate() as StyleBoxFlat
-	hover.bg_color = Color(0.24, 0.2, 0.17, 0.98)
-	button.add_theme_stylebox_override("hover", hover)
-	button.add_theme_stylebox_override("pressed", hover)
+	UiStyle.card_button(button, OMEN_COLOR)  # Moonlit Thread card (ui_style.md)
 
 	var box := VBoxContainer.new()
 	box.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -104,7 +97,7 @@ func _make_card(omen: OmenData, act: int) -> Button:
 	box.offset_bottom = -12
 	box.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	button.add_child(box)
-	_add_line(box, omen.display_name, Color(0.95, 0.93, 0.9), 22)
+	UiStyle.title(_add_line(box, omen.display_name, UiStyle.INK, 22), UiStyle.CARD_NAME_SIZE)
 	var twist := StatusLinks.make_label(omen.description, 16, TWIST_COLOR)  # Status words as links
 	twist.mouse_filter = Control.MOUSE_FILTER_PASS  # A click still picks the Omen
 	twist.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -141,3 +134,38 @@ func _toast(text: String) -> void:
 	var hud := get_parent()
 	if hud.has_method("show_toast"):
 		hud.show_toast(text)
+
+
+# Esc / right-click = Clear Skies (not when an Omen must be faced).
+func _unhandled_input(event: InputEvent) -> void:
+	if not visible or omens.forced or peek.peeking:
+		return
+	var right_click: bool = event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_RIGHT
+	if event.is_action_pressed("ui_cancel") or right_click:
+		omens.choose(null)
+		get_viewport().set_input_as_handled()
+
+# The third card: Clear Skies, the default (highlighted). "Nothing changes. No reward."
+func _make_clear_skies_card() -> Button:
+	var button := Button.new()
+	button.custom_minimum_size = CARD_SIZE
+	button.focus_mode = Control.FOCUS_NONE
+	button.pressed.connect(omens.choose.bind(null))
+	UiStyle.card_button(button, CLEAR_SKIES_COLOR)
+	for state in ["normal", "hover", "pressed", "hover_pressed"]:
+		var style := button.get_theme_stylebox(state) as MoonStyleBox
+		style.glow_color = CLEAR_SKIES_GLOW.lightened(0.08) if state.begins_with("hover") else CLEAR_SKIES_GLOW
+	var box := VBoxContainer.new()
+	box.set_anchors_preset(Control.PRESET_FULL_RECT)
+	box.offset_left = 14
+	box.offset_top = 12
+	box.offset_right = -14
+	box.offset_bottom = -12
+	box.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	button.add_child(box)
+	UiStyle.title(_add_line(box, "Clear Skies", CLEAR_SKIES_COLOR, 22), UiStyle.CARD_NAME_SIZE, CLEAR_SKIES_COLOR)
+	var calm := _add_line(box, "Nothing changes. No reward.", UiStyle.WHISPER, 16)
+	UiStyle.whisper(calm, 19)  # Calm: the whisper face
+	calm.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	UiStyle.caps(_add_line(box, "The default", UiStyle.INK_DIM, 13), 14)
+	return button

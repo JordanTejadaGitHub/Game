@@ -10,7 +10,7 @@ class_name RunSaver
 # counters, drift progress, Dreams and Omens (their own to_save()/load_save()).
 
 const PATH := "user://run.json"
-const VERSION := 3  # 2: the map shrank to 23x18; 3: ridges taper (same seed, different map)
+const VERSION := 5  # 2: map 23x18; 3: ridges taper; 4: fewer obstacles; 5: one bend (same seed, different map)
 
 # Where the save lives (tests point this elsewhere so they never touch the player's run).
 static var file_path := PATH
@@ -31,6 +31,25 @@ var _dirty := false  # A rest began or a choice closed: save once nothing is ope
 var autosave := true
 var _saved_data := {}  # Loaded save, applied once the scene is ready
 
+const QUIT_FRAMES := 3  # Frames between freeing the run and quitting
+
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_WM_CLOSE_REQUEST:
+		safe_quit(get_tree())
+	elif what == NOTIFICATION_EXIT_TREE:
+		get_tree().auto_accept_quit = true  # Back to the title / Grove: their close is the engine's
+
+# Quits without tearing the run scene down during exit: frees the current scene, waits a few frames,
+# then quits. Static, so it keeps going after this node is freed with the scene. Tests that quit with
+# main.tscn loaded can use it too.
+static func safe_quit(tree: SceneTree, exit_code: int = 0) -> void:
+	var scene := tree.current_scene
+	if scene != null and is_instance_valid(scene):
+		scene.queue_free()
+	for i in QUIT_FRAMES:
+		await tree.process_frame
+	tree.quit(exit_code)
+
 static func has_save() -> bool:
 	return FileAccess.file_exists(file_path)
 
@@ -40,6 +59,10 @@ static func delete_save() -> void:
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS  # Choice screens pause the tree
+	# Closing the window mid-run: free the run first, quit a few frames later (safe_quit). The engine
+	# can crash tearing this scene down at exit (Tower Code, ~5% under load). Only while a run is open;
+	# other scenes keep the engine's own close.
+	get_tree().auto_accept_quit = false
 	# Never in tests, and never in Test Grove (a dev playtest would overwrite the real saved run).
 	autosave = get_tree().current_scene == owner and not TestGrove.is_active()
 	# Runs before MapGenerator (earlier sibling), so the map is rebuilt from the saved seed.
@@ -87,6 +110,7 @@ func save_now() -> bool:
 				"target_mode": tower.target_mode, "target_chosen": tower.target_chosen, "kin_branch": tower.kin_branch, "size": tower.get_footprint(),
 				"legacy": tower.legacy_data.resource_path if tower.legacy_data else "",  # An Ascended form's final
 				"drifts_stood": int(tower.get_meta(&"drifts_stood", 0)),  # Old Growth (DreamState counts it)
+				"gift_sprout": bool(tower.get_meta(&"gift_sprout", false)),  # Never raises the Sprout price
 				"underdog": bool(tower.get_meta(&"underdog", false))})  # Underdog's mark (set at each rest)
 	var data := {
 		"version": VERSION,
@@ -161,6 +185,8 @@ func _restore(data: Dictionary) -> void:
 			tower.legacy_data = load(saved.legacy)  # The final form it grew from (its legacy attack)
 		if int(saved.get("drifts_stood", 0)) > 0:  # Old Growth: drifts this Warden has stood
 			tower.set_meta(&"drifts_stood", int(saved.drifts_stood))
+		if bool(saved.get("gift_sprout", false)):
+			tower.set_meta(&"gift_sprout", true)
 		if bool(saved.get("underdog", false)):
 			tower.set_meta(&"underdog", true)
 		# Ascended forms grew to 2×2: one saved before that (no "size") stays on its one cell.

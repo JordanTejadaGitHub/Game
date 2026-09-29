@@ -14,3 +14,5 @@ resists = Array[String](["light"])
 weak_to = Array[String](["wind"])
 reveal_radius = 2.0
 trait_text = "A treacherous light: Lurkers near it can be seen."
+intro_lines = Array[String](["A treacherous light: Lurkers within {reveal_radius} cells of it can be seen."])
+hint = "Its treacherous glow shows you the Lurkers, too."

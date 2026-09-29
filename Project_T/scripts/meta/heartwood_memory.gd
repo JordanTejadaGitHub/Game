@@ -12,6 +12,8 @@ const VERSION := 2  # 2: Grove ids match grove_layout.json (MIGRATED_IDS), perk 
 
 # Where the profile lives (tests point this elsewhere so they never touch the player's Seeds).
 static var file_path := PATH
+# Dev Grove (DevGrove): while set, the profile is a dev one but settings stay in this real file.
+static var real_settings_path := ""
 
 static func defaults() -> Dictionary:
 	return {
@@ -51,6 +53,7 @@ static func defaults() -> Dictionary:
 			"high_contrast_route": false,  # RouteLine: bright, thick route previews
 			"confirm_sell": true,  # Warden panel: confirm "Sell N" while nightmares walk
 			"pause_on_combo": true,  # A first-ever combo discovery pauses the game (off: a 5 s slide-in card)
+			"omens": "ask",  # Omens at rests: "ask" or "never" (always Clear Skies; OmenDirector.MODE_SETTING)
 			"resist_pips": false,  # Resist / weak pips on nightmares always (off: only while placing or with Wardens selected)
 			"kinship_effects": 0,  # Kinship visuals: 0 full, 1 subtle, 2 off (rules always apply; read by Tower Code)
 			"health_bars": 0,  # Nightmare health bars: 0 once hit, 1 always (read by Enemy via Fx.setting)
@@ -62,6 +65,12 @@ static func defaults() -> Dictionary:
 	}
 
 static func load_data() -> Dictionary:
+	var data := _load_file()
+	if real_settings_path != "" and real_settings_path != file_path:
+		data.settings = _real_settings()  # Dev Grove: settings live in the real profile
+	return data
+
+static func _load_file() -> Dictionary:
 	var data := defaults()
 	if not FileAccess.file_exists(file_path):
 		return data
@@ -283,9 +292,20 @@ static func get_settings() -> Dictionary:
 	return load_data().settings
 
 static func save_settings(settings: Dictionary) -> void:
+	var path := file_path
+	if real_settings_path != "":
+		file_path = real_settings_path  # Dev Grove: settings always go to the real profile
 	var data := load_data()
 	data.settings = settings
 	save_data(data)
+	file_path = path
+
+static func _real_settings() -> Dictionary:
+	var path := file_path
+	file_path = real_settings_path
+	var settings: Dictionary = _load_file().settings
+	file_path = path
+	return settings
 
 # Applies settings to the engine: volume, window mode and key rebinds.
 static func apply_settings(settings: Dictionary = {}) -> void:

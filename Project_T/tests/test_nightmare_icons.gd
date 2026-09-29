@@ -92,12 +92,27 @@ func _run() -> void:
 	_check(not kinds.is_empty() and kinds.back()[0].is_boss and kinds.back()[1] == 25,
 		"block 5's kinds end with the boss in drift 25")
 	var strip: ComingStrip = null
-	for child in main.get_node("HUD/DriftPanel").get_children():
+	for child in main.get_node("HUD").get_children():
 		if child is ComingStrip:
 			strip = child
 	await process_frame
 	_check(strip != null and strip.visible and strip._row.get_child_count() == ComingStrip.kinds_in_block(director, 1).size(),
 		"the strip shows block 1's kinds at the first rest")
+	# Readable on the night sky: each kind's name and block count (extras included) at rests.
+	var first_kinds := ComingStrip.kinds_in_block(director, 1)
+	if strip != null and not first_kinds.is_empty():
+		var first_item: Control = strip._row.get_child(0)
+		var count_label := first_item.find_child("KindCount", false, false) as Label
+		var name_label := first_item.find_child("KindName", false, false) as Label
+		_check(count_label != null and count_label.text == "×%d" % first_kinds[0][2] and name_label != null
+			and name_label.text.to_lower() == first_kinds[0][0].display_name.to_lower(), "the strip names each kind and counts it")
+	var d10 := ComingStrip.kinds_in_range(director, 10, 10)
+	var listed := 0
+	for group in director.drifts[9].groups:
+		for entry in group.entries:
+			if entry.enemy == d10[0][0]:
+				listed += entry.count
+	_check(d10[0][2] >= listed, "counts include the extra nightmares (drift 10: %d listed, %d shown)" % [listed, d10[0][2]])
 
 	# --- The dossier at the rest opening block 5 (after drift 20) ----------------------------------
 	var dossier := root.get_tree().get_first_node_in_group(BossDossier.GROUP) as BossDossier
@@ -117,6 +132,20 @@ func _run() -> void:
 		omens.choose(null)
 	for i in 40:
 		await process_frame
+	# New nightmares are introduced before the dossier (the test profile has met nothing).
+	var intro := root.get_tree().get_first_node_in_group(NightmareIntro.GROUP) as NightmareIntro
+	_check(intro != null, "the introduction card exists")
+	if intro != null and NightmareIntro.enabled():
+		_check(intro.visible and not dossier.visible, "a new kind's introduction comes before the dossier")
+		var introduced := 0
+		while intro.visible and introduced < 10:
+			introduced += 1
+			_check(intro._content.get_child_count() > 1, "the card shows " + (intro.shown.display_name if intro.shown else "?"))
+			intro.advance()
+		_check(introduced >= 1 and not intro.visible, "Next goes through each new kind (%d)" % introduced)
+		_check(intro.new_kinds_in_block(5).is_empty(), "once shown, never again (session)")
+		for i in 40:
+			await process_frame
 	_check(dossier.visible and dossier.shown_drift == 25, "the dossier shows itself last in the rest (drift %d)" % dossier.shown_drift)
 	var text := _text(dossier._content)
 	var health := NightmareCard.health_at(stag, 25, director)
@@ -144,6 +173,35 @@ func _run() -> void:
 	banner._boss.queue_free()
 	boss.queue_free()
 
+	# Click / tap a nightmare: its centred card with live state; a boss: the dossier; a never-seen
+	# kind spawning mid-block opens its card too.
+	if intro != null:
+		var click_spawner = main.get_node("%EnemyContainer")
+		var clicked: Node2D = click_spawner.spawn_enemy(load("res://resource/enemy/bark_beetle.tres"))
+		clicked.set_process(false)
+		await process_frame
+		var at: Vector2 = main.get_viewport().get_canvas_transform() * clicked.global_position
+		for pressed in [true, false]:
+			var click := InputEventMouseButton.new()
+			click.button_index = MOUSE_BUTTON_LEFT
+			click.pressed = pressed
+			click.position = at
+			intro._unhandled_input(click)
+		_check(intro.visible and intro.shown == clicked.enemy_data and intro._live_label != null
+			and intro._live_label.text.begins_with("Health"), "clicking a nightmare opens its card with live health")
+		intro.close()
+		clicked.queue_free()
+		var kind := NightmareIntro.kind_of(load("res://resource/enemy/puffcaplet.tres"))
+		NightmareIntro.session_seen.erase(kind)
+		intro._met.erase(kind)
+		var sob: Node2D = click_spawner.spawn_enemy(load("res://resource/enemy/puffcaplet.tres"))
+		sob.set_process(false)
+		await process_frame
+		await process_frame
+		_check(not NightmareIntro.enabled() or (intro.visible and intro.shown.display_name == "Sob"),
+			"a never-seen kind appearing mid-block opens its centred card")
+		intro.close()
+		sob.queue_free()
 	# --- Record ----------------------------------------------------------------------------------
 	BossDossier.record_dispel(stag, 65.0)
 	BossDossier.record_dispel(stag, 80.0)

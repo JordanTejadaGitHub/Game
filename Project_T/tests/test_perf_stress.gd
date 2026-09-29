@@ -1,0 +1,132 @@
+extends SceneTree
+
+# Performance stress test (platforms.md "Performance budget / Revised"): every buildable cell filled
+# with Wardens (the path kept open; a mix with many Sprouts), 150 nightmares spread along the route,
+# Dreams that watch the map (Root Network, Sprout Surge, Heart of the Maze, Solitude, Thinning the
+# Herd), at 3x. Measures each frame's process time (headless: scripts, not rendering) and fails if p95
+# is over the scripts' share of a 60 fps frame. Run:
+#   godot --headless --path . --script res://tests/test_perf_stress.gd --fixed-fps 60 [-- --breakdown]
+# --breakdown repeats the measurement with one system switched off at a time (a differential profile:
+# how many ms each one costs).
+
+const MAP_SEED := 42
+const NIGHTMARES := 150
+const SPEED := 3.0
+const WARMUP := 60
+const FRAMES := 300
+const BUDGET_MS := 16.6  # 60 fps
+const SCRIPT_SHARE := 0.6  # Scripts may use this much of the frame (rendering needs the rest)
+const CARDS := ["root_network", "sprout_surge", "heart_of_the_maze", "solitude", "thinning_the_herd"]
+const MIX := ["sprout", "sprout", "sprout", "sporeling", "firefly_jar", "dewdrop", "pebbling", "acorn", "rootling"]
+const SYSTEMS := ["SoundHooks", "Kinships", "DreamMarks", "EnvironmentLighting", "EnvironmentAmbience", "HUD",
+	"CombatCallouts", "ResistPips", "NightmareInfo"]
+
+var failures := 0
+var main: Node
+var spawner
+var container: Node
+var map
+var result := {}  # The last measurement (members, not return values: awaited helpers stay simple)
+
+func _initialize() -> void:
+	_run.call_deferred()
+
+func _run() -> void:
+	main = load("res://scenes/main.tscn").instantiate()
+	main.get_node("%MapGenerator").map_seed = MAP_SEED
+	root.add_child(main)
+	await process_frame
+	map = main.get_node("%MapGenerator")
+	spawner = main.get_node("%EnemyContainer")
+	container = main.get_node("%TowerContainer")
+	_fill_map()
+	_spawn_spread()
+	await process_frame
+	Engine.time_scale = SPEED
+	await _measure("everything on")
+	var base: Dictionary = result.duplicate()
+	var budget := BUDGET_MS * SCRIPT_SHARE
+	_check(base.p95 <= budget, "p95 frame %.2f ms within the scripts' budget (%.1f ms)" % [base.p95, budget])
+	if OS.get_cmdline_user_args().has("--breakdown"):
+		var towers: Array = container.get_children().filter(func(t) -> bool: return t is Tower)
+		_set_process(towers, false)
+		await _measure("without the Wardens' _process")
+		_set_process(towers, true)
+		print("    -> Wardens: %.2f ms" % (base.p50 - result.p50))
+		_set_process(spawner.get_children(), false)
+		await _measure("without the nightmares' _process")
+		_set_process(spawner.get_children(), true)
+		print("    -> nightmares: %.2f ms" % (base.p50 - result.p50))
+		for node_name in SYSTEMS:
+			var node := main.find_child(node_name, true, false)
+			if node == null:
+				continue
+			var mode := node.process_mode
+			node.process_mode = Node.PROCESS_MODE_DISABLED
+			await _measure("without " + node_name)
+			node.process_mode = mode
+			print("    -> %s: %.2f ms" % [node_name, base.p50 - result.p50])
+	Engine.time_scale = 1.0
+	print("perf stress test: %s" % ("PASS" if failures == 0 else "%d FAILED" % failures))
+	quit(failures)
+
+func _fill_map() -> void:
+	var placer: TowerPlacer = main.get_node("%TowerPlacer")
+	var dreams: DreamState = main.get_node("%DreamState")
+	var run_state: RunState = main.get_node("%RunState")
+	dreams.unlock_everything = true
+	run_state.dew = 10000000
+	run_state.invulnerable = true
+	for card in dreams.pool:
+		if CARDS.has(card.id):
+			dreams.take(card)
+	var planted := 0
+	for y in Tower.MAP_GRID.size.y:
+		for x in Tower.MAP_GRID.size.x:
+			var cell := Vector2(x, y)
+			if not map.is_buildable(cell) or not map.can_block(cell):
+				continue
+			placer.tower_data = load("res://resource/tower/%s.tres" % MIX[planted % MIX.size()])
+			if placer._try_build(cell):
+				planted += 1
+	print("  %d Wardens planted, route %d tiles" % [planted, map.get_path_from(map.startPath).size()])
+
+# 150 tough nightmares spread evenly along the route (a busy field, not one clump at the start).
+func _spawn_spread() -> void:
+	var route: PackedVector2Array = map.get_path_from(map.startPath)
+	var shade: EnemyData = load("res://resource/enemy/leaf_bug.tres")
+	for i in NIGHTMARES:
+		spawner.spawn_enemy(shade, 200.0)
+		var enemy = spawner.get_child(spawner.get_child_count() - 1)
+		var at := int(float(i) / NIGHTMARES * (route.size() - 2))
+		enemy.position = Tower.MAP_GRID.calculate_map_position(route[at])
+		enemy._path_index = at + 1
+		enemy.unkillable = true  # The Target Dummy flags: the field stays busy for every measurement
+		enemy.loops_route = true
+
+# Frame times (ms) over FRAMES frames after WARMUP, into `result`.
+func _measure(label: String) -> void:
+	for i in WARMUP:
+		await process_frame
+	var times: Array[float] = []
+	var last := Time.get_ticks_usec()
+	for i in FRAMES:
+		await process_frame
+		var now := Time.get_ticks_usec()
+		times.append((now - last) / 1000.0)
+		last = now
+	times.sort()
+	result = {"p50": times[int(times.size() * 0.5)], "p95": times[int(times.size() * 0.95)],
+		"p99": times[int(times.size() * 0.99)]}
+	print("  %-36s p50 %6.2f  p95 %6.2f  p99 %6.2f ms  (%d nightmares)" % [label, result.p50, result.p95,
+		result.p99, spawner.get_enemies().size()])
+
+func _set_process(nodes: Array, on: bool) -> void:
+	for n in nodes:
+		if is_instance_valid(n):
+			n.set_process(on)
+
+func _check(condition: bool, label: String) -> void:
+	if not condition:
+		failures += 1
+		printerr("FAIL: " + label)

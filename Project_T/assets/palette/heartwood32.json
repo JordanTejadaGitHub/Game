@@ -1,0 +1,196 @@
+{
+	"name": "Heartwood 32",
+	"ramps": [
+		{
+			"cold": true,
+			"colors": [
+				{
+					"hex": "#05050d",
+					"name": "Void"
+				},
+				{
+					"hex": "#24243c",
+					"name": "Night"
+				},
+				{
+					"hex": "#3c3c5c",
+					"name": "Dusk"
+				},
+				{
+					"hex": "#5c5a78",
+					"name": "Slate"
+				}
+			],
+			"name": "Ink",
+			"role": "outlines, shadows, the night sky"
+		},
+		{
+			"cold": true,
+			"colors": [
+				{
+					"hex": "#140f26",
+					"name": "Dread"
+				},
+				{
+					"hex": "#2c2444",
+					"name": "Shade"
+				},
+				{
+					"hex": "#4c3c74",
+					"name": "Bruise"
+				},
+				{
+					"hex": "#9a84e8",
+					"name": "Wraithlight"
+				}
+			],
+			"name": "Nightmare",
+			"role": "nightmare bodies, rims, cold glow"
+		},
+		{
+			"cold": true,
+			"colors": [
+				{
+					"hex": "#8c8cac",
+					"name": "Stone"
+				},
+				{
+					"hex": "#b4b0c8",
+					"name": "Mist"
+				},
+				{
+					"hex": "#dce8f4",
+					"name": "Moonlight"
+				}
+			],
+			"name": "Stone & moon",
+			"role": "boulders, mist, cold highlights, eyes"
+		},
+		{
+			"cold": false,
+			"colors": [
+				{
+					"hex": "#1c3c2c",
+					"name": "Deepmoss"
+				},
+				{
+					"hex": "#34643c",
+					"name": "Moss"
+				},
+				{
+					"hex": "#5c944c",
+					"name": "Leaf"
+				},
+				{
+					"hex": "#9cc46c",
+					"name": "Sprig"
+				},
+				{
+					"hex": "#d4ec9c",
+					"name": "Newleaf"
+				}
+			],
+			"name": "Moss",
+			"role": "ground, leaves, the canopy"
+		},
+		{
+			"cold": false,
+			"colors": [
+				{
+					"hex": "#241c14",
+					"name": "Root"
+				},
+				{
+					"hex": "#5c3c24",
+					"name": "Bark"
+				},
+				{
+					"hex": "#8c5c34",
+					"name": "Oak"
+				},
+				{
+					"hex": "#bca48c",
+					"name": "Deadwood"
+				}
+			],
+			"name": "Bark",
+			"role": "trunks, roots, dead trees"
+		},
+		{
+			"cold": false,
+			"colors": [
+				{
+					"hex": "#6c5c5c",
+					"name": "Loam"
+				},
+				{
+					"hex": "#b4a494",
+					"name": "Path"
+				},
+				{
+					"hex": "#dccdb2",
+					"name": "Moonpath"
+				}
+			],
+			"name": "Path",
+			"role": "the path; Moonpath is the palest ground"
+		},
+		{
+			"cold": false,
+			"colors": [
+				{
+					"hex": "#b8662c",
+					"name": "Ember"
+				},
+				{
+					"hex": "#e9a83c",
+					"name": "Gold"
+				},
+				{
+					"hex": "#fcd47c",
+					"name": "Glow"
+				},
+				{
+					"hex": "#fff4dc",
+					"name": "Heartlight"
+				}
+			],
+			"name": "Warm light",
+			"role": "attacks, the hollow, dream-fruit, fireflies"
+		},
+		{
+			"cold": false,
+			"colors": [
+				{
+					"hex": "#bc44dc",
+					"name": "Orchid"
+				},
+				{
+					"hex": "#ec9cf4",
+					"name": "Blossom"
+				}
+			],
+			"name": "Blossom",
+			"role": "Sporeling and flower Wardens"
+		},
+		{
+			"cold": true,
+			"colors": [
+				{
+					"hex": "#2c4c5c",
+					"name": "Pool"
+				},
+				{
+					"hex": "#4c8ca4",
+					"name": "Dew"
+				},
+				{
+					"hex": "#9cd4fc",
+					"name": "Dewlight"
+				}
+			],
+			"name": "Dew",
+			"role": "water Wardens, jars, dew pools"
+		}
+	]
+}

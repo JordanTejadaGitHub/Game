@@ -96,12 +96,11 @@ static func find(near: Node) -> Kinships:
 	kin = Kinships.new()
 	kin.name = "Kinships"
 	scene.add_child(kin)
-	scene.move_child(kin, container.get_index())  # Drawn under the Wardens
 	return kin
 
 func _ready() -> void:
 	add_to_group(GROUP)
-	z_index = 0  # Over the ground and path (drawn after the map), behind the Wardens (a later sibling)
+	z_index = -1  # With the ground and path (drawn after them), under the y-sorted Wardens and nightmares
 	var scene := get_parent()
 	_placer = scene.get_node_or_null("%TowerPlacer")
 	_seller = scene.get_node_or_null("%TowerSeller")

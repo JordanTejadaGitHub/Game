@@ -55,6 +55,16 @@ discounts). Ranks never get cheaper by being bought early.
   hotkey use the same total.
 - It applies per step (Sprout → base, base → branch, branch → final, final → Ascended).
 
+**Sprouts get pricier as you plant** (2026-09-28, user-approved after the first balance batch: a Sprout swarm on a fresh profile was 1.6× the Balanced style with no Sprout cards at all). **Every 5 Sprouts on the map add +1 Dew** to the next Sprout's price (10 for the first 5, then 11, 12…; 40 Sprouts ≈ 18 each). Softened the same day from +1 per Sprout (user: "too much"). Selling or growing a Sprout lowers it again. **Seedfall** switches the rule off (Sprouts cost 6, flat), so the swarm is a build you open with a card, as the user wants. The Warden bar shows the current price. Sprouts planted for free (Seedling Gift charges) don't add to the price.
+
+**Ranks III–V need a Nurture Dream** (2026-09-28, user: "the maze aspect is getting lost with a
+few strong Wardens through upgrades… focusing on strong Wardens should only happen when you get the
+cards for them"). Every Warden can be nurtured to **rank II**; **ranks III–V** (and Focus) open once
+you own **any `nurture` card** (Tender Care and Warm Hands are Commons, opened by 30 Dew spent on
+ranks, which ranks I–II provide). Deeper Rings still opens VI–VII. Until then the Nurture button
+reads *"Rank III needs a Nurture Dream"*. So the default plan is **a good maze plus light ranks**,
+and a tall build is a choice the cards make possible (Nurture, narrow cards, Solitude).
+
 **Focus (chosen at rank III, kept through evolution, can't be changed):**
 
 | Focus | Ranks III, IV and V each add | At rank V (on top of the base gains) |
@@ -145,7 +155,7 @@ adds +5%. Clouds, fog, Spored, Static bolts and Puffball pops never crit.
 | ✓ Mistveil | branch | +45 | 2.5 | 8 × 0.5 | cloud | cloud (fog) | fog on the path (radius 0.9, 4 s): Damp, and **Spored ticks +50%** inside (proposed value) |
 | Morning Fog | final | +90 | 3 | 10 × 0.5 | cloud | cloud (fog) | fog radius **1.25**, 5 s: Damp, slows 15%, **1 Drowsy per second** inside |
 | ✓ Frostfern *(hidden)* | branch | +45 | 2.5 | 16 × 1.0 | 16 | projectile | hits on **Damp** nightmares **freeze** them (Held 0.75 s; once per 4 s per nightmare) |
-| ✓ Hoarfrost *(hidden)* | final | +90 | 3 | 26 × 1.0 | 26 | projectile | splash 0.75; freeze **1 s**; +20% crit chance vs Held |
+| ✓ Hoarfrost *(hidden)* | final | +90 | 3 | 26 × 1.0 | 26 | projectile | splash 0.75; freeze **1 s**; +20% crit chance vs Held. **Buffed 2026-09-28** (probe: ~1.6% share and contribution; the freeze rarely landed): each hit also adds **1 Soaked** (melting frost), so it sets up its own freeze; freeze at **2 Soaked** on the target; damage **39 → 48** (as built, be7fd06; the row's 26 predates the ×1.5 finals pass), then freeze **1.5 s** (was 1 s; rerun: ~4% share and contribution). Target ~6–8% |
 
 ## Firefly Jar family (light)
 
@@ -157,7 +167,7 @@ adds +5%. Clouds, fog, Spored, Static bolts and Puffball pops never crit.
 | ✓ Lanternmoth | branch | +45 | 4.5 | 12 × 1.0 | 12 | projectile | Marked; **reveals** fog-hidden creatures in range |
 | Beacon | final | +90 | 5 | 16 × 1.0 | 16 | projectile + pulse | every 2 s, **Marks everything** in range; its Marked is **+35%** |
 | ✓ Sunpetal *(hidden)* | branch | +45 | 3.5 | 12/s, ramping | 12 → 48 | beam | ramps +25% per second on one target (max ×4); ramps **2× as fast** on Drowsy or Held |
-| ✓ Midsummer *(hidden)* | final | +90 | 4 | 18/s, ramping | 18 → 90 | beam | ramps +35%/s (max ×5), 2× on Drowsy/Held; beam **also hits the nightmare right behind** its target at 50% |
+| ✓ Midsummer *(hidden)* | final | +90 | 4 | 18/s, ramping | 18 → 90 | beam | ramps +35%/s (max ×5), 2× on Drowsy/Held; beam **also hits the nightmare right behind** its target at 50%. **Buffed 2026-09-28** (probe: ~3%): starts at **45/s** (27 → 36 in be7fd06, the row's 18 predates the ×1.5 finals pass; then +25% after a rerun at ~5–6% share) and keeps **half its ramp** for 1 s when it switches target. Target ~6–8% |
 
 ## Pebbling family (stone) — heavy hits: close, far, area
 
@@ -179,7 +189,7 @@ Owns **Drowsy**. Chime Stone and Lullaby Bell moved here from Pebbling (numbers 
 |---|---|---|---|---|---|---|---|
 | Bellflower | base | 25 (+15) | 2 | 10 × 1.0 | 10 (area) | pulse | every 2nd pulse: **1 Drowsy** to everything in range |
 | Chime Stone | branch | +45 | 2 | 22 × 0.8 | 18 (area) | pulse | Static 1; each pulse **sets off** a Static bolt on nightmares with 3+ stacks |
-| Lullaby Bell | final | +90 | 2.5 | 40 × 0.8 | 32 (area) | pulse | Static 1 + **Drowsy 1** per pulse; sets off Static like Chime Stone |
+| Lullaby Bell | final | +90 | 2.5 | 40 × 0.8 | 32 (area) | pulse | Static 1 + **Drowsy 1** per pulse; sets off Static like Chime Stone. **Tuned 2026-09-28** (probe: ~20% of a 12-Warden board each, vs 8% average): pulse every **1.75 s** (was 1.25 s) and sets off Static at **4** stacks (was 3); target ~12% |
 | Dreamcatcher | branch | +45 | 2.5 | 10 × 1.0 | 10 | projectile | nightmares in range that are **asleep or at max Drowsy** are **Caught**: +40% damage taken from all sources |
 | Great Dreamcatcher | final | +90 | 3 | 16 × 1.0 | 16 | projectile | Caught +60%; sleep in range lasts **+1 s** (once per nightmare); each Caught nightmare dispelled drops a **Dreamlight shard** (10 shards = 1 Dreamlight; max 2 Dreamlight per run from shards) |
 | Echo Hollow *(hidden)* | branch | +45 | 2.5 | 8 × 1.0 | 8 (area) | echo | a Reaction within range **repeats 1 s later at 50%** on the same spot (echoes don't echo) |

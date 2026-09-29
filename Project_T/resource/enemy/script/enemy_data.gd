@@ -43,8 +43,11 @@ enum Trait { NONE, FLYING, ROLLING, TRAMPLE, LEAP, BURROW, WANDER }
 @export var wander_chance: float = 0.35
 @export var wander_depth: int = 4
 @export var wander_cooldown_cells: int = 5
-# FLYING: weaves up to this many cells either side of its straight line (Moth Queen; 0 = straight).
+# FLYING: weaves up to this many cells either side of its straight line (0 = straight).
 @export var flight_weave: float = 0.0
+# FLYING along the nightmares' route instead of straight over the maze (the Moth Queen): it keeps
+# the route it spawned with, above it, so walls never block or re-route it.
+@export var flies_along_route: bool = false
 
 @export_group("Presence")
 # Hidden in fog (Lurker): untargetable unless a Warden is within 1.5 cells, a Marking Warden has
@@ -89,6 +92,10 @@ enum Trait { NONE, FLYING, ROLLING, TRAMPLE, LEAP, BURROW, WANDER }
 @export var whisper: String = ""  # The dossier header's line (story.md), e.g. "The Hollow Stag has found the dream."
 @export var abilities: Array[Dictionary] = []
 @export var tips: Array[String] = []
+# New nightmare introduction (screens_ui.md): 1–2 plain lines on what it does ({field} tokens for
+# numbers, as in abilities; read them with get_intro_lines) and one hint in the boss-tip voice.
+@export var intro_lines: Array[String] = []
+@export var hint: String = ""
 # Trait icon for FLYING: &"through_walls" (Phantom, glides through them) or &"flying" (Moth Queen).
 @export var flying_icon: StringName = &"through_walls"
 
@@ -225,6 +232,13 @@ static func _format_value(value: Variant, style: String) -> String:
 	if value is float:
 		return str(roundi(value)) if is_equal_approx(value, roundf(value)) else "%.1f" % value
 	return str(value)
+
+# The intro card's lines with their numbers filled in (status tokens stay for IconInfo).
+func get_intro_lines() -> Array[String]:
+	var lines: Array[String] = []
+	for line in intro_lines:
+		lines.append(format_text(line))
+	return lines
 
 # An ability entry with its numbers filled in (see format_text); status tokens stay for IconInfo.
 func get_ability(index: int) -> Dictionary:

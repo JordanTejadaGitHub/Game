@@ -180,8 +180,14 @@ func _run() -> void:
 	spawner.drift_health_scale = 3.0
 	var queen: Node2D = spawner.spawn_enemy(load("res://resource/enemy/moth_queen.tres"))
 	queen.set_process(false)
-	_check(queen.is_flying() and queen._path.size() > 2 and queen._path[queen._path.size() - 1] == map_generator.endPath,
-		"the Moth Queen weaves over the maze to the Heartwood")
+	var maze_route: PackedVector2Array = map_generator.get_path_from(map_generator.startPath)
+	_check(queen.is_flying() and queen._path == maze_route, "the Moth Queen flies along the nightmares' route")
+	_check(not spawner.get_maze_walkers().has(queen), "as a flyer: the path rule and re-routes leave her alone")
+	var queen_route: PackedVector2Array = queen._path.duplicate()
+	spawner._on_path_changed()
+	_check(queen._path == queen_route, "a path change doesn't re-route her")
+	queen.apply_status(EnemyStatuses.HELD)
+	_check(not queen.statuses.is_held(), "nothing on the ground holds her (Held / Rooted)")
 	_check(spawner.drift_health_scale == 3.0, "bosses don't change the drift's health scale")
 	var brood := []
 	var on_brood := func(parent: Node2D, child: Node2D) -> void:
@@ -283,6 +289,21 @@ func _run() -> void:
 			_check(not shown.contains("{") and ability.name != "", "%s ability %d reads fully: %s" % [kind, i, shown])
 		for tip in boss.tips:
 			_check(not IconInfo.format(tip).contains("{"), "%s tip reads fully" % kind)
+	# New nightmare introduction: every non-boss nightmare has 1–2 intro lines and a hint that read fully.
+	for file in DirAccess.get_files_at("res://resource/enemy"):
+		if not file.ends_with(".tres"):
+			continue
+		var kind_data: EnemyData = load("res://resource/enemy/" + file)
+		if kind_data.is_boss:
+			continue
+		var intro := kind_data.get_intro_lines()
+		_check(intro.size() in [1, 2] and kind_data.hint != "", "%s has intro lines and a hint" % file)
+		for line in intro + [kind_data.hint]:
+			_check(not IconInfo.format(line).contains("{"), "%s reads fully: %s" % [file, IconInfo.format(line)])
+	var mourner_intro: String = load("res://resource/enemy/puffcap.tres").get_intro_lines()[0]
+	_check(mourner_intro == "Breaks into 3 Sobs when dispelled.", "intro numbers come from the data (%s)" % mourner_intro)
+	var weeper_intro: String = load("res://resource/enemy/weeper.tres").get_intro_lines()[0]
+	_check(weeper_intro.contains("1.5 cells") and weeper_intro.contains("2%"), "Weeper intro: %s" % weeper_intro)
 	var stag_charge: Dictionary = load("res://resource/enemy/old_stag.tres").get_ability(1)
 	_check(stag_charge.text.contains("+50%") and stag_charge.text.contains("4 s"), "numbers come from the data (%s)" % stag_charge.text)
 	var oak_grief: Dictionary = load("res://resource/enemy/hollow_oak.tres").get_ability(1)

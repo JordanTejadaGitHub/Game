@@ -6,11 +6,11 @@ extends Control
 
 const WIDTH := 460.0
 const PIP_RADIUS := 5.0
-const TEXT_COLOR := Color(0.9, 0.92, 0.85)
+const TEXT_COLOR := UiStyle.INK
 const DIM_COLOR := Color(0.55, 0.6, 0.55)
-const BOSS_COLOR := Color(0.95, 0.45, 0.4)
-const FONT_SIZE := 18
-const SMALL_FONT_SIZE := 14
+const BOSS_COLOR := UiStyle.BOSS  # Heartwood 32 (ui_style.md)
+const FONT_SIZE := 22
+const SMALL_FONT_SIZE := 16
 
 @onready var drift_director: DriftDirector = %DriftDirector
 
@@ -33,7 +33,7 @@ func _process(_delta: float) -> void:
 	queue_redraw()  # Cheap; the numbers change every frame during a boss drift
 
 func _draw() -> void:
-	var font := ThemeDB.fallback_font
+	var font := UiStyle.display_font()  # Moonlit Thread (ui_style.md)
 	var center_x := size.x / 2.0
 	var latest := drift_director.drifts_started
 	var total := drift_director.get_total_drifts()

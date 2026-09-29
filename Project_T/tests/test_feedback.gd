@@ -15,6 +15,12 @@ func _run() -> void:
 	var stormcap: TowerData = load("res://resource/tower/stormcap.tres")
 	var sprout: TowerData = load("res://resource/tower/sprout.tres")
 	_check(Synergies.link(dewdrop, stormcap) == "Soaked → Stormcap", "Dewdrop and Stormcap combo through Soaked (%s)" % Synergies.link(dewdrop, stormcap))
+	# Undiscovered combos are "???" everywhere (screens_ui.md): the link stands for Conducted.
+	_check(Synergies.link_combo(dewdrop, stormcap).get("id") == &"conducted", "Dewdrop + Stormcap is the Conducted combo")
+	_check(Synergies.link_text(dewdrop, stormcap, ["nothing"]) == "???" and Synergies.link_text(dewdrop, stormcap, ["conducted"]) == "Soaked → Stormcap",
+		"the link reads ??? until Conducted is discovered")
+	_check(CodexData.combo_name(CodexData.get_any(&"thunderclap"), ["nothing"]) == "???" and CodexData.combo_name(CodexData.get_any(&"thunderclap"), ["thunderclap"]) == "Thunderclap",
+		"CodexData.combo_name: ??? before, the name after")
 	_check(Synergies.link(stormcap, dewdrop) == "Soaked → Stormcap", "the link works both ways")
 	_check(Synergies.link(sprout, stormcap) == "", "a Sprout doesn't combo with Stormcap")
 

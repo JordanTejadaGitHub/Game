@@ -227,6 +227,7 @@ var _legendary_next := 0  # Lean Season: Dreams still owed a Legendary
 var _owed_families: Array[String] = []  # Half-dreamed cards taken: the next family pick includes one
 var _declined_families: Array[String] = []  # Offered at the last family pick, not taken (half-dreamed ×0.3)
 var _taken_cache := {}  # include_dormant -> [state key, taken cards] (_taken_cards)
+var board_version := 0  # Bumped on every change the Dream rows read (bump_board)
 var _bitter_walls := {}  # Nightmare id -> {wall id: clock it passed} (Bitter Hedges)
 var _first_hits := {}  # "Warden id:nightmare id" -> true (First Light)
 var _herd := {}  # Warden id -> dispels in its range this drift (Thinning the Herd)
@@ -285,7 +286,30 @@ func _ready() -> void:
 	if seller:
 		seller.tower_sold.connect(_on_tower_sold)
 	drift_director.drift_started.connect(_on_drift_started)
+	# The board version (DreamEffects' shared board and cached rows): any Warden, card, route, rest,
+	# drift, leaf or Eldest change bumps it.
+	tower_container.child_entered_tree.connect(_on_tower_added)
+	tower_container.child_exiting_tree.connect(bump_board.unbind(1))
+	for tower in _towers():
+		_on_tower_added(tower)
+	map_generator.path_changed.connect(bump_board)
+	map_generator.obstacle_cleared.connect(bump_board.unbind(2))
+	drift_director.rest_started.connect(bump_board.unbind(4))
+	drift_director.drift_started.connect(bump_board.unbind(1))
+	run_state.leaves_changed.connect(bump_board.unbind(2))
+	eldest_changed.connect(bump_board.unbind(1))
 	_update_bends()
+
+# Something the Dream rows read changed: DreamEffects rebuilds its board and cached rows on next use.
+func bump_board() -> void:
+	board_version += 1
+
+func _on_tower_added(node: Node) -> void:
+	bump_board()
+	if node.has_signal("evolved") and not node.evolved.is_connected(bump_board.unbind(1)):
+		node.evolved.connect(bump_board.unbind(1))
+	if node.has_signal("nurtured") and not node.nurtured.is_connected(bump_board.unbind(1)):
+		node.nurtured.connect(bump_board.unbind(1))
 
 static func load_pool() -> Array[UpgradeData]:
 	var cards: Array[UpgradeData] = []
@@ -1059,6 +1083,12 @@ func is_beside_bend(cell: Vector2, reach: int = 1) -> bool:
 				return true
 	return false
 
+# The plain stat cards' bonus for `data`: "soothe_bonus", "attack_speed_bonus", "range_bonus",
+# "splash_bonus", "potency_bonus" (sum over taken cards covering its line / Warden). Rule cards come
+# from DreamEffects rows (rule_total_cached) on top.
+func get_stat_bonus(data: TowerData, stat: String) -> float:
+	return _sum_stat(data, stat)
+
 func _sum_stat(data: TowerData, stat: String) -> float:
 	var total := 0.0
 	for card in _taken_cards():
@@ -1132,6 +1162,7 @@ func take(card: UpgradeData) -> void:
 		if not _owed_families.has(family):
 			_owed_families.append(family)
 	stacks[card.id] = stacks.get(card.id, 0) + 1
+	bump_board()
 	_passed_count.erase(card.id)  # Taking a card resets its fade
 	_passed_at.erase(card.id)
 	if card.rule_id == &"wandering_mind":
@@ -2348,3 +2379,58 @@ func sim_family_pick(kind: StringName, pick: Callable) -> StringName:
 		speed.set_paused(was_paused)
 	Engine.time_scale = time_scale
 	return chosen
+
+
+# --- Developer: pick any card, unlock free (demo_scope.md "Pick any card") -------------------------
+
+# Dev tools are on in a dev run (Test Grove, Unlock all families, Dev Grove) of a debug build only.
+static func dev_tools_on() -> bool:
+	return OS.is_debug_build() and MetaRun.is_dev_run()
+
+# "Dev: any card…": takes `card` (any Dream in the game) as this Dream's pick (one of Lucid Dreaming's).
+func choose_any(card: UpgradeData) -> bool:
+	if card == null or not is_offering() or (card.max_stacks > 0 and card_stacks(card.id) >= card.max_stacks):
+		return false
+	take(card)
+	_taken_this_offer.append(card.id)
+	picks_left -= 1
+	if picks_left > 0 and current_offer.size() > 1:  # Lucid Dreaming: still one to take
+		offer_ready.emit(current_offer, current_offer_drift)
+	else:
+		_close_offer()
+	return true
+
+# "Dev: unlock free": unlocks `form` without Dreamlight or its branch (not base families: those
+# come from family picks).
+func dev_unlock(form: TowerData) -> bool:
+	if form == null or form.buildable_directly or is_unlocked(form.get_id()):
+		return false
+	unlocked[form.get_id()] = true
+	unlocks_changed.emit()
+	return true
+
+# Why `card` wouldn't be offered now ("" = it could be): "needs …" for the dev card grid.
+func needs_note(card: UpgradeData, act: int = -1) -> String:
+	if act < 0:
+		act = drift_director.get_act(maxi(drift_director.drifts_started, 1))
+	var needs: Array[String] = []
+	if not (card.in_start_pool or grove_cards.has(card.id)):
+		needs.append("its Memory Grove node")
+	if act < card.min_act:
+		needs.append("act %d" % card.min_act)
+	if card.kind == UpgradeData.Kind.UNLOCK_WARDEN or card.kind == UpgradeData.Kind.UNLOCK_EVOLUTION:
+		needs.append("never offered (family picks / Dreamlight)")
+	if card.max_stacks > 0 and card_stacks(card.id) >= card.max_stacks:
+		needs.append("no more stacks")
+	if card.is_deepened() and not has_card(card.deepens):
+		needs.append(get_display_name(card.deepens))
+	if card.is_bittersweet() and not allow_bittersweet:
+		needs.append("Bittersweet Dreams (Grove)")
+	var missing: Array = card.requires.filter(func(id: String) -> bool: return not owns(id))
+	if not missing.is_empty():
+		needs.append(" + ".join(missing.map(get_display_name)))
+	if card.requires_tag != "" and count_taken_with_tag(card.requires_tag) < card.requires_tag_count:
+		needs.append("%d %s card%s" % [card.requires_tag_count, card.requires_tag, "" if card.requires_tag_count == 1 else "s"])
+	if needs.is_empty() and not is_eligible(card, act):
+		needs.append("a board or run state (e.g. Wardens, statuses, obstacles)")
+	return "" if needs.is_empty() else "not normally offered: needs " + ", ".join(needs)

@@ -15,7 +15,7 @@ const GLOSSARY_SOURCE := [
 		["Leaves", "The Heartwood's life. A nightmare that reaches it takes leaves; lose them all and the dream goes dark.", ["Act"]],
 		["Seeds", "Earned every run, win or lose; spent in the Memory Grove between runs.", ["Memory Grove"]],
 		["Dreamlight shard", "Dreamcatchers gather shards from caught nightmares: 10 shards make 1 Dreamlight (at most 2 per run this way).", ["Dreamlight", "Caught"]],
-		["The thinning dream", "Each act, nightmares leave less Dew: 85% in act 1, then 68%, 65% and half.", ["Dew", "Act"]],
+		["The thinning dream", "Each act, nightmares leave less Dew: all of it in act 1, then 68%, 65% and half.", ["Dew", "Act"]],
 	]],
 	["The run", [
 		["Drift", "A wave of nightmares. A run is 100 drifts in 4 acts.", ["Block", "Act"]],
@@ -396,3 +396,28 @@ static func _escape(term: String) -> String:
 	for c in term:
 		out += ("\\" + c) if "\\.^$|?*+()[]{}".contains(c) else c
 	return out
+
+# --- Discovered or "???" everywhere (screens_ui.md "Undiscovered combos are ??? everywhere") -------
+# Any list of a Warden's or family's combos (Codex Families, Remember side panel, Warden panel,
+# placement links, Grove node cards, rest report) shows an undiscovered combo as "???": no name,
+# statuses or hints. Discovered = in the profile or found this session (ComboFeedback.load_seen).
+
+static func is_discovered(id: StringName, seen: Array = []) -> bool:
+	var list := seen if not seen.is_empty() else ComboFeedback.load_seen()
+	return list.has(String(id))
+
+# The entry's name once discovered, "???" before (for lists; the Codex has its own locked cards).
+static func combo_name(entry: Dictionary, seen: Array = []) -> String:
+	return String(entry.get("name", "")) if is_discovered(entry.get("id", &""), seen) else "???"
+
+# The combo (synergy or Reaction) a status → payoff Warden link stands for, or {}.
+static func combo_for_link(status: StringName, payoff: TowerData) -> Dictionary:
+	for entry in combos():
+		if String(entry.get("by", "")) != "":
+			if Array(String(entry.by).split(", ")).has(payoff.display_name) and entry.statuses.has(status):
+				return entry
+	for entry in combos():
+		if entry.kind == "Reaction" and entry.statuses.has(status) and payoff.applies_status != &"" \
+				and entry.statuses.has(payoff.applies_status):
+			return entry
+	return {}

@@ -23,6 +23,8 @@ func _ready() -> void:
 	add_child(box)
 	_title.add_theme_font_size_override("font_size", 18)
 	box.add_child(_title)
+	_numbers.add_theme_font_size_override("font_size", 15)
+	box.add_child(_numbers)
 	_body.custom_minimum_size = Vector2(220, 0)
 	box.add_child(_body)
 	box.add_child(_rows_box)
@@ -33,9 +35,38 @@ func _ready() -> void:
 	var spawner = %EnemyContainer
 	spawner.child_entered_tree.connect(_on_spawned)
 
-func _process(_delta: float) -> void:
+# Hover tips stay until the pointer leaves their target (screens_ui.md "Hover and tap tips"): the
+# panel keeps its nightmare while other nightmares are dispelled around it; when its own nightmare
+# is dispelled it reads "Dispelled" for DISPELLED_TIME and clears, and never jumps to a neighbour
+# until the pointer moves. Changing numbers update in place (a plain label); the status-link text is
+# left alone while the pointer is on it or its popup is open.
+const DISPELLED_TIME := 1.0
+const MOVE_EPSILON := 3.0  # Screen px the pointer must move before the panel picks a new nightmare
+
+var _dispelled_left := 0.0
+var _last_mouse := Vector2(-1000, -1000)
+var _numbers := Label.new()
+var _await_move := false  # Cleared after a dispel: the next nightmare needs a pointer move
+
+func _process(delta: float) -> void:
+	var mouse := get_viewport().get_mouse_position()
+	var moved := mouse.distance_to(_last_mouse) > MOVE_EPSILON
+	_last_mouse = mouse
+	var target_gone: bool = not is_instance_valid(_target) or _target.is_cleansed
+	if target_gone and _target != null and _dispelled_left <= 0.0 and visible:
+		_dispelled_left = DISPELLED_TIME  # Its nightmare was just dispelled: say so, then clear
+		_title.text += "   · Dispelled"
+	if _dispelled_left > 0.0:
+		_dispelled_left -= delta / maxf(Engine.time_scale, 0.001)
+		if _dispelled_left > 0.0 and not moved:
+			return
+		_dispelled_left = 0.0
+		_target = null
+		_await_move = true
 	var hovered := _hovered_nightmare()
-	if hovered != null:
+	if moved:
+		_await_move = false
+	if hovered != null and not _await_move and (hovered == _target or _target == null or moved):
 		_target = hovered
 	if not is_instance_valid(_target) or _target.is_cleansed:
 		_target = null
@@ -47,14 +78,23 @@ func _process(_delta: float) -> void:
 	_title.text = data.display_name + ("   · New" if not _known.has(kind) else "")
 	if _target.elite:
 		_title.text += "   · Deeply Blighted"
+	# Numbers: a plain label, rewritten freely.
+	var numbers: Array[String] = ["Health %d / %d" % [_target.health, _target.max_health],
+		"Speed %.1f tiles/s   Leaves %d" % [_target.get_move_speed() / 64.0, _target.get_leaf_cost()]]
+	var restless := restless_text(_target)
+	if restless != "":
+		numbers.append(restless)
+	# The Nightshade Legendary: +20% effect damage per status it carries (Reactions.nightshade_bonus).
+	var nightshade := Reactions.nightshade_bonus(_target)
+	if nightshade > 0.0:
+		numbers.append("Nightshade +%d%% effect damage" % roundi(nightshade * 100.0))
+	var numbers_text := "\n".join(numbers)
+	if numbers_text != _numbers.text:
+		_numbers.text = numbers_text
+	# Words with status links: the trait, the Omen, the statuses (whole seconds).
 	var lines: Array[String] = []
 	if data.trait_text != "":
 		lines.append(data.trait_text)
-	lines.append("Health %d / %d" % [_target.health, _target.max_health])
-	lines.append("Speed %.1f tiles/s   Leaves %d" % [_target.get_move_speed() / 64.0, _target.get_leaf_cost()])
-	var restless := restless_text(_target)
-	if restless != "":
-		lines.append(restless)
 	var omen_line := omen_text(_target)
 	if omen_line != "":
 		lines.append(omen_line)
@@ -65,18 +105,20 @@ func _process(_delta: float) -> void:
 			_target.statuses.time_left(id)])
 	if not statuses.is_empty():
 		lines.append(", ".join(statuses))
-	# The Nightshade Legendary: +20% effect damage per status it carries (Reactions.nightshade_bonus).
-	var nightshade := Reactions.nightshade_bonus(_target)
-	if nightshade > 0.0:
-		lines.append("Nightshade +%d%% effect damage" % roundi(nightshade * 100.0))
 	var body := StatusLinks.bbcode("\n".join(lines))
-	if body != _body.text:  # Only on change, so a link's hover isn't reset every frame
+	if body != _body.text and not _body_in_use():
 		_body.text = body
 	if data != _rows_for:  # The icon rows (resists, weak to, immune, traits): rebuilt per kind
 		_rows_for = data
 		for child in _rows_box.get_children():
 			child.queue_free()
 		_rows_box.add_child(NightmareIcons.make_rows(data, 26.0))
+
+# The pointer is on the status-link text, or one of its popups is open: don't rewrite it now.
+func _body_in_use() -> bool:
+	if _body.get_global_rect().has_point(_body.get_global_mouse_position()):
+		return true
+	return _body.get_children().any(func(c: Node) -> bool: return c is StatusLinks and c.visible)
 
 # What the drift's Omen gives this nightmare beyond its kind (get_defences doesn't know them):
 # "Omen Sleepless: immune to Drowsy, Rooted · always Soaked". "" when nothing.

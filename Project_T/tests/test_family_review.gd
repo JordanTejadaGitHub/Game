@@ -108,11 +108,11 @@ func _test_dreamcatcher() -> void:
 	drowsy.apply_status(EnemyStatuses.DROWSY, 5)
 	catcher._update_catch(1.0)
 	_check(drowsy.statuses.is_caught() and not plain.statuses.is_caught(), "full Drowsy in range is Caught")
-	_check(is_equal_approx(drowsy.statuses.get_damage_taken_multiplier(), 1.4), "Caught: +40% damage taken")
+	_check(is_equal_approx(drowsy.statuses.get_damage_taken_multiplier(), 1.25), "Caught: +25% damage taken")
 	# Straight onto the statuses: through apply_status, Marked + full Drowsy would set off Pinned (which
 	# uses up the Marked).
 	drowsy.statuses.apply(EnemyStatuses.MARKED)
-	_check(is_equal_approx(drowsy.statuses.get_damage_taken_multiplier(), 1.25 * 1.4), "Caught multiplies with Marked")
+	_check(is_equal_approx(drowsy.statuses.get_damage_taken_multiplier(), 1.25 * 1.25), "Caught multiplies with Marked")
 	await _clean()
 
 	var great := _plant("great_dreamcatcher", Vector2(5, 5))

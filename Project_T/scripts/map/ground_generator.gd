@@ -2,8 +2,8 @@ extends TileMapLayer
 class_name GroundGenerator
 
 const MAP_GRID = preload("res://resource/map/map_grid.tres")
-# Share of cells per grass variant (plain, tufts, flowers, clover), as on the concept page.
-const GRASS_WEIGHTS: Array[float] = [0.5, 0.22, 0.16, 0.12]
+# Share of cells per grass variant: 0 plain, 1 tufts, 2 flowers, 3 clover, 4 tufts, 5 pebbles, 6 tufts, 7 fallen twig (kept rare).
+const GRASS_WEIGHTS: Array[float] = [0.3, 0.15, 0.08, 0.07, 0.14, 0.1, 0.12, 0.04]
 
 # Creates the ground layer: grass inside the island's rim (the rim tiles carry their own grass, and the
 # void shows around them)

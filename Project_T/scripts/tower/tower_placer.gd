@@ -20,7 +20,10 @@ var sapling_taken := false
 # planted keeps it. Static so screens outside a run (the Codex) can read it too.
 static var sapling_enabled := false
 
-@export var tower_scene: PackedScene = preload("res://scenes/tower/tower.tscn")
+# Loaded in _ready, not preloaded: a preload here closed a cycle (TowerPlacer -> tower.tscn -> Tower ->
+# Kinships -> TowerPlacer) that broke parsing of scripts reading tower_scene ("Cyclic reference").
+@export var tower_scene: PackedScene
+const TOWER_SCENE_PATH := "res://scenes/tower/tower.tscn"
 # Wardens that can be planted directly. Only the ones DreamState has unlocked show in the tower bar.
 @export var towers: Array[TowerData] = [
 	preload("res://resource/tower/sprout.tres"),
@@ -83,6 +86,8 @@ var settling := {}  # cell -> game seconds left
 var _settling_marks: Node2D = null
 
 func _ready() -> void:
+	if tower_scene == null:
+		tower_scene = load(TOWER_SCENE_PATH)
 	tower_data = towers[0]
 	_path_preview.width = 6.0
 	_path_preview.default_color = PREVIEW_COLOR
@@ -466,8 +471,8 @@ func _try_build(cell: Vector2) -> bool:
 		return false
 	# Every enemy on the field must still be able to reach the end, not just new spawns.
 	var enemy_cells := PackedVector2Array()
-	for enemy in enemy_spawner.get_maze_walkers():
-		enemy_cells.append(enemy.get_target_cell())
+	for enemy_cell in _walker_cells():
+		enemy_cells.append(enemy_cell)
 	if not map_generator.can_block_cells(_footprint(cell), enemy_cells):
 		build_rejected.emit(cell)
 		return false
@@ -480,6 +485,8 @@ func _try_build(cell: Vector2) -> bool:
 	tower.tower_data = tower_data
 	tower.cell = cell
 	tower.invested_dew = cost
+	if tower_data.get_id() == "sprout" and cost == 0:
+		tower.set_meta(&"gift_sprout", true)  # A Seedling Gift charge: never raises the Sprout price
 	tower.rest_dew = cost if Tower.resting else 0  # Placed this rest: a full refund until Start
 	tower.position = Tower.footprint_centre(cell, tower_data.footprint)
 	tower_container.add_child(tower)
@@ -492,11 +499,30 @@ func _try_build(cell: Vector2) -> bool:
 
 # Dew to plant the selected Warden (Dreams can change it, e.g. Cheap Hedges). With `cell`, the price
 # on that cell (Reclaimed Earth: fertile cells halve the first Warden).
-func get_cost(data: TowerData = null, cell: Vector2 = NO_CELL) -> int:
+func get_cost(data: TowerData = null, cell: Vector2 = NO_CELL, planned_sprouts: int = 0) -> int:
 	var warden := data if data != null else tower_data
-	if cell == NO_CELL:
-		return dream_state.get_build_cost(warden)
-	return dream_state.get_build_cost_at(warden, cell)
+	var cost: int = dream_state.get_build_cost(warden) if cell == NO_CELL else dream_state.get_build_cost_at(warden, cell)
+	# Sprouts get pricier as you plant (warden_stats.md, card 69): +1 Dew per 5 Sprouts on the map (gift
+	# Sprouts from Seedling Gift don't count; a free one stays free). Seedfall: a flat 6, never rising.
+	# `planned_sprouts`: Sprouts earlier in the same drag stroke.
+	if warden.get_id() == "sprout" and cost > 0 and not sprout_price_fixed():
+		cost += (count_paid_sprouts() + planned_sprouts) / SPROUTS_PER_DEW
+	return cost
+
+func sprout_price_fixed() -> bool:
+	return dream_state.has_card(SEEDFALL_CARD)
+
+const SEEDFALL_CARD := "seedfall"
+const SPROUTS_PER_DEW := 5  # Every 5 Sprouts on the map add +1 Dew to the next one (10 for the first 5, 11 at 5-9, …)
+
+# Sprouts on the map that raise the price (not the free ones from Seedling Gift charges).
+func count_paid_sprouts() -> int:
+	var count := 0
+	for tower in tower_container.get_children():
+		if tower is Tower and not tower.is_queued_for_deletion() and tower.tower_data.get_id() == "sprout" \
+				and not tower.get_meta(&"gift_sprout", false):
+			count += 1
+	return count
 
 # Wardens that can be planted right now (unlocked this run), in roster order.
 func get_buildable_towers() -> Array[TowerData]:
@@ -544,8 +570,8 @@ func get_grow_squares(tower: Tower, into: TowerData) -> Array[Vector2]:
 	if size <= tower.get_footprint():
 		return squares
 	var enemy_cells := PackedVector2Array()
-	for enemy in enemy_spawner.get_maze_walkers():
-		enemy_cells.append(enemy.get_target_cell())
+	for enemy_cell in _walker_cells():
+		enemy_cells.append(enemy_cell)
 	for dy in range(-(size - 1), 1):
 		for dx in range(-(size - 1), 1):
 			var origin: Vector2 = tower.cell + Vector2(dx, dy)
@@ -879,8 +905,9 @@ func _plan_stroke() -> void:
 	var blocked: Array[Vector2] = []
 	var dew := run_state.dew
 	var enemy_cells := PackedVector2Array()
-	for enemy in enemy_spawner.get_maze_walkers():
-		enemy_cells.append(enemy.get_target_cell())
+	for enemy_cell in _walker_cells():
+		enemy_cells.append(enemy_cell)
+	var planned_sprouts := 0
 	var unique_used := is_unique_placed(tower_data)
 	for c in _stroke:
 		var cells: Array[Vector2] = [c]
@@ -898,12 +925,14 @@ func _plan_stroke() -> void:
 		elif not map_generator.can_block_cells(blocked + cells, enemy_cells):
 			why = "would close the dream"
 		else:
-			var cost := get_cost(null, c)
+			var cost := get_cost(null, c, planned_sprouts)
 			if cost > dew:
 				why = "out of Dew"
 			else:
 				dew -= cost
 				blocked.append(c)
+				if tower_data.get_id() == "sprout" and cost > 0:
+					planned_sprouts += 1  # Each Sprout in the stroke is priced after the ones before it
 				unique_used = tower_data.is_unique
 		_stroke_plan[c] = why
 	_stroke_cost = run_state.dew - dew
@@ -985,3 +1014,14 @@ func _toast_frozen() -> void:
 	var hud := owner.get_node_or_null("HUD") if owner else null
 	if hud and hud.has_method("show_toast"):
 		hud.show_toast("Frozen Ground: plant at the rest")
+
+# The cells the path rule protects: every walking nightmare's next cell that still has a way out. One
+# with no route already (a test nightmare dropped in a closed pocket) can't be cut off, so it doesn't
+# block planting.
+func _walker_cells() -> PackedVector2Array:
+	var cells := PackedVector2Array()
+	for enemy in enemy_spawner.get_maze_walkers():
+		var target: Vector2 = enemy.get_target_cell()
+		if not map_generator.get_path_from(target).is_empty():
+			cells.append(target)
+	return cells

@@ -16,7 +16,7 @@ class_name BossDossier
 const GROUP := &"boss_dossier"
 const RECORDS_KEY := "boss_records"  # Profile: {kind: {"dispelled": n, "best": seconds}}
 const WIDTH := 600.0
-const BOSS_COLOR := Color(0.95, 0.45, 0.4)
+const BOSS_COLOR := UiStyle.BOSS  # Heartwood 32 (ui_style.md)
 const TITLE_COLOR := Color(1.0, 0.85, 0.75)
 const WHISPER_COLOR := Color(0.75, 0.9, 0.8)
 const SECTION_COLOR := Color(0.95, 0.8, 0.55)
@@ -58,12 +58,9 @@ func _ready() -> void:
 	centre.set_anchors_preset(Control.PRESET_FULL_RECT)
 	centre.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(centre)
-	var frame := StyleBoxFlat.new()
-	frame.bg_color = Color(0.08, 0.07, 0.1, 0.97)
-	frame.border_color = BOSS_COLOR.darkened(0.2)
-	frame.set_border_width_all(2)
-	frame.set_corner_radius_all(8)
-	frame.set_content_margin_all(16)
+	var frame := UiStyle.panel_in(BOSS_COLOR.darkened(0.2), 16.0, 16.0)
+	frame.center_alpha = 0.95  # Over the whole field: nearly solid
+	frame.edge_alpha = 0.9
 	_panel.add_theme_stylebox_override("panel", frame)
 	centre.add_child(_panel)
 	var outer := VBoxContainer.new()
@@ -123,6 +120,9 @@ func screens_clear() -> bool:
 	var omens := get_tree().get_first_node_in_group(OmenDirector.GROUP) as OmenDirector
 	if omens != null and omens.is_offering():
 		return false
+	var intro := get_tree().get_first_node_in_group(NightmareIntro.GROUP) as NightmareIntro
+	if intro != null and intro.is_busy():
+		return false  # New nightmares are introduced before the boss dossier
 	return not drift_director.awaiting_family_pick
 
 func _process(delta: float) -> void:
@@ -256,7 +256,7 @@ func _header(data: EnemyData, drift: int) -> Control:
 	box.alignment = BoxContainer.ALIGNMENT_CENTER
 	var name := Label.new()
 	name.text = data.display_name + ("   · New" if NightmareCard.is_new(data) else "")
-	name.add_theme_font_size_override("font_size", 24)
+	UiStyle.display(name, 24)
 	name.add_theme_color_override("font_color", BOSS_COLOR.lightened(0.25))
 	box.add_child(name)
 	var title: String = data.title
@@ -350,7 +350,7 @@ func _escort_row(data: EnemyData, count: int, how: String, drift: int) -> Contro
 	face.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	face.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	TapTip.attach(face, "%s: %s" % [data.display_name, NightmareCard.numbers_text(data, drift, drift_director)])
-	row.add_child(face)
+	row.add_child(UiStyle.on_moon_disc(face))  # Readable on the night sky (screens_ui.md)
 	var label := Label.new()
 	label.text = "%s ×%d · %s" % [data.display_name, count, how]
 	label.add_theme_font_size_override("font_size", 15)
@@ -440,5 +440,5 @@ class BossPortrait extends Control:
 		_sprite.position = size / 2.0
 
 	func _draw() -> void:
-		draw_circle(size / 2.0, size.x / 2.0, Color(0.15, 0.06, 0.07))
-		draw_arc(size / 2.0, size.x / 2.0 - 1.0, 0.0, TAU, 40, BOSS_COLOR, 2.0, true)
+		# The moon disc, rimmed in the boss colour (screens_ui.md "Readable on the night sky").
+		UiStyle.draw_moon_disc(self, size / 2.0, size.x / 2.0, BOSS_COLOR)

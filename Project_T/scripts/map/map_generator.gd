@@ -40,6 +40,15 @@ func _ready() -> void:
 	tile_set = EnvironmentTiles.create_tile_set()
 	for layer: TileMapLayer in [ground_layer, path_layer, environment_object_layer]:
 		layer.tile_set = tile_set
+	# One y-sort for everything that stands on a cell (trees, rocks, Wardens, nightmares, the Heartwood):
+	# 64×96 sprites overhang the cell above, so whatever is lower on screen draws in front. The sort key
+	# is the cell centre; tall sprites put their bottom 64 px on their cell. The ground and path stay under
+	# it all (z -1); the void, lighting, ambience and effects keep their own z_index.
+	y_sort_enabled = true
+	for sorted: Node2D in [environment_object_layer, get_node("%TowerContainer"), get_node("%EnemyContainer")]:
+		sorted.y_sort_enabled = true
+	ground_layer.z_index = -1
+	path_layer.z_index = -1
 	ground_layer.initialize()
 	unwalkable_cells = environment_object_layer.initialize(startPath, endPath)
 	path_layer.initialize(get_array_board(), startPath, endPath)

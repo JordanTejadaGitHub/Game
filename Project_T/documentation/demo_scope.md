@@ -82,6 +82,16 @@ bundles, Ascension nodes, Blight Levels and loadouts all work, so any Grove cont
 - Turns **Demo mode** off while on (the Grove only applies in the full game). Debug builds only.
   Can combine with Test Grove and Unlock all families.
 
+**Pick any card** (added 2026-09-28, user request: "for the dev run, allow picking cards from all
+the card selection"): in **any dev run** (Test Grove, Unlock all families or Dev Grove), the Dream
+screen gets a **"Dev: any card…"** button beside "Let it pass". It opens a searchable grid of **every
+Dream card in the game** (all rarities, Grove-only and Legendary included, Deepened too), filtered by
+name, tag, rarity and family, each with its full text and a "not normally offered: needs …" note
+when its Needs aren't met. Taking one counts as this Dream's pick (Lucid Dreaming: one of its picks).
+Also reachable from the Test Grove panel at any time (the existing "Take any Dream"), and the
+Remember screen gets a matching "Dev: unlock free" toggle. Debug builds only; never in the demo or
+release.
+
 **Test tools v2** (added 2026-09-27: first test showed combos and impact couldn't be judged):
 - **Spawn panel:** pick a nightmare type, a count and "elite", spawn at the start now.
 - **Target Dummy:** a slow, unkillable nightmare that walks the route on a loop; shows the damage

@@ -26,6 +26,7 @@ const THUNDERCLAP_STATIC := 3
 const THUNDERCLAP_STATIC_BOSS := 5
 const THUNDERCLAP_DAMAGE := 4.0  # × the applier's damage, to the nightmare that discharges
 const THUNDERCLAP_ARC_DAMAGE := 2.0  # × the applier's damage, to each wet nightmare it arcs to
+const THUNDERCLAP_MAX_ARCS := 8
 const THUNDERCLAP_REACH: Array[float] = [2.5, 3.5, 4.5]  # Cells: base, Rolling Thunder, Rolling Thunder II
 const THUNDERCLAP_ARC_STATIC: Array[int] = [1, 1, 2]
 const IGNITE_MIN_SPORES := 3
@@ -394,9 +395,15 @@ static func _thunderclap(enemy: Node2D, source: Node) -> void:
 	if dreams and dreams.has_rule(&"conductive_soil") and tower:
 		reach = maxf(reach, tower.get_range_pixels())  # The Storm Grid capstone
 	var arcs: Array = []
-	for other in _field(enemy):
-		if other != enemy and other.statuses.has(DAMP) and other.global_position.distance_to(enemy.global_position) <= reach:
+	for other in Tower.nightmares_near(enemy.get_tree(), enemy.global_position, reach):
+		if other != enemy and is_instance_valid(other) and not other.is_cleansed and other.statuses.has(DAMP) and other.global_position.distance_to(enemy.global_position) <= reach:
 			arcs.append(other)
+	# At most the THUNDERCLAP_MAX_ARCS nearest Soaked nightmares per clap (design chat; also bounds a
+	# chain's cost). Chains still continue from those.
+	if arcs.size() > THUNDERCLAP_MAX_ARCS:
+		var at: Vector2 = enemy.global_position
+		arcs.sort_custom(func(a, b) -> bool: return a.global_position.distance_squared_to(at) < b.global_position.distance_squared_to(at))
+		arcs = arcs.slice(0, THUNDERCLAP_MAX_ARCS)
 	enemy.take_damage(base * THUNDERCLAP_DAMAGE, _line(tower, "light"), false, false, tower, &"thunderclap")
 	for other in arcs:
 		if not is_instance_valid(other) or other.is_cleansed:
@@ -458,7 +465,7 @@ static func _mushrooming(enemy: Node2D, source: Node) -> void:
 	s.mushroom_time = MUSHROOM_TIME
 	var cell: Vector2 = enemy.get_current_cell()
 	var dreams := _dreams(enemy)
-	var ground_parent := enemy.get_parent().get_parent()
+	var ground_parent := _world(enemy)  # Ground effects: in the world at z -1 (under the y-sorted map)
 	if id == &"fairy_circle":
 		# Mushroom rings on the path tiles among the 8 around it, instead of the one cloud.
 		var ring_of_rings := dreams != null and dreams.has_rule(&"ring_of_rings")
@@ -476,7 +483,6 @@ static func _mushrooming(enemy: Node2D, source: Node) -> void:
 		rings.source = spore_source
 		rings.chain = chain
 		ground_parent.add_child(rings)
-		ground_parent.move_child(rings, enemy.get_parent().get_index())
 		return
 	if id == &"nightbloom":
 		var level := 1 if dreams and dreams.has_rule(&"endless_night") else 0
@@ -484,7 +490,6 @@ static func _mushrooming(enemy: Node2D, source: Node) -> void:
 			Tower.MAP_GRID.calculate_map_position(cell),
 			(MUSHROOM_CLOUD_RADIUS * NIGHTBLOOM_WIDTH[level] + _storm_front(enemy)) * CELL)
 		ground_parent.add_child(bloom)
-		ground_parent.move_child(bloom, enemy.get_parent().get_index())
 	var wide := 1.0
 	var time := MUSHROOM_CLOUD_TIME
 	if id == &"nightbloom" and dreams and dreams.has_rule(&"endless_night"):
@@ -497,12 +502,9 @@ static func _mushrooming(enemy: Node2D, source: Node) -> void:
 		radius = maxf(radius, MUSHROOM_RAIN_RADIUS * CELL)
 	var cloud := ReactionCloud.new(Tower.MAP_GRID.calculate_map_position(cell), radius, time, s.potency(SPORED),
 		s.spore_line(), spore_source, chain)
-	# In the world just before the nightmares' container, so it draws on the ground under them (the
-	# container's children are all nightmares; nothing else may go in there).
-	var container := enemy.get_parent()
-	var world := container.get_parent()
-	world.add_child(cloud)
-	world.move_child(cloud, container.get_index())
+	# In the world at z -1 (ReactionCloud), so it draws on the ground under the y-sorted map (never in the
+	# nightmares' container: its children are all nightmares).
+	_world(enemy).add_child(cloud)
 
 # Damp + full Drowsy: falls asleep for 2 s, once per nightmare (bosses and nightmares that can't be
 # held are slowed instead). Uses up the Drowsy.
@@ -527,9 +529,7 @@ static func _drown(enemy: Node2D, source: Node) -> void:
 		var cells: Array[Vector2] = [enemy.get_current_cell()]
 		var pool := CrownedGround.new(CrownedGround.Kind.STILL_POOL, cells, STILL_POOL_TIME[deep_still])
 		pool.sleep_seconds = STILL_POOL_SLEEP[deep_still]
-		var container := enemy.get_parent()
-		container.get_parent().add_child(pool)
-		container.get_parent().move_child(pool, container.get_index())
+		_world(enemy).add_child(pool)  # z -1: on the ground, under the y-sorted map
 	var deep := 1 if level > 0 else 0
 	if s.is_boss or cant_be_held(enemy):
 		s.slow_time = DROWN_SLEEP[0]
@@ -602,9 +602,7 @@ static func echo(id: StringName, spot: Vector2, share: float, echo_tower: Tower,
 		var first: Node2D = nearby[0]
 		var cloud := ReactionCloud.new(spot, MUSHROOM_CLOUD_RADIUS * CELL, MUSHROOM_CLOUD_TIME * share,
 			first.statuses.potency(SPORED), first.statuses.spore_line(), applier, chain)
-		var container := first.get_parent()
-		container.get_parent().add_child(cloud)
-		container.get_parent().move_child(cloud, container.get_index())
+		_world(first).add_child(cloud)  # z -1: on the ground, under the y-sorted map
 	if as_chain_link and not nearby.is_empty() and tracker:
 		var link: Node2D = nearby[0]
 		link.statuses.mark_chain(chain + 1, [echo_tower], CHAIN_WINDOW)
@@ -720,8 +718,9 @@ static func _field(near: Node2D) -> Array:
 	return near.get_tree().get_nodes_in_group(Tower.ENEMY_GROUP)
 
 static func _others_within(enemy: Node2D, cells: float) -> Array:
-	return _field(enemy).filter(func(e: Node2D) -> bool:
-		return e != enemy and e.global_position.distance_to(enemy.global_position) <= cells * CELL)
+	# Performance: only the nightmares bucketed near it (Tower.nightmares_near), not the whole field.
+	return Tower.nightmares_near(enemy.get_tree(), enemy.global_position, cells * CELL).filter(func(e) -> bool:
+		return is_instance_valid(e) and not e.is_cleansed and e != enemy and e.global_position.distance_to(enemy.global_position) <= cells * CELL)
 
 static func _tower_of(first, fallback) -> Tower:
 	if is_instance_valid(first) and first is Tower:

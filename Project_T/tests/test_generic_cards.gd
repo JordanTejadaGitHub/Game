@@ -38,6 +38,7 @@ func _run() -> void:
 	_test_map_rules()
 	_test_sim_entry()
 	_test_sim_policy()
+	_test_rows_cache()
 	print("generic cards test: %s" % ("PASS" if failures == 0 else "%d FAILED" % failures))
 	quit(failures)
 
@@ -262,6 +263,19 @@ func _test_sim_policy() -> void:
 	_check(sprout_bot.pick_dream([_card("few_and_mighty"), _card("many_hands"), _card("seedfall")]) == _card("seedfall")
 		and sprout_bot.pick_family(["dewdrop", "sporeling"]) == &"sporeling", "Sprout style: its own cards on top, Sporeling first")
 	_check(balanced.pick_omen([]) == null, "Omens: Clear Skies")
+	_clear()
+	_reset()
+
+# DreamEffects.rows_cached (Tower's hot path) matches rows() and follows board changes.
+func _test_rows_cache() -> void:
+	_reset()
+	dreams.take(_card("solitude"))
+	var fx := dreams.effects()
+	var a := _plant("sporeling", Vector2(100, 100))
+	var first := fx.rows_cached(a)
+	_check(first.size() == fx.rows(DreamEffects.spot_for(a)).size() and first[0].active, "rows_cached: same rows as rows() (Solitude on)")
+	_plant("sporeling", Vector2(101, 100))  # Planting bumps the board version
+	_check(not fx.rows_cached(a)[0].active, "…refreshes when a Warden is planted beside it")
 	_clear()
 	_reset()
 

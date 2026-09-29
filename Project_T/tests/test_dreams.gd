@@ -126,7 +126,7 @@ func _test_evolution(main: Node) -> void:
 	var map_generator = main.get_node("%MapGenerator")
 	var sprout: TowerData = load("res://resource/tower/sprout.tres")
 	var sporeling: TowerData = load("res://resource/tower/sporeling.tres")
-	run_state.dew = 100
+	run_state.dew = 1000  # Sprouts get pricier with every Sprout planted earlier in this test
 	placer.tower_data = sprout
 	var cell := _free_cell(map_generator)
 	placer._try_build(cell)

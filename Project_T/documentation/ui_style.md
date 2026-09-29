@@ -21,19 +21,28 @@ Bark & Vellum, Root & Thorn.
 
 ## Colours
 
-| Token | Value | Use |
-|---|---|---|
-| `ink` | `#efe8d8` | body text, titles |
-| `ink_dim` | `#aaa3bb` | labels, secondary text, "/20" |
-| `gold` | `#f1cd7a` | numbers, thread lines, active button text, links underline |
-| `gold_text` | `#ffe3a0` | text on primary buttons |
-| `whisper` | `#f3e3b8` | Heartwood whispers (italic) |
-| `poor` | `#f08a8a` | unaffordable costs |
-| `fog` | `#06050e` at 78% → 35% | panel background (radial, darkest in the middle) |
-| `card_bg` | `#0e0c1a` → `#06050e`, ~90% | Dream / family / Omen cards (more solid than panels) |
+Every UI colour is a **Heartwood 32** colour picked by name (`art_direction.md`; in Godot
+`HeartwoodPalette.color("glow")`, `color("void", 0.78)`), mostly from the Ink, Stone & moon and
+Warm light ramps. Translucency is a palette colour with alpha, never a new colour. (Mapped
+2026-09-28 from the mock's hex values to the nearest palette colours.)
 
-Rarity colours (with gem **shapes**, `screens_ui.md`): Common `#bdb5cf` circle, Uncommon `#79c98f`
-diamond, Rare `#6fa9ff` star, Legendary `#f0c050` crown.
+| Token | Palette colour | Use |
+|---|---|---|
+| `ink` | **Heartlight** | body text, titles |
+| `ink_dim` | **Mist** | labels, secondary text, "/20" |
+| `gold` | **Glow** | numbers, thread lines, active button text, links underline |
+| `gold_text` | **Heartlight** | text on primary buttons (on Gold at 16%) |
+| `button_line` | **Gold** at 45% | normal button outline; solid Gold on primary |
+| `whisper` | **Moonpath** | Heartwood whispers (italic) |
+| `poor` | **Ember** | unaffordable costs (with the 50% fade, so it never relies on colour) |
+| `fog` | **Void** at 78% → 35% | panel background (radial, darkest in the middle) |
+| `card_bg` | **Night** → **Void**, ~90% | Dream / family / Omen cards (more solid than panels) |
+
+The palette has no red, so "can't afford" is **Ember** plus the fade; the build ghost's red stays a
+world colour, not a UI one.
+
+Rarity colours (with gem **shapes**, `screens_ui.md`): Common **Mist**, Uncommon **Sprig**,
+Rare **Dewlight**, Legendary **Gold**.
 
 ## Type
 
@@ -69,7 +78,8 @@ choice title 38, panel title 28, body 16–17, labels 15, costs 15.
 - **Range circle / selection:** warm gold dashed ring with a faint gold fill (matches the threads).
 - **Icons:** the existing 16×16 pixel icons (`assets/ui/icons.png`) scaled by whole numbers (×2 in
   panels, ×3 on cards), nearest filtering. Pixel icons on smooth type is intentional: the icons
-  belong to the world, the type belongs to the dream.
+  belong to the world, the type belongs to the dream. The generator (`tools/ui_icon_generator.gd`)
+  snaps every icon to Heartwood 32 (nightmare traits to its cold ramps).
 
 ## Readability rules
 

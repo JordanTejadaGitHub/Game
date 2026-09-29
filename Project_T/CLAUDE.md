@@ -19,8 +19,9 @@ data-driven enemies, **tower building** (build mode, placement validation, enemi
 **combat** (towers target the enemy closest to the goal and fire homing spore puffs; nightmares are
 *dispelled*: they crack with light and burst into motes. Code identifiers still say
 `cleansed` / `is_cleansed` / `cleanse_line` from the old cozy theme; player-facing text says dispel),
-**clearable obstacles** (random map each run: ridges of rocks/trees from alternating walls make
-the route zig-zag, plus noise tree clusters and scattered rocks; outside build mode, hover shows
+**clearable obstacles** (random map each run: 2 short, gappy ridges of rocks/trees from alternating walls
+(3 at Blight 9), small tree groves and rock clusters, ~60 obstacles (min 10; `tests/test_map_density.gd`) so
+the Wardens build most of the maze; outside build mode, hover shows
 cost + the route that would open, left-click clears. Obstacles are "Withered Tree" (Tend) and
 "Mossy Boulder" (Move); `RunState.obstacles_tended` counts clears for +1 Seed each at run end).
 **Run structure** (`run_design.md`, `acts_1_2.md`, `acts_3_4.md`, `demo_scope.md`): runs (demo too)
@@ -138,7 +139,7 @@ accessibility, Steam achievements (milestones map to them). Acts 3–4 and all f
   before a boss rest; `FamilyPickScreen` calls `family_picked()` (first pick: 3 random of every
   unlocked family, never the last run's offer again, profile `last_first_pick`). `is_build_phase()`
   = resting (75% refunds). Health `get_growth(n)`: × 1.045 per drift, × 1.055 from drift 26 (`late_growth_from`), × 1.045 from 51 (`endgame_growth_from`); bosses × 1.5; acts 3–4 × 1.4 on top, bosses too (`late_acts_health_multiplier`). From drift 26 a drift listing no elites gets one, two from 76 (`add_guaranteed_elite`). Hooks for Dreams/Omens:
-  `get_health_multiplier`, `get_schedule_modifiers`, `get_spawn_modifiers`, `_pay_rest_bonus`.
+  `get_health_multiplier`, `get_schedule_modifiers`, `get_spawn_modifiers`, `_pay_rest_bonus`. Interim: act 2 health ramps ×1.0 (26) → ×1.35 (40) (`get_early_multiplier`, `early_*` exports); acts 3–4 ×1.4; act 2 dispel Dew ×0.85 (`RunState.act_dew_multipliers` [1.0, 0.68, 0.65, 0.5]).
 - Drift data: `DriftData.groups: Array[DriftGroup]`; `DriftGroup.entries: Array[DriftEntry]`
   (enemy + count + `elite`; several entries mix evenly), `spacing`, `delay`. `get_schedule()` →
   `[[time, EnemyData, elite], …]`. Drifts 1–50 mirror the acts_1_2.md table (hand-edited files; mixed
@@ -236,7 +237,7 @@ accessibility, Steam achievements (milestones map to them). Acts 3–4 and all f
   saves profile `reactions_seen` (real game only). `CodexPanel` (pause menu + Grove): Glossary / Combos / Families; lists what `CodexData.scope()` covers (starting three + Grove-planted families and forms; demo its three; dev runs all), "N more wait in the Memory Grove.", "New from the Grove" leaf (profile `codex_covered`). `tests/test_codex_scope.gd`.
 
 ## Meta (meta_design.md; full game only — `game/demo` true = nothing applied or recorded)
-- Grove = tech tree on the Heartwood: 79 `UnlockData` nodes (`resource/meta/grove/<id>.tres`, ids =
+- Grove = tech tree on the Heartwood: 82 `UnlockData` nodes (`resource/meta/grove/<id>.tres`, ids =
   `assets/meta/grove/grove_layout.json` ids; limbs `root` WARDENS = Families, DREAMS = Cards, PERKS =
   Perks). `costs` per level, `requires_all` ("id" or "id:level") / `requires_any` (+count), `icon`,
   `start` (Sporeling / Firefly Jar / Dewdrop, never bought), `<family>_ascension` (Ascended Warden card), `milestone` (grows free, refunds a
@@ -272,8 +273,23 @@ accessibility, Steam achievements (milestones map to them). Acts 3–4 and all f
   when perks are owned), Blight picker after the first win, Codex, "The forest remembered you".
   Title: Memory Grove button (demo: greyed + Wishlist). `tests/test_meta.gd` (layout ↔ data, perks,
   milestones, migration, screen smoke test with a temp profile).
+- Balance simulation profiles (balance_simulation.md): `GrovePresets` (`scripts/meta/grove_presets.gd`)
+  fresh / early / half / full; `MetaRun.load_preset(&"half")` writes it to `user://sim_heartwood.json`
+  and points `HeartwoodMemory.file_path` there (real profile untouched), `GrovePresets.unload()`.
+- Dev Grove (demo_scope.md, debug builds): `DevGrove` (`scripts/meta/dev_grove.gd`), setting `dev_grove`
+  off/early/half/full; `DevGrove.apply()` (title, and when the setting changes) switches
+  `HeartwoodMemory.file_path` to the preset's dev profile (settings stay in the real one via
+  `real_settings_path`), forces the full game (`ResultsScreen.demo_override = 0`), counts as
+  `MetaRun.is_dev_run()`; HUD / Grove tag `DevGrove.tag()`. `DevGrove.force` for tests.
 
 ## Audio (placeholder, audio_direction.md)
+- **Heartwood 32 + detail pass** (art_direction.md "Rendering style"; Theme Code owns `tools/art/`):
+  `HeartwoodPalette` (`color("gold")` by name, `snap(c, cold)`, `snap_image(img, cold)`, OKLab nearest;
+  cold = nightmares) and `DetailPass.apply(img, Kind.WARDEN/OBSTACLE/NIGHTMARE/TILE)` /
+  `apply_sheet(sheet, Vector2i(64, 64), kind, glow_radius := 0, texture := 1.0)` (rim, dither seams,
+  texture, banded glow, smoke, then snap; `texture` 0..1 thins the grain for calm tiles / pre-shaded art).
+  Every art generator runs its frames through it. `tools/art/palette_export.gd` writes
+  `assets/palette/heartwood32.{gpl,hex,json,png}` for non-Godot tools. `tests/test_palette.gd`.
 - `tools/sound_generator.gd` synthesizes every sound into `assets/audio/` (sfx 44.1 kHz; music
   stems + ambience 22 kHz, D minor 72 bpm 3/4, 20 s loops of equal length). Re-run it, then `--import`.
 - `Sound` autoload (`scripts/audio/sound.gd`): buses Music/SFX/Ambience/UI (reverb on Music/SFX,
@@ -296,8 +312,11 @@ accessibility, Steam achievements (milestones map to them). Acts 3–4 and all f
   partials above 6 kHz; SFX/UI buses get a −6 dB high shelf + a limiter (`Sound._add_softening`).
 
 ## Layout
-- `scenes/main.tscn` — root scene: MapGenerator (Ground / Path / EnvironmentObject TileMapLayers),
-  TowerContainer, EnemyContainer (spawner), HUD, GameCameraNode.
+- `scenes/main.tscn` — root scene: MapGenerator (Ground / Path / EnvironmentObject TileMapLayers,
+  TowerContainer, EnemyContainer (spawner)), HUD, GameCameraNode. **MapGenerator is the one y-sort root**:
+  the object layer, TowerContainer and EnemyContainer are y-sorted by cell centre (64×96 sprites put
+  their bottom 64 px on their cell and overhang the one above); Ground/Path are z −1. Ground effects
+  (vines, rubble, rings, clouds) go in Main at z −1; effects above everything keep a positive z.
 - `scripts/map/` — `map_generator.gd` orchestrates generation. Note the confusing names:
   `path.gd` defines `class_name PathGenerator` (draws path tiles), `path_generator.gd` defines
   `class_name FindPath` (AStar2D wrapper; routes are "sticky": a tiny off-route weight makes ties
@@ -318,8 +337,8 @@ accessibility, Steam achievements (milestones map to them). Acts 3–4 and all f
   bridge out from the start (shared sheets in `assets/environment/dream/`), and `DreamVoid`
   (`dream_void.gd`: Parallax2D sky + stars behind the map, islets). Mist on the start, `Heartwood` (`heartwood.gd`, Sprite2D) on the end shows leaves lost (its warm light and additive
   glow dim with them). Lighting pass (art_direction.md), made by MapGenerator: `EnvironmentLighting`
-  (MUL-blended radial multiply, cold at the edges, z 3; a PointLight2D per attacking Warden, kept under
-  it, not the Warden) and `EnvironmentAmbience` (`_draw`: edge fog + the act's particles, z 6). `tests/test_environment.gd`
+  (MUL-blended radial multiply, cold at the edges, z 3; attacking Wardens glow via one additive canvas item,
+  redrawn only on plant/sell/grow) and `EnvironmentAmbience` (`_draw`: edge fog + the act's particles, z 6). `tests/test_environment.gd`
   (`-- --preview=<file.png>` saves a flat render of the map).
 - `scripts/enemy/` — `enemy.gd` (walks cell to cell along a grid path; `set_path` re-routes it),
   `enemy_spawner.gd` (on `path_changed`, re-routes every enemy from its `get_target_cell()`).
@@ -436,6 +455,19 @@ accessibility, Steam achievements (milestones map to them). Acts 3–4 and all f
 - `shaders/blight.gdshader` — the nightmare look (the art is already dark; the shader only adds
   translucency, shimmer, glowing eyes/cores, the colour-blind outline, and the `crack` dispel effect).
 - `tests/` — headless `extends SceneTree` tests (e.g. `test_combat.gd`).
+- **UI style "Moonlit Thread"** (`documentation/ui_style.md`): `UiStyle` (`scripts/ui/ui_style.gd`, static)
+  holds the colour tokens (`INK`, `INK_DIM`, `GOLD`, `POOR`, `FOG`, `RARITY`…), the fonts
+  (`assets/ui/fonts/`, OFL: `body_font` Alegreya Sans, `display_font` / `number_font` Cormorant
+  Garamond SemiBold, `caps_font` Cormorant SC, `whisper_font`) and `make_theme()`.
+  `tools/ui_theme_generator.gd` saves it to `assets/ui/ui_theme.tres` = project `gui/theme/custom`:
+  **re-run it after changing UiStyle**. `MoonStyleBox` (fog + gold thread + diamond; `TopLine` NONE /
+  GOLD / FULL, `underline`) is every PanelContainer / tooltip / popup panel; `MoonDivider` = HSeparator.
+  Type variations: `PrimaryButton` (also what toggled buttons look like), `WardenSlot`, `TitleLabel`,
+  `NumberLabel`, `CapsLabel`, `WhisperLabel`, `FogPatch`. In code: `UiStyle.primary(button)`,
+  `title` / `display` / `number` / `caps` / `whisper(label, size)`, `card_button(button, colour)`,
+  `panel_in(colour)`, `fog_patch()`, `draw_gem(canvas, centre, r, rarity)`; don't hand-build
+  StyleBoxFlats for panels or cards. `tools/ui_preview.gd` (needs a window, not --headless) renders
+  the HUD, Dream choice and a component sheet to PNGs.
 - `scripts/ui/hud.gd` — HUD (Warden bar + 1-8 hotkeys, Dew counter).
   `world_label.gd` (`WorldLabel.draw_tag` for world-space text tags, `cost_color`),
   `dew_popup.gd` (`DewPopup`).

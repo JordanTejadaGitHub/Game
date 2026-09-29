@@ -14,3 +14,5 @@ resists = Array[String](["wind"])
 weak_to = Array[String](["stone"])
 ash_trail_time = 3.0
 trait_text = "Its burning ash clears {spored} from nightmares behind it."
+intro_lines = Array[String](["Leaves a trail of burning ash that clears {spored} from nightmares walking behind it for {ash_trail_time} s."])
+hint = "Dispel it early, before its ash spreads."
