@@ -38,12 +38,12 @@ const HALF_DREAMED := -1.0  # Other styles: a card that sleeps for now
 const DEAD_FOR_NOW := -2.0
 # Family order per style (the first offered one is taken); Combo picks by combo cards instead.
 const FAMILIES := {
-	Style.BALANCED: ["sporeling", "firefly_jar", "dewdrop", "pebbling", "acorn", "rootling", "nestling", "samara", "bellflower"],
-	Style.WIDE: ["sporeling", "acorn", "rootling", "samara", "dewdrop", "firefly_jar", "pebbling", "nestling", "bellflower"],
-	Style.NARROW: ["firefly_jar", "pebbling", "nestling", "dewdrop", "sporeling", "acorn", "rootling", "samara", "bellflower"],
+	Style.BALANCED: ["sporeling", "firefly_jar", "dewdrop", "pebbling", "acorn", "rootling", "nestling", "whirligig", "bellflower"],
+	Style.WIDE: ["sporeling", "acorn", "rootling", "whirligig", "dewdrop", "firefly_jar", "pebbling", "nestling", "bellflower"],
+	Style.NARROW: ["firefly_jar", "pebbling", "nestling", "dewdrop", "sporeling", "acorn", "rootling", "whirligig", "bellflower"],
 	Style.COMBO: [],
-	Style.SLEEP: ["bellflower", "dewdrop", "sporeling", "firefly_jar", "pebbling", "acorn", "rootling", "nestling", "samara"],
-	Style.SPROUT: ["sporeling", "acorn", "rootling", "samara", "dewdrop", "firefly_jar", "pebbling", "nestling", "bellflower"],
+	Style.SLEEP: ["bellflower", "dewdrop", "sporeling", "firefly_jar", "pebbling", "acorn", "rootling", "nestling", "whirligig"],
+	Style.SPROUT: ["sporeling", "acorn", "rootling", "whirligig", "dewdrop", "firefly_jar", "pebbling", "nestling", "bellflower"],
 }
 
 var dreams: DreamState
