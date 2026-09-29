@@ -190,6 +190,10 @@ const ASCENDED_JSON := "res://assets/towers/ascended/ascended.json"  # 128×128 
 @export var catch_share: float = 0.0
 @export var catch_radius: float = 0.0
 @export var catch_per_rank: float = 0.1
+# Skip (Pebbling): a single-target shot that lands bounces on to the nearest other nightmare within
+# skip_radius cells, dealing skip_share of the hit (once; the skip doesn't skip again).
+@export var skip_share: float = 0.0
+@export var skip_radius: float = 1.0
 @export var cloud_slow: float = 0.0  # Morning Fog: nightmares inside are this much slower…
 @export var cloud_drowsy_per_second: float = 0.0  # …and gain Drowsy at this rate
 

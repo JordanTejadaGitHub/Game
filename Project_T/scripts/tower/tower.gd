@@ -1517,6 +1517,7 @@ func projectile_landed(target: Node2D, where: Vector2) -> void:
 	_kin_on_landing(target, where)
 	if splash <= 0.0:
 		hit(target)
+		_skip(target, where)  # Pebbling: the pebble skips on to a second nightmare
 		if _kin_roll(kin_share(&"jewel_thieves", "b")):
 			hit(target)  # Jewel Thieves: the magpie pecks twice per swoop
 			_kin_fired(&"jewel_thieves")
@@ -1546,6 +1547,31 @@ func projectile_landed(target: Node2D, where: Vector2) -> void:
 		_lob_landed(where, splash)
 	if attack_data.impact_texture != null:  # Old Mountain's crush
 		play_sheet(attack_data.impact_texture, attack_data.impact_frames, attack_data.impact_anchor, where)
+
+# Pebbling's skip: the pebble bounces on to the nearest other nightmare within skip_radius cells of where
+# it landed, for skip_share of a hit (a second, smaller throw from the landing spot; it doesn't skip again).
+func _skip(from_target: Node2D, where: Vector2) -> void:
+	if attack_data.skip_share <= 0.0:
+		return
+	var reach := attack_data.skip_radius * MAP_GRID.cell_size.x
+	var best: Node2D = null
+	var best_distance := INF
+	for enemy in nightmares_near(get_tree(), where, reach):
+		if enemy == from_target or not is_instance_valid(enemy) or enemy.is_cleansed:
+			continue
+		var distance := where.distance_to(enemy.global_position)
+		if distance <= reach and distance < best_distance:
+			best_distance = distance
+			best = enemy
+	if best == null:
+		return
+	var bounce := Projectile.new(best, attack_data, _skip_landed.bind(attack_data.skip_share))
+	bounce.position = where
+	add_child(bounce)
+
+func _skip_landed(target, _where: Vector2, share: float) -> void:
+	if target != null and is_instance_valid(target):
+		hit(target, share)
 
 func _splash(where: Vector2, radius: float, share: float, crit: int) -> void:
 	for enemy in get_tree().get_nodes_in_group(ENEMY_GROUP):
