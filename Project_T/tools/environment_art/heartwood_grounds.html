@@ -1,0 +1,1824 @@
+<title>Heartwood Grounds</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400;500;600&family=Nunito:wght@400;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+:root{
+  color-scheme:dark;
+  --bg:#111915;
+  --panel:#17221d;
+  --panel2:#1d2a24;
+  --line:#2b3a32;
+  --text:#e3eadc;
+  --muted:#98aa9a;
+  --soft:#c4d0c0;
+  --dew:#9fd8e6;
+  --sap:#f0c66e;
+  --title:#dcefc4;
+  --display:'Pixelify Sans',ui-monospace,Consolas,monospace;
+  --body:'Nunito',system-ui,-apple-system,'Segoe UI',sans-serif;
+  --mono:'JetBrains Mono',ui-monospace,Consolas,monospace;
+}
+body{background:var(--bg);color:var(--text);font:15px/1.55 var(--body);}
+.wrap{max-width:1180px;margin:0 auto;padding-inline:20px;padding-block:40px 72px;}
+.eyebrow{font:500 12px/1.4 var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:0;}
+h1{font:600 clamp(40px,7vw,72px)/1 var(--display);margin:.25em 0 .3em;color:var(--title);text-wrap:balance;}
+.lede{max-width:70ch;color:var(--soft);font-size:16px;margin:0;}
+h2{font:500 28px/1.1 var(--display);margin:0;color:var(--title);text-wrap:balance;}
+section{margin-top:56px;}
+.sec-head{display:flex;flex-direction:column;gap:8px;margin-bottom:20px;}
+.sec-note{margin:0;max-width:70ch;color:var(--muted);}
+button{font:inherit;color:inherit;cursor:pointer;}
+button:focus-visible{outline:2px solid var(--dew);outline-offset:2px;}
+
+/* Scene */
+.scene-panel{margin-top:32px;background:var(--panel);border:1px solid var(--line);border-radius:6px;overflow:hidden;}
+.controls{display:flex;flex-wrap:wrap;gap:12px;justify-content:space-between;align-items:center;padding:12px;}
+.acts,.toggles{display:flex;flex-wrap:wrap;gap:6px;align-items:center;}
+.act{background:transparent;border:1px solid var(--line);border-radius:4px;padding:6px 12px 7px;text-align:left;color:var(--muted);}
+.act b{display:block;font:500 15px/1.2 var(--display);color:var(--soft);}
+.act small{font:11px/1.3 var(--mono);}
+.act[aria-pressed="true"]{background:var(--panel2);border-color:var(--act,var(--dew));color:var(--text);}
+.act[aria-pressed="true"] b{color:var(--title);}
+.act .dot{display:inline-block;width:8px;height:8px;margin-right:6px;background:var(--act);vertical-align:1px;}
+.tog{background:var(--panel2);border:1px solid var(--line);border-radius:4px;padding:6px 10px;font:12px var(--mono);color:var(--soft);}
+.tog[aria-pressed="true"]{border-color:var(--dew);color:var(--dew);}
+.seed{font:12px var(--mono);color:var(--muted);}
+.leaves{display:inline-flex;align-items:center;gap:8px;}
+.leaves input{width:110px;accent-color:var(--sap);}
+.leaves span{min-width:2ch;text-align:right;font-variant-numeric:tabular-nums;}
+.stage-wrap{background:#0b110e;line-height:0;border-block:1px solid var(--line);}
+#scene{width:100%;height:auto;image-rendering:pixelated;display:block;}
+.caption{display:flex;flex-wrap:wrap;gap:6px 18px;padding:12px 14px;margin:0;font-size:14px;color:var(--muted);}
+.caption strong{color:var(--text);font-weight:700;}
+
+.style-row{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;padding:0 12px 12px;}
+.style-label{font:500 11px var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);}
+.style-note{flex-basis:100%;margin:0;font-size:14px;color:var(--soft);max-width:90ch;}
+
+/* Style comparison */
+.styles-cmp{display:flex;flex-direction:column;gap:12px;}
+.cmp{background:var(--panel);border:1px solid var(--line);border-radius:6px;display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);overflow:hidden;}
+.cmp.on{border-color:var(--dew);}
+.cmp .strip{background:var(--panel2);display:grid;place-items:center;padding:16px;border-right:1px solid var(--line);}
+.cmp .strip canvas{image-rendering:pixelated;max-width:100%;height:auto;display:block;}
+.cmp .txt{padding:16px;display:flex;flex-direction:column;gap:8px;}
+.cmp h3{font:500 20px/1.2 var(--display);margin:0;color:var(--title);}
+.cmp p{margin:0;font-size:14px;color:var(--soft);}
+.cmp dl{margin:0;display:grid;grid-template-columns:auto 1fr;gap:4px 10px;font-size:14px;}
+.cmp dt{font:11px/1.9 var(--mono);color:var(--muted);text-transform:uppercase;letter-spacing:.06em;}
+.cmp dd{margin:0;color:var(--soft);}
+.cmp .use{align-self:flex-start;margin-top:4px;}
+@media (max-width:760px){ .cmp{grid-template-columns:1fr;} .cmp .strip{border-right:0;border-bottom:1px solid var(--line);} }
+
+/* Cards */
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:16px;}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:6px;display:flex;flex-direction:column;overflow:hidden;}
+.stage{display:grid;place-items:center;min-height:236px;padding:16px;background:var(--panel2);border-bottom:1px solid var(--line);}
+.stage canvas{image-rendering:pixelated;max-width:100%;height:auto;display:block;}
+.info{padding:14px 16px 16px;display:flex;flex-direction:column;gap:6px;flex:1;}
+.info h3{font:500 19px/1.2 var(--display);margin:0;color:var(--title);}
+.meta{font:12px/1.4 var(--mono);color:var(--muted);margin:0;}
+.note{margin:0;font-size:14px;color:var(--soft);}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:auto;padding-top:6px;}
+.chip{font:11px/1.5 var(--mono);padding:1px 7px;border-radius:3px;border:1px solid;}
+.chip.rep{color:var(--dew);border-color:rgba(159,216,230,.35);}
+.chip.new{color:var(--sap);border-color:rgba(240,198,110,.35);}
+.chip.anim{color:var(--muted);border-color:var(--line);}
+
+/* Palettes */
+.palettes{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px;}
+.pal{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:14px 16px 16px;display:flex;flex-direction:column;gap:10px;}
+.pal.on{border-color:var(--act);}
+.pal h3{font:500 18px/1.2 var(--display);margin:0;color:var(--title);}
+.pal .meta{margin-top:-6px;}
+.ramp{display:grid;grid-template-columns:64px 1fr;gap:10px;align-items:center;}
+.ramp span.l{font:11px var(--mono);color:var(--muted);}
+.ramp .sw{display:flex;height:20px;border-radius:2px;overflow:hidden;}
+.ramp .sw i{flex:1;}
+.shared{margin-top:12px;}
+
+/* Handoff */
+.handoff{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:20px;}
+.handoff ul{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:8px;max-width:78ch;color:var(--soft);}
+code{font:13px var(--mono);color:var(--dew);}
+@media (max-width:560px){ .act{padding:5px 9px;} .act b{font-size:14px;} h2{font-size:24px;} }
+</style>
+
+<div class="wrap">
+  <header>
+    <p class="eyebrow">Project_T · environment kit · draft 2 · dark fairytale</p>
+    <h1>Heartwood Grounds</h1>
+    <p class="lede">An original 64×64 set for the Heartwood's dream-forest. The middle of the map stays warm, with golden light and moss, and the edges fall into cold blue-black and violet mist where the nightmares come in. The path is the palest, warmest value on the map, so it stays the easiest thing to read. The set covers everything the demo needs to retire the Foozle Spire tileset (grass, path, border, Withered Tree, Mossy Boulder), plus the special tiles from design plan §9 and a night palette for each act.</p>
+  </header>
+
+  <div class="scene-panel">
+    <div class="controls">
+      <div class="acts" id="acts"></div>
+      <div class="toggles">
+        <label class="tog leaves" for="leaves">Leaves lost <input type="range" id="leaves" min="0" max="20" value="0"> <span id="leavesVal">0</span></label>        <button class="tog" id="tGrid" aria-pressed="false">Grid</button>
+        <button class="tog" id="tMotion" aria-pressed="true">Pause</button>
+        <button class="tog" id="tSeed">New seed</button>
+        <span class="seed" id="seedLabel"></span>
+      </div>
+    </div>
+    <div class="style-row">
+      <span class="style-label">Art style</span>
+      <div class="acts" id="styles"></div>
+      <p class="style-note" id="styleNote"></p>
+    </div>
+    <div class="stage-wrap"><canvas id="scene" width="960" height="576" aria-label="A sample 15 by 9 maze using the new environment tiles"></canvas></div>
+    <p class="caption" id="caption"></p>
+  </div>
+
+  <section>
+    <div class="sec-head">
+      <h2>Six art directions</h2>
+      <p class="sec-note">The same tiles, drawn in six styles by the same generator. The fifth cell in each strip is your current Sprout Warden, run through that style's conversion to show how far the characters would need to move.</p>
+    </div>
+    <div class="styles-cmp" id="stylesCmp"></div>
+  </section>
+
+  <section>
+    <div class="sec-head">
+      <h2>Ground</h2>
+      <p class="sec-note">Every map is built from these three tiles. Each is drawn on a 64 px cell, lit from the top left and outlined in a darker shade of its own colour, following the same rules as the Warden and creature generators.</p>
+    </div>
+    <div class="cards" id="c-ground"></div>
+  </section>
+
+  <section>
+    <div class="sec-head">
+      <h2>Obstacles</h2>
+      <p class="sec-note">The two clearable obstacles from game_design.md, each with the mark it leaves behind, so tending visibly changes the map and players can see where their extra Seeds came from.</p>
+    </div>
+    <div class="cards" id="c-obstacles"></div>
+  </section>
+
+  <section>
+    <div class="sec-head">
+      <h2>Special tiles</h2>
+      <p class="sec-note">New tile ideas from design plan §9. The art is ready to use. The rules are suggestions for playtesting, not decisions.</p>
+    </div>
+    <div class="cards" id="c-special"></div>
+  </section>
+
+  <section>
+    <div class="sec-head">
+      <h2>Landmarks</h2>
+      <p class="sec-note">Where the creatures come from, and where they're walking to.</p>
+    </div>
+    <div class="cards" id="c-landmarks"></div>
+  </section>
+
+  <section>
+    <div class="sec-head">
+      <h2>Scenery</h2>
+      <p class="sec-note">Healthy trees only go on cells the maze never uses, mostly the cold corners, where they read as dark silhouettes. Inside the maze, every tree is a Withered Tree, so players can ignore the dark shapes and watch the pale ones.</p>
+    </div>
+    <div class="cards" id="c-scenery"></div>
+  </section>
+
+  <section>
+    <div class="sec-head">
+      <h2>Seasons by act</h2>
+      <p class="sec-note">run_design.md says the season changes at every act break but doesn't say which season each act gets. This page proposes a night version of each: spring dusk, summer night, autumn fog and winter dark. In every act the value order stays the same (dark ground, pale obstacles, palest path), and stone, water and blight don't change, so the maze reads the same all run.</p>
+    </div>
+    <div class="palettes" id="palettes"></div>
+    <div class="palettes shared" id="shared"></div>
+  </section>
+
+  <section>
+    <div class="sec-head"><h2>How this page is used</h2></div>
+    <div class="handoff">
+      <ul>
+        <li>This page is a concept reference for the documentation, not an implementation plan. The written rules are in <code>documentation/art_direction.md</code> (environment direction) and <code>documentation/art_style_options.md</code> (the six styles).</li>
+        <li><strong>Style: leaning Waystone pixel</strong>, the current look. It keeps the existing Warden and nightmare art as it is. The other five styles stay on the page as references.</li>
+        <li>The tile sizes and rules shown here (64 px cells, 16 path shapes, 4 grass variants that tile seamlessly, 4-frame animations, warm light on the Heartwood and Wardens, cold at the edges) describe how the environment should look and behave.</li>
+      </ul>
+    </div>
+  </section>
+</div>
+
+<script>
+(() => {
+"use strict";
+const T = 64;
+
+// ---------- colour + pixel helpers ----------
+const clamp = (v, a, b) => v < a ? a : v > b ? b : v;
+// ---------- art styles ----------
+const STYLES = [
+  { id: "waystone", name: "Waystone pixel", short: "current", bands: 99, dither: 1, outline: "dark", px: 1, tone: null,
+    desc: "Full 64 px detail, 4–5 tone ramps with light dithering and dark outlines. Matches the Wardens and creatures you already have, so nothing else needs redrawing.",
+    pro: "Nothing else needs redrawing.", con: "The busiest of the three. A crowded maze reads less clearly when zoomed out." },
+  { id: "storybook", name: "Storybook chunky", short: "32 px at 2×", bands: 3, dither: 0, outline: "self", px: 2,
+    tone: { sat: .82, light: .1, tint: "#fff0dc", mix: .07 },
+    desc: "Drawn at 32 px and shown at 2×. Three flat tones, no dithering, warmer and softer colours, and every object outlined in a darker shade of its own colour instead of a dark line.",
+    pro: "Bold shapes that stay readable zoomed out on a 45×36 map. Soft, warm Wardens stand out well against the dark.", con: "Wardens and creatures would need redrawing at 32 px. The versions in the scene are rough automatic conversions." },
+  { id: "papercut", name: "Papercut", short: "flat, no lines", bands: 3, dither: 0, outline: "none", px: 1, shadow: true,
+    tone: { sat: .68, light: .06, tint: "#f3ead8", mix: .1 },
+    desc: "Full resolution, flat three-tone shapes and no outlines. Each object has a light cut edge and a small offset shadow, like layered paper. Muted colours with a paper tint.",
+    pro: "The calmest and most distinctive look. Shapes stand apart by value and shadow instead of by lines.", con: "Moves furthest from pixel art. Every character needs redrawing, and creatures rely on their shadows to stand out on grass." },
+  { id: "woodcut", name: "Woodcut ink", short: "engraved, heavy lines", bands: 3, dither: 0, outline: "ink", px: 1, hatch: true,
+    tone: { sat: .5, light: 0, tint: "#262840", mix: .12 },
+    desc: "Like an engraving in an old book of fairy tales. Colours are muted toward cold ink, shadows are cross-hatched instead of shaded, and every object gets a heavy two-pixel ink outline. Light areas stay clean, so the pale path and the warm Wardens read first.",
+    pro: "The most dark-fairytale of the four: the hatching makes the edges feel old and sinister without any gore, and it holds up in a thumbnail.", con: "It's the darkest style, so warm light has to do more work. Characters need redrawing with hatching and thick lines, and busy hatching could get noisy at high zoom." },
+  { id: "lantern16", name: "Lantern 16", short: "one 16-colour palette", bands: 99, dither: 1, outline: "dark", px: 1, tone: null, quant: true,
+    desc: "Every pixel in the game (tiles, Wardens and nightmares) snaps to one 16-colour palette built for warm vs cold: five cold darks, four greens, earth and rust, two golds, stone and bone. Shading keeps its dithering.",
+    pro: "Guaranteed cohesion: new art can't drift off-palette, and gold only appears where the dream is. Easy to keep consistent across tools and artists.", con: "Strict: the act palettes collapse toward the same colours, so seasons look less different. Existing art converts well but loses some nuance." },
+  { id: "glass", name: "Stained glass", short: "lead lines, jewel tones", bands: 3, dither: 0, outline: "none", px: 1, lead: true,
+    tone: { sat: 1.3, light: .04, tint: "#000000", mix: 0 },
+    desc: "Flat, jewel-toned areas of colour separated by dark lead lines, like a chapel window of the Heartwood's dream. Saturation goes up, shading is three tones, and the only outlines are the lead.",
+    pro: "Striking and unlike other tower defence games. The dream looks like a window lit from behind, and the warm light makes it glow.", con: "Busy: a lead line at every colour change adds noise, so the path and nightmares need careful value control. It's the furthest from the current art, so everything needs redrawing." },
+];
+// Lantern 16: the master palette (cold darks, greens, earth, golds, stone, bone).
+const LANTERN16 = ["#0c0a12", "#1e1830", "#3a2e52", "#2a3a5a", "#5a5a8a", "#1c3024", "#3a5a34", "#6e8a4c", "#4a8a8a",
+  "#4a3024", "#8a4a2a", "#e8b84a", "#fff0b0", "#8f89a8", "#d8ccb8", "#f4f0ff"]
+  .map(h => [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16)]);
+let STYLE = STYLES[0];
+function withStyle(s, fn) { const prev = STYLE; STYLE = s; try { return fn(); } finally { STYLE = prev; } }
+
+function rgb2hsl(r, g, b) {
+  r /= 255; g /= 255; b /= 255;
+  const mx = Math.max(r, g, b), mn = Math.min(r, g, b), l = (mx + mn) / 2;
+  if (mx === mn) return [0, 0, l];
+  const d = mx - mn, s = l > .5 ? d / (2 - mx - mn) : d / (mx + mn);
+  const h = mx === r ? (g - b) / d + (g < b ? 6 : 0) : mx === g ? (b - r) / d + 2 : (r - g) / d + 4;
+  return [h / 6, s, l];
+}
+function hsl2rgb(h, s, l) {
+  if (s === 0) return [l * 255, l * 255, l * 255];
+  const q = l < .5 ? l * (1 + s) : l + s - l * s, p = 2 * l - q;
+  const f = t => { t = (t + 1) % 1; return t < 1/6 ? p + (q - p) * 6 * t : t < 1/2 ? q : t < 2/3 ? p + (q - p) * (2/3 - t) * 6 : p; };
+  return [f(h + 1/3) * 255, f(h) * 255, f(h - 1/3) * 255];
+}
+function toneRGB(r, g, b) {
+  const t = STYLE.tone; if (!t) return [r, g, b];
+  const [h, s, l] = rgb2hsl(r, g, b);
+  const [R, G, B] = hsl2rgb(h, Math.min(1, s * t.sat), l + (1 - l) * t.light);
+  const ts = t.tint.slice(1), tr = parseInt(ts.slice(0,2),16), tg = parseInt(ts.slice(2,4),16), tb = parseInt(ts.slice(4,6),16);
+  return [R + (tr - R) * t.mix, G + (tg - G) * t.mix, B + (tb - B) * t.mix];
+}
+
+const hexCache = new Map();
+function C(h) {
+  const key = STYLE.id + h;
+  let v = hexCache.get(key);
+  if (!v) {
+    const s = h.slice(1);
+    v = [...toneRGB(parseInt(s.slice(0,2),16), parseInt(s.slice(2,4),16), parseInt(s.slice(4,6),16)), 255];
+    hexCache.set(key, v);
+  }
+  return v;
+}
+function CA(h, a) { const v = C(h).slice(); v[3] = Math.round(clamp(a,0,1) * 255); return v; }
+
+class Img {
+  constructor(w = T, h = T) { this.w = w; this.h = h; this.d = new Uint8ClampedArray(w * h * 4); }
+  set(x, y, c) {
+    x = Math.floor(x); y = Math.floor(y);
+    if (!c || x < 0 || y < 0 || x >= this.w || y >= this.h) return;
+    if (typeof c === "string") c = C(c);
+    const i = (y * this.w + x) * 4, d = this.d, a = c[3] / 255;
+    if (a >= 1) { d[i] = c[0]; d[i+1] = c[1]; d[i+2] = c[2]; d[i+3] = 255; return; }
+    if (a <= 0) return;
+    const da = d[i+3] / 255, oa = a + da * (1 - a);
+    for (let k = 0; k < 3; k++) d[i+k] = (c[k] * a + d[i+k] * da * (1 - a)) / oa;
+    d[i+3] = oa * 255;
+  }
+  alpha(x, y) { if (x < 0 || y < 0 || x >= this.w || y >= this.h) return 0; return this.d[(y * this.w + x) * 4 + 3]; }
+  get(x, y) { const i = (y * this.w + x) * 4, d = this.d; return [d[i], d[i+1], d[i+2], d[i+3]]; }
+  put(src, ox = 0, oy = 0) {
+    for (let y = 0; y < src.h; y++) for (let x = 0; x < src.w; x++) if (src.alpha(x, y)) this.set(ox + x, oy + y, src.get(x, y));
+    return this;
+  }
+  // Copies a layer, turning its border pixels into an outline (same as _stamp in the Godot tools).
+  stamp(src, outline) {
+    const o = !outline ? null : STYLE.outline === "dark" ? C(outline) : STYLE.outline === "ink" ? C("#0a0810") : null;
+    for (let y = 0; y < src.h; y++) for (let x = 0; x < src.w; x++) {
+      if (!src.alpha(x, y)) continue;
+      let c = src.get(x, y);
+      if (o && (!src.alpha(x+1,y) || !src.alpha(x-1,y) || !src.alpha(x,y+1) || !src.alpha(x,y-1))) c = o;
+      this.set(x, y, c);
+    }
+    return this;
+  }
+}
+function toCanvas(img) {
+  const c = document.createElement("canvas"); c.width = img.w; c.height = img.h;
+  c.getContext("2d").putImageData(new ImageData(img.d, img.w, img.h), 0, 0);
+  return c;
+}
+
+function hash(x, y, s) {
+  let h = (Math.imul(x|0, 374761393) + Math.imul(y|0, 668265263) + Math.imul(s|0, 1442695041)) | 0;
+  h = Math.imul(h ^ (h >>> 13), 1274126177); h ^= h >>> 16;
+  return (h >>> 0) / 4294967296;
+}
+// Value noise; `period` (in cells) makes it wrap so tiles are seamless.
+function pnoise(x, y, cell, s, period = 0) {
+  const fx = x / cell, fy = y / cell, xi = Math.floor(fx), yi = Math.floor(fy), xf = fx - xi, yf = fy - yi;
+  const u = xf * xf * (3 - 2 * xf), v = yf * yf * (3 - 2 * yf);
+  const w = a => period ? ((a % period) + period) % period : a;
+  const a = hash(w(xi), w(yi), s), b = hash(w(xi+1), w(yi), s), c = hash(w(xi), w(yi+1), s), d = hash(w(xi+1), w(yi+1), s);
+  return a + (b - a) * u + (c - a) * v + (a - b - c + d) * u * v;
+}
+const B4 = [0,8,2,10,12,4,14,6,3,11,1,9,15,7,13,5];
+const bay = (x, y) => (B4[((y & 3) << 2) | (x & 3)] + .5) / 16;
+function pick(r, t, x, y, dither = .5) {
+  if (STYLE.bands < r.length && r.length > 3) r = [r[0], r[Math.floor(r.length / 2)], r[r.length - 1]];
+  dither *= STYLE.dither;
+  const n = r.length; return r[clamp(Math.floor(t * n + (bay(x, y) - .5) * dither), 0, n - 1)]; }
+
+// TT: an optional vertical transform for drawing tall sprites from 64 px designs (the dead trees):
+// ellipse / stroke / tset map a design y through it; the shapes' radii stay as drawn.
+let TT = null;
+const ty = y => TT ? TT(y) : y;
+function tset(L, x, y, c) { L.set(x, ty(y), c); }
+function talpha(L, x, y) { return L.alpha(x, Math.floor(ty(y))); }
+function ellipse(L, cx, cy, rx, ry, col) { ellipseRaw(L, cx, ty(cy), rx, ry, col); }
+function ellipseRaw(L, cx, cy, rx, ry, col) {
+  for (let y = Math.floor(cy - ry); y <= Math.ceil(cy + ry); y++)
+    for (let x = Math.floor(cx - rx); x <= Math.ceil(cx + rx); x++) {
+      const dx = (x + .5 - cx) / rx, dy = (y + .5 - cy) / ry;
+      if (dx * dx + dy * dy <= 1) L.set(x, y, typeof col === "function" ? col(x, y, dx, dy) : col);
+    }
+}
+// A shaded round mass: sphere lighting from the top left, quantised into the ramp (dark → light).
+function blob(L, cx, cy, rx, ry, ramp, o = {}) {
+  const lump = o.lump || 0, seed = o.seed || 0;
+  for (let y = Math.floor(cy - ry * 1.3); y <= Math.ceil(cy + ry * 1.3); y++)
+    for (let x = Math.floor(cx - rx * 1.3); x <= Math.ceil(cx + rx * 1.3); x++) {
+      let dx = (x + .5 - cx) / rx, dy = (y + .5 - cy) / ry;
+      if (lump) { const a = Math.atan2(dy, dx), k = 1 + lump * (Math.sin(a * 3 + seed) * .6 + Math.sin(a * 5 + seed * 2.3) * .4); dx /= k; dy /= k; }
+      const r2 = dx * dx + dy * dy; if (r2 > 1) continue;
+      const nz = Math.sqrt(1 - r2);
+      let t = clamp((-dx * .5 - dy * .7 + nz * .55 + .35) / 1.35, 0, 1);
+      if (o.tex) t = clamp(t + (hash(x, y, seed + 5) - .5) * o.tex, 0, 1);
+      let col = pick(ramp, t, x, y, o.dither ?? .6);
+      if (o.rim && r2 > .72 && dy > .15) col = ramp[0];
+      L.set(x, y, col);
+    }
+}
+function stroke(L, x0, y0, x1, y1, w0, w1, fn) {
+  y0 = ty(y0); y1 = ty(y1);
+  if (TT) { w0 *= 1.25; w1 *= 1.25; }  // tall trees get sturdier trunks and limbs
+  const dx = x1 - x0, dy = y1 - y0, len = Math.hypot(dx, dy) || 1, px = -dy / len, py = dx / len, n = Math.ceil(len * 2) + 1;
+  for (let i = 0; i <= n; i++) {
+    const t = i / n, cx = x0 + dx * t, cy = y0 + dy * t, r = Math.max(.6, (w0 + (w1 - w0) * t) / 2);
+    ellipseRaw(L, cx, cy, r, r, typeof fn === "function" ? (x, y, ex, ey) => fn(x, y, ex * px + ey * py) : fn);
+  }
+}
+const barkFn = r => (x, y, nx) => nx < -.3 ? r[3] : nx > .45 ? r[1] : (hash(x, y >> 1, 77) < .2 ? r[1] : r[2]);
+function inPoly(x, y, pts) {
+  let c = false;
+  for (let i = 0, j = pts.length - 1; i < pts.length; j = i++) {
+    const [xi, yi] = pts[i], [xj, yj] = pts[j];
+    if (((yi > y) !== (yj > y)) && (x < (xj - xi) * (y - yi) / (yj - yi) + xi)) c = !c;
+  }
+  return c;
+}
+function poly(L, pts, fn) {
+  const xs = pts.map(p => p[0]), ys = pts.map(p => p[1]);
+  for (let y = Math.floor(Math.min(...ys)); y <= Math.ceil(Math.max(...ys)); y++)
+    for (let x = Math.floor(Math.min(...xs)); x <= Math.ceil(Math.max(...xs)); x++)
+      if (inPoly(x + .5, y + .5, pts)) L.set(x, y, fn(x, y));
+}
+const SHADOW = a => CA("#0a1408", a);
+
+// ---------- palettes ----------
+// Stone is the Warden waystone ramp (tower_art_generator.gd "moss" theme) so the border and boulders match the Wardens.
+const ST = { out:"#262238", d2:"#34304c", d1:"#5a5474", m:"#6a6484", l1:"#8f89a8", l2:"#aaa4bc", hi:"#cfcadc" };
+const STONE_RAMP = [ST.d1, ST.m, ST.l1, ST.l2, ST.hi];
+const WATER = ["#1e3058", "#2c4c80", "#3f6aa8", "#6ab0e8", "#bfe8ff"];
+const ICE = ["#6a8eaa", "#8ab4c8", "#a8cce0", "#c8e4f0", "#f0faff"];
+const BLIGHT = ["#0e0a14", "#1c1626", "#2c2438", "#3e344c", "#5a4e6a"];
+
+// Dark fairytale: grounds sit low in value and cool; the path is the palest, warmest ramp on the
+// map so it stays the most readable thing; obstacles sit between the two.
+const ACTS = [
+  { id:"edge", n:1, name:"Forest's Edge", drifts:"1–25", season:"Spring dusk", boss:"The Hollow Stag",
+    swatch:"#4f7e4c",
+    grass:["#14261e","#1c3a2a","#244a32","#33603e","#4f7e4c"],
+    canopy:["#0a1410","#142a20","#1e3e2c","#2c5638","#4a7648"],
+    bark:["#120c10","#2a1e22","#44323a","#645058"],
+    path:["#6c5c5c","#6c5c5c","#b4a494","#dccdb2"],  // Heartwood 32 Path ramp: Loam, Loam, Path, Moonpath
+    dots:["#c8b8f0","#f0e8ff","#ffd27a"], accentName:"moonflower" },
+  { id:"deep", n:2, name:"Deep Wood", drifts:"26–50", season:"Summer night", boss:"The Mire Hag or the Moth Queen",
+    swatch:"#386254",
+    grass:["#0e1c1c","#142a2a","#1a3634","#244840","#386254"],
+    canopy:["#060e0e","#0e2020","#163030","#204440","#346058"],
+    bark:["#0e0a0e","#221a20","#3a2e36","#584a52"],
+    path:["#6c5c5c","#6c5c5c","#b4a494","#dccdb2"],  // Heartwood 32 Path ramp: Loam, Loam, Path, Moonpath
+    dots:["#8ad8e8","#e0faff","#b0f0c0"], accentName:"glowcap" },
+  { id:"misty", n:3, name:"Misty Hollow", drifts:"51–75", season:"Autumn fog", boss:"the other act 2 boss",
+    swatch:"#a85a34",
+    grass:["#1c1e1a","#2a2c24","#3a3a2e","#4e4a3a","#6e6450"],
+    canopy:["#140a0c","#2e1216","#4e1e1c","#7a3424","#a85a34"],
+    bark:["#120a0c","#2a1a1c","#44302e","#644a44"],
+    path:["#6c5c5c","#6c5c5c","#b4a494","#dccdb2"],  // Heartwood 32 Path ramp: Loam, Loam, Path, Moonpath
+    dots:["#c0663a","#e8a060","#f0e0c8"], accentName:"ember leaf" },
+  { id:"glade", n:4, name:"Heartwood Glade", drifts:"76–100", season:"Winter dark", boss:"The Hollow Oak",
+    swatch:"#a8b8d0", frozen:true,
+    grass:["#1a2230","#28324a","#3a4660","#5a6a86","#a8b8d0"],
+    canopy:["#0a1018","#142030","#203048","#6a7e9a","#d8e4f0"],
+    bark:["#100c10","#241c22","#3c3038","#5a4a52"],
+    path:["#6c5c5c","#6c5c5c","#b4a494","#dccdb2"],  // Heartwood 32 Path ramp: Loam, Loam, Path, Moonpath
+    dots:["#d83c3c","#f0f4ff","#ffd27a"], accentName:"holly" },
+];
+let LOST = 0;
+
+let SEED = 1207;
+let ACT = ACTS[0];
+
+// ---------- tiles ----------
+function tuft(L, x, y, g) {
+  L.set(x-1,y+1,g[1]); L.set(x,y+1,g[1]); L.set(x,y,g[3]); L.set(x-1,y,g[2]); L.set(x+1,y,g[2]);
+  L.set(x-2,y-1,g[3]); L.set(x+1,y-1,g[4]); L.set(x-1,y-2,g[4]); L.set(x+2,y-2,g[4]);
+}
+function flower(L, x, y, petal, mid, g) {
+  L.set(x,y+2,g[1]); L.set(x+1,y+2,g[1]);
+  L.set(x-1,y,petal); L.set(x+1,y,petal); L.set(x,y-1,petal); L.set(x,y+1,petal); L.set(x,y,mid);
+}
+function clover(L, x, y, g) {
+  for (const [a, b] of [[0,0],[3,0],[1,2]]) { L.set(x+a,y+b,g[4]); L.set(x+a+1,y+b,g[4]); L.set(x+a,y+b+1,g[3]); L.set(x+a+1,y+b+1,g[2]); }
+}
+
+// All variants share one wrapping noise base, so they tile with each other; variants only add details.
+function grass(A, v) {
+  const L = new Img(), g = A.grass, s = SEED;
+  for (let y = 0; y < T; y++) for (let x = 0; x < T; x++) {
+    const n = .62 * pnoise(x, y, 16, s, 4) + .38 * pnoise(x, y, 8, s + 9, 8);
+    // Quiet ground: a base tone with a fine grain of the next tone whose density drifts with the
+    // noise. Solid patches (or a third tone on peaks) formed shapes that repeated every tile.
+    // Per-variant grain seed: fine per-pixel grain needs no match across edges, so variants can differ.
+    let i = hash(x, y, s + 11 + v * 101) < clamp((n - .25) * .8, .04, .42) ? 2 : 1;
+    if (!STYLE.dither) i = n > .55 ? 2 : 1;
+    const h = hash(x, y, s + 3 + v);
+    if (STYLE.dither && h < .012) i = Math.min(i + 1, 3);
+    L.set(x, y, g[i]);
+  }
+  const sv = s + v * 31;
+  const soft = [g[0], g[1], g[2], g[2], g[3]];
+  for (let k = 0, n = [3,5,2,2,4,1,3,2][v]; k < n; k++) tuft(L, 4 + Math.floor(hash(k,1,sv) * 56), 5 + Math.floor(hash(k,2,sv) * 54), soft);
+  if (v === 2) for (let k = 0; k < 2; k++) flower(L, 8 + Math.floor(hash(k,3,sv) * 48), 8 + Math.floor(hash(k,4,sv) * 46), A.dots[k % 2], A.dots[2], g);
+  if (v === 3) for (let k = 0; k < 2; k++) clover(L, 6 + Math.floor(hash(k,5,sv) * 50), 6 + Math.floor(hash(k,6,sv) * 50), soft);
+  // Variants 4-7 (added 2026-09-28 so the ground doesn't repeat): 4 and 6 are other tuft layouts, 5 a few pebbles, 7 a fallen twig (keep rare).
+  if (v === 5) for (let k = 0; k < 3; k++) { const x = 8 + Math.floor(hash(k,7,sv) * 46), y = 8 + Math.floor(hash(k,8,sv) * 46); L.set(x, y, ST.l1); L.set(x + 1, y, ST.m); L.set(x, y + 1, ST.d1); }
+  if (v === 7) { const x0 = 14 + hash(3,9,sv) * 20, y0 = 24 + hash(4,9,sv) * 20; stroke(L, x0, y0, x0 + 14, y0 - 5, 1.4, 1.2, "#5c3c24"); L.set(x0 + 6, y0 - 3, "#8c5c34"); }
+  return L;
+}
+
+function sdBox(px, py, b, r) {
+  const cx = (b[0] + b[2]) / 2, cy = (b[1] + b[3]) / 2, hx = (b[2] - b[0]) / 2 - r, hy = (b[3] - b[1]) / 2 - r;
+  const qx = Math.abs(px - cx) - hx, qy = Math.abs(py - cy) - hy;
+  return Math.hypot(Math.max(qx, 0), Math.max(qy, 0)) + Math.min(Math.max(qx, qy), 0) - r;
+}
+// Path by 4-bit neighbour mask: N=1 E=2 S=4 W=8.
+function pathTile(A, mask) {
+  const L = grass(A, 0), p = A.path, g = A.grass, s = SEED + 400, m = 8;
+  const boxes = [[m, m, T - m, T - m]];
+  if (mask & 1) boxes.push([m, -20, T - m, 32]);
+  if (mask & 2) boxes.push([32, m, T + 20, T - m]);
+  if (mask & 4) boxes.push([m, 32, T - m, T + 20]);
+  if (mask & 8) boxes.push([-20, m, 32, T - m]);
+  const D = (x, y) => { let d = 1e9; for (const b of boxes) d = Math.min(d, sdBox(x + .5, y + .5, b, 10)); return d + (pnoise(x, y, 8, s, 8) - .5) * 3.2; };
+  for (let y = 0; y < T; y++) for (let x = 0; x < T; x++) {
+    const d = D(x, y);
+    if (d < -2.2) {
+      // A plain pale ribbon with a light grain: mottled patches made the path busy when zoomed out.
+      const h = hash(x, y, s + 40);
+      let col = h < .09 ? p[3] : h > .94 ? p[1] : p[2];
+      if (d > -3.6 && hash(x, y, s + 5) < .12) col = g[2];
+      L.set(x, y, col);
+    } else if (d < -1) L.set(x, y, p[1]);
+    else if (d < 0) L.set(x, y, p[0]);
+    else if (d < 1.3 && hash(x, y, s + 4) < .6) L.set(x, y, g[1]);
+  }
+  for (let j = 0; j < 8; j++) for (let i = 0; i < 8; i++) {
+    if (hash(i, j, s + 50) >= .08) continue;
+    const x = i * 8 + 2 + Math.floor(hash(i, j, s + 51) * 4), y = j * 8 + 2 + Math.floor(hash(i, j, s + 52) * 4);
+    if (D(x, y) > -5 || D(x + 1, y + 1) > -5) continue;
+    L.set(x, y, ST.hi); L.set(x + 1, y, ST.l2); L.set(x, y + 1, ST.m); L.set(x + 1, y + 1, ST.d1);
+  }
+  return L;
+}
+
+// Drystone wall: wrapping Voronoi stones, moss from the season's grass.
+function wall(A, v) {
+  const L = new Img(), g = A.grass, s = SEED * 3 + v * 101, pts = [];
+  for (let j = 0; j < 4; j++) for (let i = 0; i < 4; i++) pts.push([i * 16 + 3 + hash(i,j,s) * 10, j * 16 + 3 + hash(i,j,s+1) * 10, hash(i,j,s+2)]);
+  for (let y = 0; y < T; y++) for (let x = 0; x < T; x++) {
+    let f1 = 1e9, f2 = 1e9, bx = 0, by = 0, bh = 0;
+    for (const [qx, qy, qh] of pts) for (let oy = -64; oy <= 64; oy += 64) for (let ox = -64; ox <= 64; ox += 64) {
+      const d = Math.hypot(x + .5 - (qx + ox), (y + .5 - (qy + oy)) * 1.3);
+      if (d < f1) { f2 = f1; f1 = d; bx = qx + ox; by = qy + oy; bh = qh; } else if (d < f2) f2 = d;
+    }
+    const edge = f2 - f1, n = pnoise(x, y, 16, s + 7, 4) * .7 + pnoise(x, y, 8, s + 8, 8) * .3, dx = x + .5 - bx, dy = y + .5 - by;
+    if (edge < 1.6) { L.set(x, y, n > .6 ? g[0] : ST.d2); continue; }
+    // Kept a step darker than the path (no near-white), with more moss, so the frame doesn't
+    // outshine the maze.
+    let col = edge < 3.2 && dy > 0 ? ST.d2 : pick([ST.d1, ST.m, ST.l1, ST.l2], .58 - dx * .03 - dy * .05 + (bh - .5) * .3, x, y);
+    if (n > .5 && dy < 2) col = pick([g[1], g[2], g[3], g[4]], clamp(.25 + (n - .5) * 3 - dy * .03, 0, 1), x, y);
+    L.set(x, y, col);
+  }
+  return L;
+}
+
+// ---------- sprites ----------
+function tree(A, v, seed) {
+  const out = new Img(), L = new Img(), Tr = new Img(), bf = barkFn(A.bark);
+  ellipse(out, 32, 55, 19, 5.5, SHADOW(.32));
+  stroke(Tr, 32, 56, 32, 36, 8, 6, bf);
+  stroke(Tr, 31, 54, 25, 57, 3, 1.5, bf);
+  stroke(Tr, 33, 54, 39, 57, 3, 1.5, bf);
+  out.stamp(Tr, A.bark[0]);
+  const ramp = A.canopy.slice(1);
+  if (v === 1) {
+    for (const [top, base, hwMax] of [[4, 24, 11], [14, 36, 15], [25, 47, 19]]) {
+      for (let y = top; y <= base; y++) {
+        const p = (y - top) / (base - top), hw = Math.max(1, p * hwMax);
+        for (let x = Math.floor(32 - hw); x <= Math.ceil(32 + hw); x++) {
+          const nx = (x + .5 - 32) / hw; if (Math.abs(nx) > 1) continue;
+          if (y === base && (x & 1)) continue;
+          let col = pick(ramp, clamp(.7 - nx * .34 - p * .3 + (hash(x, y, seed) - .5) * .16, 0, 1), x, y);
+          if (y >= base - 1) col = ramp[0];
+          L.set(x, y, col);
+        }
+      }
+    }
+  } else {
+    const j = k => (hash(k, v, seed) - .5) * 4;
+    const blobs = [[32 + j(1), 20 + j(2), 15, 13], [21 + j(3), 29 + j(4), 11, 10], [43 + j(5), 29 + j(6), 11, 10], [32 + j(7), 34 + j(8), 13, 9]];
+    blobs.forEach(([x, y, rx, ry], k) => blob(L, x, y, rx, ry, ramp, { lump: .08, seed: seed + k * 7, tex: .18, rim: true }));
+    if (v === 2) {
+      for (let k = 0; k < 14; k++) {
+        const x = 14 + Math.floor(hash(k, 1, seed + 9) * 36), y = 8 + Math.floor(hash(k, 2, seed + 9) * 30);
+        if (!L.alpha(x, y) || !L.alpha(x + 1, y + 1)) continue;
+        L.set(x, y, A.dots[0]); L.set(x + 1, y, A.dots[0]); L.set(x, y + 1, A.dots[0]); L.set(x + 1, y + 1, A.canopy[1]); L.set(x, y - 1, A.dots[1]);
+      }
+    }
+  }
+  out.stamp(L, A.canopy[0]);
+  return out;
+}
+
+function branch(L, x, y, a, len, w, d, seed, fn) {
+  const x2 = x + Math.cos(a) * len, y2 = y + Math.sin(a) * len;
+  stroke(L, x, y, x2, y2, w, Math.max(2, w * .6), fn);
+  if (d > 0) {
+    const s = hash(d, Math.floor(len), seed);
+    branch(L, x2, y2, a - .45 - s * .3, len * .68, w * .62, d - 1, seed + 1, fn);
+    branch(L, x2, y2, a + .4 + s * .25, len * .62, w * .6, d - 1, seed + 2, fn);
+  }
+}
+const HEART_CANOPY = ["#121a0c", "#243c16", "#3a5e22", "#5a8030", "#8aa844"];
+const HEART_LEAF_HI = "#b4c65c";
+const HEART_BARK = ["#1a0e08", "#3a2414", "#5e3c20", "#8a5e34"];
+// Ashen umber dead wood: a different hue from the lavender stone, so trees and rocks separate by
+// colour as well as shape, even under the cold edge lighting.
+const DEAD = ["#241a16", "#56463c", "#8a7462", "#bca38c"];
+// Dead trees are 64×96: the bottom 64 px are their cell (base and shadow where the old 64 px base
+// was), the top 32 px overhang the cell above. Heights above the base (design y 56) are × 1.5.
+const TREE_TT = y => 88 + (y - 56) * 1.5;
+function withered(A, f, seed) {
+  // Pale bark on the lit side so the tree reads as a pale shape on dark grass (value order).
+  const out = new Img(64, 96), L = new Img(64, 96);
+  TT = TREE_TT;  // drawn 1.5× taller from the 64 px design (see TREE_TT)
+  const bf = (x, y, nx) => nx < .15 ? (hash(x, y >> 1, 77) < .15 ? DEAD[2] : DEAD[3]) : nx > .6 ? DEAD[1] : DEAD[2];
+  ellipse(out, 32, 55, 20, 6, SHADOW(.42));
+  ellipse(out, 32, 53, 21, 7, CA("#6a5a80", .18));
+  for (let k = 0; k < 5; k++) {
+    const a = Math.PI * (.05 + k * .225) + (hash(k, 1, seed) - .5) * .3, len = 9 + hash(k, 2, seed) * 7;
+    stroke(out, 32, 55, 32 + Math.cos(a) * len, 55 + Math.sin(a) * len * .35, 1.6, 1, "#3a3442");
+  }
+  stroke(L, 32, 56, 31, 28, 12, 7, bf);
+  stroke(L, 31, 54, 22, 58, 4.5, 1.6, bf);
+  stroke(L, 33, 54, 42, 58, 4.5, 1.6, bf);
+  const lean = (hash(1, 1, seed) - .5) * .3;
+  // A compact, bold silhouette (two forked limbs and one side stub): the finer twigs turned into
+  // scribbles when zoomed out.
+  branch(L, 31, 30, -2.1 + lean, 12, 6, 1, seed, bf);
+  branch(L, 31, 30, -1.0 + lean, 13, 6, 1, seed + 5, bf);
+  branch(L, 33, 40, -.35, 8, 4, 0, seed + 9, bf);
+  for (let k = 0; k < 16; k++) {
+    const x = 8 + Math.floor(hash(k, 3, seed) * 48), y = 4 + Math.floor(hash(k, 4, seed) * 30);
+    if (!talpha(L, x, y)) continue;
+    tset(L, x + 1, y, "#9a94a4"); tset(L, x + 1, y + 1, "#6e6a78");
+  }
+  // Two knot-holes in the trunk that glint now and then, like eyes.
+  for (const [x, y] of [[29, 41], [33, 40]]) { tset(L, x, y, "#0a0810"); tset(L, x + 1, y, "#0a0810"); }
+  out.stamp(L, DEAD[0]);
+  if (f === 2) { tset(out, 29, 41, "#d8ccff"); tset(out, 33, 40, "#d8ccff"); }
+  for (let k = 0; k < 3; k++) {
+    const ph = ((f / 4) + k / 3) % 1, x = 21 + k * 10 + Math.sin(ph * 6 + k) * 2, y = 50 - ph * 26, r = 2.2 + ph * 1.6, a = .7 * Math.sin(ph * Math.PI);
+    ellipse(out, x, y, r, r * .85, CA("#140e20", a));
+    tset(out, x - 1, y - 1, CA("#6a4a9a", a));
+  }
+  TT = null;
+  return out;
+}
+
+function tended(A) {
+  const out = new Img(), L = new Img(), g = A.grass, b = A.bark, lv = new Img();
+  ellipse(out, 32, 48, 14, 4.5, SHADOW(.28));
+  for (let y = 38; y <= 48; y++) for (let x = 22; x <= 42; x++) {
+    const nx = (x + .5 - 32) / 9.5; if (Math.abs(nx) > 1) continue;
+    if (y > 46 + Math.round(Math.sqrt(1 - nx * nx) * 1.5)) continue;
+    L.set(x, y, nx < -.3 ? b[3] : nx > .45 ? b[1] : (hash(x, y >> 1, 5) < .25 ? b[1] : b[2]));
+  }
+  ellipse(L, 32, 38, 9.5, 4, (x, y, dx, dy) => { const r = Math.hypot(dx, dy); return r > .8 ? "#b08050" : (Math.floor(r * 4) % 2 ? "#d8b484" : "#c49a68"); });
+  out.stamp(L, b[0]);
+  stroke(out, 35, 37, 35, 30, 1.2, 1, g[1]);
+  ellipse(lv, 32.5, 29.5, 3, 1.8, g[4]); ellipse(lv, 37.5, 28.5, 3, 1.8, g[3]);
+  out.stamp(lv, g[0]);
+  flower(out, 21, 46, A.dots[0], A.dots[2], g); flower(out, 44, 45, A.dots[1], A.dots[2], g); flower(out, 27, 51, A.dots[0], A.dots[2], g);
+  tuft(out, 39, 51, g); tuft(out, 24, 42, g);
+  return out;
+}
+
+function fern(out, g, x, y, sz = 1) {
+  for (const a of [-2.55, -2.05, -1.57, -1.1, -.6]) {
+    const len = (a === -1.57 ? 9 : 7.5) * sz;
+    for (let i = 0; i <= len; i++) {
+      const px = x + Math.cos(a) * i, py = y + Math.sin(a) * i + i * i * .045;
+      out.set(px, py, i < 2 ? g[1] : g[2]);
+      if (i % 2 === 0 && i > 1) { out.set(px - Math.sin(a) * 1.3, py + Math.cos(a) * 1.3, g[3]); out.set(px + Math.sin(a) * 1.3, py - Math.cos(a) * 1.3, g[4]); }
+    }
+  }
+}
+
+function boulder(A, v, seed) {
+  const out = new Img(), L = new Img(), g = A.grass;
+  ellipse(out, 32, 54, 22, 6, SHADOW(.3));
+  const rocks = v === 0 ? [[32, 38, 20, 16]] : [[24, 43, 14, 11], [42, 35, 13, 12]];
+  for (const [x, y, rx, ry] of rocks) blob(L, x, y, rx, ry, STONE_RAMP, { lump: .1, seed: seed + x, tex: .12, rim: true });
+  for (let y = 0; y < T; y++) for (let x = 0; x < T; x++) {
+    if (!L.alpha(x, y)) continue;
+    let best = rocks[0], bd = 1e9;
+    for (const r of rocks) { const d = Math.hypot((x - r[0]) / r[2], (y - r[1]) / r[3]); if (d < bd) { bd = d; best = r; } }
+    const dy = (y + .5 - best[1]) / best[3], dx = (x + .5 - best[0]) / best[2], n = pnoise(x, y, 6, seed + 3);
+    if (n - dy * .55 > .68) L.set(x, y, pick([g[2], g[3], g[4], "#86b060"], clamp(.62 - dx * .35 - dy * .4, 0, 1), x, y));
+  }
+  out.stamp(L, ST.out);
+  fern(out, g, v === 0 ? 12 : 53, 54, .9);
+  return out;
+}
+
+function dent(A) {
+  const out = new Img(), p = A.path, g = A.grass;
+  ellipse(out, 32, 40, 17, 9, (x, y, dx, dy) => {
+    const r = Math.hypot(dx, dy);
+    if (r > .84) return dy < .1 ? p[0] : p[1];
+    const n = pnoise(x, y, 5, SEED + 70);
+    return n < .35 ? p[1] : n > .7 ? p[3] : p[2];
+  });
+  for (const [x, y] of [[26, 41], [37, 43], [31, 37]]) { out.set(x, y, ST.l2); out.set(x + 1, y, ST.m); out.set(x, y + 1, ST.d1); }
+  out.set(40, 38, g[3]); out.set(39, 37, g[4]); out.set(41, 37, g[4]);
+  flower(out, 22, 46, A.dots[0], A.dots[2], g);
+  tuft(out, 44, 47, g);
+  return out;
+}
+
+function waystone(A, f) {
+  const out = new Img(), L = new Img(), g = A.grass;
+  ellipse(out, 32, 58, 29, 5, SHADOW(.28));
+  poly(L, [[3,42],[32,56],[32,62],[3,48]], (x, y) => pick([ST.d1, ST.m], .5 + (hash(x, y, 5) - .5) * .5, x, y));
+  poly(L, [[32,56],[61,42],[61,48],[32,62]], (x, y) => pick([ST.d2, ST.d1], .55 + (hash(x, y, 6) - .5) * .5, x, y));
+  poly(L, [[3,42],[32,28],[61,42],[32,56]], (x, y) => { const n = pnoise(x, y, 6, 9); return n < .3 ? ST.l1 : n > .74 ? ST.hi : ST.l2; });
+  for (const [x0, y0, x1, y1] of [[14, 40, 20, 44], [44, 46, 49, 43]]) stroke(L, x0, y0, x1, y1, 1, 1, ST.l1);
+  const rune = [];
+  for (let y = 36; y <= 48; y++) for (let x = 20; x <= 44; x++) {
+    const dx = (x + .5 - 32) / 9, dy = (y + .5 - 42) / 4.6, r = Math.hypot(dx, dy);
+    if (Math.abs(r - 1) < .15 && !(dx > .35 && dy < -.1)) rune.push([x, y]);
+  }
+  for (const p of [[32,39],[31,40],[33,40],[31,41],[32,41],[33,41],[32,42],[32,43],[32,44]]) rune.push(p);
+  for (const [x, y] of rune) L.set(x, y, ST.d1);
+  blob(L, 9, 44, 5, 3, [g[1], g[2], g[3]], { tex: .2 });
+  blob(L, 54, 43, 4, 2.6, [g[1], g[2], g[3]], { tex: .2 });
+  blob(L, 30, 31, 4, 2.2, [g[1], g[2], g[3], g[4]], { tex: .2 });
+  out.stamp(L, ST.out);
+  const a = [.3, .55, .85, .55][f];
+  for (const [x, y] of rune) out.set(x, y, CA("#a8f0dc", a));
+  out.set(32, 41, CA("#f0fff8", a));
+  for (let k = 0; k < 2; k++) { const ph = ((f / 4) + k / 2) % 1; out.set(29 + k * 6, 38 - ph * 12, CA("#c8fff0", Math.sin(ph * Math.PI) * .9)); }
+  return out;
+}
+
+function pool(A, f) {
+  const L = grass(A, 0), p = A.path, g = A.grass, W = A.frozen ? ICE : WATER, cx = 32, cy = 33;
+  const inWater = [];
+  for (let y = 0; y < T; y++) for (let x = 0; x < T; x++) {
+    const dx = (x + .5 - cx) / 23, dy = (y + .5 - cy) / 16, a = Math.atan2(dy, dx);
+    const r = Math.hypot(dx, dy) / (1 + .08 * Math.sin(3 * a + 1) + .05 * Math.sin(5 * a + 2));
+    if (r > 1.12) continue;
+    if (r > 1) { L.set(x, y, r > 1.07 ? g[1] : p[1]); continue; }
+    if (r > .9 && dy > 0) { L.set(x, y, p[0]); continue; }
+    let t = .2 + (1 - r) * .45 - dy * .18;
+    let col = pick([W[0], W[1], W[2], W[3]], clamp(t, 0, 1), x, y, .6);
+    if (dy < 0 && r > .84) col = W[1];
+    L.set(x, y, col); inWater.push([x, y]);
+  }
+  const wet = new Set(inWater.map(([x, y]) => x + "," + y));
+  if (A.frozen) {
+    for (const [x0, y0, x1, y1] of [[18, 30, 28, 36], [28, 36, 34, 33], [34, 33, 44, 38], [28, 36, 30, 42]]) stroke(L, x0, y0, x1, y1, 1, 1, W[4]);
+    for (const [x, y] of [[20, 28], [21, 28], [22, 29], [38, 27], [39, 27]]) L.set(x, y, W[4]);
+  } else {
+    const rr = [2, 4, 6, 8][f], ra = [.9, .7, .5, .3][f];
+    for (let y = 18; y < 48; y++) for (let x = 8; x < 56; x++) {
+      if (!wet.has(x + "," + y)) continue;
+      if (Math.abs(Math.hypot((x + .5 - 24), (y + .5 - 31) * 1.6) - rr) < .55) L.set(x, y, CA(W[3], ra));
+    }
+    const sp = [[20, 27], [41, 30], [30, 38], [36, 26]];
+    L.set(sp[f][0], sp[f][1], W[4]); L.set(sp[(f + 2) % 4][0], sp[(f + 2) % 4][1], CA(W[4], .6));
+    const pad = new Img();
+    ellipse(pad, 41, 37, 6, 3.4, (x, y, dx, dy) => (dx > .1 && Math.abs(dy) < .22) ? null : (dy < -.2 ? g[3] : g[2]));
+    L.stamp(pad, g[0]);
+    flower(L, 40, 35, A.dots[0], A.dots[2], [g[0], g[2], g[2], g[3], g[4]]);
+  }
+  for (const [x, y] of [[9, 20], [55, 26], [50, 48]]) L.set(x, y, W[4]);
+  return L;
+}
+
+function blightPatch(A, f, seed) {
+  const L = grass(A, 0), B = BLIGHT, s = seed + 60;
+  for (let y = 0; y < T; y++) for (let x = 0; x < T; x++) {
+    const dx = (x + .5 - 32) / 27, dy = (y + .5 - 33) / 22, r = Math.hypot(dx, dy) + (pnoise(x, y, 6, s) - .5) * .5;
+    if (r < .8) {
+      const n2 = pnoise(x, y, 4, s + 1);
+      let col = n2 < .3 ? B[1] : n2 > .7 ? B[3] : B[2];
+      if (Math.abs(pnoise(x, y, 9, s + 2) - .5) < .03) col = B[0];
+      L.set(x, y, col);
+    } else if (r < .98 && hash(x, y, s + 3) < (.98 - r) / .18) L.set(x, y, B[2]);
+  }
+  for (let k = 0; k < 6; k++) {
+    const a = k / 6 * Math.PI * 2 + hash(k, 1, s), r0 = 20, r1 = 28 + hash(k, 2, s) * 5;
+    stroke(L, 32 + Math.cos(a) * r0, 33 + Math.sin(a) * r0 * .8, 32 + Math.cos(a) * r1, 33 + Math.sin(a) * r1 * .8, 1, 1, B[1]);
+  }
+  for (let k = 0; k < 4; k++) tuft(L, 16 + Math.floor(hash(k, 3, s) * 32), 20 + Math.floor(hash(k, 4, s) * 26), [B[0], B[1], B[2], B[3], B[4]]);
+  for (let k = 0; k < 3; k++) {
+    const ph = ((f / 4) + k / 3) % 1, x = 20 + k * 12 + Math.sin(ph * 5 + k) * 2, y = 42 - ph * 22, a = .55 * Math.sin(ph * Math.PI);
+    ellipse(L, x, y, 2.2 + ph * 1.4, 1.8 + ph, CA("#6a4a9a", a));
+  }
+  return L;
+}
+
+// Violet-black fog where drifts arrive; on some frames a pair of pale eyes opens in it.
+function mist(A, f, eyes = true) {
+  const L = new Img();
+  for (let k = 0; k < 9; k++) {
+    const ph = ((f / 4) + k / 9) % 1, x = 2 + ((k * 23) % 44) + ph * 14, y = 16 + ((k * 13) % 34) - ph * 5, r = 7 + (k % 3) * 2;
+    const a = .42 * Math.sin(ph * Math.PI) + .2;
+    ellipse(L, x, y, r, r * .7, CA("#120c1e", a));
+    ellipse(L, x - r * .25, y - r * .25, r * .5, r * .3, CA("#3a2e58", a * .7));
+  }
+  if (eyes && (f === 1 || f === 2)) {
+    const a = f === 1 ? .6 : 1;
+    for (const [x, y] of [[26, 30], [31, 30]]) { L.set(x, y, CA("#e8e0ff", a)); L.set(x + 1, y, CA("#a898e0", a)); }
+  }
+  return L;
+}
+
+// `lost` leaves (0–20): each one blackens a patch of canopy and dims the hollow.
+function heartwood(A, f, lost = 0) {
+  // The Heartwood keeps its own warm moss-gold in every act: it's the warm side of the contrast.
+  const W = 128, out = new Img(W, W), Tr = new Img(W, W), Cn = new Img(W, W);
+  const HC = HEART_CANOPY, HB = HEART_BARK, bf = barkFn(HB), warm = 1 - lost / 26, flick = [.8, .92, 1, .9][f];
+
+  // Warm halo behind the whole tree, ground shadow, and a ring of moss at its foot.
+  ellipse(out, 64, 46, 62, 46, (x, y, dx, dy) => CA("#ffd27a", (1 - Math.hypot(dx, dy)) * .2 * warm));
+  ellipse(out, 64, 114, 54, 11, SHADOW(.34));
+  ellipse(out, 64, 111, 42, 8, (x, y, dx, dy) => {
+    const n = pnoise(x, y, 5, 41);
+    return n + Math.hypot(dx, dy) * .5 > .95 ? null : pick([HC[1], HC[2], HC[3]], clamp(.5 - dy * .4 + (n - .5), 0, 1), x, y);
+  });
+
+  // Roots: tapering curves that spread and curl over the ground.
+  const root = (p0, p1, p2, w0) => {
+    let [px, py] = p0;
+    for (let i = 1; i <= 10; i++) {
+      const t = i / 10, u = 1 - t;
+      const x = u * u * p0[0] + 2 * u * t * p1[0] + t * t * p2[0], y = u * u * p0[1] + 2 * u * t * p1[1] + t * t * p2[1];
+      stroke(Tr, px, py, x, y, w0 * (1 - (t - .1) * .8), w0 * (1 - t * .8), bf);
+      px = x; py = y;
+    }
+  };
+  root([54, 100], [42, 100], [26, 110], 10); root([74, 100], [86, 100], [102, 110], 10);
+  root([58, 104], [52, 112], [46, 121], 8); root([70, 104], [78, 112], [84, 121], 8);
+  root([52, 97], [40, 93], [24, 99], 7); root([76, 97], [88, 93], [104, 99], 7);
+  root([64, 106], [65, 114], [62, 122], 7);
+
+  // Trunk: a slow S-twist with bark grooves following it, a flared base and moss on the lit side.
+  for (let y = 54; y <= 112; y++) {
+    const cx = 64 + Math.sin((112 - y) / 18) * 2.5;
+    let w = 10 + (y - 54) * .07; if (y > 94) w += (y - 94) * .55;
+    for (let x = Math.floor(cx - w); x <= Math.ceil(cx + w); x++) {
+      const nx = (x + .5 - cx) / w; if (Math.abs(nx) > 1) continue;
+      const groove = Math.abs((((nx * 3.2 + Math.sin(y * .13) * .35 + y * .015) % 1) + 1) % 1 - .5) < .09;
+      let c = nx < -.5 ? HB[3] : nx > .45 ? HB[1] : HB[2];
+      if (groove) c = nx < -.5 ? HB[2] : HB[1];
+      if (y < 100 && nx < .2 && pnoise(x, y, 7, 43) > .64) c = pick([HC[2], HC[3], HC[4]], clamp(.6 - nx * .4, 0, 1), x, y);
+      Tr.set(x, y, c);
+    }
+  }
+  for (const [x1, y1, w] of [[38, 40, 6], [90, 38, 6], [62, 30, 6], [26, 54, 4], [104, 54, 4]]) stroke(Tr, 64, 62, x1, y1, w, 2.5, bf);
+
+  // The hollow: an arched doorway into the tree, full of warm light.
+  const hollow = [];
+  for (let y = 82; y <= 102; y++) for (let x = 56; x <= 72; x++) {
+    const dx = x + .5 - 64;
+    if (Math.abs(dx) <= 6 && (y >= 90 || Math.hypot(dx, (y + .5 - 90) * 1.1) <= 6)) hollow.push([x, y]);
+  }
+  const hs = new Set(hollow.map(p => p + ""));
+  const inner = (x, y) => hs.has([x + 1, y] + "") && hs.has([x - 1, y] + "") && hs.has([x, y - 1] + "");
+  for (const [x, y] of hollow) Tr.set(x, y, inner(x, y) ? "#2a160a" : "#1a0e08");
+  out.stamp(Tr, HB[0]);
+  for (const [x, y] of hollow) {
+    if (!inner(x, y)) continue;
+    const r = Math.hypot(x + .5 - 64, (y + .5 - 95) * .8) / 8;
+    out.set(x, y, CA(r < .35 ? "#fff4c8" : r < .7 ? "#ffd27a" : "#e0883a", flick * warm));
+  }
+  for (let x = 57; x <= 71; x++) out.set(x, 103, CA("#ffd27a", .35 * warm * flick));
+
+  // Canopy: a darker back layer for depth, then front clusters, then small leaf clumps
+  // (a lit arc over a shadowed underside) so it reads as foliage, not as balls.
+  [[64, 16, 26, 14], [38, 24, 20, 13], [90, 24, 20, 13], [20, 42, 15, 11], [108, 42, 15, 11]]
+    .forEach(([x, y, rx, ry], k) => blob(Cn, x, y, rx, ry, HC.slice(0, 4), { lump: .12, seed: k * 13 + 1, tex: .1, rim: true }));
+  [[64, 26, 20, 12], [48, 36, 24, 16], [80, 36, 24, 16], [30, 54, 18, 11], [98, 54, 18, 11], [64, 48, 30, 15]]
+    .forEach(([x, y, rx, ry], k) => blob(Cn, x, y, rx, ry, HC.slice(1), { lump: .1, seed: k * 17 + 5, tex: .1, rim: true }));
+  for (let k = 0; k < 110; k++) {
+    const x = 8 + Math.floor(hash(k, 7, 912) * 112), y = 4 + Math.floor(hash(k, 8, 912) * 62);
+    if (!Cn.alpha(x - 1, y) || !Cn.alpha(x + 2, y + 2) || !Cn.alpha(x, y - 1)) continue;
+    const hi = x < 70 && y < 44 && hash(k, 9, 912) < .5 ? HEART_LEAF_HI : x < 80 && y < 50 ? HC[4] : HC[3];
+    Cn.set(x - 1, y + 1, hi); Cn.set(x, y, hi); Cn.set(x + 1, y, hi); Cn.set(x + 2, y + 1, HC[3]);
+    Cn.set(x, y + 2, HC[1]); Cn.set(x + 1, y + 2, HC[1]);
+  }
+  out.stamp(Cn, HC[0]);
+
+  // Vines hanging from the canopy's underside, each ending in a glowing dream-fruit.
+  // Fruit go dark as leaves are lost.
+  [[26, 10], [42, 14], [56, 8], [74, 12], [88, 15], [102, 9]].forEach(([vx, len], k) => {
+    let vy = 72; while (vy > 0 && !Cn.alpha(vx, vy)) vy--;
+    let fx = vx;
+    for (let i = 1; i <= len; i++) { fx = vx + Math.round(Math.sin(i * .7 + k) * .8); out.set(fx, vy + i, i % 3 === 2 ? HC[3] : HC[2]); }
+    const fy = vy + len + 1;
+    if (k < 6 - Math.floor(lost / 4)) {
+      const a = (.75 + .25 * ((f + k) % 2)) * warm;
+      ellipse(out, fx + 1, fy + 1, 4.5, 4.5, (x, y, dx, dy) => CA("#ffd27a", (1 - Math.hypot(dx, dy)) * .4 * a));
+      out.set(fx, fy, "#fff4c8"); out.set(fx + 1, fy, "#ffd27a"); out.set(fx, fy + 1, "#ffd27a"); out.set(fx + 1, fy + 1, "#e0883a");
+    } else {
+      out.set(fx, fy, "#2a2030"); out.set(fx + 1, fy, "#1a1420"); out.set(fx, fy + 1, "#1a1420"); out.set(fx + 1, fy + 1, "#0e0a12");
+    }
+  });
+  const rot = [];
+  for (let k = 0; k < 20; k++) rot.push([26 + hash(k, 5, 911) * 76, 12 + hash(k, 6, 911) * 50]);
+  // Blackened leaves: ragged patches of violet-black with ashen clump highlights, not flat circles.
+  for (let k = 0; k < lost; k++) {
+    const [cx, cy] = rot[k];
+    ellipse(out, cx, cy, 10, 8, (x, y, dx, dy) => {
+      if (!Cn.alpha(x, y) || pnoise(x, y, 4, 900 + k) < Math.hypot(dx, dy) * .85) return null;
+      if (hash(x, y, 950 + k) < .08) return "#3e344c";
+      return pick(["#0e0a14", "#1c1626", "#2c2438"], clamp(.55 - dx * .3 - dy * .35, 0, 1), x, y);
+    });
+  }
+  for (let k = 0; k < Math.min(lost, 4); k++) {
+    const ph = ((f / 4) + k / 4) % 1;
+    out.set(30 + k * 20 + Math.sin(ph * 6) * 3, 72 + ph * 40, CA("#16121c", Math.sin(ph * Math.PI)));
+  }
+  const blackened = (x, y) => rot.slice(0, lost).some(([cx, cy]) => Math.hypot((x - cx) / 8, (y - cy) / 6) < 1.1);
+  for (let k = 0; k < 20; k++) {
+    const x = 20 + Math.floor(hash(k, 1, 909) * 88), y = 10 + Math.floor(hash(k, 2, 909) * 52);
+    if (!Cn.alpha(x, y) || !Cn.alpha(x + 1, y + 1) || blackened(x, y)) continue;
+    const on = (k + f) % 4; if (on === 0) continue;
+    out.set(x, y, CA("#fff4b8", on === 2 ? 1 : .6));
+    if (on === 2) { out.set(x + 1, y, CA("#ffd27a", .8)); out.set(x, y + 1, CA("#ffd27a", .8)); }
+  }
+  for (let k = 0; k < 12; k++) { const ph = ((f / 4) + k / 12) % 1; out.set(14 + hash(k, 3, 910) * 100, 96 - ph * 70 - hash(k, 4, 910) * 10, CA("#ffe9a0", Math.sin(ph * Math.PI) * warm)); }
+  return out;
+}
+
+function decor(A, v, seed) {
+  const out = new Img(), L = new Img(), g = A.grass;
+  if (v === 0) {
+    ellipse(out, 33, 47, 14, 3.5, SHADOW(.22));
+    for (const [x, y, s] of [[26, 40, 1], [36, 43, 1.3], [41, 36, .9]]) {
+      // Ground details sit just above the grass in value so they add texture, not noise.
+      ellipse(L, x, y + 2.5 * s, 1.4 * s, 2.2 * s, "#5e5672");
+      ellipse(L, x, y - .5 * s, 3.6 * s, 2.4 * s, (px, py, dx, dy) => (dy < -.1 && dx < .2) ? "#5a4e78" : "#3e3458");
+      L.set(x - 1, y - 1, "#6e6490");
+    }
+    out.stamp(L, "#16121e");
+  } else if (v === 1) {
+    const dim = [g[0], g[0], g[1], g[2], g[3]];
+    fern(out, dim, 30, 46, 1.1); fern(out, dim, 38, 48, .8);
+  } else if (v === 2) {
+    ellipse(out, 32, 46, 16, 4, SHADOW(.2));
+    for (const [x, y, rx, ry] of [[25, 42, 5, 4], [36, 44, 4, 3], [40, 38, 3, 2.5], [29, 47, 3, 2.2]]) blob(L, x, y, rx, ry, [ST.d2, ST.d1, ST.m], { seed: seed + x, tex: .1 });
+    out.stamp(L, ST.out);
+  } else {
+    const cols = [A.canopy[1], A.canopy[2], A.canopy[2], A.canopy[3]];
+    for (let k = 0; k < 22; k++) {
+      const a = hash(k, 1, seed) * Math.PI * 2, r = Math.sqrt(hash(k, 2, seed)) * 14;
+      const x = 32 + Math.cos(a) * r, y = 42 + Math.sin(a) * r * .5, c = cols[k % 4];
+      out.set(x, y, c); out.set(x + 1, y, c); out.set(x + 1, y + 1, A.canopy[1]);
+    }
+  }
+  return out;
+}
+
+// ---------- more dead trees and rocks ----------
+// Same rules as the Withered Tree: pale lit bark on dark grass, dark smoke at the roots.
+const deadFn = (x, y, nx) => nx < .15 ? (hash(x, y >> 1, 77) < .15 ? DEAD[2] : DEAD[3]) : nx > .6 ? DEAD[1] : DEAD[2];
+function deadBase(out, seed) {
+  ellipse(out, 32, 55, 20, 6, SHADOW(.42));
+  ellipse(out, 32, 53, 21, 7, CA("#6a5a80", .16));
+  for (let k = 0; k < 4; k++) {
+    const a = Math.PI * (.08 + k * .28) + (hash(k, 1, seed) - .5) * .3, len = 8 + hash(k, 2, seed) * 7;
+    stroke(out, 32, 55, 32 + Math.cos(a) * len, 55 + Math.sin(a) * len * .35, 1.6, 1, "#3a3442");
+  }
+}
+function deadRoots(L, fn) { stroke(L, 31, 54, 22, 58, 4.5, 1.6, fn); stroke(L, 33, 54, 42, 58, 4.5, 1.6, fn); }
+function smoke(out, f, xs) {
+  xs.forEach((x0, k) => {
+    const ph = ((f / 4) + k / xs.length) % 1, x = x0 + Math.sin(ph * 6 + k) * 2, y = 50 - ph * 24, r = 2.2 + ph * 1.6, a = .7 * Math.sin(ph * Math.PI);
+    ellipse(out, x, y, r, r * .85, CA("#140e20", a));
+    tset(out, x - 1, y - 1, CA("#6a4a9a", a));
+  });
+}
+function glintEyes(out, f, pts) { if (f === 2) for (const [x, y] of pts) tset(out, x, y, "#d8ccff"); }
+
+// t: 0 split trunk, 1 broken snag, 2 weeping willow, 3 dead pine, 4 dead birch, 5 thorn tree
+function deadTree(A, t, f, seed) {
+  const out = new Img(64, 96), L = new Img(64, 96);
+  TT = TREE_TT;  // drawn 1.5× taller from the 64 px design (see TREE_TT)
+  deadBase(out, seed);
+  if (t === 0) {
+    stroke(L, 32, 56, 32, 40, 13, 10, deadFn); deadRoots(L, deadFn);
+    stroke(L, 29, 41, 19, 13, 7, 3, deadFn); stroke(L, 35, 41, 45, 11, 7, 3, deadFn);
+    branch(L, 21, 19, -2.5, 7, 3, 0, seed, deadFn); branch(L, 43, 17, -.6, 8, 3, 0, seed + 3, deadFn);
+    out.stamp(L, DEAD[0]);
+    for (let y = Math.round(ty(30)); y <= ty(45); y++) { const x = 32 + Math.round(Math.sin(y * .5) * 1.2); out.set(x, y, "#0c0a12"); if (y % 4 === 0) out.set(x + 1, y, "#d8d0e8"); }
+    smoke(out, f, [22, 33, 42]);
+  } else if (t === 1) {
+    stroke(L, 32, 57, 32, 26, 17, 13, deadFn); stroke(L, 30, 54, 20, 58, 5, 2, deadFn); stroke(L, 34, 54, 44, 58, 5, 2, deadFn);
+    for (let x = 16; x <= 48; x++) { const top = 24 + [0, -5, -2, -7, -1, -4][(x + seed) % 6] + Math.floor(hash(x, 1, seed) * 2); for (let y = 0; y < ty(top); y++) copyPx(L, x, y, [0, 0, 0, 0]); }
+    // Limbs reaching out, so it reads as a tree (branching, tall) and never as a stone pillar.
+    branch(L, 38, 34, -.55, 11, 4, 1, seed, deadFn);
+    branch(L, 26, 30, -2.55, 11, 4, 1, seed + 2, deadFn);
+    ellipse(L, 32, 39, 4.5, 6.5, "#0c0a12");
+    for (const [x, y] of [[23, 45], [41, 31]]) ellipse(L, x, y, 3.5, 1.6, (px, py, dx, dy) => dy < 0 ? "#c8b894" : "#8a7a5c");
+    out.stamp(L, DEAD[0]);
+    glintEyes(out, f, [[30, 38], [34, 38]]);
+    smoke(out, f, [24, 40]);
+  } else if (t === 2) {
+    stroke(L, 32, 56, 31, 30, 11, 7, deadFn); deadRoots(L, deadFn);
+    const pts = [];
+    [-22, -14, -6, 6, 14, 22].forEach((dx0, k) => {
+      const dx = dx0 + (hash(k, 3, seed) - .5) * 4, top = 6 + hash(k, 4, seed) * 6;
+      let px = 31, py = 32;
+      for (let i = 1; i <= 10; i++) {
+        const s = i / 10, u = 1 - s, x = u * u * 31 + 2 * u * s * (31 + dx * .4) + s * s * (31 + dx), y = u * u * 32 + 2 * u * s * top + s * s * (top + 14);
+        stroke(L, px, py, x, y, 3.2 - s * 1.4, 3 - s * 1.4, deadFn); pts.push([x, y]); px = x; py = y;
+      }
+    });
+    out.stamp(L, DEAD[0]);
+    const sway = [0, 1, 0, -1][f];
+    pts.forEach(([x, y], k) => {
+      if (k % 2) return;
+      const len = 8 + hash(k, 5, seed) * 16;
+      const y0 = Math.round(ty(y)), n = Math.round(len * 1.4);
+      for (let i = 1; i < n; i++) out.set(x + Math.round(sway * i / n * 1.5), y0 + i, i % 4 === 0 ? "#4a4054" : "#7a6e86");
+    });
+    smoke(out, f, [26, 38]);
+  } else if (t === 3) {
+    stroke(L, 32, 57, 32, 5, 8, 2, deadFn); deadRoots(L, deadFn);
+    for (let y = 12; y <= 46; y += 5) {
+      const len = 3 + (y - 8) * .33 + hash(y, 1, seed) * 3, side = ((y / 5) | 0) % 2 ? 1 : -1;
+      stroke(L, 32, y, 32 + side * len, y + 2 + len * .2, 2.5, 2, deadFn);
+      if (hash(y, 2, seed) < .6) stroke(L, 32, y + 2, 32 - side * len * .7, y + 4 + len * .15, 2.2, 2, deadFn);
+    }
+    out.stamp(L, DEAD[0]);
+    smoke(out, f, [27, 37]);
+  } else if (t === 4) {
+    // Twin dead birch: same bark as every other dead tree (pale white bark read as stone), with
+    // the birch's dark bands kept faint.
+    const birchFn = (x, y, nx) => (hash(0, y >> 1, seed) < .16 && Math.abs(nx) < .6) ? DEAD[1] : deadFn(x, y, nx);
+    stroke(L, 30, 56, 27, 10, 8, 3, birchFn); stroke(L, 35, 56, 41, 15, 6, 2.5, birchFn);
+    stroke(L, 29, 54, 22, 58, 4, 1.6, birchFn); stroke(L, 34, 54, 42, 58, 4, 1.6, birchFn);
+    branch(L, 28, 16, -2.3, 9, 3, 1, seed, birchFn); branch(L, 40, 19, -.7, 9, 3, 1, seed + 4, birchFn);
+    out.stamp(L, DEAD[0]);
+    smoke(out, f, [24, 40]);
+  } else {
+    for (let k = 0; k < 9; k++) {
+      const a = Math.PI + (k / 8) * Math.PI + (hash(k, 1, seed) - .5) * .4, len = 9 + hash(k, 2, seed) * 9;
+      const ex = 32 + Math.cos(a) * len * 1.3, ey = 54 + Math.sin(a) * len * .5;
+      stroke(out, 32, 55, (32 + ex) / 2, Math.min(ey, 55) - 4, 2, 1.4, "#30243a"); stroke(out, (32 + ex) / 2, Math.min(ey, 55) - 4, ex, ey, 1.4, 1, "#241a28");
+    }
+    stroke(L, 32, 57, 31, 40, 13, 9, deadFn);
+    for (const [a, len] of [[-2.9, 18], [-2.4, 16], [-1.9, 13], [-1.25, 13], [-.7, 16], [-.25, 18]]) branch(L, 31, 42, a, len, 4.5, 1, seed + len, deadFn);
+    out.stamp(L, DEAD[0]);
+    for (let y = 4; y < ty(50); y++) for (let x = 2; x < 62; x++) if (L.alpha(x, y) && !L.alpha(x, y - 1) && hash(x, y, seed + 9) < .22) out.set(x, y - 1, DEAD[0]);
+    smoke(out, f, [22, 32, 42]);
+  }
+  TT = null;
+  return out;
+}
+
+function mossPass(L, cx, cy, rx, ry, g, seed, amount = .78) {
+  for (let y = 0; y < L.h; y++) for (let x = 0; x < L.w; x++) {
+    if (!L.alpha(x, y)) continue;
+    const dx = (x + .5 - cx) / rx, dy = (y + .5 - cy) / ry;
+    if (Math.hypot(dx, dy) > 1.05) continue;
+    // Moss sits on the lit top and uses the brighter greens, so it survives the cold lighting.
+    if (pnoise(x, y, 6, seed) - dy * .55 > amount) L.set(x, y, pick([g[2], g[3], g[4], "#86b060"], clamp(.62 - dx * .35 - dy * .4, 0, 1), x, y));
+  }
+}
+// t: 0 standing stone, 1 cairn, 2 rock cluster, 3 split boulder with dead roots, 4 lichen boulder,
+//    5 ruined waystone, 6 dream-crystal boulder
+// Every rock shares the family look so it never reads as a tree: low and round, waystone lavender,
+// a green moss cap, grass at its foot, and nothing tall, pale-barked or branching.
+function rock(A, t, seed) {
+  const out = new Img(), L = new Img(), g = A.grass, dim = [g[0], g[0], g[1], g[2], g[3]];
+  ellipse(out, 32, 54, 22, 6, SHADOW(.32));
+  const MOSS = .66;
+  if (t === 0) {
+    // Slab stone: a broad upright slab with a faint rune, no taller than a boulder.
+    blob(L, 32, 41, 17, 13, STONE_RAMP, { lump: .06, seed, tex: .1, rim: true });
+    for (const [x, y] of [[31, 38], [32, 38], [33, 39], [33, 40], [32, 41], [31, 41], [30, 40], [30, 39], [32, 44], [32, 45]]) L.set(x, y, ST.d1);
+    mossPass(L, 32, 41, 17, 13, g, seed + 3, MOSS);
+  } else if (t === 1) {
+    // Low cairn: three wide slabs.
+    for (const [x, y, rx, ry] of [[32, 50, 19, 6], [31, 43, 15, 5.5], [33, 37, 10, 4.5]]) blob(L, x, y, rx, ry, STONE_RAMP, { lump: .08, seed: seed + y, tex: .1, rim: true });
+    mossPass(L, 33, 37, 10, 5, g, seed + 3, .45); mossPass(L, 31, 43, 15, 5.5, g, seed + 4, .6);
+  } else if (t === 2) {
+    for (const [x, y, rx, ry] of [[31, 39, 10, 8], [20, 47, 11, 8], [42, 46, 12, 9], [33, 53, 6, 4]]) blob(L, x, y, rx, ry, STONE_RAMP, { lump: .12, seed: seed + x, tex: .12, rim: true });
+    mossPass(L, 31, 39, 10, 8, g, seed + 3, MOSS); mossPass(L, 42, 46, 12, 9, g, seed + 4, MOSS);
+  } else if (t === 3) {
+    // Split boulder: a dark crack with moss in it (no roots: roots belong to the trees).
+    blob(L, 32, 41, 21, 14, STONE_RAMP, { lump: .1, seed, tex: .12, rim: true });
+    for (let y = 26; y <= 55; y++) { const x = 32 + Math.round(Math.sin(y * .5) * 1.5); if (L.alpha(x, y)) { L.set(x, y, "#0c0a14"); L.set(x + 1, y, ST.d2); if (y < 34 && y % 3 === 0) L.set(x - 1, y, g[3]); } }
+    mossPass(L, 32, 41, 21, 14, g, seed + 3, MOSS);
+  } else if (t === 4) {
+    blob(L, 32, 42, 21, 13, STONE_RAMP, { lump: .12, seed, tex: .12, rim: true });
+    for (let y = 0; y < T; y++) for (let x = 0; x < T; x++) {
+      if (!L.alpha(x, y)) continue;
+      const n = pnoise(x, y, 5, seed + 8);
+      if (n > .7 && y > 42) L.set(x, y, hash(x, y, seed) < .6 ? "#8ab0a0" : "#b8d4c4");
+    }
+    mossPass(L, 32, 42, 21, 13, g, seed + 3, MOSS);
+  } else if (t === 5) {
+    // Carved boulder: one flat, dressed face with part of a waystone ring, the rest wild rock.
+    blob(L, 32, 42, 21, 14, STONE_RAMP, { lump: .1, seed, tex: .12, rim: true });
+    poly(L, [[18, 38], [30, 34], [36, 44], [24, 50]], (x, y) => pnoise(x, y, 6, 9) > .6 ? ST.hi : ST.l2);
+    for (let a = .3; a < 1.7; a += .05) L.set(27 + Math.cos(a * Math.PI) * 4.5, 42 + Math.sin(a * Math.PI) * 3.5, ST.d1);
+    blob(L, 52, 52, 5, 3.5, STONE_RAMP, { seed: seed + 1, tex: .1, rim: true });
+    mossPass(L, 32, 42, 21, 14, g, seed + 3, MOSS);
+  } else {
+    // Dream-crystal boulder: small shards on a mossy boulder.
+    blob(L, 31, 44, 20, 12, STONE_RAMP, { lump: .1, seed, tex: .12, rim: true });
+    mossPass(L, 31, 44, 20, 12, g, seed + 3, MOSS);
+    out.stamp(L, ST.out);
+    const Cr = new Img();
+    for (const [bx, by, h, lean] of [[37, 40, 12, .25], [43, 44, 8, .6], [29, 41, 7, -.35]]) {
+      const tx = bx + lean * h * .5, ty = by - h;
+      poly(Cr, [[bx - 2.5, by], [bx + 2.5, by], [tx + 1, ty + 2], [tx, ty], [tx - 1, ty + 2]], (x, y) => { const s = (x + .5 - bx) - (tx - bx) * (by - y) / h; return Math.abs(s) < .6 ? "#e8dcff" : s < 0 ? "#c8b0ff" : "#7a5ad0"; });
+    }
+    out.stamp(Cr, "#2a1850");
+    tuft(out, 12, 55, g); tuft(out, 52, 56, g);
+    return out;
+  }
+  out.stamp(L, ST.out);
+  tuft(out, 12, 55, g); tuft(out, 52, 56, g);
+  if (t % 2 === 0) fern(out, dim, t === 2 ? 10 : 47, 56, .7);
+  return out;
+}
+
+// ---------- the dream's outer layer: island edge, cliff, void ----------
+// Island edge by neighbour mask (N=1, E=2, S=4, W=8: which neighbours are island). Transparent where
+// the void shows through; the rim catches the moonlight, the south lip is darker (the cliff hangs below).
+function islandEdge(A, mask) {
+  const G = grass(A, 0), L = new Img(), g = A.grass, m = 7, s = SEED + 900;
+  const rect = [mask & 8 ? -20 : m, mask & 1 ? -20 : m, mask & 2 ? T + 20 : T - m, mask & 4 ? T + 20 : T - m];
+  for (let y = 0; y < T; y++) for (let x = 0; x < T; x++) {
+    const d = sdBox(x + .5, y + .5, rect, 16) + (pnoise(x, y, 8, s, 8) - .5) * 4;
+    if (d > 0) continue;
+    const toS = mask & 4 ? 99 : (T - m) - y, other = Math.min(mask & 1 ? 99 : y - m, mask & 2 ? 99 : (T - m) - x, mask & 8 ? 99 : x - m);
+    let c = G.get(x, y);
+    if (d > -2) c = C(toS <= other ? g[1] : g[4]);
+    else if (d > -4 && toS > other) c = C(g[3]);
+    L.set(x, y, c);
+  }
+  return L;
+}
+const CLIFF_R = ["#1c1420", "#2a1e24", "#3a2a28", "#4a3a3c", "#5a4e5e", "#6e6680"];
+// Cliff face for the cell under an island cell whose south neighbour is void.
+// k = cmask + 4 * variant; cmask bit 1 = the cell to the west also has cliff, bit 2 = the east does.
+function cliffTile(A, k) {
+  const cm = k & 3, v = k >> 2, L = new Img(), g = A.grass, s = SEED + 950 + v * 17;
+  const x0 = cm & 1 ? 0 : 7, x1 = cm & 2 ? T : T - 7, lens = [];
+  // A few stalactite drips per tile (kept clear of the tile edges so neighbours line up).
+  const drips = [0, 1, 2, 3].map(i => [10 + hash(i, 1, s) * 44, 5 + hash(i, 2, s) * 7, 8 + hash(i, 3, s) * 20]);
+  for (let x = 0; x < T; x++) {
+    lens[x] = 0;
+    if (x < x0 || x >= x1) continue;
+    let len = 24 + pnoise(x, 0, 16, s, 4) * 10 + (hash(x, 0, s + 1) < .1 ? 3 : 0);
+    for (const [cx, w, h] of drips) len = Math.max(len, 24 + h * (1 - Math.abs(x + .5 - cx) / w));
+    const e = Math.min(cm & 1 ? 99 : x - x0, cm & 2 ? 99 : x1 - 1 - x);
+    if (e < 14) len *= Math.sqrt((e + 1) / 15);
+    lens[x] = len;
+    for (let y = 0; y < T && y <= len; y++) {
+      if (y > len - 3 && hash(x, y, s + 2) < .5) continue;
+      let c;
+      if (y < 2) c = g[1];
+      else if (y < 8) c = pnoise(x, y, 8, s + 3, 8) > .5 ? "#2e2024" : "#3c2a2a";
+      else {
+        const band = Math.floor((y + pnoise(x, y, 16, s + 4, 4) * 8) / 7);
+        c = pick(CLIFF_R, clamp(pnoise(x, band * 8, 8, s + 5, 8) - (y / len) * .45 + (band % 2 ? .08 : 0) - (e < 6 ? .15 : 0), 0, 1), x, y, .6);
+      }
+      L.set(x, y, c);
+    }
+  }
+  for (let r = 0; r < 5; r++) {
+    const x = Math.floor(x0 + 4 + hash(r, 1, s) * (x1 - x0 - 8)), end = Math.min(T - 1, lens[x] + 6 + hash(r, 2, s) * 12);
+    for (let y = 6; y < end; y++) L.set(x + Math.round(Math.sin(y * .2 + r)), y, y % 5 ? "#34262a" : "#46363a");
+  }
+  return L;
+}
+const mixC = (a, b, t) => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t, 255];
+// Seamless 256×256 void: dark indigo with banded nebula and stars (a Parallax2D layer).
+function voidSky() {
+  const S = 256, L = new Img(S, S), base = C("#0a0918"), n1 = C("#2c1a48"), n2 = C("#16284a");
+  for (let y = 0; y < S; y++) for (let x = 0; x < S; x++) {
+    const n = pnoise(x, y, 64, 601, 4) * .6 + pnoise(x, y, 32, 602, 8) * .4;
+    let c = base;
+    if (n > .5) { const t = Math.floor(clamp((n - .5) * 2.4, 0, 1) * 3 + (bay(x, y) - .5)) / 3; if (t > 0) c = mixC(base, pnoise(x, y, 128, 604, 2) > .5 ? n1 : n2, clamp(t, 0, 1)); }
+    const h = hash(x, y, 603);
+    if (h < .0012) c = C("#d8deff"); else if (h < .004) c = C("#4c4c84");
+    L.set(x, y, c);
+  }
+  return L;
+}
+// A sparse, transparent star layer to parallax over the sky (bright stars with small glints).
+function voidStars() {
+  const S = 256, L = new Img(S, S);
+  for (let k = 0; k < 70; k++) {
+    const x = Math.floor(hash(k, 1, 610) * S), y = Math.floor(hash(k, 2, 610) * S), big = hash(k, 3, 610) < .2;
+    L.set(x, y, "#eef0ff");
+    if (big) for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) L.set((x + dx + S) % S, (y + dy + S) % S, "#8a8ad0");
+  }
+  return L;
+}
+// Small islands drifting in the void.
+function islet(A, v) {
+  const L = new Img(), x = 32, y = 26, r = [16, 12, 19, 10][v];
+  for (let k = 0; k < r * 1.6; k++) stroke(L, x - r * .8 + k, y, x - r * .2 + k * .5, y + r * (1.1 + hash(k, 1, v) * .8), 2, 1, CLIFF_R[1 + (k % 3)]);
+  blob(L, x, y, r, r * .45, STONE_RAMP.slice(0, 4), { lump: .15, seed: v * 7 });
+  ellipse(L, x - 1, y - r * .25, r * .85, r * .22, A.grass[3]);
+  const out = new Img(); out.stamp(L, "#07060e");
+  if (v === 2) { stroke(out, 28, 18, 27, 8, 2, 1.2, deadFn); stroke(out, 27, 11, 23, 7, 1.2, 1, deadFn); }
+  return out;
+}
+const WOOD = ["#1e1410", "#3a2618", "#5a3c24", "#7c5634", "#9c7448"];
+// Rope bridge over the void: o = 0 runs east–west, 1 runs north–south. Tiles along its length.
+// Cloud shadows (256×128, transparent), seen from above as they pass over the map: an elongated,
+// lobed patch whose edge breaks into wisps on the downwind (right) side, denser in the middle.
+// Three banded alpha steps of Dread (dithered where they meet), never a soft blur.
+function cloudShadow(v) {
+  const W = 256, H = 128, L = new Img(W, H), s = 1300 + v * 37;
+  const rx = 78 + hash(v, 1, s) * 26, ry = 30 + hash(v, 2, s) * 12, cx = 124, cy = 64;
+  const lobes = [];
+  for (let k = 0; k < 11; k++) {
+    const a = k / 11 * Math.PI * 2 + (hash(k, 3, s) - .5) * .5;
+    lobes.push([cx + Math.cos(a) * rx * .78, cy + Math.sin(a) * ry * .72, 18 + hash(k, 4, s) * 18]);
+  }
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    const ex = (x + .5 - cx) / rx, ey = (y + .5 - cy) / ry;
+    let f = 1 - Math.hypot(ex, ey);
+    for (const [lx, ly, r] of lobes) f = Math.max(f, (1 - Math.hypot(x + .5 - lx, (y + .5 - ly) * 1.2) / r) * .8);
+    f += (pnoise(x, y, 26, s) - .5) * .42 + (pnoise(x, y, 10, s + 1) - .5) * .16;
+    if (ex > .45) f -= (pnoise(x * .5, y * 2, 8, s + 2) - .35) * .5 * (ex - .45);  // wisps trailing downwind
+    const d = (bay(x, y) - .5) * .07;
+    const a = f + d > .46 ? .34 : f + d > .24 ? .22 : f + d > .07 ? .11 : 0;
+    if (a) L.set(x, y, CA("#140f26", a));
+  }
+  return L;
+}
+function ropeBridge(o) {
+  const L = new Img();
+  for (let y = 0; y < T; y++) for (let x = 0; x < T; x++) {
+    const along = o ? y : x, across = o ? x : y;
+    if (across >= 21 && across <= 43) {
+      const plank = Math.floor(along / 7), gap = along % 7 === 0 || across === 21 || across === 43;
+      L.set(x, y, gap ? WOOD[0] : pick(WOOD.slice(1), .55 + (hash(plank, 0, 730) - .5) * .5 - (across - 32) * .012, x, y, .3));
+    } else if (across === 19 || across === 45) L.set(x, y, "#8a7a60");
+    else if ((across === 18 || across === 46) && along % 4 === 0) L.set(x, y, "#5a4a38");
+    if (along >= 30 && along <= 33 && ((across >= 15 && across <= 21) || (across >= 43 && across <= 49))) L.set(x, y, along === 30 ? WOOD[4] : WOOD[2]);
+  }
+  return L;
+}
+
+// Rocks read smaller than the (taller) dead trees: each finished 64 px rock is shrunk to 68%
+// (nearest pixel), re-outlined, and set back on its old base line (y 55) in a 64 px cell.
+const ROCK_SCALE = .68;
+function shrinkRock(im) {
+  const n = Math.round(64 * ROCK_SCALE), small = new Img(n, n);
+  for (let j = 0; j < n; j++) for (let i = 0; i < n; i++) {
+    const c = im.get(Math.min(63, Math.floor((i + .5) / ROCK_SCALE)), Math.min(63, Math.floor((j + .5) / ROCK_SCALE)));
+    if (c[3]) copyPx(small, i, j, c);
+  }
+  const out = new Img(), ox = Math.round((64 - n) / 2), oy = 55 - Math.round(55 * ROCK_SCALE), outline = C(ST.out);
+  const solid = (i, j) => small.alpha(i, j) >= 200;
+  for (let j = 0; j < n; j++) for (let i = 0; i < n; i++) {
+    const c = small.get(i, j); if (!c[3]) continue;
+    const edge = solid(i, j) && !(solid(i + 1, j) && solid(i - 1, j) && solid(i, j + 1) && solid(i, j - 1));
+    copyPx(out, ox + i, oy + j, edge ? outline : c);
+  }
+  return out;
+}
+
+// ---------- asset cache ----------
+const BUILD = {
+  grass: (A, v) => grass(A, v),
+  path: (A, m) => pathTile(A, m),
+  wall: (A, v) => wall(A, v),
+  tree: (A, v) => tree(A, v, SEED + v * 17),
+  withered: (A, v, f) => withered(A, f, SEED + v * 13),
+  tended: A => tended(A),
+  boulder: (A, v) => shrinkRock(boulder(A, v, SEED + v * 7)),
+  dent: A => dent(A),
+  waystone: (A, v, f) => waystone(A, f),
+  pool: (A, v, f) => pool(A, f),
+  blight: (A, v, f) => blightPatch(A, f, SEED + v * 5),
+  mist: (A, v, f) => mist(A, f),
+  heart: (A, v, f) => heartwood(A, f, v),
+  decor: (A, v) => decor(A, v, SEED + v),
+  dead: (A, v, f) => deadTree(A, v, f, SEED + v * 29),
+  rock: (A, v) => shrinkRock(rock(A, v, SEED + v * 31)),
+  isle: (A, m) => islandEdge(A, m),
+  cliff: (A, k) => cliffTile(A, k),
+  voidsky: () => voidSky(),
+  voidstars: () => voidStars(),
+  islet: (A, v) => islet(A, v),
+  bridge: (A, v) => ropeBridge(v),
+  cloud: (A, v) => cloudShadow(v),
+};
+const ANIM = new Set(["withered", "waystone", "pool", "blight", "mist", "heart", "dead"]);
+const TILES = new Set(["grass", "path", "wall", "pool", "blight"]);
+const SOLID = 200;
+function copyPx(dst, x, y, c) { const i = (y * dst.w + x) * 4; dst.d[i] = c[0]; dst.d[i+1] = c[1]; dst.d[i+2] = c[2]; dst.d[i+3] = c[3]; }
+// Storybook: halve the resolution (most common solid colour per 2×2 block), outline sprites in a
+// darker shade of their own colour, then scale back up.
+function chunk(im, sprite) {
+  const w = im.w >> 1, h = im.h >> 1, s = new Img(w, h);
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+    const px = [im.get(2*x, 2*y), im.get(2*x+1, 2*y), im.get(2*x, 2*y+1), im.get(2*x+1, 2*y+1)];
+    const solid = px.filter(c => c[3] >= SOLID), soft = px.filter(c => c[3] > 0 && c[3] < SOLID);
+    if (solid.length) {
+      const count = new Map(); let best = solid[0], bc = 0;
+      for (const c of solid) { const k = c[0] + "," + c[1] + "," + c[2]; const n = (count.get(k) || 0) + 1; count.set(k, n); if (n > bc) { bc = n; best = c; } }
+      copyPx(s, x, y, best);
+    } else if (soft.length >= 2) copyPx(s, x, y, soft[0]);
+  }
+  let o = s;
+  if (sprite && STYLE.outline === "self") {
+    o = new Img(w, h); o.d.set(s.d);
+    const a = (x, y) => s.alpha(x, y) >= SOLID;
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+      if (!a(x, y) || (a(x+1, y) && a(x-1, y) && a(x, y+1) && a(x, y-1))) continue;
+      const c = s.get(x, y); copyPx(o, x, y, [c[0] * .52, c[1] * .48, c[2] * .6, 255]);
+    }
+  }
+  const up = new Img(im.w, im.h);
+  for (let y = 0; y < im.h; y++) for (let x = 0; x < im.w; x++) { const c = o.get(x >> 1, y >> 1); if (c[3]) copyPx(up, x, y, c); }
+  return up;
+}
+// Papercut: a light cut edge on the top-left and a small offset shadow instead of outlines.
+function paper(im) {
+  const out = new Img(im.w, im.h), a = (x, y) => im.alpha(x, y) >= SOLID;
+  for (let y = 0; y < im.h; y++) for (let x = 0; x < im.w; x++) if (!a(x, y) && a(x - 2, y - 2)) out.set(x, y, [34, 28, 44, 92]);
+  out.put(im);
+  for (let y = 0; y < im.h; y++) for (let x = 0; x < im.w; x++) {
+    if (!a(x, y) || (a(x - 1, y) && a(x, y - 1))) continue;
+    const c = im.get(x, y); copyPx(out, x, y, [Math.min(255, c[0] * 1.18 + 14), Math.min(255, c[1] * 1.18 + 14), Math.min(255, c[2] * 1.14 + 14), 255]);
+  }
+  return out;
+}
+// Woodcut: diagonal hatching in dark areas (cross-hatching in the darkest), and a second, outer ink
+// line around sprites so outlines are two pixels thick.
+function woodcut(im, sprite) {
+  const out = new Img(im.w, im.h); out.d.set(im.d);
+  for (let y = 0; y < im.h; y++) for (let x = 0; x < im.w; x++) {
+    if (im.alpha(x, y) < SOLID) continue;
+    const c = im.get(x, y), l = c[0] * .3 + c[1] * .59 + c[2] * .11;
+    if ((l < 58 && ((x + y) & 3) === 0) || (l < 34 && ((x - y) & 3) === 0)) copyPx(out, x, y, [c[0] * .45, c[1] * .42, c[2] * .55, 255]);
+  }
+  if (sprite) {
+    const a = (x, y) => im.alpha(x, y) >= SOLID, ink = [10, 8, 16, 255];
+    for (let y = 0; y < im.h; y++) for (let x = 0; x < im.w; x++)
+      if (!a(x, y) && (a(x + 1, y) || a(x - 1, y) || a(x, y + 1) || a(x, y - 1))) copyPx(out, x, y, ink);
+  }
+  return out;
+}
+// Lantern 16: snap every pixel to the nearest master-palette colour, with an ordered-dither nudge
+// so gradients break into two neighbouring colours instead of banding.
+function quantize(im) {
+  const out = new Img(im.w, im.h);
+  for (let y = 0; y < im.h; y++) for (let x = 0; x < im.w; x++) {
+    const c = im.get(x, y); if (!c[3]) continue;
+    const o = (bay(x, y) - .5) * 30, r = c[0] + o, g = c[1] + o, b = c[2] + o;
+    let best = LANTERN16[0], bd = 1e9;
+    for (const p of LANTERN16) { const d = (r - p[0]) ** 2 * 3 + (g - p[1]) ** 2 * 4 + (b - p[2]) ** 2 * 2; if (d < bd) { bd = d; best = p; } }
+    copyPx(out, x, y, [best[0], best[1], best[2], c[3]]);
+  }
+  return out;
+}
+// Stained glass: dark lead where neighbouring colours differ, and around every sprite.
+function leaded(im, sprite) {
+  const out = new Img(im.w, im.h); out.d.set(im.d);
+  const lead = [14, 10, 20, 255], a = (x, y) => im.alpha(x, y) >= SOLID;
+  const diff = (p, q) => Math.abs(p[0] - q[0]) + Math.abs(p[1] - q[1]) + Math.abs(p[2] - q[2]) > 60;
+  for (let y = 0; y < im.h; y++) for (let x = 0; x < im.w; x++) {
+    if (!a(x, y)) continue;
+    const c = im.get(x, y);
+    const edge = sprite && !(a(x + 1, y) && a(x - 1, y) && a(x, y + 1) && a(x, y - 1));
+    if (edge || (a(x + 1, y) && diff(c, im.get(x + 1, y))) || (a(x, y + 1) && diff(c, im.get(x, y + 1)))) copyPx(out, x, y, lead);
+  }
+  return out;
+}
+function post(im, kind) {
+  const sprite = !TILES.has(kind);
+  if (STYLE.px === 2) im = chunk(im, sprite);
+  if (STYLE.shadow && sprite) im = paper(im);
+  if (STYLE.hatch) im = woodcut(im, sprite);
+  if (STYLE.quant) im = quantize(im);
+  if (STYLE.lead) im = leaded(im, sprite);
+  return im;
+}
+
+const IMG = new Map(), CAN = new Map();
+function getImg(key, f = 0) {
+  const [kind, vs] = key.split(":"); if (!ANIM.has(kind)) f = 0;
+  const k = STYLE.id + "|" + ACT.id + "|" + SEED + "|" + key + "|" + f;
+  let im = IMG.get(k);
+  if (!im) { im = post(BUILD[kind](ACT, +(vs || 0), f), kind); IMG.set(k, im); }
+  return im;
+}
+function getCan(key, f = 0) {
+  const kind = key.split(":")[0]; if (!ANIM.has(kind)) f = 0;
+  const k = STYLE.id + "|" + ACT.id + "|" + SEED + "|" + key + "|" + f;
+  let c = CAN.get(k);
+  if (!c) { c = toCanvas(getImg(key, f)); CAN.set(k, c); }
+  return c;
+}
+function clearCaches() { IMG.clear(); CAN.clear(); cardCache.clear(); groundCanvas = null; }
+
+// ---------- scene ----------
+const COLS = 15, ROWS = 9;
+const PATH = [[0,4],[1,4],[2,4],[3,4],[3,3],[3,2],[4,2],[5,2],[6,2],[6,3],[6,4],[6,5],[6,6],[7,6],[8,6],[9,6],[9,5],[9,4],[9,3],[9,2],[10,2],[11,2],[11,3],[11,4],[12,4]];
+const pathSet = new Set(PATH.map(p => p.join(",")));
+const isPath = (x, y) => pathSet.has(x + "," + y);
+const GROUND_ANIM = { "4,5": "pool:0", "1,5": "blight:0", "2,6": "blight:1" };
+const DECALS = [["tended", 4, 1], ["dent", 11, 7]];
+const OBJECTS = [
+  ["tree:0",1,1],["tree:1",2,1],["tree:2",1,2],["tree:2",6,1],["tree:0",12,1],["tree:1",13,1],
+  ["tree:1",1,7],["tree:0",2,7],["tree:1",4,7],["tree:2",12,7],["tree:0",13,7],["tree:1",13,6],
+  ["withered:0",5,5],["withered:1",10,4],["withered:2",12,6],
+  ["boulder:0",8,1],["boulder:1",3,6],["boulder:0",7,7],
+  ["waystone",7,3],
+  ["decor:0",5,6],["decor:1",8,3],["decor:2",12,2],["decor:3",10,7],
+  ["tower:sprout",4,3],["tower:thornwall",5,3],["tower:pebbling",7,5],["tower:thornwall",8,5],["tower:sporeling",10,3],["tower:thornwall",10,5],
+];
+function maskAt(x, y) {
+  let m = (isPath(x, y - 1) ? 1 : 0) | (isPath(x + 1, y) ? 2 : 0) | (isPath(x, y + 1) ? 4 : 0) | (isPath(x - 1, y) ? 8 : 0);
+  if (x === 0) m |= 8;
+  return m;
+}
+let groundCanvas = null;
+function buildGround() {
+  const c = document.createElement("canvas"); c.width = COLS * T; c.height = ROWS * T;
+  const g = c.getContext("2d");
+  for (let y = 0; y < ROWS; y++) for (let x = 0; x < COLS; x++) {
+    const border = x === 0 || y === 0 || x === COLS - 1 || y === ROWS - 1;
+    let key;
+    if (isPath(x, y)) key = "path:" + maskAt(x, y);
+    else if (border) key = "wall:" + ((x * 7 + y * 3) % 2);
+    else { const h = hash(x, y, SEED + 1); key = "grass:" + (h < .5 ? 0 : h < .72 ? 1 : h < .88 ? 2 : 3); }
+    g.drawImage(getCan(key), x * T, y * T);
+  }
+  for (const [k, x, y] of DECALS) g.drawImage(getCan(k), x * T, y * T);
+  groundCanvas = c;
+}
+
+const SPR = {};
+["sprout", "pebbling", "sporeling", "thornwall", "leaf_bug", "bark_beetle", "hedgehog", "puffcap"].forEach(n => {
+  const im = new Image();
+  im.onload = () => { SPR[n] = im; dirty = true; stripsDirty = true; };
+  im.src = "sprites/" + n + ".png";
+});
+// The game's own sprites, roughly converted to the active style (palette, then chunk / paper).
+const SPR_ST = new Map();
+function styledSprite(name) {
+  const base = SPR[name]; if (!base) return null;
+  const k = STYLE.id + "|" + name;
+  let c = SPR_ST.get(k); if (c) return c;
+  if (STYLE.id === "waystone") c = base;
+  else {
+    const cv = document.createElement("canvas"); cv.width = base.width; cv.height = base.height;
+    const g = cv.getContext("2d"); g.drawImage(base, 0, 0);
+    try {
+      let im = new Img(cv.width, cv.height); im.d.set(g.getImageData(0, 0, cv.width, cv.height).data);
+      // Woodcut mutes the world toward ink but keeps the Wardens' warm colour: they're the light.
+      const keepWarm = STYLE.hatch && ["sprout", "pebbling", "sporeling", "thornwall"].includes(name);
+      for (let i = 0; i < im.d.length; i += 4) { if (!im.d[i+3] || keepWarm) continue; const [r, gg, b] = toneRGB(im.d[i], im.d[i+1], im.d[i+2]); im.d[i] = r; im.d[i+1] = gg; im.d[i+2] = b; }
+      im = post(im, "sprite");
+      c = toCanvas(im);
+    } catch (e) { c = base; }
+  }
+  SPR_ST.set(k, c);
+  return c;
+}
+
+const pts = PATH.map(([x, y]) => [x * T + 32, y * T + 34]);
+const segLen = []; let total = 0;
+for (let i = 0; i < pts.length - 1; i++) { const l = Math.hypot(pts[i+1][0] - pts[i][0], pts[i+1][1] - pts[i][1]); segLen.push(l); total += l; }
+function along(d) {
+  d = ((d % total) + total) % total;
+  for (let i = 0; i < segLen.length; i++) {
+    if (d <= segLen[i]) { const t = d / segLen[i], a = pts[i], b = pts[i+1]; return { x: a[0] + (b[0] - a[0]) * t, y: a[1] + (b[1] - a[1]) * t, dx: b[0] - a[0], dy: b[1] - a[1] }; }
+    d -= segLen[i];
+  }
+  return { x: pts[0][0], y: pts[0][1], dx: 1, dy: 0 };
+}
+// Nightmares (sprite files keep the old names): leaf_bug = Shade, bark_beetle = Husk,
+// hedgehog = Night Hound, puffcap = Mourner.
+const CREATURES = [["leaf_bug", 1.6, 0], ["leaf_bug", 1.6, 170], ["bark_beetle", .9, 480], ["hedgehog", 1.2, 760], ["puffcap", 1.2, 980], ["leaf_bug", 1.6, 1180]];
+const SHOOTERS = [["sprout", 4, 3], ["pebbling", 7, 5], ["sporeling", 10, 3]];
+
+const scene = document.getElementById("scene"), sc = scene.getContext("2d");
+sc.imageSmoothingEnabled = false;
+let showGrid = false, running = true, dirty = true, time = 0, stripsDirty = true;
+
+// Warm dream in the middle, cold dark at the edges. In Godot: CanvasModulate for the cold, a
+// PointLight2D on the Heartwood and a small one on each Warden for the warmth.
+const HEART_X = 12 * T + 32, HEART_Y = 4 * T + 16;
+function lighting(t) {
+  const W = COLS * T, H = ROWS * T, warm = 1 - LOST / 26;
+  sc.save();
+  sc.globalCompositeOperation = "multiply";
+  const g = sc.createRadialGradient(560, 300, 90, 560, 300, 640);
+  g.addColorStop(0, "#fff2d8"); g.addColorStop(.42, "#d4cce0"); g.addColorStop(.72, "#6a6a9e"); g.addColorStop(1, "#262650");
+  sc.fillStyle = g; sc.fillRect(0, 0, W, H);
+  sc.globalCompositeOperation = "screen";
+  const flick = 1 + Math.sin(t * 2.3) * .04;
+  const hg = sc.createRadialGradient(HEART_X, HEART_Y, 10, HEART_X, HEART_Y, 230 * flick);
+  hg.addColorStop(0, `rgba(255,196,96,${.42 * warm})`); hg.addColorStop(1, "rgba(255,196,96,0)");
+  sc.fillStyle = hg; sc.fillRect(0, 0, W, H);
+  for (const [key, x, y] of OBJECTS) {
+    if (!key.startsWith("tower:") || key === "tower:thornwall") continue;
+    const cx = x * T + 32, cy = y * T + 30, wg = sc.createRadialGradient(cx, cy, 4, cx, cy, 74);
+    wg.addColorStop(0, "rgba(255,216,150,.26)"); wg.addColorStop(1, "rgba(255,216,150,0)");
+    sc.fillStyle = wg; sc.fillRect(cx - 80, cy - 80, 160, 160);
+  }
+  const wx = 7 * T + 32, wy = 3 * T + 40, wsg = sc.createRadialGradient(wx, wy, 2, wx, wy, 48);
+  wsg.addColorStop(0, "rgba(140,240,210,.2)"); wsg.addColorStop(1, "rgba(140,240,210,0)");
+  sc.fillStyle = wsg; sc.fillRect(wx - 50, wy - 50, 100, 100);
+  sc.restore();
+}
+
+// Warden attacks glow warmly: a golden mote from each Warden to the nearest nightmare in range.
+function wardenShots(t, foes) {
+  sc.save();
+  sc.globalCompositeOperation = "screen";
+  SHOOTERS.forEach(([name, cx, cy], i) => {
+    const ox = cx * T + 32, oy = cy * T + 22;
+    let best = null, bd = 3 * T;
+    for (const p of foes) { const d = Math.hypot(p.x - ox, p.y - oy); if (d < bd) { bd = d; best = p; } }
+    if (!best) return;
+    const ph = (t * .9 + i * .37) % 1, x = ox + (best.x - ox) * ph, y = oy + (best.y - 6 - oy) * ph - Math.sin(ph * Math.PI) * 14;
+    const g = sc.createRadialGradient(x, y, 0, x, y, 12);
+    g.addColorStop(0, "rgba(255,236,170,.95)"); g.addColorStop(.35, "rgba(255,196,90,.55)"); g.addColorStop(1, "rgba(255,196,90,0)");
+    sc.fillStyle = g; sc.fillRect(x - 12, y - 12, 24, 24);
+    sc.fillStyle = "#fff6d8"; sc.fillRect(Math.round(x) - 1, Math.round(y) - 1, 3, 3);
+  });
+  sc.restore();
+}
+
+function ambient(t) {
+  const W = COLS * T, H = ROWS * T;
+  sc.save();
+  // Nightmare fog creeping along every edge of the dream.
+  for (let k = 0; k < 22; k++) {
+    const side = k % 4, u = ((hash(k, 1, 12) + t * (.012 + (k % 3) * .004)) % 1);
+    const x = side === 0 ? u * W : side === 1 ? W - 20 : side === 2 ? (1 - u) * W : 20;
+    const y = side === 0 ? 18 : side === 1 ? u * H : side === 2 ? H - 18 : (1 - u) * H;
+    const a = .22 + .1 * Math.sin(t * .8 + k);
+    sc.fillStyle = `rgba(16,10,30,${a})`; sc.beginPath(); sc.ellipse(x, y, 110, 46, 0, 0, Math.PI * 2); sc.fill();
+  }
+  if (ACT.id === "edge" || ACT.id === "deep") {
+    // Warm dream motes drifting up near the middle; cold wisps in the Deep Wood.
+    const cold = ACT.id === "deep";
+    for (let k = 0; k < 18; k++) {
+      const ph = (hash(k, 3, 4) + t * .05) % 1;
+      const x = (cold ? hash(k, 1, 4) * W : 380 + hash(k, 1, 4) * 480) + Math.sin(t * .7 + k) * 16;
+      const y = (cold ? hash(k, 2, 4) * H : 440 - ph * 360) + (cold ? Math.cos(t * .5 + k * 2) * 12 : 0);
+      const a = Math.max(0, Math.sin(t * 1.6 + k * 1.7)) * (cold ? 1 : Math.sin(ph * Math.PI));
+      const c = cold ? "150,230,240" : "255,214,130";
+      sc.fillStyle = `rgba(${c},${a * .22})`; sc.fillRect(Math.floor(x) - 2, Math.floor(y) - 2, 5, 5);
+      sc.fillStyle = `rgba(${c},${a})`; sc.fillRect(Math.floor(x), Math.floor(y), 2, 2);
+    }
+  } else if (ACT.id === "misty") {
+    for (let k = 0; k < 5; k++) {
+      const x = ((hash(k, 1, 5) * W + t * (8 + k * 2)) % (W + 400)) - 200, y = 60 + k * 110;
+      sc.fillStyle = "rgba(90,70,130,.12)"; sc.beginPath(); sc.ellipse(x, y, 220, 40, 0, 0, Math.PI * 2); sc.fill();
+    }
+    for (let k = 0; k < 10; k++) {
+      const x = ((hash(k, 1, 6) * W + t * 22) % W), y = ((hash(k, 2, 6) * H + t * 26) % H) + Math.sin(t * 3 + k) * 6;
+      sc.fillStyle = k % 2 ? "#a85a34" : "#4e1e1c"; sc.fillRect(Math.floor(x), Math.floor(y), 3, 2);
+    }
+  } else {
+    for (let k = 0; k < 70; k++) {
+      const x = ((hash(k, 1, 7) * W + Math.sin(t * .8 + k) * 12 + t * 6) % W), y = ((hash(k, 2, 7) * H + t * (20 + k % 5 * 6)) % H);
+      sc.fillStyle = k % 4 ? "rgba(220,228,255,.75)" : "rgba(220,228,255,.4)"; sc.fillRect(Math.floor(x), Math.floor(y), k % 5 ? 2 : 3, k % 5 ? 2 : 3);
+    }
+  }
+  sc.restore();
+}
+
+function drawScene(t) {
+  if (!groundCanvas) buildGround();
+  const f = Math.floor(t * 4) % 4, tf = Math.floor(t * 6) % 8, cf = Math.floor(t * 10) % 6;
+  sc.drawImage(groundCanvas, 0, 0);
+  for (const [cell, key] of Object.entries(GROUND_ANIM)) { const [x, y] = cell.split(",").map(Number); sc.drawImage(getCan(key, f), x * T, y * T); }
+  const items = [];
+  for (const [key, x, y] of OBJECTS) items.push({ y: y, draw: () => {
+    if (key.startsWith("tower:")) { const im = styledSprite(key.slice(6)); if (im) sc.drawImage(im, tf * 64, 0, 64, 64, x * T, y * T, 64, 64); }
+    else sc.drawImage(getCan(key, f), x * T, y * T);
+  }});
+  items.push({ y: 4.95, draw: () => sc.drawImage(getCan("heart:" + LOST, f), 12 * T + 32 - 64, 5 * T + 8 - 128) });
+  const foes = [];
+  CREATURES.forEach(([name, speed, off], k) => {
+    const p = along(off + t * speed * T);
+    foes.push(p);
+    items.push({ y: p.y / T - .5 + .01, draw: () => {
+      const im = styledSprite(name); if (!im) return;
+      let row = 0, flip = false;
+      if (Math.abs(p.dy) > Math.abs(p.dx)) row = p.dy > 0 ? 1 : 2; else flip = p.dx < 0;
+      const x = Math.round(p.x), y = Math.round(p.y);
+      sc.save();
+      // The sprites are drawn dark already: only partial translucency and a slow shimmer, no recolour.
+      sc.globalAlpha = .8 + .12 * Math.sin(t * 3.1 + k * 1.9);
+      if (flip) { sc.translate(x, 0); sc.scale(-1, 1); sc.drawImage(im, cf * 64, row * 64, 64, 64, -32, y - 36, 64, 64); }
+      else sc.drawImage(im, cf * 64, row * 64, 64, 64, x - 32, y - 36, 64, 64);
+      sc.restore();
+    }});
+  });
+  items.sort((a, b) => a.y - b.y).forEach(i => i.draw());
+  lighting(t);
+  wardenShots(t, foes);
+  sc.drawImage(getCan("mist", f), 0, 4 * T); sc.drawImage(getCan("mist", (f + 2) % 4), T, 4 * T);
+  ambient(t);
+  if (showGrid) {
+    sc.strokeStyle = "rgba(255,255,255,.14)"; sc.lineWidth = 1; sc.beginPath();
+    for (let x = 1; x < COLS; x++) { sc.moveTo(x * T + .5, 0); sc.lineTo(x * T + .5, ROWS * T); }
+    for (let y = 1; y < ROWS; y++) { sc.moveTo(0, y * T + .5); sc.lineTo(COLS * T, y * T + .5); }
+    sc.stroke();
+  }
+}
+
+// ---------- cards ----------
+function grid2(keys, cols) {
+  const rows = Math.ceil(keys.length / cols), out = new Img(cols * T, rows * T);
+  keys.forEach((k, i) => out.put(getImg(k), (i % cols) * T, Math.floor(i / cols) * T));
+  return out;
+}
+function onGrass(key, f) { return new Img().put(getImg("grass:0")).put(getImg(key, f)); }
+const PATH_DEMO = [".P..", "PPPP", ".P.P", ".PPP"];
+function pathDemo() {
+  const out = new Img(4 * T, 4 * T), at = (x, y) => (PATH_DEMO[y] || "")[x] === "P";
+  for (let y = 0; y < 4; y++) for (let x = 0; x < 4; x++) {
+    if (!at(x, y)) { out.put(getImg("grass:" + ((x + y * 3) % 4)), x * T, y * T); continue; }
+    const m = (at(x, y - 1) ? 1 : 0) | (at(x + 1, y) ? 2 : 0) | (at(x, y + 1) ? 4 : 0) | (at(x - 1, y) ? 8 : 0);
+    out.put(getImg("path:" + m), x * T, y * T);
+  }
+  return out;
+}
+
+const CARDS = {
+  ground: [
+    { name: "Meadow grass", meta: "64×64 tile · 4 variants · buildable", rep: "Foozle grass", scale: 2,
+      note: "All four variants share one noise base, so any variant can sit next to any other without a seam. Variants only add tufts, flowers or clover. The map picks one per cell from its seed.",
+      build: () => grid2(["grass:0", "grass:1", "grass:2", "grass:3"], 2) },
+    { name: "Creature path", meta: "64×64 tile · 16 neighbour shapes", rep: "Foozle sand path", scale: 1,
+      note: "Pale, moonlit earth with a darker lip and waystone pebbles. It's the lightest ramp on the map, so it still reads in the cold edges. There's one tile per neighbour mask, so a re-route redraws cleanly.",
+      build: pathDemo },
+    { name: "Drystone border", meta: "64×64 tile · 2 variants · seamless", rep: "Foozle stone border", scale: 2,
+      note: "A dry-stone wall in the same lavender stone as the Warden waystones, so the map frame and the Wardens look like one material. The moss takes the act's grass colour.",
+      build: () => grid2(["wall:0", "wall:1", "wall:1", "wall:0"], 2) },
+  ],
+  obstacles: [
+    { name: "Withered Tree", meta: "64×64 · 4 frames · blocks · Tend 5 Dew", rep: "Foozle tree", anim: true, scale: 3,
+      note: "Pale dead bark against the dark grass, so it reads clearly at 64 px. Dark smoke curls up from the roots, and now and then two knot-holes in the trunk glint like eyes.",
+      build: f => onGrass("withered:0", f) },
+    { name: "Tended stump", meta: "64×64 decal · walkable", isNew: "left after Tend", scale: 3,
+      note: "What's left after Tend: a stump with a new sapling, a small piece of the dream grown back. Every one on the map is a +1 Seed the player can see.",
+      build: () => onGrass("tended") },
+    { name: "Mossy Boulder", meta: "64×64 · blocks · Move 8 Dew", rep: "Foozle rock", scale: 3,
+      note: "Waystone stone with a moss cap and a fern at its foot. It's cooler and heavier than the trees, so the two obstacle types are easy to tell apart at a glance.",
+      build: () => onGrass("boulder:0") },
+    { name: "Boulder pair", meta: "64×64 · blocks · Move 8 Dew", scale: 3,
+      note: "A second boulder variant so the rock ridges that make the route zig-zag don't repeat the same shape.",
+      build: () => onGrass("boulder:1") },
+    { name: "Moved hollow", meta: "64×64 decal · walkable", isNew: "left after Move", scale: 3,
+      note: "What's left after Move: a shallow dent with loose pebbles and a first sprout.",
+      build: () => onGrass("dent") },
+  ],
+  special: [
+    { name: "Waystone", meta: "64×64 · 4 frames · bonus build spot", isNew: "proposed rule", anim: true, scale: 3,
+      note: "An empty waystone with a glowing carving. It's the same slab the Wardens sit on, so it reads as 'a Warden goes here'. Suggested rule: a Warden rooted here gets +1 range.",
+      build: f => onGrass("waystone", f) },
+    { name: "Dew Pool", meta: "64×64 tile · 4 frames · not buildable", isNew: "proposed rule", anim: true, scale: 3,
+      note: "Suggested rule: creatures walking past it are Damp for 2 s, which gives Storm Grid builds a spot to set up around. It freezes over in winter.",
+      build: f => getImg("pool:0", f) },
+    { name: "Blight Patch", meta: "64×64 tile · 4 frames", isNew: "proposed rule", anim: true, scale: 3,
+      note: "The dark rot nightmares carry: cracked violet-black ground with smoke rising from it. Suggested rule: you can't build here until it's tended (3 Dew), and creatures standing on it take 15% less soothe.",
+      build: f => getImg("blight:0", f) },
+  ],
+  landmarks: [
+    { name: "Forest's Edge", meta: "64×64 overlay · 4 frames · start cell", isNew: "new", anim: true, scale: 3,
+      note: "Violet-black fog over the path where drifts arrive. Now and then a pair of pale eyes opens in it. “Something moves at the edge of the dream.”",
+      build: f => new Img().put(getImg("path:10")).put(getImg("mist", f)) },
+    { name: "The Heartwood", meta: "128×128 · 4 frames · goal, anchored on its cell", isNew: "new", anim: true, scale: 2,
+      note: "The warm heart of the map. A slowly twisting trunk with bark grooves and moss, roots curling over the ground, and an arched hollow full of golden light. The layered canopy has twinkling dream-leaves and vines hung with glowing dream-fruit, all set in a soft warm halo. In the scene it casts the warm light that the edges lack.",
+      build: f => { const o = new Img(128, 128); ["grass:0", "grass:1", "grass:2", "grass:0"].forEach((k, i) => o.put(getImg(k), (i % 2) * T, Math.floor(i / 2) * T)); return o.put(getImg("heart:0", f)); } },
+    { name: "Heartwood, 12 leaves lost", meta: "same sprite · leaves lost 0–20", isNew: "new", anim: true, scale: 2,
+      note: "Every nightmare that gets through blackens a patch of canopy. Black leaves fall, dream-fruit go dark one by one, and the hollow, the halo and the warm light around the tree all fade. Try the Leaves lost slider above the maze. “It fed. A leaf blackens and falls.”",
+      build: f => { const o = new Img(128, 128); ["grass:0", "grass:1", "grass:2", "grass:0"].forEach((k, i) => o.put(getImg(k), (i % 2) * T, Math.floor(i / 2) * T)); return o.put(getImg("heart:12", f)); } },
+  ],
+  scenery: [
+    { name: "Round tree", meta: "64×64 · blocks · not clearable", scale: 3,
+      note: "Four overlapping canopy masses with a rim shadow under each, so the canopy reads as clumps and not as one ball.",
+      build: () => onGrass("tree:0") },
+    { name: "Pine", meta: "64×64 · blocks · not clearable", scale: 3,
+      note: "Three tiers with a ragged lower edge. In winter the lit side picks up snow from the act palette.",
+      build: () => onGrass("tree:1") },
+    { name: "Flowering tree", meta: "64×64 · blocks · not clearable", scale: 3,
+      note: "The same canopy, dotted with the act's accent colour: moonflower, glowcap, ember leaf or holly.",
+      build: () => onGrass("tree:2") },
+    { name: "Ground details", meta: "64×64 decals · walkable", scale: 2,
+      note: "Pale ghost-mushrooms, ferns, pebbles and a leaf pile that changes with the season. Scattered on grass. They never block.",
+      build: () => { const o = grid2(["grass:0", "grass:1", "grass:3", "grass:0"], 2); ["decor:0", "decor:1", "decor:2", "decor:3"].forEach((k, i) => o.put(getImg(k), (i % 2) * T, Math.floor(i / 2) * T)); return o; } },
+  ],
+};
+
+const cardCache = new Map();
+const cardEls = [];
+function cardCanvas(spec, id, f) {
+  const k = STYLE.id + "|" + ACT.id + "|" + SEED + "|" + id + "|" + (spec.anim ? f : 0);
+  let c = cardCache.get(k);
+  if (!c) {
+    const src = toCanvas(spec.build(f));
+    c = document.createElement("canvas"); c.width = src.width * spec.scale; c.height = src.height * spec.scale;
+    const g = c.getContext("2d"); g.imageSmoothingEnabled = false; g.drawImage(src, 0, 0, c.width, c.height);
+    cardCache.set(k, c);
+  }
+  return c;
+}
+function buildCards() {
+  for (const [sec, list] of Object.entries(CARDS)) {
+    const host = document.getElementById("c-" + sec);
+    list.forEach((spec, i) => {
+      const el = document.createElement("article"); el.className = "card";
+      const chips = [];
+      if (spec.rep) chips.push(`<span class="chip rep">replaces ${spec.rep}</span>`);
+      if (spec.isNew) chips.push(`<span class="chip new">${spec.isNew}</span>`);
+      if (spec.anim) chips.push(`<span class="chip anim">animated</span>`);
+      el.innerHTML = `<div class="stage"><canvas></canvas></div><div class="info"><h3>${spec.name}</h3><p class="meta">${spec.meta}</p><p class="note">${spec.note}</p><div class="chips">${chips.join("")}</div></div>`;
+      host.appendChild(el);
+      const cv = el.querySelector("canvas");
+      cv.setAttribute("role", "img"); cv.setAttribute("aria-label", spec.name);
+      cardEls.push({ spec, id: sec + i, cv, f: -1 });
+    });
+  }
+}
+function paintCards(f, force) {
+  for (const c of cardEls) {
+    const ff = c.spec.anim ? f : 0;
+    if (!force && c.f === ff) continue;
+    const src = cardCanvas(c.spec, c.id, ff);
+    if (c.cv.width !== src.width || c.cv.height !== src.height) { c.cv.width = src.width; c.cv.height = src.height; }
+    const g = c.cv.getContext("2d"); g.clearRect(0, 0, src.width, src.height); g.drawImage(src, 0, 0);
+    c.f = ff;
+  }
+}
+
+// ---------- palettes ----------
+function ramp(label, cols) {
+  return `<div class="ramp"><span class="l">${label}</span><div class="sw">${cols.map(c => `<i style="background:${c}" title="${c}"></i>`).join("")}</div></div>`;
+}
+function buildPalettes() {
+  document.getElementById("palettes").innerHTML = ACTS.map(A => `
+    <div class="pal${A === ACT ? " on" : ""}" style="--act:${A.swatch}">
+      <h3>${A.name}</h3>
+      <p class="meta">Act ${A.n} · drifts ${A.drifts} · ${A.season}</p>
+      ${ramp("grass", A.grass)}${ramp("canopy", A.canopy)}${ramp("bark", A.bark)}${ramp("path", A.path)}${ramp(A.accentName, A.dots)}
+    </div>`).join("");
+  document.getElementById("shared").innerHTML = `
+    <div class="pal"><h3>Shared in every act</h3><p class="meta">stone = Warden waystone ramp</p>
+      ${ramp("stone", [ST.out, ST.d2, ST.d1, ST.m, ST.l1, ST.l2, ST.hi])}${ramp("water", WATER)}${ramp("ice", ICE)}${ramp("blight", BLIGHT)}${ramp("withered", DEAD)}${ramp("heartwood", HEART_CANOPY)}${ramp("lantern 16", LANTERN16.map(([r, g, b]) => "#" + [r, g, b].map(v => v.toString(16).padStart(2, "0")).join("")))}
+    </div>`;
+}
+
+// ---------- controls ----------
+const actsEl = document.getElementById("acts");
+actsEl.innerHTML = ACTS.map((A, i) => `<button class="act" data-i="${i}" style="--act:${A.swatch}" aria-pressed="${i === 0}"><b><span class="dot"></span>${A.name}</b><small>Act ${A.n} · ${A.season.toLowerCase()}</small></button>`).join("");
+const caption = document.getElementById("caption");
+function setCaption() {
+  caption.innerHTML = `<span><strong>Act ${ACT.n} · ${ACT.name}</strong> · drifts ${ACT.drifts} · ${ACT.season} (proposed)</span><span>Boss: ${ACT.boss}</span><span>Wardens and nightmares (Shade, Husk, Night Hound, Mourner) are the game's current sprites, drawn as they are with only translucency and a shimmer added. Everything else is new.</span><span>“Something moves at the edge of the dream.”</span>`;
+  document.getElementById("seedLabel").textContent = "seed " + SEED;
+}
+function setAct(i) {
+  ACT = ACTS[i];
+  actsEl.querySelectorAll(".act").forEach(b => b.setAttribute("aria-pressed", String(+b.dataset.i === i)));
+  groundCanvas = null; dirty = true; stripsDirty = true;
+  setCaption(); buildPalettes(); paintCards(Math.floor(time * 4) % 4, true);
+  try { localStorage.setItem("hg-act", String(i)); } catch (e) {}
+}
+actsEl.addEventListener("click", e => { const b = e.target.closest(".act"); if (b) setAct(+b.dataset.i); });
+const tGrid = document.getElementById("tGrid"), tMotion = document.getElementById("tMotion");
+const leavesEl = document.getElementById("leaves"), leavesVal = document.getElementById("leavesVal");
+leavesEl.addEventListener("input", () => { LOST = +leavesEl.value; leavesVal.textContent = LOST; dirty = true; });
+tGrid.onclick = () => { showGrid = !showGrid; tGrid.setAttribute("aria-pressed", String(showGrid)); dirty = true; };
+function setRunning(r) { running = r; tMotion.textContent = r ? "Pause" : "Play"; tMotion.setAttribute("aria-pressed", String(r)); }
+tMotion.onclick = () => setRunning(!running);
+document.getElementById("tSeed").onclick = () => {
+  SEED = 1 + Math.floor(Math.random() * 9998);
+  clearCaches(); dirty = true; stripsDirty = true; setCaption(); paintCards(Math.floor(time * 4) % 4, true);
+};
+
+// ---------- styles ----------
+const stylesEl = document.getElementById("styles"), styleNote = document.getElementById("styleNote"), cmpEl = document.getElementById("stylesCmp");
+stylesEl.innerHTML = STYLES.map((s, i) => `<button class="act" data-s="${i}" aria-pressed="${i === 0}"><b>${s.name}</b><small>${s.short}</small></button>`).join("");
+cmpEl.innerHTML = STYLES.map((s, i) => `
+  <article class="cmp" data-s="${i}">
+    <div class="strip"><canvas role="img" aria-label="${s.name} sample"></canvas></div>
+    <div class="txt">
+      <h3>${s.name}${i === 0 ? " <small class=\"meta\">(current · leaning pick)</small>" : ""}</h3>
+      <p>${s.desc}</p>
+      <dl><dt>Good</dt><dd>${s.pro}</dd><dt>Cost</dt><dd>${s.con}</dd></dl>
+      <button class="tog use" data-s="${i}">Show this style</button>
+    </div>
+  </article>`).join("");
+function paintStrips() {
+  cmpEl.querySelectorAll(".cmp").forEach(el => {
+    const s = STYLES[+el.dataset.s], cv = el.querySelector("canvas");
+    const src = document.createElement("canvas"); src.width = 5 * T; src.height = T;
+    const g = src.getContext("2d");
+    withStyle(s, () => {
+      g.drawImage(getCan("path:5"), 0, 0);
+      ["withered:0", "boulder:0", "tree:0", "grass:2"].forEach((k, i) => { g.drawImage(getCan("grass:0"), (i + 1) * T, 0); g.drawImage(getCan(k), (i + 1) * T, 0); });
+      const sp = styledSprite("sprout"); if (sp) g.drawImage(sp, 0, 0, 64, 64, 4 * T, 0, 64, 64);
+    });
+    cv.width = src.width * 2; cv.height = src.height * 2;
+    const c = cv.getContext("2d"); c.imageSmoothingEnabled = false; c.drawImage(src, 0, 0, cv.width, cv.height);
+    el.classList.toggle("on", s === STYLE);
+  });
+  stripsDirty = false;
+}
+function setStyle(i) {
+  STYLE = STYLES[i];
+  stylesEl.querySelectorAll(".act").forEach(b => b.setAttribute("aria-pressed", String(+b.dataset.s === i)));
+  styleNote.innerHTML = `<strong>${STYLE.name}.</strong> ${STYLE.desc}`;
+  groundCanvas = null; dirty = true; stripsDirty = true;
+  paintCards(Math.floor(time * 4) % 4, true);
+  try { localStorage.setItem("hg-style", String(i)); } catch (e) {}
+}
+stylesEl.addEventListener("click", e => { const b = e.target.closest(".act"); if (b) setStyle(+b.dataset.s); });
+cmpEl.addEventListener("click", e => {
+  const b = e.target.closest(".use"); if (!b) return;
+  setStyle(+b.dataset.s);
+  document.querySelector(".scene-panel").scrollIntoView({ behavior: "smooth", block: "start" });
+});
+
+// ---------- boot ----------
+let startAct = 0, startStyle = 0;
+try { const s = +localStorage.getItem("hg-act"); if (s >= 0 && s < ACTS.length) startAct = s; } catch (e) {}
+try { const s = +localStorage.getItem("hg-style"); if (s >= 0 && s < STYLES.length) startStyle = s; } catch (e) {}
+ACT = ACTS[startAct];
+STYLE = STYLES[startStyle];
+buildCards();
+setStyle(startStyle);
+setAct(startAct);
+if (window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches) setRunning(false);
+time = 1.3;
+let last = performance.now();
+function tick(now) {
+  const dt = Math.min(.1, (now - last) / 1000); last = now;
+  if (running) { time += dt; dirty = true; }
+  if (dirty) { drawScene(time); paintCards(Math.floor(time * 4) % 4, false); dirty = false; }
+  if (stripsDirty) paintStrips();
+  requestAnimationFrame(tick);
+}
+requestAnimationFrame(tick);
+})();
+</script>
