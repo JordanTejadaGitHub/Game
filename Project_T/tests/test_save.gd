@@ -4,8 +4,8 @@ extends SceneTree
 # never the player's own run or profile.
 #   godot --headless --path . --script res://tests/test_save.gd --fixed-fps 60
 
-const RUN_PATH := "user://test_run_save.json"
-const PROFILE_PATH := "user://test_heartwood.json"
+var RUN_PATH := "user://test_run_save_%d.json" % OS.get_process_id()  # Per process: parallel sessions share user://
+var PROFILE_PATH := "user://test_heartwood_%d.json" % OS.get_process_id()  # Per process: parallel sessions share user://
 
 var failures := 0
 

@@ -6,7 +6,7 @@ extends SceneTree
 # its three; dev runs show everything. Uses a temp profile.
 #   godot --headless --path . --script res://tests/test_codex_scope.gd --fixed-fps 60
 
-const PROFILE_PATH := "user://test_codex_scope_profile.json"
+var PROFILE_PATH := "user://test_codex_scope_profile_%d.json" % OS.get_process_id()  # Per process: parallel sessions share user://
 
 var failures := 0
 

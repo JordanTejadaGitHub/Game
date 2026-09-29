@@ -717,7 +717,8 @@ Three large cards, one per family: portrait, name, one-line identity ("soothe ov
 statuses it applies, and small previews of its two branches. Family Blessings (when fewer than 3
 new families remain) use the same card with a blessing border.
 
-**Memory Warden card** (2026-09-29, user): in the family pick right after a boss whose Memory
+**Memory Warden card: PARKED** (Memory Wardens cut for now, 2026-09-29; kept for a possible return).
+Was: (2026-09-29, user): in the family pick right after a boss whose Memory
 Warden the player has grown (first dispel of that boss, `meta_design.md`), the Memory Warden gets
 its **own card**, not a normal family card, so it reads as that boss's reward:
 - **Gold / dream-fruit border** instead of a family colour, with a soft glow.

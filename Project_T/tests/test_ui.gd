@@ -486,7 +486,7 @@ func _run() -> void:
 
 	# --- Demo mode override: developer setting, never applied in headless tests (temp profile) ---
 	var real_profile := HeartwoodMemory.file_path
-	HeartwoodMemory.file_path = "user://test_ui_profile.json"
+	HeartwoodMemory.file_path = "user://test_ui_profile_%d.json" % OS.get_process_id()  # Per process
 	var profile := HeartwoodMemory.defaults()
 	profile.settings[ResultsScreen.DEMO_MODE_SETTING] = 0 if ProjectSettings.get_setting("game/demo", false) else 1
 	HeartwoodMemory.save_data(profile)

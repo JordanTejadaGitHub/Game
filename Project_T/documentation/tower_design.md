@@ -36,7 +36,7 @@ Sporeling  Dewdrop  Firefly Jar  Pebbling  Rootling  Bellflower  Acorn  (+ Nestl
   they can be chosen with Dreamlight like any branch.
 - **Nestling and Whirligig** are Grove unlocks for the full game (not in the demo). A run still
   gets **4 families**; more families means more variety between runs.
-- **Memory Wardens** (below) are unique Wardens freed from the act bosses.
+- **Memory Wardens** (below) are **parked** (cut for now, 2026-09-29).
 - **Ascended forms** (below): each family's endgame Warden, a 4th tier above the final forms.
 
 ### Ascended forms: each family's endgame Warden
@@ -245,7 +245,14 @@ means answering Hounds on the throwing line (Tangleroot, Honeysuckle).
 - **Honeysuckle**: its sweet scent makes nightmares walking past it slowly Drowsy. Walls that set up
   combos instead of dealing damage.
 
-### Memory Wardens (from bosses)
+### Memory Wardens (from bosses): PARKED
+
+> **Parked (2026-09-29, user decision): Memory Wardens are cut for now** and may return later. They
+> overlapped with the family pick (both were the boss reward) and, being free, involved no decision.
+> Nothing here is in the game: no Memory Warden card in the family pick, no Grove bloom. The design,
+> art and code stay so they can come back (a proposed return: a separate "patch a gap" Warden
+> costing 1 Dreamlight + Dew, not part of the family pick). The boss reward is the family pick +
+> Dreamlight.
 
 Each great nightmare wore a memory it stole from the dream. Dispelling it frees that memory as a
 **unique Warden**. After a boss, the reward is **1 of 3 families *or* that boss's Memory Warden**
@@ -283,7 +290,7 @@ set small. (Nightmares that resist or exploit these: see `enemy_design.md`.)
 | **Damp** | **Soaked**: no slow. Water (Dewdrop-family) hits +20%, and it **conducts**: lightning jumps further, ice freezes, spores sprout | Dewdrop line | Dewdrop line, Stormcap, Thunderhead, Frostfern | the conductor for Thunderclap, Shatter, Mushrooming and Drown |
 | **Drowsy** | **the slow**: stacks to a cap, and full Drowsy leads to sleep | **Bellflower line**; also Bloomcap, Honeysuckle | Mossback, Boulderback, Dreamshroom, Dreamcatcher, Sunpetal | crits, full sleep, Caught, faster beam ramp |
 | **Spored** | damage over time, stacks | Sporeling, Driftspore, Fairy Ring | Puffball, Mistveil, Rootcurl, Long Way Home | bursts, harder ticks; pulled nightmares walk the spores again |
-| **Marked** | **exposed**: the only "takes extra damage" status | Lanternmoth, Beacon, Moon Moth | Mossback, Boulderback, Standing Stone | double damage on Marked |
+| **Marked** | **exposed**: the only "takes extra damage" status | Lanternmoth, Beacon | Mossback, Boulderback, Standing Stone | double damage on Marked |
 | **Static** | builds charge; at 5 stacks, a free bolt | Firefly Jar, Stormcap, Chime Stone | Chime Stone, Lullaby Bell | pulses set off Static bolts |
 | **Held** | **stopped**: can't move, short and firm (nothing breaks it) | Tangleroot, Snugroot, Frostfern (freeze) | Bloomcap, Mistveil, Chime Stone, Bramble, Sunpetal, Hoarfrost, Standing Stone, Cairn | held nightmares sit inside area effects and are easy targets |
 

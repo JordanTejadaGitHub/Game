@@ -95,6 +95,8 @@ Queen an act 3 boss.
   of its drift's health).
 - **First run ever: act 1 is always the Hollow Stag** (onboarding's whispers and first boss fight are
   written for it). After that, random, weighted against the boss you met in that act last run.
+- **Memory Wardens are parked** (cut for now, 2026-09-29, `tower_design.md`); the per-boss memories
+  below are kept for a possible return.
 - **Each boss wears a stolen dream** (`story.md`), so each has a **Memory Warden**; a new boss's
   memory is the kind version of its curse. 9 bosses = 9 Memory Wardens (the Oak has none).
 - Escorts belong to the boss (listed below), not to the drift.

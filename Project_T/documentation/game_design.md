@@ -124,8 +124,8 @@ boomerang, the multi-hit Hummingbird).
 
 - **Crits**: every attacking Warden has a crit chance (default 5%, ×2); snipers and heavy hitters
   more. Crit cards in the Dream pool support crit builds.
-- **Memory Wardens**: after a boss, the reward can be that boss's unique Memory Warden instead of a
-  family (the White Stag, the Pond Keeper, the Moon Moth).
+- **Memory Wardens** (the White Stag, the Pond Keeper, the Moon Moth…): **parked 2026-09-29**
+  (cut for now; see `tower_design.md`). A boss rewards the family pick + Dreamlight.
 
 - **Dreamlight unlocks, Dew pays**: spending Dreamlight (from bosses) makes a branch or final form
   available; evolving a specific Warden costs Dew. Evolving happens in place, so the path never

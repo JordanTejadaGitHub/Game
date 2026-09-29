@@ -51,7 +51,7 @@ A vast moth with a skull-like face on its wings. Health 16,000 × 1.5 = **24,000
   during the Eclipse (settled in implementation: hiding the boss would just stall the fight).
 - **Escort:** 12 Lurkers ahead, then the Queen, then 6 Night Hounds.
 - **Dispelled:** her wings burn white, then scatter into a cloud of moths that fade. *"The Moth
-  Queen is gone, and the light comes back."* Memory Warden: **the Moon Moth**.
+  Queen is gone, and the light comes back."* (Memory Warden, parked: **the Moon Moth**.)
 
 ### The Hollow Oak (drift 100: the run's end)
 

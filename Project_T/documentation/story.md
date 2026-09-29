@@ -53,7 +53,7 @@ a path of Wardens all the way out through its nightmares and ending its grief.
 | Procedural map | The dream reshapes itself each night. No two nights grow the same forest. |
 | Waves | **Drifts**: nightmares come in surges, like fog rolling in. |
 | Upgrade every few drifts | At each rest the Heartwood **dreams**: pick 1 of 3 Dreams. |
-| Warden families from bosses | Dispelling a great nightmare frees a memory the Heartwood had lost: a new Warden family, **or the memory the nightmare was wearing** (a Memory Warden, below). |
+| Warden families from bosses | Dispelling a great nightmare frees a memory the Heartwood had lost: a new Warden family. (Memory Wardens, below, are parked for now.) |
 | Tower evolution | Sprouts grow into what the Heartwood has dreamed of, where they stand. |
 | Run ends | The Heartwood sinks into dreamless sleep, and a **seed** falls. |
 | Meta-progression | Seeds keep **Memories**: permanent unlocks each new Heartwood inherits. |
@@ -121,7 +121,9 @@ magic further). Each has hidden branches the Heartwood only remembers later (Gro
 Sunpetal, Fairy Ring, Frostfern). **Thornwall** hedges can grow into Brambles or **Honeysuckle**,
 whose sweet scent makes nightmares drowsy.
 
-### Memory Wardens: what the great nightmares stole
+### Memory Wardens: what the great nightmares stole (PARKED)
+
+*Cut from the game for now (2026-09-29); the story idea is kept for a possible return.*
 
 The great nightmares aren't born from nothing. **Each one wears a good dream it stole and twisted.**
 Dispelling it breaks the twist, and the dream underneath comes back as a unique **Memory Warden**
