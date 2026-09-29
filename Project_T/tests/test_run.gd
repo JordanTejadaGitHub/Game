@@ -99,13 +99,13 @@ func _test_blocks_and_rests() -> void:
 	_check(is_equal_approx(director.get_early_multiplier(1), 1.0) and is_equal_approx(director.get_early_multiplier(26), 1.0)
 		and is_equal_approx(director.get_early_multiplier(40), 1.55) and is_equal_approx(director.get_early_multiplier(50), 1.55)
 		and absf(director.get_early_multiplier(33) - 1.275) < 0.001, "act 2 health ramps from ×1.0 (drift 26) to ×1.55 (40)")
-	# One Deeply Blighted from drift 26 when the drift lists none (boss drifts: from the escort); two from 76.
-	for number in [25, 26, 35, 45, 50, 51, 75, 76, 100]:
+	# One Deeply Blighted from drift 31 when the drift lists none (boss drifts: from the escort); two from 76.
+	for number in [25, 26, 30, 31, 35, 45, 50, 51, 75, 76, 100]:
 		var schedule: Array = director.drifts[number - 1].get_schedule()
 		var listed: int = schedule.filter(func(a: Array) -> bool: return a[2]).size()
 		director.add_guaranteed_elite(schedule, number)
 		var elites: Array = schedule.filter(func(a: Array) -> bool: return a[2])
-		var expected := listed if number < 26 or listed > 0 else (2 if number >= 76 else 1)
+		var expected := listed if number < 31 or listed > 0 else (2 if number >= 76 else 1)
 		_check(elites.size() == expected and elites.all(func(a: Array) -> bool: return not a[1].is_boss),
 			"drift %d: %d elite(s) (%d listed)" % [number, elites.size(), listed])
 	var stag: EnemyData = load("res://resource/enemy/old_stag.tres")

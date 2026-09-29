@@ -50,7 +50,7 @@ const DEMO_DRIFTS_DIR := "res://resource/drift/demo/"
 # Acts 3–4 (acts_3_4.md): growth eases back so the late game doesn't run away (≈ ×100 at drift 100).
 @export var endgame_health_growth_per_drift: float = 1.045
 @export var endgame_growth_from: int = 51
-@export var guaranteed_elite_from: int = 26
+@export var guaranteed_elite_from: int = 31  # run_design.md f2eb4f8: was 26 (the drift 28–29 death cluster)
 @export var second_elite_from: int = 76  # Two Deeply Blighted per drift from here
 @export var boss_health_multiplier: float = 1.5  # On the bosses' base health
 # Acts 3–4 (run_design.md "Act 3 probe", interim): a flat health multiplier for every nightmare from
@@ -332,7 +332,7 @@ func get_spawn_modifiers(data: EnemyData, number: int) -> Dictionary:
 	return modifiers
 
 # Blight Level 5: `blight_elites_per_drift` random non-boss arrivals become Deeply Blighted.
-# From drift 26, a drift that lists no elites gets one (two from drift 76): each time a random
+# From drift 31, a drift that lists no elites gets one (two from drift 76): each time a random
 # non-boss kind in it (boss drifts: from the escort), and one of that kind becomes Deeply Blighted.
 func add_guaranteed_elite(schedule: Array, number: int) -> void:
 	if number < guaranteed_elite_from or schedule.any(func(a: Array) -> bool: return a.size() > 2 and a[2]):
