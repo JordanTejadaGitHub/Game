@@ -276,13 +276,13 @@ func _next_is_in_block() -> bool:
 func get_extra_nightmares(number: int) -> float:
 	return extra_nightmares if number >= extra_nightmares_from else 1.0
 
-# Health multiplier for `data` in drift `number` (get_growth; bosses fixed at ×1.5 their; ×1.4 in acts 3–4;
-# base). Dreams / Omens multiply on top (hook: see get_health_multiplier).
 # Act 2's health multiplier for drift `number`: 1.0 through drift 26, rising evenly to ×1.35 at drift 40.
 func get_early_multiplier(number: int) -> float:
 	var t := clampf(float(number - early_ramp_from) / maxf(early_ramp_to - early_ramp_from, 1), 0.0, 1.0)
 	return lerpf(1.0, early_acts_health_multiplier, t)
 
+# Health multiplier for `data` in drift `number`: get_growth (bosses: ×1.5 their base), × the act 2
+# ramp, or ×1.4 in acts 3–4. Dreams / Omens multiply on top (hook: see get_health_multiplier).
 func get_health_scale(data: EnemyData, number: int) -> float:
 	var scale := boss_health_multiplier if data.is_boss else get_growth(number)
 	if get_act(number) >= late_acts_from_act:
