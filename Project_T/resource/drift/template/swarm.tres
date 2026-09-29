@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="DriftTemplate" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/drift/script/drift_template.gd" id="1_tpl"]
+
+[resource]
+script = ExtResource("1_tpl")
+id = &"swarm"
+display_name = "Swarm"
+weights = Array[float]([1.5, 1.5, 1.5, 1.5])
+lead_tags = Array[StringName]([&"small"])
+lead_share_min = 0.8
+lead_share_max = 1.0
+min_types = 1
+max_types = 2
+limited = true
+spacing_multiplier = 0.5

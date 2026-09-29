@@ -18,3 +18,5 @@ ignores_slows = true
 trait_text = "Always {damp}, and nothing slows it."
 intro_lines = Array[String](["Always {damp}, and nothing slows it."])
 hint = "It's always {damp}, and lightning loves the {damp}."
+intro_drift = 61
+roll_tags = Array[StringName]([&"special"])

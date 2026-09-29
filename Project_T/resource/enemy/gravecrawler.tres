@@ -16,3 +16,5 @@ trait_kind = 5
 trait_text = "Burrows under one Warden or wall per trip."
 intro_lines = Array[String](["Burrows under a Warden or wall when that's a shortcut ({burrow_max} per trip), and surfaces on the other side."])
 hint = "One thin wall is its favourite shortcut: layer them."
+intro_drift = 56
+roll_tags = Array[StringName]([&"special"])

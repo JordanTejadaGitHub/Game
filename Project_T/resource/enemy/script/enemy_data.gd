@@ -99,6 +99,14 @@ enum Trait { NONE, FLYING, ROLLING, TRAMPLE, LEAP, BURROW, WANDER }
 # Trait icon for FLYING: &"through_walls" (Phantom, glides through them) or &"flying" (Moth Queen).
 @export var flying_icon: StringName = &"through_walls"
 
+@export_group("Drift roll")
+# Random drifts (run_design.md, DriftRoller): the drift this type is first introduced at (it joins
+# the random pool only after it; 0 = never rolled on its own: bosses, Sobs, Creeps, Wraiths), and the
+# roles templates look for: &"small" (Swarm), &"heavy", &"fast", &"procession", &"special" (one
+# trait-heavy type, the old named drifts). Flying / through walls come from the trait.
+@export var intro_drift: int = 0
+@export var roll_tags: Array[StringName] = []
+
 @export_group("Followers")
 # Mother Duck: spawns `follower_count` `followers` right behind her in single file. If she's
 # cleansed first, they get lost and slow to `lost_speed`.
@@ -232,6 +240,20 @@ static func _format_value(value: Variant, style: String) -> String:
 	if value is float:
 		return str(roundi(value)) if is_equal_approx(value, roundf(value)) else "%.1f" % value
 	return str(value)
+
+# Drift budget cost of one of these at drift 1: its health plus everything it brings (followers,
+# split-offs, recursively), so a Procession or a Mourner costs what it really puts on the field.
+func get_roll_cost() -> float:
+	var cost := float(health)
+	if followers != null and follower_count > 0:
+		cost += follower_count * followers.get_roll_cost()
+	if split_into != null and split_count > 0:
+		cost += split_count * split_into.get_roll_cost()
+	return cost
+
+# Flies straight over the maze (the Phantom): walls don't shape its path.
+func is_through_walls() -> bool:
+	return trait_kind == Trait.FLYING and not flies_along_route
 
 # The intro card's lines with their numbers filled in (status tokens stay for IconInfo).
 func get_intro_lines() -> Array[String]:

@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="DriftTemplate" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/drift/script/drift_template.gd" id="1_tpl"]
+
+[resource]
+script = ExtResource("1_tpl")
+id = &"heavy"
+display_name = "Heavy"
+weights = Array[float]([2.0, 2.0, 2.0, 2.0])
+lead_tags = Array[StringName]([&"heavy"])
+lead_share_min = 0.5
+lead_share_max = 0.75
+min_types = 2
+max_types = 3
+spacing_multiplier = 1.3

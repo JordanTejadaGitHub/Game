@@ -17,3 +17,5 @@ wake_radius = 1.5
 trait_text = "Never sleeps, and shakes nearby nightmares out of {drowsy} and {asleep}."
 intro_lines = Array[String](["Never sleeps: it can't be {drowsy}, and it wakes {drowsy} nightmares within {wake_radius} cells."])
 hint = "Its many eyes wake your sleepers: dispel it first."
+intro_drift = 66
+roll_tags = Array[StringName]([&"special"])

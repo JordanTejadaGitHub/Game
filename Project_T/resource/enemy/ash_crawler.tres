@@ -16,3 +16,5 @@ ash_trail_time = 3.0
 trait_text = "Its burning ash clears {spored} from nightmares behind it."
 intro_lines = Array[String](["Leaves a trail of burning ash that clears {spored} from nightmares walking behind it for {ash_trail_time} s."])
 hint = "Dispel it early, before its ash spreads."
+intro_drift = 68
+roll_tags = Array[StringName]([&"heavy", &"special"])

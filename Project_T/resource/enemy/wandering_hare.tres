@@ -15,3 +15,5 @@ trait_text = "Wanders into dead ends, then comes back."
 trait_kind = 6
 intro_lines = Array[String](["Sometimes wanders into a dead end, then comes back."])
 hint = "Dead ends are worth guarding."
+intro_drift = 58
+roll_tags = Array[StringName]([&"fast"])

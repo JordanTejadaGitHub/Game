@@ -18,3 +18,5 @@ status_duration_multipliers = {&"drowsy": 0.5}
 trait_text = "Ancient and slow. Can't be {held}; {drowsy} wears off fast."
 intro_lines = Array[String](["Ancient, slow and very tough.", "It can't be {held}, and {drowsy} wears off fast."])
 hint = "Raw damage and {spored} don't care how old it is."
+intro_drift = 63
+roll_tags = Array[StringName]([&"heavy"])

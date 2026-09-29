@@ -16,3 +16,5 @@ weak_to = Array[String](["spore"])
 trait_text = "Slow, under a thick shell of blight."
 intro_lines = Array[String](["Slow, with a thick hollow shell: it takes a lot to dispel."])
 hint = "Steady damage along a long path wears it down."
+intro_drift = 6
+roll_tags = Array[StringName]([&"heavy"])
