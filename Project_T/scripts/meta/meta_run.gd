@@ -15,7 +15,7 @@ const BLESSING_DIR := "res://resource/meta/blessing/"
 const SHADE_KIND := "leaf_bug"
 # Milestones (meta_design.md "Milestones"): id -> the cosmetic it grows. Grove nodes with a
 # `milestone` grow by themselves (HeartwoodMemory.node_level; Sunpetal, One Line, The Long Walk).
-const MILESTONE_COSMETICS := {"flawless_win": "golden_leaf", "blight_10_win": "blossoms"}
+const MILESTONE_COSMETICS := {"flawless_win": "golden_leaf", "blight_10_win": "blossoms", "all_combos": "gilded_pages"}
 
 # Chosen on the title screen before a run (0 = none); saved with the run.
 static var blight_level := 0
@@ -254,8 +254,10 @@ func _on_run_ended(won: bool) -> void:
 		if not memory.milestones.has(id):
 			memory.milestones[id] = true
 			HeartwoodMemory.grow_milestone_nodes(memory, id)  # Refunds a node it grows, if bought
-			if MILESTONE_COSMETICS.has(id) and not memory.cosmetics.has(MILESTONE_COSMETICS[id]):
-				memory.cosmetics.append(MILESTONE_COSMETICS[id])
+	# Every milestone's cosmetic, including ones set elsewhere mid-run (Discover every combo: the Codex).
+	for id in memory.milestones:
+		if MILESTONE_COSMETICS.has(id) and not memory.cosmetics.has(MILESTONE_COSMETICS[id]):
+			memory.cosmetics.append(MILESTONE_COSMETICS[id])
 	HeartwoodMemory.save_data(memory)
 
 # Won with every attacking Warden from one family line (Sprouts and walls don't count).
