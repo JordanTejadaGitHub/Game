@@ -156,26 +156,50 @@ func rank_changed(tower: Tower) -> void:
 			continue
 		var id: int = o.node.get_instance_id()
 		_near_rank[id] = _near_rank.get(id, 0) + 1
-		if o.node.has_method("clear_dream_cache"):
-			o.node.clear_dream_cache()
+		_soon(o.node)
+
+# Rank-only rebuilds are spread out (a dense group Nurture marks every Warden): at most
+# RANK_REBUILDS_PER_FRAME per frame; the rest keep their previous rows and look again within
+# RANK_REBUILD_SPREAD s (only rank-reading rows lag; rank damage and speed are never cached).
+const RANK_REBUILDS_PER_FRAME := 8
+const RANK_REBUILD_SPREAD := 0.25
+var _rebuild_frame := -1
+var _rebuilds := 0
+
+func _soon(tower: Node) -> void:
+	if "_dream_cache_left" in tower:
+		tower._dream_cache_left = minf(tower._dream_cache_left, randf_range(0.0, RANK_REBUILD_SPREAD))
 
 # rows() for a planted Warden, cached until the board or the cards change (DreamState.board_version,
 # the taken cards, its rank and form); the LIVE_RULES rows are recomputed on every call. For the
 # per-frame stat reads (Tower) and the badge poll.
 func rows_cached(tower: Tower) -> Array[Dictionary]:
 	var spot := spot_for(tower)
-	var key := hash([ds.board_version, ds.stacks, tower.rank, tower.tower_data, tower.cell, _near_rank.get(tower.get_instance_id(), 0)])
+	var base := hash([ds.board_version, ds.stacks, tower.tower_data, tower.cell])
+	var key := hash([base, tower.rank, _near_rank.get(tower.get_instance_id(), 0)])
 	var id := tower.get_instance_id()
 	var cached: Array = _row_cache.get(id, [])
 	var out: Array[Dictionary] = []
 	if cached.is_empty() or cached[0] != key:
+		var frame := Engine.get_process_frames()
+		if frame != _rebuild_frame:
+			_rebuild_frame = frame
+			_rebuilds = 0
+		if cached.size() > 2 and cached[2] == base and _rebuilds >= RANK_REBUILDS_PER_FRAME:
+			_soon(tower)  # Only a rank changed: the previous rows for now, rebuilt within a moment
+			return _with_live(spot, cached[1])
+		_rebuilds += 1
 		out = rows(spot)
 		if _row_cache.size() > 1024:
 			_row_cache.clear()  # Forget sold Wardens now and then
-		_row_cache[id] = [key, out]
+		_row_cache[id] = [key, out, base]
 		return out.duplicate()
+	return _with_live(spot, cached[1])
+
+func _with_live(spot: Dictionary, rows_in: Array) -> Array[Dictionary]:
+	var out: Array[Dictionary] = []
 	var board: Board = null
-	for row in cached[1]:
+	for row in rows_in:
 		if LIVE_RULES.has(row.card.rule_id):
 			if board == null:
 				board = _shared_board()
