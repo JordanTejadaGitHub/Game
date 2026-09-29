@@ -78,6 +78,9 @@ const KIN_DB := -6.0
 const HARMONY_DB := -16.0
 const HARMONY_THROTTLE_MS := 1500
 const WHOLE_DB := -3.0
+# The field (nightmares, presence Wardens) is walked this often (s, real time), not every frame.
+const FIELD_SCAN_INTERVAL := 0.25
+const PRESENCE_HOLD := 0.6  # Longer than a scan, so presence loops stay up between scans
 const HIT_FAMILIES := ["stone", "root", "water", "light", "spore", "sprout"]  # Others sound like sprout
 const HIT_GROUP_MS := 90  # A pulse or splash hitting many nightmares at once is one impact
 const CHAIN_STEP_DB := -4.0  # Each jump of a chain ripples a little quieter
@@ -119,6 +122,9 @@ var _reaction_at := {}  # Reaction id -> msec of its last sound
 var _last_reaction_crowned := false  # The Reaction just before a chain_reached (Crowned = 2 links)
 var _dawnburst_played := false
 var _harmony_at := -100000  # msec of the last Harmony strike sound
+var _scan_left := 0.0  # Seconds (real time) until the next field scan
+var _resting := true
+var _presence := {}  # Tower instance id -> a Warden with a presence loop
 
 func _ready() -> void:
 	if sound == null:
@@ -223,12 +229,25 @@ func _exit_tree() -> void:
 		sound.stop_ambience()
 		sound.stop_loops()
 
-func _process(_delta: float) -> void:
-	var enemies: Array = enemy_container.get_enemies()
+# Cheap things every frame; anything that walks the field (the nightmares, the Wardens with a
+# presence loop) only FIELD_SCAN_INTERVAL times per second of real time, so a busy field stays cheap.
+func _process(delta: float) -> void:
+	_scan_left -= delta / maxf(Engine.time_scale, 0.01)
+	if _scan_left <= 0.0:
+		_scan_left = FIELD_SCAN_INTERVAL
+		_scan_field()
+	sound.set_muffled(_choice_screens.any(func(screen) -> bool: return is_instance_valid(screen) and screen.visible))
+	sound.set_drifting(not _resting)
+	_apply_loops()
+
+func _scan_field() -> void:
+	var enemies: Array = enemy_container.get_enemies()  # Once per scan: it builds a new list each call
 	var near := false
 	var boss := false
+	var smothered := false
 	var theme := ""  # The walking boss's own theme (BOSS_THEMES), if it has one
 	var winning := false  # That boss is below half health: its warm counter-melody enters
+	var near_distance := _path_pixels / 3.0
 	for enemy in enemies:
 		if enemy.enemy_data.is_boss:
 			boss = true
@@ -236,7 +255,10 @@ func _process(_delta: float) -> void:
 			if key != "" and theme == "":
 				theme = key
 				winning = enemy.health * 2 <= enemy.max_health
-		near = near or enemy.get_remaining_distance() < _path_pixels / 3.0
+		if not near and enemy.get_remaining_distance() < near_distance:
+			near = true
+		if not smothered and enemy.has_meta(&"smother_fx"):
+			smothered = true
 	sound.set_layer(&"dread1", not enemies.is_empty())
 	sound.set_layer(&"dread2", enemies.size() >= DREAD2_COUNT or near)
 	sound.set_layer(&"heartbeat", run_state.leaves <= LOW_LEAVES and not run_state.is_over)
@@ -244,15 +266,14 @@ func _process(_delta: float) -> void:
 	for key in BOSS_THEMES.values():
 		sound.set_layer(StringName("boss_" + key), theme == key)
 		sound.set_layer(StringName("boss_%s_warm" % key), theme == key and winning)
-	sound.set_muffled(_choice_screens.any(func(screen) -> bool: return is_instance_valid(screen) and screen.visible))
-	var resting: bool = drift_director.is_build_phase()
-	sound.set_drifting(not resting)
-	if resting:
+	_resting = drift_director.is_build_phase()
+	if _resting:
 		sound.set_ambience_trim(AMBIENCE_REST_DB)
 	else:
 		sound.set_ambience_trim(AMBIENCE_THIN_DB * minf(float(enemies.size()) / AMBIENCE_THIN_COUNT, 1.0))
-	_update_smother()
-	_update_loops()
+	if smothered:  # Smother's hum lasts while any nightmare is smothered
+		_touch_loop("loop_smother", 1.0, PRESENCE_HOLD)
+	_update_presence(enemies.size())
 
 func _on_enemy_added(enemy: Node) -> void:
 	# Its position is set right after it enters the tree, so wait a frame.
@@ -335,23 +356,38 @@ static func _hit_rate(data: TowerData) -> float:
 func _touch_loop(id: String, level: float, hold: float) -> void:
 	_loop_until[StringName(id)] = [Time.get_ticks_msec() + int(hold * 1000.0), level]
 
-func _update_loops() -> void:
-	var now := Time.get_ticks_msec()
-	for tower in tower_container.get_children():
-		if not tower is Tower:
+# The Wardens with a presence loop (the White Stag's aura, Dawnwing, Ascended Wardens), registered when
+# they join or evolve, so the field scan never walks every Warden.
+func _refresh_presence(tower: Tower) -> void:
+	var id := tower.get_instance_id()
+	# tower_data, not attack_data: this runs as the Warden enters the tree, before its _ready sets attack_data.
+	if tower.tower_data.attack_kind == TowerData.AttackKind.AURA or tower.tower_data.tier >= ASCENDED_TIER:
+		_presence[id] = tower
+	else:
+		_presence.erase(id)
+
+func _update_presence(walking_count: int) -> void:
+	var walking := walking_count > 0
+	for id in _presence.keys():
+		var tower: Tower = _presence[id] if is_instance_valid(_presence[id]) else null
+		if tower == null or tower.is_queued_for_deletion():
+			_presence.erase(id)
 			continue
-		var walking: bool = not enemy_container.get_enemies().is_empty()
-		if tower.attack_data.attack_kind == TowerData.AttackKind.AURA:
+		if tower.tower_data.attack_kind == TowerData.AttackKind.AURA:
 			# The White Stag: a faint breathing presence, fuller while nightmares walk.
-			_touch_loop("loop_" + warden_id(tower.attack_data), 1.0 if walking else 0.35, 0.2)
+			_touch_loop("loop_" + warden_id(tower.tower_data), 1.0 if walking else 0.35, PRESENCE_HOLD)
 		elif warden_id(tower.tower_data) == "dawnwing":
 			# Calm and busy wingbeats crossfaded by how many nightmares walk (not sped up: that'd raise
 			# the pitch). Neither ever drops to 0, so the two loops keep playing in sync.
-			var busy := clampf(enemy_container.get_enemies().size() / DAWNWING_BUSY_COUNT, 0.0, 1.0)
-			_touch_loop("loop_dawnwing", maxf(PRESENCE_LEVEL * (1.0 - busy), 0.0001), 0.2)
-			_touch_loop("loop_dawnwing_busy", maxf(PRESENCE_LEVEL * busy, 0.0001), 0.2)
-		elif tower.tower_data.tier >= ASCENDED_TIER:  # An Ascended Warden's presence
-			_touch_loop("loop_" + warden_id(tower.tower_data), PRESENCE_LEVEL * (1.0 if walking else 0.6), 0.2)
+			var busy := clampf(walking_count / DAWNWING_BUSY_COUNT, 0.0, 1.0)
+			_touch_loop("loop_dawnwing", maxf(PRESENCE_LEVEL * (1.0 - busy), 0.0001), PRESENCE_HOLD)
+			_touch_loop("loop_dawnwing_busy", maxf(PRESENCE_LEVEL * busy, 0.0001), PRESENCE_HOLD)
+		else:  # An Ascended Warden's presence
+			_touch_loop("loop_" + warden_id(tower.tower_data), PRESENCE_LEVEL * (1.0 if walking else 0.6), PRESENCE_HOLD)
+
+# Every frame: the few active loop ids fade toward their level (cheap; no field walk).
+func _apply_loops() -> void:
+	var now := Time.get_ticks_msec()
 	for id in _loop_until.keys():
 		var entry: Array = _loop_until[id]
 		var active: bool = now < int(entry[0])
@@ -364,10 +400,12 @@ func _on_tower_added(node: Node) -> void:
 	if tower == null or tower.attack_released.is_connected(_on_attack):
 		return
 	tower.attack_released.connect(_on_attack)
+	_refresh_presence(tower)
 	tower.hit_landed.connect(_on_hit)
 	# Evolving: the bloom, then the new form's hit once as a "first breath".
 	tower.evolved.connect(func(t: Tower) -> void:
 		sound.play(&"evolve", t.global_position)
+		_refresh_presence(t)  # Growing into an Ascended form starts its presence
 		if t.tower_data.tier >= ASCENDED_TIER:
 			return  # Ascending has its own moment (below)
 		get_tree().create_timer(FIRST_BREATH_DELAY).timeout.connect(func() -> void:
@@ -447,7 +485,8 @@ func _on_tower_added(node: Node) -> void:
 	tower.tree_exiting.connect(func() -> void:
 		_hit_groups.erase(id)
 		_released_at.erase(id)
-		_attack_counts.erase(id))
+		_attack_counts.erase(id)
+		_presence.erase(id))
 
 # Nurture (a rank up): a soft swell of the family's material, ~1 semitone deeper and a touch fuller per
 # rank; choosing a Focus adds its lean. A group nurture fires these in one frame: they stagger with the
@@ -723,13 +762,6 @@ func _nightmares_near(where: Vector2, cells: float) -> int:
 		if enemy.global_position.distance_to(where) <= reach:
 			count += 1
 	return maxi(count, 1)
-
-# Smother's hum lasts while any nightmare is smothered (its effect node is kept on the nightmare).
-func _update_smother() -> void:
-	for enemy in enemy_container.get_enemies():
-		if enemy.has_meta(&"smother_fx"):
-			_touch_loop("loop_smother", 1.0, 0.2)
-			return
 
 func _on_path_changed() -> void:
 	_path_pixels = maxf(map_generator.get_path_from(map_generator.startPath).size() * MAP_GRID.cell_size.x, 1.0)
