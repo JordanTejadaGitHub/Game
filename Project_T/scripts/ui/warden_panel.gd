@@ -32,7 +32,7 @@ func _ready() -> void:
 	var box := VBoxContainer.new()
 	box.add_theme_constant_override("separation", 6)
 	add_child(box)
-	_title.add_theme_font_size_override("font_size", 20)
+	UiStyle.title(_title, UiStyle.TITLE_SIZE)
 	box.add_child(_title)
 	# Damage type (enemy_design.md "Damage types"): the type's icon and "Light damage" in its colour.
 	_damage_type.add_theme_constant_override("separation", 4)
@@ -185,6 +185,7 @@ func _refresh() -> void:
 	for option in options:
 		var next: TowerData = option[0]
 		var button := _add_button("")
+		UiStyle.primary(button)  # Grow is the panel's main action (ui_style.md)
 		if option[1]:
 			var grow := _tower.get_grow_cost(next)  # Ranked Wardens also pay the rank difference
 			var cost: int = grow.total
@@ -341,6 +342,7 @@ func _refresh_group() -> void:
 		for option in Tower.grow_options(dream_state, data):  # Sprouts: only this run's families
 			var next: TowerData = option[0]
 			var button := _add_button("")
+			UiStyle.primary(button)
 			button.tooltip_text = next.description
 			if not option[1]:
 				_locked_form_button(button, "%s → %s" % [_plural(data, towers.size()), next.display_name], next)

@@ -125,4 +125,4 @@ static func rarity_name(value: Rarity) -> String:
 	return ["Common", "Uncommon", "Rare", "Legendary"][value]
 
 static func rarity_color(value: Rarity) -> Color:
-	return [Color(0.75, 0.8, 0.75), Color(0.5, 0.85, 0.55), Color(0.5, 0.7, 1.0), Color(1.0, 0.75, 0.3)][value]
+	return UiStyle.rarity_color(value)  # ui_style.md

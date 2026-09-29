@@ -51,7 +51,7 @@ func _ready() -> void:
 	var title := Label.new()
 	title.text = TITLE
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	title.add_theme_font_size_override("font_size", 44)
+	UiStyle.display(title, 44)
 	title.add_theme_color_override("font_color", Color(0.85, 1.0, 0.8))
 	_menu.add_child(title)
 	if ResultsScreen.is_demo():
@@ -62,9 +62,12 @@ func _ready() -> void:
 		_menu.add_child(demo)
 	_menu.add_child(HSeparator.new())
 
+	# The first choice takes the primary look (ui_style.md "Buttons").
 	if RunSaver.has_save():
-		_add_button("Continue", _continue)
-	_add_button("New run", _new_run)
+		UiStyle.primary(_add_button("Continue", _continue))
+	var new_run := _add_button("New run", _new_run)
+	if not RunSaver.has_save():
+		UiStyle.primary(new_run)
 	if ResultsScreen.is_demo():
 		var grove := _add_button("Memory Grove (in the full game)", func() -> void: pass)
 		grove.disabled = true
@@ -120,7 +123,7 @@ func open_codex(tab: StringName = &"", entry: String = "") -> void:
 func _add_button(text: String, action: Callable) -> Button:
 	var button := Button.new()
 	button.text = text
-	button.custom_minimum_size = Vector2(0, 44)
+	button.custom_minimum_size = Vector2(0, 48)
 	button.focus_mode = Control.FOCUS_NONE
 	button.pressed.connect(action)
 	_menu.add_child(button)

@@ -46,12 +46,12 @@ func _run() -> void:
 		heights[roundi(rect.size.y)] = true
 		_check(viewport.encloses(rect), "%s fits the screen (%s)" % [_name_of(button), rect])
 		var box := button.get_child(0) as Control
-		var labels := box.get_children().filter(func(n: Node) -> bool: return n is Label or n is RichTextLabel)
+		var labels := box.get_children().filter(func(n: Node) -> bool: return n is Label or n is RichTextLabel or n is HBoxContainer)  # The rarity row is gem + label
 		for label in labels:
 			var label_rect: Rect2 = label.get_global_rect()
 			_check(label_rect.end.y <= rect.end.y + 0.5 and label_rect.position.y >= rect.position.y,
 				"%s: a line stays inside the card (%s in %s)" % [_name_of(button), label_rect, rect])
-		# Rarity, name, then the effect (a RichTextLabel with the card's description)
+		# Rarity row, name, then the effect (a RichTextLabel with the card's description)
 		_check(labels.size() >= 3 and labels[2] is RichTextLabel, "%s: the effect comes right after the name" % _name_of(button))
 	_check(heights.size() == 1, "all cards share one height (%s)" % heights.keys())
 	print("longest cards: %s, %s" % [cards[1].display_name, cards[2].display_name])

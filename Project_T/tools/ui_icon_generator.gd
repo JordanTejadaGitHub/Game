@@ -8,11 +8,13 @@ extends SceneTree
 const S := 64
 const OUT := "res://assets/ui/"
 const PREVIEW := "res://tools/previews/ui_icons.png"
+# Every pixel is snapped to the Heartwood 32 palette (art_direction.md); nightmare icons to its cold ramps.
+const Palette := preload("res://tools/art/heartwood_palette.gd")
 
 const OUTLINE := Color("#3a2618")
-const SKIN_LIGHT := Color("#f0c898")
-const SKIN_MID := Color("#d49a6a")
-const SKIN_DARK := Color("#a86a48")
+var SKIN_LIGHT := Palette.color("moonpath")
+var SKIN_MID := Palette.color("deadwood")
+var SKIN_DARK := Palette.color("oak")
 const MOSS_LIGHT := Color("#8ad060")
 const MOSS_MID := Color("#5a9a48")
 const MOSS_DARK := Color("#3f7a3e")
@@ -33,6 +35,7 @@ func _init() -> void:
 	var sheet := Image.create(S * 3, S, false, Image.FORMAT_RGBA8)
 	for state in [LOCKED, AVAILABLE, ACTIVE]:
 		sheet.blit_rect(_clear_tool(state), Rect2i(0, 0, S, S), Vector2i(S * state, 0))
+	Palette.snap_image(sheet)
 	sheet.save_png(OUT + "clear_tool.png")
 	_save_preview(sheet)
 	_make_icons()
@@ -256,25 +259,32 @@ const NIGHTMARE_ICONS := ["flying", "dread_shell", "through_walls", "sprints", "
 # Warden damage types (enemy_design.md "Damage types"): a warm symbol on a small gold-rimmed badge,
 # so they never read as statuses (which have no badge).
 const DAMAGE_TYPE_ICONS := ["spore", "stone", "water", "light", "root", "song", "wing", "wind", "plain"]
+
+# Run resources for the HUD counters (ui_style.md): leaves, path length, Seeds. Dew and Dreamlight
+# reuse the cost icons (aliases "dew", "dreamlight").
+const RESOURCE_ICONS := ["leaves", "path_length", "seeds"]
 # Ids that share another icon's column.
-const ICON_ALIASES := {"always_damp": "damp", "burrows": "rises"}
+const ICON_ALIASES := {"always_damp": "damp", "burrows": "rises", "dew": "dew_cost", "dreamlight": "dreamlight_cost"}
 
 var _cells := {}  # Vector2i -> ramp index
 var _ramps: Array = []  # [light, mid, dark]
 var _details: Array = []  # [Vector2i, Color], painted last
 
 func _make_icons() -> void:
-	var ids: Array = STATUS_ICONS + STAT_ICONS + NIGHTMARE_ICONS + DAMAGE_TYPE_ICONS
+	var ids: Array = STATUS_ICONS + STAT_ICONS + NIGHTMARE_ICONS + DAMAGE_TYPE_ICONS + RESOURCE_ICONS
 	var sheet := Image.create(ICON * ids.size(), ICON, false, Image.FORMAT_RGBA8)
 	var index := {}
 	for i in ids.size():
-		sheet.blit_rect(_icon(ids[i]), Rect2i(0, 0, ICON, ICON), Vector2i(i * ICON, 0))
+		var icon := _icon(ids[i])
+		Palette.snap_image(icon, ids[i] in NIGHTMARE_ICONS)
+		sheet.blit_rect(icon, Rect2i(0, 0, ICON, ICON), Vector2i(i * ICON, 0))
 		index[ids[i]] = i
 	for alias: String in ICON_ALIASES:
 		index[alias] = index[ICON_ALIASES[alias]]
 	sheet.save_png(OUT + "icons.png")
 	var data := {frame_size = ICON, icons = index, statuses = STATUS_ICONS, stats = STAT_ICONS,
-		nightmare = NIGHTMARE_ICONS + ["hidden"] + ICON_ALIASES.keys(), damage_type = DAMAGE_TYPE_ICONS,
+		nightmare = NIGHTMARE_ICONS + ["hidden", "always_damp", "burrows"], damage_type = DAMAGE_TYPE_ICONS,
+		resources = RESOURCE_ICONS + ["dew", "dreamlight"],
 		note = "One row of 16x16 icons; column = icons[id]. Readable at 12 px; for 24-32 px panels scale by whole numbers with nearest filtering."}
 	var file := FileAccess.open(OUT + "icons.json", FileAccess.WRITE)
 	file.store_string(JSON.stringify(data, "\t") + "\n")
@@ -995,3 +1005,33 @@ func _ic_plain() -> void:
 	_type_badge()
 	var k := _rp("#fffbf0", "#e8dcc4", "#b8a888")
 	_c_disc(Vector2(8, 8), 2.2, k)
+
+# Run resources ----------------------------------------------------------------------------------
+
+func _ic_leaves() -> void:
+	# One warm green leaf with a gold midrib and a short stem (the Heartwood's leaves).
+	var k := _rp("#d8f8a0", "#6ab04a", "#2e6a2a")
+	var stem := _rp("#e0b078", "#9a6a3a", "#5a3a1a")
+	_c_ell(Vector2(8.8, 7.0), Vector2(6.4, 3.8), k, -PI * 0.25)
+	_c_line([Vector2(1.6, 14.4), Vector2(4.4, 11.6)], 1.3, stem)
+	_dt_line(Vector2i(4, 11), Vector2i(12, 3), Color("#e8d070"))
+	_dt(7, 5, Color("#f0ffd0"))
+	_dt(6, 6, Color("#f0ffd0"))
+
+func _ic_path_length() -> void:
+	# A pale winding path between two dark banks, like the moonlit path on the map.
+	var k := _rp("#f4ecd8", "#d0c0a0", "#8a7a60")
+	_c_line([Vector2(3, 15), Vector2(4, 11), Vector2(11, 9), Vector2(12, 5), Vector2(6, 2.5)], 2.4, k)
+	_dt(12, 1, Color("#ffe890"))
+	_dt(11, 1, Color("#ffe890"))
+	_dt(12, 2, Color("#ffe890"))
+
+func _ic_seeds() -> void:
+	# An acorn-brown seed with a small green sprout (Seeds, the meta currency).
+	var k := _rp("#f0c890", "#b07a44", "#6a4222")
+	var leaf := _rp("#d8f8a0", "#6ab04a", "#2e6a2a")
+	_c_ell(Vector2(8, 10.4), Vector2(4.2, 4.8), k)
+	_c_line([Vector2(8, 5.6), Vector2(8, 3.4)], 1.2, leaf)
+	_c_ell(Vector2(10.6, 2.8), Vector2(2.2, 1.3), leaf, -0.4)
+	_dt(6, 9, Color("#fff0d0"))
+	_dt(6, 10, Color("#fff0d0"))

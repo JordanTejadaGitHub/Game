@@ -55,7 +55,7 @@ func _ready() -> void:
 	var title := Label.new()
 	title.text = "Paused"
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	title.add_theme_font_size_override("font_size", 26)
+	UiStyle.display(title, 26)
 	_menu.add_child(title)
 	_add_button("Resume", close)
 	_add_button("Settings", _show_settings)

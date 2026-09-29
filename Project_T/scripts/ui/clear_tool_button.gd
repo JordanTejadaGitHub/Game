@@ -33,13 +33,14 @@ func setup(obstacle_clearer: ObstacleClearer, state: RunState, show_toast: Calla
 func _ready() -> void:
 	name = "ClearTool"
 	toggle_mode = true
+	theme_type_variation = &"WardenSlot"  # Same fog patch + underline as the Warden bar (ui_style.md)
 	focus_mode = Control.FOCUS_NONE
 	# Laid out like the Warden buttons: icon on top, "Clear" under it.
 	text = "Clear"
 	icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	vertical_icon_alignment = VERTICAL_ALIGNMENT_TOP
 	add_theme_constant_override("icon_max_width", 34)
-	add_theme_font_size_override("font_size", 12)
+	add_theme_font_size_override("font_size", 14)
 	_update_icon()
 	tooltip_text = "Clear tool (0 / C): tend withered trees and move boulders."
 	pressed.connect(toggle_tool)
@@ -102,7 +103,7 @@ func _update_icon() -> void:
 	atlas.atlas = ICON_SHEET
 	atlas.region = Rect2(frame * 64, 0, 64, 64)
 	icon = atlas
-	add_theme_color_override("font_color", LOCKED_TINT if frame == FRAME_LOCKED else Color(0.85, 0.88, 0.8))
+	add_theme_color_override("font_color", LOCKED_TINT if frame == FRAME_LOCKED else UiStyle.INK_DIM)
 
 func _draw() -> void:
 	# The icon and "Clear" are the button's own; the glow, hotkey and free-clears badge go on top
@@ -110,7 +111,7 @@ func _draw() -> void:
 	if _glow > 0.0:
 		draw_circle(Vector2(size.x / 2.0, size.y / 2.0 - 6.0), 22.0, Color(SPROUT_COLOR, 0.35 * _glow))
 	var font := ThemeDB.fallback_font
-	_text(font, Vector2(3, 12), "0", 11, Color(0.85, 0.88, 0.8))
+	_text(font, Vector2(3, 12), "0", 11, UiStyle.INK_DIM)
 	if not clearer.is_locked() and run_state.free_clears > 0:
 		_text(font, Vector2(size.x - 14, 12), str(run_state.free_clears), 11, BADGE_COLOR)
 

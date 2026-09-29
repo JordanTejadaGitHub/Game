@@ -283,6 +283,12 @@ accessibility, Steam achievements (milestones map to them). Acts 3–4 and all f
   `MetaRun.is_dev_run()`; HUD / Grove tag `DevGrove.tag()`. `DevGrove.force` for tests.
 
 ## Audio (placeholder, audio_direction.md)
+- **Heartwood 32 + detail pass** (art_direction.md "Rendering style"; Theme Code owns `tools/art/`):
+  `HeartwoodPalette` (`color("gold")` by name, `snap(c, cold)`, `snap_image(img, cold)`, OKLab nearest;
+  cold = nightmares) and `DetailPass.apply(img, Kind.WARDEN/OBSTACLE/NIGHTMARE/TILE)` /
+  `apply_sheet(sheet, Vector2i(64, 64), kind)` (rim, dither seams, texture, banded glow, smoke, then snap).
+  Every art generator runs its frames through it. `tools/art/palette_export.gd` writes
+  `assets/palette/heartwood32.{gpl,hex,json,png}` for non-Godot tools. `tests/test_palette.gd`.
 - `tools/sound_generator.gd` synthesizes every sound into `assets/audio/` (sfx 44.1 kHz; music
   stems + ambience 22 kHz, D minor 72 bpm 3/4, 20 s loops of equal length). Re-run it, then `--import`.
 - `Sound` autoload (`scripts/audio/sound.gd`): buses Music/SFX/Ambience/UI (reverb on Music/SFX,
@@ -448,6 +454,19 @@ accessibility, Steam achievements (milestones map to them). Acts 3–4 and all f
 - `shaders/blight.gdshader` — the nightmare look (the art is already dark; the shader only adds
   translucency, shimmer, glowing eyes/cores, the colour-blind outline, and the `crack` dispel effect).
 - `tests/` — headless `extends SceneTree` tests (e.g. `test_combat.gd`).
+- **UI style "Moonlit Thread"** (`documentation/ui_style.md`): `UiStyle` (`scripts/ui/ui_style.gd`, static)
+  holds the colour tokens (`INK`, `INK_DIM`, `GOLD`, `POOR`, `FOG`, `RARITY`…), the fonts
+  (`assets/ui/fonts/`, OFL: `body_font` Alegreya Sans, `display_font` / `number_font` Cormorant
+  Garamond SemiBold, `caps_font` Cormorant SC, `whisper_font`) and `make_theme()`.
+  `tools/ui_theme_generator.gd` saves it to `assets/ui/ui_theme.tres` = project `gui/theme/custom`:
+  **re-run it after changing UiStyle**. `MoonStyleBox` (fog + gold thread + diamond; `TopLine` NONE /
+  GOLD / FULL, `underline`) is every PanelContainer / tooltip / popup panel; `MoonDivider` = HSeparator.
+  Type variations: `PrimaryButton` (also what toggled buttons look like), `WardenSlot`, `TitleLabel`,
+  `NumberLabel`, `CapsLabel`, `WhisperLabel`, `FogPatch`. In code: `UiStyle.primary(button)`,
+  `title` / `display` / `number` / `caps` / `whisper(label, size)`, `card_button(button, colour)`,
+  `panel_in(colour)`, `fog_patch()`, `draw_gem(canvas, centre, r, rarity)`; don't hand-build
+  StyleBoxFlats for panels or cards. `tools/ui_preview.gd` (needs a window, not --headless) renders
+  the HUD, Dream choice and a component sheet to PNGs.
 - `scripts/ui/hud.gd` — HUD (Warden bar + 1-8 hotkeys, Dew counter).
   `world_label.gd` (`WorldLabel.draw_tag` for world-space text tags, `cost_color`),
   `dew_popup.gd` (`DewPopup`).

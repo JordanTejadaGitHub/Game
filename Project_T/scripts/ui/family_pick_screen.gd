@@ -54,7 +54,7 @@ func _ready() -> void:
 	box.add_theme_constant_override("separation", 18)
 	center.add_child(box)
 	_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_title.add_theme_font_size_override("font_size", 28)
+	UiStyle.display(_title, 28)
 	_title.add_theme_color_override("font_color", Color(0.8, 1.0, 0.8))
 	box.add_child(_title)
 	_cards.add_theme_constant_override("separation", 16)
@@ -230,16 +230,7 @@ func _make_card(data: TowerData) -> Button:
 	button.custom_minimum_size = CARD_SIZE
 	button.focus_mode = Control.FOCUS_NONE
 	button.pressed.connect(choose.bind(data))
-	var style := StyleBoxFlat.new()
-	style.bg_color = Color(0.1, 0.16, 0.13, 0.95)
-	style.border_color = Color(0.55, 0.85, 0.55)
-	style.set_border_width_all(3)
-	style.set_corner_radius_all(10)
-	button.add_theme_stylebox_override("normal", style)
-	var hover := style.duplicate() as StyleBoxFlat
-	hover.bg_color = Color(0.15, 0.24, 0.18, 0.98)
-	button.add_theme_stylebox_override("hover", hover)
-	button.add_theme_stylebox_override("pressed", hover)
+	UiStyle.card_button(button, Color(0.55, 0.85, 0.55))  # Moonlit Thread card (ui_style.md)
 
 	var box := VBoxContainer.new()
 	box.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -327,16 +318,7 @@ func _make_blessing_card(card: UpgradeData) -> Button:
 	button.custom_minimum_size = CARD_SIZE
 	button.focus_mode = Control.FOCUS_NONE
 	button.pressed.connect(choose.bind(card))
-	var style := StyleBoxFlat.new()
-	style.bg_color = Color(0.16, 0.14, 0.08, 0.95)
-	style.border_color = Color(0.95, 0.8, 0.4)
-	style.set_border_width_all(4)
-	style.set_corner_radius_all(10)
-	button.add_theme_stylebox_override("normal", style)
-	var hover := style.duplicate() as StyleBoxFlat
-	hover.bg_color = Color(0.24, 0.2, 0.1, 0.98)
-	button.add_theme_stylebox_override("hover", hover)
-	button.add_theme_stylebox_override("pressed", hover)
+	UiStyle.card_button(button, Color(0.95, 0.8, 0.4))  # Moonlit Thread card (ui_style.md)
 	var box := VBoxContainer.new()
 	box.set_anchors_preset(Control.PRESET_FULL_RECT)
 	box.offset_left = 14
