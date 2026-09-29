@@ -33,6 +33,7 @@ func _init() -> void:
 	_family_review()
 	_crowned()
 	_kinship()
+	_kinship_combat()
 	_clouds()
 	_support()
 	var file := FileAccess.open(OUT + "effects.json", FileAccess.WRITE)
@@ -1829,6 +1830,124 @@ func _save_kinship_preview() -> void:
 		y += sheet.get_height() + pad
 	out.resize(out.get_width() * 2, out.get_height() * 2, Image.INTERPOLATE_NEAREST)
 	out.save_png("res://tools/previews/effects_kinship.png")
+
+
+# --- Kinships in combat (tower_design.md "Kinships": impact on the Wardens and vines) -------------
+func _kinship_combat() -> void:
+	_sheet("kin_vine_bead", Vector2i(8, 8), 4, 12, Vector2i(4, 4), true, "kinship", _kin_vine_bead,
+		{note = "Runs along the vine from one Warden to the other when a borrowed trait fires (~0.3 s). Drawn moving right: rotate to the vine. Tint with the family colour."})
+	_sheet("kin_oldkin_arch", Vector2i(64, 32), 4, 4, Vector2i(0, 31), true, "kinship", _kin_oldkin_arch,
+		{note = "Old Kin: a flowering arch over the pair. Anchor (0, 31) = left foot, right foot at (63, 31): stretch along x between the two Wardens' bases (don't scale y). Gentle: ~50-70% alpha. Tint with the family colour."})
+	_sheet("harmony_petals_a", Vector2i(32, 32), 6, 16, Vector2i(16, 16), false, "kinship", _harmony_petals.bind(0),
+		{note = "Blooming Harmony strike: petals spiral in from the left and open half a flower. Tint with the first Warden's colour; play with harmony_petals_b."})
+	_sheet("harmony_petals_b", Vector2i(32, 32), 6, 16, Vector2i(16, 16), false, "kinship", _harmony_petals.bind(1),
+		{note = "The other half, from the right; tint with the second Warden's colour."})
+	_sheet("harmony_beam", Vector2i(32, 8), 4, 16, Vector2i(0, 4), true, "segment", _harmony_beam,
+		{note = "Old Kin Harmony strike: a beam from each Warden to the nightmare (stretch or tile along x, y = 4 on the line, 0.3-0.4 s). White: tint with the Warden's colour lerped ~30% to warm gold (#ffe890)."})
+	_sheet("harmony_bloom", Vector2i(32, 32), 6, 16, Vector2i(16, 16), false, "kinship", _harmony_bloom,
+		{note = "Where the two harmony_beams meet on the nightmare. Tint with a mix of the two colours (or warm white)."})
+
+func _kin_vine_bead(img: Image, f: int) -> void:
+	var c := Vector2(5, 4)
+	var pulse: float = [0.0, 0.5, 1.0, 0.5][f]
+	# Soft halo, a short trail behind (left), the bright bead.
+	for y in 8:
+		for x in 8:
+			var q := Vector2(x + 0.5, y + 0.5).distance_to(c) / (3.2 + pulse * 0.6)
+			if q < 1.0:
+				img.set_pixel(x, y, Color(K_LIGHT, snappedf(0.45 * (1.0 - q), 0.05)))
+	_px(img, 1, 4, Color(K_MID, 0.5))
+	_px(img, 2, 4, Color(K_LIGHT, 0.7))
+	_px(img, 3, 4, K_LIGHT)
+	_disc(img, c + Vector2(0.5, 0.5), 1.4, K_WHITE)
+
+func _kin_oldkin_arch(img: Image, f: int) -> void:
+	# A vine arch from foot to foot (peak at y 6), leaves along it, little five-petal flowers.
+	var pts: Array = []
+	for s in 33:
+		var t := s / 32.0
+		pts.append(Vector2(0.5 + t * 63.0, 31.0 - pow(sin(t * PI), 0.55) * 24.0 + sin(t * TAU * 2.0 + f * PI / 2.0) * 0.4 * sin(t * PI)))
+	for i in pts.size() - 1:
+		_line(img, pts[i], pts[i + 1], K_MID)
+		_line(img, (pts[i] as Vector2) + Vector2(0, 1), (pts[i + 1] as Vector2) + Vector2(0, 1), K_DARK)
+	# Leaves alternate sides, turning with the arch.
+	for i in range(3, 30, 4):
+		var p: Vector2 = pts[i]
+		var along: Vector2 = ((pts[i + 1] as Vector2) - (pts[i - 1] as Vector2)).normalized()
+		var side := along.orthogonal() * (1.0 if i % 8 == 3 else -1.0)
+		var sway := 0.15 * sin(f * PI / 2.0 + i)
+		_kin_leaf(img, p, (side * 0.8 + along * 0.4).rotated(sway).normalized(), 4.0, 1.4)
+	# Flowers along the top, one twinkling in turn.
+	var flowers := [8, 13, 16, 19, 24]
+	for k in flowers.size():
+		var p: Vector2 = pts[flowers[k]] + Vector2(0, -1)
+		var lit := k == f % flowers.size() or k == (f + 2) % flowers.size()
+		for d: Vector2i in [Vector2i.LEFT, Vector2i.RIGHT, Vector2i.UP, Vector2i(-1, 1), Vector2i(1, 1)]:
+			_px(img, floori(p.x) + d.x, floori(p.y) + d.y, K_LIGHT)
+		_px(img, floori(p.x), floori(p.y), K_WHITE if lit else K_MID)
+		if lit:
+			_px(img, floori(p.x), floori(p.y) - 2, Color(K_WHITE, 0.6))
+
+func _harmony_petals(img: Image, f: int, side: int) -> void:
+	var c := Vector2(16, 16)
+	var sgn := -1.0 if side == 0 else 1.0
+	if f <= 3:
+		# Three petals spiral in from this side, tumbling as they come.
+		var t := f / 3.0
+		for k in 3:
+			var a := (PI if side == 0 else 0.0) + (k - 1) * 0.7 + t * PI * 0.8 * -sgn
+			var r := 14.0 * (1.0 - t) + 2.0 + k
+			var p := c + Vector2(cos(a), sin(a)) * r
+			var dir := (c - p).normalized().rotated(0.6 * sgn + f * 0.8)
+			_kin_leaf(img, p - dir * 2.5, dir, 5.0, 2.0)
+			_px(img, floori(p.x - dir.x * 3.0), floori(p.y - dir.y * 3.0), Color(K_LIGHT, 0.5))
+	else:
+		# Half a flower opens on the point (this side's petals), then fades.
+		var open: float = [0.0, 0.0, 0.0, 0.0, 0.7, 1.0][f]
+		for k in 3:
+			var d := Vector2.from_angle(PI * 0.5 + (k + 0.5) * PI / 3.0)  # 120..240 degrees: the left half
+			var dir := d if side == 0 else Vector2(-d.x, d.y)
+			_kin_leaf(img, c + dir * 1.0, dir, 3.5 + open * 3.5, 2.0 + open * 0.6)
+		_disc(img, c, 1.5, K_WHITE)
+		if f == 5:
+			for k in 3:
+				var p := c + Vector2(sgn * (5 + k * 2), -3 + k * 3)
+				_px(img, floori(p.x), floori(p.y), Color(K_WHITE, 0.6))
+
+func _harmony_beam(img: Image, f: int) -> void:
+	# A bright core, a soft two-pixel glow either side, a pulse running along; light motes above.
+	for x in 32:
+		var run := (x + f * 3) % 12
+		var core := K_WHITE if run < 9 else K_LIGHT
+		_px(img, x, 4, core)
+		_px(img, x, 3, Color(K_LIGHT, 0.75))
+		_px(img, x, 5, Color(K_LIGHT, 0.75))
+		_px(img, x, 2, Color(K_MID, 0.3))
+		_px(img, x, 6, Color(K_MID, 0.3))
+	var dot := (f * 8) % 32
+	for d in [-1, 0, 1]:
+		_px(img, dot + d, 3, K_WHITE)
+		_px(img, dot + d, 5, K_WHITE)
+	_px(img, (dot + 12) % 32, 1, Color(K_WHITE, 0.5))
+	_px(img, (dot + 22) % 32, 7, Color(K_WHITE, 0.4))
+
+func _harmony_bloom(img: Image, f: int) -> void:
+	var c := Vector2(16, 16)
+	var t := f / 5.0
+	if f < 2:
+		_disc(img, c, 4.0 - f * 1.5, K_WHITE)
+		_ring(img, c, Vector2(5.5 + f * 2.0, 5.5 + f * 2.0), 1.0, Color(K_LIGHT, 0.9))
+	# Five petals open outward, then drift and fade.
+	var reach := 3.0 + t * 8.0
+	for k in 5:
+		var dir := Vector2.from_angle(k * TAU / 5.0 - PI / 2.0 + t * 0.4)
+		if f >= 1:
+			_kin_leaf(img, c + dir * (reach - 3.0), dir, 3.5 + (1.0 - t) * 2.0, 2.0)
+	if f >= 2:
+		_ring(img, c, Vector2(8.0 + t * 6.0, 8.0 + t * 6.0), 1.0, Color(K_MID, 0.8 - t * 0.6))
+	for k in 6:
+		var p := c + Vector2.from_angle(k * TAU / 6.0 + 0.3) * (4.0 + t * 11.0)
+		_px(img, floori(p.x), floori(p.y), Color(K_WHITE, 1.0 - t * 0.8))
 
 # --- Support and economy feedback (screens_ui.md "Support and economy feedback") -------------------
 # Kind "support". Gold is caught / harvested Dew (the ordinary Dew pop stays blue).
