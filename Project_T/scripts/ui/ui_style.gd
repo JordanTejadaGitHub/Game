@@ -370,6 +370,30 @@ static func make_theme() -> Theme:
 	theme.set_stylebox("fill", "ProgressBar", bar_fill)
 	theme.set_color("font_color", "ProgressBar", INK)
 
+	# Scroll bars: a faint fog track and a thin gold grabber (brighter under the pointer / finger).
+	var track := StyleBoxFlat.new()
+	track.bg_color = Color(FOG, 0.35)
+	track.set_corner_radius_all(3)
+	for type in ["VScrollBar", "HScrollBar"]:
+		var vertical: bool = type == "VScrollBar"
+		var thin := track.duplicate() as StyleBoxFlat
+		# 6 px wide (or tall): content margins set the bar's thickness.
+		if vertical:
+			thin.content_margin_left = 3
+			thin.content_margin_right = 3
+		else:
+			thin.content_margin_top = 3
+			thin.content_margin_bottom = 3
+		theme.set_stylebox("scroll", type, thin)
+		theme.set_stylebox("scroll_focus", type, thin)
+		for state: String in ["grabber", "grabber_highlight", "grabber_pressed"]:
+			var grab := StyleBoxFlat.new()
+			grab.bg_color = Color(GOLD, {"grabber": 0.45, "grabber_highlight": 0.75, "grabber_pressed": 0.95}[state])
+			grab.set_corner_radius_all(3)
+			theme.set_stylebox(state, type, grab)
+		for icon in ["increment", "increment_highlight", "increment_pressed", "decrement", "decrement_highlight",
+				"decrement_pressed"]:
+			theme.set_icon(icon, type, PlaceholderTexture2D.new())  # No arrow buttons
 	# Text fields.
 	var field := button_box()
 	field.bg_color = Color(FOG, 0.7)
