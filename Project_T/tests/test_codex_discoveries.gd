@@ -3,8 +3,8 @@ extends SceneTree
 # Headless test for Codex discoveries (screens_ui.md "The Codex", "Saved in the profile"):
 # - a normal run's discoveries (a base combo and a Crowned Reaction) show in the Codex right after,
 #   mid-run from the pause menu and from the Memory Grove;
-# - a developer run's (Unlock all families) are kept for the session only: shown with a "dev" mark,
-#   the header says they aren't saved, nothing reaches the profile, and they don't pause twice.
+# - a developer run's (Unlock all families) are saved too, with a hidden dev flag that keeps them out
+#   of the milestone; a later normal-run find clears it.
 # Uses temp profile / run-save files; never the player's.
 #   godot --headless --path . --script res://tests/test_codex_discoveries.gd --fixed-fps 60
 
@@ -36,7 +36,7 @@ func _run() -> void:
 	var codex: CodexPanel = pause_menu.codex
 	_check(_shown(codex, "thunderclap", "Thunderclap"), "the pause menu's Codex shows Thunderclap right away")
 	_check(_shown(codex, "tempest", "Tempest"), "…and the Crowned Tempest")
-	_check(not _has_dev_mark(codex, "thunderclap") and not codex._dev_note.visible, "no dev mark or note in a normal run")
+	_check(not _has_dev_mark(codex, "thunderclap"), "no dev mark")
 	pause_menu.close()
 	await _end_run(main)
 
@@ -54,34 +54,47 @@ func _run() -> void:
 	grove.queue_free()
 	await process_frame
 
-	# --- A developer run: session only, "dev" mark, nothing saved ---------------------------------
+	# --- A developer run: saved to the account too, with the hidden dev flag ------------------------
 	MetaRun.force_all_families = true
 	main = await _start_run()
 	feedback = root.get_tree().get_first_node_in_group(ComboFeedback.GROUP) as ComboFeedback
 	_check(MetaRun.is_dev_run(), "Unlock all families is a dev run")
 	feedback.record(&"ignite")
-	_check(not ComboFeedback.profile_seen().has("ignite"), "a dev discovery never reaches the profile")
-	_check(ComboFeedback.session_seen.has("ignite") and ComboFeedback.load_seen().has("ignite"), "…but is kept for the session")
+	_check(ComboFeedback.profile_seen().has("ignite"), "a dev-run discovery is saved to the account")
+	_check(ComboFeedback.dev_seen().has("ignite") and not ComboFeedback.dev_seen().has("thunderclap"),
+		"…with the hidden dev flag (normal finds have none)")
 	pause_menu = main.get_node("%PauseMenu")
 	pause_menu.open_codex(&"combos")
 	await process_frame
 	codex = pause_menu.codex
-	_check(_shown(codex, "ignite", "Ignite") and _has_dev_mark(codex, "ignite"), "the Codex shows it with a dev mark")
-	_check(not _has_dev_mark(codex, "thunderclap"), "saved discoveries have no dev mark")
-	_check(codex._dev_note.visible and codex._dev_note.text == "Developer run: discoveries aren't saved", "the header note")
+	_check(_shown(codex, "ignite", "Ignite") and not _has_dev_mark(codex, "ignite"), "the Codex shows it, with no mark")
 	pause_menu.close()
 	await _end_run(main)
-	# A later run the same session: already discovered (it doesn't pause again).
+	MetaRun.force_all_families = false
+	# Found again in a normal run: the flag clears (it now counts), no second discovery card.
 	main = await _start_run()
 	feedback = root.get_tree().get_first_node_in_group(ComboFeedback.GROUP) as ComboFeedback
 	var before: int = feedback.block_new.size()
 	feedback.record(&"ignite")
-	_check(feedback.block_new.size() == before, "a dev discovery doesn't pause twice in a session")
+	_check(feedback.block_new.size() == before and not ComboFeedback.dev_seen().has("ignite"),
+		"a normal-run find clears the dev flag without a second discovery")
 	await _end_run(main)
-	MetaRun.force_all_families = false
 
-	# The milestone never counts dev discoveries.
-	_check(not HeartwoodMemory.load_data().milestones.has(ComboFeedback.MILESTONE), "no milestone from dev finds")
+	# The milestone counts normal-run finds only: every combo found, one of them only in a dev run.
+	var profile := HeartwoodMemory.load_data()
+	profile[ComboFeedback.SEEN_KEY] = CodexData.combos().map(func(c: Dictionary) -> String: return String(c.id))
+	profile[ComboFeedback.DEV_KEY] = ["ignite"]
+	profile.milestones.erase(ComboFeedback.MILESTONE)
+	HeartwoodMemory.save_data(profile)
+	main = await _start_run()
+	feedback = root.get_tree().get_first_node_in_group(ComboFeedback.GROUP) as ComboFeedback
+	var probe := HeartwoodMemory.load_data()
+	feedback._check_milestone(probe)
+	_check(not probe.milestones.has(ComboFeedback.MILESTONE), "a dev-flagged combo keeps the milestone locked")
+	probe[ComboFeedback.DEV_KEY] = []
+	feedback._check_milestone(probe)
+	_check(probe.milestones.has(ComboFeedback.MILESTONE), "all found in normal runs: the milestone")
+	await _end_run(main)
 
 	ResultsScreen.demo_override = -1
 	_clean()

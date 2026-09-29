@@ -7,8 +7,8 @@ class_name ComboFeedback
 # ingredients, one line, "Added to the Codex"; Continue / Open in Codex); several queue behind one
 # pause, and it waits while a choice screen or the pause menu is open. With the Gameplay setting
 # "Pause on new combos" off, the old 5 s slide-in card instead. Saved in the profile
-# (`combos_seen`, lifetime `combo_counts`; also in the demo; never tests; developer runs keep theirs
-# for the session only: `session_seen`, a "dev" mark in the Codex), with the
+# (`combos_seen`, lifetime `combo_counts`; also in the demo; never tests; developer-run finds carry a
+# hidden flag, `combos_seen_dev`, and never count for the milestone), with the
 # "all_combos" milestone once all are found. Also counts Reactions per block for the rest report
 # (Fx shows their callouts). Sources: DamageLog combo tags (conducted, popped, fog), ReactionTracker
 # (Reactions), and ComboFeedback.report(id, near) from game code where a synergy happens (set_off,
@@ -68,19 +68,20 @@ static func report(id: StringName, near: Node, enemy: Node2D = null) -> void:
 	if feedback != null:
 		feedback.record(id, enemy)
 
-# Developer runs (Test Grove / Unlock all families; screens_ui.md "Saved in the profile"): their
-# discoveries are kept for this session only (until the game closes), never written to the profile or
-# counted for the milestone. The Codex shows them with a small "dev" mark; each pauses once a session.
-static var session_seen: Array = []
+# Discoveries are saved to the account in every run, developer runs included (screens_ui.md "Saved to
+# the account", replacing the session-only rule): a find made only in a developer run (Test Grove,
+# Unlock all families, Dev Grove) carries a hidden "dev" flag (profile combos_seen_dev), so the
+# "Discover every combo" milestone and achievement count normal-run finds only. Finding it later in
+# a normal run clears the flag. Nothing shows the flag.
+const DEV_KEY := "combos_seen_dev"
 
-# Discovered combo ids: the profile's (the old reactions_seen counts too) plus this session's dev
-# discoveries.
+# Discovered combo ids (the profile's; the old reactions_seen counts too).
 static func load_seen() -> Array:
-	var seen := profile_seen()
-	for id in session_seen:
-		if not seen.has(String(id)):
-			seen.append(String(id))
-	return seen
+	return profile_seen()
+
+# Found only in developer runs so far (the hidden flag).
+static func dev_seen() -> Array:
+	return HeartwoodMemory.load_data().get(DEV_KEY, []).duplicate()
 
 static func profile_seen() -> Array:
 	var memory := HeartwoodMemory.load_data()
@@ -90,15 +91,12 @@ static func profile_seen() -> Array:
 			seen.append(String(id))
 	return seen
 
-# Found only in a developer run this session (the Codex's "dev" mark).
-static func is_dev_discovery(id: StringName, profile: Array) -> bool:
-	return session_seen.has(String(id)) and not profile.has(String(id))
-
 func _ready() -> void:
 	add_to_group(GROUP)
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	_seen = load_seen()
+	_dev_flagged = dev_seen()
 	_card.visible = false
 	_card.mouse_filter = Control.MOUSE_FILTER_STOP
 	_card.set_anchors_preset(Control.PRESET_CENTER_TOP)
@@ -214,12 +212,14 @@ func _on_reaction(id: StringName, enemy: Node2D, chain: int, _towers: Array) -> 
 func record(id: StringName, enemy: Node2D = null) -> void:
 	run_counts[id] = run_counts.get(id, 0) + 1
 	_unsaved[id] = _unsaved.get(id, 0) + 1
-	if _seen.has(String(id)) or CodexData.get_any(id).is_empty():
+	if CodexData.get_any(id).is_empty():
+		return
+	if _seen.has(String(id)):
+		if _dev_flagged.has(String(id)) and not MetaRun.is_dev_run():
+			_clear_dev_flag(id)  # Found in a normal run now: it counts (no second discovery card)
 		return
 	_seen.append(String(id))
 	block_new.append(id)
-	if MetaRun.is_dev_run() and not session_seen.has(String(id)):
-		session_seen.append(String(id))
 	_remember_discovery(id)
 	combo_discovered.emit(id)
 	_queue.append(id)
@@ -391,27 +391,53 @@ static func summary(counts: Dictionary, longest_chain: int) -> String:
 static func pair_text(data: ReactionData) -> String:
 	return CodexData.ingredients_text({"statuses": data.statuses})
 
+# Discoveries: the real game writes them (tests never do); lifetime counts stay out of dev runs.
 func _may_write() -> bool:
-	return get_tree().current_scene == owner and not MetaRun.is_dev_run()
+	return get_tree().current_scene == owner
+
+var _dev_flagged: Array = []  # Ids found only in developer runs (loaded at _ready)
 
 func _remember_discovery(id: StringName) -> void:
+	if MetaRun.is_dev_run() and not _dev_flagged.has(String(id)):
+		_dev_flagged.append(String(id))
 	if not _may_write():
 		return
-	# Only the profile's own list plus this find: a dev discovery from earlier this session stays out.
 	var memory := HeartwoodMemory.load_data()
 	var seen: Array = memory.get(SEEN_KEY, []).duplicate()
 	if not seen.has(String(id)):
 		seen.append(String(id))
 	memory[SEEN_KEY] = seen
-	var all_seen := profile_seen() + seen
-	# The milestone counts the 15 combos only (Crowned Reactions aren't part of it).
-	if CodexData.combos().all(func(c: Dictionary) -> bool: return all_seen.has(String(c.id))):
-		memory.milestones[MILESTONE] = true  # meta_design.md "Discover every combo"
+	var dev: Array = memory.get(DEV_KEY, []).duplicate()
+	if MetaRun.is_dev_run():
+		if not dev.has(String(id)):
+			dev.append(String(id))
+	else:
+		dev.erase(String(id))
+	memory[DEV_KEY] = dev
+	_check_milestone(memory)
 	HeartwoodMemory.save_data(memory)
+
+func _clear_dev_flag(id: StringName) -> void:
+	_dev_flagged.erase(String(id))
+	if not _may_write():
+		return
+	var memory := HeartwoodMemory.load_data()
+	var dev: Array = memory.get(DEV_KEY, []).duplicate()
+	dev.erase(String(id))
+	memory[DEV_KEY] = dev
+	_check_milestone(memory)
+	HeartwoodMemory.save_data(memory)
+
+# "Discover every combo" (meta_design.md): the 15 combos (not Crowned), each found in a normal run.
+func _check_milestone(memory: Dictionary) -> void:
+	var seen: Array = memory.get(SEEN_KEY, []) + memory.get(LEGACY_KEY, [])
+	var dev: Array = memory.get(DEV_KEY, [])
+	if CodexData.combos().all(func(c: Dictionary) -> bool: return seen.has(String(c.id)) and not dev.has(String(c.id))):
+		memory.milestones[MILESTONE] = true
 
 # Lifetime counts ("times you've set it off") go to the profile at rests and at the run's end.
 func _save_counts() -> void:
-	if _unsaved.is_empty() or not _may_write():
+	if _unsaved.is_empty() or not _may_write() or MetaRun.is_dev_run():  # Lifetime counts: normal runs only
 		_unsaved.clear()
 		return
 	var memory := HeartwoodMemory.load_data()
