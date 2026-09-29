@@ -2031,7 +2031,6 @@ func _update_aura(delta: float) -> void:
 # --- Drawing and targeting ------------------------------------------------------------------------------
 
 func _draw() -> void:
-	_draw_root_links()  # Under the sprite (children draw on top)
 	_draw_empowered()
 	if tower_data.texture == null:
 		draw_placeholder(self, tower_data.placeholder_color)
@@ -2107,13 +2106,16 @@ func _refresh_root_links() -> void:
 				links.append(d)
 	if links != _root_links:
 		_root_links = links
-		queue_redraw()
+		_redraw_root_network()
 
-func _draw_root_links() -> void:
-	for d in _root_links:
-		var to := d * MAP_GRID.cell_size / 2.0  # Half-way: the neighbour draws the rest
-		draw_line(Vector2.ZERO, to, Color(ROOT_GLOW, 0.25), 7.0)
-		draw_line(Vector2.ZERO, to, Color(ROOT_GLOW, 0.8), 2.0)
+# The links are drawn once per pair by the board's RootNetworkOverlay (a vertical pair drawn here, under
+# the Sprouts' own sprites, was hidden).
+func _redraw_root_network() -> void:
+	if not is_inside_tree():
+		return
+	var overlay := RootNetworkOverlay.find(get_parent())
+	if overlay:
+		overlay.queue_redraw()
 
 # Badges in one column up the tile's left edge, clear of the rank pips along the bottom (so nothing
 # stacks on top of anything else): a leaf pair when the Warden is in a Kinship (always shown, tinted
@@ -2343,6 +2345,10 @@ func _exit_tree() -> void:
 	_nightmares = []
 	_buckets = {}
 	_nightmares_frame = -1
+	if not _root_links.is_empty() and get_parent() and get_parent().owner:
+		var overlay := get_parent().owner.get_node_or_null("RootNetworkOverlay")
+		if overlay:
+			overlay.queue_redraw()  # Its roots go with it (never made here: this may be the exit teardown)
 
 static func nightmares_near(tree: SceneTree, at: Vector2, reach: float) -> Array:
 	_nightmares_this_frame(tree)

@@ -20,7 +20,10 @@ var sapling_taken := false
 # planted keeps it. Static so screens outside a run (the Codex) can read it too.
 static var sapling_enabled := false
 
-@export var tower_scene: PackedScene = preload("res://scenes/tower/tower.tscn")
+# Loaded in _ready, not preloaded: a preload here closed a cycle (TowerPlacer -> tower.tscn -> Tower ->
+# Kinships -> TowerPlacer) that broke parsing of scripts reading tower_scene ("Cyclic reference").
+@export var tower_scene: PackedScene
+const TOWER_SCENE_PATH := "res://scenes/tower/tower.tscn"
 # Wardens that can be planted directly. Only the ones DreamState has unlocked show in the tower bar.
 @export var towers: Array[TowerData] = [
 	preload("res://resource/tower/sprout.tres"),
@@ -83,6 +86,8 @@ var settling := {}  # cell -> game seconds left
 var _settling_marks: Node2D = null
 
 func _ready() -> void:
+	if tower_scene == null:
+		tower_scene = load(TOWER_SCENE_PATH)
 	tower_data = towers[0]
 	_path_preview.width = 6.0
 	_path_preview.default_color = PREVIEW_COLOR

@@ -102,6 +102,22 @@ func _run() -> void:
 		t._refresh_neighbours()
 	_check(root_a._root_links == [Vector2(1, 0)] and root_b._root_links.has(Vector2(-1, 0)),
 		"Root Network: Sprouts side by side glow along their shared edge")
+	# A vertical pair: drawn once, by the board's overlay, between the slab fronts (a user bug: each
+	# Sprout drew half a link under its own sprite, so vertical links were hidden).
+	var root_top := _plant("sprout", Vector2(3, 12))
+	var root_under := _plant("sprout", Vector2(3, 13))
+	for t in [root_top, root_under]:
+		t._refresh_neighbours()
+	var overlay := RootNetworkOverlay.find(container)
+	var vertical := overlay.get_segments().filter(func(s) -> bool:
+		return s[0] == root_top.global_position + RootNetworkOverlay.SLAB_FRONT \
+			and s[1] == root_under.global_position + RootNetworkOverlay.SLAB_FRONT)
+	_check(vertical.size() == 1, "a vertical pair has one link in the overlay, slab front to slab front")
+	_check(overlay.z_index == 1 and overlay.get_index() == 0, "the overlay draws over the Wardens' bodies, under their pips")
+	var pairs := overlay.get_segments().size()
+	_check(pairs == 2, "each link is drawn once (%d links for the two pairs)" % pairs)
+	root_top.queue_free()
+	root_under.queue_free()
 	_check(root_c._root_links.is_empty(), "a diagonal one doesn't (only with Root Network II)")
 
 	# --- Generic cards 142-168: Sudden Bloom, Watchful Rest, Skyward Gaze, Heavy Air, Underdog ---
