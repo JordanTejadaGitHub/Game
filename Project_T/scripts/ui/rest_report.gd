@@ -69,7 +69,7 @@ func show_report(block: int) -> void:
 	_label.text = StatusLinks.bbcode(text)
 	visible = true
 
-# Random drifts (run_design.md): the block's rolled shapes, "Drifts: Swarm, Mixed, Heavy…" ("" when
+# Random drifts (run_design.md): the block's rolled shapes, "This block: Swarm, Mixed, Heavy…" ("" when
 # none of its drifts were rolled: block 1, a boss, the hand-made ones with random drifts off).
 static func templates_text(director: DriftDirector, block: int) -> String:
 	if director == null:
@@ -80,7 +80,7 @@ static func templates_text(director: DriftDirector, block: int) -> String:
 		var name := DriftRoller.template_name(director, number)
 		if name != "":
 			names.append(name)
-	return "" if names.is_empty() else "\nDrifts: " + ", ".join(names)
+	return "" if names.is_empty() else "\nThis block: " +", ".join(names)
 
 # Support and economy (screens_ui.md "Support and economy feedback", Tower Code's SupportLog): the
 # Harvest, the top supporter, what the walls and the control Wardens did. "block" for the rest

@@ -72,7 +72,7 @@ func _run() -> void:
 	_check(map_generator.map_seed == saved.seed, "the same map is rebuilt")
 	_check(_drift_prints(director) == rolled and rolled.any(func(p: String) -> bool: return p.begins_with("rolled")),
 		"the same random drifts after Continue")
-	_check(RestReport.templates_text(director, 2).begins_with("\nDrifts: ") and RestReport.templates_text(director, 1) == "",
+	_check(RestReport.templates_text(director, 2).begins_with("\nThis block: ") and RestReport.templates_text(director, 1) == "",
 		"the rest report lists the rolled block's drift shapes (%s)" % RestReport.templates_text(director, 2).strip_edges())
 	_check(run_state.dew == saved.dew and run_state.leaves == saved.leaves, "Dew and leaves restored")
 	_check(run_state.creatures_cleansed == saved.cleansed and run_state.obstacles_tended == saved.tended,
