@@ -384,15 +384,27 @@ func _parse(rows: Array, top: int = TOP) -> Dictionary:
 				stack.append(j)
 	return {grid = grid, outside = outside}
 
-# Draws the figure and returns its mask (for decorations that should only land on the golem).
+# Draws the figure and returns its mask (for decorations that should only land on the golem). The
+# two little rocks beside the golem are the same neutral stone on every Warden (ROCK_PAL).
 func _draw_template_figure(canvas: Image, pose: Dictionary, pal: Dictionary) -> Image:
 	var mask := _layer()
 	for i in S * S:
 		var ch: String = pose.grid[i]
 		if ch != "." and pose.outside[i] == 0:
-			canvas.set_pixel(i % S, i / S, pal[ch])
-			mask.set_pixel(i % S, i / S, Color.WHITE)
+			var rock := _is_rock(i % S, i / S)
+			canvas.set_pixel(i % S, i / S, ROCK_PAL[ch] if rock else pal[ch])
+			if not rock:
+				mask.set_pixel(i % S, i / S, Color.WHITE)
 	return mask
+
+# The mock's two rocks, in template pixels: left of the golem (rows 33-41, up to its left foot) and
+# right of it (rows 30-41).
+const ROCK_PAL := {o = Color("#1e1c28"), a = Color("#b9b6c6"), b = Color("#8f8ca2"), c = Color("#65627a")}
+
+func _is_rock(x: int, y: int) -> bool:
+	if y >= 33 and y <= 41 and x <= (17 if y <= 35 else 15):
+		return true
+	return y >= 30 and y <= 41 and x >= 47
 
 func _blink(canvas: Image, dy: int, skin: Color, outline: Color) -> void:
 	for ex: int in EYES:
@@ -2780,10 +2792,36 @@ func _magpie_body(canvas: Image, st: Dictionary, hoard: bool) -> void:
 		_ellipse(coin, coins[i], Vector2(2.2, 1.6), gold)
 		_stamp(canvas, coin, Color("#5a3a10"))
 	if hoard:
-		_sparkle(canvas, Vector2i([Vector2(10, 40), Vector2(52, 41), Vector2(44, 46)][(st.f / 2) % 3]), Color.WHITE)
-		var gem := _layer()
-		_flat_polygon(gem, PackedVector2Array([Vector2(16, 47), Vector2(18, 45), Vector2(20, 47), Vector2(18, 49)]), Color("#e04a6a"))
-		_stamp(canvas, gem, Color("#5a1020"))
+		# The hoard: a heaped mound of coins against the golem's left side, gems pressed into it.
+		var mound := _layer()
+		_ellipse(mound, Vector2(11, 39), Vector2(9, 7), gold, 43)
+		_ellipse(mound, Vector2(11, 42), Vector2(10, 3.4), gold)
+		_stamp(canvas, mound, Color("#5a3a10"))
+		for c: Vector2i in [Vector2i(7, 38), Vector2i(11, 35), Vector2i(15, 37), Vector2i(9, 41), Vector2i(13, 40), Vector2i(5, 42), Vector2i(17, 42)]:
+			_px(canvas, c.x, c.y, Color("#b8862a"))
+			_px(canvas, c.x + 1, c.y, Color("#fff0a0"))
+		for g: Array in [[Vector2(8, 39), Color("#e04a6a"), Color("#5a1020")], [Vector2(15, 40), Color("#4a8ae0"), Color("#102a5a")]]:
+			var gem := _layer()
+			var gp: Vector2 = g[0]
+			_flat_polygon(gem, PackedVector2Array([gp + Vector2(-1.5, 0), gp + Vector2(0, -1.8), gp + Vector2(1.5, 0), gp + Vector2(0, 1.8)]), g[1])
+			_stamp(canvas, gem, g[2])
+		_sparkle(canvas, Vector2i([Vector2(10, 38), Vector2(52, 41), Vector2(16, 40)][(st.f / 2) % 3]), Color.WHITE)
+		# A gold chain with a ruby pendant across the chest.
+		for x in range(24, 43):
+			var y := 21 + dy + roundi(sin((x - 24) / 18.0 * PI) * 3.0)
+			if mask.get_pixel(x, y).a > 0.0:
+				_px(canvas, x, y, Color("#ffe070") if x % 2 == 0 else Color("#c8902a"))
+		_px(canvas, 33, 25 + dy, Color("#e04a6a"))
+		_px(canvas, 34, 25 + dy, Color("#e04a6a"))
+		_px(canvas, 33, 26 + dy, Color("#a02040"))
+		_px(canvas, 34, 26 + dy, Color("#ff8aa8"))
+		# A little gold crown on the hood.
+		for p: Vector2i in [Vector2i(27, 4), Vector2i(28, 4), Vector2i(29, 4), Vector2i(30, 4), Vector2i(31, 4), Vector2i(32, 4), Vector2i(33, 4),
+				Vector2i(27, 3), Vector2i(30, 2), Vector2i(30, 3), Vector2i(33, 3)]:
+			_px(canvas, p.x, p.y + dy, Color("#ffd24a") if p.y == 4 else Color("#fff0a0"))
+		_px(canvas, 30, 4 + dy, Color("#e04a6a"))
+		# A second magpie guarding the hoard.
+		_magpie(canvas, Vector2(11, 29 - (1 if st.f % 4 == 3 else 0)), fig.o, st.f % 4 == 3, true, 1.6, 1)
 	var perch := _layer()
 	_stroke(perch, [Vector2(40, 20 + dy), Vector2(47, 18 + dy), Vector2(53, 19 + dy)], 1.1, Color("#7a5234"))
 	_stamp(canvas, perch, fig.o)

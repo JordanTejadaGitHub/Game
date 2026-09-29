@@ -479,8 +479,8 @@ func _golem(canvas: Image, st: Dictionary, fig: Dictionary, opts: Dictionary = {
 			var tx := floori(t.x)
 			var ty := floori(t.y)
 			var ch := _fig_at(pose, tx, ty)
-			if ch == "." or tx < 18 or tx > 47:
-				continue  # (outside columns 18-47: the mock's little rocks, out of place on the dais)
+			if ch == "." or _is_rock(tx, ty):
+				continue  # The rocks are drawn below, at 1x.
 			if ch == "o":
 				var first_x := floori((x - 1 - fo.x) / K) != tx
 				var first_y := floori((y - 1 - fo.y) / K) != ty
@@ -511,6 +511,20 @@ func _golem(canvas: Image, st: Dictionary, fig: Dictionary, opts: Dictionary = {
 					col = fig.o
 					break
 			canvas.set_pixel(x, y, col)
+	# The mock's little rocks at the golem's sides, kept at their original 1x size (at 2x they read
+	# as boulders), each tucked against the body where it touched it in the template.
+	for rock: Array in [[Rect2i(8, 33, 10, 10), Vector2i(18, 42)], [Rect2i(48, 29, 11, 14), Vector2i(47, 41)]]:
+		var box: Rect2i = rock[0]
+		var anchor: Vector2i = rock[1]
+		var at := Vector2i((fo + Vector2(anchor) * K).round())
+		for ty in range(box.position.y, box.end.y):
+			for tx in range(box.position.x, box.end.x):
+				var ch := _fig_at(pose, tx, ty)
+				if not ROCK_PAL.has(ch) or not _is_rock(tx, ty):
+					continue
+				var p := at + Vector2i(tx, ty) - anchor
+				if _in(canvas, p.x, p.y):
+					canvas.set_pixelv(p, ROCK_PAL[ch])
 	# Detail: dither where the shading bands meet, a few speckles, and a rim light (the Ascended
 	# glow) on the silhouette's lit edge.
 	var rim: Color = fig.a.lerp(st.get("halo", Color.WHITE), 0.55).lightened(0.15)
