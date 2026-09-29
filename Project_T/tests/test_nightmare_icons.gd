@@ -194,6 +194,18 @@ func _run() -> void:
 		var kind := NightmareIntro.kind_of(load("res://resource/enemy/puffcaplet.tres"))
 		NightmareIntro.session_seen.erase(kind)
 		intro._met.erase(kind)
+		# One card at a time: a second open replaces the first; the card pauses (at a rest too) and
+		# closing resumes; it's always on, whispers or not.
+		var speed_node: GameSpeed = main.get_node("%GameSpeed")
+		speed_node.set_paused(false)
+		intro.open([load("res://resource/enemy/leaf_bug.tres")], 0)
+		intro.open([load("res://resource/enemy/bark_beetle.tres")], 0)
+		_check(intro.visible and intro.shown.display_name == load("res://resource/enemy/bark_beetle.tres").display_name and intro.queue.is_empty(),
+			"a second card replaces the first (no stacking)")
+		_check(speed_node.paused, "the card stops the game, even at a rest")
+		intro.close()
+		_check(not speed_node.paused, "closing it resumes")
+		_check(NightmareIntro.enabled(), "introductions are always on")
 		NightmareIntro.pause_in_tests = true  # This part checks the mid-drift card
 		var sob: Node2D = click_spawner.spawn_enemy(load("res://resource/enemy/puffcaplet.tres"))
 		sob.set_process(false)
