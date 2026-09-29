@@ -87,6 +87,7 @@ func save_now() -> bool:
 				"target_mode": tower.target_mode, "target_chosen": tower.target_chosen, "kin_branch": tower.kin_branch, "size": tower.get_footprint(),
 				"legacy": tower.legacy_data.resource_path if tower.legacy_data else "",  # An Ascended form's final
 				"drifts_stood": int(tower.get_meta(&"drifts_stood", 0)),  # Old Growth (DreamState counts it)
+				"gift_sprout": bool(tower.get_meta(&"gift_sprout", false)),  # Never raises the Sprout price
 				"underdog": bool(tower.get_meta(&"underdog", false))})  # Underdog's mark (set at each rest)
 	var data := {
 		"version": VERSION,
@@ -161,6 +162,8 @@ func _restore(data: Dictionary) -> void:
 			tower.legacy_data = load(saved.legacy)  # The final form it grew from (its legacy attack)
 		if int(saved.get("drifts_stood", 0)) > 0:  # Old Growth: drifts this Warden has stood
 			tower.set_meta(&"drifts_stood", int(saved.drifts_stood))
+		if bool(saved.get("gift_sprout", false)):
+			tower.set_meta(&"gift_sprout", true)
 		if bool(saved.get("underdog", false)):
 			tower.set_meta(&"underdog", true)
 		# Ascended forms grew to 2×2: one saved before that (no "size") stays on its one cell.
