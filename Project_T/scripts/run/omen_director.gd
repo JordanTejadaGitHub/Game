@@ -15,6 +15,9 @@ const TREE := preload("res://resource/obstacle/tree.tres")  # Shifting Ground's 
 # The Omens for block `block` (drifts first..last) are ready; the Omen screen pauses and shows them.
 signal offer_ready(omens: Array[OmenData], block: int)
 signal offer_closed
+# Ask first (run_design.md "Omens"): after the Dream, a small prompt instead of the cards.
+signal prompt_ready(block: int)
+signal prompt_closed
 signal omen_started(omen: OmenData, first_drift: int, last_drift: int)
 # `summary`: what the reward gave, e.g. "+60 Dew, regrow 2 leaves".
 signal omen_rewarded(omen: OmenData, summary: String)
@@ -22,6 +25,12 @@ signal omen_rewarded(omen: OmenData, summary: String)
 @export var pool: Array[OmenData] = []  # Empty = every Omen in res://resource/omen/
 @export var first_rest_drift: int = 10
 @export var omens_per_offer: int = 2
+
+const MODE_SETTING := "omens"  # Settings > Gameplay: "ask" (default) or "never"
+var force_omen := false  # Blight Levels that force an Omen: no prompt, the cards at once, no Clear Skies
+var mode_override := ""  # Tests and tools: "ask" / "never" instead of the player's setting
+var showing := false  # The cards are open (not just the prompt)
+var forced := false  # The open offer can't be declined ("An Omen must be faced")
 
 var active: OmenData = null
 var active_block := 0  # The block `active` twists
@@ -63,8 +72,28 @@ static func load_pool() -> Array[OmenData]:
 
 # --- Queries (DriftDirector, UI) -------------------------------------------------------------------
 
+# The two Omen cards are open (the choice screen; pauses). While only the prompt is up, this is false.
 func is_offering() -> bool:
-	return not current_offer.is_empty()
+	return showing and not current_offer.is_empty()
+
+# "The wind carries an Omen. Face one for a reward?" is waiting for an answer (doesn't pause or block).
+func is_prompting() -> bool:
+	return not showing and not current_offer.is_empty()
+
+# "ask" (a prompt each Omen rest, the default) or "never" (always Clear Skies, no prompt).
+func get_mode() -> String:
+	if mode_override != "":
+		return mode_override
+	return str(HeartwoodMemory.get_settings().get(MODE_SETTING, "ask"))
+
+# The prompt's "See the Omens": opens the two cards.
+func see_omens() -> void:
+	if is_prompting():
+		_show_cards()
+
+func _show_cards() -> void:
+	showing = true
+	offer_ready.emit(current_offer, current_offer_block)
 
 # First and last drift of block `block`.
 func get_block_range(block: int) -> Vector2i:
@@ -249,6 +278,8 @@ func get_free_cells() -> Array[Vector2]:
 
 # Shifting Ground: Withered Trees sprout on free cells at the start of its block (once).
 func _on_drift_started(number: int) -> void:
+	if is_prompting():
+		choose(null)  # Start without answering = Clear Skies
 	if not is_active_for(number) or active.sprout_obstacles <= 0 or _sprouted_block == active_block:
 		return
 	_sprouted_block = active_block
@@ -267,8 +298,10 @@ func _on_obstacle_cleared(_cell: Vector2, data: ObstacleData) -> void:
 		run_state.omen_seeds += tree_seed_bonus
 
 # Picks `omen` for the offered block; null = Clear Skies.
+# Picks `omen` for the offered block; null = Clear Skies (from the prompt or the cards; not when the
+# Omen is forced).
 func choose(omen: OmenData) -> void:
-	if not is_offering() or (omen != null and not current_offer.has(omen)):
+	if current_offer.is_empty() or (omen != null and not current_offer.has(omen)) or (omen == null and forced):
 		return
 	if omen != null:
 		active = omen
@@ -276,7 +309,12 @@ func choose(omen: OmenData) -> void:
 		var drifts := get_block_range(active_block)
 		omen_started.emit(omen, drifts.x, drifts.y)
 	current_offer = []
-	offer_closed.emit()
+	var was_showing := showing
+	showing = false
+	forced = false
+	prompt_closed.emit()
+	if was_showing:
+		offer_closed.emit()
 
 func _on_rest_started(block: int, _is_boss_rest: bool, bonus: int, _perfect: bool) -> void:
 	# Pay first, so "next Dream" rewards count for this rest's Dream (its offer is built deferred).
@@ -297,7 +335,13 @@ func _try_show() -> void:
 	if not _offer_waiting or dream_state.is_offering() or dream_state.has_pending_offer():
 		return
 	_offer_waiting = false
-	offer_ready.emit(current_offer, current_offer_block)
+	if force_omen:  # A Blight Level: the cards at once, and one must be taken
+		forced = true
+		_show_cards()
+	elif get_mode() == "never":
+		current_offer = []  # Always Clear Skies, no prompt
+	else:
+		prompt_ready.emit(current_offer_block)
 
 func _pay_reward(rest_bonus: int) -> void:
 	var omen := active
@@ -328,6 +372,8 @@ func _pay_reward(rest_bonus: int) -> void:
 
 # The run was won during an Omen's block: there's no rest after it, so pay now (Seeds still count).
 func _on_run_ended(won: bool) -> void:
+	showing = false
+	forced = false
 	current_offer = []
 	_offer_waiting = false
 	if won and active != null:
@@ -357,6 +403,7 @@ func _block_flyers(drifts: Vector2i) -> Array[EnemyData]:
 func to_save() -> Dictionary:
 	return {"active": active.id if active != null else "", "active_block": active_block,
 		"last_offer": _last_offer_ids.duplicate(), "tree_seed_bonus": tree_seed_bonus, "sprouted_block": _sprouted_block,
+		"offer": current_offer.map(func(o: OmenData) -> String: return o.id), "offer_block": current_offer_block,
 		"rng_state": str(_rng.state)}
 
 func load_save(data: Dictionary) -> void:
@@ -365,6 +412,17 @@ func load_save(data: Dictionary) -> void:
 	_last_offer_ids.assign(data.get("last_offer", []))
 	tree_seed_bonus = int(data.get("tree_seed_bonus", 0))
 	_sprouted_block = int(data.get("sprouted_block", 0))
+	# An unanswered Omen prompt comes back as the prompt (the cards are never open at a save)
+	current_offer = []
+	showing = false
+	for offered_id in data.get("offer", []):
+		for omen in pool:
+			if omen.id == offered_id:
+				current_offer.append(omen)
+	current_offer_block = int(data.get("offer_block", 0))
+	if not current_offer.is_empty():
+		_offer_waiting = true
+		_try_show.call_deferred()
 	var id: String = data.get("active", "")
 	for omen in pool:
 		if omen.id == id:

@@ -30,6 +30,9 @@ func _test_flow(main: Node) -> void:
 	var director: DriftDirector = main.get_node("%DriftDirector")
 	var offers := []
 	omens.offer_ready.connect(func(o: Array, block: int) -> void: offers.append([o, block]))
+	var prompts := []
+	omens.prompt_ready.connect(func(block: int) -> void: prompts.append(block))
+	omens.mode_override = "ask"  # Not the player's setting
 	director.drifts_started = 5
 	director.rest_started.emit(1, false, 30, true)
 	await _frames(2)
@@ -44,15 +47,58 @@ func _test_flow(main: Node) -> void:
 	_check(dreams.is_offering() and offers.is_empty(), "the Dream comes before the Omens")
 	dreams.skip()
 	await _frames(2)
-	_check(offers.size() == 1 and offers[0][1] == 3, "Omens offered for block 3 after the Dream closes")
+	# Ask first: a small prompt (no pause, no cards); See the Omens opens them
+	_check(prompts == [3] and offers.is_empty() and omens.is_prompting() and not paused,
+		"after the Dream: the Omen prompt for block 3, no cards, no pause")
+	omens.see_omens()
+	_check(offers.size() == 1 and offers[0][1] == 3, "See the Omens: the cards for block 3")
 	var offer: Array = offers[0][0] if not offers.is_empty() else []
 	_check(offer.size() == 2 and offer[0] != offer[1], "2 different Omens")
 	var has_flyers := omens._block_has_flyers(omens.get_block_range(3))
 	_check(has_flyers or not offer.any(func(o: OmenData) -> bool: return o.requires_flyers),
 		"no Moth Night without flyers in the block")
-	_check(paused, "the game pauses for Omens")
+	_check(paused, "the game pauses for the cards")
 	omens.choose(null)
-	_check(omens.active == null and not omens.is_offering() and not paused, "Clear Skies: nothing changes")
+	_check(omens.active == null and not omens.is_offering() and not paused, "Back to Clear Skies: nothing changes")
+
+	# Starting the next drift with the prompt unanswered = Clear Skies
+	director.drifts_started = 15
+	omens.current_offer = omens.make_offer(4)
+	omens.current_offer_block = 4
+	omens.showing = false
+	_check(omens.is_prompting(), "a prompt is waiting")
+	omens._on_drift_started(16)
+	_check(not omens.is_prompting() and omens.active == null, "…Start without answering: Clear Skies")
+	# Never: no prompt at all
+	omens.mode_override = "never"
+	omens.current_offer = omens.make_offer(4)
+	omens._offer_waiting = true
+	prompts.clear()
+	omens._try_show()
+	_check(prompts.is_empty() and not omens.is_prompting(), "Omens: Never = always Clear Skies, no prompt")
+	# A Blight Level that forces an Omen: the cards at once, no Clear Skies
+	omens.mode_override = "ask"
+	omens.force_omen = true
+	omens.current_offer = omens.make_offer(4)
+	omens._offer_waiting = true
+	omens._try_show()
+	var forced_offer: Array = omens.current_offer.duplicate()
+	omens.choose(null)
+	_check(omens.is_offering() and omens.forced, "a forced Omen can't be declined")
+	omens.choose(forced_offer[0])
+	_check(omens.active == forced_offer[0] and not omens.is_offering(), "…one is faced")
+	omens.force_omen = false
+	omens.active = null
+	omens._last_offer_ids.clear()
+	# An unanswered prompt survives a save (the run autosaves at rests while it waits)
+	omens.current_offer = omens.make_offer(4)
+	omens.current_offer_block = 4
+	var saved := omens.to_save()
+	omens.current_offer = []
+	omens.load_save(JSON.parse_string(JSON.stringify(saved)))
+	_check(omens.current_offer.size() == 2 and omens.current_offer_block == 4 and not omens.showing, "an unanswered Omen prompt comes back after a save")
+	omens.current_offer = []
+	omens._offer_waiting = false
 
 func _test_twists(main: Node) -> void:
 	var omens: OmenDirector = main.get_node("%OmenDirector")
@@ -107,7 +153,7 @@ func _test_rewards(main: Node) -> void:
 	var dew := run_state.dew
 	omens._on_rest_started(3, false, 50, true)
 	_check(run_state.dew == dew + 40 and omens.active == null, "Crowded Paths pays 40 Dew at the rest after its block (act 1)")
-	_check(omens.is_offering(), "a new Omen offer follows at the same rest")
+	_check(omens.is_prompting() or omens._offer_waiting, "a new Omen offer (its prompt) follows at the same rest")
 	omens.current_offer = []
 	omens._offer_waiting = false
 
@@ -163,6 +209,15 @@ func _test_new_omens(main: Node) -> void:
 		by_id[omen.id] = omen
 	# Offer rules: two different kinds, never an Omen from the previous rest
 	omens._last_offer_ids.clear()
+	# An unanswered prompt survives a save (the run autosaves at rests while it waits)
+	omens.current_offer = omens.make_offer(4)
+	omens.current_offer_block = 4
+	var saved := omens.to_save()
+	omens.current_offer = []
+	omens.load_save(JSON.parse_string(JSON.stringify(saved)))
+	_check(omens.current_offer.size() == 2 and omens.current_offer_block == 4 and not omens.showing, "an unanswered Omen prompt comes back after a save")
+	omens.current_offer = []
+	omens._offer_waiting = false
 	var previous: Array = []
 	var ok_kinds := true
 	var no_repeat := true

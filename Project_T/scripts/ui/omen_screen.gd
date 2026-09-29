@@ -19,6 +19,7 @@ var _cards := HBoxContainer.new()
 var _clear_skies := Button.new()
 var _active_tag := Label.new()
 var peek: ChoicePeek  # Minimise to look at the map (screens_ui.md "Choice screens")
+var _prompt := PanelContainer.new()  # "The wind carries an Omen. Face one for a reward?" (Ask first)
 
 func _ready() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -41,7 +42,7 @@ func _ready() -> void:
 	_cards.add_theme_constant_override("separation", 16)
 	_cards.alignment = BoxContainer.ALIGNMENT_CENTER
 	box.add_child(_cards)
-	_clear_skies.text = "Clear Skies  (nothing changes)"
+	_clear_skies.text = "Back to Clear Skies  (nothing changes)"
 	_clear_skies.focus_mode = Control.FOCUS_NONE
 	_clear_skies.pressed.connect(omens.choose.bind(null))
 	var skip_row := CenterContainer.new()
@@ -62,6 +63,9 @@ func _ready() -> void:
 	_active_tag.visible = false
 	get_parent().add_child.call_deferred(_active_tag)
 
+	_build_prompt()
+	omens.prompt_ready.connect(_show_prompt)
+	omens.prompt_closed.connect(func() -> void: _prompt.visible = false)
 	omens.offer_ready.connect(_show_offer)
 	omens.offer_closed.connect(_on_closed)
 	omens.omen_started.connect(_on_omen_started)
@@ -73,6 +77,9 @@ func _show_offer(offer: Array[OmenData], block: int) -> void:
 	game_speed.set_paused(true)
 	var drifts := omens.get_block_range(block)
 	_title.text = "The wind brings Omens for drifts %d–%d" % [drifts.x, drifts.y]
+	if omens.forced:
+		_title.text = "An Omen must be faced  ·  drifts %d–%d" % [drifts.x, drifts.y]
+	_clear_skies.visible = not omens.forced
 	for child in _cards.get_children():
 		child.queue_free()
 	var act := drift_director.get_act(drifts.y)
@@ -132,3 +139,60 @@ func _toast(text: String) -> void:
 	var hud := get_parent()
 	if hud.has_method("show_toast"):
 		hud.show_toast(text)
+
+# --- Ask first (run_design.md "Omens") ----------------------------------------------------------------
+# A small prompt beside Start instead of the cards: it doesn't pause or block building. Clear Skies is
+# the default: its button, Esc, right-click or a tap outside; starting the next drift answers it too.
+
+func _build_prompt() -> void:
+	_prompt.add_theme_stylebox_override("panel", UiStyle.panel(14, 10))
+	_prompt.mouse_filter = Control.MOUSE_FILTER_STOP
+	_prompt.visible = false
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation", 8)
+	_prompt.add_child(box)
+	var ask := Label.new()
+	ask.text = "The wind carries an Omen.\nFace one for a reward?"
+	ask.add_theme_color_override("font_color", OMEN_COLOR)
+	box.add_child(ask)
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 8)
+	box.add_child(row)
+	var see := Button.new()
+	see.text = "See the Omens"
+	see.focus_mode = Control.FOCUS_NONE
+	see.pressed.connect(omens.see_omens)
+	row.add_child(see)
+	var clear := Button.new()
+	clear.text = "Clear Skies"
+	clear.focus_mode = Control.FOCUS_NONE
+	clear.add_theme_stylebox_override("normal", UiStyle.primary_box())  # The default, highlighted
+	clear.add_theme_stylebox_override("hover", UiStyle.primary_box(true))
+	clear.pressed.connect(omens.choose.bind(null))
+	row.add_child(clear)
+	get_parent().add_child.call_deferred(_prompt)
+
+func _show_prompt(_block: int) -> void:
+	_prompt.visible = true
+	_place_prompt.call_deferred()
+
+# Beside Start: just left of the DriftPanel, bottom-aligned with it.
+func _place_prompt() -> void:
+	var drift_panel := get_parent().get_node_or_null("DriftPanel") as Control
+	var size := _prompt.get_combined_minimum_size()
+	_prompt.size = size
+	if drift_panel:
+		var rect := drift_panel.get_global_rect()
+		_prompt.global_position = Vector2(rect.position.x - size.x - 12, rect.end.y - size.y)
+	else:
+		var screen := get_viewport_rect().size
+		_prompt.global_position = screen - size - Vector2(16, 16)
+
+func _input(event: InputEvent) -> void:
+	if not _prompt.visible or not omens.is_prompting():
+		return
+	var tapped: bool = event is InputEventMouseButton and event.pressed
+	if event.is_action_pressed("ui_cancel") or (tapped and event.button_index == MOUSE_BUTTON_RIGHT) \
+			or (tapped and event.button_index == MOUSE_BUTTON_LEFT and not _prompt.get_global_rect().has_point(event.position)) \
+			or (event is InputEventScreenTouch and event.pressed and not _prompt.get_global_rect().has_point(event.position)):
+		omens.choose(null)  # Clear Skies; the click itself still goes through (building isn't blocked)
