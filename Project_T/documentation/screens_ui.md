@@ -548,6 +548,17 @@ more clear with icons of their resistances"):
     by click, tap or Esc; reopen from its portrait in the Coming strip.
   - A type that first appears mid-block also gets a **2-second name plate** when the first one
     spawns (no pause), like the boss name plate.
+  - **Always centred** (2026-09-28, user: "make the new enemies appear in the middle of the screen"):
+    the intro card is a centred modal, like the boss dossier and the Dream screen, never a side
+    panel or corner toast. When the first one of a never-seen type **spawns** without having been
+    introduced at a rest (a split child, a summon, an Omen extra), the game **pauses** and shows the
+    centred card then, instead of the name plate.
+  - **Click or tap any nightmare** on the map (user: "also when you click on the enemies, same with
+    bosses"): the game pauses and opens its **centred card**: the intro card for a regular nightmare,
+    the **boss dossier** for a boss, plus that nightmare's live state (health, statuses, Restless
+    stacks). Close with a click outside, Esc or the ✕; the game resumes at its previous speed. Hover
+    still shows the small nightmare info at the side. (With a Warden selected or in build mode, a
+    click on a nightmare still does that mode's action first.)
   - Once ever per type (dev runs: per session). Off with the "Heartwood whispers" setting.
   - Data: the nightmare's `trait_text` plus a new `intro_lines` (what it does) and `hint`
     (Enemy Code, same voice as the boss tips).
