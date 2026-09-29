@@ -307,14 +307,16 @@ drift 10 on**, after the Dream, the wind brings **2 Omens**. Pick one to change 
 (5 drifts) for a reward, or keep **Clear Skies** (the default: nothing changes). This is optional
 risk: players set their own difficulty block by block.
 
-- **Ask first** (2026-09-28, user: "it seems like Omens are mandatory"). The rest shows a small
-  prompt, not the choice screen: *"The wind carries an Omen. Face one for a reward?"* with
-  **See the Omens** and **Clear Skies** (the default, highlighted; Esc / right-click / tapping
-  outside picks it). Only **See the Omens** opens the two cards, which also have a **Back to Clear
-  Skies** button. The prompt sits beside Start and doesn't pause or block building; pressing Start
-  without answering means Clear Skies. Setting (Gameplay): **Omens: Ask each rest / Never** (Never
-  = always Clear Skies, no prompt). Blight Levels that force an Omen skip the prompt and show the
-  cards with "An Omen must be faced".
+- **Shown like a Dream, with Clear Skies as a card** (2026-09-28, user: first "it seems like Omens
+  are mandatory", then "the Omens should appear like a Dream card, not in the bottom right"; this
+  replaces the small ask-first prompt beside Start). After the Dream, the Omen screen opens
+  **centred, in the Dream screen's layout**: the title *"The wind carries Omens"* and **three cards
+  side by side**: the two Omens (name, what changes this block, the reward in gold, the Omen art)
+  and **Clear Skies** (a calm moonlit card: *"Nothing changes. No reward."*), which is highlighted
+  as the default. Esc and right-click pick Clear Skies; "Peek at the map" works as on the Dream
+  screen. Setting (Gameplay): **Omens: Ask each rest / Never** (Never = no screen, always Clear
+  Skies). Blight Levels that force an Omen show only the two Omen cards with "An Omen must be
+  faced".
 - An Omen affects only the **next block**. Bosses themselves ignore Omens (their escorts don't).
 - Rewards are paid at the rest **after** the block, and only if the Heartwood is still standing.
   Losing leaves doesn't cancel the reward.

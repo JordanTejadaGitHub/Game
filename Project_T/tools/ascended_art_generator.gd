@@ -438,12 +438,6 @@ func _halo(canvas: Image, st: Dictionary, color: Color) -> void:
 # outline runs keep only their first row / column, and the silhouette gets a fresh 1 px outline).
 # Sets gh (head centre) and gb (belly centre) in frame px for the accessories. Returns its mask.
 const K := 2.0
-# Sitting like Baymax (template px): below LOWER_T the template is replaced by a round bottom that
-# rests flat on the ground at SEAT_FLOOR_T, plus two stubby feet in front.
-const LOWER_T := 38.0
-const SEAT_C_T := Vector2(32.0, 39.5)
-const SEAT_R_T := Vector2(15.5, 8.0)
-const SEAT_FLOOR_T := 47.0
 const HEAD_T := Vector2(30.0, 11.5)  # head centre in template px
 const BELLY_T := Vector2(34.0, 30.0)
 const BELL_HAND_T := Vector2(42.0, 32.0)  # the side arm's hand, template px
@@ -472,6 +466,11 @@ func _ascended_pose(pose: Dictionary) -> Dictionary:
 	for i in S * S:
 		if grid[i] != "." and outside[i] == 0 and _is_rock(pose, i % S, i / S):
 			grid[i] = "."
+	# The centre foot joins the backside: its right-hand outline (x 33) becomes body.
+	for ty in range(39, 45):
+		var i := ty * S + 33
+		if grid[i] == "o":
+			grid[i] = "b"
 	var result := {grid = grid, outside = outside}
 	_asc_pose_cache[key] = result
 	return result
@@ -520,23 +519,19 @@ func _golem(canvas: Image, st: Dictionary, fig: Dictionary, opts: Dictionary = {
 			if not colors.has(ch):
 				continue
 			body.set_pixel(x, y, colors[ch])
-	# Sitting like Baymax: below the hands the template's patchwork of legs and rocks is cleared, and
-	# the golem gets one wide round bottom resting flat on the waystone (part of the body, no seam).
+	# Where the front rock stood: the backside. From the feet (front middle, on the ground) its
+	# outline curves round and up to the body's right side, a tapering quarter-oval.
+	var butt_c := Vector2(33.0, 37.0)  # template px: the curve's corner, right over the centre foot
+	var butt_r := Vector2(12.0, 8.5)
 	for y in 128:
 		for x in 128:
 			var t := (Vector2(x + 0.5, y + 0.5) - fo - Vector2(0, dy)) / K
-			if t.y >= LOWER_T and t.x > 12.0 and t.x < 50.0:
-				body.set_pixel(x, y, Color(0, 0, 0, 0))
-	for y in 128:
-		for x in 128:
-			var t := (Vector2(x + 0.5, y + 0.5) - fo - Vector2(0, dy)) / K
-			if t.y > SEAT_FLOOR_T or body.get_pixel(x, y).a > 0.0:
+			if t.x < butt_c.x or t.y < butt_c.y or body.get_pixel(x, y).a > 0.0:
 				continue
-			var d := (t - SEAT_C_T) / SEAT_R_T
-			var q := d.length_squared()
-			if q > 1.0:
+			var d := (t - butt_c) / butt_r
+			if d.length_squared() > 1.0:
 				continue
-			body.set_pixel(x, y, _shade(fig.ramp, Vector3(d.x, d.y * 0.6, sqrt(1.0 - q)).normalized()))
+			body.set_pixel(x, y, colors["c" if d.length_squared() > 0.72 else ("a" if t.x > 41.0 else "b")])
 	# Fresh 1 px outline round the silhouette.
 	var mask := _gnew(canvas)
 	for y in 128:
@@ -551,12 +546,6 @@ func _golem(canvas: Image, st: Dictionary, fig: Dictionary, opts: Dictionary = {
 					col = fig.o
 					break
 			canvas.set_pixel(x, y, col)
-	# Two short stubby feet poking out in front, turned a little outward, each with its own outline.
-	for foot_t: Array in [[Vector2(24.0, 45.6), 0.25], [Vector2(40.0, 45.6), -0.25]]:
-		var foot := _gnew(canvas)
-		_gell(foot, fo + (foot_t[0] as Vector2) * K + Vector2(0, dy), Vector2(4.2, 2.7) * K, fig.ramp, foot_t[1])
-		_gstamp(canvas, foot, fig.o)
-		_gstamp(mask, foot)
 	# Detail: dither where the shading bands meet, a few speckles, and a rim light (the Ascended
 	# glow) on the silhouette's lit edge.
 	var rim: Color = fig.a.lerp(st.get("halo", Color.WHITE), 0.55).lightened(0.15)

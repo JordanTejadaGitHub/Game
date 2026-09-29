@@ -118,11 +118,10 @@ func _process(_delta: float) -> void:
 	var next := latest + 1
 
 	_start_button.disabled = not drift_director.can_start_next_drift()
-	# Remember reopens at any rest once a family is owned (after the first pick).
-	_remember_button.visible = drift_director.is_resting() and not drift_director.awaiting_family_pick \
-		and latest > 0 and not run_state.is_over
-	_remember_button.text = "Remember (%d)" % dream_state.dreamlight
-	_sapling_button.visible = _remember_button.visible and _sapling_waiting()
+	# Remember moved to the top right (HUD RememberButton, run_design.md); this one stays hidden.
+	_remember_button.visible = false
+	_sapling_button.visible = drift_director.is_resting() and not drift_director.awaiting_family_pick \
+		and latest > 0 and not run_state.is_over and _sapling_waiting()
 	var block_end := drift_director.get_block(maxi(latest, 1)) * drift_director.drifts_per_block
 	if drift_director.awaiting_family_pick:
 		_status_label.text = "Choose a Warden family…"

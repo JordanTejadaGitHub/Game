@@ -25,7 +25,9 @@ const COUNTER_ICON_GAP := 6.0
 
 const LEAVES_COLOR := UiStyle.INK
 const DREAMLIGHT_COLOR := UiStyle.GOLD
-const MENU_BUTTON_RIGHT := -284.0  # Left of the Dreamlight counter and the Dew
+const REMEMBER_RIGHT := -284.0  # Remember: just left of the Dreamlight counter (run_design.md)
+const REMEMBER_WIDTH := 124.0
+const MENU_BUTTON_RIGHT := REMEMBER_RIGHT - REMEMBER_WIDTH - 8.0  # Menu and ? left of Remember
 const LEAF_LOST_COLOR := Color(1.0, 0.6, 0.3)
 const TOAST_TIME := 2.5
 
@@ -69,6 +71,7 @@ func _ready() -> void:
 	_on_leaves_changed(run_state.leaves, run_state.max_leaves)
 	_add_dreamlight_counter()
 	_add_menu_button()
+	_add_remember_button()
 	# "Coming this block" (top centre, under the drift banner) and the new-nightmare introduction
 	# card (before the dossier in the rest order), both from screens_ui.md.
 	var strip := ComingStrip.new(drift_director)
@@ -426,3 +429,65 @@ func show_toast(text: String) -> void:
 # First idle frame of the tower's sheet.
 func _tower_icon(data: TowerData) -> Texture2D:
 	return WardenIcon.make(data)  # Big Wardens (the Sapling) cropped to the bottom centre
+
+# --- Remember (run_design.md "The Remember screen, fleshed out") ----------------------------------
+# Top right beside the Dreamlight counter, always there: opens the Remember screen (DreamState
+# .open_remember; the screen is Roguelite's). It glows while something can be unlocked with the
+# Dreamlight you have (DreamState.can_unlock). Mid-drift it pauses the game first (the screen's
+# close resumes through GameSpeed if it was running).
+
+var remember_button := Button.new()
+var _remember_glow := 0.0
+
+func _add_remember_button() -> void:
+	remember_button.name = "RememberButton"
+	remember_button.text = "Remember"
+	remember_button.tooltip_text = "Remember: spend Dreamlight on your families' branches and final forms."
+	remember_button.focus_mode = Control.FOCUS_NONE
+	remember_button.set_anchors_preset(Control.PRESET_TOP_RIGHT)
+	remember_button.offset_right = REMEMBER_RIGHT
+	remember_button.offset_left = REMEMBER_RIGHT - REMEMBER_WIDTH
+	remember_button.offset_top = 12
+	remember_button.offset_bottom = 60
+	remember_button.grow_horizontal = Control.GROW_DIRECTION_BEGIN
+	remember_button.process_mode = Node.PROCESS_MODE_ALWAYS
+	remember_button.pressed.connect(open_remember)
+	add_child(remember_button)
+
+func open_remember() -> void:
+	if run_state.is_over:
+		return
+	var speed := get_node_or_null("%GameSpeed") as GameSpeed
+	if speed != null and not drift_director.is_resting() and not speed.paused:
+		speed.set_paused(true)  # A drift is walking: time stops while you choose
+	dream_state.open_remember()
+
+# Something the Dreamlight on hand can unlock now (a branch, final or Ascended form of a family you own).
+func can_remember_something() -> bool:
+	if dream_state.dreamlight <= 0:
+		return false
+	for tree in dream_state.get_remember_trees():
+		var forms: Array = []
+		for branch in tree[1]:
+			forms.append(branch[0])
+			forms.append_array(branch[1])
+		if tree[2] != null:
+			forms.append(tree[2])
+		for form in forms:
+			if dream_state.can_unlock(form):
+				return true
+	return false
+
+var _remember_check := 0.0
+var _remember_ready := false
+
+func _process(delta: float) -> void:
+	var real := delta / maxf(Engine.time_scale, 0.001)
+	_remember_check -= real
+	if _remember_check <= 0.0:  # can_unlock walks every family's tree: 4 times a second is plenty
+		_remember_check = 0.25
+		_remember_ready = can_remember_something()
+		remember_button.text = "Remember ✦" if _remember_ready else "Remember"
+	_remember_glow += real
+	remember_button.modulate = Color.WHITE.lerp(Color(1.35, 1.2, 0.8), 0.5 + 0.5 * sin(_remember_glow * 4.0)) \
+		if _remember_ready else Color.WHITE
