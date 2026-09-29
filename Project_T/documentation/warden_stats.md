@@ -153,7 +153,7 @@ adds +5%. Clouds, fog, Spored, Static bolts and Puffball pops never crit.
 | ✓ Mistveil | branch | +45 | 2.5 | 8 × 0.5 | cloud | cloud (fog) | fog on the path (radius 0.9, 4 s): Damp, and **Spored ticks +50%** inside (proposed value) |
 | Morning Fog | final | +90 | 3 | 10 × 0.5 | cloud | cloud (fog) | fog radius **1.25**, 5 s: Damp, slows 15%, **1 Drowsy per second** inside |
 | ✓ Frostfern *(hidden)* | branch | +45 | 2.5 | 16 × 1.0 | 16 | projectile | hits on **Damp** nightmares **freeze** them (Held 0.75 s; once per 4 s per nightmare) |
-| ✓ Hoarfrost *(hidden)* | final | +90 | 3 | 26 × 1.0 | 26 | projectile | splash 0.75; freeze **1 s**; +20% crit chance vs Held |
+| ✓ Hoarfrost *(hidden)* | final | +90 | 3 | 26 × 1.0 | 26 | projectile | splash 0.75; freeze **1 s**; +20% crit chance vs Held. **Buffed 2026-09-28** (probe: ~1.6% share and contribution; the freeze rarely landed): each hit also adds **1 Soaked** (melting frost), so it sets up its own freeze; freeze at **2 Soaked** on the target; damage **26 → 32**. Target ~6–8% |
 
 ## Firefly Jar family (light)
 
@@ -165,7 +165,7 @@ adds +5%. Clouds, fog, Spored, Static bolts and Puffball pops never crit.
 | ✓ Lanternmoth | branch | +45 | 4.5 | 12 × 1.0 | 12 | projectile | Marked; **reveals** fog-hidden creatures in range |
 | Beacon | final | +90 | 5 | 16 × 1.0 | 16 | projectile + pulse | every 2 s, **Marks everything** in range; its Marked is **+35%** |
 | ✓ Sunpetal *(hidden)* | branch | +45 | 3.5 | 12/s, ramping | 12 → 48 | beam | ramps +25% per second on one target (max ×4); ramps **2× as fast** on Drowsy or Held |
-| ✓ Midsummer *(hidden)* | final | +90 | 4 | 18/s, ramping | 18 → 90 | beam | ramps +35%/s (max ×5), 2× on Drowsy/Held; beam **also hits the nightmare right behind** its target at 50% |
+| ✓ Midsummer *(hidden)* | final | +90 | 4 | 18/s, ramping | 18 → 90 | beam | ramps +35%/s (max ×5), 2× on Drowsy/Held; beam **also hits the nightmare right behind** its target at 50%. **Buffed 2026-09-28** (probe: ~3%): starts at **24/s** (was 18) and keeps **half its ramp** for 1 s when it switches target (it used to restart). Target ~6–8% |
 
 ## Pebbling family (stone) — heavy hits: close, far, area
 

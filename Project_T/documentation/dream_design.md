@@ -749,7 +749,7 @@ Design and effects: `tower_design.md`, "Reactions". Starting points for tuning.
 
 | Reaction | Trigger | Effect | Uses up | Bosses |
 |---|---|---|---|---|
-| **Thunderclap** | Damp + 3 Static | 4× applier damage to the target; arcs to every Damp nightmare within **2.5 cells** for 2×, each arc adds **1 Static** | all Static | Static threshold 5 |
+| **Thunderclap** | Damp + 3 Static | 4× applier damage to the target; arcs to every Damp nightmare within **2.5 cells** for 2× (**at most the 8 nearest per clap**, 2026-09-28, performance), each arc adds **1 Static** | all Static | Static threshold 5 |
 | **Ignite** | 3+ Spored + any Static | deals the target's **remaining Spored damage ×1.5** at once; 1 Spored stack to nightmares within 1 cell | all Spored | same |
 | **Mushrooming** | 3+ Spored + Damp | the target's Spored ticks +50% for 4 s; a spore cloud (radius 0.6, 4 s) on its tile gives 1 Spored per second | Damp | same |
 | **Shatter** | Held (incl. frozen) + Damp, then a crit or a hit from the Pebbling line or a sniper | that hit ×2.5; shards deal 50% of it to nightmares within 1 cell | Held | same (Held is already halved) |
