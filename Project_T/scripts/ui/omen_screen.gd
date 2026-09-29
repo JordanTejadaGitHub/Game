@@ -1,13 +1,16 @@
 extends Control
 
-# Omen choice at a rest (after the Dream): 2 Omen cards (the twist + its reward) or Clear Skies.
-# Pauses while open, like the Dream screen. Also shows the active Omen in a small tag under the
-# toast, and toasts when one starts and when its reward is paid. Built in code.
+# The Omen screen at a rest, shown like the Dream (run_design.md "Omens: shown like a Dream"): the
+# two Omen cards (the twist + its reward) and a third, Clear Skies (the default: nothing changes, no
+# reward). Esc / right-click = Clear Skies. Pauses and peeks like the Dream screen. Also shows the
+# active Omen in a small tag under the toast, and toasts when one starts and when its reward is paid.
+# Built in code.
 
 const CARD_SIZE := Vector2(270, 200)
 const OMEN_COLOR := UiStyle.BUTTON_GOLD  # Heartwood 32 "Gold"
 const TWIST_COLOR := Color("9a84e8")  # Heartwood 32 "Wraithlight": the nightmares' side of the deal
-const REWARD_COLOR := Color("d4ec9c")  # Heartwood 32 "Newleaf"
+const REWARD_COLOR := UiStyle.GOLD  # Heartwood 32 "Glow": the reward in gold (run_design.md)
+const CLEAR_SKIES_COLOR := UiStyle.INK_DIM  # A calm moonlit card (UI Code does its look)
 
 @onready var omens: OmenDirector = %OmenDirector
 @onready var drift_director: DriftDirector = %DriftDirector
@@ -16,10 +19,8 @@ const REWARD_COLOR := Color("d4ec9c")  # Heartwood 32 "Newleaf"
 var _was_paused := false
 var _title := Label.new()
 var _cards := HBoxContainer.new()
-var _clear_skies := Button.new()
 var _active_tag := Label.new()
 var peek: ChoicePeek  # Minimise to look at the map (screens_ui.md "Choice screens")
-var _prompt := PanelContainer.new()  # "The wind carries an Omen. Face one for a reward?" (Ask first)
 
 func _ready() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -42,12 +43,6 @@ func _ready() -> void:
 	_cards.add_theme_constant_override("separation", 16)
 	_cards.alignment = BoxContainer.ALIGNMENT_CENTER
 	box.add_child(_cards)
-	_clear_skies.text = "Back to Clear Skies  (nothing changes)"
-	_clear_skies.focus_mode = Control.FOCUS_NONE
-	_clear_skies.pressed.connect(omens.choose.bind(null))
-	var skip_row := CenterContainer.new()
-	skip_row.add_child(_clear_skies)
-	box.add_child(skip_row)
 	peek = ChoicePeek.new(self, [dim, center], "Back to the Omens")
 	box.add_child(peek.make_peek_button())
 	visible = false
@@ -63,9 +58,6 @@ func _ready() -> void:
 	_active_tag.visible = false
 	get_parent().add_child.call_deferred(_active_tag)
 
-	_build_prompt()
-	omens.prompt_ready.connect(_show_prompt)
-	omens.prompt_closed.connect(func() -> void: _prompt.visible = false)
 	omens.offer_ready.connect(_show_offer)
 	omens.offer_closed.connect(_on_closed)
 	omens.omen_started.connect(_on_omen_started)
@@ -76,15 +68,17 @@ func _show_offer(offer: Array[OmenData], block: int) -> void:
 		_was_paused = game_speed.paused
 	game_speed.set_paused(true)
 	var drifts := omens.get_block_range(block)
-	_title.text = "The wind brings Omens for drifts %d–%d" % [drifts.x, drifts.y]
+	_title.text = "The wind carries Omens  ·  drifts %d–%d" % [drifts.x, drifts.y]
 	if omens.forced:
 		_title.text = "An Omen must be faced  ·  drifts %d–%d" % [drifts.x, drifts.y]
-	_clear_skies.visible = not omens.forced
 	for child in _cards.get_children():
+		_cards.remove_child(child)
 		child.queue_free()
 	var act := drift_director.get_act(drifts.y)
 	for omen in offer:
 		_cards.add_child(_make_card(omen, act))
+	if not omens.forced:
+		_cards.add_child(_make_clear_skies_card())
 	visible = true
 
 func _make_card(omen: OmenData, act: int) -> Button:
@@ -140,70 +134,33 @@ func _toast(text: String) -> void:
 	if hud.has_method("show_toast"):
 		hud.show_toast(text)
 
-# --- Ask first (run_design.md "Omens") ----------------------------------------------------------------
-# A small prompt beside Start instead of the cards: it doesn't pause or block building. Clear Skies is
-# the default: its button, Esc, right-click or a tap outside; starting the next drift answers it too.
 
-func _build_prompt() -> void:
-	# Moonlit Thread (ui_style.md): a panel whose thread is the Omen's colour, the ask as a whisper-like
-	# line, and Clear Skies (the default) in the primary look. Buttons are touch-sized.
-	_prompt.add_theme_stylebox_override("panel", UiStyle.panel_in(OMEN_COLOR, 14.0, 12.0))
-	_prompt.mouse_filter = Control.MOUSE_FILTER_STOP
-	_prompt.visible = false
-	var box := VBoxContainer.new()
-	box.add_theme_constant_override("separation", 8)
-	_prompt.add_child(box)
-	var ask := Label.new()
-	ask.text = "The wind carries an Omen.\nFace one for a reward?"
-	UiStyle.whisper(ask, 19)
-	ask.add_theme_color_override("font_color", OMEN_COLOR)
-	box.add_child(ask)
-	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 8)
-	box.add_child(row)
-	var see := Button.new()
-	see.text = "See the Omens"
-	see.focus_mode = Control.FOCUS_NONE
-	see.custom_minimum_size.y = 48
-	see.pressed.connect(omens.see_omens)
-	row.add_child(see)
-	var clear := Button.new()
-	clear.text = "Clear Skies"
-	clear.focus_mode = Control.FOCUS_NONE
-	clear.custom_minimum_size.y = 48
-	UiStyle.primary(clear)  # The default, highlighted
-	clear.pressed.connect(omens.choose.bind(null))
-	row.add_child(clear)
-	get_parent().add_child.call_deferred(_prompt)
-
-func _show_prompt(_block: int) -> void:
-	_prompt.visible = true
-	_place_prompt.call_deferred()
-	var drift_panel := get_parent().get_node_or_null("DriftPanel") as Control
-	if drift_panel and not drift_panel.resized.is_connected(_on_drift_panel_resized):
-		drift_panel.resized.connect(_on_drift_panel_resized)  # It grows at rests (Coming this block)
-
-func _on_drift_panel_resized() -> void:
-	if _prompt.visible:
-		_place_prompt.call_deferred()
-
-# Beside Start: just left of the DriftPanel, bottom-aligned with it.
-func _place_prompt() -> void:
-	var drift_panel := get_parent().get_node_or_null("DriftPanel") as Control
-	var size := _prompt.get_combined_minimum_size()
-	_prompt.size = size
-	if drift_panel:
-		var rect := drift_panel.get_global_rect()
-		_prompt.global_position = Vector2(rect.position.x - size.x - 12, rect.end.y - size.y)
-	else:
-		var screen := get_viewport_rect().size
-		_prompt.global_position = screen - size - Vector2(16, 16)
-
-func _input(event: InputEvent) -> void:
-	if not _prompt.visible or not omens.is_prompting():
+# Esc / right-click = Clear Skies (not when an Omen must be faced).
+func _unhandled_input(event: InputEvent) -> void:
+	if not visible or omens.forced or peek.peeking:
 		return
-	var tapped: bool = event is InputEventMouseButton and event.pressed
-	if event.is_action_pressed("ui_cancel") or (tapped and event.button_index == MOUSE_BUTTON_RIGHT) \
-			or (tapped and event.button_index == MOUSE_BUTTON_LEFT and not _prompt.get_global_rect().has_point(event.position)) \
-			or (event is InputEventScreenTouch and event.pressed and not _prompt.get_global_rect().has_point(event.position)):
-		omens.choose(null)  # Clear Skies; the click itself still goes through (building isn't blocked)
+	var right_click: bool = event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_RIGHT
+	if event.is_action_pressed("ui_cancel") or right_click:
+		omens.choose(null)
+		get_viewport().set_input_as_handled()
+
+# The third card: Clear Skies, the default (highlighted). "Nothing changes. No reward."
+func _make_clear_skies_card() -> Button:
+	var button := Button.new()
+	button.custom_minimum_size = CARD_SIZE
+	button.focus_mode = Control.FOCUS_NONE
+	button.pressed.connect(omens.choose.bind(null))
+	UiStyle.card_button(button, CLEAR_SKIES_COLOR)
+	var box := VBoxContainer.new()
+	box.set_anchors_preset(Control.PRESET_FULL_RECT)
+	box.offset_left = 14
+	box.offset_top = 12
+	box.offset_right = -14
+	box.offset_bottom = -12
+	box.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	button.add_child(box)
+	_add_line(box, "Clear Skies", Color(0.95, 0.93, 0.9), 22)
+	var calm := _add_line(box, "Nothing changes. No reward.", CLEAR_SKIES_COLOR, 16)
+	calm.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	_add_line(box, "The default", UiStyle.INK_DIM, 13)
+	return button
