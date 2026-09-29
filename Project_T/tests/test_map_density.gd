@@ -2,7 +2,7 @@ extends SceneTree
 # Obstacle density over many seeds (game_design.md "The forest (map)": the player's Wardens build most
 # of the maze, not the map). Prints the obstacle and ridge count ranges, and checks every map keeps
 # at least MIN_OBSTACLES (the clearing Dream cards need 8+), at most 2 ridges (3 at Blight 9) and a
-# route from start to end.
+# route from start to end that bends at least once.
 # Run:  Godot --headless --path . --script res://tests/test_map_density.gd --fixed-fps 60
 
 const SEEDS := 50
@@ -39,6 +39,8 @@ func _survey(blight: int, max_ridges: int) -> void:
 		_check(env.ridge_count <= max_ridges, "blight %d seed %d: %d ridges (max %d)" % [
 			blight, seed_value, env.ridge_count, max_ridges])
 		_check(not map.get_path_from(map.startPath).is_empty(), "blight %d seed %d: a route exists" % [blight, seed_value])
+		var straight := int(absf(map.endPath.x - map.startPath.x) + absf(map.endPath.y - map.startPath.y)) + 1
+		_check(map.get_path_from(map.startPath).size() > straight, "blight %d seed %d: the route bends" % [blight, seed_value])
 		main.free()
 	var total := 0
 	for c in counts:

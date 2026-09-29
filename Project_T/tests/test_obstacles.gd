@@ -29,16 +29,15 @@ func _run() -> void:
 	_check(main.get_node("%MapGenerator").obstacles.keys() != obstacles_a.keys(), "different seeds give different maps")
 	main.free()
 
-	var winding := 0
 	for seed_value in range(1, 16):
 		main = await _make_main(seed_value)
 		map = main.get_node("%MapGenerator")
 		_check_route(map, "seed %d" % seed_value)
-		# Ridges no longer have to make the route wind (game_design.md "The forest (map)", 2026-09-28: the
-		# Wardens build most of the maze): they're shorter, with gaps. Just count how many seeds still wind.
+		# The starting route bends at least once (game_design.md "The forest (map)": one gap-free ridge),
+		# so it's longer than a straight corner-to-corner line.
 		var straight := int(absf(map.endPath.x - map.startPath.x) + absf(map.endPath.y - map.startPath.y)) + 1
-		if map.get_path_from(map.startPath).size() > straight:
-			winding += 1
+		var length: int = map.get_path_from(map.startPath).size()
+		_check(length > straight, "seed %d: route bends (%d cells vs %d straight)" % [seed_value, length, straight])
 		var env = main.get_node("%EnvironmentObjectTileMapLayer")
 		var broken := 0
 		for cell in env.ridge_cells:
@@ -46,7 +45,6 @@ func _run() -> void:
 				broken += 1
 		_check(broken == 0, "seed %d: generation keeps ridges intact (%d broken)" % [seed_value, broken])
 		main.free()
-	print("  routes that wind from the start: %d of 15 seeds" % winding)
 
 	# Rocks almost everywhere: the generator must carve a route through.
 	main = await _make_main(42, 0.7)

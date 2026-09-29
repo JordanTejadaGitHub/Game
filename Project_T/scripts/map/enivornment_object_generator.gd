@@ -108,6 +108,9 @@ func _fill_to_minimum(rng: RandomNumberGenerator, skip_cells: PackedVector2Array
 # wobbles still block: creatures only move up/down/left/right.
 # The first ridge sits on the start's side: the route is pushed across, and the next ridge forces
 # it back. Starting on the far side would let the route slip past both without doubling back.
+# One bend is guaranteed (game_design.md "The forest (map)"): the second ridge has no gaps, the first
+# only has gaps where the second lies below it, and the two always overlap. Any way down past the first
+# then lands above the second's solid part and has to double back. Later ridges (Blight 9) gap freely.
 func _generate_ridges(rng: RandomNumberGenerator, skip_cells: PackedVector2Array, obstacles: Dictionary) -> void:
 	var inner_width := int(MAP_GRID.size.x) - 2  # Columns between the side walls
 	var count := rng.randi_range(ridge_count_min, ridge_count_max)
@@ -115,17 +118,29 @@ func _generate_ridges(rng: RandomNumberGenerator, skip_cells: PackedVector2Array
 		count += blight_extra_ridges  # Blight Level 9: one extra ridge
 	var rows := _pick_ridge_rows(rng, count)
 	ridge_count = rows.size()
+	var lengths: Array[int] = []
+	for ridge in rows.size():
+		lengths.append(int(inner_width * rng.randf_range(ridge_length_min, ridge_length_max)))
+	if rows.size() >= 2:
+		lengths[0] = mini(maxi(lengths[0], inner_width + 1 - lengths[1]), inner_width - 1)  # Overlap
 	var from_left := _start_on_left
-	for base_row in rows:
-		var length := int(inner_width * rng.randf_range(ridge_length_min, ridge_length_max))
+	for ridge in rows.size():
+		var base_row := rows[ridge]
+		var length := lengths[ridge]
 		var rock_share := rng.randf()
+		# Columns (counted from this ridge's wall) where a gap may open: see the bend rule above.
+		var gaps_from := length
+		if ridge == 0 and rows.size() >= 2:
+			gaps_from = inner_width - lengths[1]  # Where the second ridge lies below
+		elif ridge >= 2:
+			gaps_from = 0
 		var root_end := roundi(length * ridge_root_fraction)
 		var tip_start := length - roundi(length * ridge_tip_fraction)
 		var row := base_row
 		for i in length:
 			if rng.randf() < ridge_wander_chance:
 				row = clampi(row + (1 if rng.randf() < 0.5 else -1), base_row - 1, base_row + 1)
-			if i >= root_end and rng.randf() < ridge_gap_chance:
+			if i >= maxi(root_end, gaps_from) and rng.randf() < ridge_gap_chance:
 				continue  # A gap: this column of the ridge is left open
 			var x := 1 + i if from_left else inner_width - i
 			_place_ridge_cell(rng, Vector2(x, row), rock_share, skip_cells, obstacles)
