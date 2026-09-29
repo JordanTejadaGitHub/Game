@@ -63,10 +63,24 @@ func show_report(block: int) -> void:
 			combos.harmony_block, combos.whole_block)
 	text += _kin_hint()
 	text += support_text(self, "block")
+	text += templates_text(drift_director, block)
 	if unbound_block > 0:
 		text += "\nUnbound: %d" % unbound_block
 	_label.text = StatusLinks.bbcode(text)
 	visible = true
+
+# Random drifts (run_design.md): the block's rolled shapes, "Drifts: Swarm, Mixed, Heavy…" ("" when
+# none of its drifts were rolled: block 1, a boss, the hand-made ones with random drifts off).
+static func templates_text(director: DriftDirector, block: int) -> String:
+	if director == null:
+		return ""
+	var names: Array[String] = []
+	var first := (block - 1) * director.drifts_per_block + 1
+	for number in range(first, mini(first + director.drifts_per_block, director.get_total_drifts() + 1)):
+		var name := DriftRoller.template_name(director, number)
+		if name != "":
+			names.append(name)
+	return "" if names.is_empty() else "\nDrifts: " + ", ".join(names)
 
 # Support and economy (screens_ui.md "Support and economy feedback", Tower Code's SupportLog): the
 # Harvest, the top supporter, what the walls and the control Wardens did. "block" for the rest
