@@ -218,8 +218,9 @@ func _apply_blight(level: int) -> void:
 		dream_state.skip_dew = 0  # Let it pass gives no Dew
 		if "lean_common" in dream_state:
 			dream_state.lean_common = true
-	# Level 9's doubled clear costs: clear_cost_multiplier(). Its extra ridge and level 10's Hollow
-	# Oak phase need the map generator / act 4 boss.
+	# Level 9's doubled clear costs: clear_cost_multiplier(); its extra ridge is in the map generator
+	# (EnvironmentObjectGenerator.blight_extra_ridges). Level 10's Hollow
+	# Oak phase needs the act 4 boss.
 
 # Lifetime counters, milestones and the highest Blight Level won.
 func _on_run_ended(won: bool) -> void:

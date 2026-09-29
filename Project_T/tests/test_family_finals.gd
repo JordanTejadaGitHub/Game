@@ -169,6 +169,54 @@ func _run() -> void:
 	fog_warden.queue_free()
 	await _clean()
 
+	# --- Hoarfrost buff (design chat): each hit Soaks (up to 2); a nightmare Soaked twice freezes ---
+	var frost := _plant("hoarfrost", Vector2(16, 12))
+	var chilled := _spawn(frost.global_position + Vector2(CELL, 0))
+	frost.hit(chilled, 1.0, false, Tower.NO_CRIT)
+	_check(chilled.statuses.stacks(EnemyStatuses.DAMP) == 1 and not chilled.statuses.is_held(), "Hoarfrost: the first hit Soaks, no freeze yet")
+	frost.hit(chilled, 1.0, false, Tower.NO_CRIT)
+	_check(chilled.statuses.stacks(EnemyStatuses.DAMP) == 2 and chilled.statuses.is_held(), "the second hit (2 Soaked) freezes it")
+	frost.queue_free()
+	await _clean()
+
+	# --- Midsummer buff: switching target within 1 s keeps half the ramp ---
+	var sun := _plant("midsummer", Vector2(16, 14))
+	var first := _spawn(sun.global_position + Vector2(CELL, 0))
+	sun._update_beam(0.1)
+	sun._beam_ramp = 3.0  # Ramped up on the first one
+	first.dispel()
+	await process_frame
+	sun._update_beam(0.1)  # The target is gone: the beam stops
+	var second := _spawn(sun.global_position + Vector2(0, CELL))
+	sun._update_beam(0.0)
+	_check(is_equal_approx(sun._beam_ramp, 2.0), "Midsummer: a new target soon after keeps half the ramp (%.2f)" % sun._beam_ramp)
+	sun._stop_beam()
+	sun._anim_time += 2.0  # Over a second later
+	sun._update_beam(0.0)
+	_check(is_equal_approx(sun._beam_ramp, 1.0), "over a second later it starts from scratch (%.2f)" % sun._beam_ramp)
+	second.queue_free()
+	sun.queue_free()
+	await _clean()
+
+	# --- Thunderclap arcs reach at most the 8 nearest Soaked nightmares ---
+	var clapper := _plant("thunderhead", Vector2(4, 14))
+	var centre := _spawn(clapper.global_position)
+	var soaked: Array = []
+	for i in 12:
+		var e := _spawn(clapper.global_position + Vector2(20 + 4 * i, 10))
+		e.apply_status(EnemyStatuses.DAMP)
+		soaked.append(e)
+	centre.apply_status(EnemyStatuses.DAMP)
+	var before_hp: Array = soaked.map(func(e) -> int: return e.health)
+	centre.apply_status(EnemyStatuses.STATIC, 5, 0.0, 10.0, 0, "light", clapper)
+	var arced := 0
+	for i in soaked.size():
+		if soaked[i].health < before_hp[i]:
+			arced += 1
+	_check(arced >= 1 and arced <= Reactions.THUNDERCLAP_MAX_ARCS, "Thunderclap: at most 8 arcs from one clap (%d struck)" % arced)
+	clapper.queue_free()
+	await _clean()
+
 	print("family finals test: %s" % ("PASS" if failures == 0 else "%d FAILED" % failures))
 	quit(failures)
 

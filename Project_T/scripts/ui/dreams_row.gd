@@ -22,6 +22,7 @@ var _list_label := Label.new()
 var _icons: Array[DreamIcon] = []
 var _shown_key := ""  # Which cards / stacks the icons were built for
 var _clock := 0.0
+var _fog := UiStyle.fog_patch()
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
@@ -73,6 +74,16 @@ func refresh() -> void:
 			_list_label.text = get_list_text()
 	for icon in _icons:
 		icon.set_live(dream_state.get_live_bonus_text(icon.card))
+	queue_redraw()
+
+# A fog patch behind the icons (ui_style.md: the Dreams row has fog, no thread).
+func _draw() -> void:
+	if _icons.is_empty():
+		return
+	var width := 0.0
+	for icon in _icons:
+		width = maxf(width, icon.position.x + icon.size.x)
+	draw_style_box(_fog, Rect2(_row.position - Vector2(10, 6), Vector2(width, _row.size.y) + Vector2(20, 12)))
 
 # "Dreams this run": every card, its stacks and live bonus.
 func get_list_text() -> String:
@@ -126,24 +137,9 @@ class DreamIcon extends Control:
 			accept_event()
 
 	func _draw() -> void:
-		var colour := UpgradeData.rarity_color(card.rarity)
 		var centre := Vector2(size.x / 2.0, 15.0)
-		var r := 12.0
-		var points := PackedVector2Array()
-		match card.rarity:
-			UpgradeData.Rarity.COMMON:
-				draw_circle(centre, r, Color(0.08, 0.1, 0.12, 0.9))
-				draw_circle(centre, r - 2.0, colour)
-			_:
-				var corners: int = {UpgradeData.Rarity.UNCOMMON: 4, UpgradeData.Rarity.RARE: 6}.get(card.rarity, 10)
-				for i in corners:
-					var angle := TAU * i / corners - PI / 2.0
-					var radius := r if corners < 10 or i % 2 == 0 else r * 0.5  # Legendary: a star
-					points.append(centre + Vector2.from_angle(angle) * radius)
-				draw_colored_polygon(points, colour)
-				points.append(points[0])
-				draw_polyline(points, Color(0.08, 0.1, 0.12, 0.9), 2.0, true)
-		var font := ThemeDB.fallback_font
+		UiStyle.draw_gem(self, centre, 12.0, card.rarity)
+		var font := UiStyle.number_font()
 		if stacks > 1:
 			var count := str(stacks)
 			draw_string_outline(font, centre + Vector2(4, 11), count, HORIZONTAL_ALIGNMENT_LEFT, -1, 11, 4, Color(0.05, 0.06, 0.08))

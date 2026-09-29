@@ -35,8 +35,10 @@ func _run() -> void:
 	director.drifts_started = 51
 	omens.active_block = director.get_block(51)
 	omens.active = by_id["fog_bank"]
+	await process_frame  # Stats are kept for a frame (Tower.get_range_cells); Omens change at rests
 	_check(is_equal_approx(tower.get_range_cells(), maxf(range_before - 1.0, 1.0)), "Fog Bank: -1 range (%.2f -> %.2f)" % [range_before, tower.get_range_cells()])
 	omens.active = by_id["wilting"]
+	await process_frame
 	_check(is_equal_approx(tower.get_attacks_per_second(), speed_before * 0.85), "Wilting: attack speed x0.85")
 	_check(is_equal_approx(tower.get_range_cells(), range_before), "and range is back without Fog Bank")
 

@@ -10,7 +10,7 @@ class_name RunSaver
 # counters, drift progress, Dreams and Omens (their own to_save()/load_save()).
 
 const PATH := "user://run.json"
-const VERSION := 3  # 2: the map shrank to 23x18; 3: ridges taper (same seed, different map)
+const VERSION := 5  # 2: map 23x18; 3: ridges taper; 4: fewer obstacles; 5: one bend (same seed, different map)
 
 # Where the save lives (tests point this elsewhere so they never touch the player's run).
 static var file_path := PATH

@@ -201,6 +201,7 @@ const ASCENDED_JSON := "res://assets/towers/ascended/ascended.json"  # 128×128 
 # once per freeze_cooldown s each (Frostfern, Hoarfrost).
 @export var freeze_duration: float = 0.0
 @export var freeze_needs: StringName = &"damp"
+@export var freeze_needs_stacks: int = 1  # Hoarfrost: freezes at 2 Soaked
 @export var freeze_cooldown: float = 4.0
 
 @export_group("Trap")
@@ -214,6 +215,7 @@ const ASCENDED_JSON := "res://assets/towers/ascended/ascended.json"  # 128×128 
 @export var beam_ramp_per_second: float = 0.25  # +25% damage per second on the same target
 @export var beam_ramp_max: float = 4.0  # Damage multiplier cap
 @export var beam_behind_share: float = 0.0  # Also hits the nightmare right behind at this share
+@export var beam_keep_share: float = 0.0  # Midsummer: switching target within BEAM_KEEP_TIME keeps this share of the ramp
 @export var beam_color: Color = Color(1.0, 0.85, 0.35)
 
 @export_group("Copy")

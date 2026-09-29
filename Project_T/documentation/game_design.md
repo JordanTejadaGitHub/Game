@@ -16,7 +16,8 @@ placeholders).
 | `acts_1_2.md` | creature and boss stats, special drifts, the drift-by-drift plan for drifts 1–50 |
 | `dream_design.md` | in-run upgrade pool, offer rules, status numbers |
 | `meta_design.md` | Seeds, Memory Grove, milestones, Blight Levels, Memories, true ending |
-| `art_direction.md` | warm vs cold, environment, Warden and nightmare look; **art style decided 2026-09-28: Waystone pixel, "detailed 64"** (64 px cells with a detail pass: upper-left light and 1 px rim, dithered bands, sparse texture, banded glow; the Heartwood 128 px; marketing art may go higher). Owned by the Theme chats |
+| `art_direction.md` | warm vs cold, environment, Warden and nightmare look; **art style decided 2026-09-28: Waystone pixel, "detailed 64"** (64 px cells with a detail pass: upper-left light and 1 px rim, dithered bands, sparse texture, banded glow; the Heartwood 128 px; marketing art may go higher) and the **Heartwood 32 palette** (32 colours, 9 ramps; nightmares on cold ramps only; seasons from lighting; UI colours too). UI style: **Moonlit Thread** (`ui_style.md`). Owned by the Theme chats |
+| `ui_style.md` | the Moonlit Thread UI style: panels, the gold thread, fonts, icon scaling, colours from Heartwood 32. Owned by UI Asset / UI Code |
 | `audio_direction.md` | music (adaptive layers), nightmare signature sounds, dispel, mix, demo list |
 | `platforms.md` | PC first, mobile port later: touch-friendly rules and the touch control map |
 | `art_style_options.md` | six candidate rendering styles compared; leaning Waystone pixel |
@@ -95,6 +96,11 @@ perks can modify them.
 
 - **A new random forest every run**: wobbly **ridges** of rocks and trees from alternating walls
   make the starting route zig-zag; tree groves and rock clusters vary per map.
+- **Fewer obstacles** (2026-09-28, user: "the maze aspect is getting lost… maybe less rocks and
+  trees would help"): about **40% fewer** obstacles than now: at most **2 ridges** (shorter, with
+  gaps), smaller and rarer tree groves and rock clusters, and most scattered single rocks gone. The
+  player's Wardens should build most of the maze, not the map. Keep at least **10 obstacles** so the
+  clearing cards (need 8+) still show up; Blight 9's extra ridge still applies. As built (77eb3cd): 46–89 obstacles (mean 60, was 105), 2 ridges. **The starting route always bends at least once** (b50aa3b: the far ridge has no gaps, and the first ridge's gaps sit only over the far ridge's solid part, so any shortcut still doubles back; 44–88 obstacles, mean 63), a hint of shape while the player builds the rest of the zig-zag.
 - **Obstacles**: **Withered Trees** ("Tend", 5 Dew) and **Mossy Boulders** ("Move", 8 Dew) block
   nightmares and building. **Clearing is locked until you take a clearing Dream card**; after that,
   tending one opens space (and often a shortcut) and adds **+1 Seed** at

@@ -189,8 +189,8 @@ sleep, then make sleep dangerous. Owns **Drowsy**.
 | Base | Bellflower | a soft ringing pulse around it; every 2nd pulse adds Drowsy | Drowsy | chokepoints |
 | A | Chime Stone | weak pulse hitting everything around it; pulses set off Static | Static ×1 | Static, Held |
 | A+ | Lullaby Bell | bigger pulse that also applies Drowsy | Drowsy | Static, Held |
-| B | Dreamcatcher | hangs a dreamcatcher over the path: **sleeping or max-Drowsy nightmares in range are Caught** and take +40% damage from everything | — | Drowsy, sleep |
-| B+ | Great Dreamcatcher | +60%; sleep in its range lasts 1 s longer; Caught nightmares that are dispelled drop **Dreamlight shards** | — | Drowsy, sleep |
+| B | Dreamcatcher | hangs a dreamcatcher over the path: **sleeping or max-Drowsy nightmares in range are Caught** and take **+25%** damage from everything (was +40%; Bellflower too strong, 2026-09-28) | — | Drowsy, sleep |
+| B+ | Great Dreamcatcher | **+60%** (briefly cut to +40%, restored 2026-09-28: the probe showed it at 1.5% of damage; the Bellflower strength was the Lullaby Bell); sleep in its range lasts 1 s longer; Caught nightmares that are dispelled drop **Dreamlight shards** | — | Drowsy, sleep |
 | Hidden | Echo Hollow | a hollow log that **echoes Reactions**: a Reaction nearby repeats 1 s later at 50% | — | Reactions |
 | Hidden+ | Whispering Hollow | 75%, bigger radius; **echoes count as chain links** | — | Reactions, chains |
 

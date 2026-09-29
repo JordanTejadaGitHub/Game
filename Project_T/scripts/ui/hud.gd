@@ -1,8 +1,8 @@
 extends CanvasLayer
 
-const DEW_COLOR := Color(0.7, 0.9, 1.0)
-const DEW_SHORT_COLOR := Color(1.0, 0.45, 0.4)
-const UNAFFORDABLE_BUTTON_ALPHA := 0.45
+const DEW_COLOR := UiStyle.GOLD
+const DEW_SHORT_COLOR := UiStyle.POOR
+const UNAFFORDABLE_BUTTON_ALPHA := UiStyle.UNAFFORDABLE_ALPHA
 # Warden bar buttons (bottom centre): 13 of them must fit between the Warden panel and the drift
 # controls at 1280×800 (screens_ui.md principle 6: buttons at least 48 px tall).
 const BUTTON_SIZE := Vector2(46, 60)
@@ -13,6 +13,7 @@ const BAR_CLEARANCE := 324.0
 const SPROUT_ID := "sprout"
 const CLEAR_TOOL_GAP := 10.0
 const SEED_COLOR := Color(0.6, 0.85, 0.4)
+const COUNTER_ICON_GAP := 6.0
 
 @onready var tower_bar: HBoxContainer = %TowerBar
 @onready var tower_placer: TowerPlacer = %TowerPlacer
@@ -22,8 +23,8 @@ const SEED_COLOR := Color(0.6, 0.85, 0.4)
 @onready var run_state: RunState = %RunState
 @onready var drift_director: DriftDirector = %DriftDirector
 
-const LEAVES_COLOR := Color(0.6, 0.9, 0.5)
-const DREAMLIGHT_COLOR := Color(1.0, 0.88, 0.55)
+const LEAVES_COLOR := UiStyle.INK
+const DREAMLIGHT_COLOR := UiStyle.GOLD
 const MENU_BUTTON_RIGHT := -284.0  # Left of the Dreamlight counter and the Dew
 const LEAF_LOST_COLOR := Color(1.0, 0.6, 0.3)
 const TOAST_TIME := 2.5
@@ -39,10 +40,12 @@ var _bar_towers: Array[TowerData] = []
 var _dew_flash: Tween
 var _leaf_flash: Tween
 var _toast_tween: Tween
+var _counter_icons := {}  # Label -> its icon (TextureRect)
 
 func _ready() -> void:
 	# The Clear tool sits at the left end of the Warden bar, set apart (screens_ui.md "The Clear tool").
 	# (A sibling of %TowerBar, placed and sized with it in _fit_tower_bar.)
+	_style_resources()
 	clear_tool = ClearToolButton.new()
 	clear_tool.setup(%ObstacleClearer, run_state, show_toast)
 	clear_tool.anchor_left = 0.5
@@ -91,7 +94,8 @@ func _ready() -> void:
 	var map_generator = %MapGenerator
 	var path_label: Label = %PathLabel
 	var update_path := func() -> void:
-		path_label.text = "Path %d tiles" % map_generator.get_path_from(map_generator.startPath).size()
+		path_label.text = str(map_generator.get_path_from(map_generator.startPath).size())
+		_place_counter_icon(path_label)
 	map_generator.path_changed.connect(update_path)
 	update_path.call()
 	drift_director.act_started.connect(_on_act_started)
@@ -114,6 +118,11 @@ func _ready() -> void:
 	spawner.wall_trampled.connect(func(_cell: Vector2, by: Node2D) -> void:
 		show_toast("The %s tramples a Thornwall!" % by.enemy_data.display_name))
 	toast_label.modulate.a = 0.0
+	# Counters are icon + number (ui_style.md, the mock); the words stay in their tooltips.
+	_add_counter_icon(dew_label, &"dew", 2)
+	_add_counter_icon(get_node("DreamlightLabel"), &"dreamlight", 2)
+	_add_counter_icon(leaves_label, &"leaves", 2)
+	_add_counter_icon(%PathLabel, &"path_length", 1)
 
 func _unhandled_input(event: InputEvent) -> void:
 	# Number keys 1-9 pick a Warden.
@@ -141,8 +150,8 @@ func _build_tower_bar() -> void:
 		button.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		button.vertical_icon_alignment = VERTICAL_ALIGNMENT_TOP
 		button.add_theme_constant_override("icon_max_width", 34)
-		button.add_theme_font_size_override("font_size", 13)
-		button.add_theme_color_override("font_color", DEW_COLOR)
+		button.theme_type_variation = &"WardenSlot"  # A fog patch; selected = the gold underline (ui_style.md)
+		button.add_theme_font_size_override("font_size", 16)
 		button.custom_minimum_size = BUTTON_SIZE
 		button.tooltip_text = "%s (%s)\n%s · Cost: %d Dew\n%s" % [data.display_name, str(i + 1) if i < 9 else "no key",
 			IconInfo.damage_type_text(data.line), tower_placer.get_cost(data), data.description]  # "Light damage"
@@ -152,10 +161,9 @@ func _build_tower_bar() -> void:
 			hotkey.text = str(i + 1)
 			hotkey.position = Vector2(3, 0)
 			hotkey.mouse_filter = Control.MOUSE_FILTER_IGNORE
-			hotkey.add_theme_font_size_override("font_size", 11)
-			hotkey.add_theme_color_override("font_color", Color(0.85, 0.88, 0.8))
-			hotkey.add_theme_color_override("font_outline_color", Color(0.08, 0.1, 0.14))
-			hotkey.add_theme_constant_override("outline_size", 4)
+			UiStyle.number(hotkey, 13, UiStyle.INK_DIM)
+			hotkey.add_theme_color_override("font_outline_color", UiStyle.FOG)
+			hotkey.add_theme_constant_override("outline_size", 3)
 			button.add_child(hotkey)
 		if data.get_id() == SPROUT_ID:
 			button.add_child(_make_seed_badge())
@@ -234,7 +242,8 @@ func _sync_buttons() -> void:
 		_tower_buttons[i].set_pressed_no_signal(selected)
 
 func _on_dew_changed(dew: int) -> void:
-	dew_label.text = "Dew %d" % dew
+	dew_label.text = str(dew)
+	_place_counter_icon(dew_label)
 	# Fade out Wardens the player can't afford right now (still selectable, the ghost shows red).
 	# (Costs can change with Dreams, so the cost text is refreshed here too.)
 	for i in _tower_buttons.size():
@@ -242,6 +251,12 @@ func _on_dew_changed(dew: int) -> void:
 		_tower_buttons[i].text = str(cost)
 		var affordable := run_state.can_afford(cost)
 		_tower_buttons[i].modulate.a = 1.0 if affordable else UNAFFORDABLE_BUTTON_ALPHA
+		# Colour is never alone (ui_style.md): faded AND the cost in red.
+		for state in ["font_color", "font_hover_color", "font_pressed_color", "font_hover_pressed_color"]:
+			if affordable:
+				_tower_buttons[i].remove_theme_color_override(state)
+			else:
+				_tower_buttons[i].add_theme_color_override(state, UiStyle.POOR)
 
 # Tried to spend Dew we don't have: flash the counter red and give it a little shake.
 func _on_dew_short() -> void:
@@ -287,7 +302,7 @@ func _add_menu_button() -> void:
 			pause.open_codex())
 	add_child(codex)
 
-# Dreamlight (run_design.md "Dreamlight"): a glowing mote and the count, just left of the Dew.
+# Dreamlight (run_design.md "Dreamlight"): its icon and the count, just left of the Dew.
 func _add_dreamlight_counter() -> void:
 	var label := dew_label.duplicate() as Label
 	label.unique_name_in_owner = false
@@ -302,26 +317,17 @@ func _add_dreamlight_counter() -> void:
 		if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
 			show_toast("%s (you have %d)" % [IconInfo.resource_tooltip(&"dreamlight"), dream_state.dreamlight]))
 	add_child(label)
-	var mote := Control.new()
-	mote.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	mote.draw.connect(func() -> void:
-		mote.draw_circle(Vector2.ZERO, 9.0, Color(DREAMLIGHT_COLOR, 0.25))
-		mote.draw_circle(Vector2.ZERO, 5.0, DREAMLIGHT_COLOR)
-		mote.draw_circle(Vector2.ZERO, 2.0, Color.WHITE))
-	label.add_child(mote)
 	var update := func(amount: int) -> void:
 		label.text = str(amount)
-		var width := label.get_theme_font("font").get_string_size(label.text, HORIZONTAL_ALIGNMENT_LEFT, -1,
-			label.get_theme_font_size("font_size")).x
-		mote.position = Vector2(label.size.x - width - 14.0, label.size.y / 2.0)
+		_place_counter_icon(label)
 	dream_state.dreamlight_changed.connect(update)
-	label.resized.connect(func() -> void: update.call(dream_state.dreamlight))
 	update.call(dream_state.dreamlight)
 
 var _shown_leaves := -1
 
 func _on_leaves_changed(leaves: int, max_leaves: int) -> void:
-	leaves_label.text = "Leaves %d / %d" % [leaves, max_leaves]
+	leaves_label.text = "%d/%d" % [leaves, max_leaves]
+	_place_counter_icon(leaves_label)
 	if bark_shield != null and bark_shield.visible:
 		bark_shield._place.call_deferred()  # The text width changed
 	var lost := _shown_leaves >= 0 and leaves < _shown_leaves
@@ -352,6 +358,52 @@ func _on_act_started(act: int, leaves_regrown: int) -> void:
 	if leaves_regrown > 0:
 		text += "\nThe Heartwood regrows %d leaves" % leaves_regrown
 	show_toast(text)
+
+# A pixel icon (IconInfo, whole-number scale) just left of a right-aligned counter's text.
+func _add_counter_icon(label: Label, id: StringName, scale: int) -> void:
+	var icon := TextureRect.new()
+	icon.name = "CounterIcon"
+	icon.texture = IconInfo.icon(id)
+	icon.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	icon.size = Vector2(16, 16) * scale
+	icon.mouse_filter = Control.MOUSE_FILTER_IGNORE  # The label's own tooltip / tap explains it
+	label.add_child(icon)
+	label.set_meta(&"icon_width", icon.size.x + COUNTER_ICON_GAP)  # DreamMarks' shield goes left of it
+	_counter_icons[label] = icon
+	label.resized.connect(_place_counter_icon.bind(label))
+	_place_counter_icon(label)
+
+func _place_counter_icon(label: Label) -> void:
+	var icon: TextureRect = _counter_icons.get(label)
+	if icon == null:
+		return
+	var width := label.get_theme_font("font").get_string_size(label.text, HORIZONTAL_ALIGNMENT_LEFT, -1,
+		label.get_theme_font_size("font_size")).x
+	icon.position = Vector2(label.size.x - width - icon.size.x - COUNTER_ICON_GAP, (label.size.y - icon.size.y) / 2.0)
+
+# Moonlit Thread (ui_style.md): the resources sit on a fog patch (no thread: they hug the screen
+# edge), numbers in Cormorant with lining figures.
+func _style_resources() -> void:
+	var fog := Panel.new()
+	fog.name = "ResourcesFog"
+	fog.add_theme_stylebox_override("panel", UiStyle.fog_patch())
+	fog.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	fog.set_anchors_preset(Control.PRESET_TOP_RIGHT)
+	fog.offset_left = -300.0
+	fog.offset_right = -4.0
+	fog.offset_top = 4.0
+	fog.offset_bottom = 124.0
+	add_child(fog)
+	move_child(fog, 0)
+	UiStyle.number(dew_label, 28, DEW_COLOR)
+	UiStyle.number(leaves_label, 22, LEAVES_COLOR)
+	UiStyle.number(%PathLabel, 18, UiStyle.INK_DIM)
+	for label: Label in [dew_label, leaves_label, %PathLabel]:
+		label.add_theme_color_override("font_outline_color", UiStyle.FOG)
+		label.add_theme_constant_override("outline_size", 4)
+	UiStyle.title(toast_label, 22)
+	toast_label.add_theme_color_override("font_outline_color", UiStyle.FOG)
 
 # Shows a message at the top of the screen for a few seconds.
 func show_toast(text: String) -> void:

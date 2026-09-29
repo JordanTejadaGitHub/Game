@@ -47,13 +47,13 @@ func _init() -> void:
 	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(PREVIEWS))
 	var rows: Array = []
 	for warden: String in ASCENDED:
-		var idle := _gsheet(warden + ".png", FRAMES, W, H, func(cv: Image, f: int) -> void: _draw_ascended(warden, cv, _idle_state(f)))
-		var attack := _gsheet(warden + "_attack.png", ATTACK_FRAMES, W, H, func(cv: Image, a: int) -> void: _draw_ascended(warden, cv, _attack_state(a)))
+		var idle := _gsheet(warden + ".png", FRAMES, W, H, func(cv: Image, f: int) -> void: _draw_ascended(warden, cv, _idle_state(f)), true)
+		var attack := _gsheet(warden + "_attack.png", ATTACK_FRAMES, W, H, func(cv: Image, a: int) -> void: _draw_ascended(warden, cv, _attack_state(a)), true)
 		rows.append([idle, attack])
 	var empty := _gsheet("dawnwing_empty.png", FRAMES, W, H, func(cv: Image, f: int) -> void:
 		var st := _idle_state(f)
 		st["empty"] = true
-		_draw_ascended("dawnwing", cv, st))
+		_draw_ascended("dawnwing", cv, st), true)
 	rows.append([empty, null])
 	_save_rows(rows, W, H, PREVIEWS + "ascended.png", 2)
 	var fx: Array = []
@@ -65,21 +65,23 @@ func _init() -> void:
 	fx.append(_gsheet("root_grasp.png", 6, 64, 64, _root_grasp))
 	_save_fx_preview(fx, PREVIEWS + "ascended_effects.png")
 	var sap: Array = []
-	sap.append(_gsheet("heartwood_sapling.png", FRAMES, 128, 160, func(cv: Image, f: int) -> void: _sapling(cv, f, 0, false, -1)))
-	sap.append(_gsheet("heartwood_sapling_ripen.png", 6, 128, 160, func(cv: Image, a: int) -> void: _sapling(cv, a, a, false, -1)))
-	sap.append(_gsheet("heartwood_sapling_withered.png", FRAMES, 128, 160, func(cv: Image, f: int) -> void: _sapling(cv, f, 0, true, -1)))
+	sap.append(_gsheet("heartwood_sapling.png", FRAMES, 128, 160, func(cv: Image, f: int) -> void: _sapling(cv, f, 0, false, -1), true))
+	sap.append(_gsheet("heartwood_sapling_ripen.png", 6, 128, 160, func(cv: Image, a: int) -> void: _sapling(cv, a, a, false, -1), true))
+	sap.append(_gsheet("heartwood_sapling_withered.png", FRAMES, 128, 160, func(cv: Image, f: int) -> void: _sapling(cv, f, 0, true, -1), true))
 	sap.append(_gsheet("heartwood_sapling_ranks.png", 5, 128, 160, func(cv: Image, r: int) -> void: _sapling_rank(cv, r + 1)))
 	_save_rows([[sap[0], sap[1]], [sap[2], null], [sap[3], null]], 128, 160, PREVIEWS + "heartwood_sapling.png", 2)
 	_save_info()
 	print("ascended art written")
 	quit()
 
-func _gsheet(file: String, n: int, w: int, h: int, draw: Callable) -> Image:
+func _gsheet(file: String, n: int, w: int, h: int, draw: Callable, warden_art: bool = false) -> Image:
 	var sheet := Image.create_empty(w * n, h, false, Image.FORMAT_RGBA8)
 	for i in n:
 		var cv := Image.create_empty(w, h, false, Image.FORMAT_RGBA8)
 		draw.call(cv, i)
 		sheet.blit_rect(cv, Rect2i(0, 0, w, h), Vector2i(i * w, 0))
+	if warden_art:
+		sheet = _detail_pass(sheet, Vector2i(w, h))  # the palette pass, like every Warden sheet
 	sheet.save_png(AOUT + file)
 	return sheet
 
@@ -479,6 +481,10 @@ func _golem(canvas: Image, st: Dictionary, fig: Dictionary, opts: Dictionary = {
 			var ch := _fig_at(pose, tx, ty)
 			if ch == ".":
 				continue
+			if _is_rock(pose, tx, ty):
+				continue  # No rocks on the Ascended (the body behind the front one is drawn below).
+			if tx >= 34 and tx <= 45 and ty >= 39 and ty <= 48:
+				continue  # The lumpy front of the seat; redrawn below as the golem's plain rounded seat.
 			if ch == "o":
 				var first_x := floori((x - 1 - fo.x) / K) != tx
 				var first_y := floori((y - 1 - fo.y) / K) != ty
@@ -495,6 +501,21 @@ func _golem(canvas: Image, st: Dictionary, fig: Dictionary, opts: Dictionary = {
 			if not colors.has(ch):
 				continue
 			body.set_pixel(x, y, colors[ch])
+	# The golem's round bottom (like Baymax sitting down): an oval that bulges out below the belly
+	# and sits flat on the waystone, shaded as a round form.
+	var seat_c := Vector2(38.5, 40.5)  # template px
+	var seat_r := Vector2(8.5, 7.5)
+	var floor_y := 47.5  # where it rests on the ground: flat below this
+	for y in 128:
+		for x in 128:
+			var t := (Vector2(x + 0.5, y + 0.5) - fo - Vector2(0, dy)) / K
+			if t.y > floor_y or body.get_pixel(x, y).a > 0.0:
+				continue
+			var d := (t - seat_c) / seat_r
+			var q := d.length_squared()
+			if q > 1.0:
+				continue
+			body.set_pixel(x, y, _shade(fig.ramp, Vector3(d.x, d.y, sqrt(1.0 - q)).normalized()))
 	# Fresh 1 px outline round the silhouette.
 	var mask := _gnew(canvas)
 	for y in 128:

@@ -58,12 +58,9 @@ func _ready() -> void:
 	centre.set_anchors_preset(Control.PRESET_FULL_RECT)
 	centre.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(centre)
-	var frame := StyleBoxFlat.new()
-	frame.bg_color = Color(0.08, 0.07, 0.1, 0.97)
-	frame.border_color = BOSS_COLOR.darkened(0.2)
-	frame.set_border_width_all(2)
-	frame.set_corner_radius_all(8)
-	frame.set_content_margin_all(16)
+	var frame := UiStyle.panel_in(BOSS_COLOR.darkened(0.2), 16.0, 16.0)
+	frame.center_alpha = 0.95  # Over the whole field: nearly solid
+	frame.edge_alpha = 0.9
 	_panel.add_theme_stylebox_override("panel", frame)
 	centre.add_child(_panel)
 	var outer := VBoxContainer.new()
@@ -256,7 +253,7 @@ func _header(data: EnemyData, drift: int) -> Control:
 	box.alignment = BoxContainer.ALIGNMENT_CENTER
 	var name := Label.new()
 	name.text = data.display_name + ("   · New" if NightmareCard.is_new(data) else "")
-	name.add_theme_font_size_override("font_size", 24)
+	UiStyle.display(name, 24)
 	name.add_theme_color_override("font_color", BOSS_COLOR.lightened(0.25))
 	box.add_child(name)
 	var title: String = data.title

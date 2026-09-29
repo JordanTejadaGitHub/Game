@@ -85,6 +85,7 @@ func _run() -> void:
 
 	# Pulse: soothes every creature in range at once, no projectile.
 	var rootling: Tower = tower_container.get_child(6)
+	rootling.set_process(false)  # Only the pulse below: its own cooldown could fire one too (a map-dependent flake)
 	var near_a = _spawn_still(spawner, leaf_bug, rootling.global_position + Vector2(40, 0))
 	var near_b = _spawn_still(spawner, leaf_bug, rootling.global_position + Vector2(0, -40))
 	var far = _spawn_still(spawner, leaf_bug, rootling.global_position + Vector2(1000, 0))

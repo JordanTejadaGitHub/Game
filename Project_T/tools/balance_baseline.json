@@ -1,0 +1,41 @@
+{
+	"fresh/balanced": {
+		"first_leak": 20.0,
+		"hoard": 2.1,
+		"lost_25": 4.0,
+		"max_asleep": 0.0,
+		"max_top_share": 1.0,
+		"runs": 5,
+		"survival": 42.0,
+		"survival_max": 49.0,
+		"survival_min": 23.0,
+		"top_warden": "Driftspore",
+		"win_rate": 0.0
+	},
+	"fresh/sprout": {
+		"first_leak": 50.0,
+		"hoard": 2.61,
+		"lost_25": 0.0,
+		"max_asleep": 0.0,
+		"max_top_share": 1.0,
+		"runs": 5,
+		"survival": 67.0,
+		"survival_max": 67.0,
+		"survival_min": 46.0,
+		"top_warden": "Sprout",
+		"win_rate": 0.0
+	},
+	"fresh/wide": {
+		"first_leak": 20.0,
+		"hoard": 0.0,
+		"lost_25": 12.0,
+		"max_asleep": 0.0,
+		"max_top_share": 1.0,
+		"runs": 5,
+		"survival": 19.0,
+		"survival_max": 37.0,
+		"survival_min": 19.0,
+		"top_warden": "Sporeling",
+		"win_rate": 0.0
+	}
+}
