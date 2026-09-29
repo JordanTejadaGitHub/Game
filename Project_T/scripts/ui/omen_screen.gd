@@ -5,7 +5,7 @@ extends Control
 # toast, and toasts when one starts and when its reward is paid. Built in code.
 
 const CARD_SIZE := Vector2(270, 200)
-const OMEN_COLOR := Color(0.95, 0.75, 0.45)
+const OMEN_COLOR := UiStyle.BUTTON_GOLD  # Heartwood 32 "Gold"
 const TWIST_COLOR := Color(1.0, 0.7, 0.6)
 const REWARD_COLOR := Color(0.65, 0.9, 0.6)
 
