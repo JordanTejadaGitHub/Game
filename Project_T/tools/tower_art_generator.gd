@@ -434,6 +434,8 @@ const ROCK_TOUCH_WARDENS := {
 # Rocks hidden where a Warden's own props stand (left / right / front of the golem).
 const HIDDEN_ROCKS := {
 	"echo_hollow": ["left"], "whispering_hollow": ["left"], "starcave": ["left"],
+	# The Pebbling line's own stones stand there: the menhir, the cairn stack.
+	"standing_stone": ["left"], "moonstone": ["left"], "cairn": ["left"], "rockslide": ["left"],
 }
 
 func _hidden_rocks() -> Array:
@@ -1293,8 +1295,9 @@ func _decor_fairy_ring(canvas: Image, top: Image, _side: Image, st: Dictionary, 
 
 # Cobblestones with mossy mortar.
 func _decor_cobble(canvas: Image, top: Image, _side: Image, _st: Dictionary, lush: bool) -> void:
-	# The side rocks' own stone (ROCK_PAL), so they sit on it naturally (bluer greys turn icy in the palette pass).
-	var shades := [Color("#b9b6c6"), Color("#a9a6b8"), Color("#9a97ae")]
+	# Neutral grey a step darker than the side rocks (ROCK_PAL) so they stand out on it; bluer greys
+	# turn icy in the palette pass.
+	var shades := [Color("#94919f"), Color("#878494"), Color("#7b7889")]
 	for y in S:
 		for x in S:
 			if not _on(top, x, y):
@@ -1303,7 +1306,7 @@ func _decor_cobble(canvas: Image, top: Image, _side: Image, _st: Dictionary, lus
 			var v := x * 0.5 - y
 			if fposmod(u, 5.0) < 1.0 or fposmod(v, 5.0) < 1.0:
 				var mossy := (x * 13 + y * 7) % (3 if lush else 5) == 0
-				canvas.set_pixel(x, y, Color("#5a9a48") if mossy else Color("#77748c"))
+				canvas.set_pixel(x, y, Color("#5a9a48") if mossy else Color("#5f5c70"))
 			else:
 				canvas.set_pixel(x, y, shades[absi(int(floor(u / 5.0)) * 7 + int(floor(v / 5.0)) * 3) % 3])
 
@@ -1567,8 +1570,6 @@ func _draw_pebbling(canvas: Image, st: Dictionary) -> void:
 	var stone := _ramp(["#686d9a", "#979dc2", "#c4c9e2", "#e4e7f4"])
 	var moss := _ramp(["#3f7a3e", "#5a9a48", "#7cbc5a", "#a8dc7a"])
 	_draw_waystone(canvas, st, "cobble")
-	_rock(canvas, PackedVector2Array([Vector2(4, 43), Vector2(6, 40), Vector2(10, 40), Vector2(11, 43), Vector2(8, 45)]), _ramp(ROCK_RAMP), ROCK_PAL.o)
-	_rock(canvas, PackedVector2Array([Vector2(53, 45), Vector2(55, 42), Vector2(58, 42), Vector2(59, 45), Vector2(56, 47)]), _ramp(ROCK_RAMP), ROCK_PAL.o)
 	var mask := _draw_template_figure(canvas, st.pose, fig)
 	_line(canvas, [Vector2(36, 9 + dy), Vector2(35, 11 + dy)], fig.c, mask)
 	_line(canvas, [Vector2(21, 30), Vector2(23, 33), Vector2(22, 35)], fig.c, mask)
@@ -3058,7 +3059,8 @@ func _menhir_body(canvas: Image, st: Dictionary, moon: bool) -> void:
 		rune = rune.lightened(0.3)
 	_draw_waystone(canvas, st, "cobble", moon)
 	var stone := _layer()
-	_flat_polygon(stone, PackedVector2Array([Vector2(7, 40), Vector2(7, 12), Vector2(11, 5), Vector2(17, 7), Vector2(19, 14), Vector2(18, 40)]), fig.b)
+	# The menhir stands on the slab where the left rock was, its foot set a little into the ground.
+	_flat_polygon(stone, PackedVector2Array([Vector2(6, 44), Vector2(7, 12), Vector2(11, 5), Vector2(17, 7), Vector2(19, 14), Vector2(19, 43)]), fig.b)
 	for y in S:
 		for x in S:
 			if stone.get_pixel(x, y).a > 0.0 and x < 10:
