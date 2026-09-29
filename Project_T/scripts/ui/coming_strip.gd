@@ -10,8 +10,8 @@ class_name ComingStrip
 # Tap a portrait: a new kind reopens its introduction (NightmareIntro), a known one shows its info
 # (NightmareCard), the boss opens the boss dossier. Made by the HUD.
 
-const FACE := 40.0
-const FACE_SMALL := 26.0
+const FACE := 48.0  # screens_ui.md "Readable on the night sky": 48 px at rests, 36 in drifts
+const FACE_SMALL := 36.0
 const PIP := 16.0
 const TOP := 72.0  # Just under the drift banner
 const BOSS_COLOR := UiStyle.BOSS  # Heartwood 32 (ui_style.md)
@@ -23,6 +23,7 @@ var _caption := Label.new()
 var _row := HFlowContainer.new()
 var _card := NightmareCard.new()
 var _built_for := ""  # "mode:first:last" of what's shown ("" = nothing)
+var _fog := UiStyle.panel()
 
 func _init(director: DriftDirector = null) -> void:
 	drift_director = director
@@ -34,7 +35,7 @@ func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_theme_constant_override("separation", 2)
 	_caption.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	UiStyle.caps(_caption, 13)
+	UiStyle.caps(_caption, UiStyle.BODY_SIZE)  # At body size
 	add_child(_caption)
 	_row.alignment = FlowContainer.ALIGNMENT_CENTER
 	_row.add_theme_constant_override("h_separation", 4)
@@ -42,6 +43,11 @@ func _ready() -> void:
 	add_child(_row)
 	add_child(_card)
 	visible = false
+	resized.connect(queue_redraw)
+
+# The strip sits on a fog panel (Moonlit Thread), a little larger than its content.
+func _draw() -> void:
+	draw_style_box(_fog, Rect2(Vector2(-14, -8), size + Vector2(28, 12)))
 
 func _process(_delta: float) -> void:
 	var span := shown_span()
@@ -145,11 +151,10 @@ func _make_item(data: EnemyData, drift: int, count: int = 1) -> Control:
 	face.add_theme_color_override("icon_normal_color", data.tint)
 	face.tooltip_text = data.display_name + (" · boss: tap for the dossier" if data.is_boss else "")
 	var is_new := NightmareCard.is_new(data)
+	if not data.is_boss:
+		UiStyle.moon_disc_button(face)  # A pale moonlit disc: dark nightmares stay visible on the night sky
 	if data.is_boss:
-		var frame := UiStyle.button_box()  # The boss face: a button outlined in the boss colour
-		frame.border_color = BOSS_COLOR
-		frame.set_border_width_all(2)
-		face.add_theme_stylebox_override("normal", frame)
+		UiStyle.moon_disc_button(face, BOSS_COLOR)  # The boss: the moon disc rimmed in the boss colour
 		face.pressed.connect(func() -> void: BossDossier.open_for(get_tree(), drift))
 	elif is_new:
 		face.pressed.connect(func() -> void: NightmareIntro.open_for(get_tree(), [data], drift))
@@ -167,7 +172,7 @@ func _make_item(data: EnemyData, drift: int, count: int = 1) -> Control:
 		name.name = "KindName"
 		name.text = data.display_name
 		name.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		UiStyle.caps(name, 12, UiStyle.INK)
+		UiStyle.caps(name, 14, UiStyle.INK)
 		item.add_child(name)
 		var many := Label.new()
 		many.name = "KindCount"

@@ -24,10 +24,13 @@ const CARD_BG := Color("24243c")  # Night: the lit middle of a card, over Void
 const BOSS := Color("9a84e8")  # Wraithlight: bosses (the palette has no red; the nightmares' own cold glow)
 const LIVE := Color("d4ec9c")  # Newleaf: live bonuses, rewards
 const OFF := Color("8c8cac")  # Stone: a bonus that is off right now
+const MOONLIGHT := Color("dce8f4")  # Moonlight: the pale disc under nightmare portraits
+const MOON_MIST := Color("b4b0c8")  # Mist: the disc's outer ring
 const RARITY := [Color("b4b0c8"), Color("9cc46c"), Color("9cd4fc"), Color("e9a83c")]  # Mist, Sprig, Dewlight, Gold
 const PALETTE_NAMES := {"INK": "Heartlight", "INK_DIM": "Mist", "GOLD": "Glow", "BUTTON_GOLD": "Gold",
 	"GOLD_TEXT": "Heartlight", "WHISPER": "Moonpath", "POOR": "Ember", "FOG": "Void", "CARD_BG": "Night",
-	"BOSS": "Wraithlight", "LIVE": "Newleaf", "OFF": "Stone"}
+	"BOSS": "Wraithlight", "LIVE": "Newleaf", "OFF": "Stone",
+	"MOONLIGHT": "Moonlight", "MOON_MIST": "Mist"}
 const RARITY_NAMES := ["Mist", "Sprig", "Dewlight", "Gold"]
 const DISABLED_ALPHA := 0.45
 const UNAFFORDABLE_ALPHA := 0.5
@@ -140,6 +143,43 @@ static func slot(selected: bool, hover: bool = false) -> MoonStyleBox:
 	box.center_alpha = 0.85 if hover or selected else 0.75
 	box.underline = selected
 	return box
+
+# Nightmare portraits on dark UI sit on a pale moonlit disc with a thin cold rim (screens_ui.md
+# "Readable on the night sky"): a dark nightmare never vanishes into the night sky. Boss faces rim it
+# in BOSS.
+static func moon_disc(rim: Color = OFF, hover: bool = false, margin: float = 4.0) -> StyleBoxFlat:
+	var box := StyleBoxFlat.new()
+	box.bg_color = MOONLIGHT.lightened(0.1) if hover else MOONLIGHT
+	box.border_color = rim
+	box.set_border_width_all(2 if rim == BOSS else 1)
+	box.set_corner_radius_all(999)  # Clamped to half the size: a circle
+	box.anti_aliasing = true
+	box.set_content_margin_all(margin)
+	return box
+
+# The same disc drawn straight onto a canvas (custom-drawn portraits), `r` px from the centre.
+static func draw_moon_disc(canvas: CanvasItem, centre: Vector2, r: float, rim: Color = OFF) -> void:
+	canvas.draw_circle(centre, r, MOON_MIST)
+	canvas.draw_circle(centre, r * 0.82, MOONLIGHT)  # Brighter towards the middle
+	canvas.draw_arc(centre, r - 0.75, 0.0, TAU, 48, rim, 2.0 if rim == BOSS else 1.5, true)
+
+# Puts `portrait` (a TextureRect or similar) on the moon disc; add the result where the portrait went.
+static func on_moon_disc(portrait: Control, rim: Color = OFF) -> PanelContainer:
+	var disc := PanelContainer.new()
+	disc.add_theme_stylebox_override("panel", moon_disc(rim))
+	disc.mouse_filter = Control.MOUSE_FILTER_IGNORE if portrait.mouse_filter == Control.MOUSE_FILTER_IGNORE \
+		else Control.MOUSE_FILTER_PASS
+	disc.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	disc.add_child(portrait)
+	return disc
+
+# Gives a portrait Button the moon disc look in every state.
+static func moon_disc_button(button: Button, rim: Color = OFF) -> void:
+	for state in ["normal", "pressed", "disabled"]:
+		button.add_theme_stylebox_override(state, moon_disc(rim, false, 1.0))
+	for state in ["hover", "hover_pressed"]:
+		button.add_theme_stylebox_override(state, moon_disc(rim, true, 1.0))
+	button.add_theme_stylebox_override("focus", StyleBoxEmpty.new())
 
 # Buttons: 1 px gold outline at 45%, dark fog fill, 2 px radius.
 static func button_box(hover: bool = false) -> StyleBoxFlat:
