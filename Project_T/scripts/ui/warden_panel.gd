@@ -243,6 +243,10 @@ func _refresh() -> void:
 				else:
 					tower_placer.nurture(_tower)
 				_refresh())
+	elif _tower.nurture_blocker() != "":
+		var locked := _add_button(_tower.nurture_blocker())  # "Rank III needs a Nurture Dream"
+		locked.disabled = true
+		locked.tooltip_text = "Every Warden can reach rank II. A Nurture Dream opens ranks III-V and the Focus."
 	elif _tower.can_be_nurtured() and _tower.rank > 0:
 		var others_can: bool = dream_state.has_method("get_max_rank") and dream_state.get_max_rank() > _tower.rank
 		if others_can and not _is_eldest(_tower):

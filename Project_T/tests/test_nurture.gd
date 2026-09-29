@@ -51,6 +51,16 @@ func _run() -> void:
 	_check(is_equal_approx(tower.get_attacks_per_second(), base_speed * 1.08), "rank II: +8% attack speed")
 	_check(is_equal_approx(tower.get_range_cells(), base_range + 0.2), "rank II: +0.2 range")
 
+	# Ranks III-V need a Nurture Dream (warden_stats.md, b061d29): stuck at II without one.
+	_check(not tower.can_nurture() and not placer.nurture(tower, Tower.Focus.POWER) and tower.rank == 2,
+		"without a Nurture Dream a Warden stops at rank II")
+	_check(tower.nurture_blocker() == "Rank III needs a Nurture Dream", "and the button says why (%s)" % tower.nurture_blocker())
+	_check(seller.plan_nurture([tower])[0].is_empty(), "group Nurture / R plan nothing for it")
+	for card in dreams.pool:
+		if card.id == "chosen_few":  # Any Nurture-tagged card opens III-V
+			dreams.take(card)
+	_check(tower.can_nurture() and tower.nurture_blocker() == "", "a Nurture Dream opens rank III")
+
 	# Rank III asks for a Focus.
 	_check(tower.needs_focus() and not placer.nurture(tower), "rank III needs a Focus first")
 	_check(placer.nurture(tower, Tower.Focus.POWER) and tower.rank == 3 and tower.focus == Tower.Focus.POWER,

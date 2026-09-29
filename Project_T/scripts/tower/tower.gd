@@ -462,11 +462,28 @@ func get_status_focus_multiplier() -> float:
 	return 1.0 + FOCUS_DEEP * _focus_ranks(get_effective_rank()) if focus == Focus.DEEP else 1.0
 
 func get_max_rank() -> int:
+	var cap := RANK_MAX
 	if _dream_state and _dream_state.has_method("get_max_rank_for"):
-		return _dream_state.get_max_rank_for(self)  # Past V only for the Eldest
-	if _dream_state and _dream_state.has_method("get_max_rank"):
-		return _dream_state.get_max_rank()
-	return RANK_MAX
+		cap = _dream_state.get_max_rank_for(self)  # Past V only for the Eldest
+	elif _dream_state and _dream_state.has_method("get_max_rank"):
+		cap = _dream_state.get_max_rank()
+	# warden_stats.md (b061d29): every Warden can be nurtured to rank II; III-V (and the Focus) open
+	# once any Nurture Dream is owned. Ranks a Warden already has (old saves) are kept.
+	if not has_nurture_dream():
+		cap = mini(cap, UNDREAMED_MAX_RANK)
+	return cap
+
+const UNDREAMED_MAX_RANK := 2
+
+func has_nurture_dream() -> bool:
+	return _dream_state == null or not _dream_state.has_method("count_taken_with_tag") \
+		or _dream_state.count_taken_with_tag("nurture") > 0
+
+# Why the next rank can't be bought, for the Nurture button ("" = it can, or it's simply the top).
+func nurture_blocker() -> String:
+	if can_be_nurtured() and rank >= UNDREAMED_MAX_RANK and rank < RANK_MAX and not has_nurture_dream():
+		return "Rank %s needs a Nurture Dream" % rank_name(rank + 1)
+	return ""
 
 # Attacking Wardens can be nurtured (not walls or wall growths, not the White Stag's aura).
 func can_be_nurtured() -> bool:
