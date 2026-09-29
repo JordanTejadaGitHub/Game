@@ -556,8 +556,9 @@ func _test_woven() -> void:
 		"prism_heart", "endless_night", "ring_of_rings"]
 	for id in ids:
 		var card := _card(id)
-		_check(card.woven and card.entwined and card.rarity == UpgradeData.Rarity.RARE and not card.in_start_pool,
-			"%s is a Woven Rare from the Grove" % id)
+		_check(card.woven and card.entwined and card.rarity == UpgradeData.Rarity.RARE and card.in_start_pool
+				and card.discovered_by.size() == 1 and card.discovered_by[0].begins_with("crowned:"),
+			"%s is a Woven Rare in the start pool, discovered by its Crowned Reaction" % id)
 	dreams.grove_cards.assign(ids)
 	var stars := _card("falling_stars")
 	dreams.unlocked["firefly_jar"] = true
@@ -693,13 +694,17 @@ func _row(rows: Array[Dictionary], id: String) -> Dictionary:
 # map" Need, Entwined Kin and Kindling, and the kinship tag counting as your build.
 func _test_kinship_cards() -> void:
 	_reset()
-	var start := ["quick_bonds", "family_ties", "sweet_harmony", "sweet_harmony_ii"]
 	for id in ["quick_bonds", "family_ties", "sweet_harmony", "sweet_harmony_ii", "close_kin", "close_kin_ii",
 			"old_friends", "old_friends_ii", "rooted_bond", "extended_family", "kin_and_kindling", "grove_of_kin",
 			"blood_is_thicker"]:
 		var card := _card(id)
 		if card:
-			_check(card.in_start_pool == start.has(id) and card.tags.has("kinship"), "Kinship card %s: pool and tag" % id)
+			# Discovery unlocks: every Kinship card but the Legendary Grove of Kin (a Grove tip) is in the
+			# start pool and waits for any Kinship.
+			var legendary: bool = id == "grove_of_kin"
+			_check(card.in_start_pool != legendary and card.tags.has("kinship")
+					and Array(card.discovered_by) == (["kinship:any"] if not legendary else []),
+				"Kinship card %s: pool, tag and discovery" % id)
 	_check(_card("quick_bonds").max_stacks == 3 and _card("family_ties").max_stacks == 0, "Quick Bonds max 3, Family Ties stacks")
 	var kin := Kinships.find(dreams)
 	_check(kin != null, "Kinships found in the run")
