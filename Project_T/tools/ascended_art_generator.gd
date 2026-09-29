@@ -482,7 +482,9 @@ func _golem(canvas: Image, st: Dictionary, fig: Dictionary, opts: Dictionary = {
 			if ch == ".":
 				continue
 			if _is_rock(pose, tx, ty):
-				continue  # No side rocks on the Ascended.
+				continue  # No rocks on the Ascended (the body behind the front one is drawn below).
+			if tx >= 34 and tx <= 45 and ty >= 39 and ty <= 48:
+				continue  # The lumpy front of the seat; redrawn below as the golem's plain rounded seat.
 			if ch == "o":
 				var first_x := floori((x - 1 - fo.x) / K) != tx
 				var first_y := floori((y - 1 - fo.y) / K) != ty
@@ -498,6 +500,19 @@ func _golem(canvas: Image, st: Dictionary, fig: Dictionary, opts: Dictionary = {
 					ch = n
 			if not colors.has(ch):
 				continue
+			body.set_pixel(x, y, colors[ch])
+	# The golem's seat: its body carries straight down to the waystone, the bottom-right corner
+	# rounded, shaded like the body's bands (mid on the left, lit on the right, shadow at the base).
+	var seat := Rect2(Vector2(33.5, 38.5), Vector2(12.5, 9.5))  # template px
+	for y in 128:
+		for x in 128:
+			var t := (Vector2(x, y) - fo - Vector2(0, dy)) / K
+			if not seat.has_point(t) or body.get_pixel(x, y).a > 0.0:
+				continue
+			var corner := Vector2(seat.end.x - 3.0, seat.end.y - 3.0)
+			if t.x > corner.x and t.y > corner.y and t.distance_to(corner) > 3.0:
+				continue
+			var ch := "c" if t.y > seat.end.y - 1.5 else ("a" if t.x > 40.0 else "b")
 			body.set_pixel(x, y, colors[ch])
 	# Fresh 1 px outline round the silhouette.
 	var mask := _gnew(canvas)
