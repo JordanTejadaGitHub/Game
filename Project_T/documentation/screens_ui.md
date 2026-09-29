@@ -667,11 +667,19 @@ more clear with icons of their resistances"):
   - Data: the nightmare's `trait_text` plus a new `intro_lines` (what it does) and `hint`
     (Enemy Code, same voice as the boss tips).
 
-### Boss dossier (the rest before a boss block)
+### Boss dossier (at the start of each act)
 
-Added 2026-09-28, user request. At the rest that **opens a boss block** (after drifts 20, 45, 70,
-95), a dossier card for the coming boss appears **last in the rest order** (after the Omen, before
-free building) so the player plans the build with it. It can be closed and **reopened any time
+Added 2026-09-28, user request; **moved to the act's start 2026-09-29** (user: "give a heads-up at
+the beginning of the act of what type of boss and its style, instead of the block right before").
+The act's boss is drawn at random (boss pools, `enemy_design.md`), so the player learns which one
+it is **when the act begins** and has the whole act to build for it:
+- **Act 1:** the dossier opens by itself at the run's first rest, before drift 1 (after any
+  onboarding whisper).
+- **Acts 2–4:** it opens at the act-break rest (the boss rest after drifts 25 / 50 / 75), last in
+  the rest order, for the **next** act's boss.
+- **The rest opening the boss block** (after drifts 20, 45, 70, 95) no longer opens the full card,
+  only a short reminder (*"The Hollow Stag arrives in 5 drifts"*, the portrait, an "Open dossier"
+  button): a nudge, not a repeat. It can be closed and **reopened any time
 until the boss is dispelled**: tap the "Boss in N" countdown in the drift banner, or its portrait in
 *Coming this block*.
 
@@ -699,7 +707,8 @@ resist / immune rows.
 ## Choice screens (time stops)
 
 **Rest order:** rest bonus toast → **family pick** (boss rests) → **Dream** → **Omen** (from drift 10)
-→ **boss dossier** (rests opening a boss block) → free building → Start. Each choice screen can be **minimised** to look at the map first (a
+→ **boss dossier** (the act's start: run start and act-break rests; a short reminder at the rest
+opening a boss block) → free building → Start. Each choice screen can be **minimised** to look at the map first (a
 "peek" button), then reopened.
 
 ### Family pick
@@ -787,7 +796,8 @@ For the coding chat. Items likely missing or different (verify in the game):
 - [ ] Creature info on hover; "New" tag for first sightings
 - [ ] Resist / weak / immune icon rows (family = base Warden face), map pips in context, immune
       flash, "Coming this block" strip
-- [ ] Boss dossier at the rest opening a boss block (reopen from "Boss in N")
+- [ ] Boss dossier at the act's start (run start, act-break rests), a reminder at the rest opening
+      a boss block (reopen from "Boss in N")
 - [ ] Status icons with distinct shapes and stack numbers
 - [ ] "+N path" and invalid-placement reason tags on the build ghost
 - [ ] Rarity gem shapes; Deepened / Entwined / Bittersweet card styles
