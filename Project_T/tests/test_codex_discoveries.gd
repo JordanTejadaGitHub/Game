@@ -116,6 +116,7 @@ func _run() -> void:
 		"offered cards are seen on the account, others not")
 	dreams.card_taken.emit(all_cards[0])
 	_check(int(HeartwoodMemory.load_data().get(DreamCodex.TAKEN_KEY, {}).get(all_cards[0].id, 0)) == 1, "taking one counts it")
+	dreams.clearing_opened_by = all_cards[0].id  # As if this card unlocked clearing this run
 	pause_menu = main.get_node("%PauseMenu")
 	pause_menu.open_codex(&"combos")
 	await process_frame
@@ -124,6 +125,9 @@ func _run() -> void:
 	var unseen_entry: Control = codex.dream_entries.get(all_cards[2].id)
 	_check(seen_entry != null and _labels(seen_entry).has(all_cards[0].display_name) and seen_entry.find_child("New", true, false) != null,
 		"a seen card shows in full, with New")
+	_check(seen_entry != null and _labels(seen_entry).has(DreamState.OPENED_CLEARING_LINE.to_lower()), "the card that unlocked clearing says so")
+	var other_entry: Control = codex.dream_entries.get(all_cards[1].id)
+	_check(other_entry != null and not _labels(other_entry).has(DreamState.OPENED_CLEARING_LINE.to_lower()), "no other card does")
 	_check(unseen_entry != null and _labels(unseen_entry) == ["???"], "an unseen card is just ???")
 	_check(codex._dreams_count.text == "2 / %d Dreams seen" % all_cards.size(), "the Dreams count (" + codex._dreams_count.text + ")")
 	pause_menu.close()

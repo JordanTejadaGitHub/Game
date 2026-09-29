@@ -826,6 +826,12 @@ func _dream_entry(card: UpgradeData, seen: Array, viewed: Array, taken: Dictiona
 		var needs: String = dreams.needs_text(card)
 		if needs != "":
 			box.add_child(StatusLinks.make_label(needs, 14, Color("9cd4fc")))  # Dewlight
+	if dreams != null and dreams.has_method("opened_clearing") and dreams.opened_clearing(card):
+		var opened := Label.new()  # The card that unlocked clearing this run (Roguelite's DreamState)
+		opened.name = "OpenedClearing"
+		opened.text = DreamState.OPENED_CLEARING_LINE
+		UiStyle.caps(opened, 13, UiStyle.GOLD)  # Small caps (lowercases the text)
+		box.add_child(opened)
 	for other in DreamCodex.all_cards():  # Its Deepened version, once that's been seen too
 		if other.deepens == card.id and seen.has(other.id):
 			var deeper := Label.new()
