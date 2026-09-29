@@ -89,7 +89,7 @@ func _ready() -> void:
 	instance = self
 	z_index = 20  # Numbers over nightmares and effects
 	# The player's setting (Test Grove can override it later with set_numbers_mode).
-	numbers_mode = clampi(int(HeartwoodMemory.get_settings().get("damage_numbers", NumbersMode.BIG)),
+	numbers_mode = clampi(int(HeartwoodMemory.get_settings().get("damage_numbers", NumbersMode.OFF)),
 		NumbersMode.OFF, NumbersMode.ALL) as NumbersMode
 	var director := get_node_or_null("%DriftDirector") as DriftDirector
 	if director:
