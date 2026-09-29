@@ -397,21 +397,27 @@ func _run() -> void:
 	main.queue_free()
 	await process_frame
 	memory = HeartwoodMemory.load_data()
-	var stag_node := _unlock(grove, "memory_white_stag")
-	_check(memory.milestones.has("boss_old_stag") and HeartwoodMemory.node_level(memory, stag_node) == 1,
-		"dispelling the Hollow Stag grows the White Stag's bloom")
+	_check(memory.milestones.has("boss_old_stag"), "a boss's first dispel is recorded (kept even while Memory Wardens are parked)")
 	main = await _new_run()
 	meta_run = main.get_node("%MetaRun")
 	family = main.get_node("%FamilyPickScreen")
 	dreams = main.get_node("%DreamState")
-	_check(meta_run.memory_wardens.has("old_stag") and meta_run.memory_wardens.old_stag.get_id() == "white_stag",
-		"a grown bloom makes its Warden available after its boss")
 	meta_run._on_boss_dispelled("old_stag")
 	family.show_pick(&"boss")
-	_check(family.offer.size() > 0 and family.offer[0] is TowerData and family.offer[0].get_id() == "white_stag",
-		"the pick after the Hollow Stag offers the White Stag (%s)" % [family._ids(family.offer)])
-	family.choose(family.offer[0])
-	_check(dreams.is_unlocked("white_stag"), "choosing it plants the White Stag in the run")
+	if MetaRun.MEMORY_WARDENS_ENABLED:
+		var stag_node := HeartwoodMemory.get_unlock("memory_white_stag")
+		_check(stag_node != null and HeartwoodMemory.node_level(memory, stag_node) == 1, "dispelling the Hollow Stag grows the White Stag's bloom")
+		_check(meta_run.memory_wardens.has("old_stag") and meta_run.memory_wardens.old_stag.get_id() == "white_stag",
+			"a grown bloom makes its Warden available after its boss")
+		_check(family.offer.size() > 0 and family.offer[0] is TowerData and family.offer[0].get_id() == "white_stag",
+			"the pick after the Hollow Stag offers the White Stag (%s)" % [family._ids(family.offer)])
+		family.choose(family.offer[0])
+		_check(dreams.is_unlocked("white_stag"), "choosing it plants the White Stag in the run")
+	else:  # PARKED (user decision 2026-09-29): no bloom on the tree, no Memory Warden in the pick
+		_check(HeartwoodMemory.get_unlock("memory_white_stag") == null and meta_run.memory_wardens.is_empty(),
+			"Memory Wardens are parked: no bloom on the Grove, none offered")
+		_check(not family.offer.any(func(o) -> bool: return o is TowerData and o.line == "memory"),
+			"the pick after the Hollow Stag shows only families and Blessings (%s)" % [family._ids(family.offer)])
 	main.queue_free()
 	await process_frame
 
@@ -420,8 +426,8 @@ func _run() -> void:
 	bloom.milestones.erase(HeartwoodMemory.FULL_BLOOM)
 	_check(HeartwoodMemory.loadout_slots(bloom) == 5 and not HeartwoodMemory.has_sixth_slot(bloom), "no 6th slot before full bloom")
 	var partial := bloom.duplicate(true)
-	partial.milestones.erase("boss_moth_queen")
-	_check(not HeartwoodMemory.check_full_bloom(partial), "a missing Memory Warden bloom keeps the tree unfinished")
+	partial.unlocks.erase("slot_5")
+	_check(not HeartwoodMemory.check_full_bloom(partial), "one node short keeps the tree unfinished")
 	bloom.erase("sixth_stone_risen")
 	HeartwoodMemory.save_data(bloom)
 	grove_screen = load("res://scenes/grove.tscn").instantiate()
@@ -526,9 +532,12 @@ func _layout_node(id: String) -> Dictionary:
 # art, and every UnlockData is on the tree.
 func _check_layout(grove: Array[UnlockData]) -> void:
 	var nodes: Array = GroveTreeView.load_layout().nodes
-	_check(nodes.size() == 84 and grove.size() == 84, "84 Grove nodes (layout %d, data %d)" % [nodes.size(), grove.size()])
+	var parked := 0 if MetaRun.MEMORY_WARDENS_ENABLED else 3  # Memory Warden blooms: in the layout, off the tree
+	_check(nodes.size() == 84 and grove.size() == 84 - parked, "84 Grove spots, %d nodes on the tree (layout %d, data %d)" % [84 - parked, nodes.size(), grove.size()])
 	for node in nodes:
 		var unlock := HeartwoodMemory.get_unlock(node.id)
+		if unlock == null and node.get("memory_row") != null and parked > 0:
+			continue  # A parked Memory Warden bloom
 		if unlock == null:
 			_check(false, "layout node %s has an UnlockData" % node.id)
 			continue
