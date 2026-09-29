@@ -13,3 +13,5 @@ dew_reward = 5
 weak_to = Array[String](["wind"])
 single_target_multiplier = 0.5
 trait_text = "Made of many: single-target hits do half."
+intro_lines = Array[String](["Made of many whispers: single-target hits deal only {single_target_multiplier:pct} damage."])
+hint = "Splash, pulses and clouds hit every whisper at once."

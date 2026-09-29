@@ -14,3 +14,5 @@ weak_to = Array[String](["water"])
 trait_kind = 2
 trait_text = "Sprints down long straight corridors."
 immune_while_sprinting = Array[StringName]([&"held"])
+intro_lines = Array[String](["Breaks into a sprint after {roll_after_tiles} straight tiles, and can't be {held} while sprinting."])
+hint = "Corners break its stride."

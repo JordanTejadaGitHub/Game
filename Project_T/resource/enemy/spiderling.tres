@@ -10,3 +10,5 @@ health = 20
 speed = 140.0
 dew_reward = 1
 trait_text = "Tiny and fast."
+intro_lines = Array[String](["Tiny and fast: they scatter out of a Widow."])
+hint = "Wardens near the end of the path catch the stragglers."

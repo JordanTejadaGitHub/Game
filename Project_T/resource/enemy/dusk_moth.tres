@@ -13,3 +13,5 @@ resists = Array[String](["spore"])
 weak_to = Array[String](["wing"])
 trait_text = "Fast, and hidden in the fog."
 hidden = true
+intro_lines = Array[String](["Fast, and hidden in the fog: Wardens can't target it until it's revealed.", "A Warden right beside it, a Warden that makes nightmares {marked}, or a Will-o'-Wisp's glow reveals it."])
+hint = "Short-range Wardens beside the path see what the far ones can't."

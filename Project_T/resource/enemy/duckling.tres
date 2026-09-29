@@ -13,3 +13,5 @@ health = 50
 dew_reward = 1
 lost_speed = 44.8
 trait_text = "Follows the Lantern Bearer in single file."
+intro_lines = Array[String](["Follows the Lantern Bearer in single file; without its light it slows down.", "Each one that reaches the Heartwood takes {leaf_cost} leaf."])
+hint = "A line this tight is made for area damage."
