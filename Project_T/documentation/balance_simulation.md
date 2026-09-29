@@ -146,6 +146,17 @@ Income only for drifts 1–60 (assumed perfect blocks), then drifts 61–70 foug
 
 **Every target passes.** Watch: Balanced's spread by map is wide (one seed dies at the drift 25 boss); **Seedfall adds no survival** (it only saves Dew), so as the door into the swarm build it's too weak: **Flat Seedfall tested (62af1fd): ×1.05 of Balanced, first leak 50, kept.**
 
+## Grove-profile batch (2026-09-29, 10 seeds, Balanced)
+
+| Profile | Survival (median, range) | Wins | First leak |
+|---|---|---|---|
+| Fresh | 43 (23–74) | 0/10 | 27 |
+| Early | 43 (26–74) | 0/10 | 28 |
+| Half | 40 (27–72) | 0/10 | 28 |
+| Full | 42 (28–67) | 0/10 | 28 |
+
+**Fails every Grove check: the Grove makes no difference for the bot.** Survival follows the **map seed** (the same 3 seeds run long in every profile). Before tuning the Grove: a diagnosis of whether the bot uses Grove content (finals, Ascended, Dreamlight, cards, family spread) and how much the map decides. Levers on the table if the Grove really adds little: stronger perks, stronger (not just more) Grove families and cards, a Blight 0 curve, a smarter bot.
+
 ## Later
 
 A **human baseline**: the same CSV written from real playtests (debug builds only), so the bot's
