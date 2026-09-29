@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://ddcq3x063r5h5"
-path="res://.godot/imported/slot_3.png-35c0e4c27a7255b59981414204c07d38.ctex"
+uid="uid://cg4arxbp3b7hf"
+path="res://.godot/imported/memory_pond_keeper.png-2779508a40834bf4fa259f46c6bc6abb.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/meta/grove/branches/slot_3.png"
-dest_files=["res://.godot/imported/slot_3.png-35c0e4c27a7255b59981414204c07d38.ctex"]
+source_file="res://assets/meta/grove/branches/memory_pond_keeper.png"
+dest_files=["res://.godot/imported/memory_pond_keeper.png-2779508a40834bf4fa259f46c6bc6abb.ctex"]
 
 [params]
 

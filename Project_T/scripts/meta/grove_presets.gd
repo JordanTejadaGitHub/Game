@@ -5,9 +5,9 @@ class_name GrovePresets
 # HeartwoodMemory profile standing for a player's progress, written to a temp file so the real
 # profile is never touched. Load one with MetaRun.load_preset(&"half") before the run scene starts.
 #   fresh: nothing (first runs, every demo run)
-#   early: ~5 cheap unlocks, 1 slot (~3 hours in)
+#   early: ~5 cheap unlocks, 3 slots (~3 hours in)
 #   half:  about half the tree by Seed cost, 3 slots (~15 hours in)
-#   full:  everything, 5 slots (endgame, Blight 0)
+#   full:  everything, all 6 slots (endgame, Blight 0)
 
 const PRESETS: Array[StringName] = [&"fresh", &"early", &"half", &"full"]
 const PATH := "user://sim_heartwood.json"
@@ -17,7 +17,6 @@ const EARLY := {"morning_stores": 1, "deep_taproot": 1, "pebbling": 1, "spore_lo
 const LOADOUT_PRIORITY: Array[String] = ["morning_stores", "deep_taproot", "rich_dew", "second_thoughts",
 	"wider_dreams", "sprout_bed", "rested_roots", "early_bloom", "clear_sight", "first_care", "kindling",
 	"seed_pouch", "omen_reader", "early_light", "let_go"]
-const HALF_SLOTS := 3
 
 # The profile for `preset` (a full HeartwoodMemory dictionary).
 static func profile(preset: StringName) -> Dictionary:
@@ -43,6 +42,7 @@ static func profile(preset: StringName) -> Dictionary:
 					data.unlocks[unlock.id] = unlock.get_levels()
 				elif unlock.milestone != "":
 					data.milestones[unlock.milestone] = true  # Sunpetal: 500 Shades
+			HeartwoodMemory.check_full_bloom(data)  # Every node grown: the secret 6th slot too
 		_:
 			push_error("Unknown Grove preset %s" % preset)
 	data.loadout = _loadout(data)
@@ -58,7 +58,7 @@ static func load_preset(preset: StringName, path: String = PATH) -> String:
 static func unload() -> void:
 	HeartwoodMemory.file_path = HeartwoodMemory.PATH
 
-# About half the tree by Seed cost: loadout slots 2–3 first, then the cheapest next level anywhere
+# About half the tree by Seed cost: the cheapest next level anywhere, loadout slot nodes aside
 # (so the tree fills out broad and shallow, like a player buying something every run).
 static func _half() -> Dictionary:
 	var grove := HeartwoodMemory.load_grove()
@@ -67,9 +67,7 @@ static func _half() -> Dictionary:
 		total += unlock.get_spent(unlock.get_levels())
 	var data := HeartwoodMemory.defaults()
 	data.seeds = 1 << 30  # Buying is only limited by requirements here
-	var spent := 0
-	for id in ["slot_2", "slot_3"]:
-		spent += _grow(data, HeartwoodMemory.get_unlock(id))
+	var spent := 0  # Slots 1–3 are open from the start, so no slot nodes here
 	while spent < total / 2:
 		var best: UnlockData = null
 		for unlock in grove:

@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="UnlockData" format=3]
+
+[ext_resource type="Script" path="res://resource/meta/script/unlock_data.gd" id="1_unlock"]
+
+[resource]
+script = ExtResource("1_unlock")
+id = "memory_pond_keeper"
+display_name = "Memory Warden: The Pond Keeper"
+description = "The Pond Keeper grows here the first time you dispel the Mire Hag. In later runs it can be your reward after that boss. Its tongue pulls the nightmare furthest along back beside its pond."
+root = 0
+costs = Array[int]([])
+order = 41
+icon = -1
+milestone = "boss_great_toad"
+memory_warden = "pond_keeper"
+memory_boss = "great_toad"

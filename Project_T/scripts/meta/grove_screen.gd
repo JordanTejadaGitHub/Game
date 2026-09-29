@@ -86,6 +86,7 @@ func _ready() -> void:
 		_go())
 	_refresh()
 	_welcome()
+	_check_full_bloom()
 
 func _build_header() -> void:
 	var header := VBoxContainer.new()
@@ -369,6 +370,22 @@ func _plant_selected() -> void:
 		_message.text = "A memory returns… a dream-fruit ripens on the Heartwood."
 	else:
 		_message.text = ""
+	_check_full_bloom()
+
+# "The Heartwood in full bloom" (meta_design.md): once every node is grown, the milestone is recorded
+# and the secret sixth waystone rises at the roots, once (seen on this visit or the next; the
+# profile remembers it has risen). The developer toggle shows the stone without any of this.
+func _check_full_bloom() -> void:
+	var data := HeartwoodMemory.load_data()
+	var changed := HeartwoodMemory.check_full_bloom(data)
+	if data.milestones.has(HeartwoodMemory.FULL_BLOOM) and not data.get("sixth_stone_risen", false):
+		data.sixth_stone_risen = true
+		changed = true
+		tree_view.play_sixth_rise()
+		_message.text = "The Heartwood is in full bloom. A sixth waystone rises from its roots."
+	if changed:
+		HeartwoodMemory.save_data(data)
+		_refresh()
 
 func _toggle_carry() -> void:
 	if selected == null:

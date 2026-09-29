@@ -28,6 +28,9 @@ const TITLES := {
 ]
 @export var cards_per_pick: int = 3
 var offer_all_first := false  # Early Bloom (set by MetaRun)
+# Memory Warden (tower_design.md): set by MetaRun when a boss whose bloom the Grove has grown is dispelled;
+# the next boss pick offers it in one of the slots (free, one per run).
+var pending_memory_warden: TowerData
 var previous_first_offer: Array = []  # Sorted ids of the last run's first-pick offer (profile "last_first_pick")
 
 @onready var dream_state: DreamState = %DreamState
@@ -89,6 +92,11 @@ func show_pick(reason: StringName = &"first") -> void:
 	_include_owed_family(available, count)
 	offer = []  # Untyped: families (TowerData) and Blessings (UpgradeData) share it
 	offer.append_array(available.slice(0, count))
+	if reason == &"boss" and pending_memory_warden != null and not dream_state.is_unlocked(pending_memory_warden.get_id()):
+		if offer.size() >= cards_per_pick:
+			offer.pop_back()
+		offer.push_front(pending_memory_warden)
+	pending_memory_warden = null
 	if reason == &"first":
 		_remember_first_offer()
 	var blessings := get_blessings()

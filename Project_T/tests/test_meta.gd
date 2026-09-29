@@ -62,12 +62,13 @@ func _run() -> void:
 	_check(HeartwoodMemory.memories_unlocked(memory) == 1 + 6 / 3, "Memories: 1 + one per 3 unlocks")
 	_check(HeartwoodMemory.buy(_unlock(grove, "early_bloom")), "buy Early Bloom")
 	_check(HeartwoodMemory.buy(_unlock(grove, "early_light")), "buy Early Light")
-	_check(HeartwoodMemory.buy_problem(HeartwoodMemory.load_data(), _unlock(grove, "slot_3")) != "", "loadout slot 3 needs slot 2")
-	_check(HeartwoodMemory.buy(_unlock(grove, "slot_2")), "buy loadout slot 2")
-	var wanted: Array[String] = ["morning_stores", "early_light", "early_bloom"]
+	_check(HeartwoodMemory.loadout_slots(HeartwoodMemory.load_data()) == 3, "3 loadout slots are open from the start")
+	_check(_unlock(grove, "slot_4").requires_all.is_empty() and _unlock(grove, "slot_5").requires_all == ["slot_4"],
+		"slot 4 grows from the limb, slot 5 needs slot 4")
+	var wanted: Array[String] = ["morning_stores", "early_light", "seed_pouch", "morning_stores"]
 	HeartwoodMemory.save_loadout(wanted)
 	_check(HeartwoodMemory.get_loadout(HeartwoodMemory.load_data()) == ["morning_stores", "early_light"],
-		"the loadout holds one perk per slot (%s)" % [HeartwoodMemory.get_loadout(HeartwoodMemory.load_data())])
+		"the loadout keeps owned perks once each (%s)" % [HeartwoodMemory.get_loadout(HeartwoodMemory.load_data())])
 
 	# --- Perks and Blight Level 5 at run start ---
 	MetaRun.blight_level = 5
@@ -179,12 +180,12 @@ func _run() -> void:
 
 	# --- Every perk, carried: 5 slots, two loadouts ---
 	memory = HeartwoodMemory.load_data()
-	for id in ["slot_2", "slot_3", "slot_4", "slot_5", "rich_dew", "rested_roots", "sprout_bed", "clear_sight",
+	for id in ["slot_4", "slot_5", "rich_dew", "rested_roots", "sprout_bed", "clear_sight",
 			"kindling", "omen_reader", "first_care", "deep_taproot", "second_thoughts", "wider_dreams", "let_go"]:
 		memory.unlocks[id] = _unlock(grove, id).get_levels()
 	memory.loadout = ["rich_dew", "rested_roots", "sprout_bed", "clear_sight", "kindling"]
 	HeartwoodMemory.save_data(memory)
-	_check(HeartwoodMemory.loadout_slots(memory) == 5, "slots 2–5 make 5 loadout slots")
+	_check(HeartwoodMemory.loadout_slots(memory) == 5, "3 open + slots 4–5 make 5 loadout slots")
 	main = await _new_run()
 	run_state = main.get_node("%RunState")
 	director = main.get_node("%DriftDirector")
@@ -300,15 +301,16 @@ func _run() -> void:
 	var fresh := GrovePresets.profile(&"fresh")
 	_check(fresh.unlocks.is_empty() and fresh.loadout.is_empty(), "Fresh: nothing grown")
 	var early := GrovePresets.profile(&"early")
-	_check(early.unlocks.size() == 5 and early.loadout == ["morning_stores"] and HeartwoodMemory.loadout_slots(early) == 1,
-		"Early: 5 cheap unlocks, Morning Stores carried (%s)" % [early.loadout])
+	_check(early.unlocks.size() == 5 and early.loadout == ["morning_stores", "deep_taproot"] and HeartwoodMemory.loadout_slots(early) == 3,
+		"Early: 5 cheap unlocks, 3 slots, its 2 perks carried (%s)" % [early.loadout])
 	var half := GrovePresets.profile(&"half")
 	var share: float = spent_share.call(half)
 	_check(share >= 0.5 and share < 0.56 and HeartwoodMemory.loadout_slots(half) == 3 and half.loadout.size() == 3,
 		"Half: about half the tree by Seeds (%.2f), 3 slots, 3 perks carried (%s)" % [share, half.loadout])
 	var full := GrovePresets.profile(&"full")
-	_check(is_equal_approx(spent_share.call(full), 1.0) and HeartwoodMemory.loadout_slots(full) == 5 and full.loadout.size() == 5
-		and grove.all(func(u: UnlockData) -> bool: return HeartwoodMemory.is_grown(full, u)), "Full: every node grown, 5 perks carried")
+	_check(is_equal_approx(spent_share.call(full), 1.0) and HeartwoodMemory.loadout_slots(full) == 6 and full.loadout.size() == 6
+		and full.milestones.has(HeartwoodMemory.FULL_BLOOM)
+		and grove.all(func(u: UnlockData) -> bool: return HeartwoodMemory.is_grown(full, u)), "Full: every node grown, in full bloom, 6 perks carried")
 	var real_path := HeartwoodMemory.file_path
 	MetaRun.load_preset(&"full")
 	_check(HeartwoodMemory.file_path == GrovePresets.PATH, "a preset loads from its own temp profile")
@@ -359,7 +361,7 @@ func _run() -> void:
 	_check(HeartwoodMemory.load_data().loadout == ["seed_pouch"], "Dev Grove keeps its loadout at the same level")
 	DevGrove.force = &"early"
 	DevGrove.apply()
-	_check(HeartwoodMemory.load_data().loadout == ["morning_stores"], "another level resets the dev profile to its preset")
+	_check(HeartwoodMemory.load_data().loadout == ["morning_stores", "deep_taproot"], "another level resets the dev profile to its preset")
 	DevGrove.force = &"off"
 	DevGrove.apply()
 	_check(not DevGrove.is_active() and HeartwoodMemory.file_path == PROFILE_PATH and ResultsScreen.demo_override == -1 and RunSaver.file_path == RunSaver.PATH,
@@ -368,6 +370,79 @@ func _run() -> void:
 	DevGrove.force = &""
 	_delete(GrovePresets.PATH)
 	ProjectSettings.set_setting("game/demo", false)
+
+	# --- v3 profiles: the removed slot_2 / slot_3 nodes refund their Seeds (slots 1–3 are free now) ---
+	old = FileAccess.open(PROFILE_PATH, FileAccess.WRITE)
+	old.store_string(JSON.stringify({"version": 3, "seeds": 0, "unlocks": {"slot_2": 1, "slot_3": 1, "slot_4": 1}}))
+	old.close()
+	HeartwoodMemory.forget()  # Written behind the profile cache's back
+	memory = HeartwoodMemory.load_data()
+	_check(int(memory.seeds) == 40 + 80 and not memory.unlocks.has("slot_2") and not memory.unlocks.has("slot_3")
+		and memory.unlocks.has("slot_4") and HeartwoodMemory.loadout_slots(memory) == 4,
+		"v3 profiles: slot 2 and 3 refund 120 Seeds, slot 4 stays (%d, %s)" % [int(memory.seeds), memory.unlocks.keys()])
+
+	# --- Memory Wardens: a boss's first dispel grows its bloom; later runs offer it after that boss ---
+	HeartwoodMemory.save_data(HeartwoodMemory.defaults())
+	main = await _new_run()
+	var meta_run: MetaRun = main.get_node("%MetaRun")
+	_check(meta_run.memory_wardens.is_empty(), "no Memory Warden blooms on a fresh Grove")
+	meta_run._on_boss_dispelled("old_stag")
+	meta_run.records = true
+	(main.get_node("%ResultsScreen") as ResultsScreen).bank_in_tests = true
+	main.get_node("%RunState").end_run(false)
+	await process_frame
+	main.queue_free()
+	await process_frame
+	memory = HeartwoodMemory.load_data()
+	var stag_node := _unlock(grove, "memory_white_stag")
+	_check(memory.milestones.has("boss_old_stag") and HeartwoodMemory.node_level(memory, stag_node) == 1,
+		"dispelling the Hollow Stag grows the White Stag's bloom")
+	main = await _new_run()
+	meta_run = main.get_node("%MetaRun")
+	family = main.get_node("%FamilyPickScreen")
+	dreams = main.get_node("%DreamState")
+	_check(meta_run.memory_wardens.has("old_stag") and meta_run.memory_wardens.old_stag.get_id() == "white_stag",
+		"a grown bloom makes its Warden available after its boss")
+	meta_run._on_boss_dispelled("old_stag")
+	family.show_pick(&"boss")
+	_check(family.offer.size() > 0 and family.offer[0] is TowerData and family.offer[0].get_id() == "white_stag",
+		"the pick after the Hollow Stag offers the White Stag (%s)" % [family._ids(family.offer)])
+	family.choose(family.offer[0])
+	_check(dreams.is_unlocked("white_stag"), "choosing it plants the White Stag in the run")
+	main.queue_free()
+	await process_frame
+
+	# --- The Heartwood in full bloom: every node grown opens the secret 6th slot and its waystone ---
+	var bloom := GrovePresets.profile(&"full")
+	bloom.milestones.erase(HeartwoodMemory.FULL_BLOOM)
+	_check(HeartwoodMemory.loadout_slots(bloom) == 5 and not HeartwoodMemory.has_sixth_slot(bloom), "no 6th slot before full bloom")
+	var partial := bloom.duplicate(true)
+	partial.milestones.erase("boss_moth_queen")
+	_check(not HeartwoodMemory.check_full_bloom(partial), "a missing Memory Warden bloom keeps the tree unfinished")
+	bloom.erase("sixth_stone_risen")
+	HeartwoodMemory.save_data(bloom)
+	grove_screen = load("res://scenes/grove.tscn").instantiate()
+	root.add_child(grove_screen)
+	await process_frame
+	memory = HeartwoodMemory.load_data()
+	_check(memory.milestones.has(HeartwoodMemory.FULL_BLOOM) and HeartwoodMemory.loadout_slots(memory) == 6
+		and memory.get("sixth_stone_risen", false), "the Grove records full bloom and the 6th slot opens")
+	_check(grove_screen.tree_view.is_sixth_rising(), "the sixth waystone rises at the roots")
+	grove_screen.queue_free()
+	await process_frame
+
+	# --- Developer "secret 6th slot": the slot, nothing recorded or written ---
+	HeartwoodMemory.save_data(HeartwoodMemory.defaults())
+	var plain_text := FileAccess.get_file_as_string(PROFILE_PATH)
+	MetaRun.force_sixth_slot = true
+	memory = HeartwoodMemory.load_data()
+	_check(HeartwoodMemory.loadout_slots(memory) == 4 and MetaRun.is_dev_run(), "the dev toggle: 3 open slots + the secret 6th, a dev run")
+	main = await _new_run()
+	_check(not (main.get_node("%MetaRun") as MetaRun).records, "a secret-slot dev run records nothing")
+	main.queue_free()
+	await process_frame
+	_check(FileAccess.get_file_as_string(PROFILE_PATH) == plain_text, "the secret-slot toggle writes nothing")
+	MetaRun.force_sixth_slot = false
 
 	# --- Developer "Dream of everything rewards": both rewards, nothing recorded or written ---
 	HeartwoodMemory.save_data(HeartwoodMemory.defaults())
@@ -446,7 +521,7 @@ func _layout_node(id: String) -> Dictionary:
 # art, and every UnlockData is on the tree.
 func _check_layout(grove: Array[UnlockData]) -> void:
 	var nodes: Array = GroveTreeView.load_layout().nodes
-	_check(nodes.size() == 83 and grove.size() == 83, "83 Grove nodes (layout %d, data %d)" % [nodes.size(), grove.size()])
+	_check(nodes.size() == 84 and grove.size() == 84, "84 Grove nodes (layout %d, data %d)" % [nodes.size(), grove.size()])
 	for node in nodes:
 		var unlock := HeartwoodMemory.get_unlock(node.id)
 		if unlock == null:
