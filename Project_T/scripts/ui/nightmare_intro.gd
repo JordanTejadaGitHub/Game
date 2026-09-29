@@ -17,7 +17,7 @@ const SEEN_KEY := "intros_seen"
 const WIDTH := 460.0
 const OPEN_DELAY := 0.35
 const PLATE_TIME := 2.0
-const NEW_COLOR := Color(1.0, 0.85, 0.45)
+const NEW_COLOR := UiStyle.GOLD  # Glow
 
 static var session_seen := {}  # Kind -> true: shown this session (dev runs, tests)
 
@@ -51,7 +51,7 @@ func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	visible = false
 	var shade := ColorRect.new()
-	shade.color = Color(0.02, 0.02, 0.05, 0.45)
+	shade.color = Color(UiStyle.FOG, 0.45)
 	shade.set_anchors_preset(Control.PRESET_FULL_RECT)
 	shade.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(shade)
@@ -81,7 +81,7 @@ func _ready() -> void:
 	_plate.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_plate.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	UiStyle.title(_plate, 22, NEW_COLOR)
-	_plate.add_theme_color_override("font_outline_color", Color(0.05, 0.05, 0.08))
+	_plate.add_theme_color_override("font_outline_color", UiStyle.FOG)
 	_plate.add_theme_constant_override("outline_size", 8)
 	_plate.visible = false
 	get_parent().add_child.call_deferred(_plate)

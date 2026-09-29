@@ -16,7 +16,7 @@ class_name BossDossier
 const GROUP := &"boss_dossier"
 const RECORDS_KEY := "boss_records"  # Profile: {kind: {"dispelled": n, "best": seconds}}
 const WIDTH := 600.0
-const BOSS_COLOR := Color(0.95, 0.45, 0.4)
+const BOSS_COLOR := UiStyle.BOSS  # Heartwood 32 (ui_style.md)
 const TITLE_COLOR := Color(1.0, 0.85, 0.75)
 const WHISPER_COLOR := Color(0.75, 0.9, 0.8)
 const SECTION_COLOR := Color(0.95, 0.8, 0.55)

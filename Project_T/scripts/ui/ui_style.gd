@@ -21,9 +21,13 @@ const WHISPER := Color("dccdb2")  # Moonpath
 const POOR := Color("b8662c")  # Ember: unaffordable (with the 50% fade; the palette has no red)
 const FOG := Color("05050d")  # Void: panel fog
 const CARD_BG := Color("24243c")  # Night: the lit middle of a card, over Void
+const BOSS := Color("9a84e8")  # Wraithlight: bosses (the palette has no red; the nightmares' own cold glow)
+const LIVE := Color("d4ec9c")  # Newleaf: live bonuses, rewards
+const OFF := Color("8c8cac")  # Stone: a bonus that is off right now
 const RARITY := [Color("b4b0c8"), Color("9cc46c"), Color("9cd4fc"), Color("e9a83c")]  # Mist, Sprig, Dewlight, Gold
 const PALETTE_NAMES := {"INK": "Heartlight", "INK_DIM": "Mist", "GOLD": "Glow", "BUTTON_GOLD": "Gold",
-	"GOLD_TEXT": "Heartlight", "WHISPER": "Moonpath", "POOR": "Ember", "FOG": "Void", "CARD_BG": "Night"}
+	"GOLD_TEXT": "Heartlight", "WHISPER": "Moonpath", "POOR": "Ember", "FOG": "Void", "CARD_BG": "Night",
+	"BOSS": "Wraithlight", "LIVE": "Newleaf", "OFF": "Stone"}
 const RARITY_NAMES := ["Mist", "Sprig", "Dewlight", "Gold"]
 const DISABLED_ALPHA := 0.45
 const UNAFFORDABLE_ALPHA := 0.5

@@ -14,7 +14,7 @@ const FACE := 40.0
 const FACE_SMALL := 26.0
 const PIP := 16.0
 const TOP := 72.0  # Just under the drift banner
-const BOSS_COLOR := Color(0.95, 0.45, 0.4)
+const BOSS_COLOR := UiStyle.BOSS  # Heartwood 32 (ui_style.md)
 const DIM := Color(1, 1, 1, 0.4)
 
 var drift_director: DriftDirector
@@ -137,11 +137,9 @@ func _make_item(data: EnemyData, drift: int) -> Control:
 	face.tooltip_text = data.display_name + (" · boss: tap for the dossier" if data.is_boss else "")
 	var is_new := NightmareCard.is_new(data)
 	if data.is_boss:
-		var frame := StyleBoxFlat.new()
-		frame.bg_color = Color(0.2, 0.06, 0.06, 0.9)
+		var frame := UiStyle.button_box()  # The boss face: a button outlined in the boss colour
 		frame.border_color = BOSS_COLOR
 		frame.set_border_width_all(2)
-		frame.set_corner_radius_all(4)
 		face.add_theme_stylebox_override("normal", frame)
 		face.pressed.connect(func() -> void: BossDossier.open_for(get_tree(), drift))
 	elif is_new:
