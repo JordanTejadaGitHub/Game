@@ -192,7 +192,7 @@ func _refresh() -> void:
 			button.text = "Grow into %s · %d Dew" % [next.display_name, cost]
 			if grow.ranks > 0:
 				button.text += " (%d + %d for rank %s)" % [grow.base, grow.ranks, Tower.rank_name(_tower.rank)]
-			button.tooltip_text = next.description
+			button.tooltip_text = IconInfo.format(next.description)  # {spored}-style tokens as words
 			button.disabled = not run_state.can_afford(cost)
 			var awake := tower_placer.ascended_blocker(next)
 			if awake != "":
@@ -343,7 +343,7 @@ func _refresh_group() -> void:
 			var next: TowerData = option[0]
 			var button := _add_button("")
 			UiStyle.primary(button)
-			button.tooltip_text = next.description
+			button.tooltip_text = IconInfo.format(next.description)  # {spored}-style tokens as words
 			if not option[1]:
 				_locked_form_button(button, "%s → %s" % [_plural(data, towers.size()), next.display_name], next)
 				continue
@@ -469,7 +469,7 @@ func _add_target_switch(towers: Array) -> void:
 # Dreamlight". With enough Dreamlight, the first click asks and the second unlocks it; otherwise it
 # opens the Remember screen on that form (which also says what else it needs).
 func _locked_form_button(button: Button, label: String, next: TowerData) -> void:
-	button.tooltip_text = next.description
+	button.tooltip_text = IconInfo.format(next.description)  # {spored}-style tokens as words
 	if not dream_state.has_method("get_unlock_cost"):
 		button.text = "%s · needs a Dream" % label  # Before Dreamlight
 		button.disabled = true
