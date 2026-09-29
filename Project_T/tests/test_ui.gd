@@ -173,15 +173,27 @@ func _run() -> void:
 	_check(made.custom_minimum_size == Vector2(32, 32) and made.tooltip_text.begins_with("Range:"), "make_icon: ×2, with its tooltip")
 	made.free()
 	var drift_panel = main.get_node("HUD/DriftPanel")
-	var saved_started := director.drifts_started
-	director.drifts_started = 0
+	# Remember: a top-right button beside the Dreamlight counter (run_design.md), glowing when
+	# something can be unlocked; the DriftPanel's old button stays hidden.
+	var hud_rem = main.get_node("HUD")
+	_check(main.get_node_or_null("HUD/RememberButton") != null, "a Remember button at the top right")
 	drift_panel._process(0.0)
-	_check(not drift_panel._remember_button.visible, "no Remember before the first family pick")
-	director.drifts_started = 5
-	drift_panel._process(0.0)
-	_check(drift_panel._remember_button.visible == director.is_resting()
-		and drift_panel._remember_button.text == "Remember (%d)" % dreams.dreamlight, "Remember at a rest, with the Dreamlight")
-	director.drifts_started = saved_started
+	_check(not drift_panel._remember_button.visible, "the rest panel's old Remember button is gone")
+	var saved_light := dreams.dreamlight
+	var had_sporeling := dreams.unlocked.has("sporeling")
+	dreams.unlocked["sporeling"] = true
+	dreams.add_dreamlight(-dreams.dreamlight)
+	_check(not hud_rem.can_remember_something(), "no glow without Dreamlight")
+	dreams.add_dreamlight(5)
+	_check(hud_rem.can_remember_something(), "it glows when a branch can be unlocked")
+	var asked := []
+	dreams.remember_requested.connect(func(_focus) -> void: asked.append(true), CONNECT_ONE_SHOT)
+	hud_rem.remember_button.pressed.emit()
+	_check(asked.size() == 1, "the button opens the Remember screen")
+	dreams.add_dreamlight(saved_light - dreams.dreamlight)
+	if not had_sporeling:
+		dreams.unlocked.erase("sporeling")
+	main.get_node("%GameSpeed").set_paused(false)  # Opening it mid-drift paused the game
 
 	# --- Whispers: a locked obstacle says "Dead wood…", Tend waits for the first clearing Dream ---
 	var whispers = main.get_node("%Whispers")
