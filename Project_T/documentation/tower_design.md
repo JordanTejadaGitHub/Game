@@ -201,8 +201,8 @@ sleep, then make sleep dangerous. Owns **Drowsy**.
 | Base | Acorn | +5% damage to adjacent Wardens | — | neighbours |
 | A | Elder Stump | adjacent Wardens attack 20% faster | — | tight clusters |
 | A+ | Grove Heart | radius 2; bonus grows per nearby Warden | — | tight clusters |
-| B | Dewcatcher | +Dew each drift | — | time |
-| B+ | Wellspring | interest on saved Dew (capped) | — | saving Dew |
+| B | Dewcatcher | **catches Dew:** nightmares dispelled nearby drop +40% Dew (plus a little each drift); place it where the most nightmares die | — | kill zones, bends |
+| B+ | Wellspring | a bigger catch (+60%), and interest on saved Dew at every rest | — | kill zones, saving Dew |
 | Hidden | Graftling | **copies the attack of its strongest adjacent Warden** at 60% (including its statuses) | copied | clusters |
 | Hidden+ | Grafted Elder | copies at 85% | copied | clusters |
 
@@ -499,7 +499,7 @@ family perks and the 9 hidden Kinships are still to build (the +20% damage is in
 | Pebbling | Mossback + Standing Stone | **Hammer and Anvil** | +10% crit chance at ×2.5 (the sniper's eye) | ×2 damage vs Marked (Mossback's weight) |
 | Rootling | Rootcurl + Tangleroot | **Snare** | a pull ends in a 0.5 s hold | a hold drags the nightmare back half a tile |
 | Bellflower | Chime Stone + Dreamcatcher | **Night Chimes** | pulses Catch full-Drowsy nightmares, as if a Dreamcatcher were there | threads set off Static at 3 stacks, like a chime |
-| Acorn | Elder Stump + Dewcatcher | **Old Growth** | +2 Dew per drift | gains a small aura: neighbours +10% attack speed |
+| Acorn | Elder Stump + Dewcatcher | **Old Growth** | nightmares dispelled inside its aura drop +25% Dew (was +2 Dew per drift) | gains a small aura: neighbours +10% attack speed |
 | Nestling | Wren's Nest + Magpie Perch | **Flock Together** | hits strip nightmare buffs (the magpie's theft) | hunts the fastest nightmare, +25% vs Phantoms |
 | Whirligig | Gust + Pinwheel | **Dust Devil** | each copy also deals one blade hit | blades copy statuses (half stacks) onto what they hit |
 

@@ -211,6 +211,30 @@ the rule was never taught and the bond was nearly invisible. Changes:
   first rest where the player owns two branches of a family but has no Kinship.
 - Rest report / results: Kinships formed, Harmony strikes, families made Whole.
 
+### Support and economy feedback: Wardens that don't deal damage
+
+Added 2026-09-29 (user request: economy felt weak, and non-attacking Wardens should feel as
+impactful as attackers). Economy, aura and wall Wardens are credited for what they **enable**, and
+each gets a visible payoff. As with Kinships, **the big moments come at rests**; in combat they stay
+light.
+
+| Warden kind | In combat (light) | At the rest (the payoff) | Panel line |
+|---|---|---|---|
+| **Catchers** (Dewcatcher, Wellspring) | a caught nightmare's Dew pop turns **gold** and a small droplet arcs into the catcher, whose bowl **visibly fills** over the block (no extra numbers) | **The Harvest:** each catcher pours its bowl into the Dew counter in a short cascade, *"Harvest +126 Dew"*, then the Wellspring's interest ripples in on top | *"Caught this run: 240 Dew · paid back ✓"* (shows *"38 Dew to pay back"* until then) |
+| **Auras** (Acorn, Elder Stump, Grove Heart, Grandmother Oak, the White Stag) | boosted Wardens carry a faint leaf mote; the aura ring breathes softly (brighter in build mode or when selected) | a line in the rest report: *"Elder Stump added 3,400 damage"* | *"Added this run: 12,800 damage (+18% to 6 Wardens)"*: the extra damage its bonus caused, credited through `DamageLog` |
+| **Walls** (Thornwall, Bramble, Honeysuckle) | nothing new | rest report: *"Your walls added 34 path tiles"*; Bramble's damage; Honeysuckle's Drowsy applied | Thornwall: *"Adds 3 path tiles"*; Honeysuckle: *"Drowsy applied: 410"* |
+| **Control** (Rootling line, holds and pulls) | nothing new | rest report: *"Held for 42 s · pulled back 31 tiles"* | *"Held 42 s · pulled back 31 tiles this run"* |
+
+- **Rest report "Support" line:** the top supporter of the block by what it enabled (*"Top support:
+  Grove Heart, +9,200 damage to 7 Wardens"*), next to the top-damage Wardens, so support Wardens
+  can be the block's MVP.
+- **Results screen:** a *"Best supporter"* next to *"Best Warden"*, and total Dew harvested.
+- **Placement preview** for catchers: the build ghost shades the path tiles in catch range, with
+  *"~31% of dispels last block happened here"* (from `DamageLog` positions), so the player can
+  find the kill zone.
+- **Clutter:** catch droplets and leaf motes share the effects budget below Harmony sparks; with
+  *reduce flashes* the Harvest is a simple count-up.
+
 ## Stat and status icons
 
 Added 2026-09-27 (user request). **Every stat and every status has a pixel-art icon**, and **every

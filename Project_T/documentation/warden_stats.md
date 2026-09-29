@@ -224,10 +224,19 @@ Caught bosses give no Dreamlight shards.
 | ✓ Acorn | base | 25 (+15) | 2 | 4 × 1.0 | 4 (area) | pulse | **aura:** the 8 surrounding Wardens +5% soothe. *Pulse halved 2026-09-29 (support family)* |
 | Elder Stump | branch | +45 | 2 | 10 × 1.0 | 10 (area) | pulse | **aura:** the 8 surrounding Wardens **+20% attack speed** |
 | Grove Heart | final | +90 | 2 | 14 × 1.0 | 14 (area) | pulse | **aura, radius 2:** +15% soothe and attack speed, **+3% more per Warden** in the radius (max +30%) |
-| Dewcatcher | branch | +45 | 2 | 8 × 1.0 | 8 (area) | pulse | **+3 Dew per drift** (+15 per block; pays itself back in ~15 drifts) |
-| Wellspring | final | +90 | 2 | 10 × 1.0 | 10 (area) | pulse | at every rest, **+5% of your banked Dew** (max +40 per Wellspring; all Wellsprings together max +80 per rest) |
+| Dewcatcher | branch | +45 (+80 after the economy pass) | **2.5 (catch)** | 8 × 1.0 | 8 (area) | pulse | **Reworked 2026-09-29** (playtest: "+3 Dew a drift doesn't feel worth it"; it paid back in ~35 drifts after the economy pass). **Catch:** nightmares dispelled within **2.5 cells** drop **+40% Dew**, plus **+4 Dew per drift**. With about a third of dispels in range that's ~10 Dew per drift in act 1, **paying back in ~8–10 drifts**; a percentage keeps pace as Dew per nightmare falls by act. Several catchers don't stack on one nightmare (the highest applies) |
+| Wellspring | final | +90 (+200 after the economy pass) | 3 (catch) | 10 × 1.0 | 10 (area) | pulse | catch **+60%**, and at every rest **+8% of your banked Dew** (max **60** per Wellspring; all Wellsprings together max **120** per rest). Pays back in about 1–2 blocks when you save |
 | ✓ Graftling *(hidden)* | branch | +45 | as copied | 60% of copied | — | copied | copies the attack (kind, range, statuses, crit) of the **highest-DPS adjacent** attacking Warden; not Memory Wardens or other Graftlings |
 | ✓ Grafted Elder *(hidden)* | final | +90 | as copied | 85% of copied | — | copied | as Graftling |
+
+**Economy Wardens and Nurture** (2026-09-29): for Dewcatcher and Wellspring, each rank adds **+10%
+catch** instead of damage (rank V Wellspring: +110%). Rank costs are unchanged.
+
+**Support credit** (2026-09-29): Wardens whose value isn't damage are credited with what they
+*enable*, so they show up in panels and reports: auras (Acorn, Elder Stump, Grove Heart, Grandmother
+Oak, the White Stag) get the extra damage their bonus caused; catchers get Dew caught and interest;
+walls get path tiles added (Thornwall), damage (Bramble) or Drowsy applied (Honeysuckle). Details:
+`screens_ui.md` "Support and economy feedback".
 
 ## Nestling family (wing) — full game
 
