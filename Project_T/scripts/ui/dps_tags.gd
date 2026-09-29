@@ -10,7 +10,7 @@ class_name DpsTags
 const SETTING := "dps_tags"
 const REFRESH := 0.5
 const OFFSET := Vector2(0, 40)  # Under the Warden
-const FONT_SIZE := 13
+const FONT_SIZE := 15
 const TAG_SIZE := Vector2(96, 18)
 
 var drift_director: DriftDirector
@@ -72,7 +72,7 @@ func tag_text(r: Dictionary) -> String:
 		" ★" if r.get("most_improved", false) else ""]
 
 func _draw() -> void:
-	var font := ThemeDB.fallback_font
+	var font := UiStyle.number_font()  # Moonlit Thread: numbers in Cormorant, lining figures
 	for tower in _shown_towers():
 		if not is_instance_valid(tower) or not _rows.has(tower.get_instance_id()):
 			continue
@@ -80,7 +80,7 @@ func _draw() -> void:
 		var text := tag_text(r)
 		var width := font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, FONT_SIZE).x
 		var at: Vector2 = tower.global_position + OFFSET + Vector2(-width / 2.0, 0)
-		draw_rect(Rect2(at + Vector2(-4, -FONT_SIZE), Vector2(width + 8, FONT_SIZE + 5)), Color(0.02, 0.02, 0.05, 0.6))
+		draw_rect(Rect2(at + Vector2(-4, -FONT_SIZE), Vector2(width + 8, FONT_SIZE + 5)), Color(UiStyle.FOG, 0.65))
 		draw_string(font, at, text, HORIZONTAL_ALIGNMENT_LEFT, -1, FONT_SIZE, DriftMeter.rating_color(r.get("rating_label", &"")))
 
 # A click on a tag: select that Warden and glide to it.

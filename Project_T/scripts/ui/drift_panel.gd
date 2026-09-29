@@ -31,8 +31,8 @@ func _ready() -> void:
 	# green / amber / red; a forecast at rests (WardenMeter.get_benchmark via DriftMeter.benchmark_text).
 	benchmark.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	benchmark.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	benchmark.add_theme_font_size_override("font_size", 14)
-	benchmark.add_theme_color_override("font_outline_color", Color(0.08, 0.1, 0.14))
+	benchmark.add_theme_font_size_override("font_size", 15)
+	benchmark.add_theme_color_override("font_outline_color", UiStyle.FOG)
 	benchmark.add_theme_constant_override("outline_size", 6)
 	benchmark.visible = false
 	add_child(benchmark)
