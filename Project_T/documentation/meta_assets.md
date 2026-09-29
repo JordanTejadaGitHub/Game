@@ -38,11 +38,14 @@ Tree space is **1280×960 px** (native pixels; the screen pans and zooms). Every
   start), `legendary`, and `branch` (`offset` = where to draw its branch sheet's frame, `frame_size`,
   `frames` = 5).
 - Family ids: `<family>`, `<family>_final`, `<family>_hidden`, `<family>_ascension` (e.g. `pebbling_final`).
-- Loadout slots are Perks nodes `slot_2` … `slot_5`.
+- Loadout slots: 1–3 are open from the start; Perks nodes `slot_4` and `slot_5`; the secret
+  `slot_6` is never drawn as a node (it appears only when every node is owned, 2026-09-29).
 - `fruit_spots`: 10 points just under the crown's belly, in the order fruit appear (one per 3
   nodes planted).
 - `loadout_stones`: the centres of the 5 waystones at the roots, slot 1 to 5 left to right (light the
-  ones the player has unlocked, set a perk icon glowing on each filled one).
+  ones the player has unlocked, set a perk icon glowing on each filled one). Plus a 6th point for
+  the **secret sixth stone**: hidden (not even sealed) until the whole tree is grown, then it rises
+  out of the roots with its own short animation.
 - `moon`: the moon's centre (for a light or a parallax offset).
 
 ### How the states fit together

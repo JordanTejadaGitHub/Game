@@ -72,7 +72,7 @@ touch the real profile; runs don't bank Seeds. Unlike Test Grove, nothing is fre
 **Dev Grove** (added 2026-09-28, user request: "unlock every Grove node for developer"): Settings →
 Developer → **Dev Grove: Off / Early / Half / Full**. It plays normal runs *and* opens the Memory
 Grove screen as if the profile had that much of the tree, using the balance simulation's presets
-(`MetaRun.load_preset`; Full = every node at max level, all 5 perk slots). Perks, families, card
+(`MetaRun.load_preset`; Full = every node at max level, all 6 perk slots incl. the secret one). Perks, families, card
 bundles, Ascension nodes, Blight Levels and loadouts all work, so any Grove content can be tested.
 - Uses a separate dev profile (`user://sim_heartwood.json`); the real profile is never read or
   written while it's on. Loadout changes and purchases in the Grove screen stay in the dev profile

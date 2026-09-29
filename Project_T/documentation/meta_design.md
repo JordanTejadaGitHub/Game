@@ -67,7 +67,8 @@ roots, with **three sections**. Each node costs Seeds and needs its parent node(
   nodes stay in bloom, so **the more you unlock, the fuller and brighter the Heartwood gets**.
 - **The canopy fills in** behind the branches in four stages as the share of owned nodes grows, so
   the whole tree gets fuller, not just its flowers (`meta_assets.md`).
-- **The perk loadout slots are five waystones at the Heartwood's roots**: you "carry" perks by
+- **The perk loadout slots are five waystones at the Heartwood's roots** (3 open from the start;
+  a hidden sixth rises once the whole tree is grown): you "carry" perks by
   setting them on the stones (the same waystones the Wardens sleep on; Memory 8).
 - **Memories hang as dream-fruit** (the glowing fruit from the Heartwood's art): a new fruit appears
   every 3 nodes planted; tapping it plays that Memory.
@@ -81,9 +82,14 @@ roots, with **three sections**. Each node costs Seeds and needs its parent node(
 Perks are **unlocked** in the tree, then **equipped** in a small **loadout** before each run
 ("Carry into the dream"). You own many but carry few, so the loadout is a choice every run.
 
-- **Loadout slots: up to 5** (user decision 2026-09-27): **1** at the start; the tree adds slot 2
-  (40), 3 (80), 4 (140) and 5 (220). Growing this limb = **more perks to choose from and more
-  room to carry them**.
+- **Loadout slots: 3 at the start, up to 5, plus a secret 6th** (user decision 2026-09-29; was 1
+  at the start): slots 1–3 are open from the first run. Slots **4 (140)** and **5 (220)** are
+  Perks nodes. Growing this limb = **more perks to choose from and more room to carry them**.
+- **The secret 6th slot:** not shown anywhere (no waystone, no node, no Codex hint) until the
+  player owns **every Grove node at its max level**, including the free milestone and Memory
+  Warden blooms. Then a sixth waystone rises at the roots (milestone *"The Heartwood in full
+  bloom"*, a Steam achievement). It's a trophy for completing the tree, so its power doesn't matter
+  for balance: by then everything else is owned.
 - A perk with levels (e.g. Morning Stores I–III) takes one slot at its highest owned level.
 - Loadout is kept between runs; change it any time before starting.
 
@@ -119,9 +125,12 @@ Perks are **unlocked** in the tree, then **equipped** in a small **loadout** bef
 
 | Slot node | Cost | Needs |
 |---|---|---|
-| Loadout slot 2 / 3 / 4 / 5 | 40 / 80 / 140 / 220 | each needs the previous |
+| Loadout slot 4 / 5 | 140 / 220 | slot 5 needs slot 4 |
+| *(secret)* Loadout slot 6 | free | every other Grove node owned at max level |
 
-**Power budget:** 15 perks, carry at most 5. A full economy loadout (Morning Stores III, Rich Dew
+Slot nodes 2 and 3 are gone (2026-09-29), so the tree is 120 Seeds cheaper.
+
+**Power budget:** 15 perks, carry 3 at the start, up to 5 (6 once the whole tree is grown). A full economy loadout (Morning Stores III, Rich Dew
 III, Rested Roots II, Sprout Bed, Clear Sight) makes the early game noticeably smoother, which is
 why **Blight Levels** exist: each level takes back some of that power. Caps: starting Dew +30,
 Dew gain +15%, leaves +3, rerolls 2 (3 with the "Dream of everything" milestone).
@@ -230,6 +239,7 @@ A Memory fragment appears **every 3 nodes planted** (plus the milestone ones bel
 | Reach Blight Level 5 | Memory fragment |
 | Win at Blight Level 10 | Blossom cosmetic for all Wardens |
 | Discover every combo (Codex, `screens_ui.md`) | Memory fragment + a Codex cosmetic (gilded pages) |
+| **The Heartwood in full bloom**: own every Grove node at max level (id `full_bloom`) | The secret **6th loadout slot** (a sixth waystone rises at the roots) |
 | **Dream of everything**: see every Dream card (Codex, normal runs only; id `all_dreams`) | **Starlit card backs** (cosmetic: Dream offer cards get a night-sky frame) + **+1 Dream reroll per run**, on top of Second Thoughts (user decision 2026-09-29) |
 
 Free unlocks that duplicate a Grove purchase refund its Seeds if already bought.
