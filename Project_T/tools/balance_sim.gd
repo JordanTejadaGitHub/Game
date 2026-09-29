@@ -34,7 +34,7 @@ const STYLE_PLAN := {
 	"combo": {"room": [5, 1.0 / 3.0, 16], "walls": 1.0},
 	"sleep": {"room": [5, 1.0 / 3.0, 16], "walls": 1.0},
 	# Sprout spam (a build): Sprouts are the walls and the attackers, planted where they add the most path.
-	"sprout": {"room": [6, 1.0, 70], "walls": 0.0, "plant": "sprout", "growth_weight": 1.5},
+	"sprout": {"room": [8, 3.0, 150], "walls": 0.0, "plant": "sprout", "growth_weight": 1.5},
 }
 
 var map_seed := 1
@@ -198,6 +198,11 @@ func _next_buy() -> String:
 		return ""
 	if _nurture():
 		return "nurture"
+	# Keep nothing in reserve (the spec): nothing else to buy (ranks capped at II without a Nurture
+	# Dream, growths locked), so plant one more attacker past the planned room.
+	if run_state.dew >= 2 * director.get_rest_bonus(director.get_block(maxi(director.drifts_started, 1))) \
+			and _plant_attacker():
+		return "plant"
 	return ""
 
 # Dew for the cheapest growth open to a Warden on the map (0 = none).
