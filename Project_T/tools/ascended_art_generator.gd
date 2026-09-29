@@ -489,8 +489,8 @@ func _golem(canvas: Image, st: Dictionary, fig: Dictionary, opts: Dictionary = {
 			var tx := floori(t.x)
 			var ty := floori(t.y)
 			var ch := _fig_at(pose, tx, ty)
-			if ch == "." or _is_rock(pose, tx, ty):
-				continue  # The rocks are drawn below, at 1x.
+			if ch == "." or (_is_rock(pose, tx, ty) and (tx <= 17 or tx >= 47)):
+				continue  # The side rocks are drawn below, at 1x; the rest stays the golem's lap and feet.
 			if ch == "o":
 				var first_x := floori((x - 1 - fo.x) / K) != tx
 				var first_y := floori((y - 1 - fo.y) / K) != ty
