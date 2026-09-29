@@ -224,6 +224,12 @@ func _test_sim_entry() -> void:
 	light = dreams.dreamlight
 	dreams.sim_rest(25, func(offer: Array) -> UpgradeData: return offer[0])
 	_check(dreams.dreamlight == light + DreamState.BOSS_DREAMLIGHT, "…a boss rest gives +4 Dreamlight")
+	light = dreams.dreamlight
+	dreams.sim_rest(50, func(offer: Array) -> UpgradeData: return offer[0])
+	_check(dreams.dreamlight == light + DreamState.BOSS_DREAMLIGHT, "…the drift 50 boss rest: no wake bonus yet")
+	light = dreams.dreamlight
+	dreams.sim_rest(55, func(offer: Array) -> UpgradeData: return offer[0])
+	_check(dreams.dreamlight == light + 1, "…every rest from drift 51: +1 Dreamlight (the Heartwood wakes)")
 	_check(DreamState.sim_dreamlight_for(&"first") == 1 and DreamState.sim_dreamlight_for(&"boss") == DreamState.BOSS_DREAMLIGHT, "sim_dreamlight_for")
 	_reset()
 

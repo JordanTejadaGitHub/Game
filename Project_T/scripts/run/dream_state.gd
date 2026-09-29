@@ -168,6 +168,9 @@ const GOLDEN_HARVEST_MAX := 0.30
 # Dreamlight (run_design.md "Dreamlight"): sources and unlock costs.
 const FIRST_PICK_DREAMLIGHT := 1
 const BOSS_DREAMLIGHT := 4
+# "The Heartwood wakes" (run_design.md Dreamlight sources): every rest from drift 51 frees +1 more.
+const WAKE_DREAMLIGHT := 1
+const WAKE_FROM_DRIFT := 51
 const BRANCH_DREAMLIGHT := 1  # Branch, hidden branch, wall growth
 const FINAL_DREAMLIGHT := 2  # Final form (needs its branch)
 # Ascended forms (tower_design.md): tier 4, grown from any of the family's final forms.
@@ -1270,6 +1273,7 @@ func _on_rest_started(_block: int, is_boss_rest: bool, _bonus: int, _perfect: bo
 		return
 	_early_calls = 0  # Restless Night counts per block
 	_rest_rules(_perfect)
+	add_dreamlight(rest_dreamlight(drift_director.drifts_started))
 	if is_boss_rest:
 		# The freed light: +4 Dreamlight, and the Remember screen opens before the Dream.
 		add_dreamlight(BOSS_DREAMLIGHT)
@@ -2374,6 +2378,7 @@ static func sim_dreamlight_for(kind: StringName) -> int:
 func sim_rest(drift: int, pick: Callable, perfect: bool = true) -> Array[UpgradeData]:
 	_early_calls = 0
 	_rest_rules(perfect)
+	add_dreamlight(rest_dreamlight(drift))
 	if drift_director.is_boss_drift(drift):
 		add_dreamlight(sim_dreamlight_for(&"boss"))
 	if has_rule(&"sunlit_rest"):
@@ -2436,6 +2441,10 @@ func sim_family_pick(kind: StringName, pick: Callable) -> StringName:
 # --- Developer: pick any card, unlock free (demo_scope.md "Pick any card") -------------------------
 
 # Dev tools are on in a dev run (Test Grove, Unlock all families, Dev Grove) of a debug build only.
+# Dreamlight every rest after `drift` frees on its own (the boss rest's BOSS_DREAMLIGHT comes on top).
+static func rest_dreamlight(drift: int) -> int:
+	return WAKE_DREAMLIGHT if drift >= WAKE_FROM_DRIFT else 0
+
 static func dev_tools_on() -> bool:
 	return OS.is_debug_build() and MetaRun.is_dev_run()
 
