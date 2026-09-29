@@ -530,6 +530,14 @@ more clear with icons of their resistances"):
     during a drift it shrinks to a row of small portraits for the **rest of the current block**, the
     next drift's types lit, the others dimmed. It never covers the path's start or the boss bar
     (during a boss drift it hides; the boss bar takes its place).
+  - **Readable on the night sky** (2026-09-28, user screenshot: an empty-looking box, because a dark
+    Shade on a dark sky vanishes). The strip sits on a **fog panel** (the Moonlit Thread style), and
+    each nightmare portrait on a **pale moonlit disc** (Moonlight ramp) with a thin cold rim, so the
+    dark silhouettes and glowing eyes read. Portraits **48 px** at rests (36 px during drifts), the
+    kind's **count** as a badge ("×18"), the name under each at rests, and a "New" tag in gold. The
+    label "Coming this block" uses the body size, not small caps at caption size. The same disc
+    treatment applies to nightmare portraits everywhere they're shown on dark UI (dossier, intro
+    card, nightmare info).
 - **New nightmare introduction** (2026-09-28, user: "new enemies should have a display window in
   the middle like bosses"): the first time **ever** a nightmare type is about to appear (profile
   `nightmares_seen`), the rest before its block opens a **centred card**, in the boss dossier's style
