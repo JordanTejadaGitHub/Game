@@ -282,6 +282,24 @@ func _run() -> void:
 	_check(family.mouse_filter == Control.MOUSE_FILTER_STOP, "and Back reopens the pick")
 	family.choose(family.offer[0])
 
+	# The Memory Warden card (screens_ui.md): after its boss, its own card, as tall as the others at most.
+	var stag: TowerData = load("res://resource/tower/white_stag.tres")
+	family.pending_memory_warden = stag
+	family.show_pick(&"boss")
+	await _frames(3)
+	var memory_card: Control = family._cards.get_child(0)
+	var memory_box: Control = memory_card.get_child(0)
+	_check(family.offer[0] == stag and (memory_box.get_child(0) as Label).text == "A Memory returns",
+		"the pick after the boss shows the Memory Warden on its own card")
+	var tallest: float = family.CARD_SIZE.y
+	for i in range(1, family._cards.get_child_count()):
+		tallest = maxf(tallest, family._cards.get_child(i).size.y)
+	_check(memory_card.size.y >= memory_box.get_combined_minimum_size().y + family.CARD_PADDING - 1.0
+		and memory_card.size.y <= tallest + 1.0,
+		"the Memory Warden card fits its content and no taller than the other cards (%.0f, tallest %.0f)" % [memory_card.size.y, tallest])
+	family.choose(stag)
+	_check(dreams.is_unlocked("white_stag"), "choosing the Memory Warden plants it in the run")
+
 	# Dream card marks (DreamMarks): Thick Bark's shield by the leaves, Heart of the Maze's heart layer.
 	var marks_hud = main.get_node("HUD")
 	marks_hud.bark_shield.set_charges(2)
