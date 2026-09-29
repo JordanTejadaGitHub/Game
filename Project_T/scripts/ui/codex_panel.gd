@@ -85,6 +85,7 @@ func _ready() -> void:
 	_families.add_theme_constant_override("separation", 14)
 	families_page.add_child(_families)
 	tabs.add_child(families_page)
+	_setup_dreams_page()
 
 	var close := Button.new()
 	close.text = "Close"
@@ -98,6 +99,7 @@ func open(tab: StringName = &"", entry: String = "") -> void:
 	_build_glossary()
 	_build_combos()
 	_build_families()
+	_build_dreams()
 	visible = true
 	if tab == &"combos":
 		tabs.current_tab = 1
@@ -683,3 +685,158 @@ func _add_dreams_line(box: Control, entry: Dictionary) -> void:
 	line.add_theme_font_size_override("font_size", 13)
 	line.add_theme_color_override("font_color", GROVE_COLOR)
 	box.add_child(line)
+
+# --- Dreams --------------------------------------------------------------------------------------
+# Every Dream card (screens_ui.md, Codex "Dreams"): "???" in a plain frame until first offered on this
+# account (DreamCodex, profile dreams_seen), then the full card: gem, name, text with status links,
+# tags, its Needs (in a run), its Deepened version once that's seen, times taken and runs won with it,
+# and a gold "New" until the Dreams page has been viewed. Grouped like "Dreams this run", with rarity /
+# group / family filters and "84 / 180 Dreams seen".
+
+var _dreams := VBoxContainer.new()
+var _dreams_count := Label.new()
+var _rarity_filter := OptionButton.new()
+var _group_filter := OptionButton.new()
+var _family_filter := OptionButton.new()
+var dream_entries := {}  # Card id -> its entry (tests)
+const RARITY_NAMES := ["Common", "Uncommon", "Rare", "Legendary"]
+
+func _setup_dreams_page() -> void:
+	var page := VBoxContainer.new()
+	page.name = "Dreams"
+	tabs.add_child(page)
+	_dreams_count.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	page.add_child(_dreams_count)
+	var filters := HFlowContainer.new()
+	filters.add_theme_constant_override("h_separation", 6)
+	page.add_child(filters)
+	_rarity_filter.add_item("Any rarity")
+	for rarity_name in RARITY_NAMES:
+		_rarity_filter.add_item(rarity_name)
+	_group_filter.add_item("Any kind")
+	for group in DreamsRow.GROUPS:
+		_group_filter.add_item(group)
+	_family_filter.add_item("Any family")
+	for line in IconInfo.DAMAGE_TYPES:
+		_family_filter.add_item(IconInfo.damage_type_name(line))
+		_family_filter.set_item_metadata(_family_filter.item_count - 1, line)
+	for pick in [_rarity_filter, _group_filter, _family_filter]:
+		pick.focus_mode = Control.FOCUS_NONE
+		pick.custom_minimum_size = Vector2(0, 40)
+		pick.item_selected.connect(func(_i: int) -> void: _build_dreams())
+		filters.add_child(pick)
+	var scroll := ScrollContainer.new()
+	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	_dreams.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_dreams.add_theme_constant_override("separation", 8)
+	scroll.add_child(_dreams)
+	page.add_child(scroll)
+	# Viewing the page clears the gold "New" (next time).
+	tabs.tab_changed.connect(func(index: int) -> void:
+		if tabs.get_tab_control(index) == page:
+			DreamCodex.mark_viewed(DreamCodex.seen()))
+
+func _passes_filters(card: UpgradeData) -> bool:
+	if _rarity_filter.selected > 0 and card.rarity != _rarity_filter.selected - 1:
+		return false
+	if _group_filter.selected > 0 and DreamsRow.group_of(card) != DreamsRow.GROUPS[_group_filter.selected - 1]:
+		return false
+	if _family_filter.selected > 0 and not card.tags.has(String(_family_filter.get_item_metadata(_family_filter.selected))):
+		return false
+	return true
+
+func _build_dreams() -> void:
+	for child in _dreams.get_children():
+		_dreams.remove_child(child)
+		child.queue_free()
+	dream_entries.clear()
+	var profile := HeartwoodMemory.load_data()
+	var seen: Array = profile.get(DreamCodex.SEEN_KEY, [])
+	var viewed: Array = profile.get(DreamCodex.VIEWED_KEY, [])
+	var taken: Dictionary = profile.get(DreamCodex.TAKEN_KEY, {})
+	var won: Dictionary = profile.get(DreamCodex.WON_KEY, {})
+	var cards := DreamCodex.all_cards()
+	var seen_count := cards.filter(func(c: UpgradeData) -> bool: return seen.has(c.id)).size()
+	_dreams_count.text = "%d / %d Dreams seen" % [seen_count, cards.size()]
+	tabs.set_tab_title(3, "Dreams %d / %d" % [seen_count, cards.size()])
+	for group in DreamsRow.GROUPS:
+		var in_group := cards.filter(func(c: UpgradeData) -> bool: return DreamsRow.group_of(c) == group and _passes_filters(c))
+		if in_group.is_empty():
+			continue
+		var header := Label.new()
+		header.text = group
+		header.add_theme_font_size_override("font_size", 18)
+		header.add_theme_color_override("font_color", TERM_COLOR)
+		_dreams.add_child(header)
+		for card in in_group:
+			var entry := _dream_entry(card, seen, viewed, taken, won)
+			_dreams.add_child(entry)
+			dream_entries[card.id] = entry
+
+func _dream_entry(card: UpgradeData, seen: Array, viewed: Array, taken: Dictionary, won: Dictionary) -> Control:
+	var panel := PanelContainer.new()
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color(0.1, 0.12, 0.15, 0.95) if seen.has(card.id) else Color(0.06, 0.07, 0.09, 0.95)
+	style.set_corner_radius_all(8)
+	style.set_content_margin_all(10)
+	panel.add_theme_stylebox_override("panel", style)
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation", 3)
+	panel.add_child(box)
+	if not seen.has(card.id):  # Never offered: "???", nothing else (no rarity, text or hints)
+		var unknown := Label.new()
+		unknown.text = "???"
+		unknown.add_theme_font_size_override("font_size", 18)
+		unknown.add_theme_color_override("font_color", LOCKED_COLOR)
+		box.add_child(unknown)
+		return panel
+	var head := HBoxContainer.new()
+	head.add_theme_constant_override("separation", 8)
+	var gem := DreamsRow.DreamIcon.new()
+	gem.card = card
+	gem.custom_minimum_size = DreamsRow.ICON_SIZE
+	gem.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	head.add_child(gem)
+	var name := Label.new()
+	name.text = card.display_name
+	name.add_theme_font_size_override("font_size", 18)
+	name.add_theme_color_override("font_color", UpgradeData.rarity_color(card.rarity))
+	head.add_child(name)
+	if not viewed.has(card.id):
+		var fresh := Label.new()
+		fresh.name = "New"
+		fresh.text = "New"
+		fresh.add_theme_font_size_override("font_size", 13)
+		fresh.add_theme_color_override("font_color", CROWN_COLOR)
+		head.add_child(fresh)
+	box.add_child(head)
+	box.add_child(StatusLinks.make_label(card.description, 15))
+	var facts: Array[String] = [RARITY_NAMES[card.rarity], DreamsRow.group_of(card)]
+	for tag in card.tags:
+		facts.append(IconInfo.damage_type_name(tag) if IconInfo.DAMAGE_TYPES.has(tag) else tag.capitalize())
+	var tags := Label.new()
+	tags.text = " · ".join(facts)
+	tags.add_theme_font_size_override("font_size", 13)
+	tags.add_theme_color_override("font_color", LOCKED_COLOR)
+	box.add_child(tags)
+	var dreams := get_tree().get_first_node_in_group(DreamState.GROUP) if is_inside_tree() else null
+	if dreams != null and dreams.has_method("needs_text"):
+		var needs: String = dreams.needs_text(card)
+		if needs != "":
+			box.add_child(StatusLinks.make_label(needs, 13, Color(0.75, 0.85, 1.0)))
+	for other in DreamCodex.all_cards():  # Its Deepened version, once that's been seen too
+		if other.deepens == card.id and seen.has(other.id):
+			var deeper := Label.new()
+			deeper.text = "Deepens into %s" % other.display_name
+			deeper.add_theme_font_size_override("font_size", 13)
+			deeper.add_theme_color_override("font_color", GROVE_COLOR)
+			box.add_child(deeper)
+	var stats := Label.new()
+	stats.name = "Stats"
+	var times := int(taken.get(card.id, 0))
+	var wins := int(won.get(card.id, 0))
+	stats.text = "Taken %d time%s · won %d run%s with it" % [times, "" if times == 1 else "s", wins, "" if wins == 1 else "s"]
+	stats.add_theme_font_size_override("font_size", 13)
+	box.add_child(stats)
+	return panel
