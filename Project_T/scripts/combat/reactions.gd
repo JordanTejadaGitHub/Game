@@ -30,7 +30,8 @@ const THUNDERCLAP_MAX_ARCS := 8
 const THUNDERCLAP_REACH: Array[float] = [2.5, 3.5, 4.5]  # Cells: base, Rolling Thunder, Rolling Thunder II
 const THUNDERCLAP_ARC_STATIC: Array[int] = [1, 1, 2]
 const IGNITE_MIN_SPORES := 3
-const IGNITE_MULTIPLIER := 1.5  # × the Spored damage it had left
+const BURN_TIME := 3.0  # Ignite: seconds the spores burn
+const BURN_SPORE_RATE := 3.0  # Spored ticks this many times as fast while burning
 const IGNITE_SPREAD: Array[int] = [1, 2]  # Stacks: base, Wildfire Spores
 const IGNITE_REACH: Array[float] = [1.0, 1.5]
 const MUSHROOM_MIN_SPORES := 3
@@ -41,8 +42,11 @@ const MUSHROOM_RAIN_TIME := 2.0  # Mushroom Rain: ×2 duration…
 const MUSHROOM_RAIN_RADIUS := 1.5  # …and the 3×3 around its tile (cells from the centre, reaching the corners' middles)
 const SHATTER_MULTIPLIER := 2.5
 const SHATTER_SPLASH := 0.5  # Share of the hit the shards deal within 1 cell
-const DROWN_SLEEP: Array[float] = [2.0, 3.0]  # Seconds: base, Deep Water
-const DROWN_BOSS_SLOW: Array[float] = [0.3, 0.4]
+const PULL_UNDER_TIME: Array[float] = [3.0, 4.0]  # Drown: seconds pulled under (base, Deep Water)
+const PULL_UNDER_SLOW := 0.6
+const PULL_UNDER_BOSS_SLOW: Array[float] = [0.3, 0.4]  # Bosses (base, Deep Water)
+const PULL_UNDER_STEP := 0.5  # Drowning damage in second n: n × this × the applier's damage
+const DEEP_WATER_GROWTH := 1.5  # Deep Water: the damage grows 50% faster
 const DROWN_TIMES: Array[int] = [1, 1, 2]  # Per nightmare: base, Deep Water, Deep Water II
 const PINNED_MULTIPLIER := 3.0
 const ROD_REACH := 3.0  # Cells
@@ -61,6 +65,7 @@ const TEMPEST_LOCK := 2.0  # A nightmare hit by a Tempest can't start another fo
 const TEMPEST_EXTRA_REACH := 1.0  # Eye of the Tempest: cells
 const STILL_POOL_TIME: Array[float] = [5.0, 8.0]  # Deep Stillness
 const STILL_POOL_SLEEP: Array[float] = [1.0, 1.5]
+const FEVER_SLEEP := 2.0  # Fever Dream: seconds Asleep
 const FEVER_SPORED := 3
 const FEVER_DROWSY := 2
 const FEVER_BOSS_DROWSY_CAP := 3
@@ -153,7 +158,7 @@ static func on_status(enemy: Node2D, _id: StringName, source: Node) -> void:
 # Damage tags that are effects, not hits: they scale with the source Warden's Potency (and Seeping),
 # never with crit (except Nightshade). Shatter's own hit is a hit; its spreads are effects.
 const EFFECT_TAGS: Array[StringName] = [&"spored", &"static", &"thunderclap", &"ignite", &"lightning_rod",
-	&"popped", &"echo", &"carried_storm", &"avalanche", &"starfall", &"fever_dream", &"fog", &"cloud", &"harmony", &"last_breath"]
+	&"popped", &"echo", &"carried_storm", &"avalanche", &"starfall", &"fever_dream", &"fog", &"cloud", &"harmony", &"last_breath", &"drown"]
 
 static func is_effect(tag: StringName) -> bool:
 	return tag in EFFECT_TAGS
@@ -196,12 +201,17 @@ static func on_smother_ended(enemy: Node2D) -> void:
 		return
 	var potency := s.potency(SPORED)
 	var line := s.spore_line()
-	var left := s.stacks(SPORED) * potency * s.time_left(SPORED)
-	s.remove(SPORED)
 	var dreams := _dreams(enemy)
 	var level := 1 if dreams and dreams.has_rule(&"fever_pitch") else 0
 	var neighbours := _others_within(enemy, FEVER_REACH[level] + _storm_front(enemy))
-	enemy.take_damage(left, line, true, false, spore_source, &"fever_dream")
+	# Status jobs (2026-09-29): no detonation. The nightmare falls Asleep (not bosses); its neighbours
+	# catch the fever.
+	if not s.is_boss:
+		var was_asleep := s.is_asleep()
+		s.sleep_time = maxf(s.sleep_time, FEVER_SLEEP)
+		var singer := _tower_of(s.source(DROWSY), spore_source)
+		if singer != null and not was_asleep:
+			singer.put_to_sleep.emit(singer, enemy)  # Sound: the sleep drone
 	for other in neighbours:
 		if not is_instance_valid(other) or other.is_cleansed:
 			continue
@@ -428,23 +438,69 @@ static func _ignite(enemy: Node2D, source: Node, carry_static: float = 0.0, spre
 	var chain := _fire(enemy, &"ignite", _towers(spore_source, _tower_of(source, s.source(STATIC))))
 	if chain <= 0:
 		return
-	var potency := s.potency(SPORED)
-	var line := s.spore_line()
-	var left := s.stacks(SPORED) * potency * s.time_left(SPORED)
-	s.remove(SPORED)
+	# Status jobs (2026-09-29): no detonation. The spores burn for BURN_TIME s (Spored ticks
+	# BURN_SPORE_RATE x as fast) and each second a stack spreads to nightmares nearby (who may start
+	# burning in turn). Uses up the Static, not the Spored.
+	s.remove(STATIC)
+	burn(enemy, spore_source, chain, carry_static, spread)
+
+# Sets `enemy` burning (Ignite; Tempest's arcs): its Spored ticks faster, and a BurnTicker spreads a stack
+# each second while it burns. Sparking Spores (card 170, get_ignite_multiplier) makes it burn faster.
+static func burn(enemy: Node2D, spore_source: Node, chain: int = 1, carry_static: float = 0.0, spread: int = 0) -> void:
+	var s: EnemyStatuses = enemy.statuses
+	var dreams := _dreams(enemy)
+	var sparking: float = dreams.get_ignite_multiplier() if dreams and dreams.has_method("get_ignite_multiplier") else 1.0
+	s.burn_rate = BURN_SPORE_RATE * sparking
+	var already := s.burn_time > 0.0
+	s.burn_time = maxf(s.burn_time, BURN_TIME)
+	var world := _world(enemy)
+	if not already and world:
+		world.add_child(BurnTicker.new(enemy, spore_source, chain, carry_static, spread))
+
+# One burning nightmare: every second, 1 Spored stack (Wildfire Spores: 2) to each nightmare within reach,
+# at its Spored's strength; Tempest's burns also carry 1 Static. Frees itself when the burn ends.
+class BurnTicker extends Node:
+	var enemy: Node2D
+	var source: Node
+	var chain := 1
+	var carry_static := 0.0
+	var spread := 0
+	var _next := 1.0
+
+	func _init(target: Node2D, spore_source: Node, chain_count: int, static_carry: float, stacks: int) -> void:
+		enemy = target
+		source = spore_source
+		chain = chain_count
+		carry_static = static_carry
+		spread = stacks
+
+	func _process(delta: float) -> void:
+		if not is_instance_valid(enemy) or enemy.is_cleansed or enemy.statuses.burn_time <= 0.0:
+			queue_free()
+			return
+		_next -= delta
+		if _next > 0.0:
+			return
+		_next += 1.0
+		Reactions._burn_spread(enemy, source if is_instance_valid(source) else null, chain, carry_static, spread)
+
+static func _burn_spread(enemy: Node2D, spore_source: Node, chain: int, carry_static: float, spread: int) -> void:
+	var s: EnemyStatuses = enemy.statuses
+	if not s.has(SPORED):
+		return
 	var dreams := _dreams(enemy)
 	var level := 1 if dreams and dreams.has_rule(&"wildfire_spores") else 0
-	var neighbours := _others_within(enemy, IGNITE_REACH[level] + _storm_front(enemy))
-	# Sparking Spores (card 170): +20% per stack, via DreamState.
-	var sparking: float = dreams.get_ignite_multiplier() if dreams and dreams.has_method("get_ignite_multiplier") else 1.0
-	enemy.take_damage(left * IGNITE_MULTIPLIER * sparking, line, true, false, spore_source, &"ignite")
 	var stacks: int = spread if spread > 0 else IGNITE_SPREAD[level]
-	for other in neighbours:
+	var potency := s.potency(SPORED)
+	var line := s.spore_line()
+	for other in _others_within(enemy, IGNITE_REACH[level] + _storm_front(enemy)):
+		if not is_instance_valid(other) or other.is_cleansed:
+			continue
+		_touch(other, chain, _towers(spore_source))
+		if carry_static > 0.0:
+			other.apply_status(STATIC, 1, 0.0, carry_static, 0, "light", spore_source)  # Tempest: burns carry Static
 		if is_instance_valid(other) and not other.is_cleansed:
-			_touch(other, chain, _towers(spore_source))
 			other.apply_status(SPORED, stacks, 0.0, potency, 0, line, spore_source)
-			if carry_static > 0.0 and is_instance_valid(other) and not other.is_cleansed:
-				other.apply_status(STATIC, 1, 0.0, carry_static, 0, "light", source)  # Tempest's spores carry Static
 
 # 3+ Spored + Damp: the Spored ticks +50% for 4 s and a spore cloud grows on the tile. Uses up Damp.
 static func _mushrooming(enemy: Node2D, source: Node) -> void:
@@ -528,17 +584,54 @@ static func _drown(enemy: Node2D, source: Node) -> void:
 		var deep_still := 1 if dreams and dreams.has_rule(&"deep_stillness") else 0
 		var cells: Array[Vector2] = [enemy.get_current_cell()]
 		var pool := CrownedGround.new(CrownedGround.Kind.STILL_POOL, cells, STILL_POOL_TIME[deep_still])
-		pool.sleep_seconds = STILL_POOL_SLEEP[deep_still]
+		pool.sleep_seconds = STILL_POOL_SLEEP[deep_still]  # Now: seconds a walker entering is pulled under
+		pool.source = applier
 		_world(enemy).add_child(pool)  # z -1: on the ground, under the y-sorted map
-	var deep := 1 if level > 0 else 0
-	if s.is_boss or cant_be_held(enemy):
-		s.slow_time = DROWN_SLEEP[0]
-		s.slow_amount = DROWN_BOSS_SLOW[deep]
-	else:
-		var was_asleep := s.is_asleep()
-		s.sleep_time = maxf(s.sleep_time, DROWN_SLEEP[deep])
-		if applier != null and not was_asleep:
-			applier.put_to_sleep.emit(applier, enemy)  # Sound: the sleep drone
+	# Status jobs (2026-09-29): no sleep. Pulled under: slowed and drowning for a few seconds.
+	pull_under(enemy, applier, PULL_UNDER_TIME[1 if level > 0 else 0], level > 0)
+
+# Drown (and a Still Pool's walkers): for `seconds`, −60% speed (bosses −30%, Deep Water −40%; Heavy Air
+# makes it stronger) and drowning damage each second rising 0.5×, 1×, 1.5× the applier's damage (Deep
+# Water: 50% faster). Effect damage, tag "drown".
+static func pull_under(enemy: Node2D, applier: Node, seconds: float, deep: bool = false) -> void:
+	var world := _world(enemy)
+	if world == null or not is_instance_valid(enemy) or enemy.is_cleansed:
+		return
+	world.add_child(PullUnder.new(enemy, applier, seconds, deep))
+
+class PullUnder extends Node:
+	var enemy: Node2D
+	var applier: Node
+	var seconds := 3.0
+	var deep := false
+	var _age := 0.0
+	var _next := 1.0
+	var _second := 0
+
+	func _init(target: Node2D, by: Node, time: float, deep_water: bool) -> void:
+		enemy = target
+		applier = by
+		seconds = time
+		deep = deep_water
+
+	func _process(delta: float) -> void:
+		if not is_instance_valid(enemy) or enemy.is_cleansed or _age >= seconds:
+			queue_free()
+			return
+		_age += delta
+		var s: EnemyStatuses = enemy.statuses
+		var slow: float = (Reactions.PULL_UNDER_BOSS_SLOW[1 if deep else 0] if s.is_boss else Reactions.PULL_UNDER_SLOW)
+		if is_instance_valid(applier) and applier is Tower:
+			slow *= applier.get_slow_multiplier()  # Heavy Air
+		s.slow_time = maxf(s.slow_time, 0.2)
+		s.slow_amount = maxf(s.slow_amount, minf(slow, 0.9))
+		_next -= delta
+		if _next > 0.0 or not (is_instance_valid(applier) and applier is Tower):
+			return
+		_next += 1.0
+		_second += 1
+		var step: float = Reactions.PULL_UNDER_STEP * (Reactions.DEEP_WATER_GROWTH if deep else 1.0)
+		enemy.take_damage(applier.get_damage() * step * _second, applier.tower_data.line, true, false, applier, &"drown")
 
 # Marked + (Held or asleep or full Drowsy): the next Warden hit is a guaranteed ×3 crit. Uses up Marked.
 static func _pinned(enemy: Node2D, source: Node) -> void:
@@ -587,11 +680,7 @@ static func echo(id: StringName, spot: Vector2, share: float, echo_tower: Tower,
 		var s: EnemyStatuses = enemy.statuses
 		match id:
 			&"drown":
-				if s.is_boss or cant_be_held(enemy):
-					s.slow_time = maxf(s.slow_time, DROWN_SLEEP[0] * share)
-					s.slow_amount = maxf(s.slow_amount, DROWN_BOSS_SLOW[0])
-				else:
-					s.sleep_time = maxf(s.sleep_time, DROWN_SLEEP[0] * share)
+				pull_under(enemy, applier if is_instance_valid(applier) else echo_tower, PULL_UNDER_TIME[0] * share)
 			&"pinned":
 				s.pinned = true
 			_:
@@ -701,11 +790,7 @@ static func carry(id: StringName, enemy: Node2D, seed_tower: Tower, applier: Tow
 	var base: StringName = CROWNED_BASE.get(id, id)
 	match base:
 		&"drown":
-			if s.is_boss or cant_be_held(enemy):
-				s.slow_time = maxf(s.slow_time, DROWN_SLEEP[0] * CARRIED_SHARE)
-				s.slow_amount = maxf(s.slow_amount, DROWN_BOSS_SLOW[0])
-			else:
-				s.sleep_time = maxf(s.sleep_time, DROWN_SLEEP[0] * CARRIED_SHARE)
+			pull_under(enemy, applier if is_instance_valid(applier) else seed_tower, PULL_UNDER_TIME[0] * CARRIED_SHARE)
 		&"pinned":
 			s.pinned = true
 		_:

@@ -63,6 +63,9 @@ var chain_towers: Array = []  # Wardens that took part in that chain so far
 var pinned := false  # Pinned: the next Warden hit is a guaranteed ×3 crit
 var drowned := 0  # Times Drown made it sleep (once per nightmare; Deep Water II: twice)
 var mushroom_time := 0.0  # Mushrooming: Spored ticks harder while > 0
+var burn_time := 0.0  # Ignite (status jobs, 2026-09-29): Spored ticks burn_rate x as fast while > 0 (Reactions.burn)
+var burn_rate := 3.0
+var sleep_locked_time := 0.0  # Nightbloom: while > 0, sleep neither breaks on a big hit nor ends (Enemy's wake rule reads it)
 var slow_time := 0.0  # Drown on bosses (and Held-immune nightmares): an extra slow instead of sleep
 var slow_amount := 0.0
 var smothering := false  # Held + Spored right now (Spored ticks faster)
@@ -266,6 +269,8 @@ func tick(delta: float) -> float:
 	_stag_time = maxf(_stag_time - delta, 0.0)
 	chain_time = maxf(chain_time - delta, 0.0)
 	mushroom_time = maxf(mushroom_time - delta, 0.0)
+	burn_time = maxf(burn_time - delta, 0.0)
+	sleep_locked_time = maxf(sleep_locked_time - delta, 0.0)
 	slow_time = maxf(slow_time - delta, 0.0)
 	sleep_time = maxf(sleep_time - delta, 0.0)
 	caught_time = maxf(caught_time - delta, 0.0)
@@ -279,7 +284,7 @@ func tick(delta: float) -> float:
 	var spore_damage := 0.0
 	if has(SPORED):
 		smothering = has(HELD)
-		_spore_timer += delta * (SMOTHER_SPORE_RATE if smothering else 1.0)
+		_spore_timer += delta * (SMOTHER_SPORE_RATE if smothering else 1.0) * (burn_rate if burn_time > 0.0 else 1.0)
 		while _spore_timer >= SPORE_TICK:
 			_spore_timer -= SPORE_TICK
 			var per_tick: float = _active[SPORED].stacks * _active[SPORED].potency * SPORE_TICK
