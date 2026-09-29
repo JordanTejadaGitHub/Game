@@ -548,6 +548,19 @@ option reachable, clearing cards get **2× weight until you own one** (on maps w
 and **all of them are Common except Burn Back** (user decision, 2026-09-27), so clearing shows up
 early and often.
 
+**Make the unlock obvious** (2026-09-29, user: "it's not clear that you unlock clearing when you get
+it"). While clearing is still locked, **every clearing card leads with the unlock**, before its own
+effect:
+- A highlighted first line with the Clear tool icon: **"Unlocks clearing"**, and under it one plain
+  line: *"Tend Withered Trees and move Mossy Boulders for Dew (Clear tool, C)."* Then a thin divider
+  and the card's own effect ("…and your clears cost 2 less").
+- A small gold **"Opens clearing"** tag in the corner of the card (like Entwined / Half-dreamed).
+- Once clearing is unlocked, these lines disappear from later clearing cards (they then show only
+  their own effect).
+- **On taking it:** the Clear tool button on the Warden bar plays an unlock bloom and glows until
+  first used, the whisper *"Tend the forest, and it will remember you."* plays, and a one-time tip
+  points at it: *"Clearing unlocked: press C or tap the tool, then an obstacle."*
+
 | # | Card | Rarity | Effect | Tags | Pool |
 |---|---|---|---|---|---|
 | 54 | **Cleared Ground** | Common | clearing obstacles costs **25% less** Dew (stacks, **max −50%**) | clearing, economy | Start |
