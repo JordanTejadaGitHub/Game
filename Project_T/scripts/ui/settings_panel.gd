@@ -117,15 +117,20 @@ func _ready() -> void:
 		for level in DevGrove.LEVELS:
 			dev.add_item(String(level).capitalize())
 		dev.selected = maxi(DevGrove.LEVELS.find(StringName(str(_settings.get(DevGrove.SETTING, "off")))), 0)
-		dev.tooltip_text = "Play runs and the Memory Grove as if that much of the tree were grown (a separate dev\nprofile; your real Seeds, unlocks and records are never touched; the full game while on).\nApplies at the title screen."
 		dev.focus_mode = Control.FOCUS_NONE
 		dev.item_selected.connect(func(index: int) -> void:
 			_set_value(DevGrove.SETTING, String(DevGrove.LEVELS[index]))
-			var title := get_tree().get_first_node_in_group(&"title_screen")
-			if title and get_tree().current_scene == title:
-				title.refresh())  # Mid-run it waits for the title, so the run keeps its profile
+			var title_node := get_tree().get_first_node_in_group(&"title_screen")
+			if title_node and get_tree().current_scene == title_node:
+				title_node.refresh())  # Mid-run it waits for the title, so the run keeps its profile
 		dev_row.add_child(dev)
 		box.add_child(dev_row)
+		var dev_note := Label.new()  # Shown, not a tooltip (touch)
+		dev_note.text = "Plays runs and the Memory Grove with that much of the tree unlocked (dev profile; nothing saved to your real profile). The full game while on; applies at the title screen."
+		dev_note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		dev_note.add_theme_font_size_override("font_size", 13)
+		dev_note.modulate = Color(1, 1, 1, 0.7)
+		box.add_child(dev_note)
 
 	var keys_title := Label.new()
 	keys_title.text = "Keys (click, then press a key)"
