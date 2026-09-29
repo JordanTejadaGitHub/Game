@@ -217,9 +217,9 @@ Added 2026-09-27 (user request). **Every stat and every status has a pixel-art i
 icon explains itself**: hover on PC, tap on touch, a small tooltip in plain words.
 
 - **Status icons** (on nightmares, in panels, in the Codex): Damp, Drowsy, Spored, Marked, Static,
-  Held, Caught, Frozen, plus Deeply Blighted and Hidden. Distinct **shapes**, not just colours
-  (accessibility). Tooltip example: *"Damp: 10% slower. Lightning jumps further between Damp
-  nightmares."* (names may change, see below).
+  Held, Asleep, Caught, Frozen, plus Deeply Blighted and Hidden. Distinct **shapes**, not just colours
+  (accessibility). Tooltip example: *"Damp: soaked. Water hits +20%. Lightning jumps further between
+  Damp nightmares."* (names may change, see below).
 - **Warden stat icons** (Warden panel, build tooltips, Dream cards): Damage, Attack speed, Range,
   Crit chance, Crit damage, Potency, Rank, Focus (Power / Swift / Reach / Deep), Dew cost,
   Dreamlight cost. Tooltip example: *"Attack speed: attacks per second."*
@@ -301,26 +301,26 @@ Every combo starts **locked** and is **discovered the first time it actually fir
 |---|---|---|---|
 | Synergy | **Conducted** | Damp + lightning (Stormcap) | lightning jumps further and more often between Damp nightmares |
 | Synergy | **Popped** | Spored 10+ + Puffball | the spores burst over the nightmare and its neighbours |
-| Synergy | **Asleep** | full Drowsy + Dreamshroom | the nightmare falls asleep |
+| Synergy | **Asleep** | full Drowsy + Dreamshroom | the nightmare falls asleep for 3 s; a big hit (10%+ of its health) wakes it |
 | Synergy | **Spore Fog** | Spored + Mistveil fog | spores tick harder inside the fog |
 | Synergy | **Set Off** | Static + a pulse (Chime Stone, Lullaby Bell) | the pulse sets off a Static bolt |
 | Synergy | **Exposed Blow** | Marked + a heavy hitter (Mossback, Boulderback) | double damage on Marked nightmares |
-| Synergy | **Caught** | asleep / full Drowsy + Dreamcatcher | the nightmare takes extra damage from everything |
-| Reaction | **Drown** | Damp + full Drowsy | falls asleep for 2 s |
-| Reaction | **Ignite** | 3 Spored + Static | every spore stack goes off, and sparks spread |
+| Synergy | **Caught** | asleep / full Drowsy + Dreamcatcher | the nightmare's statuses stop wearing off |
+| Reaction | **Drown** | Damp + full Drowsy | pulled under for 3 s: a heavy slow and growing drowning damage |
+| Reaction | **Ignite** | 3 Spored + Static | the spores burn: they tick 3× as fast and spread to neighbours |
 | Reaction | **Lightning Rod** | Marked + Static | nearby Static bolts strike it at 2× |
 | Reaction | **Mushrooming** | 3 Spored + Damp | spores tick harder and a spore cloud grows |
 | Reaction | **Pinned** | Marked + Held or full Drowsy | the next hit is a guaranteed 3× crit |
 | Reaction | **Shatter** | Held + Damp, then a crit or heavy hit | that hit does 2.5× and shards fly |
 | Reaction | **Smother** | Held + Spored | spores tick three times as fast while held |
 | Reaction | **Thunderclap** | Damp + 3 Static | 4× damage; lightning arcs to nearby Damp nightmares |
-| Crowned | **Tempest** | Thunderclap + Spored | arcs also Ignite spored nightmares; the storm feeds itself |
-| Crowned | **Still Pool** | Drown + Held | leaves a pool that puts walkers to sleep |
-| Crowned | **Fever Dream** | Smother ends on full Drowsy | spores go off at once; spores and sleep spread to neighbours |
+| Crowned | **Tempest** | Thunderclap + Spored | arcs set spored nightmares burning; the storm feeds itself |
+| Crowned | **Still Pool** | Drown + Held | leaves a pool that pulls walkers under |
+| Crowned | **Fever Dream** | Smother ends on full Drowsy | it falls asleep, and spores and sleepiness spread to neighbours |
 | Crowned | **Starfall** | Pinned + Static | nearby Static bolts all strike the pinned nightmare as crits |
 | Crowned | **Avalanche** | a Cairn lob sets off Shatter | the Shatter spreads to every wet, held nightmare under the lob |
 | Crowned | **Prismstorm** | Shatter + Static | ice shards carry lightning to nearby nightmares |
-| Crowned | **Nightbloom** | Mushrooming + full Drowsy | a glowing cloud where nothing can wake, even with a Watcher |
+| Crowned | **Nightbloom** | Mushrooming + full Drowsy | a glowing cloud where sleep can't break or end, even with a Watcher |
 | Crowned | **Fairy Circle** | Mushrooming + Held | a ring of mushrooms that spores and soaks the next walkers |
 
 **Crowned entries** (added 2026-09-27, `tower_design.md` "Crowned Reactions"): locked ones show

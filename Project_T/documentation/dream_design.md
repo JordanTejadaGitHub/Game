@@ -447,7 +447,7 @@ the Grove rules, family-specific cards come with their family or hidden-branch n
 | 94 | **Longer Flight** | Common | Samara line +1 cell (stacks, max +3) | wind, maze | Samara | hidden node |
 | 95 | **Backspin** | Uncommon | the **return pass** gets +25% crit chance | wind, crit | Samara | hidden node |
 | 96 | **Ricochet** | Uncommon | at the end of its line the seed **turns 90° once** toward the nearest nightmare before returning (rewards L-shaped corners) | wind, maze | Samara | hidden node |
-| 97 | **Heavy Seed** | Uncommon | each pass knocks nightmares back 0.25 tiles (once per throw) | wind | Samara | hidden node |
+| 97 | **Heavy Seed** | Uncommon | the seed's **return pass** hits for double (changed 2026-09-29: pulling back is Rootling's job) | wind | Samara | hidden node |
 | 98 | **Windborne Rain** | Rare, **Entwined** (Samara + Rain Lily) | every pass applies **Damp**, so the line becomes a Thunderclap corridor | wind, water, reaction | — | hidden node |
 | 99 | **Seed Storm** | Rare *(was Legendary; enhances one Warden, 2026-09-28)* | every 5th throw bursts into **5 seeds in a fan** | wind | Samara | hidden node |
 
@@ -649,7 +649,7 @@ stack; now **rule cards** can come back too, as a stronger **Deepened** version 
 | Hedge Maze | +1% per 5 Thornwalls (max 20%) | +1% per 4 Thornwalls (max 30%) |
 | Evergreen | evolving −25% Dew | evolving −40% Dew |
 | Lingering Spores | Spored +3 s | Spored +5 s, and max stacks +2 |
-| Soaked Through | Damp lasts ×2 | Damp lasts ×3 and slows −15% instead of −10% |
+| Soaked Through | Damp lasts ×2 | Damp lasts ×3, and water hits on Damp nightmares +30% instead of +20% |
 | Twin Puff | every 3rd Sporeling attack fires twice | every 2nd |
 | Charged Bloom | Stormcap chains apply 1 Drowsy | apply 2 Drowsy |
 | Spore Cascade | spreads to the 2 nearest | spreads to the 3 nearest |
@@ -723,12 +723,14 @@ up with creature health and benefit from stat Dreams and evolutions.
 
 | Status | Effect | Duration | Stacks | Notes |
 |---|---|---|---|---|
-| **Damp** | −10% speed | 4 s, refreshed on reapply | no | Rain Lily 6 s; Mistveil fog keeps it on |
-| **Drowsy** | −8% speed per stack | 3 s, refreshed | up to 5 (−40%) | Dreamshroom: at 5 stacks, sleep 1.5 s, once per creature |
+| **Damp** | **Soaked**: no slow (changed 2026-09-29). Hits from the Dewdrop family deal **+20%**; the conductor for Reactions | 4 s, refreshed on reapply | no | Rain Lily 6 s; Mistveil fog keeps it on |
+| **Drowsy** | −8% speed per stack (**the** slowing status) | 3 s, refreshed | up to 5 (−40%) | Dreamshroom: at 5 stacks, sleep **3 s**, once per nightmare |
 | **Spored** | soothe per second per stack = 25% of the applier's soothe | 5 s, refreshed | up to 8 (Driftspore 12) | Puffball pops at 10+ |
 | **Marked** | +25% soothe taken from all sources | 5 s | no | Beacon +35% |
 | **Static** | a charge; at 5 stacks, a free bolt worth 3× the applier's soothe, then reset | loses 1 stack per 2 s | up to 5 | |
-| **Held** | can't move | 1 s | no | not in first-playable scope (Rootling line) |
+| **Held** | can't move; **firm** (nothing breaks it) | 1 s | no | Rootling line, Frostfern (Frozen) |
+| **Asleep** | can't move; **fragile**: breaks when a single hit deals **≥10% of its max health** (effect ticks never break it) | 3 s (Dreamshroom), 2 s (Fever Dream) | no | bosses never sleep; Nightbloom's cloud stops it breaking |
+| **Caught** | its statuses **stop wearing off** (Spored keeps ticking, Static doesn't decay, Damp / Marked / Held timers pause) | while asleep or at max Drowsy in a Dreamcatcher's range | no | Great Dreamcatcher: Caught statuses tick +25%; bosses are Caught at 3 Drowsy |
 
 **Bosses:** Drowsy cap 3, Held duration halved, Static bolts at 8 stacks instead of 5.
 
@@ -750,10 +752,10 @@ Design and effects: `tower_design.md`, "Reactions". Starting points for tuning.
 | Reaction | Trigger | Effect | Uses up | Bosses |
 |---|---|---|---|---|
 | **Thunderclap** | Damp + 3 Static | 4× applier damage to the target; arcs to every Damp nightmare within **2.5 cells** for 2× (**at most the 8 nearest per clap**, 2026-09-28, performance), each arc adds **1 Static** | all Static | Static threshold 5 |
-| **Ignite** | 3+ Spored + any Static | deals the target's **remaining Spored damage ×1.5** at once; 1 Spored stack to nightmares within 1 cell | all Spored | same |
+| **Ignite** | 3+ Spored + any Static | the spores **burn** for **3 s**: Spored ticks 3× as fast, and each second 1 stack spreads to every nightmare within 1 cell (which may start burning). Changed 2026-09-29: Puffball's pop is the burst | all Static | same |
 | **Mushrooming** | 3+ Spored + Damp | the target's Spored ticks +50% for 4 s; a spore cloud (radius 0.6, 4 s) on its tile gives 1 Spored per second | Damp | same |
 | **Shatter** | Held (incl. frozen) + Damp, then a crit or a hit from the Pebbling line or a sniper | that hit ×2.5; shards deal 50% of it to nightmares within 1 cell | Held | same (Held is already halved) |
-| **Drown** | Damp + 5 Drowsy | sleeps **2 s**, once per nightmare | all Drowsy | no sleep: −30% speed for 2 s instead |
+| **Drown** | Damp + 5 Drowsy | **pulled under** for **3 s**, once per nightmare: −60% speed and drowning damage of 0.5× / 1× / 1.5× the applier's damage in seconds 1 / 2 / 3 (3× total, effect damage). Changed 2026-09-29: no sleep, Dreamshroom owns sleep | all Drowsy | −30% speed; same damage |
 | **Pinned** | Marked + (Held or 5 Drowsy) | the next hit is a guaranteed crit at **×3** (or the hitter's multiplier if higher) | Marked | same |
 | **Smother** | Held + 1+ Spored | Spored ticks 3× as fast while Held | — (ends with Held) | same |
 | **Lightning Rod** | Marked + 1+ Static | Static bolts (5-stack bolts and Thunderclap arcs) within **3 cells** strike the Marked nightmare instead, at ×2 | — (while Marked) | same |
@@ -774,7 +776,7 @@ Design and effects: `tower_design.md`, "Reactions". Starting points for tuning.
 | 79 | **Rolling Thunder** | Uncommon | Thunderclap arcs reach 3.5 cells | storm, water, reaction | Stormcap + any Dewdrop | Start |
 | 80 | **Wildfire Spores** | Uncommon | Ignite spreads 2 stacks, within 1.5 cells | spore, storm, reaction | Sporeling + Firefly Jar | **Start** (moved from Grove 2026-09-28: every pair of starting families needs a combo card) |
 | 134 | **Mushroom Rain** | Uncommon | Mushrooming's spore cloud lasts **twice as long** and covers the **8 tiles around** it too | spore, water, reaction | Sporeling + Dewdrop | Start (added 2026-09-28, same reason) |
-| 81 | **Deep Water** | Uncommon | Drown sleeps 3 s; bosses −40% speed | water, sleep, reaction | Dewdrop | Grove |
+| 81 | **Deep Water** | Uncommon | Drown lasts 4 s and its damage grows 50% faster; bosses −40% speed | water, sleep, reaction | Dewdrop | Grove |
 | 82 | **Quick Reactions** | Rare | Reaction cooldowns 1.5 s → 0.75 s | reaction | own 2 Reaction pairs | Grove |
 | 83 | **Dawnbreak** | Legendary | a **×10 chain** Dawnburst deals 10% of max health to every nightmare within 4 cells (bosses 2%) | reaction | — | Grove |
 
@@ -791,13 +793,13 @@ scales with the applier, as for Reactions. Each counts as **2 chain links**.
 
 | Crowned | Effect | Bosses |
 |---|---|---|
-| **Tempest** | Thunderclap as normal; each arc also fires **Ignite** on Spored targets (normal Ignite numbers); Ignite's spread stacks carry **1 Static** each. A nightmare hit by a Tempest can't start another Tempest for **2 s** | arcs don't Ignite bosses; they still take the Thunderclap |
-| **Still Pool** | Drown (2 s sleep) + a pool on its tile, **5 s**: each walker entering it the first time sleeps **1 s** | no sleep: −30% speed while in the pool |
-| **Fever Dream** | the nightmare's remaining Spored damage resolves at once (×1.0); adjacent nightmares get **3 Spored + 2 Drowsy** | same (Drowsy capped at 3) |
+| **Tempest** | Thunderclap as normal; each arc also sets Spored targets **burning** (normal Ignite numbers); stacks spread by burning carry **1 Static** each. A nightmare hit by a Tempest can't start another Tempest for **2 s** | arcs don't Ignite bosses; they still take the Thunderclap |
+| **Still Pool** | Drown + a pool on its tile, **5 s**: each walker entering it the first time is **pulled under for 1 s** (−60% speed, drowning 0.5×) | −30% speed while in the pool |
+| **Fever Dream** | the nightmare **falls asleep for 2 s** (changed 2026-09-29: no detonation, Puffball owns bursts); adjacent nightmares get **3 Spored + 2 Drowsy** | no sleep; neighbours as normal (Drowsy capped at 3) |
 | **Starfall** | the Pinned ×3 crit; Static bolts from nightmares within **3 cells** fire at once into it (each ×2 and a crit); uses up their Static | same, bolts count as crits at ×1.5 |
 | **Avalanche** | the lob's Shatter (×2.5) also Shatters every Damp + Held nightmare within the lob's splash | bosses take the ×2.5 hit, no spread from them |
 | **Prismstorm** | Shatter as normal; each nightmare hit by shards gains **2 Static** | same |
-| **Nightbloom** | Mushrooming's cloud (4 s) also keeps nightmares inside **unable to wake** (sleep and max Drowsy don't end while inside, and the Watcher's wake-up does nothing there) | bosses don't sleep; they keep max Drowsy while inside |
+| **Nightbloom** | Mushrooming's cloud (4 s) also keeps nightmares inside **unable to wake**: sleep and max Drowsy don't end while inside, **sleep doesn't break from hits** there, and the Watcher's wake-up does nothing | bosses don't sleep; they keep max Drowsy while inside |
 | **Fairy Circle** | instead of one cloud: mushroom rings on the **path tiles among the 8 around** the nightmare, **6 s**; each ring tile gives the first walker **2 Spored + Damp** | same |
 
 **Priority when two crowns fit (as built, ae816ed):** Mushrooming on a nightmare that is both Held
@@ -822,7 +824,7 @@ weight). All **Rare** (was Legendary until 2026-09-28: they enhance a combo, the
 | # | Card | Ingredients | Effect |
 |---|---|---|---|
 | 100 | **Eye of the Tempest** | Stormcap + Rain Lily + Driftspore | Tempest arcs reach +1 cell and its Ignites spread 2 stacks |
-| 101 | **Deep Stillness** | Rain Lily + Tangleroot + Bellflower | Still Pools last 8 s and their sleep is 1.5 s |
+| 101 | **Deep Stillness** | Rain Lily + Tangleroot + Bellflower | Still Pools last 8 s and pull walkers under for 1.5 s |
 | 102 | **Fever Pitch** | Driftspore + Tangleroot + Bellflower | Fever Dream spreads to nightmares within 1.5 cells, not just adjacent |
 | 103 | **Falling Stars** | Firefly Jar + Tangleroot + Chime Stone or Bellflower | Starfall pulls bolts from 5 cells |
 | 104 | **Mountain's Fall** | Cairn + Frostfern + Tangleroot | Avalanche also leaves rubble where each spread Shatter lands |

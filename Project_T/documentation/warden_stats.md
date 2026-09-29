@@ -153,7 +153,7 @@ adds +5%. Clouds, fog, Spored, Static bolts and Puffball pops never crit.
 | ✓ Rain Lily | branch | +45 | 2.75 | 18 × 1.2 | 22 | projectile | splash **1.0**; Damp **6 s** |
 | Monsoon | final | +90 | 3 | 40 every 3 s | 13 to **each** creature in range | rain | soothes **every** creature in range + Damp 6 s |
 | ✓ Mistveil | branch | +45 | 2.5 | 8 × 0.5 | cloud | cloud (fog) | fog on the path (radius 0.9, 4 s): Damp, and **Spored ticks +50%** inside (proposed value) |
-| Morning Fog | final | +90 | 3 | 10 × 0.5 | cloud | cloud (fog) | fog radius **1.25**, 5 s: Damp, slows 15%, **1 Drowsy per second** inside |
+| Morning Fog | final | +90 | 3 | 10 × 0.5 | cloud | cloud (fog) | fog radius **1.25**, 5 s: Damp that **lingers 3 s after leaving**, and Spored and Static tick **+25%** inside. *Changed 2026-09-29: no slow, no Drowsy (Bellflower's job)* |
 | ✓ Frostfern *(hidden)* | branch | +45 | 2.5 | 16 × 1.0 | 16 | projectile | hits on **Damp** nightmares **freeze** them (Held 0.75 s; once per 4 s per nightmare) |
 | ✓ Hoarfrost *(hidden)* | final | +90 | 3 | 26 × 1.0 | 26 | projectile | splash 0.75; freeze **1 s**; +20% crit chance vs Held. **Buffed 2026-09-28** (probe: ~1.6% share and contribution; the freeze rarely landed): each hit also adds **1 Soaked** (melting frost), so it sets up its own freeze; freeze at **2 Soaked** on the target; damage **39 → 48** (as built, be7fd06; the row's 26 predates the ×1.5 finals pass), then freeze **1.5 s** (was 1 s; rerun: ~4% share and contribution). Target ~6–8% |
 
@@ -190,8 +190,8 @@ Owns **Drowsy**. Chime Stone and Lullaby Bell moved here from Pebbling (numbers 
 | Bellflower | base | 25 (+15) | 2 | 10 × 1.0 | 10 (area) | pulse | every 2nd pulse: **1 Drowsy** to everything in range |
 | Chime Stone | branch | +45 | 2 | 22 × 0.8 | 18 (area) | pulse | Static 1; each pulse **sets off** a Static bolt on nightmares with 3+ stacks |
 | Lullaby Bell | final | +90 | 2.5 | 40 × 0.8 | 32 (area) | pulse | Static 1 + **Drowsy 1** per pulse; sets off Static like Chime Stone. **Tuned 2026-09-28** (probe: ~20% of a 12-Warden board each, vs 8% average): pulse every **1.75 s** (was 1.25 s) and sets off Static at **4** stacks (was 3); target ~12% |
-| Dreamcatcher | branch | +45 | 2.5 | 10 × 1.0 | 10 | projectile | nightmares in range that are **asleep or at max Drowsy** are **Caught**: +40% damage taken from all sources |
-| Great Dreamcatcher | final | +90 | 3 | 16 × 1.0 | 16 | projectile | Caught +60%; sleep in range lasts **+1 s** (once per nightmare); each Caught nightmare dispelled drops a **Dreamlight shard** (10 shards = 1 Dreamlight; max 2 Dreamlight per run from shards) |
+| Dreamcatcher | branch | +45 | 2.5 | 10 × 1.0 | 10 | projectile | nightmares in range that are **asleep or at max Drowsy** are **Caught**: its **statuses stop wearing off** (Spored keeps ticking, Static doesn't decay, Damp / Marked / Held timers pause). *Changed 2026-09-29: was +damage taken (Marked's job)* |
+| Great Dreamcatcher | final | +90 | 3.5 | 16 × 1.0 | 16 | projectile | Caught statuses tick **+25%**; sleep in range lasts **+1 s** (once per nightmare); each Caught nightmare dispelled drops a **Dreamlight shard** (10 shards = 1 Dreamlight; max 2 Dreamlight per run from shards) |
 | Echo Hollow *(hidden)* | branch | +45 | 2.5 | 8 × 1.0 | 8 (area) | echo | a Reaction within range **repeats 1 s later at 50%** on the same spot (echoes don't echo) |
 | Whispering Hollow *(hidden)* | final | +90 | 3.5 | 12 × 1.0 | 12 (area) | echo | echoes at **75%**; each echo **counts as a chain link** |
 
@@ -200,7 +200,8 @@ damage × a per-Reaction factor (Thunderclap 4, Ignite 3, Shatter 2.5, Lightning
 Hollow) or 75% (Whispering Hollow). Drown echoes as a shorter sleep, Pinned re-primes its guaranteed
 crit, Mushrooming grows a shorter cloud, and **Smother doesn't echo**.
 
-Caught and Marked stack multiplicatively (a Caught, Marked nightmare takes ×1.4 × ×1.25). Bosses
+Caught no longer adds damage (2026-09-29), so it pairs with Marked instead of stacking with it: a
+Caught nightmare's Marked simply doesn't wear off. Bosses
 never sleep, but their Drowsy cap is 3, and **3 counts as max for them**, so bosses can be Caught.
 Caught bosses give no Dreamlight shards.
 
@@ -208,19 +209,19 @@ Caught bosses give no Dreamlight shards.
 
 | Warden | Tier | Cost | Range | Soothe × /s | DPS | Kind | Effect |
 |---|---|---|---|---|---|---|---|
-| ✓ Rootling | base | 25 (+15) | 2 | 12 × 1.0 | 12 (area) | pulse | **proposed:** pulses slow 10% for 1 s (the "roots nip at feet" in the design) |
+| ✓ Rootling | base | 25 (+15) | 2 | 6 × 1.0 | 6 (area) | pulse | every **4th** pulse **Holds** the nightmare furthest along for **0.3 s**. *Changed 2026-09-29: half damage (control family), Held instead of a slow* |
 | Rootcurl | branch | +45 | 2 | 14 × 1.0 | 14 (area) | pulse + pull | every **4 s**, pulls the creature furthest along (in range) **back 1 tile** |
 | Long Way Home | final | +90 | 2.5 | 18 × 1.0 | 18 (area) | pulse + pull | every **5 s**, pulls back **3 tiles**; each creature only once (bosses: 1 tile) |
 | Tangleroot | branch | +45 | 2 | 14 × 1.0 | 14 (area) | pulse + hold | every **3 s**, **Holds** the creature furthest along for 1 s |
 | Snugroot | final | +90 | 2.5 | 20 × 1.0 | 20 (area) | pulse + hold | every 3 s, Holds **up to 3** creatures for 1 s |
-| ✓ Rootlight *(hidden)* | branch | +45 | 3 | 10 × 1.0 | 10 (area) | pulse + light | lights path tiles in range: **reveals Lurkers**, **Gravecrawlers can't burrow** on lit tiles, nightmares on lit tiles are **Marked** |
-| ✓ Starcave *(hidden)* | final | +90 | 4 | 16 × 1.0 | 16 (area) | pulse + light | as Rootlight; Marked **lingers 2 s** after leaving the light |
+| ✓ Rootlight *(hidden)* | branch | +45 | 3 | 10 × 1.0 | 10 (area) | pulse + light | lights path tiles in range: **reveals Lurkers**, **Gravecrawlers can't burrow** on lit tiles, **Held lasts 50% longer** on lit tiles (no Marked since 2026-09-29: Marked is Firefly Jar's) |
+| ✓ Starcave *(hidden)* | final | +90 | 4 | 16 × 1.0 | 16 (area) | pulse + light | as Rootlight; Held lasts **twice as long** on lit tiles |
 
 ## Acorn family (support, economy)
 
 | Warden | Tier | Cost | Range | Soothe × /s | DPS | Kind | Effect |
 |---|---|---|---|---|---|---|---|
-| ✓ Acorn | base | 25 (+15) | 2 | 8 × 1.0 | 8 (area) | pulse | **aura:** the 8 surrounding Wardens +5% soothe |
+| ✓ Acorn | base | 25 (+15) | 2 | 4 × 1.0 | 4 (area) | pulse | **aura:** the 8 surrounding Wardens +5% soothe. *Pulse halved 2026-09-29 (support family)* |
 | Elder Stump | branch | +45 | 2 | 10 × 1.0 | 10 (area) | pulse | **aura:** the 8 surrounding Wardens **+20% attack speed** |
 | Grove Heart | final | +90 | 2 | 14 × 1.0 | 14 (area) | pulse | **aura, radius 2:** +15% soothe and attack speed, **+3% more per Warden** in the radius (max +30%) |
 | Dewcatcher | branch | +45 | 2 | 8 × 1.0 | 8 (area) | pulse | **+3 Dew per drift** (+15 per block; pays itself back in ~15 drifts) |
@@ -235,8 +236,8 @@ Caught bosses give no Dreamlight shards.
 | ✓ Nestling | base | 25 (+15) | 3 | 14 × 1.2 | 17 | swoop | bird flies out and back; ×1.25 vs Phantoms |
 | ✓ Wren's Nest | branch | +45 | 3.5 | 8 × 3.0 | 24 | swoop | targets the **fastest** nightmare in range; ×1.5 vs Phantoms and sprinting Night Hounds; crit 15% |
 | ✓ Starling Murmuration | final | +90 | 4 | 3 birds × 10 × 1.5 | 45 (split) | swoop | **changed 2026-09-27:** 3 starlings each hunt one of the **3 fastest** nightmares in range; ×1.5 vs Phantoms and sprinting Night Hounds; crit 15%. (Was: sweeps the 5 busiest path tiles) |
-| ✓ Magpie Perch | branch | +45 | 3 | 12 × 1.0 | 12 | swoop | nightmares it hits drop **+1 Dew** when dispelled; crit 10% |
-| ✓ Magpie's Hoard | final | +90 | 3.5 | 20 × 1.0 | 20 | swoop | as Magpie Perch; **each crit +1 Dew** (max 15 per drift); crit 15% |
+| ✓ Magpie Perch | branch | +45 | 3 | 12 × 1.0 | 12 | swoop | **thief** (2026-09-29): each hit strips a nightmare buff: removes **2× its normal chip** of dread shell, stops a Weeper's mending for **3 s**, removes an Omen's boosts from that nightmare; **+1 Dew** when a nightmare it stripped is dispelled; crit 10% |
+| ✓ Magpie's Hoard | final | +90 | 3.5 | 20 × 1.0 | 20 | swoop | as Magpie Perch (every hit strips); **each crit +1 Dew** (max 15 per drift); crit 15% |
 | Hummingbird Bower *(hidden)* | branch | +45 | 3 | 6 pecks × 4, every 1.5 s | 16 | multi-hit | pecks one nightmare 6 times in 1 s, returns in 0.5 s; **each peck is a full hit** (crit roll, Marked, on-hit cards) |
 | Jewelwing Court *(hidden)* | final | +90 | 3.5 | 3 birds × 8 pecks × 6, every 1.5 s | 96 (split) | multi-hit | birds spread over targets or all focus the strongest (toggle); **every 6th peck crits** |
 
@@ -244,7 +245,7 @@ Caught bosses give no Dreamlight shards.
 
 | Warden | Tier | Cost | Range | Damage × /s | DPS | Kind | Effect |
 |---|---|---|---|---|---|---|---|
-| ✓ Whirligig | base | 25 (+15) | 2 | 10 × 1.0 | 10 (area) | pulse | nudges nightmares **back 0.25 tiles** (each at most once per 3 s) |
+| ✓ Whirligig | base | 25 (+15) | 2 | 10 × 1.0 | 10 (area) | pulse | every **3 s** copies one status (half stacks) of the most-afflicted nightmare in range onto **one** neighbour within 1.5 cells. *Changed 2026-09-29: was a nudge back (pulling is Rootling's job)* |
 | ✓ Gust | branch | +45 | 2.5 | 10 × 0.5 | 5 (area) | gust | every 2 s, copies all statuses of the **most-afflicted** nightmare in range onto **2** others within 1.5 cells (**half stacks**, full duration) |
 | ✓ Zephyr | final | +90 | 3 | 16 × 0.5 | 8 (area) | gust | as Gust, onto **up to 5** |
 | ✓ Pinwheel | branch | +45 | 1 (adjacent tiles) | 12 × 2.0 | 24 (area) | blades | hits every nightmare on the 8 tiles around it; **+20% damage per adjacent path tile beyond 2** (max +100%) |
