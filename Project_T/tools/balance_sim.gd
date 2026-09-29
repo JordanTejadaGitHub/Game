@@ -20,6 +20,9 @@ extends SceneTree
 
 const NO_CELL := Vector2(-1, -1)
 const SPEND_EVERY := 2.0  # Game seconds between mid-drift spending checks
+const SAVE_REST_BONUSES := 6  # Saves up for a growth costing up to this many rest bonuses (finals with ranks: 300+)
+const MAX_FAMILIES := 2  # Mixed styles build their first two families deep
+var _saving_for_final := false  # The cheapest open growth is a final form (saves longer for it)
 const STYLES := {"balanced": 0, "wide": 1, "narrow": 2, "combo": 3, "sleep": 4, "sprout": 5}  # DreamSimPolicy.Style
 const COLUMNS := ["drift", "act", "seconds", "health_spawned", "damage", "leaks", "leaves_lost", "leaves_left",
 	"dew_rest", "dew_other", "spent_plant", "spent_walls", "spent_grow", "spent_nurture", "banked",
@@ -196,10 +199,10 @@ func _next_buy() -> String:
 		return "walls"
 	if _grow():
 		return "grow"
-	# A sensible player saves up for an unlocked growth (a branch is 80 Dew) instead of spending every
-	# Dew on ranks; Narrow nurtures anyway.
+	# A sensible player saves up for an unlocked growth (a branch is 80 Dew, a final 200 plus the ranks it
+	# carries) instead of spending every Dew on ranks; Narrow nurtures anyway.
 	var saving := _cheapest_growth()
-	if style != "narrow" and saving > 0 and saving <= 3 * director.get_rest_bonus(director.get_block(maxi(director.drifts_started, 1))):
+	if style != "narrow" and saving > 0 and saving <= (SAVE_REST_BONUSES if _saving_for_final else 3) * director.get_rest_bonus(director.get_block(maxi(director.drifts_started, 1))):
 		return ""
 	if _nurture():
 		return "nurture"
@@ -213,6 +216,7 @@ func _next_buy() -> String:
 # Dew for the cheapest growth open to a Warden on the map (0 = none).
 func _cheapest_growth() -> int:
 	var cheapest := 0
+	_saving_for_final = false
 	for tower in _attackers():
 		if style == "sprout" and tower.tower_data.get_id() == "sprout":
 			continue
@@ -222,6 +226,7 @@ func _cheapest_growth() -> int:
 				var cost: int = tower.get_grow_cost(form).total
 				if cheapest == 0 or cost < cheapest:
 					cheapest = cost
+					_saving_for_final = form.tier >= 3
 	return cheapest
 
 func _attackers() -> Array:
@@ -244,6 +249,13 @@ func _plant_attacker() -> bool:
 		return t.can_attack and t.buildable_directly and t.get_id() != "sprout" and t.footprint == 1 and not t.is_unique)
 	if options.is_empty():
 		options = [load("res://resource/tower/sprout.tres")]
+	# Stick to the first MAX_FAMILIES families on the map (a player builds a family deep, not every family
+	# thin); within them, the one with fewer Wardens.
+	var main := _main_families()
+	if main.size() >= MAX_FAMILIES:
+		var focused := options.filter(func(t: TowerData) -> bool: return main.has(t.line))
+		if not focused.is_empty():
+			options = focused
 	options.sort_custom(func(a: TowerData, b: TowerData) -> bool: return _family_count(a) < _family_count(b))
 	var data: TowerData = options[0]
 	if not run_state.can_afford(placer.get_cost(data)):
@@ -319,7 +331,7 @@ func _grow() -> bool:
 
 # Balanced: the lowest rank first, most path in range among those; Narrow the same but it plants few.
 func _nurture() -> bool:
-	var towers := _attackers().filter(func(t) -> bool: return t.can_nurture() and t.get_nurture_cost() <= run_state.dew)
+	var towers := _attackers().filter(func(t) -> bool: return t.can_nurture() and t.get_nurture_cost() <= run_state.dew and not _waits_for_final(t))
 	if towers.is_empty():
 		return false
 	towers.sort_custom(func(a, b) -> bool:
@@ -456,3 +468,30 @@ func _finish() -> void:
 	runs.close()
 	print("RUN %s" % JSON.stringify(summary))
 	print("CHOICES %s" % " | ".join(policy.choices))
+
+# The families the bot builds (Balanced and the other mixed styles): the first MAX_FAMILIES lines on the
+# map, in the order they were planted.
+func _main_families() -> Array:
+	var lines := []
+	for tower in _attackers():
+		var line: String = tower.tower_data.line
+		if line != "sprout" and line != "wall" and not lines.has(line):
+			lines.append(line)
+	return lines.slice(0, MAX_FAMILIES)
+
+# The first growth open to `tower` (unlocked, room to grow), or null. A Warden with one waits for it
+# instead of being nurtured: ranks raise what growing costs (Tower.get_grow_cost pays the ranks).
+func _open_growth(tower: Tower) -> TowerData:
+	if style == "sprout" and tower.tower_data.get_id() == "sprout":
+		return null
+	for form in tower.tower_data.evolves_to:
+		if form is TowerData and dreams.is_unlocked(form.get_id()) and placer.ascended_blocker(form) == "" \
+				and (form.footprint <= tower.get_footprint() or not placer.get_grow_squares(tower, form).is_empty()):
+			return form
+	return null
+
+# A Warden whose next growth is a final form or beyond waits for it instead of taking ranks (ranks raise
+# what the growth costs); base -> branch growths are cheap and don't hold nurturing back.
+func _waits_for_final(tower: Tower) -> bool:
+	var form := _open_growth(tower)
+	return form != null and form.tier >= 3
