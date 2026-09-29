@@ -143,6 +143,8 @@ func _run() -> void:
 	_check(not is_instance_valid(swoop) and last_seen.distance_to(start) < 20.0,
 		"it flies back and vanishes at the Warden (last seen %s, Warden %s)" % [last_seen, start])
 
+	_check(TowerPlacer.is_edge_cell(Vector2(0, 5)) and TowerPlacer.is_edge_cell(Vector2(5, Tower.MAP_GRID.size.y - 1))
+		and not TowerPlacer.is_edge_cell(Vector2(5, 5)), "the island's rim is \"the dream's edge\"")
 	print("towers test: %s" % ("PASS" if failures == 0 else "%d FAILED" % failures))
 	quit(failures)
 

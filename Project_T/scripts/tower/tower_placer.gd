@@ -289,7 +289,9 @@ func _draw() -> void:
 	if run_state.fertile_cells.has(_hover_cell):
 		tag += " (fertile)"
 	var growth := get_hover_path_growth()
-	if frozen_ground():
+	if is_edge_cell(_hover_cell) and _hover_cell != map_generator.startPath and _hover_cell != map_generator.endPath:
+		tag += "  ·  the dream's edge"  # The island's rim (screens_ui.md "Invalid placement")
+	elif frozen_ground():
 		tag += "  ·  Frozen Ground: plant at the rest"
 	elif is_unique_placed(tower_data):
 		tag += "  ·  already planted (one per run)"
@@ -1069,3 +1071,8 @@ func _walker_cells() -> PackedVector2Array:
 		if not map_generator.get_path_from(target).is_empty():
 			cells.append(target)
 	return cells
+
+# The island's rim: the map's outer ring of cells, never buildable (the start and end are on it).
+static func is_edge_cell(cell: Vector2) -> bool:
+	var last := MAP_GRID.size - Vector2.ONE
+	return MAP_GRID.is_within_bounds(cell) and (cell.x <= 0 or cell.y <= 0 or cell.x >= last.x or cell.y >= last.y)
