@@ -37,8 +37,13 @@ Numbers are starting points for playtesting.
 
 A vast moth with a skull-like face on its wings. Health 16,000 × 1.5 = **24,000**; 5 leaves; 80 Dew.
 
-- **Flies** over the maze in a slow, weaving line toward the Heartwood (like a Phantom, ignoring
-  walls), so every Warden near her line gets a chance, not just the maze.
+- **Flies along the route** (changed 2026-09-28; playtest: "drift 75 feels impossible compared to
+  70"). She used to fly straight over the maze toward the Heartwood, so a maze did almost nothing
+  against a 24,000-health boss and only the Wardens near her line got a few seconds on her. Now she
+  follows the nightmares' route **above** it, at her own speed: every maze Warden gets its turn, so
+  the maze still matters in the boss fight. Flying means **walls can't block her or re-route her**
+  (she keeps the route she started with), and ground effects (Rooted, Held, traps, rubble, puddles)
+  don't touch her; everything else does. A long maze is a real answer to her, as it should be.
 - **Brood:** drops a Lurker every 4 seconds; they land on the path and walk the maze.
 - **Eclipse** (at half health): her wings close over the dream for 5 seconds: every nightmare on
   the map is hidden (like Lurkers) unless something reveals it (Lanternmoth, Moon Moth,

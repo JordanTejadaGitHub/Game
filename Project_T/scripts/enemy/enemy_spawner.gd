@@ -55,7 +55,7 @@ func spawn_enemy(enemy_data: EnemyData, health_scale: float = 1.0, modifiers: Di
 		return null
 	if not enemy_data.is_boss:
 		drift_health_scale = health_scale
-	if enemy_data.trait_kind == EnemyData.Trait.FLYING:
+	if enemy_data.trait_kind == EnemyData.Trait.FLYING and not enemy_data.flies_along_route:  # Moth Queen keeps the route
 		path_points = _flight_path(enemy_data.flight_weave)
 	var enemy := _create(enemy_data, health_scale, modifiers, elite)
 	enemy.position = enemy.grid.calculate_map_position(path_points[0])  # Start at the first waypoint (pixels)

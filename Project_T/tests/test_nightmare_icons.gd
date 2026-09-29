@@ -98,6 +98,21 @@ func _run() -> void:
 	await process_frame
 	_check(strip != null and strip.visible and strip._row.get_child_count() == ComingStrip.kinds_in_block(director, 1).size(),
 		"the strip shows block 1's kinds at the first rest")
+	# Readable on the night sky: each kind's name and block count (extras included) at rests.
+	var first_kinds := ComingStrip.kinds_in_block(director, 1)
+	if strip != null and not first_kinds.is_empty():
+		var first_item: Control = strip._row.get_child(0)
+		var count_label := first_item.find_child("KindCount", false, false) as Label
+		var name_label := first_item.find_child("KindName", false, false) as Label
+		_check(count_label != null and count_label.text == "×%d" % first_kinds[0][2] and name_label != null
+			and name_label.text.to_lower() == first_kinds[0][0].display_name.to_lower(), "the strip names each kind and counts it")
+	var d10 := ComingStrip.kinds_in_range(director, 10, 10)
+	var listed := 0
+	for group in director.drifts[9].groups:
+		for entry in group.entries:
+			if entry.enemy == d10[0][0]:
+				listed += entry.count
+	_check(d10[0][2] >= listed, "counts include the extra nightmares (drift 10: %d listed, %d shown)" % [listed, d10[0][2]])
 
 	# --- The dossier at the rest opening block 5 (after drift 20) ----------------------------------
 	var dossier := root.get_tree().get_first_node_in_group(BossDossier.GROUP) as BossDossier

@@ -34,7 +34,7 @@ func _process(delta: float) -> void:
 	if _tick <= 0.0:
 		_tick = TICK
 		for enemy in get_tree().get_nodes_in_group(Tower.ENEMY_GROUP):
-			if _cells.has(enemy.get_current_cell()):
+			if _cells.has(enemy.get_current_cell()) and not enemy.is_flying():  # Ground: flyers (Phantoms, the Moth Queen) pass over
 				var s: EnemyStatuses = enemy.statuses
 				s.slow_time = maxf(s.slow_time, TICK * 1.6)
 				s.slow_amount = maxf(s.slow_amount if s.slow_time > 0.0 else 0.0, _slow)

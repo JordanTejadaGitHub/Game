@@ -83,19 +83,27 @@ func _boss_walking() -> bool:
 	return false
 
 # Kinds arriving in drifts `first`..`last` (first appearance order, bosses last) with the drift
-# each first comes in: [[EnemyData, drift], …].
+# each first comes in and how many come in all (the difficulty's extra nightmares and the Omen's
+# count changes included, as DriftDirector schedules them): [[EnemyData, drift, count], …].
 static func kinds_in_range(director: DriftDirector, first: int, last: int) -> Array:
 	var kinds: Array = []
 	var bosses: Array = []
-	var seen := {}
+	var by_kind := {}  # resource path -> its [data, drift, count]
 	for number in range(first, last + 1):
+		var extra := director.get_extra_nightmares(number)
+		var mods: Dictionary = director.get_schedule_modifiers(number)
 		for group in director.drifts[number - 1].groups:
 			for entry in group.entries:
 				var data: EnemyData = entry.enemy
-				if data == null or seen.has(data.resource_path):
+				if data == null:
 					continue
-				seen[data.resource_path] = true
-				(bosses if data.is_boss else kinds).append([data, number])
+				var count: int = entry.get_count(mods.get("count", 1.0), mods.get("flyers", 1.0), extra)
+				if by_kind.has(data.resource_path):
+					by_kind[data.resource_path][2] += count
+					continue
+				var item := [data, number, count]
+				by_kind[data.resource_path] = item
+				(bosses if data.is_boss else kinds).append(item)
 	return kinds + bosses
 
 static func kinds_in_block(director: DriftDirector, block: int) -> Array:
@@ -108,8 +116,8 @@ func _build(span: Vector2i) -> void:
 	for child in _row.get_children():
 		_row.remove_child(child)
 		child.queue_free()
-	for pair in kinds_in_range(drift_director, span.x, span.y):
-		_row.add_child(_make_item(pair[0], pair[1]))
+	for kind in kinds_in_range(drift_director, span.x, span.y):
+		_row.add_child(_make_item(kind[0], kind[1], kind[2]))
 
 # Compact: the next drift's kinds lit, the rest dimmed.
 func _light_next() -> void:
@@ -121,7 +129,8 @@ func _light_next() -> void:
 	for item in _row.get_children():
 		item.modulate = Color.WHITE if lit.has(item.get_meta(&"kind")) else DIM
 
-func _make_item(data: EnemyData, drift: int) -> Control:
+# `count`: how many of the kind come in the span ("×18" under its portrait at rests, with its name).
+func _make_item(data: EnemyData, drift: int, count: int = 1) -> Control:
 	var item := VBoxContainer.new()
 	item.set_meta(&"kind", data)
 	item.add_theme_constant_override("separation", 0)
@@ -153,6 +162,18 @@ func _make_item(data: EnemyData, drift: int) -> Control:
 		tag.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		UiStyle.caps(tag, 11, UiStyle.GOLD)
 		item.add_child(tag)
-	if not compact:
+	if not compact:  # Readable on the night sky (screens_ui.md): its name and how many come
+		var name := Label.new()
+		name.name = "KindName"
+		name.text = data.display_name
+		name.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		UiStyle.caps(name, 12, UiStyle.INK)
+		item.add_child(name)
+		var many := Label.new()
+		many.name = "KindCount"
+		many.text = "×%d" % count
+		many.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		UiStyle.number(many, 14, UiStyle.GOLD)
+		item.add_child(many)
 		item.add_child(NightmareIcons.make_rows(data, PIP, true))
 	return item
