@@ -44,8 +44,8 @@ async function encodePng(img) {
   return btoa(s);
 }
 const PENDING = [];
-function emitImg(name, img) {
-  snapToPalette(img);
+function emitImg(name, img) {  // previews are composites of snapped sheets, so they are not snapped again
+  if (!name.startsWith("_preview/")) snapToPalette(img);
   const p = document.createElement("pre"); p.dataset.name = name; document.body.appendChild(p);
   PENDING.push(encodePng(img).then(b64 => { p.textContent = b64; }));
 }
@@ -70,7 +70,7 @@ for (const n of NODES) {
   const s = segment(n); segs[n.id] = s;
   emitImg("grove/branches/" + n.id + ".png", strip(s.frames));
   layout.nodes.push({ id: n.id, section: n.section, name: n.name, pos: [n.x, n.y], parent: n.parent || null, from: n.from || null,
-    levels: n.lv || 1, start: !!n.start, legendary: !!n.legendary, branch: { offset: [s.box[0], s.box[1]], frame_size: [s.W, s.H], frames: 5 } });
+    levels: n.lv || 1, start: !!n.start, legendary: !!n.legendary, ...(MEMORY_WARDENS.includes(n.id) ? { memory_row: MEMORY_WARDENS.indexOf(n.id) } : {}), branch: { offset: [s.box[0], s.box[1]], frame_size: [s.W, s.H], frames: 5 } });
 }
 emitText("grove/grove_layout.json", JSON.stringify(layout, null, 1));
 emitImg("grove/grove_nodes.png", stack(["perks", "families", "cards"].map(s => nodeRow(s, false))));
@@ -91,6 +91,22 @@ emitImg("ui/loadout_slot_6.png", strip([0, 1, 2].map(sixthSlot)));
     for (let y = 0; y < ch; y++) for (let x = 0; x < cw; x++) if (T.alpha(ox + x, oy + y)) P.set((k % 4) * cw + x, (k / 4 | 0) * ch + y, T.get(ox + x, oy + y));
   });
   emitImg("_preview/waystone_6_preview.png", P);
+}
+// Memory Wardens: their bloom sheet (a row each, the 11 node columns) and the family-pick card border.
+emitImg("grove/grove_memory_nodes.png", stack(MEMORY_WARDENS.map(memoryNodeRow)));
+const memoryBorders = [...Array(MEMORY_CARD_FRAMES).keys()].map(memoryCardBorder);
+emitImg("ui/memory_card_border.png", strip(memoryBorders));
+{
+  // Preview: the three blooms (bloomed, 4×) and the border over a mock card, standard and tall.
+  const P = new Img(640, 400); for (let y = 0; y < P.h; y++) for (let x = 0; x < P.w; x++) P.set(x, y, HW.Void);
+  MEMORY_WARDENS.forEach((id, k) => { const s = memoryNodeSprite(id, "bloom", 0); for (let y = 0; y < 32; y++) for (let x = 0; x < 32; x++) if (s.alpha(x, y)) for (let a = 0; a < 3; a++) for (let b = 0; b < 3; b++) P.set(8 + k * 100 + x * 3 + a, 8 + y * 3 + b, s.get(x, y)); });
+  [[330, 0, 300], [20, 100, 290]].slice(0, 1).forEach(() => {});
+  const mock = (h) => { const m = new Img(250, h); for (let y = 0; y < h; y++) for (let x = 0; x < 250; x++) m.set(x, y, CA(HW.Night, .9)); for (const [y, w] of [[60, 160], [80, 120], [180, 200], [200, 170]]) for (let x = 24; x < 24 + w; x++) for (let k = 0; k < 6; k++) m.set(x, y + k, HW.Mist); return m; };
+  const card = mock(300); P.put(card, 350, 50); P.put(memoryBorders[2], 350 - MEMORY_BLEED, 50 - MEMORY_BLEED);
+  emitImg("_preview/memory_wardens_preview.png", P);
+  const T = new Img(300, 420); for (let y = 0; y < T.h; y++) for (let x = 0; x < T.w; x++) T.set(x, y, HW.Void);
+  T.put(mock(370), 25, 25); T.put(nineTile(memoryBorders[2], 250 + 2 * MEMORY_BLEED, 370 + 2 * MEMORY_BLEED, MEMORY_MARGIN), 25 - MEMORY_BLEED, 25 - MEMORY_BLEED);
+  emitImg("_preview/memory_card_tall_preview.png", T);
 }
 // Starlit card backs: 4 twinkle frames of 250×220 side by side.
 const starlit = [0, 1, 2, 3].map(starlitCard);

@@ -1574,6 +1574,77 @@ function sixthSlot(state) {
   return out;
 }
 
+// ---------- Memory Wardens: their Grove blooms and their family-pick card border ----------
+// The three Memory Warden nodes (memory_white_stag / memory_pond_keeper / memory_moon_moth, free blooms
+// on the Families limb, grown the first time their boss is dispelled) use this sheet instead of the
+// Families row of grove_nodes.png: same 32×32 cell and the same 11 columns, one row per Warden.
+const MEMORY_WARDENS = ["memory_white_stag", "memory_pond_keeper", "memory_moon_moth"];
+// The boss's sign in the flower's heart (5×5, centred): antlers, a ripple, moth wings.
+const MEMORY_MOTIFS = {
+  memory_white_stag: [[-2, -2], [-2, -1], [-1, 0], [0, 0], [1, 0], [2, -1], [2, -2], [0, 1], [0, 2], [-2, -3], [2, -3], [-3, -2], [3, -2]],
+  memory_pond_keeper: [[-2, 0], [-1, -1], [0, -1], [1, -1], [2, 0], [1, 1], [0, 1], [-1, 1], [0, 0], [-3, 1], [3, 1]],
+  memory_moon_moth: [[0, -2], [0, -1], [0, 0], [0, 1], [-1, -1], [-2, -2], [-2, -1], [-2, 0], [1, -1], [2, -2], [2, -1], [2, 0], [-1, 1], [1, 1]],
+};
+const MEMORY_MOTIF_COLOUR = { memory_white_stag: "Moonlight", memory_pond_keeper: "Dewlight", memory_moon_moth: "Wraithlight" };
+function memoryNodeSprite(id, state, f) {
+  const out = nodeSprite("families", state, f), c = 16, earned = state === "open" && f >= 2 || state === "bloom";
+  // A dotted gold ring round the flower (only once it opens), turning slowly.
+  if (earned) for (let k = 0; k < 10; k++) { const a = k / 10 * Math.PI * 2 + f * .3; out.set(c + Math.cos(a) * 12.5, c + Math.sin(a) * 12.5, k % 2 ? HW.Gold : HW.Glow); }
+  // The boss's sign in the flower's heart.
+  if (earned) for (const [x, y] of MEMORY_MOTIFS[id]) out.set(c + x, c + y, HW[MEMORY_MOTIF_COLOUR[id]]);
+  // A little dream-fruit hanging at the lower right: gold once earned, a dim bud before.
+  const fx = 25, fy = 25;
+  out.set(fx - 1, fy - 4, LEAFG[2]); out.set(fx, fy - 3, LEAFG[1]);
+  ellipse(out, fx, fy, 2.6, 3, (x, y, dx, dy) => earned ? (dx < 0 && dy < 0 ? HW.Heartlight : dy > .3 ? HW.Ember : HW.Gold) : (dy < 0 ? HW.Dusk : HW.Night));
+  return out;
+}
+const memoryNodeRow = id => strip([memoryNodeSprite(id, "locked", 0), ...[0, 1, 2, 3].map(f => memoryNodeSprite(id, "afford", f)),
+  ...[0, 1, 2, 3].map(f => memoryNodeSprite(id, "open", f)), memoryNodeSprite(id, "bloom", 0), memoryNodeSprite(id, "bloom", 1)]);
+
+// The family pick's Memory Warden card border (screens_ui.md "Memory Warden card"): a gold frame drawn
+// OVER the card (transparent middle), with a soft gold glow that spills MEMORY_BLEED px outside it and a
+// dream-fruit hanging from the top centre. 274×324 = the 250×300 card + the bleed on every side.
+// 9-slice, MEMORY_MARGIN on every side; the card is always 250 wide, so only the left and right
+// edges repeat when it grows taller (their vine repeats every 24 px). Four frames: a slow glow pulse.
+const MEMORY_BLEED = 12, MEMORY_CARD = [250, 300], MEMORY_MARGIN = 42, MEMORY_CARD_FRAMES = 4;
+function memoryCardBorder(f) {
+  const b = MEMORY_BLEED, W = MEMORY_CARD[0] + 2 * b, H = MEMORY_CARD[1] + 2 * b, out = new Img(W, H), pulse = [0, .5, 1, .5][f];
+  const edge = (x, y) => Math.min(x - b, y - b, W - 1 - b - x, H - 1 - b - y);  // <0 outside the card
+  // The glow: palette gold at stepped alpha, strongest right at the card's edge.
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    const d = edge(x, y);
+    if (d < 0) { const t = 1 + d / b; if (t > 0) out.set(x, y, CA(HW.Gold, Math.round((.24 + pulse * .1) * t * t * 20) / 20)); }
+    else if (d < 10) out.set(x, y, CA(HW.Glow, Math.round((.14 + pulse * .06) * (1 - d / 10) * 20) / 20));
+  }
+  // The frame: a 3 px gold band (lit top-left) with a thin Ember line inside it.
+  for (let y = b; y < H - b; y++) for (let x = b; x < W - b; x++) {
+    const d = edge(x, y);
+    if (d > 4) continue;
+    const lit = x - b < 3 || y - b < 3;
+    out.set(x, y, d === 4 ? HW.Ember : d === 0 ? (lit ? HW.Glow : HW.Ember) : lit ? HW.Gold : d === 3 ? HW.Ember : HW.Gold);
+  }
+  // A gold vine down each side with small leaves, repeating every 24 px (tiles with the 9-slice).
+  for (const side of [0, 1]) for (let y = MEMORY_MARGIN - 6; y < H - MEMORY_MARGIN + 6; y++) {  // the whole stretched band (240 px = 10 repeats)
+    const x0 = side ? W - b - 9 : b + 8, p = ((y - MEMORY_MARGIN) % 24 + 24) % 24, wob = Math.round(Math.sin(p / 24 * Math.PI * 2) * 1.5);
+    out.set(x0 + wob, y, HW.Gold);
+    if (p === 6 || p === 18) { const s = p === 6 ? 1 : -1; out.set(x0 + wob + s, y - 1, LEAFG[3]); out.set(x0 + wob + 2 * s, y - 1, LEAFG[2]); out.set(x0 + wob + s, y, LEAFG[2]); }
+  }
+  // Corner flourishes: a curl of gold with a bud.
+  for (const [sx, sy] of [[1, 1], [-1, 1], [1, -1], [-1, -1]]) {
+    const cx = sx > 0 ? b + 12 : W - b - 13, cy = sy > 0 ? b + 12 : H - b - 13;
+    for (let a = 0; a < Math.PI * 1.4; a += .08) out.set(cx + Math.cos(a * sx) * (6 - a), cy + Math.sin(a * sy) * (6 - a), HW.Gold);
+    ellipse(out, cx, cy, 1.6, 1.6, HW.Heartlight);
+  }
+  // The dream-fruit at the top centre, hanging over the frame: stem, leaves, a glowing gold fruit.
+  const fx = W / 2, fy = b + 10;
+  for (let y = b - 8; y < fy - 5; y++) out.set(fx, y, LEAFG[1]);
+  petal(out, fx + 1, b - 3, -.5, 7, 2.2, LEAFG.slice(1)); petal(out, fx - 1, b - 1, Math.PI + .5, 6, 2, LEAFG.slice(1));
+  ellipse(out, fx, fy, 16, 16, (x, y, dx, dy) => { const r = Math.hypot(dx, dy); return r > 1 ? null : CA(HW.Glow, Math.round((.18 + pulse * .12) * (1 - r) * 20) / 20); });
+  const F = new Img(W, H); blob(F, fx, fy, 6, 7, [HW.Ember, HW.Gold, HW.Glow, HW.Heartlight], { tex: .05 }); out.stamp(F, HW.Root);
+  out.set(fx - 2, fy - 3, HW.Heartlight);
+  return out;
+}
+
 // ---------- export (assets/meta/...) ----------
 function strip(imgs) { const w = imgs.reduce((s, i) => s + i.w, 0), h = Math.max(...imgs.map(i => i.h)), S = new Img(w, h); let x = 0; for (const i of imgs) { S.put(i, x, 0); x += i.w; } return S; }
 function stack(rows) { const w = Math.max(...rows.map(r => r.w)), h = rows.reduce((s, r) => s + r.h, 0), S = new Img(w, h); let y = 0; for (const r of rows) { S.put(r, 0, y); y += r.h; } return S; }
@@ -1619,8 +1690,8 @@ async function encodePng(img) {
   return btoa(s);
 }
 const PENDING = [];
-function emitImg(name, img) {
-  snapToPalette(img);
+function emitImg(name, img) {  // previews are composites of snapped sheets, so they are not snapped again
+  if (!name.startsWith("_preview/")) snapToPalette(img);
   const p = document.createElement("pre"); p.dataset.name = name; document.body.appendChild(p);
   PENDING.push(encodePng(img).then(b64 => { p.textContent = b64; }));
 }
@@ -1645,7 +1716,7 @@ for (const n of NODES) {
   const s = segment(n); segs[n.id] = s;
   emitImg("grove/branches/" + n.id + ".png", strip(s.frames));
   layout.nodes.push({ id: n.id, section: n.section, name: n.name, pos: [n.x, n.y], parent: n.parent || null, from: n.from || null,
-    levels: n.lv || 1, start: !!n.start, legendary: !!n.legendary, branch: { offset: [s.box[0], s.box[1]], frame_size: [s.W, s.H], frames: 5 } });
+    levels: n.lv || 1, start: !!n.start, legendary: !!n.legendary, ...(MEMORY_WARDENS.includes(n.id) ? { memory_row: MEMORY_WARDENS.indexOf(n.id) } : {}), branch: { offset: [s.box[0], s.box[1]], frame_size: [s.W, s.H], frames: 5 } });
 }
 emitText("grove/grove_layout.json", JSON.stringify(layout, null, 1));
 emitImg("grove/grove_nodes.png", stack(["perks", "families", "cards"].map(s => nodeRow(s, false))));
@@ -1666,6 +1737,22 @@ emitImg("ui/loadout_slot_6.png", strip([0, 1, 2].map(sixthSlot)));
     for (let y = 0; y < ch; y++) for (let x = 0; x < cw; x++) if (T.alpha(ox + x, oy + y)) P.set((k % 4) * cw + x, (k / 4 | 0) * ch + y, T.get(ox + x, oy + y));
   });
   emitImg("_preview/waystone_6_preview.png", P);
+}
+// Memory Wardens: their bloom sheet (a row each, the 11 node columns) and the family-pick card border.
+emitImg("grove/grove_memory_nodes.png", stack(MEMORY_WARDENS.map(memoryNodeRow)));
+const memoryBorders = [...Array(MEMORY_CARD_FRAMES).keys()].map(memoryCardBorder);
+emitImg("ui/memory_card_border.png", strip(memoryBorders));
+{
+  // Preview: the three blooms (bloomed, 4×) and the border over a mock card, standard and tall.
+  const P = new Img(640, 400); for (let y = 0; y < P.h; y++) for (let x = 0; x < P.w; x++) P.set(x, y, HW.Void);
+  MEMORY_WARDENS.forEach((id, k) => { const s = memoryNodeSprite(id, "bloom", 0); for (let y = 0; y < 32; y++) for (let x = 0; x < 32; x++) if (s.alpha(x, y)) for (let a = 0; a < 3; a++) for (let b = 0; b < 3; b++) P.set(8 + k * 100 + x * 3 + a, 8 + y * 3 + b, s.get(x, y)); });
+  [[330, 0, 300], [20, 100, 290]].slice(0, 1).forEach(() => {});
+  const mock = (h) => { const m = new Img(250, h); for (let y = 0; y < h; y++) for (let x = 0; x < 250; x++) m.set(x, y, CA(HW.Night, .9)); for (const [y, w] of [[60, 160], [80, 120], [180, 200], [200, 170]]) for (let x = 24; x < 24 + w; x++) for (let k = 0; k < 6; k++) m.set(x, y + k, HW.Mist); return m; };
+  const card = mock(300); P.put(card, 350, 50); P.put(memoryBorders[2], 350 - MEMORY_BLEED, 50 - MEMORY_BLEED);
+  emitImg("_preview/memory_wardens_preview.png", P);
+  const T = new Img(300, 420); for (let y = 0; y < T.h; y++) for (let x = 0; x < T.w; x++) T.set(x, y, HW.Void);
+  T.put(mock(370), 25, 25); T.put(nineTile(memoryBorders[2], 250 + 2 * MEMORY_BLEED, 370 + 2 * MEMORY_BLEED, MEMORY_MARGIN), 25 - MEMORY_BLEED, 25 - MEMORY_BLEED);
+  emitImg("_preview/memory_card_tall_preview.png", T);
 }
 // Starlit card backs: 4 twinkle frames of 250×220 side by side.
 const starlit = [0, 1, 2, 3].map(starlitCard);

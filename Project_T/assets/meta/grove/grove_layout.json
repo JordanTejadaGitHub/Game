@@ -1402,6 +1402,7 @@
    "levels": 1,
    "start": false,
    "legendary": false,
+   "memory_row": 0,
    "branch": {
     "offset": [
      576,
@@ -1430,6 +1431,7 @@
    "levels": 1,
    "start": false,
    "legendary": false,
+   "memory_row": 1,
    "branch": {
     "offset": [
      598,
@@ -1458,6 +1460,7 @@
    "levels": 1,
    "start": false,
    "legendary": false,
+   "memory_row": 2,
    "branch": {
     "offset": [
      572,
