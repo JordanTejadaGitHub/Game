@@ -115,7 +115,7 @@ SH = Shade, HU = Husk, MO = Mourner. ★ = elite (Deeply Blighted). **Rest** aft
 | 17 | 16 SH, 3 HU, 3 MO | |
 | 18 | 18 SH, 4 HU, 4 MO | |
 | 19 | 20 SH, 5 HU, 4 MO | |
-| 20 | **Wake:** 10 MO (1 s apart) | rest |
+| 20 | **Wake:** 4 MO (1.2 s apart) with 12 SH and 3 HU, Mourners **≤ 40% of the drift's health** (was 10 MO; a one-family spore board couldn't survive it before the drift 25 pick, balance sim 2026-09-28) | rest |
 | 21 | 22 SH, 5 HU, 5 MO | |
 | 22 | 24 SH, 6 HU, 5 MO | |
 | 23 | 20 SH, 2 HU★ | first elites |
