@@ -245,6 +245,18 @@ func _test_sim_policy() -> void:
 	_check(balanced.score(twin) > dead, "the bot skips Twin Puff with no Sporeling on the map")
 	puff.free()
 	_check(balanced.score(_card("tended_forest")) < balanced.score(_card("cozy_corners")), "Balanced never clears: clearing cards come last")
+	# Single-target families unlock their area branch first (Cairn, Wren's Nest).
+	for pair in [["pebbling", "cairn"], ["nestling", "wrens_nest"], ["sporeling", ""]]:
+		var tree: Array = dreams.get_remember_trees().filter(func(t: Array) -> bool: return t[0].get_id() == pair[0]).front() \
+			if dreams.get_remember_trees().any(func(t: Array) -> bool: return t[0].get_id() == pair[0]) else []
+		if tree.is_empty():
+			dreams.unlocked[pair[0]] = true
+			tree = dreams.get_remember_trees().filter(func(t: Array) -> bool: return t[0].get_id() == pair[0]).front()
+		var forms := balanced._forms_in_order(tree)
+		if pair[1] != "":
+			_check(forms[0].get_id() == pair[1], "%s unlocks %s first (%s)" % [pair[0], pair[1], forms[0].get_id()])
+		else:
+			_check(forms[0] == tree[1][0][0], "an area family keeps the Remember order")
 	dreams._owed_families.assign(["dewdrop"])
 	var sleep := DreamSimPolicy.new(dreams, DreamSimPolicy.Style.SLEEP)
 	_check(sleep.pick_family(["pebbling", "dewdrop"]) == &"dewdrop", "family order before the owed family")

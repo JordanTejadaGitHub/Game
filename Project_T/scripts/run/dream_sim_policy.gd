@@ -155,15 +155,25 @@ func spend_dreamlight() -> void:
 			choices.append("Dreamlight: %s" % form.get_id())
 
 # A Remember tree's forms, cheapest path first: each branch then its finals, then Ascended.
+# Single-target families unlock their area branch first (design: Mossback / Magpie-first families died
+# to act 1 swarms); every other family keeps the Remember order.
 func _forms_in_order(tree: Array) -> Array[TowerData]:
 	var forms: Array[TowerData] = []
-	for branch in tree[1]:
+	var branches: Array = tree[1].duplicate()
+	var first: String = AREA_FIRST.get(tree[0].get_id(), "")
+	for i in branches.size():
+		if branches[i][0].get_id() == first:
+			branches.push_front(branches.pop_at(i))
+			break
+	for branch in branches:
 		forms.append(branch[0])
 		for final in branch[1]:
 			forms.append(final)
 	if tree.size() > 2 and tree[2] != null:
 		forms.append(tree[2])
 	return forms
+
+const AREA_FIRST := {"pebbling": "cairn", "nestling": "wrens_nest"}  # Cairn's lob splash, Wren's second strike
 
 # --- Omens ------------------------------------------------------------------------------------------
 
