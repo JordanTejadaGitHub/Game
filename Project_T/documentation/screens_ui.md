@@ -349,13 +349,20 @@ entry arrives as "???" with a small leaf "New from the Grove" mark.
 - A **Families** page lists the families you have, with their branches and final forms (locked ones
   as silhouettes with "unlock with Dreamlight" / "Memory Grove"), each linking to its combos.
 
-- **Saved in the profile**, including in the demo (carried into the full game like Seeds). Not
-  saved from developer runs (Test Grove, Unlock all families), **but** (changed 2026-09-28, user
-  playtest: "unlocking stuff in the codex doesn't display after") discoveries in a developer run are
-  kept **for the session** (until the game closes): the Codex shows them with a small "dev" mark, the
-  discovery pause happens once per session, and nothing is written to the profile or counted for
-  the "Discover every combo" milestone. The Codex header says "Developer run: discoveries aren't
-  saved" while one is active.
+- **Saved to the account (profile), always** (revised 2026-09-28, user: "discovering it should
+  persist for the account"): every discovery is written to the profile the moment it happens,
+  including in the demo (carried into the full game like Seeds) **and in developer runs** (Test
+  Grove, Unlock all families, Dev Grove). Discoveries from a dev run carry a small hidden flag, so
+  the **"Discover every combo" milestone** (and its Steam achievement) only counts ones found in
+  normal runs; the Codex shows them like any other entry. (Replaces the earlier "kept for the
+  session" rule.)
+- **Undiscovered combos are "???" everywhere, not just in the Codex** (user: "combos should only
+  appear on the tech tree if you discover it, otherwise ???"). Every place that lists a Warden's or
+  a family's combos shows an undiscovered one as a **"???" entry with no name, statuses or hints**:
+  the Remember screen's side panel, the Codex Families page, the Warden panel's "Combos with",
+  the build ghost's placement links, the Memory Grove's node cards, and the rest report. Once
+  discovered it shows its name and links to its Codex entry. (Dream card texts that amplify a
+  combo still name it, since a card must say what it does; taking one doesn't discover it.)
 - Touch: everything is tap-based; the discovery card can be tapped to open the entry.
 
 ## Panels
