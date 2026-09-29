@@ -107,6 +107,15 @@ func _check_detail_pass() -> void:
 	_check(lg < ls and ls < lp, "value order holds after the pass: ground %.2f < stone %.2f < path %.2f" % [lg, ls, lp])
 	_check(_only_palette(ground, false) and _only_palette(path, false), "tiles snap to the palette")
 
+	var flat := _flat_tile("moss")
+	var calm := DetailPass.apply(flat.duplicate(), DetailPass.Kind.TILE, 0, 0.0)
+	var busy := DetailPass.apply(flat.duplicate(), DetailPass.Kind.TILE)
+	_check(calm.get_data() == flat.get_data() and busy.get_data() != flat.get_data(),
+		"texture 0 leaves a flat tile flat; the default adds texture")
+	var half := DetailPass.apply(flat.duplicate(), DetailPass.Kind.TILE, 0, 0.5)
+	_check(_changed(flat, half) < _changed(flat, busy) and _changed(flat, half) > 0,
+		"texture 0.5 adds less texture than the default (%d < %d px)" % [_changed(flat, half), _changed(flat, busy)])
+
 	var sheet := Image.create(128, 64, false, Image.FORMAT_RGBA8)
 	var frame := _blob(rng)
 	sheet.blit_rect(frame, Rect2i(0, 0, 64, 64), Vector2i.ZERO)
@@ -184,6 +193,15 @@ func _only_palette(img: Image, cold: bool) -> bool:
 				push_error("off-palette pixel %s at %d,%d" % [c.to_html(), x, y])
 				return false
 	return true
+
+
+func _changed(a: Image, b: Image) -> int:
+	var n := 0
+	for y in a.get_height():
+		for x in a.get_width():
+			if a.get_pixel(x, y) != b.get_pixel(x, y):
+				n += 1
+	return n
 
 
 func _mean_l(img: Image) -> float:

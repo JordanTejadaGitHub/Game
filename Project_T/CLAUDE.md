@@ -286,7 +286,8 @@ accessibility, Steam achievements (milestones map to them). Acts 3–4 and all f
 - **Heartwood 32 + detail pass** (art_direction.md "Rendering style"; Theme Code owns `tools/art/`):
   `HeartwoodPalette` (`color("gold")` by name, `snap(c, cold)`, `snap_image(img, cold)`, OKLab nearest;
   cold = nightmares) and `DetailPass.apply(img, Kind.WARDEN/OBSTACLE/NIGHTMARE/TILE)` /
-  `apply_sheet(sheet, Vector2i(64, 64), kind)` (rim, dither seams, texture, banded glow, smoke, then snap).
+  `apply_sheet(sheet, Vector2i(64, 64), kind, glow_radius := 0, texture := 1.0)` (rim, dither seams,
+  texture, banded glow, smoke, then snap; `texture` 0..1 thins the grain for calm tiles / pre-shaded art).
   Every art generator runs its frames through it. `tools/art/palette_export.gd` writes
   `assets/palette/heartwood32.{gpl,hex,json,png}` for non-Godot tools. `tests/test_palette.gd`.
 - `tools/sound_generator.gd` synthesizes every sound into `assets/audio/` (sfx 44.1 kHz; music
