@@ -173,7 +173,7 @@ turn leaks into a hold. Targets for the balance simulation and playtests (averag
   The balance simulation measures the rest.
 - **Interim acts 1–2 tightening** (2026-09-28; two playtests: a fresh profile at drift 23 and
   again at drift 43 with **15/15 leaves**, ~800 and **1,925 Dew banked**, "haven't done much in the
-  past 10 drifts"). **Revised the same day** (later playtests: "too hard from early drifts, especially 15 with the swarm"): nightmare health **×1.0 through drift 25** (act 1 as it was), **act 2 ramping from ×1.0 at drift 26 to **×1.55** by drift 40 (was ×1.35; the 2026-09-29 batch had Balanced surviving to a median drift 66 with a win), ×1.55
+  past 10 drifts"). **Revised the same day** (later playtests: "too hard from early drifts, especially 15 with the swarm"): nightmare health **×1.0 for drifts 1–9, ramping to ×1.15 by drift 20 and holding to 25** (2026-09-29: saving was almost free for the starting three families), then **act 2 at ×1.15 for drifts 26–30 (a breather while the first finals arrive), ramping to ×1.55 by drift 45** (was: ramp from drift 26, which left 2–4 of 10 Grove-player runs dead at 28–30), ×1.55
   to 50** (acts 3–4 go from ×1.4 to **×1.6**, 2026-09-29), and **Dew per dispel ×0.85 in act 2 only** (act 1 back to ×1.0). Drift 15's Swarm is lighter (`acts_1_2.md`). Interim
   numbers, as exports, until the balance simulation's quick batch replaces them.
 - **Act 3 probe** (Tower Code, `tools/balance_act3.gd`, 2026-09-28): drifts 61–70, 12 final forms at
@@ -315,6 +315,7 @@ card luck**. Dispelling a great nightmare frees the light it stole from the drea
 | Each boss (drifts 25, 50, 75) | **4** (was 3, 2026-09-29: runs earned only 3–6 Dreamlight, so no run ever reached an Ascended form) |
 | Dream cards (Sudden Insight, Borrowed Memory) | +1 / +2 |
 | Grove perk *Early Light* | +1 at run start |
+| Every rest from drift 51 (2026-09-29) | **+1** (the Heartwood wakes: no run had ever reached an Ascended form) |
 
 **Spending (per run, like the old unlock cards):**
 
