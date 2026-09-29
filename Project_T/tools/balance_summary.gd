@@ -61,8 +61,8 @@ func _checks(table: Dictionary, groups: Dictionary) -> void:
 	print("=== checks ===")
 	var fresh = table.get("fresh/balanced")
 	if fresh:
-		_check(fresh.first_leak >= 12 and fresh.first_leak <= 18, "Fresh, Balanced: first leak at drift 12-18", "median drift %.0f" % fresh.first_leak)
-		_check(not is_nan(fresh.lost_25) and fresh.lost_25 >= 5 and fresh.lost_25 <= 8, "Fresh, Balanced: 5-8 leaves lost by drift 25",
+		_check(fresh.first_leak >= 20, "Fresh, Balanced: first leak at drift 20 or later (revised act 1 target)", "median drift %.0f" % fresh.first_leak)
+		_check(not is_nan(fresh.lost_25) and fresh.lost_25 >= 0 and fresh.lost_25 <= 3, "Fresh, Balanced: 0-3 leaves lost by drift 25 (revised)",
 			"median %s" % ("run over before 25" if is_nan(fresh.lost_25) else "%.0f" % fresh.lost_25))
 		_check(fresh.survival >= 30 and fresh.survival <= 50 and fresh.win_rate < 0.05, "Fresh, Balanced: ends in act 2, wins < 5%",
 			"median survival %.0f, wins %.0f%%" % [fresh.survival, 100.0 * fresh.win_rate])
