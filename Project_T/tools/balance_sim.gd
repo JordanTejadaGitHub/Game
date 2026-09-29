@@ -357,7 +357,9 @@ func _new_window() -> void:
 
 func _on_damage(event) -> void:
 	d.damage += event.amount
-	d.by_tower[event.source_name] = d.by_tower.get(event.source_name, 0.0) + event.amount
+	# Per Warden (instance), not per kind: twenty Sporelings are twenty Wardens for the "one Warden" check.
+	var key: String = "%s#%d" % [event.source_name, event.source.get_instance_id()] if is_instance_valid(event.source) else event.source_name
+	d.by_tower[key] = d.by_tower.get(key, 0.0) + event.amount
 	if reaction_tags.has(event.tag):
 		d.reaction += event.amount
 	if event.crit_multiplier > 1.0:
@@ -380,7 +382,7 @@ func _close_window(n: int) -> void:
 	for name in d.by_tower:
 		if d.by_tower[name] > top_amount:
 			top_amount = d.by_tower[name]
-			top = name
+			top = name.get_slice("#", 0)
 	var damage := maxf(d.damage, 1.0)
 
 	var row := {"drift": n, "act": director.get_act(n), "seconds": snappedf(game_time - d.start, 0.1),
