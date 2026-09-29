@@ -22,12 +22,16 @@ const NO_CELL := Vector2(-1, -1)
 const SPEND_EVERY := 2.0  # Game seconds between mid-drift spending checks
 const SAVE_REST_BONUSES := 6  # Saves up for a growth costing up to this many rest bonuses (finals with ranks: 300+)
 const MAX_FAMILIES := 2  # Mixed styles build their first two families deep
+const MIXED_SPROUTS := 0.4  # Mixed: the share of attackers kept as Sprouts
+const SAVER_DRIFTS := 5  # Saver: holds Dew at most this many drifts for a growth
+const APPROACH_EVERY := 0.25  # Game seconds between closest-approach samples
+const CLOSE_CALL := 0.85  # A drift where a nightmare got this far along the route
 var _saving_for_final := false  # The cheapest open growth is a final form (saves longer for it)
-const STYLES := {"balanced": 0, "wide": 1, "narrow": 2, "combo": 3, "sleep": 4, "sprout": 5, "grove": 3}  # DreamSimPolicy.Style; grove = the hand-written Grove player (Combo cards, --families)
+const STYLES := {"balanced": 0, "wide": 1, "narrow": 2, "combo": 3, "sleep": 4, "sprout": 5, "grove": 3, "mixed": 0}  # DreamSimPolicy.Style; grove = the hand-written Grove player (Combo cards, --families)
 const COLUMNS := ["drift", "act", "seconds", "health_spawned", "damage", "leaks", "leaves_lost", "leaves_left",
 	"dew_rest", "dew_other", "spent_plant", "spent_walls", "spent_grow", "spent_nurture", "banked",
 	"attackers", "walls", "tier1", "tier2", "tier3", "tier4", "avg_rank", "route", "families", "cards",
-	"dreamlight", "top_warden", "top_share", "asleep_share", "reaction_share", "crit_share", "restless", "trampled"]
+	"dreamlight", "top_warden", "top_share", "asleep_share", "reaction_share", "crit_share", "restless", "trampled", "approach"]
 
 # Per style: [attacker room at drift 0, + per drift, cap], walls per attacker, nurture weight.
 const STYLE_PLAN := {
@@ -36,6 +40,8 @@ const STYLE_PLAN := {
 	"narrow": {"room": [4, 0.15, 8], "walls": 0.5},
 	"combo": {"room": [5, 1.0 / 3.0, 16], "walls": 1.0},
 	"sleep": {"room": [5, 1.0 / 3.0, 16], "walls": 1.0},
+	# Mixed opening: a family plus about 40% Sprouts, Thornwall walls, Sprout cards (the policy's Sprout scores).
+	"mixed": {"room": [5, 1.0 / 3.0, 16], "walls": 1.0},
 	# Sprout spam (a build): Sprouts are the walls and the attackers, planted where they add the most path.
 	"sprout": {"room": [8, 3.0, 150], "walls": 0.0, "plant": "sprout", "growth_weight": 1.5},
 }
@@ -48,6 +54,10 @@ var last_drift := 100
 var out_dir := "res://tools/balance_out"
 var start_cards: Array[String] = []
 var forced_families: Array[String] = []
+var hand_drifts := false  # --hand-drifts: the hand-made drift files instead of rolled ones (DriftDirector.random_drifts)
+var save_mode := ""  # --save=spender (never saves up) or saver (holds Dew up to SAVER_DRIFTS drifts for a growth)
+var _save_since := -1  # The drift the saver started holding Dew at
+var _approach_timer := 0.0
 
 var main: Node
 var map
@@ -86,6 +96,8 @@ func _run() -> void:
 			"--out": out_dir = value
 			"--card": start_cards.append(value)  # e.g. --card=seedfall: taken at the start of the run
 			"--families": forced_families.assign(value.split(","))  # e.g. firefly_jar,dewdrop: the family picks, in order; later picks take none
+			"--hand-drifts": hand_drifts = true
+			"--save": save_mode = value
 	if profile != "fresh":
 		var meta: Script = load("res://scripts/meta/meta_run.gd")
 		if not meta.get_script_method_list().any(func(m: Dictionary) -> bool: return m.name == "load_preset"):
@@ -96,6 +108,8 @@ func _run() -> void:
 		meta.call("load_preset", StringName(profile))
 	main = load("res://scenes/main.tscn").instantiate()
 	main.get_node("%MapGenerator").map_seed = map_seed
+	if hand_drifts:
+		main.get_node("%DriftDirector").set("random_drifts", false)
 	root.add_child(main)
 	await process_frame
 	map = main.get_node("%MapGenerator")
@@ -132,6 +146,10 @@ func _run() -> void:
 		frames += 1
 		game_time += speed / 60.0
 		_spend_timer -= speed / 60.0
+		_approach_timer -= speed / 60.0
+		if _approach_timer <= 0.0:
+			_approach_timer = APPROACH_EVERY
+			_sample_approach()
 		if _spend_timer <= 0.0 and not _busy:
 			_spend_timer = SPEND_EVERY
 			_spend()
@@ -207,12 +225,19 @@ func _next_buy() -> String:
 	if walls < int(attackers * plan.walls) and _plant_wall():
 		return "walls"
 	if _grow():
+		_save_since = -1  # The saver got its growth
 		return "grow"
 	# A sensible player saves up for an unlocked growth (a branch is 80 Dew, a final 200 plus the ranks it
 	# carries) instead of spending every Dew on ranks; Narrow nurtures anyway.
 	var saving := _cheapest_growth()
 	var bonus := director.get_rest_bonus(director.get_block(maxi(director.drifts_started, 1)))
-	if style != "narrow" and saving > 0 and not _leaked_last_drift() \
+	if save_mode == "saver" and saving > 0:
+		# Saver: holds Dew for a growth (a branch, the first final) up to SAVER_DRIFTS drifts, leaks or not.
+		if _save_since < 0:
+			_save_since = director.drifts_started
+		if director.drifts_started - _save_since < SAVER_DRIFTS:
+			return ""
+	elif save_mode != "spender" and style != "narrow" and saving > 0 and not _leaked_last_drift() \
 			and (_saving_for_final or saving <= 3 * bonus):
 		return ""  # Finals come before ranks (any price); cheaper growths only while within 3 rest bonuses
 	if _nurture():
@@ -256,6 +281,12 @@ func _plant_attacker() -> bool:
 			return false
 		var at := _best_cell(only.attack_range, plan.get("growth_weight", 0.5))
 		return at != NO_CELL and _build(only, at)
+	if style == "mixed" and _sprout_share() < MIXED_SPROUTS:
+		var sprout: TowerData = load("res://resource/tower/sprout.tres")
+		if run_state.can_afford(placer.get_cost(sprout)):
+			var at := _best_cell(sprout.attack_range, 0.5)
+			if at != NO_CELL and _build(sprout, at):
+				return true
 	var options: Array = placer.get_buildable_towers().filter(func(t: TowerData) -> bool:
 		return t.can_attack and t.buildable_directly and t.get_id() != "sprout" and t.footprint == 1 and not t.is_unique)
 	if options.is_empty():
@@ -327,6 +358,8 @@ func _grow() -> bool:
 	for tower in _attackers():
 		if style == "sprout" and tower.tower_data.get_id() == "sprout":
 			continue  # The swarm stays Sprouts
+		if style == "mixed" and tower.tower_data.get_id() == "sprout" and _sprout_share() <= MIXED_SPROUTS:
+			continue  # Mixed keeps about 40% Sprouts
 		for form in tower.tower_data.evolves_to:
 			if not (form is TowerData) or not dreams.is_unlocked(form.get_id()) or placer.ascended_blocker(form) != "":
 				continue
@@ -342,7 +375,7 @@ func _grow() -> bool:
 
 # Balanced: the lowest rank first, most path in range among those; Narrow the same but it plants few.
 func _nurture() -> bool:
-	var towers := _attackers().filter(func(t) -> bool: return t.can_nurture() and t.get_nurture_cost() <= run_state.dew and not _waits_for_final(t))
+	var towers := _attackers().filter(func(t) -> bool: return t.can_nurture() and t.get_nurture_cost() <= run_state.dew and not _waits_for_final(t) and not _sprout_waits(t))
 	if towers.is_empty():
 		return false
 	towers.sort_custom(func(a, b) -> bool:
@@ -381,7 +414,7 @@ func _new_window() -> void:
 	d = {"start": game_time, "health_spawned": 0.0, "damage": 0.0, "leaks": 0, "leaves_left": run_state.leaves,
 		"leaves_before": run_state.leaves, "dew_rest": 0, "dew_other": 0, "spent_plant": 0, "spent_walls": 0,
 		"spent_grow": 0, "spent_nurture": 0, "by_tower": {}, "asleep": 0.0, "reaction": 0.0, "crit": 0.0,
-		"restless": 0, "trampled": 0}
+		"restless": 0, "trampled": 0, "approach": 0.0}
 
 func _on_damage(event) -> void:
 	d.damage += event.amount
@@ -424,7 +457,8 @@ func _close_window(n: int) -> void:
 		"route": map.get_path_from(map.startPath).size(), "families": lines.size(), "cards": dreams.stacks.size(),
 		"dreamlight": dreams.dreamlight, "top_warden": top, "top_share": snappedf(top_amount / damage, 0.001),
 		"asleep_share": snappedf(d.asleep / damage, 0.001), "reaction_share": snappedf(d.reaction / damage, 0.001),
-		"crit_share": snappedf(d.crit / damage, 0.001), "restless": d.restless, "trampled": d.trampled}
+		"crit_share": snappedf(d.crit / damage, 0.001), "restless": d.restless, "trampled": d.trampled,
+		"approach": snappedf(d.approach, 0.01)}
 	rows.append(row)
 	if n == 25:
 		run.sprout_cards_25 = SPROUT_CARDS.filter(func(id: String) -> bool: return dreams.stacks.has(id)).size()
@@ -467,6 +501,9 @@ func _finish() -> void:
 		"max_top_warden": run.max_top_warden, "max_asleep": snappedf(run.max_asleep, 0.001), "cards": dreams.stacks.size(),
 		"sprout_cards_25": run.sprout_cards_25,
 		"sprouts_end": _attackers().filter(func(t) -> bool: return t.tower_data.get_id() == "sprout").size(), "cards_start": "+".join(start_cards),
+		"save": save_mode, "families_forced": "+".join(forced_families), "hand_drifts": hand_drifts,
+		"close_calls": rows.filter(func(r) -> bool: return r.approach > CLOSE_CALL).size(),
+		"approach_max": snappedf(rows.reduce(func(m, r) -> float: return maxf(m, r.approach), 0.0), 0.01),
 		"seconds": snappedf(game_time, 1.0)}
 	var runs_path := out_dir.path_join("runs.csv")
 	var keys := summary.keys()
@@ -531,6 +568,8 @@ func _forced_family_pick(kind: StringName) -> void:
 # most path in range).
 func _grow_sprout_into_family() -> bool:
 	var best: Array = []
+	if style == "mixed" and _sprout_share() <= MIXED_SPROUTS:
+		return false
 	for tower in _attackers():
 		if tower.tower_data.get_id() != "sprout":
 			continue
@@ -542,3 +581,31 @@ func _grow_sprout_into_family() -> bool:
 					best = [cover, tower, form]
 				break
 	return not best.is_empty() and placer.evolve(best[1], best[2])
+
+# The share of attackers that are Sprouts (Mixed keeps about MIXED_SPROUTS).
+func _sprout_share() -> float:
+	var attackers := _attackers()
+	if attackers.is_empty():
+		return 1.0
+	return float(attackers.filter(func(t) -> bool: return t.tower_data.get_id() == "sprout").size()) / attackers.size()
+
+# Closest approach (balance_simulation.md "Spend or save"): how far along the route the furthest
+# nightmare is right now (0 at the start, 1 at the Heartwood); the drift window keeps the maximum.
+func _sample_approach() -> void:
+	var route_px := maxf((map.get_path_from(map.startPath).size() - 1) * Tower.MAP_GRID.cell_size.x, 1.0)
+	for enemy in spawner.get_enemies():
+		if is_instance_valid(enemy) and not enemy.is_cleansed:
+			d.approach = maxf(d.approach, clampf(1.0 - enemy.get_remaining_distance() / route_px, 0.0, 1.0))
+
+# A Sprout that will grow into the family isn't nurtured (ranks raise what the growth costs): before the
+# first family pick, or while a family base form is open to it. The Sprout build keeps its Sprouts, and
+# Mixed may nurture its kept Sprouts once it's down to its MIXED_SPROUTS share.
+func _sprout_waits(tower: Tower) -> bool:
+	if style == "sprout" or tower.tower_data.get_id() != "sprout":
+		return false
+	if style == "mixed" and _sprout_share() <= MIXED_SPROUTS:
+		return false
+	for form in tower.tower_data.evolves_to:
+		if form is TowerData and form.tier == 1 and dreams.is_unlocked(form.get_id()):
+			return true
+	return director.drifts_started <= 1  # The family pick comes after drift 1
