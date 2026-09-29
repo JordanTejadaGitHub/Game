@@ -227,6 +227,7 @@ var _legendary_next := 0  # Lean Season: Dreams still owed a Legendary
 var _owed_families: Array[String] = []  # Half-dreamed cards taken: the next family pick includes one
 var _declined_families: Array[String] = []  # Offered at the last family pick, not taken (half-dreamed ×0.3)
 var _taken_cache := {}  # include_dormant -> [state key, taken cards] (_taken_cards)
+var board_version := 0  # Bumped on every change the Dream rows read (bump_board)
 var _bitter_walls := {}  # Nightmare id -> {wall id: clock it passed} (Bitter Hedges)
 var _first_hits := {}  # "Warden id:nightmare id" -> true (First Light)
 var _herd := {}  # Warden id -> dispels in its range this drift (Thinning the Herd)
@@ -285,7 +286,30 @@ func _ready() -> void:
 	if seller:
 		seller.tower_sold.connect(_on_tower_sold)
 	drift_director.drift_started.connect(_on_drift_started)
+	# The board version (DreamEffects' shared board and cached rows): any Warden, card, route, rest,
+	# drift, leaf or Eldest change bumps it.
+	tower_container.child_entered_tree.connect(_on_tower_added)
+	tower_container.child_exiting_tree.connect(bump_board.unbind(1))
+	for tower in _towers():
+		_on_tower_added(tower)
+	map_generator.path_changed.connect(bump_board)
+	map_generator.obstacle_cleared.connect(bump_board.unbind(2))
+	drift_director.rest_started.connect(bump_board.unbind(4))
+	drift_director.drift_started.connect(bump_board.unbind(1))
+	run_state.leaves_changed.connect(bump_board.unbind(2))
+	eldest_changed.connect(bump_board.unbind(1))
 	_update_bends()
+
+# Something the Dream rows read changed: DreamEffects rebuilds its board and cached rows on next use.
+func bump_board() -> void:
+	board_version += 1
+
+func _on_tower_added(node: Node) -> void:
+	bump_board()
+	if node.has_signal("evolved") and not node.evolved.is_connected(bump_board.unbind(1)):
+		node.evolved.connect(bump_board.unbind(1))
+	if node.has_signal("nurtured") and not node.nurtured.is_connected(bump_board.unbind(1)):
+		node.nurtured.connect(bump_board.unbind(1))
 
 static func load_pool() -> Array[UpgradeData]:
 	var cards: Array[UpgradeData] = []
@@ -1132,6 +1156,7 @@ func take(card: UpgradeData) -> void:
 		if not _owed_families.has(family):
 			_owed_families.append(family)
 	stacks[card.id] = stacks.get(card.id, 0) + 1
+	bump_board()
 	_passed_count.erase(card.id)  # Taking a card resets its fade
 	_passed_at.erase(card.id)
 	if card.rule_id == &"wandering_mind":

@@ -37,10 +37,85 @@ const REPORTERS := {
 }
 const STAT_KEYS := {&"damage": "damage", &"attack_speed": "speed", &"range": "range", &"cost": "cost"}
 
+# The rows that move with the field between board changes (nightmares in range, dispels this drift):
+# rows_cached recomputes these on every call.
+const LIVE_RULES: Array[StringName] = [&"crowded_path", &"thinning_the_herd"]
+
 var ds: DreamState
+var _board: Board = null
+var _board_version := -1
+var _row_cache := {}  # Tower instance id -> [key, rows]
 
 func _init(dream_state: DreamState) -> void:
 	ds = dream_state
+
+# The other Wardens as a lookup (cells, counts). Built once per DreamState.board_version for real
+# Wardens; a ghost or a hypothetical Warden gets its own small board. Ranks and data are read live
+# from the nodes (tests and Nurture change ranks without a board change).
+class Board:
+	var entries: Array = []  # Spot dicts {data, cell, rank, node}
+	var by_cell := {}  # Cell -> spot
+	var attackers := 0
+	var walls := 0
+	var lines := {}  # Attacking Wardens' lines
+	var kinds := {}  # Attacking Wardens' ids
+
+	func _init(spots: Array) -> void:
+		entries = spots
+		for o in spots:
+			by_cell[o.cell] = o
+			var data: TowerData = DreamEffects._data(o)
+			if data.can_attack:
+				attackers += 1
+				lines[data.line] = true
+				kinds[data.get_id()] = true
+			if data.line == "wall":
+				walls += 1
+
+	# Whether `spot` itself is on this board (a real Warden); a hypothetical one isn't.
+	func holds(spot: Dictionary) -> bool:
+		return spot.node != null and by_cell.has(spot.cell) and by_cell[spot.cell].node == spot.node
+
+	# Other Wardens within `reach` cells (Chebyshev), never the spot's own cell.
+	func near(spot: Dictionary, reach: int) -> Array:
+		var out := []
+		for dx in range(-reach, reach + 1):
+			for dy in range(-reach, reach + 1):
+				if dx != 0 or dy != 0:
+					var o = by_cell.get(spot.cell + Vector2(dx, dy))
+					if o != null:
+						out.append(o)
+		return out
+
+	func touching(spot: Dictionary) -> Array:
+		return near(spot, 1)
+
+	# Attacking Wardens counting the spot itself.
+	func attackers_with(spot: Dictionary) -> int:
+		return attackers + (1 if spot.data.can_attack and not holds(spot) else 0)
+
+	func walls_with(spot: Dictionary) -> int:
+		return walls + (1 if spot.data.line == "wall" and not holds(spot) else 0)
+
+static func _data(o: Dictionary) -> TowerData:
+	return o.node.tower_data if o.node != null and is_instance_valid(o.node) else o.data
+
+static func _rank(o: Dictionary) -> int:
+	return o.node.rank if o.node != null and is_instance_valid(o.node) else o.rank
+
+func _shared_board() -> Board:
+	if _board == null or _board_version != ds.board_version:
+		var spots := []
+		for tower in ds._towers():
+			spots.append(spot_for(tower))
+		_board = Board.new(spots)
+		_board_version = ds.board_version
+	return _board
+
+func _board_for(spot: Dictionary, ghost: Dictionary) -> Board:
+	if ghost.is_empty() and (spot.node != null or not _shared_board().by_cell.has(spot.cell)):
+		return _shared_board()
+	return Board.new(_others(spot, ghost))  # A hypothetical spot replaces what stands on its cell
 
 # A Warden spot: {data, cell, rank, node (the Tower, or null for a hypothetical one)}.
 static func spot_for(tower: Tower) -> Dictionary:
@@ -51,18 +126,56 @@ static func spot_at(data: TowerData, cell: Vector2, tower: Tower = null) -> Dict
 
 # Every card row for `spot`. `ghost` ({cell, data}) = pretend a Warden of that kind also stands there.
 func rows(spot: Dictionary, ghost: Dictionary = {}) -> Array[Dictionary]:
-	var others := _others(spot, ghost)
+	var board := _board_for(spot, ghost)
 	var out: Array[Dictionary] = []
 	for card in ds._taken_cards():
-		var row: Dictionary
-		if REPORTERS.has(card.rule_id):
-			row = call(REPORTERS[card.rule_id], spot, others, card)
-		else:
-			row = _plain(spot, card)
-		if row.is_empty():
-			continue
-		out.append(_finish(row, card))
+		var row := _row(spot, board, card)
+		if not row.is_empty():
+			out.append(row)
 	return out
+
+func _row(spot: Dictionary, board: Board, card: UpgradeData) -> Dictionary:
+	var row: Dictionary
+	if REPORTERS.has(card.rule_id):
+		row = call(REPORTERS[card.rule_id], spot, board, card)
+	else:
+		row = _plain(spot, card)
+	return {} if row.is_empty() else _finish(row, card)
+
+# rows() for a planted Warden, cached until the board or the cards change (DreamState.board_version,
+# the taken cards, its rank and form); the LIVE_RULES rows are recomputed on every call. For the
+# per-frame stat reads (Tower) and the badge poll.
+func rows_cached(tower: Tower) -> Array[Dictionary]:
+	var spot := spot_for(tower)
+	var key := hash([ds.board_version, ds.stacks, tower.rank, tower.tower_data, tower.cell])
+	var id := tower.get_instance_id()
+	var cached: Array = _row_cache.get(id, [])
+	var out: Array[Dictionary] = []
+	if cached.is_empty() or cached[0] != key:
+		out = rows(spot)
+		if _row_cache.size() > 1024:
+			_row_cache.clear()  # Forget sold Wardens now and then
+		_row_cache[id] = [key, out]
+		return out.duplicate()
+	var board: Board = null
+	for row in cached[1]:
+		if LIVE_RULES.has(row.card.rule_id):
+			if board == null:
+				board = _shared_board()
+			var fresh := _row(spot, board, row.card)
+			if not fresh.is_empty():
+				out.append(fresh)
+		else:
+			out.append(row)
+	return out
+
+# rule_total over the cached rows (Tower's hot path).
+func rule_total_cached(tower: Tower, key: String) -> float:
+	var total := 0.0
+	for row in rows_cached(tower):
+		if row.active and not row.plain:
+			total += row.get(key, 0.0)
+	return total
 
 # The sum of `key` ("damage", "speed", "range", …) over active rule rows (plain stat cards excluded:
 # DreamState adds those from the card fields).
@@ -116,15 +229,6 @@ func _others(spot: Dictionary, ghost: Dictionary) -> Array:
 static func _cheb(a: Vector2, b: Vector2) -> float:
 	return maxf(absf(a.x - b.x), absf(a.y - b.y))
 
-static func _touching(spot: Dictionary, others: Array) -> Array:
-	return others.filter(func(o: Dictionary) -> bool: return _cheb(o.cell, spot.cell) == 1.0)
-
-static func _attackers(spot: Dictionary, others: Array) -> int:
-	var count := 1 if spot.data.can_attack else 0
-	for o in others:
-		if o.data.can_attack:
-			count += 1
-	return count
 
 static func _cells_word(n: float) -> String:
 	return "%d cell%s" % [n, "" if n == 1 else "s"]
@@ -150,39 +254,36 @@ func _plain(spot: Dictionary, card: UpgradeData) -> Dictionary:
 		row.effect = "%+d%% Potency" % roundi(card.potency_bonus * n * 100)
 	return row
 
-func _cozy_corners(spot: Dictionary, _others: Array, _card: UpgradeData) -> Dictionary:
+func _cozy_corners(spot: Dictionary, _board: Board, _card: UpgradeData) -> Dictionary:
 	var level := ds.rule_level(&"cozy_corners")
 	var reach: int = DreamState.COZY_CORNERS_REACH[level]
 	var on := ds.is_beside_bend(spot.cell, reach)
 	return {"positional": true, "radius": float(reach), "active": on, "damage": DreamState.COZY_CORNERS_BONUS[level],
 		"reason": "" if on else ("no bend in the path in the 8 cells around it" if reach == 1 else "no bend in the path within %d cells, diagonals included" % reach)}
 
-func _hedge_maze(spot: Dictionary, others: Array, _card: UpgradeData) -> Dictionary:
+func _hedge_maze(spot: Dictionary, board: Board, _card: UpgradeData) -> Dictionary:
 	var level := ds.rule_level(&"hedge_maze")
-	var walls := 1 if spot.data.line == "wall" else 0
-	for o in others:
-		if o.data.line == "wall":
-			walls += 1
+	var walls := board.walls_with(spot)
 	var bonus := minf(DreamState.HEDGE_BONUS_PER * (walls / DreamState.HEDGE_PER_WALLS[level]), DreamState.HEDGE_BONUS_MAX[level])
 	return {"run_wide": true, "active": bonus > 0.0, "damage": bonus, "note": "%d Thornwalls" % walls,
 		"reason": "" if bonus > 0.0 else "needs %d Thornwalls" % DreamState.HEDGE_PER_WALLS[level]}
 
-func _tended_forest(_spot: Dictionary, _others: Array, _card: UpgradeData) -> Dictionary:
+func _tended_forest(_spot: Dictionary, _board: Board, _card: UpgradeData) -> Dictionary:
 	var clears := ds.run_state.tended_cells.size()
 	var bonus := minf(DreamState.TENDED_FOREST_PER_CLEAR * clears, DreamState.TENDED_FOREST_MAX)
 	return {"run_wide": true, "active": bonus > 0.0, "damage": bonus, "note": "%d cleared" % clears,
 		"reason": "" if bonus > 0.0 else "no obstacles cleared yet"}
 
-func _kindred_roots(spot: Dictionary, others: Array, _card: UpgradeData) -> Dictionary:
+func _kindred_roots(spot: Dictionary, board: Board, _card: UpgradeData) -> Dictionary:
 	var level := ds.rule_level(&"kindred_roots")
 	var ranks := 0
-	for o in _touching(spot, others):
-		ranks += o.rank
+	for o in board.touching(spot):
+		ranks += DreamEffects._rank(o)
 	var bonus := minf(DreamState.KINDRED_PER_RANK[level] * ranks, DreamState.KINDRED_MAX[level])
 	return {"positional": true, "radius": 1.0, "active": bonus > 0.0, "damage": bonus,
 		"reason": "" if bonus > 0.0 else "no ranked Warden touching it"}
 
-func _chosen_few(spot: Dictionary, _others: Array, _card: UpgradeData) -> Dictionary:
+func _chosen_few(spot: Dictionary, _board: Board, _card: UpgradeData) -> Dictionary:
 	if not spot.data.can_attack:
 		return {}
 	if spot.rank >= 5:
@@ -191,133 +292,128 @@ func _chosen_few(spot: Dictionary, _others: Array, _card: UpgradeData) -> Dictio
 		return {"damage": -DreamState.CHOSEN_FEW_PENALTY, "note": "below rank III"}
 	return {"active": false, "damage": DreamState.CHOSEN_FEW_BONUS, "reason": "needs rank V"}
 
-func _many_hands(spot: Dictionary, others: Array, _card: UpgradeData) -> Dictionary:
-	var attackers := _attackers(spot, others)
+func _many_hands(spot: Dictionary, board: Board, _card: UpgradeData) -> Dictionary:
+	var attackers := board.attackers_with(spot)
 	var bonus := minf(0.01 * (attackers / DreamState.MANY_HANDS_PER), DreamState.MANY_HANDS_MAX)
 	return {"run_wide": true, "active": bonus > 0.0, "damage": bonus, "note": "%d attacking Wardens" % attackers,
 		"reason": "" if bonus > 0.0 else "needs %d attacking Wardens" % DreamState.MANY_HANDS_PER}
 
-func _few_and_mighty(spot: Dictionary, others: Array, _card: UpgradeData) -> Dictionary:
-	var attackers := _attackers(spot, others)
+func _few_and_mighty(spot: Dictionary, board: Board, _card: UpgradeData) -> Dictionary:
+	var attackers := board.attackers_with(spot)
 	var bonus := DreamState.FEW_AND_MIGHTY_PER * maxi(DreamState.FEW_AND_MIGHTY_BELOW - attackers, 0)
 	return {"run_wide": true, "active": bonus > 0.0, "damage": bonus, "note": "%d attacking Wardens" % attackers,
 		"reason": "" if bonus > 0.0 else "%d attacking Wardens (needs fewer than %d)" % [attackers, DreamState.FEW_AND_MIGHTY_BELOW]}
 
-func _canopy(_spot: Dictionary, _others: Array, _card: UpgradeData) -> Dictionary:
+func _canopy(_spot: Dictionary, _board: Board, _card: UpgradeData) -> Dictionary:
 	var steps := ds.canopy_steps_reached()
 	return {"run_wide": true, "active": steps > 0, "damage": DreamState.CANOPY_BONUS * steps,
 		"note": "%d attacking Wardens planted" % ds._attackers_planted,
 		"reason": "" if steps > 0 else "plant %d attacking Wardens" % DreamState.CANOPY_STEPS[0]}
 
-func _solitude(spot: Dictionary, others: Array, _card: UpgradeData) -> Dictionary:
+func _solitude(spot: Dictionary, board: Board, _card: UpgradeData) -> Dictionary:
 	if not spot.data.can_attack:
 		return {}
 	var nearest: Dictionary = {}
-	for o in others:
-		if o.data.can_attack and _cheb(o.cell, spot.cell) <= DreamState.NEARBY_CELLS \
-				and (nearest.is_empty() or _cheb(o.cell, spot.cell) < _cheb(nearest.cell, spot.cell)):
+	for o in board.near(spot, DreamState.NEARBY_CELLS):
+		if DreamEffects._data(o).can_attack and (nearest.is_empty() or _cheb(o.cell, spot.cell) < _cheb(nearest.cell, spot.cell)):
 			nearest = o
 	var on := nearest.is_empty()
 	return {"positional": true, "radius": float(DreamState.NEARBY_CELLS), "active": on,
 		"damage": DreamState.SOLITUDE_BONUS, "range": DreamState.SOLITUDE_RANGE,
-		"reason": "" if on else "%s is %s away (needs no attacking Warden within %d)" % [nearest.data.display_name,
+		"reason": "" if on else "%s is %s away (needs no attacking Warden within %d)" % [DreamEffects._data(nearest).display_name,
 			_cells_word(_cheb(nearest.cell, spot.cell)), DreamState.NEARBY_CELLS]}
 
-func _long_walk(_spot: Dictionary, _others: Array, _card: UpgradeData) -> Dictionary:
+func _long_walk(_spot: Dictionary, _board: Board, _card: UpgradeData) -> Dictionary:
 	var bonus := DreamState.LONG_WALK_PER * (ds.path_length / DreamState.LONG_WALK_TILES)
 	return {"run_wide": true, "active": bonus > 0.0, "damage": bonus, "note": "%d path tiles" % ds.path_length}
 
-func _monoculture(spot: Dictionary, others: Array, _card: UpgradeData) -> Dictionary:
+func _monoculture(spot: Dictionary, board: Board, _card: UpgradeData) -> Dictionary:
 	if not spot.data.can_attack:
 		return {}
-	var lines := {spot.data.line: true}
-	for o in others:
-		if o.data.can_attack:
-			lines[o.data.line] = true
+	var lines := board.lines.duplicate()
+	lines[spot.data.line] = true
 	var on := lines.size() == 1
 	return {"run_wide": true, "active": on, "damage": DreamState.MONOCULTURE_BONUS,
 		"reason": "" if on else "%d Warden lines (needs one)" % lines.size()}
 
-func _crossroads(spot: Dictionary, _others: Array, _card: UpgradeData) -> Dictionary:
+func _crossroads(spot: Dictionary, _board: Board, _card: UpgradeData) -> Dictionary:
 	if not spot.data.can_attack:
 		return {}
 	var on := ds.crossroads_at(spot.cell)
 	return {"positional": true, "radius": 1.0, "active": on, "damage": DreamState.CROSSROADS_BONUS,
 		"reason": "" if on else "needs two path tiles %d+ steps apart beside it" % DreamState.CROSSROADS_STEPS}
 
-func _menagerie(spot: Dictionary, others: Array, _card: UpgradeData) -> Dictionary:
+func _menagerie(spot: Dictionary, board: Board, _card: UpgradeData) -> Dictionary:
 	if not spot.data.can_attack:
 		return {}
-	var kinds := {spot.data.get_id(): true}
-	for o in others:
-		if o.data.can_attack:
-			kinds[o.data.get_id()] = true
+	var kinds := board.kinds.duplicate()
+	kinds[spot.data.get_id()] = true
 	return {"run_wide": true, "damage": minf(DreamState.MENAGERIE_PER * kinds.size(), DreamState.MENAGERIE_MAX),
 		"note": "%d kinds" % kinds.size()}
 
-func _restless_night(_spot: Dictionary, _others: Array, _card: UpgradeData) -> Dictionary:
+func _restless_night(_spot: Dictionary, _board: Board, _card: UpgradeData) -> Dictionary:
 	var bonus := minf(DreamState.RESTLESS_PER * ds._early_calls, DreamState.RESTLESS_MAX)
 	return {"run_wide": true, "active": bonus > 0.0, "damage": bonus, "note": "%d called early" % ds._early_calls,
 		"reason": "" if bonus > 0.0 else "call a drift early this block"}
 
-func _last_leaf(_spot: Dictionary, _others: Array, _card: UpgradeData) -> Dictionary:
+func _last_leaf(_spot: Dictionary, _board: Board, _card: UpgradeData) -> Dictionary:
 	var down := maxi(ds.run_state.max_leaves - ds.run_state.leaves, 0)
 	var bonus := minf(DreamState.LAST_LEAF_PER * down, DreamState.LAST_LEAF_MAX)
 	return {"run_wide": true, "active": bonus > 0.0, "damage": bonus, "note": "%d leaves down" % down,
 		"reason": "" if bonus > 0.0 else "no leaves lost"}
 
-func _wildwood(spot: Dictionary, _others: Array, _card: UpgradeData) -> Dictionary:
+func _wildwood(spot: Dictionary, _board: Board, _card: UpgradeData) -> Dictionary:
 	var on: bool = ds.run_state.tended_cells.has(spot.cell)
 	var bonus := minf(DreamState.WILDWOOD_BASE + DreamState.WILDWOOD_PER_CLEAR * ds.run_state.tended_cells.size(),
 		DreamState.WILDWOOD_MAX)
 	return {"positional": true, "active": on, "damage": bonus, "reason": "" if on else "not on a cleared cell"}
 
-func _sprout_chorus(spot: Dictionary, others: Array, _card: UpgradeData) -> Dictionary:
+func _sprout_chorus(spot: Dictionary, board: Board, _card: UpgradeData) -> Dictionary:
 	if spot.data.get_id() != "sprout":
 		return {}
 	var sprouts := 0
-	for o in others:
-		if o.data.get_id() == "sprout" and _cheb(o.cell, spot.cell) <= DreamState.NEARBY_CELLS:
+	for o in board.near(spot, DreamState.NEARBY_CELLS):
+		if DreamEffects._data(o).get_id() == "sprout":
 			sprouts += 1
 	var bonus := minf(DreamState.SPROUT_CHORUS_PER * sprouts, DreamState.SPROUT_CHORUS_MAX)
 	return {"positional": true, "radius": float(DreamState.NEARBY_CELLS), "active": sprouts > 0, "speed": bonus,
 		"note": "%d Sprouts near" % sprouts,
 		"reason": "" if sprouts > 0 else "no other Sprout within %d" % DreamState.NEARBY_CELLS}
 
-func _last_light(spot: Dictionary, others: Array, _card: UpgradeData) -> Dictionary:
+func _last_light(spot: Dictionary, board: Board, _card: UpgradeData) -> Dictionary:
 	if not spot.data.can_attack:
 		return {}
-	var attackers := _attackers(spot, others)
+	var attackers := board.attackers_with(spot)
 	var on := attackers <= DreamState.LAST_LIGHT_MAX
 	return {"run_wide": true, "active": on, "speed": 1.0, "effect": "attacks twice as fast",
 		"reason": "" if on else "%d attacking Wardens (needs %d or fewer)" % [attackers, DreamState.LAST_LIGHT_MAX]}
 
-func _rootbound(spot: Dictionary, others: Array, _card: UpgradeData) -> Dictionary:
+func _rootbound(spot: Dictionary, board: Board, _card: UpgradeData) -> Dictionary:
 	if not spot.data.can_attack:
 		return {}
-	var touching := _touching(spot, others).size()
+	var touching := board.touching(spot).size()
 	var on := touching >= DreamState.ROOTBOUND_TOUCHING
 	return {"positional": true, "radius": 1.0, "active": on, "speed": 1.0, "effect": "attacks twice",
 		"reason": "" if on else "touches %d Wardens (needs %d)" % [touching, DreamState.ROOTBOUND_TOUCHING]}
 
-func _court(spot: Dictionary, others: Array, _card: UpgradeData) -> Dictionary:
+func _court(spot: Dictionary, board: Board, _card: UpgradeData) -> Dictionary:
 	if spot.node != null and ds.is_eldest(spot.node):
 		return {}
 	var eldest := ds.get_eldest()
-	var on := eldest != null and _touching(spot, others).any(func(o: Dictionary) -> bool: return o.node == eldest)
+	var on := eldest != null and board.touching(spot).any(func(o: Dictionary) -> bool: return o.node == eldest)
 	return {"positional": true, "radius": 1.0, "active": on,
 		"rank_share": DreamState.COURT_SHARE * eldest.rank if eldest != null else 0.0,
 		"reason": "" if on else ("not touching the Eldest" if eldest != null else "no Eldest yet")}
 
-func _old_ones(spot: Dictionary, others: Array, _card: UpgradeData) -> Dictionary:
+func _old_ones(spot: Dictionary, board: Board, _card: UpgradeData) -> Dictionary:
 	if spot.rank <= 0:
 		return {}
-	var on: bool = spot.rank < DreamState.FREE_RANK_MAX and _touching(spot, others).any(
-		func(o: Dictionary) -> bool: return o.rank >= 5)
+	var on: bool = spot.rank < DreamState.FREE_RANK_MAX and board.touching(spot).any(
+		func(o: Dictionary) -> bool: return DreamEffects._rank(o) >= 5)
 	return {"positional": true, "radius": 1.0, "active": on, "effect": "counts one rank higher",
 		"reason": "" if on else "no rank V Warden touching it"}
 
-func _reclaimed_earth(spot: Dictionary, _others: Array, _card: UpgradeData) -> Dictionary:
+func _reclaimed_earth(spot: Dictionary, _board: Board, _card: UpgradeData) -> Dictionary:
 	if spot.node != null:
 		return {}  # Only planting on a fertile cell
 	var on: bool = ds.run_state.fertile_cells.has(spot.cell)
@@ -326,15 +422,14 @@ func _reclaimed_earth(spot: Dictionary, _others: Array, _card: UpgradeData) -> D
 		"reason": "" if on else "not a fertile cell"}
 
 # Generic Rares (dream_design.md "Generic Rares")
-func _root_network(spot: Dictionary, others: Array, _card: UpgradeData) -> Dictionary:
+func _root_network(spot: Dictionary, board: Board, _card: UpgradeData) -> Dictionary:
 	if spot.data.get_id() != "sprout":
 		return {}
 	var level := ds.rule_level(&"root_network")
-	var sprouts := {}
-	for o in others:
-		if o.data.get_id() == "sprout":
-			sprouts[o.cell] = true
-	# Flood fill from the spot: sides only (II: diagonals too)
+	# Flood fill from the spot through the board's Sprouts: sides only (II: diagonals too)
+	var is_sprout := func(cell: Vector2) -> bool:
+		var o = board.by_cell.get(cell)
+		return o != null and cell != spot.cell and DreamEffects._data(o).get_id() == "sprout"
 	var steps: Array[Vector2] = [Vector2.LEFT, Vector2.RIGHT, Vector2.UP, Vector2.DOWN]
 	if level > 0:
 		steps.append_array([Vector2(-1, -1), Vector2(1, -1), Vector2(-1, 1), Vector2(1, 1)])
@@ -344,7 +439,7 @@ func _root_network(spot: Dictionary, others: Array, _card: UpgradeData) -> Dicti
 		var cell: Vector2 = frontier.pop_back()
 		for step in steps:
 			var next: Vector2 = cell + step
-			if sprouts.has(next) and not network.has(next):
+			if not network.has(next) and is_sprout.call(next):
 				network[next] = true
 				frontier.append(next)
 	var size := network.size()
@@ -354,14 +449,14 @@ func _root_network(spot: Dictionary, others: Array, _card: UpgradeData) -> Dicti
 		"note": "network of %d" % size,
 		"reason": "" if on else ("no Sprout beside it" if level == 0 else "no Sprout around it")}
 
-func _first_light(_spot: Dictionary, _others: Array, _card: UpgradeData) -> Dictionary:
+func _first_light(_spot: Dictionary, _board: Board, _card: UpgradeData) -> Dictionary:
 	return {"effect": "first hit on each nightmare ×3"}
 
-func _last_stand(_spot: Dictionary, _others: Array, _card: UpgradeData) -> Dictionary:
+func _last_stand(_spot: Dictionary, _board: Board, _card: UpgradeData) -> Dictionary:
 	return {"effect": "+%d%% damage to nightmares within %d cells of the Heartwood" % [
 		roundi(DreamState.LAST_STAND_BONUS * 100), DreamState.LAST_STAND_CELLS]}
 
-func _old_growth(spot: Dictionary, _others: Array, _card: UpgradeData) -> Dictionary:
+func _old_growth(spot: Dictionary, _board: Board, _card: UpgradeData) -> Dictionary:
 	var stood := DreamState.drifts_stood(spot.node)
 	var bonus := ds.get_old_growth_bonus(spot.node)
 	var next: Array = []
@@ -372,36 +467,36 @@ func _old_growth(spot: Dictionary, _others: Array, _card: UpgradeData) -> Dictio
 		"note": "stood %d drifts" % stood + ("" if next.is_empty() else " (%d for +%d%%)" % [next[0], roundi(next[1] * 100)]),
 		"reason": "" if bonus > 0.0 else "has stood %d of %d drifts" % [stood, DreamState.OLD_GROWTH_STEPS[-1][0]]}
 
-func _hunters_patience(_spot: Dictionary, _others: Array, _card: UpgradeData) -> Dictionary:
+func _hunters_patience(_spot: Dictionary, _board: Board, _card: UpgradeData) -> Dictionary:
 	return {"effect": "+%d%% damage to Deeply Blighted nightmares, +%d%% to bosses" % [
 		roundi(DreamState.HUNTERS_PATIENCE_ELITE * 100), roundi(DreamState.HUNTERS_PATIENCE_BOSS * 100)]}
 
-func _thinning_the_herd(spot: Dictionary, _others: Array, _card: UpgradeData) -> Dictionary:
+func _thinning_the_herd(spot: Dictionary, _board: Board, _card: UpgradeData) -> Dictionary:
 	if not spot.data.can_attack:
 		return {}
 	var bonus := ds.get_herd_bonus(spot.node)
 	return {"active": bonus > 0.0, "damage": bonus, "note": "+%d%% this drift" % roundi(bonus * 100),
 		"reason": "" if bonus > 0.0 else "no nightmare dispelled in its range this drift"}
 
-func _bitter_hedges(_spot: Dictionary, _others: Array, _card: UpgradeData) -> Dictionary:
+func _bitter_hedges(_spot: Dictionary, _board: Board, _card: UpgradeData) -> Dictionary:
 	return {"effect": "nightmares passing Thornwalls take +%d%% per wall for %d s (up to +%d%%)" % [
 		roundi(DreamState.BITTER_PER * 100), DreamState.BITTER_TIME, roundi(DreamState.BITTER_MAX * 100)]}
 
 # Generic Commons / Uncommons and the second batch (dream_design.md 142–168)
-func _short_roots(spot: Dictionary, _others: Array, _card: UpgradeData) -> Dictionary:
+func _short_roots(spot: Dictionary, _board: Board, _card: UpgradeData) -> Dictionary:
 	if not spot.data.can_attack:
 		return {}
 	var on: bool = spot.data.attack_range <= DreamState.SHORT_ROOTS_RANGE
 	return {"active": on, "damage": DreamState.SHORT_ROOTS_BONUS,
 		"reason": "" if on else "range %.1f (needs 2 or less)" % spot.data.attack_range}
 
-func _forests_edge(spot: Dictionary, _others: Array, _card: UpgradeData) -> Dictionary:
+func _forests_edge(spot: Dictionary, _board: Board, _card: UpgradeData) -> Dictionary:
 	var start: Vector2 = ds.map_generator.startPath
 	var on := _cheb(spot.cell, start) <= DreamState.FORESTS_EDGE_CELLS
 	return {"positional": true, "active": on, "damage": DreamState.FORESTS_EDGE_BONUS,
 		"reason": "" if on else "more than %d cells from the start" % DreamState.FORESTS_EDGE_CELLS}
 
-func _crowded_path(spot: Dictionary, _others: Array, _card: UpgradeData) -> Dictionary:
+func _crowded_path(spot: Dictionary, _board: Board, _card: UpgradeData) -> Dictionary:
 	if not spot.data.can_attack:
 		return {}
 	var level := ds.rule_level(&"crowded_path")
@@ -410,20 +505,20 @@ func _crowded_path(spot: Dictionary, _others: Array, _card: UpgradeData) -> Dict
 	return {"run_wide": true, "active": bonus > 0.0, "damage": bonus, "note": "%d nightmares in range" % count,
 		"reason": "" if bonus > 0.0 else "no nightmare in range"}
 
-func _lone_hunter(_spot: Dictionary, _others: Array, _card: UpgradeData) -> Dictionary:
+func _lone_hunter(_spot: Dictionary, _board: Board, _card: UpgradeData) -> Dictionary:
 	return {"effect": "+%d%% damage to a nightmare with no other within 2 cells" % roundi(
 		DreamState.LONE_HUNTER_BONUS[ds.rule_level(&"lone_hunter")] * 100)}
 
-func _skyward_gaze(_spot: Dictionary, _others: Array, _card: UpgradeData) -> Dictionary:
+func _skyward_gaze(_spot: Dictionary, _board: Board, _card: UpgradeData) -> Dictionary:
 	return {"effect": "+%d%% damage and +%d range against flying nightmares" % [
 		roundi(DreamState.SKYWARD_BONUS * 100), roundi(DreamState.SKYWARD_RANGE)]}
 
-func _fresh_growth(spot: Dictionary, _others: Array, _card: UpgradeData) -> Dictionary:
+func _fresh_growth(spot: Dictionary, _board: Board, _card: UpgradeData) -> Dictionary:
 	var on: bool = ds.is_fresh(spot.node) if spot.node != null else not ds.drift_director.resting
 	return {"active": on, "damage": DreamState.FRESH_GROWTH_BONUS[ds.rule_level(&"fresh_growth")],
 		"reason": "" if on else "not planted or grown during this drift"}
 
-func _underdog(spot: Dictionary, _others: Array, _card: UpgradeData) -> Dictionary:
+func _underdog(spot: Dictionary, _board: Board, _card: UpgradeData) -> Dictionary:
 	if not spot.data.can_attack:
 		return {}
 	var on := ds.is_underdog(spot.node)
@@ -431,32 +526,32 @@ func _underdog(spot: Dictionary, _others: Array, _card: UpgradeData) -> Dictiona
 	return {"run_wide": true, "active": on, "damage": DreamState.UNDERDOG[level][1],
 		"reason": "" if on else "not one of the %d that soothed least last block" % DreamState.UNDERDOG[level][0]}
 
-func _shelter_of_stones(spot: Dictionary, _others: Array, _card: UpgradeData) -> Dictionary:
+func _shelter_of_stones(spot: Dictionary, _board: Board, _card: UpgradeData) -> Dictionary:
 	var on := ds.touches_obstacle(spot.cell)
 	return {"positional": true, "radius": 1.0, "active": on, "damage": DreamState.SHELTER_BONUS,
 		"reason": "" if on else "no obstacle in the 8 cells around it"}
 
-func _cliffside(spot: Dictionary, _others: Array, _card: UpgradeData) -> Dictionary:
+func _cliffside(spot: Dictionary, _board: Board, _card: UpgradeData) -> Dictionary:
 	if not spot.data.can_attack:
 		return {}
 	var on := ds.is_on_cliff(spot.cell)
 	return {"positional": true, "radius": 1.0, "active": on, "range": DreamState.CLIFFSIDE_RANGE,
 		"reason": "" if on else "not touching the island's edge"}
 
-func _sudden_bloom(_spot: Dictionary, _others: Array, _card: UpgradeData) -> Dictionary:
+func _sudden_bloom(_spot: Dictionary, _board: Board, _card: UpgradeData) -> Dictionary:
 	return {"effect": "after growing, its next %d attacks deal ×2" % DreamState.SUDDEN_BLOOM_ATTACKS}
 
-func _watchful_rest(_spot: Dictionary, _others: Array, _card: UpgradeData) -> Dictionary:
+func _watchful_rest(_spot: Dictionary, _board: Board, _card: UpgradeData) -> Dictionary:
 	return {"effect": "%d s with nothing in range: its next attack deals ×2" % roundi(
 		DreamState.WATCHFUL_REST_TIME[ds.rule_level(&"watchful_rest")])}
 
-func _straightaway(spot: Dictionary, _others: Array, _card: UpgradeData) -> Dictionary:
+func _straightaway(spot: Dictionary, _board: Board, _card: UpgradeData) -> Dictionary:
 	var numbers: Array = DreamState.STRAIGHTAWAY[ds.rule_level(&"straightaway")]
 	var on := ds.beside_straight(spot.cell)
 	return {"positional": true, "radius": 1.0, "active": on, "damage": numbers[0], "range": numbers[1],
 		"reason": "" if on else "no straight stretch of %d+ path tiles beside it" % DreamState.STRAIGHT_TILES}
 
-func _heart_of_the_maze(spot: Dictionary, _others: Array, _card: UpgradeData) -> Dictionary:
+func _heart_of_the_maze(spot: Dictionary, _board: Board, _card: UpgradeData) -> Dictionary:
 	if not spot.data.can_attack:
 		return {}
 	var heart := ds.get_heart_of_maze()
@@ -464,12 +559,12 @@ func _heart_of_the_maze(spot: Dictionary, _others: Array, _card: UpgradeData) ->
 	return {"run_wide": true, "active": on, "damage": DreamState.HEART_OF_MAZE_BONUS,
 		"reason": "" if on else "another Warden stands furthest from the rest"}
 
-func _echoing_steps(_spot: Dictionary, _others: Array, _card: UpgradeData) -> Dictionary:
+func _echoing_steps(_spot: Dictionary, _board: Board, _card: UpgradeData) -> Dictionary:
 	var bonus := ds.get_echo_bonus()
 	return {"run_wide": true, "active": bonus > 0.0, "damage": bonus, "note": "%d route changes this drift" % ds._echoes,
 		"reason": "" if bonus > 0.0 else "the route hasn't changed this drift"}
 
-func _rain_on_glass(spot: Dictionary, _others: Array, _card: UpgradeData) -> Dictionary:
+func _rain_on_glass(spot: Dictionary, _board: Board, _card: UpgradeData) -> Dictionary:
 	if spot.data.line != "light":
 		return {}
 	return {"effect": "+%d%% damage to Soaked nightmares" % roundi(DreamState.RAIN_ON_GLASS_PER * ds.rule_stacks(&"rain_on_glass") * 100)}
