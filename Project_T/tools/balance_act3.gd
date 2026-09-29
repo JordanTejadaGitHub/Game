@@ -28,6 +28,15 @@ var dispelled := 0
 var game_time := 0.0
 var leaked := 0
 var map_seed := 7
+# --maze=bell / storm (design chat b061d29): a Bellflower-led board vs a Firefly / Dewdrop board, the
+# same six other finals in both, no Great Bell. Reports each family's share of the damage.
+const OTHERS := ["puffball", "elf_circle", "boulderback", "moonstone", "rockslide", "starcave"]
+const MAZES := {
+	"bell": ["lullaby_bell", "great_dreamcatcher", "whispering_hollow", "lullaby_bell", "great_dreamcatcher", "whispering_hollow"],
+	"storm": ["thunderhead", "hoarfrost", "midsummer", "monsoon", "beacon", "morning_fog"],
+}
+var maze := ""
+var by_line := {}  # Warden line -> damage
 
 func _initialize() -> void:
 	_run.call_deferred()
@@ -39,6 +48,8 @@ func _run() -> void:
 			with_bell = arg.get_slice("=", 1) == "1"
 		if arg.begins_with("--seed="):
 			map_seed = int(arg.get_slice("=", 1))
+		if arg.begins_with("--maze="):
+			maze = arg.get_slice("=", 1)
 	Kinships.force_full = true
 	main = load("res://scenes/main.tscn").instantiate()
 	main.get_node("%MapGenerator").map_seed = map_seed  # The same map for both bells (--seed=N)
@@ -53,12 +64,16 @@ func _run() -> void:
 	run_state.dew = 1000000
 	run_state.invulnerable = true
 	# The Bell first, so both runs have it in the same spot (the maze can fill every cell by the path).
-	bell = _build(placer, "lullaby_bell")
-	if with_bell:
-		bell.evolve(load("res://resource/tower/great_bell.tres"), 0)  # Grown, so it keeps the Lullaby (legacy)
-	for id in MAZE:
-		_build(placer, id)
-	bell.attack_released.connect(func(_t) -> void: toll_frame = Engine.get_process_frames())
+	if maze != "":
+		for id in MAZES[maze] + OTHERS:  # The family's Wardens first: the best spots by the path
+			_build(placer, id)
+	else:
+		bell = _build(placer, "lullaby_bell")
+		if with_bell:
+			bell.evolve(load("res://resource/tower/great_bell.tres"), 0)  # Grown, so it keeps the Lullaby (legacy)
+		for id in MAZE:
+			_build(placer, id)
+		bell.attack_released.connect(func(_t) -> void: toll_frame = Engine.get_process_frames())
 	for tower in main.get_node("%TowerContainer").get_children():
 		if tower is Tower:
 			tower.rank = RANK
@@ -106,6 +121,9 @@ func _on_damage(event) -> void:
 	total += event.amount
 	var name: String = event.source_name
 	by_tower[name] = by_tower.get(name, 0.0) + event.amount
+	if is_instance_valid(event.source) and event.source is Tower:
+		var line: String = event.source.tower_data.line
+		by_line[line] = by_line.get(line, 0.0) + event.amount
 	if is_instance_valid(event.enemy) and (event.enemy.statuses.is_asleep() or (event.enemy.statuses.has(EnemyStatuses.DROWSY)
 			and event.enemy.statuses.stacks(EnemyStatuses.DROWSY) >= event.enemy.statuses.get_max_stacks(EnemyStatuses.DROWSY))):
 		on_asleep += event.amount
@@ -123,6 +141,10 @@ func _report(with_bell: bool, director: DriftDirector) -> void:
 	rows.sort_custom(func(a, b) -> bool: return by_tower[a] > by_tower[b])
 	for name in rows:
 		print("  %-22s %10.0f  %5.1f%%" % [name, by_tower[name], 100.0 * by_tower[name] / maxf(total, 1.0)])
+	if maze != "":
+		print("  board: %s (%s-led)" % [maze, "Bellflower" if maze == "bell" else "Firefly / Dewdrop"])
+		for line in by_line:
+			print("  family %-8s %5.1f%%" % [line, 100.0 * by_line[line] / maxf(total, 1.0)])
 	print("  total damage %.0f (%.0f per drift cleared)" % [total, total / maxf(director.drifts_cleared - FIRST + 1, 1)])
 	print("  bell: hits %.0f, toll set-offs (Charged bolts) %.0f, other %.0f" % [bell_split.hits,
 		bell_split.toll_setoffs, bell_split.other])
