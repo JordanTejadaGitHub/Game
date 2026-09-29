@@ -267,11 +267,40 @@ func _show_number(event: Event) -> void:
 		color = color.darkened(0.15)
 	var number := FloatingNumber.new(event.enemy.global_position + Vector2(randf_range(-10, 10), -30),
 		event.amount, color, size)
+	number.source = event.source
 	add_child(number)
 	if event.kind == &"hit":
 		if _last_hit_number.size() > 256:
 			_last_hit_number.clear()  # Forget long-gone nightmares now and then
 		_last_hit_number[event.enemy.get_instance_id()] = [number, event.source, _clock]
+
+
+# A click (or tap) on a hit number selects its Warden and glides the camera to it (screens_ui.md
+# "Damage that means something"). Only when no HUD control is under the pointer and not while building;
+# the click is used up so TowerSeller doesn't also treat it as a press on the ground.
+const NUMBER_PAD := 8.0
+
+func _input(event: InputEvent) -> void:
+	if numbers_mode == NumbersMode.OFF or not event.is_action_pressed("clear_obstacle"):
+		return
+	if get_viewport().gui_get_hovered_control() != null:
+		return
+	var placer := owner.get_node_or_null("%TowerPlacer") if owner != null else null
+	if placer != null and placer.get("build_mode"):
+		return
+	var number := number_at(get_global_mouse_position())
+	if number != null:
+		get_viewport().set_input_as_handled()
+		DriftMeter.focus_tower(number.source)
+
+# The newest number under `world` whose Warden is still planted, or null.
+func number_at(world: Vector2) -> FloatingNumber:
+	for i in range(get_child_count() - 1, -1, -1):
+		var number := get_child(i) as FloatingNumber
+		if number != null and is_instance_valid(number.source) and number.source.is_inside_tree() \
+				and number.get_rect().grow(NUMBER_PAD).has_point(world - number.global_position):
+			return number
+	return null
 
 # Kinship's Harmony strikes (screens_ui.md "Kinship feedback"): no number of their own; the bonus
 # joins the number of the hit it followed (same Warden and nightmare, just now), tinted green.
@@ -293,6 +322,7 @@ class FloatingNumber:
 	var _color: Color
 	var _size: int
 	var _age := 0.0
+	var source: Node  # The Warden that dealt it: a click on the number focuses it
 
 	# Adds `amount` to the number, tinting it toward `tint` (Harmony).
 	func add(amount: float, tint: Color) -> void:
@@ -307,6 +337,11 @@ class FloatingNumber:
 		_text = str(roundi(amount))
 		_color = color
 		_size = size
+
+	# The drawn text's box, local (the text sits on the baseline at y 0, centred).
+	func get_rect() -> Rect2:
+		var width := ThemeDB.fallback_font.get_string_size(_text, HORIZONTAL_ALIGNMENT_LEFT, -1, _size).x
+		return Rect2(-width / 2, -_size, width, _size + 4)
 
 	func _process(delta: float) -> void:
 		_age += delta
