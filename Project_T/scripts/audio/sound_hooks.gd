@@ -85,6 +85,7 @@ const PRESENCE_HOLD := 0.6  # Longer than a scan, so presence loops stay up betw
 const DEW_CATCH_DB := -16.0
 const DEW_CATCH_THROTTLE_MS := 400
 const HARVEST_DB := -3.0
+const HARVEST_WINDOW_MS := 4000  # Pours within this of the first belong to the same Harvest
 const HIT_FAMILIES := ["stone", "root", "water", "light", "spore", "sprout"]  # Others sound like sprout
 const HIT_GROUP_MS := 90  # A pulse or splash hitting many nightmares at once is one impact
 const CHAIN_STEP_DB := -4.0  # Each jump of a chain ripples a little quieter
@@ -130,7 +131,7 @@ var _scan_left := 0.0  # Seconds (real time) until the next field scan
 var _resting := true
 var _presence := {}  # Tower instance id -> a Warden with a presence loop
 var _dew_catch_at := -100000
-var _harvest_total := 0  # Dew poured this frame (gathered into one harvest sound)
+var _harvest_at := -100000  # msec of this rest's harvest sound (later pours add droplets)
 
 func _ready() -> void:
 	if sound == null:
@@ -730,25 +731,29 @@ func _hook_economy(node: Node) -> void:
 		if node.has_signal(pair[0]) and not node.is_connected(pair[0], pair[1]):
 			node.connect(pair[0], pair[1])
 
-func _on_dew_caught(_tower: Node = null, where: Variant = null, _amount: int = 0) -> void:
+# `amount` is a float (Tower Code fa57ad9), so it's untyped here.
+func _on_dew_caught(_tower: Node = null, where: Variant = null, _amount = 0) -> void:
 	var now := Time.get_ticks_msec()
 	if now - _dew_catch_at < DEW_CATCH_THROTTLE_MS:
 		return
 	_dew_catch_at = now
 	sound.play(&"dew_catch", where if where is Vector2 else null, DEW_CATCH_DB, 1.0, 0.04)
 
-func _on_harvest_poured(_tower: Node = null, amount: int = 0) -> void:
-	if _harvest_total == 0:
-		_play_harvest.call_deferred()  # Every catcher pouring this frame: one sound
-	_harvest_total += maxi(amount, 1)
+# The Harvest: the catchers pour one after another (~0.25 s apart) at the rest. The first pour plays the
+# harvest, sized by its amount; the rest of that rest's pours add soft droplets under it. Unpositioned:
+# the Dream screen pauses the game (and the world's positional players) while it plays.
+func _on_harvest_poured(_tower: Node = null, amount = 0) -> void:
+	var now := Time.get_ticks_msec()
+	if now - _harvest_at > HARVEST_WINDOW_MS:
+		_harvest_at = now
+		var growth := minf(ASCENDED_GROWTH_DB * log(1.0 + maxf(float(amount), 1.0) / 10.0) / log(2.0), ASCENDED_GROWTH_MAX)
+		sound.play(&"harvest", null, HARVEST_DB - ASCENDED_GROWTH_MAX + growth, 1.0, 0.0, &"UI")
+	else:
+		sound.play(&"dew_catch", null, DEW_CATCH_DB + 4.0, 1.0, 0.04, &"UI")
 
-func _play_harvest() -> void:
-	var growth := minf(ASCENDED_GROWTH_DB * log(1.0 + _harvest_total / 10.0) / log(2.0), ASCENDED_GROWTH_MAX)
-	_harvest_total = 0
-	sound.play(&"harvest", null, HARVEST_DB - ASCENDED_GROWTH_MAX + growth, 1.0, 0.0, &"UI")
-
-func _on_interest_paid(_tower: Node = null, _amount: int = 0) -> void:
+func _on_interest_paid(_tower: Node = null, _amount = 0) -> void:
 	sound.play(&"interest_ripple", null, KIN_DB, 1.0, 0.0, &"UI")
+
 func _on_reaction(id: StringName, enemy: Node2D, _chain: int, _towers: Array) -> void:
 	if not is_instance_valid(enemy):
 		return
