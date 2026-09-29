@@ -43,6 +43,7 @@ var style := "balanced"
 var speed := 8.0
 var last_drift := 100
 var out_dir := "res://tools/balance_out"
+var start_cards: Array[String] = []
 
 var main: Node
 var map
@@ -79,6 +80,7 @@ func _run() -> void:
 			"--speed": speed = float(value)
 			"--last": last_drift = int(value)
 			"--out": out_dir = value
+			"--card": start_cards.append(value)  # e.g. --card=seedfall: taken at the start of the run
 	if profile != "fresh":
 		var meta: Script = load("res://scripts/meta/meta_run.gd")
 		if not meta.get_script_method_list().any(func(m: Dictionary) -> bool: return m.name == "load_preset"):
@@ -99,6 +101,9 @@ func _run() -> void:
 	spawner = main.get_node("%EnemyContainer")
 	container = main.get_node("%TowerContainer")
 	dreams._rng.seed = map_seed
+	for card in dreams.pool:
+		if start_cards.has(card.id):
+			dreams.take(card)
 	policy = DreamSimPolicy.new(dreams, STYLES.get(style, 0))
 	for r in Reactions.all() + Reactions.crowned():
 		reaction_tags[r.id] = true
@@ -414,7 +419,7 @@ func _close_window(n: int) -> void:
 
 func _finish() -> void:
 	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(out_dir))
-	var name := "%s_%s_seed%d" % [profile, style, map_seed]
+	var name := "%s_%s%s_seed%d" % [profile, style, ("_" + "+".join(start_cards)) if not start_cards.is_empty() else "", map_seed]
 	var file := FileAccess.open(out_dir.path_join(name + ".csv"), FileAccess.WRITE)
 	file.store_line(",".join(COLUMNS))
 	for row in rows:
@@ -438,6 +443,7 @@ func _finish() -> void:
 		"hoard_rests": snappedf(hoard / maxf(count, 1), 0.01), "top_warden": top, "max_top_share": run.max_top_share,
 		"max_top_warden": run.max_top_warden, "max_asleep": snappedf(run.max_asleep, 0.001), "cards": dreams.stacks.size(),
 		"sprout_cards_25": run.sprout_cards_25,
+		"sprouts_end": _attackers().filter(func(t) -> bool: return t.tower_data.get_id() == "sprout").size(), "cards_start": "+".join(start_cards),
 		"seconds": snappedf(game_time, 1.0)}
 	var runs_path := out_dir.path_join("runs.csv")
 	var keys := summary.keys()
