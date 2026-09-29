@@ -9,7 +9,7 @@
 [resource]
 script = ExtResource("1_tdata")
 display_name = "Wren's Nest"
-description = "Quick wrens hunt the fastest nightmare in range; extra damage to Phantoms and sprinting Night Hounds."
+description = "Quick wrens hunt the fastest nightmare in range and strike one more beside it for half; extra damage to Phantoms and sprinting Night Hounds."
 cost = 0
 texture = ExtResource("2_tex")
 frame_count = 8
@@ -21,6 +21,8 @@ attack_kind = 7
 attack_range = 3.5
 damage = 10
 attacks_per_second = 3.0
+skip_share = 0.5
+skip_radius = 1.0
 projectile_speed = 560
 projectile_returns = true
 target_mode = 3

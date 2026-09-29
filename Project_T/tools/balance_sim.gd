@@ -198,6 +198,10 @@ func _next_buy() -> String:
 	var attackers := _attackers().size()
 	var target := mini(int(room[2]), int(room[0] + room[1] * director.drifts_started))
 	var walls := _walls().size()
+	# Grow into the family first: a Sprout that can become the family's base Warden grows before more
+	# Sprouts are planted (players don't sit on five Sprouts while drift 3 walks in).
+	if style != "sprout" and _grow_sprout_into_family():
+		return "grow"
 	if attackers < target and _plant_attacker():
 		return "plant"
 	if walls < int(attackers * plan.walls) and _plant_wall():
@@ -522,3 +526,19 @@ func _forced_family_pick(kind: StringName) -> void:
 		dreams.unlocks_changed.emit()
 	policy.choices.append("family pick (%s): %s" % [kind, chosen if chosen != "" else "none (fixed families)"])
 	policy.spend_dreamlight()
+
+# A Sprout on the map grows into an unlocked family base Warden, if one is affordable (the one with the
+# most path in range).
+func _grow_sprout_into_family() -> bool:
+	var best: Array = []
+	for tower in _attackers():
+		if tower.tower_data.get_id() != "sprout":
+			continue
+		for form in tower.tower_data.evolves_to:
+			if form is TowerData and form.tier == 1 and dreams.is_unlocked(form.get_id()) \
+					and tower.get_grow_cost(form).total <= run_state.dew:
+				var cover := _coverage(tower)
+				if best.is_empty() or cover > best[0]:
+					best = [cover, tower, form]
+				break
+	return not best.is_empty() and placer.evolve(best[1], best[2])
