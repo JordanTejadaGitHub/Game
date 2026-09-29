@@ -182,9 +182,9 @@ const KINSHIP_TEXT := {
 	&"storm_beacon": "Stormcap's jumps leave nightmares {marked} for 2 s; Lanternmoth's shots add 1 {static}.",
 	&"hammer_and_anvil": "Mossback gains the sniper's eye (+10% crit chance at ×2.5); Standing Stone deals ×2 to {marked} nightmares.",
 	&"snare": "Rootcurl's pulls end in a 0.5 s hold; Tangleroot's holds drag the nightmare back half a tile.",
-	&"night_chimes": "Chime Stone's pulses deal +40% to {caught} nightmares; Dreamcatcher's threads set off {static} at 3 stacks.",
-	&"old_growth": "Elder Stump yields +2 Dew per drift; Dewcatcher gains a small aura: neighbours +10% attack speed.",
-	&"flock_together": "Nightmares Wren's Nest hits drop +1 Dew; Magpie Perch hunts the fastest nightmare, +25% vs Phantoms.",
+	&"night_chimes": "Chime Stone's pulses Catch nightmares at full {drowsy}, as if a Dreamcatcher stood by; Dreamcatcher's threads set off {static} at 3 stacks.",
+	&"old_growth": "Nightmares dispelled inside Elder Stump's aura drop +25% Dew; Dewcatcher gains a small aura: neighbours +10% attack speed.",
+	&"flock_together": "Wren's Nest hits strip a buff (a shell chips twice as fast, a Weeper stops mending, Omen boosts fall away) and the robbed nightmare drops +1 Dew; Magpie Perch hunts the fastest nightmare, +25% vs Phantoms.",
 	&"dust_devil": "Gust's copies also deal a blade hit; Pinwheel's blades copy statuses (half stacks) onto what they hit.",
 }
 const KINSHIPS_SCRIPT := "res://scripts/combat/kinships.gd"
