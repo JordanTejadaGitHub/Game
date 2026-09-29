@@ -62,8 +62,7 @@ N("slot_5", "perks", "Loadout slot 5", 70, 110, "slot_4");
 N("storm_lore", "cards", "Storm Lore", 760, 522, [742, 602]);
 N("guiding_lights", "cards", "Guiding Lights", 790, 452, "storm_lore");
 N("spore_lore", "cards", "Spore Lore", 852, 482, [842, 560]);
-N("reactions", "cards", "Reactions", 870, 410, "spore_lore");
-N("dawnbreak", "cards", "Dawnbreak", 884, 330, "reactions", { legendary: true });
+N("dawnbreak", "cards", "Dawnbreak", 884, 330, "spore_lore", { legendary: true });  // Reactions and Woven are discovery unlocks now
 N("sharpened", "cards", "Sharpened", 952, 440, [942, 516]);
 N("reckless", "cards", "Reckless", 980, 370, "sharpened");
 N("full_moon", "cards", "Full Moon", 1000, 288, "reckless", { legendary: true });
@@ -78,16 +77,12 @@ N("the_last_light", "cards", "The Last Light", 800, 710, "one_line", { legendary
 N("dead_wood", "cards", "Dead Wood", 962, 600, [944, 518]);
 N("the_long_walk", "cards", "The Long Walk", 992, 676, "dead_wood", { legendary: true });
 N("bittersweet_dreams", "cards", "Bittersweet Dreams", 1152, 482, [1128, 410]);
-// Woven (Crowned Reactions) branches off Reactions; Deep Poison hangs under the limb past Keen Edges.
-N("woven_dreams_1", "cards", "Woven Dreams I", 814, 370, "reactions");
-N("woven_dreams_2", "cards", "Woven Dreams II", 818, 298, "woven_dreams_1");
+// Deep Poison hangs under the limb past Keen Edges.
 N("seeping", "cards", "Seeping", 1102, 552, [1090, 436]);
 N("venom", "cards", "Venom", 1120, 622, "seeping");
 N("nightshade", "cards", "Nightshade", 1132, 702, "venom", { legendary: true });
-// Kinship (going deep) hangs under the limb near the trunk.
-N("kin_lore", "cards", "Kin Lore", 768, 664, [764, 594]);
-N("deep_bonds", "cards", "Deep Bonds", 756, 734, "kin_lore");
-N("grove_of_kin", "cards", "Grove of Kin", 742, 808, "deep_bonds", { legendary: true });
+// Grove of Kin: the Kinship Legendary (its cards come from discovering a Kinship).
+N("grove_of_kin", "cards", "Grove of Kin", 742, 808, "storm_lore", { legendary: true });  // Kin Lore / Deep Bonds became discovery unlocks
 // Seeds (support and economy bets).
 N("planted_promises", "cards", "Planted Promises", 1010, 470, [1000, 480]);
 N("deep_promises", "cards", "Deep Promises", 1030, 400, "planted_promises");
