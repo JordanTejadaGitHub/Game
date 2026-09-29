@@ -8,6 +8,9 @@ extends Node2D
 
 const MAP_GRID = preload("res://resource/map/map_grid.tres")
 const AMBIENCE_Z := 6  # Over attack effects, under Dew popups
+# Crossing cloud shadows fall on the ground, trees, Wardens and nightmares (all z 0), but under the
+# cold multiply (3), the warm glows and attack effects (4-5): the Wardens' light shines through them.
+const CLOUD_SHADOW_Z := 2
 const CONCEPT_SIZE := Vector2(960, 576)  # The concept page's sample map, in px
 const FOG_COLOR := Color(16 / 255.0, 10 / 255.0, 30 / 255.0)
 
@@ -25,6 +28,7 @@ var _size: Vector2
 var _area_scale: float  # Map area / concept area
 var _clouds: Texture2D  # Cloud shadow shapes (null = fall back to plain ovals)
 var _cloud_count := 1
+var _shadows: Node2D  # Draws the crossing cloud shadows at CLOUD_SHADOW_Z
 
 func _ready() -> void:
 	z_index = AMBIENCE_Z
@@ -34,13 +38,18 @@ func _ready() -> void:
 	if ResourceLoader.exists(path):
 		_clouds = load(path)
 		_cloud_count = maxi(1, int(_clouds.get_width() / CLOUD_SIZE.x))
+	_shadows = Node2D.new()
+	_shadows.name = "CloudShadows"
+	_shadows.z_index = CLOUD_SHADOW_Z - AMBIENCE_Z  # Relative to this node
+	_shadows.draw.connect(_draw_crossing_clouds)
+	add_child(_shadows)
 
 func _process(delta: float) -> void:
 	_time += delta
 	queue_redraw()
+	_shadows.queue_redraw()
 
 func _draw() -> void:
-	_draw_crossing_clouds()
 	_draw_edge_fog()
 	match act:
 		1:
@@ -59,27 +68,28 @@ func _rand(k: int, salt: int) -> float:
 func _count(concept_count: float) -> int:
 	return int(concept_count * _area_scale * particle_scale)
 
-func _ellipse(center: Vector2, radii: Vector2, color: Color) -> void:
-	draw_set_transform(center, 0.0, Vector2(1.0, radii.y / radii.x))
-	draw_circle(Vector2.ZERO, radii.x, color)
-	draw_set_transform(Vector2.ZERO)
+func _ellipse(center: Vector2, radii: Vector2, color: Color, on: CanvasItem = self) -> void:
+	on.draw_set_transform(center, 0.0, Vector2(1.0, radii.y / radii.x))
+	on.draw_circle(Vector2.ZERO, radii.x, color)
+	on.draw_set_transform(Vector2.ZERO)
 
 # One cloud shadow centred on `center`; its darkness is baked into the sheet, `alpha` scales it.
-func _cloud(center: Vector2, variant: int, alpha: float) -> void:
+func _cloud(center: Vector2, variant: int, alpha: float, on: CanvasItem = self) -> void:
 	if _clouds == null:
-		_ellipse(center, Vector2(110, 46), Color(FOG_COLOR, alpha * 0.7))
+		_ellipse(center, Vector2(110, 46), Color(FOG_COLOR, alpha * 0.7), on)
 		return
 	var src := Rect2(Vector2((variant % _cloud_count) * CLOUD_SIZE.x, 0), CLOUD_SIZE)
-	draw_texture_rect_region(_clouds, Rect2((center - CLOUD_SIZE / 2).floor(), CLOUD_SIZE), src, Color(1, 1, 1, alpha))
+	on.draw_texture_rect_region(_clouds, Rect2((center - CLOUD_SIZE / 2).floor(), CLOUD_SIZE), src, Color(1, 1, 1, alpha))
 
-# A few cloud shadows crossing the whole map with the wind, wrapping round once they're past it.
+# A few cloud shadows crossing the whole map with the wind, wrapping round once they're past it (drawn
+# by `_shadows`, at CLOUD_SHADOW_Z).
 func _draw_crossing_clouds() -> void:
 	var span := _size + CLOUD_SIZE * 2
 	for k in crossing_clouds:
 		var wind := cloud_wind * (0.8 + _rand(k, 7) * 0.4)
 		var p := Vector2(_rand(k, 5) * span.x, _rand(k, 6) * span.y) + wind * _time
 		var at := Vector2(fposmod(p.x, span.x), fposmod(p.y, span.y)) - CLOUD_SIZE
-		_cloud(at, k * 2 + 1, 0.7 + 0.1 * sin(_time * 0.3 + k))
+		_cloud(at, k * 2 + 1, 0.7 + 0.1 * sin(_time * 0.3 + k), _shadows)
 
 # Nightmare fog drifting round the map's edge as cloud shadows, one side per cloud.
 func _draw_edge_fog() -> void:
