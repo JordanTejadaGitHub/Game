@@ -39,6 +39,8 @@ const SHEETS := {
 const DREAM_FOLDER := "dream"
 const SHARED_SHEETS := {ROPE_BRIDGE: "rope_bridge"}
 const ANIMATED: Array[int] = [WITHERED_TREE, EDGE_MIST, WAYSTONE, DEW_POOL, BLIGHT_PATCH]
+# Sheets whose cells are taller than a map cell (withered_tree.png: 64×96, overhanging the cell above).
+const TALL := {WITHERED_TREE: Vector2i(64, 96)}
 # Animated tiles start at a random point per cell (so a field of them never pulses in step), and
 # each dead-tree type (row) runs at its own pace with uneven frame timing: one frame held, one quick.
 const TREE_SPEEDS: Array[float] = [0.8, 0.95, 0.7, 0.85, 0.6, 1.1, 0.75, 0.9, 0.65]
@@ -62,7 +64,8 @@ static func create_tile_set(act: int = 1) -> TileSet:
 	for id: int in SHEETS.keys() + SHARED_SHEETS.keys():
 		var source := TileSetAtlasSource.new()
 		source.texture = load(sheet_path(SHEETS[id], act) if SHEETS.has(id) else shared_path(SHARED_SHEETS[id]))
-		source.texture_region_size = SIZE
+		var region: Vector2i = TALL.get(id, SIZE)
+		source.texture_region_size = region
 		var grid := source.get_atlas_grid_size()
 		if id in ANIMATED:
 			for row in grid.y:
@@ -75,12 +78,19 @@ static func create_tile_set(act: int = 1) -> TileSet:
 					source.set_tile_animation_frame_duration(coords, frame, weight / FPS)
 				if id == WITHERED_TREE:
 					source.set_tile_animation_speed(coords, TREE_SPEEDS[row % TREE_SPEEDS.size()])
+				_anchor_bottom(source, coords, region)
 		else:
 			for row in grid.y:
 				for column in grid.x:
 					source.create_tile(Vector2i(column, row))
+					_anchor_bottom(source, Vector2i(column, row), region)
 		tile_set.add_source(source, id)
 	return tile_set
+
+# A tall tile (64×96) puts its bottom 64 px on its own cell; the rest overhangs the cell above.
+static func _anchor_bottom(source: TileSetAtlasSource, coords: Vector2i, region: Vector2i) -> void:
+	if region.y > SIZE.y:
+		source.get_tile_data(coords, 0).texture_origin = Vector2i(0, (region.y - SIZE.y) / 2)
 
 # Swaps every sheet for act `act`'s season.
 static func set_act(tile_set: TileSet, act: int) -> void:

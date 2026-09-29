@@ -24,6 +24,10 @@ func _init() -> void:
 	_check(env.get_cell_source_id(Vector2i(0, 5)) == EnvironmentTiles.ISLAND_EDGE
 		and env.get_cell_atlas_coords(Vector2i(0, 5)).x == 1 | 2 | 4, "the left rim: island to the N, E and S")
 	_check(env.get_cell_atlas_coords(Vector2i(0, 0)).x == 2 | 4, "the top-left corner: island to the E and S")
+	var tree_sheet := map.tile_set.get_source(EnvironmentTiles.WITHERED_TREE) as TileSetAtlasSource
+	_check(tree_sheet.texture_region_size == Vector2i(64, 96) and tree_sheet.get_tiles_count() == 9
+		and tree_sheet.get_tile_data(Vector2i(0, 8), 0).texture_origin == Vector2i(0, 16),
+		"Withered Trees are 64x96, 9 kinds, bottom 64 px on their own cell")
 	_check(env.get_cell_source_id(Vector2i(5, size.y)) == EnvironmentTiles.CLIFF
 		and env.get_cell_atlas_coords(Vector2i(5, size.y)).x == 3, "a cliff hangs under the bottom row")
 	_check(env.get_cell_source_id(Vector2i(map.startPath) + Vector2i.UP) == EnvironmentTiles.ROPE_BRIDGE,
@@ -148,7 +152,9 @@ func _render(main: Node, layers: Array, file: String) -> void:
 			image.blend_rect(art, region, Vector2i(islet.position) - region.size / 2 + offset)
 	var sheets := {}
 	for layer: TileMapLayer in layers:
-		for cell in layer.get_used_cells():
+		var cells := layer.get_used_cells()
+		cells.sort_custom(func(a: Vector2i, b: Vector2i) -> bool: return a.y < b.y)  # Tall tiles overhang upward
+		for cell in cells:
 			var at := cell * tile + offset
 			if at.x < 0 or at.y < 0 or at.x >= image.get_width() or at.y >= image.get_height():
 				continue
@@ -156,7 +162,10 @@ func _render(main: Node, layers: Array, file: String) -> void:
 			if not sheets.has(source):
 				sheets[source] = source.texture.get_image()
 				sheets[source].convert(Image.FORMAT_RGBA8)
-			image.blend_rect(sheets[source], Rect2i(layer.get_cell_atlas_coords(cell) * tile, tile), at)
+			var region := source.texture_region_size
+			var coords := layer.get_cell_atlas_coords(cell)
+			var origin := source.get_tile_data(coords, 0).texture_origin
+			image.blend_rect(sheets[source], Rect2i(coords * region, region), at + (tile - region) / 2 - origin)
 	var heartwood: Heartwood = map.heartwood
 	var tree: Image = heartwood.texture.get_image()
 	tree.convert(Image.FORMAT_RGBA8)

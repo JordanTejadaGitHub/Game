@@ -40,6 +40,8 @@ func _ready() -> void:
 	tile_set = EnvironmentTiles.create_tile_set()
 	for layer: TileMapLayer in [ground_layer, path_layer, environment_object_layer]:
 		layer.tile_set = tile_set
+	# Tall trees overhang the cell above: the object layer draws row by row so a crown covers it.
+	environment_object_layer.y_sort_enabled = true
 	ground_layer.initialize()
 	unwalkable_cells = environment_object_layer.initialize(startPath, endPath)
 	path_layer.initialize(get_array_board(), startPath, endPath)
