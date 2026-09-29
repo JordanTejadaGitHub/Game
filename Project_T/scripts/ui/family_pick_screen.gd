@@ -252,7 +252,7 @@ func _make_card(data: TowerData) -> Button:
 		box.add_child(icon)
 	var sprout_cost := dream_state.get_evolve_cost(data)
 	# screens_ui.md "Family pick": name, identity, the statuses it applies, previews of its branches.
-	var lines := [[data.display_name, 22, Color.WHITE], [data.description, 15, Color(0.9, 0.95, 0.9)]]
+	var lines := [[data.display_name, 22, Color.WHITE], [IconInfo.format(data.description), 15, Color(0.9, 0.95, 0.9)]]
 	var statuses := get_status_text(data)
 	if statuses != "":
 		lines.append([statuses, 14, Color(0.75, 0.85, 1.0)])
@@ -328,7 +328,7 @@ func _make_blessing_card(card: UpgradeData) -> Button:
 	box.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	button.add_child(box)
 	_fit_card(button, box)
-	for line in [["Blessing", 14, Color(0.95, 0.8, 0.4)], [card.display_name, 22, Color.WHITE], [card.description, 15, Color(0.95, 0.92, 0.85)]]:
+	for line in [["Blessing", 14, Color(0.95, 0.8, 0.4)], [card.display_name, 22, Color.WHITE], [IconInfo.format(card.description), 15, Color(0.95, 0.92, 0.85)]]:
 		var label := Label.new()
 		label.text = line[0]
 		label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART

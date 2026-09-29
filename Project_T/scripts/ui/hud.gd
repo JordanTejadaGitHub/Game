@@ -154,7 +154,7 @@ func _build_tower_bar() -> void:
 		button.add_theme_font_size_override("font_size", 16)
 		button.custom_minimum_size = BUTTON_SIZE
 		button.tooltip_text = "%s (%s)\n%s · Cost: %d Dew\n%s" % [data.display_name, str(i + 1) if i < 9 else "no key",
-			IconInfo.damage_type_text(data.line), tower_placer.get_cost(data), data.description]  # "Light damage"
+			IconInfo.damage_type_text(data.line), tower_placer.get_cost(data), IconInfo.format(data.description)]  # "Light damage"
 		button.pressed.connect(_on_tower_pressed.bind(data))
 		if i < 9:
 			var hotkey := Label.new()

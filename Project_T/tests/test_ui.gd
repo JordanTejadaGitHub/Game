@@ -82,6 +82,18 @@ func _run() -> void:
 		row.refresh()
 		_check(row._icons[-1].live != live_before, "planting a Warden updates it (%s → %s)" % [live_before, row._icons[-1].live])
 		_check(row.get_list_text().contains("Few and Mighty"), "Dreams this run lists it")
+		# The redesigned list: grouped rows, status tokens filled in, a tap shows the full card.
+		var soft := dreams.pool.filter(func(c: UpgradeData) -> bool: return c.description.contains("{spored}"))
+		if not soft.is_empty():
+			dreams.choose(soft[0]) if dreams.is_offering() else dreams.stacks.set(soft[0].id, 1)
+			row.refresh()
+		row._toggle_list()
+		_check(row._list.visible and row._list_box.get_child_count() > 1, "Dreams this run opens as rows")
+		_check(not row.get_list_text().contains("{"), "no raw status tokens in the list")
+		var row_frame: Control = row._list_box.find_child("Row_few_and_mighty", false, false)
+		_check(row_frame != null, "Few and Mighty has its own row")
+		_check(DreamsRow.group_of(load("res://resource/dream/heart_of_the_maze.tres")) != "", "every card has a group")
+		row._toggle_list()
 
 	# --- Dreamlight: the counter beside the Dew, and Remember at rests ---
 	var light: Label = main.get_node("HUD/DreamlightLabel")
