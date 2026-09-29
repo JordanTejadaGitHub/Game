@@ -238,6 +238,11 @@ func _run() -> void:
 	sprout_asc.evolve(load("res://resource/tower/dawnwing.tres"), 0)
 	_check(sprout_asc.legacy_data == null, "only a final form becomes a legacy")
 
+	# Free the run scene before quitting: letting the engine tear it down at exit crashed ~5% of runs
+	# (signal 11 after PASS; freeing it first: 0 in 40). See Main for the game's own quit path.
+	main.queue_free()
+	for i in 3:
+		await process_frame
 	print("late game test: %s" % ("PASS" if failures == 0 else "%d FAILED" % failures))
 	quit(failures)
 

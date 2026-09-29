@@ -2336,6 +2336,14 @@ func _nightmares_near(at: Vector2, reach: float) -> Array:
 
 # The nightmares whose bucket is within `reach` px of `at` (a superset: callers check the distance and
 # is_cleansed). Also used by Reactions (Thunderclap arcs, neighbours).
+# The shared list holds nightmare nodes; left in a static at exit it crashed the engine's teardown about
+# one run in seven (test_late_game, signal 11 after PASS). Any Warden leaving the tree drops it (it's
+# rebuilt on the next query), so it's always empty by the time the scene is freed.
+func _exit_tree() -> void:
+	_nightmares = []
+	_buckets = {}
+	_nightmares_frame = -1
+
 static func nightmares_near(tree: SceneTree, at: Vector2, reach: float) -> Array:
 	_nightmares_this_frame(tree)
 	var r := int(ceil(reach / BUCKET))  # A bucket either side reaches at least BUCKET px past this one
