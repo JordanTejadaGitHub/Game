@@ -18,10 +18,14 @@ const TREE_SIZE := Vector2(560, 440)
 const SIDE_WIDTH := 300.0
 const NARROW_WIDTH := 900.0  # Below this the side panel sits under the tree and slides up
 const FRAME_TIME := 0.16  # Idle animation
-const LINE_COLOR := Color(0.78, 0.7, 0.45, 0.55)
-const LINE_LOCKED := Color(0.5, 0.5, 0.58, 0.35)
-const BLOOM_COLOR := Color(1.0, 0.92, 0.6)
-const HEADER_COLOR := Color(0.88, 0.86, 1.0)
+# Heartwood 32 (ui_style.md): lines in Gold, locked ones in Slate, the bloom in Glow.
+const LINE_COLOR := Color(UiStyle.BUTTON_GOLD, 0.6)
+const LINE_LOCKED := Color(Color("5c5a78"), 0.5)  # Slate
+const BLOOM_COLOR := UiStyle.GOLD
+const HEADER_COLOR := UiStyle.INK
+const STATUS_LINE_COLOR := Color("9cd4fc")  # Dewlight
+const WAYSTONE_COLOR := Color(UiStyle.CARD_BG, 0.95)  # Night
+const WAYSTONE_RIM := Color("3c3c5c")  # Dusk
 
 enum State { GROWN, UNLOCKED, CAN_UNLOCK, NEEDS_LIGHT, LOCKED, GROVE }
 
@@ -45,7 +49,7 @@ func _ready() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	var dim := ColorRect.new()
-	dim.color = Color(0.04, 0.04, 0.09, 0.82)
+	dim.color = Color(UiStyle.FOG, 0.82)
 	dim.set_anchors_preset(Control.PRESET_FULL_RECT)
 	add_child(dim)
 	var center := CenterContainer.new()
@@ -59,11 +63,10 @@ func _ready() -> void:
 	frame.add_child(box)
 
 	# Header: "Remember", "Dreamlight 3 ✦ · unspent carries over", "Dreamlight unlocks, Dew grows."
-	UiStyle.display(_title, 28)
+	UiStyle.title(_title, UiStyle.CHOICE_TITLE_SIZE, HEADER_COLOR)
 	_title.text = "Remember"
-	_title.add_theme_color_override("font_color", HEADER_COLOR)
 	box.add_child(_title)
-	_light_line.add_theme_color_override("font_color", UiStyle.GOLD)
+	UiStyle.number(_light_line, 20)
 	box.add_child(_light_line)
 	var hint := Label.new()
 	hint.text = "Dreamlight unlocks, Dew grows."
@@ -281,7 +284,7 @@ func _fill_side(data: TowerData) -> void:
 		if status != &"":
 			statuses.append(IconInfo.status_name(status))
 	if not statuses.is_empty():
-		_line("Applies " + " and ".join(statuses), Color(0.75, 0.85, 1.0), 14)
+		_line("Applies " + " and ".join(statuses), STATUS_LINE_COLOR, 14)
 	# Dew to grow into it (from its parent), or to plant the base
 	if data.buildable_directly:
 		_line("Plant: %d Dew" % data.cost, UiStyle.GOLD, 14)
@@ -296,7 +299,7 @@ func _fill_side(data: TowerData) -> void:
 		_line("On your map: ×%d" % count, UiStyle.INK_DIM, 14)
 	var kin := _kinship_line(data)
 	if kin != "":
-		_line(kin, Color(0.7, 0.95, 0.7), 14)
+		_line(kin, UiStyle.LIVE, 14)
 	_add_combos(data)
 	_add_unlock(data)
 
@@ -356,7 +359,7 @@ func _add_combos(data: TowerData) -> void:
 			found.append(combo)
 	if found.is_empty():
 		return
-	_line("Combos", UiStyle.INK_DIM, 13)
+	UiStyle.caps(_line("Combos", UiStyle.INK_DIM, 13), 15)  # A small-caps section label
 	var flow := HFlowContainer.new()
 	flow.custom_minimum_size = Vector2(SIDE_WIDTH - 30, 0)
 	_side_box.add_child(flow)
@@ -544,7 +547,9 @@ class FormNode extends Button:
 		var state := screen.state_of(data)
 		var centre := Vector2(NODE_SIZE.x / 2.0, 4 + PORTRAIT / 2.0)
 		# The waystone under the portrait
-		draw_circle(centre + Vector2(0, PORTRAIT / 2.0 - 2), PORTRAIT / 2.0 - 6, Color(0.16, 0.16, 0.24, 0.9))
+		var stone := centre + Vector2(0, PORTRAIT / 2.0 - 2)
+		draw_circle(stone, PORTRAIT / 2.0 - 6, WAYSTONE_COLOR)
+		draw_arc(stone, PORTRAIT / 2.0 - 6.5, 0.0, TAU, 40, WAYSTONE_RIM, 1.0, true)
 		if screen.selected == data:
 			draw_arc(centre, PORTRAIT / 2.0 + 3, 0.0, TAU, 40, UiStyle.GOLD, 2.0, true)
 		if state == State.CAN_UNLOCK:
@@ -565,10 +570,13 @@ class FormNode extends Button:
 				text = "Grove"
 				colour = UiStyle.INK_DIM
 		if text != "":
-			var font := ThemeDB.fallback_font
-			var width := font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, 13).x
+			# Counts and motes in the number face; "locked" / "Grove" as small-caps labels.
+			var words := state == State.LOCKED or state == State.GROVE
+			var font := UiStyle.caps_font() if words else UiStyle.number_font()
+			var font_size := 14 if words else 16
+			var width := font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size).x
 			draw_string(font, Vector2((NODE_SIZE.x - width) / 2.0, NODE_SIZE.y - 6), text,
-				HORIZONTAL_ALIGNMENT_LEFT, -1, 13, colour)
+				HORIZONTAL_ALIGNMENT_LEFT, -1, font_size, colour)
 
 
 # A Warden's idle loop in a box (its TowerData sheet: `frame_count` frames in a row); black for a
