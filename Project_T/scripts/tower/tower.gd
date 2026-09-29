@@ -429,18 +429,30 @@ func _has_work() -> bool:
 			_out = _out.filter(func(n) -> bool: return is_instance_valid(n))
 			if not _out.is_empty():
 				return false
-	return find_target() != null
+	return not get_enemies_in_range().is_empty()  # Performance: whether one is in range, not which (find_target scores them)
 
 
 # --- Effective stats (base × Dreams) ----------------------------------------------------------------
 
 func get_damage() -> float:
+	if _stats_fresh() and _stats.has(&"damage"):
+		return _stats[&"damage"]
+	_stats[&"damage"] = _compute_damage()
+	return _stats[&"damage"]
+
+func _compute_damage() -> float:
 	return attack_data.damage * _damage_share * get_rank_damage_multiplier() * (1.0 + _aura_damage) \
 		* _dream_bonus(&"soothe") \
 		* (1.0 + (_kin.damage_bonus(self) if is_instance_valid(_kin) else 0.0)) \
 		* get_wall_multiplier()  # Kindred / Whole Tree, Kinship cards; Bramble Oath
 
 func get_attacks_per_second() -> float:
+	if _stats_fresh() and _stats.has(&"speed"):
+		return _stats[&"speed"]
+	_stats[&"speed"] = _compute_attacks_per_second()
+	return _stats[&"speed"]
+
+func _compute_attacks_per_second() -> float:
 	var ranks := mini(get_effective_rank(), STAT_TOP_RANK)
 	var speed := 1.0 + RANK_SPEED * (ranks + get_court_ranks()) + (FOCUS_SWIFT * _focus_ranks(ranks) if focus == Focus.SWIFT else 0.0)
 	var dreams := 1.0
@@ -453,15 +465,10 @@ func get_attacks_per_second() -> float:
 		* (get_wall_multiplier() if attack_data.damage <= 0 else 1.0)  # Honeysuckle: Bramble Oath, The Quiet Ones
 
 func get_range_cells() -> float:
-	# Performance: targeting asks several times a frame; the answer is kept for the frame (tests and
-	# the panel changing a Warden mid-frame call clear_dream_cache, which drops it too).
-	var frame := Engine.get_process_frames()
-	if frame == _range_frame and attack_data == _range_data:
-		return _range_value
-	_range_value = _compute_range_cells()
-	_range_frame = frame
-	_range_data = attack_data
-	return _range_value
+	if _stats_fresh() and _stats.has(&"range"):
+		return _stats[&"range"]
+	_stats[&"range"] = _compute_range_cells()
+	return _stats[&"range"]
 
 var _range_frame := -1
 var _last_idle_frame := -1  # The idle animation frame last shown (see _process)
@@ -472,6 +479,29 @@ const IDLE_SEARCH := 0.25
 var _idle_search := 0.0  # Seconds until an idle Warden looks for a target again
 var _range_data: TowerData = null
 var _range_value := 0.0
+
+# Performance: damage, attack speed and range are asked for on every hit, search and attack (a range
+# was ~36 µs to work out: ranks, the court, Dreams, Omens). They're kept while nothing they read has
+# changed: the form, rank, Focus, auras, copy share, the board and the taken cards, the Kinship pairs
+# and the active Omen; STAT_CACHE_TIME is the backstop for the rest (the Eldest's court, Omen timing).
+# clear_dream_cache drops them too.
+const STAT_CACHE_TIME := 2.0
+var _stats := {}
+var _stats_key := []
+var _stats_until := -1.0
+
+func _stats_fresh() -> bool:
+	var key := [attack_data, rank, focus, _aura_range, _aura_damage, _aura_speed, _damage_share, _aura_crit,
+		_dream_state.board_version if _dream_state else 0, _dream_state.stacks.size() if _dream_state else 0,
+		_kin.get_pairs(self).size() if is_instance_valid(_kin) else 0,
+		_kin.families.hash() if is_instance_valid(_kin) else 0,
+		_omens.active if _omens else null]
+	if key != _stats_key or _anim_time > _stats_until:
+		_stats_key = key
+		_stats = {}
+		_stats_until = _anim_time + STAT_CACHE_TIME
+		return false
+	return true
 
 func _compute_range_cells() -> float:
 	var ranks := mini(get_effective_rank(), STAT_TOP_RANK)
@@ -734,6 +764,41 @@ static func get_range_for(data: TowerData, dream_state: DreamState) -> float:
 # --- Neighbours and auras -----------------------------------------------------------------------------
 
 # Other Wardens on the map (the tower's siblings).
+# Performance: other Wardens bucketed by TOWER_BUCKET px, rebuilt only when Wardens come, go or move
+# (towers_moved), so a neighbour scan looks at the ~9 buckets around it, not the whole map.
+const TOWER_BUCKET := 320.0  # 5 cells: past the furthest neighbour effect (the White Stag's crit aura, 4)
+static var _tower_buckets := {}
+static var _tower_key := []
+static var _towers_epoch := 0
+
+static func towers_moved() -> void:
+	_towers_epoch += 1
+
+# Other Wardens within about 5 cells (a superset: callers check the distance).
+func _towers_near() -> Array:
+	var parent := get_parent()
+	if parent == null:
+		return []
+	var key := [parent.get_instance_id(), parent.get_child_count(), _towers_epoch]
+	if key != _tower_key:
+		_tower_key = key
+		_tower_buckets = {}
+		for t in parent.get_children():
+			if t is Tower and not t.is_queued_for_deletion():
+				var bucket := Vector2i((t.global_position / TOWER_BUCKET).floor())
+				if _tower_buckets.has(bucket):
+					_tower_buckets[bucket].append(t)
+				else:
+					_tower_buckets[bucket] = [t]
+	var here := Vector2i((global_position / TOWER_BUCKET).floor())
+	var out := []
+	for dx in [-1, 0, 1]:
+		for dy in [-1, 0, 1]:
+			for t in _tower_buckets.get(here + Vector2i(dx, dy), []):
+				if t != self and is_instance_valid(t) and not t.is_queued_for_deletion():
+					out.append(t)
+	return out
+
 func _other_towers() -> Array:
 	if get_parent() == null:
 		return []
@@ -818,7 +883,7 @@ func _refresh_neighbours() -> void:
 	var harmony := {}
 	var best: Tower = null
 	var best_dps := 0.0
-	for other in _other_towers():
+	for other in _towers_near():
 		var distance: float = other.global_position.distance_to(global_position) / MAP_GRID.cell_size.x
 		var data: TowerData = other.tower_data
 		if data.aura_crit_bonus > 0.0 and distance <= data.attack_range:
@@ -993,7 +1058,7 @@ func _update_watch(delta: float) -> void:
 	_watch_check = WATCH_CHECK
 	if not get_enemies_in_range().is_empty():
 		_watch_time = 0.0
-	elif _watch_time >= DreamState.WATCHFUL_REST_TIME[mini(_dream_state.rule_level(&"watchful_rest"), 1)]:
+	elif _watch_time >= DreamState.WATCHFUL_REST_TIME[mini(_rule_level(&"watchful_rest"), 1)]:
 		watch_charged = true
 		queue_redraw()
 
@@ -1106,7 +1171,7 @@ func hit(enemy: Node2D, soothe_multiplier: float = 1.0, is_area: bool = false, c
 		Reactions.shatter_splash(enemy, self, dealt)
 	if is_crit:
 		_shattering_blow(enemy, dealt)
-	if _dream_state and _dream_state.has_rule(&"thousand_cuts") and is_instance_valid(enemy):
+	if _dream_state and _has_rule(&"thousand_cuts") and is_instance_valid(enemy):
 		enemy.statuses.add_cut()  # Every hit within 2 s: +2% damage taken from everyone (max +60%)
 	hit_landed.emit(self, enemy, is_area, is_crit)
 	apply_status_to(enemy, soothe)
@@ -1192,7 +1257,7 @@ func _legendary_hit_rules(enemy: Node2D, soothe: float) -> void:
 		return
 	_hits_landed += 1
 	var s: EnemyStatuses = enemy.statuses
-	if _dream_state.has_rule(&"hunters_moon"):
+	if _has_rule(&"hunters_moon"):
 		s.marked_forever = true
 		var id := enemy.get_instance_id()
 		if not _hunted.has(id):
@@ -1202,13 +1267,13 @@ func _legendary_hit_rules(enemy: Node2D, soothe: float) -> void:
 			_apply_one_status(enemy, EnemyStatuses.MARKED, 1, soothe)
 	if not is_instance_valid(enemy) or enemy.is_cleansed:
 		return
-	if _dream_state.has_rule(&"eternal_static"):
+	if _has_rule(&"eternal_static"):
 		s.static_forever = true
 		if _hits_landed % ETERNAL_STATIC_EVERY == 0:
 			enemy.apply_status(EnemyStatuses.STATIC, 1, 0.0, soothe, 0, "light", self)
 	if not is_instance_valid(enemy) or enemy.is_cleansed:
 		return
-	if _dream_state.has_rule(&"rooted_nightmares") and _hits_landed % ROOTED_NIGHTMARES_EVERY == 0:
+	if _has_rule(&"rooted_nightmares") and _hits_landed % ROOTED_NIGHTMARES_EVERY == 0:
 		var time := ROOTED_BOSS_TIME if s.is_boss else ROOTED_TIME
 		hold(enemy, time)
 
@@ -1248,7 +1313,7 @@ func pop(enemy: Node2D, chain: Dictionary = {}) -> void:
 		return e != enemy and e.global_position.distance_to(at) <= POP_SPREAD_RANGE * MAP_GRID.cell_size.x)
 	others.sort_custom(func(a: Node2D, b: Node2D) -> bool:
 		return a.global_position.distance_squared_to(at) < b.global_position.distance_squared_to(at))
-	var chain_bloom := _dream_state != null and _dream_state.has_rule(&"chain_bloom")
+	var chain_bloom := _dream_state != null and _has_rule(&"chain_bloom")
 	for i in mini(attack_data.pop_spread_targets, others.size()):
 		var other: Node2D = others[i]
 		other.apply_status(EnemyStatuses.SPORED, spread, duration, potency, attack_data.status_max_stacks,
@@ -1259,17 +1324,17 @@ func pop(enemy: Node2D, chain: Dictionary = {}) -> void:
 
 # Twin Puff: every 3rd Sporeling attack (II: every 2nd) fires twice.
 func _twin_puff() -> bool:
-	if tower_data.get_id() != "sporeling" or _dream_state == null or not _dream_state.has_rule(&"twin_puff"):
+	if tower_data.get_id() != "sporeling" or _dream_state == null or not _has_rule(&"twin_puff"):
 		return false
-	var every := 2 if _dream_state.rule_level(&"twin_puff") > 0 else 3
+	var every := 2 if _rule_level(&"twin_puff") > 0 else 3
 	return _attack_count % every == 0
 
 # Shattering Blow: a crit splashes 50% of its damage within 1 cell (II: 75% within 1.5). The splash
 # is area damage and never crits itself.
 func _shattering_blow(enemy: Node2D, dealt: float) -> void:
-	if _dream_state == null or not _dream_state.has_rule(&"shattering_blow"):
+	if _dream_state == null or not _has_rule(&"shattering_blow"):
 		return
-	var deep := _dream_state.rule_level(&"shattering_blow") > 0
+	var deep := _rule_level(&"shattering_blow") > 0
 	var share := 0.75 if deep else 0.5
 	var reach := (1.5 if deep else 1.0) * MAP_GRID.cell_size.x
 	var at := enemy.global_position
@@ -1425,8 +1490,8 @@ func _apply_one_status(enemy: Node2D, status: StringName, stacks: int, soothe: f
 	if status == EnemyStatuses.DROWSY:
 		SupportLog.credit(self, &"drowsy", stacks)  # Honeysuckle's panel line and the rest report
 	# Guiding Light: Marked spreads to nightmares within 1 tile of the target (II: 2 tiles).
-	if status == EnemyStatuses.MARKED and _dream_state and _dream_state.has_rule(&"guiding_light"):
-		var reach := (2.0 if _dream_state.rule_level(&"guiding_light") > 0 else 1.0) * MAP_GRID.cell_size.x
+	if status == EnemyStatuses.MARKED and _dream_state and _has_rule(&"guiding_light"):
+		var reach := (2.0 if _rule_level(&"guiding_light") > 0 else 1.0) * MAP_GRID.cell_size.x
 		for other in get_tree().get_nodes_in_group(ENEMY_GROUP):
 			if other != enemy and other.global_position.distance_to(at) <= reach:
 				other.apply_status(status, stacks, duration, potency, max_stacks, tower_data.line, self)
@@ -1478,7 +1543,7 @@ func _splash(where: Vector2, radius: float, share: float, crit: int) -> void:
 func _lob_landed(where: Vector2, splash: float) -> void:
 	Reactions._effect(&"landing_dust", where, self, splash / MAP_GRID.cell_size.x)
 	var hit_spots: Array[Vector2] = [where]
-	if _dream_state and _dream_state.has_rule(&"loose_stones"):
+	if _dream_state and _has_rule(&"loose_stones"):
 		for i in 3:
 			var spot := where + Vector2.from_angle(randf() * TAU) * randf_range(0.5, 1.5) * MAP_GRID.cell_size.x
 			spot = MAP_GRID.calculate_map_position(MAP_GRID.calculate_grid_coordinates(spot))  # A tile centre
@@ -1757,7 +1822,7 @@ func _chain_strike(first: Node2D) -> void:
 	var storm := attack_data.storm_every > 0 and _attack_count % attack_data.storm_every == 0
 	if storm:
 		Reactions._effect(&"thunderhead_strike", first.global_position, self)  # Signature: a bolt from the sky
-	if storm or (_dream_state and _dream_state.has_rule(&"conductive_soil")):
+	if storm or (_dream_state and _has_rule(&"conductive_soil")):
 		for enemy in get_enemies_in_range():
 			if enemy.statuses.has(EnemyStatuses.DAMP) and not hits.has(enemy):
 				hits.append(enemy)
@@ -1766,8 +1831,8 @@ func _chain_strike(first: Node2D) -> void:
 	var points := PackedVector2Array([global_position + tower_data.get_attack_origin()])
 	# Static Bloom: every nightmare the chain strikes also gets Drowsy (II: 2 stacks).
 	var bloom := 0
-	if _dream_state and _dream_state.has_rule(&"static_bloom"):
-		bloom = 2 if _dream_state.rule_level(&"static_bloom") > 0 else 1
+	if _dream_state and _has_rule(&"static_bloom"):
+		bloom = 2 if _rule_level(&"static_bloom") > 0 else 1
 	for i in hits.size():
 		var enemy := hits[i]
 		points.append(enemy.global_position)
@@ -1872,8 +1937,8 @@ func _update_catch(delta: float) -> void:
 		return
 	_catch_tick = AURA_TICK
 	var bad_dreams := 0
-	if _dream_state and _dream_state.has_rule(&"bad_dreams"):
-		bad_dreams = 2 if _dream_state.rule_level(&"bad_dreams") > 0 else 1
+	if _dream_state and _has_rule(&"bad_dreams"):
+		bad_dreams = 2 if _rule_level(&"bad_dreams") > 0 else 1
 	var many_threads := _rule_stacks(&"many_threads") > 0  # Many Threads: Catch at 4 Drowsy
 	for enemy in get_enemies_in_range():
 		var s: EnemyStatuses = enemy.statuses
@@ -1911,7 +1976,7 @@ func _on_reaction_nearby(id: StringName, enemy: Node2D, chain: int, towers: Arra
 	if not is_instance_valid(enemy) or tower_data.echo_share <= 0.0:
 		return
 	var depth := _echo_tracker.echo_depth
-	var encore := _dream_state != null and _dream_state.has_rule(&"encore")
+	var encore := _dream_state != null and _has_rule(&"encore")
 	if depth > 0 and not (encore and depth == 1):
 		return  # Echoes don't echo (Encore: once more, at half strength)
 	var spot := enemy.global_position
@@ -2020,7 +2085,7 @@ func get_catch_share(enemy: Node2D) -> float:
 	if growth > 0.0 and distance <= get_aura_reach():
 		share = maxf(share, DewCatch.OLD_GROWTH_CATCH * growth)
 	if share > 0.0 and _rule_stacks(&"dew_trail") > 0 and enemy.statuses.has(EnemyStatuses.DAMP):
-		share += DewCatch.DEW_TRAIL[_dream_state.rule_level(&"dew_trail")]
+		share += DewCatch.DEW_TRAIL[_rule_level(&"dew_trail")]
 	return share
 
 func add_to_bowl(amount: float) -> void:
@@ -2077,7 +2142,7 @@ func _update_wall(delta: float) -> void:
 	var scent := _scented_by() if _rule_stacks(&"scented_hedge") > 0 else null
 	if not snare and scent == null:
 		return
-	var level: int = _dream_state.rule_level(&"thorn_snare") if snare else 0
+	var level: int = _rule_level(&"thorn_snare") if snare else 0
 	var cell_px := MAP_GRID.cell_size.x
 	for enemy in get_tree().get_nodes_in_group(ENEMY_GROUP):
 		if not is_instance_valid(enemy) or enemy.is_cleansed:
@@ -2248,7 +2313,7 @@ func peck(enemy: Node2D) -> void:
 	var crit := ROLL_CRIT
 	if attack_data.flurry_every > 0 and _pecks_landed % attack_data.flurry_every == 0:
 		crit = CRIT
-	if _dream_state and _dream_state.has_rule(&"needle_point"):
+	if _dream_state and _has_rule(&"needle_point"):
 		enemy.pierce_coat_once = true
 	Reactions._effect(&"peck_spark", enemy.global_position + Vector2(randf_range(-6, 6), -14), self)
 	hit(enemy, 1.0, false, crit)
@@ -2261,9 +2326,9 @@ func peck(enemy: Node2D) -> void:
 			_kin_fired(&"jewel_thieves")
 	if not is_instance_valid(enemy) or enemy.is_cleansed or _dream_state == null:
 		return
-	if _dream_state.has_rule(&"charged_feathers"):
+	if _has_rule(&"charged_feathers"):
 		enemy.apply_status(EnemyStatuses.STATIC, 1, 0.0, get_damage(), 0, "light", self)
-	if _dream_state.has_rule(&"pollen_beaks"):
+	if _has_rule(&"pollen_beaks"):
 		enemy.apply_status(EnemyStatuses.SPORED, 1, 0.0, get_damage() * SPORE_POTENCY, 0, "spore", self)
 
 # Samara / Autumn Gale: seeds fly out along a straight line and back through everything.
@@ -2279,7 +2344,7 @@ func _throw_seeds() -> void:
 		directions = _busiest_lines(from, length, attack_data.boomerang_seeds)
 	else:
 		directions = [from.direction_to(target.global_position)]
-	if _dream_state and _dream_state.has_rule(&"seed_storm") and _throws % 5 == 0:
+	if _dream_state and _has_rule(&"seed_storm") and _throws % 5 == 0:
 		# Seed Storm: every 5th throw bursts into 5 seeds in a fan around the first line.
 		var centre := directions[0]
 		directions = []
@@ -2335,10 +2400,35 @@ func _busiest_lines(from: Vector2, length: float, count: int) -> Array[Vector2]:
 			break
 	return result
 
-func _rule_stacks(rule: StringName) -> int:
+# Performance: Dream rule lookups are cached for every Warden together (DreamState.rule_stacks walks the
+# taken cards; Wardens asked ~500 times a frame). The key changes with any card taken or stacked (take()
+# bumps the board version), a card added or dropped, a board change (dormant cards waking) and
+# unlock_everything, so a lookup never sees a stale set.
+static var _rules := {}  # rule -> [stacks (uncapped), level]
+static var _rules_key := []
+
+func _rule_entry(rule: StringName) -> Array:
 	if _dream_state == null or not _dream_state.has_method("rule_stacks"):
-		return 0
-	return mini(_dream_state.rule_stacks(rule), 3)
+		return [0, 0]
+	var key := [_dream_state.get_instance_id(), _dream_state.board_version, _dream_state.stacks.size(),
+		_dream_state.pool.size(), _dream_state.unlock_everything]
+	if key != _rules_key:
+		_rules_key = key
+		_rules = {}
+	var entry: Array = _rules.get(rule, [])
+	if entry.is_empty():
+		entry = [_dream_state.rule_stacks(rule), _dream_state.rule_level(rule)]
+		_rules[rule] = entry
+	return entry
+
+func _rule_stacks(rule: StringName) -> int:
+	return mini(_rule_entry(rule)[0], 3)
+
+func _has_rule(rule: StringName) -> bool:
+	return _rule_entry(rule)[0] > 0
+
+func _rule_level(rule: StringName) -> int:
+	return _rule_entry(rule)[1]
 
 # Gust: soothes everything in range a little, then copies the statuses of the most-afflicted
 # nightmare onto up to `spread_targets` others near it (half stacks, full duration).
@@ -2674,8 +2764,8 @@ const ROOT_GLOW := Color(0.7, 1.0, 0.55)
 
 func _refresh_root_links() -> void:
 	var links: Array[Vector2] = []
-	if tower_data.get_id() == "sprout" and _dream_state and _dream_state.has_rule(&"root_network"):
-		var diagonals := _dream_state.rule_level(&"root_network") > 0
+	if tower_data.get_id() == "sprout" and _dream_state and _has_rule(&"root_network"):
+		var diagonals := _rule_level(&"root_network") > 0
 		for other in _other_towers():
 			if other.tower_data.get_id() != "sprout":
 				continue
@@ -2925,6 +3015,8 @@ func _exit_tree() -> void:
 	_nightmares = []
 	_buckets = {}
 	_nightmares_frame = -1
+	_tower_buckets = {}  # Wardens too (a static list of nodes at exit crashed the teardown)
+	_tower_key = []
 	if not _root_links.is_empty() and get_parent() and get_parent().owner:
 		var overlay := get_parent().owner.get_node_or_null("RootNetworkOverlay")
 		if overlay:
@@ -3007,6 +3099,7 @@ func _refresh_dream_rows() -> void:
 func clear_dream_cache() -> void:
 	_dream_cache.clear()
 	_range_frame = -1
+	_stats_key = []
 
 # A Warden planted, sold or grown: Dream rows and neighbours (auras, copies, Root Network) look again
 # soon, spread over the next few frames rather than all at once.
