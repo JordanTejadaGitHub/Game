@@ -253,12 +253,12 @@ the profile like the Codex). The forest dreams of what it has seen.
   chat should rebalance `meta_design.md`'s node list.
   - **Resolved 2026-09-29** (Meta Game Code's audit: 8 nodes, 700 Seeds, were *fully* covered):
     **Legendaries are never discovery-gated**, so **Dawnbreak** and **Grove of Kin** drop
-    `discovered_by` and stay **Grove tips** (bought, as before). The **6 other fully covered nodes
+    `discovered_by` and stay **Grove tips** (bought, as before). The **5 other fully covered nodes
     are removed**: Reactions, Woven Dreams I and II, Kin Lore, Deep Bonds (and the Reactions →
     Dawnbreak link: Dawnbreak now hangs off Spore Lore; Grove of Kin off the nearest remaining Cards
     node). **Bittersweet Dreams** loses Blood Is Thicker and costs 52. Cards that are only
-    implicitly Warden-gated (Acorn Cache, Twin Puff, …) stay on their nodes. The tree loses about
-    **560 Seeds** (~5,960 → ~5,400, ~27 h instead of ~30 h), which is fine: those cards now come from
+    implicitly Warden-gated (Acorn Cache, Twin Puff, …) stay on their nodes. The tree (as built, 763f228) is
+    **6,722 Seeds** (~34 h; the earlier 5,960 figure was out of date), and those cards now come from
     playing instead.
 - **Half-dreamed cards** (see *Adapt, don't get handed*) still need their Reaction discovered first.
   So in a player's first runs they won't tempt toward a combo they've never seen; the Codex's greyed
