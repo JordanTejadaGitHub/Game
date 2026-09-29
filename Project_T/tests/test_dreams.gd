@@ -1041,7 +1041,7 @@ func _test_discovery(main: Node) -> void:
 	dreams._built_this_run.clear()
 	dreams.discovery_profile = {"seen": [], "wardens_built": [], "best_chain": 0}
 	var waiting := dreams.pool.filter(func(c: UpgradeData) -> bool: return not dreams.discovery_keys(c).is_empty())
-	_check(waiting.size() >= 33, "discovery cards in the pool (%d)" % waiting.size())
+	_check(waiting.size() >= 31, "discovery cards in the pool (%d)" % waiting.size())
 	_check(waiting.all(func(c: UpgradeData) -> bool: return not dreams.can_offer(c, 4)),
 		"a fresh profile is never offered a discovery card")
 	var thunder := _card(dreams, "rolling_thunder")
@@ -1056,16 +1056,25 @@ func _test_discovery(main: Node) -> void:
 		_check(not dreams.discovery_met(_card(dreams, "eye_of_the_tempest")), "a Woven card waits for its Crowned Reaction")
 	dreams.discovery_profile["seen"] = [String(Kinships.KINSHIPS.keys()[0])]
 	_check(dreams.discovery_met(_card(dreams, "close_kin")), "any Kinship lets the Kinship cards in")
-	var dawn := _card(dreams, "dawnbreak")
-	_check(not dreams.discovery_met(dawn), "Dawnbreak waits for a ×5 chain")
+	_check(dreams.discovery_met(_card(dreams, "dawnbreak")), "Legendaries are never discovery-gated")
+	_check(not dreams._key_met("chain:5", []), "a ×5 chain key waits…")
 	dreams.discovery_profile["best_chain"] = 5
-	_check(dreams.discovery_met(dawn), "…the profile's best chain counts")
+	_check(dreams._key_met("chain:5", []), "…the profile's best chain counts")
 	var cache := _card(dreams, "acorn_cache")
 	_check(not dreams.discovery_met(cache), "Acorn Cache waits for an Acorn to be built")
 	var before: Array[UpgradeData] = [cache]  # A Grove card: not in this run's pool
 	var acorn := _build(main, "acorn")
 	_check(dreams.discovery_met(cache) and dreams.newly_discovered(before).has(cache.display_name),
 		"building an Acorn lets its cards in at once")
+	# Half-dreamed cards skip the Warden gate (keep a Reaction gate); whole again, it applies.
+	dreams.unlocked["firefly_jar"] = true
+	dreams._offer_drift = 10
+	var beaks := _card(dreams, "static_bloom")  # Stormcap (Firefly Jar's) + Bloomcap
+	_check(dreams.is_half_dreamed(beaks) and dreams.discovery_met(beaks), "a half-dreamed card skips the Warden gate (%s)" % [dreams.half_dreamed_missing(beaks)])
+	for family in dreams.half_dreamed_missing(beaks):
+		dreams.unlocked[family] = true
+	_check(not dreams.is_half_dreamed(beaks) and not dreams.discovery_met(beaks), "…whole again, it waits for its Wardens")
+	dreams._offer_drift = 0
 	acorn.queue_free()
 	dreams.discovery_profile = null
 	dreams._built_this_run.clear()

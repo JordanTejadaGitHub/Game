@@ -16,4 +16,3 @@ cost_description = "Wardens not in a Kinship deal 15% less damage."
 min_act = 2
 min_kinships = 1
 rule_id = &"blood_is_thicker"
-in_start_pool = false

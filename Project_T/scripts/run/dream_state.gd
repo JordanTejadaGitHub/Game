@@ -2593,7 +2593,8 @@ func needs_text(card: UpgradeData) -> String:
 # A card named after a combo, Kinship or Warden enters the pool once it's been discovered, then stays
 # (profile). A discovery counts at once, mid-run too; its normal Needs still apply. Explicit keys are
 # UpgradeData.discovered_by; cards whose Needs name Wardens (requires / requires_any) also need one
-# of them built or grown into once (not combo-status cards, not Legendaries). Reactions, Crowned and
+# of them built or grown into once (not combo-status cards; half-dreamed cards skip it). Legendaries
+# are never gated. Reactions, Crowned and
 # Kinships come from the profile's combos_seen (ComboFeedback); the profile's wardens_built and
 # best_chain are saved here. The demo counts the current run only; dev runs have everything
 # discovered; tests too, unless a test sets `discovery_profile`.
@@ -2650,8 +2651,10 @@ func warden_discovered(id: String) -> bool:
 # The keys a card waits on: its discovered_by, plus "warden:<id>" entries for the Wardens its Needs
 # name (any one of them, "warden_any:a,b" for requires_any).
 func discovery_keys(card: UpgradeData) -> Array[String]:
+	if card.rarity == UpgradeData.Rarity.LEGENDARY:
+		return []  # Legendaries are never discovery-gated (Grove tips)
 	var keys: Array[String] = card.discovered_by.duplicate()
-	if not card.shows_statuses.is_empty() or card.rarity == UpgradeData.Rarity.LEGENDARY:
+	if not card.shows_statuses.is_empty():
 		return keys
 	for id in card.requires:
 		if _is_warden_id(id):
@@ -2668,6 +2671,8 @@ func discovery_met(card: UpgradeData) -> bool:
 	if _discovers_all():
 		return true
 	var keys := discovery_keys(card)
+	if is_half_dreamed(card):  # Half-dreamed: only its Reaction gate (the Needs line shows statuses)
+		keys = keys.filter(func(key: String) -> bool: return not key.begins_with("warden"))
 	if keys.is_empty():
 		return true
 	var found := _combos_found()
