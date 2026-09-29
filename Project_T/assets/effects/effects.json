@@ -97,6 +97,22 @@
 			"kind": "ui",
 			"loop": true
 		},
+		"cloud_puffs": {
+			"anchor": [
+				24,
+				20
+			],
+			"file": "cloud_puffs.png",
+			"fps": 1.0,
+			"frame_size": [
+				48,
+				32
+			],
+			"frames": 4,
+			"kind": "ground",
+			"loop": false,
+			"note": "Variants, not frames: PathCloud picks one per puff and tints it with projectile_color."
+		},
 		"crit_flare": {
 			"anchor": [
 				24,
@@ -477,6 +493,22 @@
 			"kind": "ground_loop",
 			"loop": true,
 			"note": "One ring tile (the 8 around the held nightmare, path tiles only), loops for 6 s. Draw under nightmares."
+		},
+		"fog_wisps": {
+			"anchor": [
+				28,
+				7
+			],
+			"file": "fog_wisps.png",
+			"fps": 1.0,
+			"frame_size": [
+				56,
+				14
+			],
+			"frames": 3,
+			"kind": "ground",
+			"loop": false,
+			"note": "Variants: fog strands PathCloud drifts across fog clouds (cloud_fog)."
 		},
 		"grafted_harmony_a": {
 			"anchor": [

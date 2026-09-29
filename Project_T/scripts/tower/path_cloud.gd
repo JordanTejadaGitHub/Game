@@ -6,6 +6,13 @@ class_name PathCloud
 # Spored tick harder. Script-only node, a child of the Warden that dropped it.
 
 const TICK := 0.5
+# Pixel-art puffs and fog strands (tools/effect_art_generator.gd), near-white so the Warden's
+# projectile_color tints them. Variants side by side, not animation frames.
+const PUFFS := preload("res://assets/effects/cloud_puffs.png")
+const PUFF_SIZE := Vector2(48, 32)
+const PUFF_ANCHOR := Vector2(24, 20)
+const WISPS := preload("res://assets/effects/fog_wisps.png")
+const WISP_SIZE := Vector2(56, 14)
 
 var _tower: Tower
 var _data: TowerData
@@ -73,8 +80,23 @@ func _tick() -> void:
 
 func _draw() -> void:
 	var fade := minf(1.0, (_duration - _age) / 0.5) * minf(1.0, _age / 0.2 + 0.3)
-	for i in 5:
-		var angle := TAU * i / 5.0 + _age * 0.6
-		var offset := Vector2.from_angle(angle) * _radius * 0.45
-		draw_circle(offset, _radius * 0.55, Color(_color, 0.14 * fade))
-	draw_circle(Vector2.ZERO, _radius * 0.6, Color(_color, 0.18 * fade))
+	var tint := _color.lerp(Color.WHITE, 0.25)
+	# A ring of puffs turning slowly round the middle, bobbing, back ones drawn first.
+	var n := 4 + roundi(_radius / 24.0)
+	var puffs: Array = [[Vector2(0, -3), n % 4]]
+	for i in n:
+		var angle := TAU * i / n + _age * 0.25
+		var bob := Vector2(0, sin(_age * 1.3 + i * 1.7) * 1.5)
+		puffs.append([Vector2.from_angle(angle) * Vector2(_radius * 0.55, _radius * 0.4) + bob, i % 4])
+	puffs.sort_custom(func(a: Array, b: Array) -> bool: return (a[0] as Vector2).y < (b[0] as Vector2).y)
+	for p: Array in puffs:
+		var at := ((p[0] as Vector2) - PUFF_ANCHOR).round()
+		draw_texture_rect_region(PUFFS, Rect2(at, PUFF_SIZE), Rect2(Vector2(int(p[1]) * PUFF_SIZE.x, 0), PUFF_SIZE), Color(tint, 0.62 * fade))
+	if _fog:
+		# Fog strands drifting across, fading in and out at the cloud's edges.
+		var span := _radius * 2.2
+		for i in 3:
+			var x := fposmod(_age * 14.0 + i * 37.0, span) - span / 2.0
+			var edge := 1.0 - absf(x) / (span / 2.0)
+			var at := (Vector2(x, (i - 1) * _radius * 0.35) - WISP_SIZE / 2.0).round()
+			draw_texture_rect_region(WISPS, Rect2(at, WISP_SIZE), Rect2(Vector2(i * WISP_SIZE.x, 0), WISP_SIZE), Color(tint, 0.7 * fade * edge))

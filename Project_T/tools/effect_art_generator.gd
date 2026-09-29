@@ -33,6 +33,7 @@ func _init() -> void:
 	_family_review()
 	_crowned()
 	_kinship()
+	_clouds()
 	var file := FileAccess.open(OUT + "effects.json", FileAccess.WRITE)
 	file.store_string(JSON.stringify({effects = index}, "\t") + "\n")
 	_save_preview()
@@ -1827,6 +1828,88 @@ func _save_kinship_preview() -> void:
 		y += sheet.get_height() + pad
 	out.resize(out.get_width() * 2, out.get_height() * 2, Image.INTERPOLATE_NEAREST)
 	out.save_png("res://tools/previews/effects_kinship.png")
+
+# --- Lingering clouds (PathCloud: Bloomcap / Dreamshroom sleepy clouds, Mistveil / Morning Fog) ----
+# Near-white so PathCloud can tint them with the Warden's colour (modulate multiplies). Drawn at 1x.
+#   cloud_puffs: 4 variants (not an animation) of a fairytale cloud puff: round lobes lit from the
+#     top left, a soft seam between lobes, a curl in the biggest one, soft translucent edges.
+#   fog_wisps: 3 variants of a long tapering fog strand ending in a curl, drifted across fog clouds.
+
+const CLOUD_LIGHT := Color("#ffffff")
+const CLOUD_MID := Color("#eef0f8")
+const CLOUD_SHADE := Color("#d0d6ea")
+const CLOUD_DEEP := Color("#a8b0cc")
+const CLOUD_SEAM := Color("#b8c0da")
+
+func _clouds() -> void:
+	_sheet("cloud_puffs", Vector2i(48, 32), 4, 1, Vector2i(24, 20), false, "ground", _cloud_puff,
+		{note = "Variants, not frames: PathCloud picks one per puff and tints it with projectile_color."})
+	_sheet("fog_wisps", Vector2i(56, 14), 3, 1, Vector2i(28, 7), false, "ground", _fog_wisp,
+		{note = "Variants: fog strands PathCloud drifts across fog clouds (cloud_fog)."})
+
+func _cloud_puff(img: Image, f: int) -> void:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 7100 + f * 31
+	# Lobes: a low row of four, one or two on top; the front (lower) ones are drawn over the back.
+	var blobs: Array = []
+	var base_y := 22.0
+	for k in 4:
+		var r := rng.randf_range(6.5, 8.5)
+		blobs.append([Vector2(8.5 + k * 10.3 + rng.randf_range(-1.0, 1.0), base_y - r * 0.3 + rng.randf_range(-1, 1)), r])
+	for k in (2 if f % 2 == 0 else 1):
+		var r := rng.randf_range(8.5, 11.0)
+		blobs.append([Vector2(18.0 + k * 13.0 + rng.randf_range(-2, 2), 13.5 + rng.randf_range(-1.5, 1.0)), r])
+	var owner := {}
+	for y in img.get_height():
+		for x in img.get_width():
+			var p := Vector2(x + 0.5, y + 0.5)
+			var best := -1
+			var best_v := 0.0
+			for i in blobs.size():
+				var c: Vector2 = blobs[i][0]
+				var r: float = blobs[i][1]
+				var v := 1.0 - p.distance_to(c) / r
+				# Lobes in front (lower centre) win where they overlap, so seams follow their tops.
+				if v > 0.0 and (best < 0 or c.y > (blobs[best][0] as Vector2).y + 0.5 or (v > best_v and absf(c.y - (blobs[best][0] as Vector2).y) <= 0.5)):
+					best = i
+					best_v = v
+			if best < 0 or y > 29:
+				continue
+			owner[Vector2i(x, y)] = best
+			var c: Vector2 = blobs[best][0]
+			var r: float = blobs[best][1]
+			var n2 := (p - c) / r
+			# Lit from above like a painted cloud (not a sphere): bright crown, soft middle, shaded base.
+			var i := -n2.y * 0.85 - n2.x * 0.25
+			var col := CLOUD_LIGHT if i > 0.5 else (CLOUD_MID if i > -0.05 else (CLOUD_SHADE if i > -0.6 else CLOUD_DEEP))
+			if y >= 27:
+				col = CLOUD_DEEP  # the flat underside
+			var a := 0.92
+			if best_v < 0.1:
+				a = 0.5  # soft edge
+			img.set_pixel(x, y, Color(col, a))
+	# Seams: where a front lobe's top edge crosses a back lobe.
+	for key: Vector2i in owner:
+		var up := key + Vector2i(0, -1)
+		if owner.has(up) and owner[up] != owner[key] and (blobs[owner[key]][0] as Vector2).y > (blobs[owner[up]][0] as Vector2).y:
+			img.set_pixel(key.x, key.y, Color(CLOUD_SEAM, 0.95))
+
+func _fog_wisp(img: Image, f: int) -> void:
+	var w := img.get_width()
+	var phase := f * 1.7
+	for x in range(2, w - 6):
+		var t := x / float(w - 6)
+		var cy := 7.0 + sin(x * 0.16 + phase) * 1.8
+		var thick := 3.2 * pow(sin(PI * clampf(t * 1.1, 0.0, 1.0)), 0.7)
+		for y in img.get_height():
+			var d := (y + 0.5 - cy) / maxf(thick, 0.01)
+			if absf(d) > 1.0:
+				continue
+			var col := CLOUD_LIGHT if d < -0.3 else (CLOUD_MID if d < 0.4 else CLOUD_SHADE)
+			var a := 0.75 * (1.0 - t * 0.35)
+			if absf(d) > 0.7:
+				a *= 0.55
+			img.set_pixel(x, y, Color(col, a))
 
 # --- Preview ----------------------------------------------------------------------------------------
 
