@@ -132,6 +132,7 @@ func _run() -> void:
 	(main.get_node("%ResultsScreen") as ResultsScreen).bank_in_tests = true  # Counts the win (temp profile)
 	var combos_found := HeartwoodMemory.load_data()  # The Codex sets this mid-run
 	combos_found.milestones.all_combos = true
+	combos_found.milestones.all_dreams = true  # The Dreams Codex sets this mid-run too
 	HeartwoodMemory.save_data(combos_found)
 	director.bosses_cleansed = 1
 	run_state.longest_path = 320
@@ -143,6 +144,9 @@ func _run() -> void:
 	_check(int(memory.highest_blight_won) == 5 and HeartwoodMemory.max_blight_level(memory) == 6, "Blight 5 won: level 6 opens")
 	_check(memory.cosmetics.has("golden_leaf"), "a flawless win grows the Golden Leaf")
 	_check(memory.cosmetics.has("gilded_pages"), "Discover every combo: the gilded Codex pages")
+	_check(memory.cosmetics.has("starlit_backs"), "Dream of everything: the starlit card backs")
+	memory.milestones.erase(MetaRun.ALL_DREAMS)  # Its reroll would change the perk checks below
+	HeartwoodMemory.save_data(memory)
 	_check(HeartwoodMemory.memories_unlocked(memory) > 1 + 7 / 3, "milestones reveal Memories too")
 
 	main.queue_free()
@@ -220,6 +224,18 @@ func _run() -> void:
 	_check(run_state.max_leaves == run_state.starting_leaves + 3, "Deep Taproot III: +3 max leaves")
 	_check(dreams.rerolls_left == 2 and dreams.cards_per_offer == 4, "Second Thoughts II and Wider Dreams")
 	_check(dreams.banishes_left == 0, "Let Go owned but not carried")
+	main.queue_free()
+	await process_frame
+	memory = HeartwoodMemory.load_data()
+	memory.milestones[MetaRun.ALL_DREAMS] = true
+	HeartwoodMemory.save_data(memory)
+	main = await _new_run()
+	dreams = main.get_node("%DreamState")
+	_check(dreams.rerolls_left == 3 and MetaRun.starlit_backs(), "Dream of everything: a 3rd reroll on top of Second Thoughts II, starlit backs (%d)" % dreams.rerolls_left)
+	var offer_card: UpgradeData = dreams.pool[0]
+	_check(main.get_node("HUD/DreamScreen")._make_card(offer_card).has_node("StarlitBack"), "Dream offer cards get the night-sky back")
+	memory.milestones.erase(MetaRun.ALL_DREAMS)
+	HeartwoodMemory.save_data(memory)
 	_check(dreams.allow_bittersweet and dreams.grove_cards.has("deep_sleep"), "the Bittersweet Dreams node lets bittersweet cards be offered")
 	main.queue_free()
 	await process_frame
@@ -350,6 +366,22 @@ func _run() -> void:
 	DevGrove.force = &""
 	_delete(GrovePresets.PATH)
 	ProjectSettings.set_setting("game/demo", false)
+
+	# --- Developer "Dream of everything rewards": both rewards, nothing recorded or written ---
+	HeartwoodMemory.save_data(HeartwoodMemory.defaults())
+	var fresh_text := FileAccess.get_file_as_string(PROFILE_PATH)
+	MetaRun.force_all_dreams = true
+	main = await _new_run()
+	dreams = main.get_node("%DreamState")
+	_check(dreams.rerolls_left == 1 and MetaRun.starlit_backs() and MetaRun.is_dev_run() and not (main.get_node("%MetaRun") as MetaRun).records,
+		"the dev toggle: 1 reroll, starlit backs, a dev run")
+	(main.get_node("%ResultsScreen") as ResultsScreen).bank_in_tests = true
+	main.get_node("%RunState").end_run(true)
+	await process_frame
+	_check(FileAccess.get_file_as_string(PROFILE_PATH) == fresh_text, "the dev toggle writes nothing (no milestone, no Seeds)")
+	main.queue_free()
+	await process_frame
+	MetaRun.force_all_dreams = false
 
 	# --- Developer "Unlock all families": a fresh profile, even in the demo, gets every family and
 	# their Grove Dream cards, without touching the profile, and banks nothing ---

@@ -106,6 +106,8 @@ func _make_card(card: UpgradeData) -> Button:
 	if card.woven:
 		for state in ["normal", "hover", "pressed", "hover_pressed"]:
 			(button.get_theme_stylebox(state) as MoonStyleBox).underline = true  # A glowing line along the foot too
+	if MetaRun.starlit_backs():
+		_add_starlit_back(button, card)
 
 	var box := VBoxContainer.new()
 	box.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -173,6 +175,27 @@ func _make_card(card: UpgradeData) -> Button:
 
 # A card grows to fit its content (a Button doesn't size to its children), at least CARD_SIZE tall.
 # If that would pass the screen, the secondary lines shrink first, never the effect.
+# Starlit card backs ("Dream of everything", meta_design.md): a night sky in the card. Placeholder
+# (a deep-blue glow and a few drawn stars) until the art exists.
+const STARLIT_GLOW := Color("16244f")
+
+func _add_starlit_back(button: Button, card: UpgradeData) -> void:
+	for state in ["normal", "hover", "pressed", "hover_pressed"]:
+		var style := button.get_theme_stylebox(state) as MoonStyleBox
+		if style:
+			style.glow_color = STARLIT_GLOW
+	var sky := Control.new()
+	sky.name = "StarlitBack"
+	sky.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	sky.set_anchors_preset(Control.PRESET_FULL_RECT)
+	sky.draw.connect(func() -> void:
+		var rng := RandomNumberGenerator.new()
+		rng.seed = hash(card.id)  # The same sky for the same card
+		for i in 18:
+			var at := Vector2(rng.randf_range(8, sky.size.x - 8), rng.randf_range(8, sky.size.y - 8))
+			sky.draw_circle(at, rng.randf_range(0.6, 1.4), Color(0.85, 0.9, 1.0, rng.randf_range(0.25, 0.6))))
+	button.add_child(sky)
+
 func _fit_card(button: Button, box: Control, secondary: Array[Label]) -> void:
 	var fit := func() -> void:
 		if not is_instance_valid(button):
