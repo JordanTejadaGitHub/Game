@@ -95,7 +95,8 @@ drag-select and works on touch (`platforms.md`).
 | Element | Design |
 |---|---|
 | **Build ghost** | the Warden on the hovered cell, green/red; range circle; **route preview line**; tag above: **"+12 path"** (or "−4 path") and the cost, red if unaffordable |
-| **Invalid placement** | red ghost + a short reason tag ("would close the dream", "nightmare here", "can't afford") |
+| **Invalid placement** | red ghost + a short reason tag ("would close the dream", "nightmare here", "can't afford", "the dream's edge") |
+| **The map's edge must look unbuildable** (2026-09-29, user: "it looks like you can place towers there but you can't") | the outer ring of cells (`island_edge` rim) reads as **edge, not ground**: no grass on its top, a crumbling lip of earth and roots falling into the void, clearly lower and darker than the buildable island (value below the ground), so the buildable area ends where the grass ends. **In build mode**, every unbuildable cell (edge, obstacles, start / end) gets a faint cold hatch, and the ghost over the edge says *"the dream's edge"*. Same rule for any other cell that can never hold a Warden |
 | **Obstacle hover** | name only (e.g. "Withered Tree"); clearing happens through the **Clear tool** (below). With the tool active: outline + "Tend Withered Tree · 5 Dew" + route preview if clearing changes it |
 | **Health bars** | only once a nightmare is hit (setting: always) |
 | **Status icons** | up to 3 small icons above a nightmare, most important first; each status has its own **shape** (Damp droplet, Drowsy "z", Spored dots, Marked ring, Static bolt, Held vine) and a stack number where relevant |
@@ -710,7 +711,7 @@ new families remain) use the same card with a blessing border.
 ### Dream
 
 - Three cards. **Rarity** is shown by frame colour **and** a gem shape: Common circle, Uncommon
-  diamond, Rare star, Legendary crown.
+  diamond, Rare **hexagon**, Legendary **star** (settled 2026-09-29 to match the game as built; the earlier "Rare star, Legendary crown" is dropped).
 - Card: name, effect, tags, and a kind badge: **Deepened II** (a "II" ribbon), **Entwined** (vine
   border), **Bittersweet** (thorn border, the cost in its own line).
 - Hovering a card highlights the Wardens on the map it would affect.
