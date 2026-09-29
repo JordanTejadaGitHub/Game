@@ -12,7 +12,7 @@ The Heartwood is `scripts/map/heartwood.gd`. Waystone, Dew Pool and Blight Patch
 TileSet but aren't placed on maps (their rules are still proposals).
 
 Lighting (the tiles stay unlit): `environment_lighting.gd` (a cold multiply toward the map's edges,
-a warm PointLight2D per attacking Warden), `heartwood.gd` (a warm light plus an additive glow over
+a warm additive glow per attacking Warden, all drawn by one canvas item), `heartwood.gd` (a warm light plus an additive glow over
 the multiply, dimming as leaves are lost) and `environment_ambience.gd` (nightmare fog along every
 edge; per act: warm motes, cold wisps, fog banks and embers, snow).
 

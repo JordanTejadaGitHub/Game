@@ -80,16 +80,18 @@ func _init() -> void:
 	_check(vignette != null and (vignette.material as CanvasItemMaterial).blend_mode == CanvasItemMaterial.BLEND_MODE_MUL,
 		"the edges get a cold multiply")
 	_check(heartwood.get_child(0) is PointLight2D and heartwood.get_child(1) is Sprite2D, "the Heartwood glows")
-	var lights_before := lighting.get_child_count()
+	var glowing_before := lighting.get_glowing_warden_count()
+	var nodes_before := lighting.get_child_count()
 	var sprout := _add_warden(main, "res://resource/tower/sprout.tres", Vector2(20, 18))
 	var wall := _add_warden(main, "res://resource/tower/thornwall.tres", Vector2(22, 18))
 	_add_warden(main, "res://resource/tower/sprout.tres", Vector2(12, 10))
-	_check(lighting.get_child_count() == lights_before + 2, "attacking Wardens get a warm light, walls don't")
-	_check(sprout.get_child_count() == 1, "the light isn't parented to the Warden")
+	_check(lighting.get_glowing_warden_count() == glowing_before + 2, "attacking Wardens glow, walls don't")
+	_check(lighting.get_child_count() == nodes_before and sprout.get_child_count() == 1,
+		"Warden glows are drawn by one canvas item, not a light node each")
 	wall.free()
 	sprout.free()
 	await process_frame
-	_check(lighting.get_child_count() == lights_before + 1, "a sold Warden's light goes with it")
+	_check(lighting.get_glowing_warden_count() == glowing_before + 1, "a sold Warden's glow goes with it")
 
 	for arg in OS.get_cmdline_user_args():
 		if arg.begins_with("--preview="):
@@ -159,8 +161,8 @@ func _render(main: Node, layers: Array, file: String) -> void:
 	_light_pass(image, map, offset, 2.0)
 	image.save_png(file)
 	print("preview saved to ", file)
-# Rough stand-in for the renderer's lighting: the cold multiply, lifted by the additive warm lights
-# (which light the multiply layer too). `scale` = world px per image px.
+# Rough stand-in for the renderer's lighting: the cold multiply, lifted by the Heartwood's light
+# (which lights the multiply layer too), plus the additive glows. `scale` = world px per image px.
 func _light_pass(image: Image, map: Node, margin: Vector2i, scale: float) -> void:
 	var lighting: EnvironmentLighting = map.lighting
 	var vignette := lighting.get_child(0) as Sprite2D
@@ -171,9 +173,13 @@ func _light_pass(image: Image, map: Node, margin: Vector2i, scale: float) -> voi
 	var lights := []
 	var glow := map.heartwood.get_child(1) as Sprite2D  # Additive, over the multiply
 	var glow_radius := glow.scale.x * 128.0
-	for node in lighting.get_children() + [map.heartwood.get_child(0)]:
-		if node is PointLight2D:
-			lights.append([node.global_position, node.color * node.energy, node.texture_scale * 128.0 * node.scale.x])
+	var heart_light := map.heartwood.get_child(0) as PointLight2D
+	lights.append([heart_light.global_position, heart_light.color * heart_light.energy, heart_light.texture_scale * 128.0 * heart_light.scale.x])
+	var glows := [[glow.global_position, glow.modulate * glow.modulate.a, glow_radius]]
+	for tower: Tower in lighting._wardens:
+		if lighting._wardens[tower]:
+			glows.append([tower.global_position + Vector2(0, -2),
+				Color(lighting.warden_glow_color, 1.0) * lighting.warden_glow_alpha, lighting.warden_glow_radius])
 	for y in image.get_height():
 		for x in image.get_width():
 			var world := Vector2(x, y) * scale - Vector2(margin)
@@ -185,8 +191,9 @@ func _light_pass(image: Image, map: Node, margin: Vector2i, scale: float) -> voi
 					warm += light[1] * falloff.sample(d).a
 			var lift := Color(1, 1, 1) + warm
 			var c := image.get_pixel(x, y) * lift * cold * lift
-			var g := world.distance_to(glow.global_position) / glow_radius
-			if g < 1.0:
-				c += glow.modulate * glow.modulate.a * falloff.sample(g).a
+			for added: Array in glows:
+				var g: float = world.distance_to(added[0]) / added[2]
+				if g < 1.0:
+					c += added[1] * falloff.sample(g).a
 			c.a = 1.0
 			image.set_pixel(x, y, c.clamp())

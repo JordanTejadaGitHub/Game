@@ -318,8 +318,8 @@ accessibility, Steam achievements (milestones map to them). Acts 3–4 and all f
   bridge out from the start (shared sheets in `assets/environment/dream/`), and `DreamVoid`
   (`dream_void.gd`: Parallax2D sky + stars behind the map, islets). Mist on the start, `Heartwood` (`heartwood.gd`, Sprite2D) on the end shows leaves lost (its warm light and additive
   glow dim with them). Lighting pass (art_direction.md), made by MapGenerator: `EnvironmentLighting`
-  (MUL-blended radial multiply, cold at the edges, z 3; a PointLight2D per attacking Warden, kept under
-  it, not the Warden) and `EnvironmentAmbience` (`_draw`: edge fog + the act's particles, z 6). `tests/test_environment.gd`
+  (MUL-blended radial multiply, cold at the edges, z 3; attacking Wardens glow via one additive canvas item,
+  redrawn only on plant/sell/grow) and `EnvironmentAmbience` (`_draw`: edge fog + the act's particles, z 6). `tests/test_environment.gd`
   (`-- --preview=<file.png>` saves a flat render of the map).
 - `scripts/enemy/` — `enemy.gd` (walks cell to cell along a grid path; `set_path` re-routes it),
   `enemy_spawner.gd` (on `path_changed`, re-routes every enemy from its `get_target_cell()`).
