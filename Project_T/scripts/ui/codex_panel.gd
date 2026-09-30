@@ -30,6 +30,21 @@ var tabs := TabContainer.new()
 var _search := LineEdit.new()
 var _glossary := VBoxContainer.new()
 var _glossary_scroll := ScrollContainer.new()
+var _group_list := VBoxContainer.new()  # The glossary's groups (left pane)
+var _group := ""  # The glossary group shown ("" = the first)
+const GROUP_LIST_WIDTH := 230.0
+const CARD_ICON := 32.0
+const WIDE_CODEX := 1100.0  # Viewport width from which the entry cards sit in two columns
+# Each glossary group's icon in the left pane (assets/ui/icons.png ids).
+const GROUP_ICONS := {"Resources": &"dew", "The run": &"path_length", "Combat": &"crit_chance", "Wardens": &"rank",
+	"Nightmares": &"nightmare", "Statuses": &"damp", "Damage types": &"damage_type", "Dreams": &"dreamlight",
+	"The Memory Grove": &"seeds", "Combat callouts": &"crit_damage", "Nightmares you've met": &"nightmare"}
+# Terms with an icon of their own (the rest use their group's).
+const TERM_ICONS := {"Dew": &"dew", "Dreamlight": &"dreamlight", "Dreamlight shard": &"dreamlight", "Leaves": &"leaves",
+	"Seeds": &"seeds", "Rank": &"rank", "Nurture": &"rank", "Potency": &"potency", "Crit": &"crit_chance",
+	"Deeply Blighted": &"deeply_blighted", "Hidden": &"hidden", "Flying": &"flying", "Dread shell": &"dread_shell",
+	"Omen": &"omen", "Damage type": &"damage_type", "Plain damage": &"plain", "Talon": &"wing",
+	"Nurture choice": &"focus_power", "Clear tool": &"dew_cost", "Close call": &"leaves"}
 var _combos := VBoxContainer.new()
 var _combos_scroll := ScrollContainer.new()
 var _combo_count := Label.new()
@@ -42,7 +57,7 @@ func _ready() -> void:
 	visible = false
 	var box := VBoxContainer.new()
 	box.add_theme_constant_override("separation", 8)
-	box.custom_minimum_size = Vector2(560, 520)
+	box.custom_minimum_size = Vector2(900, 560)  # Two panes and a two-column card grid
 	add_child(box)
 	var title := Label.new()
 	title.text = "Codex"
@@ -52,16 +67,32 @@ func _ready() -> void:
 	tabs.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	box.add_child(tabs)
 
-	var glossary_page := VBoxContainer.new()
+	# The glossary in two panes (screens_ui.md "Glossary and Families, revised"): the groups down the
+	# left with an icon each and the search on top; the right pane shows the group's entry cards.
+	var glossary_page := HBoxContainer.new()
 	glossary_page.name = "Glossary"
+	glossary_page.add_theme_constant_override("separation", 12)
 	tabs.add_child(glossary_page)
+	var left := VBoxContainer.new()
+	left.custom_minimum_size = Vector2(GROUP_LIST_WIDTH, 0)
+	left.add_theme_constant_override("separation", 6)
+	glossary_page.add_child(left)
 	_search.placeholder_text = "Search terms…"
 	_search.custom_minimum_size = Vector2(0, 40)
 	_search.text_changed.connect(func(_t: String) -> void: _build_glossary())
-	glossary_page.add_child(_search)
+	left.add_child(_search)
+	var groups_scroll := ScrollContainer.new()
+	groups_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	groups_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	_group_list.add_theme_constant_override("separation", 4)
+	_group_list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	groups_scroll.add_child(_group_list)
+	left.add_child(groups_scroll)
 	_glossary_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	_glossary_scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_glossary_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	_glossary.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_glossary.add_theme_constant_override("separation", 10)
 	_glossary_scroll.add_child(_glossary)
 	glossary_page.add_child(_glossary_scroll)
 
@@ -131,7 +162,10 @@ func jump(name: String) -> void:
 		tabs.current_tab = 1
 		_focus.call_deferred(_combos_scroll, _entries.get(String(combo.id)))
 		return
-	if not _entries.has(name):
+	var group := _group_of(name)
+	if not _entries.has(name) or (group != "" and group != _group and _search.text == ""):
+		if group != "":
+			_group = group
 		_search.text = ""
 		_build_glossary()
 	tabs.current_tab = 0
@@ -153,22 +187,34 @@ func _find_combo(name: String) -> Dictionary:
 
 # --- Glossary ------------------------------------------------------------------------------------
 
+# The left pane's group list, and the right pane: the chosen group's cards (or, while searching, every
+# match under its group's header). Jumps pick the group holding the term.
 func _build_glossary() -> void:
 	for child in _glossary.get_children():
 		child.queue_free()
 	for key in _entries.keys():
 		if _find_combo(key).is_empty():
 			_entries.erase(key)
+	var all_groups: Array = CodexData.glossary()
+	var met := get_met_nightmares()
+	if not met.is_empty():
+		all_groups = all_groups + [["Nightmares you've met", met]]
+	if _group == "" or not all_groups.any(func(g: Array) -> bool: return g[0] == _group):
+		_group = all_groups[0][0]
+	_build_group_list(all_groups)
+	var query := _search.text.strip_edges().to_lower()
+	if query == "":
+		for group in all_groups:
+			if group[0] == _group:
+				_add_group(group[0], group[1])
+		return
 	var groups := {}
 	for found in CodexData.search(_search.text):
 		groups.get_or_add(found[0], []).append(found[1])
 	for group in CodexData.glossary():
 		if groups.has(group[0]):
 			_add_group(group[0], groups[group[0]])
-	var met := get_met_nightmares()
-	var query := _search.text.strip_edges().to_lower()
-	if query != "":
-		met = met.filter(func(e: Array) -> bool: return e[0].to_lower().contains(query) or e[1].to_lower().contains(query))
+	met = met.filter(func(e: Array) -> bool: return e[0].to_lower().contains(query) or e[1].to_lower().contains(query))
 	if not met.is_empty():
 		_add_group("Nightmares you've met", met)
 	if _glossary.get_child_count() == 0:
@@ -176,39 +222,257 @@ func _build_glossary() -> void:
 		none.text = "Nothing matches \"%s\"." % _search.text
 		_glossary.add_child(none)
 
+# The group containing `term`, or "".
+func _group_of(term: String) -> String:
+	for group in CodexData.glossary() + [["Nightmares you've met", get_met_nightmares()]]:
+		for entry in group[1]:
+			if entry[0] == term:
+				return group[0]
+	return ""
+
+func _build_group_list(all_groups: Array) -> void:
+	for child in _group_list.get_children():
+		_group_list.remove_child(child)
+		child.queue_free()
+	for group in all_groups:
+		var button := Button.new()
+		button.text = "%s  %d" % [group[0], group[1].size()]
+		button.alignment = HORIZONTAL_ALIGNMENT_LEFT
+		button.toggle_mode = true
+		button.button_pressed = group[0] == _group and _search.text.strip_edges() == ""
+		button.focus_mode = Control.FOCUS_NONE
+		button.icon = IconInfo.icon(GROUP_ICONS.get(group[0], &"note"))
+		button.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		button.add_theme_constant_override("icon_max_width", 24)
+		button.theme_type_variation = &"HudButton"
+		button.custom_minimum_size = Vector2(0, 40)
+		var name: String = group[0]
+		button.pressed.connect(func() -> void:
+			_group = name
+			if _search.text != "":
+				_search.text = ""  # text_changed rebuilds with the group shown
+			else:
+				_build_glossary())
+		_group_list.add_child(button)
+
+# A group's header (the gold thread divider) and its cards in a grid: 2 columns on wide screens.
 func _add_group(title: String, entries: Array) -> void:
 	var header := Label.new()
 	header.text = title
-	header.add_theme_font_size_override("font_size", 20)
-	header.add_theme_color_override("font_color", UiStyle.LIVE)
+	UiStyle.caps(header, 18, UiStyle.GOLD)
 	_glossary.add_child(header)
+	_glossary.add_child(HSeparator.new())  # The theme draws it as the MoonDivider thread
+	var grid := GridContainer.new()
+	grid.columns = 2 if get_viewport_rect().size.x >= WIDE_CODEX else 1
+	grid.add_theme_constant_override("h_separation", 10)
+	grid.add_theme_constant_override("v_separation", 10)
+	grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_glossary.add_child(grid)
 	for entry in entries:
-		var card := VBoxContainer.new()
-		card.add_theme_constant_override("separation", 2)
-		var term := Label.new()
-		term.text = entry[0]
-		term.add_theme_font_size_override("font_size", 17)
-		term.add_theme_color_override("font_color", TERM_COLOR)
-		card.add_child(term)
-		card.add_child(StatusLinks.make_label(entry[1], 15))  # Status names are links
-		if entry.size() > 2 and not entry[2].is_empty():
-			var links := HFlowContainer.new()
-			var see := Label.new()
-			see.text = "See also:"
-			see.add_theme_font_size_override("font_size", 13)
-			links.add_child(see)
-			for other in entry[2]:
-				var combo := _find_combo(other)
-				if not combo.is_empty() and not CodexData.is_discovered(combo.id):
-					continue  # An undiscovered combo isn't named anywhere (screens_ui.md)
-				var link := LinkButton.new()
-				link.text = other
-				link.focus_mode = Control.FOCUS_NONE
-				link.pressed.connect(jump.bind(other))
-				links.add_child(link)
-			card.add_child(links)
-		_glossary.add_child(card)
+		var card := _entry_card(title, entry)
+		grid.add_child(card)
 		_entries[entry[0]] = card
+
+# One glossary entry as a card: a 32 px icon, the term in the display font, the definition, one muted
+# example line, "See also" as gold chips; statuses and damage types add their own lines.
+func _entry_card(group: String, entry: Array) -> Control:
+	var term: String = entry[0]
+	var status := _status_of(term) if group == "Statuses" else &""
+	var line := _damage_line_of(term) if group == "Damage types" else ""
+	var rim := UiStyle.MOONLIGHT
+	if status != &"":
+		rim = EnemyStatuses.COLORS.get(status, rim)
+	elif line != "":
+		rim = IconInfo.damage_type_color(line)
+	var card := PanelContainer.new()
+	card.add_theme_stylebox_override("panel", UiStyle.card(rim))
+	card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 10)
+	card.add_child(row)
+	var icon := TextureRect.new()
+	icon.texture = _term_icon(group, term, status, line)
+	icon.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	icon.custom_minimum_size = Vector2(CARD_ICON, CARD_ICON)
+	icon.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	row.add_child(icon)
+	var body := VBoxContainer.new()
+	body.add_theme_constant_override("separation", 3)
+	body.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row.add_child(body)
+	var name := Label.new()
+	name.text = term
+	UiStyle.display(name, 19)
+	name.add_theme_color_override("font_color", TERM_COLOR)
+	body.add_child(name)
+	var text := StatusLinks.make_label(entry[1], 15)  # Status names are links
+	text.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	body.add_child(text)
+	var example: String = entry[3] if entry.size() > 3 else ""
+	if example != "":
+		var muted := Label.new()
+		muted.text = example
+		muted.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		muted.add_theme_font_size_override("font_size", 13)
+		muted.add_theme_color_override("font_color", UiStyle.INK_DIM)
+		body.add_child(muted)
+	if status != &"":
+		_status_extras(body, status)
+	if line != "":
+		_damage_extras(body, line)
+	if entry.size() > 2 and not entry[2].is_empty():
+		var links := HFlowContainer.new()
+		links.add_theme_constant_override("h_separation", 6)
+		for other in entry[2]:
+			var combo := _find_combo(other)
+			if not combo.is_empty() and not CodexData.is_discovered(combo.id):
+				continue  # An undiscovered combo isn't named anywhere (screens_ui.md)
+			links.add_child(_chip(other, jump.bind(other)))
+		if links.get_child_count() > 0:
+			body.add_child(links)
+	return card
+
+# A small gold link chip (disabled with no action: a "???" combo).
+func _chip(text: String, on_press: Callable = Callable()) -> Button:
+	var chip := Button.new()
+	chip.text = text
+	chip.focus_mode = Control.FOCUS_NONE
+	chip.theme_type_variation = &"HudButton"
+	chip.add_theme_font_size_override("font_size", 13)
+	chip.add_theme_color_override("font_color", UiStyle.GOLD)
+	chip.custom_minimum_size = Vector2(0, 28)
+	if on_press.is_valid():
+		chip.pressed.connect(on_press)
+	else:
+		chip.disabled = true
+	return chip
+
+func _status_of(term: String) -> StringName:
+	for id in IconInfo.STATUSES:
+		if IconInfo.STATUSES[id][0] == term:
+			return id
+	return &""
+
+func _damage_line_of(term: String) -> String:
+	for line in IconInfo.DAMAGE_TYPES:
+		if IconInfo.damage_type_name(line) == term:
+			return line
+	return ""
+
+func _term_icon(group: String, term: String, status: StringName, line: String) -> Texture2D:
+	if status != &"":
+		var tex := IconInfo.icon(status)
+		if tex != null:
+			return tex
+	if line != "":
+		return IconInfo.damage_type_icon(line)
+	if TERM_ICONS.has(term):
+		return IconInfo.icon(TERM_ICONS[term])
+	return IconInfo.icon(GROUP_ICONS.get(group, &"note"))
+
+# A status card's numbers, who applies it (your families' base Wardens) and its combos (??? until found).
+func _status_extras(body: VBoxContainer, status: StringName) -> void:
+	var numbers: Array[String] = []
+	if EnemyStatuses.DEFAULT_MAX_STACKS.has(status):
+		var most: int = EnemyStatuses.DEFAULT_MAX_STACKS[status]
+		numbers.append("Up to %d stack%s" % [most, "" if most == 1 else "s"])
+	if EnemyStatuses.DEFAULT_DURATION.has(status):
+		numbers.append("lasts %s s" % str(EnemyStatuses.DEFAULT_DURATION[status]))
+	if not numbers.is_empty():
+		var label := Label.new()
+		label.text = " · ".join(numbers)
+		UiStyle.caps(label, 13, UiStyle.INK_DIM)
+		body.add_child(label)
+	var who := _families_applying(status)
+	if not who.is_empty():
+		var row := HBoxContainer.new()
+		row.add_theme_constant_override("separation", 4)
+		var by := Label.new()
+		by.text = "Applied by"
+		by.add_theme_font_size_override("font_size", 13)
+		by.add_theme_color_override("font_color", UiStyle.INK_DIM)
+		row.add_child(by)
+		for data in who:
+			var face := TextureRect.new()
+			face.texture = WardenIcon.make(data)
+			face.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+			face.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+			face.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+			face.custom_minimum_size = Vector2(24, 24)
+			face.tooltip_text = data.display_name
+			row.add_child(face)
+		body.add_child(row)
+	var combos := HFlowContainer.new()
+	combos.add_theme_constant_override("h_separation", 6)
+	for combo in CodexData.combos():
+		if combo.get("statuses", []).has(status) and CodexData.in_build(combo, _scope):
+			var found := CodexData.is_discovered(combo.id)
+			combos.add_child(_chip(combo.name if found else "???", jump.bind(String(combo.id)) if found else Callable()))
+	if combos.get_child_count() > 0:
+		body.add_child(combos)
+
+# The base Wardens (families in this Codex's scope) whose family applies `status`.
+func _families_applying(status: StringName) -> Array[TowerData]:
+	var out: Array[TowerData] = []
+	for family in CodexData.FAMILY_NAMES:
+		if _scope.has("families") and not _scope.families.has(family):
+			continue
+		var path := "res://resource/tower/%s.tres" % family
+		if not ResourceLoader.exists(path):
+			continue
+		var root := load(path) as TowerData
+		if root != null and _family_applies(root, status):
+			out.append(root)
+	return out
+
+func _family_applies(root: TowerData, status: StringName) -> bool:
+	var seen := {}
+	var stack: Array = [root]
+	while not stack.is_empty():
+		var data := stack.pop_back() as TowerData
+		if data == null or seen.has(data.get_id()):
+			continue
+		seen[data.get_id()] = true
+		if data.applies_status == status or data.get("extra_status") == status:
+			return true
+		for next in data.evolves_to:
+			stack.append(next)
+	return false
+
+# A damage type card: the nightmares weak to it and resisting it (??? until met).
+func _damage_extras(body: VBoxContainer, line: String) -> void:
+	var seen := NightmareCodex.seen()
+	for side in [["Weak to it", "weak_to"], ["Resist it", "resists"]]:
+		var kinds := NightmareCodex.all_kinds().filter(func(d: EnemyData) -> bool: return (d.get(side[1]) as Array).has(line))
+		if kinds.is_empty():
+			continue
+		var row := HFlowContainer.new()
+		row.add_theme_constant_override("h_separation", 4)
+		var label := Label.new()
+		label.text = side[0]
+		label.add_theme_font_size_override("font_size", 13)
+		label.add_theme_color_override("font_color", UiStyle.INK_DIM)
+		row.add_child(label)
+		for data in kinds.slice(0, 10):
+			if seen.has(NightmareCodex.kind_of(data)):
+				var face := TextureRect.new()
+				face.texture = NightmareCard.portrait(data)
+				face.modulate = data.tint
+				face.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+				face.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+				face.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+				face.custom_minimum_size = Vector2(24, 24)
+				face.tooltip_text = data.display_name
+				row.add_child(face)
+			else:
+				var unknown := Label.new()
+				unknown.text = "???"
+				unknown.add_theme_font_size_override("font_size", 13)
+				unknown.add_theme_color_override("font_color", LOCKED_COLOR)
+				row.add_child(unknown)
+		body.add_child(row)
 
 # [[name, what it does]] for every nightmare kind met in any run (bosses and late nightmares only
 # show once met), from the profile's nightmares_seen.
