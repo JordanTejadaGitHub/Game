@@ -98,6 +98,7 @@ func _draw_pips(tower: Tower) -> void:
 	if rows.is_empty():
 		return
 	var at := to_local(tower.global_position) + Vector2(-(rows.size() - 1) * PIP_STEP / 2.0, PIP_Y)
+	WorldLabel.begin_screen_size(self, at + Vector2((rows.size() - 1) * PIP_STEP / 2.0, 0.0))  # Screen size when zoomed in
 	var font := ThemeDB.fallback_font
 	for row in rows:
 		var colour := BuffSources.color(row[0], row[2])
@@ -105,6 +106,7 @@ func _draw_pips(tower: Tower) -> void:
 		if row[1] > 1:
 			draw_string(font, at + Vector2(PIP_RADIUS, 9), "×%d" % row[1], HORIZONTAL_ALIGNMENT_LEFT, -1, 9, colour)
 		at.x += PIP_STEP
+	WorldLabel.end_screen_size(self)
 
 # One pip: a shape per kind (not only a colour, for accessibility). Shared with the Warden panel.
 static func draw_pip(canvas: CanvasItem, at: Vector2, kind: String, colour: Color, r: float = PIP_RADIUS) -> void:

@@ -101,5 +101,7 @@ func _draw() -> void:
 		var text: String = callout[1]
 		var width := font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, size).x
 		var at: Vector2 = callout[4] + Vector2(-width / 2.0, -46.0 - 18.0 * t)
+		WorldLabel.begin_screen_size(self, callout[4])  # Keeps its screen size when zoomed in
 		draw_string_outline(font, at, text, HORIZONTAL_ALIGNMENT_LEFT, -1, size, 5, Color(0.05, 0.05, 0.08, alpha))
 		draw_string(font, at, text, HORIZONTAL_ALIGNMENT_LEFT, -1, size, Color(callout[2], alpha))
+		WorldLabel.end_screen_size(self)

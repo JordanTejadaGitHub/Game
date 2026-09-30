@@ -88,9 +88,12 @@ func _draw() -> void:
 		var r: Dictionary = _rows[tower.get_instance_id()]
 		var text := tag_text(r)
 		var width := font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, FONT_SIZE).x
-		var at: Vector2 = tower.global_position + OFFSET + Vector2(-width / 2.0, 0)
+		var anchor: Vector2 = tower.global_position + OFFSET
+		var at: Vector2 = anchor + Vector2(-width / 2.0, 0)
+		WorldLabel.begin_screen_size(self, anchor)  # Keeps its screen size when zoomed in
 		draw_rect(Rect2(at + Vector2(-4, -FONT_SIZE), Vector2(width + 8, FONT_SIZE + 5)), Color(UiStyle.FOG, 0.65))
 		draw_string(font, at, text, HORIZONTAL_ALIGNMENT_LEFT, -1, FONT_SIZE, r.get("tag_color", DriftMeter.FINE_COLOR))
+		WorldLabel.end_screen_size(self)
 
 # A click on a tag: select that Warden and glide to it.
 func _unhandled_input(event: InputEvent) -> void:
@@ -100,8 +103,10 @@ func _unhandled_input(event: InputEvent) -> void:
 	for tower in _shown_towers():
 		if not is_instance_valid(tower):
 			continue
-		var centre: Vector2 = tower.global_position + OFFSET + Vector2(0, -FONT_SIZE / 2.0)
-		if Rect2(centre - TAG_SIZE / 2.0, TAG_SIZE).has_point(world):
+		var s := WorldLabel.text_scale(self)
+		var centre: Vector2 = tower.global_position + OFFSET + Vector2(0, -FONT_SIZE / 2.0) * s
+		var tag := TAG_SIZE * s  # Drawn at screen size
+		if Rect2(centre - tag / 2.0, tag).has_point(world):
 			DriftMeter.focus_tower(tower)
 			get_viewport().set_input_as_handled()
 			return
