@@ -570,18 +570,14 @@ func _fill_buffs(tower: Tower) -> void:
 			var link := Button.new()
 			link.flat = true
 			link.alignment = HORIZONTAL_ALIGNMENT_LEFT
-			link.text = entry.label
+			link.text = IconInfo.format(entry.label)  # Tokens as plain words on a button
 			link.add_theme_color_override("font_color", colour)
 			link.tooltip_text = "Select it"
 			var source: Tower = entry.source
 			link.pressed.connect(func() -> void: _go_to(source))
 			row = link
 		else:
-			var label := Label.new()
-			label.text = entry.label
-			label.add_theme_color_override("font_color", colour)
-			label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-			row = label
+			row = StatusLinks.make_label(entry.label, 15, colour)  # {Kinship} and status words link to the Codex
 		_buffs.add_child(row)
 	var total := BuffSources.totals(entries)
 	var parts: Array[String] = []

@@ -61,7 +61,7 @@ static func for_tower(tower: Tower) -> Array[Dictionary]:
 		for pair in kin.get_pairs(tower):
 			var partner: Tower = pair.b if pair.a == tower else pair.a
 			var entry := _entry("kinship", partner, "", 0.0)
-			entry.label = "Kinship %s (%s, %d%%)" % [Kinships.KINSHIPS[pair.id][0], Kinships.STAGE_NAMES[kin.get_stage(pair)],
+			entry.label = "{Kinship} %s (%s, %d%%)" % [Kinships.KINSHIPS[pair.id][0], Kinships.STAGE_NAMES[kin.get_stage(pair)],
 				roundi(Kinships.STAGE_SHARE[kin.get_stage(pair)] * 100.0)]
 			result.append(entry)
 		var family := kin.family_bonus(tower.tower_data.line)
@@ -73,7 +73,7 @@ static func for_tower(tower: Tower) -> Array[Dictionary]:
 		var cards := kin.damage_bonus(tower) - family
 		if absf(cards) > 0.0001:
 			var entry := _entry("kin_cards" if cards > 0.0 else "penalty", null, "damage", cards)
-			entry.label = "Kinship Dreams %s damage" % _signed(cards)
+			entry.label = "{Kinship} Dreams %s damage" % _signed(cards)
 			entry.negative = cards < 0.0
 			result.append(entry)
 	# Nurture and Focus.
