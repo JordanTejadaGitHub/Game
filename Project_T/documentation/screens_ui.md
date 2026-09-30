@@ -319,6 +319,17 @@ details show when the player asks (selecting, hovering, placing, pausing, rests)
 | **Warden panel** | a **Buffs** section listing every source with its amount and a total, e.g. *"Elder Stump (rank IV, Kindred) +26.6% attack speed · Elder Stump +10% (falloff) · Kinship Slumber Rot (Blooming, 75%) · Kindred +10% damage · Rank III (Power) · Dreams: Deeper Calm ×3 +30% damage"*. Tapping a Warden source selects it and glides the camera there. Negative effects (e.g. *Blood Is Thicker*'s −15%, an Omen's penalty) are listed in a muted plum, the Bittersweet colour. |
 | **Buff lens** (a HUD toggle, hotkey **V**) | a map overlay: every aura area tinted by kind, every Warden's buff pips shown, and Wardens coloured by how boosted they are. Toggle on/off (it isn't hold-only, for touch and the mobile port). |
 
+- **The lens button, revised** (2026-09-30, user: *"buff toggle makes no sense for players who just
+  started"*; in their screenshot every Warden glowed gold with the lens on):
+  - **Hidden until it means something:** the top-right button appears only once the map has a
+    **local** buff source (the first aura Warden or Kinship). The V hotkey works from then on too.
+  - **Named for what it shows:** "Boosts" (not "Buffs"), and its tooltip says *"Show which Wardens
+    are boosted, and by what."*
+  - **Only boosted Wardens light up**, by local sources (auras, Kinships, Kindred / Whole Tree).
+    Dreams and Nurture that apply to every Warden don't light anyone up (they're in the Warden panel);
+    otherwise the whole map glows and says nothing.
+  - **A small legend** under the button while it's on: the source kinds on the map with their colour
+    and shape (*"Acorn aura · Elder Stump · Kinship"*).
 - **One colour per buff source kind**, used everywhere (pips, threads, aura rings, panel rows): the
   Acorn family's gold for auras, the family colour for Kinships, green-gold for Whole Tree. Icons
   also differ by **shape**, not just colour (accessibility).
