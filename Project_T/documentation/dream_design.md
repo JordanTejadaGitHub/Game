@@ -685,9 +685,9 @@ Evolving is still the better buy when a Dream allows it; Nurture cards make rank
 |---|---|---|---|---|---|---|
 | 60 | **Tender Care** | Common | Nurturing costs **15% less** Dew (stacks, max −45%) | nurture, economy | *opener:* 30+ Dew spent on ranks | Start |
 | 61 | **Warm Hands** | Common | each Nurture rank gives **+3% more damage** (10% → 13%; stacks) | nurture | *opener:* 30+ Dew spent on ranks | Start |
-| 62 | **Kindred Roots** | Uncommon | each Warden gets **+2% damage per rank of the Wardens touching it** (max +30%) | nurture, maze | any `nurture` card + 2 ranked Wardens | Start |
+| 62 | **Kindred Roots** | Uncommon | each Warden gets **+2% damage per rank of the Wardens touching it** (max +30%) | nurture, maze | any `nurture` card (soft) + **1** ranked Warden (was 2; trim round 2) | Start |
 | 63 | **Remembered Care** | Uncommon | selling a ranked Warden leaves a **memory seed** on the HUD; the next Warden you plant starts at that rank (one seed at a time, the highest one is kept) | nurture | any `nurture` card + a rank III+ Warden | Start |
-| 64 | **Sunlit Rest** | Uncommon | at every rest, your ranked Warden **nearest the Heartwood** that isn't at max rank gains a free rank | nurture | any `nurture` card | Grove |
+| 64 | **Sunlit Rest** | Uncommon | at every rest, your ranked Warden **nearest the Heartwood** that isn't at max rank gains a free rank; **with none ranked, your attacking Warden nearest the Heartwood gains rank I** (trim round 2) | nurture | — (an opener since trim round 2) | Grove |
 | 65 | **Deeper Rings** | Rare | **one Warden, the Eldest,** can grow past V to rank **VII**: VI costs 130, VII costs 180 (same gains per rank) | nurture | any `nurture` card + a rank V Warden | Grove |
 | 66 | **Nursery** | Rare, **Entwined** | Seedling Gift's free Sprouts arrive at **rank II**, and Sprouts nurture for half price | nurture, sprout | Tender Care + Seedling Gift | Grove |
 | 67 | **The Old Ones** | Legendary | rank V+ Wardens make the Wardens touching them count **one rank higher** (doesn't stack with itself). *(2026-09-28: the "+2% crit chance per rank" half was removed: one archetype per Legendary)* | nurture | — | Grove |
@@ -1127,6 +1127,31 @@ of it boosts the whole build, so chasing works with a smaller pool). The 18 **Wa
 - **Measure again** (Emergence with the random and mixed pickers, Chasing for all 10 card builds and
   the Warden-combo builds, Adapt) and tune **only `tag_weight`** (1.6 → at most 2.2) if chasing is
   still short; Adapt must stay ≥ 70%.
+
+**Trim measured (a1535394):** Emergence rose a lot: **mixed picker 74%** (was 52%; target 70% ✓),
+random 25% (was 15%); Adapt 94–95% ✓. Chasing in band for Overgrowth, Daring, Maze, Tending (Kinship,
+Precision just under). **`tag_weight` has run out:** 1.6 → 2.2 gains weak builds only +3–6 points and
+pushes Maze / Tending / Support over the top, so it **stays at 1.6**. What limits the rest is the
+packages. Round 2 (my call, within the user's "solve and balance" brief):
+
+1. **Swarm merges into Affliction** ("wear the crowd down": effect damage and area damage). Affliction's
+   enhancers: Bitter Sap, Seeping, Venom Bloom, Lasting Dreams, Heavy Air, Crowd Breaker, Crowded Path,
+   Last Breath, Thinning the Herd (9). Shattering Blow stays in Precision. The `swarm` tag becomes
+   `affliction`. **9 card builds.**
+2. **Tall gets an early door:** **Sunlit Rest** works with no ranked Warden (it gives rank I to your
+   attacking Warden nearest the Heartwood), and it drops its "any `nurture` card" Need, so it's an
+   opener like Tender Care. **Kindred Roots** needs **1** ranked Warden (was 2). Deeper Rings / Chosen
+   Few keep their rank V Needs (they're the late half).
+3. **Support's package** is its own 5 cards (Living Walls, Scented Hedge, Thorn Snare, Warm Hearth,
+   Kind Canopy), not "+ the Acorn family's cards": those belong to The Grove / Greedy Gardener.
+4. **Families count after you choose their cards:** a family line tag (spore, water, storm, …) joins
+   your build tags **once you've taken a card with that tag**, never from the family pick. This is
+   what the Warden-combo builds (Full Moon, Fairy Mines, Thunder Chimes, The Grove…) were missing:
+   their cards are family cards, and with only archetype tags weighting, a family you'd started
+   dreaming toward never came back. Same `tag_weight` (1.6).
+5. **Maze may be the most common build.** It sits at ~38% of emerging runs (with The Long Walk's
+   overlap), over the 15% cap, because maze cards help every board. In a maze tower defense that's
+   the right default; the cap applies to every **other** build.
 
 ## Status effect numbers
 
