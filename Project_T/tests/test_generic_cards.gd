@@ -42,6 +42,7 @@ func _run() -> void:
 	_test_rows_cache()
 	_test_scaling_cards()
 	_test_catalogue()
+	_test_eleven_cards()
 	_test_seed_cards()
 	_test_support_cards()
 	_test_needs_text()
@@ -394,6 +395,54 @@ func _test_catalogue() -> void:
 	dreams.take(_card("live_wire"))
 	_check(is_equal_approx(dreams.get_bolt_multiplier(), 1.15), "Live Wire: bolts +15%")
 	_check(_card("thin_bark").soothe_bonus == 0.35 and _card("thin_bark").max_leaves_add == -3, "Thin Bark: +35% damage, −3 max leaves")
+	_clear()
+	_reset()
+
+
+# The 11 cards the catalogue named but were never built (crit cards 37–39, new-Warden cards 46–53):
+# data, and the DreamState side (Glinting Dew, Heavy Stones, Sharpened Light / II, Deep Frost, Long
+# Shadows). Tower Code tests the rest (Patient Aim, Ring Dance, Carried on the Wind, Sweet Scent,
+# Shiny Things, Hairpin Winds).
+func _test_eleven_cards() -> void:
+	_reset()
+	var grove := ["long_shadows", "patient_aim", "ring_dance", "deep_frost", "carried_on_the_wind", "sweet_scent",
+		"shiny_things", "hairpin_winds"]
+	for id in ["glinting_dew", "heavy_stones", "sharpened_light", "sharpened_light_ii"] + grove:
+		var card := _card(id)
+		if card:
+			_check(card.in_start_pool != grove.has(id) and not card.tags.is_empty(), "%s: pool and tags" % id)
+	_check(_card("ring_dance").entwined and _card("carried_on_the_wind").entwined and _card("sharpened_light_ii").deepens == "sharpened_light",
+		"Ring Dance and Carried on the Wind are Entwined; Sharpened Light II deepens")
+	var pebble := _plant("pebbling", Vector2(100, 100))
+	var spore := _plant("sporeling", Vector2(104, 100))
+	var base := dreams.get_crit_chance_bonus(spore)
+	dreams.take(_card("glinting_dew"))
+	_check(is_equal_approx(dreams.get_crit_chance_bonus(spore) - base, 0.08), "Glinting Dew: +8% crit, all Wardens")
+	dreams.take(_card("heavy_stones"))
+	_check(is_equal_approx(dreams.get_crit_chance_bonus(pebble) - dreams.get_crit_chance_bonus(spore), 0.15),
+		"Heavy Stones: the Pebbling line +15% more")
+	_check(dreams.get_crit_overflow_multiplier(0.5) == 0.0, "no Sharpened Light: crits ×2 as before")
+	dreams.take(_card("sharpened_light"))
+	_check(is_equal_approx(dreams.get_crit_overflow_multiplier(0.5), 0.5), "Sharpened Light: crits +0.5×")
+	dreams.take(_card("sharpened_light_ii"))
+	_check(is_equal_approx(dreams.get_crit_overflow_multiplier(0.5), 1.0), "…II: +1.0×")
+	# Deep Frost: Held by a water Warden (frozen), not by a Rootling
+	var frostfern := _plant("frostfern", Vector2(108, 100))
+	var rootling := _plant("rootling", Vector2(112, 100))
+	var cold := _spawn(Vector2(5, 5))
+	var plain := dreams.on_hit_multiplier(spore, cold)
+	dreams.take(_card("deep_frost"))
+	cold.statuses.apply(EnemyStatuses.HELD, 1, 5.0, 1.0, 0, "root", rootling)
+	_check(is_equal_approx(dreams.on_hit_multiplier(spore, cold), plain), "Deep Frost: nothing on a Rootling hold")
+	cold.statuses.remove(EnemyStatuses.HELD)
+	cold.statuses.apply(EnemyStatuses.HELD, 1, 5.0, 1.0, 0, "water", frostfern)
+	_check(is_equal_approx(dreams.on_hit_multiplier(spore, cold), plain + 0.45), "…+45% on a frozen one")
+	cold.free()
+	# Long Shadows: range 5+ reach 2 further
+	dreams.take(_card("long_shadows"))
+	var stone: TowerData = load("res://resource/tower/standing_stone.tres")
+	_check(is_equal_approx(_row(stone, Vector2(120, 120), "long_shadows").range, 2.0) and _row(stone, Vector2(120, 120), "long_shadows").active
+		and not _row(spore.tower_data, spore.cell, "long_shadows", spore).active, "Long Shadows: +2 range for range 5+, not short Wardens")
 	_clear()
 	_reset()
 

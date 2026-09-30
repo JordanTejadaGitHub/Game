@@ -35,6 +35,7 @@ const REPORTERS := {
 	&"many_rings": "_many_rings", &"hedgerow": "_hedgerow", &"spinning_corners": "_spinning_corners",
 	&"fresh_soil": "_fresh_soil", &"heartwoods_fury": "_heartwoods_fury", &"patchwork": "_patchwork",
 	&"mixed_grove": "_mixed_grove", &"quick_step": "_quick_step",
+	&"long_shadows": "_long_shadows",
 	&"heart_of_the_maze": "_heart_of_the_maze",
 	&"rain_on_glass": "_rain_on_glass",
 	&"kind_canopy": "_kind_canopy", &"shared_light": "_shared_light", &"bramble_oath": "_bramble_oath",
@@ -740,3 +741,10 @@ func _quick_step(spot: Dictionary, _board: Board, _card: UpgradeData) -> Diction
 	var on := ds.quick_step_active()
 	return {"run_wide": true, "active": on, "speed": DreamState.QUICK_STEP_SPEED * ds.rule_stacks(&"quick_step"),
 		"reason": "" if on else "call a drift early"}
+
+func _long_shadows(spot: Dictionary, _board: Board, _card: UpgradeData) -> Dictionary:
+	if not spot.data.can_attack:
+		return {}
+	var on: bool = spot.data.attack_range >= DreamState.LONG_SHADOWS_FROM
+	return {"run_wide": true, "active": on, "range": DreamState.LONG_SHADOWS_RANGE,
+		"reason": "" if on else "range under %d" % int(DreamState.LONG_SHADOWS_FROM)}

@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "patient_aim"
+display_name = "Patient Aim"
+description = "A Warden deals 15% more damage for each second it hasn't fired (max +60%)."
+rarity = 1
+kind = 3
+tags = Array[String](["crit", "stone"])
+requires = Array[String](["standing_stone"])
+max_stacks = 1
+in_start_pool = false
+rule_id = &"patient_aim"

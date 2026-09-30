@@ -615,6 +615,9 @@ func is_monoculture() -> bool:
 # Starlit Aim (Marked), Full Moon, Reckless Bloom.
 func get_crit_chance_bonus(_tower: Tower, enemy: Node2D = null) -> float:
 	var bonus := 0.0
+	bonus += GLINTING_DEW_PER * rule_stacks(&"glinting_dew") * rule_power(&"glinting_dew")  # Glinting Dew
+	if _tower != null and _tower.tower_data.line == "stone":  # Heavy Stones: the Pebbling line
+		bonus += HEAVY_STONES_PER * rule_stacks(&"heavy_stones") * rule_power(&"heavy_stones")
 	if _tower != null and has_rule(&"seasoned_eye"):  # +1% per rank (max +7%: only the Eldest reaches it)
 		bonus += minf(SEASONED_EYE_PER * _tower.rank, SEASONED_EYE_MAX) * rule_power(&"seasoned_eye")
 	if has_rule(&"full_moon"):
@@ -628,9 +631,13 @@ func get_crit_chance_bonus(_tower: Tower, enemy: Node2D = null) -> float:
 			bonus += STARLIT_AIM_CRIT
 	return bonus
 
-# Full Moon: crit chance above 100% (`raw_chance` before capping) becomes extra crit multiplier.
+# Extra crit multiplier on a crit (Tower adds it): Full Moon turns crit chance above 100% (`raw_chance`
+# before capping) into multiplier; Sharpened Light / II add a flat +0.5 / +1.0.
 func get_crit_overflow_multiplier(raw_chance: float) -> float:
-	return maxf(raw_chance - 1.0, 0.0) if has_rule(&"full_moon") else 0.0
+	var extra := maxf(raw_chance - 1.0, 0.0) if has_rule(&"full_moon") else 0.0
+	if has_rule(&"sharpened_light"):
+		extra += SHARPENED_LIGHT[rule_level(&"sharpened_light")] * rule_power(&"sharpened_light")
+	return extra
 
 # Reckless Bloom (bittersweet): hits that don't crit deal this much of their damage.
 func get_non_crit_multiplier() -> float:
@@ -2871,6 +2878,8 @@ func _thin_family_hit_bonus(tower: Tower, enemy: Node2D) -> float:
 	var line := tower.tower_data.line
 	if line == "root" and has_rule(&"deep_grip") and enemy.statuses.has(EnemyStatuses.HELD):
 		bonus += DEEP_GRIP_PER * rule_stacks(&"deep_grip") * rule_power(&"deep_grip")
+	if has_rule(&"deep_frost") and _is_frozen(enemy):  # Deep Frost: Frostfern's freeze (Held by a water Warden)
+		bonus += DEEP_FROST_BONUS * rule_power(&"deep_frost")
 	if line == "stone" and has_rule(&"falling_weight") and (enemy.statuses.is_held() or enemy.statuses.is_asleep()):
 		bonus += FALLING_WEIGHT_BONUS * rule_power(&"falling_weight")
 	if line == "wing" and has_rule(&"murmur"):
@@ -3042,3 +3051,30 @@ func get_bolt_multiplier() -> float:
 # Families you own (Patchwork, Mixed Grove's Need).
 func count_owned_families() -> int:
 	return _family_roots().filter(func(d: TowerData) -> bool: return is_unlocked(d.get_id())).size()
+
+
+# --- The 11 catalogue cards specced earlier (dream_design.md crit cards 37–39, new-Warden cards 46–53)
+# Mine: Glinting Dew, Heavy Stones (crit chance), Sharpened Light / II (crit multiplier), Deep Frost
+# (per hit) and Long Shadows (a DreamEffects row). Tower Code reads the rest by rule id: Patient Aim,
+# Ring Dance, Carried on the Wind, Sweet Scent, Shiny Things, Hairpin Winds.
+const GLINTING_DEW_PER := 0.08  # All Wardens, per stack (max 3)
+const HEAVY_STONES_PER := 0.15  # Pebbling line, per stack (max 3)
+const SHARPENED_LIGHT: Array[float] = [0.5, 1.0]  # Crit multiplier (II)
+const DEEP_FROST_BONUS := 0.45  # Frozen nightmares
+const LONG_SHADOWS_RANGE := 2.0  # Wardens whose range is LONG_SHADOWS_FROM or more
+const LONG_SHADOWS_FROM := 5.0
+const PATIENT_AIM_PER := 0.15  # Per second a Warden hasn't fired
+const PATIENT_AIM_MAX := 0.60
+const RING_DANCE_TILES := 2.0  # A Fairy Ring burst sets off rings this close
+const SWEET_SCENT_TILES := 2.0  # Honeysuckle's Drowsy reach
+const SHINY_THINGS_BONUS := 0.15  # Per stolen buff, SHINY_THINGS_TIME s, max SHINY_THINGS_STACKS
+const SHINY_THINGS_TIME := 10.0
+const SHINY_THINGS_STACKS := 3
+const HAIRPIN_WINDS_EXTRA := 1  # Pinwheel / Windmill: +1 max adjacent path tile
+
+# Frozen = Held by a water Warden (Frostfern's freeze; tower_design.md status jobs).
+func _is_frozen(enemy: Node2D) -> bool:
+	if not enemy.statuses.is_held():
+		return false
+	var applier = enemy.statuses.source(EnemyStatuses.HELD)
+	return applier != null and is_instance_valid(applier) and "tower_data" in applier and applier.tower_data.line == "water"

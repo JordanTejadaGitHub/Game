@@ -83,6 +83,7 @@ func _run() -> void:
 	var mode := "chase"
 	var only := "all"
 	var runs := 300
+	var picker := "balanced"
 	for arg in OS.get_cmdline_user_args():
 		if arg.begins_with("--mode="):
 			mode = arg.trim_prefix("--mode=")
@@ -90,6 +91,8 @@ func _run() -> void:
 			only = arg.trim_prefix("--build=")
 		elif arg.begins_with("--runs="):
 			runs = int(arg.trim_prefix("--runs="))
+		elif arg.begins_with("--picker="):
+			picker = arg.trim_prefix("--picker=")  # balanced / random / mixed (emergence)
 	MetaRun.force_all_families = true  # Full Grove: every family in the picks (Grove families' cards can be eligible)
 	main = load("res://scenes/main.tscn").instantiate()
 	main.get_node("MapGenerator").map_seed = 424242
@@ -106,7 +109,7 @@ func _run() -> void:
 		tower.free()
 	_resolve()
 	if mode == "emerge":
-		_emerge(runs)
+		_emerge(runs, picker)
 	else:
 		for build in PACKAGES:
 			if only == "all" or Array(only.split(",")).has(build.get_slice(" ", 0)):
@@ -199,7 +202,7 @@ func _build_chase_board(package: Array, extras: Dictionary) -> void:
 
 # --- Emergence ----------------------------------------------------------------------------------------
 
-func _emerge(runs: int) -> void:
+func _emerge(runs: int, picker: String = "balanced") -> void:
 	var some := 0
 	var per_build := {}
 	var offers := [0, 0, 0]  # [offers, with a usable card sharing no tag, …a tagged one]
@@ -208,6 +211,9 @@ func _emerge(runs: int) -> void:
 		_reset(run)
 		var rng := RandomNumberGenerator.new()
 		rng.seed = 7000 + run
+		var policy := _policy  # Balanced; "mixed" = a random style each run; "random" = any card
+		if picker == "mixed":
+			policy = DreamSimPolicy.new(dreams, DreamSimPolicy.Style.values()[rng.randi_range(0, DreamSimPolicy.Style.size() - 1)])
 		var roots: Array = dreams._family_roots().map(func(d: TowerData) -> String: return d.get_id())
 		var owned: Array = []
 		for drift in range(5, 51, 5):
@@ -238,14 +244,14 @@ func _emerge(runs: int) -> void:
 					shown[0] += 1
 					if c.tags.any(func(t: String) -> bool: return lines.has(t)):
 						shown[1] += 1
-				return _policy.pick_dream(offer))
+				return offer[rng.randi_range(0, offer.size() - 1)] if picker == "random" else policy.pick_dream(offer))
 		var hit := false
 		for build in PACKAGES:
 			if _count(ids[build]) >= 3:
 				per_build[build] = int(per_build.get(build, 0)) + 1
 				hit = true
 		some += 1 if hit else 0
-	print("EMERGE 3+ cards of some package by drift 50: %d%% of %d runs" % [roundi(100.0 * some / runs), runs])
+	print("EMERGE (%s picker) 3+ cards of some package by drift 50: %d%% of %d runs" % [picker, roundi(100.0 * some / runs), runs])
 	var order: Array = per_build.keys()
 	order.sort_custom(func(a, b) -> bool: return per_build[a] > per_build[b])
 	print("EMERGE each build's share of those runs: " + ", ".join(order.map(func(b: String) -> String:
