@@ -159,6 +159,16 @@
 		"top": -53,
 		"bottom": 20
 	},
+	"barrow_king": {
+		"frame": 144,
+		"top": -62,
+		"bottom": 28
+	},
+	"mourning_mother": {
+		"frame": 144,
+		"top": -60,
+		"bottom": 26
+	},
 	"cold_lantern": {
 		"frame": 64,
 		"top": -32,

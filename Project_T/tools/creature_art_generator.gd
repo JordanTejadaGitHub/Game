@@ -63,6 +63,8 @@ const CREATURES := {
 	"crow": {fps = 12.0},
 	"huntsman": {fps = 7.0, size = 144, extra = ["horn"], extra_fps = 8.0, once = ["horn"]},
 	"lamplighter": {fps = 5.0, size = 112, extra = ["light"], extra_fps = 8.0, once = ["light"]},
+	"barrow_king": {fps = 4.0, size = 144, extra = ["shrug"], extra_fps = 8.0, once = ["shrug"]},
+	"mourning_mother": {fps = 4.0, size = 144, extra = ["sorrow"], extra_fps = 6.0},
 	# The Lamplighter's cold lantern (scripts/enemy/cold_lantern.gd): no walks, just its own rows.
 	"cold_lantern": {fps = 8.0, anims = ["ignite", "burn", "snuff"], extra_fps = 10.0, once = ["ignite", "snuff"]},
 	# Not a nightmare: the obstacle the Hollow Oak plants. No walks, just its own rows.
@@ -2646,6 +2648,167 @@ func _draw_lamplighter(canvas: Image, st: Dictionary) -> void:
 		_stamp(canvas, fingers, o)
 	if lighting and f >= 3:  # a cold lantern kindles where the pole touched
 		_lantern(canvas, Vector2(90, 70), f, 77.0)
+
+# --- The Barrow King ----------------------------------------------------------------------------
+# Act 3 pool boss, shrugs off every status: a very tall crowned corpse-king in chainmail and a
+# ragged cloak, a gaunt bone face with cold eyes and a long grey beard, dragging a rusted sword that
+# scrapes up grave-dust. He holds still, then shuffles. "shrug": his shoulders heave and a pulse
+# of grave-dust rolls out. 144px frame.
+
+func _draw_barrow_king(canvas: Image, st: Dictionary) -> void:
+	var cloak := _ramp(["Void", "Night", "Dusk", "Slate"])
+	var mail := _ramp(["Night", "Dusk", "Slate", "Stone"])
+	var bone := _ramp(["Slate", "Stone", "Mist"])
+	var crown := _ramp(["Night", "Dusk", "Stone"])
+	var blade := _ramp(["Night", "Dusk", "Slate"])
+	var o := NIGHT_O
+	var f: int = st.f
+	var ph: float = st.ph
+	var shrug: bool = st.anim == "shrug"
+	var dir: int = DOWN if shrug else st.dir
+	var h: int = ([0, -2, -3, -1, 0, 0][f] if shrug else [0, 0, 0, 1, 1, 0][f])
+	var side_view := dir == SIDE
+	var cx := 72.0
+	_shadow(canvas, Vector2(72, 98), Vector2(20, 4))
+	# The sword, dragged behind him (behind = left in side view, towards us from the back).
+	var hand := Vector2(58, 62 + h) if side_view else Vector2(91, 60 + h)
+	var tip := Vector2(34, 96) if side_view else (Vector2(106, 96) if dir == DOWN else Vector2(104, 98))
+	var sword := _layer()
+	_stroke(sword, [hand, tip], 1.6, blade[1])
+	_stroke(sword, [hand + Vector2(-3, -1), hand + Vector2(3, 1)], 1.2, blade[2])  # the crossguard
+	for k in 5:  # notches of rust
+		var p := hand.lerp(tip, 0.3 + k * 0.13).round()
+		sword.set_pixelv(Vector2i(p) + Vector2i(1, 0), blade[0])
+	var behind := dir != UP
+	if behind:
+		_stamp(canvas, sword, o)
+	var fig := _layer()
+	_robe(fig, cx, 34.0 + h, 9.0, 97.0, 17.0, -3.0 if side_view else 0.0, ph * 0.3, cloak)
+	var torso := _layer()
+	_ellipse(torso, Vector2(cx + (2 if side_view else 0), 50 + h), Vector2(7 if side_view else 9, 12), mail)
+	for y in S:  # chainmail: rings in a staggered grid
+		for x in S:
+			var c := torso.get_pixel(x, y)
+			if c.a > 0.0 and y % 2 == 0 and (x + y / 2) % 2 == 0:
+				torso.set_pixel(x, y, _darker(mail, c))
+	_stamp(fig, torso, o)
+	var head := Vector2(cx + (3 if side_view else 0), 24 + h)
+	_ellipse(fig, head, Vector2(7, 8.5), bone)
+	var ghost := _layer()
+	_stamp(ghost, fig, o)
+	_merge(canvas, ghost)
+	if dir != UP:
+		for s: int in ([1] if side_view else [-1, 1]):  # sunken sockets, cold eyes
+			var e := head + Vector2(3 if side_view else s * 2.5, -1)
+			_flat_ellipse(canvas, e, Vector2(1.8, 2), HOLLOW)
+			_glow(canvas, Vector2i(e.round()), EYE, EYE_HALO)
+		for k in 6:  # the long grey beard
+			var x := head.x + (k - 2.5) * (1.0 if not side_view else 0.6) + (2 if side_view else 0)
+			_line(canvas, [Vector2(x, head.y + 5), Vector2(x + sin(k + ph * 0.3) * 1.2, head.y + 14 + k % 3 * 2)], bone[1] if k % 2 else bone[0])
+	_big_crown(canvas, head + Vector2(0, -7), 7, crown, o)
+	if not behind:
+		_stamp(canvas, sword, o)
+	var gauntlet := _layer()
+	_flat_ellipse(gauntlet, hand, Vector2(2.4, 2), mail[1])
+	_stamp(canvas, gauntlet, o)
+	if not shrug and (f == 3 or f == 4):  # grave-dust scraped up at the tip
+		for k in 4:
+			_blend_px(canvas, int(tip.x) + (k - 1) * 2, int(tip.y) - 1 - k % 2 - (f - 3), _c("Slate", 0.8 - k * 0.15))
+	if shrug and f >= 2:  # a pulse of grave-dust rolling out
+		var r := 10.0 + (f - 2) * 12.0
+		for a_i in 40:
+			var a := a_i * TAU / 40.0
+			var p := Vector2(72, 94) + Vector2(cos(a) * r, sin(a) * r * 0.32)
+			if (a_i + f) % 3 != 0:
+				_blend_ellipse(canvas, p, Vector2(2.2, 1.4), _c("Stone" if a_i % 2 else "Slate", 0.7 - (f - 2) * 0.15))
+
+# A tall iron crown: a band with five points, the middle one tallest.
+func _big_crown(canvas: Image, c: Vector2, half: int, ramp: Array[Color], o: Color) -> void:
+	var layer := _layer()
+	for x in range(int(c.x) - half, int(c.x) + half + 1):
+		layer.set_pixel(x, int(c.y), ramp[1])
+		layer.set_pixel(x, int(c.y) + 1, ramp[0])
+	var heights := [3, 5, 7, 5, 3]
+	for i in 5:
+		var x := int(c.x) - half + roundi(i * half * 0.5)
+		for k in range(1, heights[i] + 1):
+			layer.set_pixel(x, int(c.y) - k, ramp[2] if k == heights[i] else ramp[1])
+	_stamp(canvas, layer, o)
+
+# --- The Mourning Mother ------------------------------------------------------------------------
+# Act 3 pool boss, heals when left alone: a vast veiled figure, pale eyes glowing through the veil,
+# black tears running down it, two Weepers clinging to her skirts. "sorrow": she lifts her hands
+# to her face and the black tears pour (she's mending). 144px frame.
+
+func _draw_mourning_mother(canvas: Image, st: Dictionary) -> void:
+	var veil := _ramp(["Night", "Dusk", "Slate", "Stone"])
+	var skin := _ramp(["Slate", "Stone", "Mist"])
+	var shroud := _ramp(["Night", "Dusk", "Slate"])
+	var tear := HOLLOW
+	var o := NIGHT_O
+	var f: int = st.f
+	var ph: float = st.ph
+	var sorrow: bool = st.anim == "sorrow"
+	var dir: int = DOWN if sorrow else st.dir
+	var h := roundi(sin(ph) * 1.5)
+	var side_view := dir == SIDE
+	_shadow(canvas, Vector2(72, 98), Vector2(30, 4.5))
+	# The Weepers clinging to her skirts, behind the hem.
+	var clingers: Array = [Vector2(40, 84), Vector2(104, 86)] if not side_view else [Vector2(46, 86)]
+	for i in clingers.size():
+		_clinging_weeper(canvas, clingers[i] + Vector2(0, roundi(sin(ph + i * 2.0))), shroud, skin, o, i == 0)
+	var fig := _layer()
+	_robe(fig, 72.0, 34.0 + h, 11.0, 97.0, 30.0 if not side_view else 22.0, -4.0 if side_view else 0.0, ph * 0.5, veil)
+	var head := Vector2(72 + (3 if side_view else 0), 26 + h)
+	_ellipse(fig, head, Vector2(12, 13), veil)
+	var ghost := _layer()
+	_stamp(ghost, fig, o)
+	_dissolve(ghost, Vector2(0, 88), Vector2(0, 99))
+	# The face behind the veil: a dark hollow, the veil's weave drawn over it.
+	if dir != UP:
+		var fc := head + Vector2(3 if side_view else 0, 3)
+		var face_r := Vector2(5 if side_view else 7, 8)
+		for y in range(int(fc.y - face_r.y), int(fc.y + face_r.y) + 1):
+			for x in range(int(fc.x - face_r.x), int(fc.x + face_r.x) + 1):
+				if ((Vector2(x + 0.5, y + 0.5) - fc) / face_r).length_squared() <= 1.0:
+					ghost.set_pixel(x, y, veil[1] if (x + y) % 3 == 0 else HOLLOW)
+		var eyes: Array = [fc + Vector2(2, -2)] if side_view else [fc + Vector2(-3, -2), fc + Vector2(3, -2)]
+		var pour := 10 if sorrow else 6
+		for e: Vector2 in eyes:
+			_glow(ghost, Vector2i(e.round()), EYE, EYE_HALO)
+			for k in pour:  # black tears running down the veil
+				ghost.set_pixel(int(e.x), int(e.y) + 2 + k, tear)
+			ghost.set_pixel(int(e.x), int(e.y) + 4 + pour + (f % 3) * 2, tear)
+			if sorrow:
+				ghost.set_pixel(int(e.x) + 1, int(e.y) + 6 + ((f + 1) % 3) * 3, tear)
+	_merge(canvas, ghost, 0.92)
+	# Her long pale hands: folded at her chest, or lifted to her face in sorrow.
+	if dir != UP:
+		var t: float = [0.3, 0.7, 1.0, 1.0, 1.0, 0.7][f] if sorrow else 0.0
+		for s: int in ([1] if side_view else [-1, 1]):
+			var rest := Vector2(72 + s * 5 + (4 if side_view else 0), 52 + h)
+			var at := rest.lerp(head + Vector2(s * 7 + (4 if side_view else 0), 6), t)
+			var hand := _layer()
+			_stroke(hand, [Vector2(72 + s * 11, 40 + h), at], 1.2, veil[2])
+			_flat_ellipse(hand, at, Vector2(2, 3), skin[1])
+			_stamp(canvas, hand, o)
+	if sorrow:  # the mending: a dark hush around her
+		var r := 26.0 + f * 3.0
+		for a_i in 36:
+			var a := a_i * TAU / 36.0
+			if (a_i + f) % 2 == 0:
+				_blend_px(canvas, roundi(72 + cos(a) * r * 1.3), roundi(62 + sin(a) * r), _c("Wraithlight", 0.35))
+
+# A small Weeper clinging to the Mourning Mother's hem: hunched, pale head bowed, an arm reaching.
+func _clinging_weeper(canvas: Image, p: Vector2, shroud: Array[Color], skin: Array[Color], o: Color, left: bool) -> void:
+	var s := 1.0 if left else -1.0
+	var fig := _layer()
+	_ellipse(fig, p, Vector2(6, 9), shroud)
+	_ellipse(fig, p + Vector2(s * 4, -8), Vector2(4.5, 4.5), skin)
+	_stroke(fig, [p + Vector2(s * 3, -3), p + Vector2(s * 12, -10)], 1.2, skin[1])
+	_stamp(canvas, fig, o)
+	_px(canvas, int(p.x + s * 5), int(p.y) - 9, EYE)
+	_line(canvas, [Vector2(p.x + s * 5, p.y - 7), Vector2(p.x + s * 5, p.y - 4)], HOLLOW)
 
 # --- Cold lantern (the Lamplighter's) -----------------------------------------------------------
 # An iron lantern on a crooked stake, a cold blue flame behind its glass. "ignite": a spark catches
