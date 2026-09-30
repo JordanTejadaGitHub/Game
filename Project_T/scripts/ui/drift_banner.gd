@@ -62,15 +62,18 @@ func drawn_width() -> float:
 	var boss_text := _next_boss_text(latest)
 	if boss_text != "":
 		pips += BOSS_GAP + DISC_RADIUS * 2.0 + 8.0 + font.get_string_size(boss_text, HORIZONTAL_ALIGNMENT_LEFT, -1, BOSS_FONT_SIZE).x
-	return maxf(width, pips)
+	return maxf(maxf(width, pips) + 12.0, _drawn_half * 2.0)  # What it last drew, if wider (+ outlines)
 
 # Its drawn area in global coordinates (centred in the rect).
 func drawn_rect() -> Rect2:
 	var rect := get_global_rect()
-	var width := minf(drawn_width(), rect.size.x) if rect.size.x > 0.0 else drawn_width()
+	var width := drawn_width()  # Never clamped to the rect: its text may overflow it
 	return Rect2(rect.get_center().x - width / 2.0, rect.position.y, width, rect.size.y)
 
+var _drawn_half := 0.0  # Half the widest thing the last _draw drew, from the centre (+ outline)
+
 func _draw() -> void:
+	_drawn_half = 0.0
 	var font := UiStyle.display_font()  # Moonlit Thread (ui_style.md)
 	var center_x := size.x / 2.0
 	var latest := drift_director.drifts_started
@@ -121,9 +124,11 @@ func _draw() -> void:
 	# Underlined: it (and the portrait) opens the dossier.
 	draw_line(Vector2(text_x, base + 4), Vector2(text_x + text_width, base + 4), Color(UiStyle.GOLD, 0.5), 1.0)
 	_countdown_rect = Rect2(left - 4.0, row_y - DISC_RADIUS - 4.0, text_x + text_width - left + 8.0, DISC_RADIUS * 2.0 + 8.0)
+	_drawn_half = maxf(_drawn_half, maxf(center_x - (left - 4.0), text_x + text_width + 6.0 - center_x))
 
 func _draw_boss_bar(font: Font, center_x: float) -> void:
 	var bar := Rect2(center_x - WIDTH / 2.0, 34, WIDTH, 10)
+	_drawn_half = maxf(_drawn_half, WIDTH / 2.0 + 4.0)
 	var fraction := float(_boss.health) / maxf(_boss.max_health, 1.0)
 	draw_rect(bar.grow(2), Color(Palette.DREAD, 0.85))
 	draw_rect(Rect2(bar.position, Vector2(bar.size.x * fraction, bar.size.y)), BOSS_COLOR)
@@ -240,3 +245,4 @@ func _draw_centered(font: Font, text: String, at: Vector2, font_size: int, colou
 	var origin := Vector2(at.x - width / 2.0, at.y)
 	draw_string_outline(font, origin, text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size, 6, Palette.DREAD)
 	draw_string(font, origin, text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size, colour)
+	_drawn_half = maxf(_drawn_half, width / 2.0 + 6.0)  # + the outline

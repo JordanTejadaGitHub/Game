@@ -1336,10 +1336,12 @@ function segment(n) {
 // in every frame) cover parts of it so it dips behind the foliage, and the whole frame snaps to the
 // crown's 2 px art-pixel grid (aligned to tree space), so it reads as part of the same picture.
 function integrateBranch(img, g, box, seed) {
-  const shade = new Map([[HW.Loam, HW.Bark], [HW.Oak, HW.Bark]].map(([a, b]) => [C(a).slice(0, 3).join(), b]));
+  const shade = new Map([[HW.Loam, HW.Bark], [HW.Oak, HW.Bark], [HW.Bark, HW.Root]].map(([a, b]) => [C(a).slice(0, 3).join(), b]));
   for (let y = 0; y < img.h; y++) for (let x = 0; x < img.w; x++) {
     if (!img.alpha(x, y)) continue;
-    const to = shade.get(img.get(x, y).slice(0, 3).join()); if (to) img.set(x, y, to);
+    const was = img.get(x, y).slice(0, 3).join(), to = shade.get(was);
+    // One pass (Loam -> Bark must not then become Root): only the lit edge keeps Bark.
+    if (to) img.set(x, y, was === C(HW.Loam).slice(0, 3).join() || was === C(HW.Oak).slice(0, 3).join() ? (img.alpha(x - 1, y - 1) ? HW.Root : HW.Bark) : to);
   }
   const n = clamp(Math.round(g.len / 55), 1, 3);
   for (let k = 0; k < n; k++) {
