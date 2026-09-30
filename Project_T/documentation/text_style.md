@@ -37,6 +37,7 @@ kept slipping:
 - **Obstacles, stages and places are names:** Withered Tree, Mossy Boulder, Thorn-Sapling; Kinship
   stages Sapling / Blooming / Old Kin; Whole Tree; the Codex, the Memory Grove.
 - **One separator style:** " · " with single spaces, never double spaces around it.
+- **"The" in boss names is lowercase mid-sentence:** "About the Mire Hag", "the Hollow Stag arrives"; capital only at the start of a line or as a title ("The Mire Hag" on the name plate).
 - **Checked automatically:** a text lint test (below) so it can't drift again.
 
 "Deeply Blighted" and "Ascended" are names (capitalised). "Rank III" capitalises Rank when it's a
