@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "deep_grip"
+display_name = "Deep Grip"
+description = "The Rootling line deals 15% more damage to {held} nightmares."
+rarity = 0
+kind = 3
+tags = Array[String](["root", "held"])
+requires = Array[String](["rootling"])
+max_stacks = 3
+rule_id = &"deep_grip"

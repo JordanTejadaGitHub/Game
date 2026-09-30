@@ -796,6 +796,8 @@ func _on_drift_started(number: int) -> void:
 # Briar Crown: a nightmare stepping onto a route tile beside a wall takes 25% of the strongest
 # attacking Warden touching that wall (its line, area, no crit; once per wall per nightmare per s).
 func _process(delta: float) -> void:
+	if not get_tree().paused:
+		_game_clock += delta  # Murmur's 1 s window
 	var briar := has_rule(&"briar_crown")
 	var bitter := has_rule(&"bitter_hedges")
 	if get_tree().paused or not (briar or bitter):
@@ -1555,6 +1557,8 @@ func soft_needs_met(card: UpgradeData) -> bool:
 		return false
 	if card.count_warden != "" and count_wardens(card.count_warden) < card.min_warden_count:
 		return false
+	if card.count_line != "" and _towers().filter(func(t: Tower) -> bool: return t.tower_data.line == card.count_line).size() < card.min_warden_count:
+		return false
 	return true
 
 func _rank_needs_met(card: UpgradeData) -> bool:
@@ -2115,6 +2119,7 @@ func on_hit_multiplier(tower: Tower, enemy: Node2D) -> float:
 		bonus += RAIN_ON_GLASS_PER * rule_stacks(&"rain_on_glass")  # Rain on Glass
 	if has_rule(&"skyward_gaze") and enemy.enemy_data != null and enemy.enemy_data.trait_kind == EnemyData.Trait.FLYING:
 		bonus += SKYWARD_BONUS
+	bonus += _thin_family_hit_bonus(tower, enemy)  # Deep Grip, Murmur
 	var multiplier := 1.0 + bonus
 	if has_rule(&"first_light") and tower != null:
 		var key := "%d:%d" % [tower.get_instance_id(), enemy.get_instance_id()]
@@ -2831,3 +2836,86 @@ func _save_discoveries() -> void:
 	memory[WARDENS_BUILT_KEY] = built
 	memory[BEST_CHAIN_KEY] = maxi(int(memory.get(BEST_CHAIN_KEY, 0)), _best_chain())
 	HeartwoodMemory.save_data(memory)
+
+
+# --- Thin-family cards 192–203 (dream_design.md "Thin-family cards (2026-09-30)") -----------------
+# Deep Grip and Murmur live in on_hit_multiplier; the rest are queries Tower Code (Called Shot, Chorus,
+# Homing Instinct, Long Light) and Enemy Code (Root Web, Tangled Release, Lullaby, Bright Marks) read.
+# Clear Tones and Lingering Mark are plain stat / status-duration cards.
+
+const DEEP_GRIP_PER := 0.15  # Rootling line vs Held, per stack (max 3)
+const MURMUR_BONUS := 0.15  # A bird's hit on a nightmare another bird hit within MURMUR_WINDOW
+const MURMUR_WINDOW := 1.0
+const TANGLED_RELEASE_TILES: Array[float] = [0.5, 1.0]  # II
+const LONG_LIGHT_LINGER := 3.0  # Seconds Rootlight's lit tiles stay lit
+const ROOT_WEB_SHARE := 0.5  # Touching nightmares Held for half as long (halved again on bosses)
+const ROOT_WEB_BOSS_SHARE := 0.25
+const ROOT_WEB_COOLDOWN := 1.0  # Never twice a second on one nightmare; never chains
+const LULLABY_LINGER: Array[float] = [1.0, 2.0]  # II
+const CHORUS_CELLS := 3.0
+const CHORUS_SYNC_WINDOW := 0.3  # Others whose attack is ready within this fire together
+const CHORUS_BONUS := 0.30
+const BRIGHT_MARKS_PER := 0.05  # Marked +5% per stack (25% → max 40%; Beacon: on top of its 35%)
+const HOMING_SPEED: Array[float] = [1.3, 1.5]  # Swoop return speed (II)
+
+var _game_clock := 0.0
+var _bird_hits := {}  # Nightmare id -> [tower id, _game_clock] of the last bird hit (Murmur)
+var _called_shots := {}  # "tower:nightmare" -> true once Called Shot fired
+
+func _thin_family_hit_bonus(tower: Tower, enemy: Node2D) -> float:
+	if tower == null:
+		return 0.0
+	var bonus := 0.0
+	var line := tower.tower_data.line
+	if line == "root" and has_rule(&"deep_grip") and enemy.statuses.has(EnemyStatuses.HELD):
+		bonus += DEEP_GRIP_PER * rule_stacks(&"deep_grip")
+	if line == "wing" and has_rule(&"murmur"):
+		var id := enemy.get_instance_id()
+		var last: Array = _bird_hits.get(id, [])
+		if not last.is_empty() and last[0] != tower.get_instance_id() and _game_clock - last[1] <= MURMUR_WINDOW:
+			bonus += MURMUR_BONUS
+		if _bird_hits.size() > 2048:
+			_bird_hits.clear()
+		_bird_hits[id] = [tower.get_instance_id(), _game_clock]
+	return bonus
+
+# Called Shot: true once per Warden per nightmare, on its first hit on a Marked nightmare (a
+# guaranteed crit; Tower.hit asks before rolling). Adds with First Light.
+func called_shot(tower: Tower, enemy: Node2D) -> bool:
+	if not has_rule(&"called_shot") or tower == null or enemy == null or not enemy.statuses.has(EnemyStatuses.MARKED):
+		return false
+	var key := "%d:%d" % [tower.get_instance_id(), enemy.get_instance_id()]
+	if _called_shots.has(key):
+		return false
+	if _called_shots.size() > 4096:
+		_called_shots.clear()
+	_called_shots[key] = true
+	return true
+
+# Tiles a nightmare freed from a hold is pulled back along its route (0 = none).
+func get_release_pull() -> float:
+	return TANGLED_RELEASE_TILES[rule_level(&"tangled_release")] if has_rule(&"tangled_release") else 0.0
+
+func get_lit_linger() -> float:
+	return LONG_LIGHT_LINGER if has_rule(&"long_light") else 0.0
+
+# Root Web: the share of a hold the touching nightmares get (0 = off).
+func get_root_web_share(is_boss: bool) -> float:
+	if not has_rule(&"root_web"):
+		return 0.0
+	return ROOT_WEB_BOSS_SHARE if is_boss else ROOT_WEB_SHARE
+
+# Lullaby: seconds a Caught nightmare stays Caught after leaving the Dreamcatcher's range.
+func get_caught_linger() -> float:
+	return LULLABY_LINGER[rule_level(&"lullaby")] if has_rule(&"lullaby") else 0.0
+
+func has_chorus() -> bool:
+	return has_rule(&"chorus")
+
+# Bright Marks: extra Marked bonus (added to EnemyStatuses.MARKED_EXTRA / Beacon's marked_extra).
+func get_marked_bonus() -> float:
+	return BRIGHT_MARKS_PER * rule_stacks(&"bright_marks")
+
+# Homing Instinct: swoop return speed multiplier (1 = none; swoops only, never pecks).
+func get_swoop_return_multiplier() -> float:
+	return HOMING_SPEED[rule_level(&"homing_instinct")] if has_rule(&"homing_instinct") else 1.0

@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "bright_marks"
+display_name = "Bright Marks"
+description = "{marked} nightmares take 5% more from every Warden (max 40%)."
+rarity = 0
+kind = 3
+tags = Array[String](["light", "mark"])
+requires = Array[String](["lanternmoth"])
+max_stacks = 3
+rule_id = &"bright_marks"

@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "murmur"
+display_name = "Murmur"
+description = "A bird's hit on a nightmare another bird hit in the last second deals 15% more."
+rarity = 2
+kind = 3
+tags = Array[String](["wing"])
+requires = Array[String](["nestling"])
+max_stacks = 1
+rule_id = &"murmur"

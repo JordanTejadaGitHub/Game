@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "tangled_release"
+display_name = "Tangled Release"
+description = "A nightmare freed from a hold is pulled back 0.5 tiles along its route."
+rarity = 1
+kind = 3
+tags = Array[String](["root", "held"])
+requires = Array[String](["rootling"])
+max_stacks = 1
+rule_id = &"tangled_release"

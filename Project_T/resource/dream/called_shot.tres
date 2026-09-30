@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "called_shot"
+display_name = "Called Shot"
+description = "Each Warden's first hit on a {marked} nightmare is a crit."
+rarity = 2
+kind = 3
+tags = Array[String](["light", "mark", "crit"])
+requires = Array[String](["lanternmoth"])
+max_stacks = 1
+rule_id = &"called_shot"
