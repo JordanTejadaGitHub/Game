@@ -27,7 +27,6 @@ var eclipse_left := 0.0
 # since bosses themselves have a fixed health scale.
 var drift_health_scale := 1.0
 const ROOTED_RULE := &"rooted_nightmares"
-const LOGJAM_META := &"logjam"  # FinalTwists marks a walker Snugroot holds: it blocks like a rooted one, and the ones behind queue
 const WEATHERED_WALLS_RULE := &"weathered_walls"  # Thornwalls can't be trampled
 var root_web_share := 0.0  # Root Web: touching nightmares are Held for this share of a hold
 var root_web_boss_share := 0.0  # …and bosses for this share
@@ -173,12 +172,12 @@ func _update_rooted_cells(dreams: DreamState = null) -> void:
 		dreams = get_tree().get_first_node_in_group(DreamState.GROUP) as DreamState
 	var rooted_rule := dreams != null and dreams.has_rule(ROOTED_RULE)
 	# Also without the card: a walker Snugroot holds (Logjam, a final-form twist; FinalTwists marks it
-	# LOGJAM_META) blocks its cell, and the ones behind it queue (Enemy._is_blocked_ahead).
+	# FinalTwists.LOGJAM_META) blocks its cell, and the ones behind it queue (Enemy._is_blocked_ahead).
 	for enemy in get_children():
 		if enemy.is_cleansed or enemy.is_flying():
 			continue
 		if enemy.statuses.is_held():
-			if rooted_rule or enemy.has_meta(LOGJAM_META):
+			if rooted_rule or enemy.has_meta(FinalTwists.LOGJAM_META):
 				rooted_cells[enemy.get_current_cell()] = enemy
 		elif enemy.waiting:
 			waiting_cells[enemy.get_current_cell()] = enemy

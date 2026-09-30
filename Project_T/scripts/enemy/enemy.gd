@@ -1203,7 +1203,7 @@ func _is_blocked_ahead(delta: float) -> bool:
 		return false
 	var next := _path[_path_index]
 	var holder = spawner.rooted_cells.get(next)
-	if holder != null and holder != self and holder.has_meta(spawner.LOGJAM_META):
+	if holder != null and holder != self and holder.has_meta(FinalTwists.LOGJAM_META):
 		waiting = true  # Logjam: the ones behind a Snugroot hold queue, they don't path around it
 		return true
 	if holder != null and holder != self:
