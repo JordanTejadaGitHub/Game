@@ -12,7 +12,7 @@ changed" log at the top (date, commit, what), newest first.
 | Chat | Owns | Gallery |
 |---|---|---|
 | Tower Assets | Warden sprites, attack sheets, projectiles, rank art | *(pending)* |
-| Enemy Assets | nightmares, bosses, portraits | *(pending)* |
+| Enemy Assets | nightmare sprite sheets, bosses, Thorn-Sapling | https://claude.ai/artifact/YUa3SG93MgF6JhJ2reGhn3 |
 | Environment Assets | tiles, obstacles, trees, the island edge, void | *(pending)* |
 | Theme Asset | style references (`assets/style_reference/`), Warden Night | https://claude.ai/artifact/1Mq111zHWpf3EbgsWwF6d8 (whole-look overview: https://claude.ai/artifact/34adEMHN6xJNnMXPK7ziWq) |
 | UI Asset | icons (`assets/ui/icons.png`), Clear tool frames | https://claude.ai/artifact/3PZKNfNnBtBTzMouyqyDPN (style concept page: https://claude.ai/artifact/4Cs1PP2CrqTjth2dHiZFow) |
