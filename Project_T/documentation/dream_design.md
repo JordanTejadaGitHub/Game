@@ -30,10 +30,15 @@ speed, −4 Dew) so a wrong pick costs little.
 
 | Dream choices | Where the run should end |
 |---|---|
-| **Let it pass every time** | act 2 (drift ~35–45) |
+| **Let it pass every time** | **never past act 1**: dies by the drift 25 boss (user, 2026-09-30) |
 | **Random card every time** | act 3 (~55–70) |
 | **Sensible picks** (Balanced bot) | act 3–4, wins sometimes |
 | **A build that comes together** (tags stacked, combos, Entwined) | wins |
+
+What "never past act 1" means: only **4 Dreams** come before the drift 25 boss (after 5, 10, 15,
+20), so those early cards must carry real weight. With sensible picks a fresh player still beats the
+first boss ~75% (`run_design.md`); with none, the boss (or act 1's last block) should stop them.
+Act 1's nightmare health rises to match as the cards grow, never before.
 
 By act 3, **Dreams should be about half of a run's damage** (measured: damage with vs without the
 taken cards' bonuses, `DamageLog`).
@@ -52,7 +57,7 @@ matter, confirmed.
 3. **Builds pay off:** a card's value grows with the cards of its tag you already own (e.g. every
    2nd card of a tag adds a small bonus to all of them), so committing beats picking the biggest
    number.
-4. **"Let it pass" pays less** (+15 Dew → +10, 0 from act 3), so skipping isn't a free fallback.
+4. ~~"Let it pass" pays less~~ **Rejected** (user: "keep skipping if we're making the cards more powerful"): Let it pass stays +15 Dew. Skipping is punished by the missing card, not by the reward.
 
 ## Where Warden families come from (not Dreams)
 
