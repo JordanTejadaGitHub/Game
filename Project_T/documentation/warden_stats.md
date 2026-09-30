@@ -81,7 +81,16 @@ Sporeling 14 → Driftspore 20; Dewdrop 18 → Rain Lily 28), so players grew ev
   (a chain's extra jumps, a splash, a status that does damage): each branch's numbers are raised to
   that line by Tower Code, with its identity kept (Stormcap stays the chain, Mistveil the fog).
   Support branches (Elder Stump, Dewcatcher, Graftling…) get a matching jump in what they give.
-- Finals stay at **200** Dew (≈1.5× their branch), so the ladder reads 25 → 120 → 200.
+- **Final forms are the big payoff** (same day, user: *"its final form should be a big payoff as
+  well"*): grow cost **200 → 300 Dew** (Dreamlight unchanged, 2), power **about 2.5× its branch**
+  (≈5× its base) in its role, and its **signature mechanic turned up** so it changes how the maze
+  plays (e.g. Thunderhead's all-Soaked strike every 3rd strike instead of every 5th; Tower Code picks
+  one lever per final and lists them). Growing into one is a moment: a bigger bloom, the Warden's
+  name as a callout the first time each run, and the grow preview's "2.5×".
+- **Ascended keeps its gap:** it stays about 5× an average final form (`tower_design.md`), so it
+  scales up with the finals; its price goes **400 → 600 Dew** (3 Dreamlight unchanged).
+- The ladder reads **25 → 120 → 300 → 600**. Nurture v3's ranks and the late Dew cut all pull on
+  the same Dew: the run history decides whether income needs to ease back.
 - **A branch should feel like an event:** fewer of them, each one clearly stronger on the DPS tag
   (the grow preview shows "2.1× damage"). Watch act 1 (fewer early branches) with the first boss
   sweep, and the Balanced bot's reach at 25.
