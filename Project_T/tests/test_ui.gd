@@ -457,6 +457,24 @@ func _run() -> void:
 	wheel_cam.target_zoom = Vector2.ONE * 0.8
 	wheel_cam._unhandled_input(wheel)
 	_check(wheel_cam.target_zoom.x > 0.8, "a wheel over the map zooms")
+	# Zoom (user: "allow zooming in more"): up to 2.5×, each notch ×1.1 (even at both ends), and world
+	# text keeps its screen size when zoomed in.
+	wheel_cam.target_zoom = Vector2.ONE
+	wheel_cam.zoom_by_step(1.0)
+	_check(is_equal_approx(wheel_cam.target_zoom.x, wheel_cam.zoom_step), "a notch multiplies the zoom by %.2f" % wheel_cam.zoom_step)
+	wheel_cam.target_zoom = Vector2.ONE * 2.4
+	wheel_cam.zoom_by_step(1.0)
+	wheel_cam.zoom_by_step(1.0)
+	_check(is_equal_approx(wheel_cam.target_zoom.x, 2.5), "zooming in stops at 2.5× (%.2f)" % wheel_cam.target_zoom.x)
+	var camera_2d := main.get_viewport().get_camera_2d()
+	var zoom_was := camera_2d.zoom
+	camera_2d.zoom = Vector2.ONE * 2.5
+	_check(is_equal_approx(WorldLabel.text_scale(main.get_node("HUD/DriftPanel")), 1.0 / 2.5)
+		or is_equal_approx(WorldLabel.text_scale(wheel_cam), 1.0 / 2.5), "world text is drawn at 1 / zoom when zoomed in")
+	camera_2d.zoom = Vector2.ONE * 0.6
+	_check(is_equal_approx(WorldLabel.text_scale(wheel_cam), 1.0), "and at its own size when zoomed out")
+	camera_2d.zoom = zoom_was
+	wheel_cam.target_zoom = Vector2.ONE
 	var search := LineEdit.new()
 	main.get_node("HUD").add_child(search)
 	search.grab_focus()

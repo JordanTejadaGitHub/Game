@@ -8,9 +8,9 @@ const MAP_GRID = preload("res://resource/map/map_grid.tres")  # The shared grid 
 @export var movement_smoothness: float = 12.0  # How quickly the camera catches up to its target (higher = snappier)
 
 # Camera zoom settings
-@export var camera_zoom_in_max: float = 1.4  # Maximum zoom-in level
+@export var camera_zoom_in_max: float = 2.5  # Maximum zoom-in level (was 1.4; user: "allow zooming in more")
 @export var camera_zoom_out_min: float = 0.5  # Minimum zoom-out level
-@export var zoom_speed: float = 0.1  # Speed of zoom adjustment
+@export var zoom_step: float = 1.1  # Each wheel notch multiplies the zoom by this (even steps at both ends)
 @export var zoom_smoothness: float = 10.0  # How quickly the zoom catches up to its target (higher = snappier)
 @export var hud_overscroll := Vector2(300, 180)  # Screen pixels the view may go past each map edge (the HUD's size)
 
@@ -86,7 +86,7 @@ func _unhandled_input(event: InputEvent) -> void:
 
 func zoom_by_step(direction: float) -> void:
 	var zoom_min := _get_zoom_out_min()
-	target_zoom = (target_zoom + Vector2.ONE * zoom_speed * direction).clamp(Vector2.ONE * zoom_min,
+	target_zoom = (target_zoom * pow(zoom_step, direction)).clamp(Vector2.ONE * zoom_min,
 		Vector2.ONE * maxf(camera_zoom_in_max, zoom_min))
 
 # A full-screen screen is up (pause menu with its Codex / settings, Dream, Omen, Remember, family
