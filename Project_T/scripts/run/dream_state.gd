@@ -514,8 +514,19 @@ func get_remember_trees() -> Array:
 					if next.tier >= ASCENDED_TIER:
 						ascended = next
 			branches.append([branch, finals])
+		if ascended != null and not ascended_visible(ascended):
+			ascended = null  # No crown and no line to it yet (run_design.md "Playtest fixes")
 		trees.append([root, branches, ascended])  # ascended: the family's Ascended form, or null
 	return trees
+
+# The Remember tree shows an Ascended crown only once it can be unlocked this run: its Grove node planted
+# and drift ASCENDED_FROM_DRIFT reached (or already unlocked; Test Grove shows everything).
+func ascended_visible(data: TowerData) -> bool:
+	if is_unlocked(data.get_id()):
+		return true
+	var card := _unlock_card_for(data)
+	var planted := card == null or card.in_start_pool or grove_cards.has(card.id)
+	return planted and drift_director.drifts_started + 1 >= ASCENDED_FROM_DRIFT
 
 # Whether any final form that grows into Ascended `data` is unlocked this run.
 func _has_unlocked_final(data: TowerData) -> bool:

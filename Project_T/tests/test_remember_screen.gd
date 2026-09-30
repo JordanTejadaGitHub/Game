@@ -82,14 +82,54 @@ func _run() -> void:
 			"…and on a final form whose branch is still locked")
 		screen.close()
 	# Playtest fixes: an Ascended node is the same size as the others, its whole art in the disc.
-	var trees: Array = dreams.get_remember_trees()
-	for tree in trees:
-		if tree.size() > 2 and tree[2] != null:
-			var node := RememberScreen.FormNode.new(screen, tree[2])
-			_check(node.size == RememberScreen.NODE_SIZE and node.portrait._atlas.region.size == tree[2].get_frame_rect(0).size,
-				"the Ascended node: normal size, its whole frame scaled in")
-			node.free()
-			break
+	var mother: TowerData = load("res://resource/tower/sporemother.tres")
+	var node := RememberScreen.FormNode.new(screen, mother)
+	_check(node.size == RememberScreen.NODE_SIZE and node.portrait._atlas.region.size == mother.get_frame_rect(0).size,
+		"the Ascended node: normal size, its whole frame scaled in")
+	node.free()
+
+	# Playtest fixes (run_design.md 2026-09-30): an unplanted lane shows only its branch, as a silhouette.
+	var hidden: TowerData = null
+	for next in sporeling.evolves_to:
+		if dreams.get_unlock_blocker(next) == "Memory Grove":
+			hidden = next
+	_check(hidden != null, "Sporeling has a lane the Grove hasn't planted")
+	if hidden != null:
+		screen.open(sporeling)
+		await process_frame
+		nodes = screen._canvas.nodes
+		_check(nodes.has(hidden) and screen.state_of(hidden) == RememberScreen.State.GROVE, "the unplanted branch shows as the Grove silhouette")
+		_check(not hidden.evolves_to.any(func(f: TowerData) -> bool: return nodes.has(f)), "…its final form is hidden")
+		_check(not screen._canvas.edges.any(func(e: Array) -> bool: return e[0] == hidden), "…and so is the line up to it")
+		screen._select(hidden)
+		var side: Array = screen._side_box.find_children("*", "Label", true, false).map(func(l: Label) -> String: return l.text)
+		_check(side == ["Plant it in the Memory Grove"], "its side panel only says to plant it (%s)" % " | ".join(side))
+		screen.close()
+
+	# The Ascended crown: hidden until its Grove node is planted and drift 51 is reached.
+	var director: DriftDirector = main.get_node("%DriftDirector")
+	var crown := func() -> TowerData:
+		for tree in dreams.get_remember_trees():
+			if tree[0] == sporeling:
+				return tree[2]
+		return null
+	var mother_card := "dream_sporemother"
+	dreams.grove_cards.append(mother_card)  # Planted, as in an "Unlock all families" / Dev Grove run
+	director.drifts_started = 0
+	_check(crown.call() == null, "drift 1: no Ascended crown, even with its Grove node planted")
+	screen.open(sporeling)
+	await process_frame
+	_check(not screen._canvas.nodes.has(mother) and not screen._canvas.edges.any(func(e: Array) -> bool: return e[1] == mother),
+		"…no node and no line to it on the tree")
+	screen.close()
+	director.drifts_started = 50
+	_check(crown.call() == mother, "drift 51 with the node planted: the crown appears")
+	dreams.grove_cards.erase(mother_card)
+	_check(crown.call() == null, "drift 51 without the Grove node: still hidden")
+	director.drifts_started = 0
+	dreams.unlock_everything = true
+	_check(crown.call() == mother, "Test Grove still shows everything")
+	dreams.unlock_everything = false
 	print("remember screen test: %s" % ("PASS" if failures == 0 else "%d FAILED" % failures))
 	quit(failures)
 
