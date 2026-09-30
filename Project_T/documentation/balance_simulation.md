@@ -192,6 +192,19 @@ Decisions (design chat, 2026-09-30):
   must add more. Next: per profile, the death drift and what leaked, Dew and damage at 30 / 45, the
   perks carried. Then buff the perks and the Grove families (not lower act 2).
 
+**Breakdowns (same day):**
+- **Spend or save:** the spender died because it poured 340–384 Dew into **Nurture on base Wardens**
+  (rank ~II) while the saver grew 4–5 branches by drift 10. Ranking the base is the trap; spending
+  on growth is fine. Decision: the **spender bot buys the next growth whenever affordable, else
+  plants, and ranks only after that**; rerun C. Design note: a human can fall into the same trap. The
+  Warden panel already lists Grow first; if playtests show players ranking Sprouts, add a one-time
+  whisper.
+- **Grove player:** the Grove's power is real (Half/Full reach 9–10 finals by 45) but the bot banks
+  ~200 Dew into the act break and meets drift 31's jump with it unspent (deaths d31–38). Decision:
+  **fix the bot first** (spend down to one rest bonus before drifts 26 and 31), add a **loadout
+  column**, rerun D. Perks and Grove families are buffed only if the Grove still doesn't move the
+  median after that.
+
 ## Later
 
 A **human baseline**: the same CSV written from real playtests (debug builds only), so the bot's
