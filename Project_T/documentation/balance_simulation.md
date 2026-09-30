@@ -240,6 +240,26 @@ Decisions (design chat, 2026-09-30):
   Dreams gave ~5–18% of DPS at drift 50. **Confirms the user: Dreams barely mattered.** The same
   batch after the pass (cc38d56 + 5b72073) is the "after".
 
+**Dream value AFTER the power pass** (cc38d56 + 5b72073; median death drift, before → after):
+
+| Profile, families | Skip | Random | Balanced |
+|---|---|---|---|
+| Fresh, own | 41 → 41 | 43 → 45 | 45 → 49 |
+| Fresh, all | 38 → 34 | 37 → 42 | 39 → 44 |
+| Full, own | 35 → 37 | 44 → 41 | 45 → **62** |
+| Full, all | 45 → 33 | 40 → 47 | 41 → **56** |
+
+Dream share of DPS at drift 50: 0.05–0.18 → **0.12–0.39** (Balanced 0.21–0.39). Wins 1/120. **Dreams
+now separate the policies** (skip < random < Balanced), most with the Grove.
+
+Reading (design chat): the bot's random and Balanced runs already die **before** their targets (act
+3 / acts 3–4), yet the user wins at drift 100: **the bot is much weaker than a person**, so the bot
+can't set act 2–4 health. Decision:
+- **Act 1 only, from the bot:** the act 1 boss sweep (×2.5 / ×3.0 / ×3.5; Fresh Balanced and Fresh
+  skip, 20 seeds, to drift 26) until skip loses and Balanced wins ~75%.
+- **Acts 2–4 from people:** the run history of real runs decides the rise (target: a sensible run
+  ends in act 3–4, a build that comes together wins). Until then act 2–4 health stays.
+
 ## Later
 
 A **human baseline**: the same CSV written from real playtests (debug builds only), so the bot's
