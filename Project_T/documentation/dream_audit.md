@@ -189,7 +189,7 @@ for the same rarity.
 
 **Applied (cc38d56e, Roguelite Code):** all Proposed lines, the cuts, merges (old ids migrate in run saves; the Grove Catchers node dropped them) and tag resonance (counted on the card's best-represented tag, locked when taken, never from a Deepened card's own base; `DreamState.rule_power(rule_id)` for rule numbers). Calls made there: **Deep Grip and Bright Marks no longer stack** (at +50% / +20%, three stacks would be too much); Cliffside's +20% shows in its Dream row. Numbers that live in Tower Code's files (Acorn aura, Hush, Sudden Bloom, Backspin, Kinship, catches) follow from them.
 
-## New cards 204–226 (raised to budget in a6f0aa05)
+## New cards 204–226 (raised to budget in 46287b83)
 
 | # | Card | Rarity | Now |
 |---|---|---|---|
