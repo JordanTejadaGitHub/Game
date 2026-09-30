@@ -7,9 +7,10 @@ class_name BuildInfo
 #   id      short hash of every .gd / .tres / .tscn / .gdshader / data .json under ROOTS (+ project.godot)
 #   commit  git HEAD, and `dirty`: the uncommitted files at launch, each with its content hash
 #   time    the newest file's modified time (when this build came to be); `label` "Sep 30 21:14 · 3f9a2c"
-# Computed once per launch on a thread in debug builds (BuildInfo.start() from the title; current()
-# waits for it); an exported build reads res://build_info.json (write_baked() makes it before export).
-# Each new id is added to user://builds.json the first time it launches (never from tests).
+# Computed once per launch, on first use (~0.2 s with git, debug builds; no thread: a thread still
+# hashing when a short run or test quits crashed Godot at exit); an exported build reads
+# res://build_info.json (write_baked() makes it before export). Each new id is added to
+# user://builds.json the first time it launches (never from tests).
 
 const ROOTS := ["res://scripts", "res://resource", "res://scenes", "res://animation", "res://shaders", "res://assets"]
 const EXTENSIONS := ["gd", "tres", "tscn", "gdshader", "json"]
@@ -21,33 +22,24 @@ const MONTHS := ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", 
 
 static var builds_path := BUILDS_PATH  # Tests point it at a temp file
 static var _info := {}
-static var _thread: Thread = null
 
-# Starts computing this launch's build in the background (cheap to call again).
+# Kept for callers: the build is computed on first use (current()).
 static func start() -> void:
-	if not _info.is_empty() or _thread != null:
-		return
-	if not OS.is_debug_build():
-		_info = _baked()
-		return
-	_thread = Thread.new()
-	_thread.start(_compute_launch)
+	pass
 
-# This launch's build: {id, commit, dirty, time, label} (waits for start() if it's still running).
+# This launch's build: {id, commit, dirty, time, label}, computed once.
 static func current() -> Dictionary:
 	if _info.is_empty():
-		start()
-		if _thread != null:
-			_info = _thread.wait_to_finish()
-			_thread = null
+		if not OS.is_debug_build():
+			_info = _baked()
+		else:
+			_info = _compute_launch()
 			_remember(_info)
 	return _info
 
-# The label once known, "" while computing (the title polls it).
+# The label (the title calls it a frame after it shows, so the hitch isn't on the first frame).
 static func label_if_ready() -> String:
-	if _info.is_empty() and _thread != null and not _thread.is_alive():
-		current()
-	return String(_info.get("label", ""))
+	return String(current().get("label", ""))
 
 static func _compute_launch() -> Dictionary:
 	var info := compute(list_files())
