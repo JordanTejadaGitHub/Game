@@ -15,6 +15,7 @@ placeholders).
 | `acts_3_4.md` | drifts 51–100, the Moth Queen and the Hollow Oak, act 3–4 nightmare intros |
 | `acts_1_2.md` | creature and boss stats, special drifts, the drift-by-drift plan for drifts 1–50 |
 | `dream_design.md` | in-run upgrade pool, offer rules, status numbers |
+| `dream_audit.md` | card power pass (2026-09-30): budget per rarity, every card raised / kept / merged / cut |
 | `meta_design.md` | Seeds, Memory Grove, milestones, Blight Levels, Memories, true ending |
 | `art_direction.md` | warm vs cold, environment, Warden and nightmare look; **art style decided 2026-09-28: Waystone pixel, "detailed 64"** (64 px cells with a detail pass: upper-left light and 1 px rim, dithered bands, sparse texture, banded glow; the Heartwood 128 px; marketing art may go higher) and the **Heartwood 32 palette** (32 colours, 9 ramps; nightmares on cold ramps only; seasons from lighting; UI colours too). UI style: **Moonlit Thread** (`ui_style.md`). Owned by the Theme chats |
 | `ui_style.md` | the Moonlit Thread UI style: panels, the gold thread, fonts, icon scaling, colours from Heartwood 32. Owned by UI Asset / UI Code |
