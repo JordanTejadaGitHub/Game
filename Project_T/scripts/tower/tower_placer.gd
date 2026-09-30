@@ -725,6 +725,7 @@ func evolve(tower: Tower, into: TowerData, origin: Vector2 = NO_CELL) -> bool:
 	if into.tier == DreamState.ASCENDED_TIER - 1 and not _finals_grown.has(into.get_id()):
 		_finals_grown[into.get_id()] = true  # The first of each final form this run gets its bloom
 		Fx.final_bloom(tower, into.display_name)
+		tower.final_bloomed.emit(tower)
 	return true
 
 # The 2×2 squares (top-left cells) `tower` could grow into `into` on (tower_design.md "Ascended forms",

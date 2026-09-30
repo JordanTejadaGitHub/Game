@@ -17,8 +17,8 @@ signal attack_released(tower: Tower)
 signal crit_landed(tower: Tower, enemy: Node2D)
 # A hit from this Warden landed on `enemy` (sound: the impact). Every attack kind goes through hit().
 signal hit_landed(tower: Tower, enemy: Node2D, is_area: bool, is_crit: bool)
-# Unused since "Spores don't pop" (tower_design.md): kept until SoundHooks drops its hook.
-signal popped(tower: Tower, enemy: Node2D, stacks: int)
+# The first grow into a final form this run (TowerPlacer.evolve, with Fx.final_bloom): sound.
+signal final_bloomed(tower: Tower)
 # A beam (Sunpetal line) hit its target; `ramp` is its current damage multiplier.
 signal beam_ticked(tower: Tower, ramp: float)
 # Sound hooks for the Warden sound sheet (audio_direction.md); SoundHooks connects to these.
