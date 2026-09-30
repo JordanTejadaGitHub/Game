@@ -15,7 +15,7 @@ const BAR_CLEARANCE := 336.0
 const SPROUT_ID := "sprout"
 const CLEAR_TOOL_GAP := 10.0
 const SEED_COLOR := Palette.SPRIG
-const COUNTER_ICON_GAP := 6.0
+const COUNTER_ICON_GAP := 8.0  # Icon to number (UI Code: pairs group, counters stand apart)
 
 @onready var tower_bar: HFlowContainer = %TowerBar
 @onready var tower_placer: TowerPlacer = %TowerPlacer
@@ -25,7 +25,7 @@ const COUNTER_ICON_GAP := 6.0
 @onready var run_state: RunState = %RunState
 @onready var drift_director: DriftDirector = %DriftDirector
 
-const LEAVES_COLOR := UiStyle.INK
+const LEAVES_COLOR := UiStyle.GOLD  # The value; its max "/15" is dim (the mock)
 const DREAMLIGHT_COLOR := UiStyle.GOLD
 # The top-right buttons sit in one row directly under the resources, right-aligned (_layout_top_row):
 # [Remember][Buffs][?][Menu], Remember nearest the Dreamlight counter.
@@ -390,7 +390,8 @@ func _add_dreamlight_counter() -> void:
 var _shown_leaves := -1
 
 func _on_leaves_changed(leaves: int, max_leaves: int) -> void:
-	leaves_label.text = "%d/%d" % [leaves, max_leaves]
+	leaves_label.text = str(leaves)
+	_leaves_max.text = "/%d" % max_leaves
 	_place_counter_icon(leaves_label)
 	if bark_shield != null and bark_shield.visible:
 		bark_shield._place.call_deferred()  # The text width changed
@@ -453,7 +454,9 @@ func _place_counter_icon(label: Label) -> void:
 func _style_resources() -> void:
 	var fog := Panel.new()
 	fog.name = "ResourcesFog"
-	fog.add_theme_stylebox_override("panel", UiStyle.fog_patch())
+	var patch := UiStyle.fog_patch()
+	patch.center_alpha = 0.8  # Darker fog, never smaller text: readable over a bright map (ui_style.md)
+	fog.add_theme_stylebox_override("panel", patch)
 	fog.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	fog.set_anchors_preset(Control.PRESET_TOP_RIGHT)
 	fog.offset_left = -300.0
@@ -464,6 +467,12 @@ func _style_resources() -> void:
 	move_child(fog, 0)
 	UiStyle.number(dew_label, 28, DEW_COLOR)
 	UiStyle.number(leaves_label, 28, LEAVES_COLOR)
+	_leaves_max.name = "LeavesMax"
+	UiStyle.number(_leaves_max, 20, UiStyle.INK_DIM)
+	_leaves_max.set_anchors_preset(Control.PRESET_TOP_RIGHT)
+	_leaves_max.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	_leaves_max.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(_leaves_max)
 	UiStyle.number(%PathLabel, 28, UiStyle.INK_DIM)
 	for label: Label in [dew_label, leaves_label, %PathLabel]:
 		label.add_theme_color_override("font_outline_color", UiStyle.FOG)
@@ -522,6 +531,14 @@ func _add_buff_lens_button() -> void:
 # Puts a top-right button in its slot ([right, width]) of the row under the resources.
 func _place_top_button(button: Button, slot: Array) -> void:
 	button.theme_type_variation = &"HudButton"
+	# Icon buttons read at the counters' size (UI Code): glyphs at 26 px, pixel icons ×2 (32 px).
+	button.add_theme_font_size_override("font_size", 26)
+	button.expand_icon = true
+	button.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	button.add_theme_constant_override("icon_max_width", 32)
+	button.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	if button.name == &"CodexButton":
+		button.add_theme_font_override("font", UiStyle.display_font())
 	button.set_anchors_preset(Control.PRESET_TOP_RIGHT)
 	button.offset_right = slot[0]
 	button.offset_left = slot[0] - slot[1]
@@ -546,11 +563,12 @@ const TOP_ROW_GAP := 6.0
 const ROW_RIGHT := -16.0
 const ROW_TOP := 12.0
 const ROW_H := 48.0
-const ROW_GAP := 18.0  # Between counters (the mock)
+const ROW_GAP := 22.0  # Between counters
 const ROW_PAD := 10.0  # The fog patch around the row
 const BANNER_CLEARANCE := 16.0
 const ROW_BUTTON := 48.0  # Touch-sized (platforms.md); the icon inside is drawn smaller
 var row_wrapped := false  # The buttons sit on a second line (tests)
+var _leaves_max := Label.new()  # "/15" after the leaves value, dim
 var _clears_label: Label
 var _row_key := ""
 var _row_check := 0.0
@@ -569,6 +587,8 @@ func _layout_top_row() -> void:
 		widths[label] = ceilf(text_w + (icon.size.x + COUNTER_ICON_GAP if icon != null else 0.0) + 2.0)
 		counters_w += widths[label]
 	counters_w += ROW_GAP * (counters.size() - 1)
+	if _leaves_max.text != "":
+		counters_w += _leaves_max.get_theme_font("font").get_string_size(_leaves_max.text, HORIZONTAL_ALIGNMENT_LEFT, -1, _leaves_max.get_theme_font_size("font_size")).x + 2.0
 	var buttons: Array = []
 	for name in TOP_ROW:
 		var button := get_node_or_null(name) as Button
@@ -595,6 +615,14 @@ func _layout_top_row() -> void:
 	x = (x - ROW_GAP + TOP_ROW_GAP) if not row_wrapped and not buttons.is_empty() else ROW_RIGHT
 	var left := x
 	for label: Label in counters:
+		if label == leaves_label and _leaves_max.text != "":  # "/15" right after the value, dim
+			var max_w := ceilf(_leaves_max.get_theme_font("font").get_string_size(_leaves_max.text, HORIZONTAL_ALIGNMENT_LEFT, -1,
+				_leaves_max.get_theme_font_size("font_size")).x + 2.0)
+			_leaves_max.offset_right = x
+			_leaves_max.offset_left = x - max_w
+			_leaves_max.offset_top = ROW_TOP + 4.0  # Sits on the value's baseline
+			_leaves_max.offset_bottom = ROW_TOP + ROW_H
+			x -= max_w
 		label.set_anchors_preset(Control.PRESET_TOP_RIGHT)
 		label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 		label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
