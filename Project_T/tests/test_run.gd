@@ -112,9 +112,9 @@ func _test_blocks_and_rests() -> void:
 		_check(elites.size() == expected and elites.all(func(a: Array) -> bool: return not a[1].is_boss),
 			"drift %d: %d elite(s) (%d listed)" % [number, elites.size(), listed])
 	var stag: EnemyData = load("res://resource/enemy/old_stag.tres")
-	_check(is_equal_approx(director.get_health_scale(stag, 25), 1.5 * director.get_health_multiplier(stag, 25))
+	_check(is_equal_approx(director.get_health_scale(stag, 25), director.act1_boss_health_multiplier * director.get_health_multiplier(stag, 25))
 		and is_equal_approx(director.get_health_scale(shade_data, 25), director.get_growth(25) * 1.15 * director.get_health_multiplier(shade_data, 25)),
-		"act 1's boss stays ×1.5 (no ramp); its escort takes ×1.15")
+		"act 1's boss is ×1.75 (no ramp); its escort takes ×1.15")
 	_check(is_equal_approx(director.get_health_scale(stag, 50), 1.5 * 1.55 * director.get_health_multiplier(stag, 50)),
 		"later bosses keep their act's multiplier (act 2's ×1.55)")
 

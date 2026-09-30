@@ -57,6 +57,7 @@ const DEMO_DRIFTS_DIR := "res://resource/drift/demo/"
 @export var guaranteed_elite_from: int = 31  # run_design.md f2eb4f8: was 26 (the drift 28–29 death cluster)
 @export var second_elite_from: int = 76  # Two Deeply Blighted per drift from here
 @export var boss_health_multiplier: float = 1.5  # On the bosses' base health
+@export var act1_boss_health_multiplier: float = 1.75  # Act 1's boss (drift 25) instead (balance_simulation.md grove10: Fresh beat it 10/10)
 # Acts 3–4 (run_design.md "Act 3 probe", interim): a flat health multiplier for every nightmare from
 # `late_acts_from_act`, bosses included, on top of the growth / boss multiplier.
 @export var late_acts_health_multiplier: float = 1.6
@@ -328,10 +329,11 @@ func get_early_multiplier(number: int) -> float:
 # Health multiplier for `data` in drift `number`: get_growth (bosses: ×1.5 their base), × the act 2
 # ramp, or ×1.6 in acts 3–4. Dreams / Omens multiply on top (hook: see get_health_multiplier).
 func get_health_scale(data: EnemyData, number: int) -> float:
-	var scale := boss_health_multiplier if data.is_boss else get_growth(number)
+	var boss := act1_boss_health_multiplier if get_act(number) == 1 else boss_health_multiplier
+	var scale := boss if data.is_boss else get_growth(number)
 	if get_act(number) >= late_acts_from_act:
 		scale *= late_acts_health_multiplier
-	elif not (data.is_boss and get_act(number) == 1):  # Act 1's boss stays ×1.5 (its escort takes the ramp)
+	elif not (data.is_boss and get_act(number) == 1):  # Act 1's boss stays ×1.75 (its escort takes the ramp)
 		scale *= get_early_multiplier(number)
 	return scale * get_health_multiplier(data, number)
 
