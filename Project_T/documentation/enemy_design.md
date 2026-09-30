@@ -120,6 +120,8 @@ Queen an act 3 boss.
 
 **Act 1 bosses must be a threat** (2026-09-30, user): health alone didn't do it (×1.5–×2.0 all dispelled cleanly 19–20/20). Targets, Fresh, sensible picks: beat it **~75%**; always-skip **loses** to it; and **a win still costs leaves**: the boss (or what it brings) reaches **85%+ of the route in most wins, ~1–3 leaves lost** on average. The sharpened abilities above come first; the health sweep (×2.5–×3.5) then tunes to the targets.
 
+**A boss that reaches the Heartwood stays** (2026-09-30, user, after Tower Code found a boss leak cost only its 5 leaves and never decided a run, so health barely mattered): an act boss that gets through **doesn't leave. It stays at the Heartwood and takes 1 leaf every 2 s until it's dispelled**; Wardens in range of the Heartwood can still hit it (Last Stand shines here). Damage decides the outcome, so a maze without Dreams loses the run and a good one saves it late. **The Night Mare keeps its own rule** (user: *"isn't there a boss that reruns once it hits the end"*): it laps, taking 3 leaves and running the maze again, faster; that is its version of this. Applies to every act boss including the Hollow Oak; echoes and escorts leak normally. The boss bar shows "At the Heartwood" and pulses; the Heartwood trembles each leaf.
+
 **Weakness spread:** act 1 water / light / spore (the three starting families); act 2 root / stone /
 water; act 3 light / root / song; act 4 spore / water / light. Bosses are tallied **separately** from the regular
 nightmares' family tally below (they're one fight each, not a drift's worth of health).
