@@ -9,7 +9,7 @@ signal picked(level: int)
 const LEVELS: Array[String] = [
 	"No Blight",
 	"Nightmares +10% health",
-	"Starting Dew −20",
+	"The first family pick gives no Dreamlight",
 	"Bosses +25% health",
 	"Rest bonus −25%",
 	"One nightmare per drift is Deeply Blighted",
