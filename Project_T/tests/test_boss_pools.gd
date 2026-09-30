@@ -275,6 +275,8 @@ func _run() -> void:
 	_check(weak.is_withered(), "never the same one twice in a row")
 	weak.free()
 	strong.free()
+	oak.take_damage(oak.max_health * 0.4)  # Past its first Drought burst
+	_check(oak.sprite.animation == &"wither", "Drought: two roots lift and stab down (the wither pose)")
 	_clear_enemies()
 
 	# --- Remembering Oak: echoes of this run's bosses ---
@@ -287,6 +289,7 @@ func _run() -> void:
 		if enemy.is_echo:
 			echo = enemy
 	_check(echo != null and echo.enemy_data.resource_path.ends_with("night_mare.tres"), "at 75% the echo of act 1's boss (the Night Mare) rises")
+	_check(remembering.sprite.animation == &"echo", "a pale bark face lights as the echo rises (the echo pose)")
 	if echo:
 		var full := roundi(echo.enemy_data.health * director.get_health_scale(echo.enemy_data, maxi(director.drifts_started, 1)))
 		_check(absi(echo.max_health - roundi(full * 0.2)) <= 1, "with 20%% of its health (%d of %d)" % [echo.max_health, full])

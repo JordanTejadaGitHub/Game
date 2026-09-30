@@ -1459,6 +1459,7 @@ func _update_boss_pool_abilities(elapsed: float) -> void:
 		_wither_timer += elapsed * _sapling_speed
 		if _wither_timer >= enemy_data.wither_interval:
 			_wither_timer = 0.0
+			play_pose(&"wither")  # Two roots lift and stab down
 			wither_requested.emit(self, 1)
 	if enemy_data.regen_rate > 0.0:  # Mourning Mother's Sorrow
 		_since_hit += elapsed
@@ -1617,9 +1618,11 @@ func _check_health_thresholds() -> void:
 		grief_requested.emit(self)
 	while _wither_bursts < enemy_data.wither_burst_at.size() and health <= max_health * enemy_data.wither_burst_at[_wither_bursts]:
 		_wither_bursts += 1
+		play_pose(&"wither")
 		wither_requested.emit(self, enemy_data.wither_burst_count)  # Withering Oak: Drought
 	while _echoes < enemy_data.echo_at.size() and health <= max_health * enemy_data.echo_at[_echoes]:
 		_echoes += 1
+		play_pose(&"echo")  # A pale bark face lights and the echo rises out of it
 		echo_requested.emit(self, _echoes)  # Remembering Oak: act 1's boss, then 2's, then 3's
 	if enemy_data.bellow_count > 0 and not _bellowed and health <= max_health / 2:
 		_bellowed = true

@@ -30,4 +30,4 @@ sapling_frames = ExtResource("9_sapling_frames")
 title = "the grieving heart of the Hollow"
 abilities = Array[Dictionary]([{"name": "Thorn-Saplings", "icon": &"sapling", "text": "Plants a Thorn-Sapling beside the path ahead. Thorn-Saplings bend the route, can be cleared, and wither when it falls.", "when": "every {sapling_interval} s"}, {"name": "Grief", "icon": &"grief", "text": "Stops and wails for {grief_pause} s while {grief_count} {grief_spawn:name}s rise around it.", "when": "at {grief_at:list_pct} health"}, {"name": "The Hollow Oak Remembers", "icon": &"rises", "text": "The first time it's dispelled, it rises again at half health and plants twice as fast.", "when": "at Blight Level {rises_from_blight} and above"}])
 tips = Array[String](["Its Thorn-Saplings reshape the path: leave yourself room to adapt.", "When it grieves, a crowd rises at once: be ready to hit many.", "Spores find the rot in its hollow heart."])
-whisper = "Itâs here. I can hear it grieving."
+whisper = "It's here. I can hear it grieving."

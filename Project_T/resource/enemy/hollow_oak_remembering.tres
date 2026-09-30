@@ -1,7 +1,7 @@
 [gd_resource type="Resource" script_class="EnemyData" load_steps=3 format=3]
 
 [ext_resource type="Script" path="res://resource/enemy/script/enemy_data.gd" id="1_edata"]
-[ext_resource type="SpriteFrames" path="res://animation/enemy/hollow_oak.tres" id="2_frames"]
+[ext_resource type="SpriteFrames" path="res://animation/enemy/hollow_oak_remembering.tres" id="2_frames"]
 
 [resource]
 script = ExtResource("1_edata")
@@ -12,7 +12,6 @@ speed = 35.0
 dew_reward = 100
 leaf_cost = 5
 is_boss = true
-tint = Color(0.85, 0.85, 0.95, 1)
 resists = Array[String](["spore", "water"])
 weak_to = Array[String](["light"])
 echo_at = Array[float]([0.75, 0.5, 0.25])
@@ -20,7 +19,7 @@ echo_share = 0.2
 rises_from_blight = 10
 trait_text = "Remembering: echoes of the great nightmares you dispelled rise from its bark."
 cleanse_line = "The Hollow Oak is still. Somewhere beyond the dream, the Hollow remembers."
-title = "the grief that canât let go"
+title = "the grief that can't let go"
 abilities = Array[Dictionary]([{"name": "Echoes", "icon": &"rises", "text": "An echo of a great nightmare you dispelled this run rises beside it, with {echo_share:pct} of that nightmare's health and all of its tricks.", "when": "at {echo_at:list_pct} health"}, {"name": "The Hollow Oak Remembers", "icon": &"rises", "text": "The first time it's dispelled, it rises again at half health.", "when": "at Blight Level {rises_from_blight} and above"}])
 tips = Array[String](["Remember how you beat them the first time.", "Every echo walks your whole maze again.", "The faces fade in the light."])
-whisper = "Itâs here. It remembers every one of them."
+whisper = "It's here. It remembers every one of them."
