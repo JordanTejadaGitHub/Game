@@ -156,6 +156,18 @@ func _run() -> void:
 	_check(popup.visible and popup._name.text == "Soaked" and popup._text.text.begins_with("Water hits deal 20% more"), "tapping a status shows its definition")
 	link_label.meta_clicked.emit("status:damp")
 	_check(not popup.visible, "tapping it again closes it")
+	# Game terms (playtest fixes 2026-09-30): {block}-style tokens are links to their glossary line.
+	var term_text := StatusLinks.bbcode("{Perfect_block}: no leaf lost in a {block} of {drifts}. Soaked {deeply_blighted}.")
+	_check(term_text.contains("[url=term:perfect_block]") and term_text.contains("Perfect block[/color]")
+		and term_text.contains("[url=term:block]") and term_text.contains("drifts[/color]")
+		and term_text.contains("[url=status:damp]") and term_text.contains("[url=term:deeply_blighted]"),
+		"term tokens become links, capitalised and plural forms too (%s)" % term_text)
+	_check(IconInfo.format("each {block}, {Rests}, {dreamlight}") == "each block, Rests, Dreamlight", "plain text gets the words")
+	for id in IconInfo.TERMS:
+		_check(CodexData.definition(StatusLinks.term_name(id)) != "", "the glossary defines %s" % StatusLinks.term_name(id))
+	link_label.meta_clicked.emit("term:perfect_block")
+	_check(popup.visible and popup._name.text == "Perfect block" and popup._text.text.contains("no leaf lost") and not popup._icon.visible,
+		"tapping a term shows its glossary line (%s)" % popup._text.text)
 	link_label.queue_free()
 	var whisper_node = main.get_node("%Whispers")
 	whisper_node.enabled = true

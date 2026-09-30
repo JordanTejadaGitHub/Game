@@ -19,7 +19,8 @@ const GLOSSARY_SOURCE := [
 	]],
 	["The run", [
 		["Drift", "A wave of nightmares. A run is 100 drifts in 4 acts.", ["Block", "Act"]],
-		["Block", "Five drifts that flow into each other, followed by a rest.", ["Drift", "Rest"]],
+		["Block", "The 5 drifts between two rests; they flow into each other.", ["Drift", "Rest"]],
+		["Perfect block", "A block in which no nightmare reached the Heartwood: no leaf lost. Its rest pays +10 Dew.", ["Block", "Rest", "Leaves"]],
 		["Rest", "The pause after a block: a Dew bonus, a Dream, rebuild freely at a 75% refund, then Start.", ["Dream", "Omen"]],
 		["Act", "25 drifts ending in a boss. Between acts the season changes and the Heartwood regrows a leaf.", ["Boss", "Leaves"]],
 		["Boss", "A great nightmare at the end of each act. Dispelling it brings a family pick, Dreamlight and a rare Dream.", ["Family pick", "Dreamlight"]],
@@ -372,6 +373,14 @@ static func glossary() -> Array:
 					entry[2].map(func(s: String) -> String: return IconInfo.format(s))])
 			_glossary.append([group[0], entries])
 	return _glossary
+
+# The glossary's one-line definition of `term` ("" if it has none): the popup of a linked game term.
+static func definition(term: String) -> String:
+	for group in glossary():
+		for entry in group[1]:
+			if entry[0].to_lower() == term.to_lower():
+				return entry[1]
+	return ""
 
 static func search(query: String) -> Array:
 	var found: Array = []
