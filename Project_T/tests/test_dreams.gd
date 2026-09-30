@@ -383,6 +383,8 @@ func _test_clearing_cards(main: Node) -> void:
 	_check(not dreams.can_clear(), "a new run starts locked")
 	dreams.load_save(saved)
 	_check(dreams.can_clear(), "the unlock survives a mid-run save (it's in the taken cards)")
+	dreams.take(_card(dreams, "heartwoods_reach_ii"))
+	_check(dreams.can_clear(), "taking Heartwood's Reach II (it replaces the opener) keeps clearing open")
 	_reset_dreams(main)
 	dreams.clearing_open = true  # The rest of these checks: clearing open
 

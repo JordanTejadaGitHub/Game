@@ -574,12 +574,19 @@ func get_evolutions(data: TowerData) -> Array:
 # Dream stat bonuses are sums of DreamEffects rows (the same rows the Warden panel and ghost show):
 # plain stat cards from their fields, rule cards from their reporters.
 func get_soothe_multiplier(tower: Tower) -> float:
-	return 1.0 + _sum_stat(tower.tower_data, "soothe_bonus") + effects().rule_total(DreamEffects.spot_for(tower), "damage")
+	return 1.0 + _sum_stat(tower.tower_data, "soothe_bonus") + _tower_rule_total(tower, "damage")
 
 # Per-Warden attack speed from Dreams (Tower adds it to its multiplier): Sprout Chorus, The Last
 # Light, Rootbound.
 func get_tower_attack_speed_bonus(tower: Tower) -> float:
-	return effects().rule_total(DreamEffects.spot_for(tower), "speed")
+	return _tower_rule_total(tower, "speed")
+
+# Performance (3x perf bar, 2026-09-30): a planted Warden reads its cached rows (DreamEffects.rows_cached,
+# ~16 us) instead of rebuilding them (~110 us); a Warden not in the tree (tests, previews) rebuilds.
+func _tower_rule_total(tower: Tower, key: String) -> float:
+	if tower.is_inside_tree():
+		return effects().rule_total_cached(tower, key)
+	return effects().rule_total(DreamEffects.spot_for(tower), key)
 
 # The card reporter (built on first use).
 func effects() -> DreamEffects:
@@ -696,7 +703,7 @@ func get_non_crit_multiplier() -> float:
 
 # Per-Warden range from Dreams, in cells (Tower adds it): Solitude.
 func get_tower_range_bonus(tower: Tower) -> float:
-	return effects().rule_total(DreamEffects.spot_for(tower), "range")
+	return _tower_rule_total(tower, "range")
 
 # Solitude: an attacking Warden with no other attacking Warden within 2 cells.
 func is_solitary(tower: Tower) -> bool:
@@ -1153,12 +1160,13 @@ func get_creature_speed_multiplier() -> float:
 
 # Whether obstacles can be cleared: after the opener (Tend the Forest, tag "opener") or Burn Back
 # (dream_design.md "Clearing: one opener, the rest follow"). Taken cards are in the save, so this needs
-# no saving of its own.
+# no saving of its own. Every card with stacks counts, not only _taken_cards(): taking Heartwood's Reach II
+# replaces the base (the opener) there, and clearing must stay open (a flaky test_meta caught it).
 func can_clear() -> bool:
 	if clearing_open:
 		return true
-	for card in _taken_cards():
-		if unlocks_clearing(card):
+	for card in pool:
+		if stacks.get(card.id, 0) > 0 and unlocks_clearing(card):
 			return true
 	return false
 
@@ -1233,11 +1241,24 @@ func is_beside_bend(cell: Vector2, reach: int = 1) -> bool:
 func get_stat_bonus(data: TowerData, stat: String) -> float:
 	return _sum_stat(data, stat)
 
+# Cached per card set (Wardens ask on every stat rebuild; 3x perf bar): cleared when _taken_cards() rebuilds
+# or a resonance is locked.
+var _stat_sums := {}  # stat -> {TowerData: total}
+var _stat_sums_of: Array = [null, -1]  # [the _taken_cards() array, _resonance.size()]
+
 func _sum_stat(data: TowerData, stat: String) -> float:
+	var taken := _taken_cards()
+	if not is_same(_stat_sums_of[0], taken) or _stat_sums_of[1] != _resonance.size():
+		_stat_sums.clear()
+		_stat_sums_of = [taken, _resonance.size()]
+	var by_data: Dictionary = _stat_sums.get_or_add(stat, {})
+	if by_data.has(data):
+		return by_data[data]
 	var total := 0.0
-	for card in _taken_cards():
+	for card in taken:
 		if _applies_to(card, data):
 			total += float(card.get(stat)) * stacks[card.id] * resonance(card)
+	by_data[data] = total
 	return total
 
 func _applies_to(card: UpgradeData, data: TowerData) -> bool:
