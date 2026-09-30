@@ -230,8 +230,30 @@ func _test_boss_rest_and_win() -> void:
 	_check(rests.is_empty(), "the boss rest waits for the family pick")
 	family.choose(family.offer[0])
 	_check(rests == [[1, true]], "then the boss rest")
+	# A waiting choice holds the drift (user bug: "I can hide the Dream choice and start the wave").
+	var rest_dreams: DreamState = main.get_node("%DreamState")
+	_check(director.pending_choice() == &"dream" and not director.can_start_next_drift(), "the Dream waiting behind the boss rest's Remember screen holds the drift too")
+	rest_dreams.remember_closed()  # The player closes Remember: the Dream shows
+	for i in 30:
+		if rest_dreams.is_offering():
+			break
+		await process_frame
+	if rest_dreams.is_offering():
+		var dream_screen = main.get_node("HUD/DreamScreen")
+		dream_screen.peek.set_peeking(true)  # Minimised to peek at the map
+		var started_before := director.drifts_started
+		_check(not director.start_next_drift() and director.drifts_started == started_before and director.pending_choice() == &"dream",
+			"a minimised Dream offer holds the next drift")
+		var panel = main.get_node("HUD/DriftPanel")
+		panel._process(0.0)
+		_check(panel._start_button.text == "Choose a Dream" and not panel._start_button.disabled, "Start reads Choose a Dream")
+		panel._on_start_pressed()
+		_check(not dream_screen.peek.peeking and director.drifts_started == started_before, "pressing it reopens the Dream screen")
+	else:
+		_check(false, "the boss rest offers a Dream")
 	await _settle(main)
 	_check(acts == [[2, 1]] and run_state.leaves == 11, "act break regrows 1 leaf (%s)" % [acts])
+	await _resolve_choices(main)
 	director.start_next_drift()
 	await _play_until(main, func() -> bool: return not ended.is_empty(), 0, 3000)
 	_check(ended == [true] and not director.has_next_drift(), "clearing the last drift wins")
@@ -312,6 +334,22 @@ func _play_until(main: Node, done: Callable, leave: int = 0, max_frames: int = 4
 	_check(false, "timed out waiting (%d frames)" % max_frames)
 
 # Runs rames frames dismissing any Dream / Omen offers, without cleansing anything.
+# Makes every waiting choice (a Dream, an Omen shown or queued) so the next drift may start: a
+# waiting choice holds it (screens_ui.md "Choice screens").
+func _resolve_choices(main: Node) -> void:
+	var director: DriftDirector = main.get_node("%DriftDirector")
+	var dreams: DreamState = main.get_node("%DreamState")
+	for i in 300:
+		if director.pending_choice() == &"":
+			return
+		dreams.remember_closed()  # The boss rest opens Remember first; the Dream waits behind it
+		if dreams.is_offering():
+			dreams.skip() if dreams.can_skip() else dreams.choose(dreams.current_offer[0])
+		var omens = get_first_node_in_group(&"omens")
+		if omens != null and (omens.is_offering() or omens.has_pending_offer()) and not dreams.is_offering():
+			omens.choose(null)
+		await process_frame
+
 func _settle(main: Node, frames: int = 10) -> void:
 	for i in frames:
 		await _play_until(main, func() -> bool: return true)

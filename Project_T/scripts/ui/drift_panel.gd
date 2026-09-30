@@ -56,7 +56,7 @@ func _ready() -> void:
 	_start_button.custom_minimum_size = Vector2(272, 48)
 	_start_button.add_theme_font_size_override("font_size", BUTTON_FONT_SIZE)
 	UiStyle.primary(_start_button)
-	_start_button.pressed.connect(drift_director.start_next_drift)
+	_start_button.pressed.connect(_on_start_pressed)
 	add_child(_start_button)
 
 	# Kept compact (screens_ui.md principle 5): Auto-drift shares the speed row.
@@ -109,7 +109,7 @@ func _add_speed_button(row: HBoxContainer, button: Button) -> void:
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("start_drift"):
-		drift_director.start_next_drift()
+		_on_start_pressed()  # A waiting choice reopens instead (the director refuses the drift anyway)
 		get_viewport().set_input_as_handled()
 
 # The call-early bonus changes every frame as creatures walk, so refresh continuously.
@@ -143,6 +143,37 @@ func _process(_delta: float) -> void:
 	else:
 		_status_label.text = "Rest once the field is clear"
 		_start_button.text = "Rest after drift %d" % block_end
+	# A choice waits (open, or minimised to peek at the map): the button names it and reopens it.
+	var pending := drift_director.pending_choice()
+	if pending != &"" and not run_state.is_over:
+		_start_button.text = PENDING_TEXT[pending]
+		var omens := get_tree().get_first_node_in_group(&"omens")
+		if pending == &"omen" and omens != null and bool(omens.get("faced")):
+			_start_button.text = "Choose an Omen"  # "Face an Omen" was picked: one of its Omens must be chosen
+		_start_button.disabled = false
+
+# Screens_ui.md "Choice screens": what the Start button says while a choice waits.
+const PENDING_TEXT := {&"family": "Pick a family", &"dream": "Choose a Dream", &"omen": "Face an Omen or Clear Skies"}
+const PENDING_SCREENS := {&"family": "FamilyPickScreen", &"dream": "DreamScreen", &"omen": "OmenScreen"}
+
+func _on_start_pressed() -> void:
+	var pending := drift_director.pending_choice()
+	if pending == &"":
+		drift_director.start_next_drift()
+		return
+	reopen_choice(pending)
+
+# Brings the waiting choice screen back (out of its peek); Enter does the same.
+func reopen_choice(pending: StringName) -> void:
+	var screen_name := String(PENDING_SCREENS[pending])
+	if pending == &"dream" and not dream_state.is_offering():
+		screen_name = "RememberScreen"  # A boss rest: the Dream waits behind the Remember screen
+	var screen := get_parent().get_node_or_null(screen_name) if get_parent() != null else null
+	if screen == null:
+		return
+	var peek = screen.get("peek")
+	if peek != null and peek.peeking:
+		peek.set_peeking(false)
 
 func _on_speed_changed(paused: bool, speed: float) -> void:
 	_pause_button.set_pressed_no_signal(paused)

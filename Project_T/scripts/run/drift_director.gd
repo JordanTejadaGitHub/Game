@@ -232,9 +232,26 @@ func get_auto_countdown() -> float:
 func can_start_next_drift() -> bool:
 	if run_state.is_over or awaiting_family_pick or not has_next_drift():
 		return false
+	if pending_choice() != &"":
+		return false  # A choice open or minimised (peeking at the map) holds the next drift
 	if resting:
 		return true
 	return _next_is_in_block()
+
+# The choice that must be made before the next drift (screens_ui.md "Choice screens", user bug: "I can
+# hide the Dream choice and start the wave"): &"family" (the family pick), &"dream" (an offer shown or
+# queued), &"omen" (an Omen offer shown or waiting behind the Dream), or &"" when none. Minimising a
+# choice to peek at the map doesn't resolve it. The boss dossier and Remember never block.
+func pending_choice() -> StringName:
+	if awaiting_family_pick:
+		return &"family"
+	var dreams := get_tree().get_first_node_in_group(DreamState.GROUP) if is_inside_tree() else null
+	if dreams != null and (dreams.is_offering() or dreams.has_pending_offer()):
+		return &"dream"
+	var omens := get_tree().get_first_node_in_group(&"omens") if is_inside_tree() else null
+	if omens != null and (omens.is_offering() or omens.has_pending_offer()):
+		return &"omen"
+	return &""
 
 # Dew for starting the next drift right now: +1 per `call_early_seconds_per_dew` seconds of the
 # current drift's arrival that are skipped, capped. 0 when resting or when it has finished arriving.
