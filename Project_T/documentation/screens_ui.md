@@ -508,6 +508,17 @@ From a user playtest with screenshots; each line is the rule going forward.
 - **Warden panel → Remember:** a Grow button for a form you haven't unlocked (needs Dreamlight or
   its branch first) **opens the Remember tree on that node** instead of doing nothing.
 - **Sell button** shows its hotkey icon (**X**, or the rebound key) like other hotkeyed buttons.
+- **Preview the growth before growing** (2026-09-30, user: "hovering the upgrade it will go into
+  shows what it would look like and the range it will become"). While the pointer is on a Grow
+  button (or its key Q / E / Z / G is **held**):
+  - the Warden on the map shows the **new form's sprite** in its place, softly translucent and
+    idling, so you see what it becomes;
+  - its **new range ring** is drawn bright over the current one (faint), with the difference
+    visible (and the dead zone for snipers with a minimum range);
+  - the button's tooltip lists the **stat changes** ("Damage 24 → 38 · Range 2.7 → 3.2 · adds
+    Rooted"), and for a 2×2 Ascended form the valid squares show as ghosts.
+  - Leaving the button restores the map. **Touch:** the first tap on a Grow button shows the preview
+    with a "Grow · 80 Dew" confirm; the second tap grows. For a group, every selected Warden shows it.
 - **Selected vs hovered, everywhere** (2026-09-30, user): a **selected / active** control (the chosen
   targeting mode, the open tab, the current speed, a toggled option, the selected Warden's frame)
   shows only a **gold border** (and gold text), no fill. **Hovering** fills the **whole box** with the
