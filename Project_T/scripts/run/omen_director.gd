@@ -76,6 +76,10 @@ static func load_pool() -> Array[OmenData]:
 func is_offering() -> bool:
 	return showing and not current_offer.is_empty()
 
+# An offer is drawn and waits for the Dream screen to close (DriftDirector.pending_choice: Start waits).
+func has_pending_offer() -> bool:
+	return _offer_waiting and not current_offer.is_empty()
+
 # "ask" (the Omen screen each Omen rest, the default) or "never" (always Clear Skies, no screen).
 func get_mode() -> String:
 	if mode_override != "":
