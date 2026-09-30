@@ -81,6 +81,21 @@ https://claude.ai/artifact/BbGHs9cDsKvm8kZEDH1Bra
 - **Exempt:** the Steam capsule, key art and trailer (showcase art), and third-party packs that
   aren't used in the game.
 
+### Enforcement (2026-09-30)
+
+Everything in the game now uses the palette. All art in `assets/` is on it (no file more than 5% off;
+the largest is the Dream Thief's allowed orb). Every colour set in code is too: `scripts/palette.gd`
+(`Palette`) for game code, `UiStyle` tokens for UI. **`tests/test_palette.gd` fails** on any
+off-palette colour literal in `scripts/`, `resource/`, or stored in scenes and resources.
+
+- **Allowed outside the palette:** multipliers (modulate / self_modulate tints, the season and
+  lighting tints, flashes, `EnemyData.tint`), the accessibility high-contrast route yellow (marked
+  "Accessibility"), and the palette blends `UiStyle` generates in `assets/ui/ui_theme.tres`.
+- **No red.** Warnings ("can't afford", invalid, penalty, Bittersweet, immune) use Ember. If
+  playtesting shows they're too easy to miss, fix it with shape or motion before adding a colour.
+- **Identifier sets** (statuses, families, Focus, rarity, damage types) each keep one distinct
+  palette colour.
+
 ### Decision (2026-09-30): Warden Night, palette grows to 35
 
 **Final** (the user confirmed it). The Wardens move **one shade darker inside their own ramp**, so they sit
