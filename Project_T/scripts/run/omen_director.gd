@@ -359,7 +359,7 @@ func _pay_reward(rest_bonus: int) -> void:
 		if lost > 0:
 			run_state.spend_dew(lost)
 	if omen.reward_dreamlight > 0:
-		dream_state.add_dreamlight(omen.reward_dreamlight)
+		dream_state.add_dreamlight(omen.reward_dreamlight, &"omen")
 	if omen.reward_legendary:
 		dream_state.add_legendary_dreams(1)
 	tree_seed_bonus += omen.reward_tree_seeds

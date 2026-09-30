@@ -206,6 +206,9 @@ signal card_taken(card: UpgradeData)
 signal offer_ready(cards: Array[UpgradeData], drift_number: int)
 signal offer_closed
 signal dreamlight_changed(dreamlight: int)
+# Dreamlight gained (never spent), for Sound: `source` &"boss", &"shard", &"glimmer", &"sapling", &"first_pick",
+# &"wake", &"card", &"omen", &"grove" (Early Light), or &"other".
+signal dreamlight_earned(amount: int, source: StringName)
 # The Eldest changed (null = the title is free). Tower Code shows its crown and panel line.
 signal eldest_changed(tower: Tower)
 signal bark_changed(charges: int)  # Thick Bark: leaks it can still save this block (HUD shield)
@@ -306,7 +309,7 @@ func _ready() -> void:
 	run_state.run_ended.connect(_save_discoveries.unbind(1))
 	drift_director.family_pick_requested.connect(func(reason: StringName) -> void:
 		if reason == &"first":
-			add_dreamlight(first_pick_dreamlight))  # Act 1 can take a final form
+			add_dreamlight(first_pick_dreamlight, &"first_pick"))  # Act 1 can take a final form
 	unlocks_changed.connect(grant_free_branches)  # A family pick (screen or sim), a save load
 	map_generator.path_changed.connect(_update_bends)
 	spawner.enemy_cleansed.connect(_on_enemy_cleansed)
@@ -430,9 +433,11 @@ func get_evolve_cost(to: TowerData) -> int:
 
 # --- Dreamlight (run_design.md "Dreamlight: choosing your build paths") -------------------------------
 
-func add_dreamlight(amount: int) -> void:
+func add_dreamlight(amount: int, source: StringName = &"other") -> void:
 	dreamlight = maxi(dreamlight + amount, 0)
 	dreamlight_changed.emit(dreamlight)
+	if amount > 0:
+		dreamlight_earned.emit(amount, source)
 
 # Great Dreamcatcher: one shard per Caught nightmare dispelled; 10 shards = 1 Dreamlight, at most
 # 2 Dreamlight a run this way.
@@ -441,7 +446,7 @@ func add_dreamlight_shard() -> void:
 		return
 	dreamlight_shards += 1
 	if dreamlight_shards % SHARDS_PER_DREAMLIGHT == 0:
-		add_dreamlight(1)
+		add_dreamlight(1, &"shard")
 
 # Dreamlight to unlock `data` for the run: 1 for a branch, hidden branch or wall growth, 2 for a
 # final form. 0 = already unlocked.
@@ -1380,7 +1385,7 @@ func take(card: UpgradeData) -> void:
 		run_state.regrow_leaves(maxi(card.leaves_now, 0))  # Also clamps to a lower maximum
 	add_rare_dreams(card.rare_dreams_add)
 	if card.dreamlight_now > 0:
-		add_dreamlight(card.dreamlight_now)
+		add_dreamlight(card.dreamlight_now, &"card")
 	if card.free_first_clears_add > 0:
 		free_first_clears += card.free_first_clears_add
 	if card.free_clears_add > 0:
@@ -1435,10 +1440,10 @@ func _on_rest_started(_block: int, is_boss_rest: bool, _bonus: int, _perfect: bo
 	_second_wind()
 	_early_calls = 0  # Restless Night counts per block
 	_rest_rules(_perfect)
-	add_dreamlight(rest_dreamlight(drift_director.drifts_started))
+	add_dreamlight(rest_dreamlight(drift_director.drifts_started), &"wake")
 	if is_boss_rest:
 		# The freed light: +4 Dreamlight, and the Remember screen opens before the Dream.
-		add_dreamlight(BOSS_DREAMLIGHT)
+		add_dreamlight(BOSS_DREAMLIGHT, &"boss")
 		_remember_open = true
 		remember_requested.emit(null)
 	if has_rule(&"sunlit_rest"):
@@ -2490,7 +2495,7 @@ func _glimmer(enemy: Node2D) -> void:
 		return
 	glimmer_shards += 1
 	if glimmer_shards % SHARDS_PER_DREAMLIGHT == 0:
-		add_dreamlight(1)
+		add_dreamlight(1, &"glimmer")
 
 # Last Breath: a dispelled nightmare bursts for 10% (II 15%) of its max health on nightmares within
 # 1 cell; bosses' bursts are capped at 5% of the boss's max health. Effect damage (tag last_breath);

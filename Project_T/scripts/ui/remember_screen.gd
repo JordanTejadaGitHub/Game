@@ -11,6 +11,13 @@ class_name RememberScreen
 # unlock blooms along the tree line. Opens from the HUD's Remember button (any time; pauses) and
 # after each boss's family pick. Built in code.
 
+# For Sound (SoundHooks connects them if they exist; audio_direction.md "Remember screen").
+signal opened
+signal closed
+signal node_selected(data: TowerData)  # A node tapped
+signal unlocked(data: TowerData)  # A successful unlock (Sound reads data.tier)
+signal unlock_rejected(data: TowerData)  # Not enough Dreamlight, or still locked
+
 const MOTE := "✦"  # Dreamlight
 const NODE_SIZE := Vector2(76, 92)  # 48 px+ for touch
 const PORTRAIT := 56.0
@@ -117,6 +124,7 @@ func _ready() -> void:
 # state from before it opened.
 func open(focus_form: TowerData = null) -> void:
 	focus = focus_form
+	var was_open := visible
 	if not visible:
 		_was_paused = game_speed.paused
 	game_speed.set_paused(true)
@@ -129,16 +137,21 @@ func open(focus_form: TowerData = null) -> void:
 	if not _dev_free.visible:
 		_dev_free.button_pressed = false
 	_rebuild()
+	if not was_open:
+		opened.emit()
 
 func close() -> void:
 	visible = false
 	game_speed.set_paused(_was_paused)
 	dream_state.remember_closed()
+	closed.emit()
 
 # Unlocks `data` (the side panel's button). Returns whether it worked; blooms along the tree line.
 func unlock(data: TowerData) -> bool:
 	if not dream_state.unlock_with_dreamlight(data):
+		unlock_rejected.emit(data)
 		return false
+	unlocked.emit(data)
 	selected = data
 	if visible:
 		_rebuild()
@@ -432,6 +445,7 @@ func _add_unlock(data: TowerData) -> void:
 
 func _select(data: TowerData) -> void:
 	selected = data
+	node_selected.emit(data)
 	_canvas.queue_redraw()
 	for node in _canvas.nodes.values():
 		node.queue_redraw()
