@@ -26,7 +26,7 @@ Revised for 100-drift runs (`run_design.md`).
 
 Examples: a loss around drift 20 ≈ **30 Seeds**; a loss at drift 60 ≈ **120**; a win ≈ **350**.
 Averaging ~280 across a player's first runs, the full tech tree (**~5,960 Seeds** as built:
-Perks ~2,090, Families ~2,470 incl. Ascension, Cards ~1,400) takes **~21 runs ≈ 30 hours** (confirmed as the target, 2026-09-28). **2026-09-29:** discovery unlocks removed 6 fully covered Cards nodes (Reactions, Woven Dreams I–II, Kin Lore, Deep Bonds; `dream_design.md` "Grove overlap"), the cards now come from discovering combos and Kinships in play. **As built (763f228): 5 nodes removed; the tree is 6,722 Seeds** (Families 2,470, Cards 2,162, Perks 2,090; the earlier 5,960 predates the Seeds and Quiet Ones rows and the Ascension nodes), about **24 runs ≈ 34 hours** at ~280 Seeds per run, a little over the 30-hour target. **2026-09-29:** slot_2 / slot_3 removed (−120): **6,602 Seeds ≈ 24 runs ≈ 33 hours**. The user confirmed ~30 hours is right, so no cuts. **2026-09-30:** Reckless and Wild Planting removed (−90, refunded to old saves): **6,512 Seeds**.
+Perks ~2,090, Families ~2,470 incl. Ascension, Cards ~1,400) takes **~21 runs ≈ 30 hours** (confirmed as the target, 2026-09-28). **2026-09-29:** discovery unlocks removed 6 fully covered Cards nodes (Reactions, Woven Dreams I–II, Kin Lore, Deep Bonds; `dream_design.md` "Grove overlap"), the cards now come from discovering combos and Kinships in play. **As built (763f228): 5 nodes removed; the tree is 6,722 Seeds** (Families 2,470, Cards 2,162, Perks 2,090; the earlier 5,960 predates the Seeds and Quiet Ones rows and the Ascension nodes), about **24 runs ≈ 34 hours** at ~280 Seeds per run, a little over the 30-hour target. **2026-09-29:** slot_2 / slot_3 removed (−120): **6,602 Seeds ≈ 24 runs ≈ 33 hours**. The user confirmed ~30 hours is right, so no cuts. **2026-09-30:** Reckless and Wild Planting removed (−90, refunded to old saves): **6,512 Seeds**. **2026-09-30:** the 9 final-forms nodes removed (≈ −470, refunded): **≈ 6,040 Seeds ≈ 22 runs ≈ 30 hours**, right on the target, so the freed Seeds are not re-spent (no rebalancing).
 (Raised twice on 2026-09-27 as the Grove grew; the first unlocks still come every run, and a full
 Grove is a long-term goal next to Blight Levels.)
 
@@ -46,7 +46,7 @@ marks them as imported.
 
 Redesigned 2026-09-27 (user decision): the Grove is a **tech tree** growing up from the Heartwood's
 roots, with **three sections**. Each node costs Seeds and needs its parent node(s). 84 nodes,
-**6,512 Seeds** in total (2026-09-30; see Seeds above).
+**≈ 6,040 Seeds** in total (2026-09-30, after the final-forms nodes left; see Seeds above).
 
 ```
                  FAMILIES (middle limb)
@@ -185,7 +185,7 @@ above its family's final forms, so veterans keep finding new playstyles. Reviewe
 - **Memory Wardens: parked 2026-09-29** (cut for now, `tower_design.md`). While parked, dispelling a
   boss grows no Memory bloom on this limb and the family pick offers no Memory Warden card.
   (Was: a free bloom on the first dispel, then offered after that boss in later runs.)
-- Total ≈ 2,470 Seeds incl. Ascension (as built 2026-09-29; whole tree 6,512, see Seeds above).
+- Total ≈ 2,000 Seeds incl. Ascension (2026-09-30, final-forms nodes gone; whole tree ≈ 6,040, see Seeds above).
 - Each hidden-branch node needs its family's final-forms node, so hidden branches really are late.
 - **Final-forms nodes removed (user, 2026-09-30).** A family's regular final forms exist as soon as
   you have the family: owning a family in a run gives its base and both branches free, and its final
