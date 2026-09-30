@@ -187,6 +187,16 @@ above its family's final forms, so veterans keep finding new playstyles. Reviewe
   (Was: a free bloom on the first dispel, then offered after that boss in later runs.)
 - Total ≈ 2,470 Seeds incl. Ascension (as built 2026-09-29; whole tree 6,512, see Seeds above).
 - Each hidden-branch node needs its family's final-forms node, so hidden branches really are late.
+- **Final-forms nodes removed (user, 2026-09-30).** A family's regular final forms exist as soon as
+  you have the family: owning a family in a run gives its base and both branches free, and its final
+  forms cost Dreamlight (`run_design.md`, "Dreamlight"). New players always have something to spend
+  Dreamlight on, and the starting families' finals (Thunderhead, Beacon, Puffball, …) are there
+  from the first run. So:
+  - The **Final forms node** column above is gone (9 nodes, ~470 Seeds). **Hidden-branch nodes now
+    need only their family** (the family node, or nothing for the starting three).
+  - **Stormheart's Ascension** (the Firefly Jar exception) needs nothing but its Seeds.
+  - The Seeds this frees should go to the other roots or lower the tree's total; the meta chat
+    rebalances (`meta_design.md` Seeds totals, Grove node data).
 
 ### Section 3: Cards (Dream pool unlocks)
 
