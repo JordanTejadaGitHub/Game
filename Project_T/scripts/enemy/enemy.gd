@@ -24,6 +24,9 @@ signal rose_again(enemy: Node2D)
 signal lapped(enemy: Node2D)
 signal lantern_requested(enemy: Node2D)
 signal bellow_requested(enemy: Node2D)  # Hollow Stag at half health: its bellow_spawn run from the start
+# A boss that got through stays at the Heartwood and drains a leaf every HEARTWOOD_DRAIN_EVERY s (the
+# spawner takes it and emits boss_drained); enemy_design.md "A boss that reaches the Heartwood stays".
+signal heartwood_drained(enemy: Node2D)
 signal wither_requested(enemy: Node2D, count: int)
 signal echo_requested(enemy: Node2D, act: int)
 signal shrugged(enemy: Node2D)
@@ -73,6 +76,7 @@ const LEAP_TIME := 0.45  # Seconds to sink, move under the mire and rise again
 const GROUP := "enemies"
 const BLIGHT_SHADER := preload("res://shaders/blight.gdshader")
 const HEALTH_BAR_SIZE := Vector2(40, 5)
+const HEARTWOOD_DRAIN_EVERY := 2.0  # A boss at the Heartwood takes a leaf this often (s)
 const HEALTH_BAR_OFFSET := Vector2(0, -38)  # Bar centre, relative to the enemy's origin
 # Dispel: shriek, crack with light, burst, then the motes drift up (about 1.2 s in all).
 const SHRIEK_TIME := 0.12
@@ -169,6 +173,8 @@ var _trait_timer := 0.0
 var _trampled := 0
 var _startled := false
 var _charge_left := 0.0
+var at_heartwood := false  # A boss that got through: it stays, draining leaves (see heartwood_drained)
+var _drain_left := 0.0  # Seconds to its next leaf (0 on arrival: the first goes at once)
 var straight_charging := false  # Hollow Stag: on a straight of straight_charge_tiles+ (see _update_straight_charge)
 var _bellowed := false
 var _leaping := false  # Sinking / underground / rising (Mire Hag, Gravecrawler): not walking
@@ -332,7 +338,7 @@ func _ready() -> void:
 		_set_hidden(true)  # Revealed on the first presence tick if something sees it
 
 func _process(delta: float) -> void:
-	if is_cleansed or _path_index >= _path.size():
+	if is_cleansed or (_path_index >= _path.size() and not at_heartwood):
 		return
 
 	# Thin-family bookkeeping only while one of those cards is owned (the spawner checks once a frame).
@@ -415,6 +421,15 @@ func _process(delta: float) -> void:
 	if _dragging:
 		_update_drag(delta)  # Pulled back: no walking, traits or trampling meanwhile
 		return
+	if at_heartwood:
+		if _path_index < _path.size():
+			at_heartwood = false  # Pulled back off the Heartwood, or re-routed: it walks in again
+		else:
+			_drain_left -= delta  # It stays, draining a leaf every HEARTWOOD_DRAIN_EVERY s
+			if _drain_left <= 0.0:
+				_drain_left = HEARTWOOD_DRAIN_EVERY
+				heartwood_drained.emit(self)
+			return
 	if hold_time > 0.0:
 		hold_time -= delta
 		return
@@ -468,6 +483,9 @@ func _process(delta: float) -> void:
 			return
 		if enemy_data.laps():
 			_lap()
+			return
+		if enemy_data.is_boss and not is_echo:
+			at_heartwood = true  # Bosses stay (the timer keeps running if it's re-routed and walks back in)
 			return
 		reached_goal.emit(self)
 		queue_free()

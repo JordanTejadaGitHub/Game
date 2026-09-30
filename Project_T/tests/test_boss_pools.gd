@@ -113,6 +113,28 @@ func _run() -> void:
 	_check(_count(husk_data) == 6, "once")
 	_clear_enemies()
 
+	# --- A boss that reaches the Heartwood stays, draining a leaf every 2 s (enemy_design.md) ---
+	var drains := []
+	spawner.boss_drained.connect(func(e: Node2D, n: int) -> void: drains.append(n))
+	var leaks := [0]
+	spawner.enemy_reached_goal.connect(func(_e: Node2D) -> void: leaks[0] += 1)
+	var through := _still("old_stag", route[-1])
+	through.set_path(PackedVector2Array([route[-1]]))
+	var before_leaves := run_state.leaves
+	through._process(0.016)
+	through._process(0.016)
+	_check(is_instance_valid(through) and not through.is_queued_for_deletion() and through.at_heartwood,
+		"a boss that gets through stays at the Heartwood")
+	_check(run_state.leaves == before_leaves - 1 and drains == [1], "it takes one leaf at once (%d → %d)" % [before_leaves, run_state.leaves])
+	for f in 60:
+		through._process(1.0 / 30.0)  # 2 s
+	_check(run_state.leaves == before_leaves - 2 and drains.size() == 2, "and one more every 2 s (%d)" % drains.size())
+	_check(leaks[0] == 0, "it never leaks away (no reached_goal)")
+	var hp: int = through.health
+	through.take_damage(100.0)
+	_check(through.health < hp and through.is_in_group(through.GROUP), "Wardens can still hit it there")
+	_clear_enemies()
+
 	# --- Night Mare: laps ---
 	var mare := _still("night_mare", route[-1])
 	mare.set_path(PackedVector2Array([route[-1]]))

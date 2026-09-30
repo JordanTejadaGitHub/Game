@@ -41,6 +41,9 @@ var waiting_cells := {}  # {cell: nightmare waiting behind a rooted one}
 # Boss pools (enemy_design.md): the Night Mare galloped round again (it took `leaves`); a Warden
 # withered; a lantern was lit / snuffed.
 signal enemy_lapped(enemy: Node2D, leaves: int)
+# A boss staying at the Heartwood took `leaves` (every Enemy.HEARTWOOD_DRAIN_EVERY s until dispelled):
+# for the boss bar ("At the Heartwood"), LeakEffect, the Heartwood's tremble, Sound and the drift's leak.
+signal boss_drained(enemy: Node2D, leaves: int)
 signal tower_withered(tower: Node2D, by: Node2D)
 signal lantern_lit(lantern: Node2D)
 signal lantern_snuffed(lantern: Node2D, by_player: bool)
@@ -105,6 +108,7 @@ func _create_prepared(enemy, enemy_data: EnemyData, health_scale: float, modifie
 	enemy.status_refused.connect(status_refused.emit)
 	enemy.trample_cell_requested.connect(_on_trample_cell_requested)
 	enemy.lapped.connect(_on_lapped)
+	enemy.heartwood_drained.connect(_on_heartwood_drained)
 	enemy.bellow_requested.connect(_on_bellow_requested)
 	enemy.lantern_requested.connect(_on_lantern_requested)
 	enemy.wither_requested.connect(_on_wither_requested)
@@ -449,6 +453,16 @@ func _call_pack(huntsman: Node2D) -> void:
 		enemy_split.emit(huntsman, hound)
 
 # Night Mare: every lap takes its lap leaves (Leaf Fall doubles them, as for any leak).
+func _on_heartwood_drained(enemy: Node2D) -> void:
+	var leaves := 1
+	var omens := get_tree().get_first_node_in_group(OmenDirector.GROUP) as OmenDirector
+	if omens:
+		leaves = roundi(leaves * omens.get_leak_multiplier())  # Leaf Fall doubles it, as for any leak
+	var run_state = get_node_or_null("%RunState")
+	if run_state != null:
+		run_state.lose_leaves(leaves)
+	boss_drained.emit(enemy, leaves)
+
 func _on_lapped(enemy: Node2D) -> void:
 	var leaves: int = enemy.enemy_data.lap_leaves
 	var omens := get_tree().get_first_node_in_group(OmenDirector.GROUP) as OmenDirector

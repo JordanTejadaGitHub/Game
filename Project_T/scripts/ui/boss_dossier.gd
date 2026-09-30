@@ -21,6 +21,7 @@ class_name BossDossier
 # (BossDossier.open_for). Opened during a drift it pauses until closed. Made by the HUD.
 
 const GROUP := &"boss_dossier"
+const ENEMY_SCRIPT := preload("res://scripts/enemy/enemy.gd")  # HEARTWOOD_DRAIN_EVERY
 const RECORDS_KEY := "boss_records"  # Profile: {kind: {"dispelled": n, "best": seconds}}
 const WIDTH := 880.0
 const PORTRAIT := 240.0  # The boss's portrait, ~3× the old one
@@ -422,7 +423,7 @@ func _build(data: EnemyData, drift: int) -> void:
 	var leaves := Label.new()  # What it costs you, large
 	var lap_leaves := int(data.get("lap_leaves")) if data.laps() else 0
 	leaves.text = "%d leaves each lap" % lap_leaves if lap_leaves > 0 else \
-		"%d leaves if it reaches the Heartwood" % data.leaf_cost
+		"Stays at the Heartwood, draining a leaf every %s s" % String.num(ENEMY_SCRIPT.HEARTWOOD_DRAIN_EVERY)
 	UiStyle.display(leaves, 26)
 	leaves.add_theme_color_override("font_color", BOSS_COLOR.lightened(0.25))
 	TapTip.attach(leaves, IconInfo.resource_tooltip(&"leaves"))
