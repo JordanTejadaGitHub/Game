@@ -17,6 +17,7 @@ const TARGET_TIPS := {
 
 var _tower: Tower = null
 var _title := Label.new()
+var _emblem := TextureRect.new()  # Left of the title: the family emblem (IconInfo.family_emblem)
 var _damage_type := HBoxContainer.new()  # Under the title: the damage type icon + name (one Warden)
 var _desc: RichTextLabel  # What it does, with its status words as links (StatusLinks)
 var _stats := VBoxContainer.new()  # Stat rows: each stat explains itself on hover and tap (IconInfo)
@@ -33,7 +34,18 @@ func _ready() -> void:
 	box.add_theme_constant_override("separation", 6)
 	add_child(box)
 	UiStyle.title(_title, UiStyle.TITLE_SIZE)
-	box.add_child(_title)
+	var header := HBoxContainer.new()
+	header.add_theme_constant_override("separation", 6)
+	_emblem.custom_minimum_size = Vector2(24, 24)
+	_emblem.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	_emblem.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	_emblem.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	_emblem.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	_emblem.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	header.add_child(_emblem)
+	_title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	header.add_child(_title)
+	box.add_child(header)
 	# Damage type (enemy_design.md "Damage types"): the type's icon and "Light damage" in its colour.
 	_damage_type.add_theme_constant_override("separation", 4)
 	_damage_type.add_child(TextureRect.new())
@@ -95,6 +107,8 @@ func _refresh() -> void:
 	if _tower.is_catcher():
 		tower_placer.show_catch_preview(_tower.global_position, _tower.get_catch_radius())  # Its catch zone
 	_title.text = data.display_name
+	_emblem.texture = IconInfo.family_emblem(data.line)
+	_emblem.visible = _emblem.texture != null
 	_show_damage_type(data)
 	if _tower.rank > 0:
 		_title.text += " · Rank %s" % Tower.rank_name(_tower.rank)
@@ -332,6 +346,7 @@ func _refresh_group() -> void:
 	var selection := tower_seller.selection
 	var groups := tower_seller.get_selection_groups()
 	_title.text = "%d Wardens selected" % selection.size()
+	_emblem.visible = false
 	_damage_type.visible = false
 	var kinds: Array[String] = []
 	var damage_per_second := 0.0
