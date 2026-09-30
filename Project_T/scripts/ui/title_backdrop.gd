@@ -14,6 +14,7 @@ const WASH_ALPHA := 0.55
 const MOTE_COUNT := 36
 const MOTE_COLOURS: Array[Color] = [Palette.GLOW, Palette.GOLD, Palette.DEWLIGHT, Palette.MOONLIGHT]
 
+var art: Texture2D = ART  # The art to draw (another texture only for previews)
 var _motes: Array[Dictionary] = []  # {pos (art px), speed, sway, phase, colour}
 var _time := 0.0
 var _still := false
@@ -59,7 +60,7 @@ func _draw() -> void:
 	var factor := get_tree().root.content_scale_factor
 	var unit := art_scale() / factor  # One art pixel in this control's units
 	var origin := ((size - ART_SIZE * unit) * 0.5).floor()
-	draw_texture_rect(ART, Rect2(origin, ART_SIZE * unit), false)
+	draw_texture_rect(art, Rect2(origin, ART_SIZE * unit), false)
 	# A soft wash of night down the left so the menu reads over the trunks.
 	var wash := size.x * WASH_SHARE
 	draw_polygon(PackedVector2Array([Vector2.ZERO, Vector2(wash, 0.0), Vector2(wash, size.y), Vector2(0.0, size.y)]),
