@@ -388,6 +388,14 @@ right; the family tree should include the portraits"):
     moonlight tint and a pale rim**, a small Grove leaf badge, and **its name** under it; the side
     panel shows the same portrait, the name, one line on what it does, and "Plant it in the Memory
     Grove". Readable, but clearly not yours yet (the dimmest node state; locked nodes stay at 75%).
+  - **Not unlocked = a silhouette on a lit backdrop** (later the same day, user: *"the locked path
+    should be silhouette but at least noticeable with a back background if they aren't unlocked"*;
+    replaces the 75% portrait and the tinted Grove portrait above): every form **not unlocked this
+    run** (locked, can-unlock, Grove) is drawn as a **dark silhouette on a pale moonlit disc** (the
+    Moonlight ramp, like nightmare portraits on dark UI), so the shape reads clearly but it's plainly
+    not yours. Can-unlock adds its Dreamlight motes and a soft pulse; Grove adds the leaf badge;
+    locked keeps the chain to its parent. Unlocked and grown forms are full colour. The side panel
+    shows the full portrait and name for every state.
   - **The Ascended crown is hidden** until it can be unlocked this run: its Grove node planted **and**
     drift 51 reached. Before that there is no node and no line to it. From drift 51 it appears
     (the "can unlock" state once a final form of the family is grown).
