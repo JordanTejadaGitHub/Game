@@ -503,6 +503,24 @@ accessibility, Steam achievements (milestones map to them). Acts 3–4 and all f
   easier to set up in the editor (TileSets, SpriteFrames, complex node trees).
 - Commit `.uid` and `.import` files; `.godot/` and `*.tmp` are ignored.
 
+## Working in parallel (many chats, one folder)
+Most chats work directly in this folder on `main`. So nobody breaks anyone else:
+- Commit small and often, and stage only your own files by explicit path (`git commit -- <paths>`,
+  never `git add -A` / `commit -a`). Never commit, revert or stash another chat's uncommitted files.
+  If they block you, message their owner.
+- Only save edits that parse. A half-edited script breaks every other chat's test runs. After adding a
+  `class_name`, a new script or new art, run `--import` and commit it (with its `.uid` / `.import`)
+  right away.
+- Editing a file another chat owns (see the `Owner:` notes in the design docs / session memory):
+  tell its owner first, keep the change small, and tell them the commit.
+- A worktree (own folder + branch, merged by the Main session after "ready <hash>") is only for big or
+  risky work: long refactors, experiments you may throw away, or two chats needing the same file
+  at once. Cloud sessions are worktrees by nature: they push a branch, and Main merges and tests it here.
+- Tests use per-process temp files (`"user://test_x_%d.json" % OS.get_process_id()`): every checkout
+  shares one `user://`, so fixed names collide when two chats test at once.
+- Pushing: only the Main session pushes `main`, and only a commit the full suite (all
+  `tests/test_*.gd`) passed on.
+
 ## Verifying changes
 Git repo root is the parent folder `D:\Projects\Game` (this project is `Project_T/`).
 
