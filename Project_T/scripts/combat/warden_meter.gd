@@ -193,11 +193,13 @@ func get_needed_dps(number: int) -> float:
 func get_benchmark() -> Dictionary:
 	var resting := _director == null or _director.is_resting()
 	var number := (_director.drifts_started + 1 if resting else _director.drifts_started) if _director else 0
-	var maze := get_maze_dps("last_drift" if resting else "drift")
+	# "drift" rolls over only when the next drift starts, so at a rest it still holds the drift just played.
+	var last := get_maze_dps("drift" if resting else "last_drift")
+	var maze := get_maze_dps("drift")
 	var needed := get_needed_dps(number)
 	return {"maze_dps": maze, "needed_dps": needed, "ratio": maze / needed if needed > 0.0 else 0.0,
-		"forecast": resting, "drift": number, "last_dps": get_maze_dps("last_drift"),
-		"change": _change(get_maze_dps("drift"), get_maze_dps("last_drift")) if not resting else null}
+		"forecast": resting, "drift": number, "last_dps": last,
+		"change": _change(maze, last) if not resting else null}
 
 # --- Per Warden --------------------------------------------------------------------------------
 
