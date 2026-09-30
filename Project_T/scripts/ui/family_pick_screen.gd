@@ -10,6 +10,7 @@ extends Control
 # the family applies and its two branches (screens_ui.md "Family pick"). Built in code.
 
 signal sapling_offered  # The Heartwood Sapling's card appears (once, after the drift 50 pick)
+signal family_chosen(offered: Array, chosen: Resource)  # RunHistory: the offer and the pick
 
 const CARD_SIZE := Vector2(250, 300)
 const CARD_PADDING := 24.0  # The box's top + bottom offsets inside a card
@@ -164,6 +165,7 @@ func choose(data: Resource) -> void:
 	if not offer.has(data):
 		return
 	dream_state.note_family_pick(_ids(offer), data.get_id() if data is TowerData else "")  # Declined families (half-dreamed)
+	family_chosen.emit(offer.duplicate(), data)
 	offer = []
 	if data is UpgradeData:
 		dream_state.take(data)  # A Family Blessing

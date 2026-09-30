@@ -87,6 +87,7 @@ func _ready() -> void:
 	tabs.add_child(families_page)
 	_setup_dreams_page()
 	_setup_nightmares_page()
+	_setup_past_runs_page()
 
 	var close := Button.new()
 	close.text = "Close"
@@ -102,6 +103,7 @@ func open(tab: StringName = &"", entry: String = "") -> void:
 	_build_families()
 	_build_dreams()
 	_build_nightmares()
+	_build_past_runs()
 	visible = true
 	if tab == &"combos":
 		tabs.current_tab = 1
@@ -1005,4 +1007,87 @@ func _nightmare_entry(data: EnemyData, met: Array, viewed: Array, dispels: Dicti
 	stats.text = text
 	stats.add_theme_font_size_override("font_size", 14)
 	box.add_child(stats)
+	return panel
+
+# --- Past runs (balance_simulation.md "Run history") ----------------------------------------------
+# The saved runs (RunHistory, user://run_history.json), newest first, dev runs marked, each with a
+# "Copy run report" button (for the design chat).
+
+var _past_runs := VBoxContainer.new()
+var past_run_entries: Array = []  # (tests)
+
+func _setup_past_runs_page() -> void:
+	var scroll := ScrollContainer.new()
+	scroll.name = "Past runs"
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	_past_runs.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_past_runs.add_theme_constant_override("separation", 8)
+	scroll.add_child(_past_runs)
+	tabs.add_child(scroll)
+
+func _build_past_runs() -> void:
+	for child in _past_runs.get_children():
+		_past_runs.remove_child(child)
+		child.queue_free()
+	past_run_entries.clear()
+	var runs := RunHistory.load_runs()
+	if runs.is_empty():
+		var none := Label.new()
+		none.text = "No runs yet."
+		UiStyle.caps(none, 16)
+		_past_runs.add_child(none)
+		return
+	for record in runs:
+		var entry := _past_run_entry(record)
+		_past_runs.add_child(entry)
+		past_run_entries.append(entry)
+
+func _past_run_entry(record: Dictionary) -> Control:
+	var panel := PanelContainer.new()
+	var won: bool = record.get("won", false)
+	var style := UiStyle.card(UiStyle.GOLD if won else UiStyle.MOONLIGHT)
+	style.shadow_size = 0
+	style.set_content_margin_all(10)
+	panel.add_theme_stylebox_override("panel", style)
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation", 3)
+	panel.add_child(box)
+	var head := HBoxContainer.new()
+	head.add_theme_constant_override("separation", 10)
+	var title := Label.new()
+	title.name = "Title"
+	var result := String(record.get("result", "")).capitalize()
+	title.text = "%s · drift %d · %s" % [result, int(record.get("survived", 0)), RunHistory._time_text(float(record.get("seconds", 0.0)))]
+	UiStyle.title(title, 18, UiStyle.GOLD if won else UiStyle.INK)
+	head.add_child(title)
+	if String(record.get("dev", "")) != "":
+		var dev := Label.new()
+		dev.name = "Dev"
+		dev.text = "dev · %s" % record.dev
+		UiStyle.caps(dev, 13, UiStyle.INK_DIM)
+		dev.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		head.add_child(dev)
+	box.add_child(head)
+	var picks: Array = record.get("family_picks", []).map(func(p: Dictionary) -> String: return String(p.chosen).capitalize())
+	var top: Array = record.get("top", [])
+	var lines: Array[String] = [String(record.get("date", "")).replace("T", " ").left(16)]
+	if not picks.is_empty():
+		lines.append("Families: " + ", ".join(picks))
+	if not top.is_empty():
+		lines.append("Top Warden: %s (%d%%)" % [top[0].name, roundi(float(top[0].share) * 100.0)])
+	lines.append("Leaves lost: %d · Dreams: %d · Blight %d" % [record.get("leaves_lost_by_act", {}).values().reduce(func(a, b): return a + b, 0),
+		record.get("dreams_taken", []).size(), int(record.get("blight", 0))])
+	var body := Label.new()
+	body.text = "\n".join(lines)
+	body.add_theme_font_size_override("font_size", 14)
+	box.add_child(body)
+	var copy := Button.new()
+	copy.name = "Copy"
+	copy.text = "Copy run report"
+	copy.focus_mode = Control.FOCUS_NONE
+	copy.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	copy.pressed.connect(func() -> void:
+		DisplayServer.clipboard_set(RunHistory.report_text(record))
+		copy.text = "Copied")
+	box.add_child(copy)
 	return panel

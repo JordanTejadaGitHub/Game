@@ -104,6 +104,8 @@ func _ready() -> void:
 	add_child(DreamCodex.new(dream_state, run_state))
 	# The Codex's Nightmares: lifetime dispels per kind and the "Know every nightmare" milestone.
 	add_child(NightmareCodex.new(drift_director))
+	# The run history (balance_simulation.md "Run history"): saved at every run end, shown in the Codex.
+	add_child(RunHistory.new(drift_director))
 	_raise_overlays.call_deferred()  # After everything above (and deferred adds) is in
 	# Resist / weak pips and the immune flash, drawn in the world over the nightmares.
 	owner.add_child.call_deferred(ResistPips.new())

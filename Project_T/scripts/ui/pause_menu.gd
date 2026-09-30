@@ -170,6 +170,7 @@ func _set_whispers(on: bool) -> void:
 # Ends the run as a loss (Seeds are still earned: the results screen banks them).
 func _abandon() -> void:
 	close()
+	run_state.abandoned = true
 	run_state.end_run(false)
 
 func _save_and_quit() -> void:

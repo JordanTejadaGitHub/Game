@@ -199,6 +199,12 @@ accessibility, Steam achievements (milestones map to them). Acts 3–4 and all f
 - Seeds: `RunState.get_seed_breakdown()` (meta_design.md formula + first-run +20).
   `ResultsScreen` (`%ResultsScreen`) shows it on `run_ended`, banks it, and in the demo shows the
   Deep Wood ending, Memory 1, the sleeping Grove teaser and a Wishlist button.
+- `RunHistory` (made by the HUD, group `run_history`; balance_simulation.md "Run history"): every run end (won / lost /
+  abandoned; real and dev runs, `dev` tag) adds a record to `user://run_history.json` (last 50, newest first; not the
+  profile): Grove / perks / Blight, families, Dreams taken / passed, Omens, bosses, Dew by use (RunState `dew_spent` +
+  that frame's plant / grow / rank / clear), Wardens, top 5, combos / Reactions, Dreamlight, and per-drift rows with the
+  bot's column names (drift, act, seconds, health_spawned, damage, leaks, leaves_lost, leaves_left, banked) + closest.
+  `report_text` = "Copy run report" (results screen, Codex "Past runs"). Tests only via `record_in_tests` + a temp `file_path`.
 - `RunSaver` (`%RunSaver`, `user://run.json`): autosaves each rest once no choice screen is open;
   `resume_next` (set by Continue) rebuilds the run from the save (map seed, tended cells, Wardens,
   counters, `DreamState`/`OmenDirector` `to_save`/`load_save`). `PauseMenu` (Esc): Resume,

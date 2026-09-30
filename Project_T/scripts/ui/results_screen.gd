@@ -124,6 +124,13 @@ func _build(won: bool) -> void:
 	if not is_demo():  # screens_ui.md: Results → Memory Grove
 		_button(buttons, "Memory Grove").pressed.connect(func() -> void:
 			get_tree().change_scene_to_file("res://scenes/grove.tscn"))
+	var copy := _button(buttons, "Copy run report")  # For the design chat (RunHistory.report_text)
+	copy.tooltip_text = "Copies this run's numbers as text."
+	copy.pressed.connect(func() -> void:
+		var history := get_tree().get_first_node_in_group(RunHistory.GROUP) as RunHistory
+		if history != null:
+			DisplayServer.clipboard_set(RunHistory.report_text(history.run))
+			copy.text = "Copied")
 	_button(buttons, "New run").pressed.connect(func() -> void: get_tree().reload_current_scene())
 	_button(buttons, "Title").pressed.connect(func() -> void: get_tree().change_scene_to_file(TITLE_SCENE))
 
