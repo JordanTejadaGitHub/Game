@@ -659,14 +659,14 @@ func _try_build(cell: Vector2) -> bool:
 func get_cost(data: TowerData = null, cell: Vector2 = NO_CELL, planned_sprouts: int = 0) -> int:
 	var warden := data if data != null else tower_data
 	var cost: int = dream_state.get_build_cost(warden) if cell == NO_CELL else dream_state.get_build_cost_at(warden, cell)
-	# Sprouts get pricier as you plant (warden_stats.md, card 69): every SPROUTS_PER_STEP Sprouts on the map
-	# add SPROUT_STEP_DEW to the next one (10, 13, 16, …); Seedling Gift Sprouts don't count and a free one
-	# stays free. Seedfall: 6 Dew, and the price never rises (SEEDFALL_SPROUTS_PER_STEP 0). `planned_sprouts`:
-	# Sprouts earlier in the same drag stroke.
+	# Sprouts get pricier as you plant (warden_stats.md "Sprouts cost more, walls do the maze"): every
+	# sprout_per_step() Sprouts on the map add sprout_step_dew() to the next one (12, 16, 20, …); Seedling
+	# Gift Sprouts don't count and a free one stays free. Seedfall (the card sets the start): +2 per 5 instead
+	# of +4. `planned_sprouts`: Sprouts earlier in the same drag stroke.
 	if warden.get_id() == "sprout" and cost > 0:
-		var per_step := SEEDFALL_SPROUTS_PER_STEP if sprout_price_halved() else SPROUTS_PER_STEP
+		var per_step := sprout_per_step()
 		if per_step > 0:
-			cost += (count_paid_sprouts() + planned_sprouts) / per_step * SPROUT_STEP_DEW
+			cost += (count_paid_sprouts() + planned_sprouts) / per_step * sprout_step_dew()
 	return cost
 
 func sprout_price_halved() -> bool:
@@ -674,8 +674,16 @@ func sprout_price_halved() -> bool:
 
 const SEEDFALL_CARD := "seedfall"
 const SPROUTS_PER_STEP := 5  # Every 5 Sprouts on the map…
-const SPROUT_STEP_DEW := 3  # …add +3 Dew to the next one
-const SEEDFALL_SPROUTS_PER_STEP := 0  # Seedfall: 0 = the price never rises
+const SPROUT_STEP_DEW := 4  # …add +4 Dew to the next one
+const SEEDFALL_SPROUTS_PER_STEP := 5  # Seedfall: the price rises half as fast…
+const SEEDFALL_STEP_DEW := 2  # …+2 per 5
+
+# The Sprout price rule now (Seedfall or not), for the HUD's tooltip, ↑ tag and toast.
+func sprout_per_step() -> int:
+	return SEEDFALL_SPROUTS_PER_STEP if sprout_price_halved() else SPROUTS_PER_STEP
+
+func sprout_step_dew() -> int:
+	return SEEDFALL_STEP_DEW if sprout_price_halved() else SPROUT_STEP_DEW
 
 # Sprouts on the map that raise the price (not the free ones from Seedling Gift charges).
 func count_paid_sprouts() -> int:
