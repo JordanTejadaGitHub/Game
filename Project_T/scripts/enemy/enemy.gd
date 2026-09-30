@@ -99,19 +99,23 @@ var statuses := EnemyStatuses.new()
 # health bar, a thin bar under each that shortens with the time left, the stack count in the lower-
 # right corner from 2 stacks (gold, with a glow behind the icon, at max). Screen px (they keep their
 # screen size when zoomed and follow the UI scale); bosses and elites get the big ones.
-const STATUS_BADGE := 20.0
-const STATUS_BADGE_BIG := 24.0
+const STATUS_BADGE := 28.0
+const STATUS_BADGE_BIG := 32.0
 const STATUS_BADGE_GAP := 3.0
-const STATUS_BADGES_MAX := 4  # More → the most important ones (BADGE_ORDER) and "+N"
+const STATUS_BADGES_MAX := 3  # More → the most important ones (BADGE_ORDER) and "+N" (4 at 28 px overhang both neighbours)
 const BADGE_ORDER: Array[StringName] = [&"static", &"held", &"marked", &"spored", &"drowsy", &"damp"]
 const VIEW_MARGIN := 96.0  # px past the screen edge where nightmares still draw (their badges overhang)
 const HUD_TIME_FRAMES := 4  # The time bars under the icons are looked at every this many frames (_update_hud)
-const TIME_BAR_GAP := 4.0  # Room under each icon for its time bar (px, above the health bar)
+const TIME_BAR_GAP := 6.0  # Room under each icon for its time bar (px, above the health bar)
+const TIME_BAR_HEIGHT := 3.0
 # The HUD's canvas items (update_hud), each kind on its own z layer so the whole field batches.
-enum { HUD_BARS, HUD_MARKS, HUD_ICONS, HUD_TEXT }
-const HUD_PASSES := [HUD_BARS, HUD_MARKS, HUD_ICONS, HUD_TEXT]
+enum { HUD_BARS, HUD_MARKS, HUD_ICONS, HUD_PILLS, HUD_TEXT }
+const HUD_PASSES := [HUD_BARS, HUD_MARKS, HUD_ICONS, HUD_PILLS, HUD_TEXT]
 const STATUS_DOT_RADIUS := 3.0  # Fallback when the icon sheet has no icon for a status
-const STACK_FONT_SIZE := 12
+const STACK_FONT_SIZE := 16
+const STACK_POP_TIME := 0.18  # An icon's quick scale bump when a stack is added
+const STACK_POP_SCALE := 0.35  # …up to this much bigger
+const STACK_PIP_MAX := 4.0  # Stack pips above an icon: at most this big (px), smaller when many
 static var _stack_font: FontVariation
 static var _icons := {}  # {status id: Texture2D or null}, shared by every nightmare
 const BOLT_FLASH_TIME := 0.2
@@ -214,7 +218,9 @@ var _hud_restless := -1
 var _hud_unbound := false
 var _hud_always := false
 var _hud_marks_key := -1
-var _hud_stagger := randi() % 4  # So a crowd doesn't check its arcs on the same frame
+var _hud_stagger := randi() % 4  # So a crowd doesn't check its time bars on the same frame
+var _hud_pops := {}  # {status id: seconds left of its icon's pop} (a stack was just added)
+var _hud_popping := false
 var _hud_flashing := false
 var hud_builds := 0  # Items rebuilt (tests: only when something changed)
 # The badge row, cached until statuses.changes moves (_update_hud_layout)
@@ -405,7 +411,7 @@ func _process(delta: float) -> void:
 	if _redraw_pending and _on_screen(self):
 		_redraw_pending = false
 		queue_redraw()
-	_update_hud()
+	_update_hud(delta)
 	_update_presence(delta)
 
 	if _dragging:
@@ -541,7 +547,7 @@ func _draw() -> void:
 # kind), so every nightmare's bars draw together, then every mark (time bars, glows: one atlas), every icon, every
 # number: the field batches. Each item is rebuilt only when what it shows changes (checked from
 # _process); freed with the nightmare. NightmareOverlay keeps the shared badge atlas.
-func _update_hud() -> void:
+func _update_hud(delta: float) -> void:
 	var overlay: NightmareOverlay = _spawner.overlay if _spawner != null else null
 	if overlay == null or overlay.badge_atlas == null:
 		return
@@ -559,7 +565,7 @@ func _update_hud() -> void:
 	if text_scale != _hud_scale:  # The badges keep their screen size: scaled round the row's anchor
 		_hud_scale = text_scale
 		var badges := Transform2D(0.0, Vector2(text_scale, text_scale), 0.0, _hud_anchor())
-		for kind in [HUD_MARKS, HUD_ICONS, HUD_TEXT]:
+		for kind in [HUD_MARKS, HUD_ICONS, HUD_PILLS, HUD_TEXT]:
 			RenderingServer.canvas_item_set_transform(_hud_items[kind], badges)
 	# The bars are keyed on their width in whole px (a smaller change can't be seen), -1 = not shown.
 	var bar_px := int(HEALTH_BAR_SIZE.x * health / max_health) if health < max_health or _bars_always else -1
@@ -578,8 +584,19 @@ func _update_hud() -> void:
 	var changed := _hud_changes != statuses.changes
 	if changed:
 		_update_hud_layout()
-		_build_hud_icons(_hud_items[HUD_ICONS])
+		_build_hud_pills(_hud_items[HUD_PILLS], overlay)
 		_build_hud_text(_hud_items[HUD_TEXT])
+	# A stack was just added: that icon pops (a quick scale bump), rebuilt each frame while it plays.
+	if not _hud_pops.is_empty():
+		for id in _hud_pops.keys():
+			_hud_pops[id] -= delta
+			if _hud_pops[id] <= 0.0:
+				_hud_pops.erase(id)
+		_build_hud_icons(_hud_items[HUD_ICONS])
+		_hud_popping = true
+	elif changed or _hud_popping:
+		_hud_popping = false
+		_build_hud_icons(_hud_items[HUD_ICONS])
 	# The time bars shorten in TIME_STEPS steps: looked at every HUD_TIME_FRAMES frames (staggered), and
 	# the marks rebuilt when a step moved (or a status changed, or a combo flash plays).
 	var flashing := not _status_flash.is_empty()
@@ -630,7 +647,13 @@ func _hud_anchor() -> Vector2:
 # comes, goes or changes stacks (statuses.changes).
 func _update_hud_layout() -> void:
 	_hud_changes = statuses.changes
+	var before := {}  # Stacks last time: an icon whose stacks went up pops
+	for i in _hud_ids.size():
+		before[_hud_ids[i]] = _hud_stacks[i]
 	_hud_ids = get_badge_ids()
+	for id in _hud_ids:
+		if statuses.stacks(id) > int(before.get(id, 0)):
+			_hud_pops[id] = STACK_POP_TIME
 	_hud_stacks.clear()
 	_hud_full.clear()
 	_hud_colors.clear()
@@ -675,22 +698,35 @@ func _build_hud_bars(item: RID) -> void:
 		RenderingServer.canvas_item_add_rect(item, crust.grow(1), Color(Palette.VOID, 0.8))
 		RenderingServer.canvas_item_add_rect(item, crust, COAT_COLOR)
 
-# The marks under and behind the status icons, from NightmareOverlay's atlas: a soft gold glow behind
-# an icon at max stacks, a thin bar under each icon that shortens with the time left, a dot if the
+# The marks around the status icons, from NightmareOverlay's atlas: a soft gold glow behind an icon at
+# max stacks, a row of pips above a stacking status's icon (one per stack it can hold, filled per
+# stack, gold when full), a thin bar under each icon that shortens with the time left, a dot if the
 # icon sheet has none, and the flash when a combo just used the status.
 func _build_hud_marks(item: RID, overlay: NightmareOverlay) -> void:
 	RenderingServer.canvas_item_clear(item)
 	var atlas: Texture2D = overlay.badge_atlas
 	var solid := overlay.badge_region(NightmareOverlay.MARK_SOLID)
+	var dot := overlay.badge_region(NightmareOverlay.MARK_DOT)
 	var r := get_badge_size() / 2.0
 	for i in _hud_ids.size():
 		var centre := _badge_centre(i)
 		var color: Color = _hud_colors[i]
+		var id: StringName = _hud_ids[i]
 		if _hud_full[i]:  # At max stacks: a warm glow behind the icon
 			var g := r * 1.7
 			atlas.draw_rect_region(item, Rect2(centre - Vector2(g, g), Vector2(g, g) * 2.0),
 				overlay.badge_region(NightmareOverlay.MARK_GLOW), Color(Palette.GOLD, 0.75))
-		var bar := Rect2(centre + Vector2(-r * 0.8, r + 1.0), Vector2(r * 1.6, 2.0))
+		var cap := statuses.get_max_stacks(id)
+		if cap > 1:  # Stack pips, centred over the icon
+			var pip := minf(STACK_PIP_MAX, (r * 2.0 - (cap - 1)) / cap)
+			var x := centre.x - (cap * pip + (cap - 1)) / 2.0
+			var y := centre.y - r - pip - 2.0
+			var lit: Color = Palette.GOLD if _hud_full[i] else color
+			for k in cap:
+				var at := Rect2(x + k * (pip + 1.0), y, pip, pip)
+				atlas.draw_rect_region(item, at.grow(1.0), dot, Color(Palette.VOID, 0.8))
+				atlas.draw_rect_region(item, at, dot, lit if k < _hud_stacks[i] else Color(color, 0.25))
+		var bar := Rect2(centre + Vector2(-r * 0.8, r + 1.5), Vector2(r * 1.6, TIME_BAR_HEIGHT))
 		atlas.draw_rect_region(item, bar.grow(1.0), solid, Color(Palette.VOID, 0.75))
 		var steps := _time_steps(i)
 		if steps > 0:
@@ -698,41 +734,70 @@ func _build_hud_marks(item: RID, overlay: NightmareOverlay) -> void:
 			atlas.draw_rect_region(item, bar, solid, color)
 		if _hud_icons[i] == null:
 			RenderingServer.canvas_item_add_circle(item, centre, STATUS_DOT_RADIUS, color)
-		var id: StringName = _hud_ids[i]
 		if _status_flash.has(id):
 			var f: float = _status_flash[id] / STATUS_FLASH_TIME  # 1 -> 0
 			RenderingServer.canvas_item_add_circle(item, centre, r + 2.0 + 4.0 * (1.0 - f), Color(color, 0.5 * f))
 			RenderingServer.canvas_item_add_circle(item, centre, r, Color(1, 1, 1, 0.45 * f))
 
-# The bare pixel-art status icons, at the badge size (drawn nearest-neighbour: the icons' own look).
+# The bare pixel-art status icons, at the badge size (drawn nearest-neighbour: the icons' own look);
+# an icon that just gained a stack pops (bigger, easing back over STACK_POP_TIME).
 func _build_hud_icons(item: RID) -> void:
 	RenderingServer.canvas_item_clear(item)
-	var s := get_badge_size()
 	for i in _hud_ids.size():
 		var icon: Texture2D = _hud_icons[i]
-		if icon != null:
-			icon.draw_rect(item, Rect2(_badge_centre(i) - Vector2(s, s) / 2.0, Vector2(s, s)), false)
+		if icon == null:
+			continue
+		var s := get_badge_size()
+		if _hud_pops.has(_hud_ids[i]):
+			var t: float = 1.0 - _hud_pops[_hud_ids[i]] / STACK_POP_TIME  # 0 -> 1
+			s *= 1.0 + STACK_POP_SCALE * sin(PI * t)
+		icon.draw_rect(item, Rect2(_badge_centre(i) - Vector2(s, s) / 2.0, Vector2(s, s)), false)
 
-# Stack counts (bold, dark outline, lower right, from 2 stacks; gold at max) and "+N" past the fourth.
+# The dark pill behind each stack count (lower right of the icon, from 2 stacks).
+func _build_hud_pills(item: RID, overlay: NightmareOverlay) -> void:
+	RenderingServer.canvas_item_clear(item)
+	var atlas: Texture2D = overlay.badge_atlas
+	var pill := overlay.badge_region(NightmareOverlay.MARK_PILL)
+	for i in _hud_ids.size():
+		if _hud_stacks[i] > 1:
+			atlas.draw_rect_region(item, _stack_pill(i), pill, Color(Palette.VOID, 0.9))
+
+# Stack counts (bold, on their pills, from 2 stacks; gold at max) and "+N" past the last icon.
 func _build_hud_text(item: RID) -> void:
 	RenderingServer.canvas_item_clear(item)
 	var r := get_badge_size() / 2.0
 	for i in _hud_ids.size():
 		if _hud_stacks[i] > 1:
-			_add_stack_text(item, _badge_centre(i) + Vector2(r * 0.3, r), str(_hud_stacks[i]),
-				Palette.GOLD if _hud_full[i] else Palette.MOONLIGHT)
+			var text := str(_hud_stacks[i])
+			var box := _stack_pill(i)
+			var width := _stack_font_face().get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, STACK_FONT_SIZE).x
+			var baseline := Vector2(box.get_center().x - width / 2.0, box.get_center().y + STACK_FONT_SIZE * 0.35)
+			_add_stack_text(item, baseline, text, Palette.GOLD if _hud_full[i] else Palette.MOONLIGHT)
 	var extra := statuses.count() - _hud_ids.size()
 	if extra > 0:
 		var after := _badge_centre(_hud_ids.size() - 1) + Vector2(r + STATUS_BADGE_GAP, STACK_FONT_SIZE * 0.35)
 		_add_stack_text(item, after, "+%d" % extra, Palette.MOONLIGHT)
 
-static func _add_stack_text(item: RID, at: Vector2, text: String, color: Color) -> void:
+# Icon i's stack-count pill: sized to its number, over the icon's lower-right corner.
+func _stack_pill(i: int) -> Rect2:
+	var r := get_badge_size() / 2.0
+	var width := _stack_font_face().get_string_size(str(_hud_stacks[i]), HORIZONTAL_ALIGNMENT_LEFT, -1,
+		STACK_FONT_SIZE).x + 8.0
+	var height := STACK_FONT_SIZE + 2.0
+	var corner := _badge_centre(i) + Vector2(r + 2.0, r + 1.0)  # The pill's lower-right corner
+	return Rect2(corner - Vector2(maxf(width, height), height), Vector2(maxf(width, height), height))
+
+static func _stack_font_face() -> Font:
 	if _stack_font == null:
 		_stack_font = FontVariation.new()
 		_stack_font.base_font = UiStyle.body_medium_font()
 		_stack_font.variation_embolden = 0.9
-	_stack_font.draw_string_outline(item, at, text, HORIZONTAL_ALIGNMENT_LEFT, -1, STACK_FONT_SIZE, 4, Palette.VOID)
-	_stack_font.draw_string(item, at, text, HORIZONTAL_ALIGNMENT_LEFT, -1, STACK_FONT_SIZE, color)
+	return _stack_font
+
+static func _add_stack_text(item: RID, at: Vector2, text: String, color: Color) -> void:
+	var font := _stack_font_face()
+	font.draw_string_outline(item, at, text, HORIZONTAL_ALIGNMENT_LEFT, -1, STACK_FONT_SIZE, 3, Palette.VOID)
+	font.draw_string(item, at, text, HORIZONTAL_ALIGNMENT_LEFT, -1, STACK_FONT_SIZE, color)
 
 func _end_smother_fx() -> void:
 	if has_meta(&"smother_fx") and not statuses.smothering:
