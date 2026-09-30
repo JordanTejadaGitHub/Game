@@ -141,7 +141,7 @@ func _test_evolution(main: Node) -> void:
 	_check(placer.get_buildable_towers().has(sporeling), "the Sporeling Dream makes it plantable")
 	var dew := run_state.dew
 	_check(placer.evolve(tower, sporeling), "Sprout grows into a Sporeling")
-	_check(run_state.dew == dew - 15 and tower.invested_dew == 25, "growing costs 15 (invested %d)" % tower.invested_dew)
+	_check(run_state.dew == dew - 15 and tower.invested_dew == sprout.cost + 15, "growing costs 15 (invested %d)" % tower.invested_dew)
 	_check(tower.tower_data == sporeling and tower.sprite.texture == sporeling.texture, "the Warden changes in place")
 	_check(map_generator.get_path_from(map_generator.startPath) == path_before, "evolving doesn't change the path")
 	var driftspore: TowerData = load("res://resource/tower/driftspore.tres")
@@ -439,11 +439,11 @@ func _test_clearing_cards(main: Node) -> void:
 	clearer.try_clear(cell)
 	_check(run_state.dew == 100 - price + floori(price * 0.4), "Reclaimed Earth: 40%% of the %d Dew paid back (dew %d)" % [price, run_state.dew])
 	_check(100 - run_state.dew > 0, "a clear never returns as much as it cost")
-	_check(run_state.fertile_cells.has(cell) and placer.get_cost(sprout, cell) == 5, "fertile ground: a Sprout costs 5")
+	_check(run_state.fertile_cells.has(cell) and placer.get_cost(sprout, cell) == sprout.cost / 2, "fertile ground: a Sprout at half price")
 	placer.tower_data = sprout
 	var dew := run_state.dew
 	if placer._try_build(cell):
-		_check(run_state.dew == dew - 5 and not run_state.fertile_cells.has(cell), "only the first Warden gets the fertile price")
+		_check(run_state.dew == dew - sprout.cost / 2 and not run_state.fertile_cells.has(cell), "only the first Warden gets the fertile price")
 		main.get_node("%TowerSeller").sell(cell)
 
 	# Tended Forest: +2% damage per clear this run, earlier clears count, max +40%

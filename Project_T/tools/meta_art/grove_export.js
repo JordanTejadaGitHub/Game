@@ -64,7 +64,7 @@ emitImg("grove/grove_sky.png", sky);
 emitImg("grove/grove_tree.png", tree);
 spreadNodes(canopies[0]);
 FRUIT_SPOTS.forEach(s => { s[1] = maskBottom(s[0]) - 8; });
-const layout = { size: [GW, GH], nodes: [], fruit_spots: FRUIT_SPOTS, loadout_stones: [...LOADOUT_STONES, SECRET_STONE], moon: MOON, node_cell: 32, legendary_cell: 48, fruit_cell: 48 };
+const layout = { size: [GW, GH], nodes: [], fruit_spots: FRUIT_SPOTS, loadout_stones: [...LOADOUT_STONES, SECRET_STONE], moon: MOON, hollow: HOLLOW_LIGHT, mists: GROVE_MISTS.map(({ file, y, speed }) => ({ file, y, speed })), node_cell: 32, legendary_cell: 48, fruit_cell: 48 };
 const segs = {};
 for (const n of NODES) {
   const s = segment(n); segs[n.id] = s;
@@ -72,6 +72,7 @@ for (const n of NODES) {
   layout.nodes.push({ id: n.id, section: n.section, name: n.name, pos: [n.x, n.y], parent: n.parent || null, from: n.from || null,
     levels: n.lv || 1, start: !!n.start, legendary: !!n.legendary, ...(MEMORY_WARDENS.includes(n.id) ? { memory_row: MEMORY_WARDENS.indexOf(n.id) } : {}), branch: { offset: [s.box[0], s.box[1]], frame_size: [s.W, s.H], frames: 5 } });
 }
+GROVE_MISTS.forEach(m => emitImg("grove/" + m.file, groveMistStrip(m)));
 emitText("grove/grove_layout.json", JSON.stringify(layout, null, 1));
 emitImg("grove/grove_nodes.png", stack(["perks", "families", "cards"].map(s => nodeRow(s, false))));
 emitImg("grove/grove_legendary.png", nodeRow("cards", true));
@@ -136,7 +137,7 @@ emitImg("icons/card_bundle_icons.png", strip(CARD_ORDER.map(cardIcon)));
 for (let i = 0; i < 10; i++) emitImg("memories/memory_" + String(i + 1).padStart(2, "0") + ".png", memory(i));
 
 // Preview: the tree part-grown, with every node state on show.
-const prev = new Img(GW, GH); prev.put(sky); prev.put(tree); prev.put(canopies[2]);
+const prev = new Img(GW, GH); prev.put(sky); prev.put(tree); prev.put(canopies[2]); GROVE_MISTS.forEach(m => prev.put(snapToPalette(groveMistStrip(m)), 0, m.y));
 const owned = new Set(); NODES.forEach((n, i) => { if (n.start || (i % 3 !== 2 && n.depth < 3)) owned.add(n.id); });
 const sheetCell = (sec, big, col) => nodeSprite(sec, col === 0 ? "locked" : col < 5 ? "afford" : col < 9 ? "open" : "bloom", col === 0 ? 0 : col < 5 ? col - 1 : col < 9 ? col - 5 : col - 9, big);
 for (const n of NODES) { const s = segs[n.id]; prev.put(s.frames[owned.has(n.id) ? 4 : 0], s.box[0], s.box[1]); }
