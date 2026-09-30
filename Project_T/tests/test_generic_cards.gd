@@ -41,6 +41,7 @@ func _run() -> void:
 	_test_sim_policy()
 	_test_rows_cache()
 	_test_scaling_cards()
+	_test_catalogue()
 	_test_seed_cards()
 	_test_support_cards()
 	_test_needs_text()
@@ -222,7 +223,9 @@ func _test_sim_entry() -> void:
 	dreams.sim_rest(50, func(offer: Array) -> UpgradeData: return offer[0])
 	_check(dreams.dreamlight == light + DreamState.BOSS_DREAMLIGHT, "…the drift 50 boss rest: no wake bonus yet")
 	light = dreams.dreamlight
-	dreams.sim_rest(55, func(offer: Array) -> UpgradeData: return offer[0])
+	dreams.sim_rest(55, func(offer: Array) -> UpgradeData:
+		var plain := offer.filter(func(c: UpgradeData) -> bool: return c.dreamlight_now == 0)  # Not a card that gives Dreamlight
+		return plain[0] if not plain.is_empty() else null)
 	_check(dreams.dreamlight == light + 1, "…every rest from drift 51: +1 Dreamlight (the Heartwood wakes)")
 	_check(dreams.sim_dreamlight_for(&"first") == 1 and dreams.sim_dreamlight_for(&"boss") == DreamState.BOSS_DREAMLIGHT, "sim_dreamlight_for")
 	dreams.first_pick_dreamlight = 0
@@ -314,6 +317,84 @@ func _test_sim_policy() -> void:
 	_reset()
 
 # DreamEffects.rows_cached (Tower's hot path) matches rows() and follows board changes.
+
+# "Your Dreams steer your Dreams, not your family picks" and the catalogue cards 204–226
+# (dream_design.md "Build packages"): families don't weight, taken cards' tags do (×1.6); the
+# DreamState / DreamEffects side of the new cards.
+func _test_catalogue() -> void:
+	_reset()
+	dreams.unlocked["sporeling"] = true
+	var soft := _card("soft_spores")
+	_check(not dreams.is_in_build(soft), "owning Sporeling doesn't make spore cards your build")
+	dreams.take(_card("lingering_spores"))
+	_check(dreams.is_in_build(soft) and is_equal_approx(dreams.tag_weight, 1.6), "a taken spore card does (×1.6)")
+	_check(DreamState.DIRECTION_TAGS.has("sprout"), "sprout is a direction tag")
+	dreams.stacks.clear()
+	# Nurture follow-ups: needing a Nurture card is soft now; board Needs stay hard
+	var sunlit := _card("sunlit_rest")
+	dreams.grove_cards.append("sunlit_rest")
+	var ranked := _plant("sporeling", Vector2(100, 100))
+	ranked.rank = 3
+	_check(dreams._meets_needs(sunlit) or sunlit.min_rank_count > 1, "Sunlit Rest: no Nurture card needed to be drawn")
+	_check(not dreams.soft_needs_met(sunlit), "…but it weighs ×0.4 until you have one")
+	ranked.free()
+	# The new cards' own numbers
+	var ids := ["elder_kin", "many_rings", "big_family", "mycelium", "fireflies_in_the_grass", "seasoned_eye", "hedgerow",
+		"spore_kin", "resonance", "thornheart", "ill_wind", "eddy", "spinning_corners", "falling_weight", "warm_hearth",
+		"fresh_soil", "quick_step", "hurried_harvest", "heartwoods_fury", "thin_bark", "patchwork", "mixed_grove", "live_wire"]
+	for id in ids:
+		var card := _card(id)
+		if card:
+			_check(card.in_start_pool and card.rarity != UpgradeData.Rarity.LEGENDARY and not card.tags.is_empty(), "%s: Start pool, tagged" % id)
+	_check(_card("resonance").requires.size() == 2 and _card("thin_bark").is_bittersweet() and _card("thin_bark").min_act == 2
+		and DreamState.unlocks_clearing(_card("fresh_soil")), "Resonance crosses 2 families; Thin Bark bittersweet act 2+; Fresh Soil unlocks clearing")
+	# Seasoned Eye: +1% crit per rank
+	var eye := _plant("sporeling", Vector2(100, 104))
+	eye.rank = 5
+	dreams.take(_card("seasoned_eye"))
+	_check(is_equal_approx(dreams.get_crit_chance_bonus(eye), 0.05), "Seasoned Eye: rank V = +5% crit")
+	# Falling Weight: the Pebbling line vs Held
+	var pebble := _plant("pebbling", Vector2(104, 104))
+	var held := _spawn(Vector2(5, 5))
+	var plain := dreams.on_hit_multiplier(pebble, held)
+	dreams.take(_card("falling_weight"))
+	held.statuses.apply(EnemyStatuses.HELD, 1, 5.0)
+	_check(is_equal_approx(dreams.on_hit_multiplier(pebble, held), plain + 0.40), "Falling Weight: +40% vs Held")
+	held.free()
+	# Many Rings / Hedgerow / Patchwork / Mixed Grove rows
+	var sprout := _plant("sprout", Vector2(110, 110))
+	dreams.take(_card("many_rings"))
+	_check(is_equal_approx(_row(sprout.tower_data, sprout.cell, "many_rings", sprout).damage, 0.05), "Many Rings: 5 ranks = +5% on Sprouts")
+	dreams.take(_card("hedgerow"))
+	_check(not _row(sprout.tower_data, sprout.cell, "hedgerow", sprout).active, "Hedgerow: off with no wall touching")
+	_plant("thornwall", Vector2(111, 110))
+	dreams.bump_board()
+	_check(_row(sprout.tower_data, sprout.cell, "hedgerow", sprout).active, "…on with a Thornwall touching")
+	dreams.unlocked["firefly_jar"] = true
+	dreams.take(_card("patchwork"))
+	var families := dreams.count_owned_families()
+	_check(is_equal_approx(_row(eye.tower_data, eye.cell, "patchwork", eye).damage, minf(0.03 * families, 0.12)), "Patchwork: +3%% per family (%d)" % families)
+	_check(dreams._meets_needs(_card("mixed_grove")) == (families >= 2), "Mixed Grove needs 2 families")
+	# Fresh Soil: a Sprout on a cleared cell costs 7 and deals +20%
+	dreams.take(_card("fresh_soil"))
+	var sprout_data: TowerData = load("res://resource/tower/sprout.tres")
+	run_state.tended_cells.append(Vector2(3, 3))
+	_check(dreams.get_build_cost_at(sprout_data, Vector2(3, 3)) == 7, "Fresh Soil: 7 Dew on a cleared cell")
+	_check(_row(sprout_data, Vector2(3, 3), "fresh_soil").active and not _row(sprout_data, Vector2(4, 3), "fresh_soil").active, "…+20% there only")
+	run_state.tended_cells.erase(Vector2(3, 3))
+	# Quick Step: 10 s of speed after a call early
+	dreams.take(_card("quick_step"))
+	_check(not dreams.quick_step_active(), "Quick Step: off until you call a drift early")
+	dreams._quick_step_until = dreams._game_clock + DreamState.QUICK_STEP_TIME
+	_check(dreams.quick_step_active() and is_equal_approx(_row(eye.tower_data, eye.cell, "quick_step", eye).speed, 0.10), "…then +10% speed")
+	# Live Wire and Thin Bark
+	_check(dreams.get_bolt_multiplier() == 1.0, "no Live Wire: bolts ×1")
+	dreams.take(_card("live_wire"))
+	_check(is_equal_approx(dreams.get_bolt_multiplier(), 1.15), "Live Wire: bolts +15%")
+	_check(_card("thin_bark").soothe_bonus == 0.15 and _card("thin_bark").max_leaves_add == -3, "Thin Bark: +15% damage, −3 max leaves")
+	_clear()
+	_reset()
+
 # Few and Mighty is never offered to a wide build (#98), and scaling cards show where you stand (#75).
 func _test_scaling_cards() -> void:
 	_reset()

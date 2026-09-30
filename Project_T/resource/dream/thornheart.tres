@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "thornheart"
+display_name = "Thornheart"
+description = "Brambles' thorns deal 5% more for each Bramble you own (max +100%)."
+rarity = 2
+kind = 3
+tags = Array[String](["wall", "maze"])
+requires = Array[String](["bramble"])
+max_stacks = 1
+rule_id = &"thornheart"

@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "fireflies_in_the_grass"
+display_name = "Fireflies in the Grass"
+description = "Sprouts touching a Firefly-line Warden add 1 {static} every 3rd hit."
+rarity = 1
+kind = 3
+tags = Array[String](["storm", "sprout"])
+requires = Array[String](["firefly_jar"])
+max_stacks = 1
+rule_id = &"fireflies_in_the_grass"

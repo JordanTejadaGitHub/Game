@@ -63,7 +63,9 @@ const FULL_MOON_CRIT := 0.10
 const RECKLESS_CRIT := 0.30
 const RECKLESS_PENALTY := 0.15
 # Build directions: owning one makes its tag count as a family (2×); wide and narrow halve each other.
-const DIRECTION_TAGS: Array[String] = ["nurture", "wide", "narrow"]
+const DIRECTION_TAGS: Array[String] = ["nurture", "wide", "narrow", "sprout"]
+const NOT_BUILD_TAGS: Array[String] = ["bittersweet", "opener"]  # Structural tags, never a build
+const SOFT_TAG_NEEDS: Array[String] = ["nurture"]  # requires_tag Needs that only weigh (x0.4), never gate
 const OPPOSITE_DIRECTION := {"wide": "narrow", "narrow": "wide"}
 const OPPOSITE_WEIGHT := 0.5
 const SOFT_NEED_WEIGHT := 0.4  # A card whose soft Needs are unmet (dream_design.md "Adapt, don't get handed")
@@ -204,7 +206,7 @@ signal remember_requested(focus: TowerData)
 @export var unlock_everything: bool = false  # Debug/tests: every Warden and evolution available
 @export var cards_per_offer: int = 3
 @export var skip_dew: int = 15  # "Let it pass"
-@export var tag_weight: float = 2.4  # Cards sharing a tag you own (family, direction, Legendary archetype)
+@export var tag_weight: float = 1.6  # Cards sharing a tag of a card you've taken (never a family you own)
 @export var pity_after: int = 3  # Dreams in a row without Rare+ before one is guaranteed
 # Bittersweet cards stay out of the pool until leaves are tuned (dream_design.md). Act 2+ only,
 # at most one per offer.
@@ -613,6 +615,8 @@ func is_monoculture() -> bool:
 # Starlit Aim (Marked), Full Moon, Reckless Bloom.
 func get_crit_chance_bonus(_tower: Tower, enemy: Node2D = null) -> float:
 	var bonus := 0.0
+	if _tower != null and has_rule(&"seasoned_eye"):  # +1% per rank (max +7%: only the Eldest reaches it)
+		bonus += minf(SEASONED_EYE_PER * _tower.rank, SEASONED_EYE_MAX) * rule_power(&"seasoned_eye")
 	if has_rule(&"full_moon"):
 		bonus += FULL_MOON_CRIT
 	if has_rule(&"reckless_bloom"):
@@ -788,6 +792,12 @@ func _on_drift_started(number: int) -> void:
 		tower.set_meta(&"drifts_stood", int(tower.get_meta(&"drifts_stood", 0)) + 1)
 	if number > 1 and drift_director._arriving.has(number - 1):
 		_early_calls += 1
+		if has_rule(&"quick_step"):
+			_quick_step_until = _game_clock + QUICK_STEP_TIME
+			bump_board()
+		if has_rule(&"hurried_harvest"):
+			_hurried_drift = number
+			_hurried_paid = 0
 
 # Briar Crown: a nightmare stepping onto a route tile beside a wall takes 25% of the strongest
 # attacking Warden touching that wall (its line, area, no crit; once per wall per nightmare per s).
@@ -1050,6 +1060,8 @@ func get_clear_cost(data: ObstacleData, half_price: bool = false) -> int:
 func get_build_cost_at(data: TowerData, cell: Vector2) -> int:
 	if data.get_id() == "sprout" and run_state.sprout_charges > 0:
 		return 0  # The charge is used in _on_tower_built
+	if data.get_id() == "sprout" and has_rule(&"fresh_soil") and run_state.tended_cells.has(cell):
+		return FRESH_SOIL_COST  # Fresh Soil: a Sprout on a cleared cell
 	var cost := get_build_cost(data)
 	if run_state.fertile_cells.has(cell):
 		cost = roundi(cost * FERTILE_DISCOUNT)
@@ -1512,7 +1524,8 @@ func can_offer(card: UpgradeData, act: int = 1) -> bool:
 # The hard run-state and card Needs (dream_design.md "Card requirements"). Only gates new offers:
 # losing a requirement never takes a card away. A follow-up's rank Needs stay hard.
 func _meets_needs(card: UpgradeData) -> bool:
-	if card.requires_tag != "" and count_taken_with_tag(card.requires_tag) < card.requires_tag_count:
+	if card.requires_tag != "" and not SOFT_TAG_NEEDS.has(card.requires_tag) \
+			and count_taken_with_tag(card.requires_tag) < card.requires_tag_count:
 		return false
 	if not card.requires_any.is_empty() and not card.requires_any.any(owns):
 		return false
@@ -1525,6 +1538,8 @@ func _meets_needs(card: UpgradeData) -> bool:
 	if not card.requires_any_status.is_empty() and not card.requires_any_status.any(func(s: StringName) -> bool: return owned_statuses().has(s)):
 		return false
 	if card.max_range_owned > 0.0 and not owns_range_at_most(card.max_range_owned):
+		return false
+	if card.min_families > 0 and count_owned_families() < card.min_families:
 		return false
 	if card.max_attackers > 0 and count_attackers() > card.max_attackers:
 		return false  # Few and Mighty: never offered to a wide build (a hard Need, playtest #98)
@@ -1539,6 +1554,8 @@ func _meets_needs(card: UpgradeData) -> bool:
 # Soft Needs (×SOFT_NEED_WEIGHT when unmet, never a gate): min_attackers, count_warden, and the
 # Nurture openers' rank Needs (cards with no requires_tag).
 func soft_needs_met(card: UpgradeData) -> bool:
+	if SOFT_TAG_NEEDS.has(card.requires_tag) and count_taken_with_tag(card.requires_tag) < card.requires_tag_count:
+		return false  # Nurture follow-ups tempt, they don't wait for a Nurture card (hard board Needs stay)
 	if card.requires_tag == "" and not _rank_needs_met(card):
 		return false
 	if card.min_attackers > 0 and count_attackers() < card.min_attackers:
@@ -1675,21 +1692,16 @@ func _roll_rarity(act: int, want_rare: bool, skip: Array[int] = []) -> int:
 			return i
 	return 0
 
-# Tags the run has committed to: owned families (lines), started build directions, taken
-# Legendaries' archetypes. Returns [owned {tag: true}, opposed {direction: true}].
+# The build tags your Dreams have steered you to (dream_design.md "Your Dreams steer your Dreams, not
+# your family picks"): every tag of the cards you've taken (a Legendary's archetype too). Owning a
+# family only makes its cards eligible (x1); a Kinship on the map no longer counts either.
 func _owned_tags() -> Array:
 	var owned := {}
-	for card in _taken_cards():  # A taken Legendary's archetype counts as a family (Legendary rules)
-		if card.rarity == UpgradeData.Rarity.LEGENDARY:
-			for tag in card.tags:
+	for card in _taken_cards():
+		for tag in card.tags:
+			if not NOT_BUILD_TAGS.has(tag):
 				owned[tag] = true
-	for tower_id in unlocked:
-		var line := _line_of(tower_id)
-		if line != "":
-			owned[line] = true
-	if count_kinships() > 0:  # A Kinship on the map: Kinship cards count as your build
-		owned["kinship"] = true
-	# Build directions you've started count like families; wide and narrow push each other away.
+	# Directions you've started: wide and narrow push each other away.
 	var opposed := {}
 	for tag in DIRECTION_TAGS:
 		if count_taken_with_tag(tag) > 0:
@@ -1916,6 +1928,7 @@ func _on_obstacle_cleared(cell: Vector2, _data: ObstacleData) -> void:
 
 # Spore Cascade: a cleansed creature's Spored stacks spread to the nearest creatures.
 func _on_enemy_cleansed(enemy: Node2D) -> void:
+	_hurried_harvest(enemy)
 	_count_herd(enemy)
 	_glimmer(enemy)
 	_last_breath(enemy)
@@ -2858,6 +2871,8 @@ func _thin_family_hit_bonus(tower: Tower, enemy: Node2D) -> float:
 	var line := tower.tower_data.line
 	if line == "root" and has_rule(&"deep_grip") and enemy.statuses.has(EnemyStatuses.HELD):
 		bonus += DEEP_GRIP_PER * rule_stacks(&"deep_grip") * rule_power(&"deep_grip")
+	if line == "stone" and has_rule(&"falling_weight") and (enemy.statuses.is_held() or enemy.statuses.is_asleep()):
+		bonus += FALLING_WEIGHT_BONUS * rule_power(&"falling_weight")
 	if line == "wing" and has_rule(&"murmur"):
 		var id := enemy.get_instance_id()
 		var last: Array = _bird_hits.get(id, [])
@@ -2962,3 +2977,67 @@ static func resonance_text(bonus: float, tag: String, count: int) -> String:
 	if bonus <= 0.0:
 		return ""
 	return "+%d%% from %d %s card%s" % [roundi(bonus * 100), count, tag, "" if count == 1 else "s"]
+
+
+# --- Catalogue cards 204–226 (dream_design.md "New cards for the catalogue") ----------------------
+# Bridges carry two build tags. Here: Seasoned Eye (crit), Falling Weight (per hit), Quick Step and
+# Hurried Harvest (calling early), Fresh Soil (cost; its damage is a DreamEffects row), Live Wire
+# (a query for the bolt code) and the DreamEffects rows (Many Rings, Hedgerow, Spinning Corners,
+# Heartwood's Fury, Patchwork, Mixed Grove). Tower Code reads the rest by rule id (Elder Kin, Big
+# Family, Mycelium, Fireflies in the Grass, Spore Kin, Resonance, Thornheart, Ill Wind, Eddy, Warm
+# Hearth) with the numbers below.
+
+const ELDER_KIN_SHARE := 0.25  # Ranked Wardens in a Kinship share this much of their rank bonuses
+const MANY_RINGS_PER := 0.01  # Per rank on any Warden, for every Sprout
+const MANY_RINGS_MAX := 0.25
+const BIG_FAMILY_SPEED := 0.10  # Sprouts within BIG_FAMILY_CELLS of a Kinship pair
+const BIG_FAMILY_CELLS := 2.0
+const MYCELIUM_SPORED := 1  # Poisoned stacks a Sprout touching a Sporeling-line Warden applies on hit
+const FIREFLIES_EVERY := 3  # Sprouts touching a Firefly-line Warden add 1 Charged every Nth hit
+const SEASONED_EYE_PER := 0.01
+const SEASONED_EYE_MAX := 0.07
+const HEDGEROW_BONUS := 0.10  # Sprouts touching a Thornwall
+const SPORE_KIN_SPORED := 2  # Harmony strikes by Sporeling-line kin
+const RESONANCE_CHARGED := 1  # Chime Stone pulses count as lightning: +1 Charged per nightmare hit
+const THORNHEART_PER := 0.05  # Bramble thorns, per Bramble you own
+const THORNHEART_MAX := 1.0
+const ILL_WIND_BONUS := 0.25  # Effect damage of statuses Gust / Zephyr copied
+const SPINNING_CORNERS_SPEED := 0.20  # Pinwheel / Windmill beside a bend
+const SPINNING_WARDENS: Array[String] = ["pinwheel", "windmill"]
+const FALLING_WEIGHT_BONUS := 0.40  # Pebbling line vs Held or Asleep
+const WARM_HEARTH_SPROUTS := 0.50  # Aura bonuses on Sprouts
+const FRESH_SOIL_BONUS := 0.20  # A Sprout on a cleared cell
+const FRESH_SOIL_COST := 7
+const QUICK_STEP_SPEED := 0.10  # Per stack, for QUICK_STEP_TIME after calling a drift early
+const QUICK_STEP_TIME := 10.0
+const HURRIED_HARVEST_CAP := 20  # +1 Dew per nightmare of an early-called drift, per drift
+const FURY_CELLS := 4  # Heartwood's Fury: from the Heartwood (Chebyshev)
+const FURY_PER := 0.03  # Per missing leaf
+const FURY_MAX := 0.30
+const PATCHWORK_PER := 0.03  # Per family owned
+const PATCHWORK_MAX := 0.12
+const MIXED_GROVE_PER := 0.08  # Per neighbouring family that isn't the Warden's own
+const MIXED_GROVE_MAX := 0.24
+const LIVE_WIRE_PER := 0.15  # Charged bolts, per stack (max 3)
+
+var _quick_step_until := -1.0
+var _hurried_drift := -1
+var _hurried_paid := 0
+
+func quick_step_active() -> bool:
+	return has_rule(&"quick_step") and _game_clock < _quick_step_until
+
+# Hurried Harvest: +1 Dew for each nightmare dispelled during a drift you called early (cap per drift).
+func _hurried_harvest(enemy: Node2D) -> void:
+	if not has_rule(&"hurried_harvest") or drift_director.drifts_started != _hurried_drift or _hurried_paid >= HURRIED_HARVEST_CAP:
+		return
+	_hurried_paid += 1
+	run_state.earn_dew_at(1, enemy.global_position)
+
+# Live Wire: Charged bolts multiplier (Enemy / Reactions bolt code; 1.0 without the card).
+func get_bolt_multiplier() -> float:
+	return 1.0 + LIVE_WIRE_PER * rule_stacks(&"live_wire") * rule_power(&"live_wire")
+
+# Families you own (Patchwork, Mixed Grove's Need).
+func count_owned_families() -> int:
+	return _family_roots().filter(func(d: TowerData) -> bool: return is_unlocked(d.get_id())).size()
