@@ -221,12 +221,51 @@ func _draw_lens(towers: Array) -> void:
 			for cell in AuraView.cells(tower.global_position, tower.get_aura_reach()):
 				var c := to_local(Tower.MAP_GRID.calculate_map_position(cell))
 				draw_rect(Rect2(c - Tower.MAP_GRID.cell_size / 2.0, Tower.MAP_GRID.cell_size), Color(colour, LENS_FILL))
+	# Only local sources light a Warden up (auras, Kinships, Kindred / Whole Tree): global Dreams and Nurture
+	# would make the whole map glow (screens_ui.md "The lens button, revised").
 	for tower in towers:
-		var boost := 0.0
-		for entry in BuffSources.for_tower(tower):
-			if entry.stat == "damage" or entry.stat == "attack_speed":
-				boost += entry.amount
-		if absf(boost) > 0.001:
-			var shade := BuffSources.COLORS.penalty if boost < 0.0 else Palette.GLOW
+		var boost := local_boost(tower)
+		if boost > 0.001:
 			draw_circle(to_local(tower.global_position), Tower.MAP_GRID.cell_size.x * 0.42,
-				Color(shade, clampf(absf(boost), 0.08, 0.6)))
+				Color(Palette.GLOW, clampf(boost, 0.08, 0.6)))
+
+# The damage + attack speed a Warden gets from local sources (auras, Kindred / Whole Tree).
+static func local_boost(tower: Tower) -> float:
+	var boost := tower._aura_damage + tower._aura_speed
+	var kin := Kinships.find(tower)
+	if kin != null:
+		boost += kin.family_bonus(tower.tower_data.line)
+		if not kin.get_pairs(tower).is_empty():
+			boost = maxf(boost, 0.1)  # A Kinship bond (traits, no number) still lights it
+	return boost
+
+# For the HUD's Boosts button (Main): true once the map has a local buff source (an aura Warden or a Kinship).
+static func has_local_sources(near: Node) -> bool:
+	var overlay := find(near)
+	if overlay == null:
+		return false
+	for tower in overlay._towers():
+		if AuraView.is_aura(tower.tower_data):
+			return true
+	var kin := Kinships.find(near)
+	return kin != null and not kin.pairs.is_empty()
+
+# The legend under the Boosts button: the local source kinds on the map now, [[kind, colour, name], …].
+# Draw each shape with BuffOverlay.draw_pip(canvas, at, kind, colour).
+static func legend_kinds(near: Node) -> Array:
+	var overlay := find(near)
+	if overlay == null:
+		return []
+	var seen := {}
+	var result := []
+	for tower in overlay._towers():
+		for entry in BuffSources._local_entries(tower):
+			if seen.has(entry.kind):
+				continue
+			seen[entry.kind] = true
+			result.append([entry.kind, BuffSources.color(entry.kind, entry.source), LEGEND_NAMES.get(entry.kind, String(entry.kind).capitalize())])
+	return result
+
+const LEGEND_NAMES := {"acorn": "Acorn", "elder_stump": "Elder Stump", "grove_heart": "Grove Heart",
+	"grandmother_oak": "Grandmother Oak", "old_growth": "Old Growth", "kinship": "Kinship", "kindred": "Kindred",
+	"whole_tree": "Whole Tree"}
