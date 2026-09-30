@@ -51,6 +51,7 @@ var _drag_duration := 0.0
 var _grab_left := 0.0
 var _drag_reduced := false
 var _dust_left := 0.0
+var _grab_fx: PullDragFx  # The roots holding its feet during a drag
 var _refused_at := {}  # {status id: Time.get_ticks_msec() of the last status_refused}
 
 # Deeply Blighted elites (acts_1_2.md): ×3 health, ×2 Dew, 2 leaves, 20% bigger, wrapped in a slow
@@ -1419,7 +1420,7 @@ func push_back(pixels: float) -> float:
 		_grab_left = 0.0 if _drag_reduced else DRAG_GRAB
 		_dust_left = DRAG_DUST_EVERY * 0.5
 		if not _drag_reduced:
-			PullDragFx.grab(self)
+			_grab_fx = PullDragFx.grab(self)
 		drag_started.emit(self, amount / grid.cell_size.x)
 	# Start the ease again from here over what's left (a second pull extends the drag, no new grab).
 	_drag_total = left + amount
@@ -1496,8 +1497,12 @@ func _end_drag(release: bool = true) -> void:
 	_speed_stale = true
 	if _path_index > 0 and _path_index <= _path.size():
 		_last_cell = _path[_path_index - 1]  # Restless: the cell it ended on, never a "turn back"
-	if release and not _drag_reduced and not is_cleansed:
-		PullDragFx.release(self)
+	if is_instance_valid(_grab_fx):
+		if release and not is_cleansed:
+			_grab_fx.release()  # The roots sink
+		else:
+			_grab_fx.queue_free()
+	_grab_fx = null
 	drag_ended.emit(self)
 
 # Index into the current route of the cell the nightmare last stood on (or is standing on).

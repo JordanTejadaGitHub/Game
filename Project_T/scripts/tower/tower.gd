@@ -216,6 +216,8 @@ var _anim_time := 0.0
 var _attack_time := -1.0  # Seconds into the attack animation; negative while idling
 var _attack_fps := 0.0
 var _released := false  # The current attack's shot / pulse has happened
+var _pending_pull := Callable()  # Rootcurl / Long Way Home: the pull waits for the attack's release frame (the lash)
+var _pull_only := false  # The attack animation playing is only for that pull (no shot at release)
 var _attack_count := 0  # For "every Nth attack" effects (Thunderhead)
 var _damage_share := 1.0  # Graftling: share of the copied Warden's damage
 var _dream_state: DreamState
@@ -310,6 +312,7 @@ func _apply_data() -> void:
 	if not target_chosen:
 		target_mode = tower_data.target_mode  # A mode the player chose is kept through growing
 	_attack_time = -1.0
+	_flush_pull()  # Grown mid-lash: the pull still happens
 	_stop_beam()
 	sprite.offset = tower_data.sprite_offset
 	_show_idle()
@@ -1002,6 +1005,7 @@ func _start_attack() -> void:
 		return
 	# Play the attack faster if it wouldn't finish before the next one is due.
 	_attack_fps = maxf(tower_data.attack_animation_fps, tower_data.attack_frame_count * get_attacks_per_second())
+	_pull_only = false
 	_attack_time = 0.0
 	_released = false
 	sprite.texture = tower_data.attack_texture
@@ -1013,9 +1017,12 @@ func _advance_attack(delta: float) -> void:
 	var frame := int(_attack_time * _attack_fps)
 	if not _released and frame >= tower_data.attack_release_frame:
 		_released = true
-		_release()
+		_flush_pull()
+		if not _pull_only:
+			_release()
 	if frame >= tower_data.attack_frame_count:
 		_attack_time = -1.0
+		_pull_only = false
 		_show_idle()
 		return
 	sprite.frame = frame
@@ -1684,11 +1691,14 @@ func _update_ability(delta: float) -> void:
 			if attack_data.pull_once and enemy.has_meta(&"pulled_home"):
 				continue
 			var tiles: float = attack_data.pull_boss_tiles if enemy.enemy_data.is_boss else attack_data.pull_tiles
-			pull(enemy, tiles)
-			var snare := kin_share(&"snare", "a")
-			if snare > 0.0:
-				hold(enemy, 0.5 * snare)  # Snare: the pull ends in a hold
-				_kin_fired(&"snare")
+			_pull_on_release(func() -> void:
+				if not is_instance_valid(enemy) or enemy.is_cleansed:
+					return
+				pull(enemy, tiles)
+				var snare := kin_share(&"snare", "a")
+				if snare > 0.0:
+					hold(enemy, 0.5 * snare)  # Snare: the pull ends in a hold
+					_kin_fired(&"snare"))
 			if attack_data.pull_once:
 				enemy.set_meta(&"pulled_home", true)
 			break  # One nightmare per pull
@@ -1847,6 +1857,31 @@ func _lantern_reveal(held: Node2D) -> void:
 				and enemy.has_method("reveal_for"):
 			enemy.reveal_for(LANTERN_ROOTS_REVEAL * share)
 	_kin_fired(&"lantern_roots")
+
+# The timed pull lands on the attack's release frame (tower_design.md: the roots lash on frame 2, then
+# the grab): plays the attack animation for it, or rides the one already winding up. No attack art, or
+# already past the release: right away.
+func _pull_on_release(action: Callable) -> void:
+	if tower_data.attack_texture == null or _legacy_active or (_attack_time >= 0.0 and _released):
+		action.call()
+		return
+	_flush_pull()
+	_pending_pull = action
+	if _attack_time >= 0.0:
+		return  # An attack is winding up: the pull goes with its release
+	_pull_only = true
+	_attack_fps = maxf(tower_data.attack_animation_fps, 1.0)
+	_attack_time = 0.0
+	_released = false
+	sprite.texture = tower_data.attack_texture
+	sprite.hframes = tower_data.attack_frame_count
+	sprite.frame = 0
+
+func _flush_pull() -> void:
+	if _pending_pull.is_valid():
+		var action := _pending_pull
+		_pending_pull = Callable()
+		action.call()
 
 # Pulls `enemy` back `tiles` along its route (Patient Roots: the Rootling line 0.5 further), credited to
 # this Warden (SupportLog "tiles_pulled").
