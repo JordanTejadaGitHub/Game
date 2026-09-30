@@ -525,7 +525,7 @@ branch, Rare final); only the extra cards are listed here.
 | 49 | **Deep Frost** | Uncommon | frozen nightmares take +20% damage | water, crit | Frostfern | Grove |
 | 50 | **Carried on the Wind** | Rare, **Entwined** (Gust + any status branch) | Gust and Zephyr copy **full** stacks | wind | — | Grove |
 | 51 | **Sweet Scent** | Uncommon | Honeysuckle Drowsy also applies to nightmares 2 tiles away | wall, sleep | Honeysuckle | Grove |
-| 52 | **Shiny Things** | Uncommon | Magpie Wardens' Dew caps +10 per drift | wing, economy | Magpie Perch | Grove |
+| 52 | **Shiny Things** | Uncommon | each buff a Magpie steals gives that Magpie **+15% damage for 10 s** (stacks 3, +45%). *(Reworked 2026-09-30: Magpies became buff thieves in the status-jobs review; was "Magpie Dew caps +10")* | wing | Magpie Perch | Grove |
 | 53 | **Hairpin Winds** | Uncommon | Pinwheel and Windmill +1 max adjacent path tile bonus (to +120%) | wind, maze | Pinwheel | Grove |
 
 **Honeysuckle** unlock card: Uncommon, like Bramble (*"Thornwalls can grow into Honeysuckle
@@ -1031,6 +1031,42 @@ unless noted; family cards join through discovery as usual.
   winning. If it is, the lever is the Stray / generic weight, not removing bridges.
 - **Numbers to check** with the tower design chat: Resonance with the Static bolt rate (Thunder
   Chimes could chain bolts constantly), Eddy's reach on hairpin mazes, Thin Bark vs Leaf Fall.
+
+### After the catalogue measurement (2026-09-30)
+
+Measured (a6b41172): **Adapt 97%** of offers hold a usable card outside your build (target 70%+);
+own-family share 8%. Chasing is in band for Long Walk, Spore Bomb, Encore, Bramble Maze, Kinship
+(Sleepy Hollow, Greedy Gardener just under); Storm Grid and Wide Sprouts are above (left as they are
+for now: one easy hub and one flagship). Many builds were short because **11 designed cards were
+never built** (Glinting Dew, Sharpened Light, Heavy Stones, Long Shadows, Patient Aim, Deep Frost,
+Shiny Things, Carried on the Wind, Ring Dance, Sweet Scent, Hairpin Winds; now being built) and
+because the power pass (`dream_audit.md`) cut or merged Echoing Steps, Still Waters, Fair Trade,
+Cheap Hedges, Quick Bonds and Wide Bowl. The Emergence number (38%, Long Walk 63%) is skewed by the
+Balanced bot; re-run with a random picker.
+
+**Cards for the builds still under 5** (sized to the `dream_audit.md` power budget; no card rewards
+changing the maze mid-drift, the reason Echoing Steps was cut). User-approved.
+
+| # | Card | Rarity | Build (tags) | Effect | Needs |
+|---|---|---|---|---|---|
+| 227 | **Head Start** | Uncommon | Tempo (tempo) | a drift you **called early**: its nightmares take **+40% damage** for the first 10 s after they arrive | — |
+| 228 | **Second Wind** | Rare | Tempo (tempo, dreams) | call **every drift of a block** early: the next Dream offers **4 cards, one Rare+** | — |
+| 229 | **Scarred Bark** | Uncommon | Last Leaf (leaves) | **+3% damage per leaf lost this run** (max +45%; regrowing doesn't lower it) | — |
+| 230 | **Desperate Bloom** | Rare | Last Leaf (leaves) | while below **half your max leaves**, all Wardens **+50% attack speed** | act 2+ |
+| 231 | **Odd One Out** | Uncommon | Menagerie (variety) | a Warden that's the **only one of its kind** on the map **+45% damage** | — |
+| 232 | **Grand Tour** | Rare | Menagerie (variety) | **+10% damage per different status** your Wardens can apply (max +70%) | 2 statuses |
+| 233 | **Crush** | Common | Swarm (swarm) | area attacks deal **+30%** to a nightmare **touching 2+ other nightmares** | — |
+| 234 | **Crowd Breaker** | Uncommon | Swarm (swarm) | an area attack deals **+5% per nightmare it hits** (max +45%) | — |
+
+- **Swarm tag:** add `swarm` to Crowded Path, Last Breath, Thinning the Herd and Shattering Blow so the
+  build's weighting works (a tag only; their effects are unchanged).
+- **Scarred Bark vs Last Leaf:** Last Leaf pays for leaves missing *now*; Scarred Bark for leaves lost
+  *ever*. So a player can leak, regrow and keep the Scarred Bark bonus: the two pull differently.
+- **Odd One Out vs Monoculture:** the opposites of each other, which is the point.
+- **Deepened:** Head Start II (+60%), Scarred Bark II (+4% per leaf, max +60%), Odd One Out II (+65%),
+  Crush II (+45%).
+- After these (and the 11 cards being built), every catalogue build has **5+ real enhancers** except
+  First strike (by design).
 
 ## Status effect numbers
 
