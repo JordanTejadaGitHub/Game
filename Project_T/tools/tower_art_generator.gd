@@ -1506,10 +1506,14 @@ func _draw_bramble(canvas: Image, st: Dictionary) -> void:
 	_bramble_body(canvas, st, true)
 
 func _bramble_body(canvas: Image, st: Dictionary, bloom: bool) -> void:
+	# Thornwall reads as a dark, wild, THORNY hedge (spikes all round its outline, thick thorny canes
+	# wrapped round it, dark berries). Bramble is the same hedge gone bright and ROSY: big wild roses
+	# all over and a crown of them, only small thorns left.
 	var dy: int = st.dy
-	var fig := _pal("#14241a", "#7cbc5a", "#58964a", "#3c7040")
-	var bush := _ramp(["#2a5232", "#3c7040", "#58964a", "#7cbc5a"])
-	var thorn := Color("#d8c090")
+	var fig := _pal("#14241a", "#7cbc5a", "#58964a", "#3c7040") if bloom else _pal("#121a10", "#6a9448", "#4e763c", "#34552e")
+	var bush := _ramp(["#2a5232", "#3c7040", "#58964a", "#7cbc5a"]) if bloom else _ramp(["#1e3a22", "#34552e", "#4e763c", "#6a9448"])
+	var thorn := Color("#e8d4a0")
+	var cane := Color("#6a4030")
 	_draw_waystone(canvas, st, "bramble", bloom)
 	for tuft: Rect2 in [Rect2(8, 42, 5, 3.5), Rect2(56, 42, 5, 3.5)]:
 		var t := _layer()
@@ -1524,32 +1528,72 @@ func _bramble_body(canvas: Image, st: Dictionary, bloom: bool) -> void:
 			if h == 0:
 				canvas.set_pixel(x, y, bush[0])
 			elif h == 4 and canvas.get_pixel(x, y) == fig.a:
-				canvas.set_pixel(x, y, Color("#a8dc7a"))
-	# Thorns poking out of the top of the silhouette.
-	for y in range(1, S):
-		for x in S:
-			if mask.get_pixel(x, y).a > 0.0 and mask.get_pixel(x, y - 1).a == 0.0 and (x * 7) % 4 == 0:
-				_px(canvas, x, y - 1, thorn)
-	# Vine wrapped round the body.
-	for vine: Array in [[Vector2(19, 31), Vector2(25, 26 + dy), Vector2(31, 29), Vector2(37, 24 + dy), Vector2(44, 28)],
-			[Vector2(20, 40), Vector2(27, 36), Vector2(34, 39)]]:
-		_line(canvas, vine, Color("#6a4030"), mask)
-	_skin_px(canvas, mask, fig.o, [Vector2i(22, 28 + dy), Vector2i(34, 26 + dy), Vector2i(41, 25 + dy), Vector2i(24, 37)], thorn)
-	for i in 3:
-		var b: Vector2i = [Vector2i(28, 32), Vector2i(39, 36), Vector2i(17, 38)][i]
-		_skin_px(canvas, mask, fig.o, [b, b + Vector2i.RIGHT, b + Vector2i.DOWN, b + Vector2i(1, 1)], Color("#8a2a5a"))
-		_skin_px(canvas, mask, fig.o, [b], Color("#f0a0c8") if (st.f / 2) % 3 == i else Color("#c8387a"))
-	for bl: Vector2i in [Vector2i(36, 8 + dy), Vector2i(23, 24 + dy), Vector2i(42, 31)]:
-		_skin_px(canvas, mask, fig.o, [bl + Vector2i.LEFT, bl + Vector2i.RIGHT, bl + Vector2i.UP, bl + Vector2i.DOWN], Color("#fff4f0"))
-		_skin_px(canvas, mask, fig.o, [bl], Color("#ffd24a"))
+				canvas.set_pixel(x, y, Color("#a8dc7a") if bloom else Color("#86b060"))
+	var on := func(x: int, y: int) -> bool:
+		return x >= 0 and y >= 0 and x < S and y < S and mask.get_pixel(x, y).a > 0.0
 	if bloom:
-		for r: Vector2i in [Vector2i(20, 29), Vector2i(33, 22 + dy), Vector2i(40, 38), Vector2i(26, 36), Vector2i(29, 7 + dy),
-				Vector2i(15, 38), Vector2i(50, 33), Vector2i(44, 24 + dy)]:
-			_skin_px(canvas, mask, fig.o, [r + Vector2i.LEFT, r + Vector2i.RIGHT, r + Vector2i.UP, r + Vector2i.DOWN, r + Vector2i(1, 1)], Color("#f4a0c0"))
-			_skin_px(canvas, mask, fig.o, [r], Color("#ffd24a"))
+		# Small thorns poking out of the top only.
+		for y in range(1, S):
+			for x in S:
+				if on.call(x, y) and not on.call(x, y - 1) and (x * 7) % 4 == 0:
+					_px(canvas, x, y - 1, thorn)
+	else:
+		# Big thorns all round the outline: two-pixel spikes out of the top and the sides.
+		for y in range(2, S - 2):
+			for x in range(2, S - 2):
+				if not on.call(x, y):
+					continue
+				if not on.call(x, y - 1) and x % 3 == 0 and y < 40:
+					_px(canvas, x, y - 1, cane)
+					_px(canvas, x, y - 2, thorn)
+				elif not on.call(x - 1, y) and y % 3 == 1 and y < 40:
+					_px(canvas, x - 1, y, cane)
+					_px(canvas, x - 2, y - 1, thorn)
+				elif not on.call(x + 1, y) and y % 3 == 1 and y < 40:
+					_px(canvas, x + 1, y, cane)
+					_px(canvas, x + 2, y - 1, thorn)
+	# Canes wrapped round the body: thick and thorny on Thornwall, a thin vine on Bramble.
+	var canes: Array = [[Vector2(18, 31), Vector2(25, 26 + dy), Vector2(31, 29), Vector2(37, 24 + dy), Vector2(45, 28)],
+			[Vector2(19, 40), Vector2(27, 35), Vector2(35, 38), Vector2(43, 34)]]
+	if not bloom:
+		canes.append([Vector2(22, 20 + dy), Vector2(28, 24 + dy), Vector2(24, 33), Vector2(30, 41)])
+	for c: Array in canes:
+		_line(canvas, c, cane, mask)
+		if not bloom:
+			var lower: Array = []
+			for p: Vector2 in c:
+				lower.append(p + Vector2(0, 1))
+			_line(canvas, lower, Color("#4a2a20"), mask)
+			for i in c.size() - 1:
+				var m: Vector2 = ((c[i] as Vector2) + (c[i + 1] as Vector2)) / 2.0
+				_skin_px(canvas, mask, fig.o, [Vector2i(m.floor()) + Vector2i(0, -1)], thorn)
+	if not bloom:
+		# Dark berries in clusters.
+		for i in 3:
+			var b: Vector2i = [Vector2i(28, 32), Vector2i(39, 36), Vector2i(17, 38)][i]
+			_skin_px(canvas, mask, fig.o, [b, b + Vector2i.RIGHT, b + Vector2i.DOWN, b + Vector2i(1, 1)], Color("#4a1a3a"))
+			_skin_px(canvas, mask, fig.o, [b], Color("#b85a8a") if (st.f / 2) % 3 == i else Color("#7a2a5a"))
+	else:
+		# Big wild roses all over: a pink ring, a deep centre, a highlight.
+		for r: Vector2i in [Vector2i(20, 29), Vector2i(33, 22 + dy), Vector2i(41, 37), Vector2i(26, 37),
+				Vector2i(15, 38), Vector2i(49, 32), Vector2i(44, 25 + dy), Vector2i(35, 31)]:
+			var ring: Array[Vector2i] = []
+			for d: Vector2i in [Vector2i(-1, -1), Vector2i(0, -1), Vector2i(1, -1), Vector2i(-1, 0), Vector2i(1, 0), Vector2i(-1, 1), Vector2i(0, 1), Vector2i(1, 1)]:
+				ring.append(r + d)
+			_skin_px(canvas, mask, fig.o, ring, Color("#f4a0c0"))
+			_skin_px(canvas, mask, fig.o, [r], Color("#c8386a"))
+			_skin_px(canvas, mask, fig.o, [r + Vector2i(-1, -1)], Color("#ffe0ec"))
+		# A crown of roses on its head.
+		for k in 3:
+			var c := Vector2i(24 + k * 6, 4 + dy - (1 if k == 1 else 0))
+			var crown := _layer()
+			_flat_ellipse(crown, Vector2(c) + Vector2(0.5, 0.5), Vector2(2.7, 2.4), Color("#f07aa8"))
+			_stamp(canvas, crown, Color("#6a1a3a"))
+			_px(canvas, c.x, c.y, Color("#c8386a"))
+			_px(canvas, c.x - 1, c.y - 1, Color("#ffe0ec"))
 	_golem_face(canvas, st, fig, Color(0, 0, 0, 0), bloom, true)
 	var t: float = float(st.f) / st.n
-	_px(canvas, 50 + roundi(sin(t * TAU) * 2), 14 + roundi(t * 10), Color("#f4a0c0") if bloom else Color("#7cbc5a"))
+	_px(canvas, 50 + roundi(sin(t * TAU) * 2), 14 + roundi(t * 10), Color("#f4a0c0") if bloom else Color("#6a9448"))
 	if bloom:
 		_px(canvas, 12 - roundi(sin(t * TAU) * 2), 10 + roundi(t * 12), Color("#f4a0c0"))
 
@@ -3500,23 +3544,55 @@ func _pinwheel_body(canvas: Image, st: Dictionary, mill: bool) -> void:
 # Honeysuckle: the bramble golem wrapped in honeysuckle, trumpet flowers everywhere, sweet scent
 # curling up off it. Asleep and content.
 func _draw_honeysuckle(canvas: Image, st: Dictionary) -> void:
+	# Warm yellow-green (not the hedge green), a garland of honeysuckle draped across its chest and
+	# round its head, cream-and-gold trumpet flowers hanging off it, a bee visiting.
 	var dy: int = st.dy
-	var fig := _pal("#14241a", "#8cc46a", "#68a452", "#487a44")
+	var fig := _pal("#1e2412", "#b8cc6a", "#94ae52", "#6e8a3e")
 	_draw_waystone(canvas, st, "bramble", true)
 	var mask := _draw_template_figure(canvas, st.pose, fig)
 	for y in S:
 		for x in S:
 			if mask.get_pixel(x, y).a > 0.0 and canvas.get_pixel(x, y) != fig.o and (x * 73 + y * 151) % 11 == 0:
-				canvas.set_pixel(x, y, Color("#3c7040"))
-	_line(canvas, [Vector2(18, 33), Vector2(24, 27 + dy), Vector2(31, 30), Vector2(37, 25 + dy), Vector2(44, 29)], Color("#5a7a30"), mask)
-	for i in 7:
-		var p := Vector2i([Vector2i(21, 30), Vector2i(28, 27), Vector2i(35, 28), Vector2i(41, 33), Vector2i(25, 38), Vector2i(33, 7), Vector2i(17, 40)][i])
-		if p.y < 20:
-			p.y += dy
-		var col := Color("#fff4c8") if i % 2 == 0 else Color("#ffd870")
-		_skin_px(canvas, mask, fig.o, [p, p + Vector2i.RIGHT, p + Vector2i(2, -1), p + Vector2i(-1, 1)], col)
-		_skin_px(canvas, mask, fig.o, [p + Vector2i(2, 0)], Color("#f4a0c0"))
+				canvas.set_pixel(x, y, Color("#7a9a44"))
+	var vine := Color("#3e5a22")
+	var trumpet_o := Color("#4a2410")
+	# The garland across the chest (sagging), a thick outlined vine.
+	var chest: Array = []
+	for s in 13:
+		var u := s / 12.0
+		chest.append(Vector2(17 + u * 28, 26 + sin(u * PI) * 7 + (dy if u < 0.2 or u > 0.8 else 0)))
+	var g := _layer()
+	_stroke(g, chest, 0.9, vine)
+	_stamp(canvas, g, Color("#1e2a10"))
+	# Trumpet flowers: a tube from the vine, a flared mouth; cream or gold (pinks snap to brown in
+	# the palette pass), an orange throat.
+	var trumpets: Array = []
+	for i in [2, 5, 8, 11]:
+		var p: Vector2 = chest[i]
+		trumpets.append([p, p + Vector2(-1.5 if i < 6 else 1.5, 5), i % 2 == 0])
+	# A fan of them on the head, like a flower crown.
+	for k in 5:
+		var a := lerpf(-PI * 0.85, -PI * 0.15, k / 4.0)
+		var base := Vector2(30.5 + (k - 2) * 3.5, 6 + dy)
+		trumpets.append([base, base + Vector2.from_angle(a) * 5.5, k % 2 == 1])
+	for tr: Array in trumpets:
+		var b: Vector2 = tr[0]
+		var m: Vector2 = tr[1]
+		var cream: bool = tr[2]
+		var layer := _layer()
+		_stroke(layer, [b, m], 1.2, Color("#fff4c8") if cream else Color("#ffd870"))
+		_flat_ellipse(layer, m, Vector2(2.3, 2.3), Color("#fff4c8") if cream else Color("#ffd870"))
+		_stamp(canvas, layer, trumpet_o)
+		_px(canvas, int(m.x), int(m.y), Color("#f0a020"))
+		_px(canvas, int(b.x), int(b.y), Color("#d8406a"))
 	_golem_face(canvas, st, fig, Color(0, 0, 0, 0), true, true)
+	# A bee visiting, looping round the flowers.
+	var t: float = float(st.f) / st.n
+	var bee := Vector2i((Vector2(47, 18) + Vector2(cos(t * TAU) * 5.0, sin(t * TAU * 2.0) * 2.0)).round())
+	_px(canvas, bee.x, bee.y, Color("#ffd24a"))
+	_px(canvas, bee.x + 1, bee.y, Color("#2a1e10"))
+	_px(canvas, bee.x - 1, bee.y, Color("#2a1e10"))
+	_px(canvas, bee.x, bee.y - 1, Color(1, 1, 1, 0.8) if st.f % 2 == 0 else Color(1, 1, 1, 0.5))
 	if st.attack < 0:
 		for k in 2:
 			_wisp(canvas, Vector2([14, 46][k], 20), float((st.f + k * 4) % st.n) / st.n, Color("#f8c8e0"))
