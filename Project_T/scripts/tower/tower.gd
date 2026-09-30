@@ -325,6 +325,7 @@ func _ready() -> void:
 
 func _apply_data() -> void:
 	clear_dream_cache()
+	_aura_support = SUPPORT_AURA_WARDENS.has(tower_data.get_id())
 	attack_data = tower_data
 	_damage_share = 1.0
 	if not target_chosen:
@@ -659,7 +660,7 @@ func is_support() -> bool:
 	return is_aura_support() or is_catcher()
 
 func is_aura_support() -> bool:
-	return SUPPORT_AURA_WARDENS.has(tower_data.get_id())
+	return _aura_support  # Cached in _apply_data (asked in hot paths)
 
 # The Focus choices at rank III: Wide / Strong / Kindred for support Wardens, else Power / Swift / Reach / Deep.
 func focus_options() -> Array[Focus]:
@@ -990,6 +991,7 @@ static func _refresh_slot() -> bool:
 # _from fields name the biggest giver (SupportLog credit).
 var _aura_sources: Array = []  # [{"tower", "kind", "damage", "speed", "position", "kindred", "relayed"}, …]
 var _touch_lines := {}  # Lines of the Wardens on the 8 cells around (Mycelium, Fireflies in the Grass)
+var _aura_support := false  # is_aura_support(), set with the form
 var _big_family := false  # Big Family: a Sprout within BIG_FAMILY_CELLS of a Kinship pair
 
 func _near_kin_pair() -> bool:
@@ -1407,7 +1409,7 @@ func hit(enemy: Node2D, soothe_multiplier: float = 1.0, is_area: bool = false, c
 	if not is_instance_valid(enemy) or enemy.is_cleansed:
 		return false
 	var is_crit := roll_crit(enemy) if crit == ROLL_CRIT else crit == CRIT
-	if _dream_state and _dream_state.has_method("called_shot") and _dream_state.called_shot(self, enemy):
+	if _has_rule(&"called_shot") and _dream_state.called_shot(self, enemy):
 		is_crit = true  # Called Shot: the first hit on a Marked nightmare (once per Warden per nightmare)
 	if attack_data.dew_mark:
 		enemy.bonus_dew = maxi(enemy.bonus_dew, 1)  # Before the hit, so a dispelling hit counts
@@ -2745,15 +2747,26 @@ func _busiest_lines(from: Vector2, length: float, count: int) -> Array[Vector2]:
 # bumps the board version), a card added or dropped, a board change (dormant cards waking) and
 # unlock_everything, so a lookup never sees a stale set.
 static var _rules := {}  # rule -> [stacks (uncapped), level]
-static var _rules_key := []
+
+# Performance: one rule cache for every Warden (the rules are the run's); its key is compared field by
+# field (no array built per call: hits ask several rules each).
+static var _rules_owner := 0
+static var _rules_board := -1
+static var _rules_stacks := -1
+static var _rules_pool := -1
+static var _rules_all := false
 
 func _rule_entry(rule: StringName) -> Array:
 	if _dream_state == null or not _dream_state.has_method("rule_stacks"):
 		return [0, 0]
-	var key := [_dream_state.get_instance_id(), _dream_state.board_version, _dream_state.stacks.size(),
-		_dream_state.pool.size(), _dream_state.unlock_everything]
-	if key != _rules_key:
-		_rules_key = key
+	var ds := _dream_state
+	if _rules_owner != ds.get_instance_id() or _rules_board != ds.board_version or _rules_stacks != ds.stacks.size() \
+			or _rules_pool != ds.pool.size() or _rules_all != ds.unlock_everything:
+		_rules_owner = ds.get_instance_id()
+		_rules_board = ds.board_version
+		_rules_stacks = ds.stacks.size()
+		_rules_pool = ds.pool.size()
+		_rules_all = ds.unlock_everything
 		_rules = {}
 	var entry: Array = _rules.get(rule, [])
 	if entry.is_empty():
@@ -2835,7 +2848,7 @@ func _catalogue_hit(enemy: Node2D) -> void:
 		_apply_one_status(enemy, EnemyStatuses.STATIC, roundi(DreamState.RESONANCE_CHARGED * _rule_power(&"resonance")), get_damage())
 
 func _resonance() -> bool:
-	return tower_data.get_id() == "chime_stone" and _dream_state != null and _dream_state.has_rule(&"resonance")
+	return _dream_state != null and tower_data.get_id() == "chime_stone" and _has_rule(&"resonance")
 
 # Eddy: `targets` plus the nightmares on the route tiles next to each (2 along where the path bends).
 func _eddy_targets(targets: Array, source: Node2D) -> Array:

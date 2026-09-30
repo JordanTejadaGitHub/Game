@@ -12,7 +12,8 @@ class_name BuffOverlay
 # Made by TowerSeller in the run's scene; drawn on the ground (under Wardens and nightmares).
 
 const GROUP := &"buff_overlay"
-const REDRAW_EVERY := 0.2  # Seconds between redraws while something shows (buffs change slowly)
+const REDRAW_EVERY := 0.5  # Seconds between refreshes of the hovered / selected Warden's threads
+const SIGNATURE_EVERY := 1.0  # Seconds between checks that the board's buffs changed (pips at rests)
 const PIP_RADIUS := 4.5
 const PIP_STEP := 13.0
 const PIP_Y := 36.0  # Below the Warden's cell centre
@@ -29,6 +30,15 @@ var director: DriftDirector
 var container: Node
 var _redraw_left := 0.0
 var _last_key := []
+var _signature := 0
+var _signature_left := 0.0
+
+# What the pips depend on, cheaply: each Warden's form, rank and aura sources.
+func _board_signature() -> int:
+	var parts := []
+	for tower in _towers():
+		parts.append([tower.tower_data.get_instance_id(), tower.rank, tower._aura_sources.size()])
+	return parts.hash()
 
 static func find(near: Node) -> BuffOverlay:
 	if near == null or not near.is_inside_tree():
@@ -47,10 +57,18 @@ func set_lens(on: bool) -> void:
 	lens_changed.emit(on)
 	queue_redraw()
 
+# Performance (test_perf_stress: redrawing every Warden's pips every 0.2 s cost ~75 ms spikes): redraw when
+# what's asked about changes (lens, rest / pause / build mode, hovered / selected Warden, the board), and
+# only the hovered / selected Warden's threads refresh on a timer.
 func _process(delta: float) -> void:
 	_redraw_left -= delta
-	var key := [lens, _show_all(), _focus()]
-	if key != _last_key or (_redraw_left <= 0.0 and _anything_shown()):
+	var focus := _focus()
+	_signature_left -= delta
+	if _signature_left <= 0.0:
+		_signature_left = SIGNATURE_EVERY
+		_signature = _board_signature()
+	var key := [lens, _show_all(), focus, _signature]
+	if key != _last_key or (_redraw_left <= 0.0 and not focus.is_empty()):
 		_last_key = key
 		_redraw_left = REDRAW_EVERY
 		queue_redraw()
