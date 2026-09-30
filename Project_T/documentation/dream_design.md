@@ -1196,6 +1196,22 @@ and a single Tall card halved Overgrowth's weight; Precision and Kinship sit at 
    *"felt like cards were handed to me"*). This overrides the 1.6 this trim was measured at; the
    package targets are checked again at 1.3.
 
+**Round 4 measured (97eab598, 6b5e2a87):** with free branches and early finals every card build lost
+5–16 points at drift 50: unlocking forms met the Needs of all their cards, so the pool grew by the
+family cards (own-family share 10% → 12%). Tag weight 1.3 cost another 3–8. At drift **75** most
+card builds sit at **40–66%**; Emergence (mixed) 66%, Adapt 93–94%. Round 5 (final for this pass):
+
+1. **A Warden Need means one on the map, this run** (fixes Needs under free branches). A card whose
+   Needs name a Warden is offered only once **you have built or grown one this run** (selling it later
+   doesn't remove a taken card or block offers again). Owning the family, or having the form
+   unlocked, is no longer enough. This is the old rule's meaning ("never offered until it can do
+   something"); free branches had quietly broken it. Discovery (profile) still applies on top.
+2. **Card builds are judged at drift 75**, not 50: in a 100-drift run where you should adapt, a build
+   coming together by the middle of act 3 is right, and the user's playtest said builds came too
+   easily. Chasing target: **3+ by drift 75 in 35–65%**, 5+ by 100 in 25–50%. Emergence stays
+   judged at drift 50 (≥ 60% mixed).
+3. `tag_weight` stays **1.3**.
+
 ## Status effect numbers
 
 Status strength **scales with the Warden that applies it** (a % of its soothe), so statuses keep
