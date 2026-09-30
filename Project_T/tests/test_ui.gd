@@ -51,9 +51,9 @@ func _run() -> void:
 		"Warden buttons show the cost and the hotkey (%s)" % first_button.text)
 	# The Warden's own icon on the button (family emblems were removed, user 2026-09-30).
 	var first_data: TowerData = main.get_node("HUD")._bar_towers[0]
-	_check(first_button.icon != null and (first_button.icon as AtlasTexture == null
-		or (first_button.icon as AtlasTexture).region != (IconInfo.family_emblem(first_data.line) as AtlasTexture).region),
-		"Warden buttons show the Warden, not a family emblem")
+	var bar_icon := first_button.icon as AtlasTexture
+	_check(first_button.icon != null and (bar_icon == null or bar_icon.atlas == null
+		or bar_icon.atlas.resource_path != IconInfo.ICON_SHEET), "Warden buttons show the Warden (%s), not a badge from the icon sheet" % first_data.display_name)
 	_check(UiStyle.TIP_SIZE >= 16 and UiStyle.TIP_NAME_SIZE >= 18
 		and ThemeDB.get_project_theme().get_font_size("font_size", "TooltipLabel") >= 16, "tooltip text is at least 16 px, names 18")
 	# The buff lens (screens_ui.md "Buff readability"): the HUD toggle and V, a toggle (touch too);

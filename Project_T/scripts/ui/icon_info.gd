@@ -77,31 +77,6 @@ static func damage_type_text(line: String) -> String:
 static func damage_type_icon(line: String) -> Texture2D:
 	return icon(StringName(line if DAMAGE_TYPES.has(line) else "plain"))
 
-# A family's emblem (screens_ui.md playtest fixes 2026-09-30): its damage-type badge. Acorn, Memory
-# and the Heartwood forms use the plain leaf; the Sprout and Thornwall their own marks ("sprout_mark",
-# "hedge_mark") once the sheet has them, the plain leaf until then. Warden bar, Warden panel header,
-# family pick cards, Remember tabs.
-const EMBLEM_MARKS := {"sprout": &"sprout_mark", "wall": &"hedge_mark"}
-static func family_emblem(line: String) -> Texture2D:
-	if EMBLEM_MARKS.has(line):
-		var mark := icon(EMBLEM_MARKS[line])
-		if mark != null:
-			return mark
-	return damage_type_icon(line)
-
-# The emblem as a TextureRect, `side` px at `at` (pixel art: nearest filtering; ignores the mouse).
-static func emblem_rect(line: String, side: float, at: Vector2) -> TextureRect:
-	var emblem := TextureRect.new()
-	emblem.name = "Emblem"
-	emblem.texture = family_emblem(line)
-	emblem.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-	emblem.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	emblem.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	emblem.position = at
-	emblem.size = Vector2(side, side)
-	emblem.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	return emblem
-
 # --- Icons (assets/ui/icons.png, one row of 16×16; icons.json maps id -> column) -------------------
 
 const ICON_SHEET := "res://assets/ui/icons.png"
