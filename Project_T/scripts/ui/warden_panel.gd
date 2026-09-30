@@ -5,6 +5,7 @@ extends PanelContainer
 
 const TARGET_TIPS := {
 	TowerData.TargetMode.FIRST: "The nightmare furthest along the path",
+	TowerData.TargetMode.LAST: "The nightmare furthest back on the path (the newest arrival)",
 	TowerData.TargetMode.STRONGEST: "The nightmare with the most health left",
 	TowerData.TargetMode.CLOSEST: "The nightmare nearest this Warden",
 }
@@ -398,7 +399,7 @@ func _sell_group() -> void:
 	_confirm_sell = false
 	tower_seller.sell_selection()
 
-# Targeting (screens_ui.md): a 3-way switch First / Strongest / Closest for `towers` (one Warden or a
+# Targeting (screens_ui.md): a 4-way switch First / Last / Strongest / Closest for `towers` (one Warden or a
 # group). A group with mixed modes shows none pressed; a press sets them all. T cycles (TowerSeller).
 func _add_target_switch(towers: Array) -> void:
 	var row := HBoxContainer.new()

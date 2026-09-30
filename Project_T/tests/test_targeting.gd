@@ -42,6 +42,14 @@ func _run() -> void:
 	_check(shooter.find_target() == strong, "Strongest: the most health left")
 	shooter.set_target_mode(TowerData.TargetMode.CLOSEST)
 	_check(shooter.find_target() == near, "Closest: the nearest to the Warden")
+	shooter.set_target_mode(TowerData.TargetMode.LAST)
+	var back: Node2D = null
+	for e in [far, strong, near]:
+		if back == null or e.get_remaining_distance() > back.get_remaining_distance():
+			back = e
+	_check(back != far and shooter.find_target() == back, "Last: the one furthest back (the newest arrival)")
+	_check(Tower.PLAYER_TARGET_MODES == [TowerData.TargetMode.FIRST, TowerData.TargetMode.LAST,
+		TowerData.TargetMode.STRONGEST, TowerData.TargetMode.CLOSEST], "the switch reads First, Last, Strongest, Closest")
 
 	# --- Hidden for pulses and Thornwalls ---
 	_check(not _plant("rootling", Vector2(10, 10)).can_choose_target(), "no switch for pulses")

@@ -3357,12 +3357,12 @@ static func draw_focus_icon(canvas: CanvasItem, at: Vector2, which: Focus, size:
 func get_range_pixels() -> float:
 	return range_to_pixels(get_range_cells())
 
-# Targeting (screens_ui.md "Targeting"): the three modes the player picks from, in the switch's order.
-const PLAYER_TARGET_MODES: Array[TowerData.TargetMode] = [TowerData.TargetMode.FIRST,
+# Targeting (screens_ui.md "Targeting"): the four modes the player picks from, in the switch's order.
+const PLAYER_TARGET_MODES: Array[TowerData.TargetMode] = [TowerData.TargetMode.FIRST, TowerData.TargetMode.LAST,
 	TowerData.TargetMode.STRONGEST, TowerData.TargetMode.CLOSEST]
 const TARGET_MODE_NAMES := {TowerData.TargetMode.FIRST: "First", TowerData.TargetMode.STRONGEST: "Strongest",
 	TowerData.TargetMode.CLOSEST: "Closest", TowerData.TargetMode.BOSSES: "Bosses",
-	TowerData.TargetMode.FASTEST: "Fastest"}
+	TowerData.TargetMode.FASTEST: "Fastest", TowerData.TargetMode.LAST: "Last"}
 # Attacks that don't pick a target: pulses, auras, traps / rings, spins, patrols and lit tiles.
 const UNTARGETED_KINDS := [TowerData.AttackKind.PULSE, TowerData.AttackKind.AURA, TowerData.AttackKind.TRAP,
 	TowerData.AttackKind.SPIN, TowerData.AttackKind.PATROL, TowerData.AttackKind.LIGHT]
@@ -3380,13 +3380,13 @@ func set_target_mode(mode: TowerData.TargetMode) -> void:
 	target_chosen = true
 	queue_redraw()
 
-# T: First -> Strongest -> Closest -> First.
+# T: First -> Last -> Strongest -> Closest -> First.
 func cycle_target_mode() -> void:
 	var index := PLAYER_TARGET_MODES.find(get_target_mode())
 	set_target_mode(PLAYER_TARGET_MODES[(index + 1) % PLAYER_TARGET_MODES.size()])
 
-# A tiny pip at the tile's top-right while selected: an arrow (First), a filled diamond (Strongest)
-# or a ring (Closest).
+# A tiny pip at the tile's top-right while selected: an arrow (First), a back-pointing arrow (Last), a
+# filled diamond (Strongest) or a ring (Closest).
 func _draw_target_pip() -> void:
 	if not (is_selected and can_choose_target()):
 		return
@@ -3398,6 +3398,8 @@ func _draw_target_pip() -> void:
 			draw_colored_polygon(PackedVector2Array([at + Vector2(0, -3.5), at + Vector2(3.5, 0), at + Vector2(0, 3.5), at + Vector2(-3.5, 0)]), ink)
 		TowerData.TargetMode.CLOSEST:
 			draw_arc(at, 3.0, 0.0, TAU, 12, ink, 1.5)
+		TowerData.TargetMode.LAST:
+			draw_colored_polygon(PackedVector2Array([at + Vector2(2.5, -3.5), at + Vector2(-3.5, 0), at + Vector2(2.5, 3.5)]), ink)
 		_:
 			draw_colored_polygon(PackedVector2Array([at + Vector2(-2.5, -3.5), at + Vector2(3.5, 0), at + Vector2(-2.5, 3.5)]), ink)
 
@@ -3427,6 +3429,8 @@ func _target_score(enemy: Node2D, mode: TowerData.TargetMode) -> float:
 			return enemy.get_move_speed()
 		TowerData.TargetMode.CLOSEST:
 			return -global_position.distance_squared_to(enemy.global_position)
+		TowerData.TargetMode.LAST:
+			return enemy.get_remaining_distance()  # The newest arrival: the most path left
 	return -enemy.get_remaining_distance()
 
 # Blighted enemies within attack range (and outside a sniper's minimum range).
