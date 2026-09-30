@@ -281,7 +281,7 @@ with the nightmare's per-drift health scale.
 
 ### Family tally
 
-Resists: spore 3 · stone 3 · water 3 · light 3 · root 3 · wing 3 · wind 3 · song 3.
+Resists: spore 3 · stone **2** (the Husk lost its stone resistance, 2026-09-29) · water 3 · light 3 · root 3 · wing 3 · wind 3 · song 3.
 Weak to: spore 3 · stone 3 · water 3 · light 3 · root 3 · wing 2 · wind 2 · song 3.
 Re-check this whenever a nightmare is added or changed. There are 22 weakness slots for 8
 families, so two families sit at 2: wing and wind, the full-game families (Whirligig is an
