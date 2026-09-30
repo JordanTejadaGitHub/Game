@@ -68,10 +68,10 @@ static func chip(tower: Tower, aura: Tower) -> String:
 	return " · ".join(parts)
 
 # A selected aura Warden: its shape, then each Warden it boosts lit with its chip.
-static func draw_selected(canvas: CanvasItem, aura: Tower) -> void:
+static func draw_selected(canvas: CanvasItem, aura: Tower, chips: bool = true) -> void:
 	draw_shape(canvas, cells(aura.global_position, aura.get_aura_reach()))
 	for tower in boosted_by(aura):
-		_draw_boosted(canvas, tower.global_position, chip(tower, aura))
+		_draw_boosted(canvas, tower.global_position, chip(tower, aura) if chips else "")
 
 # A selected Warden that's boosted: thin lines back to its booster(s).
 static func draw_links(canvas: CanvasItem, tower: Tower) -> void:

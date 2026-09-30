@@ -972,7 +972,7 @@ static func _refresh_slot() -> bool:
 # 100% / 50% / 25% …; a Kindred-Focus aura always counts 100% and sits outside the falloff. Different kinds add
 # fully. _aura_sources keeps each Warden's share (AuraView, the panel's "Elder Stump ×3" lines); the
 # _from fields name the biggest giver (SupportLog credit).
-var _aura_sources: Array = []  # [{"tower", "kind", "damage", "speed"}, …]
+var _aura_sources: Array = []  # [{"tower", "kind", "damage", "speed", "position", "kindred", "relayed"}, …]
 
 func _stack_auras(auras: Dictionary) -> void:
 	_aura_sources = []
@@ -982,18 +982,22 @@ func _stack_auras(auras: Dictionary) -> void:
 		var list: Array = auras[kind]
 		list.sort_custom(func(a: Array, b: Array) -> bool: return maxf(a[1], a[2]) > maxf(b[1], b[2]))
 		var weight := 1.0
+		var position := 0  # Place in this kind's falloff (1st, 2nd…; 0 = Kindred, outside it)
 		for entry in list:
 			var giver: Tower = entry[0]
 			var share := weight
-			if giver.focus == Focus.KINDRED and giver.is_aura_support():
+			var kindred := giver.focus == Focus.KINDRED and giver.is_aura_support()
+			if kindred:
 				share = 1.0  # Kindred: outside the falloff
 			else:
 				weight *= AURA_FALLOFF
+				position += 1
 			var damage: float = entry[1] * share
 			var speed: float = entry[2] * share
 			_aura_damage += damage
 			_aura_speed += speed
-			_aura_sources.append({"tower": giver, "kind": kind, "damage": damage, "speed": speed})
+			_aura_sources.append({"tower": giver, "kind": kind, "damage": damage, "speed": speed,
+				"position": 0 if kindred else position, "kindred": kindred, "relayed": entry[3]})
 			if damage > top_damage:
 				top_damage = damage
 				_aura_damage_from = giver
@@ -1054,14 +1058,14 @@ func _refresh_neighbours() -> void:
 			var kind: String = data.get_id()
 			if not auras.has(kind):
 				auras[kind] = []
-			auras[kind].append([other, other.get_aura_bonus(false), other.get_aura_bonus(true)])
+			auras[kind].append([other, other.get_aura_bonus(false), other.get_aura_bonus(true), distance > other.get_aura_reach()])
 		if (tower_data.aura_damage_bonus > 0.0 or tower_data.aura_speed_bonus > 0.0) and distance <= get_aura_reach():
 			aura_count += 1
 		var growth: float = other.kin_share(&"old_growth", "b")
 		if growth > 0.0 and distance <= 1.5:  # Old Growth: the Dewcatcher kin's small aura (its own kind)
 			if not auras.has("old_growth"):
 				auras["old_growth"] = []
-			auras["old_growth"].append([other, 0.0, 0.1 * growth])
+			auras["old_growth"].append([other, 0.0, 0.1 * growth, false])
 		if data.range_aura_bonus > 0.0 and distance <= data.range_aura_radius:
 			_aura_range = maxf(_aura_range, data.range_aura_bonus)
 		if tower_data.attack_kind == TowerData.AttackKind.COPY and data.applies_status != &"" \

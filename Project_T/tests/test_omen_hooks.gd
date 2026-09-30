@@ -39,7 +39,8 @@ func _run() -> void:
 	_check(is_equal_approx(tower.get_range_cells(), maxf(range_before - 1.0, 1.0)), "Fog Bank: -1 range (%.2f -> %.2f)" % [range_before, tower.get_range_cells()])
 	omens.active = by_id["wilting"]
 	await process_frame
-	_check(is_equal_approx(tower.get_attacks_per_second(), speed_before * 0.85), "Wilting: attack speed x0.85")
+	_check(is_equal_approx(tower.get_attacks_per_second(), speed_before * by_id["wilting"].warden_attack_speed_multiplier),
+		"Wilting: attack speed x%.2f" % by_id["wilting"].warden_attack_speed_multiplier)
 	_check(is_equal_approx(tower.get_range_cells(), range_before), "and range is back without Fog Bank")
 
 	omens.active = by_id["frozen_ground"]

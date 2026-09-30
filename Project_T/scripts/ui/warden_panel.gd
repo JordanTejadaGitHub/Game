@@ -23,6 +23,7 @@ var _portrait_time := 0.0
 var _damage_type := HBoxContainer.new()  # Under the title: the damage type icon + name (one Warden)
 var _desc: RichTextLabel  # What it does, with its status words as links (StatusLinks)
 var _stats := VBoxContainer.new()  # Stat rows: each stat explains itself on hover and tap (IconInfo)
+var _buffs := VBoxContainer.new()  # Buffs: every source of this Warden's power (BuffSources), then the total
 var _body := Label.new()
 var _groups := VBoxContainer.new()  # Several selected: one row per kind with its portrait
 var _buttons := VBoxContainer.new()
@@ -64,6 +65,8 @@ func _ready() -> void:
 	box.add_child(_desc)
 	_stats.add_theme_constant_override("separation", 2)
 	box.add_child(_stats)
+	_buffs.add_theme_constant_override("separation", 1)
+	box.add_child(_buffs)
 	_body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_body.custom_minimum_size = Vector2(280, 0)
 	box.add_child(_body)
@@ -104,6 +107,7 @@ func _refresh() -> void:
 		for child in _stats.get_children():
 			child.queue_free()
 		_body.visible = true
+		_fill_buffs(null)
 		_title.tooltip_text = ""
 		_refresh_group()
 		return
@@ -192,7 +196,7 @@ func _refresh() -> void:
 	var support_line := support.get_panel_line(_tower) if support else ""
 	if support_line != "":
 		lines.append(support_line)  # "Caught this run: 240 Dew · paid back ✓", "Held 42 s · …"
-	lines.append_array(_tower.get_aura_lines())  # "Elder Stump ×3: +35% attack speed" (same-kind auras stack with falloff)
+	_fill_buffs(_tower)  # The Buffs section (auras with falloff, Kinships, rank, Dreams, Omens)
 	if dream_state.has_method("get_crossroads_bonus") and dream_state.has_rule(&"crossroads"):
 		var crossroads: float = dream_state.get_crossroads_bonus(_tower)
 		if crossroads > 0.0:
@@ -543,6 +547,58 @@ func _add_target_switch(towers: Array) -> void:
 # A form that isn't unlocked yet (run_design.md "Dreamlight"): "Grow into Stormcap · Unlock with 1
 # Dreamlight". With enough Dreamlight, the first click asks and the second unlocks it; otherwise it
 # opens the Remember screen on that form (which also says what else it needs).
+# Buffs (screens_ui.md "Buff readability"): every source with its amount, then the total; penalties in
+# muted plum; a Warden source is a button that selects it and glides the camera there.
+func _fill_buffs(tower: Tower) -> void:
+	for child in _buffs.get_children():
+		child.queue_free()
+	_buffs.visible = false
+	if tower == null:
+		return
+	var entries := BuffSources.for_tower(tower)
+	if entries.is_empty():
+		return
+	_buffs.visible = true
+	var header := Label.new()
+	header.text = "Buffs"
+	UiStyle.caps(header)
+	_buffs.add_child(header)
+	for entry in entries:
+		var colour: Color = BuffSources.COLORS.penalty if entry.negative else BuffSources.color(entry.kind, entry.source)
+		var row: Control
+		if entry.source is Tower and is_instance_valid(entry.source):
+			var link := Button.new()
+			link.flat = true
+			link.alignment = HORIZONTAL_ALIGNMENT_LEFT
+			link.text = entry.label
+			link.add_theme_color_override("font_color", colour)
+			link.tooltip_text = "Select it"
+			var source: Tower = entry.source
+			link.pressed.connect(func() -> void: _go_to(source))
+			row = link
+		else:
+			var label := Label.new()
+			label.text = entry.label
+			label.add_theme_color_override("font_color", colour)
+			label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+			row = label
+		_buffs.add_child(row)
+	var total := BuffSources.totals(entries)
+	var parts: Array[String] = []
+	for stat in ["damage", "attack_speed", "range"]:
+		if total.has(stat) and absf(total[stat]) > 0.0001:
+			parts.append("%s %s" % [BuffSources._signed(total[stat], stat == "range"), BuffSources.STAT_WORDS[stat]])
+	if not parts.is_empty():
+		var sum := Label.new()
+		sum.text = "Total: " + " · ".join(parts)
+		_buffs.add_child(sum)
+
+# A Warden source in Buffs: select it and glide the camera there.
+func _go_to(tower: Tower) -> void:
+	if not is_instance_valid(tower):
+		return
+	DriftMeter.focus_tower(tower)  # Selects it and glides the camera there (Main's)
+
 # Growth preview (screens_ui.md "Preview the growth before growing"): while the pointer is on a Grow
 # button, the Wardens show the new form (TowerPlacer.show_grow_preview).
 func _preview_on(button: Button, pairs: Array) -> void:
@@ -637,7 +693,7 @@ func _show_damage_type(data: TowerData) -> void:
 		return
 	var icon := _damage_type.get_child(0) as TextureRect
 	var label := _damage_type.get_child(1) as Label
-	icon.texture = IconInfo.family_emblem(data.line)  # The family emblem (its damage-type badge)
+	icon.texture = IconInfo.damage_type_icon(data.line)
 	label.text = IconInfo.damage_type_text(data.line)
 	label.add_theme_color_override("font_color", IconInfo.damage_type_color(data.line))
 	_damage_type.tooltip_text = "Nightmares can resist or be weak to a damage type."

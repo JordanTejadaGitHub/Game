@@ -1,8 +1,8 @@
 extends SceneTree
 
 # Headless test for the Warden panel's Dreamlight unlocks (run_design.md "Dreamlight"): a locked form
-# reads "Grow into Driftspore · Unlock with 1 Dreamlight"; with enough Dreamlight the first click asks
-# and the second unlocks it; without, the click opens the Remember screen on that form.
+# reads "Grow into Driftspore · Unlock with 1 Dreamlight"; a click opens the Remember screen on that form
+# (with or without enough Dreamlight), where it's unlocked for Dreamlight.
 #   godot --headless --path . --script res://tests/test_dreamlight_panel.gd --fixed-fps 60
 
 var failures := 0
@@ -49,20 +49,26 @@ func _run() -> void:
 		remember.visible = false
 	main.get_node("%GameSpeed").set_paused(false)
 
-	# With Dreamlight: first click asks, second unlocks (Dew is untouched).
+	# With Dreamlight the click opens the Remember tree on that form too (screens_ui.md playtest fixes
+	# 2026-09-30); the unlock happens there and spends Dreamlight, not Dew.
 	dreams.dreamlight = 1
 	dreams.dreamlight_changed.emit(1)
 	await process_frame
+	asked.clear()
 	_button(panel, "Grow into Driftspore").pressed.emit()
 	await process_frame
-	var confirm := _button(panel, "Unlock Driftspore")
-	_check(confirm != null and "confirm" in confirm.text.to_lower(), "the first click asks to confirm")
-	_check(not dreams.is_unlocked("driftspore"), "nothing is spent yet")
+	_check(asked == [driftspore] and not dreams.is_unlocked("driftspore"), "with enough Dreamlight it opens Remember as well, nothing spent")
+	remember = main.find_child("RememberScreen", true, false)
+	if remember != null and remember.visible and remember.has_method("close"):
+		remember.close()
+	elif remember != null:
+		remember.visible = false
+	main.get_node("%GameSpeed").set_paused(false)
 	var dew := run_state.dew
-	confirm.pressed.emit()
+	dreams.unlock_with_dreamlight(driftspore)
 	await process_frame
 	_check(dreams.is_unlocked("driftspore") and dreams.dreamlight == 0 and run_state.dew == dew,
-		"the second click spends 1 Dreamlight (not Dew) and unlocks Driftspore")
+		"unlocking spends 1 Dreamlight (not Dew) and unlocks Driftspore")
 	var grow := _button(panel, "Grow into Driftspore")
 	_check(grow != null and "Dew" in grow.text, "then it offers growing for Dew as usual (%s)" % (grow.text if grow else "none"))
 

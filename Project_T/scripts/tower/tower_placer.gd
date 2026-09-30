@@ -264,6 +264,18 @@ func _draw() -> void:
 	if tower_data.catch_share > 0.0:
 		_draw_catch_zone(Tower.footprint_centre(_hover_cell, tower_data.footprint), tower_data.catch_radius \
 			+ DewCatch.WIDE_BOWL_STEP * mini(dream_state.rule_stacks(&"wide_bowl"), 3))
+	# What it would receive here (BuffSources): threads in from each aura, "+30% attack speed from 2 Elder
+	# Stumps" above the ghost.
+	var received := ""
+	if tower_data.can_attack and not AuraView.is_aura(tower_data):
+		draw_set_transform(Vector2.ZERO)
+		var ghost_at := Tower.footprint_centre(_hover_cell, tower_data.footprint)
+		var entries := BuffSources.would_receive(tower_data, ghost_at, tower_container.get_children())
+		for entry in entries:
+			var colour := BuffSources.color(entry.kind, entry.source)
+			draw_line(to_local(entry.source.global_position), to_local(ghost_at), Color(colour, 0.18), 4.5)
+			draw_line(to_local(entry.source.global_position), to_local(ghost_at), Color(colour, 0.8), 1.5)
+		received = BuffSources.summary(entries)
 	if AuraView.is_aura(tower_data):  # Exactly who it would boost (AuraView)
 		draw_set_transform(Vector2.ZERO)
 		AuraView.draw_ghost(self, tower_data, Tower.footprint_centre(_hover_cell, tower_data.footprint),
@@ -331,6 +343,9 @@ func _draw() -> void:
 		WorldLabel.cost_color(_hover_affordable))
 	# Bonus chips above the ghost: each position card, on (green, what it gives) or off (grey, why).
 	var y := -MAP_GRID.cell_size.y / 2.0 - 10.0 + minf(tower_data.sprite_offset.y, 0.0)
+	if received != "":
+		WorldLabel.draw_tag(self, 0.0, y, received, BuffSources.COLORS.acorn)
+		y -= CHIP_STEP
 	for chip in get_ghost_chips():
 		WorldLabel.draw_tag(self, 0.0, y, chip[0], BONUS_ON if chip[1] else BONUS_OFF)
 		y -= CHIP_STEP

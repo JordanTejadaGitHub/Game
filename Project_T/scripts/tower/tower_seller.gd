@@ -68,6 +68,13 @@ signal grow_option_held(index: int, held: bool)
 func _ready() -> void:
 	# Build mode owns the mouse; selling is available the rest of the time.
 	_ensure_grow_actions()
+	# Buff pips, source threads and the buff lens (screens_ui.md "Buff readability").
+	var overlay := BuffOverlay.new()
+	overlay.seller = self
+	overlay.placer = tower_placer
+	overlay.director = drift_director
+	overlay.container = get_node_or_null("%TowerContainer")
+	get_parent().add_child.call_deferred(overlay)
 	tower_placer.build_mode_changed.connect(func(building: bool) -> void: set_active(not building))
 	# The refund changes when a drift starts or ends.
 	drift_director.build_phase_changed.connect(queue_redraw.unbind(1))
@@ -589,8 +596,7 @@ func _draw() -> void:
 	if selection.size() == 1 and is_instance_valid(selected):
 		# Aura Wardens: exactly who gets the aura (AuraView); a boosted Warden: lines back to its boosters.
 		if AuraView.is_aura(selected.tower_data):
-			AuraView.draw_selected(self, selected)
-		AuraView.draw_links(self, selected)
+			AuraView.draw_selected(self, selected, false)  # Its area and who it boosts (BuffOverlay labels the threads)
 		# The attack range: a thin, unfilled circle (a warm fill read as "everything in here is boosted").
 		if selected.tower_data.can_attack:
 			draw_arc(selected.position, selected.get_range_pixels(), 0.0, TAU, 64, Color(SELECTED_COLOR, 0.45), 1.5)
