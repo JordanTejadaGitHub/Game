@@ -56,6 +56,9 @@ var start_cards: Array[String] = []
 var forced_families: Array[String] = []
 var hand_drifts := false  # --hand-drifts: the hand-made drift files instead of rolled ones (DriftDirector.random_drifts)
 var save_mode := ""  # --save=spender (never saves up) or saver (holds Dew up to SAVER_DRIFTS drifts for a growth)
+var omen_mode := ""  # --omens=face: faces every Omen drawn (DreamSimPolicy.face_omens); default: Clear Skies, no Omens
+var omens: OmenDirector
+var omens_faced: Array[String] = []
 var _save_since := -1  # The drift the saver started holding Dew at
 var _approach_timer := 0.0
 
@@ -98,6 +101,7 @@ func _run() -> void:
 			"--families": forced_families.assign(value.split(","))  # e.g. firefly_jar,dewdrop: the family picks, in order; later picks take none
 			"--hand-drifts": hand_drifts = true
 			"--save": save_mode = value
+			"--omens": omen_mode = value
 	if profile != "fresh":
 		var meta: Script = load("res://scripts/meta/meta_run.gd")
 		if not meta.get_script_method_list().any(func(m: Dictionary) -> bool: return m.name == "load_preset"):
@@ -124,6 +128,10 @@ func _run() -> void:
 		if start_cards.has(card.id):
 			dreams.take(card)
 	policy = DreamSimPolicy.new(dreams, STYLES.get(style, 0))
+	omens = main.get_node_or_null("%OmenDirector")
+	if omen_mode == "face" and omens:
+		policy.face_omens = true
+		omens.mode_override = "ask"
 	for r in Reactions.all() + Reactions.crowned():
 		reaction_tags[r.id] = true
 	_take_over_choices()
@@ -164,7 +172,7 @@ func _run() -> void:
 func _take_over_choices() -> void:
 	for c in director.rest_started.get_connections():
 		var target: Object = c.callable.get_object()
-		if target == dreams or target is OmenDirector:
+		if target == dreams or (target is OmenDirector and omen_mode != "face"):  # Facing: it draws and pays Omens
 			director.rest_started.disconnect(c.callable)
 	for c in director.family_pick_requested.get_connections():
 		var target: Object = c.callable.get_object()
@@ -189,6 +197,12 @@ func _on_rest(perfect: bool) -> void:
 	_busy = true
 	var n := director.drifts_started
 	policy.rest(n, perfect)
+	if omen_mode == "face" and omens and not omens.current_offer.is_empty():
+		omens._offer_waiting = false  # The bot answers instead of the screen
+		var omen: OmenData = policy.pick_omen(omens.current_offer)
+		omens.choose(omen)
+		if omen:
+			omens_faced.append("%d:%s" % [n + 1, omen.id])
 	paused = false
 	var bonus := director.get_rest_bonus(director.get_block(n))
 	run.rest_banked.append(run_state.dew)
@@ -501,7 +515,7 @@ func _finish() -> void:
 		"max_top_warden": run.max_top_warden, "max_asleep": snappedf(run.max_asleep, 0.001), "cards": dreams.stacks.size(),
 		"sprout_cards_25": run.sprout_cards_25,
 		"sprouts_end": _attackers().filter(func(t) -> bool: return t.tower_data.get_id() == "sprout").size(), "cards_start": "+".join(start_cards),
-		"save": save_mode, "families_forced": "+".join(forced_families), "hand_drifts": hand_drifts,
+		"save": save_mode, "omens": omen_mode, "omens_faced": "+".join(omens_faced), "families_forced": "+".join(forced_families), "hand_drifts": hand_drifts,
 		"close_calls": rows.filter(func(r) -> bool: return r.approach > CLOSE_CALL).size(),
 		"approach_max": snappedf(rows.reduce(func(m, r) -> float: return maxf(m, r.approach), 0.0), 0.01),
 		"seconds": snappedf(game_time, 1.0)}
