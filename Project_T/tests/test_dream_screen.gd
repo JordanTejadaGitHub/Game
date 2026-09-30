@@ -67,6 +67,24 @@ func _run() -> void:
 		"a half-dreamed card: one \"Needs <type>\" line, no emblem (%s)" % joined)
 	_check(dreams.missing_families_text(bloom) == "Needs " + needs[0].type and needs[0].type == IconInfo.damage_type_name(needs[0].line),
 		"…named by damage type, not the family (%s)" % dreams.missing_families_text(bloom))
+	_check(not joined.contains("Entwined"), "no \"Entwined\" label, the vine border says it (%s)" % joined)
+	# Both families owned (the user's screenshot: "Needs: Firefly Jar + Sporeling families"): no Needs line at all
+	for family in ["firefly_jar", "sporeling", "bloomcap", "stormcap"]:
+		dreams.unlocked[family] = true
+	screen._show_offer(cards, 25)
+	for i in 3:
+		await process_frame
+	var whole := screen._cards.get_child(0).get_child(0) as Button
+	var whole_texts: Array = whole.find_children("*", "", true, false) \
+		.filter(func(n: Node) -> bool: return n is Label or n is RichTextLabel) \
+		.map(func(n: Node) -> String: return n.text if n is Label else n.get_parsed_text())
+	_check(not whole_texts.any(func(t: String) -> bool: return t.begins_with("Needs")) and not " | ".join(whole_texts).contains("Entwined"),
+		"with nothing missing the card shows no Needs line and no \"Entwined\" (%s)" % " | ".join(whole_texts))
+	for family in ["sporeling", "bloomcap", "stormcap"]:
+		dreams.unlocked.erase(family)
+	screen._show_offer(cards, 25)
+	for i in 3:
+		await process_frame
 
 	# Make the clearing unlock obvious: while clearing is locked, a clearing card leads with it.
 	dreams.clearing_open = false

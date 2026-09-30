@@ -158,8 +158,9 @@ func _make_card(card: UpgradeData) -> Button:
 	spacer.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	box.add_child(spacer)
 	var secondary: Array[Label] = []
-	if card.entwined:
-		secondary.append(_add_line(box, "Woven" if card.woven else "Entwined", ENTWINED_COLOR, SECONDARY_SIZE))
+	if card.entwined:  # The vine border says it; no "Entwined" label (user: "still don't know what Entwined is")
+		if card.woven:
+			secondary.append(_add_line(box, "Woven", ENTWINED_COLOR, SECONDARY_SIZE))
 	elif card.is_deepened():
 		secondary.append(_add_line(box, "Deepened · replaces %s" % dream_state.get_display_name(card.deepens), DEEPENED_COLOR, SECONDARY_SIZE))
 	elif card.is_bittersweet():
@@ -302,36 +303,35 @@ func _grows_with_names(card: UpgradeData) -> String:
 	var id := card.calls_family if card.calls_family != "" else (card.grows_with[0] if not card.grows_with.is_empty() else "")
 	return "the %s line" % dream_state.family_name_for(id)
 
-# The Needs row (dream_design.md "How Needs are shown on a card"): status icons + names, lit when one
-# of your Wardens applies it, dim when not; families and card ingredients as text.
+# The Needs row (dream_design.md "How Needs are shown on a card", 2026-09-30): only what's still missing.
+# Missing families in the damage-type style ("Needs Water"); statuses none of your Wardens apply (icon +
+# name); card ingredients not taken yet. Nothing missing = no line.
 func _add_needs_row(box: VBoxContainer, card: UpgradeData) -> void:
+	_add_missing_row(box, card)  # Families you don't own yet
 	var parts := dream_state.needs_parts(card)
-	if parts.statuses.is_empty() and parts.families.is_empty() and parts.cards.is_empty():
+	var statuses: Array = parts.statuses.filter(func(s: Array) -> bool: return not s[1])
+	var cards: Array = []
+	for id in card.requires:
+		if dream_state.family_name_for(id) == "" and not dream_state.has_card(id) and dream_state.get_display_name(id) != id:
+			cards.append(dream_state.get_display_name(id))
+	if statuses.is_empty() and cards.is_empty():
 		return
 	var row := HFlowContainer.new()
 	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	row.add_theme_constant_override("h_separation", 4)
 	box.add_child(row)
-	row.add_child(_needs_label("Needs:", UiStyle.INK_DIM))
-	for i in parts.statuses.size():
-		var status: StringName = parts.statuses[i][0]
-		var lit: bool = parts.statuses[i][1]
+	row.add_child(_needs_label("Needs", UiStyle.INK_DIM))
+	for i in statuses.size():
+		var status: StringName = statuses[i][0]
 		if i > 0:
 			row.add_child(_needs_label("+", UiStyle.INK_DIM))
 		var icon := IconInfo.make_icon(status)
 		if icon != null:
 			icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
-			icon.modulate.a = 1.0 if lit else 0.4
 			row.add_child(icon)
-		var name := _needs_label(IconInfo.status_name(status), UiStyle.INK if lit else UiStyle.INK_DIM)
-		name.modulate.a = 1.0 if lit else 0.6
-		row.add_child(name)
-	var text := dream_state.needs_text(card).trim_prefix("Needs: ")
-	if not parts.statuses.is_empty():
-		var rest := text.split(" · ")
-		text = " · ".join(rest.slice(1)) if rest.size() > 1 else ""
-	if text != "":
-		row.add_child(_needs_label(text, UiStyle.INK_DIM))
+		row.add_child(_needs_label(IconInfo.status_name(status), UiStyle.INK_DIM))
+	if not cards.is_empty():
+		row.add_child(_needs_label((" + " if not statuses.is_empty() else "") + " + ".join(cards), UiStyle.INK_DIM))
 
 # "Needs Wind" (NeedsRow, shared with "Dreams this run").
 func _add_missing_row(box: VBoxContainer, card: UpgradeData) -> void:
