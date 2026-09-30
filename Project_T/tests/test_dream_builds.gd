@@ -129,16 +129,16 @@ func _test_nurture_rules() -> void:
 		and is_equal_approx(dreams.get_soothe_multiplier(weak) - weak_base, -0.15), "Chosen Few: +50% at rank V, −15% below III")
 	_clear_towers()
 
-	# Sunlit Rest: a free rank for the ranked Warden nearest the Heartwood; rank II waits for a Focus
+	# Sunlit Rest: a free rank for the ranked Warden nearest the Heartwood (Nurture v3: it takes the default choice)
 	_reset()
 	dreams.take(_card("sunlit_rest"))
 	var path: PackedVector2Array = main.get_node("%MapGenerator").get_path_from(main.get_node("%MapGenerator").startPath)
 	var early := _plant_at("sporeling", _beside(path, 5), 1)
 	var late := _plant_at("sporeling", _beside(path, path.size() - 6), 1)
-	var focus_wait := _plant_at("sporeling", _beside(path, path.size() - 4), 2)
+	var nearest := _plant_at("sporeling", _beside(path, path.size() - 4), 2)
 	var raised := dreams.sunlit_rest()
-	_check(raised == [late] and late.rank == 2 and early.rank == 1 and focus_wait.rank == 2,
-		"Sunlit Rest raises the ranked Warden nearest the Heartwood (skipping rank II)")
+	_check(raised == [nearest] and nearest.rank == 3 and late.rank == 1 and early.rank == 1,
+		"Sunlit Rest raises the ranked Warden nearest the Heartwood, rank II included (%s)" % [raised])
 	dreams.take(_card("sunlit_rest_ii"))
 	late.rank = 1
 	_check(dreams.sunlit_rest().size() == 2, "Sunlit Rest II raises two")
@@ -158,7 +158,7 @@ func _test_wide_and_narrow() -> void:
 	_reset()
 	var sprout: TowerData = load("res://resource/tower/sprout.tres")
 	dreams.take(_card("seedfall"))
-	_check(dreams.get_build_cost(sprout) == 6, "Seedfall: Sprouts cost 6")
+	_check(dreams.get_build_cost(sprout) == 8, "Seedfall: Sprouts start at 8")
 
 	# Counts: only attacking Wardens (Thornwalls never)
 	var many := _card("many_hands")

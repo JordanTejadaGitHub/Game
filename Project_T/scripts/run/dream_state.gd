@@ -2000,13 +2000,13 @@ func _clear_all(kind: ObstacleData) -> void:
 	run_state.clearing_without_seeds = false
 
 # Sunlit Rest: the ranked Warden(s) nearest the Heartwood that can still gain a rank get one free
-# (II: two). Wardens at rank II are skipped: rank III asks for a Focus, which is the player's choice.
+# (II: two). Nurture v3: a free rank takes the Warden's default choice (Tower.nurture(0), never asks).
 # With none, unranked attacking Wardens get rank I instead.
 func sunlit_rest() -> Array[Tower]:
 	var raised: Array[Tower] = []
 	var seller := get_node_or_null("%TowerSeller")
 	var ranked: Array = _towers().filter(func(t: Tower) -> bool:
-		return t.rank > 0 and t.rank != 2 and t.rank < mini(FREE_RANK_MAX, get_max_rank_for(t)) and t.can_nurture())  # Free ranks stop at VII (V unless the Eldest)
+		return t.rank > 0 and t.rank < mini(FREE_RANK_MAX, get_max_rank_for(t)) and t.can_nurture())  # Free ranks stop at VII (V unless the Eldest)
 	if ranked.is_empty():  # An opener (Pool trim round 2): rank I to the attacking Warden nearest the Heartwood
 		ranked = _towers().filter(func(t: Tower) -> bool:
 			return t.rank == 0 and t.tower_data.can_attack and t.can_nurture())
