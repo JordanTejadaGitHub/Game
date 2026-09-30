@@ -176,6 +176,18 @@ turn leaks into a hold. Targets for the balance simulation and playtests (averag
   past 10 drifts"). **Revised the same day** (later playtests: "too hard from early drifts, especially 15 with the swarm"): nightmare health **×1.0 for drifts 1–9, ramping to ×1.15 by drift 20 and holding to 25** (2026-09-29: saving was almost free for the starting three families; the drift 25 Hollow Stag itself is exempt and keeps ×1.5, its escort doesn't), then **act 2 at ×1.15 for drifts 26–30 (a breather while the first finals arrive), ramping to ×1.55 by drift 45** (was: ramp from drift 26, which left 2–4 of 10 Grove-player runs dead at 28–30), ×1.55
   to 50** (acts 3–4 go from ×1.4 to **×1.6**, 2026-09-29), and **Dew per dispel ×0.85 in act 2 only** (act 1 back to ×1.0). Drift 15's Swarm is lighter (`acts_1_2.md`). Interim
   numbers, as exports, until the balance simulation's quick batch replaces them.
+- **Human playtest after the Dream power pass** (2026-09-30, user's first run on a fresh profile,
+  starting families only, no Grove: **drift 60 with 15/15 leaves, 1,746 Dew banked, maze ~10,000
+  DPS**; *"feels too strong … felt like cards were handed to me"*). The target for a fresh profile is
+  a run that **ends in act 2**. The cards were made stronger on purpose; the matching health rise
+  for acts 2–4 was waiting on human data, and this is it. **Interim health (until the run history
+  has more runs):**
+  - **Act 2:** ×1.3 at drift 26, ramping to **×2.0 by drift 45**, held to 50 (was ×1.15 → ×1.55).
+  - **Acts 3–4:** **×2.4** (was ×1.6), bosses included.
+  - Act 1 unchanged (the first boss is being tuned on its own).
+  - **Dreams steer a little less:** the build tag weight 1.6 → **1.3**, so a direction takes
+    choices (a pass, a reroll) instead of arriving by itself. Card power stays.
+  - Then read the run history after each playtest and adjust.
 - **Act 3 probe** (Tower Code, `tools/balance_act3.gd`, 2026-09-28): drifts 61–70, 12 final forms at
   rank IV (Power), **no Dreams**: the maze dealt ~155–160k damage per drift against **~100–115k
   health spawned, 0 leaks**. Act 3 is too easy with a plain final-form maze, before Dreams or the

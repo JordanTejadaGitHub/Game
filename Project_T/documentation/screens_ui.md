@@ -435,6 +435,10 @@ Every combo starts **locked** and is **discovered the first time it actually fir
     (profile key, account knowledge); the rest report lists *"New chain: ×5"*.
 - **Unlocked entry:** name, ingredients, what it does, which Wardens apply each ingredient (from your
   families seen so far), and how many times you've set it off.
+- **Counter shows the real total** (2026-09-30, user saw "7 / 7" with only the starting families and
+  read it as "all found"): the tab and header count **every** combo in the game, *"7 / 22 combos"* and
+  *"Crowned Reactions · 1 / 8"*; the ones your families can't make yet are listed as ??? under "15
+  more wait in the Memory Grove". Same for Kinships and chains.
 - **Counter:** *"12 / 15 combos discovered"* on the tab; discovering every one is a **milestone**
   (a Steam achievement; `meta_design.md`).
 
