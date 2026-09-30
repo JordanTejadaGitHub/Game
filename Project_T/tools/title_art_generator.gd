@@ -602,12 +602,12 @@ func _figure() -> void:
 	# The nightmares are the game's own sprites (assets/creatures/, frame 0), so they look exactly like
 	# the nightmares in play. They stand on the banks and roots, turned toward the Warden; only the
 	# will-o'-wisp floats, as it does in the game. Further ones sink a little into the fog.
-	_sprite("leaf_bug", Vector2i(0, 0), Vector2i(282, 340), true, 0.0)      # a Shade on the front bank
-	_sprite("leaf_bug", Vector2i(0, 0), Vector2i(236, 346), true, 0.0)
+	_sprite("leaf_bug", Vector2i(0, 2), Vector2i(282, 340), false, 0.0)     # a Shade on the front bank, its back to us
+	_sprite("leaf_bug", Vector2i(0, 0), Vector2i(236, 346), false, 0.0)    # another, creeping right toward it
 	_sprite("gravecrawler", Vector2i(0, 0), Vector2i(560, 334), true, 0.0)  # crawling off the right bank
-	_sprite("weeper", Vector2i(0, 1), Vector2i(84, 322), false, 0.15)       # on the left bank, weeping
-	_sprite("watcher", Vector2i(0, 0), Vector2i(186, 302), false, 0.35)     # half in the fog, all eyes
-	_sprite("will_o_wisp", Vector2i(0, 0), Vector2i(360, 290), true, 0.0)   # drifting toward the light
+	_sprite("weeper", Vector2i(0, 0), Vector2i(84, 322), false, 0.15)       # on the left bank, turned toward it
+	_sprite("watcher", Vector2i(0, 0), Vector2i(186, 302), false, 0.35)     # half in the fog, all eyes on it
+	_sprite("will_o_wisp", Vector2i(0, 0), Vector2i(360, 290), false, 0.0)  # drifting toward the light
 
 
 func _sprite(sheet: String, frame: Vector2i, foot: Vector2i, flip: bool, fog: float) -> void:
