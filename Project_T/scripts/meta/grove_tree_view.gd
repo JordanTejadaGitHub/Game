@@ -31,10 +31,12 @@ const BACKDROP_MARGIN := 640.0
 # Ambient life (like the title screen): calm, stepped, in whole art pixels; all still under reduced motion.
 const CANOPY_BASE_Y := 620  # The crown stretches upward from this tree-space row (where it meets the limbs)
 const ART_PX := 2  # Tree px per art pixel (the Grove art is drawn in 2 px pixels): motion moves in whole art px
-const CANOPY_BREATH := 2  # Art px at the top of a breath
-const CANOPY_BREATH_PERIOD := 5.5  # Seconds per breath
-const FRUIT_BOB_PERIODS: Array[float] = [2.4, 2.9, 3.3, 2.6]  # Each dream-fruit bobs 1 px at its own pace
-const HOLLOW_PULSE_PERIOD := 4.0  # The warm light in the hollow (layout "hollow", optional)
+const CANOPY_BREATH := 1  # Art px at the top of a breath (kept subtle: "a bit too much going on")
+const CANOPY_BREATH_PERIOD := 9.0  # Seconds per breath
+const FRUIT_BOB_PERIODS: Array[float] = [5.2, 6.1, 6.8, 5.6]  # Each dream-fruit lifts 1 art px now and then, at its own pace
+const FRUIT_BOB_SHARE := 0.7  # Lifted only while its wave is above this: about a quarter of the time, staggered
+const MOTES := 14
+const HOLLOW_PULSE_PERIOD := 7.0  # The warm light in the hollow (layout "hollow", optional)
 const SECTION_ROW := {"perks": 0, "families": 1, "cards": 2}
 const SECTION_COLOR := {"perks": Palette.GLOW, "families": Palette.NEWLEAF, "cards": Palette.BLOSSOM}
 
@@ -139,7 +141,7 @@ func _ready() -> void:
 		_unlocks[unlock.id] = unlock
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 7
-	for i in 28:
+	for i in MOTES:
 		_motes.append(Vector3(rng.randf_range(80, 1200), rng.randf_range(120, 820), rng.randf() * TAU))
 	resized.connect(fit)
 	fit.call_deferred()
@@ -355,7 +357,7 @@ func node_screen_position(id: String) -> Vector2:
 
 func _process(delta: float) -> void:
 	_time += delta
-	# The canopy breathes: a slow stepped stretch upward from where it meets the limbs (0 → 2 → 0 art px),
+	# The canopy breathes: a slow stepped stretch upward from where it meets the limbs (0 → 1 → 0 art px),
 	# redrawn only when the step changes. Still under reduced motion.
 	var breath := 0 if _reduced_motion else roundi((1.0 - cos(TAU * _time / CANOPY_BREATH_PERIOD)) * 0.5 * CANOPY_BREATH)
 	if breath != _breath:
@@ -471,8 +473,8 @@ func _draw_fruit() -> void:
 			var step := floori((_time - _fruit_opening[i]) / GROW_STEP)
 			frame = 4 + step if step < 4 else 8
 		var top := vec(spots[i])
-		if not _reduced_motion:  # Each fruit bobs 1 px on its stem, at its own pace
-			top.y += roundf(sin(TAU * _time / FRUIT_BOB_PERIODS[i % FRUIT_BOB_PERIODS.size()] + i * 1.7)) * ART_PX
+		if not _reduced_motion and sin(TAU * _time / FRUIT_BOB_PERIODS[i % FRUIT_BOB_PERIODS.size()] + i * 1.7) > FRUIT_BOB_SHARE:
+			top.y -= ART_PX  # Lifts 1 art px on its stem now and then; most fruit rest at any moment
 		_layer.draw_texture_rect_region(_fruit_texture, Rect2(top - Vector2(FRUIT_FRAME / 2.0, 0), Vector2.ONE * FRUIT_FRAME),
 			Rect2(frame * FRUIT_FRAME, 0, FRUIT_FRAME, FRUIT_FRAME))
 
@@ -493,9 +495,9 @@ func _draw_stones() -> void:
 	for k in lit.size():
 		var i: int = lit[k]
 		var centre := vec(stones[i])
-		var pulse := 0.5 + 0.5 * sin(_time * 2.0 + i)
-		_layer.draw_circle(centre, 16.0, Color(Palette.GLOW, 0.10 + 0.06 * pulse))
-		_layer.draw_circle(centre, 9.0, Color(Palette.GLOW, 0.12 + 0.08 * pulse))
+		var pulse := 0.5 if _reduced_motion else 0.5 + 0.5 * sin(_time * 0.8 + i)  # A slow, faint glow
+		_layer.draw_circle(centre, 16.0, Color(Palette.GLOW, 0.11 + 0.03 * pulse))
+		_layer.draw_circle(centre, 9.0, Color(Palette.GLOW, 0.14 + 0.04 * pulse))
 		if k < carried.size() and not (i == SIXTH_STONE and is_sixth_rising()):
 			var icon := get_icon(_unlocks[carried[k]])
 			if icon:
@@ -520,8 +522,8 @@ func is_sixth_rising() -> bool:
 
 func _draw_motes() -> void:
 	for mote in _motes:
-		var drift := Vector2(sin(_time * 0.3 + mote.z) * 14.0, cos(_time * 0.22 + mote.z * 1.3) * 10.0)
-		var alpha := 0.15 + 0.15 * _stepped(sin(_time * 0.6 + mote.z * 2.0))  # 3 calm levels, no flicker
+		var drift := Vector2(sin(_time * 0.15 + mote.z) * 14.0, cos(_time * 0.11 + mote.z * 1.3) * 10.0)
+		var alpha := 0.15 + 0.15 * _stepped(sin(_time * 0.3 + mote.z * 2.0))  # 3 calm levels, no flicker
 		_layer.draw_circle(Vector2(mote.x, mote.y) + drift, 1.2, Color(Palette.GLOW, alpha))
 
 # The warm light in the Heartwood's hollow, pulsing softly (layout "hollow": its centre; skipped if absent).
@@ -529,10 +531,10 @@ func _draw_hollow_light() -> void:
 	var hollow = load_layout().get("hollow")
 	if hollow == null:
 		return
-	var pulse := 0.5 if _reduced_motion else _stepped(sin(TAU * _time / HOLLOW_PULSE_PERIOD))  # 3 stepped levels
+	var pulse := 0.5 if _reduced_motion else (1.0 if sin(TAU * _time / HOLLOW_PULSE_PERIOD) > 0.0 else 0.0)  # 2 soft levels
 	var centre := vec(hollow)
-	_layer.draw_circle(centre, 22.0, Color(Palette.EMBER, 0.06 + 0.05 * pulse))
-	_layer.draw_circle(centre, 12.0, Color(Palette.GLOW, 0.08 + 0.07 * pulse))
+	_layer.draw_circle(centre, 22.0, Color(Palette.EMBER, 0.07 + 0.03 * pulse))
+	_layer.draw_circle(centre, 12.0, Color(Palette.GLOW, 0.10 + 0.04 * pulse))
 
 # Mist strips drifting through the roots (layout "mists": [{file, y, speed}], art px per second, wrapping).
 var _mist_textures := {}

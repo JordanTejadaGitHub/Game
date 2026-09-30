@@ -12,6 +12,7 @@ kind = 2
 tags = Array[String](["acorn"])
 requires = Array[String](["acorn"])
 max_stacks = 1
+min_act = 2
 in_start_pool = true
 stat_line = "acorn"
 soothe_bonus = 0.25
