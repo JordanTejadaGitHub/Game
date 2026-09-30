@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "extended_family"
 display_name = "Extended Family"
-description = "Kinships reach 3 cells. Each Warden can be in 2 Kinships, with two different kin."
+description = "{kinships} reach 3 cells. Each Warden can be in 2 {kinships}, with two different kin."
 rarity = 2
 kind = 3
 tags = Array[String](["kinship"])

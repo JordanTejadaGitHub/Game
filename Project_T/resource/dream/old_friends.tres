@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "old_friends"
 display_name = "Old Friends"
-description = "New Kinships start at Blooming, and Kinships grow 1 {drift} faster."
+description = "New {kinships} start at Blooming, and {kinships} grow 1 {drift} faster."
 rarity = 1
 kind = 3
 tags = Array[String](["kinship"])

@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "family_ties"
 display_name = "Family Ties"
-description = "Wardens in a Kinship +20% damage."
+description = "Wardens in a {kinship} +20% damage."
 rarity = 0
 kind = 3
 tags = Array[String](["kinship"])

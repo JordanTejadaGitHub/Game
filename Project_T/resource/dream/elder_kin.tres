@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "elder_kin"
 display_name = "Elder Kin"
-description = "Ranked Wardens in a Kinship share 25% of their rank bonuses with their kin."
+description = "Ranked Wardens in a {kinship} share 25% of their rank bonuses with their kin."
 rarity = 1
 kind = 3
 tags = Array[String](["nurture", "kinship", "tall"])
