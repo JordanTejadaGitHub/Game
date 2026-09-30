@@ -395,7 +395,7 @@ func _nurture() -> bool:
 	towers.sort_custom(func(a, b) -> bool:
 		return a.rank < b.rank or (a.rank == b.rank and _coverage(a) > _coverage(b)))
 	var tower: Tower = towers[0]
-	return placer.nurture(tower, Tower.Focus.POWER if tower.needs_focus() else Tower.Focus.NONE)
+	return placer.nurture(tower, tower.focus_options()[0] if tower.needs_focus() else Tower.Focus.NONE)  # Power; support Wardens Wide
 
 func _family_count(base: TowerData) -> int:
 	return _attackers().filter(func(t) -> bool: return t.tower_data.line == base.line).size()

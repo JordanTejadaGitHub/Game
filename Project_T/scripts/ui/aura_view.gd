@@ -42,21 +42,29 @@ static func draw_shape(canvas: CanvasItem, covered: Array[Vector2]) -> void:
 			if not covered.has(cell + side[0]):
 				canvas.draw_line(c + half * side[1], c + half * side[2], EDGE, 2.0)
 
-# The Wardens `aura` really boosts right now (auras don't stack: each Warden takes its strongest).
+# The Wardens `aura` really boosts right now (same-kind auras stack with falloff: Tower._aura_sources).
 static func boosted_by(aura: Tower) -> Array[Tower]:
 	var result: Array[Tower] = []
 	for other in aura.get_parent().get_children():
-		if other is Tower and other != aura and (other._aura_damage_from == aura or other._aura_speed_from == aura):
+		if other is Tower and other != aura and not _share(other, aura).is_empty():
 			result.append(other)
 	return result
+
+# `aura`'s entry in `tower`'s aura sources ({} = it gives nothing).
+static func _share(tower: Tower, aura: Tower) -> Dictionary:
+	for source in tower._aura_sources:
+		if source.tower == aura and (source.damage > 0.0 or source.speed > 0.0):
+			return source
+	return {}
 
 # "+5%", "+20% speed" or "+15% · +15% speed": what `tower` gets from `aura`.
 static func chip(tower: Tower, aura: Tower) -> String:
 	var parts: Array[String] = []
-	if tower._aura_damage_from == aura and tower._aura_damage > 0.0:
-		parts.append("+%d%%" % roundi(tower._aura_damage * 100.0))
-	if tower._aura_speed_from == aura and tower._aura_speed > 0.0:
-		parts.append("+%d%% speed" % roundi(tower._aura_speed * 100.0))
+	var share := _share(tower, aura)
+	if share.get("damage", 0.0) > 0.0:
+		parts.append("+%d%%" % roundi(share.damage * 100.0))
+	if share.get("speed", 0.0) > 0.0:
+		parts.append("+%d%% speed" % roundi(share.speed * 100.0))
 	return " · ".join(parts)
 
 # A selected aura Warden: its shape, then each Warden it boosts lit with its chip.
@@ -69,26 +77,33 @@ static func draw_selected(canvas: CanvasItem, aura: Tower) -> void:
 static func draw_links(canvas: CanvasItem, tower: Tower) -> void:
 	var from := (canvas as Node2D).to_local(tower.global_position)
 	var boosters := {}
-	for aura in [tower._aura_damage_from, tower._aura_speed_from]:
+	for source in tower._aura_sources:
+		var aura: Tower = source.tower
 		if is_instance_valid(aura) and not boosters.has(aura):
 			boosters[aura] = true
 			var to := (canvas as Node2D).to_local(aura.global_position)
 			canvas.draw_line(from, to, LINK, 1.5)
 			canvas.draw_circle(to, 3.0, LINK)
 
-# The build ghost of an aura Warden at `centre`: its shape, and the Wardens it would boost (where its
-# bonus beats what they have now) with the chip they'd get.
+# The build ghost of an aura Warden at `centre`: its shape, and the Wardens it would boost with the chip
+# they'd get: the full bonus, or less behind stronger auras of its kind.
 static func draw_ghost(canvas: CanvasItem, data: TowerData, centre: Vector2, towers: Array) -> void:
 	var reach := data.aura_radius if data.aura_radius > 0.0 else data.attack_range
 	draw_shape(canvas, cells(centre, reach))
 	for tower in towers:
 		if not (tower is Tower) or tower.global_position.distance_to(centre) / MAP_GRID.cell_size.x > reach + 0.001:
 			continue
+		# Same-kind auras stack with falloff: behind each stronger one of its kind, it counts half.
+		var weight := 1.0
+		for source in tower._aura_sources:
+			if source.kind == data.get_id() and is_instance_valid(source.tower) \
+					and maxf(source.tower.get_aura_bonus(false), source.tower.get_aura_bonus(true)) >= maxf(data.aura_damage_bonus, data.aura_speed_bonus):
+				weight *= Tower.AURA_FALLOFF
 		var parts: Array[String] = []
-		if data.aura_damage_bonus > tower._aura_damage:
-			parts.append("+%d%%" % roundi(data.aura_damage_bonus * 100.0))
-		if data.aura_speed_bonus > tower._aura_speed:
-			parts.append("+%d%% speed" % roundi(data.aura_speed_bonus * 100.0))
+		if data.aura_damage_bonus > 0.0:
+			parts.append("+%d%%" % roundi(data.aura_damage_bonus * weight * 100.0))
+		if data.aura_speed_bonus > 0.0:
+			parts.append("+%d%% speed" % roundi(data.aura_speed_bonus * weight * 100.0))
 		if not parts.is_empty():
 			_draw_boosted(canvas, tower.global_position, " · ".join(parts))
 

@@ -191,6 +191,7 @@ func _refresh() -> void:
 	var support_line := support.get_panel_line(_tower) if support else ""
 	if support_line != "":
 		lines.append(support_line)  # "Caught this run: 240 Dew · paid back ✓", "Held 42 s · …"
+	lines.append_array(_tower.get_aura_lines())  # "Elder Stump ×3: +35% attack speed" (same-kind auras stack with falloff)
 	if dream_state.has_method("get_crossroads_bonus") and dream_state.has_rule(&"crossroads"):
 		var crossroads: float = dream_state.get_crossroads_bonus(_tower)
 		if crossroads > 0.0:
@@ -256,10 +257,11 @@ func _refresh() -> void:
 	if _tower.needs_focus():
 		# Rank III asks for a Focus, kept through growth and never changed.
 		var cost := _tower.get_nurture_cost()
-		for which in [Tower.Focus.POWER, Tower.Focus.SWIFT, Tower.Focus.REACH, Tower.Focus.DEEP]:
+		for which in _tower.focus_options():  # Support Wardens: Wide / Strong / Kindred
 			# Usually rank III; a Warden planted at a higher rank (Remembered Care) chooses on its next one.
-			var button := _add_button("Rank %s · %s: %s per rank · %s" % [Tower.rank_name(_tower.rank + 1),
-				Tower.FOCUS_NAMES[which], Tower.FOCUS_TEXT[which], _price(cost)])
+			var effect := _tower.focus_text(which) + (" per rank" if Tower.ATTACKER_FOCUSES.has(which) else "")
+			var button := _add_button("Rank %s · %s: %s · %s" % [Tower.rank_name(_tower.rank + 1),
+				Tower.FOCUS_NAMES[which], effect, _price(cost)])
 			button.tooltip_text = "The usual rank gains, plus this Focus at ranks III, IV and V. Can't be changed later." + _growth_note()
 			button.disabled = not run_state.can_afford(cost)
 			button.set_meta(&"cost", cost)  # Affordability updates in place on Dew changes
@@ -285,8 +287,13 @@ func _refresh() -> void:
 				_refresh())
 		else:
 			var nurture := _add_button("Nurture to rank %s · %s (R)" % [Tower.rank_name(_tower.rank + 1), _price(cost)])
-			nurture.tooltip_text = "+10%% damage, +4%% attack speed, +0.1 range%s. Kept when it grows." % (
-				", and %s" % Tower.FOCUS_TEXT[_tower.focus] if _tower.focus != Tower.Focus.NONE else "") + _growth_note()
+			var gains := "+10%% damage, +4%% attack speed, +0.1 range"
+			if _tower.is_aura_support():
+				gains = "Its aura ×%.1f" % Tower.AURA_PER_RANK  # Support Nurture: ranks scale the aura
+			elif _tower.is_catcher():
+				gains = "+%d%% catch" % roundi(_tower.tower_data.catch_per_rank * 100.0)
+			nurture.tooltip_text = "%s%s. Kept when it grows." % [gains,
+				", and %s" % _tower.focus_text(_tower.focus) if _tower.focus != Tower.Focus.NONE else ""] + _growth_note()
 			nurture.disabled = not run_state.can_afford(cost)
 			nurture.set_meta(&"cost", cost)
 			nurture.pressed.connect(func() -> void:
@@ -440,7 +447,13 @@ func _refresh_group() -> void:
 	# Wardens at rank II need a Focus for rank III: one choice for the whole group.
 	var waiting := tower_seller.count_needing_focus(selection)
 	if waiting > 0:
-		for which in [Tower.Focus.POWER, Tower.Focus.SWIFT, Tower.Focus.REACH, Tower.Focus.DEEP]:
+		var options: Array[Tower.Focus] = []
+		for tower in selection:
+			if is_instance_valid(tower) and tower.needs_focus():
+				for which in tower.focus_options():
+					if not options.has(which):
+						options.append(which)
+		for which in options:  # Attackers' four, support Wardens' three (each Warden takes only its own)
 			var cost: Array = tower_seller.full_nurture_cost(selection, which)
 			var plan_focus: Array = tower_seller.plan_nurture(selection, which)
 			var button := _add_button("")

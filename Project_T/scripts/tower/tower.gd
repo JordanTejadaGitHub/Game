@@ -167,16 +167,32 @@ static func rank_name(value: int) -> String:
 const FOCUS_RANK := 3  # The rank that asks for a Focus; its bonus counts from here on
 const FOCUS_TOP_RANK := 5  # The Focus bonus stops here (Endless Rings: ranks past it only add damage)
 const STAT_TOP_RANK := 7  # Attack speed and range from ranks stop at VII (Endless Rings: VIII+ is damage only)
-enum Focus { NONE, POWER, SWIFT, REACH, DEEP }
-const FOCUS_NAMES := {Focus.POWER: "Power", Focus.SWIFT: "Swift", Focus.REACH: "Reach", Focus.DEEP: "Deep"}
+enum Focus { NONE, POWER, SWIFT, REACH, DEEP, WIDE, STRONG, KINDRED }  # Append only (saved as ints)
+const FOCUS_NAMES := {Focus.POWER: "Power", Focus.SWIFT: "Swift", Focus.REACH: "Reach", Focus.DEEP: "Deep",
+	Focus.WIDE: "Wide", Focus.STRONG: "Strong", Focus.KINDRED: "Kindred"}
 const FOCUS_TEXT := {Focus.POWER: "+8% damage", Focus.SWIFT: "+6% attack speed", Focus.REACH: "+0.2 range",
-	Focus.DEEP: "+10% status strength and duration"}
+	Focus.DEEP: "+10% status strength and duration",
+	Focus.WIDE: "+1 aura reach", Focus.STRONG: "a stronger aura, ×1.25 by rank V", Focus.KINDRED: "ignores the aura falloff"}
 const FOCUS_COLORS := {Focus.POWER: Color(1.0, 0.5, 0.35), Focus.SWIFT: Color(0.6, 1.0, 0.55),
-	Focus.REACH: Color(0.55, 0.8, 1.0), Focus.DEEP: Color(0.8, 0.6, 1.0)}
+	Focus.REACH: Color(0.55, 0.8, 1.0), Focus.DEEP: Color(0.8, 0.6, 1.0),
+	Focus.WIDE: Color(0.55, 0.85, 0.45), Focus.STRONG: Color(1.0, 0.8, 0.4), Focus.KINDRED: Color(0.95, 0.6, 0.75)}
 const FOCUS_POWER := 0.08
 const FOCUS_SWIFT := 0.06
 const FOCUS_REACH := 0.2
 const FOCUS_DEEP := 0.10
+# Support Wardens (warden_stats.md "Support Wardens and Nurture", fdd7003): ranks multiply the aura (×1.1
+# each) instead of damage, speed and range; their rank III Focus is Wide / Strong / Kindred.
+const SUPPORT_AURA_WARDENS := ["acorn", "elder_stump", "grove_heart"]
+const ATTACKER_FOCUSES: Array[Focus] = [Focus.POWER, Focus.SWIFT, Focus.REACH, Focus.DEEP]
+const SUPPORT_FOCUSES: Array[Focus] = [Focus.WIDE, Focus.STRONG, Focus.KINDRED]
+const AURA_PER_RANK := 1.1  # The aura bonus ×1.1 per rank (Grove Heart: its base only)
+const FOCUS_WIDE := 1.0  # Wide: aura reach / catch radius +1 cell
+const FOCUS_STRONG_AURA := 0.25 / 3.0  # Strong: the aura +8.33% per rank III–V (×1.25 by V)
+const FOCUS_STRONG_CATCH := 0.10  # Strong catchers: +10% catch per rank III–V
+const KINDRED_INTEREST := 0.02  # Kindred Wellspring: +2% interest
+const KINDRED_DEW := 4  # Kindred Dewcatcher: +4 Dew per drift
+# Same-kind auras stack with falloff: the strongest counts 100%, the next 50%, 25%… (Kindred: always 100%).
+const AURA_FALLOFF := 0.5
 const PIP_COLOR := Color(1.0, 0.85, 0.45)
 const RANK_ART := "res://assets/towers/ranks/rank_%d_%s.png"
 const RANK_UP_ART := preload("res://assets/towers/ranks/rank_up.png")
@@ -476,6 +492,8 @@ func get_attacks_per_second() -> float:
 func _compute_attacks_per_second() -> float:
 	var ranks := mini(get_effective_rank(), STAT_TOP_RANK)
 	var speed := 1.0 + RANK_SPEED * (ranks + get_court_ranks()) + (FOCUS_SWIFT * _focus_ranks(ranks) if focus == Focus.SWIFT else 0.0)
+	if is_aura_support():
+		speed = 1.0  # Its ranks scale the aura instead
 	var dreams := 1.0
 	if _dream_state:
 		dreams = _dream_state.get_attack_speed_multiplier(tower_data)
@@ -527,6 +545,8 @@ func _stats_fresh() -> bool:
 func _compute_range_cells() -> float:
 	var ranks := mini(get_effective_rank(), STAT_TOP_RANK)
 	var reach := RANK_RANGE * (ranks + get_court_ranks()) + (FOCUS_REACH * _focus_ranks(ranks) if focus == Focus.REACH else 0.0)
+	if is_aura_support():
+		reach = 0.0  # Its ranks scale the aura instead
 	if _dream_state and _dream_state.has_method("get_tower_range_bonus"):
 		reach += _dream_bonus(&"range")  # Solitude
 	var total := get_range_for(attack_data, _dream_state) + _aura_range + reach
@@ -553,8 +573,8 @@ static func _focus_ranks(ranks: int) -> int:
 
 # Damage multiplier from ranks: +10% each (+ Warm Hands), + Power's +8% from rank III.
 func get_rank_damage_multiplier() -> float:
-	if is_catcher():
-		return 1.0  # Catchers' ranks add catch instead (+catch_per_rank each)
+	if is_catcher() or is_aura_support():
+		return 1.0  # Catchers' ranks add catch; aura supports' ranks scale the aura (get_aura_bonus)
 	var ranks := get_effective_rank()
 	var per_rank := RANK_DAMAGE
 	if _dream_state and _dream_state.has_method("get_rank_damage_bonus"):
@@ -619,7 +639,30 @@ func can_nurture() -> bool:
 
 # The next rank asks for a Focus first (rank II -> III, no Focus yet).
 func needs_focus() -> bool:
-	return can_nurture() and tower_data.can_attack and rank + 1 >= FOCUS_RANK and focus == Focus.NONE
+	return can_nurture() and (tower_data.can_attack or is_support()) and rank + 1 >= FOCUS_RANK and focus == Focus.NONE
+
+# Support Wardens: the aura ones (ranks scale the aura) and the catchers (ranks add catch).
+func is_support() -> bool:
+	return is_aura_support() or is_catcher()
+
+func is_aura_support() -> bool:
+	return SUPPORT_AURA_WARDENS.has(tower_data.get_id())
+
+# The Focus choices at rank III: Wide / Strong / Kindred for support Wardens, else Power / Swift / Reach / Deep.
+func focus_options() -> Array[Focus]:
+	return SUPPORT_FOCUSES if is_support() else ATTACKER_FOCUSES
+
+# What `which` does for this Warden (catchers read their catch versions).
+func focus_text(which: Focus) -> String:
+	if is_catcher():
+		match which:
+			Focus.WIDE:
+				return "+1 catch radius"
+			Focus.STRONG:
+				return "+10% catch per rank III–V"
+			Focus.KINDRED:
+				return "+%d%% interest" % roundi(KINDRED_INTEREST * 100) if tower_data.rest_interest > 0.0 else "+%d Dew each drift" % KINDRED_DEW
+	return FOCUS_TEXT.get(which, "")
 
 # Cost multiplier from the Warden's tier right now: Sprout ×0.5, base ×1, branch ×2, final ×3,
 # Memory Warden ×2.
@@ -846,6 +889,8 @@ func get_aura_reach() -> float:
 	var reach := tower_data.aura_radius if tower_data.aura_radius > 0.0 else tower_data.attack_range
 	if _rule_stacks(&"kind_canopy") > 0 and KIND_CANOPY_WARDENS.has(tower_data.get_id()):
 		reach += KIND_CANOPY_REACH
+	if focus == Focus.WIDE and is_aura_support():
+		reach += FOCUS_WIDE
 	return reach
 
 # Grove Heart: +aura_per_warden for each Warden in its radius, keeping the total under aura_max.
@@ -867,6 +912,11 @@ func get_aura_bonus(speed: bool) -> float:
 		return 0.0
 	if not speed and tower_data.get_id() == "acorn" and _rule_stacks(&"acorn_cache") > 0:
 		base = ACORN_CACHE_AURA
+	if is_aura_support():
+		var ranks := get_effective_rank()
+		base *= pow(AURA_PER_RANK, ranks)  # Grove Heart: its base only, not the per-Warden extra
+		if focus == Focus.STRONG:
+			base *= 1.0 + FOCUS_STRONG_AURA * _focus_ranks(ranks)
 	var bonus := base + get_aura_extra()
 	if _rule_stacks(&"shared_light") > 0:
 		bonus *= 1.0 + SHARED_LIGHT
@@ -918,6 +968,64 @@ static func _refresh_slot() -> bool:
 	_refreshes += 1
 	return true
 
+# Same-kind auras stack with falloff (warden_stats.md fdd7003): per kind, strongest first, they count
+# 100% / 50% / 25% …; a Kindred-Focus aura always counts 100% and sits outside the falloff. Different kinds add
+# fully. _aura_sources keeps each Warden's share (AuraView, the panel's "Elder Stump ×3" lines); the
+# _from fields name the biggest giver (SupportLog credit).
+var _aura_sources: Array = []  # [{"tower", "kind", "damage", "speed"}, …]
+
+func _stack_auras(auras: Dictionary) -> void:
+	_aura_sources = []
+	var top_damage := 0.0
+	var top_speed := 0.0
+	for kind in auras:
+		var list: Array = auras[kind]
+		list.sort_custom(func(a: Array, b: Array) -> bool: return maxf(a[1], a[2]) > maxf(b[1], b[2]))
+		var weight := 1.0
+		for entry in list:
+			var giver: Tower = entry[0]
+			var share := weight
+			if giver.focus == Focus.KINDRED and giver.is_aura_support():
+				share = 1.0  # Kindred: outside the falloff
+			else:
+				weight *= AURA_FALLOFF
+			var damage: float = entry[1] * share
+			var speed: float = entry[2] * share
+			_aura_damage += damage
+			_aura_speed += speed
+			_aura_sources.append({"tower": giver, "kind": kind, "damage": damage, "speed": speed})
+			if damage > top_damage:
+				top_damage = damage
+				_aura_damage_from = giver
+			if speed > top_speed:
+				top_speed = speed
+				_aura_speed_from = giver
+
+# The Warden panel's aura lines: "Elder Stump ×3: +35% attack speed", one per kind touching this Warden.
+func get_aura_lines() -> Array[String]:
+	var kinds := {}
+	for source in _aura_sources:
+		if not is_instance_valid(source.tower):
+			continue
+		var row: Array = kinds.get(source.kind, [source.tower.tower_data.display_name, 0, 0.0, 0.0])
+		row[1] += 1
+		row[2] += source.damage
+		row[3] += source.speed
+		kinds[source.kind] = row
+	var lines: Array[String] = []
+	for kind in kinds:
+		var row: Array = kinds[kind]
+		var parts: Array[String] = []
+		if row[2] > 0.0:
+			parts.append("+%d%% damage" % roundi(row[2] * 100.0))
+		if row[3] > 0.0:
+			parts.append("+%d%% attack speed" % roundi(row[3] * 100.0))
+		if parts.is_empty():
+			continue
+		var name: String = row[0] if kind != "old_growth" else "Old Growth"
+		lines.append("%s%s: %s" % [name, " ×%d" % row[1] if row[1] > 1 else "", ", ".join(parts)])
+	return lines
+
 # Refreshes what depends on nearby Wardens: the copied attack (Graftling) and aura bonuses.
 func _refresh_neighbours() -> void:
 	_neighbour_timer = NEIGHBOUR_REFRESH * randf_range(0.75, 1.25)  # Staggered: ~200 Wardens never all look at once
@@ -931,6 +1039,7 @@ func _refresh_neighbours() -> void:
 	_aura_damage_from = null
 	_aura_speed_from = null
 	var hedge_walls := _hedge_walls()  # Hedgerow Roots: auras reach past a Thornwall next to this Warden
+	var auras := {}  # Aura kind -> [[Warden, damage bonus, speed bonus], …]
 	var harmony := {}
 	var best: Tower = null
 	var best_dps := 0.0
@@ -941,21 +1050,18 @@ func _refresh_neighbours() -> void:
 			_aura_crit = maxf(_aura_crit, data.aura_crit_bonus)  # Auras don't stack with themselves
 		if (data.aura_damage_bonus > 0.0 or data.aura_speed_bonus > 0.0) \
 				and (distance <= other.get_aura_reach() or other.reaches_past(hedge_walls)):
-			# Acorn, Elder Stump, Grove Heart, Grandmother Oak. Auras don't stack: the strongest counts.
-			var bonus: float = other.get_aura_bonus(false)
-			if bonus > _aura_damage:
-				_aura_damage = bonus
-				_aura_damage_from = other
-			bonus = other.get_aura_bonus(true)
-			if bonus > _aura_speed:
-				_aura_speed = bonus
-				_aura_speed_from = other
+			# Acorn, Elder Stump, Grove Heart, Grandmother Oak: gathered per kind, stacked with falloff below.
+			var kind: String = data.get_id()
+			if not auras.has(kind):
+				auras[kind] = []
+			auras[kind].append([other, other.get_aura_bonus(false), other.get_aura_bonus(true)])
 		if (tower_data.aura_damage_bonus > 0.0 or tower_data.aura_speed_bonus > 0.0) and distance <= get_aura_reach():
 			aura_count += 1
 		var growth: float = other.kin_share(&"old_growth", "b")
-		if growth > 0.0 and distance <= 1.5 and 0.1 * growth > _aura_speed:
-			_aura_speed = 0.1 * growth  # Old Growth: the Dewcatcher kin's small aura
-			_aura_speed_from = other
+		if growth > 0.0 and distance <= 1.5:  # Old Growth: the Dewcatcher kin's small aura (its own kind)
+			if not auras.has("old_growth"):
+				auras["old_growth"] = []
+			auras["old_growth"].append([other, 0.0, 0.1 * growth])
 		if data.range_aura_bonus > 0.0 and distance <= data.range_aura_radius:
 			_aura_range = maxf(_aura_range, data.range_aura_bonus)
 		if tower_data.attack_kind == TowerData.AttackKind.COPY and data.applies_status != &"" \
@@ -967,6 +1073,7 @@ func _refresh_neighbours() -> void:
 			if dps > best_dps:
 				best_dps = dps
 				best = other
+	_stack_auras(auras)
 	_aura_count = aura_count
 	_graft_status = _strongest_neighbour_status() if kin_share(&"true_graft", "b") > 0.0 else []
 	_update_support_looks()
@@ -2177,7 +2284,7 @@ func is_catcher() -> bool:
 	return tower_data.catch_share > 0.0
 
 func get_catch_radius() -> float:
-	return tower_data.catch_radius + DewCatch.WIDE_BOWL_STEP * _rule_stacks(&"wide_bowl")
+	return tower_data.catch_radius + DewCatch.WIDE_BOWL_STEP * _rule_stacks(&"wide_bowl") + (FOCUS_WIDE if focus == Focus.WIDE else 0.0)
 
 # The extra share of Dew `enemy` drops if it's dispelled now (0 = out of reach). Nurture ranks add
 # catch instead of damage; Old Growth's Elder Stump catches inside its aura.
@@ -2186,7 +2293,8 @@ func get_catch_share(enemy: Node2D) -> float:
 	var share := 0.0
 	if is_catcher() and distance <= get_catch_radius():
 		share = tower_data.catch_share + tower_data.catch_per_rank * get_effective_rank() \
-			+ DewCatch.DEW_BOWL_STEP * _rule_stacks(&"dew_bowl")
+			+ DewCatch.DEW_BOWL_STEP * _rule_stacks(&"dew_bowl") \
+			+ (FOCUS_STRONG_CATCH * _focus_ranks(get_effective_rank()) if focus == Focus.STRONG else 0.0)
 	var growth := kin_share(&"old_growth", "a")
 	if growth > 0.0 and distance <= get_aura_reach():
 		share = maxf(share, DewCatch.OLD_GROWTH_CATCH * growth)
@@ -2295,6 +2403,8 @@ func _on_wall_drift_cleared(_number: int, _bonus: int, _perfect: bool) -> void:
 # Dew this Warden yields at the end of a drift right now.
 func get_drift_yield() -> int:
 	var dew := tower_data.dew_per_drift + tower_data.dew_per_rank * rank
+	if focus == Focus.KINDRED and is_catcher() and tower_data.rest_interest <= 0.0:
+		dew += KINDRED_DEW
 	return roundi(dew * maxf(1.0 - WITHER_PER_LEAF * _wither, 0.0))
 
 # Plays one pass of a sheet (a row of `frames`) with its `anchor` pixel on `at`, in the world (never
