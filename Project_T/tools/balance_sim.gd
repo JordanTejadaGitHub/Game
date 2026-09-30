@@ -63,7 +63,8 @@ var favored: Array[String] = []  # --favor=many_hands,seedfall: these Dream card
 var dream_mode := "balanced"  # --dreams=skip|random|balanced (dream_design.md "Dreams must matter")
 var director_overrides := {}  # --director=act1_boss_health_multiplier=3.0 (repeatable): DriftDirector exports for tuning sweeps
 var act1_boss := ""  # --boss=night_mare: act 1's boss forced (DriftDirector.preset_bosses); "" = the default draw
-var dream_share := {}  # Drift -> the share of the maze's damage per second that the taken Dreams add (50, 75)
+var dream_share := {}  # Drift -> the share of the maze's damage per second that the taken Dreams add (20, 25, 50, 75)
+var dreams_20 := ""  # The Dreams taken by drift 20 ("a+b")
 var omens: OmenDirector
 var omens_faced: Array[String] = []
 var _save_since := -1  # The drift the saver started holding Dew at
@@ -181,8 +182,10 @@ func _run() -> void:
 		if _approach_timer <= 0.0:
 			_approach_timer = APPROACH_EVERY
 			_sample_approach()
-		if director.drifts_started in [50, 75] and not dream_share.has(director.drifts_started):
+		if director.drifts_started in [20, 25, 50, 75] and not dream_share.has(director.drifts_started):
 			dream_share[director.drifts_started] = _dream_share()
+			if director.drifts_started == 20:
+				dreams_20 = "+".join(dreams._taken_cards().map(func(c: UpgradeData) -> String: return c.id))
 		if _spend_timer <= 0.0 and not _busy:
 			_spend_timer = SPEND_EVERY
 			_spend()
@@ -571,7 +574,7 @@ func _finish() -> void:
 		"max_top_warden": run.max_top_warden, "max_asleep": snappedf(run.max_asleep, 0.001), "cards": dreams.stacks.size(),
 		"sprout_cards_25": run.sprout_cards_25,
 		"sprouts_end": _attackers().filter(func(t) -> bool: return t.tower_data.get_id() == "sprout").size(), "cards_start": "+".join(start_cards),
-		"loadout": _loadout(), "all_families": all_families, "dreams": dream_mode, "boss": act1_boss, "director": ";".join(director_overrides.keys().map(func(k) -> String: return "%s=%s" % [k, director_overrides[k]])), "dream_share_50": dream_share.get(50, -1.0), "dream_share_75": dream_share.get(75, -1.0), "favored": "+".join(favored), "save": save_mode, "omens": omen_mode, "omens_faced": "+".join(omens_faced), "families_forced": "+".join(forced_families), "hand_drifts": hand_drifts,
+		"loadout": _loadout(), "all_families": all_families, "dreams": dream_mode, "boss": act1_boss, "director": ";".join(director_overrides.keys().map(func(k) -> String: return "%s=%s" % [k, director_overrides[k]])), "dream_share_20": dream_share.get(20, -1.0), "dream_share_25": dream_share.get(25, -1.0), "dreams_20": dreams_20, "dream_share_50": dream_share.get(50, -1.0), "dream_share_75": dream_share.get(75, -1.0), "favored": "+".join(favored), "save": save_mode, "omens": omen_mode, "omens_faced": "+".join(omens_faced), "families_forced": "+".join(forced_families), "hand_drifts": hand_drifts,
 		"close_calls": rows.filter(func(r) -> bool: return r.approach > CLOSE_CALL).size(),
 		"approach_max": snappedf(rows.reduce(func(m, r) -> float: return maxf(m, r.approach), 0.0), 0.01),
 		"seconds": snappedf(game_time, 1.0)}
@@ -684,11 +687,17 @@ func _sprout_waits(tower: Tower) -> bool:
 class FavorPolicy extends DreamSimPolicy:
 	const FAVOR := 1000.0
 	var favored: Array[String] = []
-	var mode := "balanced"  # --dreams: "skip" lets every offer pass, "random" takes any card, "balanced" the style's pick
+	var mode := "balanced"  # --dreams: "skip" lets every offer pass, "random" takes any card, "balanced" the style's pick; "damage":
+	# damage, attack speed and Potency cards first, economy last (act 1 "damage-first")
 	var rng := RandomNumberGenerator.new()
 
 	func score(card: UpgradeData) -> float:
-		return super.score(card) + (FAVOR if favored.has(card.id) else 0.0)
+		var value := super.score(card) + (FAVOR if favored.has(card.id) else 0.0)
+		if mode == "damage":
+			value += 1000.0 * (card.soothe_bonus + card.attack_speed_bonus + card.potency_bonus + 0.5 * card.status_strength_bonus)
+			if card.dew_now > 0 or card.rest_bonus_add > 0 or card.dew_per_clear > 0 or card.evolve_discount > 0.0 or card.set_cost > 0:
+				value -= 500.0  # Economy last
+		return value
 
 	func pick_dream(offer: Array) -> UpgradeData:
 		match mode:
