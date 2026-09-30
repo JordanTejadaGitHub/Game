@@ -543,7 +543,7 @@ func _stats_fresh() -> bool:
 	if key != _stats_key or _anim_time > _stats_until:
 		_stats_key = key
 		_stats = {}
-		_stats_until = _anim_time + STAT_CACHE_TIME
+		_stats_until = _anim_time + STAT_CACHE_TIME * randf_range(0.75, 1.25)  # Staggered: ~200 Wardens never all recompute in one frame (a 60 ms hitch every 2 s)
 		return false
 	return true
 
