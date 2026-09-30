@@ -188,3 +188,31 @@ for the same rarity.
 3. Tower Code reruns skip / random / Balanced and tunes health; the numbers here move with it.
 
 **Applied (cc38d56e, Roguelite Code):** all Proposed lines, the cuts, merges (old ids migrate in run saves; the Grove Catchers node dropped them) and tag resonance (counted on the card's best-represented tag, locked when taken, never from a Deepened card's own base; `DreamState.rule_power(rule_id)` for rule numbers). Calls made there: **Deep Grip and Bright Marks no longer stack** (at +50% / +20%, three stacks would be too much); Cliffside's +20% shows in its Dream row. Numbers that live in Tower Code's files (Acorn aura, Hush, Sudden Bloom, Backspin, Kinship, catches) follow from them.
+
+## New cards 204–226 (raised to budget in a6f0aa05)
+
+| # | Card | Rarity | Now |
+|---|---|---|---|
+| 204 | Elder Kin | Uncommon | kin share 25% of rank bonuses (rule) |
+| 205 | Many Rings | Uncommon | +2% per rank to all Sprouts, max +50% (was 1% / 25%) |
+| 206 | Big Family | Uncommon | Sprouts near a Kinship pair +45% attack speed (was 10%) |
+| 207 | Mycelium | Uncommon | 1 Poisoned on hit (rule) |
+| 208 | Fireflies in the Grass | Uncommon | 1 Charged every 3rd hit (rule) |
+| 209 | Seasoned Eye | Uncommon | +3% crit per rank, max +21% (was 1% / 7%) |
+| 210 | Hedgerow | Common | +30% (was 10%) |
+| 211 | Spore Kin | Uncommon | Harmony applies 2 Poisoned (rule) |
+| 212 | Resonance | Rare | Chime pulses add 1 Charged (rule) |
+| 213 | Thornheart | Rare | +5% per Bramble, max +100% |
+| 214 | Ill Wind | Uncommon | +45% (was 25%) |
+| 215 | Eddy | Uncommon | rule |
+| 216 | Spinning Corners | Uncommon | +45% spin (was 20%) |
+| 217 | Falling Weight | Uncommon | +45% (was 40%) |
+| 218 | Warm Hearth | Uncommon | auras +50% on Sprouts |
+| 219 | Fresh Soil | Common | 7 Dew and +30% (was 20%) |
+| 220 | Quick Step | Common, ×3 | +15% speed for 10 s per stack (was 10%) |
+| 221 | Hurried Harvest | Uncommon | +2 Dew, cap 40 per drift (was 1 / 20) |
+| 222 | Heartwood's Fury | Uncommon | +5% per missing leaf, max +45% (was 3% / 30%) |
+| 223 | Thin Bark | Uncommon, bittersweet | all +35% (was 15%), −3 max leaves |
+| 224 | Patchwork | Common | +5% per family, max +15% (was 3% / 12%) |
+| 225 | Mixed Grove | Uncommon | +15% per other family touching, max +45% (was 8% / 24%) |
+| 226 | Live Wire | Common, ×3 | bolts +15% per stack (max +45%) |
