@@ -143,7 +143,7 @@ static func _tip(table: Dictionary, id: StringName) -> String:
 
 # Game terms (screens_ui.md "Playtest fixes" 2026-09-30: "what's a perfect block, what's a block?"):
 # written as tokens in card text and tooltips, shown as links (StatusLinks) whose popup is the Codex
-# glossary's line. id -> [word, plural, glossary name]. Tokens: {drift} "drift", {drifts} "drifts",
+# glossary's line. id -> [word, plural, glossary name, plural token id (optional; default id + "s")]. Tokens: {drift} "drift", {drifts} "drifts",
 # {Drift} / {Drifts} capitalised (sentence starts). Plain text (format) just gets the word.
 const TERMS := {
 	&"drift": ["drift", "drifts", "Drift"],
@@ -154,7 +154,7 @@ const TERMS := {
 	&"family_pick": ["family pick", "family picks", "Family pick"],
 	&"deeply_blighted": ["Deeply Blighted", "Deeply Blighted", "Deeply Blighted"],
 	&"kinship": ["Kinship", "Kinships", "Kinship"],
-	&"harmony": ["Harmony strike", "Harmony strikes", "Harmony strike"],
+	&"harmony": ["Harmony strike", "Harmony strikes", "Harmony strike", "harmonies"],  # {harmonies}: the plural
 }
 
 # Every term token form: [token text, term id, word shown]. Longest tokens first.
@@ -162,7 +162,7 @@ static func term_tokens() -> Array:
 	if _term_tokens.is_empty():
 		for id in TERMS:
 			var entry: Array = TERMS[id]
-			var plural_id := String(id) + ("s" if not String(id).ends_with("s") else "")
+			var plural_id: String = entry[3] if entry.size() > 3 else String(id) + ("s" if not String(id).ends_with("s") else "")
 			for form in [[String(id), entry[0]], [plural_id, entry[1]]]:
 				_term_tokens.append(["{%s}" % form[0], id, form[1]])
 				_term_tokens.append(["{%s}" % _upper_first(form[0]), id, _upper_first(form[1])])
