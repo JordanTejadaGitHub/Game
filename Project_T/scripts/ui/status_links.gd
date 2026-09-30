@@ -15,6 +15,7 @@ class_name StatusLinks
 
 const META_PREFIX := "status:"
 const TERM_PREFIX := "term:"  # Game terms ({block} …): the popup is the Codex glossary's line
+const FAMILY_PREFIX := "family:"  # Family names ({family:dewdrop}): emblem, damage type, identity
 const CODEX_HOST_GROUP := &"codex_host"
 const HIDE_DELAY := 0.5  # Seconds after the pointer leaves the word (or the popup) before it hides
 const LINK_COLOR := UiStyle.INK  # Ink text on a 1 px gold underline (ui_style.md "Links")
@@ -27,6 +28,7 @@ var _name := Label.new()
 var _text := Label.new()
 var _status: StringName = &""
 var _is_term := false  # _status is a term id, not a status
+var _is_family := false  # _status is a family id
 var _hide_in := -1.0
 
 # `text` with every status name (and {damp}-style token) and every term token ({block}, {Drifts} …)
@@ -39,6 +41,11 @@ static func bbcode(text: String) -> String:
 			while text.contains(token[0]):
 				text = text.replace(token[0], "\u0001%d\u0001" % terms.size())
 				terms.append(_link(TERM_PREFIX + String(token[1]), token[2]))
+		for found in IconInfo.family_pattern().search_all(text):  # {family:dewdrop}
+			var id := found.get_string(1)
+			var data := IconInfo.family_data(id)
+			text = text.replace(found.get_string(), "\u0001%d\u0001" % terms.size())
+			terms.append(_link(FAMILY_PREFIX + id, data.display_name if data != null else id.capitalize()))
 	text = _statuses(IconInfo.format(text).replace("[", "[lb]"))
 	for i in terms.size():
 		text = text.replace("\u0001%d\u0001" % i, terms[i])
@@ -126,15 +133,23 @@ func _init() -> void:
 
 func _show_for(meta: String, host: Control, tapped: bool) -> void:
 	var is_term := meta.begins_with(TERM_PREFIX)
-	if not meta.begins_with(META_PREFIX) and not is_term:
+	var is_family := meta.begins_with(FAMILY_PREFIX)
+	if not meta.begins_with(META_PREFIX) and not is_term and not is_family:
 		return
-	var id := StringName(meta.trim_prefix(TERM_PREFIX if is_term else META_PREFIX))
-	if tapped and visible and id == _status and _is_term == is_term:
+	var id := StringName(meta.get_slice(":", 1))
+	if tapped and visible and id == _status and _is_term == is_term and _is_family == is_family:
 		visible = false  # Tapping the same word again closes it
 		return
 	_status = id
 	_is_term = is_term
-	if is_term:  # A game term: its name and the Codex glossary's line, no icon
+	_is_family = is_family
+	if is_family:  # A family: its emblem, "Dewdrop family", its damage type and identity
+		var data := IconInfo.family_data(String(id))
+		_icon.texture = IconInfo.family_emblem(data.line if data != null else "")
+		_icon.visible = _icon.texture != null
+		_name.text = "%s family" % (data.display_name if data != null else String(id).capitalize())
+		_text.text = ("%s. %s" % [IconInfo.damage_type_text(data.line), IconInfo.format(data.description)]) if data != null else ""
+	elif is_term:  # A game term: its name and the Codex glossary's line, no icon
 		_icon.visible = false
 		_name.text = term_name(id)
 		_text.text = CodexData.definition(term_name(id))
@@ -174,9 +189,12 @@ func _open_codex() -> void:
 	var node: Node = get_parent()
 	while node != null:  # Inside the Codex: just jump there
 		if node is CodexPanel:
-			node.jump(name)
+			if _is_family:
+				node.show_families()
+			else:
+				node.jump(name)
 			return
 		node = node.get_parent()
 	var host := get_tree().get_first_node_in_group(CODEX_HOST_GROUP)
 	if host != null and host.has_method("open_codex"):
-		host.open_codex(&"glossary", name)
+		host.open_codex(&"families" if _is_family else &"glossary", "" if _is_family else name)

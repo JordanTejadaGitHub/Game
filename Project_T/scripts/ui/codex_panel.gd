@@ -107,8 +107,16 @@ func open(tab: StringName = &"", entry: String = "") -> void:
 		tabs.current_tab = 1
 	elif tab == &"glossary":
 		tabs.current_tab = 0
+	elif tab == &"families":
+		show_families()
 	if entry != "":
 		jump.call_deferred(entry)
+
+# The Families tab (a family link's "More in the Codex").
+func show_families() -> void:
+	for i in tabs.get_tab_count():
+		if tabs.get_tab_control(i).name == "Families":
+			tabs.current_tab = i
 
 # Shows `name` (a glossary term, or a combo's id or name), switching tabs if needed.
 func jump(name: String) -> void:
