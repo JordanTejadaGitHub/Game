@@ -968,7 +968,21 @@ func _attackers_near(tower: Tower, cells: int) -> Array[Tower]:
 
 # --- Nurture ranks (Tower reads these; warden_stats.md "Ranks: Nurture") ------------------------------
 
-# Multiplies the Dew for a rank: Tender Care (−15% per stack, max −45%), Nursery (Sprouts half price).
+# Tender Care (dream_design.md card 60, rework 2026-09-30): every Warden's rank I is free (0 Dew, nothing
+# invested); Tender Care II also takes 20% off ranks II–V. Tower multiplies rank `which`'s price by this
+# (0 = free: skip the 1-Dew minimum).
+const TENDER_CARE_II_DISCOUNT := 0.20
+
+func rank_cost_factor(which: int) -> float:
+	if not has_rule(&"tender_care"):
+		return 1.0
+	if which == 1:
+		return 0.0
+	if which <= BASE_MAX_RANK and rule_level(&"tender_care") > 0:
+		return 1.0 - TENDER_CARE_II_DISCOUNT
+	return 1.0
+
+# Multiplies the Dew for a rank: card nurture discounts (Family Blessings), Nursery (Sprouts half price).
 func get_nurture_cost_multiplier(tower: Tower = null) -> float:
 	var discount := 0.0
 	for card in _taken_cards():
@@ -1934,6 +1948,9 @@ func load_save(data: Dictionary) -> void:
 		var kept: String = MERGED_CARDS.get(id, id)  # Cards cut or merged by the power pass (dream_audit.md)
 		if kept != "":
 			stacks[kept] = maxi(int(stacks.get(kept, 0)), 1 if kept != id else int(saved_stacks[id]))  # JSON gives floats
+	for card in pool:  # A card that stopped stacking (Tender Care, 2026-09-30): an old save owns it once
+		if card.max_stacks > 0 and int(stacks.get(card.id, 0)) > card.max_stacks:
+			stacks[card.id] = card.max_stacks
 	dreams_seen = int(data.get("dreams_seen", 0))
 	_dreams_without_rare = int(data.get("dreams_without_rare", 0))
 	_rare_dreams_left = int(data.get("rare_dreams_left", 0))
