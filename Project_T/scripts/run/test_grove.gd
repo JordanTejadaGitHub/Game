@@ -26,7 +26,7 @@ const METER_ROWS := 10
 const INSPECT_RADIUS := 32.0  # Pixels from a nightmare that count as clicking it
 # Dock: right edge, below the resources and the nightmare info, above the drift controls.
 const DOCK_WIDTH := 300.0
-const DOCK_TOP := 256.0
+const DOCK_TOP := 316.0  # The nightmare info ends at 310 (it moved down for the top-right button row)
 const DOCK_BOTTOM_GAP := 152.0
 const TEXT_COLOR := Color(0.96, 0.97, 0.94)
 const TITLE_COLOR := Color(1.0, 0.8, 0.4)

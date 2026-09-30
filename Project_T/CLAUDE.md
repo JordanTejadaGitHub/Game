@@ -482,6 +482,11 @@ accessibility, Steam achievements (milestones map to them). Acts 3–4 and all f
   `panel_in(colour)`, `fog_patch()`, `draw_gem(canvas, centre, r, rarity)`; don't hand-build
   StyleBoxFlats for panels or cards. `tools/ui_preview.gd` (needs a window, not --headless) renders
   the HUD, Dream choice and a component sheet to PNGs.
+  **UI scale** (`UiStyle.apply_ui_scale`, from `HeartwoodMemory.apply_settings`): setting `ui_scale` is a
+  share (50–100%) of the largest root `content_scale_factor` that still leaves the HUD 1280×720
+  (`UiStyle.LAYOUT_MIN`; 1.5 at 1920×1080), re-fit on window resize, 1 under headless. Only the UI
+  scales: `GameCameraNode` keeps `target_zoom` in view units and sets `camera_2d.zoom = view /
+  ui_factor()`. Top-right buttons are one row under the resources (`hud.gd` `*_SLOT`, y 150).
 - `scripts/ui/hud.gd` — HUD (Warden bar + 1-8 hotkeys, Dew counter).
   `world_label.gd` (`WorldLabel.draw_tag` for world-space text tags, `cost_color`),
   `dew_popup.gd` (`DewPopup`).

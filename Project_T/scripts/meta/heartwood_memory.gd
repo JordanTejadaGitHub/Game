@@ -435,7 +435,9 @@ static func apply_settings(settings: Dictionary = {}) -> void:
 		sound.set_softer_nightmares(bool(settings.get("softer_nightmares", false)))
 	var tree := Engine.get_main_loop() as SceneTree
 	if tree != null and tree.root != null:
-		tree.root.content_scale_factor = clampf(float(settings.get("ui_scale", 1.0)), 0.5, 2.0)
+		# "ui_scale" is a share (50–100%) of the largest scale that fits the window (UiStyle.apply_ui_scale:
+		# only the UI scales, never past its 1280×720 layout; the camera keeps the map its size).
+		UiStyle.apply_ui_scale(tree.root, float(settings.get("ui_scale", 1.0)))
 	if DisplayServer.get_name() != "headless":
 		var mode := DisplayServer.WINDOW_MODE_FULLSCREEN if settings.fullscreen else DisplayServer.WINDOW_MODE_WINDOWED
 		var changed := DisplayServer.window_get_mode() != mode

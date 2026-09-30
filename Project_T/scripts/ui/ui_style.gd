@@ -55,6 +55,39 @@ const FONT_DIR := "res://assets/ui/fonts/"
 
 static var _fonts := {}
 
+# --- UI scale ----------------------------------------------------------------------------------
+
+# The HUD is laid out for at least this much room (screens_ui.md: 1280×800 is the base, 16:9 needs
+# 1280×720). The UI never scales past what leaves it this much, so it can't overlap itself.
+const LAYOUT_MIN := Vector2(1280.0, 720.0)
+const UI_SHARE_MIN := 0.5  # The settings slider: 50% … 100% of the fitting scale
+const UI_SHARE_MAX := 1.0
+
+static var _scale_share := 1.0
+static var _watching_window := false
+
+# The root's content scale for a window of `window_size` pixels: the largest scale that still leaves
+# LAYOUT_MIN (1.5 at 1920×1080, 1 at 1280×800, 2 at 4K), times the player's `share` of it.
+static func ui_scale_factor(window_size: Vector2, share: float) -> float:
+	var fit := clampf(minf(window_size.x / LAYOUT_MIN.x, window_size.y / LAYOUT_MIN.y), 0.5, 4.0)
+	return fit * clampf(share, UI_SHARE_MIN, UI_SHARE_MAX)
+
+# Applies the "ui_scale" setting (a share, see above) to the window, and again whenever the window
+# changes size. Only the UI grows: GameCameraNode divides its zoom by the factor, so the map keeps
+# its size. Headless runs (tests) stay at 1 so layouts are checked at the sizes they set.
+static func apply_ui_scale(root: Window, share: float) -> void:
+	_scale_share = share
+	if root == null:
+		return
+	if DisplayServer.get_name() == "headless":
+		root.content_scale_factor = 1.0
+		return
+	root.content_scale_factor = ui_scale_factor(Vector2(root.size), _scale_share)
+	if not _watching_window:
+		_watching_window = true
+		root.size_changed.connect(func() -> void:
+			root.content_scale_factor = ui_scale_factor(Vector2(root.size), _scale_share))
+
 # --- Fonts -------------------------------------------------------------------------------------
 
 # Alegreya Sans: card text, tooltips, panels.

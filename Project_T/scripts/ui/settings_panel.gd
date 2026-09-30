@@ -63,7 +63,9 @@ func _ready() -> void:
 	_choice(display, "Window size", WINDOW_SIZE_SETTING,
 		WINDOW_SIZES.map(func(s: Vector2i) -> String: return "%d × %d" % [s.x, s.y]), 0)
 	_toggle(display, "V-sync", VSYNC_SETTING, true)
-	_slider(display, "UI scale", "ui_scale", 0.75, 2.0, 0.05)  # Up to 2× (user, 2026-09-30: "increase the UI size")
+	# UI size: a share of the largest scale that fits this window (UiStyle.apply_ui_scale). 100% = as big
+	# as the layout allows (1.5× at 1920×1080); the map never zooms with it (user, 2026-09-30).
+	_slider(display, "UI size", "ui_scale", UiStyle.UI_SHARE_MIN, UiStyle.UI_SHARE_MAX, 0.05)
 
 	var gameplay := _tab("Gameplay")
 	_toggle(gameplay, "Heartwood whispers", "whispers", true, "Short hints the first time something happens.")
