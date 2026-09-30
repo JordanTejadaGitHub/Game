@@ -48,6 +48,7 @@ func _draw() -> void:
 	draw_style_box(_fog, Rect2(Vector2(-14, -8), size + Vector2(28, 12)))
 
 func _process(_delta: float) -> void:
+	_stack()
 	var span := shown_span()
 	visible = span.y >= span.x
 	if not visible:
@@ -59,6 +60,17 @@ func _process(_delta: float) -> void:
 		_build(span)
 	if compact:
 		_light_next()
+
+# The top-centre stack (playtest 2026-09-30: the strip overlapped the Omen line): the drift banner,
+# then the active Omen's line (Roguelite's OmenScreen tag "ActiveOmen"), then this strip.
+const OMEN_TOP := 68.0  # Just under the banner's boss row
+func _stack() -> void:
+	var top := TOP
+	var omen := get_parent().get_node_or_null("ActiveOmen") as Control if get_parent() != null else null
+	if omen != null and omen.visible:
+		omen.offset_top = OMEN_TOP
+		top = maxf(top, OMEN_TOP + omen.size.y + 14.0)  # Clear of the strip's fog panel too
+	offset_top = top
 
 # The drifts whose kinds show now (x > y = none): the next block at a rest, the rest of the current
 # block during a drift (none in a boss drift or after the run).
@@ -161,6 +173,13 @@ func _make_item(data: EnemyData, drift: int, count: int = 1) -> Control:
 		tag.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		UiStyle.caps(tag, 11, UiStyle.GOLD)
 		item.add_child(tag)
+	if compact:  # During a drift: how many are still to come (playtest: portraits alone said too little)
+		var few := Label.new()
+		few.name = "KindCount"
+		few.text = "×%d" % count
+		few.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		UiStyle.number(few, 13, UiStyle.GOLD)
+		item.add_child(few)
 	if not compact:  # Readable on the night sky (screens_ui.md): its name and how many come
 		var name := Label.new()
 		name.name = "KindName"

@@ -207,6 +207,24 @@ static func primary_box(hover: bool = false) -> StyleBoxFlat:
 	box.shadow_size = 8
 	return box
 
+# Selected vs hovered (screens_ui.md, playtest 2026-09-30: "First" selected and a hovered button looked
+# alike). A selected / active control (toggled button, open tab, current speed, a switch's segment)
+# shows only a GOLD border and gold text, no fill; hover fills the whole box with a soft highlight;
+# a press darkens it. Godot's "pressed" style is both "toggled on" and "held", so it's the gold border
+# on a darker fog: selected reads as the border, a held press as the darkening.
+const HOVER_FILL := Color(0.86, 0.9, 0.96, 0.16)  # The soft highlight (moonlight over the fog)
+static func selected_box() -> StyleBoxFlat:
+	var box := button_box()
+	box.bg_color = Color(FOG, 0.7)
+	box.border_color = GOLD
+	box.set_border_width_all(2)
+	return box
+
+static func hover_box(selected: bool = false) -> StyleBoxFlat:
+	var box := selected_box() if selected else button_box(true)
+	box.bg_color = Color(FOG, 0.55).blend(HOVER_FILL)
+	return box
+
 static func disabled_box() -> StyleBoxFlat:
 	var box := button_box()
 	box.bg_color.a *= DISABLED_ALPHA
@@ -365,9 +383,15 @@ static func make_theme() -> Theme:
 
 	# Buttons (and the button-like controls).
 	for type in ["Button", "OptionButton", "MenuButton"]:
-		_button_styles(theme, type, button_box(), button_box(true), primary_box(), primary_box(true))
+		_button_styles(theme, type, button_box(), hover_box(), selected_box(), hover_box(true))
 	theme.set_type_variation("PrimaryButton", "Button")
-	_button_styles(theme, "PrimaryButton", primary_box(), primary_box(true), primary_box(true), primary_box(true))
+	# The call to action keeps its gold look; hovering fills it, pressing darkens it.
+	var primary_press := primary_box()
+	primary_press.bg_color = Color(FOG, 0.7)
+	primary_press.shadow_size = 0
+	var primary_hover := primary_box(true)
+	primary_hover.bg_color = primary_hover.bg_color.blend(HOVER_FILL)
+	_button_styles(theme, "PrimaryButton", primary_box(), primary_hover, primary_press, primary_hover)
 	for state in ["font_color", "font_hover_color", "font_focus_color"]:
 		theme.set_color(state, "PrimaryButton", GOLD_TEXT)
 	# Check boxes / switches: no box, just the text (and the toggle's own icon).
@@ -400,7 +424,10 @@ static func make_theme() -> Theme:
 	var tab_idle := tab_selected.duplicate() as StyleBoxFlat
 	tab_idle.bg_color = Color(0, 0, 0, 0)
 	tab_idle.border_color = Color(GOLD, 0.0)
+	# The open tab: the gold line only, no fill; a hovered tab fills with the soft highlight.
+	tab_selected.bg_color = Color(0, 0, 0, 0)
 	var tab_hover := tab_idle.duplicate() as StyleBoxFlat
+	tab_hover.bg_color = HOVER_FILL
 	tab_hover.border_color = Color(GOLD, 0.4)
 	for type in ["TabContainer", "TabBar"]:
 		theme.set_stylebox("tab_selected", type, tab_selected)

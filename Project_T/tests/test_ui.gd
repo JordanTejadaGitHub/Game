@@ -23,6 +23,23 @@ func _run() -> void:
 	var text: String = banner._next_boss_text(0)
 	_check(text.ends_with("· drift 25 (in 25)"), "banner names the next boss with its drift and the countdown (%s)" % text)
 
+	# The top-centre stack: the active Omen's line sits under the banner, the Coming strip under it.
+	var omen_tag := main.get_node_or_null("HUD/ActiveOmen") as Label
+	var strip: ComingStrip = null
+	for child in main.get_node("HUD").get_children():
+		if child is ComingStrip:
+			strip = child
+	if omen_tag != null and strip != null:
+		omen_tag.text = "Omen: Dry Spell (drifts 11–15) · a reward"
+		omen_tag.visible = true
+		strip._stack()
+		_check(strip.offset_top >= omen_tag.offset_top + omen_tag.size.y, "the Coming strip stacks under the Omen line (%.0f vs %.0f)"
+			% [strip.offset_top, omen_tag.offset_top + omen_tag.size.y])
+		omen_tag.visible = false
+		strip._stack()
+	else:
+		_check(false, "the Omen line and the Coming strip exist")
+
 	# --- HUD layout (screens_ui.md "The run HUD", principles 5 and 6) ---
 	var dreams: DreamState = main.get_node("%DreamState")
 	dreams.unlock_everything = true  # Every Warden in the bar, as in Test Grove

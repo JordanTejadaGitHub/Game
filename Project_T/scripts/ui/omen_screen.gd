@@ -49,6 +49,7 @@ func _ready() -> void:
 	visible = false
 
 	# The active-Omen tag lives on the HUD, outside this (usually hidden) screen.
+	_active_tag.name = "ActiveOmen"  # ComingStrip stacks under it (top centre)
 	_active_tag.set_anchors_and_offsets_preset(Control.PRESET_CENTER_TOP)
 	_active_tag.grow_horizontal = Control.GROW_DIRECTION_BOTH
 	_active_tag.offset_top = 64

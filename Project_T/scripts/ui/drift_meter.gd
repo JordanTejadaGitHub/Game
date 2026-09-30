@@ -153,7 +153,7 @@ func _ready() -> void:
 		var tab: Button = pair[0]
 		tab.text = pair[1]
 		tab.toggle_mode = true
-		tab.flat = true
+		tab.flat = false  # The theme's selected (gold border) / hover (filled) looks
 		tab.focus_mode = Control.FOCUS_NONE
 		tab.mouse_force_pass_scroll_events = false
 		tab.custom_minimum_size = Vector2(0, 32)
@@ -367,7 +367,14 @@ static func row_change(r: Dictionary) -> Array:
 
 func _fill_row(button: Button, r: Dictionary) -> void:
 	var star := " ★" if r.get("most_improved", false) else ""
-	button.text = "%s  %s DPS · %d%%%s" % [r.name, fmt(r.dps), roundi(float(r.share) * 100.0), star]
+	# The Warden's current form (the meter's row keeps the name it was planted with: a grown Sprout
+	# read "Sprout" beside its Frostfern icon).
+	var tower = r.tower
+	var name: String = tower.tower_data.display_name if is_instance_valid(tower) else String(r.name)
+	if is_instance_valid(tower) and button.get_meta(&"form", null) != tower.tower_data:
+		button.set_meta(&"form", tower.tower_data)
+		button.icon = WardenIcon.make(tower.tower_data)
+	button.text = "%s  %s DPS · %d%%%s" % [name, fmt(r.dps), roundi(float(r.share) * 100.0), star]
 	var change: Array = row_change(r)
 	var change_label := button.get_node_or_null("Change") as Label
 	if change_label != null:
@@ -376,7 +383,7 @@ func _fill_row(button: Button, r: Dictionary) -> void:
 	var colour: Color = r.get("rank_color", FINE_COLOR)  # By rank on the board, like the DPS tags
 	for state in ["font_color", "font_hover_color", "font_pressed_color"]:
 		button.add_theme_color_override(state, colour)
-	var tip := "%s: %s DPS, %d%% of the maze, %s Dew invested" % [r.name, fmt(r.dps), roundi(float(r.share) * 100.0), fmt(r.dew_invested)]
+	var tip := "%s: %s DPS, %d%% of the maze, %s Dew invested" % [name, fmt(r.dps), roundi(float(r.share) * 100.0), fmt(r.dew_invested)]
 	if r.get("rating_label", &"") == &"carrying":
 		tip += "\nCarrying: far more than its cost."
 	elif r.get("rating_label", &"") == &"underused":
