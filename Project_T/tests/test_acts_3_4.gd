@@ -389,8 +389,8 @@ func _run() -> void:
 		rotting._process(0.5)  # One Poisoned tick
 	var dry_loss: int = 100000 - rot_dry.health
 	var wet_loss: int = 100000 - rot_wet.health
-	_check(dry_loss > 0 and is_equal_approx(float(wet_loss) / dry_loss, 1.2),
-		"Damp Rot: a Soaked nightmare's Poisoned tick is +20%% (%d vs %d)" % [wet_loss, dry_loss])
+	_check(dry_loss > 0 and is_equal_approx(float(wet_loss) / dry_loss, 1.0 + DreamState.DAMP_ROT_PER),
+		"Damp Rot: a Soaked nightmare's Poisoned tick is +50%% (%d vs %d)" % [wet_loss, dry_loss])
 	_clear_enemies()
 
 	# --- Status jobs (tower_design.md, 2026-09-29) ---
@@ -478,8 +478,8 @@ func _run() -> void:
 	var bright := _still("leaf_bug", route[5])
 	bright.apply_status(EnemyStatuses.MARKED)
 	bright._process(0.0)
-	_check(is_equal_approx(bright.statuses.get_damage_taken_multiplier(), 1.0 + EnemyStatuses.MARKED_EXTRA + 0.05),
-		"Bright Marks: Marked +5 percent more (%.2f)" % bright.statuses.get_damage_taken_multiplier())
+	_check(is_equal_approx(bright.statuses.get_damage_taken_multiplier(), 1.0 + EnemyStatuses.MARKED_EXTRA + DreamState.BRIGHT_MARKS_PER),
+		"Bright Marks: Marked +20 percent more (%.2f)" % bright.statuses.get_damage_taken_multiplier())
 	var web_a := _still("leaf_bug", route[8])
 	var web_b := _still("leaf_bug", route[8])
 	var web_far := _still("leaf_bug", route[20])
