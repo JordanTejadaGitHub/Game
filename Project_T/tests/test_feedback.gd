@@ -113,6 +113,12 @@ func _run() -> void:
 	whispers.set_enabled(false)
 	_check(feedback._card.visible and feedback._card_label.text.begins_with("Combo discovered: Set Off"),
 		"the first Set Off shows a discovery card (%s)" % feedback._card_label.text)
+	var card_layer := feedback._card.get_canvas_layer_node()
+	var card_centre := feedback._card.get_global_rect().get_center()
+	var screen_centre := feedback._card.get_viewport_rect().size / 2.0
+	_check(card_layer != null and card_layer.layer > (feedback.get_canvas_layer_node() as CanvasLayer).layer
+			and card_centre.distance_to(screen_centre) < 2.0,
+		"the discovery card sits in the screen centre above the HUD (%s vs %s)" % [card_centre, screen_centre])
 	_check(feedback._queue == [&"thunderclap"], "Thunderclap waits its turn (%s)" % [feedback._queue])
 	_check(ComboFeedback.discovery_text(&"thunderclap").contains("Soaked + Charged") and ComboFeedback.discovery_text(&"thunderclap").ends_with("Added to the Codex."),
 		"the card names the ingredients and says it's in the Codex")
@@ -151,7 +157,7 @@ func _run() -> void:
 	# Locked entries are just "???": no ingredient icons or text (they'd give the answer away).
 	var seen_now := ComboFeedback.load_seen()
 	for combo in CodexData.combos():
-		if not seen_now.has(String(combo.id)):
+		if not seen_now.has(String(combo.id)) and codex._entries.has(String(combo.id)):
 			var locked_card: Control = codex._entries[String(combo.id)]
 			var labels := locked_card.find_children("*", "Label", true, false).map(func(l: Label) -> String: return l.text)
 			_check(locked_card.find_children("*", "StatusIcon", true, false).is_empty() and labels == ["???"],

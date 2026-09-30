@@ -6,7 +6,7 @@ class_name BossDossier
 # the onboarding whisper) and at each act-break rest (after drifts 25 / 50 / 75, last in the rest
 # order: after the family pick, Dream and Omen) for the NEXT act's boss. The rest that opens a boss
 # block (after 20 / 45 / 70 / 95) only shows a small reminder ("<Boss> arrives in 5 drifts", its
-# portrait, "Open dossier"). The card:
+# portrait, "About The Mire Hag"). The card:
 #   header    animated portrait, name · title, a whisper line, "Arrives in drift N", "New"
 #   numbers   real health (this run's scaling, Blight, Dreams), speed, leaves it takes
 #   defences  the Resists / Weak to / Immune rows, larger (NightmareIcons)
@@ -83,7 +83,7 @@ func _ready() -> void:
 	_scroll.add_child(_content)
 	var close := Button.new()
 	close.text = "Prepare"
-	close.tooltip_text = "Close the dossier. Reopen it from \"Boss in N\" at the top."
+	close.tooltip_text = "Reopen it from the boss name at the top."
 	close.custom_minimum_size = Vector2(200, 44)
 	close.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	close.focus_mode = Control.FOCUS_NONE
@@ -216,7 +216,7 @@ func _show_reminder(drift: int) -> void:
 	text.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	row.add_child(text)
 	var button := Button.new()
-	button.text = "Open dossier"
+	button.text = "About %s" % data.display_name
 	button.focus_mode = Control.FOCUS_NONE
 	button.pressed.connect(func() -> void:
 		open(drift)

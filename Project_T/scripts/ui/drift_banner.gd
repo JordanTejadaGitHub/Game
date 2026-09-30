@@ -117,7 +117,10 @@ func _get_tooltip(at: Vector2) -> String:
 	var line := _marker_at(at)
 	if line != "":
 		return line
-	return "Open the boss dossier" if _countdown_rect.has_point(at) else ""
+	var data := _next_boss_data(drift_director.drifts_started)
+	if data == null or not _countdown_rect.has_point(at):
+		return ""
+	return "About %s" % data.display_name
 
 func _gui_input(event: InputEvent) -> void:
 	if not (event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT):

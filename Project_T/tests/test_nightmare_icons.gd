@@ -178,7 +178,7 @@ func _run() -> void:
 	_check(dossier.visible and dossier.shown_drift == 25, "reopens for the next boss")
 	dossier.close_dossier()
 
-	# The rest opening the boss block (after drift 20): only a reminder, with "Open dossier".
+	# The rest opening the boss block (after drift 20): only a reminder, with "About <boss>".
 	director.drifts_started = 20
 	director.rest_started.emit(4, false, 0, true)
 	await _settle(dossier, dreams, omens, intro, func() -> bool: return dossier.is_reminding())
@@ -191,7 +191,7 @@ func _run() -> void:
 				"the reminder sits under the Coming strip, not on it (%.0f vs %.0f)" % [dossier._reminder.position.y, coming.position.y + coming.size.y])
 	var open_button: Button = dossier._reminder.find_children("*", "Button", true, false)[0]
 	open_button.pressed.emit()
-	_check(dossier.visible and dossier.shown_drift == 25 and not dossier.is_reminding(), "Open dossier opens the card")
+	_check(dossier.visible and dossier.shown_drift == 25 and not dossier.is_reminding(), "About <boss> opens the card")
 	dossier.close_dossier()
 
 	# The act break (the boss rest after drift 25): the NEXT act's boss, last in the rest.

@@ -3,7 +3,7 @@ class_name ComboFeedback
 
 # Combos in play (screens_ui.md "The Codex: Glossary and Combos"): the 7 synergies and the 8
 # Reactions (CodexData.combos()). Discovered the first time each one fires, ever: the game pauses on
-# the moment (the nightmare ringed) with a card near the top ("Combo discovered: Thunderclap",
+# the moment (the nightmare ringed) with a card in the screen centre ("Combo discovered: Thunderclap",
 # ingredients, one line, "Added to the Codex"; Continue / Open in Codex); several queue behind one
 # pause, and it waits while a choice screen or the pause menu is open. With the Gameplay setting
 # "Pause on new combos" off, the old 5 s slide-in card instead. Saved in the profile
@@ -17,6 +17,7 @@ class_name ComboFeedback
 signal combo_discovered(id: StringName)  # For a discovery chime (SoundHooks)
 
 const GROUP := &"combo_feedback"
+const CARD_LAYER := 4  # The card's own CanvasLayer: above the HUD (1), under the Dream-mark tips (5)
 const CARD_TIME := 5.0
 const SEEN_KEY := "combos_seen"
 const COUNTS_KEY := "combo_counts"
@@ -99,9 +100,11 @@ func _ready() -> void:
 	_dev_flagged = dev_seen()
 	_card.visible = false
 	_card.mouse_filter = Control.MOUSE_FILTER_STOP
-	_card.set_anchors_preset(Control.PRESET_CENTER_TOP)
+	# Screen centre on its own layer above the HUD: the drift banner, Omen line and Coming strip never
+	# draw over it (user playtest 2026-09-30).
+	_card.set_anchors_preset(Control.PRESET_CENTER)
 	_card.grow_horizontal = Control.GROW_DIRECTION_BOTH
-	_card.offset_top = 132  # Under the drift banner and the toasts
+	_card.grow_vertical = Control.GROW_DIRECTION_BOTH
 	_card_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_card_label.custom_minimum_size = Vector2(380, 0)
 	_card_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -140,7 +143,14 @@ func _ready() -> void:
 				continue_on()  # A tap on a pausing card continues
 			else:
 				_open_in_codex(_card_id))  # A tap on the slide-in card opens its entry
-	add_child(_card)
+	var layer := CanvasLayer.new()
+	layer.layer = CARD_LAYER
+	add_child(layer)
+	var holder := Control.new()
+	holder.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	holder.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	layer.add_child(holder)
+	holder.add_child(_card)
 	drift_director.rest_ended.connect(func(_block: int) -> void:
 		block_counts.clear()
 		block_longest_chain = 0
@@ -240,7 +250,7 @@ func record(id: StringName, enemy: Node2D = null) -> void:
 		_try_show()
 
 # --- Pausing discoveries (screens_ui.md "Combos (discovered in play)") -----------------------------
-# A discovery freezes the world on the moment (the nightmare ringed), with the card near the top and
+# A discovery freezes the world on the moment (the nightmare ringed), with the card in the screen centre and
 # the map visible. Continue resumes at the previous speed (already paused stays paused); several
 # queue behind one pause. While a choice screen or the pause menu is open, it waits. The Gameplay
 # setting "Pause on new combos" (pause_on_combo, default on) off = the old 5 s slide-in card.
@@ -371,6 +381,8 @@ func _show_next() -> void:
 	_card.reset_size()
 	_card.offset_left = -_card.size.x / 2.0
 	_card.offset_right = _card.size.x / 2.0
+	_card.offset_top = -_card.size.y / 2.0
+	_card.offset_bottom = _card.size.y / 2.0
 	_card.modulate.a = 0.0
 	if _card_tween:
 		_card_tween.kill()
