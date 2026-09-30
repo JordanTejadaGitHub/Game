@@ -86,7 +86,7 @@ var _spend_timer := 0.0
 var _busy := false  # A family pick / rest is being handled
 var rows: Array = []
 var d := {}  # The current drift window's counters
-var run := {"sprout_cards_25": -1, "first_leak": 0, "lost_by": {25: -1, 50: -1, 75: -1}, "banked_at_act": {}, "rest_banked": [],
+var run := {"sprout_cards_25": -1, "first_leak": 0, "boss_drained": 0, "lost_by": {25: -1, 50: -1, 75: -1}, "banked_at_act": {}, "rest_banked": [],
 	"rest_bonus": [], "top_wardens": {}, "max_top_share": 0.0, "max_top_warden": "", "max_asleep": 0.0}
 var _last_dew := 0
 var _spent_now := 0
@@ -446,6 +446,8 @@ func _hook_stats() -> void:
 		d.leaks += 1
 		if run.first_leak == 0:
 			run.first_leak = maxi(director.drifts_started, 1))
+	if spawner.has_signal("boss_drained"):  # A boss at the Heartwood drains leaves (no enemy_reached_goal)
+		spawner.boss_drained.connect(func(_e, leaves: int) -> void: run.boss_drained += leaves)
 	if spawner.has_signal("nightmare_restless"):
 		spawner.nightmare_restless.connect(func(_e, _stacks) -> void: d.restless += 1)
 	if spawner.has_signal("wall_trampled"):
@@ -574,7 +576,7 @@ func _finish() -> void:
 		"max_top_warden": run.max_top_warden, "max_asleep": snappedf(run.max_asleep, 0.001), "cards": dreams.stacks.size(),
 		"sprout_cards_25": run.sprout_cards_25,
 		"sprouts_end": _attackers().filter(func(t) -> bool: return t.tower_data.get_id() == "sprout").size(), "cards_start": "+".join(start_cards),
-		"loadout": _loadout(), "all_families": all_families, "dreams": dream_mode, "boss": act1_boss, "director": ";".join(director_overrides.keys().map(func(k) -> String: return "%s=%s" % [k, director_overrides[k]])), "dream_share_20": dream_share.get(20, -1.0), "dream_share_25": dream_share.get(25, -1.0), "dreams_20": dreams_20, "dream_share_50": dream_share.get(50, -1.0), "dream_share_75": dream_share.get(75, -1.0), "favored": "+".join(favored), "save": save_mode, "omens": omen_mode, "omens_faced": "+".join(omens_faced), "families_forced": "+".join(forced_families), "hand_drifts": hand_drifts,
+		"loadout": _loadout(), "all_families": all_families, "dreams": dream_mode, "boss": act1_boss, "director": ";".join(director_overrides.keys().map(func(k) -> String: return "%s=%s" % [k, director_overrides[k]])), "boss_drained": run.boss_drained, "dream_share_20": dream_share.get(20, -1.0), "dream_share_25": dream_share.get(25, -1.0), "dreams_20": dreams_20, "dream_share_50": dream_share.get(50, -1.0), "dream_share_75": dream_share.get(75, -1.0), "favored": "+".join(favored), "save": save_mode, "omens": omen_mode, "omens_faced": "+".join(omens_faced), "families_forced": "+".join(forced_families), "hand_drifts": hand_drifts,
 		"close_calls": rows.filter(func(r) -> bool: return r.approach > CLOSE_CALL).size(),
 		"approach_max": snappedf(rows.reduce(func(m, r) -> float: return maxf(m, r.approach), 0.0), 0.01),
 		"seconds": snappedf(game_time, 1.0)}
