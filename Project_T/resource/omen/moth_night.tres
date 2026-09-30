@@ -7,6 +7,7 @@ script = ExtResource("1_omen")
 id = "moth_night"
 display_name = "Moth Night"
 description = "60% more flying nightmares."
+flavor = "Moths crowd the lanterns. Something follows them in."
 requires_flyers = true
 flyer_count_multiplier = 1.6
 reward_rare_dreams = 1

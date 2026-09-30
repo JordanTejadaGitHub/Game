@@ -7,6 +7,7 @@ script = ExtResource("1_omen")
 id = "fog_bank"
 display_name = "Fog Bank"
 description = "Every Warden has 1 less range."
+flavor = "A fog rolls in. Your Wardens squint into it."
 kind = 1
 warden_range_add = -1.0
 reward_seeds = 6

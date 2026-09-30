@@ -7,6 +7,7 @@ script = ExtResource("1_omen")
 id = "leaf_fall"
 display_name = "Leaf Fall"
 description = "Every leak costs double leaves (a boss's leak costs 10)."
+flavor = "The Heartwood's leaves hang by a thread."
 kind = 1
 leak_multiplier = 2.0
 reward_max_leaves = 3

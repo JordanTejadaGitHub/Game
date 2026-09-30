@@ -7,5 +7,6 @@ script = ExtResource("1_omen")
 id = "dry_spell"
 display_name = "Dry Spell"
 description = "Nightmares give no Dew."
+flavor = "Not a drop of Dew falls tonight."
 creature_dew_multiplier = 0.0
 reward_rest_bonus_multiplier = 2.5

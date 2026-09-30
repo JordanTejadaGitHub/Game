@@ -697,13 +697,18 @@ func _run() -> void:
 		var body_sizes: Array = []
 		for card in omen_screen._cards.get_children():
 			var labels: Array = card.find_children("*", "Label", true, false)
-			body_sizes.append(labels[1].get_theme_font_size("font_size") if labels.size() > 1 else -1)
+			body_sizes.append(labels[2].get_theme_font_size("font_size") if labels.size() > 2 else -1)  # Name, flavour, then the body
+			_check(card.find_child("Flavor", true, false) != null, "%s has a flavour line (Omen voice)" % card.name)
 		_check(body_sizes.size() == 2 and body_sizes[0] == body_sizes[1], "Face an Omen and Clear Skies share one body size (%s)" % [body_sizes])
 		omen_screen._clear_cards()
 		for i in range(0, all_omens.size(), 3):
 			omen_screen._reveal(all_omens.slice(i, i + 3), null)
 			await _frames(3)
 			_check_omen_cards(omen_screen, "revealed Omens %d–%d at %s" % [i, i + 2, view])
+			for card in omen_screen._cards.get_children():
+				var reward_label: Label = card.find_child("Reward", true, false)
+				_check(reward_label != null and (reward_label.text.begins_with("Reward · ") or reward_label.text.begins_with("Double-edged")) and not reward_label.text.contains(":"),
+					"%s: \"Reward · …\", no colon (%s)" % [card.name, reward_label.text if reward_label else "none"])
 			omen_screen._clear_cards()
 	omen_screen._on_closed()
 	root.size = Vector2i(1280, 800)

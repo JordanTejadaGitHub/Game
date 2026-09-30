@@ -7,6 +7,7 @@ script = ExtResource("1_omen")
 id = "hard_bark"
 display_name = "Hard Bark"
 description = "Blight coats are 75% thicker."
+flavor = "Their shells have grown thick with rot."
 coat_multiplier = 1.75
 reward_rare_dreams = 1
 reward_dew = 25

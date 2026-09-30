@@ -7,5 +7,6 @@ script = ExtResource("1_omen")
 id = "restless_wind"
 display_name = "Restless Wind"
 description = "Nightmares arrive 45% closer together."
+flavor = "They come in waves, one on the heels of the last."
 arrival_spacing_multiplier = 0.55
 reward_max_leaves = 2

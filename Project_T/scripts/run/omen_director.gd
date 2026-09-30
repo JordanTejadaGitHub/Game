@@ -135,7 +135,7 @@ func describe_reward(omen: OmenData, act: int, rest_bonus: int = -1) -> String:
 	if omen.reward_max_leaves > 0:
 		parts.append("+%d max %s" % [omen.reward_max_leaves, "leaf" if omen.reward_max_leaves == 1 else "leaves"])
 	if omen.reward_rare_dreams > 0:
-		parts.append("next Dream: one card is Rare+")
+		parts.append("a Rare+ card in the next Dream")
 	if omen.reward_extra_dream_cards > 0:
 		parts.append("next Dream offers %d cards" % (dream_state.cards_per_offer + omen.reward_extra_dream_cards))
 	if omen.reward_rest_bonus_multiplier > 1.0:
@@ -148,7 +148,7 @@ func describe_reward(omen: OmenData, act: int, rest_bonus: int = -1) -> String:
 	if omen.reward_legendary:
 		parts.append("next Dream includes a Legendary")
 	if omen.reward_tree_seeds > 0:
-		parts.append("each Withered Tree you clear this run: +%d Seeds instead of 1" % (1 + omen.reward_tree_seeds))
+		parts.append("Withered Trees you clear this run give %d Seeds (not 1)" % (1 + omen.reward_tree_seeds))
 	return " · ".join(parts)
 
 func _extra_rest_bonus(omen: OmenData, rest_bonus: int) -> int:
