@@ -977,6 +977,8 @@ func _nightmare_entry(data: EnemyData, met: Array, viewed: Array, dispels: Dicti
 	head.add_child(UiStyle.on_moon_disc(face))
 	var names := VBoxContainer.new()
 	names.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	if data.is_boss:  # "It must feel like THE boss" (screens_ui.md "Boss dossier"): the same eyebrow
+		names.add_child(BossDossier.eyebrow(NightmareCodex.act_of(data), 13))
 	var name := Label.new()
 	name.text = data.display_name
 	UiStyle.title(name, 20, UiStyle.BOSS.lightened(0.25) if data.is_boss else UiStyle.INK)

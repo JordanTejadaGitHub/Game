@@ -167,9 +167,14 @@ func _run() -> void:
 	_check(dossier.visible and dossier.shown_drift == 25, "act 1: the dossier opens by itself at the first rest (drift %d)" % dossier.shown_drift)
 	var text := _text(dossier._content)
 	var health := NightmareCard.health_at(stag, 25, director)
-	_check(health == maxi(roundi(stag.health * director.get_health_scale(stag, 25)), 1) and text.contains(str(health)),
+	_check(health == maxi(roundi(stag.health * director.get_health_scale(stag, 25)), 1) and text.contains(BossDossier.thousands(health)),
 		"the real boss health (%d)" % health)
-	_check(text.contains(stag.title) and text.contains("Arrives in drift 25"), "header: title and arrival")
+	_check(text.contains(stag.title) and text.contains("drift 25 · the last drift of the act") and text.contains("the boss of act 1") and text.contains("Arrives in"), "header: eyebrow, title, drift and arrival")
+	_check(text.contains("leaves") and text.contains("about "), "the leaves it takes, and its health in Husks (%s)" % text.left(300))
+	var revealed := []
+	dossier.boss_revealed.connect(func(d: EnemyData) -> void: revealed.append(d))
+	dossier.open(25)
+	_check(revealed == [stag], "opening it emits boss_revealed for Sound")
 	_check(text.contains("What it does") and text.contains("Charge") and text.contains("at 50% health"), "abilities with when")
 	_check(not text.contains("What helps") and text.contains("Your record") and text.contains("New"), "no What helps (removed 2026-09-30); the record")
 	dossier.close_dossier()
