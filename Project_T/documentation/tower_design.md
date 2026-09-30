@@ -181,6 +181,20 @@ it's the family that **cashes in** Marked, Held and Drowsy, and the answer to th
 | Hidden | Rootlight | glowing roots light up path tiles in range: **reveals Lurkers**, **Gravecrawlers can't burrow** there, and **Held lasts 50% longer** on lit tiles | — | Held, long paths |
 | Hidden+ | Starcave | bigger lit area; Held lasts **twice as long** on lit tiles | — | Held, long paths |
 
+**Pulls are a drag you can see, not a teleport** (2026-09-30, user: "make it clear when Rootcurl
+knocks the enemy back; not teleport back"). Every pull-back (Rootcurl, Long Way Home, the Snare
+Kinship's half-tile drag, the Tidecaller's wave) plays in three beats:
+1. **Grab** (~0.15 s): roots burst from the ground and wrap the nightmare's feet, timed with the
+   Warden's pull animation.
+2. **Drag** (~0.45 s for 1 tile, ~0.8 s for 3): the nightmare **slides backward along its route**,
+   fast at first then settling, still facing forward with its feet scraping and a small struggle
+   wobble. Soil puffs kick up along the way and a **furrow** is left on the path, fading over ~1 s.
+3. **Release:** the roots sink back and it walks on.
+- During the drag it can't move forward but can still be hit and targeted. The distance pulled is
+  unchanged; the drag only replaces the instant jump.
+- Bosses: the shorter pull drags slower and heavier (the roots strain).
+- With reduced motion, the drag is shortened to ~0.2 s and the soil puffs are dropped; the furrow stays.
+
 **Bellflower line**: song and sleep. Bell-flower spirits that ring, hum and sing nightmares to
 sleep, then make sleep dangerous. Owns **Drowsy**.
 
