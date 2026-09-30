@@ -1,7 +1,7 @@
 [gd_resource type="Resource" script_class="EnemyData" load_steps=4 format=3]
 
 [ext_resource type="Script" path="res://resource/enemy/script/enemy_data.gd" id="1_edata"]
-[ext_resource type="SpriteFrames" path="res://animation/enemy/wandering_hare.tres" id="2_frames"]
+[ext_resource type="SpriteFrames" path="res://animation/enemy/scarecrow.tres" id="2_frames"]
 [ext_resource type="Resource" path="res://resource/enemy/crow.tres" id="3_crow"]
 
 [resource]
@@ -13,8 +13,6 @@ speed = 45.0
 dew_reward = 40
 leaf_cost = 5
 is_boss = true
-sprite_scale = 1.6
-tint = Color(0.8, 0.7, 0.5, 1)
 resists = Array[String](["stone", "wing"])
 weak_to = Array[String](["spore"])
 grief_spawn = ExtResource("3_crow")

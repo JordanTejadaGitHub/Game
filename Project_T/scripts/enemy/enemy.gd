@@ -881,6 +881,9 @@ func update_animation(velocity: Vector2) -> void:
 	if rolling and sprite.sprite_frames.has_animation(&"roll"):
 		animation = &"roll"
 		flip = velocity.x < 0
+	elif _charge_left > 0.0 and sprite.sprite_frames.has_animation(&"gallop"):
+		animation = &"gallop"  # Night Mare's Bolt
+		flip = velocity.x < 0
 	elif abs(velocity.x) >= abs(velocity.y):  # Moving horizontally
 		animation = &"walk_side"
 		flip = velocity.x < 0  # Flip horizontally if moving left
@@ -1544,7 +1547,10 @@ func _check_health_thresholds() -> void:
 	while _griefs < enemy_data.grief_at.size() and health <= max_health * enemy_data.grief_at[_griefs]:
 		_griefs += 1
 		hold_time = maxf(hold_time, enemy_data.grief_pause)  # It stops and wails
-		_play_pose(&"grief", enemy_data.grief_pause)
+		if sprite.sprite_frames.has_animation(&"burst"):  # Scarecrow: the coat flies open, Crows scatter
+			_play_pose(&"burst", maxf(enemy_data.grief_pause, _animation_length(&"burst")))
+		else:
+			_play_pose(&"grief", enemy_data.grief_pause)
 		grief_requested.emit(self)
 	while _wither_bursts < enemy_data.wither_burst_at.size() and health <= max_health * enemy_data.wither_burst_at[_wither_bursts]:
 		_wither_bursts += 1

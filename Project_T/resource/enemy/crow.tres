@@ -1,7 +1,7 @@
 [gd_resource type="Resource" script_class="EnemyData" load_steps=3 format=3]
 
 [ext_resource type="Script" path="res://resource/enemy/script/enemy_data.gd" id="1_edata"]
-[ext_resource type="SpriteFrames" path="res://animation/enemy/leaf_bug.tres" id="2_frames"]
+[ext_resource type="SpriteFrames" path="res://animation/enemy/crow.tres" id="2_frames"]
 
 [resource]
 script = ExtResource("1_edata")
@@ -11,10 +11,8 @@ health = 40
 speed = 150.0
 dew_reward = 1
 leaf_cost = 1
-sprite_scale = 0.8
 trait_kind = 1
 flies_along_route = true
-tint = Color(0.35, 0.33, 0.42, 1)
 trait_text = "Bursts from the Scarecrow's coat and flies along the path above the maze."
 intro_lines = Array[String](["Small and fast: a flock bursts from the Scarecrow's coat and flies the path over your walls."])
 hint = "Walls don't stop them, but every Warden along the path can reach them."
