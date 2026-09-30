@@ -6,7 +6,7 @@
 script = ExtResource("1_unlock")
 id = "firefly_jar_ascension"
 display_name = "Ascension: Stormheart"
-description = "The Ascended Stormheart can grow in your runs: from {drift} 51, 3 {dreamlight}, then 400 Dew on a final form. Lightning chains to every nightmare in range."
+description = "Stormheart, {family:firefly_jar}'s Ascended form, can grow in your runs: from {drift} 51, 3 {dreamlight}, then 400 Dew on a final form. Lightning chains to every nightmare in range."
 root = 0
 costs = Array[int]([120])
 order = 31

@@ -6,7 +6,7 @@
 script = ExtResource("1_unlock")
 id = "nestling_ascension"
 display_name = "Ascension: Dawnwing"
-description = "The Ascended Dawnwing can grow in your runs: from {drift} 51, 3 {dreamlight}, then 400 Dew on a final form. A great bird circles the path, striking everything it passes."
+description = "Dawnwing, {family:nestling}'s Ascended form, can grow in your runs: from {drift} 51, 3 {dreamlight}, then 400 Dew on a final form. A great bird circles the path, striking everything it passes."
 root = 0
 costs = Array[int]([120])
 order = 37
