@@ -438,6 +438,39 @@ Final forms get one unmistakable moment each, so reaching one feels like a rewar
 | Puffball | each pop is a **big bloom of light** | `puffball_bloom` |
 | Long Way Home | you see the **roots drag** the nightmare back along the path | `long_way_home_drag` |
 
+**Signature twists for the other finals** (added 2026-09-30, user: "do all the Wardens feel fleshed
+out and unique?"). Only 5 of 27 finals had a signature; the rest were "more of the same" (more
+targets, more rings, a higher %), which doesn't feel worth ~310 Dew and 2 Dreamlight. Each flat
+final now gets a **small new rule plus a visible moment**, inside its family's job. Finals that
+already had a twist keep it: Rockslide (rubble), Jewelwing Court (Flurry), Autumn Gale (catch
+rhythm), Magpie's Hoard (crit Dew), Whispering Hollow (echoes as chain links), Wellspring (the
+Harvest), Grove Heart (grows per Warden). Numbers are starting points.
+
+| Final | Twist | Rule | Visible moment |
+|---|---|---|---|
+| **Snugroot** | **Logjam** | a nightmare it Holds **blocks the path cell** for the Hold: nightmares behind it stop and queue (they don't path around; the route is unchanged), bunching a crowd for area damage. Flyers and Phantoms ignore it; bosses aren't Held long enough to jam | the queue visibly bunches; a small root knot under the held one |
+| **Dreamshroom** | **Dream spores** | an **asleep** nightmare breathes out spores: **1 Spored per second** to nightmares within 1 cell (the sleeper's applier's Potency) | slow violet spore puffs rise from sleepers |
+| **Boulderback** | **Landslide** | every **4th hit** rolls a boulder **2 tiles along the path** from the target (toward the start), hitting everything it passes for 60% of the hit | a rolling boulder with a dust trail |
+| **Lullaby Bell** | **Chorus** | its pulse is **+10% per other Bellflower-family Warden within 3 cells** (max +40%) | its pulse ring shimmers with a note for each voice in the chorus |
+| **Morning Fog** | **Veil** | nothing inside its fog can **hide** (Lurkers are revealed) or be **healed** (a Weeper's mending does nothing there) | the fog glows faintly gold where it cancels something |
+| **Hoarfrost** | **Shatter chain** | a **frozen** nightmare that's dispelled bursts into shards that **freeze** nightmares within 1 cell for **0.5 s** (shard-frozen nightmares don't chain again) | an ice burst with shards flying out |
+| **Beacon** | **Flare** | every **8 s** a flare reveals the **whole map** for 2 s and **Marks the 5 nightmares furthest along**, anywhere | a flare arcs up from the Beacon and lights the map |
+| **Midsummer** | **Solstice** | at **full ramp** the beam **splits onto a second target** for 2 s (it keeps its ramp) | the beam forks with a bright flash |
+| **Starcave** | **Starlit snare** | each lit tile **Holds the first nightmare to step on it each drift** for 0.5 s | a star-glint pops on the tile |
+| **Great Dreamcatcher** | **Mended leaves** | every **25** Caught nightmares dispelled **restores 1 leaf** (max **3 per run**; the only leaf healing outside act breaks). If that's too strong: shards count double instead | a leaf drifts from the dreamcatcher to the Heartwood |
+| **Grafted Elder** | **Double graft** | copies its **two** strongest neighbours and **alternates** between their attacks | its graft glows in the two borrowed colours, swapping |
+| **Starling Murmuration** | **Dark swirl** | every **6 s** the flock forms a swirl (1 cell) over the busiest path tile for 2 s; **Phantoms gliding through it are Held 0.5 s** (once each) | a spinning swirl of starlings |
+| **Zephyr** | **Gale lane** | every **10 s** a gust sweeps **3 path tiles** in range, copying statuses (half stacks) onto everything on them | a gust streak along the path |
+| **Windmill** | **Momentum** | attack speed ramps **+5% per second** while nightmares are in reach (max **+50%**), and drops back after 2 s idle | the blades visibly spin up |
+| **Elf Circle** | **Fairy dance** | a nightmare that steps on **3 rings in one walk** is caught dancing: **Held 1 s** (once per nightmare) | a little ring of lights spins around it |
+
+- These follow the status jobs: Holds are Held (Rootling-style), Marked is Firefly's, nobody else
+  slows or adds "+damage taken".
+- Bosses: Logjam, Fairy dance, Starlit snare and Dark swirl use the boss Held rule (halved); Mended
+  leaves counts boss dispels as 5.
+- **Watch in playtests:** Logjam (it changes crowd flow), Mended leaves (the lose condition) and
+  Momentum (Windmill could outscale).
+
 ### Crowned Reactions: three families at once
 
 Added 2026-09-27 (proposed by the Tower Assets chat, set chosen by the user). A **Crowned
