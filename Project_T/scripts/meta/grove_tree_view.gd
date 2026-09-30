@@ -531,8 +531,8 @@ func _draw_hollow_light() -> void:
 		return
 	var pulse := 0.5 if _reduced_motion else _stepped(sin(TAU * _time / HOLLOW_PULSE_PERIOD))  # 3 stepped levels
 	var centre := vec(hollow)
-	_layer.draw_circle(centre, 22.0, Color(1.0, 0.72, 0.35, 0.06 + 0.05 * pulse))
-	_layer.draw_circle(centre, 12.0, Color(1.0, 0.82, 0.5, 0.08 + 0.07 * pulse))
+	_layer.draw_circle(centre, 22.0, Color(Palette.EMBER, 0.06 + 0.05 * pulse))
+	_layer.draw_circle(centre, 12.0, Color(Palette.GLOW, 0.08 + 0.07 * pulse))
 
 # Mist strips drifting through the roots (layout "mists": [{file, y, speed}], art px per second, wrapping).
 var _mist_textures := {}
