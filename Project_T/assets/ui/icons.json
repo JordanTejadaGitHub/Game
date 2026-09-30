@@ -10,10 +10,6 @@
 		"wind",
 		"plain"
 	],
-	"family_marks": [
-		"sprout_mark",
-		"hedge_mark"
-	],
 	"frame_size": 16,
 	"icons": {
 		"always_damp": 0,
@@ -45,7 +41,6 @@
 		"followers": 45,
 		"frozen": 7,
 		"grief": 35,
-		"hedge_mark": 61,
 		"held": 5,
 		"hidden": 9,
 		"ignores_slows": 38,
@@ -70,7 +65,6 @@
 		"spore": 48,
 		"spored": 2,
 		"sprints": 26,
-		"sprout_mark": 60,
 		"static": 4,
 		"stone": 49,
 		"swarm": 46,

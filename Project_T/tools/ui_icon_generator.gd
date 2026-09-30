@@ -263,9 +263,6 @@ const DAMAGE_TYPE_ICONS := ["spore", "stone", "water", "light", "root", "song", 
 # Run resources for the HUD counters (ui_style.md): leaves, path length, Seeds. Dew and Dreamlight
 # reuse the cost icons (aliases "dew", "dreamlight").
 const RESOURCE_ICONS := ["leaves", "path_length", "seeds"]
-# Family emblems for the Sprout and Thornwall (the others use their damage-type badge). Appended
-# last so earlier columns keep their place.
-const FAMILY_MARKS := ["sprout_mark", "hedge_mark"]
 # Ids that share another icon's column.
 const ICON_ALIASES := {"always_damp": "damp", "burrows": "rises", "dew": "dew_cost", "dreamlight": "dreamlight_cost"}
 
@@ -274,7 +271,7 @@ var _ramps: Array = []  # [light, mid, dark]
 var _details: Array = []  # [Vector2i, Color], painted last
 
 func _make_icons() -> void:
-	var ids: Array = STATUS_ICONS + STAT_ICONS + NIGHTMARE_ICONS + DAMAGE_TYPE_ICONS + RESOURCE_ICONS + FAMILY_MARKS
+	var ids: Array = STATUS_ICONS + STAT_ICONS + NIGHTMARE_ICONS + DAMAGE_TYPE_ICONS + RESOURCE_ICONS
 	var sheet := Image.create(ICON * ids.size(), ICON, false, Image.FORMAT_RGBA8)
 	var index := {}
 	for i in ids.size():
@@ -287,7 +284,7 @@ func _make_icons() -> void:
 	sheet.save_png(OUT + "icons.png")
 	var data := {frame_size = ICON, icons = index, statuses = STATUS_ICONS, stats = STAT_ICONS,
 		nightmare = NIGHTMARE_ICONS + ["hidden", "always_damp", "burrows"], damage_type = DAMAGE_TYPE_ICONS,
-		resources = RESOURCE_ICONS + ["dew", "dreamlight"], family_marks = FAMILY_MARKS,
+		resources = RESOURCE_ICONS + ["dew", "dreamlight"],
 		note = "One row of 16x16 icons; column = icons[id]. Readable at 12 px; for 24-32 px panels scale by whole numbers with nearest filtering."}
 	var file := FileAccess.open(OUT + "icons.json", FileAccess.WRITE)
 	file.store_string(JSON.stringify(data, "\t") + "\n")
@@ -1008,40 +1005,6 @@ func _ic_plain() -> void:
 	_type_badge()
 	var k := _rp("#fffbf0", "#e8dcc4", "#b8a888")
 	_c_disc(Vector2(8, 8), 2.2, k)
-
-
-# Family marks for the two families without a damage type (IconInfo.family_emblem). Same badge;
-# the middle stays calm because a hotkey number is drawn over it: the shapes sit at top / bottom.
-
-func _ic_sprout_mark() -> void:
-	# Two leaves opening at the top on a stem, a little soil mound at the bottom.
-	_type_badge()
-	var leaf := _rp("#d8f8a0", "#7cc050", "#3a7a34")
-	var stem := _rp("#b8e880", "#62b04a", "#3a7a34")
-	var soil := _rp("#e0b080", "#b07a48", "#7a5028")
-	_c_ell(Vector2(5.4, 5.0), Vector2(2.9, 1.6), leaf, -0.5)
-	_c_ell(Vector2(10.6, 4.6), Vector2(3.0, 1.7), leaf, 0.5)
-	_c_line([Vector2(8, 11.4), Vector2(8, 5.0)], 1.1, stem)
-	_c_ell(Vector2(8, 12.0), Vector2(4.2, 1.5), soil)
-	_dt(4, 4, Color("#f0ffd8"))
-	_dt(10, 3, Color("#f0ffd8"))
-
-func _ic_hedge_mark() -> void:
-	# A low thorny hedge along the bottom: three rounded bushes with dark gaps between them, pale
-	# thorns pricking up from their tops, two little roses.
-	_type_badge()
-	var bush := _rp("#a8e070", "#4a9a40", "#2a5a28")
-	_c_disc(Vector2(4.6, 11.2), 2.2, bush)
-	_c_disc(Vector2(8.0, 10.6), 2.5, bush)
-	_c_disc(Vector2(11.4, 11.2), 2.2, bush)
-	_c_rect(Rect2i(3, 12, 10, 1), bush)
-	for p: Vector2i in [Vector2i(6, 10), Vector2i(10, 10)]:
-		_dt(p.x, p.y, Color("#1e3a1a"))  # the dips between bushes
-	for p: Vector2i in [Vector2i(4, 8), Vector2i(8, 7), Vector2i(12, 8)]:
-		_dt(p.x, p.y, Color("#c8a070"))  # thorns (odd count, off the middle pair, so no "face")
-		_dt(p.x, p.y + 1, Color("#7a5a38"))
-	_dt(4, 12, Color("#ff8aa0"))
-	_dt(9, 10, Color("#ff8aa0"))
 
 # Run resources ----------------------------------------------------------------------------------
 
