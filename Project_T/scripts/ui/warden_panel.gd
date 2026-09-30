@@ -93,6 +93,7 @@ func _show(tower: Tower) -> void:
 
 func _refresh() -> void:
 	_group_refresh_queued = false  # This refresh already shows the current Dew
+	_shown = _selection_state()
 	for child in _groups.get_children():
 		child.queue_free()
 	tower_placer.hide_catch_preview()
@@ -204,7 +205,7 @@ func _refresh() -> void:
 		_add_target_switch([_tower])
 	if data.has_bird_toggle:
 		var birds := _add_button("Birds: %s" % ("all on the strongest" if _tower.focus_strongest else "spread out"))
-		birds.tooltip_text = "Click to switch: spread out, or all on the strongest."
+		birds.tooltip_text = "Spread out, or all on the strongest."
 		birds.pressed.connect(func() -> void:
 			_tower.focus_strongest = not _tower.focus_strongest
 			_refresh())
@@ -642,6 +643,17 @@ func _show_damage_type(data: TowerData) -> void:
 	_damage_type.tooltip_text = "Nightmares can resist or be weak to a damage type."
 
 const PORTRAIT_SIZE := 48.0
+const WATCH_EVERY := 0.1  # Seconds between checks that the selection still looks like what the panel shows
+var _watch_left := 0.0
+var _shown := []  # [form, rank, Focus] of each selected Warden when the panel was last built
+
+func _selection_state() -> Array:
+	var state := []
+	for tower in tower_seller.selection:
+		if is_instance_valid(tower):
+			state.append([tower.tower_data, tower.rank, tower.focus])
+	return state
+
 
 # The header portrait idles like the Warden on the map (called from _process).
 func _animate_portrait(delta: float) -> void:
@@ -680,6 +692,12 @@ func _pointer_inside() -> bool:
 
 func _process(delta: float) -> void:
 	_animate_portrait(delta)
+	# A Warden grown or nurtured by a hotkey (Q / E / Z, G, R) or a group bloom: show its new form.
+	_watch_left -= delta
+	if visible and _watch_left <= 0.0:
+		_watch_left = WATCH_EVERY
+		if _selection_state() != _shown:
+			_refresh()
 	var now := Time.get_ticks_msec()
 	var group_due := _group_refresh_queued and now - _group_refreshed_at >= GROUP_REFRESH_MS
 	if (_dew_dirty and not _pointer_inside()) or group_due:

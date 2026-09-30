@@ -626,10 +626,7 @@ func _draw() -> void:
 	var center: Vector2 = MAP_GRID.calculate_map_position(_hover_cell)
 	var rect := Rect2(center - MAP_GRID.cell_size / 2, MAP_GRID.cell_size).grow(-2)
 	draw_rect(rect, HIGHLIGHT_COLOR, false, 2.0)
-	var label := "%s · click: details · %s: sell +%d Dew" % [_hover_tower.tower_data.display_name,
-		_sell_key_name(), get_refund(_hover_tower)]
-	if not can_sell():
-		label = "%s · click: details · Overgrown: no selling until the rest" % _hover_tower.tower_data.display_name
+	var label := _hover_tower.tower_data.display_name  # Just the name (text_style.md: no hints on hover)
 	WorldLabel.draw_tag(self, center.x, rect.position.y - 8, label)
 
 # --- Targeting (screens_ui.md "Targeting") -------------------------------------------------------------

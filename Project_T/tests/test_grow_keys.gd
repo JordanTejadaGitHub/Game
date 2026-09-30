@@ -72,6 +72,30 @@ func _run() -> void:
 	_press(seller, KEY_Q)
 	_check(a.tower_data == first and b.tower_data == first, "Q grows the whole group into the 1st option")
 
+	# A Sprout with two families picked: each key grows it into the form its button names, charges the
+	# button's price, and the panel follows (playtest bug: the panel kept showing the Sprout).
+	dreams.unlock_everything = false
+	dreams.unlocked[&"pebbling"] = true
+	dreams.unlocked[&"acorn"] = true
+	for index in 2:
+		var sprout := _build(placer, map, load("res://resource/tower/sprout.tres"))
+		seller.set_selection([sprout])
+		await process_frame
+		var sprout_options := Tower.grow_options(dreams, sprout.tower_data)
+		var into: TowerData = sprout_options[index][0]
+		var key_name := TowerSeller.key_name(TowerSeller.GROW_OPTION_ACTIONS[index])
+		var named: Array = panel.find_children("*", "Button", true, false).filter(func(b: Button) -> bool:
+			return b.text.begins_with("Grow into %s" % into.display_name) and b.text.ends_with("(%s)" % key_name))
+		_check(sprout_options.size() >= 2 and named.size() == 1, "the %s button names %s (%d options)" % [key_name, into.display_name, sprout_options.size()])
+		var price: int = sprout.get_grow_cost(into).total
+		var dew_before := run_state.dew
+		_press(seller, [KEY_Q, KEY_E][index])
+		_check(sprout.tower_data == into, "%s grows it into %s (got %s)" % [key_name, into.display_name, sprout.tower_data.display_name])
+		_check(dew_before - run_state.dew == price, "charged the button's price (%d, spent %d)" % [price, dew_before - run_state.dew])
+		for i in 12:
+			await process_frame
+		_check(panel._title.text.begins_with(into.display_name), "the panel shows the new form (%s)" % panel._title.text)
+
 	print("grow keys test: %s" % ("PASS" if failures == 0 else "%d FAILED" % failures))
 	main.queue_free()
 	await process_frame
