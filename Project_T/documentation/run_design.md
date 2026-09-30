@@ -313,8 +313,8 @@ That's **4 Warden families per run** (out of 7, or 9 in the full game), so every
 different way. The run starts
 with only Sprout + Thornwall. **Act 1 is about one family**: you deepen it through its branches
 before a second family arrives at drift 25. When fewer than 3 new families are available (early
-in the meta, before the Grove unlocks Pebbling, Rootling and Acorn), empty slots become **Family
-Blessings** for a family you own (`meta_design.md`).
+in the meta, before the Grove unlocks Pebbling, Rootling and Acorn), the pick shows **fewer cards**, and with none left the boss gives +2 Dreamlight (was: empty slots became **Family
+Blessings**; replaced 2026-09-30, `meta_design.md`).
 
 ### Dreamlight: choosing your build paths
 
