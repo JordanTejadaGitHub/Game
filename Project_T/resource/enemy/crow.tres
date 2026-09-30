@@ -15,4 +15,4 @@ sprite_scale = 0.8
 tint = Color(0.35, 0.33, 0.42, 1)
 trait_text = "Bursts from the Scarecrow's coat and runs ahead."
 intro_lines = Array[String](["Small and fast: a flock bursts from the Scarecrow's coat."])
-hint = "Wardens further down the maze catch the ones that slip by."
+hint = "Wardens farther down the maze catch the ones that slip by."
