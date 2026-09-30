@@ -111,7 +111,7 @@ const GLOSSARY_SOURCE := [
 # The id is also the DamageLog combo tag where one exists (conducted, popped, fog); the rest are
 # reported with ComboFeedback.report(id, …) where they happen.
 const SYNERGIES := {
-	&"conducted": ["Conducted", [&"damp", &"static"], "Lightning jumps further and more often between {damp} nightmares.", "Stormcap"],
+	&"conducted": ["Conducted", [&"damp", &"static"], "Lightning jumps farther and more often between {damp} nightmares.", "Stormcap"],
 	&"popped": ["Popped", [&"spored", &"spored"], "10+ {spored} bursts over the nightmare and its neighbors.", "Puffball"],
 	&"asleep": ["Asleep", [&"drowsy", &"drowsy"], "Full {drowsy}: the nightmare falls {asleep} for 3 s; a big hit (10%+ of its health) wakes it.", "Dreamshroom"],
 	&"fog": ["Spore Fog", [&"spored", &"damp"], "{spored} ticks harder inside Mistveil fog.", "Mistveil"],
@@ -385,7 +385,7 @@ const CALLOUT_SEEN_KEY := "callouts_seen"
 const CALLOUT_ENTRIES := [
 	# [callout id, entry name, line, related]
 	[&"crit", "Critical", "A critical hit: the Warden's hit landed for extra damage (its crit chance is on the Warden panel). Not the Shatter Reaction (\"Shatter!\").", ["Crit"]],
-	[&"conducted", "Conducted", "Lightning through {damp}: bolts jump further and more often between {damp} nightmares (the Conducted combo).", ["Conducted"]],
+	[&"conducted", "Conducted", "Lightning through {damp}: bolts jump farther and more often between {damp} nightmares (the Conducted combo).", ["Conducted"]],
 	[&"popped", "Popped", "Poison pops: 10+ {spored} bursts over the nightmare and its neighbors (the Popped combo).", ["Popped"]],
 	[&"asleep", "Asleep", "Full {drowsy}: the nightmare falls asleep for a moment; a big hit wakes it (the Asleep combo).", ["Asleep"]],
 	[&"weak", "Weak", "A hit from a family this nightmare is weak to: ×1.5 damage (the sparkle).", []],

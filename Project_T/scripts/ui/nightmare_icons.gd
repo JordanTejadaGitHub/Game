@@ -42,7 +42,7 @@ const TRAITS := {
 	&"wanders": ["Wanders", "Strays into dead-end pockets and back out, taking its time."],
 	&"splits": ["Splits", "Bursts into smaller nightmares when dispelled."],
 	&"trample": ["Tramples walls", "Knocks down Thornwalls next to it, for good."],
-	&"leap": ["Leaps", "Sinks and rises further along the path, skipping tiles."],
+	&"leap": ["Leaps", "Sinks and rises farther along the path, skipping tiles."],
 	&"mender": ["Mends", "Heals the nightmares near it."],
 	&"waker": ["Wakes others", "Shakes {drowsy} off the nightmares near it."],
 	&"revealer": ["Reveals", "Uncovers {hidden} nightmares near it, for your Wardens too."],

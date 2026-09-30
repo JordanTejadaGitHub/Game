@@ -11,7 +11,7 @@ class_name IconInfo
 # these names. Text anywhere can say {damp} / {static} …; format() puts in the current names, and
 # StatusLinks turns them into links.
 const STATUSES := {
-	&"damp": ["Soaked", "Water hits deal 20% more. Lightning jumps further between {damp} nightmares."],
+	&"damp": ["Soaked", "Water hits deal 20% more. Lightning jumps farther between {damp} nightmares."],
 	&"drowsy": ["Drowsy", "8% slower per stack. At full stacks it's {asleep}."],
 	&"spored": ["Poisoned", "Poison eats at it over time, more with every stack."],
 	&"marked": ["Exposed", "Takes 25% more from every Warden."],
