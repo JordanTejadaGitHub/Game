@@ -48,7 +48,7 @@ func _test_flow(main: Node) -> void:
 	# Shown like a Dream: the Omen screen opens right after the Dream, with a third Clear Skies card
 	_check(offers.size() == 1 and offers[0][1] == 3 and omens.is_offering(), "after the Dream: the Omen screen for block 3")
 	var offer: Array = offers[0][0] if not offers.is_empty() else []
-	_check(offer.size() == 1, "one Omen drawn, blind")
+	_check(offer.size() == 2 and offer[0] != offer[1], "2 different Omens drawn (hidden until faced)")
 	var has_flyers := omens._block_has_flyers(omens.get_block_range(3))
 	_check(has_flyers or not offer.any(func(o: OmenData) -> bool: return o.requires_flyers),
 		"no Moth Night without flyers in the block")
@@ -56,26 +56,38 @@ func _test_flow(main: Node) -> void:
 	var screen = main.get_node("HUD/OmenScreen")
 	_check(screen._cards.get_child_count() == 2 and screen._cards.get_child(0).name == "FaceAnOmen", "two cards: Face an Omen (face-down) and Clear Skies")
 	var names: Array = screen.find_children("*", "Label", true, false).map(func(l: Label) -> String: return l.text)
-	_check(offer.is_empty() or not names.has(offer[0].display_name), "the drawn Omen stays hidden until faced")
+	_check(not offer.any(func(o: OmenData) -> bool: return names.has(o.display_name)), "the drawn Omens stay hidden until faced")
 	var esc := InputEventAction.new()
 	esc.action = &"ui_cancel"
 	esc.pressed = true
 	screen._unhandled_input(esc)
 	_check(omens.active == null and not omens.is_offering() and not paused, "Esc = Clear Skies: nothing changes")
-	# Face an Omen: the drawn one is revealed and locked in; Face it closes
+	# Face an Omen: the drawn Omens are revealed, one must be picked (no going back)
 	director.drifts_started = 15
 	omens._last_offer_ids.clear()
 	omens.current_offer = omens.make_offer(4)
 	omens.current_offer_block = 4
-	var drawn: OmenData = omens.current_offer[0]
+	var drawn: Array = omens.current_offer.duplicate()
 	omens._show_cards()
 	await _frames(2)
 	(screen._cards.get_child(0) as Button).pressed.emit()
 	await _frames(30)
-	_check(omens.active == drawn and omens.revealed == drawn and omens.is_offering(), "Face an Omen: the drawn Omen is revealed and locked in")
-	_check(screen._cards.get_child_count() == 1 and screen._cards.get_child(0).name == "RevealedOmen", "…the card flips, Clear Skies is gone")
+	_check(omens.faced and omens.is_offering() and omens.active == null, "Face an Omen: its Omens are revealed, none picked yet")
+	_check(screen._cards.get_child_count() == 2 and screen._cards.get_children().all(func(c: Node) -> bool: return c.name.begins_with("Omen_")),
+		"…the card flips to the 2 Omens, Clear Skies is gone")
 	screen._unhandled_input(esc)
-	_check(omens.active == drawn and not omens.is_offering() and not paused, "…Esc only continues; the Omen stays")
+	omens.choose(null)
+	_check(omens.is_offering() and omens.active == null, "…no going back: Esc and Clear Skies do nothing")
+	var saved_faced := omens.to_save()
+	(screen._cards.get_child(1) as Button).pressed.emit()
+	_check(omens.active == drawn[1] and not omens.is_offering() and not paused and not omens.faced, "…a click picks that Omen")
+	omens.active = null
+	omens.load_save(JSON.parse_string(JSON.stringify(saved_faced)))
+	_check(omens.faced and omens.current_offer.size() == 2, "a save made after facing keeps it faced (no Clear Skies on load)")
+	omens.current_offer = []
+	omens.faced = false
+	omens._offer_waiting = false
+	omens._last_offer_ids.clear()
 	omens.active = null
 
 	# Never: no screen at all
@@ -87,18 +99,19 @@ func _test_flow(main: Node) -> void:
 	offers.clear()
 	omens._try_show()
 	_check(offers.is_empty() and not omens.is_offering(), "Omens: Never = always Clear Skies, no screen")
-	# A Blight Level that forces an Omen: the cards at once, no Clear Skies
+	# A Blight Level that forces an Omen: the Omens at once, no Clear Skies
 	omens.mode_override = "ask"
 	omens.force_omen = true
 	omens.current_offer = omens.make_offer(4)
 	omens._offer_waiting = true
 	var forced_offer: Array = omens.current_offer.duplicate()
 	omens._try_show()
+	await _frames(2)
 	omens.choose(null)
-	_check(omens.is_offering() and omens.forced and omens.revealed == forced_offer[0] and omens.active == forced_offer[0],
-		"a forced Omen skips the choice: revealed at once, can't be declined")
-	omens.reveal_done()
-	_check(not omens.is_offering(), "…Face it closes")
+	_check(omens.is_offering() and omens.forced and omens.faced and screen._cards.get_child_count() == 2,
+		"a forced Omen skips the first screen: its Omens at once, can't be declined")
+	omens.choose(forced_offer[0])
+	_check(omens.active == forced_offer[0] and not omens.is_offering(), "…one is faced")
 	omens.force_omen = false
 	omens.active = null
 	omens._last_offer_ids.clear()
@@ -108,7 +121,7 @@ func _test_flow(main: Node) -> void:
 	var saved := omens.to_save()
 	omens.current_offer = []
 	omens.load_save(JSON.parse_string(JSON.stringify(saved)))
-	_check(omens.current_offer.size() == 1 and omens.current_offer_block == 4 and not omens.showing, "the drawn Omen comes back after a save (still face-down)")
+	_check(omens.current_offer.size() == 2 and omens.current_offer_block == 4 and not omens.showing, "the drawn Omens come back after a save (still face-down)")
 	omens.load_save({"active": "harvest_moon", "active_block": 4, "last_offer": ["harvest_moon"]})
 	_check(omens.active != null and omens.active.id == "bountiful_night" and Array(omens._last_offer_ids) == ["bountiful_night"],
 		"an old save's Harvest Moon Omen loads as Bountiful Night")
@@ -232,7 +245,7 @@ func _test_new_omens(main: Node) -> void:
 	var saved := omens.to_save()
 	omens.current_offer = []
 	omens.load_save(JSON.parse_string(JSON.stringify(saved)))
-	_check(omens.current_offer.size() == 1 and omens.current_offer_block == 4 and not omens.showing, "the drawn Omen comes back after a save (still face-down)")
+	_check(omens.current_offer.size() == 2 and omens.current_offer_block == 4 and not omens.showing, "the drawn Omens come back after a save (still face-down)")
 	omens.load_save({"active": "harvest_moon", "active_block": 4, "last_offer": ["harvest_moon"]})
 	_check(omens.active != null and omens.active.id == "bountiful_night" and Array(omens._last_offer_ids) == ["bountiful_night"],
 		"an old save's Harvest Moon Omen loads as Bountiful Night")

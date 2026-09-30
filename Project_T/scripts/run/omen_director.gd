@@ -3,8 +3,8 @@ class_name OmenDirector
 
 # Omens (documentation/run_design.md): at every rest from drift `first_rest_drift` on, after the
 # Dream: face an Omen blind or keep Clear Skies (run_design.md "Commit blind, then the Omen is
-# revealed"). Facing it reveals the one Omen drawn for the next block (5 drifts), locked in, for a
-# reward; Clear Skies changes nothing. The reward is paid at the rest after that block
+# revealed"). Facing it reveals `omens_per_offer` Omens (2; Omen Reader 3) for the next block (5 drifts);
+# pick one (no going back to Clear Skies) for its reward; Clear Skies changes nothing. The reward is paid at the rest after that block
 # (or when the run is won during it), as long as the Heartwood is still standing.
 # DriftDirector asks this node for the active Omen's multipliers; bosses ignore them.
 
@@ -13,7 +13,6 @@ const OMEN_DIR := "res://resource/omen/"
 const ACT_REWARD_SCALE := [1.0, 1.5, 2.0, 2.5]  # Dew and Seed rewards, by act
 const TREE := preload("res://resource/obstacle/tree.tres")  # Shifting Ground's sprouts
 const RENAMED := {"harvest_moon": "bountiful_night"}  # Old Omen ids in saved runs
-const DRAWN := 1  # Omens drawn per rest (blind: face it or not)
 
 # The Omens for block `block` (drifts first..last) are ready; the Omen screen pauses and shows them.
 signal offer_ready(omens: Array[OmenData], block: int)
@@ -24,14 +23,14 @@ signal omen_rewarded(omen: OmenData, summary: String)
 
 @export var pool: Array[OmenData] = []  # Empty = every Omen in res://resource/omen/
 @export var first_rest_drift: int = 10
-@export var omens_per_offer: int = 2  # Unused since the blind draw (one Omen); the Grove perk still adds to it
+@export var omens_per_offer: int = 2  # Omens revealed on facing (Omen Reader: +1, MetaRun)
 
 const MODE_SETTING := "omens"  # Settings > Gameplay: "ask" (default) or "never"
 var force_omen := false  # Blight Levels that force an Omen: only the two Omen cards, no Clear Skies
 var mode_override := ""  # Tests and tools: "ask" / "never" instead of the player's setting
 var showing := false  # The Omen screen is open
 var forced := false  # The open offer can't be declined ("An Omen must be faced")
-var revealed: OmenData = null  # Faced and flipped: the screen shows it until reveal_done()
+var faced := false  # Face an Omen was chosen: its Omens are shown, one must be picked (saved)
 
 var active: OmenData = null
 var active_block := 0  # The block `active` twists
@@ -75,7 +74,7 @@ static func load_pool() -> Array[OmenData]:
 
 # The Omen screen is open (after the Dream, like it: two Omens and Clear Skies; pauses).
 func is_offering() -> bool:
-	return showing and (not current_offer.is_empty() or revealed != null)
+	return showing and not current_offer.is_empty()
 
 # "ask" (the Omen screen each Omen rest, the default) or "never" (always Clear Skies, no screen).
 func get_mode() -> String:
@@ -154,7 +153,8 @@ func _extra_rest_bonus(omen: OmenData, rest_bonus: int) -> int:
 
 # --- Offers ----------------------------------------------------------------------------------------
 
-# The Omen drawn for block `block`: one random Omen that makes sense there (hidden until faced).
+# The Omens drawn for block `block`: `omens_per_offer` random ones that make sense there (hidden until
+# faced).
 # Never an Omen from the previous rest, and the Omens are of different kinds (run_design.md
 # "More Omens"; if there aren't enough kinds, the rest fill in).
 func make_offer(block: int) -> Array[OmenData]:
@@ -181,11 +181,11 @@ func make_offer(block: int) -> Array[OmenData]:
 	var offer: Array[OmenData] = []
 	var kinds := {}
 	for omen in eligible:
-		if offer.size() < DRAWN and not kinds.has(omen.kind):
+		if offer.size() < omens_per_offer and not kinds.has(omen.kind):
 			offer.append(omen)
 			kinds[omen.kind] = true
 	for omen in eligible:
-		if offer.size() < DRAWN and not offer.has(omen):
+		if offer.size() < omens_per_offer and not offer.has(omen):
 			offer.append(omen)
 	_last_offer_ids.assign(offer.map(func(o: OmenData) -> String: return o.id))
 	return offer
@@ -288,39 +288,31 @@ func _on_obstacle_cleared(_cell: Vector2, data: ObstacleData) -> void:
 	if tree_seed_bonus > 0 and data == TREE and not run_state.clearing_without_seeds:
 		run_state.omen_seeds += tree_seed_bonus
 
-# Face an Omen: the drawn Omen is locked in (no backing out) and revealed. The screen stays open on it
-# until reveal_done(). Returns it (null = nothing drawn).
-func face() -> OmenData:
+# Face an Omen: the drawn Omens are revealed and one must be picked (no going back to Clear Skies).
+# Returns them ([] = nothing drawn).
+func face() -> Array[OmenData]:
 	if current_offer.is_empty():
-		return null
-	var omen: OmenData = current_offer[0]
-	active = omen
-	active_block = current_offer_block
-	current_offer = []
-	revealed = omen
-	var drifts := get_block_range(active_block)
-	omen_started.emit(omen, drifts.x, drifts.y)
-	return omen
+		return []
+	faced = true
+	return current_offer
 
-# The revealed Omen has been read: the screen closes.
-func reveal_done() -> void:
-	revealed = null
+# Picks `omen` (one of the revealed Omens) for the offered block, or null = Clear Skies (its card,
+# Esc, right-click; never once faced or when an Omen is forced). Tests and sims pick directly.
+func choose(omen: OmenData) -> void:
+	if current_offer.is_empty() or (omen != null and not current_offer.has(omen)) or (omen == null and (forced or faced)):
+		return
+	if omen != null:
+		active = omen
+		active_block = current_offer_block
+		var drifts := get_block_range(active_block)
+		omen_started.emit(omen, drifts.x, drifts.y)
+	current_offer = []
+	faced = false
 	var was_showing := showing
 	showing = false
 	forced = false
 	if was_showing:
 		offer_closed.emit()
-
-# Faces the drawn Omen (`omen` = it, from current_offer) and closes at once, or null = Clear Skies
-# (its card, Esc, right-click; not when the Omen is forced). Tests, sims and saves use this.
-func choose(omen: OmenData) -> void:
-	if current_offer.is_empty() or (omen != null and not current_offer.has(omen)) or (omen == null and forced):
-		return
-	if omen != null:
-		face()
-	else:
-		current_offer = []
-	reveal_done()
 
 func _on_rest_started(block: int, _is_boss_rest: bool, bonus: int, _perfect: bool) -> void:
 	# Pay first, so "next Dream" rewards count for this rest's Dream (its offer is built deferred).
@@ -410,6 +402,7 @@ func to_save() -> Dictionary:
 	return {"active": active.id if active != null else "", "active_block": active_block,
 		"last_offer": _last_offer_ids.duplicate(), "tree_seed_bonus": tree_seed_bonus, "sprouted_block": _sprouted_block,
 		"offer": current_offer.map(func(o: OmenData) -> String: return o.id), "offer_block": current_offer_block,
+		"faced": faced,
 		"rng_state": str(_rng.state)}
 
 func load_save(data: Dictionary) -> void:
@@ -426,6 +419,7 @@ func load_save(data: Dictionary) -> void:
 			if omen.id == RENAMED.get(offered_id, offered_id):
 				current_offer.append(omen)
 	current_offer_block = int(data.get("offer_block", 0))
+	faced = bool(data.get("faced", false)) and not current_offer.is_empty()
 	if not current_offer.is_empty():
 		_offer_waiting = true
 		_try_show.call_deferred()

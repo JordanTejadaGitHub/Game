@@ -1,8 +1,8 @@
 extends Control
 
 # The Omen screen at a rest (run_design.md "Commit blind, then the Omen is revealed"): a face-down
-# "Face an Omen" card and Clear Skies (the default: nothing changes, no reward). Facing it flips the
-# card to the drawn Omen (twist + reward), locked in. Esc / right-click = Clear Skies. Pauses and peeks like the Dream screen. Also shows the
+# "Face an Omen" card and Clear Skies (the default: nothing changes, no reward). Facing it flips to
+# the drawn Omens (twist + reward) to pick one from; no going back. Esc / right-click = Clear Skies. Pauses and peeks like the Dream screen. Also shows the
 # active Omen in a small tag under the toast, and toasts when one starts and when its reward is paid.
 # Built in code.
 
@@ -66,8 +66,8 @@ func _ready() -> void:
 	omens.omen_rewarded.connect(_on_omen_rewarded)
 
 # Commit blind (run_design.md "Commit blind, then the Omen is revealed"): a face-down "Face an Omen"
-# card and Clear Skies. Facing it flips the card to the one Omen drawn, locked in; Continue closes.
-# A forced Omen (Blight) skips the choice and reveals at once.
+# card and Clear Skies. Facing it flips to the drawn Omens (2; Omen Reader 3): pick one, no going back.
+# A forced Omen (Blight), or a save made after facing, shows the Omens at once.
 func _show_offer(_offer: Array[OmenData], block: int) -> void:
 	if not visible:
 		_was_paused = game_speed.paused
@@ -76,8 +76,9 @@ func _show_offer(_offer: Array[OmenData], block: int) -> void:
 	_title.text = "The wind stirs  ·  drifts %d–%d" % [_drifts.x, _drifts.y]
 	_clear_cards()
 	visible = true
-	if omens.forced:
-		_title.text = "An Omen must be faced  ·  drifts %d–%d" % [_drifts.x, _drifts.y]
+	if omens.forced or omens.faced:
+		if omens.forced:
+			_title.text = "An Omen must be faced  ·  drifts %d–%d" % [_drifts.x, _drifts.y]
 		_reveal(omens.face(), null)
 		return
 	var back := _make_face_down_card()
@@ -85,15 +86,11 @@ func _show_offer(_offer: Array[OmenData], block: int) -> void:
 	_cards.add_child(_make_clear_skies_card())
 
 var _drifts := Vector2i.ZERO
-var _continue: Button
 
 func _clear_cards() -> void:
 	for child in _cards.get_children():
 		_cards.remove_child(child)
 		child.queue_free()
-	if _continue != null:
-		_continue.queue_free()
-		_continue = null
 
 # The face-down card: a wind swirl and "An unknown twist for the next block. Survive it for a reward."
 func _make_face_down_card() -> Button:
@@ -121,46 +118,42 @@ func _draw_swirl(canvas: Control) -> void:
 		var r := 10.0 + i * 8.0
 		canvas.draw_arc(centre, r, i * 1.2, i * 1.2 + PI * 1.4, 24, Color(OMEN_COLOR, 0.9 - i * 0.2), 3.0, true)
 
-# Flips `from` (the face-down card; null = none) to `omen` and offers Continue; locked in.
-func _reveal(omen: OmenData, from: Button) -> void:
-	if omen == null:
-		omens.reveal_done()
+# Flips `from` (the face-down card; null = none) to the revealed Omens; Clear Skies goes.
+func _reveal(offer: Array[OmenData], from: Button) -> void:
+	if offer.is_empty():
+		omens.choose(null)
 		return
 	var act := drift_director.get_act(_drifts.y)
-	var front := _make_card(omen, act)
-	front.name = "RevealedOmen"
+	var fronts: Array[Button] = []
+	for omen in offer:
+		var front := _make_card(omen, act)
+		front.name = "Omen_" + omen.id
+		fronts.append(front)
 	for child in _cards.get_children():
 		if child != from:
 			_cards.remove_child(child)
 			child.queue_free()  # Clear Skies goes: no backing out
+	if not omens.forced:
+		_title.text = "Choose the Omen  ·  drifts %d–%d" % [_drifts.x, _drifts.y]
 	if from != null and not HeartwoodMemory.get_settings().get("reduced_motion", false):  # The flip
 		from.pivot_offset = from.size / 2.0
 		var tween := create_tween()
 		tween.set_pause_mode(Tween.TWEEN_PAUSE_PROCESS)
 		tween.tween_property(from, "scale:x", 0.0, 0.18)
 		tween.tween_callback(func() -> void:
-			var at := from.get_index()
 			_cards.remove_child(from)
 			from.queue_free()
-			_cards.add_child(front)
-			_cards.move_child(front, at)
-			front.pivot_offset = CARD_SIZE / 2.0
-			front.scale.x = 0.0)
-		tween.tween_property(front, "scale:x", 1.0, 0.18)
+			for front in fronts:
+				_cards.add_child(front)
+				front.pivot_offset = CARD_SIZE / 2.0
+				front.scale.x = 0.0
+				front.create_tween().set_pause_mode(Tween.TWEEN_PAUSE_PROCESS).tween_property(front, "scale:x", 1.0, 0.18))
 	else:
 		if from != null:
 			_cards.remove_child(from)
 			from.queue_free()
-		_cards.add_child(front)
-	_title.text = "The Omen for drifts %d–%d" % [_drifts.x, _drifts.y]
-	_continue = Button.new()
-	_continue.text = "Face it"
-	_continue.custom_minimum_size = Vector2(180, 48)
-	_continue.focus_mode = Control.FOCUS_NONE
-	UiStyle.primary(_continue)
-	_continue.pressed.connect(omens.reveal_done)
-	_cards.get_parent().add_child(_continue)
-	_continue.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+		for front in fronts:
+			_cards.add_child(front)
 
 func _card_box(button: Button) -> VBoxContainer:
 	var box := VBoxContainer.new()
@@ -173,11 +166,12 @@ func _card_box(button: Button) -> VBoxContainer:
 	button.add_child(box)
 	return box
 
-# The revealed Omen: the twist and its reward (not a button any more: it's locked in).
+# A revealed Omen: the twist and its reward; a click picks it.
 func _make_card(omen: OmenData, act: int) -> Button:
 	var button := Button.new()
 	button.custom_minimum_size = CARD_SIZE
 	button.focus_mode = Control.FOCUS_NONE
+	button.pressed.connect(omens.choose.bind(omen))
 	UiStyle.card_button(button, OMEN_COLOR)  # Moonlit Thread card (ui_style.md)
 	var box := _card_box(button)
 	UiStyle.title(_add_line(box, omen.display_name, UiStyle.INK, 22), UiStyle.CARD_NAME_SIZE)
@@ -220,20 +214,14 @@ func _toast(text: String) -> void:
 		hud.show_toast(text)
 
 
-# Esc / right-click = Clear Skies (not when an Omen must be faced); once revealed, they continue.
+# Esc / right-click = Clear Skies (not once faced, nor when an Omen must be faced: then pick one).
 func _unhandled_input(event: InputEvent) -> void:
-	if not visible or peek.peeking:
+	if not visible or omens.forced or omens.faced or peek.peeking:
 		return
 	var right_click: bool = event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_RIGHT
-	if not (event.is_action_pressed("ui_cancel") or right_click):
-		return
-	if omens.revealed != null:
-		omens.reveal_done()
-	elif not omens.forced:
+	if event.is_action_pressed("ui_cancel") or right_click:
 		omens.choose(null)
-	else:
-		return
-	get_viewport().set_input_as_handled()
+		get_viewport().set_input_as_handled()
 
 # The third card: Clear Skies, the default (highlighted). "Nothing changes. No reward."
 func _make_clear_skies_card() -> Button:
