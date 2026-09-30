@@ -885,7 +885,7 @@ build has a **package** of enhancer cards (Legendaries aren't in packages: they 
 | Build | Families | Package (ids) |
 |---|---|---|
 | **Storm Grid** | Firefly Jar + Dewdrop | Rolling Thunder, Rain on Glass, Soaked Through, Heavy Dew, Brighter Jars, Charged Field (`static_field`), Conductive Soil |
-| **Spore Bomb** | Sporeling (+ Dewdrop for Mistveil) | Soft Spores, Lingering Spores, Spore Cascade, Chain Bloom, Sparking Spores, Twin Puff |
+| **Spore Bomb** | Sporeling (+ Dewdrop for Mistveil) | Soft Spores, Lingering Spores, Spore Cascade, Chain Bloom, Damp Rot (was Sparking Spores, which needs Firefly Jar: a package mistake), Twin Puff |
 | **Eldest (tall)** | any | Tender Care, Warm Hands, Kindred Roots, Deeper Rings, Sunlit Rest, Chosen Few |
 | **Wide Sprouts** | any | Seedfall, Sprout Surge, Sprout Chorus, Root Network, Seedling Gift, Many Hands |
 | **Kinship** | one family, both branches | Quick Bonds, Family Ties, Sweet Harmony, Close Kin, Old Friends, Rooted Bond, Extended Family |
@@ -900,11 +900,115 @@ build has a **package** of enhancer cards (Legendaries aren't in packages: they 
 - **Targets** (the "Adapt, don't get handed" balance: a build should come together, not be handed):
   - **3+ package cards by drift 50** in **~50–70%** of runs.
   - **5+ by drift 100** in **~50–70%** of runs.
-  - Never above ~90% at any checkpoint (that's being handed the build).
+  - **5+ never above ~90%** at any checkpoint (that's being handed the build). 3+ late in the run
+    may go higher (revised after the first measurement: 3 of 7 by drift 100 is normal, not handed).
   - A package card in **~30–45%** of offers.
 - **If a build is short:** check its Needs and discovery gates first (a card that's rarely eligible),
   then its rarity (a Rare-heavy package lands late), before touching tag weighting, which moves every
   build at once.
+
+**First measurement (tools/build_packages.gd, 1000 runs each, 2026-09-30):** Storm Grid on target
+(3+ by 50: 73%, 5+ by 100: 51%, 30% of offers). Short: Spore Bomb (package mistake, fixed above),
+Kinship (43% / 33% / 25%), Wide Sprouts (32% / 18% / 19%), Eldest (6% / 5% / 12%). Causes: Eldest's
+follow-ups wait for an opener card *and* ranked Wardens; card-built directions (wide, nurture, sprout)
+only get the build weighting after their first card, while families get it at the family pick.
+
+**Fixes (user-approved 2026-09-30):**
+1. **Nurture follow-ups:** "any `nurture` card" becomes a **soft** Need (×0.4 until met). Their
+   board Needs (ranked Wardens, a rank V Warden) stay hard, so they're never dead.
+2. **Directions read the board too:** a direction counts as your build (×`tag_weight`) once you've
+   taken one of its cards **or** the map shows it: **wide** at 15+ attacking Wardens, **sprout** at
+   6+ Sprouts (sprout joins the direction tags), **nurture** at a rank III+ Warden. Weight only, never
+   a gate; the Stray slot still brings an outside card.
+3. **Bridge cards** (below): cards in two builds' packages, weighted up by either.
+4. Re-run the measurement for **every build in the catalogue** below (not only the first five).
+
+### The build catalogue (2026-09-30)
+
+User: *"look at all the builds possible, not just 5."* Every build in `tower_design.md` "Build
+archetypes" plus the builds the card directions and Legendaries create. **Package** = its enhancers
+(Legendaries are capstones, not package cards). A build needs **5+ enhancers** (with at least 2 it
+can take early) and its **key card must exist**.
+
+| # | Build | Wardens / source | Capstone | Package (existing enhancers) | Status |
+|---|---|---|---|---|---|
+| 1 | Storm Grid | Rain Lily + Stormcap | — | Rolling Thunder, Rain on Glass, Soaked Through, Heavy Dew, Brighter Jars, Charged Field, Conductive Soil | ✓ 7 |
+| 2 | The Long Walk | Thornwalls + long maze | The Long Walk, Crossroads | Cozy Corners, Hedge Maze, Straightaway, Winding Path, Bitter Hedges, Echoing Steps, Heart of the Maze | ✓ 7 |
+| 3 | Spore Bomb | Puffball + Mistveil | — | Soft Spores, Lingering Spores, Spore Cascade, Chain Bloom, Damp Rot, Twin Puff, Mushroom Rain | ✓ 7 |
+| 4 | Sniper's Rest | Beacon + Moonstone | — | Long Shadows, Patient Aim, Starlit Aim, Called Shot, Sharpened Light, Solitude, Watchful Rest, Hunter's Patience | ✓ 8 |
+| 5 | Full Moon | Moonstone + Hoarfrost + Magpie's Hoard | Full Moon | Glinting Dew, Sharpened Light, Still Target, Shattering Blow, Deep Frost, Shiny Things, Reckless Bloom | ✓ 7 |
+| 6 | Gale | Gust / Zephyr + a status family | — | Carried on the Wind, Lasting Dreams | ❌ 2 → new: **Ill Wind**, **Eddy** |
+| 7 | Fairy Mines | Elf Circle + Honeysuckle + Tangleroot | — | Ring Dance, Sweet Scent, Scented Hedge, Deep Grip, Root Web, Lingering Spores | ✓ 6 |
+| 8 | Hairpin Mill | Windmill + Thornwalls | Rootbound | Hairpin Winds, Cozy Corners, Hedge Maze, Crowded Path | ⚠ 4 → new: **Spinning Corners** |
+| 9 | Sleepy Hollow | Bellflower + Dreamcatcher + Dreamshroom | — | Heavy Eyelids, Hush, Bad Dreams, Many Threads, Lullaby, Clear Tones, Chorus, Heavy Air | ✓ 8 |
+| 10 | Storm Corridor | Rain Lily + Samara + Stormcap | — | Windborne Rain, Straightaway, Longer Flight, Rolling Thunder, Rain on Glass, Heavy Dew | ✓ 6 |
+| 11 | Thousand Cuts | Jewelwing Court + Firefly / Rain Lily + Beacon | — | Charged Feathers, Thousand Cuts, Sharp Beaks, Needle Point, Called Shot, Bright Marks | ✓ 6 |
+| 12 | Encore | Whispering Hollow + Reactions | Dawnbreak | Encore, Quick Reactions, Seeping, Kin and Kindling + the Reaction cards | ✓ |
+| 13 | Rockfall | Rockslide + Snugroot + Bloomcap | — | Loose Stones, Shattering Blow, Heavy Stones, Crowded Path | ⚠ 4 → new: **Falling Weight** |
+| 14 | Deep Poison | Puffball + Mistveil + Echo Hollow | Nightshade | Seeping, Bitter Sap, Venom Bloom, Soft Spores, Lingering Spores, Damp Rot, Lasting Dreams | ✓ 7 |
+| 15 | Thunder Chimes | Stormcap + Chime Stone | — | Clear Tones, Charged Field, Brighter Jars, Chorus | ❌ key card *Resonance* missing → new: **Resonance** |
+| 16 | Bramble Maze | Thornwalls / Brambles + Snugroot | Briar Crown | Hedge Maze, Bitter Hedges, Weathered Walls, Living Walls, Thorn Snare, Bramble Oath, Cheap Hedges | ⚠ key card *Thornheart* missing → new: **Thornheart** |
+| 17 | The Grove | Grove Heart + a tight cluster | Rootbound | Grandfather Stump, Kind Canopy, Shared Light, Hedgerow Roots | ⚠ 4 → new: **Warm Hearth** |
+| 18 | Greedy Gardener | Dewcatcher → Wellspring | Golden Harvest | Dew Bowl, Harvest Moon, Deep Well, Wide Bowl, Still Waters, Overflowing Well, Dew Trail, Gathered Dew | ✓ 8 |
+| 19 | Eldest (tall) | any, ranks | Endless Rings, The Old Ones, Court of the Eldest | Tender Care, Warm Hands, Kindred Roots, Remembered Care, Sunlit Rest, Deeper Rings, Chosen Few, Nursery | ✓ 8 (weighting fix) |
+| 20 | Wide Sprouts | Sprouts everywhere | Rootbound | Seedfall, Sprout Surge, Sprout Chorus, Root Network, Seedling Gift, Many Hands, Canopy, Nursery | ✓ 8 (weighting fix) |
+| 21 | Lone Lantern (narrow) | ≤ 8 attackers | The Last Light | Solitude, Few and Mighty, Heart of the Maze, Watchful Rest, Chosen Few | ✓ 5 |
+| 22 | Kinship | one family, both branches | Grove of Kin | Quick Bonds, Family Ties, Sweet Harmony, Close Kin, Old Friends, Rooted Bond, Extended Family, Blood Is Thicker | ✓ 8 (weighting fix) |
+| 23 | Clearing | tend the forest | Wildwood Reclaimed | Cleared Ground, Heartwood's Reach, Reclaimed Earth, Tended Forest | ⚠ 4 → new: **Fresh Soil** |
+| 24 | Tempo | call every drift early | Restless Night | Call of the Wild, Fresh Growth, Echoing Steps | ❌ 3 → new: **Quick Step**, **Hurried Harvest** |
+| 25 | Last Leaf | play near losing | Last Leaf | Last Stand | ❌ 1 → new: **Heartwood's Fury**, **Thin Bark** |
+| 26 | Menagerie | one of everything | Menagerie | — | ❌ 0 → new: **Patchwork**, **Mixed Grove** |
+| 27 | Hunter's Moon | Marked | Hunter's Moon | Bright Marks, Lingering Mark, Called Shot, Guiding Light, Starlit Aim | ✓ 5 |
+| 28 | Eternal Charge | Charged | Eternal Charge | Charged Field, Charged Bloom, Brighter Jars | ⚠ 3 → new: **Live Wire**, + Resonance |
+| 29 | Rooted Nightmares | Held | Rooted Nightmares | Deep Grip, Tangled Release, Long Light, Root Web, Patient Roots, Still Target | ✓ 6 |
+| 30 | The Quiet Ones | support Wardens | The Quiet Ones | Kind Canopy, Shared Light, Hedgerow Roots, Grandfather Stump, Many Threads, Dew Trail | ✓ 6 |
+| 31 | Crit (any) | crit-heavy Wardens | Full Moon | Glinting Dew, Sharpened Light, Still Target, Shattering Blow, First Light, Called Shot | ✓ 6 |
+| 32 | Swarm clearing | area Wardens | — | Crowded Path, Last Breath, Thinning the Herd, Shattering Blow | ⚠ 4 (bridges below add) |
+| 33 | First strike | many single hits | — | First Light, Called Shot, Lone Hunter | ⚠ 3 (small on purpose: it's a side-direction of Crit and Hunter's Moon) |
+
+### New cards for the catalogue (2026-09-30)
+
+User: *"there should be cards that can fit in multiple builds and double dip."* **Bridge cards** carry
+**two build tags**: they're weighted up if you own either, and they count in **both** builds'
+packages. Enhancers only (never Legendary); each half does something alone. Most also fill a thin
+build from the catalogue. Needs follow *How Needs are shown* (families, statuses). All Start pool
+unless noted; family cards join through discovery as usual.
+
+| # | Card | Rarity | Builds (tags) | Effect | Needs |
+|---|---|---|---|---|---|
+| 204 | **Elder Kin** | Uncommon | Eldest + Kinship (nurture, kinship) | ranked Wardens in a Kinship share **25% of their rank bonuses** with their kin | a ranked Warden (soft) |
+| 205 | **Many Rings** | Uncommon | Eldest + Wide (nurture, sprout) | each rank on any Warden gives all Sprouts **+1% damage** (max +25%) | — |
+| 206 | **Big Family** | Uncommon | Wide + Kinship (sprout, kinship) | Sprouts within 2 cells of a Kinship pair **+10% attack speed** | — |
+| 207 | **Mycelium** | Uncommon | Spore + Wide (spore, sprout) | Sprouts touching a Sporeling-line Warden apply **1 Poisoned** on hit | Sporeling |
+| 208 | **Fireflies in the Grass** | Uncommon | Storm + Wide (storm, sprout) | Sprouts touching a Firefly-line Warden add **1 Charged** every 3rd hit | Firefly Jar |
+| 209 | **Seasoned Eye** | Uncommon | Eldest + Crit (nurture, crit) | **+1% crit chance per rank** (max +7%, reachable only by the Eldest) | — |
+| 210 | **Hedgerow** | Common | Walls + Wide (wall, sprout) | Sprouts touching a Thornwall **+10% damage** | — |
+| 211 | **Spore Kin** | Uncommon | Spore + Kinship (spore, kinship) | Harmony strikes by Sporeling-line kin apply **2 Poisoned** | Sporeling |
+| 212 | **Resonance** | Rare | Thunder Chimes + Eternal Charge (song, storm) | Chime Stone pulses **count as lightning**: each nightmare hit gains **1 Charged** | Bellflower + Firefly Jar (half-dreamed rules apply) |
+| 213 | **Thornheart** | Rare | Bramble Maze + Long Walk (wall, maze) | Brambles' thorns deal **+5% per Bramble you own** (max +100%) | Bramble unlocked |
+| 214 | **Ill Wind** | Uncommon | Gale + Deep Poison (wind, potency) | statuses **copied by Gust / Zephyr** deal **+25% effect damage** | Whirligig |
+| 215 | **Eddy** | Uncommon | Gale + maze (wind, maze) | Gust copies also reach nightmares **on the path tiles beside** the target (bends count double) | Whirligig |
+| 216 | **Spinning Corners** | Uncommon | Hairpin Mill + Long Walk (wind, maze) | Pinwheel / Windmill **beside a bend spin 20% faster** | Whirligig |
+| 217 | **Falling Weight** | Uncommon | Rockfall + Rooted / Sleepy (stone, held) | Pebbling-line lobs and shots **+40% against Held or Asleep** nightmares | Pebbling |
+| 218 | **Warm Hearth** | Uncommon | The Grove + Wide (support, sprout) | aura Wardens' bonuses are **+50% on Sprouts** | an aura Warden (Acorn family) |
+| 219 | **Fresh Soil** | Common | Clearing + Wide (clearing, sprout) | a Sprout planted on a **cleared cell** gets **+20% damage** and costs 7 | a clearing card (counts as one: unlocks clearing) |
+| 220 | **Quick Step** | Common, stacks (max 3) | Tempo (tempo) | calling a drift early gives all Wardens **+10% attack speed for 10 s** | — |
+| 221 | **Hurried Harvest** | Uncommon | Tempo + economy (tempo, economy) | nightmares of a drift you **called early** give **+1 Dew** (cap 20 per drift) | — |
+| 222 | **Heartwood's Fury** | Uncommon | Last Leaf + Long Walk (leaves, maze) | Wardens within 4 cells of the Heartwood **+3% damage per missing leaf** (max +30%) | — |
+| 223 | **Thin Bark** | Uncommon, **Bittersweet** | Last Leaf (leaves) | all Wardens **+15% damage**. **Cost:** −3 max leaves (and lose them now) | act 2+ |
+| 224 | **Patchwork** | Common | Menagerie (variety) | **+3% damage per family you own** (max +12%) | — |
+| 225 | **Mixed Grove** | Uncommon | Menagerie + maze (variety, maze) | a Warden touching a Warden of **another family** **+8% damage** (max +24%, one per neighbouring family) | 2 families |
+| 226 | **Live Wire** | Common, stacks (max 3) | Eternal Charge + Storm Grid (storm) | Charged bolts **+15%** | a Warden that applies Charged |
+
+- **Build tags:** `sprout` joins the direction tags (fix 2); the new archetype tags are `tempo`,
+  `leaves`, `variety`, `support`, used by weighting like the others.
+- **Packages** in the catalogue gain each bridge under both builds (e.g. Elder Kin counts for Eldest
+  and Kinship). After this, no build has fewer than 5 enhancers except *First strike* (by design).
+- **Pool size:** +23 cards (≈226). Most are gated by family or direction, so a given run sees far
+  fewer; the measurement's "share of offers with a package card" is the check that dilution isn't
+  winning. If it is, the lever is the Stray / generic weight, not removing bridges.
+- **Numbers to check** with the tower design chat: Resonance with the Static bolt rate (Thunder
+  Chimes could chain bolts constantly), Eddy's reach on hairpin mazes, Thin Bark vs Leaf Fall.
 
 ## Status effect numbers
 
