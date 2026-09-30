@@ -65,7 +65,7 @@ static func _blank() -> Dictionary:
 func _row(tower: Tower) -> Dictionary:
 	var id := tower.get_instance_id()
 	if not _rows.has(id):
-		var row := {"tower": tower, "name": tower.tower_data.display_name}
+		var row := {"tower": tower, "name": tower.tower_data.display_name}  # The name at first sight; rows read the live one
 		for period in PERIODS:
 			row[period] = _blank()
 		_rows[id] = row
@@ -226,7 +226,7 @@ func get_meter_rows(period: String = "drift") -> Array:
 		var dps: float = now.damage / seconds
 		var last_seconds: float = maxf(_maze[last].seconds, 0.5)
 		var last_dps: float = row[last].damage / last_seconds
-		rows.append({"tower": tower, "name": row.name, "dps": dps, "last_dps": last_dps,
+		rows.append({"tower": tower, "name": tower.tower_data.display_name, "dps": dps, "last_dps": last_dps,
 			"change": _change(dps, last_dps), "value": value, "support": now.credit,
 			"dew_invested": tower.invested_dew, "stats": now, "catcher": tower.is_catcher(),
 			"caught": support.get_stats(tower, period).dew_caught if support and tower.is_catcher() else 0.0})
