@@ -376,6 +376,11 @@ func _test_seed_cards() -> void:
 	dreams.family_of("")  # Refresh the family maps
 	dreams.take(_card("dew_bowl"))
 	_check(Array(dreams.get_called_families()) == ["acorn"], "Dew Bowl calls Acorn")
+	_check(dreams.calls_family_now(_card("dew_bowl")) == "acorn", "…its Seed line shows")
+	dreams.unlocked["acorn"] = true
+	_check(dreams.calls_family_now(_card("dew_bowl")) == "" and dreams.get_called_families().is_empty(),
+		"a family you already own: no Seed line, no call (playtest fix)")
+	dreams.unlocked.erase("acorn")
 	var per_pick: int = screen.cards_per_pick
 	screen.cards_per_pick = 1
 	screen.show_pick(&"boss")

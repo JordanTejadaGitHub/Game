@@ -163,7 +163,7 @@ func _make_card(card: UpgradeData) -> Button:
 	if dream_state.is_half_dreamed(card):  # A combo card whose other family you could still pick
 		secondary.append(_add_line(box, "Half-dreamed  ·  " + dream_state.half_dreamed_text(card) + ". Sleeps until then.", HALF_DREAMED_COLOR, SECONDARY_SIZE))
 	_add_needs_row(box, card)  # "Needs: Soaked + Charged" / "Nestling family": never a Warden's name
-	if card.calls_family != "":  # A Seed card calls its family to the next family pick
+	if dream_state.calls_family_now(card) != "":  # A Seed card calls its family to the next pick (not one you own)
 		secondary.append(_add_line(box, "Seed  ·  calls %s to your next family pick" % dream_state.get_display_name(card.calls_family), SEED_COLOR, SECONDARY_SIZE))
 	if dream_state.is_stray(card):  # The Stray Dream slot (dream_design.md "Adapt, don't get handed")
 		secondary.append(_add_line(box, "✧ Stray  ·  something the Heartwood hasn't dreamed of yet", STRAY_COLOR, SECONDARY_SIZE))

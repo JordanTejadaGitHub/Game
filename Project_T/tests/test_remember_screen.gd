@@ -65,6 +65,31 @@ func _run() -> void:
 
 	screen.close()
 	_check(not screen.visible and not speed.paused, "closing restores the pause state from before")
+
+	# open_remember(form) (Tower Code's Grow button for a form not unlocked yet): on that form, selected.
+	if final != null:
+		dreams.open_remember(final)
+		await process_frame
+		_check(screen.visible and screen.selected == final and screen._canvas.nodes.has(final), "open_remember(form) opens on that form")
+		screen.close()
+	# …also a final form whose branch isn't unlocked yet
+	var other: TowerData = sporeling.evolves_to[1] if sporeling.evolves_to.size() > 1 else null
+	if other != null and not other.evolves_to.is_empty() and not dreams.is_unlocked(other.get_id()):
+		var locked_final: TowerData = other.evolves_to[0]
+		dreams.open_remember(locked_final)
+		await process_frame
+		_check(screen.visible and screen.selected == locked_final and screen._canvas.nodes.has(locked_final),
+			"…and on a final form whose branch is still locked")
+		screen.close()
+	# Playtest fixes: an Ascended node is the same size as the others, its whole art in the disc.
+	var trees: Array = dreams.get_remember_trees()
+	for tree in trees:
+		if tree.size() > 2 and tree[2] != null:
+			var node := RememberScreen.FormNode.new(screen, tree[2])
+			_check(node.size == RememberScreen.NODE_SIZE and node.portrait._atlas.region.size == tree[2].get_frame_rect(0).size,
+				"the Ascended node: normal size, its whole frame scaled in")
+			node.free()
+			break
 	print("remember screen test: %s" % ("PASS" if failures == 0 else "%d FAILED" % failures))
 	quit(failures)
 

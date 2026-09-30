@@ -2501,6 +2501,14 @@ func needs_note(card: UpgradeData, act: int = -1) -> String:
 
 # The families held Seed cards call: the next family pick is guaranteed to offer each one that the
 # profile can pick and the run doesn't own yet (FamilyPickScreen).
+# The family `card` would call to the next pick, or "" when it can't (already yours, or never pickable):
+# then its Seed line hides too (screens_ui.md "Playtest fixes").
+func calls_family_now(card: UpgradeData) -> String:
+	var family := card.calls_family
+	if family == "" or is_unlocked(family):
+		return ""
+	return family if _family_roots().any(func(d: TowerData) -> bool: return d.get_id() == family) else ""
+
 func get_called_families() -> Array[String]:
 	var pickable: Array = _family_roots().map(func(d: TowerData) -> String: return d.get_id())
 	var called: Array[String] = []
