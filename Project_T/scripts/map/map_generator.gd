@@ -25,6 +25,7 @@ var obstacles: Dictionary = {}
 var tile_set: TileSet  # Shared by the ground, path and object layers (EnvironmentTiles)
 var heartwood: Heartwood  # The goal tree on the end cell
 var dream_void: DreamVoid  # The starry void around the island
+var omen_mist: OmenMist  # Low gold-violet mist while an Omen twists the block
 var build_hatch: BuildHatch  # In build mode: a cold hatch on every unbuildable cell
 var lighting: EnvironmentLighting  # Cold edges, warm Warden lights
 var ambience: EnvironmentAmbience  # Edge fog and the act's particles
@@ -82,6 +83,10 @@ func _ready() -> void:
 	dream_void.map_seed = map_seed
 	add_child(dream_void)
 	move_child(dream_void, 0)  # Behind the tile layers
+
+	omen_mist = OmenMist.new()
+	omen_mist.map_generator = self
+	add_child(omen_mist)  # After the ground and path: same z, drawn over them, under everything else
 
 	build_hatch = BuildHatch.new()
 	build_hatch.map_generator = self
