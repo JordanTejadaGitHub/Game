@@ -74,7 +74,7 @@ func _process(delta: float) -> void:
 # Screen pixels per art pixel, large enough that the art covers the window: whole when that crops
 # little (1080p, 720p, 1440p, 4K are exact), else the exact cover scale (16:10, the Steam Deck).
 func art_scale() -> float:
-	var factor := get_tree().root.content_scale_factor if is_inside_tree() else 1.0
+	var factor := UiStyle.ui_factor(get_tree().root) if is_inside_tree() else 1.0  # The total UI scale (stretch × share)
 	var pixels := size * factor
 	var cover := maxf(1.0, maxf(pixels.x / ART_SIZE.x, pixels.y / ART_SIZE.y))
 	return ceilf(cover) if ceilf(cover) <= cover * WHOLE_SCALE_SLACK else cover
@@ -86,7 +86,7 @@ func breath(amp: float, period: float, phase: float = 0.0) -> int:
 	return int(round(amp * (0.5 - 0.5 * cos((_time / period + phase) * TAU))))
 
 func _draw() -> void:
-	var factor := get_tree().root.content_scale_factor
+	var factor := UiStyle.ui_factor(get_tree().root)
 	var unit := art_scale() / factor  # One art pixel in this control's units
 	var origin := ((size - ART_SIZE * unit) * 0.5).floor()
 	if has_layers():

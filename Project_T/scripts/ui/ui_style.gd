@@ -71,7 +71,6 @@ const UI_SHARE_MIN := 0.5  # The settings slider: 50% … 100% of the fitting sc
 const UI_SHARE_MAX := 1.0
 
 static var _scale_share := 1.0
-static var _watching_window := false
 
 # The root's content scale for a window of `window_size` pixels: the largest scale that still leaves
 # LAYOUT_MIN (1.5 at 1920×1080, 1 at 1280×800, 2 at 4K), times the player's `share` of it.
@@ -89,11 +88,27 @@ static func apply_ui_scale(root: Window, share: float) -> void:
 	if DisplayServer.get_name() == "headless":
 		root.content_scale_factor = 1.0
 		return
-	root.content_scale_factor = ui_scale_factor(Vector2(root.size), _scale_share)
-	if not _watching_window:
-		_watching_window = true
-		root.size_changed.connect(func() -> void:
-			root.content_scale_factor = ui_scale_factor(Vector2(root.size), _scale_share))
+	_set_factor(root)  # Godot re-fits on every resize by itself
+
+# Godot's own canvas_items stretch does the fitting: base size LAYOUT_MIN with aspect "expand" scales
+# by min(window / LAYOUT_MIN) (= ui_scale_factor's fit) and content_scale_factor = the share. Unlike a
+# bare content_scale_factor (stretch "disabled"), this mode oversamples fonts: glyphs rasterize at
+# their on-screen size instead of being scaled through the project's Nearest filter (jagged, strokes
+# lost: "Seeds" read "Seecs", 2026-09-30).
+static func _set_factor(root: Window) -> void:
+	root.content_scale_mode = Window.CONTENT_SCALE_MODE_CANVAS_ITEMS
+	root.content_scale_aspect = Window.CONTENT_SCALE_ASPECT_EXPAND
+	root.content_scale_size = Vector2i(LAYOUT_MIN)
+	root.content_scale_factor = clampf(_scale_share, UI_SHARE_MIN, UI_SHARE_MAX)
+
+# The total scale everything is drawn at (the stretch times the share), for the camera.
+static func ui_factor(root: Window) -> float:
+	if root == null:
+		return 1.0
+	if root.content_scale_mode == Window.CONTENT_SCALE_MODE_CANVAS_ITEMS and root.content_scale_size.x > 0:
+		var fit := minf(float(root.size.x) / root.content_scale_size.x, float(root.size.y) / root.content_scale_size.y)
+		return fit * root.content_scale_factor
+	return root.content_scale_factor if root.content_scale_factor > 0.0 else 1.0
 
 # --- Fonts -------------------------------------------------------------------------------------
 

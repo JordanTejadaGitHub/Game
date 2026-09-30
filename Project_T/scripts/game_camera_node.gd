@@ -161,8 +161,7 @@ func _smooth_zoom(delta: float) -> void:
 
 # The UI scale factor now (1 when nothing scales the window).
 func ui_factor() -> float:
-	var window := get_tree().root if is_inside_tree() else null
-	return window.content_scale_factor if window != null and window.content_scale_factor > 0.0 else 1.0
+	return UiStyle.ui_factor(get_tree().root if is_inside_tree() else null)
 
 # Clamp the camera's target to the map boundaries
 func _clamp_camera_to_map() -> void:
