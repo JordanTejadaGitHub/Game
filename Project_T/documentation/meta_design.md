@@ -243,7 +243,7 @@ so it was predictable, not a choice.
   cards**. No filler slots.
 - **When no new family is left**, there is no family pick at that boss: the Heartwood gives **+2
   Dreamlight** instead (*"The Heartwood remembers deeper."*), for finals and Ascended forms.
-- **Blessings move into the Dream pool** as **Rare** cards (one per family, all 9 including Bellflower: +25% damage and 25% cheaper growth for that family; Needs: that family; one each, no stacking, no Deepened), offered
+- **Blessings move into the Dream pool** as **Rare** cards (one per family, all 9 including Bellflower: +25% damage and 25% cheaper growth for that family; Needs: that family; one each, no stacking, no Deepened; from act 2, like their old boss-pick timing), offered
   like any other card, so they turn up now and then as a real choice instead of every boss.
 - Unlocking families in the Grove still widens later runs, and a full Grove never needs any of this.
 
