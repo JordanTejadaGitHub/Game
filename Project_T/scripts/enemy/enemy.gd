@@ -105,7 +105,8 @@ const STATUS_BADGE_GAP := 3.0
 const STATUS_BADGES_MAX := 4  # More → the most important ones (BADGE_ORDER) and "+N"
 const BADGE_ORDER: Array[StringName] = [&"static", &"held", &"marked", &"spored", &"drowsy", &"damp"]
 const VIEW_MARGIN := 96.0  # px past the screen edge where nightmares still draw (their badges overhang)
-# NightmareOverlay's passes (draw_hud): one kind at a time for the whole field, so it batches.
+const HUD_ARC_FRAMES := 4  # The badge rim arcs are looked at every this many frames (update_hud)
+# The HUD's canvas items (update_hud), each kind on its own z layer so the whole field batches.
 enum { HUD_BARS, HUD_DISCS, HUD_ICONS, HUD_TEXT }
 const HUD_PASSES := [HUD_BARS, HUD_DISCS, HUD_ICONS, HUD_TEXT]
 const STATUS_DOT_RADIUS := 3.0  # Fallback when the icon sheet has no icon for a status
@@ -200,6 +201,21 @@ var _lingered := false
 var _release_spent := false  # The current hold came from a release pull (Snare): it won't pull again
 var _caught_left := 0.0  # Caught time after last frame's tick (a rise = caught again)
 var _redraw_pending := false  # Something drawn changed: redrawn in _process once on screen
+# The HUD's canvas items (update_hud): a root the overlay moves, and one item per HUD_* kind
+var _hud_root := RID()
+var _hud_items: Array[RID] = []
+var _hud_shown := false
+var _hud_scale := -1.0
+# What the bars item shows (health, coat, Restless, bars always), and the discs item (statuses, arc steps)
+var _hud_health := -2  # (Bar width in px; -1 = hidden)
+var _hud_coat := -1
+var _hud_restless := -1
+var _hud_unbound := false
+var _hud_always := false
+var _hud_discs_key := -1
+var _hud_stagger := randi() % 4  # So a crowd doesn't check its arcs on the same frame
+var _hud_flashing := false
+var hud_builds := 0  # Items rebuilt (tests: only when something changed)
 # The badge row, cached until statuses.changes moves (_update_hud_layout)
 var _hud_changes := -1
 var _hud_ids: Array = []
@@ -260,6 +276,10 @@ var _regrouped := false  # Huntsman's pack came back at half health; no more hor
 # Cells to walk through, in grid coordinates. `_path_index` is the cell we're currently walking toward.
 var _path: PackedVector2Array
 var _path_index: int = 0
+
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_PREDELETE:
+		_free_hud()  # Its HUD canvas items live in the RenderingServer, not in the tree
 
 func _ready() -> void:
 	add_to_group(GROUP)
@@ -384,6 +404,7 @@ func _process(delta: float) -> void:
 	if _redraw_pending and _on_screen(self):
 		_redraw_pending = false
 		queue_redraw()
+	_update_hud()
 	_update_presence(delta)
 
 	if _dragging:
@@ -511,52 +532,100 @@ func _draw() -> void:
 		_draw_hit_mark(_hit_mark_time / HIT_MARK_TIME)
 	if statuses.is_in_stag_aura():
 		draw_arc(Vector2(0, 6), 18.0, 0.0, TAU, 24, Color(Palette.MOONLIGHT, 0.35), 2.0)
-	# The health bar, coat, Restless arrows and status badges are NightmareOverlay's (draw_hud below).
+	# The health bar, coat, Restless arrows and status badges are in the HUD's own canvas items (update_hud).
 
-# The HUD over this nightmare, drawn by NightmareOverlay onto its one canvas item (`at` = this
-# nightmare's origin there), one kind per pass so the whole field batches: HUD_BARS (health bar,
-# blight coat, Restless arrows), HUD_DISCS (badge discs, rim arcs, flashes), HUD_ICONS, HUD_TEXT
-# (stack counts, "+N"). `text_scale` = WorldLabel.text_scale (badges keep their screen size).
-func draw_hud(canvas: CanvasItem, at: Vector2, pass_kind: int, text_scale: float) -> void:
-	if pass_kind == HUD_BARS:
-		_draw_hud_bars(canvas, at)
+# The HUD over this nightmare (health bar, blight coat, Restless arrows, status badges), in canvas
+# items of its own under this node's (so they move with it, and the renderer culls them off screen):
+# HUD_BARS, HUD_DISCS, HUD_ICONS, HUD_TEXT, each on its own absolute z layer (NightmareOverlay.Z +
+# kind), so every nightmare's bars draw together, then every disc (one atlas), every icon, every
+# number: the field batches. Each item is rebuilt only when what it shows changes (checked from
+# _process); freed with the nightmare. NightmareOverlay keeps the shared badge atlas.
+func _update_hud() -> void:
+	var overlay: NightmareOverlay = _spawner.overlay if _spawner != null else null
+	if overlay == null or overlay.badge_atlas == null:
 		return
-	if statuses.count() == 0:
+	var show := not _hidden and not is_cleansed
+	if not _hud_root.is_valid():
+		if not show:
+			return
+		_make_hud()
+	if show != _hud_shown:
+		_hud_shown = show
+		RenderingServer.canvas_item_set_visible(_hud_root, show)
+	if not show:
 		return
-	_update_hud_layout()
-	var n := _hud_ids.size()
-	var extra := statuses.count() - n
-	var r := get_badge_size() / 2.0
-	var step := r * 2.0 + STATUS_BADGE_GAP
-	# The row sits on the health bar's top edge; the badges are screen px around that point.
-	var anchor := at + HEALTH_BAR_OFFSET - Vector2(0, HEALTH_BAR_SIZE.y / 2.0 + 2.0)
-	canvas.draw_set_transform(anchor - anchor * text_scale, 0.0, Vector2(text_scale, text_scale))
-	var width := n * step - STATUS_BADGE_GAP + (step * 0.9 if extra > 0 else 0.0)
-	var x := -width / 2.0 + r
-	for i in n:
-		var centre := anchor + Vector2(x, -r)
-		match pass_kind:
-			HUD_DISCS:
-				_draw_badge_disc(canvas, i, centre, r)
-			HUD_ICONS:
-				var icon: Texture2D = _hud_icons[i]
-				if icon != null:
-					var s := r * 1.4
-					canvas.draw_texture_rect(icon, Rect2(centre - Vector2(s, s) / 2.0, Vector2(s, s)), false)
-			HUD_TEXT:
-				if _hud_stacks[i] > 1:
-					_draw_stack_text(canvas, centre + Vector2(r * 0.15, r + 2.0), str(_hud_stacks[i]),
-						Palette.GOLD if _hud_full[i] else Palette.MOONLIGHT)
-		x += step
-	if extra > 0 and pass_kind == HUD_TEXT:
-		_draw_stack_text(canvas, anchor + Vector2(x - r + 1.0, -r + STACK_FONT_SIZE * 0.4), "+%d" % extra,
-			Palette.MOONLIGHT)
+	var text_scale := WorldLabel.text_scale(self)
+	if text_scale != _hud_scale:  # The badges keep their screen size: scaled round the row's anchor
+		_hud_scale = text_scale
+		var badges := Transform2D(0.0, Vector2(text_scale, text_scale), 0.0, _hud_anchor())
+		for kind in [HUD_DISCS, HUD_ICONS, HUD_TEXT]:
+			RenderingServer.canvas_item_set_transform(_hud_items[kind], badges)
+	# The bars are keyed on their width in whole px (a smaller change can't be seen), -1 = not shown.
+	var bar_px := int(HEALTH_BAR_SIZE.x * health / max_health) if health < max_health or _bars_always else -1
+	var coat_px := int(HEALTH_BAR_SIZE.x * coat / maxf(coat_max, 1.0)) if coat > 0.0 else -1
+	if bar_px != _hud_health or coat_px != _hud_coat or restless != _hud_restless or unbound != _hud_unbound \
+			or _bars_always != _hud_always:
+		_hud_health = bar_px
+		_hud_coat = coat_px
+		_hud_restless = restless
+		_hud_unbound = unbound
+		_hud_always = _bars_always
+		_build_hud_bars(_hud_items[HUD_BARS])
+		hud_builds += 1
+	if _hud_ids.is_empty() and _hud_changes == statuses.changes:
+		return  # No badges: nothing more to check
+	var changed := _hud_changes != statuses.changes
+	if changed:
+		_update_hud_layout()
+		_build_hud_icons(_hud_items[HUD_ICONS])
+		_build_hud_text(_hud_items[HUD_TEXT])
+	# The rim arcs drain in ARC_STEPS steps: looked at every HUD_ARC_FRAMES frames (staggered), and
+	# the discs rebuilt when a step moved (or a status changed, or a combo flash plays).
+	var flashing := not _status_flash.is_empty()
+	if not changed and not flashing and not _hud_flashing \
+			and (Engine.get_process_frames() + _hud_stagger) % HUD_ARC_FRAMES != 0:
+		return
+	var discs_key := _hud_changes << 16  # Below that: 4 bits of arc steps per badge (up to 4 badges)
+	for i in _hud_ids.size():
+		discs_key += _arc_steps(i) << (i * 4)
+	if discs_key != _hud_discs_key or flashing or _hud_flashing:
+		_hud_discs_key = discs_key
+		_hud_flashing = not _status_flash.is_empty()  # (One more once a flash ends, to clear it)
+		_build_hud_discs(_hud_items[HUD_DISCS], overlay)
+		hud_builds += 1
+
+func _make_hud() -> void:
+	_hud_root = RenderingServer.canvas_item_create()
+	RenderingServer.canvas_item_set_parent(_hud_root, get_canvas_item())  # Moves with the nightmare, no script
+	_hud_items.clear()
+	for kind in HUD_PASSES:
+		var item := RenderingServer.canvas_item_create()
+		RenderingServer.canvas_item_set_parent(item, _hud_root)
+		RenderingServer.canvas_item_set_z_as_relative_to_parent(item, false)
+		RenderingServer.canvas_item_set_z_index(item, NightmareOverlay.Z + kind)
+		if kind != HUD_BARS:
+			RenderingServer.canvas_item_set_default_texture_filter(item, RenderingServer.CANVAS_ITEM_TEXTURE_FILTER_LINEAR)
+		_hud_items.append(item)
+	_hud_shown = true
+	_hud_scale = -1.0
+	_hud_changes = -1
+	_hud_health = -2  # Builds the bars on the first update
+
+func _free_hud() -> void:
+	for item in _hud_items:
+		RenderingServer.free_rid(item)
+	_hud_items.clear()
+	if _hud_root.is_valid():
+		RenderingServer.free_rid(_hud_root)
+	_hud_root = RID()
+
+# Where the badge row sits (its bottom centre on the health bar's top edge), from the nightmare's origin.
+func _hud_anchor() -> Vector2:
+	return HEALTH_BAR_OFFSET - Vector2(0, HEALTH_BAR_SIZE.y / 2.0 + 2.0)
 
 # The badge row's statuses, stacks, caps, colours and icons, worked out again only when a status
-# comes, goes or changes stacks (statuses.changes): the overlay draws every frame.
+# comes, goes or changes stacks (statuses.changes).
 func _update_hud_layout() -> void:
-	if _hud_changes == statuses.changes:
-		return
 	_hud_changes = statuses.changes
 	_hud_ids = get_badge_ids()
 	_hud_stacks.clear()
@@ -571,24 +640,94 @@ func _update_hud_layout() -> void:
 		_hud_colors.append(EnemyStatuses.COLORS.get(id, Palette.MOONLIGHT))
 		_hud_icons.append(_status_icon(id))
 
-func _draw_hud_bars(canvas: CanvasItem, at: Vector2) -> void:
+# Badge i's centre in the badge items' space (screen px round the anchor).
+func _badge_centre(i: int) -> Vector2:
+	var r := get_badge_size() / 2.0
+	var step := r * 2.0 + STATUS_BADGE_GAP
+	var extra := statuses.count() - _hud_ids.size()
+	var width := _hud_ids.size() * step - STATUS_BADGE_GAP + (step * 0.9 if extra > 0 else 0.0)
+	return Vector2(-width / 2.0 + r + i * step, -r)
+
+func _arc_steps(i: int) -> int:
+	if _hud_full[i]:
+		return 0
+	return mini(ceili(statuses.time_share(_hud_ids[i]) * NightmareOverlay.ARC_STEPS), NightmareOverlay.ARC_STEPS)
+
+func _build_hud_bars(item: RID) -> void:
+	RenderingServer.canvas_item_clear(item)
 	# Restless: a small backward arrow per stack, right of the health bar (red-hot once Unbound)
 	for i in restless:
-		var tip := at + HEALTH_BAR_OFFSET + Vector2(HEALTH_BAR_SIZE.x / 2 + 5 + i * 6, 0)
+		var tip := HEALTH_BAR_OFFSET + Vector2(HEALTH_BAR_SIZE.x / 2 + 5 + i * 6, 0)
 		var arrow := PackedVector2Array([tip + Vector2(4, -3), tip, tip + Vector2(4, 3)])
-		canvas.draw_polyline(arrow, Color(Palette.VOID, 0.8), 3.0)
-		canvas.draw_polyline(arrow, UNBOUND_GLOW if unbound else RESTLESS_COLOR, 1.5)
+		RenderingServer.canvas_item_add_polyline(item, arrow, PackedColorArray([Color(Palette.VOID, 0.8)]), 3.0)
+		RenderingServer.canvas_item_add_polyline(item, arrow, PackedColorArray([UNBOUND_GLOW if unbound else RESTLESS_COLOR]), 1.5)
 	# Health bar once the enemy has been hit, with the blight coat as a grey bar on top of it
-	var bar := Rect2(at + HEALTH_BAR_OFFSET - HEALTH_BAR_SIZE / 2, HEALTH_BAR_SIZE)
+	var bar := Rect2(HEALTH_BAR_OFFSET - HEALTH_BAR_SIZE / 2, HEALTH_BAR_SIZE)
 	if health < max_health or _bars_always:
-		canvas.draw_rect(bar.grow(1), Color(Palette.VOID, 0.8))
+		RenderingServer.canvas_item_add_rect(item, bar.grow(1), Color(Palette.VOID, 0.8))
 		var fill := bar
 		fill.size.x *= float(health) / max_health
-		canvas.draw_rect(fill, Palette.SPRIG)  # The health bar is HUD, not the nightmare: green reads as health
+		RenderingServer.canvas_item_add_rect(item, fill, Palette.SPRIG)  # The health bar is HUD, not the nightmare: green reads as health
 	if coat > 0.0:
 		var crust := Rect2(bar.position - Vector2(0, 4), Vector2(bar.size.x * coat / maxf(coat_max, 1.0), 3))
-		canvas.draw_rect(crust.grow(1), Color(Palette.VOID, 0.8))
-		canvas.draw_rect(crust, COAT_COLOR)
+		RenderingServer.canvas_item_add_rect(item, crust.grow(1), Color(Palette.VOID, 0.8))
+		RenderingServer.canvas_item_add_rect(item, crust, COAT_COLOR)
+
+# The badges' discs, from NightmareOverlay's pre-drawn atlas: the dark disc, the rim in the status's
+# colour (solid at max stacks; else faint, with a bright arc that drains with the time left), a dot
+# if the icon sheet has none, and the flash when a combo just used the status.
+func _build_hud_discs(item: RID, overlay: NightmareOverlay) -> void:
+	RenderingServer.canvas_item_clear(item)
+	var atlas: Texture2D = overlay.badge_atlas
+	var r := get_badge_size() / 2.0
+	for i in _hud_ids.size():
+		var centre := _badge_centre(i)
+		var color: Color = _hud_colors[i]
+		var rect := Rect2(centre - Vector2(r, r), Vector2(r, r) * 2.0)
+		atlas.draw_rect_region(item, rect, overlay.badge_region(NightmareOverlay.BADGE_DISC))
+		if _hud_full[i]:
+			atlas.draw_rect_region(item, rect, overlay.badge_region(NightmareOverlay.BADGE_RIM_FULL), color)
+		else:
+			atlas.draw_rect_region(item, rect, overlay.badge_region(NightmareOverlay.BADGE_RIM), Color(color, 0.3))
+			var steps := _arc_steps(i)
+			if steps > 0:
+				atlas.draw_rect_region(item, rect, overlay.badge_region(NightmareOverlay.BADGE_ARC + steps - 1), color)
+		if _hud_icons[i] == null:
+			RenderingServer.canvas_item_add_circle(item, centre, STATUS_DOT_RADIUS, color)
+		var id: StringName = _hud_ids[i]
+		if _status_flash.has(id):
+			var f: float = _status_flash[id] / STATUS_FLASH_TIME  # 1 -> 0
+			RenderingServer.canvas_item_add_circle(item, centre, r + 2.0 + 4.0 * (1.0 - f), Color(color, 0.5 * f))
+			RenderingServer.canvas_item_add_circle(item, centre, r, Color(1, 1, 1, 0.45 * f))
+
+func _build_hud_icons(item: RID) -> void:
+	RenderingServer.canvas_item_clear(item)
+	var s := get_badge_size() / 2.0 * 1.4
+	for i in _hud_ids.size():
+		var icon: Texture2D = _hud_icons[i]
+		if icon != null:
+			icon.draw_rect(item, Rect2(_badge_centre(i) - Vector2(s, s) / 2.0, Vector2(s, s)), false)
+
+# Stack counts (bold, dark outline, from 2 stacks; gold at max) and "+N" past the fourth badge.
+func _build_hud_text(item: RID) -> void:
+	RenderingServer.canvas_item_clear(item)
+	var r := get_badge_size() / 2.0
+	for i in _hud_ids.size():
+		if _hud_stacks[i] > 1:
+			_add_stack_text(item, _badge_centre(i) + Vector2(r * 0.15, r + 2.0), str(_hud_stacks[i]),
+				Palette.GOLD if _hud_full[i] else Palette.MOONLIGHT)
+	var extra := statuses.count() - _hud_ids.size()
+	if extra > 0:
+		var after := _badge_centre(_hud_ids.size() - 1) + Vector2(r + STATUS_BADGE_GAP + 1.0, STACK_FONT_SIZE * 0.4)
+		_add_stack_text(item, after, "+%d" % extra, Palette.MOONLIGHT)
+
+static func _add_stack_text(item: RID, at: Vector2, text: String, color: Color) -> void:
+	if _stack_font == null:
+		_stack_font = FontVariation.new()
+		_stack_font.base_font = UiStyle.body_medium_font()
+		_stack_font.variation_embolden = 0.9
+	_stack_font.draw_string_outline(item, at, text, HORIZONTAL_ALIGNMENT_LEFT, -1, STACK_FONT_SIZE, 4, Palette.VOID)
+	_stack_font.draw_string(item, at, text, HORIZONTAL_ALIGNMENT_LEFT, -1, STACK_FONT_SIZE, color)
 
 func _end_smother_fx() -> void:
 	if has_meta(&"smother_fx") and not statuses.smothering:
@@ -630,37 +769,6 @@ static func _badge_rank(id: StringName) -> int:
 
 func get_badge_size() -> float:
 	return STATUS_BADGE_BIG if enemy_data.is_boss or elite else STATUS_BADGE
-
-# One badge's disc: a rim in the status's colour (solid at max stacks; else faint, with a bright arc
-# that drains with the time left), the dark disc, a dot if the icon sheet has none, and the flash.
-func _draw_badge_disc(canvas: CanvasItem, i: int, centre: Vector2, r: float) -> void:
-	var id: StringName = _hud_ids[i]
-	var color: Color = _hud_colors[i]
-	var atlas: Texture2D = canvas.badge_atlas  # NightmareOverlay's pre-drawn shapes
-	var rect := Rect2(centre - Vector2(r, r), Vector2(r, r) * 2.0)
-	canvas.draw_texture_rect_region(atlas, rect, canvas.badge_region(NightmareOverlay.BADGE_DISC))
-	if _hud_full[i]:  # At max stacks the rim fills solid
-		canvas.draw_texture_rect_region(atlas, rect, canvas.badge_region(NightmareOverlay.BADGE_RIM_FULL), color)
-	else:  # A faint rim, and a bright arc that drains with the time left
-		canvas.draw_texture_rect_region(atlas, rect, canvas.badge_region(NightmareOverlay.BADGE_RIM), Color(color, 0.3))
-		var steps := mini(ceili(statuses.time_share(id) * NightmareOverlay.ARC_STEPS), NightmareOverlay.ARC_STEPS)
-		if steps > 0:
-			canvas.draw_texture_rect_region(atlas, rect, canvas.badge_region(NightmareOverlay.BADGE_ARC + steps - 1), color)
-	if _hud_icons[i] == null:
-		canvas.draw_circle(centre, STATUS_DOT_RADIUS, color)
-	if _status_flash.has(id):  # A combo just used it (flash_status)
-		var f: float = _status_flash[id] / STATUS_FLASH_TIME  # 1 -> 0
-		canvas.draw_circle(centre, r, Color(1, 1, 1, 0.45 * f))
-		canvas.draw_arc(centre, r + 2.0 + 4.0 * (1.0 - f), 0.0, TAU, 16, Color(color, f), 1.5)
-
-# A bold stack count with a dark outline (baseline at `at`).
-static func _draw_stack_text(canvas: CanvasItem, at: Vector2, text: String, color: Color) -> void:
-	if _stack_font == null:
-		_stack_font = FontVariation.new()
-		_stack_font.base_font = UiStyle.body_medium_font()
-		_stack_font.variation_embolden = 0.9
-	canvas.draw_string_outline(_stack_font, at, text, HORIZONTAL_ALIGNMENT_LEFT, -1, STACK_FONT_SIZE, 4, Palette.VOID)
-	canvas.draw_string(_stack_font, at, text, HORIZONTAL_ALIGNMENT_LEFT, -1, STACK_FONT_SIZE, color)
 
 # Deeply Blighted: soft puffs drifting slowly round the nightmare, and a swirl left of the health bar.
 func _draw_elite_haze() -> void:
@@ -1595,6 +1703,9 @@ func _mark_hit(kind: int) -> void:
 # the old "cleanse" names; players only ever see "dispel".
 func _cleanse() -> void:
 	is_cleansed = true
+	if _hud_root.is_valid():
+		RenderingServer.canvas_item_set_visible(_hud_root, false)  # No bars or badges on the way out
+		_hud_shown = false
 	_end_drag(false)
 	remove_from_group(GROUP)
 	# Great Dreamcatcher: a Caught nightmare (never a boss) leaves a Dreamlight shard.

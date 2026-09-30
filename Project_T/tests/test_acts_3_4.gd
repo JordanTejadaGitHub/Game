@@ -592,32 +592,33 @@ func _run() -> void:
 	_check(is_equal_approx(badged.statuses.time_share(&"damp"), 1.0), "a fresh Damp fills it again")
 	_check(badged.get_badge_size() == badged.STATUS_BADGE and _still("old_stag", route[7]).get_badge_size() == badged.STATUS_BADGE_BIG,
 		"14 px badges, 18 px on bosses")
-	# Bars and badges come from one overlay (batched), not from each nightmare's own _draw.
+	# Bars and badges are the HUD's own canvas items under one NightmareOverlay (batched by kind),
+	# rebuilt only when what they show changes; not each nightmare's own _draw.
 	var overlay: Node2D = spawner.overlay
 	_check(overlay != null and overlay.is_inside_tree() and overlay.get_parent() != spawner,
-		"one NightmareOverlay draws the bars and badges (outside the EnemyContainer)")
+		"one NightmareOverlay holds the bars and badges (outside the EnemyContainer)")
 	badged.statuses.remove(&"spored")  # Its ticks hurt, and hits and combo flashes redraw on their own
 	badged.statuses.remove(&"marked")
 	badged.set_process(true)
 	badged.hold_time = 100.0  # Stands still
 	for f in 3:
 		await process_frame
+	_check(badged._hud_root.is_valid() and badged._hud_items.size() == 4, "its HUD items exist once it's shown")
 	var redraws := [0]
-	var overlay_draws := [0]
 	badged.draw.connect(func() -> void: redraws[0] += 1)
-	overlay.draw.connect(func() -> void: overlay_draws[0] += 1)
-	badged.take_damage(5.0)
+	var builds: int = badged.hud_builds
 	for f in 30:
 		await process_frame
+	_check(badged.hud_builds - builds <= 4,
+		"its HUD is rebuilt only when something changes (the arcs step; %d in 30 frames)" % (badged.hud_builds - builds))
+	builds = badged.hud_builds
+	badged.take_damage(5.0)
+	await process_frame
+	var bar_px := int(badged.HEALTH_BAR_SIZE.x * badged.health / badged.max_health)
+	_check(badged.hud_builds > builds and badged._hud_health == bar_px,
+		"a hit rebuilds the bars at their new width (%d px, %d builds)" % [badged._hud_health, badged.hud_builds - builds])
 	_check(redraws[0] == 0, "a nightmare doesn't redraw itself for statuses or hits (%d in 30 frames)" % redraws[0])
-	_check(overlay_draws[0] >= 25, "the overlay redraws while nightmares are out (%d in 30 frames)" % overlay_draws[0])
 	_clear_enemies()
-	for f in 3:
-		await process_frame
-	overlay_draws[0] = 0
-	for f in 10:
-		await process_frame
-	_check(overlay_draws[0] == 0, "and rests once the field is empty (%d)" % overlay_draws[0])
 
 	# --- Display settings: health bars "always", the Deeply Blighted outline ---
 	_clear_enemies()
