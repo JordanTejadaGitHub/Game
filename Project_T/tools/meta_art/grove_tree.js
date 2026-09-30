@@ -288,6 +288,14 @@ function groveTree() {
     if (d > 0 && bay(x, y) < d * dens) out.set(x, y, d > .75 ? (y > 850 ? HW.Bruise : HW.Shade) : HW.Dusk);  // muted dream mist, violet only in the thick low cores
   } };
   wisps(610, 55, .35, 113); wisps(700, 50, .5, 114); wisps(790, 50, .7, 111); wisps(890, 55, 1.1, 112);  // thicker toward the ground
+  // Mist curling across the trunk itself (a little denser than the haze round it), the Hollow clear.
+  for (let y = 590; y < 900; y++) for (let x = 470; x < 820; x++) {
+    if (x > 572 && x < 652 && y > 745 && y < 832) continue;
+    const tx = trunkX(Math.min(y, 905)), dx = (x - tx) / 150;
+    const n = pnoise(x * .7, y, 28, 131) * .7 + pnoise(x, y, 10, 132) * .3, curl = Math.sin(y / 38 + dx * 3) * .5 + .5;
+    const d = Math.max(0, 1 - dx * dx) * clamp((n - .4) * 2.4, 0, 1) * (.55 + curl * .45) * (.6 + (y - 590) / 310 * .5);
+    if (d > 0 && bay(x, y) < d * .75) out.set(x, y, d > .7 ? HW.Shade : HW.Dusk);
+  }
   return out;
 }
 
