@@ -191,8 +191,8 @@ func _test_sim_entry() -> void:
 	var family := dreams.sim_family_pick(&"first", func(ids: Array) -> StringName: return StringName(ids[0]))
 	_check(Engine.time_scale == 8.0, "sim_family_pick keeps a runner's time_scale")
 	Engine.time_scale = 1.0
-	_check(family != &"" and dreams.is_unlocked(String(family)) and dreams.dreamlight == light + 1,
-		"sim_family_pick: takes the family, +1 Dreamlight on the first pick (%s)" % family)
+	_check(family != &"" and dreams.is_unlocked(String(family)) and dreams.dreamlight == light + DreamState.FIRST_PICK_DREAMLIGHT,
+		"sim_family_pick: takes the family, +2 Dreamlight on the first pick (%s)" % family)
 	_check(not main.get_node("%GameSpeed").paused and not main.get_node("%FamilyPickScreen").visible, "…leaves the game unpaused")
 	var taken := dreams.sim_rest(5, func(offer: Array) -> UpgradeData: return offer[0])
 	_check(taken.size() == 1 and dreams.has_card(taken[0].id) and not dreams.is_offering(), "sim_rest: a real offer, one card taken")
@@ -211,7 +211,7 @@ func _test_sim_entry() -> void:
 	# Only the wake bonus is measured (other cards can add Dreamlight at a rest too)
 	_check(DreamState.rest_dreamlight(55) == DreamState.WAKE_DREAMLIGHT and dreams.dreamlight >= light + DreamState.WAKE_DREAMLIGHT,
 		"…every rest from drift 51: +1 Dreamlight (the Heartwood wakes)")
-	_check(dreams.sim_dreamlight_for(&"first") == 1 and dreams.sim_dreamlight_for(&"boss") == DreamState.BOSS_DREAMLIGHT, "sim_dreamlight_for")
+	_check(dreams.sim_dreamlight_for(&"first") == 2 and dreams.sim_dreamlight_for(&"boss") == DreamState.BOSS_DREAMLIGHT, "sim_dreamlight_for")
 	dreams.first_pick_dreamlight = 0
 	_check(dreams.sim_dreamlight_for(&"first") == 0, "…first_pick_dreamlight 0 (Blight 2): none")
 	dreams.first_pick_dreamlight = DreamState.FIRST_PICK_DREAMLIGHT

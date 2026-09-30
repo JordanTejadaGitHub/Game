@@ -228,6 +228,9 @@ func _test_direction_weighting() -> void:
 	dreams.take(_card("seedfall"))  # Overgrowth
 	var wide := _card("many_hands")
 	var narrow := _card("solitude")
+	_check(not dreams._owned_tags()[1].has("tall"), "one overgrowth card doesn't push tall away yet (round 4: 2+)")
+	dreams.take(_card("sprout_chorus"))  # A second overgrowth card: now tall halves
+	_check(dreams._owned_tags()[1].has("tall"), "…two do")
 	for i in 15:  # Many Hands' soft Need (15 attacking Wardens) met, so only the tags count
 		_plant("sporeling", 60 + i * 3, 0)
 	var wide_picks := 0

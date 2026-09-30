@@ -63,13 +63,14 @@ const FULL_MOON_CRIT := 0.10
 const RECKLESS_CRIT := 0.30
 const RECKLESS_PENALTY := 0.15
 # The 10 card builds (dream_design.md "Pool trim", layer 2): the only tags build weighting reads.
-# Tall and overgrowth halve each other.
+# Tall and overgrowth halve each other once you own OPPOSED_FROM cards of one (round 4).
 const ARCHETYPE_TAGS: Array[String] = ["tall", "overgrowth", "daring", "precision", "affliction", "maze",
 	"tending", "kinship"]  # Round 2: swarm merged into affliction; round 3: support into tending
 const DIRECTION_TAGS: Array[String] = ["nurture", "wide", "narrow", "sprout"]  # Old directions: rules and Needs only
 const NOT_BUILD_TAGS: Array[String] = ["bittersweet", "opener"]  # Structural tags, never a build
 const SOFT_TAG_NEEDS: Array[String] = ["nurture"]  # requires_tag Needs that only weigh (x0.4), never gate
 const OPPOSITE_DIRECTION := {"tall": "overgrowth", "overgrowth": "tall"}
+const OPPOSED_FROM := 2
 const OPPOSITE_WEIGHT := 0.5
 const SOFT_NEED_WEIGHT := 0.4  # A card whose soft Needs are unmet (dream_design.md "Adapt, don't get handed")
 const STRAY_FROM_DRIFT := 10  # The Stray Dream: one slot per offer from this rest on (never at boss rests)
@@ -1775,12 +1776,15 @@ func _roll_rarity(act: int, want_rare: bool, skip: Array[int] = []) -> int:
 func _owned_tags() -> Array:
 	var owned := {}
 	var opposed := {}
+	var counts := {}
 	for card in _taken_cards():
 		for tag in card.tags:
 			if ARCHETYPE_TAGS.has(tag):
 				owned[tag] = true
-				if OPPOSITE_DIRECTION.has(tag):
-					opposed[OPPOSITE_DIRECTION[tag]] = true
+				counts[tag] = int(counts.get(tag, 0)) + 1
+	for tag in counts:  # Round 4: the other direction halves only once you own OPPOSED_FROM of this one
+		if OPPOSITE_DIRECTION.has(tag) and counts[tag] >= OPPOSED_FROM:
+			opposed[OPPOSITE_DIRECTION[tag]] = true
 	return [owned, opposed]
 
 # Whether `card` belongs to the build (shares a tag the run has committed to).

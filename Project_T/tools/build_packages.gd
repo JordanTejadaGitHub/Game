@@ -39,12 +39,12 @@ const PACKAGES := {
 	"B18 Greedy Gardener": ["Dew Bowl", "Harvest Moon", "Deep Well", "Overflowing Well", "Dew Trail", "Morning Dew", "Call of the Wild"],
 	# The 8 card builds (dream_design.md "Pool trim", layer 2 + rounds 2–3): enhancers only, Legendaries are capstones.
 	"C1 Tall": ["Tender Care", "Kindred Roots", "Sunlit Rest", "Deeper Rings", "Chosen Few", "Elder Kin", "Solitude", "Few and Mighty"],
-	"C2 Overgrowth": ["Seedfall", "Sprout Chorus", "Root Network", "Seedling Gift", "Canopy", "Many Hands", "Mixed Grove", "Odd One Out", "Grand Tour"],
+	"C2 Overgrowth": ["Seedfall", "Sprout Chorus", "Root Network", "Seedling Gift", "Canopy", "Many Hands", "Mixed Grove", "Odd One Out", "Grand Tour", "Warm Hearth"],
 	"C3 Daring": ["Call of the Wild", "Fresh Growth", "Head Start", "Quick Step", "Second Wind", "Scarred Bark", "Desperate Bloom", "Thin Bark", "Last Stand"],
-	"C4 Precision": ["Glinting Dew", "Sharpened Light", "Shattering Blow", "Still Target", "First Light", "Lone Hunter", "Hunter's Patience", "Watchful Rest"],
+	"C4 Precision": ["Glinting Dew", "Sharpened Light", "Shattering Blow", "Still Target", "First Light", "Lone Hunter", "Hunter's Patience", "Watchful Rest", "Heavy Stones", "Called Shot"],
 	"C5 Affliction": ["Bitter Sap", "Seeping", "Venom Bloom", "Lasting Dreams", "Heavy Air", "Crowd Breaker", "Crowded Path", "Last Breath", "Thinning the Herd"],
 	"C6 Maze": ["Cozy Corners", "Straightaway", "Winding Path", "Heart of the Maze", "Forest's Edge", "Hedge Maze", "Bitter Hedges", "Thornheart", "Weathered Walls"],
-	"C7 Tending": ["Cleared Ground", "Heartwood's Reach", "Reclaimed Earth", "Tended Forest", "Burn Back the Dead Wood", "Morning Dew", "Evergreen", "Living Walls", "Scented Hedge", "Thorn Snare", "Warm Hearth", "Kind Canopy"],
+	"C7 Tending": ["Cleared Ground", "Heartwood's Reach", "Reclaimed Earth", "Tended Forest", "Burn Back the Dead Wood", "Morning Dew", "Living Walls", "Scented Hedge", "Thorn Snare"],
 	"C8 Kinship": ["Family Ties", "Sweet Harmony", "Old Friends", "Rooted Bond", "Extended Family", "Kin and Kindling", "Blood Is Thicker", "Elder Kin"],
 }
 # Board extras the chasing bot needs for some builds (ranks, Sprouts, walls, a Kinship, clearing…).
@@ -56,7 +56,7 @@ const EXTRAS := {
 	"B2 The Long Walk": {"walls": true},
 	"B8 Hairpin Mill": {"walls": true, "families": ["whirligig"]},
 	"B16 Bramble Maze": {"walls": true, "families": ["rootling"], "forms": ["bramble"]},
-	"C7 Tending": {"clearing": true, "walls": true, "families": ["acorn"]},
+	"C7 Tending": {"clearing": true, "walls": true},
 	"B6 Gale": {"families": ["whirligig", "sporeling"]},
 	"B17 The Grove": {"families": ["acorn"], "forms": ["grove_heart", "elder_stump"]},
 	"B18 Greedy Gardener": {"families": ["acorn"], "forms": ["dewcatcher", "wellspring"]},
@@ -151,6 +151,7 @@ func _chase(build: String, runs: int) -> void:
 				if not fresh.is_empty():
 					return fresh[0]
 				return _policy.pick_dream(offer))
+			_spend_dreamlight()
 			var count := _count(package)
 			if drift == 50 and count >= 3:
 				three += 1
@@ -188,6 +189,9 @@ func _build_chase_board(package: Array, extras: Dictionary) -> void:
 	for form in forms:
 		dreams.unlocked[form] = true
 		plant.append(form)
+	dreams.grant_free_branches()  # As in play: a family comes with both regular branches
+	dreams.add_dreamlight(dreams.sim_dreamlight_for(&"first"))
+	_spend_dreamlight()
 	if extras.get("wide", false):
 		for i in 10:
 			plant.append(families.keys()[i % families.size()])
@@ -226,6 +230,9 @@ func _emerge(runs: int, picker: String = "balanced") -> void:
 				var family: String = left[rng.randi_range(0, left.size() - 1)]
 				owned.append(family)
 				dreams.unlocked[family] = true
+				dreams.grant_free_branches()  # Both regular branches come with the family
+				if drift == 5:
+					dreams.add_dreamlight(dreams.sim_dreamlight_for(&"first"))
 				_plant([family, family, family, "sprout", "thornwall"])
 				dreams.bump_board()
 			var lines := {}
@@ -248,6 +255,7 @@ func _emerge(runs: int, picker: String = "balanced") -> void:
 					if c.tags.any(func(t: String) -> bool: return lines.has(t)):
 						shown[1] += 1
 				return offer[rng.randi_range(0, offer.size() - 1)] if picker == "random" else policy.pick_dream(offer))
+			_spend_dreamlight()
 		var hit := false
 		for build in PACKAGES:
 			if _count(ids[build]) >= 3:
@@ -289,6 +297,27 @@ func _plant(list: Array) -> void:
 		tower.set_process(false)
 		_planted.append(tower)
 
+# A player spends Dreamlight as it comes: final forms of the owned families first (the costliest that
+# fits), then hidden branches and wall growths.
+func _spend_dreamlight() -> void:
+	while true:
+		var best: TowerData = null
+		for tree in dreams.get_remember_trees():
+			for form in _tree_forms(tree):
+				if dreams.can_unlock(form) and (best == null or form.tier > best.tier):
+					best = form
+		if best == null or not dreams.unlock_with_dreamlight(best):
+			return
+
+func _tree_forms(tree: Array) -> Array:
+	var forms: Array = []
+	for branch in tree[1]:
+		forms.append(branch[0])
+		forms.append_array(branch[1])
+	if tree[2] != null:
+		forms.append(tree[2])
+	return forms
+
 func _reset(run: int) -> void:
 	for tower in _planted:
 		tower.free()
@@ -296,6 +325,7 @@ func _reset(run: int) -> void:
 	dreams.stacks.clear()
 	dreams._resonance.clear()
 	dreams.unlocked = {"sprout": true, "thornwall": true}
+	dreams.dreamlight = 0
 	dreams.dreams_seen = 0
 	dreams._dreams_without_rare = 0
 	dreams._rare_dreams_left = 0
