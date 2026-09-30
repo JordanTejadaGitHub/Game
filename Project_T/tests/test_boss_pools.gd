@@ -242,6 +242,7 @@ func _run() -> void:
 	near.apply_status(EnemyStatuses.DAMP)
 	king.shrug()
 	_check(king.statuses.active_ids().is_empty() and near.statuses.active_ids().is_empty(), "the Shrug clears his statuses and his neighbours'")
+	_check(king.sprite.animation == &"shrug", "his shoulders heave (the shrug pose)")
 	_clear_enemies()
 
 	# --- Mourning Mother: Sorrow ---
@@ -252,6 +253,11 @@ func _run() -> void:
 	_check(mother.health == hurt, "no mending right after a hit")
 	mother._update_boss_pool_abilities(1.0)
 	_check(mother.health > hurt, "she mends once left alone (%d → %d)" % [hurt, mother.health])
+	mother.update_animation(Vector2(1, 0))
+	_check(mother.sorrowing and mother.sprite.animation == &"sorrow", "while she mends, the sorrow loop plays")
+	mother.take_damage(10.0)
+	mother.update_animation(Vector2(1, 0))
+	_check(not mother.sorrowing and mother.sprite.animation == &"walk_side", "a hit brings her walk back at once")
 	for i in 60:
 		mother._update_boss_pool_abilities(1.0)
 	_check(mother.health <= roundi(mother.max_health * 0.7 + mother.max_health * 0.25) + 1, "never more than 25% of her health in all")

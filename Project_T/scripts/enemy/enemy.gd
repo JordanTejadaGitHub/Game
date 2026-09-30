@@ -283,6 +283,7 @@ var _lantern_timer := 0.0
 var _shrug_timer := 0.0
 var _shrug_flash := 0.0
 var _since_hit := 0.0  # Seconds since the last hit (Mourning Mother's Sorrow)
+var sorrowing := false  # Mourning Mother mending right now (Sorrow): plays her "sorrow" loop
 var _regen_left := -1.0  # Health it may still mend (< 0 = not worked out yet)
 var _wither_timer := 0.0
 var _wither_bursts := 0  # wither_burst_at shares already passed
@@ -908,6 +909,9 @@ func update_animation(velocity: Vector2) -> void:
 	elif _charge_left > 0.0 and sprite.sprite_frames.has_animation(&"gallop"):
 		animation = &"gallop"  # Night Mare's Bolt
 		flip = velocity.x < 0
+	elif sorrowing and sprite.sprite_frames.has_animation(&"sorrow"):
+		animation = &"sorrow"  # Mourning Mother mending: hands to her face, black tears
+		flip = velocity.x < 0
 	elif abs(velocity.x) >= abs(velocity.y):  # Moving horizontally
 		animation = &"walk_side"
 		flip = velocity.x < 0  # Flip horizontally if moving left
@@ -1460,7 +1464,9 @@ func _update_boss_pool_abilities(elapsed: float) -> void:
 		_since_hit += elapsed
 		if _regen_left < 0.0:
 			_regen_left = max_health * enemy_data.regen_cap
-		if _since_hit >= enemy_data.regen_delay and _regen_left > 0.0 and health < max_health:
+		sorrowing = _since_hit >= enemy_data.regen_delay and _regen_left > 0.0 and health < max_health \
+			and statuses.veil_time <= 0.0
+		if sorrowing:
 			var amount := minf(max_health * enemy_data.regen_rate * elapsed, _regen_left)
 			_regen_left -= amount
 			heal(amount)
@@ -1474,6 +1480,7 @@ func shrug() -> void:
 		creature.statuses.sleep_time = 0.0
 		creature.queue_redraw()
 	_shrug_flash = SHRUG_FLASH_TIME
+	play_pose(&"shrug")  # Shoulders heave, a ring of grave-dust rolls out
 	shrugged.emit(self)
 	queue_redraw()
 
@@ -1659,6 +1666,7 @@ func take_damage(amount: float, line: String = "", is_area: bool = false, is_cri
 	var soothe := amount * family * taken * get_pack_multiplier()  # Huntsman: the pack shields him
 	var soothe_before_coat := soothe
 	_since_hit = 0.0  # Mourning Mother: Sorrow waits for a quiet moment
+	sorrowing = false  # (Her walk comes back at once: update_animation)
 	if line in enemy_data.resists:
 		_mark_hit(-1)
 	elif line in enemy_data.weak_to:
