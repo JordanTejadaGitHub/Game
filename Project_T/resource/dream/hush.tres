@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "hush"
 display_name = "Hush"
-description = "Bellflower-line pulses reach 15% further (stacks, up to +45%)."
+description = "Bellflower-line pulses reach 25% further (stacks, up to +75%)."
 rarity = 0
 kind = 3
 tags = Array[String](["song", "sleep"])

@@ -29,8 +29,8 @@ func _init(tree_view: GroveTreeView) -> void:
 	visible = false
 	custom_minimum_size = Vector2(560, 0)
 	var style := StyleBoxFlat.new()
-	style.bg_color = Color(0.09, 0.08, 0.06, 0.96)
-	style.border_color = Color(0.95, 0.8, 0.4)
+	style.bg_color = Color(Palette.ROOT, 0.96)
+	style.border_color = Palette.GLOW
 	style.set_border_width_all(2)
 	style.set_corner_radius_all(10)
 	style.set_content_margin_all(16)
@@ -42,14 +42,14 @@ func _init(tree_view: GroveTreeView) -> void:
 	title.text = "Carry into the dream"
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	title.add_theme_font_size_override("font_size", 24)
-	title.add_theme_color_override("font_color", Color(1.0, 0.88, 0.55))
+	title.add_theme_color_override("font_color", Palette.GLOW)
 	box.add_child(title)
 	_slots_row.alignment = BoxContainer.ALIGNMENT_CENTER
 	_slots_row.add_theme_constant_override("separation", 8)
 	box.add_child(_slots_row)
 	_hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_hint.add_theme_color_override("font_color", Color(0.8, 0.78, 0.7))
+	_hint.add_theme_color_override("font_color", Palette.MOONPATH)
 	box.add_child(_hint)
 	var scroll := ScrollContainer.new()
 	scroll.custom_minimum_size = Vector2(0, 260)
@@ -179,6 +179,6 @@ func _perk_button(unlock: UnlockData) -> Button:
 	var level_text: String = roman[level] if unlock.get_levels() > 1 and level < roman.size() else ""
 	button.text = "%s%s\n%s" % [unlock.display_name, level_text, IconInfo.format(unlock.description)]  # No hover needed (touch)
 	button.disabled = not carried and _carried.size() >= HeartwoodMemory.loadout_slots(_memory)
-	button.add_theme_color_override("font_pressed_color", Color(1.0, 0.88, 0.5))
+	button.add_theme_color_override("font_pressed_color", Palette.GLOW)
 	button.pressed.connect(toggle.bind(unlock.id))
 	return button

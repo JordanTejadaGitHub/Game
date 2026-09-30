@@ -9,21 +9,21 @@
 [resource]
 script = ExtResource("1_tdata")
 display_name = "Starling Murmuration"
-description = "Three starlings each hunt one of the three fastest nightmares in range; extra damage to Phantoms and sprinting Night Hounds."
+description = "Five starlings each hunt one of the five fastest nightmares in range; extra damage to Phantoms and sprinting Night Hounds."
 cost = 0
 texture = ExtResource("2_tex")
 frame_count = 8
 line = "wing"
 tier = 3
 buildable_directly = false
-evolve_cost = 200
+evolve_cost = 300
 attack_kind = 7
 attack_range = 4.0
-damage = 15
+damage = 38
 attacks_per_second = 1.5
 projectile_speed = 560
 projectile_returns = true
-multi_targets = 3
+multi_targets = 5
 target_mode = 3
 crit_chance = 0.15
 bonus_vs_enemies = Array[String](["dandelion_seed"])

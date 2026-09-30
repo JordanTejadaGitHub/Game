@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "patient_roots"
 display_name = "Patient Roots"
-description = "{held} lasts 0.25 s longer, from any source."
+description = "{held} lasts 0.5 s longer, from any source."
 rarity = 1
 kind = 3
 tags = Array[String](["seed", "root"])

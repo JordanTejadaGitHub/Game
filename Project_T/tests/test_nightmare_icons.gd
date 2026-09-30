@@ -167,9 +167,14 @@ func _run() -> void:
 	_check(dossier.visible and dossier.shown_drift == 25, "act 1: the dossier opens by itself at the first rest (drift %d)" % dossier.shown_drift)
 	var text := _text(dossier._content)
 	var health := NightmareCard.health_at(stag, 25, director)
-	_check(health == maxi(roundi(stag.health * director.get_health_scale(stag, 25)), 1) and text.contains(str(health)),
+	_check(health == maxi(roundi(stag.health * director.get_health_scale(stag, 25)), 1) and text.contains(BossDossier.thousands(health)),
 		"the real boss health (%d)" % health)
-	_check(text.contains(stag.title) and text.contains("Arrives in drift 25"), "header: title and arrival")
+	_check(text.contains(stag.title) and text.contains("drift 25 · the last drift of the act") and text.contains("the boss of act 1") and text.contains("Arrives in"), "header: eyebrow, title, drift and arrival")
+	_check(text.contains("leaves") and text.contains("about "), "the leaves it takes, and its health in Husks (%s)" % text.left(300))
+	var revealed := []
+	dossier.boss_revealed.connect(func(d: EnemyData) -> void: revealed.append(d))
+	dossier.open(25)
+	_check(revealed == [stag], "opening it emits boss_revealed for Sound")
 	_check(text.contains("What it does") and text.contains("Charge") and text.contains("at 50% health"), "abilities with when")
 	_check(not text.contains("What helps") and text.contains("Your record") and text.contains("New"), "no What helps (removed 2026-09-30); the record")
 	dossier.close_dossier()
@@ -178,7 +183,7 @@ func _run() -> void:
 	_check(dossier.visible and dossier.shown_drift == 25, "reopens for the next boss")
 	dossier.close_dossier()
 
-	# The rest opening the boss block (after drift 20): only a reminder, with "Open dossier".
+	# The rest opening the boss block (after drift 20): only a reminder, with "About <boss>".
 	director.drifts_started = 20
 	director.rest_started.emit(4, false, 0, true)
 	await _settle(dossier, dreams, omens, intro, func() -> bool: return dossier.is_reminding())
@@ -191,7 +196,7 @@ func _run() -> void:
 				"the reminder sits under the Coming strip, not on it (%.0f vs %.0f)" % [dossier._reminder.position.y, coming.position.y + coming.size.y])
 	var open_button: Button = dossier._reminder.find_children("*", "Button", true, false)[0]
 	open_button.pressed.emit()
-	_check(dossier.visible and dossier.shown_drift == 25 and not dossier.is_reminding(), "Open dossier opens the card")
+	_check(dossier.visible and dossier.shown_drift == 25 and not dossier.is_reminding(), "About <boss> opens the card")
 	dossier.close_dossier()
 
 	# The act break (the boss rest after drift 25): the NEXT act's boss, last in the rest.
@@ -207,7 +212,7 @@ func _run() -> void:
 	var boss: Node2D = spawner.spawn_enemy(stag)
 	boss.set_process(false)
 	await process_frame
-	_check(banner.half_health_text().begins_with("At 50% health · Charge"), "the 50 percent marker names the ability (" + banner.half_health_text() + ")")
+	_check(banner.half_health_text().begins_with("At 50% health · Bellow"), "the 50 percent marker names the ability (" + banner.half_health_text() + ")")
 	banner._boss = spawner.spawn_enemy(load("res://resource/enemy/hollow_oak.tres"))
 	banner._boss.set_process(false)
 	var oak_lines: Dictionary = banner.marker_lines()

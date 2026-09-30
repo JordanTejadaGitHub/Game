@@ -7,18 +7,18 @@
 [resource]
 script = ExtResource("1_tdata")
 display_name = "Grandmother Oak"
-description = "Wardens in her range deal 40% more and attack 20% faster; she gives 10 Dew after every drift."
+description = "Wardens in her range deal 60% more and attack 20% faster; she gives 15 Dew after every drift."
 cost = 0
 line = "acorn"
 tier = 4
 buildable_directly = false
-evolve_cost = 400
+evolve_cost = 600
 attack_kind = 13
 attack_range = 3.0
 damage = 0
-aura_damage_bonus = 0.4
+aura_damage_bonus = 0.6
 aura_speed_bonus = 0.2
-dew_per_drift = 10
+dew_per_drift = 15
 texture = ExtResource("art_idle")
 frame_count = 8
 sprite_offset = Vector2(0, -24)

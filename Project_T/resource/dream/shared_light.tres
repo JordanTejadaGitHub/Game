@@ -6,10 +6,10 @@
 script = ExtResource("1_card")
 id = "shared_light"
 display_name = "Shared Light"
-description = "Every Warden gives the Wardens touching it +2% damage (up to +10% on one Warden)."
+description = "Every Warden gives the Wardens touching it +4% damage (up to +20% on one Warden)."
 rarity = 2
 kind = 3
-tags = Array[String](["seed", "acorn"])
+tags = Array[String](["seed", "acorn", "support"])
 max_stacks = 1
 rule_id = &"shared_light"
 in_start_pool = false

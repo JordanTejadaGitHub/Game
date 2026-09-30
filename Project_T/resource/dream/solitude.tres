@@ -6,9 +6,9 @@
 script = ExtResource("1_card")
 id = "solitude"
 display_name = "Solitude"
-description = "A Warden with no other attacking Warden within 2 cells gets +30% damage and +0.5 range."
+description = "A Warden with no other attacking Warden within 2 cells gets +45% damage and +0.5 range."
 rarity = 1
 kind = 3
-tags = Array[String](["narrow", "maze"])
+tags = Array[String](["narrow", "maze", "tall"])
 max_stacks = 1
 rule_id = &"solitude"

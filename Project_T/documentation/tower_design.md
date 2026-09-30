@@ -351,6 +351,14 @@ rate.
 
 ## Reactions: combos you can see
 
+**Reactions need a grown Warden** (2026-09-30, user: the starting three discovered all 7 of their
+combos and a Crowned Reaction in the first run with base Wardens; *"shouldn't be able to unlock that
+many"*). A Reaction fires only when **at least one of its two statuses was applied by a branch or
+final form** (tier 2+). Base Wardens still apply their statuses (Soaked still slows, Charged still
+bolts), they just don't react on their own. So a fresh run discovers combos as it grows Wardens, over
+several runs. Crowned Reactions follow their base Reaction (so also need a grown Warden). Kinships
+already need two branches. Codex hints stay "???".
+
 Added 2026-09-27. The bonuses above are quiet: they make numbers bigger. **Reactions** are the
 loud layer: when two specific statuses meet on one nightmare, a named event goes off with its own
 effect, sound and callout. Every Reaction is **warm light breaking cold shadow**, the game's core

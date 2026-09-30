@@ -6,10 +6,10 @@
 script = ExtResource("1_card")
 id = "deep_well"
 display_name = "Deep Well"
-description = "At every {rest}, 3% interest on your banked Dew (up to 20)."
+description = "At every {rest}, 5% interest on your banked Dew (up to 40)."
 rarity = 2
 kind = 3
-tags = Array[String](["seed", "acorn", "economy"])
+tags = Array[String](["seed", "acorn", "economy", "support"])
 max_stacks = 1
 rule_id = &"deep_well"
 in_start_pool = false

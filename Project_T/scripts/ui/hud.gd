@@ -12,7 +12,7 @@ const BUTTON_MIN_WIDTH := 32.0
 const BAR_CLEARANCE := 336.0
 const SPROUT_ID := "sprout"
 const CLEAR_TOOL_GAP := 10.0
-const SEED_COLOR := Color(0.6, 0.85, 0.4)
+const SEED_COLOR := Palette.SPRIG
 const COUNTER_ICON_GAP := 6.0
 
 @onready var tower_bar: HBoxContainer = %TowerBar
@@ -34,7 +34,7 @@ const MENU_SLOT := [-16.0, 84.0]
 const REMEMBER_SLOT := [-106.0, 124.0]
 const BUFFS_SLOT := [-236.0, 84.0]
 const CODEX_SLOT := [-326.0, 48.0]
-const LEAF_LOST_COLOR := Color(1.0, 0.6, 0.3)
+const LEAF_LOST_COLOR := UiStyle.POOR
 const TOAST_TIME := 2.5
 
 @onready var dream_state: DreamState = %DreamState
@@ -66,6 +66,10 @@ func _ready() -> void:
 	get_viewport().size_changed.connect(_fit_tower_bar)
 	# New Wardens unlocked by Dreams appear in the bar (and prices can change).
 	dream_state.unlocks_changed.connect(_build_tower_bar)
+	# The Sprout price follows the Sprouts on the map (planted, sold, grown): refresh the bar after each.
+	var refresh_prices := func(_node: Node) -> void: (func() -> void: _on_dew_changed(run_state.dew)).call_deferred()
+	tower_placer.tower_container.child_entered_tree.connect(refresh_prices)
+	tower_placer.tower_container.child_exiting_tree.connect(refresh_prices)
 	# Keep the buttons in sync when build mode is toggled with B / cancelled with Esc or right-click.
 	tower_placer.build_mode_changed.connect(_sync_buttons.unbind(1))
 
@@ -104,6 +108,8 @@ func _ready() -> void:
 	add_child(DreamCodex.new(dream_state, run_state))
 	# The Codex's Nightmares: lifetime dispels per kind and the "Know every nightmare" milestone.
 	add_child(NightmareCodex.new(drift_director))
+	# The run history (balance_simulation.md "Run history"): saved at every run end, shown in the Codex.
+	add_child(RunHistory.new(drift_director))
 	_raise_overlays.call_deferred()  # After everything above (and deferred adds) is in
 	# Resist / weak pips and the immune flash, drawn in the world over the nightmares.
 	owner.add_child.call_deferred(ResistPips.new())
@@ -148,7 +154,7 @@ func _ready() -> void:
 		if enemy.enemy_data.cleanse_line != "":
 			show_toast(enemy.enemy_data.cleanse_line))
 	spawner.wall_trampled.connect(func(_cell: Vector2, by: Node2D) -> void:
-		show_toast("The %s tramples a Thornwall!" % by.enemy_data.display_name))
+		show_toast("%s tramples a Thornwall!" % IconInfo.the_name(by.enemy_data.display_name, true)))
 	toast_label.modulate.a = 0.0
 	# Counters are icon + number (ui_style.md, the mock); the words stay in their tooltips.
 	_add_counter_icon(dew_label, &"dew", 2)
@@ -253,12 +259,12 @@ func _make_seed_badge() -> Control:
 	_seed_badge.position = Vector2(BUTTON_SIZE.x - 14, 2)
 	_seed_badge.draw.connect(func() -> void:
 		_seed_badge.draw_set_transform(Vector2(0, 7), -0.5, Vector2(0.7, 1.0))
-		_seed_badge.draw_circle(Vector2.ZERO, 6.0, Color(0.08, 0.1, 0.12))
+		_seed_badge.draw_circle(Vector2.ZERO, 6.0, Palette.ROOT)
 		_seed_badge.draw_circle(Vector2.ZERO, 4.5, SEED_COLOR)
 		_seed_badge.draw_set_transform(Vector2.ZERO)
 		var font := ThemeDB.fallback_font
 		var text := str(run_state.sprout_charges)
-		_seed_badge.draw_string_outline(font, Vector2(-2, 22), text, HORIZONTAL_ALIGNMENT_LEFT, -1, 11, 4, Color(0.05, 0.06, 0.08))
+		_seed_badge.draw_string_outline(font, Vector2(-2, 22), text, HORIZONTAL_ALIGNMENT_LEFT, -1, 11, 4, Palette.DREAD)
 		_seed_badge.draw_string(font, Vector2(-2, 22), text, HORIZONTAL_ALIGNMENT_LEFT, -1, 11, SEED_COLOR.lightened(0.3)))
 	return _seed_badge
 
@@ -290,11 +296,13 @@ func _on_dew_changed(dew: int) -> void:
 		var affordable := run_state.can_afford(cost)
 		# Only when something changed: rewriting text / theme on every Dew change (each dispel) would
 		# reset a hovered button's tooltip (screens_ui.md "Hover and tap tips").
-		var bar_state := "%d:%s" % [cost, affordable]
+		var bar_state := "%d:%s:%d" % [cost, affordable, tower_placer.count_paid_sprouts() if _bar_towers[i].get_id() == SPROUT_ID else 0]
 		if _tower_buttons[i].get_meta(&"bar_state", "") == bar_state:
 			continue
 		_tower_buttons[i].set_meta(&"bar_state", bar_state)
 		_tower_buttons[i].text = str(cost)
+		if _bar_towers[i].get_id() == SPROUT_ID:
+			_update_sprout_rule(_tower_buttons[i], cost)
 		_tower_buttons[i].modulate.a = 1.0 if affordable else UNAFFORDABLE_BUTTON_ALPHA
 		# Colour is never alone (ui_style.md): faded AND the cost in red.
 		for state in ["font_color", "font_hover_color", "font_pressed_color", "font_hover_pressed_color"]:
@@ -350,11 +358,11 @@ func _add_dreamlight_counter() -> void:
 	label.offset_left = label.offset_right - 110
 	label.add_theme_color_override("font_color", DREAMLIGHT_COLOR)
 	label.mouse_filter = Control.MOUSE_FILTER_STOP
-	label.tooltip_text = IconInfo.resource_tooltip(&"dreamlight")
-	# Tap / click says the same as the tooltip (platforms.md: no hover-only information).
-	label.gui_input.connect(func(event: InputEvent) -> void:
-		if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
-			show_toast("%s (%d)" % [IconInfo.resource_tooltip(&"dreamlight"), dream_state.dreamlight]))
+	# Tap / click shows the same text as the tooltip, at the counter (platforms.md: no hover-only
+	# information; a top-centre toast read as a misplaced tooltip).
+	dreamlight_tip = TapTip.attach(label, IconInfo.resource_tooltip(&"dreamlight"))
+	dream_state.dreamlight_changed.connect(func(amount: int) -> void:
+		dreamlight_tip._label.text = "%s (%d)" % [IconInfo.resource_tooltip(&"dreamlight"), amount])
 	add_child(label)
 	var update := func(amount: int) -> void:
 		label.text = str(amount)
@@ -466,6 +474,7 @@ func _tower_icon(data: TowerData) -> Texture2D:
 # Dreamlight you have (DreamState.can_unlock). The screen pauses mid-drift and restores it on close.
 
 var remember_button := Button.new()
+var dreamlight_tip: TapTip  # The Dreamlight counter's tap tip
 var _remember_glow := 0.0
 
 func _add_remember_button() -> void:
@@ -540,7 +549,7 @@ func _process(delta: float) -> void:
 		remember_button.text = "Remember ✦" if _remember_ready else "Remember"
 	_remember_glow += real
 	remember_button.modulate = Color.WHITE.lerp(Color(1.35, 1.2, 0.8), 0.5 + 0.5 * sin(_remember_glow * 4.0)) \
-		if _remember_ready else Color.WHITE
+		if _remember_ready else Color.WHITE  # A multiplier (glow pulse)
 
 # Full-screen overlays draw above the rest of the HUD (the Coming strip, the top-right buttons and
 # the counters are added in code after the scene's screens): they go last, in rest order, with the
@@ -553,3 +562,48 @@ func _raise_overlays() -> void:
 		var overlay := get_node_or_null(overlay_name)
 		if overlay != null:
 			move_child(overlay, get_child_count() - 1)
+
+# --- The Sprout price rule (warden_stats.md "The rule is shown") -------------------------------------
+# Every TowerPlacer.SPROUTS_PER_STEP Sprouts on the map add SPROUT_STEP_DEW to the price; Seedfall fixes
+# it. The tooltip says so, a small "↑ 8/10" tag above the button counts to the next rise, and the
+# first rise in a run gets a one-line toast.
+var _sprout_rise_told := false
+var _sprout_last_cost := -1
+
+func sprout_rule_text(cost: int) -> String:
+	if tower_placer.sprout_price_halved():
+		return "Sprout · %d Dew, fixed (Seedfall)." % cost
+	var per := TowerPlacer.SPROUTS_PER_STEP
+	var next := (tower_placer.count_paid_sprouts() / per + 1) * per
+	return "Sprout · %d Dew. Every %d Sprouts on the map add +%d Dew to the price (next rise at %d Sprouts). Selling or growing one lowers it." % [
+		cost, per, TowerPlacer.SPROUT_STEP_DEW, next]
+
+func _update_sprout_rule(button: Button, cost: int) -> void:
+	var tag := button.get_node_or_null("SproutRise") as Label
+	if tag == null:
+		tag = Label.new()
+		tag.name = "SproutRise"
+		tag.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		tag.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		UiStyle.number(tag, 12, UiStyle.INK_DIM)
+		tag.add_theme_color_override("font_outline_color", UiStyle.FOG)
+		tag.add_theme_constant_override("outline_size", 4)
+		button.add_child(tag)
+	var fixed := tower_placer.sprout_price_halved()
+	var per := TowerPlacer.SPROUTS_PER_STEP
+	var count := tower_placer.count_paid_sprouts()
+	tag.visible = not fixed and cost > 0
+	tag.text = "↑ %d/%d" % [count, (count / per + 1) * per]
+	tag.reset_size()
+	tag.position = Vector2((button.size.x - tag.size.x) / 2.0, -tag.size.y + 2.0)
+	var lines := button.tooltip_text.split("\n")
+	var rule := sprout_rule_text(cost)
+	if lines.size() >= 3 and lines[lines.size() - 1].begins_with("Sprout · "):
+		lines[lines.size() - 1] = rule
+		button.tooltip_text = "\n".join(lines)
+	else:
+		button.tooltip_text += "\n" + rule
+	if _sprout_last_cost >= 0 and cost > _sprout_last_cost and not fixed and not _sprout_rise_told:
+		_sprout_rise_told = true
+		show_toast("Sprouts now cost %d Dew: the more you have, the more they cost." % cost)
+	_sprout_last_cost = cost

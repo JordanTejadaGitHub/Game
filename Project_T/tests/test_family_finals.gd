@@ -108,7 +108,7 @@ func _run() -> void:
 	snug._update_ability(0.1)
 	var count := held.filter(func(e) -> bool: return e.statuses.is_held()).size()
 	var reachable := held.filter(func(e) -> bool: return snug.get_enemies_in_range().has(e)).size()
-	_check(count == mini(reachable, 3) and count > 0, "Snugroot Holds up to 3 (%d of %d in range)" % [count, reachable])
+	_check(count == mini(reachable, snug.tower_data.hold_targets) and count > 0, "Snugroot Holds up to its hold_targets (%d of %d in range)" % [count, reachable])
 	snug.queue_free()
 	await _clean()
 
@@ -118,7 +118,7 @@ func _run() -> void:
 	var b := _spawn(beacon.global_position + Vector2(0, 2 * CELL))
 	beacon._update_ability(0.1)
 	_check(a.statuses.has(EnemyStatuses.MARKED) and b.statuses.has(EnemyStatuses.MARKED), "Beacon Marks everything in range")
-	_check(is_equal_approx(a.statuses.get_damage_taken_multiplier(), 1.35), "its Marked is +35%% (%.2f)" % a.statuses.get_damage_taken_multiplier())
+	_check(is_equal_approx(a.statuses.get_damage_taken_multiplier(), 1.0 + beacon.tower_data.marked_bonus), "its Marked is +marked_bonus (%.2f)" % a.statuses.get_damage_taken_multiplier())
 	beacon.queue_free()
 	await _clean()
 
@@ -129,7 +129,7 @@ func _run() -> void:
 	friend._refresh_neighbours()
 	far_friend._refresh_neighbours()
 	var speed := far_friend.get_attacks_per_second()  # 3 tiles away: no aura
-	_check(is_equal_approx(friend.get_attacks_per_second(), speed * 1.2), "Elder Stump: +20% attack speed beside it")
+	_check(is_equal_approx(friend.get_attacks_per_second(), speed * (1.0 + load("res://resource/tower/elder_stump.tres").aura_speed_bonus)), "Elder Stump: its attack-speed aura beside it")
 	stump.evolve(load("res://resource/tower/grove_heart.tres"), 0)
 	var extra := _plant("sprout", Vector2(5, 6))
 	for t in [stump, friend, extra]:
@@ -155,7 +155,7 @@ func _run() -> void:
 	await process_frame
 	var dew := run_state.dew
 	director.drift_cleared.emit(5, 0, true)
-	_check(run_state.dew == dew and is_equal_approx(catcher.bowl, 4.0), "Dewcatcher: +4 Dew per drift, into the bowl (%.1f)" % catcher.bowl)
+	_check(run_state.dew == dew and is_equal_approx(catcher.bowl, float(catcher.tower_data.dew_per_drift)), "Dewcatcher: its Dew per drift, into the bowl (%.1f)" % catcher.bowl)
 	catcher.queue_free()
 	await process_frame
 	paused = false
@@ -269,11 +269,11 @@ func _check_data() -> void:
 			_check(card != null and card.unlocks == branch, "%s has its card" % line[0])
 			if line.size() > 1:
 				var final: TowerData = load("res://resource/tower/%s.tres" % line[1])
-				_check(branch.evolves_to.has(final) and final.tier == 3 and final.evolve_cost == 200,
-					"%s grows into %s (final, 200 Dew)" % [line[0], line[1]])
+				_check(branch.evolves_to.has(final) and final.tier == 3 and final.evolve_cost == 300,
+					"%s grows into %s (final, 300 Dew)" % [line[0], line[1]])
 				_check(load("res://resource/dream/dream_%s.tres" % line[1]) != null, "%s has its card" % line[1])
 			else:
-				_check(branch.tier == 3 and branch.evolve_cost == 200, "%s is a final form (200 Dew)" % line[0])
+				_check(branch.tier == 3 and branch.evolve_cost == 300, "%s is a final form (300 Dew)" % line[0])
 	for final in ASCEND:
 		var data: TowerData = load("res://resource/tower/%s.tres" % final)
 		_check(data.evolves_to.has(load("res://resource/tower/%s.tres" % ASCEND[final])),

@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "grove_of_kin"
 display_name = "Grove of Kin"
-description = "Every Kinship on the map gives all Wardens +3% damage (up to +30%)."
+description = "Every {kinship} on the map gives all Wardens +5% damage (up to +50%)."
 rarity = 3
 kind = 3
 tags = Array[String](["kinship"])

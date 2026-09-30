@@ -9,6 +9,6 @@ display_name = "Pinned"
 statuses = Array[StringName]([&"marked", &"held"])
 alternatives = Array[StringName]([&"drowsy"])
 description = "Exposed + Rooted or Asleep: the next hit is a guaranteed ×3 crit."
-callout_color = Color(0.91, 0.925, 1, 1)
+callout_color = Color(0.8627451, 0.9098039, 0.95686275, 1)
 effect = &"pinned"
 effect_scale = 1.75

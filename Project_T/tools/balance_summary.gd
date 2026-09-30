@@ -5,11 +5,13 @@ extends SceneTree
 # and the pass / fail checks, and compares with the saved baseline.
 #   godot --headless --path . --script res://tools/balance_summary.gd -- [--dir=user://balance_out]
 #       [--save-baseline]   (writes tools/balance_baseline.json from this batch)
+#       [--human]   (adds the player's runs from RunHistory, user://run_history.json, as "human/…" rows)
 
 const BASELINE := "res://tools/balance_baseline.json"
 
 var dir := "user://balance_out"  # balance_sim.gd's default (outside res://)
 var save_baseline := false
+var human := false
 
 func _initialize() -> void:
 	for arg in OS.get_cmdline_user_args():
@@ -17,7 +19,11 @@ func _initialize() -> void:
 			dir = arg.get_slice("=", 1)
 		elif arg == "--save-baseline":
 			save_baseline = true
+		elif arg == "--human":
+			human = true
 	var runs := _read_runs(dir.path_join("runs.csv"))
+	if human:
+		runs.append_array(_human_runs())
 	if runs.is_empty():
 		printerr("no runs in %s" % dir.path_join("runs.csv"))
 		quit(1)
@@ -108,6 +114,30 @@ func _compare(table: Dictionary) -> void:
 			if absf(now - then) > maxf(absf(then) * 0.1, 0.01):
 				moved.append("%s %.2f -> %.2f" % [stat, then, now])
 		print("  %s: %s" % [key, "unchanged" if moved.is_empty() else ", ".join(moved)])
+
+# The player's runs (Main's RunHistory) in runs.csv's shape, so they sit beside the bots: profile "human",
+# style = the dev tag (or "blight N" / "play"); lost_25 from the drift rows.
+func _human_runs() -> Array:
+	var result := []
+	var history: Script = load("res://scripts/run/run_history.gd") if ResourceLoader.exists("res://scripts/run/run_history.gd") else null
+	if history == null:
+		return result
+	for record in history.call("load_runs"):
+		var lost := 0.0
+		var lost_25 := -1.0
+		for row in record.get("drifts", []):
+			lost += float(row.get("leaves_lost", 0))
+			if int(row.get("drift", 0)) == 25:
+				lost_25 = lost
+		var top: Array = record.get("top", [])
+		var tag := str(record.get("dev", ""))
+		if tag == "":
+			tag = "blight %d" % int(record.get("blight", 0)) if int(record.get("blight", 0)) > 0 else "play"
+		result.append({"profile": "human", "style": tag, "seed": record.get("seed", 0), "survived": float(record.get("survived", 0)),
+			"won": bool(record.get("won", false)), "first_leak": float(record.get("first_leak", -1)), "lost_25": lost_25,
+			"hoard_rests": 0.0, "top_warden": str(top[0].get("name", "")) if not top.is_empty() else "",
+			"max_top_share": float(top[0].get("share", 0.0)) if not top.is_empty() else 0.0, "max_asleep": 0.0})
+	return result
 
 func _read_runs(path: String) -> Array:
 	if not FileAccess.file_exists(path):

@@ -3,7 +3,7 @@ class_name ComboFeedback
 
 # Combos in play (screens_ui.md "The Codex: Glossary and Combos"): the 7 synergies and the 8
 # Reactions (CodexData.combos()). Discovered the first time each one fires, ever: the game pauses on
-# the moment (the nightmare ringed) with a card near the top ("Combo discovered: Thunderclap",
+# the moment (the nightmare ringed) with a card in the screen centre ("Combo discovered: Thunderclap",
 # ingredients, one line, "Added to the Codex"; Continue / Open in Codex); several queue behind one
 # pause, and it waits while a choice screen or the pause menu is open. With the Gameplay setting
 # "Pause on new combos" off, the old 5 s slide-in card instead. Saved in the profile
@@ -17,6 +17,7 @@ class_name ComboFeedback
 signal combo_discovered(id: StringName)  # For a discovery chime (SoundHooks)
 
 const GROUP := &"combo_feedback"
+const CARD_LAYER := 4  # The card's own CanvasLayer: above the HUD (1), under the Dream-mark tips (5)
 const CARD_TIME := 5.0
 const SEEN_KEY := "combos_seen"
 const COUNTS_KEY := "combo_counts"
@@ -97,11 +98,14 @@ func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	_seen = load_seen()
 	_dev_flagged = dev_seen()
+	_chains_seen = chains_seen()
 	_card.visible = false
 	_card.mouse_filter = Control.MOUSE_FILTER_STOP
-	_card.set_anchors_preset(Control.PRESET_CENTER_TOP)
+	# Screen centre on its own layer above the HUD: the drift banner, Omen line and Coming strip never
+	# draw over it (user playtest 2026-09-30).
+	_card.set_anchors_preset(Control.PRESET_CENTER)
 	_card.grow_horizontal = Control.GROW_DIRECTION_BOTH
-	_card.offset_top = 132  # Under the drift banner and the toasts
+	_card.grow_vertical = Control.GROW_DIRECTION_BOTH
 	_card_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_card_label.custom_minimum_size = Vector2(380, 0)
 	_card_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -140,11 +144,19 @@ func _ready() -> void:
 				continue_on()  # A tap on a pausing card continues
 			else:
 				_open_in_codex(_card_id))  # A tap on the slide-in card opens its entry
-	add_child(_card)
+	var layer := CanvasLayer.new()
+	layer.layer = CARD_LAYER
+	add_child(layer)
+	var holder := Control.new()
+	holder.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	holder.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	layer.add_child(holder)
+	holder.add_child(_card)
 	drift_director.rest_ended.connect(func(_block: int) -> void:
 		block_counts.clear()
 		block_longest_chain = 0
 		block_new.clear()
+		block_new_chains.clear()
 		kin_formed_block = 0
 		kin_names_block.clear()
 		harmony_block = 0
@@ -168,6 +180,86 @@ func _connect_log() -> void:
 func _hook(tracker: ReactionTracker) -> void:
 	if not tracker.reaction_fired.is_connected(_on_reaction):
 		tracker.reaction_fired.connect(_on_reaction)
+	if not tracker.chain_reached.is_connected(_on_chain):
+		tracker.chain_reached.connect(_on_chain)
+
+# --- Chains (screens_ui.md "Combo discovery" → "Chains are discovered too") ------------------------
+# The first time ever a chain reaches 3, 5 and 10 links is a discovery like a combo (same pause,
+# queue and setting). The card lists the chain's Reactions in order, rebuilt from the recent firings
+# (each carries its link number; a Crowned Reaction counts 2 links, so links may skip). Profile:
+# `chains_seen` (tiers, as strings) and `chain_best` ({links, reactions}) for the Codex.
+const CHAIN_TIERS: Array[int] = [3, 5, 10]
+const CHAINS_KEY := "chains_seen"
+const CHAIN_BEST_KEY := "chain_best"
+const CHAIN_PREFIX := "chain_"  # Queue ids: &"chain_3"
+const CHAIN_MEMORY := 3.0  # Seconds of firings kept to rebuild a chain (links are within 1 s)
+
+var block_new_chains: Array[int] = []  # Chain tiers discovered this block (rest report)
+var _chains_seen: Array = []  # Tiers (String) discovered ever
+var _recent: Array = []  # [id, link, time] of the last CHAIN_MEMORY seconds
+var _chain_orders := {}  # Queue id -> Reaction names in order
+
+static func chains_seen() -> Array:
+	return HeartwoodMemory.load_data().get(CHAINS_KEY, []).duplicate()
+
+# {links, reactions: [names]} of the longest chain ever, or {}.
+static func chain_best() -> Dictionary:
+	return HeartwoodMemory.load_data().get(CHAIN_BEST_KEY, {}).duplicate(true)
+
+func _note_firing(id: StringName, link: int) -> void:
+	var now := Time.get_ticks_msec() / 1000.0
+	while not _recent.is_empty() and now - _recent[0][2] > CHAIN_MEMORY:
+		_recent.pop_front()
+	_recent.append([id, link, now])
+
+# The Reaction names of the chain whose newest link is `links`, first to last.
+func chain_order(links: int) -> Array[String]:
+	var names: Array[String] = []
+	var below := links + 1
+	for i in range(_recent.size() - 1, -1, -1):
+		var link: int = _recent[i][1]
+		if link < below:
+			var combo := CodexData.get_any(_recent[i][0])
+			names.push_front(combo.name if not combo.is_empty() else String(_recent[i][0]).capitalize())
+			below = link
+			if link <= 1:
+				break
+	return names
+
+func _on_chain(links: int, _where: Vector2, _towers: Array) -> void:
+	var order := chain_order(links)
+	var best := chain_best() if _may_write() else _best_this_session
+	if links > int(best.get("links", 0)):
+		_best_this_session = {"links": links, "reactions": order}
+		if _may_write():
+			var memory := HeartwoodMemory.load_data()
+			memory[CHAIN_BEST_KEY] = _best_this_session
+			HeartwoodMemory.save_data(memory)
+	for tier in CHAIN_TIERS:
+		if links < tier or _chains_seen.has(str(tier)):
+			continue
+		_chains_seen.append(str(tier))
+		block_new_chains.append(tier)
+		if _may_write():
+			var memory := HeartwoodMemory.load_data()
+			var seen: Array = memory.get(CHAINS_KEY, []).duplicate()
+			if not seen.has(str(tier)):
+				seen.append(str(tier))
+			memory[CHAINS_KEY] = seen
+			HeartwoodMemory.save_data(memory)
+		var id := StringName(CHAIN_PREFIX + str(tier))
+		_chain_orders[id] = order
+		_queue.append(id)
+		if not _card.visible:
+			_try_show()
+
+var _best_this_session := {}  # Tests and scenes that don't write the profile
+
+static func chain_text(tier: int, order: Array) -> String:
+	var text := "Chain discovered: Chain %d\n" % tier
+	if not order.is_empty():
+		text += " → ".join(order) + "\n"
+	return text + "Reactions can set each other off.\nAdded to the Codex."
 
 # Kinships (Tower Code's node, group "kinships"; tower_design.md "Kinships"): the first-ever bond of
 # each kind is a discovery like a combo, and bonds formed / Harmony strikes / families made Whole are
@@ -208,6 +300,7 @@ func _on_damage(event: DamageLog.Event) -> void:
 func _on_reaction(id: StringName, enemy: Node2D, chain: int, _towers: Array) -> void:
 	block_counts[id] = block_counts.get(id, 0) + 1
 	block_longest_chain = maxi(block_longest_chain, chain)
+	_note_firing(id, chain)
 	record(id, enemy)
 
 # One firing of combo `id` (on `enemy`, if known): counted, and discovered if it's the first time ever.
@@ -240,7 +333,7 @@ func record(id: StringName, enemy: Node2D = null) -> void:
 		_try_show()
 
 # --- Pausing discoveries (screens_ui.md "Combos (discovered in play)") -----------------------------
-# A discovery freezes the world on the moment (the nightmare ringed), with the card near the top and
+# A discovery freezes the world on the moment (the nightmare ringed), with the card in the screen centre and
 # the map visible. Continue resumes at the previous speed (already paused stays paused); several
 # queue behind one pause. While a choice screen or the pause menu is open, it waits. The Gameplay
 # setting "Pause on new combos" (pause_on_combo, default on) off = the old 5 s slide-in card.
@@ -328,8 +421,8 @@ class ComboRing extends Node2D:
 
 	func _draw() -> void:
 		var pulse := 0.5 + 0.5 * sin(_time * 4.0)
-		draw_arc(Vector2.ZERO, 26.0 + pulse * 4.0, 0.0, TAU, 40, Color(1.0, 0.95, 0.6, 0.9), 3.0, true)
-		draw_arc(Vector2.ZERO, 36.0 + pulse * 6.0, 0.0, TAU, 40, Color(1.0, 0.95, 0.6, 0.35 * (1.0 - pulse)), 2.0, true)
+		draw_arc(Vector2.ZERO, 26.0 + pulse * 4.0, 0.0, TAU, 40, Color(UiStyle.LIVE, 0.9), 3.0, true)
+		draw_arc(Vector2.ZERO, 36.0 + pulse * 6.0, 0.0, TAU, 40, Color(UiStyle.LIVE, 0.35 * (1.0 - pulse)), 2.0, true)
 
 static func discovery_text(id: StringName) -> String:
 	var combo := CodexData.get_any(id)
@@ -341,7 +434,7 @@ static func discovery_text(id: StringName) -> String:
 		var families: Array[String] = []
 		for family in combo.families:
 			families.append(CodexData.FAMILY_NAMES.get(family, family))
-		return "Crowned Reaction discovered: %s\n%s  ·  %s\n%s\nAdded to the Codex." % [combo.name,
+		return "Crowned Reaction discovered: %s\n%s · %s\n%s\nAdded to the Codex." % [combo.name,
 			CodexData.crowned_recipe(combo), ", ".join(families), combo.text]
 	return "Combo discovered: %s\n%s\n%s\nAdded to the Codex." % [combo.name, CodexData.ingredients_text(combo), combo.text]
 
@@ -350,11 +443,14 @@ func _show_next() -> void:
 		_card.visible = false
 		return
 	_card_id = _queue.pop_front()
-	_card_label.text = discovery_text(_card_id)
+	if String(_card_id).begins_with(CHAIN_PREFIX):
+		_card_label.text = chain_text(int(String(_card_id).trim_prefix(CHAIN_PREFIX)), _chain_orders.get(_card_id, []))
+	else:
+		_card_label.text = discovery_text(_card_id)
 	if new_dreams.has(_card_id):  # "New Dreams: Rolling Thunder, Rain on Glass" (discovery unlocks)
 		_card_label.text += "\nNew Dreams: " + ", ".join(new_dreams[_card_id])
 	var reaction := Reactions.get_data(_card_id)
-	_card_label.add_theme_color_override("font_color", reaction.callout_color if reaction != null else Color(0.9, 1.0, 0.8))
+	_card_label.add_theme_color_override("font_color", reaction.callout_color if reaction != null else UiStyle.INK)
 	_crown_corners.visible = CodexData.CROWNED.has(_card_id)
 	var pausing := pause_setting()
 	_buttons.visible = pausing
@@ -371,6 +467,8 @@ func _show_next() -> void:
 	_card.reset_size()
 	_card.offset_left = -_card.size.x / 2.0
 	_card.offset_right = _card.size.x / 2.0
+	_card.offset_top = -_card.size.y / 2.0
+	_card.offset_bottom = _card.size.y / 2.0
 	_card.modulate.a = 0.0
 	if _card_tween:
 		_card_tween.kill()

@@ -5,15 +5,30 @@ class_name WorldLabel
 # draw_tag does it; other world text can use text_scale() / begin_screen_size() the same way.
 
 const FONT_SIZE := 14
-const BACKGROUND := Color(0.1, 0.1, 0.12, 0.75)
-const AFFORDABLE_COLOR := Color.WHITE
-const UNAFFORDABLE_COLOR := Color(1.0, 0.5, 0.45)
+const BACKGROUND := Color(UiStyle.FOG, 0.75)
+const AFFORDABLE_COLOR := UiStyle.INK
+const UNAFFORDABLE_COLOR := UiStyle.POOR  # The palette has no red
 
-# The scale world text is drawn at so it keeps its size on screen when zoomed in (1 at 1× and when
-# zoomed out: tags don't grow as the map shrinks).
+# The scale world text is drawn at so it keeps its size on screen when zoomed in: UI-sized (the UI
+# scale, UiStyle.apply_ui_scale) at a view zoom of 1× and closer; zoomed out it shrinks with the map.
+# The view zoom is the camera's zoom × the UI factor (GameCameraNode keeps the map's size at any UI scale).
 static func text_scale(canvas: CanvasItem) -> float:
-	var camera := canvas.get_viewport().get_camera_2d() if canvas.is_inside_tree() else null
-	return 1.0 / maxf(camera.zoom.x, 1.0) if camera != null else 1.0
+	if not canvas.is_inside_tree():
+		return 1.0
+	# The camera and UI factor are looked up once per frame (every label on every nightmare / Warden
+	# asks: the lookup per draw was a measurable cost); the zoom itself is read fresh.
+	var frame := Engine.get_process_frames()
+	if frame != _lookup_frame or not is_instance_valid(_camera):
+		_lookup_frame = frame
+		_camera = canvas.get_viewport().get_camera_2d()
+		var root := canvas.get_tree().root
+		_ui = root.content_scale_factor if root.content_scale_factor > 0.0 else 1.0
+	if _camera == null:
+		return 1.0
+	return _ui / maxf(_camera.zoom.x * _ui, 1.0)
+static var _lookup_frame := -1
+static var _camera: Camera2D = null
+static var _ui := 1.0
 
 # Draws what follows (until end_screen_size) scaled around `anchor` (world px) by text_scale.
 static func begin_screen_size(canvas: CanvasItem, anchor: Vector2) -> void:

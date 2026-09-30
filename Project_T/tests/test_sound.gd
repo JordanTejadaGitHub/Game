@@ -137,6 +137,9 @@ func _initialize() -> void:
 	sound.play_dispel(Vector2.ZERO)
 	sound.play_dispel(Vector2.ZERO)
 	_check(sound._dispel_cluster == 1, "a second dispel joins the cluster")
+	var duck_until: int = sound._duck_until
+	sound.play_dispel(Vector2.ZERO, false, 0.85)
+	_check(sound._duck_until == duck_until, "normal dispels don't duck the music (fourth listen)")
 	_check(HeartwoodMemory.defaults().settings.music_volume == 0.55, "music defaults to 55%")
 	# A freed voice (a finished player) must not break play() for the same id, and gets pruned
 	# (playtest bug: the typed filter lambda errored on freed players many times a second).

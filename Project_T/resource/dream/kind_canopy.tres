@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "kind_canopy"
 display_name = "Kind Canopy"
-description = "Wardens touching 3 or more other Wardens deal 5% more damage."
+description = "Wardens touching 3 or more other Wardens deal 20% more damage."
 rarity = 1
 kind = 3
 tags = Array[String](["seed", "acorn"])

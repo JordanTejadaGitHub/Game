@@ -96,10 +96,51 @@ func _run() -> void:
 			await process_frame
 		_check(panel._title.text.begins_with(into.display_name), "the panel shows the new form (%s)" % panel._title.text)
 
+	# Nurture v3 playtest fix (warden_stats.md): one Nurture button; R opens the choices, 2 picks Swift and
+	# the Warden bar doesn't take the key.
+	dreams.unlock_everything = true
+	var nursling := _build(placer, map, load("res://resource/tower/sporeling.tres"))
+	seller.select(nursling)
+	await process_frame
+	var nurture_buttons: Array = panel.find_children("*", "Button", true, false).filter(func(b: Button) -> bool:
+		return b.text.begins_with("Nurture to rank"))
+	_check(nurture_buttons.size() == 1 and nurture_buttons[0].text.ends_with("(R)"), "one Nurture button (%s)" % [nurture_buttons.map(func(b: Button) -> String: return b.text)])
+	_check(not panel.find_children("*", "Button", true, false).any(func(b: Button) -> bool: return b.get_meta(&"choice", -1) >= 0),
+		"the choices stay closed until asked")
+	var bar_before: TowerData = placer.tower_data
+	var building_before := placer.build_mode
+	_push(KEY_R)
+	await process_frame
+	var rows: Array = panel.find_children("*", "Button", true, false).filter(func(b: Button) -> bool: return b.get_meta(&"choice", -1) >= 0)
+	_check(rows.size() == 4, "R opens the four choices (%d)" % rows.size())
+	if rows.size() == 4:
+		var edges: Array = rows.map(func(b: Button) -> float: return b.get_child(0).get_child(2).position.x)
+		_check(edges.all(func(x: float) -> bool: return is_equal_approx(x, edges[0])), "the price column lines up (%s)" % [edges])
+	var options_now := nursling.focus_options()
+	_push(KEY_2)
+	await process_frame
+	_check(nursling.rank == 1 and nursling.rank_choices.back() == options_now[1] and options_now[1] == Tower.Focus.SWIFT,
+		"2 picks Swift (rank %d, %s)" % [nursling.rank, nursling.rank_choices])
+	_check(placer.tower_data == bar_before and placer.build_mode == building_before, "the Warden bar didn't take the 2")
+	_push(KEY_R)
+	await process_frame
+	_push(KEY_ESCAPE)
+	await process_frame
+	_check(not panel._choosing and seller.selected == nursling, "Esc closes the choices and keeps the selection")
+
 	print("grow keys test: %s" % ("PASS" if failures == 0 else "%d FAILED" % failures))
 	main.queue_free()
 	await process_frame
 	quit(failures)
+
+# A real key press through the viewport (the panel's _input, then the HUD and TowerSeller).
+func _push(key: Key) -> void:
+	for down in [true, false]:
+		var event := InputEventKey.new()
+		event.physical_keycode = key
+		event.keycode = key
+		event.pressed = down
+		root.push_input(event)
 
 func _press(seller: TowerSeller, key: Key) -> void:
 	_key(seller, key, true)

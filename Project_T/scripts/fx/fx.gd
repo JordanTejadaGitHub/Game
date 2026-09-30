@@ -47,7 +47,7 @@ const REACTIONS := {
 # Sheets that peak small in their frame: shown bigger (screens_ui.md "Size check").
 const DEFAULT_SCALE := {&"thunderclap": 1.5, &"thunderclap_lite": 1.5, &"ignite": 1.5, &"ignite_lite": 1.5,
 	&"pinned": 1.5, &"shatter": 1.5, &"crit_flare": 1.25}
-const THREAD_SECONDS := 0.3
+const RING_SECONDS := 0.45  # The contributing Wardens' pulse ring
 const CROWN_OFFSET := Vector2(0, -34)  # The Crowned crown mark over its callout
 const CALLOUT_LIFE := 0.9
 const CALLOUT_COOLDOWN := 0.5  # Per reaction, so a chain doesn't wall the screen with words
@@ -177,9 +177,12 @@ static func reaction(reaction: StringName, at: Vector2, parent: Node, towers: Ar
 			# The crown mark sits on the callout and goes with it (the sheet loops: never leave it in the
 			# world, or every Crowned Reaction leaves a crown behind).
 			play(&"crowned_crown", at + CROWN_OFFSET, shown)
+	# The Wardens that made it: a soft pulse ring on each (playtest: straight threads to them read as debug lines).
 	for tower in towers:
 		if tower is Node2D and is_instance_valid(tower):
-			segment(&"light_thread", tower.global_position, at, parent, THREAD_SECONDS)
+			var ring := FxRing.new(colour, 14.0, 22.0, RING_SECONDS)
+			parent.add_child(ring)
+			ring.global_position = tower.global_position
 	_shake(parent, 2.0)
 	return node
 
@@ -227,7 +230,7 @@ static func chain(count: int, where: Vector2, parent: Node, towers: Array = []) 
 	if count == 5 or count == 10:
 		_hitstop(parent)
 		if not reduce_flashes():
-			_surge(parent)
+			_local_surge(where, parent)  # A local burst (playtest: the old full-screen gold wash)
 	if count == 10:
 		play(&"dawnburst", where, parent, DAWNBURST_SCALE, false)
 		for tower in towers:
@@ -257,6 +260,26 @@ static func _end_hitstop() -> void:
 		Engine.time_scale = _hitstop_base  # (If the player changed speed meanwhile, keep theirs)
 	_hitstop_base = -1.0
 
+# The first grow into a final form each run: two swelling gold rings and the form's name over it.
+static func final_bloom(tower: Node2D, title: String) -> void:
+	var parent := Reactions._world(tower)
+	if parent == null:
+		return
+	for i in 2:
+		var ring := FxRing.new(Palette.GLOW, 20.0 + 16.0 * i, 130.0 + 40.0 * i, 0.8 + 0.25 * i)
+		ring.z_index = Z
+		parent.add_child(ring)
+		ring.global_position = tower.global_position
+	callout(title, Palette.GLOW, tower.global_position + Vector2(0, -56), parent, StringName("final_" + title))
+
+# A chain of 5 or 10: a big gold ring swelling around where it happened, never a screen tint.
+static func _local_surge(where: Vector2, parent: Node) -> void:
+	var ring := FxRing.new(Palette.GLOW, 24.0, 110.0, 0.6)
+	ring.z_index = Z
+	parent.add_child(ring)
+	ring.global_position = where
+
+# (Unused since the playtest: a whole-screen tint read as a glitch.)
 static func _surge(parent: Node) -> void:
 	var tex := texture(&"surge")
 	if tex == null:
@@ -294,6 +317,36 @@ static func _shake(parent: Node, pixels: float) -> void:
 # --- Nodes --------------------------------------------------------------------------------------
 
 # One sheet playing at its anchor. Frees itself at the end (or after `seconds` when looping).
+# A soft ring that swells and fades on a Warden that helped make a Reaction (under the Wardens).
+class FxRing extends Node2D:
+	var _colour: Color
+	var _age := 0.0
+	var _base := 14.0
+	var _grow := 22.0
+	var _life := 0.45
+
+	func _init(colour: Color, base := 14.0, grow := 22.0, life := 0.45) -> void:
+		_colour = colour
+		_base = base
+		_grow = grow
+		_life = life
+		z_index = -1
+
+	func _process(delta: float) -> void:
+		_age += delta
+		if _age >= _life:
+			queue_free()
+			return
+		queue_redraw()
+
+	func _draw() -> void:
+		var t := _age / _life
+		var radius := _base + _grow * t
+		var alpha := 1.0 - t
+		draw_circle(Vector2(0, 6), radius, Color(_colour, 0.12 * alpha))
+		draw_arc(Vector2(0, 6), radius, 0.0, TAU, 32, Color(_colour, 0.7 * alpha), 2.0)
+
+
 class FxSprite extends Node2D:
 	var effect: StringName  # The sheet shown (the _lite one if it was swapped)
 	var row := 0
@@ -448,7 +501,7 @@ class FxCallout extends Node2D:
 		var font := ThemeDB.fallback_font
 		var width := font.get_string_size(_text, HORIZONTAL_ALIGNMENT_LEFT, -1, size).x
 		var at := Vector2(-width / 2.0, -52.0 - 20.0 * t)
-		draw_string_outline(font, at, _text, HORIZONTAL_ALIGNMENT_LEFT, -1, size, 6, Color(0.05, 0.04, 0.08, alpha))
+		draw_string_outline(font, at, _text, HORIZONTAL_ALIGNMENT_LEFT, -1, size, 6, Color(Palette.VOID, alpha))
 		draw_string(font, at, _text, HORIZONTAL_ALIGNMENT_LEFT, -1, size, Color(_colour, alpha))
 		WorldLabel.end_screen_size(self)
 
@@ -514,9 +567,9 @@ class FxBadge extends Node2D:
 		_draw_link(Vector2(x + LINK_SIZE.x / 2.0, 0.0), tint)
 		var baseline := font.get_ascent(TEXT_SIZE) / 2.0 - 1.0
 		draw_string_outline(font, Vector2(x + LINK_SIZE.x + 2.0, baseline), _text, HORIZONTAL_ALIGNMENT_LEFT, -1,
-			TEXT_SIZE, 2, Color(0.1, 0.07, 0.04, alpha))
+			TEXT_SIZE, 2, Color(Palette.ROOT, alpha))
 		draw_string(font, Vector2(x + LINK_SIZE.x + 2.0, baseline), _text, HORIZONTAL_ALIGNMENT_LEFT, -1, TEXT_SIZE,
-			Color(1.0, 0.93, 0.7, alpha))
+			Color(Palette.HEARTLIGHT, alpha))
 		WorldLabel.end_screen_size(self)
 
 	# The chain-link icon (chain_link / chain_link_bright), centred on `at`; drawn links if the art is missing.
@@ -526,7 +579,7 @@ class FxBadge extends Node2D:
 			draw_texture_rect_region(_link, Rect2(at - _link_size / 2.0, _link_size),
 				Rect2(_link_size.x * frame, 0, _link_size.x, _link_size.y), tint)
 			return
-		var colour := Color(1.0, 0.85, 0.45, tint.a)
+		var colour := Color(Palette.GLOW, tint.a)
 		for offset in [Vector2(-1.5, 1.0), Vector2(1.5, -1.0)]:
 			draw_set_transform(at + offset, -0.6, Vector2(1.0, 0.55))
 			draw_arc(Vector2.ZERO, 3.0, 0.0, TAU, 12, colour, 1.2)

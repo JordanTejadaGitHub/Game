@@ -67,11 +67,29 @@ func _run() -> void:
 		"a half-dreamed card: one \"Needs <type>\" line, no emblem (%s)" % joined)
 	_check(dreams.missing_families_text(bloom) == "Needs " + needs[0].type and needs[0].type == IconInfo.damage_type_name(needs[0].line),
 		"…named by damage type, not the family (%s)" % dreams.missing_families_text(bloom))
+	_check(not joined.contains("Entwined"), "no \"Entwined\" label, the vine border says it (%s)" % joined)
+	# Both families owned (the user's screenshot: "Needs: Firefly Jar + Sporeling families"): no Needs line at all
+	for family in ["firefly_jar", "sporeling", "bloomcap", "stormcap"]:
+		dreams.unlocked[family] = true
+	screen._show_offer(cards, 25)
+	for i in 3:
+		await process_frame
+	var whole := screen._cards.get_child(0).get_child(0) as Button
+	var whole_texts: Array = whole.find_children("*", "", true, false) \
+		.filter(func(n: Node) -> bool: return n is Label or n is RichTextLabel) \
+		.map(func(n: Node) -> String: return n.text if n is Label else n.get_parsed_text())
+	_check(not whole_texts.any(func(t: String) -> bool: return t.begins_with("Needs")) and not " | ".join(whole_texts).contains("Entwined"),
+		"with nothing missing the card shows no Needs line and no \"Entwined\" (%s)" % " | ".join(whole_texts))
+	for family in ["sporeling", "bloomcap", "stormcap"]:
+		dreams.unlocked.erase(family)
+	screen._show_offer(cards, 25)
+	for i in 3:
+		await process_frame
 
 	# Make the clearing unlock obvious: while clearing is locked, a clearing card leads with it.
 	dreams.clearing_open = false
 	dreams.stacks.clear()
-	var ground: UpgradeData = dreams.pool.filter(func(c: UpgradeData) -> bool: return c.id == "tend_the_forest").front()
+	var ground: UpgradeData = dreams.pool.filter(func(c: UpgradeData) -> bool: return c.id == "heartwoods_reach").front()
 	var clear_cards: Array[UpgradeData] = [ground, longest[0], longest[1]]
 	dreams.current_offer = clear_cards
 	screen._show_offer(clear_cards, 25)
@@ -84,7 +102,7 @@ func _run() -> void:
 	_check(viewport.encloses(clear_button.get_global_rect()), "…and still fits the screen (%s)" % clear_button.get_global_rect())
 	dreams.take(ground)
 	_check(dreams.opened_clearing(ground) and not dreams.opens_clearing(ground), "once taken it opened clearing; later clearing cards don't say so")
-	_check(dreams.to_save().get("clearing_opened_by") == "tend_the_forest", "…saved with the run")
+	_check(dreams.to_save().get("clearing_opened_by") == "heartwoods_reach", "…saved with the run")
 	print("longest cards: %s, %s" % [cards[1].display_name, cards[2].display_name])
 	print("dream screen test: %s" % ("PASS" if failures == 0 else "%d FAILED" % failures))
 	quit(failures)

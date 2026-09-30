@@ -7,7 +7,7 @@ extends Sprite2D
 # Its warm light (the warm side of art_direction.md's warm-vs-cold) flickers and fades as leaves are lost.
 
 const BASE_BELOW_CELL := 8.0
-const LIGHT_COLOR := Color(1.0, 0.77, 0.38)
+const LIGHT_COLOR := Palette.GLOW
 const LIGHT_ENERGY := 0.5
 const LIGHT_RADIUS := 230.0  # px
 # Its glow is added on top of the cold edge multiply (lights only lift what's there, and the goal sits

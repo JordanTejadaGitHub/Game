@@ -6,6 +6,10 @@ extends RefCounted
 # Nightmares use only the cold ramps (Ink, Nightmare, Stone & moon, Dew): pass `cold = true`.
 # The same colours are exported for non-Godot tools in assets/palette/ (heartwood32.gpl / .hex /
 # .png, written by tools/art/palette_export.gd).
+# Warden Night (art_direction.md "Decision (2026-09-30)", documentation/warden_night.md): Warden idle
+# sheets alone may also use 3 more colours (Rosedust, Plum, Nightbloom, 35 in all). Pass
+# `wardens = true` to snap to them, and `warden_night(img)` shifts a finished idle sheet one shade
+# darker by the map. Nothing else (nightmares, tiles, the Heartwood, UI) ever gets them.
 
 # Dark → light within each ramp.
 const RAMPS := [
@@ -31,12 +35,33 @@ const RAMPS := [
 const COLD_RAMPS := ["Ink", "Nightmare", "Stone & moon", "Dew"]
 const SIZE := 32
 
+# Warden Night: the 3 Warden-only colours (idle sheets only) and the one-shade-darker map.
+const WARDEN_COLORS := [
+	["Rosedust", "b27aae", "Sporeling and flower Wardens: the night shade of Blossom"],
+	["Plum", "7a4a82", "the night shade of Orchid"],
+	["Nightbloom", "6b6fb0", "Dreamshroom and violet Wardens: the night shade of Wraithlight"],
+]
+const WARDEN_SIZE := 35
+# From → to; colours not listed stay (Void, Night, Dusk, Dread, Shade, Bruise, Deepmoss, Root, Loam,
+# Pool). Must match assets/style_reference/warden_night/warden_night.json (tests/test_palette.gd).
+const WARDEN_NIGHT_MAP := {
+	"Slate": "Dusk", "Moonlight": "Mist", "Mist": "Stone", "Stone": "Slate",
+	"Wraithlight": "Nightbloom",
+	"Newleaf": "Sprig", "Sprig": "Leaf", "Leaf": "Moss", "Moss": "Deepmoss",
+	"Deadwood": "Path", "Oak": "Bark", "Bark": "Root",
+	"Moonpath": "Path", "Path": "Loam",
+	"Heartlight": "Moonpath", "Glow": "Gold", "Gold": "Ember", "Ember": "Oak",
+	"Blossom": "Rosedust", "Orchid": "Plum",
+	"Dewlight": "Dew", "Dew": "Pool",
+}
+
 static var _names: PackedStringArray = []
-static var _by_name := {}          # lower-case name -> Color
-static var _rgb: PackedInt32Array = []  # 0xRRGGBB per palette index
+static var _by_name := {}          # lower-case name -> Color (the 32 and the Warden 3)
+static var _rgb: PackedInt32Array = []  # 0xRRGGBB per index: the 32, then the Warden 3
 static var _lab: Array[Vector3] = []
 static var _cold: Array[bool] = []
-static var _cache := {}            # (rgb | cold << 24) -> palette index
+static var _night_map := {}        # 0xRRGGBB -> 0xRRGGBB (Warden Night)
+static var _cache := {}            # (rgb | cold << 24 | wardens << 25) -> 0xRRGGBB
 
 
 static func _ensure() -> void:
@@ -45,15 +70,24 @@ static func _ensure() -> void:
 	for ramp: Dictionary in RAMPS:
 		var cold: bool = ramp.name in COLD_RAMPS
 		for entry: Array in ramp.colors:
-			var c := Color.html(entry[1])
+			_add(entry[0], entry[1], cold)
 			_names.append(entry[0])
-			_by_name[String(entry[0]).to_lower()] = c
-			_rgb.append(entry[1].hex_to_int())
-			_lab.append(oklab(c))
-			_cold.append(cold)
+	for entry: Array in WARDEN_COLORS:
+		_add(entry[0], entry[1], false)
+	for from: String in WARDEN_NIGHT_MAP:
+		_night_map[_to_int(_by_name[from.to_lower()])] = _to_int(_by_name[WARDEN_NIGHT_MAP[from].to_lower()])
 
 
-## A palette colour by name, case-insensitive ("gold", "Moonpath"). Errors on an unknown name.
+static func _add(color_name: String, hex: String, cold: bool) -> void:
+	var c := Color.html(hex)
+	_by_name[color_name.to_lower()] = c
+	_rgb.append(hex.hex_to_int())
+	_lab.append(oklab(c))
+	_cold.append(cold)
+
+
+## A palette colour by name, case-insensitive ("gold", "Moonpath"; the Warden-only "rosedust" too).
+## Errors on an unknown name.
 static func color(color_name: String, alpha := 1.0) -> Color:
 	_ensure()
 	var key := color_name.to_lower()
@@ -83,6 +117,19 @@ static func names() -> PackedStringArray:
 	return _names.duplicate()
 
 
+## The Warden palette (35): the 32, then Rosedust, Plum, Nightbloom. For Warden idle sheets only.
+static func warden_colors() -> Array[Color]:
+	var out := colors()
+	for entry: Array in WARDEN_COLORS:
+		out.append(Color.html(entry[1]))
+	return out
+
+
+## True for the 3 Warden-only colours (rgb only).
+static func is_warden_only(c: Color) -> bool:
+	return index_of(c, true) >= SIZE
+
+
 ## One ramp's colours, dark → light ("Moss", "Warm light", ...).
 static func ramp(ramp_name: String) -> Array[Color]:
 	var out: Array[Color] = []
@@ -99,29 +146,46 @@ static func is_cold(c: Color) -> bool:
 	return i >= 0 and _cold[i]
 
 
-## Palette index of an exact palette colour (rgb only, 8-bit), or -1.
-static func index_of(c: Color) -> int:
+## Palette index of an exact palette colour (rgb only, 8-bit), or -1. `wardens` also finds the
+## Warden-only 3 (indices 32-34).
+static func index_of(c: Color, wardens := false) -> int:
 	_ensure()
-	return _rgb.find(_to_int(c))
+	var i := _rgb.find(_to_int(c))
+	return i if i < SIZE or wardens else -1
 
 
 ## Nearest palette colour by OKLab distance; the input's alpha is kept.
-## `cold`: only the cold ramps (for nightmares).
-static func snap(c: Color, cold := false) -> Color:
-	var out := Color.hex((_nearest(_to_int(c), cold) << 8) | 0xff)
+## `cold`: only the cold ramps (for nightmares). `wardens`: the 35-colour Warden set (idle sheets).
+static func snap(c: Color, cold := false, wardens := false) -> Color:
+	var out := Color.hex((_nearest(_to_int(c), cold, wardens) << 8) | 0xff)
 	out.a = c.a
 	return out
 
 
 ## Snaps every pixel with alpha > 0 in place, keeping its alpha. Converts to RGBA8.
-static func snap_image(img: Image, cold := false) -> void:
+static func snap_image(img: Image, cold := false, wardens := false) -> void:
+	_map_image(img, func(v: int) -> int: return _nearest(v, cold, wardens))
+
+
+## Warden Night: snaps a finished Warden idle sheet to the 32, then shifts every colour one shade
+## darker by WARDEN_NIGHT_MAP (documentation/warden_night.md). Alpha is kept, so glow halos stay.
+## In place; returns the image. Attack sheets and projectiles don't get this.
+static func warden_night(img: Image) -> Image:
+	_ensure()
+	_map_image(img, func(v: int) -> int:
+		var s := _nearest(v, false, false)
+		return _night_map.get(s, s))
+	return img
+
+
+static func _map_image(img: Image, f: Callable) -> void:
 	if img.get_format() != Image.FORMAT_RGBA8:
 		img.convert(Image.FORMAT_RGBA8)
 	var data := img.get_data()
 	for i in range(0, data.size(), 4):
 		if data[i + 3] == 0:
 			continue
-		var v := _nearest((data[i] << 16) | (data[i + 1] << 8) | data[i + 2], cold)
+		var v: int = f.call((data[i] << 16) | (data[i + 1] << 8) | data[i + 2])
 		data[i] = (v >> 16) & 0xff
 		data[i + 1] = (v >> 8) & 0xff
 		data[i + 2] = v & 0xff
@@ -150,9 +214,9 @@ static func _to_int(c: Color) -> int:
 
 
 # Nearest palette 0xRRGGBB for an 0xRRGGBB input.
-static func _nearest(rgb: int, cold: bool) -> int:
+static func _nearest(rgb: int, cold: bool, wardens := false) -> int:
 	_ensure()
-	var key := rgb | (int(cold) << 24)
+	var key := rgb | (int(cold) << 24) | (int(wardens) << 25)
 	var hit: Variant = _cache.get(key)
 	if hit != null:
 		return hit
@@ -160,7 +224,7 @@ static func _nearest(rgb: int, cold: bool) -> int:
 	var best := 0
 	var best_d := INF
 	for i in _lab.size():
-		if cold and not _cold[i]:
+		if (cold and not _cold[i]) or (i >= SIZE and not wardens):
 			continue
 		var d := lab.distance_squared_to(_lab[i])
 		if d < best_d:

@@ -41,13 +41,16 @@ func _run() -> void:
 	for unlock in grove:
 		if unlock.root == UnlockData.Root.WARDENS and not unlock.costs.is_empty():
 			limb += unlock.costs[0]
-	_check(limb == 1390 + 1080, "the Families limb costs 2,470 Seeds (%d)" % limb)
+	_check(limb == 1390 + 1080 - 470, "the Families limb costs 2,000 Seeds (final-forms nodes removed) (%d)" % limb)
+	for family: String in ["sporeling", "firefly_jar", "dewdrop", "pebbling", "rootling", "bellflower", "acorn", "nestling", "whirligig"]:
+		_check(HeartwoodMemory.get_unlock(family + "_final") == null, "no final-forms node for %s (finals come with the family)" % family)
 	_check(_unlock(grove, "bellflower").requires_any == ["pebbling", "rootling"], "Bellflower needs Pebbling or Rootling")
 	for family: String in ["sporeling", "dewdrop", "pebbling", "rootling", "bellflower", "acorn", "nestling", "whirligig"]:
 		var hidden := family + "_hidden"
 		var node := _unlock(grove, hidden)
-		_check(node != null and node.requires_all.size() == 1 and node.requires_all[0] == family + "_final",
-			"hidden branch %s needs its family's final forms" % hidden)
+		var start := family in ["sporeling", "dewdrop"]
+		_check(node != null and node.requires_all == ([] if start else [family]),
+			"hidden branch %s needs only its family" % hidden)
 	_check(_unlock(grove, "nestling").requires_any.has("bellflower") and _unlock(grove, "nestling").requires_any_count == 2,
 		"Nestling needs 2 of Pebbling / Rootling / Bellflower / Acorn")
 	var acorn := _unlock(grove, "acorn")
@@ -90,7 +93,7 @@ func _run() -> void:
 		"family nodes bring their branches, not their final forms")
 	for line: String in ["sporeling", "firefly_jar", "dewdrop", "pebbling", "rootling", "bellflower", "acorn", "nestling", "whirligig"]:
 		var ascension := _unlock(grove, line + "_ascension")
-		_check(ascension != null and ascension.costs == [120] and ascension.requires_all == [line + ("_final" if line == "firefly_jar" else "_hidden")] and ascension.dream_cards.size() == 1,
+		_check(ascension != null and ascension.costs == [120] and ascension.requires_all == ([] if line == "firefly_jar" else [line + "_hidden"]) and ascension.dream_cards.size() == 1,
 			"%s Ascension: 120 Seeds, needs the hidden branch (Firefly Jar: final forms, Sunpetal is milestone-only), opens the Ascended Warden" % line)
 	_check(_unlock(grove, "pebbling_hidden").dream_cards.has("dream_cairn") and _unlock(grove, "whirligig_hidden").dream_cards.has("dream_autumn_gale"),
 		"hidden nodes open their hidden Wardens")
@@ -289,8 +292,8 @@ func _run() -> void:
 	var migrated := {}
 	for id in memory.unlocks:
 		migrated[id] = int(memory.unlocks[id])
-	_check(migrated == {"pebbling": 1, "pebbling_hidden": 1, "sporeling_final": 1, "morning_stores": 2}, "v1 ids migrate (%s)" % [migrated])
-	_check(memory.loadout == [] and int(memory.seeds) == 5, "a migrated profile keeps its Seeds, empty loadout")
+	_check(migrated == {"pebbling": 1, "pebbling_hidden": 1, "morning_stores": 2}, "v1 ids migrate, the old final-forms node refunded (%s)" % [migrated])
+	_check(memory.loadout == [] and int(memory.seeds) == 5 + 50, "a migrated profile keeps its Seeds and gets the final-forms 50 back (%d)" % int(memory.seeds))
 	old = FileAccess.open(PROFILE_PATH, FileAccess.WRITE)
 	old.store_string(JSON.stringify({"version": 2, "seeds": 10, "unlocks": {"reactions": 1, "kin_lore": 1, "bittersweet_dreams": 1, "spore_lore": 1}}))
 	old.close()
@@ -419,6 +422,17 @@ func _run() -> void:
 	_check(int(memory.seeds) == 40 + 80 and not memory.unlocks.has("slot_2") and not memory.unlocks.has("slot_3")
 		and memory.unlocks.has("slot_4") and HeartwoodMemory.loadout_slots(memory) == 4,
 		"v3 profiles: slot 2 and 3 refund 120 Seeds, slot 4 stays (%d, %s)" % [int(memory.seeds), memory.unlocks.keys()])
+
+	# --- v4 profiles: Reckless and Wild Planting (cut in the pool trim) refund their Seeds ---
+	old = FileAccess.open(PROFILE_PATH, FileAccess.WRITE)
+	old.store_string(JSON.stringify({"version": 4, "seeds": 0, "unlocks": {"reckless": 1, "wild_planting": 1, "sharpened": 1}}))
+	old.close()
+	HeartwoodMemory.forget()
+	memory = HeartwoodMemory.load_data()
+	_check(int(memory.seeds) == 40 + 50 and not memory.unlocks.has("reckless") and not memory.unlocks.has("wild_planting")
+		and memory.unlocks.has("sharpened"), "v4 profiles: Reckless and Wild Planting refund 90 Seeds (%d, %s)" % [int(memory.seeds), memory.unlocks.keys()])
+	_check(_unlock(grove, "full_moon").requires_all == ["sharpened"] and _unlock(grove, "rootbound").requires_all == ["seedbed"],
+		"Full Moon grows from Sharpened, Rootbound from Seedbed")
 
 	# --- Memory Wardens: a boss's first dispel grows its bloom; later runs offer it after that boss ---
 	HeartwoodMemory.save_data(HeartwoodMemory.defaults())
@@ -569,7 +583,7 @@ func _layout_node(id: String) -> Dictionary:
 func _check_layout(grove: Array[UnlockData]) -> void:
 	var nodes: Array = GroveTreeView.load_layout().nodes
 	var parked := 0 if MetaRun.MEMORY_WARDENS_ENABLED else 3  # Memory Warden blooms: in the layout, off the tree
-	_check(nodes.size() == 84 and grove.size() == 84 - parked, "84 Grove spots, %d nodes on the tree (layout %d, data %d)" % [84 - parked, nodes.size(), grove.size()])
+	_check(nodes.size() == 73 and grove.size() == 73 - parked, "73 Grove spots, %d nodes on the tree (layout %d, data %d)" % [73 - parked, nodes.size(), grove.size()])
 	for node in nodes:
 		var unlock := HeartwoodMemory.get_unlock(node.id)
 		if unlock == null and node.get("memory_row") != null and parked > 0:
@@ -582,7 +596,8 @@ func _check_layout(grove: Array[UnlockData]) -> void:
 		_check(unlock.legendary == bool(node.legendary) and unlock.start == bool(node.start), "%s: Legendary / start match" % node.id)
 		_check(ResourceLoader.exists("res://assets/meta/grove/branches/%s.png" % node.id), "%s has branch art" % node.id)
 		if node.parent != null and node.id != "firefly_jar_ascension":  # Drawn from Sunpetal, needs final forms
-			_check(unlock.requires_all.any(func(r: String) -> bool: return r.split(":")[0] == node.parent) or unlock.milestone != "" and unlock.is_free(),
+			_check(unlock.requires_all.any(func(r: String) -> bool: return r.split(":")[0] == node.parent) or unlock.milestone != "" and unlock.is_free()
+				or (unlock.requires_all.is_empty() and unlock.requires_any.is_empty()),  # Drawn off a node it doesn't need (a start family, Stormheart)
 				"%s needs its parent %s" % [node.id, node.parent])
 	for unlock in grove:
 		_check(nodes.any(func(n) -> bool: return n.id == unlock.id), "%s is on the tree" % unlock.id)

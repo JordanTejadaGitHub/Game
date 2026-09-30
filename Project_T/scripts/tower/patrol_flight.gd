@@ -151,13 +151,13 @@ func _draw() -> void:
 			# A swirling cyclone.
 			for i in 3:
 				draw_arc(Vector2(0, -6 * i), 16.0 - 4.0 * i, _anim * 6.0 + i, _anim * 6.0 + i + 4.5, 12,
-					Color(0.85, 0.92, 1.0, 0.7 - 0.15 * i), 3.0)
+					Color(Palette.MOONLIGHT, 0.7 - 0.15 * i), 3.0)
 		else:
 			# A great golden bird.
 			var flap := sin(_anim * 10.0) * 6.0
-			draw_line(Vector2(-18, -flap), Vector2(0, 0), Color(1.0, 0.85, 0.45), 4.0)
-			draw_line(Vector2(18, -flap), Vector2(0, 0), Color(1.0, 0.85, 0.45), 4.0)
-			draw_circle(Vector2.ZERO, 5.0, Color(1.0, 0.95, 0.7))
+			draw_line(Vector2(-18, -flap), Vector2(0, 0), Palette.GLOW, 4.0)
+			draw_line(Vector2(18, -flap), Vector2(0, 0), Palette.GLOW, 4.0)
+			draw_circle(Vector2.ZERO, 5.0, Palette.HEARTLIGHT)
 		return
 	var frames: int = _tower.attack_data.projectile_frames
 	var size := Vector2(texture.get_width() / float(frames), texture.get_height()) * 2.0

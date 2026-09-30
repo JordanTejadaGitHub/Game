@@ -1,7 +1,8 @@
-[gd_resource type="Resource" script_class="EnemyData" load_steps=3 format=3]
+[gd_resource type="Resource" script_class="EnemyData" load_steps=4 format=3]
 
 [ext_resource type="Script" path="res://resource/enemy/script/enemy_data.gd" id="1_edata"]
 [ext_resource type="SpriteFrames" path="res://animation/enemy/old_stag.tres" id="2_frames"]
+[ext_resource type="Resource" path="res://resource/enemy/bark_beetle.tres" id="3_husk"]
 
 [resource]
 script = ExtResource("1_edata")
@@ -15,9 +16,13 @@ is_boss = true
 resists = Array[String](["stone","root"])
 weak_to = Array[String](["water"])
 trait_kind = 3
+straight_charge_tiles = 4
+straight_charge_multiplier = 2.5
+bellow_spawn = ExtResource("3_husk")
+bellow_count = 6
 cleanse_line = "The Hollow Stag is gone. Something the Heartwood had forgotten comes back to it."
-trait_text = "Tramples walls. Charges when hurt."
+trait_text = "Tramples walls. Charges down every long straight."
 title = "the gaunt king of the old wood"
-abilities = Array[Dictionary]([{"name": "Trample", "icon": &"trample", "text": "Knocks down a Thornwall beside it for good, up to {trample_max} each trip. The path always stays open.", "when": "every {trample_interval} s"}, {"name": "Charge", "icon": &"charge", "text": "Its antlers flare and it runs {charge_speed_multiplier:plus_pct} faster for {charge_time} s, still trampling.", "when": "at 50% health"}])
-tips = Array[String](["It tramples walls in its path: don't let the whole maze hang on one wall.", "Spread your damage along the route, so its charge can't carry it past one kill zone.", "Rain douses the ghost-fire in its antlers."])
+abilities = Array[Dictionary]([{"name": "Trample", "icon": &"trample", "text": "Knocks down a Thornwall beside it for good, up to {trample_max} each trip. The path always stays open.", "when": "every {trample_interval} s"}, {"name": "Charge", "icon": &"charge", "text": "Its antlers flare and it charges at {straight_charge_multiplier}× speed to the end of the straight, still trampling.", "when": "on every straight of {straight_charge_tiles}+ tiles"}, {"name": "Bellow", "icon": &"grief", "text": "It bellows, and {bellow_count} {bellow_spawn:name}s run in from the forest's edge.", "when": "at 50% health"}])
+tips = Array[String](["It tramples walls in its path: don't let the whole maze hang on one wall.", "Break up long straights with turns: it charges down every straight of 4 tiles or more.", "Rain douses the ghost-fire in its antlers."])
 whisper = "Something old has found the dream."

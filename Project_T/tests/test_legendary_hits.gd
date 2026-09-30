@@ -120,23 +120,14 @@ func _run() -> void:
 	root_under.queue_free()
 	_check(root_c._root_links.is_empty(), "a diagonal one doesn't (only with Root Network II)")
 
-	# --- Generic cards 142-168: Sudden Bloom, Watchful Rest, Skyward Gaze, Heavy Air, Underdog ---
-	_take("sudden_bloom")
-	var bloomer := _plant("sprout", Vector2(4, 10))
-	bloomer.evolve(bloomer.tower_data.evolves_to[0], 0)
-	_check(bloomer.bloom_attacks == DreamState.SUDDEN_BLOOM_ATTACKS, "Sudden Bloom: growing stores %d strong attacks" % DreamState.SUDDEN_BLOOM_ATTACKS)
-	_check(bloomer._take_empowered() == 2.0 and bloomer.bloom_attacks == DreamState.SUDDEN_BLOOM_ATTACKS - 1, "an attack spends one at ×2")
-	var inside := []  # Lambdas copy locals; an array collects what they see
-	bloomer._boosted(2.0, func() -> void: inside.append(bloomer._hit_boost))
-	_check(inside == [2.0] and bloomer._hit_boost == 1.0, "a boosted attack's hits land ×2 (Tower.hit multiplies by _hit_boost), then it resets")
-	await _clean()
+	# --- Generic cards 142-168: Watchful Rest, Skyward Gaze (now in Hunter's Patience), Heavy Air ---
 	_take("watchful_rest")
 	var watcher := _plant("sprout", Vector2(4, 12))
 	watcher._update_watch(DreamState.WATCHFUL_REST_TIME[0] + 0.5)
 	watcher._update_watch(0.5)
 	_check(watcher.watch_charged, "Watchful Rest: an idle Warden stores a charge")
 	_check(watcher._take_empowered() == 2.0 and not watcher.watch_charged, "its next attack deals ×2 and spends it")
-	_take("skyward_gaze")
+	_take("hunters_patience")  # Absorbed Skyward Gaze (pool trim): rule alias
 	var edge := sprout.get_range_pixels() + CELL * 0.5
 	spawner.spawn_enemy(load("res://resource/enemy/dandelion_seed.tres"))
 	var flyer = spawner.get_child(spawner.get_child_count() - 1)
@@ -148,9 +139,6 @@ func _run() -> void:
 	await _clean()
 	_take("heavy_air")
 	_check(is_equal_approx(sprout.get_slow_multiplier(), 1.0 + DreamState.HEAVY_AIR_BONUS), "Heavy Air: cloud and rubble slows ×1.2")
-	sprout.set_meta(&"underdog", true)
-	_check(sprout._is_underdog(), "Underdog: the glow reads DreamState.is_underdog")
-	sprout.remove_meta(&"underdog")
 	_check(Reactions.is_effect(&"last_breath"), "Last Breath counts as an effect")
 
 	# --- The Eldest and its Court ---
@@ -166,7 +154,7 @@ func _run() -> void:
 	_check(not placer.nurture(elder), "the placer won't buy VI without the confirm")
 	_check(dreams.make_eldest(elder) and placer.nurture(elder) and elder.rank == 6, "confirmed: it grows to VI")
 	_check(friend.get_max_rank() == 5 and not friend.can_nurture(), "everyone else stops at V")
-	_take("court_of_the_eldest")
+	# Endless Rings carries Court of the Eldest (pool trim)
 	var alone := _plant("sprout", Vector2(12, 12))
 	alone.rank = 5
 	alone.focus = Tower.Focus.POWER

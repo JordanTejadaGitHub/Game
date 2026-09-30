@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "chorus"
+display_name = "Chorus"
+description = "Bellflower-line Wardens within 3 cells of each other pulse together, and a shared pulse deals 30% more."
+rarity = 2
+kind = 3
+tags = Array[String](["song"])
+requires = Array[String](["bellflower"])
+max_stacks = 1
+rule_id = &"chorus"
+count_line = "song"
+min_warden_count = 2

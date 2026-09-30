@@ -13,4 +13,4 @@ order = 5
 icon = 5
 requires_any = Array[String](["pebbling", "rootling"])
 families = Array[String](["bellflower"])
-dream_cards = Array[String](["hush", "heavy_eyelids", "heavy_eyelids_ii", "bad_dreams", "bad_dreams_ii"])
+dream_cards = Array[String](["hush", "heavy_eyelids", "heavy_eyelids_ii", "bad_dreams", "bad_dreams_ii", "sweet_scent"])

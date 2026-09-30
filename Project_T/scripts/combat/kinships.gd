@@ -32,11 +32,11 @@ const KINDRED_BONUS := 0.10
 const WHOLE_TREE_BONUS := 0.20
 const DIM_ALPHA := 0.5  # Vines during drifts (playtest: 0.3 was easy to miss)
 # Kinship cards (dream_design.md "Kinship cards: going deep")
-const FAMILY_TIES_PER := 0.08  # Family Ties: Wardens in a Kinship, per stack
-const BLOOD_BONDED := 0.30  # Blood is Thicker (bittersweet): in a Kinship…
+const FAMILY_TIES_PER := 0.20  # Family Ties: Wardens in a Kinship, per stack (dream_audit.md)
+const BLOOD_BONDED := 0.50  # Blood is Thicker (bittersweet): in a Kinship… (dream_audit.md)
 const BLOOD_UNBONDED := 0.15  # …and the cost for attacking Wardens not in one
-const GROVE_OF_KIN_PER := 0.03  # Grove of Kin: every Warden, per Kinship on the map…
-const GROVE_OF_KIN_MAX := 0.30
+const GROVE_OF_KIN_PER := 0.05  # Grove of Kin: every Warden, per Kinship on the map… (dream_audit.md)
+const GROVE_OF_KIN_MAX := 0.50
 const SWEET_BONUS: Array[float] = [0.5, 1.0]  # Sweet Harmony (II)
 const SWEET_COOLDOWN: Array[float] = [1.5, 1.0]
 const BEAD_COOLDOWN := 0.6  # Seconds between light beads on one vine
@@ -65,25 +65,25 @@ const KINSHIPS := {
 	&"tailwind": ["Tailwind", "wind", "samara", "gust", false],
 }
 # The colours of each family, for vines and Harmony sparks.
-const FAMILY_COLORS := {"spore": Color(0.7, 0.9, 0.4), "water": Color(0.45, 0.7, 1.0),
-	"light": Color(1.0, 0.95, 0.55), "stone": Color(0.8, 0.75, 0.65), "root": Color(0.65, 0.85, 0.45),
-	"song": Color(0.8, 0.65, 1.0), "acorn": Color(0.85, 0.7, 0.45), "wing": Color(1.0, 0.8, 0.55),
-	"wind": Color(0.8, 0.95, 0.95)}
+const FAMILY_COLORS := {"spore": Palette.NEWLEAF, "water": Palette.DEWLIGHT,  # One palette colour each
+	"light": Palette.GLOW, "stone": Palette.DEADWOOD, "root": Palette.SPRIG,
+	"song": Palette.BLOSSOM, "acorn": Palette.GOLD, "wing": Palette.HEARTLIGHT,
+	"wind": Palette.MOONLIGHT}
 
 # Each branch's own colour: a bonded Warden's attacks carry its kin's (borrowed looks, 2026-09-29).
-const BRANCH_COLORS := {"driftspore": Color(0.6, 0.9, 0.4), "bloomcap": Color(0.8, 0.65, 1.0),
-	"rain_lily": Color(0.5, 0.8, 1.0), "mistveil": Color(0.82, 0.88, 0.95), "stormcap": Color(0.7, 0.85, 1.0),
-	"lanternmoth": Color(1.0, 0.85, 0.4), "mossback": Color(0.55, 0.78, 0.4), "standing_stone": Color(0.78, 0.74, 0.88),
-	"rootcurl": Color(0.75, 0.55, 0.35), "tangleroot": Color(0.5, 0.82, 0.35), "chime_stone": Color(0.82, 0.68, 1.0),
-	"dreamcatcher": Color(0.58, 0.62, 1.0), "elder_stump": Color(0.72, 0.56, 0.36), "dewcatcher": Color(1.0, 0.85, 0.45),
-	"wrens_nest": Color(0.88, 0.66, 0.45), "magpie_perch": Color(0.6, 0.75, 1.0), "gust": Color(0.8, 0.96, 0.96),
-	"pinwheel": Color(1.0, 0.62, 0.5), "fairy_ring": Color(0.75, 0.95, 0.5), "frostfern": Color(0.72, 0.95, 1.0),
-	"sunpetal": Color(1.0, 0.9, 0.4), "cairn": Color(0.74, 0.7, 0.62), "rootlight": Color(1.0, 0.8, 0.5),
-	"echo_hollow": Color(0.76, 0.7, 1.0), "graftling": Color(0.62, 0.86, 0.45), "hummingbird_bower": Color(0.4, 0.9, 0.8),
-	"samara": Color(0.95, 0.62, 0.3)}
+const BRANCH_COLORS := {"driftspore": Palette.SPRIG, "bloomcap": Palette.BLOSSOM,
+	"rain_lily": Palette.DEWLIGHT, "mistveil": Palette.MOONLIGHT, "stormcap": Palette.DEWLIGHT,
+	"lanternmoth": Palette.GLOW, "mossback": Palette.SPRIG, "standing_stone": Palette.MIST,
+	"rootcurl": Palette.DEADWOOD, "tangleroot": Palette.SPRIG, "chime_stone": Palette.BLOSSOM,
+	"dreamcatcher": Palette.ORCHID, "elder_stump": Palette.DEADWOOD, "dewcatcher": Palette.GLOW,
+	"wrens_nest": Palette.GOLD, "magpie_perch": Palette.DEWLIGHT, "gust": Palette.MOONLIGHT,
+	"pinwheel": Palette.GOLD, "fairy_ring": Palette.NEWLEAF, "frostfern": Palette.MOONLIGHT,
+	"sunpetal": Palette.GLOW, "cairn": Palette.DEADWOOD, "rootlight": Palette.GLOW,
+	"echo_hollow": Palette.BLOSSOM, "graftling": Palette.SPRIG, "hummingbird_bower": Palette.DEWLIGHT,
+	"samara": Palette.GOLD}
 const ARCH_ALPHA := 0.6  # The Old Kin arch over a pair
 const ARCH_FOOT := Vector2(0, 24)  # Where a Warden's base (its slab's front) is, from its centre
-const HARMONY_GOLD := Color("ffe890")  # Old Kin beams lean 30% toward this
+const HARMONY_GOLD := Palette.GLOW  # Old Kin beams lean 30% toward this
 
 static var _branch_of := {}  # Warden id -> its branch's id (tier 2 forms and their final forms)
 static var _branches_by_family := {}  # line -> [branch ids] (the hidden one included)
@@ -373,15 +373,21 @@ func _stacks(rule: StringName) -> int:
 	var dreams := _dreams()
 	return dreams.rule_stacks(rule) if dreams else 0
 
+# Tag resonance (dream_audit.md): the card's numbers scale with owned cards sharing its tags.
+func _power(rule: StringName) -> float:
+	var dreams := _dreams()
+	return dreams.rule_power(rule) if dreams and dreams.has_method("rule_power") else 1.0
+
 # Close Kin: bonds reach 3 cells (II: 4).
 func get_reach() -> float:
 	if _has(&"close_kin"):
 		return 4.0 if _level(&"close_kin") > 0 else 3.0
 	return REACH
 
-# Drifts together for each stage; Quick Bonds takes 1 off per stack (max 3).
+# Drifts together for each stage; Old Friends (either level) takes 1 off (Quick Bonds merged into it,
+# dream_audit.md).
 func get_stage_drifts() -> Array[int]:
-	var cut := mini(_stacks(&"quick_bonds"), 3)
+	var cut := 1 if _has(&"old_friends") else 0
 	var result: Array[int] = [0]
 	for i in range(1, STAGE_DRIFTS.size()):
 		result.append(maxi(STAGE_DRIFTS[i] - cut, 1))
@@ -407,11 +413,11 @@ func damage_bonus(tower: Tower) -> float:
 	var bonus := family_bonus(tower.tower_data.line)
 	var bonded := not get_pairs(tower).is_empty()
 	if bonded:
-		bonus += FAMILY_TIES_PER * _stacks(&"family_ties")
+		bonus += FAMILY_TIES_PER * _stacks(&"family_ties") * _power(&"family_ties")
 	if _has(&"blood_is_thicker") and tower.tower_data.can_attack:
-		bonus += BLOOD_BONDED if bonded else -BLOOD_UNBONDED
+		bonus += BLOOD_BONDED * _power(&"blood_is_thicker") if bonded else -BLOOD_UNBONDED
 	if _has(&"grove_of_kin"):
-		bonus += minf(GROVE_OF_KIN_PER * pairs.size(), GROVE_OF_KIN_MAX)
+		bonus += minf(GROVE_OF_KIN_PER * _power(&"grove_of_kin") * pairs.size(), GROVE_OF_KIN_MAX * _power(&"grove_of_kin"))
 	return bonus
 
 func _count_families(towers: Array) -> void:
@@ -605,6 +611,9 @@ func note_hit(tower: Tower, enemy: Node2D, dealt: float) -> void:
 		harmony_struck.emit(tower, enemy)
 		# Credited to the Warden whose hit just landed, so DamageLog merges it into that hit's number (green).
 		enemy.take_damage(damage, tower.tower_data.line, true, false, tower, &"harmony")
+		# Spore Kin (Dream): a Sporeling-line pair's Harmony strike also poisons.
+		if _has(&"spore_kin") and tower.tower_data.line == "spore" and is_instance_valid(enemy) and not enemy.is_cleansed:
+			tower._apply_one_status(enemy, EnemyStatuses.SPORED, roundi(DreamState.SPORE_KIN_SPORED * _power(&"spore_kin")), weaker.get_damage())
 		# Kin and Kindling: the strike also applies both Wardens' statuses (1 stack each); they can
 		# complete Reactions, but the strike itself is never a chain link.
 		if _has(&"kin_and_kindling"):
@@ -676,21 +685,21 @@ func _announce(event: Array) -> void:
 			if _effects() != 2 and not kin_towers.is_empty():
 				var at: Vector2 = kin_towers[-1].global_position + Vector2(0, -40)
 				Fx.callout("Kindred: the %s family +%d%%" % [NightmareIcons.family_name(line), roundi(KINDRED_BONUS * 100)],
-					FAMILY_COLORS.get(line, Color(0.85, 0.9, 0.6)), at, get_parent(), &"kinship")
+					FAMILY_COLORS.get(line, Palette.NEWLEAF), at, get_parent(), &"kinship")
 		"whole_tree":
 			family_whole.emit(event[1])
 			var map = get_parent().get_node_or_null("%MapGenerator")
 			if _effects() == 0 and map and map.heartwood:
 				var sigil := Fx.play(&"whole_tree_sigil", map.heartwood.global_position, get_parent())
 				if sigil:
-					sigil.modulate = FAMILY_COLORS.get(event[1], Color(0.85, 0.9, 0.55))
+					sigil.modulate = FAMILY_COLORS.get(event[1], Palette.NEWLEAF)
 
 # 0 Full, 1 Subtle, 2 Off (settings "Kinship effects").
 static func _effects() -> int:
 	return int(Fx.setting("kinship_effects", 0))  # Cached (get_settings reads the profile from disk)
 
 func _colour(pair: Dictionary) -> Color:
-	return FAMILY_COLORS.get(KINSHIPS[pair.id][1], Color(0.8, 0.95, 0.6))
+	return FAMILY_COLORS.get(KINSHIPS[pair.id][1], Palette.NEWLEAF)
 
 
 # --- Drawing -----------------------------------------------------------------------------------------
@@ -744,13 +753,13 @@ func _draw() -> void:
 		for i in 9:
 			var t := i / 8.0
 			points.append(from.lerp(to, t) + bend * sin(t * TAU))
-		draw_polyline(points, Color(0.2, 0.35, 0.15, alpha * 0.8), 2.0 + stage * 1.5)
+		draw_polyline(points, Color(Palette.MOSS, alpha * 0.8), 2.0 + stage * 1.5)
 		draw_polyline(points, colour, 1.0 + stage)
 		if stage >= 1:
 			for i in [2, 6]:  # Leaves
-				draw_circle(points[i] + bend.normalized() * 3.0, 2.0 + stage, Color(0.45, 0.75, 0.35, alpha))
+				draw_circle(points[i] + bend.normalized() * 3.0, 2.0 + stage, Color(Palette.SPRIG, alpha))
 		if stage >= 2:
-			draw_circle(points[4], 3.5, Color(1.0, 0.85, 0.9, alpha))  # A flower (Old Kin)
+			draw_circle(points[4], 3.5, Color(Palette.BLOSSOM, alpha))  # A flower (Old Kin)
 
 # Old Kin: a small flowering arch (kin_oldkin_arch, 64x32, feet at (0,31) and (63,31)) spans the pair's
 # bases, stretched along x only, never upside down. Full effects only.
@@ -822,7 +831,7 @@ func _harmony_look(at: Vector2, pair: Dictionary) -> void:
 
 # A Warden's own branch colour (BRANCH_COLORS; its family's when the branch has none).
 static func branch_colour(tower: Tower) -> Color:
-	return BRANCH_COLORS.get(branch_for(tower), FAMILY_COLORS.get(tower.tower_data.line, Color(0.9, 0.95, 0.7)))
+	return BRANCH_COLORS.get(branch_for(tower), FAMILY_COLORS.get(tower.tower_data.line, Palette.NEWLEAF))
 
 # A tiny two-colour spark (the harmony_spark sheets; lite when Subtle). Never a callout.
 func _spark(at: Vector2, pair: Dictionary) -> void:
@@ -923,7 +932,7 @@ class KinFog extends Node2D:
 
 	func _draw() -> void:
 		var fade := minf(1.0, (_life - _age) / 0.4)
-		draw_circle(Vector2.ZERO, Tower.MAP_GRID.cell_size.x * 0.45, Color(0.8, 0.88, 0.95, 0.22 * fade))
+		draw_circle(Vector2.ZERO, Tower.MAP_GRID.cell_size.x * 0.45, Color(Palette.MOONLIGHT, 0.22 * fade))
 
 
 # A small petal burst or two-colour spark, used when the effect sheets are missing.
@@ -950,7 +959,7 @@ class KinBurst extends Node2D:
 		var t := _age / _life
 		for i in 6:
 			var dir := Vector2.from_angle(TAU * i / 6.0 + t * 2.0)
-			var colour := _colour if i % 2 == 0 else Color(1.0, 0.92, 0.95)
+			var colour := _colour if i % 2 == 0 else Palette.HEARTLIGHT
 			draw_circle(dir * _size * t, 3.0 * (1.0 - t) + 1.0, Color(colour, 1.0 - t))
 
 

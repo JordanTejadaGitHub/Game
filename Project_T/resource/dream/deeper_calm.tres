@@ -6,10 +6,10 @@
 script = ExtResource("1_card")
 id = "deeper_calm"
 display_name = "Deeper Calm"
-description = "All Wardens deal 10% more damage."
+description = "All Wardens deal 15% more damage."
 rarity = 0
 kind = 2
 tags = Array[String]([])
 requires = Array[String]([])
 max_stacks = 0
-soothe_bonus = 0.1
+soothe_bonus = 0.15

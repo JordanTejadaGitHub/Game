@@ -9,6 +9,6 @@ display_name = "Watchful Rest"
 description = "A Warden with nothing in range for 5 s stores a charge: its next attack deals ×2."
 rarity = 1
 kind = 3
-tags = Array[String]([])
+tags = Array[String](["precision"])
 max_stacks = 1
 rule_id = &"watchful_rest"

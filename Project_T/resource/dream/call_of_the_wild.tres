@@ -6,9 +6,10 @@
 script = ExtResource("1_card")
 id = "call_of_the_wild"
 display_name = "Call of the Wild"
-description = "Calling a {drift} early gives double Dew (up to 20 per {drift})."
+description = "Calling a {drift} early gives double Dew (up to 40 per {drift}), and that {drift}'s nightmares give +2 Dew (up to 40)."
 rarity = 0
 kind = 3
-tags = Array[String](["tempo", "economy"])
+tags = Array[String](["tempo", "economy", "daring"])
 max_stacks = 1
 rule_id = &"call_of_the_wild"
+extra_rules = Array[StringName]([&"hurried_harvest"])

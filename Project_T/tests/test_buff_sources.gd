@@ -48,7 +48,8 @@ func _run() -> void:
 		target.global_position, [first, second, acorn]))
 	_check(summary.contains("from 2 Elder Stumps") and summary.contains("from an Acorn"),
 		"the placement preview: %s" % summary)
-	second.focus = Tower.Focus.KINDRED
+	second.rank = 1
+	second.rank_choices = [Tower.Focus.KINDRED]  # A Kindred rank (Nurture v3)
 	target._refresh_neighbours()
 	_check(BuffSources.for_tower(target).any(func(e: Dictionary) -> bool: return e.kindred and BuffSources.thread_label(e).begins_with("Kindred")),
 		"a Kindred stump's thread reads \"Kindred +…\"")
@@ -71,6 +72,16 @@ func _run() -> void:
 		"the panel lists the buffs and a total (%s)" % [texts])
 	_check(buffs.get_children().any(func(c: Control) -> bool: return c is Button and c.text.begins_with("Elder Stump")),
 		"a Warden source is a button")
+
+	# The Boosts button (screens_ui.md "The lens button, revised"): shown once there's a local source; only
+	# local sources light a Warden up; the legend lists the kinds on the map.
+	_check(BuffOverlay.has_local_sources(main), "the map has a local buff source (Elder Stumps, an Acorn)")
+	_check(BuffOverlay.local_boost(target) > 0.0, "the boosted Sporeling lights up")
+	var lone := _plant("firefly_jar", Vector2(20, 2))
+	lone._refresh_neighbours()
+	_check(is_zero_approx(BuffOverlay.local_boost(lone)), "a Warden with no local source doesn't (Dreams and Nurture don't count)")
+	var legend: Array = BuffOverlay.legend_kinds(main).map(func(row: Array) -> String: return row[2])
+	_check(legend.has("Elder Stump") and legend.has("Acorn"), "the legend lists the source kinds on the map (%s)" % [legend])
 
 	print("buff sources test: %s" % ("PASS" if failures == 0 else "%d FAILED" % failures))
 	main.queue_free()

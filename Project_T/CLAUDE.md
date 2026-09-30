@@ -192,13 +192,28 @@ accessibility, Steam achievements (milestones map to them). Acts 3–4 and all f
 
 ## Run end, saving, onboarding
 - Scene flow: `scenes/title.tscn` (main scene; Continue / New run / Settings / Credits / Quit) →
-  `scenes/main.tscn`. Project settings `game/demo` (true) and `game/wishlist_url`.
+  `scenes/main.tscn`. Project settings `game/demo` (true) and `game/wishlist_url`. The title's
+  backdrop is `TitleBackdrop` (`assets/ui/title/title_background.png`, 640×360 from
+  `tools/title_art_generator.gd`; whole-number scale where it fits, motes, a wash of night on the
+  left behind the menu column). It animates from the generator's layers (`title_layers.json`: back,
+  Warden, nightmares, front, mist strips; they stack to exactly the flat art): the Warden and the
+  nightmares breathe in whole art pixels, the mist drifts, all still under reduced motion. Re-run the
+  generator after any art change; it rewrites every layer.
 - `HeartwoodMemory` (`scripts/meta/heartwood_memory.gd`, static, `user://heartwood.json`): banked
   Seeds, run counts, `whispers_seen`, settings (volumes, fullscreen, whispers, keybinds);
   `apply_settings()`. `SettingsPanel` edits it (title + pause menu).
 - Seeds: `RunState.get_seed_breakdown()` (meta_design.md formula + first-run +20).
   `ResultsScreen` (`%ResultsScreen`) shows it on `run_ended`, banks it, and in the demo shows the
   Deep Wood ending, Memory 1, the sleeping Grove teaser and a Wishlist button.
+- `RunHistory` (made by the HUD, group `run_history`; balance_simulation.md "Run history"): every run end (won / lost /
+  abandoned; real and dev runs, `dev` tag) adds a record to `user://run_history.json` (last 50, newest first; not the
+  profile): Grove / perks / Blight, families, Dreams taken / passed, Omens, bosses, Dew by use (RunState `dew_spent` +
+  that frame's plant / grow / rank / clear), Wardens, top 5, combos / Reactions, Dreamlight, and per-drift rows with the
+  bot's column names (drift, act, seconds, health_spawned, damage, leaks, leaves_lost, leaves_left, banked) + closest.
+  `report_text` = "Copy run report" (results screen, Codex "Past runs"). Tests only via `record_in_tests` + a temp `file_path`.
+  Each record carries `build` (`BuildInfo`, `scripts/run/build_info.gd`: content hash of the game files on disk + git
+  commit + dirty files, label "Sep 30 21:14 · 3f9a2c" on the title in debug; new ids go to `user://builds.json`) and
+  `balance` (the tuning exports + base health by drift). `tests/test_build_info.gd`.
 - `RunSaver` (`%RunSaver`, `user://run.json`): autosaves each rest once no choice screen is open;
   `resume_next` (set by Continue) rebuilds the run from the save (map seed, tended cells, Wardens,
   counters, `DreamState`/`OmenDirector` `to_save`/`load_save`). `PauseMenu` (Esc): Resume,
@@ -251,7 +266,7 @@ accessibility, Steam achievements (milestones map to them). Acts 3–4 and all f
   saves profile `reactions_seen` (real game only). `CodexPanel` (pause menu + Grove): Glossary / Combos / Families / Dreams (`DreamCodex`) / Nightmares (`NightmareCodex`: ??? until met, lifetime dispels, act groups, milestone `all_nightmares`); account knowledge on the real profile (`HeartwoodMemory.ACCOUNT_KEYS`, also under Dev Grove); lists what `CodexData.scope()` covers (starting three + Grove-planted families and forms; demo its three; dev runs all), "N more wait in the Memory Grove.", "New from the Grove" leaf (profile `codex_covered`). `tests/test_codex_scope.gd`.
 
 ## Meta (meta_design.md; full game only — `game/demo` true = nothing applied or recorded)
-- Grove = tech tree on the Heartwood: 84 `UnlockData` nodes (`resource/meta/grove/<id>.tres`, ids =
+- Grove = tech tree on the Heartwood: 73 `UnlockData` nodes (`resource/meta/grove/<id>.tres`, ids =
   `assets/meta/grove/grove_layout.json` ids; limbs `root` WARDENS = Families, DREAMS = Cards, PERKS =
   Perks). `costs` per level, `requires_all` ("id" or "id:level") / `requires_any` (+count), `icon`,
   `start` (Sporeling / Firefly Jar / Dewdrop, never bought), `<family>_ascension` (Ascended Warden card), `milestone` (grows free, refunds a
@@ -263,7 +278,7 @@ accessibility, Steam achievements (milestones map to them). Acts 3–4 and all f
   `starting_cards` (Clear Sight), `random_common_cards` (Kindling), `sprout_charges`, `free_nurtures`
   (`RunState.free_nurtures`, spent by Tower Code's nurture hook); `allows_bittersweet` (Bittersweet
   Dreams node sets `DreamState.allow_bittersweet`).
-- `HeartwoodMemory` (VERSION 4; `MIGRATED_IDS` renames v1 Grove ids, `REFUNDED_V3` / `REFUNDED_V4` refund removed nodes): `unlocks {id: level}`,
+- `HeartwoodMemory` (VERSION 6; `MIGRATED_IDS` renames v1 Grove ids, `REFUNDED_V3`..`V6` refund removed nodes): `unlocks {id: level}`,
   `node_level()` (counts start / milestone growth; use it, not `unlock_level()`, for "owned"),
   `buy()` / `buy_problem()` / `requirements_met()`, `get_unlock(id)`, `grow_milestone_nodes()`,
   `grown_share()`, loadout (`loadout`, `loadout_slots()`: 3 open + slot_4/5 + the secret 6th via `has_sixth_slot()` = milestone `full_bloom` (`check_full_bloom`, `tree_complete`) or `MetaRun.sixth_slot_dev_active()`; `get_loadout()`, `save_loadout()`),
@@ -299,11 +314,20 @@ accessibility, Steam achievements (milestones map to them). Acts 3–4 and all f
 ## Audio (placeholder, audio_direction.md)
 - **Heartwood 32 + detail pass** (art_direction.md "Rendering style"; Theme Code owns `tools/art/`):
   `HeartwoodPalette` (`color("gold")` by name, `snap(c, cold)`, `snap_image(img, cold)`, OKLab nearest;
-  cold = nightmares) and `DetailPass.apply(img, Kind.WARDEN/OBSTACLE/NIGHTMARE/TILE)` /
+  cold = nightmares; `wardens = true` adds the Warden Night 3 for Warden idle sheets only, and
+  `warden_night(img)` shifts an idle sheet one shade darker by `WARDEN_NIGHT_MAP`, warden_night.md) and
+  `DetailPass.apply(img, Kind.WARDEN/OBSTACLE/NIGHTMARE/TILE)` /
   `apply_sheet(sheet, Vector2i(64, 64), kind, glow_radius := 0, texture := 1.0)` (rim, dither seams,
   texture, banded glow, smoke, then snap; `texture` 0..1 thins the grain for calm tiles / pre-shaded art).
   Every art generator runs its frames through it. `tools/art/palette_export.gd` writes
   `assets/palette/heartwood32.{gpl,hex,json,png}` for non-Godot tools. `tests/test_palette.gd`.
+  **Game code draws only palette colours:** `Palette` (`scripts/palette.gd`) has the 32 as constants
+  (`Palette.GOLD`, `Color(Palette.WRAITHLIGHT, 0.4)`; alpha is free). Nightmare visuals cold, Warden/dream
+  warm. Raw colours only for multipliers (modulates, lighting/season tints: mark the line "multiplier").
+  In `scripts/ui/` prefer the `UiStyle` tokens (INK, GOLD, POOR, FOG…) when one fits. High-contrast /
+  colour-blind colours may stay off-palette (mark the line "Accessibility").
+  Colours stored in `.tscn` / `.tres` (scenes/, resource/) are palette colours too, except `modulate`,
+  `self_modulate` and `tint` (multipliers). `tests/test_palette.gd` fails on any other colour.
 - `tools/sound_generator.gd` synthesizes every sound into `assets/audio/` (sfx 44.1 kHz; music
   stems + ambience 22 kHz, D minor 72 bpm 3/4, 20 s loops of equal length). Re-run it, then `--import`.
 - `Sound` autoload (`scripts/audio/sound.gd`): buses Music/SFX/Ambience/UI (reverb on Music/SFX,

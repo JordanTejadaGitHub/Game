@@ -14,4 +14,4 @@ icon = 8
 requires_any = Array[String](["pebbling", "rootling", "bellflower", "acorn"])
 requires_any_count = 2
 families = Array[String](["whirligig"])
-dream_cards = Array[String](["dream_gust", "dream_pinwheel"])
+dream_cards = Array[String](["dream_gust", "dream_pinwheel", "carried_on_the_wind", "hairpin_winds"])

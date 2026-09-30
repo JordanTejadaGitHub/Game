@@ -46,13 +46,13 @@ const TOWER_SCENE_PATH := "res://scenes/tower/tower.tscn"
 var tower_data: TowerData
 
 const MAP_GRID = preload("res://resource/map/map_grid.tres")
-const VALID_TINT := Color(0.4, 1.0, 0.5, 0.65)
-const CATCH_TINT := Color(1.0, 0.85, 0.44, 0.16)  # Path tiles in a catcher's reach (placement preview)
-const INVALID_TINT := Color(1.0, 0.35, 0.35, 0.65)
+const VALID_TINT := Color(Palette.SPRIG, 0.65)
+const CATCH_TINT := Color(Palette.GLOW, 0.16)  # Path tiles in a catcher's reach (placement preview)
+const INVALID_TINT := Color(Palette.EMBER, 0.65)  # The palette has no red: Ember is "no"
 const NO_CELL := Vector2(-1, -1)
-const BONUS_ON := Color(0.55, 1.0, 0.6)  # A position card that would be on here
-const BONUS_OFF := Color(0.7, 0.72, 0.76)  # …off (grey, with the reason)
-const BONUS_LOST := Color(1.0, 0.45, 0.4)  # A planted Warden this placement would switch a card off for
+const BONUS_ON := Palette.NEWLEAF  # A position card that would be on here
+const BONUS_OFF := Palette.STONE  # …off (grey, with the reason)
+const BONUS_LOST := Palette.EMBER  # A planted Warden this placement would switch a card off for
 const CHIP_STEP := 20.0
 
 @onready var map_generator = %MapGenerator
@@ -73,16 +73,16 @@ var _range_gain := 0.0  # Cells of range position cards would add here
 var _kin_spots := {}  # Cells where the selected Warden would find a kin (Kinships.kin_spots)
 var _kin_here := ""  # The Kinship it would form on the hovered cell
 var _heart_here := false  # Heart of the Maze would move to the Warden planted here
-const KIN_SPOT_COLOR := Color(0.78, 0.86, 0.42, 0.4)  # Faint green-gold leaf outline
+const KIN_SPOT_COLOR := Color(Palette.NEWLEAF, 0.4)  # Faint green-gold leaf outline
 var _path_preview := Line2D.new()
-const PREVIEW_COLOR := Color(0.4, 0.9, 1.0, 0.6)  # The route preview (RouteLine: high-contrast setting)
+const PREVIEW_COLOR := Color(Palette.DEWLIGHT, 0.6)  # The route preview (RouteLine: high-contrast setting)
 
 # Settling ground (run_design.md "No maze juggling"): during a drift, the cells a Warden was sold from
 # can't be planted on again for SETTLE_SECONDS of game time (every footprint cell). Rests are exempt and
 # settle everything at once. The rings with their countdown are drawn by a SettlingMarks node in the
 # world (this placer hides outside build mode).
 const SETTLE_SECONDS := 8.0
-const SETTLE_COLOR := Color(0.85, 0.72, 0.5)
+const SETTLE_COLOR := Palette.GOLD
 var settling := {}  # cell -> game seconds left
 var _settling_marks: Node2D = null
 
@@ -263,7 +263,7 @@ func _draw() -> void:
 		return
 	if tower_data.catch_share > 0.0:
 		_draw_catch_zone(Tower.footprint_centre(_hover_cell, tower_data.footprint), tower_data.catch_radius \
-			+ DewCatch.WIDE_BOWL_STEP * mini(dream_state.rule_stacks(&"wide_bowl"), 3))
+			+ (DewCatch.WIDE_BOWL_STEP if dream_state.has_rule(&"dew_trail") else 0.0))  # Dew Trail widens the catch
 	# What it would receive here (BuffSources): threads in from each aura, "+30% attack speed from 2 Elder
 	# Stumps" above the ghost.
 	var received := ""
@@ -305,7 +305,7 @@ func _draw() -> void:
 		var type_icon := IconInfo.damage_type_icon(tower_data.line)
 		if type_icon:
 			var corner := -MAP_GRID.cell_size / 2.0 + Vector2(2, 2)
-			draw_rect(Rect2(corner - Vector2(1, 1), Vector2(18, 18)), Color(0.1, 0.08, 0.05, 0.8))
+			draw_rect(Rect2(corner - Vector2(1, 1), Vector2(18, 18)), Color(Palette.ROOT, 0.8))
 			draw_texture_rect(type_icon, Rect2(corner, Vector2(16, 16)), false)
 	var tag := "%s · %d Dew" % [tower_data.display_name, get_cost(null, _hover_cell)]
 	if tower_data.can_attack:
@@ -314,23 +314,23 @@ func _draw() -> void:
 		tag += " (fertile)"
 	var growth := get_hover_path_growth()
 	if is_edge_cell(_hover_cell) and _hover_cell != map_generator.startPath and _hover_cell != map_generator.endPath:
-		tag += "  ·  the dream's edge"  # The island's rim (screens_ui.md "Invalid placement")
+		tag += " · the dream's edge"  # The island's rim (screens_ui.md "Invalid placement")
 	elif frozen_ground():
-		tag += "  ·  Frozen Ground: plant at the rest"
+		tag += " · Frozen Ground: plant at the rest"
 	elif is_unique_placed(tower_data):
-		tag += "  ·  already planted (one per run)"
+		tag += " · already planted (one per run)"
 	elif settling_left(_footprint(_hover_cell)) > 0.0:
-		tag += "  ·  The ground is settling (%d s)" % ceili(settling_left(_footprint(_hover_cell)))
+		tag += " · The ground is settling (%d s)" % ceili(settling_left(_footprint(_hover_cell)))
 	elif hover_breaks_path():
-		tag += "  ·  would close the dream"  # The forest's rule: it may bend, never close
+		tag += " · would close the dream"  # The forest's rule: it may bend, never close
 	elif _cells_occupied(_footprint(_hover_cell)):
-		tag += "  ·  nightmare here"
+		tag += " · nightmare here"
 	elif growth != 0:
-		tag += "  ·  %+d path" % growth  # "Wardens are walls": how much longer the walk gets
+		tag += " · %+d path" % growth  # "Wardens are walls": how much longer the walk gets
 	if _kin_here != "":
-		tag += "  ·  Kin spot: forms %s" % _kin_here
+		tag += " · Kin spot: forms %s" % _kin_here
 	if _heart_here:
-		tag += "  ·  Becomes the Heart of the Maze"
+		tag += " · Becomes the Heart of the Maze"
 	var broken := get_neighbour_changes().filter(func(change: Array) -> bool: return not change[2])
 	if not broken.is_empty():
 		# Placing a Warden should never silently weaken others.
@@ -338,7 +338,7 @@ func _draw() -> void:
 		for change in broken:
 			names[change[1]] = names.get(change[1], 0) + 1
 		for name in names:
-			tag += "  ·  breaks %s on %d Warden%s" % [name, names[name], "" if names[name] == 1 else "s"]
+			tag += " · breaks %s on %d Warden%s" % [name, names[name], "" if names[name] == 1 else "s"]
 	WorldLabel.draw_tag(self, 0.0, MAP_GRID.cell_size.y / 2.0 + 18.0, tag,
 		WorldLabel.cost_color(_hover_affordable))
 	# Bonus chips above the ghost: each position card, on (green, what it gives) or off (grey, why).
@@ -397,6 +397,11 @@ func grow_changes(tower: Tower, into: TowerData) -> String:
 		var faster := speed * into.attacks_per_second / maxf(from.attacks_per_second, 0.01)
 		if absf(faster - speed) >= 0.05:
 			parts.append("Speed %.1f → %.1f/s" % [speed, faster])
+		# The headline first (warden_stats.md "Branches: pricier and worth it"): damage per second, before
+		# the mechanic (chains, splash, statuses).
+		var ratio := (then * faster) / maxf(now * speed, 0.001)
+		if absf(ratio - 1.0) >= 0.05:
+			parts.push_front("%.1f× damage" % ratio)
 	elif into.can_attack and not from.can_attack:
 		parts.append("Damage %d" % into.damage)
 	var reach := preview_range(tower, into)
@@ -716,6 +721,9 @@ func evolve(tower: Tower, into: TowerData, origin: Vector2 = NO_CELL) -> bool:
 	if grows:
 		_take_square(tower, into, origin)
 	tower.evolve(into, cost)
+	if into.tier == DreamState.ASCENDED_TIER - 1 and not _finals_grown.has(into.get_id()):
+		_finals_grown[into.get_id()] = true  # The first of each final form this run gets its bloom
+		Fx.final_bloom(tower, into.display_name)
 	return true
 
 # The 2×2 squares (top-left cells) `tower` could grow into `into` on (tower_design.md "Ascended forms",
@@ -873,7 +881,7 @@ func _draw_grow_choice() -> void:
 			var frame := into.get_frame_rect(0)
 			var centre := Tower.footprint_centre(origin, 2)
 			draw_texture_rect_region(into.texture, Rect2(centre - frame.size / 2.0 + into.sprite_offset, frame.size), frame,
-				Color(1, 1, 1, 0.6))
+				Color(1, 1, 1, 0.6))  # A texture modulate (fade), not a colour
 	var tower: Tower = _grow_choice.tower
 	if is_instance_valid(tower):
 		WorldLabel.draw_tag(self, tower.global_position.x, tower.global_position.y - MAP_GRID.cell_size.y,
@@ -898,8 +906,8 @@ func nurture(tower: Tower, focus: Tower.Focus = Tower.Focus.NONE) -> bool:
 	if frozen_ground():
 		_toast_frozen()
 		return false
-	if tower.needs_focus() and not tower.focus_options().has(focus):
-		return false  # No Focus yet, or one this Warden can't take (support: Wide / Strong / Kindred)
+	if focus != Tower.Focus.NONE and not tower.focus_options().has(focus):
+		return false  # A choice this Warden can't take (support Wardens: Wide / Strong / Kindred); none = its default
 	# Rank VI would make it the Eldest (only one Warden grows past V): the panel asks first and calls
 	# DreamState.make_eldest; group Nurture and the hotkey never crown one by accident.
 	if dream_state.has_method("needs_eldest_confirm") and dream_state.needs_eldest_confirm(tower):
@@ -962,7 +970,7 @@ func _is_occupied_by_enemy(cell: Vector2) -> bool:
 # button calls plant_stroke().
 
 signal stroke_changed(active: bool)
-const STROKE_SKIP_TINT := Color(1.0, 0.35, 0.35, 0.45)
+const STROKE_SKIP_TINT := Color(Palette.EMBER, 0.45)
 var stroking := false
 var confirm_on_release := true
 var _stroke: Array[Vector2] = []  # Cells in drag order
@@ -1117,7 +1125,7 @@ func _draw_stroke() -> void:
 		return
 	draw_set_transform(MAP_GRID.calculate_map_position(_stroke.back()))
 	var last_why: String = _stroke_plan.get(_stroke.back(), "")
-	var tag := get_stroke_tag() + ("  ·  %s" % last_why if last_why != "" else "")
+	var tag := get_stroke_tag() + (" · %s" % last_why if last_why != "" else "")
 	WorldLabel.draw_tag(self, 0.0, MAP_GRID.cell_size.y / 2.0 + 18.0, tag, WorldLabel.cost_color(true))
 	draw_set_transform(Vector2.ZERO)
 
@@ -1163,6 +1171,7 @@ func frozen_ground() -> bool:
 	return omens != null and omens.has_method("blocks_building") and omens.blocks_building()
 
 var _frozen_toast_at := -100000
+var _finals_grown := {}  # final form id -> true once one grew this run (Fx.final_bloom)
 
 func _toast_frozen() -> void:
 	var now := Time.get_ticks_msec()

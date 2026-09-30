@@ -51,16 +51,16 @@ const RESOURCES := {
 # type icon + name, never a Warden's face. TowerData.line -> [name, colour (icon fallback)]. Any other
 # line (sprout, wall, acorn, memory, heartwood) is Plain: never resisted, never weak.
 const DAMAGE_TYPES := {
-	"spore": ["Spore", Color(0.72, 0.86, 0.45)],
-	"stone": ["Stone", Color(0.72, 0.7, 0.66)],
-	"water": ["Water", Color(0.45, 0.72, 1.0)],
-	"light": ["Light", Color(1.0, 0.9, 0.45)],
-	"root": ["Root", Color(0.7, 0.52, 0.34)],
-	"song": ["Song", Color(0.85, 0.65, 1.0)],
-	"wing": ["Talon", Color(0.95, 0.62, 0.45)],
-	"wind": ["Wind", Color(0.7, 0.95, 0.9)],
+	"spore": ["Spore", UiStyle.LIVE],
+	"stone": ["Stone", UiStyle.INK_DIM],
+	"water": ["Water", Palette.DEWLIGHT],
+	"light": ["Light", UiStyle.GOLD],
+	"root": ["Root", Palette.DEADWOOD],
+	"song": ["Song", Palette.BLOSSOM],
+	"wing": ["Talon", Palette.GOLD],
+	"wind": ["Wind", UiStyle.MOONLIGHT],
 }
-const PLAIN_TYPE := ["Plain", Color(0.75, 0.75, 0.75)]
+const PLAIN_TYPE := ["Plain", UiStyle.OFF]
 
 static func damage_type_name(line: String) -> String:
 	return DAMAGE_TYPES.get(line, PLAIN_TYPE)[0]
@@ -143,7 +143,7 @@ static func _tip(table: Dictionary, id: StringName) -> String:
 
 # Game terms (screens_ui.md "Playtest fixes" 2026-09-30: "what's a perfect block, what's a block?"):
 # written as tokens in card text and tooltips, shown as links (StatusLinks) whose popup is the Codex
-# glossary's line. id -> [word, plural, glossary name]. Tokens: {drift} "drift", {drifts} "drifts",
+# glossary's line. id -> [word, plural, glossary name, plural token id (optional; default id + "s")]. Tokens: {drift} "drift", {drifts} "drifts",
 # {Drift} / {Drifts} capitalised (sentence starts). Plain text (format) just gets the word.
 const TERMS := {
 	&"drift": ["drift", "drifts", "Drift"],
@@ -153,6 +153,8 @@ const TERMS := {
 	&"dreamlight": ["Dreamlight", "Dreamlight", "Dreamlight"],
 	&"family_pick": ["family pick", "family picks", "Family pick"],
 	&"deeply_blighted": ["Deeply Blighted", "Deeply Blighted", "Deeply Blighted"],
+	&"kinship": ["Kinship", "Kinships", "Kinship"],
+	&"harmony": ["Harmony strike", "Harmony strikes", "Harmony strike", "harmonies"],  # {harmonies}: the plural
 }
 
 # Every term token form: [token text, term id, word shown]. Longest tokens first.
@@ -160,7 +162,7 @@ static func term_tokens() -> Array:
 	if _term_tokens.is_empty():
 		for id in TERMS:
 			var entry: Array = TERMS[id]
-			var plural_id := String(id) + ("s" if not String(id).ends_with("s") else "")
+			var plural_id: String = entry[3] if entry.size() > 3 else String(id) + ("s" if not String(id).ends_with("s") else "")
 			for form in [[String(id), entry[0]], [plural_id, entry[1]]]:
 				_term_tokens.append(["{%s}" % form[0], id, form[1]])
 				_term_tokens.append(["{%s}" % _upper_first(form[0]), id, _upper_first(form[1])])
@@ -170,6 +172,18 @@ static var _term_tokens: Array = []
 
 static func _upper_first(s: String) -> String:
 	return s.left(1).to_upper() + s.substr(1)
+
+# A name as it reads mid-sentence (text_style.md): a leading "The" is lowercase ("About the Mire
+# Hag"); at a line start or on a name plate use the name as is.
+static func name_in_sentence(name: String) -> String:
+	return "the " + name.substr(4) if name.begins_with("The ") else name
+
+# "the X" for a nightmare in a sentence, whether or not its name carries "The"; `start` capitalises it.
+static func the_name(name: String, start := false) -> String:
+	var text := name_in_sentence(name)
+	if not text.begins_with("the "):
+		text = "the " + text
+	return _upper_first(text) if start else text
 
 # Puts the current status names and term words into `text`: "{damp} + {static}" -> "Soaked +
 # Charged", "each {block}" -> "each block". Unknown tokens stay as they are.

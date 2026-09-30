@@ -6,10 +6,10 @@
 script = ExtResource("1_unlock")
 id = "clear_sight"
 display_name = "Clear Sight"
-description = "Start holding Tend the Forest and Cleared Ground: clearing opens from {drift} 1 and costs less."
+description = "Start holding Heartwood's Reach and Cleared Ground: clearing opens from {drift} 1 and costs less."
 root = 2
 costs = Array[int]([80])
 order = 5
 icon = 4
 requires_all = Array[String](["first_care"])
-starting_cards = Array[String](["tend_the_forest", "cleared_ground"])
+starting_cards = Array[String](["heartwoods_reach", "cleared_ground"])

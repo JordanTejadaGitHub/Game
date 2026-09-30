@@ -21,7 +21,7 @@ const REBINDABLE := [
 	["buff_lens", "Buff lens"],
 	["cycle_target", "Cycle targeting"],
 	["center_heartwood", "Center on the Heartwood"],
-	["center_start", "Center on the forest's edge"],
+	["center_start", "Center on the start"],
 ]
 
 const TITLE_SCENE := "res://scenes/title.tscn"
@@ -105,7 +105,7 @@ func _ready() -> void:
 		families.toggled.connect(func(on: bool) -> void: _set_value(MetaRun.ALL_FAMILIES_SETTING, on))
 		box.add_child(families)
 		var dreams_rewards := CheckButton.new()  # meta_design.md "Dev options"
-		dreams_rewards.text = "Dream of everything rewards · starlit card backs, +1 Dream reroll"
+		dreams_rewards.text = "Dream of Everything rewards · starlit card backs, +1 Dream reroll"
 		dreams_rewards.tooltip_text = "For testing: nothing is recorded and no Seeds are banked."
 		dreams_rewards.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		dreams_rewards.button_pressed = _settings.get(MetaRun.ALL_DREAMS_SETTING, false)

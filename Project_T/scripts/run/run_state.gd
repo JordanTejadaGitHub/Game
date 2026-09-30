@@ -14,6 +14,7 @@ signal free_clears_changed(free_clears: int)
 signal sprout_charges_changed(charges: int)  # For the Warden bar's seed badge (Seedling Gift)
 # Emitted once, when the run is won (last drift cleansed) or lost (no leaves left).
 signal run_ended(won: bool)
+signal dew_spent(cost: int)  # Every spend (RunHistory sorts them into planting, growth, ranks, clears)
 
 @export var starting_dew: int = 60  # run_design.md "Opening rule": enough Sprouts for drift 1
 @export var starting_leaves: int = 15  # Difficulty pass v1: was 20
@@ -53,6 +54,7 @@ var dew_gain_bonus := 0.0  # +share of Dew from dispelled nightmares (Rich Dew);
 var free_nurtures := 0  # Nurture ranks left that cost no Dew (First Care); set by MetaRun
 var longest_path := 0  # Longest route the maze reached this run, in tiles
 var play_time := 0.0  # Seconds of unpaused play this run
+var abandoned := false  # The run ended from the pause menu's Abandon (RunHistory: "abandoned", not "lost")
 var dew_harvested := 0  # Dew the catchers poured at rests (the Harvest) plus Wellspring interest (Golden Harvest reads it)
 var is_over := false
 var won := false
@@ -118,6 +120,7 @@ func spend_dew(cost: int) -> bool:
 		return false
 	dew -= cost
 	dew_changed.emit(dew)
+	dew_spent.emit(cost)
 	return true
 
 func add_free_clears(amount: int) -> void:

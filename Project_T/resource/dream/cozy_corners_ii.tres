@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "cozy_corners_ii"
 display_name = "Cozy Corners II"
-description = "Wardens within 2 cells of a bend in the path deal 25% more damage."
+description = "Wardens within 2 cells of a bend in the path deal 50% more damage."
 rarity = 1
 kind = 3
 tags = Array[String](["maze"])

@@ -15,10 +15,10 @@ const FURROW_TIME := 1.0
 const DUST_TIME := 0.4
 const FRONT_ALPHA := 0.8
 const FEET := Vector2(0, 14)  # The ground under a nightmare, from its origin
-const ROOT_COLOR := Color(0.36, 0.25, 0.16)
-const ROOT_LIGHT := Color(0.55, 0.42, 0.26)
-const DUST_COLOR := Color(0.72, 0.62, 0.46, 0.7)
-const FURROW_COLOR := Color(0.2, 0.14, 0.09, 0.55)
+const ROOT_COLOR := Palette.BARK
+const ROOT_LIGHT := Palette.OAK
+const DUST_COLOR := Color(Palette.DEADWOOD, 0.7)
+const FURROW_COLOR := Color(Palette.ROOT, 0.55)
 
 var kind: Kind
 var follow: Node2D  # Grab: stays on the nightmare's feet

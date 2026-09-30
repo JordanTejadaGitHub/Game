@@ -211,7 +211,7 @@ func _test_copy() -> void:
 	await process_frame
 	graft._refresh_neighbours()
 	_check(graft.get_copied() == pebbling_data, "Graftling copies its strongest neighbour (not the Memory Warden)")
-	_check(is_equal_approx(graft.get_damage(), neighbour.get_damage() * 0.6), "at 60% damage")
+	_check(is_equal_approx(graft.get_damage(), neighbour.get_damage() * graft.tower_data.copy_share), "at its copy share (%d%%)" % roundi(graft.tower_data.copy_share * 100))
 	_check(graft.get_range_cells() == neighbour.get_range_cells(), "with the copied range")
 	await _clean()
 
@@ -280,7 +280,7 @@ func _test_birds() -> void:
 	_check(targets.size() == 3 and not targets.has(runners[0]), "the starlings go after the 3 fastest, not the slowest")
 	flock._release()
 	var birds := flock.get_children().filter(func(n: Node) -> bool: return n is Projectile)
-	_check(birds.size() == 3, "one starling each (%d)" % birds.size())
+	_check(birds.size() == mini(runners.size(), flock.tower_data.multi_targets), "one starling each (%d)" % birds.size())
 	await _clean()
 
 
@@ -314,7 +314,7 @@ func _test_wind() -> void:
 	await process_frame
 	gust_tower._release()
 	var spread := others.filter(func(e: Node2D) -> bool: return e.statuses.has(EnemyStatuses.SPORED))
-	_check(spread.size() == 2, "Gust spreads to 2 nightmares (%d)" % spread.size())
+	_check(spread.size() == load("res://resource/tower/gust.tres").spread_targets, "Gust spreads to its spread_targets nightmares (%d)" % spread.size())
 	_check(spread.all(func(e: Node2D) -> bool:
 		return e.statuses.stacks(EnemyStatuses.SPORED) == 2 and e.statuses.has(EnemyStatuses.DROWSY)),
 		"with half the stacks, and every status")

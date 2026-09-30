@@ -60,7 +60,8 @@ const DEMO_DRIFTS_DIR := "res://resource/drift/demo/"
 @export var act1_boss_health_multiplier: float = 2.0  # Act 1's boss (drift 25) instead (grove10: Fresh beat ×1.5 10/10, ×1.75 19/20)
 # Acts 3–4 (run_design.md "Act 3 probe", interim): a flat health multiplier for every nightmare from
 # `late_acts_from_act`, bosses included, on top of the growth / boss multiplier.
-@export var late_acts_health_multiplier: float = 1.6
+@export var late_acts_health_multiplier: float = 3.5  # Acts 3–4, bosses included (balance_simulation.md "Human run 1"; was 1.6)
+@export var final_boss_late_multiplier: float = 1.6  # …except the Hollow Oak at drift 100: the health the first human run met
 @export var late_acts_from_act: int = 3
 # Acts 1–2 (run_design.md 72860af, balance batches): act 1 is x1.0 through `act1_ramp_from`, rising
 # evenly to `act1_health_multiplier` at `act1_ramp_to` and holding to the act's end; act 2 holds that
@@ -69,8 +70,9 @@ const DEMO_DRIFTS_DIR := "res://resource/drift/demo/"
 @export var act1_health_multiplier: float = 1.15
 @export var act1_ramp_from: int = 9
 @export var act1_ramp_to: int = 20
-@export var early_acts_health_multiplier: float = 1.55
-@export var early_ramp_from: int = 30
+@export var early_acts_health_multiplier: float = 2.5  # Act 2 ends at this ("Human run 1"; was 1.55)
+@export var act2_start_health_multiplier: float = 1.3  # …starting from this at act 2's first drift (interim; was act 1's 1.15)
+@export var early_ramp_from: int = 26
 @export var early_ramp_to: int = 45
 @export var extra_nightmares: float = 1.25  # Nightmares per drift (rounded up) from `extra_nightmares_from`
 @export var extra_nightmares_from: int = 10  # The intro drifts before it are unchanged
@@ -340,8 +342,10 @@ func get_extra_nightmares(number: int) -> float:
 # then rising to ×1.55 at 45 (held to 50).
 func get_early_multiplier(number: int) -> float:
 	var act1 := clampf(float(number - act1_ramp_from) / maxf(act1_ramp_to - act1_ramp_from, 1), 0.0, 1.0)
-	var act2 := clampf(float(number - early_ramp_from) / maxf(early_ramp_to - early_ramp_from, 1), 0.0, 1.0)
-	return lerpf(lerpf(1.0, act1_health_multiplier, act1), early_acts_health_multiplier, act2)
+	if get_act(number) >= 2:  # Act 2: from act2_start at its first drift up to early_acts at early_ramp_to, then held
+		var act2 := clampf(float(number - early_ramp_from) / maxf(early_ramp_to - early_ramp_from, 1), 0.0, 1.0)
+		return lerpf(act2_start_health_multiplier, early_acts_health_multiplier, act2)
+	return lerpf(1.0, act1_health_multiplier, act1)
 
 # Health multiplier for `data` in drift `number`: get_growth (bosses: ×1.5 their base), × the act 2
 # ramp, or ×1.6 in acts 3–4. Dreams / Omens multiply on top (hook: see get_health_multiplier).
@@ -349,7 +353,8 @@ func get_health_scale(data: EnemyData, number: int) -> float:
 	var boss := act1_boss_health_multiplier if get_act(number) == 1 else boss_health_multiplier
 	var scale := boss if data.is_boss else get_growth(number)
 	if get_act(number) >= late_acts_from_act:
-		scale *= late_acts_health_multiplier
+		var final_boss := data.is_boss and number >= drifts_per_act * 4
+		scale *= final_boss_late_multiplier if final_boss else late_acts_health_multiplier
 	elif not (data.is_boss and get_act(number) == 1):  # Act 1's boss keeps its own multiplier (its escort takes the ramp)
 		scale *= get_early_multiplier(number)
 	return scale * get_health_multiplier(data, number)
@@ -445,6 +450,10 @@ func _on_enemy_split(parent: Node2D, child: Node2D) -> void:
 	var number: int = _drift_of[parent]
 	_drift_of[child] = number
 	_active[number].remaining += 1
+
+# The drift that spawned `enemy` (split children and followers: their parent's), 0 if none.
+func drift_of(enemy: Node) -> int:
+	return int(_drift_of.get(enemy, 0))
 
 func _on_enemy_cleansed(enemy: Node2D) -> void:
 	if enemy.enemy_data.is_boss and _drift_of.has(enemy) and not enemy.is_echo:  # Echoes (Remembering Oak) aren't bosses

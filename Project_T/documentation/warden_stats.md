@@ -69,9 +69,71 @@ discounts). Ranks never get cheaper by being bought early.
 - **Bellflower, Whirligig, Nestling:** raised to the same floor (tune damage or rate; keep their shapes).
 Target: each family reaches drift 25 alone in **≥ 8 of 10** runs, like the starting three. Tower Code tunes the exact numbers against the opening check. **Status 2026-09-29:** 7 of 9 pass; **Pebbling (3/10) and Whirligig (7/10)** die at 22–24, close misses: small further bumps (about +15% damage each) until they pass. Acorn and Whirligig pass but bleed 9–16 leaves: fine for harder families. **Rerun:** Pebbling fell to 1/10 after its bump: the real cause was that **2 of act 1's 4 types resisted stone** (Husk, Night Hound). Fix (user-approved): the **Husk now resists water** instead (`enemy_design.md`), and **Pebbling's base pebble gets a small splash** (0.5 cells, 40%) for swarms, on top of its skip.
 
-**Sprouts get pricier as you plant** (2026-09-28, user-approved after the first balance batch: a Sprout swarm on a fresh profile was 1.6× the Balanced style with no Sprout cards at all). **Every 5 Sprouts on the map add +3 Dew** to the next Sprout's price (10 for the first 5, then 13, 16, 19…; 40 Sprouts ≈ 34 each). The balance batch (1a4d494) showed +5 per 5 left a Seedfall-less Sprout maze at ×0.20 of Balanced (stalled at ~20 Sprouts, dead by drift 13), so it settled at +3 (2026-09-29). History: +1 per Sprout (too much), then +1 per 5 (user: "very minimal, didn't feel like it changed anything", a run without Seedfall), then this, the user's own suggestion (2026-09-29). Walls should be Thornwalls; Sprouts are the flexible attacker. Selling or growing a Sprout lowers it again. **Seedfall** opens the swarm build: Sprouts cost a **flat 6 and the price never rises** (2026-09-29; balance batch 62af1fd: the swarm at ×1.05 of Balanced, where half-speed rising added nothing). The Warden bar shows the current price. Sprouts planted for free (Seedling Gift charges) don't add to the price.
+**Sprouts get pricier as you plant** (2026-09-28, user-approved after the first balance batch: a Sprout swarm on a fresh profile was 1.6× the Balanced style with no Sprout cards at all). **Every 5 Sprouts on the map add +3 Dew** to the next Sprout's price (10 for the first 5, then 13, 16, 19…; 40 Sprouts ≈ 34 each). The balance batch (1a4d494) showed +5 per 5 left a Seedfall-less Sprout maze at ×0.20 of Balanced (stalled at ~20 Sprouts, dead by drift 13), so it settled at +3 (2026-09-29). History: +1 per Sprout (too much), then +1 per 5 (user: "very minimal, didn't feel like it changed anything", a run without Seedfall), then this, the user's own suggestion (2026-09-29). Walls should be Thornwalls; Sprouts are the flexible attacker. Selling or growing a Sprout lowers it again. **Seedfall** opens the swarm build: Sprouts cost a **flat 6 and the price never rises** (2026-09-29; balance batch 62af1fd: the swarm at ×1.05 of Balanced, where half-speed rising added nothing). The Warden bar shows the current price. Sprouts planted for free (Seedling Gift charges) don't add to the price. **The rule is shown** (2026-09-30, user: "should have information the Sprout costs more the more you plant"): the Sprout button's tooltip reads *"Sprout · 13 Dew. Every 5 Sprouts on the map add +3 Dew to the price (next rise at 10 Sprouts). Selling or growing one lowers it."*; the price under the button gets a small "↑" and a count to the next rise ("8/10"); the first time the price rises in a run, a one-line toast: *"Sprouts now cost 13 Dew: the more you have, the more they cost."* With Seedfall the tooltip says the price is fixed at 6.
 
-**Ranks III–V need a Nurture Dream** (2026-09-28, user: "the maze aspect is getting lost with a
+**Branches: pricier and worth it** (2026-09-30, user: *"I want the tier 2 upgrade to be more
+expensive and more worthwhile; it shouldn't be as easy to upgrade to it"*). Today a branch costs 80
+Dew for only ~1.2–1.5× its base's damage (Firefly Jar 18 DPS → Stormcap ~22 before its chain;
+Sporeling 14 → Driftspore 20; Dewdrop 18 → Rain Lily 28), so players grew everything cheaply.
+- **Grow cost 80 → 120 Dew** (× the usual Dream discounts; the rank difference on growing still
+  applies). Dreamlight unlock unchanged (1).
+- **Power: about 2× its base Warden's damage per second** in its own role, counting its mechanic
+  (a chain's extra jumps, a splash, a status that does damage): each branch's numbers are raised to
+  that line by Tower Code, with its identity kept (Stormcap stays the chain, Mistveil the fog).
+  Support branches (Elder Stump, Dewcatcher, Graftling…) get a matching jump in what they give.
+- **Final forms are the big payoff** (same day, user: *"its final form should be a big payoff as
+  well"*): grow cost **200 → 300 Dew** (Dreamlight unchanged, 2), power **about 2.5× its branch**
+  (≈5× its base) in its role, and its **signature mechanic turned up** so it changes how the maze
+  plays (e.g. Thunderhead's all-Soaked strike every 3rd strike instead of every 5th; Tower Code picks
+  one lever per final and lists them). Growing into one is a moment: a bigger bloom, the Warden's
+  name as a callout the first time each run, and the grow preview's "2.5×".
+- **Ascended keeps its gap:** it stays about 5× an average final form (`tower_design.md`), so it
+  scales up with the finals; its price goes **400 → 600 Dew** (3 Dreamlight unchanged).
+- The ladder reads **25 → 120 → 300 → 600**. Nurture v3's ranks and the late Dew cut all pull on
+  the same Dew: the run history decides whether income needs to ease back.
+- **A branch should feel like an event:** fewer of them, each one clearly stronger on the DPS tag
+  (the grow preview shows "2.1× damage"). Watch act 1 (fewer early branches) with the first boss
+  sweep, and the Balanced bot's reach at 25.
+
+**Nurture v3: every rank is a choice, no Dream gate** (2026-09-30, user after human run 1, which ended
+with 9,277 Dew unspent because ranks stopped at II: *"ranks III–V for Dew … maybe for the nurture, all
+levels you choose an option"*). Replaces the gate below and the fixed per-rank gains:
+- **Ranks I–V are bought with Dew**, same costs (25/40/60/90/135 × tier), no Nurture Dream needed.
+  Deeper Rings still opens VI–VII.
+- **Every rank, you choose one** (attackers):
+
+  | Choice | Each rank adds |
+  |---|---|
+  | **Power** | +18% damage |
+  | **Swift** | +12% attack speed |
+  | **Reach** | +0.3 range |
+  | **Deep** | +18% Potency and status duration |
+
+  Five Power ranks ≈ ×1.9 damage (the old rank V with Power was ≈ ×2.1 DPS); a mix is the point: a
+  Warden's ranks read as its story ("Power, Power, Reach"). Support Wardens choose from their
+  support table (below) at every rank the same way.
+- **Choices are kept** through evolution and can't be changed; selling refunds as before. The rank
+  difference on growing is unchanged.
+- UI: Nurture (R) opens the four choices in the Warden panel (1–4 or click; each shows its effect on
+  this Warden: "Power · 28 → 33 damage"). Group Nurture asks once and applies it to every selected
+  Warden. The rank pips under a Warden show each rank's choice by shape/colour.
+  **Playtest fix (2026-09-30**, user: *"fix the text alignment for the upgrades, and the hotkeys
+  aren't working"*): the four choices were always shown with keys 1–4, which clash with the Warden
+  bar's 1–4. Now:
+  - The panel shows **one button, "Nurture to rank III · 50 Dew (R)"**. Pressing it (or R) opens the
+    four choices in place; **while they're open, 1–4 pick** (they don't reach the Warden bar) and
+    Esc / R closes them.
+  - Each choice is a **three-column row**: the choice's name left-aligned, the change in the middle
+    column ("14 → 17 damage"), the price right-aligned, the key badge at the far right. All four rows
+    share the same column edges.
+- The Nurture cards stay as boosts (Tender Care cheaper, Warm Hands +6% per rank, Sunlit Rest free
+  ranks); none of them gate anything any more.
+- The old "Focus at rank III" disappears; a Warden with a Focus from an old save keeps it as the
+  choice for ranks III–V and Power for I–II.
+- Watch in the run history: whether a few tall Wardens now beat the maze (the reason the gate
+  existed). The act 2–4 health rise makes ranks a needed sink, not a shortcut.
+
+**(Replaced by Nurture v3 above.) Ranks III–V need a Nurture Dream** (2026-09-28, user: "the maze aspect is getting lost with a
 few strong Wardens through upgrades… focusing on strong Wardens should only happen when you get the
 cards for them"). Every Warden can be nurtured to **rank II**; **ranks III–V** (and Focus) open once
 you own **any `nurture` card** (Tender Care and Warm Hands are Commons, opened by 30 Dew spent on
@@ -261,15 +323,15 @@ they do**, not their (tiny) attack:
 | Warden | Each rank (I–V) | At rank V |
 |---|---|---|
 | Elder Stump | its attack-speed bonus ×1.1 | +20% → **+30%** |
-| Acorn | its damage bonus ×1.1 | +5% → +7.5% |
+| Acorn | *(changed after 7996d89: the Acorn keeps **attacker** ranks and the attacker Focus; only Elder Stump and Grove Heart are pure supports)* | — |
 | Grove Heart | its base bonus ×1.1 (the +3% per Warden is unchanged) | +15% → +22.5% |
 | Dewcatcher, Wellspring | +10% catch (above) | +50% more catch |
 
-At **rank III** support Wardens choose a **support Focus** instead of Power / Swift / Reach / Deep:
+At **rank III** support Wardens (Elder Stump, Grove Heart, Dewcatcher, Wellspring) choose a **support Focus** instead of Power / Swift / Reach / Deep:
 
 | Focus | Auras (Acorn, Elder Stump, Grove Heart) | Catchers (Dewcatcher, Wellspring) |
 |---|---|---|
-| **Wide** | aura reach **+1 cell** (Elder Stump / Acorn: the 8 neighbours become everything within 2; Grove Heart radius 3) | catch radius **+1** |
+| **Wide** | aura reach **+1 cell** (Elder Stump: the 8 neighbours become everything within 2; Grove Heart radius 3) | catch radius **+1** |
 | **Strong** | the aura bonus grows a further **+25%** by rank V (on top of the ×1.1 per rank) | catch **+30%** more by rank V |
 | **Kindred** | **ignores the stacking falloff:** always counts 100%, even as the 2nd or 3rd aura of its kind | Wellspring interest **+2%**; Dewcatcher **+4 Dew per drift** |
 

@@ -6,7 +6,7 @@ class_name RouteLine
 # The setting is cached (previews restyle often); SettingsPanel calls reload() when it changes.
 
 const SETTING := "high_contrast_route"
-const CONTRAST_COLOR := Color(1.0, 0.92, 0.2)
+const CONTRAST_COLOR := Color(1.0, 0.92, 0.2)  # Accessibility (high-contrast route): may stay off-palette
 const CONTRAST_WIDTH := 10.0
 
 static var _high := -1  # -1 = not read yet, 0 / 1

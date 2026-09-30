@@ -21,11 +21,11 @@ const LOCAL_KINDS := ["acorn", "elder_stump", "grove_heart", "grandmother_oak", 
 # One colour per source kind (pips, threads, aura tints, panel rows): auras the Acorn family's gold (shaded
 # per Warden so two kinds stay apart), Whole Tree green-gold; Kinships use their family's colour.
 const COLORS := {
-	"acorn": Color(0.95, 0.78, 0.4), "elder_stump": Color(0.86, 0.62, 0.32), "grove_heart": Color(1.0, 0.88, 0.5),
-	"grandmother_oak": Color(0.8, 0.7, 0.45), "old_growth": Color(0.75, 0.85, 0.5), "kinship": Color(0.72, 0.9, 0.52),
-	"kindred": Color(0.9, 0.75, 0.5), "whole_tree": Color(0.82, 0.88, 0.4), "kin_cards": Color(0.72, 0.9, 0.52),
-	"rank": Color(0.85, 0.82, 0.75), "focus": Color(0.85, 0.82, 0.75), "dream": Color(0.75, 0.7, 1.0),
-	"omen": Color(0.7, 0.75, 0.9), "penalty": Color(0.72, 0.5, 0.66),  # Muted plum (the Bittersweet colour)
+	"acorn": Palette.GLOW, "elder_stump": Palette.GOLD, "grove_heart": Palette.HEARTLIGHT,
+	"grandmother_oak": Palette.DEADWOOD, "old_growth": Palette.NEWLEAF, "kinship": Palette.NEWLEAF,
+	"kindred": Palette.MOONPATH, "whole_tree": Palette.SPRIG, "kin_cards": Palette.NEWLEAF,
+	"rank": Palette.MOONPATH, "focus": Palette.MOONPATH, "dream": Palette.MIST,
+	"omen": Palette.STONE, "penalty": Palette.EMBER,  # Ember: the palette's "bad" colour (no red)
 }
 const STAT_WORDS := {"damage": "damage", "attack_speed": "attack speed", "range": "range", "aura": "aura", "catch": "catch"}
 const ORDINALS := ["", "", "2nd", "3rd", "4th", "5th", "6th"]
@@ -33,7 +33,7 @@ const ORDINALS := ["", "", "2nd", "3rd", "4th", "5th", "6th"]
 static func color(kind: String, source: Node = null) -> Color:
 	if kind == "kinship" and source is Tower:
 		return Kinships.FAMILY_COLORS.get(source.tower_data.line, COLORS.kinship)
-	return COLORS.get(kind, Color(0.85, 0.82, 0.75))
+	return COLORS.get(kind, Palette.MOONPATH)
 
 # --- One Warden --------------------------------------------------------------------------------------
 
@@ -61,7 +61,7 @@ static func for_tower(tower: Tower) -> Array[Dictionary]:
 		for pair in kin.get_pairs(tower):
 			var partner: Tower = pair.b if pair.a == tower else pair.a
 			var entry := _entry("kinship", partner, "", 0.0)
-			entry.label = "Kinship %s (%s, %d%%)" % [Kinships.KINSHIPS[pair.id][0], Kinships.STAGE_NAMES[kin.get_stage(pair)],
+			entry.label = "{Kinship} %s (%s, %d%%)" % [Kinships.KINSHIPS[pair.id][0], Kinships.STAGE_NAMES[kin.get_stage(pair)],
 				roundi(Kinships.STAGE_SHARE[kin.get_stage(pair)] * 100.0)]
 			result.append(entry)
 		var family := kin.family_bonus(tower.tower_data.line)
@@ -73,7 +73,7 @@ static func for_tower(tower: Tower) -> Array[Dictionary]:
 		var cards := kin.damage_bonus(tower) - family
 		if absf(cards) > 0.0001:
 			var entry := _entry("kin_cards" if cards > 0.0 else "penalty", null, "damage", cards)
-			entry.label = "Kinship Dreams %s damage" % _signed(cards)
+			entry.label = "{Kinship} Dreams %s damage" % _signed(cards)
 			entry.negative = cards < 0.0
 			result.append(entry)
 	# Nurture and Focus.
@@ -88,8 +88,7 @@ static func for_tower(tower: Tower) -> Array[Dictionary]:
 		else:
 			entry.stat = "damage"
 			entry.amount = tower.get_rank_damage_multiplier() - 1.0
-		entry.label = "Rank %s%s" % [Tower.rank_name(tower.rank),
-			" (%s)" % Tower.FOCUS_NAMES[tower.focus] if tower.focus != Tower.Focus.NONE else ""]
+		entry.label = "Rank %s (%s)" % [Tower.rank_name(tower.rank), tower.choices_text()]
 		result.append(entry)
 	# Dreams on this Warden (DreamState rows: position and run-wide cards).
 	var dreams := tower._dream_state
@@ -129,12 +128,12 @@ static func for_tower(tower: Tower) -> Array[Dictionary]:
 	return result
 
 # The local sources as pips: [[kind, count, a source Warden], …] (Global Dreams and Omens aren't pips).
+# Cheap on purpose (the overlay draws every Warden's pips at rests): only the local sources, never the
+# Dream rows or Omens that for_tower also reads.
 static func pips(tower: Tower) -> Array:
 	var counts := {}
 	var order: Array = []
-	for entry in for_tower(tower):
-		if not LOCAL_KINDS.has(entry.kind):
-			continue
+	for entry in _local_entries(tower):
 		var key: String = entry.kind
 		if not counts.has(key):
 			counts[key] = [key, 0, entry.source]
@@ -143,6 +142,21 @@ static func pips(tower: Tower) -> Array:
 			counts[key][1] += 1
 			counts[key].append(entry.source)
 	return order.map(func(k: String) -> Array: return counts[k].slice(0, 3))
+
+# The local buff sources only: auras (Tower._aura_sources), the Kinship bond, Kindred / Whole Tree.
+static func _local_entries(tower: Tower) -> Array:
+	var result := []
+	for source in tower._aura_sources:
+		if is_instance_valid(source.tower) and (source.damage > 0.0 or source.speed > 0.0):
+			result.append({"kind": source.kind, "source": source.tower})
+	var kin := Kinships.find(tower)
+	if kin != null:
+		for pair in kin.get_pairs(tower):
+			result.append({"kind": "kinship", "source": pair.b if pair.a == tower else pair.a})
+		var family := kin.family_bonus(tower.tower_data.line)
+		if family > 0.0:
+			result.append({"kind": "whole_tree" if family >= Kinships.WHOLE_TREE_BONUS - 0.0001 else "kindred", "source": null})
+	return result
 
 static func _counted(row: Array, source: Node) -> bool:
 	return row.slice(3).has(source)
@@ -201,7 +215,7 @@ static func would_receive(data: TowerData, centre: Vector2, towers: Array) -> Ar
 		var position := 0
 		for item in list:
 			var giver: Tower = item[0]
-			var kindred := giver.focus == Tower.Focus.KINDRED and giver.is_aura_support()
+			var kindred := giver.is_aura_support() and giver.choice_count(Tower.Focus.KINDRED) > 0
 			var share := 1.0 if kindred else weight
 			if not kindred:
 				weight *= Tower.AURA_FALLOFF

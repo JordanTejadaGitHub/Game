@@ -6,9 +6,9 @@
 script = ExtResource("1_card")
 id = "lone_hunter"
 display_name = "Lone Hunter"
-description = "Wardens deal 30% more damage to a nightmare with no other nightmare within 2 cells."
+description = "Wardens deal 45% more damage to a nightmare with no other nightmare within 2 cells."
 rarity = 1
 kind = 3
-tags = Array[String]([])
+tags = Array[String](["precision"])
 max_stacks = 1
 rule_id = &"lone_hunter"

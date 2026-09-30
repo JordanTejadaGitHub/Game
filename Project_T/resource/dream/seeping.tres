@@ -6,10 +6,10 @@
 script = ExtResource("1_card")
 id = "seeping"
 display_name = "Seeping"
-description = "Effects deal 5% more for each status the nightmare carries (up to +30%)."
+description = "Effects deal 8% more for each status the nightmare carries (up to +40%)."
 rarity = 1
 kind = 3
-tags = Array[String](["potency", "reaction"])
+tags = Array[String](["potency", "reaction", "affliction"])
 max_stacks = 1
 min_owned_statuses = 2
 rule_id = &"seeping"

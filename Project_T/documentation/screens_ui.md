@@ -100,6 +100,8 @@ drag-select and works on touch (`platforms.md`).
 | **Obstacle hover** | name only (e.g. "Withered Tree"); clearing happens through the **Clear tool** (below). With the tool active: outline + "Tend Withered Tree · 5 Dew" + route preview if clearing changes it |
 | **Health bars** | only once a nightmare is hit (setting: always) |
 | **Status icons** | up to 3 small icons above a nightmare, most important first; each status has its own **shape** (Damp droplet, Drowsy "z", Spored dots, Marked ring, Static bolt, Held vine) and a stack number where relevant |
+| **Status icons, clearer** (2026-09-30, user: *"their stack of statuses should be more clear"*; the drift 28 screenshot showed tiny bolts with 6 px digits) | Each status is a **14 px badge** (its shape on a dark disc with a status-coloured rim) in one row centred above the health bar; the **stack count is a bold 10 px number in the badge's lower-right corner** with a dark outline, shown from 2 stacks; **at max stacks the rim fills solid** and the number turns gold (e.g. Charged 5/5 about to bolt). A thin rim arc **drains with the time left**. Up to 4 badges; more → the 4 most important + "+1". Bosses and elites: 18 px. Scales with the UI scale setting; zoomed in, the badges keep their screen size (`WorldLabel.text_scale`). Hover / tap a nightmare: the info panel lists each status "Charged 4/5 · 2.1 s". |
+| **Status icons, revised** (same day, user: *"the statuses on enemies are too small, I like the old icons from before"*) | Back to the **old status icons** (the bare shapes: bolt, droplet, "z", ring, vine, spore dots; no dark disc), **drawn larger: 20 px** (bosses and elites 24 px), in one row centred above the health bar. Kept from the badge version: the **stack number** (now **12 px**, bold, dark outline, lower-right, from 2 stacks), **gold number + a glow at max stacks**, the "+N" overflow, screen-size under zoom and the batched overlay drawing. The time-left arc becomes a **thin bar under the icon** that shortens. |
 | **Elites** | Deeply Blighted nightmares: black haze + a small swirl icon, larger sprite |
 | **Bosses** | a name plate on arrival ("The Hollow Stag"), the screen edges darken; the top-centre boss bar with health and a marker at 50% (where its behaviour changes) |
 | **Leak** | when a nightmare reaches the Heartwood: it lunges into the tree, a leaf blackens and falls, a dark pulse at the goal, the leaves counter shakes |
@@ -318,6 +320,17 @@ details show when the player asks (selecting, hovering, placing, pausing, rests)
 | **Warden panel** | a **Buffs** section listing every source with its amount and a total, e.g. *"Elder Stump (rank IV, Kindred) +26.6% attack speed · Elder Stump +10% (falloff) · Kinship Slumber Rot (Blooming, 75%) · Kindred +10% damage · Rank III (Power) · Dreams: Deeper Calm ×3 +30% damage"*. Tapping a Warden source selects it and glides the camera there. Negative effects (e.g. *Blood Is Thicker*'s −15%, an Omen's penalty) are listed in a muted plum, the Bittersweet colour. |
 | **Buff lens** (a HUD toggle, hotkey **V**) | a map overlay: every aura area tinted by kind, every Warden's buff pips shown, and Wardens coloured by how boosted they are. Toggle on/off (it isn't hold-only, for touch and the mobile port). |
 
+- **The lens button, revised** (2026-09-30, user: *"buff toggle makes no sense for players who just
+  started"*; in their screenshot every Warden glowed gold with the lens on):
+  - **Hidden until it means something:** the top-right button appears only once the map has a
+    **local** buff source (the first aura Warden or Kinship). The V hotkey works from then on too.
+  - **Named for what it shows:** "Boosts" (not "Buffs"), and its tooltip says *"Show which Wardens
+    are boosted, and by what."*
+  - **Only boosted Wardens light up**, by local sources (auras, Kinships, Kindred / Whole Tree).
+    Dreams and Nurture that apply to every Warden don't light anyone up (they're in the Warden panel);
+    otherwise the whole map glows and says nothing.
+  - **A small legend** under the button while it's on: the source kinds on the map with their colour
+    and shape (*"Acorn aura · Elder Stump · Kinship"*).
 - **One colour per buff source kind**, used everywhere (pips, threads, aura rings, panel rows): the
   Acorn family's gold for auras, the family colour for Kinships, green-gold for Whole Tree. Icons
   also differ by **shape**, not just colour (accessibility).
@@ -413,8 +426,20 @@ Every combo starts **locked** and is **discovered the first time it actually fir
     closes (and pauses then).
   - Setting (Gameplay): **"Pause on new combos"**, on by default; off = the old 5 s slide-in card.
   - The rest report lists *"New combos: Thunderclap"*.
+  - **Chains are discovered too** (2026-09-30, user: *"discover chain too as well should be like
+    discovering a combo"*). A Reaction chain (Reactions setting each other off, the tracker's chain
+    length) gets the **same pause + discovery card** the first time ever it reaches **Chain 3, Chain 5 and Chain 10**
+    (×10 is the Dawnbreak line): *"Chain discovered: Chain 3"* (chains read as a count, never ×N, which looks like a damage multiplier), the Reactions in it in order ("Thunderclap
+    → Lightning Rod → Mushrooming"), one line (*"Reactions can set each other off."*), and *"Added to
+    the Codex."* Codex Combos page gets a **Chains** section: the three tiers (??? until reached) and
+    your **longest chain ever**, with the Reactions it used. Same setting, queue and once-ever rules
+    (profile key, account knowledge); the rest report lists *"New chain: Chain 5"*.
 - **Unlocked entry:** name, ingredients, what it does, which Wardens apply each ingredient (from your
   families seen so far), and how many times you've set it off.
+- **Counter shows the real total** (2026-09-30, user saw "7 / 7" with only the starting families and
+  read it as "all found"): the tab and header count **every** combo in the game, *"7 / 22 combos"* and
+  *"Crowned Reactions · 1 / 8"*; the ones your families can't make yet are listed as ??? under "15
+  more wait in the Memory Grove". Same for Kinships and chains.
 - **Counter:** *"12 / 15 combos discovered"* on the tab; discovering every one is a **milestone**
   (a Steam achievement; `meta_design.md`).
 
@@ -862,8 +887,25 @@ it is **when the act begins** and has the whole act to build for it:
 - **Acts 2–4:** it opens at the act-break rest (the boss rest after drifts 25 / 50 / 75), last in
   the rest order, for the **next** act's boss.
 - **The rest opening the boss block** (after drifts 20, 45, 70, 95) no longer opens the full card,
-  only a short reminder (*"The Hollow Stag arrives in 5 drifts"*, the portrait, an "Open dossier"
-  button): a nudge, not a repeat. It can be closed and **reopened any time
+  only a short reminder (*"The Hollow Stag arrives in 5 drifts"*, the portrait, an **"About the
+  Hollow Stag"** button): a nudge, not a repeat.
+- **It must feel like THE boss** (2026-09-30, user on the Night Mare card: *"these boss screens should
+  give more of that feel and info that this is THE BOSS"*). The card read like a nightmare info panel.
+  Changes (the content stays):
+  - **Eyebrow over the name:** *"The boss of act 1"* in small caps, in **Wraithlight** (the boss
+    colour, `UiStyle.BOSS`), and a subline *"Drift 25 · the last drift of the act"*.
+  - **The portrait is the hero:** the boss's full animated art **~3× larger** (about 240 px tall),
+    on the left, rising out of a cold violet mist, not in the small disc. Right column: name, title,
+    whisper, numbers.
+  - **Boss frame:** the panel's thread and diamond in Wraithlight instead of gold; the screen behind
+    dims further (the map almost black) with a slow cold vignette pulse.
+  - **Scale that reads:** the numbers get context: *"Health 4,000 · about 13 Husks"*, and the leaves it
+    takes in large type (*"3 leaves each lap"*), the one number that ends runs.
+  - **An entrance:** the portrait fades up from the mist, the name writes in, a low boss sting
+    and one heartbeat (Sound: `boss_reveal`); reduced motion = a plain fade.
+  - The button stays "Prepare"; the reminder card and the Codex entry use the same eyebrow and colour. **The word "dossier" never reaches the player**
+  (2026-09-30, user: *"Open dossier???"*): buttons and tooltips name the boss ("About the Mire
+  Hag"); "dossier" stays an internal name. It can be closed and **reopened any time
 until the boss is dispelled**: tap the "Boss in N" countdown in the drift banner, or its portrait in
 *Coming this block*.
 

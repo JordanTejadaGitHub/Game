@@ -6,9 +6,13 @@ class_name BossDossier
 # the onboarding whisper) and at each act-break rest (after drifts 25 / 50 / 75, last in the rest
 # order: after the family pick, Dream and Omen) for the NEXT act's boss. The rest that opens a boss
 # block (after 20 / 45 / 70 / 95) only shows a small reminder ("<Boss> arrives in 5 drifts", its
-# portrait, "Open dossier"). The card:
-#   header    animated portrait, name · title, a whisper line, "Arrives in drift N", "New"
-#   numbers   real health (this run's scaling, Blight, Dreams), speed, leaves it takes
+# portrait, "About the Mire Hag"). The card:
+#   stage     "It must feel like THE boss" (2026-09-30): the eyebrow "The boss of act N", the animated
+#             portrait at PORTRAIT px rising from violet mist on the left, the map dimmed near black with a
+#             slow vignette pulse, a Wraithlight frame; an entrance (portrait fades up, the name writes in;
+#             reduced motion = a plain fade) and `boss_revealed` for Sound (boss_reveal)
+#   header    eyebrow, name · title, a whisper line, "Drift 25 · the last drift of the act", "New"
+#   numbers   real health with context ("about 13 Husks"), speed, and the leaves it takes, large
 #   defences  the Resists / Weak to / Immune rows, larger (NightmareIcons)
 #   abilities icon, name, what it does, WHEN (EnemyData.get_ability: numbers filled from the data)
 #   it brings summons (EnemyData.get_summons) + the boss drift's escorts
@@ -18,11 +22,16 @@ class_name BossDossier
 
 const GROUP := &"boss_dossier"
 const RECORDS_KEY := "boss_records"  # Profile: {kind: {"dispelled": n, "best": seconds}}
-const WIDTH := 600.0
+const WIDTH := 880.0
+const PORTRAIT := 240.0  # The boss's portrait, ~3× the old one
 const BOSS_COLOR := UiStyle.BOSS  # Heartwood 32 (ui_style.md)
-const TITLE_COLOR := Color(1.0, 0.85, 0.75)
-const WHISPER_COLOR := Color(0.75, 0.9, 0.8)
-const SECTION_COLOR := Color(0.95, 0.8, 0.55)
+const COMPARE_PATH := "res://resource/enemy/bark_beetle.tres"  # The Husk: "about 13 Husks"
+const PULSE_SPEED := 1.1  # The vignette's slow breath (radians per second)
+
+signal boss_revealed(data: EnemyData)  # The card came up (Sound: boss_reveal)
+const TITLE_COLOR := UiStyle.WHISPER
+const WHISPER_COLOR := UiStyle.WHISPER
+const SECTION_COLOR := UiStyle.GOLD
 const DEFAULT_WHISPER := "Something old has found the dream."
 const OPEN_DELAY := 0.35  # Seconds after the rest starts before checking the rest's screens
 const WHISPER_PATIENCE := 8.0  # Most seconds it waits for onboarding whispers to finish
@@ -41,6 +50,29 @@ var _pending_first := false  # The run's first rest: act 1's boss (checked once 
 var _reminder_drift := 0  # Boss drift the boss-block reminder shows (0 = none)
 var _reminder_pending := 0  # …waiting for the rest's screens, like the card
 var _reminder: PanelContainer  # Its own node: the dossier root is hidden while the card is closed
+var _vignette := TextureRect.new()
+var _clock := 0.0
+var _stage: BossStage  # The portrait in its mist (entrance)
+var _name_label: Label  # Writes in on the entrance
+
+# "The boss of act 1", Wraithlight small caps (the dossier, the reminder and the Codex).
+static func eyebrow(act: int, size: int = 16) -> Label:
+	var label := Label.new()
+	label.text = "The boss of act %d" % act
+	UiStyle.caps(label, size, BOSS_COLOR)
+	return label
+
+static func _reduced_motion() -> bool:
+	return bool(HeartwoodMemory.get_settings().get("reduced_motion", false))
+
+# 4000 -> "4,000".
+static func thousands(n: int) -> String:
+	var digits := str(absi(n))
+	var out := ""
+	while digits.length() > 3:
+		out = "," + digits.right(3) + out
+		digits = digits.left(digits.length() - 3)
+	return ("-" if n < 0 else "") + digits + out
 
 # Opens the dossier for boss drift `drift` (0 = the next / current boss).
 static func open_for(tree: SceneTree, drift: int = 0) -> void:
@@ -57,16 +89,34 @@ func _ready() -> void:
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)  # Offsets too: exactly the screen
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	visible = false
+	# The map dims almost black, with a slow vignette pulse at the edges.
 	var shade := ColorRect.new()
-	shade.color = Color(0.02, 0.02, 0.05, 0.6)
+	shade.color = Color(Palette.VOID, 0.82)
 	shade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)  # Offsets too: exactly the screen
 	shade.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(shade)
+	var gradient := Gradient.new()
+	gradient.set_color(0, Color(Palette.VOID, 0.0))
+	gradient.set_color(1, Color(Palette.VOID, 0.95))
+	gradient.set_offset(0, 0.45)
+	var ring := GradientTexture2D.new()
+	ring.gradient = gradient
+	ring.fill = GradientTexture2D.FILL_RADIAL
+	ring.fill_from = Vector2(0.5, 0.5)
+	ring.fill_to = Vector2(1.0, 1.0)
+	ring.width = 256
+	ring.height = 256
+	_vignette.texture = ring
+	_vignette.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	_vignette.stretch_mode = TextureRect.STRETCH_SCALE
+	_vignette.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_vignette.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(_vignette)
 	var centre := CenterContainer.new()
 	centre.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)  # Offsets too: exactly the screen
 	centre.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(centre)
-	var frame := UiStyle.panel_in(BOSS_COLOR.darkened(0.2), 16.0, 16.0)
+	var frame := UiStyle.panel_in(BOSS_COLOR, 16.0, 16.0)  # Thread and diamond in Wraithlight
 	frame.center_alpha = 0.95  # Over the whole field: nearly solid
 	frame.edge_alpha = 0.9
 	_panel.add_theme_stylebox_override("panel", frame)
@@ -83,7 +133,7 @@ func _ready() -> void:
 	_scroll.add_child(_content)
 	var close := Button.new()
 	close.text = "Prepare"
-	close.tooltip_text = "Close the dossier. Reopen it from \"Boss in N\" at the top."
+	close.tooltip_text = "Reopen it from the boss name at the top."
 	close.custom_minimum_size = Vector2(200, 44)
 	close.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	close.focus_mode = Control.FOCUS_NONE
@@ -148,6 +198,9 @@ func screens_clear() -> bool:
 	return not drift_director.awaiting_family_pick
 
 func _process(delta: float) -> void:
+	if visible:  # The vignette breathes (held still with reduced motion)
+		_clock += delta / maxf(Engine.time_scale, 0.001)
+		_vignette.modulate.a = 1.0 if _reduced_motion() else 0.8 + 0.2 * sin(_clock * PULSE_SPEED)
 	if not get_tree().paused:  # Game seconds each live boss has been walking (its record's time)
 		for id in _boss_time:
 			_boss_time[id] += delta
@@ -190,7 +243,7 @@ func _whisper_showing() -> bool:
 func _make_reminder() -> void:
 	_reminder = PanelContainer.new()
 	_reminder.name = "BossReminder"
-	var frame := UiStyle.panel_in(BOSS_COLOR.darkened(0.2), 10.0, 10.0)
+	var frame := UiStyle.panel_in(BOSS_COLOR, 10.0, 10.0)
 	_reminder.add_theme_stylebox_override("panel", frame)
 	_reminder.set_anchors_and_offsets_preset(Control.PRESET_CENTER_TOP)
 	_reminder.grow_horizontal = Control.GROW_DIRECTION_BOTH
@@ -205,6 +258,9 @@ func _show_reminder(drift: int) -> void:
 		return
 	for child in _reminder.get_children():
 		child.queue_free()
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation", 2)
+	box.add_child(eyebrow(drift_director.get_act(drift), 13))
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 12)
 	row.add_child(BossPortrait.new(data, 44.0))
@@ -216,13 +272,14 @@ func _show_reminder(drift: int) -> void:
 	text.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	row.add_child(text)
 	var button := Button.new()
-	button.text = "Open dossier"
+	button.text = "About %s" % IconInfo.name_in_sentence(data.display_name)
 	button.focus_mode = Control.FOCUS_NONE
 	button.pressed.connect(func() -> void:
 		open(drift)
 		_hide_reminder())
 	row.add_child(button)
-	_reminder.add_child(row)
+	box.add_child(row)
+	_reminder.add_child(box)
 	_reminder.reset_size()
 	_reminder.visible = true
 	_reminder_drift = drift
@@ -276,6 +333,7 @@ func open(drift: int = 0) -> void:
 		child.queue_free()
 	_build(data, drift)
 	visible = true
+	_entrance(data)
 	_scroll.scroll_vertical = 0
 	var screen := get_viewport_rect().size
 	_scroll.custom_minimum_size.y = minf(_content.get_combined_minimum_size().y, screen.y - 140.0)
@@ -284,6 +342,24 @@ func open(drift: int = 0) -> void:
 	_paused_it = speed != null and not drift_director.is_resting() and not speed.paused
 	if _paused_it:
 		speed.set_paused(true)
+
+# The card comes up: the portrait fades up out of the mist and the name writes in (reduced motion:
+# a plain fade of the whole card). Runs while paused.
+func _entrance(data: EnemyData) -> void:
+	boss_revealed.emit(data)
+	_clock = 0.0
+	var tween := create_tween().set_pause_mode(Tween.TWEEN_PAUSE_PROCESS)
+	_panel.modulate.a = 0.0
+	if _reduced_motion():
+		tween.tween_property(_panel, "modulate:a", 1.0, 0.4)
+		return
+	tween.tween_property(_panel, "modulate:a", 1.0, 0.25)
+	if _stage != null:
+		_stage.reveal = 0.0
+		tween.parallel().tween_property(_stage, "reveal", 1.0, 1.1).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+	if _name_label != null:
+		_name_label.visible_ratio = 0.0
+		tween.parallel().tween_property(_name_label, "visible_ratio", 1.0, 0.7).set_delay(0.35)
 
 func close_dossier() -> void:
 	visible = false
@@ -323,41 +399,68 @@ func escorts(drift: int) -> Array:
 
 # --- The card ------------------------------------------------------------------------------------
 
+# The portrait in its mist on the left, everything else in the right column.
 func _build(data: EnemyData, drift: int) -> void:
-	_content.add_child(_header(data, drift))
+	var columns := HBoxContainer.new()
+	columns.add_theme_constant_override("separation", 22)
+	_content.add_child(columns)
+	_stage = BossStage.new(data, PORTRAIT)
+	_stage.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	columns.add_child(_stage)
+	var right := VBoxContainer.new()
+	right.add_theme_constant_override("separation", 10)
+	right.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	columns.add_child(right)
+	right.add_child(_header(data, drift))
 	var numbers := HBoxContainer.new()
 	numbers.add_theme_constant_override("separation", 22)
-	numbers.add_child(_stat("Health", str(NightmareCard.health_at(data, drift, drift_director)),
+	var health := NightmareCard.health_at(data, drift, drift_director)
+	numbers.add_child(_stat("Health", thousands(health) + _compare_text(health, drift),
 		"With this run's growth, Blight and Dreams."))
 	numbers.add_child(_stat("Speed", "%.1f tiles/s" % (data.speed / 64.0), "How fast it walks."))
-	numbers.add_child(_stat("Leaves", str(data.leaf_cost), IconInfo.resource_tooltip(&"leaves")))
-	_content.add_child(numbers)
+	right.add_child(numbers)
+	var leaves := Label.new()  # What it costs you, large
+	var lap_leaves := int(data.get("lap_leaves")) if data.laps() else 0
+	leaves.text = "%d leaves each lap" % lap_leaves if lap_leaves > 0 else \
+		"%d leaves if it reaches the Heartwood" % data.leaf_cost
+	UiStyle.display(leaves, 26)
+	leaves.add_theme_color_override("font_color", BOSS_COLOR.lightened(0.25))
+	TapTip.attach(leaves, IconInfo.resource_tooltip(&"leaves"))
+	right.add_child(leaves)
 	var rows := NightmareIcons.make_rows(data, 36.0, false, true)
 	if rows.get_child_count() > 0:
-		_content.add_child(rows)
+		right.add_child(rows)
 	if data.abilities.size() > 0:
-		_content.add_child(_section("What it does"))
+		right.add_child(_section("What it does"))
 		for i in data.abilities.size():
-			_content.add_child(_ability_row(data.get_ability(i)))
+			right.add_child(_ability_row(data.get_ability(i)))
 	var brings := _brings(data, drift)
 	if brings.get_child_count() > 0:
-		_content.add_child(_section("It brings"))
-		_content.add_child(brings)
-	_content.add_child(_section("Your record"))
-	_content.add_child(StatusLinks.make_label(record_text(data), 15))
+		right.add_child(_section("It brings"))
+		right.add_child(brings)
+	right.add_child(_section("Your record"))
+	right.add_child(StatusLinks.make_label(record_text(data), 15))
+
+# " · about 13 Husks": its health in the act's everyday nightmare, at the same drift.
+func _compare_text(health: int, drift: int) -> String:
+	var husk := load(COMPARE_PATH) as EnemyData
+	if husk == null:
+		return ""
+	var each := NightmareCard.health_at(husk, drift, drift_director)
+	var count := roundi(float(health) / maxf(each, 1.0))
+	return " · about %d %s" % [count, husk.display_name + ("s" if count != 1 else "")] if count >= 2 else ""
 
 func _header(data: EnemyData, drift: int) -> Control:
-	var head := HBoxContainer.new()
-	head.add_theme_constant_override("separation", 14)
-	head.add_child(BossPortrait.new(data, 104.0))
 	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation", 4)
 	box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	box.alignment = BoxContainer.ALIGNMENT_CENTER
+	box.add_child(eyebrow(drift_director.get_act(drift)))
 	var name := Label.new()
-	name.text = data.display_name + ("   · New" if NightmareCard.is_new(data) else "")
-	UiStyle.display(name, 24)
+	name.text = data.display_name + (" · New" if NightmareCard.is_new(data) else "")
+	UiStyle.display(name, 34)
 	name.add_theme_color_override("font_color", BOSS_COLOR.lightened(0.25))
 	box.add_child(name)
+	_name_label = name
 	var title: String = data.title
 	if title != "":
 		var sub := Label.new()
@@ -365,17 +468,21 @@ func _header(data: EnemyData, drift: int) -> Control:
 		sub.add_theme_font_size_override("font_size", 16)
 		sub.add_theme_color_override("font_color", TITLE_COLOR)
 		box.add_child(sub)
+	var when := Label.new()
+	var last := drift == drift_director.get_act(drift) * drift_director.drifts_per_act
+	when.text = "Drift %d%s" % [drift, " · the last drift of the act" if last else ""]
+	UiStyle.caps(when, 14, UiStyle.INK_DIM)
+	box.add_child(when)
 	var whisper := StatusLinks.make_label("[i]\"%s\"[/i]" % whisper_line(data), 15, WHISPER_COLOR)
 	whisper.text = _links_keep_tags("[i]\"%s\"[/i]" % whisper_line(data))  # Italic, status names still links
 	box.add_child(whisper)
 	var arrives := Label.new()
 	var started := drift_director.drifts_started
-	arrives.text = "Walking now: drift %d" % drift if drift <= started else "Arrives in drift %d (%d from now)" % [drift, drift - started]
+	arrives.text = "Walking now" if drift <= started else "Arrives in %d drift%s" % [drift - started, "" if drift - started == 1 else "s"]
 	arrives.add_theme_font_size_override("font_size", 15)
 	arrives.add_theme_color_override("font_color", SECTION_COLOR)
 	box.add_child(arrives)
-	head.add_child(box)
-	return head
+	return box
 
 static func whisper_line(data: EnemyData) -> String:
 	var line = data.get("whisper")
@@ -387,7 +494,7 @@ func _stat(caption: String, value: String, tip: String) -> Control:
 	var top := Label.new()
 	top.text = caption
 	top.add_theme_font_size_override("font_size", 13)
-	top.add_theme_color_override("font_color", Color(0.7, 0.72, 0.7))
+	top.add_theme_color_override("font_color", UiStyle.INK_DIM)
 	box.add_child(top)
 	var number := Label.new()
 	number.text = value
@@ -541,3 +648,47 @@ class BossPortrait extends Control:
 	func _draw() -> void:
 		# The moon disc, rimmed in the boss colour (screens_ui.md "Readable on the night sky").
 		UiStyle.draw_moon_disc(self, size / 2.0, size.x / 2.0, BOSS_COLOR)
+
+# The portrait rising from violet mist ("It must feel like THE boss"): `reveal` 0..1 fades it up and
+# lifts it out of the mist (the entrance tweens it); the mist drifts slowly (still with reduced motion).
+class BossStage extends Control:
+	const RISE := 36.0  # Pixels the portrait rises through on the entrance
+	var reveal := 1.0:
+		set(value):
+			reveal = value
+			_portrait.modulate.a = value
+			_portrait.position.y = (1.0 - value) * RISE
+			queue_redraw()
+	var _portrait: BossPortrait
+	var _time := 0.0
+
+	func _init(data: EnemyData, side: float) -> void:
+		custom_minimum_size = Vector2(side, side + 24.0)
+		mouse_filter = Control.MOUSE_FILTER_IGNORE
+		process_mode = Node.PROCESS_MODE_ALWAYS
+		_portrait = BossPortrait.new(data, side)
+		_portrait.size = Vector2(side, side)
+		add_child(_portrait)
+
+	func _process(delta: float) -> void:
+		if BossDossier._reduced_motion():
+			return
+		_time += delta / maxf(Engine.time_scale, 0.001)
+		if Engine.get_process_frames() % 3 == 0:  # The mist drifts: a redraw every 3rd frame is plenty
+			queue_redraw()
+
+	func _draw() -> void:
+		# Soft violet mist pooled under the portrait: stacked translucent ellipses, drifting.
+		var base := Vector2(size.x / 2.0, size.y - 30.0)
+		for i in 7:
+			var t := float(i) / 6.0
+			var sway := sin(_time * 0.6 + i * 1.3) * 10.0
+			var r := size.x * (0.52 - t * 0.28)
+			var centre := base + Vector2(sway, -t * size.y * 0.55)
+			# The Nightmare ramp (Dread → Shade → Bruise), Wraithlight only on the thin top wisp (ui_style.md:
+			# the gold stays the card's only warmth).
+			var ramp: Color = [Palette.DREAD, Palette.DREAD, Palette.SHADE, Palette.SHADE, Palette.BRUISE, Palette.BRUISE, Palette.WRAITHLIGHT][i]
+			var colour := Color(ramp, (0.5 - t * 0.38) * (0.4 + 0.6 * reveal))
+			draw_set_transform(centre, 0.0, Vector2(1.0, 0.45))
+			draw_circle(Vector2.ZERO, r, colour)
+		draw_set_transform(Vector2.ZERO)

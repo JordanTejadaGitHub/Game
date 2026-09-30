@@ -6,10 +6,10 @@
 script = ExtResource("1_card")
 id = "crowded_path_ii"
 display_name = "Crowded Path II"
-description = "Wardens deal 4% more damage for each nightmare in their range (up to +40%)."
+description = "Wardens deal 7% more damage for each nightmare in their range (up to +70%)."
 rarity = 1
 kind = 3
-tags = Array[String]([])
+tags = Array[String](["affliction"])
 max_stacks = 1
 deepens = "crowded_path"
 rule_id = &"crowded_path"

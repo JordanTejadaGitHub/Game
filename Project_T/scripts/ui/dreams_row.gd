@@ -75,7 +75,7 @@ func refresh() -> void:
 			icon.stacks = dream_state.card_stacks(card.id)
 			icon.dormant = _dormant(card)
 			icon.sleeping_text = _sleeping_text(card) if icon.dormant else ""
-			icon.modulate = Color(0.6, 0.6, 0.65, 0.6) if icon.dormant else Color.WHITE
+			icon.modulate = Color(0.6, 0.6, 0.65, 0.6) if icon.dormant else Color.WHITE  # A multiplier (dormant fade)
 			icon.custom_minimum_size = ICON_SIZE + Vector2(0, 12)
 			icon.pressed.connect(_toggle_list)
 			_row.add_child(icon)
@@ -215,6 +215,13 @@ func _card_row(source: DreamIcon) -> Control:
 	var body := StatusLinks.make_label(card.description, 14, UiStyle.INK)
 	body.mouse_filter = Control.MOUSE_FILTER_PASS
 	text.add_child(body)
+	var resonance: String = dream_state.resonance_line(card) if dream_state.has_method("resonance_line") else ""
+	if resonance != "":  # Tag resonance, locked when taken (dream_audit.md)
+		var res_label := Label.new()
+		res_label.text = resonance
+		res_label.add_theme_color_override("font_color", UiStyle.GOLD)
+		res_label.add_theme_font_size_override("font_size", 13)
+		text.add_child(res_label)
 	if source.dormant:  # Asleep: dimmed, with the families it still needs ("Needs Dewdrop")
 		var needs_row := NeedsRow.make(dream_state.missing_needs(card), 13, UiStyle.INK_DIM) if dream_state.has_method("missing_needs") else null
 		if needs_row != null:  # "Needs Wind", as on the Dream card

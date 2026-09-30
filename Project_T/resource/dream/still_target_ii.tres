@@ -6,10 +6,10 @@
 script = ExtResource("1_card")
 id = "still_target_ii"
 display_name = "Still Target II"
-description = "+25% crit chance against {drowsy}, {held} or frozen nightmares."
+description = "+40% crit chance against {drowsy}, {held} or frozen nightmares."
 rarity = 1
 kind = 3
-tags = Array[String](["crit", "sleep"])
+tags = Array[String](["crit", "sleep", "precision"])
 max_stacks = 1
 deepens = "still_target"
 rule_id = &"still_target"

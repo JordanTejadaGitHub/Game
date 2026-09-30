@@ -33,7 +33,7 @@ func _test_card_changes() -> void:
 	_reset()
 	dreams.clearing_open = true  # Wildwood Reclaimed is a clearing follow-up
 	var ids := ["crossroads", "briar_crown", "menagerie", "restless_night", "last_leaf", "lucid_dreaming",
-		"court_of_the_eldest", "hunters_moon", "eternal_static", "rooted_nightmares", "wildwood_reclaimed"]
+		"hunters_moon", "eternal_static", "rooted_nightmares", "wildwood_reclaimed"]
 	for id in ids:
 		var card := _card(id)
 		_check(card.rarity == UpgradeData.Rarity.LEGENDARY and card.min_act == 2 and card.max_stacks == 1
@@ -65,10 +65,9 @@ func _test_eldest() -> void:
 	dreams.set_eldest(null)
 	dreams.load_save(saved)
 	_check(dreams.get_eldest() == a, "the Eldest survives the save")
-	dreams.take(_card("remembered_care"))
 	a.rank = 7
 	dreams._on_tower_sold(a, 0)
-	_check(dreams.get_eldest() == null and run_state.memory_seeds == [5], "selling it frees the title; the seed holds rank V")
+	_check(dreams.get_eldest() == null, "selling it frees the title")
 	a.free()
 	_check(dreams.needs_eldest_confirm(b), "the next Warden to VI can take the title")
 	_clear_towers()
@@ -78,20 +77,20 @@ func _test_court() -> void:
 	var low := _plant("sporeling", Vector2(100, 100), 2)
 	var high := _plant("sporeling", Vector2(110, 100), 4)
 	var friend := _plant("dewdrop", Vector2(111, 101), 0)
-	dreams.take(_card("court_of_the_eldest"))
-	_check(dreams.get_eldest() == high, "Court of the Eldest names the highest-rank Warden")
+	dreams.take(_card("endless_rings"))  # Absorbed Court of the Eldest
+	_check(dreams.get_eldest() == high, "Endless Rings (Court of the Eldest) names the highest-rank Warden")
 	_check(is_equal_approx(dreams.get_court_rank_share(friend), 1.0) and dreams.get_court_rank_share(low) == 0.0,
 		"Wardens touching the Eldest get 25% of its ranks")
 	_clear_towers()
 	_reset()
-	dreams.take(_card("court_of_the_eldest"))
+	dreams.take(_card("endless_rings"))  # Absorbed Court of the Eldest
 	var first := _plant("sporeling", Vector2(100, 100), 0)
 	dreams._watch_nurture(first)
 	first.nurture(0)
 	_check(dreams.get_eldest() == first, "with nothing ranked, the next Warden nurtured becomes the Eldest")
 	_clear_towers()
 
-# After taking a Legendary its archetype counts as an owned family (tag_weight 1.4×).
+# After taking a Legendary its archetype tag weighs (tag_weight).
 func _test_legendary_weighting() -> void:
 	_reset()
 	var maze_card := _card("cozy_corners")  # tags: maze

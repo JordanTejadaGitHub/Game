@@ -15,7 +15,7 @@ const MIN_ROUTE_CELLS := 4  # Shorter routes (a nightmare spawned near the goal)
 const CHECK_EVERY := 0.1  # Game seconds
 const EFFECT_COOLDOWN := 2.0  # Game seconds between two trembles / glows
 const GLOW_TIME := 1.1
-const GLOW_COLOR := Color(0.55, 0.75, 1.0, 0.28)  # Faint cold light
+const GLOW_COLOR := Color(Palette.DEWLIGHT, 0.28)  # Faint cold light
 const TREMBLE_TIME := 0.6
 const TREMBLE_SKEW := 0.05  # Radians
 

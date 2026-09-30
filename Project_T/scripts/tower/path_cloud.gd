@@ -100,7 +100,7 @@ func _draw() -> void:
 			var spin := TAU * i / 6.0 - _age * 0.6
 			draw_circle(Vector2.from_angle(spin) * Vector2(_radius * 0.45, _radius * 0.3) + Vector2(0, sin(_age * 2.0 + i) * 3.0),
 				2.0, Color(flecks, 0.6 * fade))
-	var tint := _color.lerp(Color.WHITE, 0.25)
+	var tint := _color.lerp(Palette.HEARTLIGHT, 0.25)
 	# A ring of puffs turning slowly round the middle, bobbing, back ones drawn first.
 	var n := 4 + roundi(_radius / 24.0)
 	var puffs: Array = [[Vector2(0, -3), n % 4]]

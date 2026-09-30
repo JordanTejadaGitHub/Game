@@ -14,10 +14,10 @@ class_name DreamBonusView
 #   group_summary(towers)                                  ["Solitude: 3 of 5", …] for a multi-selection
 # Breakdowns cover damage, attack_speed, range and cost; other stats read as just their name.
 
-const ACTIVE_COLOR := Color(0.95, 0.93, 0.85)
-const OFF_COLOR := Color(0.55, 0.57, 0.6)
-const RUN_WIDE_COLOR := Color(0.8, 0.88, 0.95)
-const BOOSTED_COLOR := Color(1.0, 0.82, 0.5)  # The warm tint for a boosted stat
+const ACTIVE_COLOR := UiStyle.INK
+const OFF_COLOR := UiStyle.OFF
+const RUN_WIDE_COLOR := UiStyle.MOONLIGHT
+const BOOSTED_COLOR := UiStyle.GOLD  # The warm tint for a boosted stat
 const ICON_SCRIPT := preload("res://scripts/ui/dreams_row.gd")
 
 # --- Rows -------------------------------------------------------------------------------------------
@@ -35,7 +35,7 @@ static func make_rows_at(data: TowerData, cell: Vector2, tower: Tower = null) ->
 	var title := Label.new()
 	title.text = "Dreams on this Warden"
 	title.add_theme_font_size_override("font_size", 15)
-	title.add_theme_color_override("font_color", Color(0.85, 0.8, 1.0))
+	title.add_theme_color_override("font_color", Palette.DEWLIGHT)
 	box.add_child(title)
 	# Active first, then run-wide, then the ones that are off.
 	dreams.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return _rank(a) < _rank(b))

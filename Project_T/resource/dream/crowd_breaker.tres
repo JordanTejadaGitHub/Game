@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "crowd_breaker"
+display_name = "Crowd Breaker"
+description = "An area attack deals 5% more for each nightmare it hits (max +45%), and 30% more to a nightmare touching 2 or more others."
+rarity = 1
+kind = 3
+tags = Array[String](["affliction"])
+requires = Array[String]([])
+max_stacks = 1
+rule_id = &"crowd_breaker"
+extra_rules = Array[StringName]([&"crush"])

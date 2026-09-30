@@ -7,6 +7,12 @@ extends Control
 # Built in code.
 
 const CARD_SIZE := Vector2(270, 200)
+const CARD_PAD := Vector2(18, 16)  # Inner padding on every side (x: left and right, y: top and bottom)
+const BODY_SIZE := 15  # Revealed Omens' reward line
+const FRONT_BODY_SIZE := 18  # Face an Omen and Clear Skies: the Dream card body size (user: "a bit bigger")
+const EMBLEM_SCALE := 3  # The 16 px icons drawn x3, nearest
+const SECONDARY_MIN_SIZE := 12  # Secondary lines shrink to this before a card outgrows the screen
+const SCREEN_MARGIN := 240.0  # Title, buttons and gaps around the cards
 const OMEN_COLOR := UiStyle.BUTTON_GOLD  # Heartwood 32 "Gold"
 const TWIST_COLOR := Color("9a84e8")  # Heartwood 32 "Wraithlight": the nightmares' side of the deal
 const REWARD_COLOR := UiStyle.GOLD  # Heartwood 32 "Glow": the reward in gold (run_design.md)
@@ -27,7 +33,7 @@ func _ready() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	var dim := ColorRect.new()
-	dim.color = Color(0.06, 0.05, 0.03, 0.72)
+	dim.color = Color(UiStyle.FOG, 0.72)
 	dim.set_anchors_preset(Control.PRESET_FULL_RECT)
 	add_child(dim)
 
@@ -55,7 +61,7 @@ func _ready() -> void:
 	_active_tag.offset_top = 64
 	_active_tag.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_active_tag.add_theme_color_override("font_color", OMEN_COLOR)
-	_active_tag.add_theme_color_override("font_outline_color", Color(0.08, 0.1, 0.14))
+	_active_tag.add_theme_color_override("font_outline_color", Palette.DREAD)
 	_active_tag.add_theme_constant_override("outline_size", 6)
 	_active_tag.visible = false
 	get_parent().add_child.call_deferred(_active_tag)
@@ -101,15 +107,34 @@ func _make_face_down_card() -> Button:
 	UiStyle.card_button(button, OMEN_COLOR)
 	var box := _card_box(button)
 	UiStyle.title(_add_line(box, "Face an Omen", UiStyle.INK, 22), UiStyle.CARD_NAME_SIZE)
-	var swirl := Control.new()
-	swirl.custom_minimum_size = Vector2(0, 64)
-	swirl.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	swirl.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	swirl.draw.connect(func() -> void: _draw_swirl(swirl))
-	box.add_child(swirl)
-	_add_line(box, "An unknown twist for the next block. Survive it for a reward.", UiStyle.INK, 15)
+	var body := _add_line(box, "An unknown twist for the next block. Survive it for a reward.", UiStyle.INK, FRONT_BODY_SIZE)
+	box.add_child(_emblem(&"omen", true))  # A moth before the moon (the wind swirl until UI Asset's icon exists)
+	_fit_card(button, box, [body])
 	button.pressed.connect(func() -> void: _reveal(omens.face(), button))
 	return button
+
+# A card's emblem (run_design.md "How an Omen looks"): the icon from assets/ui/icons.png x3 when the sheet has
+# `id`, else the old wind swirl (`swirl`) or an empty space. Fills the card's middle either way.
+func _emblem(id: StringName, swirl: bool) -> Control:
+	var icon := IconInfo.icon(id)
+	if icon != null:
+		var rect := TextureRect.new()
+		rect.texture = icon
+		rect.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		rect.stretch_mode = TextureRect.STRETCH_KEEP_CENTERED
+		rect.custom_minimum_size = Vector2(16, 16) * EMBLEM_SCALE
+		rect.size_flags_vertical = Control.SIZE_EXPAND_FILL
+		rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		rect.name = "Emblem"
+		return rect
+	var canvas := Control.new()
+	canvas.custom_minimum_size = Vector2(0, 64 if swirl else 0)
+	canvas.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	canvas.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	if swirl:
+		canvas.draw.connect(func() -> void: _draw_swirl(canvas))
+	return canvas
 
 # Three nested wind arcs.
 func _draw_swirl(canvas: Control) -> void:
@@ -158,13 +183,29 @@ func _reveal(offer: Array[OmenData], from: Button) -> void:
 func _card_box(button: Button) -> VBoxContainer:
 	var box := VBoxContainer.new()
 	box.set_anchors_preset(Control.PRESET_FULL_RECT)
-	box.offset_left = 14
-	box.offset_top = 12
-	box.offset_right = -14
-	box.offset_bottom = -12
+	box.offset_left = CARD_PAD.x
+	box.offset_top = CARD_PAD.y
+	box.offset_right = -CARD_PAD.x
+	box.offset_bottom = -CARD_PAD.y
 	box.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	button.add_child(box)
 	return box
+
+# Grows the card to fit its text (like DreamScreen._fit_card); if that would outgrow the screen, the
+# secondary lines shrink first. Nothing touches or crosses the border.
+func _fit_card(button: Button, box: Control, secondary: Array) -> void:
+	var fit := func() -> void:
+		if not is_instance_valid(button):
+			return
+		var needed := box.get_combined_minimum_size().y + CARD_PAD.y * 2.0
+		if needed > get_viewport_rect().size.y - SCREEN_MARGIN:
+			for label in secondary:
+				var key := "normal_font_size" if label is RichTextLabel else "font_size"
+				if label.get_theme_font_size(key) > SECONDARY_MIN_SIZE:
+					label.add_theme_font_size_override(key, SECONDARY_MIN_SIZE)  # Refits via minimum_size_changed
+		button.custom_minimum_size = Vector2(CARD_SIZE.x, maxf(CARD_SIZE.y, needed))
+	box.minimum_size_changed.connect(fit)
+	fit.call_deferred()
 
 # A revealed Omen: the twist and its reward; a click picks it.
 func _make_card(omen: OmenData, act: int) -> Button:
@@ -180,7 +221,8 @@ func _make_card(omen: OmenData, act: int) -> Button:
 	twist.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	box.add_child(twist)
 	var reward := omens.describe_reward(omen, act)
-	_add_line(box, "Reward: " + reward if reward != "" else "Double-edged: the twist is the reward", REWARD_COLOR, 15)
+	var reward_line := _add_line(box, "Reward: " + reward if reward != "" else "Double-edged: the twist is the reward", REWARD_COLOR, BODY_SIZE)
+	_fit_card(button, box, [twist, reward_line])
 	return button
 
 func _add_line(box: VBoxContainer, text: String, color: Color, font_size: int) -> Label:
@@ -233,17 +275,11 @@ func _make_clear_skies_card() -> Button:
 	for state in ["normal", "hover", "pressed", "hover_pressed"]:
 		var style := button.get_theme_stylebox(state) as MoonStyleBox
 		style.glow_color = CLEAR_SKIES_GLOW.lightened(0.08) if state.begins_with("hover") else CLEAR_SKIES_GLOW
-	var box := VBoxContainer.new()
-	box.set_anchors_preset(Control.PRESET_FULL_RECT)
-	box.offset_left = 14
-	box.offset_top = 12
-	box.offset_right = -14
-	box.offset_bottom = -12
-	box.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	button.add_child(box)
+	var box := _card_box(button)
 	UiStyle.title(_add_line(box, "Clear Skies", CLEAR_SKIES_COLOR, 22), UiStyle.CARD_NAME_SIZE, CLEAR_SKIES_COLOR)
-	var calm := _add_line(box, "Nothing changes. No reward.", UiStyle.WHISPER, 16)
-	UiStyle.whisper(calm, 19)  # Calm: the whisper face
-	calm.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	# The same body style and spot as Face an Omen's line; only the calmer whisper colour differs
+	var calm := _add_line(box, "Nothing changes. No reward.", UiStyle.WHISPER, FRONT_BODY_SIZE)
+	box.add_child(_emblem(&"clear_skies", false))  # The moon and stars (an empty space until the icon exists)
 	UiStyle.caps(_add_line(box, "The default", UiStyle.INK_DIM, 13), 14)
+	_fit_card(button, box, [calm])
 	return button

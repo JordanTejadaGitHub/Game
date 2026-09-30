@@ -5,7 +5,7 @@ const GW = 1280, GH = 960;
 // Heartwood 32 (assets/palette/heartwood32.json, injected by export.ps1 -Rebuild): colours by name.
 const HW = Object.fromEntries(HW32.ramps.flatMap(r => r.colors.map(c => [c.name, c.hex])));
 // Night bark: the Bark ramp (the Heartwood is the warm side), grain runs along the wood.
-const HB6 = [HW.Void, HW.Root, HW.Root, HW.Bark, HW.Bark, HW.Oak];
+const HB6 = [HW.Void, HW.Night, HW.Root, HW.Bark, HW.Loam, HW.Loam];  // cool, grey-brown wood in the fog; the warmth is saved for the Hollow and the gold rim
 const LEAFG = [HW.Deepmoss, HW.Moss, HW.Leaf, HW.Sprig, HW.Newleaf];
 const SECTION = {
   perks:    { name: "Perks",    petals: ["#6a3c0c", "#b87818", "#e8b440", "#ffe39a"], mid: "#fff6d0", glow: "255,200,90" },
@@ -47,15 +47,14 @@ N("early_light", "perks", "Early Light", 232, 436, "early_bloom");
 N("kindling", "perks", "Kindling", 214, 500, "early_light");
 N("slot_4", "perks", "Loadout slot 4", 400, 520, [410, 466]);  // Slots 1–3 are open from the start
 N("slot_5", "perks", "Loadout slot 5", 318, 540, "slot_4");
-// Families: a short branch of four per family (family, final forms, hidden branch, Ascension),
+// Families: a short branch of three per family (family, hidden branch, Ascension),
 // alternating sides up the middle limb.
 [["sporeling", "Sporeling", true], ["firefly_jar", "Firefly Jar", true], ["dewdrop", "Dewdrop", true], ["pebbling", "Pebbling"],
  ["rootling", "Rootling"], ["bellflower", "Bellflower"], ["acorn", "Acorn"], ["nestling", "Nestling"], ["whirligig", "Whirligig"]]
   .forEach(([id, name, start], i) => {
     const side = i % 2 ? 1 : -1, ay = 604 - i * 50, ax = 640 + Math.sin((604 - ay) / 90) * 4;
     N(id, "families", name, ax + side * 38, ay - 20, [ax, ay], start ? { start: true } : {});
-    N(id + "_final", "families", name + ": final forms", ax + side * 60, ay - 52, id);
-    N(id + "_hidden", "families", name + ": hidden branch", ax + side * 72, ay - 86, id + "_final");
+    N(id + "_hidden", "families", name + ": hidden branch", ax + side * 66, ay - 62, id);  // Final forms need no node any more
     N(id + "_ascension", "families", name + ": Ascension", ax + side * 96, ay - 108, id + "_hidden");
   });
 // Memory Wardens: free blooms a boss leaves the first time it is dispelled (low on the Families limb).
@@ -68,14 +67,12 @@ N("guiding_lights", "cards", "Guiding Lights", 790, 452, "storm_lore");
 N("spore_lore", "cards", "Spore Lore", 852, 482, [842, 560]);
 N("dawnbreak", "cards", "Dawnbreak", 884, 330, "spore_lore", { legendary: true });  // Reactions and Woven are discovery unlocks now
 N("sharpened", "cards", "Sharpened", 952, 440, [942, 516]);
-N("reckless", "cards", "Reckless", 980, 370, "sharpened");
-N("full_moon", "cards", "Full Moon", 1000, 288, "reckless", { legendary: true });
+N("full_moon", "cards", "Full Moon", 1000, 288, "sharpened", { legendary: true });  // Reckless was cut in the pool trim
 N("tending_hands", "cards", "Tending Hands", 1062, 392, [1044, 465]);
 N("nursery", "cards", "Nursery", 1090, 320, "tending_hands");
 N("the_old_ones", "cards", "The Old Ones", 1102, 238, "nursery", { legendary: true });
 N("seedbed", "cards", "Seedbed", 1172, 340, [1134, 404]);
-N("wild_planting", "cards", "Wild Planting", 1208, 278, "seedbed");
-N("rootbound", "cards", "Rootbound", 1228, 206, "wild_planting", { legendary: true });
+N("rootbound", "cards", "Rootbound", 1228, 206, "seedbed", { legendary: true });  // Wild Planting was cut in the pool trim
 N("one_line", "cards", "One Line", 832, 640, [846, 562]);
 N("the_last_light", "cards", "The Last Light", 800, 710, "one_line", { legendary: true });
 N("dead_wood", "cards", "Dead Wood", 962, 600, [944, 518]);
@@ -144,10 +141,11 @@ function thickPath(L, pts, w0, w1, fn) {
 // ---- the base tree: roots, trunk, three limbs, always visible ----
 function groveTree() {
   const out = new Img(GW, GH), L = new Img(GW, GH), M = new Img(GW, GH);
-  // Earth mound with moss.
-  ellipse(out, 640, 952, 560, 90, (x, y, dx, dy) => pick(["#0c0806", "#140e0a", "#1c140e"], clamp(.6 - dy * .5 + (pnoise(x, y, 9, 3) - .5) * .4, 0, 1), x, y));
+  // A low mossy mound (lit on its upper left) the roots sink into, as on the map Heartwood.
+  ellipse(out, 640, 948, 380, 66, (x, y, dx, dy) => pick([HW.Void, HW.Void, HW.Deepmoss, HW.Moss], clamp(.3 - dy * .45 + (pnoise(x, y, 9, 3) - .5) * .4, 0, 1), x, y));
   for (let k = 0; k < 900; k++) {
     const x = 120 + hash(k, 1, 4) * 1040, y = 880 + hash(k, 2, 4) * 80;
+    if (((x - 640) / 370) ** 2 + ((y - 948) / 60) ** 2 > 1) continue;  // moss only on the mound, not the water
     if (hash(k, 3, 4) < .6) { out.set(x, y, LEAFG[1]); out.set(x, y - 1, LEAFG[2]); if (hash(k, 4, 4) < .4) out.set(x + 1, y - 2, LEAFG[3]); }
   }
   // A soft flat shadow under the whole tree.
@@ -157,10 +155,10 @@ function groveTree() {
     const ridge = Math.abs(((pnoise(x * 3, y, 12, seed) * 7) % 1) - .5) < .1;
     return pick(HB6.slice(1), clamp(.58 - nx * .45 + (ridge ? -.28 : 0) + (pnoise(x, y, 6, seed + 1) - .5) * .12, 0, 1), x, y, .5);
   };
-  const roots = [[[596, 870], [520, 884], [446, 912], [372, 944], [330, 952]], [[684, 870], [760, 884], [834, 912], [908, 944], [950, 952]],
-    [[612, 890], [578, 924], [556, 960]], [[668, 890], [702, 924], [724, 960]], [[590, 856], [512, 852], [440, 868], [388, 890]],
-    [[690, 856], [768, 852], [840, 868], [892, 890]], [[640, 900], [646, 962]]];
-  roots.forEach((r, i) => thickPath(L, catmull(r, 12), [46, 46, 34, 34, 28, 28, 30][i], 8, rootFn(20 + i)));
+  // Short thick flares that bend down into the mound (their ends are hidden under its front lip).
+  const roots = [[[598, 866], [548, 884], [508, 906], [488, 928]], [[682, 866], [732, 884], [772, 906], [792, 928]],
+    [[612, 888], [590, 918], [582, 940]], [[668, 888], [690, 918], [698, 940]], [[640, 898], [642, 944]]];
+  roots.forEach((r, i) => thickPath(L, catmull(r, 12), [48, 48, 36, 36, 30][i], 18, rootFn(20 + i)));
   // Twisted strands: each sample's segments are drawn back to front (by where they are in the
   // twist), and each strand's edge is darkened so the strands read apart.
   // Each strand is a shaded cylinder: dark edges, a lit band toward the key light (top left), and
@@ -198,12 +196,13 @@ function groveTree() {
   for (let y = 1; y < GH; y++) for (let x = 0; x < GW; x++) {
     if (!L.alpha(x, y) || L.alpha(x, y - 3)) continue;
     const n = pnoise(x, y, 11, 41);
-    if (n > .45) for (let d = 0; d < 1 + Math.floor((n - .45) * 8); d++) if (L.alpha(x, y + d)) M.set(x, y + d, LEAFG[Math.min(4, 2 + d % 3)]);
+    if (n > .3) for (let d = 0; d < 1 + Math.floor((n - .3) * 14); d++) if (L.alpha(x, y + d)) M.set(x, y + d, LEAFG[Math.min(4, 2 + d % 3)]);
   }
   out.stamp(L, HB6[0]);
-  // Moonlight rims the tree's upper-right edges (the moon is up and to the right).
+  // A 1 px warm gold rim on the upper-left edges (art_direction.md: light from the upper left, warm
+  // gold rim on Wardens and the Heartwood), matching the map Heartwood.
   for (let y = 1; y < GH - 1; y++) for (let x = 1; x < GW - 1; x++)
-    if (L.alpha(x, y) && !L.alpha(x + 1, y - 1) && L.alpha(x - 1, y + 1)) out.set(x, y, hash(x, y, 5) < .7 ? "#8a8ea8" : "#6a6a88");
+    if (L.alpha(x, y) && !L.alpha(x - 1, y - 1) && L.alpha(x + 1, y + 1)) out.set(x, y, hash(x, y, 5) < .7 ? HW.Gold : HW.Oak);
   out.put(M);
   // Bark knots on the trunk and limb bases.
   for (const [x, y, r] of [[618, 700, 6], [664, 836, 5], [610, 870, 4], [588, 612, 4], [700, 612, 4], [646, 520, 4], [470, 574, 4], [900, 540, 4]]) {
@@ -226,6 +225,15 @@ function groveTree() {
   sigil(600, 640, "perks", [...ring, [0, 0], [0, -1], [0, 1], [-1, 0], [1, 0]]);
   sigil(641, 596, "families", [[0, -6], [0, -5], [0, -4], [0, -3], [0, -2], [0, -1], [0, 0], [0, 1], [0, 2], [0, 3], [-1, -3], [-2, -4], [1, -1], [2, -2], [-1, 1], [-2, 0], [1, 3], [2, 2]]);
   sigil(684, 640, "cards", [[-3, -5], [-2, -5], [-1, -5], [0, -5], [1, -5], [2, -5], [3, -5], [-3, 5], [-2, 5], [-1, 5], [0, 5], [1, 5], [2, 5], [3, 5], [-3, -4], [-3, -3], [-3, -2], [-3, -1], [-3, 0], [-3, 1], [-3, 2], [-3, 3], [-3, 4], [3, -4], [3, -3], [3, -2], [3, -1], [3, 0], [3, 1], [3, 2], [3, 3], [3, 4], [0, -1], [0, 0], [0, 1], [-1, 0], [1, 0]]);
+  // The mound's front lip over the roots' ends, then swamp mist dithered across the ground.
+  for (let x = 300; x < 980; x++) {
+    const top = 920 + Math.round((pnoise(x, 0, 14, 33) - .5) * 8 + ((x - 640) / 60) ** 2);
+    for (let y = top; y < GH; y++) out.set(x, y, y - top < 2 ? HW.Moss : pick([HW.Deepmoss, HW.Deepmoss, HW.Void], (y - top) / 30, x, y, .3));
+  }
+  for (let y = 850; y < GH; y++) for (let x = 0; x < GW; x++) {
+    const d = (1 - Math.abs(y - 915) / 65) * (1 - Math.abs(x - 640) / 700) * (.55 + pnoise(x, y, 22, 34) * .7);
+    if (d > .15 && bay(x, y) < d * .32) out.set(x, y, d > .55 ? HW.Mist : d > .35 ? HW.Slate : HW.Dusk);  // opaque dither: blending would snap to muddy colours
+  }
   // Pale glowing mushrooms on the roots.
   for (const [x, y, s] of [[470, 896, 1], [486, 900, .7], [812, 894, 1.1], [828, 899, .8], [560, 928, .8], [742, 930, .9], [372, 930, .7]]) {
     ellipse(out, x, y + 3 * s, 1.6 * s, 3 * s, "#c8c0d8");
@@ -243,6 +251,11 @@ function groveTree() {
     out.set(x, y + 2, "#c8fff0");
   });
   hollow(out, 610, 824);
+  // Threads of dream-light curling up out of the Hollow into the trunk, dithered, thinning as they rise.
+  for (const [ph, amp] of [[0, 16], [2.2, 12], [4.1, 20]]) for (let t = 0; t < 1; t += .002) {
+    const y = 752 - t * 190, x = trunkX(y) - 20 + Math.sin(t * 9 + ph) * amp * (.4 + t);
+    if (hash(Math.round(x), Math.round(y), 76) < .75 - t * .55) out.set(x, y, t < .35 ? HW.Glow : t < .7 ? HW.Gold : HW.Ember);
+  }
   // Hanging moss strands under the limbs.
   for (let k = 0; k < 160; k++) {
     const x = Math.floor(80 + hash(k, 1, 50) * 1120);
@@ -250,6 +263,38 @@ function groveTree() {
     if (y >= 700 || hash(k, 2, 50) < .45) continue;
     const len = 6 + hash(k, 3, 50) * 16;
     for (let i = 1; i < len; i++) out.set(x + Math.round(Math.sin(i * .3 + k)), y + i, i % 3 ? "#56624e" : "#3e4a3a");
+  }
+  // Moss patches all over the trunk and roots, like the title's giant.
+  for (let y = 560; y < 960; y++) for (let x = 400; x < 880; x++) {
+    if (!L.alpha(x, y) || (x > 560 && x < 665 && y > 735 && y < 835)) continue;  // keep the Hollow clear
+    const n = pnoise(x, y, 14, 95) * .7 + pnoise(x, y, 5, 96) * .3;
+    if (n > .6) out.set(x, y, n > .72 ? HW.Moss : HW.Deepmoss);
+    else if (n > .57 && hash(x, y, 97) < .5) out.set(x, y, HW.Leaf);
+  }
+  // A cool veil of mist over the wood (the fog's teal and dusk, never white), thicker low down.
+  for (let y = 520; y < GH; y++) for (let x = 0; x < GW; x++) {
+    if (!out.alpha(x, y) || (x > 570 && x < 655 && y > 745 && y < 830)) continue;
+    const d = clamp((y - 520) / 300, 0, 1) * clamp((900 - y) / 60, 0, 1) * (.55 + pnoise(x, y, 50, 101) * .6);  // fades out before the roots and waystones
+    if (bay(x, y) < d * .24) out.set(x, y, d > .6 ? HW.Pool : HW.Dusk);
+  }
+  // Wisps of mist drifting IN FRONT of the tree and on across the background at the same heights, so
+  // the tree stands inside the fog. Cool, sparse, opaque dither; the Hollow stays clear.
+  const wisps = (cy, h, dens, seed) => { for (let y = cy - h; y < cy + h; y++) for (let x = 0; x < GW; x++) {
+    if (x > 575 && x < 650 && y > 748 && y < 828) continue;
+    if (LOADOUT_STONES.some(([sx, sy]) => Math.hypot(x - sx, (y - sy) * 1.3) < 26)) continue;  // waystones stay clear
+    const wob = (pnoise(x, 0, 90, seed + 2) - .5) * h * 1.2, yy = y - wob;  // the band drifts up and down
+    const band = clamp(1 - Math.abs(yy - cy) / h, 0, 1) ** 1.5, n = pnoise(x * .6, yy, 34, seed) * .75 + pnoise(x, yy, 12, seed + 1) * .25;
+    const d = band * clamp((n - .36) * 2.6, 0, 1);
+    if (d > 0 && bay(x, y) < d * dens) out.set(x, y, d > .75 ? (y > 850 ? HW.Bruise : HW.Shade) : HW.Dusk);  // muted dream mist, violet only in the thick low cores
+  } };
+  wisps(610, 55, .35, 113); wisps(700, 50, .5, 114); wisps(790, 50, .7, 111); wisps(890, 55, 1.1, 112);  // thicker toward the ground
+  // Mist curling across the trunk itself (a little denser than the haze round it), the Hollow clear.
+  for (let y = 590; y < 900; y++) for (let x = 470; x < 820; x++) {
+    if (x > 572 && x < 652 && y > 745 && y < 832) continue;
+    const tx = trunkX(Math.min(y, 905)), dx = (x - tx) / 150;
+    const n = pnoise(x * .7, y, 28, 131) * .7 + pnoise(x, y, 10, 132) * .3, curl = Math.sin(y / 38 + dx * 3) * .5 + .5;
+    const d = Math.max(0, 1 - dx * dx) * clamp((n - .4) * 2.4, 0, 1) * (.55 + curl * .45) * (.6 + (y - 590) / 310 * .5);
+    if (d > 0 && bay(x, y) < d * .75) out.set(x, y, d > .7 ? HW.Shade : HW.Dusk);
   }
   return out;
 }
@@ -260,11 +305,12 @@ function groveTree() {
 function hollow(img, cx, by) {
   const y0 = by - 68, halfW = y => { const k = clamp((y - y0) / 24, 0, 1); return (15.5 * Math.sqrt(k) + (y > by - 20 ? (y - (by - 20)) * .08 : 0)) + (pnoise(0, y, 6, 991) - .5) * 2.4; };
   const inOpen = (x, y, g = 0) => y >= y0 - g && y <= by && Math.abs(x + .5 - cx - (y - by) * .06) <= halfW(y + g * .3) + g;
-  for (let y = by - 140; y < by + 40; y++) for (let x = cx - 90; x < cx + 90; x++) {
-    const r = Math.hypot((x - cx) / 90, (y - (by - 34)) / 110); if (r >= 1 || !img.alpha(x, y) || inOpen(x, y, 7)) continue;
-    img.set(x, y, CA("#ffb060", .3 * (1 - r) ** 1.6));
+  // A narrow banded halo just outside the lip (1-2 px steps, never a soft blur).
+  for (let y = by - 90; y < by + 4; y++) for (let x = cx - 30; x < cx + 30; x++) {
+    if (!img.alpha(x, y) || inOpen(x, y, 7)) continue;
+    if (inOpen(x, y, 9)) img.set(x, y, CA(HW.Glow, .3)); else if (inOpen(x, y, 11)) img.set(x, y, CA(HW.Glow, .14));
   }
-  ellipse(img, cx + 2, by + 8, 38, 9, (x, y, dx, dy) => CA("#ffc070", .28 * (1 - Math.hypot(dx, dy))));
+  ellipse(img, cx + 2, by + 6, 24, 6, (x, y, dx, dy) => CA(HW.Glow, Math.hypot(dx, dy) < .6 ? .22 : .1));  // banded pool of light
   for (const k of [10, 15, 21]) for (let y = y0 - k - 8; y <= by; y++) for (let x = cx - 50; x <= cx + 50; x++) {
     const q = Math.hypot((x + .5 - cx) / (17 + k), Math.min(0, y - (by - 34)) / (36 + k)), q2 = Math.hypot((x + .5 - cx) / (18 + k), Math.min(0, y - (by - 34)) / (37 + k));
     if (!img.alpha(x, y) || q <= 1 || q2 > 1 || inOpen(x, y, 7) || pnoise(x, y, 5, 992 + k) > .62) continue;
@@ -294,35 +340,105 @@ const MOON = [1062, 118];
 
 // ---- the night sky behind it: moon, stars, two layers of distant forest, low fog ----
 function grovesky() {
-  const out = new Img(GW, GH), cols = ["#06051a", "#0a0820", "#0e0b28", "#131030", "#1a1434", "#241a36", "#2e2034"];
+  // The title screen's world: a misty swamp forest at night. Cool slate fog brightening toward the
+  // horizon, tall dark trunks in three layers fading into it, pale shafts of light, still dark water.
+  const out = new Img(GW, GH), SKY = [HW.Void, HW.Void, HW.Night, HW.Night, HW.Pool, HW.Pool, HW.Slate];
+  const fogAt = (x, y) => clamp(Math.max(0, 1 - Math.hypot((x - 640) / 760, (y - 640) / 420)) * .9 + (y / GH) * .25 + (pnoise(x, y, 120, 61) - .5) * .18, 0, 1);
   for (let y = 0; y < GH; y++) for (let x = 0; x < GW; x++) {
-    const glow = Math.max(0, 1 - Math.hypot((x - 640) / 620, (y - 700) / 520));
-    const moon = Math.max(0, 1 - Math.hypot(x - MOON[0], y - MOON[1]) / 230);
-    let t = y / GH * .55 + glow * .55 + moon * .35 + (pnoise(x, y, 90, 61) - .5) * .12;
-    out.set(x, y, pick(cols, clamp(t, 0, 1), x, y, .9));
-    const h = hash(x, y, 62);
-    if (y < 760 && h < .0016 * (1 - glow) * (1 - moon)) out.set(x, y, h < .0004 ? "#e8ecff" : "#8a8ac0");
+    out.set(x, y, pick(SKY, fogAt(x, y), x, y, .9));
+    const h = hash(x, y, 62), clear = Math.max(0, 1 - y / 360);
+    if (h < .0022 * clear * clear) out.set(x, y, h < .0006 ? HW.Moonlight : HW.Slate);
   }
-  // The moon, with a soft halo and a few darker seas.
-  ellipse(out, MOON[0], MOON[1], 70, 70, (x, y, dx, dy) => CA("#b8c4ff", Math.max(0, 1 - Math.hypot(dx, dy)) ** 2 * .35));
+  // A few twinkling four-point stars high up.
+  for (let k = 0; k < 22; k++) {
+    const x = hash(k, 1, 75) * GW | 0, y = hash(k, 2, 75) * 260 | 0;
+    if (Math.hypot(x - MOON[0], y - MOON[1]) < 90) continue;
+    out.set(x, y, HW.Moonlight);
+    for (const [a, b] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) out.set(x + a, y + b, hash(k, 3, 75) < .4 ? HW.Mist : HW.Dusk);
+  }
+  // The moon behind the fog.
+  ellipse(out, MOON[0], MOON[1], 58, 58, (x, y, dx, dy) => { const r = Math.hypot(dx, dy); return r < .72 ? HW.Dusk : bay(x, y) < (1 - r) * 1.2 ? HW.Dusk : null; });
   ellipse(out, MOON[0], MOON[1], 30, 30, (x, y, dx, dy) => {
     const sea = pnoise(x, y, 9, 64) > .6;
-    return pick(["#9aa0c8", "#c4c8e4", "#e8eaf8", "#fbfcff"], clamp(.75 - dx * .3 - dy * .3 - (sea ? .3 : 0), 0, 1), x, y, .5);
+    return pick([HW.Stone, HW.Mist, HW.Moonlight, HW.Moonlight], clamp(.75 - dx * .3 - dy * .3 - (sea ? .3 : 0), 0, 1), x, y, .5);
   });
-  // Far forest (bluer), then nearer forest (darker), then fog lying between them.
-  const band = (base, amp, cell, seed, fill, edge) => {
-    for (let x = 0; x < GW; x++) {
-      const spikes = Math.max(0, Math.sin(x / (cell * .45) + seed) * 12) + (hash(Math.floor(x / 7), 0, seed) < .3 ? 6 : 0);
-      const top = base - pnoise(x, 0, cell, seed) * amp - spikes;
-      for (let y = Math.floor(top); y < GH; y++) out.set(x, y, y < top + 2 ? edge : fill);
+  // Pale shafts of light falling through the fog between the trunks.
+  for (const [sx, w, lean] of [[250, 60, .12], [470, 44, .08], [860, 52, -.06], [1060, 70, -.1]]) for (let y = 0; y < 880; y++) for (let x = sx - w; x < sx + w; x++) {
+    const cx = sx + (y - 440) * lean, d = Math.abs(x + (y - 440) * lean - sx) / w, a = (1 - d) * (.35 + y / 880 * .5) * (.6 + pnoise(x, y, 40, 80) * .6);
+    const px = Math.round(x + (cx - sx));
+    if (a > .15 && bay(px, y) < (a - .15) * .75) out.set(px, y, a > .5 ? HW.Mist : HW.Slate);
+  }
+  // Tall trunks in three layers: far ones pale in the fog, near ones almost black, a lit left edge on each.
+  // A faint violet dream shimmer in the fog up high (opaque dither, sparse).
+  for (let y = 0; y < 420; y++) for (let x = 0; x < GW; x++) {
+    const d = pnoise(x, y, 140, 90) * (1 - y / 420);
+    if (d > .45 && bay(x, y) < (d - .45) * .9) out.set(x, y, HW.Bruise);
+  }
+  // Floating islands, like the title screen's: a dark rock islet with a moss top, a tiny tree, and
+  // roots dangling below. `fog` 0..1 = how far back (fainter colours, dithered away).
+  const island = (cx, cy, w, fog, seed) => {
+    const I = new Img(GW, GH), rock = fog > .5 ? [HW.Night, HW.Dusk, HW.Slate] : [HW.Void, HW.Night, HW.Dusk];
+    for (let y = cy - 4; y < cy + w * .7; y++) for (let x = cx - w; x <= cx + w; x++) {
+      const u = (x - cx) / w, v = (y - cy) / (w * .7), edge = 1 - Math.abs(u) ** 1.6 - (pnoise(x, y, 6, seed) - .5) * .3;
+      if (v < 0 ? Math.abs(u) > .98 : v > edge) continue;
+      I.set(x, y, v < .12 ? (fog > .5 ? HW.Pool : HW.Deepmoss) : pick(rock, clamp(.6 - u * .4 - v * .5, 0, 1), x, y, .5));
+    }
+    for (let k = 0; k < 5; k++) {  // dangling roots
+      const rx = cx + (hash(seed, k, 91) - .5) * w * 1.2, len = 14 + hash(seed, k, 92) * w * .9;
+      for (let i = 0; i < len; i++) I.set(rx + Math.sin(i * .3 + k) * 1.5, cy + w * .5 * (1 - Math.abs(rx - cx) / w) + i, rock[0]);
+    }
+    const tx = cx + (hash(seed, 1, 93) - .5) * w * .6;  // a tiny tree on top
+    for (let i = 0; i < 16; i++) I.set(tx, cy - 3 - i, rock[0]);
+    blob(I, tx, cy - 22, 9, 7, fog > .5 ? [HW.Night, HW.Pool, HW.Pool] : [HW.Deepmoss, HW.Moss, HW.Leaf], { seed, dither: 0 });
+    for (let y = 0; y < GH; y++) for (let x = 0; x < GW; x++) if (I.alpha(x, y) && bay(x, y) < 1 - fog * .45) out.set(x, y, I.get(x, y));
+  };
+  // Drifting pale motes in the air.
+  for (let k = 0; k < 60; k++) {
+    const x = hash(k, 1, 94) * GW | 0, y = hash(k, 2, 94) * 860 | 0;
+    out.set(x, y, k % 4 ? HW.Mist : HW.Wraithlight);
+    if (k % 5 === 0) for (const [a, b] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) out.set(x + a, y + b, HW.Slate);
+  }
+  // A background trunk: it rises out of the water on a root flare, bends a little, and dissolves into
+  // the fog as it climbs (dithered, `fade` = how far up it still reads). Bark grain runs along it,
+  // moss clings to its lit left side, a branch or two reaches out.
+  const trunk = (x0, w, lean, bend, seed, cols, rim, fade) => {
+    const top = 880 - fade;
+    const at = y => x0 + (y - 880) * lean + Math.sin(y / 150 + seed) * bend * (1 - y / 880);
+    for (let y = Math.max(0, top - 120); y < 884; y++) {
+      const vis = clamp((y - (top - 120)) / 140, 0, 1);  // how solid it is at this height
+      const flare = y > 840 ? (y - 840) / 44 : 0, cx = at(y), ww = w * (1 + flare * flare * 1.4) + (pnoise(y, 0, 24, seed) - .5) * 2.5;
+      for (let x = Math.floor(cx - ww / 2); x <= cx + ww / 2; x++) {
+        if (bay(x, y) >= vis) continue;
+        const nx = (x - cx) / (ww / 2), grain = Math.abs(((nx + 1) * 2.5 + pnoise(x, y, 40, seed) * .6) % 1 - .5) > .38;
+        let c = nx < -.72 ? rim : pick(cols, clamp(.55 - nx * .35 + (grain ? -.25 : 0), 0, 1), x, y, .4);
+        if (nx < -.1 && pnoise(x, y, 9, seed + 7) > .72) c = HW.Deepmoss;  // moss on the lit side
+        out.set(x, y, c);
+      }
+    }
+    for (let k = 0; k < 2; k++) {  // a branch or two, reaching up and out, fading with the trunk
+      const y = top + 40 + hash(seed, k, 81) * (fade * .5), s = hash(seed, k, 82) < .5 ? -1 : 1, cx = at(y);
+      if (y > 700) continue;
+      const pts = catmull([[cx, y], [cx + s * w * 1.4, y - 26], [cx + s * w * 2.6, y - 70]], 8);
+      for (let i = 1; i < pts.length; i++) stroke(out, pts[i - 1][0], pts[i - 1][1], pts[i][0], pts[i][1], Math.max(2, w * .3 * (1 - i / pts.length)), 1.5, (xx, yy) => bay(xx, yy) < clamp((yy - (top - 120)) / 140, 0, 1) ? cols[0] : null);
     }
   };
-  band(770, 70, 50, 63, "#161a30", "#262c48");
-  for (let y = 770; y < 872; y++) for (let x = 0; x < GW; x++) {
-    const edge = (Math.abs(y - 820) / 50) ** 2;
-    if (pnoise(x, y, 40, 66) > .45 + edge * .6) out.set(x, y, CA("#5a5a8a", .16));
+  const mistBand = (y0, y1, dens, col) => { for (let y = y0; y < y1; y++) for (let x = 0; x < GW; x++) { const u = (y - y0) / (y1 - y0), d = Math.sin(Math.PI * u) ** 2 * (.4 + pnoise(x, y, 70, 83 + y0) * .9); if (bay(x, y) < d * dens) out.set(x, y, col); } };  // smooth top and bottom, no hard edge
+  // Far: pale, barely there. Middle: darker, reaching higher. Near: one dark trunk at each edge.
+  for (const x of [180, 430, 860, 1080]) trunk(x + (hash(x, 1, 84) - .5) * 40, 10 + hash(x, 2, 84) * 8, (hash(x, 3, 84) - .5) * .08, 10, x, [HW.Pool, HW.Pool, HW.Slate], HW.Slate, 360 + hash(x, 4, 84) * 160);
+  mistBand(380, 900, .34, HW.Slate);
+  for (const x of [90, 330, 960, 1170]) trunk(x + (hash(x, 1, 85) - .5) * 50, 20 + hash(x, 2, 85) * 12, (hash(x, 3, 85) - .5) * .1, 14, x + 20, [HW.Night, HW.Night, HW.Pool], HW.Pool, 560 + hash(x, 4, 85) * 200);
+  mistBand(520, 900, .28, HW.Pool);
+  island(200, 640, 40, .35, 1); island(1090, 610, 34, .4, 2); island(410, 730, 20, .55, 3); island(890, 710, 22, .5, 4); island(1215, 750, 14, .6, 5);
+  for (const [x, w, lean] of [[28, 58, .04], [1256, 62, -.05]]) trunk(x, w, lean, 10, x, [HW.Void, HW.Dread, HW.Night], HW.Dusk, 900);
+  mistBand(660, 900, .3, HW.Slate);
+  // Still dark water at the bottom: ripple lines, the trunks' dim reflections, and the Heartwood's
+  // warm light reflected in a broken column below it.
+  for (let y = 872; y < GH; y++) for (let x = 0; x < GW; x++) {
+    const src = out.get(x, Math.max(0, 872 - (y - 872) * 2 - 1));
+    out.set(x, y, ((y - 872) % 5 === 0 && hash(x >> 3, y, 86) < .5) ? HW.Dusk : pick([HW.Void, HW.Night, HW.Pool], .25 + (src[0] + src[1] + src[2]) / 765 * .6 + (pnoise(x, y, 30, 87) - .5) * .2, x, y, .7));
+    const warm = Math.max(0, 1 - Math.abs(x - 640) / 260) * Math.max(0, 1 - (y - 872) / 110) * 1.3;
+    if (warm > .1 && (y - 872) % 3 !== 2 && hash(x >> 2, y, 88) < warm * .8) out.set(x, y, warm > .6 ? HW.Glow : warm > .35 ? HW.Gold : HW.Ember);
   }
-  band(830, 50, 34, 65, "#0a0c16", "#141828");
   return out;
 }
 
@@ -331,8 +447,8 @@ function grovesky() {
 // small leaf clusters, each one flat tone from the lobe under it with a lit tip and a dark rim along
 // its bottom, upper clusters overlapping lower ones. Drawn at half resolution and scaled up 2×.
 // The night greens (colours unchanged), seven tiers.
-// The crown: indigo night in the shadows and the belly, cold moonlit Pool, then Moss where the light reaches.
-const CROWN_P = [HW.Void, HW.Dread, HW.Night, HW.Deepmoss, HW.Pool, HW.Moss, HW.Leaf];
+// The crown: green-black in the shadows and the belly (Dread / Night are the sky's colours, so the tree would melt into it), cold moonlit Pool, then Moss where the light reaches.
+const CROWN_P = [HW.Void, HW.Void, HW.Deepmoss, HW.Deepmoss, HW.Pool, HW.Moss, HW.Moss];  // shade green-black, lit tops cool Pool / Moss (bright Leaf only on a few top clusters)
 const CROWN_PX = 2, CROWN_SEED = 970;
 // Stages grow the crown outward: the clusters over the limbs are always there, the edges fill in.
 const CROWN_SHARE = [.72, .8, .9, 1];
@@ -356,7 +472,7 @@ const CROWN = (() => {
       const dx = (x - lx) / r, dy = (y - ly) / (r * .85), q = dx * dx + dy * dy;
       if (q <= 1) t = clamp((-dx * .5 - dy * .8 + Math.sqrt(1 - q) * .45 + .25) / 1.3, 0, 1);  // the front lobe wins
     });
-    return t < 0 ? -1 : t * .95 + .42 - (y * s - 150) / 520 * .62 - (x * s - 560) / 1280 * .1;
+    return t < 0 ? -1 : t * .95 + .24 - (y * s - 150) / 520 * .62 - (x * s - 560) / 1280 * .1;
   };
   // Leaf clusters on a jittered grid: [x, y, r, light, rank] (rank orders the stages, centre first).
   const clusters = [], sp = 22 / s;
@@ -395,7 +511,7 @@ function groveCanopy(stage) {
   const bottomAt = x => { for (let y = Math.floor(H * .78); y > 0; y--) if (TIER[y * W + x] >= 0) return y; return -1; };
   for (let x = 0; x < W; x++) {
     const bottom = bottomAt(x); if (bottom < 0) continue;
-    for (let y = bottom - Math.floor(16 / s); y <= bottom; y++) if (y > 0 && TIER[y * W + x] >= 0) TIER[y * W + x] = y > bottom - 7 / s ? 1 : Math.min(TIER[y * W + x], 2);
+    for (let y = bottom - Math.floor(16 / s); y <= bottom; y++) if (y > 0 && TIER[y * W + x] >= 0) TIER[y * W + x] = y > bottom - 7 / s ? 2 : Math.min(TIER[y * W + x], 3);  // a dark green belly, not black
   }
   for (let X = 4; X < W; X += Math.round(30 / s)) {
     if (hash(X, 0, seed + 5) > .55) continue;
@@ -403,19 +519,59 @@ function groveCanopy(stage) {
     const w = (5 + hash(X, 1, seed + 5) * 6) / s, len = (8 + hash(X, 2, seed + 5) ** 2 * 44) / s;
     crownDrip(X, bottom - w * .5, len, w, X).forEach(([bx, by, rx, ry]) => {
       for (let y = Math.floor(by - ry); y <= by + ry; y++) for (let x = Math.floor(bx - rx); x <= bx + rx; x++)
-        if (x >= 0 && y >= 0 && x < W && y < H && ((x + .5 - bx) / rx) ** 2 + ((y + .5 - by) / ry) ** 2 <= 1) TIER[y * W + x] = 1;
+        if (x >= 0 && y >= 0 && x < W && y < H && ((x + .5 - bx) / rx) ** 2 + ((y + .5 - by) / ry) ** 2 <= 1) TIER[y * W + x] = 2;
     });
   }
   for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
     const t = TIER[y * W + x]; if (t < 0) continue;
-    L.set(x, y, P[t === 5 && hash(x, y, seed + 6) < .03 ? 6 : t]);  // sparse bright sparks on the lit tops
+    // The deepest shade is a checker of near-black and Deepmoss, so it reads as leafy shadow (dark
+    // green from afar), never as the sky showing through.
+    L.set(x, y, t === 1 ? ((x + y) % 2 ? P[0] : P[2]) : (t >= 5 && y * s < 300 && hash(x, y, seed + 6) < .08 ? HW.Leaf : P[t]));  // bright Leaf only on the crown's topmost clusters
   }
   const small = new Img(W, H); small.stamp(L, P[0]);
   for (let y = 1; y < H - 1; y++) for (let x = 1; x < W - 1; x++)
-    if (L.alpha(x, y) && !L.alpha(x + 1, y - 1) && L.alpha(x - 1, y + 1)) small.set(x, y, HW.Moss);  // moonlit edge
+    if (L.alpha(x, y) && !L.alpha(x - 1, y - 1) && !L.alpha(x - 3, y - 3) && !L.alpha(x - 6, y - 6) && L.alpha(x + 1, y + 1) && y * s < 420 && hash(x, y, 35) < .8) small.set(x, y, HW.Gold);  // only the outer edge, not every gap  // warm rim where the light catches the upper-left edge
   // Scale up 2× into the tree's space.
   const out = new Img(GW, GH);
   for (let y = 0; y < GH; y++) for (let x = 0; x < GW; x++) { const X = x / s | 0, Y = y / s | 0; if (small.alpha(X, Y)) out.set(x, y, small.get(X, Y)); }
+  // The same cool veil over the crown, faint at the top, a little thicker at its underside.
+  for (let y = 0; y < GH; y++) for (let x = 0; x < GW; x++) {
+    if (!out.alpha(x, y)) continue;
+    const d = clamp((y - 150) / 500, 0, 1) * (.5 + pnoise(x, y, 60, 102) * .6);
+    if (bay(x, y) < d * .22) out.set(x, y, d > .55 ? HW.Pool : HW.Dusk);
+  }
+  // Violet dream mist drifting across the crown itself, over the leaves (the shape stays the same for
+  // the node layout, which reads this layer).
+  for (const [cy, h, seed, dens] of [[210, 40, 121, .22], [360, 46, 122, .32], [490, 44, 123, .48]]) for (let y = cy - h * 2; y < cy + h * 2; y++) for (let x = 0; x < GW; x++) {
+    if (y < 0 || !out.alpha(x, y)) continue;
+    const wob = (pnoise(x, 0, 90, seed + 2) - .5) * h * 1.2, yy = y - wob;
+    const band = clamp(1 - Math.abs(yy - cy) / h, 0, 1) ** 1.5, n = pnoise(x * .6, yy, 34, seed) * .75 + pnoise(x, yy, 12, seed + 1) * .25;
+    const d = band * clamp((n - .36) * 2.6, 0, 1);
+    if (d > 0 && bay(x, y) < d * dens) out.set(x, y, d > .8 ? HW.Shade : HW.Dusk);  // muted: mostly dusk, violet only at the cores
+  }
+  // A wisp of mist drifting in front of the crown's underside and the top of the trunk, continuing
+  // across the open fog (this layer is drawn over the limbs and trunk).
+  for (let y = 560; y < 640; y++) for (let x = 0; x < GW; x++) {
+    if (!out.alpha(x, y)) continue;  // only over the leaves: the open-air part is in grove_tree.png (the layout reads this layer's shape)
+    const band = Math.sin(Math.PI * (y - 560) / 80) ** 2, n = pnoise(x * .35, y, 26, 113) * .8 + pnoise(x, y, 9, 114) * .2;
+    const d = band * clamp((n - .32) * 2.4, 0, 1);
+    if (d > 0 && bay(x, y) < d * .4) out.set(x, y, d > .8 ? HW.Shade : HW.Dusk);
+  }
+  // Long swamp-moss drapes hanging from the crown.
+  for (let k = 0; k < 140; k++) {
+    const x = 70 + hash(k, 1, 99) * 1140 | 0; let y = 600; while (y > 60 && !out.alpha(x, y)) y--;
+    if (y < 150 || hash(k, 2, 99) < .3) continue;
+    const len = 20 + hash(k, 3, 99) ** 1.5 * 90;
+    for (let i = 0; i < len; i++) { const xx = x + Math.round(Math.sin(i * .12 + k) * 2); out.set(xx, y + i, i > len * .75 ? HW.Deepmoss : i % 4 ? HW.Moss : HW.Deepmoss); if (i % 6 === 3) out.set(xx + (k % 2 ? 1 : -1), y + i, HW.Leaf); }
+  }
+  // Dream motes floating in and round the crown: tiny gold and pale-violet crosses (opaque, 1 px arms),
+  // small enough never to read as nodes; more of them the fuller the tree.
+  for (let k = 0; k < 70 + stage * 30; k++) {
+    const x = 20 + hash(k, 1, 77) * 1240 | 0, y = 30 + hash(k, 2, 77) * 820 | 0, gold = k % 3 !== 0, open = !out.alpha(x, y);
+    if (open) for (const [r, a] of [[3.5, .3], [2.5, .5]]) ellipse(out, x, y, r, r, (xx, yy) => out.alpha(xx, yy) ? null : CA(gold ? HW.Gold : HW.Wraithlight, a));
+    out.set(x, y, gold ? HW.Heartlight : HW.Moonlight);
+    if (k % 2 || open) for (const [a, b] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) out.set(x + a, y + b, gold ? HW.Glow : HW.Wraithlight);
+  }
   // Dream-leaves catch the light: more of them, brighter, the fuller the tree.
   for (let k = 0; k < 20 + stage * 60; k++) {
     const c = shown[Math.floor(hash(k, 5, 831) * shown.length)], x = Math.floor(c[0] * s), y = Math.floor((c[1] - c[2] * .3) * s);

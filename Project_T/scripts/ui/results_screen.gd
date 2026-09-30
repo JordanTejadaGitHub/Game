@@ -57,7 +57,7 @@ func _on_run_ended(won: bool) -> void:
 
 func _build(won: bool) -> void:
 	var dim := ColorRect.new()
-	dim.color = Color(0.03, 0.05, 0.06, 0.8)
+	dim.color = Color(UiStyle.FOG, 0.8)
 	dim.set_anchors_preset(Control.PRESET_FULL_RECT)
 	add_child(dim)
 	var center := CenterContainer.new()
@@ -73,14 +73,14 @@ func _build(won: bool) -> void:
 	var demo_end := won and is_demo()
 	# Runs go to the Hollow Oak at drift 100, in the demo too (demo_scope.md).
 	var title := "The Hollow Oak is dispelled" if won else "The dream goes dark"
-	_label(box, title, 28, Color(0.9, 1.0, 0.85))
+	_label(box, title, 28, UiStyle.INK)
 	if not won:
-		_label(box, "The Heartwood sinks into dreamless sleep. A seed falls, and remembers.", 16, Color(0.8, 0.85, 0.8), true)
+		_label(box, "The Heartwood sinks into dreamless sleep. A seed falls, and remembers.", 16, UiStyle.WHISPER, true)
 	if demo_end:
-		_label(box, "“%s”" % MEMORY_1, 16, Color(0.85, 0.8, 1.0), true)
+		_label(box, "“%s”" % MEMORY_1, 16, Palette.DEWLIGHT, true)
 
 	box.add_child(HSeparator.new())
-	_label(box, get_stats_text(), 15, Color(0.85, 0.88, 0.85), true)
+	_label(box, get_stats_text(), 15, UiStyle.MOONLIGHT, true)
 	# The run report (screens_ui.md "Combat feedback"): top Wardens and the most-used combos.
 	var tracker := get_tree().get_first_node_in_group(ReactionTracker.GROUP) as ReactionTracker
 	if DamageLog.instance != null and not DamageLog.instance.get_top_towers("run", 1).is_empty():
@@ -89,27 +89,27 @@ func _build(won: bool) -> void:
 		var kin := RestReport.kinship_text(combos.kin_formed_run, combos.harmony_run, combos.whole_run) if combos else ""
 		box.add_child(StatusLinks.make_label(RestReport.get_report_text(DamageLog.instance, "run",
 			DamageLog.instance.combo_counts_run, "Wardens this run", tracker.counts if tracker else {},
-			tracker.longest_chain if tracker else 0) + kin + support_lines(), 14, Color(0.8, 0.9, 1.0)))
+			tracker.longest_chain if tracker else 0) + kin + support_lines(), 14, UiStyle.MOONLIGHT))
 	box.add_child(HSeparator.new())
 	for line in breakdown:
 		var row := HBoxContainer.new()
-		var name_label := _label(row, line[0], 16, Color.WHITE)
+		var name_label := _label(row, line[0], 16, UiStyle.INK)
 		name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		_label(row, "+%d Seeds" % line[1] if line[0] != "Total" else "%d Seeds" % line[1], 16,
-			Color(0.75, 0.95, 0.6))
+			UiStyle.LIVE)
 		box.add_child(row)
 	box.add_child(HSeparator.new())
 	if not_banked:
 		_label(box, "%s: nothing was banked." % ("Test Grove" if TestGrove.is_active() else "Developer run"), 15,
-			Color(1.0, 0.75, 0.4))
+			UiStyle.GOLD)
 
 	if is_demo():
 		# The Memory Grove teaser: asleep in the demo, waiting in the full game.
-		_label(box, "The Memory Grove sleeps.", 18, Color(0.6, 0.65, 0.6))
+		_label(box, "The Memory Grove sleeps.", 18, Palette.PATH)
 		_label(box, "In the full game, every run grows your Memory Grove. Your %d Seeds will be waiting." % banked,
-			15, Color(0.7, 0.75, 0.7), true)
+			15, UiStyle.INK_DIM, true)
 	else:
-		_label(box, "Seeds banked: %d" % banked, 16, Color(0.75, 0.95, 0.6))
+		_label(box, "Seeds banked: %d" % banked, 16, UiStyle.LIVE)
 
 	var buttons := HBoxContainer.new()
 	buttons.alignment = BoxContainer.ALIGNMENT_CENTER
@@ -124,6 +124,13 @@ func _build(won: bool) -> void:
 	if not is_demo():  # screens_ui.md: Results → Memory Grove
 		_button(buttons, "Memory Grove").pressed.connect(func() -> void:
 			get_tree().change_scene_to_file("res://scenes/grove.tscn"))
+	var copy := _button(buttons, "Copy run report")  # For the design chat (RunHistory.report_text)
+	copy.tooltip_text = "Copies this run's numbers as text."
+	copy.pressed.connect(func() -> void:
+		var history := get_tree().get_first_node_in_group(RunHistory.GROUP) as RunHistory
+		if history != null:
+			DisplayServer.clipboard_set(RunHistory.report_text(history.run))
+			copy.text = "Copied")
 	_button(buttons, "New run").pressed.connect(func() -> void: get_tree().reload_current_scene())
 	_button(buttons, "Title").pressed.connect(func() -> void: get_tree().change_scene_to_file(TITLE_SCENE))
 

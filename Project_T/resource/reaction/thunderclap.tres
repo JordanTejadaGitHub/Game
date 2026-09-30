@@ -8,6 +8,6 @@ id = &"thunderclap"
 display_name = "Thunderclap"
 statuses = Array[StringName]([&"damp", &"static"])
 description = "Soaked + 3 Charged: ×4 damage, and lightning arcs to every Soaked nightmare nearby, adding 1 Charged."
-callout_color = Color(0.749, 0.878, 1, 1)
+callout_color = Color(0.8627451, 0.9098039, 0.95686275, 1)
 effect = &"thunderclap"
 effect_scale = 1.75

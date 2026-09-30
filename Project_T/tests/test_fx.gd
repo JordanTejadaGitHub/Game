@@ -2,7 +2,7 @@ extends SceneTree
 
 # Headless test for the combat effects player (scripts/fx/fx.gd): every sheet in effects.json
 # plays and frees itself, loops last their `seconds`, segments stretch, the ~6/s budget and
-# reduce-flashes swap in _lite sheets, and chains show the badge, surge and Dawnburst and restore
+# reduce-flashes swap in _lite sheets, and chains show the badge, a local burst and Dawnburst and restore
 # the game speed after the hitstop. Run:
 #   godot --headless --path . --script res://tests/test_fx.gd --fixed-fps 60
 
@@ -93,7 +93,8 @@ func _run() -> void:
 	layers_before = _canvas_layers()
 	Fx.chain(5, Vector2(100, 100), world)
 	_check(Engine.time_scale < 0.1, "x5 hitstops")
-	_check(_canvas_layers() == layers_before + 1, "x5 surges the screen")
+	_check(_canvas_layers() == layers_before and world.get_children().any(func(n) -> bool: return n is Fx.FxRing),
+		"x5: a local gold burst, never a whole-screen tint")
 	await create_timer(0.3, true, false, true).timeout
 	_check(is_equal_approx(Engine.time_scale, 1.0), "the game speed comes back after the hitstop")
 	await create_timer(0.6, true, false, true).timeout

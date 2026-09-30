@@ -12,7 +12,7 @@ signal damage_dealt(event: Event)
 
 const DPS_WINDOW := 5.0  # Seconds of recent events kept for damage-per-second
 const HARMONY_TAG := &"harmony"
-const HARMONY_COLOR := Color(0.55, 1.0, 0.55)
+const HARMONY_COLOR := Palette.SPRIG
 const HARMONY_MERGE_WINDOW := 0.3  # Seconds: a Harmony strike right after its hit
 
 # Combo tags (combo_amount = the part of the hit the combo added):
@@ -251,16 +251,16 @@ func _show_number(event: Event) -> void:
 		or event.amount >= event.enemy.max_health * 0.1
 	if numbers_mode == NumbersMode.BIG and not big:
 		return
-	var color := Color(1, 1, 1)
+	var color := Palette.HEARTLIGHT
 	var size := 14
 	if event.combos.has(&"crit"):
-		color = Color(1.0, 0.85, 0.3)
+		color = Palette.GLOW
 		size = 20
 	elif event.combos.has(&"weak") or event.combos.has(&"conducted") or event.combos.has(&"popped"):
-		color = Color(1.0, 1.0, 0.6)
+		color = Palette.NEWLEAF
 		size = 17
 	elif event.family_multiplier < 1.0:
-		color = Color(0.65, 0.65, 0.7)
+		color = Palette.MIST
 		size = 12
 	if event.kind == &"status":
 		size = 11
@@ -357,7 +357,7 @@ class FloatingNumber:
 		var width := font.get_string_size(_text, HORIZONTAL_ALIGNMENT_LEFT, -1, _size).x
 		WorldLabel.begin_screen_size(self, Vector2.ZERO)  # Keeps its screen size past 1× zoom
 		draw_string_outline(font, Vector2(-width / 2, 0), _text, HORIZONTAL_ALIGNMENT_LEFT, -1, _size, 4,
-			Color(0.05, 0.05, 0.08, alpha))
+			Color(Palette.DREAD, alpha))
 		draw_string(font, Vector2(-width / 2, 0), _text, HORIZONTAL_ALIGNMENT_LEFT, -1, _size,
 			Color(_color, alpha))
 		WorldLabel.end_screen_size(self)

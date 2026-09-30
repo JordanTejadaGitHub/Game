@@ -8,18 +8,18 @@
 [resource]
 script = ExtResource("1_tdata")
 display_name = "Starcave"
-description = "A bigger lit area; Held lasts twice as long on lit tiles, and hidden nightmares show in the light."
+description = "A bigger lit area; Held lasts three times as long on lit tiles, and hidden nightmares show in the light."
 cost = 0
 texture = ExtResource("2_tex")
 frame_count = 8
 line = "root"
 tier = 3
 buildable_directly = false
-evolve_cost = 200
+evolve_cost = 300
 attack_kind = 12
-lit_hold_multiplier = 2.0
+lit_hold_multiplier = 3.0
 attack_range = 4.0
-damage = 24
+damage = 58
 attacks_per_second = 1.0
 status_duration = 3.2
 crit_chance = 0.05

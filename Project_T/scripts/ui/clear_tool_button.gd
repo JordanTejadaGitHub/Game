@@ -14,9 +14,9 @@ const ICON_SHEET := preload("res://assets/ui/clear_tool.png")
 const FRAME_LOCKED := 0
 const FRAME_AVAILABLE := 1
 const FRAME_ACTIVE := 2
-const SPROUT_COLOR := Color(0.55, 0.85, 0.4)
-const LOCKED_TINT := Color(0.5, 0.5, 0.55)
-const BADGE_COLOR := Color(0.75, 0.95, 0.6)
+const SPROUT_COLOR := Palette.SPRIG
+const LOCKED_TINT := UiStyle.OFF
+const BADGE_COLOR := UiStyle.LIVE
 
 var clearer: ObstacleClearer
 var run_state: RunState
@@ -42,7 +42,7 @@ func _ready() -> void:
 	add_theme_constant_override("icon_max_width", 34)
 	add_theme_font_size_override("font_size", 14)
 	_update_icon()
-	tooltip_text = "Clear tool (0 / C): tend withered trees and move boulders."
+	tooltip_text = "Clear tool (0 / C): Tend Withered Trees and move Mossy Boulders."
 	pressed.connect(toggle_tool)
 	clearer.tool_changed.connect(func(active: bool) -> void: set_pressed_no_signal(active))
 	clearer.tool_refused.connect(func() -> void: toast.call(LOCKED_TEXT))
@@ -116,5 +116,5 @@ func _draw() -> void:
 		_text(font, Vector2(size.x - 14, 12), str(run_state.free_clears), 11, BADGE_COLOR)
 
 func _text(font: Font, at: Vector2, text: String, font_size: int, colour: Color) -> void:
-	draw_string_outline(font, at, text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size, 4, Color(0.05, 0.06, 0.08))
+	draw_string_outline(font, at, text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size, 4, Palette.DREAD)
 	draw_string(font, at, text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size, colour)

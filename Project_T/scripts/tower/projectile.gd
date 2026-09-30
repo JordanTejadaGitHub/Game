@@ -22,6 +22,7 @@ var _on_land: Callable
 var _anim_time := 0.0
 # Swoop (Nestling line): after landing, fly back to `_home` (world position) and then vanish.
 var _returns := false
+var return_multiplier := 1.0  # Homing Instinct (Dream): swoops fly home faster
 var _home := Vector2.ZERO
 var _returning := false
 # Lob (Cairn): flies over walls in a high arc to the tile the target was on when fired, and lands
@@ -65,7 +66,7 @@ func _process(delta: float) -> void:
 		if global_position.distance_to(_home) <= step:
 			queue_free()
 			return
-		_fly_toward(_home, step, delta)
+		_fly_toward(_home, step * return_multiplier, delta)
 		return
 
 	var target_alive: bool = is_instance_valid(_target) and not _target.is_cleansed
@@ -106,7 +107,7 @@ func _draw() -> void:
 		var t := float(i + 1) / (_trail.size() + 1)
 		draw_circle(to_local(_trail[i]), 1.5 + 2.0 * t, Color(trail, trail.a * 0.55 * t))
 	if _lob:
-		draw_circle(Vector2.ZERO, RADIUS * (1.0 - lift / (_lob_height * 2.0)), Color(0, 0, 0, 0.25))  # Its shadow
+		draw_circle(Vector2.ZERO, RADIUS * (1.0 - lift / (_lob_height * 2.0)), Color(Palette.VOID, 0.25))  # Its shadow
 	var at := Vector2(0, -lift)
 	if texture == null:
 		draw_circle(at, RADIUS, color.darkened(0.3))

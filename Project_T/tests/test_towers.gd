@@ -154,6 +154,9 @@ func _run() -> void:
 	_check(TowerPlacer.is_edge_cell(Vector2(0, 5)) and TowerPlacer.is_edge_cell(Vector2(5, Tower.MAP_GRID.size.y - 1))
 		and not TowerPlacer.is_edge_cell(Vector2(5, 5)), "the island's rim is \"the dream's edge\"")
 	print("towers test: %s" % ("PASS" if failures == 0 else "%d FAILED" % failures))
+	main.queue_free()  # Free the run before quitting (a live scene at exit segfaulted now and then)
+	await process_frame
+	await process_frame
 	quit(failures)
 
 func _check(condition: bool, label: String) -> void:

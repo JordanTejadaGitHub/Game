@@ -137,6 +137,18 @@ static func _load() -> void:
 static var _checked_frame := -1
 static var _checked := {}  # "enemy id:status:stacks" -> true, this frame
 
+# Reactions need a grown Warden (tower_design.md "Reactions"): at least one of a Reaction's statuses must
+# come from a branch or final form (tier 2+). Base Wardens still apply statuses but never react. A status
+# whose source isn't a Warden (a Dream, another Reaction) doesn't block it. Crowned follow their base.
+static func grown(s: EnemyStatuses, ids: Array) -> bool:
+	for id in ids:
+		if not s.has(id) and not (id == HELD and s.is_held()):
+			continue
+		var who: Node = s.source(id)
+		if not (who is Tower) or who.tower_data.tier >= 2:
+			return true
+	return false
+
 static func on_status(enemy: Node2D, _id: StringName, source: Node) -> void:
 	if not is_instance_valid(enemy) or enemy.is_cleansed:
 		return
@@ -152,22 +164,22 @@ static func on_status(enemy: Node2D, _id: StringName, source: Node) -> void:
 		return
 	_checked[key] = true
 	var static_needed := THUNDERCLAP_STATIC_BOSS if s.is_boss else THUNDERCLAP_STATIC
-	if s.has(DAMP) and s.stacks(STATIC) >= static_needed:
+	if s.has(DAMP) and s.stacks(STATIC) >= static_needed and grown(s, [DAMP, STATIC]):
 		_thunderclap(enemy, source)
 	if enemy.is_cleansed:
 		return
-	if s.stacks(SPORED) >= IGNITE_MIN_SPORES and s.has(STATIC):
+	if s.stacks(SPORED) >= IGNITE_MIN_SPORES and s.has(STATIC) and grown(s, [SPORED, STATIC]):
 		_ignite(enemy, source)
 	if enemy.is_cleansed:
 		return
-	if s.stacks(SPORED) >= MUSHROOM_MIN_SPORES and s.has(DAMP):
+	if s.stacks(SPORED) >= MUSHROOM_MIN_SPORES and s.has(DAMP) and grown(s, [SPORED, DAMP]):
 		_mushrooming(enemy, source)
-	if s.has(DAMP) and s.has(DROWSY) and s.stacks(DROWSY) >= s.get_max_stacks(DROWSY):
+	if s.has(DAMP) and s.has(DROWSY) and s.stacks(DROWSY) >= s.get_max_stacks(DROWSY) and grown(s, [DAMP, DROWSY]):
 		_drown(enemy, source)
 	if s.has(MARKED) and (s.is_held() or is_asleep(enemy) \
-			or (s.has(DROWSY) and s.stacks(DROWSY) >= s.get_max_stacks(DROWSY))):
+			or (s.has(DROWSY) and s.stacks(DROWSY) >= s.get_max_stacks(DROWSY))) and grown(s, [MARKED, HELD, DROWSY]):
 		_pinned(enemy, source)
-	if s.is_held() and s.has(SPORED):
+	if s.is_held() and s.has(SPORED) and grown(s, [HELD, SPORED]):
 		_smother(enemy, source)
 
 # --- Potency (tower_design.md "Potency: effect damage") ---------------------------------------------
@@ -271,7 +283,7 @@ static func before_hit(enemy: Node2D, tower: Tower, is_crit: bool) -> Dictionary
 		if s.has(STATIC):
 			_starfall(enemy, tower)
 	var heavy: bool = tower.tower_data.line == "stone" or tower.attack_data.has_target_priority
-	if s.is_held() and s.has(DAMP) and (result.crit or heavy):
+	if s.is_held() and s.has(DAMP) and (result.crit or heavy) and grown(s, [HELD, DAMP]):
 		# Crowned: a lob's Shatter becomes an Avalanche, a charged one a Prismstorm.
 		var id := &"shatter"
 		if tower.attack_data.lob:
@@ -353,6 +365,10 @@ static func shatter_splash(enemy: Node2D, tower: Tower, dealt: float) -> void:
 # A Static bolt worth `damage` goes off on `target` (a 5-stack bolt, or a Thunderclap arc). A Marked,
 # charged nightmare within 3 cells takes it instead at ×2 (Lightning Rod). Returns who was struck.
 static func strike_bolt(target: Node2D, damage: float, tower: Node, tag: StringName = &"static") -> Node2D:
+	if tag == &"static":
+		var dreams := _dreams(target)
+		if dreams != null and dreams.has_method("get_bolt_multiplier"):
+			damage *= dreams.get_bolt_multiplier()  # Live Wire (Dream): Charged bolts +15% per stack
 	var rod := _find_rod(target)
 	if rod == null:
 		var at := target.global_position
@@ -386,7 +402,7 @@ static func _find_rod(near: Node2D) -> Node2D:
 	var best: Node2D = null
 	var best_distance := INF
 	for other in _field(near):
-		if not other.statuses.has(MARKED) or not other.statuses.has(STATIC):
+		if not other.statuses.has(MARKED) or not other.statuses.has(STATIC) or not grown(other.statuses, [MARKED, STATIC]):
 			continue
 		var distance: float = other.global_position.distance_to(near.global_position)
 		if distance <= ROD_REACH * CELL and distance < best_distance:

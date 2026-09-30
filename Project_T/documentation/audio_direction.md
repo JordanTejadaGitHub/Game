@@ -88,14 +88,40 @@ Each drift track is written as **synced stems** that fade in and out on bar line
 ### The dispel (the most important sound in the game)
 
 Three parts, about 0.5 s, all rounded (revised after the second listen: the shriek and the crackle
-were too sharp):
+were too sharp; revised again on 2026-09-30: it sounded like **thunder or lightning**).
 
-1. **Sigh:** the nightmare's cold breath going out of it. A short, breathy, falling exhale (a low vocal
-   formant, lowpassed near 1.5 kHz), pitched by size. Unsettling, not a scream.
-2. **Dissolve:** a soft, muffled *whumpf* as the shadow comes apart: low body (~100–200 Hz) with a
-   gentle airy swell. No glass or ice crackle.
-3. **Release:** the dream settling: a quiet, warm exhale or a low hummed tone in the music's key,
-   fading over ~0.5 s. **No bell or chime** (third listen: chimes read as coins).
+**It must never sound like weather.** Low booms and falling, rumbling noise are the **storm
+vocabulary**, reserved for the light family (Thunderclap, Thunderhead, Stormheart, the Crowned
+Tempest). The dispel is a **voice coming undone**: breath, a ghostly vowel, a reversed swell. It
+lives in the mid range (~250 Hz–1.5 kHz) with **no sub or low boom** and **no downward noise sweeps**.
+
+**Releasing a soul** (fifth listen, 2026-09-30: "should sound like releasing a soul"). Every
+nightmare is a dream the Hollow twisted; dispelling it **sets that dream free**, and its motes drift
+up (story.md). The sound is one arc: **cold → warm, held → rising, one voice becoming air.** About
+1 s in total, but the last half is very quiet, so it never crowds the mix.
+
+1. **Last breath** (cold, ~0.2 s): the nightmare's cold breath going out: a short, **voiced** exhale
+   (a ghostly "haah", slightly detuned, lowpassed near 1.5 kHz), pitched by size. Unsettling, not a scream.
+2. **Unbinding** (~0.15 s): the shadow letting go: a **short reversed swell**, like a breath pulled
+   *in* backwards, cut off softly. Nothing falling, nothing booming.
+3. **Rising** (warm, the heart of it, ~0.6–0.8 s): the freed soul floating up. A single soft,
+   warm **sung vowel** ("ooh" turning to "ahh") that **glides gently upward once** (about a fourth,
+   landing on a note of the D chord) while its filter opens and it **thins into air**, with a faint,
+   lowpassed breath of motes around it (no sparkle, no tinkle). It starts where the cold sigh ends,
+   so you hear the cold voice turn warm and leave. **No bell or chime**, and no hum sitting still.
+
+- **Many at once:** each dispel's glide is its own small rise and never steps up across dispels (no
+  climbing combo). Overlapping dispels become a **soft chorus of rising voices**, voice-limited and
+  quieter each, which should sound beautiful, not busy.
+- **Deeply Blighted:** a slower, deeper last breath and **two voices** rising (a fifth apart).
+- **Bosses:** the stolen memory set free: the boss's own dispel, then a **full warm choir** rising
+  and opening into the Memory moment (the boss dispel is where the Heartwood gets a memory back).
+- **Its opposite is the leaf lost** (the dream being taken): keep that one falling, cold and hollow,
+  so the two read as a pair.
+
+- **No music duck on normal dispels** (they're frequent; ducking on every kill pumped like a
+  thunderclap). Only bosses, lost leaves and the big moments duck.
+- **Size** changes the voice (bigger nightmares: a lower, slower sigh), never adds low end.
 
 **Not a reward sound.** A dispel sounds like a nightmare ending, never like getting paid:
 - **No climbing combo.** When several dispels land close together they blend into one fuller, softer
@@ -420,6 +446,29 @@ Dream screen opening: a breath in and a shimmer; card reveal chimes by rarity (C
 note, Rare a hummed choir, Legendary a full choir chord). Family pick: a deep warm bell. Omen: wind.
 Rest starting: the music exhales and the ambience calms. Buttons: soft wooden clicks.
 
+### The Remember screen (unlocking Wardens with Dreamlight, 2026-09-30)
+
+Unlocking a Warden here is **the Heartwood remembering one of its guardians**. It should feel like a
+memory coming back: warm, a little magical, and clearly bigger than a button click. It's also the
+sister of the dispel: there a twisted dream is set free, here a lost one comes home.
+
+| Moment | Sound |
+|---|---|
+| Open the Remember screen | a slow **breath in**; the music muffles like other choice screens |
+| Select / tap a node | a soft woody tap (like a button, a little warmer); no hover-only sound (touch) |
+| Can't unlock (not enough Dreamlight, or its branch first) | the muted wooden knock (invalid), soft |
+| **Unlock a branch form** | the **memory returning**: a warm swell travels along the gold line from the root to the node (a soft rising breath, panned along the line where it can be), then the node **blooms**: that family's **material** (spore breath, stone settling, water welling, warm glow, root creak, low bell hum, bark, wingbeat, gust) + a warm **sung note** in key, ~1 s |
+| **Unlock a final form** | the same, fuller: two sung notes (a fifth), a longer bloom (~1.5 s) |
+| **Unlock an Ascended form** | the same, then the **crown** layer (the shared warm choir swell of the Crowned Reactions) and a slow, deep swell of the family's material; the biggest moment on this screen (~2.5 s) |
+| Dreamlight spent (the counter going down) | no separate sound (the unlock is the sound) |
+| Close | a soft breath out; the music opens back up |
+
+- Unlocks are rare and chosen, so they can be **fuller and longer** than in-run sounds.
+- Every unlock uses the **Warden's own family material**, so a Rain Lily unlock sounds like water
+  coming home and a Mossback like stone settling.
+- **Dreamlight earned** (a boss, a shard, the Sapling ripening): a slow, warm **glow swell** with a
+  faint hummed note (the same as the Sapling's ripening), so the currency has one consistent sound.
+
 ## Ambience
 
 A night forest bed per act (wind, leaves, insects in summer, dripping in autumn fog, creaking ice
@@ -448,8 +497,8 @@ Music slider controls both). Rules for it:
   −10 dB under the music. Default settings: Sounds 100%, Music **55%** (was 80%).
 - **SFX bus softening** (safety net, not a substitute for rounded sounds): a gentle high shelf
   (about −6 dB above ~6 kHz) and a soft limiter on SFX and UI, so stacked hits can't turn sharp.
-- **Ducking:** the music dips ~4 dB for about half a second under a dispel, and ~8 dB for about a
-  second under a lost leaf and boss moments (roar, charge, dispel). The ambience ducks along with it.
+- **Ducking:** the music dips ~8 dB for about a
+  second under a lost leaf and boss moments (roar, charge, dispel), ~3 dB for Ascended and Crowned moments. **Not** under normal dispels (2026-09-30). The ambience ducks along with it.
 - **Music by phase:** during drifts the music plays ~3 dB lower than at rests, so combat owns the
   space and the rest is the exhale. The dread layers are also quieter than the warm base; they add
   tension, not volume. Adding layers must never make the music louder overall.
@@ -516,6 +565,12 @@ rustles hurt the ear.
 |---|---|---|
 | The Sprout's shot sounds chiptune (Firefly Jar fine) | the Sprout's shot is a plucked synth tone, pitched in a melody, fired constantly (it's the most-built Warden) | Sprout becomes a leafy flick + a wooden twig tap made from noise through woody resonances, no tone; new rule **Organic, never chiptune** for all future Warden sounds; final versions are recorded foley |
 | Kills sound like coins | every kill played the dispel + a bell chime that climbed a scale in combos + a two-bell Dew tinkle | release is a warm exhale / low hum, no bell; no climbing combo; no Dew sound per kill (lump sums only, soft) |
+
+**Fourth listen (2026-09-30):** defeating nightmares sounds too close to lightning or thunder.
+
+| Problem | Cause in the placeholder | Change |
+|---|---|---|
+| The dispel sounds like thunder | a falling band of noise (the sigh) + a falling low tone 200→100 Hz with a noise swell (the "whumpf") + a release with another falling noise sweep = the recipe for distant thunder; plus a 4 dB music duck on every kill, pumping like a thunderclap; and it shares the low whumpf + rumble with Thunderclap | dispel = voiced sigh + **reversed "unravel" swell** + a warm hum; mid range only, no sub, no downward noise sweeps; no duck on normal dispels; storm sounds (booms, rumbles) reserved for the light family |
 
 Open question: whether every attack keeps a launch sound, or only the slower, heavier Wardens
 (Pebbling, Rootling) do and the fast ones are hit-only. Default: all keep it, very quiet (mostly air).

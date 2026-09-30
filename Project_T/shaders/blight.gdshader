@@ -19,7 +19,8 @@ uniform vec4 outline_color : source_color = vec4(0.0);
 
 // 0 = whole, 1 = cracked through with light (dispel).
 uniform float crack : hint_range(0.0, 1.0) = 0.0;
-uniform vec3 crack_color : source_color = vec3(1.0, 0.93, 0.66);
+// Heartwood 32 "Glow" #fcd47c: the Wardens' light breaking through (same as the dispel motes).
+uniform vec3 crack_color : source_color = vec3(0.988, 0.831, 0.486);
 uniform float crack_cell_px = 9.0;  // Size of the cracked shards, in texture pixels
 
 vec2 hash2(vec2 p) {

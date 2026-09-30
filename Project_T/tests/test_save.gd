@@ -58,6 +58,12 @@ func _run() -> void:
 		"cleansed": run_state.creatures_cleansed, "tended": run_state.obstacles_tended}
 	var rolled := _drift_prints(director)  # Random drifts: the resumed run must meet the same ones
 	_check(RunSaver.has_save(), "a rest autosaves")
+	# The run history's record rides in the save (a Save & quit run is recorded whole).
+	var saved_file = JSON.parse_string(FileAccess.get_file_as_string(RUN_PATH))
+	var history_rows := -1
+	if saved_file is Dictionary and saved_file.has("history"):
+		history_rows = saved_file.history.run.drifts.size()
+	_check(history_rows >= 1, "the save carries the run history's record (%d drift rows)" % history_rows)
 	main.queue_free()
 	await process_frame
 
@@ -70,6 +76,9 @@ func _run() -> void:
 	map_generator = main.get_node("%MapGenerator")
 	dreams = main.get_node("%DreamState")
 	_check(map_generator.map_seed == saved.seed, "the same map is rebuilt")
+	var resumed_history := root.get_tree().get_first_node_in_group(RunHistory.GROUP) as RunHistory
+	_check(resumed_history != null and int(resumed_history.run.get("resumed", 0)) == 1
+		and resumed_history.run.drifts.size() == history_rows, "Continue carries the run history on (resumed once, its drift rows kept)")
 	_check(_drift_prints(director) == rolled and rolled.any(func(p: String) -> bool: return p.begins_with("rolled")),
 		"the same random drifts after Continue")
 	_check(RestReport.templates_text(director, 2).begins_with("\nThis block: ") and RestReport.templates_text(director, 1) == "",

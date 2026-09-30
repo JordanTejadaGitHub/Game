@@ -53,5 +53,5 @@ func _draw() -> void:
 		for i in 7:
 			var at := centre + Vector2(rng.randf_range(-22, 22), rng.randf_range(-18, 18))
 			var size := rng.randf_range(3.0, 6.0)
-			draw_circle(at + Vector2(1, 1.5), size, Color(0.1, 0.08, 0.08, 0.35 * fade))
-			draw_circle(at, size, Color(0.55, 0.52, 0.5, 0.9 * fade))
+			draw_circle(at + Vector2(1, 1.5), size, Color(Palette.ROOT, 0.35 * fade))
+			draw_circle(at, size, Color(Palette.STONE, 0.9 * fade))

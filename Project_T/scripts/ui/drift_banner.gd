@@ -7,7 +7,7 @@ extends Control
 const WIDTH := 460.0
 const PIP_RADIUS := 5.0
 const TEXT_COLOR := UiStyle.INK
-const DIM_COLOR := Color(0.55, 0.6, 0.55)
+const DIM_COLOR := Palette.PATH
 const BOSS_COLOR := UiStyle.BOSS  # Heartwood 32 (ui_style.md)
 const FONT_SIZE := 22
 const SMALL_FONT_SIZE := 16
@@ -32,8 +32,21 @@ func _ready() -> void:
 		if node.get("enemy_data") != null and node.enemy_data.is_boss:
 			_boss = node)
 
-func _process(_delta: float) -> void:
-	queue_redraw()  # Cheap; the numbers change every frame during a boss drift
+# Redrawn when what it shows changes (3× perf pass: it was every frame), and at least every
+# SAFETY_REDRAW s for anything the key misses (pip states).
+const SAFETY_REDRAW := 0.5
+var _shown_key := ""
+var _since_redraw := 0.0
+
+func _process(delta: float) -> void:
+	_since_redraw += delta / maxf(Engine.time_scale, 0.001)
+	var boss_health := int(_boss.health) if is_instance_valid(_boss) and not _boss.is_cleansed else -1
+	var key := "%s|%d|%s|%d|%s" % [get_drift_text(), drift_director.drifts_started, drift_director.is_resting(), boss_health, size]
+	if key == _shown_key and _since_redraw < SAFETY_REDRAW:
+		return
+	_shown_key = key
+	_since_redraw = 0.0
+	queue_redraw()
 
 func _draw() -> void:
 	var font := UiStyle.display_font()  # Moonlit Thread (ui_style.md)
@@ -81,7 +94,7 @@ func _draw() -> void:
 			false, boss_data.tint)
 	var text_x := disc.x + DISC_RADIUS + 8.0
 	var base := row_y + BOSS_FONT_SIZE * 0.35
-	draw_string_outline(font, Vector2(text_x, base), boss_text, HORIZONTAL_ALIGNMENT_LEFT, -1, BOSS_FONT_SIZE, 6, Color(0.05, 0.06, 0.08))
+	draw_string_outline(font, Vector2(text_x, base), boss_text, HORIZONTAL_ALIGNMENT_LEFT, -1, BOSS_FONT_SIZE, 6, Palette.DREAD)
 	draw_string(font, Vector2(text_x, base), boss_text, HORIZONTAL_ALIGNMENT_LEFT, -1, BOSS_FONT_SIZE, UiStyle.GOLD)
 	# Underlined: it (and the portrait) opens the dossier.
 	draw_line(Vector2(text_x, base + 4), Vector2(text_x + text_width, base + 4), Color(UiStyle.GOLD, 0.5), 1.0)
@@ -90,15 +103,15 @@ func _draw() -> void:
 func _draw_boss_bar(font: Font, center_x: float) -> void:
 	var bar := Rect2(center_x - WIDTH / 2.0, 34, WIDTH, 10)
 	var fraction := float(_boss.health) / maxf(_boss.max_health, 1.0)
-	draw_rect(bar.grow(2), Color(0.05, 0.05, 0.08, 0.85))
+	draw_rect(bar.grow(2), Color(Palette.DREAD, 0.85))
 	draw_rect(Rect2(bar.position, Vector2(bar.size.x * fraction, bar.size.y)), BOSS_COLOR)
 	# A marker (with a knob: it's tappable) at every health share an ability starts at.
 	_markers = []
 	var lines := marker_lines()
 	for share in lines:
 		var x := bar.position.x + bar.size.x * float(share)
-		draw_line(Vector2(x, bar.position.y - 3), Vector2(x, bar.end.y + 3), Color.WHITE, 2.0)
-		draw_circle(Vector2(x, bar.position.y - 5), 3.0, Color.WHITE)
+		draw_line(Vector2(x, bar.position.y - 3), Vector2(x, bar.end.y + 3), UiStyle.INK, 2.0)
+		draw_circle(Vector2(x, bar.position.y - 5), 3.0, UiStyle.INK)
 		_markers.append([Rect2(x - 14, bar.position.y - 14, 28, 32), lines[share]])
 	# The rest of the bar (and the name) opens the dossier too.
 	_countdown_rect = Rect2(bar.position.x, bar.position.y - 4, bar.size.x, bar.size.y + 26)
@@ -117,7 +130,10 @@ func _get_tooltip(at: Vector2) -> String:
 	var line := _marker_at(at)
 	if line != "":
 		return line
-	return "Open the boss dossier" if _countdown_rect.has_point(at) else ""
+	var data := _next_boss_data(drift_director.drifts_started)
+	if data == null or not _countdown_rect.has_point(at):
+		return ""
+	return "About %s" % IconInfo.name_in_sentence(data.display_name)
 
 func _gui_input(event: InputEvent) -> void:
 	if not (event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT):
@@ -200,5 +216,5 @@ func _boss_of(number: int) -> EnemyData:
 func _draw_centered(font: Font, text: String, at: Vector2, font_size: int, colour: Color) -> void:
 	var width := font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size).x
 	var origin := Vector2(at.x - width / 2.0, at.y)
-	draw_string_outline(font, origin, text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size, 6, Color(0.05, 0.06, 0.08))
+	draw_string_outline(font, origin, text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size, 6, Palette.DREAD)
 	draw_string(font, origin, text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size, colour)

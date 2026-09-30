@@ -24,8 +24,8 @@ signal selection_changed(towers: Array[Tower])
 
 const MAP_GRID = preload("res://resource/map/map_grid.tres")
 const NO_CELL := Vector2(-1, -1)
-const HIGHLIGHT_COLOR := Color(0.55, 0.85, 1.0)
-const SELECTED_COLOR := Color(1.0, 0.78, 0.42)  # The warm outline on selected Wardens
+const HIGHLIGHT_COLOR := Palette.DEWLIGHT
+const SELECTED_COLOR := Palette.GLOW  # The warm outline on selected Wardens
 const DRAG_THRESHOLD := 8.0  # Screen pixels before a press becomes a box drag
 const BLOOM_TIME := 0.45
 const BLOOM_STAGGER := 0.06  # Seconds between Wardens in a group grow's bloom
@@ -64,12 +64,15 @@ const GROW_OPTION_KEYS: Array[Key] = [KEY_Q, KEY_E, KEY_Z]
 
 # A grow key went down / up: the panel previews that option while it's held.
 signal grow_option_held(index: int, held: bool)
+# R (nurture_warden): the Warden panel arms its rank choices (1–4); Nurture v3 asks every rank.
+signal nurture_asked
 
 func _ready() -> void:
 	# Build mode owns the mouse; selling is available the rest of the time.
 	_ensure_grow_actions()
 	# Buff pips, source threads and the buff lens (screens_ui.md "Buff readability").
 	var overlay := BuffOverlay.new()
+	overlay.name = "BuffOverlay"  # test_perf_stress --breakdown switches it off by name
 	overlay.seller = self
 	overlay.placer = tower_placer
 	overlay.director = drift_director
@@ -101,9 +104,6 @@ func can_sell() -> bool:
 func get_refund(tower: Tower) -> int:
 	var resting := drift_director.is_build_phase()
 	var share := build_phase_refund if resting else drift_refund
-	var dreams := get_tree().get_first_node_in_group(DreamState.GROUP) as DreamState
-	if dreams:
-		share = dreams.get_refund_share(share, resting)  # Fair Trade
 	# Placed this rest (run_design.md "Selling"): Dew spent on it during this rest comes back in full.
 	var fresh := mini(tower.rest_dew, tower.invested_dew) if resting else 0
 	return fresh + int((tower.invested_dew - fresh) * share)
@@ -301,7 +301,7 @@ func grow_group(towers: Array, into: TowerData) -> int:
 # they're left out).
 static func _nurturable(tower, focus: Tower.Focus) -> bool:
 	return is_instance_valid(tower) and tower.can_nurture() \
-		and (tower.focus_options().has(focus) or not tower.needs_focus())  # Only a Focus it can take
+		and (focus == Tower.Focus.NONE or tower.focus_options().has(focus))  # Only a choice it can take
 
 # The Wardens in `towers` that group Nurture would raise one rank each with the Dew there is,
 # nearest the Heartwood first (like group grow), and what that costs: [Array[Tower], cost].
@@ -497,7 +497,7 @@ func _unhandled_input(event: InputEvent) -> void:
 		select(null)
 		get_viewport().set_input_as_handled()
 	elif event.is_action_pressed("nurture_warden") and not selection.is_empty():
-		nurture_group(selection)
+		nurture_asked.emit()  # Every rank is a choice: the panel's 1–4 pick it
 		get_viewport().set_input_as_handled()
 	elif event.is_action_pressed("grow_warden") and not selection.is_empty():
 		grow_selected()
@@ -612,7 +612,7 @@ func _draw() -> void:
 		draw_circle(at, 12.0 + 30.0 * t, Color(SELECTED_COLOR, 0.35 * (1.0 - t)))
 		for i in 6:
 			var dir := Vector2.from_angle(TAU * i / 6.0 + t)
-			draw_circle(at + dir * (10.0 + 26.0 * t), 3.0 * (1.0 - t) + 1.0, Color(1.0, 0.95, 0.7, 1.0 - t))
+			draw_circle(at + dir * (10.0 + 26.0 * t), 3.0 * (1.0 - t) + 1.0, Color(Palette.HEARTLIGHT, 1.0 - t))
 	var armed := get_armed_sell()
 	if not armed.is_empty():
 		# First press during a drift: show the (half) refund; a second press sells.
@@ -622,7 +622,7 @@ func _draw() -> void:
 		var at: Vector2 = armed[0].position
 		WorldLabel.draw_tag(self, at.x, at.y - MAP_GRID.cell_size.y / 2.0 - 8.0,
 			"Press %s again to sell for +%d Dew" % [_sell_key_name(), refund],
-			Color(1.0, 0.8, 0.45))
+			Palette.GLOW)
 	if _dragging:
 		var box := Rect2(_press_world, Vector2.ZERO).expand(get_global_mouse_position())
 		draw_rect(box, Color(SELECTED_COLOR, 0.08))

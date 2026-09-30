@@ -12,7 +12,8 @@ class_name BuffOverlay
 # Made by TowerSeller in the run's scene; drawn on the ground (under Wardens and nightmares).
 
 const GROUP := &"buff_overlay"
-const REDRAW_EVERY := 0.2  # Seconds between redraws while something shows (buffs change slowly)
+const REDRAW_EVERY := 0.5  # Seconds between refreshes of the hovered / selected Warden's threads
+const SIGNATURE_EVERY := 1.0  # Seconds between checks that the board's buffs changed (pips at rests)
 const PIP_RADIUS := 4.5
 const PIP_STEP := 13.0
 const PIP_Y := 36.0  # Below the Warden's cell centre
@@ -29,6 +30,15 @@ var director: DriftDirector
 var container: Node
 var _redraw_left := 0.0
 var _last_key := []
+var _signature := 0
+var _signature_left := 0.0
+
+# What the pips depend on, cheaply: each Warden's form, rank and aura sources.
+func _board_signature() -> int:
+	var parts := []
+	for tower in _towers():
+		parts.append([tower.tower_data.get_instance_id(), tower.rank, tower._aura_sources.size()])
+	return parts.hash()
 
 static func find(near: Node) -> BuffOverlay:
 	if near == null or not near.is_inside_tree():
@@ -47,10 +57,18 @@ func set_lens(on: bool) -> void:
 	lens_changed.emit(on)
 	queue_redraw()
 
+# Performance (test_perf_stress: redrawing every Warden's pips every 0.2 s cost ~75 ms spikes): redraw when
+# what's asked about changes (lens, rest / pause / build mode, hovered / selected Warden, the board), and
+# only the hovered / selected Warden's threads refresh on a timer.
 func _process(delta: float) -> void:
 	_redraw_left -= delta
-	var key := [lens, _show_all(), _focus()]
-	if key != _last_key or (_redraw_left <= 0.0 and _anything_shown()):
+	var focus := _focus()
+	_signature_left -= delta
+	if _signature_left <= 0.0:
+		_signature_left = SIGNATURE_EVERY
+		_signature = _board_signature()
+	var key := [lens, _show_all(), focus, _signature]
+	if key != _last_key or (_redraw_left <= 0.0 and not focus.is_empty()):
 		_last_key = key
 		_redraw_left = REDRAW_EVERY
 		queue_redraw()
@@ -110,7 +128,7 @@ func _draw_pips(tower: Tower) -> void:
 
 # One pip: a shape per kind (not only a colour, for accessibility). Shared with the Warden panel.
 static func draw_pip(canvas: CanvasItem, at: Vector2, kind: String, colour: Color, r: float = PIP_RADIUS) -> void:
-	var dark := Color(0.08, 0.06, 0.04, 0.85)
+	var dark := Color(Palette.DREAD, 0.85)
 	canvas.draw_circle(at, r + 1.5, dark)
 	match kind:
 		"acorn":
@@ -203,12 +221,51 @@ func _draw_lens(towers: Array) -> void:
 			for cell in AuraView.cells(tower.global_position, tower.get_aura_reach()):
 				var c := to_local(Tower.MAP_GRID.calculate_map_position(cell))
 				draw_rect(Rect2(c - Tower.MAP_GRID.cell_size / 2.0, Tower.MAP_GRID.cell_size), Color(colour, LENS_FILL))
+	# Only local sources light a Warden up (auras, Kinships, Kindred / Whole Tree): global Dreams and Nurture
+	# would make the whole map glow (screens_ui.md "The lens button, revised").
 	for tower in towers:
-		var boost := 0.0
-		for entry in BuffSources.for_tower(tower):
-			if entry.stat == "damage" or entry.stat == "attack_speed":
-				boost += entry.amount
-		if absf(boost) > 0.001:
-			var shade := BuffSources.COLORS.penalty if boost < 0.0 else Color(1.0, 0.85, 0.45)
+		var boost := local_boost(tower)
+		if boost > 0.001:
 			draw_circle(to_local(tower.global_position), Tower.MAP_GRID.cell_size.x * 0.42,
-				Color(shade, clampf(absf(boost), 0.08, 0.6)))
+				Color(Palette.GLOW, clampf(boost, 0.08, 0.6)))
+
+# The damage + attack speed a Warden gets from local sources (auras, Kindred / Whole Tree).
+static func local_boost(tower: Tower) -> float:
+	var boost := tower._aura_damage + tower._aura_speed
+	var kin := Kinships.find(tower)
+	if kin != null:
+		boost += kin.family_bonus(tower.tower_data.line)
+		if not kin.get_pairs(tower).is_empty():
+			boost = maxf(boost, 0.1)  # A Kinship bond (traits, no number) still lights it
+	return boost
+
+# For the HUD's Boosts button (Main): true once the map has a local buff source (an aura Warden or a Kinship).
+static func has_local_sources(near: Node) -> bool:
+	var overlay := find(near)
+	if overlay == null:
+		return false
+	for tower in overlay._towers():
+		if AuraView.is_aura(tower.tower_data):
+			return true
+	var kin := Kinships.find(near)
+	return kin != null and not kin.pairs.is_empty()
+
+# The legend under the Boosts button: the local source kinds on the map now, [[kind, colour, name], …].
+# Draw each shape with BuffOverlay.draw_pip(canvas, at, kind, colour).
+static func legend_kinds(near: Node) -> Array:
+	var overlay := find(near)
+	if overlay == null:
+		return []
+	var seen := {}
+	var result := []
+	for tower in overlay._towers():
+		for entry in BuffSources._local_entries(tower):
+			if seen.has(entry.kind):
+				continue
+			seen[entry.kind] = true
+			result.append([entry.kind, BuffSources.color(entry.kind, entry.source), LEGEND_NAMES.get(entry.kind, String(entry.kind).capitalize())])
+	return result
+
+const LEGEND_NAMES := {"acorn": "Acorn", "elder_stump": "Elder Stump", "grove_heart": "Grove Heart",
+	"grandmother_oak": "Grandmother Oak", "old_growth": "Old Growth", "kinship": "Kinship", "kindred": "Kindred",
+	"whole_tree": "Whole Tree"}

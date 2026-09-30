@@ -176,6 +176,18 @@ turn leaks into a hold. Targets for the balance simulation and playtests (averag
   past 10 drifts"). **Revised the same day** (later playtests: "too hard from early drifts, especially 15 with the swarm"): nightmare health **×1.0 for drifts 1–9, ramping to ×1.15 by drift 20 and holding to 25** (2026-09-29: saving was almost free for the starting three families; the drift 25 Hollow Stag itself is exempt and keeps ×1.5, its escort doesn't), then **act 2 at ×1.15 for drifts 26–30 (a breather while the first finals arrive), ramping to ×1.55 by drift 45** (was: ramp from drift 26, which left 2–4 of 10 Grove-player runs dead at 28–30), ×1.55
   to 50** (acts 3–4 go from ×1.4 to **×1.6**, 2026-09-29), and **Dew per dispel ×0.85 in act 2 only** (act 1 back to ×1.0). Drift 15's Swarm is lighter (`acts_1_2.md`). Interim
   numbers, as exports, until the balance simulation's quick batch replaces them.
+- **Human playtest after the Dream power pass** (2026-09-30, user's first run on a fresh profile,
+  starting families only, no Grove: **drift 60 with 15/15 leaves, 1,746 Dew banked, maze ~10,000
+  DPS**; *"feels too strong … felt like cards were handed to me"*). The target for a fresh profile is
+  a run that **ends in act 2**. The cards were made stronger on purpose; the matching health rise
+  for acts 2–4 was waiting on human data, and this is it. **Interim health (until the run history
+  has more runs):**
+  - **Act 2:** ×1.3 at drift 26, ramping to **×2.5 by drift 45**, held to 50 (was ×1.15 → ×1.55; first set to ×2.0, raised after human run 1, balance_simulation.md).
+  - **Acts 3–4:** **×3.5** (was ×1.6; first set to ×2.4), bosses included **except the Hollow Oak at drift 100**, which keeps today's health.
+  - Act 1 unchanged (the first boss is being tuned on its own).
+  - **Dreams steer a little less:** the build tag weight 1.6 → **1.3**, so a direction takes
+    choices (a pass, a reroll) instead of arriving by itself. Card power stays.
+  - Then read the run history after each playtest and adjust.
 - **Act 3 probe** (Tower Code, `tools/balance_act3.gd`, 2026-09-28): drifts 61–70, 12 final forms at
   rank IV (Power), **no Dreams**: the maze dealt ~155–160k damage per drift against **~100–115k
   health spawned, 0 leaks**. Act 3 is too easy with a plain final-form maze, before Dreams or the
@@ -311,7 +323,7 @@ card luck**. Dispelling a great nightmare frees the light it stole from the drea
 
 | Source | Dreamlight |
 |---|---|
-| First family pick (after drift 1) | **1** (so act 1 can take one branch) |
+| First family pick (after drift 1) | **2** (was 1; 2026-09-30: branches now come free, so this buys your first final form in act 1) |
 | Each boss (drifts 25, 50, 75) | **4** (was 3, 2026-09-29: runs earned only 3–6 Dreamlight, so no run ever reached an Ascended form) |
 | Dream cards (Sudden Insight, Borrowed Memory) | +1 / +2 |
 | Grove perk *Early Light* | +1 at run start |
@@ -321,13 +333,24 @@ card luck**. Dispelling a great nightmare frees the light it stole from the drea
 
 | Unlock | Cost |
 |---|---|
-| A **branch** of a family you own (Stormcap, Rain Lily, Driftspore, …) | **1** |
-| A **final form** (needs its branch unlocked) | **2** |
+| A **branch** of a family you own (Stormcap, Rain Lily, Driftspore, …) | **free**: comes with the family (2026-09-30) |
+| A **final form** of a family you own | **2** |
 | A **hidden branch** (only if the Grove has unlocked it) | **1** |
 | A **wall growth** (Bramble, Honeysuckle) | **1** |
 
 - About **10 Dreamlight per run** against 4 families × (2 branches + 2 finals) = 24 possible: you
   can't have everything, so each run is a set of real choices. Unspent Dreamlight carries over.
+- **A family comes with its base and both branches** (user, 2026-09-30: *"if you unlock a family,
+  the first and 2nd forms are unlocked with it, or what else am I going to do with these Dreamlight
+  if I just started"*). Picking a family unlocks its base Warden and its two regular branches at once
+  (growing each Warden still costs Dew). **Dreamlight is for what comes after:** final forms (2),
+  hidden branches (1, Grove), wall growths (1) and Ascended forms (3, Grove). A new player's first
+  Dreamlight therefore always has a use: the first pick's 2 buys a final form of that family.
+  - **Budget now:** ~2 + 12 (bosses) + ~9 (rests from 51) ≈ **23 per run**, against 4 families ×
+    2 finals × 2 = 16, plus hidden branches, walls and Ascended forms (3 each): still more to want
+    than you can have.
+  - **Watch in the balance sim:** Kinships (need both branches) and final forms both arrive earlier.
+    Evolving still costs Dew (branch +45, final +90), which is the real gate in act 1.
 - **Where:** a **Remember** screen (a branching tree per owned family) opens right after each boss's
   family pick, and can be reopened at any rest from the rest panel. The Warden panel's disabled
   "Grow into Stormcap" button says *"Unlock with 1 Dreamlight"* and opens it.
@@ -353,6 +376,21 @@ right; the family tree should include the portraits"):
   potency), the **Dew to grow** into it from its parent, its Kinship partner if any ("Kin: Chime
   Stone · Night Chimes"), the combos it's part of (links to the Codex), and the **Unlock (2 ✦)**
   button. Unlocking plays a small bloom along the tree line.
+- **Playtest fixes (2026-09-30**, user screenshot of the Firefly tab at drift 1: *"the locked is too
+  dark and still shows the 2nd tree line; I started a new run and the Ascended Warden is there"*):
+  - **Locked nodes are readable:** the portrait at ~75% brightness with a light desaturation, not
+    near-black; "Locked" stays as the caption. Only Memory Grove nodes are silhouettes.
+  - **A lane the Grove hasn't planted shows only its branch**, as the Grove silhouette. Its final
+    form and the line up to it are **hidden** (no Midsummer above an unplanted Sunpetal). The side
+    panel for that silhouette says only "Plant it in the Memory Grove".
+  - **Grove forms readable too** (same day, user: *"locked Grove is still too dark"*: a pure black
+    silhouette): a Memory Grove form shows its portrait **desaturated at ~45% brightness with a cold
+    moonlight tint and a pale rim**, a small Grove leaf badge, and **its name** under it; the side
+    panel shows the same portrait, the name, one line on what it does, and "Plant it in the Memory
+    Grove". Readable, but clearly not yours yet (the dimmest node state; locked nodes stay at 75%).
+  - **The Ascended crown is hidden** until it can be unlocked this run: its Grove node planted **and**
+    drift 51 reached. Before that there is no node and no line to it. From drift 51 it appears
+    (the "can unlock" state once a final form of the family is grown).
 - A header line: *"Dreamlight 3 ✦ · unspent carries over"* and a one-line reminder: *"Dreamlight
   unlocks, Dew grows."*
 - Touch: tabs and nodes are 48 px+, the side panel slides up from the bottom on phones.
@@ -368,6 +406,56 @@ drift 10 on**, after the Dream, the wind brings **2 Omens**. Pick one to change 
 (5 drifts) for a reward, or keep **Clear Skies** (the default: nothing changes). This is optional
 risk: players set their own difficulty block by block.
 
+- **Omen voice** (user, 2026-09-30: *"the text for omen doesn't match the vibe"*). Omen cards were
+  pure rules text. Per `text_style.md` ("whispers and flavour lines are the only places for mood"),
+  every Omen card now has **a flavour line**: one short sentence in the Heartwood's dark-fairytale
+  voice, in the whisper face, between the name and the rules line. The rules line stays plain.
+  - **Front cards:** Face an Omen · *"Something stirs out in the dark."* then "A twist for the next
+    block. Face it for a reward." Clear Skies · *"The night stays still."* then "Nothing changes. No
+    reward."
+  - **Each Omen** (`OmenData.flavor`):
+
+    | Omen | Flavour line |
+    |---|---|
+    | Moth Night | *"Moths crowd the lanterns. Something follows them in."* |
+    | Thick Blight | *"The blight runs deep tonight."* |
+    | Crowded Paths | *"The path fills with footsteps."* |
+    | Hard Bark | *"Their shells have grown thick with rot."* |
+    | Swift Stream | *"They're hungry, and they're hurrying."* |
+    | Dry Spell | *"Not a drop of Dew falls tonight."* |
+    | Stubborn Blight | *"They shake off every charm."* |
+    | Restless Wind | *"They come in waves, one on the heels of the last."* |
+    | Fog Bank | *"A fog rolls in. Your Wardens squint into it."* |
+    | Wilting | *"The Wardens droop, heavy with sleep."* |
+    | Frozen Ground | *"The ground freezes hard. Nothing takes root."* |
+    | Leaf Fall | *"The Heartwood's leaves hang by a thread."* |
+    | Lean Season | *"A thin season, with a strange gift at its end."* |
+    | Heavy Rain | *"Rain soaks everything. They drink it in."* |
+    | Blood Moon | *"A red moon. They run fast, and fat with Dew."* |
+    | Bountiful Night | *"A heavy harvest walks the path tonight."* |
+    | Elder Night | *"The old nightmares wake."* |
+    | Hollow Wind | *"The wind is full of wings."* |
+    | Sleepless | *"Nothing will sleep tonight."* |
+    | Shifting Ground | *"Dead trees push up through the dream."* |
+
+  - Curly quotes aren't shown on the card (the whisper face marks it as flavour); the rules line and
+    reward follow `text_style.md` ("Reward · +75 Dew").
+- **How an Omen looks** (user, 2026-09-30):
+  - **Icon: a moth before the moon.** A dark moth silhouette crossing a pale full moon (moths are old
+    folk omens; it reads at small size). It replaces the placeholder wind swirl on the Face an Omen
+    card and is the Omen icon everywhere (active-Omen tag, run history, Codex). **Clear Skies** gets
+    the matching calm icon: **the moon alone, with a few stars**, so the two cards balance. Both are
+    16×16 pixel art appended to the end of the UI icon sheet (`assets/ui/icons.png` via `tools/ui_icon_generator.gd`, ids `omen` and `clear_skies`, Heartwood 32 palette: Moonlight moon, Gold / Glow rim light),
+    shown at whole-number scales (×2 in tags, ×3 on the cards, nearest).
+  - **Card text is bigger:** the body lines on both front cards use the card body size (as on Dream
+    cards, ~18 px, not 15), same face and spot on both.
+  - **Omen mist:** facing an Omen brings **mist onto the map** for that block. It rolls in when the
+    Omen is picked (over ~3 s), stays for the block's 5 drifts, and **lifts at the next rest** (when
+    the reward is paid). Low, drifting mist, heaviest at the map's edges and the forest's edge
+    (start), thin over the path; a faint cool tint (Omen gold-violet, not grey). **Readability first:**
+    it sits under Wardens, nightmares, health bars and the build ghost, never hides the path, and is
+    lighter with *reduced motion* (static, no drift). Clear Skies: no mist; the sky above the island
+    stays clear. The same mist marks an active Omen in a resumed save.
 - **Commit blind, then the Omen is revealed** (2026-09-30, user: "we should be asking if we want Clear
   Skies or an Omen, so the player locks in the Omen before seeing what it is; make the Omens a bit
   more punishing; I feel like I can Omen every rest"). Replaces the "pick 1 of 2 Omens or Clear

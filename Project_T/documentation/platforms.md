@@ -21,7 +21,21 @@ made now must not block it**. This doc is the checklist.
    **Revised 2026-09-28** (playtest: "super laggy" with ~150 Sprouts at drift 46; Sprout swarms are a
    real build, so huge mazes are normal): the worst case is **every buildable cell filled (~200
    Wardens) + 150 nightmares + a Reaction chain**. Targets (revised again 2026-09-29, user decision via Main): scripts **≤ 10 ms at p95** (60% of a 60 fps frame) in the stress case **at 1×** on PC; **3× is a stretch goal**, measured and printed by `test_perf_stress` and revisited before release (so far: 1× p95 ~11 ms on a loaded machine, borderline; 3× ~22 ms; the manager-node refactor was dropped, no measurable gain); 60 fps on a
-   mid-range phone at 1×. Rules:
+   mid-range phone at 1×. **3× is now required** (2026-09-30, user: *"super laggy at this point at
+   ×3"*, drift 100 of a Sprout swarm run: ~150 Wardens, a full Coming strip, Reactions every second):
+   players speed up the late game, so the stress case must hold **p95 ≤ 16 ms of script time at 3×**
+   (and ≤ 10 ms at 1×). When a frame still runs long, the game **thins what's decorative first,
+   automatically**: Fx lite mode, callouts and damage numbers throttled harder, DPS tags updated
+   less often, status badge arcs frozen, idle animations of off-screen Wardens paused. Rules and
+   damage are never thinned. **First profile (2026-09-30, stress scene, 3×):** scripts p95 16.7 ms
+   (Wardens' `_process` ~10 ms, nightmares ~4 ms); the **whole frame** in a window p95 **29 ms**, GPU
+   only 1.6 ms, **1,724 draw calls**: the cost is CPU-side draw submission, and **nightmares' drawing
+   is 13.9 ms of it** (~5.6 draw calls each: per-nightmare blight materials and `_draw` breaking
+   batches). Wardens draw cheaply. Plan: **one shared blight material** (per-nightmare values through
+   COLOR / modulate) and **all health bars and status badges drawn by one overlay node** (Enemy
+   Code, target −10 ms); cached Warden stats, retargeting every ~0.1 s, idle Wardens skipped (Tower
+   Code). The thinning ladder's **first rung is simplifying nightmare bars and badges**, not Fx.
+   Rules:
    - No per-frame work that scales with **Wardens × nightmares** (targeting uses a spatial grid or a
      cheap interval, not a scan of every nightmare every frame).
    - Card / Kinship / network / Heart of the Maze queries are **cached** and only recomputed when

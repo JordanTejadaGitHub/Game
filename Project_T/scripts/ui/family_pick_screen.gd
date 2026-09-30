@@ -10,6 +10,7 @@ extends Control
 # the family applies and its two branches (screens_ui.md "Family pick"). Built in code.
 
 signal sapling_offered  # The Heartwood Sapling's card appears (once, after the drift 50 pick)
+signal family_chosen(offered: Array, chosen: Resource)  # RunHistory: the offer and the pick
 
 const CARD_SIZE := Vector2(250, 300)
 const CARD_PADDING := 24.0  # The box's top + bottom offsets inside a card
@@ -47,7 +48,7 @@ func _ready() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	var dim := ColorRect.new()
-	dim.color = Color(0.03, 0.06, 0.05, 0.72)
+	dim.color = Color(UiStyle.FOG, 0.72)
 	dim.set_anchors_preset(Control.PRESET_FULL_RECT)
 	add_child(dim)
 	var center := CenterContainer.new()
@@ -58,7 +59,7 @@ func _ready() -> void:
 	center.add_child(box)
 	_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	UiStyle.display(_title, 28)
-	_title.add_theme_color_override("font_color", Color(0.8, 1.0, 0.8))
+	_title.add_theme_color_override("font_color", UiStyle.LIVE)
 	box.add_child(_title)
 	_cards.add_theme_constant_override("separation", 16)
 	_cards.alignment = BoxContainer.ALIGNMENT_CENTER
@@ -164,6 +165,7 @@ func choose(data: Resource) -> void:
 	if not offer.has(data):
 		return
 	dream_state.note_family_pick(_ids(offer), data.get_id() if data is TowerData else "")  # Declined families (half-dreamed)
+	family_chosen.emit(offer.duplicate(), data)
 	offer = []
 	if data is UpgradeData:
 		dream_state.take(data)  # A Family Blessing
@@ -202,10 +204,10 @@ func _show_sapling() -> void:
 		icon.texture = _frame(data)
 		icon.stretch_mode = TextureRect.STRETCH_KEEP_CENTERED
 		card.add_child(icon)
-	for line in [["The Heartwood Sapling", 22, Color.WHITE],
-			["Free to plant, 2×2, a wall like any Warden. Permanent: once planted it can't be sold or moved.", 15, Color(0.9, 0.95, 0.9)],
-			["It doesn't attack. After every drift it yields +20 Dew, and every 10 drifts +1 Dreamlight. Nurture it for more; leaks wither it a little.", 15, Color(0.85, 0.9, 1.0)],
-			["Not now? You can plant it later from the rest panel.", 13, Color(0.7, 0.8, 0.7)]]:
+	for line in [["The Heartwood Sapling", 22, UiStyle.INK],
+			["Free to plant, 2×2, a wall like any Warden. Permanent: once planted it can't be sold or moved.", 15, UiStyle.INK],
+			["It doesn't attack. After every drift it yields +20 Dew, and every 10 drifts +1 Dreamlight. Nurture it for more; leaks wither it a little.", 15, UiStyle.MOONLIGHT],
+			["Not now? You can plant it later from the rest panel.", 13, UiStyle.WHISPER]]:
 		var label := Label.new()
 		label.text = line[0]
 		label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -243,7 +245,7 @@ func _make_card(data: TowerData) -> Button:
 	button.custom_minimum_size = CARD_SIZE
 	button.focus_mode = Control.FOCUS_NONE
 	button.pressed.connect(choose.bind(data))
-	UiStyle.card_button(button, Color(0.55, 0.85, 0.55))  # Moonlit Thread card (ui_style.md)
+	UiStyle.card_button(button, Palette.SPRIG)  # Moonlit Thread card (ui_style.md)
 
 	var box := VBoxContainer.new()
 	box.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -265,11 +267,11 @@ func _make_card(data: TowerData) -> Button:
 		box.add_child(icon)
 	var sprout_cost := dream_state.get_evolve_cost(data)
 	# screens_ui.md "Family pick": name, identity, the statuses it applies, previews of its branches.
-	var lines := [[data.display_name, 22, Color.WHITE], [IconInfo.format(data.description), 15, Color(0.9, 0.95, 0.9)]]
+	var lines := [[data.display_name, 22, UiStyle.INK], [IconInfo.format(data.description), 15, UiStyle.INK]]
 	var statuses := get_status_text(data)
 	if statuses != "":
-		lines.append([statuses, 14, Color(0.75, 0.85, 1.0)])
-	lines.append(["Grow a Sprout into it: %d Dew · plant directly: %d Dew" % [sprout_cost, data.cost], 13, Color(0.7, 0.9, 0.7)])
+		lines.append([statuses, 14, Palette.DEWLIGHT])
+	lines.append(["Grow a Sprout into it: %d Dew · plant directly: %d Dew" % [sprout_cost, data.cost], 13, UiStyle.LIVE])
 	for line in lines:
 		var label := Label.new()
 		label.text = line[0]
@@ -283,7 +285,7 @@ func _make_card(data: TowerData) -> Button:
 		var grows := Label.new()
 		grows.text = "Grows into"
 		grows.add_theme_font_size_override("font_size", 13)
-		grows.add_theme_color_override("font_color", Color(0.7, 0.8, 0.7))
+		grows.add_theme_color_override("font_color", UiStyle.WHISPER)
 		box.add_child(grows)
 		for branch in branches:
 			var row := HBoxContainer.new()
@@ -331,7 +333,7 @@ func _make_blessing_card(card: UpgradeData) -> Button:
 	button.custom_minimum_size = CARD_SIZE
 	button.focus_mode = Control.FOCUS_NONE
 	button.pressed.connect(choose.bind(card))
-	UiStyle.card_button(button, Color(0.95, 0.8, 0.4))  # Moonlit Thread card (ui_style.md)
+	UiStyle.card_button(button, UiStyle.GOLD)  # Moonlit Thread card (ui_style.md)
 	var box := VBoxContainer.new()
 	box.set_anchors_preset(Control.PRESET_FULL_RECT)
 	box.offset_left = 14
@@ -341,7 +343,7 @@ func _make_blessing_card(card: UpgradeData) -> Button:
 	box.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	button.add_child(box)
 	_fit_card(button, box)
-	for line in [["Blessing", 14, Color(0.95, 0.8, 0.4)], [card.display_name, 22, Color.WHITE], [IconInfo.format(card.description), 15, Color(0.95, 0.92, 0.85)]]:
+	for line in [["Blessing", 14, UiStyle.GOLD], [card.display_name, 22, UiStyle.INK], [IconInfo.format(card.description), 15, UiStyle.INK]]:
 		var label := Label.new()
 		label.text = line[0]
 		label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -354,8 +356,8 @@ func _make_blessing_card(card: UpgradeData) -> Button:
 # A Memory Warden (screens_ui.md "Memory Warden card"): the boss's reward, not a family. Gold /
 # dream-fruit thread and a warm glow, "A Memory returns", the boss's flavour line, its identity and
 # statuses, and a "Unique" tag. Placeholder look until the bloom art exists.
-const MEMORY_GOLD := Color(1.0, 0.82, 0.42)
-const MEMORY_GLOW := Color("3a2a10")
+const MEMORY_GOLD := UiStyle.GOLD
+const MEMORY_GLOW := Palette.DEEPMOSS
 
 func _make_memory_card(data: TowerData) -> Button:
 	var button := Button.new()
@@ -393,14 +395,14 @@ func _make_memory_card(data: TowerData) -> Button:
 		icon.stretch_mode = TextureRect.STRETCH_KEEP_CENTERED
 		icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		box.add_child(icon)
-	var lines := [[data.display_name, 22, Color.WHITE]]
+	var lines := [[data.display_name, 22, UiStyle.INK]]
 	var flavour: String = MetaRun.MEMORY_FLAVOUR.get(data.get_id(), "")
 	if flavour != "":
-		lines.append([flavour, 14, Color(1.0, 0.9, 0.7)])
-	lines.append([IconInfo.format(data.description), 15, Color(0.95, 0.92, 0.85)])
+		lines.append([flavour, 14, UiStyle.INK])
+	lines.append([IconInfo.format(data.description), 15, UiStyle.INK])
 	var statuses := get_status_text(data)
 	if statuses != "":
-		lines.append([statuses, 14, Color(0.75, 0.85, 1.0)])
+		lines.append([statuses, 14, Palette.DEWLIGHT])
 	lines.append(["Unique: one on the map at a time. Free to plant.", 12, MEMORY_GOLD])
 	for line in lines:
 		var label := Label.new()

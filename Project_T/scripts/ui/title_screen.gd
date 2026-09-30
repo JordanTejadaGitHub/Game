@@ -9,7 +9,8 @@ const GAME_SCENE := "res://scenes/main.tscn"
 const GROVE_SCENE := "res://scenes/grove.tscn"
 const TITLE := "Heartwood TD"  # The game's title (project.godot config/name too)
 
-var _menu := VBoxContainer.new()
+var _menu := VBoxContainer.new()  # The left column: the title over the menu panel
+var _buttons := VBoxContainer.new()
 var _settings: SettingsPanel
 var _codex: CodexPanel
 var _confirm: ConfirmationDialog
@@ -33,6 +34,8 @@ static func migrate_old_saves() -> void:
 			DirAccess.copy_absolute(source, target)
 
 const GROUP := &"title_screen"
+const MENU_LEFT := 72.0  # The menu sits in the art's calm left side
+const MENU_WIDTH := 340.0
 
 func _ready() -> void:
 	UiStyle.install_tooltip_wrap(get_tree())  # Long tooltips wrap at the tip width
@@ -42,30 +45,43 @@ func _ready() -> void:
 	add_to_group(GROUP)
 	add_to_group(StatusLinks.CODEX_HOST_GROUP)  # Status links' "More in the Codex"
 	set_anchors_preset(Control.PRESET_FULL_RECT)
-	var background := ColorRect.new()
-	background.color = Color(0.07, 0.11, 0.09)
-	background.set_anchors_preset(Control.PRESET_FULL_RECT)
-	add_child(background)
-	var center := CenterContainer.new()
+	add_child(TitleBackdrop.new())  # The art (tools/title_art_generator.gd)
+	var center := CenterContainer.new()  # Settings and the Codex open in the middle
 	center.set_anchors_preset(Control.PRESET_FULL_RECT)
 	add_child(center)
+	if OS.is_debug_build():  # The exact build on disk ("Sep 30 21:14 · 3f9a2c"; balance_simulation.md)
+		_add_build_label()
 
-	_menu.add_theme_constant_override("separation", 12)
-	_menu.custom_minimum_size = Vector2(320, 0)
-	center.add_child(_menu)
+	# The left column, in the art's calm side: the title over a Moon panel with the menu.
+	var column := MarginContainer.new()
+	column.anchor_bottom = 1.0
+	column.offset_left = MENU_LEFT
+	column.offset_right = MENU_LEFT + MENU_WIDTH
+	add_child(column)
+	_menu.alignment = BoxContainer.ALIGNMENT_CENTER
+	_menu.add_theme_constant_override("separation", 14)
+	column.add_child(_menu)
 	var title := Label.new()
 	title.text = TITLE
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	UiStyle.display(title, 44)
-	title.add_theme_color_override("font_color", Color(0.85, 1.0, 0.8))
+	UiStyle.display(title, 56)
+	title.add_theme_color_override("font_color", UiStyle.INK)
+	title.add_theme_color_override("font_outline_color", Palette.VOID)
+	title.add_theme_constant_override("outline_size", 12)
 	_menu.add_child(title)
 	if ResultsScreen.is_demo():
 		var demo := Label.new()
 		demo.text = "Demo"
 		demo.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		demo.add_theme_color_override("font_color", Color(0.7, 0.8, 0.7))
+		UiStyle.caps(demo, 18, UiStyle.WHISPER)
+		demo.add_theme_color_override("font_outline_color", Palette.VOID)
+		demo.add_theme_constant_override("outline_size", 8)
 		_menu.add_child(demo)
-	_menu.add_child(HSeparator.new())
+	var panel := PanelContainer.new()
+	panel.add_theme_stylebox_override("panel", UiStyle.panel(20.0, 18.0))
+	_menu.add_child(panel)
+	_buttons.add_theme_constant_override("separation", 10)
+	panel.add_child(_buttons)
 
 	# The first choice takes the primary look (ui_style.md "Buttons").
 	if RunSaver.has_save():
@@ -96,8 +112,9 @@ func _ready() -> void:
 	if int(memory.highest_blight_won) > 0:  # A blossom per Blight Level won (text until the art exists)
 		seeds.text += "\n" + "✿".repeat(int(memory.highest_blight_won)) + "  Blight Level %d won" % int(memory.highest_blight_won)
 	seeds.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	seeds.add_theme_color_override("font_color", Color(0.75, 0.95, 0.6))
-	_menu.add_child(seeds)
+	seeds.add_theme_color_override("font_color", UiStyle.LIVE)
+	seeds.visible = seeds.text != ""
+	_buttons.add_child(seeds)
 
 	_settings = SettingsPanel.new()
 	_settings.visible = false
@@ -136,7 +153,7 @@ func _add_button(text: String, action: Callable) -> Button:
 	button.custom_minimum_size = Vector2(0, 48)
 	button.focus_mode = Control.FOCUS_NONE
 	button.pressed.connect(action)
-	_menu.add_child(button)
+	_buttons.add_child(button)
 	return button
 
 func _continue() -> void:
@@ -189,3 +206,27 @@ func _godot_components() -> String:
 	for info in Engine.get_copyright_info():
 		lines.append("• %s" % info.name)
 	return "\n".join(lines)
+
+# Bottom right, small: the build id, filled in once BuildInfo's thread is done.
+func _add_build_label() -> void:
+	BuildInfo.start()
+	var label := Label.new()
+	label.name = "BuildLabel"
+	label.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_RIGHT)
+	label.grow_horizontal = Control.GROW_DIRECTION_BEGIN
+	label.grow_vertical = Control.GROW_DIRECTION_BEGIN
+	label.offset_right = -12
+	label.offset_bottom = -8
+	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	label.add_theme_font_size_override("font_size", 13)
+	label.add_theme_color_override("font_color", UiStyle.INK_DIM)
+	add_child(label)
+	var timer := Timer.new()
+	timer.wait_time = 0.25
+	timer.autostart = true
+	add_child(timer)
+	timer.timeout.connect(func() -> void:
+		var text := BuildInfo.label_if_ready()
+		if text != "":
+			label.text = "Build " + text
+			timer.queue_free())

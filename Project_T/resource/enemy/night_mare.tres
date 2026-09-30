@@ -1,7 +1,8 @@
-[gd_resource type="Resource" script_class="EnemyData" load_steps=3 format=3]
+[gd_resource type="Resource" script_class="EnemyData" load_steps=4 format=3]
 
 [ext_resource type="Script" path="res://resource/enemy/script/enemy_data.gd" id="1_edata"]
 [ext_resource type="SpriteFrames" path="res://animation/enemy/hedgehog.tres" id="2_frames"]
+[ext_resource type="Resource" path="res://resource/enemy/leaf_bug.tres" id="3_shade"]
 
 [resource]
 script = ExtResource("1_edata")
@@ -17,13 +18,15 @@ tint = Color(0.55, 0.5, 0.7, 1)
 resists = Array[String](["root"])
 weak_to = Array[String](["light"])
 lap_leaves = 3
-lap_speed_multiplier = 1.2
+lap_speed_multiplier = 1.3
+lap_spawn = ExtResource("3_shade")
+lap_spawn_count = 4
 charges_at_half = true
 charge_speed_multiplier = 1.5
 charge_time = 3.0
-trait_text = "Never stops at the Heartwood: it takes leaves and gallops around again, faster."
+trait_text = "Never stops at the Heartwood: it takes leaves and gallops around again, faster, with Shades behind it."
 cleanse_line = "The Night Mare is gone. The hoofbeats fade, and the dream is still."
 title = "the hoofbeats that never stop"
-abilities = Array[Dictionary]([{"name": "Laps", "icon": &"charge", "text": "Reaching the Heartwood costs {lap_leaves} leaves, then it gallops back to the start {lap_speed_multiplier:plus_pct} faster, again and again.", "when": "each time it gets through"}, {"name": "Bolt", "icon": &"charge", "text": "It bolts {charge_speed_multiplier:plus_pct} faster for {charge_time} s.", "when": "at 50% health"}])
+abilities = Array[Dictionary]([{"name": "Laps", "icon": &"charge", "text": "Reaching the Heartwood costs {lap_leaves} leaves, then it gallops back to the start {lap_speed_multiplier:plus_pct} faster with {lap_spawn_count} {lap_spawn:name}s behind it, again and again.", "when": "each time it gets through"}, {"name": "Bolt", "icon": &"charge", "text": "It bolts {charge_speed_multiplier:plus_pct} faster for {charge_time} s.", "when": "at 50% health"}])
 tips = Array[String](["Every lap is another pass through your whole maze: make it long.", "It keeps the damage it's taken, so each lap brings it closer to the end.", "Lantern light spooks it."])
 whisper = "Hoofbeats. Something is running through the dream."

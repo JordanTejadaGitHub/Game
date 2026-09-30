@@ -317,7 +317,7 @@ func _run() -> void:
 	var weeper_intro: String = load("res://resource/enemy/weeper.tres").get_intro_lines()[0]
 	_check(weeper_intro.contains("1.5 tiles") and weeper_intro.contains("2%"), "Weeper intro: %s" % weeper_intro)
 	var stag_charge: Dictionary = load("res://resource/enemy/old_stag.tres").get_ability(1)
-	_check(stag_charge.text.contains("+50%") and stag_charge.text.contains("4 s"), "numbers come from the data (%s)" % stag_charge.text)
+	_check(stag_charge.text.contains("2.5×") and stag_charge.when.contains("4+ tiles"), "numbers come from the data (%s / %s)" % [stag_charge.when, stag_charge.text])
 	var oak_grief: Dictionary = load("res://resource/enemy/hollow_oak.tres").get_ability(1)
 	_check(oak_grief.when == "at 67% and 33% health" and oak_grief.text.contains("6 Mourners"), "Grief: %s / %s" % [oak_grief.when, oak_grief.text])
 	var summons: Array = load("res://resource/enemy/moth_queen.tres").get_summons()
@@ -348,22 +348,8 @@ func _run() -> void:
 	_check(hound.statuses.is_held(), "a walking one can")
 	_clear_enemies()
 
-	# --- Tangled (2+ statuses: 10% slower) and Weathered Walls (no trampling) ---
+	# --- Weathered Walls (no trampling; Tangled was cut in the pool trim) ---
 	_clear_enemies()
-	var tangle := _still("leaf_bug", route[6])
-	tangle.apply_status(EnemyStatuses.MARKED)
-	tangle.apply_status(EnemyStatuses.SPORED, 1, 5.0, 1.0)
-	spawner._process(0.0)
-	_check(is_equal_approx(tangle.get_move_speed(), tangle.speed), "without Tangled, two statuses that aren't slows don't slow")
-	_take_card(dreams, "tangled")
-	spawner._process(0.0)
-	_check(is_equal_approx(tangle.get_move_speed(), tangle.speed * (1.0 - DreamState.TANGLED_SLOW)), "Tangled: 2 statuses, 10% slower")
-	tangle.apply_status(EnemyStatuses.DROWSY)
-	_check(is_equal_approx(tangle.get_move_speed(), tangle.speed * (1.0 - DreamState.TANGLED_SLOW - EnemyStatuses.DROWSY_SLOW_PER_STACK)),
-		"and it adds to other slows")
-	var one := _still("leaf_bug", route[7])
-	one.apply_status(EnemyStatuses.MARKED)
-	_check(is_equal_approx(one.get_move_speed(), one.speed), "one status isn't enough")
 	var stag_wall := _free_neighbour(route[12])
 	var wall_tower := _plant("thornwall", stag_wall)
 	var walker_stag := _still("old_stag", route[12])
@@ -389,8 +375,8 @@ func _run() -> void:
 		rotting._process(0.5)  # One Poisoned tick
 	var dry_loss: int = 100000 - rot_dry.health
 	var wet_loss: int = 100000 - rot_wet.health
-	_check(dry_loss > 0 and is_equal_approx(float(wet_loss) / dry_loss, 1.2),
-		"Damp Rot: a Soaked nightmare's Poisoned tick is +20%% (%d vs %d)" % [wet_loss, dry_loss])
+	_check(dry_loss > 0 and is_equal_approx(float(wet_loss) / dry_loss, 1.0 + DreamState.DAMP_ROT_PER),
+		"Damp Rot: a Soaked nightmare's Poisoned tick is +50%% (%d vs %d)" % [wet_loss, dry_loss])
 	_clear_enemies()
 
 	# --- Status jobs (tower_design.md, 2026-09-29) ---
@@ -470,6 +456,60 @@ func _run() -> void:
 	_check(not _still("leaf_bug", route[12]).strip_buff(null), "nothing to steal from a plain Shade")
 	_clear_enemies()
 
+	# --- Thin-family cards (dream_design.md 2026-09-30): Bright Marks, Root Web, Tangled Release, Lullaby ---
+	_clear_enemies()
+	for card_id in ["bright_marks", "root_web", "tangled_release", "lullaby"]:
+		_take_card(dreams, card_id)
+	spawner._process(0.0)
+	var bright := _still("leaf_bug", route[5])
+	bright.apply_status(EnemyStatuses.MARKED)
+	bright._process(0.0)
+	_check(is_equal_approx(bright.statuses.get_damage_taken_multiplier(), 1.0 + EnemyStatuses.MARKED_EXTRA + DreamState.BRIGHT_MARKS_PER),
+		"Bright Marks: Marked +20 percent more (%.2f)" % bright.statuses.get_damage_taken_multiplier())
+	var web_a := _still("leaf_bug", route[8])
+	var web_b := _still("leaf_bug", route[8])
+	var web_far := _still("leaf_bug", route[20])
+	web_a.apply_status(EnemyStatuses.HELD, 1, 2.0)
+	_check(web_b.statuses.is_held() and is_equal_approx(web_b.statuses.time_left(EnemyStatuses.HELD), 1.0),
+		"Root Web: a touching nightmare is Held for half as long (%.2f s)" % web_b.statuses.time_left(EnemyStatuses.HELD))
+	_check(not web_far.statuses.is_held(), "…but not one far away")
+	web_b.statuses.remove(EnemyStatuses.HELD)
+	web_a.statuses.remove(EnemyStatuses.HELD)
+	web_a.apply_status(EnemyStatuses.HELD, 1, 2.0)
+	_check(not web_b.statuses.is_held(), "at most once a second per nightmare")
+	var freed := _still("leaf_bug", route[12])
+	freed.set_path(route.slice(8))
+	freed._path_index = 5
+	freed.apply_status(EnemyStatuses.HELD, 1, 0.3)
+	freed._process(0.5)
+	_check(freed.is_dragged() or freed._path_index < 5, "Tangled Release: freed from a hold, it's pulled back")
+	var lulled := _still("leaf_bug", route[15])
+	lulled.statuses.caught_time = 0.1
+	lulled._process(0.0)
+	lulled._process(0.2)
+	_check(lulled.statuses.is_caught() and is_equal_approx(lulled.statuses.caught_time, 1.0), "Lullaby: Caught lingers 1 s after it lapses")
+	lulled._process(1.1)
+	_check(not lulled.statuses.is_caught(), "…once, then it ends")
+	# Tangled Release + Snare (ruling 2026-09-30): hold → release pull → Snare hold → done.
+	var snare_holder := SnareHolder.new()
+	snare_holder.tower_data = load("res://resource/tower/rootling.tres")
+	var holder_sprite := Sprite2D.new()
+	holder_sprite.name = "Sprite2D"
+	snare_holder.add_child(holder_sprite)
+	tower_container.add_child(snare_holder)
+	snare_holder.set_process(false)
+	var snared := _still("leaf_bug", route[12])
+	snared.set_path(route.slice(8))
+	snared._path_index = 5
+	snared.apply_status(EnemyStatuses.HELD, 1, 0.3, 0.0, 0, "", snare_holder)
+	snared._process(0.0)
+	snared._process(0.5)  # The hold ends: the release pull, and Snare holds it again
+	_check(snare_holder.pulls == 1 and snared.statuses.is_held(), "the release pull sets off Snare's hold (%d pull)" % snare_holder.pulls)
+	snared._process(1.0)  # That Snare hold ends: no second release pull
+	_check(snare_holder.pulls == 1 and not snared.statuses.is_held(), "…and it stops there, after one cycle (%d pulls)" % snare_holder.pulls)
+	snare_holder.free()
+	_clear_enemies()
+
 	# --- Omens: Sleepless (immune to Drowsy and Held), Heavy Rain (always Soaked) ---
 	var omened: Node2D = spawner.spawn_enemy(load("res://resource/enemy/leaf_bug.tres"), 1.0,
 		{"status_immune": [&"drowsy", &"held"], "always_status": &"damp"})
@@ -533,6 +573,51 @@ func _run() -> void:
 		_walk_backwards(boss_walker, 10)
 		spawner._on_path_changed()
 	_check(boss_walker.get_restless() == 3 and not boss_walker.is_unbound(), "a boss gains Restless but never turns Unbound")
+	_clear_enemies()
+
+	# --- Status badges (screens_ui.md "Status icons, clearer") ---
+	_clear_enemies()
+	var badged := _still("leaf_bug", route[6])
+	for id in [&"damp", &"drowsy", &"spored", &"marked", &"held"]:
+		badged.statuses.apply(id, 1, 4.0, 1.0)
+	badged.statuses.apply(&"static", 4, 0.0, 1.0)
+	_check(badged.get_badge_ids() == [&"static", &"held", &"marked", &"spored"],
+		"4 badges, the most important first (%s)" % [badged.get_badge_ids()])
+	_check(badged.get_status_order().size() == 6, "the info panel still lists all 6")
+	_check(badged.statuses.describe(&"static") == "Charged 4/5 · 2.0 s", "info line: %s" % badged.statuses.describe(&"static"))
+	_check(badged.statuses.describe(&"damp") == "Soaked · 4.0 s", "no stack count for a status that can't stack (%s)" % badged.statuses.describe(&"damp"))
+	badged.statuses.tick(1.0)
+	_check(is_equal_approx(badged.statuses.time_share(&"damp"), 0.75), "the rim drains with the time left (%.2f)" % badged.statuses.time_share(&"damp"))
+	badged.statuses.apply(&"damp", 1, 4.0, 1.0)
+	_check(is_equal_approx(badged.statuses.time_share(&"damp"), 1.0), "a fresh Damp fills it again")
+	_check(badged.get_badge_size() == badged.STATUS_BADGE and _still("old_stag", route[7]).get_badge_size() == badged.STATUS_BADGE_BIG,
+		"14 px badges, 18 px on bosses")
+	# Bars and badges are the HUD's own canvas items under one NightmareOverlay (batched by kind),
+	# rebuilt only when what they show changes; not each nightmare's own _draw.
+	var overlay: Node2D = spawner.overlay
+	_check(overlay != null and overlay.is_inside_tree() and overlay.get_parent() != spawner,
+		"one NightmareOverlay holds the bars and badges (outside the EnemyContainer)")
+	badged.statuses.remove(&"spored")  # Its ticks hurt, and hits and combo flashes redraw on their own
+	badged.statuses.remove(&"marked")
+	badged.set_process(true)
+	badged.hold_time = 100.0  # Stands still
+	for f in 3:
+		await process_frame
+	_check(badged._hud_root.is_valid() and badged._hud_items.size() == 4, "its HUD items exist once it's shown")
+	var redraws := [0]
+	badged.draw.connect(func() -> void: redraws[0] += 1)
+	var builds: int = badged.hud_builds
+	for f in 30:
+		await process_frame
+	_check(badged.hud_builds - builds <= 4,
+		"its HUD is rebuilt only when something changes (the arcs step; %d in 30 frames)" % (badged.hud_builds - builds))
+	builds = badged.hud_builds
+	badged.take_damage(5.0)
+	await process_frame
+	var bar_px := int(badged.HEALTH_BAR_SIZE.x * badged.health / badged.max_health)
+	_check(badged.hud_builds > builds and badged._hud_health == bar_px,
+		"a hit rebuilds the bars at their new width (%d px, %d builds)" % [badged._hud_health, badged.hud_builds - builds])
+	_check(redraws[0] == 0, "a nightmare doesn't redraw itself for statuses or hits (%d in 30 frames)" % redraws[0])
 	_clear_enemies()
 
 	# --- Display settings: health bars "always", the Deeply Blighted outline ---
@@ -658,3 +743,12 @@ func _check(condition: bool, label: String) -> void:
 
 func _wait(seconds: float) -> void:
 	await create_timer(seconds, true, true).timeout
+
+# A Rootling bonded for Snare (kin_share reports it), counting its pulls: for the release-pull cycle.
+class SnareHolder extends Tower:
+	var pulls := 0
+	func kin_share(id: StringName, side: String) -> float:
+		return 1.0 if id == &"snare" and side == "a" else 0.0
+	func pull(enemy: Node2D, tiles: float) -> void:
+		pulls += 1
+		super(enemy, tiles)

@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "hedge_maze_ii"
 display_name = "Hedge Maze II"
-description = "+1% damage for every 4 Thornwalls you have (up to +30%)."
+description = "+1% damage for every 2 Thornwalls you have (up to +45%)."
 rarity = 1
 kind = 3
 tags = Array[String](["wall", "maze"])

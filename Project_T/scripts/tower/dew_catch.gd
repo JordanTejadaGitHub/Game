@@ -12,14 +12,13 @@ extends RefCounted
 const INTEREST_CAP := 120  # All Wellsprings together pay at most this per rest
 const OLD_GROWTH_CATCH := 0.25  # Elder Stump with the Dewcatcher kin: +25% in its aura (× the bond's share)
 const DEW_BOWL_STEP := 0.15  # Dew Bowl (Seed card): +15% catch per stack
-const WIDE_BOWL_STEP := 0.5  # Wide Bowl: +0.5 cells catch radius per stack
-const DEW_TRAIL := [0.20, 0.35]  # Dew Trail / II: more when the caught nightmare is Damp
+const WIDE_BOWL_STEP := 0.5  # Dew Trail (any level): +0.5 cells catch radius (Wide Bowl merged into it)
+const DEW_TRAIL := [0.30, 0.50]  # Dew Trail / II: more when the caught nightmare is Damp (dream_audit.md)
 const HARVEST_MOON := 0.5  # Harvest Moon (Seed card): the Harvest pays +50%
 const DEEP_WELL_CAP := 30  # Deep Well (Seed card): each Wellspring's interest cap +30
-const STILL_WATERS := 0.04  # Still Waters: +4% interest when no Dew was spent that block
 const OVERFLOW_PER_SHARD := 50  # Overflowing Well: each 50 Dew of interest over the cap = a Dreamlight shard
 const BOWL_FULL := 60.0  # Dew in the bowl that shows it full
-const GOLD := Color("ffd870")
+const GOLD := Palette.GLOW
 const DROPLETS_PER_SECOND := 6  # Catch droplets share the effects budget (below Harmony sparks)
 const DROPLET_TIME := 0.45
 const HARVEST_DROPLETS := 5
@@ -81,21 +80,13 @@ static func bowl_info(data: TowerData) -> Dictionary:
 
 # --- The Harvest -------------------------------------------------------------------------------
 
-# Hooks the rest (the Harvest, then interest) and Still Waters' spending watch, once per run.
+# Hooks the rest (the Harvest, then interest), once per run.
 static func hook(director: DriftDirector, run_state: RunState) -> void:
 	if director == null or run_state == null or director.has_meta(&"dew_catch"):
 		return
 	director.set_meta(&"dew_catch", true)
 	director.rest_started.connect(func(block: int, _boss: bool, _bonus: int, _perfect: bool) -> void:
 		pour_all(director, run_state, block))
-	run_state.set_meta(&"last_dew", run_state.dew)
-	run_state.dew_changed.connect(func(dew: int) -> void:
-		if dew < int(run_state.get_meta(&"last_dew", dew)):
-			run_state.set_meta(&"spent_this_block", true)
-		run_state.set_meta(&"last_dew", dew))
-	director.drift_started.connect(func(number: int) -> void:
-		if (number - 1) % director.drifts_per_block == 0:
-			run_state.set_meta(&"spent_this_block", false))  # A block begins: Still Waters watches again
 
 # At the rest: every bowl pours into the Dew counter (the Harvest), then each Wellspring pays interest.
 static func pour_all(director: DriftDirector, run_state: RunState, block: int) -> void:
@@ -120,13 +111,11 @@ static func pour_all(director: DriftDirector, run_state: RunState, block: int) -
 		delay += 0.25
 	# Interest (Wellspring) on the banked Dew, harvest included.
 	var paid := 0
-	var spent: bool = run_state.get_meta(&"spent_this_block", true)
 	for tower in towers:
 		var data: TowerData = tower.tower_data
 		if data.rest_interest <= 0.0:
 			continue
-		var rate := data.rest_interest + (STILL_WATERS if dreams and dreams.has_rule(&"still_waters") and not spent else 0.0) \
-			+ (Tower.KINDRED_INTEREST if tower.focus == Tower.Focus.KINDRED else 0.0)  # Kindred Wellspring
+		var rate: float = data.rest_interest + Tower.KINDRED_INTEREST * tower.choice_count(Tower.Focus.KINDRED)  # Kindred Wellspring ranks
 		var cap := data.rest_interest_max + (DEEP_WELL_CAP if dreams and dreams.has_rule(&"deep_well") else 0)
 		var uncapped := run_state.dew * rate
 		var dew := mini(mini(floori(uncapped), cap), INTEREST_CAP - paid)

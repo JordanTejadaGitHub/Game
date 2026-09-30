@@ -89,7 +89,7 @@ func _run() -> void:
 	_check(trampled == [wall_cell], "the Old Stag tramples it")
 	_check(map_generator.is_buildable(wall_cell), "the cell is open again (the wall is gone for good)")
 	stag.take_damage(stag.max_health / 2 + 1)
-	_check(stag._charge_left > 0.0 and stag.get_move_speed() > stag.speed * 1.4, "half health: the Stag charges")
+	_check(stag._bellowed and spawner.get_children().filter(func(e) -> bool: return e.enemy_data == stag.enemy_data.bellow_spawn).size() == 6, "half health: the Stag bellows (6 Husks)")
 	stag.free()
 
 	# --- Great Toad leaps 3 tiles and makes creatures near the landing Damp ---

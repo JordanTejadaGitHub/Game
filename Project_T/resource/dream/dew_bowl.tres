@@ -6,12 +6,12 @@
 script = ExtResource("1_card")
 id = "dew_bowl"
 display_name = "Dew Bowl"
-description = "+10 Dew now."
+description = "+25 Dew now."
 rarity = 0
 kind = 3
-tags = Array[String](["seed", "acorn", "economy"])
+tags = Array[String](["seed", "acorn", "economy", "support"])
 max_stacks = 3
-dew_now = 10
+dew_now = 25
 rule_id = &"dew_bowl"
 in_start_pool = false
 grows_with = Array[String](["dewcatcher", "wellspring"])

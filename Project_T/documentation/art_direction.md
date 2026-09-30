@@ -47,7 +47,7 @@ close-ups are separate showcase art and can be drawn at a higher resolution.
 
 ### Decision (2026-09-28): the Heartwood 32 palette
 
-**Final.** Every piece of game art uses only these 32 colours: Wardens, nightmares, effects, tiles,
+**Final** (extended to 35 for Warden idle sheets on 2026-09-30, see Warden Night below). Every piece of game art uses only these 32 colours: Wardens, nightmares, effects, tiles,
 meta art and UI. Art comes from several chats, and one shared palette is what makes it match.
 Reference page, applied to all 108 existing Warden and nightmare sprites:
 https://claude.ai/artifact/BbGHs9cDsKvm8kZEDH1Bra
@@ -80,6 +80,48 @@ https://claude.ai/artifact/BbGHs9cDsKvm8kZEDH1Bra
 - **UI (Moonlit Thread)** uses the same Ink, Moonlight and Gold ramps.
 - **Exempt:** the Steam capsule, key art and trailer (showcase art), and third-party packs that
   aren't used in the game.
+
+### Enforcement (2026-09-30)
+
+Everything in the game now uses the palette. All art in `assets/` is on it (no file more than 5% off;
+the largest is the Dream Thief's allowed orb). Every colour set in code is too: `scripts/palette.gd`
+(`Palette`) for game code, `UiStyle` tokens for UI. **`tests/test_palette.gd` fails** on any
+off-palette colour literal in `scripts/`, `resource/`, or stored in scenes and resources.
+
+- **Allowed outside the palette:** multipliers (modulate / self_modulate tints, the season and
+  lighting tints, flashes, `EnemyData.tint`), the accessibility high-contrast route yellow (marked
+  "Accessibility"), and the palette blends `UiStyle` generates in `assets/ui/ui_theme.tres`.
+- **No red.** Warnings ("can't afford", invalid, penalty, Bittersweet, immune) use Ember. If
+  playtesting shows they're too easy to miss, fix it with shape or motion before adding a colour.
+- **Identifier sets** (statuses, families, Focus, rarity, damage types) each keep one distinct
+  palette colour.
+
+### Decision (2026-09-30): Warden Night, palette grows to 35
+
+**Final** (the user confirmed it). The Wardens move **one shade darker inside their own ramp**, so they sit
+in the fog instead of glowing on top of it. Each keeps its colour family: Sporeling stays pink,
+Dewdrop blue, Acorn amber. The palette gains three colours that **only Warden idle sheets use**:
+
+| Colour | Hex | Replaces | Why |
+|---|---|---|---|
+| Rosedust | `#b27aae` | Blossom | a dusty pink; the mascot stays pink but calmer |
+| Plum | `#7a4a82` | Orchid | the matching shadow, less saturated |
+| Nightbloom | `#6b6fb0` | Wraithlight | a bluer violet, so no Warden reads as a nightmare |
+
+- **The full map, rules and files** are in `warden_night.md` and `assets/style_reference/warden_night/`
+  (map json, 35-colour .gpl, all 70 Wardens before/after). Page:
+  https://claude.ai/artifact/969uR9QxNS9D71h8gCDqdh
+- **Idle sheets only.** Attack sheets, projectiles and glows keep full warm light: attacks are light
+  pushing back the dark.
+- **Nothing else uses the new three.** The Heartwood, nightmares, tiles and UI stay on the original 32.
+  So does the **Heartwood Sapling**: it's a piece of the Heartwood and keeps its full glow (user,
+  2026-09-30).
+- **No more additions.** If the step down merges two lines a Warden needs, fix it by hand. The
+  per-act ground allowance above is separate and still unused.
+- Owners: Tower Assets applies the map to the Warden sheets. Theme Code adds the three colours to
+  `HeartwoodPalette` and the palette export (a Warden-only set, so snapping other art never picks them).
+- The Mistwood environment it was made to match is still a preview only, not adopted
+  (https://claude.ai/artifact/R3v9xg1JhCoRXkRpob3twd).
 
 ## Environment
 

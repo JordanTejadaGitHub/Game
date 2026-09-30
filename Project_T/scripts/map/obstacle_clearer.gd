@@ -21,9 +21,9 @@ signal clear_pending(cell: Vector2)
 
 const MAP_GRID = preload("res://resource/map/map_grid.tres")
 const NO_CELL := Vector2(-1, -1)
-const HIGHLIGHT_COLOR := Color(1.0, 0.85, 0.4)
-const LOCKED_COLOR := Color(0.78, 0.78, 0.8)
-const NAME_COLOR := Color(0.92, 0.92, 0.88)
+const HIGHLIGHT_COLOR := Palette.GLOW
+const LOCKED_COLOR := Palette.MOONPATH
+const NAME_COLOR := Palette.MOONLIGHT
 
 @onready var map_generator = %MapGenerator
 @onready var tower_placer: TowerPlacer = %TowerPlacer
@@ -150,7 +150,7 @@ func _draw() -> void:
 		price = "free (%d left)" % dreams.free_first_clears  # Tend the Forest
 	var label := "%s %s · %s" % [_hover_obstacle.clear_verb, _hover_obstacle.display_name, price]
 	if pending_cell == _hover_cell:
-		label += "  ·  tap ✓ to clear"
+		label += " · tap ✓ to clear"
 	WorldLabel.draw_tag(self, center.x, rect.position.y - 8, label, WorldLabel.cost_color(affordable))
 
 # True until the run's first clearing Dream (then clearing works for the rest of the run).

@@ -27,9 +27,15 @@ var eclipse_left := 0.0
 # since bosses themselves have a fixed health scale.
 var drift_health_scale := 1.0
 const ROOTED_RULE := &"rooted_nightmares"
-const TANGLED_RULE := &"tangled"
 const WEATHERED_WALLS_RULE := &"weathered_walls"  # Thornwalls can't be trampled
-var tangled := false  # The Tangled Dream is owned (checked once a frame; see Enemy._tangled_slow)
+var root_web_share := 0.0  # Root Web: touching nightmares are Held for this share of a hold
+var root_web_boss_share := 0.0  # …and bosses for this share
+var release_pull := 0.0  # Tangled Release: tiles pulled back when a hold ends
+var caught_linger := 0.0  # Lullaby: seconds Caught lasts after leaving a Dreamcatcher
+var marked_bonus := 0.0  # Bright Marks: added to Marked's extra damage taken
+var overlay: NightmareOverlay  # Draws every nightmare's health bar and status badges (see NightmareOverlay)
+var blight_materials := {}  # {outlined: ShaderMaterial} shared by the nightmares (Enemy._blight_material)
+var thin_cards := false  # Any of the above owned (else nightmares skip their per-frame bookkeeping)
 var rooted_cells := {}  # {cell: Held nightmare} (Rooted Nightmares; see _update_rooted_cells)
 var waiting_cells := {}  # {cell: nightmare waiting behind a rooted one}
 # Boss pools (enemy_design.md): the Night Mare galloped round again (it took `leaves`); a Warden
@@ -51,6 +57,12 @@ var _sapling_sprites := {}  # {cell: AnimatedSprite2D} the saplings' grow / idle
 @onready var tower_container: Node2D = %TowerContainer
 
 func _ready() -> void:
+	# Every nightmare's bars and badges, from one canvas item (never a child of this node: its
+	# children are all nightmares)
+	overlay = NightmareOverlay.new()
+	overlay.name = "NightmareOverlay"
+	overlay.spawner = self
+	(owner if owner != null else get_parent()).add_child.call_deferred(overlay)
 	map_generator.path_changed.connect(_on_path_changed)
 	map_generator.obstacle_cleared.connect(func(cell: Vector2, _data: ObstacleData) -> void: _wither_sprite(cell))
 
@@ -93,6 +105,7 @@ func _create_prepared(enemy, enemy_data: EnemyData, health_scale: float, modifie
 	enemy.status_refused.connect(status_refused.emit)
 	enemy.trample_cell_requested.connect(_on_trample_cell_requested)
 	enemy.lapped.connect(_on_lapped)
+	enemy.bellow_requested.connect(_on_bellow_requested)
 	enemy.lantern_requested.connect(_on_lantern_requested)
 	enemy.wither_requested.connect(_on_wither_requested)
 	enemy.echo_requested.connect(_on_echo_requested)
@@ -138,7 +151,14 @@ func get_maze_walkers() -> Array[Node]:
 func _process(delta: float) -> void:
 	eclipse_left = maxf(eclipse_left - delta, 0.0)
 	var dreams := get_tree().get_first_node_in_group(DreamState.GROUP) as DreamState
-	tangled = dreams != null and dreams.has_rule(TANGLED_RULE)
+	# Thin-family cards (dream_design.md 2026-09-30), read once a frame for every nightmare.
+	root_web_share = dreams.get_root_web_share(false) if dreams != null else 0.0
+	root_web_boss_share = dreams.get_root_web_share(true) if dreams != null else 0.0
+	release_pull = dreams.get_release_pull() if dreams != null else 0.0
+	caught_linger = dreams.get_caught_linger() if dreams != null else 0.0
+	marked_bonus = dreams.get_marked_bonus() if dreams != null else 0.0
+	thin_cards = root_web_share > 0.0 or root_web_boss_share > 0.0 or release_pull > 0.0 \
+			or caught_linger > 0.0 or marked_bonus > 0.0
 	_update_rooted_cells(dreams)
 	_update_lantern_light()
 
@@ -190,8 +210,34 @@ func _split(parent: Node2D) -> void:
 	for i in data.split_count:
 		var child := _create(data.split_into, parent.health_scale, parent.modifiers)
 		child.position = parent.position + back * SPLIT_SPACING * i
+		child.set_path(_flight_from(child) if _flies_straight(data.split_into) else path)
+		enemy_split.emit(parent, child)
+
+# Flyers that burst out mid-maze (the Scarecrow's Crows) fly straight at the Heartwood from there.
+func _flies_straight(data: EnemyData) -> bool:
+	return data.trait_kind == EnemyData.Trait.FLYING and not data.flies_along_route
+
+func _flight_from(enemy: Node2D) -> PackedVector2Array:
+	return PackedVector2Array([enemy.grid.calculate_grid_coordinates(enemy.position), map_generator.endPath])
+
+# `count` `data` lined up behind the start, walking in one after another (the Hollow Stag's bellow,
+# the Night Mare's Shades).
+func _run_from_start(data: EnemyData, count: int, parent: Node2D) -> void:
+	var path: PackedVector2Array = map_generator.get_path_from(map_generator.startPath)
+	if data == null or count <= 0 or path.is_empty():
+		return
+	var first: Vector2 = parent.grid.calculate_map_position(path[0])
+	var ahead: Vector2 = parent.grid.calculate_map_position(path[1]) - first if path.size() > 1 else Vector2.RIGHT
+	var back := -ahead.normalized()
+	for i in count:
+		var child := _create(data, drift_health_scale, parent.modifiers)
+		child.position = first + back * SPLIT_SPACING * (i + 1)
 		child.set_path(path)
 		enemy_split.emit(parent, child)
+
+# Hollow Stag at half health: it bellows and its bellow_spawn run from the start.
+func _on_bellow_requested(stag: Node2D) -> void:
+	_run_from_start(stag.enemy_data.bellow_spawn, stag.enemy_data.bellow_count, stag)
 
 # Old Stag: knocks down a Thornwall (or Bramble) next to it. The wall is gone for good, with no
 # refund; opening a cell never breaks the path rule, and everyone re-routes.
@@ -305,7 +351,7 @@ func _on_grief_requested(oak: Node2D) -> void:
 	for i in data.grief_count:
 		var child := _create(data.grief_spawn, drift_health_scale)
 		child.position = oak.position + Vector2.from_angle(TAU * i / data.grief_count) * GRIEF_RING
-		child.set_path(path)
+		child.set_path(_flight_from(child) if _flies_straight(data.grief_spawn) else path)
 		enemy_split.emit(oak, child)
 
 # Hollow Oak: plants a thorn-sapling on an empty cell beside its route ahead. Never on a Warden, the
@@ -408,6 +454,7 @@ func _on_lapped(enemy: Node2D) -> void:
 	if run_state != null:
 		run_state.lose_leaves(leaves)
 	enemy_lapped.emit(enemy, leaves)
+	_run_from_start(enemy.enemy_data.lap_spawn, enemy.enemy_data.lap_spawn_count, enemy)  # Shades behind it
 
 # Lamplighter: lights a cold lantern on an empty cell beside its route, near it (up to lantern_max).
 func _on_lantern_requested(lamplighter: Node2D) -> void:

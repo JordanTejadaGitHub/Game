@@ -89,6 +89,30 @@ func _run() -> void:
 	_check(_drift_has(director.drifts[99], load("res://resource/enemy/hollow_oak_remembering.tres")), "the Remembering Oak takes drift 100")
 	_check(director.get_drawn_boss(2).get_id() == "huntsman", "get_drawn_boss reads the draw")
 
+	# --- Hollow Stag (sharpened): charges down straights of 4+ tiles, bellows 6 Husks at half health ---
+	var stag := _still("old_stag", route[0])
+	var stag_speed: float = stag.get_move_speed()
+	stag.set_path(PackedVector2Array([Vector2(1, 1), Vector2(2, 1), Vector2(3, 1), Vector2(4, 1), Vector2(4, 2), Vector2(4, 3), Vector2(5, 3)]))
+	stag._path_index = 1
+	stag._update_straight_charge()
+	_check(stag.straight_charging and is_equal_approx(stag.get_move_speed(), stag_speed * 2.5),
+		"a straight of 4 tiles: it charges at 2.5× (%.1f vs %.1f)" % [stag.get_move_speed(), stag_speed])
+	stag._path_index = 4
+	stag._update_straight_charge()
+	_check(not stag.straight_charging, "stops at the turn")
+	stag._path_index = 5
+	stag._update_straight_charge()
+	_check(not stag.straight_charging, "a straight of 3 tiles: no charge")
+	var husk_data: EnemyData = load("res://resource/enemy/bark_beetle.tres")
+	stag.take_damage(stag.max_health * 0.4)
+	_check(_count(husk_data) == 0, "no bellow above half health")
+	stag.take_damage(stag.max_health * 0.2)
+	_check(_count(husk_data) == 6, "at half health it bellows: 6 Husks (%d)" % _count(husk_data))
+	_check(stag._charge_left == 0.0, "no half-health charge any more (the straights replace it)")
+	stag.take_damage(stag.max_health * 0.1)
+	_check(_count(husk_data) == 6, "once")
+	_clear_enemies()
+
 	# --- Night Mare: laps ---
 	var mare := _still("night_mare", route[-1])
 	mare.set_path(PackedVector2Array([route[-1]]))
@@ -97,9 +121,17 @@ func _run() -> void:
 	mare._process(0.016)
 	_check(is_instance_valid(mare) and not mare.is_queued_for_deletion(), "the Night Mare doesn't leave at the Heartwood")
 	_check(run_state.leaves == leaves - 3, "a lap costs 3 leaves (%d → %d)" % [leaves, run_state.leaves])
-	_check(mare.laps == 1 and is_equal_approx(mare.speed, mare_speed * 1.2), "and it goes round again 20% faster")
+	_check(mare.laps == 1 and is_equal_approx(mare.speed, mare_speed * 1.3), "and it goes round again 30% faster")
 	_check(mare.get_target_cell() == route[0] or mare.grid.calculate_grid_coordinates(mare.position) == map_generator.startPath,
 		"back at the start")
+	var shade_data: EnemyData = load("res://resource/enemy/leaf_bug.tres")
+	_check(_count(shade_data) == 4, "each lap drops 4 Shades in behind it (%d)" % _count(shade_data))
+	var mare_start: Vector2 = mare.grid.calculate_map_position(map_generator.startPath)
+	var lined_up := true
+	for shade in spawner.get_children().filter(func(e) -> bool: return e.enemy_data == shade_data):
+		lined_up = lined_up and shade.position.distance_to(mare_start) <= 4.5 * spawner.SPLIT_SPACING + 1.0 \
+			and shade._path[0] == route[0]
+	_check(lined_up, "lined up behind the start, walking the maze")
 	mare.take_damage(mare.max_health * 0.55)
 	_check(mare._charge_left > 0.0, "it bolts at half health")
 	_clear_enemies()
@@ -111,6 +143,13 @@ func _run() -> void:
 	_check(_count(crow_data) == 5, "5 Crows burst out at 80%% (%d)" % _count(crow_data))
 	scarecrow.take_damage(scarecrow.max_health * 0.4)
 	_check(_count(crow_data) == 15, "5 more at 60%% and 40%% (%d)" % _count(crow_data))
+	var crows := spawner.get_children().filter(func(e) -> bool: return e.enemy_data == crow_data)
+	var airborne := true
+	for crow in crows:
+		airborne = airborne and crow.is_flying() and crow._path.size() == 2 and crow._path[-1] == map_generator.endPath \
+			and crow._path[0].distance_to(route[8]) <= 1.0
+	_check(airborne, "the Crows take to the air: straight at the Heartwood from where they burst")
+	_check(not spawner.get_maze_walkers().any(func(e) -> bool: return e.enemy_data == crow_data), "flyers: not maze walkers")
 	var walk: float = scarecrow.get_move_speed()
 	_check(is_equal_approx(walk, scarecrow.speed * 1.25), "Stitched: faster below 40% health")
 	_clear_enemies()

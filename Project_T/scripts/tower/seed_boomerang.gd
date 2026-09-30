@@ -3,13 +3,13 @@ class_name SeedBoomerang
 
 # Samara's spinning maple seed: flies in a straight line (over walls, through everything) and back.
 # Each pass hits every nightmare it crosses once (out and back = twice). The statuses of the first
-# nightmare it hits are carried down the line at half stacks. Cards: Backspin (+25% crit on the way
+# nightmare it hits are carried down the line at half stacks. Cards: Backspin (+40% crit on the way
 # back), Ricochet (turns 90° toward the nearest nightmare at the end; II: twice), Heavy Seed (knocks
 # back 0.25 tiles once per throw), Windborne Rain (every pass applies Damp). Script-only, world space.
 
 const SPEED := 420.0  # Pixels per second
 const HIT_RADIUS := 26.0  # Pixels either side of the line
-const BACKSPIN_CRIT := 0.25
+const BACKSPIN_CRIT := 0.40  # dream_audit.md (was 0.25)
 const ANIMATION_FPS := 14.0
 
 var _tower: Tower
@@ -82,7 +82,7 @@ func _carry_storm(before: Vector2) -> void:
 		if spot.is_empty():
 			return
 		var data := Reactions.get_data(Reactions.CROWNED_BASE.get(spot.id, spot.id))
-		_storm = {"id": spot.id, "applier": spot.applier, "colour": data.callout_color if data else Color.WHITE}
+		_storm = {"id": spot.id, "applier": spot.applier, "colour": data.callout_color if data else Palette.HEARTLIGHT}
 		return
 	var trail := Fx.segment(&"carried_storm", before, global_position, tracker.get_parent(), 0.3)
 	if trail != null:
@@ -124,7 +124,7 @@ func _hit_along(from: Vector2, to: Vector2) -> void:
 					status.line, status.get("source"))
 		var crit := Tower.ROLL_CRIT
 		if _returning and dreams and dreams.has_rule(&"backspin") \
-				and randf() < _tower.get_crit_chance(enemy) + BACKSPIN_CRIT:
+				and randf() < _tower.get_crit_chance(enemy) + BACKSPIN_CRIT * dreams.rule_power(&"backspin"):
 			crit = Tower.CRIT
 		# Heavy Seed (card): the return pass hits for double (status jobs review: no knockback any more).
 		var pass_multiplier := _damage_multiplier * (2.0 if _returning and dreams and dreams.has_rule(&"heavy_seed") else 1.0)
@@ -143,8 +143,8 @@ func _draw() -> void:
 	if texture == null:
 		# A maple seed: a round seed and one long wing, spinning.
 		var wing := Vector2.from_angle(spin) * 11.0
-		draw_line(Vector2.ZERO, wing, Color(0.85, 0.6, 0.3), 4.0)
-		draw_circle(Vector2.ZERO, 3.5, Color(0.6, 0.4, 0.2))
+		draw_line(Vector2.ZERO, wing, Palette.GOLD, 4.0)
+		draw_circle(Vector2.ZERO, 3.5, Palette.OAK)
 		return
 	draw_set_transform(Vector2.ZERO, spin)
 	var frames: int = _data.projectile_frames

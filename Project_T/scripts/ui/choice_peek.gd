@@ -21,11 +21,13 @@ func _init(screen: Control, content: Array, back_text: String) -> void:
 	_back.text = back_text
 	_back.focus_mode = Control.FOCUS_NONE
 	_back.custom_minimum_size = Vector2(260, 48)
-	_back.set_anchors_preset(Control.PRESET_CENTER_TOP)
+	# Bottom centre, just above the Warden bar: never over the drift banner, the Omen line or the Coming
+	# strip at the top (user playtest: it covered the strip's portraits).
+	_back.set_anchors_preset(Control.PRESET_CENTER_BOTTOM)
 	_back.offset_left = -130
 	_back.offset_right = 130
-	_back.offset_top = 80
-	_back.offset_bottom = 128
+	_back.offset_top = -158
+	_back.offset_bottom = -110
 	_back.grow_horizontal = Control.GROW_DIRECTION_BOTH
 	_back.visible = false
 	_back.pressed.connect(set_peeking.bind(false))

@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "head_start_ii"
+display_name = "Head Start II"
+description = "Nightmares of a {drift} you called early take 60% more damage for their first 10 s."
+rarity = 1
+kind = 3
+tags = Array[String](["tempo", "daring"])
+requires = Array[String]([])
+max_stacks = 1
+deepens = "head_start"
+rule_id = &"head_start"

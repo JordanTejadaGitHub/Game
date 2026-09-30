@@ -11,5 +11,4 @@ root = 0
 costs = Array[int]([40])
 order = 20
 icon = 0
-requires_all = Array[String](["sporeling_final"])
-dream_cards = Array[String](["dream_fairy_ring", "dream_elf_circle"])
+dream_cards = Array[String](["dream_fairy_ring", "dream_elf_circle", "ring_dance"])

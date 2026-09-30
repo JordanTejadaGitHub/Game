@@ -104,6 +104,22 @@ func _run() -> void:
 		for name in ["WardenPanel", "DriftPanel", "DriftBanner"]:
 			var other := (main.get_node("HUD/" + name) as Control).get_global_rect()
 			_check(not bar_rect.intersects(other), "the Warden bar doesn't overlap %s at %s (%s vs %s)" % [name, screen, bar_rect, other])
+		# A minimised choice's "Back to …" button never covers the banner, the Coming strip or the bar.
+		var peek_screen := Control.new()
+		peek_screen.set_anchors_preset(Control.PRESET_FULL_RECT)
+		main.get_node("HUD").add_child(peek_screen)
+		var peek := ChoicePeek.new(peek_screen, [], "Back to the Dream")
+		peek.set_peeking(true)
+		await process_frame
+		var back_rect := (peek_screen.get_children().filter(func(c: Node) -> bool: return c is Button)[0] as Button).get_global_rect()
+		var strip_rect := Rect2()
+		for child in main.get_node("HUD").get_children():
+			if child is ComingStrip:
+				strip_rect = (child as Control).get_global_rect()
+		_check(not back_rect.intersects(bar_rect) and not back_rect.intersects((main.get_node("HUD/DriftBanner") as Control).get_global_rect())
+			and not back_rect.intersects(strip_rect) and back_rect.end.y <= screen.y,
+			"the peek's Back button clears the bar, banner and Coming strip at %s (%s; bar %s, strip %s)" % [screen, back_rect, bar_rect, strip_rect])
+		peek_screen.queue_free()
 	_check(banner.get_drift_text() == "Ready · Drift 1", "before the first drift the banner reads Ready · Drift 1")
 	# The camera can scroll past the map's far corner, so the Heartwood can clear the drift controls.
 	var camera = main.get_node("GameCameraNode")
@@ -158,7 +174,12 @@ func _run() -> void:
 	tap.button_index = MOUSE_BUTTON_LEFT
 	tap.pressed = true
 	light.gui_input.emit(tap)
-	_check((main.get_node("%ToastLabel") as Label).text.begins_with("Dreamlight"), "tapping the counter explains it (no hover-only info)")
+	var light_tip: TapTip = main.get_node("HUD").dreamlight_tip
+	_check(light_tip.visible and light_tip._label.text.begins_with("Dreamlight") and light_tip._label.text.contains("(%d)" % dreams.dreamlight),
+		"tapping the counter explains it at the counter (no hover-only info)")
+	_check(light_tip.global_position.y >= light.global_position.y and absf(light_tip.global_position.x - light.global_position.x) < 400.0,
+		"…right under the counter, not at the top centre (%s vs %s)" % [light_tip.global_position, light.global_position])
+	light_tip.visible = false
 	# Resources explain themselves on hover and tap (IconInfo, TapTip).
 	var dew_label: Label = main.get_node("%DewLabel")
 	_check(dew_label.tooltip_text == IconInfo.resource_tooltip(&"dew") and dew_label.tooltip_text.begins_with("Dew: "), "Dew has a plain-words tooltip")
@@ -627,6 +648,33 @@ func _run() -> void:
 	var stats := results.get_stats_text()
 	_check(stats.contains("Leaves lost: 1") and stats.contains("Longest path"), "results show the run's stats (%s)" % stats)
 
+	# --- Omen cards: no label's text past its card's content rect (the padding inside the border), at
+	# 1280×800 and at the largest UI scale (1280×720 in view units). Face an Omen / Clear Skies, then
+	# every Omen revealed (the long twists).
+	var omen_screen = main.get_node("HUD/OmenScreen")
+	var all_omens: Array[OmenData] = []
+	for file in DirAccess.get_files_at("res://resource/omen"):
+		if file.ends_with(".tres"):
+			all_omens.append(load("res://resource/omen/" + file))
+	for view in [Vector2i(1280, 800), Vector2i(1280, 720)]:
+		root.size = view
+		omen_screen._show_offer([] as Array[OmenData], 2)
+		await _frames(3)
+		_check_omen_cards(omen_screen, "front cards at %s" % view)
+		var body_sizes: Array = []
+		for card in omen_screen._cards.get_children():
+			var labels: Array = card.find_children("*", "Label", true, false)
+			body_sizes.append(labels[1].get_theme_font_size("font_size") if labels.size() > 1 else -1)
+		_check(body_sizes.size() == 2 and body_sizes[0] == body_sizes[1], "Face an Omen and Clear Skies share one body size (%s)" % [body_sizes])
+		omen_screen._clear_cards()
+		for i in range(0, all_omens.size(), 3):
+			omen_screen._reveal(all_omens.slice(i, i + 3), null)
+			await _frames(3)
+			_check_omen_cards(omen_screen, "revealed Omens %d–%d at %s" % [i, i + 2, view])
+			omen_screen._clear_cards()
+	omen_screen._on_closed()
+	root.size = Vector2i(1280, 800)
+
 	main.queue_free()
 	await process_frame
 	print("ui test: %s" % ("PASS" if failures == 0 else "%d FAILED" % failures))
@@ -635,6 +683,20 @@ func _run() -> void:
 func _frames(n: int) -> void:
 	for i in n:
 		await process_frame
+
+# Every Label / RichTextLabel in each Omen card keeps OMEN_MIN_PAD from the card edge (clear of the border).
+const OMEN_MIN_PAD := Vector2(16, 14)
+func _check_omen_cards(screen, what: String) -> void:
+	for card in screen._cards.get_children():
+		var inner := Rect2(card.get_global_rect().position + OMEN_MIN_PAD, card.get_global_rect().size - OMEN_MIN_PAD * 2.0).grow(0.5)
+		for label in card.find_children("*", "", true, false):
+			if not (label is Label or label is RichTextLabel) or not label.is_visible_in_tree() or label.text == "":
+				continue  # Status-link popups and other hidden helpers
+			var rect: Rect2 = label.get_global_rect()
+			if label is RichTextLabel:
+				rect.size.y = maxf(rect.size.y, label.get_content_height())
+			_check(inner.encloses(rect), "Omen card %s: \"%s\" stays inside its card (%s in %s; %s)"
+				% [card.name, label.text.left(24), rect, inner, what])
 
 func _free_cell(map_generator) -> Vector2:
 	var path: PackedVector2Array = map_generator.get_path_from(map_generator.startPath)

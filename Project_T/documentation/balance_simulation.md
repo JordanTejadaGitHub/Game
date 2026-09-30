@@ -218,7 +218,130 @@ Decisions (design chat, 2026-09-30):
 - **Acorn keeps attacker ranks and the attacker Focus** (decision): it's its family's base attacker
   and opener. Only **Elder Stump and Grove Heart** are pure supports whose ranks go to the aura.
 
+## Batch g11 and the Dream value "before" (2026-09-30)
+
+- **Acorn at Fresh:** 9/10 reach 25, 4.8 leaves: just misses the floor → **+2 damage** (approved).
+- **The first boss:** ×1.5, ×1.75 and ×2.0 all give 19–20/20 clean dispels: its health barely
+  matters, the maze outclasses it. Decision: wait for the "after" batch (act 1 health rises with the
+  cards), then raise the act 1 boss until Fresh Balanced beats it ~75% **and always-skip loses to
+  it**. If that takes more than ~×3.5, it needs a threat, not health: Enemy Code gives act 1's
+  bosses a mechanic that punishes a maze without Dreams (e.g. a charge on straights, shrugging the
+  first status).
+- **Spend or save (C):** spending now beats saving (reach 25: Fresh 48 vs 46, Early 50 vs 41) and the
+  saver comes within 85% of the route far more often (25 vs 14; 29 vs 5). **Saving is the risky
+  gamble now, as intended**; whether surviving it pays off later is checked in the run history.
+- **Grove player (D):** medians Fresh 43 / Half 49 / Full 49. The Grove now adds ~6 drifts (was 0),
+  no deaths at 26–33 with a Grove, 0 wins. Still short of "Half reaches act 4, Full wins": revisit
+  after the Dream pass and the health rise; Grove perks get buffed then if still short.
+- **All families, to 100:** the Sprout bot plays the swarm badly (median 14), so no verdict on "too
+  easy"; the run history of real swarm runs decides. Balanced with all families: median 39.
+- **Dream value BEFORE the power pass** (skip / random / Balanced × Fresh / Full × own / all
+  families, 10 each): medians **35–45 everywhere**; always-skip beat the drift 25 boss **8–9/10**;
+  Dreams gave ~5–18% of DPS at drift 50. **Confirms the user: Dreams barely mattered.** The same
+  batch after the pass (cc38d56 + 5b72073) is the "after".
+
+**Dream value AFTER the power pass** (cc38d56 + 5b72073; median death drift, before → after):
+
+| Profile, families | Skip | Random | Balanced |
+|---|---|---|---|
+| Fresh, own | 41 → 41 | 43 → 45 | 45 → 49 |
+| Fresh, all | 38 → 34 | 37 → 42 | 39 → 44 |
+| Full, own | 35 → 37 | 44 → 41 | 45 → **62** |
+| Full, all | 45 → 33 | 40 → 47 | 41 → **56** |
+
+Dream share of DPS at drift 50: 0.05–0.18 → **0.12–0.39** (Balanced 0.21–0.39). Wins 1/120. **Dreams
+now separate the policies** (skip < random < Balanced), most with the Grove.
+
+Reading (design chat): the bot's random and Balanced runs already die **before** their targets (act
+3 / acts 3–4), yet the user wins at drift 100: **the bot is much weaker than a person**, so the bot
+can't set act 2–4 health. Decision:
+- **Act 1 only, from the bot:** the act 1 boss sweep (×2.5 / ×3.0 / ×3.5; Fresh Balanced and Fresh
+  skip, 20 seeds, to drift 26) until skip loses and Balanced wins ~75%.
+- **Acts 2–4 from people:** the run history of real runs decides the rise (target: a sensible run
+  ends in act 3–4, a build that comes together wins). Until then act 2–4 health stays.
+
+## Human run 1 (2026-09-30, the run history's first record)
+
+Fresh profile (7 Grove nodes, perk Morning Stores), Blight 0, the old health (before the interim
+rise), 3× speed, 29 min. **Lost at drift 100 to the Hollow Oak: Remembering**; drifts 1–99 without a
+single leak.
+
+| What | Number | Reading |
+|---|---|---|
+| Leaks, drifts 1–99 | **0** (46 close calls, all in act 1–2 boss drifts) | acts 1–4 far too easy |
+| Closest approach, drifts 51–99 | **0.00–0.3 of the route** (most 0.02–0.14) | nightmares die in the first tenth of the maze: a several-fold surplus, not 30% |
+| Bosses | Hollow Stag 32 s, Mire Hag 20 s, Barrow King 18 s | no threat |
+| Drift 100 | 12.6M health spawned vs 5.9M dealt, 15 leaves in one drift | one wall at the very end |
+| Dew | earned 18,953; spent 9,650 (plant 1,095 · grow 4,681 · ranks 3,874); **9,277 banked** at the end | nothing left to buy |
+| Omens | 18 faced, 0 Clear Skies, 4× Bountiful Night (×2.5 Dew) | Omens cost nothing to a strong maze and paid a lot |
+| Dreams | 25 taken (Lucid Dreaming from 70), 0 passed | |
+| Build | 59 Sprouts + 29 branches (88 attackers); Driftspore 31%, Bloomcap 14% | the Sprout swarm |
+
+Decisions (design chat; the interim rise in run_design.md was too small for this):
+1. **Health, replacing the interim:** act 2 ×1.3 at 26 → **×2.5 by 45**; acts 3–4 **×3.5**; **the Hollow
+   Oak (drift 100) keeps today's health** so the curve builds up to it instead of ending on a wall.
+   Act 1 as is (the first boss is tuned separately). Next human run checks it.
+2. **Bountiful Night:** ×2.5 Dew → **×1.6**.
+   **Late Dew cut** (user: "earn less late"): Dew per dispel by act **[1.0, 0.68, 0.45, 0.35]** (was [1.0, 0.68, 0.65, 0.5]; `RunState.act_dew_multipliers`).
+3. **Dew had nothing to buy** once the map was full and ranks stopped at II. User's answer: earn less
+   late (the cut above) **and** ranks III–V for Dew, with a choice at every rank: **Nurture v3**
+   (`warden_stats.md`).
+4. **Per-drift rows are unreliable when drifts are called early:** most drifts show 0.1–0.6 s and
+   the block's health lands on its 5th drift. Record health, damage and leaks **by the drift that
+   spawned the nightmare**, not by the drift that was current when it happened.
+
 ## Later
 
 A **human baseline**: the same CSV written from real playtests (debug builds only), so the bot's
 curve can be checked against how people really play.
+
+## Run history (2026-09-30, user: "keep a run history to check balancing")
+
+Why: the user beat drift 100 (an "Unlock all families" dev run, a Sprout swarm with Many Hands at 139
+attacking Wardens, 7 Grove nodes) and "felt it might be a bit too easy", while the Grove-player bot
+wins 0/30. Nothing about that run was kept. **The bot is weaker than a person**, so its numbers
+underestimate player power; the history is the check.
+
+- **Saved on every run end** (win, loss, abandon), real game **and** dev runs (tagged `dev`, with
+  which dev setting: all families / Test Grove / Dev Grove preset), never from tests. Last **50** runs
+  in `user://run_history.json`, separate from the profile so it can be sent along with bug reports.
+- **Per run:** date, build version, map seed, demo/full, Blight Level, Grove nodes owned and perks
+  carried, result, drift reached, play time, leaves lost **per act**, close calls; family picks
+  (offered and chosen); Dreams taken (with the drift) and skipped; Omens faced / Clear Skies and their
+  rewards; bosses met and dispelled (time to dispel); Dew earned / spent on planting, growth, ranks,
+  clears, and banked at each rest; Wardens at the end (count by form and rank, number of attackers);
+  top 5 Wardens by damage and their share; combo and Reaction counts; Dreamlight earned / spent.
+- **The exact build it was played on** (2026-09-30, user: *"make sure you know what version I am
+  playing on; versions are not commits but every change"*). Many chats edit the folder at once and
+  the user plays whatever is on disk, often with uncommitted edits, so a commit hash isn't enough.
+  Each record carries:
+  - **`build_id`**: a short hash of the **contents** of every script and data file the game loads
+    (`.gd`, `.tres`, `.tscn`, `project.godot`, `.json` data), computed once at launch (debug builds)
+    or baked at export. Any change, committed or not, gives a new id; the same files give the same id.
+  - **`commit`** (HEAD) and **`dirty`**: the uncommitted files at launch, each with its own content
+    hash, so a build can be matched to "commit X plus these edits".
+  - **`build_time`** (when the id was computed) and a readable **`build_label`**: "Sep 30 21:14 ·
+    3f9a2c" shown on the title screen (debug) and in the run report.
+  - **`balance`**: a snapshot of the tuning numbers that matter for comparing runs (DriftDirector
+    health multipliers per act, boss multiplier, starting Dew and leaves, rest bonus, Dew per act),
+    so two runs on different builds can be compared number by number.
+  - A local **`builds.json`** log next to the history: every new `build_id` the first time it's
+    launched, with its commit, dirty files and time, so the design chat can see which changes
+    landed between two runs.
+- **Per drift, compact:** drift, leaves lost, Dew banked, nightmare health spawned vs damage dealt,
+  closest approach (share of the route). Same column names as the bot's `runs.csv` / drift log, so
+  `tools/balance_summary.gd` can read human and bot runs side by side.
+- **In game:** a "Past runs" page in the Codex (results screen style, newest first; dev runs marked)
+  and a "Copy run report" button there and on the results screen for sharing with the design chat.
+- **Design use:** after each playtest the design chat reads the history (the file is local) and
+  compares it with the bot at the same Grove level and families.
+
+## Do the tests consider Dreams? (answer, 2026-09-30)
+
+Yes: every simulated run takes a Dream at every rest through `DreamSimPolicy` (by style: Balanced,
+Wide, Sprout, Mixed…), grows forms with Dreamlight and meets random drifts and bosses. Its limits: it
+picks by tag score, not by reading a synergy the way a person does; it doesn't reroll or banish
+well; Omens are "Clear Skies" unless the batch says otherwise; and no batch has run **all families
+unlocked** (the user's winning setup). Next batch: **Sprout swarm with all families, to 100** (the
+Sprout cards the user took: Many Hands, Sprout Surge, Seedfall, Quickened Sap, First Light, Last
+Stand), and the Balanced bot with all families, to see how much the family choice alone adds.

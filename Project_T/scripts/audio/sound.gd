@@ -183,17 +183,18 @@ func has_sound(id: StringName) -> bool:
 
 # The dispel: sigh and dissolve, then the release (a warm exhale / low hum in D). Several close
 # together blend into one softer swell: each is a little quieter, never higher.
-func play_dispel(at: Vector2, boss := false) -> void:
+# `size_pitch` < 1 for bigger nightmares: a lower, slower sigh (never added low end). Normal dispels
+# don't duck the music any more (fourth listen); the boss's still does.
+func play_dispel(at: Vector2, boss := false, size_pitch := 1.0) -> void:
 	if boss:
 		duck(8.0, 1.0)
 		play(&"dispel_boss", at, 2.0, 1.0, 0.0)
 		return
-	duck(4.0, 0.5)
 	var now := Time.get_ticks_msec()
 	_dispel_cluster = _dispel_cluster + 1 if now - _dispel_time < DISPEL_CLUSTER_MS else 0
 	_dispel_time = now
 	var cluster_db := maxf(DISPEL_CLUSTER_DB * _dispel_cluster, DISPEL_CLUSTER_MAX_DB)
-	play(&"dispel", at, -3.0 + cluster_db)
+	play(&"dispel", at, -3.0 + cluster_db, size_pitch)
 	play(&"dispel_release", at, -6.0 + cluster_db, 1.0, 0.03)
 
 

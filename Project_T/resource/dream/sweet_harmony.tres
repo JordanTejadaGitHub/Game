@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "sweet_harmony"
 display_name = "Sweet Harmony"
-description = "Harmony strikes +50% damage; they come every 1.5 s instead of 2 s."
+description = "{harmonies} +50% damage; they come every 1.5 s instead of 2 s."
 rarity = 1
 kind = 3
 tags = Array[String](["kinship"])

@@ -1,0 +1,109 @@
+{
+	"mists": [
+		{
+			"file": "title_mist_0.png",
+			"speed": 1.6,
+			"y": 222
+		},
+		{
+			"file": "title_mist_1.png",
+			"speed": -2.4,
+			"y": 252
+		},
+		{
+			"file": "title_mist_2.png",
+			"speed": 3.2,
+			"y": 284
+		}
+	],
+	"nightmares": [
+		{
+			"amp": 1,
+			"floats": false,
+			"name": "watcher",
+			"period": 2.49,
+			"phase": 0.95,
+			"rect": [
+				172,
+				269,
+				29,
+				35
+			]
+		},
+		{
+			"amp": 1,
+			"floats": true,
+			"name": "will_o_wisp",
+			"period": 2.31,
+			"phase": 0.1,
+			"rect": [
+				352,
+				279,
+				17,
+				13
+			]
+		},
+		{
+			"amp": 1,
+			"floats": false,
+			"name": "weeper",
+			"period": 3.11,
+			"phase": 0.36,
+			"rect": [
+				70,
+				293,
+				29,
+				31
+			]
+		},
+		{
+			"amp": 1,
+			"floats": false,
+			"name": "gravecrawler",
+			"period": 2.74,
+			"phase": 0.37,
+			"rect": [
+				540,
+				311,
+				41,
+				25
+			]
+		},
+		{
+			"amp": 1,
+			"floats": false,
+			"name": "leaf_bug",
+			"period": 3.22,
+			"phase": 0.8,
+			"rect": [
+				270,
+				322,
+				25,
+				20
+			]
+		},
+		{
+			"amp": 1,
+			"floats": false,
+			"name": "leaf_bug",
+			"period": 2.7,
+			"phase": 0.61,
+			"rect": [
+				224,
+				329,
+				25,
+				19
+			]
+		}
+	],
+	"size": [
+		640,
+		360
+	],
+	"warden": {
+		"amp": 2,
+		"period": 5.5,
+		"pivot": 292,
+		"top": 15
+	}
+}

@@ -28,8 +28,9 @@ func _run() -> void:
 	await process_frame
 	_check(Reactions.all().size() == 8, "eight Reactions are defined (%d)" % Reactions.all().size())
 
-	var jar := _plant("firefly_jar", Vector2(2, 2))
-	var sporeling := _plant("sporeling", Vector2(2, 4))
+	# Reactions need a grown Warden (tower_design.md "Reactions"): the sources here are branch forms.
+	var jar := _plant("stormcap", Vector2(2, 2))
+	var sporeling := _plant("driftspore", Vector2(2, 4))
 	var pebbling := _plant("pebbling", Vector2(2, 6))
 	var base := jar.get_damage()
 	var origin := Vector2(12.5, 8.5) * CELL  # A cell centre, where nightmares walk
@@ -57,6 +58,21 @@ func _run() -> void:
 	if log:
 		_check(log.get_tower_stats(jar).get("combos", {}).get(&"thunderclap", 0.0) > 0.0,
 			"the DamageLog credits Thunderclap damage to the Firefly Jar")
+	await _clean()
+
+	# --- Base Wardens apply statuses but never react; one grown source is enough ---
+	var base_jar := _plant("firefly_jar", Vector2(6, 2))
+	var base_spore := _plant("sporeling", Vector2(6, 4))
+	var unreacted := _spawn(origin)
+	unreacted.apply_status(EnemyStatuses.SPORED, 4, 5.0, 2.0, 0, "spore", base_spore)
+	unreacted.apply_status(EnemyStatuses.STATIC, 1, 0.0, base, 0, "light", base_jar)
+	_check(unreacted.statuses.burn_time <= 0.0 and unreacted.statuses.has(EnemyStatuses.STATIC), "two base Wardens: no Ignite (the Charged stays)")
+	var mixed := _spawn(origin + Vector2(0, 3) * CELL)
+	mixed.apply_status(EnemyStatuses.SPORED, 4, 5.0, 2.0, 0, "spore", base_spore)
+	mixed.apply_status(EnemyStatuses.STATIC, 1, 0.0, base, 0, "light", jar)
+	_check(mixed.statuses.burn_time > 0.0, "a grown Stormcap's Charged on a base Sporeling's spores: Ignite")
+	base_jar.queue_free()
+	base_spore.queue_free()
 	await _clean()
 
 	# --- Ignite (status jobs, 2026-09-29): 3+ Spored + Static. The spores burn 3 s (Spored ticks 3x as
