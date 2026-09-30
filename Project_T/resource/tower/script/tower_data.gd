@@ -248,7 +248,7 @@ const ASCENDED_JSON := "res://assets/towers/ascended/ascended.json"  # 128×128 
 @export var crit_dew_per_drift: int = 0  # Cap on crit Dew per drift
 
 @export_group("Wind")
-@export var push_back_tiles: float = 0.0  # Pulse hits push nightmares back this far (Whirligig)
+@export var push_back_tiles: float = 0.0  # Pulse hits push nightmares back this far (the Tidecaller's wave)
 @export var push_cooldown: float = 3.0  # Seconds before the same nightmare can be pushed again
 @export var spread_targets: int = 2  # Gust: nightmares that get the copied statuses
 @export var spread_radius: float = 1.5  # Cells from the most-afflicted nightmare
