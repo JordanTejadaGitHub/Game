@@ -289,11 +289,11 @@ func _starling() -> void:
 	FinalTwists.update(flock, 0.1)
 	_check(flock._twist_state.get(&"swirl_left", 0.0) > 0.0 and flock._twist_state[&"swirl_at"].distance_to(_at(route[12])) < 1.0,
 		"Dark swirl forms on the busiest path tile")
-	_check(phantom.statuses.is_held(), "a Phantom gliding through it is Held")
+	_check(phantom.hold_time > 0.0 and not phantom.statuses.is_held(), "a Phantom gliding through it stops (a pause, not Held)")
 	_check(not crowd[0].statuses.is_held(), "walkers aren't")
-	phantom.statuses.remove(EnemyStatuses.HELD)
+	phantom.hold_time = 0.0
 	FinalTwists.update(flock, 0.1)
-	_check(not phantom.statuses.is_held(), "once each")
+	_check(is_zero_approx(phantom.hold_time), "once each")
 	flock.queue_free()
 	await _clean()
 

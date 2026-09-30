@@ -38,7 +38,7 @@ const MENDED_MAX := 3  # …restore 1 leaf, at most 3 a run
 const SWIRL_EVERY := 6.0  # Starling Murmuration: every 6 s a swirl on the busiest path tile in range…
 const SWIRL_TIME := 2.0  # …for 2 s…
 const SWIRL_REACH := 0.5  # …1 cell across…
-const SWIRL_HOLD := 0.5  # …Holds each Phantom (flyer) gliding through it for 0.5 s, once each
+const SWIRL_HOLD := 0.5  # …stops each Phantom (flyer) gliding through it for 0.5 s (a pause, not Held), once each
 const GALE_EVERY := 10.0  # Zephyr: every 10 s a gust sweeps 3 path tiles in range…
 const GALE_TILES := 3  # …copying the most afflicted nightmare's statuses (half stacks) onto everything there
 const MOMENTUM_PER_SECOND := 0.05  # Windmill: +5% attack speed a second with nightmares in reach…
@@ -306,7 +306,8 @@ static func _update_swirl(tower: Tower, state: Dictionary, delta: float) -> void
 	for enemy in tower.get_tree().get_nodes_in_group(Tower.ENEMY_GROUP):
 		if enemy.is_flying() and not enemy.has_meta(&"swirled") and enemy.global_position.distance_to(at) <= reach:
 			enemy.set_meta(&"swirled", true)
-			_force_hold(tower, enemy, SWIRL_HOLD)  # Phantoms are immune to Held; the swirl is their counter
+			# Swept up in the flock: a plain pause, not Held (Phantoms stay immune to Held; no Reactions).
+			enemy.hold_time = maxf(enemy.hold_time, SWIRL_HOLD * (0.5 if enemy.enemy_data.is_boss else 1.0))
 
 # --- Zephyr: Gale lane --------------------------------------------------------------------------------
 
@@ -388,12 +389,3 @@ static func jammed(tower: Tower, enemy: Node2D) -> void:
 	if tower._twist == &"logjam" and is_instance_valid(enemy) and not enemy.is_flying():
 		enemy.set_meta(LOGJAM_META, true)
 
-# A Hold that gets through a Held immunity (the Dark swirl on Phantoms, which are immune otherwise).
-static func _force_hold(tower: Tower, enemy: Node2D, seconds: float) -> void:
-	var immune: Array = enemy.statuses.immune
-	var was_immune := immune.has(EnemyStatuses.HELD)
-	if was_immune:
-		immune.erase(EnemyStatuses.HELD)
-	_hold(tower, enemy, seconds)
-	if was_immune and is_instance_valid(enemy):
-		immune.append(EnemyStatuses.HELD)
