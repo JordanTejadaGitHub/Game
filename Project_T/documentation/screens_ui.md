@@ -404,6 +404,50 @@ one-line definition, a small icon, and "see also" links. Terms in tooltips, card
 
 Boss names and late nightmares only show once met, to avoid spoilers (the rest is always visible).
 
+**Glossary and Families, revised (2026-09-30, user: *"make the glossary Codex more visually appealing
+and update the families"*).**
+
+*Terms updated* (the table above is out of date; the Codex follows this list):
+- **Statuses:** Soaked, Drowsy, Asleep, Poisoned, Exposed, Charged, Rooted, Caught, Frozen (the old
+  Damp / Spored / Marked / Static / Held names are gone).
+- **Damage types:** Spore, Water, Light, Stone, Root, Song, Wind, Talon, Plain, with who deals each.
+- **Wardens:** Nurture's **per-rank choice** (Power / Swift / Reach / Deep) replaces Focus;
+  **Kinship**, **Harmony strike**, **Boosts** (auras, Kinship, Kindred / Whole Tree) added;
+  Heartwood Sapling and Memory Warden removed (cut / parked).
+- **The run:** Close call, Chain added; **Dreams:** Entwined and Half-dreamed stay internal (not
+  entries); Woven, Deepened, Bittersweet stay.
+
+*Glossary look:*
+- **Two panes:** the groups down the left as a list with an icon each (Resources, The run, Combat,
+  Wardens, Nightmares, Statuses, Damage types, Dreams, The Memory Grove); the right pane shows that
+  group's entries. Search box at the top of the left pane; a result jumps to its entry and flashes it.
+- **Every entry is a small card**, not a line of text: a **32 px icon** on the left (the status icon,
+  the resource icon, the damage type's Warden face, a Warden portrait for Warden terms), the **term
+  in the display font**, the one-line definition in body text, one muted **example** line (*"Stormcap's
+  chain jumps farther through Soaked nightmares."*), and "See also" as **gold link chips**.
+- **Statuses page:** each card has its **status colour** as the rim, and adds its numbers (max stacks,
+  duration, what a stack does) and **who applies it** (small Warden portraits of your families); the
+  combos it's part of show as chips, ??? until discovered.
+- **Damage types page:** each type's card lists the nightmares weak to it and resisting it (icons,
+  ??? until met).
+- Cards sit in a 2-column grid on wide screens, 1 column on narrow; group headers use the gold thread
+  divider. Moonlit Thread throughout (fog panels, no hand-built boxes).
+
+*Families page, updated:*
+- One page per family, tabs along the top with the base Warden's portrait (like Remember).
+- **Header:** the base Warden large (animated), family name, damage type, its **role in one line**
+  (*"Damage over time: stack Poisoned and keep it."*), its statuses, and **your record** (picked N times,
+  won N runs with it).
+- **The tree** drawn like the Remember screen (portraits on waystones): base → two branches → two
+  finals → hidden branch → Ascended, each node with its **tier, Dew to grow (120 / 300 / 600) and
+  Dreamlight to unlock (1 / 2 / 3)**, and its Grove state (planted, or a silhouette "in the Memory
+  Grove"). Tapping a node shows its full card (the Warden panel's top half).
+- Under the tree: its **Kinships** (the two branches, the bond's name and stages), its **combos**
+  (chips, ??? until found), and the family's Dream cards (a count and a link to the Dreams tab).
+- Numbers come from the data (TowerData / DreamState), never typed into the Codex, so balance changes
+  (branch 120, final 300, Ascended 600, Puffball no longer popping, Nurture choices) show up by
+  themselves.
+
 ### Combos (discovered in play)
 
 Every combo starts **locked** and is **discovered the first time it actually fires** in a run.
