@@ -1212,14 +1212,31 @@ func _release() -> void:
 # Card hit multipliers (dream_design.md): Patient Aim (+15% per second it didn't fire, max +60%), Crush (area
 # hits on a crowded nightmare), Crowd Breaker (area attacks +5% per nightmare hit, max +45%), Shiny Things
 # (the Magpie's stolen buffs). Tag resonance on each.
+const HIT_CARD_RULES: Array[StringName] = [&"patient_aim", &"crush", &"crowd_breaker", &"shiny_things"]
+const CATALOGUE_HIT_RULES: Array[StringName] = [&"mycelium", &"fireflies_in_the_grass", &"resonance"]
+
+# True if any of `rules` is owned; cached with the shared rule cache under `key`.
+func _any_rule(key: StringName, rules: Array[StringName]) -> bool:
+	if _dream_state == null:
+		return false
+	_rule_entry(rules[0])  # Refreshes the shared cache if the run's rules changed
+	if not _rules.has(key):
+		var any := false
+		for rule in rules:
+			if _rule_stacks(rule) > 0:
+				any = true
+				break
+		_rules[key] = [1 if any else 0, 0]
+	return _rules[key][0] > 0
+
 var _aim_idle := 0.0
 var _last_release := 0.0
 var _area_count := 0  # Nightmares the current area attack hits (Crowd Breaker)
 var _shiny: Array[float] = []  # Shiny Things: _anim_time each stolen buff runs out
 
 func _card_hit_multiplier(enemy: Node2D, is_area: bool) -> float:
-	if _dream_state == null:
-		return 1.0
+	if _dream_state == null or (_shiny.is_empty() and not _any_rule(&"__hit_cards", HIT_CARD_RULES)):
+		return 1.0  # Performance: most runs own none of these (one cached check per hit)
 	var multiplier := 1.0
 	if _rule_stacks(&"patient_aim") > 0:
 		multiplier *= 1.0 + minf(DreamState.PATIENT_AIM_PER * _aim_idle, DreamState.PATIENT_AIM_MAX) * _rule_power(&"patient_aim")  # Slow snipers gain most
@@ -2836,6 +2853,8 @@ var _firefly_hits := 0
 
 func _catalogue_hit(enemy: Node2D) -> void:
 	if not is_instance_valid(enemy) or enemy.is_cleansed or _dream_state == null:
+		return
+	if not _any_rule(&"__catalogue_cards", CATALOGUE_HIT_RULES):
 		return
 	if tower_data.get_id() == "sprout":
 		if _touch_lines.has("spore") and _rule_stacks(&"mycelium") > 0:

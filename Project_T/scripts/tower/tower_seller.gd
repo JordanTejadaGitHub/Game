@@ -70,6 +70,7 @@ func _ready() -> void:
 	_ensure_grow_actions()
 	# Buff pips, source threads and the buff lens (screens_ui.md "Buff readability").
 	var overlay := BuffOverlay.new()
+	overlay.name = "BuffOverlay"  # test_perf_stress --breakdown switches it off by name
 	overlay.seller = self
 	overlay.placer = tower_placer
 	overlay.director = drift_director

@@ -24,7 +24,7 @@ const PASS_MS := 11.0
 const CARDS := ["root_network", "seedfall", "heart_of_the_maze", "solitude", "thinning_the_herd"]
 const MIX := ["sprout", "sprout", "sprout", "sporeling", "firefly_jar", "dewdrop", "pebbling", "acorn", "rootling"]
 const SYSTEMS := ["SoundHooks", "Kinships", "DreamMarks", "EnvironmentLighting", "EnvironmentAmbience", "HUD",
-	"CombatCallouts", "ResistPips", "NightmareInfo"]
+	"CombatCallouts", "ResistPips", "NightmareInfo", "BuffOverlay"]
 
 var failures := 0
 var main: Node
