@@ -305,7 +305,9 @@ accessibility, Steam achievements (milestones map to them). Acts 3–4 and all f
 ## Audio (placeholder, audio_direction.md)
 - **Heartwood 32 + detail pass** (art_direction.md "Rendering style"; Theme Code owns `tools/art/`):
   `HeartwoodPalette` (`color("gold")` by name, `snap(c, cold)`, `snap_image(img, cold)`, OKLab nearest;
-  cold = nightmares) and `DetailPass.apply(img, Kind.WARDEN/OBSTACLE/NIGHTMARE/TILE)` /
+  cold = nightmares; `wardens = true` adds the Warden Night 3 for Warden idle sheets only, and
+  `warden_night(img)` shifts an idle sheet one shade darker by `WARDEN_NIGHT_MAP`, warden_night.md) and
+  `DetailPass.apply(img, Kind.WARDEN/OBSTACLE/NIGHTMARE/TILE)` /
   `apply_sheet(sheet, Vector2i(64, 64), kind, glow_radius := 0, texture := 1.0)` (rim, dither seams,
   texture, banded glow, smoke, then snap; `texture` 0..1 thins the grain for calm tiles / pre-shaded art).
   Every art generator runs its frames through it. `tools/art/palette_export.gd` writes
