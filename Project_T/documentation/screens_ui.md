@@ -499,6 +499,17 @@ From a user playtest with screenshots; each line is the rule going forward.
   characters**, and scales with the UI scale setting. Small caps captions stay for labels only, never
   for sentences. Contrast at least 4.5:1 against the fog panel. Applies to the Warden bar, Warden
   panel stats, status and term links, nightmare info, Codex glossary popups and the rest report.
+- **No automatic rest report** (user: "don't think this block of information is needed"). The text
+  panel that opened at every rest (maze DPS, carrying / underused, top 3, crits, support, path tiles,
+  held / pulled, this block's templates) is **gone from the screen**. What's worth keeping moves:
+  - the damage meter gets a **"Last block"** tab (top Wardens, most improved, combos and Reactions,
+    close calls, Kinships formed), opened only when you want it;
+  - one-time moments still get their own toast or card (a new combo, a Kinship formed, a first
+    close call), as before;
+  - the **results screen** keeps the whole-run report.
+  A Gameplay setting **"Rest summary: Off / On"** (Off by default) brings the old panel back for
+  players who like it. Other features that wrote lines into the rest report now write to the
+  "Last block" tab instead.
 - **Family-seeding cards** ("Seed · calls Rootling to your next family pick", e.g. Patient Roots):
   if you **already own** that family, the seed line is hidden and nothing is seeded (it only calls
   families you don't have yet).
