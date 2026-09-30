@@ -97,6 +97,7 @@ func _create_prepared(enemy, enemy_data: EnemyData, health_scale: float, modifie
 	enemy.status_refused.connect(status_refused.emit)
 	enemy.trample_cell_requested.connect(_on_trample_cell_requested)
 	enemy.lapped.connect(_on_lapped)
+	enemy.bellow_requested.connect(_on_bellow_requested)
 	enemy.lantern_requested.connect(_on_lantern_requested)
 	enemy.wither_requested.connect(_on_wither_requested)
 	enemy.echo_requested.connect(_on_echo_requested)
@@ -201,8 +202,34 @@ func _split(parent: Node2D) -> void:
 	for i in data.split_count:
 		var child := _create(data.split_into, parent.health_scale, parent.modifiers)
 		child.position = parent.position + back * SPLIT_SPACING * i
+		child.set_path(_flight_from(child) if _flies_straight(data.split_into) else path)
+		enemy_split.emit(parent, child)
+
+# Flyers that burst out mid-maze (the Scarecrow's Crows) fly straight at the Heartwood from there.
+func _flies_straight(data: EnemyData) -> bool:
+	return data.trait_kind == EnemyData.Trait.FLYING and not data.flies_along_route
+
+func _flight_from(enemy: Node2D) -> PackedVector2Array:
+	return PackedVector2Array([enemy.grid.calculate_grid_coordinates(enemy.position), map_generator.endPath])
+
+# `count` `data` lined up behind the start, walking in one after another (the Hollow Stag's bellow,
+# the Night Mare's Shades).
+func _run_from_start(data: EnemyData, count: int, parent: Node2D) -> void:
+	var path: PackedVector2Array = map_generator.get_path_from(map_generator.startPath)
+	if data == null or count <= 0 or path.is_empty():
+		return
+	var first: Vector2 = parent.grid.calculate_map_position(path[0])
+	var ahead: Vector2 = parent.grid.calculate_map_position(path[1]) - first if path.size() > 1 else Vector2.RIGHT
+	var back := -ahead.normalized()
+	for i in count:
+		var child := _create(data, drift_health_scale, parent.modifiers)
+		child.position = first + back * SPLIT_SPACING * (i + 1)
 		child.set_path(path)
 		enemy_split.emit(parent, child)
+
+# Hollow Stag at half health: it bellows and its bellow_spawn run from the start.
+func _on_bellow_requested(stag: Node2D) -> void:
+	_run_from_start(stag.enemy_data.bellow_spawn, stag.enemy_data.bellow_count, stag)
 
 # Old Stag: knocks down a Thornwall (or Bramble) next to it. The wall is gone for good, with no
 # refund; opening a cell never breaks the path rule, and everyone re-routes.
@@ -316,7 +343,7 @@ func _on_grief_requested(oak: Node2D) -> void:
 	for i in data.grief_count:
 		var child := _create(data.grief_spawn, drift_health_scale)
 		child.position = oak.position + Vector2.from_angle(TAU * i / data.grief_count) * GRIEF_RING
-		child.set_path(path)
+		child.set_path(_flight_from(child) if _flies_straight(data.grief_spawn) else path)
 		enemy_split.emit(oak, child)
 
 # Hollow Oak: plants a thorn-sapling on an empty cell beside its route ahead. Never on a Warden, the
@@ -419,6 +446,7 @@ func _on_lapped(enemy: Node2D) -> void:
 	if run_state != null:
 		run_state.lose_leaves(leaves)
 	enemy_lapped.emit(enemy, leaves)
+	_run_from_start(enemy.enemy_data.lap_spawn, enemy.enemy_data.lap_spawn_count, enemy)  # Shades behind it
 
 # Lamplighter: lights a cold lantern on an empty cell beside its route, near it (up to lantern_max).
 func _on_lantern_requested(lamplighter: Node2D) -> void:

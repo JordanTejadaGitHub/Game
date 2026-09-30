@@ -23,11 +23,18 @@ enum Trait { NONE, FLYING, ROLLING, TRAMPLE, LEAP, BURROW, WANDER }
 @export var roll_speed: float = 192.0  # px/s (3 cells/s)
 # TRAMPLE (Old Stag): every `trample_interval` s knocks down an adjacent Thornwall (for good),
 # up to `trample_max` per trip. At half health it's startled: ×`charge_speed_multiplier` for
-# `charge_time` s (once).
+# `charge_time` s (once), unless it charges on straights instead (below).
 @export var trample_interval: float = 10.0
 @export var trample_max: int = 3
 @export var charge_speed_multiplier: float = 1.5
 @export var charge_time: float = 4.0
+# Hollow Stag, sharpened (enemy_design.md 2026-09-30): on every straight of `straight_charge_tiles`+
+# path tiles it charges at × `straight_charge_multiplier` (0 = off; then no charge at half health).
+@export var straight_charge_tiles: int = 0
+@export var straight_charge_multiplier: float = 1.0
+# …and at half health it bellows: `bellow_count` `bellow_spawn` run from the start.
+@export var bellow_spawn: EnemyData
+@export var bellow_count: int = 0
 # LEAP (Great Toad): every `leap_interval` s (`leap_interval_hurt` below half health) leaps
 # `leap_tiles` ahead along its path; creatures within `leap_splash_radius` cells of the landing get Damp.
 @export var leap_interval: float = 6.0
@@ -89,6 +96,9 @@ enum Trait { NONE, FLYING, ROLLING, TRAMPLE, LEAP, BURROW, WANDER }
 # `lap_speed_multiplier` faster each lap (stacking), until dispelled.
 @export var lap_leaves: int = 0
 @export var lap_speed_multiplier: float = 1.2
+# …and each new lap drops `lap_spawn_count` `lap_spawn` in behind it at the start.
+@export var lap_spawn: EnemyData
+@export var lap_spawn_count: int = 0
 # Night Mare's Bolt: the Hollow Stag's charge (charge_speed_multiplier, charge_time) at half health,
 # without trampling.
 @export var charges_at_half: bool = false
@@ -254,6 +264,10 @@ func get_summons() -> Array:
 		summons.append({"data": brood, "count": 1, "how": format_text("every {brood_interval} s")})
 	if grief_spawn != null and grief_count > 0:
 		summons.append({"data": grief_spawn, "count": grief_count, "how": format_text("at {grief_at:list_pct} health")})
+	if bellow_spawn != null and bellow_count > 0:
+		summons.append({"data": bellow_spawn, "count": bellow_count, "how": "at 50% health"})
+	if lap_spawn != null and lap_spawn_count > 0:
+		summons.append({"data": lap_spawn, "count": lap_spawn_count, "how": "each lap"})
 	return summons
 
 # Walks the maze again after reaching the Heartwood (Night Mare).
