@@ -217,7 +217,7 @@ func _card_row(source: DreamIcon) -> Control:
 	text.add_child(body)
 	if source.dormant:  # Asleep: dimmed, with the families it still needs ("Needs Dewdrop")
 		var needs_row := NeedsRow.make(dream_state.missing_needs(card), 13, UiStyle.INK_DIM) if dream_state.has_method("missing_needs") else null
-		if needs_row != null:  # "Needs [emblem] Wind", as on the Dream card
+		if needs_row != null:  # "Needs Wind", as on the Dream card
 			text.add_child(needs_row)
 		else:
 			var needs := Label.new()

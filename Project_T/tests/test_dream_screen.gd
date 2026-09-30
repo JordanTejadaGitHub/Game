@@ -54,7 +54,7 @@ func _run() -> void:
 		# Rarity row, name, then the effect (a RichTextLabel with the card's description)
 		_check(labels.size() >= 3 and labels[2] is RichTextLabel, "%s: the effect comes right after the name" % _name_of(button))
 	_check(heights.size() == 1, "all cards share one height (%s)" % heights.keys())
-	# Half-dreamed stays internal: the card shows only "Needs [emblem] <damage type>", no label, no "Sleeps"
+	# Half-dreamed stays internal: the card shows only "Needs <damage type>" (no emblem), no label, no "Sleeps"
 	var bloom_button := screen._cards.get_child(0).get_child(0) as Button
 	var bloom_texts: Array = bloom_button.find_children("*", "", true, false) \
 		.filter(func(n: Node) -> bool: return n is Label or n is RichTextLabel) \
@@ -62,9 +62,9 @@ func _run() -> void:
 	var joined := " | ".join(bloom_texts)
 	var needs := dreams.missing_needs(bloom)
 	var row := bloom_button.find_child("MissingRow", true, false)
-	_check(not needs.is_empty() and row != null and bloom_texts.has(needs[0].type) and row.get_children().filter(func(c: Node) -> bool: return c is TextureRect).size() == needs.size()
+	_check(not needs.is_empty() and row != null and bloom_texts.has(needs[0].type) and row.get_children().filter(func(c: Node) -> bool: return c is TextureRect).is_empty()
 		and not joined.to_lower().contains("half-dreamed") and not joined.contains("Sleeps"),
-		"a half-dreamed card: one \"Needs [emblem] <type>\" line (%s)" % joined)
+		"a half-dreamed card: one \"Needs <type>\" line, no emblem (%s)" % joined)
 	_check(dreams.missing_families_text(bloom) == "Needs " + needs[0].type and needs[0].type == IconInfo.damage_type_name(needs[0].line),
 		"…named by damage type, not the family (%s)" % dreams.missing_families_text(bloom))
 

@@ -1,8 +1,8 @@
 extends RefCounted
 class_name NeedsRow
 
-# "Needs [emblem] Wind" (dream_design.md "Named by damage type"): what a half-dreamed or sleeping
-# Dream card still needs, by damage type, each with its emblem; the word is a link to the family's
+# "Needs Wind" (dream_design.md "Named by damage type"; no emblem): what a half-dreamed or sleeping
+# Dream card still needs, by damage type; the word is a link to the family's
 # popup and its tooltip names a specific form ("Samara, a Wind Warden"). The Dream card and "Dreams
 # this run" both use it, so they match.
 #   var row := NeedsRow.make(dream_state.missing_needs(card), 12, UiStyle.INK_DIM)
@@ -20,14 +20,6 @@ static func make(needs: Array, font_size: int, colour: Color) -> HBoxContainer:
 		var need: Dictionary = needs[i]
 		if i > 0:
 			row.add_child(_word("and", font_size, colour))
-		var emblem := TextureRect.new()
-		emblem.texture = IconInfo.family_emblem(need.line)
-		emblem.custom_minimum_size = Vector2(font_size + 4, font_size + 4)
-		emblem.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-		emblem.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-		emblem.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-		emblem.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		row.add_child(emblem)
 		var link := StatusLinks.make_label("", font_size, colour)
 		link.text = StatusLinks._link(StatusLinks.FAMILY_PREFIX + need.family, need.type)
 		link.autowrap_mode = TextServer.AUTOWRAP_OFF

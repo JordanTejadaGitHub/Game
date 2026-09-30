@@ -162,7 +162,7 @@ func _make_card(card: UpgradeData) -> Button:
 	elif card.is_bittersweet():
 		secondary.append(_add_line(box, "Bittersweet", BITTERSWEET_COLOR, SECONDARY_SIZE))
 	if dream_state.is_half_dreamed(card):  # One muted line, no label (dream_design.md half-dreamed "Card face")
-		_add_missing_row(box, card)  # "Needs [emblem] Wind": the damage type, linked
+		_add_missing_row(box, card)  # "Needs Wind": the damage type, linked
 	else:
 		_add_needs_row(box, card)  # "Needs: Soaked + Charged" / "Nestling family": never a Warden's name
 	if dream_state.calls_family_now(card) != "":  # A Seed card calls its family to the next pick (not one you own)
@@ -330,7 +330,7 @@ func _add_needs_row(box: VBoxContainer, card: UpgradeData) -> void:
 	if text != "":
 		row.add_child(_needs_label(text, UiStyle.INK_DIM))
 
-# "Needs [emblem] Wind" (NeedsRow, shared with "Dreams this run").
+# "Needs Wind" (NeedsRow, shared with "Dreams this run").
 func _add_missing_row(box: VBoxContainer, card: UpgradeData) -> void:
 	var row := NeedsRow.make(dream_state.missing_needs(card), SECONDARY_SIZE, UiStyle.INK_DIM)
 	if row != null:
