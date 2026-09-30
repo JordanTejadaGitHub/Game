@@ -98,6 +98,7 @@ func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	_seen = load_seen()
 	_dev_flagged = dev_seen()
+	_chains_seen = chains_seen()
 	_card.visible = false
 	_card.mouse_filter = Control.MOUSE_FILTER_STOP
 	# Screen centre on its own layer above the HUD: the drift banner, Omen line and Coming strip never
@@ -155,6 +156,7 @@ func _ready() -> void:
 		block_counts.clear()
 		block_longest_chain = 0
 		block_new.clear()
+		block_new_chains.clear()
 		kin_formed_block = 0
 		kin_names_block.clear()
 		harmony_block = 0
@@ -178,6 +180,86 @@ func _connect_log() -> void:
 func _hook(tracker: ReactionTracker) -> void:
 	if not tracker.reaction_fired.is_connected(_on_reaction):
 		tracker.reaction_fired.connect(_on_reaction)
+	if not tracker.chain_reached.is_connected(_on_chain):
+		tracker.chain_reached.connect(_on_chain)
+
+# --- Chains (screens_ui.md "Combo discovery" → "Chains are discovered too") ------------------------
+# The first time ever a chain reaches 3, 5 and 10 links is a discovery like a combo (same pause,
+# queue and setting). The card lists the chain's Reactions in order, rebuilt from the recent firings
+# (each carries its link number; a Crowned Reaction counts 2 links, so links may skip). Profile:
+# `chains_seen` (tiers, as strings) and `chain_best` ({links, reactions}) for the Codex.
+const CHAIN_TIERS: Array[int] = [3, 5, 10]
+const CHAINS_KEY := "chains_seen"
+const CHAIN_BEST_KEY := "chain_best"
+const CHAIN_PREFIX := "chain_"  # Queue ids: &"chain_3"
+const CHAIN_MEMORY := 3.0  # Seconds of firings kept to rebuild a chain (links are within 1 s)
+
+var block_new_chains: Array[int] = []  # Chain tiers discovered this block (rest report)
+var _chains_seen: Array = []  # Tiers (String) discovered ever
+var _recent: Array = []  # [id, link, time] of the last CHAIN_MEMORY seconds
+var _chain_orders := {}  # Queue id -> Reaction names in order
+
+static func chains_seen() -> Array:
+	return HeartwoodMemory.load_data().get(CHAINS_KEY, []).duplicate()
+
+# {links, reactions: [names]} of the longest chain ever, or {}.
+static func chain_best() -> Dictionary:
+	return HeartwoodMemory.load_data().get(CHAIN_BEST_KEY, {}).duplicate(true)
+
+func _note_firing(id: StringName, link: int) -> void:
+	var now := Time.get_ticks_msec() / 1000.0
+	while not _recent.is_empty() and now - _recent[0][2] > CHAIN_MEMORY:
+		_recent.pop_front()
+	_recent.append([id, link, now])
+
+# The Reaction names of the chain whose newest link is `links`, first to last.
+func chain_order(links: int) -> Array[String]:
+	var names: Array[String] = []
+	var below := links + 1
+	for i in range(_recent.size() - 1, -1, -1):
+		var link: int = _recent[i][1]
+		if link < below:
+			var combo := CodexData.get_any(_recent[i][0])
+			names.push_front(combo.name if not combo.is_empty() else String(_recent[i][0]).capitalize())
+			below = link
+			if link <= 1:
+				break
+	return names
+
+func _on_chain(links: int, _where: Vector2, _towers: Array) -> void:
+	var order := chain_order(links)
+	var best := chain_best() if _may_write() else _best_this_session
+	if links > int(best.get("links", 0)):
+		_best_this_session = {"links": links, "reactions": order}
+		if _may_write():
+			var memory := HeartwoodMemory.load_data()
+			memory[CHAIN_BEST_KEY] = _best_this_session
+			HeartwoodMemory.save_data(memory)
+	for tier in CHAIN_TIERS:
+		if links < tier or _chains_seen.has(str(tier)):
+			continue
+		_chains_seen.append(str(tier))
+		block_new_chains.append(tier)
+		if _may_write():
+			var memory := HeartwoodMemory.load_data()
+			var seen: Array = memory.get(CHAINS_KEY, []).duplicate()
+			if not seen.has(str(tier)):
+				seen.append(str(tier))
+			memory[CHAINS_KEY] = seen
+			HeartwoodMemory.save_data(memory)
+		var id := StringName(CHAIN_PREFIX + str(tier))
+		_chain_orders[id] = order
+		_queue.append(id)
+		if not _card.visible:
+			_try_show()
+
+var _best_this_session := {}  # Tests and scenes that don't write the profile
+
+static func chain_text(tier: int, order: Array) -> String:
+	var text := "Chain discovered: Chain %d\n" % tier
+	if not order.is_empty():
+		text += " → ".join(order) + "\n"
+	return text + "Reactions can set each other off.\nAdded to the Codex."
 
 # Kinships (Tower Code's node, group "kinships"; tower_design.md "Kinships"): the first-ever bond of
 # each kind is a discovery like a combo, and bonds formed / Harmony strikes / families made Whole are
@@ -218,6 +300,7 @@ func _on_damage(event: DamageLog.Event) -> void:
 func _on_reaction(id: StringName, enemy: Node2D, chain: int, _towers: Array) -> void:
 	block_counts[id] = block_counts.get(id, 0) + 1
 	block_longest_chain = maxi(block_longest_chain, chain)
+	_note_firing(id, chain)
 	record(id, enemy)
 
 # One firing of combo `id` (on `enemy`, if known): counted, and discovered if it's the first time ever.
@@ -360,7 +443,10 @@ func _show_next() -> void:
 		_card.visible = false
 		return
 	_card_id = _queue.pop_front()
-	_card_label.text = discovery_text(_card_id)
+	if String(_card_id).begins_with(CHAIN_PREFIX):
+		_card_label.text = chain_text(int(String(_card_id).trim_prefix(CHAIN_PREFIX)), _chain_orders.get(_card_id, []))
+	else:
+		_card_label.text = discovery_text(_card_id)
 	if new_dreams.has(_card_id):  # "New Dreams: Rolling Thunder, Rain on Glass" (discovery unlocks)
 		_card_label.text += "\nNew Dreams: " + ", ".join(new_dreams[_card_id])
 	var reaction := Reactions.get_data(_card_id)

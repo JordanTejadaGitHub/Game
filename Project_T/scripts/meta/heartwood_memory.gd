@@ -74,7 +74,7 @@ static func defaults() -> Dictionary:
 # what the player has met, discovered and seen. With Dev Grove on these are read from and written to
 # the REAL profile (like the settings); only the Grove unlocks, perks and loadout come from the dev one.
 const ACCOUNT_KEYS := ["nightmares_seen", "intros_seen", "nightmare_dispels", "boss_records", "combos_seen",
-	"combos_seen_dev", "reactions_seen", "codex_covered", "dreams_seen", "dreams_seen_dev", "dreams_taken",
+	"combos_seen_dev", "reactions_seen", "chains_seen", "chain_best", "codex_covered", "dreams_seen", "dreams_seen_dev", "dreams_taken",
 	"dreams_won", "dreams_viewed", "nightmares_viewed", "whispers_seen", "callouts_seen"]
 
 static func load_data() -> Dictionary:

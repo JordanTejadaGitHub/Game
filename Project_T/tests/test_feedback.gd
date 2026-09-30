@@ -105,6 +105,7 @@ func _run() -> void:
 	whispers._queue.clear()
 	var shown := []
 	whispers.whispered.connect(func(id: StringName) -> void: shown.append(id))
+	feedback._chains_seen = ["3", "5", "10"]  # Chain discoveries are checked on their own below
 	var tracker := ReactionTracker.find(main)
 	tracker.record(&"thunderclap", shade, 1, [storm])
 	tracker.record(&"thunderclap", shade, 3, [storm])
@@ -140,9 +141,24 @@ func _run() -> void:
 	_check(feedback._card.visible and game_speed.paused, "and pauses once the menu closes")
 	feedback.continue_on()
 	_check(not game_speed.paused, "resumed")
+	# Chains are discovered too (screens_ui.md): the first Chain 3 ever pauses with its Reactions in order.
+	feedback._chains_seen = ["5", "10"]
+	for id in ["ignite", "mushrooming"]:
+		if not feedback._seen.has(id):
+			feedback._seen.append(id)
+	tracker.record(&"thunderclap", shade, 1, [storm])
+	tracker.record(&"ignite", shade, 2, [storm])
+	tracker.record(&"mushrooming", shade, 3, [storm])
+	_check(feedback._card.visible and game_speed.paused
+		and feedback._card_label.text.begins_with("Chain discovered: Chain 3\nThunderclap → Ignite → Mushrooming\nReactions can set each other off."),
+		"a first Chain 3 is a discovery with its Reactions in order (%s)" % feedback._card_label.text)
+	tracker.record(&"thunderclap", shade, 3, [storm])
+	_check(feedback._queue.is_empty(), "a chain tier is discovered once")
+	feedback.continue_on()
+	_check(not game_speed.paused, "resumed after the chain card")
 	ComboFeedback.pause_in_tests = false
 	report.show_report(1)
-	_check(report._label.get_parsed_text().contains("Reactions: Thunderclap 2 · longest chain: 3") and report._label.get_parsed_text().contains("New combos: Set Off, Thunderclap"),
+	_check(report._label.get_parsed_text().contains("Reactions: Thunderclap 4 · Ignite 1 · Mushrooming 1 · longest chain: 3") and report._label.get_parsed_text().contains("New combos: Set Off, Thunderclap") and report._label.get_parsed_text().contains("New chain: Chain 3"),
 		"the rest report shows Reactions and new combos (%s)" % report._label.get_parsed_text())
 	var profile_after: Dictionary = HeartwoodMemory.load_data()
 	_check(profile_after.get("combos_seen", []) == profile_before.get("combos_seen", [])

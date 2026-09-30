@@ -122,6 +122,10 @@ func show_families() -> void:
 
 # Shows `name` (a glossary term, or a combo's id or name), switching tabs if needed.
 func jump(name: String) -> void:
+	if name.begins_with(ComboFeedback.CHAIN_PREFIX) and _entries.has(name):  # A chain tier
+		tabs.current_tab = 1
+		_focus.call_deferred(_combos_scroll, _entries[name])
+		return
 	var combo := _find_combo(name)
 	if not combo.is_empty():
 		tabs.current_tab = 1
@@ -264,6 +268,7 @@ func _build_combos() -> void:
 	_add_waiting(every.size() - all.size())
 	_combo_count.text = "%d / %d combos discovered" % [found, all.size()]
 	tabs.set_tab_title(1, "Combos %d / %d" % [found, all.size()])
+	_build_chains(live)
 	_build_kinships(seen, counts, live, kin_all)
 	# Crowned Reactions: hidden ("???" in a gold crown frame) until found; full game only.
 	if ResultsScreen.is_demo():
@@ -1091,3 +1096,40 @@ func _past_run_entry(record: Dictionary) -> Control:
 		copy.text = "Copied")
 	box.add_child(copy)
 	return panel
+
+# Chains (screens_ui.md "Combo discovery" → "Chains are discovered too"): the three tiers, "???"
+# until reached, and the longest chain ever with its Reactions in order.
+func _build_chains(live: ComboFeedback) -> void:
+	var seen: Array = ComboFeedback.chains_seen()
+	var best: Dictionary = ComboFeedback.chain_best()
+	if live != null:
+		for tier in live._chains_seen:
+			if not seen.has(tier):
+				seen.append(tier)
+		if int(live._best_this_session.get("links", 0)) > int(best.get("links", 0)):
+			best = live._best_this_session
+	var header := Label.new()
+	header.text = "Chains · %d / %d" % [ComboFeedback.CHAIN_TIERS.filter(func(t: int) -> bool: return seen.has(str(t))).size(),
+		ComboFeedback.CHAIN_TIERS.size()]
+	header.add_theme_font_size_override("font_size", 20)
+	header.add_theme_color_override("font_color", TERM_COLOR)
+	_combos.add_child(header)
+	for tier in ComboFeedback.CHAIN_TIERS:
+		var card := PanelContainer.new()
+		var label := Label.new()
+		label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		if seen.has(str(tier)):
+			label.text = "Chain %d\nReactions set each other off %d times in a row." % [tier, tier]
+		else:
+			label.text = "???"
+			label.add_theme_color_override("font_color", LOCKED_COLOR)
+		card.add_child(label)
+		_combos.add_child(card)
+		_entries[ComboFeedback.CHAIN_PREFIX + str(tier)] = card
+	var links := int(best.get("links", 0))
+	if links >= 2:
+		var line := Label.new()
+		line.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		var order: Array = best.get("reactions", [])
+		line.text = "Longest chain ever: Chain %d%s" % [links, ("\n" + " → ".join(order)) if not order.is_empty() else ""]
+		_combos.add_child(line)

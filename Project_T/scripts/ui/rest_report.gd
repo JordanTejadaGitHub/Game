@@ -60,6 +60,9 @@ func show_report(block: int) -> void:
 		for id in combos.block_new:
 			names.append(CodexData.get_any(id).get("name", String(id)))
 		text += "\nNew combos: " + ", ".join(names)
+	if combos and not combos.block_new_chains.is_empty():  # "New chain: Chain 5" (chains are discovered too)
+		for tier in combos.block_new_chains:
+			text += "\nNew chain: Chain %d" % tier
 	if combos:
 		# A line per Kinship formed this block (screens_ui.md "Kinship feedback", playtest fix).
 		for kin in combos.kin_names_block:
