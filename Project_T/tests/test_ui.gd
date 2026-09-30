@@ -92,7 +92,7 @@ func _run() -> void:
 	run_state.add_sprout_charges(2)
 	_check(hud_node._seed_badge.visible, "free Sprouts show a seed badge on the Sprout button")
 	run_state.add_sprout_charges(-2)
-	for screen in [Vector2i(1920, 1080), Vector2i(1280, 800)]:
+	for screen in [Vector2i(1920, 1080), Vector2i(1280, 800), Vector2i(1280, 720)]:
 		root.size = screen
 		await _frames(2)
 		# The Clear tool + the Warden bar, centred together at the bottom.
@@ -120,24 +120,30 @@ func _run() -> void:
 			and not back_rect.intersects(strip_rect) and back_rect.end.y <= screen.y,
 			"the peek's Back button clears the bar, banner and Coming strip at %s (%s; bar %s, strip %s)" % [screen, back_rect, bar_rect, strip_rect])
 		peek_screen.queue_free()
-		# The top-right buttons: one row directly under the resources, right-aligned with them, no gaps,
-		# Remember leftmost (nearest the Dreamlight counter above it).
+		# The top-right row (screens_ui.md "Top-right layout, as in the Moonlit Thread mock-up"): leaves ·
+		# Dew · Dreamlight · path, then Remember · Boosts · ? · Menu, on one fog patch clear of the
+		# banner's text (the buttons wrap onto a second line inside the patch when it's too narrow).
 		var top_names := ["RememberButton", "BuffLensButton", "CodexButton", "MenuButton"]
 		var was_shown := {}
 		for n in top_names:
 			var b := main.get_node("HUD/" + n) as Control
 			was_shown[n] = b.visible
 			b.visible = true
+		var row_hud = main.get_node("HUD")
+		row_hud._layout_top_row()
 		await _frames(2)
-		var rects: Array = top_names.map(func(n: String) -> Rect2: return (main.get_node("HUD/" + n) as Control).get_global_rect())
-		var dew_rect := (main.get_node("%DewLabel") as Control).get_global_rect()
-		var in_row := true
-		for i in rects.size():
-			in_row = in_row and absf(rects[i].position.y - rects[0].position.y) < 0.5
-			if i > 0:
-				in_row = in_row and rects[i].position.x > rects[i - 1].end.x - 0.5 and rects[i].position.x - rects[i - 1].end.x < 12.0
-		_check(in_row and absf(rects[3].end.x - dew_rect.end.x) < 1.0 and rects[0].position.y >= 120.0 and rects[0].position.y <= 140.0,
-			"the top-right buttons sit in one row under the resources, right-aligned with them, Remember first at %s (%s, Dew %s)" % [screen, rects, dew_rect])
+		var row_rect: Rect2 = row_hud.resource_row_rect()
+		var banner_rect: Rect2 = main.get_node("%DriftBanner").drawn_rect()
+		var parts: Array = top_names.map(func(n: String) -> Rect2: return (main.get_node("HUD/" + n) as Control).get_global_rect())
+		for n in ["%LeavesLabel", "%DewLabel", "HUD/DreamlightLabel", "%PathLabel"]:
+			parts.append((main.get_node(n) as Control).get_global_rect())
+		var inside := parts.all(func(r: Rect2) -> bool: return row_rect.grow(1.0).encloses(r))
+		var ordered: bool = parts[0].end.x <= parts[1].position.x + 0.5 and parts[1].end.x <= parts[2].position.x + 0.5 \
+			and parts[2].end.x <= parts[3].position.x + 0.5 and parts[4].end.x <= parts[5].position.x + 0.5 \
+			and parts[5].end.x <= parts[6].position.x + 0.5 and parts[6].end.x <= parts[7].position.x + 0.5
+		_check(inside and ordered and not row_rect.intersects(banner_rect) and absf(parts[3].end.x - (screen.x - 16.0)) < 1.0
+			and parts.slice(0, 4).all(func(r: Rect2) -> bool: return r.size.y >= 48.0),
+			"the top-right row: counters and buttons in order on one fog patch, clear of the banner at %s (row %s, banner %s, wrapped %s)" % [screen, row_rect, banner_rect, row_hud.row_wrapped])
 		for n in top_names:
 			(main.get_node("HUD/" + n) as Control).visible = was_shown[n]
 		# The expanded damage meter (both tabs, the top rows + "and N more") never covers the DriftPanel

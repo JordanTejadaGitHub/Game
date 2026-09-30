@@ -16,13 +16,14 @@ const TARGET_TIPS := {
 @onready var drift_director: DriftDirector = %DriftDirector
 
 var _tower: Tower = null
-var _title := Label.new()
-var _portrait := TextureRect.new()  # Left of the title: the Warden's idle art, animated (screens_ui.md "Selected vs hovered")
-var _portrait_atlas := AtlasTexture.new()
+var _header := WardenHeaderView.new()  # The top half, shared with the hover card and Codex
+var _title := _header.title
+var _portrait := _header.portrait  # Left of the title: the Warden's idle art, animated (screens_ui.md "Selected vs hovered")
+var _portrait_atlas := _header.portrait_atlas
 var _portrait_time := 0.0
-var _damage_type := HBoxContainer.new()  # Under the title: the damage type name in its colour (one Warden)
-var _desc: RichTextLabel  # What it does, with its status words as links (StatusLinks)
-var _stats := VBoxContainer.new()  # Stat rows: each stat explains itself on hover and tap (IconInfo)
+var _damage_type := _header.damage_type  # Under the title: the damage type name in its colour (one Warden)
+var _desc := _header.desc  # What it does, with its status words as links (StatusLinks)
+var _stats := _header.stats  # Stat rows: each stat explains itself on hover and tap (IconInfo)
 var _buffs := VBoxContainer.new()  # Buffs: every source of this Warden's power (BuffSources), then the total
 var _body := Label.new()
 var _groups := VBoxContainer.new()  # Several selected: one row per kind with its portrait
@@ -39,33 +40,10 @@ func _ready() -> void:
 	var box := VBoxContainer.new()
 	box.add_theme_constant_override("separation", 6)
 	add_child(box)
-	UiStyle.title(_title, UiStyle.TITLE_SIZE)
-	var header := HBoxContainer.new()
-	header.add_theme_constant_override("separation", 6)
-	_portrait.custom_minimum_size = Vector2(PORTRAIT_SIZE, PORTRAIT_SIZE)
-	_portrait.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	_portrait.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	_portrait.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-	_portrait.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	_portrait.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_portrait.texture = _portrait_atlas
-	header.add_child(_portrait)
-	_title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	header.add_child(_title)
-	box.add_child(header)
-	# Damage type (enemy_design.md "Damage types"): "Light damage" in its colour (no icon: user, 2026-09-30).
-	_damage_type.add_theme_constant_override("separation", 4)
-	_damage_type.add_child(TextureRect.new())
-	_damage_type.get_child(0).stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	_damage_type.get_child(0).expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	_damage_type.get_child(0).custom_minimum_size = Vector2(16, 16)
-	_damage_type.add_child(Label.new())
-	box.add_child(_damage_type)
-	_desc = StatusLinks.make_label("", 16)
-	_desc.custom_minimum_size = Vector2(280, 0)
-	box.add_child(_desc)
-	_stats.add_theme_constant_override("separation", 2)
-	box.add_child(_stats)
+	# The header (portrait + name, damage type, description, stats, Dreams on it) is the shared
+	# WardenHeaderView, also on the Warden bar's hover card and the Codex, so they never disagree.
+	_header.growth.visible = false
+	box.add_child(_header)
 	_buffs.add_theme_constant_override("separation", 1)
 	box.add_child(_buffs)
 	_body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -123,58 +101,18 @@ func _refresh() -> void:
 	var data := _tower.tower_data
 	if _tower.is_catcher():
 		tower_placer.show_catch_preview(_tower.global_position, _tower.get_catch_radius())  # Its catch zone
-	_title.text = data.display_name
-	_portrait_atlas.atlas = data.texture
-	_portrait_atlas.region = data.get_frame_rect(0) if data.texture else Rect2()
-	_portrait.visible = data.texture != null
-	_show_damage_type(data)
+	# The shared header: portrait, name, damage type, description, stats, Dreams on it.
+	var lines: Array[String] = _header.show_warden(data, _tower, dream_state, false)
 	if _tower.rank > 0:
 		_title.text += " · Rank %s" % Tower.rank_name(_tower.rank)
 		if _is_eldest(_tower):
 			_title.text += " · Eldest"
-		if _tower.rank > 0 and _tower.choices_text() != "":
+		if _tower.choices_text() != "":
 			_title.text += " · %s" % _tower.choices_text()  # "Power ×2, Reach"
 	_title.tooltip_text = ""
 	if _tower.rank > 0:
-		_title.tooltip_text = IconInfo.stat_tooltip(&"rank") + ("\n" + IconInfo.stat_tooltip(&"focus") if _tower.rank > 0 else "")
+		_title.tooltip_text = IconInfo.stat_tooltip(&"rank") + "\n" + IconInfo.stat_tooltip(&"focus")
 	_title.mouse_filter = Control.MOUSE_FILTER_PASS if _title.tooltip_text != "" else Control.MOUSE_FILTER_IGNORE
-	_desc.text = StatusLinks.bbcode(data.description)  # {damp}-style tokens and plain names both work
-	if _tower.legacy_data != null:
-		# An Ascended form still makes its final form's attack.
-		_desc.text += "\n[i]Still %s: %s[/i]" % [_tower.legacy_data.display_name, StatusLinks.bbcode(_tower.legacy_data.description)]
-	_desc.visible = _desc.text != ""
-	for child in _stats.get_children():
-		child.queue_free()
-	var lines: Array[String] = []
-	var attack := _tower.attack_data
-	if data.attack_kind == TowerData.AttackKind.AURA:
-		_stat_row([["Aura", &""], ["range %.2f" % _tower.get_range_cells(), &"range"]])
-	elif data.attack_kind == TowerData.AttackKind.COPY and _tower.get_copied() == null:
-		lines.append("Nothing to copy: plant it beside an attacking Warden.")
-	elif data.can_attack:
-		if _tower.get_copied() != null:
-			lines.append("Copying %s at %d%%" % [attack.display_name, roundi(data.copy_share * 100)])
-		var range_text := "range %.2f" % _tower.get_range_cells()
-		if attack.min_range > 0.0:
-			range_text = "range %.1f–%.1f" % [attack.min_range, _tower.get_range_cells()]
-		_stat_row([["Damage %.0f" % _tower.get_damage(), &"damage"],
-			["%.2f/s" % _tower.get_attacks_per_second(), &"attack_speed"],
-			[range_text, &"range"]])
-		var second: Array = []
-		if _tower.get_crit_chance() > 0.0:
-			second.append(["Crit %d%%" % roundi(_tower.get_crit_chance() * 100), &"crit_chance"])
-			second.append(["×%s" % str(attack.crit_multiplier), &"crit_damage"])
-		var potency := _tower.get_potency()
-		if not is_equal_approx(potency, 1.0):
-			second.append(["Potency %d%%" % roundi(potency * 100), &"potency"])  # Effect damage
-		if not second.is_empty():
-			_stat_row(second)
-		if attack.applies_status != &"":
-			_stat_row([["Applies %s%s" % [IconInfo.status_name(attack.applies_status),
-				" ×%d" % attack.status_stacks if attack.status_stacks > 1 else ""], attack.applies_status, true]])
-	else:
-		lines.append("A wall: no attack.")
-	_stats.add_child(DreamBonusView.make_rows(_tower))  # "Dreams on this Warden": on, off (and why), run-wide
 	if data.is_unique:
 		lines.append("A freed memory: one per run, can't grow.")
 	# Combat feedback (screens_ui.md): what this Warden has done, and what it combos with.
@@ -325,40 +263,6 @@ func _is_eldest(tower: Tower) -> bool:
 # One row of stats ("Damage 24 · 1.00/s · range 2.50"): each part is its icon and a label, both
 # explaining the stat on hover and on tap (IconInfo). `parts`: [[text, stat id], …] or
 # [text, status id, true] for a status (&"" = plain text).
-func _stat_row(parts: Array) -> void:
-	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 0)
-	for i in parts.size():
-		var part: Array = parts[i]
-		if i > 0:
-			var dot := Label.new()
-			dot.text = " · "
-			row.add_child(dot)
-		var id: StringName = part[1]
-		var is_status: bool = part.size() > 2 and part[2]
-		var tip := IconInfo.status_tooltip(id) if is_status else IconInfo.stat_tooltip(id)
-		if id != &"" and IconInfo.icon(id) != null:
-			var icon := IconInfo.make_icon(id, 1)  # Carries its own TapTip
-			icon.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-			row.add_child(icon)
-			var gap := Control.new()
-			gap.custom_minimum_size = Vector2(3, 0)
-			row.add_child(gap)
-		var label := Label.new()
-		label.text = part[0]
-		if not is_status and id != &"" and is_instance_valid(_tower):
-			# Dream bonuses on Wardens: the real number, and what made it (base · Nurture · cards).
-			var breakdown := DreamBonusView.stat_breakdown(_tower, id)
-			if breakdown != "":
-				tip = breakdown + ("\n" + tip if tip != "" else "")
-			if DreamBonusView.is_boosted(_tower, id):
-				label.text += " ↑"
-				label.add_theme_color_override("font_color", DreamBonusView.BOOSTED_COLOR)
-		if tip != "":
-			TapTip.attach(label, tip)
-		row.add_child(label)
-	_stats.add_child(row)
-
 # Several Wardens selected: grouped by kind, with totals, group grow buttons and Sell all.
 func _refresh_group() -> void:
 	var selection := tower_seller.selection
@@ -738,16 +642,6 @@ func _evolve(into: TowerData) -> void:
 
 # The Warden's damage type under the title (screens_ui.md "Damage-type icons"); hidden for Wardens
 # that don't attack (Thornwalls).
-func _show_damage_type(data: TowerData) -> void:
-	_damage_type.visible = data.can_attack
-	if not data.can_attack:
-		return
-	_damage_type.get_child(0).visible = false  # Plain coloured text, no icon (user, 2026-09-30)
-	var label := _damage_type.get_child(1) as Label
-	label.text = IconInfo.damage_type_text(data.line)
-	label.add_theme_color_override("font_color", IconInfo.damage_type_color(data.line))
-	_damage_type.tooltip_text = "Nightmares can resist or be weak to a damage type."
-
 const PORTRAIT_SIZE := 48.0
 const WATCH_EVERY := 0.1  # Seconds between checks that the selection still looks like what the panel shows
 var _watch_left := 0.0

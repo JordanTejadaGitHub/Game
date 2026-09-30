@@ -36,6 +36,7 @@ func _run() -> void:
 
 	var data: TowerData = puffball.duplicate()
 	data.crit_chance = 0.0
+	data.id = "puffball"  # A duplicate has no path to take its id from
 	var tower: Tower = placer.tower_scene.instantiate()
 	tower.tower_data = data
 	tower.cell = Vector2(5, 5)
@@ -72,6 +73,33 @@ func _run() -> void:
 	_check(target.statuses.stacks(EnemyStatuses.SPORED) == data.status_max_stacks, "nightmares it hits hold up to %d Poisoned (%d)" % [
 		data.status_max_stacks, target.statuses.stacks(EnemyStatuses.SPORED)])
 	_check(not "pop_at_stacks" in data, "the pop is gone from the data")
+
+	# Chain Bloom: a puff landing inside Mistveil's fog covers 2 tiles instead of 1.
+	var outer := _spawn(spawner, target.global_position + Vector2(0, 1.6) * CELL)
+	tower.projectile_landed(target, target.global_position)
+	_check(not outer.statuses.has(EnemyStatuses.SPORED), "without Chain Bloom, 1.6 tiles away is outside the puff")
+	dreams.grove_cards.assign(["chain_bloom"])  # A Grove card, Entwined: Puffball + Mistveil owned this run
+	for id in ["puffball", "mistveil"]:
+		dreams.unlocked[id] = true
+		dreams.grown_wardens[id] = true
+	for bloom in dreams.pool:
+		if bloom.id == "chain_bloom":
+			dreams.take(bloom)
+	_check(dreams.has_rule(&"chain_bloom"), "Chain Bloom taken")
+	tower.clear_dream_cache()
+	tower.projectile_landed(target, target.global_position)
+	_check(not outer.statuses.has(EnemyStatuses.SPORED), "Chain Bloom outside a fog: still 1 tile")
+	var veil: Tower = placer.tower_scene.instantiate()
+	veil.tower_data = load("res://resource/tower/mistveil.tres")
+	veil.cell = Vector2(2, 2)
+	container.add_child(veil)
+	veil.set_process(false)
+	var fog := PathCloud.new(veil, target.global_position)
+	main.add_child(fog)
+	await process_frame
+	tower.projectile_landed(target, target.global_position)
+	_check(outer.statuses.has(EnemyStatuses.SPORED), "Chain Bloom in Mistveil's fog: the puff covers 2 tiles")
+	fog.queue_free()
 
 	# Sporemother: 2 Poisoned a second to everything in range, refreshed every breath so it never wears off there.
 	var mother_data: TowerData = load("res://resource/tower/sporemother.tres")

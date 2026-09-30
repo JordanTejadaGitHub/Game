@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "chain_bloom"
 display_name = "Chain Bloom"
-description = "Spores spread by a Puffball pop can pop their new host too, if that pushes it to 10+ stacks (each nightmare pops once per chain)."
+description = "Puffball's puffs cover 2 tiles inside Mistveil's fog."
 rarity = 2
 kind = 3
 tags = Array[String](["spore"])

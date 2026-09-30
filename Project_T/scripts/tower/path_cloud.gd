@@ -9,6 +9,7 @@ const HOAR_FOG_FREEZE := 0.75  # …for this long (Frostfern's freeze), x the bo
 # Spored tick harder. Script-only node, a child of the Warden that dropped it.
 
 const TICK := 0.5
+const FOG_GROUP := &"fog_clouds"  # Fog clouds (Mistveil, Morning Fog): Chain Bloom asks whether a spot is in one
 # Pixel-art puffs and fog strands (tools/effect_art_generator.gd), near-white so the Warden's
 # projectile_color tints them. Variants side by side, not animation frames.
 const PUFFS := preload("res://assets/effects/cloud_puffs.png")
@@ -46,6 +47,8 @@ func _init(tower: Tower, center: Vector2) -> void:
 	position = center
 
 func _ready() -> void:
+	if _fog:
+		add_to_group(FOG_GROUP)
 	_tick()
 
 func _process(delta: float) -> void:
@@ -120,3 +123,10 @@ func _draw() -> void:
 			var edge := 1.0 - absf(x) / (span / 2.0)
 			var at := (Vector2(x, (i - 1) * _radius * 0.35) - WISP_SIZE / 2.0).round()
 			draw_texture_rect_region(WISPS, Rect2(at, WISP_SIZE), Rect2(Vector2(i * WISP_SIZE.x, 0), WISP_SIZE), Color(tint, 0.7 * fade * edge))
+
+# Is `where` inside a fog cloud (Mistveil's, Morning Fog's)? Chain Bloom widens Puffball puffs there.
+static func fog_at(tree: SceneTree, where: Vector2) -> bool:
+	for cloud in tree.get_nodes_in_group(FOG_GROUP):
+		if cloud.global_position.distance_to(where) <= cloud._radius:
+			return true
+	return false
