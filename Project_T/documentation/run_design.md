@@ -383,8 +383,8 @@ risk: players set their own difficulty block by block.
      single blind draw.) The Grove perk **Omen Reader** shows **3** to pick from (`meta_design.md`).
   - **Harsher Omens:** every Omen's downside stays about **1.5× its old strength** (e.g. Crowded
     Paths 45% more nightmares, Blood Moon 35% faster), as the user wanted Omens more punishing.
-    Rewards are **×1.25** of the old values (were ×1.5 under the blind draw): with a choice of 2 the
-    gamble is smaller, but committing before seeing them still earns something. Double-edged Omens
+    Rewards stay **×1.5** of the old values (user, 2026-09-30: "1.5 for now"; ×1.25 was proposed for
+    the pick-of-2 flow and can be revisited after playtests). Double-edged Omens
     keep their sharper downside.
   - The goal: facing an Omen is a real gamble you take when your maze is strong, not something you
     do every rest. Target: a Balanced player facing an Omen every rest should lose clearly more
