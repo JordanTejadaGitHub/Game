@@ -341,7 +341,8 @@ class FloatingNumber:
 	# The drawn text's box, local (the text sits on the baseline at y 0, centred).
 	func get_rect() -> Rect2:
 		var width := ThemeDB.fallback_font.get_string_size(_text, HORIZONTAL_ALIGNMENT_LEFT, -1, _size).x
-		return Rect2(-width / 2, -_size, width, _size + 4)
+		var s := WorldLabel.text_scale(self)  # Drawn at screen size when zoomed in
+		return Rect2(-width / 2 * s, -_size * s, width * s, (_size + 4) * s)
 
 	func _process(delta: float) -> void:
 		_age += delta
@@ -354,7 +355,9 @@ class FloatingNumber:
 		var alpha := 1.0 - _age / LIFE
 		var font := ThemeDB.fallback_font
 		var width := font.get_string_size(_text, HORIZONTAL_ALIGNMENT_LEFT, -1, _size).x
+		WorldLabel.begin_screen_size(self, Vector2.ZERO)  # Keeps its screen size past 1× zoom
 		draw_string_outline(font, Vector2(-width / 2, 0), _text, HORIZONTAL_ALIGNMENT_LEFT, -1, _size, 4,
 			Color(0.05, 0.05, 0.08, alpha))
 		draw_string(font, Vector2(-width / 2, 0), _text, HORIZONTAL_ALIGNMENT_LEFT, -1, _size,
 			Color(_color, alpha))
+		WorldLabel.end_screen_size(self)
