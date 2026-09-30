@@ -16,9 +16,11 @@ const REBINDABLE := [
 	["pause_game", "Pause"], ["cycle_speed", "Change speed"], ["sell_tower", "Sell Warden"],
 	["grow_warden", "Grow selected Warden"], ["nurture_warden", "Nurture selected Warden"],
 	["clear_tool", "Clear tool"],
+	["grow_option_1", "Grow into 1st option"], ["grow_option_2", "Grow into 2nd option"],
+	["grow_option_3", "Grow into 3rd option"],
 	["cycle_target", "Cycle targeting"],
-	["center_heartwood", "Centre on the Heartwood"],
-	["center_start", "Centre on the forest's edge"],
+	["center_heartwood", "Center on the Heartwood"],
+	["center_start", "Center on the forest's edge"],
 ]
 
 const TITLE_SCENE := "res://scenes/title.tscn"
