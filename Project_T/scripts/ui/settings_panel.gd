@@ -60,7 +60,7 @@ func _ready() -> void:
 	_choice(display, "Window size", WINDOW_SIZE_SETTING,
 		WINDOW_SIZES.map(func(s: Vector2i) -> String: return "%d × %d" % [s.x, s.y]), 0)
 	_toggle(display, "V-sync", VSYNC_SETTING, true)
-	_slider(display, "UI scale", "ui_scale", 0.75, 1.5, 0.05)
+	_slider(display, "UI scale", "ui_scale", 0.75, 2.0, 0.05)  # Up to 2× (user, 2026-09-30: "increase the UI size")
 
 	var gameplay := _tab("Gameplay")
 	_toggle(gameplay, "Heartwood whispers (hints)", "whispers")

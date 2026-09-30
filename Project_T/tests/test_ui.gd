@@ -30,13 +30,12 @@ func _run() -> void:
 	var bar: HBoxContainer = main.get_node("%TowerBar")
 	var first_button := bar.get_child(0) as Button
 	var hotkey_label := first_button.get_node_or_null("Hotkey") as Label
-	var emblem := first_button.get_node_or_null("Emblem") as TextureRect
 	_check(first_button.text.is_valid_int() and hotkey_label != null and hotkey_label.text == "1",
 		"Warden buttons show the cost and the hotkey (%s)" % first_button.text)
-	# The family emblem (its damage-type badge) in the corner, the hotkey on it (playtest fixes 2026-09-30).
-	_check(emblem != null and emblem.texture != null and emblem.position == hotkey_label.position
-		and first_button.get_children().find(hotkey_label) > first_button.get_children().find(emblem),
-		"the family emblem sits in the corner with the hotkey drawn on it")
+	# The family emblem is the button's icon, no Warden art (user, 2026-09-30).
+	var first_data: TowerData = main.get_node("HUD")._bar_towers[0]
+	_check(first_button.icon is AtlasTexture and (first_button.icon as AtlasTexture).region
+		== (IconInfo.family_emblem(first_data.line) as AtlasTexture).region, "Warden buttons show the family emblem")
 	_check((IconInfo.family_emblem("water") as AtlasTexture).region == (IconInfo.damage_type_icon("water") as AtlasTexture).region
 		and (IconInfo.family_emblem("acorn") as AtlasTexture).region == (IconInfo.icon(&"plain") as AtlasTexture).region
 		and IconInfo.family_emblem("memory") != null, "emblems: the damage-type badge; Acorn / Memory the plain leaf")

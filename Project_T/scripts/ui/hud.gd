@@ -5,12 +5,12 @@ const DEW_SHORT_COLOR := UiStyle.POOR
 const UNAFFORDABLE_BUTTON_ALPHA := UiStyle.UNAFFORDABLE_ALPHA
 # Warden bar buttons (bottom centre): 13 of them must fit between the Warden panel and the drift
 # controls at 1280×800 (screens_ui.md principle 6: buttons at least 48 px tall).
-const BUTTON_SIZE := Vector2(46, 60)
-const EMBLEM_SIZE := 18.0  # The family emblem in a Warden button's corner (the hotkey sits on it)
+const BUTTON_SIZE := Vector2(60, 72)  # Bigger since the family emblems replaced the Warden art (user, 2026-09-30)
+const EMBLEM_SIZE := 44  # The family emblem on a Warden button (16 px art at an even-ish scale)
 const BUTTON_MIN_WIDTH := 32.0
 # Half-width taken from each side: the Warden panel (16–316 px) or the drift controls (272 px + 16),
 # plus a small gap; the wider of the two, so the centred bar clears both.
-const BAR_CLEARANCE := 324.0
+const BAR_CLEARANCE := 336.0
 const SPROUT_ID := "sprout"
 const CLEAR_TOOL_GAP := 10.0
 const SEED_COLOR := Color(0.6, 0.85, 0.4)
@@ -166,31 +166,29 @@ func _build_tower_bar() -> void:
 	_bar_towers = tower_placer.get_buildable_towers()
 	for i in _bar_towers.size():
 		var data: TowerData = _bar_towers[i]
-		# Icon on top, the Dew cost under it, the hotkey number in the top-left corner.
+		# The family emblem on top (user, 2026-09-30: "remove the wardens and just have the family
+		# icon"), the Dew cost under it, the hotkey number in the top-left corner.
 		var button := Button.new()
+		button.name = "Warden_" + data.get_id()
 		button.toggle_mode = true
 		button.focus_mode = Control.FOCUS_NONE
-		button.icon = _tower_icon(data)
+		button.icon = IconInfo.family_emblem(data.line)
+		button.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST  # A 16 px pixel badge, scaled up crisp
+		button.expand_icon = true
 		button.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		button.vertical_icon_alignment = VERTICAL_ALIGNMENT_TOP
-		button.add_theme_constant_override("icon_max_width", 34)
+		button.add_theme_constant_override("icon_max_width", EMBLEM_SIZE)
 		button.theme_type_variation = &"WardenSlot"  # A fog patch; selected = the gold underline (ui_style.md)
 		button.add_theme_font_size_override("font_size", 16)
 		button.custom_minimum_size = BUTTON_SIZE
 		button.tooltip_text = "%s (%s)\n%s · Cost: %d Dew\n%s" % [data.display_name, str(i + 1) if i < 9 else "no key",
 			IconInfo.damage_type_text(data.line), tower_placer.get_cost(data), IconInfo.format(data.description)]  # "Light damage"
 		button.pressed.connect(_on_tower_pressed.bind(data))
-		# The family emblem (its damage-type badge) in the top-left corner, the hotkey number on it
-		# (screens_ui.md playtest fixes 2026-09-30).
-		button.add_child(IconInfo.emblem_rect(data.line, EMBLEM_SIZE, Vector2(2, 2)))
 		if i < 9:
 			var hotkey := Label.new()
 			hotkey.name = "Hotkey"
 			hotkey.text = str(i + 1)
-			hotkey.position = Vector2(2, 2)
-			hotkey.size = Vector2(EMBLEM_SIZE, EMBLEM_SIZE)
-			hotkey.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-			hotkey.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+			hotkey.position = Vector2(4, 1)
 			hotkey.mouse_filter = Control.MOUSE_FILTER_IGNORE
 			UiStyle.number(hotkey, 14, UiStyle.INK)
 			hotkey.add_theme_color_override("font_outline_color", UiStyle.FOG)
