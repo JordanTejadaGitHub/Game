@@ -148,6 +148,7 @@ func _run() -> void:
 		"back at the start")
 	var shade_data: EnemyData = load("res://resource/enemy/leaf_bug.tres")
 	_check(_count(shade_data) == 4, "each lap drops 4 Shades in behind it (%d)" % _count(shade_data))
+	_check(spawner.get_children().filter(func(e) -> bool: return e.enemy_data == shade_data)[0]._bar_offset.y == -38.0, "an everyday nightmare keeps its bar at the usual -38")
 	var mare_start: Vector2 = mare.grid.calculate_map_position(map_generator.startPath)
 	var lined_up := true
 	for shade in spawner.get_children().filter(func(e) -> bool: return e.enemy_data == shade_data):
@@ -191,6 +192,8 @@ func _run() -> void:
 	_check(before - huntsman.health == 100, "full damage once the pack is gone")
 	spawner._on_brood_requested(huntsman)
 	_check(huntsman.pack_alive() == 1, "the horn calls one hound while the pack is short")
+	_check(huntsman.sprite.animation == &"horn", "he blows the horn as a hound joins")
+	_check(huntsman._bar_offset.y < -60.0, "his bar sits over his tall art, not at the usual -38 (%.0f)" % huntsman._bar_offset.y)
 	huntsman.take_damage(huntsman.max_health)  # Down past half (halved: the new hound shields him)
 	_check(huntsman.pack_alive() == 4 and huntsman.is_regrouped(), "The Kill: the whole pack returns at half health")
 	spawner._on_brood_requested(huntsman)
@@ -203,8 +206,10 @@ func _run() -> void:
 	lamplighter._path_index = 10
 	spawner._on_lantern_requested(lamplighter)
 	_check(spawner._lanterns.size() == 1, "it lights a lantern beside the route")
+	_check(lamplighter.sprite.animation == &"light", "it lowers the pole to light it")
 	if spawner._lanterns.size() == 1:
 		var lantern: ColdLantern = spawner._lanterns[0]
+		_check(lantern._sprite != null and lantern._sprite.animation == &"ignite", "the lantern kindles (its sheet)")
 		_check(not route.has(lantern.cell) and map_generator.is_buildable(lantern.cell), "on an empty cell off the route")
 		var warden := _plant("sprout", _free_neighbour_of(lantern.cell))
 		var far := _plant("sprout", _far_cell(lantern.cell))

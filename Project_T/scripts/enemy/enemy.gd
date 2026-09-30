@@ -77,6 +77,10 @@ const GROUP := "enemies"
 const BLIGHT_SHADER := preload("res://shaders/blight.gdshader")
 const HEALTH_BAR_SIZE := Vector2(40, 5)
 const HEARTWOOD_DRAIN_EVERY := 2.0  # A boss at the Heartwood takes a leaf this often (s)
+# Enemy Assets' art bounds: {sheet: {"frame", "top", "bottom"}} (px from the frame centre). The bar
+# goes BAR_ABOVE_HEAD over the top of tall art (the big bosses), never lower than HEALTH_BAR_OFFSET.
+const ART_BOUNDS_PATH := "res://assets/creatures/bounds.json"
+const BAR_ABOVE_HEAD := 6.0
 const HEALTH_BAR_OFFSET := Vector2(0, -38)  # Bar centre, relative to the enemy's origin
 # Dispel: shriek, crack with light, burst, then the motes drift up (about 1.2 s in all).
 const SHRIEK_TIME := 0.12
@@ -210,6 +214,7 @@ var _lingered := false
 var _release_spent := false  # The current hold came from a release pull (Snare): it won't pull again
 var _caught_left := 0.0  # Caught time after last frame's tick (a rise = caught again)
 var _redraw_pending := false  # Something drawn changed: redrawn in _process once on screen
+var _bar_offset := HEALTH_BAR_OFFSET  # The health bar's centre: raised over tall art (_measure_bar_offset)
 # The HUD's canvas items (update_hud): a root the overlay moves, and one item per HUD_* kind
 var _hud_root := RID()
 var _hud_items: Array[RID] = []
@@ -323,6 +328,7 @@ func _ready() -> void:
 	# Set up animations
 	sprite.sprite_frames = enemy_data.sprite_frames
 	sprite.scale = Vector2.ONE * enemy_data.sprite_scale * (ELITE_SCALE if elite else 1.0)
+	_measure_bar_offset()
 	sprite.modulate = enemy_data.tint
 	if is_echo:
 		sprite.modulate.a *= ECHO_ALPHA  # A pale face from the Oak's bark
@@ -659,7 +665,7 @@ func _free_hud() -> void:
 
 # Where the badge row sits (its bottom centre on the health bar's top edge), from the nightmare's origin.
 func _hud_anchor() -> Vector2:
-	return HEALTH_BAR_OFFSET - Vector2(0, HEALTH_BAR_SIZE.y / 2.0 + 2.0)
+	return _bar_offset - Vector2(0, HEALTH_BAR_SIZE.y / 2.0 + 2.0)
 
 # The badge row's statuses, stacks, caps, colours and icons, worked out again only when a status
 # comes, goes or changes stacks (statuses.changes).
@@ -700,12 +706,12 @@ func _build_hud_bars(item: RID) -> void:
 	RenderingServer.canvas_item_clear(item)
 	# Restless: a small backward arrow per stack, right of the health bar (red-hot once Unbound)
 	for i in restless:
-		var tip := HEALTH_BAR_OFFSET + Vector2(HEALTH_BAR_SIZE.x / 2 + 5 + i * 6, 0)
+		var tip := _bar_offset + Vector2(HEALTH_BAR_SIZE.x / 2 + 5 + i * 6, 0)
 		var arrow := PackedVector2Array([tip + Vector2(4, -3), tip, tip + Vector2(4, 3)])
 		RenderingServer.canvas_item_add_polyline(item, arrow, PackedColorArray([Color(Palette.VOID, 0.8)]), 3.0)
 		RenderingServer.canvas_item_add_polyline(item, arrow, PackedColorArray([UNBOUND_GLOW if unbound else RESTLESS_COLOR]), 1.5)
 	# Health bar once the enemy has been hit, with the blight coat as a grey bar on top of it
-	var bar := Rect2(HEALTH_BAR_OFFSET - HEALTH_BAR_SIZE / 2, HEALTH_BAR_SIZE)
+	var bar := Rect2(_bar_offset - HEALTH_BAR_SIZE / 2, HEALTH_BAR_SIZE)
 	if health < max_health or _bars_always:
 		RenderingServer.canvas_item_add_rect(item, bar.grow(1), Color(Palette.VOID, 0.8))
 		var fill := bar
@@ -865,7 +871,7 @@ func _draw_elite_haze() -> void:
 		var size := (9.0 + 3.0 * sin(_haze_phase * 1.7 + i)) * sprite.scale.x
 		draw_circle(at, size + 2.0, ELITE_HAZE_RIM)
 		draw_circle(at, size, ELITE_HAZE_COLOR)
-	var centre := HEALTH_BAR_OFFSET + Vector2(-HEALTH_BAR_SIZE.x / 2 - 8.0, 0)
+	var centre := _bar_offset + Vector2(-HEALTH_BAR_SIZE.x / 2 - 8.0, 0)
 	var mark := _status_icon(&"elite")
 	if mark != null:  # The sheet's Deeply Blighted icon; the drawn swirl otherwise
 		draw_texture(mark, (centre - mark.get_size() / 2.0).round())
@@ -1087,6 +1093,35 @@ func _play_pose(animation: StringName, seconds: float, backwards: bool = false) 
 	else:
 		sprite.play(animation)
 	_pose_left = seconds
+
+# Raises the health bar (and the status icons over it) above tall art: BAR_ABOVE_HEAD px over the
+# top of its sheet's solid pixels (bounds.json, at its sprite_scale), if that's higher than the usual
+# HEALTH_BAR_OFFSET. Everyday nightmares keep the usual place.
+func _measure_bar_offset() -> void:
+	_bar_offset = HEALTH_BAR_OFFSET
+	var frames := sprite.sprite_frames
+	if frames == null or not frames.has_animation(&"walk_side") or frames.get_frame_count(&"walk_side") == 0:
+		return
+	var texture := frames.get_frame_texture(&"walk_side", 0)
+	var sheet: String = texture.atlas.resource_path if texture is AtlasTexture else texture.resource_path
+	var bounds: Dictionary = _art_bounds().get(sheet.get_file().get_basename(), {})
+	if bounds.has("top"):
+		var top: float = float(bounds.top) * sprite.scale.y + sprite.position.y
+		_bar_offset.y = minf(HEALTH_BAR_OFFSET.y, top - BAR_ABOVE_HEAD)
+
+# bounds.json, read once (plain numbers: safe to keep in a static).
+static func _art_bounds() -> Dictionary:
+	if _bounds_cache.is_empty() and FileAccess.file_exists(ART_BOUNDS_PATH):
+		var parsed = JSON.parse_string(FileAccess.get_file_as_string(ART_BOUNDS_PATH))
+		_bounds_cache = parsed if parsed is Dictionary else {"": {}}
+	return _bounds_cache
+static var _bounds_cache := {}
+
+# Plays a one-off pose from its art for its own length, if it has one (the Huntsman's horn when a
+# hound joins, the Lamplighter lighting a lantern); walking picks up again after.
+func play_pose(animation: StringName) -> void:
+	if not is_cleansed:
+		_play_pose(animation, _animation_length(animation))
 
 func _animation_length(animation: StringName) -> float:
 	var frames := sprite.sprite_frames

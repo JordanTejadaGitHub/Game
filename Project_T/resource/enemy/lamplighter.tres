@@ -1,7 +1,7 @@
 [gd_resource type="Resource" script_class="EnemyData" load_steps=3 format=3]
 
 [ext_resource type="Script" path="res://resource/enemy/script/enemy_data.gd" id="1_edata"]
-[ext_resource type="SpriteFrames" path="res://animation/enemy/mother_duck.tres" id="2_frames"]
+[ext_resource type="SpriteFrames" path="res://animation/enemy/lamplighter.tres" id="2_frames"]
 
 [resource]
 script = ExtResource("1_edata")
@@ -12,8 +12,6 @@ speed = 55.0
 dew_reward = 60
 leaf_cost = 5
 is_boss = true
-sprite_scale = 1.6
-tint = Color(0.5, 0.65, 0.95, 1)
 resists = Array[String](["light", "song"])
 weak_to = Array[String](["water"])
 lantern_interval = 8.0

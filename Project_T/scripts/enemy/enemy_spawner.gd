@@ -451,6 +451,8 @@ func _call_pack(huntsman: Node2D) -> void:
 		hound.set_path(path)
 		huntsman.pack.append(hound)
 		enemy_split.emit(huntsman, hound)
+	if count > 0:
+		huntsman.play_pose(&"horn")  # He raises the bone horn and blows
 
 # Night Mare: every lap takes its lap leaves (Leaf Fall doubles them, as for any leak).
 func _on_heartwood_drained(enemy: Node2D) -> void:
@@ -509,6 +511,7 @@ func _on_lantern_requested(lamplighter: Node2D) -> void:
 	map_generator.add_child(lantern)  # In the world, never under this node (its children are nightmares)
 	_lanterns.append(lantern)
 	lantern_lit.emit(lantern)
+	lamplighter.play_pose(&"light")  # It lowers the pole and the lantern kindles
 
 func _on_lantern_snuffed(lantern: ColdLantern, by_player: bool) -> void:
 	_lanterns.erase(lantern)
