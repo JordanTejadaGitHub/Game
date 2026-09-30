@@ -101,9 +101,6 @@ func can_sell() -> bool:
 func get_refund(tower: Tower) -> int:
 	var resting := drift_director.is_build_phase()
 	var share := build_phase_refund if resting else drift_refund
-	var dreams := get_tree().get_first_node_in_group(DreamState.GROUP) as DreamState
-	if dreams:
-		share = dreams.get_refund_share(share, resting)  # Fair Trade
 	# Placed this rest (run_design.md "Selling"): Dew spent on it during this rest comes back in full.
 	var fresh := mini(tower.rest_dew, tower.invested_dew) if resting else 0
 	return fresh + int((tower.invested_dew - fresh) * share)
