@@ -3,10 +3,10 @@ extends SceneTree
 # shown at a whole-number scale (3× at 1080p, 2× at 720p, 4× at 1440p).
 # A dream forest at night, seen from the forest floor: an ancient Warden, grown as big as a hill,
 # sits among the trees with its head against the moon. It has the Wardens' shape (a big round head
-# with warm eyes and a small smile, a broad round body, heavy arms resting on the ground) but it's
+# with narrow warm eyes, a broad round body, heavy arms resting on the ground) but it's
 # mossy stone, with trees growing on it and glowing spore-mushrooms at its knees. Mist hides its base;
-# dark trees frame the shot (the left side stays calm for the logo and menu). The tiny Sporeling
-# stands in a moonlit clearing with its lantern, looking up: the scale comes from that contrast.
+# dark trees frame the shot (the left side stays calm for the logo and menu). A tiny Shade (a nightmare)
+# stands in a moonlit clearing, looking up at it: the scale comes from that contrast.
 # Every pixel is snapped to Heartwood 32 (art_direction.md).
 #   assets/ui/title/title_background.png   640×360, the art
 #   tools/previews/title_background_3x.png 1920×1080 preview
@@ -437,8 +437,6 @@ func _titan_pixel(x: int, y: int, id: int) -> Color:
 		var mv := 0.22 + (s.z - 0.5) * 0.1 + (0.45 if rim == 2 else (0.22 if rim == 1 else 0.0))
 		if grain.get_noise_2d(x * 3.0, y * 3.0) > 0.4:
 			mv += 0.14
-		if hash01(x, y, 91) < 0.012:
-			return col("blossom")  # tiny flowers in the moss
 		var c := pick(MOSS, mv, x, y)
 		if bayer(x, y) < fog * 0.7:
 			c = pick(INK, lerpf(v, 0.52, fog), x, y)
@@ -497,41 +495,43 @@ func _crown_tree(base: Vector2, scale: float) -> void:
 
 
 func _spore_mushrooms() -> void:
-	# Glowing spore-mushrooms on its knees and shoulders: the Sporeling's kin, grown old.
+	# Pale glowing mushrooms on its knees and shoulders.
 	for m in [Vector3(TITAN_X - 70, 266, 4), Vector3(TITAN_X - 60, 268, 3), Vector3(TITAN_X - 36, 266, 5),
 			Vector3(TITAN_X + 40, 268, 4), Vector3(TITAN_X + 72, 267, 5), Vector3(TITAN_X - 80, 123, 3),
 			Vector3(TITAN_X + 66, 129, 3)]:
 		var p := Vector2(m.x, m.y)
 		var s := int(m.z)
-		glow(p + Vector2(0, -s), s * 3.0, col("blossom"), 0.22)
+		glow(p + Vector2(0, -s), s * 3.0, col("dewlight"), 0.18)
 		for k in s:
 			put(int(p.x), int(p.y) - k, col("mist"))
 		for y in range(-s / 2 - 1, 1):
 			for x in range(-s, s + 1):
 				if Vector2(x, y * 2).length() > s + 0.5:
 					continue
-				put(int(p.x) + x, int(p.y) - s + y, col("blossom") if y < 0 and x < s / 2 else col("orchid"))
+				put(int(p.x) + x, int(p.y) - s + y, col("dewlight") if y < 0 and x < s / 2 else col("dew"))
 		put(int(p.x) - s / 2, int(p.y) - s - 1, col("heartlight"))
 
 
 func _face() -> void:
-	# The Wardens' face: two warm eyes and a small smile, glowing from inside.
+	# No mouth: two narrow warm eyes deep in shadowed sockets under a heavy brow. Watchful, not cute.
 	for side in [-1, 1]:
-		var e := HEAD + Vector2(side * 17, 2)
-		glow(e, 9.0, col("gold"), 0.3)
-		for y in range(-4, 5):
-			for x in range(-2, 3):
-				if pow(x / 2.6, 2) + pow(y / 4.6, 2) > 1.0:
+		var e := HEAD + Vector2(side * 17, 0)
+		for y in range(-5, 6):  # the socket
+			for x in range(-8, 9):
+				if pow(x / 8.5, 2) + pow(y / 5.5, 2) > 1.0 or _part_at(int(e.x) + x, int(e.y) + y) == 0:
 					continue
-				var c := col("glow")
-				if absi(x) == 2 or absi(y) >= 3:
-					c = col("gold")
-				put(int(e.x) + x, int(e.y) + y, c)
-		put(int(e.x) - 1, int(e.y) - 2, col("heartlight"))
-		put(int(e.x), int(e.y) - 2, col("heartlight"))
-	for x in range(-7, 8):
-		var y := int(round(pow(x / 7.0, 2) * -3.0))
-		put(int(HEAD.x) + x, int(HEAD.y) + 17 + y, col("ember") if absi(x) > 4 else col("gold"))
+				put(int(e.x) + x, int(e.y) + y, col("void") if y > -4 else col("night"))
+		glow(e, 8.0, col("gold"), 0.18)
+		for x in range(-5, 6):  # the slit, brightest in the middle
+			var c := col("heartlight") if absi(x) < 2 else (col("glow") if absi(x) < 4 else col("ember"))
+			put(int(e.x) + x, int(e.y), c)
+			if absi(x) < 4:
+				put(int(e.x) + x, int(e.y) + 1, col("gold") if absi(x) < 2 else col("ember"))
+	for x in range(-30, 31):  # the brow's hard shadow line
+		var bx := int(HEAD.x) + x
+		var by := int(HEAD.y) - 7 + int(absf(x) / 10.0)
+		if _part_at(bx, by) != 0:
+			put(bx, by, col("void"))
 
 
 # --- foreground ----------------------------------------------------------------------------------
@@ -571,30 +571,37 @@ func _clearing() -> void:
 
 
 func _figure() -> void:
-	# The Sporeling, tiny, from behind: pink round head on a round body, rim-lit by the moon, its
-	# lantern held out, its shadow falling toward us.
+	# A Shade (enemy_design.md: "a small hunched shadow with two pinprick eyes"), tiny in the clearing,
+	# turned toward the Warden. Cold only (art_direction.md): dark body, a violet rim on the moon's
+	# side, pale eyes in a cold glow, a ragged smoky lower edge trailing on the grass.
 	var shape := [
-		"....OOOOOO.....",
-		"..OOBBBBBBOO...",
-		".OBBBBBBBBbbO..",
-		".OBBBBBBBBbbO..",
-		".OBBBBBBBbbbO..",
-		"..OBBBBBbbbO...",
-		"...OOOOOOOO....",
-		"..OBBBBBBbbO...",
-		".OBBBBBBBBbbO..",
-		"OBBBBBBBBBbbbO.",
-		"OBBBBBBBBBbbbO.",
-		".OBBBBBBBbbbO..",
-		"..OOO...OOO....",
+		"......OOOO......",
+		"....OOSSSSOB....",
+		"...OSSSSSSSSBO..",
+		"..OSSSSSSSSSSBO.",
+		"..OSSSSSSSSESEO.",
+		".OSSSSSSSSSSSSBO",
+		".OSSSSSSSSSSSSBO",
+		"OSSSSSSSSSSSSSBO",
+		"OSSSSSSSSSSSSSBO",
+		"OSSSSSSSSSSSSSSO",
+		".OSSSSSSSSSSSSO.",
+		".OSS.SSSSS.SSSO.",
+		"..S...SS.S..SO..",
+		"..S....S....S...",
 	]
-	var key := {"O": "night", "B": "orchid", "b": "bruise"}
-	var ox := FIGURE.x - 7
+	var key := {"O": "dread", "S": "shade", "B": "bruise", "E": "moonlight"}
+	var ox := FIGURE.x - 8
 	var oy := FIGURE.y - shape.size()
-	for k in 22:
-		var w := 6.0 - k * 0.15
-		for dx in range(int(-w), int(w) + 1):
-			put(FIGURE.x - k / 3 + dx, FIGURE.y + k, col("deepmoss"))
+	# Cold mist curling round it on the grass.
+	for y in range(-4, 5):
+		for x in range(-22, 23):
+			var a := 1.0 - Vector2(x / 22.0, y / 4.5).length() + noise.get_noise_2d(x * 3.0, y * 5.0) * 0.4
+			if a > 0.3 and (x + y) % 2 == 0:
+				put(FIGURE.x + x, FIGURE.y + y, col("bruise"))
+			elif a > 0.05 and bayer(FIGURE.x + x, FIGURE.y + y) < 0.25:
+				put(FIGURE.x + x, FIGURE.y + y, col("shade"))
+	glow(Vector2(ox + 13, oy + 4), 7.0, col("wraithlight"), 0.3)
 	for row in shape.size():
 		var line: String = shape[row]
 		for i in line.length():
@@ -602,21 +609,18 @@ func _figure() -> void:
 			if ch == ".":
 				continue
 			var c := col(key[ch])
-			# Moonlight on the upper right of each round form.
-			if ch == "B" and i + 1 < line.length() and line[i + 1] == "b" and row < 5:
-				c = col("blossom")
-			if ch == "O" and row <= 1:
-				c = col("blossom") if i > 5 else col("night")
+			if row >= 12 and bayer(ox + i, oy + row) < 0.5:
+				c = col("bruise")  # the smoky, fraying bottom
 			put(ox + i, oy + row, c)
-	for k in 7:
-		put(ox - k, oy + 9 - k / 3, col("night"))
-	var lamp := Vector2(ox - 8, oy + 9)
-	glow(lamp, 12.0, col("gold"), 0.32)
-	for y in range(-1, 3):
-		for x in range(-1, 2):
-			put(int(lamp.x) + x, int(lamp.y) + y, col("glow") if x == 0 else col("gold"))
-	put(int(lamp.x), int(lamp.y), col("heartlight"))
-	put(int(lamp.x), int(lamp.y) - 2, col("night"))
+	put(ox + 11, oy + 1, col("wraithlight"))  # the violet rim along its hunched back
+	put(ox + 12, oy + 2, col("wraithlight"))
+	for row in range(5, 10):
+		put(ox + 15, oy + row, col("wraithlight") if row % 2 else col("bruise"))
+	# Wisps of smoke rising off it.
+	for k in 8:
+		put(ox + 3 + int(sin(k * 0.8) * 1.5), oy - 1 - k, col("shade") if k < 5 else col("bruise"))
+		if k % 3 == 0:
+			put(ox + 9 + int(sin(k * 0.6 + 2.0)), oy - 2 - k, col("shade"))
 
 
 func _frame_trees() -> void:
