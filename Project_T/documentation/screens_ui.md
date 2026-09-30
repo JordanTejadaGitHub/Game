@@ -414,6 +414,14 @@ Every combo starts **locked** and is **discovered the first time it actually fir
     closes (and pauses then).
   - Setting (Gameplay): **"Pause on new combos"**, on by default; off = the old 5 s slide-in card.
   - The rest report lists *"New combos: Thunderclap"*.
+  - **Chains are discovered too** (2026-09-30, user: *"discover chain too as well should be like
+    discovering a combo"*). A Reaction chain (Reactions setting each other off, the tracker's chain
+    length) gets the **same pause + discovery card** the first time ever it reaches **×3, ×5 and ×10**
+    (×10 is the Dawnbreak line): *"Chain discovered: ×3"*, the Reactions in it in order ("Thunderclap
+    → Lightning Rod → Mushrooming"), one line (*"Reactions can set each other off."*), and *"Added to
+    the Codex."* Codex Combos page gets a **Chains** section: the three tiers (??? until reached) and
+    your **longest chain ever**, with the Reactions it used. Same setting, queue and once-ever rules
+    (profile key, account knowledge); the rest report lists *"New chain: ×5"*.
 - **Unlocked entry:** name, ingredients, what it does, which Wardens apply each ingredient (from your
   families seen so far), and how many times you've set it off.
 - **Counter:** *"12 / 15 combos discovered"* on the tab; discovering every one is a **milestone**
