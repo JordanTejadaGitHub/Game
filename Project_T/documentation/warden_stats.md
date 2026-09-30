@@ -56,8 +56,9 @@ discounts). Ranks never get cheaper by being bought early.
 - It applies per step (Sprout → base, base → branch, branch → final, final → Ascended).
 - **Don't let it trap players** (2026-09-29: the balance bot nurtured branches, then found their
   final form cost 300+ Dew and never grew one; a new player can fall into the same trap). The
-  **Nurture button shows what a rank adds to the Warden's next growth** when that growth is
-  unlocked or unlockable: *"Rank III · 60 Dew (and +60 when it grows into Thunderhead)"*. The total
+  **Nurture button's tooltip shows what a rank adds to the Warden's next growth** when that growth is
+  unlocked or unlockable: *"+60 when it grows into Thunderhead"* (moved off the button into the
+  tooltip, 2026-09-30, "less hand-holding"; the button reads just "Rank III · 60 Dew"). The total
   is the same whether you nurture before or after growing; only the timing changes, and a big
   grow price shouldn't come as a surprise. No rule change.
 
