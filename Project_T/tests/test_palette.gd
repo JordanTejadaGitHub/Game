@@ -56,6 +56,7 @@ func _init() -> void:
 		"snap_image() keeps alpha")
 
 	_check_files()
+	_check_warden_night(rng)
 	_check_detail_pass()
 	_preview()
 	print("test_palette: %d failure(s)" % failures)
@@ -74,6 +75,70 @@ func _check_files() -> void:
 	var strip: Image = load("res://assets/palette/heartwood32.png").get_image()
 	_check(strip != null and strip.get_width() == 32 and strip.get_pixel(12, 0) == cols[12],
 		"heartwood32.png is the 32x1 palette strip")
+
+
+# Warden Night (warden_night.md): 35 colours for Warden idle sheets; nothing else ever snaps to the 3.
+func _check_warden_night(rng: RandomNumberGenerator) -> void:
+	var w35 := HeartwoodPalette.warden_colors()
+	var seen := {}
+	for c in w35:
+		seen[c.to_html(false)] = true
+	_check(w35.size() == 35 and seen.size() == 35, "the Warden set has 35 unique colours")
+	_check(HeartwoodPalette.colors().size() == 32 and HeartwoodPalette.names().size() == 32,
+		"the shared palette stays 32")
+	for n in ["rosedust", "plum", "nightbloom"]:
+		var c := HeartwoodPalette.color(n)
+		_check(HeartwoodPalette.is_warden_only(c) and HeartwoodPalette.index_of(c) == -1
+			and not HeartwoodPalette.is_cold(c), "%s is Warden-only" % n)
+		_check(HeartwoodPalette.snap(c) != c and HeartwoodPalette.snap(c, true) != c,
+			"snap() without wardens never returns %s" % n)
+		_check(HeartwoodPalette.snap(c, false, true) == c, "snap(wardens) returns %s" % n)
+	var warden_hits := 0
+	var bad := 0
+	for i in 3000:
+		var c := Color8(rng.randi_range(0, 255), rng.randi_range(0, 255), rng.randi_range(0, 255))
+		if HeartwoodPalette.is_warden_only(HeartwoodPalette.snap(c)) \
+				or HeartwoodPalette.is_warden_only(HeartwoodPalette.snap(c, true)):
+			bad += 1
+		var s := HeartwoodPalette.snap(c, false, true)
+		if HeartwoodPalette.index_of(s, true) < 0:
+			bad += 1
+		if HeartwoodPalette.is_warden_only(s):
+			warden_hits += 1
+	_check(bad == 0, "snap() keeps the 3 out of other art; snap(wardens) stays in the 35 (%d misses)" % bad)
+	_check(warden_hits > 0, "snap(wardens) does pick the new colours (%d of 3000)" % warden_hits)
+
+	# The map matches the style reference json, and warden_night() applies it.
+	var ref: Dictionary = JSON.parse_string(FileAccess.get_file_as_string(
+		"res://assets/style_reference/warden_night/warden_night.json"))
+	var same := true
+	var listed := 0
+	for m: Dictionary in ref.map:
+		var to: String = HeartwoodPalette.WARDEN_NIGHT_MAP.get(m.from, m.from)
+		same = same and to == m.to and HeartwoodPalette.color(to) == Color.html(m.to_hex)
+		listed += 1
+	_check(same and listed == 32, "WARDEN_NIGHT_MAP matches warden_night.json (%d entries)" % listed)
+	var img := Image.create(35, 1, false, Image.FORMAT_RGBA8)
+	var names := HeartwoodPalette.names()
+	for i in 32:
+		img.set_pixel(i, 0, HeartwoodPalette.color(names[i], 0.6 if i == 0 else 1.0))
+	img.set_pixel(32, 0, Color8(250, 160, 250))  # off-palette pink, near Blossom
+	img.set_pixel(33, 0, Color(0, 0, 0, 0))
+	HeartwoodPalette.warden_night(img)
+	var mapped := true
+	for i in 32:
+		var want := HeartwoodPalette.color(HeartwoodPalette.WARDEN_NIGHT_MAP.get(names[i], names[i]))
+		var got := img.get_pixel(i, 0)
+		mapped = mapped and Color(got.r, got.g, got.b) == want
+	_check(mapped, "warden_night() shifts every colour by the map")
+	_check(img.get_pixel(32, 0) == HeartwoodPalette.color("rosedust"), "off-palette pink snaps, then maps to Rosedust")
+	_check(img.get_pixel(0, 0).a8 == 153 and img.get_pixel(33, 0).a == 0.0, "warden_night() keeps alpha")
+
+	var gpl := FileAccess.get_file_as_string("res://assets/palette/heartwood35_wardens.gpl")
+	_check(gpl.count("\n") == 35 + 4 and "Nightbloom" in gpl, "heartwood35_wardens.gpl has 35 colours")
+	var json: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://assets/palette/heartwood32.json"))
+	_check(json.get("warden_only", []).size() == 3 and json.get("warden_night_map", {}).size()
+		== HeartwoodPalette.WARDEN_NIGHT_MAP.size(), "heartwood32.json lists the Warden-only 3 and the map")
 
 
 func _check_detail_pass() -> void:

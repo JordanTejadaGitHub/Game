@@ -192,5 +192,46 @@
 			"name": "Dew",
 			"role": "water Wardens, jars, dew pools"
 		}
+	],
+	"warden_night_map": {
+		"Bark": "Root",
+		"Blossom": "Rosedust",
+		"Deadwood": "Path",
+		"Dew": "Pool",
+		"Dewlight": "Dew",
+		"Ember": "Oak",
+		"Glow": "Gold",
+		"Gold": "Ember",
+		"Heartlight": "Moonpath",
+		"Leaf": "Moss",
+		"Mist": "Stone",
+		"Moonlight": "Mist",
+		"Moonpath": "Path",
+		"Moss": "Deepmoss",
+		"Newleaf": "Sprig",
+		"Oak": "Bark",
+		"Orchid": "Plum",
+		"Path": "Loam",
+		"Slate": "Dusk",
+		"Sprig": "Leaf",
+		"Stone": "Slate",
+		"Wraithlight": "Nightbloom"
+	},
+	"warden_only": [
+		{
+			"hex": "#b27aae",
+			"name": "Rosedust",
+			"role": "Sporeling and flower Wardens: the night shade of Blossom"
+		},
+		{
+			"hex": "#7a4a82",
+			"name": "Plum",
+			"role": "the night shade of Orchid"
+		},
+		{
+			"hex": "#6b6fb0",
+			"name": "Nightbloom",
+			"role": "Dreamshroom and violet Wardens: the night shade of Wraithlight"
+		}
 	]
 }
