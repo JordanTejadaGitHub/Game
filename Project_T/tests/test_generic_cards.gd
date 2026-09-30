@@ -43,6 +43,7 @@ func _run() -> void:
 	_test_scaling_cards()
 	_test_catalogue()
 	_test_eleven_cards()
+	_test_cards_227()
 	_test_seed_cards()
 	_test_support_cards()
 	_test_needs_text()
@@ -443,6 +444,70 @@ func _test_eleven_cards() -> void:
 	var stone: TowerData = load("res://resource/tower/standing_stone.tres")
 	_check(is_equal_approx(_row(stone, Vector2(120, 120), "long_shadows").range, 2.0) and _row(stone, Vector2(120, 120), "long_shadows").active
 		and not _row(spore.tower_data, spore.cell, "long_shadows", spore).active, "Long Shadows: +2 range for range 5+, not short Wardens")
+	_clear()
+	_reset()
+
+
+# Cards 227–234 (dream_design.md "After the catalogue measurement"): data and the DreamState side
+# (Head Start, Second Wind, Scarred Bark, Desperate Bloom, Odd One Out, Grand Tour). Crush and Crowd
+# Breaker are Tower Code's (area attacks).
+func _test_cards_227() -> void:
+	_reset()
+	for id in ["head_start", "second_wind", "scarred_bark", "desperate_bloom", "odd_one_out", "grand_tour", "crush", "crowd_breaker"]:
+		var card := _card(id)
+		if card:
+			_check(card.in_start_pool and not card.tags.is_empty(), "%s: Start pool, tagged" % id)
+	for pair in [["head_start_ii", "head_start"], ["scarred_bark_ii", "scarred_bark"], ["odd_one_out_ii", "odd_one_out"], ["crush_ii", "crush"]]:
+		_check(_card(pair[0]).deepens == pair[1], "%s deepens %s" % pair)
+	_check(_card("desperate_bloom").min_act == 2 and _card("grand_tour").min_owned_statuses == 2, "Desperate Bloom act 2+; Grand Tour needs 2 statuses")
+	for id in ["crowded_path", "last_breath", "thinning_the_herd", "shattering_blow"]:
+		_check(_card(id).tags.has("swarm"), "%s carries the swarm tag" % id)
+	var tower := _plant("sporeling", Vector2(100, 100))
+	# Head Start: a nightmare arriving in a drift you called early, for 10 s
+	dreams.take(_card("head_start"))
+	var enemy := _spawn(Vector2(5, 5))
+	var plain := dreams.on_hit_multiplier(tower, enemy)
+	enemy.set_meta(&"head_start_until", dreams._game_clock + DreamState.HEAD_START_TIME)
+	_check(is_equal_approx(dreams.on_hit_multiplier(tower, enemy), plain + 0.40), "Head Start: +40% in its first 10 s")
+	dreams._game_clock += 11.0
+	_check(is_equal_approx(dreams.on_hit_multiplier(tower, enemy), plain), "…not after")
+	enemy.free()
+	# Second Wind: every drift of the block called early
+	dreams.take(_card("second_wind"))
+	dreams._extra_cards_next = 0
+	dreams._early_calls = 3
+	dreams._second_wind()
+	_check(dreams._extra_cards_next == 0, "Second Wind: nothing when a drift wasn't called early")
+	dreams._early_calls = 4
+	dreams._second_wind()
+	_check(dreams._extra_cards_next == 1 and dreams._rare_dreams_left >= 1, "…all 4 called early: the next Dream offers 4 cards, one Rare+")
+	dreams._extra_cards_next = 0
+	dreams._rare_dreams_left = 0
+	# Scarred Bark: leaves lost ever
+	dreams.take(_card("scarred_bark"))
+	var lost := run_state.leaves_lost
+	run_state.leaves_lost = 5
+	_check(is_equal_approx(_row(tower.tower_data, tower.cell, "scarred_bark", tower).damage, 0.15), "Scarred Bark: 5 leaves lost = +15%")
+	run_state.leaves_lost = lost
+	# Desperate Bloom: below half the leaves
+	dreams.take(_card("desperate_bloom"))
+	var leaves := run_state.leaves
+	run_state.leaves = run_state.max_leaves
+	_check(not _row(tower.tower_data, tower.cell, "desperate_bloom", tower).active, "Desperate Bloom: off with full leaves")
+	run_state.leaves = 1
+	_check(_row(tower.tower_data, tower.cell, "desperate_bloom", tower).active, "…+50% speed below half")
+	run_state.leaves = leaves
+	# Odd One Out: the only one of its kind
+	dreams.take(_card("odd_one_out"))
+	dreams.bump_board()
+	_check(_row(tower.tower_data, tower.cell, "odd_one_out", tower).active, "Odd One Out: the only Sporeling")
+	_plant("sporeling", Vector2(106, 100))
+	dreams.bump_board()
+	_check(not _row(tower.tower_data, tower.cell, "odd_one_out", tower).active, "…not with a second one")
+	# Grand Tour: +10% per status owned
+	dreams.take(_card("grand_tour"))
+	var statuses := dreams.owned_statuses().size()
+	_check(is_equal_approx(_row(tower.tower_data, tower.cell, "grand_tour", tower).damage, minf(0.1 * statuses, 0.7)), "Grand Tour: +10%% per status (%d)" % statuses)
 	_clear()
 	_reset()
 

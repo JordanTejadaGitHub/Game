@@ -297,6 +297,7 @@ func _ready() -> void:
 			add_dreamlight(first_pick_dreamlight))  # Act 1 can take one branch
 	map_generator.path_changed.connect(_update_bends)
 	spawner.enemy_cleansed.connect(_on_enemy_cleansed)
+	spawner.child_entered_tree.connect(_stamp_head_start)
 	map_generator.obstacle_cleared.connect(_on_obstacle_cleared)
 	var placer := get_node_or_null("%TowerPlacer")
 	if placer:
@@ -802,6 +803,8 @@ func _on_drift_started(number: int) -> void:
 		if has_rule(&"quick_step"):
 			_quick_step_until = _game_clock + QUICK_STEP_TIME
 			bump_board()
+		if has_rule(&"head_start"):
+			_head_start_drift = number
 		if has_rule(&"hurried_harvest"):
 			_hurried_drift = number
 			_hurried_paid = 0
@@ -1305,6 +1308,7 @@ func has_pending_offer() -> bool:
 func _on_rest_started(_block: int, is_boss_rest: bool, _bonus: int, _perfect: bool) -> void:
 	if not drift_director.has_next_drift() or run_state.is_over:
 		return
+	_second_wind()
 	_early_calls = 0  # Restless Night counts per block
 	_rest_rules(_perfect)
 	add_dreamlight(rest_dreamlight(drift_director.drifts_started))
@@ -2878,6 +2882,8 @@ func _thin_family_hit_bonus(tower: Tower, enemy: Node2D) -> float:
 	var line := tower.tower_data.line
 	if line == "root" and has_rule(&"deep_grip") and enemy.statuses.has(EnemyStatuses.HELD):
 		bonus += DEEP_GRIP_PER * rule_stacks(&"deep_grip") * rule_power(&"deep_grip")
+	if has_rule(&"head_start") and float(enemy.get_meta(&"head_start_until", -1.0)) > _game_clock:
+		bonus += HEAD_START_BONUS[rule_level(&"head_start")] * rule_power(&"head_start")  # Head Start
 	if has_rule(&"deep_frost") and _is_frozen(enemy):  # Deep Frost: Frostfern's freeze (Held by a water Warden)
 		bonus += DEEP_FROST_BONUS * rule_power(&"deep_frost")
 	if line == "stone" and has_rule(&"falling_weight") and (enemy.statuses.is_held() or enemy.statuses.is_asleep()):
@@ -3078,3 +3084,35 @@ func _is_frozen(enemy: Node2D) -> bool:
 		return false
 	var applier = enemy.statuses.source(EnemyStatuses.HELD)
 	return applier != null and is_instance_valid(applier) and "tower_data" in applier and applier.tower_data.line == "water"
+
+
+# --- Cards 227–234 (dream_design.md "After the catalogue measurement") -----------------------------
+# Mine: Head Start (per hit), Second Wind (the next Dream), and the DreamEffects rows for Scarred Bark,
+# Desperate Bloom, Odd One Out and Grand Tour. Tower Code reads Crush and Crowd Breaker (area attacks).
+const HEAD_START_BONUS: Array[float] = [0.40, 0.60]  # II
+const HEAD_START_TIME := 10.0  # After the nightmare arrives
+const SECOND_WIND_EXTRA_CARDS := 1  # The next Dream offers 4 cards, one Rare+
+const SCARRED_BARK_PER: Array[float] = [0.03, 0.04]  # Per leaf lost this run (II)
+const SCARRED_BARK_MAX: Array[float] = [0.45, 0.60]
+const DESPERATE_BLOOM_SPEED := 0.50  # Below half the max leaves
+const ODD_ONE_OUT_BONUS: Array[float] = [0.45, 0.65]  # The only one of its kind on the map (II)
+const GRAND_TOUR_PER := 0.10  # Per different status your Wardens apply
+const GRAND_TOUR_MAX := 0.70
+const CRUSH_BONUS: Array[float] = [0.30, 0.45]  # Area attacks vs a nightmare touching CRUSH_CROWD+ others (II)
+const CRUSH_CROWD := 2
+const CROWD_BREAKER_PER := 0.05  # An area attack, per nightmare it hits
+const CROWD_BREAKER_MAX := 0.45
+
+var _head_start_drift := -1
+
+# Head Start: nightmares arriving in a drift you called early are marked for HEAD_START_TIME.
+func _stamp_head_start(node: Node) -> void:
+	if has_rule(&"head_start") and drift_director.drifts_started == _head_start_drift and node is Node2D:
+		node.set_meta(&"head_start_until", _game_clock + HEAD_START_TIME)
+
+# Second Wind: every drift of the block after the first was called early -> the next Dream offers one
+# more card and a Rare+ one.
+func _second_wind() -> void:
+	if has_rule(&"second_wind") and _early_calls >= drift_director.drifts_per_block - 1:
+		_extra_cards_next += SECOND_WIND_EXTRA_CARDS
+		_rare_dreams_left = maxi(_rare_dreams_left, 1)

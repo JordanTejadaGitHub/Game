@@ -4,12 +4,12 @@
 
 [resource]
 script = ExtResource("1_card")
-id = "crowded_path_ii"
-display_name = "Crowded Path II"
-description = "Wardens deal 7% more damage for each nightmare in their range (up to +70%)."
+id = "crowd_breaker"
+display_name = "Crowd Breaker"
+description = "An area attack deals 5% more for each nightmare it hits (max +45%)."
 rarity = 1
 kind = 3
 tags = Array[String](["swarm"])
+requires = Array[String]([])
 max_stacks = 1
-deepens = "crowded_path"
-rule_id = &"crowded_path"
+rule_id = &"crowd_breaker"

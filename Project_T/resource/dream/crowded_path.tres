@@ -9,6 +9,6 @@ display_name = "Crowded Path"
 description = "Wardens deal 5% more damage for each nightmare in their range (up to +50%)."
 rarity = 1
 kind = 3
-tags = Array[String]([])
+tags = Array[String](["swarm"])
 max_stacks = 1
 rule_id = &"crowded_path"

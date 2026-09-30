@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "odd_one_out_ii"
+display_name = "Odd One Out II"
+description = "A Warden that's the only one of its kind on the map deals 65% more damage."
+rarity = 1
+kind = 3
+tags = Array[String](["variety"])
+requires = Array[String]([])
+max_stacks = 1
+deepens = "odd_one_out"
+rule_id = &"odd_one_out"

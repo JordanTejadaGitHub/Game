@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "desperate_bloom"
+display_name = "Desperate Bloom"
+description = "While the Heartwood has less than half its leaves, all Wardens attack 50% faster."
+rarity = 2
+kind = 3
+tags = Array[String](["leaves"])
+requires = Array[String]([])
+max_stacks = 1
+min_act = 2
+rule_id = &"desperate_bloom"

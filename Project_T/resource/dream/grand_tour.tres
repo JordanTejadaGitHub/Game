@@ -4,12 +4,13 @@
 
 [resource]
 script = ExtResource("1_card")
-id = "shattering_blow"
-display_name = "Shattering Blow"
-description = "Crits splash 50% of their damage onto nightmares within 1 cell."
+id = "grand_tour"
+display_name = "Grand Tour"
+description = "+10% damage for each different status your Wardens can apply (max +70%)."
 rarity = 2
 kind = 3
-tags = Array[String](["crit", "swarm"])
+tags = Array[String](["variety"])
+requires = Array[String]([])
 max_stacks = 1
-rule_id = &"shattering_blow"
-in_start_pool = false
+min_owned_statuses = 2
+rule_id = &"grand_tour"

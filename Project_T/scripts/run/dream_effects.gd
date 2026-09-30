@@ -35,7 +35,8 @@ const REPORTERS := {
 	&"many_rings": "_many_rings", &"hedgerow": "_hedgerow", &"spinning_corners": "_spinning_corners",
 	&"fresh_soil": "_fresh_soil", &"heartwoods_fury": "_heartwoods_fury", &"patchwork": "_patchwork",
 	&"mixed_grove": "_mixed_grove", &"quick_step": "_quick_step",
-	&"long_shadows": "_long_shadows",
+	&"long_shadows": "_long_shadows", &"scarred_bark": "_scarred_bark", &"desperate_bloom": "_desperate_bloom",
+	&"odd_one_out": "_odd_one_out", &"grand_tour": "_grand_tour",
 	&"heart_of_the_maze": "_heart_of_the_maze",
 	&"rain_on_glass": "_rain_on_glass",
 	&"kind_canopy": "_kind_canopy", &"shared_light": "_shared_light", &"bramble_oath": "_bramble_oath",
@@ -45,7 +46,7 @@ const STAT_KEYS := {&"damage": "damage", &"attack_speed": "speed", &"range": "ra
 
 # The rows that move with the field between board changes (nightmares in range, dispels this drift):
 # rows_cached recomputes these on every call.
-const LIVE_RULES: Array[StringName] = [&"crowded_path", &"thinning_the_herd", &"quick_step"]
+const LIVE_RULES: Array[StringName] = [&"crowded_path", &"thinning_the_herd", &"quick_step", &"scarred_bark", &"desperate_bloom"]
 
 var ds: DreamState
 var _board: Board = null
@@ -748,3 +749,35 @@ func _long_shadows(spot: Dictionary, _board: Board, _card: UpgradeData) -> Dicti
 	var on: bool = spot.data.attack_range >= DreamState.LONG_SHADOWS_FROM
 	return {"run_wide": true, "active": on, "range": DreamState.LONG_SHADOWS_RANGE,
 		"reason": "" if on else "range under %d" % int(DreamState.LONG_SHADOWS_FROM)}
+
+func _scarred_bark(spot: Dictionary, _board: Board, _card: UpgradeData) -> Dictionary:
+	if not spot.data.can_attack:
+		return {}
+	var level := ds.rule_level(&"scarred_bark")
+	var lost: int = ds.run_state.leaves_lost
+	var bonus := minf(DreamState.SCARRED_BARK_PER[level] * lost, DreamState.SCARRED_BARK_MAX[level])
+	return {"run_wide": true, "active": bonus > 0.0, "damage": bonus, "note": "%d leaves lost" % lost,
+		"reason": "" if bonus > 0.0 else "no leaves lost yet"}
+
+func _desperate_bloom(spot: Dictionary, _board: Board, _card: UpgradeData) -> Dictionary:
+	if not spot.data.can_attack:
+		return {}
+	var on: bool = ds.run_state.leaves * 2 < ds.run_state.max_leaves
+	return {"run_wide": true, "active": on, "speed": DreamState.DESPERATE_BLOOM_SPEED,
+		"reason": "" if on else "not below half your leaves"}
+
+func _odd_one_out(spot: Dictionary, board: Board, _card: UpgradeData) -> Dictionary:
+	if not spot.data.can_attack:
+		return {}
+	var id: String = spot.data.get_id()
+	var same := board.entries.filter(func(o: Dictionary) -> bool: return DreamEffects._data(o).get_id() == id and o.node != spot.node).size()
+	var on := same == 0
+	return {"positional": true, "radius": 0.0, "active": on, "damage": DreamState.ODD_ONE_OUT_BONUS[ds.rule_level(&"odd_one_out")],
+		"reason": "" if on else "%d more of its kind on the map" % same}
+
+func _grand_tour(spot: Dictionary, _board: Board, _card: UpgradeData) -> Dictionary:
+	if not spot.data.can_attack:
+		return {}
+	var statuses := ds.owned_statuses().size()
+	var bonus := minf(DreamState.GRAND_TOUR_PER * statuses, DreamState.GRAND_TOUR_MAX)
+	return {"run_wide": true, "active": bonus > 0.0, "damage": bonus, "note": "%d statuses" % statuses}
