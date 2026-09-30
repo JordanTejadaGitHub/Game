@@ -886,7 +886,7 @@ Side: a run summary (Dreams, families, active Omen, time played).
 | Pause | Space |
 | Speed | Tab (cycle) |
 | Sell selected Warden | **X** or Delete (added 2026-09-28: Delete is hard to reach on many keyboards; rebindable), or the panel's Sell button. During a drift the first press shows the half refund and a second press within 2 s sells (unless `confirm_sell` is off). **Right-click never sells** (decided 2026-09-28; it only cancels / deselects) |
-| Grow selected Warden | G (proposed; first option) |
+| Grow selected Warden | **Q / E / Z** grow into the 1st / 2nd / 3rd option in the Warden panel (e.g. Mossback / Standing Stone / Cairn), each Grow button showing its key badge like Sell (X) and Nurture (R); **G** still grows into the first option (2026-09-30, user: "add hotkeys when growing into"). All rebindable in Settings → Controls. A locked option's key opens the Remember tree on it, like clicking |
 | Centre on the Heartwood / on the start | H / F (proposed) |
 | Camera | WASD, mouse wheel zoom |
 
