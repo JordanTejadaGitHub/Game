@@ -441,6 +441,7 @@ class FxCallout extends Node2D:
 		queue_redraw()
 
 	func _draw() -> void:
+		WorldLabel.begin_screen_size(self, Vector2.ZERO)  # Keeps its screen size when zoomed in (2.5×)
 		var t := _age / Fx.CALLOUT_LIFE
 		var alpha := 1.0 - t * t
 		var size := 20 if t > 0.12 else 26
@@ -449,6 +450,7 @@ class FxCallout extends Node2D:
 		var at := Vector2(-width / 2.0, -52.0 - 20.0 * t)
 		draw_string_outline(font, at, _text, HORIZONTAL_ALIGNMENT_LEFT, -1, size, 6, Color(0.05, 0.04, 0.08, alpha))
 		draw_string(font, at, _text, HORIZONTAL_ALIGNMENT_LEFT, -1, size, Color(_colour, alpha))
+		WorldLabel.end_screen_size(self)
 
 
 # The chain badge: pops in, shows "x" + the count in its window, holds, then fades.
@@ -496,6 +498,7 @@ class FxBadge extends Node2D:
 	func _draw() -> void:
 		var frame := mini(int(_age * _fps), _frames - 1)
 		var alpha := clampf((HOLD + 0.3 - _age) / 0.3, 0.0, 1.0)
+		WorldLabel.begin_screen_size(self, Vector2.ZERO)  # Keeps its screen size when zoomed in
 		var tint := Color(1, 1, 1, alpha)
 		# The badge stretches to fit "Chain N" and its link icon.
 		var font := ThemeDB.fallback_font
@@ -505,6 +508,7 @@ class FxBadge extends Node2D:
 		draw_texture_rect_region(_tex, Rect2(Vector2(-width / 2.0, -_size.y / 2.0), Vector2(width, _size.y)),
 			Rect2(_size.x * frame, 0, _size.x, _size.y), tint)
 		if frame < 2:
+			WorldLabel.end_screen_size(self)
 			return  # The words appear once the badge has popped open
 		var x := -content / 2.0
 		_draw_link(Vector2(x + LINK_SIZE.x / 2.0, 0.0), tint)
@@ -513,6 +517,7 @@ class FxBadge extends Node2D:
 			TEXT_SIZE, 2, Color(0.1, 0.07, 0.04, alpha))
 		draw_string(font, Vector2(x + LINK_SIZE.x + 2.0, baseline), _text, HORIZONTAL_ALIGNMENT_LEFT, -1, TEXT_SIZE,
 			Color(1.0, 0.93, 0.7, alpha))
+		WorldLabel.end_screen_size(self)
 
 	# The chain-link icon (chain_link / chain_link_bright), centred on `at`; drawn links if the art is missing.
 	func _draw_link(at: Vector2, tint: Color) -> void:
