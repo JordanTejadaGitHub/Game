@@ -143,9 +143,9 @@ func _show_for(meta: String, host: Control, tapped: bool) -> void:
 	_status = id
 	_is_term = is_term
 	_is_family = is_family
-	if is_family:  # A family: its emblem, "Dewdrop family", its damage type and identity
+	if is_family:  # A family: its base Warden's icon, "Dewdrop family", its damage type and identity
 		var data := IconInfo.family_data(String(id))
-		_icon.texture = IconInfo.family_emblem(data.line if data != null else "")
+		_icon.texture = WardenIcon.make(data) if data != null else null  # Its base Warden (no family emblems)
 		_icon.visible = _icon.texture != null
 		_name.text = "%s family" % (data.display_name if data != null else String(id).capitalize())
 		_text.text = ("%s. %s" % [IconInfo.damage_type_text(data.line), IconInfo.format(data.description)]) if data != null else ""

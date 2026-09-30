@@ -5,8 +5,7 @@ const DEW_SHORT_COLOR := UiStyle.POOR
 const UNAFFORDABLE_BUTTON_ALPHA := UiStyle.UNAFFORDABLE_ALPHA
 # Warden bar buttons (bottom centre): 13 of them must fit between the Warden panel and the drift
 # controls at 1280×800 (screens_ui.md principle 6: buttons at least 48 px tall).
-const BUTTON_SIZE := Vector2(60, 72)  # Bigger since the family emblems replaced the Warden art (user, 2026-09-30)
-const EMBLEM_SIZE := 44  # The family emblem on a Warden button (16 px art at an even-ish scale)
+const BUTTON_SIZE := Vector2(46, 60)
 const BUTTON_MIN_WIDTH := 32.0
 # Half-width taken from each side: the Warden panel (16–316 px) or the drift controls (272 px + 16),
 # plus a small gap; the wider of the two, so the centred bar clears both.
@@ -173,18 +172,16 @@ func _build_tower_bar() -> void:
 	_bar_towers = tower_placer.get_buildable_towers()
 	for i in _bar_towers.size():
 		var data: TowerData = _bar_towers[i]
-		# The family emblem on top (user, 2026-09-30: "remove the wardens and just have the family
-		# icon"), the Dew cost under it, the hotkey number in the top-left corner.
+		# The Warden's icon on top, the Dew cost under it, the hotkey number in the top-left corner (family
+		# emblems were tried and removed, user 2026-09-30: screens_ui.md "Family icons on the Warden bar").
 		var button := Button.new()
 		button.name = "Warden_" + data.get_id()
 		button.toggle_mode = true
 		button.focus_mode = Control.FOCUS_NONE
-		button.icon = IconInfo.family_emblem(data.line)
-		button.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST  # A 16 px pixel badge, scaled up crisp
-		button.expand_icon = true
+		button.icon = _tower_icon(data)
 		button.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		button.vertical_icon_alignment = VERTICAL_ALIGNMENT_TOP
-		button.add_theme_constant_override("icon_max_width", EMBLEM_SIZE)
+		button.add_theme_constant_override("icon_max_width", 34)
 		button.theme_type_variation = &"WardenSlot"  # A fog patch; selected = the gold underline (ui_style.md)
 		button.add_theme_font_size_override("font_size", 16)
 		button.custom_minimum_size = BUTTON_SIZE
@@ -195,11 +192,11 @@ func _build_tower_bar() -> void:
 			var hotkey := Label.new()
 			hotkey.name = "Hotkey"
 			hotkey.text = str(i + 1)
-			hotkey.position = Vector2(4, 1)
+			hotkey.position = Vector2(3, 0)
 			hotkey.mouse_filter = Control.MOUSE_FILTER_IGNORE
-			UiStyle.number(hotkey, 14, UiStyle.INK)
+			UiStyle.number(hotkey, 13, UiStyle.INK_DIM)
 			hotkey.add_theme_color_override("font_outline_color", UiStyle.FOG)
-			hotkey.add_theme_constant_override("outline_size", 5)  # Reads on any badge colour
+			hotkey.add_theme_constant_override("outline_size", 3)
 			button.add_child(hotkey)
 		if data.get_id() == SPROUT_ID:
 			button.add_child(_make_seed_badge())
