@@ -8,6 +8,6 @@ id = &"mushrooming"
 display_name = "Mushrooming"
 statuses = Array[StringName]([&"spored", &"damp"])
 description = "3 Poisoned + Soaked: spores tick harder for a while, and a spore cloud grows on the tile."
-callout_color = Color(0.753, 0.502, 1, 1)
+callout_color = Color(0.9254902, 0.6117647, 0.95686275, 1)
 effect = &"overgrowth"
 effect_scale = 1.5

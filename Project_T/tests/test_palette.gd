@@ -83,8 +83,9 @@ func _check_files() -> void:
 # (UiStyle's own constants), transparent black, white multipliers (modulates), and the lighting /
 # season tints in CODE_COLOUR_EXEMPT (multipliers, art_direction.md "The acts' seasons").
 const CODE_COLOUR_EXEMPT := ["palette.gd", "seasons.gd", "environment_lighting.gd"]
-# Folders not swept yet (UI Code owns the UI look); reported, not failed. Empty it when they're done.
-const CODE_COLOUR_PENDING := []
+# Colours stored in scenes/ and resource/ (.tscn / .tres) must be palette colours too, except these
+# properties, which multiply art rather than colour it.
+const STORED_MULTIPLIERS := ["modulate", "self_modulate", "tint"]
 
 
 func _check_code_colours() -> void:
@@ -101,8 +102,8 @@ func _check_code_colours() -> void:
 	var clear := RegEx.create_from_string("^Color\\(\\s*0(\\.0)?\\s*,\\s*0(\\.0)?\\s*,\\s*0(\\.0)?\\s*,\\s*0(\\.0)?\\s*\\)")
 	var files: PackedStringArray = []
 	_gd_files("res://scripts", files)
+	_gd_files("res://resource", files)
 	var bad: PackedStringArray = []
-	var pending := 0
 	for f in files:
 		if f.get_file() in CODE_COLOUR_EXEMPT:
 			continue
@@ -119,18 +120,30 @@ func _check_code_colours() -> void:
 					continue  # White as a multiplier; drawn white is Palette.HEARTLIGHT / UiStyle.INK
 				if m.get_string(1) != "" and HeartwoodPalette.index_of(Color.html(m.get_string(1))) >= 0:
 					continue  # A palette colour by hex (UiStyle's constants, checked in test_ui_style)
-				var pend := false
-				for p in CODE_COLOUR_PENDING:
-					pend = pend or f.begins_with(p)
-				if pend:
-					pending += 1
-				else:
-					bad.append("%s:%d %s" % [f.trim_prefix("res://"), i + 1, lit])
+				bad.append("%s:%d %s" % [f.trim_prefix("res://"), i + 1, lit])
 	for b in bad:
 		push_error("off-palette colour in code: " + b)
-	_check(bad.is_empty(), "scripts/ draws only palette colours (%d off-palette literals)" % bad.size())
-	if pending > 0:
-		print("note: %d colour literals left in %s (not swept yet)" % [pending, ", ".join(CODE_COLOUR_PENDING)])
+	_check(bad.is_empty(), "scripts/ and resource/ scripts draw only palette colours (%d off-palette literals)" % bad.size())
+
+	var stored: PackedStringArray = []
+	_gd_files("res://scenes", stored, [".tscn", ".tres"])
+	_gd_files("res://resource", stored, [".tscn", ".tres"])
+	var prop := RegEx.create_from_string("^([A-Za-z0-9_/]+) = .*Color\\(")
+	var col := RegEx.create_from_string("Color\\(\\s*([-0-9.e]+),\\s*([-0-9.e]+),\\s*([-0-9.e]+),\\s*[-0-9.e]+\\s*\\)")
+	var off: PackedStringArray = []
+	for f in stored:
+		var lines := FileAccess.get_file_as_string(f).split("\n")
+		for i in lines.size():
+			var p := prop.search(lines[i])
+			if p == null or p.get_string(1).get_file() in STORED_MULTIPLIERS:
+				continue
+			for m in col.search_all(lines[i]):
+				var c := Color(float(m.get_string(1)), float(m.get_string(2)), float(m.get_string(3)))
+				if HeartwoodPalette.index_of(c) < 0:
+					off.append("%s:%d %s" % [f.trim_prefix("res://"), i + 1, m.get_string()])
+	for o in off:
+		push_error("off-palette colour stored in a scene/resource: " + o)
+	_check(off.is_empty(), "scenes/ and resource/ store only palette colours (%d off-palette)" % off.size())
 
 	var shader := FileAccess.get_file_as_string("res://shaders/blight.gdshader")
 	var crack := RegEx.create_from_string("crack_color[^=]*=\\s*vec3\\(([^)]*)\\)").search(shader)
@@ -145,12 +158,13 @@ func _overbright(lit: String) -> bool:
 	return m != null and maxf(float(m.get_string(1)), maxf(float(m.get_string(2)), float(m.get_string(3)))) > 1.0
 
 
-func _gd_files(dir: String, out: PackedStringArray) -> void:
+func _gd_files(dir: String, out: PackedStringArray, exts := [".gd"]) -> void:
 	for f in DirAccess.get_files_at(dir):
-		if f.ends_with(".gd"):
-			out.append(dir.path_join(f))
+		for e in exts:
+			if f.ends_with(e):
+				out.append(dir.path_join(f))
 	for d in DirAccess.get_directories_at(dir):
-		_gd_files(dir.path_join(d), out)
+		_gd_files(dir.path_join(d), out, exts)
 
 
 # Warden Night (warden_night.md): 35 colours for Warden idle sheets; nothing else ever snaps to the 3.

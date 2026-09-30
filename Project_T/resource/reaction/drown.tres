@@ -8,6 +8,6 @@ id = &"drown"
 display_name = "Drown"
 statuses = Array[StringName]([&"damp", &"drowsy"])
 description = "Soaked + full Drowsy: the nightmare is pulled under for 3 s: 60% slower (bosses 30%) and drowning, taking more damage each second."
-callout_color = Color(0.416, 0.69, 1, 1)
+callout_color = Color(0.6117647, 0.83137256, 0.9882353, 1)
 effect = &"drown"
 effect_scale = 1.5
