@@ -6,7 +6,7 @@
 script = ExtResource("1_obst")
 display_name = "Mossy Boulder"
 clear_verb = "Move"
-clear_cost = 8
+clear_cost = 18
 source_id = 5
 tiles = Array[Vector2i]([Vector2i(0, 0), Vector2i(1, 0), Vector2i(2, 0), Vector2i(3, 0), Vector2i(4, 0), Vector2i(5, 0), Vector2i(6, 0), Vector2i(7, 0), Vector2i(8, 0)])
 cleared_source_id = 6

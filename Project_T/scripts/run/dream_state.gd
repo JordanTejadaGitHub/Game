@@ -22,7 +22,8 @@ const TENDED_FOREST_MAX := 0.25
 const FERTILE_DISCOUNT := 0.5  # Reclaimed Earth: the first Warden on a cleared cell
 const CLEAR_DISCOUNT_MAX := 0.5  # Cleared Ground stacks to −50%
 const RECLAIMED_REFUND := 0.4  # Reclaimed Earth: share of the Dew paid for a clear
-const BURN_BACK_PER_TREE := 2  # Burn Back: Dew per Withered Tree, paid when taken
+const BURN_BACK_PER_TREE := 5  # Burn Back: Dew per Withered Tree, paid when taken
+const CLEAR_SURCHARGE := 1  # Every clear this run makes later clears +1 Dew
 const CLEARING_LOCKED_WEIGHT := 2.0  # Clearing cards are this much likelier until you own one
 # Nurture and wide / narrow cards (dream_design.md). [base, Deepened (II)] where it deepens.
 const NURTURE_DISCOUNT_MAX := 0.45
@@ -1031,8 +1032,9 @@ func get_rest_bonus_add() -> int:
 
 # Dew to clear `data` (Cleared Ground: −40% per stack, never below 1 Dew).
 # Clearing always costs Dew (dream_design.md "Clearing always costs Dew"): Cleared Ground −25% per
-# stack (max −50%), a Heartwood's Reach charge (`half_price`) halves it, and it never goes below half
-# the base cost, rounded up (tree 3, boulder 4). Blight 9's ×2 is ObstacleClearer's, on top.
+# stack (max −50%), then +CLEAR_SURCHARGE Dew per obstacle cleared this run (dream_design.md "Clear
+# prices, raised"); a Heartwood's Reach charge (`half_price`) halves it, and it never goes below half
+# the base cost, rounded up (tree 6, boulder 9). Blight 9's ×2 is ObstacleClearer's, on top.
 func get_clear_cost(data: ObstacleData, half_price: bool = false) -> int:
 	if free_first_clears > 0:
 		return 0  # Tend the Forest
@@ -1040,6 +1042,7 @@ func get_clear_cost(data: ObstacleData, half_price: bool = false) -> int:
 	for card in _taken_cards():
 		discount += card.clear_discount * stacks[card.id]
 	var cost := roundi(data.clear_cost * (1.0 - minf(discount, CLEAR_DISCOUNT_MAX)))
+	cost += CLEAR_SURCHARGE * run_state.tended_cells.size()  # Every clear so far, Burn Back's too
 	if half_price:
 		cost = ceili(cost / 2.0)
 	return maxi(cost, ceili(data.clear_cost / 2.0))

@@ -412,9 +412,10 @@ func _test_clearing_cards(main: Node) -> void:
 	_check(not dreams.is_eligible(ground), "clearing cards need 8+ obstacles left")
 	map_generator.obstacles = all_obstacles
 
-	# Cleared Ground: −25% per stack, max −50%, through the clearer's one cost function. Clearing always
-	# costs Dew: never below half the base (tree 5 → 3, boulder 8 → 4).
+	# Cleared Ground: −25% per stack, max −50%, through the clearer's one cost function; +1 Dew per clear
+	# this run after the discounts. Clearing always costs Dew: never below half the base (tree 12 → 6, boulder 18 → 9).
 	var rock: ObstacleData = load("res://resource/obstacle/rock.tres")
+	run_state.tended_cells.clear()  # No clears yet: no surcharge
 	dreams.take(ground)
 	_check(clearer.get_clear_cost(tree) == roundi(tree.clear_cost * 0.75), "Cleared Ground: −25%% (tree %d → %d)" % [tree.clear_cost, clearer.get_clear_cost(tree)])
 	for i in 3:
@@ -422,6 +423,10 @@ func _test_clearing_cards(main: Node) -> void:
 	_check(clearer.get_clear_cost(tree) == ceili(tree.clear_cost / 2.0) and clearer.get_clear_cost(rock) == ceili(rock.clear_cost / 2.0),
 		"Cleared Ground stacks to −50%%, never below half the base (tree %d, boulder %d)" % [clearer.get_clear_cost(tree), clearer.get_clear_cost(rock)])
 	_check(clearer.get_clear_cost(tree, true) == ceili(tree.clear_cost / 2.0), "…a half-price charge on top still hits the floor")
+	run_state.tended_cells.assign([Vector2(-1, -1), Vector2(-2, -2), Vector2(-3, -3)])
+	_check(clearer.get_clear_cost(tree) == ceili(tree.clear_cost / 2.0) + 3, "every clear so far adds +1 Dew after the discounts (%d)" % clearer.get_clear_cost(tree))
+	run_state.tended_cells.clear()
+	_check(tree.clear_cost == 12 and rock.clear_cost == 18, "raised base prices: tree 12, boulder 18")
 
 	# Heartwood's Reach: half-price clears (used first), still +1 Seed each; II gives 7
 	dreams.stacks.erase("cleared_ground")
@@ -480,14 +485,14 @@ func _test_clearing_cards(main: Node) -> void:
 	clears = run_state.tended_cells.size()
 	run_state.fertile_cells.clear()
 	dew = run_state.dew
-	run_state.dew = 2 * trees - 1
-	_check(not dreams.can_offer(burn, 2) or dreams.card_stacks("burn_back") > 0, "Burn Back only offered when you can pay 2 Dew per tree")
-	run_state.dew = 2 * trees + 10
+	run_state.dew = DreamState.BURN_BACK_PER_TREE * trees - 1
+	_check(not dreams.can_offer(burn, 2) or dreams.card_stacks("burn_back") > 0, "Burn Back only offered when you can pay 5 Dew per tree")
+	run_state.dew = DreamState.BURN_BACK_PER_TREE * trees + 10
 	dew = run_state.dew
 	dreams.take(burn)  # Reclaimed Earth is still owned
 	_check(dreams.count_obstacles(tree) == 0 and dreams.count_obstacles() == rocks, "Burn Back clears every Withered Tree, no rocks")
 	_check(run_state.obstacles_tended == tended, "Burn Back's clears give no Seeds")
-	_check(run_state.dew == dew - 2 * trees and run_state.fertile_cells.is_empty(), "Burn Back costs 2 Dew per tree and doesn't trigger Reclaimed Earth")
+	_check(run_state.dew == dew - DreamState.BURN_BACK_PER_TREE * trees and run_state.fertile_cells.is_empty(), "Burn Back costs 5 Dew per tree and doesn't trigger Reclaimed Earth")
 	_check(run_state.tended_cells.size() == clears + trees, "Burn Back's clears still count for Tended Forest")
 	var bug: EnemyData = load("res://resource/enemy/leaf_bug.tres")
 	_check(is_equal_approx(director.get_spawn_modifiers(bug, 3).get("speed", 1.0), 1.1), "Burn Back: nightmares +10% speed")
