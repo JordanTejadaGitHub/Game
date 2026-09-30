@@ -75,14 +75,14 @@ func _run() -> void:
 	var fresh := HeartwoodMemory.defaults()
 	HeartwoodMemory.save_data(fresh)
 	var names := CodexData.callout_entries().map(func(e: Array) -> String: return e[0])
-	_check(names.has("Weak") and names.has("Resisted") and not names.has("Shattered") and not names.has("Thunderclap"),
+	_check(names.has("Weak") and names.has("Resisted") and not names.has("Critical") and not names.has("Thunderclap"),
 		"before seeing them: only Weak and Resisted (%s)" % [names])
 	fresh[CodexData.CALLOUT_SEEN_KEY] = ["crit"]
 	fresh["combos_seen"] = ["thunderclap"]
 	HeartwoodMemory.save_data(fresh)
 	names = CodexData.callout_entries().map(func(e: Array) -> String: return e[0])
-	_check(names.has("Shattered") and names.has("Thunderclap"), "seen callouts join the glossary (%s)" % [names])
-	_check(CodexData.definition("Shattered").begins_with("A critical hit"), "Shattered means a critical hit")
+	_check(names.has("Critical") and names.has("Thunderclap"), "seen callouts join the glossary (%s)" % [names])
+	_check(CodexData.definition("Critical").begins_with("A critical hit"), "Critical means a critical hit (the callout was Shattered!)")
 
 	codex.queue_free()
 	ResultsScreen.demo_override = -1

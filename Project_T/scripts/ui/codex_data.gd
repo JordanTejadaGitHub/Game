@@ -384,7 +384,7 @@ static func glossary() -> Array:
 const CALLOUT_SEEN_KEY := "callouts_seen"
 const CALLOUT_ENTRIES := [
 	# [callout id, entry name, line, related]
-	[&"crit", "Shattered", "A critical hit: the Warden's hit landed for extra damage (its crit chance is on the Warden panel). Not the Shatter Reaction.", ["Crit"]],
+	[&"crit", "Critical", "A critical hit: the Warden's hit landed for extra damage (its crit chance is on the Warden panel). Not the Shatter Reaction (\"Shatter!\").", ["Crit"]],
 	[&"conducted", "Conducted", "Lightning through {damp}: bolts jump further and more often between {damp} nightmares (the Conducted combo).", ["Conducted"]],
 	[&"popped", "Popped", "Poison pops: 10+ {spored} bursts over the nightmare and its neighbours (the Popped combo).", ["Popped"]],
 	[&"asleep", "Asleep", "Full {drowsy}: the nightmare falls asleep for a moment; a big hit wakes it (the Asleep combo).", ["Asleep"]],

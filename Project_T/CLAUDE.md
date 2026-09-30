@@ -238,7 +238,7 @@ accessibility, Steam achievements (milestones map to them). Acts 3–4 and all f
   Coming strip (`is_reminding()`); reopen from the banner's "Boss in N" / strip; profile `boss_records`,
   real game only). DriftBanner's 50% marker taps to the "at 50% health" ability. `tests/test_nightmare_icons.gd`.
 - Combat feedback (screens_ui.md), all on `DamageLog` events: `CombatCallouts` (world; combo tag →
-  "Conducted!" / "Popped!" / "Asleep!" / "Shattered!" / "Weak!", throttled; calls
+  "Conducted!" / "Popped!" / "Asleep!" / "Critical!" / "Weak!", throttled; calls
   `enemy.flash_status`), `PlacementLinks` (vines from the build ghost to Wardens it combos with),
   `Synergies` (static status → payoff table; `link`, `find_links`), `RestReport` (top 3 Wardens +
   combos per block; `get_report_text` also feeds the results' run report), Warden panel "This run /

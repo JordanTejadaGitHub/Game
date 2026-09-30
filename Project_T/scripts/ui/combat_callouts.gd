@@ -10,7 +10,7 @@ const TAG_COOLDOWN := 0.7  # Seconds before the same word can pop again
 const LIFE := 0.9
 # Combo tag -> the word shown ("" = no word, only the status flash).
 const WORDS := {&"conducted": "Conducted!", &"popped": "Popped!", &"asleep": "Asleep!",
-	&"crit": "Shattered!", &"weak": "Weak!", &"marked": "", &"fog": "", &"static": ""}
+	&"crit": "Critical!", &"weak": "Weak!", &"marked": "", &"fog": "", &"static": ""}
 # Combo tag -> the status it used (flashes on the nightmare).
 const USES_STATUS := {&"conducted": &"damp", &"popped": &"spored", &"asleep": &"drowsy",
 	&"marked": &"marked", &"fog": &"spored", &"static": &"static"}
