@@ -344,8 +344,8 @@ function grovesky() {
 // small leaf clusters, each one flat tone from the lobe under it with a lit tip and a dark rim along
 // its bottom, upper clusters overlapping lower ones. Drawn at half resolution and scaled up 2×.
 // The night greens (colours unchanged), seven tiers.
-// The crown: indigo night in the shadows and the belly, cold moonlit Pool, then Moss where the light reaches.
-const CROWN_P = [HW.Void, HW.Dread, HW.Night, HW.Deepmoss, HW.Pool, HW.Moss, HW.Leaf];
+// The crown: green-black in the shadows and the belly (Dread / Night are the sky's colours, so the tree would melt into it), cold moonlit Pool, then Moss where the light reaches.
+const CROWN_P = [HW.Void, HW.Void, HW.Deepmoss, HW.Deepmoss, HW.Pool, HW.Moss, HW.Leaf];  // shade is green-black, never the sky's indigo
 const CROWN_PX = 2, CROWN_SEED = 970;
 // Stages grow the crown outward: the clusters over the limbs are always there, the edges fill in.
 const CROWN_SHARE = [.72, .8, .9, 1];
@@ -408,7 +408,7 @@ function groveCanopy(stage) {
   const bottomAt = x => { for (let y = Math.floor(H * .78); y > 0; y--) if (TIER[y * W + x] >= 0) return y; return -1; };
   for (let x = 0; x < W; x++) {
     const bottom = bottomAt(x); if (bottom < 0) continue;
-    for (let y = bottom - Math.floor(16 / s); y <= bottom; y++) if (y > 0 && TIER[y * W + x] >= 0) TIER[y * W + x] = y > bottom - 7 / s ? 1 : Math.min(TIER[y * W + x], 2);
+    for (let y = bottom - Math.floor(16 / s); y <= bottom; y++) if (y > 0 && TIER[y * W + x] >= 0) TIER[y * W + x] = y > bottom - 7 / s ? 2 : Math.min(TIER[y * W + x], 3);  // a dark green belly, not black
   }
   for (let X = 4; X < W; X += Math.round(30 / s)) {
     if (hash(X, 0, seed + 5) > .55) continue;
@@ -416,12 +416,14 @@ function groveCanopy(stage) {
     const w = (5 + hash(X, 1, seed + 5) * 6) / s, len = (8 + hash(X, 2, seed + 5) ** 2 * 44) / s;
     crownDrip(X, bottom - w * .5, len, w, X).forEach(([bx, by, rx, ry]) => {
       for (let y = Math.floor(by - ry); y <= by + ry; y++) for (let x = Math.floor(bx - rx); x <= bx + rx; x++)
-        if (x >= 0 && y >= 0 && x < W && y < H && ((x + .5 - bx) / rx) ** 2 + ((y + .5 - by) / ry) ** 2 <= 1) TIER[y * W + x] = 1;
+        if (x >= 0 && y >= 0 && x < W && y < H && ((x + .5 - bx) / rx) ** 2 + ((y + .5 - by) / ry) ** 2 <= 1) TIER[y * W + x] = 2;
     });
   }
   for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
     const t = TIER[y * W + x]; if (t < 0) continue;
-    L.set(x, y, P[t === 5 && hash(x, y, seed + 6) < .03 ? 6 : t]);  // sparse bright sparks on the lit tops
+    // The deepest shade is a checker of near-black and Deepmoss, so it reads as leafy shadow (dark
+    // green from afar), never as the sky showing through.
+    L.set(x, y, t === 1 ? ((x + y) % 2 ? P[0] : P[2]) : P[t === 5 && hash(x, y, seed + 6) < .03 ? 6 : t]);  // sparse bright sparks on the lit tops
   }
   const small = new Img(W, H); small.stamp(L, P[0]);
   for (let y = 1; y < H - 1; y++) for (let x = 1; x < W - 1; x++)
