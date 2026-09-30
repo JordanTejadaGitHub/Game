@@ -250,6 +250,11 @@ function groveTree() {
     out.set(x, y + 2, "#c8fff0");
   });
   hollow(out, 610, 824);
+  // Threads of dream-light curling up out of the Hollow into the trunk, dithered, thinning as they rise.
+  for (const [ph, amp] of [[0, 16], [2.2, 12], [4.1, 20]]) for (let t = 0; t < 1; t += .002) {
+    const y = 752 - t * 190, x = trunkX(y) - 20 + Math.sin(t * 9 + ph) * amp * (.4 + t);
+    if (hash(Math.round(x), Math.round(y), 76) < .75 - t * .55) out.set(x, y, t < .35 ? HW.Glow : t < .7 ? HW.Gold : HW.Ember);
+  }
   // Hanging moss strands under the limbs.
   for (let k = 0; k < 160; k++) {
     const x = Math.floor(80 + hash(k, 1, 50) * 1120);
@@ -310,6 +315,27 @@ function grovesky() {
     out.set(x, y, pick(cols, clamp(t, 0, 1), x, y, .9));
     const h = hash(x, y, 62);
     if (y < 760 && h < .0016 * (1 - glow) * (1 - moon)) out.set(x, y, h < .0004 ? "#e8ecff" : "#8a8ac0");
+  }
+  // A dream nebula drifting across the sky: a violet band, dithered (opaque, so nothing blends to mud).
+  for (let y = 0; y < 640; y++) for (let x = 0; x < GW; x++) {
+    const n = pnoise(x, y, 110, 71) * .6 + pnoise(x, y, 36, 72) * .4, c = 150 + x * .22 + (pnoise(x, 0, 200, 73) - .5) * 160;
+    const band = Math.exp(-(((y - c) / 120) ** 2)) * n * (1 - Math.max(0, 1 - Math.hypot(x - MOON[0], y - MOON[1]) / 160));
+    if (band > .36 && bay(x, y) < (band - .36) * 2.4) out.set(x, y, band > .6 ? HW.Bruise : HW.Shade);
+    if (band > .66 && hash(x, y, 74) < .006) out.set(x, y, HW.Wraithlight);
+  }
+  // A violet dream haze glowing above the far hills (the open band of sky under the crown).
+  for (let y = 540; y < 780; y++) for (let x = 0; x < GW; x++) {
+    const h = (1 - Math.abs(y - 690) / 150) * (.55 + pnoise(x, y, 70, 78) * .7);
+    if (h > .3 && bay(x, y) < (h - .3) * 1.4) out.set(x, y, h > .72 ? HW.Bruise : HW.Shade);
+    if (h > .7 && hash(x, y, 79) < .004) out.set(x, y, HW.Wraithlight);
+  }
+  // Twinkling four-point stars, brighter than the dust.
+  for (let k = 0; k < 46; k++) {
+    const x = hash(k, 1, 75) * GW | 0, y = hash(k, 2, 75) * 700 | 0, big = hash(k, 3, 75) < .35;
+    if (Math.hypot(x - MOON[0], y - MOON[1]) < 90) continue;
+    out.set(x, y, HW.Moonlight);
+    for (const [a, b] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) out.set(x + a, y + b, big ? HW.Mist : HW.Dusk);
+    if (big) for (const [a, b] of [[2, 0], [-2, 0], [0, 2], [0, -2]]) out.set(x + a, y + b, HW.Slate);
   }
   // The moon, with a soft halo and a few darker seas.
   ellipse(out, MOON[0], MOON[1], 70, 70, (x, y, dx, dy) => CA("#b8c4ff", Math.max(0, 1 - Math.hypot(dx, dy)) ** 2 * .35));
@@ -431,6 +457,14 @@ function groveCanopy(stage) {
   // Scale up 2× into the tree's space.
   const out = new Img(GW, GH);
   for (let y = 0; y < GH; y++) for (let x = 0; x < GW; x++) { const X = x / s | 0, Y = y / s | 0; if (small.alpha(X, Y)) out.set(x, y, small.get(X, Y)); }
+  // Dream motes floating in and round the crown: tiny gold and pale-violet crosses (opaque, 1 px arms),
+  // small enough never to read as nodes; more of them the fuller the tree.
+  for (let k = 0; k < 70 + stage * 30; k++) {
+    const x = 20 + hash(k, 1, 77) * 1240 | 0, y = 30 + hash(k, 2, 77) * 820 | 0, gold = k % 3 !== 0, open = !out.alpha(x, y);
+    if (open) for (const [r, a] of [[3.5, .3], [2.5, .5]]) ellipse(out, x, y, r, r, (xx, yy) => out.alpha(xx, yy) ? null : CA(gold ? HW.Gold : HW.Wraithlight, a));
+    out.set(x, y, gold ? HW.Heartlight : HW.Moonlight);
+    if (k % 2 || open) for (const [a, b] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) out.set(x + a, y + b, gold ? HW.Glow : HW.Wraithlight);
+  }
   // Dream-leaves catch the light: more of them, brighter, the fuller the tree.
   for (let k = 0; k < 20 + stage * 60; k++) {
     const c = shown[Math.floor(hash(k, 5, 831) * shown.length)], x = Math.floor(c[0] * s), y = Math.floor((c[1] - c[2] * .3) * s);
