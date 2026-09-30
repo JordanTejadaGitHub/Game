@@ -70,6 +70,15 @@ func _snugroot() -> void:
 	snug._update_ability(0.1)
 	_check(walker.statuses.is_held() and walker.get_meta(FinalTwists.LOGJAM_META, false), "Logjam: a walker Snugroot Holds jams its cell")
 	_check(not flyer.get_meta(FinalTwists.LOGJAM_META, false), "flyers never jam")
+	# The queue (Enemy Code's spawner + _is_blocked_ahead): the walker behind waits, it doesn't path around.
+	var behind := _walker(7)
+	var route_before: PackedVector2Array = behind._path.duplicate()
+	behind.set_process(true)
+	for i in 30:
+		await process_frame
+	_check(behind.get_current_cell() == route[7] and behind.waiting, "the nightmare behind a jammed cell waits there (%s)" % behind.get_current_cell())
+	_check(behind._path == route_before, "and doesn't path around (the route is unchanged)")
+	behind.set_process(false)
 	snug.queue_free()
 	await _clean()
 
@@ -145,6 +154,10 @@ func _morning_fog() -> void:
 	await process_frame
 	_check(not inside.is_hidden(), "Veil: a Lurker inside the fog is revealed")
 	_check(inside.statuses.veil_time > 0.0 and is_zero_approx(outside.statuses.veil_time), "and can't be healed there (veil_time)")
+	for e in [inside, outside]:
+		e.health = e.max_health / 2
+		e.heal(1000.0)
+	_check(inside.health == inside.max_health / 2 and outside.health > outside.max_health / 2, "Veil: mending does nothing inside the fog, but works outside")
 	cloud.queue_free()
 	fog_warden.queue_free()
 	await _clean()
