@@ -95,7 +95,7 @@ vocabulary**, reserved for the light family (Thunderclap, Thunderhead, Stormhear
 Tempest). It lives in the mid range (~250 Hz–2.5 kHz) with **no sub or low boom** and **no downward
 noise sweeps**.
 
-**A soft burst of light, releasing a soul** (sixth listen, 2026-09-30). The fifth listen asked for
+**A soft burst of light, releasing a soul** (sixth listen, 2026-09-30). **Approved by the user ("sounds good now", build 2241bf41): keep it; change it only if they ask.** The fifth listen asked for
 "releasing a soul"; the sung-vowel version **sounded like talking**, so there is **no voice at all**:
 no vowels, no formants, no sighs, no pitch glides (vowel changes and glides are what make a sound
 read as speech). Every nightmare is a dream the Hollow twisted; dispelling it sets that dream free
