@@ -300,6 +300,32 @@ light.
 - **Clutter:** catch droplets and leaf motes share the effects budget below Harmony sparks; with
   *reduce flashes* the Harvest is a simple count-up.
 
+### Buff readability: where a Warden's power comes from
+
+Added 2026-09-30 (user: "clear indication of where Wardens get buffs, or anything like that"). A
+Warden's numbers can be changed by auras (Acorn, Elder Stump, Grove Heart, Grandmother Oak, relayed
+through walls by *Hedgerow Roots*), Kinships, Kindred / Whole Tree, Nurture and Focus, Dreams, and
+Omens. The player should always be able to answer **"what is boosting this Warden, and by how
+much?"**, and, for a support Warden, **"who am I boosting?"**. In combat it stays quiet; the
+details show when the player asks (selecting, hovering, placing, pausing, rests).
+
+| Where | What it shows |
+|---|---|
+| **Buff pips** (on the map) | a short row of small icons under each Warden, like the status dots on nightmares: one per **local** buff source kind (Elder Stump, Acorn, Grove Heart, Kinship leaf, Whole Tree badge) with a stack count (*"×3"*). Global buffs (Dreams, Omens) aren't pips. Shown **at rests, while paused, in build mode, and on the hovered / selected Warden**; in a drift the rest stay hidden (only the leaf motes). |
+| **Source threads** (select or hover a Warden) | thin lines (`light_thread`, tinted per aura kind) from **every Warden buffing it** to it, each labelled with its share: *"+20%"*, *"+10% (2nd stump)"*, *"Kindred +26%"*. A relay through Thornwalls (*Hedgerow Roots*) draws along the wall chain. Kin partners already show a vine. |
+| **Selecting a support Warden** | its **aura area lights up** (`aura_ring_breath`, full strength) and threads run **out** to every Warden it boosts, each labelled with what it adds there (after falloff): *"+20% · +10% · +5% (3rd stump)"*. A Warden it covers but doesn't boost (already capped, or not an attacker) shows a dim *"—"*. |
+| **Placement preview** | placing an attacker: the ghost shows what it **would receive** (*"+30% attack speed from 2 Elder Stumps"*, threads in). Placing a support Warden: it shows who it **would boost and by how much**, including falloff (*"+10% here: 2nd Elder Stump"*). Growing / nurturing shows the change the same way. |
+| **Warden panel** | a **Buffs** section listing every source with its amount and a total, e.g. *"Elder Stump (rank IV, Kindred) +26.6% attack speed · Elder Stump +10% (falloff) · Kinship Slumber Rot (Blooming, 75%) · Kindred +10% damage · Rank III (Power) · Dreams: Deeper Calm ×3 +30% damage"*. Tapping a Warden source selects it and glides the camera there. Negative effects (e.g. *Blood Is Thicker*'s −15%, an Omen's penalty) are listed in a muted plum, the Bittersweet colour. |
+| **Buff lens** (a HUD toggle, hotkey **V**) | a map overlay: every aura area tinted by kind, every Warden's buff pips shown, and Wardens coloured by how boosted they are. Toggle on/off (it isn't hold-only, for touch and the mobile port). |
+
+- **One colour per buff source kind**, used everywhere (pips, threads, aura rings, panel rows): the
+  Acorn family's gold for auras, the family colour for Kinships, green-gold for Whole Tree. Icons
+  also differ by **shape**, not just colour (accessibility).
+- Threads and aura areas are drawn **under** Wardens and nightmares, and never during a drift
+  unless the player selects or hovers (Reactions own the screen).
+- The numbers come from one place (Tower Code exposes each Warden's list of buff sources with
+  amounts), so the panel, threads, preview and lens always agree.
+
 ## Stat and status icons
 
 Added 2026-09-27 (user request). **Every stat and every status has a pixel-art icon**, and **every
