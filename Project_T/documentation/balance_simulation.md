@@ -222,3 +222,37 @@ Decisions (design chat, 2026-09-30):
 
 A **human baseline**: the same CSV written from real playtests (debug builds only), so the bot's
 curve can be checked against how people really play.
+
+## Run history (2026-09-30, user: "keep a run history to check balancing")
+
+Why: the user beat drift 100 (an "Unlock all families" dev run, a Sprout swarm with Many Hands at 139
+attacking Wardens, 7 Grove nodes) and "felt it might be a bit too easy", while the Grove-player bot
+wins 0/30. Nothing about that run was kept. **The bot is weaker than a person**, so its numbers
+underestimate player power; the history is the check.
+
+- **Saved on every run end** (win, loss, abandon), real game **and** dev runs (tagged `dev`, with
+  which dev setting: all families / Test Grove / Dev Grove preset), never from tests. Last **50** runs
+  in `user://run_history.json`, separate from the profile so it can be sent along with bug reports.
+- **Per run:** date, build version, map seed, demo/full, Blight Level, Grove nodes owned and perks
+  carried, result, drift reached, play time, leaves lost **per act**, close calls; family picks
+  (offered and chosen); Dreams taken (with the drift) and skipped; Omens faced / Clear Skies and their
+  rewards; bosses met and dispelled (time to dispel); Dew earned / spent on planting, growth, ranks,
+  clears, and banked at each rest; Wardens at the end (count by form and rank, number of attackers);
+  top 5 Wardens by damage and their share; combo and Reaction counts; Dreamlight earned / spent.
+- **Per drift, compact:** drift, leaves lost, Dew banked, nightmare health spawned vs damage dealt,
+  closest approach (share of the route). Same column names as the bot's `runs.csv` / drift log, so
+  `tools/balance_summary.gd` can read human and bot runs side by side.
+- **In game:** a "Past runs" page in the Codex (results screen style, newest first; dev runs marked)
+  and a "Copy run report" button there and on the results screen for sharing with the design chat.
+- **Design use:** after each playtest the design chat reads the history (the file is local) and
+  compares it with the bot at the same Grove level and families.
+
+## Do the tests consider Dreams? (answer, 2026-09-30)
+
+Yes: every simulated run takes a Dream at every rest through `DreamSimPolicy` (by style: Balanced,
+Wide, Sprout, Mixed…), grows forms with Dreamlight and meets random drifts and bosses. Its limits: it
+picks by tag score, not by reading a synergy the way a person does; it doesn't reroll or banish
+well; Omens are "Clear Skies" unless the batch says otherwise; and no batch has run **all families
+unlocked** (the user's winning setup). Next batch: **Sprout swarm with all families, to 100** (the
+Sprout cards the user took: Many Hands, Sprout Surge, Seedfall, Quickened Sap, First Light, Last
+Stand), and the Balanced bot with all families, to see how much the family choice alone adds.
