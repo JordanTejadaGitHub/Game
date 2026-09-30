@@ -125,21 +125,21 @@ func _process(_delta: float) -> void:
 	var block_end := drift_director.get_block(maxi(latest, 1)) * drift_director.drifts_per_block
 	if drift_director.awaiting_family_pick:
 		_status_label.text = "Choose a Warden family…"
-		_start_button.text = "Start Drift %d" % next
+		_start_button.text = "Start drift %d" % next
 	elif not drift_director.has_next_drift():
 		_status_label.text = "The last drift is walking"
 		_start_button.text = "Final drift"
 	elif drift_director.is_resting():
-		_status_label.text = "Resting: rearrange (%d%% refunds)" % roundi(tower_seller.build_phase_refund * 100)
-		var boss := " (boss)" if drift_director.is_boss_drift(next) else ""
-		_start_button.text = "Start Drift %d%s  (Enter)" % [next, boss]
+		_status_label.text = "Resting · %d%% refunds" % roundi(tower_seller.build_phase_refund * 100)
+		var boss := " · boss" if drift_director.is_boss_drift(next) else ""
+		_start_button.text = "Start drift %d%s (Enter)" % [next, boss]
 	elif drift_director.can_start_next_drift():
 		var countdown := drift_director.get_auto_countdown()
 		_status_label.text = "Drift %d in %d s" % [next, ceili(countdown)] if countdown >= 0.0 \
 			else "Rest after drift %d" % block_end
 		var bonus := drift_director.get_call_early_bonus()
-		_start_button.text = "Call Drift %d early  +%d Dew" % [next, bonus] if bonus > 0 \
-			else "Start Drift %d now" % next
+		_start_button.text = "Call drift %d early · +%d Dew" % [next, bonus] if bonus > 0 \
+			else "Start drift %d now" % next
 	else:
 		_status_label.text = "Rest once the field is clear"
 		_start_button.text = "Rest after drift %d" % block_end

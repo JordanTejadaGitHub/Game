@@ -11,7 +11,7 @@ const TEXT := {
 	&"plant": "Plant a Warden near the path.",
 	&"first_cleanse": "Nightmares. They're coming for the dream. Don't let them reach me.",
 	&"walls": "Wardens are walls. Make them take the long way.",
-	&"flow": "They don't stop. They come in drifts, like fog.",
+	&"flow": "They don't stop. They come in {drifts}, like fog.",
 	&"speed": "Pause if you need to think. They'll wait.",
 	&"rest": "Rest here. Rearrange the forest; nothing is lost.",
 	&"save": "The forest will wait for you.",
@@ -24,7 +24,7 @@ const TEXT := {
 	&"chain": "One reaction set off another: a chain. Reach 10 for a Dawnburst.",
 	&"leaf": "It fed. A leaf blackens and falls.",
 	&"flyer": "Some of them don't walk. Guard the ground near the Heartwood.",
-	&"sell": "Selling gives everything back during a rest, and half while nightmares walk.",
+	&"sell": "Selling gives everything back during a {rest}, and half while nightmares walk.",
 	&"boss": "Something old has found the dream.",
 	&"after_boss": "It's gone, and something I'd forgotten came back.",
 	&"again": "The Heartwood dreams again.",
@@ -152,7 +152,7 @@ func _show_next() -> void:
 	_seen.append(String(id))
 	_remember()
 	plain = IconInfo.format(TEXT.get(id, ""))  # {damp} … become today's status names
-	var linked := StatusLinks.bbcode(plain)
+	var linked := StatusLinks.bbcode(TEXT.get(id, ""))  # From the tokens: game terms become links too
 	text = "[center]%s[/center]" % linked
 	whispered.emit(id)
 	# Status names are links of their own (hover / tap: their definition). A whisper without one is

@@ -270,7 +270,7 @@ func _make_card(data: TowerData) -> Button:
 	var statuses := get_status_text(data)
 	if statuses != "":
 		lines.append([statuses, 14, Color(0.75, 0.85, 1.0)])
-	lines.append(["Sprouts can grow into it (%d Dew), or plant one directly (%d Dew)." % [sprout_cost, data.cost], 13, Color(0.7, 0.9, 0.7)])
+	lines.append(["Grow a Sprout into it: %d Dew · plant directly: %d Dew" % [sprout_cost, data.cost], 13, Color(0.7, 0.9, 0.7)])
 	for line in lines:
 		var label := Label.new()
 		label.text = line[0]

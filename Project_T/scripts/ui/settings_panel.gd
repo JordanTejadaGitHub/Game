@@ -16,7 +16,7 @@ const REBINDABLE := [
 	["pause_game", "Pause"], ["cycle_speed", "Change speed"], ["sell_tower", "Sell Warden"],
 	["grow_warden", "Grow selected Warden"], ["nurture_warden", "Nurture selected Warden"],
 	["clear_tool", "Clear tool"],
-	["cycle_target", "Cycle targeting (selected)"],
+	["cycle_target", "Cycle targeting"],
 	["center_heartwood", "Centre on the Heartwood"],
 	["center_start", "Centre on the forest's edge"],
 ]
@@ -53,7 +53,7 @@ func _ready() -> void:
 	_slider(audio, "Volume", "master_volume")
 	_slider(audio, "Music", "music_volume")
 	_slider(audio, "Sounds", "sfx_volume")
-	_toggle(audio, "Softer nightmares (quieter shrieks and whispers)", "softer_nightmares", false)
+	_toggle(audio, "Softer nightmares", "softer_nightmares", false, "Quieter shrieks and whispers.")
 
 	var display := _tab("Display")
 	_toggle(display, "Fullscreen", "fullscreen")
@@ -63,7 +63,7 @@ func _ready() -> void:
 	_slider(display, "UI scale", "ui_scale", 0.75, 2.0, 0.05)  # Up to 2× (user, 2026-09-30: "increase the UI size")
 
 	var gameplay := _tab("Gameplay")
-	_toggle(gameplay, "Heartwood whispers (hints)", "whispers")
+	_toggle(gameplay, "Heartwood whispers", "whispers", true, "Short hints the first time something happens.")
 	_toggle(gameplay, "Auto-drift on by default", "auto_drift")
 	_choice(gameplay, "Damage numbers", "damage_numbers", ["Off", "Big hits", "All"], 0)
 	_choice(gameplay, "Warden DPS tags", DpsTags.SETTING, ["Rests only", "Always", "Off"], 0)
@@ -81,7 +81,7 @@ func _ready() -> void:
 	_toggle(box, "Reduce flashes", "reduce_flashes")
 	_toggle(box, "Hit-stop on big hits", "hitstop")
 	_toggle(box, "High-contrast route line", RouteLine.SETTING, false)
-	_toggle(box, "Outline Deeply Blighted nightmares (not by colour alone)", "blight_outline", false)
+	_toggle(box, "Outline Deeply Blighted nightmares", "blight_outline", false, "Marks them by shape, not by color alone.")
 
 	var controls := _tab("Controls")
 	if TestGrove.is_available():  # Debug builds only; never in the demo or release
@@ -151,7 +151,9 @@ func _ready() -> void:
 		box.add_child(dev_note)
 
 	var keys_title := Label.new()
-	keys_title.text = "Keys (click, then press a key)"
+	keys_title.text = "Keys"
+	keys_title.tooltip_text = "Click a key, then press the new one."
+	keys_title.mouse_filter = Control.MOUSE_FILTER_PASS
 	controls.add_child(keys_title)
 	var grid := GridContainer.new()
 	grid.columns = 2
@@ -249,9 +251,10 @@ func _slider(box: VBoxContainer, text: String, key: String, min_value: float = 0
 	row.add_child(slider)
 	box.add_child(row)
 
-func _toggle(box: VBoxContainer, text: String, key: String, default: bool = false) -> void:
+func _toggle(box: VBoxContainer, text: String, key: String, default: bool = false, tip: String = "") -> void:
 	var check := CheckButton.new()
 	check.text = text
+	check.tooltip_text = tip
 	check.button_pressed = bool(_settings.get(key, default))
 	check.focus_mode = Control.FOCUS_NONE
 	check.toggled.connect(func(on: bool) -> void: _set_value(key, on))

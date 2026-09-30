@@ -269,7 +269,7 @@ func _build_combos() -> void:
 	var crowned := crowned_all.filter(_covered)
 	var crowned_found := crowned.filter(func(c: Dictionary) -> bool: return seen.has(String(c.id))).size()
 	var header := Label.new()
-	header.text = "Crowned Reactions  %d / %d" % [crowned_found, crowned.size()]
+	header.text = "Crowned Reactions · %d / %d" % [crowned_found, crowned.size()]
 	header.add_theme_font_size_override("font_size", 20)
 	header.add_theme_color_override("font_color", CROWN_COLOR)
 	_combos.add_child(header)

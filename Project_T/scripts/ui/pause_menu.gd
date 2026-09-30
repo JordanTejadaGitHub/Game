@@ -114,8 +114,8 @@ func _unhandled_input(event: InputEvent) -> void:
 func open() -> void:
 	_was_paused = game_speed.paused
 	game_speed.set_paused(true)
-	_save_button.text = "Save & Quit" if run_saver.can_save_now() \
-		else "Save & Quit (resumes from the last rest)"
+	_save_button.text = "Save and quit"
+	_save_button.tooltip_text = "" if run_saver.can_save_now() else "Resumes from the last rest."
 	_whispers_toggle.set_pressed_no_signal(HeartwoodMemory.get_settings().whispers)
 	_summary.text = get_run_summary()
 	visible = true
