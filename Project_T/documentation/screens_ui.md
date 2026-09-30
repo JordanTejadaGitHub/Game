@@ -426,6 +426,28 @@ the game**.
 - The "Dev: any card…" grid does **not** mark cards as seen (only real offers do).
 - Milestone: **"Dream of everything"** (every card seen, normal runs only); a Steam achievement.
 
+**Nightmares** (added 2026-09-30, user: "add a Codex of enemies, do the discover too"; this is the
+bestiary that `onboarding.md` had parked as the "Forest Journal"): a Codex section listing **every
+nightmare and boss**.
+- **Every entry starts as "???"** (a dark silhouette-less frame, no name or hints).
+- An entry is **discovered the first time that nightmare appears in one of your runs** (the same
+  `nightmares_seen` that drives the "New" tag and the intro card); bosses the first time you meet
+  them.
+- A discovered entry shows: the portrait on its moonlit disc, name, the one-line trait, **what it
+  does** (the intro lines), the hint, resist / weak / immune icons (damage-type badges and crossed
+  statuses), health, speed and leaves it takes (at drift 1 scaling, "grows with each drift"), its
+  first-appearance act, and **how many you've dispelled** in total. Bosses show their dossier
+  (abilities and when, escorts) and your record against them.
+- Grouped **by act** (in first-appearance order), bosses last in each act, with a counter
+  *"23 / 34 nightmares met"*. Newly met entries wear the gold "New" until you open them.
+- Milestone: **"Know every nightmare"** (all met, normal runs only).
+
+**Account knowledge always lives on the real profile** (2026-09-30: with Dev Grove on, a separate dev
+profile made every nightmare "New" again). What you've **met, discovered or seen** (nightmares,
+combos and Reactions, Kinships, Dream cards) is always read from and written to the **real
+profile**, even in Dev Grove, Test Grove and Unlock all families (dev finds keep their hidden dev flag
+for milestones). Only the Grove's unlocks, perks and loadout come from the Dev Grove profile.
+
 New combos (new Wardens, Reactions) are added to this table and the Codex automatically.
 
 **What the Codex covers** (2026-09-28, user): **the families you can get in a run**: the three
