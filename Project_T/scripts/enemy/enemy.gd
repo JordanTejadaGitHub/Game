@@ -23,6 +23,7 @@ signal rose_again(enemy: Node2D)
 # Wardens; the Remembering Oak calls up the echo of act `act`'s boss; the Barrow King shrugged.
 signal lapped(enemy: Node2D)
 signal lantern_requested(enemy: Node2D)
+signal bellow_requested(enemy: Node2D)  # Hollow Stag at half health: its bellow_spawn run from the start
 signal wither_requested(enemy: Node2D, count: int)
 signal echo_requested(enemy: Node2D, act: int)
 signal shrugged(enemy: Node2D)
@@ -151,6 +152,8 @@ var _trait_timer := 0.0
 var _trampled := 0
 var _startled := false
 var _charge_left := 0.0
+var straight_charging := false  # Hollow Stag: on a straight of straight_charge_tiles+ (see _update_straight_charge)
+var _bellowed := false
 var _leaping := false  # Sinking / underground / rising (Mire Hag, Gravecrawler): not walking
 # Rooted Nightmares (Dream card 122): a Held nightmare blocks its cell. Walkers re-route round it,
 # or wait at the cell before it (`waiting`; others then queue behind rather than stack in one cell).
@@ -288,23 +291,30 @@ func _process(delta: float) -> void:
 	if is_cleansed or _path_index >= _path.size():
 		return
 
-	if _spawner != null:
+	# Thin-family bookkeeping only while one of those cards is owned (the spawner checks once a frame).
+	var thin: bool = _spawner != null and _spawner.thin_cards
+	var was_caught := false
+	var was_held := false
+	if thin:
 		statuses.marked_bonus = _spawner.marked_bonus  # Bright Marks
-	var was_caught := statuses.is_caught()
-	if statuses.caught_time > _caught_left + 0.0001:
-		_lingered = false  # Caught again (a Dreamcatcher's tick): its next lapse lingers again
-	var was_held := statuses.is_held()
-	if was_held:
-		_held_by = statuses.source(EnemyStatuses.HELD)
-	_web_cooldown = maxf(_web_cooldown - delta, 0.0)
+		was_caught = statuses.is_caught()
+		if statuses.caught_time > _caught_left + 0.0001:
+			_lingered = false  # Caught again (a Dreamcatcher's tick): its next lapse lingers again
+		was_held = statuses.is_held()
+		if was_held:
+			_held_by = statuses.source(EnemyStatuses.HELD)
+		_web_cooldown = maxf(_web_cooldown - delta, 0.0)
+	elif statuses.marked_bonus != 0.0:
+		statuses.marked_bonus = 0.0
 	var spore_soothe := statuses.tick(delta)
-	if was_caught and not statuses.is_caught():
-		_on_caught_lapsed()
-	_caught_left = statuses.caught_time
-	if was_held and not statuses.is_held():
-		_on_hold_ended()
-		if is_cleansed:
-			return
+	if thin:
+		if was_caught and not statuses.is_caught():
+			_on_caught_lapsed()
+		_caught_left = statuses.caught_time
+		if was_held and not statuses.is_held():
+			_on_hold_ended()
+			if is_cleansed:
+				return
 	if spore_soothe > 0.0:
 		var dreams := get_tree().get_first_node_in_group(DreamState.GROUP) as DreamState
 		if dreams != null:
@@ -591,20 +601,15 @@ func get_move_speed() -> float:
 		base = minf(base, enemy_data.lost_speed)
 	if _charge_left > 0.0:
 		base *= enemy_data.charge_speed_multiplier
+	if straight_charging:
+		base *= enemy_data.straight_charge_multiplier
 	if enemy_data.hurt_below > 0.0 and health <= max_health * enemy_data.hurt_below:
 		base *= enemy_data.hurt_speed_multiplier  # Scarecrow: Stitched
 	base *= 1.0 + RESTLESS_SPEED * restless
-	var moved := base * statuses.get_speed_multiplier(_tangled_slow())
+	var moved := base * statuses.get_speed_multiplier()
 	if enemy_data.min_speed_share > 0.0:
 		moved = maxf(moved, base * enemy_data.min_speed_share)  # Barrow King: Iron Will
 	return moved
-
-# Tangled (Dream): carrying 2+ statuses slows it DreamState.TANGLED_SLOW more, like Soaked does (a
-# plain slow; Heavy Air doesn't boost it). The spawner checks the card once a frame.
-func _tangled_slow() -> float:
-	if _spawner == null or not _spawner.tangled or statuses.count() < 2:
-		return 0.0
-	return DreamState.TANGLED_SLOW
 
 # A Wraith whose Lantern Bearer was dispelled first loses the way and slows down.
 func set_lost() -> void:
@@ -641,6 +646,8 @@ func _update_trait(delta: float) -> void:
 func _on_cell_reached() -> void:
 	if enemy_data.ash_trail_time > 0.0:
 		_ash_cells[get_current_cell()] = enemy_data.ash_trail_time
+	if enemy_data.straight_charge_tiles > 0:
+		_update_straight_charge()
 	match enemy_data.trait_kind:
 		EnemyData.Trait.ROLLING:
 			_update_rolling()
@@ -660,6 +667,27 @@ func _update_rolling() -> void:
 	var next_same := _path_index < _path.size() and _path[_path_index] - _path[_path_index - 1] == step
 	rolling = _straight_steps >= enemy_data.roll_after_tiles and next_same
 	_speed_stale = true
+
+# Hollow Stag: charges along any straight of straight_charge_tiles+ path tiles (the whole straight,
+# counting the tiles behind and ahead of it), and stops at the turn.
+func _update_straight_charge() -> void:
+	var was := straight_charging
+	straight_charging = false
+	if _path_index >= 1 and _path_index < _path.size():
+		var here := _path_index - 1
+		var step := _path[here + 1] - _path[here]
+		var tiles := 2
+		var i := here + 1
+		while i + 1 < _path.size() and _path[i + 1] - _path[i] == step:
+			tiles += 1
+			i += 1
+		i = here
+		while i >= 1 and _path[i] - _path[i - 1] == step:
+			tiles += 1
+			i -= 1
+		straight_charging = tiles >= enemy_data.straight_charge_tiles
+	if straight_charging != was:
+		_speed_stale = true
 
 # Mire Hag: sinks into the mire and rises `leap_tiles` ahead along her path, then makes nightmares
 # near where she rose Damp.
@@ -1195,6 +1223,9 @@ func _check_health_thresholds() -> void:
 	while _echoes < enemy_data.echo_at.size() and health <= max_health * enemy_data.echo_at[_echoes]:
 		_echoes += 1
 		echo_requested.emit(self, _echoes)  # Remembering Oak: act 1's boss, then 2's, then 3's
+	if enemy_data.bellow_count > 0 and not _bellowed and health <= max_health / 2:
+		_bellowed = true
+		bellow_requested.emit(self)
 	if enemy_data.pack_regroup_at_half and not _regrouped and health <= max_health / 2:
 		_regrouped = true  # Huntsman: The Kill (the spawner calls the whole pack back)
 		brood_requested.emit(self)
@@ -1267,8 +1298,8 @@ func take_damage(amount: float, line: String = "", is_area: bool = false, is_cri
 		_cleanse()
 		return
 	_check_health_thresholds()
-	if (enemy_data.trait_kind == EnemyData.Trait.TRAMPLE or enemy_data.charges_at_half) and not _startled \
-			and health <= max_health / 2:
+	if (enemy_data.charges_at_half or (enemy_data.trait_kind == EnemyData.Trait.TRAMPLE
+			and enemy_data.straight_charge_tiles <= 0)) and not _startled and health <= max_health / 2:
 		_startled = true  # The Hollow Stag's antlers flare and it charges (the Night Mare bolts)
 		_charge_left = enemy_data.charge_time
 		_speed_stale = true
@@ -1489,6 +1520,9 @@ func set_path(points: PackedVector2Array) -> void:
 	_end_drag()  # A re-route mid-drag: it walks the new route from here
 	_path = points
 	_path_index = 0
+	if straight_charging:
+		straight_charging = false  # Until it next reaches a cell on the new route
+		_speed_stale = true
 
 # Drags the nightmare back along the way it came by `pixels` (pulls, Whirligig gusts, the Tidecaller's
 # wave): roots grab its feet, it slides back over a moment (ease-out, still facing forward), then walks

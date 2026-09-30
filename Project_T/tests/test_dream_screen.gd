@@ -71,7 +71,7 @@ func _run() -> void:
 	# Make the clearing unlock obvious: while clearing is locked, a clearing card leads with it.
 	dreams.clearing_open = false
 	dreams.stacks.clear()
-	var ground: UpgradeData = dreams.pool.filter(func(c: UpgradeData) -> bool: return c.id == "tend_the_forest").front()
+	var ground: UpgradeData = dreams.pool.filter(func(c: UpgradeData) -> bool: return c.id == "heartwoods_reach").front()
 	var clear_cards: Array[UpgradeData] = [ground, longest[0], longest[1]]
 	dreams.current_offer = clear_cards
 	screen._show_offer(clear_cards, 25)
@@ -84,7 +84,7 @@ func _run() -> void:
 	_check(viewport.encloses(clear_button.get_global_rect()), "…and still fits the screen (%s)" % clear_button.get_global_rect())
 	dreams.take(ground)
 	_check(dreams.opened_clearing(ground) and not dreams.opens_clearing(ground), "once taken it opened clearing; later clearing cards don't say so")
-	_check(dreams.to_save().get("clearing_opened_by") == "tend_the_forest", "…saved with the run")
+	_check(dreams.to_save().get("clearing_opened_by") == "heartwoods_reach", "…saved with the run")
 	print("longest cards: %s, %s" % [cards[1].display_name, cards[2].display_name])
 	print("dream screen test: %s" % ("PASS" if failures == 0 else "%d FAILED" % failures))
 	quit(failures)

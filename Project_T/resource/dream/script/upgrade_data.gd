@@ -81,6 +81,7 @@ enum Kind { UNLOCK_WARDEN, UNLOCK_EVOLUTION, STAT, RULE, ECONOMY }
 @export var min_warden_count: int = 0
 @export var count_line: String = ""  # Own `min_warden_count` Wardens of this line on the map (Chorus: 2 song; soft)
 @export var min_families: int = 0  # Own this many families (Mixed Grove: 2; hard)
+@export var extra_rules: Array[StringName] = []  # Rules this card also grants (pool trim merges: an absorbed card's rule id)
 # Reactions you can set off: pairs of statuses your owned Wardens apply (Quick Reactions: 2).
 @export var min_reaction_pairs: int = 0
 @export var requires_status: StringName = &""  # Own any Warden applying this status (e.g. Drowsy)

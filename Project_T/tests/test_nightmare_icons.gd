@@ -207,7 +207,7 @@ func _run() -> void:
 	var boss: Node2D = spawner.spawn_enemy(stag)
 	boss.set_process(false)
 	await process_frame
-	_check(banner.half_health_text().begins_with("At 50% health · Charge"), "the 50 percent marker names the ability (" + banner.half_health_text() + ")")
+	_check(banner.half_health_text().begins_with("At 50% health · Bellow"), "the 50 percent marker names the ability (" + banner.half_health_text() + ")")
 	banner._boss = spawner.spawn_enemy(load("res://resource/enemy/hollow_oak.tres"))
 	banner._boss.set_process(false)
 	var oak_lines: Dictionary = banner.marker_lines()

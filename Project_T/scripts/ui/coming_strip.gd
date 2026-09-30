@@ -47,7 +47,14 @@ func _ready() -> void:
 func _draw() -> void:
 	draw_style_box(_fog, Rect2(Vector2(-14, -8), size + Vector2(28, 12)))
 
-func _process(_delta: float) -> void:
+const REFRESH := 0.2  # Seconds (real time) between checks: the span, the boss scan and the stack (perf)
+var _clock := 0.0
+
+func _process(delta: float) -> void:
+	_clock -= delta / maxf(Engine.time_scale, 0.001)
+	if _clock > 0.0:
+		return
+	_clock = REFRESH
 	_stack()
 	var span := shown_span()
 	visible = span.y >= span.x
@@ -58,6 +65,7 @@ func _process(_delta: float) -> void:
 	if key != _built_for:
 		_built_for = key
 		_build(span)
+		_lit_for = -1  # New items: light them again
 	if compact:
 		_light_next()
 
@@ -168,8 +176,13 @@ func items() -> Array:
 	return all
 
 # Compact: the next drift's kinds lit, the rest dimmed.
+var _lit_for := -1  # The drift the lit set was built for (rebuilt only when a drift starts; perf)
+
 func _light_next() -> void:
 	var next := drift_director.drifts_started + 1
+	if next == _lit_for:
+		return
+	_lit_for = next
 	var lit := {}
 	if next <= drift_director.get_total_drifts():
 		for pair in kinds_in_range(drift_director, next, next):

@@ -62,11 +62,14 @@ const STARLIT_AIM_CRIT := 0.25
 const FULL_MOON_CRIT := 0.10
 const RECKLESS_CRIT := 0.30
 const RECKLESS_PENALTY := 0.15
-# Build directions: owning one makes its tag count as a family (2×); wide and narrow halve each other.
-const DIRECTION_TAGS: Array[String] = ["nurture", "wide", "narrow", "sprout"]
+# The 10 card builds (dream_design.md "Pool trim", layer 2): the only tags build weighting reads.
+# Tall and overgrowth halve each other.
+const ARCHETYPE_TAGS: Array[String] = ["tall", "overgrowth", "daring", "precision", "affliction", "maze",
+	"tending", "kinship", "swarm", "support"]
+const DIRECTION_TAGS: Array[String] = ["nurture", "wide", "narrow", "sprout"]  # Old directions: rules and Needs only
 const NOT_BUILD_TAGS: Array[String] = ["bittersweet", "opener"]  # Structural tags, never a build
 const SOFT_TAG_NEEDS: Array[String] = ["nurture"]  # requires_tag Needs that only weigh (x0.4), never gate
-const OPPOSITE_DIRECTION := {"wide": "narrow", "narrow": "wide"}
+const OPPOSITE_DIRECTION := {"tall": "overgrowth", "overgrowth": "tall"}
 const OPPOSITE_WEIGHT := 0.5
 const SOFT_NEED_WEIGHT := 0.4  # A card whose soft Needs are unmet (dream_design.md "Adapt, don't get handed")
 const STRAY_FROM_DRIFT := 10  # The Stray Dream: one slot per offer from this rest on (never at boss rests)
@@ -104,7 +107,7 @@ const ROOT_NETWORK_PER := [0.06, 0.08]  # Per Sprout in the network (II: diagona
 const ROOT_NETWORK_MAX := [0.60, 0.80]
 const FIRST_LIGHT_MULTIPLIER := 3.0
 const LAST_STAND_CELLS := 4  # From the Heartwood (Chebyshev)
-const LAST_STAND_BONUS := 0.50
+const LAST_STAND_BONUS := 0.35
 const OLD_GROWTH_STEPS := [[15, 0.40], [5, 0.20]]  # [drifts stood, damage], highest first
 const HUNTERS_PATIENCE_ELITE := 0.60
 const HUNTERS_PATIENCE_BOSS := 0.35
@@ -114,7 +117,7 @@ const BITTER_PER := 0.08
 const BITTER_MAX := 0.40
 const BITTER_TIME := 2.0
 # Generic Commons and Uncommons (142–156) and the second batch (157–168)
-const GATHERED_DEW_PER := 0.20
+const GATHERED_DEW_PER := 0.10  # Morning Dew (absorbed Gathered Dew)
 const CALL_OF_THE_WILD_CAP := 40
 const LASTING_DREAMS_PER := 2.0  # Seconds per stack
 const SHORT_ROOTS_RANGE := 2.0
@@ -125,7 +128,7 @@ const CROWDED_PER := [0.05, 0.07]
 const CROWDED_MAX := [0.50, 0.70]
 const LONE_HUNTER_BONUS := [0.45, 0.70]
 const LONE_HUNTER_CELLS := 2.0
-const SKYWARD_BONUS := 0.60
+const SKYWARD_BONUS := 0.40  # Hunter's Patience (absorbed Skyward Gaze)
 const SKYWARD_RANGE := 1.0  # Against flyers (Tower Code's targeting)
 const FRESH_GROWTH_BONUS := [0.50, 0.75]
 const UNDERDOG := [[3, 0.40], [4, 0.60]]  # [Wardens, damage] (II)
@@ -141,7 +144,6 @@ const SUDDEN_BLOOM_ATTACKS := 3
 const LAST_BREATH_SHARE := [0.10, 0.15]
 const LAST_BREATH_BOSS_CAP := 0.05
 const LAST_BREATH_CELLS := 1.0
-const TANGLED_SLOW := 0.20
 const WATCHFUL_REST_TIME := [5.0, 3.0]
 const GLIMMER_CHANCE := 0.30
 const GLIMMER_DREAMLIGHT_MAX := 3  # Per run, its own cap (not the Great Dreamcatcher's)
@@ -171,7 +173,16 @@ const FIRST_PICK_DREAMLIGHT := 1  # The default for first_pick_dreamlight
 var first_pick_dreamlight := FIRST_PICK_DREAMLIGHT
 # The power pass (dream_audit.md, 2026-09-30): old save ids -> the card that absorbed them ("" = cut).
 const MERGED_CARDS := {"cheap_hedges": "weathered_walls", "quick_bonds": "old_friends", "wide_bowl": "dew_trail",
-	"fair_trade": "", "still_waters": "", "echoing_steps": ""}
+	"fair_trade": "", "still_waters": "", "echoing_steps": "",
+	# Pool trim (dream_design.md "Pool trim", 2026-09-30)
+	"gathered_dew": "morning_dew", "fresh_soil": "reclaimed_earth", "tend_the_forest": "heartwoods_reach",
+	"mending_bark": "thick_bark", "heartwoods_fury": "last_stand", "warm_hands": "tender_care",
+	"court_of_the_eldest": "endless_rings", "sprout_surge": "seedfall", "close_kin": "extended_family",
+	"close_kin_ii": "extended_family", "skyward_gaze": "hunters_patience", "crush": "crowd_breaker", "crush_ii": "crowd_breaker",
+	"hurried_harvest": "call_of_the_wild", "borrowed_dew": "", "hungry_roots": "", "overgrown": "", "wild_growth": "",
+	"reckless_bloom": "", "overgrowth": "", "borrowed_memory": "", "remembered_care": "", "remembered_care_ii": "",
+	"seasoned_eye": "", "many_rings": "", "big_family": "", "sudden_bloom": "", "underdog": "", "underdog_ii": "",
+	"cliffside": "", "tangled": "", "patchwork": "", "hedgerow": "", "shelter_of_stones": "", "short_roots": ""}
 const BOSS_DREAMLIGHT := 4
 # "The Heartwood wakes" (run_design.md Dreamlight sources): every rest from drift 51 frees +1 more.
 const WAKE_DREAMLIGHT := 1
@@ -615,6 +626,9 @@ func is_monoculture() -> bool:
 # Extra crit chance for `tower` against `enemy` (null = no target): Still Target (Drowsy / Held),
 # Starlit Aim (Marked), Full Moon, Reckless Bloom.
 func get_crit_chance_bonus(_tower: Tower, enemy: Node2D = null) -> float:
+	_rule_map()
+	if not _any_crit_rule:
+		return 0.0  # The common case: no crit card owned (asked on every Warden hit)
 	var bonus := 0.0
 	bonus += GLINTING_DEW_PER * rule_stacks(&"glinting_dew") * rule_power(&"glinting_dew")  # Glinting Dew
 	if _tower != null and _tower.tower_data.line == "stone":  # Heavy Stones: the Pebbling line
@@ -1013,18 +1027,36 @@ func get_status_max_stacks(data: TowerData, status: StringName) -> int:
 	return base + extra
 
 func has_rule(rule: StringName) -> bool:
-	for card in _taken_cards():
-		if card.rule_id == rule:
-			return true
-	return false
+	return _rule_map().has(rule)
 
 # Stacks taken of the cards with rule `rule` (stacking rule cards: Hush, Sharp Beaks, Longer Flight).
 func rule_stacks(rule: StringName) -> int:
-	var total := 0
-	for card in _taken_cards():
-		if card.rule_id == rule:
-			total += stacks[card.id]
-	return total
+	return _rule_map().get(rule, 0)
+
+# The rules of the taken cards (rule_id and extra_rules: a merged card grants the absorbed rule) ->
+# total stacks, rebuilt only when _taken_cards() rebuilds. Also sets the per-hit early-out flags.
+const HIT_RULES: Array[StringName] = [&"last_stand", &"hunters_patience", &"bitter_hedges", &"lone_hunter",
+	&"rain_on_glass", &"skyward_gaze", &"deep_grip", &"head_start", &"deep_frost", &"falling_weight", &"murmur",
+	&"first_light"]  # Every rule on_hit_multiplier reads
+const CRIT_RULES: Array[StringName] = [&"glinting_dew", &"heavy_stones", &"seasoned_eye", &"full_moon",
+	&"reckless_bloom", &"still_target", &"starlit_aim"]  # Every rule get_crit_chance_bonus reads
+var _rules_of: Array = [null, {}]  # [the _taken_cards() array it was built from, {rule: stacks}]
+var _any_hit_rule := false
+var _any_crit_rule := false
+
+func _rule_map() -> Dictionary:
+	var taken := _taken_cards()
+	if is_same(_rules_of[0], taken):
+		return _rules_of[1]
+	var rules := {}
+	for card in taken:
+		rules[card.rule_id] = int(rules.get(card.rule_id, 0)) + stacks[card.id]
+		for extra in card.extra_rules:
+			rules[extra] = int(rules.get(extra, 0)) + stacks[card.id]
+	_rules_of = [taken, rules]
+	_any_hit_rule = HIT_RULES.any(func(r: StringName) -> bool: return rules.has(r))
+	_any_crit_rule = CRIT_RULES.any(func(r: StringName) -> bool: return rules.has(r))
+	return rules
 
 # 0 = the base rule, 1 = its Deepened (II) version (index into the rule-number constants).
 func rule_level(rule: StringName) -> int:
@@ -1070,8 +1102,6 @@ func get_clear_cost(data: ObstacleData, half_price: bool = false) -> int:
 func get_build_cost_at(data: TowerData, cell: Vector2) -> int:
 	if data.get_id() == "sprout" and run_state.sprout_charges > 0:
 		return 0  # The charge is used in _on_tower_built
-	if data.get_id() == "sprout" and has_rule(&"fresh_soil") and run_state.tended_cells.has(cell):
-		return FRESH_SOIL_COST  # Fresh Soil: a Sprout on a cleared cell
 	var cost := get_build_cost(data)
 	if run_state.fertile_cells.has(cell):
 		cost = roundi(cost * FERTILE_DISCOUNT)
@@ -1261,8 +1291,8 @@ func take(card: UpgradeData) -> void:
 		free_first_clears += card.free_first_clears_add
 	if card.free_clears_add > 0:
 		run_state.add_free_clears(card.free_clears_add)
-	if card.rule_id == &"court_of_the_eldest":
-		_crown_court_eldest()
+	if card.rule_id == &"court_of_the_eldest" or card.extra_rules.has(&"court_of_the_eldest"):
+		_crown_court_eldest()  # Endless Rings absorbed Court of the Eldest (pool trim)
 	if card.clears_obstacle != null:  # Burn Back: 2 Dew per tree, paid now (only offered when affordable)
 		run_state.spend_dew(BURN_BACK_PER_TREE * count_obstacles(card.clears_obstacle))
 		_clear_all(card.clears_obstacle)
@@ -1703,22 +1733,18 @@ func _roll_rarity(act: int, want_rare: bool, skip: Array[int] = []) -> int:
 			return i
 	return 0
 
-# The build tags your Dreams have steered you to (dream_design.md "Your Dreams steer your Dreams, not
-# your family picks"): every tag of the cards you've taken (a Legendary's archetype too). Owning a
-# family only makes its cards eligible (x1); a Kinship on the map no longer counts either.
+# The build tags your Dreams have steered you to (dream_design.md "Pool trim", layer 2): the archetype
+# tags of the cards you've taken (a Legendary's too). Families, statuses and the old direction tags stay
+# on the cards for rules and discovery but never boost. Tall and overgrowth push each other away.
 func _owned_tags() -> Array:
 	var owned := {}
+	var opposed := {}
 	for card in _taken_cards():
 		for tag in card.tags:
-			if not NOT_BUILD_TAGS.has(tag):
+			if ARCHETYPE_TAGS.has(tag):
 				owned[tag] = true
-	# Directions you've started: wide and narrow push each other away.
-	var opposed := {}
-	for tag in DIRECTION_TAGS:
-		if count_taken_with_tag(tag) > 0:
-			owned[tag] = true
-			if OPPOSITE_DIRECTION.has(tag):
-				opposed[OPPOSITE_DIRECTION[tag]] = true
+				if OPPOSITE_DIRECTION.has(tag):
+					opposed[OPPOSITE_DIRECTION[tag]] = true
 	return [owned, opposed]
 
 # Whether `card` belongs to the build (shares a tag the run has committed to).
@@ -1754,7 +1780,7 @@ func _weighted_pick(cards: Array, stray: bool = false) -> UpgradeData:
 			weight = tag_weight if in_build else 1.0
 			if not soft_needs_met(card):
 				weight *= SOFT_NEED_WEIGHT
-			for tag in opposed:  # e.g. a narrow card while you've gone wide
+			for tag in opposed:  # e.g. an overgrowth card while you've gone tall
 				if card.tags.has(tag) and not card.tags.has(OPPOSITE_DIRECTION[tag]):
 					weight *= OPPOSITE_WEIGHT
 		if clearing_locked and card.tags.has(OPENER_TAG):
@@ -2122,8 +2148,9 @@ func note_family_pick(offered: Array, chosen: String) -> void:
 # Once per hit, from Tower.hit (after get_hit_damage_multiplier): First Light (×3 on a Warden's first
 # hit on each nightmare), Last Stand, Hunter's Patience and Bitter Hedges. 1.0 without those cards.
 func on_hit_multiplier(tower: Tower, enemy: Node2D) -> float:
-	if enemy == null or not is_instance_valid(enemy):
-		return 1.0
+	_rule_map()
+	if not _any_hit_rule or enemy == null or not is_instance_valid(enemy):
+		return 1.0  # The common case: no per-hit card owned (Warden hits are the hot path)
 	var bonus := 0.0
 	if has_rule(&"last_stand") and is_near_heartwood(enemy):
 		bonus += LAST_STAND_BONUS * rule_power(&"last_stand")
@@ -2983,7 +3010,7 @@ func resonance_line(card: UpgradeData) -> String:
 func rule_power(rule: StringName) -> float:
 	var power := 1.0
 	for card in _taken_cards():
-		if card.rule_id == rule:
+		if card.rule_id == rule or card.extra_rules.has(rule):
 			power = maxf(power, resonance(card))
 	return power
 
@@ -3021,15 +3048,15 @@ const SPINNING_CORNERS_SPEED := 0.45  # Pinwheel / Windmill beside a bend
 const SPINNING_WARDENS: Array[String] = ["pinwheel", "windmill"]
 const FALLING_WEIGHT_BONUS := 0.45  # Pebbling line vs Held or Asleep
 const WARM_HEARTH_SPROUTS := 0.50  # Aura bonuses on Sprouts
-const FRESH_SOIL_BONUS := 0.30  # A Sprout on a cleared cell
+const FRESH_SOIL_BONUS := 0.20  # Reclaimed Earth (absorbed Fresh Soil)  # A Sprout on a cleared cell
 const FRESH_SOIL_COST := 7
 const QUICK_STEP_SPEED := 0.15  # Per stack, for QUICK_STEP_TIME after calling a drift early
 const QUICK_STEP_TIME := 10.0
 const HURRIED_HARVEST_CAP := 40  # +1 Dew per nightmare of an early-called drift, per drift
 const HURRIED_HARVEST_DEW := 2  # Per nightmare
 const FURY_CELLS := 4  # Heartwood's Fury: from the Heartwood (Chebyshev)
-const FURY_PER := 0.05  # Per missing leaf
-const FURY_MAX := 0.45
+const FURY_PER := 0.03  # Last Stand (absorbed Heartwood's Fury)  # Per missing leaf
+const FURY_MAX := 0.30
 const PATCHWORK_PER := 0.05  # Per family owned
 const PATCHWORK_MAX := 0.15
 const MIXED_GROVE_PER := 0.15  # Per neighbouring family that isn't the Warden's own

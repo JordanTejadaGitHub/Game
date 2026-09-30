@@ -287,7 +287,7 @@ func _test_new_cards(main: Node) -> void:
 	var deep_sleep := _card(dreams, "deep_sleep")
 	dreams.allow_bittersweet = false
 	# The Grove's Bittersweet Dreams node puts them in the pool
-	dreams.grove_cards.assign(["deep_sleep", "borrowed_dew", "wild_growth", "overgrown", "restless_dreams", "hungry_roots"])
+	dreams.grove_cards.assign(["deep_sleep", "restless_dreams"])
 	_check(not dreams.is_eligible(deep_sleep, 2), "bittersweet cards stay out until enabled")
 	dreams.allow_bittersweet = true
 	_check(dreams.is_eligible(deep_sleep, 2) and not dreams.is_eligible(deep_sleep, 1), "bittersweet cards: act 2+")
@@ -308,20 +308,6 @@ func _test_new_cards(main: Node) -> void:
 	run_state.leaves = 4
 	_check(not dreams.is_eligible(deep_sleep, 2), "Deep Sleep never offered when it would end the run")
 	run_state.leaves = 16
-	dreams.take(_card(dreams, "weathered_walls"))
-	dreams.take(_card(dreams, "hungry_roots"))
-	_check(placer.get_cost(thornwall) == 6, "Hungry Roots: Thornwalls cost 6, even with Weathered Walls")
-	dreams.take(_card(dreams, "borrowed_dew"))
-	_check(dreams.get_rest_bonus_add() == -15, "Borrowed Dew: rest bonus −15")
-	var bug: EnemyData = load("res://resource/enemy/leaf_bug.tres")
-	var before := director.get_health_scale(bug, 3)
-	dreams.take(_card(dreams, "wild_growth"))
-	_check(is_equal_approx(director.get_health_scale(bug, 3), before * 1.1), "Wild Growth: creatures +10% health")
-	dreams.take(_card(dreams, "overgrown"))
-	director.resting = false
-	_check(not seller.can_sell(), "Overgrown: no selling while creatures walk")
-	director.resting = true
-	_check(seller.can_sell(), "Overgrown: selling is fine at a rest")
 	dreams.take(_card(dreams, "restless_dreams"))
 	_check(not dreams.can_skip(), "Restless Dreams: no Let it pass")
 	var rare_runs := 0
@@ -345,12 +331,9 @@ func _test_card_effects(main: Node) -> void:
 	dreams.take(_card(dreams, "quickened_sap"))
 	dreams.take(_card(dreams, "quickened_sap"))
 	_check(is_equal_approx(dreams.get_attack_speed_multiplier(sprout), 1.3), "Quickened Sap stacks additively (×1.3)")
-	dreams.take(_card(dreams, "sprout_surge"))
-	_check(is_equal_approx(dreams.get_range_bonus(sprout), 0.5) and is_equal_approx(dreams.get_range_bonus(thornwall), 0.0),
-		"Sprout Surge only affects Sprouts")
 	var dew := run_state.dew
 	dreams.take(_card(dreams, "morning_dew"))
-	_check(run_state.dew == dew + 30 and dreams.get_dew_per_clear() == 8, "Morning Dew: +30 now, +8 per clear")
+	_check(run_state.dew == dew + 20 and dreams.get_dew_per_clear() == 0, "Morning Dew: +20 now, no Dew per clear")
 	run_state.max_leaves = 20  # The flow test's random pick may have been Deep Roots already
 	run_state.leaves = 15
 	dreams.take(_card(dreams, "deep_roots"))
@@ -371,17 +354,17 @@ func _test_clearing_cards(main: Node) -> void:
 	var sprout: TowerData = load("res://resource/tower/sprout.tres")
 	_reset_dreams(main)
 
-	# Clearing is locked until the opener (Tend the Forest); until then it weighs double and the other
+	# Clearing is locked until the opener (Heartwood's Reach, which absorbed Tend the Forest); until then it weighs double and the other
 	# clearing cards are never offered (dream_design.md "Clearing: one opener, the rest follow").
 	dreams.clearing_open = false
 	run_state.dew = 100
 	var locked_cell: Vector2 = map_generator.obstacles.keys()[0]
 	_check(clearer.is_locked() and not clearer.try_clear(locked_cell) and run_state.dew == 100,
 		"obstacles can't be cleared before the opener")
-	var opener := _card(dreams, "tend_the_forest")
-	for id in ["cleared_ground", "heartwoods_reach", "reclaimed_earth", "tended_forest", "wildwood_reclaimed"]:
+	var opener := _card(dreams, "heartwoods_reach")
+	for id in ["cleared_ground", "reclaimed_earth", "tended_forest", "wildwood_reclaimed"]:
 		_check(not dreams.can_offer(_card(dreams, id), 4), "%s isn't offered while clearing is locked" % id)
-	_check(dreams.can_offer(opener) and dreams.opens_clearing(opener), "Tend the Forest is, with the Unlocks clearing layout")
+	_check(dreams.can_offer(opener) and dreams.opens_clearing(opener), "Heartwood's Reach is, with the Unlocks clearing layout")
 	var picks := 0
 	var clearing_picks := 0
 	var cards_with_one: Array = [opener, _card(dreams, "quickened_sap")]
@@ -391,11 +374,10 @@ func _test_clearing_cards(main: Node) -> void:
 		picks += 1
 	_check(clearing_picks > picks * 0.6, "the opener weighs double while clearing is locked (%d / %d)" % [clearing_picks, picks])
 	dreams.take(opener)
-	_check(dreams.can_clear() and not clearer.is_locked(), "Tend the Forest unlocks clearing")
+	_check(dreams.can_clear() and not clearer.is_locked(), "Heartwood's Reach unlocks clearing")
 	_check(not dreams.opens_clearing(opener) and dreams.can_offer(_card(dreams, "cleared_ground")), "…then the follow-ups can come")
-	_check(clearer.try_clear(locked_cell) and run_state.dew == 100, "…its first clear is free")
-	var second: Vector2 = map_generator.obstacles.keys()[0]
-	_check(clearer.try_clear(second) and run_state.dew == 100 and dreams.free_first_clears == 0, "…and the second (%s, dew %d, left %d)" % [second, run_state.dew, dreams.free_first_clears])
+	_check(clearer.try_clear(locked_cell) and run_state.dew < 100 and dreams.free_first_clears == 0, "…and clearing always costs Dew (no free clears)")
+	run_state.add_free_clears(-run_state.free_clears)
 	var saved := dreams.to_save()
 	_reset_dreams(main)
 	_check(not dreams.can_clear(), "a new run starts locked")
@@ -645,13 +627,10 @@ func _test_dreamlight(main: Node) -> void:
 	# Cards and the save
 	dreams.take(_card(dreams, "sudden_insight"))
 	_check(dreams.dreamlight == 1, "Sudden Insight: +1 Dreamlight")
-	run_state.max_leaves = 20
-	dreams.take(_card(dreams, "borrowed_memory"))
-	_check(dreams.dreamlight == 3 and run_state.max_leaves == 18, "Borrowed Memory: +2, −2 max leaves")
 	var saved := dreams.to_save()
 	dreams.dreamlight = 0
 	dreams.load_save(saved)
-	_check(dreams.dreamlight == 3, "Dreamlight survives the save")
+	_check(dreams.dreamlight == 1, "Dreamlight survives the save")
 	run_state.max_leaves = 20
 	_reset_dreams(main)
 	dreams.dreamlight = 0
@@ -892,7 +871,7 @@ func _test_stray_dream(main: Node) -> void:
 		if card.unlocks != null:
 			family_lines[card.unlocks.line] = true
 	var build_tags := family_lines.duplicate()
-	for tag in DreamState.DIRECTION_TAGS:
+	for tag in DreamState.DIRECTION_TAGS + DreamState.ARCHETYPE_TAGS:
 		build_tags[tag] = true
 	for card in dreams.pool:
 		if card.rarity == UpgradeData.Rarity.LEGENDARY:
@@ -1076,7 +1055,7 @@ func _test_discovery(main: Node) -> void:
 		_check(dreams.discovery_met(quick), "…two found")
 		_check(not dreams.discovery_met(_card(dreams, "eye_of_the_tempest")), "a Woven card waits for its Crowned Reaction")
 	dreams.discovery_profile["seen"] = [String(Kinships.KINSHIPS.keys()[0])]
-	_check(dreams.discovery_met(_card(dreams, "close_kin")), "any Kinship lets the Kinship cards in")
+	_check(dreams.discovery_met(_card(dreams, "extended_family")), "any Kinship lets the Kinship cards in")
 	_check(dreams.discovery_met(_card(dreams, "dawnbreak")), "Legendaries are never discovery-gated")
 	_check(not dreams._key_met("chain:5", []), "a ×5 chain key waits…")
 	dreams.discovery_profile["best_chain"] = 5

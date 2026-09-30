@@ -129,12 +129,12 @@ static func for_tower(tower: Tower) -> Array[Dictionary]:
 	return result
 
 # The local sources as pips: [[kind, count, a source Warden], …] (Global Dreams and Omens aren't pips).
+# Cheap on purpose (the overlay draws every Warden's pips at rests): only the local sources, never the
+# Dream rows or Omens that for_tower also reads.
 static func pips(tower: Tower) -> Array:
 	var counts := {}
 	var order: Array = []
-	for entry in for_tower(tower):
-		if not LOCAL_KINDS.has(entry.kind):
-			continue
+	for entry in _local_entries(tower):
 		var key: String = entry.kind
 		if not counts.has(key):
 			counts[key] = [key, 0, entry.source]
@@ -143,6 +143,21 @@ static func pips(tower: Tower) -> Array:
 			counts[key][1] += 1
 			counts[key].append(entry.source)
 	return order.map(func(k: String) -> Array: return counts[k].slice(0, 3))
+
+# The local buff sources only: auras (Tower._aura_sources), the Kinship bond, Kindred / Whole Tree.
+static func _local_entries(tower: Tower) -> Array:
+	var result := []
+	for source in tower._aura_sources:
+		if is_instance_valid(source.tower) and (source.damage > 0.0 or source.speed > 0.0):
+			result.append({"kind": source.kind, "source": source.tower})
+	var kin := Kinships.find(tower)
+	if kin != null:
+		for pair in kin.get_pairs(tower):
+			result.append({"kind": "kinship", "source": pair.b if pair.a == tower else pair.a})
+		var family := kin.family_bonus(tower.tower_data.line)
+		if family > 0.0:
+			result.append({"kind": "whole_tree" if family >= Kinships.WHOLE_TREE_BONUS - 0.0001 else "kindred", "source": null})
+	return result
 
 static func _counted(row: Array, source: Node) -> bool:
 	return row.slice(3).has(source)

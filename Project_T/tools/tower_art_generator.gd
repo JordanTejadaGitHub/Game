@@ -296,9 +296,31 @@ func _make(tower_name: String, draw: Callable) -> Image:
 		var canvas := _layer()
 		draw.call(canvas, _idle_state(f))
 		sheet.blit_rect(canvas, Rect2i(0, 0, S, S), Vector2i(f * S, 0))
-	sheet = _detail_pass(sheet, Vector2i(S, S))
+	sheet = _warden_night(_detail_pass(sheet, Vector2i(S, S)))
 	sheet.save_png(OUT + tower_name + ".png")
 	return sheet
+
+# Warden Night (art_direction.md, 2026-09-30): idle sheets only step one shade darker inside their
+# own ramp (HeartwoodPalette.warden_night, after the palette pass), so the Wardens sit in the fog.
+# Attack sheets, projectiles and glows keep full warm light. Alpha is kept, so glow halos stay.
+const PALETTE := "res://tools/art/heartwood_palette.gd"
+
+func _warden_night(sheet: Image) -> Image:
+	if not ResourceLoader.exists(PALETTE):
+		return sheet
+	var palette: Script = load(PALETTE)
+	if not palette.has_method("warden_night"):
+		push_warning("HeartwoodPalette.warden_night missing: saving idle sheets without Warden Night")
+		return sheet
+	return palette.warden_night(sheet)
+
+# Everything else these generators save (projectiles, rank art, Ascended extras) is snapped to the
+# plain Heartwood 32 (art_direction.md): RGB to the nearest palette colour, alpha kept, so glows
+# stay translucent in palette colours. Left as drawn when the palette tool isn't present.
+func _snap32(img: Image) -> Image:
+	if ResourceLoader.exists(PALETTE):
+		(load(PALETTE) as Script).snap_image(img)
+	return img
 
 # The Heartwood 32 palette and the detailed-64 pass (tools/art/detail_pass.gd, art_direction.md
 # "Rendering style"): every Warden sheet goes through it before saving, frame by frame. Loaded by
@@ -732,7 +754,7 @@ func _make_projectile(proj_name: String) -> void:
 		if not proj_name in P_OWN_GLOW:
 			_soft_glow(canvas, Vector2(32, 32), Vector2(10.5, 9), f)  # every Warden shot glows warmly
 		sheet.blit_rect(canvas, Rect2i(P_AT, P_AT, P, P), Vector2i(f * P, 0))
-	sheet.save_png(OUT + "projectiles/" + proj_name + ".png")
+	_snap32(sheet).save_png(OUT + "projectiles/" + proj_name + ".png")
 	projectile_sheets.append(sheet)
 
 func _save_projectile_preview() -> void:
@@ -3957,17 +3979,17 @@ func _make_ranks() -> void:
 				else:
 					_rank_under(canvas, rank, f, masks)
 				sheet.blit_rect(canvas, Rect2i(0, 0, S, S), Vector2i(f * S, 0))
-			sheet.save_png(RANKS_OUT + "rank_%d_%s.png" % [rank, layer])
+			_snap32(sheet).save_png(RANKS_OUT + "rank_%d_%s.png" % [rank, layer])
 	var badges := Image.create_empty(BADGE_SIZE * RANK_TOP, BADGE_SIZE, false, Image.FORMAT_RGBA8)
 	for rank in range(1, RANK_TOP + 1):
 		badges.blit_rect(_rank_badge(rank), Rect2i(0, 0, BADGE_SIZE, BADGE_SIZE), Vector2i((rank - 1) * BADGE_SIZE, 0))
-	badges.save_png(RANKS_OUT + "rank_badges.png")
+	_snap32(badges).save_png(RANKS_OUT + "rank_badges.png")
 	var burst := Image.create_empty(S * RANKUP_FRAMES, S, false, Image.FORMAT_RGBA8)
 	for f in RANKUP_FRAMES:
 		var canvas := _layer()
 		_rank_up(canvas, f)
 		burst.blit_rect(canvas, Rect2i(0, 0, S, S), Vector2i(f * S, 0))
-	burst.save_png(RANKS_OUT + "rank_up.png")
+	_snap32(burst).save_png(RANKS_OUT + "rank_up.png")
 	_save_rank_preview(masks, badges)
 
 # The slab's top face, side faces and front rim (the top face's front edges), from the template.

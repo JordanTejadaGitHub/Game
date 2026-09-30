@@ -11,6 +11,6 @@ root = 1
 costs = Array[int]([120])
 order = 8
 icon = 2
-requires_all = Array[String](["reckless"])
+requires_all = Array[String](["sharpened"])
 legendary = true
 dream_cards = Array[String](["full_moon"])

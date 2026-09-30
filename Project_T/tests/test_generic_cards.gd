@@ -3,14 +3,14 @@ extends SceneTree
 # Headless test for the generic Dream cards 142–168 (dream_design.md "Generic Commons and
 # Uncommons" and "Generic cards, second batch"): the parts DreamState owns (stat and per-hit rules,
 # economy hooks in RunState / TowerSeller / DriftDirector, rest rules, Needs). Tower / Enemy / HUD
-# hooks (Sudden Bloom, Watchful Rest, Skyward range, Tangled, trample, glows) are tested there.
+# hooks (Watchful Rest, trample, glows) are tested there.
 #   godot --headless --path . --script res://tests/test_generic_cards.gd --fixed-fps 60
 
-const IDS := ["gathered_dew", "call_of_the_wild", "mending_bark", "lasting_dreams", "short_roots",
-	"forests_edge", "crowded_path", "crowded_path_ii", "lone_hunter", "lone_hunter_ii", "skyward_gaze",
-	"fresh_growth", "fresh_growth_ii", "underdog", "underdog_ii", "weathered_walls", "heavy_air",
-	"wandering_mind", "winding_path", "shelter_of_stones", "cliffside", "thick_bark", "thick_bark_ii",
-	"sudden_bloom", "last_breath", "last_breath_ii", "tangled", "watchful_rest", "watchful_rest_ii",
+const IDS := ["call_of_the_wild", "lasting_dreams",
+	"forests_edge", "crowded_path", "crowded_path_ii", "lone_hunter", "lone_hunter_ii",
+	"fresh_growth", "fresh_growth_ii", "weathered_walls", "heavy_air",
+	"wandering_mind", "winding_path", "thick_bark", "thick_bark_ii",
+	"last_breath", "last_breath_ii", "watchful_rest", "watchful_rest_ii",
 	"glimmering_hunt", "straightaway", "straightaway_ii", "heart_of_the_maze"]
 
 var failures := 0
@@ -55,24 +55,21 @@ func _test_pool() -> void:
 		var card := _card(id)
 		if card:
 			_check(card.in_start_pool == (id != "wandering_mind"), "%s: pool" % id)
-	_check(_card("skyward_gaze").min_act == 2 and _card("glimmering_hunt").min_act == 2, "Skyward Gaze / Glimmering Hunt from act 2")
+	_check(_card("glimmering_hunt").min_act == 2, "Glimmering Hunt from act 2")
 	_reset()
-	_check(not dreams.is_eligible(_card("heavy_air")) and dreams.is_eligible(_card("tangled")),
-		"Heavy Air needs a Warden that slows; Tangled any status (Spored)")
+	_check(not dreams.is_eligible(_card("heavy_air")), "Heavy Air needs a Warden that slows")
 	dreams.unlocked["dewdrop"] = true
 	_check(not dreams.is_eligible(_card("heavy_air")), "…Dewdrop isn't (Soaked no longer slows)")
 	dreams.unlocked["bellflower"] = true
 	_check(dreams.is_eligible(_card("heavy_air")), "…Bellflower (Drowsy) is")
-	_check(dreams.is_eligible(_card("short_roots")) == dreams.owns_range_at_most(2.0), "Short Roots needs a Warden with range 2 or less")
 
 func _test_economy() -> void:
 	_reset()
 	run_state._dispel_dew_carry = 0.0
 	var plain := run_state._scaled_dispel_dew(100)
-	dreams.take(_card("gathered_dew"))
-	dreams.take(_card("gathered_dew"))
+	dreams.take(_card("morning_dew"))
 	run_state._dispel_dew_carry = 0.0
-	_check(run_state._scaled_dispel_dew(100) == roundi(plain * 1.4), "Gathered Dew ×2: +40% dispel Dew (%d vs %d)" % [run_state._scaled_dispel_dew(100), plain])
+	_check(run_state._scaled_dispel_dew(100) == roundi(plain * 1.1), "Morning Dew (absorbs Gathered Dew): +10%% dispel Dew (%d vs %d)" % [run_state._scaled_dispel_dew(100), plain])
 	var seller = main.get_node("%TowerSeller")
 	var tower := _plant("sporeling", Vector2(100, 100))
 	tower.invested_dew = 100
@@ -81,7 +78,7 @@ func _test_economy() -> void:
 	dreams.take(_card("call_of_the_wild"))
 	_check(dreams.get_call_early_bonus(7, 10) == 14 and dreams.get_call_early_bonus(30, 10) == 20 and dreams.get_call_early_bonus(30, 25) == 40, "Call of the Wild: double, up to 40")
 	dreams.take(_card("winding_path"))
-	_check(dreams.get_rest_bonus_add() == dreams.path_length / 5, "Winding Path: +1 Dew per 5 path tiles (%d tiles)" % dreams.path_length)
+	_check(dreams.get_rest_bonus_add() == 10 + dreams.path_length / 5, "Winding Path: +1 Dew per 5 path tiles (%d tiles, + Morning Dew's 10)" % dreams.path_length)
 	var rerolls := dreams.rerolls_left
 	dreams.take(_card("wandering_mind"))
 	_check(dreams.rerolls_left == rerolls + 2, "Wandering Mind: +2 rerolls")
@@ -101,8 +98,7 @@ func _test_stat_rules() -> void:
 	_check(is_equal_approx(dreams.get_status_strength_multiplier(EnemyStatuses.DROWSY), 1.4)
 		and dreams.get_status_strength_multiplier(EnemyStatuses.DAMP) == 1.0
 		and dreams.get_status_strength_multiplier(EnemyStatuses.MARKED) == 1.0, "Heavy Air: slows 40% stronger, nothing else")
-	# Short Roots and Forest's Edge
-	dreams.take(_card("short_roots"))
+	# Forest's Edge
 	dreams.take(_card("forests_edge"))
 	var short: TowerData = null
 	var long: TowerData = null
@@ -112,10 +108,7 @@ func _test_stat_rules() -> void:
 		elif data.can_attack and data.attack_range > 2.0 and long == null:
 			long = data
 	var far := Vector2(100, 100)
-	if short:
-		_check(_row(short, far).active, "Short Roots: on for %s (range %.1f)" % [short.display_name, short.attack_range])
-	if long:
-		_check(not _row(long, far, "short_roots").active, "…off for range %.1f" % long.attack_range)
+	_check(not _row(long if long else short, far, "forests_edge").active, "Forest's Edge: off far from the start")
 	var start: Vector2 = map_generator.startPath
 	_check(_row(long if long else short, start + Vector2(2, 2), "forests_edge").active
 		and not _row(long if long else short, start + Vector2(4, 0), "forests_edge").active, "Forest's Edge: within 3 cells of the start")
@@ -130,19 +123,6 @@ func _test_stat_rules() -> void:
 	_check(dreams.is_fresh(tower) and _row(tower.tower_data, tower.cell, "fresh_growth", tower).active, "Fresh Growth: planted during a drift")
 	dreams._rest_rules(false)
 	_check(not dreams.is_fresh(tower) and is_equal_approx(base - dreams.get_soothe_multiplier(tower), 0.50), "…+50% until the next rest")
-	# Underdog: the least soothing attackers of the block
-	dreams.take(_card("underdog"))
-	var others: Array[Tower] = []
-	for i in 4:
-		others.append(_plant("sporeling", Vector2(102 + i * 3, 100)))
-	var log := DamageLog.instance
-	for i in others.size():
-		log._row(others[i])["block"] = 100.0 * (i + 1)
-	log._row(tower)["block"] = 1000.0
-	dreams._pick_underdogs()
-	_check(dreams.is_underdog(others[0]) and dreams.is_underdog(others[2]) and not dreams.is_underdog(others[3])
-		and not dreams.is_underdog(tower), "Underdog: the 3 that soothed least")
-	_check(_row(others[0].tower_data, others[0].cell, "underdog", others[0]).active, "…get their bonus")
 	_clear()
 
 func _test_hit_rules() -> void:
@@ -331,8 +311,10 @@ func _test_catalogue() -> void:
 	var soft := _card("soft_spores")
 	_check(not dreams.is_in_build(soft), "owning Sporeling doesn't make spore cards your build")
 	dreams.take(_card("lingering_spores"))
-	_check(dreams.is_in_build(soft) and is_equal_approx(dreams.tag_weight, 1.6), "a taken spore card does (×1.6)")
-	_check(DreamState.DIRECTION_TAGS.has("sprout"), "sprout is a direction tag")
+	_check(not dreams.is_in_build(soft), "…nor does a spore card (only archetype tags weigh, Pool trim)")
+	dreams.take(_card("glinting_dew"))
+	_check(dreams.is_in_build(_card("sharpened_light")) and not dreams.is_in_build(soft), "a taken precision card lifts the precision build")
+	_check(DreamState.ARCHETYPE_TAGS.size() == 10 and DreamState.OPPOSITE_DIRECTION.get("tall") == "overgrowth", "10 archetype tags; tall opposes overgrowth")
 	dreams.stacks.clear()
 	# Nurture follow-ups: needing a Nurture card is soft now; board Needs stay hard
 	var sunlit := _card("sunlit_rest")
@@ -343,20 +325,16 @@ func _test_catalogue() -> void:
 	_check(not dreams.soft_needs_met(sunlit), "…but it weighs ×0.4 until you have one")
 	ranked.free()
 	# The new cards' own numbers
-	var ids := ["elder_kin", "many_rings", "big_family", "mycelium", "fireflies_in_the_grass", "seasoned_eye", "hedgerow",
+	var ids := ["elder_kin", "mycelium", "fireflies_in_the_grass",
 		"spore_kin", "resonance", "thornheart", "ill_wind", "eddy", "spinning_corners", "falling_weight", "warm_hearth",
-		"fresh_soil", "quick_step", "hurried_harvest", "heartwoods_fury", "thin_bark", "patchwork", "mixed_grove", "live_wire"]
+		"quick_step", "thin_bark", "mixed_grove", "live_wire"]
 	for id in ids:
 		var card := _card(id)
 		if card:
 			_check(card.in_start_pool and card.rarity != UpgradeData.Rarity.LEGENDARY and not card.tags.is_empty(), "%s: Start pool, tagged" % id)
-	_check(_card("resonance").requires.size() == 2 and _card("thin_bark").is_bittersweet() and _card("thin_bark").min_act == 2
-		and DreamState.unlocks_clearing(_card("fresh_soil")), "Resonance crosses 2 families; Thin Bark bittersweet act 2+; Fresh Soil unlocks clearing")
-	# Seasoned Eye: +1% crit per rank
+	_check(_card("resonance").requires.size() == 2 and _card("thin_bark").is_bittersweet() and _card("thin_bark").min_act == 2, "Resonance crosses 2 families; Thin Bark bittersweet act 2+")
 	var eye := _plant("sporeling", Vector2(100, 104))
 	eye.rank = 5
-	dreams.take(_card("seasoned_eye"))
-	_check(is_equal_approx(dreams.get_crit_chance_bonus(eye), 0.15), "Seasoned Eye: rank V = +15% crit")
 	# Falling Weight: the Pebbling line vs Held
 	var pebble := _plant("pebbling", Vector2(104, 104))
 	var held := _spawn(Vector2(5, 5))
@@ -365,26 +343,16 @@ func _test_catalogue() -> void:
 	held.statuses.apply(EnemyStatuses.HELD, 1, 5.0)
 	_check(is_equal_approx(dreams.on_hit_multiplier(pebble, held), plain + 0.45), "Falling Weight: +45% vs Held")
 	held.free()
-	# Many Rings / Hedgerow / Patchwork / Mixed Grove rows
-	var sprout := _plant("sprout", Vector2(110, 110))
-	dreams.take(_card("many_rings"))
-	_check(is_equal_approx(_row(sprout.tower_data, sprout.cell, "many_rings", sprout).damage, 0.10), "Many Rings: 5 ranks = +10% on Sprouts")
-	dreams.take(_card("hedgerow"))
-	_check(not _row(sprout.tower_data, sprout.cell, "hedgerow", sprout).active, "Hedgerow: off with no wall touching")
-	_plant("thornwall", Vector2(111, 110))
-	dreams.bump_board()
-	_check(_row(sprout.tower_data, sprout.cell, "hedgerow", sprout).active, "…on with a Thornwall touching")
+	# Mixed Grove
 	dreams.unlocked["firefly_jar"] = true
-	dreams.take(_card("patchwork"))
 	var families := dreams.count_owned_families()
-	_check(is_equal_approx(_row(eye.tower_data, eye.cell, "patchwork", eye).damage, minf(0.05 * families, 0.15)), "Patchwork: +5%% per family (%d)" % families)
 	_check(dreams._meets_needs(_card("mixed_grove")) == (families >= 2), "Mixed Grove needs 2 families")
-	# Fresh Soil: a Sprout on a cleared cell costs 7 and deals +20%
-	dreams.take(_card("fresh_soil"))
+	# Reclaimed Earth (absorbs Fresh Soil): a Sprout on a cleared cell deals +20%
+	dreams.take(_card("reclaimed_earth"))
 	var sprout_data: TowerData = load("res://resource/tower/sprout.tres")
 	run_state.tended_cells.append(Vector2(3, 3))
-	_check(dreams.get_build_cost_at(sprout_data, Vector2(3, 3)) == 7, "Fresh Soil: 7 Dew on a cleared cell")
-	_check(_row(sprout_data, Vector2(3, 3), "fresh_soil").active and not _row(sprout_data, Vector2(4, 3), "fresh_soil").active, "…+20% there only")
+	_check(_has_row(sprout_data, Vector2(3, 3), "reclaimed_earth", 0.20) and not _has_row(sprout_data, Vector2(4, 3), "reclaimed_earth", 0.20),
+		"Reclaimed Earth: Sprouts +20% on a cleared cell only")
 	run_state.tended_cells.erase(Vector2(3, 3))
 	# Quick Step: 10 s of speed after a call early
 	dreams.take(_card("quick_step"))
@@ -453,11 +421,11 @@ func _test_eleven_cards() -> void:
 # Breaker are Tower Code's (area attacks).
 func _test_cards_227() -> void:
 	_reset()
-	for id in ["head_start", "second_wind", "scarred_bark", "desperate_bloom", "odd_one_out", "grand_tour", "crush", "crowd_breaker"]:
+	for id in ["head_start", "second_wind", "scarred_bark", "desperate_bloom", "odd_one_out", "grand_tour", "crowd_breaker"]:
 		var card := _card(id)
 		if card:
 			_check(card.in_start_pool and not card.tags.is_empty(), "%s: Start pool, tagged" % id)
-	for pair in [["head_start_ii", "head_start"], ["scarred_bark_ii", "scarred_bark"], ["odd_one_out_ii", "odd_one_out"], ["crush_ii", "crush"]]:
+	for pair in [["head_start_ii", "head_start"], ["scarred_bark_ii", "scarred_bark"], ["odd_one_out_ii", "odd_one_out"]]:
 		_check(_card(pair[0]).deepens == pair[1], "%s deepens %s" % pair)
 	_check(_card("desperate_bloom").min_act == 2 and _card("grand_tour").min_owned_statuses == 2, "Desperate Bloom act 2+; Grand Tour needs 2 statuses")
 	for id in ["crowded_path", "last_breath", "thinning_the_herd", "shattering_blow"]:
@@ -686,12 +654,11 @@ func _test_rest_rules() -> void:
 	_reset()
 	run_state.max_leaves = 15
 	run_state.leaves = 10
-	dreams.take(_card("mending_bark"))
+	dreams.take(_card("thick_bark"))
 	dreams._rest_rules(true)
-	_check(run_state.leaves == 11, "Mending Bark: a perfect block regrows a leaf")
+	_check(run_state.leaves == 11, "Thick Bark (absorbs Mending Bark): a perfect block regrows a leaf")
 	dreams._rest_rules(false)
 	_check(run_state.leaves == 11, "…not an imperfect one")
-	dreams.take(_card("thick_bark"))
 	_check(dreams.bark_charges == 1, "Thick Bark: ready")
 	run_state.lose_leaves(5)
 	_check(run_state.leaves == 11 and dreams.bark_charges == 0, "…saves the first leak whole (a boss's 5)")
@@ -705,15 +672,6 @@ func _test_rest_rules() -> void:
 func _test_map_rules() -> void:
 	_reset()
 	var sporeling: TowerData = load("res://resource/tower/sporeling.tres")
-	# Cliffside: touching the island's edge
-	dreams.take(_card("cliffside"))
-	_check(is_equal_approx(dreams.get_range_bonus_at(sporeling, Vector2(1, 6)), 1.0)
-		and dreams.get_range_bonus_at(sporeling, Vector2(5, 6)) == 0.0, "Cliffside: +1 range beside the edge")
-	# Shelter of Stones: touching an obstacle
-	dreams.take(_card("shelter_of_stones"))
-	var obstacle: Vector2 = map_generator.obstacles.keys()[0]
-	_check(_row(sporeling, obstacle + Vector2(1, 0), "shelter_of_stones").active
-		and not _row(sporeling, Vector2(100, 100), "shelter_of_stones").active, "Shelter of Stones: beside an obstacle")
 	# Straightaway: beside a straight stretch of 5+
 	dreams.take(_card("straightaway"))
 	var straight: Array = dreams._straight_cells.keys()
@@ -736,9 +694,9 @@ func _test_map_rules() -> void:
 	dreams.stacks.erase("heart_of_the_maze")
 	_check(dreams.get_heart_of_maze() == null and is_equal_approx(base_far - dreams.get_soothe_multiplier(far), 1.0),
 		"no Heart of the Maze card: no heart and no ×2")
-	# The other markers are card-gated too: no bark, no underdog, no fresh growth, no echo without their cards
+	# The other markers are card-gated too: no bark, no fresh growth, no echo without their cards
 	dreams._rest_rules(true)
-	_check(dreams.bark_charges == 0 and not dreams.is_underdog(far) and not dreams.is_fresh(far),
+	_check(dreams.bark_charges == 0 and not dreams.is_fresh(far),
 		"markers stay off without their cards")
 	_clear()
 
@@ -759,11 +717,16 @@ func _card(id: String) -> UpgradeData:
 	_check(false, "card %s exists" % id)
 	return null
 
-func _row(data: TowerData, cell: Vector2, id: String = "short_roots", tower: Tower = null) -> Dictionary:
+func _row(data: TowerData, cell: Vector2, id: String = "forests_edge", tower: Tower = null) -> Dictionary:
 	for row in dreams.get_card_effects(data, cell, tower):
 		if row.id == id or row.id == id + "_ii":
 			return row
 	return {"active": false, "damage": 0.0, "range": 0.0}
+
+# Any active row of card `id` with this damage (a merged card reports its absorbed rule as a second row).
+func _has_row(data: TowerData, cell: Vector2, id: String, damage: float) -> bool:
+	return dreams.get_card_effects(data, cell).any(func(row: Dictionary) -> bool:
+		return row.id == id and row.active and is_equal_approx(row.damage, damage))
 
 func _plant(id: String, cell: Vector2) -> Tower:
 	var tower: Tower = load("res://scenes/tower/tower.tscn").instantiate()

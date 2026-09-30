@@ -20,11 +20,11 @@ const BUDGET_MS := 16.6  # 60 fps
 const SCRIPT_SHARE := 0.6  # Scripts may use this much of the frame (rendering needs the rest)
 # The test passes at p95 <= PASS_MS at 1x: the ~10 ms target plus noise headroom (the user accepted ~10 ms,
 # 2026-09-29). The 10 ms target itself (and 3x) is revisited before release.
-const PASS_MS := 11.0
-const CARDS := ["root_network", "sprout_surge", "heart_of_the_maze", "solitude", "thinning_the_herd"]
+const PASS_MS := 14.0  # User decision 2026-09-30: 14 ms for now (main measured 12.4); 10 ms stays the release target
+const CARDS := ["root_network", "seedfall", "heart_of_the_maze", "solitude", "thinning_the_herd"]
 const MIX := ["sprout", "sprout", "sprout", "sporeling", "firefly_jar", "dewdrop", "pebbling", "acorn", "rootling"]
 const SYSTEMS := ["SoundHooks", "Kinships", "DreamMarks", "EnvironmentLighting", "EnvironmentAmbience", "HUD",
-	"CombatCallouts", "ResistPips", "NightmareInfo"]
+	"CombatCallouts", "ResistPips", "NightmareInfo", "BuffOverlay"]
 
 var failures := 0
 var main: Node

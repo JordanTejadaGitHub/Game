@@ -325,6 +325,7 @@ func _ready() -> void:
 
 func _apply_data() -> void:
 	clear_dream_cache()
+	_aura_support = SUPPORT_AURA_WARDENS.has(tower_data.get_id())
 	attack_data = tower_data
 	_damage_share = 1.0
 	if not target_chosen:
@@ -542,7 +543,7 @@ func _stats_fresh() -> bool:
 	if key != _stats_key or _anim_time > _stats_until:
 		_stats_key = key
 		_stats = {}
-		_stats_until = _anim_time + STAT_CACHE_TIME
+		_stats_until = _anim_time + STAT_CACHE_TIME * randf_range(0.75, 1.25)  # Staggered: ~200 Wardens never all recompute in one frame (a 60 ms hitch every 2 s)
 		return false
 	return true
 
@@ -659,7 +660,7 @@ func is_support() -> bool:
 	return is_aura_support() or is_catcher()
 
 func is_aura_support() -> bool:
-	return SUPPORT_AURA_WARDENS.has(tower_data.get_id())
+	return _aura_support  # Cached in _apply_data (asked in hot paths)
 
 # The Focus choices at rank III: Wide / Strong / Kindred for support Wardens, else Power / Swift / Reach / Deep.
 func focus_options() -> Array[Focus]:
@@ -837,14 +838,20 @@ func get_crit_chance(enemy: Node2D = null) -> float:
 
 # Crit chance before the 100% cap (Full Moon turns what's above 100% into crit damage).
 func get_raw_crit_chance(enemy: Node2D = null) -> float:
-	var chance := attack_data.crit_chance + _aura_crit
-	if _dream_state and _dream_state.has_method("get_rank_crit_bonus"):
-		chance += _dream_state.get_rank_crit_bonus() * get_effective_rank()  # The Old Ones
+	# Performance: the part that doesn't depend on the nightmare rides the stat cache (asked every hit).
+	var cached: Array = _stats.get(&"crit_base", []) if _stats_fresh() else []
+	var chance := -1.0
+	if not cached.is_empty() and cached[1] == attack_data.crit_chance:
+		chance = cached[0]
+	else:
+		chance = attack_data.crit_chance + _aura_crit + 0.1 * kin_share(&"hammer_and_anvil", "a")  # Hammer and Anvil: the sniper's eye
+		if _dream_state and _dream_state.has_method("get_rank_crit_bonus"):
+			chance += _dream_state.get_rank_crit_bonus() * get_effective_rank()  # The Old Ones
+		_stats[&"crit_base"] = [chance, attack_data.crit_chance]  # (the data's own chance too: tests change it in place)
 	if _dream_state and _dream_state.has_method("get_crit_chance_bonus"):
 		chance += _dream_state.get_crit_chance_bonus(self, enemy)  # Still Target, Starlit Aim, Full Moon…
 	if enemy != null and enemy.statuses.is_held():
 		chance += attack_data.crit_bonus_vs_held
-	chance += 0.1 * kin_share(&"hammer_and_anvil", "a")  # Hammer and Anvil: the sniper's eye
 	return chance
 
 # Range in cells for `data` including Dreams (shared with the build ghost).
@@ -858,6 +865,7 @@ static func get_range_for(data: TowerData, dream_state: DreamState) -> float:
 # Performance: other Wardens bucketed by TOWER_BUCKET px, rebuilt only when Wardens come, go or move
 # (towers_moved), so a neighbour scan looks at the ~9 buckets around it, not the whole map.
 const TOWER_BUCKET := 320.0  # 5 cells: past the furthest neighbour effect (the White Stag's crit aura, 4)
+const NEIGHBOUR_REACH := 5.0  # Cells: past every neighbour effect (auras 4 with Wide + Kind Canopy, a relay +1.5)
 static var _tower_buckets := {}
 static var _tower_key := []
 static var _towers_epoch := 0
@@ -990,6 +998,7 @@ static func _refresh_slot() -> bool:
 # _from fields name the biggest giver (SupportLog credit).
 var _aura_sources: Array = []  # [{"tower", "kind", "damage", "speed", "position", "kindred", "relayed"}, …]
 var _touch_lines := {}  # Lines of the Wardens on the 8 cells around (Mycelium, Fireflies in the Grass)
+var _aura_support := false  # is_aura_support(), set with the form
 var _big_family := false  # Big Family: a Sprout within BIG_FAMILY_CELLS of a Kinship pair
 
 func _near_kin_pair() -> bool:
@@ -1075,9 +1084,17 @@ func _refresh_neighbours() -> void:
 	var harmony := {}
 	var best: Tower = null
 	var best_dps := 0.0
+	_touch_lines = {}
+	var my_aura := tower_data.aura_damage_bonus > 0.0 or tower_data.aura_speed_bonus > 0.0
+	var my_reach := get_aura_reach() if my_aura else 0.0
 	for other in _towers_near():
 		var distance: float = other.global_position.distance_to(global_position) / MAP_GRID.cell_size.x
+		if distance > NEIGHBOUR_REACH:
+			continue  # Performance: the bucket window is ~15 cells wide; nothing reaches this far
 		var data: TowerData = other.tower_data
+		var touching := absf(other.cell.x - cell.x) <= 1 and absf(other.cell.y - cell.y) <= 1
+		if touching:
+			_touch_lines[data.line] = true  # Mycelium, Fireflies in the Grass
 		if data.aura_crit_bonus > 0.0 and distance <= data.attack_range:
 			_aura_crit = maxf(_aura_crit, data.aura_crit_bonus)  # Auras don't stack with themselves
 		if (data.aura_damage_bonus > 0.0 or data.aura_speed_bonus > 0.0) \
@@ -1087,10 +1104,10 @@ func _refresh_neighbours() -> void:
 			if not auras.has(kind):
 				auras[kind] = []
 			auras[kind].append([other, other.get_aura_bonus(false), other.get_aura_bonus(true), distance > other.get_aura_reach()])
-		if (tower_data.aura_damage_bonus > 0.0 or tower_data.aura_speed_bonus > 0.0) and distance <= get_aura_reach():
+		if my_aura and distance <= my_reach:
 			aura_count += 1
-		var growth: float = other.kin_share(&"old_growth", "b")
-		if growth > 0.0 and distance <= 1.5:  # Old Growth: the Dewcatcher kin's small aura (its own kind)
+		var growth: float = other.kin_share(&"old_growth", "b") if distance <= 1.5 else 0.0
+		if growth > 0.0:  # Old Growth: the Dewcatcher kin's small aura (its own kind)
 			if not auras.has("old_growth"):
 				auras["old_growth"] = []
 			auras["old_growth"].append([other, 0.0, 0.1 * growth, false])
@@ -1113,10 +1130,6 @@ func _refresh_neighbours() -> void:
 		for source in _aura_sources:
 			source.damage *= hearth
 			source.speed *= hearth
-	_touch_lines = {}
-	for other in _towers_near():
-		if absf(other.cell.x - cell.x) <= 1 and absf(other.cell.y - cell.y) <= 1:
-			_touch_lines[other.tower_data.line] = true
 	_big_family = tower_data.get_id() == "sprout" and _rule_stacks(&"big_family") > 0 and _near_kin_pair()
 	_aura_count = aura_count
 	_graft_status = _strongest_neighbour_status() if kin_share(&"true_graft", "b") > 0.0 else []
@@ -1210,14 +1223,31 @@ func _release() -> void:
 # Card hit multipliers (dream_design.md): Patient Aim (+15% per second it didn't fire, max +60%), Crush (area
 # hits on a crowded nightmare), Crowd Breaker (area attacks +5% per nightmare hit, max +45%), Shiny Things
 # (the Magpie's stolen buffs). Tag resonance on each.
+const HIT_CARD_RULES: Array[StringName] = [&"patient_aim", &"crush", &"crowd_breaker", &"shiny_things"]
+const CATALOGUE_HIT_RULES: Array[StringName] = [&"mycelium", &"fireflies_in_the_grass", &"resonance"]
+
+# True if any of `rules` is owned; cached with the shared rule cache under `key`.
+func _any_rule(key: StringName, rules: Array[StringName]) -> bool:
+	if _dream_state == null:
+		return false
+	_rule_entry(rules[0])  # Refreshes the shared cache if the run's rules changed
+	if not _rules.has(key):
+		var any := false
+		for rule in rules:
+			if _rule_stacks(rule) > 0:
+				any = true
+				break
+		_rules[key] = [1 if any else 0, 0]
+	return _rules[key][0] > 0
+
 var _aim_idle := 0.0
 var _last_release := 0.0
 var _area_count := 0  # Nightmares the current area attack hits (Crowd Breaker)
 var _shiny: Array[float] = []  # Shiny Things: _anim_time each stolen buff runs out
 
 func _card_hit_multiplier(enemy: Node2D, is_area: bool) -> float:
-	if _dream_state == null:
-		return 1.0
+	if _dream_state == null or (_shiny.is_empty() and not _any_rule(&"__hit_cards", HIT_CARD_RULES)):
+		return 1.0  # Performance: most runs own none of these (one cached check per hit)
 	var multiplier := 1.0
 	if _rule_stacks(&"patient_aim") > 0:
 		multiplier *= 1.0 + minf(DreamState.PATIENT_AIM_PER * _aim_idle, DreamState.PATIENT_AIM_MAX) * _rule_power(&"patient_aim")  # Slow snipers gain most
@@ -1407,7 +1437,7 @@ func hit(enemy: Node2D, soothe_multiplier: float = 1.0, is_area: bool = false, c
 	if not is_instance_valid(enemy) or enemy.is_cleansed:
 		return false
 	var is_crit := roll_crit(enemy) if crit == ROLL_CRIT else crit == CRIT
-	if _dream_state and _dream_state.has_method("called_shot") and _dream_state.called_shot(self, enemy):
+	if _has_rule(&"called_shot") and _dream_state.called_shot(self, enemy):
 		is_crit = true  # Called Shot: the first hit on a Marked nightmare (once per Warden per nightmare)
 	if attack_data.dew_mark:
 		enemy.bonus_dew = maxi(enemy.bonus_dew, 1)  # Before the hit, so a dispelling hit counts
@@ -1759,9 +1789,15 @@ func _apply_one_status(enemy: Node2D, status: StringName, stacks: int, soothe: f
 	var duration := attack_data.status_duration
 	var max_stacks := attack_data.status_max_stacks
 	if _dream_state:
-		potency *= _dream_state.get_status_strength_multiplier(status)
-		duration = _dream_state.get_status_duration(attack_data, status)
-		max_stacks = _dream_state.get_status_max_stacks(attack_data, status)
+		# Performance: the Dreams' status numbers ride the stat cache (they change with cards and the board).
+		var cached: Array = _stats.get(status, []) if _stats_fresh() else []
+		if cached.is_empty() or cached[3] != attack_data.status_duration or cached[4] != attack_data.status_max_stacks:
+			cached = [_dream_state.get_status_strength_multiplier(status), _dream_state.get_status_duration(attack_data, status),
+				_dream_state.get_status_max_stacks(attack_data, status), attack_data.status_duration, attack_data.status_max_stacks]
+			_stats[status] = cached
+		potency *= cached[0]
+		duration = cached[1]
+		max_stacks = cached[2]
 	var deep := get_status_focus_multiplier()  # Deep Focus: stronger and longer
 	if deep != 1.0:
 		if duration <= 0.0:
@@ -2745,15 +2781,26 @@ func _busiest_lines(from: Vector2, length: float, count: int) -> Array[Vector2]:
 # bumps the board version), a card added or dropped, a board change (dormant cards waking) and
 # unlock_everything, so a lookup never sees a stale set.
 static var _rules := {}  # rule -> [stacks (uncapped), level]
-static var _rules_key := []
+
+# Performance: one rule cache for every Warden (the rules are the run's); its key is compared field by
+# field (no array built per call: hits ask several rules each).
+static var _rules_owner := 0
+static var _rules_board := -1
+static var _rules_stacks := -1
+static var _rules_pool := -1
+static var _rules_all := false
 
 func _rule_entry(rule: StringName) -> Array:
 	if _dream_state == null or not _dream_state.has_method("rule_stacks"):
 		return [0, 0]
-	var key := [_dream_state.get_instance_id(), _dream_state.board_version, _dream_state.stacks.size(),
-		_dream_state.pool.size(), _dream_state.unlock_everything]
-	if key != _rules_key:
-		_rules_key = key
+	var ds := _dream_state
+	if _rules_owner != ds.get_instance_id() or _rules_board != ds.board_version or _rules_stacks != ds.stacks.size() \
+			or _rules_pool != ds.pool.size() or _rules_all != ds.unlock_everything:
+		_rules_owner = ds.get_instance_id()
+		_rules_board = ds.board_version
+		_rules_stacks = ds.stacks.size()
+		_rules_pool = ds.pool.size()
+		_rules_all = ds.unlock_everything
 		_rules = {}
 	var entry: Array = _rules.get(rule, [])
 	if entry.is_empty():
@@ -2824,6 +2871,8 @@ var _firefly_hits := 0
 func _catalogue_hit(enemy: Node2D) -> void:
 	if not is_instance_valid(enemy) or enemy.is_cleansed or _dream_state == null:
 		return
+	if not _any_rule(&"__catalogue_cards", CATALOGUE_HIT_RULES):
+		return
 	if tower_data.get_id() == "sprout":
 		if _touch_lines.has("spore") and _rule_stacks(&"mycelium") > 0:
 			_apply_one_status(enemy, EnemyStatuses.SPORED, roundi(DreamState.MYCELIUM_SPORED * _rule_power(&"mycelium")), get_damage())
@@ -2835,7 +2884,7 @@ func _catalogue_hit(enemy: Node2D) -> void:
 		_apply_one_status(enemy, EnemyStatuses.STATIC, roundi(DreamState.RESONANCE_CHARGED * _rule_power(&"resonance")), get_damage())
 
 func _resonance() -> bool:
-	return tower_data.get_id() == "chime_stone" and _dream_state != null and _dream_state.has_rule(&"resonance")
+	return _dream_state != null and tower_data.get_id() == "chime_stone" and _has_rule(&"resonance")
 
 # Eddy: `targets` plus the nightmares on the route tiles next to each (2 along where the path bends).
 func _eddy_targets(targets: Array, source: Node2D) -> Array:

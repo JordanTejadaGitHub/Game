@@ -6,9 +6,10 @@
 script = ExtResource("1_card")
 id = "thick_bark"
 display_name = "Thick Bark"
-description = "The first leak each {block} costs no leaves."
+description = "The first leak each {block} costs no leaves, and a {perfect_block} regrows 1 leaf."
 rarity = 0
 kind = 3
 tags = Array[String](["leaves"])
 max_stacks = 1
 rule_id = &"thick_bark"
+extra_rules = Array[StringName]([&"mending_bark"])

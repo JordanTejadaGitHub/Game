@@ -139,6 +139,11 @@ func rows(spot: Dictionary, ghost: Dictionary = {}) -> Array[Dictionary]:
 		var row := _row(spot, board, card)
 		if not row.is_empty():
 			out.append(row)
+		for rule in card.extra_rules:  # A merged card also reports the rule it absorbed (pool trim)
+			if REPORTERS.has(rule):
+				var extra: Dictionary = call(REPORTERS[rule], spot, board, card)
+				if not extra.is_empty():
+					out.append(_finish(extra, card))
 	return out
 
 func _row(spot: Dictionary, board: Board, card: UpgradeData) -> Dictionary:

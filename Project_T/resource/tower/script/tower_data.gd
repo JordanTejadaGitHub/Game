@@ -284,8 +284,14 @@ const ASCENDED_JSON := "res://assets/towers/ascended/ascended.json"  # 128×128 
 
 var _origin_from_json = null  # Cached attacks.json point (Vector2), or false when it has none
 
+var _id_cache := ""  # Performance: get_id is asked on every hit (card and support checks)
+
 func get_id() -> String:
-	return id if id != "" else resource_path.get_file().get_basename()
+	if id != "":
+		return id
+	if _id_cache == "":
+		_id_cache = resource_path.get_file().get_basename()
+	return _id_cache
 
 func get_attack_origin() -> Vector2:
 	if _origin_from_json == null:

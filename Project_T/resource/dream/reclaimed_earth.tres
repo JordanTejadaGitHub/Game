@@ -6,10 +6,11 @@
 script = ExtResource("1_card")
 id = "reclaimed_earth"
 display_name = "Reclaimed Earth"
-description = "Each clear refunds 40% of the Dew you paid for it and leaves the ground fertile: the first Warden planted there costs half."
+description = "Each clear refunds 40% of the Dew you paid for it and leaves the ground fertile: the first Warden planted there costs half. Sprouts on cleared cells deal 20% more damage."
 rarity = 0
 kind = 3
-tags = Array[String](["clearing", "economy"])
+tags = Array[String](["clearing", "economy", "tending"])
 max_stacks = 1
 min_obstacles = 8
 rule_id = &"reclaimed_earth"
+extra_rules = Array[StringName]([&"fresh_soil"])
