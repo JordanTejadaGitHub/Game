@@ -383,6 +383,11 @@ right; the family tree should include the portraits"):
   - **A lane the Grove hasn't planted shows only its branch**, as the Grove silhouette. Its final
     form and the line up to it are **hidden** (no Midsummer above an unplanted Sunpetal). The side
     panel for that silhouette says only "Plant it in the Memory Grove".
+  - **Grove forms readable too** (same day, user: *"locked Grove is still too dark"*: a pure black
+    silhouette): a Memory Grove form shows its portrait **desaturated at ~45% brightness with a cold
+    moonlight tint and a pale rim**, a small Grove leaf badge, and **its name** under it; the side
+    panel shows the same portrait, the name, one line on what it does, and "Plant it in the Memory
+    Grove". Readable, but clearly not yours yet (the dimmest node state; locked nodes stay at 75%).
   - **The Ascended crown is hidden** until it can be unlocked this run: its Grove node planted **and**
     drift 51 reached. Before that there is no node and no line to it. From drift 51 it appears
     (the "can unlock" state once a final form of the family is grown).
