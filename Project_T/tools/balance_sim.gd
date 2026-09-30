@@ -22,6 +22,7 @@ const NO_CELL := Vector2(-1, -1)
 const SPEND_EVERY := 2.0  # Game seconds between mid-drift spending checks
 const SAVE_REST_BONUSES := 6  # Saves up for a growth costing up to this many rest bonuses (finals with ranks: 300+)
 const MAX_FAMILIES := 2  # Mixed styles build their first two families deep
+const SPEND_DOWN_BEFORE := [25, 30]  # Rests before drifts 26 and 31: spend down to one rest bonus (grove10)
 const MIXED_SPROUTS := 0.4  # Mixed: the share of attackers kept as Sprouts
 const SAVER_DRIFTS := 5  # Saver: holds Dew at most this many drifts for a growth
 const APPROACH_EVERY := 0.25  # Game seconds between closest-approach samples
@@ -245,13 +246,19 @@ func _next_buy() -> String:
 	# carries) instead of spending every Dew on ranks; Narrow nurtures anyway.
 	var saving := _cheapest_growth()
 	var bonus := director.get_rest_bonus(director.get_block(maxi(director.drifts_started, 1)))
+	# Spender (balance_simulation.md grove10): the next growth when affordable (above), else more coverage,
+	# ranks only after that.
+	if save_mode == "spender" and _plant_attacker():
+		return "plant"
+	# Before the act break and the elite from drift 31, nobody sits on more than one rest bonus.
+	var spend_down := director.drifts_started in SPEND_DOWN_BEFORE and run_state.dew > bonus
 	if save_mode == "saver" and saving > 0:
 		# Saver: holds Dew for a growth (a branch, the first final) up to SAVER_DRIFTS drifts, leaks or not.
 		if _save_since < 0:
 			_save_since = director.drifts_started
 		if director.drifts_started - _save_since < SAVER_DRIFTS:
 			return ""
-	elif save_mode != "spender" and style != "narrow" and saving > 0 and not _leaked_last_drift() \
+	elif save_mode != "spender" and style != "narrow" and saving > 0 and not _leaked_last_drift() and not spend_down \
 			and (_saving_for_final or saving <= 3 * bonus):
 		return ""  # Finals come before ranks (any price); cheaper growths only while within 3 rest bonuses
 	if _nurture():
@@ -488,6 +495,13 @@ func _close_window(n: int) -> void:
 		run.max_asleep = maxf(run.max_asleep, row.asleep_share)
 	_new_window()
 
+# The Grove perks carried into the run ("dewdrop_pouch+early_light"), "" at Fresh.
+func _loadout() -> String:
+	var ids: Array[String] = []
+	for id in HeartwoodMemory.get_loadout(HeartwoodMemory.load_data()) if profile != "fresh" else []:
+		ids.append(str(id))
+	return "+".join(ids)
+
 func _finish() -> void:
 	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(out_dir))
 	var name := "%s_%s%s_seed%d" % [profile, style, ("_" + "+".join(start_cards)) if not start_cards.is_empty() else "", map_seed]
@@ -515,7 +529,7 @@ func _finish() -> void:
 		"max_top_warden": run.max_top_warden, "max_asleep": snappedf(run.max_asleep, 0.001), "cards": dreams.stacks.size(),
 		"sprout_cards_25": run.sprout_cards_25,
 		"sprouts_end": _attackers().filter(func(t) -> bool: return t.tower_data.get_id() == "sprout").size(), "cards_start": "+".join(start_cards),
-		"save": save_mode, "omens": omen_mode, "omens_faced": "+".join(omens_faced), "families_forced": "+".join(forced_families), "hand_drifts": hand_drifts,
+		"loadout": _loadout(), "save": save_mode, "omens": omen_mode, "omens_faced": "+".join(omens_faced), "families_forced": "+".join(forced_families), "hand_drifts": hand_drifts,
 		"close_calls": rows.filter(func(r) -> bool: return r.approach > CLOSE_CALL).size(),
 		"approach_max": snappedf(rows.reduce(func(m, r) -> float: return maxf(m, r.approach), 0.0), 0.01),
 		"seconds": snappedf(game_time, 1.0)}
