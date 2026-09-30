@@ -263,6 +263,8 @@ const DAMAGE_TYPE_ICONS := ["spore", "stone", "water", "light", "root", "song", 
 # Run resources for the HUD counters (ui_style.md): leaves, path length, Seeds. Dew and Dreamlight
 # reuse the cost icons (aliases "dew", "dreamlight").
 const RESOURCE_ICONS := ["leaves", "path_length", "seeds"]
+# Omens (run_design.md "How an Omen looks"): a moth before the moon, and the calm moon of Clear Skies.
+const OMEN_ICONS := ["omen", "clear_skies"]
 # Ids that share another icon's column.
 const ICON_ALIASES := {"always_damp": "damp", "burrows": "rises", "dew": "dew_cost", "dreamlight": "dreamlight_cost"}
 
@@ -271,7 +273,7 @@ var _ramps: Array = []  # [light, mid, dark]
 var _details: Array = []  # [Vector2i, Color], painted last
 
 func _make_icons() -> void:
-	var ids: Array = STATUS_ICONS + STAT_ICONS + NIGHTMARE_ICONS + DAMAGE_TYPE_ICONS + RESOURCE_ICONS
+	var ids: Array = STATUS_ICONS + STAT_ICONS + NIGHTMARE_ICONS + DAMAGE_TYPE_ICONS + RESOURCE_ICONS + OMEN_ICONS
 	var sheet := Image.create(ICON * ids.size(), ICON, false, Image.FORMAT_RGBA8)
 	var index := {}
 	for i in ids.size():
@@ -285,6 +287,7 @@ func _make_icons() -> void:
 	var data := {frame_size = ICON, icons = index, statuses = STATUS_ICONS, stats = STAT_ICONS,
 		nightmare = NIGHTMARE_ICONS + ["hidden", "always_damp", "burrows"], damage_type = DAMAGE_TYPE_ICONS,
 		resources = RESOURCE_ICONS + ["dew", "dreamlight"],
+		omen = OMEN_ICONS,
 		note = "One row of 16x16 icons; column = icons[id]. Readable at 12 px; for 24-32 px panels scale by whole numbers with nearest filtering."}
 	var file := FileAccess.open(OUT + "icons.json", FileAccess.WRITE)
 	file.store_string(JSON.stringify(data, "\t") + "\n")
@@ -1035,3 +1038,58 @@ func _ic_seeds() -> void:
 	_c_ell(Vector2(10.6, 2.8), Vector2(2.2, 1.3), leaf, -0.4)
 	_dt(6, 9, Color("#fff0d0"))
 	_dt(6, 10, Color("#fff0d0"))
+
+# Omens ------------------------------------------------------------------------------------------
+
+func _moon(c: Vector2, r: float) -> void:
+	var k := _rp(Palette.color("moonlight").to_html(false), Palette.color("mist").to_html(false), Palette.color("stone").to_html(false))
+	_c_disc(c, r, k)
+
+func _star(x: int, y: int) -> void:
+	# A four-point glint: a bright centre with dimmer arms.
+	_dt(x, y, Palette.color("heartlight"))
+	for d: Vector2i in [Vector2i.UP, Vector2i.DOWN, Vector2i.LEFT, Vector2i.RIGHT]:
+		_dt(x + d.x, y + d.y, Palette.color("glow"))
+
+# The moth, drawn by hand: "m" = silhouette (Void), "g" = Gold rim light, "l" = Glow.
+const MOTH := [
+	"................",
+	"................",
+	"................",
+	"................",
+	".....m....m.....",
+	"......m..m......",
+	"..g....mm....g..",
+	"..lm...mm...ml..",
+	"..mmm.mmmm.mmm..",
+	"...mmmmmmmmmm...",
+	"....mmmmmmmm....",
+	".....mmmmmm.....",
+	"....mmm..mmm....",
+	".....m.mm.m.....",
+	"................",
+	"................"]
+
+func _ic_omen() -> void:
+	# A dark moth crossing a pale full moon: a flat silhouette so it reads at 16 px, with Gold rim
+	# light only on the wingtips. The moon shows all round it.
+	_moon(Vector2(8, 8), 6.8)
+	_dt(4, 11, Palette.color("mist"))
+	_dt(11, 3, Palette.color("mist"))
+	var cols := {"m": Palette.color("void"), "g": Palette.color("gold"), "l": Palette.color("glow")}
+	for y in MOTH.size():
+		for x in MOTH[y].length():
+			var ch: String = MOTH[y][x]
+			if cols.has(ch):
+				_dt(x, y, cols[ch])
+
+func _ic_clear_skies() -> void:
+	# The same moon, alone and calm, with a few small stars.
+	_moon(Vector2(6.6, 9.4), 5.4)
+	_dt(5, 8, Palette.color("mist"))
+	_dt(8, 11, Palette.color("mist"))
+	_dt(4, 11, Palette.color("mist"))
+	_star(13, 3)
+	_star(14, 8)
+	_dt(9, 1, Palette.color("glow"))
+	_dt(2, 2, Palette.color("glow"))

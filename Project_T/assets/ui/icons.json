@@ -21,6 +21,7 @@
 		"burrows": 27,
 		"caught": 6,
 		"charge": 29,
+		"clear_skies": 61,
 		"crit_chance": 13,
 		"crit_damage": 14,
 		"damage": 10,
@@ -49,6 +50,7 @@
 		"light": 51,
 		"marked": 3,
 		"mender": 40,
+		"omen": 60,
 		"path_length": 58,
 		"plain": 56,
 		"potency": 15,
@@ -108,6 +110,10 @@
 		"burrows"
 	],
 	"note": "One row of 16x16 icons; column = icons[id]. Readable at 12 px; for 24-32 px panels scale by whole numbers with nearest filtering.",
+	"omen": [
+		"omen",
+		"clear_skies"
+	],
 	"resources": [
 		"leaves",
 		"path_length",
