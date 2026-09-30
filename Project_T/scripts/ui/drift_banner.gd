@@ -32,8 +32,21 @@ func _ready() -> void:
 		if node.get("enemy_data") != null and node.enemy_data.is_boss:
 			_boss = node)
 
-func _process(_delta: float) -> void:
-	queue_redraw()  # Cheap; the numbers change every frame during a boss drift
+# Redrawn when what it shows changes (3× perf pass: it was every frame), and at least every
+# SAFETY_REDRAW s for anything the key misses (pip states).
+const SAFETY_REDRAW := 0.5
+var _shown_key := ""
+var _since_redraw := 0.0
+
+func _process(delta: float) -> void:
+	_since_redraw += delta / maxf(Engine.time_scale, 0.001)
+	var boss_health := int(_boss.health) if is_instance_valid(_boss) and not _boss.is_cleansed else -1
+	var key := "%s|%d|%s|%d|%s" % [get_drift_text(), drift_director.drifts_started, drift_director.is_resting(), boss_health, size]
+	if key == _shown_key and _since_redraw < SAFETY_REDRAW:
+		return
+	_shown_key = key
+	_since_redraw = 0.0
+	queue_redraw()
 
 func _draw() -> void:
 	var font := UiStyle.display_font()  # Moonlit Thread (ui_style.md)
