@@ -284,8 +284,8 @@ light.
   - **The aura area is drawn as its real shape**, separate from the attack range: for Acorn and
     Elder Stump (`aura_radius` 1.5) a soft-cornered **3×3 square** of the 8 tiles around it, as a
     warm leaf-green fill with a gold edge. The attack range stays the thin circle, unfilled.
-  - **Only boosted Wardens are marked**: a small "+5%" leaf chip over each one (the live bonus,
-    stacked auras summed), and the lit tile under it. Wardens in the attack circle but outside the
+  - **Only boosted Wardens are marked**: a small "+5%" leaf chip over each one (what that Warden
+    really gets from this booster: auras don't stack, each Warden takes its strongest), and the lit tile under it. Wardens in the attack circle but outside the
     aura get nothing.
   - The world light (`EnvironmentLighting`) must not make unboosted Wardens look lit: warm light is
     ambient, never a "boosted" signal.
