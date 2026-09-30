@@ -21,7 +21,7 @@ func _run() -> void:
 	# --- Drift banner: next boss countdown ---
 	var banner = main.get_node("%DriftBanner")
 	var text: String = banner._next_boss_text(0)
-	_check(text.ends_with("in 25"), "banner counts down to the drift 25 boss (%s)" % text)
+	_check(text.ends_with("· drift 25 (in 25)"), "banner names the next boss with its drift and the countdown (%s)" % text)
 
 	# --- HUD layout (screens_ui.md "The run HUD", principles 5 and 6) ---
 	var dreams: DreamState = main.get_node("%DreamState")

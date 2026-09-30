@@ -195,7 +195,7 @@ static func meter_text(near: Node) -> String:
 	var change := DriftMeter.change_text(s.get("change"))
 	if change != "":
 		line += " · %s vs last block" % change
-	if float(s.get("needed_dps", 0.0)) > 0.0:
+	if DriftMeter.show_estimate() and float(s.get("needed_dps", 0.0)) > 0.0:  # Dev-only (playtest fixes 2026-09-30)
 		line += " · next drift needs ~%s" % DriftMeter.fmt(s.needed_dps)
 	var lines: Array[String] = [line]
 	var carrying: Array = s.get("carrying", [])

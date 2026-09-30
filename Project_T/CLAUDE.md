@@ -87,7 +87,7 @@ accessibility, Steam achievements (milestones map to them). Acts 3–4 and all f
   `MetaRun.all_families_active()`, `force_all_families` for tests): a normal run with every Warden-root
   Grove family + Dream card added by `MetaRun._apply_all_families()` (also in the demo). The profile's
   unlocks are untouched. `MetaRun.is_dev_run()` (this or Test Grove) = no Seeds banked, no records,
-  no whispers / nightmares seen / last first pick written.
+  no whispers / last first pick written (nightmares seen still are: "New" means never seen on this profile).
 - **DamageLog** (`%DamageLog`, `DamageLog.instance`): every soothe is reported by
   `Enemy.take_damage(..., source, tag)` as a `DamageLog.Event` (source Warden, kind hit/status/bolt,
   combos crit/weak/marked/fog/conducted/static with `combo_amount`). Pass the source everywhere:

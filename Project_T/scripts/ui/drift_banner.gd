@@ -11,6 +11,9 @@ const DIM_COLOR := Color(0.55, 0.6, 0.55)
 const BOSS_COLOR := UiStyle.BOSS  # Heartwood 32 (ui_style.md)
 const FONT_SIZE := 22
 const SMALL_FONT_SIZE := 16
+const BOSS_FONT_SIZE := 20  # The next-boss line: gold and larger than the rest
+const DISC_RADIUS := 15.0  # Its portrait's moon disc
+const BOSS_GAP := 22.0  # Between the pips and the boss
 
 @onready var drift_director: DriftDirector = %DriftDirector
 
@@ -45,31 +48,44 @@ func _draw() -> void:
 	if is_instance_valid(_boss) and not _boss.is_cleansed:
 		_draw_boss_bar(font, center_x)
 		return
-	# Pips: one per drift in the current block, filled once it has started.
+	# The second row, centred as a whole: the block's pips, then the next boss (portrait on its disc +
+	# "The Hollow Stag · drift 25 (in 20)" in gold, larger: screens_ui.md playtest fixes 2026-09-30).
 	var block := drift_director.get_block(shown)
 	var first := (block - 1) * drift_director.drifts_per_block + 1
-	var pips_width := drift_director.drifts_per_block * PIP_RADIUS * 3.0
-	var x := center_x - 120.0 - pips_width / 2.0
+	var step := PIP_RADIUS * 3.0
+	var pips_width := (drift_director.drifts_per_block - 1) * step + PIP_RADIUS * 2.0
+	var boss_text := _next_boss_text(latest)
+	var boss_data := _next_boss_data(latest)
+	var text_width := font.get_string_size(boss_text, HORIZONTAL_ALIGNMENT_LEFT, -1, BOSS_FONT_SIZE).x if boss_text != "" else 0.0
+	var boss_width := (BOSS_GAP + DISC_RADIUS * 2.0 + 8.0 + text_width) if boss_text != "" else 0.0
+	var row_y := 48.0
+	var x := center_x - (pips_width + boss_width) / 2.0 + PIP_RADIUS
 	for i in drift_director.drifts_per_block:
 		var number := first + i
-		var filled := number <= latest
-		var at := Vector2(x + i * PIP_RADIUS * 3.0, 40)
+		var at := Vector2(x + i * step, row_y)
 		var colour := BOSS_COLOR if drift_director.is_boss_drift(number) else TEXT_COLOR
-		if filled:
+		if number <= latest:  # Filled once it has started
 			draw_circle(at, PIP_RADIUS, colour)
 		else:
 			draw_arc(at, PIP_RADIUS, 0.0, TAU, 16, Color(colour, 0.7), 1.5)
-	var boss_text := _next_boss_text(latest)
-	if boss_text != "":
-		_draw_centered(font, boss_text, Vector2(center_x + 40.0, 45), SMALL_FONT_SIZE, BOSS_COLOR.lightened(0.2))
-		var width := font.get_string_size(boss_text, HORIZONTAL_ALIGNMENT_LEFT, -1, SMALL_FONT_SIZE).x
-		_countdown_rect = Rect2(center_x + 40.0 - width / 2.0 - 8.0, 28, width + 16.0, 26)
-		# Underlined: it opens the dossier.
-		draw_line(Vector2(center_x + 40.0 - width / 2.0, 49), Vector2(center_x + 40.0 + width / 2.0, 49),
-			Color(BOSS_COLOR, 0.6), 1.0)
-	else:
-		_countdown_rect = Rect2()
 	_markers = []
+	if boss_text == "":
+		_countdown_rect = Rect2()
+		return
+	var left := x - PIP_RADIUS + pips_width + BOSS_GAP
+	var disc := Vector2(left + DISC_RADIUS, row_y)
+	UiStyle.draw_moon_disc(self, disc, DISC_RADIUS, BOSS_COLOR)
+	if boss_data != null:
+		var side := DISC_RADIUS * 1.6
+		draw_texture_rect(NightmareCard.portrait(boss_data), Rect2(disc - Vector2(side, side) / 2.0, Vector2(side, side)),
+			false, boss_data.tint)
+	var text_x := disc.x + DISC_RADIUS + 8.0
+	var base := row_y + BOSS_FONT_SIZE * 0.35
+	draw_string_outline(font, Vector2(text_x, base), boss_text, HORIZONTAL_ALIGNMENT_LEFT, -1, BOSS_FONT_SIZE, 6, Color(0.05, 0.06, 0.08))
+	draw_string(font, Vector2(text_x, base), boss_text, HORIZONTAL_ALIGNMENT_LEFT, -1, BOSS_FONT_SIZE, UiStyle.GOLD)
+	# Underlined: it (and the portrait) opens the dossier.
+	draw_line(Vector2(text_x, base + 4), Vector2(text_x + text_width, base + 4), Color(UiStyle.GOLD, 0.5), 1.0)
+	_countdown_rect = Rect2(left - 4.0, row_y - DISC_RADIUS - 4.0, text_x + text_width - left + 8.0, DISC_RADIUS * 2.0 + 8.0)
 
 func _draw_boss_bar(font: Font, center_x: float) -> void:
 	var bar := Rect2(center_x - WIDTH / 2.0, 34, WIDTH, 10)
@@ -145,29 +161,41 @@ func show_marker_tip(line: String, at: Vector2) -> void:
 	_marker_tip.global_position = Vector2(clampf(global_position.x + at.x - _marker_tip.size.x / 2.0,
 		4, screen.x - _marker_tip.size.x - 4), global_position.y + 70)
 
-# "Drift 7 / 50", or "Ready · Drift 1" before the first drift.
+# "Drift 7" (no total: playtest fixes 2026-09-30), or "Ready · Drift 1" before the first drift.
 func get_drift_text() -> String:
 	var latest := drift_director.drifts_started
-	return "Ready · Drift 1" if latest == 0 else "Drift %d / %d" % [latest, drift_director.get_total_drifts()]
+	return "Ready · Drift 1" if latest == 0 else "Drift %d" % latest
 
-# "The Hollow Stag in 18" for the next boss drift after `latest`, or "".
+# "The Hollow Stag · drift 25 (in 18)" for the next boss drift after `latest`, or "".
 func _next_boss_text(latest: int) -> String:
+	var number := _next_boss_drift(latest)
+	if number == 0:
+		return ""
+	var data := _boss_of(number)
+	return "%s · drift %d (in %d)" % [data.display_name if data != null else "Boss", number, number - latest]
+
+func _next_boss_data(latest: int) -> EnemyData:
+	var number := _next_boss_drift(latest)
+	return _boss_of(number) if number > 0 else null
+
+func _next_boss_drift(latest: int) -> int:
 	for number in range(latest + 1, drift_director.get_total_drifts() + 1):
 		if drift_director.is_boss_drift(number):
-			var name := _boss_name(number)
-			return "%s in %d" % [name, number - latest] if name != "" else "Boss in %d" % (number - latest)
-	return ""
+			return number
+	return 0
 
-var _boss_names := {}  # Drift number -> boss display name (schedules are costly to rebuild each frame)
+var _bosses := {}  # Drift number -> its boss EnemyData (schedules are costly to rebuild each frame)
 
-func _boss_name(number: int) -> String:
-	if not _boss_names.has(number):
-		_boss_names[number] = ""
-		for group in drift_director.drifts[number - 1].groups:
+func _boss_of(number: int) -> EnemyData:
+	var boss_drift: DriftData = drift_director.drifts[number - 1]
+	if not _bosses.has(number) or _bosses[number][0] != boss_drift:
+		var found: EnemyData = null
+		for group in boss_drift.groups:
 			for entry in group.entries:
 				if entry.enemy != null and entry.enemy.is_boss:
-					_boss_names[number] = entry.enemy.display_name
-	return _boss_names[number]
+					found = entry.enemy
+		_bosses[number] = [boss_drift, found]
+	return _bosses[number][1]
 
 func _draw_centered(font: Font, text: String, at: Vector2, font_size: int, colour: Color) -> void:
 	var width := font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size).x

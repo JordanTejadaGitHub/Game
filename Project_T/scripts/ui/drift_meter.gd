@@ -3,12 +3,13 @@ class_name DriftMeter
 
 # Damage that means something (screens_ui.md, 7ffdf3d; Tower Code's WardenMeter has the numbers):
 # a collapsible drift meter on the right edge. The header always shows "Maze 1,240 DPS · ↑12% vs last
-# drift · needs ~980"; open, a row per Warden: portrait, DPS, share %, rating colour (gold carrying,
-# white fine, dim blue underused, with the reason in the tooltip), ↑↓ vs its last drift and a star
-# on the most improved. Sort by DPS or share. Clicking a row selects that Warden and glides the camera
-# to it. During a drift it shows the drift; at a rest, the block. Made by the HUD.
+# drift" ("· needs ~980" in dev runs only) and "Last drift 62 DPS"; open, a row per Warden: portrait,
+# DPS, % of damage, colour by rank on the board (top ~20% gold, bottom ~20% dim; carrying / underused
+# with the reason in the tooltip), ↑↓ vs its last drift and a star on the most improved. Sort by DPS or
+# % of damage. Clicking a row selects that Warden and glides the camera to it; the wheel over the panel
+# never reaches the map. During a drift it shows the drift; at a rest, the block. Made by the HUD.
 # The shared helpers below (colours, ↑↓, the benchmark sentence, select-and-glide) are also used by
-# the DPS tags, the DriftPanel's benchmark line and the rest report.
+# the DPS tags and the rest report.
 
 const WIDTH := 300.0
 const REFRESH := 0.5
@@ -30,6 +31,7 @@ var _rows := VBoxContainer.new()
 var _scroll := ScrollContainer.new()  # The rows scroll when they'd reach the DriftPanel
 var _body := VBoxContainer.new()
 var _clock := 0.0
+var _last := Label.new()  # "Last drift 62 DPS" (moved here from beside Start: playtest fixes 2026-09-30)
 
 # --- Shared helpers ------------------------------------------------------------------------------
 
@@ -37,6 +39,15 @@ static func rating_color(label: StringName) -> Color:
 	match label:
 		&"carrying": return CARRYING_COLOR
 		&"underused": return UNDERUSED_COLOR
+	return FINE_COLOR
+
+# Colour by rank on this board (playtest fixes 2026-09-30: the strongest reads strongest): the top
+# ~20% gold, the middle white, the bottom ~20% dim. `index` 0 = the highest DPS, of `count` shown.
+static func rank_color(index: int, count: int) -> Color:
+	if index < maxi(ceili(count * 0.2), 1):
+		return CARRYING_COLOR
+	if count >= 5 and index >= count - floori(count * 0.2):
+		return UNDERUSED_COLOR
 	return FINE_COLOR
 
 # Green at 110% and up, amber 90–110%, red under 90%.
@@ -109,6 +120,10 @@ func _ready() -> void:
 	_header.tooltip_text = "Drift meter: tap to open or close"
 	_header.pressed.connect(func() -> void: set_open(not _body.visible))
 	box.add_child(_header)
+	_last.name = "LastDrift"
+	UiStyle.number(_last, 15, UiStyle.INK_DIM)
+	_last.visible = false
+	box.add_child(_last)
 	_body.add_theme_constant_override("separation", 2)
 	box.add_child(_body)
 	_sort.text = "Sort: DPS"
@@ -120,7 +135,7 @@ func _ready() -> void:
 	_sort.add_theme_color_override("font_color", UiStyle.INK_DIM)
 	_sort.pressed.connect(func() -> void:
 		sort_by_share = not sort_by_share
-		_sort.text = "Sort: share" if sort_by_share else "Sort: DPS"
+		_sort.text = "Sort: % of damage" if sort_by_share else "Sort: DPS"
 		refresh())
 	_body.add_child(_sort)
 	_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
@@ -129,6 +144,16 @@ func _ready() -> void:
 	_body.add_child(_scroll)
 	_body.visible = bool(HeartwoodMemory.get_settings().get(OPEN_SETTING, false))
 	visible = false
+	# The wheel over the panel scrolls its rows, never the map: scroll events a child passes up
+	# (Buttons do by default) stop here instead of reaching the camera's zoom.
+	for control in [self, _scroll, _rows, _body, _header, _sort]:
+		control.mouse_force_pass_scroll_events = false
+	mouse_filter = Control.MOUSE_FILTER_STOP
+
+func _gui_input(event: InputEvent) -> void:
+	if (event is InputEventMouseButton and event.button_index in [MOUSE_BUTTON_WHEEL_UP, MOUSE_BUTTON_WHEEL_DOWN,
+			MOUSE_BUTTON_WHEEL_LEFT, MOUSE_BUTTON_WHEEL_RIGHT]) or event is InputEventPanGesture or event is InputEventMagnifyGesture:
+		accept_event()  # Never reaches the map
 
 func set_open(open: bool) -> void:
 	_body.visible = open
@@ -151,6 +176,7 @@ func _process(delta: float) -> void:
 	if _clock > 0.0:
 		return
 	_clock = REFRESH
+	refresh()
 
 # Never crowd the neighbours (UI Code measured it at 1280×800): the meter sits below the nightmare
 # info when that's showing, and its rows scroll instead of reaching the DriftPanel.
@@ -172,7 +198,8 @@ func _fit() -> void:
 	var room := maxf(bottom - top - used, 72.0)  # At least two rows
 	var wanted := _rows.get_combined_minimum_size().y
 	_scroll.custom_minimum_size = Vector2(0, minf(wanted, room))
-	refresh()
+	# No refresh here: rebuilding the rows every frame swallowed row clicks (the press and the release
+	# landed on different buttons). The rows refresh on the clock, in place.
 
 func refresh() -> void:
 	var m := meter()
@@ -184,38 +211,67 @@ func refresh() -> void:
 	var change := change_text(b.get("change"))
 	if change != "":
 		head += " · %s vs last drift" % change
-	if float(b.get("needed_dps", 0.0)) > 0.0:
+	var estimate := show_estimate() and float(b.get("needed_dps", 0.0)) > 0.0
+	if estimate:
 		head += " · needs ~%s" % fmt(b.needed_dps)
 	_header.text = ("▾ " if _body.visible else "▸ ") + head
-	_header.add_theme_color_override("font_color", ratio_color(float(b.get("ratio", 1.0))) if b.get("needed_dps", 0.0) > 0.0 else FINE_COLOR)
+	_header.add_theme_color_override("font_color", ratio_color(float(b.get("ratio", 1.0))) if estimate else FINE_COLOR)
+	# The drift just played: at a rest WardenMeter still holds it as "drift" ("last_drift" rolls when
+	# the next one starts); during a drift it's "last_drift".
+	var last := m.get_maze_dps("drift" if drift_director.is_resting() else "last_drift")
+	_last.visible = last > 0.0
+	_last.text = "Last drift %s DPS" % fmt(last)
 	if not _body.visible:
 		return
 	var rows: Array = m.get_meter_rows(period())
+	var by_dps := rows.duplicate()
+	by_dps.sort_custom(func(a: Dictionary, c: Dictionary) -> bool: return a.dps > c.dps)
+	for i in by_dps.size():
+		by_dps[i]["rank_color"] = rank_color(i, by_dps.size())
 	if sort_by_share:
 		rows.sort_custom(func(a: Dictionary, c: Dictionary) -> bool: return a.share > c.share)
-	for child in _rows.get_children():
-		_rows.remove_child(child)
-		child.queue_free()
-	for r in rows:
-		_rows.add_child(_row(r))
+	# Same Wardens in the same order: update the rows in place (a click mid-refresh still lands).
+	var same := _rows.get_child_count() == rows.size()
+	for i in rows.size() if same else 0:
+		if _rows.get_child(i).get_meta(&"tower", null) != rows[i].tower:
+			same = false
+			break
+	if not same:
+		for child in _rows.get_children():
+			_rows.remove_child(child)
+			child.queue_free()
+		for r in rows:
+			var button := Button.new()
+			_rows.add_child(button)
+			_setup_row(button, r)
+	for i in rows.size():
+		_fill_row(_rows.get_child(i), rows[i])
 
-func _row(r: Dictionary) -> Control:
-	var button := Button.new()
+# The needed-DPS estimate is a rough balance number: developers only (dev runs; playtest fixes 2026-09-30).
+static func show_estimate() -> bool:
+	return MetaRun.is_dev_run()
+
+func _setup_row(button: Button, r: Dictionary) -> void:
 	button.flat = true
 	button.focus_mode = Control.FOCUS_NONE
+	button.mouse_force_pass_scroll_events = false
 	button.custom_minimum_size = Vector2(0, 34)
 	button.name = "Row"
 	var tower = r.tower
+	button.set_meta(&"tower", tower)
 	if is_instance_valid(tower):
 		button.icon = WardenIcon.make(tower.tower_data)
 	button.expand_icon = false
 	button.add_theme_constant_override("icon_max_width", 26)
 	button.add_theme_font_override("font", UiStyle.body_font())  # Data rows: the body face reads best small
 	button.add_theme_font_size_override("font_size", 15)
+	button.alignment = HORIZONTAL_ALIGNMENT_LEFT
+	button.pressed.connect(func() -> void: focus_tower(tower))
+
+func _fill_row(button: Button, r: Dictionary) -> void:
 	var star := " ★" if r.get("most_improved", false) else ""
 	button.text = "%s  %s DPS · %d%%  %s%s" % [r.name, fmt(r.dps), roundi(float(r.share) * 100.0), change_text(r.get("change")), star]
-	button.alignment = HORIZONTAL_ALIGNMENT_LEFT
-	var colour := rating_color(r.get("rating_label", &""))
+	var colour: Color = r.get("rank_color", FINE_COLOR)  # By rank on the board, like the DPS tags
 	for state in ["font_color", "font_hover_color", "font_pressed_color"]:
 		button.add_theme_color_override(state, colour)
 	var tip := "%s: %s DPS, %d%% of the maze, %s Dew invested" % [r.name, fmt(r.dps), roundi(float(r.share) * 100.0), fmt(r.dew_invested)]
@@ -226,5 +282,3 @@ func _row(r: Dictionary) -> Control:
 	if r.get("most_improved", false):
 		tip += "\n★ Most improved"
 	button.tooltip_text = tip
-	button.pressed.connect(func() -> void: focus_tower(tower))
-	return button

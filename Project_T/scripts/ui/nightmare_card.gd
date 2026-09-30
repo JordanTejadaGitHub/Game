@@ -120,7 +120,9 @@ static func _crop(frame: Texture2D) -> Texture2D:
 
 # Never met in any run (profile nightmares_seen, which the nightmare info writes on first sight).
 static func is_new(data: EnemyData) -> bool:
-	return not HeartwoodMemory.load_data().get("nightmares_seen", []).has(kind_of(data))
+	var profile := HeartwoodMemory.load_data()  # Met on the field, or read on its intro card
+	var kind := kind_of(data)
+	return not profile.get("nightmares_seen", []).has(kind) and not profile.get(NightmareIntro.SEEN_KEY, []).has(kind)
 
 static func kind_of(data: EnemyData) -> String:
 	return data.resource_path.get_file().get_basename()

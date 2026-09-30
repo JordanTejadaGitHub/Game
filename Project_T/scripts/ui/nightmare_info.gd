@@ -174,8 +174,9 @@ func _on_spawned(node: Node) -> void:
 	if _saved.has(kind):
 		return
 	_saved[kind] = true
-	# Remember the kind for future runs (this run keeps showing "New" for it). Real game only.
-	if get_tree().current_scene != owner or MetaRun.is_dev_run():
+	# Remember the kind for future runs (this run keeps showing "New" for it). Real game only, dev runs
+	# included (screens_ui.md playtest fixes: "New" = never seen on this profile, dev runs alike).
+	if get_tree().current_scene != owner:
 		return
 	var memory := HeartwoodMemory.load_data()
 	var seen: Array = memory.get("nightmares_seen", [])

@@ -7,7 +7,7 @@ extends SceneTree
 # and the boss record.
 #   godot --headless --path . --script res://tests/test_nightmare_icons.gd --fixed-fps 60
 
-const PROFILE_PATH := "user://test_nightmare_icons_profile.json"
+var PROFILE_PATH := "user://test_nightmare_icons_profile_%d.json" % OS.get_process_id()  # Per process: parallel sessions share user://
 
 var failures := 0
 
@@ -21,6 +21,19 @@ func _run() -> void:
 	var stag: EnemyData = load("res://resource/enemy/old_stag.tres")
 	var wight: EnemyData = load("res://resource/enemy/barrow_wight.tres")
 	var queen: EnemyData = load("res://resource/enemy/moth_queen.tres")
+
+	# --- "New" = never seen on this profile (met on the field or read on its intro card) --------
+	var shade: EnemyData = load("res://resource/enemy/leaf_bug.tres")
+	_check(NightmareCard.is_new(shade), "a never-met Shade is New")
+	var profile := HeartwoodMemory.load_data()
+	profile[NightmareIntro.SEEN_KEY] = ["leaf_bug"]
+	HeartwoodMemory.save_data(profile)
+	_check(not NightmareCard.is_new(shade), "a Shade read on its intro card isn't New")
+	profile[NightmareIntro.SEEN_KEY] = []
+	profile["nightmares_seen"] = ["leaf_bug"]
+	HeartwoodMemory.save_data(profile)
+	_check(not NightmareCard.is_new(shade), "a Shade met before isn't New")
+	HeartwoodMemory.save_data(HeartwoodMemory.defaults())
 
 	# --- The icon rows --------------------------------------------------------------------------
 	var rows := NightmareIcons.make_rows(stag)
