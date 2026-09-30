@@ -3620,3 +3620,8 @@ func _tick_dream_cache(delta: float) -> void:
 # A nightmare was dispelled (FinalTwists: Hoarfrost's Shatter chain, the Great Dreamcatcher's Mended leaves).
 func _twist_dispelled(enemy: Node2D) -> void:
 	FinalTwists.dispelled(self, enemy)
+
+# Lullaby Bell's pulse went off (FinalTwists: Chorus notes).
+func _twist_released(_tower: Tower) -> void:
+	if _chorus > 0.0:
+		FinalTwists._chorus_notes(self)

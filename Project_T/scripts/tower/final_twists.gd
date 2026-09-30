@@ -73,6 +73,13 @@ static func update(tower: Tower, delta: float) -> void:
 				gale(tower)
 		&"momentum":
 			_update_momentum(tower, state, delta)
+			_update_momentum_art(tower, state.get(&"momentum", 0.0))
+		&"chorus":
+			if not state.has(&"notes") and tower.has_signal("attack_released"):
+				state[&"notes"] = true
+				tower.attack_released.connect(tower._twist_released)  # A note per voice on each pulse
+		&"double_graft":
+			_update_graft_glows(tower)
 		&"starlit_snare":
 			if _tick(state, &"snare", delta, SNARE_CHECK):
 				_starlit_snare(tower, state)
@@ -104,6 +111,18 @@ static func _hold(tower: Tower, enemy: Node2D, seconds: float) -> void:
 		return
 	tower.hold(enemy, seconds * (0.5 if enemy.enemy_data.is_boss else 1.0))  # The boss Held rule
 
+# Plays twist art `effect` at `at` (Tower Assets' sheets, effects.json kind "signature"); a ring in
+# `colour` if the sheet is missing. `seconds` > 0 keeps a looping sheet that long; `tint` modulates it.
+static func _fx(tower: Tower, effect: StringName, at: Vector2, colour: Color, seconds := 0.0, tint := Color.WHITE) -> Node2D:
+	var parent := Reactions._world(tower)
+	var node: Node2D = Fx.play(effect, at, parent, 1.0, true, seconds) if parent != null and not Fx.info(effect).is_empty() else null
+	if node == null:
+		_ring(tower, at, colour, 40.0, maxf(seconds, 0.5))
+		return null
+	node.z_index = Fx.Z
+	node.modulate = tint
+	return node
+
 static func _ring(tower: Tower, at: Vector2, colour: Color, grow := 60.0, life := 0.6) -> void:
 	var parent := Reactions._world(tower)
 	if parent == null or tower.get_tree() == null:
@@ -123,7 +142,7 @@ static func _dream_spores(tower: Tower) -> void:
 		for other in Tower.nightmares_near(tower.get_tree(), sleeper.global_position, reach):
 			if other != sleeper and not other.is_cleansed and other.global_position.distance_to(sleeper.global_position) <= reach:
 				tower._apply_one_status(other, EnemyStatuses.SPORED, 1, tower.get_damage())
-		_ring(tower, sleeper.global_position, Color(Palette.ORCHID, 0.5), 40.0, 0.8)
+		_fx(tower, &"dream_spore_puff", sleeper.global_position, Color(Palette.BLOSSOM, 0.5), DREAM_SPORES_EVERY)  # Pink on purpose
 
 # --- Boulderback: Landslide ---------------------------------------------------------------------------
 
@@ -145,8 +164,13 @@ static func landslide(tower: Tower, target: Node2D) -> void:
 	for enemy in tower.get_tree().get_nodes_in_group(Tower.ENEMY_GROUP):
 		if enemy != target and tiles.has(enemy.get_current_cell()):
 			tower.hit(enemy, LANDSLIDE_SHARE, true, Tower.NO_CRIT)
-	for tile in tiles:
-		_ring(tower, Tower.MAP_GRID.calculate_map_position(tile), Color(Palette.DEADWOOD, 0.7), 36.0, 0.5)
+	if not tiles.is_empty():  # A boulder rolls back along the path, dust trailing behind it
+		var from := target.global_position
+		var to := Tower.MAP_GRID.calculate_map_position(tiles[-1])
+		Fx.segment(&"landslide_dust", from, to, Reactions._world(tower), 0.5)
+		var boulder := _fx(tower, &"landslide_boulder", from, Color(Palette.DEADWOOD, 0.7), 0.5)
+		if boulder != null:
+			boulder.create_tween().tween_property(boulder, "global_position", to, 0.45)
 	state[&"landslides"] = int(state.get(&"landslides", 0)) + 1
 
 # --- Lullaby Bell: Chorus -----------------------------------------------------------------------------
@@ -184,7 +208,7 @@ static func dispelled(tower: Tower, enemy: Node2D) -> void:
 				if other != enemy and not other.is_cleansed and other.global_position.distance_to(enemy.global_position) <= reach:
 					other.set_meta(&"hoar_frozen", false)  # Shard-frozen: doesn't chain again
 					_hold(tower, other, SHATTER_FREEZE)
-			_ring(tower, enemy.global_position, Color(Palette.DEWLIGHT, 0.8), 70.0, 0.5)
+			_fx(tower, &"shatter_chain_burst", enemy.global_position, Color(Palette.DEWLIGHT, 0.8))
 		&"mended_leaves":
 			if not enemy.statuses.is_caught() or enemy.global_position.distance_to(tower.global_position) \
 					> tower.get_range_cells() * Tower.MAP_GRID.cell_size.x:
@@ -198,7 +222,7 @@ static func dispelled(tower: Tower, enemy: Node2D) -> void:
 				count -= MENDED_EVERY
 				mended += 1
 				run_state.regrow_leaves(1)  # The only leaf healing outside act breaks
-				_ring(tower, tower.global_position, Color(Palette.LEAF, 0.8), 50.0, 0.8)
+				_mended_leaf(tower)
 			run_state.set_meta(&"mended_count", count)
 			run_state.set_meta(&"mended_leaves", mended)
 
@@ -216,7 +240,8 @@ static func flare(tower: Tower) -> void:
 		tower._apply_one_status(enemy, EnemyStatuses.MARKED, 1, tower.get_damage())
 		if is_instance_valid(enemy) and enemy.statuses.has(EnemyStatuses.MARKED):
 			enemy.statuses.marked_extra = maxf(enemy.statuses.marked_extra, tower.attack_data.marked_bonus)
-	_ring(tower, tower.global_position, GOLD, 160.0, 0.9)
+	_fx(tower, &"beacon_flare", tower.global_position, GOLD)
+	_beacon_pulse(tower)
 
 # --- Midsummer: Solstice ------------------------------------------------------------------------------
 
@@ -228,7 +253,9 @@ static func solstice_tick(tower: Tower, share: float) -> void:
 		state[&"solstice"] = SOLSTICE_TIME
 		state[&"solstice_spent"] = true  # Once per full ramp: a new ramp (a new target) can fork again
 		if is_instance_valid(tower._beam_target):
-			_ring(tower, tower._beam_target.global_position, GOLD, 40.0, 0.4)
+			var fork := _fx(tower, &"solstice_fork", tower._beam_target.global_position, GOLD)
+			if fork != null:
+				fork.rotation = tower.global_position.angle_to_point(tower._beam_target.global_position)
 	if not at_full:
 		state[&"solstice_spent"] = false
 	if state.get(&"solstice", 0.0) <= 0.0:
@@ -256,7 +283,7 @@ static func _starlit_snare(tower: Tower, state: Dictionary) -> void:
 		if tower._lit_cells.has(at) and not snared.has(at):
 			snared[at] = true
 			_hold(tower, enemy, SNARE_HOLD)
-			_ring(tower, Tower.MAP_GRID.calculate_map_position(at), GOLD, 30.0, 0.4)
+			_fx(tower, &"starlit_snare", Tower.MAP_GRID.calculate_map_position(at), GOLD)
 
 # --- Grafted Elder: Double graft ----------------------------------------------------------------------
 
@@ -294,7 +321,7 @@ static func _start_swirl(tower: Tower) -> void:
 		return
 	tower._twist_state[&"swirl_at"] = Tower.MAP_GRID.calculate_map_position(best)
 	tower._twist_state[&"swirl_left"] = SWIRL_TIME
-	_ring(tower, tower._twist_state[&"swirl_at"], SWIRL_COLOR, 34.0, SWIRL_TIME)
+	_fx(tower, &"dark_swirl", tower._twist_state[&"swirl_at"], SWIRL_COLOR, SWIRL_TIME)
 
 static func _update_swirl(tower: Tower, state: Dictionary, delta: float) -> void:
 	var left: float = state.get(&"swirl_left", 0.0)
@@ -335,8 +362,12 @@ static func gale(tower: Tower) -> void:
 		for status in copied:
 			enemy.apply_status(status.id, maxi(ceili(status.stacks / 2.0), 1), status.time, status.potency, 0,
 				status.line, status.source)
-	for tile in tiles:
-		_ring(tower, Tower.MAP_GRID.calculate_map_position(tile), Color(Palette.MIST, 0.6), 30.0, 0.5)
+	if tiles.size() >= 2:  # A gust streaks along the lane
+		var streak := Fx.segment(&"gale_lane", Tower.MAP_GRID.calculate_map_position(tiles[-1]),
+			Tower.MAP_GRID.calculate_map_position(tiles[0]), Reactions._world(tower), 0.6)
+		if streak != null:
+			streak.modulate = Color(Palette.MIST, 0.8)
+			streak.z_index = Fx.Z
 	tower._twist_state[&"gales"] = int(tower._twist_state.get(&"gales", 0)) + 1
 
 # --- Windmill: Momentum -------------------------------------------------------------------------------
@@ -366,7 +397,7 @@ static func ring_stepped(tower: Tower, enemy: Node2D) -> void:
 	if steps >= DANCE_RINGS:
 		enemy.set_meta(&"danced", true)
 		_hold(tower, enemy, DANCE_HOLD)
-		_ring(tower, enemy.global_position, Color(Palette.BLOSSOM, 0.8), 30.0, DANCE_HOLD)
+		_fx(tower, &"fairy_dance", enemy.global_position, Color(Palette.BLOSSOM, 0.8), DANCE_HOLD)
 
 # --- Morning Fog: Veil --------------------------------------------------------------------------------
 
@@ -380,6 +411,7 @@ static func veil(cloud: Node2D, radius: float, seconds: float) -> void:
 		if enemy.global_position.distance_to(cloud.global_position) <= radius:
 			if enemy.is_hidden():
 				enemy.reveal_for(seconds)
+				_veil_glint(tower, enemy.global_position)
 			enemy.statuses.veil_time = maxf(enemy.statuses.veil_time, seconds)
 
 # --- Snugroot: Logjam ---------------------------------------------------------------------------------
@@ -388,4 +420,91 @@ static func veil(cloud: Node2D, radius: float, seconds: float) -> void:
 static func jammed(tower: Tower, enemy: Node2D) -> void:
 	if tower._twist == &"logjam" and is_instance_valid(enemy) and not enemy.is_flying():
 		enemy.set_meta(LOGJAM_META, true)
+		_logjam_knot(tower, enemy)
 
+
+# --- Visible moments (Tower Assets' art, cdd37305) ----------------------------------------------------
+
+# Great Dreamcatcher: a leaf drifts from the dreamcatcher to the Heartwood.
+static func _mended_leaf(tower: Tower) -> void:
+	var map = tower._dream_state.map_generator if tower._dream_state else null
+	var heart: Vector2 = Tower.MAP_GRID.calculate_map_position(map.endPath) if map else tower.global_position
+	var leaf := _fx(tower, &"mended_leaf", tower.global_position, Color(Palette.LEAF, 0.8), 1.2)
+	if leaf != null:
+		leaf.create_tween().tween_property(leaf, "global_position", heart, 1.1).set_trans(Tween.TRANS_SINE)
+
+# Beacon: one radial wash over the whole map, in fast (0.2 s) and out slow (1 s).
+static func _beacon_pulse(tower: Tower) -> void:
+	if Fx.reduce_flashes():
+		return
+	var centre := Vector2(Tower.MAP_GRID.size) * Tower.MAP_GRID.cell_size / 2.0
+	var wash: Node2D = Fx.play(&"beacon_pulse", centre, Reactions._world(tower),
+		maxf(Tower.MAP_GRID.size.x, Tower.MAP_GRID.size.y) * Tower.MAP_GRID.cell_size.x / 64.0, true, 1.2)
+	if wash == null:
+		return
+	wash.z_index = Fx.Z
+	wash.modulate.a = 0.0
+	var tween := wash.create_tween()
+	tween.tween_property(wash, "modulate:a", 1.0, 0.2)
+	tween.tween_property(wash, "modulate:a", 0.0, 1.0)
+
+# Snugroot: a root knot under the jammed nightmare for the Hold.
+static func _logjam_knot(tower: Tower, enemy: Node2D) -> void:
+	var seconds: float = enemy.statuses.time_left(EnemyStatuses.HELD)
+	var knot := _fx(tower, &"logjam_knot", enemy.global_position, Color(Palette.BARK, 0.7), maxf(seconds, 0.3))
+	if knot != null:
+		knot.z_index = -1  # On the ground, under the nightmare
+
+# Lullaby Bell: a note per voice around the pulse.
+static func _chorus_notes(tower: Tower) -> void:
+	var voices := roundi(tower._chorus / CHORUS_PER)
+	for i in voices:
+		var at := tower.global_position + Vector2.from_angle(TAU * i / maxf(voices, 1) - PI / 2.0) * 26.0
+		_fx(tower, &"chorus_note", at, Color(Palette.GLOW, 0.8), 0.6, Palette.GLOW)
+
+# Grafted Elder: two glows in its borrowed attacks' colours, breathing opposite each other.
+static func _update_graft_glows(tower: Tower) -> void:
+	var pair: Array = tower._twist_state.get(&"graft_pair", [])
+	for side in ["a", "b"]:
+		var glow := tower.get_node_or_null("GraftGlow_" + side) as Node2D
+		if pair.size() < 2:
+			if glow:
+				glow.queue_free()
+			continue
+		if glow == null:
+			glow = Fx.play(StringName("double_graft_glow_" + side), tower.global_position, tower, 1.0, false)
+			if glow == null:
+				continue
+			glow.name = "GraftGlow_" + side
+			glow.z_index = 1
+		var colour: Color = pair[0 if side == "a" else 1].projectile_color
+		glow.modulate = Color(colour, 0.9 if (tower.attack_data == pair[0]) == (side == "a") else 0.5)
+
+# Windmill: the sails spin up, three levels by the ramp (frames 0-3, 4-7, 8-11).
+static func _update_momentum_art(tower: Tower, momentum: float) -> void:
+	var art := tower.get_node_or_null("Momentum") as Sprite2D
+	if momentum <= 0.0:
+		if art:
+			art.visible = false
+		return
+	var entry := Fx.info(&"windmill_momentum")
+	if art == null:
+		var tex := Fx.texture(&"windmill_momentum")
+		if tex == null or entry.is_empty():
+			return
+		art = Sprite2D.new()
+		art.name = "Momentum"
+		art.texture = tex
+		art.hframes = int(entry.frames)
+		art.centered = false
+		art.offset = -Vector2(entry.anchor[0], entry.anchor[1])
+		art.position = Vector2(9, 19) - Vector2(32, 32) + tower.tower_data.sprite_offset  # The sail hub
+		art.modulate = Color(Palette.MOONLIGHT, 0.85)
+		tower.add_child(art)
+	art.visible = true
+	var level := 0 if momentum < MOMENTUM_MAX / 3.0 else (1 if momentum < MOMENTUM_MAX * 2.0 / 3.0 else 2)
+	art.frame = level * 4 + int(tower._anim_time * float(entry.get("fps", 12.0))) % 4
+
+# Morning Fog: a glint where the fog cancels something (a Lurker revealed).
+static func _veil_glint(tower: Tower, at: Vector2) -> void:
+	_fx(tower, &"veil_glint", at, Color(Palette.GLOW, 0.7), 0.0, Color(1, 1, 1, 0.7))  # multiplier
