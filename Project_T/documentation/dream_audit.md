@@ -245,3 +245,12 @@ User-approved shrink of the pool (the full rationale and the 10 card builds are 
   Seedfall), Close Kin (→ Extended Family), Skyward Gaze (→ Hunter's Patience), Crush (→ Crowd
   Breaker), Hurried Harvest (→ Call of the Wild).
 - Their Deepened versions go with them (a merged card's II follows the absorbing card's II).
+
+## Tender Care rework (2026-09-30)
+
+User: "Tender Care doesn't seem like it fits anymore." The trim merged Warm Hands into it (−15% nurture
+cost and +3% damage per rank, stacking) and it kept its `economy` tag, so it showed an economy
+tag-resonance bonus. **Now:** every Warden's first Nurture rank is free (rank I ≈ +14% DPS on every
+attacking Warden, the Common all-Wardens budget); **II:** rank I free and ranks II–V cost 20% less.
+Tags: `nurture` + archetype `tall` only (no `economy`, no stacking). As a Tall opener it also meets the
+"a ranked Warden" Needs of the Tall follow-ups.

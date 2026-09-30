@@ -687,7 +687,7 @@ Evolving is still the better buy when a Dream allows it; Nurture cards make rank
 
 | # | Card | Rarity | Effect | Tags | Needs | Pool |
 |---|---|---|---|---|---|---|
-| 60 | **Tender Care** | Common | Nurturing costs **15% less** Dew (stacks, max −45%) | nurture, economy | — (the opener gate was dropped in trim round 3) | Start |
+| 60 | **Tender Care** | Common | **Every Warden's first Nurture rank is free.** Deepened II: rank I free, and ranks II–V cost **20% less**. *(Reworked 2026-09-30, user: "doesn't seem like it fits anymore". The trim had glued Warm Hands' "+3% damage per rank" onto a −15% discount, and its `economy` tag showed an economy tag-resonance bonus on a Nurture card. Now one clear rule that makes starting to nurture worth it, sized to the Common all-Wardens budget: rank I ≈ +14% DPS)* | nurture (archetype `tall`) | — (an opener) | Start |
 | 61 | **Warm Hands** | Common | each Nurture rank gives **+3% more damage** (10% → 13%; stacks) | nurture | *opener:* 30+ Dew spent on ranks | Start |
 | 62 | **Kindred Roots** | Uncommon | each Warden gets **+2% damage per rank of the Wardens touching it** (max +30%) | nurture, maze | any `nurture` card (soft) + **1** ranked Warden (was 2; trim round 2) | Start |
 | 63 | **Remembered Care** | Uncommon | selling a ranked Warden leaves a **memory seed** on the HUD; the next Warden you plant starts at that rank (one seed at a time, the highest one is kept) | nurture | any `nurture` card + a rank III+ Warden | Start |
