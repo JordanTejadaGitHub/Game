@@ -222,6 +222,9 @@ func _unhandled_input(event: InputEvent) -> void:
 
 func _process(delta: float) -> void:
 	_tick_settling(delta)
+	if not _grow_preview.is_empty():
+		_grow_preview_time += delta
+		queue_redraw()  # The new form idles
 	if is_choosing_square():
 		if not is_instance_valid(_grow_choice.tower):
 			cancel_grow_choice()
@@ -252,6 +255,7 @@ func _draw() -> void:
 	if stroking:
 		_draw_stroke()
 		return
+	_draw_grow_preview()
 	_draw_kin_spots()
 	if not _catch_preview.is_empty():
 		_draw_catch_zone(_catch_preview.at, _catch_preview.radius)
@@ -333,6 +337,88 @@ func _draw() -> void:
 		draw_set_transform(to_local(tower.global_position))
 		WorldLabel.draw_tag(self, 0.0, -MAP_GRID.cell_size.y / 2.0 - 6.0,
 			("gains %s" if change[2] else "loses %s") % change[1], BONUS_ON if change[2] else BONUS_LOST)
+	draw_set_transform(Vector2.ZERO)
+
+# --- Growth preview (screens_ui.md "Preview the growth before growing") -------------------------------
+
+const PREVIEW_ALPHA := 0.6
+var _grow_preview: Array = []  # [[Tower, TowerData], …] while a Grow button is pointed at or its key held
+var _grow_preview_time := 0.0
+
+# Shows each Warden as the form it would grow into: its sprite in place (translucent, idling), the new
+# range bright over the current faint one (a sniper's dead zone too), and a 2×2 form's squares.
+func show_grow_preview(pairs: Array) -> void:
+	_grow_preview = pairs.filter(func(p: Array) -> bool: return is_instance_valid(p[0]) and p[1] != null)
+	_grow_preview_time = 0.0
+	queue_redraw()
+
+func hide_grow_preview() -> void:
+	if not _grow_preview.is_empty():
+		_grow_preview = []
+		queue_redraw()
+
+func is_previewing_growth() -> bool:
+	return not _grow_preview.is_empty()
+
+# The range `tower` would have as `into`: its own extras (ranks, Focus, cards) kept on the new base.
+func preview_range(tower: Tower, into: TowerData) -> float:
+	return tower.get_range_cells() - Tower.get_range_for(tower.tower_data, dream_state) + Tower.get_range_for(into, dream_state)
+
+# The stat changes for the Grow button's tooltip: "Damage 24 → 38 · Range 2.7 → 3.2 · adds Rooted".
+func grow_changes(tower: Tower, into: TowerData) -> String:
+	var from := tower.tower_data
+	var parts: Array[String] = []
+	if into.can_attack and from.can_attack and from.damage > 0:
+		var now := tower.get_damage()
+		var then := now * float(into.damage) / float(from.damage)
+		if roundi(then) != roundi(now):
+			parts.append("Damage %d → %d" % [roundi(now), roundi(then)])
+		var speed := tower.get_attacks_per_second()
+		var faster := speed * into.attacks_per_second / maxf(from.attacks_per_second, 0.01)
+		if absf(faster - speed) >= 0.05:
+			parts.append("Speed %.1f → %.1f/s" % [speed, faster])
+	elif into.can_attack and not from.can_attack:
+		parts.append("Damage %d" % into.damage)
+	var reach := preview_range(tower, into)
+	if into.can_attack and absf(reach - tower.get_range_cells()) >= 0.05:
+		parts.append("Range %.1f → %.1f" % [tower.get_range_cells(), reach])
+	if into.min_range > 0.0 and into.min_range != from.min_range:
+		parts.append("can't hit within %.1f" % into.min_range)
+	if into.applies_status != &"" and into.applies_status != from.applies_status:
+		parts.append("adds %s" % IconInfo.status_name(into.applies_status))
+	return " · ".join(parts)
+
+func _draw_grow_preview() -> void:
+	for pair in _grow_preview:
+		var tower: Tower = pair[0]
+		var into: TowerData = pair[1]
+		if not is_instance_valid(tower):
+			continue
+		if into.footprint > tower.get_footprint():
+			draw_set_transform(Vector2.ZERO)
+			for origin in get_grow_squares(tower, into):  # Where a 2×2 form could stand
+				var rect := Rect2(MAP_GRID.calculate_map_position(origin) - MAP_GRID.cell_size / 2.0, MAP_GRID.cell_size * 2.0)
+				draw_rect(rect.grow(-3), Color(VALID_TINT, 0.08))
+				draw_rect(rect.grow(-3), Color(VALID_TINT, 0.5), false, 2.0)
+			continue
+		draw_set_transform(to_local(tower.global_position))
+		if into.can_attack:
+			var now_px := Tower.range_to_pixels(tower.get_range_cells()) if tower.tower_data.can_attack else 0.0
+			var new_px := Tower.range_to_pixels(preview_range(tower, into))
+			if now_px > 0.0:
+				draw_arc(Vector2.ZERO, now_px, 0.0, TAU, 64, Color(VALID_TINT, 0.25), 1.5)
+			draw_circle(Vector2.ZERO, new_px, Color(BONUS_ON, 0.08))
+			draw_arc(Vector2.ZERO, new_px, 0.0, TAU, 64, Color(BONUS_ON, 0.85), 2.5)
+			if into.min_range > 0.0:  # The sniper's dead zone
+				var dead := Tower.range_to_pixels(into.min_range)
+				draw_circle(Vector2.ZERO, dead, Color(INVALID_TINT, 0.12))
+				draw_arc(Vector2.ZERO, dead, 0.0, TAU, 48, Color(INVALID_TINT, 0.6), 1.5)
+		if into.texture == null:
+			Tower.draw_placeholder(self, Color(1, 1, 1, PREVIEW_ALPHA))
+		else:
+			var frame := into.get_frame_rect(int(_grow_preview_time * into.animation_fps) % maxi(into.frame_count, 1))
+			draw_texture_rect_region(into.texture, Rect2(-frame.size / 2.0 + into.sprite_offset, frame.size), frame,
+				Color(1, 1, 1, PREVIEW_ALPHA))
 	draw_set_transform(Vector2.ZERO)
 
 # --- Catcher placement preview (screens_ui.md "Support and economy feedback") ---------------------

@@ -54,7 +54,13 @@ func _run() -> void:
 	var held := []
 	seller.grow_option_held.connect(func(i: int, on: bool) -> void: held.append([i, on]))
 	var second: TowerData = Tower.grow_options(dreams, spore.tower_data)[1][0]
-	_press(seller, KEY_E)
+	var changes := placer.grow_changes(spore, second)
+	_check(changes.contains("Damage") or changes.contains("Range") or changes.contains("adds"),
+		"the Grow tooltip lists the stat changes (%s)" % changes)
+	_key(seller, KEY_E, true)
+	_check(placer.is_previewing_growth(), "holding E previews the new form on the map")
+	_key(seller, KEY_E, false)
+	_check(not placer.is_previewing_growth(), "letting go ends the preview")
 	_check(held == [[1, true], [1, false]], "E held then let go: preview on, off (%s)" % [held])
 	_check(spore.tower_data == second, "and it grows into the 2nd option (%s)" % spore.tower_data.get_id())
 
@@ -72,11 +78,14 @@ func _run() -> void:
 	quit(failures)
 
 func _press(seller: TowerSeller, key: Key) -> void:
-	for down in [true, false]:
-		var event := InputEventKey.new()
-		event.physical_keycode = key
-		event.pressed = down
-		seller._unhandled_input(event)
+	_key(seller, key, true)
+	_key(seller, key, false)
+
+func _key(seller: TowerSeller, key: Key, down: bool) -> void:
+	var event := InputEventKey.new()
+	event.physical_keycode = key
+	event.pressed = down
+	seller._unhandled_input(event)
 
 func _build(placer: TowerPlacer, map, data: TowerData) -> Tower:
 	placer.tower_data = data

@@ -27,6 +27,8 @@ var _buttons := VBoxContainer.new()
 var _confirm_sell := false  # Selling a group during a drift asks once more
 var _confirm_unlock: TowerData = null  # Unlocking a form with Dreamlight asks once more
 var _confirm_eldest := false  # Rank VI would crown the Eldest: asks once more
+var _confirm_grow: TowerData = null  # Touch: the Grow tapped once (previewing; the next tap grows)
+var _touch := false
 
 func _ready() -> void:
 	custom_minimum_size = Vector2(300, 0)
@@ -78,6 +80,8 @@ func _ready() -> void:
 	if dream_state.has_signal("dreamlight_changed"):
 		dream_state.dreamlight_changed.connect(_refresh_unless_hovered.unbind(1))  # Shards arrive mid-drift
 	drift_director.build_phase_changed.connect(_refresh.unbind(1))
+	tower_seller.grow_option_held.connect(_on_grow_key_held)
+	tower_seller.selection_changed.connect(func(_t: Array[Tower]) -> void: _confirm_grow = null)
 
 # TowerSeller emits tower_selected right before selection_changed, which refreshes: refreshing here
 # too built the panel twice per selection change (slow with a big selection).
@@ -89,6 +93,7 @@ func _refresh() -> void:
 	for child in _groups.get_children():
 		child.queue_free()
 	tower_placer.hide_catch_preview()
+	tower_placer.hide_grow_preview()
 	if tower_seller.selection.size() > 1:
 		visible = true
 		_desc.visible = false
@@ -222,7 +227,19 @@ func _refresh() -> void:
 				# A 2×2 form needs three free cells (or Thornwalls) beside it, and the path must stay open.
 				button.text = "Grow into %s · Needs room: 3 free cells next to it (2×2)" % next.display_name
 				button.disabled = true
-			button.pressed.connect(_evolve.bind(next))
+			var changes := tower_placer.grow_changes(_tower, next)
+			if changes != "":
+				button.tooltip_text += "\n\n" + changes
+			if _confirm_grow == next:
+				button.text = "Grow · %d Dew" % cost  # Touch: the second tap grows
+			button.pressed.connect(func() -> void:
+				if _touch and _confirm_grow != next:
+					_confirm_grow = next  # First tap: preview + confirm
+					_refresh()
+					tower_placer.show_grow_preview([[_tower, next]])
+					return
+				_confirm_grow = null
+				_evolve(next))
 			if next.catch_share > 0.0 and not _tower.is_catcher():  # Where it would catch (placement preview)
 				var radius := next.catch_radius + DewCatch.WIDE_BOWL_STEP * mini(dream_state.rule_stacks(&"wide_bowl"), 3)
 				button.mouse_entered.connect(func() -> void: tower_placer.show_catch_preview(_tower.global_position, radius))
@@ -230,6 +247,7 @@ func _refresh() -> void:
 		else:
 			_locked_form_button(button, "Grow into %s" % next.display_name, next)
 		_grow_key(button, index)
+		_preview_on(button, [[_tower, next]])
 	if _tower.needs_focus():
 		# Rank III asks for a Focus, kept through growth and never changed.
 		var cost := _tower.get_nurture_cost()
@@ -380,6 +398,7 @@ func _refresh_group() -> void:
 			if not option[1]:
 				_locked_form_button(button, "%s → %s" % [_plural(data, towers.size()), next.display_name], next)
 				_grow_key(button, index)
+				_preview_on(button, towers.map(func(t: Tower) -> Array: return [t, next]))
 				continue
 			# Each pays Tower.get_grow_cost (ranked ones their rank difference too).
 			var plan: Array = tower_seller.plan_grow(towers, next)
@@ -398,6 +417,7 @@ func _refresh_group() -> void:
 				button.disabled = true
 			button.pressed.connect(func() -> void: tower_seller.grow_group(towers, next))
 			_grow_key(button, index)
+			_preview_on(button, towers.map(func(t: Tower) -> Array: return [t, next]))
 	# Nurture all: one rank each, as far as the Dew goes (nearest the Heartwood first).
 	var full: Array = tower_seller.full_nurture_cost(selection)
 	if full[0] > 0:
@@ -504,6 +524,34 @@ func _add_target_switch(towers: Array) -> void:
 # A form that isn't unlocked yet (run_design.md "Dreamlight"): "Grow into Stormcap · Unlock with 1
 # Dreamlight". With enough Dreamlight, the first click asks and the second unlocks it; otherwise it
 # opens the Remember screen on that form (which also says what else it needs).
+# Growth preview (screens_ui.md "Preview the growth before growing"): while the pointer is on a Grow
+# button, the Wardens show the new form (TowerPlacer.show_grow_preview).
+func _preview_on(button: Button, pairs: Array) -> void:
+	button.mouse_entered.connect(func() -> void: tower_placer.show_grow_preview(pairs))
+	button.mouse_exited.connect(func() -> void:
+		if _confirm_grow == null:
+			tower_placer.hide_grow_preview())
+
+# A grow key held: every selected Warden previews its option `index` (each kind its own); let go: gone.
+func _on_grow_key_held(index: int, held: bool) -> void:
+	if not held:
+		tower_placer.hide_grow_preview()
+		return
+	var pairs := []
+	for group in tower_seller.get_selection_groups():
+		var options := Tower.grow_options(dream_state, group[0])
+		if index < options.size():
+			for tower in group[1]:
+				pairs.append([tower, options[index][0]])
+	tower_placer.show_grow_preview(pairs)
+
+# Touch (platforms.md): the last input was a touch, so Grow asks with a first tap.
+func _input(event: InputEvent) -> void:
+	if event is InputEventScreenTouch:
+		_touch = true
+	elif event is InputEventMouseMotion and event.device != InputEvent.DEVICE_ID_EMULATION:
+		_touch = false
+
 # Q / E / Z: the Grow button's key badge, like Sell (X) and Nurture (R).
 func _grow_key(button: Button, index: int) -> void:
 	if index >= TowerSeller.GROW_OPTION_ACTIONS.size():
