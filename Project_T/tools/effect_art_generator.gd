@@ -37,6 +37,7 @@ func _init() -> void:
 	_clouds()
 	_support()
 	_pull_drag()
+	_final_signatures()
 	var file := FileAccess.open(OUT + "effects.json", FileAccess.WRITE)
 	file.store_string(JSON.stringify({effects = index}, "\t") + "\n")
 	_save_preview()
@@ -2102,6 +2103,343 @@ func _path_furrow(img: Image, _f: int) -> void:
 		for y in range(7, 10):
 			if img.get_pixel(x, y).a == 0.0:
 				img.set_pixel(x, y, Color(0.1, 0.07, 0.03, 0.15))
+
+# --- Signature twists for the other finals (tower_design.md, 6697695) ----------------------------
+# One small moment per final form. Warm Warden light unless noted; "tint" = white-to-grey, the code
+# tints it with the Warden's colour.
+
+const ICE := [Color("#2c4c5c"), Color("#4c8ca4"), Color("#9cd4fc"), Color("#dce8f4")]
+const STONE_FX := [Color("#3c3c5c"), Color("#5c5a78"), Color("#8c8cac"), Color("#b4b0c8")]
+const DREAM_VIOLET := [Color("#bc44dc"), Color("#ec9cf4"), Color("#fff4dc")]
+
+func _final_signatures() -> void:
+	_sheet("logjam_knot", Vector2i(32, 16), 6, 8, Vector2i(16, 12), true, "signature", _logjam_knot,
+		{note = "Snugroot: under a held nightmare (anchor = ground under its feet), loops while it's held."})
+	_sheet("dream_spore_puff", Vector2i(24, 32), 8, 6, Vector2i(12, 28), true, "signature", _dream_spore_puff,
+		{note = "Dreamshroom: slow spore puffs rising off a sleeper; loop while it sleeps (anchor = its feet)."})
+	_sheet("landslide_boulder", Vector2i(24, 24), 8, 14, Vector2i(12, 12), true, "signature", _landslide_boulder,
+		{note = "Boulderback: a rolling boulder, turning a notch per frame; move it along the path, play landslide_dust behind it."})
+	_sheet("landslide_dust", Vector2i(32, 12), 4, 10, Vector2i(0, 8), true, "segment", _landslide_dust,
+		{note = "The boulder's dust trail: tile/stretch along x behind it (y = 8 on the ground line), fade the far end."})
+	_sheet("chorus_note", Vector2i(12, 12), 4, 8, Vector2i(6, 6), true, "signature", _chorus_note,
+		{note = "Lullaby Bell: one per chorus voice, riding the pulse ring. Tint."})
+	_sheet("veil_glint", Vector2i(16, 16), 6, 12, Vector2i(8, 8), false, "signature", _veil_glint,
+		{note = "Morning Fog: a faint gold glint where the fog cancels hiding or healing. Play at ~70% alpha."})
+	_sheet("shatter_chain_burst", Vector2i(48, 48), 7, 16, Vector2i(24, 24), false, "signature", _shatter_chain_burst,
+		{note = "Hoarfrost: an ice burst with shards flying out (smaller than crowned_prismstorm)."})
+	_sheet("beacon_flare", Vector2i(16, 64), 8, 12, Vector2i(8, 60), false, "signature", _beacon_flare,
+		{note = "Beacon: a flare shooting up from the Beacon (anchor = its top) and bursting; then fade beacon_pulse over the map."})
+	_sheet("beacon_pulse", Vector2i(64, 64), 1, 1, Vector2i(32, 32), false, "overlay", _beacon_pulse,
+		{note = "Map-wide light pulse: scale it over the whole map (it's a soft warm radial wash in palette alpha steps), fade in ~0.2 s and out ~1 s, additive or ~40% alpha."})
+	_sheet("solstice_fork", Vector2i(32, 32), 6, 16, Vector2i(16, 16), false, "signature", _solstice_fork,
+		{note = "Midsummer: a bright flash where the beam forks (anchor = the fork point; rays drawn pointing right, rotate to the beam)."})
+	_sheet("starlit_snare", Vector2i(32, 32), 6, 12, Vector2i(16, 20), false, "signature", _starlit_snare,
+		{note = "Starcave: a star glint popping on a path tile (anchor = tile centre, on the ground)."})
+	_sheet("mended_leaf", Vector2i(12, 12), 6, 8, Vector2i(6, 6), true, "signature", _mended_leaf,
+		{note = "Great Dreamcatcher: a mended leaf the code flies to the Heartwood; loops its tumble."})
+	_sheet("double_graft_glow_a", Vector2i(32, 32), 8, 8, Vector2i(16, 16), true, "signature", _double_graft.bind(0),
+		{note = "Grafted Elder: the left half of the graft glow; tint with the first copied Warden's colour. Play with _b: they swap brightness."})
+	_sheet("double_graft_glow_b", Vector2i(32, 32), 8, 8, Vector2i(16, 16), true, "signature", _double_graft.bind(1),
+		{note = "The right half; tint with the second copied Warden's colour."})
+	_sheet("dark_swirl", Vector2i(64, 64), 16, 8, Vector2i(32, 32), true, "signature", _dark_swirl,
+		{note = "Starling Murmuration: a one-cell swirl of starlings, 2 s loop (16 frames at 8 fps)."})
+	_sheet("gale_lane", Vector2i(32, 12), 4, 12, Vector2i(0, 6), true, "segment", _gale_lane,
+		{note = "Zephyr: a gust streak along the path; tile/stretch along x, y = 6 on the line. Tint (or leave pale)."})
+	_sheet("windmill_momentum", Vector2i(48, 48), 12, 12, Vector2i(24, 24), true, "signature", _windmill_momentum,
+		{note = "Windmill spin-up: 3 intensity levels x 4 looping frames (frames 0-3 = level 1, 4-7 = level 2, 8-11 = level 3). Anchor = the sail hub (Windmill idle art: (9, 19) in its 64x64 frame)."})
+	_sheet("fairy_dance", Vector2i(48, 32), 8, 10, Vector2i(24, 24), true, "signature", _fairy_dance,
+		{note = "Elf Circle: a ring of lights spinning round a nightmare's feet (anchor = the ground under it), loop."})
+
+func _logjam_knot(img: Image, f: int) -> void:
+	# Three root rings interlocked on the ground (back halves first, front halves over them); a warm
+	# pulse runs round them.
+	var layer := Image.create_empty(32, 16, false, Image.FORMAT_RGBA8)
+	var c := Vector2(16, 10)
+	for pass_i in 2:
+		for k in 3:
+			var rc := c + Vector2((k - 1) * 6.5, (k % 2) * -1.0)
+			for s in 40:
+				var a := s * TAU / 40.0 + (k - 1) * 0.4
+				var front := sin(a) > 0.0
+				if front != (pass_i == 1):
+					continue
+				var p := rc + Vector2(cos(a) * 5.5, sin(a) * 2.8 + sin(f * TAU / 6.0 + k) * 0.3)
+				_disc(layer, p, 0.75, ROOT_MID if front else ROOT_DARK)
+				if front and sin(a) > 0.6:
+					layer.set_pixel(floori(p.x), floori(p.y), ROOT_LIGHT)
+	_outlined(img, layer, ROOT_EDGE)
+	for k in 3:
+		var a := f * TAU / 6.0 + k * TAU / 3.0
+		var p := c + Vector2((k - 1) * 6.5, 0) + Vector2(cos(a) * 5.5, sin(a) * 2.8)
+		_px(img, floori(p.x), floori(p.y), Color(WARM, 0.9))
+
+func _dream_spore_puff(img: Image, f: int) -> void:
+	# Three soft puffs rising and swelling out of phase, fading as they go; a little sleep "z".
+	for k in 3:
+		var t := fposmod(f / 8.0 + k / 3.0, 1.0)
+		var p := Vector2(12 + sin(t * TAU + k * 2.0) * 4.0 - (k - 1) * 3.0, 27 - t * 22.0)
+		var r := 1.5 + t * 2.5
+		var a := 1.0 - t * 0.75
+		_disc(img, p, r, Color(DREAM_VIOLET[1], a * 0.9))
+		_disc(img, p + Vector2(-0.4, -0.5), r * 0.6, Color(DREAM_VIOLET[2], a))
+		_px(img, floori(p.x) - 1, floori(p.y) - 1, Color(DREAM_VIOLET[2], a))
+	var zt := fposmod(f / 8.0, 1.0)
+	var z := Vector2i(18, 12 - int(zt * 8))
+	for q: Vector2i in [Vector2i(0, 0), Vector2i(1, 0), Vector2i(2, 0), Vector2i(1, 1), Vector2i(0, 2), Vector2i(1, 2), Vector2i(2, 2)]:
+		_px(img, z.x + q.x, z.y + q.y, Color(DREAM_VIOLET[2], 0.8 - zt * 0.6))
+
+func _landslide_boulder(img: Image, f: int) -> void:
+	var c := Vector2(12, 12)
+	var rot := f * TAU / 8.0
+	var pts := PackedVector2Array()
+	var radii := [1.0, 0.85, 0.95, 0.8, 1.0, 0.88, 0.92]
+	for k in 7:
+		pts.append(c + Vector2.from_angle(rot + k * TAU / 7.0) * 9.0 * radii[k])
+	var layer := Image.create_empty(24, 24, false, Image.FORMAT_RGBA8)
+	for y in 24:
+		for x in 24:
+			var p := Vector2(x + 0.5, y + 0.5)
+			if Geometry2D.is_point_in_polygon(p, pts):
+				var n := (p - c) / 9.0
+				var light := -n.x * 0.5 - n.y * 0.8
+				layer.set_pixel(x, y, STONE_FX[3] if light > 0.45 else (STONE_FX[2] if light > -0.1 else STONE_FX[1]))
+	# A crack and a moss patch turning with it.
+	for i in 4:
+		var q := c + Vector2.from_angle(rot + 0.8) * (i - 1.0)
+		layer.set_pixel(floori(q.x), floori(q.y), STONE_FX[0])
+	var moss := c + Vector2.from_angle(rot - 2.0) * 5.0
+	for d: Vector2i in [Vector2i.ZERO, Vector2i.RIGHT, Vector2i.DOWN]:
+		var q := Vector2i(moss.floor()) + d
+		if layer.get_pixelv(q).a > 0.0:
+			layer.set_pixelv(q, Color("#5c944c"))
+	_outlined(img, layer, Color("#24243c"))
+
+func _landslide_dust(img: Image, f: int) -> void:
+	for k in 5:
+		var x := fposmod(k * 7.0 - f * 2.0, 32.0)
+		var r := 1.5 + (k % 3) * 0.8
+		_disc(img, Vector2(x, 8.0 - (k % 2) * 2.0), r, Color(SOIL[2], 0.55))
+		_disc(img, Vector2(x - 0.5, 7.5 - (k % 2) * 2.0), r * 0.5, Color(SOIL[3], 0.6))
+	for x in 32:
+		if (x + f) % 5 == 0:
+			_px(img, x, 10, Color(SOIL[1], 0.5))
+
+func _chorus_note(img: Image, f: int) -> void:
+	# A tiny eighth note with a shimmer: head, stem, flag; a glint that moves round it.
+	var bob: int = [0, -1, 0, 1][f]
+	var head := Vector2(4.5, 8.5 + bob)
+	_ellipse(img, head, Vector2(1.8, 1.3), K_WHITE)
+	_line(img, Vector2(6, 8 + bob), Vector2(6, 3 + bob), K_WHITE)
+	_line(img, Vector2(6, 3 + bob), Vector2(8, 5 + bob), K_LIGHT)
+	_px(img, 8, 6 + bob, K_LIGHT)
+	var g: Vector2i = [Vector2i(9, 2), Vector2i(10, 8), Vector2i(2, 10), Vector2i(2, 4)][f]
+	_px(img, g.x, g.y, Color(K_WHITE, 0.8))
+
+func _veil_glint(img: Image, f: int) -> void:
+	var s: float = [1.0, 3.0, 5.0, 4.0, 2.5, 1.0][f]
+	var c := Vector2i(8, 8)
+	for i in range(-int(s), int(s) + 1):
+		var a := 1.0 - absf(i) / (s + 1.0)
+		_px(img, c.x + i, c.y, Color(WARM if absf(i) < 2 else GOLD, a))
+		_px(img, c.x, c.y + i, Color(WARM if absf(i) < 2 else GOLD, a))
+	if f in [2, 3]:
+		for d: Vector2i in [Vector2i(-2, -2), Vector2i(2, 2), Vector2i(2, -2), Vector2i(-2, 2)]:
+			_px(img, c.x + d.x, c.y + d.y, Color(GOLD, 0.5))
+	_px(img, c.x, c.y, CORE)
+
+func _shatter_chain_burst(img: Image, f: int) -> void:
+	var c := Vector2(24, 24)
+	var t := f / 6.0
+	if f < 2:
+		_disc(img, c, 6.0 - f * 2.0, ICE[3])
+		_disc(img, c, 3.0, Color.WHITE)
+	if f >= 1 and f < 5:
+		_ring(img, c, Vector2(5.0 + t * 14.0, 5.0 + t * 14.0), 1.2, Color(ICE[2], 0.9 - t * 0.6))
+	# Eight shards: long thin diamonds flying out and tumbling, lit on one side.
+	for k in 8:
+		var dir := Vector2.from_angle(k * TAU / 8.0 + 0.2)
+		var p := c + dir * (4.0 + t * 17.0)
+		var along := dir.rotated(t * 2.0 * (1.0 if k % 2 else -1.0))
+		var length := 4.0 - t * 1.5
+		for i in range(-int(length), int(length) + 1):
+			var q := p + along * i
+			var w := 1.0 - absf(i) / (length + 1.0)
+			_px(img, floori(q.x), floori(q.y), Color(ICE[3] if i < 0 else ICE[2], 1.0 - t * 0.5))
+			if w > 0.6:
+				var side := q + along.orthogonal()
+				_px(img, floori(side.x), floori(side.y), Color(ICE[1], 1.0 - t * 0.5))
+	for k in 6:
+		var p := c + Vector2.from_angle(k * TAU / 6.0 + 0.6) * (3.0 + t * 12.0)
+		_px(img, floori(p.x), floori(p.y), Color(Color.WHITE, 1.0 - t))
+
+func _beacon_flare(img: Image, f: int) -> void:
+	# Up it goes (frames 0-4), trailing sparks, then bursts at the top (5-7).
+	if f <= 4:
+		var y := 58.0 - f * 11.0
+		var p := Vector2(8, y)
+		for k in 6:
+			_px(img, 8 + ((k + f) % 3) - 1, int(y) + 2 + k * 2, Color(GOLD if k < 3 else AMBER, 1.0 - k * 0.15))
+		_disc(img, p, 2.4, WARM)
+		_disc(img, p, 1.2, CORE)
+	else:
+		var t := (f - 5) / 2.0
+		var c := Vector2(8, 8)
+		_disc(img, c, 3.5 - t * 2.0, Color(WARM, 1.0 - t * 0.5))
+		for k in 8:
+			var p := c + Vector2.from_angle(k * TAU / 8.0) * (3.0 + t * 4.0)
+			_px(img, floori(p.x), floori(p.y), Color(CORE if k % 2 == 0 else GOLD, 1.0 - t * 0.6))
+
+func _beacon_pulse(img: Image, _f: int) -> void:
+	# A soft warm wash, brightest in the middle, stepping down in alpha (palette colours only).
+	var c := Vector2(32, 32)
+	for y in 64:
+		for x in 64:
+			var q := Vector2(x + 0.5, y + 0.5).distance_to(c) / 32.0
+			if q < 1.0:
+				var a := snappedf(0.5 * (1.0 - q * q), 0.05)
+				if a > 0.0:
+					img.set_pixel(x, y, Color(WARM if q < 0.4 else GOLD, a))
+
+func _solstice_fork(img: Image, f: int) -> void:
+	# The beam comes in from the left and splits into three bright rays; a sun-flash at the fork.
+	var c := Vector2(12, 16)
+	var reach: float = [6.0, 12.0, 17.0, 18.0, 18.0, 18.0][f]
+	var fade: float = [1.0, 1.0, 1.0, 0.8, 0.55, 0.3][f]
+	_line(img, Vector2(0, 16), c, Color(WARM, fade), 2)
+	for a: float in [-0.45, 0.0, 0.45]:
+		var end := c + Vector2.from_angle(a) * reach
+		_line(img, c, end, Color(GOLD, fade * 0.7), 3)
+		_line(img, c, end, Color(CORE, fade), 1)
+	var flash: float = [5.0, 4.0, 3.0, 2.5, 2.0, 1.5][f]
+	_disc(img, c, flash, Color(WARM, fade))
+	_disc(img, c, flash * 0.5, CORE)
+	for k in 4:
+		var p := c + Vector2.from_angle(k * TAU / 4.0 + PI / 4.0) * (flash + 2.0)
+		_px(img, floori(p.x), floori(p.y), Color(CORE, fade))
+
+func _starlit_snare(img: Image, f: int) -> void:
+	var c := Vector2(16, 18)
+	var s: float = [2.0, 5.0, 7.0, 6.0, 4.0, 2.0][f]
+	var alpha: float = [1.0, 1.0, 1.0, 0.85, 0.6, 0.35][f]
+	# A glowing ring on the ground, then a five-point star popping up above it.
+	_ring(img, c + Vector2(0, 2), Vector2(4.0 + f * 1.5, 1.6 + f * 0.6), 1.0, Color(GOLD, alpha * 0.6))
+	var pts := PackedVector2Array()
+	for k in 10:
+		var r := s if k % 2 == 0 else s * 0.45
+		pts.append(c + Vector2(0, -3) + Vector2.from_angle(-PI / 2.0 + k * TAU / 10.0) * r)
+	for y in 32:
+		for x in 32:
+			if Geometry2D.is_point_in_polygon(Vector2(x + 0.5, y + 0.5), pts):
+				img.set_pixel(x, y, Color(WARM, alpha))
+	_px(img, 16, 15, Color(CORE, alpha))
+	for k in 4:
+		var p := c + Vector2(0, -3) + Vector2.from_angle(k * TAU / 4.0 + 0.4) * (s + 3.0)
+		_px(img, floori(p.x), floori(p.y), Color(CORE, alpha * 0.8))
+
+func _mended_leaf(img: Image, f: int) -> void:
+	# A green leaf with a gold stitch down its middle (mended), tumbling.
+	var a := f * TAU / 6.0
+	var dir := Vector2.from_angle(a)
+	var w := 1.2 + absf(sin(a)) * 1.3
+	var c := Vector2(6, 6)
+	var tip := c + dir * 4.5
+	var base := c - dir * 4.0
+	var side := dir.orthogonal() * w
+	var pts := PackedVector2Array([base, c + side, tip, c - side])
+	for y in 12:
+		for x in 12:
+			var p := Vector2(x + 0.5, y + 0.5)
+			if Geometry2D.is_point_in_polygon(p, pts):
+				img.set_pixel(x, y, Color("#9cc46c") if (p - c).dot(side) > 0.0 else Color("#5c944c"))
+	_line(img, base, tip, Color("#e9a83c"))
+	_px(img, floori(tip.x), floori(tip.y), Color("#fcd47c"))
+
+func _double_graft(img: Image, f: int, side: int) -> void:
+	# Two halves of one ring of light round the graft; each breathes opposite the other.
+	var c := Vector2(16, 16)
+	var phase := f * TAU / 8.0 + (0.0 if side == 0 else PI)
+	var bright := 0.5 + 0.5 * sin(phase)
+	for y in 32:
+		for x in 32:
+			var d := Vector2(x + 0.5, y + 0.5) - c
+			if (d.x < 0.0) != (side == 0):
+				continue
+			var q := d.length()
+			if q < 12.0:
+				var a := 0.0
+				if absf(q - 9.0) < 1.0:
+					a = 0.6 + 0.4 * bright
+				elif q < 9.0:
+					a = snappedf(0.35 * bright * (q / 9.0), 0.05)
+				if a > 0.0:
+					img.set_pixel(x, y, Color(K_WHITE if absf(q - 9.0) < 1.0 else K_LIGHT, a))
+	# A few sparks on this side.
+	for k in 3:
+		var a := (PI if side == 0 else 0.0) + (k - 1) * 0.6 + f * 0.2 * (1.0 if side == 0 else -1.0)
+		var p := c + Vector2.from_angle(a) * (11.0 + bright * 2.0)
+		_px(img, floori(p.x), floori(p.y), Color(K_WHITE, bright))
+
+func _dark_swirl(img: Image, f: int) -> void:
+	# Twelve starlings wheeling round the cell in a tilted ring, bunching and spreading, wings beating.
+	var c := Vector2(32, 34)
+	for k in 12:
+		var a := k * TAU / 12.0 + f * TAU / 16.0 + sin(k * 1.7) * 0.25
+		var r := 20.0 + sin(f * TAU / 16.0 * 2.0 + k) * 3.0
+		var p := c + Vector2(cos(a) * r, sin(a) * r * 0.55 - 6.0 + sin(a * 2.0) * 3.0)
+		var up := (f + k) % 2 == 0
+		var dir := Vector2(-sin(a), cos(a) * 0.55).normalized()
+		var col := Color("#24243c") if sin(a) > 0.0 else Color("#3c3c5c")
+		var q := Vector2i(p.floor())
+		_px(img, q.x, q.y, col)
+		_px(img, q.x + int(signf(dir.x)), q.y, col)
+		var wing := Vector2i(0, -1 if up else 1)
+		_px(img, q.x - 1, q.y + wing.y, col)
+		_px(img, q.x + 1 + int(signf(dir.x)), q.y + wing.y, col)
+		if k % 4 == f % 4:
+			_px(img, q.x, q.y - 1, Color("#9cd4fc", 0.8))  # an iridescent glint
+
+func _gale_lane(img: Image, f: int) -> void:
+	# Pale gust streaks racing along the lane, tiling every 32 px.
+	for row in 3:
+		var y := 3 + row * 3
+		var off := f * 8 + row * 11
+		for x in 32:
+			var u := fposmod(x - off, 32.0)
+			if u < 14.0:
+				var a := (1.0 - u / 14.0) * (0.9 if row == 1 else 0.6)
+				_px(img, x, y + (1 if u > 9.0 else 0), Color(K_WHITE if u < 4.0 else K_LIGHT, a))
+
+func _windmill_momentum(img: Image, f: int) -> void:
+	# Curved speed lines round the sail hub; more, longer and brighter at each level.
+	var level := f / 4
+	var step := f % 4
+	var c := Vector2(24, 24)
+	var arcs := 2 + level * 2
+	for k in arcs:
+		var r := 13.0 + (k % 3) * 3.0 + level
+		var a0 := k * TAU / arcs + step * TAU / 16.0
+		var span := 0.5 + level * 0.25
+		for s in 12:
+			var t := s / 11.0
+			var a := a0 + t * span
+			var p := c + Vector2.from_angle(a) * r
+			var alpha := t * (0.5 + level * 0.2)
+			_px(img, floori(p.x), floori(p.y), Color(K_WHITE if t > 0.7 else K_LIGHT, alpha))
+
+func _fairy_dance(img: Image, f: int) -> void:
+	# Six little lights circling a nightmare's feet; the ones behind it dimmer, trails behind each.
+	var c := Vector2(24, 22)
+	for k in 6:
+		var a := k * TAU / 6.0 + f * TAU / 8.0
+		var p := c + Vector2(cos(a) * 15.0, sin(a) * 6.0 - 2.0)
+		var front := sin(a) > 0.0
+		var col := Color("#dce8f4") if front else Color("#9cd4fc")
+		var alpha := 1.0 if front else 0.55
+		_disc(img, p, 1.4, Color(col, alpha))
+		_px(img, floori(p.x), floori(p.y), Color(Color.WHITE, alpha))
+		for i in 3:
+			var q := c + Vector2(cos(a - (i + 1) * 0.16) * 15.0, sin(a - (i + 1) * 0.16) * 6.0 - 2.0)
+			_px(img, floori(q.x), floori(q.y), Color("#9cd4fc", alpha * (0.6 - i * 0.18)))
 
 # --- Support and economy feedback (screens_ui.md "Support and economy feedback") -------------------
 # Kind "support". Gold is caught / harvested Dew (the ordinary Dew pop stays blue).
