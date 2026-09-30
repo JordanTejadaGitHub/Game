@@ -202,6 +202,11 @@ foley-like, no chiptune.
 - **Continuous things loop quietly** (beams, auras, fog, spinning blades): a soft bed that fades in
   when active and out when idle, one voice per Warden type, never per tile.
 - **Evolving** plays the evolve bloom, then the new form's hit once as a "first breath".
+- **Final Bloom** (the first grow into each final form per run; `final_bloomed`, with gold rings and
+  the name callout): the evolve bloom, then a **warm harp strum** in the music's key (the music's own
+  instrument, so it feels like the score answering) over a slow swell of the **family's material**,
+  then the new form's signature layer once. ~1.5 s, music ducks ~3 dB for 0.5 s. Later grows into the
+  same form that run use the normal evolve. Not a chime, a choir or the dispel's tuned air.
 
 **Starters**
 
@@ -218,7 +223,7 @@ foley-like, no chiptune.
 |---|---|---|
 | Sporeling | a soft breath out | a round **puff** (air + soft low thump) |
 | Driftspore | a longer, drifting breath | a double puff, the second smaller (2 stacks) |
-| Puffball | a soft breath | puff; **pop** at 10 stacks = signature: a deep, soft *fwoomp* with a wide airy spread |
+| Puffball | a soft breath | its puff **bursts on landing over a tile**: a wide, soft *fwoomp* of spores spreading (the area poisoner). **No pop** (spores no longer pop, tower_design.md) |
 | Bloomcap | a heavy mushroom-cap *thup* | cloud forming: a slow, sleepy **exhale** that settles |
 | Dreamshroom | same, deeper | cloud + signature: a low **yawn-like drone** when a nightmare falls asleep |
 | Fairy Ring | — | ring appearing: tiny soft earth pops. Triggered: a **spore burst** (puff + low thump) |
@@ -339,7 +344,7 @@ organic: big means low and wide, never bright or harsh.
 
 | Warden | Presence loop | Event (the big sound) |
 |---|---|---|
-| **Sporemother** (spore) | a slow, deep **fungal breathing** | the storm: a soft, continuous spore wind; a nightmare popping at 10 stacks = the Puffball pop, throttled so a crowd popping reads as one rolling *fwoomp* |
+| **Sporemother** (spore) | a slow, deep **fungal breathing** | the storm: a soft, continuous spore wind that thickens as more nightmares are in it (Poisoned never wears off inside). **No pop** |
 | **Tidecaller** (water) | distant, low **surf** | every 6 s the tide: a **wave** rolling along the path (a long, low water swell, panned along the stretch it covers) and a heavy wash as it pushes nightmares back |
 | **Stormheart** (light) | a warm, low **storm hum** | chaining to everything: one big warm **bloom** with a rolling, far **thunder** under it (not one sound per jump; a single swell that grows with the number hit) |
 | **Old Mountain** (stone) | a very low, slow **earth groan** | every 3 s a boulder: the heaviest **thud** in the game, a deep ground shake and a short rubble settle |
