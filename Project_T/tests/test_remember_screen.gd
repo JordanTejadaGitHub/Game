@@ -103,7 +103,12 @@ func _run() -> void:
 		_check(not screen._canvas.edges.any(func(e: Array) -> bool: return e[0] == hidden), "…and so is the line up to it")
 		screen._select(hidden)
 		var side: Array = screen._side_box.find_children("*", "Label", true, false).map(func(l: Label) -> String: return l.text)
-		_check(side == ["Plant it in the Memory Grove"], "its side panel only says to plant it (%s)" % " | ".join(side))
+		_check(side.size() >= 2 and side[0] == hidden.display_name and side[-1] == "Plant it in the Memory Grove",
+			"its side panel: the name, what it does, and to plant it (%s)" % " | ".join(side))
+		var grove_node: Control = nodes[hidden]
+		_check(grove_node.portrait.material == RememberScreen.Portrait.grove_material() and grove_node.portrait.self_modulate == Color.WHITE,
+			"a Grove form is drawn dim and moonlit (the Grove material), not a black silhouette")
+		_check(grove_node.tooltip_text.begins_with(hidden.display_name), "…and named")
 		screen.close()
 
 	# The Ascended crown: hidden until its Grove node is planted and drift 51 is reached.

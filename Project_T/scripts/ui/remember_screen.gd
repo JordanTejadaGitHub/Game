@@ -6,7 +6,7 @@ class_name RememberScreen
 # portraits: the base at the root, its two branches above, each branch's final form above that, the
 # hidden branch (Memory Grove) in a third lane, and the Ascended form at the crown. Node states:
 # grown on the map (×N), unlocked, can unlock (cost in motes, pulsing), locked (needs its branch
-# first: dim, chained), Memory Grove (silhouette). Selecting a node opens a side panel (on phones it
+# first: 75%, chained), Memory Grove (dim, moonlit, a leaf badge and its name). Selecting a node opens a side panel (on phones it
 # slides up from the bottom) with its stats, Dew to grow, Kinship, combos and the Unlock button; an
 # unlock blooms along the tree line. Opens from the HUD's Remember button (any time; pauses) and
 # after each boss's family pick. Built in code.
@@ -258,7 +258,14 @@ func _fill_side(data: TowerData) -> void:
 	head.add_theme_constant_override("separation", 10)
 	_side_box.add_child(head)
 	head.add_child(Portrait.new(data, 72.0, grove))
-	if grove:  # Only the invitation (run_design.md "Playtest fixes"): no name, no stats
+	if grove:  # run_design.md "Grove forms readable too": the portrait, its name, one line on what it does, the invitation
+		var grove_name := Label.new()
+		grove_name.text = data.display_name
+		UiStyle.display(grove_name, 22)
+		head.add_child(grove_name)
+		var first := IconInfo.format(data.description).get_slice(". ", 0).trim_suffix(".")
+		if first != "":
+			_line(first + ".", UiStyle.INK_DIM, 14)
 		_line("Plant it in the Memory Grove", UiStyle.INK_DIM, 15)
 		if _dev_free.button_pressed:
 			_add_unlock(data)  # Dev: even Grove-hidden forms
@@ -570,7 +577,7 @@ class FormNode extends Button:
 			portrait.material = Portrait.locked_material()
 		elif state == State.CAN_UNLOCK or state == State.NEEDS_LIGHT:
 			portrait.modulate = Color(1, 1, 1, 0.75)
-		tooltip_text = "Memory Grove" if state == State.GROVE else data.display_name
+		tooltip_text = data.display_name + (" · Memory Grove" if state == State.GROVE else "")
 		pressed.connect(func() -> void: screen._select(data))
 
 	func _process(delta: float) -> void:
@@ -602,17 +609,33 @@ class FormNode extends Button:
 				text = "locked"
 				colour = UiStyle.INK_DIM
 			State.GROVE:
-				text = "Grove"
+				text = data.display_name  # Its name under it, and a Grove leaf badge on the stone
 				colour = UiStyle.INK_DIM
+				_draw_leaf(centre + Vector2(PORTRAIT / 2.0 - 8, -PORTRAIT / 2.0 + 8))
 		if text != "":
 			# Counts and motes in the number face; "locked" / "Grove" as small-caps labels.
 			var words := state == State.LOCKED or state == State.GROVE
 			var font := UiStyle.caps_font() if words else UiStyle.number_font()
-			var font_size := 14 if words else 16
+			var font_size := (12 if state == State.GROVE else 14) if words else 16
 			var width := font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size).x
+			if width > NODE_SIZE.x - 4 and font_size > 10:  # A long Grove name: smaller, never past the node
+				font_size = 10
+				width = minf(font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size).x, NODE_SIZE.x - 4)
 			draw_string(font, Vector2((NODE_SIZE.x - width) / 2.0, NODE_SIZE.y - 6), text,
 				HORIZONTAL_ALIGNMENT_LEFT, -1, font_size, colour)
 
+
+	# The Memory Grove's leaf: a small two-arc leaf on the portrait's shoulder.
+	func _draw_leaf(at: Vector2) -> void:
+		var points := PackedVector2Array()
+		for i in 9:
+			var t := i / 8.0
+			points.append(at + Vector2(lerpf(-5.0, 5.0, t), -sin(t * PI) * 3.5).rotated(-0.6))
+		for i in range(7, 0, -1):
+			var t := i / 8.0
+			points.append(at + Vector2(lerpf(-5.0, 5.0, t), sin(t * PI) * 3.5).rotated(-0.6))
+		draw_colored_polygon(points, Palette.SPRIG)
+		draw_line(at + Vector2(-5, 0).rotated(-0.6), at + Vector2(5, 0).rotated(-0.6), Palette.MOSS, 1.0, true)
 
 # A Warden's idle loop in a box (its TowerData sheet: `frame_count` frames in a row); black for a
 # form the Memory Grove hasn't grown (a silhouette).
@@ -622,6 +645,36 @@ class Portrait extends TextureRect:
 	var _frame := 0
 	var _clock := 0.0
 	static var _locked: ShaderMaterial
+
+	static var _grove: ShaderMaterial
+
+	# Memory Grove forms: desaturated at ~45% brightness, a cold moonlight tint and a pale rim (the dimmest
+	# node state; locked forms stay at 75%).
+	static func grove_material() -> ShaderMaterial:
+		if _grove == null:
+			var shader := Shader.new()
+			shader.code = """shader_type canvas_item;
+uniform vec4 tint : source_color;
+uniform vec4 rim : source_color;
+void fragment() {
+	vec4 c = texture(TEXTURE, UV);
+	float grey = dot(c.rgb, vec3(0.299, 0.587, 0.114));
+	vec3 cold = mix(vec3(grey), vec3(grey) * tint.rgb, 0.7) * 0.45;
+	vec2 px = TEXTURE_PIXEL_SIZE;
+	float near = texture(TEXTURE, UV + vec2(px.x, 0.0)).a + texture(TEXTURE, UV - vec2(px.x, 0.0)).a
+		+ texture(TEXTURE, UV + vec2(0.0, px.y)).a + texture(TEXTURE, UV - vec2(0.0, px.y)).a;
+	if (c.a < 0.5 && near > 0.5) {
+		COLOR = vec4(rim.rgb, 0.6 * COLOR.a);
+	} else {
+		COLOR = vec4(cold, c.a * COLOR.a);
+	}
+}
+"""
+			_grove = ShaderMaterial.new()
+			_grove.shader = shader
+			_grove.set_shader_parameter("tint", UiStyle.MOONLIGHT)
+			_grove.set_shader_parameter("rim", UiStyle.MOONLIGHT)
+		return _grove
 
 	# Locked forms: ~75% brightness with a light desaturation.
 	static func locked_material() -> ShaderMaterial:
@@ -651,8 +704,8 @@ void fragment() {
 			_atlas.atlas = data.texture
 			_atlas.region = _crop()
 			texture = _atlas
-		if silhouette:
-			self_modulate = Color(0, 0, 0, 0.85)  # A multiplier (darkens the art)
+		if silhouette:  # A Memory Grove form: readable, but the dimmest state (run_design.md "Grove forms readable too")
+			material = grove_material()
 
 	# An Ascended form (tier 4) is taller than 64 px: its whole frame, crown and all, scaled into the
 	# disc like the others (screens_ui.md "Playtest fixes"); the rest show their bottom 64 px.
