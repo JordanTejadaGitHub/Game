@@ -176,8 +176,8 @@ for the same rarity.
 1. **Builds pay off (tag resonance):** each card you own with a tag makes the **next** cards of that
    tag **+10% stronger** (their numbers, not their rules), up to +50%. Shown on the card: *"+20% from
    2 spore cards"*. Committing beats grabbing the biggest number. Generic cards (no tag) don't resonate.
-2. **The first Dream is a keystone:** the drift-5 offer always holds **one Uncommon+ card for the
-   family you picked** (a line card, e.g. Clear Tones → Bellflower), so a direction starts early.
+2. ~~The first Dream is a keystone~~ **Rejected** (user: "too forgiving and too narrow of a path"):
+   the drift-5 offer stays a normal offer. Finding a direction is the player's job.
 3. **Nightmares rise with the cards:** once the pass is in, Tower Code raises nightmare health until
    the targets hold (always skipping falls by the drift-25 boss). Never before the cards are in.
 
