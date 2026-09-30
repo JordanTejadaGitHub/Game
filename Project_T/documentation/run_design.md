@@ -333,14 +333,15 @@ card luck**. Dispelling a great nightmare frees the light it stole from the drea
 
 | Unlock | Cost |
 |---|---|
-| A **branch** of a family you own (Stormcap, Rain Lily, Driftspore, …) | **free**: comes with the family (2026-09-30) |
+| A **branch** of a family you own (Stormcap, Rain Lily, Driftspore, …) | **1** (free for a few hours on 2026-09-30, then back to 1: see below) |
 | A **final form** of a family you own | **2** |
 | A **hidden branch** (only if the Grove has unlocked it) | **1** |
 | A **wall growth** (Bramble, Honeysuckle) | **1** |
 
 - About **10 Dreamlight per run** against 4 families × (2 branches + 2 finals) = 24 possible: you
   can't have everything, so each run is a set of real choices. Unspent Dreamlight carries over.
-- **A family comes with its base and both branches** (user, 2026-09-30: *"if you unlock a family,
+- **Clarified the same day: in the run, branches and finals both cost Dreamlight** (user: *"I meant from the meta game Grove; you still have to use Dreamlight to unlock both 1st and 2nd form"*). The "unlocked with the family" quote below was about the **Memory Grove**: planting a family there makes its branches and final forms **exist** in your runs (no separate final-forms node). **In a run**, each branch costs **1** Dreamlight and each final **2**, on the Remember screen. `grant_free_branches` goes. The first family pick keeps giving **2** Dreamlight (two branches, or save for a final).
+- ~~**A family comes with its base and both branches**~~ (superseded, see above; user, 2026-09-30: *"if you unlock a family,
   the first and 2nd forms are unlocked with it, or what else am I going to do with these Dreamlight
   if I just started"*). Picking a family unlocks its base Warden and its two regular branches at once
   (growing each Warden still costs Dew). **Dreamlight is for what comes after:** final forms (2),
