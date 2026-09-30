@@ -2476,7 +2476,7 @@ func _on_drift_cleared(_number: int, _bonus: int, _perfect: bool) -> void:
 		if rank >= FOCUS_RANK and tower_data.dreamlight_every_ranked > 0:
 			every = tower_data.dreamlight_every_ranked
 		if _drifts_yielded % every == 0:
-			_dream_state.add_dreamlight(1)  # The Sapling ripens
+			_dream_state.add_dreamlight(1, &"sapling")  # The Sapling ripens (tagged for Sound)
 			dreamlight_ripened.emit(self)
 
 
