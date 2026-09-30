@@ -7,6 +7,8 @@ extends SceneTree
 # mossy stone, with trees growing on it and glowing spore-mushrooms at its knees. Mist hides its base;
 # dark trees frame the shot (the left side stays calm for the logo and menu). A tiny Shade (a nightmare)
 # sits on a narrow trail among the trees, looking up at it: the scale comes from that contrast.
+# The Heartwood stands half-seen in the fog across the water, its hollow the one warm light; nightmares
+# (all cold) gather: a tall phantom in the far fog, eyes between the trees, Shades on the water.
 # Every pixel is snapped to Heartwood 32 (art_direction.md).
 #   assets/ui/title/title_background.png   640×360, the art
 #   tools/previews/title_background_3x.png 1920×1080 preview
@@ -24,6 +26,7 @@ const TITAN_X := 438.0
 const HEAD := Vector2(438, 96)
 const FIGURE := Vector2i(282, 334)  # on the mossy bank in front
 const WATER_Y := 292               # the swamp's surface
+const HEART := Vector2(236, 292)   # the Heartwood's foot, in the fog across the water from the Warden
 const BAYER := [0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5]
 
 const SKY := ["void", "night", "dusk", "slate", "stone"]
@@ -54,14 +57,18 @@ func _init() -> void:
 	_sky()
 	_moon()
 	_trunk_layer(46, 0.58, Vector2(2.0, 5.0), 290.0, 1, 0.0)    # far trees, ghostly in the fog
+	_heartwood()
 	_mist(210, 290, 0.62)
 	_titan()
 	_mist(246, 292, 0.58)
 	_trunk_layer(20, 0.38, Vector2(4.0, 8.0), 292.0, 2, 128.0)  # nearer trees round the Warden
+	_phantom(Vector2(296, 290), 104.0)  # between the Heartwood and its Warden
 	_mist(262, 292, 0.5)
 	_trunk_layer(9, 0.18, Vector2(7.0, 12.0), 294.0, 3, 150.0)  # dark trees, closer still
 	_water()
 	_mist(288, 302, 0.45)
+	_watchers()
+	_creeping_shades()
 	_banks()
 	_figure()
 	_frame_trees()
@@ -269,7 +276,7 @@ func _trunk_layer(count: int, value: float, widths: Vector2, foot_y: float, salt
 	r.seed = salt * 131
 	for i in count:
 		var x0 := r.randf_range(-10.0, W + 10.0)
-		if absf(x0 - TITAN_X) < clear:
+		if absf(x0 - TITAN_X) < clear or (value < 0.5 and absf(x0 - HEART.x) < 44.0):
 			continue
 		var half := r.randf_range(widths.x, widths.y)
 		var bend := r.randf_range(-10.0, 10.0)
@@ -298,6 +305,115 @@ func _trunk_layer(count: int, value: float, widths: Vector2, foot_y: float, salt
 					for d in drop:
 						var mx := int(p.x) + int(sin(d * 0.3) * 0.8)
 						put(mx, int(p.y) + 2 + d, pick(FOG, value + 0.02, mx, int(p.y) + 2 + d))
+
+
+# --- the Heartwood and the nightmares ------------------------------------------------------------
+
+func _heartwood() -> void:
+	# The great tree the Warden guards, half-seen through the fog: a braid of twisting strands
+	# (art_direction.md "The Heartwood"), muted by the mist, its arched hollow full of golden light.
+	var bark := ["night", "root", "bark", "oak", "deadwood"]
+	for y in range(0, int(HEART.y) + 1):
+		var t := y / HEART.y
+		var cx := HEART.x + sin(y * 0.02) * 5.0
+		var hw := 24.0 + 12.0 * t + pow(maxf(0.0, (t - 0.8) / 0.2), 2.0) * 22.0
+		var fog := 0.55 - t * 0.2  # the top fades into the fog more than the foot
+		var strands := []
+		for k in 7:
+			var th := k * TAU / 7.0 + y * 0.035
+			strands.append(Vector2(cx + hw * 0.72 * sin(th), cos(th)))
+		strands.sort_custom(func(a: Vector2, b: Vector2) -> bool: return a.y < b.y)
+		for x in range(int(cx - hw), int(cx + hw) + 1):
+			put(x, y, pick(FOG, 0.2, x, y))  # the dark core between strands
+		for s: Vector2 in strands:
+			var th := hw * (0.24 + 0.06 * s.y)
+			for x in range(int(s.x - th), int(s.x + th) + 1):
+				var u := (x - s.x) / th
+				if absf(u) > 0.85:
+					put(x, y, pick(FOG, 0.12, x, y))
+					continue
+				var v := 0.34 + s.y * 0.14 - u * 0.12 + (0.08 if grain.get_noise_2d(u * 4.0, y * 0.4) > 0.3 else 0.0)
+				var c := pick(bark, v, x, y)
+				if bayer(x, y) < fog:
+					c = pick(FOG, 0.3 + s.y * 0.1, x, y)
+				put(x, y, c)
+	# The hollow: an arched doorway of golden light at its foot, and its glow in the fog.
+	var door := HEART + Vector2(-4, 0)
+	glow(door + Vector2(0, -18), 80.0, col("gold"), 0.16)
+	glow(door + Vector2(0, -16), 36.0, col("glow"), 0.22)
+	for y in range(int(door.y) - 36, int(door.y) + 1):
+		for x in range(int(door.x) - 14, int(door.x) + 15):
+			var dx := x - door.x
+			var dy := y - (door.y - 36 + 13)
+			var outside := (Vector2(dx, dy).length() - 13.0) if dy < 0 else (absf(dx) - 13.0)
+			if outside > 1.5:
+				continue
+			if outside > 0.0:
+				put(x, y, col("root"))
+				continue
+			var d := Vector2(dx, (y - door.y + 8) * 0.8).length() / 30.0
+			put(x, y, pick(["ember", "gold", "glow", "heartlight"], 1.0 - d * 1.1, x, y, 0.1))
+	# Dream-fruit on vines hanging from its unseen canopy.
+	var r := RandomNumberGenerator.new()
+	r.seed = 12
+	for i in 7:
+		var vx := r.randi_range(int(HEART.x) - 50, int(HEART.x) + 50)
+		var length := r.randi_range(90, 200)
+		for k in length:
+			put(vx + int(sin(k * 0.08 + i) * 1.5), k, pick(FOG, 0.24, vx, k))
+		var fruit := Vector2(vx + int(sin(length * 0.08 + i) * 1.5), length + 2)
+		glow(fruit, 6.0, col("gold"), 0.3)
+		for y in range(-1, 2):
+			for x in range(-1, 2):
+				put(int(fruit.x) + x, int(fruit.y) + y, col("glow") if x + y < 1 else col("gold"))
+		put(int(fruit.x) - 1, int(fruit.y) - 1, col("heartlight"))
+
+
+func _phantom(foot: Vector2, height: float) -> void:
+	# A tall hooded nightmare standing dark against the fog, a faint rim on its right, with two
+	# pale eyes: it hasn't moved yet.
+	for y in range(int(foot.y - height), int(foot.y) + 1):
+		var t := (y - (foot.y - height)) / height
+		var half := 5.0 if t < 0.12 else lerpf(4.0, 11.0, t)
+		if t < 0.12:
+			half = 6.0 * sqrt(maxf(0.0, 1.0 - pow((t - 0.07) / 0.07, 2.0)))  # the hood
+		half += noise.get_noise_1d(y * 2.0 + 700.0) * (1.0 + t * 2.0)
+		for x in range(int(foot.x - half), int(foot.x + half) + 1):
+			if t > 0.85 and hash01(x, y, 70) < (t - 0.85) * 5.0:
+				continue  # the robe frays into the mist
+			put(x, y, pick(FOG, 0.13 + (0.2 if absf(x - foot.x) > half - 1.0 and x > foot.x else 0.0), x, y))
+	var eyes := Vector2(foot.x, foot.y - height + 9)
+	glow(eyes, 8.0, col("wraithlight"), 0.35)
+	put(int(eyes.x) - 2, int(eyes.y), col("moonlight"))
+	put(int(eyes.x) + 2, int(eyes.y), col("moonlight"))
+
+
+func _watchers() -> void:
+	# Pale eyes in the dark between the trees.
+	for e in [Vector3(84, 214, 0), Vector3(176, 250, 1), Vector3(84, 150, 0), Vector3(176, 180, 1),
+			Vector3(600, 222, 0), Vector3(604, 266, 1)]:
+		var p := Vector2(e.x, e.y)
+		glow(p, 7.0, col("wraithlight"), 0.32)
+		var c := col("wraithlight") if e.z > 0.5 else col("moonlight")
+		for dx in [-4, -3, -2, 2, 3, 4]:
+			put(int(p.x) + dx, int(p.y), c)
+		put(int(p.x) - 3, int(p.y) - 1, col("shade"))
+		put(int(p.x) + 3, int(p.y) - 1, col("shade"))
+
+
+func _creeping_shades() -> void:
+	# Small Shades crossing the water toward the Heartwood, each trailing a smoky wake.
+	var shape := ["..BBBB...", ".BSSSSBB.", "OSSSSESEB", "OSSSSSSSO", ".OSSSSSO.", "..S.S.S.."]
+	var key := {"O": "dread", "S": "shade", "B": "wraithlight", "E": "moonlight"}
+	for p in [Vector2i(300, 302), Vector2i(346, 310), Vector2i(392, 304)]:  # heading for the hollow's light
+		for k in 16:  # the wake behind it, fading
+			if (k + p.y) % 2 == 0:
+				put(p.x - 6 - k, p.y + 1 + (1 if k % 3 == 0 else 0), col("shade") if k < 8 else col("dusk"))
+		for row in shape.size():
+			var line: String = shape[row]
+			for i in line.length():
+				if line[i] != ".":
+					put(p.x - 4 + i, p.y - shape.size() + 1 + row, col(key[line[i]]))
 
 
 func _mist(y0: int, y1: int, value: float) -> void:
@@ -597,6 +713,10 @@ func _figure() -> void:
 				put(FIGURE.x + x, FIGURE.y + y, col("bruise"))
 			elif a > 0.05 and bayer(FIGURE.x + x, FIGURE.y + y) < 0.25:
 				put(FIGURE.x + x, FIGURE.y + y, col("shade"))
+	for y in range(-14, 3):  # a pale patch of mist behind it, so its shape reads against the dark
+		for x in range(-16, 17):
+			if Vector2(x, y * 1.4).length() < 15.0 and bayer(FIGURE.x + x, FIGURE.y - 8 + y) < 0.5:
+				put(FIGURE.x + x, FIGURE.y - 8 + y, col("slate"))
 	glow(Vector2(ox + 13, oy + 4), 7.0, col("wraithlight"), 0.3)
 	for row in shape.size():
 		var line: String = shape[row]
