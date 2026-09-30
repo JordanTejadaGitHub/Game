@@ -368,16 +368,27 @@ drift 10 on**, after the Dream, the wind brings **2 Omens**. Pick one to change 
 (5 drifts) for a reward, or keep **Clear Skies** (the default: nothing changes). This is optional
 risk: players set their own difficulty block by block.
 
-- **Shown like a Dream, with Clear Skies as a card** (2026-09-28, user: first "it seems like Omens
-  are mandatory", then "the Omens should appear like a Dream card, not in the bottom right"; this
-  replaces the small ask-first prompt beside Start). After the Dream, the Omen screen opens
-  **centred, in the Dream screen's layout**: the title *"The wind carries Omens"* and **three cards
-  side by side**: the two Omens (name, what changes this block, the reward in gold; **no art yet: Omen emblems are on hold**, user 2026-09-29, "wait on the Omen emblems")
-  and **Clear Skies** (a calm moonlit card: *"Nothing changes. No reward."*), which is highlighted
-  as the default. Esc and right-click pick Clear Skies; "Peek at the map" works as on the Dream
-  screen. Setting (Gameplay): **Omens: Ask each rest / Never** (Never = no screen, always Clear
-  Skies). Blight Levels that force an Omen show only the two Omen cards with "An Omen must be
-  faced".
+- **Commit blind, then the Omen is revealed** (2026-09-30, user: "we should be asking if we want Clear
+  Skies or an Omen, so the player locks in the Omen before seeing what it is; make the Omens a bit
+  more punishing; I feel like I can Omen every rest"). Replaces the "pick 1 of 2 Omens or Clear
+  Skies" screen:
+  1. After the Dream, a centred screen in the Dream layout with **two cards**: **Face an Omen** (a
+     face-down card, the wind swirling over it: *"An unknown twist for the next block. Survive it
+     for a reward."*) and **Clear Skies** (*"Nothing changes. No reward."*, the default; Esc /
+     right-click pick it).
+  2. Choosing **Face an Omen** draws **one** Omen at random from those that make sense now and
+     **flips the card** to reveal it: name, what changes, the reward in gold. It's **locked in**; no
+     backing out, no choosing between Omens.
+  - **Harsher Omens, bigger rewards:** every Omen's downside is about **1.5× its old strength**
+    (e.g. Crowded Paths 30% → 45% more nightmares, Blood Moon 25% → 35% faster) and its reward about
+    **1.5×** too, since you can't see it before committing. Omens that were double-edged (the twist
+    is the reward) get a sharper edge on both sides.
+  - The goal: facing an Omen is a real gamble you take when your maze is strong, not something you
+    do every rest. Target: a Balanced player facing an Omen every rest should lose clearly more
+    leaves than one who picks their moments.
+  - Setting (Gameplay): **Omens: Ask each rest / Never** stays. Blight Levels that force an Omen
+    skip step 1 and reveal it directly (*"An Omen must be faced"*).
+  - Omen emblems are still on hold (user, 2026-09-29); the face-down card uses the wind swirl.
 - An Omen affects only the **next block**. Bosses themselves ignore Omens (their escorts don't).
 - Rewards are paid at the rest **after** the block, and only if the Heartwood is still standing.
   Losing leaves doesn't cancel the reward.
