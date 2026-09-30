@@ -304,7 +304,7 @@ func _test_sim_policy() -> void:
 # DreamEffects.rows_cached (Tower's hot path) matches rows() and follows board changes.
 
 # "Your Dreams steer your Dreams, not your family picks" and the catalogue cards 204–226
-# (dream_design.md "Build packages"): families don't weight, taken cards' tags do (×1.6); the
+# (dream_design.md "Build packages"): families don't weight, taken cards' tags do (×tag_weight); the
 # DreamState / DreamEffects side of the new cards.
 func _test_catalogue() -> void:
 	_reset()

@@ -218,7 +218,7 @@ signal remember_requested(focus: TowerData)
 @export var unlock_everything: bool = false  # Debug/tests: every Warden and evolution available
 @export var cards_per_offer: int = 3
 @export var skip_dew: int = 15  # "Let it pass"
-@export var tag_weight: float = 1.6  # Cards sharing a tag of a card you've taken (never a family you own)
+@export var tag_weight: float = 1.3  # Cards sharing an archetype tag of a card you've taken (1.6 -> 1.3, 2026-09-30: "felt like cards were handed to me")
 @export var pity_after: int = 3  # Dreams in a row without Rare+ before one is guaranteed
 # Bittersweet cards stay out of the pool until leaves are tuned (dream_design.md). Act 2+ only,
 # at most one per offer.
