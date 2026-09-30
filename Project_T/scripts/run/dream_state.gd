@@ -3108,11 +3108,16 @@ func rule_power(rule: StringName) -> float:
 			power = maxf(power, resonance(card))
 	return power
 
-# "+20% from 2 spore cards" (the card face, Dreams this run). "" = none.
+# "+20% from 2 Spore cards" (the card face, Dreams this run). "" = none. Tags that are names read capitalised
+# (text_style.md "Second pass"), plain categories stay lowercase ("+10% from 1 economy card").
+const TAG_NAMES := {"spore": "Spore", "water": "Water", "light": "Light", "stone": "Stone", "root": "Root", "song": "Song",
+	"wind": "Wind", "wing": "Wing", "acorn": "Acorn", "kinship": "Kinship", "reaction": "Reaction", "sprout": "Sprout",
+	"wall": "Thornwall", "nurture": "Nurture"}
+
 static func resonance_text(bonus: float, tag: String, count: int) -> String:
 	if bonus <= 0.0:
 		return ""
-	return "+%d%% from %d %s card%s" % [roundi(bonus * 100), count, tag, "" if count == 1 else "s"]
+	return "+%d%% from %d %s card%s" % [roundi(bonus * 100), count, TAG_NAMES.get(tag, tag), "" if count == 1 else "s"]
 
 
 # --- Catalogue cards 204–226 (dream_design.md "New cards for the catalogue") ----------------------

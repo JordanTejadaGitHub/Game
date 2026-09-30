@@ -1112,10 +1112,10 @@ func _test_resonance(main: Node) -> void:
 	var preview := dreams.resonance_preview(lingering)
 	_check(is_equal_approx(preview.bonus, 0.2) and preview.tag == "spore" and preview.count == 2,
 		"2 spore cards: +20% (%s)" % preview)
-	_check(DreamState.resonance_text(preview.bonus, preview.tag, preview.count) == "+20% from 2 spore cards", "…shown as \"+20% from 2 spore cards\"")
+	_check(DreamState.resonance_text(preview.bonus, preview.tag, preview.count) == "+20% from 2 Spore cards", "…shown as \"+20% from 2 Spore cards\"")
 	dreams.take(lingering)
 	_check(is_equal_approx(dreams.get_status_duration(sporeling, EnemyStatuses.SPORED), base + 3.0 * 1.2), "Lingering Spores: +3 s × 1.2")
-	_check(dreams.resonance_line(lingering) == "+20% from 2 spore cards", "…Dreams this run shows the locked bonus")
+	_check(dreams.resonance_line(lingering) == "+20% from 2 Spore cards", "…Dreams this run shows the locked bonus")
 	dreams.take(_card(dreams, "bitter_sap"))  # Another tag: doesn't change the locked one
 	_check(is_equal_approx(dreams.resonance(lingering), 1.2), "…locked when taken")
 	_check(dreams.resonance_preview(_card(dreams, "deeper_calm")).bonus == 0.0, "untagged cards never resonate")

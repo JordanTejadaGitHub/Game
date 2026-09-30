@@ -7,7 +7,7 @@
 script = ExtResource("1_card")
 id = "dream_old_mountain"
 display_name = "Old Mountain"
-description = "Any stone final form can ascend into Old Mountain (400 Dew, one per run): every 3 s it drops a boulder: Roots what it hits for 0.5 s and always crits on {held} or {drowsy} nightmares."
+description = "Any {family:pebbling}-family final form can ascend into Old Mountain (400 Dew, one per run): every 3 s it drops a boulder: Roots what it hits for 0.5 s and always crits on {held} or {drowsy} nightmares."
 rarity = 3
 kind = 1
 tags = Array[String](["stone"])
