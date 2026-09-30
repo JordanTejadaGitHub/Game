@@ -84,6 +84,8 @@ func _gsheet(file: String, n: int, w: int, h: int, draw: Callable, warden_art: b
 		sheet = _detail_pass(sheet, Vector2i(w, h))  # the palette pass, like every Warden sheet
 	if night:
 		sheet = _warden_night(sheet)  # idle sheets only (Warden Night)
+	if not warden_art:
+		_snap32(sheet)  # effects and extras: the plain 32
 	sheet.save_png(AOUT + file)
 	return sheet
 

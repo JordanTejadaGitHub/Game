@@ -52,12 +52,23 @@ func _sheet(name: String, size: Vector2i, frames: int, fps: float, anchor: Vecto
 		var img := Image.create_empty(size.x, size.y, false, Image.FORMAT_RGBA8)
 		draw.call(img, f)
 		sheet.blit_rect(img, Rect2i(Vector2i.ZERO, size), Vector2i(f * size.x, 0))
+	_snap32(sheet)
 	sheet.save_png(OUT + name + ".png")
 	var entry := {file = name + ".png", frame_size = [size.x, size.y], frames = frames, fps = fps,
 		anchor = [anchor.x, anchor.y], loop = loop, kind = kind}
 	entry.merge(extra)
 	index[name] = entry
 	previews.append([name, sheet, size, frames])
+
+
+# Every effect sheet is snapped to the plain Heartwood 32 before saving (art_direction.md): RGB to
+# the nearest palette colour, alpha kept, so glows and translucency stay palette colours with alpha
+# steps. Warm effects land on the warm ramps, cold ones on the cold ramps.
+const PALETTE_TOOL := "res://tools/art/heartwood_palette.gd"
+
+func _snap32(img: Image) -> void:
+	if ResourceLoader.exists(PALETTE_TOOL):
+		(load(PALETTE_TOOL) as Script).snap_image(img)
 
 # --- Primitives ---------------------------------------------------------------------------------
 
@@ -642,6 +653,7 @@ func _stack_rows(name: String, rows: int) -> void:
 			var img := Image.create_empty(32, 32, false, Image.FORMAT_RGBA8)
 			_flash_row(img, f, Color(colours[r]))
 			sheet.blit_rect(img, Rect2i(0, 0, 32, 32), Vector2i(f * 32, r * 32))
+	_snap32(sheet)
 	sheet.save_png(OUT + name + ".png")
 	for p in previews:
 		if p[0] == name:
