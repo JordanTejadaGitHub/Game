@@ -71,6 +71,21 @@ Target: each family reaches drift 25 alone in **≥ 8 of 10** runs, like the sta
 
 **Sprouts get pricier as you plant** (2026-09-28, user-approved after the first balance batch: a Sprout swarm on a fresh profile was 1.6× the Balanced style with no Sprout cards at all). **Every 5 Sprouts on the map add +3 Dew** to the next Sprout's price (10 for the first 5, then 13, 16, 19…; 40 Sprouts ≈ 34 each). The balance batch (1a4d494) showed +5 per 5 left a Seedfall-less Sprout maze at ×0.20 of Balanced (stalled at ~20 Sprouts, dead by drift 13), so it settled at +3 (2026-09-29). History: +1 per Sprout (too much), then +1 per 5 (user: "very minimal, didn't feel like it changed anything", a run without Seedfall), then this, the user's own suggestion (2026-09-29). Walls should be Thornwalls; Sprouts are the flexible attacker. Selling or growing a Sprout lowers it again. **Seedfall** opens the swarm build: Sprouts cost a **flat 6 and the price never rises** (2026-09-29; balance batch 62af1fd: the swarm at ×1.05 of Balanced, where half-speed rising added nothing). The Warden bar shows the current price. Sprouts planted for free (Seedling Gift charges) don't add to the price.
 
+**Branches: pricier and worth it** (2026-09-30, user: *"I want the tier 2 upgrade to be more
+expensive and more worthwhile; it shouldn't be as easy to upgrade to it"*). Today a branch costs 80
+Dew for only ~1.2–1.5× its base's damage (Firefly Jar 18 DPS → Stormcap ~22 before its chain;
+Sporeling 14 → Driftspore 20; Dewdrop 18 → Rain Lily 28), so players grew everything cheaply.
+- **Grow cost 80 → 120 Dew** (× the usual Dream discounts; the rank difference on growing still
+  applies). Dreamlight unlock unchanged (1).
+- **Power: about 2× its base Warden's damage per second** in its own role, counting its mechanic
+  (a chain's extra jumps, a splash, a status that does damage): each branch's numbers are raised to
+  that line by Tower Code, with its identity kept (Stormcap stays the chain, Mistveil the fog).
+  Support branches (Elder Stump, Dewcatcher, Graftling…) get a matching jump in what they give.
+- Finals stay at **200** Dew (≈1.5× their branch), so the ladder reads 25 → 120 → 200.
+- **A branch should feel like an event:** fewer of them, each one clearly stronger on the DPS tag
+  (the grow preview shows "2.1× damage"). Watch act 1 (fewer early branches) with the first boss
+  sweep, and the Balanced bot's reach at 25.
+
 **Nurture v3: every rank is a choice, no Dream gate** (2026-09-30, user after human run 1, which ended
 with 9,277 Dew unspent because ranks stopped at II: *"ranks III–V for Dew … maybe for the nurture, all
 levels you choose an option"*). Replaces the gate below and the fixed per-rank gains:
