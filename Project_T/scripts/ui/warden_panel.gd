@@ -276,7 +276,7 @@ func _refresh() -> void:
 		note = " (placed this rest: full refund)"
 	elif drift_director.is_build_phase() and _tower.rest_dew > 0:
 		note = " (this rest's %d Dew in full)" % _tower.rest_dew
-	var sell := _add_button("Sell · +%d Dew%s" % [refund, note])
+	var sell := _add_button("Sell · +%d Dew%s (%s)" % [refund, note, tower_seller.sell_key_name()])  # Its hotkey, like Nurture's (R)
 	sell.pressed.connect(func() -> void: tower_seller.sell(_tower.cell))
 	if _tower.tower_data.rooted:
 		sell.text = "Permanent: the Sapling can't be sold or moved"
@@ -412,7 +412,7 @@ func _refresh_group() -> void:
 			button.pressed.connect(func() -> void: tower_seller.nurture_group(tower_seller.selection, which))
 	var refund := tower_seller.get_selection_refund()
 	var in_drift := not drift_director.is_build_phase()
-	var sell := _add_button("Sell %d · +%d Dew%s" % [selection.size(), refund, " (half during a drift)" if in_drift else ""])
+	var sell := _add_button("Sell %d · +%d Dew%s (%s)" % [selection.size(), refund, " (half during a drift)" if in_drift else "", tower_seller.sell_key_name()])
 	if _confirm_sell:
 		sell.text = "Really sell %d while nightmares walk? +%d Dew" % [selection.size(), refund]
 	sell.pressed.connect(_sell_group)
@@ -498,22 +498,13 @@ func _locked_form_button(button: Button, label: String, next: TowerData) -> void
 		button.text = "%s · %s" % [label, blocker]
 	elif not affordable:
 		button.text += " (you have %d)" % dream_state.dreamlight
-	elif _confirm_unlock == next:
-		button.text = "Unlock %s for %d Dreamlight? Click to confirm" % [next.display_name, cost]
 	button.pressed.connect(_on_locked_form.bind(next, affordable and blocker == ""))
 
-func _on_locked_form(next: TowerData, can_unlock_now: bool) -> void:
-	if not can_unlock_now:
-		_confirm_unlock = null
-		dream_state.open_remember(next)
-		return
-	if _confirm_unlock != next:
-		_confirm_unlock = next
-		_refresh()
-		return
+func _on_locked_form(next: TowerData, _can_unlock_now: bool) -> void:
+	# Playtest fix (screens_ui.md 2026-09-30): a form not unlocked yet opens the Remember tree on that node,
+	# where it's unlocked (or shows what it needs first).
 	_confirm_unlock = null
-	dream_state.unlock_with_dreamlight(next)  # Emits unlocks_changed -> refresh
-	_refresh()
+	dream_state.open_remember(next)
 
 # A Nurture price for a button: "40 Dew", or "free" (First Care's free ranks).
 static func _price(dew: int) -> String:

@@ -378,6 +378,10 @@ func get_armed_sell() -> Array:
 		return []
 	return _sell_armed.filter(func(t) -> bool: return is_instance_valid(t))
 
+# The key the Sell button shows ("X", or the rebound one).
+func sell_key_name() -> String:
+	return _sell_key_name()
+
 # The first key bound to sell_tower, for the prompt ("X").
 func _sell_key_name() -> String:
 	for event in InputMap.action_get_events("sell_tower"):
