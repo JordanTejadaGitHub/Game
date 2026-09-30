@@ -230,7 +230,10 @@ func _test_sim_entry() -> void:
 	light = dreams.dreamlight
 	dreams.sim_rest(55, func(offer: Array) -> UpgradeData: return offer[0])
 	_check(dreams.dreamlight == light + 1, "…every rest from drift 51: +1 Dreamlight (the Heartwood wakes)")
-	_check(DreamState.sim_dreamlight_for(&"first") == 1 and DreamState.sim_dreamlight_for(&"boss") == DreamState.BOSS_DREAMLIGHT, "sim_dreamlight_for")
+	_check(dreams.sim_dreamlight_for(&"first") == 1 and dreams.sim_dreamlight_for(&"boss") == DreamState.BOSS_DREAMLIGHT, "sim_dreamlight_for")
+	dreams.first_pick_dreamlight = 0
+	_check(dreams.sim_dreamlight_for(&"first") == 0, "…first_pick_dreamlight 0 (Blight 2): none")
+	dreams.first_pick_dreamlight = DreamState.FIRST_PICK_DREAMLIGHT
 	_reset()
 
 # The balance bot's Dream / family / Dreamlight / Omen policies (balance_simulation.md "Bot rules").
