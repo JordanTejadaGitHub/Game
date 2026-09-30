@@ -88,6 +88,8 @@ const HARVEST_WINDOW_MS := 4000  # Pours within this of the first belong to the 
 # Close calls: a soft tension cue, one per 2 s at most (like the Heartwood's tremble).
 const CLOSE_CALL_DB := -8.0
 const BOSS_REVEAL_DB := -4.0  # The boss card's sting (UI bus)
+const BOSS_DRAIN_DB := 1.0  # A boss draining the Heartwood: leaf lost, heavier
+const BOSS_DRAIN_PITCH := 0.8
 const FINAL_BLOOM_DB := -4.0  # A final form's first bloom per run
 const FINAL_SIGNATURE_DELAY := 0.9  # Then the new form's hit, as its signature
 const REMEMBER_DB := -4.0  # The Remember screen (UI bus)
@@ -161,6 +163,12 @@ func _ready() -> void:
 	enemy_container.enemy_reached_goal.connect(func(_enemy: Node2D) -> void:
 		sound.duck(8.0, 1.0)
 		sound.play(&"leaf_lost", null, 0.0, 1.0, 0.03))
+	# A boss at the Heartwood drains a leaf every 2 s until dispelled (Enemy Code cfd21fe5): the leaf-lost
+	# sound, lower and heavier, with a lighter duck so the music doesn't pump every 2 s.
+	if enemy_container.has_signal("boss_drained"):
+		enemy_container.boss_drained.connect(func(_enemy: Node2D, _leaves: int) -> void:
+			sound.duck(4.0, 0.6)
+			sound.play(&"leaf_lost", null, BOSS_DRAIN_DB, BOSS_DRAIN_PITCH, 0.02))
 	enemy_container.enemy_split.connect(func(parent: Node2D, child: Node2D) -> void:
 		if parent.is_cleansed:  # Followers (Wraiths) also come through here; only real splits crack
 			sound.play(&"split", child.global_position, -4.0))
