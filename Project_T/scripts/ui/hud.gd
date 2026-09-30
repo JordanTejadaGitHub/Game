@@ -149,6 +149,7 @@ func _ready() -> void:
 	clears_label.offset_bottom = clears_label.offset_top + (path_label.offset_bottom - path_label.offset_top)
 	clears_label.tooltip_text = "Half-price clears: tending a tree or moving a rock costs half (never less than half its base price)."
 	add_child(clears_label)
+	_clears_label = clears_label
 	var update_clears := func(n: int) -> void:
 		clears_label.text = "Half-price clears %d" % n
 		clears_label.visible = n > 0
@@ -165,7 +166,7 @@ func _ready() -> void:
 	_add_counter_icon(dew_label, &"dew", 2)
 	_add_counter_icon(get_node("DreamlightLabel"), &"dreamlight", 2)
 	_add_counter_icon(leaves_label, &"leaves", 2)
-	_add_counter_icon(%PathLabel, &"path_length", 1)
+	_add_counter_icon(%PathLabel, &"path_length", 2)
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("buff_lens"):  # V: the buff lens on / off (a toggle, for touch too)
@@ -344,7 +345,7 @@ func _on_dew_short() -> void:
 func _add_menu_button() -> void:
 	var button := Button.new()
 	button.name = "MenuButton"
-	button.text = "Menu"
+	button.text = "≡"  # An icon button; the name is in the tooltip (Moonlit mock)
 	button.tooltip_text = "Pause menu (Esc)"
 	button.focus_mode = Control.FOCUS_NONE
 	_place_top_button(button, MENU_SLOT)
@@ -462,8 +463,8 @@ func _style_resources() -> void:
 	add_child(fog)
 	move_child(fog, 0)
 	UiStyle.number(dew_label, 28, DEW_COLOR)
-	UiStyle.number(leaves_label, 22, LEAVES_COLOR)
-	UiStyle.number(%PathLabel, 18, UiStyle.INK_DIM)
+	UiStyle.number(leaves_label, 28, LEAVES_COLOR)
+	UiStyle.number(%PathLabel, 28, UiStyle.INK_DIM)
 	for label: Label in [dew_label, leaves_label, %PathLabel]:
 		label.add_theme_color_override("font_outline_color", UiStyle.FOG)
 		label.add_theme_constant_override("outline_size", 4)
@@ -495,7 +496,7 @@ var _remember_glow := 0.0
 
 func _add_remember_button() -> void:
 	remember_button.name = "RememberButton"
-	remember_button.text = "Remember"
+	remember_button.text = "✦"
 	remember_button.tooltip_text = "Remember: spend Dreamlight on your families' branches and final forms."
 	remember_button.focus_mode = Control.FOCUS_NONE
 	_place_top_button(remember_button, REMEMBER_SLOT)
@@ -508,8 +509,9 @@ var buff_lens_button := Button.new()
 func _add_buff_lens_button() -> void:
 	BuffLens.set_on(get_tree(), false)  # A new run starts with the lens off
 	buff_lens_button.name = "BuffLensButton"
-	buff_lens_button.text = "Buffs"
-	buff_lens_button.tooltip_text = "Buff lens (%s)" % _action_key("buff_lens")
+	buff_lens_button.text = ""
+	buff_lens_button.icon = IconInfo.icon(&"rank")  # Boosts: an up-chevron
+	buff_lens_button.tooltip_text = "Boosts (%s): show which Wardens are boosted, and by what." % _action_key("buff_lens")
 	buff_lens_button.toggle_mode = true
 	buff_lens_button.focus_mode = Control.FOCUS_NONE
 	_place_top_button(buff_lens_button, BUFFS_SLOT)
@@ -534,18 +536,93 @@ func _place_top_button(button: Button, slot: Array) -> void:
 # The row under the resources (user 2026-09-30, screens_ui.md): right-aligned with the resources'
 # right edge, packed right to left in TOP_ROW order so hidden buttons leave no gap; Remember ends up
 # nearest the Dreamlight counter above it.
-const TOP_ROW := ["MenuButton", "CodexButton", "BuffLensButton", "RememberButton"]
+const TOP_ROW := ["MenuButton", "CodexButton", "BuffLensButton", "RememberButton"]  # Right to left
 const TOP_ROW_GAP := 6.0
+# The top-right row as in the Moonlit Thread mock (screens_ui.md "Top-right layout, as in the Moonlit
+# Thread mock-up"): leaves · Dew · Dreamlight · path (icon + a big Cormorant number), then the icon
+# buttons Remember ✦ · Boosts · ? · ≡, all on one soft fog patch. When the buttons would run into the
+# drift banner's text (1280 wide), they wrap onto a second line inside the same patch. The nodes stay
+# direct HUD children (laid out here), so %DewLabel / HUD/MenuButton paths keep working.
+const ROW_RIGHT := -16.0
+const ROW_TOP := 12.0
+const ROW_H := 48.0
+const ROW_GAP := 18.0  # Between counters (the mock)
+const ROW_PAD := 10.0  # The fog patch around the row
+const BANNER_CLEARANCE := 16.0
+const ROW_BUTTON := 48.0  # Touch-sized (platforms.md); the icon inside is drawn smaller
+var row_wrapped := false  # The buttons sit on a second line (tests)
+var _clears_label: Label
+var _row_key := ""
+var _row_check := 0.0
+
 func _layout_top_row() -> void:
-	var right := MENU_SLOT[0]
+	if not is_inside_tree():
+		return
+	var counters: Array = [%PathLabel, get_node_or_null("DreamlightLabel"), dew_label, leaves_label]  # Right to left
+	counters = counters.filter(func(c) -> bool: return c != null)
+	var widths := {}
+	var counters_w := 0.0
+	for label: Label in counters:
+		var icon: TextureRect = _counter_icons.get(label)
+		var text_w := label.get_theme_font("font").get_string_size(label.text, HORIZONTAL_ALIGNMENT_LEFT, -1,
+			label.get_theme_font_size("font_size")).x
+		widths[label] = ceilf(text_w + (icon.size.x + COUNTER_ICON_GAP if icon != null else 0.0) + 2.0)
+		counters_w += widths[label]
+	counters_w += ROW_GAP * (counters.size() - 1)
+	var buttons: Array = []
 	for name in TOP_ROW:
 		var button := get_node_or_null(name) as Button
-		if button == null or not button.visible:
-			continue
-		var width: float = button.get_meta(&"top_width", 64.0)
-		button.offset_right = right
-		button.offset_left = right - width
-		right -= width + TOP_ROW_GAP
+		if button != null and button.visible:
+			buttons.append(button)
+	var buttons_w := buttons.size() * ROW_BUTTON + maxf(buttons.size() - 1, 0) * TOP_ROW_GAP
+	var screen_w := get_viewport().get_visible_rect().size.x
+	var banner := get_node_or_null("DriftBanner") as Control
+	var banner_right := 0.0
+	if banner != null and banner.has_method("drawn_rect") and banner.visible:
+		banner_right = banner.drawn_rect().end.x
+	var one_line_w := counters_w + (ROW_GAP + buttons_w if not buttons.is_empty() else 0.0)
+	row_wrapped = screen_w + ROW_RIGHT - one_line_w - ROW_PAD < banner_right + BANNER_CLEARANCE
+	# Buttons: right end of line 1, or line 2 when wrapped.
+	var x := ROW_RIGHT
+	var button_top := ROW_TOP + (ROW_H + 4.0 if row_wrapped else 0.0)
+	for button: Button in buttons:
+		button.offset_right = x
+		button.offset_left = x - ROW_BUTTON
+		button.offset_top = button_top
+		button.offset_bottom = button_top + ROW_BUTTON
+		x -= ROW_BUTTON + TOP_ROW_GAP
+	# Counters: left of the buttons on one line, or from the right edge on line 1.
+	x = (x - ROW_GAP + TOP_ROW_GAP) if not row_wrapped and not buttons.is_empty() else ROW_RIGHT
+	var left := x
+	for label: Label in counters:
+		label.set_anchors_preset(Control.PRESET_TOP_RIGHT)
+		label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+		label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		label.offset_right = x
+		label.offset_left = x - widths[label]
+		label.offset_top = ROW_TOP
+		label.offset_bottom = ROW_TOP + ROW_H
+		left = label.offset_left
+		x = label.offset_left - ROW_GAP
+		_place_counter_icon.call_deferred(label)
+	if not buttons.is_empty():
+		left = minf(left, buttons[buttons.size() - 1].offset_left)
+	var bottom := button_top + ROW_BUTTON if not buttons.is_empty() else ROW_TOP + ROW_H
+	var fog := get_node_or_null("ResourcesFog") as Control
+	if fog != null:
+		fog.offset_left = left - ROW_PAD
+		fog.offset_right = ROW_RIGHT + ROW_PAD - 4.0
+		fog.offset_top = ROW_TOP - ROW_PAD + 4.0
+		fog.offset_bottom = bottom + ROW_PAD - 2.0
+	if _clears_label != null:  # The half-price clears counter: just under the row
+		_clears_label.offset_top = bottom + 6.0
+		_clears_label.offset_bottom = bottom + 34.0
+
+# The row's global rect (the fog patch), for tests and the banner check.
+func resource_row_rect() -> Rect2:
+	var fog := get_node_or_null("ResourcesFog") as Control
+	return fog.get_global_rect() if fog != null else Rect2()
+
 
 func _action_key(action: String) -> String:
 	for event in InputMap.action_get_events(action) if InputMap.has_action(action) else []:
@@ -582,8 +659,18 @@ func _process(delta: float) -> void:
 	_remember_check -= real
 	if _remember_check <= 0.0:  # can_unlock walks every family's tree: 4 times a second is plenty
 		_remember_check = 0.25
-		_remember_ready = can_remember_something()
-		remember_button.text = "Remember ✦" if _remember_ready else "Remember"
+		_remember_ready = can_remember_something()  # ✦ glows (below) when Dreamlight can buy something
+	_row_check -= real
+	if _row_check <= 0.0:  # The top-right row follows its numbers, buttons and the banner (cheap key)
+		_row_check = 0.2
+		var banner := get_node_or_null("DriftBanner")
+		var key := "%s|%s|%s|%s|%s|%s|%d" % [leaves_label.text, dew_label.text, %PathLabel.text,
+			(get_node("DreamlightLabel") as Label).text, buff_lens_button.visible,
+			banner.drawn_width() if banner != null and banner.has_method("drawn_width") else 0.0,
+			get_viewport().get_visible_rect().size.x]
+		if key != _row_key:
+			_row_key = key
+			_layout_top_row()
 	_remember_glow += real
 	remember_button.modulate = Color.WHITE.lerp(Color(1.35, 1.2, 0.8), 0.5 + 0.5 * sin(_remember_glow * 4.0)) \
 		if _remember_ready else Color.WHITE  # A multiplier (glow pulse)

@@ -48,6 +48,28 @@ func _process(delta: float) -> void:
 	_since_redraw = 0.0
 	queue_redraw()
 
+# The width its drawing takes (centred in its rect): the widest of the top line and the pips + next
+# boss line, or its boss bar. The HUD keeps the top-right row clear of it.
+func drawn_width() -> float:
+	var font := UiStyle.display_font()
+	var latest := drift_director.drifts_started
+	var total := drift_director.get_total_drifts()
+	var shown := mini(latest + 1 if drift_director.is_resting() else maxi(latest, 1), total)
+	var act := drift_director.get_act(shown)
+	var top := "Act %d · %s      %s" % [act, drift_director.get_act_name(act), get_drift_text()]
+	var width := font.get_string_size(top, HORIZONTAL_ALIGNMENT_LEFT, -1, FONT_SIZE).x
+	var pips := (drift_director.drifts_per_block - 1) * PIP_RADIUS * 3.0 + PIP_RADIUS * 2.0
+	var boss_text := _next_boss_text(latest)
+	if boss_text != "":
+		pips += BOSS_GAP + DISC_RADIUS * 2.0 + 8.0 + font.get_string_size(boss_text, HORIZONTAL_ALIGNMENT_LEFT, -1, BOSS_FONT_SIZE).x
+	return maxf(width, pips)
+
+# Its drawn area in global coordinates (centred in the rect).
+func drawn_rect() -> Rect2:
+	var rect := get_global_rect()
+	var width := minf(drawn_width(), rect.size.x) if rect.size.x > 0.0 else drawn_width()
+	return Rect2(rect.get_center().x - width / 2.0, rect.position.y, width, rect.size.y)
+
 func _draw() -> void:
 	var font := UiStyle.display_font()  # Moonlit Thread (ui_style.md)
 	var center_x := size.x / 2.0
