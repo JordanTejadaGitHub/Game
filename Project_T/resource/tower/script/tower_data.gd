@@ -198,13 +198,6 @@ const ASCENDED_JSON := "res://assets/towers/ascended/ascended.json"  # 128×128 
 @export var cloud_drowsy_per_second: float = 0.0  # …and gain Drowsy at this rate
 
 @export_group("Pop")
-# Puffball: when a hit leaves a nightmare with pop_at_stacks+ Spored, it pops: pop_damage_per_stack
-# × stacks to it and every nightmare within pop_radius cells (area, never crits), its stacks are used
-# up, and half of them drift on to up to pop_spread_targets nearby nightmares. 0 = never pops.
-@export var pop_at_stacks: int = 0
-@export var pop_damage_per_stack: float = 6.0
-@export var pop_radius: float = 1.0
-@export var pop_spread_targets: int = 3
 
 @export_group("Freeze")
 # Hits on nightmares with `freeze_needs` (empty = any) Hold them for freeze_duration s, at most
