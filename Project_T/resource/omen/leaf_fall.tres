@@ -9,4 +9,4 @@ display_name = "Leaf Fall"
 description = "Every leak costs double leaves (a boss's leak costs 10)."
 kind = 1
 leak_multiplier = 2.0
-reward_max_leaves = 2
+reward_max_leaves = 3

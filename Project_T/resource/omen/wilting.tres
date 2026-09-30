@@ -6,7 +6,8 @@
 script = ExtResource("1_omen")
 id = "wilting"
 display_name = "Wilting"
-description = "Every Warden attacks 15% slower."
+description = "Every Warden attacks 22% slower."
 kind = 1
-warden_attack_speed_multiplier = 0.85
+warden_attack_speed_multiplier = 0.78
 reward_dreamlight = 1
+reward_dew = 30

@@ -6,6 +6,6 @@
 script = ExtResource("1_omen")
 id = "swift_stream"
 display_name = "Swift Stream"
-description = "Nightmares walk 15% faster."
-speed_multiplier = 1.15
-reward_seeds = 3
+description = "Nightmares walk 25% faster."
+speed_multiplier = 1.25
+reward_seeds = 5
