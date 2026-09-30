@@ -8,9 +8,9 @@ const CARD_PADDING := 24.0  # The box's top + bottom offsets inside a card
 const SECONDARY_SIZE := 12  # Entwined / Deepened / "Needs Dewdrop" lines
 const SECONDARY_MIN_SIZE := 10
 const SCREEN_MARGIN := 240.0  # Title, buttons and gaps around the cards
-const ENTWINED_COLOR := Color(0.45, 0.8, 0.4)  # Vine border
-const DEEPENED_COLOR := Color(0.6, 0.85, 1.0)
-const BITTERSWEET_COLOR := Color(0.72, 0.5, 0.68)  # Muted plum, for the cost line
+const ENTWINED_COLOR := Palette.SPRIG  # Vine border
+const DEEPENED_COLOR := Palette.DEWLIGHT
+const BITTERSWEET_COLOR := UiStyle.POOR  # The cost line: Ember, the palette's "bad" colour
 const SEED_COLOR := Color("d4ec9c")  # Heartwood 32 "Newleaf": what a Seed card grows into
 
 @onready var dream_state: DreamState = %DreamState

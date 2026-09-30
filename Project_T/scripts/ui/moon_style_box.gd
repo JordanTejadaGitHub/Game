@@ -54,7 +54,7 @@ func _draw(to_canvas_item: RID, rect: Rect2) -> void:
 		_base.set_corner_radius_all(corner_radius)
 		_base.anti_aliasing = corner_radius > 0
 		if shadow_size > 0:
-			_base.shadow_color = Color(0, 0, 0, 0.45)
+			_base.shadow_color = Color(UiStyle.FOG, 0.45)
 			_base.shadow_size = shadow_size
 			_base.shadow_offset = Vector2(0, shadow_size * 0.6)
 	_base.draw(to_canvas_item, rect)
@@ -64,7 +64,7 @@ func _draw(to_canvas_item: RID, rect: Rect2) -> void:
 		rs.canvas_item_add_texture_rect(to_canvas_item, rect, _radial_texture().get_rid(), false,
 			Color(glow_color if glow_color.a > 0.0 else fog_color, extra))
 	if side_edges:
-		var edge := Color(1, 1, 1, 0.05)
+		var edge := Color(UiStyle.INK, 0.05)
 		rs.canvas_item_add_line(to_canvas_item, Vector2(rect.position.x + 0.5, rect.position.y),
 			Vector2(rect.position.x + 0.5, rect.end.y), edge)
 		rs.canvas_item_add_line(to_canvas_item, Vector2(rect.end.x - 0.5, rect.position.y),

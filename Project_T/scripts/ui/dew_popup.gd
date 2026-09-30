@@ -5,7 +5,7 @@ class_name DewPopup
 
 const RISE := 36.0  # Pixels it floats up
 const DURATION := 0.9
-const COLOR := Color(0.55, 0.85, 1.0)
+const COLOR := Palette.DEWLIGHT
 
 var _text: String
 var _color := COLOR

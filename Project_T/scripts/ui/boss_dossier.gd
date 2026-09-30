@@ -20,9 +20,9 @@ const GROUP := &"boss_dossier"
 const RECORDS_KEY := "boss_records"  # Profile: {kind: {"dispelled": n, "best": seconds}}
 const WIDTH := 600.0
 const BOSS_COLOR := UiStyle.BOSS  # Heartwood 32 (ui_style.md)
-const TITLE_COLOR := Color(1.0, 0.85, 0.75)
-const WHISPER_COLOR := Color(0.75, 0.9, 0.8)
-const SECTION_COLOR := Color(0.95, 0.8, 0.55)
+const TITLE_COLOR := UiStyle.WHISPER
+const WHISPER_COLOR := UiStyle.WHISPER
+const SECTION_COLOR := UiStyle.GOLD
 const DEFAULT_WHISPER := "Something old has found the dream."
 const OPEN_DELAY := 0.35  # Seconds after the rest starts before checking the rest's screens
 const WHISPER_PATIENCE := 8.0  # Most seconds it waits for onboarding whispers to finish
@@ -58,7 +58,7 @@ func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	visible = false
 	var shade := ColorRect.new()
-	shade.color = Color(0.02, 0.02, 0.05, 0.6)
+	shade.color = Color(UiStyle.FOG, 0.6)
 	shade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)  # Offsets too: exactly the screen
 	shade.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(shade)
@@ -387,7 +387,7 @@ func _stat(caption: String, value: String, tip: String) -> Control:
 	var top := Label.new()
 	top.text = caption
 	top.add_theme_font_size_override("font_size", 13)
-	top.add_theme_color_override("font_color", Color(0.7, 0.72, 0.7))
+	top.add_theme_color_override("font_color", UiStyle.INK_DIM)
 	box.add_child(top)
 	var number := Label.new()
 	number.text = value

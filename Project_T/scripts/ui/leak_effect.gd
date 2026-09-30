@@ -36,8 +36,8 @@ func _process(delta: float) -> void:
 func _draw() -> void:
 	for age in _pulses:
 		var t: float = age / PULSE_TIME
-		draw_circle(Vector2.ZERO, PULSE_RADIUS * t, Color(0.05, 0.02, 0.1, 0.35 * (1.0 - t)))
-		draw_arc(Vector2.ZERO, PULSE_RADIUS * t, 0.0, TAU, 40, Color(0.35, 0.1, 0.4, 0.8 * (1.0 - t)), 3.0)
+		draw_circle(Vector2.ZERO, PULSE_RADIUS * t, Color(Palette.DREAD, 0.35 * (1.0 - t)))
+		draw_arc(Vector2.ZERO, PULSE_RADIUS * t, 0.0, TAU, 40, Color(Palette.BRUISE, 0.8 * (1.0 - t)), 3.0)
 	for leaf in _leaves:
 		var t: float = leaf[0] / LEAF_TIME
 		var at := Vector2(sin(t * 7.0) * 14.0 + leaf[1] * 20.0 * t, -40.0 + 80.0 * t)
@@ -46,4 +46,4 @@ func _draw() -> void:
 		for j in 8:
 			var angle := TAU * j / 8.0
 			points.append(at + Vector2(cos(angle) * 7.0, sin(angle) * 3.5).rotated(tilt))
-		draw_colored_polygon(points, Color(0.08, 0.06, 0.08, 1.0 - t * t))
+		draw_colored_polygon(points, Color(Palette.DREAD, 1.0 - t * t))

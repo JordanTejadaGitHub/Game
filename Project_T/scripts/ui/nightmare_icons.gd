@@ -21,11 +21,11 @@ const TOWER_DIR := "res://resource/tower/"
 # How a line reads in a sentence ("stone Wardens deal half damage to it").
 const LINE_WORDS := {"acorn": "Acorn", "support": "Acorn"}
 
-const RESIST_COLOR := Color(0.62, 0.65, 0.7)
-const WEAK_COLOR := Color(1.0, 0.72, 0.35)
-const IMMUNE_COLOR := Color(0.95, 0.35, 0.3)
-const DISC_COLOR := Color(0.07, 0.08, 0.1, 0.9)
-const GLYPH_COLOR := Color(0.88, 0.86, 0.95)
+const RESIST_COLOR := UiStyle.INK_DIM
+const WEAK_COLOR := Palette.GOLD
+const IMMUNE_COLOR := UiStyle.POOR
+const DISC_COLOR := Color(Palette.DREAD, 0.9)
+const GLYPH_COLOR := UiStyle.MOONLIGHT
 
 # Traits: id -> [name, what it means]. The first ones are EnemyData.get_defences()' trait ids (Enemy
 # Code); the rest are read from other EnemyData fields by traits_of(). Boss ability icons
@@ -276,7 +276,7 @@ func _draw_family() -> void:
 	var r := minf(size.x, size.y) / 2.0 - 1.0
 	var frame := RESIST_COLOR if mode == &"resist" else WEAK_COLOR
 	var type_colour := IconInfo.damage_type_color(id)
-	draw_circle(c, r, Color(0.12, 0.13, 0.16) if mode == &"resist" else Color(0.2, 0.14, 0.08))
+	draw_circle(c, r, Palette.NIGHT if mode == &"resist" else Palette.ROOT)
 	if _face != null:  # The damage type's pixel-art icon, whole-number scaled
 		var scale := maxf(floorf(r * 1.6 / 16.0), 1.0)
 		var side := Vector2(16, 16) * scale
@@ -287,7 +287,7 @@ func _draw_family() -> void:
 		var letter := IconInfo.damage_type_name(id).left(1)
 		var fs := int(r * 1.0)
 		var w := font.get_string_size(letter, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x
-		draw_string(font, c + Vector2(-w / 2.0, fs * 0.36), letter, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, Color(0.08, 0.08, 0.1))
+		draw_string(font, c + Vector2(-w / 2.0, fs * 0.36), letter, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, Palette.DREAD)
 	draw_arc(c, r, 0.0, TAU, 28, frame, 2.0, true)
 	# The badge, bottom right: a small shield (resists) or a four-point spark (weak).
 	var b := c + Vector2(r * 0.62, r * 0.62)
@@ -296,9 +296,9 @@ func _draw_family() -> void:
 		var shield := PackedVector2Array([b + Vector2(-s, -s), b + Vector2(s, -s), b + Vector2(s, 0.1 * s),
 			b + Vector2(0, s * 1.1), b + Vector2(-s, 0.1 * s)])
 		draw_colored_polygon(shield, RESIST_COLOR)
-		draw_polyline(shield + PackedVector2Array([shield[0]]), Color(0.1, 0.1, 0.12), 1.0)
+		draw_polyline(shield + PackedVector2Array([shield[0]]), Palette.ROOT, 1.0)
 	else:
-		draw_circle(b, s * 0.9, Color(0.2, 0.12, 0.05))
+		draw_circle(b, s * 0.9, Palette.ROOT)
 		var spark := PackedVector2Array()
 		for i in 8:
 			spark.append(b + Vector2.from_angle(TAU * i / 8.0 - PI / 2.0) * (s * 1.1 if i % 2 == 0 else s * 0.35))
@@ -313,21 +313,21 @@ func _draw_status() -> void:
 		var scale := maxf(floorf((r * 2.0 - 4.0) / 16.0), 1.0)
 		var side := Vector2(16, 16) * scale
 		draw_texture_rect(art, Rect2(c - side / 2.0, side), false,
-			Color(0.75, 0.75, 0.78) if mode == &"immune" else Color.WHITE)
+			UiStyle.INK_DIM if mode == &"immune" else UiStyle.INK)
 	else:
-		draw_circle(c, r * 0.4, EnemyStatuses.COLORS.get(StringName(id), Color.WHITE))
+		draw_circle(c, r * 0.4, EnemyStatuses.COLORS.get(StringName(id), UiStyle.INK))
 	if mode == &"immune":  # Crossed out
 		var d := Vector2(r * 0.7, r * 0.7)
-		draw_line(c - d, c + d, Color(0.08, 0.05, 0.05), 5.0, true)
+		draw_line(c - d, c + d, Palette.DREAD, 5.0, true)
 		draw_line(c - d, c + d, IMMUNE_COLOR, 3.0, true)
 		draw_arc(c, r - 1.5, 0.0, TAU, 28, IMMUNE_COLOR, 2.0, true)
 	else:  # "½"
 		var font := ThemeDB.fallback_font
 		var fs := int(maxf(r * 0.8, 10.0))
 		var at := c + Vector2(r * 0.15, r * 0.95)
-		draw_string_outline(font, at, "½", HORIZONTAL_ALIGNMENT_LEFT, -1, fs, 4, Color(0.05, 0.05, 0.08))
-		draw_string(font, at, "½", HORIZONTAL_ALIGNMENT_LEFT, -1, fs, Color(1.0, 0.85, 0.5))
-		draw_arc(c, r - 1.5, 0.0, TAU, 28, Color(1.0, 0.85, 0.5, 0.8), 1.5, true)
+		draw_string_outline(font, at, "½", HORIZONTAL_ALIGNMENT_LEFT, -1, fs, 4, Palette.DREAD)
+		draw_string(font, at, "½", HORIZONTAL_ALIGNMENT_LEFT, -1, fs, UiStyle.GOLD)
+		draw_arc(c, r - 1.5, 0.0, TAU, 28, Color(UiStyle.GOLD, 0.8), 1.5, true)
 
 func _draw_trait() -> void:
 	var c := size / 2.0
@@ -387,7 +387,7 @@ static func draw_glyph(canvas: CanvasItem, glyph: StringName, c: Vector2, s: flo
 			canvas.draw_circle(c, s * 0.3, colour)
 		&"ash":  # A flame
 			canvas.draw_colored_polygon(PackedVector2Array([c + Vector2(0, -s), c + Vector2(s * 0.6, s * 0.3),
-				c + Vector2(0, s), c + Vector2(-s * 0.6, s * 0.3)]), Color(1.0, 0.55, 0.3))
+				c + Vector2(0, s), c + Vector2(-s * 0.6, s * 0.3)]), Palette.WRAITHLIGHT)  # Cold ghost-fire: no warm colour on a nightmare
 		&"always_damp", &"damp":
 			var art := IconInfo.icon(&"damp")
 			if art != null:
@@ -398,8 +398,8 @@ static func draw_glyph(canvas: CanvasItem, glyph: StringName, c: Vector2, s: flo
 			canvas.draw_line(c + Vector2(s * 0.4, s * 0.5), c + Vector2(s, 0), colour, w)
 			canvas.draw_line(c + Vector2(-s * 0.4, -s), c + Vector2(-s * 0.4, s), Color(colour, 0.5), w)
 		&"thief":  # A drop with a minus
-			canvas.draw_circle(c + Vector2(0, s * 0.25), s * 0.6, Color(0.6, 0.85, 1.0))
-			canvas.draw_line(c + Vector2(-s * 0.35, s * 0.25), c + Vector2(s * 0.35, s * 0.25), Color(0.1, 0.1, 0.15), w)
+			canvas.draw_circle(c + Vector2(0, s * 0.25), s * 0.6, Palette.DEWLIGHT)
+			canvas.draw_line(c + Vector2(-s * 0.35, s * 0.25), c + Vector2(s * 0.35, s * 0.25), Palette.ROOT, w)
 		&"splits", &"sapling", &"rises":
 			canvas.draw_circle(c + Vector2(-s * 0.45, 0), s * 0.45, colour)
 			canvas.draw_circle(c + Vector2(s * 0.5, -s * 0.2), s * 0.35, colour)

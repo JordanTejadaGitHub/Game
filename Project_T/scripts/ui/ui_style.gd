@@ -247,7 +247,7 @@ static func primary_box(hover: bool = false) -> StyleBoxFlat:
 # shows only a GOLD border and gold text, no fill; hover fills the whole box with a soft highlight;
 # a press darkens it. Godot's "pressed" style is both "toggled on" and "held", so it's the gold border
 # on a darker fog: selected reads as the border, a held press as the darkening.
-const HOVER_FILL := Color(0.86, 0.9, 0.96, 0.16)  # The soft highlight (moonlight over the fog)
+const HOVER_FILL := Color(MOONLIGHT, 0.16)  # The soft highlight (moonlight over the fog)
 static func selected_box() -> StyleBoxFlat:
 	var box := button_box()
 	box.bg_color = Color(FOG, 0.7)
@@ -535,7 +535,7 @@ static func make_theme() -> Theme:
 	theme.set_font("font", "WhisperLabel", whisper_font())
 	theme.set_font_size("font_size", "WhisperLabel", 20)
 	theme.set_color("font_color", "WhisperLabel", WHISPER)
-	theme.set_color("font_shadow_color", "WhisperLabel", Color(0, 0, 0, 0.9))
+	theme.set_color("font_shadow_color", "WhisperLabel", Color(FOG, 0.9))
 	theme.set_type_variation("FogPatch", "PanelContainer")
 	theme.set_stylebox("panel", "FogPatch", fog_patch())
 	return theme
@@ -556,9 +556,9 @@ static func _button_styles(theme: Theme, type: String, normal: StyleBox, hover: 
 
 static func _font_colours(theme: Theme, type: String) -> void:
 	theme.set_color("font_color", type, INK)
-	theme.set_color("font_hover_color", type, Color.WHITE)
+	theme.set_color("font_hover_color", type, INK)
 	theme.set_color("font_focus_color", type, INK)
 	theme.set_color("font_pressed_color", type, INK)
-	theme.set_color("font_hover_pressed_color", type, Color.WHITE)
+	theme.set_color("font_hover_pressed_color", type, INK)
 	theme.set_color("font_disabled_color", type, Color(INK, DISABLED_ALPHA))
 	theme.set_color("icon_disabled_color", type, Color(1, 1, 1, DISABLED_ALPHA))

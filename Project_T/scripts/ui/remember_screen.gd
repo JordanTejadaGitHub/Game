@@ -635,7 +635,7 @@ class Portrait extends TextureRect:
 			_atlas.region = _crop()
 			texture = _atlas
 		if silhouette:
-			self_modulate = Color(0, 0, 0, 0.85)
+			self_modulate = Color(0, 0, 0, 0.85)  # A multiplier (darkens the art)
 
 	# An Ascended form (tier 4) is taller than 64 px: its whole frame, crown and all, scaled into the
 	# disc like the others (screens_ui.md "Playtest fixes"); the rest show their bottom 64 px.

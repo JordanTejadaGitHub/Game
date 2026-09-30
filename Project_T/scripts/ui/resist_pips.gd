@@ -118,23 +118,23 @@ func _draw_shield(at: Vector2) -> void:
 	var shield := PackedVector2Array([at + Vector2(-s, -s), at + Vector2(s, -s), at + Vector2(s, 0.15 * s),
 		at + Vector2(0, s * 1.2), at + Vector2(-s, 0.15 * s)])
 	draw_colored_polygon(shield, NightmareIcons.RESIST_COLOR)
-	draw_polyline(shield + PackedVector2Array([shield[0]]), Color(0.08, 0.08, 0.1), 1.0)
+	draw_polyline(shield + PackedVector2Array([shield[0]]), Palette.DREAD, 1.0)
 
 func _draw_spark(at: Vector2) -> void:
 	var s := PIP_SIZE * 1.2
-	draw_circle(at, s * 0.8, Color(0.15, 0.09, 0.04, 0.85))
+	draw_circle(at, s * 0.8, Color(Palette.ROOT, 0.85))
 	var spark := PackedVector2Array()
 	for i in 8:
 		spark.append(at + Vector2.from_angle(TAU * i / 8.0 - PI / 2.0) * (s if i % 2 == 0 else s * 0.35))
 	draw_colored_polygon(spark, NightmareIcons.WEAK_COLOR)
 
 func _draw_crossed(at: Vector2, status: StringName, alpha: float) -> void:
-	draw_circle(at, 11.0, Color(0.07, 0.05, 0.06, 0.85 * alpha))
+	draw_circle(at, 11.0, Color(Palette.DREAD, 0.85 * alpha))
 	var art := IconInfo.icon(status)
 	if art != null:
 		draw_texture_rect(art, Rect2(at - Vector2(8, 8), Vector2(16, 16)), false, Color(1, 1, 1, alpha))
 	else:
-		draw_circle(at, 5.0, Color(EnemyStatuses.COLORS.get(status, Color.WHITE), alpha))
+		draw_circle(at, 5.0, Color(EnemyStatuses.COLORS.get(status, UiStyle.INK), alpha))
 	var d := Vector2(7.5, 7.5)
 	draw_line(at - d, at + d, Color(NightmareIcons.IMMUNE_COLOR, alpha), 2.5, true)
 	draw_arc(at, 11.0, 0.0, TAU, 20, Color(NightmareIcons.IMMUNE_COLOR, alpha), 1.5, true)

@@ -75,7 +75,7 @@ func _pick(event: DamageLog.Event) -> StringName:
 func _colour(source: Node) -> Color:
 	var tower := source as Tower
 	if tower == null or not is_instance_valid(tower):
-		return Color(1.0, 0.95, 0.7)
+		return UiStyle.INK
 	return tower.tower_data.projectile_color.lightened(0.25)
 
 func _process(delta: float) -> void:
@@ -102,6 +102,6 @@ func _draw() -> void:
 		var width := font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, size).x
 		var at: Vector2 = callout[4] + Vector2(-width / 2.0, -46.0 - 18.0 * t)
 		WorldLabel.begin_screen_size(self, callout[4])  # Keeps its screen size when zoomed in
-		draw_string_outline(font, at, text, HORIZONTAL_ALIGNMENT_LEFT, -1, size, 5, Color(0.05, 0.05, 0.08, alpha))
+		draw_string_outline(font, at, text, HORIZONTAL_ALIGNMENT_LEFT, -1, size, 5, Color(Palette.DREAD, alpha))
 		draw_string(font, at, text, HORIZONTAL_ALIGNMENT_LEFT, -1, size, Color(callout[2], alpha))
 		WorldLabel.end_screen_size(self)

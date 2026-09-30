@@ -7,11 +7,11 @@ class_name AuraView
 # a live "+5%" chip and their tile lit. Drawn by TowerSeller (a selected aura Warden, lines from a boosted
 # one back to its boosters) and TowerPlacer (the build ghost). Separate from the thin attack circle.
 
-const FILL := Color(0.56, 0.78, 0.4, 0.13)
-const EDGE := Color(0.95, 0.8, 0.45, 0.8)
-const LIT := Color(0.56, 0.78, 0.4, 0.3)
-const CHIP := Color(0.72, 0.9, 0.52)
-const LINK := Color(0.72, 0.9, 0.52, 0.55)
+const FILL := Color(Palette.SPRIG, 0.13)
+const EDGE := Color(UiStyle.GOLD, 0.8)
+const LIT := Color(Palette.SPRIG, 0.3)
+const CHIP := UiStyle.LIVE
+const LINK := Color(UiStyle.LIVE, 0.55)
 const MAP_GRID: Grid = preload("res://resource/map/map_grid.tres")
 
 static func is_aura(data: TowerData) -> bool:

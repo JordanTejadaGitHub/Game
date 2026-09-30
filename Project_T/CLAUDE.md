@@ -315,7 +315,9 @@ accessibility, Steam achievements (milestones map to them). Acts 3–4 and all f
   **Game code draws only palette colours:** `Palette` (`scripts/palette.gd`) has the 32 as constants
   (`Palette.GOLD`, `Color(Palette.WRAITHLIGHT, 0.4)`; alpha is free). Nightmare visuals cold, Warden/dream
   warm. Raw colours only for multipliers (modulates, lighting/season tints: mark the line "multiplier").
-  `tests/test_palette.gd` fails on any other colour literal in `scripts/` (scripts/ui/ still pending).
+  In `scripts/ui/` prefer the `UiStyle` tokens (INK, GOLD, POOR, FOG…) when one fits. High-contrast /
+  colour-blind colours may stay off-palette (mark the line "Accessibility").
+  `tests/test_palette.gd` fails on any other colour literal in `scripts/`.
 - `tools/sound_generator.gd` synthesizes every sound into `assets/audio/` (sfx 44.1 kHz; music
   stems + ambience 22 kHz, D minor 72 bpm 3/4, 20 s loops of equal length). Re-run it, then `--import`.
 - `Sound` autoload (`scripts/audio/sound.gd`): buses Music/SFX/Ambience/UI (reverb on Music/SFX,

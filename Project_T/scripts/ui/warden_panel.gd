@@ -786,7 +786,7 @@ func _kindred_row(line: String, bonus: float) -> HBoxContainer:
 	row.add_child(icon)
 	var label := Label.new()
 	label.text = "%s +%d%%" % [name, roundi(bonus * 100)]
-	label.add_theme_color_override("font_color", Kinships.FAMILY_COLORS.get(line, Color(0.85, 0.9, 0.6)))
+	label.add_theme_color_override("font_color", Kinships.FAMILY_COLORS.get(line, UiStyle.LIVE))
 	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	row.add_child(label)
 	return row
