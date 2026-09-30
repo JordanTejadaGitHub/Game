@@ -1,0 +1,39 @@
+GIMP Palette
+Name: Heartwood 32 + Warden Night
+Columns: 7
+# documentation/warden_night.md
+  5   5  13	Void
+ 36  36  60	Night
+ 60  60  92	Dusk
+ 92  90 120	Slate
+ 20  15  38	Dread
+ 44  36  68	Shade
+ 76  60 116	Bruise
+154 132 232	Wraithlight
+140 140 172	Stone
+180 176 200	Mist
+220 232 244	Moonlight
+ 28  60  44	Deepmoss
+ 52 100  60	Moss
+ 92 148  76	Leaf
+156 196 108	Sprig
+212 236 156	Newleaf
+ 36  28  20	Root
+ 92  60  36	Bark
+140  92  52	Oak
+188 164 140	Deadwood
+108  92  92	Loam
+180 164 148	Path
+220 205 178	Moonpath
+184 102  44	Ember
+233 168  60	Gold
+252 212 124	Glow
+255 244 220	Heartlight
+188  68 220	Orchid
+236 156 244	Blossom
+ 44  76  92	Pool
+ 76 140 164	Dew
+156 212 252	Dewlight
+178 122 174	Rosedust
+122  74 130	Plum
+107 111 176	Nightbloom
