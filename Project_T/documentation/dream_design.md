@@ -107,8 +107,9 @@ alternative**: a strong card you can use now if you bend the plan.
 3. **The Stray Dream: one wildcard slot per offer** (from the rest after drift 10; not at boss
    rests, which stay Rare+ as they are). One slot draws with the weighting **turned around**: cards
    sharing any tag with your build (owned families, directions, Legendary archetypes) ×0.25, the
-   rest ×1, soft Needs ignored, hard Needs still apply (it's always usable). The card wears a small
-   **"Stray"** wisp tag: *"Something the Heartwood hasn't dreamed of yet."* Rarity is rolled as
+   rest ×1, soft Needs ignored, hard Needs still apply (it's always usable). **No tag on the card**
+   (2026-09-30, user: the "Stray" tag and its line confused more than they explained; it's one of
+   the normal cards, just drawn from outside your build). Rarity is rolled as
    normal; the skip fade applies. With Entwined due, the offer is Entwined + Stray + one normal.
 4. **No pivot cards** (user decision 2026-09-28): families still come **only from the family picks**
    (after drift 1 and each boss).
@@ -559,6 +560,19 @@ effect:
   their own effect).
 - The change is **on the card only** (user clarification); nothing new happens elsewhere when you
   take it (the existing whisper stays as it was).
+
+**One opener, the rest follow** (2026-09-30, user: "what's the point of Cleared Ground if you haven't
+unlocked clearing? The point of the card is reducing the cost"). This replaces "every clearing card
+unlocks clearing":
+- A new Common opener, **Tend the Forest** (card 172, Start pool): *"Unlocks clearing: tend Withered
+  Trees and move Mossy Boulders for Dew (Clear tool, C). Your first 2 clears are free."* Tags
+  clearing, opener. It's the only card that unlocks clearing; it keeps the 2× weight while clearing
+  is locked (maps with 8+ obstacles), and the "Unlocks clearing" layout above.
+- **Every other clearing card** (Cleared Ground, Heartwood's Reach, Reclaimed Earth, Tended Forest,
+  Wildwood Reclaimed, …) becomes a **follow-up: it needs clearing unlocked** (a hard Need, like the
+  Nurture follow-ups), so it's never offered before the opener. **Burn Back** stays as it is (a
+  Grove Bittersweet that clears trees outright, so it also unlocks clearing).
+- The Codex and "Dreams this run" still note which card unlocked clearing.
 
 | # | Card | Rarity | Effect | Tags | Pool |
 |---|---|---|---|---|---|
@@ -1060,7 +1074,7 @@ All **Start** pool, no family Needs (a few have a soft run-state Need so they're
 | 142 | **Gathered Dew** | Common | nightmares give **+10% Dew** (stacks, max +30%) | economy | — | Start |
 | 143 | **Fair Trade** | Common | selling refunds **+10%** more (rest 85%, drift 60%; stacks to 100% / 75%) | economy | — | Start |
 | 144 | **Call of the Wild** | Common | calling a drift early gives **double Dew** (cap 20 per drift) | tempo, economy | — | Start |
-| 145 | **Mending Bark** | Common | a **perfect block** (no leaf lost) regrows **1 leaf** | leaves | — | Start |
+| 145 | **Mending Bark** | Common | card text (plain words, 2026-09-30): *"**5 drifts in a row without losing a leaf** regrow 1 leaf."* (a "perfect block") | leaves | — | Start |
 | 146 | **Lasting Dreams** | Common | every status your Wardens apply lasts **+1 s** (stacks, max +3 s) | status | a Warden that applies a status (soft) | Start |
 | 147 | **Short Roots** | Common | Wardens with **range 2 or less** deal **+25% damage** | — | a Warden with range ≤ 2 (soft) | Start |
 | 148 | **Forest's Edge** | Common | Wardens within **3 cells of the start** deal **+20% damage** | maze | — | Start |
@@ -1071,7 +1085,7 @@ All **Start** pool, no family Needs (a few have a soft run-state Need so they're
 | 153 | **Underdog** | Uncommon | at each rest, your **3 Wardens that soothed least** in that block get **+20% damage** for the next block | — | 6+ attacking Wardens (soft) | Start |
 | 154 | **Weathered Walls** | Uncommon | Thornwalls **can't be trampled**, and every 10th Thornwall is free | wall | — | Start |
 | 155 | **Heavy Air** | Uncommon | every slow your Wardens apply (Soaked, Drowsy, frost…) is **20% stronger** | status | a Warden that slows (soft) | Start |
-| 156 | **Wandering Mind** | Uncommon | gain **2 Dream rerolls** (reroll one offer's cards) | dreams | — | Grove |
+| 156 | **Wandering Mind** | Uncommon | gain **1 Dream reroll** (was 2, 2026-09-30) (reroll one offer's cards) | dreams | — | Grove |
 
 - **Pairs of opposites:** Crowded Path (swarms) vs Lone Hunter (spread-out nightmares, bosses);
   Forest's Edge (fight early) vs Last Stand (fight at the Heartwood); Short Roots vs Long Shadows.

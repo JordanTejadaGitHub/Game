@@ -481,6 +481,11 @@ From a user playtest with screenshots; each line is the rule going forward.
 - **Warden panel → Remember:** a Grow button for a form you haven't unlocked (needs Dreamlight or
   its branch first) **opens the Remember tree on that node** instead of doing nothing.
 - **Sell button** shows its hotkey icon (**X**, or the rebound key) like other hotkeyed buttons.
+- **Plain words on cards** (user: "still don't know what a perfect block means, and what a block is
+  if I was new"): card text says it plainly ("5 drifts in a row without losing a leaf") and any game
+  term that remains (**drift, block, rest, perfect block, Dreamlight, family pick, Deeply Blighted**)
+  is a **linked term** like the status words: underlined, hover / tap for a one-line definition
+  from the Codex glossary (e.g. *"Block: the 5 drifts between two rests."*).
 - **Family-seeding cards** ("Seed · calls Rootling to your next family pick", e.g. Patient Roots):
   if you **already own** that family, the seed line is hidden and nothing is seeded (it only calls
   families you don't have yet).
