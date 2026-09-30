@@ -1,0 +1,217 @@
+{
+	"added_colors": [
+		{
+			"hex": "#b27aae",
+			"name": "Rosedust",
+			"role": "Sporeling and flower Wardens: the night shade of Blossom"
+		},
+		{
+			"hex": "#7a4a82",
+			"name": "Plum",
+			"role": "the night shade of Orchid"
+		},
+		{
+			"hex": "#6b6fb0",
+			"name": "Nightbloom",
+			"role": "Dreamshroom and violet Wardens: the night shade of Wraithlight, bluer so it never reads as a nightmare"
+		}
+	],
+	"applies_to": "Warden sprites only (idle sheets; attack glows stay as they are)",
+	"base": "Heartwood 32",
+	"map": [
+		{
+			"from": "Void",
+			"from_hex": "#05050d",
+			"to": "Void",
+			"to_hex": "#05050d"
+		},
+		{
+			"from": "Night",
+			"from_hex": "#24243c",
+			"to": "Night",
+			"to_hex": "#24243c"
+		},
+		{
+			"from": "Dusk",
+			"from_hex": "#3c3c5c",
+			"to": "Dusk",
+			"to_hex": "#3c3c5c"
+		},
+		{
+			"from": "Slate",
+			"from_hex": "#5c5a78",
+			"to": "Dusk",
+			"to_hex": "#3c3c5c"
+		},
+		{
+			"from": "Dread",
+			"from_hex": "#140f26",
+			"to": "Dread",
+			"to_hex": "#140f26"
+		},
+		{
+			"from": "Shade",
+			"from_hex": "#2c2444",
+			"to": "Shade",
+			"to_hex": "#2c2444"
+		},
+		{
+			"from": "Bruise",
+			"from_hex": "#4c3c74",
+			"to": "Bruise",
+			"to_hex": "#4c3c74"
+		},
+		{
+			"from": "Wraithlight",
+			"from_hex": "#9a84e8",
+			"to": "Nightbloom",
+			"to_hex": "#6b6fb0"
+		},
+		{
+			"from": "Stone",
+			"from_hex": "#8c8cac",
+			"to": "Slate",
+			"to_hex": "#5c5a78"
+		},
+		{
+			"from": "Mist",
+			"from_hex": "#b4b0c8",
+			"to": "Stone",
+			"to_hex": "#8c8cac"
+		},
+		{
+			"from": "Moonlight",
+			"from_hex": "#dce8f4",
+			"to": "Mist",
+			"to_hex": "#b4b0c8"
+		},
+		{
+			"from": "Deepmoss",
+			"from_hex": "#1c3c2c",
+			"to": "Deepmoss",
+			"to_hex": "#1c3c2c"
+		},
+		{
+			"from": "Moss",
+			"from_hex": "#34643c",
+			"to": "Deepmoss",
+			"to_hex": "#1c3c2c"
+		},
+		{
+			"from": "Leaf",
+			"from_hex": "#5c944c",
+			"to": "Moss",
+			"to_hex": "#34643c"
+		},
+		{
+			"from": "Sprig",
+			"from_hex": "#9cc46c",
+			"to": "Leaf",
+			"to_hex": "#5c944c"
+		},
+		{
+			"from": "Newleaf",
+			"from_hex": "#d4ec9c",
+			"to": "Sprig",
+			"to_hex": "#9cc46c"
+		},
+		{
+			"from": "Root",
+			"from_hex": "#241c14",
+			"to": "Root",
+			"to_hex": "#241c14"
+		},
+		{
+			"from": "Bark",
+			"from_hex": "#5c3c24",
+			"to": "Root",
+			"to_hex": "#241c14"
+		},
+		{
+			"from": "Oak",
+			"from_hex": "#8c5c34",
+			"to": "Bark",
+			"to_hex": "#5c3c24"
+		},
+		{
+			"from": "Deadwood",
+			"from_hex": "#bca48c",
+			"to": "Path",
+			"to_hex": "#b4a494"
+		},
+		{
+			"from": "Loam",
+			"from_hex": "#6c5c5c",
+			"to": "Loam",
+			"to_hex": "#6c5c5c"
+		},
+		{
+			"from": "Path",
+			"from_hex": "#b4a494",
+			"to": "Loam",
+			"to_hex": "#6c5c5c"
+		},
+		{
+			"from": "Moonpath",
+			"from_hex": "#dccdb2",
+			"to": "Path",
+			"to_hex": "#b4a494"
+		},
+		{
+			"from": "Ember",
+			"from_hex": "#b8662c",
+			"to": "Oak",
+			"to_hex": "#8c5c34"
+		},
+		{
+			"from": "Gold",
+			"from_hex": "#e9a83c",
+			"to": "Ember",
+			"to_hex": "#b8662c"
+		},
+		{
+			"from": "Glow",
+			"from_hex": "#fcd47c",
+			"to": "Gold",
+			"to_hex": "#e9a83c"
+		},
+		{
+			"from": "Heartlight",
+			"from_hex": "#fff4dc",
+			"to": "Moonpath",
+			"to_hex": "#dccdb2"
+		},
+		{
+			"from": "Orchid",
+			"from_hex": "#bc44dc",
+			"to": "Plum",
+			"to_hex": "#7a4a82"
+		},
+		{
+			"from": "Blossom",
+			"from_hex": "#ec9cf4",
+			"to": "Rosedust",
+			"to_hex": "#b27aae"
+		},
+		{
+			"from": "Pool",
+			"from_hex": "#2c4c5c",
+			"to": "Pool",
+			"to_hex": "#2c4c5c"
+		},
+		{
+			"from": "Dew",
+			"from_hex": "#4c8ca4",
+			"to": "Pool",
+			"to_hex": "#2c4c5c"
+		},
+		{
+			"from": "Dewlight",
+			"from_hex": "#9cd4fc",
+			"to": "Dew",
+			"to_hex": "#4c8ca4"
+		}
+	],
+	"name": "Warden Night",
+	"rule": "Swap every pixel by this map, keeping its alpha (glow halos step down too but stay warm)."
+}
