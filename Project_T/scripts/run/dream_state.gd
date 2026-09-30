@@ -144,7 +144,6 @@ const SUDDEN_BLOOM_ATTACKS := 3
 const LAST_BREATH_SHARE := [0.10, 0.15]
 const LAST_BREATH_BOSS_CAP := 0.05
 const LAST_BREATH_CELLS := 1.0
-const TANGLED_SLOW := 0.20
 const WATCHFUL_REST_TIME := [5.0, 3.0]
 const GLIMMER_CHANCE := 0.30
 const GLIMMER_DREAMLIGHT_MAX := 3  # Per run, its own cap (not the Great Dreamcatcher's)
@@ -627,6 +626,9 @@ func is_monoculture() -> bool:
 # Extra crit chance for `tower` against `enemy` (null = no target): Still Target (Drowsy / Held),
 # Starlit Aim (Marked), Full Moon, Reckless Bloom.
 func get_crit_chance_bonus(_tower: Tower, enemy: Node2D = null) -> float:
+	_rule_map()
+	if not _any_crit_rule:
+		return 0.0  # The common case: no crit card owned (asked on every Warden hit)
 	var bonus := 0.0
 	bonus += GLINTING_DEW_PER * rule_stacks(&"glinting_dew") * rule_power(&"glinting_dew")  # Glinting Dew
 	if _tower != null and _tower.tower_data.line == "stone":  # Heavy Stones: the Pebbling line
@@ -1025,18 +1027,36 @@ func get_status_max_stacks(data: TowerData, status: StringName) -> int:
 	return base + extra
 
 func has_rule(rule: StringName) -> bool:
-	for card in _taken_cards():
-		if card.rule_id == rule or card.extra_rules.has(rule):
-			return true
-	return false
+	return _rule_map().has(rule)
 
 # Stacks taken of the cards with rule `rule` (stacking rule cards: Hush, Sharp Beaks, Longer Flight).
 func rule_stacks(rule: StringName) -> int:
-	var total := 0
-	for card in _taken_cards():
-		if card.rule_id == rule or card.extra_rules.has(rule):  # extra_rules: a merged card grants the absorbed rule
-			total += stacks[card.id]
-	return total
+	return _rule_map().get(rule, 0)
+
+# The rules of the taken cards (rule_id and extra_rules: a merged card grants the absorbed rule) ->
+# total stacks, rebuilt only when _taken_cards() rebuilds. Also sets the per-hit early-out flags.
+const HIT_RULES: Array[StringName] = [&"last_stand", &"hunters_patience", &"bitter_hedges", &"lone_hunter",
+	&"rain_on_glass", &"skyward_gaze", &"deep_grip", &"head_start", &"deep_frost", &"falling_weight", &"murmur",
+	&"first_light"]  # Every rule on_hit_multiplier reads
+const CRIT_RULES: Array[StringName] = [&"glinting_dew", &"heavy_stones", &"seasoned_eye", &"full_moon",
+	&"reckless_bloom", &"still_target", &"starlit_aim"]  # Every rule get_crit_chance_bonus reads
+var _rules_of: Array = [null, {}]  # [the _taken_cards() array it was built from, {rule: stacks}]
+var _any_hit_rule := false
+var _any_crit_rule := false
+
+func _rule_map() -> Dictionary:
+	var taken := _taken_cards()
+	if is_same(_rules_of[0], taken):
+		return _rules_of[1]
+	var rules := {}
+	for card in taken:
+		rules[card.rule_id] = int(rules.get(card.rule_id, 0)) + stacks[card.id]
+		for extra in card.extra_rules:
+			rules[extra] = int(rules.get(extra, 0)) + stacks[card.id]
+	_rules_of = [taken, rules]
+	_any_hit_rule = HIT_RULES.any(func(r: StringName) -> bool: return rules.has(r))
+	_any_crit_rule = CRIT_RULES.any(func(r: StringName) -> bool: return rules.has(r))
+	return rules
 
 # 0 = the base rule, 1 = its Deepened (II) version (index into the rule-number constants).
 func rule_level(rule: StringName) -> int:
@@ -2128,8 +2148,9 @@ func note_family_pick(offered: Array, chosen: String) -> void:
 # Once per hit, from Tower.hit (after get_hit_damage_multiplier): First Light (×3 on a Warden's first
 # hit on each nightmare), Last Stand, Hunter's Patience and Bitter Hedges. 1.0 without those cards.
 func on_hit_multiplier(tower: Tower, enemy: Node2D) -> float:
-	if enemy == null or not is_instance_valid(enemy):
-		return 1.0
+	_rule_map()
+	if not _any_hit_rule or enemy == null or not is_instance_valid(enemy):
+		return 1.0  # The common case: no per-hit card owned (Warden hits are the hot path)
 	var bonus := 0.0
 	if has_rule(&"last_stand") and is_near_heartwood(enemy):
 		bonus += LAST_STAND_BONUS * rule_power(&"last_stand")
