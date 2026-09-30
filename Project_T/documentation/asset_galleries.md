@@ -1,0 +1,22 @@
+# Asset Galleries
+
+Every asset chat keeps **one living gallery artifact** of the art it owns and republishes it (same
+URL) in the same turn as every asset commit (user, 2026-09-30: *"let all the asset chats create an
+updated artifact that they keep updating every change; this chat references those artifacts"*).
+The design chat reads these before making art calls; this page is the index.
+
+Each gallery shows every current asset (animated where it animates, 1× and 3× for pixel art), its
+name, file path, size and frame count, its status (final / placeholder / in progress), and a "What
+changed" log at the top (date, commit, what), newest first.
+
+| Chat | Owns | Gallery |
+|---|---|---|
+| Tower Assets | Warden sprites, attack sheets, projectiles, rank art | *(pending)* |
+| Enemy Assets | nightmares, bosses, portraits | *(pending)* |
+| Environment Assets | tiles, obstacles, trees, the island edge, void | *(pending)* |
+| Theme Asset | style references, Heartwood, capsule art | *(pending)* |
+| UI Asset | icons, UI style (Moonlit Thread) | *(pending; style concept page: https://claude.ai/artifact/4Cs1PP2CrqTjth2dHiZFow)* |
+| Meta Game Asset | Memory Grove art | *(pending)* |
+| Title Screen | title screen art and layers | *(pending)* |
+
+Design-chat pages: Dream card audit https://claude.ai/artifact/K1EBiyXPeJdbjVL2ByyZQW.
