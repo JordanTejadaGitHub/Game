@@ -124,9 +124,9 @@ func _draw() -> void:
 			var at := (Vector2(x, (i - 1) * _radius * 0.35) - WISP_SIZE / 2.0).round()
 			draw_texture_rect_region(WISPS, Rect2(at, WISP_SIZE), Rect2(Vector2(i * WISP_SIZE.x, 0), WISP_SIZE), Color(tint, 0.7 * fade * edge))
 
-# Is `where` inside a fog cloud (Mistveil's, Morning Fog's)? Chain Bloom widens Puffball puffs there.
-static func fog_at(tree: SceneTree, where: Vector2) -> bool:
+# Is `where` inside a fog cloud (of Warden `from_id` if given)? Chain Bloom widens Puffball puffs in Mistveil's.
+static func fog_at(tree: SceneTree, where: Vector2, from_id: String = "") -> bool:
 	for cloud in tree.get_nodes_in_group(FOG_GROUP):
-		if cloud.global_position.distance_to(where) <= cloud._radius:
+		if (from_id == "" or cloud._data.get_id() == from_id) and cloud.global_position.distance_to(where) <= cloud._radius:
 			return true
 	return false
