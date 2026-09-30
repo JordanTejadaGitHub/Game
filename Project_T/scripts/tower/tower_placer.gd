@@ -264,6 +264,10 @@ func _draw() -> void:
 	if tower_data.catch_share > 0.0:
 		_draw_catch_zone(Tower.footprint_centre(_hover_cell, tower_data.footprint), tower_data.catch_radius \
 			+ DewCatch.WIDE_BOWL_STEP * mini(dream_state.rule_stacks(&"wide_bowl"), 3))
+	if AuraView.is_aura(tower_data):  # Exactly who it would boost (AuraView)
+		draw_set_transform(Vector2.ZERO)
+		AuraView.draw_ghost(self, tower_data, Tower.footprint_centre(_hover_cell, tower_data.footprint),
+			tower_container.get_children())
 	draw_set_transform(Tower.footprint_centre(_hover_cell, tower_data.footprint))
 	var tint := VALID_TINT if _hover_valid and _hover_affordable else INVALID_TINT
 	if tower_data.can_attack:
@@ -271,7 +275,8 @@ func _draw() -> void:
 		# as the base range faint and the boosted range bright.
 		var base_pixels := Tower.range_to_pixels(Tower.get_range_for(tower_data, dream_state))
 		var range_pixels := Tower.range_to_pixels(Tower.get_range_for(tower_data, dream_state) + _range_gain)
-		draw_circle(Vector2.ZERO, range_pixels, Color(tint, 0.12))
+		if not AuraView.is_aura(tower_data):  # An aura Warden's range stays a thin line beside its aura shape
+			draw_circle(Vector2.ZERO, range_pixels, Color(tint, 0.12))
 		if _range_gain > 0.0:
 			draw_arc(Vector2.ZERO, base_pixels, 0.0, TAU, 64, Color(tint, 0.22), 1.5)
 			draw_arc(Vector2.ZERO, range_pixels, 0.0, TAU, 64, Color(BONUS_ON, 0.85), 2.5)

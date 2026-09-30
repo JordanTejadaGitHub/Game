@@ -178,6 +178,14 @@ func _run() -> void:
 	acorn._refresh_neighbours()
 	_check(acorn.get_node_or_null("AuraRing") != null, "the Acorn's aura ring breathes")
 	_check(is_instance_valid(buddy._leaf_mote), "a boosted Warden carries a leaf mote")
+	# Show exactly who gets the aura (AuraView): a 3×3 square, only the boosted Wardens, a live chip.
+	var outside := _plant("sporeling", Vector2(7, 12))  # In the Acorn's attack range (2.5), outside its aura
+	outside._refresh_neighbours()
+	_check(AuraView.cells(acorn.global_position, acorn.get_aura_reach()).size() == 9, "the Acorn's aura is the 3×3 square")
+	var boosted := AuraView.boosted_by(acorn)
+	_check(boosted == [buddy], "only the Warden beside it is marked, not the one 2 cells away (%s)" % [boosted])
+	_check(AuraView.chip(buddy, acorn) == "+5%", "its chip reads the live bonus (%s)" % AuraView.chip(buddy, acorn))
+	outside.queue_free()
 	# Catcher placement preview: the share of last block's dispels near a spot
 	var spots_log := SupportLog.find(acorn)
 	spots_log._dispels = {"block": [], "last_block": [acorn.global_position, acorn.global_position, Vector2(-5000, 0), Vector2(-5000, 0)]}

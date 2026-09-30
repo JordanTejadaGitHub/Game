@@ -587,9 +587,13 @@ func _process(delta: float) -> void:
 
 func _draw() -> void:
 	if selection.size() == 1 and is_instance_valid(selected):
-		var range_pixels := selected.get_range_pixels()
-		draw_circle(selected.position, range_pixels, Color(SELECTED_COLOR, 0.07))
-		draw_arc(selected.position, range_pixels, 0.0, TAU, 64, Color(SELECTED_COLOR, 0.45), 2.0)
+		# Aura Wardens: exactly who gets the aura (AuraView); a boosted Warden: lines back to its boosters.
+		if AuraView.is_aura(selected.tower_data):
+			AuraView.draw_selected(self, selected)
+		AuraView.draw_links(self, selected)
+		# The attack range: a thin, unfilled circle (a warm fill read as "everything in here is boosted").
+		if selected.tower_data.can_attack:
+			draw_arc(selected.position, selected.get_range_pixels(), 0.0, TAU, 64, Color(SELECTED_COLOR, 0.45), 1.5)
 	for tower in selection:
 		if is_instance_valid(tower):
 			draw_rect(Rect2(tower.position - MAP_GRID.cell_size / 2, MAP_GRID.cell_size).grow(-2),
