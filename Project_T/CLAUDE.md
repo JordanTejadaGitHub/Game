@@ -195,7 +195,10 @@ accessibility, Steam achievements (milestones map to them). Acts 3–4 and all f
   `scenes/main.tscn`. Project settings `game/demo` (true) and `game/wishlist_url`. The title's
   backdrop is `TitleBackdrop` (`assets/ui/title/title_background.png`, 640×360 from
   `tools/title_art_generator.gd`; whole-number scale where it fits, motes, a wash of night on the
-  left behind the menu column).
+  left behind the menu column). It animates from the generator's layers (`title_layers.json`: back,
+  Warden, nightmares, front, mist strips; they stack to exactly the flat art): the Warden and the
+  nightmares breathe in whole art pixels, the mist drifts, all still under reduced motion. Re-run the
+  generator after any art change; it rewrites every layer.
 - `HeartwoodMemory` (`scripts/meta/heartwood_memory.gd`, static, `user://heartwood.json`): banked
   Seeds, run counts, `whispers_seen`, settings (volumes, fullscreen, whispers, keybinds);
   `apply_settings()`. `SettingsPanel` edits it (title + pause menu).
