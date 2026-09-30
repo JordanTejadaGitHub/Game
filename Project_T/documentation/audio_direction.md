@@ -88,14 +88,25 @@ Each drift track is written as **synced stems** that fade in and out on bar line
 ### The dispel (the most important sound in the game)
 
 Three parts, about 0.5 s, all rounded (revised after the second listen: the shriek and the crackle
-were too sharp):
+were too sharp; revised again on 2026-09-30: it sounded like **thunder or lightning**).
 
-1. **Sigh:** the nightmare's cold breath going out of it. A short, breathy, falling exhale (a low vocal
-   formant, lowpassed near 1.5 kHz), pitched by size. Unsettling, not a scream.
-2. **Dissolve:** a soft, muffled *whumpf* as the shadow comes apart: low body (~100–200 Hz) with a
-   gentle airy swell. No glass or ice crackle.
-3. **Release:** the dream settling: a quiet, warm exhale or a low hummed tone in the music's key,
-   fading over ~0.5 s. **No bell or chime** (third listen: chimes read as coins).
+**It must never sound like weather.** Low booms and falling, rumbling noise are the **storm
+vocabulary**, reserved for the light family (Thunderclap, Thunderhead, Stormheart, the Crowned
+Tempest). The dispel is a **voice coming undone**: breath, a ghostly vowel, a reversed swell. It
+lives in the mid range (~250 Hz–1.5 kHz) with **no sub or low boom** and **no downward noise sweeps**.
+
+1. **Sigh:** the nightmare's cold breath going out of it: a short, **voiced** exhale (more vowel than
+   noise, a ghostly "haah", lowpassed near 1.5 kHz), pitched by size. Unsettling, not a scream.
+2. **Unravel** (replaces the "whumpf"): the shadow drawn out of the world as a **short reversed
+   swell**, rising over ~0.15 s and cut off softly, like a breath pulled *in* backwards. Nothing
+   falling, nothing booming. This is the dispel's signature: no other sound in the game is reversed
+   except the Phantom's choir.
+3. **Release:** the dream settling: a quiet, warm **hummed tone** in the music's key (no noise sweep
+   under it), fading over ~0.4 s. **No bell or chime** (third listen: chimes read as coins).
+
+- **No music duck on normal dispels** (they're frequent; ducking on every kill pumped like a
+  thunderclap). Only bosses, lost leaves and the big moments duck.
+- **Size** changes the voice (bigger nightmares: a lower, slower sigh), never adds low end.
 
 **Not a reward sound.** A dispel sounds like a nightmare ending, never like getting paid:
 - **No climbing combo.** When several dispels land close together they blend into one fuller, softer
@@ -448,8 +459,8 @@ Music slider controls both). Rules for it:
   −10 dB under the music. Default settings: Sounds 100%, Music **55%** (was 80%).
 - **SFX bus softening** (safety net, not a substitute for rounded sounds): a gentle high shelf
   (about −6 dB above ~6 kHz) and a soft limiter on SFX and UI, so stacked hits can't turn sharp.
-- **Ducking:** the music dips ~4 dB for about half a second under a dispel, and ~8 dB for about a
-  second under a lost leaf and boss moments (roar, charge, dispel). The ambience ducks along with it.
+- **Ducking:** the music dips ~8 dB for about a
+  second under a lost leaf and boss moments (roar, charge, dispel), ~3 dB for Ascended and Crowned moments. **Not** under normal dispels (2026-09-30). The ambience ducks along with it.
 - **Music by phase:** during drifts the music plays ~3 dB lower than at rests, so combat owns the
   space and the rest is the exhale. The dread layers are also quieter than the warm base; they add
   tension, not volume. Adding layers must never make the music louder overall.
@@ -516,6 +527,12 @@ rustles hurt the ear.
 |---|---|---|
 | The Sprout's shot sounds chiptune (Firefly Jar fine) | the Sprout's shot is a plucked synth tone, pitched in a melody, fired constantly (it's the most-built Warden) | Sprout becomes a leafy flick + a wooden twig tap made from noise through woody resonances, no tone; new rule **Organic, never chiptune** for all future Warden sounds; final versions are recorded foley |
 | Kills sound like coins | every kill played the dispel + a bell chime that climbed a scale in combos + a two-bell Dew tinkle | release is a warm exhale / low hum, no bell; no climbing combo; no Dew sound per kill (lump sums only, soft) |
+
+**Fourth listen (2026-09-30):** defeating nightmares sounds too close to lightning or thunder.
+
+| Problem | Cause in the placeholder | Change |
+|---|---|---|
+| The dispel sounds like thunder | a falling band of noise (the sigh) + a falling low tone 200→100 Hz with a noise swell (the "whumpf") + a release with another falling noise sweep = the recipe for distant thunder; plus a 4 dB music duck on every kill, pumping like a thunderclap; and it shares the low whumpf + rumble with Thunderclap | dispel = voiced sigh + **reversed "unravel" swell** + a warm hum; mid range only, no sub, no downward noise sweeps; no duck on normal dispels; storm sounds (booms, rumbles) reserved for the light family |
 
 Open question: whether every attack keeps a launch sound, or only the slower, heavier Wardens
 (Pebbling, Rootling) do and the fast ones are hit-only. Default: all keep it, very quiet (mostly air).

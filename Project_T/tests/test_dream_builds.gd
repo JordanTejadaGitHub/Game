@@ -53,9 +53,10 @@ func _test_requirements() -> void:
 	var b := _plant("sporeling", 1, 1)
 	_check(not dreams.is_eligible(kindred), "Kindred Roots needs a nurture card first (follow-up)")
 	dreams.take(tender)
-	_check(dreams.is_eligible(kindred), "…then offered with 2 ranked Wardens")
 	b.rank = 0
-	_check(not dreams.is_eligible(kindred), "…and not with only 1")
+	_check(dreams.is_eligible(kindred), "…then offered with 1 ranked Warden (round 2: was 2)")
+	a.rank = 0
+	_check(not dreams.is_eligible(kindred), "…and not with none")
 	var deeper := _card("deeper_rings")
 	a.rank = 5
 	_check(not dreams.is_eligible(deeper), "Deeper Rings is a Grove card")
@@ -130,6 +131,16 @@ func _test_nurture_rules() -> void:
 	dreams.take(_card("sunlit_rest_ii"))
 	late.rank = 1
 	_check(dreams.sunlit_rest().size() == 2, "Sunlit Rest II raises two")
+	_clear_towers()
+	# Round 2: an opener. With no ranked Warden, rank I goes to the attacking Warden nearest the Heartwood
+	_reset()
+	dreams.take(_card("sunlit_rest"))
+	var first := _plant_at("sporeling", _beside(path, 5), 0)
+	var last := _plant_at("sporeling", _beside(path, path.size() - 6), 0)
+	_plant_at("thornwall", _beside(path, path.size() - 4), 0)
+	_check(dreams.sunlit_rest() == [last] and last.rank == 1 and first.rank == 0,
+		"Sunlit Rest with no ranked Warden: rank I to the attacking one nearest the Heartwood (not a wall)")
+	_check(_card("sunlit_rest").requires_tag == "", "…and it needs no Nurture card")
 	_clear_towers()
 
 func _test_wide_and_narrow() -> void:

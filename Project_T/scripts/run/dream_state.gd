@@ -65,7 +65,10 @@ const RECKLESS_PENALTY := 0.15
 # The 10 card builds (dream_design.md "Pool trim", layer 2): the only tags build weighting reads.
 # Tall and overgrowth halve each other.
 const ARCHETYPE_TAGS: Array[String] = ["tall", "overgrowth", "daring", "precision", "affliction", "maze",
-	"tending", "kinship", "swarm", "support"]
+	"tending", "kinship", "support"]  # Round 2: swarm merged into affliction
+# Family lines: a build tag only once a taken card carries it (never from the family pick or Wardens).
+const LINE_TAGS: Array[String] = ["spore", "water", "storm", "light", "mark", "stone", "root", "song", "acorn",
+	"wing", "wind"]
 const DIRECTION_TAGS: Array[String] = ["nurture", "wide", "narrow", "sprout"]  # Old directions: rules and Needs only
 const NOT_BUILD_TAGS: Array[String] = ["bittersweet", "opener"]  # Structural tags, never a build
 const SOFT_TAG_NEEDS: Array[String] = ["nurture"]  # requires_tag Needs that only weigh (x0.4), never gate
@@ -1734,14 +1737,15 @@ func _roll_rarity(act: int, want_rare: bool, skip: Array[int] = []) -> int:
 	return 0
 
 # The build tags your Dreams have steered you to (dream_design.md "Pool trim", layer 2): the archetype
-# tags of the cards you've taken (a Legendary's too). Families, statuses and the old direction tags stay
-# on the cards for rules and discovery but never boost. Tall and overgrowth push each other away.
+# tags of the cards you've taken (a Legendary's too), and (round 2) the family line tags those cards
+# carry. Owning a family never counts; statuses and the old direction tags stay on the cards for rules and
+# discovery but never boost. Tall and overgrowth push each other away.
 func _owned_tags() -> Array:
 	var owned := {}
 	var opposed := {}
 	for card in _taken_cards():
 		for tag in card.tags:
-			if ARCHETYPE_TAGS.has(tag):
+			if ARCHETYPE_TAGS.has(tag) or LINE_TAGS.has(tag):
 				owned[tag] = true
 				if OPPOSITE_DIRECTION.has(tag):
 					opposed[OPPOSITE_DIRECTION[tag]] = true
@@ -1759,6 +1763,8 @@ func _card_in_build(card: UpgradeData, owned: Dictionary) -> bool:
 	if families.size() >= 2 and families.keys().any(func(family: String) -> bool: return not is_unlocked(family)):
 		for root in _family_roots():
 			skip[root.line] = true
+		for tag in LINE_TAGS:  # storm / mark are card tags, not Warden lines
+			skip[tag] = true
 	return card.tags.any(func(tag: String) -> bool: return owned.has(tag) and not skip.has(tag))
 
 # Picks one of `cards` by weight: build tags (×tag_weight), unmet soft Needs, opposed directions, the
@@ -1900,11 +1906,15 @@ func _clear_all(kind: ObstacleData) -> void:
 
 # Sunlit Rest: the ranked Warden(s) nearest the Heartwood that can still gain a rank get one free
 # (II: two). Wardens at rank II are skipped: rank III asks for a Focus, which is the player's choice.
+# With none, unranked attacking Wardens get rank I instead.
 func sunlit_rest() -> Array[Tower]:
 	var raised: Array[Tower] = []
 	var seller := get_node_or_null("%TowerSeller")
 	var ranked: Array = _towers().filter(func(t: Tower) -> bool:
 		return t.rank > 0 and t.rank != 2 and t.rank < mini(FREE_RANK_MAX, get_max_rank_for(t)) and t.can_nurture())  # Free ranks stop at VII (V unless the Eldest)
+	if ranked.is_empty():  # An opener (Pool trim round 2): rank I to the attacking Warden nearest the Heartwood
+		ranked = _towers().filter(func(t: Tower) -> bool:
+			return t.rank == 0 and t.tower_data.can_attack and t.can_nurture())
 	if seller and seller.has_method("sort_by_heartwood"):
 		ranked = seller.sort_by_heartwood(ranked)  # Same order as group Nurture
 	for tower in ranked:

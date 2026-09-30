@@ -37,17 +37,16 @@ const PACKAGES := {
 	"B16 Bramble Maze": ["Hedge Maze", "Bitter Hedges", "Weathered Walls", "Living Walls", "Thorn Snare", "Bramble Oath", "Thornheart"],
 	"B17 The Grove": ["Grandfather Stump", "Kind Canopy", "Shared Light", "Hedgerow Roots", "Warm Hearth"],
 	"B18 Greedy Gardener": ["Dew Bowl", "Harvest Moon", "Deep Well", "Overflowing Well", "Dew Trail", "Morning Dew", "Call of the Wild"],
-	# The 10 card builds (dream_design.md "Pool trim", layer 2): enhancers only, Legendaries are capstones.
+	# The 9 card builds (dream_design.md "Pool trim", layer 2): enhancers only, Legendaries are capstones.
 	"C1 Tall": ["Tender Care", "Kindred Roots", "Sunlit Rest", "Deeper Rings", "Chosen Few", "Nursery", "Elder Kin", "Solitude", "Few and Mighty"],
 	"C2 Overgrowth": ["Seedfall", "Sprout Chorus", "Root Network", "Seedling Gift", "Canopy", "Many Hands", "Mixed Grove", "Odd One Out", "Grand Tour"],
 	"C3 Daring": ["Call of the Wild", "Fresh Growth", "Head Start", "Quick Step", "Second Wind", "Scarred Bark", "Desperate Bloom", "Thin Bark", "Last Stand"],
 	"C4 Precision": ["Glinting Dew", "Sharpened Light", "Shattering Blow", "Still Target", "First Light", "Lone Hunter", "Hunter's Patience", "Watchful Rest"],
-	"C5 Affliction": ["Bitter Sap", "Seeping", "Venom Bloom", "Lasting Dreams", "Heavy Air"],
+	"C5 Affliction": ["Bitter Sap", "Seeping", "Venom Bloom", "Lasting Dreams", "Heavy Air", "Crowd Breaker", "Crowded Path", "Last Breath", "Thinning the Herd"],
 	"C6 Maze": ["Cozy Corners", "Straightaway", "Winding Path", "Heart of the Maze", "Forest's Edge", "Hedge Maze", "Bitter Hedges", "Thornheart", "Weathered Walls"],
 	"C7 Tending": ["Cleared Ground", "Heartwood's Reach", "Reclaimed Earth", "Tended Forest", "Burn Back the Dead Wood", "Morning Dew", "Evergreen"],
 	"C8 Kinship": ["Family Ties", "Sweet Harmony", "Old Friends", "Rooted Bond", "Extended Family", "Kin and Kindling", "Blood Is Thicker", "Elder Kin"],
-	"C9 Swarm": ["Crowd Breaker", "Crowded Path", "Last Breath", "Thinning the Herd", "Shattering Blow"],
-	"C10 Support": ["Living Walls", "Scented Hedge", "Thorn Snare", "Warm Hearth", "Acorn Cache", "Deep Well", "Dew Bowl", "Dew Trail", "Grandfather Stump", "Harvest Moon", "Hedgerow Roots", "Kind Canopy", "Overflowing Well", "Shared Light"],
+	"C10 Support": ["Living Walls", "Scented Hedge", "Thorn Snare", "Warm Hearth", "Kind Canopy"],
 }
 # Board extras the chasing bot needs for some builds (ranks, Sprouts, walls, a Kinship, clearing…).
 const EXTRAS := {

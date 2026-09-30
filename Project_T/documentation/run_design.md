@@ -353,6 +353,16 @@ right; the family tree should include the portraits"):
   potency), the **Dew to grow** into it from its parent, its Kinship partner if any ("Kin: Chime
   Stone · Night Chimes"), the combos it's part of (links to the Codex), and the **Unlock (2 ✦)**
   button. Unlocking plays a small bloom along the tree line.
+- **Playtest fixes (2026-09-30**, user screenshot of the Firefly tab at drift 1: *"the locked is too
+  dark and still shows the 2nd tree line; I started a new run and the Ascended Warden is there"*):
+  - **Locked nodes are readable:** the portrait at ~75% brightness with a light desaturation, not
+    near-black; "Locked" stays as the caption. Only Memory Grove nodes are silhouettes.
+  - **A lane the Grove hasn't planted shows only its branch**, as the Grove silhouette. Its final
+    form and the line up to it are **hidden** (no Midsummer above an unplanted Sunpetal). The side
+    panel for that silhouette says only "Plant it in the Memory Grove".
+  - **The Ascended crown is hidden** until it can be unlocked this run: its Grove node planted **and**
+    drift 51 reached. Before that there is no node and no line to it. From drift 51 it appears
+    (the "can unlock" state once a final form of the family is grown).
 - A header line: *"Dreamlight 3 ✦ · unspent carries over"* and a one-line reminder: *"Dreamlight
   unlocks, Dew grows."*
 - Touch: tabs and nodes are 48 px+, the side panel slides up from the bottom on phones.
