@@ -278,6 +278,18 @@ light.
 | **Walls** (Thornwall, Bramble, Honeysuckle) | nothing new | rest report: *"Your walls added 34 path tiles"*; Bramble's damage; Honeysuckle's Drowsy applied | Thornwall: *"Adds 3 path tiles"*; Honeysuckle: *"Drowsy applied: 410"* |
 | **Control** (Rootling line, holds and pulls) | nothing new | rest report: *"Held for 42 s · pulled back 31 tiles"* | *"Held 42 s · pulled back 31 tiles this run"* |
 
+- **Show exactly who gets the aura** (2026-09-30, user: "acorn has misleading visual of who gets
+  the buff"). When an aura Warden is selected or being placed, a glow falling on every Warden inside
+  its attack circle reads as "all of these are boosted". Instead:
+  - **The aura area is drawn as its real shape**, separate from the attack range: for Acorn and
+    Elder Stump (`aura_radius` 1.5) a soft-cornered **3×3 square** of the 8 tiles around it, as a
+    warm leaf-green fill with a gold edge. The attack range stays the thin circle, unfilled.
+  - **Only boosted Wardens are marked**: a small "+5%" leaf chip over each one (the live bonus,
+    stacked auras summed), and the lit tile under it. Wardens in the attack circle but outside the
+    aura get nothing.
+  - The world light (`EnvironmentLighting`) must not make unboosted Wardens look lit: warm light is
+    ambient, never a "boosted" signal.
+  - Selecting a boosted Warden shows a thin line back to each Warden boosting it ("Acorn +5%").
 - **Rest report "Support" line:** the top supporter of the block by what it enabled (*"Top support:
   Grove Heart, +9,200 damage to 7 Wardens"*), next to the top-damage Wardens, so support Wardens
   can be the block's MVP.
