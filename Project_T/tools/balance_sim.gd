@@ -60,6 +60,8 @@ var save_mode := ""  # --save=spender (never saves up) or saver (holds Dew up to
 var omen_mode := ""  # --omens=face: faces every Omen drawn (DreamSimPolicy.face_omens); default: Clear Skies, no Omens
 var all_families := false  # --all-families: the developer "Unlock all families" run (MetaRun.force_all_families)
 var favored: Array[String] = []  # --favor=many_hands,seedfall: these Dream cards score highest (a player's build)
+var dream_mode := "balanced"  # --dreams=skip|random|balanced (dream_design.md "Dreams must matter")
+var dream_share := {}  # Drift -> the share of the maze's damage per second that the taken Dreams add (50, 75)
 var omens: OmenDirector
 var omens_faced: Array[String] = []
 var _save_since := -1  # The drift the saver started holding Dew at
@@ -107,6 +109,7 @@ func _run() -> void:
 			"--omens": omen_mode = value
 			"--all-families": all_families = true
 			"--favor": favored.assign(value.split(","))
+			"--dreams": dream_mode = value
 	if profile != "fresh":
 		var meta: Script = load("res://scripts/meta/meta_run.gd")
 		if not meta.get_script_method_list().any(func(m: Dictionary) -> bool: return m.name == "load_preset"):
@@ -134,9 +137,10 @@ func _run() -> void:
 	for card in dreams.pool:
 		if start_cards.has(card.id):
 			dreams.take(card)
-	policy = FavorPolicy.new(dreams, STYLES.get(style, 0)) if not favored.is_empty() else DreamSimPolicy.new(dreams, STYLES.get(style, 0))
-	if policy is FavorPolicy:
-		policy.favored = favored
+	policy = FavorPolicy.new(dreams, STYLES.get(style, 0))
+	policy.favored = favored
+	policy.mode = dream_mode
+	policy.rng.seed = map_seed
 	omens = main.get_node_or_null("%OmenDirector")
 	if omen_mode == "face" and omens:
 		policy.face_omens = true
@@ -167,6 +171,8 @@ func _run() -> void:
 		if _approach_timer <= 0.0:
 			_approach_timer = APPROACH_EVERY
 			_sample_approach()
+		if director.drifts_started in [50, 75] and not dream_share.has(director.drifts_started):
+			dream_share[director.drifts_started] = _dream_share()
 		if _spend_timer <= 0.0 and not _busy:
 			_spend_timer = SPEND_EVERY
 			_spend()
@@ -503,6 +509,24 @@ func _close_window(n: int) -> void:
 		run.max_asleep = maxf(run.max_asleep, row.asleep_share)
 	_new_window()
 
+# The share of the maze's damage per second the taken Dreams add: each attacker's DPS against what it
+# would be without its Dream damage and attack speed parts (DreamState.get_stat_parts). Rule cards
+# (Reactions, statuses, economy) aren't in it, so it's a floor.
+func _dream_share() -> float:
+	var total := 0.0
+	var without := 0.0
+	for tower in _attackers():
+		var dps: float = tower.get_damage() * tower.get_attacks_per_second()
+		var damage := 0.0
+		var speed := 0.0
+		for part in dreams.get_stat_parts(tower.tower_data, tower.cell, "damage", tower).parts:
+			damage += part.amount
+		for part in dreams.get_stat_parts(tower.tower_data, tower.cell, "attack_speed", tower).parts:
+			speed += part.amount
+		total += dps
+		without += dps / maxf((1.0 + damage) * (1.0 + speed), 0.01)
+	return snappedf(1.0 - without / total, 0.001) if total > 0.0 else 0.0
+
 # The Grove perks carried into the run ("dewdrop_pouch+early_light"), "" at Fresh.
 func _loadout() -> String:
 	var ids: Array[String] = []
@@ -537,7 +561,7 @@ func _finish() -> void:
 		"max_top_warden": run.max_top_warden, "max_asleep": snappedf(run.max_asleep, 0.001), "cards": dreams.stacks.size(),
 		"sprout_cards_25": run.sprout_cards_25,
 		"sprouts_end": _attackers().filter(func(t) -> bool: return t.tower_data.get_id() == "sprout").size(), "cards_start": "+".join(start_cards),
-		"loadout": _loadout(), "all_families": all_families, "favored": "+".join(favored), "save": save_mode, "omens": omen_mode, "omens_faced": "+".join(omens_faced), "families_forced": "+".join(forced_families), "hand_drifts": hand_drifts,
+		"loadout": _loadout(), "all_families": all_families, "dreams": dream_mode, "dream_share_50": dream_share.get(50, -1.0), "dream_share_75": dream_share.get(75, -1.0), "favored": "+".join(favored), "save": save_mode, "omens": omen_mode, "omens_faced": "+".join(omens_faced), "families_forced": "+".join(forced_families), "hand_drifts": hand_drifts,
 		"close_calls": rows.filter(func(r) -> bool: return r.approach > CLOSE_CALL).size(),
 		"approach_max": snappedf(rows.reduce(func(m, r) -> float: return maxf(m, r.approach), 0.0), 0.01),
 		"seconds": snappedf(game_time, 1.0)}
@@ -650,6 +674,16 @@ func _sprout_waits(tower: Tower) -> bool:
 class FavorPolicy extends DreamSimPolicy:
 	const FAVOR := 1000.0
 	var favored: Array[String] = []
+	var mode := "balanced"  # --dreams: "skip" lets every offer pass, "random" takes any card, "balanced" the style's pick
+	var rng := RandomNumberGenerator.new()
 
 	func score(card: UpgradeData) -> float:
 		return super.score(card) + (FAVOR if favored.has(card.id) else 0.0)
+
+	func pick_dream(offer: Array) -> UpgradeData:
+		match mode:
+			"skip":
+				return null  # Let it pass (DreamState.sim_rest skips)
+			"random":
+				return offer[rng.randi_range(0, offer.size() - 1)] if not offer.is_empty() else null
+		return super.pick_dream(offer)
