@@ -41,6 +41,15 @@ func _run() -> void:
 	var report: RestReport = main.get_node("%RestReport")
 	report.show_report(1)
 	_check(report._label.get_parsed_text().contains("Close calls: 1"), "the rest report counts them")
+	# No automatic rest report (screens_ui.md): the card stays hidden unless "Rest summary" is on; the
+	# damage meter's "Last block" tab shows the same summary on demand.
+	_check(not report.visible or RestReport.auto_show(), "the rest card doesn't pop up by default")
+	var meter: DriftMeter = main.get_node("HUD/DriftMeter")
+	meter.show_block_summary(true)
+	_check(meter.block_summary and meter._summary.visible and meter._summary.get_parsed_text().contains("Close calls: 1")
+		and not meter._rows.visible, "the meter's Last block tab shows the summary (%s)" % meter._summary.get_parsed_text().left(60))
+	meter.show_block_summary(false)
+	_check(not meter._summary.visible and meter._rows.visible, "and the Wardens tab goes back to the rows")
 	calls._on_rest_ended(1)
 	_check(calls.block_count == 0 and calls.run_count == 1, "a new block starts from 0; the run keeps its total")
 

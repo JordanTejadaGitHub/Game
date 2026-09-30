@@ -67,6 +67,7 @@ func _ready() -> void:
 	_toggle(gameplay, "Auto-drift on by default", "auto_drift")
 	_choice(gameplay, "Damage numbers", "damage_numbers", ["Off", "Big hits", "All"], 0)
 	_choice(gameplay, "Warden DPS tags", DpsTags.SETTING, ["Rests only", "Always", "Off"], 0)
+	_choice(gameplay, "Rest summary", RestReport.SETTING, ["Off", "On"], 0)  # The block card at rests (else: the meter's Last block tab)
 	_toggle(gameplay, "Confirm selling several Wardens during a drift", "confirm_sell", true)
 	_toggle(gameplay, "Pause on new combos", ComboFeedback.PAUSE_SETTING, true)
 	_toggle(gameplay, "Always show resist / weak pips on nightmares", ResistPips.SETTING, false)

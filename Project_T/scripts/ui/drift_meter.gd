@@ -25,6 +25,10 @@ const OPEN_SETTING := "meter_open"
 
 var drift_director: DriftDirector
 var sort_by_share := false
+var block_summary := false  # The "Last block" tab is showing (not the Wardens)
+var _wardens_tab := Button.new()
+var _block_tab := Button.new()
+var _summary := StatusLinks.make_label("", UiStyle.TIP_SIZE)  # The last block's summary (RestReport's text)
 var _header := Button.new()
 var _sort := Button.new()
 var _rows := VBoxContainer.new()
@@ -137,10 +141,36 @@ func _ready() -> void:
 		sort_by_share = not sort_by_share
 		_sort.text = "Sort: % of damage" if sort_by_share else "Sort: DPS"
 		refresh())
+	# Two views (screens_ui.md "No automatic rest report"): the Wardens, and "Last block": the block
+	# summary that used to pop up at every rest (top Wardens, most improved, combos and Reactions,
+	# close calls, Kinships formed …), opened on demand.
+	var tabs := HBoxContainer.new()
+	tabs.add_theme_constant_override("separation", 4)
+	for pair in [[_wardens_tab, "Wardens", false], [_block_tab, "Last block", true]]:
+		var tab: Button = pair[0]
+		tab.text = pair[1]
+		tab.toggle_mode = true
+		tab.flat = true
+		tab.focus_mode = Control.FOCUS_NONE
+		tab.mouse_force_pass_scroll_events = false
+		tab.custom_minimum_size = Vector2(0, 32)
+		UiStyle.caps(tab, 14, UiStyle.INK)
+		var summary: bool = pair[2]
+		tab.pressed.connect(func() -> void: show_block_summary(summary))
+		tabs.add_child(tab)
+	_wardens_tab.set_pressed_no_signal(true)
+	_body.add_child(tabs)
 	_body.add_child(_sort)
 	_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	var content := VBoxContainer.new()
+	content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_rows.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_scroll.add_child(_rows)
+	content.add_child(_rows)
+	_summary.name = "BlockSummary"
+	UiStyle.tip_body(_summary, WIDTH - 36.0)
+	_summary.visible = false
+	content.add_child(_summary)
+	_scroll.add_child(content)
 	_body.add_child(_scroll)
 	_body.visible = bool(HeartwoodMemory.get_settings().get(OPEN_SETTING, false))
 	visible = false
@@ -194,9 +224,9 @@ func _fit() -> void:
 	offset_top = top - screen_mid
 	var panel := hud.get_node_or_null("DriftPanel") as Control
 	var bottom := panel.get_global_rect().position.y - GAP if panel != null else get_viewport_rect().size.y - 16.0
-	var used := _header.size.y + _sort.size.y + 24.0  # Header, sort, margins
+	var used := _header.size.y + _sort.size.y + 32.0 + 28.0  # Header, tabs, sort, margins
 	var room := maxf(bottom - top - used, 72.0)  # At least two rows
-	var wanted := _rows.get_combined_minimum_size().y
+	var wanted := (_summary if block_summary else _rows).get_combined_minimum_size().y
 	_scroll.custom_minimum_size = Vector2(0, minf(wanted, room))
 	# No refresh here: rebuilding the rows every frame swallowed row clicks (the press and the release
 	# landed on different buttons). The rows refresh on the clock, in place.
@@ -223,6 +253,9 @@ func refresh() -> void:
 	_last.text = "Last drift %s DPS" % fmt(last)
 	if not _body.visible:
 		return
+	_update_view()
+	if block_summary:
+		return
 	var rows: Array = m.get_meter_rows(period())
 	var by_dps := rows.duplicate()
 	by_dps.sort_custom(func(a: Dictionary, c: Dictionary) -> bool: return a.dps > c.dps)
@@ -246,6 +279,36 @@ func refresh() -> void:
 			_setup_row(button, r)
 	for i in rows.size():
 		_fill_row(_rows.get_child(i), rows[i])
+
+# Switches between the Wardens and the "Last block" summary (opening the panel if it's closed).
+func show_block_summary(on: bool) -> void:
+	block_summary = on
+	_wardens_tab.set_pressed_no_signal(not on)
+	_block_tab.set_pressed_no_signal(on)
+	if not _body.visible:
+		set_open(true)
+	else:
+		refresh()
+	_update_view()
+
+# Shows the Wardens or the summary (the summary's text is rebuilt only when it changes, so its links
+# stay clickable).
+func _update_view() -> void:
+	_sort.visible = not block_summary
+	_rows.visible = not block_summary
+	_summary.visible = block_summary
+	if block_summary:
+		var text := block_summary_text()
+		if _summary.get_meta(&"source", "") != text:
+			_summary.set_meta(&"source", text)
+			_summary.text = StatusLinks.bbcode(text)
+
+# The last block's summary (RestReport builds it at every rest), or a line saying it comes at the first rest.
+func block_summary_text() -> String:
+	var report := drift_director.get_node_or_null("%RestReport") as RestReport if drift_director != null else null
+	if report == null or report.last_block_text == "":
+		return "The block's summary appears here at the first rest."
+	return report.last_block_text
 
 # The needed-DPS estimate is a rough balance number: developers only (dev runs; playtest fixes 2026-09-30).
 static func show_estimate() -> bool:

@@ -1,8 +1,9 @@
 extends PanelContainer
 class_name RestReport
 
-# Rest report (screens_ui.md "Combat feedback"): at every rest, a small card with the top 3 Wardens
-# by damage this block and the combos triggered ("Lightning through Damp: 124 times"). Hides when
+# Rest report (screens_ui.md "Combat feedback"): at every rest, the block's summary: the top 3 Wardens
+# by damage and the combos triggered ("Lightning through Damp: 124 times"). Since 2026-09-30 it shows in
+# the damage meter's "Last block" tab; the card itself only with the setting "Rest summary" on. Hides when
 # the next block starts or on click. Built in code.
 
 # ({damp} … are filled in with today's status names by IconInfo.format.)
@@ -17,6 +18,10 @@ const REACTION_TAGS: Array[StringName] = [&"echo", &"lightning_rod", &"dawnbreak
 
 var _label := StatusLinks.make_label("", 15)  # Status names are links
 var unbound_block := 0  # Nightmares that turned Unbound this block ("Unbound: N")
+# The last block's summary (the damage meter's "Last block" tab reads it; "" before the first rest).
+signal block_report_ready(block: int)
+var last_block_text := ""
+var last_block := 0
 
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_STOP
@@ -69,8 +74,17 @@ func show_report(block: int) -> void:
 		text += "\nClose calls: %d" % close_calls.block_count
 	if unbound_block > 0:
 		text += "\nUnbound: %d" % unbound_block
+	last_block_text = text
+	last_block = block
+	block_report_ready.emit(block)
 	_label.text = StatusLinks.bbcode(text)
-	visible = true
+	# No automatic rest report (screens_ui.md, user: "isn't needed"): the damage meter's "Last block"
+	# tab shows it on demand; the Gameplay setting "Rest summary" (off by default) brings the card back.
+	visible = auto_show()
+
+const SETTING := "rest_summary"  # 0 = off (default), 1 = the card at every rest
+static func auto_show() -> bool:
+	return int(Fx.setting(SETTING, 0)) == 1
 
 # Random drifts (run_design.md): the block's rolled shapes, "This block: Swarm, Mixed, Heavy…" ("" when
 # none of its drifts were rolled: block 1, a boss, the hand-made ones with random drifts off).
