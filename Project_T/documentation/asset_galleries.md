@@ -19,4 +19,4 @@ changed" log at the top (date, commit, what), newest first.
 | Meta Game Asset | Memory Grove art (`assets/meta/`); the 10 Memories are placeholders | https://claude.ai/artifact/Buk9SDW2NhCo32BZgRX6Sp |
 | Title Screen | title screen art and layers (`assets/ui/title/`) | https://claude.ai/artifact/CJTTD5Y43kdDHM5gSfj6Bc |
 
-Design-chat pages: Dream card audit https://claude.ai/artifact/K1EBiyXPeJdbjVL2ByyZQW.
+**Hub** (everything in one page, kept by the design chat): https://claude.ai/artifact/RHpbqXJJnzQBBpUxyBpabv. Design-chat pages: Dream card audit https://claude.ai/artifact/K1EBiyXPeJdbjVL2ByyZQW.
