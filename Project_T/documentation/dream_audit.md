@@ -216,3 +216,17 @@ for the same rarity.
 | 224 | Patchwork | Common | +5% per family, max +15% (was 3% / 12%) |
 | 225 | Mixed Grove | Uncommon | +15% per other family touching, max +45% (was 8% / 24%) |
 | 226 | Live Wire | Common, ×3 | bolts +15% per stack (max +45%) |
+
+## The 11 late-built cards (raised to budget in 34a713c0)
+
+Designed in 2026-09 but never built until the catalogue measurement found them missing.
+
+| # | Card | Rarity | Now |
+|---|---|---|---|
+| 37 | Glinting Dew | Common, ×3 | +8% crit chance per stack, max +24% (was 4%) |
+| 38 | Heavy Stones | Common, ×3 | Pebbling line +15% crit chance per stack, max +45% (was 8%) |
+| 49 | Deep Frost | Uncommon | Frozen nightmares (Held by a water Warden) take +45% (was 20%) |
+
+The other eight (Sharpened Light / II, Long Shadows, Patient Aim, Ring Dance, Carried on the Wind,
+Sweet Scent, Shiny Things, Hairpin Winds) were already at budget. Grove homes (Meta): Long Shadows
+on the Pebbling node, Sweet Scent on the Bellflower node.
