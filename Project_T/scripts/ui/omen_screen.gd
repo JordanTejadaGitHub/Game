@@ -8,7 +8,9 @@ extends Control
 
 const CARD_SIZE := Vector2(270, 200)
 const CARD_PAD := Vector2(18, 16)  # Inner padding on every side (x: left and right, y: top and bottom)
-const BODY_SIZE := 15  # One body style for every card's line
+const BODY_SIZE := 15  # Revealed Omens' reward line
+const FRONT_BODY_SIZE := 18  # Face an Omen and Clear Skies: the Dream card body size (user: "a bit bigger")
+const EMBLEM_SCALE := 3  # The 16 px icons drawn x3, nearest
 const SECONDARY_MIN_SIZE := 12  # Secondary lines shrink to this before a card outgrows the screen
 const SCREEN_MARGIN := 240.0  # Title, buttons and gaps around the cards
 const OMEN_COLOR := UiStyle.BUTTON_GOLD  # Heartwood 32 "Gold"
@@ -105,16 +107,34 @@ func _make_face_down_card() -> Button:
 	UiStyle.card_button(button, OMEN_COLOR)
 	var box := _card_box(button)
 	UiStyle.title(_add_line(box, "Face an Omen", UiStyle.INK, 22), UiStyle.CARD_NAME_SIZE)
-	var body := _add_line(box, "An unknown twist for the next block. Survive it for a reward.", UiStyle.INK, BODY_SIZE)
-	var swirl := Control.new()
-	swirl.custom_minimum_size = Vector2(0, 64)
-	swirl.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	swirl.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	swirl.draw.connect(func() -> void: _draw_swirl(swirl))
-	box.add_child(swirl)
+	var body := _add_line(box, "An unknown twist for the next block. Survive it for a reward.", UiStyle.INK, FRONT_BODY_SIZE)
+	box.add_child(_emblem(&"omen", true))  # A moth before the moon (the wind swirl until UI Asset's icon exists)
 	_fit_card(button, box, [body])
 	button.pressed.connect(func() -> void: _reveal(omens.face(), button))
 	return button
+
+# A card's emblem (run_design.md "How an Omen looks"): the icon from assets/ui/icons.png x3 when the sheet has
+# `id`, else the old wind swirl (`swirl`) or an empty space. Fills the card's middle either way.
+func _emblem(id: StringName, swirl: bool) -> Control:
+	var icon := IconInfo.icon(id)
+	if icon != null:
+		var rect := TextureRect.new()
+		rect.texture = icon
+		rect.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		rect.stretch_mode = TextureRect.STRETCH_KEEP_CENTERED
+		rect.custom_minimum_size = Vector2(16, 16) * EMBLEM_SCALE
+		rect.size_flags_vertical = Control.SIZE_EXPAND_FILL
+		rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		rect.name = "Emblem"
+		return rect
+	var canvas := Control.new()
+	canvas.custom_minimum_size = Vector2(0, 64 if swirl else 0)
+	canvas.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	canvas.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	if swirl:
+		canvas.draw.connect(func() -> void: _draw_swirl(canvas))
+	return canvas
 
 # Three nested wind arcs.
 func _draw_swirl(canvas: Control) -> void:
@@ -258,11 +278,8 @@ func _make_clear_skies_card() -> Button:
 	var box := _card_box(button)
 	UiStyle.title(_add_line(box, "Clear Skies", CLEAR_SKIES_COLOR, 22), UiStyle.CARD_NAME_SIZE, CLEAR_SKIES_COLOR)
 	# The same body style and spot as Face an Omen's line; only the calmer whisper colour differs
-	var calm := _add_line(box, "Nothing changes. No reward.", UiStyle.WHISPER, BODY_SIZE)
-	var spacer := Control.new()
-	spacer.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	spacer.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	box.add_child(spacer)
+	var calm := _add_line(box, "Nothing changes. No reward.", UiStyle.WHISPER, FRONT_BODY_SIZE)
+	box.add_child(_emblem(&"clear_skies", false))  # The moon and stars (an empty space until the icon exists)
 	UiStyle.caps(_add_line(box, "The default", UiStyle.INK_DIM, 13), 14)
 	_fit_card(button, box, [calm])
 	return button
