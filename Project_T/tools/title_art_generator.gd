@@ -2,7 +2,7 @@ extends SceneTree
 # Generates the title screen background (screens_ui.md "Meta screens": the Heartwood on the title).
 # Detailed pixel art at 640×360, shown at a whole-number scale (3× at 1080p, 2× at 720p, 4× at 1440p).
 # A moonlit night: the Heartwood fills the right half with its golden hollow at the end of a pale
-# path, the Sporeling walks toward it with a lantern, and cold eyes watch from the thickets at the
+# path, the Sporeling sits huge in the foreground guarding it, and cold eyes watch from the thickets at the
 # edges (art_direction.md: warm centre, cold edge). The upper left stays calm for the logo and menu.
 # Every pixel is snapped to Heartwood 32 (art_direction.md).
 #   assets/ui/title/title_background.png   640×360, the art
@@ -68,10 +68,10 @@ func _init() -> void:
 	_canopy()
 	_vines()
 	_ground_mist()
-	_sporeling(Vector2i(318, 326))
 	_thickets()
-	_foreground()
 	_warm_light()
+	_giant_sporeling()  # after the warm light, so the path's glow doesn't cross it
+	_foreground()
 	_cold_edges()
 	_watchers()
 	_fireflies()
@@ -721,49 +721,198 @@ func _ground_mist() -> void:
 
 # --- characters ----------------------------------------------------------------------------------
 
-func _sporeling(at: Vector2i) -> void:
-	# The mascot from behind, walking the path toward the hollow with a lantern on a stick.
-	var shape := [
-		"......OOOOOO......",
-		"....OOBBBBbbOO....",
-		"...OBBwwBBBbbpO...",
-		"..OBBwwBBBBBbppO..",
-		".OBBBBBBBwBBbbppO.",
-		".OBBwBBBBBBBbpppO.",
-		"OBBBBBBBBBBbbpppPO",
-		"OOPPPPPPPPPPPPPPOO",
-		"....OssssssssO....",
-		"....OsSSSSSSdO....",
-		"...OssSSSSSSSdO...",
-		"...OsSSSSSSSSdO...",
-		"....OsSSSSSSdO....",
-		".....OdSSSSdO.....",
-		".....OdO..OdO.....",
-		".....OO....OO.....",
-	]
-	var key := {"O": "night", "B": "blossom", "b": "orchid", "p": "orchid", "P": "bruise",
-		"w": "heartlight", "s": "moonpath", "S": "deadwood", "d": "oak"}
-	var ox := at.x - 9
-	var oy := at.y - shape.size()
-	# Its shadow on the path first.
-	for x in range(-8, 9):
-		blend(at.x + x, at.y, col("loam"), 0.7 if absi(x) < 6 else 0.35)
-	for row in shape.size():
-		var line: String = shape[row]
-		for i in line.length():
-			var ch := line[i]
-			if ch != ".":
-				put(ox + i, oy + row, col(key[ch]))
-	# The lantern: a stick over its shoulder, a small warm lamp swinging from the end.
-	var lamp := Vector2i(at.x + 14, oy + 5)
-	for k in 8:
-		put(at.x + 6 + k, oy + 10 - k * 5 / 8, col("oak"))
-	put(lamp.x, lamp.y + 1, col("root"))
-	glow(Vector2(lamp.x, lamp.y + 4), 9.0, col("gold"), 0.3)
-	for y in range(2, 7):
-		for x in range(-1, 2):
-			put(lamp.x + x, lamp.y + y, col("root") if y == 2 or y == 6 else (col("glow") if x == 0 else col("gold")))
-	put(lamp.x, lamp.y + 3, col("heartlight"))
+# The Sporeling (the mascot, tower_art_generator.gd's round pink spirit) seen close up and huge,
+# sitting guard in front of the Heartwood: moonlight on its upper left, the hollow's gold on its
+# right edge, spores drifting up off it.
+const SPORE_X := 312.0
+const BODY := ["shade", "bruise", "orchid", "blossom"]
+const LIGHT3 := Vector3(-0.5, -0.66, 0.56)
+
+
+func _giant_sporeling() -> void:
+	var cx := SPORE_X
+	# Back to front: the lumps behind, the body, the head, the arms, the lumps in front.
+	_blob(Vector2(cx - 96, 346), Vector2(34, 26))
+	_blob(Vector2(cx + 104, 342), Vector2(38, 28))
+	_blob(Vector2(cx, 292), Vector2(92, 118))
+	_moss_cap(Vector2(cx, 292), Vector2(92, 118), -0.8)  # before the head, so it stays on the shoulders
+	_blob(Vector2(cx - 60, 200), Vector2(18, 13))  # spore lumps on the shoulders
+	_blob(Vector2(cx + 64, 206), Vector2(14, 10))
+	_blob(Vector2(cx, 146), Vector2(48, 43))
+	# Heavy, soft arms: narrow at the shoulder, wide mitts resting on the ground.
+	_capsule(Vector2(cx - 74, 214), Vector2(cx - 108, 326), 15.0, 25.0)
+	_capsule(Vector2(cx + 74, 218), Vector2(cx + 110, 328), 15.0, 25.0)
+	_blob(Vector2(cx - 132, 356), Vector2(22, 16))
+	_blob(Vector2(cx + 146, 358), Vector2(26, 18))
+	_blob(Vector2(cx - 30, 364), Vector2(28, 18))
+	_face(Vector2(cx, 146))
+	# It's been sitting guard a long time: moss on its crown and shoulders, a sprout, small mushrooms.
+	_moss_cap(Vector2(cx, 146), Vector2(48, 43), -0.6)
+	_moss_cap(Vector2(cx - 60, 200), Vector2(18, 13), -0.2)
+	_moss_cap(Vector2(cx + 64, 206), Vector2(14, 10), -0.1)
+	_sprout(Vector2i(int(cx) - 8, 104))
+	_mushroom(Vector2i(int(cx) - 66, 190), 7)
+	_mushroom(Vector2i(int(cx) - 54, 192), 5)
+	_mushroom(Vector2i(int(cx) + 68, 199), 6)
+	# A soft glint on the crown's lit side.
+	for g in [Vector2i(-24, -26), Vector2i(-23, -26), Vector2i(-25, -25), Vector2i(-24, -25), Vector2i(-26, -24)]:
+		put(int(cx) + g.x, 146 + g.y, col("heartlight"))
+	# A little spore floating over its head, and spores drifting up around it.
+	_blob(Vector2(cx + 6, 94), Vector2(4, 4))
+	glow(Vector2(cx + 6, 94), 9.0, col("blossom"), 0.22)
+	var r := RandomNumberGenerator.new()
+	r.seed = 606
+	for i in 40:
+		var p := Vector2(cx + r.randf_range(-150.0, 150.0), r.randf_range(70.0, 330.0))
+		if _is_sporeling(img.get_pixel(int(p.x), int(p.y))):
+			continue
+		if i % 3 == 0:
+			glow(p, 4.0, col("blossom"), 0.3)
+		put(int(p.x), int(p.y), col("heartlight") if i % 4 == 0 else col("blossom"))
+		if i % 5 == 0:
+			put(int(p.x) + 1, int(p.y), col("blossom"))
+			put(int(p.x), int(p.y) + 1, col("orchid"))
+
+
+func _is_sporeling(c: Color) -> bool:
+	for n in BODY + ["night"]:
+		if c.is_equal_approx(col(n)):
+			return true
+	return false
+
+
+func _blob(c: Vector2, r: Vector2) -> void:
+	for y in range(int(c.y - r.y) - 1, int(c.y + r.y) + 2):
+		for x in range(int(c.x - r.x) - 1, int(c.x + r.x) + 2):
+			var q := Vector2((x - c.x) / r.x, (y - c.y) / r.y)
+			var d := q.length()
+			if d > 1.0:
+				continue
+			_body_pixel(x, y, q, (1.0 - d) * minf(r.x, r.y))
+
+
+func _capsule(a: Vector2, b: Vector2, r0: float, r1: float) -> void:
+	# A tapered capsule, r0 at a and r1 at b.
+	var ab := b - a
+	var rm := maxf(r0, r1)
+	for y in range(int(minf(a.y, b.y) - rm) - 1, int(maxf(a.y, b.y) + rm) + 2):
+		for x in range(int(minf(a.x, b.x) - rm) - 1, int(maxf(a.x, b.x) + rm) + 2):
+			var p := Vector2(x, y)
+			var t := clampf((p - a).dot(ab) / ab.length_squared(), 0.0, 1.0)
+			var radius := lerpf(r0, r1, t)
+			var q := (p - (a + ab * t)) / radius
+			if q.length() > 1.0:
+				continue
+			_body_pixel(x, y, q, (1.0 - q.length()) * radius)
+
+
+func _body_pixel(x: int, y: int, q: Vector2, depth: float) -> void:
+	# depth = px inside the edge. A dark outline, a round lit form, a warm rim on the right.
+	if depth < 1.3:
+		put(x, y, col("night"))
+		return
+	var n := Vector3(q.x, q.y, sqrt(maxf(0.0, 1.0 - q.length_squared())))
+	var lam := n.dot(LIGHT3.normalized())
+	# Mostly Blossom pink (the in-game look), Orchid for the turned-away side, Bruise in the deepest shade.
+	var v := 0.42 + 0.62 * lam
+	var c := pick(BODY, v, x, y, 0.1)
+	if q.x > 0.55 and q.y > -0.6 and depth < 3.6:
+		c = col("gold") if depth < 2.5 else col("orchid")  # the hollow's light on its right edge
+	put(x, y, c)
+
+
+func _moss_cap(c: Vector2, r: Vector2, level: float) -> void:
+	# Moss over the top of a blob (above `level` in its -1..1 height), with a ragged, clumpy lower
+	# edge and a dark shadow line under it.
+	for y in range(int(c.y - r.y), int(c.y + r.y) + 1):
+		for x in range(int(c.x - r.x), int(c.x + r.x) + 1):
+			var q := Vector2((x - c.x) / r.x, (y - c.y) / r.y)
+			if q.length() > 1.0 or not inside(x, y) or not _is_sporeling(img.get_pixel(x, y)) or img.get_pixel(x, y).is_equal_approx(col("night")):
+				continue
+			var lobe := fposmod(x + c.x * 0.37, 14.0) / 14.0 * 2.0 - 1.0  # rounded clumps hanging over the edge
+			var edge := level + 0.09 * sqrt(maxf(0.0, 1.0 - lobe * lobe)) * (0.5 + 0.5 * hash01(int((x + c.x * 0.37) / 14.0), 7)) + noise.get_noise_1d(x * 2.0) * 0.05
+			if q.y > edge + 0.06:
+				continue
+			if q.y > edge:
+				put(x, y, col("bruise"))  # the shadow the moss casts on the body
+				continue
+			if q.y > edge - 0.035:
+				put(x, y, col("deepmoss"))  # the dark underside of each clump
+				continue
+			var n := Vector3(q.x, q.y, sqrt(maxf(0.0, 1.0 - q.length_squared())))
+			var v := 0.18 + 0.5 * n.dot(LIGHT3.normalized())
+			var leaf := grain.get_noise_2d(x * 3.0 + 50.0, y * 3.0)
+			if leaf > 0.35:
+				v += 0.22
+			elif leaf < -0.45:
+				v -= 0.2
+			put(x, y, pick(LEAVES, v, x, y, 0.1))
+
+
+func _sprout(base: Vector2i) -> void:
+	# A two-leaf sprout growing out of the moss on its crown, leaning toward the moon.
+	for k in 14:
+		var x := base.x - int(k * k / 60.0)
+		put(x, base.y - k, col("moss"))
+		put(x + 1, base.y - k, col("deepmoss"))
+	var tip := Vector2(base.x - 3, base.y - 14)
+	for leaf in [[Vector2(-7, -2), 0.5, "leaf", "sprig"], [Vector2(6, -5), -0.6, "sprig", "newleaf"]]:
+		var c: Vector2 = tip + leaf[0]
+		var ang: float = leaf[1]
+		var along := Vector2(cos(ang), sin(ang))
+		for y in range(-8, 9):
+			for x in range(-9, 10):
+				var p := Vector2(x, y)
+				var u := p.dot(along) / 7.5
+				var w := p.dot(Vector2(-along.y, along.x)) / 3.4
+				var d := u * u + w * w
+				if d > 1.0:
+					continue
+				var shade: String = leaf[3] if w < -0.1 else leaf[2]
+				put(int(c.x) + x, int(c.y) + y, col("deepmoss") if d > 0.7 else col(shade))
+
+
+func _mushroom(base: Vector2i, size: int) -> void:
+	# A tiny pale mushroom: an outlined cap with a lit top and a dark underside, on a short stem.
+	for k in size:
+		put(base.x, base.y - k, col("deadwood"))
+		put(base.x + 1, base.y - k, col("oak"))
+	var top := base.y - size
+	for y in range(-size / 2 - 1, 1):
+		for x in range(-size, size + 2):
+			var q := Vector2((x - 0.5) / (size + 0.5), float(y) / (size / 2.0 + 1.0))
+			if q.length() > 1.0:
+				continue
+			var c := col("moonpath") if q.x < 0.1 and y < 0 else col("path")
+			if q.length() > 0.8:
+				c = col("root")
+			elif y == 0:
+				c = col("loam")
+			put(base.x + x, top + y, c)
+
+
+func _face(c: Vector2) -> void:
+	# Big dark eyes with a glint, a small smile and blushing cheeks: cute, and not afraid.
+	for side in [-1, 1]:
+		var ex: float = c.x + side * 15.0
+		var ey := c.y - 2.0
+		for y in range(-5, 6):
+			for x in range(-3, 4):
+				if pow(x / 3.2, 2) + pow(y / 5.4, 2) <= 1.0:
+					put(int(ex) + x, int(ey) + y, col("void"))
+		put(int(ex) - 1, int(ey) - 3, col("heartlight"))
+		put(int(ex) - 1, int(ey) - 2, col("heartlight"))
+		put(int(ex), int(ey) - 3, col("heartlight"))
+		put(int(ex) + 1, int(ey) + 3, col("dusk"))
+		for y in 3:  # a blush: solid in the middle row, dithered above and below
+			for x in range(-4, 5):
+				if (y == 1 and absi(x) < 4) or ((x + y) % 2 == 0 and absi(x) < 3):
+					put(int(ex + side * 4) + x, int(ey) + 8 + y, col("orchid"))
+	for x in range(-5, 6):
+		var y := int(round(pow(x / 5.0, 2) * -2.0))
+		put(int(c.x) + x, int(c.y) + 14 + y, col("night"))
+	put(int(c.x) - 6, int(c.y) + 11, col("bruise"))
+	put(int(c.x) + 6, int(c.y) + 11, col("bruise"))
 
 
 func _thickets() -> void:
