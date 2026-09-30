@@ -62,6 +62,8 @@ var all_families := false  # --all-families: the developer "Unlock all families"
 var favored: Array[String] = []  # --favor=many_hands,seedfall: these Dream cards score highest (a player's build)
 var dream_mode := "balanced"  # --dreams=skip|random|balanced (dream_design.md "Dreams must matter")
 var director_overrides := {}  # --director=act1_boss_health_multiplier=3.0 (repeatable): DriftDirector exports for tuning sweeps
+var enemy_overrides := {}  # --enemy=id.field=value (repeatable): EnemyData fields for sweeps
+var _keep: Array = []  # The edited EnemyData, held so the cache keeps them
 var act1_boss := ""  # --boss=night_mare: act 1's boss forced (DriftDirector.preset_bosses); "" = the default draw
 var dream_share := {}  # Drift -> the share of the maze's damage per second that the taken Dreams add (20, 25, 50, 75)
 var dreams_20 := ""  # The Dreams taken by drift 20 ("a+b")
@@ -117,6 +119,19 @@ func _run() -> void:
 			"--director":
 				var setting := arg.substr(arg.find("=") + 1)
 				director_overrides[setting.get_slice("=", 0)] = float(setting.get_slice("=", 1))
+			"--enemy":  # --enemy=night_mare.lap_leaves=4 (repeatable): an EnemyData field for this run (the loaded resource)
+				var setting := arg.substr(arg.find("=") + 1)
+				var target := setting.get_slice("=", 0)
+				var data: EnemyData = load("res://resource/enemy/%s.tres" % target.get_slice(".", 0))
+				var field := target.get_slice(".", 1)
+				var current: Variant = data.get(field) if data else null
+				if current == null:
+					printerr("--enemy: no field %s" % target)
+					quit(1)
+					return
+				data.set(field, int(setting.get_slice("=", 1)) if current is int else float(setting.get_slice("=", 1)))
+				enemy_overrides[target] = setting.get_slice("=", 1)
+				_keep.append(data)
 	if profile != "fresh":
 		var meta: Script = load("res://scripts/meta/meta_run.gd")
 		if not meta.get_script_method_list().any(func(m: Dictionary) -> bool: return m.name == "load_preset"):
@@ -576,7 +591,7 @@ func _finish() -> void:
 		"max_top_warden": run.max_top_warden, "max_asleep": snappedf(run.max_asleep, 0.001), "cards": dreams.stacks.size(),
 		"sprout_cards_25": run.sprout_cards_25,
 		"sprouts_end": _attackers().filter(func(t) -> bool: return t.tower_data.get_id() == "sprout").size(), "cards_start": "+".join(start_cards),
-		"loadout": _loadout(), "all_families": all_families, "dreams": dream_mode, "boss": act1_boss, "director": ";".join(director_overrides.keys().map(func(k) -> String: return "%s=%s" % [k, director_overrides[k]])), "boss_drained": run.boss_drained, "dream_share_20": dream_share.get(20, -1.0), "dream_share_25": dream_share.get(25, -1.0), "dreams_20": dreams_20, "dream_share_50": dream_share.get(50, -1.0), "dream_share_75": dream_share.get(75, -1.0), "favored": "+".join(favored), "save": save_mode, "omens": omen_mode, "omens_faced": "+".join(omens_faced), "families_forced": "+".join(forced_families), "hand_drifts": hand_drifts,
+		"loadout": _loadout(), "all_families": all_families, "dreams": dream_mode, "boss": act1_boss, "director": ";".join(director_overrides.keys().map(func(k) -> String: return "%s=%s" % [k, director_overrides[k]])), "enemy": ";".join(enemy_overrides.keys().map(func(k) -> String: return "%s=%s" % [k, enemy_overrides[k]])), "boss_drained": run.boss_drained, "dream_share_20": dream_share.get(20, -1.0), "dream_share_25": dream_share.get(25, -1.0), "dreams_20": dreams_20, "dream_share_50": dream_share.get(50, -1.0), "dream_share_75": dream_share.get(75, -1.0), "favored": "+".join(favored), "save": save_mode, "omens": omen_mode, "omens_faced": "+".join(omens_faced), "families_forced": "+".join(forced_families), "hand_drifts": hand_drifts,
 		"close_calls": rows.filter(func(r) -> bool: return r.approach > CLOSE_CALL).size(),
 		"approach_max": snappedf(rows.reduce(func(m, r) -> float: return maxf(m, r.approach), 0.0), 0.01),
 		"seconds": snappedf(game_time, 1.0)}
