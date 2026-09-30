@@ -12,7 +12,7 @@ class_name BossDossier
 #   defences  the Resists / Weak to / Immune rows, larger (NightmareIcons)
 #   abilities icon, name, what it does, WHEN (EnemyData.get_ability: numbers filled from the data)
 #   it brings summons (EnemyData.get_summons) + the boss drift's escorts
-#   what helps EnemyData.tips; your record (times dispelled, best time; profile "boss_records")
+#   your record (times dispelled, best time; profile "boss_records")
 # Reopen any time from the drift banner's "Boss in N" or the boss portrait in Coming this block
 # (BossDossier.open_for). Opened during a drift it pauses until closed. Made by the HUD.
 
@@ -343,12 +343,6 @@ func _build(data: EnemyData, drift: int) -> void:
 	if brings.get_child_count() > 0:
 		_content.add_child(_section("It brings"))
 		_content.add_child(brings)
-	if not data.tips.is_empty():
-		_content.add_child(_section("What helps"))
-		var tips: Array[String] = []
-		for tip in data.tips:
-			tips.append("• " + tip)
-		_content.add_child(StatusLinks.make_label("\n".join(tips), 15, Color(0.85, 0.9, 0.85)))
 	_content.add_child(_section("Your record"))
 	_content.add_child(StatusLinks.make_label(record_text(data), 15))
 

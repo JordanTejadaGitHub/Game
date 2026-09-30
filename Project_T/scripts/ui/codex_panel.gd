@@ -862,7 +862,7 @@ func _dream_entry(card: UpgradeData, seen: Array, viewed: Array, taken: Dictiona
 # Every nightmare and boss, "???" until first met (profile nightmares_seen); a met one shows its
 # portrait on a moon disc, name, trait, intro lines and hint, resist / weak / immune icons, health /
 # speed / leaves at drift 1, its act and the times you've dispelled it; a boss adds its dossier
-# (abilities, what helps) and your record. Grouped by act, bosses last; "23 / 34 nightmares met";
+# (abilities) and your record. Grouped by act, bosses last; "23 / 34 nightmares met";
 # a gold "New" until the page has been opened.
 
 var _nightmares := VBoxContainer.new()
@@ -987,14 +987,12 @@ func _nightmare_entry(data: EnemyData, met: Array, viewed: Array, dispels: Dicti
 		data.leaf_cost, NightmareCodex.act_of(data)]
 	UiStyle.number(facts, 15, UiStyle.INK_DIM)
 	box.add_child(facts)
-	if data.is_boss:  # Its dossier: abilities and what helps
+	if data.is_boss:  # Its dossier's abilities (no "What helps": the ability and resist rows say enough)
 		for i in data.abilities.size():
 			var ability := data.get_ability(i)
 			var when := String(ability.get("when", ""))
 			box.add_child(StatusLinks.make_label("%s%s: %s" % [ability.get("name", ""), " (" + when + ")" if when != "" else "",
 				ability.get("text", "")], 15))
-		for tip in data.tips:
-			box.add_child(StatusLinks.make_label("· " + data.format_text(tip), 15, Color(0.85, 0.9, 0.85)))
 	var stats := Label.new()
 	stats.name = "Stats"
 	var times := int(dispels.get(kind, 0))
