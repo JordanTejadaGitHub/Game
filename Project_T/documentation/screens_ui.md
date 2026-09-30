@@ -508,6 +508,11 @@ From a user playtest with screenshots; each line is the rule going forward.
 - **Warden panel → Remember:** a Grow button for a form you haven't unlocked (needs Dreamlight or
   its branch first) **opens the Remember tree on that node** instead of doing nothing.
 - **Sell button** shows its hotkey icon (**X**, or the rebound key) like other hotkeyed buttons.
+- **Selected vs hovered, everywhere** (2026-09-30, user): a **selected / active** control (the chosen
+  targeting mode, the open tab, the current speed, a toggled option, the selected Warden's frame)
+  shows only a **gold border** (and gold text), no fill. **Hovering** fills the **whole box** with the
+  soft highlight. Pressing darkens it for a moment. So "chosen" and "under the pointer" never look
+  alike. One UiStyle rule for all buttons, tabs and segmented switches.
 - **Less hand-holding on buttons** (2026-09-30, user: "a bit too much hand holding"):
   - Unlock buttons read **"Unlock with 2 Dreamlight (0)"**, not "(you have 0)".
   - A button you **can't afford never glows or pulses**; it's shown dim. Glow means "you can do this now".
