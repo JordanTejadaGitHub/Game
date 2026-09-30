@@ -30,6 +30,7 @@ func _run() -> void:
 	_test_half_dreamed(main)
 	await _test_discovery(main)
 	_test_grown_needs(main)
+	_test_blessing_dream(main)
 	_test_resonance(main)
 	print("dreams test: %s" % ("PASS" if failures == 0 else "%d FAILED" % failures))
 	quit(failures)
@@ -763,7 +764,7 @@ func _test_few_and_mighty_sim(main: Node) -> void:
 		_reset_dreams_quiet(dreams)
 		dreams.unlocked[family] = true
 		var drawable: Array = dreams.pool.filter(func(c: UpgradeData) -> bool:
-			return c.rarity == UpgradeData.Rarity.RARE and dreams.can_offer(c, 1))
+			return c.rarity == UpgradeData.Rarity.RARE and dreams.can_offer(c, 1) and not c.id.begins_with("blessing_"))  # Generic Rares (a family's Blessing isn't one)
 		var full := drawable.filter(func(c: UpgradeData) -> bool: return dreams.is_eligible(c, 1))
 		print("act 1 Rares with %s: %d drawable, %d with every Need met (%s)" % [family, drawable.size(), full.size(),
 			", ".join(drawable.map(func(c: UpgradeData) -> String: return c.id))])
@@ -1171,6 +1172,33 @@ func _spawn_near(main: Node, cell: Vector2, offset: Vector2 = Vector2.ZERO) -> N
 func _free_enemies(main: Node) -> void:
 	for child in main.get_node("%EnemyContainer").get_children():
 		child.free()
+
+# Family Blessings are Rare Dream cards now (meta_design.md "Replaced 2026-09-30"): offered once you own the
+# family (and a Warden of it has stood on the map), never before; one per family.
+func _test_blessing_dream(main: Node) -> void:
+	var dreams: DreamState = main.get_node("%DreamState")
+	_reset_dreams(main)
+	for card in MetaRun.load_blessings():  # MetaRun puts them in the pool at run start
+		if not dreams.pool.any(func(c: UpgradeData) -> bool: return c.id == card.id):
+			dreams.pool.append(card)
+	var blessing := _card(dreams, "blessing_sporeling")
+	_check(blessing != null and blessing.rarity == UpgradeData.Rarity.RARE and blessing.max_stacks == 1 and blessing.tags == ["spore"],
+		"the Sporeling Blessing: Rare, one per run, the family line tag")
+	_check(not dreams.can_offer(blessing, 2), "…not offered without the Sporeling family")
+	dreams.unlocked["sporeling"] = true
+	dreams.grown_wardens["sporeling"] = true
+	dreams.unlocks_changed.emit()
+	_check(dreams.can_offer(blessing, 2), "…offered once you own Sporeling")
+	var seen := false
+	for i in 200:
+		dreams.dreams_seen = 0
+		if dreams.make_offer(20).has(blessing):
+			seen = true
+			break
+	_check(seen, "a Blessing can turn up as a Dream")
+	dreams.take(blessing)
+	_check(not dreams.can_offer(blessing, 2), "…and only once")
+	_reset_dreams(main)
 
 # Round 5 (dream_design.md "Round 4 measured"): a Warden a card names must have been built or grown this
 # run; unlocked (a free branch) isn't enough, and selling it later doesn't un-meet it.
