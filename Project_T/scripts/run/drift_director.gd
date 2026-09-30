@@ -57,7 +57,7 @@ const DEMO_DRIFTS_DIR := "res://resource/drift/demo/"
 @export var guaranteed_elite_from: int = 31  # run_design.md f2eb4f8: was 26 (the drift 28–29 death cluster)
 @export var second_elite_from: int = 76  # Two Deeply Blighted per drift from here
 @export var boss_health_multiplier: float = 1.5  # On the bosses' base health
-@export var act1_boss_health_multiplier: float = 2.0  # Act 1's boss (drift 25) instead (grove10: Fresh beat ×1.5 10/10, ×1.75 19/20)
+@export var act1_boss_health_multiplier: float = 1.75  # Act 1's boss (drift 25) instead (boss stays and drains: ×1.75 = Dreams 11/15, skip 5/15 vs the Stag)
 # Acts 3–4 (run_design.md "Act 3 probe", interim): a flat health multiplier for every nightmare from
 # `late_acts_from_act`, bosses included, on top of the growth / boss multiplier.
 @export var late_acts_health_multiplier: float = 3.5  # Acts 3–4, bosses included (balance_simulation.md "Human run 1"; was 1.6)
