@@ -26,6 +26,8 @@ const TAP_RADIUS := 22.0  # Tree px around a node, fruit or stone that counts as
 const DRAG_THRESHOLD := 8.0  # Screen px before a press becomes a pan
 const GROW_STEP := 0.1  # Seconds per branch / bud frame while planting
 const CANOPY_FADE := 1.2
+const BACKDROP := "grove/grove_backdrop.png"  # 2560×960: grove_sky.png plus 640 px of scene each side
+const BACKDROP_MARGIN := 640.0
 # Ambient life (like the title screen): calm, stepped, in whole art pixels; all still under reduced motion.
 const CANOPY_BASE_Y := 620  # The crown stretches upward from this tree-space row (where it meets the limbs)
 const CANOPY_BREATH := 2  # Art px at the top of a breath
@@ -113,8 +115,13 @@ func _ready() -> void:
 	_world.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_world.size = TREE_SIZE
 	add_child(_world)
-	for path in ["grove/grove_sky.png", "grove/grove_tree.png"]:
-		_world.add_child(_art(load(ART + path)))
+	# The backdrop: the sky scene 640 px wider on each side (its middle 1280 px are grove_sky.png), inside
+	# the world so it pans and zooms with the tree and a wide screen shows no seam beside the art.
+	var backdrop := _art(load(ART + BACKDROP))
+	backdrop.position = Vector2(-BACKDROP_MARGIN, 0)
+	backdrop.size = TREE_SIZE + Vector2(BACKDROP_MARGIN * 2, 0)
+	_world.add_child(backdrop)
+	_world.add_child(_art(load(ART + "grove/grove_tree.png")))
 	_world.add_child(_canopy_back)
 	_world.add_child(_canopy_front)
 	for rect in [_canopy_back, _canopy_front]:
@@ -538,8 +545,8 @@ func _draw_mists() -> void:
 			continue
 		var width := float(tex.get_width())
 		var shift := 0.0 if _reduced_motion else floorf(fposmod(_time * float(mist.speed), width))
-		var x := shift - width
-		while x < TREE_SIZE.x:
+		var x := shift - width * ceilf(BACKDROP_MARGIN / width + 1.0)  # Across the wide backdrop too
+		while x < TREE_SIZE.x + BACKDROP_MARGIN:
 			_layer.draw_texture(tex, Vector2(x, float(mist.y)))
 			x += width
 
