@@ -321,7 +321,7 @@ are marked ✓; the rest are proposals to tune.
 | Nightmare (old name) | Health | Speed | Dew | Leaves | Resists | Weak to | Other |
 |---|---|---|---|---|---|---|---|
 | Shade (Leaf Bug) ✓ | 100 | 100 | 3 | 1 | — | — | baseline |
-| Husk (Bark Beetle) ✓ | 300 | 58 | 8 | 2 | **water** (was stone; 2026-09-29: with the Night Hound also resisting stone, half of act 1's roster halved Pebbling, which then failed its act 1 check at 1/10; water runs off dead bark) | spore | |
+| Husk (Bark Beetle) ✓ | 300 | 58 | 8 | 2 | **—** (was stone; user decision 2026-09-29: stone halved Pebbling against most of act 1, and water would break the act 1 40% rule, since Husks are 45–100% of act 1 drift health) | spore | |
 | Lurker (Dusk Moth) ✓ | 70 | 140 | 4 | 1 | spore | wing | hidden in fog |
 | Phantom (Dandelion Seed) ✓ | 50 | 70 | 3 | 1 | root | water | glides through walls to the goal |
 | Gravecrawler (Mole) | 180 | 75 | 5 | 1 | wing | song | burrows under 1 Warden per trip |

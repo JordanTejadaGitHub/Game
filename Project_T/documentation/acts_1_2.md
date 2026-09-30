@@ -129,14 +129,14 @@ PH = Phantom, NH = Night Hound, PR = Procession (Lantern Bearer + 4 Wraiths).
 | Drift | Contents | Notes |
 |---|---|---|
 | 26 | 20 SH, 6 HU, 6 MO | warm-up after the boss |
-| 27 | **Haunting:** 6 PH (2 s apart) | Phantom intro |
-| 28 | 22 SH, 6 HU, 4 PH | |
+| 27 | 4 NH (3 s apart) | Night Hound intro (swapped with the Phantom 2026-09-29: the Hound tests the maze the player just built; 21 Phantoms in drifts 27–30 flew past every maze and caused the 26–30 deaths) |
+| 28 | 22 SH, 6 HU, 5 NH | |
 | 29 | 24 SH, 7 HU, 6 MO | |
-| 30 | 20 SH, 8 HU, 6 PH | rest |
-| 31 | 4 NH (3 s apart) | Night Hound intro |
-| 32 | 20 SH, 6 HU, 5 NH | |
-| 33 | 22 SH, 5 MO, 6 NH | |
-| 34 | 24 SH, 8 HU, 4 PH, 4 NH | |
+| 30 | 20 SH, 8 HU, 6 NH | rest |
+| 31 | **Haunting:** 4 PH (2 s apart) | Phantom intro (smaller: 4, was 6) |
+| 32 | 20 SH, 6 HU, 2 PH | |
+| 33 | 22 SH, 5 MO, 3 PH | |
+| 34 | 24 SH, 8 HU, 3 PH, 4 NH | |
 | 35 | **The Hunt:** 12 NH, 3 HU★ | rest |
 | 36 | 1 PR | Procession intro |
 | 37 | 20 SH, 2 PR | |
