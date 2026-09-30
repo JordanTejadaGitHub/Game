@@ -61,6 +61,7 @@ var omen_mode := ""  # --omens=face: faces every Omen drawn (DreamSimPolicy.face
 var all_families := false  # --all-families: the developer "Unlock all families" run (MetaRun.force_all_families)
 var favored: Array[String] = []  # --favor=many_hands,seedfall: these Dream cards score highest (a player's build)
 var dream_mode := "balanced"  # --dreams=skip|random|balanced (dream_design.md "Dreams must matter")
+var director_overrides := {}  # --director=act1_boss_health_multiplier=3.0 (repeatable): DriftDirector exports for tuning sweeps
 var dream_share := {}  # Drift -> the share of the maze's damage per second that the taken Dreams add (50, 75)
 var omens: OmenDirector
 var omens_faced: Array[String] = []
@@ -110,6 +111,9 @@ func _run() -> void:
 			"--all-families": all_families = true
 			"--favor": favored.assign(value.split(","))
 			"--dreams": dream_mode = value
+			"--director":
+				var setting := arg.substr(arg.find("=") + 1)
+				director_overrides[setting.get_slice("=", 0)] = float(setting.get_slice("=", 1))
 	if profile != "fresh":
 		var meta: Script = load("res://scripts/meta/meta_run.gd")
 		if not meta.get_script_method_list().any(func(m: Dictionary) -> bool: return m.name == "load_preset"):
@@ -124,6 +128,8 @@ func _run() -> void:
 	main.get_node("%MapGenerator").map_seed = map_seed
 	if hand_drifts:
 		main.get_node("%DriftDirector").set("random_drifts", false)
+	for key in director_overrides:
+		main.get_node("%DriftDirector").set(key, director_overrides[key])
 	root.add_child(main)
 	await process_frame
 	map = main.get_node("%MapGenerator")
@@ -561,7 +567,7 @@ func _finish() -> void:
 		"max_top_warden": run.max_top_warden, "max_asleep": snappedf(run.max_asleep, 0.001), "cards": dreams.stacks.size(),
 		"sprout_cards_25": run.sprout_cards_25,
 		"sprouts_end": _attackers().filter(func(t) -> bool: return t.tower_data.get_id() == "sprout").size(), "cards_start": "+".join(start_cards),
-		"loadout": _loadout(), "all_families": all_families, "dreams": dream_mode, "dream_share_50": dream_share.get(50, -1.0), "dream_share_75": dream_share.get(75, -1.0), "favored": "+".join(favored), "save": save_mode, "omens": omen_mode, "omens_faced": "+".join(omens_faced), "families_forced": "+".join(forced_families), "hand_drifts": hand_drifts,
+		"loadout": _loadout(), "all_families": all_families, "dreams": dream_mode, "director": ";".join(director_overrides.keys().map(func(k) -> String: return "%s=%s" % [k, director_overrides[k]])), "dream_share_50": dream_share.get(50, -1.0), "dream_share_75": dream_share.get(75, -1.0), "favored": "+".join(favored), "save": save_mode, "omens": omen_mode, "omens_faced": "+".join(omens_faced), "families_forced": "+".join(forced_families), "hand_drifts": hand_drifts,
 		"close_calls": rows.filter(func(r) -> bool: return r.approach > CLOSE_CALL).size(),
 		"approach_max": snappedf(rows.reduce(func(m, r) -> float: return maxf(m, r.approach), 0.0), 0.01),
 		"seconds": snappedf(game_time, 1.0)}
