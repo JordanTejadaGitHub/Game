@@ -495,6 +495,11 @@ From a user playtest with screenshots; each line is the rule going forward.
   "share"); clicking a row **selects that Warden and glides the camera to it** (must work); the
   **last drift's DPS** lives in this panel ("Last drift 62 DPS"), not as loose text by Start;
   scrolling the panel never scrolls or zooms the map.
+- **Meter shows the top 5 only** (2026-09-30, user: "the scroll bar doesn't work; limit the Wardens to
+  the top 5 and show a ratio compared to last drift"): the Wardens tab lists the **5 highest**
+  Wardens by the current sort, **no scrolling**, and each row adds its change against its own
+  last drift (**"↑12%"** gold / **"↓8%"** dim, "new" if it didn't fight last drift). A small line
+  under the list says *"and 18 more"*; clicking a Warden on the map still shows its own numbers.
 - **"Needs ~N DPS" is removed in release:** the maze's own DPS stays; the estimate of what a drift
   needs is **dev-only** (debug builds / dev runs), since it's a rough balance number and can mislead.
 - **Remember tree:** the lines from the root to every **unlocked or grown** node glow gold (the path
