@@ -218,6 +218,28 @@ Decisions (design chat, 2026-09-30):
 - **Acorn keeps attacker ranks and the attacker Focus** (decision): it's its family's base attacker
   and opener. Only **Elder Stump and Grove Heart** are pure supports whose ranks go to the aura.
 
+## Batch g11 and the Dream value "before" (2026-09-30)
+
+- **Acorn at Fresh:** 9/10 reach 25, 4.8 leaves: just misses the floor → **+2 damage** (approved).
+- **The first boss:** ×1.5, ×1.75 and ×2.0 all give 19–20/20 clean dispels: its health barely
+  matters, the maze outclasses it. Decision: wait for the "after" batch (act 1 health rises with the
+  cards), then raise the act 1 boss until Fresh Balanced beats it ~75% **and always-skip loses to
+  it**. If that takes more than ~×3.5, it needs a threat, not health: Enemy Code gives act 1's
+  bosses a mechanic that punishes a maze without Dreams (e.g. a charge on straights, shrugging the
+  first status).
+- **Spend or save (C):** spending now beats saving (reach 25: Fresh 48 vs 46, Early 50 vs 41) and the
+  saver comes within 85% of the route far more often (25 vs 14; 29 vs 5). **Saving is the risky
+  gamble now, as intended**; whether surviving it pays off later is checked in the run history.
+- **Grove player (D):** medians Fresh 43 / Half 49 / Full 49. The Grove now adds ~6 drifts (was 0),
+  no deaths at 26–33 with a Grove, 0 wins. Still short of "Half reaches act 4, Full wins": revisit
+  after the Dream pass and the health rise; Grove perks get buffed then if still short.
+- **All families, to 100:** the Sprout bot plays the swarm badly (median 14), so no verdict on "too
+  easy"; the run history of real swarm runs decides. Balanced with all families: median 39.
+- **Dream value BEFORE the power pass** (skip / random / Balanced × Fresh / Full × own / all
+  families, 10 each): medians **35–45 everywhere**; always-skip beat the drift 25 boss **8–9/10**;
+  Dreams gave ~5–18% of DPS at drift 50. **Confirms the user: Dreams barely mattered.** The same
+  batch after the pass (cc38d56 + 5b72073) is the "after".
+
 ## Later
 
 A **human baseline**: the same CSV written from real playtests (debug builds only), so the bot's
