@@ -57,8 +57,17 @@ var _press_world := Vector2.ZERO
 var _press_shift := false
 var _blooms: Array = []  # [[tower, seconds until it starts]]; negative = seconds since it started
 
+# Q / E / Z (screens_ui.md hotkeys): grow the selection into the Warden panel's 1st / 2nd / 3rd option.
+# Registered here with these defaults when project.godot doesn't list them yet (rebindable once it does).
+const GROW_OPTION_ACTIONS: Array[StringName] = [&"grow_option_1", &"grow_option_2", &"grow_option_3"]
+const GROW_OPTION_KEYS: Array[Key] = [KEY_Q, KEY_E, KEY_Z]
+
+# A grow key went down / up: the panel previews that option while it's held.
+signal grow_option_held(index: int, held: bool)
+
 func _ready() -> void:
 	# Build mode owns the mouse; selling is available the rest of the time.
+	_ensure_grow_actions()
 	tower_placer.build_mode_changed.connect(func(building: bool) -> void: set_active(not building))
 	# The refund changes when a drift starts or ends.
 	drift_director.build_phase_changed.connect(queue_redraw.unbind(1))
@@ -382,6 +391,24 @@ func get_armed_sell() -> Array:
 func sell_key_name() -> String:
 	return _sell_key_name()
 
+# The key bound to `action` ("Q"), for button badges; "" when none.
+static func key_name(action: StringName) -> String:
+	if not InputMap.has_action(action):
+		return ""
+	for event in InputMap.action_get_events(action):
+		if event is InputEventKey:
+			return OS.get_keycode_string(event.physical_keycode if event.physical_keycode != 0 else event.keycode)
+	return ""
+
+static func _ensure_grow_actions() -> void:
+	for i in GROW_OPTION_ACTIONS.size():
+		if InputMap.has_action(GROW_OPTION_ACTIONS[i]):
+			continue
+		InputMap.add_action(GROW_OPTION_ACTIONS[i])
+		var key := InputEventKey.new()
+		key.physical_keycode = GROW_OPTION_KEYS[i]
+		InputMap.action_add_event(GROW_OPTION_ACTIONS[i], key)
+
 # The first key bound to sell_tower, for the prompt ("X").
 func _sell_key_name() -> String:
 	for event in InputMap.action_get_events("sell_tower"):
@@ -405,6 +432,30 @@ func sell_selection() -> int:
 				total += refund
 	set_selection([])
 	return total
+
+# Q / E / Z: grows the selection into its `index`th option (the Warden panel's order; each kind in a
+# group its own). A locked option opens the Remember tree on that form instead; a 2×2 form asks for its
+# square like the panel's button. Returns true if anything grew or opened.
+func grow_option(index: int) -> bool:
+	var dreams := _dreams()
+	if dreams == null or selection.is_empty():
+		return false
+	var acted := false
+	for group in get_selection_groups():
+		var options := Tower.grow_options(dreams, group[0])
+		if index >= options.size():
+			continue
+		var next: TowerData = options[index][0]
+		if not options[index][1]:
+			dreams.open_remember(next)
+			return true
+		if group[1].size() == 1 and next.footprint > group[1][0].get_footprint():
+			acted = tower_placer.begin_grow_choice(group[1][0], next) or acted
+		elif group[1].size() == 1:
+			acted = tower_placer.evolve(group[1][0], next) or acted
+		else:
+			acted = grow_group(group[1], next) > 0 or acted
+	return acted
 
 # G: grows the selection. One Warden: into its first form that's unlocked and affordable. Several: each
 # group into its first unlocked form, as many as the Dew allows.
@@ -444,9 +495,28 @@ func _unhandled_input(event: InputEvent) -> void:
 	elif event.is_action_pressed("grow_warden") and not selection.is_empty():
 		grow_selected()
 		get_viewport().set_input_as_handled()
+	elif _grow_option_event(event):
+		get_viewport().set_input_as_handled()
 	elif event.is_action_pressed("cycle_target") and not selection.is_empty():
 		cycle_target_group(selection)
 		get_viewport().set_input_as_handled()
+
+# Q / E / Z: a press previews the option (held), the release grows it; the preview ends either way.
+func _grow_option_event(event: InputEvent) -> bool:
+	if not (event is InputEventKey) or selection.is_empty() or _typing():
+		return false
+	for i in GROW_OPTION_ACTIONS.size():
+		if not InputMap.has_action(GROW_OPTION_ACTIONS[i]) or not event.is_action(GROW_OPTION_ACTIONS[i]):
+			continue
+		if event.is_echo():
+			return true
+		if event.is_pressed():
+			grow_option_held.emit(i, true)
+		else:
+			grow_option_held.emit(i, false)
+			grow_option(i)
+		return true
+	return false
 
 # A left press starts a click / drag / double-click, unless the Clear tool is on and it's on an obstacle.
 func _starts_selection(event: InputEvent) -> bool:

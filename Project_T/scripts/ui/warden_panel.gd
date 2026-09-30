@@ -200,7 +200,8 @@ func _refresh() -> void:
 	var options := Tower.grow_options(dream_state, data)
 	if options.is_empty() and data.line == "sprout":
 		_add_button(Tower.NO_FAMILY_YET).disabled = true  # No family picked yet
-	for option in options:
+	for index in options.size():
+		var option: Array = options[index]
 		var next: TowerData = option[0]
 		var button := _add_button("")
 		UiStyle.primary(button)  # Grow is the panel's main action (ui_style.md)
@@ -228,6 +229,7 @@ func _refresh() -> void:
 				button.mouse_exited.connect(tower_placer.hide_catch_preview)
 		else:
 			_locked_form_button(button, "Grow into %s" % next.display_name, next)
+		_grow_key(button, index)
 	if _tower.needs_focus():
 		# Rank III asks for a Focus, kept through growth and never changed.
 		var cost := _tower.get_nurture_cost()
@@ -368,13 +370,16 @@ func _refresh_group() -> void:
 	for group in groups:
 		var data: TowerData = group[0]
 		var towers: Array = group[1]
-		for option in Tower.grow_options(dream_state, data):  # Sprouts: only this run's families
+		var group_options := Tower.grow_options(dream_state, data)  # Sprouts: only this run's families
+		for index in group_options.size():
+			var option: Array = group_options[index]
 			var next: TowerData = option[0]
 			var button := _add_button("")
 			UiStyle.primary(button)
 			button.tooltip_text = IconInfo.format(next.description)  # {spored}-style tokens as words
 			if not option[1]:
 				_locked_form_button(button, "%s → %s" % [_plural(data, towers.size()), next.display_name], next)
+				_grow_key(button, index)
 				continue
 			# Each pays Tower.get_grow_cost (ranked ones their rank difference too).
 			var plan: Array = tower_seller.plan_grow(towers, next)
@@ -392,6 +397,7 @@ func _refresh_group() -> void:
 				button.text = "%s → %s · %s" % [_plural(data, towers.size()), next.display_name, awake]
 				button.disabled = true
 			button.pressed.connect(func() -> void: tower_seller.grow_group(towers, next))
+			_grow_key(button, index)
 	# Nurture all: one rank each, as far as the Dew goes (nearest the Heartwood first).
 	var full: Array = tower_seller.full_nurture_cost(selection)
 	if full[0] > 0:
@@ -498,6 +504,14 @@ func _add_target_switch(towers: Array) -> void:
 # A form that isn't unlocked yet (run_design.md "Dreamlight"): "Grow into Stormcap · Unlock with 1
 # Dreamlight". With enough Dreamlight, the first click asks and the second unlocks it; otherwise it
 # opens the Remember screen on that form (which also says what else it needs).
+# Q / E / Z: the Grow button's key badge, like Sell (X) and Nurture (R).
+func _grow_key(button: Button, index: int) -> void:
+	if index >= TowerSeller.GROW_OPTION_ACTIONS.size():
+		return
+	var key := TowerSeller.key_name(TowerSeller.GROW_OPTION_ACTIONS[index])
+	if key != "":
+		button.text += " (%s)" % key
+
 func _locked_form_button(button: Button, label: String, next: TowerData) -> void:
 	button.tooltip_text = IconInfo.format(next.description)  # {spored}-style tokens as words
 	if not dream_state.has_method("get_unlock_cost"):
