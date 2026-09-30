@@ -192,7 +192,10 @@ accessibility, Steam achievements (milestones map to them). Acts 3–4 and all f
 
 ## Run end, saving, onboarding
 - Scene flow: `scenes/title.tscn` (main scene; Continue / New run / Settings / Credits / Quit) →
-  `scenes/main.tscn`. Project settings `game/demo` (true) and `game/wishlist_url`.
+  `scenes/main.tscn`. Project settings `game/demo` (true) and `game/wishlist_url`. The title's
+  backdrop is `TitleBackdrop` (`assets/ui/title/title_background.png`, 640×360 from
+  `tools/title_art_generator.gd`; whole-number scale where it fits, motes, a wash of night on the
+  left behind the menu column).
 - `HeartwoodMemory` (`scripts/meta/heartwood_memory.gd`, static, `user://heartwood.json`): banked
   Seeds, run counts, `whispers_seen`, settings (volumes, fullscreen, whispers, keybinds);
   `apply_settings()`. `SettingsPanel` edits it (title + pause menu).
