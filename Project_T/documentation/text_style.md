@@ -45,6 +45,12 @@ label ("Rank III needs a Nurture Dream"), lowercase in a sentence ("grow past ra
   "{token}" must never reach the screen.
 - **No jargon without a link:** if a term is in the glossary, it's a link; if it isn't and isn't
   obvious, rephrase ("5 drifts in a row without losing a leaf").
+- **Say what it does, not what it sets up** (2026-09-30, user on Windborne Rain: "don't know what it
+  means and it's telling me a combo"): card and Warden text states its own effect ("Samara's seeds
+  apply {damp}…"). It never names a combo or Reaction ("becomes a Thunderclap corridor"): combos
+  stay "???" until discovered, and the Codex and placement links show the pairings.
+- **Requirements by damage type:** "Needs [emblem] Wind", not a family name.
+- **Scaling cards show the live value** on the card: "You have 7 · +40%".
 - Two lines at most on a button; tooltips at most ~42 characters wide (`screens_ui.md`).
 
 ## First sweep (2026-09-30): owners

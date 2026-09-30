@@ -158,6 +158,10 @@ alternative**: a strong card you can use now if you bend the plan.
      effect: *"Needs Dewdrop"* (the family is a linked term to its family pick). "Half-dreamed" stays
      an internal name for the mechanic. The card's effect works only once everything it needs is
      owned. In "Dreams this run" such a card is dimmed with the same "Needs Dewdrop" line.
+   - **Named by damage type** (2026-09-30, user: "Needs Whirligig … should be the type of damage"):
+     the line reads **"Needs [emblem] Wind"** (the family's damage type, its emblem, linked), not the
+     family's name. When the card needs a specific form (Windborne Rain needs Samara), the tooltip on
+     that line names it: *"Samara, a Wind Warden"*.
    - **Taking one makes the next family pick offer the missing family** as one of its 3 choices
      (if several are missing, one of them). The player still chooses; it's never auto-picked.
    - Entwined's guaranteed slot is unchanged (it still fires once all ingredients are owned).
@@ -528,7 +532,7 @@ the Grove rules, family-specific cards come with their family or hidden-branch n
 | 95 | **Backspin** | Uncommon | the **return pass** gets +25% crit chance | wind, crit | Samara | hidden node |
 | 96 | **Ricochet** | Uncommon | at the end of its line the seed **turns 90° once** toward the nearest nightmare before returning (rewards L-shaped corners) | wind, maze | Samara | hidden node |
 | 97 | **Heavy Seed** | Uncommon | the seed's **return pass** hits for double (changed 2026-09-29: pulling back is Rootling's job) | wind | Samara | hidden node |
-| 98 | **Windborne Rain** | Rare, **Entwined** (Samara + Rain Lily) | every pass applies **Damp**, so the line becomes a Thunderclap corridor | wind, water, reaction | — | hidden node |
+| 98 | **Windborne Rain** | Rare, **Entwined** (Samara + Rain Lily) | Samara's seeds apply **Soaked** to every nightmare they pass, out and back (card text never names the combo it sets up: "???" rule) | wind, water, reaction | — | hidden node |
 | 99 | **Seed Storm** | Rare *(was Legendary; enhances one Warden, 2026-09-28)* | every 5th throw bursts into **5 seeds in a fan** | wind | Samara | hidden node |
 
 Deepened: **Heavy Eyelids II** cap +3 (bosses +1); **Ricochet II** turns twice; **Bad Dreams II**
@@ -725,7 +729,7 @@ from walls (Hedge Maze, Bramble).
 | # | Card | Rarity | Effect | Tags | Needs | Pool |
 |---|---|---|---|---|---|---|
 | 74 | **Solitude** | Uncommon | a Warden with **no other attacking Warden within 2 cells** gets **+30% damage and +0.5 range** | narrow, maze | — | Start |
-| 75 | **Few and Mighty** | Rare | all Wardens **+8% damage for each attacking Warden below 12** you have (7 Wardens = +40%; max +80%) | narrow | 12 or fewer attacking Wardens when offered | Start |
+| 75 | **Few and Mighty** | Rare | card text (2026-09-30, clearer): *"The fewer attackers, the stronger: all Wardens +8% damage for each attacking Warden you have under 12 (max +80%)."* plus a live line on the card: *"You have 7 · +40%"* | narrow | 12 or fewer attacking Wardens when offered (**bug 2026-09-30: offered at drift 70 with 139**) | Start |
 | 76 | **The Last Light** | Legendary | if you have **5 or fewer** attacking Wardens, they **attack twice as fast** | narrow | — | Grove |
 
 - **Once you own a wide or narrow card, its tag counts as an owned family** for tag weighting (2×),
