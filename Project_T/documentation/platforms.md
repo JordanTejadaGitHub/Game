@@ -27,7 +27,15 @@ made now must not block it**. This doc is the checklist.
    (and ≤ 10 ms at 1×). When a frame still runs long, the game **thins what's decorative first,
    automatically**: Fx lite mode, callouts and damage numbers throttled harder, DPS tags updated
    less often, status badge arcs frozen, idle animations of off-screen Wardens paused. Rules and
-   damage are never thinned. Rules:
+   damage are never thinned. **First profile (2026-09-30, stress scene, 3×):** scripts p95 16.7 ms
+   (Wardens' `_process` ~10 ms, nightmares ~4 ms); the **whole frame** in a window p95 **29 ms**, GPU
+   only 1.6 ms, **1,724 draw calls**: the cost is CPU-side draw submission, and **nightmares' drawing
+   is 13.9 ms of it** (~5.6 draw calls each: per-nightmare blight materials and `_draw` breaking
+   batches). Wardens draw cheaply. Plan: **one shared blight material** (per-nightmare values through
+   COLOR / modulate) and **all health bars and status badges drawn by one overlay node** (Enemy
+   Code, target −10 ms); cached Warden stats, retargeting every ~0.1 s, idle Wardens skipped (Tower
+   Code). The thinning ladder's **first rung is simplifying nightmare bars and badges**, not Fx.
+   Rules:
    - No per-frame work that scales with **Wardens × nightmares** (targeting uses a spatial grid or a
      cheap interval, not a scan of every nightmare every frame).
    - Card / Kinship / network / Heart of the Maze queries are **cached** and only recomputed when
