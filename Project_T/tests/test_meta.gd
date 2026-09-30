@@ -128,10 +128,12 @@ func _run() -> void:
 	_check(family.offer.size() == family.families.size(), "Early Bloom: the first pick offers every family (%d)" % family.offer.size())
 	for data in family.families:
 		dreams.unlocked[data.get_id()] = true
-	family.show_pick(&"boss")
-	_check(family.offer.size() == 3 and family.offer.all(func(o) -> bool: return o is UpgradeData), "no new families left: 3 Blessings")
-	var blessing: UpgradeData = family.offer[0]
-	family.choose(blessing)
+	# Family Blessings are Rare Dream cards now (meta_design.md "Replaced 2026-09-30"): one per family,
+	# offered like any card once you own that family.
+	var blessing: UpgradeData = dreams.pool.filter(func(c: UpgradeData) -> bool: return c.id == "blessing_sporeling").front()
+	_check(blessing != null and blessing.in_start_pool and blessing.requires == ["sporeling"] and blessing.rarity == UpgradeData.Rarity.RARE
+		and blessing.max_stacks == 1, "a Family Blessing is a Rare Dream card that needs its family")
+	dreams.take(blessing)
 	_check(dreams.card_stacks(blessing.id) == 1, "a Blessing is taken like a card")
 	var seeds := run_state.get_seed_breakdown(10, 0, false)
 	_check(seeds.any(func(l: Array) -> bool: return l[0].begins_with("Seed bonus")), "the Seed bonus shows in the breakdown")

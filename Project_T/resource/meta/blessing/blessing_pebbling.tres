@@ -6,13 +6,13 @@
 script = ExtResource("1_card")
 id = "blessing_pebbling"
 display_name = "Pebbling Blessing"
-description = "The whole Pebbling family deals 25% more damage, and grows 25% cheaper."
+description = "The whole {family:pebbling} family deals 25% more damage and grows 25% cheaper."
 rarity = 2
 kind = 2
 tags = Array[String](["stone"])
-requires = Array[String]([])
-max_stacks = 0
-in_start_pool = false
+requires = Array[String](["pebbling"])
+max_stacks = 1
+in_start_pool = true
 stat_line = "stone"
 soothe_bonus = 0.25
 evolve_discount = 0.25
