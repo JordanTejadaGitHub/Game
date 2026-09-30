@@ -294,7 +294,7 @@ function groveTree() {
     const tx = trunkX(Math.min(y, 905)), dx = (x - tx) / 150;
     const n = pnoise(x * .7, y, 28, 131) * .7 + pnoise(x, y, 10, 132) * .3, curl = Math.sin(y / 38 + dx * 3) * .5 + .5;
     const d = Math.max(0, 1 - dx * dx) * clamp((n - .4) * 2.4, 0, 1) * (.55 + curl * .45) * (.6 + (y - 590) / 310 * .5);
-    if (d > 0 && bay(x, y) < d * .75) out.set(x, y, d > .7 ? HW.Shade : HW.Dusk);
+    if (d > 0 && bay(x, y) < d * .45) out.set(x, y, d > .7 ? HW.Shade : HW.Dusk);
   }
   return out;
 }
@@ -374,7 +374,7 @@ function grovesky(pad = 0) {
   // A faint violet dream shimmer in the fog up high (opaque dither, sparse).
   for (let y = 0; y < 420; y++) for (let x = X0; x < X1; x++) {
     const d = pnoise(x, y, 140, 90) * (1 - y / 420);
-    if (d > .45 && bay(x, y) < (d - .45) * .9) out.set(x, y, HW.Bruise);
+    if (d > .45 && bay(x, y) < (d - .5) * .5) out.set(x, y, HW.Bruise);
   }
   // Floating islands, like the title screen's: a dark rock islet with a moss top, a tiny tree, and
   // roots dangling below. `fog` 0..1 = how far back (fainter colours, dithered away).
@@ -395,7 +395,7 @@ function grovesky(pad = 0) {
     for (let y = 0; y < GH; y++) for (let x = X0; x < X1; x++) if (I.alpha(x, y) && bay(x, y) < 1 - fog * .45) out.set(x, y, I.get(x, y));
   };
   // Drifting pale motes in the air.
-  for (let k = 0; k < 60; k++) {
+  for (let k = 0; k < 22; k++) {
     const x = (X0 + hash(k, 1, 94) * (X1 - X0)) | 0, y = hash(k, 2, 94) * 860 | 0;
     out.set(x, y, k % 4 ? HW.Mist : HW.Wraithlight);
     if (k % 5 === 0) for (const [a, b] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) out.set(x + a, y + b, HW.Slate);
@@ -547,7 +547,7 @@ function groveCanopy(stage) {
   }
   // Violet dream mist drifting across the crown itself, over the leaves (the shape stays the same for
   // the node layout, which reads this layer).
-  for (const [cy, h, seed, dens] of [[210, 40, 121, .22], [360, 46, 122, .32], [490, 44, 123, .48]]) for (let y = cy - h * 2; y < cy + h * 2; y++) for (let x = 0; x < GW; x++) {
+  for (const [cy, h, seed, dens] of [[360, 46, 122, .16], [490, 44, 123, .3]]) for (let y = cy - h * 2; y < cy + h * 2; y++) for (let x = 0; x < GW; x++) {
     if (y < 0 || !out.alpha(x, y)) continue;
     const wob = (pnoise(x, 0, 90, seed + 2) - .5) * h * 1.2, yy = y - wob;
     const band = clamp(1 - Math.abs(yy - cy) / h, 0, 1) ** 1.5, n = pnoise(x * .6, yy, 34, seed) * .75 + pnoise(x, yy, 12, seed + 1) * .25;
@@ -560,7 +560,7 @@ function groveCanopy(stage) {
     if (!out.alpha(x, y)) continue;  // only over the leaves: the open-air part is in grove_tree.png (the layout reads this layer's shape)
     const band = Math.sin(Math.PI * (y - 560) / 80) ** 2, n = pnoise(x * .35, y, 26, 113) * .8 + pnoise(x, y, 9, 114) * .2;
     const d = band * clamp((n - .32) * 2.4, 0, 1);
-    if (d > 0 && bay(x, y) < d * .4) out.set(x, y, d > .8 ? HW.Shade : HW.Dusk);
+    if (d > 0 && bay(x, y) < d * .25) out.set(x, y, d > .8 ? HW.Shade : HW.Dusk);
   }
   // Long swamp-moss drapes hanging from the crown.
   for (let k = 0; k < 140; k++) {
@@ -571,7 +571,7 @@ function groveCanopy(stage) {
   }
   // Dream motes floating in and round the crown: tiny gold and pale-violet crosses (opaque, 1 px arms),
   // small enough never to read as nodes; more of them the fuller the tree.
-  for (let k = 0; k < 70 + stage * 30; k++) {
+  for (let k = 0; k < 30 + stage * 12; k++) {
     const x = 20 + hash(k, 1, 77) * 1240 | 0, y = 30 + hash(k, 2, 77) * 820 | 0, gold = k % 3 !== 0, open = !out.alpha(x, y);
     if (open) for (const [r, a] of [[3.5, .3], [2.5, .5]]) ellipse(out, x, y, r, r, (xx, yy) => out.alpha(xx, yy) ? null : CA(gold ? HW.Gold : HW.Wraithlight, a));
     out.set(x, y, gold ? HW.Heartlight : HW.Moonlight);
@@ -878,9 +878,9 @@ function segment(n) {
 // Seamless horizontally over the 1280 px width (the noise wraps), soft top and bottom. Muted violet
 // dream mist: Dusk, Shade in the thicker parts, Bruise only in the densest cores near the ground.
 const GROVE_MISTS = [
-  { file: "grove_mist_0.png", y: 610, h: 110, dens: .45, speed: 5, seed: 141 },
-  { file: "grove_mist_1.png", y: 715, h: 110, dens: .65, speed: -8, seed: 142 },
-  { file: "grove_mist_2.png", y: 820, h: 120, dens: .95, speed: 12, seed: 143 },
+  { file: "grove_mist_0.png", y: 610, h: 110, dens: .28, speed: 4, seed: 141 },
+  { file: "grove_mist_1.png", y: 715, h: 110, dens: .42, speed: -6, seed: 142 },
+  { file: "grove_mist_2.png", y: 820, h: 120, dens: .7, speed: 8, seed: 143 },
 ];
 function groveMistStrip(m) {
   // Drawn in 2 px art pixels (like the crown), so it moves and scales without shimmering.
