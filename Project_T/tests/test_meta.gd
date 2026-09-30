@@ -257,7 +257,7 @@ func _run() -> void:
 	run_state = main.get_node("%RunState")
 	dreams = main.get_node("%DreamState")
 	var omens: OmenDirector = main.get_node("%OmenDirector")
-	_check(omens.omens_per_offer == 3, "Omen Reader: 3 Omens (%d)" % omens.omens_per_offer)
+	_check(omens.omens_per_offer == 3, "Omen Reader: facing an Omen reveals 3 (%d)" % omens.omens_per_offer)
 	_check(run_state.free_nurtures == 3, "First Care: 3 free Nurture ranks (%d)" % run_state.free_nurtures)
 	_check(run_state.max_leaves == run_state.starting_leaves + 3, "Deep Taproot III: +3 max leaves")
 	_check(dreams.rerolls_left == 2 and dreams.cards_per_offer == 4, "Second Thoughts II and Wider Dreams")
