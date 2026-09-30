@@ -29,6 +29,11 @@ var drift_health_scale := 1.0
 const ROOTED_RULE := &"rooted_nightmares"
 const TANGLED_RULE := &"tangled"
 const WEATHERED_WALLS_RULE := &"weathered_walls"  # Thornwalls can't be trampled
+var root_web_share := 0.0  # Root Web: touching nightmares are Held for this share of a hold
+var root_web_boss_share := 0.0  # …and bosses for this share
+var release_pull := 0.0  # Tangled Release: tiles pulled back when a hold ends
+var caught_linger := 0.0  # Lullaby: seconds Caught lasts after leaving a Dreamcatcher
+var marked_bonus := 0.0  # Bright Marks: added to Marked's extra damage taken
 var tangled := false  # The Tangled Dream is owned (checked once a frame; see Enemy._tangled_slow)
 var rooted_cells := {}  # {cell: Held nightmare} (Rooted Nightmares; see _update_rooted_cells)
 var waiting_cells := {}  # {cell: nightmare waiting behind a rooted one}
@@ -139,6 +144,12 @@ func _process(delta: float) -> void:
 	eclipse_left = maxf(eclipse_left - delta, 0.0)
 	var dreams := get_tree().get_first_node_in_group(DreamState.GROUP) as DreamState
 	tangled = dreams != null and dreams.has_rule(TANGLED_RULE)
+	# Thin-family cards (dream_design.md 2026-09-30), read once a frame for every nightmare.
+	root_web_share = dreams.get_root_web_share(false) if dreams != null else 0.0
+	root_web_boss_share = dreams.get_root_web_share(true) if dreams != null else 0.0
+	release_pull = dreams.get_release_pull() if dreams != null else 0.0
+	caught_linger = dreams.get_caught_linger() if dreams != null else 0.0
+	marked_bonus = dreams.get_marked_bonus() if dreams != null else 0.0
 	_update_rooted_cells(dreams)
 	_update_lantern_light()
 

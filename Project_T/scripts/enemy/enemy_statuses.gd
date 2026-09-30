@@ -88,6 +88,7 @@ var gust_time := 0.0
 var prism_pending := false
 var smother_ended := false
 var marked_extra := 0.0  # Beacon: its Marked is stronger (+35% instead of +25%) until Marked ends
+var marked_bonus := 0.0  # Bright Marks (Dream): added to either (the nightmare sets it each frame)
 # Hunter's Moon / Eternal Charge (Legendary rules): Marked / Static on this nightmare never run out.
 var marked_forever := false
 var static_forever := false
@@ -267,7 +268,7 @@ func get_speed_multiplier(extra_slow: float = 0.0) -> float:
 func get_damage_taken_multiplier() -> float:
 	var multiplier := 1.0
 	if has(MARKED):
-		multiplier += maxf(MARKED_EXTRA, marked_extra)
+		multiplier += maxf(MARKED_EXTRA, marked_extra) + marked_bonus  # Bright Marks on top (Beacon too)
 	if is_in_stag_aura():
 		multiplier += STAG_EXTRA
 	if cut_stacks > 0:

@@ -175,6 +175,13 @@ var _revealed_time := 0.0  # Seconds it stays revealed whatever else (see reveal
 # Performance (test_perf_stress): the EnemyContainer (null outside it), and what the status row last
 # drew, so it only redraws when a status comes, goes or changes stacks.
 var _spawner = null  # Untyped: its script members are read directly
+# Thin-family Dream cards (see _spread_root_web, _on_hold_ended, _on_caught_lapsed).
+const ROOT_WEB_REACH := 1.0  # Tiles: "touching"
+var _web_cooldown := 0.0
+var _web_holding := false
+var _held_by: Node = null
+var _lingered := false
+var _caught_left := 0.0  # Caught time after last frame's tick (a rise = caught again)
 var _drawn_changes := -1
 var _drawn_aura := false
 var _was_animating := false
@@ -280,7 +287,23 @@ func _process(delta: float) -> void:
 	if is_cleansed or _path_index >= _path.size():
 		return
 
+	if _spawner != null:
+		statuses.marked_bonus = _spawner.marked_bonus  # Bright Marks
+	var was_caught := statuses.is_caught()
+	if statuses.caught_time > _caught_left + 0.0001:
+		_lingered = false  # Caught again (a Dreamcatcher's tick): its next lapse lingers again
+	var was_held := statuses.is_held()
+	if was_held:
+		_held_by = statuses.source(EnemyStatuses.HELD)
+	_web_cooldown = maxf(_web_cooldown - delta, 0.0)
 	var spore_soothe := statuses.tick(delta)
+	if was_caught and not statuses.is_caught():
+		_on_caught_lapsed()
+	_caught_left = statuses.caught_time
+	if was_held and not statuses.is_held():
+		_on_hold_ended()
+		if is_cleansed:
+			return
 	if spore_soothe > 0.0:
 		var dreams := get_tree().get_first_node_in_group(DreamState.GROUP) as DreamState
 		if dreams != null:
@@ -1260,14 +1283,62 @@ func apply_status(id: StringName, stacks: int = 1, duration: float = 0.0, potenc
 		return
 	if id == EnemyStatuses.DROWSY:
 		statuses.drowsy_cap_bonus = Reactions.drowsy_cap_bonus(self)  # Heavy Eyelids
+	var was_held := statuses.is_held()
 	var bolt := statuses.apply(id, stacks, duration, potency, max_stacks, line, source)
 	queue_redraw()
+	if id == EnemyStatuses.HELD and statuses.is_held() and not was_held:
+		_spread_root_web(source)
 	if bolt > 0.0:
 		_bolt_flash = BOLT_FLASH_TIME
 		# Static bolts count as light; a Lightning Rod nearby takes the bolt instead.
 		Reactions.strike_bolt(self, bolt, source, &"static")
 	if not is_cleansed and id in statuses.ALL:
 		Reactions.on_status(self, id, source)  # Two statuses may meet: a Reaction
+
+# --- Thin-family Dream cards (dream_design.md 2026-09-30; values from DreamState, via the spawner) ---
+
+# Root Web: a nightmare that becomes Held holds the ones touching it (within ROOT_WEB_REACH tiles) for
+# a share of its hold (bosses a smaller share). Never chains (a Root Web hold doesn't spread), and
+# each nightmare takes part at most once per DreamState.ROOT_WEB_COOLDOWN.
+func _spread_root_web(source: Node) -> void:
+	if _web_holding or _spawner == null or _web_cooldown > 0.0 \
+			or (_spawner.root_web_share <= 0.0 and _spawner.root_web_boss_share <= 0.0):
+		return
+	var held_for := statuses.time_left(EnemyStatuses.HELD)
+	if held_for <= 0.0:
+		return
+	_web_cooldown = DreamState.ROOT_WEB_COOLDOWN
+	for other in _others_within(ROOT_WEB_REACH):
+		if other._web_cooldown > 0.0 or other.is_flying():
+			continue
+		var share: float = _spawner.root_web_boss_share if other.enemy_data.is_boss else _spawner.root_web_share
+		if share <= 0.0:
+			continue
+		other._web_cooldown = DreamState.ROOT_WEB_COOLDOWN
+		other._web_holding = true  # So its own hold doesn't spread on
+		other.apply_status(EnemyStatuses.HELD, 1, held_for * share, 0.0, 0, "", source)
+		other._web_holding = false
+
+# Tangled Release: when a hold ends, the nightmare is pulled back along its route, as a pull by the
+# Warden that held it (credited to it; Patient Roots adds for the Rootling line). The pull doesn't
+# set off Snare's hold, which would pull again when it ends: an endless loop.
+func _on_hold_ended() -> void:
+	var tiles: float = _spawner.release_pull if _spawner != null else 0.0
+	if tiles <= 0.0 or is_flying():
+		return
+	var holder := _held_by as Tower
+	if holder != null and is_instance_valid(holder):
+		holder.pull(self, tiles)
+	else:
+		push_back(tiles * grid.cell_size.x)
+	_held_by = null
+
+# Lullaby: once a Dreamcatcher lets go, the nightmare stays Caught a little longer (once per catch).
+func _on_caught_lapsed() -> void:
+	var linger: float = _spawner.caught_linger if _spawner != null else 0.0
+	if linger > 0.0 and not _lingered:
+		_lingered = true
+		statuses.caught_time = linger
 
 # Tells the DamageLog what this hit did, with the combos that boosted it (see DamageLog).
 func _report_damage(amount: float, family: float, taken: float, soaked: float, dealt: float, line: String,

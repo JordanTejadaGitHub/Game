@@ -470,6 +470,42 @@ func _run() -> void:
 	_check(not _still("leaf_bug", route[12]).strip_buff(null), "nothing to steal from a plain Shade")
 	_clear_enemies()
 
+	# --- Thin-family cards (dream_design.md 2026-09-30): Bright Marks, Root Web, Tangled Release, Lullaby ---
+	_clear_enemies()
+	for card_id in ["bright_marks", "root_web", "tangled_release", "lullaby"]:
+		_take_card(dreams, card_id)
+	spawner._process(0.0)
+	var bright := _still("leaf_bug", route[5])
+	bright.apply_status(EnemyStatuses.MARKED)
+	bright._process(0.0)
+	_check(is_equal_approx(bright.statuses.get_damage_taken_multiplier(), 1.0 + EnemyStatuses.MARKED_EXTRA + 0.05),
+		"Bright Marks: Marked +5 percent more (%.2f)" % bright.statuses.get_damage_taken_multiplier())
+	var web_a := _still("leaf_bug", route[8])
+	var web_b := _still("leaf_bug", route[8])
+	var web_far := _still("leaf_bug", route[20])
+	web_a.apply_status(EnemyStatuses.HELD, 1, 2.0)
+	_check(web_b.statuses.is_held() and is_equal_approx(web_b.statuses.time_left(EnemyStatuses.HELD), 1.0),
+		"Root Web: a touching nightmare is Held for half as long (%.2f s)" % web_b.statuses.time_left(EnemyStatuses.HELD))
+	_check(not web_far.statuses.is_held(), "…but not one far away")
+	web_b.statuses.remove(EnemyStatuses.HELD)
+	web_a.statuses.remove(EnemyStatuses.HELD)
+	web_a.apply_status(EnemyStatuses.HELD, 1, 2.0)
+	_check(not web_b.statuses.is_held(), "at most once a second per nightmare")
+	var freed := _still("leaf_bug", route[12])
+	freed.set_path(route.slice(8))
+	freed._path_index = 5
+	freed.apply_status(EnemyStatuses.HELD, 1, 0.3)
+	freed._process(0.5)
+	_check(freed.is_dragged() or freed._path_index < 5, "Tangled Release: freed from a hold, it's pulled back")
+	var lulled := _still("leaf_bug", route[15])
+	lulled.statuses.caught_time = 0.1
+	lulled._process(0.0)
+	lulled._process(0.2)
+	_check(lulled.statuses.is_caught() and is_equal_approx(lulled.statuses.caught_time, 1.0), "Lullaby: Caught lingers 1 s after it lapses")
+	lulled._process(1.1)
+	_check(not lulled.statuses.is_caught(), "…once, then it ends")
+	_clear_enemies()
+
 	# --- Omens: Sleepless (immune to Drowsy and Held), Heavy Rain (always Soaked) ---
 	var omened: Node2D = spawner.spawn_enemy(load("res://resource/enemy/leaf_bug.tres"), 1.0,
 		{"status_immune": [&"drowsy", &"held"], "always_status": &"damp"})
