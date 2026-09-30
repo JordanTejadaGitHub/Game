@@ -509,6 +509,22 @@
 			"loop": false,
 			"note": "Behind the \"+N Dew\" of caught Dew; draw that text in gold (#ffd870) instead of blue."
 		},
+		"drag_dust": {
+			"anchor": [
+				8,
+				12
+			],
+			"file": "drag_dust.png",
+			"fps": 14.0,
+			"frame_size": [
+				16,
+				16
+			],
+			"frames": 5,
+			"kind": "support",
+			"loop": false,
+			"note": "Soil kicked up behind a dragged nightmare; spawn one every ~0.1 s along the drag. Anchor = ground."
+		},
 		"dreamlight_shard": {
 			"anchor": [
 				8,
@@ -1155,6 +1171,22 @@
 			"loop": true,
 			"note": "One path tile (64x64), loops while the cloud lasts. Draw under nightmares."
 		},
+		"path_furrow": {
+			"anchor": [
+				0,
+				8
+			],
+			"file": "path_furrow.png",
+			"fps": 1.0,
+			"frame_size": [
+				64,
+				16
+			],
+			"frames": 1,
+			"kind": "ground",
+			"loop": false,
+			"note": "Ground decal: tile or stretch along x from where the drag started to where it ended, y = 8 on the line, under the nightmares. Translucent, fade out over ~1 s."
+		},
 		"peck_spark": {
 			"anchor": [
 				8,
@@ -1203,6 +1235,30 @@
 			"kind": "signature",
 			"loop": false,
 			"note": "Puffball's pop at 10+ Spored stacks."
+		},
+		"root_grab": {
+			"anchor": [
+				24,
+				28
+			],
+			"file": "root_grab.png",
+			"fps": 12.0,
+			"frame_size": [
+				48,
+				32
+			],
+			"frames": 8,
+			"hold_frames": [
+				4,
+				5
+			],
+			"kind": "support",
+			"loop": false,
+			"note": "Frames 0-2 burst, 3-5 wrap and hold (loop 4-5 while the nightmare is held / dragged), 6-7 sink back. Anchor = ground under the nightmare's feet; draw it under the nightmare with a front copy (or just above it at ~80% alpha).",
+			"release_frames": [
+				6,
+				7
+			]
 		},
 		"rubble": {
 			"anchor": [
