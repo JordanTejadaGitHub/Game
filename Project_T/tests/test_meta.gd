@@ -226,11 +226,15 @@ func _run() -> void:
 	_check(is_equal_approx(run_state.dew_gain_bonus, 0.15), "Rich Dew III: +15%% Dew (%s)" % run_state.dew_gain_bonus)
 	_check(is_equal_approx(director.rest_bonus_perk_multiplier, 1.2), "Rested Roots II: rest bonus ×1.2")
 	_check(run_state.sprout_charges == 2, "Sprout Bed: 2 free Sprouts (%d)" % run_state.sprout_charges)
-	_check(dreams.card_stacks("cleared_ground") >= 1 and dreams.can_clear(), "Clear Sight: Cleared Ground from the start")
+	_check(dreams.card_stacks("cleared_ground") >= 1 and dreams.can_clear(), "Clear Sight: clearing opened and Cleared Ground from the start")
+	var starting := 0  # Clear Sight's cards (the opener Tend the Forest, once it exists, and Cleared Ground)
+	for id in _unlock(grove, "clear_sight").starting_cards:
+		if dreams.pool.any(func(c: UpgradeData) -> bool: return c.id == id):
+			starting += 1
 	var taken := 0
 	for id in dreams.stacks:
 		taken += dreams.stacks[id]
-	_check(taken == 2, "Kindling: one random Common besides Cleared Ground (%s)" % [dreams.stacks])
+	_check(taken == starting + 1, "Kindling: one random Common besides Clear Sight's cards (%s)" % [dreams.stacks])
 	_check(run_state.free_nurtures == 0 and dreams.rerolls_left == 0, "perks not carried do nothing")
 	_check(not dreams.allow_bittersweet, "no Bittersweet Dreams node: no bittersweet cards")
 	var dew_before := run_state.dew
