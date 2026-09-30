@@ -57,8 +57,24 @@ var _press_world := Vector2.ZERO
 var _press_shift := false
 var _blooms: Array = []  # [[tower, seconds until it starts]]; negative = seconds since it started
 
+# Q / E / Z (screens_ui.md hotkeys): grow the selection into the Warden panel's 1st / 2nd / 3rd option.
+# Registered here with these defaults when project.godot doesn't list them yet (rebindable once it does).
+const GROW_OPTION_ACTIONS: Array[StringName] = [&"grow_option_1", &"grow_option_2", &"grow_option_3"]
+const GROW_OPTION_KEYS: Array[Key] = [KEY_Q, KEY_E, KEY_Z]
+
+# A grow key went down / up: the panel previews that option while it's held.
+signal grow_option_held(index: int, held: bool)
+
 func _ready() -> void:
 	# Build mode owns the mouse; selling is available the rest of the time.
+	_ensure_grow_actions()
+	# Buff pips, source threads and the buff lens (screens_ui.md "Buff readability").
+	var overlay := BuffOverlay.new()
+	overlay.seller = self
+	overlay.placer = tower_placer
+	overlay.director = drift_director
+	overlay.container = get_node_or_null("%TowerContainer")
+	get_parent().add_child.call_deferred(overlay)
 	tower_placer.build_mode_changed.connect(func(building: bool) -> void: set_active(not building))
 	# The refund changes when a drift starts or ends.
 	drift_director.build_phase_changed.connect(queue_redraw.unbind(1))
@@ -285,7 +301,7 @@ func grow_group(towers: Array, into: TowerData) -> int:
 # they're left out).
 static func _nurturable(tower, focus: Tower.Focus) -> bool:
 	return is_instance_valid(tower) and tower.can_nurture() \
-		and (focus != Tower.Focus.NONE or not tower.needs_focus())
+		and (tower.focus_options().has(focus) or not tower.needs_focus())  # Only a Focus it can take
 
 # The Wardens in `towers` that group Nurture would raise one rank each with the Dew there is,
 # nearest the Heartwood first (like group grow), and what that costs: [Array[Tower], cost].
@@ -356,7 +372,7 @@ func sell_key() -> bool:
 	targets = targets.filter(func(t) -> bool: return is_instance_valid(t) and not t.tower_data.rooted)
 	if targets.is_empty() or not can_sell():
 		return false
-	var ask: bool = not drift_director.is_build_phase() and HeartwoodMemory.get_settings().get("confirm_sell", true)
+	var ask: bool = not drift_director.is_build_phase() and Fx.setting("confirm_sell", true)  # Cached (get_settings reads the profile)
 	var now := Time.get_ticks_msec()
 	if ask and not (now < _sell_armed_until and _sell_armed == targets):
 		_sell_armed = targets
@@ -377,6 +393,28 @@ func get_armed_sell() -> Array:
 	if Time.get_ticks_msec() >= _sell_armed_until:
 		return []
 	return _sell_armed.filter(func(t) -> bool: return is_instance_valid(t))
+
+# The key the Sell button shows ("X", or the rebound one).
+func sell_key_name() -> String:
+	return _sell_key_name()
+
+# The key bound to `action` ("Q"), for button badges; "" when none.
+static func key_name(action: StringName) -> String:
+	if not InputMap.has_action(action):
+		return ""
+	for event in InputMap.action_get_events(action):
+		if event is InputEventKey:
+			return OS.get_keycode_string(event.physical_keycode if event.physical_keycode != 0 else event.keycode)
+	return ""
+
+static func _ensure_grow_actions() -> void:
+	for i in GROW_OPTION_ACTIONS.size():
+		if InputMap.has_action(GROW_OPTION_ACTIONS[i]):
+			continue
+		InputMap.add_action(GROW_OPTION_ACTIONS[i])
+		var key := InputEventKey.new()
+		key.physical_keycode = GROW_OPTION_KEYS[i]
+		InputMap.action_add_event(GROW_OPTION_ACTIONS[i], key)
 
 # The first key bound to sell_tower, for the prompt ("X").
 func _sell_key_name() -> String:
@@ -401,6 +439,30 @@ func sell_selection() -> int:
 				total += refund
 	set_selection([])
 	return total
+
+# Q / E / Z: grows the selection into its `index`th option (the Warden panel's order; each kind in a
+# group its own). A locked option opens the Remember tree on that form instead; a 2×2 form asks for its
+# square like the panel's button. Returns true if anything grew or opened.
+func grow_option(index: int) -> bool:
+	var dreams := _dreams()
+	if dreams == null or selection.is_empty():
+		return false
+	var acted := false
+	for group in get_selection_groups():
+		var options := Tower.grow_options(dreams, group[0])
+		if index >= options.size():
+			continue
+		var next: TowerData = options[index][0]
+		if not options[index][1]:
+			dreams.open_remember(next)
+			return true
+		if group[1].size() == 1 and next.footprint > group[1][0].get_footprint():
+			acted = tower_placer.begin_grow_choice(group[1][0], next) or acted
+		elif group[1].size() == 1:
+			acted = tower_placer.evolve(group[1][0], next) or acted
+		else:
+			acted = grow_group(group[1], next) > 0 or acted
+	return acted
 
 # G: grows the selection. One Warden: into its first form that's unlocked and affordable. Several: each
 # group into its first unlocked form, as many as the Dew allows.
@@ -440,9 +502,28 @@ func _unhandled_input(event: InputEvent) -> void:
 	elif event.is_action_pressed("grow_warden") and not selection.is_empty():
 		grow_selected()
 		get_viewport().set_input_as_handled()
+	elif _grow_option_event(event):
+		get_viewport().set_input_as_handled()
 	elif event.is_action_pressed("cycle_target") and not selection.is_empty():
 		cycle_target_group(selection)
 		get_viewport().set_input_as_handled()
+
+# Q / E / Z: a press previews the option (held), the release grows it; the preview ends either way.
+func _grow_option_event(event: InputEvent) -> bool:
+	if not (event is InputEventKey) or selection.is_empty() or _typing():
+		return false
+	for i in GROW_OPTION_ACTIONS.size():
+		if not InputMap.has_action(GROW_OPTION_ACTIONS[i]) or not event.is_action(GROW_OPTION_ACTIONS[i]):
+			continue
+		if event.is_echo():
+			return true
+		if event.is_pressed():
+			grow_option_held.emit(i, true)
+		else:
+			grow_option_held.emit(i, false)
+			grow_option(i)
+		return true
+	return false
 
 # A left press starts a click / drag / double-click, unless the Clear tool is on and it's on an obstacle.
 func _starts_selection(event: InputEvent) -> bool:
@@ -513,9 +594,12 @@ func _process(delta: float) -> void:
 
 func _draw() -> void:
 	if selection.size() == 1 and is_instance_valid(selected):
-		var range_pixels := selected.get_range_pixels()
-		draw_circle(selected.position, range_pixels, Color(SELECTED_COLOR, 0.07))
-		draw_arc(selected.position, range_pixels, 0.0, TAU, 64, Color(SELECTED_COLOR, 0.45), 2.0)
+		# Aura Wardens: exactly who gets the aura (AuraView); a boosted Warden: lines back to its boosters.
+		if AuraView.is_aura(selected.tower_data):
+			AuraView.draw_selected(self, selected, false)  # Its area and who it boosts (BuffOverlay labels the threads)
+		# The attack range: a thin, unfilled circle (a warm fill read as "everything in here is boosted").
+		if selected.tower_data.can_attack:
+			draw_arc(selected.position, selected.get_range_pixels(), 0.0, TAU, 64, Color(SELECTED_COLOR, 0.45), 1.5)
 	for tower in selection:
 		if is_instance_valid(tower):
 			draw_rect(Rect2(tower.position - MAP_GRID.cell_size / 2, MAP_GRID.cell_size).grow(-2),
@@ -537,7 +621,7 @@ func _draw() -> void:
 			refund += get_refund(tower)
 		var at: Vector2 = armed[0].position
 		WorldLabel.draw_tag(self, at.x, at.y - MAP_GRID.cell_size.y / 2.0 - 8.0,
-			"Press %s again to sell for +%d Dew (half during a drift)" % [_sell_key_name(), refund],
+			"Press %s again to sell for +%d Dew" % [_sell_key_name(), refund],
 			Color(1.0, 0.8, 0.45))
 	if _dragging:
 		var box := Rect2(_press_world, Vector2.ZERO).expand(get_global_mouse_position())
@@ -548,10 +632,7 @@ func _draw() -> void:
 	var center: Vector2 = MAP_GRID.calculate_map_position(_hover_cell)
 	var rect := Rect2(center - MAP_GRID.cell_size / 2, MAP_GRID.cell_size).grow(-2)
 	draw_rect(rect, HIGHLIGHT_COLOR, false, 2.0)
-	var label := "%s · click: details · %s: sell +%d Dew" % [_hover_tower.tower_data.display_name,
-		_sell_key_name(), get_refund(_hover_tower)]
-	if not can_sell():
-		label = "%s · click: details · Overgrown: no selling until the rest" % _hover_tower.tower_data.display_name
+	var label := _hover_tower.tower_data.display_name  # Just the name (text_style.md: no hints on hover)
 	WorldLabel.draw_tag(self, center.x, rect.position.y - 8, label)
 
 # --- Targeting (screens_ui.md "Targeting") -------------------------------------------------------------

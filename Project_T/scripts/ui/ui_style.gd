@@ -43,6 +43,13 @@ const NUMBER_SIZE := 24
 const CARD_NAME_SIZE := 24
 const CHOICE_TITLE_SIZE := 32
 const BUTTON_SIZE := 18
+# Tooltips, hover panels and tap popups (screens_ui.md playtest fixes 2026-09-30: "too small"): body
+# ≥16 px, names 18 px, ~1.35 line height, at most ~42 characters wide; scaled by the UI scale like
+# everything else. Small caps only for labels, never sentences.
+const TIP_SIZE := 16
+const TIP_NAME_SIZE := 18
+const TIP_LINE_SPACING := 4  # Extra px between lines: ~1.35 line height at 16 px
+const TIP_WIDTH := 330.0  # ~42 characters of the body face at TIP_SIZE
 
 const FONT_DIR := "res://assets/ui/fonts/"
 
@@ -191,13 +198,33 @@ static func button_box(hover: bool = false) -> StyleBoxFlat:
 	_margins(box, 14.0, 6.0)
 	return box
 
-# Primary and toggled buttons: gold at 16% fill, solid gold outline, a soft gold glow.
+# Primary buttons (the panel's main action, Continue, Start): at rest only a solid gold outline on the
+# fog, never a fill (user, 2026-09-30: "still seems highlighted when I'm not hovering"); hovering fills
+# the whole box with the soft highlight, like every button.
 static func primary_box(hover: bool = false) -> StyleBoxFlat:
 	var box := button_box()
-	box.bg_color = Color(BUTTON_GOLD, 0.24 if hover else 0.16)
 	box.border_color = GOLD if hover else BUTTON_GOLD
-	box.shadow_color = Color(BUTTON_GOLD, 0.3)
-	box.shadow_size = 8
+	box.set_border_width_all(2 if hover else 1)
+	if hover:
+		box.bg_color = Color(FOG, 0.55).blend(HOVER_FILL)
+	return box
+
+# Selected vs hovered (screens_ui.md, playtest 2026-09-30: "First" selected and a hovered button looked
+# alike). A selected / active control (toggled button, open tab, current speed, a switch's segment)
+# shows only a GOLD border and gold text, no fill; hover fills the whole box with a soft highlight;
+# a press darkens it. Godot's "pressed" style is both "toggled on" and "held", so it's the gold border
+# on a darker fog: selected reads as the border, a held press as the darkening.
+const HOVER_FILL := Color(0.86, 0.9, 0.96, 0.16)  # The soft highlight (moonlight over the fog)
+static func selected_box() -> StyleBoxFlat:
+	var box := button_box()
+	box.bg_color = Color(FOG, 0.7)
+	box.border_color = GOLD
+	box.set_border_width_all(2)
+	return box
+
+static func hover_box(selected: bool = false) -> StyleBoxFlat:
+	var box := selected_box() if selected else button_box(true)
+	box.bg_color = Color(FOG, 0.55).blend(HOVER_FILL)
 	return box
 
 static func disabled_box() -> StyleBoxFlat:
@@ -257,6 +284,55 @@ static func number(label: Control, font_size: int = NUMBER_SIZE, colour: Color =
 	_font(label, number_font(), font_size, colour)
 
 # Lowercase small-caps label ("act 1 · forest's edge"); the text is lower-cased here.
+# A tip's body text (Label or RichTextLabel): TIP_SIZE, the tip line height, wraps at TIP_WIDTH.
+static func tip_body(label: Control, width: float = TIP_WIDTH) -> void:
+	if label is RichTextLabel:
+		label.add_theme_font_size_override("normal_font_size", TIP_SIZE)
+		label.add_theme_font_size_override("bold_font_size", TIP_SIZE)
+		label.add_theme_constant_override("line_separation", TIP_LINE_SPACING)
+	else:
+		label.add_theme_font_size_override("font_size", TIP_SIZE)
+		label.add_theme_constant_override("line_spacing", TIP_LINE_SPACING)
+	label.set("autowrap_mode", TextServer.AUTOWRAP_WORD_SMART)
+	label.custom_minimum_size.x = width
+
+# A tip's name line (a status, a term, a nightmare): TIP_NAME_SIZE.
+static func tip_name(label: Label, colour: Color = INK) -> void:
+	label.add_theme_font_size_override("font_size", TIP_NAME_SIZE)
+	label.add_theme_color_override("font_color", colour)
+
+# Native tooltips (tooltip_text) wrap at TIP_WIDTH too: Godot's tooltip Label (theme type
+# "TooltipLabel") never wraps by itself, so each one is caught as it's made and given a width.
+# Installed once per SceneTree (the title and the HUD call it; the tree outlives scene changes).
+static var _tooltip_tree: SceneTree = null
+static func install_tooltip_wrap(tree: SceneTree) -> void:
+	if tree == null or _tooltip_tree == tree:
+		return
+	_tooltip_tree = tree
+	tree.node_added.connect(func(node: Node) -> void:
+		if node is Label and node.theme_type_variation == &"TooltipLabel":
+			_wrap_tooltip.call_deferred(node))
+
+static func _wrap_tooltip(label: Label) -> void:
+	if not is_instance_valid(label):
+		return
+	var font := label.get_theme_font("font")
+	var font_size := label.get_theme_font_size("font_size")
+	var widest := 0.0
+	for line in label.text.split("\n"):
+		widest = maxf(widest, font.get_string_size(line, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size).x)
+	if widest <= TIP_WIDTH:
+		return  # Short tips keep their natural width
+	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	label.custom_minimum_size.x = TIP_WIDTH
+	var panel := label.get_parent() as Window
+	if panel == null:
+		return
+	panel.size = Vector2i(panel.get_contents_minimum_size())
+	var screen := panel.get_parent().get_viewport().get_visible_rect().size if panel.get_parent() != null else Vector2(panel.size)
+	panel.position = Vector2i(clampi(panel.position.x, 0, maxi(int(screen.x) - panel.size.x, 0)),
+		clampi(panel.position.y, 0, maxi(int(screen.y) - panel.size.y, 0)))
+
 static func caps(label: Control, font_size: int = LABEL_SIZE, colour: Color = INK_DIM) -> void:
 	_font(label, caps_font(), font_size, colour)
 	if label is Label:
@@ -302,15 +378,22 @@ static func make_theme() -> Theme:
 	# Panels and tooltips carry the thread.
 	for type in ["PanelContainer", "Panel", "PopupPanel", "TooltipPanel", "PopupMenu", "AcceptDialog"]:
 		theme.set_stylebox("panel", type, panel(12.0 if type == "TooltipPanel" else 16.0, 8.0 if type == "TooltipPanel" else 12.0))
-	theme.set_font_size("font_size", "TooltipLabel", 15)
+	theme.set_font_size("font_size", "TooltipLabel", TIP_SIZE)
+	theme.set_constant("line_spacing", "TooltipLabel", TIP_LINE_SPACING)
 	theme.set_stylebox("separator", "HSeparator", MoonDivider.new())
 	theme.set_constant("separation", "HSeparator", 9)
 
 	# Buttons (and the button-like controls).
 	for type in ["Button", "OptionButton", "MenuButton"]:
-		_button_styles(theme, type, button_box(), button_box(true), primary_box(), primary_box(true))
+		_button_styles(theme, type, button_box(), hover_box(), selected_box(), hover_box(true))
 	theme.set_type_variation("PrimaryButton", "Button")
-	_button_styles(theme, "PrimaryButton", primary_box(), primary_box(true), primary_box(true), primary_box(true))
+	# The call to action keeps its gold look; hovering fills it, pressing darkens it.
+	var primary_press := primary_box()
+	primary_press.bg_color = Color(FOG, 0.7)
+	primary_press.shadow_size = 0
+	var primary_hover := primary_box(true)
+	# (primary_box(true) already carries the hover fill)
+	_button_styles(theme, "PrimaryButton", primary_box(), primary_hover, primary_press, primary_hover)
 	for state in ["font_color", "font_hover_color", "font_focus_color"]:
 		theme.set_color(state, "PrimaryButton", GOLD_TEXT)
 	# Check boxes / switches: no box, just the text (and the toggle's own icon).
@@ -343,7 +426,10 @@ static func make_theme() -> Theme:
 	var tab_idle := tab_selected.duplicate() as StyleBoxFlat
 	tab_idle.bg_color = Color(0, 0, 0, 0)
 	tab_idle.border_color = Color(GOLD, 0.0)
+	# The open tab: the gold line only, no fill; a hovered tab fills with the soft highlight.
+	tab_selected.bg_color = Color(0, 0, 0, 0)
 	var tab_hover := tab_idle.duplicate() as StyleBoxFlat
+	tab_hover.bg_color = HOVER_FILL
 	tab_hover.border_color = Color(GOLD, 0.4)
 	for type in ["TabContainer", "TabBar"]:
 		theme.set_stylebox("tab_selected", type, tab_selected)

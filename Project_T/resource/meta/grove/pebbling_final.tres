@@ -6,7 +6,7 @@
 script = ExtResource("1_unlock")
 id = "pebbling_final"
 display_name = "Pebbling final forms"
-description = "Pebbling final forms can grow in your runs: Boulderback, Moonstone."
+description = "Final forms can grow in your runs: Boulderback, Moonstone."
 root = 0
 costs = Array[int]([50])
 order = 13

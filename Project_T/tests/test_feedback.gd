@@ -72,7 +72,7 @@ func _run() -> void:
 	# Rest report card
 	var report: RestReport = main.get_node("%RestReport")
 	report.show_report(1)
-	_check(report.visible and report._label.get_parsed_text().contains("Stormcap") and report._label.get_parsed_text().contains("Lightning through Soaked: 2 times"),
+	_check(report.visible == RestReport.auto_show() and report.last_block_text.contains("Stormcap") and report._label.get_parsed_text().contains("Stormcap") and report._label.get_parsed_text().contains("Lightning through Soaked: 2 times"),
 		"the rest report shows the top Warden and the combos (%s)" % report._label.get_parsed_text())
 
 	# Warden panel lines

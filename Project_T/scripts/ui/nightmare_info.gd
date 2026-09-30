@@ -18,14 +18,14 @@ var _rows_for: EnemyData = null
 
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
-	custom_minimum_size = Vector2(240, 0)
+	custom_minimum_size = Vector2(UiStyle.TIP_WIDTH + 20.0, 0)  # Tip sizes (screens_ui.md playtest fixes 2026-09-30)
 	var box := VBoxContainer.new()
 	add_child(box)
-	_title.add_theme_font_size_override("font_size", 18)
+	UiStyle.tip_name(_title)
 	box.add_child(_title)
-	_numbers.add_theme_font_size_override("font_size", 15)
+	_numbers.add_theme_font_size_override("font_size", UiStyle.TIP_SIZE)
 	box.add_child(_numbers)
-	_body.custom_minimum_size = Vector2(220, 0)
+	UiStyle.tip_body(_body)
 	box.add_child(_body)
 	box.add_child(_rows_box)
 	visible = false
@@ -174,8 +174,9 @@ func _on_spawned(node: Node) -> void:
 	if _saved.has(kind):
 		return
 	_saved[kind] = true
-	# Remember the kind for future runs (this run keeps showing "New" for it). Real game only.
-	if get_tree().current_scene != owner or MetaRun.is_dev_run():
+	# Remember the kind for future runs (this run keeps showing "New" for it). Real game only, dev runs
+	# included (screens_ui.md playtest fixes: "New" = never seen on this profile, dev runs alike).
+	if get_tree().current_scene != owner:
 		return
 	var memory := HeartwoodMemory.load_data()
 	var seen: Array = memory.get("nightmares_seen", [])

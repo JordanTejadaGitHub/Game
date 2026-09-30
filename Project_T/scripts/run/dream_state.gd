@@ -22,7 +22,8 @@ const TENDED_FOREST_MAX := 0.25
 const FERTILE_DISCOUNT := 0.5  # Reclaimed Earth: the first Warden on a cleared cell
 const CLEAR_DISCOUNT_MAX := 0.5  # Cleared Ground stacks to −50%
 const RECLAIMED_REFUND := 0.4  # Reclaimed Earth: share of the Dew paid for a clear
-const BURN_BACK_PER_TREE := 2  # Burn Back: Dew per Withered Tree, paid when taken
+const BURN_BACK_PER_TREE := 5  # Burn Back: Dew per Withered Tree, paid when taken
+const CLEAR_SURCHARGE := 1  # Every clear this run makes later clears +1 Dew
 const CLEARING_LOCKED_WEIGHT := 2.0  # Clearing cards are this much likelier until you own one
 # Nurture and wide / narrow cards (dream_design.md). [base, Deepened (II)] where it deepens.
 const NURTURE_DISCOUNT_MAX := 0.45
@@ -131,7 +132,7 @@ const UNDERDOG := [[3, 0.20], [4, 0.25]]  # [Wardens, damage] (II)
 const WEATHERED_FREE_EVERY := 10
 const HEAVY_AIR_BONUS := 0.20
 const SLOW_STATUSES: Array[StringName] = [&"drowsy"]  # Damp and fog no longer slow; frost is a freeze (5821d9f)
-const WANDERING_MIND_REROLLS := 2
+const WANDERING_MIND_REROLLS := 1
 const WINDING_PATH_TILES := 10  # +1 Dew per this many path tiles at each rest
 const SHELTER_BONUS := 0.15
 const CLIFFSIDE_RANGE := 1.0
@@ -166,8 +167,13 @@ const PATIENT_ROOTS_HELD := 0.25
 const GOLDEN_HARVEST_PER := 0.02  # Per 100 Dew harvested / earned as interest
 const GOLDEN_HARVEST_MAX := 0.30
 # Dreamlight (run_design.md "Dreamlight"): sources and unlock costs.
-const FIRST_PICK_DREAMLIGHT := 1
-const BOSS_DREAMLIGHT := 3
+const FIRST_PICK_DREAMLIGHT := 1  # The default for first_pick_dreamlight
+# Dreamlight with the first family pick (Blight 2 sets it to 0 via MetaRun).
+var first_pick_dreamlight := FIRST_PICK_DREAMLIGHT
+const BOSS_DREAMLIGHT := 4
+# "The Heartwood wakes" (run_design.md Dreamlight sources): every rest from drift 51 frees +1 more.
+const WAKE_DREAMLIGHT := 1
+const WAKE_FROM_DRIFT := 51
 const BRANCH_DREAMLIGHT := 1  # Branch, hidden branch, wall growth
 const FINAL_DREAMLIGHT := 2  # Final form (needs its branch)
 # Ascended forms (tower_design.md): tier 4, grown from any of the family's final forms.
@@ -289,7 +295,7 @@ func _ready() -> void:
 	run_state.run_ended.connect(_save_discoveries.unbind(1))
 	drift_director.family_pick_requested.connect(func(reason: StringName) -> void:
 		if reason == &"first":
-			add_dreamlight(FIRST_PICK_DREAMLIGHT))  # Act 1 can take one branch
+			add_dreamlight(first_pick_dreamlight))  # Act 1 can take one branch
 	map_generator.path_changed.connect(_update_bends)
 	spawner.enemy_cleansed.connect(_on_enemy_cleansed)
 	map_generator.obstacle_cleared.connect(_on_obstacle_cleared)
@@ -1026,13 +1032,17 @@ func get_rest_bonus_add() -> int:
 
 # Dew to clear `data` (Cleared Ground: −40% per stack, never below 1 Dew).
 # Clearing always costs Dew (dream_design.md "Clearing always costs Dew"): Cleared Ground −25% per
-# stack (max −50%), a Heartwood's Reach charge (`half_price`) halves it, and it never goes below half
-# the base cost, rounded up (tree 3, boulder 4). Blight 9's ×2 is ObstacleClearer's, on top.
+# stack (max −50%), then +CLEAR_SURCHARGE Dew per obstacle cleared this run (dream_design.md "Clear
+# prices, raised"); a Heartwood's Reach charge (`half_price`) halves it, and it never goes below half
+# the base cost, rounded up (tree 6, boulder 9). Blight 9's ×2 is ObstacleClearer's, on top.
 func get_clear_cost(data: ObstacleData, half_price: bool = false) -> int:
+	if free_first_clears > 0:
+		return 0  # Tend the Forest
 	var discount := 0.0
 	for card in _taken_cards():
 		discount += card.clear_discount * stacks[card.id]
 	var cost := roundi(data.clear_cost * (1.0 - minf(discount, CLEAR_DISCOUNT_MAX)))
+	cost += CLEAR_SURCHARGE * run_state.tended_cells.size()  # Every clear so far, Burn Back's too
 	if half_price:
 		cost = ceili(cost / 2.0)
 	return maxi(cost, ceili(data.clear_cost / 2.0))
@@ -1057,15 +1067,47 @@ func get_creature_speed_multiplier() -> float:
 		bonus += card.creature_speed_bonus * stacks[card.id]
 	return 1.0 + bonus
 
-# Whether obstacles can be cleared: after any clearing Dream (tag "clearing"). Taken cards are in
-# the save, so this needs no saving of its own.
+# Whether obstacles can be cleared: after the opener (Tend the Forest, tag "opener") or Burn Back
+# (dream_design.md "Clearing: one opener, the rest follow"). Taken cards are in the save, so this needs
+# no saving of its own.
 func can_clear() -> bool:
 	if clearing_open:
 		return true
 	for card in _taken_cards():
-		if card.tags.has("clearing"):
+		if unlocks_clearing(card):
 			return true
 	return false
+
+# The cards that unlock clearing: the opener, and Burn Back (it clears the trees itself).
+static func unlocks_clearing(card: UpgradeData) -> bool:
+	return card.tags.has(OPENER_TAG) or card.clears_obstacle != null
+
+const OPENER_TAG := "opener"
+
+
+# Make the clearing unlock obvious (dream_design.md "Clearing cards" / "Make the unlock obvious"):
+# while clearing is locked, every clearing card leads with these lines and a corner tag; the card
+# that opened it says so in Dreams this run and the Codex.
+const OPENS_CLEARING_LINE := "Unlocks clearing"
+const OPENS_CLEARING_TEXT := "Tend Withered Trees and move Mossy Boulders for Dew (Clear tool, C)."
+const OPENS_CLEARING_TAG := "Opens clearing"
+const OPENED_CLEARING_LINE := "Unlocked clearing"
+var clearing_opened_by := ""  # The card id that unlocked clearing this run (saved)
+
+func opens_clearing(card: UpgradeData) -> bool:
+	return card != null and card.tags.has(OPENER_TAG) and not can_clear()
+
+# Tend the Forest: clears that cost nothing, spent before any half-price charge (ObstacleClearer).
+var free_first_clears := 0
+
+func use_free_first_clear() -> bool:
+	if free_first_clears <= 0:
+		return false
+	free_first_clears -= 1
+	return true
+
+func opened_clearing(card: UpgradeData) -> bool:
+	return card != null and clearing_opened_by != "" and card.id == clearing_opened_by
 
 # Obstacles left on the map, of `kind` only if given.
 func count_obstacles(kind: ObstacleData = null) -> int:
@@ -1176,6 +1218,8 @@ func _update_bends() -> void:
 # --- Taking cards -------------------------------------------------------------------------------------
 
 func take(card: UpgradeData) -> void:
+	if unlocks_clearing(card) and not can_clear():
+		clearing_opened_by = card.id  # "Unlocked clearing" in Dreams this run and the Codex
 	for family in half_dreamed_missing(card):  # The next family pick will include one of them
 		if not _owed_families.has(family):
 			_owed_families.append(family)
@@ -1201,6 +1245,8 @@ func take(card: UpgradeData) -> void:
 	add_rare_dreams(card.rare_dreams_add)
 	if card.dreamlight_now > 0:
 		add_dreamlight(card.dreamlight_now)
+	if card.free_first_clears_add > 0:
+		free_first_clears += card.free_first_clears_add
 	if card.free_clears_add > 0:
 		run_state.add_free_clears(card.free_clears_add)
 	if card.rule_id == &"court_of_the_eldest":
@@ -1252,8 +1298,9 @@ func _on_rest_started(_block: int, is_boss_rest: bool, _bonus: int, _perfect: bo
 		return
 	_early_calls = 0  # Restless Night counts per block
 	_rest_rules(_perfect)
+	add_dreamlight(rest_dreamlight(drift_director.drifts_started))
 	if is_boss_rest:
-		# The freed light: +3 Dreamlight, and the Remember screen opens before the Dream.
+		# The freed light: +4 Dreamlight, and the Remember screen opens before the Dream.
 		add_dreamlight(BOSS_DREAMLIGHT)
 		_remember_open = true
 		remember_requested.emit(null)
@@ -1448,6 +1495,8 @@ func can_offer(card: UpgradeData, act: int = 1) -> bool:
 		return false
 	if card.is_deepened() and not has_card(card.deepens):
 		return false
+	if card.tags.has("clearing") and not unlocks_clearing(card) and not can_clear():
+		return false  # Clearing follow-ups only once clearing is unlocked (the opener first)
 	if card.is_bittersweet() and not allow_bittersweet:
 		return false
 	# A card never costs the last leaves (Deep Sleep).
@@ -1487,6 +1536,8 @@ func _meets_needs(card: UpgradeData) -> bool:
 		return false
 	if card.max_range_owned > 0.0 and not owns_range_at_most(card.max_range_owned):
 		return false
+	if card.max_attackers > 0 and count_attackers() > card.max_attackers:
+		return false  # Few and Mighty: never offered to a wide build (a hard Need, playtest #98)
 	if card.min_non_attackers > 0 and _towers().size() - count_attackers() < card.min_non_attackers:
 		return false
 	if card.min_kinships > 0 and count_kinships() < card.min_kinships:
@@ -1495,15 +1546,13 @@ func _meets_needs(card: UpgradeData) -> bool:
 		return false
 	return true
 
-# Soft Needs (×SOFT_NEED_WEIGHT when unmet, never a gate): attacker counts, count_warden, and the
+# Soft Needs (×SOFT_NEED_WEIGHT when unmet, never a gate): min_attackers, count_warden, and the
 # Nurture openers' rank Needs (cards with no requires_tag).
 func soft_needs_met(card: UpgradeData) -> bool:
 	if card.requires_tag == "" and not _rank_needs_met(card):
 		return false
-	if card.min_attackers > 0 or card.max_attackers > 0:
-		var attackers := count_attackers()
-		if attackers < card.min_attackers or (card.max_attackers > 0 and attackers > card.max_attackers):
-			return false
+	if card.min_attackers > 0 and count_attackers() < card.min_attackers:
+		return false
 	if card.count_warden != "" and count_wardens(card.count_warden) < card.min_warden_count:
 		return false
 	return true
@@ -1693,8 +1742,8 @@ func _weighted_pick(cards: Array, stray: bool = false) -> UpgradeData:
 			for tag in opposed:  # e.g. a narrow card while you've gone wide
 				if card.tags.has(tag) and not card.tags.has(OPPOSITE_DIRECTION[tag]):
 					weight *= OPPOSITE_WEIGHT
-		if clearing_locked and card.tags.has("clearing"):
-			weight *= CLEARING_LOCKED_WEIGHT  # Until the first one unlocks clearing
+		if clearing_locked and card.tags.has(OPENER_TAG):
+			weight *= CLEARING_LOCKED_WEIGHT  # The opener, until clearing is unlocked
 		var half_missing := half_dreamed_missing(card)
 		if not half_missing.is_empty():
 			var declined := half_missing.any(func(family: String) -> bool: return _declined_families.has(family))
@@ -1739,6 +1788,8 @@ func to_save() -> Dictionary:
 		"owed_families": _owed_families.duplicate(), "declined_families": _declined_families.duplicate(),
 		"walls_planted": _walls_planted, "glimmer_shards": glimmer_shards,
 		"legendary_next": _legendary_next,
+		"clearing_opened_by": clearing_opened_by,
+		"free_first_clears": free_first_clears,
 		"rng_state": str(_rng.state),  # A string: JSON would round a 64-bit int
 	}
 
@@ -1775,6 +1826,8 @@ func load_save(data: Dictionary) -> void:
 	_attackers_planted = int(data.get("attackers_planted", 0))
 	_walls_planted = int(data.get("walls_planted", 0))
 	glimmer_shards = int(data.get("glimmer_shards", 0))
+	clearing_opened_by = String(data.get("clearing_opened_by", ""))
+	free_first_clears = int(data.get("free_first_clears", 0))
 	_legendary_next = int(data.get("legendary_next", 0))
 	_refill_bark()  # Saved at a rest, where Thick Bark is full again
 	dreamlight = int(data.get("dreamlight", 0))
@@ -2345,15 +2398,16 @@ func get_ignite_multiplier() -> float:
 # (fade, half-dreamed, owed families, Stray, pity, Lucid) exactly as in play.
 
 # Dreamlight a run earns at `kind`: &"first" (the first family pick) or &"boss" (a boss rest).
-static func sim_dreamlight_for(kind: StringName) -> int:
-	return FIRST_PICK_DREAMLIGHT if kind == &"first" else (BOSS_DREAMLIGHT if kind == &"boss" else 0)
+func sim_dreamlight_for(kind: StringName) -> int:
+	return first_pick_dreamlight if kind == &"first" else (BOSS_DREAMLIGHT if kind == &"boss" else 0)
 
 # The rest after drift `drift`: what _on_rest_started does (rest rules, Sunlit Rest, Seedling Gift,
-# the boss's +3 Dreamlight) and a real offer. `pick.call(offer: Array) -> UpgradeData` (null = let it
+# the boss's +4 Dreamlight) and a real offer. `pick.call(offer: Array) -> UpgradeData` (null = let it
 # pass); with Lucid Dreaming it's called again with what's left. Returns the cards taken.
 func sim_rest(drift: int, pick: Callable, perfect: bool = true) -> Array[UpgradeData]:
 	_early_calls = 0
 	_rest_rules(perfect)
+	add_dreamlight(rest_dreamlight(drift))
 	if drift_director.is_boss_drift(drift):
 		add_dreamlight(sim_dreamlight_for(&"boss"))
 	if has_rule(&"sunlit_rest"):
@@ -2416,6 +2470,10 @@ func sim_family_pick(kind: StringName, pick: Callable) -> StringName:
 # --- Developer: pick any card, unlock free (demo_scope.md "Pick any card") -------------------------
 
 # Dev tools are on in a dev run (Test Grove, Unlock all families, Dev Grove) of a debug build only.
+# Dreamlight every rest after `drift` frees on its own (the boss rest's BOSS_DREAMLIGHT comes on top).
+static func rest_dreamlight(drift: int) -> int:
+	return WAKE_DREAMLIGHT if drift >= WAKE_FROM_DRIFT else 0
+
 static func dev_tools_on() -> bool:
 	return OS.is_debug_build() and MetaRun.is_dev_run()
 
@@ -2456,6 +2514,8 @@ func needs_note(card: UpgradeData, act: int = -1) -> String:
 		needs.append("no more stacks")
 	if card.is_deepened() and not has_card(card.deepens):
 		needs.append(get_display_name(card.deepens))
+	if card.tags.has("clearing") and not unlocks_clearing(card) and not can_clear():
+		needs.append("clearing unlocked (Tend the Forest)")
 	if card.is_bittersweet() and not allow_bittersweet:
 		needs.append("Bittersweet Dreams (Grove)")
 	var missing: Array = card.requires.filter(func(id: String) -> bool: return not owns(id))
@@ -2472,6 +2532,14 @@ func needs_note(card: UpgradeData, act: int = -1) -> String:
 
 # The families held Seed cards call: the next family pick is guaranteed to offer each one that the
 # profile can pick and the run doesn't own yet (FamilyPickScreen).
+# The family `card` would call to the next pick, or "" when it can't (already yours, or never pickable):
+# then its Seed line hides too (screens_ui.md "Playtest fixes").
+func calls_family_now(card: UpgradeData) -> String:
+	var family := card.calls_family
+	if family == "" or is_unlocked(family):
+		return ""
+	return family if _family_roots().any(func(d: TowerData) -> bool: return d.get_id() == family) else ""
+
 func get_called_families() -> Array[String]:
 	var pickable: Array = _family_roots().map(func(d: TowerData) -> String: return d.get_id())
 	var called: Array[String] = []
@@ -2520,6 +2588,27 @@ func dew_harvested() -> int:
 # --- How Needs are shown on a card (dream_design.md, "Card requirements") ---------------------------
 # A card never names a Warden you don't have: combo cards show their statuses (lit if one of your
 # Wardens applies it, dim if not), Warden Needs show the family, card ingredients stay by name.
+
+# What a half-dreamed or sleeping card still needs, by damage type (dream_design.md "Named by damage
+# type"): [{family: "whirligig", type: "Wind", line: "wind", form: "Samara" or ""}] (form = the
+# specific Warden when the card needs one, for its tooltip: "Samara, a Wind Warden").
+func missing_needs(card: UpgradeData) -> Array[Dictionary]:
+	var out: Array[Dictionary] = []
+	for id in card.requires:
+		var family := family_of(id)
+		if family == "" or is_unlocked(family) or out.any(func(n: Dictionary) -> bool: return n.family == family):
+			continue
+		var data := IconInfo.family_data(family)
+		var line: String = data.line if data != null else ""
+		out.append({"family": family, "line": line, "type": IconInfo.damage_type_name(line),
+			"form": get_display_name(id) if id != family else ""})
+	return out
+
+# The one line a half-dreamed or sleeping card shows: "Needs Wind" ("" = none; "half-dreamed" stays an
+# internal name). The Dream card draws it with the type's emblem and a link.
+func missing_families_text(card: UpgradeData) -> String:
+	var needs := missing_needs(card)
+	return "" if needs.is_empty() else "Needs " + " and ".join(needs.map(func(n: Dictionary) -> String: return n.type))
 
 # {"statuses": [[status id, lit]], "families": [display names], "cards": [display names], "either": bool}
 func needs_parts(card: UpgradeData) -> Dictionary:

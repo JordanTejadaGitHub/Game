@@ -39,6 +39,7 @@ func _run() -> void:
 	_test_sim_entry()
 	_test_sim_policy()
 	_test_rows_cache()
+	_test_scaling_cards()
 	_test_seed_cards()
 	_test_support_cards()
 	_test_needs_text()
@@ -84,7 +85,7 @@ func _test_economy() -> void:
 	_check(dreams.get_rest_bonus_add() == dreams.path_length / 10, "Winding Path: +1 Dew per 10 path tiles (%d tiles)" % dreams.path_length)
 	var rerolls := dreams.rerolls_left
 	dreams.take(_card("wandering_mind"))
-	_check(dreams.rerolls_left == rerolls + 2, "Wandering Mind: +2 rerolls")
+	_check(dreams.rerolls_left == rerolls + 1, "Wandering Mind: +1 reroll")
 	dreams.take(_card("weathered_walls"))
 	var wall: TowerData = load("res://resource/tower/thornwall.tres")
 	dreams._walls_planted = 9
@@ -223,8 +224,17 @@ func _test_sim_entry() -> void:
 	_check(passed.is_empty() and not dreams.is_offering(), "…null lets it pass")
 	light = dreams.dreamlight
 	dreams.sim_rest(25, func(offer: Array) -> UpgradeData: return offer[0])
-	_check(dreams.dreamlight == light + 3, "…a boss rest gives +3 Dreamlight")
-	_check(DreamState.sim_dreamlight_for(&"first") == 1 and DreamState.sim_dreamlight_for(&"boss") == 3, "sim_dreamlight_for")
+	_check(dreams.dreamlight == light + DreamState.BOSS_DREAMLIGHT, "…a boss rest gives +4 Dreamlight")
+	light = dreams.dreamlight
+	dreams.sim_rest(50, func(offer: Array) -> UpgradeData: return offer[0])
+	_check(dreams.dreamlight == light + DreamState.BOSS_DREAMLIGHT, "…the drift 50 boss rest: no wake bonus yet")
+	light = dreams.dreamlight
+	dreams.sim_rest(55, func(offer: Array) -> UpgradeData: return offer[0])
+	_check(dreams.dreamlight == light + 1, "…every rest from drift 51: +1 Dreamlight (the Heartwood wakes)")
+	_check(dreams.sim_dreamlight_for(&"first") == 1 and dreams.sim_dreamlight_for(&"boss") == DreamState.BOSS_DREAMLIGHT, "sim_dreamlight_for")
+	dreams.first_pick_dreamlight = 0
+	_check(dreams.sim_dreamlight_for(&"first") == 0, "…first_pick_dreamlight 0 (Blight 2): none")
+	dreams.first_pick_dreamlight = DreamState.FIRST_PICK_DREAMLIGHT
 	_reset()
 
 # The balance bot's Dream / family / Dreamlight / Omen policies (balance_simulation.md "Bot rules").
@@ -238,6 +248,28 @@ func _test_sim_policy() -> void:
 		"styles score by tags: Wide takes Many Hands, Narrow Few and Mighty")
 	var balanced := DreamSimPolicy.new(dreams, DreamSimPolicy.Style.BALANCED)
 	_check(balanced.pick_family(["dewdrop", "sporeling"]) == &"sporeling", "Balanced: its family order")
+	# Dead for now: a card about a Warden with none on the map scores lower (Tower Code's dead-card list).
+	var twin := _card("twin_puff")
+	var dead := balanced.score(twin)
+	var puff := _plant("sporeling", Vector2(100, 100))
+	_check(balanced.score(twin) > dead, "the bot skips Twin Puff with no Sporeling on the map")
+	puff.free()
+	_check(balanced.score(_card("tended_forest")) < balanced.score(_card("cozy_corners")), "Balanced never clears: clearing cards come last")
+	# Single-target families unlock their area branch first (Cairn, Wren's Nest).
+	for pair in [["pebbling", "cairn"], ["nestling", "wrens_nest"], ["sporeling", ""]]:
+		var tree: Array = dreams.get_remember_trees().filter(func(t: Array) -> bool: return t[0].get_id() == pair[0]).front() \
+			if dreams.get_remember_trees().any(func(t: Array) -> bool: return t[0].get_id() == pair[0]) else []
+		if tree.is_empty():
+			dreams.unlocked[pair[0]] = true
+			tree = dreams.get_remember_trees().filter(func(t: Array) -> bool: return t[0].get_id() == pair[0]).front()
+		var forms := balanced._forms_in_order(tree)
+		if pair[1] != "":
+			_check(forms[0].get_id() == pair[1], "%s unlocks %s first (%s)" % [pair[0], pair[1], forms[0].get_id()])
+		else:
+			_check(forms[0] == tree[1][0][0], "an area family keeps the Remember order")
+			if tree.size() > 2 and tree[2] != null and not tree[1][0][1].is_empty():
+				_check(forms.find(tree[2]) == 2, "Ascended right after the first final form, before the other branch (%s)"
+					% ", ".join(forms.map(func(f: TowerData) -> String: return f.get_id())))
 	dreams._owed_families.assign(["dewdrop"])
 	var sleep := DreamSimPolicy.new(dreams, DreamSimPolicy.Style.SLEEP)
 	_check(sleep.pick_family(["pebbling", "dewdrop"]) == &"dewdrop", "family order before the owed family")
@@ -268,11 +300,48 @@ func _test_sim_policy() -> void:
 	var sprout_bot := DreamSimPolicy.new(dreams, DreamSimPolicy.Style.SPROUT)
 	_check(sprout_bot.pick_dream([_card("few_and_mighty"), _card("many_hands"), _card("seedfall")]) == _card("seedfall")
 		and sprout_bot.pick_family(["dewdrop", "sporeling"]) == &"sporeling", "Sprout style: its own cards on top, Sporeling first")
+	var mixed := DreamSimPolicy.new(dreams, DreamSimPolicy.Style.MIXED)
+	_check(mixed.score(_card("seedfall")) > balanced.score(_card("seedfall")) and mixed.score(_card("seedfall")) > 0.0,
+		"Mixed: Sprout cards count")
+	dreams.add_dreamlight(3 - dreams.dreamlight)
+	mixed.spend_dreamlight()
+	_check(not mixed.choices.any(func(c: String) -> bool: return c.contains("bramble") or c.contains("honeysuckle")),
+		"Mixed: Dreamlight on families only, never Thornwall growths (%s)" % ", ".join(mixed.choices))
 	_check(balanced.pick_omen([]) == null, "Omens: Clear Skies")
+	var crowded: OmenData = load("res://resource/omen/crowded_paths.tres")
+	var bountiful: OmenData = load("res://resource/omen/bountiful_night.tres")
+	var swift: OmenData = load("res://resource/omen/swift_stream.tres")
+	_check(balanced.pick_omen([crowded, swift]) == null, "…Clear Skies unless face_omens")
+	balanced.face_omens = true
+	_check(balanced.pick_omen([crowded, swift]) == swift and balanced.pick_omen([bountiful, crowded]) == bountiful,
+		"face_omens: the lower-risk of the revealed Omens (%.2f / %.2f / %.2f)" % [DreamSimPolicy.omen_risk(crowded),
+		DreamSimPolicy.omen_risk(bountiful), DreamSimPolicy.omen_risk(swift)])
+	balanced.face_omens = false
 	_clear()
 	_reset()
 
 # DreamEffects.rows_cached (Tower's hot path) matches rows() and follows board changes.
+# Few and Mighty is never offered to a wide build (#98), and scaling cards show where you stand (#75).
+func _test_scaling_cards() -> void:
+	_reset()
+	var few := _card("few_and_mighty")
+	dreams.grove_cards.append("few_and_mighty")
+	for i in 7:
+		_plant("sporeling", Vector2(100 + i * 2, 100))
+	_check(dreams.can_offer(few, 2), "Few and Mighty: offered with 7 attackers")
+	_check(dreams.effects().preview_line(few) == "You have 7 attacking Wardens · +40%",
+		"…its card shows \"You have 7 attacking Wardens · +40%%\" (%s)" % dreams.effects().preview_line(few))
+	for i in 6:
+		_plant("sporeling", Vector2(100 + i * 2, 110))
+	dreams.bump_board()
+	_check(not dreams.can_offer(few, 2), "…never with 13 (a hard Need, not a weight)")
+	_check(dreams.effects().preview_line(_card("many_hands")).begins_with("You have 13 attacking Wardens"), "Many Hands shows the count too")
+	_check(dreams.effects().preview_line(_card("tended_forest")).begins_with("Now: "), "Tended Forest: \"Now: N cleared · …\"")
+	_check(dreams.effects().preview_line(_card("quickened_sap")) == "", "a card that doesn't scale shows no live line")
+	dreams.grove_cards.erase("few_and_mighty")
+	_clear()
+	_reset()
+
 func _test_rows_cache() -> void:
 	_reset()
 	dreams.take(_card("solitude"))
@@ -341,6 +410,11 @@ func _test_seed_cards() -> void:
 	dreams.family_of("")  # Refresh the family maps
 	dreams.take(_card("dew_bowl"))
 	_check(Array(dreams.get_called_families()) == ["acorn"], "Dew Bowl calls Acorn")
+	_check(dreams.calls_family_now(_card("dew_bowl")) == "acorn", "…its Seed line shows")
+	dreams.unlocked["acorn"] = true
+	_check(dreams.calls_family_now(_card("dew_bowl")) == "" and dreams.get_called_families().is_empty(),
+		"a family you already own: no Seed line, no call (playtest fix)")
+	dreams.unlocked.erase("acorn")
 	var per_pick: int = screen.cards_per_pick
 	screen.cards_per_pick = 1
 	screen.show_pick(&"boss")

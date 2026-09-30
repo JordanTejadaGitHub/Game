@@ -6,8 +6,8 @@
 script = ExtResource("1_omen")
 id = "heavy_rain"
 display_name = "Heavy Rain"
-description = "Every nightmare is always {damp}, but has 35% more health."
+description = "Every nightmare is always {damp}, but has 50% more health."
 kind = 2
-health_multiplier = 1.35
+health_multiplier = 1.5
 always_status = &"damp"
-reward_dew = 30
+reward_dew = 45

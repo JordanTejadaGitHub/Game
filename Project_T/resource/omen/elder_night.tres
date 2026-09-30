@@ -6,8 +6,8 @@
 script = ExtResource("1_omen")
 id = "elder_night"
 display_name = "Elder Night"
-description = "Every drift has one more Deeply Blighted nightmare."
+description = "Every {drift} has two more {deeply_blighted} nightmares."
 kind = 0
 min_drift = 26
-extra_elites = 1
-reward_dreamlight = 1
+extra_elites = 2
+reward_dreamlight = 2

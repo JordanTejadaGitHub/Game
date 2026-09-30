@@ -106,7 +106,7 @@ SH = Shade, HU = Husk, MO = Mourner. ★ = elite (Deeply Blighted). **Rest** aft
 | 8 | 14 SH, 3 HU | |
 | 9 | 16 SH, 3 HU | |
 | 10 | **Deadwood:** 10 SH, 6 HU | rest |
-| 11 | 18 SH, 4 HU | |
+| 11 | 14 SH, 4 HU (Shades ≥ 0.9 s apart; was 18, 2026-09-29) | |
 | 12 | 20 SH, 4 HU | |
 | 13 | 16 SH, 6 HU | |
 | 14 | 22 SH, 5 HU | |
@@ -116,8 +116,8 @@ SH = Shade, HU = Husk, MO = Mourner. ★ = elite (Deeply Blighted). **Rest** aft
 | 18 | 18 SH, 4 HU, 4 MO | |
 | 19 | 20 SH, 5 HU, 4 MO | |
 | 20 | **Wake:** 4 MO (1.2 s apart) with 12 SH and 3 HU, Mourners **≤ 40% of the drift's health** (was 10 MO; a one-family spore board couldn't survive it before the drift 25 pick, balance sim 2026-09-28) | rest |
-| 21 | 22 SH, 5 HU, 5 MO | |
-| 22 | 24 SH, 6 HU, 5 MO | |
+| 21 | 18 SH, 5 HU, 5 MO (Shades ≥ 0.9 s apart; was 22) | |
+| 22 | 19 SH, 6 HU, 5 MO (Shades ≥ 0.9 s apart; was 24) | |
 | 23 | 20 SH, 2 HU★ | first elites |
 | 24 | 26 SH, 7 HU, 6 MO | |
 | 25 | **The Hollow Stag:** 12 SH, the Stag, 6 HU | **rest: family pick + Rare Dream** |
@@ -129,14 +129,14 @@ PH = Phantom, NH = Night Hound, PR = Procession (Lantern Bearer + 4 Wraiths).
 | Drift | Contents | Notes |
 |---|---|---|
 | 26 | 20 SH, 6 HU, 6 MO | warm-up after the boss |
-| 27 | **Haunting:** 6 PH (2 s apart) | Phantom intro |
-| 28 | 22 SH, 6 HU, 4 PH | |
+| 27 | 4 NH (3 s apart) | Night Hound intro (swapped with the Phantom 2026-09-29: the Hound tests the maze the player just built; 21 Phantoms in drifts 27–30 flew past every maze and caused the 26–30 deaths) |
+| 28 | 22 SH, 6 HU, 5 NH | |
 | 29 | 24 SH, 7 HU, 6 MO | |
-| 30 | 20 SH, 8 HU, 6 PH | rest |
-| 31 | 4 NH (3 s apart) | Night Hound intro |
-| 32 | 20 SH, 6 HU, 5 NH | |
-| 33 | 22 SH, 5 MO, 6 NH | |
-| 34 | 24 SH, 8 HU, 4 PH, 4 NH | |
+| 30 | 20 SH, 8 HU, 6 NH | rest |
+| 31 | **Haunting:** 4 PH (2 s apart) | Phantom intro (smaller: 4, was 6) |
+| 32 | 20 SH, 6 HU, 2 PH | |
+| 33 | 22 SH, 5 MO, 3 PH | |
+| 34 | 24 SH, 8 HU, 3 PH, 4 NH | |
 | 35 | **The Hunt:** 12 NH, 3 HU★ | rest |
 | 36 | 1 PR | Procession intro |
 | 37 | 20 SH, 2 PR | |

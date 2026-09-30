@@ -107,8 +107,9 @@ alternative**: a strong card you can use now if you bend the plan.
 3. **The Stray Dream: one wildcard slot per offer** (from the rest after drift 10; not at boss
    rests, which stay Rare+ as they are). One slot draws with the weighting **turned around**: cards
    sharing any tag with your build (owned families, directions, Legendary archetypes) ×0.25, the
-   rest ×1, soft Needs ignored, hard Needs still apply (it's always usable). The card wears a small
-   **"Stray"** wisp tag: *"Something the Heartwood hasn't dreamed of yet."* Rarity is rolled as
+   rest ×1, soft Needs ignored, hard Needs still apply (it's always usable). **No tag on the card**
+   (2026-09-30, user: the "Stray" tag and its line confused more than they explained; it's one of
+   the normal cards, just drawn from outside your build). Rarity is rolled as
    normal; the skip fade applies. With Entwined due, the offer is Entwined + Stray + one normal.
 4. **No pivot cards** (user decision 2026-09-28): families still come **only from the family picks**
    (after drift 1 and each boss).
@@ -152,9 +153,15 @@ alternative**: a strong card you can use now if you bend the plan.
      **Accepted** (2026-09-28): a temptation should be occasional, so no stronger weight (it would
      become a lure). The number grows naturally as the pool gets more cross-family combo cards
      (`design_plan.md`, Dream pool to ~70).
-   - **Card face:** a pale **"Half-dreamed"** vine tag and the missing piece in plain words:
-     *"Needs Dewdrop: a family you can pick after the Hollow Stag (drift 25)."* The card's effect
-     works only once everything it needs is owned (it never pretends to do something now).
+   - **Card face** (simplified 2026-09-30, user: "remove the 'half dream' from cards"): **no
+     "Half-dreamed" tag or label and no "sleeps until then"**. Only one short muted line under the
+     effect: *"Needs Dewdrop"* (the family is a linked term to its family pick). "Half-dreamed" stays
+     an internal name for the mechanic. The card's effect works only once everything it needs is
+     owned. In "Dreams this run" such a card is dimmed with the same "Needs Dewdrop" line.
+   - **Named by damage type** (2026-09-30, user: "Needs Whirligig … should be the type of damage"):
+     the line reads **"Needs Wind"** (the family's damage type, linked; no emblem since the emblems were removed), not the
+     family's name. When the card needs a specific form (Windborne Rain needs Samara), the tooltip on
+     that line names it: *"Samara, a Wind Warden"*.
    - **Taking one makes the next family pick offer the missing family** as one of its 3 choices
      (if several are missing, one of them). The player still chooses; it's never auto-picked.
    - Entwined's guaranteed slot is unchanged (it still fires once all ingredients are owned).
@@ -525,7 +532,7 @@ the Grove rules, family-specific cards come with their family or hidden-branch n
 | 95 | **Backspin** | Uncommon | the **return pass** gets +25% crit chance | wind, crit | Samara | hidden node |
 | 96 | **Ricochet** | Uncommon | at the end of its line the seed **turns 90° once** toward the nearest nightmare before returning (rewards L-shaped corners) | wind, maze | Samara | hidden node |
 | 97 | **Heavy Seed** | Uncommon | the seed's **return pass** hits for double (changed 2026-09-29: pulling back is Rootling's job) | wind | Samara | hidden node |
-| 98 | **Windborne Rain** | Rare, **Entwined** (Samara + Rain Lily) | every pass applies **Damp**, so the line becomes a Thunderclap corridor | wind, water, reaction | — | hidden node |
+| 98 | **Windborne Rain** | Rare, **Entwined** (Samara + Rain Lily) | Samara's seeds apply **Soaked** to every nightmare they pass, out and back (card text never names the combo it sets up: "???" rule) | wind, water, reaction | — | hidden node |
 | 99 | **Seed Storm** | Rare *(was Legendary; enhances one Warden, 2026-09-28)* | every 5th throw bursts into **5 seeds in a fan** | wind | Samara | hidden node |
 
 Deepened: **Heavy Eyelids II** cap +3 (bosses +1); **Ricochet II** turns twice; **Bad Dreams II**
@@ -548,17 +555,52 @@ option reachable, clearing cards get **2× weight until you own one** (on maps w
 and **all of them are Common except Burn Back** (user decision, 2026-09-27), so clearing shows up
 early and often.
 
+**Make the unlock obvious** (2026-09-29, user: "it's not clear that you unlock clearing when you get
+it"). While clearing is still locked, **every clearing card leads with the unlock**, before its own
+effect:
+- A highlighted first line with the Clear tool icon: **"Unlocks clearing"**, and under it one plain
+  line: *"Tend Withered Trees and move Mossy Boulders for Dew (Clear tool, C)."* Then a thin divider
+  and the card's own effect ("…and your clears cost 2 less").
+- A small gold **"Opens clearing"** tag in the corner of the card (like Entwined / Half-dreamed).
+- Once clearing is unlocked, these lines disappear from later clearing cards (they then show only
+  their own effect).
+- The change is **on the card only** (user clarification); nothing new happens elsewhere when you
+  take it (the existing whisper stays as it was).
+
+**One opener, the rest follow** (2026-09-30, user: "what's the point of Cleared Ground if you haven't
+unlocked clearing? The point of the card is reducing the cost"). This replaces "every clearing card
+unlocks clearing":
+- A new Common opener, **Tend the Forest** (card 172, Start pool): *"Unlocks clearing: tend Withered
+  Trees and move Mossy Boulders for Dew (Clear tool, C). Your first 2 clears are free."* Tags
+  clearing, opener. It's the only card that unlocks clearing; it keeps the 2× weight while clearing
+  is locked (maps with 8+ obstacles), and the "Unlocks clearing" layout above.
+- **Every other clearing card** (Cleared Ground, Heartwood's Reach, Reclaimed Earth, Tended Forest,
+  Wildwood Reclaimed, …) becomes a **follow-up: it needs clearing unlocked** (a hard Need, like the
+  Nurture follow-ups), so it's never offered before the opener. **Burn Back** stays as it is (a
+  Grove Bittersweet that clears trees outright, so it also unlocks clearing).
+- The Codex and "Dreams this run" still note which card unlocked clearing.
+
 | # | Card | Rarity | Effect | Tags | Pool |
 |---|---|---|---|---|---|
 | 54 | **Cleared Ground** | Common | clearing obstacles costs **25% less** Dew (stacks, **max −50%**) | clearing, economy | Start |
 | 55 | **Heartwood's Reach** | Common | gain **4 half-price clears**; use them any time (a charge counter on the HUD; unused charges last all run). Deepened II: 7 | clearing | Start |
 | 56 | **Reclaimed Earth** | Common | each clear **refunds 40% of the Dew you paid for it**, and the cell is left **fertile**: the first Warden planted there costs 50% less | clearing, economy | Start |
 | 57 | **Tended Forest** | Common | **+1% damage for every obstacle cleared this run** (max +25%; clears from before the card count) | clearing, maze | Start |
-| 58 | **Burn Back the Dead Wood** | Rare, **Bittersweet** | clear **every Withered Tree** on the map right now for **2 Dew each** (paid when taken; only offered if you can pay). **Cost:** nightmares +10% speed for the rest of the run | clearing, bittersweet | Grove |
+| 58 | **Burn Back the Dead Wood** | Rare, **Bittersweet** | clear **every Withered Tree** on the map right now for **5 Dew each** (paid when taken; only offered if you can pay). **Cost:** nightmares +10% speed for the rest of the run | clearing, bittersweet | Grove |
+
+**Clear prices, raised** (2026-09-30, user: "clearing obstacles seems too cheap"). At 5 / 8 Dew a
+clear cost less than a Sprout, so by act 2 the map was free to reshape and each clear was a cheap
++1 Seed. Now:
+- **Base:** Withered Tree **12 Dew**, Mossy Boulder and Thorn-Sapling **18 Dew** (was 5 / 8 / 8).
+- **Each clear this run adds +1 Dew** to every later clear (`RunState.obstacles_tended`, like the
+  Sprout price rule), so the first few are affordable in act 1 and clearing half the map is a real
+  investment. The hover tag and the Clear tool show the current price.
+- Floor stays half the **base** (tree 6, boulder 9), before the per-clear rise; Blight 9 ×2 on top.
+- Burn Back's price becomes **5 Dew per tree** (was 2).
 
 **Clearing always costs Dew** (user rule, 2026-09-28). No card, perk or combination makes a clear
 free or profitable:
-- **Floor:** a clear never costs less than **half its base cost** (tree 3, boulder 4, rounded up),
+- **Floor:** a clear never costs less than **half its base cost** (tree 6, boulder 9),
   whatever stacks: Cleared Ground, Heartwood's Reach charges, Grove perks. Blight Level 9's ×2 is
   applied on top.
 - **Dew back** from a clear (Reclaimed Earth) is a share of what you **paid**, so it's always less
@@ -687,7 +729,7 @@ from walls (Hedge Maze, Bramble).
 | # | Card | Rarity | Effect | Tags | Needs | Pool |
 |---|---|---|---|---|---|---|
 | 74 | **Solitude** | Uncommon | a Warden with **no other attacking Warden within 2 cells** gets **+30% damage and +0.5 range** | narrow, maze | — | Start |
-| 75 | **Few and Mighty** | Rare | all Wardens **+8% damage for each attacking Warden below 12** you have (7 Wardens = +40%; max +80%) | narrow | 12 or fewer attacking Wardens when offered | Start |
+| 75 | **Few and Mighty** | Rare | card text (2026-09-30, clearer): *"The fewer attackers, the stronger: all Wardens +8% damage for each attacking Warden you have under 12 (max +80%)."* plus a live line on the card: *"You have 7 · +40%"* | narrow | 12 or fewer attacking Wardens when offered (**bug 2026-09-30: offered at drift 70 with 139**) | Start |
 | 76 | **The Last Light** | Legendary | if you have **5 or fewer** attacking Wardens, they **attack twice as fast** | narrow | — | Grove |
 
 - **Once you own a wide or narrow card, its tag counts as an owned family** for tag weighting (2×),
@@ -1048,7 +1090,7 @@ All **Start** pool, no family Needs (a few have a soft run-state Need so they're
 | 142 | **Gathered Dew** | Common | nightmares give **+10% Dew** (stacks, max +30%) | economy | — | Start |
 | 143 | **Fair Trade** | Common | selling refunds **+10%** more (rest 85%, drift 60%; stacks to 100% / 75%) | economy | — | Start |
 | 144 | **Call of the Wild** | Common | calling a drift early gives **double Dew** (cap 20 per drift) | tempo, economy | — | Start |
-| 145 | **Mending Bark** | Common | a **perfect block** (no leaf lost) regrows **1 leaf** | leaves | — | Start |
+| 145 | **Mending Bark** | Common | card text (plain words, 2026-09-30): *"**5 drifts in a row without losing a leaf** regrow 1 leaf."* (a "perfect block") | leaves | — | Start |
 | 146 | **Lasting Dreams** | Common | every status your Wardens apply lasts **+1 s** (stacks, max +3 s) | status | a Warden that applies a status (soft) | Start |
 | 147 | **Short Roots** | Common | Wardens with **range 2 or less** deal **+25% damage** | — | a Warden with range ≤ 2 (soft) | Start |
 | 148 | **Forest's Edge** | Common | Wardens within **3 cells of the start** deal **+20% damage** | maze | — | Start |
@@ -1059,7 +1101,7 @@ All **Start** pool, no family Needs (a few have a soft run-state Need so they're
 | 153 | **Underdog** | Uncommon | at each rest, your **3 Wardens that soothed least** in that block get **+20% damage** for the next block | — | 6+ attacking Wardens (soft) | Start |
 | 154 | **Weathered Walls** | Uncommon | Thornwalls **can't be trampled**, and every 10th Thornwall is free | wall | — | Start |
 | 155 | **Heavy Air** | Uncommon | every slow your Wardens apply (Soaked, Drowsy, frost…) is **20% stronger** | status | a Warden that slows (soft) | Start |
-| 156 | **Wandering Mind** | Uncommon | gain **2 Dream rerolls** (reroll one offer's cards) | dreams | — | Grove |
+| 156 | **Wandering Mind** | Uncommon | gain **1 Dream reroll** (was 2, 2026-09-30) (reroll one offer's cards) | dreams | — | Grove |
 
 - **Pairs of opposites:** Crowded Path (swarms) vs Lone Hunter (spread-out nightmares, bosses);
   Forest's Edge (fight early) vs Last Stand (fight at the Heartwood); Short Roots vs Long Shadows.

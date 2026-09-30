@@ -7,7 +7,7 @@
 script = ExtResource("1_card")
 id = "dream_dewcatcher"
 display_name = "Dewcatcher"
-description = "Acorns can now grow into Dewcatchers (80 Dew): nightmares dispelled within 2.5 tiles drop +40% Dew, poured out at the rest."
+description = "Acorns can now grow into Dewcatchers (80 Dew): nightmares dispelled within 2.5 tiles drop +40% Dew, poured out at the {rest}."
 rarity = 1
 kind = 1
 tags = Array[String](["acorn"])

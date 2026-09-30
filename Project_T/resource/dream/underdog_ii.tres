@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "underdog_ii"
 display_name = "Underdog II"
-description = "At each rest, the 4 Wardens that soothed least that block deal 25% more damage the next block."
+description = "At each {rest}, the 4 Wardens that soothed least that {block} deal 25% more damage the next {block}."
 rarity = 1
 kind = 3
 tags = Array[String]([])

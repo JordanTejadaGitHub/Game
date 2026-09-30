@@ -6,9 +6,10 @@
 script = ExtResource("1_omen")
 id = "hollow_wind"
 display_name = "Hollow Wind"
-description = "The block's first 2 drifts are all flying nightmares."
+description = "The {block}'s first 3 {drifts} are all flying nightmares."
 kind = 0
 min_drift = 26
 requires_flyers = true
-all_flyer_drifts = 2
+all_flyer_drifts = 3
 reward_rare_dreams = 1
+reward_dew = 25

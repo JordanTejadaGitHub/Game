@@ -6,7 +6,7 @@
 script = ExtResource("1_unlock")
 id = "pebbling_hidden"
 display_name = "Hidden branch: Cairn"
-description = "Pebblings can grow into Cairns (and Rockslides)."
+description = "Pebblings can grow into Cairns, then Rockslides."
 root = 0
 costs = Array[int]([50])
 order = 23

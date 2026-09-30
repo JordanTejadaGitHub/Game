@@ -10,7 +10,7 @@ const TAG_COOLDOWN := 0.7  # Seconds before the same word can pop again
 const LIFE := 0.9
 # Combo tag -> the word shown ("" = no word, only the status flash).
 const WORDS := {&"conducted": "Conducted!", &"popped": "Popped!", &"asleep": "Asleep!",
-	&"crit": "Shattered!", &"weak": "Weak!", &"marked": "", &"fog": "", &"static": ""}
+	&"crit": "Critical!", &"weak": "Weak!", &"marked": "", &"fog": "", &"static": ""}
 # Combo tag -> the status it used (flashes on the nightmare).
 const USES_STATUS := {&"conducted": &"damp", &"popped": &"spored", &"asleep": &"drowsy",
 	&"marked": &"marked", &"fog": &"spored", &"static": &"static"}
@@ -19,6 +19,7 @@ const PRIORITY: Array[StringName] = [&"popped", &"asleep", &"conducted", &"crit"
 var _cooldowns := {}  # tag -> seconds left
 var _alive: Array = []  # [age, text, colour, enemy (weak ref target), offset]
 var _weak_shown := {}  # enemy instance id -> true ("Weak!" once per nightmare)
+var _drawn := false  # Words were on screen last frame
 
 func _ready() -> void:
 	z_index = 21  # Over the damage numbers
@@ -49,6 +50,21 @@ func _on_damage(event: DamageLog.Event) -> void:
 			return  # One callout per nightmare at a time
 	_cooldowns[tag] = TAG_COOLDOWN
 	_alive.append([0.0, WORDS[tag], _colour(event.source), event.enemy, event.enemy.global_position])
+	_note_seen(tag)
+
+# The glossary explains a callout once it has been seen (CodexData.callout_entries): remembered on the
+# profile the first time each word shows (real game only; account knowledge).
+static var _noted := {}
+func _note_seen(tag: StringName) -> void:
+	if _noted.has(tag) or owner == null or get_tree().current_scene != owner:
+		return
+	_noted[tag] = true
+	var profile := HeartwoodMemory.load_data()
+	var seen: Array = profile.get(CodexData.CALLOUT_SEEN_KEY, [])
+	if not seen.has(String(tag)):
+		seen.append(String(tag))
+		profile[CodexData.CALLOUT_SEEN_KEY] = seen
+		HeartwoodMemory.save_data(profile)
 
 func _pick(event: DamageLog.Event) -> StringName:
 	for tag in PRIORITY:
@@ -72,8 +88,9 @@ func _process(delta: float) -> void:
 			callout[4] = callout[3].global_position
 		if callout[0] >= LIFE:
 			_alive.remove_at(i)
-	if not _alive.is_empty() or visible:
+	if not _alive.is_empty() or _drawn:  # Once more after the last word goes, then idle
 		queue_redraw()
+		_drawn = not _alive.is_empty()
 
 func _draw() -> void:
 	var font := ThemeDB.fallback_font

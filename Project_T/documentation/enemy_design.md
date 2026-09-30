@@ -74,14 +74,121 @@ unchanged from the cozy version; only names, fiction and art direction changed.
 | **Dream Thief** | a quick, grinning shape clutching stolen light | steals Dew; reaching the Heartwood costs Dew + a leaf; dispelling it gives double Dew | risk/reward target priority | fast single-target |
 | **Weeper** | a hunched figure crying black tears | mends nearby nightmares | target priority | Beacon, Mossback |
 
-### Bosses (boss drifts, every 25th)
+### Bosses: a pool of 3 per act (added 2026-09-29, like Slay the Spire)
 
-| Boss | Looks like | Trait | Tests |
-|---|---|---|---|
-| **The Hollow Stag** | a gaunt stag of bark and bone, ghost-fire in its antlers | huge health; tramples Thornwalls as it passes (never blocks the path); charges at half health (`acts_1_2.md`) | maze redundancy |
-| **The Mire Hag** | a bent bog witch wrapped in reeds | every few seconds **sinks into the mire and rises 3 tiles ahead** along its path; each surfacing soaks nightmares nearby (Damp) | damage spread along the whole maze |
-| **The Moth Queen** | a vast moth with a skull-like face on its wings | flies over the maze, dropping Lurkers as it goes | detection + goal defence |
-| **The Hollow Oak** | the Hollow's corrupted heart walking on its roots | walks slowly, planting thorn-saplings on empty tiles next to the path; saplings are obstacles that re-route nightmares | adapting to a changing maze |
+Acts 1–3 each have a **pool of 3 great nightmares**; each run draws **one per act**. Act 4 is always
+**the Hollow Oak**, the story's climax, but in **one of 3 variations** (Thorned, Withering,
+Remembering), drawn the same way. This replaces
+"the Mire Hag or the Moth Queen at 50, the other at 75": the Hag is now an act 2 boss and the
+Queen an act 3 boss.
+
+**Rules**
+- **Drawn at run start and shown from the act's first drift**, not just at the rest before the
+  boss: the DriftBanner shows the boss's portrait ("Boss in N"), and its dossier can be opened any
+  time. That's the strategy layer: you know what's coming for 25 drifts, so you build for it and
+  choose your family pick with it in mind (the pick after a boss already knows the next act's boss).
+- **The three bosses in a pool test different things**, so they're never interchangeable: a maze
+  that beats one can lose to another.
+- **Each boss has one weakness**, and within an act they're weak to different damage types, so every
+  family has a good matchup somewhere. **Act 1 bosses are each weak to one of the three starting
+  families' types (Spore, Water, Light) and resist none of them** (act 1 fairness: a boss is most
+  of its drift's health).
+- **First run ever: act 1 is always the Hollow Stag** (onboarding's whispers and first boss fight are
+  written for it). After that, random, weighted against the boss you met in that act last run.
+- **Memory Wardens are parked** (cut for now, 2026-09-29, `tower_design.md`); the per-boss memories
+  below are kept for a possible return.
+- **Each boss wears a stolen dream** (`story.md`), so each has a **Memory Warden**; a new boss's
+  memory is the kind version of its curse. 9 bosses = 9 Memory Wardens (the Oak has none).
+- Escorts belong to the boss (listed below), not to the drift.
+- Blight Levels, Omens and "boss health ×1.5" apply to every boss the same way.
+
+| Act | Boss | Looks like | Trait | Tests | Resists | Weak to |
+|---|---|---|---|---|---|---|
+| 1 | **The Hollow Stag** | a gaunt stag of bark and bone, ghost-fire in its antlers | huge health; tramples Thornwalls as it passes (never blocks the path); charges at half health (`acts_1_2.md`) | maze redundancy | stone, root | water |
+| 1 | **The Night Mare** *(new)* | a black horse of smoke, hooves that never touch the ground, eyes like cold coals | fast, less health; **it doesn't stop at the Heartwood**: each time it reaches it, it takes 3 leaves and gallops back to the start to run the maze again, 20% faster | maze length and sustained damage (every lap is another pass through the whole maze) | root | light |
+| 1 | **The Scarecrow** *(new)* | a sack-headed scarecrow on a crooked pole, stitched grin, crows under its coat | walks slowly; **every 20% health lost, a flock of 5 Crows bursts out** and runs ahead along the path (fast, 1 leaf each) | area damage near the boss, and Wardens further down the maze to catch the crows | stone, talon | spore |
+| 2 | **The Mire Hag** | a bent bog witch wrapped in reeds | every few seconds **sinks into the mire and rises 3 tiles ahead** along its path; each surfacing soaks nightmares nearby (Damp) | damage spread along the whole maze | water | root |
+| 2 | **The Huntsman** *(new)* | a tall antlered rider without a face, a bone horn at his hip | leads **4 Night Hounds**; **while any hound lives he takes half damage** (the pack shields him); every 12 s he blows his horn and a new hound joins (up to 4) | target priority and area damage; the hounds sprint on straights, so corners matter | spore | stone |
+| 2 | **The Lamplighter** *(new)* | a thin, stooped ghost with a pole of cold blue flame | every 8 s it **lights a cold lantern** on an empty tile beside the path; **Wardens within 1.5 tiles of a lantern attack 40% slower** until it burns out (16 s) or the player clicks it to snuff it | **don't put everything in one kill zone**: the first boss that fights your Wardens, not your maze | light, song | water |
+| 3 | **The Moth Queen** | a vast moth with a skull-like face on its wings | flies along the route above it, dropping Lurkers; Eclipse at half health (`acts_3_4.md`) | detection + a long maze | spore, talon | light |
+| 3 | **The Barrow King** *(new)* | a crowned, mail-clad corpse-king, very tall, dragging a rusted sword | **Iron Will:** never slowed below 70% speed, can't be Held; every 10 s he **shrugs off every status** on himself and nightmares within 2 tiles (Static discharges harmlessly) | status-heavy builds: raw damage and Marked-style burst between shrugs | song, water | root |
+| 3 | **The Mourning Mother** *(new)* | a vast veiled figure weeping black tears, Weepers clinging to her skirts | **Sorrow:** when no Warden has hit her for 1.5 s, she **mends 2% of her max health per second** (and mends nightmares within 2 tiles like a Weeper) | **gaps in the maze**: stretches with no Warden coverage let her heal back | stone, light | song |
+| 4 | **The Hollow Oak: Thorned** | the Hollow's corrupted heart walking on its roots, bristling with black thorns | walks slowly, planting thorn-saplings on empty tiles next to the path; saplings are obstacles that re-route nightmares; Grief rings of Mourners | adapting to a changing maze | light, song | spore |
+| 4 | **The Hollow Oak: Withering** *(new)* | bare, grey and cracked, its roots dragging through dead leaves | every 10 s a root surfaces under a Warden near it and **withers** it (no attacks for 6 s) | redundant coverage: no single Warden the maze can't do without | root, stone | water |
+| 4 | **The Hollow Oak: Remembering** *(new)* | hung with pale faces in the bark, one for every great nightmare | at 75 / 50 / 25% health, an **echo of a boss you dispelled this run** rises beside it | a final exam of your own run | spore, water | light |
+
+**Weakness spread:** act 1 water / light / spore (the three starting families); act 2 root / stone /
+water; act 3 light / root / song; act 4 spore / water / light. Bosses are tallied **separately** from the regular
+nightmares' family tally below (they're one fight each, not a drift's worth of health).
+
+**New bosses in detail** (escort, phases, Memory Warden; numbers are starting points)
+
+- **The Night Mare** (act 1). *Laps:* reaching the Heartwood costs 3 leaves (not 5), then it
+  reappears at the start at +20% speed (stacking). It keeps its damage taken, so every lap is
+  progress. *Bolt* (at half health): 3 s of +50% speed, once. Escort: 10 Shades ahead, 4 Husks
+  behind. Dispelled: *"The Night Mare is gone. The hoofbeats fade, and the dream is still."*
+  Memory: **The Carousel Horse**, a painted wooden horse from a child's dream; nightmares passing it
+  slow down as if caught on the carousel.
+- **The Scarecrow** (act 1). *Crows:* 5 at 80/60/40/20% health (and 5 more when dispelled): 40
+  health each (× drift growth), speed 150, walk the maze from where the Scarecrow is. *Stitched:*
+  below 40% it walks 25% faster. Escort: 8 Shades, then the Scarecrow, then 3 Mourners. Dispelled:
+  *"The Scarecrow falls. The crows scatter, and they don't come back."* Memory: **The Harvest Doll**,
+  a little corn doll that birds love; Talon damage from the crows nesting in it.
+- **The Huntsman** (act 2). *Pack:* 4 Night Hounds walk around him (they count as normal Night Hounds
+  and sprint on straights). The half-damage shield shows as a faint ring linking him to each hound.
+  *The Kill* (at half health): he blows three times and all missing hounds return at once, then no
+  more horns. Escort: 6 Night Hounds ahead, 2 Processions behind. Dispelled: *"The horn falls
+  silent. The hunt is over."* Memory: **The Old Hound**, a faithful grey dog spirit that runs down
+  the nightmare closest to the Heartwood.
+- **The Lamplighter** (act 2). *Lanterns* (as built 2026-09-29): up to 4 at once, on empty cells
+  beside its route, never on the route or a Warden (they don't block at all, they're a light). Each
+  **burns out after 16 s**, goes out when the Lamplighter is dispelled, or is **snuffed by clicking
+  it (+2 Dew)**. Lanterns having health for Wardens to shoot would need Warden targeting to change;
+  revisit after playtests. *Long Night* (all lanterns flare, −60% for 5 s at half health) is not
+  built yet. Escort: 10 Lurkers ahead (the cold light doesn't reveal them), then the Lamplighter, then
+  4 Husks. Dispelled: *"The cold lanterns go out, one by one."* Memory: **The Warm Lamplighter**:
+  its lanterns make Wardens near them attack faster: the curse turned around.
+- **The Barrow King** (act 3). *Shrug:* a visible pulse of grave-dust; statuses are cleared, not
+  resisted (they can be put back straight away). Static stacks are lost without a bolt. *Crown of
+  the Dead* (at half health): 4 Barrow Wights rise around him. Escort: 2 Barrow Wights, 6 Husks,
+  then the King. Dispelled: *"The Barrow King lies down again, and this time he sleeps."* Memory:
+  **The Sleeping King**, an old stone king who lengthens every status on nightmares near him.
+- **The Mourning Mother** (act 3). *Sorrow* shows as black tears falling while she heals, stopping
+  the moment she's hit. Healing is capped at 25% of her max health in all (she doesn't lap). *Her
+  Children* (at two-thirds and one-third health): 3 Weepers rise from her skirts. Escort: 4
+  Weepers and 6 Mourners. Dispelled: *"She stops weeping. For the first time, the Hollow is
+  quiet."* Memory: **The Cradle Song**, a lullaby spirit: the Heartwood regrows 1 leaf at every rest
+  while it stands.
+
+**The Hollow Oak's three variations** (act 4, drift 100)
+
+The Hollow's heart takes the shape of its grief: **Thorned** keeps everyone out, **Withering** lets
+everything die, **Remembering** can't let go. All three are the Hollow Oak: same silhouette (a
+walking oak on its roots), same slow walk (35), same finale (*"The Hollow Oak is still. Somewhere
+beyond the dream, the Hollow remembers."*), no Memory Warden. Drawn at run start like the other
+bosses and shown from drift 76; **a player's first act 4 is always Thorned** (the story's version,
+described in `acts_3_4.md`). **Blight Level 10** ("The Hollow Oak remembers") works for every
+variation: it rises once more at half health with its trait twice as fast.
+
+- **Thorned** (the original, `acts_3_4.md`): thorn-saplings every 8 s re-route the nightmares;
+  *Grief* at two-thirds and one-third health raises a ring of 6 Mourners. Escort: 3 Processions, 8
+  Mourners, 4 Weepers. 30,000 health. Tests adapting to a changing maze.
+- **Withering**: every 10 s a root surfaces under a Warden within 3 tiles of it (the strongest one:
+  highest damage × attack speed, never the same one twice in a row) and **withers** it for 6 s: grey,
+  no attacks, no auras. It comes back on its own, unharmed. *Drought* (at two-thirds and one-third
+  health): withers 3 Wardens at once. (The dead-leaf trail slowing projectiles is not built.) Escort: 4 Barrow Wights, 8 Husks, 4 Ash Crawlers.
+  30,000 health. Tests redundant coverage: a maze that leans on one great Warden stalls for 6 s at
+  a time; a maze with every stretch covered twice doesn't notice. Weak to water (rain wakes what it
+  withers).
+- **Remembering**: at 75 / 50 / 25% health an **echo** of each boss you dispelled this run (act 1,
+  then 2, then 3) rises beside it: translucent, **20% of that boss's drift-100 health**, with its full
+  trait (a Night Mare echo laps, a Lamplighter echo lights lanterns, a Huntsman echo brings its
+  hounds). A run that lost no boss faces all three. Escort: 2 Processions, 6 Mourners, 4 Watchers.
+  26,000 health (the echoes carry the rest). Tests the whole run: the bosses you've already beaten,
+  at once, with your final maze. Weak to light (the faces fade in the light).
+
+Each variation's weakness is one of the starting three types (Spore / Water / Light), so the family
+you drafted first always has a variation it's good against.
 
 Dispelling a boss is a big moment: it shatters with light, extra Dew, and a line of text; the
 Heartwood recovers a lost memory (a new Warden family).
@@ -97,7 +204,7 @@ some are hard, so every drift plays a little differently. They must never make a
 - Regular nightmares have **at most one resistance and one weakness**; bosses up to two
   resistances and one weakness. Shades and the little ones (Sob, Creep, Wraith) have none, so the
   baseline stays readable.
-- **Act 1 is fair to one family** (2026-09-28): before the drift 25 pick most players have one family, so **no act 1 drift may have more than ~40% of its health resistant to one damage type the player can own by then** (the starting three families' types: Spore, Water, Light; Plain never counts) (the old Wake, all Mourners, broke single-family spore boards).
+- **Act 1 is fair to one family** (2026-09-28): before the drift 25 pick most players have one family, so **no act 1 drift may have more than ~40% of its health resistant to one damage type** (rolled drifts count every family; the hand-made reference tables were checked against only the starting three families' types; Plain never counts) (the old Wake, all Mourners, broke single-family spore boards).
 - **Spread them out.** Each family is resisted and favoured by roughly the same number of
   nightmares (see the tally below). Drift composition mixes resistances so no drift hard-counters
   a single family.
@@ -174,7 +281,7 @@ with the nightmare's per-drift health scale.
 
 ### Family tally
 
-Resists: spore 3 · stone 3 · water 3 · light 3 · root 3 · wing 3 · wind 3 · song 3.
+Resists: spore 3 · stone **2** (the Husk lost its stone resistance, 2026-09-29) · water 3 · light 3 · root 3 · wing 3 · wind 3 · song 3.
 Weak to: spore 3 · stone 3 · water 3 · light 3 · root 3 · wing 2 · wind 2 · song 3.
 Re-check this whenever a nightmare is added or changed. There are 22 weakness slots for 8
 families, so two families sit at 2: wing and wind, the full-game families (Whirligig is an
@@ -214,7 +321,7 @@ are marked ✓; the rest are proposals to tune.
 | Nightmare (old name) | Health | Speed | Dew | Leaves | Resists | Weak to | Other |
 |---|---|---|---|---|---|---|---|
 | Shade (Leaf Bug) ✓ | 100 | 100 | 3 | 1 | — | — | baseline |
-| Husk (Bark Beetle) ✓ | 300 | 58 | 8 | 2 | stone | spore | |
+| Husk (Bark Beetle) ✓ | 300 | 58 | 8 | 2 | **—** (was stone; user decision 2026-09-29: stone halved Pebbling against most of act 1, and water would break the act 1 40% rule, since Husks are 45–100% of act 1 drift health) | spore | |
 | Lurker (Dusk Moth) ✓ | 70 | 140 | 4 | 1 | spore | wing | hidden in fog |
 | Phantom (Dandelion Seed) ✓ | 50 | 70 | 3 | 1 | root | water | glides through walls to the goal |
 | Gravecrawler (Mole) | 180 | 75 | 5 | 1 | wing | song | burrows under 1 Warden per trip |
@@ -238,7 +345,22 @@ are marked ✓; the rest are proposals to tune.
 | **The Hollow Stag** (Old Stag) ✓ | 3,000 | 51 | 40 | 5 | stone, root | water | tramples Thornwalls |
 | **The Mire Hag** (Great Toad) | 8,000 | 55 (+ rises ahead) | 60 | 5 | water | root | surfaces 3 tiles ahead every 6 s |
 | **The Moth Queen** (Mother Moth) | 16,000 | 65 | 80 | 5 | spore, wing | light | flies; drops a Lurker every 4 s |
-| **The Hollow Oak** | 30,000 | 35 | 100 | 5 | light, song | spore | plants a thorn-sapling every 8 s |
+| **The Hollow Oak: Thorned** | 30,000 | 35 | 100 | 5 | light, song | spore | plants a thorn-sapling every 8 s |
+| **The Hollow Oak: Withering** | 30,000 | 35 | 100 | 5 | root, stone | water | withers a Warden every 10 s |
+| **The Hollow Oak: Remembering** | 26,000 | 35 | 100 | 5 | spore, water | light | echoes of this run's bosses at 75/50/25% |
+| **The Night Mare** *(act 1)* | 2,000 | 110 (+20% per lap) | 40 | 3 per lap | root | light | laps the maze until dispelled |
+| **The Scarecrow** *(act 1)* | 2,600 | 45 | 40 | 5 | stone, talon | spore | Crows at every 20% |
+| Crow (Scarecrow) | 40 | 150 | 1 | 1 | — | — | |
+| **The Huntsman** *(act 2)* | 6,500 | 65 | 60 | 5 | spore | stone | half damage while a hound lives |
+| **The Lamplighter** *(act 2)* | 7,000 | 55 | 60 | 5 | light, song | water | cold lanterns slow Wardens |
+| **The Barrow King** *(act 3)* | 16,000 | 40 | 80 | 5 | song, water | root | shrugs off statuses every 10 s |
+| **The Mourning Mother** *(act 3)* | 14,000 | 45 | 80 | 5 | stone, light | song | heals when unhit for 1.5 s |
+
+New boss health is set against its act's base (3,000 / 8,000 / 16,000) for how much the trait
+multiplies it: the Night Mare's laps and the Huntsman's shield make their real health much higher,
+the Mourning Mother's healing too, so their listed health is lower. All × 1.5 in play like every
+boss. Tune in the balance simulation (`balance_simulation.md`): each pool's three bosses should take
+about the same time to dispel for an average maze of that act.
 
 The Hollow Oak's spore weakness and the Moth Queen's light weakness are deliberate: each boss has
 a family that answers it, so a player who drafted that family gets a big moment. The Hollow Stag's
@@ -281,6 +403,17 @@ and `display_name`s to the new names is part of the theme change. Add:
 Behaviours as small reusable scripts or strategy resources on `EnemyData`, like the planned tower
 attack behaviours, so new nightmares are mostly data.
 
+**Boss pools** (2026-09-29): a `BossData` resource per boss (the boss's `EnemyData`, its escort as
+`DriftGroup`s, act, Memory Warden, dossier text, dispel line) and a pool per act
+(`resource/boss/act_1/*.tres` … `act_4/` holds the Oak's 3 variations as 3 `BossData`). The run draws one per act at start (seeded with the map; first
+run ever: act 1 = Hollow Stag; weighted against last run's boss, profile `last_bosses`) and keeps
+the draw in the run save. The boss drift files (25 / 50 / 75) hold a **boss slot** instead of a
+named boss; the director fills it from the draw. The DriftBanner and dossier read the drawn boss.
+New boss mechanics: laps (Night Mare), spawn-on-health-threshold (Scarecrow, and the Hollow Oak's
+Grief already), linked shield (Huntsman), Warden-debuff objects with health (Lamplighter's
+lanterns), status shrug (Barrow King), out-of-combat regen (Mourning Mother), Warden wither (Withering Oak),
+echoes (Remembering Oak: spawns this run's dispelled bosses from the draw at a health fraction).
+
 ## Build order
 
 1. Husk (tank) and Phantom (through walls): covers quick / sturdy / ignores the maze.
@@ -288,3 +421,6 @@ attack behaviours, so new nightmares are mostly data.
 3. Night Hound and Sleepwalker: make the maze itself part of the strategy.
 4. Status testers (Barrow Wight, Watcher, Drowned One) once statuses exist.
 5. Bosses, starting with the Hollow Stag.
+6. Boss pools: the draw and boss slot first (Stag, Hag and Queen already give acts 1–3 one
+   each), then the new bosses act by act: Night Mare and Scarecrow, then Huntsman and
+   Lamplighter, then Barrow King and Mourning Mother.

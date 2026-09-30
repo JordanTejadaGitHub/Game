@@ -18,16 +18,18 @@ func _run() -> void:
 		child.queue_free()
 	await process_frame
 
-	# --- Family resistance / weakness (Bark Beetle: resists stone, weak to spore) ---
+	# --- Family resistance / weakness (Bark Beetle: weak to spore, no resistance since 2026-09-29;
+	# Night Hound: resists stone) ---
 	var beetle = _spawn(spawner, _sturdy("res://resource/enemy/bark_beetle.tres"))
-	_check(_loss(beetle, 100.0, "stone") == roundi(100 * EnemyData.RESIST_MULTIPLIER), "resisted family soothes ×%s" % EnemyData.RESIST_MULTIPLIER)
+	var hound = _spawn(spawner, _sturdy("res://resource/enemy/hedgehog.tres"))
+	_check(_loss(hound, 100.0, "stone") == roundi(100 * EnemyData.RESIST_MULTIPLIER), "resisted family soothes ×%s" % EnemyData.RESIST_MULTIPLIER)
 	_check(_loss(beetle, 100.0, "spore") == roundi(100 * EnemyData.WEAK_MULTIPLIER), "weak family soothes ×%s" % EnemyData.WEAK_MULTIPLIER)
-	_check(_loss(beetle, 100.0, "water") == 100, "other families soothe normally")
+	_check(_loss(beetle, 100.0, "stone") == 100 and _loss(beetle, 100.0, "water") == 100, "other families soothe normally")
 	_check(_loss(beetle, 100.0, "sprout") == 100, "neutral lines (Sprout) are never resisted")
 	_check(_loss(beetle, 100.0) == 100, "unsourced soothe is unchanged")
 	_check(beetle._hit_mark == 1, "a weak hit shows the sparkle")
-	beetle.take_damage(10.0, "stone")
-	_check(beetle._hit_mark == -1, "a resisted hit shows the grey puff")
+	hound.take_damage(10.0, "stone")
+	_check(hound._hit_mark == -1, "a resisted hit shows the grey puff")
 
 	# --- Marked stacks multiplicatively with the family multiplier ---
 	beetle.apply_status(EnemyStatuses.MARKED)
@@ -99,10 +101,10 @@ func _run() -> void:
 	warden.add_child(sprite)
 	main.get_node("%TowerContainer").add_child(warden)
 	warden.set_process(false)
-	var target = _spawn(spawner, _sturdy("res://resource/enemy/bark_beetle.tres"))
+	var target = _spawn(spawner, _sturdy("res://resource/enemy/hedgehog.tres"))  # The Night Hound resists stone
 	before = target.health
 	warden.hit(target)
-	_check(before - target.health == floori(warden.get_damage() * EnemyData.RESIST_MULTIPLIER), "a Pebbling's hit is resisted by the Bark Beetle")
+	_check(before - target.health == floori(warden.get_damage() * EnemyData.RESIST_MULTIPLIER), "a Pebbling's hit is resisted by the Night Hound")
 
 	print("resistance test: %s" % ("PASS" if failures == 0 else "%d FAILED" % failures))
 	quit(failures)

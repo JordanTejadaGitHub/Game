@@ -1,8 +1,9 @@
 extends PanelContainer
 class_name RestReport
 
-# Rest report (screens_ui.md "Combat feedback"): at every rest, a small card with the top 3 Wardens
-# by damage this block and the combos triggered ("Lightning through Damp: 124 times"). Hides when
+# Rest report (screens_ui.md "Combat feedback"): at every rest, the block's summary: the top 3 Wardens
+# by damage and the combos triggered ("Lightning through Damp: 124 times"). Since 2026-09-30 it shows in
+# the damage meter's "Last block" tab; the card itself only with the setting "Rest summary" on. Hides when
 # the next block starts or on click. Built in code.
 
 # ({damp} … are filled in with today's status names by IconInfo.format.)
@@ -17,10 +18,14 @@ const REACTION_TAGS: Array[StringName] = [&"echo", &"lightning_rod", &"dawnbreak
 
 var _label := StatusLinks.make_label("", 15)  # Status names are links
 var unbound_block := 0  # Nightmares that turned Unbound this block ("Unbound: N")
+# The last block's summary (the damage meter's "Last block" tab reads it; "" before the first rest).
+signal block_report_ready(block: int)
+var last_block_text := ""
+var last_block := 0
 
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_STOP
-	_label.custom_minimum_size = Vector2(260, 0)
+	UiStyle.tip_body(_label)  # Tip sizes (screens_ui.md playtest fixes 2026-09-30)
 	_label.mouse_filter = Control.MOUSE_FILTER_PASS  # Clicks reach the card (dismiss) too
 	add_child(_label)
 	visible = false
@@ -63,10 +68,36 @@ func show_report(block: int) -> void:
 			combos.harmony_block, combos.whole_block)
 	text += _kin_hint()
 	text += support_text(self, "block")
+	text += templates_text(drift_director, block)
+	var close_calls := CloseCalls.find(self)
+	if close_calls != null and close_calls.block_count > 0:
+		text += "\nClose calls: %d" % close_calls.block_count
 	if unbound_block > 0:
 		text += "\nUnbound: %d" % unbound_block
+	last_block_text = text
+	last_block = block
+	block_report_ready.emit(block)
 	_label.text = StatusLinks.bbcode(text)
-	visible = true
+	# No automatic rest report (screens_ui.md, user: "isn't needed"): the damage meter's "Last block"
+	# tab shows it on demand; the Gameplay setting "Rest summary" (off by default) brings the card back.
+	visible = auto_show()
+
+const SETTING := "rest_summary"  # 0 = off (default), 1 = the card at every rest
+static func auto_show() -> bool:
+	return int(Fx.setting(SETTING, 0)) == 1
+
+# Random drifts (run_design.md): the block's rolled shapes, "This block: Swarm, Mixed, Heavy…" ("" when
+# none of its drifts were rolled: block 1, a boss, the hand-made ones with random drifts off).
+static func templates_text(director: DriftDirector, block: int) -> String:
+	if director == null:
+		return ""
+	var names: Array[String] = []
+	var first := (block - 1) * director.drifts_per_block + 1
+	for number in range(first, mini(first + director.drifts_per_block, director.get_total_drifts() + 1)):
+		var name := DriftRoller.template_name(director, number)
+		if name != "":
+			names.append(name)
+	return "" if names.is_empty() else "\nThis block: " +", ".join(names)
 
 # Support and economy (screens_ui.md "Support and economy feedback", Tower Code's SupportLog): the
 # Harvest, the top supporter, what the walls and the control Wardens did. "block" for the rest
@@ -178,7 +209,7 @@ static func meter_text(near: Node) -> String:
 	var change := DriftMeter.change_text(s.get("change"))
 	if change != "":
 		line += " · %s vs last block" % change
-	if float(s.get("needed_dps", 0.0)) > 0.0:
+	if DriftMeter.show_estimate() and float(s.get("needed_dps", 0.0)) > 0.0:  # Dev-only (playtest fixes 2026-09-30)
 		line += " · next drift needs ~%s" % DriftMeter.fmt(s.needed_dps)
 	var lines: Array[String] = [line]
 	var carrying: Array = s.get("carrying", [])

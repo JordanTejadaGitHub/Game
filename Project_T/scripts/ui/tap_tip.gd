@@ -30,8 +30,7 @@ func _init() -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	z_index = 50
 	_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_label.custom_minimum_size = Vector2(240, 0)
-	_label.add_theme_font_size_override("font_size", 15)
+	UiStyle.tip_body(_label)  # Tip size (screens_ui.md playtest fixes 2026-09-30)
 	add_child(_label)
 	process_mode = Node.PROCESS_MODE_ALWAYS
 

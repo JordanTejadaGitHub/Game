@@ -8,12 +8,17 @@ class_name HeartwoodMemory
 # Static helpers only: every caller loads, changes and saves. The file is tiny.
 
 const PATH := "user://heartwood.json"
-const VERSION := 3  # 2: Grove ids match grove_layout.json (MIGRATED_IDS), perk loadout; 3: REFUNDED_V3
+const VERSION := 4  # 2: Grove ids match grove_layout.json (MIGRATED_IDS), perk loadout; 3: REFUNDED_V3; 4: REFUNDED_V4
 
 # Where the profile lives (tests point this elsewhere so they never touch the player's Seeds).
 static var file_path := PATH
 # Dev Grove (DevGrove): while set, the profile is a dev one but settings stay in this real file.
 static var real_settings_path := ""
+# Parsed files, so the many callers don't re-read and re-parse the JSON each time (Tower Code's perf
+# pass: settings reads sat on the combat path). {path: [stamp, migrated dict]}; stamp = modified time +
+# length, so a file written or deleted behind our back re-reads. Callers always get a deep copy (they
+# edit and save it). save_data drops the entry it wrote; forget() drops them all (tests writing directly).
+static var _cache := {}
 
 static func defaults() -> Dictionary:
 	return {
@@ -65,23 +70,50 @@ static func defaults() -> Dictionary:
 		},
 	}
 
+# Account knowledge (screens_ui.md, 2026-09-30: "account knowledge always lives on the real profile"):
+# what the player has met, discovered and seen. With Dev Grove on these are read from and written to
+# the REAL profile (like the settings); only the Grove unlocks, perks and loadout come from the dev one.
+const ACCOUNT_KEYS := ["nightmares_seen", "intros_seen", "nightmare_dispels", "boss_records", "combos_seen",
+	"combos_seen_dev", "reactions_seen", "codex_covered", "dreams_seen", "dreams_seen_dev", "dreams_taken",
+	"dreams_won", "dreams_viewed", "nightmares_viewed", "whispers_seen", "callouts_seen"]
+
 static func load_data() -> Dictionary:
 	var data := _load_file()
 	if real_settings_path != "" and real_settings_path != file_path:
 		data.settings = _real_settings()  # Dev Grove: settings live in the real profile
+		var real := _shared(real_settings_path)
+		for key in ACCOUNT_KEYS:  # …and so does account knowledge
+			if real.has(key):
+				data[key] = real[key].duplicate(true) if real[key] is Array or real[key] is Dictionary else real[key]
+			else:
+				data.erase(key)
 	return data
 
 static func _load_file() -> Dictionary:
+	return _shared(file_path).duplicate(true)
+
+# The cached, parsed profile at `path`: shared, so never edit it (callers get copies).
+static func _shared(path: String) -> Dictionary:
+	if not FileAccess.file_exists(path):
+		_cache.erase(path)
+		return defaults()
+	var stamp := "%d:%d" % [FileAccess.get_modified_time(path), FileAccess.get_size(path)]
+	var hit: Array = _cache.get(path, [])
+	if not hit.is_empty() and hit[0] == stamp:
+		return hit[1]
 	var data := defaults()
-	if not FileAccess.file_exists(file_path):
-		return data
-	var parsed = JSON.parse_string(FileAccess.get_file_as_string(file_path))
+	var parsed = JSON.parse_string(FileAccess.get_file_as_string(path))
 	if typeof(parsed) != TYPE_DICTIONARY:
 		push_warning("Heartwood save unreadable; starting fresh")
 		return data
 	_merge(data, parsed)
 	_migrate(data)
+	_cache[path] = [stamp, data]
 	return data
+
+# Drops every cached profile (a test or tool that writes the file without save_data).
+static func forget() -> void:
+	_cache.clear()
 
 # Grove ids before version 2 -> the grove_layout.json ids.
 const MIGRATED_IDS := {
@@ -103,6 +135,9 @@ const REFUNDED_V3 := {
 	"reactions": 70, "woven_dreams_1": 90, "woven_dreams_2": 90, "kin_lore": 50, "deep_bonds": 70,
 }
 const PRICE_DROPS_V3 := {"bittersweet_dreams": 8}  # Kept, 8 Seeds back (60 -> 52)
+# Version 4 (meta_design.md "Section 1: Perks", 2026-09-29): slots 1–3 are open from the start, so the
+# slot_2 / slot_3 nodes are gone and their Seeds come back.
+const REFUNDED_V4 := {"slot_2": 40, "slot_3": 80}
 
 static func _migrate(data: Dictionary) -> void:
 	var version := int(data.get("version", VERSION))
@@ -119,15 +154,57 @@ static func _migrate(data: Dictionary) -> void:
 		for id in PRICE_DROPS_V3:
 			if int(data.unlocks.get(id, 0)) > 0:
 				data.seeds = int(data.seeds) + PRICE_DROPS_V3[id]
+	if version < 4:
+		for id in REFUNDED_V4:
+			if int(data.unlocks.get(id, 0)) > 0:
+				data.seeds = int(data.seeds) + REFUNDED_V4[id]
+				data.unlocks.erase(id)
 	data.version = VERSION
 
 static func save_data(data: Dictionary) -> void:
 	data["version"] = VERSION
+	if real_settings_path != "" and real_settings_path != file_path:
+		_save_account_keys(data)  # Dev Grove: account knowledge goes to the real profile
+	_cache.erase(file_path)  # The path actually written (save_settings switches it for Dev Grove)
 	var file := FileAccess.open(file_path, FileAccess.WRITE)
 	if file == null:
 		push_error("Could not write %s: %s" % [file_path, error_string(FileAccess.get_open_error())])
 		return
 	file.store_string(JSON.stringify(data, "\t"))
+
+# Merged, never replaced: account knowledge only grows, so a fresh dev profile being written (Dev
+# Grove presets) can't wipe what the player has seen. Lists gain new entries; dictionaries gain or
+# update keys (counts, records) but keep the others.
+static func _save_account_keys(data: Dictionary) -> void:
+	var real := _shared(real_settings_path).duplicate(true)
+	var changed := false
+	for key in ACCOUNT_KEYS:
+		if not data.has(key):
+			continue
+		var value = data[key]
+		if value is Array:
+			var merged: Array = real.get(key, []).duplicate() if real.get(key) is Array else []
+			for item in value:
+				if not merged.has(item):
+					merged.append(item)
+					changed = true
+			real[key] = merged
+		elif value is Dictionary:
+			var merged: Dictionary = real.get(key, {}).duplicate(true) if real.get(key) is Dictionary else {}
+			for item in value:
+				if merged.get(item) != value[item]:
+					merged[item] = value[item]
+					changed = true
+			real[key] = merged
+		elif real.get(key) != value:
+			real[key] = value
+			changed = true
+	if not changed:
+		return
+	var path := file_path
+	file_path = real_settings_path
+	save_data(real)
+	file_path = path
 
 # Records a finished run and banks its Seeds. Returns the new banked total.
 static func record_run(seeds: int, won: bool, drift_reached: int) -> int:
@@ -172,8 +249,11 @@ static func load_grove() -> Array[UnlockData]:
 	for file in ResourceLoader.list_directory(GROVE_DIR):
 		if file.ends_with(".tres") or file.ends_with(".res"):
 			var unlock := load(GROVE_DIR + file) as UnlockData
-			if unlock != null:
-				result.append(unlock)
+			if unlock == null:
+				continue
+			if unlock.memory_warden != "" and not MetaRun.MEMORY_WARDENS_ENABLED:
+				continue  # Memory Wardens are parked: their blooms aren't on the tree (saved data kept)
+			result.append(unlock)
 	result.sort_custom(func(a: UnlockData, b: UnlockData) -> bool:
 		return a.root < b.root or (a.root == b.root and a.order < b.order))
 	return result
@@ -258,14 +338,33 @@ static func grown_share(data: Dictionary) -> float:
 
 # --- Perk loadout ("Carry into the dream") ---
 
-const BASE_LOADOUT_SLOTS := 1
+const BASE_LOADOUT_SLOTS := 3  # Slots 1–3 are open from the start; 4 and 5 are Perks nodes
+const FULL_BLOOM := "full_bloom"  # Milestone: every Grove node at max level (the secret 6th slot)
 
 static func loadout_slots(data: Dictionary) -> int:
 	var slots := BASE_LOADOUT_SLOTS
 	for unlock in load_grove():
 		if unlock.loadout_slots > 0:
 			slots += unlock.loadout_slots * node_level(data, unlock)
+	if has_sixth_slot(data):
+		slots += 1
 	return slots
+
+# The secret 6th slot (and its waystone): "The Heartwood in full bloom", or the developer toggle.
+static func has_sixth_slot(data: Dictionary) -> bool:
+	return data.milestones.has(FULL_BLOOM) or MetaRun.sixth_slot_dev_active()
+
+# Every Grove node at its max level, the free milestone and Memory Warden blooms included.
+static func tree_complete(data: Dictionary) -> bool:
+	return load_grove().all(func(u: UnlockData) -> bool: return is_grown(data, u))
+
+# Records "The Heartwood in full bloom" in `data` the first time the tree is complete (the caller
+# saves). Returns true when it was just reached.
+static func check_full_bloom(data: Dictionary) -> bool:
+	if data.milestones.has(FULL_BLOOM) or not tree_complete(data):
+		return false
+	data.milestones[FULL_BLOOM] = true
+	return true
 
 # The perk ids carried: owned perks from the saved loadout, at most one per slot.
 static func get_loadout(data: Dictionary) -> Array[String]:
@@ -304,8 +403,8 @@ static func max_blight_level(data: Dictionary) -> int:
 		return 0
 	return mini(int(data.highest_blight_won) + 1, 10)
 
-static func get_settings() -> Dictionary:
-	return load_data().settings
+static func get_settings() -> Dictionary:  # Only the settings are copied (read often)
+	return _shared(real_settings_path if real_settings_path != "" else file_path).settings.duplicate(true)
 
 static func save_settings(settings: Dictionary) -> void:
 	var path := file_path
@@ -317,11 +416,7 @@ static func save_settings(settings: Dictionary) -> void:
 	file_path = path
 
 static func _real_settings() -> Dictionary:
-	var path := file_path
-	file_path = real_settings_path
-	var settings: Dictionary = _load_file().settings
-	file_path = path
-	return settings
+	return _shared(real_settings_path).settings.duplicate(true)
 
 # Applies settings to the engine: volume, window mode and key rebinds.
 static func apply_settings(settings: Dictionary = {}) -> void:

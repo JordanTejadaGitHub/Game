@@ -37,6 +37,7 @@ trigger at these moments:
 | First affordable evolution | Growing | The Sprout under the cursor shimmers. *"This Sprout could grow."* |
 | First hover on an obstacle | Obstacles | Before clearing is unlocked: *"Dead wood. I can't move it… yet."* (the hover tag says a clearing Dream is needed). After the first clearing card: *"Tend the forest, and it will remember you."* (+1 Seed at run end) |
 | First leaf lost | Stakes | The leaf counter shakes. *"It fed. A leaf blackens and falls."* |
+| First leaf lost to a Phantom | Flyers ignore the maze | *"Some of them don't walk. Guard the ground near the Heartwood."* (added 2026-09-29) |
 | Drift 2 starts | Speed and pause | The speed buttons glow once. *"Pause if you need to think. They'll wait."* |
 | First sell | Refunds | A tooltip on the sell button: 75% during a rest, half while nightmares walk. |
 | Rest before drift 25 | Bosses | The Hollow Stag's silhouette appears at the forest edge, antlers burning. *"Something old has found the dream."* |
@@ -92,6 +93,9 @@ trigger at these moments:
 | Forests root | after the first win (shown greyed before, as a promise) |
 
 ## Forest Journal (later: not in the first playable or demo)
+
+**Update 2026-09-30:** the nightmare half of this is now the Codex's **Nightmares** section
+(`screens_ui.md`), with discovery, in the game and the demo. A Warden journal stays a later idea.
 
 A bestiary on the title screen: each nightmare gets an entry (art, a line of unsettling lore, its
 trait) the first time it's dispelled, and each Warden when first grown. It gives curious players a

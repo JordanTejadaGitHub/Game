@@ -1634,3 +1634,18 @@ func _make_economy() -> void:
 	_ws("interest_ripple", 1, 0.35, func(_v: int) -> PackedFloat32Array:
 		return _lowpass(_layers([[_wobble(_air(1.0, 400.0, 0.2, 0.6), 4.0), 1.0], [_ring(0.3, [300.0], [1.0], 0.05), 0.4, 0.2],
 			[_ring(0.3, [360.0], [1.0], 0.05), 0.3, 0.45]]), 1500.0))
+	# A close call (run_design.md "spend or save"): a nightmare on the last stretch. A soft tension cue,
+	# the Heartwood's low tremble under a cold breath; quiet, never an alarm.
+	_ws("close_call", 2, 0.4, func(_v: int) -> PackedFloat32Array:
+		return _layers([[_wobble(_rumble(0.9, 90.0, 0.08, 0.6), 7.0), 1.0],
+			[_lowpass(_creak(SFX_RATE, 0.6, 6.0, 10.0, 180.0), 500.0), 0.4, 0.1], [_air(0.9, 300.0, 0.15, 0.6), 0.35]]))
+	# Rootcurl's pull (tower design 72ee83b), now a visible drag: the yank (a short woody creak and tug as
+	# roots wrap the feet), then soil dragging for the drag's length (one tile or three). Bosses play
+	# them lower (SoundHooks), which reads as strained.
+	_ws("root_yank", 2, 0.45, func(_v: int) -> PackedFloat32Array:
+		return _layers([[_lowpass(_creak(SFX_RATE, 0.25, 30.0, 14.0, 300.0), 800.0), 1.0], [_thump(0.2, 130.0, 0.04), 0.6, 0.05]]))
+	_ws("soil_drag_short", 2, 0.35, func(_v: int) -> PackedFloat32Array: return _soil_drag(0.45))
+	_ws("soil_drag_long", 2, 0.35, func(_v: int) -> PackedFloat32Array: return _soil_drag(0.8))
+
+func _soil_drag(length: float) -> PackedFloat32Array:  # Dirt dragged: a soft, low, grainy scrape
+	return _layers([[_scrape(length, 420.0), 1.0], [_rumble(length, 140.0, 0.05, length * 0.4), 0.5]])

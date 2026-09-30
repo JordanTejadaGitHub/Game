@@ -18,10 +18,40 @@ signal sapling_requested(enemy: Node2D)
 signal grief_requested(enemy: Node2D)
 # The Hollow Oak (Blight Level 10) rose again at half health instead of being dispelled.
 signal rose_again(enemy: Node2D)
+# Boss pools (enemy_design.md): the Night Mare reached the Heartwood and gallops round again (the
+# spawner takes its lap leaves); the Lamplighter lights a lantern; the Withering Oak withers `count`
+# Wardens; the Remembering Oak calls up the echo of act `act`'s boss; the Barrow King shrugged.
+signal lapped(enemy: Node2D)
+signal lantern_requested(enemy: Node2D)
+signal wither_requested(enemy: Node2D, count: int)
+signal echo_requested(enemy: Node2D, act: int)
+signal shrugged(enemy: Node2D)
 # A Warden tried a status this nightmare is immune to (the UI flashes the crossed-out icon). At most
 # once per status every REFUSED_THROTTLE seconds per nightmare.
 signal status_refused(enemy: Node2D, status: StringName)
+# A pull began dragging it back (Sound: root_yank, soil_drag) / the drag ended (tower_design.md
+# "pulls drag, not teleport").
+signal drag_started(enemy: Node2D, tiles: float)
+signal drag_ended(enemy: Node2D)
 const REFUSED_THROTTLE := 1.0
+# Pull drag: roots grab for DRAG_GRAB s, then an ease-out drag of DRAG_BASE + DRAG_PER_TILE × tiles s
+# (bosses × DRAG_BOSS_SLOW); reduced motion: DRAG_REDUCED s, no grab, dust or wobble.
+const DRAG_GRAB := 0.15
+const DRAG_BASE := 0.25
+const DRAG_PER_TILE := 0.18
+const DRAG_BOSS_SLOW := 1.4
+const DRAG_REDUCED := 0.2
+const DRAG_WOBBLE := 0.08  # Radians
+const DRAG_DUST_EVERY := 22.0  # Pixels dragged per dust puff
+var _dragging := false
+var _drag_total := 0.0  # Pixels this drag moves (from where the current ease started)
+var _drag_done := 0.0
+var _drag_time := 0.0
+var _drag_duration := 0.0
+var _grab_left := 0.0
+var _drag_reduced := false
+var _dust_left := 0.0
+var _grab_fx: PullDragFx  # The roots holding its feet during a drag
 var _refused_at := {}  # {status id: Time.get_ticks_msec() of the last status_refused}
 
 # Deeply Blighted elites (acts_1_2.md): ×3 health, ×2 Dew, 2 leaves, 20% bigger, wrapped in a slow
@@ -142,6 +172,18 @@ var _reroute_wait := 0.0
 var _leap_tween: Tween
 var _burrows := 0
 var _revealed_time := 0.0  # Seconds it stays revealed whatever else (see reveal_for)
+# Performance (test_perf_stress): the EnemyContainer (null outside it), and what the status row last
+# drew, so it only redraws when a status comes, goes or changes stacks.
+var _spawner = null  # Untyped: its script members are read directly
+var _drawn_changes := -1
+var _drawn_aura := false
+var _was_animating := false
+var _speed_cache := 0.0
+var _speed_base := -1.0
+var _speed_changes := -1
+var _speed_stale := true  # Set on each presence tick and whenever speed rules change (below)
+var _settings_elapsed := 0.0  # Display settings are re-read every SETTINGS_TICK s
+const SETTINGS_TICK := 0.5
 var _pose_left := 0.0  # Seconds a special animation (eclipse, grief) keeps the walk animation off
 var _wander_cooldown := 0
 
@@ -167,6 +209,22 @@ var _sapling_speed := 1.0
 var _eclipsed := false
 var _griefs := 0  # grief_at thresholds already passed
 var _has_risen := false
+# Boss pools (enemy_design.md)
+const ECHO_ALPHA := 0.6
+const SHRUG_FLASH_TIME := 0.5
+const SHRUG_COLOR := Color(0.72, 0.68, 0.6)
+var is_echo := false  # An echo of an earlier boss (Remembering Oak): not counted as a boss dispelled
+var pack: Array = []  # Huntsman's hounds (set by the spawner); it takes pack_shield damage while one lives
+var laps := 0  # Night Mare: times it has reached the Heartwood and gone round again
+var _lantern_timer := 0.0
+var _shrug_timer := 0.0
+var _shrug_flash := 0.0
+var _since_hit := 0.0  # Seconds since the last hit (Mourning Mother's Sorrow)
+var _regen_left := -1.0  # Health it may still mend (< 0 = not worked out yet)
+var _wither_timer := 0.0
+var _wither_bursts := 0  # wither_burst_at shares already passed
+var _echoes := 0  # echo_at shares already passed
+var _regrouped := false  # Huntsman's pack came back at half health; no more horns
 
 # Cells to walk through, in grid coordinates. `_path_index` is the cell we're currently walking toward.
 var _path: PackedVector2Array
@@ -174,6 +232,9 @@ var _path_index: int = 0
 
 func _ready() -> void:
 	add_to_group(GROUP)
+	var parent := get_parent()
+	if parent != null and parent.has_method("route_around"):
+		_spawner = parent  # The EnemyContainer: its per-frame flags are read straight, no lookups by name
 
 	# Initialize attributes
 	max_health = maxi(roundi(enemy_data.health * health_scale * (ELITE_HEALTH if elite else 1.0)), 1)
@@ -201,6 +262,8 @@ func _ready() -> void:
 	sprite.sprite_frames = enemy_data.sprite_frames
 	sprite.scale = Vector2.ONE * enemy_data.sprite_scale * (ELITE_SCALE if elite else 1.0)
 	sprite.modulate = enemy_data.tint
+	if is_echo:
+		sprite.modulate.a *= ECHO_ALPHA  # A pale face from the Oak's bark
 	sprite.play("walk_side")
 
 	# Nightmare look: per-enemy material so each one can crack apart on its own
@@ -231,10 +294,11 @@ func _process(delta: float) -> void:
 		if is_cleansed:
 			return
 	_bolt_flash = maxf(_bolt_flash - delta, 0.0)
+	_shrug_flash = maxf(_shrug_flash - delta, 0.0)
 	if elite:
 		_haze_phase += ELITE_HAZE_SPEED * delta
 	_hit_mark_time = maxf(_hit_mark_time - delta, 0.0)
-	for id: StringName in _status_flash.keys():
+	for id: StringName in (_status_flash.keys() if not _status_flash.is_empty() else []):
 		_status_flash[id] -= delta
 		if _status_flash[id] <= 0.0:
 			_status_flash.erase(id)
@@ -248,11 +312,22 @@ func _process(delta: float) -> void:
 		if is_instance_valid(smother):
 			smother.queue_free()
 		remove_meta(&"smother_fx")
-	if not statuses.active_ids().is_empty() or _bolt_flash > 0.0 or _hit_mark_time > 0.0 or elite \
-			or _crit_flash > 0.0 or statuses.is_in_stag_aura() or not _ash_cells.is_empty() or unbound:
-		queue_redraw()
+	# Redraw only when something drawn changed: the status row (a status came, went or changed
+	# stacks), the Stag aura ring, or an animation that's playing (flashes, haze, embers, glow).
+	# Health / shell bars redraw from take_damage and heal.
+	var aura := statuses.is_in_stag_aura()
+	var animating := _bolt_flash > 0.0 or _shrug_flash > 0.0 or _hit_mark_time > 0.0 or elite or _crit_flash > 0.0 \
+		or not _status_flash.is_empty() or not _ash_cells.is_empty() or unbound
+	if animating or _was_animating or statuses.changes != _drawn_changes or aura != _drawn_aura:
+		_drawn_changes = statuses.changes
+		_drawn_aura = aura
+		queue_redraw()  # (One more after an animation ends, to clear its last frame.)
+	_was_animating = animating
 	_update_presence(delta)
 
+	if _dragging:
+		_update_drag(delta)  # Pulled back: no walking, traits or trampling meanwhile
+		return
 	if hold_time > 0.0:
 		hold_time -= delta
 		return
@@ -269,8 +344,14 @@ func _process(delta: float) -> void:
 
 	var previous_position := position
 	# Walk toward the next cell centre; carry leftover distance into the following cell so speed
-	# stays constant through corners.
-	var remaining := get_move_speed() * delta
+	# stays constant through corners. The speed is re-worked out when statuses change and on each
+	# presence tick (0.1 s), not every frame.
+	if statuses.changes != _speed_changes or _speed_stale or speed != _speed_base:
+		_speed_cache = get_move_speed()
+		_speed_changes = statuses.changes
+		_speed_stale = false
+		_speed_base = speed
+	var remaining := _speed_cache * delta
 	while remaining > 0.0 and _path_index < _path.size():
 		var target := grid.calculate_map_position(_path[_path_index])
 		var to_target := target - position
@@ -298,8 +379,20 @@ func _process(delta: float) -> void:
 		if loops_route:
 			_restart_route()
 			return
+		if enemy_data.laps():
+			_lap()
+			return
 		reached_goal.emit(self)
 		queue_free()
+
+# Night Mare: the Heartwood loses its lap leaves (the spawner takes them) and the Mare gallops back to
+# the start, faster each time.
+func _lap() -> void:
+	laps += 1
+	speed *= enemy_data.lap_speed_multiplier
+	_speed_stale = true
+	lapped.emit(self)
+	_restart_route()
 
 func _refuse_status(id: StringName) -> void:
 	var now := Time.get_ticks_msec()
@@ -311,7 +404,9 @@ func _refuse_status(id: StringName) -> void:
 # A combo just used this status (e.g. lightning jumped through Damp): its icon flashes briefly.
 # Called by the HUD's combat callouts. Does nothing if the status isn't on this nightmare.
 func flash_status(id: StringName) -> void:
-	if statuses.active_ids().has(id):
+	# Once per flash: combos fire on every tick and hit (a Marked, Spored nightmare reports "marked"
+	# twice a second), and each flash spawns a world effect.
+	if statuses.has(id) and not _status_flash.has(id):
 		_status_flash[id] = STATUS_FLASH_TIME
 		queue_redraw()
 		var world := Reactions._world(self)
@@ -345,6 +440,12 @@ func _draw() -> void:
 	if _bolt_flash > 0.0:
 		var t := _bolt_flash / BOLT_FLASH_TIME
 		draw_circle(Vector2.ZERO, 26.0 * (1.5 - t), Color(1.0, 1.0, 0.6, 0.5 * t))
+	if _shrug_flash > 0.0:  # Barrow King: a ring of grave-dust out to the shrug's reach
+		var t := _shrug_flash / SHRUG_FLASH_TIME
+		draw_arc(Vector2.ZERO, enemy_data.shrug_radius * grid.cell_size.x * (1.0 - t * 0.6), 0.0, TAU, 48,
+			Color(SHRUG_COLOR, 0.6 * t), 4.0)
+	if enemy_data.pack_shield < 1.0 and pack_alive() > 0:  # Huntsman: the faint ring the pack keeps round him
+		draw_arc(Vector2(0, -8), 30.0 * sprite.scale.x, 0.0, TAU, 32, Color(0.75, 0.8, 1.0, 0.35), 2.0)
 	if _hit_mark_time > 0.0:
 		_draw_hit_mark(_hit_mark_time / HIT_MARK_TIME)
 	if statuses.is_in_stag_aura():
@@ -429,18 +530,19 @@ func update_animation(velocity: Vector2) -> void:
 	# Keep the current animation when not moving (e.g. end of path) or while a pose plays
 	if velocity.is_zero_approx() or _pose_left > 0.0:
 		return
-	if rolling and sprite.sprite_frames.has_animation("roll"):
-		sprite.play("roll")
-		sprite.flip_h = velocity.x < 0
+	var animation := &"walk_up"
+	var flip := false
+	if rolling and sprite.sprite_frames.has_animation(&"roll"):
+		animation = &"roll"
+		flip = velocity.x < 0
 	elif abs(velocity.x) >= abs(velocity.y):  # Moving horizontally
-		sprite.play("walk_side")
-		sprite.flip_h = velocity.x < 0  # Flip horizontally if moving left
+		animation = &"walk_side"
+		flip = velocity.x < 0  # Flip horizontally if moving left
 	elif velocity.y > 0:  # Moving down
-		sprite.play("walk_down")
-		sprite.flip_h = false
-	else:  # Moving up
-		sprite.play("walk_up")
-		sprite.flip_h = false
+		animation = &"walk_down"
+	if sprite.animation != animation or not sprite.is_playing():
+		sprite.play(animation)  # Only when it changes: this runs every frame for every nightmare
+	sprite.flip_h = flip
 
 # Dew for dispelling this nightmare (Omens can change it, e.g. Dry Spell = 0).
 func get_dew_reward() -> int:
@@ -462,14 +564,18 @@ func get_move_speed() -> float:
 		base = minf(base, enemy_data.lost_speed)
 	if _charge_left > 0.0:
 		base *= enemy_data.charge_speed_multiplier
+	if enemy_data.hurt_below > 0.0 and health <= max_health * enemy_data.hurt_below:
+		base *= enemy_data.hurt_speed_multiplier  # Scarecrow: Stitched
 	base *= 1.0 + RESTLESS_SPEED * restless
-	return base * statuses.get_speed_multiplier(_tangled_slow())
+	var moved := base * statuses.get_speed_multiplier(_tangled_slow())
+	if enemy_data.min_speed_share > 0.0:
+		moved = maxf(moved, base * enemy_data.min_speed_share)  # Barrow King: Iron Will
+	return moved
 
 # Tangled (Dream): carrying 2+ statuses slows it DreamState.TANGLED_SLOW more, like Soaked does (a
 # plain slow; Heavy Air doesn't boost it). The spawner checks the card once a frame.
 func _tangled_slow() -> float:
-	var spawner := get_parent()
-	if spawner == null or not spawner.get("tangled") or statuses.active_ids().size() < 2:
+	if _spawner == null or not _spawner.tangled or statuses.count() < 2:
 		return 0.0
 	return DreamState.TANGLED_SLOW
 
@@ -477,6 +583,7 @@ func _tangled_slow() -> float:
 func set_lost() -> void:
 	if not is_cleansed:
 		lost = true
+		_speed_stale = true
 
 # The spawner knocked down a Thornwall for this creature (TRAMPLE).
 func trampled() -> void:
@@ -525,6 +632,7 @@ func _update_rolling() -> void:
 	# Keeps rolling only while the next step goes the same way; stops at the turn.
 	var next_same := _path_index < _path.size() and _path[_path_index] - _path[_path_index - 1] == step
 	rolling = _straight_steps >= enemy_data.roll_after_tiles and next_same
+	_speed_stale = true
 
 # Mire Hag: sinks into the mire and rises `leap_tiles` ahead along her path, then makes nightmares
 # near where she rose Damp.
@@ -547,6 +655,7 @@ func _leap() -> void:
 # Squashes flat into the ground and fades, moves to `landing` (pixels) while under, rises the same
 # way back up, then calls `on_risen`. Not walking meanwhile (Mire Hag, Gravecrawler).
 func _sink_and_rise(landing: Vector2, on_risen: Callable) -> void:
+	_end_drag(false)
 	_leaping = true
 	if sprite.sprite_frames.has_animation(&"burrow"):
 		_burrow_to(landing, on_risen)
@@ -646,6 +755,7 @@ func strip_buff(_by: Node) -> bool:
 	var omen_speed := float(modifiers.get("omen_speed", 1.0))
 	if omen_speed > 1.0:
 		speed /= omen_speed
+		_speed_stale = true
 		modifiers.erase("omen_speed")
 		stripped = true
 	if stripped:
@@ -677,6 +787,7 @@ func add_restless() -> bool:
 	if is_cleansed:
 		return false
 	restless += 1
+	_speed_stale = true
 	queue_redraw()
 	if unbound or restless < UNBOUND_AT or enemy_data.is_boss:
 		return false
@@ -717,9 +828,9 @@ func _start_unbound_trail() -> void:
 # there (it queues). Only checked at a cell centre, so walkers never stop halfway between cells.
 # Flyers ignore it. The spawner rebuilds the blocked cells each frame (rooted_cells / waiting_cells).
 func _is_blocked_ahead(delta: float) -> bool:
-	var spawner := get_parent()
-	if is_flying() or _path_index < 1 or _path_index >= _path.size() or spawner == null \
-			or spawner.get("rooted_cells") == null or spawner.rooted_cells.is_empty() \
+	var spawner = _spawner
+	if spawner == null or spawner.rooted_cells.is_empty() or is_flying() or _path_index < 1 \
+			or _path_index >= _path.size() \
 			or not position.is_equal_approx(grid.calculate_map_position(_path[_path_index - 1])):
 		waiting = false
 		return false
@@ -856,7 +967,7 @@ func _keep_always_statuses() -> void:
 
 func _update_presence(delta: float) -> void:
 	_keep_always_statuses()
-	for cell: Vector2 in _ash_cells.keys():
+	for cell: Vector2 in (_ash_cells.keys() if not _ash_cells.is_empty() else []):
 		_ash_cells[cell] -= delta
 		if _ash_cells[cell] <= 0.0:
 			_ash_cells.erase(cell)
@@ -865,12 +976,16 @@ func _update_presence(delta: float) -> void:
 		return
 	var elapsed := _presence_elapsed
 	_presence_elapsed = 0.0
+	_speed_stale = true  # Timed slows (the Stag's aura, charges) may have run out
 
 	_revealed_time = maxf(_revealed_time - elapsed, 0.0)
 	var hide := (enemy_data.hidden or _is_eclipsed()) and not _is_revealed()
 	if hide != _hidden:
 		_set_hidden(hide)
-	_refresh_display_settings()
+	_settings_elapsed += elapsed
+	if _settings_elapsed >= SETTINGS_TICK:  # The settings panel's changes show within half a second
+		_settings_elapsed = 0.0
+		_refresh_display_settings()
 	if enemy_data.wake_radius > 0.0:  # Watcher
 		for other in _others_within(enemy_data.wake_radius):
 			if other.statuses.has(EnemyStatuses.DROWSY):
@@ -897,6 +1012,61 @@ func _update_presence(delta: float) -> void:
 		if _sapling_timer >= enemy_data.sapling_interval:
 			_sapling_timer = 0.0
 			sapling_requested.emit(self)
+	_update_boss_pool_abilities(elapsed)
+
+# The new bosses' timed abilities (enemy_design.md "Boss pools"), on the presence tick.
+func _update_boss_pool_abilities(elapsed: float) -> void:
+	if enemy_data.lantern_interval > 0.0:  # Lamplighter
+		_lantern_timer += elapsed
+		if _lantern_timer >= enemy_data.lantern_interval:
+			_lantern_timer = 0.0
+			lantern_requested.emit(self)
+	if enemy_data.shrug_interval > 0.0:  # Barrow King
+		_shrug_timer += elapsed
+		if _shrug_timer >= enemy_data.shrug_interval:
+			_shrug_timer = 0.0
+			shrug()
+	if enemy_data.wither_interval > 0.0:  # Withering Oak (twice as fast once risen, like saplings)
+		_wither_timer += elapsed * _sapling_speed
+		if _wither_timer >= enemy_data.wither_interval:
+			_wither_timer = 0.0
+			wither_requested.emit(self, 1)
+	if enemy_data.regen_rate > 0.0:  # Mourning Mother's Sorrow
+		_since_hit += elapsed
+		if _regen_left < 0.0:
+			_regen_left = max_health * enemy_data.regen_cap
+		if _since_hit >= enemy_data.regen_delay and _regen_left > 0.0 and health < max_health:
+			var amount := minf(max_health * enemy_data.regen_rate * elapsed, _regen_left)
+			_regen_left -= amount
+			heal(amount)
+
+# Barrow King: every status on itself and the nightmares near it is shrugged off (they can be put back
+# straight away). Static charges go without a bolt; sleepers wake.
+func shrug() -> void:
+	for creature in [self] + _others_within(enemy_data.shrug_radius):
+		for id in creature.statuses.active_ids():
+			creature.statuses.remove(id)
+		creature.statuses.sleep_time = 0.0
+		creature.queue_redraw()
+	_shrug_flash = SHRUG_FLASH_TIME
+	shrugged.emit(self)
+	queue_redraw()
+
+# Huntsman: the soothe share it takes while any of its hounds still hunts (1.0 once they're gone).
+func get_pack_multiplier() -> float:
+	if enemy_data.pack_shield >= 1.0:
+		return 1.0
+	for hound in pack:
+		if is_instance_valid(hound) and not hound.is_cleansed:
+			return enemy_data.pack_shield
+	return 1.0
+
+# Hounds of its pack still hunting (Huntsman).
+func pack_alive() -> int:
+	return pack.filter(func(h) -> bool: return is_instance_valid(h) and not h.is_cleansed).size()
+
+func is_regrouped() -> bool:
+	return _regrouped
 
 func _set_hidden(value: bool) -> void:
 	_hidden = value
@@ -933,8 +1103,7 @@ func _outline_alpha() -> float:
 
 # The Moth Queen's Eclipse hides every nightmare but bosses.
 func _is_eclipsed() -> bool:
-	return not enemy_data.is_boss and get_parent() != null and get_parent().get("eclipse_left") != null \
-		and get_parent().eclipse_left > 0.0
+	return not enemy_data.is_boss and _spawner != null and _spawner.eclipse_left > 0.0
 
 # Seen by a Warden within CLOSE_REVEAL_CELLS, a Marking Warden (Lanternmoth, Moon Moth, Rootlight)
 # that has it in range, or a Will-o'-Wisp's glow.
@@ -993,6 +1162,15 @@ func _check_health_thresholds() -> void:
 		hold_time = maxf(hold_time, enemy_data.grief_pause)  # It stops and wails
 		_play_pose(&"grief", enemy_data.grief_pause)
 		grief_requested.emit(self)
+	while _wither_bursts < enemy_data.wither_burst_at.size() and health <= max_health * enemy_data.wither_burst_at[_wither_bursts]:
+		_wither_bursts += 1
+		wither_requested.emit(self, enemy_data.wither_burst_count)  # Withering Oak: Drought
+	while _echoes < enemy_data.echo_at.size() and health <= max_health * enemy_data.echo_at[_echoes]:
+		_echoes += 1
+		echo_requested.emit(self, _echoes)  # Remembering Oak: act 1's boss, then 2's, then 3's
+	if enemy_data.pack_regroup_at_half and not _regrouped and health <= max_health / 2:
+		_regrouped = true  # Huntsman: The Kill (the spawner calls the whole pack back)
+		brood_requested.emit(self)
 
 # Blight Level `rises_from_blight`+ (the Hollow Oak remembers): the first dispel doesn't take; it
 # rises again at half health with saplings twice as fast. True if it rose.
@@ -1029,8 +1207,9 @@ func take_damage(amount: float, line: String = "", is_area: bool = false, is_cri
 		# Soaked conducts: water hits +20% (Damp's potency 1.5 with Soaked Through II: +30%)
 		family *= 1.0 + EnemyStatuses.DAMP_WATER_BONUS * maxf(1.0, statuses.potency(EnemyStatuses.DAMP))
 	var taken := statuses.get_damage_taken_multiplier()
-	var soothe := amount * family * taken
+	var soothe := amount * family * taken * get_pack_multiplier()  # Huntsman: the pack shields him
 	var soothe_before_coat := soothe
+	_since_hit = 0.0  # Mourning Mother: Sorrow waits for a quiet moment
 	if line in enemy_data.resists:
 		_mark_hit(-1)
 	elif line in enemy_data.weak_to:
@@ -1061,9 +1240,11 @@ func take_damage(amount: float, line: String = "", is_area: bool = false, is_cri
 		_cleanse()
 		return
 	_check_health_thresholds()
-	if enemy_data.trait_kind == EnemyData.Trait.TRAMPLE and not _startled and health <= max_health / 2:
-		_startled = true  # The Hollow Stag's antlers flare and it charges
+	if (enemy_data.trait_kind == EnemyData.Trait.TRAMPLE or enemy_data.charges_at_half) and not _startled \
+			and health <= max_health / 2:
+		_startled = true  # The Hollow Stag's antlers flare and it charges (the Night Mare bolts)
 		_charge_left = enemy_data.charge_time
+		_speed_stale = true
 
 # Applies a status from a Warden (`potency` = its soothe, see EnemyStatuses). A Static charge that
 # fills up sets off a free bolt right away.
@@ -1144,6 +1325,7 @@ func _mark_hit(kind: int) -> void:
 # the old "cleanse" names; players only ever see "dispel".
 func _cleanse() -> void:
 	is_cleansed = true
+	_end_drag(false)
 	remove_from_group(GROUP)
 	# Great Dreamcatcher: a Caught nightmare (never a boss) leaves a Dreamlight shard.
 	if statuses.caught_shard and statuses.is_caught() and not enemy_data.is_boss:
@@ -1217,15 +1399,76 @@ func _set_crack(amount: float) -> void:
 
 # Sets the cells to walk through (grid coordinates). The enemy heads to points[0] first.
 func set_path(points: PackedVector2Array) -> void:
+	_end_drag()  # A re-route mid-drag: it walks the new route from here
 	_path = points
 	_path_index = 0
 
-# Moves the nightmare back along the way it came by `pixels` (Whirligig gusts, Pond Keeper). It can't
-# go back past the start of its current route (routes restart at each re-route). Returns the pixels
-# actually moved.
+# Drags the nightmare back along the way it came by `pixels` (pulls, Whirligig gusts, the Tidecaller's
+# wave): roots grab its feet, it slides back over a moment (ease-out, still facing forward), then walks
+# on. A pull during a drag extends it. It can't go back past the start of its current route (routes
+# restart at each re-route). Returns the pixels it will move.
 func push_back(pixels: float) -> float:
-	if is_cleansed or _leaping or _path.is_empty():
+	if is_cleansed or _leaping or _path.is_empty() or pixels <= 0.0:
 		return 0.0
+	var left := _drag_total - _drag_done if _dragging else 0.0
+	var amount := minf(pixels, _room_behind() - left)
+	if amount <= 0.0:
+		return 0.0
+	if not _dragging:
+		_dragging = true
+		_drag_reduced = bool(Fx.setting("reduced_motion", false))
+		_grab_left = 0.0 if _drag_reduced else DRAG_GRAB
+		_dust_left = DRAG_DUST_EVERY * 0.5
+		if not _drag_reduced:
+			_grab_fx = PullDragFx.grab(self)
+		drag_started.emit(self, amount / grid.cell_size.x)
+	# Start the ease again from here over what's left (a second pull extends the drag, no new grab).
+	_drag_total = left + amount
+	_drag_done = 0.0
+	_drag_time = 0.0
+	_drag_duration = _drag_seconds(_drag_total)
+	return amount
+
+func is_dragged() -> bool:
+	return _dragging
+
+func _drag_seconds(pixels: float) -> float:
+	if _drag_reduced:
+		return DRAG_REDUCED
+	var seconds := DRAG_BASE + DRAG_PER_TILE * pixels / grid.cell_size.x
+	return seconds * (DRAG_BOSS_SLOW if enemy_data != null and enemy_data.is_boss else 1.0)
+
+# Pixels back to the start of the current route.
+func _room_behind() -> float:
+	if _path_index <= 0:
+		return 0.0
+	var room := position.distance_to(grid.calculate_map_position(_path[_path_index - 1]))
+	for i in range(_path_index - 1, 0, -1):
+		room += grid.calculate_map_position(_path[i]).distance_to(grid.calculate_map_position(_path[i - 1]))
+	return room
+
+func _update_drag(delta: float) -> void:
+	if _grab_left > 0.0:
+		_grab_left -= delta  # The roots take hold
+		return
+	_drag_time += delta
+	var t := minf(_drag_time / maxf(_drag_duration, 0.01), 1.0)
+	var eased := 1.0 - pow(1.0 - t, 3.0)  # Fast, then settling
+	var step := _drag_total * eased - _drag_done
+	var moved := _step_back(step) if step > 0.0 else 0.0
+	_drag_done += moved
+	if not _drag_reduced:
+		sprite.rotation = sin(_drag_time * 28.0) * DRAG_WOBBLE * (1.0 - t)
+		_dust_left -= moved
+		if _dust_left <= 0.0:
+			_dust_left = DRAG_DUST_EVERY
+			PullDragFx.dust(self)
+	if t >= 1.0 or moved < step - 0.01:
+		_end_drag()
+
+# Moves back along the route by `pixels` (the old instant push_back, now one frame's worth). Leaves a
+# furrow on each cell it's dragged back onto. Returns the pixels moved.
+func _step_back(pixels: float) -> float:
 	var moved := 0.0
 	while pixels > 0.0 and _path_index > 0:
 		var previous := grid.calculate_map_position(_path[_path_index - 1])
@@ -1237,7 +1480,30 @@ func push_back(pixels: float) -> float:
 		moved += distance
 		pixels -= distance
 		_path_index -= 1  # Now walking back toward the cell it just stood on
+		var along := previous - (grid.calculate_map_position(_path[_path_index - 1]) if _path_index > 0 else previous)
+		PullDragFx.furrow(self, global_position, along)
 	return moved
+
+# Ends a drag: the roots sink (`release`) and it walks on at its current speed from the cell it's on.
+func _end_drag(release: bool = true) -> void:
+	if not _dragging:
+		return
+	_dragging = false
+	_grab_left = 0.0
+	_drag_total = 0.0
+	_drag_done = 0.0
+	if sprite:
+		sprite.rotation = 0.0
+	_speed_stale = true
+	if _path_index > 0 and _path_index <= _path.size():
+		_last_cell = _path[_path_index - 1]  # Restless: the cell it ended on, never a "turn back"
+	if is_instance_valid(_grab_fx):
+		if release and not is_cleansed:
+			_grab_fx.release()  # The roots sink
+		else:
+			_grab_fx.queue_free()
+	_grab_fx = null
+	drag_ended.emit(self)
 
 # Index into the current route of the cell the nightmare last stood on (or is standing on).
 func get_route_index() -> int:

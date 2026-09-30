@@ -178,6 +178,14 @@ func _run() -> void:
 	acorn._refresh_neighbours()
 	_check(acorn.get_node_or_null("AuraRing") != null, "the Acorn's aura ring breathes")
 	_check(is_instance_valid(buddy._leaf_mote), "a boosted Warden carries a leaf mote")
+	# Show exactly who gets the aura (AuraView): a 3×3 square, only the boosted Wardens, a live chip.
+	var outside := _plant("sporeling", Vector2(7, 12))  # In the Acorn's attack range (2.5), outside its aura
+	outside._refresh_neighbours()
+	_check(AuraView.cells(acorn.global_position, acorn.get_aura_reach()).size() == 9, "the Acorn's aura is the 3×3 square")
+	var boosted := AuraView.boosted_by(acorn)
+	_check(boosted == [buddy], "only the Warden beside it is marked, not the one 2 cells away (%s)" % [boosted])
+	_check(AuraView.chip(buddy, acorn) == "+5%", "its chip reads the live bonus (%s)" % AuraView.chip(buddy, acorn))
+	outside.queue_free()
 	# Catcher placement preview: the share of last block's dispels near a spot
 	var spots_log := SupportLog.find(acorn)
 	spots_log._dispels = {"block": [], "last_block": [acorn.global_position, acorn.global_position, Vector2(-5000, 0), Vector2(-5000, 0)]}
@@ -202,6 +210,32 @@ func _run() -> void:
 	_take("grandfather_stump")
 	stump._refresh_neighbours()
 	_check(stump.get_aura_bonus(true) > before_grandfather, "Grandfather Stump: the Elder Stump's aura grows with Wardens around it (%.3f → %.3f)" % [before_grandfather, stump.get_aura_bonus(true)])
+	await _clean_towers()
+	dreams.stacks.clear()
+
+	# --- Support Wardens (warden_stats.md fdd7003): same-kind auras stack with falloff, ranks scale the
+	# aura ×1.1, Focus Wide / Strong / Kindred ---
+	var middle := _plant("sporeling", Vector2(12, 12))
+	var stumps: Array[Tower] = []
+	for at in [Vector2(11, 12), Vector2(13, 12), Vector2(12, 11)]:
+		stumps.append(_plant("elder_stump", at))
+	middle._refresh_neighbours()
+	var one := stumps[0].get_aura_bonus(true)
+	_check(is_equal_approx(middle._aura_speed, one * 1.75), "three Elder Stumps: 100%% + 50%% + 25%% (%.3f, one is %.3f)" % [middle._aura_speed, one])
+	_check(middle.get_aura_lines() == ["Elder Stump ×3: +%d%% attack speed" % roundi(one * 175.0)], "panel line: %s" % [middle.get_aura_lines()])
+	stumps[2].focus = Tower.Focus.KINDRED
+	middle._refresh_neighbours()
+	_check(is_equal_approx(middle._aura_speed, one * 2.5), "a Kindred Elder Stump sits outside the falloff (%.3f)" % middle._aura_speed)
+	_check(stumps[0].focus_options() == Tower.SUPPORT_FOCUSES and middle.focus_options() == Tower.ATTACKER_FOCUSES,
+		"support Wardens choose Wide / Strong / Kindred, attackers Power / Swift / Reach / Deep")
+	stumps[0].rank = 2
+	_check(is_equal_approx(stumps[0].get_aura_bonus(true), one * 1.21) and is_equal_approx(stumps[0].get_rank_damage_multiplier(), 1.0),
+		"support Nurture: the aura ×1.1 per rank, no damage (%.3f)" % stumps[0].get_aura_bonus(true))
+	stumps[0].rank = 5
+	stumps[0].focus = Tower.Focus.STRONG
+	_check(is_equal_approx(stumps[0].get_aura_bonus(true), one * pow(1.1, 5) * 1.25), "Strong: ×1.25 more by rank V (%.3f)" % stumps[0].get_aura_bonus(true))
+	stumps[1].focus = Tower.Focus.WIDE
+	_check(is_equal_approx(stumps[1].get_aura_reach(), 2.5), "Wide: the 8 around become everything within 2 cells")
 	await _clean_towers()
 
 	# --- Walls: Bramble Oath, The Quiet Ones; Honeysuckle's Drowsy credit ---

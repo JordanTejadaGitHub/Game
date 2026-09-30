@@ -6,7 +6,7 @@
 script = ExtResource("1_unlock")
 id = "bittersweet_dreams"
 display_name = "Bittersweet Dreams"
-description = "Bittersweet Dreams join the pool: Deep Sleep, Borrowed Dew, Wild Growth, Overgrown, Restless Dreams, Hungry Roots, Borrowed Memory. Needs any 2 other Cards nodes."
+description = "Bittersweet Dreams join the pool: Deep Sleep, Borrowed Dew, Wild Growth, Overgrown, Restless Dreams, Hungry Roots, Borrowed Memory."
 root = 1
 costs = Array[int]([52])
 order = 19

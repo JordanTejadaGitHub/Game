@@ -18,6 +18,7 @@ placeholders).
 | `meta_design.md` | Seeds, Memory Grove, milestones, Blight Levels, Memories, true ending |
 | `art_direction.md` | warm vs cold, environment, Warden and nightmare look; **art style decided 2026-09-28: Waystone pixel, "detailed 64"** (64 px cells with a detail pass: upper-left light and 1 px rim, dithered bands, sparse texture, banded glow; the Heartwood 128 px; marketing art may go higher) and the **Heartwood 32 palette** (32 colours, 9 ramps; nightmares on cold ramps only; seasons from lighting; UI colours too). UI style: **Moonlit Thread** (`ui_style.md`). Owned by the Theme chats |
 | `ui_style.md` | the Moonlit Thread UI style: panels, the gold thread, fonts, icon scaling, colours from Heartwood 32. Owned by UI Asset / UI Code |
+| `text_style.md` | how player-facing text is written: voice, capitalisation, numbers and separators, tokens; the first text sweep by owner |
 | `audio_direction.md` | music (adaptive layers), nightmare signature sounds, dispel, mix, demo list |
 | `platforms.md` | PC first, mobile port later: touch-friendly rules and the touch control map |
 | `art_style_options.md` | six candidate rendering styles compared; leaning Waystone pixel |
@@ -61,10 +62,13 @@ New run (new random forest) → only Sprout + Thornwall
 
 | Act | Drifts | Boss |
 |---|---|---|
-| 1. Forest's Edge | 1–25 | The Hollow Stag |
-| 2. Deep Wood | 26–50 | The Mire Hag or The Moth Queen |
-| 3. Misty Hollow | 51–75 | the other one |
-| 4. Heartwood Glade | 76–100 | The Hollow Oak (always) |
+| 1. Forest's Edge | 1–25 | 1 of 3: The Hollow Stag, The Night Mare, The Scarecrow |
+| 2. Deep Wood | 26–50 | 1 of 3: The Mire Hag, The Huntsman, The Lamplighter |
+| 3. Misty Hollow | 51–75 | 1 of 3: The Moth Queen, The Barrow King, The Mourning Mother |
+| 4. Heartwood Glade | 76–100 | The Hollow Oak (always), 1 of 3 variations: Thorned, Withering, Remembering |
+
+Boss pools like Slay the Spire: one boss per act drawn at run start and shown from the act's first
+drift (`enemy_design.md`).
 
 One map per run. Act breaks: the season changes, 1 leaf regrows. Nightmare health grows ×1.045 per
 drift (×1.055 in act 2; ≈ ×11 by drift 50, ×100 by drift 100), plus more nightmares, elites in every
@@ -101,7 +105,7 @@ perks can modify them.
   gaps), smaller and rarer tree groves and rock clusters, and most scattered single rocks gone. The
   player's Wardens should build most of the maze, not the map. Keep at least **10 obstacles** so the
   clearing cards (need 8+) still show up; Blight 9's extra ridge still applies. As built (77eb3cd): 46–89 obstacles (mean 60, was 105), 2 ridges. **The starting route always bends at least once** (b50aa3b: the far ridge has no gaps, and the first ridge's gaps sit only over the far ridge's solid part, so any shortcut still doubles back; 44–88 obstacles, mean 63), a hint of shape while the player builds the rest of the zig-zag.
-- **Obstacles**: **Withered Trees** ("Tend", 5 Dew) and **Mossy Boulders** ("Move", 8 Dew) block
+- **Obstacles**: **Withered Trees** ("Tend", 12 Dew) and **Mossy Boulders** ("Move", 18 Dew), +1 Dew per clear this run, block
   nightmares and building. **Clearing is locked until you take a clearing Dream card**; after that,
   tending one opens space (and often a shortcut) and adds **+1 Seed** at
   run end: in-run power vs long-term progress.
@@ -121,8 +125,8 @@ boomerang, the multi-hit Hummingbird).
 
 - **Crits**: every attacking Warden has a crit chance (default 5%, ×2); snipers and heavy hitters
   more. Crit cards in the Dream pool support crit builds.
-- **Memory Wardens**: after a boss, the reward can be that boss's unique Memory Warden instead of a
-  family (the White Stag, the Pond Keeper, the Moon Moth).
+- **Memory Wardens** (the White Stag, the Pond Keeper, the Moon Moth…): **parked 2026-09-29**
+  (cut for now; see `tower_design.md`). A boss rewards the family pick + Dreamlight.
 
 - **Dreamlight unlocks, Dew pays**: spending Dreamlight (from bosses) makes a branch or final form
   available; evolving a specific Warden costs Dew. Evolving happens in place, so the path never

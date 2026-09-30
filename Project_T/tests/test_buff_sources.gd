@@ -1,0 +1,92 @@
+extends SceneTree
+
+# Headless test for buff readability (screens_ui.md "Buff readability"): BuffSources lists what boosts a
+# Warden (auras with falloff positions and Kindred), who a support Warden boosts, the placement preview,
+# pips; BuffOverlay follows Main's BuffLens; the Warden panel's Buffs section. Run from the project folder:
+#   godot --headless --path . --script res://tests/test_buff_sources.gd --fixed-fps 60
+
+const CELL := 64.0
+
+var failures := 0
+var placer: TowerPlacer
+var container: Node
+
+func _initialize() -> void:
+	_run.call_deferred()
+
+func _run() -> void:
+	var main: Node = load("res://scenes/main.tscn").instantiate()
+	main.get_node("%MapGenerator").map_seed = 42
+	root.add_child(main)
+	await process_frame
+	await process_frame
+	placer = main.get_node("%TowerPlacer")
+	container = main.get_node("%TowerContainer")
+	var seller: TowerSeller = main.get_node("%TowerSeller")
+	var panel: Node = main.find_child("WardenPanel", true, false)
+	for child in main.get_node("%EnemyContainer").get_children():
+		child.queue_free()
+
+	var target := _plant("sporeling", Vector2(12, 12))
+	var first := _plant("elder_stump", Vector2(11, 12))
+	var second := _plant("elder_stump", Vector2(13, 12))
+	var acorn := _plant("acorn", Vector2(12, 11))
+	target._refresh_neighbours()
+	var entries := BuffSources.for_tower(target)
+	var stumps := entries.filter(func(e: Dictionary) -> bool: return e.kind == "elder_stump")
+	_check(stumps.size() == 2 and stumps.map(func(e: Dictionary) -> int: return e.position).has(2),
+		"two Elder Stumps, the second one in falloff (%s)" % [stumps.map(func(e: Dictionary) -> String: return e.label)])
+	_check(entries.any(func(e: Dictionary) -> bool: return e.kind == "acorn" and e.stat == "damage" and e.source == acorn),
+		"the Acorn's damage aura is listed")
+	var pips := BuffSources.pips(target)
+	_check(pips.size() == 2 and pips.any(func(p: Array) -> bool: return p[0] == "elder_stump" and p[1] == 2),
+		"pips: Elder Stump ×2 and Acorn (%s)" % [pips.map(func(p: Array) -> String: return "%s×%d" % [p[0], p[1]])])
+	var given := BuffSources.given_by(first)
+	_check(given.any(func(g: Dictionary) -> bool: return g.target == target and g.speed > 0.0),
+		"the first Elder Stump says it boosts the Sporeling")
+	var summary := BuffSources.summary(BuffSources.would_receive(load("res://resource/tower/sporeling.tres"),
+		target.global_position, [first, second, acorn]))
+	_check(summary.contains("from 2 Elder Stumps") and summary.contains("from an Acorn"),
+		"the placement preview: %s" % summary)
+	second.focus = Tower.Focus.KINDRED
+	target._refresh_neighbours()
+	_check(BuffSources.for_tower(target).any(func(e: Dictionary) -> bool: return e.kindred and BuffSources.thread_label(e).begins_with("Kindred")),
+		"a Kindred stump's thread reads \"Kindred +…\"")
+
+	# The overlay: made by TowerSeller, the lens toggles on V.
+	var overlay := BuffOverlay.find(main)
+	_check(overlay != null, "the run has a BuffOverlay")
+	if overlay:
+		BuffLens.set_on(self, true)
+		_check(overlay.lens, "the lens (Main's BuffLens, V) reaches the overlay")
+		BuffLens.set_on(self, false)
+
+	# The Warden panel's Buffs section.
+	seller.select(target)
+	await process_frame
+	await process_frame
+	var buffs: VBoxContainer = panel._buffs
+	var texts: Array = buffs.get_children().map(func(c: Control) -> String: return c.text if "text" in c else "")
+	_check(buffs.visible and texts.any(func(t: String) -> bool: return t.to_lower() == "buffs") and texts.any(func(t: String) -> bool: return t.begins_with("Total:")),
+		"the panel lists the buffs and a total (%s)" % [texts])
+	_check(buffs.get_children().any(func(c: Control) -> bool: return c is Button and c.text.begins_with("Elder Stump")),
+		"a Warden source is a button")
+
+	print("buff sources test: %s" % ("PASS" if failures == 0 else "%d FAILED" % failures))
+	main.queue_free()
+	await process_frame
+	quit(failures)
+
+func _plant(id: String, cell: Vector2) -> Tower:
+	var tower: Tower = placer.tower_scene.instantiate()
+	tower.tower_data = load("res://resource/tower/%s.tres" % id)
+	tower.cell = cell
+	tower.position = cell * CELL + Vector2(CELL, CELL) / 2
+	container.add_child(tower)
+	tower.set_process(false)
+	return tower
+
+func _check(condition: bool, label: String) -> void:
+	if not condition:
+		failures += 1
+		printerr("FAIL: " + label)

@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "glimmering_hunt"
 display_name = "Glimmering Hunt"
-description = "Deeply Blighted nightmares have a 30% chance to drop a Dreamlight shard (10 shards = 1 Dreamlight; up to 3 Dreamlight per run)."
+description = "{deeply_blighted} nightmares have a 30% chance to drop a {dreamlight} shard (10 shards = 1 {dreamlight}; up to 3 {dreamlight} per run)."
 rarity = 1
 kind = 3
 tags = Array[String](["dreamlight"])

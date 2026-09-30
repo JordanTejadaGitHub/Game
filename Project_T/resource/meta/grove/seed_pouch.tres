@@ -11,4 +11,5 @@ root = 2
 costs = Array[int]([100])
 order = 4
 icon = 3
+requires_all = Array[String](["rested_roots"])
 seed_bonus = 0.1

@@ -5,7 +5,7 @@
 [ext_resource type="Script" path="res://resource/drift/script/drift_entry.gd" id="3_entry"]
 [ext_resource type="Resource" path="res://resource/enemy/leaf_bug.tres" id="e_LB"]
 [ext_resource type="Resource" path="res://resource/enemy/bark_beetle.tres" id="e_BB"]
-[ext_resource type="Resource" path="res://resource/enemy/hedgehog.tres" id="e_HH"]
+[ext_resource type="Resource" path="res://resource/enemy/dandelion_seed.tres" id="e_HH"]
 
 [sub_resource type="Resource" id="Entry_1"]
 script = ExtResource("3_entry")
@@ -20,12 +20,12 @@ count = 6
 [sub_resource type="Resource" id="Entry_3"]
 script = ExtResource("3_entry")
 enemy = ExtResource("e_HH")
-count = 5
+count = 2
 
 [sub_resource type="Resource" id="Group_1"]
 script = ExtResource("2_group")
 entries = Array[ExtResource("3_entry")]([SubResource("Entry_1"), SubResource("Entry_2"), SubResource("Entry_3")])
-spacing = 0.968
+spacing = 1.071
 delay = 0
 
 [resource]

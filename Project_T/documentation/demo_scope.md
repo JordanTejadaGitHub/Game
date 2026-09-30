@@ -32,7 +32,7 @@ replayable run, then leave players wanting the Deep Wood and the Memory Grove.
 | Kinships | **Slumber Rot, Rainfog, Storm Beacon** (the demo families' main Kinships) and **Kindred** (`tower_design.md` "Kinships"). Whole Tree and hidden Kinships need Grove unlocks, so full game only |
 | Dreams | after drifts 5, 10, … 95 (**19 per run**; boss Dreams guaranteed Rare+), from the Start pool |
 | Nightmares | acts 1–2 as in `acts_1_2.md` (Shade, Husk, Mourner, Phantom, Night Hound, Procession, the Hollow Stag, the Mire Hag) and acts 3–4 as in `acts_3_4.md` (the whole roster, the Moth Queen, the Hollow Oak) |
-| Act 2 boss | **always the Mire Hag** in the demo (the full game picks the Hag or the Moth Queen); the Hag needs no extra nightmares, the Moth Queen needs Lurkers and flying |
+| Act 2 boss | **always the Mire Hag** in the demo; the full game draws from a pool of 3 per act (`enemy_design.md`, boss pools). Open question: should the demo's act 1 already draw from its pool (Hollow Stag / Night Mare / Scarecrow) to show off the feature, at the cost of two more bosses before launch? |
 | Map | the forest biome, fully procedural (ridges, tending) |
 | Story | the intro, and **Memory 1** as a story hook on the victory screen |
 | Onboarding | everything in `onboarding.md` for run 1 (Grove parts replaced by the teaser) |
@@ -72,7 +72,7 @@ touch the real profile; runs don't bank Seeds. Unlike Test Grove, nothing is fre
 **Dev Grove** (added 2026-09-28, user request: "unlock every Grove node for developer"): Settings →
 Developer → **Dev Grove: Off / Early / Half / Full**. It plays normal runs *and* opens the Memory
 Grove screen as if the profile had that much of the tree, using the balance simulation's presets
-(`MetaRun.load_preset`; Full = every node at max level, all 5 perk slots). Perks, families, card
+(`MetaRun.load_preset`; Full = every node at max level, all 6 perk slots incl. the secret one). Perks, families, card
 bundles, Ascension nodes, Blight Levels and loadouts all work, so any Grove content can be tested.
 - Uses a separate dev profile (`user://sim_heartwood.json`); the real profile is never read or
   written while it's on. Loadout changes and purchases in the Grove screen stay in the dev profile

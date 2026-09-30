@@ -36,7 +36,7 @@ Sporeling  Dewdrop  Firefly Jar  Pebbling  Rootling  Bellflower  Acorn  (+ Nestl
   they can be chosen with Dreamlight like any branch.
 - **Nestling and Whirligig** are Grove unlocks for the full game (not in the demo). A run still
   gets **4 families**; more families means more variety between runs.
-- **Memory Wardens** (below) are unique Wardens freed from the act bosses.
+- **Memory Wardens** (below) are **parked** (cut for now, 2026-09-29).
 - **Ascended forms** (below): each family's endgame Warden, a 4th tier above the final forms.
 
 ### Ascended forms: each family's endgame Warden
@@ -44,7 +44,7 @@ Sporeling  Dewdrop  Firefly Jar  Pebbling  Rootling  Bellflower  Acorn  (+ Nestl
 Added 2026-09-27 (user request: late game felt easy; wanted an endgame Warden per family). An
 Ascended Warden is the family's final word: a huge, unique presence that anchors a late maze.
 
-- **When:** from **drift 51** (act 3). **Unlock:** **3 Dreamlight** on the Remember screen, once
+- **When:** from **drift 51** (act 3). **Unlock:** **3 Dreamlight** (bosses now give 4 each, 2026-09-29, so a run that reaches act 3 can afford one) on the Remember screen, once
   that family has any final form unlocked. **Grow:** from **any final form** of that family, for
   **400 Dew** (the Warden keeps its rank and Focus).
 - **One per family per run** (at most 4 in a run, one per family you own). Unique like Memory
@@ -181,6 +181,20 @@ it's the family that **cashes in** Marked, Held and Drowsy, and the answer to th
 | Hidden | Rootlight | glowing roots light up path tiles in range: **reveals Lurkers**, **Gravecrawlers can't burrow** there, and **Held lasts 50% longer** on lit tiles | — | Held, long paths |
 | Hidden+ | Starcave | bigger lit area; Held lasts **twice as long** on lit tiles | — | Held, long paths |
 
+**Pulls are a drag you can see, not a teleport** (2026-09-30, user: "make it clear when Rootcurl
+knocks the enemy back; not teleport back"). Every pull-back (Rootcurl, Long Way Home, the Snare
+Kinship's half-tile drag, the Tidecaller's wave) plays in three beats:
+1. **Grab** (~0.15 s): roots burst from the ground and wrap the nightmare's feet, timed with the
+   Warden's pull animation.
+2. **Drag** (~0.45 s for 1 tile, ~0.8 s for 3): the nightmare **slides backward along its route**,
+   fast at first then settling, still facing forward with its feet scraping and a small struggle
+   wobble. Soil puffs kick up along the way and a **furrow** is left on the path, fading over ~1 s.
+3. **Release:** the roots sink back and it walks on.
+- During the drag it can't move forward but can still be hit and targeted. The distance pulled is
+  unchanged; the drag only replaces the instant jump.
+- Bosses: the shorter pull drags slower and heavier (the roots strain).
+- With reduced motion, the drag is shortened to ~0.2 s and the soil puffs are dropped; the furrow stays.
+
 **Bellflower line**: song and sleep. Bell-flower spirits that ring, hum and sing nightmares to
 sleep, then make sleep dangerous. Owns **Drowsy**.
 
@@ -245,7 +259,14 @@ means answering Hounds on the throwing line (Tangleroot, Honeysuckle).
 - **Honeysuckle**: its sweet scent makes nightmares walking past it slowly Drowsy. Walls that set up
   combos instead of dealing damage.
 
-### Memory Wardens (from bosses)
+### Memory Wardens (from bosses): PARKED
+
+> **Parked (2026-09-29, user decision): Memory Wardens are cut for now** and may return later. They
+> overlapped with the family pick (both were the boss reward) and, being free, involved no decision.
+> Nothing here is in the game: no Memory Warden card in the family pick, no Grove bloom. The design,
+> art and code stay so they can come back (a proposed return: a separate "patch a gap" Warden
+> costing 1 Dreamlight + Dew, not part of the family pick). The boss reward is the family pick +
+> Dreamlight.
 
 Each great nightmare wore a memory it stole from the dream. Dispelling it frees that memory as a
 **unique Warden**. After a boss, the reward is **1 of 3 families *or* that boss's Memory Warden**
@@ -283,7 +304,7 @@ set small. (Nightmares that resist or exploit these: see `enemy_design.md`.)
 | **Damp** | **Soaked**: no slow. Water (Dewdrop-family) hits +20%, and it **conducts**: lightning jumps further, ice freezes, spores sprout | Dewdrop line | Dewdrop line, Stormcap, Thunderhead, Frostfern | the conductor for Thunderclap, Shatter, Mushrooming and Drown |
 | **Drowsy** | **the slow**: stacks to a cap, and full Drowsy leads to sleep | **Bellflower line**; also Bloomcap, Honeysuckle | Mossback, Boulderback, Dreamshroom, Dreamcatcher, Sunpetal | crits, full sleep, Caught, faster beam ramp |
 | **Spored** | damage over time, stacks | Sporeling, Driftspore, Fairy Ring | Puffball, Mistveil, Rootcurl, Long Way Home | bursts, harder ticks; pulled nightmares walk the spores again |
-| **Marked** | **exposed**: the only "takes extra damage" status | Lanternmoth, Beacon, Moon Moth | Mossback, Boulderback, Standing Stone | double damage on Marked |
+| **Marked** | **exposed**: the only "takes extra damage" status | Lanternmoth, Beacon | Mossback, Boulderback, Standing Stone | double damage on Marked |
 | **Static** | builds charge; at 5 stacks, a free bolt | Firefly Jar, Stormcap, Chime Stone | Chime Stone, Lullaby Bell | pulses set off Static bolts |
 | **Held** | **stopped**: can't move, short and firm (nothing breaks it) | Tangleroot, Snugroot, Frostfern (freeze) | Bloomcap, Mistveil, Chime Stone, Bramble, Sunpetal, Hoarfrost, Standing Stone, Cairn | held nightmares sit inside area effects and are easy targets |
 

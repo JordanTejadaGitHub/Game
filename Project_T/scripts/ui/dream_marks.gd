@@ -250,11 +250,9 @@ class MarkTip extends PanelContainer:
 		var box := VBoxContainer.new()
 		box.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		row.add_child(box)
-		_name.add_theme_font_size_override("font_size", 16)
+		UiStyle.tip_name(_name)  # Tip sizes (screens_ui.md playtest fixes 2026-09-30)
 		box.add_child(_name)
-		_text.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		_text.custom_minimum_size = Vector2(240, 0)
-		_text.add_theme_font_size_override("font_size", 14)
+		UiStyle.tip_body(_text)
 		box.add_child(_text)
 
 	# Shows `card` near `at` (screen px); `seconds` > 0 hides it after that long (a tap).

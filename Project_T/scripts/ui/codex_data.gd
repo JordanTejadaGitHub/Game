@@ -19,7 +19,8 @@ const GLOSSARY_SOURCE := [
 	]],
 	["The run", [
 		["Drift", "A wave of nightmares. A run is 100 drifts in 4 acts.", ["Block", "Act"]],
-		["Block", "Five drifts that flow into each other, followed by a rest.", ["Drift", "Rest"]],
+		["Block", "The 5 drifts between two rests; they flow into each other.", ["Drift", "Rest"]],
+		["Perfect block", "A block in which no nightmare reached the Heartwood: no leaf lost. Its rest pays +10 Dew.", ["Block", "Rest", "Leaves"]],
 		["Rest", "The pause after a block: a Dew bonus, a Dream, rebuild freely at a 75% refund, then Start.", ["Dream", "Omen"]],
 		["Act", "25 drifts ending in a boss. Between acts the season changes and the Heartwood regrows a leaf.", ["Boss", "Leaves"]],
 		["Boss", "A great nightmare at the end of each act. Dispelling it brings a family pick, Dreamlight and a rare Dream.", ["Family pick", "Dreamlight"]],
@@ -86,7 +87,7 @@ const GLOSSARY_SOURCE := [
 		["Dawnbreak", "The Legendary Dream that gives a Dawnburst its bite (grown in the Memory Grove).", ["Dawnburst", "Legendary"]],
 	]],
 	["Dreams", [
-		["Rarity", "Common, Uncommon, Rare, Legendary: the shape and colour of a Dream card's gem.", ["Legendary"]],
+		["Rarity", "Common, Uncommon, Rare, Legendary: the shape and color of a Dream card's gem.", ["Legendary"]],
 		["Deepened", "A stronger \"II\" version of a rule card you already own. It replaces the first.", ["Dream"]],
 		["Entwined", "A combo card offered once you own all its ingredients (cards or Wardens); guaranteed a slot the first time.", ["Dream"]],
 		["Bittersweet", "A strong Dream with a cost written on it.", ["Dream"]],
@@ -110,8 +111,8 @@ const GLOSSARY_SOURCE := [
 # The id is also the DamageLog combo tag where one exists (conducted, popped, fog); the rest are
 # reported with ComboFeedback.report(id, …) where they happen.
 const SYNERGIES := {
-	&"conducted": ["Conducted", [&"damp", &"static"], "Lightning jumps further and more often between {damp} nightmares.", "Stormcap"],
-	&"popped": ["Popped", [&"spored", &"spored"], "10+ {spored} bursts over the nightmare and its neighbours.", "Puffball"],
+	&"conducted": ["Conducted", [&"damp", &"static"], "Lightning jumps farther and more often between {damp} nightmares.", "Stormcap"],
+	&"popped": ["Popped", [&"spored", &"spored"], "10+ {spored} bursts over the nightmare and its neighbors.", "Puffball"],
 	&"asleep": ["Asleep", [&"drowsy", &"drowsy"], "Full {drowsy}: the nightmare falls {asleep} for 3 s; a big hit (10%+ of its health) wakes it.", "Dreamshroom"],
 	&"fog": ["Spore Fog", [&"spored", &"damp"], "{spored} ticks harder inside Mistveil fog.", "Mistveil"],
 	&"set_off": ["Set Off", [&"static", &"static"], "A pulse sets off a {static} bolt.", "Chime Stone, Lullaby Bell"],
@@ -129,13 +130,13 @@ const CROWNED := {
 	&"still_pool": ["Still Pool", &"drown", &"held", ["dewdrop", "bellflower", "rootling"],
 		"The nightmare sinks and leaves a still pool for 5 s: every walker that enters it sleeps for a moment."],
 	&"fever_dream": ["Fever Dream", &"smother", &"drowsy", ["sporeling", "rootling", "bellflower"],
-		"Its spores all go off at once, and it passes {spored} + {drowsy} to its neighbours: a sleep plague."],
+		"Its spores all go off at once, and it passes {spored} + {drowsy} to its neighbors: a sleep plague."],
 	&"starfall": ["Starfall", &"pinned", &"static", ["firefly_jar", "rootling", "bellflower"],
 		"The crit pulls every {static} bolt within 3 cells into it; each bolt crits too, and a column of light falls."],
 	&"avalanche": ["Avalanche", &"shatter", &"held", ["dewdrop", "rootling", "pebbling"],
 		"A Cairn or Rockslide lob sets off the Shatter on every {damp} + {held} nightmare under it."],
 	&"prismstorm": ["Prismstorm", &"shatter", &"static", ["dewdrop", "rootling", "firefly_jar"],
-		"The ice shards carry lightning: each adds {static} to what it hits, so {damp} neighbours Thunderclap."],
+		"The ice shards carry lightning: each adds {static} to what it hits, so {damp} neighbors Thunderclap."],
 	&"nightbloom": ["Nightbloom", &"mushrooming", &"drowsy", ["sporeling", "dewdrop", "bellflower"],
 		"The spore cloud glows violet and nothing inside can wake."],
 	&"fairy_circle": ["Fairy Circle", &"mushrooming", &"held", ["sporeling", "dewdrop", "rootling"],
@@ -183,7 +184,7 @@ const KINSHIP_TEXT := {
 	&"hammer_and_anvil": "Mossback gains the sniper's eye (+10% crit chance at ×2.5); Standing Stone deals ×2 to {marked} nightmares.",
 	&"snare": "Rootcurl's pulls end in a 0.5 s hold; Tangleroot's holds drag the nightmare back half a tile.",
 	&"night_chimes": "Chime Stone's pulses Catch nightmares at full {drowsy}, as if a Dreamcatcher stood by; Dreamcatcher's threads set off {static} at 3 stacks.",
-	&"old_growth": "Nightmares dispelled inside Elder Stump's aura drop +25% Dew; Dewcatcher gains a small aura: neighbours +10% attack speed.",
+	&"old_growth": "Nightmares dispelled inside Elder Stump's aura drop +25% Dew; Dewcatcher gains a small aura: neighbors +10% attack speed.",
 	&"flock_together": "Wren's Nest hits strip a buff (a shell chips twice as fast, a Weeper stops mending, Omen boosts fall away) and the robbed nightmare drops +1 Dew; Magpie Perch hunts the fastest nightmare, +25% vs Phantoms.",
 	# The 9 hidden Kinships (a hidden branch first; full game only, Tower Code 6ba79b8).
 	&"spore_nursery": "Fairy Ring's rings apply double {spored}; Driftspore's puffs plant a mushroom ring where they land (one at a time).",
@@ -192,7 +193,7 @@ const KINSHIP_TEXT := {
 	&"spotter": "Cairn lobs at the Standing Stone's target and the landing crits; Standing Stone's shots splash 30% beside the target.",
 	&"lantern_roots": "Rootlight's lit tiles hold a nightmare stepping on them for 0.3 s (once); Tangleroot's holds reveal {hidden} nightmares and stop burrowing.",
 	&"resonant_hollow": "Echo Hollow's echoes set off {static} like a chime; Chime Stone's pulses echo once at 30%.",
-	&"true_graft": "Graftling copies at 100%; Elder Stump's pulse adds its strongest neighbour's status.",
+	&"true_graft": "Graftling copies at 100%; Elder Stump's pulse adds its strongest neighbor's status.",
 	&"jewel_thieves": "Every 6th peck steals a nightmare's buff (+1 Dew if there's none); the Magpie pecks twice per swoop.",
 	&"tailwind": "Samara's seed carries full stacks; Gust's copies reach nightmares up to 3 cells away.",
 	&"dust_devil": "Gust's copies also deal a blade hit; Pinwheel's blades copy statuses (half stacks) onto what they hit.",
@@ -371,7 +372,48 @@ static func glossary() -> Array:
 				entries.append([IconInfo.format(entry[0]), IconInfo.format(text),
 					entry[2].map(func(s: String) -> String: return IconInfo.format(s))])
 			_glossary.append([group[0], entries])
-	return _glossary
+	var callouts := callout_entries()
+	if callouts.is_empty():
+		return _glossary
+	return _glossary + [["Combat callouts", callouts]]
+
+# Combat callouts (screens_ui.md, user: "been seeing 'Shattered' but don't know what it means"): every
+# word that pops over nightmares gets a plain line, linking to its Codex combo. An entry shows once
+# its callout has been seen on this profile (callouts_seen; Reactions: combos_seen), so it never
+# spoils a "???" combo. "Resisted" and "Weak" are basics: always there.
+const CALLOUT_SEEN_KEY := "callouts_seen"
+const CALLOUT_ENTRIES := [
+	# [callout id, entry name, line, related]
+	[&"crit", "Critical", "A critical hit: the Warden's hit landed for extra damage (its crit chance is on the Warden panel). Not the Shatter Reaction (\"Shatter!\").", ["Crit"]],
+	[&"conducted", "Conducted", "Lightning through {damp}: bolts jump farther and more often between {damp} nightmares (the Conducted combo).", ["Conducted"]],
+	[&"popped", "Popped", "Poison pops: 10+ {spored} bursts over the nightmare and its neighbors (the Popped combo).", ["Popped"]],
+	[&"asleep", "Asleep", "Full {drowsy}: the nightmare falls asleep for a moment; a big hit wakes it (the Asleep combo).", ["Asleep"]],
+	[&"weak", "Weak", "A hit from a family this nightmare is weak to: ×1.5 damage (the sparkle).", []],
+	[&"resisted", "Resisted", "A hit from a family this nightmare resists: ×0.5 damage (the gray puff).", []],
+]
+const ALWAYS_SHOWN := [&"weak", &"resisted"]
+
+static func callout_entries() -> Array:
+	var profile := HeartwoodMemory.load_data()
+	var seen: Array = profile.get(CALLOUT_SEEN_KEY, [])
+	var combos: Array = profile.get("combos_seen", []) + profile.get("reactions_seen", [])
+	var entries: Array = []
+	for entry in CALLOUT_ENTRIES:
+		if ALWAYS_SHOWN.has(entry[0]) or seen.has(String(entry[0])) or combos.has(String(entry[0])):
+			entries.append([entry[1], IconInfo.format(entry[2]), entry[3]])
+	# Each Reaction's callout, once that Reaction has been discovered.
+	for reaction in Reactions.all() + Reactions.crowned():
+		if combos.has(String(reaction.id)):
+			entries.append([reaction.display_name, IconInfo.format(reaction.description), [reaction.display_name]])
+	return entries
+
+# The glossary's one-line definition of `term` ("" if it has none): the popup of a linked game term.
+static func definition(term: String) -> String:
+	for group in glossary():
+		for entry in group[1]:
+			if entry[0].to_lower() == term.to_lower():
+				return entry[1]
+	return ""
 
 static func search(query: String) -> Array:
 	var found: Array = []

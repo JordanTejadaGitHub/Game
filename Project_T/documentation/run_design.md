@@ -29,10 +29,14 @@ exports, `TowerData`, `EnemyData`, `DriftData`), so tuning never needs code chan
 
 | Act | Drifts | Feel | Boss |
 |---|---|---|---|
-| 1. Forest's Edge | 1–25 | learn the maze, first Wardens | **The Hollow Stag** (25) |
-| 2. Deep Wood | 26–50 | maze testers arrive, builds take shape | **The Mire Hag** or **The Moth Queen** (50) |
-| 3. Misty Hollow | 51–75 | status testers, bigger drifts | the other of the two (75) |
-| 4. Heartwood Glade | 76–100 | full builds, everything mixed | **The Hollow Oak** (100, story climax) |
+| 1. Forest's Edge | 1–25 | learn the maze, first Wardens | 1 of 3: **Hollow Stag**, Night Mare, Scarecrow (25) |
+| 2. Deep Wood | 26–50 | maze testers arrive, builds take shape | 1 of 3: **Mire Hag**, Huntsman, Lamplighter (50) |
+| 3. Misty Hollow | 51–75 | status testers, bigger drifts | 1 of 3: **Moth Queen**, Barrow King, Mourning Mother (75) |
+| 4. Heartwood Glade | 76–100 | full builds, everything mixed | **The Hollow Oak** (100, story climax, always), in 1 of 3 variations: Thorned, Withering, Remembering |
+
+**Boss pools** (2026-09-29, like Slay the Spire): each run draws one boss per act for acts 1–3,
+shown from the act's first drift so players build toward it. First run ever: always the Hollow
+Stag. Details in `enemy_design.md` ("Bosses: a pool of 3 per act").
 
 - **Win:** dispel The Hollow Oak and every nightmare still in the dream.
 - **Between acts:** the season changes (spring dusk → summer night → autumn fog → winter dark;
@@ -56,6 +60,48 @@ Drifts come in **blocks of 5**:
   reward) appears, and you can rebuild at a 75% refund. Press **Start** when ready. No timer.
 - **Call early:** starting the next drift before the previous one has finished arriving gives
   +1 Dew per 2 seconds skipped (capped per drift).
+
+### Random drifts: every block rolls its nightmares (2026-09-29)
+
+User: *"Enemies should be random every block, to add versatility and not predictability."* Until
+now every run met the same drifts in the same order (`acts_1_2.md`, `acts_3_4.md`), so a learned run
+played the same way. From now on **the drifts are rolled per block**, while the difficulty curve,
+the teaching and the bosses stay fixed.
+
+**What stays fixed**
+- **Bosses** at 25, 50, 75, 100 (with their escorts) and the **drift budget**: each drift's total
+  nightmare health follows the existing curve (growth, act multipliers, extra nightmares, elites),
+  so difficulty doesn't change, only *what* the health is made of.
+- **Introductions:** each nightmare type still **first appears** at its scheduled drift (the tables'
+  "intro" drifts: Mourner at 16, Phantom, Night Hound, … and acts 3–4's), with its intro card. A type
+  enters the random pool **only after** it has been introduced in this run.
+- **Drift 1–5** stay hand-made (the first block teaches the basics).
+
+**What's rolled** (at the rest before each block, so the Coming strip shows the real roll):
+- Each drift draws a **template** from its act's list, weighted: *Mixed* (the common case), *Swarm*
+  (many small), *Heavy* (few tough), *Fast* (Hounds, Phantoms, …), *Procession* (followers), *Special*
+  (one trait-heavy type, like the old Wake or Vigil), *Elite hunt* (fewer, more elites, act 2+). The
+  old named drifts become templates.
+- The template picks its **types** from the unlocked pool and splits the drift's health budget among
+  them (each type's share at least 15%, so a drift mixes 2–4 types unless it's a Swarm or Special).
+- **At most one Special or Swarm per block**, and never two of the same template in a row.
+- **Act 1 density cap** (2026-09-29, family-opening check: single-target families died at the densest Shade drifts): in act 1, **small nightmares (Shades, Sobs, Creeps) at least 0.9 s apart** in every drift outside the Swarm template, and a Swarm in act 1 at most 20 of them. Single-target families (Pebbling, Nestling) must be able to keep up.
+- **Fairness:** act 1 keeps the rule that no drift has more than ~40% of its health resistant to one
+  damage type the player can own; **acts 2–4: at most ~60%**, and a block never leans on the same
+  resisted type for more than two drifts. No block is all flyers or all through-walls.
+- **Omens** apply on top of the roll (e.g. Moth Night adds flyers to whatever was rolled).
+
+**Seeded and fair to compare:** the roll uses the run's seed (from the map seed), so a saved run
+resumes with the same drifts, and two players on the same seed meet the same nightmares.
+
+**Shown:** the Coming strip lists the rolled types and counts at every rest; the rest report can say
+*"This block: Swarm, Mixed, Heavy, Fast, Mixed"*. The boss dossier is unchanged.
+
+**Balance:** the simulation now also varies by seed on drifts, so batches use **10 seeds** instead of
+5. The hand-made tables in `acts_1_2.md` / `acts_3_4.md` remain the reference for budgets,
+introductions, templates and boss escorts.
+
+**As built** (Enemy Code, 0cd0fa2 + b056b94): rolled once at run start from the seed (a resume gets the same drifts); each rolled drift keeps its hand-made drift's health budget (±5%), arrival window and **designed elites** (those count outside the fairness caps: a fixed design choice); the caps count **every family a nightmare resists**, not only the starting three (stricter, and right for the full game, where any unlocked family can open a run); the "one resisted type in at most 2 drifts per block" rule applies in acts 2–4 only (act 1 has too few types); tested over 200 seeds (~14,600 drifts). The rest report can name each drift's template (`DriftRoller.template_name`).
 
 ### Time budget
 
@@ -96,7 +142,7 @@ turn leaks into a hold. Targets for the balance simulation and playtests (averag
 
 | Player | By the Hollow Stag (25) | Typical run end | Wins |
 |---|---|---|---|
-| **Fresh profile** (no Grove) | **reaches the Hollow Stag** with few leaks (**0–3 leaves** lost; revised 2026-09-28, user: "players should be able to get to 25 even without perks and unlocks; 25 is when they start getting combos") | act 2 (drift 35–50): **it gets harder after 25** | rare (<5%, strong play + good Dreams) |
+| **Fresh profile** (no Grove) | **reaches the first boss** with few leaks and **beats it about 75% of the time** (user, 2026-09-29: "doesn't have to beat the first boss all the time") (**0–3 leaves** lost; revised 2026-09-28, user: "players should be able to get to 25 even without perks and unlocks; 25 is when they start getting combos") | act 2 (drift 35–50): **it gets harder after 25** | rare (<5%, strong play + good Dreams) |
 | **~5 Grove unlocks** (~3 h in) | a few leaks, 2–4 leaves lost | act 3 | occasional |
 | **Half the tree** (~15 h) | few leaks | act 4 | the first win |
 | **Full tree** | clean | wins reliably at Blight 0 | Blight Levels bring the leaking back |
@@ -105,6 +151,20 @@ turn leaks into a hold. Targets for the balance simulation and playtests (averag
   with few leaks, even with no Grove); **from drift 25 it gets hard**, as combos, the second family
   and Dreamlight arrive: leaks start in act 2 unless the Dreams and combos come together, so each
   block's Dream visibly matters there.
+- **Spend or save: the early tension** (2026-09-29, user: "we want users early to be using the Dew
+  as drifts happen, or take the risk to save the Dew for bigger upgrades; if they save, nightmares
+  should come close to reaching the Heartwood"). Act 1 is tuned so that:
+  - **Spending as it comes** (planting and growing whenever affordable, building the maze) is safe:
+    nightmares rarely get past **about 70% of the route**.
+  - **Saving** (holding Dew for up to a block to afford a bigger growth, e.g. a branch or an early
+    final) is a real gamble: nightmares reach **about 85–100% of the route**, the Heartwood shakes,
+    maybe **0–2 leaves** fall, but a decent maze survives it and the upgrade then pays off.
+  - **Neither choice is always right:** saving should win over a whole act if you survive the
+    gamble, and spending should win if your maze is weak. The maze itself (its length, its bends)
+    is what makes saving affordable, so building the maze stays central.
+  - Feedback that sells the gamble: the Heartwood's leaves tremble and the route near it glows
+    faintly cold when a nightmare passes 85% of the route (a "close call"), and the rest report
+    counts close calls.
 - **Leaks must be readable, not random:** a leak should come from a nightmare the maze doesn't
   answer (a Hound on a straight, a Phantom through walls, a resisted family), so the rest report and
   the boss dossier point at the fix.
@@ -113,7 +173,7 @@ turn leaks into a hold. Targets for the balance simulation and playtests (averag
   The balance simulation measures the rest.
 - **Interim acts 1–2 tightening** (2026-09-28; two playtests: a fresh profile at drift 23 and
   again at drift 43 with **15/15 leaves**, ~800 and **1,925 Dew banked**, "haven't done much in the
-  past 10 drifts"). **Revised the same day** (later playtests: "too hard from early drifts, especially 15 with the swarm"): nightmare health **×1.0 through drift 25** (act 1 as it was), **act 2 ramping from ×1.0 at drift 26 to **×1.55** by drift 40 (was ×1.35; the 2026-09-29 batch had Balanced surviving to a median drift 66 with a win), ×1.55
+  past 10 drifts"). **Revised the same day** (later playtests: "too hard from early drifts, especially 15 with the swarm"): nightmare health **×1.0 for drifts 1–9, ramping to ×1.15 by drift 20 and holding to 25** (2026-09-29: saving was almost free for the starting three families; the drift 25 Hollow Stag itself is exempt and keeps ×1.5, its escort doesn't), then **act 2 at ×1.15 for drifts 26–30 (a breather while the first finals arrive), ramping to ×1.55 by drift 45** (was: ramp from drift 26, which left 2–4 of 10 Grove-player runs dead at 28–30), ×1.55
   to 50** (acts 3–4 go from ×1.4 to **×1.6**, 2026-09-29), and **Dew per dispel ×0.85 in act 2 only** (act 1 back to ×1.0). Drift 15's Swarm is lighter (`acts_1_2.md`). Interim
   numbers, as exports, until the balance simulation's quick batch replaces them.
 - **Act 3 probe** (Tower Code, `tools/balance_act3.gd`, 2026-09-28): drifts 61–70, 12 final forms at
@@ -206,7 +266,7 @@ After the act 2 boss (drift 50), the Heartwood offers **one Sapling** of itself 
 | Lever | Was | Now |
 |---|---|---|
 | Health growth | ×1.045 per drift all run | **×1.045 for drifts 1–25, ×1.055 for 26–50, ×1.045 from 51** (≈ ×11 by drift 50, ×100 by drift 100; `acts_3_4.md`) |
-| Elites | block finales only | **one Deeply Blighted nightmare in every drift from drift 26** (a random non-boss kind from that drift) |
+| Elites | block finales only | **one Deeply Blighted nightmare in every drift from drift 31** (was 26; moved 2026-09-29: the Grove-player batch had half of all runs die at drifts 28–29, the act 2 opening, before any final form could be grown) (a random non-boss kind from that drift) |
 | Family resist / weak | ×0.65 / ×1.35 | **×0.5 / ×1.5** (`enemy_design.md`) |
 | Nurture | flat cost, +15% damage per rank | **Nurture v2**: cost × tier, +10% per rank, a Focus at rank III (`warden_stats.md`) |
 
@@ -252,9 +312,10 @@ card luck**. Dispelling a great nightmare frees the light it stole from the drea
 | Source | Dreamlight |
 |---|---|
 | First family pick (after drift 1) | **1** (so act 1 can take one branch) |
-| Each boss (drifts 25, 50, 75) | **3** |
+| Each boss (drifts 25, 50, 75) | **4** (was 3, 2026-09-29: runs earned only 3–6 Dreamlight, so no run ever reached an Ascended form) |
 | Dream cards (Sudden Insight, Borrowed Memory) | +1 / +2 |
 | Grove perk *Early Light* | +1 at run start |
+| Every rest from drift 51 (2026-09-29) | **+1** (the Heartwood wakes: no run had ever reached an Ascended form) |
 
 **Spending (per run, like the old unlock cards):**
 
@@ -307,16 +368,30 @@ drift 10 on**, after the Dream, the wind brings **2 Omens**. Pick one to change 
 (5 drifts) for a reward, or keep **Clear Skies** (the default: nothing changes). This is optional
 risk: players set their own difficulty block by block.
 
-- **Shown like a Dream, with Clear Skies as a card** (2026-09-28, user: first "it seems like Omens
-  are mandatory", then "the Omens should appear like a Dream card, not in the bottom right"; this
-  replaces the small ask-first prompt beside Start). After the Dream, the Omen screen opens
-  **centred, in the Dream screen's layout**: the title *"The wind carries Omens"* and **three cards
-  side by side**: the two Omens (name, what changes this block, the reward in gold, the Omen art)
-  and **Clear Skies** (a calm moonlit card: *"Nothing changes. No reward."*), which is highlighted
-  as the default. Esc and right-click pick Clear Skies; "Peek at the map" works as on the Dream
-  screen. Setting (Gameplay): **Omens: Ask each rest / Never** (Never = no screen, always Clear
-  Skies). Blight Levels that force an Omen show only the two Omen cards with "An Omen must be
-  faced".
+- **Commit blind, then the Omen is revealed** (2026-09-30, user: "we should be asking if we want Clear
+  Skies or an Omen, so the player locks in the Omen before seeing what it is; make the Omens a bit
+  more punishing; I feel like I can Omen every rest"). Replaces the "pick 1 of 2 Omens or Clear
+  Skies" screen:
+  1. After the Dream, a centred screen in the Dream layout with **two cards**: **Face an Omen** (a
+     face-down card, the wind swirling over it: *"An unknown twist for the next block. Survive it
+     for a reward."*) and **Clear Skies** (*"Nothing changes. No reward."*, the default; Esc /
+     right-click pick it).
+  2. Choosing **Face an Omen** commits you (no going back to Clear Skies), then **reveals 2 Omens**
+     (valid now, never the previous rest's) and you **pick 1**: name, what changes, the reward in
+     gold. (Revised 2026-09-30, user via Meta Game Discussion: "you either choose Face an Omen or
+     Clear Skies, then if you face an Omen, you have two Omens to pick from"; this replaces the
+     single blind draw.) The Grove perk **Omen Reader** shows **3** to pick from (`meta_design.md`).
+  - **Harsher Omens:** every Omen's downside stays about **1.5× its old strength** (e.g. Crowded
+    Paths 45% more nightmares, Blood Moon 35% faster), as the user wanted Omens more punishing.
+    Rewards stay **×1.5** of the old values (user, 2026-09-30: "1.5 for now"; ×1.25 was proposed for
+    the pick-of-2 flow and can be revisited after playtests). Double-edged Omens
+    keep their sharper downside.
+  - The goal: facing an Omen is a real gamble you take when your maze is strong, not something you
+    do every rest. Target: a Balanced player facing an Omen every rest should lose clearly more
+    leaves than one who picks their moments.
+  - Setting (Gameplay): **Omens: Ask each rest / Never** stays. Blight Levels that force an Omen
+    skip step 1 and reveal it directly (*"An Omen must be faced"*).
+  - Omen emblems are still on hold (user, 2026-09-29); the face-down card uses the wind swirl.
 - An Omen affects only the **next block**. Bosses themselves ignore Omens (their escorts don't).
 - Rewards are paid at the rest **after** the block, and only if the Heartwood is still standing.
   Losing leaves doesn't cancel the reward.

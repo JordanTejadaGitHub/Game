@@ -4,8 +4,8 @@ extends SceneTree
 # never the player's own run or profile.
 #   godot --headless --path . --script res://tests/test_save.gd --fixed-fps 60
 
-const RUN_PATH := "user://test_run_save.json"
-const PROFILE_PATH := "user://test_heartwood.json"
+var RUN_PATH := "user://test_run_save_%d.json" % OS.get_process_id()  # Per process: parallel sessions share user://
+var PROFILE_PATH := "user://test_heartwood_%d.json" % OS.get_process_id()  # Per process: parallel sessions share user://
 
 var failures := 0
 
@@ -56,6 +56,7 @@ func _run() -> void:
 	await _frames(3)
 	var saved := {"seed": map_generator.map_seed, "dew": run_state.dew, "leaves": run_state.leaves,
 		"cleansed": run_state.creatures_cleansed, "tended": run_state.obstacles_tended}
+	var rolled := _drift_prints(director)  # Random drifts: the resumed run must meet the same ones
 	_check(RunSaver.has_save(), "a rest autosaves")
 	main.queue_free()
 	await process_frame
@@ -69,6 +70,10 @@ func _run() -> void:
 	map_generator = main.get_node("%MapGenerator")
 	dreams = main.get_node("%DreamState")
 	_check(map_generator.map_seed == saved.seed, "the same map is rebuilt")
+	_check(_drift_prints(director) == rolled and rolled.any(func(p: String) -> bool: return p.begins_with("rolled")),
+		"the same random drifts after Continue")
+	_check(RestReport.templates_text(director, 2).begins_with("\nThis block: ") and RestReport.templates_text(director, 1) == "",
+		"the rest report lists the rolled block's drift shapes (%s)" % RestReport.templates_text(director, 2).strip_edges())
 	_check(run_state.dew == saved.dew and run_state.leaves == saved.leaves, "Dew and leaves restored")
 	_check(run_state.creatures_cleansed == saved.cleansed and run_state.obstacles_tended == saved.tended,
 		"Seed counters restored")
@@ -180,3 +185,15 @@ func _check(condition: bool, label: String) -> void:
 	if not condition:
 		failures += 1
 		printerr("FAIL: " + label)
+
+# Each drift as text (template + kinds, counts, elites), to compare two runs' rolls.
+func _drift_prints(director: DriftDirector) -> Array[String]:
+	var prints: Array[String] = []
+	for number in range(1, director.get_total_drifts() + 1):
+		var template := DriftRoller.template_of(director, number)
+		var parts: Array[String] = ["rolled " + String(template) if template != &"" else "hand"]
+		for group in director.drifts[number - 1].groups:
+			for entry in group.entries:
+				parts.append("%s×%d%s" % [entry.enemy.resource_path.get_file() if entry.enemy else "?", entry.count, "!" if entry.elite else ""])
+		prints.append(" ".join(parts))
+	return prints

@@ -32,6 +32,15 @@ const WEATHERED_WALLS_RULE := &"weathered_walls"  # Thornwalls can't be trampled
 var tangled := false  # The Tangled Dream is owned (checked once a frame; see Enemy._tangled_slow)
 var rooted_cells := {}  # {cell: Held nightmare} (Rooted Nightmares; see _update_rooted_cells)
 var waiting_cells := {}  # {cell: nightmare waiting behind a rooted one}
+# Boss pools (enemy_design.md): the Night Mare galloped round again (it took `leaves`); a Warden
+# withered; a lantern was lit / snuffed.
+signal enemy_lapped(enemy: Node2D, leaves: int)
+signal tower_withered(tower: Node2D, by: Node2D)
+signal lantern_lit(lantern: Node2D)
+signal lantern_snuffed(lantern: Node2D, by_player: bool)
+var _lanterns: Array[ColdLantern] = []
+var _dimmed := {}  # {Tower: true} Wardens a lantern slowed last frame (reset when out of the light)
+var _last_withered := {}  # {Withering Oak: Tower it withered last}
 var _saplings := {}  # {Hollow Oak: [cells it planted]}
 var _sapling_sprites := {}  # {cell: AnimatedSprite2D} the saplings' grow / idle / wither animation
 
@@ -65,7 +74,11 @@ func spawn_enemy(enemy_data: EnemyData, health_scale: float = 1.0, modifiers: Di
 
 func _create(enemy_data: EnemyData, health_scale: float, modifiers: Dictionary = {},
 		elite: bool = false) -> Node2D:
-	var enemy = enemy_scene.instantiate()
+	return _create_prepared(enemy_scene.instantiate(), enemy_data, health_scale, modifiers, elite)
+
+# _create for an enemy already instantiated (so flags like is_echo are set before its _ready).
+func _create_prepared(enemy, enemy_data: EnemyData, health_scale: float, modifiers: Dictionary = {},
+		elite: bool = false) -> Node2D:
 	enemy.enemy_data = enemy_data
 	enemy.health_scale = health_scale
 	enemy.modifiers = modifiers
@@ -79,6 +92,10 @@ func _create(enemy_data: EnemyData, health_scale: float, modifiers: Dictionary =
 	enemy.grief_requested.connect(_on_grief_requested)
 	enemy.status_refused.connect(status_refused.emit)
 	enemy.trample_cell_requested.connect(_on_trample_cell_requested)
+	enemy.lapped.connect(_on_lapped)
+	enemy.lantern_requested.connect(_on_lantern_requested)
+	enemy.wither_requested.connect(_on_wither_requested)
+	enemy.echo_requested.connect(_on_echo_requested)
 	add_child(enemy)
 	return enemy
 
@@ -89,13 +106,17 @@ func _spawn_followers(leader: Node2D, path: PackedVector2Array) -> void:
 	if data.followers == null or data.follower_count <= 0:
 		return
 	var followers: Array[Node2D] = []
+	# A boss's followers (the Huntsman's hounds) grow with the drift like its escort, not its fixed scale.
+	var scale: float = drift_health_scale if data.is_boss else leader.health_scale
 	for i in data.follower_count:
-		var follower := _create(data.followers, leader.health_scale, leader.modifiers)
+		var follower := _create(data.followers, scale, leader.modifiers)
 		follower.position = leader.position
 		follower.set_path(path)
 		follower.hold_time = data.follower_spacing * (i + 1)
 		followers.append(follower)
 		enemy_split.emit(leader, follower)
+	if data.pack_shield < 1.0:
+		leader.pack.append_array(followers)  # Huntsman: they shield him while they hunt
 	leader.cleansed.connect(func(_leader: Node2D) -> void:
 		for follower in followers:
 			if is_instance_valid(follower):
@@ -119,6 +140,7 @@ func _process(delta: float) -> void:
 	var dreams := get_tree().get_first_node_in_group(DreamState.GROUP) as DreamState
 	tangled = dreams != null and dreams.has_rule(TANGLED_RULE)
 	_update_rooted_cells(dreams)
+	_update_lantern_light()
 
 # Rooted Nightmares (Dream card 122): with the card, every Held maze walker blocks its cell for the
 # others ({cell: nightmare}), and walkers waiting behind one block theirs so nobody stacks up. Rebuilt
@@ -151,6 +173,7 @@ func route_around(from: Vector2) -> PackedVector2Array:
 
 func _on_enemy_cleansed(enemy: Node2D) -> void:
 	_wither_saplings(enemy)
+	_snuff_lanterns_of(enemy)
 	_split(enemy)
 	enemy_cleansed.emit(enemy)
 
@@ -252,7 +275,13 @@ func _flight_path(weave: float) -> PackedVector2Array:
 	return points
 
 # Moth Queen: a brood nightmare lands on the route cell nearest her and walks the maze from there.
+# Huntsman: his horn calls a hound only while the pack is short (the whole pack at once when he
+# regroups at half health, then never again); it runs from his cell and joins the pack.
 func _on_brood_requested(queen: Node2D) -> void:
+	var data: EnemyData = queen.enemy_data
+	if data.pack_shield < 1.0:
+		_call_pack(queen)
+		return
 	var route: PackedVector2Array = map_generator.get_path_from(map_generator.startPath)
 	if route.is_empty():
 		return
@@ -344,3 +373,149 @@ func _wither_sprite(cell: Vector2) -> void:
 		return
 	sprite.animation_finished.connect(sprite.queue_free)
 	sprite.play(&"wither")
+
+# --- Boss pools (enemy_design.md, 2026-09-29) --------------------------------------------------------
+
+# Huntsman: calls hounds until the pack is back to full (follower_count). The regroup at half health
+# is the last call.
+func _call_pack(huntsman: Node2D) -> void:
+	var data: EnemyData = huntsman.enemy_data
+	if huntsman.is_regrouped():
+		if huntsman.has_meta(&"regroup_called"):
+			return  # The horn fell silent after The Kill
+		huntsman.set_meta(&"regroup_called", true)
+	var missing: int = data.follower_count - huntsman.pack_alive()
+	if missing <= 0 or data.brood == null:
+		return
+	var path: PackedVector2Array = map_generator.get_path_from(huntsman.get_target_cell())
+	if path.is_empty():
+		return
+	var count := missing if huntsman.is_regrouped() else 1
+	for i in count:
+		var hound := _create(data.brood, drift_health_scale, huntsman.modifiers)
+		hound.position = huntsman.position + Vector2.from_angle(TAU * i / maxi(count, 1)) * SPLIT_SPACING
+		hound.set_path(path)
+		huntsman.pack.append(hound)
+		enemy_split.emit(huntsman, hound)
+
+# Night Mare: every lap takes its lap leaves (Leaf Fall doubles them, as for any leak).
+func _on_lapped(enemy: Node2D) -> void:
+	var leaves: int = enemy.enemy_data.lap_leaves
+	var omens := get_tree().get_first_node_in_group(OmenDirector.GROUP) as OmenDirector
+	if omens:
+		leaves = roundi(leaves * omens.get_leak_multiplier())
+	var run_state = get_node_or_null("%RunState")
+	if run_state != null:
+		run_state.lose_leaves(leaves)
+	enemy_lapped.emit(enemy, leaves)
+
+# Lamplighter: lights a cold lantern on an empty cell beside its route, near it (up to lantern_max).
+func _on_lantern_requested(lamplighter: Node2D) -> void:
+	var data: EnemyData = lamplighter.enemy_data
+	var own := _lanterns.filter(func(l: ColdLantern) -> bool: return l.is_lit() and l.owner_boss == lamplighter)
+	if own.size() >= data.lantern_max:
+		return
+	var taken := {}
+	for lantern in _lanterns:
+		taken[lantern.cell] = true
+	var near: PackedVector2Array = lamplighter.get_cells_ahead(3)
+	near.append_array(lamplighter.get_cells_behind().slice(-2))
+	var on_route := {}  # The whole route (a maze doubles back past itself), never lit on
+	for cell in lamplighter.get_cells_behind() + lamplighter.get_cells_ahead(1000):
+		on_route[cell] = true
+	var candidates: Array[Vector2] = []
+	for cell in near:
+		for offset in [Vector2.LEFT, Vector2.RIGHT, Vector2.UP, Vector2.DOWN]:
+			var beside: Vector2 = cell + offset
+			if not on_route.has(beside) and not taken.has(beside) and not candidates.has(beside) \
+					and map_generator.is_buildable(beside):
+				candidates.append(beside)
+	if candidates.is_empty():
+		return
+	var lantern := ColdLantern.new()
+	lantern.cell = candidates.pick_random()
+	lantern.radius = data.lantern_radius
+	lantern.life = data.lantern_life
+	lantern.snuff_dew = data.lantern_snuff_dew
+	lantern.owner_boss = lamplighter
+	lantern.cell_size = map_generator.MAP_GRID.cell_size.x
+	lantern.position = map_generator.MAP_GRID.calculate_map_position(lantern.cell)
+	lantern.snuffed.connect(_on_lantern_snuffed)
+	map_generator.add_child(lantern)  # In the world, never under this node (its children are nightmares)
+	_lanterns.append(lantern)
+	lantern_lit.emit(lantern)
+
+func _on_lantern_snuffed(lantern: ColdLantern, by_player: bool) -> void:
+	_lanterns.erase(lantern)
+	if by_player and lantern.snuff_dew > 0:
+		var run_state = get_node_or_null("%RunState")
+		if run_state != null:
+			run_state.earn_dew_at(lantern.snuff_dew, lantern.global_position)
+	lantern_snuffed.emit(lantern, by_player)
+
+# The Lamplighter is dispelled: its lanterns go out.
+func _snuff_lanterns_of(boss: Node2D) -> void:
+	for lantern in _lanterns.duplicate():
+		if lantern.owner_boss == boss:
+			lantern.snuff(false)
+
+# Wardens in a lantern's cold light attack slower (the strongest slow if several reach one).
+func _update_lantern_light() -> void:
+	if _lanterns.is_empty() and _dimmed.is_empty():
+		return
+	var now := {}
+	for lantern in _lanterns:
+		if not is_instance_valid(lantern) or not lantern.is_lit():
+			continue
+		var slow: float = lantern.owner_boss.enemy_data.lantern_slow if is_instance_valid(lantern.owner_boss) else 0.4
+		for tower in tower_container.get_children():
+			if tower is Tower and tower.global_position.distance_to(lantern.global_position) <= lantern.get_reach():
+				now[tower] = minf(now.get(tower, 1.0), 1.0 - slow)
+	for tower in _dimmed:
+		if is_instance_valid(tower) and not now.has(tower):
+			tower.dim_multiplier = 1.0
+	for tower in now:
+		tower.dim_multiplier = now[tower]
+	_dimmed = now
+
+# Withering Oak: roots wither the `count` strongest Wardens within reach (never the one it withered
+# last time, when there's another choice) for wither_time seconds.
+func _on_wither_requested(oak: Node2D, count: int) -> void:
+	var data: EnemyData = oak.enemy_data
+	var reach: float = data.wither_reach * map_generator.MAP_GRID.cell_size.x
+	var candidates: Array = []
+	for tower in tower_container.get_children():
+		if tower is Tower and not tower.is_queued_for_deletion() and tower.tower_data.can_attack \
+				and not tower.is_withered() and tower.global_position.distance_to(oak.global_position) <= reach:
+			candidates.append(tower)
+	var last = _last_withered.get(oak)
+	if candidates.size() > count and last in candidates:
+		candidates.erase(last)
+	candidates.sort_custom(func(a: Tower, b: Tower) -> bool:
+		return a.get_damage() * a.get_attacks_per_second() > b.get_damage() * b.get_attacks_per_second())
+	for tower in candidates.slice(0, count):
+		tower.wither(data.wither_time)
+		_last_withered[oak] = tower
+		tower_withered.emit(tower, oak)
+
+# Remembering Oak: the echo of the boss this run drew for `act` rises beside it with echo_share of
+# that boss's health, and walks on from the Oak's cell with its full trait.
+func _on_echo_requested(oak: Node2D, act: int) -> void:
+	var director := get_node_or_null("%DriftDirector") as DriftDirector
+	var drawn: BossData = director.get_drawn_boss(act) if director else null
+	var boss: EnemyData = drawn.boss if drawn != null else null
+	if boss == null or boss.echo_at.size() > 0:
+		return  # No boss drawn for that act (or it's an Oak itself)
+	var path: PackedVector2Array = map_generator.get_path_from(oak.get_target_cell())
+	if path.is_empty():
+		return
+	var scale: float = director.get_health_scale(boss, maxi(director.drifts_started, 1)) * oak.enemy_data.echo_share
+	var echo = enemy_scene.instantiate()
+	echo.is_echo = true
+	var created := _create_prepared(echo, boss, scale)
+	if boss.trait_kind == EnemyData.Trait.FLYING and not boss.flies_along_route:
+		path = PackedVector2Array([oak.get_target_cell(), map_generator.endPath])
+	created.position = oak.position + Vector2(GRIEF_RING, 0).rotated(TAU * act / 3.0)
+	created.set_path(path)
+	_spawn_followers(created, path)
+	enemy_split.emit(oak, created)

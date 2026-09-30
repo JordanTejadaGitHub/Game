@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="UnlockData" format=3]
+
+[ext_resource type="Script" path="res://resource/meta/script/unlock_data.gd" id="1_unlock"]
+
+[resource]
+script = ExtResource("1_unlock")
+id = "memory_moon_moth"
+display_name = "Memory Warden: The Moon Moth"
+description = "Grows the first time you dispel the Moth Queen, and can be your reward after that boss. Reveals every Lurker; nearby Wardens reach further."
+root = 0
+costs = Array[int]([])
+order = 42
+icon = -1
+milestone = "boss_moth_queen"
+memory_warden = "moon_moth"
+memory_boss = "moth_queen"

@@ -61,6 +61,36 @@ static func starlit_backs() -> bool:
 		return true
 	return not ResultsScreen.is_demo() and HeartwoodMemory.load_data().milestones.has(ALL_DREAMS)
 
+# Developer toggle (settings, debug builds only): the secret 6th loadout slot for testing, without
+# recording "The Heartwood in full bloom" or writing the profile.
+const SIXTH_SLOT_SETTING := "sixth_slot"
+static var force_sixth_slot := false  # Tests
+
+static func sixth_slot_dev_active() -> bool:
+	if not TestGrove.is_available():
+		return false
+	if force_sixth_slot:
+		return true
+	if OS.get_cmdline_args().has("--script"):
+		return false
+	return bool(HeartwoodMemory.get_settings().get(SIXTH_SLOT_SETTING, false))
+
+# PARKED (user decision 2026-09-29, tower_design.md / meta_design.md): Memory Wardens are switched off.
+# Their blooms are left out of the Grove (HeartwoodMemory.load_grove), so none grows or shows and the
+# boss pick never offers one. Code, art and resources stay; boss first-dispels are still recorded
+# quietly, so turning this back on restores the blooms a player has earned.
+const MEMORY_WARDENS_ENABLED := false
+
+# Memory Wardens (tower_design.md): a boss's first dispel records milestone "boss_<kind>", which grows
+# its bloom on the Families limb; in later runs its Warden is offered in the pick after that boss.
+const MEMORY_BOSS_PREFIX := "boss_"
+# The Memory Warden card's flavour line (screens_ui.md "Memory Warden card"), by Warden id.
+const MEMORY_FLAVOUR := {
+	"white_stag": "The Hollow Stag's light remembers you.",
+	"pond_keeper": "The Mire Hag's still water remembers you.",
+	"moon_moth": "The Moth Queen's moonlight remembers you.",
+}
+
 # Balance simulation: play the next run with a Grove profile preset (&"fresh" / &"early" / &"half" /
 # &"full", GrovePresets) from a temp file; the real profile is untouched. GrovePresets.unload() undoes it.
 static func load_preset(preset: StringName) -> String:
@@ -69,7 +99,8 @@ static func load_preset(preset: StringName) -> String:
 # A developer run (Test Grove, Unlock all families, Dev Grove or the Dream of everything toggle):
 # nothing is banked or recorded.
 static func is_dev_run() -> bool:
-	return TestGrove.is_active() or all_families_active() or DevGrove.is_active() or all_dreams_dev_active()
+	return TestGrove.is_active() or all_families_active() or DevGrove.is_active() or all_dreams_dev_active() \
+		or sixth_slot_dev_active()
 
 @onready var run_state: RunState = %RunState
 @onready var drift_director: DriftDirector = %DriftDirector
@@ -82,6 +113,8 @@ var active := false  # Meta applies (full game)
 var records := false  # Run end writes to the profile (real full game)
 var seed_bonus := 0.0
 var _shades_this_run := 0
+var _bosses_this_run: Array[String] = []  # Boss kinds dispelled this run (Memory Warden milestones)
+var memory_wardens := {}  # Boss kind -> its Memory Warden (TowerData), for blooms the Grove has grown
 
 func _ready() -> void:
 	active = not ResultsScreen.is_demo()
@@ -107,8 +140,11 @@ func _ready() -> void:
 	_apply_blight(blight_level)
 	run_state.seed_bonus = seed_bonus
 	spawner.enemy_cleansed.connect(func(enemy: Node2D) -> void:
-		if enemy.enemy_data.resource_path.get_file().get_basename() == SHADE_KIND:
-			_shades_this_run += 1)
+		var kind: String = enemy.enemy_data.resource_path.get_file().get_basename()
+		if kind == SHADE_KIND:
+			_shades_this_run += 1
+		if enemy.enemy_data.is_boss and not enemy.is_echo:  # Echoes (Remembering Oak) aren't bosses met
+			_on_boss_dispelled(kind))
 	run_state.run_ended.connect(_on_run_ended)
 
 # A family's base Warden, or null while it isn't built yet (a Grove node can name a coming family).
@@ -165,6 +201,10 @@ func _apply_grove(memory: Dictionary) -> void:
 			var data := _family(id)
 			if data != null and not family_screen.families.has(data):
 				family_screen.families.append(data)
+		if unlock.memory_warden != "":
+			var warden := _family(unlock.memory_warden)
+			if warden != null:
+				memory_wardens[unlock.memory_boss] = warden
 		for id in unlock.dream_cards:
 			if not cards.has(id):
 				cards.append(id)
@@ -231,9 +271,9 @@ func _apply_blight(level: int) -> void:
 	seed_bonus += 0.1 * level
 	if level >= 1:
 		drift_director.blight_health_multiplier = 1.1
-	if level >= 2:
-		run_state.dew = maxi(run_state.dew - 20, 0)
-		run_state.dew_changed.emit(run_state.dew)
+	if level >= 2:  # The first family pick gives no Dreamlight (was "starting Dew −20": drift 1 unwinnable)
+		if "first_pick_dreamlight" in dream_state:
+			dream_state.first_pick_dreamlight = 0
 	if level >= 3:
 		drift_director.blight_boss_health_multiplier = 1.25
 	if level >= 4:
@@ -280,10 +320,13 @@ func _on_run_ended(won: bool) -> void:
 		reached.append("tend_100")
 	if blight_level >= 5:
 		reached.append("blight_5")
+	for kind in _bosses_this_run:  # A first dispel grows that boss's Memory Warden bloom
+		reached.append(MEMORY_BOSS_PREFIX + kind)
 	for id in reached:
 		if not memory.milestones.has(id):
 			memory.milestones[id] = true
 			HeartwoodMemory.grow_milestone_nodes(memory, id)  # Refunds a node it grows, if bought
+	HeartwoodMemory.check_full_bloom(memory)  # Milestone blooms can complete the tree
 	# Every milestone's cosmetic, including ones set elsewhere mid-run (Discover every combo: the Codex).
 	for id in memory.milestones:
 		if MILESTONE_COSMETICS.has(id) and not memory.cosmetics.has(MILESTONE_COSMETICS[id]):
@@ -313,3 +356,11 @@ func _add_dev_tag() -> void:
 	tag.add_theme_constant_override("outline_size", 4)
 	hud.add_child(tag)
 	tag.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_RIGHT, Control.PRESET_MODE_MINSIZE, 6)
+
+# A boss was dispelled: remember it for its Memory Warden milestone, and if the Grove has grown that
+# boss's bloom, the pick after it can offer the Warden (FamilyPickScreen.pending_memory_warden).
+func _on_boss_dispelled(kind: String) -> void:
+	if not _bosses_this_run.has(kind):
+		_bosses_this_run.append(kind)
+	if memory_wardens.has(kind) and "pending_memory_warden" in family_screen:
+		family_screen.pending_memory_warden = memory_wardens[kind]

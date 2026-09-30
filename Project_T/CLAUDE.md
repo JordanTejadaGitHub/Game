@@ -87,7 +87,7 @@ accessibility, Steam achievements (milestones map to them). Acts 3–4 and all f
   `MetaRun.all_families_active()`, `force_all_families` for tests): a normal run with every Warden-root
   Grove family + Dream card added by `MetaRun._apply_all_families()` (also in the demo). The profile's
   unlocks are untouched. `MetaRun.is_dev_run()` (this or Test Grove) = no Seeds banked, no records,
-  no whispers / nightmares seen / last first pick written.
+  no whispers / last first pick written (nightmares seen still are: "New" means never seen on this profile).
 - **DamageLog** (`%DamageLog`, `DamageLog.instance`): every soothe is reported by
   `Enemy.take_damage(..., source, tag)` as a `DamageLog.Event` (source Warden, kind hit/status/bolt,
   combos crit/weak/marked/fog/conducted/static with `combo_amount`). Pass the source everywhere:
@@ -138,8 +138,8 @@ accessibility, Steam achievements (milestones map to them). Acts 3–4 and all f
   (+1 leaf, `act_started`). `family_pick_requested(&"first"|&"boss")` fires after drift 1 and
   before a boss rest; `FamilyPickScreen` calls `family_picked()` (first pick: 3 random of every
   unlocked family, never the last run's offer again, profile `last_first_pick`). `is_build_phase()`
-  = resting (75% refunds). Health `get_growth(n)`: × 1.045 per drift, × 1.055 from drift 26 (`late_growth_from`), × 1.045 from 51 (`endgame_growth_from`); bosses × 1.5; acts 3–4 × 1.4 on top, bosses too (`late_acts_health_multiplier`). From drift 26 a drift listing no elites gets one, two from 76 (`add_guaranteed_elite`). Hooks for Dreams/Omens:
-  `get_health_multiplier`, `get_schedule_modifiers`, `get_spawn_modifiers`, `_pay_rest_bonus`. Interim: act 2 health ramps ×1.0 (26) → ×1.35 (40) (`get_early_multiplier`, `early_*` exports); acts 3–4 ×1.4; act 2 dispel Dew ×0.85 (`RunState.act_dew_multipliers` [1.0, 0.68, 0.65, 0.5]).
+  = resting (75% refunds). Health `get_growth(n)`: × 1.045 per drift, × 1.055 from drift 26 (`late_growth_from`), × 1.045 from 51 (`endgame_growth_from`); bosses × 1.5; acts 3–4 × 1.4 on top, bosses too (`late_acts_health_multiplier`). From drift 31 a drift listing no elites gets one, two from 76 (`add_guaranteed_elite`). Hooks for Dreams/Omens:
+  `get_health_multiplier`, `get_schedule_modifiers`, `get_spawn_modifiers`, `_pay_rest_bonus`. Acts 1–2 health (`get_early_multiplier`, `act1_*` / `early_*` exports): ×1.0 to drift 9 → ×1.15 at 20, held through 30 → ×1.55 at 45, held to 50 (act 1's boss exempt: stays ×1.5); acts 3–4 ×1.4; act 2 dispel Dew ×0.85 (`RunState.act_dew_multipliers` [1.0, 0.68, 0.65, 0.5]).
 - Drift data: `DriftData.groups: Array[DriftGroup]`; `DriftGroup.entries: Array[DriftEntry]`
   (enemy + count + `elite`; several entries mix evenly), `spacing`, `delay`. `get_schedule()` →
   `[[time, EnemyData, elite], …]`. Drifts 1–50 mirror the acts_1_2.md table (hand-edited files; mixed
@@ -156,6 +156,18 @@ accessibility, Steam achievements (milestones map to them). Acts 3–4 and all f
   start→end and are skipped by `get_maze_walkers()` (the path rule / re-routing); signals
   `enemy_cleansed`, `enemy_reached_goal`, `enemy_split` (split children and followers, emitted
   before the parent's cleanse), `wall_trampled`. `tests/test_creatures.gd`.
+- **Boss pools** (enemy_design.md, 2026-09-29): `BossData` (`resource/boss/act_N/*.tres`: boss
+  `EnemyData`, its whole boss `drift`, `is_default`); `BossPool` (static) draws one per act from the
+  map seed and `apply()` swaps it into drift 25/50/75/100, so dossier/banner/bookkeeping just read the
+  drift. Defaults: first run ever, tests (unless `BossPool.force_draw`), demo acts 1–2. Last run's
+  boss per act is ×0.5 (profile `last_bosses`); the draw is in the run save (`bosses`,
+  `DriftDirector.preset_bosses`). Only when the drifts are loaded from `resource/drift/demo/`
+  (`_own_drifts`). New boss drifts: `resource/drift/boss/`. New `EnemyData` "Boss pools" fields:
+  laps (Night Mare), `hurt_*` (Scarecrow; its Crows use grief_*), `pack_shield` (Huntsman: followers +
+  brood form `enemy.pack`), lanterns (Lamplighter: `ColdLantern` nodes under MapGenerator,
+  `Tower.dim_multiplier` set each frame by the spawner), shrug + `min_speed_share` (Barrow King),
+  `regen_*` (Mourning Mother), wither (`Tower.wither()` / `withered_left`), echoes (`Enemy.is_echo`:
+  never counted as a boss). New bosses use tinted placeholder art. `tests/test_boss_pools.gd`.
 - Selling: `TowerSeller` (`%TowerSeller`): outside build mode, hover a Warden, Delete (or the panel's Sell) sells for
   `Tower.invested_dew` × 100% (resting) or 50% (walking); `MapGenerator.unblock_cell`.
   It also owns selection (`selection`, `selected` = first; `selection_changed`): click, drag box
@@ -200,7 +212,7 @@ accessibility, Steam achievements (milestones map to them). Acts 3–4 and all f
   camera along the path (`GameCameraNode.glide`). The build ghost shows "+N path".
 - HUD from screens_ui.md: `DriftBanner` (top centre: act/drift, block pips, "Boss in N", boss
   health bar with 50% marker), `NightmareInfo` (hover panel; `EnemyData.trait_text`; "New" tag via
-  profile `nightmares_seen`), `LeakEffect` (pulse + falling leaf at the goal). Pause menu: Abandon
+  profile `nightmares_seen`), `LeakEffect` (pulse + falling leaf at the goal), `CloseCalls` (world, made by the HUD: a nightmare past 85% of its route trembles the Heartwood + a cold glow on the last stretch, throttled; signal `close_call(enemy)` for Sound; rest report "Close calls: N"; `tests/test_close_calls.gd`). Pause menu: Abandon
   run, whispers toggle, run summary. Settings: UI scale, Auto-drift default, reduced motion, damage
   numbers (`damage_numbers` 0/1/2). Hotkeys G (grow selected), H / F (centre on goal / start).
   Results show run stats (`RunState.leaves_lost`, `longest_path`, `play_time`). `tests/test_ui.gd`.
@@ -220,11 +232,13 @@ accessibility, Steam achievements (milestones map to them). Acts 3–4 and all f
   `make_rows(data, side, compact)`), `NightmareCard` (tap info for a kind not on the field; portrait,
   `health_at`, `is_new`), `ComingStrip` (DriftPanel, at rests), `ResistPips` (world; context = build
   ghost / selection, setting `resist_pips` = always; immune flash on `EnemyContainer.status_refused`),
-  `BossDossier` (HUD, group `boss_dossier`, `open_for(tree, drift)`; shows itself last at the rest
-  opening a boss block, reopen from the banner's "Boss in N" / strip; profile `boss_records`, real game
-  only). DriftBanner's 50% marker taps to the "at 50% health" ability. `tests/test_nightmare_icons.gd`.
+  `BossDossier` (HUD, group `boss_dossier`, `open_for(tree, drift)`; opens itself at the start of each act:
+  the run's first rest (after the onboarding whisper, ≤ 8 s) and each act-break rest (the next act's boss,
+  last in the rest order); the rest opening a boss block only shows the `BossReminder` panel under the
+  Coming strip (`is_reminding()`); reopen from the banner's "Boss in N" / strip; profile `boss_records`,
+  real game only). DriftBanner's 50% marker taps to the "at 50% health" ability. `tests/test_nightmare_icons.gd`.
 - Combat feedback (screens_ui.md), all on `DamageLog` events: `CombatCallouts` (world; combo tag →
-  "Conducted!" / "Popped!" / "Asleep!" / "Shattered!" / "Weak!", throttled; calls
+  "Conducted!" / "Popped!" / "Asleep!" / "Critical!" / "Weak!", throttled; calls
   `enemy.flash_status`), `PlacementLinks` (vines from the build ghost to Wardens it combos with),
   `Synergies` (static status → payoff table; `link`, `find_links`), `RestReport` (top 3 Wardens +
   combos per block; `get_report_text` also feeds the results' run report), Warden panel "This run /
@@ -234,25 +248,25 @@ accessibility, Steam achievements (milestones map to them). Acts 3–4 and all f
   Reactions (Tower Code's `ReactionTracker`, made on the first Reaction; Fx shows their callouts):
   `%ReactionFeedback` hooks it when it joins the run, counts per block (rest report "Reactions:
   … longest chain ×N"; results use the tracker's run counts), shows the first-ever discovery card and
-  saves profile `reactions_seen` (real game only). `CodexPanel` (pause menu + Grove): Glossary / Combos / Families; lists what `CodexData.scope()` covers (starting three + Grove-planted families and forms; demo its three; dev runs all), "N more wait in the Memory Grove.", "New from the Grove" leaf (profile `codex_covered`). `tests/test_codex_scope.gd`.
+  saves profile `reactions_seen` (real game only). `CodexPanel` (pause menu + Grove): Glossary / Combos / Families / Dreams (`DreamCodex`) / Nightmares (`NightmareCodex`: ??? until met, lifetime dispels, act groups, milestone `all_nightmares`); account knowledge on the real profile (`HeartwoodMemory.ACCOUNT_KEYS`, also under Dev Grove); lists what `CodexData.scope()` covers (starting three + Grove-planted families and forms; demo its three; dev runs all), "N more wait in the Memory Grove.", "New from the Grove" leaf (profile `codex_covered`). `tests/test_codex_scope.gd`.
 
 ## Meta (meta_design.md; full game only — `game/demo` true = nothing applied or recorded)
-- Grove = tech tree on the Heartwood: 83 `UnlockData` nodes (`resource/meta/grove/<id>.tres`, ids =
+- Grove = tech tree on the Heartwood: 84 `UnlockData` nodes (`resource/meta/grove/<id>.tres`, ids =
   `assets/meta/grove/grove_layout.json` ids; limbs `root` WARDENS = Families, DREAMS = Cards, PERKS =
   Perks). `costs` per level, `requires_all` ("id" or "id:level") / `requires_any` (+count), `icon`,
   `start` (Sporeling / Firefly Jar / Dewdrop, never bought), `<family>_ascension` (Ascended Warden card), `milestone` (grows free, refunds a
   purchase; no `costs` = milestone-only: Sunpetal), `legendary`. Effects: `families`, `dream_cards`
-  (→ `DreamState.grove_cards`), `loadout_slots` (slot_2..5), perks per level (only while carried):
+  (→ `DreamState.grove_cards`), `loadout_slots` (slot_4 / slot_5), `memory_warden` + `memory_boss` (Memory Warden blooms, PARKED 2026-09-29: `MetaRun.MEMORY_WARDENS_ENABLED` false keeps them off the tree (`load_grove` skips them) and out of the boss pick; first boss dispels still record `boss_<kind>`; code, art and resources kept), perks per level (only while carried):
   `starting_dew`, `dew_gain` (`RunState.dew_gain_bonus`, fraction carry), `rest_bonus`
   (`DriftDirector.rest_bonus_perk_multiplier`), `max_leaves`, `dream_rerolls` / `dream_banishes` /
   `extra_dream_cards`, `extra_omens`, `seed_bonus`, `early_bloom`, `starting_dreamlight`,
   `starting_cards` (Clear Sight), `random_common_cards` (Kindling), `sprout_charges`, `free_nurtures`
   (`RunState.free_nurtures`, spent by Tower Code's nurture hook); `allows_bittersweet` (Bittersweet
   Dreams node sets `DreamState.allow_bittersweet`).
-- `HeartwoodMemory` (VERSION 3; `MIGRATED_IDS` renames v1 Grove ids, `REFUNDED_V3` refunds nodes removed for discovery unlocks): `unlocks {id: level}`,
+- `HeartwoodMemory` (VERSION 4; `MIGRATED_IDS` renames v1 Grove ids, `REFUNDED_V3` / `REFUNDED_V4` refund removed nodes): `unlocks {id: level}`,
   `node_level()` (counts start / milestone growth; use it, not `unlock_level()`, for "owned"),
   `buy()` / `buy_problem()` / `requirements_met()`, `get_unlock(id)`, `grow_milestone_nodes()`,
-  `grown_share()`, loadout (`loadout`, `loadout_slots()`, `get_loadout()`, `save_loadout()`),
+  `grown_share()`, loadout (`loadout`, `loadout_slots()`: 3 open + slot_4/5 + the secret 6th via `has_sixth_slot()` = milestone `full_bloom` (`check_full_bloom`, `tree_complete`) or `MetaRun.sixth_slot_dev_active()`; `get_loadout()`, `save_loadout()`),
   `memories_seen`, `MEMORIES` (10) + `memories_unlocked()` (1 after the first run, +1 per 3 unlock
   levels, +1 per Memory milestone), `milestones`, `counters`, `highest_blight_won`,
   `max_blight_level()`, `cosmetics`.
@@ -488,6 +502,24 @@ accessibility, Steam achievements (milestones map to them). Acts 3–4 and all f
 - Keep `.tscn` hand-edits to simple property/wiring changes; tell the user when something is
   easier to set up in the editor (TileSets, SpriteFrames, complex node trees).
 - Commit `.uid` and `.import` files; `.godot/` and `*.tmp` are ignored.
+
+## Working in parallel (many chats, one folder)
+Most chats work directly in this folder on `main`. So nobody breaks anyone else:
+- Commit small and often, and stage only your own files by explicit path (`git commit -- <paths>`,
+  never `git add -A` / `commit -a`). Never commit, revert or stash another chat's uncommitted files.
+  If they block you, message their owner.
+- Only save edits that parse. A half-edited script breaks every other chat's test runs. After adding a
+  `class_name`, a new script or new art, run `--import` and commit it (with its `.uid` / `.import`)
+  right away.
+- Editing a file another chat owns (see the `Owner:` notes in the design docs / session memory):
+  tell its owner first, keep the change small, and tell them the commit.
+- A worktree (own folder + branch, merged by the Main session after "ready <hash>") is only for big or
+  risky work: long refactors, experiments you may throw away, or two chats needing the same file
+  at once. Cloud sessions are worktrees by nature: they push a branch, and Main merges and tests it here.
+- Tests use per-process temp files (`"user://test_x_%d.json" % OS.get_process_id()`): every checkout
+  shares one `user://`, so fixed names collide when two chats test at once.
+- Pushing: only the Main session pushes `main`, and only a commit the full suite (all
+  `tests/test_*.gd`) passed on.
 
 ## Verifying changes
 Git repo root is the parent folder `D:\Projects\Game` (this project is `Project_T/`).

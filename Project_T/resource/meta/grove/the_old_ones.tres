@@ -6,7 +6,7 @@
 script = ExtResource("1_unlock")
 id = "the_old_ones"
 display_name = "The Old Ones"
-description = "The Legendary The Old Ones and Endless Rings join the pool."
+description = "Legendary: The Old Ones and Endless Rings join the pool."
 root = 1
 costs = Array[int]([150])
 order = 11

@@ -22,27 +22,32 @@ Tree space is **1280×960 px** (native pixels; the screen pans and zooms). Every
 | `grove_sky.png` | 1280×960 | 1 | back layer: night sky with stars, the moon (`moon` in the layout) and its halo, a warm glow behind the trunk, two layers of distant forest with fog between |
 | `grove_canopy_0.png` … `_3.png` | 1280×960 each | 1, transparent | **the crown**: one shared mass in chunky 2× pixels: a few big lobes carry the light (bright top-left, a dark belly with rounded drips underneath), textured by many small leaf clusters (each one flat tone with a lit tip and a dark rim along its bottom) over all three limbs, so the tree reads as one crown, not three horns. Stage 0 (about 72% of the leaf clusters, always shown) already covers every node and branch; the three great limbs are drawn over every stage's leaves, running up through the crown (a leaf tuft covers where each enters), so lines branch off along their whole length; each stage grows the crown outward as one solid shape (80 / 90 / 100%) with more lit dream-leaves. Show the stage for the share of nodes owned (e.g. 0–24% → 0), crossfading when it changes |
 | `grove_tree.png` | 1280×960 | 1, transparent | the Heartwood, always shown: ridged roots with pale mushrooms, a twisted three-strand trunk leaning in an S-curve (each strand a shaded cylinder with a lit band and bark lines along it) with ivy and knots, the **hollow**: a doorway grown into the trunk (rolled bark lip, grain curling round it, warm light spilling onto the bark and the ground, a root doorstep), the three great limbs (Perks left, Families middle, Cards right) as twisted strands running up into the crown, a moonlit rim, a **glowing sigil at the base of each limb** (gold ring = Perks, green sprig = Families, violet card = Cards), and **five waystones at the roots** (`loadout_stones`: the loadout slots in the world) |
-| `branches/<node_id>.png` | per node | **5 frames**: 0 bare twig (locked), 1–3 the branch growing 25/50/75%, 4 grown | one per node (83); draw at `branch.offset`; planting plays 1→4. Each branch is a jagged zig-zag with its own thickness and side twigs; about half carry node-less **false branches** baked into the same sheet (bare twigs while locked, leafy with a tuft once grown), which never end near a node |
+| `branches/<node_id>.png` | per node | **5 frames**: 0 bare twig (locked), 1–3 the branch growing 25/50/75%, 4 grown | one per node (84); draw at `branch.offset`; planting plays 1→4. Each branch is a jagged zig-zag with its own thickness and side twigs; about half carry node-less **false branches** baked into the same sheet (bare twigs while locked, leafy with a tuft once grown), which never end near a node |
 | `grove_nodes.png` | 352×96 | 32×32; **rows**: 0 Perks (gold), 1 Families (green), 2 Cards (violet); **columns**: 0 locked bud, 1–4 affordable glow (loop), 5–8 bud opening (play once), 9–10 bloomed (loop) | node sprite, centred on `pos` |
 | `grove_legendary.png` | 528×48 | 48×48, same 11 columns, violet | Legendary tips (Dawnbreak, Full Moon, The Old Ones, Rootbound, The Last Light, The Long Walk) |
+| `grove_memory_nodes.png` | 352×96 | 32×32, same 11 columns as `grove_nodes.png`; **rows**: 0 `memory_white_stag`, 1 `memory_pond_keeper`, 2 `memory_moon_moth` (layout `memory_row`) | the Memory Warden blooms on the Families limb, used instead of the Families row: the same flower plus a gold ring once open, the boss's sign in its heart (antlers, a ripple, moth wings) and a small dream-fruit (a dim bud until grown) |
 | `dream_fruit.png` | 432×48 | 48×48: 0–3 idle glow (loop), 4–7 opening (play once), 8 opened | Memories; the **vine's top is the sprite's top centre**, hang it at a `fruit_spots` point |
 | `grove_layout.json` | | see below | positions and parents for everything above |
 
 ### `grove_layout.json`
 
 - `size`: [1280, 960].
-- `nodes`: one entry per node (83), in `meta_design.md` order: `id`, `section` (`perks` /
+- `nodes`: one entry per node (84), in `meta_design.md` order: `id`, `section` (`perks` /
   `families` / `cards`), `name`, `pos` (flower centre; the generator places every node inside the stage 0 crown and spreads them evenly over it, keeping each node near its parent, a line's first node next to its limb, and untangling crossing branches; positions move when nodes are added. `from` is set to the nearest point on the limb), `parent` (node id) **or** `from` (the point on
   a great limb it grows from), `levels` (Morning Stores 3, Rich Dew 3, Rested Roots 2, Deep Taproot 3,
   Second Thoughts 2; the game shows pips), `start` (Sporeling, Firefly Jar, Dewdrop: grown from the
   start), `legendary`, and `branch` (`offset` = where to draw its branch sheet's frame, `frame_size`,
   `frames` = 5).
 - Family ids: `<family>`, `<family>_final`, `<family>_hidden`, `<family>_ascension` (e.g. `pebbling_final`).
-- Loadout slots are Perks nodes `slot_2` … `slot_5`.
+- Loadout slots: 1–3 are open from the start; Perks nodes `slot_4` and `slot_5`; the secret
+  `slot_6` is never drawn as a node (it appears only when every node is owned, 2026-09-29).
 - `fruit_spots`: 10 points just under the crown's belly, in the order fruit appear (one per 3
   nodes planted).
 - `loadout_stones`: the centres of the 5 waystones at the roots, slot 1 to 5 left to right (light the
-  ones the player has unlocked, set a perk icon glowing on each filled one).
+  ones the player has unlocked, set a perk icon glowing on each filled one). Plus a 6th point for
+  the **secret sixth stone**: hidden (not even sealed) until the whole tree is grown, then it rises
+  out of the roots with its own short animation.
+- The sixth stone (`loadout_stones[5]`, at the trunk's foot) is never in `grove_tree.png`: draw `grove/waystone_6_rise.png` once (24 frames of 96×96, 12 fps = 2 s: the roots part over a crack of gold light, the stone pushes up through the soil, a flash, the light settles), then loop `grove/waystone_6_idle.png` (4 frames of 96×96, about 4 fps). Both have the stone's centre at (48, 60) in the frame: draw at `loadout_stones[5] − (48, 60)`.
 - `moon`: the moon's centre (for a light or a parallax offset).
 
 ### How the states fit together
@@ -63,6 +68,9 @@ the hollow.
 | File | Size | Layout | Use |
 |---|---|---|---|
 | `loadout_slots.png` | 256×64 | 64×64: 0 locked (sealed by a vine), 1 empty socket, 2 filled (gold rim), 3 filled and selected | "Carry into the dream": draw a 32×32 perk icon centred on a filled slot |
+| `memory_card_border.png` | 1096×324 | 4 frames of 274×324 (a slow glow pulse) | the family pick's **Memory Warden card** border (screens_ui.md): gold frame, a gold vine down the sides, corner curls, a dream-fruit at the top centre, a soft gold glow. Drawn **over** the 250×300 card (transparent middle) with 12 px of glow outside it on every side: place it at the card's rect grown by 12. 9-slice, 42 px margins; only the sides stretch (the card is always 250 wide), tile them (the vine repeats every 24 px) |
+| `loadout_slot_6.png` | 192×64 | 64×64: 0 empty socket, 1 filled, 2 filled and selected (no locked frame: it is never shown locked) | the **secret sixth** slot: the same socket with a starlight ring, four small stars and the Hollow's arch carved in gold at its top |
+| `starlit_card.png` | 1000×220 | 4 frames of 250×220 (the Dream card size), a slow twinkle loop | **Starlit card backs** ("Dream of everything"): a night-sky frame for Dream offer cards. 9-slice, 28 px margins on every side, **tile** the edges and the middle (NinePatchRect `axis_stretch` TILE) so taller cards stay seamless. Stars live only in the border band; the middle is plain dark for text and the top edge's middle is left clear. Draw it **behind** the card's own style (e.g. a child with `show_behind_parent`), and lighten that style's fog (about 0.2 edge / 0.45 centre) so the stars show: the rarity / Entwined thread, the gem, the Bittersweet line stay on top, unchanged |
 
 ## Icons (`icons/`, 32×32)
 

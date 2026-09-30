@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "quick_bonds"
 display_name = "Quick Bonds"
-description = "Kinships grow 1 drift faster (Blooming at 4, Old Kin at 9)."
+description = "Kinships grow 1 {drift} faster (Blooming at 4, Old Kin at 9)."
 rarity = 0
 kind = 3
 tags = Array[String](["kinship"])

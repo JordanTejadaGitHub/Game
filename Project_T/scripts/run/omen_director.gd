@@ -2,8 +2,9 @@ extends Node
 class_name OmenDirector
 
 # Omens (documentation/run_design.md): at every rest from drift `first_rest_drift` on, after the
-# Dream, the wind brings `omens_per_offer` Omens. Pick one to twist the next block (5 drifts) for a
-# reward, or keep Clear Skies (nothing changes). The reward is paid at the rest after that block
+# Dream: face an Omen blind or keep Clear Skies (run_design.md "Commit blind, then the Omen is
+# revealed"). Facing it reveals `omens_per_offer` Omens (2; Omen Reader 3) for the next block (5 drifts);
+# pick one (no going back to Clear Skies) for its reward; Clear Skies changes nothing. The reward is paid at the rest after that block
 # (or when the run is won during it), as long as the Heartwood is still standing.
 # DriftDirector asks this node for the active Omen's multipliers; bosses ignore them.
 
@@ -22,13 +23,14 @@ signal omen_rewarded(omen: OmenData, summary: String)
 
 @export var pool: Array[OmenData] = []  # Empty = every Omen in res://resource/omen/
 @export var first_rest_drift: int = 10
-@export var omens_per_offer: int = 2
+@export var omens_per_offer: int = 2  # Omens revealed on facing (Omen Reader: +1, MetaRun)
 
 const MODE_SETTING := "omens"  # Settings > Gameplay: "ask" (default) or "never"
 var force_omen := false  # Blight Levels that force an Omen: only the two Omen cards, no Clear Skies
 var mode_override := ""  # Tests and tools: "ask" / "never" instead of the player's setting
 var showing := false  # The Omen screen is open
 var forced := false  # The open offer can't be declined ("An Omen must be faced")
+var faced := false  # Face an Omen was chosen: its Omens are shown, one must be picked (saved)
 
 var active: OmenData = null
 var active_block := 0  # The block `active` twists
@@ -73,6 +75,10 @@ static func load_pool() -> Array[OmenData]:
 # The Omen screen is open (after the Dream, like it: two Omens and Clear Skies; pauses).
 func is_offering() -> bool:
 	return showing and not current_offer.is_empty()
+
+# An offer is drawn and waits for the Dream screen to close (DriftDirector.pending_choice: Start waits).
+func has_pending_offer() -> bool:
+	return _offer_waiting and not current_offer.is_empty()
 
 # "ask" (the Omen screen each Omen rest, the default) or "never" (always Clear Skies, no screen).
 func get_mode() -> String:
@@ -125,9 +131,9 @@ func describe_reward(omen: OmenData, act: int, rest_bonus: int = -1) -> String:
 	if omen.reward_seeds > 0:
 		parts.append("+%d Seeds" % roundi(omen.reward_seeds * scale))
 	if omen.reward_leaves > 0:
-		parts.append("regrow %d leaves" % omen.reward_leaves)
+		parts.append("regrow %d %s" % [omen.reward_leaves, "leaf" if omen.reward_leaves == 1 else "leaves"])
 	if omen.reward_max_leaves > 0:
-		parts.append("+%d max leaf" % omen.reward_max_leaves)
+		parts.append("+%d max %s" % [omen.reward_max_leaves, "leaf" if omen.reward_max_leaves == 1 else "leaves"])
 	if omen.reward_rare_dreams > 0:
 		parts.append("next Dream: one card is Rare+")
 	if omen.reward_extra_dream_cards > 0:
@@ -151,7 +157,8 @@ func _extra_rest_bonus(omen: OmenData, rest_bonus: int) -> int:
 
 # --- Offers ----------------------------------------------------------------------------------------
 
-# The Omens offered for block `block`: `omens_per_offer` random ones that make sense there.
+# The Omens drawn for block `block`: `omens_per_offer` random ones that make sense there (hidden until
+# faced).
 # Never an Omen from the previous rest, and the Omens are of different kinds (run_design.md
 # "More Omens"; if there aren't enough kinds, the rest fill in).
 func make_offer(block: int) -> Array[OmenData]:
@@ -285,10 +292,18 @@ func _on_obstacle_cleared(_cell: Vector2, data: ObstacleData) -> void:
 	if tree_seed_bonus > 0 and data == TREE and not run_state.clearing_without_seeds:
 		run_state.omen_seeds += tree_seed_bonus
 
-# Picks `omen` for the offered block; null = Clear Skies (its card, Esc, right-click; not when the
-# Omen is forced).
+# Face an Omen: the drawn Omens are revealed and one must be picked (no going back to Clear Skies).
+# Returns them ([] = nothing drawn).
+func face() -> Array[OmenData]:
+	if current_offer.is_empty():
+		return []
+	faced = true
+	return current_offer
+
+# Picks `omen` (one of the revealed Omens) for the offered block, or null = Clear Skies (its card,
+# Esc, right-click; never once faced or when an Omen is forced). Tests and sims pick directly.
 func choose(omen: OmenData) -> void:
-	if current_offer.is_empty() or (omen != null and not current_offer.has(omen)) or (omen == null and forced):
+	if current_offer.is_empty() or (omen != null and not current_offer.has(omen)) or (omen == null and (forced or faced)):
 		return
 	if omen != null:
 		active = omen
@@ -296,6 +311,7 @@ func choose(omen: OmenData) -> void:
 		var drifts := get_block_range(active_block)
 		omen_started.emit(omen, drifts.x, drifts.y)
 	current_offer = []
+	faced = false
 	var was_showing := showing
 	showing = false
 	forced = false
@@ -327,7 +343,7 @@ func _try_show() -> void:
 	elif get_mode() == "never":
 		current_offer = []  # Always Clear Skies, no screen
 	else:
-		_show_cards()  # Shown like a Dream: two Omens and a Clear Skies card
+		_show_cards()  # Face an Omen (face-down) or Clear Skies
 
 func _pay_reward(rest_bonus: int) -> void:
 	var omen := active
@@ -390,6 +406,7 @@ func to_save() -> Dictionary:
 	return {"active": active.id if active != null else "", "active_block": active_block,
 		"last_offer": _last_offer_ids.duplicate(), "tree_seed_bonus": tree_seed_bonus, "sprouted_block": _sprouted_block,
 		"offer": current_offer.map(func(o: OmenData) -> String: return o.id), "offer_block": current_offer_block,
+		"faced": faced,
 		"rng_state": str(_rng.state)}
 
 func load_save(data: Dictionary) -> void:
@@ -406,6 +423,7 @@ func load_save(data: Dictionary) -> void:
 			if omen.id == RENAMED.get(offered_id, offered_id):
 				current_offer.append(omen)
 	current_offer_block = int(data.get("offer_block", 0))
+	faced = bool(data.get("faced", false)) and not current_offer.is_empty()
 	if not current_offer.is_empty():
 		_offer_waiting = true
 		_try_show.call_deferred()

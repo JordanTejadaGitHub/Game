@@ -6,7 +6,7 @@
 script = ExtResource("1_unlock")
 id = "one_line"
 display_name = "One Line"
-description = "Monoculture joins the pool. Grows by itself if you win with only one Warden line."
+description = "Monoculture joins the pool."
 root = 1
 costs = Array[int]([80])
 order = 15

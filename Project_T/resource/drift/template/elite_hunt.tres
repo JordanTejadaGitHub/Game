@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="DriftTemplate" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/drift/script/drift_template.gd" id="1_tpl"]
+
+[resource]
+script = ExtResource("1_tpl")
+id = &"elite_hunt"
+display_name = "Elite hunt"
+weights = Array[float]([0.0, 1.0, 1.0, 1.5])
+lead_share_min = 0.4
+lead_share_max = 0.7
+min_types = 2
+max_types = 3
+extra_elites = 2
+spacing_multiplier = 1.2

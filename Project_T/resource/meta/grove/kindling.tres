@@ -6,9 +6,10 @@
 script = ExtResource("1_unlock")
 id = "kindling"
 display_name = "Kindling"
-description = "Start with a random Common Dream already taken."
+description = "Start with a random Common Dream."
 root = 2
 costs = Array[int]([90])
 order = 7
 icon = 6
+requires_all = Array[String](["early_light"])
 random_common_cards = 1

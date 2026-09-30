@@ -25,6 +25,7 @@ var obstacles: Dictionary = {}
 var tile_set: TileSet  # Shared by the ground, path and object layers (EnvironmentTiles)
 var heartwood: Heartwood  # The goal tree on the end cell
 var dream_void: DreamVoid  # The starry void around the island
+var build_hatch: BuildHatch  # In build mode: a cold hatch on every unbuildable cell
 var lighting: EnvironmentLighting  # Cold edges, warm Warden lights
 var ambience: EnvironmentAmbience  # Edge fog and the act's particles
 
@@ -50,6 +51,11 @@ func _ready() -> void:
 	ground_layer.z_index = -1
 	path_layer.z_index = -1
 	ground_layer.initialize()
+	# The start and goal sit in the rim ring: the rim goes under their path (path_rim.png is transparent
+	# outside the path), on the ground layer since the object layer draws over the path.
+	for end_cell in [startPath, endPath]:
+		ground_layer.set_cell(Vector2i(end_cell), EnvironmentTiles.ISLAND_EDGE,
+			Vector2i(EnvironmentTiles.rim_mask(Vector2i(end_cell), Vector2i(MAP_GRID.size)), 0))
 	unwalkable_cells = environment_object_layer.initialize(startPath, endPath)
 	path_layer.initialize(get_array_board(), startPath, endPath)
 
@@ -76,6 +82,12 @@ func _ready() -> void:
 	dream_void.map_seed = map_seed
 	add_child(dream_void)
 	move_child(dream_void, 0)  # Behind the tile layers
+
+	build_hatch = BuildHatch.new()
+	build_hatch.map_generator = self
+	build_hatch.tower_container = get_node_or_null("%TowerContainer")
+	build_hatch.tower_placer = get_node_or_null("%TowerPlacer")
+	add_child(build_hatch)
 
 	lighting = EnvironmentLighting.new()
 	lighting.tower_container = get_node_or_null("%TowerContainer")

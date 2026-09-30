@@ -41,10 +41,16 @@ func _init() -> void:
 		and trees.get_tile_animation_frame_duration(Vector2i(0, 0), 0) != trees.get_tile_animation_frame_duration(Vector2i(0, 0), 1),
 		"each dead-tree type animates at its own pace")
 	for cell in path.get_used_cells():
-		if path.get_cell_source_id(cell) != EnvironmentTiles.PATH:
+		var on_rim: bool = Vector2(cell) == map.startPath or Vector2(cell) == map.endPath
+		if path.get_cell_source_id(cell) != (EnvironmentTiles.PATH_RIM if on_rim else EnvironmentTiles.PATH):
 			_check(false, "path cell %s uses the path sheet" % cell)
 			break
 	var start_mask: int = path.get_cell_atlas_coords(Vector2i(map.startPath)).x
+	_check(path.get_cell_source_id(Vector2i(map.startPath)) == EnvironmentTiles.PATH_RIM
+		and path.get_cell_source_id(Vector2i(map.endPath)) == EnvironmentTiles.PATH_RIM
+		and ground.get_cell_source_id(Vector2i(map.startPath)) == EnvironmentTiles.ISLAND_EDGE
+		and ground.get_cell_source_id(Vector2i(map.endPath)) == EnvironmentTiles.ISLAND_EDGE,
+		"the start and goal draw rim-edge path over the rim, no grass")
 	_check(start_mask & 1, "the start's path tile runs off the top edge (mask %d)" % start_mask)
 	for cell in map.obstacles:
 		var data: ObstacleData = map.obstacles[cell]
@@ -108,6 +114,25 @@ func _init() -> void:
 	sprout.free()
 	await process_frame
 	_check(lighting.get_glowing_warden_count() == glowing_before + 1, "a sold Warden's glow goes with it")
+
+	# Build mode: a cold hatch on every unbuildable cell (screens_ui.md: the edge must look unbuildable).
+	var hatch: BuildHatch = map.build_hatch
+	_check(not hatch.visible, "no hatch outside build mode")
+	main.get_node("%TowerPlacer").build_mode_changed.emit(true)
+	var hatched := hatch.get_hatched_cells()
+	var an_obstacle: Vector2 = map.obstacles.keys()[0]
+	_check(hatch.visible and hatched.has(Vector2(0, 5)) and hatched.has(map.startPath) and hatched.has(map.endPath)
+		and hatched.has(an_obstacle), "build mode hatches the rim, the start, the end and obstacles")
+	var open_cell := Vector2(-1, -1)
+	_check(hatched.all(func(cell: Vector2) -> bool: return not map.is_buildable(cell)), "only unbuildable cells are hatched")
+	for x in range(1, 22):
+		if map.is_buildable(Vector2(x, 9)):
+			open_cell = Vector2(x, 9)
+			break
+	_check(not hatched.has(open_cell) and not hatched.has(Vector2(12, 10)),
+		"buildable cells and a Warden's own cell stay clear")
+	main.get_node("%TowerPlacer").build_mode_changed.emit(false)
+	_check(not hatch.visible, "leaving build mode hides the hatch")
 
 	for arg in OS.get_cmdline_user_args():
 		if arg.begins_with("--preview="):

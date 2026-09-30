@@ -315,7 +315,7 @@ func _run() -> void:
 	var mourner_intro: String = load("res://resource/enemy/puffcap.tres").get_intro_lines()[0]
 	_check(mourner_intro == "Breaks into 3 Sobs when dispelled.", "intro numbers come from the data (%s)" % mourner_intro)
 	var weeper_intro: String = load("res://resource/enemy/weeper.tres").get_intro_lines()[0]
-	_check(weeper_intro.contains("1.5 cells") and weeper_intro.contains("2%"), "Weeper intro: %s" % weeper_intro)
+	_check(weeper_intro.contains("1.5 tiles") and weeper_intro.contains("2%"), "Weeper intro: %s" % weeper_intro)
 	var stag_charge: Dictionary = load("res://resource/enemy/old_stag.tres").get_ability(1)
 	_check(stag_charge.text.contains("+50%") and stag_charge.text.contains("4 s"), "numbers come from the data (%s)" % stag_charge.text)
 	var oak_grief: Dictionary = load("res://resource/enemy/hollow_oak.tres").get_ability(1)
@@ -547,7 +547,7 @@ func _run() -> void:
 	var normal: Node2D = spawner.spawn_enemy(load("res://resource/enemy/leaf_bug.tres"))
 	_check(shown._bars_always and shown._outline_alpha() > 0.0, "settings on: bars always, elites outlined")
 	_check(normal._outline_alpha() == 0.0, "only Deeply Blighted nightmares get the outline")
-	plain._update_presence(0.2)
+	plain._update_presence(0.6)  # Display settings are re-read every 0.5 s
 	_check(plain._bars_always and plain._outline_alpha() > 0.0, "a nightmare already out picks the change up")
 	Fx.reset_run()
 	_clear_enemies()

@@ -35,6 +35,7 @@ static func migrate_old_saves() -> void:
 const GROUP := &"title_screen"
 
 func _ready() -> void:
+	UiStyle.install_tooltip_wrap(get_tree())  # Long tooltips wrap at the tip width
 	migrate_old_saves()
 	DevGrove.apply()  # Dev Grove (debug builds): the dev profile, before anything reads the profile
 	HeartwoodMemory.apply_settings()
@@ -73,12 +74,13 @@ func _ready() -> void:
 	if not RunSaver.has_save():
 		UiStyle.primary(new_run)
 	if ResultsScreen.is_demo():
-		var grove := _add_button("Memory Grove (in the full game)", func() -> void: pass)
+		var grove := _add_button("Memory Grove", func() -> void: pass)
 		grove.disabled = true
+		grove.tooltip_text = "In the full game."
 		var url: String = ProjectSettings.get_setting(ResultsScreen.WISHLIST_SETTING, "")
 		var wishlist := _add_button("Wishlist on Steam", func() -> void: OS.shell_open(url))
 		wishlist.disabled = url == ""
-		wishlist.tooltip_text = "Store page coming soon" if url == "" else url
+		wishlist.tooltip_text = "Store page coming soon." if url == "" else url
 	else:
 		_add_button("Memory Grove", func() -> void: get_tree().change_scene_to_file(GROVE_SCENE))
 	_add_button("Settings", _show_settings)

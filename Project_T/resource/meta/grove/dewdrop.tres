@@ -6,7 +6,7 @@
 script = ExtResource("1_unlock")
 id = "dewdrop"
 display_name = "Dewdrop family"
-description = "Dewdrop is in your family picks from the start: water that makes nightmares Damp."
+description = "In your {family_picks} from the start: water that leaves nightmares {damp}."
 root = 0
 costs = Array[int]([])
 order = 2

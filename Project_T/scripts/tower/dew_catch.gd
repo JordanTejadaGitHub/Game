@@ -125,7 +125,8 @@ static func pour_all(director: DriftDirector, run_state: RunState, block: int) -
 		var data: TowerData = tower.tower_data
 		if data.rest_interest <= 0.0:
 			continue
-		var rate := data.rest_interest + (STILL_WATERS if dreams and dreams.has_rule(&"still_waters") and not spent else 0.0)
+		var rate := data.rest_interest + (STILL_WATERS if dreams and dreams.has_rule(&"still_waters") and not spent else 0.0) \
+			+ (Tower.KINDRED_INTEREST if tower.focus == Tower.Focus.KINDRED else 0.0)  # Kindred Wellspring
 		var cap := data.rest_interest_max + (DEEP_WELL_CAP if dreams and dreams.has_rule(&"deep_well") else 0)
 		var uncapped := run_state.dew * rate
 		var dew := mini(mini(floori(uncapped), cap), INTEREST_CAP - paid)

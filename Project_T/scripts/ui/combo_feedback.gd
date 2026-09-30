@@ -199,6 +199,8 @@ func _on_kinship(kinship: StringName, a: Node, b: Node) -> void:
 	record(kinship, a as Node2D)
 
 func _on_damage(event: DamageLog.Event) -> void:
+	if event.combos.is_empty():  # Most hits (every hit and status tick comes through here)
+		return
 	for tag in event.combos:
 		if DAMAGE_TAGS.has(tag):
 			record(tag, event.enemy)
@@ -212,11 +214,12 @@ func _on_reaction(id: StringName, enemy: Node2D, chain: int, _towers: Array) -> 
 func record(id: StringName, enemy: Node2D = null) -> void:
 	run_counts[id] = run_counts.get(id, 0) + 1
 	_unsaved[id] = _unsaved.get(id, 0) + 1
-	if CodexData.get_any(id).is_empty():
-		return
-	if _seen.has(String(id)):
-		if _dev_flagged.has(String(id)) and not MetaRun.is_dev_run():
+	var key := String(id)
+	if _seen.has(key):  # The common case first (runs for many hits a frame): no Codex lookup
+		if not _dev_flagged.is_empty() and _dev_flagged.has(key) and not MetaRun.is_dev_run():
 			_clear_dev_flag(id)  # Found in a normal run now: it counts (no second discovery card)
+		return
+	if CodexData.get_any(id).is_empty():
 		return
 	# Discovery unlocks (dream_design.md): the Dreams this find lets into the pool, for the card.
 	var dreams := get_tree().get_first_node_in_group(DreamState.GROUP)

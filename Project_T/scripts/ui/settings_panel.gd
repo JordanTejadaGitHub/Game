@@ -16,9 +16,12 @@ const REBINDABLE := [
 	["pause_game", "Pause"], ["cycle_speed", "Change speed"], ["sell_tower", "Sell Warden"],
 	["grow_warden", "Grow selected Warden"], ["nurture_warden", "Nurture selected Warden"],
 	["clear_tool", "Clear tool"],
-	["cycle_target", "Cycle targeting (selected)"],
-	["center_heartwood", "Centre on the Heartwood"],
-	["center_start", "Centre on the forest's edge"],
+	["grow_option_1", "Grow into 1st option"], ["grow_option_2", "Grow into 2nd option"],
+	["grow_option_3", "Grow into 3rd option"],
+	["buff_lens", "Buff lens"],
+	["cycle_target", "Cycle targeting"],
+	["center_heartwood", "Center on the Heartwood"],
+	["center_start", "Center on the forest's edge"],
 ]
 
 const TITLE_SCENE := "res://scenes/title.tscn"
@@ -53,20 +56,21 @@ func _ready() -> void:
 	_slider(audio, "Volume", "master_volume")
 	_slider(audio, "Music", "music_volume")
 	_slider(audio, "Sounds", "sfx_volume")
-	_toggle(audio, "Softer nightmares (quieter shrieks and whispers)", "softer_nightmares", false)
+	_toggle(audio, "Softer nightmares", "softer_nightmares", false, "Quieter shrieks and whispers.")
 
 	var display := _tab("Display")
 	_toggle(display, "Fullscreen", "fullscreen")
 	_choice(display, "Window size", WINDOW_SIZE_SETTING,
 		WINDOW_SIZES.map(func(s: Vector2i) -> String: return "%d × %d" % [s.x, s.y]), 0)
 	_toggle(display, "V-sync", VSYNC_SETTING, true)
-	_slider(display, "UI scale", "ui_scale", 0.75, 1.5, 0.05)
+	_slider(display, "UI scale", "ui_scale", 0.75, 2.0, 0.05)  # Up to 2× (user, 2026-09-30: "increase the UI size")
 
 	var gameplay := _tab("Gameplay")
-	_toggle(gameplay, "Heartwood whispers (hints)", "whispers")
+	_toggle(gameplay, "Heartwood whispers", "whispers", true, "Short hints the first time something happens.")
 	_toggle(gameplay, "Auto-drift on by default", "auto_drift")
 	_choice(gameplay, "Damage numbers", "damage_numbers", ["Off", "Big hits", "All"], 0)
 	_choice(gameplay, "Warden DPS tags", DpsTags.SETTING, ["Rests only", "Always", "Off"], 0)
+	_choice(gameplay, "Rest summary", RestReport.SETTING, ["Off", "On"], 0)  # The block card at rests (else: the meter's Last block tab)
 	_toggle(gameplay, "Confirm selling several Wardens during a drift", "confirm_sell", true)
 	_toggle(gameplay, "Pause on new combos", ComboFeedback.PAUSE_SETTING, true)
 	_toggle(gameplay, "Always show resist / weak pips on nightmares", ResistPips.SETTING, false)
@@ -80,7 +84,7 @@ func _ready() -> void:
 	_toggle(box, "Reduce flashes", "reduce_flashes")
 	_toggle(box, "Hit-stop on big hits", "hitstop")
 	_toggle(box, "High-contrast route line", RouteLine.SETTING, false)
-	_toggle(box, "Outline Deeply Blighted nightmares (not by colour alone)", "blight_outline", false)
+	_toggle(box, "Outline Deeply Blighted nightmares", "blight_outline", false, "Marks them by shape, not by color alone.")
 
 	var controls := _tab("Controls")
 	if TestGrove.is_available():  # Debug builds only; never in the demo or release
@@ -99,12 +103,21 @@ func _ready() -> void:
 		families.toggled.connect(func(on: bool) -> void: _set_value(MetaRun.ALL_FAMILIES_SETTING, on))
 		box.add_child(families)
 		var dreams_rewards := CheckButton.new()  # meta_design.md "Dev options"
-		dreams_rewards.text = "Dream of everything rewards: starlit card backs + 1 Dream reroll (no Seeds banked)"
+		dreams_rewards.text = "Dream of everything rewards · starlit card backs, +1 Dream reroll"
+		dreams_rewards.tooltip_text = "For testing: nothing is recorded and no Seeds are banked."
 		dreams_rewards.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		dreams_rewards.button_pressed = _settings.get(MetaRun.ALL_DREAMS_SETTING, false)
 		dreams_rewards.focus_mode = Control.FOCUS_NONE
 		dreams_rewards.toggled.connect(func(on: bool) -> void: _set_value(MetaRun.ALL_DREAMS_SETTING, on))
 		box.add_child(dreams_rewards)
+		var sixth_slot := CheckButton.new()  # meta_design.md: the secret 6th loadout slot, for testing
+		sixth_slot.text = "Secret 6th loadout slot"
+		sixth_slot.tooltip_text = "For testing: no milestone is recorded and no Seeds are banked."
+		sixth_slot.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		sixth_slot.button_pressed = _settings.get(MetaRun.SIXTH_SLOT_SETTING, false)
+		sixth_slot.focus_mode = Control.FOCUS_NONE
+		sixth_slot.toggled.connect(func(on: bool) -> void: _set_value(MetaRun.SIXTH_SLOT_SETTING, on))
+		box.add_child(sixth_slot)
 		# Demo mode (demo_scope.md): overrides game/demo in this build; switching goes back to the title.
 		var demo := CheckButton.new()
 		demo.text = "Demo mode (off = FULL GAME: Memory Grove, Blight Levels, Seeds spent from your real profile)"
@@ -143,7 +156,9 @@ func _ready() -> void:
 		box.add_child(dev_note)
 
 	var keys_title := Label.new()
-	keys_title.text = "Keys (click, then press a key)"
+	keys_title.text = "Keys"
+	keys_title.tooltip_text = "Click a key, then press the new one."
+	keys_title.mouse_filter = Control.MOUSE_FILTER_PASS
 	controls.add_child(keys_title)
 	var grid := GridContainer.new()
 	grid.columns = 2
@@ -241,9 +256,10 @@ func _slider(box: VBoxContainer, text: String, key: String, min_value: float = 0
 	row.add_child(slider)
 	box.add_child(row)
 
-func _toggle(box: VBoxContainer, text: String, key: String, default: bool = false) -> void:
+func _toggle(box: VBoxContainer, text: String, key: String, default: bool = false, tip: String = "") -> void:
 	var check := CheckButton.new()
 	check.text = text
+	check.tooltip_text = tip
 	check.button_pressed = bool(_settings.get(key, default))
 	check.focus_mode = Control.FOCUS_NONE
 	check.toggled.connect(func(on: bool) -> void: _set_value(key, on))

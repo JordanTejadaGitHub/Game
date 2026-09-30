@@ -6,7 +6,7 @@
 script = ExtResource("1_unlock")
 id = "whirligig"
 display_name = "Whirligig family"
-description = "Whirligig joins your family picks: wind that spreads statuses. Its branches: Gust and Pinwheel. Needs 2 of Pebbling, Rootling, Bellflower, Acorn."
+description = "{family:whirligig} joins your {family_picks}: wind that spreads statuses. Branches: Gust, Pinwheel."
 root = 0
 costs = Array[int]([120])
 order = 8

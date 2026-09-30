@@ -1,0 +1,32 @@
+[gd_resource type="Resource" script_class="EnemyData" load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://resource/enemy/script/enemy_data.gd" id="1_edata"]
+[ext_resource type="SpriteFrames" path="res://animation/enemy/mother_duck.tres" id="2_frames"]
+[ext_resource type="Resource" path="res://resource/enemy/hedgehog.tres" id="3_hound"]
+
+[resource]
+script = ExtResource("1_edata")
+sprite_frames = ExtResource("2_frames")
+display_name = "The Huntsman"
+health = 6500
+speed = 65.0
+dew_reward = 60
+leaf_cost = 5
+is_boss = true
+sprite_scale = 1.7
+tint = Color(0.6, 0.55, 0.5, 1)
+resists = Array[String](["spore"])
+weak_to = Array[String](["stone"])
+followers = ExtResource("3_hound")
+follower_count = 4
+follower_spacing = 0.35
+brood = ExtResource("3_hound")
+brood_interval = 12.0
+pack_shield = 0.5
+pack_regroup_at_half = true
+trait_text = "His Night Hounds shield him: he takes half damage while one still hunts."
+cleanse_line = "The horn falls silent. The hunt is over."
+title = "the rider without a face"
+abilities = Array[Dictionary]([{"name": "The Pack", "icon": &"hidden", "text": "{follower_count} {followers:name}s run with him. While any of them hunts, he takes {pack_shield:pct} damage.", "when": "always"}, {"name": "The Horn", "icon": &"grief", "text": "Calls a new {brood:name} while the pack is short.", "when": "every {brood_interval} s"}, {"name": "The Kill", "icon": &"charge", "text": "Blows three times: the whole pack returns at once, then the horn falls silent.", "when": "at 50% health"}])
+tips = Array[String](["Break the pack first, then the rider.", "The Night Hounds sprint down straight corridors: give them corners.", "A thrown stone breaks the horn."])
+whisper = "A horn, far off. The hunt has found the dream."

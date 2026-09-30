@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "grandfather_stump"
 display_name = "Grandfather Stump"
-description = "Grove Heart gives +4% per nearby Warden (was +3%), up to +45% (was +30%)."
+description = "Grove Heart gives +4% per nearby Warden, up to +45%."
 rarity = 1
 kind = 3
 tags = Array[String](["support", "acorn"])

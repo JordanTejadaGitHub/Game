@@ -13,3 +13,5 @@ sprite_frames = ExtResource("2_jud3g")
 trait_text = "Quick, and never alone."
 intro_lines = Array[String](["A small shadow that never comes alone."])
 hint = "Anything dispels a Shade; the trick is catching them all."
+intro_drift = 1
+roll_tags = Array[StringName]([&"small"])

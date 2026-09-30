@@ -6,9 +6,10 @@
 script = ExtResource("1_unlock")
 id = "early_bloom"
 display_name = "Early Bloom"
-description = "The first family pick offers every family you own, not 3 at random."
+description = "The first {family_pick} offers every family you own."
 root = 2
 costs = Array[int]([80])
 order = 8
 icon = 7
+requires_all = Array[String](["second_thoughts"])
 early_bloom = true

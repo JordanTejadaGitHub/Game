@@ -4,9 +4,9 @@
 
 [resource]
 script = ExtResource("1_obst")
-display_name = "Thorn-sapling"
+display_name = "Thorn-Sapling"
 clear_verb = "Clear"
-clear_cost = 8
+clear_cost = 18
 source_id = 3
 tiles = Array[Vector2i]([])
 cleared_source_id = -1

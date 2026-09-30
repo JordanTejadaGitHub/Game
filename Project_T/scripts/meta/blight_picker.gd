@@ -9,15 +9,15 @@ signal picked(level: int)
 const LEVELS: Array[String] = [
 	"No Blight",
 	"Nightmares +10% health",
-	"Starting Dew −20",
+	"The first family pick gives no Dreamlight",
 	"Bosses +25% health",
 	"Rest bonus −25%",
 	"One nightmare per drift is Deeply Blighted",
-	"The Heartwood regrows only 1 leaf per act break",
+	"No leaves regrow at act breaks",
 	"Nightmares +10% speed",
-	"Let it pass gives no Dew; Dreams lean Common",
+	"Let it pass gives no Dew · Dreams lean Common",
 	"Clearing obstacles costs twice as much",
-	"The Hollow Oak remembers",
+	"The Hollow Oak Remembers",
 ]
 
 var _pick := OptionButton.new()

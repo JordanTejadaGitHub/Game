@@ -40,6 +40,7 @@ const GROVE_OF_KIN_MAX := 0.30
 const SWEET_BONUS: Array[float] = [0.5, 1.0]  # Sweet Harmony (II)
 const SWEET_COOLDOWN: Array[float] = [1.5, 1.0]
 const BEAD_COOLDOWN := 0.6  # Seconds between light beads on one vine
+const VINE_REDRAW_FPS := 8.0  # The vine sheets sway at 4 fps; the Old Kin arch too
 
 # id -> [name, family line, branch A, branch B, in the demo]
 const KINSHIPS := {
@@ -105,6 +106,7 @@ var _queued: Array = []  # Stage-ups and Whole Trees waiting for the rest
 var _remembered := {}  # Rooted Bond: partner instance id -> the sold kin's bond age, until the rest ends
 var _bead_ready := {}  # Pair key -> clock time the vine can carry another bead
 var _synced := {}  # Pair keys whose idle animations were synced
+var _drawn_key := []  # What the vines were last drawn for (see _process)
 var _resting := true
 var _placer: TowerPlacer
 var _seller: TowerSeller
@@ -153,7 +155,13 @@ func _process(delta: float) -> void:
 	_refresh_timer -= delta
 	if _refresh_timer <= 0.0:
 		refresh()
-	queue_redraw()
+	# Performance: redraw only when the vines' frame or brightness changes (it redrew every frame, vines
+	# or not).
+	var key := [pairs.size(), int(_clock * VINE_REDRAW_FPS), _resting, _placer != null and _placer.build_mode,
+		_seller.selection.size() if _seller else 0, _effects()]
+	if key != _drawn_key:
+		_drawn_key = key
+		queue_redraw()
 
 
 # --- Who belongs to which branch ---------------------------------------------------------------------
@@ -679,7 +687,7 @@ func _announce(event: Array) -> void:
 
 # 0 Full, 1 Subtle, 2 Off (settings "Kinship effects").
 static func _effects() -> int:
-	return int(HeartwoodMemory.get_settings().get("kinship_effects", 0))
+	return int(Fx.setting("kinship_effects", 0))  # Cached (get_settings reads the profile from disk)
 
 func _colour(pair: Dictionary) -> Color:
 	return FAMILY_COLORS.get(KINSHIPS[pair.id][1], Color(0.8, 0.95, 0.6))

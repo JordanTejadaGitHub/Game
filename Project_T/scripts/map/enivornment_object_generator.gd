@@ -268,8 +268,7 @@ func _generate_border(startPath: Vector2i, endPath: Vector2i) -> void:
 			var cell := Vector2i(x, y)
 			if (x != 0 and y != 0 and x != last.x and y != last.y) or cell == startPath or cell == endPath:
 				continue
-			var mask := (1 if y > 0 else 0) | (2 if x < last.x else 0) | (4 if y < last.y else 0) | (8 if x > 0 else 0)
-			set_cell(cell, EnvironmentTiles.ISLAND_EDGE, Vector2i(mask, 0))
+			set_cell(cell, EnvironmentTiles.ISLAND_EDGE, Vector2i(EnvironmentTiles.rim_mask(cell, last + Vector2i.ONE), 0))
 			unwalkable_cells.append(Vector2(cell))
 
 # Cliff faces hanging under the island's bottom row.

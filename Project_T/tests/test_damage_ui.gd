@@ -27,30 +27,51 @@ func _run() -> void:
 	var far := _build_far(placer, map, route)
 	placer.set_build_mode(false)
 	_check(near != null and far != null, "planted a Warden by the path and one far away")
-	var panel = main.get_node("HUD/DriftPanel")
+	var meter: DriftMeter = main.get_node("HUD/DriftMeter")
 	director.start_next_drift()
 	var during := ""
 	for i in 60 * 90:
 		if director.awaiting_family_pick or director.is_resting():
 			break
 		if i == 60 * 15:
-			panel._update_benchmark()
-			during = panel.benchmark.text
+			meter.refresh()
+			during = meter._header.text
 		await process_frame
-	_check(during.begins_with("Your maze ") and during.contains("this drift needs ~"), "in a drift: the live benchmark (" + during + ")")
+	# Playtest fixes 2026-09-30: the needed-DPS estimate is dev-only; no loose line by Start.
+	_check(during.contains("Maze ") and not during.contains("needs ~"), "in a drift: the maze's DPS, no estimate outside dev runs (" + during + ")")
+	_check(not "benchmark" in main.get_node("HUD/DriftPanel"), "the DriftPanel has no loose benchmark line")
 
 	# The drift meter: header, rows, a click selects and glides.
-	var meter: DriftMeter = main.get_node("HUD/DriftMeter")
 	meter.set_open(true)
 	_check(meter.visible and meter._header.text.contains("Maze ") and meter._rows.get_child_count() >= 2,
 		"the drift meter lists the Wardens (%s, %d rows)" % [meter._header.text, meter._rows.get_child_count()])
 	var first: Button = meter._rows.get_child(0)
+	meter._fit()
+	meter.refresh()
+	_check(meter._rows.get_child(0) == first, "refreshing keeps the same row buttons (a click isn't lost mid-press)")
+	_check(not first.mouse_force_pass_scroll_events and not meter.mouse_force_pass_scroll_events,
+		"the wheel over the meter never reaches the map")
+	meter._sort.pressed.emit()
+	_check(meter._sort.text == "Sort: % of damage", "the sort button reads Sort: % of damage")
+	meter._sort.pressed.emit()
+	first = meter._rows.get_child(0)
 	first.pressed.emit()
 	var seller = main.get_node("%TowerSeller")
 	_check(not seller.selection.is_empty() and seller.selection[0] == near, "clicking a meter row selects that Warden")
-	_check(first.get_theme_color("font_color") == DriftMeter.CARRYING_COLOR, "the carrying Warden's row is gold")
+	_check(first.get_theme_color("font_color") == DriftMeter.CARRYING_COLOR, "the top Warden's row is gold (rank on the board)")
+	_check(DriftMeter.rank_color(0, 10) == DriftMeter.CARRYING_COLOR and DriftMeter.rank_color(5, 10) == DriftMeter.FINE_COLOR
+		and DriftMeter.rank_color(9, 10) == DriftMeter.UNDERUSED_COLOR and DriftMeter.rank_color(0, 1) == DriftMeter.CARRYING_COLOR
+		and DriftMeter.rank_color(1, 2) == DriftMeter.FINE_COLOR, "rank colours: top ~20% gold, bottom ~20% dim, the rest white")
 	var far_row: Button = meter._rows.get_child(meter._rows.get_child_count() - 1)
 	_check(far_row.tooltip_text.contains("Underused: few nightmares in range"), "the underused reason in its tooltip")
+	# The Wardens tab: the top 5, no scroll; each row's change vs its own last drift (playtest 2026-09-30).
+	_check(meter._rows.get_child_count() <= DriftMeter.TOP_ROWS and meter._rows.get_parent() == meter._body,
+		"the Wardens tab lists at most 5 rows, outside any scroll")
+	_check(first.get_node_or_null("Change") != null, "each row has its change label")
+	_check(DriftMeter.row_change({"last_dps": 0.0})[0] == "new"
+		and DriftMeter.row_change({"last_dps": 10.0, "change": 0.12}) == ["↑12%", DriftMeter.UP_COLOR]
+		and DriftMeter.row_change({"last_dps": 10.0, "change": -0.08}) == ["↓8%", DriftMeter.UNDERUSED_COLOR],
+		"new / ↑12% gold / ↓8% dim")
 	# Crowding: the meter never reaches the DriftPanel (its rows scroll) and sits below the nightmare info.
 	meter._fit()
 	var drift_panel_top: float = main.get_node("HUD/DriftPanel").get_global_rect().position.y
@@ -75,9 +96,10 @@ func _run() -> void:
 	var text := RestReport.meter_text(main.get_node("%RestReport"))
 	_check(text.contains("Maze ") and text.contains("Carrying: ") and text.contains("Underused: "),
 		"the rest report's maze / carrying / underused lines (" + text.replace("\n", " | ") + ")")
-	# The benchmark at the rest is the forecast.
-	panel._update_benchmark()
-	_check(not director.is_resting() or panel.benchmark.text.begins_with("Last drift "), "at a rest: the forecast (" + panel.benchmark.text + ")")
+	# The last drift's DPS lives in the meter panel.
+	meter.refresh()
+	_check(not director.is_resting() or (meter._last.visible and meter._last.text.begins_with("Last drift ")),
+		"at a rest: the meter shows Last drift N DPS (" + meter._last.text + ")")
 	_check(DriftMeter.ratio_color(1.2) == DriftMeter.GOOD and DriftMeter.ratio_color(1.0) == DriftMeter.CLOSE and DriftMeter.ratio_color(0.5) == DriftMeter.SHORT,
 		"green ≥110%, amber 90–110%, red below")
 

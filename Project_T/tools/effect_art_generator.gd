@@ -36,6 +36,7 @@ func _init() -> void:
 	_kinship_combat()
 	_clouds()
 	_support()
+	_pull_drag()
 	var file := FileAccess.open(OUT + "effects.json", FileAccess.WRITE)
 	file.store_string(JSON.stringify({effects = index}, "\t") + "\n")
 	_save_preview()
@@ -1948,6 +1949,147 @@ func _harmony_bloom(img: Image, f: int) -> void:
 	for k in 6:
 		var p := c + Vector2.from_angle(k * TAU / 6.0 + 0.3) * (4.0 + t * 11.0)
 		_px(img, floori(p.x), floori(p.y), Color(K_WHITE, 1.0 - t * 0.8))
+
+# --- Rootcurl / Long Way Home pull-back: a visible drag (tower_design.md, Rootling table) ---------
+#   root_grab: roots burst out of the ground and wrap a nightmare's feet (frames 0-2 burst, 3-5
+#     wrap and hold; 4-5 loop while held), then sink back (6-7). Anchor = the ground under its feet.
+#   drag_dust: a soil puff kicked up behind a dragged nightmare; spawn every ~0.1 s along the drag.
+#   path_furrow: a groove the drag leaves in the path, a 64x16 segment tiling along x; translucent
+#     so it darkens any act's path dirt. Fade it out over ~1 s.
+
+const ROOT_DARK := Color("#5a4028")
+const ROOT_MID := Color("#7a5634")
+const ROOT_LIGHT := Color("#c8a070")
+const ROOT_EDGE := Color("#1e160e")
+const SOIL := [Color("#5a4028"), Color("#8a6a44"), Color("#b09070"), Color("#d0b48c")]
+
+func _pull_drag() -> void:
+	_sheet("root_grab", Vector2i(48, 32), 8, 12, Vector2i(24, 28), false, "support", _root_grab,
+		{note = "Frames 0-2 burst, 3-5 wrap and hold (loop 4-5 while the nightmare is held / dragged), 6-7 sink back. Anchor = ground under the nightmare's feet; draw it under the nightmare with a front copy (or just above it at ~80% alpha).", hold_frames = [4, 5], release_frames = [6, 7]})
+	_sheet("drag_dust", Vector2i(16, 16), 5, 14, Vector2i(8, 12), false, "support", _drag_dust,
+		{note = "Soil kicked up behind a dragged nightmare; spawn one every ~0.1 s along the drag. Anchor = ground."})
+	_sheet("path_furrow", Vector2i(64, 16), 1, 1, Vector2i(0, 8), false, "ground", _path_furrow,
+		{note = "Ground decal: tile or stretch along x from where the drag started to where it ended, y = 8 on the line, under the nightmares. Translucent, fade out over ~1 s."})
+
+# One root into `layer`: a curve from `base` bending via `lean` to `top`, grown to `grow` (0..1) of
+# its length, tapering from thick to thin, lit on its upper left. Returns its tip.
+func _grab_root(layer: Image, base: Vector2, top: Vector2, lean: Vector2, grow: float) -> Vector2:
+	var tip := base
+	var n := 40
+	for s in n + 1:
+		var t := s / float(n) * grow
+		var p := base.lerp(lean, t).lerp(lean.lerp(top, t), t)
+		var r := lerpf(1.7, 0.7, t)
+		_disc(layer, p, r, ROOT_MID)
+		_disc(layer, p + Vector2(-0.5, -0.5), r * 0.45, ROOT_LIGHT)
+		tip = p
+	return tip
+
+# Everything in `layer` gets a 1 px dark outline, then goes onto `img`.
+func _outlined(img: Image, layer: Image, edge: Color) -> void:
+	var w := img.get_width()
+	var h := img.get_height()
+	for y in h:
+		for x in w:
+			if layer.get_pixel(x, y).a > 0.0:
+				continue
+			for d: Vector2i in [Vector2i.LEFT, Vector2i.RIGHT, Vector2i.UP, Vector2i.DOWN]:
+				var q := Vector2i(x, y) + d
+				if q.x >= 0 and q.y >= 0 and q.x < w and q.y < h and layer.get_pixelv(q).a > 0.0:
+					img.set_pixel(x, y, edge)
+					break
+	img.blend_rect(layer, Rect2i(0, 0, w, h), Vector2i.ZERO)
+
+func _root_grab(img: Image, f: int) -> void:
+	var foot := Vector2(24, 24)  # where the feet are wrapped
+	var grow: float = [0.35, 0.7, 1.0, 1.0, 1.0, 1.0, 0.6, 0.25][f]
+	var wrap: float = [0.0, 0.0, 0.2, 0.7, 1.0, 1.0, 0.4, 0.0][f]
+	var roots := [
+		[Vector2(6, 29), Vector2(17, 10), Vector2(0, 2)],
+		[Vector2(14, 30), Vector2(21, 6), Vector2(8, 0)],
+		[Vector2(34, 30), Vector2(27, 6), Vector2(40, 0)],
+		[Vector2(42, 29), Vector2(31, 10), Vector2(48, 2)],
+	]
+	# Torn earth where they break out.
+	if f < 7:
+		for r: Array in roots:
+			var b: Vector2 = r[0]
+			_ellipse(img, b + Vector2(0, 0.5), Vector2(4, 1.6), SOIL[0])
+			_px(img, floori(b.x) - 4, floori(b.y) - 1, SOIL[2])
+			_px(img, floori(b.x) + 3, floori(b.y) - 1, SOIL[1])
+	var layer := Image.create_empty(img.get_width(), img.get_height(), false, Image.FORMAT_RGBA8)
+	var tips: Array = []
+	for r: Array in roots:
+		# Up and over first, then the tips curl down onto the feet.
+		var side := -1.0 if (r[0] as Vector2).x < foot.x else 1.0
+		tips.append(_grab_root(layer, r[0], (r[1] as Vector2).lerp(foot + Vector2(side * 3.0, -7.0), wrap),
+			(r[2] as Vector2).lerp(foot + Vector2(side * 10.0, -14.0), wrap), grow))
+	# The wrap: two coils round the feet, a band each.
+	if wrap > 0.3:
+		for band in 2:
+			var c := foot + Vector2(0, -1 - band * 5)
+			var span := PI * 1.1 * wrap
+			for s in 30:
+				var a := PI / 2.0 - span / 2.0 + span * s / 29.0
+				var p := c + Vector2(cos(a) * 8.0, sin(a) * 2.8)
+				_disc(layer, p, 0.9, ROOT_MID)
+				if sin(a) < 0.5:
+					_px(layer, floori(p.x), floori(p.y) - 1, ROOT_LIGHT)
+	_outlined(img, layer, ROOT_EDGE)
+	# Warm glowing tips while they reach and hold.
+	if f <= 5:
+		for tip: Vector2 in tips:
+			_px(img, floori(tip.x), floori(tip.y), WARM)
+			for d: Vector2i in [Vector2i.LEFT, Vector2i.RIGHT, Vector2i.UP, Vector2i.DOWN, Vector2i(1, -1), Vector2i(-1, -1)]:
+				var q := Vector2i(tip.floor()) + d
+				if q.x >= 0 and q.y >= 0 and q.x < 48 and q.y < 32 and img.get_pixelv(q).a == 0.0:
+					img.set_pixelv(q, Color(GOLD, 0.45))
+	# A leaf sprouting from the coils and a warm pulse along them while it holds.
+	if f in [4, 5]:
+		_px(img, floori(foot.x) + 6, floori(foot.y) - 8, Color("#7cbc5a"))
+		_px(img, floori(foot.x) + 7, floori(foot.y) - 9, Color("#a8dc78"))
+		_px(img, floori(foot.x) - 7, floori(foot.y) - 4, Color("#7cbc5a"))
+		for s in 5:
+			var p := foot + Vector2(-6 + s * 3, 1)
+			_px(img, floori(p.x), floori(p.y), Color(WARM, 0.9 if (s + f) % 2 == 0 else 0.5))
+	# Sinking back: crumbs of soil falling in.
+	if f >= 6:
+		for r: Array in roots:
+			var b: Vector2 = r[0]
+			_px(img, floori(b.x) - 1, floori(b.y) - (f - 5), SOIL[2])
+			_px(img, floori(b.x) + 1, floori(b.y) - (f - 4), SOIL[1])
+
+func _drag_dust(img: Image, f: int) -> void:
+	var c := Vector2(8, 12)
+	var t := f / 4.0
+	# Three clumps puffing up and back, fading; a couple of clods thrown out.
+	for k in 3:
+		var p := c + Vector2(-2.0 + k * 2.5, -t * (3.0 + k)) + Vector2(-t * 2.0, 0)
+		var r := 1.6 + t * 2.2 - k * 0.3
+		_disc(img, p, r, Color(SOIL[1], 0.9 - t * 0.7))
+		_disc(img, p + Vector2(-0.5, -0.6), r * 0.55, Color(SOIL[3], 0.85 - t * 0.7))
+	if f < 4:
+		_px(img, floori(c.x - 4 - t * 4), floori(c.y - 2 - t * 3 + t * t * 6), SOIL[0])
+		_px(img, floori(c.x + 3 + t * 2), floori(c.y - 3 - t * 2 + t * t * 5), SOIL[1])
+
+func _path_furrow(img: Image, _f: int) -> void:
+	# Two grooves (dark), churned ridges beside them (light), clods; tiles every 64 px.
+	for x in 64:
+		var wob := sin(x * TAU / 64.0 * 2.0) * 0.6
+		for g: float in [5.5, 10.5]:
+			var y := g + wob
+			_px(img, x, floori(y), Color(0.12, 0.08, 0.04, 0.55))
+			_px(img, x, floori(y) + 1, Color(0.12, 0.08, 0.04, 0.3))
+			if (x * 7) % 5 != 0:
+				_px(img, x, floori(y) - 1, Color(0.9, 0.8, 0.62, 0.3))
+		if x % 9 == 3:
+			_px(img, x, 2 + (x % 2), Color(0.35, 0.25, 0.15, 0.5))
+			_px(img, (x + 4) % 64, 13 + (x % 3), Color(0.35, 0.25, 0.15, 0.45))
+	# The middle, pressed flat and a touch darker.
+	for x in 64:
+		for y in range(7, 10):
+			if img.get_pixel(x, y).a == 0.0:
+				img.set_pixel(x, y, Color(0.1, 0.07, 0.03, 0.15))
 
 # --- Support and economy feedback (screens_ui.md "Support and economy feedback") -------------------
 # Kind "support". Gold is caught / harvested Dew (the ordinary Dew pop stays blue).

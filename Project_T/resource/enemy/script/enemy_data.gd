@@ -83,6 +83,54 @@ enum Trait { NONE, FLYING, ROLLING, TRAMPLE, LEAP, BURROW, WANDER }
 # fast (0 = never).
 @export var rises_from_blight: int = 0
 
+# Boss pools (enemy_design.md, 2026-09-29): the new bosses' abilities. 0 / empty = off.
+@export_group("Boss pools")
+# Night Mare: reaching the Heartwood costs `lap_leaves` and it gallops back to the start, ×
+# `lap_speed_multiplier` faster each lap (stacking), until dispelled.
+@export var lap_leaves: int = 0
+@export var lap_speed_multiplier: float = 1.2
+# Night Mare's Bolt: the Hollow Stag's charge (charge_speed_multiplier, charge_time) at half health,
+# without trampling.
+@export var charges_at_half: bool = false
+# Scarecrow's Stitched: below `hurt_below` of its health it walks × `hurt_speed_multiplier`.
+@export var hurt_below: float = 0.0
+@export var hurt_speed_multiplier: float = 1.0
+# Huntsman: while any of its followers (the pack) lives it takes × `pack_shield` damage. Its brood
+# (the horn) only calls while the pack is short, and joins the pack. At half health the whole pack
+# returns at once and the horn falls silent (`pack_regroup_at_half`).
+@export var pack_shield: float = 1.0
+@export var pack_regroup_at_half: bool = false
+# Lamplighter: every `lantern_interval` s lights a cold lantern beside its route (up to `lantern_max`,
+# each burning `lantern_life` s). Wardens within `lantern_radius` cells attack × (1 − `lantern_slow`).
+@export var lantern_interval: float = 0.0
+@export var lantern_max: int = 4
+@export var lantern_life: float = 16.0
+@export var lantern_radius: float = 1.5
+@export var lantern_slow: float = 0.4
+@export var lantern_snuff_dew: int = 2  # Clicking a lantern snuffs it for this much Dew
+# Barrow King: every `shrug_interval` s shrugs off every status on itself and nightmares within
+# `shrug_radius` cells; slows never take it below `min_speed_share` of its speed.
+@export var shrug_interval: float = 0.0
+@export var shrug_radius: float = 2.0
+@export var min_speed_share: float = 0.0
+# Mourning Mother's Sorrow: after `regen_delay` s without a hit, mends `regen_rate` of its max health
+# per second, `regen_cap` of its max health in all.
+@export var regen_rate: float = 0.0
+@export var regen_delay: float = 1.5
+@export var regen_cap: float = 0.25
+# Withering Oak: every `wither_interval` s a root withers the strongest Warden within `wither_reach`
+# cells (not the last one) for `wither_time` s: no attacks. At each share in `wither_burst_at`,
+# Drought withers `wither_burst_count` at once.
+@export var wither_interval: float = 0.0
+@export var wither_time: float = 6.0
+@export var wither_reach: float = 3.0
+@export var wither_burst_at: Array[float] = []
+@export var wither_burst_count: int = 3
+# Remembering Oak: at each share in `echo_at` an echo of the run's drawn boss for the next act (1, 2,
+# 3) rises beside it with `echo_share` of that boss's health.
+@export var echo_at: Array[float] = []
+@export var echo_share: float = 0.2
+
 @export_group("Dossier")
 # Boss dossier (screens_ui.md): the boss's title ("the gaunt king of the old wood"), one entry per
 # ability {"name", "icon" (IconInfo id), "text", "when"} and 2–3 `tips` (no numbers, never a
@@ -98,6 +146,17 @@ enum Trait { NONE, FLYING, ROLLING, TRAMPLE, LEAP, BURROW, WANDER }
 @export var hint: String = ""
 # Trait icon for FLYING: &"through_walls" (Phantom, glides through them) or &"flying" (Moth Queen).
 @export var flying_icon: StringName = &"through_walls"
+
+@export_group("Drift roll")
+# Random drifts (run_design.md, DriftRoller): the drift this type is first introduced at (it joins
+# the random pool only after it; 0 = never rolled on its own: bosses, Sobs, Creeps, Wraiths), and the
+# roles templates look for: &"small" (Swarm), &"heavy", &"fast", &"procession", &"special" (one
+# trait-heavy type, the old named drifts). Flying / through walls come from the trait.
+@export var intro_drift: int = 0
+@export var roll_tags: Array[StringName] = []
+# How much more than its health one of these weighs in a rolled drift's budget: nightmares whose
+# threat isn't health (the Phantom skips the whole maze for a leaf) would otherwise come by the dozen.
+@export var roll_threat: float = 1.0
 
 @export_group("Followers")
 # Mother Duck: spawns `follower_count` `followers` right behind her in single file. If she's
@@ -197,6 +256,10 @@ func get_summons() -> Array:
 		summons.append({"data": grief_spawn, "count": grief_count, "how": format_text("at {grief_at:list_pct} health")})
 	return summons
 
+# Walks the maze again after reaching the Heartwood (Night Mare).
+func laps() -> bool:
+	return lap_leaves > 0
+
 # Ability text with this resource's numbers filled in: {field} → its value ({leap_tiles} → "3",
 # {brood_interval} → "4"), {field:pct} → "50%", {field:plus_pct} → "+50%" (a multiplier),
 # {field:list_pct} → "67% and 33%", {field:name} → a linked resource's display_name. Tokens that
@@ -232,6 +295,33 @@ static func _format_value(value: Variant, style: String) -> String:
 	if value is float:
 		return str(roundi(value)) if is_equal_approx(value, roundf(value)) else "%.1f" % value
 	return str(value)
+
+# Drift budget cost of one of these at drift 1: its health plus everything it brings (followers,
+# split-offs, recursively), so a Procession or a Mourner costs what it really puts on the field.
+func get_roll_cost() -> float:
+	var cost := float(health)
+	if followers != null and follower_count > 0:
+		cost += follower_count * followers.get_roll_cost()
+	if split_into != null and split_count > 0:
+		cost += split_count * split_into.get_roll_cost()
+	return cost
+
+# What one of these weighs in a rolled drift's budget: get_roll_cost() × roll_threat.
+func get_roll_weight() -> float:
+	return get_roll_cost() * roll_threat
+
+# Leaves at stake if it and everything it brings reach the Heartwood.
+func get_roll_leaves() -> int:
+	var leaves := leaf_cost
+	if followers != null and follower_count > 0:
+		leaves += follower_count * followers.get_roll_leaves()
+	if split_into != null and split_count > 0:
+		leaves += split_count * split_into.get_roll_leaves()
+	return leaves
+
+# Flies straight over the maze (the Phantom): walls don't shape its path.
+func is_through_walls() -> bool:
+	return trait_kind == Trait.FLYING and not flies_along_route
 
 # The intro card's lines with their numbers filled in (status tokens stay for IconInfo).
 func get_intro_lines() -> Array[String]:

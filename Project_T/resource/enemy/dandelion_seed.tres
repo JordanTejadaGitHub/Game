@@ -16,3 +16,6 @@ trait_kind = 1
 trait_text = "Drifts straight through the walls to the Heartwood."
 intro_lines = Array[String](["Glides straight through your walls toward the Heartwood."])
 hint = "Your maze can't slow it: guard the ground near the Heartwood."
+intro_drift = 31
+roll_tags = Array[StringName]([&"fast"])
+roll_threat = 4.0

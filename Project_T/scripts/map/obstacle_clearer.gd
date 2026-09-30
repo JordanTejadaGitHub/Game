@@ -145,6 +145,9 @@ func _draw() -> void:
 	draw_rect(rect, highlight, false, 3.0)
 
 	var price := "%d Dew · half price (%d left)" % [cost, run_state.free_clears] if half else "%d Dew" % cost
+	var dreams := get_tree().get_first_node_in_group(DreamState.GROUP) as DreamState
+	if dreams != null and dreams.free_first_clears > 0:
+		price = "free (%d left)" % dreams.free_first_clears  # Tend the Forest
 	var label := "%s %s · %s" % [_hover_obstacle.clear_verb, _hover_obstacle.display_name, price]
 	if pending_cell == _hover_cell:
 		label += "  ·  tap ✓ to clear"
@@ -176,8 +179,11 @@ func try_clear(cell: Vector2) -> bool:
 	var cost := get_next_clear_cost(data)
 	if not run_state.spend_dew(cost):
 		return false
-	run_state.use_free_clear()  # A charge is spent only when the clear goes through
 	var dreams := get_tree().get_first_node_in_group(DreamState.GROUP) as DreamState
+	# A charge is spent only when the clear goes through: a free one (Tend the Forest) first, else a
+	# half-price one (Heartwood's Reach).
+	if dreams == null or not dreams.use_free_first_clear():
+		run_state.use_free_clear()
 	if dreams:
 		dreams.last_clear_paid = cost  # Reclaimed Earth refunds a share of it
 	map_generator.clear_obstacle(cell)  # Emits path_changed -> enemies re-route, hover refreshes

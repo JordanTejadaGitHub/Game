@@ -1,15 +1,18 @@
 extends Control
 class_name BossDossier
 
-# The boss dossier (screens_ui.md "Boss dossier", added 2026-09-28): at the rest that opens a boss
-# block (after drifts 20 / 45 / 70 / 95), last in the rest order (after the family pick, Dream and
-# Omen), a card for the coming boss:
+# The boss dossier (screens_ui.md "Boss dossier (at the start of each act)", 2026-09-29): the act's
+# boss is warned of when the act begins. It opens by itself at the run's first rest (act 1, after
+# the onboarding whisper) and at each act-break rest (after drifts 25 / 50 / 75, last in the rest
+# order: after the family pick, Dream and Omen) for the NEXT act's boss. The rest that opens a boss
+# block (after 20 / 45 / 70 / 95) only shows a small reminder ("<Boss> arrives in 5 drifts", its
+# portrait, "Open dossier"). The card:
 #   header    animated portrait, name · title, a whisper line, "Arrives in drift N", "New"
 #   numbers   real health (this run's scaling, Blight, Dreams), speed, leaves it takes
 #   defences  the Resists / Weak to / Immune rows, larger (NightmareIcons)
 #   abilities icon, name, what it does, WHEN (EnemyData.get_ability: numbers filled from the data)
 #   it brings summons (EnemyData.get_summons) + the boss drift's escorts
-#   what helps EnemyData.tips; your record (times dispelled, best time; profile "boss_records")
+#   your record (times dispelled, best time; profile "boss_records")
 # Reopen any time from the drift banner's "Boss in N" or the boss portrait in Coming this block
 # (BossDossier.open_for). Opened during a drift it pauses until closed. Made by the HUD.
 
@@ -22,6 +25,7 @@ const WHISPER_COLOR := Color(0.75, 0.9, 0.8)
 const SECTION_COLOR := Color(0.95, 0.8, 0.55)
 const DEFAULT_WHISPER := "Something old has found the dream."
 const OPEN_DELAY := 0.35  # Seconds after the rest starts before checking the rest's screens
+const WHISPER_PATIENCE := 8.0  # Most seconds it waits for onboarding whispers to finish
 
 var drift_director: DriftDirector
 var shown_drift := 0  # The boss drift on the card (0 = closed)
@@ -33,6 +37,10 @@ var _panel := PanelContainer.new()
 var _content := VBoxContainer.new()
 var _scroll := ScrollContainer.new()
 var _boss_time := {}  # Boss enemy instance id -> game seconds alive (for "best time")
+var _pending_first := false  # The run's first rest: act 1's boss (checked once the save is restored)
+var _reminder_drift := 0  # Boss drift the boss-block reminder shows (0 = none)
+var _reminder_pending := 0  # …waiting for the rest's screens, like the card
+var _reminder: PanelContainer  # Its own node: the dossier root is hidden while the card is closed
 
 # Opens the dossier for boss drift `drift` (0 = the next / current boss).
 static func open_for(tree: SceneTree, drift: int = 0) -> void:
@@ -83,6 +91,9 @@ func _ready() -> void:
 	outer.add_child(close)
 	if drift_director != null:
 		drift_director.rest_started.connect(_on_rest_started)
+		_pending_first = true  # Act 1's boss at the first rest (if this is a new run: see _process)
+		_wait = OPEN_DELAY
+		_make_reminder.call_deferred()
 	var spawner := drift_director.get_node_or_null("%EnemyContainer") if drift_director != null else null
 	if spawner != null:
 		spawner.child_entered_tree.connect(_on_spawned)
@@ -102,10 +113,21 @@ func boss_drift_in_block(block: int) -> int:
 			return number
 	return 0
 
-func _on_rest_started(block: int, _boss_rest: bool, _bonus: int, _perfect: bool) -> void:
+func _on_rest_started(block: int, boss_rest: bool, _bonus: int, _perfect: bool) -> void:
+	_pending_first = false
+	_pending = 0  # A new rest: whatever the last one was waiting to show is past
+	_reminder_pending = 0
+	_hide_reminder()
+	if boss_rest:
+		# The act break: the next act's boss, now that the act begins.
+		var next := next_boss_drift()
+		if next > 0 and not _auto_shown.has(next) and boss_data(next) != null:
+			_pending = next
+			_wait = OPEN_DELAY
+		return
 	var boss := boss_drift_in_block(block + 1)
-	if boss > 0 and not _auto_shown.has(boss) and boss_data(boss) != null:
-		_pending = boss
+	if boss > 0 and boss_data(boss) != null:
+		_reminder_pending = boss  # The boss block: only a reminder now
 		_wait = OPEN_DELAY
 
 # The rest's other screens (family pick, Dream, Omen, pause menu, results) are all done.
@@ -129,16 +151,99 @@ func _process(delta: float) -> void:
 	if not get_tree().paused:  # Game seconds each live boss has been walking (its record's time)
 		for id in _boss_time:
 			_boss_time[id] += delta
-	if _pending == 0:
+	if _reminder_drift > 0 and not drift_director.is_resting():
+		_hide_reminder()  # The boss block started
+	elif _reminder_drift > 0:
+		_place_reminder()
+	if _pending_first:
+		# The run's first rest, once RunSaver has restored a save (a resumed run isn't at drift 0)
+		_pending_first = false
+		var first := next_boss_drift()
+		if drift_director.drifts_started == 0 and first > 0 and boss_data(first) != null:
+			_pending = first
+	if _pending == 0 and _reminder_pending == 0:
 		return
 	if not drift_director.is_resting():
 		_pending = 0  # The block started without it (Start pressed in the meantime)
+		_reminder_pending = 0
 		return
 	_wait -= delta / maxf(Engine.time_scale, 0.001)
-	if _wait <= 0.0 and screens_clear():
+	if _wait > 0.0 or not screens_clear():
+		return
+	if _whisper_showing() and _wait > -WHISPER_PATIENCE:
+		return  # After the whisper on screen, but a first run's queue of them doesn't hold it forever
+	if _pending > 0:
 		_auto_shown[_pending] = true
 		open(_pending)
 		_pending = 0
+	elif _reminder_pending > 0:
+		_show_reminder(_reminder_pending)
+		_reminder_pending = 0
+
+# An onboarding whisper is on screen (the act 1 dossier comes after it).
+func _whisper_showing() -> bool:
+	var whispers := drift_director.owner.get_node_or_null("%Whispers") as CanvasItem if drift_director.owner != null else null
+	return whispers != null and whispers.visible and whispers.modulate.a > 0.01
+
+# --- The boss-block reminder --------------------------------------------------------------------
+
+func _make_reminder() -> void:
+	_reminder = PanelContainer.new()
+	_reminder.name = "BossReminder"
+	var frame := UiStyle.panel_in(BOSS_COLOR.darkened(0.2), 10.0, 10.0)
+	_reminder.add_theme_stylebox_override("panel", frame)
+	_reminder.set_anchors_and_offsets_preset(Control.PRESET_CENTER_TOP)
+	_reminder.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	_reminder.position.y = 96.0  # Under the drift banner
+	_reminder.process_mode = Node.PROCESS_MODE_ALWAYS
+	_reminder.visible = false
+	get_parent().add_child(_reminder)
+
+func _show_reminder(drift: int) -> void:
+	var data := boss_data(drift)
+	if _reminder == null or data == null:
+		return
+	for child in _reminder.get_children():
+		child.queue_free()
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 12)
+	row.add_child(BossPortrait.new(data, 44.0))
+	var text := Label.new()
+	var left := drift - drift_director.drifts_started
+	text.text = "%s arrives in %d drift%s" % [data.display_name, left, "" if left == 1 else "s"]
+	text.add_theme_font_size_override("font_size", 17)
+	text.add_theme_color_override("font_color", BOSS_COLOR.lightened(0.25))
+	text.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	row.add_child(text)
+	var button := Button.new()
+	button.text = "Open dossier"
+	button.focus_mode = Control.FOCUS_NONE
+	button.pressed.connect(func() -> void:
+		open(drift)
+		_hide_reminder())
+	row.add_child(button)
+	_reminder.add_child(row)
+	_reminder.reset_size()
+	_reminder.visible = true
+	_reminder_drift = drift
+	_place_reminder()
+
+# Centred under the drift banner, and under the "Coming this block" strip (same spot at rests).
+func _place_reminder() -> void:
+	var top := 96.0
+	for node in get_parent().get_children():
+		if node is ComingStrip and node.visible:
+			top = maxf(top, node.position.y + node.size.y + 16.0)  # Clear of its fog panel
+	_reminder.position = Vector2((get_viewport_rect().size.x - _reminder.size.x) / 2.0, top)
+
+func _hide_reminder() -> void:
+	if _reminder != null:
+		_reminder.visible = false
+	_reminder_drift = 0
+
+# The boss-block reminder is showing (for tests and the HUD).
+func is_reminding() -> bool:
+	return _reminder_drift > 0
 
 # --- Open / close ----------------------------------------------------------------------------------
 
@@ -238,12 +343,6 @@ func _build(data: EnemyData, drift: int) -> void:
 	if brings.get_child_count() > 0:
 		_content.add_child(_section("It brings"))
 		_content.add_child(brings)
-	if not data.tips.is_empty():
-		_content.add_child(_section("What helps"))
-		var tips: Array[String] = []
-		for tip in data.tips:
-			tips.append("• " + tip)
-		_content.add_child(StatusLinks.make_label("\n".join(tips), 15, Color(0.85, 0.9, 0.85)))
 	_content.add_child(_section("Your record"))
 	_content.add_child(StatusLinks.make_label(record_text(data), 15))
 

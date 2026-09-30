@@ -6,9 +6,10 @@
 script = ExtResource("1_unlock")
 id = "clear_sight"
 display_name = "Clear Sight"
-description = "Start the run holding Cleared Ground: clearing trees and rocks works from drift 1, and costs less."
+description = "Start holding Tend the Forest and Cleared Ground: clearing opens from {drift} 1 and costs less."
 root = 2
 costs = Array[int]([80])
 order = 5
 icon = 4
-starting_cards = Array[String](["cleared_ground"])
+requires_all = Array[String](["first_care"])
+starting_cards = Array[String](["tend_the_forest", "cleared_ground"])

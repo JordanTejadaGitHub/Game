@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "borrowed_memory"
 display_name = "Borrowed Memory"
-description = "+2 Dreamlight now."
+description = "+2 {dreamlight} now."
 cost_description = "The Heartwood holds 2 fewer leaves."
 rarity = 2
 kind = 4

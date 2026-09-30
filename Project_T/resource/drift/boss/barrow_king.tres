@@ -1,0 +1,39 @@
+[gd_resource type="Resource" script_class="DriftData" format=3]
+
+[ext_resource type="Script" path="res://resource/drift/script/drift_data.gd" id="1_drift"]
+[ext_resource type="Script" path="res://resource/drift/script/drift_group.gd" id="2_group"]
+[ext_resource type="Script" path="res://resource/drift/script/drift_entry.gd" id="3_entry"]
+[ext_resource type="Resource" path="res://resource/enemy/barrow_wight.tres" id="e_barrow_wight"]
+[ext_resource type="Resource" path="res://resource/enemy/bark_beetle.tres" id="e_bark_beetle"]
+[ext_resource type="Resource" path="res://resource/enemy/barrow_king.tres" id="e_barrow_king"]
+
+[sub_resource type="Resource" id="Entry_1"]
+script = ExtResource("3_entry")
+enemy = ExtResource("e_barrow_wight")
+count = 2
+
+[sub_resource type="Resource" id="Entry_2"]
+script = ExtResource("3_entry")
+enemy = ExtResource("e_bark_beetle")
+count = 6
+
+[sub_resource type="Resource" id="Group_1"]
+script = ExtResource("2_group")
+entries = Array[ExtResource("3_entry")]([SubResource("Entry_1"), SubResource("Entry_2")])
+spacing = 1.2
+delay = 0
+
+[sub_resource type="Resource" id="Entry_3"]
+script = ExtResource("3_entry")
+enemy = ExtResource("e_barrow_king")
+count = 1
+
+[sub_resource type="Resource" id="Group_2"]
+script = ExtResource("2_group")
+entries = Array[ExtResource("3_entry")]([SubResource("Entry_3")])
+spacing = 1
+delay = 3
+
+[resource]
+script = ExtResource("1_drift")
+groups = Array[ExtResource("2_group")]([SubResource("Group_1"), SubResource("Group_2")])

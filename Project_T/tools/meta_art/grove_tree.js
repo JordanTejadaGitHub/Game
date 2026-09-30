@@ -27,26 +27,26 @@ const trunkX = y => { for (let k = 1; k < TRUNK_PTS.length; k++) if (y >= TRUNK_
 // `lv` = levels (one node, pips shown by the game); `start` = grown from the beginning.
 const NODES = [];
 const N = (id, section, name, x, y, link, extra = {}) => NODES.push({ id, section, name, x, y, ...(typeof link === "string" ? { parent: link } : { from: link }), ...extra });
-// Perks
-N("morning_stores", "perks", "Morning Stores", 500, 530, [540, 604], { lv: 3 });
-N("rich_dew", "perks", "Rich Dew", 452, 468, "morning_stores", { lv: 3 });
-N("rested_roots", "perks", "Rested Roots", 430, 402, "rich_dew", { lv: 2 });
-N("sprout_bed", "perks", "Sprout Bed", 524, 456, "morning_stores");
-N("seed_pouch", "perks", "Seed Pouch", 430, 640, [446, 564]);
-N("clear_sight", "perks", "Clear Sight", 384, 474, [410, 550]);
-N("kindling", "perks", "Kindling", 318, 440, [340, 520]);
-N("early_bloom", "perks", "Early Bloom", 318, 600, [350, 526]);
-N("early_light", "perks", "Early Light", 250, 620, "early_bloom");
-N("first_care", "perks", "First Care", 262, 392, [262, 478]);
-N("deep_taproot", "perks", "Deep Taproot", 200, 540, [230, 458], { lv: 3 });
-N("second_thoughts", "perks", "Second Thoughts", 196, 330, [176, 406], { lv: 2 });
-N("let_go", "perks", "Let Go", 248, 268, "second_thoughts");
-N("wider_dreams", "perks", "Wider Dreams", 164, 256, "second_thoughts");
-N("omen_reader", "perks", "Omen Reader", 118, 470, [150, 390]);
-N("slot_2", "perks", "Loadout slot 2", 58, 300, [96, 318]);
-N("slot_3", "perks", "Loadout slot 3", 40, 236, "slot_2");
-N("slot_4", "perks", "Loadout slot 4", 42, 170, "slot_3");
-N("slot_5", "perks", "Loadout slot 5", 70, 110, "slot_4");
+// Perks: three paths off the limb (meta_design.md "Section 1: Perks"), each growing up into the crown —
+// Economy nearest the trunk, Survival in the middle, Choice at the far end (its side branch Early Bloom
+// → Early Light → Kindling hangs below). The loadout slots sit below the limb, between the paths.
+N("morning_stores", "perks", "Morning Stores", 486, 474, [500, 540], { lv: 3 });
+N("rich_dew", "perks", "Rich Dew", 474, 404, "morning_stores", { lv: 3 });
+N("rested_roots", "perks", "Rested Roots", 460, 334, "rich_dew", { lv: 2 });
+N("seed_pouch", "perks", "Seed Pouch", 448, 264, "rested_roots");
+N("sprout_bed", "perks", "Sprout Bed", 546, 450, "morning_stores");
+N("deep_taproot", "perks", "Deep Taproot", 344, 358, [362, 424], { lv: 3 });
+N("first_care", "perks", "First Care", 334, 288, "deep_taproot");
+N("clear_sight", "perks", "Clear Sight", 324, 218, "first_care");
+N("second_thoughts", "perks", "Second Thoughts", 206, 246, [224, 306], { lv: 2 });
+N("let_go", "perks", "Let Go", 196, 180, "second_thoughts");
+N("omen_reader", "perks", "Omen Reader", 188, 118, "let_go");
+N("wider_dreams", "perks", "Wider Dreams", 244, 90, "omen_reader");
+N("early_bloom", "perks", "Early Bloom", 250, 372, "second_thoughts");
+N("early_light", "perks", "Early Light", 232, 436, "early_bloom");
+N("kindling", "perks", "Kindling", 214, 500, "early_light");
+N("slot_4", "perks", "Loadout slot 4", 400, 520, [410, 466]);  // Slots 1–3 are open from the start
+N("slot_5", "perks", "Loadout slot 5", 318, 540, "slot_4");
 // Families: a short branch of four per family (family, final forms, hidden branch, Ascension),
 // alternating sides up the middle limb.
 [["sporeling", "Sporeling", true], ["firefly_jar", "Firefly Jar", true], ["dewdrop", "Dewdrop", true], ["pebbling", "Pebbling"],
@@ -58,6 +58,10 @@ N("slot_5", "perks", "Loadout slot 5", 70, 110, "slot_4");
     N(id + "_hidden", "families", name + ": hidden branch", ax + side * 72, ay - 86, id + "_final");
     N(id + "_ascension", "families", name + ": Ascension", ax + side * 96, ay - 108, id + "_hidden");
   });
+// Memory Wardens: free blooms a boss leaves the first time it is dispelled (low on the Families limb).
+N("memory_white_stag", "families", "Memory Warden: The White Stag", 600, 560, [640, 580]);
+N("memory_pond_keeper", "families", "Memory Warden: The Pond Keeper", 680, 560, [640, 575]);
+N("memory_moon_moth", "families", "Memory Warden: The Moon Moth", 640, 530, [640, 560]);
 // Cards: one branch per build style, Legendary flower at the tip.
 N("storm_lore", "cards", "Storm Lore", 760, 522, [742, 602]);
 N("guiding_lights", "cards", "Guiding Lights", 790, 452, "storm_lore");

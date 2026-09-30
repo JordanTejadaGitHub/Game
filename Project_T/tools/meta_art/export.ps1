@@ -8,7 +8,7 @@ if ($Rebuild) {
 	$old = Get-Content -Raw -Encoding UTF8 $gen
 	$s = $old.IndexOf('"use strict";'); $e = $old.IndexOf('const HW32 ='); if ($e -lt 0) { $e = $old.IndexOf('// ================= Memory Grove') }
 	$helpers = $old.Substring($s, $e - $s).TrimEnd()  # TrimEnd: no extra newline per rebuild
-	$parts = ("grove_tree.js","grove_parts.js","grove_icons.js","grove_memories.js","grove_export.js" | ForEach-Object { Get-Content -Raw -Encoding UTF8 (Join-Path $here $_) }) -join ""
+	$parts = ("grove_tree.js","grove_parts.js","grove_icons.js","grove_memories.js","grove_starlit.js","grove_sixth.js","grove_memory_wardens.js","grove_export.js" | ForEach-Object { Get-Content -Raw -Encoding UTF8 (Join-Path $here $_) }) -join ""
 	$palette = Get-Content -Raw -Encoding UTF8 (Join-Path (Split-Path -Parent (Split-Path -Parent $here)) "assets/palette/heartwood32.json")
 	$parts = "const HW32 = $palette;`n" + $parts
 	$html = "<!doctype html><meta charset=`"utf-8`"><body><script>window.addEventListener('error',ev=>{const p=document.createElement('p');p.id='jserr';p.textContent=ev.message+' @'+ev.lineno;document.body.appendChild(p)});</script><script>(() => {`n$helpers`n$parts`n})();</script></body>"

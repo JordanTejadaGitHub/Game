@@ -25,8 +25,8 @@ with no hand-placed maze: everything is bought from the Dew the run earns.
 |---|---|---|
 | **Fresh** | nothing | first runs, and every demo run |
 | **Early** | ~5 cheap unlocks (a starting-Dew perk, Morning Stores I, one family, two card bundles) | ~3 hours in |
-| **Half** | about half the tree by Seed cost, 3 perk slots | ~15 hours in |
-| **Full** | everything, 5 perk slots | endgame (Blight 0) |
+| **Half** | about half the tree by Seed cost, 3–4 perk slots (3 are free from the start) | ~15 hours in |
+| **Full** | everything, 6 perk slots (incl. the secret one) | endgame (Blight 0) |
 
 **Build styles** (the bot's preferences; each is a scoring rule, not a script):
 
@@ -70,8 +70,10 @@ leaves lost by 25 / 50 / 75, banked Dew at act starts, the most frequent top War
 | Check | Target |
 |---|---|
 | Fresh, Balanced: first leak | drift **20 or later** (revised 2026-09-28: act 1 teaches; reach 25) |
-| Fresh, Balanced: leaves lost by drift 25 | **0–3** of 15; **reaches drift 25** in almost every run |
+| Fresh, Balanced: leaves lost by drift 25 | **0–3** of 15; reaches drift 25 in almost every run and **beats the first boss in about 75%** of runs (user, 2026-09-29: "a fresh player doesn't have to beat the first boss every time") |
 | Fresh, Balanced: run end | **act 2** (drift 35–50) in most runs; a win in **< 5%** |
+| Act 1, Spender (spends whenever affordable, builds the maze) | nightmares' **closest approach ≤ ~70%** of the route in most drifts; 0–1 leaves by 25 |
+| Act 1, Saver (holds Dew up to 5 drifts for a bigger growth) | closest approach **85–100%**, **0–2 leaves** by 25, survives; its Warden power at drift 25 clearly above the Spender's |
 | Early | usually reaches **act 3** |
 | Half | wins sometimes (the first win) |
 | Full | wins in **most** runs at Blight 0 |
@@ -145,6 +147,76 @@ Income only for drifts 1–60 (assumed perfect blocks), then drifts 61–70 foug
 | Sprout + Seedfall | 45 (39–46) | ×1.00 | 44 | 0 | 0/5 |
 
 **Every target passes.** Watch: Balanced's spread by map is wide (one seed dies at the drift 25 boss); **Seedfall adds no survival** (it only saves Dew), so as the door into the swarm build it's too weak: **Flat Seedfall tested (62af1fd): ×1.05 of Balanced, first leak 50, kept.**
+
+## Grove-profile batch (2026-09-29, 10 seeds, Balanced)
+
+| Profile | Survival (median, range) | Wins | First leak |
+|---|---|---|---|
+| Fresh | 43 (23–74) | 0/10 | 27 |
+| Early | 43 (26–74) | 0/10 | 28 |
+| Half | 40 (27–72) | 0/10 | 28 |
+| Full | 42 (28–67) | 0/10 | 28 |
+
+**Fails every Grove check: the Grove makes no difference for the bot.** Survival follows the **map seed** (the same 3 seeds run long in every profile). Before tuning the Grove: a diagnosis of whether the bot uses Grove content (finals, Ascended, Dreamlight, cards, family spread) and how much the map decides. Levers on the table if the Grove really adds little: stronger perks, stronger (not just more) Grove families and cards, a Blight 0 curve, a smarter bot.
+
+**Diagnosis + fixed-bot rerun (2026-09-29):** the bot never grew a final (nurturing made them cost 300+; fixed in 97a33ca). With the fix Full grows ~7 finals by drift 40 but still doesn't outlast Fresh (median ~40 vs 43): it hoards for finals while leaking, and **a Full run with Pebbling as first family died at drift 4**. New checks: **every family must carry act 1 alone** (reach drift 25 in ≥8 of 10 runs), a scripted **"Grove player"** (Firefly + Dewdrop, finals first, Ascended from 51) at Fresh / Half / Full, and the **DPS per Dew of a final form** vs its rank III branch.
+
+**Final form value (2026-09-29):** growing a rank III branch into its final (325 Dew incl. rank difference) adds **3–8× more single-target DPS per Dew** than ranks IV–V (450 Dew) for every damage final; support finals (Morning Fog, Wellspring, Zephyr, …) and area finals (Monsoon, Starling Murmuration) trade single-target DPS by design. So **finals are worth their price**; the Grove unlocks real power, and the old bot trap was the mistake. Early sign from the family-opening check: **Pebbling alone dies at drift 3–4** (40 damage at 0.5/s overkills early swarms); likely fix after the full check: its shots skip on to a second nightmare.
+
+**Family openings + Grove player (2026-09-29):** only the starting three carry act 1 alone (Bellflower, Whirligig 6/10; Nestling 3/10; Pebbling, Rootling, Acorn 0/10) → base Warden DPS floor (`warden_stats.md`). The Grove player (Firefly + Dewdrop, finals first): Fresh 35.5, Half 39 (one win), Full 40 median; **half of all runs at every profile die at drifts 28–29** (the act 2 opening, before finals) → the guaranteed elite moves to drift 31; **no Ascended form in any run** (3–6 Dreamlight earned) → bosses give 4 Dreamlight.
+
+## Batch grove10 (2026-09-30; random drifts, 10 seeds per cell)
+
+**A. Each family alone, Full Grove, to drift 25** (reached 25 / average leaves lost by 25): Sporeling
+10/1.1, Firefly 10/0.3, Dewdrop 10/0.3, Bellflower 10/0.5, Pebbling 9/3.1, **Acorn 9/9.2**, Nestling
+8/0.4, **Rootling 8/0.5 (its 2 deaths at drifts 2–3)**, **Whirligig 7/7.8**.
+**E. Fresh Balanced:** beat the drift 25 boss **10/10** (target ~75%), 0.8 leaves by 25.
+**C. Spend or save** (Mixed style, 5 families × 10, reached 25 · close calls · approach): Fresh
+spender 36/50 · 1.5 · 0.86, saver **46/50** · 0.7 · 0.80; Early spender 36/50, saver 45/50. The
+spender's deaths are Dewdrop and Firefly (4/10 each, drifts 5–13); the saver's weak spot is Early
+Pebbling (5/10).
+**D. Grove player** (Firefly + Dewdrop, to 100): medians Fresh 38, Half 41, Full 39; wins 0/30; the
+26–30 death cluster is gone; best 97 (Half). Stormheart unlocked in 2 Full runs, planted in 1.
+
+Decisions (design chat, 2026-09-30):
+- **Openings under the floor:** Rootling (dies at drift 2–3 on some seeds, a terrible first run),
+  Whirligig (7/10) and Acorn (9.2 leaves). The floor is now **≥ 8/10 reach 25 and ≤ 3 leaves on
+  average**, alone, at Fresh. Tower Code tunes their base Wardens; rerun A for those three at Fresh.
+- **The first boss is too easy at Fresh:** raise **only the drift 25 boss** (the act stays the
+  teacher): boss health ×1.5 → **×1.75** for act 1's boss, rerun E with 20 seeds, target 14–16/20.
+- **Saving is safer than spending, the reverse of the target.** No tuning yet: first a breakdown of
+  what the spender bought by drift 10 in its Dewdrop / Firefly deaths (plants, ranks, clears,
+  growth). If spending on the wrong thing kills it, fix the bot; if the target is wrong, act 1's
+  early drifts need to punish an unspent 100+ Dew bank.
+- **The Grove still doesn't move the median.** Fresh at 38 is on target, so act 2 stays; the Grove
+  must add more. Next: per profile, the death drift and what leaked, Dew and damage at 30 / 45, the
+  perks carried. Then buff the perks and the Grove families (not lower act 2).
+
+**Breakdowns (same day):**
+- **Spend or save:** the spender died because it poured 340–384 Dew into **Nurture on base Wardens**
+  (rank ~II) while the saver grew 4–5 branches by drift 10. Ranking the base is the trap; spending
+  on growth is fine. Decision: the **spender bot buys the next growth whenever affordable, else
+  plants, and ranks only after that**; rerun C. Design note: a human can fall into the same trap. The
+  Warden panel already lists Grow first; if playtests show players ranking Sprouts, add a one-time
+  whisper.
+- **Grove player:** the Grove's power is real (Half/Full reach 9–10 finals by 45) but the bot banks
+  ~200 Dew into the act break and meets drift 31's jump with it unspent (deaths d31–38). Decision:
+  **fix the bot first** (spend down to one rest bonus before drifts 26 and 31), add a **loadout
+  column**, rerun D. Perks and Grove families are buffed only if the Grove still doesn't move the
+  median after that.
+
+**Omens and reruns (same day):**
+- **Omens, always face vs never** (Balanced, 15 seeds, to 50): Fresh reached 50 in 6/15 vs 8/15
+  (mean death 41.3 vs 44.7); Early 4/15 vs 7/15 (36.3 vs 43.7). Leaves lost in drifts 11–25: 14.4 vs
+  5.9 (Fresh), 18.3 vs 3.2 (Early). **Passes** the "facing every Omen loses clearly more" target
+  (run_design.md): Omens have teeth. Later, lower priority: a bot that faces only when its maze has
+  slack, to check the rewards make picking your moments worth it.
+- **Openings:** Rootling 10/10 (3.7 leaves: accepted, within 10-seed noise), Whirligig 10/10 (0.3).
+  **Acorn 1/10** at 14 @ 1.6/s (single target loses act 1's swarms); now 16 @ 1.4/s with a small
+  bounce splash (85c4240), rerunning.
+- **First boss:** ×1.75 still beaten 19/20 → **×2.0**, rerun E (target 14–16/20).
+- **Acorn keeps attacker ranks and the attacker Focus** (decision): it's its family's base attacker
+  and opener. Only **Elder Stump and Grove Heart** are pure supports whose ranks go to the aura.
 
 ## Later
 

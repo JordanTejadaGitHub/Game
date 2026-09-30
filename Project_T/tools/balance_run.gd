@@ -351,7 +351,7 @@ func _try_nurture() -> bool:
 	towers.sort_custom(func(a, b) -> bool: return a.rank < b.rank)
 	var tower: Tower = towers[0]
 	var dew := run_state.dew
-	var focus := Tower.Focus.POWER if tower.needs_focus() else Tower.Focus.NONE
+	var focus := tower.focus_options()[0] if tower.needs_focus() else Tower.Focus.NONE
 	if not placer.nurture(tower, focus):
 		return false
 	spent.nurture += dew - run_state.dew

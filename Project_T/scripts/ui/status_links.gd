@@ -14,6 +14,8 @@ class_name StatusLinks
 # menu in a run, the title screen).
 
 const META_PREFIX := "status:"
+const TERM_PREFIX := "term:"  # Game terms ({block} …): the popup is the Codex glossary's line
+const FAMILY_PREFIX := "family:"  # Family names ({family:dewdrop}): emblem, damage type, identity
 const CODEX_HOST_GROUP := &"codex_host"
 const HIDE_DELAY := 0.5  # Seconds after the pointer leaves the word (or the popup) before it hides
 const LINK_COLOR := UiStyle.INK  # Ink text on a 1 px gold underline (ui_style.md "Links")
@@ -25,11 +27,35 @@ var _icon := TextureRect.new()
 var _name := Label.new()
 var _text := Label.new()
 var _status: StringName = &""
+var _is_term := false  # _status is a term id, not a status
+var _is_family := false  # _status is a family id
 var _hide_in := -1.0
 
-# `text` with every status name (and {damp}-style token) as a [url] link, other "[" escaped.
+# `text` with every status name (and {damp}-style token) and every term token ({block}, {Drifts} …)
+# as a [url] link, other "[" escaped.
 static func bbcode(text: String) -> String:
-	text = IconInfo.format(text).replace("[", "[lb]")
+	# Term tokens first, as placeholders (no letters: the status pattern never matches inside them).
+	var terms: Array = []
+	if text.contains("{"):
+		for token in IconInfo.term_tokens():
+			while text.contains(token[0]):
+				text = text.replace(token[0], "\u0001%d\u0001" % terms.size())
+				terms.append(_link(TERM_PREFIX + String(token[1]), token[2]))
+		for found in IconInfo.family_pattern().search_all(text):  # {family:dewdrop}
+			var id := found.get_string(1)
+			var data := IconInfo.family_data(id)
+			text = text.replace(found.get_string(), "\u0001%d\u0001" % terms.size())
+			terms.append(_link(FAMILY_PREFIX + id, data.display_name if data != null else id.capitalize()))
+	text = _statuses(IconInfo.format(text).replace("[", "[lb]"))
+	for i in terms.size():
+		text = text.replace("\u0001%d\u0001" % i, terms[i])
+	return text
+
+static func _link(meta: String, word: String) -> String:
+	return "[url=%s][u color=#%s][color=#%s]%s[/color][/u][/url]" % [meta, LINK_LINE.to_html(true),
+		LINK_COLOR.to_html(false), word]
+
+static func _statuses(text: String) -> String:
 	if _pattern == null:
 		var names: Array = []
 		for id in IconInfo.STATUSES:
@@ -42,8 +68,7 @@ static func bbcode(text: String) -> String:
 	for found in _pattern.search_all(text):
 		var id := IconInfo.status_id(found.get_string())
 		out += text.substr(at, found.get_start() - at)
-		out += "[url=%s%s][u color=#%s][color=#%s]%s[/color][/u][/url]" % [META_PREFIX, id, LINK_LINE.to_html(true),
-			LINK_COLOR.to_html(false), found.get_string()]
+		out += _link(META_PREFIX + String(id), found.get_string())
 		at = found.get_end()
 	return out + text.substr(at)
 
@@ -94,12 +119,9 @@ func _init() -> void:
 	row.add_child(_icon)
 	var box := VBoxContainer.new()
 	row.add_child(box)
-	_name.add_theme_font_size_override("font_size", 16)
-	_name.add_theme_color_override("font_color", LINK_COLOR)
+	UiStyle.tip_name(_name, LINK_COLOR)  # Tip sizes (screens_ui.md playtest fixes 2026-09-30)
 	box.add_child(_name)
-	_text.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_text.custom_minimum_size = Vector2(240, 0)
-	_text.add_theme_font_size_override("font_size", 14)
+	UiStyle.tip_body(_text)
 	box.add_child(_text)
 	var more := LinkButton.new()
 	more.text = "More in the Codex"
@@ -110,17 +132,32 @@ func _init() -> void:
 	mouse_exited.connect(_hide_soon)
 
 func _show_for(meta: String, host: Control, tapped: bool) -> void:
-	if not meta.begins_with(META_PREFIX):
+	var is_term := meta.begins_with(TERM_PREFIX)
+	var is_family := meta.begins_with(FAMILY_PREFIX)
+	if not meta.begins_with(META_PREFIX) and not is_term and not is_family:
 		return
-	var id := StringName(meta.trim_prefix(META_PREFIX))
-	if tapped and visible and id == _status:
+	var id := StringName(meta.get_slice(":", 1))
+	if tapped and visible and id == _status and _is_term == is_term and _is_family == is_family:
 		visible = false  # Tapping the same word again closes it
 		return
 	_status = id
-	_icon.texture = IconInfo.icon(id)
-	_icon.visible = _icon.texture != null
-	_name.text = IconInfo.status_name(id)
-	_text.text = IconInfo.format(IconInfo.STATUSES.get(id, ["", ""])[1])
+	_is_term = is_term
+	_is_family = is_family
+	if is_family:  # A family: its base Warden's icon, "Dewdrop family", its damage type and identity
+		var data := IconInfo.family_data(String(id))
+		_icon.texture = WardenIcon.make(data) if data != null else null  # Its base Warden (no family emblems)
+		_icon.visible = _icon.texture != null
+		_name.text = "%s family" % (data.display_name if data != null else String(id).capitalize())
+		_text.text = ("%s. %s" % [IconInfo.damage_type_text(data.line), IconInfo.format(data.description)]) if data != null else ""
+	elif is_term:  # A game term: its name and the Codex glossary's line, no icon
+		_icon.visible = false
+		_name.text = term_name(id)
+		_text.text = CodexData.definition(term_name(id))
+	else:
+		_icon.texture = IconInfo.icon(id)
+		_icon.visible = _icon.texture != null
+		_name.text = IconInfo.status_name(id)
+		_text.text = IconInfo.format(IconInfo.STATUSES.get(id, ["", ""])[1])
 	visible = true
 	reset_size()
 	var mouse := host.get_global_mouse_position()
@@ -142,15 +179,22 @@ func _process(delta: float) -> void:
 		if not get_global_rect().has_point(get_global_mouse_position()):
 			visible = false
 
+# A term's glossary name ("Perfect block").
+static func term_name(id: StringName) -> String:
+	return IconInfo.TERMS[id][2] if IconInfo.TERMS.has(id) else String(id).capitalize()
+
 func _open_codex() -> void:
 	visible = false
-	var name := IconInfo.status_name(_status)
+	var name := term_name(_status) if _is_term else IconInfo.status_name(_status)
 	var node: Node = get_parent()
 	while node != null:  # Inside the Codex: just jump there
 		if node is CodexPanel:
-			node.jump(name)
+			if _is_family:
+				node.show_families()
+			else:
+				node.jump(name)
 			return
 		node = node.get_parent()
 	var host := get_tree().get_first_node_in_group(CODEX_HOST_GROUP)
 	if host != null and host.has_method("open_codex"):
-		host.open_codex(&"glossary", name)
+		host.open_codex(&"families" if _is_family else &"glossary", "" if _is_family else name)

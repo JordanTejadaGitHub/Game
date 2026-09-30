@@ -1,8 +1,9 @@
 extends PanelContainer
 class_name LoadoutPanel
 
-# "Carry into the dream" (meta_design.md, Section 1: Perks): the perk loadout. Up to 5 slots (1 at
-# the start, the Perks limb grows slots 2–5); every owned perk is listed and a tap carries it or puts
+# "Carry into the dream" (meta_design.md, Section 1: Perks): the perk loadout. Slots 1–3 are open
+# from the start, the Perks limb grows 4–5, and a secret 6th appears with "The Heartwood in full bloom";
+# every owned perk is listed and a tap carries it or puts
 # it back. A perk with levels is carried at its highest owned level. The loadout is saved in the
 # profile and kept between runs. Opened by Start run (then its button starts the run) or by tapping
 # the waystones at the Heartwood's roots.
@@ -10,6 +11,7 @@ class_name LoadoutPanel
 signal closed(start: bool)  # start = the player pressed Start run
 
 const SLOTS_TEXTURE := preload("res://assets/meta/ui/loadout_slots.png")
+const SLOT_6_TEXTURE := preload("res://assets/meta/ui/loadout_slot_6.png")  # The secret 6th
 const SLOT := 64
 const MAX_SLOTS := 5
 
@@ -113,35 +115,41 @@ func _rebuild() -> void:
 	for child in _perks.get_children():
 		child.queue_free()
 	var slots := HeartwoodMemory.loadout_slots(_memory)
+	var sixth := HeartwoodMemory.has_sixth_slot(_memory)
+	var normal := slots - (1 if sixth else 0)  # Slots 1–5 (3 open, 4–5 grown on the Perks limb)
 	for i in MAX_SLOTS:
-		_slots_row.add_child(_slot(i, slots))
+		_slots_row.add_child(_slot(i, i < normal, i if i < normal else -1, false))
+	if sixth:  # The secret 6th ("The Heartwood in full bloom"): never shown before it has risen
+		_slots_row.add_child(_slot(MAX_SLOTS, true, normal, true))
 	var owned := _owned_perks()
 	if owned.is_empty():
-		_hint.text = "Plant perks on the Heartwood's left limb to carry them here."
+		_hint.text = "Plant perks on the Perks limb to carry them."
 	elif _carried.size() >= slots:
-		_hint.text = "Every slot is full. Tap a carried perk to put it back." + \
-			("" if slots >= MAX_SLOTS else " The Perks limb grows more slots.")
+		_hint.text = "Every slot is full"
 	else:
-		_hint.text = "Tap a perk to carry it (%d of %d slots)." % [_carried.size(), slots]
+		_hint.text = "Carrying %d of %d" % [_carried.size(), slots]
 	for unlock in owned:
 		_perks.add_child(_perk_button(unlock))
 
-func _slot(index: int, slots: int) -> Control:
+# One slot at position `index`: `open` or sealed; `carried_index` is which carried perk sits in it (-1 =
+# none); `sixth` = the secret slot's own art (loadout_slot_6.png: 0 empty, 1 filled).
+func _slot(index: int, open: bool, carried_index: int, sixth: bool) -> Control:
 	var button := Button.new()
 	button.flat = true
 	button.focus_mode = Control.FOCUS_NONE
 	button.custom_minimum_size = Vector2(SLOT, SLOT)
-	var frame := 0 if index >= slots else (2 if index < _carried.size() else 1)
+	var filled := carried_index >= 0 and carried_index < _carried.size()
 	var atlas := AtlasTexture.new()
-	atlas.atlas = SLOTS_TEXTURE
+	atlas.atlas = SLOT_6_TEXTURE if sixth else SLOTS_TEXTURE
+	var frame := (1 if filled else 0) if sixth else (0 if not open else (2 if filled else 1))
 	atlas.region = Rect2(frame * SLOT, 0, SLOT, SLOT)
 	var art := TextureRect.new()
 	art.texture = atlas
 	art.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	art.set_anchors_preset(Control.PRESET_FULL_RECT)
 	button.add_child(art)
-	if index < _carried.size():
-		var unlock := HeartwoodMemory.get_unlock(_carried[index])
+	if filled:
+		var unlock := HeartwoodMemory.get_unlock(_carried[carried_index])
 		var icon := TextureRect.new()
 		icon.texture = _tree.get_icon(unlock)
 		icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -150,7 +158,7 @@ func _slot(index: int, slots: int) -> Control:
 		button.add_child(icon)
 		button.tooltip_text = unlock.display_name
 		button.pressed.connect(toggle.bind(unlock.id))
-	elif index >= slots:
+	elif not open:
 		button.tooltip_text = "Loadout slot %d grows on the Perks limb" % (index + 1)
 	return button
 
@@ -169,7 +177,7 @@ func _perk_button(unlock: UnlockData) -> Button:
 	button.expand_icon = false
 	var roman := ["", " I", " II", " III"]
 	var level_text: String = roman[level] if unlock.get_levels() > 1 and level < roman.size() else ""
-	button.text = "%s%s\n%s" % [unlock.display_name, level_text, unlock.description]  # No hover needed (touch)
+	button.text = "%s%s\n%s" % [unlock.display_name, level_text, IconInfo.format(unlock.description)]  # No hover needed (touch)
 	button.disabled = not carried and _carried.size() >= HeartwoodMemory.loadout_slots(_memory)
 	button.add_theme_color_override("font_pressed_color", Color(1.0, 0.88, 0.5))
 	button.pressed.connect(toggle.bind(unlock.id))

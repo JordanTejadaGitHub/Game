@@ -445,26 +445,26 @@ const trunkX = y => { for (let k = 1; k < TRUNK_PTS.length; k++) if (y >= TRUNK_
 // `lv` = levels (one node, pips shown by the game); `start` = grown from the beginning.
 const NODES = [];
 const N = (id, section, name, x, y, link, extra = {}) => NODES.push({ id, section, name, x, y, ...(typeof link === "string" ? { parent: link } : { from: link }), ...extra });
-// Perks
-N("morning_stores", "perks", "Morning Stores", 500, 530, [540, 604], { lv: 3 });
-N("rich_dew", "perks", "Rich Dew", 452, 468, "morning_stores", { lv: 3 });
-N("rested_roots", "perks", "Rested Roots", 430, 402, "rich_dew", { lv: 2 });
-N("sprout_bed", "perks", "Sprout Bed", 524, 456, "morning_stores");
-N("seed_pouch", "perks", "Seed Pouch", 430, 640, [446, 564]);
-N("clear_sight", "perks", "Clear Sight", 384, 474, [410, 550]);
-N("kindling", "perks", "Kindling", 318, 440, [340, 520]);
-N("early_bloom", "perks", "Early Bloom", 318, 600, [350, 526]);
-N("early_light", "perks", "Early Light", 250, 620, "early_bloom");
-N("first_care", "perks", "First Care", 262, 392, [262, 478]);
-N("deep_taproot", "perks", "Deep Taproot", 200, 540, [230, 458], { lv: 3 });
-N("second_thoughts", "perks", "Second Thoughts", 196, 330, [176, 406], { lv: 2 });
-N("let_go", "perks", "Let Go", 248, 268, "second_thoughts");
-N("wider_dreams", "perks", "Wider Dreams", 164, 256, "second_thoughts");
-N("omen_reader", "perks", "Omen Reader", 118, 470, [150, 390]);
-N("slot_2", "perks", "Loadout slot 2", 58, 300, [96, 318]);
-N("slot_3", "perks", "Loadout slot 3", 40, 236, "slot_2");
-N("slot_4", "perks", "Loadout slot 4", 42, 170, "slot_3");
-N("slot_5", "perks", "Loadout slot 5", 70, 110, "slot_4");
+// Perks: three paths off the limb (meta_design.md "Section 1: Perks"), each growing up into the crown —
+// Economy nearest the trunk, Survival in the middle, Choice at the far end (its side branch Early Bloom
+// → Early Light → Kindling hangs below). The loadout slots sit below the limb, between the paths.
+N("morning_stores", "perks", "Morning Stores", 486, 474, [500, 540], { lv: 3 });
+N("rich_dew", "perks", "Rich Dew", 474, 404, "morning_stores", { lv: 3 });
+N("rested_roots", "perks", "Rested Roots", 460, 334, "rich_dew", { lv: 2 });
+N("seed_pouch", "perks", "Seed Pouch", 448, 264, "rested_roots");
+N("sprout_bed", "perks", "Sprout Bed", 546, 450, "morning_stores");
+N("deep_taproot", "perks", "Deep Taproot", 344, 358, [362, 424], { lv: 3 });
+N("first_care", "perks", "First Care", 334, 288, "deep_taproot");
+N("clear_sight", "perks", "Clear Sight", 324, 218, "first_care");
+N("second_thoughts", "perks", "Second Thoughts", 206, 246, [224, 306], { lv: 2 });
+N("let_go", "perks", "Let Go", 196, 180, "second_thoughts");
+N("omen_reader", "perks", "Omen Reader", 188, 118, "let_go");
+N("wider_dreams", "perks", "Wider Dreams", 244, 90, "omen_reader");
+N("early_bloom", "perks", "Early Bloom", 250, 372, "second_thoughts");
+N("early_light", "perks", "Early Light", 232, 436, "early_bloom");
+N("kindling", "perks", "Kindling", 214, 500, "early_light");
+N("slot_4", "perks", "Loadout slot 4", 400, 520, [410, 466]);  // Slots 1–3 are open from the start
+N("slot_5", "perks", "Loadout slot 5", 318, 540, "slot_4");
 // Families: a short branch of four per family (family, final forms, hidden branch, Ascension),
 // alternating sides up the middle limb.
 [["sporeling", "Sporeling", true], ["firefly_jar", "Firefly Jar", true], ["dewdrop", "Dewdrop", true], ["pebbling", "Pebbling"],
@@ -476,6 +476,10 @@ N("slot_5", "perks", "Loadout slot 5", 70, 110, "slot_4");
     N(id + "_hidden", "families", name + ": hidden branch", ax + side * 72, ay - 86, id + "_final");
     N(id + "_ascension", "families", name + ": Ascension", ax + side * 96, ay - 108, id + "_hidden");
   });
+// Memory Wardens: free blooms a boss leaves the first time it is dispelled (low on the Families limb).
+N("memory_white_stag", "families", "Memory Warden: The White Stag", 600, 560, [640, 580]);
+N("memory_pond_keeper", "families", "Memory Warden: The Pond Keeper", 680, 560, [640, 575]);
+N("memory_moon_moth", "families", "Memory Warden: The Moon Moth", 640, 530, [640, 560]);
 // Cards: one branch per build style, Legendary flower at the tip.
 N("storm_lore", "cards", "Storm Lore", 760, 522, [742, 602]);
 N("guiding_lights", "cards", "Guiding Lights", 790, 452, "storm_lore");
@@ -1413,6 +1417,236 @@ const MEMORY_SCENES = [
 ];
 function memory(i) { const img = new Img(MW, MH); MEMORY_SCENES[i](img); return img; }
 
+// ---------- Starlit card backs (milestone "Dream of everything", meta_design.md) ----------
+// A night-sky background for a Dream offer card: 250×220 (DreamScreen CARD_SIZE), drawn in 2× chunky
+// pixels, 9-slice with STARLIT_MARGIN on every side. The card's own style (the rarity / Entwined thread
+// along the top, the gem, the text) draws over it, so the frame keeps the top edge's middle clear and
+// the middle calm and dark for text. Only the border band has stars, so the edges tile (NinePatchRect
+// axis_stretch TILE) when a card grows taller. Four frames make a slow twinkle loop.
+const STARLIT_W = 250, STARLIT_H = 220, STARLIT_MARGIN = 28, STARLIT_FRAMES = 4;
+function starlitCard(frame) {
+  const s = 2, W = STARLIT_W / s | 0, H = STARLIT_H / s | 0, M = STARLIT_MARGIN / s, L = new Img(W, H);
+  const band = (x, y) => Math.min(x, y, W - 1 - x, H - 1 - y);  // distance to the edge, in chunky px
+  // Sky: deep blue-violet, lightest at the rim (a glow of dusk), darkest behind the text.
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    const d = band(x, y), t = Math.max(0, 1 - d / M) ** 1.6;  // fades out inside the 9-slice margin (the middle tiles)
+    L.set(x, y, pick([HW.Void, HW.Dread, HW.Night, HW.Shade], clamp(.1 + t * .95, 0, 1), x, y, .9));
+  }
+  // A faint band of the Milky Way across the bottom-left corner and the top-right one.
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    if (band(x, y) >= M - 1) continue;
+    const m = Math.abs((x / W - y / H) * 1.4) - .55;
+    if (m > 0 && m < .12 && hash(x, y, 1301) < .35 + (.12 - m) * 3) L.set(x, y, HW.Bruise);
+  }
+  // Stars in the border band only. Positions repeat every 27 chunky px down the sides, so a stretched
+  // card tiles cleanly; each star twinkles on its own phase over the four frames.
+  const stars = [];
+  for (let k = 0; k < 96; k++) {
+    const side = k % 4, u = hash(k, 1, 1302), v = hash(k, 2, 1302) * (M - 3) + 1;
+    let x, y;
+    if (side === 0) { x = u * W; y = v; } else if (side === 1) { x = u * W; y = H - 1 - v; }
+    else if (side === 2) { x = v; y = M + (u * 27 | 0) + (k % 3) * 27; } else { x = W - 1 - v; y = M + (u * 27 | 0) + (k % 3) * 27; }
+    if (y < 3 && Math.abs(x - W / 2) < W * .3) continue;  // leave the thread's middle clear
+    stars.push([Math.round(x), Math.round(y), hash(k, 3, 1302), (hash(k, 4, 1302) * 4) | 0]);
+  }
+  for (const [x, y, size, phase] of stars) {
+    const lit = (frame + phase) % 4, dim = lit === 3;
+    const c = size > .85 ? HW.Moonlight : size > .5 ? HW.Mist : HW.Wraithlight;
+    if (size > .85 && !dim) {  // a small four-point star
+      L.set(x, y, lit === 0 ? HW.Moonlight : HW.Mist);
+      for (const [a, b] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) L.set(x + a, y + b, lit === 0 ? HW.Mist : HW.Wraithlight);
+    } else L.set(x, y, dim ? HW.Dusk : c);
+  }
+  // A few faint stars drifting in from the band (never behind the text in the middle).
+  for (let k = 0; k < 40; k++) {
+    const x = hash(k, 5, 1303) * W | 0, y = hash(k, 6, 1303) * H | 0, d = band(x, y);
+    if (d >= M * .55 && d < M - 1 && !(y < 3)) L.set(x, y, (frame + k) % 4 === 0 ? HW.Wraithlight : HW.Dusk);
+  }
+  // Corner ornaments: a bright four-point star in each corner, with a soft halo.
+  for (const [cx, cy] of [[6, 6], [W - 7, 6], [6, H - 7], [W - 7, H - 7]]) {
+    ellipse(L, cx, cy, 5, 5, (x, y, dx, dy) => CA(HW.Wraithlight, .25 * (1 - Math.hypot(dx, dy))));
+    const r = frame % 2 ? 3 : 4;
+    for (let i = -r; i <= r; i++) { L.set(cx + i, cy, Math.abs(i) < 2 ? HW.Moonlight : HW.Mist); L.set(cx, cy + i, Math.abs(i) < 2 ? HW.Moonlight : HW.Mist); }
+  }
+  // A thin rim: Dusk, lit Slate along the top and left.
+  for (let x = 0; x < W; x++) for (const y of [0, H - 1]) if (!(y === 0 && Math.abs(x - W / 2) < W * .3)) L.set(x, y, y ? HW.Dusk : HW.Slate);
+  for (let y = 1; y < H - 1; y++) { L.set(0, y, HW.Slate); L.set(W - 1, y, HW.Dusk); }
+  // Scale up 2×.
+  const out = new Img(STARLIT_W, STARLIT_H);
+  for (let y = 0; y < STARLIT_H; y++) for (let x = 0; x < STARLIT_W; x++) { const X = x / s | 0, Y = y / s | 0; if (L.alpha(X, Y)) out.set(x, y, L.get(X, Y)); }
+  return out;
+}
+// A stretched card for the preview: 9-slice with tiled edges, the way the game draws it.
+function nineTile(src, W, H, m) {
+  const out = new Img(W, H), sw = src.w - 2 * m, sh = src.h - 2 * m;
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    const sx = x < m ? x : x >= W - m ? src.w - (W - x) : m + (x - m) % sw, sy = y < m ? y : y >= H - m ? src.h - (H - y) : m + (y - m) % sh;
+    if (src.alpha(sx, sy)) out.set(x, y, src.get(sx, sy));
+  }
+  return out;
+}
+
+// ---------- The secret sixth waystone (milestone "The Heartwood in full bloom", meta_design.md) ----------
+// Never drawn in grove_tree.png: it stays hidden until every Grove node is owned, then rises out of the
+// roots at the Hollow's threshold. World sprites are 96×96 with the stone's centre at SIXTH_ANCHOR
+// (draw a frame at loadout_stones[5] − SIXTH_ANCHOR).
+const SECRET_STONE = [640, 893];
+const SIXTH_CELL = 96, SIXTH_ANCHOR = [48, 60], SIXTH_RISE_FRAMES = 24, SIXTH_IDLE_FRAMES = 4;
+const ease = t => { t = clamp(t, 0, 1); return t * t * (3 - 2 * t); };
+// The stone itself: like the other five, a touch larger, the Hollow's arch carved in gold on its
+// face and a starlight rim along its lit edge. `twinkle` picks which rim stars are lit.
+function sixthStone(img, cx, cy, twinkle, clipY = 1e9, glow = 1) {
+  const S = new Img(img.w, img.h), O = new Img(img.w, img.h);
+  blob(S, cx, cy, 18, 15, [ST.d1, ST.m, ST.l1, ST.l2, ST.hi], { tex: .1, rim: true, seed: 6 });
+  blob(S, cx - 7, cy - 10, 8, 3, [LEAFG[1], LEAFG[2], LEAFG[3]], { tex: .2 });
+  O.stamp(S, ST.out);
+  // The carved arch: a doorway outline in Gold with a warm light inside it.
+  for (let y = -7; y <= 6; y++) for (let x = -5; x <= 5; x++) {
+    const inside = Math.abs(x) <= 4 && (y >= -2 || Math.hypot(x, (y + 2) * 1.1) <= 4.5), edge = inside && (Math.abs(x) === 4 || (y < -2 && Math.hypot(x, (y + 2) * 1.1) > 3.4) || y === 6);
+    if (!inside) continue;
+    O.set(cx + x, cy + 2 + y, edge ? HW.Gold : CA(y > 1 ? HW.Glow : HW.Ember, .55 + .45 * glow));
+  }
+  O.set(cx, cy + 5, HW.Heartlight);
+  // Starlight rim: moonlit pixels along the upper-left edge, and three little stars that twinkle.
+  for (let a = Math.PI * 1.05; a < Math.PI * 1.75; a += .05) O.set(cx + Math.cos(a) * 17.5, cy + Math.sin(a) * 14.5, HW.Moonlight);
+  [[-15, -9], [14, -11], [17, 3]].forEach(([dx, dy], k) => {
+    const lit = (twinkle + k) % 3 === 0;
+    O.set(cx + dx, cy + dy, lit ? HW.Moonlight : HW.Mist);
+    if (lit) for (const [a, b] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) O.set(cx + dx + a, cy + dy + b, HW.Wraithlight);
+  });
+  for (let y = 0; y < O.h && y <= clipY; y++) for (let x = 0; x < O.w; x++) if (O.alpha(x, y)) img.set(x, y, O.get(x, y));
+}
+// Two roots that lie across the spot and part to let the stone through (0 = closed, 1 = open).
+function partingRoots(img, cx, groundY, open) {
+  const L = new Img(img.w, img.h), gap = open * 22;
+  const fn = barkBig(66);
+  stroke(L, cx - 40, groundY + 2, cx - 4 - gap, groundY - 5 + open * 3, 8, 5, fn);
+  stroke(L, cx + 40, groundY + 3, cx + 4 + gap, groundY - 4 + open * 3, 8, 5, fn);
+  for (let x = 0; x < L.w; x++) for (let y = 1; y < L.h; y++) if (L.alpha(x, y) && !L.alpha(x, y - 1) && hash(x, y, 67) < .5) L.set(x, y, LEAFG[1 + (x % 2)]);  // moss on top
+  img.stamp(L, HB6[0]);
+}
+function sixthRiseFrame(f) {
+  const img = new Img(SIXTH_CELL, SIXTH_CELL), [cx, cy] = SIXTH_ANCHOR, groundY = cy + 15;
+  const open = ease(f / 6), rise = ease((f - 5) / 10), flash = f < 12 ? 0 : f <= 15 ? (f - 11) / 4 : Math.max(0, 1 - (f - 15) / 8);
+  // Soft ground shadow and, once the stone is up, the soil pushed aside around it.
+  ellipse(img, cx, groundY + 1, 24, 5, SHADOW(.4));
+  if (rise > 0) ellipse(img, cx, groundY, 20 + rise * 3, 4, (x, y, dx, dy) => pick([HW.Root, HW.Bark, HW.Loam], .4 - dy * .4, x, y, .6));
+  // A crack of golden light opens between the roots before the stone appears.
+  if (f >= 2 && f <= 9) {
+    const a = Math.min(1, (f - 1) / 4) * (f > 7 ? (10 - f) / 3 : 1);
+    ellipse(img, cx, groundY - 1, 4 + open * 14, 2, (x, y, dx, dy) => CA(Math.abs(dx) < .4 ? HW.Heartlight : HW.Glow, a * (1 - Math.abs(dx))));
+    for (let k = 0; k < 6; k++) img.set(cx + (hash(k, f, 68) - .5) * 30, groundY - 3 - hash(k, 1, 68) * (f - 1) * 3, HW.Loam);  // crumbs thrown up
+  }
+  // The stone pushes up through the soil (drawn only above the ground line).
+  if (rise > 0) sixthStone(img, cx, cy + (1 - rise) * 32, f % 3, groundY, 1);
+  partingRoots(img, cx, groundY, open);
+  // The light: a burst when it arrives, settling into a soft glow; sparkles fly up and fade.
+  const glowR = 26 + flash * 14, glowA = .18 + flash * .35;
+  if (f >= 12) ellipse(img, cx, cy + 2, glowR, glowR * .85, (x, y, dx, dy) => { const r = Math.hypot(dx, dy); return r > 1 ? null : CA(r < .35 ? HW.Heartlight : HW.Glow, glowA * (1 - r) ** 1.5); });
+  if (f >= 13 && f <= 22) for (let k = 0; k < 10; k++) {
+    const a = hash(k, 2, 69) * Math.PI * 2, d = 14 + (f - 13) * 3 * (.6 + hash(k, 3, 69) * .6), fade = 1 - (f - 13) / 10;
+    img.set(cx + Math.cos(a) * d, cy + Math.sin(a) * d * .7 - (f - 13) * 1.5, CA(k % 3 ? HW.Glow : HW.Moonlight, fade));
+  }
+  return img;
+}
+// At rest: the stone between its parted roots, a soft glow, the rim stars taking turns.
+function sixthIdleFrame(f) {
+  const img = new Img(SIXTH_CELL, SIXTH_CELL), [cx, cy] = SIXTH_ANCHOR, groundY = cy + 15;
+  ellipse(img, cx, groundY + 1, 24, 5, SHADOW(.4));
+  ellipse(img, cx, groundY, 23, 4, (x, y, dx, dy) => pick([HW.Root, HW.Bark, HW.Loam], .4 - dy * .4, x, y, .6));
+  sixthStone(img, cx, cy, f, groundY, .85 + (f % 2) * .15);
+  partingRoots(img, cx, groundY, 1);
+  ellipse(img, cx, cy + 2, 26, 22, (x, y, dx, dy) => { const r = Math.hypot(dx, dy); return r > 1 ? null : CA(HW.Glow, (.14 + (f % 2) * .04) * (1 - r) ** 1.5); });
+  return img;
+}
+// Its loadout slot (UI, 64×64 like loadout_slots.png): 0 empty socket, 1 filled, 2 filled + selected.
+// The same socket as the other five, with a starlight ring and the Hollow's arch carved at its top.
+function sixthSlot(state) {
+  const out = slotSprite(state + 1), c = 32;
+  for (let a = 0; a < Math.PI * 2; a += .045) {
+    const x = c + Math.cos(a) * 25.5, y = c + 2 + Math.sin(a) * 25.5;
+    if (Math.sin(a) < -.93) continue;  // the arch sits here
+    out.set(x, y, Math.cos(a - 3.9) > .6 ? HW.Moonlight : HW.Wraithlight);
+  }
+  [[8, 10], [55, 14], [58, 46], [7, 50]].forEach(([x, y], k) => { out.set(x, y, HW.Moonlight); if (k % 2 === 0) for (const [a, b] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) out.set(x + a, y + b, HW.Wraithlight); });
+  for (let y = -5; y <= 2; y++) for (let x = -3; x <= 3; x++) {
+    const inside = Math.abs(x) <= 3 && (y >= -2 || Math.hypot(x, y + 2) <= 3.2);
+    if (inside) out.set(c + x, 6 + y, Math.abs(x) === 3 || Math.hypot(x, y + 2) > 2.4 && y < -2 ? HW.Gold : HW.Glow);
+  }
+  return out;
+}
+
+// ---------- Memory Wardens: their Grove blooms and their family-pick card border ----------
+// The three Memory Warden nodes (memory_white_stag / memory_pond_keeper / memory_moon_moth, free blooms
+// on the Families limb, grown the first time their boss is dispelled) use this sheet instead of the
+// Families row of grove_nodes.png: same 32×32 cell and the same 11 columns, one row per Warden.
+const MEMORY_WARDENS = ["memory_white_stag", "memory_pond_keeper", "memory_moon_moth"];
+// The boss's sign in the flower's heart (5×5, centred): antlers, a ripple, moth wings.
+const MEMORY_MOTIFS = {
+  memory_white_stag: [[-2, -2], [-2, -1], [-1, 0], [0, 0], [1, 0], [2, -1], [2, -2], [0, 1], [0, 2], [-2, -3], [2, -3], [-3, -2], [3, -2]],
+  memory_pond_keeper: [[-2, 0], [-1, -1], [0, -1], [1, -1], [2, 0], [1, 1], [0, 1], [-1, 1], [0, 0], [-3, 1], [3, 1]],
+  memory_moon_moth: [[0, -2], [0, -1], [0, 0], [0, 1], [-1, -1], [-2, -2], [-2, -1], [-2, 0], [1, -1], [2, -2], [2, -1], [2, 0], [-1, 1], [1, 1]],
+};
+const MEMORY_MOTIF_COLOUR = { memory_white_stag: "Moonlight", memory_pond_keeper: "Dewlight", memory_moon_moth: "Wraithlight" };
+function memoryNodeSprite(id, state, f) {
+  const out = nodeSprite("families", state, f), c = 16, earned = state === "open" && f >= 2 || state === "bloom";
+  // A dotted gold ring round the flower (only once it opens), turning slowly.
+  if (earned) for (let k = 0; k < 10; k++) { const a = k / 10 * Math.PI * 2 + f * .3; out.set(c + Math.cos(a) * 12.5, c + Math.sin(a) * 12.5, k % 2 ? HW.Gold : HW.Glow); }
+  // The boss's sign in the flower's heart.
+  if (earned) for (const [x, y] of MEMORY_MOTIFS[id]) out.set(c + x, c + y, HW[MEMORY_MOTIF_COLOUR[id]]);
+  // A little dream-fruit hanging at the lower right: gold once earned, a dim bud before.
+  const fx = 25, fy = 25;
+  out.set(fx - 1, fy - 4, LEAFG[2]); out.set(fx, fy - 3, LEAFG[1]);
+  ellipse(out, fx, fy, 2.6, 3, (x, y, dx, dy) => earned ? (dx < 0 && dy < 0 ? HW.Heartlight : dy > .3 ? HW.Ember : HW.Gold) : (dy < 0 ? HW.Dusk : HW.Night));
+  return out;
+}
+const memoryNodeRow = id => strip([memoryNodeSprite(id, "locked", 0), ...[0, 1, 2, 3].map(f => memoryNodeSprite(id, "afford", f)),
+  ...[0, 1, 2, 3].map(f => memoryNodeSprite(id, "open", f)), memoryNodeSprite(id, "bloom", 0), memoryNodeSprite(id, "bloom", 1)]);
+
+// The family pick's Memory Warden card border (screens_ui.md "Memory Warden card"): a gold frame drawn
+// OVER the card (transparent middle), with a soft gold glow that spills MEMORY_BLEED px outside it and a
+// dream-fruit hanging from the top centre. 274×324 = the 250×300 card + the bleed on every side.
+// 9-slice, MEMORY_MARGIN on every side; the card is always 250 wide, so only the left and right
+// edges repeat when it grows taller (their vine repeats every 24 px). Four frames: a slow glow pulse.
+const MEMORY_BLEED = 12, MEMORY_CARD = [250, 300], MEMORY_MARGIN = 42, MEMORY_CARD_FRAMES = 4;
+function memoryCardBorder(f) {
+  const b = MEMORY_BLEED, W = MEMORY_CARD[0] + 2 * b, H = MEMORY_CARD[1] + 2 * b, out = new Img(W, H), pulse = [0, .5, 1, .5][f];
+  const edge = (x, y) => Math.min(x - b, y - b, W - 1 - b - x, H - 1 - b - y);  // <0 outside the card
+  // The glow: palette gold at stepped alpha, strongest right at the card's edge.
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    const d = edge(x, y);
+    if (d < 0) { const t = 1 + d / b; if (t > 0) out.set(x, y, CA(HW.Gold, Math.round((.24 + pulse * .1) * t * t * 20) / 20)); }
+    else if (d < 10) out.set(x, y, CA(HW.Glow, Math.round((.14 + pulse * .06) * (1 - d / 10) * 20) / 20));
+  }
+  // The frame: a 3 px gold band (lit top-left) with a thin Ember line inside it.
+  for (let y = b; y < H - b; y++) for (let x = b; x < W - b; x++) {
+    const d = edge(x, y);
+    if (d > 4) continue;
+    const lit = x - b < 3 || y - b < 3;
+    out.set(x, y, d === 4 ? HW.Ember : d === 0 ? (lit ? HW.Glow : HW.Ember) : lit ? HW.Gold : d === 3 ? HW.Ember : HW.Gold);
+  }
+  // A gold vine down each side with small leaves, repeating every 24 px (tiles with the 9-slice).
+  for (const side of [0, 1]) for (let y = MEMORY_MARGIN - 6; y < H - MEMORY_MARGIN + 6; y++) {  // the whole stretched band (240 px = 10 repeats)
+    const x0 = side ? W - b - 9 : b + 8, p = ((y - MEMORY_MARGIN) % 24 + 24) % 24, wob = Math.round(Math.sin(p / 24 * Math.PI * 2) * 1.5);
+    out.set(x0 + wob, y, HW.Gold);
+    if (p === 6 || p === 18) { const s = p === 6 ? 1 : -1; out.set(x0 + wob + s, y - 1, LEAFG[3]); out.set(x0 + wob + 2 * s, y - 1, LEAFG[2]); out.set(x0 + wob + s, y, LEAFG[2]); }
+  }
+  // Corner flourishes: a curl of gold with a bud.
+  for (const [sx, sy] of [[1, 1], [-1, 1], [1, -1], [-1, -1]]) {
+    const cx = sx > 0 ? b + 12 : W - b - 13, cy = sy > 0 ? b + 12 : H - b - 13;
+    for (let a = 0; a < Math.PI * 1.4; a += .08) out.set(cx + Math.cos(a * sx) * (6 - a), cy + Math.sin(a * sy) * (6 - a), HW.Gold);
+    ellipse(out, cx, cy, 1.6, 1.6, HW.Heartlight);
+  }
+  // The dream-fruit at the top centre, hanging over the frame: stem, leaves, a glowing gold fruit.
+  const fx = W / 2, fy = b + 10;
+  for (let y = b - 8; y < fy - 5; y++) out.set(fx, y, LEAFG[1]);
+  petal(out, fx + 1, b - 3, -.5, 7, 2.2, LEAFG.slice(1)); petal(out, fx - 1, b - 1, Math.PI + .5, 6, 2, LEAFG.slice(1));
+  ellipse(out, fx, fy, 16, 16, (x, y, dx, dy) => { const r = Math.hypot(dx, dy); return r > 1 ? null : CA(HW.Glow, Math.round((.18 + pulse * .12) * (1 - r) * 20) / 20); });
+  const F = new Img(W, H); blob(F, fx, fy, 6, 7, [HW.Ember, HW.Gold, HW.Glow, HW.Heartlight], { tex: .05 }); out.stamp(F, HW.Root);
+  out.set(fx - 2, fy - 3, HW.Heartlight);
+  return out;
+}
+
 // ---------- export (assets/meta/...) ----------
 function strip(imgs) { const w = imgs.reduce((s, i) => s + i.w, 0), h = Math.max(...imgs.map(i => i.h)), S = new Img(w, h); let x = 0; for (const i of imgs) { S.put(i, x, 0); x += i.w; } return S; }
 function stack(rows) { const w = Math.max(...rows.map(r => r.w)), h = rows.reduce((s, r) => s + r.h, 0), S = new Img(w, h); let y = 0; for (const r of rows) { S.put(r, 0, y); y += r.h; } return S; }
@@ -1458,8 +1692,8 @@ async function encodePng(img) {
   return btoa(s);
 }
 const PENDING = [];
-function emitImg(name, img) {
-  snapToPalette(img);
+function emitImg(name, img) {  // previews are composites of snapped sheets, so they are not snapped again
+  if (!name.startsWith("_preview/")) snapToPalette(img);
   const p = document.createElement("pre"); p.dataset.name = name; document.body.appendChild(p);
   PENDING.push(encodePng(img).then(b64 => { p.textContent = b64; }));
 }
@@ -1478,19 +1712,69 @@ emitImg("grove/grove_sky.png", sky);
 emitImg("grove/grove_tree.png", tree);
 spreadNodes(canopies[0]);
 FRUIT_SPOTS.forEach(s => { s[1] = maskBottom(s[0]) - 8; });
-const layout = { size: [GW, GH], nodes: [], fruit_spots: FRUIT_SPOTS, loadout_stones: LOADOUT_STONES, moon: MOON, node_cell: 32, legendary_cell: 48, fruit_cell: 48 };
+const layout = { size: [GW, GH], nodes: [], fruit_spots: FRUIT_SPOTS, loadout_stones: [...LOADOUT_STONES, SECRET_STONE], moon: MOON, node_cell: 32, legendary_cell: 48, fruit_cell: 48 };
 const segs = {};
 for (const n of NODES) {
   const s = segment(n); segs[n.id] = s;
   emitImg("grove/branches/" + n.id + ".png", strip(s.frames));
   layout.nodes.push({ id: n.id, section: n.section, name: n.name, pos: [n.x, n.y], parent: n.parent || null, from: n.from || null,
-    levels: n.lv || 1, start: !!n.start, legendary: !!n.legendary, branch: { offset: [s.box[0], s.box[1]], frame_size: [s.W, s.H], frames: 5 } });
+    levels: n.lv || 1, start: !!n.start, legendary: !!n.legendary, ...(MEMORY_WARDENS.includes(n.id) ? { memory_row: MEMORY_WARDENS.indexOf(n.id) } : {}), branch: { offset: [s.box[0], s.box[1]], frame_size: [s.W, s.H], frames: 5 } });
 }
 emitText("grove/grove_layout.json", JSON.stringify(layout, null, 1));
 emitImg("grove/grove_nodes.png", stack(["perks", "families", "cards"].map(s => nodeRow(s, false))));
 emitImg("grove/grove_legendary.png", nodeRow("cards", true));
 emitImg("grove/dream_fruit.png", strip([0, 1, 2, 3, 4, 5, 6, 7, 8].map(fruitSprite)));
 emitImg("ui/loadout_slots.png", strip([0, 1, 2, 3].map(slotSprite)));
+// The secret sixth waystone: its rise (24 frames), its idle loop (4), and its loadout slot (3 states).
+const riseFrames = [...Array(SIXTH_RISE_FRAMES).keys()].map(sixthRiseFrame);
+emitImg("grove/waystone_6_rise.png", strip(riseFrames));
+emitImg("grove/waystone_6_idle.png", strip([...Array(SIXTH_IDLE_FRAMES).keys()].map(sixthIdleFrame)));
+emitImg("ui/loadout_slot_6.png", strip([0, 1, 2].map(sixthSlot)));
+// Preview: the rise on the tree (every 3rd frame, then the idle), cropped around the Hollow.
+{
+  const frames = [0, 3, 6, 9, 12, 15, 18, 23].map(i => riseFrames[i]), cw = 200, ch = 150, P = new Img(cw * 4, ch * 2);
+  frames.forEach((fr, k) => {
+    const T = new Img(GW, GH); T.put(sky); T.put(tree); T.put(fr, SECRET_STONE[0] - SIXTH_ANCHOR[0], SECRET_STONE[1] - SIXTH_ANCHOR[1]);
+    const ox = SECRET_STONE[0] - cw / 2, oy = SECRET_STONE[1] - ch + 40;
+    for (let y = 0; y < ch; y++) for (let x = 0; x < cw; x++) if (T.alpha(ox + x, oy + y)) P.set((k % 4) * cw + x, (k / 4 | 0) * ch + y, T.get(ox + x, oy + y));
+  });
+  emitImg("_preview/waystone_6_preview.png", P);
+}
+// Memory Wardens: their bloom sheet (a row each, the 11 node columns) and the family-pick card border.
+emitImg("grove/grove_memory_nodes.png", stack(MEMORY_WARDENS.map(memoryNodeRow)));
+const memoryBorders = [...Array(MEMORY_CARD_FRAMES).keys()].map(memoryCardBorder);
+emitImg("ui/memory_card_border.png", strip(memoryBorders));
+{
+  // Preview: the three blooms (bloomed, 4×) and the border over a mock card, standard and tall.
+  const P = new Img(640, 400); for (let y = 0; y < P.h; y++) for (let x = 0; x < P.w; x++) P.set(x, y, HW.Void);
+  MEMORY_WARDENS.forEach((id, k) => { const s = memoryNodeSprite(id, "bloom", 0); for (let y = 0; y < 32; y++) for (let x = 0; x < 32; x++) if (s.alpha(x, y)) for (let a = 0; a < 3; a++) for (let b = 0; b < 3; b++) P.set(8 + k * 100 + x * 3 + a, 8 + y * 3 + b, s.get(x, y)); });
+  [[330, 0, 300], [20, 100, 290]].slice(0, 1).forEach(() => {});
+  const mock = (h) => { const m = new Img(250, h); for (let y = 0; y < h; y++) for (let x = 0; x < 250; x++) m.set(x, y, CA(HW.Night, .9)); for (const [y, w] of [[60, 160], [80, 120], [180, 200], [200, 170]]) for (let x = 24; x < 24 + w; x++) for (let k = 0; k < 6; k++) m.set(x, y + k, HW.Mist); return m; };
+  const card = mock(300); P.put(card, 350, 50); P.put(memoryBorders[2], 350 - MEMORY_BLEED, 50 - MEMORY_BLEED);
+  emitImg("_preview/memory_wardens_preview.png", P);
+  const T = new Img(300, 420); for (let y = 0; y < T.h; y++) for (let x = 0; x < T.w; x++) T.set(x, y, HW.Void);
+  T.put(mock(370), 25, 25); T.put(nineTile(memoryBorders[2], 250 + 2 * MEMORY_BLEED, 370 + 2 * MEMORY_BLEED, MEMORY_MARGIN), 25 - MEMORY_BLEED, 25 - MEMORY_BLEED);
+  emitImg("_preview/memory_card_tall_preview.png", T);
+}
+// Starlit card backs: 4 twinkle frames of 250×220 side by side.
+const starlit = [0, 1, 2, 3].map(starlitCard);
+emitImg("ui/starlit_card.png", strip(starlit));
+// Preview: a standard card and a tall one (tiled edges) under a mock of the card's own style
+// (light fog, the rarity thread along the top, the gem, text lines).
+{
+  const P = new Img(560, 340); for (let y = 0; y < P.h; y++) for (let x = 0; x < P.w; x++) P.set(x, y, HW.Void);
+  [[20, 20, 220, HW.Wraithlight], [290, 20, 310, LEAFG[3]]].forEach(([ox, oy, h, thread]) => {
+    const card = nineTile(starlit[0], STARLIT_W, h, STARLIT_MARGIN);
+    for (let y = 0; y < h; y++) for (let x = 0; x < STARLIT_W; x++) {
+      card.set(x, y, CA(HW.Void, .2 + .25 * Math.max(0, 1 - Math.hypot((x - 125) / 125, (y - h / 2) / (h / 2)))));
+    }
+    for (let x = 0; x < STARLIT_W; x++) card.set(x, 0, CA(thread, .3 + .7 * (1 - Math.abs(x - 125) / 125)));
+    ellipse(card, 36, 36, 7, 7, thread);
+    for (const [y, w] of [[32, 120], [64, 170], [92, 190], [106, 150], [120, 175]]) for (let x = 56; x < 56 + w && x < 224; x++) for (let k = 0; k < 6; k++) card.set(x, y + k, y === 32 ? thread : HW.Mist);
+    P.put(card, ox, oy);
+  });
+  emitImg("_preview/starlit_preview.png", P);
+}
 const PERK_ORDER = ["morning_stores", "rich_dew", "rested_roots", "seed_pouch", "clear_sight", "sprout_bed", "kindling", "early_bloom", "early_light", "first_care", "deep_taproot", "second_thoughts", "let_go", "omen_reader", "wider_dreams"];
 emitImg("icons/perk_icons.png", strip(PERK_ORDER.map(k => PERK_ICONS[k]())));
 const FAMILY_ORDER = ["sporeling", "firefly_jar", "dewdrop", "pebbling", "rootling", "bellflower", "acorn", "nestling", "whirligig"];

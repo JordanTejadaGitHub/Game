@@ -635,3 +635,34 @@ func _golden_harvest(_spot: Dictionary, _board: Board, card: UpgradeData) -> Dic
 	var grown := ds.seed_grown(card)
 	return {"run_wide": true, "active": grown and bonus > 0.0, "damage": bonus, "note": "%d Dew harvested" % dew,
 		"reason": "" if grown and bonus > 0.0 else ("no catcher yet" if not grown else "harvest 100 Dew")}
+
+# The live line a board-scaling card shows on its face in an offer (dream_design.md #75): "You have 7
+# attacking Wardens · +40%", "Now: 12 cleared · +12%". "" for cards that don't scale with the board.
+# Uses the card's reporter as if it were taken, on a planted attacker (or a hypothetical one).
+func preview_line(card: UpgradeData) -> String:
+	if card == null or not REPORTERS.has(card.rule_id):
+		return ""
+	var spot := {}
+	for tower in ds._towers():
+		if tower.tower_data.can_attack:
+			spot = spot_for(tower)
+			break
+	if spot.is_empty():
+		spot = {"data": PREVIEW_ATTACKER, "cell": Vector2(-999, -999), "rank": 0, "node": null}
+	var row: Dictionary = call(REPORTERS[card.rule_id], spot, _shared_board(), card)
+	if row.is_empty() or not row.get("run_wide", false):
+		return ""
+	var value := "off"
+	if row.get("active", false):
+		if row.get("damage", 0.0) != 0.0:
+			value = "%+d%%" % roundi(row.damage * 100)
+		elif row.get("speed", 0.0) != 0.0:
+			value = "on"
+	var note: String = row.get("note", "")
+	if note == "" or note.contains("attacking Wardens"):
+		note = "You have %d attacking %s" % [ds.count_attackers(), "Warden" if ds.count_attackers() == 1 else "Wardens"]
+	else:
+		note = "Now: " + note
+	return "%s · %s" % [note, value]
+
+const PREVIEW_ATTACKER := preload("res://resource/tower/sprout.tres")

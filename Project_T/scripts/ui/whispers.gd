@@ -11,7 +11,7 @@ const TEXT := {
 	&"plant": "Plant a Warden near the path.",
 	&"first_cleanse": "Nightmares. They're coming for the dream. Don't let them reach me.",
 	&"walls": "Wardens are walls. Make them take the long way.",
-	&"flow": "They don't stop. They come in drifts, like fog.",
+	&"flow": "They don't stop. They come in {drifts}, like fog.",
 	&"speed": "Pause if you need to think. They'll wait.",
 	&"rest": "Rest here. Rearrange the forest; nothing is lost.",
 	&"save": "The forest will wait for you.",
@@ -23,7 +23,8 @@ const TEXT := {
 	&"tend": "Tend the forest, and it will remember you.",
 	&"chain": "One reaction set off another: a chain. Reach 10 for a Dawnburst.",
 	&"leaf": "It fed. A leaf blackens and falls.",
-	&"sell": "Selling gives everything back during a rest, and half while nightmares walk.",
+	&"flyer": "Some of them don't walk. Guard the ground near the Heartwood.",
+	&"sell": "Selling gives everything back during a {rest}, and half while nightmares walk.",
 	&"boss": "Something old has found the dream.",
 	&"after_boss": "It's gone, and something I'd forgotten came back.",
 	&"again": "The Heartwood dreams again.",
@@ -117,6 +118,10 @@ func _ready() -> void:
 	run_state.leaves_changed.connect(func(leaves: int, _max: int) -> void:
 		if leaves < run_state.max_leaves:
 			whisper(&"leaf"))
+	# The first leaf lost to a flyer (a Phantom): it never walked the maze (onboarding.md).
+	%EnemyContainer.enemy_reached_goal.connect(func(enemy: Node2D) -> void:
+		if enemy.has_method("is_flying") and enemy.is_flying():
+			whisper(&"flyer"))
 	%TowerSeller.tower_sold.connect(func(_t: Tower, _refund: int) -> void: whisper(&"sell"), CONNECT_ONE_SHOT)
 
 # First run: the camera glides from the forest's edge to the Heartwood along the path.
@@ -147,7 +152,7 @@ func _show_next() -> void:
 	_seen.append(String(id))
 	_remember()
 	plain = IconInfo.format(TEXT.get(id, ""))  # {damp} … become today's status names
-	var linked := StatusLinks.bbcode(plain)
+	var linked := StatusLinks.bbcode(TEXT.get(id, ""))  # From the tokens: game terms become links too
 	text = "[center]%s[/center]" % linked
 	whispered.emit(id)
 	# Status names are links of their own (hover / tap: their definition). A whisper without one is
@@ -155,7 +160,7 @@ func _show_next() -> void:
 	var has_links := linked != plain.replace("[", "[lb]")
 	term = "" if has_links else CodexData.find_term(plain)
 	mouse_filter = Control.MOUSE_FILTER_STOP if has_links or term != "" else Control.MOUSE_FILTER_IGNORE
-	tooltip_text = "Tap to read about %s in the Codex" % term if term != "" else ""
+	tooltip_text = "%s in the Codex" % term if term != "" else ""
 	if _tween:
 		_tween.kill()
 	_tween = create_tween()

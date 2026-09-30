@@ -38,6 +38,10 @@ signal family_pick_requested(reason: StringName)  # &"first" (after drift 1) or 
 const DEMO_DRIFTS_DIR := "res://resource/drift/demo/"
 
 @export var drifts: Array[DriftData] = []  # Empty = load resource/drift/demo/drift_NN.tres in order
+@export var random_drifts := true  # Roll the drifts from the run's seed (DriftRoller); false = the hand-made ones
+# Boss pools (enemy_design.md): draw each act's boss from resource/boss/act_N/ (BossPool). Only when
+# the drifts are the game's own (loaded from DEMO_DRIFTS_DIR), never a test's hand-set ones.
+@export var boss_pools := true
 @export var act_names: Array[String] = ["Forest's Edge", "Deep Wood", "Misty Hollow", "Heartwood Glade"]
 @export var drifts_per_block: int = 5
 @export var drifts_per_act: int = 25  # The act's last drift is its boss
@@ -50,19 +54,24 @@ const DEMO_DRIFTS_DIR := "res://resource/drift/demo/"
 # Acts 3–4 (acts_3_4.md): growth eases back so the late game doesn't run away (≈ ×100 at drift 100).
 @export var endgame_health_growth_per_drift: float = 1.045
 @export var endgame_growth_from: int = 51
-@export var guaranteed_elite_from: int = 26
+@export var guaranteed_elite_from: int = 31  # run_design.md f2eb4f8: was 26 (the drift 28–29 death cluster)
 @export var second_elite_from: int = 76  # Two Deeply Blighted per drift from here
 @export var boss_health_multiplier: float = 1.5  # On the bosses' base health
+@export var act1_boss_health_multiplier: float = 2.0  # Act 1's boss (drift 25) instead (grove10: Fresh beat ×1.5 10/10, ×1.75 19/20)
 # Acts 3–4 (run_design.md "Act 3 probe", interim): a flat health multiplier for every nightmare from
 # `late_acts_from_act`, bosses included, on top of the growth / boss multiplier.
 @export var late_acts_health_multiplier: float = 1.6
 @export var late_acts_from_act: int = 3
-# Act 2 (run_design.md "Difficulty curve targets", interim): x1.0 through act 1 (a fresh profile
-# should reach drift 25), then a straight ramp from `early_ramp_from` to `early_acts_health_multiplier`
-# at `early_ramp_to`, held until acts 3-4 take over (no stacking).
+# Acts 1–2 (run_design.md 72860af, balance batches): act 1 is x1.0 through `act1_ramp_from`, rising
+# evenly to `act1_health_multiplier` at `act1_ramp_to` and holding to the act's end; act 2 holds that
+# for its first drifts (a breather while the first finals arrive) until `early_ramp_from`, then rises
+# evenly to `early_acts_health_multiplier` at `early_ramp_to`, held until acts 3–4 take over (no stacking).
+@export var act1_health_multiplier: float = 1.15
+@export var act1_ramp_from: int = 9
+@export var act1_ramp_to: int = 20
 @export var early_acts_health_multiplier: float = 1.55
-@export var early_ramp_from: int = 26
-@export var early_ramp_to: int = 40
+@export var early_ramp_from: int = 30
+@export var early_ramp_to: int = 45
 @export var extra_nightmares: float = 1.25  # Nightmares per drift (rounded up) from `extra_nightmares_from`
 @export var extra_nightmares_from: int = 10  # The intro drifts before it are unchanged
 # Rest bonus = base + per_block × block number (economy pass v2, run_design.md: was 20 + 10 × block,
@@ -102,16 +111,50 @@ var _drift_of := {}
 var _arriving := {}
 var _auto_timer := -1.0  # Counts down to the next auto drift; < 0 = not waiting
 var _block_leaked := false
+# The boss drawn for each act (index 0 = act 1; BossPool), set once the run's seed is known.
+var bosses: Array[BossData] = []
+var preset_bosses: Array = []  # Boss ids a resumed run drew (RunSaver sets them before the draw)
+var _own_drifts := false  # The drifts came from DEMO_DRIFTS_DIR (boss pools may replace boss drifts)
 
 func _ready() -> void:
 	if drifts.is_empty():
 		drifts = load_demo_drifts()
+		_own_drifts = true
+	if boss_pools and _own_drifts:
+		_draw_bosses.call_deferred()  # Before the roll: DriftRoller keeps boss drifts as they are
 	if get_tree().current_scene == owner:  # The player's default (tests keep the export's)
 		auto_drift = bool(HeartwoodMemory.get_settings().get("auto_drift", auto_drift))
 	spawner.enemy_split.connect(_on_enemy_split)
 	spawner.enemy_cleansed.connect(_on_enemy_cleansed)
 	spawner.enemy_reached_goal.connect(_resolve.bind(true))
 	run_state.run_ended.connect(_on_run_ended)
+	if random_drifts:
+		_roll_drifts.call_deferred()
+
+# Random drifts (run_design.md; Enemy Code's DriftRoller): every block but the first, the bosses and
+# the intro drifts is rolled from the run's seed, all at once. Deferred so the seed is final
+# (MapGenerator picks it in its _ready; RunSaver restores a saved one before that): the same run, or
+# a resumed one, always meets the same drifts.
+func _roll_drifts() -> void:
+	var map := get_node_or_null("%MapGenerator")
+	DriftRoller.roll_run(self, map.map_seed if map else 0)
+
+# Boss pools: one boss per act, from the run's seed (deferred like the roll, so the seed is final).
+func _draw_bosses() -> void:
+	if not preset_bosses.is_empty():
+		bosses = BossPool.from_ids(preset_bosses)
+	else:
+		var map := get_node_or_null("%MapGenerator")
+		var playing := get_tree().current_scene == owner  # Tests meet the defaults unless BossPool.force_draw
+		var real_game := playing and not MetaRun.is_dev_run()  # Dev runs draw but never read / write the profile
+		var defaults := (not playing and not BossPool.force_draw) or (real_game and HeartwoodMemory.is_first_run())
+		bosses = BossPool.draw(map.map_seed if map else 0, defaults, ResultsScreen.is_demo(),
+			BossPool.last_from_profile() if real_game else [])
+	BossPool.apply(self, bosses)
+
+# The boss drawn for `act` (null without boss pools or past the run's acts).
+func get_drawn_boss(act: int) -> BossData:
+	return bosses[act - 1] if act >= 1 and act <= bosses.size() else null
 
 static func load_demo_drifts() -> Array[DriftData]:
 	var files: Array[String] = []
@@ -189,9 +232,26 @@ func get_auto_countdown() -> float:
 func can_start_next_drift() -> bool:
 	if run_state.is_over or awaiting_family_pick or not has_next_drift():
 		return false
+	if pending_choice() != &"":
+		return false  # A choice open or minimised (peeking at the map) holds the next drift
 	if resting:
 		return true
 	return _next_is_in_block()
+
+# The choice that must be made before the next drift (screens_ui.md "Choice screens", user bug: "I can
+# hide the Dream choice and start the wave"): &"family" (the family pick), &"dream" (an offer shown or
+# queued), &"omen" (an Omen offer shown or waiting behind the Dream), or &"" when none. Minimising a
+# choice to peek at the map doesn't resolve it. The boss dossier and Remember never block.
+func pending_choice() -> StringName:
+	if awaiting_family_pick:
+		return &"family"
+	var dreams := get_tree().get_first_node_in_group(DreamState.GROUP) if is_inside_tree() else null
+	if dreams != null and (dreams.is_offering() or dreams.has_pending_offer()):
+		return &"dream"
+	var omens := get_tree().get_first_node_in_group(&"omens") if is_inside_tree() else null
+	if omens != null and (omens.is_offering() or omens.has_pending_offer()):
+		return &"omen"
+	return &""
 
 # Dew for starting the next drift right now: +1 per `call_early_seconds_per_dew` seconds of the
 # current drift's arrival that are skipped, capped. 0 when resting or when it has finished arriving.
@@ -276,18 +336,21 @@ func _next_is_in_block() -> bool:
 func get_extra_nightmares(number: int) -> float:
 	return extra_nightmares if number >= extra_nightmares_from else 1.0
 
-# Act 2's health multiplier for drift `number`: 1.0 through drift 26, rising evenly to ×1.55 at drift 40.
+# Acts 1–2's health multiplier for drift `number`: ×1.0 to drift 9, rising to ×1.15 at 20 (held to 30),
+# then rising to ×1.55 at 45 (held to 50).
 func get_early_multiplier(number: int) -> float:
-	var t := clampf(float(number - early_ramp_from) / maxf(early_ramp_to - early_ramp_from, 1), 0.0, 1.0)
-	return lerpf(1.0, early_acts_health_multiplier, t)
+	var act1 := clampf(float(number - act1_ramp_from) / maxf(act1_ramp_to - act1_ramp_from, 1), 0.0, 1.0)
+	var act2 := clampf(float(number - early_ramp_from) / maxf(early_ramp_to - early_ramp_from, 1), 0.0, 1.0)
+	return lerpf(lerpf(1.0, act1_health_multiplier, act1), early_acts_health_multiplier, act2)
 
 # Health multiplier for `data` in drift `number`: get_growth (bosses: ×1.5 their base), × the act 2
 # ramp, or ×1.6 in acts 3–4. Dreams / Omens multiply on top (hook: see get_health_multiplier).
 func get_health_scale(data: EnemyData, number: int) -> float:
-	var scale := boss_health_multiplier if data.is_boss else get_growth(number)
+	var boss := act1_boss_health_multiplier if get_act(number) == 1 else boss_health_multiplier
+	var scale := boss if data.is_boss else get_growth(number)
 	if get_act(number) >= late_acts_from_act:
 		scale *= late_acts_health_multiplier
-	else:
+	elif not (data.is_boss and get_act(number) == 1):  # Act 1's boss keeps its own multiplier (its escort takes the ramp)
 		scale *= get_early_multiplier(number)
 	return scale * get_health_multiplier(data, number)
 
@@ -332,7 +395,7 @@ func get_spawn_modifiers(data: EnemyData, number: int) -> Dictionary:
 	return modifiers
 
 # Blight Level 5: `blight_elites_per_drift` random non-boss arrivals become Deeply Blighted.
-# From drift 26, a drift that lists no elites gets one (two from drift 76): each time a random
+# From drift 31, a drift that lists no elites gets one (two from drift 76): each time a random
 # non-boss kind in it (boss drifts: from the escort), and one of that kind becomes Deeply Blighted.
 func add_guaranteed_elite(schedule: Array, number: int) -> void:
 	if number < guaranteed_elite_from or schedule.any(func(a: Array) -> bool: return a.size() > 2 and a[2]):
@@ -384,7 +447,7 @@ func _on_enemy_split(parent: Node2D, child: Node2D) -> void:
 	_active[number].remaining += 1
 
 func _on_enemy_cleansed(enemy: Node2D) -> void:
-	if enemy.enemy_data.is_boss and _drift_of.has(enemy):
+	if enemy.enemy_data.is_boss and _drift_of.has(enemy) and not enemy.is_echo:  # Echoes (Remembering Oak) aren't bosses
 		bosses_cleansed += 1
 	_resolve(enemy, false)
 
@@ -457,6 +520,8 @@ func _pay_rest_bonus() -> Array:
 	return [bonus, perfect]
 
 func _on_run_ended(_won: bool) -> void:
+	if not bosses.is_empty() and get_tree().current_scene == owner and not MetaRun.is_dev_run():
+		BossPool.remember(bosses)  # The next run weighs against these
 	_arriving.clear()
 	_auto_timer = -1.0
 	set_process(false)

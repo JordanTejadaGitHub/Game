@@ -2848,16 +2848,33 @@ func _attack_sunpetal(canvas: Image, st: Dictionary) -> void:
 
 # Lashes a curling root out to hook a creature, then reels it back in.
 func _root_lash(canvas: Image, st: Dictionary, fig: Dictionary, sparkly: bool) -> void:
+	# Lash out and hook (release), pull taut, YANK back (speed lines, the hook dragging its catch),
+	# then recoil into a coil, so the pull-back reads as a drag, not a teleport.
 	var k: int = st.attack - RELEASE_FRAME
-	if k < 0 or k > 1:
+	if k < 0 or k > 3:
 		return
-	var tip := Vector2(ATTACKS["rootcurl"].point) if k == 0 else Vector2(54, 28)
+	var reach := Vector2(ATTACKS["rootcurl"].point)
+	var tip: Vector2 = [reach, reach, Vector2(52, 27), Vector2(47, 24)][k]
 	var layer := _layer()
-	_stroke(layer, [Vector2(42, 24), Vector2(50, 25), tip], 1.3, fig.a)
-	_stroke(layer, [tip, tip + Vector2(1.5, 2), tip + Vector2(-0.5, 3.5), tip + Vector2(-2, 2.5)], 1.0, fig.a)
+	if k == 1:
+		_stroke(layer, [Vector2(42, 24), tip], 1.3, fig.a)  # taut
+	else:
+		_stroke(layer, [Vector2(42, 24), Vector2(46 + k, 25 - k), tip], 1.3, fig.a)
+	if k < 3:
+		_stroke(layer, [tip, tip + Vector2(1.5, 2), tip + Vector2(-0.5, 3.5), tip + Vector2(-2, 2.5)], 1.0, fig.a)
+	else:
+		_stroke(layer, _spiral_pts(tip, tip + Vector2(0, -2), 2.2, 1.0, 0.0), 1.0, fig.a)
 	_stamp(canvas, layer, fig.o)
-	_warm_glow(canvas, tip, Vector2(6, 5))  # the hook glows as it catches
-	if sparkly:
+	if k == 1:
+		for x in range(46, 58, 3):  # it strains
+			_px(canvas, x, 22 + ((x - 42) * 7) / 18 - 2, Color("#fff4c0"))
+	if k == 2:
+		for row in 3:  # yanked: streaks trailing where the hook came from
+			for i in range(3 + row, 10 - row):
+				_px(canvas, int(tip.x) + i, int(tip.y) - 1 + row * 2 + i / 4, Color("#fff4c0", 1.0 - i * 0.08))
+	if k <= 2:
+		_warm_glow(canvas, tip, Vector2(6, 5))  # the hook glows as it catches
+	if sparkly and k <= 1:
 		_sparkle(canvas, Vector2i(tip) + Vector2i(2, -3), Color("#fff4c0"))
 
 func _attack_rootcurl(canvas: Image, st: Dictionary) -> void:

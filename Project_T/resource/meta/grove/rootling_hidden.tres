@@ -6,7 +6,7 @@
 script = ExtResource("1_unlock")
 id = "rootling_hidden"
 display_name = "Hidden branch: Rootlight"
-description = "Rootlings can grow into Rootlights (and Starcaves): light that reveals and Marks."
+description = "Rootlings can grow into Rootlights, then Starcaves: light that reveals and leaves nightmares {marked}."
 root = 0
 costs = Array[int]([40])
 order = 24

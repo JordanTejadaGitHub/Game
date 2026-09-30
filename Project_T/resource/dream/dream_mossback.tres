@@ -7,7 +7,7 @@
 script = ExtResource("1_card")
 id = "dream_mossback"
 display_name = "Mossback"
-description = "Pebblings can now grow into Mossbacks (80 Dew): one huge, slow hit at short range; double damage against Marked nightmares."
+description = "Pebblings can now grow into Mossbacks (80 Dew): one huge, slow hit at short range; double damage against {marked} nightmares."
 rarity = 1
 kind = 1
 tags = Array[String](["stone"])

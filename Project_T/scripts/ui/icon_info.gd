@@ -11,7 +11,7 @@ class_name IconInfo
 # these names. Text anywhere can say {damp} / {static} …; format() puts in the current names, and
 # StatusLinks turns them into links.
 const STATUSES := {
-	&"damp": ["Soaked", "Water hits deal 20% more. Lightning jumps further between {damp} nightmares."],
+	&"damp": ["Soaked", "Water hits deal 20% more. Lightning jumps farther between {damp} nightmares."],
 	&"drowsy": ["Drowsy", "8% slower per stack. At full stacks it's {asleep}."],
 	&"spored": ["Poisoned", "Poison eats at it over time, more with every stack."],
 	&"marked": ["Exposed", "Takes 25% more from every Warden."],
@@ -141,14 +141,63 @@ static func _tip(table: Dictionary, id: StringName) -> String:
 				id = key
 	return format("%s: %s" % table[id]) if table.has(id) else ""
 
-# Puts the current status names into `text`: "{damp} + {static}" -> "Soaked + Charged". Unknown
-# tokens stay as they are.
+# Game terms (screens_ui.md "Playtest fixes" 2026-09-30: "what's a perfect block, what's a block?"):
+# written as tokens in card text and tooltips, shown as links (StatusLinks) whose popup is the Codex
+# glossary's line. id -> [word, plural, glossary name]. Tokens: {drift} "drift", {drifts} "drifts",
+# {Drift} / {Drifts} capitalised (sentence starts). Plain text (format) just gets the word.
+const TERMS := {
+	&"drift": ["drift", "drifts", "Drift"],
+	&"block": ["block", "blocks", "Block"],
+	&"rest": ["rest", "rests", "Rest"],
+	&"perfect_block": ["perfect block", "perfect blocks", "Perfect block"],
+	&"dreamlight": ["Dreamlight", "Dreamlight", "Dreamlight"],
+	&"family_pick": ["family pick", "family picks", "Family pick"],
+	&"deeply_blighted": ["Deeply Blighted", "Deeply Blighted", "Deeply Blighted"],
+}
+
+# Every term token form: [token text, term id, word shown]. Longest tokens first.
+static func term_tokens() -> Array:
+	if _term_tokens.is_empty():
+		for id in TERMS:
+			var entry: Array = TERMS[id]
+			var plural_id := String(id) + ("s" if not String(id).ends_with("s") else "")
+			for form in [[String(id), entry[0]], [plural_id, entry[1]]]:
+				_term_tokens.append(["{%s}" % form[0], id, form[1]])
+				_term_tokens.append(["{%s}" % _upper_first(form[0]), id, _upper_first(form[1])])
+		_term_tokens.sort_custom(func(a: Array, b: Array) -> bool: return a[0].length() > b[0].length())
+	return _term_tokens
+static var _term_tokens: Array = []
+
+static func _upper_first(s: String) -> String:
+	return s.left(1).to_upper() + s.substr(1)
+
+# Puts the current status names and term words into `text`: "{damp} + {static}" -> "Soaked +
+# Charged", "each {block}" -> "each block". Unknown tokens stay as they are.
 static func format(text: String) -> String:
 	if not text.contains("{"):
 		return text
 	for id in STATUSES:
 		text = text.replace("{%s}" % id, STATUSES[id][0])
+	for token in term_tokens():
+		text = text.replace(token[0], token[2])
+	if text.contains("{family:"):
+		for found in family_pattern().search_all(text):
+			var data := family_data(found.get_string(1))
+			text = text.replace(found.get_string(), data.display_name if data != null else found.get_string(1).capitalize())
 	return text
+
+# Family names as links (screens_ui.md "remove Half-dreamed"): "{family:dewdrop}" is the family's
+# name, a link (StatusLinks) whose popup is its emblem, damage type and identity.
+static var _family_pattern: RegEx = null
+static func family_pattern() -> RegEx:
+	if _family_pattern == null:
+		_family_pattern = RegEx.create_from_string("\\{family:([a-z_]+)\\}")
+	return _family_pattern
+
+# The family's base Warden (resource/tower/<id>.tres), or null.
+static func family_data(id: String) -> TowerData:
+	var path := "res://resource/tower/%s.tres" % id
+	return load(path) as TowerData if ResourceLoader.exists(path) else null
 
 # The status id for a display name ("Soaked" -> &"damp"), or &"" (StatusLinks uses it).
 static func status_id(name: String) -> StringName:

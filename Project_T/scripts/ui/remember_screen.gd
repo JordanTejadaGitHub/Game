@@ -19,9 +19,9 @@ const SIDE_WIDTH := 300.0
 const NARROW_WIDTH := 900.0  # Below this the side panel sits under the tree and slides up
 const FRAME_TIME := 0.16  # Idle animation
 # Heartwood 32 (ui_style.md): lines in Gold, locked ones in Slate, the bloom in Glow.
-const LINE_COLOR := Color(UiStyle.BUTTON_GOLD, 0.6)
 const LINE_LOCKED := Color(Color("5c5a78"), 0.5)  # Slate
 const BLOOM_COLOR := UiStyle.GOLD
+const PATH_GLOW := UiStyle.GOLD  # Lines to unlocked / grown forms
 const HEADER_COLOR := UiStyle.INK
 const STATUS_LINE_COLOR := Color("9cd4fc")  # Dewlight
 const WAYSTONE_COLOR := Color(UiStyle.CARD_BG, 0.95)  # Night
@@ -63,7 +63,7 @@ func _ready() -> void:
 	box.add_theme_constant_override("separation", 10)
 	frame.add_child(box)
 
-	# Header: "Remember", "Dreamlight 3 ✦ · unspent carries over", "Dreamlight unlocks, Dew grows."
+	# Header: "Remember", "Dreamlight 3 ✦", "Dreamlight unlocks, Dew grows."
 	UiStyle.title(_title, UiStyle.CHOICE_TITLE_SIZE, HEADER_COLOR)
 	_title.text = "Remember"
 	box.add_child(_title)
@@ -172,7 +172,7 @@ func _forms_of(tree: Array) -> Array[TowerData]:
 	return forms
 
 func _rebuild() -> void:
-	_light_line.text = "Dreamlight %d %s · unspent carries over" % [dream_state.dreamlight, MOTE]
+	_light_line.text = "Dreamlight %d %s" % [dream_state.dreamlight, MOTE]
 	var trees := _trees()
 	for child in _tabs.get_children():
 		_tabs.remove_child(child)
@@ -417,7 +417,7 @@ func _add_unlock(data: TowerData) -> void:
 	var button := Button.new()
 	button.focus_mode = Control.FOCUS_NONE
 	button.custom_minimum_size = Vector2(0, 48)
-	button.text = "Unlock (%d %s)" % [cost, MOTE]
+	button.text = "Unlock · %d %s" % [cost, MOTE]
 	button.disabled = not dream_state.can_unlock(data)
 	UiStyle.primary(button)
 	button.pressed.connect(unlock.bind(data))
@@ -528,8 +528,13 @@ class TreeCanvas extends Control:
 			var a := _centre(edge[0])
 			var b := _centre(edge[1])
 			var child_state: int = screen.state_of(edge[1])
-			var faint := child_state == State.LOCKED or child_state == State.GROVE
-			draw_line(a, b, LINE_LOCKED if faint else LINE_COLOR, 3.0, true)
+			# The chosen path glows gold (screens_ui.md "Playtest fixes"): lines to unlocked or grown
+			# forms; every other line stays dim.
+			if child_state == State.GROWN or child_state == State.UNLOCKED:
+				draw_line(a, b, Color(PATH_GLOW, 0.25), 9.0, true)
+				draw_line(a, b, PATH_GLOW, 3.5, true)
+			else:
+				draw_line(a, b, LINE_LOCKED, 3.0, true)
 			if child_state == State.LOCKED:  # A thin chain: little links along the line
 				var steps := int(a.distance_to(b) / 10.0)
 				for k in steps:
@@ -627,10 +632,15 @@ class Portrait extends TextureRect:
 		process_mode = Node.PROCESS_MODE_ALWAYS
 		if data.texture != null:
 			_atlas.atlas = data.texture
-			_atlas.region = WardenIcon.region(data)
+			_atlas.region = _crop()
 			texture = _atlas
 		if silhouette:
 			self_modulate = Color(0, 0, 0, 0.85)
+
+	# An Ascended form (tier 4) is taller than 64 px: its whole frame, crown and all, scaled into the
+	# disc like the others (screens_ui.md "Playtest fixes"); the rest show their bottom 64 px.
+	func _crop() -> Rect2:
+		return data.get_frame_rect(0) if data.tier >= DreamState.ASCENDED_TIER else WardenIcon.region(data)
 
 	func _process(delta: float) -> void:
 		if data.texture == null or data.frame_count <= 1:
@@ -640,6 +650,6 @@ class Portrait extends TextureRect:
 			return
 		_clock = 0.0
 		_frame = (_frame + 1) % data.frame_count
-		var crop := WardenIcon.region(data)
+		var crop := _crop()
 		var offset := data.get_frame_rect(_frame).position - data.get_frame_rect(0).position
 		_atlas.region = Rect2(crop.position + offset, crop.size)

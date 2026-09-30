@@ -21,7 +21,24 @@ func _run() -> void:
 	# --- Drift banner: next boss countdown ---
 	var banner = main.get_node("%DriftBanner")
 	var text: String = banner._next_boss_text(0)
-	_check(text.ends_with("in 25"), "banner counts down to the drift 25 boss (%s)" % text)
+	_check(text.ends_with("· drift 25 (in 25)"), "banner names the next boss with its drift and the countdown (%s)" % text)
+
+	# The top-centre stack: the active Omen's line sits under the banner, the Coming strip under it.
+	var omen_tag := main.get_node_or_null("HUD/ActiveOmen") as Label
+	var strip: ComingStrip = null
+	for child in main.get_node("HUD").get_children():
+		if child is ComingStrip:
+			strip = child
+	if omen_tag != null and strip != null:
+		omen_tag.text = "Omen: Dry Spell (drifts 11–15) · a reward"
+		omen_tag.visible = true
+		strip._stack()
+		_check(strip.offset_top >= omen_tag.offset_top + omen_tag.size.y, "the Coming strip stacks under the Omen line (%.0f vs %.0f)"
+			% [strip.offset_top, omen_tag.offset_top + omen_tag.size.y])
+		omen_tag.visible = false
+		strip._stack()
+	else:
+		_check(false, "the Omen line and the Coming strip exist")
 
 	# --- HUD layout (screens_ui.md "The run HUD", principles 5 and 6) ---
 	var dreams: DreamState = main.get_node("%DreamState")
@@ -29,8 +46,46 @@ func _run() -> void:
 	dreams.unlocks_changed.emit()
 	var bar: HBoxContainer = main.get_node("%TowerBar")
 	var first_button := bar.get_child(0) as Button
-	_check(first_button.text.is_valid_int() and first_button.get_child(0) is Label and first_button.get_child(0).text == "1",
+	var hotkey_label := first_button.get_node_or_null("Hotkey") as Label
+	_check(first_button.text.is_valid_int() and hotkey_label != null and hotkey_label.text == "1",
 		"Warden buttons show the cost and the hotkey (%s)" % first_button.text)
+	# The Warden's own icon on the button (family emblems were removed, user 2026-09-30).
+	var first_data: TowerData = main.get_node("HUD")._bar_towers[0]
+	var bar_icon := first_button.icon as AtlasTexture
+	_check(first_button.icon != null and (bar_icon == null or bar_icon.atlas == null
+		or bar_icon.atlas.resource_path != IconInfo.ICON_SHEET), "Warden buttons show the Warden (%s), not a badge from the icon sheet" % first_data.display_name)
+	_check(UiStyle.TIP_SIZE >= 16 and UiStyle.TIP_NAME_SIZE >= 18
+		and ThemeDB.get_project_theme().get_font_size("font_size", "TooltipLabel") >= 16, "tooltip text is at least 16 px, names 18")
+	# The buff lens (screens_ui.md "Buff readability"): the HUD toggle and V, a toggle (touch too);
+	# lens nodes in BuffLens.GROUP hear every change.
+	var lens_button := main.get_node_or_null("HUD/BuffLensButton") as Button
+	var heard: Array = []
+	var lens_script := GDScript.new()
+	lens_script.source_code = "extends Node\nvar calls: Array = []\nfunc set_lens(on: bool) -> void:\n\tcalls.append(on)\n"
+	lens_script.reload()
+	var listener := Node.new()
+	listener.set_script(lens_script)
+	listener.add_to_group(BuffLens.GROUP)
+	main.add_child(listener)
+	_check(lens_button != null and lens_button.toggle_mode and not BuffLens.on and InputMap.has_action("buff_lens"),
+		"the Buffs toggle is there, off at the start, with its V action")
+	var v := InputEventAction.new()
+	v.action = "buff_lens"
+	v.pressed = true
+	main.get_node("HUD")._unhandled_input(v)
+	_check(BuffLens.on and lens_button.button_pressed and listener.get("calls") == [true], "V turns the lens on (and tells the lens)")
+	main.get_node("HUD")._unhandled_input(v)
+	_check(not BuffLens.on and listener.get("calls") == [true, false], "and off again")
+	listener.queue_free()
+	# Selected vs hovered: no button rests filled; the primary look at rest is only its gold border.
+	var theme := ThemeDB.get_project_theme()
+	var plain_rest := theme.get_stylebox("normal", "Button") as StyleBoxFlat
+	var primary_rest := theme.get_stylebox("normal", "PrimaryButton") as StyleBoxFlat
+	var primary_hover := theme.get_stylebox("hover", "PrimaryButton") as StyleBoxFlat
+	var focus := theme.get_stylebox("focus", "Button") as StyleBoxFlat
+	_check(primary_rest.bg_color == plain_rest.bg_color and primary_rest.shadow_size == 0
+		and primary_hover.bg_color != primary_rest.bg_color and not focus.draw_center,
+		"primary buttons rest unfilled (gold border only); hover fills; focus is an outline")
 	# Seedling Gift: a seed badge with the count on the Sprout button, hidden at 0.
 	var hud_node = main.get_node("HUD")
 	_check(hud_node._seed_badge != null and not hud_node._seed_badge.visible, "no seed badge without free Sprouts")
@@ -156,6 +211,25 @@ func _run() -> void:
 	_check(popup.visible and popup._name.text == "Soaked" and popup._text.text.begins_with("Water hits deal 20% more"), "tapping a status shows its definition")
 	link_label.meta_clicked.emit("status:damp")
 	_check(not popup.visible, "tapping it again closes it")
+	# Game terms (playtest fixes 2026-09-30): {block}-style tokens are links to their glossary line.
+	var term_text := StatusLinks.bbcode("{Perfect_block}: no leaf lost in a {block} of {drifts}. Soaked {deeply_blighted}.")
+	_check(term_text.contains("[url=term:perfect_block]") and term_text.contains("Perfect block[/color]")
+		and term_text.contains("[url=term:block]") and term_text.contains("drifts[/color]")
+		and term_text.contains("[url=status:damp]") and term_text.contains("[url=term:deeply_blighted]"),
+		"term tokens become links, capitalised and plural forms too (%s)" % term_text)
+	_check(IconInfo.format("each {block}, {Rests}, {dreamlight}") == "each block, Rests, Dreamlight", "plain text gets the words")
+	for id in IconInfo.TERMS:
+		_check(CodexData.definition(StatusLinks.term_name(id)) != "", "the glossary defines %s" % StatusLinks.term_name(id))
+	# Family names as links ({family:dewdrop}): the popup shows its emblem, damage type and identity.
+	var family_text := StatusLinks.bbcode("Needs {family:dewdrop}.")
+	_check(family_text.contains("[url=family:dewdrop]") and family_text.contains("Dewdrop[/color]")
+		and IconInfo.format("Needs {family:dewdrop}.") == "Needs Dewdrop.", "family tokens become links / plain names (%s)" % family_text)
+	link_label.meta_clicked.emit("family:dewdrop")
+	_check(popup.visible and popup._name.text == "Dewdrop family" and popup._text.text.begins_with("Water damage.") and popup._icon.visible,
+		"tapping a family shows its emblem, damage type and identity (%s)" % popup._text.text)
+	link_label.meta_clicked.emit("term:perfect_block")
+	_check(popup.visible and popup._name.text == "Perfect block" and popup._text.text.contains("no leaf lost") and not popup._icon.visible,
+		"tapping a term shows its glossary line (%s)" % popup._text.text)
 	link_label.queue_free()
 	var whisper_node = main.get_node("%Whispers")
 	whisper_node.enabled = true
@@ -282,6 +356,24 @@ func _run() -> void:
 	_check(family.mouse_filter == Control.MOUSE_FILTER_STOP, "and Back reopens the pick")
 	family.choose(family.offer[0])
 
+	# The Memory Warden card (screens_ui.md): after its boss, its own card, as tall as the others at most.
+	var stag: TowerData = load("res://resource/tower/white_stag.tres")
+	family.pending_memory_warden = stag
+	family.show_pick(&"boss")
+	await _frames(3)
+	var memory_card: Control = family._cards.get_child(0)
+	var memory_box: Control = memory_card.get_child(0)
+	_check(family.offer[0] == stag and (memory_box.get_child(0) as Label).text == "A Memory returns",
+		"the pick after the boss shows the Memory Warden on its own card")
+	var tallest: float = family.CARD_SIZE.y
+	for i in range(1, family._cards.get_child_count()):
+		tallest = maxf(tallest, family._cards.get_child(i).size.y)
+	_check(memory_card.size.y >= memory_box.get_combined_minimum_size().y + family.CARD_PADDING - 1.0
+		and memory_card.size.y <= tallest + 1.0,
+		"the Memory Warden card fits its content and no taller than the other cards (%.0f, tallest %.0f)" % [memory_card.size.y, tallest])
+	family.choose(stag)
+	_check(dreams.is_unlocked("white_stag"), "choosing the Memory Warden plants it in the run")
+
 	# Dream card marks (DreamMarks): Thick Bark's shield by the leaves, Heart of the Maze's heart layer.
 	var marks_hud = main.get_node("HUD")
 	marks_hud.bark_shield.set_charges(2)
@@ -291,7 +383,7 @@ func _run() -> void:
 	if bark_card != null:
 		marks_hud.bark_shield.tip.show_card(marks_hud.bark_shield, bark_card, Vector2(200, 200))
 		_check(marks_hud.bark_shield.tip.visible and marks_hud.bark_shield.tip._name.text == bark_card.display_name
-			and marks_hud.bark_shield.tip._text.text == bark_card.description, "hover / tap: the card's icon, name and text")
+			and marks_hud.bark_shield.tip._text.text == IconInfo.format(bark_card.description), "hover / tap: the card's icon, name and text")
 		marks_hud.bark_shield.tip.hide_tip(marks_hud.bark_shield)
 	marks_hud.bark_shield.set_charges(0)
 	_check(not marks_hud.bark_shield.visible, "…and hides at 0")
@@ -468,7 +560,7 @@ func _run() -> void:
 
 	# --- Demo mode override: developer setting, never applied in headless tests (temp profile) ---
 	var real_profile := HeartwoodMemory.file_path
-	HeartwoodMemory.file_path = "user://test_ui_profile.json"
+	HeartwoodMemory.file_path = "user://test_ui_profile_%d.json" % OS.get_process_id()  # Per process
 	var profile := HeartwoodMemory.defaults()
 	profile.settings[ResultsScreen.DEMO_MODE_SETTING] = 0 if ProjectSettings.get_setting("game/demo", false) else 1
 	HeartwoodMemory.save_data(profile)

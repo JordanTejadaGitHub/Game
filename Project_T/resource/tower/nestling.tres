@@ -11,7 +11,7 @@
 [resource]
 script = ExtResource("1_tdata")
 display_name = "Nestling"
-description = "A bird swoops at a nightmare and flies home; extra damage to Phantoms."
+description = "A bird swoops at a nightmare, rakes one more beside it for half, and flies home; extra damage to Phantoms."
 cost = 25
 texture = ExtResource("2_tex")
 frame_count = 8
@@ -20,13 +20,15 @@ tier = 1
 evolve_cost = 15
 attack_kind = 7
 attack_range = 3.0
-damage = 14
+damage = 24
 attacks_per_second = 1.2
 projectile_speed = 420
 projectile_returns = true
 crit_chance = 0.05
 bonus_vs_enemies = Array[String](["dandelion_seed"])
 bonus_vs_multiplier = 1.25
+skip_share = 0.5
+skip_radius = 1.0
 projectile_texture = ExtResource("3_proj")
 attack_texture = ExtResource("4_atk")
 attack_frame_count = 6

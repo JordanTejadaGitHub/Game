@@ -45,8 +45,8 @@ func _process(delta: float) -> void:
 
 func _spread() -> void:
 	var source: Node = _source if is_instance_valid(_source) else null
-	for enemy in get_tree().get_nodes_in_group(Tower.ENEMY_GROUP):
-		if enemy.global_position.distance_to(global_position) > _radius:
+	for enemy in Tower.nightmares_near(get_tree(), global_position, _radius):  # The shared buckets, not all nightmares
+		if not is_instance_valid(enemy) or enemy.is_cleansed or enemy.global_position.distance_to(global_position) > _radius:
 			continue
 		if _age < Reactions.CHAIN_WINDOW:
 			enemy.statuses.mark_chain(_chain, [source] if source else [], Reactions.CHAIN_WINDOW)

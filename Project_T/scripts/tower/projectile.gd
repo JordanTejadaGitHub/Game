@@ -31,6 +31,7 @@ var _lob_height := 0.0
 var _lob_distance := 1.0
 var trail := Color(0, 0, 0, 0)  # Borrowed looks: a bonded Warden's shots trail its kin's colour
 var _trail: Array[Vector2] = []  # Recent world positions for the trail
+var _drawn_frame := -1
 
 func _init(target: Node2D, data: TowerData, on_land: Callable) -> void:
 	_target = target
@@ -84,7 +85,12 @@ func _fly_toward(to: Vector2, step: float, delta: float) -> void:
 	_anim_time += delta
 	if texture != null and not _lob:
 		rotation = global_position.direction_to(to).angle()
-	queue_redraw()
+	# Performance: redraw only when the drawing changes (a new sheet frame, a lob's arc, a trail); moving and
+	# rotating the node doesn't need one.
+	var frame := int(_anim_time * ANIMATION_FPS)
+	if _lob or not _trail.is_empty() or frame != _drawn_frame:
+		_drawn_frame = frame
+		queue_redraw()
 	global_position = global_position.move_toward(to, step)
 
 # How high a lobbed stone is above the ground right now (0 at both ends of the arc).

@@ -8,8 +8,8 @@ extends SceneTree
 # Uses temp profile / run-save files; never the player's.
 #   godot --headless --path . --script res://tests/test_codex_discoveries.gd --fixed-fps 60
 
-const PROFILE_PATH := "user://test_codex_discoveries_profile.json"
-const RUN_PATH := "user://test_codex_discoveries_run.json"
+var PROFILE_PATH := "user://test_codex_discoveries_profile_%d.json" % OS.get_process_id()  # Per process: parallel sessions share user://
+var RUN_PATH := "user://test_codex_discoveries_run_%d.json" % OS.get_process_id()  # Per process: parallel sessions share user://
 
 var failures := 0
 
@@ -116,6 +116,12 @@ func _run() -> void:
 		"offered cards are seen on the account, others not")
 	dreams.card_taken.emit(all_cards[0])
 	_check(int(HeartwoodMemory.load_data().get(DreamCodex.TAKEN_KEY, {}).get(all_cards[0].id, 0)) == 1, "taking one counts it")
+	dreams.clearing_opened_by = all_cards[0].id  # As if this card unlocked clearing this run
+	# The Codex's Nightmares: the Shade met (and dispelled 7 times), the rest "???".
+	var nightmare_profile := HeartwoodMemory.load_data()
+	nightmare_profile["nightmares_seen"] = ["leaf_bug"]
+	nightmare_profile[NightmareCodex.DISPELS_KEY] = {"leaf_bug": 7}
+	HeartwoodMemory.save_data(nightmare_profile)
 	pause_menu = main.get_node("%PauseMenu")
 	pause_menu.open_codex(&"combos")
 	await process_frame
@@ -124,8 +130,25 @@ func _run() -> void:
 	var unseen_entry: Control = codex.dream_entries.get(all_cards[2].id)
 	_check(seen_entry != null and _labels(seen_entry).has(all_cards[0].display_name) and seen_entry.find_child("New", true, false) != null,
 		"a seen card shows in full, with New")
+	_check(seen_entry != null and _labels(seen_entry).has(DreamState.OPENED_CLEARING_LINE.to_lower()), "the card that unlocked clearing says so")
+	var other_entry: Control = codex.dream_entries.get(all_cards[1].id)
+	_check(other_entry != null and not _labels(other_entry).has(DreamState.OPENED_CLEARING_LINE.to_lower()), "no other card does")
 	_check(unseen_entry != null and _labels(unseen_entry) == ["???"], "an unseen card is just ???")
 	_check(codex._dreams_count.text == "2 / %d Dreams seen" % all_cards.size(), "the Dreams count (" + codex._dreams_count.text + ")")
+	var kinds := NightmareCodex.all_kinds()
+	var shade_entry: Control = codex.nightmare_entries.get("leaf_bug")
+	var husk_entry: Control = codex.nightmare_entries.get("bark_beetle")
+	_check(shade_entry != null and _labels(shade_entry).has("Shade") and shade_entry.find_child("New", true, false) != null
+		and (shade_entry.find_child("Stats", true, false) as Label).text == "Dispelled 7 times",
+		"a met nightmare shows in full, with New and its dispels")
+	_check(husk_entry != null and _labels(husk_entry) == ["???"], "an unmet nightmare is just ???")
+	_check(codex._nightmares_count.text == "1 / %d nightmares met" % kinds.size(), "the count (" + codex._nightmares_count.text + ")")
+	var stag: EnemyData = load("res://resource/enemy/old_stag.tres")
+	var shade: EnemyData = load("res://resource/enemy/leaf_bug.tres")
+	_check(NightmareCodex.act_of(shade) == 1 and NightmareCodex.act_of(stag) == 1
+		and kinds.find(stag) > kinds.find(shade) and NightmareCodex.act_of(kinds[kinds.size() - 1]) == 4,
+		"grouped by act, bosses last within their act")
+	_check(kinds.all(func(d: EnemyData) -> bool: return codex.nightmare_entries.has(NightmareCodex.kind_of(d))), "every nightmare has an entry")
 	pause_menu.close()
 	await _end_run(main)
 	ResultsScreen.demo_override = -1

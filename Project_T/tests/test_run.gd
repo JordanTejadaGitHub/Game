@@ -95,21 +95,28 @@ func _test_blocks_and_rests() -> void:
 		and is_equal_approx(director.get_health_scale(shade_data, 51), director.get_growth(51) * 1.6 * director.get_health_multiplier(shade_data, 51))
 		and is_equal_approx(director.get_health_scale(oak_data, 100), director.boss_health_multiplier * 1.6 * director.get_health_multiplier(oak_data, 100)),
 		"acts 3–4 nightmares and bosses have ×1.6 health")
-	# Act 2 (run_design.md "Difficulty curve targets", interim): ×1.0 through 26, ramping to ×1.55 at 40.
-	_check(is_equal_approx(director.get_early_multiplier(1), 1.0) and is_equal_approx(director.get_early_multiplier(26), 1.0)
-		and is_equal_approx(director.get_early_multiplier(40), 1.55) and is_equal_approx(director.get_early_multiplier(50), 1.55)
-		and absf(director.get_early_multiplier(33) - 1.275) < 0.001, "act 2 health ramps from ×1.0 (drift 26) to ×1.55 (40)")
-	# One Deeply Blighted from drift 26 when the drift lists none (boss drifts: from the escort); two from 76.
-	for number in [25, 26, 35, 45, 50, 51, 75, 76, 100]:
+	# Acts 1–2 (run_design.md 72860af): ×1.0 to 9, ramping to ×1.15 at 20 (held through 30), ramping to ×1.55 at 45.
+	var curve := {1: 1.0, 9: 1.0, 20: 1.15, 25: 1.15, 26: 1.15, 30: 1.15, 45: 1.55, 50: 1.55}
+	for number in curve:
+		_check(is_equal_approx(director.get_early_multiplier(number), curve[number]),
+			"drift %d: health ×%.2f (got %.3f)" % [number, curve[number], director.get_early_multiplier(number)])
+	_check(absf(director.get_early_multiplier(37) - (1.15 + 0.4 * 7.0 / 15.0)) < 0.001 and director.get_early_multiplier(14) > 1.0
+		and director.get_early_multiplier(14) < 1.15, "both ramps are straight lines")
+	# One Deeply Blighted from drift 31 when the drift lists none (boss drifts: from the escort); two from 76.
+	for number in [25, 26, 30, 31, 35, 45, 50, 51, 75, 76, 100]:
 		var schedule: Array = director.drifts[number - 1].get_schedule()
 		var listed: int = schedule.filter(func(a: Array) -> bool: return a[2]).size()
 		director.add_guaranteed_elite(schedule, number)
 		var elites: Array = schedule.filter(func(a: Array) -> bool: return a[2])
-		var expected := listed if number < 26 or listed > 0 else (2 if number >= 76 else 1)
+		var expected := listed if number < 31 or listed > 0 else (2 if number >= 76 else 1)
 		_check(elites.size() == expected and elites.all(func(a: Array) -> bool: return not a[1].is_boss),
 			"drift %d: %d elite(s) (%d listed)" % [number, elites.size(), listed])
 	var stag: EnemyData = load("res://resource/enemy/old_stag.tres")
-	_check(is_equal_approx(director.get_health_scale(stag, 25), 1.5), "bosses have ×1.5 health (act 1: no ramp)")
+	_check(is_equal_approx(director.get_health_scale(stag, 25), director.act1_boss_health_multiplier * director.get_health_multiplier(stag, 25))
+		and is_equal_approx(director.get_health_scale(shade_data, 25), director.get_growth(25) * 1.15 * director.get_health_multiplier(shade_data, 25)),
+		"act 1's boss has its own multiplier (no ramp); its escort takes ×1.15")
+	_check(is_equal_approx(director.get_health_scale(stag, 50), 1.5 * 1.55 * director.get_health_multiplier(stag, 50)),
+		"later bosses keep their act's multiplier (act 2's ×1.55)")
 
 	# Selling in a rest what was planted this rest: a full refund (75% once it stood through a drift)
 	var sprout: TowerData = placer.towers[0]
@@ -223,8 +230,30 @@ func _test_boss_rest_and_win() -> void:
 	_check(rests.is_empty(), "the boss rest waits for the family pick")
 	family.choose(family.offer[0])
 	_check(rests == [[1, true]], "then the boss rest")
+	# A waiting choice holds the drift (user bug: "I can hide the Dream choice and start the wave").
+	var rest_dreams: DreamState = main.get_node("%DreamState")
+	_check(director.pending_choice() == &"dream" and not director.can_start_next_drift(), "the Dream waiting behind the boss rest's Remember screen holds the drift too")
+	rest_dreams.remember_closed()  # The player closes Remember: the Dream shows
+	for i in 30:
+		if rest_dreams.is_offering():
+			break
+		await process_frame
+	if rest_dreams.is_offering():
+		var dream_screen = main.get_node("HUD/DreamScreen")
+		dream_screen.peek.set_peeking(true)  # Minimised to peek at the map
+		var started_before := director.drifts_started
+		_check(not director.start_next_drift() and director.drifts_started == started_before and director.pending_choice() == &"dream",
+			"a minimised Dream offer holds the next drift")
+		var panel = main.get_node("HUD/DriftPanel")
+		panel._process(0.0)
+		_check(panel._start_button.text == "Choose a Dream" and not panel._start_button.disabled, "Start reads Choose a Dream")
+		panel._on_start_pressed()
+		_check(not dream_screen.peek.peeking and director.drifts_started == started_before, "pressing it reopens the Dream screen")
+	else:
+		_check(false, "the boss rest offers a Dream")
 	await _settle(main)
 	_check(acts == [[2, 1]] and run_state.leaves == 11, "act break regrows 1 leaf (%s)" % [acts])
+	await _resolve_choices(main)
 	director.start_next_drift()
 	await _play_until(main, func() -> bool: return not ended.is_empty(), 0, 3000)
 	_check(ended == [true] and not director.has_next_drift(), "clearing the last drift wins")
@@ -305,6 +334,22 @@ func _play_until(main: Node, done: Callable, leave: int = 0, max_frames: int = 4
 	_check(false, "timed out waiting (%d frames)" % max_frames)
 
 # Runs rames frames dismissing any Dream / Omen offers, without cleansing anything.
+# Makes every waiting choice (a Dream, an Omen shown or queued) so the next drift may start: a
+# waiting choice holds it (screens_ui.md "Choice screens").
+func _resolve_choices(main: Node) -> void:
+	var director: DriftDirector = main.get_node("%DriftDirector")
+	var dreams: DreamState = main.get_node("%DreamState")
+	for i in 300:
+		if director.pending_choice() == &"":
+			return
+		dreams.remember_closed()  # The boss rest opens Remember first; the Dream waits behind it
+		if dreams.is_offering():
+			dreams.skip() if dreams.can_skip() else dreams.choose(dreams.current_offer[0])
+		var omens = get_first_node_in_group(&"omens")
+		if omens != null and (omens.is_offering() or omens.has_pending_offer()) and not dreams.is_offering():
+			omens.choose(null)
+		await process_frame
+
 func _settle(main: Node, frames: int = 10) -> void:
 	for i in frames:
 		await _play_until(main, func() -> bool: return true)

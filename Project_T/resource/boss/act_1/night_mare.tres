@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="BossData" load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://resource/boss/script/boss_data.gd" id="1_boss"]
+[ext_resource type="Resource" path="res://resource/enemy/night_mare.tres" id="2_enemy"]
+[ext_resource type="Resource" path="res://resource/drift/boss/night_mare.tres" id="3_drift"]
+
+[resource]
+script = ExtResource("1_boss")
+id = "night_mare"
+act = 1
+boss = ExtResource("2_enemy")
+drift = ExtResource("3_drift")

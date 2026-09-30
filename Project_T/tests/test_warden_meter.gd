@@ -41,6 +41,9 @@ func _run() -> void:
 		await process_frame
 	_check(not during.is_empty() and not during.forecast and during.maze_dps > 0.0,
 		"during the drift: the maze's DPS (%.1f) vs needed (%.1f)" % [during.get("maze_dps", 0.0), during.get("needed_dps", 0.0)])
+	var after := meter.get_benchmark()
+	_check(after.forecast and after.drift == 2 and after.maze_dps > 0.0 and after.maze_dps == after.last_dps,
+		"at the rest after drift 1: the forecast uses drift 1's DPS (%.1f), not the one before" % after.get("maze_dps", 0.0))
 	var rows := meter.get_meter_rows("drift")
 	var near_row := {}
 	var far_row := {}

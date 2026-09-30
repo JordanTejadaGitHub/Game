@@ -6,7 +6,7 @@
 script = ExtResource("1_unlock")
 id = "whirligig_final"
 display_name = "Whirligig final forms"
-description = "Whirligig final forms can grow in your runs: Zephyr, Windmill."
+description = "Final forms can grow in your runs: Zephyr, Windmill."
 root = 0
 costs = Array[int]([60])
 order = 18

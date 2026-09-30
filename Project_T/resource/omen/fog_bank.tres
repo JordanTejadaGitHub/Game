@@ -6,7 +6,7 @@
 script = ExtResource("1_omen")
 id = "fog_bank"
 display_name = "Fog Bank"
-description = "Every Warden has 1 less range (never below 1)."
+description = "Every Warden has 1 less range."
 kind = 1
 warden_range_add = -1.0
-reward_seeds = 4
+reward_seeds = 6

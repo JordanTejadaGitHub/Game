@@ -54,6 +54,37 @@ func _run() -> void:
 		# Rarity row, name, then the effect (a RichTextLabel with the card's description)
 		_check(labels.size() >= 3 and labels[2] is RichTextLabel, "%s: the effect comes right after the name" % _name_of(button))
 	_check(heights.size() == 1, "all cards share one height (%s)" % heights.keys())
+	# Half-dreamed stays internal: the card shows only "Needs <damage type>" (no emblem), no label, no "Sleeps"
+	var bloom_button := screen._cards.get_child(0).get_child(0) as Button
+	var bloom_texts: Array = bloom_button.find_children("*", "", true, false) \
+		.filter(func(n: Node) -> bool: return n is Label or n is RichTextLabel) \
+		.map(func(n: Node) -> String: return n.text if n is Label else n.get_parsed_text())
+	var joined := " | ".join(bloom_texts)
+	var needs := dreams.missing_needs(bloom)
+	var row := bloom_button.find_child("MissingRow", true, false)
+	_check(not needs.is_empty() and row != null and bloom_texts.has(needs[0].type) and row.get_children().filter(func(c: Node) -> bool: return c is TextureRect).is_empty()
+		and not joined.to_lower().contains("half-dreamed") and not joined.contains("Sleeps"),
+		"a half-dreamed card: one \"Needs <type>\" line, no emblem (%s)" % joined)
+	_check(dreams.missing_families_text(bloom) == "Needs " + needs[0].type and needs[0].type == IconInfo.damage_type_name(needs[0].line),
+		"…named by damage type, not the family (%s)" % dreams.missing_families_text(bloom))
+
+	# Make the clearing unlock obvious: while clearing is locked, a clearing card leads with it.
+	dreams.clearing_open = false
+	dreams.stacks.clear()
+	var ground: UpgradeData = dreams.pool.filter(func(c: UpgradeData) -> bool: return c.id == "tend_the_forest").front()
+	var clear_cards: Array[UpgradeData] = [ground, longest[0], longest[1]]
+	dreams.current_offer = clear_cards
+	screen._show_offer(clear_cards, 25)
+	for i in 4:
+		await process_frame
+	var clear_button := screen._cards.get_child(0).get_child(0) as Button
+	var texts: Array = clear_button.find_children("*", "Label", true, false).map(func(l: Label) -> String: return l.text.to_lower())  # Small caps lower the text
+	_check(texts.has(DreamState.OPENS_CLEARING_LINE.to_lower()) and texts.has(DreamState.OPENS_CLEARING_TEXT.to_lower()) and texts.has(DreamState.OPENS_CLEARING_TAG.to_lower()),
+		"a clearing card says it unlocks clearing (%s)" % ", ".join(texts))
+	_check(viewport.encloses(clear_button.get_global_rect()), "…and still fits the screen (%s)" % clear_button.get_global_rect())
+	dreams.take(ground)
+	_check(dreams.opened_clearing(ground) and not dreams.opens_clearing(ground), "once taken it opened clearing; later clearing cards don't say so")
+	_check(dreams.to_save().get("clearing_opened_by") == "tend_the_forest", "…saved with the run")
 	print("longest cards: %s, %s" % [cards[1].display_name, cards[2].display_name])
 	print("dream screen test: %s" % ("PASS" if failures == 0 else "%d FAILED" % failures))
 	quit(failures)

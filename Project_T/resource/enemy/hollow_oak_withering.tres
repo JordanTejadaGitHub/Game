@@ -1,0 +1,29 @@
+[gd_resource type="Resource" script_class="EnemyData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://resource/enemy/script/enemy_data.gd" id="1_edata"]
+[ext_resource type="SpriteFrames" path="res://animation/enemy/hollow_oak.tres" id="2_frames"]
+
+[resource]
+script = ExtResource("1_edata")
+sprite_frames = ExtResource("2_frames")
+display_name = "The Hollow Oak"
+health = 30000
+speed = 35.0
+dew_reward = 100
+leaf_cost = 5
+is_boss = true
+tint = Color(0.72, 0.7, 0.65, 1)
+resists = Array[String](["root", "stone"])
+weak_to = Array[String](["water"])
+wither_interval = 10.0
+wither_time = 6.0
+wither_reach = 3.0
+wither_burst_at = Array[float]([0.6667, 0.3333])
+wither_burst_count = 3
+rises_from_blight = 10
+trait_text = "Withering: its roots wither the Wardens near it."
+cleanse_line = "The Hollow Oak is still. Somewhere beyond the dream, the Hollow remembers."
+title = "the grief that lets everything die"
+abilities = Array[Dictionary]([{"name": "Withering Roots", "icon": &"sapling", "text": "A root withers the strongest Warden within {wither_reach} tiles for {wither_time} s: no attacks. Never the same one twice in a row.", "when": "every {wither_interval} s"}, {"name": "Drought", "icon": &"grief", "text": "Withers {wither_burst_count} Wardens at once.", "when": "at {wither_burst_at:list_pct} health"}, {"name": "The Hollow Oak Remembers", "icon": &"rises", "text": "The first time it's dispelled, it rises again at half health and withers twice as fast.", "when": "at Blight Level {rises_from_blight} and above"}])
+tips = Array[String](["Cover every stretch twice: a maze that leans on one great Warden stalls.", "Withered Wardens come back on their own.", "Rain wakes what it withers."])
+whisper = "Itâs here. Everything it touches goes gray."

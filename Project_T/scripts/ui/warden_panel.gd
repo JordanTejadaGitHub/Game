@@ -17,15 +17,21 @@ const TARGET_TIPS := {
 
 var _tower: Tower = null
 var _title := Label.new()
+var _portrait := TextureRect.new()  # Left of the title: the Warden's idle art, animated (screens_ui.md "Selected vs hovered")
+var _portrait_atlas := AtlasTexture.new()
+var _portrait_time := 0.0
 var _damage_type := HBoxContainer.new()  # Under the title: the damage type icon + name (one Warden)
 var _desc: RichTextLabel  # What it does, with its status words as links (StatusLinks)
 var _stats := VBoxContainer.new()  # Stat rows: each stat explains itself on hover and tap (IconInfo)
+var _buffs := VBoxContainer.new()  # Buffs: every source of this Warden's power (BuffSources), then the total
 var _body := Label.new()
 var _groups := VBoxContainer.new()  # Several selected: one row per kind with its portrait
 var _buttons := VBoxContainer.new()
 var _confirm_sell := false  # Selling a group during a drift asks once more
 var _confirm_unlock: TowerData = null  # Unlocking a form with Dreamlight asks once more
 var _confirm_eldest := false  # Rank VI would crown the Eldest: asks once more
+var _confirm_grow: TowerData = null  # Touch: the Grow tapped once (previewing; the next tap grows)
+var _touch := false
 
 func _ready() -> void:
 	custom_minimum_size = Vector2(300, 0)
@@ -33,7 +39,19 @@ func _ready() -> void:
 	box.add_theme_constant_override("separation", 6)
 	add_child(box)
 	UiStyle.title(_title, UiStyle.TITLE_SIZE)
-	box.add_child(_title)
+	var header := HBoxContainer.new()
+	header.add_theme_constant_override("separation", 6)
+	_portrait.custom_minimum_size = Vector2(PORTRAIT_SIZE, PORTRAIT_SIZE)
+	_portrait.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	_portrait.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	_portrait.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	_portrait.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	_portrait.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_portrait.texture = _portrait_atlas
+	header.add_child(_portrait)
+	_title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	header.add_child(_title)
+	box.add_child(header)
 	# Damage type (enemy_design.md "Damage types"): the type's icon and "Light damage" in its colour.
 	_damage_type.add_theme_constant_override("separation", 4)
 	_damage_type.add_child(TextureRect.new())
@@ -47,6 +65,8 @@ func _ready() -> void:
 	box.add_child(_desc)
 	_stats.add_theme_constant_override("separation", 2)
 	box.add_child(_stats)
+	_buffs.add_theme_constant_override("separation", 1)
+	box.add_child(_buffs)
 	_body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_body.custom_minimum_size = Vector2(280, 0)
 	box.add_child(_body)
@@ -66,6 +86,8 @@ func _ready() -> void:
 	if dream_state.has_signal("dreamlight_changed"):
 		dream_state.dreamlight_changed.connect(_refresh_unless_hovered.unbind(1))  # Shards arrive mid-drift
 	drift_director.build_phase_changed.connect(_refresh.unbind(1))
+	tower_seller.grow_option_held.connect(_on_grow_key_held)
+	tower_seller.selection_changed.connect(func(_t: Array[Tower]) -> void: _confirm_grow = null)
 
 # TowerSeller emits tower_selected right before selection_changed, which refreshes: refreshing here
 # too built the panel twice per selection change (slow with a big selection).
@@ -74,15 +96,18 @@ func _show(tower: Tower) -> void:
 
 func _refresh() -> void:
 	_group_refresh_queued = false  # This refresh already shows the current Dew
+	_shown = _selection_state()
 	for child in _groups.get_children():
 		child.queue_free()
 	tower_placer.hide_catch_preview()
+	tower_placer.hide_grow_preview()
 	if tower_seller.selection.size() > 1:
 		visible = true
 		_desc.visible = false
 		for child in _stats.get_children():
 			child.queue_free()
 		_body.visible = true
+		_fill_buffs(null)
 		_title.tooltip_text = ""
 		_refresh_group()
 		return
@@ -95,6 +120,9 @@ func _refresh() -> void:
 	if _tower.is_catcher():
 		tower_placer.show_catch_preview(_tower.global_position, _tower.get_catch_radius())  # Its catch zone
 	_title.text = data.display_name
+	_portrait_atlas.atlas = data.texture
+	_portrait_atlas.region = data.get_frame_rect(0) if data.texture else Rect2()
+	_portrait.visible = data.texture != null
 	_show_damage_type(data)
 	if _tower.rank > 0:
 		_title.text += " · Rank %s" % Tower.rank_name(_tower.rank)
@@ -160,11 +188,7 @@ func _refresh() -> void:
 	if kin != null:
 		var kin_line := kin.describe(_tower)  # "Kin: Bloomcap · Slumber Rot · Blooming (3 drifts to Old Kin)"
 		if kin_line != "":
-			lines.append(kin_line)
-		else:
-			var hint := kin.no_kin_hint(_tower)  # "No kin. A Chime Stone within 2 cells would form Night Chimes."
-			if hint != "":
-				lines.append(hint)
+			lines.append(kin_line)  # Only with kin (screens_ui.md: no "No kin. A … would form …" line)
 		var family := kin.family_bonus(data.line)
 		if family > 0.0:
 			_stats.add_child(_kindred_row(data.line, family))  # The family icon + "Kindred +10%"
@@ -172,6 +196,7 @@ func _refresh() -> void:
 	var support_line := support.get_panel_line(_tower) if support else ""
 	if support_line != "":
 		lines.append(support_line)  # "Caught this run: 240 Dew · paid back ✓", "Held 42 s · …"
+	_fill_buffs(_tower)  # The Buffs section (auras with falloff, Kinships, rank, Dreams, Omens)
 	if dream_state.has_method("get_crossroads_bonus") and dream_state.has_rule(&"crossroads"):
 		var crossroads: float = dream_state.get_crossroads_bonus(_tower)
 		if crossroads > 0.0:
@@ -183,14 +208,16 @@ func _refresh() -> void:
 	if _tower.can_choose_target():
 		_add_target_switch([_tower])
 	if data.has_bird_toggle:
-		var birds := _add_button("Birds: %s (click to change)" % ("all on the strongest" if _tower.focus_strongest else "spread out"))
+		var birds := _add_button("Birds: %s" % ("all on the strongest" if _tower.focus_strongest else "spread out"))
+		birds.tooltip_text = "Spread out, or all on the strongest."
 		birds.pressed.connect(func() -> void:
 			_tower.focus_strongest = not _tower.focus_strongest
 			_refresh())
 	var options := Tower.grow_options(dream_state, data)
 	if options.is_empty() and data.line == "sprout":
 		_add_button(Tower.NO_FAMILY_YET).disabled = true  # No family picked yet
-	for option in options:
+	for index in options.size():
+		var option: Array = options[index]
 		var next: TowerData = option[0]
 		var button := _add_button("")
 		UiStyle.primary(button)  # Grow is the panel's main action (ui_style.md)
@@ -198,9 +225,9 @@ func _refresh() -> void:
 			var grow := _tower.get_grow_cost(next)  # Ranked Wardens also pay the rank difference
 			var cost: int = grow.total
 			button.text = "Grow into %s · %d Dew" % [next.display_name, cost]
-			if grow.ranks > 0:
-				button.text += " (%d + %d for rank %s)" % [grow.base, grow.ranks, Tower.rank_name(_tower.rank)]
 			button.tooltip_text = IconInfo.format(next.description)  # {spored}-style tokens as words
+			if grow.ranks > 0:
+				button.tooltip_text += "\n\n%d Dew + %d for its rank %s." % [grow.base, grow.ranks, Tower.rank_name(_tower.rank)]
 			button.disabled = not run_state.can_afford(cost)
 			button.set_meta(&"cost", cost)  # Affordability updates in place on Dew changes
 			var awake := tower_placer.ascended_blocker(next)
@@ -209,23 +236,38 @@ func _refresh() -> void:
 				button.disabled = true
 			elif next.footprint > _tower.get_footprint() and tower_placer.get_grow_squares(_tower, next).is_empty():
 				# A 2×2 form needs three free cells (or Thornwalls) beside it, and the path must stay open.
-				button.text = "Grow into %s · Needs room: 3 free cells next to it (2×2)" % next.display_name
+				button.text = "Grow into %s · Needs 3 free cells beside it" % next.display_name
 				button.disabled = true
-			button.pressed.connect(_evolve.bind(next))
+			var changes := tower_placer.grow_changes(_tower, next)
+			if changes != "":
+				button.tooltip_text += "\n\n" + changes
+			if _confirm_grow == next:
+				button.text = "Grow · %d Dew" % cost  # Touch: the second tap grows
+			button.pressed.connect(func() -> void:
+				if _touch and _confirm_grow != next:
+					_confirm_grow = next  # First tap: preview + confirm
+					_refresh()
+					tower_placer.show_grow_preview([[_tower, next]])
+					return
+				_confirm_grow = null
+				_evolve(next))
 			if next.catch_share > 0.0 and not _tower.is_catcher():  # Where it would catch (placement preview)
 				var radius := next.catch_radius + DewCatch.WIDE_BOWL_STEP * mini(dream_state.rule_stacks(&"wide_bowl"), 3)
 				button.mouse_entered.connect(func() -> void: tower_placer.show_catch_preview(_tower.global_position, radius))
 				button.mouse_exited.connect(tower_placer.hide_catch_preview)
 		else:
 			_locked_form_button(button, "Grow into %s" % next.display_name, next)
+		_grow_key(button, index)
+		_preview_on(button, [[_tower, next]])
 	if _tower.needs_focus():
 		# Rank III asks for a Focus, kept through growth and never changed.
 		var cost := _tower.get_nurture_cost()
-		for which in [Tower.Focus.POWER, Tower.Focus.SWIFT, Tower.Focus.REACH, Tower.Focus.DEEP]:
+		for which in _tower.focus_options():  # Support Wardens: Wide / Strong / Kindred
 			# Usually rank III; a Warden planted at a higher rank (Remembered Care) chooses on its next one.
-			var button := _add_button("Rank %s · %s: %s per rank · %s" % [Tower.rank_name(_tower.rank + 1),
-				Tower.FOCUS_NAMES[which], Tower.FOCUS_TEXT[which], _price(cost)])
-			button.tooltip_text = "The usual rank gains, plus this Focus at ranks III, IV and V. Can't be changed later."
+			var effect := _tower.focus_text(which) + (" per rank" if Tower.ATTACKER_FOCUSES.has(which) else "")
+			var button := _add_button("Rank %s · %s: %s · %s" % [Tower.rank_name(_tower.rank + 1),
+				Tower.FOCUS_NAMES[which], effect, _price(cost)])
+			button.tooltip_text = "The usual rank gains, plus this Focus at ranks III, IV and V. Can't be changed later." + _growth_note()
 			button.disabled = not run_state.can_afford(cost)
 			button.set_meta(&"cost", cost)  # Affordability updates in place on Dew changes
 			button.pressed.connect(func() -> void:
@@ -250,8 +292,13 @@ func _refresh() -> void:
 				_refresh())
 		else:
 			var nurture := _add_button("Nurture to rank %s · %s (R)" % [Tower.rank_name(_tower.rank + 1), _price(cost)])
-			nurture.tooltip_text = "+10%% damage, +4%% attack speed, +0.1 range%s. Kept when it grows." % (
-				", and %s" % Tower.FOCUS_TEXT[_tower.focus] if _tower.focus != Tower.Focus.NONE else "")
+			var gains := "+10%% damage, +4%% attack speed, +0.1 range"
+			if _tower.is_aura_support():
+				gains = "Its aura ×%.1f" % Tower.AURA_PER_RANK  # Support Nurture: ranks scale the aura
+			elif _tower.is_catcher():
+				gains = "+%d%% catch" % roundi(_tower.tower_data.catch_per_rank * 100.0)
+			nurture.tooltip_text = "%s%s. Kept when it grows." % [gains,
+				", and %s" % _tower.focus_text(_tower.focus) if _tower.focus != Tower.Focus.NONE else ""] + _growth_note()
 			nurture.disabled = not run_state.can_afford(cost)
 			nurture.set_meta(&"cost", cost)
 			nurture.pressed.connect(func() -> void:
@@ -263,7 +310,7 @@ func _refresh() -> void:
 	elif _tower.nurture_blocker() != "":
 		var locked := _add_button(_tower.nurture_blocker())  # "Rank III needs a Nurture Dream"
 		locked.disabled = true
-		locked.tooltip_text = "Every Warden can reach rank II. A Nurture Dream opens ranks III-V and the Focus."
+		locked.tooltip_text = "Every Warden can reach rank II. A Nurture Dream opens ranks III–V and the Focus."
 	elif _tower.can_be_nurtured() and _tower.rank > 0:
 		var others_can: bool = dream_state.has_method("get_max_rank") and dream_state.get_max_rank() > _tower.rank
 		if others_can and not _is_eldest(_tower):
@@ -271,12 +318,14 @@ func _refresh() -> void:
 		else:
 			_add_button("Rank %s: fully nurtured" % Tower.rank_name(_tower.rank)).disabled = true
 	var refund := tower_seller.get_refund(_tower)
-	var note := "" if drift_director.is_build_phase() else " (half during a drift)"
+	# Buttons show the action and its price (screens_ui.md "Less hand-holding"); the refund rule is the tooltip.
+	var note := "Half the Dew back while nightmares walk." if not drift_director.is_build_phase() else ""
 	if tower_seller.is_placed_this_rest(_tower):
-		note = " (placed this rest: full refund)"
+		note = "Placed this rest: all its Dew back."
 	elif drift_director.is_build_phase() and _tower.rest_dew > 0:
-		note = " (this rest's %d Dew in full)" % _tower.rest_dew
-	var sell := _add_button("Sell · +%d Dew%s" % [refund, note])
+		note = "This rest's %d Dew comes back in full." % _tower.rest_dew
+	var sell := _add_button("Sell · +%d Dew (%s)" % [refund, tower_seller.sell_key_name()])  # Its hotkey, like Nurture's (R)
+	sell.tooltip_text = note
 	sell.pressed.connect(func() -> void: tower_seller.sell(_tower.cell))
 	if _tower.tower_data.rooted:
 		sell.text = "Permanent: the Sapling can't be sold or moved"
@@ -332,6 +381,7 @@ func _refresh_group() -> void:
 	var selection := tower_seller.selection
 	var groups := tower_seller.get_selection_groups()
 	_title.text = "%d Wardens selected" % selection.size()
+	_portrait.visible = false
 	_damage_type.visible = false
 	var kinds: Array[String] = []
 	var damage_per_second := 0.0
@@ -355,13 +405,17 @@ func _refresh_group() -> void:
 	for group in groups:
 		var data: TowerData = group[0]
 		var towers: Array = group[1]
-		for option in Tower.grow_options(dream_state, data):  # Sprouts: only this run's families
+		var group_options := Tower.grow_options(dream_state, data)  # Sprouts: only this run's families
+		for index in group_options.size():
+			var option: Array = group_options[index]
 			var next: TowerData = option[0]
 			var button := _add_button("")
 			UiStyle.primary(button)
 			button.tooltip_text = IconInfo.format(next.description)  # {spored}-style tokens as words
 			if not option[1]:
 				_locked_form_button(button, "%s → %s" % [_plural(data, towers.size()), next.display_name], next)
+				_grow_key(button, index)
+				_preview_on(button, towers.map(func(t: Tower) -> Array: return [t, next]))
 				continue
 			# Each pays Tower.get_grow_cost (ranked ones their rank difference too).
 			var plan: Array = tower_seller.plan_grow(towers, next)
@@ -379,6 +433,8 @@ func _refresh_group() -> void:
 				button.text = "%s → %s · %s" % [_plural(data, towers.size()), next.display_name, awake]
 				button.disabled = true
 			button.pressed.connect(func() -> void: tower_seller.grow_group(towers, next))
+			_grow_key(button, index)
+			_preview_on(button, towers.map(func(t: Tower) -> Array: return [t, next]))
 	# Nurture all: one rank each, as far as the Dew goes (nearest the Heartwood first).
 	var full: Array = tower_seller.full_nurture_cost(selection)
 	if full[0] > 0:
@@ -396,7 +452,13 @@ func _refresh_group() -> void:
 	# Wardens at rank II need a Focus for rank III: one choice for the whole group.
 	var waiting := tower_seller.count_needing_focus(selection)
 	if waiting > 0:
-		for which in [Tower.Focus.POWER, Tower.Focus.SWIFT, Tower.Focus.REACH, Tower.Focus.DEEP]:
+		var options: Array[Tower.Focus] = []
+		for tower in selection:
+			if is_instance_valid(tower) and tower.needs_focus():
+				for which in tower.focus_options():
+					if not options.has(which):
+						options.append(which)
+		for which in options:  # Attackers' four, support Wardens' three (each Warden takes only its own)
 			var cost: Array = tower_seller.full_nurture_cost(selection, which)
 			var plan_focus: Array = tower_seller.plan_nurture(selection, which)
 			var button := _add_button("")
@@ -412,7 +474,8 @@ func _refresh_group() -> void:
 			button.pressed.connect(func() -> void: tower_seller.nurture_group(tower_seller.selection, which))
 	var refund := tower_seller.get_selection_refund()
 	var in_drift := not drift_director.is_build_phase()
-	var sell := _add_button("Sell %d · +%d Dew%s" % [selection.size(), refund, " (half during a drift)" if in_drift else ""])
+	var sell := _add_button("Sell %d · +%d Dew (%s)" % [selection.size(), refund, tower_seller.sell_key_name()])
+	sell.tooltip_text = "Half the Dew back while nightmares walk." if in_drift else ""
 	if _confirm_sell:
 		sell.text = "Really sell %d while nightmares walk? +%d Dew" % [selection.size(), refund]
 	sell.pressed.connect(_sell_group)
@@ -484,6 +547,94 @@ func _add_target_switch(towers: Array) -> void:
 # A form that isn't unlocked yet (run_design.md "Dreamlight"): "Grow into Stormcap · Unlock with 1
 # Dreamlight". With enough Dreamlight, the first click asks and the second unlocks it; otherwise it
 # opens the Remember screen on that form (which also says what else it needs).
+# Buffs (screens_ui.md "Buff readability"): every source with its amount, then the total; penalties in
+# muted plum; a Warden source is a button that selects it and glides the camera there.
+func _fill_buffs(tower: Tower) -> void:
+	for child in _buffs.get_children():
+		child.queue_free()
+	_buffs.visible = false
+	if tower == null:
+		return
+	var entries := BuffSources.for_tower(tower)
+	if entries.is_empty():
+		return
+	_buffs.visible = true
+	var header := Label.new()
+	header.text = "Buffs"
+	UiStyle.caps(header)
+	_buffs.add_child(header)
+	for entry in entries:
+		var colour: Color = BuffSources.COLORS.penalty if entry.negative else BuffSources.color(entry.kind, entry.source)
+		var row: Control
+		if entry.source is Tower and is_instance_valid(entry.source):
+			var link := Button.new()
+			link.flat = true
+			link.alignment = HORIZONTAL_ALIGNMENT_LEFT
+			link.text = entry.label
+			link.add_theme_color_override("font_color", colour)
+			link.tooltip_text = "Select it"
+			var source: Tower = entry.source
+			link.pressed.connect(func() -> void: _go_to(source))
+			row = link
+		else:
+			var label := Label.new()
+			label.text = entry.label
+			label.add_theme_color_override("font_color", colour)
+			label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+			row = label
+		_buffs.add_child(row)
+	var total := BuffSources.totals(entries)
+	var parts: Array[String] = []
+	for stat in ["damage", "attack_speed", "range"]:
+		if total.has(stat) and absf(total[stat]) > 0.0001:
+			parts.append("%s %s" % [BuffSources._signed(total[stat], stat == "range"), BuffSources.STAT_WORDS[stat]])
+	if not parts.is_empty():
+		var sum := Label.new()
+		sum.text = "Total: " + " · ".join(parts)
+		_buffs.add_child(sum)
+
+# A Warden source in Buffs: select it and glide the camera there.
+func _go_to(tower: Tower) -> void:
+	if not is_instance_valid(tower):
+		return
+	DriftMeter.focus_tower(tower)  # Selects it and glides the camera there (Main's)
+
+# Growth preview (screens_ui.md "Preview the growth before growing"): while the pointer is on a Grow
+# button, the Wardens show the new form (TowerPlacer.show_grow_preview).
+func _preview_on(button: Button, pairs: Array) -> void:
+	button.mouse_entered.connect(func() -> void: tower_placer.show_grow_preview(pairs))
+	button.mouse_exited.connect(func() -> void:
+		if _confirm_grow == null:
+			tower_placer.hide_grow_preview())
+
+# A grow key held: every selected Warden previews its option `index` (each kind its own); let go: gone.
+func _on_grow_key_held(index: int, held: bool) -> void:
+	if not held:
+		tower_placer.hide_grow_preview()
+		return
+	var pairs := []
+	for group in tower_seller.get_selection_groups():
+		var options := Tower.grow_options(dream_state, group[0])
+		if index < options.size():
+			for tower in group[1]:
+				pairs.append([tower, options[index][0]])
+	tower_placer.show_grow_preview(pairs)
+
+# Touch (platforms.md): the last input was a touch, so Grow asks with a first tap.
+func _input(event: InputEvent) -> void:
+	if event is InputEventScreenTouch:
+		_touch = true
+	elif event is InputEventMouseMotion and event.device != InputEvent.DEVICE_ID_EMULATION:
+		_touch = false
+
+# Q / E / Z: the Grow button's key badge, like Sell (X) and Nurture (R).
+func _grow_key(button: Button, index: int) -> void:
+	if index >= TowerSeller.GROW_OPTION_ACTIONS.size():
+		return
+	var key := TowerSeller.key_name(TowerSeller.GROW_OPTION_ACTIONS[index])
+	if key != "":
+		button.text += " (%s)" % key
+
 func _locked_form_button(button: Button, label: String, next: TowerData) -> void:
 	button.tooltip_text = IconInfo.format(next.description)  # {spored}-style tokens as words
 	if not dream_state.has_method("get_unlock_cost"):
@@ -497,23 +648,21 @@ func _locked_form_button(button: Button, label: String, next: TowerData) -> void
 	if blocker != "":
 		button.text = "%s · %s" % [label, blocker]
 	elif not affordable:
-		button.text += " (you have %d)" % dream_state.dreamlight
-	elif _confirm_unlock == next:
-		button.text = "Unlock %s for %d Dreamlight? Click to confirm" % [next.display_name, cost]
+		button.text += " (%d)" % dream_state.dreamlight  # What you have
+	if blocker != "" or not affordable:
+		_dim(button)  # Glow means "you can do this now"; still opens Remember
 	button.pressed.connect(_on_locked_form.bind(next, affordable and blocker == ""))
 
-func _on_locked_form(next: TowerData, can_unlock_now: bool) -> void:
-	if not can_unlock_now:
-		_confirm_unlock = null
-		dream_state.open_remember(next)
-		return
-	if _confirm_unlock != next:
-		_confirm_unlock = next
-		_refresh()
-		return
+# Can't do it now, but still clickable: the plain, dimmed look instead of the primary glow.
+func _dim(button: Button) -> void:
+	button.theme_type_variation = &""
+	button.modulate.a = 0.6
+
+func _on_locked_form(next: TowerData, _can_unlock_now: bool) -> void:
+	# Playtest fix (screens_ui.md 2026-09-30): a form not unlocked yet opens the Remember tree on that node,
+	# where it's unlocked (or shows what it needs first).
 	_confirm_unlock = null
-	dream_state.unlock_with_dreamlight(next)  # Emits unlocks_changed -> refresh
-	_refresh()
+	dream_state.open_remember(next)
 
 # A Nurture price for a button: "40 Dew", or "free" (First Care's free ranks).
 static func _price(dew: int) -> String:
@@ -549,6 +698,30 @@ func _show_damage_type(data: TowerData) -> void:
 	label.add_theme_color_override("font_color", IconInfo.damage_type_color(data.line))
 	_damage_type.tooltip_text = "Nightmares can resist or be weak to a damage type."
 
+const PORTRAIT_SIZE := 48.0
+const WATCH_EVERY := 0.1  # Seconds between checks that the selection still looks like what the panel shows
+var _watch_left := 0.0
+var _shown := []  # [form, rank, Focus] of each selected Warden when the panel was last built
+
+func _selection_state() -> Array:
+	var state := []
+	for tower in tower_seller.selection:
+		if is_instance_valid(tower):
+			state.append([tower.tower_data, tower.rank, tower.focus])
+	return state
+
+
+# The header portrait idles like the Warden on the map (called from _process).
+func _animate_portrait(delta: float) -> void:
+	if not visible or not _portrait.visible or not is_instance_valid(_tower) or _tower.tower_data.texture == null:
+		return
+	var data := _tower.tower_data
+	_portrait_time += delta
+	var frame := int(_portrait_time * data.animation_fps) % maxi(data.frame_count, 1)
+	var region := data.get_frame_rect(frame)
+	if _portrait_atlas.region != region:
+		_portrait_atlas.region = region
+
 # Hover and tap tips stay (screens_ui.md): Dew changes on every dispel, and rebuilding the panel then
 # closed any tooltip under the pointer. Affordability updates in place; anything else that depends on Dew
 # (group counts) waits until the pointer leaves the panel.
@@ -573,7 +746,14 @@ func _on_dew_changed() -> void:
 func _pointer_inside() -> bool:
 	return is_visible_in_tree() and get_global_rect().has_point(get_global_mouse_position())
 
-func _process(_delta: float) -> void:
+func _process(delta: float) -> void:
+	_animate_portrait(delta)
+	# A Warden grown or nurtured by a hotkey (Q / E / Z, G, R) or a group bloom: show its new form.
+	_watch_left -= delta
+	if visible and _watch_left <= 0.0:
+		_watch_left = WATCH_EVERY
+		if _selection_state() != _shown:
+			_refresh()
 	var now := Time.get_ticks_msec()
 	var group_due := _group_refresh_queued and now - _group_refreshed_at >= GROUP_REFRESH_MS
 	if (_dew_dirty and not _pointer_inside()) or group_due:
@@ -610,3 +790,12 @@ func _kindred_row(line: String, bonus: float) -> HBoxContainer:
 	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	row.add_child(label)
 	return row
+
+# The Nurture / Focus tooltip's last line, "+60 when it grows into Thunderhead.": what this rank adds to the
+# next growth's price (warden_stats.md; off the button since "less hand-holding"). "" when nothing.
+func _growth_note() -> String:
+	var next := _tower.next_growth()
+	if next == null:
+		return ""
+	var extra := _tower.get_next_rank_growth_extra(next)
+	return "\n\n+%d when it grows into %s." % [extra, next.display_name] if extra > 0 else ""

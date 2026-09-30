@@ -7,7 +7,7 @@
 script = ExtResource("1_card")
 id = "dream_sporeling"
 display_name = "Sporeling"
-description = "Sprouts can now grow into Sporelings (15 Dew), or plant one directly (25 Dew). Spored nightmares take damage over time."
+description = "Sprouts can now grow into Sporelings (15 Dew), or plant one directly (25 Dew). {spored} nightmares take damage over time."
 rarity = 0
 kind = 0
 tags = Array[String](["spore"])

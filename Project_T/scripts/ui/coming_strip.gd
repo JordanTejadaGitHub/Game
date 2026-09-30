@@ -20,7 +20,7 @@ const DIM := Color(1, 1, 1, 0.4)
 var drift_director: DriftDirector
 var compact := false  # A drift is walking: the small row
 var _caption := Label.new()
-var _row := HFlowContainer.new()
+var _row := VBoxContainer.new()  # Rows of up to PER_ROW kinds (each an HBoxContainer)
 var _built_for := ""  # "mode:first:last" of what's shown ("" = nothing)
 var _fog := UiStyle.panel()
 
@@ -36,8 +36,8 @@ func _ready() -> void:
 	_caption.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	UiStyle.caps(_caption, UiStyle.BODY_SIZE)  # At body size
 	add_child(_caption)
-	_row.alignment = FlowContainer.ALIGNMENT_CENTER
-	_row.add_theme_constant_override("h_separation", 4)
+	_row.alignment = BoxContainer.ALIGNMENT_CENTER
+	_row.add_theme_constant_override("separation", 4)
 	_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(_row)
 	visible = false
@@ -48,6 +48,7 @@ func _draw() -> void:
 	draw_style_box(_fog, Rect2(Vector2(-14, -8), size + Vector2(28, 12)))
 
 func _process(_delta: float) -> void:
+	_stack()
 	var span := shown_span()
 	visible = span.y >= span.x
 	if not visible:
@@ -59,6 +60,22 @@ func _process(_delta: float) -> void:
 		_build(span)
 	if compact:
 		_light_next()
+
+# The top-centre stack (playtest 2026-09-30: the strip overlapped the Omen line): the drift banner,
+# then the active Omen's line (Roguelite's OmenScreen tag "ActiveOmen"), then this strip.
+const OMEN_TOP := 68.0  # Just under the banner's boss row
+func _stack() -> void:
+	var top := TOP
+	var omen := get_parent().get_node_or_null("ActiveOmen") as Control if get_parent() != null else null
+	if omen != null and omen.visible:
+		omen.offset_top = OMEN_TOP
+		if omen is Label and omen.autowrap_mode == TextServer.AUTOWRAP_OFF:  # Long Omens wrap to 2 lines, never clipped
+			omen.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+			omen.offset_left = -OMEN_WIDTH / 2.0
+			omen.offset_right = OMEN_WIDTH / 2.0
+		top = maxf(top, OMEN_TOP + omen.size.y + 14.0)  # Clear of the strip's fog panel too
+	offset_top = top
+const OMEN_WIDTH := 640.0
 
 # The drifts whose kinds show now (x > y = none): the next block at a rest, the rest of the current
 # block during a drift (none in a boss drift or after the run).
@@ -113,13 +130,42 @@ static func kinds_in_block(director: DriftDirector, block: int) -> Array:
 	var first := (block - 1) * director.drifts_per_block + 1
 	return kinds_in_range(director, first, mini(block * director.drifts_per_block, director.get_total_drifts()))
 
+# Laid out low and wide (screens_ui.md "Coming this block" → "Too tall": six kinds stacked five rows
+# deep): one centred row of equal round discs, a second row only past PER_ROW kinds, and past two rows
+# a "+N" chip that opens the rest on tap. About 90 px tall at rests.
+const PER_ROW := 6
+
 func _build(span: Vector2i) -> void:
 	_caption.text = "Still to come this block" if compact else "Coming this block"
 	for child in _row.get_children():
 		_row.remove_child(child)
 		child.queue_free()
-	for kind in kinds_in_range(drift_director, span.x, span.y):
-		_row.add_child(_make_item(kind[0], kind[1], kind[2]))
+	var kinds := kinds_in_range(drift_director, span.x, span.y)
+	var shown := kinds
+	var rest: Array = []
+	if kinds.size() > PER_ROW * 2:  # The last slot becomes "+N"
+		shown = kinds.slice(0, PER_ROW * 2 - 1)
+		rest = kinds.slice(PER_ROW * 2 - 1)
+	var line: HBoxContainer = null
+	for i in shown.size():
+		if i % PER_ROW == 0:
+			line = HBoxContainer.new()
+			line.alignment = BoxContainer.ALIGNMENT_CENTER
+			line.add_theme_constant_override("separation", 6)
+			line.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			_row.add_child(line)
+		line.add_child(_make_item(shown[i][0], shown[i][1], shown[i][2]))
+	if not rest.is_empty():
+		line.add_child(_more_chip(rest))
+
+# The kind items, whichever row they're on.
+func items() -> Array:
+	var all: Array = []
+	for line in _row.get_children():
+		for item in line.get_children():
+			if item.has_meta(&"kind"):
+				all.append(item)
+	return all
 
 # Compact: the next drift's kinds lit, the rest dimmed.
 func _light_next() -> void:
@@ -128,51 +174,69 @@ func _light_next() -> void:
 	if next <= drift_director.get_total_drifts():
 		for pair in kinds_in_range(drift_director, next, next):
 			lit[pair[0]] = true
-	for item in _row.get_children():
+	for item in items():
 		item.modulate = Color.WHITE if lit.has(item.get_meta(&"kind")) else DIM
 
-# `count`: how many of the kind come in the span ("×18" under its portrait at rests, with its name).
+# One kind: the same round disc for every kind (the art fitted inside, whatever its shape), "New" and
+# the count as badges on its corners, the resist / weak row under it (14 px). Its name on hover / tap.
 func _make_item(data: EnemyData, drift: int, count: int = 1) -> Control:
 	var item := VBoxContainer.new()
 	item.set_meta(&"kind", data)
-	item.add_theme_constant_override("separation", 0)
+	item.add_theme_constant_override("separation", 1)
+	item.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var side := FACE_SMALL if compact else FACE
 	var face := Button.new()
 	face.icon = NightmareCard.portrait(data)
 	face.expand_icon = true
 	face.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	face.custom_minimum_size = Vector2(side, side)
+	face.size_flags_horizontal = Control.SIZE_SHRINK_CENTER  # Never stretched into a wide pill
+	face.clip_contents = true
 	face.focus_mode = Control.FOCUS_NONE
 	face.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	face.add_theme_color_override("icon_normal_color", data.tint)
-	face.tooltip_text = data.display_name + (" · boss: tap for the dossier" if data.is_boss else "")
-	var is_new := NightmareCard.is_new(data)
-	if not data.is_boss:
-		UiStyle.moon_disc_button(face)  # A pale moonlit disc: dark nightmares stay visible on the night sky
+	face.add_theme_constant_override("icon_max_width", int(side - 10))
+	face.tooltip_text = "%s · ×%d" % [data.display_name, count]
+	UiStyle.moon_disc_button(face, BOSS_COLOR if data.is_boss else UiStyle.OFF)  # Pale disc: readable on the night sky
 	if data.is_boss:
-		UiStyle.moon_disc_button(face, BOSS_COLOR)  # The boss: the moon disc rimmed in the boss colour
 		face.pressed.connect(func() -> void: BossDossier.open_for(get_tree(), drift))
-	else:  # One centred card for every nightmare (user: no small popup beside the portrait, no stacking)
+	else:  # One centred card for every nightmare (its name, what it does)
 		face.pressed.connect(func() -> void: NightmareIntro.open_for(get_tree(), [data], drift))
 	item.add_child(face)
-	if is_new:
+	var badge := Label.new()  # How many come: a badge on the disc's lower-right corner
+	badge.name = "KindCount"
+	badge.text = "×%d" % count
+	badge.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	UiStyle.number(badge, 13, UiStyle.GOLD)
+	badge.add_theme_color_override("font_outline_color", UiStyle.FOG)
+	badge.add_theme_constant_override("outline_size", 5)
+	badge.position = Vector2(side - 14, side - 16)
+	face.add_child(badge)
+	if NightmareCard.is_new(data):  # "New": a small gold badge on the upper-left corner
 		var tag := Label.new()
+		tag.name = "New"
 		tag.text = "New"
-		tag.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		tag.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		UiStyle.caps(tag, 11, UiStyle.GOLD)
-		item.add_child(tag)
-	if not compact:  # Readable on the night sky (screens_ui.md): its name and how many come
-		var name := Label.new()
-		name.name = "KindName"
-		name.text = data.display_name
-		name.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		UiStyle.caps(name, 14, UiStyle.INK)
-		item.add_child(name)
-		var many := Label.new()
-		many.name = "KindCount"
-		many.text = "×%d" % count
-		many.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		UiStyle.number(many, 14, UiStyle.GOLD)
-		item.add_child(many)
-		item.add_child(NightmareIcons.make_rows(data, PIP, true))
+		tag.add_theme_color_override("font_outline_color", UiStyle.FOG)
+		tag.add_theme_constant_override("outline_size", 5)
+		tag.position = Vector2(-4, -6)
+		face.add_child(tag)
+	if not compact:
+		var icons := NightmareIcons.make_rows(data, 14.0, true)
+		icons.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+		item.add_child(icons)
 	return item
+
+# "+N": the kinds that didn't fit; a tap opens their cards in turn.
+func _more_chip(rest: Array) -> Control:
+	var chip := Button.new()
+	chip.name = "More"
+	chip.text = "+%d" % rest.size()
+	chip.focus_mode = Control.FOCUS_NONE
+	chip.custom_minimum_size = Vector2(FACE_SMALL if compact else FACE, FACE_SMALL if compact else FACE)
+	chip.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	chip.tooltip_text = ", ".join(rest.map(func(k: Array) -> String: return k[0].display_name))
+	var kinds: Array = rest.filter(func(k: Array) -> bool: return not k[0].is_boss).map(func(k: Array) -> EnemyData: return k[0])
+	chip.pressed.connect(func() -> void: NightmareIntro.open_for(get_tree(), kinds, drift_director.drifts_started + 1))
+	return chip

@@ -54,6 +54,20 @@ discounts). Ranks never get cheaper by being bought early.
 - The difference counts as Dew invested (sell refunds it like any rank Dew). Group grow and the G
   hotkey use the same total.
 - It applies per step (Sprout → base, base → branch, branch → final, final → Ascended).
+- **Don't let it trap players** (2026-09-29: the balance bot nurtured branches, then found their
+  final form cost 300+ Dew and never grew one; a new player can fall into the same trap). The
+  **Nurture button's tooltip shows what a rank adds to the Warden's next growth** when that growth is
+  unlocked or unlockable: *"+60 when it grows into Thunderhead"* (moved off the button into the
+  tooltip, 2026-09-30, "less hand-holding"; the button reads just "Rank III · 60 Dew"). The total
+  is the same whether you nurture before or after growing; only the timing changes, and a big
+  grow price shouldn't come as a surprise. No rule change.
+
+**Every family must carry act 1 on its own** (2026-09-29; family-opening check, each family alone to drift 25, 10 seeds: only Sporeling, Firefly Jar and Dewdrop passed; Bellflower and Whirligig 6/10, Nestling 3/10, Pebbling, Rootling and Acorn 0/10). Players can open with any unlocked family, so **every base Warden needs an act 1 damage floor of about 14 DPS** (Sporeling 14, Firefly Jar 18) while keeping its identity:
+- **Acorn** (support): its base throws acorns (a real projectile, ~14 DPS) on top of its small aura; the support role grows in its branches.
+- **Rootling:** its root lash pulse deals ~12 DPS in its area (was ~6); holds and pulls stay in the branches.
+- **Pebbling:** its pebble **skips on** to a second nightmare within 1 cell at 50% (a skipping stone), and fires faster with less per shot (~24 damage at 0.75/s ≈ 18 DPS), so early swarms aren't wasted overkill.
+- **Bellflower, Whirligig, Nestling:** raised to the same floor (tune damage or rate; keep their shapes).
+Target: each family reaches drift 25 alone in **≥ 8 of 10** runs, like the starting three. Tower Code tunes the exact numbers against the opening check. **Status 2026-09-29:** 7 of 9 pass; **Pebbling (3/10) and Whirligig (7/10)** die at 22–24, close misses: small further bumps (about +15% damage each) until they pass. Acorn and Whirligig pass but bleed 9–16 leaves: fine for harder families. **Rerun:** Pebbling fell to 1/10 after its bump: the real cause was that **2 of act 1's 4 types resisted stone** (Husk, Night Hound). Fix (user-approved): the **Husk now resists water** instead (`enemy_design.md`), and **Pebbling's base pebble gets a small splash** (0.5 cells, 40%) for swarms, on top of its skip.
 
 **Sprouts get pricier as you plant** (2026-09-28, user-approved after the first balance batch: a Sprout swarm on a fresh profile was 1.6× the Balanced style with no Sprout cards at all). **Every 5 Sprouts on the map add +3 Dew** to the next Sprout's price (10 for the first 5, then 13, 16, 19…; 40 Sprouts ≈ 34 each). The balance batch (1a4d494) showed +5 per 5 left a Seedfall-less Sprout maze at ×0.20 of Balanced (stalled at ~20 Sprouts, dead by drift 13), so it settled at +3 (2026-09-29). History: +1 per Sprout (too much), then +1 per 5 (user: "very minimal, didn't feel like it changed anything", a run without Seedfall), then this, the user's own suggestion (2026-09-29). Walls should be Thornwalls; Sprouts are the flexible attacker. Selling or growing a Sprout lowers it again. **Seedfall** opens the swarm build: Sprouts cost a **flat 6 and the price never rises** (2026-09-29; balance batch 62af1fd: the swarm at ×1.05 of Balanced, where half-speed rising added nothing). The Warden bar shows the current price. Sprouts planted for free (Seedling Gift charges) don't add to the price.
 
@@ -85,8 +99,17 @@ and a tall build is a choice the cards make possible (Nurture, narrow cards, Sol
 - Selling refunds rank Dew like any other Dew spent on the Warden.
 - Shown as small pips under the Warden and in its panel ("Rank III").
 
-**Auras don't stack with themselves:** a Warden next to two Elder Stumps gets the bonus once (the
-highest one applies). Different aura types do stack.
+**Auras of the same kind stack with falloff** (changed 2026-09-30, user: "Elder Stumps and support
+Wardens should stack"; was: only the highest applied). When several auras of one kind touch a
+Warden, **the strongest counts 100%, the next 50%, then 25%, 12.5%**, and so on, so the total tops
+out at about **2× a single aura** (Elder Stump: +20 / +30 / +35 / +37.5%… cap ≈ +40%; Acorn: +5 /
++7.5 / +8.75%… ≈ +10%). A **Kindred**-focused aura (see *Support Wardens and Nurture* below) always
+counts 100% and isn't part of the falloff. **Different aura kinds** (Acorn, Elder Stump, Grove
+Heart, Grandmother Oak) still stack fully with each other. Full stacking was rejected: four stumps
+around one attacker would give +80% and make a stump checkerboard the best build. The Warden panel
+shows it: *"Elder Stump ×3: +35% attack speed"*. **Watch:** *The Quiet Ones* and *Hedgerow Roots*
+multiply this; if support clusters run away, lower the cap (≈1.75× a single aura) or make Kindred
+count 75%.
 
 **Potency** (rules in `tower_design.md`, "Potency: effect damage"): every Warden is **100%** unless
 listed. It multiplies the effect damage of the statuses it applies and the Reactions it completes.
@@ -232,6 +255,31 @@ Caught bosses give no Dreamlight shards.
 **Economy Wardens and Nurture** (2026-09-29): for Dewcatcher and Wellspring, each rank adds **+10%
 catch** instead of damage (rank V Wellspring: +110%). Rank costs are unchanged.
 
+**Support Wardens and Nurture** (2026-09-30, user request). Ranks for support Wardens grow **what
+they do**, not their (tiny) attack:
+
+| Warden | Each rank (I–V) | At rank V |
+|---|---|---|
+| Elder Stump | its attack-speed bonus ×1.1 | +20% → **+30%** |
+| Acorn | its damage bonus ×1.1 | +5% → +7.5% |
+| Grove Heart | its base bonus ×1.1 (the +3% per Warden is unchanged) | +15% → +22.5% |
+| Dewcatcher, Wellspring | +10% catch (above) | +50% more catch |
+
+At **rank III** support Wardens choose a **support Focus** instead of Power / Swift / Reach / Deep:
+
+| Focus | Auras (Acorn, Elder Stump, Grove Heart) | Catchers (Dewcatcher, Wellspring) |
+|---|---|---|
+| **Wide** | aura reach **+1 cell** (Elder Stump / Acorn: the 8 neighbours become everything within 2; Grove Heart radius 3) | catch radius **+1** |
+| **Strong** | the aura bonus grows a further **+25%** by rank V (on top of the ×1.1 per rank) | catch **+30%** more by rank V |
+| **Kindred** | **ignores the stacking falloff:** always counts 100%, even as the 2nd or 3rd aura of its kind | Wellspring interest **+2%**; Dewcatcher **+4 Dew per drift** |
+
+- Two Kindred Elder Stumps at rank V give **+60%** to the Wardens between them: strong, but it
+  costs two cells, the rank Dew and both Focus picks. It's the deliberate way to stack.
+- The strongest stacked aura (for the falloff) is the one with the highest bonus after ranks, so
+  nurturing your best stump makes it the one that counts fully.
+- Rank costs, "growing pays the rank difference" and the Focus rules (kept through evolution, can't
+  be changed) are the same as for attackers. Walls (Thornwall, Honeysuckle) still can't be nurtured.
+
 **Support credit** (2026-09-29): Wardens whose value isn't damage are credited with what they
 *enable*, so they show up in panels and reports: auras (Acorn, Elder Stump, Grove Heart, Grandmother
 Oak, the White Stag) get the extra damage their bonus caused; catchers get Dew caught and interest;
@@ -243,7 +291,7 @@ walls get path tiles added (Thornwall), damage (Bramble) or Drowsy applied (Hone
 | Warden | Tier | Cost | Range | Damage × /s | DPS | Kind | Effect |
 |---|---|---|---|---|---|---|---|
 | ✓ Nestling | base | 25 (+15) | 3 | 14 × 1.2 | 17 | swoop | bird flies out and back; ×1.25 vs Phantoms |
-| ✓ Wren's Nest | branch | +45 | 3.5 | 8 × 3.0 | 24 | swoop | targets the **fastest** nightmare in range; ×1.5 vs Phantoms and sprinting Night Hounds; crit 15% |
+| ✓ Wren's Nest | branch | +45 | 3.5 | 8 × 3.0 | 24 | swoop | targets the **fastest** nightmare in range; ×1.5 vs Phantoms and sprinting Night Hounds; crit 15%; **each swoop also strikes a second nightmare it passes (50%)** (2026-09-29: an early multi-target tool for Nestling) |
 | ✓ Starling Murmuration | final | +90 | 4 | 3 birds × 10 × 1.5 | 45 (split) | swoop | **changed 2026-09-27:** 3 starlings each hunt one of the **3 fastest** nightmares in range; ×1.5 vs Phantoms and sprinting Night Hounds; crit 15%. (Was: sweeps the 5 busiest path tiles) |
 | ✓ Magpie Perch | branch | +45 | 3 | 12 × 1.0 | 12 | swoop | **thief** (2026-09-29): each hit strips a nightmare buff: removes **2× its normal chip** of dread shell, stops a Weeper's mending for **3 s**, removes an Omen's boosts from that nightmare; **+1 Dew** when a nightmare it stripped is dispelled; crit 10% |
 | ✓ Magpie's Hoard | final | +90 | 3.5 | 20 × 1.0 | 20 | swoop | as Magpie Perch (every hit strips); **each crit +1 Dew** (max 15 per drift); crit 15% |
@@ -266,7 +314,9 @@ As built: Samara aims its line at its **first target**; Autumn Gale picks the **
 most nightmares**. The catch rhythm counts **per throw** (+10% if any seed hit, reset if none did),
 not per seed.
 
-## Memory Wardens (unique, from bosses)
+## Memory Wardens (unique, from bosses): PARKED
+
+**Cut for now (2026-09-29)**, see `tower_design.md`. The numbers are kept for a possible return.
 
 Free, one of each per run, can't evolve or be sold for Dew (selling returns the memory: it can be
 placed again at the next rest).

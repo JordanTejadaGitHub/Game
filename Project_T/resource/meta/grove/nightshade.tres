@@ -6,7 +6,7 @@
 script = ExtResource("1_unlock")
 id = "nightshade"
 display_name = "Nightshade"
-description = "The Legendary Nightshade joins the pool."
+description = "Legendary: Nightshade joins the pool."
 root = 1
 costs = Array[int]([120])
 order = 34

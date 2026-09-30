@@ -24,7 +24,11 @@ func _run() -> void:
 	dream_state.unlock_everything = true  # Test the whole roster
 	dream_state.unlocks_changed.emit()
 	await process_frame
-	_check(placer.towers.size() == 14, "all fourteen plantable Wardens are in the roster")
+	_check(placer.towers.size() == 11, "all eleven plantable Wardens are in the roster (%d)" % placer.towers.size())
+	_check(not placer.towers.any(func(t: TowerData) -> bool: return t.parked), "parked Wardens (the Memory Wardens, cut for now) never are, even with Unlock all")
+	placer.tower_data = load("res://resource/tower/white_stag.tres")
+	_check(not placer._try_build(Vector2(3, 3)), "and can't be planted")
+	placer.tower_data = placer.towers[0]
 	_check(main.get_node("%TowerBar").get_child_count() == placer.towers.size(), "one HUD button per Warden")
 
 	for data in placer.towers:
@@ -60,6 +64,7 @@ func _run() -> void:
 	for tower in tower_container.get_children():
 		tower.set_process(false)
 		tower._cooldown = 0.0
+		tower._idle_search = 0.0  # Idle searches wait a jittered time: look right away
 	var spawner = main.get_node("%EnemyContainer")
 	var leaf_bug: EnemyData = load("res://resource/enemy/leaf_bug.tres")
 	# Clear creatures spawned before the spawner was stopped, so only the test's own are targets.
@@ -85,6 +90,10 @@ func _run() -> void:
 
 	# Pulse: soothes every creature in range at once, no projectile.
 	var rootling: Tower = tower_container.get_child(6)
+	var no_crit: TowerData = rootling.tower_data.duplicate()
+	no_crit.crit_chance = 0.0  # A crit would make the exact-damage check flake
+	rootling.tower_data = no_crit
+	rootling._apply_data()
 	for tower in tower_container.get_children():
 		tower.set_process(false)  # Only the pulse below: any Warden's own cooldown could fire too (a timing flake)
 	var near_a = _spawn_still(spawner, leaf_bug, rootling.global_position + Vector2(40, 0))
@@ -106,6 +115,9 @@ func _run() -> void:
 	midsummer.position = Tower.MAP_GRID.calculate_map_position(Vector2(1, 1))
 	tower_container.add_child(midsummer)
 	midsummer.set_process(false)
+	for child in spawner.get_children():
+		child.queue_free()  # Only its own target: a leftover nightmare in range would keep the beam on
+	await process_frame
 	var beamed = _spawn_still(spawner, leaf_bug, midsummer.global_position + Vector2(40, 0))
 	midsummer._update_beam(0.1)
 	_check(midsummer.sprite.hframes == midsummer.tower_data.attack_frame_count, "Midsummer holds its attack pose while beaming")
@@ -139,6 +151,8 @@ func _run() -> void:
 	_check(not is_instance_valid(swoop) and last_seen.distance_to(start) < 20.0,
 		"it flies back and vanishes at the Warden (last seen %s, Warden %s)" % [last_seen, start])
 
+	_check(TowerPlacer.is_edge_cell(Vector2(0, 5)) and TowerPlacer.is_edge_cell(Vector2(5, Tower.MAP_GRID.size.y - 1))
+		and not TowerPlacer.is_edge_cell(Vector2(5, 5)), "the island's rim is \"the dream's edge\"")
 	print("towers test: %s" % ("PASS" if failures == 0 else "%d FAILED" % failures))
 	quit(failures)
 

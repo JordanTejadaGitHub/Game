@@ -6,7 +6,7 @@
 script = ExtResource("1_unlock")
 id = "sporeling_hidden"
 display_name = "Hidden branch: Fairy Ring"
-description = "Sporelings can grow into Fairy Rings (and Elf Circles): mushroom traps on the path."
+description = "Sporelings can grow into Fairy Rings, then Elf Circles: mushroom traps on the path."
 root = 0
 costs = Array[int]([40])
 order = 20

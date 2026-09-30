@@ -86,6 +86,11 @@ const DEW_CATCH_DB := -16.0
 const DEW_CATCH_THROTTLE_MS := 400
 const HARVEST_DB := -3.0
 const HARVEST_WINDOW_MS := 4000  # Pours within this of the first belong to the same Harvest
+# Close calls: a soft tension cue, one per 2 s at most (like the Heartwood's tremble).
+const CLOSE_CALL_DB := -8.0
+const PULL_BOSS_PITCH := 0.8  # Rootcurl dragging a boss: lower, strained
+const DRAG_TAIL := 0.12  # Seconds the soil drag fades when the drag ends early
+const CLOSE_CALL_THROTTLE_MS := 2000
 const HIT_FAMILIES := ["stone", "root", "water", "light", "spore", "sprout"]  # Others sound like sprout
 const HIT_GROUP_MS := 90  # A pulse or splash hitting many nightmares at once is one impact
 const CHAIN_STEP_DB := -4.0  # Each jump of a chain ripples a little quieter
@@ -131,6 +136,8 @@ var _scan_left := 0.0  # Seconds (real time) until the next field scan
 var _resting := true
 var _presence := {}  # Tower instance id -> a Warden with a presence loop
 var _dew_catch_at := -100000
+var _close_call_at := -100000
+var _drags := {}  # Nightmare instance id -> its soil-drag player (cut when the pull ends)
 var _harvest_at := -100000  # msec of this rest's harvest sound (later pours add droplets)
 
 func _ready() -> void:
@@ -286,6 +293,9 @@ func _scan_field() -> void:
 func _on_enemy_added(enemy: Node) -> void:
 	# Its position is set right after it enters the tree, so wait a frame.
 	_play_signature.call_deferred(enemy)
+	if enemy.has_signal("drag_started") and not enemy.is_connected("drag_started", _on_drag_started):
+		enemy.connect("drag_started", _on_drag_started)  # Rootcurl's drag
+		enemy.connect("drag_ended", _on_drag_ended)
 	if enemy.has_signal("leaped"):
 		enemy.leaped.connect(func(e: Node2D) -> void:
 			if e.enemy_data.is_boss:
@@ -582,6 +592,29 @@ func _ascended_duck(tower: Tower) -> void:
 		_ducked_at[tower.get_instance_id()] = now
 		sound.duck(3.0, 0.5)
 
+# Rootcurl: the yank, then soil dragging for about the drag's length (1 tile short, more long). Bosses:
+# lower, so it reads strained. The drag is cut when the pull ends early.
+# Enemy.drag_started(enemy, tiles) / drag_ended(enemy) (Tower Code 183abad); a second pull mid-drag
+# extends the drag without a new start.
+func _on_drag_started(enemy: Node2D, tiles: float = 1.0) -> void:
+	if not is_instance_valid(enemy):
+		return
+	var pitch := PULL_BOSS_PITCH if enemy.enemy_data.is_boss else 1.0
+	sound.play(&"root_yank", enemy.global_position, EVENT_DB, pitch, 0.04)
+	var drag: Node = sound.play(&"soil_drag_long" if tiles > 1.5 else &"soil_drag_short", enemy.global_position,
+		EVENT_DB - 2.0, pitch, 0.04)
+	if drag != null:
+		_drags[enemy.get_instance_id()] = drag
+
+func _on_drag_ended(enemy) -> void:  # Untyped: the nightmare may be gone by now
+	var key: int = enemy.get_instance_id() if is_instance_valid(enemy) else 0
+	var drag = _drags.get(key)
+	_drags.erase(key)
+	if is_instance_valid(drag) and drag.is_inside_tree():  # A short tail, not a click
+		var fade: Tween = drag.create_tween()
+		fade.tween_property(drag, "volume_db", -40.0, DRAG_TAIL)
+		fade.tween_callback(drag.queue_free)
+
 func _on_cloud(tower: Tower, where: Vector2, duration: float) -> void:
 	if tower.attack_data.cloud_fog:
 		_event("fog_", tower, where)
@@ -751,7 +784,8 @@ func _on_family_whole(_family: String) -> void:
 # very quiet, throttled droplet; the rest's harvest gathers every catcher's pour in that frame into
 # one warm pour, fuller with the amount; the Wellspring's interest is a gentle ripple.
 func _hook_economy(node: Node) -> void:
-	for pair in [["dew_caught", _on_dew_caught], ["harvest_poured", _on_harvest_poured], ["interest_paid", _on_interest_paid]]:
+	for pair in [["dew_caught", _on_dew_caught], ["harvest_poured", _on_harvest_poured], ["interest_paid", _on_interest_paid],
+			["close_call", _on_close_call]]:
 		if node.has_signal(pair[0]) and not node.is_connected(pair[0], pair[1]):
 			node.connect(pair[0], pair[1])
 
@@ -777,6 +811,15 @@ func _on_harvest_poured(_tower: Node = null, amount = 0) -> void:
 
 func _on_interest_paid(_tower: Node = null, _amount = 0) -> void:
 	sound.play(&"interest_ripple", null, KIN_DB, 1.0, 0.0, &"UI")
+
+# Close calls (Main's CloseCalls, 6d95009; added deferred, so hooked as it joins the tree): a nightmare
+# past 85% of its route. A soft tension cue, throttled like the visual (one per 2 s).
+func _on_close_call(enemy: Node2D = null) -> void:
+	var now := Time.get_ticks_msec()
+	if now - _close_call_at < CLOSE_CALL_THROTTLE_MS:
+		return
+	_close_call_at = now
+	sound.play(&"close_call", enemy.global_position if is_instance_valid(enemy) else null, CLOSE_CALL_DB, 1.0, 0.03)
 
 func _on_reaction(id: StringName, enemy: Node2D, _chain: int, _towers: Array) -> void:
 	if not is_instance_valid(enemy):

@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "echoing_steps"
 display_name = "Echoing Steps"
-description = "Each time the route changes during a drift, all Wardens deal 5% more damage until it ends (up to +25%)."
+description = "Each time the route changes during a {drift}, all Wardens deal 5% more damage until it ends (up to +25%)."
 rarity = 2
 kind = 3
 tags = Array[String](["maze", "tempo"])

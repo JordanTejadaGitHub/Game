@@ -9,7 +9,7 @@ const BUTTON_SIZE := Vector2(46, 60)
 const BUTTON_MIN_WIDTH := 32.0
 # Half-width taken from each side: the Warden panel (16–316 px) or the drift controls (272 px + 16),
 # plus a small gap; the wider of the two, so the centred bar clears both.
-const BAR_CLEARANCE := 324.0
+const BAR_CLEARANCE := 336.0
 const SPROUT_ID := "sprout"
 const CLEAR_TOOL_GAP := 10.0
 const SEED_COLOR := Color(0.6, 0.85, 0.4)
@@ -45,6 +45,7 @@ var _toast_tween: Tween
 var _counter_icons := {}  # Label -> its icon (TextureRect)
 
 func _ready() -> void:
+	UiStyle.install_tooltip_wrap(get_tree())  # Long tooltips wrap at the tip width (also when main runs alone)
 	# The Clear tool sits at the left end of the Warden bar, set apart (screens_ui.md "The Clear tool").
 	# (A sibling of %TowerBar, placed and sized with it in _fit_tower_bar.)
 	_style_resources()
@@ -71,6 +72,7 @@ func _ready() -> void:
 	_on_leaves_changed(run_state.leaves, run_state.max_leaves)
 	_add_dreamlight_counter()
 	_add_menu_button()
+	_add_buff_lens_button()
 	_add_remember_button()
 	# "Coming this block" (top centre, under the drift banner) and the new-nightmare introduction
 	# card (before the dossier in the rest order), both from screens_ui.md.
@@ -88,8 +90,14 @@ func _ready() -> void:
 	drift_meter.name = "DriftMeter"
 	add_child(drift_meter)
 	owner.add_child.call_deferred(DpsTags.new())
+	# Close calls (run_design.md): a nightmare past 85% of the route trembles the Heartwood (world).
+	var close_calls := CloseCalls.new()
+	close_calls.name = "CloseCalls"
+	owner.add_child.call_deferred(close_calls)
 	# The Codex's Dreams: every card offered is seen on the account (DreamCodex).
 	add_child(DreamCodex.new(dream_state, run_state))
+	# The Codex's Nightmares: lifetime dispels per kind and the "Know every nightmare" milestone.
+	add_child(NightmareCodex.new(drift_director))
 	_raise_overlays.call_deferred()  # After everything above (and deferred adds) is in
 	# Resist / weak pips and the immune flash, drawn in the world over the nightmares.
 	owner.add_child.call_deferred(ResistPips.new())
@@ -143,6 +151,10 @@ func _ready() -> void:
 	_add_counter_icon(%PathLabel, &"path_length", 1)
 
 func _unhandled_input(event: InputEvent) -> void:
+	if event.is_action_pressed("buff_lens"):  # V: the buff lens on / off (a toggle, for touch too)
+		buff_lens_button.button_pressed = not buff_lens_button.button_pressed
+		get_viewport().set_input_as_handled()
+		return
 	# Number keys 1-9 pick a Warden.
 	var key := event as InputEventKey
 	if key == null or not key.pressed or key.echo:
@@ -160,8 +172,10 @@ func _build_tower_bar() -> void:
 	_bar_towers = tower_placer.get_buildable_towers()
 	for i in _bar_towers.size():
 		var data: TowerData = _bar_towers[i]
-		# Icon on top, the Dew cost under it, the hotkey number in the top-left corner.
+		# The Warden's icon on top, the Dew cost under it, the hotkey number in the top-left corner (family
+		# emblems were tried and removed, user 2026-09-30: screens_ui.md "Family icons on the Warden bar").
 		var button := Button.new()
+		button.name = "Warden_" + data.get_id()
 		button.toggle_mode = true
 		button.focus_mode = Control.FOCUS_NONE
 		button.icon = _tower_icon(data)
@@ -176,6 +190,7 @@ func _build_tower_bar() -> void:
 		button.pressed.connect(_on_tower_pressed.bind(data))
 		if i < 9:
 			var hotkey := Label.new()
+			hotkey.name = "Hotkey"
 			hotkey.text = str(i + 1)
 			hotkey.position = Vector2(3, 0)
 			hotkey.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -339,7 +354,7 @@ func _add_dreamlight_counter() -> void:
 	# Tap / click says the same as the tooltip (platforms.md: no hover-only information).
 	label.gui_input.connect(func(event: InputEvent) -> void:
 		if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
-			show_toast("%s (you have %d)" % [IconInfo.resource_tooltip(&"dreamlight"), dream_state.dreamlight]))
+			show_toast("%s (%d)" % [IconInfo.resource_tooltip(&"dreamlight"), dream_state.dreamlight]))
 	add_child(label)
 	var update := func(amount: int) -> void:
 		label.text = str(amount)
@@ -372,9 +387,11 @@ func _on_leaves_changed(leaves: int, max_leaves: int) -> void:
 	_leaf_flash.tween_callback(leaves_label.add_theme_color_override.bind("font_color", LEAVES_COLOR))
 
 func _on_rest_started(_block: int, _is_boss_rest: bool, bonus: int, perfect: bool) -> void:
-	var text := "Rest.  +%d Dew" % bonus
+	var text := "Rest · +%d Dew" % bonus
+	if DreamState.rest_dreamlight(drift_director.drifts_started) > 0:
+		text += " · +%d ✦" % DreamState.rest_dreamlight(drift_director.drifts_started)  # The Heartwood wakes (drift 51+)
 	if perfect:
-		text += "  (perfect block: no leaves lost)"
+		text += " · perfect block"
 	show_toast(text)
 
 func _on_act_started(act: int, leaves_regrown: int) -> void:
@@ -465,6 +482,31 @@ func _add_remember_button() -> void:
 	remember_button.process_mode = Node.PROCESS_MODE_ALWAYS
 	remember_button.pressed.connect(open_remember)
 	add_child(remember_button)
+
+# The buff lens toggle (BuffLens; V): under the Menu button, the theme's selected look while on.
+var buff_lens_button := Button.new()
+func _add_buff_lens_button() -> void:
+	BuffLens.set_on(get_tree(), false)  # A new run starts with the lens off
+	buff_lens_button.name = "BuffLensButton"
+	buff_lens_button.text = "Buffs"
+	buff_lens_button.tooltip_text = "Buff lens (%s)" % _action_key("buff_lens")
+	buff_lens_button.toggle_mode = true
+	buff_lens_button.focus_mode = Control.FOCUS_NONE
+	buff_lens_button.set_anchors_preset(Control.PRESET_TOP_RIGHT)
+	buff_lens_button.offset_left = MENU_BUTTON_RIGHT - 84
+	buff_lens_button.offset_right = MENU_BUTTON_RIGHT
+	buff_lens_button.offset_top = 66
+	buff_lens_button.offset_bottom = 106
+	buff_lens_button.grow_horizontal = Control.GROW_DIRECTION_BEGIN
+	buff_lens_button.process_mode = Node.PROCESS_MODE_ALWAYS
+	buff_lens_button.toggled.connect(func(pressed: bool) -> void: BuffLens.set_on(get_tree(), pressed))
+	add_child(buff_lens_button)
+
+func _action_key(action: String) -> String:
+	for event in InputMap.action_get_events(action) if InputMap.has_action(action) else []:
+		if event is InputEventKey:
+			return OS.get_keycode_string(event.physical_keycode if event.physical_keycode != 0 else event.keycode)
+	return ""
 
 func open_remember() -> void:
 	if run_state.is_over:

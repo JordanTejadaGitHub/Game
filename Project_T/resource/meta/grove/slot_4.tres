@@ -6,10 +6,10 @@
 script = ExtResource("1_unlock")
 id = "slot_4"
 display_name = "Loadout slot 4"
-description = "Carry one more perk into the dream (4 slots)."
+description = "Carry 4 perks into the dream."
 root = 2
 costs = Array[int]([140])
 order = 22
 icon = -1
-requires_all = Array[String](["slot_3"])
+requires_any = Array[String](["rich_dew", "first_care", "let_go"])
 loadout_slots = 1

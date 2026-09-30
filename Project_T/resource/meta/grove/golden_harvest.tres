@@ -6,7 +6,7 @@
 script = ExtResource("1_unlock")
 id = "golden_harvest"
 display_name = "Golden Harvest"
-description = "The Legendary Golden Harvest joins the pool."
+description = "Legendary: Golden Harvest joins the pool."
 root = 1
 costs = Array[int]([120])
 order = 52

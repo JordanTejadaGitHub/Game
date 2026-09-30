@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "mending_bark"
 display_name = "Mending Bark"
-description = "A perfect block (no leaf lost) regrows 1 leaf."
+description = "5 {drifts} in a row without losing a leaf regrow 1 leaf."
 rarity = 0
 kind = 3
 tags = Array[String](["leaves"])

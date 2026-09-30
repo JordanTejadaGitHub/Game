@@ -51,6 +51,10 @@ func _run() -> void:
 	var walker := _walker(route, 10)
 	var before: int = walker.get_route_index()
 	curl._update_ability(0.1)
+	_check(not walker.is_dragged(), "the pull waits for the lash (the attack's release frame)")
+	curl._advance_attack(1.0)
+	_check(walker.is_dragged() and walker.get_route_index() == before, "the pull drags over time, not a jump")
+	await _wait_drag(walker)
 	_check(walker.get_route_index() < before, "Rootcurl pulls the nightmare back along its route (%d -> %d)" % [before, walker.get_route_index()])
 	_check(curl._ability_timer > 3.9, "then waits 4 s")
 	curl.queue_free()
@@ -62,6 +66,9 @@ func _run() -> void:
 	var w2 := _walker(route, 12)
 	var start_index: int = w2.get_route_index()
 	home._update_ability(0.1)
+	home._advance_attack(1.0)
+	var seconds := await _wait_drag(w2)
+	_check(seconds > 0.7 and seconds < 1.3, "3 tiles take ~0.95 s: grab, then the drag (%.2f s)" % seconds)
 	var after_first: int = w2.get_route_index()
 	_check(start_index - after_first >= 2, "Long Way Home drags it back about 3 tiles (%d -> %d)" % [start_index, after_first])
 	w2.global_position = Tower.MAP_GRID.calculate_map_position(route[12])
@@ -69,6 +76,27 @@ func _run() -> void:
 	home._update_ability(0.1)
 	_check(w2.has_meta(&"pulled_home"), "and remembers it (only once per nightmare)")
 	home.queue_free()
+	await _clean()
+
+	# --- A pull during a drag extends it (same total tiles); a re-route or dispel ends it ---
+	var w3 := _walker(route, 14)
+	var starts := [0]
+	w3.drag_started.connect(func(_e: Node2D, _t: float) -> void: starts[0] += 1)
+	var cell_px := Tower.MAP_GRID.cell_size.x
+	w3.push_back(cell_px)
+	for i in 20:
+		w3._update_drag(1.0 / 60.0)
+	w3.push_back(cell_px)
+	await _wait_drag(w3)
+	_check(starts[0] == 1 and w3.global_position.is_equal_approx(Tower.MAP_GRID.calculate_map_position(route[12])),
+		"two pulls = one drag, 2 tiles back (%d drags, at %s)" % [starts[0], w3.global_position])
+	w3.push_back(cell_px)
+	w3.set_path(route)
+	_check(not w3.is_dragged(), "a re-route ends the drag")
+	w3._path_index = 5
+	w3.push_back(cell_px)
+	w3._cleanse()
+	_check(not w3.is_dragged(), "a dispel ends the drag")
 	await _clean()
 
 	# --- Tangleroot / Snugroot: Hold the ones furthest along ---
@@ -250,6 +278,14 @@ func _check_data() -> void:
 		var data: TowerData = load("res://resource/tower/%s.tres" % final)
 		_check(data.evolves_to.has(load("res://resource/tower/%s.tres" % ASCEND[final])),
 			"%s can ascend into %s" % [final, ASCEND[final]])
+
+# Runs a pull's drag to the end (the test's nightmares don't process); returns its seconds.
+func _wait_drag(enemy: Node2D) -> float:
+	var frames := 0
+	while is_instance_valid(enemy) and enemy.is_dragged() and frames < 300:
+		enemy._update_drag(1.0 / 60.0)
+		frames += 1
+	return frames / 60.0
 
 func _check(condition: bool, label: String) -> void:
 	if not condition:

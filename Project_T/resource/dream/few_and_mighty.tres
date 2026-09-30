@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "few_and_mighty"
 display_name = "Few and Mighty"
-description = "All Wardens +8% damage for each attacking Warden below 12 you have (7 Wardens = +40%; up to +80%)."
+description = "The fewer attackers, the stronger: all Wardens +8% damage for each attacking Warden you have under 12 (max +80%)."
 rarity = 2
 kind = 3
 tags = Array[String](["narrow"])

@@ -28,6 +28,9 @@ const TITLES := {
 ]
 @export var cards_per_pick: int = 3
 var offer_all_first := false  # Early Bloom (set by MetaRun)
+# Memory Warden (tower_design.md): set by MetaRun when a boss whose bloom the Grove has grown is dispelled;
+# the next boss pick offers it in one of the slots (free, one per run).
+var pending_memory_warden: TowerData
 var previous_first_offer: Array = []  # Sorted ids of the last run's first-pick offer (profile "last_first_pick")
 
 @onready var dream_state: DreamState = %DreamState
@@ -89,6 +92,11 @@ func show_pick(reason: StringName = &"first") -> void:
 	_include_owed_family(available, count)
 	offer = []  # Untyped: families (TowerData) and Blessings (UpgradeData) share it
 	offer.append_array(available.slice(0, count))
+	if reason == &"boss" and pending_memory_warden != null and not dream_state.is_unlocked(pending_memory_warden.get_id()):
+		if offer.size() >= cards_per_pick:
+			offer.pop_back()
+		offer.push_front(pending_memory_warden)
+	pending_memory_warden = null
 	if reason == &"first":
 		_remember_first_offer()
 	var blessings := get_blessings()
@@ -113,7 +121,12 @@ func show_pick(reason: StringName = &"first") -> void:
 		_cards.remove_child(child)
 		child.queue_free()
 	for data in offer:
-		_cards.add_child(_make_blessing_card(data) if data is UpgradeData else _make_card(data))
+		if data is UpgradeData:
+			_cards.add_child(_make_blessing_card(data))
+		elif data.line == "memory":
+			_cards.add_child(_make_memory_card(data))  # A boss's reward, not a family
+		else:
+			_cards.add_child(_make_card(data))
 	visible = true
 
 # Sorted Warden ids of the families in `datas`.
@@ -256,7 +269,7 @@ func _make_card(data: TowerData) -> Button:
 	var statuses := get_status_text(data)
 	if statuses != "":
 		lines.append([statuses, 14, Color(0.75, 0.85, 1.0)])
-	lines.append(["Sprouts can grow into it (%d Dew), or plant one directly (%d Dew)." % [sprout_cost, data.cost], 13, Color(0.7, 0.9, 0.7)])
+	lines.append(["Grow a Sprout into it: %d Dew · plant directly: %d Dew" % [sprout_cost, data.cost], 13, Color(0.7, 0.9, 0.7)])
 	for line in lines:
 		var label := Label.new()
 		label.text = line[0]
@@ -337,6 +350,101 @@ func _make_blessing_card(card: UpgradeData) -> Button:
 		label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		box.add_child(label)
 	return button
+
+# A Memory Warden (screens_ui.md "Memory Warden card"): the boss's reward, not a family. Gold /
+# dream-fruit thread and a warm glow, "A Memory returns", the boss's flavour line, its identity and
+# statuses, and a "Unique" tag. Placeholder look until the bloom art exists.
+const MEMORY_GOLD := Color(1.0, 0.82, 0.42)
+const MEMORY_GLOW := Color("3a2a10")
+
+func _make_memory_card(data: TowerData) -> Button:
+	var button := Button.new()
+	button.custom_minimum_size = CARD_SIZE
+	button.focus_mode = Control.FOCUS_NONE
+	button.pressed.connect(choose.bind(data))
+	UiStyle.card_button(button, MEMORY_GOLD)
+	for state in ["normal", "hover", "pressed", "hover_pressed"]:
+		var style := button.get_theme_stylebox(state) as MoonStyleBox
+		if style:
+			style = style.duplicate()
+			style.glow_color = MEMORY_GLOW  # The soft warm glow
+			button.add_theme_stylebox_override(state, style)
+	var box := VBoxContainer.new()
+	box.set_anchors_preset(Control.PRESET_FULL_RECT)
+	box.offset_left = 14
+	box.offset_top = 12
+	box.offset_right = -14
+	box.offset_bottom = -12
+	box.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	button.add_child(box)
+	_fit_card(button, box)
+	var heading := Label.new()
+	heading.text = "A Memory returns"
+	heading.add_theme_font_size_override("font_size", 14)
+	heading.add_theme_color_override("font_color", MEMORY_GOLD)
+	heading.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	box.add_child(heading)
+	if data.texture != null:
+		var icon := TextureRect.new()
+		var atlas := AtlasTexture.new()
+		atlas.atlas = data.texture
+		atlas.region = data.get_frame_rect(0)
+		icon.texture = atlas
+		icon.stretch_mode = TextureRect.STRETCH_KEEP_CENTERED
+		icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		box.add_child(icon)
+	var lines := [[data.display_name, 22, Color.WHITE]]
+	var flavour: String = MetaRun.MEMORY_FLAVOUR.get(data.get_id(), "")
+	if flavour != "":
+		lines.append([flavour, 14, Color(1.0, 0.9, 0.7)])
+	lines.append([IconInfo.format(data.description), 15, Color(0.95, 0.92, 0.85)])
+	var statuses := get_status_text(data)
+	if statuses != "":
+		lines.append([statuses, 14, Color(0.75, 0.85, 1.0)])
+	lines.append(["Unique: one on the map at a time. Free to plant.", 12, MEMORY_GOLD])
+	for line in lines:
+		var label := Label.new()
+		label.text = line[0]
+		label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		label.add_theme_font_size_override("font_size", line[1])
+		label.add_theme_color_override("font_color", line[2])
+		label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		box.add_child(label)
+	_add_memory_border(button)
+	return button
+
+# The Memory Warden card's dream-fruit border (meta_assets.md "memory_card_border.png"): a 9-slice
+# drawn over the card, grown 12 px on every side, the vine sides tiled; 4 frames pulse at 4 fps.
+const MEMORY_BORDER := preload("res://assets/meta/ui/memory_card_border.png")
+const MEMORY_BORDER_FRAME := Vector2(274, 324)
+const MEMORY_BORDER_MARGIN := 42
+const MEMORY_BORDER_GROW := 12
+const MEMORY_BORDER_FPS := 4.0
+
+func _add_memory_border(button: Button) -> void:
+	var border := NinePatchRect.new()
+	border.name = "MemoryBorder"
+	border.texture = MEMORY_BORDER
+	border.region_rect = Rect2(Vector2.ZERO, MEMORY_BORDER_FRAME)
+	for side in [SIDE_LEFT, SIDE_TOP, SIDE_RIGHT, SIDE_BOTTOM]:
+		border.set_patch_margin(side, MEMORY_BORDER_MARGIN)
+	border.axis_stretch_horizontal = NinePatchRect.AXIS_STRETCH_MODE_TILE  # The vine repeats every 24 px
+	border.axis_stretch_vertical = NinePatchRect.AXIS_STRETCH_MODE_TILE
+	border.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	border.set_anchors_preset(Control.PRESET_FULL_RECT)
+	border.offset_left = -MEMORY_BORDER_GROW
+	border.offset_top = -MEMORY_BORDER_GROW
+	border.offset_right = MEMORY_BORDER_GROW
+	border.offset_bottom = MEMORY_BORDER_GROW
+	button.add_child(border)
+	var pulse := Timer.new()
+	pulse.wait_time = 1.0 / MEMORY_BORDER_FPS
+	pulse.autostart = true
+	pulse.process_mode = Node.PROCESS_MODE_ALWAYS  # The pick pauses the game
+	pulse.timeout.connect(func() -> void:
+		var frame := (int(border.region_rect.position.x / MEMORY_BORDER_FRAME.x) + 1) % 4
+		border.region_rect = Rect2(Vector2(frame * MEMORY_BORDER_FRAME.x, 0), MEMORY_BORDER_FRAME))
+	border.add_child(pulse)
 
 # A half-dreamed Dream taken since the last pick owes this pick its missing family (one of them if
 # several): it's moved into the offered slots; the player still chooses (dream_design.md

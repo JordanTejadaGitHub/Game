@@ -89,6 +89,9 @@ var _settling_marks: Node2D = null
 func _ready() -> void:
 	if tower_scene == null:
 		tower_scene = load(TOWER_SCENE_PATH)
+	# Parked Wardens (the Memory Wardens, cut for now) never join the roster: not in the bar, not buildable,
+	# not with Test Grove or Unlock all.
+	towers.assign(towers.filter(func(t: TowerData) -> bool: return t != null and not t.parked))
 	tower_data = towers[0]
 	_path_preview.width = 6.0
 	_path_preview.default_color = PREVIEW_COLOR
@@ -219,6 +222,9 @@ func _unhandled_input(event: InputEvent) -> void:
 
 func _process(delta: float) -> void:
 	_tick_settling(delta)
+	if not _grow_preview.is_empty():
+		_grow_preview_time += delta
+		queue_redraw()  # The new form idles
 	if is_choosing_square():
 		if not is_instance_valid(_grow_choice.tower):
 			cancel_grow_choice()
@@ -249,6 +255,7 @@ func _draw() -> void:
 	if stroking:
 		_draw_stroke()
 		return
+	_draw_grow_preview()
 	_draw_kin_spots()
 	if not _catch_preview.is_empty():
 		_draw_catch_zone(_catch_preview.at, _catch_preview.radius)
@@ -257,6 +264,22 @@ func _draw() -> void:
 	if tower_data.catch_share > 0.0:
 		_draw_catch_zone(Tower.footprint_centre(_hover_cell, tower_data.footprint), tower_data.catch_radius \
 			+ DewCatch.WIDE_BOWL_STEP * mini(dream_state.rule_stacks(&"wide_bowl"), 3))
+	# What it would receive here (BuffSources): threads in from each aura, "+30% attack speed from 2 Elder
+	# Stumps" above the ghost.
+	var received := ""
+	if tower_data.can_attack and not AuraView.is_aura(tower_data):
+		draw_set_transform(Vector2.ZERO)
+		var ghost_at := Tower.footprint_centre(_hover_cell, tower_data.footprint)
+		var entries := BuffSources.would_receive(tower_data, ghost_at, tower_container.get_children())
+		for entry in entries:
+			var colour := BuffSources.color(entry.kind, entry.source)
+			draw_line(to_local(entry.source.global_position), to_local(ghost_at), Color(colour, 0.18), 4.5)
+			draw_line(to_local(entry.source.global_position), to_local(ghost_at), Color(colour, 0.8), 1.5)
+		received = BuffSources.summary(entries)
+	if AuraView.is_aura(tower_data):  # Exactly who it would boost (AuraView)
+		draw_set_transform(Vector2.ZERO)
+		AuraView.draw_ghost(self, tower_data, Tower.footprint_centre(_hover_cell, tower_data.footprint),
+			tower_container.get_children())
 	draw_set_transform(Tower.footprint_centre(_hover_cell, tower_data.footprint))
 	var tint := VALID_TINT if _hover_valid and _hover_affordable else INVALID_TINT
 	if tower_data.can_attack:
@@ -264,7 +287,8 @@ func _draw() -> void:
 		# as the base range faint and the boosted range bright.
 		var base_pixels := Tower.range_to_pixels(Tower.get_range_for(tower_data, dream_state))
 		var range_pixels := Tower.range_to_pixels(Tower.get_range_for(tower_data, dream_state) + _range_gain)
-		draw_circle(Vector2.ZERO, range_pixels, Color(tint, 0.12))
+		if not AuraView.is_aura(tower_data):  # An aura Warden's range stays a thin line beside its aura shape
+			draw_circle(Vector2.ZERO, range_pixels, Color(tint, 0.12))
 		if _range_gain > 0.0:
 			draw_arc(Vector2.ZERO, base_pixels, 0.0, TAU, 64, Color(tint, 0.22), 1.5)
 			draw_arc(Vector2.ZERO, range_pixels, 0.0, TAU, 64, Color(BONUS_ON, 0.85), 2.5)
@@ -289,7 +313,9 @@ func _draw() -> void:
 	if run_state.fertile_cells.has(_hover_cell):
 		tag += " (fertile)"
 	var growth := get_hover_path_growth()
-	if frozen_ground():
+	if is_edge_cell(_hover_cell) and _hover_cell != map_generator.startPath and _hover_cell != map_generator.endPath:
+		tag += "  ·  the dream's edge"  # The island's rim (screens_ui.md "Invalid placement")
+	elif frozen_ground():
 		tag += "  ·  Frozen Ground: plant at the rest"
 	elif is_unique_placed(tower_data):
 		tag += "  ·  already planted (one per run)"
@@ -317,6 +343,9 @@ func _draw() -> void:
 		WorldLabel.cost_color(_hover_affordable))
 	# Bonus chips above the ghost: each position card, on (green, what it gives) or off (grey, why).
 	var y := -MAP_GRID.cell_size.y / 2.0 - 10.0 + minf(tower_data.sprite_offset.y, 0.0)
+	if received != "":
+		WorldLabel.draw_tag(self, 0.0, y, received, BuffSources.COLORS.acorn)
+		y -= CHIP_STEP
 	for chip in get_ghost_chips():
 		WorldLabel.draw_tag(self, 0.0, y, chip[0], BONUS_ON if chip[1] else BONUS_OFF)
 		y -= CHIP_STEP
@@ -328,6 +357,88 @@ func _draw() -> void:
 		draw_set_transform(to_local(tower.global_position))
 		WorldLabel.draw_tag(self, 0.0, -MAP_GRID.cell_size.y / 2.0 - 6.0,
 			("gains %s" if change[2] else "loses %s") % change[1], BONUS_ON if change[2] else BONUS_LOST)
+	draw_set_transform(Vector2.ZERO)
+
+# --- Growth preview (screens_ui.md "Preview the growth before growing") -------------------------------
+
+const PREVIEW_ALPHA := 0.6
+var _grow_preview: Array = []  # [[Tower, TowerData], …] while a Grow button is pointed at or its key held
+var _grow_preview_time := 0.0
+
+# Shows each Warden as the form it would grow into: its sprite in place (translucent, idling), the new
+# range bright over the current faint one (a sniper's dead zone too), and a 2×2 form's squares.
+func show_grow_preview(pairs: Array) -> void:
+	_grow_preview = pairs.filter(func(p: Array) -> bool: return is_instance_valid(p[0]) and p[1] != null)
+	_grow_preview_time = 0.0
+	queue_redraw()
+
+func hide_grow_preview() -> void:
+	if not _grow_preview.is_empty():
+		_grow_preview = []
+		queue_redraw()
+
+func is_previewing_growth() -> bool:
+	return not _grow_preview.is_empty()
+
+# The range `tower` would have as `into`: its own extras (ranks, Focus, cards) kept on the new base.
+func preview_range(tower: Tower, into: TowerData) -> float:
+	return tower.get_range_cells() - Tower.get_range_for(tower.tower_data, dream_state) + Tower.get_range_for(into, dream_state)
+
+# The stat changes for the Grow button's tooltip: "Damage 24 → 38 · Range 2.7 → 3.2 · adds Rooted".
+func grow_changes(tower: Tower, into: TowerData) -> String:
+	var from := tower.tower_data
+	var parts: Array[String] = []
+	if into.can_attack and from.can_attack and from.damage > 0:
+		var now := tower.get_damage()
+		var then := now * float(into.damage) / float(from.damage)
+		if roundi(then) != roundi(now):
+			parts.append("Damage %d → %d" % [roundi(now), roundi(then)])
+		var speed := tower.get_attacks_per_second()
+		var faster := speed * into.attacks_per_second / maxf(from.attacks_per_second, 0.01)
+		if absf(faster - speed) >= 0.05:
+			parts.append("Speed %.1f → %.1f/s" % [speed, faster])
+	elif into.can_attack and not from.can_attack:
+		parts.append("Damage %d" % into.damage)
+	var reach := preview_range(tower, into)
+	if into.can_attack and absf(reach - tower.get_range_cells()) >= 0.05:
+		parts.append("Range %.1f → %.1f" % [tower.get_range_cells(), reach])
+	if into.min_range > 0.0 and into.min_range != from.min_range:
+		parts.append("can't hit within %.1f" % into.min_range)
+	if into.applies_status != &"" and into.applies_status != from.applies_status:
+		parts.append("adds %s" % IconInfo.status_name(into.applies_status))
+	return " · ".join(parts)
+
+func _draw_grow_preview() -> void:
+	for pair in _grow_preview:
+		var tower: Tower = pair[0]
+		var into: TowerData = pair[1]
+		if not is_instance_valid(tower):
+			continue
+		if into.footprint > tower.get_footprint():
+			draw_set_transform(Vector2.ZERO)
+			for origin in get_grow_squares(tower, into):  # Where a 2×2 form could stand
+				var rect := Rect2(MAP_GRID.calculate_map_position(origin) - MAP_GRID.cell_size / 2.0, MAP_GRID.cell_size * 2.0)
+				draw_rect(rect.grow(-3), Color(VALID_TINT, 0.08))
+				draw_rect(rect.grow(-3), Color(VALID_TINT, 0.5), false, 2.0)
+			continue
+		draw_set_transform(to_local(tower.global_position))
+		if into.can_attack:
+			var now_px := Tower.range_to_pixels(tower.get_range_cells()) if tower.tower_data.can_attack else 0.0
+			var new_px := Tower.range_to_pixels(preview_range(tower, into))
+			if now_px > 0.0:
+				draw_arc(Vector2.ZERO, now_px, 0.0, TAU, 64, Color(VALID_TINT, 0.25), 1.5)
+			draw_circle(Vector2.ZERO, new_px, Color(BONUS_ON, 0.08))
+			draw_arc(Vector2.ZERO, new_px, 0.0, TAU, 64, Color(BONUS_ON, 0.85), 2.5)
+			if into.min_range > 0.0:  # The sniper's dead zone
+				var dead := Tower.range_to_pixels(into.min_range)
+				draw_circle(Vector2.ZERO, dead, Color(INVALID_TINT, 0.12))
+				draw_arc(Vector2.ZERO, dead, 0.0, TAU, 48, Color(INVALID_TINT, 0.6), 1.5)
+		if into.texture == null:
+			Tower.draw_placeholder(self, Color(1, 1, 1, PREVIEW_ALPHA))
+		else:
+			var frame := into.get_frame_rect(int(_grow_preview_time * into.animation_fps) % maxi(into.frame_count, 1))
+			draw_texture_rect_region(into.texture, Rect2(-frame.size / 2.0 + into.sprite_offset, frame.size), frame,
+				Color(1, 1, 1, PREVIEW_ALPHA))
 	draw_set_transform(Vector2.ZERO)
 
 # --- Catcher placement preview (screens_ui.md "Support and economy feedback") ---------------------
@@ -494,6 +605,9 @@ func is_unique_placed(data: TowerData) -> bool:
 # Builds a tower on `cell` and charges its Dew cost. Returns false (and charges nothing) if the cell
 # can't be built on or the player can't afford it.
 func _try_build(cell: Vector2) -> bool:
+	if tower_data == null or tower_data.parked:
+		build_rejected.emit(cell)
+		return false  # Parked Wardens (cut for now) are never planted
 	if frozen_ground():
 		_toast_frozen()
 		build_rejected.emit(cell)
@@ -685,6 +799,7 @@ func _take_square(tower: Tower, into: TowerData, origin: Vector2) -> void:
 	var old_cell := tower.cell
 	tower.cell = origin
 	tower.position = Tower.footprint_centre(origin, size)
+	Tower.towers_moved()  # Its neighbour buckets
 	tower.footprint_size = size  # It has its room now (Tower.evolve keeps the size it's given)
 	var kin := Kinships.find(self)
 	if kin:
@@ -783,8 +898,8 @@ func nurture(tower: Tower, focus: Tower.Focus = Tower.Focus.NONE) -> bool:
 	if frozen_ground():
 		_toast_frozen()
 		return false
-	if tower.needs_focus() and focus == Tower.Focus.NONE:
-		return false
+	if tower.needs_focus() and not tower.focus_options().has(focus):
+		return false  # No Focus yet, or one this Warden can't take (support: Wide / Strong / Kindred)
 	# Rank VI would make it the Eldest (only one Warden grows past V): the panel asks first and calls
 	# DreamState.make_eldest; group Nurture and the hotkey never crown one by accident.
 	if dream_state.has_method("needs_eldest_confirm") and dream_state.needs_eldest_confirm(tower):
@@ -1068,3 +1183,8 @@ func _walker_cells() -> PackedVector2Array:
 		if not map_generator.get_path_from(target).is_empty():
 			cells.append(target)
 	return cells
+
+# The island's rim: the map's outer ring of cells, never buildable (the start and end are on it).
+static func is_edge_cell(cell: Vector2) -> bool:
+	var last := MAP_GRID.size - Vector2.ONE
+	return MAP_GRID.is_within_bounds(cell) and (cell.x <= 0 or cell.y <= 0 or cell.x >= last.x or cell.y >= last.y)

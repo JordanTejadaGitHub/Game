@@ -190,6 +190,10 @@ const ASCENDED_JSON := "res://assets/towers/ascended/ascended.json"  # 128×128 
 @export var catch_share: float = 0.0
 @export var catch_radius: float = 0.0
 @export var catch_per_rank: float = 0.1
+# Skip (Pebbling): a single-target shot that lands bounces on to the nearest other nightmare within
+# skip_radius cells, dealing skip_share of the hit (once; the skip doesn't skip again).
+@export var skip_share: float = 0.0
+@export var skip_radius: float = 1.0
 @export var cloud_slow: float = 0.0  # Morning Fog: nightmares inside are this much slower…
 @export var cloud_drowsy_per_second: float = 0.0  # …and gain Drowsy at this rate
 
@@ -244,7 +248,7 @@ const ASCENDED_JSON := "res://assets/towers/ascended/ascended.json"  # 128×128 
 @export var crit_dew_per_drift: int = 0  # Cap on crit Dew per drift
 
 @export_group("Wind")
-@export var push_back_tiles: float = 0.0  # Pulse hits push nightmares back this far (Whirligig)
+@export var push_back_tiles: float = 0.0  # Pulse hits push nightmares back this far (the Tidecaller's wave)
 @export var push_cooldown: float = 3.0  # Seconds before the same nightmare can be pushed again
 @export var spread_targets: int = 2  # Gust: nightmares that get the copied statuses
 @export var spread_radius: float = 1.5  # Cells from the most-afflicted nightmare
@@ -263,6 +267,9 @@ const ASCENDED_JSON := "res://assets/towers/ascended/ascended.json"  # 128×128 
 @export_group("Memory")
 # Memory Wardens (from bosses): one per run each, free, can't evolve.
 @export var is_unique: bool = false
+# Parked (cut for now, kept for a possible return; Tower Discussion 3288e88): never in a run's roster,
+# Test Grove and Unlock all included. The Memory Wardens (White Stag, Pond Keeper, Moon Moth).
+@export var parked: bool = false
 
 @export_group("Attack animation")
 @export var attack_kind: AttackKind = AttackKind.PROJECTILE

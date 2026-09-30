@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="UnlockData" format=3]
+
+[ext_resource type="Script" path="res://resource/meta/script/unlock_data.gd" id="1_unlock"]
+
+[resource]
+script = ExtResource("1_unlock")
+id = "memory_white_stag"
+display_name = "Memory Warden: The White Stag"
+description = "Grows the first time you dispel the Hollow Stag, and can be your reward after that boss. A great aura: nightmares in it are slower and take more damage."
+root = 0
+costs = Array[int]([])
+order = 40
+icon = -1
+milestone = "boss_old_stag"
+memory_warden = "white_stag"
+memory_boss = "old_stag"

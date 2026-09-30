@@ -2,7 +2,7 @@ extends Node2D
 class_name DpsTags
 
 # Warden DPS tags (screens_ui.md "Damage that means something"): a small "124 DPS ↑12%" under each
-# attacking Warden, coloured by its rating (gold carrying, white fine, dim blue underused) with a star
+# attacking Warden, coloured by its rank on the board (top ~20% gold, middle white, bottom ~20% dim) with a star
 # on the most improved. Setting "dps_tags": 0 = rests only (default: at rests, while paused and in build
 # mode; during a drift only on the selected or hovered Warden), 1 = always, 2 = off. Clicking a tag
 # selects that Warden and glides the camera to it. Numbers from Tower Code's WardenMeter. Made by the HUD.
@@ -68,6 +68,11 @@ func _process(delta: float) -> void:
 			for r in meter.get_meter_rows(period):
 				if is_instance_valid(r.tower) and not r.get("catcher", false):
 					_rows[r.tower.get_instance_id()] = r
+			# Rank on the board (highest DPS first) sets each tag's colour.
+			var ranked := _rows.values()
+			ranked.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return a.dps > b.dps)
+			for i in ranked.size():
+				ranked[i]["tag_color"] = DriftMeter.rank_color(i, ranked.size())
 	queue_redraw()
 
 func tag_text(r: Dictionary) -> String:
@@ -85,7 +90,7 @@ func _draw() -> void:
 		var width := font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, FONT_SIZE).x
 		var at: Vector2 = tower.global_position + OFFSET + Vector2(-width / 2.0, 0)
 		draw_rect(Rect2(at + Vector2(-4, -FONT_SIZE), Vector2(width + 8, FONT_SIZE + 5)), Color(UiStyle.FOG, 0.65))
-		draw_string(font, at, text, HORIZONTAL_ALIGNMENT_LEFT, -1, FONT_SIZE, DriftMeter.rating_color(r.get("rating_label", &"")))
+		draw_string(font, at, text, HORIZONTAL_ALIGNMENT_LEFT, -1, FONT_SIZE, r.get("tag_color", DriftMeter.FINE_COLOR))
 
 # A click on a tag: select that Warden and glide to it.
 func _unhandled_input(event: InputEvent) -> void:

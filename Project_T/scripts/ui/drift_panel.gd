@@ -16,7 +16,6 @@ const BUTTON_FONT_SIZE := 19
 @onready var dream_state: DreamState = %DreamState
 
 var _status_label := Label.new()
-var benchmark := Label.new()  # The drift benchmark line
 var _remember_button := Button.new()
 var _sapling_button := Button.new()
 var _start_button := Button.new()
@@ -27,15 +26,6 @@ var _speed_buttons: Array[Button] = []
 func _ready() -> void:
 	alignment = BoxContainer.ALIGNMENT_END
 	# Status line, with the Remember button (run_design.md "Dreamlight") beside it during rests.
-	# Damage that means something (screens_ui.md): "Your maze 1,240 DPS · this drift needs ~980 · 127%",
-	# green / amber / red; a forecast at rests (WardenMeter.get_benchmark via DriftMeter.benchmark_text).
-	benchmark.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	benchmark.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	benchmark.add_theme_font_size_override("font_size", 15)
-	benchmark.add_theme_color_override("font_outline_color", UiStyle.FOG)
-	benchmark.add_theme_constant_override("outline_size", 6)
-	benchmark.visible = false
-	add_child(benchmark)
 	var status_row := HBoxContainer.new()
 	add_child(status_row)
 	_remember_button.text = "Remember"
@@ -66,7 +56,7 @@ func _ready() -> void:
 	_start_button.custom_minimum_size = Vector2(272, 48)
 	_start_button.add_theme_font_size_override("font_size", BUTTON_FONT_SIZE)
 	UiStyle.primary(_start_button)
-	_start_button.pressed.connect(drift_director.start_next_drift)
+	_start_button.pressed.connect(_on_start_pressed)
 	add_child(_start_button)
 
 	# Kept compact (screens_ui.md principle 5): Auto-drift shares the speed row.
@@ -119,17 +109,13 @@ func _add_speed_button(row: HBoxContainer, button: Button) -> void:
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("start_drift"):
-		drift_director.start_next_drift()
+		_on_start_pressed()  # A waiting choice reopens instead (the director refuses the drift anyway)
 		get_viewport().set_input_as_handled()
 
 # The call-early bonus changes every frame as creatures walk, so refresh continuously.
-func _process(delta: float) -> void:
+func _process(_delta: float) -> void:
 	var latest := drift_director.drifts_started
 	var next := latest + 1
-	_benchmark_clock -= delta / maxf(Engine.time_scale, 0.001)
-	if _benchmark_clock <= 0.0:
-		_benchmark_clock = 0.5
-		_update_benchmark()
 
 	_start_button.disabled = not drift_director.can_start_next_drift()
 	# Remember moved to the top right (HUD RememberButton, run_design.md); this one stays hidden.
@@ -139,38 +125,58 @@ func _process(delta: float) -> void:
 	var block_end := drift_director.get_block(maxi(latest, 1)) * drift_director.drifts_per_block
 	if drift_director.awaiting_family_pick:
 		_status_label.text = "Choose a Warden family…"
-		_start_button.text = "Start Drift %d" % next
+		_start_button.text = "Start drift %d" % next
 	elif not drift_director.has_next_drift():
 		_status_label.text = "The last drift is walking"
 		_start_button.text = "Final drift"
 	elif drift_director.is_resting():
-		_status_label.text = "Resting: rearrange (%d%% refunds)" % roundi(tower_seller.build_phase_refund * 100)
-		var boss := " (boss)" if drift_director.is_boss_drift(next) else ""
-		_start_button.text = "Start Drift %d%s  (Enter)" % [next, boss]
+		_status_label.text = "Resting · %d%% refunds" % roundi(tower_seller.build_phase_refund * 100)
+		var boss := " · boss" if drift_director.is_boss_drift(next) else ""
+		_start_button.text = "Start drift %d%s (Enter)" % [next, boss]
 	elif drift_director.can_start_next_drift():
 		var countdown := drift_director.get_auto_countdown()
 		_status_label.text = "Drift %d in %d s" % [next, ceili(countdown)] if countdown >= 0.0 \
 			else "Rest after drift %d" % block_end
 		var bonus := drift_director.get_call_early_bonus()
-		_start_button.text = "Call Drift %d early  +%d Dew" % [next, bonus] if bonus > 0 \
-			else "Start Drift %d now" % next
+		_start_button.text = "Call drift %d early · +%d Dew" % [next, bonus] if bonus > 0 \
+			else "Start drift %d now" % next
 	else:
 		_status_label.text = "Rest once the field is clear"
 		_start_button.text = "Rest after drift %d" % block_end
+	# A choice waits (open, or minimised to peek at the map): the button names it and reopens it.
+	var pending := drift_director.pending_choice()
+	if pending != &"" and not run_state.is_over:
+		_start_button.text = PENDING_TEXT[pending]
+		var omens := get_tree().get_first_node_in_group(&"omens")
+		if pending == &"omen" and omens != null and bool(omens.get("faced")):
+			_start_button.text = "Choose an Omen"  # "Face an Omen" was picked: one of its Omens must be chosen
+		_start_button.disabled = false
+
+# Screens_ui.md "Choice screens": what the Start button says while a choice waits.
+const PENDING_TEXT := {&"family": "Pick a family", &"dream": "Choose a Dream", &"omen": "Face an Omen or Clear Skies"}
+const PENDING_SCREENS := {&"family": "FamilyPickScreen", &"dream": "DreamScreen", &"omen": "OmenScreen"}
+
+func _on_start_pressed() -> void:
+	var pending := drift_director.pending_choice()
+	if pending == &"":
+		drift_director.start_next_drift()
+		return
+	reopen_choice(pending)
+
+# Brings the waiting choice screen back (out of its peek); Enter does the same.
+func reopen_choice(pending: StringName) -> void:
+	var screen_name := String(PENDING_SCREENS[pending])
+	if pending == &"dream" and not dream_state.is_offering():
+		screen_name = "RememberScreen"  # A boss rest: the Dream waits behind the Remember screen
+	var screen := get_parent().get_node_or_null(screen_name) if get_parent() != null else null
+	if screen == null:
+		return
+	var peek = screen.get("peek")
+	if peek != null and peek.peeking:
+		peek.set_peeking(false)
 
 func _on_speed_changed(paused: bool, speed: float) -> void:
 	_pause_button.set_pressed_no_signal(paused)
 	for i in _speed_buttons.size():
 		_speed_buttons[i].set_pressed_no_signal(not paused and game_speed.speeds[i] == speed)
 
-var _benchmark_clock := 0.0
-
-func _update_benchmark() -> void:
-	var meter := WardenMeter.find(drift_director) if drift_director.drifts_started > 0 else null
-	var b: Dictionary = meter.get_benchmark() if meter != null else {}
-	var text := DriftMeter.benchmark_text(b)
-	benchmark.visible = text != "" and not run_state.is_over
-	if text != "" and text != benchmark.text:
-		benchmark.text = text
-	if text != "":
-		benchmark.add_theme_color_override("font_color", DriftMeter.ratio_color(float(b.ratio)))

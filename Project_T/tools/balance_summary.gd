@@ -3,12 +3,12 @@ extends SceneTree
 # Balance simulation summary (documentation/balance_simulation.md "What it records" / "The checks"):
 # reads the runs.csv that tools/balance_sim.gd appends to, prints the batch table per profile × style
 # and the pass / fail checks, and compares with the saved baseline.
-#   godot --headless --path . --script res://tools/balance_summary.gd -- [--dir=res://tools/balance_out]
+#   godot --headless --path . --script res://tools/balance_summary.gd -- [--dir=user://balance_out]
 #       [--save-baseline]   (writes tools/balance_baseline.json from this batch)
 
 const BASELINE := "res://tools/balance_baseline.json"
 
-var dir := "res://tools/balance_out"
+var dir := "user://balance_out"  # balance_sim.gd's default (outside res://)
 var save_baseline := false
 
 func _initialize() -> void:

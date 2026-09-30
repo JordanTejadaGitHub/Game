@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "fair_trade"
 display_name = "Fair Trade"
-description = "Selling a Warden refunds 10% more (at most 100% at a rest, 75% during a drift)."
+description = "Selling a Warden refunds 10% more (at most 100% at a {rest}, 75% during a {drift})."
 rarity = 0
 kind = 3
 tags = Array[String](["economy"])

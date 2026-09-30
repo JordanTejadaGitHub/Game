@@ -6,7 +6,7 @@ extends SceneTree
 # its three; dev runs show everything. Uses a temp profile.
 #   godot --headless --path . --script res://tests/test_codex_scope.gd --fixed-fps 60
 
-const PROFILE_PATH := "user://test_codex_scope_profile.json"
+var PROFILE_PATH := "user://test_codex_scope_profile_%d.json" % OS.get_process_id()  # Per process: parallel sessions share user://
 
 var failures := 0
 
@@ -69,6 +69,20 @@ func _run() -> void:
 	codex.open(&"combos")
 	_check(codex._combos.find_children("Waiting", "Label", false, false).is_empty(), "…with nothing waiting")
 	MetaRun.force_all_families = false
+
+	# Combat callouts in the glossary (user: "been seeing 'Shattered' but don't know what it means"): a
+	# callout's line appears once it's been seen; Weak / Resisted always; a Reaction once discovered.
+	var fresh := HeartwoodMemory.defaults()
+	HeartwoodMemory.save_data(fresh)
+	var names := CodexData.callout_entries().map(func(e: Array) -> String: return e[0])
+	_check(names.has("Weak") and names.has("Resisted") and not names.has("Critical") and not names.has("Thunderclap"),
+		"before seeing them: only Weak and Resisted (%s)" % [names])
+	fresh[CodexData.CALLOUT_SEEN_KEY] = ["crit"]
+	fresh["combos_seen"] = ["thunderclap"]
+	HeartwoodMemory.save_data(fresh)
+	names = CodexData.callout_entries().map(func(e: Array) -> String: return e[0])
+	_check(names.has("Critical") and names.has("Thunderclap"), "seen callouts join the glossary (%s)" % [names])
+	_check(CodexData.definition("Critical").begins_with("A critical hit"), "Critical means a critical hit (the callout was Shattered!)")
 
 	codex.queue_free()
 	ResultsScreen.demo_override = -1

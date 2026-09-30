@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "old_growth"
 display_name = "Steadfast"
-description = "Wardens that have stood 5 drifts deal 15% more damage; 15 drifts: 30% (growing keeps the count, selling resets it)."
+description = "Wardens that have stood 5 {drifts} deal 15% more damage; 15 {drifts}: 30% (growing keeps the count, selling resets it)."
 rarity = 2
 kind = 3
 tags = Array[String]([])

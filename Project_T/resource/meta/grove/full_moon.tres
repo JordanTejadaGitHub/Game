@@ -6,7 +6,7 @@
 script = ExtResource("1_unlock")
 id = "full_moon"
 display_name = "Full Moon"
-description = "The Legendary Full Moon joins the pool."
+description = "Legendary: Full Moon joins the pool."
 root = 1
 costs = Array[int]([120])
 order = 8

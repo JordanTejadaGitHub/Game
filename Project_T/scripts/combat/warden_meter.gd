@@ -65,7 +65,7 @@ static func _blank() -> Dictionary:
 func _row(tower: Tower) -> Dictionary:
 	var id := tower.get_instance_id()
 	if not _rows.has(id):
-		var row := {"tower": tower, "name": tower.tower_data.display_name}
+		var row := {"tower": tower, "name": tower.tower_data.display_name}  # The name at first sight; rows read the live one
 		for period in PERIODS:
 			row[period] = _blank()
 		_rows[id] = row
@@ -87,6 +87,8 @@ func _maze_row() -> Dictionary:
 
 # --- Measuring ---------------------------------------------------------------------------------
 
+# Performance: this runs for every damage event (hits and ticks, several a frame at 3x), so no throwaway
+# arrays and no string-keyed property reads.
 func _on_damage_dealt(event: DamageLog.Event) -> void:
 	var amount := event.amount
 	if amount <= 0.0:
@@ -95,28 +97,41 @@ func _on_damage_dealt(event: DamageLog.Event) -> void:
 	var enemy := event.enemy
 	if is_instance_valid(enemy):
 		var id := enemy.get_instance_id()
-		var before: float = _last_health.get(id, float(enemy.get("max_health")))
-		var after := float(enemy.get("health"))
+		var after: float = enemy.health
+		var before: float = _last_health.get(id, float(enemy.max_health))
 		overkill = maxf(amount - maxf(before - after, 0.0), 0.0)
 		_last_health[id] = after
-	var resisted := amount * (1.0 / event.family_multiplier - 1.0) if event.family_multiplier > 0.0 and event.family_multiplier < 1.0 else 0.0
-	for period in ["drift", "block"]:
-		_maze[period].damage += amount
+	var family := event.family_multiplier
+	var resisted := amount * (1.0 / family - 1.0) if family > 0.0 and family < 1.0 else 0.0
+	_maze.drift.damage += amount
+	_maze.block.damage += amount
 	var tower := event.source as Tower
 	if tower == null or not is_instance_valid(tower):
 		return
 	var row := _row(tower)
-	for period in ["drift", "block"]:
-		row[period].damage += amount
-		row[period].resisted += resisted
-		row[period].overkill += overkill
+	var drift: Dictionary = row.drift
+	var block: Dictionary = row.block
+	drift.damage += amount
+	block.damage += amount
+	if resisted > 0.0:
+		drift.resisted += resisted
+		block.resisted += resisted
+	if overkill > 0.0:
+		drift.overkill += overkill
+		block.overkill += overkill
 	# Support credit: the aura that boosted this hit is credited its share (as SupportLog does).
-	for pair in [[tower._aura_damage_from, tower._aura_damage], [tower._aura_speed_from, tower._aura_speed]]:
-		var aura = pair[0]
-		if aura != null and is_instance_valid(aura) and pair[1] > 0.0:
-			var aura_row := _row(aura)
-			for period in ["drift", "block"]:
-				aura_row[period].credit += amount * pair[1] / (1.0 + pair[1])
+	if tower._aura_damage_from != null:
+		_credit(tower._aura_damage_from, tower._aura_damage, amount)
+	if tower._aura_speed_from != null:
+		_credit(tower._aura_speed_from, tower._aura_speed, amount)
+
+func _credit(aura: Tower, bonus: float, amount: float) -> void:
+	if not is_instance_valid(aura) or bonus <= 0.0:
+		return
+	var share := amount * bonus / (1.0 + bonus)
+	var aura_row := _row(aura)
+	aura_row.drift.credit += share
+	aura_row.block.credit += share
 
 func _process(delta: float) -> void:
 	if _director == null or _director.is_resting() or get_tree().paused:
@@ -178,11 +193,13 @@ func get_needed_dps(number: int) -> float:
 func get_benchmark() -> Dictionary:
 	var resting := _director == null or _director.is_resting()
 	var number := (_director.drifts_started + 1 if resting else _director.drifts_started) if _director else 0
-	var maze := get_maze_dps("last_drift" if resting else "drift")
+	# "drift" rolls over only when the next drift starts, so at a rest it still holds the drift just played.
+	var last := get_maze_dps("drift" if resting else "last_drift")
+	var maze := get_maze_dps("drift")
 	var needed := get_needed_dps(number)
 	return {"maze_dps": maze, "needed_dps": needed, "ratio": maze / needed if needed > 0.0 else 0.0,
-		"forecast": resting, "drift": number, "last_dps": get_maze_dps("last_drift"),
-		"change": _change(get_maze_dps("drift"), get_maze_dps("last_drift")) if not resting else null}
+		"forecast": resting, "drift": number, "last_dps": last,
+		"change": _change(maze, last) if not resting else null}
 
 # --- Per Warden --------------------------------------------------------------------------------
 
@@ -209,7 +226,7 @@ func get_meter_rows(period: String = "drift") -> Array:
 		var dps: float = now.damage / seconds
 		var last_seconds: float = maxf(_maze[last].seconds, 0.5)
 		var last_dps: float = row[last].damage / last_seconds
-		rows.append({"tower": tower, "name": row.name, "dps": dps, "last_dps": last_dps,
+		rows.append({"tower": tower, "name": tower.tower_data.display_name, "dps": dps, "last_dps": last_dps,
 			"change": _change(dps, last_dps), "value": value, "support": now.credit,
 			"dew_invested": tower.invested_dew, "stats": now, "catcher": tower.is_catcher(),
 			"caught": support.get_stats(tower, period).dew_caught if support and tower.is_catcher() else 0.0})

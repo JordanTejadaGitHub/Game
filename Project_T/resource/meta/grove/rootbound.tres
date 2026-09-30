@@ -6,7 +6,7 @@
 script = ExtResource("1_unlock")
 id = "rootbound"
 display_name = "Rootbound"
-description = "The Legendary Rootbound joins the pool."
+description = "Legendary: Rootbound joins the pool."
 root = 1
 costs = Array[int]([100])
 order = 14

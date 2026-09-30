@@ -48,18 +48,47 @@ func _test_flow(main: Node) -> void:
 	# Shown like a Dream: the Omen screen opens right after the Dream, with a third Clear Skies card
 	_check(offers.size() == 1 and offers[0][1] == 3 and omens.is_offering(), "after the Dream: the Omen screen for block 3")
 	var offer: Array = offers[0][0] if not offers.is_empty() else []
-	_check(offer.size() == 2 and offer[0] != offer[1], "2 different Omens")
+	_check(offer.size() == 2 and offer[0] != offer[1], "2 different Omens drawn (hidden until faced)")
 	var has_flyers := omens._block_has_flyers(omens.get_block_range(3))
 	_check(has_flyers or not offer.any(func(o: OmenData) -> bool: return o.requires_flyers),
 		"no Moth Night without flyers in the block")
 	_check(paused, "the game pauses for the Omen screen")
 	var screen = main.get_node("HUD/OmenScreen")
-	_check(screen._cards.get_child_count() == 3, "three cards: two Omens and Clear Skies")
+	_check(screen._cards.get_child_count() == 2 and screen._cards.get_child(0).name == "FaceAnOmen", "two cards: Face an Omen (face-down) and Clear Skies")
+	var names: Array = screen.find_children("*", "Label", true, false).map(func(l: Label) -> String: return l.text)
+	_check(not offer.any(func(o: OmenData) -> bool: return names.has(o.display_name)), "the drawn Omens stay hidden until faced")
 	var esc := InputEventAction.new()
 	esc.action = &"ui_cancel"
 	esc.pressed = true
 	screen._unhandled_input(esc)
 	_check(omens.active == null and not omens.is_offering() and not paused, "Esc = Clear Skies: nothing changes")
+	# Face an Omen: the drawn Omens are revealed, one must be picked (no going back)
+	director.drifts_started = 15
+	omens._last_offer_ids.clear()
+	omens.current_offer = omens.make_offer(4)
+	omens.current_offer_block = 4
+	var drawn: Array = omens.current_offer.duplicate()
+	omens._show_cards()
+	await _frames(2)
+	(screen._cards.get_child(0) as Button).pressed.emit()
+	await _frames(30)
+	_check(omens.faced and omens.is_offering() and omens.active == null, "Face an Omen: its Omens are revealed, none picked yet")
+	_check(screen._cards.get_child_count() == 2 and screen._cards.get_children().all(func(c: Node) -> bool: return c.name.begins_with("Omen_")),
+		"…the card flips to the 2 Omens, Clear Skies is gone")
+	screen._unhandled_input(esc)
+	omens.choose(null)
+	_check(omens.is_offering() and omens.active == null, "…no going back: Esc and Clear Skies do nothing")
+	var saved_faced := omens.to_save()
+	(screen._cards.get_child(1) as Button).pressed.emit()
+	_check(omens.active == drawn[1] and not omens.is_offering() and not paused and not omens.faced, "…a click picks that Omen")
+	omens.active = null
+	omens.load_save(JSON.parse_string(JSON.stringify(saved_faced)))
+	_check(omens.faced and omens.current_offer.size() == 2, "a save made after facing keeps it faced (no Clear Skies on load)")
+	omens.current_offer = []
+	omens.faced = false
+	omens._offer_waiting = false
+	omens._last_offer_ids.clear()
+	omens.active = null
 
 	# Never: no screen at all
 	director.drifts_started = 15
@@ -70,15 +99,17 @@ func _test_flow(main: Node) -> void:
 	offers.clear()
 	omens._try_show()
 	_check(offers.is_empty() and not omens.is_offering(), "Omens: Never = always Clear Skies, no screen")
-	# A Blight Level that forces an Omen: the cards at once, no Clear Skies
+	# A Blight Level that forces an Omen: the Omens at once, no Clear Skies
 	omens.mode_override = "ask"
 	omens.force_omen = true
 	omens.current_offer = omens.make_offer(4)
 	omens._offer_waiting = true
-	omens._try_show()
 	var forced_offer: Array = omens.current_offer.duplicate()
+	omens._try_show()
+	await _frames(2)
 	omens.choose(null)
-	_check(omens.is_offering() and omens.forced, "a forced Omen can't be declined")
+	_check(omens.is_offering() and omens.forced and omens.faced and screen._cards.get_child_count() == 2,
+		"a forced Omen skips the first screen: its Omens at once, can't be declined")
 	omens.choose(forced_offer[0])
 	_check(omens.active == forced_offer[0] and not omens.is_offering(), "…one is faced")
 	omens.force_omen = false
@@ -90,7 +121,7 @@ func _test_flow(main: Node) -> void:
 	var saved := omens.to_save()
 	omens.current_offer = []
 	omens.load_save(JSON.parse_string(JSON.stringify(saved)))
-	_check(omens.current_offer.size() == 2 and omens.current_offer_block == 4 and not omens.showing, "an open Omen offer comes back after a save")
+	_check(omens.current_offer.size() == 2 and omens.current_offer_block == 4 and not omens.showing, "the drawn Omens come back after a save (still face-down)")
 	omens.load_save({"active": "harvest_moon", "active_block": 4, "last_offer": ["harvest_moon"]})
 	_check(omens.active != null and omens.active.id == "bountiful_night" and Array(omens._last_offer_ids) == ["bountiful_night"],
 		"an old save's Harvest Moon Omen loads as Bountiful Night")
@@ -107,11 +138,11 @@ func _test_twists(main: Node) -> void:
 	var stag: EnemyData = load("res://resource/enemy/old_stag.tres")
 
 	_activate(omens, "thick_blight", 3)
-	_check(is_equal_approx(director.get_health_scale(bug, 11), pow(director.health_growth_per_drift, 10) * director.get_early_multiplier(11) * 1.2),
-		"Thick Blight: +20% health in its block")
+	_check(is_equal_approx(director.get_health_scale(bug, 11), pow(director.health_growth_per_drift, 10) * director.get_early_multiplier(11) * 1.3),
+		"Thick Blight: +30% health in its block")
 	_check(is_equal_approx(director.get_health_scale(bug, 16), pow(director.health_growth_per_drift, 15) * director.get_early_multiplier(16)),
 		"Thick Blight: only its own block")
-	_check(is_equal_approx(director.get_health_scale(stag, 15), director.boss_health_multiplier * director.get_early_multiplier(15)), "bosses ignore Omens")
+	_check(is_equal_approx(director.get_health_scale(stag, 15), director.act1_boss_health_multiplier), "bosses ignore Omens (act 1: no ramp either)")
 
 	_activate(omens, "crowded_paths", 3)
 	var drift: DriftData = director.drifts[10]
@@ -131,12 +162,12 @@ func _test_twists(main: Node) -> void:
 	dry.free()
 	_activate(omens, "swift_stream", 3)
 	var swift: Node2D = spawner.spawn_enemy(bug, 1.0, director.get_spawn_modifiers(bug, 12))
-	_check(is_equal_approx(swift.speed, bug.speed * 1.15), "Swift Stream: +15% speed")
+	_check(is_equal_approx(swift.speed, bug.speed * 1.25), "Swift Stream: +25% speed")
 	swift.free()
 	_activate(omens, "stubborn_blight", 3)
 	var stubborn: Node2D = spawner.spawn_enemy(bug, 1.0, director.get_spawn_modifiers(bug, 12))
 	stubborn.apply_status(EnemyStatuses.DAMP)
-	_check(is_equal_approx(stubborn.statuses.time_left(EnemyStatuses.DAMP), 2.0), "Stubborn Blight: statuses last half as long")
+	_check(is_equal_approx(stubborn.statuses.time_left(EnemyStatuses.DAMP), 4.0 * 0.33), "Stubborn Blight: statuses wear off three times as fast")
 	stubborn.free()
 	_check(director.get_spawn_modifiers(stag, 15).is_empty(), "bosses get no Omen modifiers")
 	omens.active = null
@@ -151,7 +182,7 @@ func _test_rewards(main: Node) -> void:
 	_activate(omens, "crowded_paths", 3)
 	var dew := run_state.dew
 	omens._on_rest_started(3, false, 50, true)
-	_check(run_state.dew == dew + 40 and omens.active == null, "Crowded Paths pays 40 Dew at the rest after its block (act 1)")
+	_check(run_state.dew == dew + 60 and omens.active == null, "Crowded Paths pays 60 Dew at the rest after its block (act 1)")
 	_check(omens.is_offering() or omens._offer_waiting, "a new Omen offer follows at the same rest")
 	omens.current_offer = []
 	omens._offer_waiting = false
@@ -159,7 +190,7 @@ func _test_rewards(main: Node) -> void:
 	_activate(omens, "dry_spell", 3)
 	dew = run_state.dew
 	omens._on_rest_started(3, false, 50, true)
-	_check(run_state.dew == dew + 50, "Dry Spell: rest bonus ×2 (+50 on a 50 bonus)")
+	_check(run_state.dew == dew + 75, "Dry Spell: rest bonus ×2.5 (+75 on a 50 bonus)")
 	omens.current_offer = []
 	omens._offer_waiting = false
 
@@ -168,13 +199,13 @@ func _test_rewards(main: Node) -> void:
 	omens.current_offer = []
 	omens._offer_waiting = false
 	dreams.unlocked["firefly_jar"] = true
-	_check(dreams.make_offer(15).size() == 4, "Thick Blight: the next Dream offers 4 cards")
+	_check(dreams.make_offer(15).size() == 5, "Thick Blight: the next Dream offers 5 cards")
 	_check(dreams.make_offer(20).size() == 3, "…only the next one")
 
 	_activate(omens, "restless_wind", 3)
 	var max_leaves := run_state.max_leaves
 	omens._on_rest_started(3, false, 50, true)
-	_check(run_state.max_leaves == max_leaves + 1, "Restless Wind: +1 max leaf")
+	_check(run_state.max_leaves == max_leaves + 2, "Restless Wind: +2 max leaves")
 	omens.current_offer = []
 	omens._offer_waiting = false
 
@@ -186,7 +217,7 @@ func _test_rewards(main: Node) -> void:
 	_activate(omens, "swift_stream", 10)
 	director.drifts_started = 50
 	run_state.end_run(true)
-	_check(run_state.omen_seeds == roundi(3 * OmenDirector.ACT_REWARD_SCALE[1]), "Swift Stream pays Seeds on a win, act 2 ×1.5 (%d)" % run_state.omen_seeds)
+	_check(run_state.omen_seeds == roundi(5 * OmenDirector.ACT_REWARD_SCALE[1]), "Swift Stream pays Seeds on a win, act 2 ×1.5 (%d)" % run_state.omen_seeds)
 
 func _activate(omens: OmenDirector, id: String, block: int) -> void:
 	for omen in omens.pool:
@@ -214,7 +245,7 @@ func _test_new_omens(main: Node) -> void:
 	var saved := omens.to_save()
 	omens.current_offer = []
 	omens.load_save(JSON.parse_string(JSON.stringify(saved)))
-	_check(omens.current_offer.size() == 2 and omens.current_offer_block == 4 and not omens.showing, "an open Omen offer comes back after a save")
+	_check(omens.current_offer.size() == 2 and omens.current_offer_block == 4 and not omens.showing, "the drawn Omens come back after a save (still face-down)")
 	omens.load_save({"active": "harvest_moon", "active_block": 4, "last_offer": ["harvest_moon"]})
 	_check(omens.active != null and omens.active.id == "bountiful_night" and Array(omens._last_offer_ids) == ["bountiful_night"],
 		"an old save's Harvest Moon Omen loads as Bountiful Night")
@@ -223,16 +254,12 @@ func _test_new_omens(main: Node) -> void:
 	omens.current_offer = []
 	omens._offer_waiting = false
 	var previous: Array = []
-	var ok_kinds := true
 	var no_repeat := true
 	for i in 60:
 		var offer := omens.make_offer(11)  # Drifts 51–55: every Omen can show
-		if offer.size() == 2 and offer[0].kind == offer[1].kind:
-			ok_kinds = false
 		if offer.any(func(o: OmenData) -> bool: return previous.has(o.id)):
 			no_repeat = false
 		previous = offer.map(func(o: OmenData) -> String: return o.id)
-	_check(ok_kinds, "each offer's 2 Omens are of different kinds")
 	_check(no_repeat, "an Omen never repeats from the previous rest")
 	var waiting: Array = omens.pool.filter(func(o: OmenData) -> bool: return o.waiting_for_hook)
 	var ever := {}
@@ -248,7 +275,7 @@ func _test_new_omens(main: Node) -> void:
 	omens.active = by_id["fog_bank"]
 	_check(omens.get_warden_range_add() == -1.0, "Fog Bank: −1 range")
 	omens.active = by_id["wilting"]
-	_check(is_equal_approx(omens.get_warden_speed_multiplier(), 0.85), "Wilting: −15% attack speed")
+	_check(is_equal_approx(omens.get_warden_speed_multiplier(), 0.78), "Wilting: −22% attack speed")
 	omens.active = by_id["frozen_ground"]
 	director.resting = false
 	_check(omens.blocks_building(), "Frozen Ground: no building during a drift")
@@ -261,15 +288,15 @@ func _test_new_omens(main: Node) -> void:
 	omens.active = by_id["lean_season"]
 	run_state.dew = 200
 	omens._pay_reward(100)
-	_check(run_state.dew == 150, "Lean Season: half the 100 rest bonus is lost (%d)" % run_state.dew)
+	_check(run_state.dew == 125, "Lean Season: three quarters of the 100 rest bonus are lost (%d)" % run_state.dew)
 	var offer := dreams.make_offer(51)
 	_check(offer.any(func(c: UpgradeData) -> bool: return c.rarity == UpgradeData.Rarity.LEGENDARY), "…the next Dream includes a Legendary")
 
 	# Double-edged and nightmare Omens through the spawn modifiers / schedule
 	omens.active = by_id["heavy_rain"]
 	omens.active_block = director.get_block(51)
-	_check(omens.get_spawn_modifiers(51).get("always_status") == &"damp" and is_equal_approx(omens.get_multiplier(51, "health_multiplier"), 1.35),
-		"Heavy Rain: always Soaked, +35% health")
+	_check(omens.get_spawn_modifiers(51).get("always_status") == &"damp" and is_equal_approx(omens.get_multiplier(51, "health_multiplier"), 1.5),
+		"Heavy Rain: always Soaked, +50% health")
 	omens.active = by_id["sleepless"]
 	_check(Array(omens.get_spawn_modifiers(51).get("status_immune", [])) == [&"drowsy", &"held"], "Sleepless: immune to Drowsy and Held")
 	_check(omens.describe_reward(by_id["blood_moon"], 3) == "" and omens.describe_reward(by_id["bountiful_night"], 3) == "",
@@ -280,7 +307,7 @@ func _test_new_omens(main: Node) -> void:
 	for i in 5:
 		schedule.append([i * 1.0, bug, false])
 	omens.shape_schedule(schedule, 51)
-	_check(schedule.filter(func(a: Array) -> bool: return a[2]).size() == 1, "Elder Night: +1 elite per drift")
+	_check(schedule.filter(func(a: Array) -> bool: return a[2]).size() == 2, "Elder Night: +2 elites per drift")
 	var flyers := omens._block_flyers(omens.get_block_range(director.get_block(51)))
 	if not flyers.is_empty():
 		omens.active = by_id["hollow_wind"]
@@ -288,25 +315,25 @@ func _test_new_omens(main: Node) -> void:
 		omens.shape_schedule(schedule, 51)
 		_check(schedule.all(func(a: Array) -> bool: return a[1].trait_kind == EnemyData.Trait.FLYING), "Hollow Wind: the first drifts are all flyers")
 		schedule = [[0.0, bug, false]]
-		omens.shape_schedule(schedule, 53)
-		_check(schedule[0][1] == bug, "…only the first 2")
+		omens.shape_schedule(schedule, 54)
+		_check(schedule[0][1] == bug, "…only the first 3")
 
-	# Shifting Ground: 3 trees on free cells away from the route, once; then +1 Seed per tree cleared
+	# Shifting Ground: 5 trees on free cells away from the route, once; then +1 Seed per tree cleared
 	omens.active = by_id["shifting_ground"]
 	omens._sprouted_block = 0
 	var route_before: PackedVector2Array = map_generator.get_path_from(map_generator.startPath)
 	var obstacles_before: int = map_generator.obstacles.size()
 	omens._on_drift_started(51)
 	omens._on_drift_started(52)
-	_check(map_generator.obstacles.size() == obstacles_before + 3, "Shifting Ground: 3 trees sprout, once (%d)" % (map_generator.obstacles.size() - obstacles_before))
+	_check(map_generator.obstacles.size() == obstacles_before + 5, "Shifting Ground: 5 trees sprout, once (%d)" % (map_generator.obstacles.size() - obstacles_before))
 	_check(map_generator.get_path_from(map_generator.startPath) == route_before, "…never changing the route")
 	omens._pay_reward(0)
-	_check(omens.tree_seed_bonus == 1, "…reward: +1 Seed per tree cleared")
+	_check(omens.tree_seed_bonus == 2, "…reward: +2 Seeds per tree cleared")
 	var tree_cell: Vector2 = map_generator.obstacles.keys().filter(func(c: Vector2) -> bool:
 		return map_generator.obstacles[c] == OmenDirector.TREE)[0]
 	var seeds := run_state.omen_seeds
 	map_generator.clear_obstacle(tree_cell)
-	_check(run_state.omen_seeds == seeds + 1, "…a cleared Withered Tree gives the extra Seed")
+	_check(run_state.omen_seeds == seeds + 2, "…a cleared Withered Tree gives the extra Seeds")
 	omens.tree_seed_bonus = 0
 	omens.active = null
 	director.drifts_started = 0
