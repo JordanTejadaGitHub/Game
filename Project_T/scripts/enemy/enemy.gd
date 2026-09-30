@@ -1203,6 +1203,9 @@ func _is_blocked_ahead(delta: float) -> bool:
 		return false
 	var next := _path[_path_index]
 	var holder = spawner.rooted_cells.get(next)
+	if holder != null and holder != self and holder.has_meta(spawner.LOGJAM_META):
+		waiting = true  # Logjam: the ones behind a Snugroot hold queue, they don't path around it
+		return true
 	if holder != null and holder != self:
 		_reroute_wait -= delta
 		if _reroute_wait <= 0.0:
@@ -1526,8 +1529,8 @@ func _others_within(cells: float) -> Array:
 
 # Weeper's mending: restores up to `amount` health (fractions add up over time).
 func heal(amount: float) -> void:
-	if is_cleansed or health >= max_health:
-		return
+	if is_cleansed or health >= max_health or statuses.veil_time > 0.0:
+		return  # (Veil: nothing mends inside Morning Fog's fog; FinalTwists)
 	_heal_carry += amount
 	var whole := int(_heal_carry)
 	_heal_carry -= whole
