@@ -124,7 +124,7 @@ func _ready() -> void:
 	_header.alignment = HORIZONTAL_ALIGNMENT_LEFT
 	_header.custom_minimum_size = Vector2(0, 36)
 	UiStyle.caps(_header, 16, UiStyle.INK)
-	_header.tooltip_text = "Drift meter: tap to open or close"
+	_header.tooltip_text = "Drift meter"
 	_header.pressed.connect(func() -> void: set_open(not _body.visible))
 	box.add_child(_header)
 	_last.name = "LastDrift"

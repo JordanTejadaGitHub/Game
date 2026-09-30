@@ -160,7 +160,7 @@ func _show_next() -> void:
 	var has_links := linked != plain.replace("[", "[lb]")
 	term = "" if has_links else CodexData.find_term(plain)
 	mouse_filter = Control.MOUSE_FILTER_STOP if has_links or term != "" else Control.MOUSE_FILTER_IGNORE
-	tooltip_text = "Tap to read about %s in the Codex" % term if term != "" else ""
+	tooltip_text = "%s in the Codex" % term if term != "" else ""
 	if _tween:
 		_tween.kill()
 	_tween = create_tween()
