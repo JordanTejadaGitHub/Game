@@ -1022,12 +1022,12 @@ func _ic_leaves() -> void:
 	_dt(6, 6, Color("#f0ffd0"))
 
 func _ic_path_length() -> void:
-	# A pale winding path between two dark banks, like the moonlit path on the map.
-	var k := _rp("#f4ecd8", "#d0c0a0", "#8a7a60")
-	_c_line([Vector2(3, 15), Vector2(4, 11), Vector2(11, 9), Vector2(12, 5), Vector2(6, 2.5)], 2.4, k)
-	_dt(12, 1, Color("#ffe890"))
-	_dt(11, 1, Color("#ffe890"))
-	_dt(12, 2, Color("#ffe890"))
+	# A footpath: eight stepping stones winding in an S from the bottom up, in the path tiles' sandy
+	# colours. Each stone is its own shape, so the generator outlines every one and it reads on fog.
+	var k := _rp(Palette.color("moonpath").to_html(false), Palette.color("path").to_html(false), Palette.color("loam").to_html(false))
+	for p: Vector2i in [Vector2i(2, 13), Vector2i(6, 13), Vector2i(10, 11), Vector2i(10, 7), Vector2i(6, 7),
+			Vector2i(2, 4), Vector2i(5, 1), Vector2i(10, 1)]:
+		_c_rect(Rect2i(p, Vector2i(3, 2)), k)
 
 func _ic_seeds() -> void:
 	# An acorn-brown seed with a small green sprout (Seeds, the meta currency).
