@@ -17,7 +17,9 @@ const TARGET_TIPS := {
 
 var _tower: Tower = null
 var _title := Label.new()
-var _emblem := TextureRect.new()  # Left of the title: the family emblem (IconInfo.family_emblem)
+var _portrait := TextureRect.new()  # Left of the title: the Warden's idle art, animated (screens_ui.md "Selected vs hovered")
+var _portrait_atlas := AtlasTexture.new()
+var _portrait_time := 0.0
 var _damage_type := HBoxContainer.new()  # Under the title: the damage type icon + name (one Warden)
 var _desc: RichTextLabel  # What it does, with its status words as links (StatusLinks)
 var _stats := VBoxContainer.new()  # Stat rows: each stat explains itself on hover and tap (IconInfo)
@@ -38,13 +40,14 @@ func _ready() -> void:
 	UiStyle.title(_title, UiStyle.TITLE_SIZE)
 	var header := HBoxContainer.new()
 	header.add_theme_constant_override("separation", 6)
-	_emblem.custom_minimum_size = Vector2(24, 24)
-	_emblem.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	_emblem.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	_emblem.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-	_emblem.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	_emblem.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	header.add_child(_emblem)
+	_portrait.custom_minimum_size = Vector2(PORTRAIT_SIZE, PORTRAIT_SIZE)
+	_portrait.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	_portrait.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	_portrait.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	_portrait.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	_portrait.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_portrait.texture = _portrait_atlas
+	header.add_child(_portrait)
 	_title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	header.add_child(_title)
 	box.add_child(header)
@@ -112,8 +115,9 @@ func _refresh() -> void:
 	if _tower.is_catcher():
 		tower_placer.show_catch_preview(_tower.global_position, _tower.get_catch_radius())  # Its catch zone
 	_title.text = data.display_name
-	_emblem.texture = IconInfo.family_emblem(data.line)
-	_emblem.visible = _emblem.texture != null
+	_portrait_atlas.atlas = data.texture
+	_portrait_atlas.region = data.get_frame_rect(0) if data.texture else Rect2()
+	_portrait.visible = data.texture != null
 	_show_damage_type(data)
 	if _tower.rank > 0:
 		_title.text += " · Rank %s" % Tower.rank_name(_tower.rank)
@@ -365,7 +369,7 @@ func _refresh_group() -> void:
 	var selection := tower_seller.selection
 	var groups := tower_seller.get_selection_groups()
 	_title.text = "%d Wardens selected" % selection.size()
-	_emblem.visible = false
+	_portrait.visible = false
 	_damage_type.visible = false
 	var kinds: Array[String] = []
 	var damage_per_second := 0.0
@@ -619,10 +623,23 @@ func _show_damage_type(data: TowerData) -> void:
 		return
 	var icon := _damage_type.get_child(0) as TextureRect
 	var label := _damage_type.get_child(1) as Label
-	icon.texture = IconInfo.damage_type_icon(data.line)
+	icon.texture = IconInfo.family_emblem(data.line)  # The family emblem (its damage-type badge)
 	label.text = IconInfo.damage_type_text(data.line)
 	label.add_theme_color_override("font_color", IconInfo.damage_type_color(data.line))
 	_damage_type.tooltip_text = "Nightmares can resist or be weak to a damage type."
+
+const PORTRAIT_SIZE := 48.0
+
+# The header portrait idles like the Warden on the map (called from _process).
+func _animate_portrait(delta: float) -> void:
+	if not visible or not _portrait.visible or not is_instance_valid(_tower) or _tower.tower_data.texture == null:
+		return
+	var data := _tower.tower_data
+	_portrait_time += delta
+	var frame := int(_portrait_time * data.animation_fps) % maxi(data.frame_count, 1)
+	var region := data.get_frame_rect(frame)
+	if _portrait_atlas.region != region:
+		_portrait_atlas.region = region
 
 # Hover and tap tips stay (screens_ui.md): Dew changes on every dispel, and rebuilding the panel then
 # closed any tooltip under the pointer. Affordability updates in place; anything else that depends on Dew
@@ -648,7 +665,8 @@ func _on_dew_changed() -> void:
 func _pointer_inside() -> bool:
 	return is_visible_in_tree() and get_global_rect().has_point(get_global_mouse_position())
 
-func _process(_delta: float) -> void:
+func _process(delta: float) -> void:
+	_animate_portrait(delta)
 	var now := Time.get_ticks_msec()
 	var group_due := _group_refresh_queued and now - _group_refreshed_at >= GROUP_REFRESH_MS
 	if (_dew_dirty and not _pointer_inside()) or group_due:
