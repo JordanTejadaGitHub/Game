@@ -1184,7 +1184,10 @@ pulls back, Marked belongs to Firefly Jar, Rootlight is the Held specialist). Us
 - **Root Web:** the spread hold is Held (firm), halved again on bosses; a nightmare can't be held
   by Root Web more than once per second. Pairs with Rooted Nightmares (every Held nightmare blocks).
 - **Tangled Release** moves the nightmare back along its route (never off the path, never through a
-  Warden); it counts as a Rootling pull for Snare and the Held Reactions.
+  Warden); it counts as a Rootling pull for Snare and the Held Reactions. **Loop guard** (ruling
+  2026-09-30): a release pull may set off Snare's hold, but a hold that came from a release pull
+  never triggers another release pull. So one hold gives at most: hold → release pull → Snare hold
+  → done.
 - **Chorus:** "in sync" = when one fires, the others within 3 cells whose attack is ready within
   0.3 s fire with it. Show a soft ring linking them. Needs a second Bellflower-line Warden to do
   anything (soft Need).
