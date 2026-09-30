@@ -594,17 +594,10 @@ func get_move_speed() -> float:
 	if enemy_data.hurt_below > 0.0 and health <= max_health * enemy_data.hurt_below:
 		base *= enemy_data.hurt_speed_multiplier  # Scarecrow: Stitched
 	base *= 1.0 + RESTLESS_SPEED * restless
-	var moved := base * statuses.get_speed_multiplier(_tangled_slow())
+	var moved := base * statuses.get_speed_multiplier()
 	if enemy_data.min_speed_share > 0.0:
 		moved = maxf(moved, base * enemy_data.min_speed_share)  # Barrow King: Iron Will
 	return moved
-
-# Tangled (Dream): carrying 2+ statuses slows it DreamState.TANGLED_SLOW more, like Soaked does (a
-# plain slow; Heavy Air doesn't boost it). The spawner checks the card once a frame.
-func _tangled_slow() -> float:
-	if _spawner == null or not _spawner.tangled or statuses.count() < 2:
-		return 0.0
-	return DreamState.TANGLED_SLOW
 
 # A Wraith whose Lantern Bearer was dispelled first loses the way and slows down.
 func set_lost() -> void:

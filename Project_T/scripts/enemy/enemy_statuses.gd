@@ -251,7 +251,7 @@ func is_held() -> bool:
 	return has(HELD)
 
 # Movement speed multiplier from slows.
-# `extra_slow` adds slows that aren't statuses (the Tangled Dream).
+# `extra_slow` adds slows that aren't statuses (none right now; the Tangled Dream was cut).
 func get_speed_multiplier(extra_slow: float = 0.0) -> float:
 	if ignores_slows:
 		return 1.0
