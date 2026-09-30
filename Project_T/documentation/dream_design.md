@@ -1191,6 +1191,10 @@ and a single Tall card halved Overgrowth's weight; Precision and Kinship sit at 
    (family-gated, so they only count when you have Pebbling / Lanternmoth).
 4. Kinship (26) is left as it is: it needs a Kinship on the map, which the Dreamlight change (free
    branches) now makes much earlier. Re-measure it with the free-branch grant in the bots.
+5. **`tag_weight` is 1.3** (user playtest 2026-09-30, relayed by the story chat and in
+   `run_design.md`'s difficulty pass: a first run reached drift 60 at full leaves with 1,746 Dew and
+   *"felt like cards were handed to me"*). This overrides the 1.6 this trim was measured at; the
+   package targets are checked again at 1.3.
 
 ## Status effect numbers
 
