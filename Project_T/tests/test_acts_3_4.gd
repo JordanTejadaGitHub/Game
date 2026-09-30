@@ -504,6 +504,24 @@ func _run() -> void:
 	_check(lulled.statuses.is_caught() and is_equal_approx(lulled.statuses.caught_time, 1.0), "Lullaby: Caught lingers 1 s after it lapses")
 	lulled._process(1.1)
 	_check(not lulled.statuses.is_caught(), "…once, then it ends")
+	# Tangled Release + Snare (ruling 2026-09-30): hold → release pull → Snare hold → done.
+	var snare_holder := SnareHolder.new()
+	snare_holder.tower_data = load("res://resource/tower/rootling.tres")
+	var holder_sprite := Sprite2D.new()
+	holder_sprite.name = "Sprite2D"
+	snare_holder.add_child(holder_sprite)
+	tower_container.add_child(snare_holder)
+	snare_holder.set_process(false)
+	var snared := _still("leaf_bug", route[12])
+	snared.set_path(route.slice(8))
+	snared._path_index = 5
+	snared.apply_status(EnemyStatuses.HELD, 1, 0.3, 0.0, 0, "", snare_holder)
+	snared._process(0.0)
+	snared._process(0.5)  # The hold ends: the release pull, and Snare holds it again
+	_check(snare_holder.pulls == 1 and snared.statuses.is_held(), "the release pull sets off Snare's hold (%d pull)" % snare_holder.pulls)
+	snared._process(1.0)  # That Snare hold ends: no second release pull
+	_check(snare_holder.pulls == 1 and not snared.statuses.is_held(), "…and it stops there, after one cycle (%d pulls)" % snare_holder.pulls)
+	snare_holder.free()
 	_clear_enemies()
 
 	# --- Omens: Sleepless (immune to Drowsy and Held), Heavy Rain (always Soaked) ---
@@ -694,3 +712,12 @@ func _check(condition: bool, label: String) -> void:
 
 func _wait(seconds: float) -> void:
 	await create_timer(seconds, true, true).timeout
+
+# A Rootling bonded for Snare (kin_share reports it), counting its pulls: for the release-pull cycle.
+class SnareHolder extends Tower:
+	var pulls := 0
+	func kin_share(id: StringName, side: String) -> float:
+		return 1.0 if id == &"snare" and side == "a" else 0.0
+	func pull(enemy: Node2D, tiles: float) -> void:
+		pulls += 1
+		super(enemy, tiles)

@@ -181,6 +181,7 @@ var _web_cooldown := 0.0
 var _web_holding := false
 var _held_by: Node = null
 var _lingered := false
+var _release_spent := false  # The current hold came from a release pull (Snare): it won't pull again
 var _caught_left := 0.0  # Caught time after last frame's tick (a rise = caught again)
 var _drawn_changes := -1
 var _drawn_aura := false
@@ -1320,18 +1321,30 @@ func _spread_root_web(source: Node) -> void:
 		other._web_holding = false
 
 # Tangled Release: when a hold ends, the nightmare is pulled back along its route, as a pull by the
-# Warden that held it (credited to it; Patient Roots adds for the Rootling line). The pull doesn't
-# set off Snare's hold, which would pull again when it ends: an endless loop.
+# Warden that held it (credited to it; Patient Roots adds for the Rootling line). That pull may set
+# off Snare's hold ("the pull ends in a hold"), but a hold that came from a release pull never pulls
+# again: at most hold → release pull → Snare hold → done (dream_design.md ruling, 2026-09-30).
 func _on_hold_ended() -> void:
 	var tiles: float = _spawner.release_pull if _spawner != null else 0.0
+	var holder := _held_by as Tower
+	_held_by = null
+	if _release_spent:
+		_release_spent = false  # This was the Snare hold after a release pull: it ends there
+		return
 	if tiles <= 0.0 or is_flying():
 		return
-	var holder := _held_by as Tower
-	if holder != null and is_instance_valid(holder):
-		holder.pull(self, tiles)
-	else:
+	if holder == null or not is_instance_valid(holder):
 		push_back(tiles * grid.cell_size.x)
-	_held_by = null
+		return
+	holder.pull(self, tiles)
+	var snare := holder.kin_share(&"snare", "a")
+	if snare > 0.0 and not is_cleansed:
+		_release_spent = true
+		holder.hold(self, 0.5 * snare)  # As Tower's Rootling pull: Snare's hold is 0.5 s × its share
+		if statuses.is_held():
+			holder._kin_fired(&"snare")
+		else:
+			_release_spent = false  # The hold didn't take (immune): nothing to stop
 
 # Lullaby: once a Dreamcatcher lets go, the nightmare stays Caught a little longer (once per catch).
 func _on_caught_lapsed() -> void:
