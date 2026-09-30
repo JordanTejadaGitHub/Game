@@ -263,7 +263,7 @@ func _draw() -> void:
 		return
 	if tower_data.catch_share > 0.0:
 		_draw_catch_zone(Tower.footprint_centre(_hover_cell, tower_data.footprint), tower_data.catch_radius \
-			+ DewCatch.WIDE_BOWL_STEP * mini(dream_state.rule_stacks(&"wide_bowl"), 3))
+			+ (DewCatch.WIDE_BOWL_STEP if dream_state.has_rule(&"dew_trail") else 0.0))  # Dew Trail widens the catch
 	# What it would receive here (BuffSources): threads in from each aura, "+30% attack speed from 2 Elder
 	# Stumps" above the ghost.
 	var received := ""

@@ -124,8 +124,8 @@ func _run() -> void:
 	_take("sudden_bloom")
 	var bloomer := _plant("sprout", Vector2(4, 10))
 	bloomer.evolve(bloomer.tower_data.evolves_to[0], 0)
-	_check(bloomer.bloom_attacks == DreamState.SUDDEN_BLOOM_ATTACKS, "Sudden Bloom: growing stores %d strong attacks" % DreamState.SUDDEN_BLOOM_ATTACKS)
-	_check(bloomer._take_empowered() == 2.0 and bloomer.bloom_attacks == DreamState.SUDDEN_BLOOM_ATTACKS - 1, "an attack spends one at ×2")
+	_check(bloomer.bloom_left >= Tower.SUDDEN_BLOOM_SECONDS, "Sudden Bloom: growing gives %.0f s of ×2 damage (%.1f)" % [Tower.SUDDEN_BLOOM_SECONDS, bloomer.bloom_left])
+	_check(bloomer._take_empowered() == 2.0 and bloomer._take_empowered() == 2.0, "every attack while it lasts is ×2")
 	var inside := []  # Lambdas copy locals; an array collects what they see
 	bloomer._boosted(2.0, func() -> void: inside.append(bloomer._hit_boost))
 	_check(inside == [2.0] and bloomer._hit_boost == 1.0, "a boosted attack's hits land ×2 (Tower.hit multiplies by _hit_boost), then it resets")

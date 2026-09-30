@@ -32,11 +32,11 @@ const KINDRED_BONUS := 0.10
 const WHOLE_TREE_BONUS := 0.20
 const DIM_ALPHA := 0.5  # Vines during drifts (playtest: 0.3 was easy to miss)
 # Kinship cards (dream_design.md "Kinship cards: going deep")
-const FAMILY_TIES_PER := 0.08  # Family Ties: Wardens in a Kinship, per stack
-const BLOOD_BONDED := 0.30  # Blood is Thicker (bittersweet): in a Kinship…
+const FAMILY_TIES_PER := 0.20  # Family Ties: Wardens in a Kinship, per stack (dream_audit.md)
+const BLOOD_BONDED := 0.50  # Blood is Thicker (bittersweet): in a Kinship… (dream_audit.md)
 const BLOOD_UNBONDED := 0.15  # …and the cost for attacking Wardens not in one
-const GROVE_OF_KIN_PER := 0.03  # Grove of Kin: every Warden, per Kinship on the map…
-const GROVE_OF_KIN_MAX := 0.30
+const GROVE_OF_KIN_PER := 0.05  # Grove of Kin: every Warden, per Kinship on the map… (dream_audit.md)
+const GROVE_OF_KIN_MAX := 0.50
 const SWEET_BONUS: Array[float] = [0.5, 1.0]  # Sweet Harmony (II)
 const SWEET_COOLDOWN: Array[float] = [1.5, 1.0]
 const BEAD_COOLDOWN := 0.6  # Seconds between light beads on one vine
@@ -373,15 +373,21 @@ func _stacks(rule: StringName) -> int:
 	var dreams := _dreams()
 	return dreams.rule_stacks(rule) if dreams else 0
 
+# Tag resonance (dream_audit.md): the card's numbers scale with owned cards sharing its tags.
+func _power(rule: StringName) -> float:
+	var dreams := _dreams()
+	return dreams.rule_power(rule) if dreams and dreams.has_method("rule_power") else 1.0
+
 # Close Kin: bonds reach 3 cells (II: 4).
 func get_reach() -> float:
 	if _has(&"close_kin"):
 		return 4.0 if _level(&"close_kin") > 0 else 3.0
 	return REACH
 
-# Drifts together for each stage; Quick Bonds takes 1 off per stack (max 3).
+# Drifts together for each stage; Old Friends (either level) takes 1 off (Quick Bonds merged into it,
+# dream_audit.md).
 func get_stage_drifts() -> Array[int]:
-	var cut := mini(_stacks(&"quick_bonds"), 3)
+	var cut := 1 if _has(&"old_friends") else 0
 	var result: Array[int] = [0]
 	for i in range(1, STAGE_DRIFTS.size()):
 		result.append(maxi(STAGE_DRIFTS[i] - cut, 1))
@@ -407,11 +413,11 @@ func damage_bonus(tower: Tower) -> float:
 	var bonus := family_bonus(tower.tower_data.line)
 	var bonded := not get_pairs(tower).is_empty()
 	if bonded:
-		bonus += FAMILY_TIES_PER * _stacks(&"family_ties")
+		bonus += FAMILY_TIES_PER * _stacks(&"family_ties") * _power(&"family_ties")
 	if _has(&"blood_is_thicker") and tower.tower_data.can_attack:
-		bonus += BLOOD_BONDED if bonded else -BLOOD_UNBONDED
+		bonus += BLOOD_BONDED * _power(&"blood_is_thicker") if bonded else -BLOOD_UNBONDED
 	if _has(&"grove_of_kin"):
-		bonus += minf(GROVE_OF_KIN_PER * pairs.size(), GROVE_OF_KIN_MAX)
+		bonus += minf(GROVE_OF_KIN_PER * _power(&"grove_of_kin") * pairs.size(), GROVE_OF_KIN_MAX * _power(&"grove_of_kin"))
 	return bonus
 
 func _count_families(towers: Array) -> void:

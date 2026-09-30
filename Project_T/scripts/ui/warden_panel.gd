@@ -252,7 +252,7 @@ func _refresh() -> void:
 				_confirm_grow = null
 				_evolve(next))
 			if next.catch_share > 0.0 and not _tower.is_catcher():  # Where it would catch (placement preview)
-				var radius := next.catch_radius + DewCatch.WIDE_BOWL_STEP * mini(dream_state.rule_stacks(&"wide_bowl"), 3)
+				var radius := next.catch_radius + (DewCatch.WIDE_BOWL_STEP if dream_state.has_rule(&"dew_trail") else 0.0)  # Dew Trail widens the catch
 				button.mouse_entered.connect(func() -> void: tower_placer.show_catch_preview(_tower.global_position, radius))
 				button.mouse_exited.connect(tower_placer.hide_catch_preview)
 		else:

@@ -3,8 +3,8 @@ extends SceneTree
 # Headless test for the economy Wardens and support credit (warden_stats.md / screens_ui.md
 # "Support and economy feedback", 2026-09-29; the Seed and Support Warden cards' Tower side):
 # Dewcatcher / Wellspring catch (+40% / +60% of a dispel's Dew into the bowl, highest catch only, ranks
-# add catch not damage), the Harvest and interest at the rest, Harvest Moon / Deep Well / Still Waters /
-# Overflowing Well / Dew Bowl / Wide Bowl / Dew Trail, aura cards (Acorn Cache, Shared Light, Kind
+# add catch not damage), the Harvest and interest at the rest, Harvest Moon / Deep Well /
+# Overflowing Well / Dew Bowl / Dew Trail, aura cards (Acorn Cache, Shared Light, Kind
 # Canopy, Grandfather Stump, The Quiet Ones), Bramble Oath, Patient Roots, Many Threads, and
 # SupportLog's credit (Dew caught and paid, aura damage, Held seconds, tiles pulled, Drowsy).
 #   godot --headless --path . --script res://tests/test_catchers.gd --fixed-fps 60
@@ -108,7 +108,7 @@ func _run() -> void:
 	well3.queue_free()
 	await process_frame
 
-	# Deep Well: each cap +30; Still Waters: +4% when nothing was spent; Overflowing Well: shards
+	# Deep Well: each cap +30; Overflowing Well: shards (Still Waters was cut, dream_audit.md)
 	# (Deep Well's own 3% at the rest is Roguelite's; these read only the Wellsprings' interest_paid.)
 	var paid_now := []
 	for w in [well, well2]:
@@ -119,19 +119,6 @@ func _run() -> void:
 	director.rest_started.emit(3, false, 0, true)
 	_check(paid_now.max() == 90 and paid_now.reduce(func(a, b): return a + b) == 120,
 		"Deep Well: a Wellspring's cap is 90, all together still 120 (%s)" % str(paid_now))
-	_take("still_waters")
-	paid_now.clear()
-	run_state.dew = 500
-	run_state.set_meta(&"last_dew", 500)
-	director.drift_started.emit(16)
-	director.rest_started.emit(4, false, 0, true)
-	_check(paid_now.max() >= 60, "Still Waters: 12%% when nothing was spent (%s)" % str(paid_now))
-	paid_now.clear()
-	run_state.dew = 500
-	director.drift_started.emit(21)
-	run_state.spend_dew(10)
-	director.rest_started.emit(5, false, 0, true)
-	_check(paid_now.max() <= 45, "…but 8%% after spending (%s)" % str(paid_now))
 	_take("overflowing_well")
 	var shards := dreams.dreamlight_shards
 	run_state.dew = 3000
@@ -152,15 +139,15 @@ func _run() -> void:
 	_check(poured == [15], "Harvest Moon: the Harvest pays +50%% (%s)" % str(poured))
 	_check(run_state.dew_harvested == paid_before + 15, "and counts it")
 
-	# Dew Bowl / Wide Bowl / Dew Trail
+	# Dew Bowl / Dew Trail (Wide Bowl merged into it: +0.5 catch radius)
 	_take("dew_bowl")
 	var damp := _spawn(catcher.global_position + Vector2(CELL, 0))
 	_check(is_equal_approx(catcher.get_catch_share(damp), 0.55), "Dew Bowl: +15%% catch (%.2f)" % catcher.get_catch_share(damp))
-	_take("wide_bowl")
-	_check(is_equal_approx(catcher.get_catch_radius(), 3.0), "Wide Bowl: +0.5 cells")
 	_take("dew_trail")
+	_check(is_equal_approx(catcher.get_catch_radius(), 3.0), "Dew Trail: +0.5 cells catch radius")
 	damp.apply_status(EnemyStatuses.DAMP, 1, 5.0, 1.0)
-	_check(is_equal_approx(catcher.get_catch_share(damp), 0.75), "Dew Trail: +20%% on a Damp nightmare (%.2f)" % catcher.get_catch_share(damp))
+	var trail := 0.55 + DewCatch.DEW_TRAIL[0] * dreams.rule_power(&"dew_trail")
+	_check(is_equal_approx(catcher.get_catch_share(damp), trail), "Dew Trail: +30%% (with its tag resonance) on a Damp nightmare (%.2f, want %.2f)" % [catcher.get_catch_share(damp), trail])
 	catcher.queue_free()
 	await _clean()
 
@@ -195,10 +182,11 @@ func _run() -> void:
 	placer.hide_catch_preview()
 	_take("acorn_cache")
 	buddy._refresh_neighbours()
-	_check(is_equal_approx(buddy._aura_damage, 0.08), "Acorn Cache: +8%% (%.3f)" % buddy._aura_damage)
+	var cache := 0.05 + (Tower.ACORN_CACHE_AURA - 0.05) * dreams.rule_power(&"acorn_cache")
+	_check(is_equal_approx(buddy._aura_damage, cache), "Acorn Cache: +10%% with its resonance (%.3f, want %.3f)" % [buddy._aura_damage, cache])
 	_take("shared_light")
 	buddy._refresh_neighbours()
-	_check(is_equal_approx(buddy._aura_damage, 0.12), "Shared Light: aura bonuses +50%% (%.3f)" % buddy._aura_damage)
+	_check(is_equal_approx(buddy._aura_damage, cache * (1.0 + Tower.SHARED_LIGHT * dreams.rule_power(&"shared_light"))), "Shared Light: aura bonuses +50%% (%.3f)" % buddy._aura_damage)
 	_check(is_equal_approx(acorn.get_aura_reach(), 1.5), "no Kind Canopy yet")
 	_take("kind_canopy")
 	_check(is_equal_approx(acorn.get_aura_reach(), 2.5), "Kind Canopy: +1 cell")
@@ -269,7 +257,8 @@ func _run() -> void:
 	_take("patient_roots")
 	var held2 := _spawn(tangle.global_position + Vector2(CELL, CELL))
 	tangle.hold(held2, 1.0)
-	_check(is_equal_approx(held2.statuses.time_left(EnemyStatuses.HELD), 1.5), "Patient Roots: the Rootling line holds +0.5 s (%.2f)" % held2.statuses.time_left(EnemyStatuses.HELD))
+	var patient := 1.0 + dreams.get_held_bonus() + Tower.PATIENT_ROOTS_ROOT_HOLD * dreams.rule_power(&"patient_roots")
+	_check(is_equal_approx(held2.statuses.time_left(EnemyStatuses.HELD), patient), "Patient Roots: every Hold longer, the Rootling line more (%.2f, want %.2f)" % [held2.statuses.time_left(EnemyStatuses.HELD), patient])
 	var map = main.get_node("%MapGenerator")
 	var route: PackedVector2Array = map.get_path_from(map.startPath)
 	var walker := _spawn(Tower.MAP_GRID.calculate_map_position(route[0]))
@@ -277,7 +266,7 @@ func _run() -> void:
 	walker._path_index = 11
 	walker.global_position = Tower.MAP_GRID.calculate_map_position(route[10])
 	tangle.pull(walker, 1.0)
-	_check(is_equal_approx(slog.get_stats(tangle).tiles_pulled, 1.5), "Patient Roots: pulls 0.5 further, credited (%.2f)" % slog.get_stats(tangle).tiles_pulled)
+	_check(is_equal_approx(slog.get_stats(tangle).tiles_pulled, 1.0 + Tower.PATIENT_ROOTS_PULL * dreams.rule_power(&"patient_roots")), "Patient Roots: pulls further, credited (%.2f)" % slog.get_stats(tangle).tiles_pulled)
 	_check(slog.get_panel_line(tangle).begins_with("Held "), "control panel line (%s)" % slog.get_panel_line(tangle))
 	_check(not slog.get_support_rows("run").is_empty() and not slog.get_top_support("run").is_empty(), "support rows and a top supporter")
 	await _clean_towers()

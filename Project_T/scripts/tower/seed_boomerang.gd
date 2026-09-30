@@ -3,13 +3,13 @@ class_name SeedBoomerang
 
 # Samara's spinning maple seed: flies in a straight line (over walls, through everything) and back.
 # Each pass hits every nightmare it crosses once (out and back = twice). The statuses of the first
-# nightmare it hits are carried down the line at half stacks. Cards: Backspin (+25% crit on the way
+# nightmare it hits are carried down the line at half stacks. Cards: Backspin (+40% crit on the way
 # back), Ricochet (turns 90° toward the nearest nightmare at the end; II: twice), Heavy Seed (knocks
 # back 0.25 tiles once per throw), Windborne Rain (every pass applies Damp). Script-only, world space.
 
 const SPEED := 420.0  # Pixels per second
 const HIT_RADIUS := 26.0  # Pixels either side of the line
-const BACKSPIN_CRIT := 0.25
+const BACKSPIN_CRIT := 0.40  # dream_audit.md (was 0.25)
 const ANIMATION_FPS := 14.0
 
 var _tower: Tower
@@ -124,7 +124,7 @@ func _hit_along(from: Vector2, to: Vector2) -> void:
 					status.line, status.get("source"))
 		var crit := Tower.ROLL_CRIT
 		if _returning and dreams and dreams.has_rule(&"backspin") \
-				and randf() < _tower.get_crit_chance(enemy) + BACKSPIN_CRIT:
+				and randf() < _tower.get_crit_chance(enemy) + BACKSPIN_CRIT * dreams.rule_power(&"backspin"):
 			crit = Tower.CRIT
 		# Heavy Seed (card): the return pass hits for double (status jobs review: no knockback any more).
 		var pass_multiplier := _damage_multiplier * (2.0 if _returning and dreams and dreams.has_rule(&"heavy_seed") else 1.0)

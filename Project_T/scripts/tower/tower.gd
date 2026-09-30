@@ -53,7 +53,7 @@ const CHAIN_DAMP_EXTRA_JUMPS := 2
 const CHAIN_DAMP_EXTRA_RANGE := 1.0  # Cells
 const POP_SPREAD_RANGE := 1.5  # Cells: how far a Puffball pop's spores drift on
 const LOOSE_STONE_SHARE := 0.35  # Loose Stones: each of the 3 fragments
-const HUSH_RADIUS := 0.15  # Hush: Bellflower-line pulses +15% radius per stack (max 3)
+const HUSH_RADIUS := 0.25  # Hush: Bellflower-line pulses +25% radius per stack (max 3; dream_audit.md)
 const BEAM_TICK := 0.25  # Seconds between beam hits
 const BEAM_RAMP_FAST := 2.0  # Beams ramp this much faster on Drowsy or Held nightmares
 const AURA_TICK := 0.25  # Seconds between aura refreshes (White Stag)
@@ -71,7 +71,7 @@ const PATIENT_ROOTS_PULL := 0.5  # Patient Roots (Seed card): the Rootling line 
 const PATIENT_ROOTS_ROOT_HOLD := 0.25  # …and holds this much longer, on top of the +0.25 s for every Hold
 const KIND_CANOPY_WARDENS := ["acorn", "elder_stump", "grove_heart"]  # Kind Canopy (Seed card): these auras reach…
 const KIND_CANOPY_REACH := 1.0  # …a cell further
-const ACORN_CACHE_AURA := 0.08  # Acorn Cache: the Acorn's aura
+const ACORN_CACHE_AURA := 0.10  # Acorn Cache: the Acorn's aura (dream_audit.md)
 const GRANDFATHER_PER_WARDEN := 0.04  # Grandfather Stump: the Elder Stump +4% per Warden around it…
 const GRANDFATHER_MAX := 0.45  # …up to this in all
 const SHARED_LIGHT := 0.5  # Shared Light (Seed card): aura bonuses +50%
@@ -288,7 +288,8 @@ var kin_branch := ""  # The branch an Ascended form grew from (Kinships); saved 
 var footprint_size := 0  # 0 = the data's footprint; 1 keeps an old save's 1-cell Ascended form
 var _hits_landed := 0  # Eternal Charge / Rooted Nightmares count this Warden's hits
 var _hunted := {}  # Hunter's Moon: nightmares this Warden has hit (instance ids)
-var bloom_attacks := 0  # Sudden Bloom: attacks left at ×2 after growing
+var bloom_left := 0.0  # Sudden Bloom: seconds left at ×2 damage after growing
+const SUDDEN_BLOOM_SECONDS := 10.0  # dream_audit.md: was "next 3 attacks ×2"
 var watch_charged := false  # Watchful Rest: a stored charge (its next attack deals ×2)
 var _watch_time := 0.0  # Watchful Rest: seconds with nothing in range
 var _hit_boost := 1.0  # ×2 while a boosted attack's hits land (Sudden Bloom, Watchful Rest)
@@ -361,7 +362,7 @@ func evolve(data: TowerData, cost: int) -> void:
 	_apply_data()
 	_nudge_neighbours()
 	if _rule_stacks(&"sudden_bloom") > 0:
-		bloom_attacks = maxi(bloom_attacks, DreamState.SUDDEN_BLOOM_ATTACKS)  # Its next attacks deal ×2
+		bloom_left = maxf(bloom_left, SUDDEN_BLOOM_SECONDS * _rule_power(&"sudden_bloom"))  # ×2 damage for 10 s
 		queue_redraw()
 	evolved.emit(self)
 	if data.tier >= 4:
@@ -552,7 +553,7 @@ func _compute_range_cells() -> float:
 		reach += _dream_bonus(&"range")  # Solitude
 	var total := get_range_for(attack_data, _dream_state) + _aura_range + reach
 	if tower_data.line == "song" and attack_data.attack_kind == TowerData.AttackKind.PULSE:
-		total *= 1.0 + HUSH_RADIUS * _rule_stacks(&"hush")  # Hush: wider song pulses
+		total *= 1.0 + HUSH_RADIUS * _rule_stacks(&"hush") * _rule_power(&"hush")  # Hush: wider song pulses
 	if _omens and _omens.has_method("get_warden_range_add"):
 		var fog: float = _omens.get_warden_range_add()  # Fog Bank: -1 range, never below 1
 		if fog != 0.0:
@@ -912,7 +913,7 @@ func get_aura_bonus(speed: bool) -> float:
 	if base <= 0.0:
 		return 0.0
 	if not speed and tower_data.get_id() == "acorn" and _rule_stacks(&"acorn_cache") > 0:
-		base = ACORN_CACHE_AURA
+		base = 0.05 + (ACORN_CACHE_AURA - 0.05) * _rule_power(&"acorn_cache")  # Tag resonance scales the card's part
 	if is_aura_support():
 		var ranks := get_effective_rank()
 		base *= pow(AURA_PER_RANK, ranks)  # Grove Heart: its base only, not the per-Warden extra
@@ -920,7 +921,7 @@ func get_aura_bonus(speed: bool) -> float:
 			base *= 1.0 + FOCUS_STRONG_AURA * _focus_ranks(ranks)
 	var bonus := base + get_aura_extra()
 	if _rule_stacks(&"shared_light") > 0:
-		bonus *= 1.0 + SHARED_LIGHT
+		bonus *= 1.0 + SHARED_LIGHT * _rule_power(&"shared_light")
 	return bonus * get_quiet_multiplier()
 
 # Bramble Oath (Seed card): Bramble and Honeysuckle 50% stronger (Bramble's damage, Honeysuckle's
@@ -1194,9 +1195,8 @@ const CHORUS_RING_COLOR := Color(0.85, 0.75, 1.0, 0.45)
 # Sudden Bloom / Watchful Rest: this attack's multiplier (×2 each), using up what it spends.
 func _take_empowered() -> float:
 	var boost := 1.0
-	if bloom_attacks > 0:
-		bloom_attacks -= 1
-		boost *= EMPOWERED_MULTIPLIER
+	if bloom_left > 0.0:
+		boost *= EMPOWERED_MULTIPLIER  # Sudden Bloom: every attack while it lasts
 	if watch_charged:
 		watch_charged = false
 		_watch_time = 0.0
@@ -1245,6 +1245,10 @@ func _update_legacy(delta: float) -> void:
 # Watchful Rest (card, rule watchful_rest): nothing in range for WATCHFUL_REST_TIME seconds (II: less)
 # stores one charge.
 func _update_watch(delta: float) -> void:
+	if bloom_left > 0.0:
+		bloom_left = maxf(bloom_left - delta, 0.0)
+		if bloom_left == 0.0:
+			queue_redraw()  # The Sudden Bloom glow fades
 	if watch_charged or _rule_stacks(&"watchful_rest") <= 0:
 		return
 	_watch_check -= delta
@@ -1862,7 +1866,7 @@ func hold(enemy: Node2D, seconds: float) -> void:
 		return
 	var bonus: float = _dream_state.get_held_bonus() if _dream_state and _dream_state.has_method("get_held_bonus") else 0.0
 	if bonus > 0.0 and tower_data.line == "root":
-		bonus += PATIENT_ROOTS_ROOT_HOLD
+		bonus += PATIENT_ROOTS_ROOT_HOLD * _rule_power(&"patient_roots")
 	enemy.apply_status(EnemyStatuses.HELD, 1, seconds + bonus, 0.0, 0, tower_data.line, self)
 	if is_instance_valid(enemy) and enemy.statuses.is_held():
 		SupportLog.credit(self, &"held_seconds", seconds + bonus)
@@ -2034,7 +2038,7 @@ func pull(enemy: Node2D, tiles: float) -> void:
 	if not is_instance_valid(enemy) or enemy.is_cleansed:
 		return
 	if tower_data.line == "root" and _rule_stacks(&"patient_roots") > 0:
-		tiles += PATIENT_ROOTS_PULL
+		tiles += PATIENT_ROOTS_PULL * _rule_power(&"patient_roots")
 	enemy.push_back(tiles * MAP_GRID.cell_size.x)
 	SupportLog.credit(self, &"tiles_pulled", tiles)
 	var look := kin_look()
@@ -2322,7 +2326,8 @@ func is_catcher() -> bool:
 	return tower_data.catch_share > 0.0
 
 func get_catch_radius() -> float:
-	return tower_data.catch_radius + DewCatch.WIDE_BOWL_STEP * _rule_stacks(&"wide_bowl") + (FOCUS_WIDE if focus == Focus.WIDE else 0.0)
+	# Dew Trail (any level) also widens the catch (Wide Bowl merged into it, dream_audit.md).
+	return tower_data.catch_radius + (DewCatch.WIDE_BOWL_STEP if _rule_stacks(&"dew_trail") > 0 else 0.0) + (FOCUS_WIDE if focus == Focus.WIDE else 0.0)
 
 # The extra share of Dew `enemy` drops if it's dispelled now (0 = out of reach). Nurture ranks add
 # catch instead of damage; Old Growth's Elder Stump catches inside its aura.
@@ -2337,7 +2342,7 @@ func get_catch_share(enemy: Node2D) -> float:
 	if growth > 0.0 and distance <= get_aura_reach():
 		share = maxf(share, DewCatch.OLD_GROWTH_CATCH * growth)
 	if share > 0.0 and _rule_stacks(&"dew_trail") > 0 and enemy.statuses.has(EnemyStatuses.DAMP):
-		share += DewCatch.DEW_TRAIL[_rule_level(&"dew_trail")]
+		share += DewCatch.DEW_TRAIL[_rule_level(&"dew_trail")] * _rule_power(&"dew_trail")
 	return share
 
 func add_to_bowl(amount: float) -> void:
@@ -2684,6 +2689,10 @@ func _has_rule(rule: StringName) -> bool:
 func _rule_level(rule: StringName) -> int:
 	return _rule_entry(rule)[1]
 
+# Tag resonance (dream_audit.md): a card's numbers scale with the owned cards sharing its tags (1.0 = none).
+func _rule_power(rule: StringName) -> float:
+	return _dream_state.rule_power(rule) if _dream_state and _dream_state.has_method("rule_power") else 1.0
+
 # Gust: soothes everything in range a little, then copies the statuses of the most-afflicted
 # nightmare onto up to `spread_targets` others near it (half stacks, full duration).
 func _spread() -> void:
@@ -2921,7 +2930,7 @@ func _draw_empowered() -> void:
 	if _underdog_drawn:
 		for i in 3:
 			draw_circle(Vector2(0, 6), radius * (1.0 - i * 0.2), Color(UNDERDOG_GLOW, 0.07))
-	if bloom_attacks > 0 or watch_charged:
+	if bloom_left > 0.0 or watch_charged:
 		draw_arc(Vector2(0, 6), radius, 0.0, TAU, 32, Color(EMPOWERED_GLOW, 0.3), 5.0)
 		draw_arc(Vector2(0, 6), radius, 0.0, TAU, 32, Color(EMPOWERED_GLOW, 0.85), 1.5)
 
