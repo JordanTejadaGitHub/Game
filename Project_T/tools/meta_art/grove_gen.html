@@ -464,7 +464,7 @@ const GW = 1280, GH = 960;
 // Heartwood 32 (assets/palette/heartwood32.json, injected by export.ps1 -Rebuild): colours by name.
 const HW = Object.fromEntries(HW32.ramps.flatMap(r => r.colors.map(c => [c.name, c.hex])));
 // Night bark: the Bark ramp (the Heartwood is the warm side), grain runs along the wood.
-const HB6 = [HW.Void, HW.Night, HW.Root, HW.Bark, HW.Loam, HW.Oak];  // cooler, mossier wood (the title's mossy giant)
+const HB6 = [HW.Void, HW.Night, HW.Root, HW.Bark, HW.Loam, HW.Loam];  // cool, grey-brown wood in the fog; the warmth is saved for the Hollow and the gold rim
 const LEAFG = [HW.Deepmoss, HW.Moss, HW.Leaf, HW.Sprig, HW.Newleaf];
 const SECTION = {
   perks:    { name: "Perks",    petals: ["#6a3c0c", "#b87818", "#e8b440", "#ffe39a"], mid: "#fff6d0", glow: "255,200,90" },
@@ -907,7 +907,7 @@ function grovesky() {
 // its bottom, upper clusters overlapping lower ones. Drawn at half resolution and scaled up 2×.
 // The night greens (colours unchanged), seven tiers.
 // The crown: green-black in the shadows and the belly (Dread / Night are the sky's colours, so the tree would melt into it), cold moonlit Pool, then Moss where the light reaches.
-const CROWN_P = [HW.Void, HW.Void, HW.Deepmoss, HW.Deepmoss, HW.Pool, HW.Moss, HW.Leaf];  // shade is green-black, never the sky's indigo
+const CROWN_P = [HW.Void, HW.Void, HW.Deepmoss, HW.Deepmoss, HW.Pool, HW.Moss, HW.Moss];  // shade green-black, lit tops cool Pool / Moss (bright Leaf only on a few top clusters)
 const CROWN_PX = 2, CROWN_SEED = 970;
 // Stages grow the crown outward: the clusters over the limbs are always there, the edges fill in.
 const CROWN_SHARE = [.72, .8, .9, 1];
@@ -985,7 +985,7 @@ function groveCanopy(stage) {
     const t = TIER[y * W + x]; if (t < 0) continue;
     // The deepest shade is a checker of near-black and Deepmoss, so it reads as leafy shadow (dark
     // green from afar), never as the sky showing through.
-    L.set(x, y, t === 1 ? ((x + y) % 2 ? P[0] : P[2]) : P[t === 5 && hash(x, y, seed + 6) < .03 ? 6 : t]);  // sparse bright sparks on the lit tops
+    L.set(x, y, t === 1 ? ((x + y) % 2 ? P[0] : P[2]) : (t >= 5 && y * s < 300 && hash(x, y, seed + 6) < .08 ? HW.Leaf : P[t]));  // bright Leaf only on the crown's topmost clusters
   }
   const small = new Img(W, H); small.stamp(L, P[0]);
   for (let y = 1; y < H - 1; y++) for (let x = 1; x < W - 1; x++)
