@@ -6,7 +6,7 @@ extends SceneTree
 # Clear Skies); this runner owns the maze and spending bot and writes a CSV per run.
 #
 #   godot --headless --path . --script res://tools/balance_sim.gd --fixed-fps 60 -- --seed=1 \
-#       [--profile=fresh] [--style=balanced] [--speed=8] [--last=100] [--out=res://tools/balance_out]
+#       [--profile=fresh] [--style=balanced] [--speed=8] [--last=100] [--out=user://balance_out]
 #
 # Output: <out>/<profile>_<style>_seed<N>.csv (one row per cleared drift) and a line appended to
 # <out>/runs.csv (the run's summary; tools/balance_summary.gd turns those into the batch table and the
@@ -51,7 +51,7 @@ var profile := "fresh"
 var style := "balanced"
 var speed := 8.0
 var last_drift := 100
-var out_dir := "res://tools/balance_out"
+var out_dir := "user://balance_out"  # Outside res://: Godot would import the CSVs as translations
 var start_cards: Array[String] = []
 var forced_families: Array[String] = []
 var hand_drifts := false  # --hand-drifts: the hand-made drift files instead of rolled ones (DriftDirector.random_drifts)
@@ -93,7 +93,7 @@ func _run() -> void:
 			"--style": style = value
 			"--speed": speed = float(value)
 			"--last": last_drift = int(value)
-			"--out": out_dir = value
+			"--out": out_dir = value if value != "" else out_dir  # An empty --out keeps the default (it wrote into the project root)
 			"--card": start_cards.append(value)  # e.g. --card=seedfall: taken at the start of the run
 			"--families": forced_families.assign(value.split(","))  # e.g. firefly_jar,dewdrop: the family picks, in order; later picks take none
 			"--hand-drifts": hand_drifts = true
