@@ -7,7 +7,7 @@
 script = ExtResource("1_card")
 id = "dream_morning_fog"
 display_name = "Morning Fog"
-description = "Mistveils can now grow into Morning Fogs (200 Dew): a wide fog that keeps nightmares Soaked (for 3 s after they leave) and makes Poisoned tick harder."
+description = "Mistveils can now grow into Morning Fogs (200 Dew): a wide fog that keeps nightmares {damp} (for 3 s after they leave) and makes {spored} tick harder."
 rarity = 2
 kind = 1
 tags = Array[String](["water"])

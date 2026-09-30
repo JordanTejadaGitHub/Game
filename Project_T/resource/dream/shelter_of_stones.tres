@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "shelter_of_stones"
 display_name = "Shelter of Stones"
-description = "Wardens touching an obstacle (Withered Tree, Mossy Boulder…) deal 15% more damage."
+description = "Wardens touching an obstacle deal 15% more damage."
 rarity = 0
 kind = 3
 tags = Array[String](["maze"])

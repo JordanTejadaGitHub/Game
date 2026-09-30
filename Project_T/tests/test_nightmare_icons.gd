@@ -167,7 +167,7 @@ func _run() -> void:
 		"the real boss health (%d)" % health)
 	_check(text.contains(stag.title) and text.contains("Arrives in drift 25"), "header: title and arrival")
 	_check(text.contains("What it does") and text.contains("Charge") and text.contains("at 50% health"), "abilities with when")
-	_check(text.contains("What helps") and text.contains("Your record") and text.contains("New"), "tips and record")
+	_check(not text.contains("What helps") and text.contains("Your record") and text.contains("New"), "no What helps (removed 2026-09-30); the record")
 	dossier.close_dossier()
 	_check(not dossier.visible, "Prepare closes it")
 	BossDossier.open_for(root.get_tree())

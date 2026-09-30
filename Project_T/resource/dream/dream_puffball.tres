@@ -7,7 +7,7 @@
 script = ExtResource("1_card")
 id = "dream_puffball"
 display_name = "Puffball"
-description = "Driftspores can now grow into Puffballs (200 Dew): at 10+ Spored stacks a nightmare pops, bursting on everything around it."
+description = "Driftspores can now grow into Puffballs (200 Dew): at 10+ {spored} stacks a nightmare pops, bursting on everything around it."
 rarity = 2
 kind = 1
 tags = Array[String](["spore"])

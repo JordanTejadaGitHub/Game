@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "warm_hands"
 display_name = "Warm Hands"
-description = "Each Nurture rank gives 3% more damage (10% → 13%; stacks)."
+description = "Each Nurture rank gives 3% more damage (stacks)."
 rarity = 0
 kind = 2
 tags = Array[String](["nurture"])

@@ -7,7 +7,7 @@
 script = ExtResource("1_card")
 id = "dream_honeysuckle"
 display_name = "Honeysuckle"
-description = "Thornwalls can now grow into Honeysuckles (10 Dew): its sweet scent makes nightmares walking past it slowly Drowsy."
+description = "Thornwalls can now grow into Honeysuckles (10 Dew): its sweet scent makes nightmares walking past it slowly {drowsy}."
 rarity = 1
 kind = 1
 tags = Array[String](["wall"])

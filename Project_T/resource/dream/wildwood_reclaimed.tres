@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "wildwood_reclaimed"
 display_name = "Wildwood Reclaimed"
-description = "Unlocks clearing. Wardens on cells you have cleared deal 30% more damage, +2% per obstacle cleared this run (up to +60%)."
+description = "Wardens on cells you have cleared deal 30% more damage, +2% per obstacle cleared this run (up to +60%)."
 rarity = 3
 kind = 3
 tags = Array[String](["clearing"])

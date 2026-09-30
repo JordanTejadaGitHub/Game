@@ -9,7 +9,7 @@
 [resource]
 script = ExtResource("1_tdata")
 display_name = "Puffball"
-description = "At 10+ Poisoned stacks a nightmare pops: a burst hits it and its neighbours, and half the spores drift on."
+description = "At 10+ Poisoned stacks a nightmare pops: a burst hits it and its neighbors, and half the spores drift on."
 cost = 0
 texture = ExtResource("2_tex")
 frame_count = 8

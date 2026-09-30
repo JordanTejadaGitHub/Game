@@ -806,7 +806,6 @@ until the boss is dispelled**: tap the "Boss in N" countdown in the drift banner
 | **Resists / Weak to / Immune** | the same icon rows as the nightmare info, larger |
 | **What it does** | one row per ability: an icon, a name, what it does in one plain sentence, and **when** ("from the start", "every 8 s", "**at 50% health**", "when it takes a hit from…"). The 50% line matches the marker on the boss bar |
 | **It brings** | escorts and summons (portraits, count, with their own resist icons), e.g. the Mire Hag's bog spawn |
-| **What helps** | 2–3 short hints written per boss (e.g. *"Long straight corridors let it charge: bend the path"*), no numbers, never a solution |
 | **Your record** | after the first meeting: times dispelled, best time. First meeting: a "New" tag |
 
 - Spoilers: the Codex still hides boss names until met; the dossier doesn't, because the boss is
@@ -814,9 +813,11 @@ until the boss is dispelled**: tap the "Boss in N" countdown in the drift banner
 - Touch: all rows and icons tappable; the card scrolls on small screens.
 - During the boss drift the existing name plate and boss bar stay; the boss bar's 50% marker is
   tappable and shows that ability's line.
+- **No "What helps" section** (removed 2026-09-30, user: "remove the what helps"): the ability and
+  resist rows say enough; the hints were hand-holding. `EnemyData.tips` is no longer shown.
 
 **Data (for the build):** per boss in `EnemyData`: a `title`, an ability list (name, icon, text,
-when; stat numbers filled from the data, never hand-typed), `tips` (2–3 lines), and the escort list
+when; stat numbers filled from the data, never hand-typed), and the escort list
 from the existing followers / summon fields. Normal nightmares reuse `trait_text` plus the new
 resist / immune rows.
 

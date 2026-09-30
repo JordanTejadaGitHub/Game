@@ -7,7 +7,7 @@
 script = ExtResource("1_card")
 id = "dream_hoarfrost"
 display_name = "Hoarfrost"
-description = "Frostferns can now grow into Hoarfrosts (200 Dew): splashing frost shards that Soak (up to 2); a nightmare Soaked twice freezes for longer. More crits on Held nightmares."
+description = "Frostferns can now grow into Hoarfrosts (200 Dew): splashing frost shards that soak (up to 2 times); a nightmare soaked twice freezes for longer. More crits on {held} nightmares."
 rarity = 2
 kind = 1
 tags = Array[String](["water"])

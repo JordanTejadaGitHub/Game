@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "wandering_mind"
 display_name = "Wandering Mind"
-description = "Gain 1 Dream reroll (dream again: new cards for one offer)."
+description = "Gain 1 Dream reroll."
 rarity = 1
 kind = 3
 tags = Array[String](["dreams"])

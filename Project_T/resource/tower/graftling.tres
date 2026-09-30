@@ -8,7 +8,7 @@
 [resource]
 script = ExtResource("1_tdata")
 display_name = "Graftling"
-description = "Copies the attack of its strongest neighbouring Warden at 60%, statuses and all."
+description = "Copies the attack of its strongest neighboring Warden at 60%, statuses and all."
 cost = 0
 texture = ExtResource("2_tex")
 frame_count = 8

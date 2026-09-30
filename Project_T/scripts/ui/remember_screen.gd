@@ -63,7 +63,7 @@ func _ready() -> void:
 	box.add_theme_constant_override("separation", 10)
 	frame.add_child(box)
 
-	# Header: "Remember", "Dreamlight 3 ✦ · unspent carries over", "Dreamlight unlocks, Dew grows."
+	# Header: "Remember", "Dreamlight 3 ✦", "Dreamlight unlocks, Dew grows."
 	UiStyle.title(_title, UiStyle.CHOICE_TITLE_SIZE, HEADER_COLOR)
 	_title.text = "Remember"
 	box.add_child(_title)
@@ -172,7 +172,7 @@ func _forms_of(tree: Array) -> Array[TowerData]:
 	return forms
 
 func _rebuild() -> void:
-	_light_line.text = "Dreamlight %d %s · unspent carries over" % [dream_state.dreamlight, MOTE]
+	_light_line.text = "Dreamlight %d %s" % [dream_state.dreamlight, MOTE]
 	var trees := _trees()
 	for child in _tabs.get_children():
 		_tabs.remove_child(child)
@@ -417,7 +417,7 @@ func _add_unlock(data: TowerData) -> void:
 	var button := Button.new()
 	button.focus_mode = Control.FOCUS_NONE
 	button.custom_minimum_size = Vector2(0, 48)
-	button.text = "Unlock (%d %s)" % [cost, MOTE]
+	button.text = "Unlock · %d %s" % [cost, MOTE]
 	button.disabled = not dream_state.can_unlock(data)
 	UiStyle.primary(button)
 	button.pressed.connect(unlock.bind(data))

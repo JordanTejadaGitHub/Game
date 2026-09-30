@@ -352,7 +352,7 @@ func _add_dreamlight_counter() -> void:
 	# Tap / click says the same as the tooltip (platforms.md: no hover-only information).
 	label.gui_input.connect(func(event: InputEvent) -> void:
 		if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
-			show_toast("%s (you have %d)" % [IconInfo.resource_tooltip(&"dreamlight"), dream_state.dreamlight]))
+			show_toast("%s (%d)" % [IconInfo.resource_tooltip(&"dreamlight"), dream_state.dreamlight]))
 	add_child(label)
 	var update := func(amount: int) -> void:
 		label.text = str(amount)
@@ -385,11 +385,11 @@ func _on_leaves_changed(leaves: int, max_leaves: int) -> void:
 	_leaf_flash.tween_callback(leaves_label.add_theme_color_override.bind("font_color", LEAVES_COLOR))
 
 func _on_rest_started(_block: int, _is_boss_rest: bool, bonus: int, perfect: bool) -> void:
-	var text := "Rest.  +%d Dew" % bonus
+	var text := "Rest · +%d Dew" % bonus
 	if DreamState.rest_dreamlight(drift_director.drifts_started) > 0:
-		text += "  +%d ✦" % DreamState.rest_dreamlight(drift_director.drifts_started)  # The Heartwood wakes (drift 51+)
+		text += " · +%d ✦" % DreamState.rest_dreamlight(drift_director.drifts_started)  # The Heartwood wakes (drift 51+)
 	if perfect:
-		text += "  (perfect block: no leaves lost)"
+		text += " · perfect block"
 	show_toast(text)
 
 func _on_act_started(act: int, leaves_regrown: int) -> void:

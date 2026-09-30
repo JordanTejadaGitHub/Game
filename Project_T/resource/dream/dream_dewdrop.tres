@@ -7,7 +7,7 @@
 script = ExtResource("1_card")
 id = "dream_dewdrop"
 display_name = "Dewdrop"
-description = "Sprouts can now grow into Dewdrops (15 Dew), or plant one directly (25 Dew). Splashes make nightmares Damp."
+description = "Sprouts can now grow into Dewdrops (15 Dew), or plant one directly (25 Dew). Splashes make nightmares {damp}."
 rarity = 0
 kind = 0
 tags = Array[String](["water"])

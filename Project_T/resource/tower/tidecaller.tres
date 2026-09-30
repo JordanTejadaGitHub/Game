@@ -8,7 +8,7 @@
 [resource]
 script = ExtResource("1_tdata")
 display_name = "Tidecaller"
-description = "Every 6 seconds a great wave soaks everything in range, pushes it back a tile and freezes the already Soaked."
+description = "Every 6 s a great wave leaves everything in range Soaked, pushes it back a tile and freezes the ones already Soaked."
 cost = 0
 line = "water"
 tier = 4
