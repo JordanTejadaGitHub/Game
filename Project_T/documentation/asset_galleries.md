@@ -11,7 +11,7 @@ changed" log at the top (date, commit, what), newest first.
 
 | Chat | Owns | Gallery |
 |---|---|---|
-| Tower Assets | Warden sprites, attack sheets, projectiles, rank art | *(pending)* |
+| Tower Assets | Warden idle/attack sheets, Ascended, projectiles, effects, rank art | https://claude.ai/artifact/N8Jax8F4EWtdkoznbUMf42 |
 | Enemy Assets | nightmare sprite sheets, bosses, Thorn-Sapling | https://claude.ai/artifact/YUa3SG93MgF6JhJ2reGhn3 |
 | Environment Assets | per-act environment sheets + dream-layer sheets (`assets/environment/`) | https://claude.ai/artifact/V4QRayu3d7ckStH2btwvGQ |
 | Theme Asset | style references (`assets/style_reference/`), Warden Night | https://claude.ai/artifact/1Mq111zHWpf3EbgsWwF6d8 (whole-look overview: https://claude.ai/artifact/34adEMHN6xJNnMXPK7ziWq) |
