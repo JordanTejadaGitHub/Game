@@ -325,6 +325,14 @@ details show when the player asks (selecting, hovering, placing, pausing, rests)
   unless the player selects or hovers (Reactions own the screen).
 - The numbers come from one place (Tower Code exposes each Warden's list of buff sources with
   amounts), so the panel, threads, preview and lens always agree.
+- **Icons needed (for the UI Asset chat, not made yet):** buff pips for Elder Stump (attack speed),
+  Acorn (damage), Grove Heart, Grandmother Oak, Kinship (leaf), Whole Tree (badge) and Kindred (a
+  Focus mark), a tiny stack count (×2, ×3), a **penalty** pip, and a **buff lens** toggle button
+  (on/off). Notes from the old UI Asset chat: icons come from `tools/ui_icon_generator.gd` (16 px,
+  one row in `assets/ui/icons.png` + `icons.json`, snapped to Heartwood 32 with
+  `HeartwoodPalette.snap_image`; **append new icons at the end** so columns never move). The palette
+  has no red: the penalty "plum" should use **Bruise** or **Orchid**. The Kinship pip is drawn in
+  greys and tinted per family in code. Distinct shapes, not just colours.
 
 ## Stat and status icons
 
