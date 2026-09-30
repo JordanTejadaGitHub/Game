@@ -65,6 +65,8 @@ const CREATURES := {
 	"lamplighter": {fps = 5.0, size = 112, extra = ["light"], extra_fps = 8.0, once = ["light"]},
 	"barrow_king": {fps = 4.0, size = 144, extra = ["shrug"], extra_fps = 8.0, once = ["shrug"]},
 	"mourning_mother": {fps = 4.0, size = 144, extra = ["sorrow"], extra_fps = 6.0},
+	"hollow_oak_withering": {fps = 5.0, size = 176, draw = "hollow_oak", variant = "withering", extra = ["wither"], extra_fps = 8.0, once = ["wither"]},
+	"hollow_oak_remembering": {fps = 5.0, size = 176, draw = "hollow_oak", variant = "remembering", extra = ["echo"], extra_fps = 6.0, once = ["echo"]},
 	# The Lamplighter's cold lantern (scripts/enemy/cold_lantern.gd): no walks, just its own rows.
 	"cold_lantern": {fps = 8.0, anims = ["ignite", "burn", "snuff"], extra_fps = 10.0, once = ["ignite", "snuff"]},
 	# Not a nightmare: the obstacle the Hollow Oak plants. No walks, just its own rows.
@@ -2081,29 +2083,46 @@ func _draw_weeper(canvas: Image, st: Dictionary) -> void:
 # a 176px frame.
 
 func _draw_hollow_oak(canvas: Image, st: Dictionary) -> void:
-	var bark := _ramp(["Void", "Night", "Dusk", "Slate"])
+	# st.variant: "" (Thorned, the original), "withering" (bare, grey, cracked, dragging dead leaves)
+	# or "remembering" (hung with pale faces, one for every great nightmare).
+	var withering: bool = st.variant == "withering"
+	var remembering: bool = st.variant == "remembering"
+	var bark := _ramp(["Night", "Dusk", "Slate", "Stone"] if withering else ["Void", "Night", "Dusk", "Slate"])
 	var thorn := _c("Void")
 	var o := NIGHT_O
 	var f: int = st.f
 	var ph: float = st.ph
 	var grief: bool = st.anim == "grief"
-	var dir: int = DOWN if grief else st.dir
+	var pose: bool = st.anim in ["grief", "wither", "echo"]
+	var dir: int = DOWN if pose else st.dir
 	var shake: int = [1, -1, 1, -1, 1, -1][f] if grief else 0
-	var b: int = 0 if grief else [0, 0, 1, 1, 0, 0][f]
+	var b: int = 0 if pose else [0, 0, 1, 1, 0, 0][f]
 	var cx := 88 + shake
 	_shadow(canvas, Vector2(88, 121), Vector2(48, 7))
-	# Roots it walks on: they lift and reach in turn.
+	# Roots it walks on: they lift and reach in turn. "wither": two lift high and stab down.
 	var roots := _layer()
 	for i in 6:
 		var side := -1 if i < 3 else 1
 		var j := i % 3
-		var lift := 0.0 if grief else maxf(sin(ph + i * 2.1), 0.0) * 4.0
+		var lift := 0.0 if pose else maxf(sin(ph + i * 2.1), 0.0) * 4.0
+		if st.anim == "wither" and j == 1:
+			lift = [2.0, 8.0, 14.0, 14.0, 0.0, 0.0][f]
 		var start := Vector2(cx + side * (6 + j * 5), 104 + b)
-		var foot := Vector2(88 + side * (20 + j * 14) + (0.0 if grief else sin(ph + i * 2.1) * 3.0), 116 + j * 3 - lift)
-		var mid := start.lerp(foot, 0.5) + Vector2(side * 2, -7)
+		var foot := Vector2(88 + side * (20 + j * 14) + (0.0 if pose else sin(ph + i * 2.1) * 3.0), 116 + j * 3 - lift)
+		var mid := start.lerp(foot, 0.5) + Vector2(side * 2, -7 - (lift * 0.3 if st.anim == "wither" else 0.0))
 		_stroke(roots, [start, mid], 4.0 - j * 0.5, bark[1])
 		_stroke(roots, [mid, foot], 2.5 - j * 0.4, bark[1])
+		if st.anim == "wither" and j == 1 and f >= 4:  # dust where it struck
+			for k in 5:
+				_blend_ellipse(canvas, foot + Vector2((k - 2) * 3.0 * (f - 3), -1 - k % 2 * (f - 3)), Vector2(1.8, 1.2), _c("Stone", 0.7))
 	_stamp(canvas, roots, o)
+	if withering:  # dead leaves dragged along round its roots
+		for k in 14:
+			var a := k * 2.4
+			var p := Vector2(88 + cos(a) * (30 + k % 4 * 6), 116 + sin(a) * 6 + k % 3) + Vector2(-float(f + k) * 0.8 if not pose else 0.0, 0)
+			var leaf := _layer()
+			_lens(leaf, p, p + Vector2(4, -1 + k % 3), 1.5, bark[3], bark[2])
+			_stamp(canvas, leaf, o)
 	# Branches: thick at the trunk, thinning to thorned twigs; thrown up in grief.
 	var top := Vector2(cx, 52 + b)
 	var branches: Array = [[Vector2(0, 0), Vector2(-8, -14), Vector2(-20, -26), Vector2(-34, -30)],
@@ -2115,7 +2134,11 @@ func _draw_hollow_oak(canvas: Image, st: Dictionary) -> void:
 		[Vector2(6, 4), Vector2(22, 6), Vector2(36, 14)]]
 	var crown := _layer()
 	var twigs: Array[Vector2] = []
-	for br: Array in branches:
+	var tips: Array[Vector2] = []
+	for bi in branches.size():
+		var br: Array = branches[bi]
+		if withering and bi % 2 == 1:  # snapped off short
+			br = br.slice(0, br.size() - 1)
 		var pts: Array = []
 		for i in br.size():
 			var t := float(i) / (br.size() - 1)
@@ -2130,8 +2153,11 @@ func _draw_hollow_oak(canvas: Image, st: Dictionary) -> void:
 		for i in pts.size() - 1:
 			for s in range(1, 4):
 				twigs.append((pts[i] as Vector2).lerp(pts[i + 1], s / 4.0))
+		tips.append(pts[pts.size() - 1])
 	_stamp(canvas, crown, o)
 	for i in twigs.size():  # thorns sticking out of the branches
+		if withering and i % 3 != 0:
+			continue
 		var p: Vector2 = twigs[i]
 		var d := Vector2(1, -1) if i % 2 == 0 else Vector2(-1, -1)
 		_px(canvas, roundi(p.x + d.x * 2), roundi(p.y + d.y * 2), thorn)
@@ -2143,6 +2169,9 @@ func _draw_hollow_oak(canvas: Image, st: Dictionary) -> void:
 	var glow: Array[Vector2i] = []
 	if dir == UP:
 		glow = _crack(trunk, Vector2(cx, 80 + b), Vector2(14, 28), [[Vector2(0.1, -0.9), Vector2(-0.2, -0.4), Vector2(0.15, 0.1), Vector2(-0.1, 0.7)]], HOLLOW)
+	if withering:  # cracked all over, and nothing alive in the cracks
+		_crack(trunk, Vector2(cx, 80 + b), Vector2(20, 30), [[Vector2(-0.7, -0.8), Vector2(-0.5, -0.3), Vector2(-0.8, 0.2)],
+			[Vector2(0.6, -0.6), Vector2(0.4, 0.0), Vector2(0.7, 0.5), Vector2(0.5, 0.9)], [Vector2(-0.3, 0.5), Vector2(-0.6, 0.9)]], HOLLOW)
 	_stamp(canvas, trunk, o)
 	_crawl(canvas, glow, f, 3)
 	match dir:
@@ -2158,6 +2187,25 @@ func _draw_hollow_oak(canvas: Image, st: Dictionary) -> void:
 			_flat_ellipse(canvas, e, Vector2(3, 4.5), HOLLOW)
 			_glow(canvas, Vector2i(e.round()), EYE, EYE_HALO)
 			_oak_mouth(canvas, Vector2(cx + 10, 90 + b), Vector2(5, 10), bark, f)
+	if remembering:  # pale faces set in the bark and hung from the branches
+		var faces: Array = {DOWN: [Vector2(-18, 84), Vector2(18, 84), Vector2(-12, 56), Vector2(13, 54)],
+			SIDE: [Vector2(-6, 60), Vector2(-4, 94), Vector2(-14, 80)],
+			UP: [Vector2(-8, 64), Vector2(8, 64), Vector2(0, 88), Vector2(-12, 98), Vector2(12, 98)]}[dir]
+		var all: Array[Vector2] = []
+		for p: Vector2 in faces:
+			all.append(Vector2(cx, b) + p)
+		for k in 3:  # the hanging ones
+			var tip: Vector2 = tips[[0, 2, 4][k]]
+			var hang := tip + Vector2(sin(ph + k) * 1.5, 7)
+			_line(canvas, [tip, hang + Vector2(0, -3)], bark[0])
+			all.append(hang)
+		for i in all.size():
+			var lit: bool = st.anim == "echo" and i == f % all.size()
+			_bark_face(canvas, all[i], lit)
+		if st.anim == "echo":  # an echo pulling free of its face and rising
+			var src: Vector2 = all[f % all.size()]
+			for k in 3:
+				_blend_ellipse(canvas, src + Vector2(0, -6 - k * 5 - f * 2), Vector2(4 - k, 5 - k), _c("Moonlight", 0.45 - k * 0.12))
 	if grief:  # the wail rings out
 		var r := 24.0 + f * 9.0
 		for y in S:
@@ -2165,6 +2213,18 @@ func _draw_hollow_oak(canvas: Image, st: Dictionary) -> void:
 				var q := ((Vector2(x + 0.5, y + 0.5) - Vector2(88, 72)) / Vector2(r, r * 0.7)).length()
 				if absf(q - 1.0) * r < 0.8 and (x + y) % 2 == 0:
 					_blend_px(canvas, x, y, _c("Moonlight", 0.4 * (1.0 - f / 6.0)))
+
+# One of the Remembering Oak's faces: a small pale mask with hollow eyes and mouth; `lit` when an
+# echo is rising out of it.
+func _bark_face(canvas: Image, p: Vector2, lit: bool) -> void:
+	var mask := _layer()
+	_flat_ellipse(mask, p, Vector2(3.2, 4.2), _c("Moonlight" if lit else "Mist"))
+	_stamp(canvas, mask, NIGHT_O)
+	_px(canvas, roundi(p.x) - 1, roundi(p.y) - 1, HOLLOW)
+	_px(canvas, roundi(p.x) + 1, roundi(p.y) - 1, HOLLOW)
+	_px(canvas, roundi(p.x), roundi(p.y) + 2, HOLLOW)
+	if lit:
+		_glow(canvas, Vector2i(p.round()) + Vector2i(0, -5), EYE, EYE_HALO)
 
 # The hollow mouth: dark, splintered at the rim, the heart's cold fire burning in its depths.
 func _oak_mouth(canvas: Image, c: Vector2, r: Vector2, bark: Array[Color], f: int) -> void:

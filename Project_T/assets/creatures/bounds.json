@@ -169,6 +169,16 @@
 		"top": -60,
 		"bottom": 26
 	},
+	"hollow_oak_withering": {
+		"frame": 176,
+		"top": -82,
+		"bottom": 37
+	},
+	"hollow_oak_remembering": {
+		"frame": 176,
+		"top": -82,
+		"bottom": 35
+	},
 	"cold_lantern": {
 		"frame": 64,
 		"top": -32,
