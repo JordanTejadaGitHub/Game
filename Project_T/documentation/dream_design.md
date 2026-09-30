@@ -835,6 +835,37 @@ Conductive Soil) out of 19.
   Verify with an offer simulation once `UpgradeData` exists; tune tag weighting (2×) and the family
   offers to hit it.
 
+### Build packages: do the cards come? (2026-09-30)
+
+Since Dreamlight, a build's **Wardens** are a choice (only the family picks are luck: with a full
+Grove, both families of a two-family build by drift 25 / 50 / 75 in ~22% / 50% / 73% of runs; with
+3 families, always). This measures the other half: **the cards that make the build sing**. Each
+build has a **package** of enhancer cards (Legendaries aren't in packages: they start builds).
+
+| Build | Families | Package (ids) |
+|---|---|---|
+| **Storm Grid** | Firefly Jar + Dewdrop | Rolling Thunder, Rain on Glass, Soaked Through, Heavy Dew, Brighter Jars, Charged Field (`static_field`), Conductive Soil |
+| **Spore Bomb** | Sporeling (+ Dewdrop for Mistveil) | Soft Spores, Lingering Spores, Spore Cascade, Chain Bloom, Sparking Spores, Twin Puff |
+| **Eldest (tall)** | any | Tender Care, Warm Hands, Kindred Roots, Deeper Rings, Sunlit Rest, Chosen Few |
+| **Wide Sprouts** | any | Seedfall, Sprout Surge, Sprout Chorus, Root Network, Seedling Gift, Many Hands |
+| **Kinship** | one family, both branches | Quick Bonds, Family Ties, Sweet Harmony, Close Kin, Old Friends, Rooted Bond, Extended Family |
+
+**Measurement** (offer simulation, no combat; `DreamState.sim_rest` / `DreamSimPolicy`):
+- Profile: **full Grove, everything discovered** (so Grove and discovery gates don't hide cards).
+- The bot owns the build's families and board (e.g. Storm Grid: Stormcap + Rain Lily from drift
+  25; Eldest: a rank V Warden from drift 20), and **takes a package card whenever one is offered**,
+  else its style's best card. Stacking cards count once.
+- Report per build, 1000 seeded runs: **% of runs with 3+ and 5+ package cards by drift 25 / 50 /
+  75 / 100**, the average count, and the share of offers with at least one package card.
+- **Targets** (the "Adapt, don't get handed" balance: a build should come together, not be handed):
+  - **3+ package cards by drift 50** in **~50–70%** of runs.
+  - **5+ by drift 100** in **~50–70%** of runs.
+  - Never above ~90% at any checkpoint (that's being handed the build).
+  - A package card in **~30–45%** of offers.
+- **If a build is short:** check its Needs and discovery gates first (a card that's rarely eligible),
+  then its rarity (a Rare-heavy package lands late), before touching tag weighting, which moves every
+  build at once.
+
 ## Status effect numbers
 
 Status strength **scales with the Warden that applies it** (a % of its soothe), so statuses keep
