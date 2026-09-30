@@ -362,9 +362,15 @@ static func _wrap_tooltip(label: Label) -> void:
 	if panel == null:
 		return
 	panel.size = Vector2i(panel.get_contents_minimum_size())
-	var screen := panel.get_parent().get_viewport().get_visible_rect().size if panel.get_parent() != null else Vector2(panel.size)
-	panel.position = Vector2i(clampi(panel.position.x, 0, maxi(int(screen.x) - panel.size.x, 0)),
-		clampi(panel.position.y, 0, maxi(int(screen.y) - panel.size.y, 0)))
+	# Kept at the pointer where Godot put it; only pulled back if the new height runs off the window.
+	# The popup's position is in window pixels, so clamp against the window's size, never the UI-scaled
+	# visible rect (that pulled a top-right tooltip to the top centre at UI scale 1.5).
+	var window := panel.get_tree().root if panel.is_inside_tree() else null
+	if window == null:
+		return
+	var screen: Vector2i = window.size
+	panel.position = Vector2i(clampi(panel.position.x, 0, maxi(screen.x - panel.size.x, 0)),
+		clampi(panel.position.y, 0, maxi(screen.y - panel.size.y, 0)))
 
 static func caps(label: Control, font_size: int = LABEL_SIZE, colour: Color = INK_DIM) -> void:
 	_font(label, caps_font(), font_size, colour)

@@ -104,6 +104,22 @@ func _run() -> void:
 		for name in ["WardenPanel", "DriftPanel", "DriftBanner"]:
 			var other := (main.get_node("HUD/" + name) as Control).get_global_rect()
 			_check(not bar_rect.intersects(other), "the Warden bar doesn't overlap %s at %s (%s vs %s)" % [name, screen, bar_rect, other])
+		# A minimised choice's "Back to …" button never covers the banner, the Coming strip or the bar.
+		var peek_screen := Control.new()
+		peek_screen.set_anchors_preset(Control.PRESET_FULL_RECT)
+		main.get_node("HUD").add_child(peek_screen)
+		var peek := ChoicePeek.new(peek_screen, [], "Back to the Dream")
+		peek.set_peeking(true)
+		await process_frame
+		var back_rect := (peek_screen.get_children().filter(func(c: Node) -> bool: return c is Button)[0] as Button).get_global_rect()
+		var strip_rect := Rect2()
+		for child in main.get_node("HUD").get_children():
+			if child is ComingStrip:
+				strip_rect = (child as Control).get_global_rect()
+		_check(not back_rect.intersects(bar_rect) and not back_rect.intersects((main.get_node("HUD/DriftBanner") as Control).get_global_rect())
+			and not back_rect.intersects(strip_rect) and back_rect.end.y <= screen.y,
+			"the peek's Back button clears the bar, banner and Coming strip at %s (%s; bar %s, strip %s)" % [screen, back_rect, bar_rect, strip_rect])
+		peek_screen.queue_free()
 	_check(banner.get_drift_text() == "Ready · Drift 1", "before the first drift the banner reads Ready · Drift 1")
 	# The camera can scroll past the map's far corner, so the Heartwood can clear the drift controls.
 	var camera = main.get_node("GameCameraNode")
@@ -158,7 +174,12 @@ func _run() -> void:
 	tap.button_index = MOUSE_BUTTON_LEFT
 	tap.pressed = true
 	light.gui_input.emit(tap)
-	_check((main.get_node("%ToastLabel") as Label).text.begins_with("Dreamlight"), "tapping the counter explains it (no hover-only info)")
+	var light_tip: TapTip = main.get_node("HUD").dreamlight_tip
+	_check(light_tip.visible and light_tip._label.text.begins_with("Dreamlight") and light_tip._label.text.contains("(%d)" % dreams.dreamlight),
+		"tapping the counter explains it at the counter (no hover-only info)")
+	_check(light_tip.global_position.y >= light.global_position.y and absf(light_tip.global_position.x - light.global_position.x) < 400.0,
+		"…right under the counter, not at the top centre (%s vs %s)" % [light_tip.global_position, light.global_position])
+	light_tip.visible = false
 	# Resources explain themselves on hover and tap (IconInfo, TapTip).
 	var dew_label: Label = main.get_node("%DewLabel")
 	_check(dew_label.tooltip_text == IconInfo.resource_tooltip(&"dew") and dew_label.tooltip_text.begins_with("Dew: "), "Dew has a plain-words tooltip")
