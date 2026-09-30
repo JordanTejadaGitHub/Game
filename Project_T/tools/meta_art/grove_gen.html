@@ -730,6 +730,12 @@ function groveTree() {
     if (n > .6) out.set(x, y, n > .72 ? HW.Moss : HW.Deepmoss);
     else if (n > .57 && hash(x, y, 97) < .5) out.set(x, y, HW.Leaf);
   }
+  // A cool veil of mist over the wood (the fog's teal and dusk, never white), thicker low down.
+  for (let y = 520; y < GH; y++) for (let x = 0; x < GW; x++) {
+    if (!out.alpha(x, y) || (x > 570 && x < 655 && y > 745 && y < 830)) continue;
+    const d = clamp((y - 520) / 300, 0, 1) * clamp((900 - y) / 60, 0, 1) * (.55 + pnoise(x, y, 50, 101) * .6);  // fades out before the roots and waystones
+    if (bay(x, y) < d * .24) out.set(x, y, d > .6 ? HW.Pool : HW.Dusk);
+  }
   return out;
 }
 
@@ -968,6 +974,12 @@ function groveCanopy(stage) {
   // Scale up 2× into the tree's space.
   const out = new Img(GW, GH);
   for (let y = 0; y < GH; y++) for (let x = 0; x < GW; x++) { const X = x / s | 0, Y = y / s | 0; if (small.alpha(X, Y)) out.set(x, y, small.get(X, Y)); }
+  // The same cool veil over the crown, faint at the top, a little thicker at its underside.
+  for (let y = 0; y < GH; y++) for (let x = 0; x < GW; x++) {
+    if (!out.alpha(x, y)) continue;
+    const d = clamp((y - 150) / 500, 0, 1) * (.5 + pnoise(x, y, 60, 102) * .6);
+    if (bay(x, y) < d * .22) out.set(x, y, d > .55 ? HW.Pool : HW.Dusk);
+  }
   // Long swamp-moss drapes hanging from the crown.
   for (let k = 0; k < 140; k++) {
     const x = 70 + hash(k, 1, 99) * 1140 | 0; let y = 600; while (y > 60 && !out.alpha(x, y)) y--;
