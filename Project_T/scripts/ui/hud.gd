@@ -253,6 +253,7 @@ func _fit_tower_bar() -> void:
 		if button == _seed_badge_button():
 			_seed_badge.position.x = width - 14
 	clear_tool.add_theme_constant_override("icon_max_width", icon)
+	clear_tool.custom_minimum_size = Vector2(width, BUTTON_SIZE.y)  # Exactly a Warden slot (user: not a different size)
 	# Centre the tool + bar from the computed widths (the container only re-sorts its children next
 	# frame). The bar grows upward from 16 px above the bottom.
 	var bar_width := width * per_row + BAR_GAP * (per_row - 1)

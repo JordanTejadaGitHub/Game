@@ -38,9 +38,19 @@ func _ready() -> void:
 	# Laid out like the Warden buttons: icon on top, "Clear" under it.
 	text = "Clear"
 	icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	expand_icon = true  # As the Warden slots: the icon fills the slot, it never sets its size
 	vertical_icon_alignment = VERTICAL_ALIGNMENT_TOP
 	add_theme_constant_override("icon_max_width", 34)
-	add_theme_font_size_override("font_size", 14)
+	add_theme_font_size_override("font_size", 16)  # As the Warden slots (their cost line)
+	var hotkey := Label.new()  # The key badge in the Warden slots' corner and font
+	hotkey.name = "Hotkey"
+	hotkey.text = "C"
+	hotkey.position = Vector2(3, 0)
+	hotkey.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	UiStyle.number(hotkey, 13, UiStyle.INK_DIM)
+	hotkey.add_theme_color_override("font_outline_color", UiStyle.FOG)
+	hotkey.add_theme_constant_override("outline_size", 3)
+	add_child(hotkey)
 	_update_icon()
 	tooltip_text = "Clear tool (0 / C): Tend Withered Trees and move Mossy Boulders."
 	pressed.connect(toggle_tool)
@@ -111,7 +121,7 @@ func _draw() -> void:
 	if _glow > 0.0:
 		draw_circle(Vector2(size.x / 2.0, size.y / 2.0 - 6.0), 22.0, Color(SPROUT_COLOR, 0.35 * _glow))
 	var font := ThemeDB.fallback_font
-	_text(font, Vector2(3, 12), "0", 11, UiStyle.INK_DIM)
+
 	if not clearer.is_locked() and run_state.free_clears > 0:
 		_text(font, Vector2(size.x - 14, 12), str(run_state.free_clears), 11, BADGE_COLOR)
 

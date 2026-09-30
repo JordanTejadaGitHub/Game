@@ -101,6 +101,11 @@ func _run() -> void:
 		_check(bar_rect.end.y > screen.y - 100 and absf(bar_rect.get_center().x - screen.x / 2.0) < 2.0
 			and tool_rect.end.x < bar.get_global_rect().position.x,
 			"the Clear tool and Warden bar sit at the bottom centre at %s (%s)" % [screen, bar_rect])
+		# The Clear slot is a Warden slot's size and shape, on the same baseline (user: not a different size).
+		var slot_rect := (bar.get_child(bar.get_child_count() - 1) as Control).get_global_rect()  # The bottom row
+		_check(tool_rect.size.is_equal_approx(slot_rect.size) and absf(tool_rect.end.y - slot_rect.end.y) < 1.0
+			and (main.get_node("HUD/ClearTool").get_node_or_null("Hotkey") as Label) != null,
+			"the Clear slot matches a Warden slot at %s (%s vs %s)" % [screen, tool_rect, slot_rect])
 		for name in ["WardenPanel", "DriftPanel", "DriftBanner"]:
 			var other := (main.get_node("HUD/" + name) as Control).get_global_rect()
 			_check(not bar_rect.intersects(other), "the Warden bar doesn't overlap %s at %s (%s vs %s)" % [name, screen, bar_rect, other])
@@ -174,7 +179,7 @@ func _run() -> void:
 			var panel_rect := (main.get_node("HUD/DriftPanel") as Control).get_global_rect()
 			_check(not meter_rect.intersects(panel_rect) and meter_rect.position.y >= DriftMeter.TOP_LIMIT - 1.0,
 				"the damage meter (%s tab) clears the DriftPanel at %s (%s vs %s)" % ["block" if summary else "Wardens", screen, meter_rect, panel_rect])
-		for row in fake_rows.filter(func(r: Button) -> bool: return is_instance_valid(r)):
+		for row in fake_rows.filter(func(r) -> bool: return is_instance_valid(r)):
 			row.queue_free()
 		meter._more.visible = false
 		meter.block_summary = false
