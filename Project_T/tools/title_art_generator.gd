@@ -4,8 +4,10 @@ extends SceneTree
 # A swamp forest at night, seen from the water's edge: an ancient Warden, grown as big as a hill,
 # sits half-sunk in still water with its back to the Heartwood. The great tree is far behind it in the
 # fog; its hollow is hidden behind the Warden, and its golden light warms the fog, rims the Warden's
-# outline and lies on the water. The Warden has the Wardens' shape (a big round head with narrow warm
-# eyes, a broad round body, heavy arms) in mossy stone, trees growing on it. Tall trunks fade into
+# outline and lies on the water. The Warden is an ancient stone titan dressed like the Pebbling /
+# Mossback sprites (assets/towers/pebbling.png): a blue face and belly with grey-violet stone sides, the
+# head flowing into the body, a moss cap with gold flowers; but old, cracked and in shadow, with the
+# Wardens' upright eyes burning gold in deep sockets under a heavy brow, and no mouth. Tall trunks fade into
 # teal fog; dark trees, roots and reeds frame the shot (the left stays calm for the logo and menu).
 # A tiny Shade (a nightmare) crouches on the bank in front, looking up at the Warden; faint eyes wait
 # in the dark trees behind it.
@@ -33,6 +35,8 @@ const MOSS := ["deepmoss", "moss", "leaf", "sprig"]
 const DARK_MOSS := ["void", "night", "deepmoss", "moss"]
 const FOG := ["void", "night", "pool", "slate", "stone", "mist", "moonlight"]  # teal-grey swamp fog
 const WARM := ["slate", "loam", "path", "moonpath", "heartlight"]  # fog lit by the Heartwood
+const SIDE := ["night", "dusk", "slate", "stone"]   # the Warden's stone sides (as Pebbling)
+const FRONT := ["night", "pool", "dew", "dewlight"]  # its blue face and belly (as Pebbling)
 
 var img: Image
 var noise := FastNoiseLite.new()
@@ -385,14 +389,22 @@ func _titan_pixel(x: int, y: int, id: int) -> Color:
 	var shape: Vector4 = _shape[id - 1]
 	var q := Vector2((x - shape.x) / shape.z, (y - shape.y) / shape.w)
 	var to_moon := (MOON - Vector2(x, y)).normalized()
+	# Ancient cobbled stone: the Pebbling's colours, but old, cracked and in shadow (it is backlit).
 	# Body, arms and shoulders share one stone pattern, so the arms read as grown from the body.
 	var s := stones(x, y, 8.0, 7 if id in [1, 4, 5, 6, 7] else 7 + id)
-	# Round form: brighter toward the moon, darker away; plus stones, cracks and a sky-lit top.
-	var v := 0.24 + 0.1 * q.normalized().dot(to_moon) * minf(q.length(), 1.0) + (s.z - 0.5) * 0.08
+	var v := 0.4 + 0.1 * q.normalized().dot(to_moon) * minf(q.length(), 1.0) - maxf(q.y, 0.0) * 0.08 + (s.z - 0.5) * 0.1
 	if s.y < 1.0:
-		v -= 0.11
+		v -= 0.14  # the cracks between the stones
 	if _part_at(x, y - 2) == 0:
-		v += 0.1
+		v += 0.08
+	# The Warden's blue front (face and belly), grey-violet stone round the sides.
+	# Round form: every part darkens toward its edge, so the body reads as a soft round stone.
+	v -= pow(minf(q.length(), 1.0), 3.0) * 0.2
+	var edge_noise := noise.get_noise_2d(x * 0.5, y * 0.5) * 0.1
+	var front := (id == 8 and Vector2(q.x / 0.86, (q.y - 0.02) / 0.9).length() + edge_noise < 1.0) or \
+		(id == 1 and Vector2(q.x / 0.74, (q.y - 0.04) / 0.98).length() + edge_noise < 1.0)
+	if front:
+		v += 0.04
 	var behind := false
 	for d in [Vector2i(-1, 0), Vector2i(1, 0), Vector2i(0, -1), Vector2i(0, 1)]:
 		var other := _part_at(x + d.x, y + d.y)
@@ -401,9 +413,7 @@ func _titan_pixel(x: int, y: int, id: int) -> Color:
 	if id == 4 or id == 5:
 		v += 0.03  # the arms stand a little forward of the body
 	if behind:
-		if id == 8:
-			return col("void")  # the chin keeps a hard line under the head
-		v -= 0.2  # elsewhere a soft shadowed crease: the arms and knees grow out of the body
+		v -= 0.08 if id == 8 else 0.2  # the head flows into the body; the arms and knees crease softly
 	if id == 1:
 		# The body darkens where an arm hangs beside it (a shadow, not an outline).
 		for dx in [-4, -3, -2, 2, 3, 4]:
@@ -424,24 +434,33 @@ func _titan_pixel(x: int, y: int, id: int) -> Color:
 	var warm := exp(-Vector2(x, y).distance_to(MOON) / 130.0)
 	if rim > 0 and y < WATER_Y - 4 and bayer(x, y) < warm * 1.8 - 0.2:
 		return col("glow") if rim == 2 else col("gold")
-	var fog := clampf((y - 200.0) / 90.0, 0.0, 1.0) * 0.5 + 0.1
-	# Moss grows over the tops and down the sides in thick patches.
-	var mossy := noise.get_noise_2d(x * 0.9 + 13.0, y * 0.9) - q.y * 0.25
-	if id == 8:
-		mossy -= 0.2 if absf(q.x) < 0.7 and q.y > -0.45 else -0.2  # keep the face mostly bare
-	if mossy > 0.2:
-		var mv := 0.22 + (s.z - 0.5) * 0.1 + (0.45 if rim == 2 else (0.22 if rim == 1 else 0.0))
+	var fog := clampf((y - 220.0) / 80.0, 0.0, 1.0) * 0.35
+	# Moss as on Pebbling and Mossback: a cap on the head, mounds on the shoulders, a little on the tops.
+	var lumps := noise.get_noise_2d(x * 0.9 + 13.0, y * 0.9) * 0.18
+	var mossy := false
+	match id:
+		8: mossy = q.y + lumps < -0.5
+		6, 7: mossy = q.y + lumps < 0.05
+		1, 4, 5: mossy = q.y + lumps < -0.82
+		_: mossy = q.y + lumps < -0.7
+	if mossy:
+		var mv := 0.3 + (0.45 if rim == 2 else (0.22 if rim == 1 else 0.0)) - maxf(q.y + 0.5, 0.0) * 0.2
 		if grain.get_noise_2d(x * 3.0, y * 3.0) > 0.4:
 			mv += 0.14
 		var c := pick(MOSS, mv, x, y)
-		if bayer(x, y) < fog * 0.7:
+		if bayer(x, y) < fog * 0.6:
 			c = pick(FOG, lerpf(v, 0.52, fog), x, y)
 		return c
 	if rim == 2:
 		v = 0.72
 	elif rim == 1:
-		v = maxf(v, 0.55)
-	return pick(FOG, lerpf(v, 0.52, fog), x, y)
+		v = maxf(v, 0.58)
+	if front and rim == 0:
+		v = minf(v, 0.45)  # the blue stays in shadow: no bright stones on the face or belly
+	var stone := pick(FRONT if front else SIDE, v, x, y)
+	if bayer(x, y) < fog * 0.6:  # the far fog lies over it, thicker lower down
+		stone = pick(FOG, lerpf(v, 0.52, fog), x, y)
+	return stone
 
 
 func _part_at(x: int, y: int) -> int:
@@ -509,25 +528,36 @@ func _spore_mushrooms() -> void:
 
 
 func _face() -> void:
-	# No mouth: two narrow warm eyes deep in shadowed sockets under a heavy brow. Watchful, not cute.
+	# The Wardens' eyes (Pebbling, Sporeling: small upright ovals, set wide), but the titan's: burning
+	# gold in deep sockets under a heavy brow, and no mouth. A Warden, and not one to cross.
 	for side in [-1, 1]:
-		var e := HEAD + Vector2(side * 17, 0)
-		for y in range(-5, 6):  # the socket
-			for x in range(-8, 9):
-				if pow(x / 8.5, 2) + pow(y / 5.5, 2) > 1.0 or _part_at(int(e.x) + x, int(e.y) + y) == 0:
+		var e := HEAD + Vector2(side * 15, 4)
+		for y in range(-8, 9):  # the socket
+			for x in range(-6, 7):
+				if pow(x / 6.4, 2) + pow(y / 8.4, 2) > 1.0 or _part_at(int(e.x) + x, int(e.y) + y) == 0:
 					continue
-				put(int(e.x) + x, int(e.y) + y, col("void") if y > -4 else col("night"))
-		glow(e, 8.0, col("gold"), 0.18)
-		for x in range(-5, 6):  # the slit, brightest in the middle
-			var c := col("heartlight") if absi(x) < 2 else (col("glow") if absi(x) < 4 else col("ember"))
-			put(int(e.x) + x, int(e.y), c)
-			if absi(x) < 4:
-				put(int(e.x) + x, int(e.y) + 1, col("gold") if absi(x) < 2 else col("ember"))
-	for x in range(-30, 31):  # the brow's hard shadow line
+				put(int(e.x) + x, int(e.y) + y, col("void") if y > -6 else col("night"))
+		glow(e, 9.0, col("gold"), 0.2)
+		for y in range(-5, 6):  # the eye, hottest in the middle
+			for x in range(-2, 3):
+				if pow(x / 2.6, 2) + pow(y / 5.6, 2) > 1.0:
+					continue
+				var r := Vector2(x * 2.0, y).length()
+				put(int(e.x) + x, int(e.y) + y, col("heartlight") if r < 2.0 else (col("glow") if r < 3.6 else col("ember")))
+	for x in range(-32, 33):  # the brow's hard shadow line, slanting down toward the middle
 		var bx := int(HEAD.x) + x
-		var by := int(HEAD.y) - 7 + int(absf(x) / 10.0)
-		if _part_at(bx, by) != 0:
-			put(bx, by, col("void"))
+		var by := int(HEAD.y) - 7 + int((32.0 - absf(x)) / 12.0)
+		for k in 2:
+			if _part_at(bx, by - k) != 0:
+				put(bx, by - k, col("void") if k == 0 else col("night"))
+	# Little gold flowers in the moss cap (Mossback's).
+	for f: Vector2 in [Vector2(-26, -30), Vector2(-8, -40), Vector2(14, -37), Vector2(31, -26), Vector2(-38, -14)]:
+		var p := HEAD + f
+		if _part_at(int(p.x), int(p.y)) != 8:
+			continue
+		for d in [Vector2i(0, -1), Vector2i(-1, 0), Vector2i(1, 0), Vector2i(0, 1)]:
+			put(int(p.x) + d.x, int(p.y) + d.y, col("glow"))
+		put(int(p.x), int(p.y), col("gold"))
 
 
 # --- foreground ----------------------------------------------------------------------------------
