@@ -8,18 +8,18 @@
 [resource]
 script = ExtResource("1_tdata")
 display_name = "Elder Stump"
-description = "The 8 Wardens around it attack 20% faster."
+description = "The 8 Wardens around it attack 30% faster."
 cost = 0
 line = "acorn"
 tier = 2
 buildable_directly = false
-evolve_cost = 80
+evolve_cost = 120
 attack_kind = 1
 attack_range = 2.0
 damage = 13
 attacks_per_second = 1.0
 crit_chance = 0.05
-aura_speed_bonus = 0.2
+aura_speed_bonus = 0.3
 aura_radius = 1.5
 texture = ExtResource("2_tex")
 frame_count = 8

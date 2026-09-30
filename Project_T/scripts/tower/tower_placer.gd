@@ -397,6 +397,11 @@ func grow_changes(tower: Tower, into: TowerData) -> String:
 		var faster := speed * into.attacks_per_second / maxf(from.attacks_per_second, 0.01)
 		if absf(faster - speed) >= 0.05:
 			parts.append("Speed %.1f → %.1f/s" % [speed, faster])
+		# The headline first (warden_stats.md "Branches: pricier and worth it"): damage per second, before
+		# the mechanic (chains, splash, statuses).
+		var ratio := (then * faster) / maxf(now * speed, 0.001)
+		if absf(ratio - 1.0) >= 0.05:
+			parts.push_front("%.1f× damage" % ratio)
 	elif into.can_attack and not from.can_attack:
 		parts.append("Damage %d" % into.damage)
 	var reach := preview_range(tower, into)
@@ -716,6 +721,9 @@ func evolve(tower: Tower, into: TowerData, origin: Vector2 = NO_CELL) -> bool:
 	if grows:
 		_take_square(tower, into, origin)
 	tower.evolve(into, cost)
+	if into.tier == DreamState.ASCENDED_TIER - 1 and not _finals_grown.has(into.get_id()):
+		_finals_grown[into.get_id()] = true  # The first of each final form this run gets its bloom
+		Fx.final_bloom(tower, into.display_name)
 	return true
 
 # The 2×2 squares (top-left cells) `tower` could grow into `into` on (tower_design.md "Ascended forms",
@@ -1163,6 +1171,7 @@ func frozen_ground() -> bool:
 	return omens != null and omens.has_method("blocks_building") and omens.blocks_building()
 
 var _frozen_toast_at := -100000
+var _finals_grown := {}  # final form id -> true once one grew this run (Fx.final_bloom)
 
 func _toast_frozen() -> void:
 	var now := Time.get_ticks_msec()

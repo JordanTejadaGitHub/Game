@@ -9,21 +9,21 @@
 [resource]
 script = ExtResource("1_tdata")
 display_name = "Elf Circle"
-description = "More rings, and they wait until a nightmare steps on them."
+description = "Many more rings (up to 9), and they wait until a nightmare steps on them."
 cost = 0
 texture = ExtResource("2_tex")
 frame_count = 8
 line = "spore"
 tier = 3
 buildable_directly = false
-evolve_cost = 200
+evolve_cost = 300
 attack_kind = 4
 attack_range = 3.0
 damage = 90
 attacks_per_second = 0.667
 applies_status = &"spored"
 status_stacks = 3
-trap_max = 6
+trap_max = 9
 trap_lifetime = 0.0
 trap_radius = 0.6
 crit_chance = 0.05

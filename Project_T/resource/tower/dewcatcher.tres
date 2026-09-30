@@ -7,19 +7,19 @@
 [resource]
 script = ExtResource("1_tdata")
 display_name = "Dewcatcher"
-description = "Catches Dew: nightmares dispelled within 2.5 tiles drop +40% Dew, poured out at the rest (the Harvest). Also +4 Dew each drift."
+description = "Catches Dew: nightmares dispelled within 2.5 tiles drop +60% Dew, poured out at the rest (the Harvest). Also +6 Dew each drift."
 cost = 0
 line = "acorn"
 tier = 2
 buildable_directly = false
-evolve_cost = 80
+evolve_cost = 120
 attack_kind = 1
 attack_range = 2.5
 damage = 8
 attacks_per_second = 1.0
 crit_chance = 0.05
-dew_per_drift = 4
-catch_share = 0.4
+dew_per_drift = 6
+catch_share = 0.6
 catch_radius = 2.5
 texture = ExtResource("2_tex")
 frame_count = 8

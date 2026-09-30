@@ -260,6 +260,18 @@ static func _end_hitstop() -> void:
 		Engine.time_scale = _hitstop_base  # (If the player changed speed meanwhile, keep theirs)
 	_hitstop_base = -1.0
 
+# The first grow into a final form each run: two swelling gold rings and the form's name over it.
+static func final_bloom(tower: Node2D, title: String) -> void:
+	var parent := Reactions._world(tower)
+	if parent == null:
+		return
+	for i in 2:
+		var ring := FxRing.new(Color(1.0, 0.85, 0.45), 20.0 + 16.0 * i, 130.0 + 40.0 * i, 0.8 + 0.25 * i)
+		ring.z_index = Z
+		parent.add_child(ring)
+		ring.global_position = tower.global_position
+	callout(title, Color(1.0, 0.88, 0.55), tower.global_position + Vector2(0, -56), parent, StringName("final_" + title))
+
 # A chain of 5 or 10: a big gold ring swelling around where it happened, never a screen tint.
 static func _local_surge(where: Vector2, parent: Node) -> void:
 	var ring := FxRing.new(Color(1.0, 0.85, 0.45), 24.0, 110.0, 0.6)

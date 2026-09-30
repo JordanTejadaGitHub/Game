@@ -116,7 +116,7 @@ func _test_dreamcatcher() -> void:
 	var sleeper := _spawn(great.global_position + Vector2(CELL, 0))
 	sleeper.statuses.sleep_time = 2.0
 	great._update_catch(1.0)
-	_check(sleeper.statuses.is_caught() and is_equal_approx(sleeper.statuses.caught_bonus, 0.6), "Great: asleep is Caught at +60%")
+	_check(sleeper.statuses.is_caught() and is_equal_approx(sleeper.statuses.caught_bonus, great.tower_data.caught_bonus), "Great: asleep is Caught at its caught_bonus")
 	_check(is_equal_approx(sleeper.statuses.sleep_time, 3.0), "sleep in its range lasts 1 s longer")
 	great._catch_tick = 0.0
 	great._update_catch(1.0)
@@ -141,8 +141,8 @@ func _test_echo() -> void:
 	_check(after_clap > 0, "a Thunderclap goes off next to the Hollow")
 	await _wait(1.2)
 	var echo := _lost(wet) - after_clap
-	var expected := int(Reactions.ECHO_DAMAGE[&"thunderclap"] * jar.get_damage() * 0.5 * hollow.get_potency())  # Echoes are effects: × Potency
-	_check(absi(echo - expected) <= 1, "1 s later it echoes at 50% (%d, expected %d)" % [echo, expected])
+	var expected := int(Reactions.ECHO_DAMAGE[&"thunderclap"] * jar.get_damage() * hollow.tower_data.echo_share * hollow.get_potency())  # Echoes are effects: × Potency
+	_check(absi(echo - expected) <= 1, "1 s later it echoes at its echo_share (%d, expected %d)" % [echo, expected])
 	var tracker := main.get_tree().get_first_node_in_group(ReactionTracker.GROUP) as ReactionTracker
 	var claps: int = tracker.counts.get(&"thunderclap", 0)
 	await _wait(1.2)
@@ -185,8 +185,8 @@ func _test_lob() -> void:
 	var patches := main.get_children().filter(func(n: Node) -> bool: return n is RubblePatch)
 	_check(patches.size() == 1, "Rockslide leaves rubble on the path")
 	await _wait(0.4)
-	_check(on_path.statuses.slow_time > 0.0 and is_equal_approx(on_path.statuses.slow_amount, 0.25),
-		"nightmares on the rubble are slowed 25%")
+	_check(on_path.statuses.slow_time > 0.0 and is_equal_approx(on_path.statuses.slow_amount, slide.tower_data.rubble_slow),
+		"nightmares on the rubble are slowed by its rubble_slow")
 	await _clean()
 
 
@@ -217,9 +217,10 @@ func _test_pecks() -> void:
 	var crits := [0]
 	court.crit_landed.connect(func(_t, _e) -> void: crits[0] += 1)
 	court._release()
-	await _wait(2.5)
+	await _wait(3.5)
 	_check(_lost(a) > 0 and _lost(b) > 0, "Jewelwing's birds spread over several nightmares")
-	_check(crits[0] == 24 / 6, "Flurry: every 6th of the 24 pecks crits (%d)" % crits[0])
+	var pecks: int = court.tower_data.peck_birds * court.tower_data.pecks
+	_check(crits[0] == pecks / court.tower_data.flurry_every, "Flurry: every 6th of the %d pecks crits (%d)" % [pecks, crits[0]])
 	court.focus_strongest = true
 	a.health = a.max_health * 2  # The strongest now
 	var b_before := _lost(b)
@@ -256,7 +257,7 @@ func _test_seeds() -> void:
 		_spawn(gale.global_position + offset * CELL)
 	gale._release()
 	var seeds := main.get_children().filter(func(n: Node) -> bool: return n is SeedBoomerang)
-	_check(seeds.size() == 2, "Autumn Gale throws 2 seeds (%d)" % seeds.size())
+	_check(seeds.size() == gale.tower_data.boomerang_seeds, "Autumn Gale throws its boomerang_seeds (%d)" % seeds.size())
 	await _wait(3.0)
 	_check(is_equal_approx(gale._catch_streak, 0.1), "a caught throw that hit makes the next throw +10%")
 	gale._seeds_thrown = 1

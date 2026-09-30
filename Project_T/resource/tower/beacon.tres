@@ -9,14 +9,14 @@
 [resource]
 script = ExtResource("1_tdata")
 display_name = "Beacon"
-description = "Every 2 s, Exposes every nightmare in range, and its Exposed is stronger: +35% damage taken."
+description = "Every 2 s, Exposes every nightmare in range, and its Exposed is stronger: +50% damage taken."
 cost = 0
 line = "light"
 tier = 3
 buildable_directly = false
-evolve_cost = 200
+evolve_cost = 300
 attack_range = 5.0
-damage = 24
+damage = 60
 attacks_per_second = 1.0
 projectile_speed = 460
 projectile_texture = ExtResource("3_proj")
@@ -24,7 +24,7 @@ projectile_color = Color(0.9882353, 0.83137256, 0.4862745, 1)
 applies_status = &"marked"
 ability_every = 2.0
 mark_all = true
-marked_bonus = 0.35
+marked_bonus = 0.5
 crit_chance = 0.05
 texture = ExtResource("2_tex")
 frame_count = 8

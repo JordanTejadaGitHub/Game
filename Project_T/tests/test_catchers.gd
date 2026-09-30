@@ -49,7 +49,7 @@ func _run() -> void:
 	var dew := run_state.dew
 	await _dispel(near)
 	_check(run_state.dew == dew + roundi(reward * multiplier) or run_state.dew >= dew, "the dispel still pays its own Dew now")
-	_check(is_equal_approx(catcher.bowl, reward * multiplier * 0.4), "Dewcatcher: +40%% into the bowl (%.2f of %d)" % [catcher.bowl, reward])
+	_check(is_equal_approx(catcher.bowl, reward * multiplier * catcher.tower_data.catch_share), "Dewcatcher: its catch into the bowl (%.2f of %d)" % [catcher.bowl, reward])
 	_check(caught.size() == 1, "dew_caught fires once")
 	var far := _spawn(catcher.global_position + Vector2(3 * CELL, 0))
 	var bowl := catcher.bowl
@@ -61,7 +61,7 @@ func _run() -> void:
 	var plain := catcher.get_damage()
 	catcher.rank = 2
 	var probe := _spawn(catcher.global_position)
-	_check(is_equal_approx(catcher.get_catch_share(probe), 0.6), "rank II: +60%% catch (%.2f)" % catcher.get_catch_share(probe))
+	_check(is_equal_approx(catcher.get_catch_share(probe), catcher.tower_data.catch_share + 2 * catcher.tower_data.catch_per_rank), "rank II: +2 ranks of catch (%.2f)" % catcher.get_catch_share(probe))
 	_check(is_equal_approx(catcher.get_damage(), plain), "ranks don't add damage to a catcher")
 	catcher.rank = 0
 
@@ -71,13 +71,13 @@ func _run() -> void:
 	bowl = catcher.bowl
 	var well_bowl := well.bowl
 	await _dispel(both)
-	_check(is_equal_approx(catcher.bowl, bowl) and well.bowl > well_bowl, "two catchers never stack: the Wellspring's +60% applies")
-	_check(is_equal_approx(well.bowl - well_bowl, reward * multiplier * 0.6), "Wellspring: +60%% (%.2f)" % (well.bowl - well_bowl))
+	_check(is_equal_approx(catcher.bowl, bowl) and well.bowl > well_bowl, "two catchers never stack: the Wellspring's higher catch applies")
+	_check(is_equal_approx(well.bowl - well_bowl, reward * multiplier * well.tower_data.catch_share), "Wellspring: its catch (%.2f)" % (well.bowl - well_bowl))
 
 	# Drift Dew goes into the bowl too
 	bowl = catcher.bowl
 	catcher._on_drift_cleared(1, 0, true)
-	_check(is_equal_approx(catcher.bowl, bowl + 4), "Dewcatcher: +4 Dew per drift, into the bowl")
+	_check(is_equal_approx(catcher.bowl, bowl + catcher.tower_data.dew_per_drift), "Dewcatcher: its Dew per drift, into the bowl")
 
 	# --- The Harvest, then interest ---
 	var poured := []
@@ -142,11 +142,11 @@ func _run() -> void:
 	# Dew Bowl / Dew Trail (Wide Bowl merged into it: +0.5 catch radius)
 	_take("dew_bowl")
 	var damp := _spawn(catcher.global_position + Vector2(CELL, 0))
-	_check(is_equal_approx(catcher.get_catch_share(damp), 0.55), "Dew Bowl: +15%% catch (%.2f)" % catcher.get_catch_share(damp))
+	_check(is_equal_approx(catcher.get_catch_share(damp), catcher.tower_data.catch_share + 0.15), "Dew Bowl: +15%% catch (%.2f)" % catcher.get_catch_share(damp))
 	_take("dew_trail")
 	_check(is_equal_approx(catcher.get_catch_radius(), 3.0), "Dew Trail: +0.5 cells catch radius")
 	damp.apply_status(EnemyStatuses.DAMP, 1, 5.0, 1.0)
-	var trail := 0.55 + DewCatch.DEW_TRAIL[0] * dreams.rule_power(&"dew_trail")
+	var trail := catcher.tower_data.catch_share + 0.15 + DewCatch.DEW_TRAIL[0] * dreams.rule_power(&"dew_trail")
 	_check(is_equal_approx(catcher.get_catch_share(damp), trail), "Dew Trail: +30%% (with its tag resonance) on a Damp nightmare (%.2f, want %.2f)" % [catcher.get_catch_share(damp), trail])
 	catcher.queue_free()
 	await _clean()
@@ -210,7 +210,7 @@ func _run() -> void:
 	middle._refresh_neighbours()
 	var one := stumps[0].get_aura_bonus(true)
 	_check(is_equal_approx(middle._aura_speed, one * 1.75), "three Elder Stumps: 100%% + 50%% + 25%% (%.3f, one is %.3f)" % [middle._aura_speed, one])
-	_check(middle.get_aura_lines() == ["Elder Stump ×3: +%d%% attack speed" % roundi(one * 175.0)], "panel line: %s" % [middle.get_aura_lines()])
+	_check(middle.get_aura_lines() == ["Elder Stump ×3: +%d%% attack speed" % roundi(middle._aura_speed * 100.0)], "panel line: %s" % [middle.get_aura_lines()])
 	stumps[2].rank = 1
 	stumps[2].rank_choices = [Tower.Focus.KINDRED]  # Nurture v3: a Kindred rank
 	middle._refresh_neighbours()
