@@ -282,8 +282,10 @@ Decisions (design chat; the interim rise in run_design.md was too small for this
    Oak (drift 100) keeps today's health** so the curve builds up to it instead of ending on a wall.
    Act 1 as is (the first boss is tuned separately). Next human run checks it.
 2. **Bountiful Night:** ×2.5 Dew → **×1.6**.
-3. **Dew had nothing to buy** once the map was full and ranks stopped at II: a Dew sink question for
-   the user (see below).
+   **Late Dew cut** (user: "earn less late"): Dew per dispel by act **[1.0, 0.68, 0.45, 0.35]** (was [1.0, 0.68, 0.65, 0.5]; `RunState.act_dew_multipliers`).
+3. **Dew had nothing to buy** once the map was full and ranks stopped at II. User's answer: earn less
+   late (the cut above) **and** ranks III–V for Dew, with a choice at every rank: **Nurture v3**
+   (`warden_stats.md`).
 4. **Per-drift rows are unreliable when drifts are called early:** most drifts show 0.1–0.6 s and
    the block's health lands on its 5th drift. Record health, damage and leaks **by the drift that
    spawned the nightmare**, not by the drift that was current when it happened.
