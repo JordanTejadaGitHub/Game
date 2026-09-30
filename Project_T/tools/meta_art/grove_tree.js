@@ -5,7 +5,7 @@ const GW = 1280, GH = 960;
 // Heartwood 32 (assets/palette/heartwood32.json, injected by export.ps1 -Rebuild): colours by name.
 const HW = Object.fromEntries(HW32.ramps.flatMap(r => r.colors.map(c => [c.name, c.hex])));
 // Night bark: the Bark ramp (the Heartwood is the warm side), grain runs along the wood.
-const HB6 = [HW.Void, HW.Root, HW.Root, HW.Bark, HW.Bark, HW.Oak];
+const HB6 = [HW.Void, HW.Night, HW.Root, HW.Bark, HW.Loam, HW.Oak];  // cooler, mossier wood (the title's mossy giant)
 const LEAFG = [HW.Deepmoss, HW.Moss, HW.Leaf, HW.Sprig, HW.Newleaf];
 const SECTION = {
   perks:    { name: "Perks",    petals: ["#6a3c0c", "#b87818", "#e8b440", "#ffe39a"], mid: "#fff6d0", glow: "255,200,90" },
@@ -196,7 +196,7 @@ function groveTree() {
   for (let y = 1; y < GH; y++) for (let x = 0; x < GW; x++) {
     if (!L.alpha(x, y) || L.alpha(x, y - 3)) continue;
     const n = pnoise(x, y, 11, 41);
-    if (n > .45) for (let d = 0; d < 1 + Math.floor((n - .45) * 8); d++) if (L.alpha(x, y + d)) M.set(x, y + d, LEAFG[Math.min(4, 2 + d % 3)]);
+    if (n > .3) for (let d = 0; d < 1 + Math.floor((n - .3) * 14); d++) if (L.alpha(x, y + d)) M.set(x, y + d, LEAFG[Math.min(4, 2 + d % 3)]);
   }
   out.stamp(L, HB6[0]);
   // A 1 px warm gold rim on the upper-left edges (art_direction.md: light from the upper left, warm
@@ -263,6 +263,13 @@ function groveTree() {
     if (y >= 700 || hash(k, 2, 50) < .45) continue;
     const len = 6 + hash(k, 3, 50) * 16;
     for (let i = 1; i < len; i++) out.set(x + Math.round(Math.sin(i * .3 + k)), y + i, i % 3 ? "#56624e" : "#3e4a3a");
+  }
+  // Moss patches all over the trunk and roots, like the title's giant.
+  for (let y = 560; y < 960; y++) for (let x = 400; x < 880; x++) {
+    if (!L.alpha(x, y) || (x > 560 && x < 665 && y > 735 && y < 835)) continue;  // keep the Hollow clear
+    const n = pnoise(x, y, 14, 95) * .7 + pnoise(x, y, 5, 96) * .3;
+    if (n > .6) out.set(x, y, n > .72 ? HW.Moss : HW.Deepmoss);
+    else if (n > .57 && hash(x, y, 97) < .5) out.set(x, y, HW.Leaf);
   }
   return out;
 }
@@ -502,6 +509,13 @@ function groveCanopy(stage) {
   // Scale up 2× into the tree's space.
   const out = new Img(GW, GH);
   for (let y = 0; y < GH; y++) for (let x = 0; x < GW; x++) { const X = x / s | 0, Y = y / s | 0; if (small.alpha(X, Y)) out.set(x, y, small.get(X, Y)); }
+  // Long swamp-moss drapes hanging from the crown.
+  for (let k = 0; k < 140; k++) {
+    const x = 70 + hash(k, 1, 99) * 1140 | 0; let y = 600; while (y > 60 && !out.alpha(x, y)) y--;
+    if (y < 150 || hash(k, 2, 99) < .3) continue;
+    const len = 20 + hash(k, 3, 99) ** 1.5 * 90;
+    for (let i = 0; i < len; i++) { const xx = x + Math.round(Math.sin(i * .12 + k) * 2); out.set(xx, y + i, i > len * .75 ? HW.Deepmoss : i % 4 ? HW.Moss : HW.Deepmoss); if (i % 6 === 3) out.set(xx + (k % 2 ? 1 : -1), y + i, HW.Leaf); }
+  }
   // Dream motes floating in and round the crown: tiny gold and pale-violet crosses (opaque, 1 px arms),
   // small enough never to read as nodes; more of them the fuller the tree.
   for (let k = 0; k < 70 + stage * 30; k++) {
