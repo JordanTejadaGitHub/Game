@@ -6,7 +6,7 @@ extends SceneTree
 # with narrow warm eyes, a broad round body, heavy arms resting on the ground) but it's
 # mossy stone, with trees growing on it and glowing spore-mushrooms at its knees. Mist hides its base;
 # dark trees frame the shot (the left side stays calm for the logo and menu). A tiny Shade (a nightmare)
-# stands in a moonlit clearing, looking up at it: the scale comes from that contrast.
+# sits on a narrow trail among the trees, looking up at it: the scale comes from that contrast.
 # Every pixel is snapped to Heartwood 32 (art_direction.md).
 #   assets/ui/title/title_background.png   640×360, the art
 #   tools/previews/title_background_3x.png 1920×1080 preview
@@ -52,13 +52,14 @@ func _init() -> void:
 	_sky()
 	_moon()
 	_clouds()
-	_moon_rays()
 	_forest(238, 130, 0.48, 1, 0, 40.0, 100.0)   # far trees, pale in the fog
 	_titan()
 	_mist(230, 262, 0.62)
-	_forest(270, 60, 0.2, 2, 150, 50.0, 110.0)   # nearer trees, left and right of the titan
+	_forest(270, 80, 0.2, 2, 120, 50.0, 120.0)   # nearer trees, close around the titan
 	_mist(266, 292, 0.5)
-	_clearing()
+	_forest_floor()
+	_mid_trunks()
+	_undergrowth()
 	_figure()
 	_frame_trees()
 	_fireflies()
@@ -283,17 +284,6 @@ func _stratus(x0: float, x1: float, mid: float, thick: float, salt: int) -> void
 			put(x, y, pick(INK, 0.38 - u * 0.22 + lit * 0.5, x, y, 0.2))
 
 
-func _moon_rays() -> void:
-	# Faint shafts of moonlight fanning down through the mist, in two alpha steps.
-	for y in range(int(MOON.y), 300):
-		for x in W:
-			var a := atan2(y - MOON.y, x - MOON.x)
-			var band := sin(a * 38.0 + 1.3) * sin(a * 11.0)
-			var fade := 1.0 - (y - MOON.y) / 240.0
-			if band > 0.75:
-				blend(x, y, col("mist"), 0.1 * fade)
-			elif band > 0.55:
-				blend(x, y, col("mist"), 0.05 * fade)
 
 
 # --- forest --------------------------------------------------------------------------------------
@@ -536,38 +526,106 @@ func _face() -> void:
 
 # --- foreground ----------------------------------------------------------------------------------
 
-func _clearing() -> void:
-	# A moonlit clearing on the forest floor: dark grass, a worn trail, glowing flowers.
+func _lane_x(y: float) -> float:
+	# The trail's centre: from the Warden's knees down to the Shade and on toward us.
+	var near := clampf((y - 284.0) / (H - 284.0), 0.0, 1.0)
+	return lerpf(TITAN_X - 30.0, FIGURE.x, near) + sin(y * 0.08) * 6.0
+
+
+func _forest_floor() -> void:
+	# Dark mossy forest floor: leaf litter, a narrow trail, dappled moonlight between the trees.
 	for y in range(272, H):
 		var near := clampf(float(y - 284) / (H - 284), 0.0, 1.0)
 		for x in W:
 			if y < 284 + noise.get_noise_1d(x * 1.5 + 70.0) * 12.0:
 				continue  # a ragged far edge, meeting the mist
-			var lane := exp(-pow((x - lerpf(TITAN_X - 30, FIGURE.x, near)) / (40.0 + near * 60.0), 2.0))
-			var v := 0.14 + near * 0.12 + lane * 0.3 + noise.get_noise_2d(x * 1.2, y * 2.0) * 0.12
+			var lane := exp(-pow((x - _lane_x(y)) / (8.0 + near * 18.0), 2.0))
+			var dapple := noise.get_noise_2d(x * 0.9 + 300.0, y * 2.2)
+			var v := 0.1 + near * 0.06 + (0.16 if dapple > 0.35 else 0.0) + noise.get_noise_2d(x * 1.4, y * 2.6) * 0.08
 			var c := pick(MOSS, v, x, y)
-			if lane > 0.75 and noise.get_noise_2d(x * 2.0 + 40.0, y * 3.0) > -0.1:
-				c = pick(["loam", "path", "moonpath"], 0.2 + lane * 0.5, x, y)
+			if hash01(x, y, 17) < 0.05:  # leaf litter
+				c = col(["bark", "oak", "loam", "root"][int(hash01(x, y, 18) * 4.0)])
+			if lane > 0.6 and noise.get_noise_2d(x * 2.0 + 40.0, y * 3.0) > -0.2:
+				c = pick(["root", "loam", "path"], 0.25 + lane * 0.35 + (0.2 if dapple > 0.35 else 0.0), x, y)
 			put(x, y, c)
-	for i in 1300:
+	for i in 500:  # short grass tufts, mostly in the moonlit patches
 		var y := rng.randi_range(290, H - 1)
 		var x := rng.randi_range(0, W - 1)
-		var near := float(y - 290) / (H - 290)
-		var length := 1 + int(near * rng.randf_range(1.0, 6.0))
-		put(x, y + 1, col("deepmoss"))
+		var lit := noise.get_noise_2d(x * 0.9 + 300.0, y * 2.2) > 0.35
+		var length := 1 + int(float(y - 290) / (H - 290) * rng.randf_range(1.0, 4.0))
 		for k in length:
-			put(x, y - k, col("sprig") if k == length - 1 and rng.randf() < 0.4 else col("leaf"))
-	for i in 70:
+			put(x, y - k, col("leaf") if lit else col("moss"))
+	for i in 30:  # pale night flowers
 		var y := rng.randi_range(296, H - 12)
 		var x := rng.randi_range(60, W - 60)
-		var petal: String = ["blossom", "dewlight", "moonlight"][rng.randi_range(0, 2)]
-		put(x, y, col(petal))
-		if rng.randf() < 0.4:
-			put(x - 1, y, col(petal))
-			put(x + 1, y, col(petal))
-			put(x, y - 1, col(petal))
-			put(x, y, col("heartlight"))
-			glow(Vector2(x, y), 3.0, col(petal), 0.2)
+		put(x, y, col("dewlight"))
+		if rng.randf() < 0.3:
+			glow(Vector2(x, y), 3.0, col("dewlight"), 0.2)
+	_roots()
+
+
+func _roots() -> void:
+	# Roots snaking across the floor from the trees, crossing the trail.
+	var r := RandomNumberGenerator.new()
+	r.seed = 61
+	for i in 16:
+		var p := Vector2(r.randf_range(0.0, W), r.randf_range(292.0, H))
+		var dir := Vector2(r.randf_range(-1.0, 1.0), r.randf_range(-0.15, 0.15)).normalized()
+		var width := r.randi_range(1, 3)
+		for k in r.randi_range(20, 70):
+			p += dir
+			dir = (dir + Vector2(0, r.randf_range(-0.08, 0.08))).normalized()
+			for w in width:
+				put(int(p.x), int(p.y) + w, col("root") if w > 0 else col("bark"))
+			if k % 9 == 0:
+				put(int(p.x), int(p.y) - 1, col("moss"))
+
+
+func _mid_trunks() -> void:
+	# Trees between us and the Warden, standing on the forest floor, rising into the canopy.
+	for t in [Vector3(206, 306, 10), Vector3(250, 292, 5), Vector3(334, 298, 7), Vector3(372, 288, 3),
+			Vector3(528, 290, 4), Vector3(566, 300, 9), Vector3(604, 306, 6)]:
+		var x0: float = t.x
+		var foot: float = t.y
+		var half: float = t.z
+		var toward := signf(MOON.x - x0)
+		for y in range(0, int(foot) + 1):
+			var flare := pow(maxf(0.0, (y - (foot - 14.0)) / 14.0), 2.0) * half * 1.4
+			var lean := (hash01(int(x0), 5) - 0.5) * 0.12  # each trunk leans a little
+			var cx := x0 + (foot - y) * lean + noise.get_noise_1d(y * 0.7 + x0) * 2.0
+			var hw := half * (0.7 + 0.3 * y / foot) + flare  # tapering upward
+			for x in range(int(cx - hw), int(cx + hw) + 1):
+				var u := (x - cx) / hw
+				var v := 0.06 + (0.05 if grain.get_noise_2d(u * 5.0 + x0, y * 0.3) > 0.25 else 0.0)
+				if u * toward > 0.72:
+					v = 0.32 if u * toward > 0.88 else 0.2  # the moonlit side
+				var c := pick(INK, v, x, y)
+				if u * toward < -0.2 and noise.get_noise_2d(x * 1.3, y * 0.9) > 0.3:
+					c = pick(DARK_MOSS, 0.5, x, y)  # moss on the shaded side
+				put(x, y, c)
+
+
+func _undergrowth() -> void:
+	# Bushes, ferns and bracken along the edge of the floor and round the tree feet; the trail
+	# stays open.
+	var r := RandomNumberGenerator.new()
+	r.seed = 73
+	for i in 70:
+		var y := r.randf_range(282.0, 312.0)
+		var x := r.randf_range(-10.0, W + 10.0)
+		if absf(x - _lane_x(y)) < 22.0:
+			continue
+		var rr := Vector2(r.randf_range(8.0, 20.0), r.randf_range(5.0, 11.0))
+		for yy in range(int(y - rr.y) - 2, int(y) + 2):
+			for xx in range(int(x - rr.x) - 2, int(x + rr.x) + 3):
+				var q := Vector2((xx - x) / rr.x, (yy - y) / rr.y)
+				if q.length() > 1.0 + grain.get_noise_2d(xx * 2.2, yy * 2.2) * 0.35:
+					continue
+				var lit := q.normalized().dot((MOON - Vector2(xx, yy)).normalized()) > 0.4 and q.length() > 0.75
+				var v := 0.28 + (0.5 if lit else 0.0) + (0.14 if grain.get_noise_2d(xx * 3.0, yy * 3.0) > 0.4 else 0.0)
+				put(xx, yy, pick(DARK_MOSS, v, xx, yy))
+	for fern in [Vector2(172, 318), Vector2(236, 300), Vector2(356, 306), Vector2(470, 312), Vector2(520, 300), Vector2(590, 318)]:
+		_fern(fern, 20.0)
 
 
 func _figure() -> void:
