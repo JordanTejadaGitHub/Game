@@ -34,6 +34,13 @@ const DARK_MOSS := ["void", "night", "deepmoss", "moss"]
 const FOG := ["void", "night", "pool", "slate", "stone", "mist", "moonlight"]  # teal-grey swamp fog
 const WARM := ["slate", "loam", "path", "moonpath", "heartlight"]  # fog lit by the Heartwood
 
+const FLESH := ["void", "dread", "shade", "bruise", "loam", "blossom"]  # the Sporeling variant's body
+const CAP := ["void", "dread", "shade", "bruise", "stone", "mist"]      # its Bloomcap cap
+
+## Which Warden the titan is: "stone" (the title art) or "sporeling" (a comparison variant, a vast
+## Bloomcap). Set with `-- --warden=sporeling --out=<file.png>`; a variant never overwrites the title art.
+var variant := "stone"
+var out_file := ""
 var img: Image
 var noise := FastNoiseLite.new()
 var grain := FastNoiseLite.new()
@@ -44,6 +51,15 @@ var _shape := []                  # per part: Vector4(centre x, centre y, radius
 
 
 func _init() -> void:
+	for arg in OS.get_cmdline_user_args():
+		if arg.begins_with("--warden="):
+			variant = arg.get_slice("=", 1)
+		elif arg.begins_with("--out="):
+			out_file = arg.get_slice("=", 1)
+	if variant != "stone" and out_file == "":
+		push_error("title_art_generator: a variant needs --out=<file.png>")
+		quit(1)
+		return
 	rng.seed = 20260930
 	noise.seed = 11
 	noise.frequency = 0.045
@@ -74,6 +90,14 @@ func _init() -> void:
 	_fireflies()
 	Palette.snap_image(img)
 
+	if out_file != "":
+		img.save_png(out_file)
+		var big_variant := img.duplicate() as Image
+		big_variant.resize(W * 3, H * 3, Image.INTERPOLATE_NEAREST)
+		big_variant.save_png(out_file.get_basename() + "_3x.png")
+		print("title_art_generator: wrote ", out_file)
+		quit()
+		return
 	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(OUT))
 	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(PREVIEW.get_base_dir()))
 	img.save_png(OUT + "title_background.png")
@@ -386,6 +410,11 @@ func _titan() -> void:
 			var id := _mask[y * W + x]
 			if id != 0:
 				put(x, y, _titan_pixel(x, y, id))
+	if variant == "sporeling":
+		_spore_mushrooms()
+		_face()
+		_giant_cap()
+		return
 	_hanging_moss()
 	_crown_tree(Vector2(HEAD.x - 20, HEAD.y - 40), 1.0)
 	_crown_tree(Vector2(TITAN_X - 74, 124), 0.6)
@@ -403,7 +432,7 @@ func _titan_pixel(x: int, y: int, id: int) -> Color:
 	# Round form: brighter toward the moon, darker away; plus stones, cracks and a sky-lit top.
 	# Backlit, it is one great dark mass against the light: detail lives in the upper body and fades below.
 	var v := 0.17 + 0.1 * q.normalized().dot(to_moon) * minf(q.length(), 1.0) + (s.z - 0.5) * 0.08
-	if s.y < 1.0:
+	if s.y < 1.0 and variant != "sporeling":  # flesh has no cracks
 		v -= 0.07 * (1.0 - clampf((y - 160.0) / 100.0, 0.0, 1.0))  # the cracks, softer and lost in the mist lower down
 	if _part_at(x, y - 2) == 0:
 		v += 0.1
@@ -442,6 +471,8 @@ func _titan_pixel(x: int, y: int, id: int) -> Color:
 	if rim == 1 and lit < 0.35:
 		rim = 0  # away from the light the edge stays in shadow
 	var fog := clampf((y - 160.0) / 120.0, 0.0, 1.0) * 0.8 + 0.05  # the mist swallows it from the waist down
+	if variant == "sporeling":
+		return _flesh_pixel(x, y, id, v, rim, lit, fog)
 	# Moss grows over the tops and down the sides in thick patches.
 	var mossy := noise.get_noise_2d(x * 0.9 + 13.0, y * 0.9) - q.y * 0.25
 	if id == 8:
@@ -458,6 +489,72 @@ func _titan_pixel(x: int, y: int, id: int) -> Color:
 	elif rim == 1:
 		v = maxf(v, 0.4)
 	return pick(FOG, lerpf(v, 0.5, fog), x, y, 0.1)
+
+
+## The Sporeling variant's body: soft fungal flesh (no cracks), fibrous streaks and pale spore
+## freckles, in shadow under its cap.
+func _flesh_pixel(x: int, y: int, id: int, v: float, rim: int, lit: float, fog: float) -> Color:
+	v += 0.05 if grain.get_noise_2d(x * 0.5, y * 3.0) > 0.4 else 0.0  # fibres, running down
+	if blocky(x, y, 2, 91) > 0.988:
+		v += 0.1  # freckles, faint
+	if id == 8 and y < HEAD.y - 4:
+		v -= 0.12  # the cap's shadow on the head
+	if rim == 2:
+		v = maxf(v, 0.3 + lit * 0.4)
+	elif rim == 1:
+		v = maxf(v, 0.4)
+	if band(fog + noise.get_noise_2d(x * 0.8, y * 0.8) * 0.2, x, y, 0.08):
+		return pick(FOG, lerpf(v, 0.5, fog), x, y, 0.1)
+	return pick(FLESH, v + 0.14, x, y, 0.1)
+
+
+## The Sporeling variant's crown: a vast cap (the Bloomcap's), backlit, its brim drooping low over the
+## eyes; faintly glowing gills underneath and spores drifting down from them.
+func _giant_cap() -> void:
+	var c := Vector2(HEAD.x, HEAD.y - 22)
+	var rx := 108.0
+	var top := 62.0
+	for x in range(int(c.x - rx) - 4, int(c.x + rx) + 5):
+		var u := (x - c.x) / rx
+		if absf(u) > 1.0:
+			continue
+		var dome_top := c.y - top * sqrt(1.0 - u * u) + noise.get_noise_1d(x * 3.0) * 3.0
+		var under := c.y + pow(absf(u), 1.6) * 18.0  # where the dome's rim meets the gills
+		var brim := c.y + 7.0 + pow(absf(u), 1.6) * 26.0 + grain.get_noise_1d(x * 2.0) * 2.0
+		for y in range(int(dome_top), int(brim) + 1):
+			if not inside(x, y):
+				continue
+			var warm := exp(-Vector2(x, y).distance_to(MOON) / 130.0)
+			if y < under:
+				# The dome: dark against the light, pale spots, a gold rim along its top edge.
+				var edge := y - dome_top
+				var lit := warm * 1.6 - 0.3 + noise.get_noise_2d(x * 2.0, y * 2.0) * 0.3
+				if edge < 2.0 and band(lit + 0.25, x, y, 0.1):
+					put(x, y, col("glow") if edge < 1.0 and lit > 0.6 else col("gold"))
+					continue
+				var v := 0.24 + (1.0 - (y - dome_top) / maxf(under - dome_top, 1.0)) * 0.12
+				if noise.get_noise_2d(x * 1.4 + 70.0, y * 2.2) > 0.32:
+					v += 0.2  # the Bloomcap's pale patches
+				put(x, y, pick(CAP, v, x, y, 0.1))
+			else:
+				# The gills: dark, fine lines running out from the stem, some glowing faintly.
+				var ang := atan2(y - (c.y - 40.0), x - c.x)
+				var line := absf(fmod(ang * 60.0, 1.0))
+				var c2 := col("void") if line > 0.3 else col("dread")
+				if line < 0.12 and hash01(int(ang * 60.0), 3) > 0.55 and y > brim - 4.0:
+					c2 = col("blossom") if hash01(x, y, 5) > 0.5 else col("orchid")
+				put(x, y, c2)
+	var r := RandomNumberGenerator.new()
+	r.seed = 77
+	for i in 260:  # spores, falling from the gills
+		var sx := c.x + r.randf_range(-rx, rx) * 0.95
+		var sy := c.y + 14.0 + pow(r.randf(), 1.8) * 170.0
+		if sy >= WATER_Y:
+			continue
+		var fade := 1.0 - (sy - c.y) / 190.0
+		if r.randf() > fade:
+			continue
+		put(int(sx), int(sy), col("blossom") if r.randf() < 0.5 else col("dewlight"))
 
 
 func _part_at(x: int, y: int) -> int:
