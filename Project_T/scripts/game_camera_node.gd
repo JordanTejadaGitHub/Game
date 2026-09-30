@@ -16,7 +16,11 @@ const MAP_GRID = preload("res://resource/map/map_grid.tres")  # The shared grid 
 
 # Internal variables
 var target_position: Vector2  # Target position for the camera
-var target_zoom: Vector2  # Target zoom level (Vector2 for consistency)
+var target_zoom: Vector2  # Target zoom level (Vector2 for consistency), in view units (see _view_zoom)
+# The zoom the player sees: 1 = one map pixel per window pixel, whatever the UI scale. The UI scale
+# (HeartwoodMemory "ui_scale" = the root's content_scale_factor) scales everything drawn, so the
+# Camera2D zooms by view / factor and the map keeps its size when the UI grows or shrinks.
+var _view_zoom: Vector2
 
 var map_size_pixels: Vector2  # Map size in pixels, calculated from MAP_GRID
 
@@ -28,6 +32,8 @@ func _ready() -> void:
 	# Initialize the camera position and zoom
 	target_position = camera_2d.position
 	target_zoom = camera_2d.zoom
+	_view_zoom = camera_2d.zoom
+	camera_2d.zoom = _view_zoom / ui_factor()
 
 var _glide_points := PackedVector2Array()  # Onboarding glide along the path (pixels)
 var _glide_time := 0.0
@@ -140,7 +146,8 @@ func zoom_by(factor: float) -> void:
 func _get_zoom_out_min() -> float:
 	var viewport_size := camera_2d.get_viewport_rect().size
 	var framed := map_size_pixels + MAP_GRID.cell_size * 2
-	return maxf(camera_zoom_out_min, minf(viewport_size.x / framed.x, viewport_size.y / framed.y))
+	# The viewport size is in UI-scaled pixels: × the factor gives the view zoom that frames the map.
+	return maxf(camera_zoom_out_min, minf(viewport_size.x / framed.x, viewport_size.y / framed.y) * ui_factor())
 
 # Smoothly move the camera to the target position.
 # Using 1 - exp(-k * delta) makes the smoothing feel the same at any frame rate.
@@ -149,8 +156,13 @@ func _smooth_camera_movement(delta: float) -> void:
 
 # Smoothly adjust the camera's zoom level
 func _smooth_zoom(delta: float) -> void:
-	# Interpolate zoom as Vector2
-	camera_2d.zoom = camera_2d.zoom.lerp(target_zoom, 1.0 - exp(-zoom_smoothness * delta))
+	_view_zoom = _view_zoom.lerp(target_zoom, 1.0 - exp(-zoom_smoothness * delta))
+	camera_2d.zoom = _view_zoom / ui_factor()
+
+# The UI scale factor now (1 when nothing scales the window).
+func ui_factor() -> float:
+	var window := get_tree().root if is_inside_tree() else null
+	return window.content_scale_factor if window != null and window.content_scale_factor > 0.0 else 1.0
 
 # Clamp the camera's target to the map boundaries
 func _clamp_camera_to_map() -> void:

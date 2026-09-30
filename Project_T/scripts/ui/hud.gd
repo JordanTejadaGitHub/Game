@@ -25,9 +25,15 @@ const COUNTER_ICON_GAP := 6.0
 
 const LEAVES_COLOR := UiStyle.INK
 const DREAMLIGHT_COLOR := UiStyle.GOLD
-const REMEMBER_RIGHT := -284.0  # Remember: just left of the Dreamlight counter (run_design.md)
-const REMEMBER_WIDTH := 124.0
-const MENU_BUTTON_RIGHT := REMEMBER_RIGHT - REMEMBER_WIDTH - 8.0  # Menu and ? left of Remember
+# The top-right buttons sit in one row under the resources, right-aligned: [?][Buffs][Remember][Menu].
+# (They used to share the top row with the resources, which ran into the drift banner at 1280 wide.)
+# Each is [right, width] from the screen's right edge; all TOP_BUTTON_H tall (touch: 48).
+const TOP_BUTTONS_Y := 150.0
+const TOP_BUTTON_H := 48.0
+const MENU_SLOT := [-16.0, 84.0]
+const REMEMBER_SLOT := [-106.0, 124.0]
+const BUFFS_SLOT := [-236.0, 84.0]
+const CODEX_SLOT := [-326.0, 48.0]
 const LEAF_LOST_COLOR := Color(1.0, 0.6, 0.3)
 const TOAST_TIME := 2.5
 
@@ -317,12 +323,7 @@ func _add_menu_button() -> void:
 	button.text = "Menu"
 	button.tooltip_text = "Pause menu (Esc)"
 	button.focus_mode = Control.FOCUS_NONE
-	button.set_anchors_preset(Control.PRESET_TOP_RIGHT)
-	button.offset_left = MENU_BUTTON_RIGHT - 84
-	button.offset_right = MENU_BUTTON_RIGHT
-	button.offset_top = 12
-	button.offset_bottom = 60
-	button.grow_horizontal = Control.GROW_DIRECTION_BEGIN
+	_place_top_button(button, MENU_SLOT)
 	button.pressed.connect(func() -> void:
 		var pause := get_node_or_null("%PauseMenu")
 		if pause != null and not pause.visible and not run_state.is_over:
@@ -333,8 +334,7 @@ func _add_menu_button() -> void:
 	codex.name = "CodexButton"
 	codex.text = "?"
 	codex.tooltip_text = "Codex: glossary and combos"
-	codex.offset_right = button.offset_left - 8
-	codex.offset_left = codex.offset_right - 48
+	_place_top_button(codex, CODEX_SLOT)
 	codex.pressed.connect(func() -> void:
 		var pause := get_node_or_null("%PauseMenu")
 		if pause != null and not run_state.is_over:
@@ -473,12 +473,7 @@ func _add_remember_button() -> void:
 	remember_button.text = "Remember"
 	remember_button.tooltip_text = "Remember: spend Dreamlight on your families' branches and final forms."
 	remember_button.focus_mode = Control.FOCUS_NONE
-	remember_button.set_anchors_preset(Control.PRESET_TOP_RIGHT)
-	remember_button.offset_right = REMEMBER_RIGHT
-	remember_button.offset_left = REMEMBER_RIGHT - REMEMBER_WIDTH
-	remember_button.offset_top = 12
-	remember_button.offset_bottom = 60
-	remember_button.grow_horizontal = Control.GROW_DIRECTION_BEGIN
+	_place_top_button(remember_button, REMEMBER_SLOT)
 	remember_button.process_mode = Node.PROCESS_MODE_ALWAYS
 	remember_button.pressed.connect(open_remember)
 	add_child(remember_button)
@@ -492,15 +487,19 @@ func _add_buff_lens_button() -> void:
 	buff_lens_button.tooltip_text = "Buff lens (%s)" % _action_key("buff_lens")
 	buff_lens_button.toggle_mode = true
 	buff_lens_button.focus_mode = Control.FOCUS_NONE
-	buff_lens_button.set_anchors_preset(Control.PRESET_TOP_RIGHT)
-	buff_lens_button.offset_left = MENU_BUTTON_RIGHT - 84
-	buff_lens_button.offset_right = MENU_BUTTON_RIGHT
-	buff_lens_button.offset_top = 66
-	buff_lens_button.offset_bottom = 106
-	buff_lens_button.grow_horizontal = Control.GROW_DIRECTION_BEGIN
+	_place_top_button(buff_lens_button, BUFFS_SLOT)
 	buff_lens_button.process_mode = Node.PROCESS_MODE_ALWAYS
 	buff_lens_button.toggled.connect(func(pressed: bool) -> void: BuffLens.set_on(get_tree(), pressed))
 	add_child(buff_lens_button)
+
+# Puts a top-right button in its slot ([right, width]) of the row under the resources.
+func _place_top_button(button: Button, slot: Array) -> void:
+	button.set_anchors_preset(Control.PRESET_TOP_RIGHT)
+	button.offset_right = slot[0]
+	button.offset_left = slot[0] - slot[1]
+	button.offset_top = TOP_BUTTONS_Y
+	button.offset_bottom = TOP_BUTTONS_Y + TOP_BUTTON_H
+	button.grow_horizontal = Control.GROW_DIRECTION_BEGIN
 
 func _action_key(action: String) -> String:
 	for event in InputMap.action_get_events(action) if InputMap.has_action(action) else []:
