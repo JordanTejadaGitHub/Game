@@ -6,7 +6,7 @@
 script = ExtResource("1_unlock")
 id = "nestling"
 display_name = "Nestling family"
-description = "Nestling joins your family picks: birds, mobile and fast. Its branches: Wren's Nest and Magpie Perch. Needs 2 of Pebbling, Rootling, Bellflower, Acorn."
+description = "{family:nestling} joins your {family_picks}: birds, mobile and fast. Branches: Wren's Nest, Magpie Perch."
 root = 0
 costs = Array[int]([120])
 order = 7

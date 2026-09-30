@@ -6,7 +6,7 @@
 script = ExtResource("1_unlock")
 id = "the_long_walk"
 display_name = "The Long Walk"
-description = "The Legendary The Long Walk joins the pool. Grows by itself once you build a 300-tile path."
+description = "Legendary: The Long Walk joins the pool."
 root = 1
 costs = Array[int]([100])
 order = 18

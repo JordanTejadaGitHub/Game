@@ -6,7 +6,7 @@
 script = ExtResource("1_unlock")
 id = "bellflower"
 display_name = "Bellflower family"
-description = "Bellflower joins your family picks: sleep and its payoffs. Its Dream cards join the pool. Needs Pebbling or Rootling."
+description = "{family:bellflower} joins your {family_picks}: sleep and its payoffs. Its Dream cards join the pool."
 root = 0
 costs = Array[int]([60])
 order = 5

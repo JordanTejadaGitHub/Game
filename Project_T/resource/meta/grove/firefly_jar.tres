@@ -6,7 +6,7 @@
 script = ExtResource("1_unlock")
 id = "firefly_jar"
 display_name = "Firefly Jar family"
-description = "Firefly Jar is in your family picks from the start: light and Static."
+description = "In your {family_picks} from the start: light and {static}."
 root = 0
 costs = Array[int]([])
 order = 1

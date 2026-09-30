@@ -30,7 +30,7 @@ var _card := PanelContainer.new()
 var _card_icon := TextureRect.new()
 var _card_name := Label.new()
 var _card_section := Label.new()
-var _card_text := Label.new()
+var _card_text := RichTextLabel.new()  # The description, with status / term / family links (StatusLinks)
 var _card_status := Label.new()
 var _plant := Button.new()
 var _carry := Button.new()
@@ -157,9 +157,13 @@ func _build_card() -> void:
 	close.pressed.connect(func() -> void: _select(null))
 	head.add_child(close)
 	box.add_child(head)
+	_card_text.bbcode_enabled = true
+	_card_text.fit_content = true
+	_card_text.scroll_active = false
 	_card_text.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_card_text.custom_minimum_size = Vector2(CARD_WIDTH - 28, 0)
 	box.add_child(_card_text)
+	StatusLinks.hook(_card_text)
 	_card_status.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_card_status.custom_minimum_size = Vector2(CARD_WIDTH - 28, 0)
 	_card_status.add_theme_font_size_override("font_size", 14)
@@ -292,7 +296,7 @@ func _update_card() -> void:
 		tags.append("Level %d of %d" % [level, levels])
 	_card_section.text = " · ".join(tags)
 	_card_section.add_theme_color_override("font_color", colour)
-	_card_text.text = selected.description
+	_card_text.text = StatusLinks.bbcode(selected.description)
 	var problem := HeartwoodMemory.buy_problem(_memory, selected)
 	var cost := selected.get_cost(HeartwoodMemory.unlock_level(_memory, selected.id))
 	_plant.visible = problem != "Grown" and not selected.is_free()
@@ -300,7 +304,7 @@ func _update_card() -> void:
 	_plant.text = ("Grow level %d · %d Seeds" % [level + 1, cost] if level > 0 else "Plant · %d Seeds" % cost)
 	match problem:
 		"Grown":
-			_card_status.text = "In bloom." if not selected.start else "Grown from the start."
+			_card_status.text = "In bloom" if not selected.start else "Grown from the start"
 		"Grows by itself":
 			_card_status.text = "Grows by itself: %s." % MILESTONE_TEXT.get(selected.milestone, "a milestone")
 		"Needs another unlock first":
@@ -313,7 +317,7 @@ func _update_card() -> void:
 	_card_status.add_theme_color_override("font_color", Color(0.7, 0.95, 0.6) if problem == "Grown" else Color(0.85, 0.82, 0.75))
 	var carried := HeartwoodMemory.get_loadout(_memory).has(selected.id)
 	_carry.visible = selected.is_perk() and level > 0
-	_carry.text = "Put back (carried)" if carried else "Carry into the dream"
+	_carry.text = "Put back" if carried else "Carry into the dream"
 	_carry.disabled = not carried and HeartwoodMemory.get_loadout(_memory).size() >= HeartwoodMemory.loadout_slots(_memory)
 	if _carry.disabled:
 		_carry.text = "Loadout full"
@@ -367,7 +371,7 @@ func _plant_selected() -> void:
 			HeartwoodMemory.save_loadout(carried)
 	_refresh()
 	if HeartwoodMemory.memories_unlocked(_memory) > before:
-		_message.text = "A memory returns… a dream-fruit ripens on the Heartwood."
+		_message.text = "A Memory returns: a dream-fruit ripens on the Heartwood."
 	else:
 		_message.text = ""
 	_check_full_bloom()

@@ -6,7 +6,7 @@
 script = ExtResource("1_unlock")
 id = "whirligig_hidden"
 display_name = "Hidden branch: Samara"
-description = "Whirligigs can grow into Samaras (and Autumn Gales). Brings the boomerang cards."
+description = "Whirligigs can grow into Samaras, then Autumn Gales. Brings the boomerang cards."
 root = 0
 costs = Array[int]([80])
 order = 28

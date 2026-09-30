@@ -6,7 +6,7 @@
 script = ExtResource("1_unlock")
 id = "sprout_bed"
 display_name = "Sprout Bed"
-description = "Start with 2 free Sprouts to plant."
+description = "Start with 2 free Sprouts."
 root = 2
 costs = Array[int]([60])
 order = 6

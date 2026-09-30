@@ -6,7 +6,7 @@
 script = ExtResource("1_unlock")
 id = "firefly_jar_hidden"
 display_name = "Hidden branch: Sunpetal"
-description = "Firefly Jars can grow into Sunpetals (and Midsummers). Grows by itself once you've dispelled 500 Shades."
+description = "Firefly Jars can grow into Sunpetals, then Midsummers."
 root = 0
 costs = Array[int]([])
 order = 21

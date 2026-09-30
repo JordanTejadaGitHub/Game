@@ -6,7 +6,7 @@
 script = ExtResource("1_unlock")
 id = "dewdrop_hidden"
 display_name = "Hidden branch: Frostfern"
-description = "Dewdrops can grow into Frostferns (and Hoarfrosts): freezing Damp nightmares."
+description = "Dewdrops can grow into Frostferns, then Hoarfrosts: they freeze {damp} nightmares."
 root = 0
 costs = Array[int]([40])
 order = 22

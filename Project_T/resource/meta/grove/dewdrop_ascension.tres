@@ -6,7 +6,7 @@
 script = ExtResource("1_unlock")
 id = "dewdrop_ascension"
 display_name = "Ascension: Tidecaller"
-description = "Dewdrop's Ascended form, Tidecaller, can grow in your runs (from drift 51: 3 Dreamlight, then 400 Dew on a final form). Tides roll along the path and wash nightmares back."
+description = "The Ascended Tidecaller can grow in your runs: from {drift} 51, 3 {dreamlight}, then 400 Dew on a final form. Tides roll along the path and wash nightmares back."
 root = 0
 costs = Array[int]([120])
 order = 32

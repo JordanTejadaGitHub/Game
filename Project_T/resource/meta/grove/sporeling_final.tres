@@ -6,7 +6,7 @@
 script = ExtResource("1_unlock")
 id = "sporeling_final"
 display_name = "Sporeling final forms"
-description = "Sporeling final forms can grow in your runs: Puffball, Dreamshroom."
+description = "Final forms can grow in your runs: Puffball, Dreamshroom."
 root = 0
 costs = Array[int]([50])
 order = 10

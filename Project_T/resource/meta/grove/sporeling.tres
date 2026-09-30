@@ -6,7 +6,7 @@
 script = ExtResource("1_unlock")
 id = "sporeling"
 display_name = "Sporeling family"
-description = "Sporeling is in your family picks from the start: spores that soothe over time."
+description = "In your {family_picks} from the start: lingering spores."
 root = 0
 costs = Array[int]([])
 order = 0

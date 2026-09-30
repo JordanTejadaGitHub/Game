@@ -6,7 +6,7 @@
 script = ExtResource("1_unlock")
 id = "nestling_final"
 display_name = "Nestling final forms"
-description = "Nestling final forms can grow in your runs: Starling Murmuration, Magpie's Hoard."
+description = "Final forms can grow in your runs: Starling Murmuration, Magpie's Hoard."
 root = 0
 costs = Array[int]([60])
 order = 17
