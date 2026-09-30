@@ -1,0 +1,172 @@
+{
+	"leaf_bug": {
+		"frame": 64,
+		"top": -10,
+		"bottom": 12
+	},
+	"bark_beetle": {
+		"frame": 64,
+		"top": -22,
+		"bottom": 14
+	},
+	"dusk_moth": {
+		"frame": 64,
+		"top": -24,
+		"bottom": 13
+	},
+	"dandelion_seed": {
+		"frame": 64,
+		"top": -21,
+		"bottom": 14
+	},
+	"puffcap": {
+		"frame": 64,
+		"top": -24,
+		"bottom": 13
+	},
+	"puffcaplet": {
+		"frame": 64,
+		"top": -8,
+		"bottom": 14
+	},
+	"mother_spider": {
+		"frame": 64,
+		"top": -17,
+		"bottom": 12
+	},
+	"spiderling": {
+		"frame": 64,
+		"top": -2,
+		"bottom": 13
+	},
+	"hedgehog": {
+		"frame": 64,
+		"top": -20,
+		"bottom": 19
+	},
+	"wandering_hare": {
+		"frame": 64,
+		"top": -24,
+		"bottom": 12
+	},
+	"mother_duck": {
+		"frame": 64,
+		"top": -30,
+		"bottom": 13
+	},
+	"duckling": {
+		"frame": 64,
+		"top": -8,
+		"bottom": 14
+	},
+	"old_stag": {
+		"frame": 112,
+		"top": -55,
+		"bottom": 27
+	},
+	"great_toad": {
+		"frame": 144,
+		"top": -56,
+		"bottom": 35
+	},
+	"will_o_wisp": {
+		"frame": 64,
+		"top": -19,
+		"bottom": 1
+	},
+	"gravecrawler": {
+		"frame": 64,
+		"top": -18,
+		"bottom": 16
+	},
+	"drowned_one": {
+		"frame": 64,
+		"top": -17,
+		"bottom": 23
+	},
+	"barrow_wight": {
+		"frame": 64,
+		"top": -26,
+		"bottom": 16
+	},
+	"watcher": {
+		"frame": 64,
+		"top": -22,
+		"bottom": 14
+	},
+	"ash_crawler": {
+		"frame": 64,
+		"top": -26,
+		"bottom": 23
+	},
+	"moth_queen": {
+		"frame": 144,
+		"top": -67,
+		"bottom": 68
+	},
+	"shellbound": {
+		"frame": 64,
+		"top": -14,
+		"bottom": 17
+	},
+	"shellbound_cracked": {
+		"frame": 64,
+		"top": -13,
+		"bottom": 17
+	},
+	"whisper_swarm": {
+		"frame": 64,
+		"top": -18,
+		"bottom": 8
+	},
+	"dream_thief": {
+		"frame": 64,
+		"top": -17,
+		"bottom": 16
+	},
+	"weeper": {
+		"frame": 64,
+		"top": -13,
+		"bottom": 16
+	},
+	"hollow_oak": {
+		"frame": 176,
+		"top": -82,
+		"bottom": 35
+	},
+	"night_mare": {
+		"frame": 112,
+		"top": -49,
+		"bottom": 21
+	},
+	"scarecrow": {
+		"frame": 112,
+		"top": -54,
+		"bottom": 21
+	},
+	"crow": {
+		"frame": 64,
+		"top": -17,
+		"bottom": 7
+	},
+	"huntsman": {
+		"frame": 144,
+		"top": -69,
+		"bottom": 25
+	},
+	"lamplighter": {
+		"frame": 112,
+		"top": -53,
+		"bottom": 20
+	},
+	"cold_lantern": {
+		"frame": 64,
+		"top": -32,
+		"bottom": 14
+	},
+	"thorn_sapling": {
+		"frame": 64,
+		"top": -16,
+		"bottom": 15
+	}
+}
