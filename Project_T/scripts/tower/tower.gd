@@ -302,6 +302,9 @@ var _leaf_mote: Node2D = null  # Drifts up in _process while an aura boosts this
 var _harmony := {}
 var _harmony_glow: Array = []
 var _lit_cells: Array[Vector2] = []  # Rootlight: path tiles it lights
+var _twist: StringName = &""  # Its final form's signature twist (FinalTwists), or ""
+var _twist_state := {}  # The twist's own state (timers, counts)
+var _chorus := 0.0  # Lullaby Bell's Chorus: +damage from the Bellflower-family Wardens around it
 var _lit_until := {}  # Long Light: cell -> _anim_time it stops being lit (after the light moved on)
 var _out: Array = []  # Hummingbirds / seeds that are away (the next attack waits for them)
 var _catch_tick := 0.0
@@ -359,6 +362,8 @@ func _ready() -> void:
 func _apply_data() -> void:
 	clear_dream_cache()
 	_aura_support = SUPPORT_AURA_WARDENS.has(tower_data.get_id())
+	_twist = FinalTwists.twist_of(tower_data)
+	_twist_state = {}
 	attack_data = tower_data
 	_damage_share = 1.0
 	if not target_chosen:
@@ -448,6 +453,8 @@ func _process(delta: float) -> void:
 	if attack_data.copy_status_every > 0.0:
 		_update_status_copy(delta)
 	_update_legacy(delta)
+	if _twist != &"":
+		FinalTwists.update(self, delta)  # Signature twists (tower_design.md)
 	match attack_data.attack_kind:
 		TowerData.AttackKind.AURA:
 			_update_aura(delta)
@@ -509,7 +516,7 @@ func _compute_damage() -> float:
 	return attack_data.damage * _damage_share * get_rank_damage_multiplier() * (1.0 + _aura_damage) \
 		* _dream_bonus(&"soothe") \
 		* (1.0 + (_kin.damage_bonus(self) if is_instance_valid(_kin) else 0.0)) \
-		* get_wall_multiplier()  # Kindred / Whole Tree, Kinship cards; Bramble Oath
+		* get_wall_multiplier() * (1.0 + _chorus)  # Kindred / Whole Tree, Kinship cards; Bramble Oath; Chorus
 
 # Withering Oak: the Warden withers for `seconds` (grey, no attacks), then comes back unharmed.
 func wither(seconds: float) -> void:
@@ -520,10 +527,11 @@ func is_withered() -> bool:
 	return withered_left > 0.0
 
 func get_attacks_per_second() -> float:
+	var momentum := FinalTwists.momentum(self) if _twist == &"momentum" else 0.0  # Windmill: spins up
 	if _stats_fresh() and _stats.has(&"speed"):
-		return _stats[&"speed"]
+		return _stats[&"speed"] * (1.0 + momentum)
 	_stats[&"speed"] = _compute_attacks_per_second()
-	return _stats[&"speed"]
+	return _stats[&"speed"] * (1.0 + momentum)
 
 func _compute_attacks_per_second() -> float:
 	var ranks := mini(get_effective_rank(), STAT_TOP_RANK)
@@ -572,6 +580,7 @@ func _stats_fresh() -> bool:
 		_dream_state.board_version if _dream_state else 0, _dream_state.stacks.size() if _dream_state else 0,
 		_kin.get_pairs(self).size() if is_instance_valid(_kin) else 0,
 		_kin.families.hash() if is_instance_valid(_kin) else 0,
+		_chorus,
 		_omens.active if _omens else null]
 	if key != _stats_key or _anim_time > _stats_until:
 		_stats_key = key
@@ -1129,6 +1138,9 @@ func _refresh_neighbours() -> void:
 	var harmony := {}
 	var best: Tower = null
 	var best_dps := 0.0
+	var second: Tower = null
+	var second_dps := 0.0
+	var voices := 0
 	_touch_lines = {}
 	var my_aura := tower_data.aura_damage_bonus > 0.0 or tower_data.aura_speed_bonus > 0.0
 	var my_reach := get_aura_reach() if my_aura else 0.0
@@ -1165,8 +1177,18 @@ func _refresh_neighbours() -> void:
 				and absf(other.cell.x - cell.x) <= 1 and absf(other.cell.y - cell.y) <= 1:
 			var dps: float = other.get_damage() * other.get_attacks_per_second()
 			if dps > best_dps:
+				second = best  # Double graft: the runner-up too
+				second_dps = best_dps
 				best_dps = dps
 				best = other
+			elif dps > second_dps:
+				second = other
+				second_dps = dps
+		if _twist == &"chorus" and data.line == "song" and distance <= FinalTwists.CHORUS_REACH:
+			voices += 1  # Chorus: each other Bellflower-family Warden within 3 cells
+	_chorus = FinalTwists.chorus_bonus(self, voices)
+	if _twist == &"double_graft":
+		_twist_state[&"graft_pair"] = [best.tower_data, second.tower_data] if best != null and second != null else []
 	_stack_auras(auras)
 	if tower_data.get_id() == "sprout" and _rule_stacks(&"warm_hearth") > 0:
 		var hearth := 1.0 + DreamState.WARM_HEARTH_SPROUTS * _rule_power(&"warm_hearth")  # Warm Hearth: auras on Sprouts
@@ -1206,6 +1228,8 @@ func get_copied() -> TowerData:
 
 # Winds up the attack animation; the shot / pulse happens on its release frame.
 func _start_attack() -> void:
+	if _twist == &"double_graft":
+		FinalTwists.next_graft(self)  # Double graft: alternates between its two borrowed attacks
 	# Performance: a little jitter (the same rate on average) so Wardens planted together drift out of
 	# step instead of all releasing on the same frame (test_perf_stress: 25-48 ms spikes every ~0.4 s).
 	_cooldown = randf_range(1.0 - COOLDOWN_JITTER, 1.0 + COOLDOWN_JITTER) / get_attacks_per_second()
@@ -1701,6 +1725,7 @@ func _after_hit(enemy: Node2D, is_crit: bool) -> void:
 			and (attack_data.freeze_needs == &"" or enemy.statuses.stacks(attack_data.freeze_needs) >= attack_data.freeze_needs_stacks):
 		enemy.freeze_cooldown = attack_data.freeze_cooldown
 		hold(enemy, attack_data.freeze_duration)
+		FinalTwists.frozen(self, enemy)  # Shatter chain: a real freeze can chain when it's dispelled
 		if attack_data.held_damage_bonus > 0.0:
 			enemy.statuses.held_bonus = maxf(enemy.statuses.held_bonus, attack_data.held_damage_bonus)  # World Root
 	if is_crit and attack_data.crit_dew > 0:
@@ -1843,6 +1868,8 @@ func projectile_landed(target: Node2D, where: Vector2) -> void:
 			if enemy != target and enemy.global_position.distance_to(where) <= splash:
 				hit(enemy, attack_data.splash_share, true, crit)
 		_skip(target, where)  # Pebbling: the splash, then the skip
+		if _twist == &"landslide":
+			FinalTwists.landslide(self, target)  # Every 4th hit rolls a boulder back along the path
 	else:
 		_splash(where, splash, 1.0, crit)
 		var rainfog := kin_share(&"rainfog", "a")
@@ -1971,6 +1998,7 @@ func _update_ability(delta: float) -> void:
 	if attack_data.hold_targets > 0:
 		for enemy in in_range.slice(0, attack_data.hold_targets):
 			hold(enemy, attack_data.hold_time)
+			FinalTwists.jammed(self, enemy)  # Logjam: a walker Snugroot holds jams its cell
 			var drag := kin_share(&"snare", "b")
 			if drag > 0.0 and is_instance_valid(enemy):
 				pull(enemy, 0.5 * drag)  # Snare: the hold drags it back
@@ -3022,6 +3050,8 @@ func _update_beam(delta: float) -> void:
 			_kin_fired(&"sunspot")
 		if is_instance_valid(_beam_behind):
 			hit(_beam_behind, share * attack_data.beam_behind_share)
+		if _twist == &"solstice" and is_instance_valid(_beam_target):
+			FinalTwists.solstice_tick(self, share)  # Solstice: at full ramp the beam forks
 	if not is_instance_valid(_beam_target) or _beam_target.is_cleansed:
 		_stop_beam()  # The target is gone: back to the idle sheet (8 frames), not the 6-frame pose
 	queue_redraw()
@@ -3582,3 +3612,7 @@ func _tick_dream_cache(delta: float) -> void:
 	if _dream_cache_left <= 0.0:
 		_dream_cache.clear()  # Rebuilt on the next stat read
 		_dream_cache_left = DREAM_CACHE_TIME * randf_range(0.75, 1.25)  # Spread the refreshes over frames
+
+# A nightmare was dispelled (FinalTwists: Hoarfrost's Shatter chain, the Great Dreamcatcher's Mended leaves).
+func _twist_dispelled(enemy: Node2D) -> void:
+	FinalTwists.dispelled(self, enemy)

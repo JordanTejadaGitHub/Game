@@ -63,6 +63,8 @@ func _process(delta: float) -> void:
 	queue_redraw()
 
 func _tick() -> void:
+	if _data.get_id() == "morning_fog":
+		FinalTwists.veil(self, _radius, TICK * 1.5)  # Veil: nothing inside hides or heals
 	for enemy in get_tree().get_nodes_in_group(Tower.ENEMY_GROUP):
 		if enemy.global_position.distance_to(global_position) > _radius:
 			continue
