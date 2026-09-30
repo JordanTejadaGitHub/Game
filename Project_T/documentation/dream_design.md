@@ -1157,6 +1157,46 @@ length, straights) and the moment a nightmare is dispelled. All **Start** pool, 
 - **Deepened:** Last Breath II (15%), Watchful Rest II (charge after 3 s), Straightaway II (+25%,
   +0.5 range), Thick Bark II (first 2 leaks each block).
 
+## Thin-family cards (2026-09-30)
+
+Why: the pool is ~191 cards (well past the ~70 target), so new cards only go where a family is
+thin. The starting three have 12+ each; **Rootling had ~1, Bellflower ~3, Lanternmoth / Marked ~2,
+Nestling ~5** (target 6–8). These are enhancers: they need their family (shown as the family, per
+*How Needs are shown*), join the pool through **discovery** (the first build of the Warden they
+name), and follow the status jobs (`tower_design.md`, "Status jobs": only Drowsy slows, Rootling
+pulls back, Marked belongs to Firefly Jar, Rootlight is the Held specialist). User-approved.
+
+| # | Card | Rarity | Effect | Tags | Needs | Pool |
+|---|---|---|---|---|---|---|
+| 192 | **Deep Grip** | Common, stacks (max 3) | Rootling line **+15% damage to Held** nightmares | root, held | Rootling | Start |
+| 193 | **Tangled Release** | Uncommon | a nightmare **freed from a hold is pulled back 0.5 tiles** along its route | root, held | Rootling | Start |
+| 194 | **Long Light** | Uncommon | Rootlight's lit tiles **stay lit 3 s** after its light moves on (they still hold once per nightmare) | root, held | Rootlight | Start |
+| 195 | **Root Web** | Rare | when a nightmare is Held, the nightmares **touching it are Held for half as long** (never chains) | root, held | Rootling | Start |
+| 196 | **Clear Tones** | Common, stacks | Bellflower line **+15% attack speed** | song | Bellflower | Start |
+| 197 | **Lullaby** | Uncommon | a Caught nightmare **stays Caught 1 s** after leaving a Dreamcatcher's range | song | Dreamcatcher | Start |
+| 198 | **Chorus** | Rare | Bellflower-line Wardens within **3 cells** of each other pulse **in sync**; a synced pulse deals **+30%** | song | 2 Bellflower-line Wardens (soft) | Start |
+| 199 | **Bright Marks** | Common, stacks (max 3) | Marked **+5%** (25% → 30%; max 40%; Beacon keeps its own +35% base, +5% per stack on top) | light, mark | Lanternmoth | Start |
+| 200 | **Lingering Mark** | Uncommon | Marked lasts **2 s longer** | light, mark | Lanternmoth | Start |
+| 201 | **Called Shot** | Rare | each Warden's **first hit on a Marked nightmare is a guaranteed crit** | light, mark, crit | Lanternmoth | Start |
+| 202 | **Homing Instinct** | Uncommon | birds **return from a swoop 30% faster** (Nestling line: more swoops per second) | wing | Nestling | Start |
+| 203 | **Murmur** | Rare | a bird's hit on a nightmare **another bird hit within 1 s** deals **+15%** | wing | Nestling | Start |
+
+- **Root Web:** the spread hold is Held (firm), halved again on bosses; a nightmare can't be held
+  by Root Web more than once per second. Pairs with Rooted Nightmares (every Held nightmare blocks).
+- **Tangled Release** moves the nightmare back along its route (never off the path, never through a
+  Warden); it counts as a Rootling pull for Snare and the Held Reactions.
+- **Chorus:** "in sync" = when one fires, the others within 3 cells whose attack is ready within
+  0.3 s fire with it. Show a soft ring linking them. Needs a second Bellflower-line Warden to do
+  anything (soft Need).
+- **Called Shot** and First Light (136) both boost first hits; they add (a first hit on a Marked
+  nightmare with both = ×3 and a crit).
+- **Homing Instinct** is attack speed for swoop Wardens only (Wren's Nest, Magpie line,
+  Hummingbird swoops); pecks aren't affected.
+- **Deepened:** Tangled Release II (1 tile), Lullaby II (2 s), Lingering Mark II (+4 s),
+  Homing Instinct II (50% faster).
+- **Numbers to check** with the tower design chat (status jobs are recent): Bright Marks' cap, Root
+  Web's half duration on Frozen (Frostfern) holds.
+
 ## Data (`UpgradeData`)
 
 `id`, `display_name`, `description`, `rarity`, `kind` (stat / rule / economy; evolutions are
