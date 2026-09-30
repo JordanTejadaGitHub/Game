@@ -49,7 +49,7 @@ label ("Rank III needs a Nurture Dream"), lowercase in a sentence ("grow past ra
   means and it's telling me a combo"): card and Warden text states its own effect ("Samara's seeds
   apply {damp}…"). It never names a combo or Reaction ("becomes a Thunderclap corridor"): combos
   stay "???" until discovered, and the Codex and placement links show the pairings.
-- **Requirements by damage type:** "Needs [emblem] Wind", not a family name.
+- **Requirements by damage type:** "Needs Wind" (a linked word), not a family name.
 - **Scaling cards show the live value** on the card: "You have 7 · +40%".
 - Two lines at most on a button; tooltips at most ~42 characters wide (`screens_ui.md`).
 

@@ -577,8 +577,7 @@ From a user playtest with screenshots; each line is the rule going forward.
     focused buttons don't get a resting fill either: at most the gold border. Keyboard focus shows
     as the border too (it must not look like hover).
 - **Warden panel header shows the Warden's portrait** (its animated idle art), not the family
-  emblem (user, 2026-09-30: "go back to the Warden portrait instead of the icon"). The family emblem
-  stays on the damage-type line and the tower bar hotkeys.
+  emblem (user, 2026-09-30: "go back to the Warden portrait instead of the icon").
 - **Less hand-holding on buttons** (2026-09-30, user: "a bit too much hand holding"):
   - Unlock buttons read **"Unlock with 2 Dreamlight (0)"**, not "(you have 0)".
   - A button you **can't afford never glows or pulses**; it's shown dim. Glow means "you can do this now".
@@ -597,6 +596,12 @@ From a user playtest with screenshots; each line is the rule going forward.
   Warden bar button the **hotkey number sits on that emblem** in the top-left corner (the cost stays
   under the icon). The same emblem heads the Warden panel, the family pick cards and the Remember
   tabs.
+  - **Removed (2026-09-30, user: "remove the family emblems … everything, go back to how it was
+    before").** No family emblems anywhere: the Warden bar shows the Warden's icon with the plain
+    hotkey number in its corner, the Warden panel's damage-type line is text, family pick cards and
+    Remember tabs go back to their earlier look, and a Dream card's requirement reads **"Needs
+    Wind"** (the damage type as a linked word, no emblem). The nightmare resist / weak icons (the
+    base Warden face with a shield or spark, `NightmareIcons`) predate the emblems and stay.
 - **Readable tooltips and hover text** (user: "hovering things, in general, the text is too small
   and hard to read"): every tooltip, hover panel and tap popup uses **at least 16 px body text at
   1080p** (18 px for the first line / name), **1.35 line height**, a maximum width of about **42

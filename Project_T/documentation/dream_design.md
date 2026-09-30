@@ -159,7 +159,7 @@ alternative**: a strong card you can use now if you bend the plan.
      an internal name for the mechanic. The card's effect works only once everything it needs is
      owned. In "Dreams this run" such a card is dimmed with the same "Needs Dewdrop" line.
    - **Named by damage type** (2026-09-30, user: "Needs Whirligig … should be the type of damage"):
-     the line reads **"Needs [emblem] Wind"** (the family's damage type, its emblem, linked), not the
+     the line reads **"Needs Wind"** (the family's damage type, linked; no emblem since the emblems were removed), not the
      family's name. When the card needs a specific form (Windborne Rain needs Samara), the tooltip on
      that line names it: *"Samara, a Wind Warden"*.
    - **Taking one makes the next family pick offer the missing family** as one of its 3 choices
