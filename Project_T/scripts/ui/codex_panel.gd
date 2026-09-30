@@ -256,27 +256,29 @@ func _build_combos() -> void:
 	var crowned_all: Array = [] if ResultsScreen.is_demo() else Array(CodexData.crowned())
 	var kin_all := CodexData.kinships()
 	_mark_fresh(profile, all + crowned_all.filter(_covered) + kin_all.filter(_covered))
-	var found := 0
+	# Counters show the real total (screens_ui.md "Counter shows the real total"): every combo in the
+	# game; the ones your families can't make yet are "???" under "N more wait in the Memory Grove".
+	var found := every.filter(func(c: Dictionary) -> bool: return seen.has(String(c.id))).size()
 	for combo in all:
 		var discovered := seen.has(String(combo.id))
-		if discovered:
-			found += 1
 		var times := int(counts.get(String(combo.id), 0)) + (int(live._unsaved.get(combo.id, 0)) if live else 0)
 		var card := _combo_card(combo, discovered, times)
 		_add_card(card, combo.id, discovered)
 		_entries[String(combo.id)] = card
 	_add_waiting(every.size() - all.size())
-	_combo_count.text = "%d / %d combos discovered" % [found, all.size()]
-	tabs.set_tab_title(1, "Combos %d / %d" % [found, all.size()])
+	_add_locked(every.filter(func(c: Dictionary) -> bool: return not _covered(c)), seen,
+		func(c: Dictionary, discovered: bool) -> Control: return _combo_card(c, discovered, int(counts.get(String(c.id), 0))))
+	_combo_count.text = "%d / %d combos discovered" % [found, every.size()]
+	tabs.set_tab_title(1, "Combos %d / %d" % [found, every.size()])
 	_build_chains(live)
 	_build_kinships(seen, counts, live, kin_all)
 	# Crowned Reactions: hidden ("???" in a gold crown frame) until found; full game only.
 	if ResultsScreen.is_demo():
 		return
 	var crowned := crowned_all.filter(_covered)
-	var crowned_found := crowned.filter(func(c: Dictionary) -> bool: return seen.has(String(c.id))).size()
+	var crowned_found := crowned_all.filter(func(c: Dictionary) -> bool: return seen.has(String(c.id))).size()
 	var header := Label.new()
-	header.text = "Crowned Reactions · %d / %d" % [crowned_found, crowned.size()]
+	header.text = "Crowned Reactions · %d / %d" % [crowned_found, crowned_all.size()]
 	header.add_theme_font_size_override("font_size", 20)
 	header.add_theme_color_override("font_color", CROWN_COLOR)
 	_combos.add_child(header)
@@ -287,6 +289,18 @@ func _build_combos() -> void:
 		_add_card(card, c.id, discovered)
 		_entries[String(c.id)] = card
 	_add_waiting(crowned_all.size() - crowned.size())
+	_add_locked(crowned_all.filter(func(c: Dictionary) -> bool: return not _covered(c)), seen,
+		func(c: Dictionary, discovered: bool) -> Control: return _crowned_card(c, discovered, int(counts.get(String(c.id), 0))))
+
+# The entries your Grove doesn't reach yet, under the "wait in the Memory Grove" line: "???" (shown
+# in full if the profile found one anyway, e.g. in a developer run).
+func _add_locked(entries: Array, seen: Array, make: Callable) -> void:
+	for entry in entries:
+		var discovered := seen.has(String(entry.id))
+		var card: Control = make.call(entry, discovered)
+		card.set_meta(&"waiting", true)  # Out of the Grove's reach (tests)
+		_combos.add_child(card)
+		_entries[String(entry.id)] = card
 
 # "4 more wait in the Memory Grove." (no names, no hints), when a section has hidden entries.
 func _add_waiting(hidden: int) -> void:
@@ -345,12 +359,11 @@ func _add_card(card: Control, id: StringName, discovered: bool) -> void:
 # ever, then the pair, what each borrows, and how often it has formed.
 func _build_kinships(seen: Array, counts: Dictionary, live: ComboFeedback, kin_all: Array) -> void:
 	var kin := kin_all.filter(_covered)
-	if kin.is_empty():
-		_add_waiting(kin_all.size())
+	if kin_all.is_empty():
 		return
-	var found := kin.filter(func(k: Dictionary) -> bool: return seen.has(String(k.id))).size()
+	var found := kin_all.filter(func(k: Dictionary) -> bool: return seen.has(String(k.id))).size()
 	var header := Label.new()
-	header.text = "Kinships %d / %d" % [found, kin.size()]
+	header.text = "Kinships %d / %d" % [found, kin_all.size()]  # The real total (screens_ui.md "Counter shows the real total")
 	header.add_theme_font_size_override("font_size", 20)
 	header.add_theme_color_override("font_color", KIN_COLOR)
 	_combos.add_child(header)
@@ -368,6 +381,8 @@ func _build_kinships(seen: Array, counts: Dictionary, live: ComboFeedback, kin_a
 		_add_card(card, k.id, discovered)
 		_entries[String(k.id)] = card
 	_add_waiting(kin_all.size() - kin.size())
+	_add_locked(kin_all.filter(func(k: Dictionary) -> bool: return not _covered(k)), seen,
+		func(k: Dictionary, discovered: bool) -> Control: return _kinship_card(k, discovered, int(counts.get(String(k.id), 0))))
 
 func _kinship_card(k: Dictionary, discovered: bool, times: int) -> Control:
 	var box := VBoxContainer.new()
