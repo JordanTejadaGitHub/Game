@@ -56,10 +56,6 @@ func _test_requirements() -> void:
 	_check(dreams.is_eligible(kindred), "…then offered with 2 ranked Wardens")
 	b.rank = 0
 	_check(not dreams.is_eligible(kindred), "…and not with only 1")
-	var remembered := _card("remembered_care")
-	_check(not dreams.is_eligible(remembered), "Remembered Care needs a rank III Warden")
-	a.rank = 3
-	_check(dreams.is_eligible(remembered), "…offered once one is rank III")
 	var deeper := _card("deeper_rings")
 	a.rank = 5
 	_check(not dreams.is_eligible(deeper), "Deeper Rings is a Grove card")
@@ -83,17 +79,11 @@ func _test_nurture_effects() -> void:
 	for i in 4:
 		dreams.take(tender)
 	_check(is_equal_approx(dreams.get_nurture_cost_multiplier(), 0.50), "Tender Care stacks to −50%, no further")
-	dreams.take(_card("warm_hands"))
-	_check(is_equal_approx(dreams.get_rank_damage_bonus(), 0.06), "Warm Hands: +6% damage per rank")
+	_check(is_equal_approx(dreams.get_rank_damage_bonus(), 0.12), "Tender Care (absorbs Warm Hands): +3% damage per rank, stacks (×4)")
 	_check(dreams.get_max_rank() == 5 and dreams.get_extra_rank_cost(6) == 0, "rank V is the cap by default")
 	dreams.take(_card("deeper_rings"))
 	_check(dreams.get_max_rank() == 7 and dreams.get_extra_rank_cost(6) == 130 and dreams.get_extra_rank_cost(7) == 180,
 		"Deeper Rings: ranks VI (130) and VII (180)")
-	var sprout: TowerData = load("res://resource/tower/sprout.tres")
-	var before := dreams.get_build_cost(sprout)
-	dreams.take(_card("overgrowth"))
-	_check(dreams.get_max_rank() == 1, "Overgrowth caps Nurture at rank I, even with Deeper Rings")
-	_check(dreams.get_build_cost(sprout) == roundi(before * 0.6), "Overgrowth: planting 40% cheaper")
 	_reset()
 	dreams.take(_card("the_old_ones"))
 	_check(is_equal_approx(dreams.get_rank_crit_bonus(), 0.0), "The Old Ones no longer adds crit (one archetype)")
@@ -125,24 +115,6 @@ func _test_nurture_rules() -> void:
 	dreams.take(_card("chosen_few"))
 	_check(is_equal_approx(dreams.get_soothe_multiplier(strong) - strong_base, 0.5)
 		and is_equal_approx(dreams.get_soothe_multiplier(weak) - weak_base, -0.15), "Chosen Few: +50% at rank V, −15% below III")
-	_clear_towers()
-
-	# Remembered Care: sell a ranked Warden, the next one planted starts at that rank
-	_reset()
-	dreams.take(_card("remembered_care"))
-	var sold := _plant("sporeling", 0, 4)
-	dreams._on_tower_sold(sold, 0)
-	var low := _plant("sporeling", 1, 2)
-	dreams._on_tower_sold(low, 0)
-	_check(run_state.memory_seeds == [4], "one memory seed, the highest rank kept")
-	var fresh := _plant("dewdrop", 2, 0)
-	dreams._on_tower_built(fresh)
-	_check(fresh.rank == 4 and run_state.memory_seeds.is_empty(), "the next Warden planted starts at rank IV")
-	dreams.take(_card("remembered_care_ii"))
-	dreams._on_tower_sold(sold, 0)
-	dreams._on_tower_sold(low, 0)
-	_check(run_state.memory_seeds == [4, 2], "Remembered Care II keeps two seeds")
-	run_state.memory_seeds.clear()
 	_clear_towers()
 
 	# Sunlit Rest: a free rank for the ranked Warden nearest the Heartwood; rank II waits for a Focus
@@ -241,10 +213,10 @@ func _test_wide_and_narrow() -> void:
 	dreams._attackers_planted = 0
 	_clear_towers()
 
-# Owning a direction makes its cards likelier (tag_weight 1.4×) and the opposite direction's half as likely.
+# Owning an archetype makes its cards likelier (tag_weight) and tall ↔ overgrowth halve each other (Pool trim).
 func _test_direction_weighting() -> void:
 	_reset()
-	dreams.take(_card("seedfall"))  # Wide
+	dreams.take(_card("seedfall"))  # Overgrowth
 	var wide := _card("many_hands")
 	var narrow := _card("solitude")
 	for i in 15:  # Many Hands' soft Need (15 attacking Wardens) met, so only the tags count
@@ -255,7 +227,7 @@ func _test_direction_weighting() -> void:
 			wide_picks += 1
 	var tw := dreams.tag_weight
 	var expected := 2000.0 * tw / (tw + 0.5)  # tag_weight vs the opposite direction's ×0.5
-	_check(absf(wide_picks - expected) < 110, "wide %.1f×, narrow 0.5× once you've gone wide (%d / 2000, expected %d)" % [tw, wide_picks, expected])
+	_check(absf(wide_picks - expected) < 110, "overgrowth %.1f×, tall 0.5× once you've gone overgrowth (%d / 2000, expected %d)" % [tw, wide_picks, expected])
 	# Unmet soft Need: ×0.4 on top
 	_clear_towers()
 	wide_picks = 0
@@ -368,7 +340,7 @@ func _test_seedling_gift() -> void:
 	dreams.take(_card("tender_care"))
 	_check(dreams.is_eligible(nursery) and dreams.make_offer(10).has(nursery), "…then Nursery is Entwined: guaranteed")
 	dreams.take(nursery)
-	_check(is_equal_approx(dreams.get_nurture_cost_multiplier(sprout), 0.75 * 0.5), "Nursery: Sprouts nurture for half price")
+	_check(is_equal_approx(dreams.get_nurture_cost_multiplier(sprout), 0.85 * 0.5), "Nursery: Sprouts nurture for half price")
 	run_state.add_sprout_charges(1)
 	var nursery_cell := _free_cell(map_generator)
 	placer._try_build(nursery_cell)
@@ -396,8 +368,8 @@ func _test_seedling_gift() -> void:
 func _test_grove_cards() -> void:
 	_reset()
 	var ids := ["static_bloom", "static_field", "guiding_light", "starlit_aim", "twin_puff", "still_target",
-		"shattering_blow", "reckless_bloom", "full_moon", "rootbound", "monoculture", "the_long_walk",
-		"deep_sleep", "borrowed_dew", "wild_growth", "overgrown", "restless_dreams", "hungry_roots"]
+		"shattering_blow", "full_moon", "rootbound", "monoculture", "the_long_walk",
+		"deep_sleep", "restless_dreams"]
 	for id in ids:
 		_check(not _card(id).in_start_pool, "%s waits for its Grove node" % id)
 	dreams.grove_cards.assign(ids)
@@ -428,8 +400,6 @@ func _test_grove_cards() -> void:
 	dreams.take(_card("full_moon"))
 	_check(is_equal_approx(dreams.get_crit_chance_bonus(tower, sleepy), 0.35)
 		and is_equal_approx(dreams.get_crit_overflow_multiplier(1.3), 0.3), "Full Moon: +10%, overflow → crit damage")
-	dreams.take(_card("reckless_bloom"))
-	_check(is_equal_approx(dreams.get_non_crit_multiplier(), 0.85), "Reckless Bloom: non-crits −15%")
 	sleepy.free()
 	_clear_towers()
 
@@ -467,7 +437,7 @@ func _test_clear_tool() -> void:
 	_check(not clearer.set_tool_active(true) and refused.size() == 1, "the tool is refused while clearing is locked")
 	var locks := []
 	clearer.lock_changed.connect(func(locked: bool) -> void: locks.append(locked))
-	dreams.take(_card("tend_the_forest"))  # The opener
+	dreams.take(_card("heartwoods_reach"))  # The opener (absorbed Tend the Forest)
 	_check(locks == [false], "lock_changed(false) when the opener unlocks clearing")
 
 	var cell: Vector2 = map_generator.obstacles.keys()[0]
@@ -695,7 +665,7 @@ func _row(rows: Array[Dictionary], id: String) -> Dictionary:
 # map" Need, Entwined Kin and Kindling, and the kinship tag counting as your build.
 func _test_kinship_cards() -> void:
 	_reset()
-	for id in ["family_ties", "sweet_harmony", "sweet_harmony_ii", "close_kin", "close_kin_ii",
+	for id in ["family_ties", "sweet_harmony", "sweet_harmony_ii",
 			"old_friends", "old_friends_ii", "rooted_bond", "extended_family", "kin_and_kindling", "grove_of_kin",
 			"blood_is_thicker"]:
 		var card := _card(id)

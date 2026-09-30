@@ -348,22 +348,8 @@ func _run() -> void:
 	_check(hound.statuses.is_held(), "a walking one can")
 	_clear_enemies()
 
-	# --- Tangled (2+ statuses: 10% slower) and Weathered Walls (no trampling) ---
+	# --- Weathered Walls (no trampling; Tangled was cut in the pool trim) ---
 	_clear_enemies()
-	var tangle := _still("leaf_bug", route[6])
-	tangle.apply_status(EnemyStatuses.MARKED)
-	tangle.apply_status(EnemyStatuses.SPORED, 1, 5.0, 1.0)
-	spawner._process(0.0)
-	_check(is_equal_approx(tangle.get_move_speed(), tangle.speed), "without Tangled, two statuses that aren't slows don't slow")
-	_take_card(dreams, "tangled")
-	spawner._process(0.0)
-	_check(is_equal_approx(tangle.get_move_speed(), tangle.speed * (1.0 - DreamState.TANGLED_SLOW)), "Tangled: 2 statuses, 10% slower")
-	tangle.apply_status(EnemyStatuses.DROWSY)
-	_check(is_equal_approx(tangle.get_move_speed(), tangle.speed * (1.0 - DreamState.TANGLED_SLOW - EnemyStatuses.DROWSY_SLOW_PER_STACK)),
-		"and it adds to other slows")
-	var one := _still("leaf_bug", route[7])
-	one.apply_status(EnemyStatuses.MARKED)
-	_check(is_equal_approx(one.get_move_speed(), one.speed), "one status isn't enough")
 	var stag_wall := _free_neighbour(route[12])
 	var wall_tower := _plant("thornwall", stag_wall)
 	var walker_stag := _still("old_stag", route[12])

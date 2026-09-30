@@ -9,6 +9,6 @@ display_name = "Fresh Growth"
 description = "A Warden planted or grown during a {drift} deals 50% more damage until the next {rest}."
 rarity = 1
 kind = 3
-tags = Array[String](["tempo"])
+tags = Array[String](["tempo", "daring"])
 max_stacks = 1
 rule_id = &"fresh_growth"

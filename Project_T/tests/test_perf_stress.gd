@@ -21,7 +21,7 @@ const SCRIPT_SHARE := 0.6  # Scripts may use this much of the frame (rendering n
 # The test passes at p95 <= PASS_MS at 1x: the ~10 ms target plus noise headroom (the user accepted ~10 ms,
 # 2026-09-29). The 10 ms target itself (and 3x) is revisited before release.
 const PASS_MS := 11.0
-const CARDS := ["root_network", "sprout_surge", "heart_of_the_maze", "solitude", "thinning_the_herd"]
+const CARDS := ["root_network", "seedfall", "heart_of_the_maze", "solitude", "thinning_the_herd"]
 const MIX := ["sprout", "sprout", "sprout", "sporeling", "firefly_jar", "dewdrop", "pebbling", "acorn", "rootling"]
 const SYSTEMS := ["SoundHooks", "Kinships", "DreamMarks", "EnvironmentLighting", "EnvironmentAmbience", "HUD",
 	"CombatCallouts", "ResistPips", "NightmareInfo"]

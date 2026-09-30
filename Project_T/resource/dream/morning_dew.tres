@@ -6,11 +6,12 @@
 script = ExtResource("1_card")
 id = "morning_dew"
 display_name = "Morning Dew"
-description = "+30 Dew now, and +8 Dew every time you clear a {drift}."
+description = "+20 Dew now, +10 Dew at every {rest}, and nightmares give 10% more Dew."
 rarity = 0
 kind = 4
-tags = Array[String](["economy"])
+tags = Array[String](["economy", "tending"])
 requires = Array[String]([])
 max_stacks = 1
-dew_now = 30
-dew_per_clear = 8
+dew_now = 20
+rest_bonus_add = 10
+extra_rules = Array[StringName]([&"gathered_dew"])
