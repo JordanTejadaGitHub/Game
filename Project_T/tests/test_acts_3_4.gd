@@ -591,7 +591,7 @@ func _run() -> void:
 	badged.statuses.apply(&"damp", 1, 4.0, 1.0)
 	_check(is_equal_approx(badged.statuses.time_share(&"damp"), 1.0), "a fresh Damp fills it again")
 	_check(badged.get_badge_size() == badged.STATUS_BADGE and _still("old_stag", route[7]).get_badge_size() == badged.STATUS_BADGE_BIG,
-		"14 px badges, 18 px on bosses")
+		"20 px status icons, 24 px on bosses")
 	# Bars and badges are the HUD's own canvas items under one NightmareOverlay (batched by kind),
 	# rebuilt only when what they show changes; not each nightmare's own _draw.
 	var overlay: Node2D = spawner.overlay

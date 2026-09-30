@@ -95,22 +95,23 @@ var health_scale := 1.0
 # Damp, Drowsy, Spored, Marked, Static (see EnemyStatuses). Wardens apply them via apply_status().
 var statuses := EnemyStatuses.new()
 
-# Status badges (screens_ui.md "Status icons, clearer"): the status's icon on a dark disc with a
-# status-coloured rim whose arc drains with the time left (solid at max stacks), in one row above
-# the health bar, the stack count in the lower-right corner from 2 stacks. Screen px (they keep
-# their screen size when zoomed and follow the UI scale); bosses and elites get the big ones.
-const STATUS_BADGE := 14.0
-const STATUS_BADGE_BIG := 18.0
+# Status icons (screens_ui.md "Status icons, revised"): the bare pixel-art icons in one row above the
+# health bar, a thin bar under each that shortens with the time left, the stack count in the lower-
+# right corner from 2 stacks (gold, with a glow behind the icon, at max). Screen px (they keep their
+# screen size when zoomed and follow the UI scale); bosses and elites get the big ones.
+const STATUS_BADGE := 20.0
+const STATUS_BADGE_BIG := 24.0
 const STATUS_BADGE_GAP := 3.0
 const STATUS_BADGES_MAX := 4  # More → the most important ones (BADGE_ORDER) and "+N"
 const BADGE_ORDER: Array[StringName] = [&"static", &"held", &"marked", &"spored", &"drowsy", &"damp"]
 const VIEW_MARGIN := 96.0  # px past the screen edge where nightmares still draw (their badges overhang)
-const HUD_ARC_FRAMES := 4  # The badge rim arcs are looked at every this many frames (update_hud)
+const HUD_TIME_FRAMES := 4  # The time bars under the icons are looked at every this many frames (_update_hud)
+const TIME_BAR_GAP := 4.0  # Room under each icon for its time bar (px, above the health bar)
 # The HUD's canvas items (update_hud), each kind on its own z layer so the whole field batches.
-enum { HUD_BARS, HUD_DISCS, HUD_ICONS, HUD_TEXT }
-const HUD_PASSES := [HUD_BARS, HUD_DISCS, HUD_ICONS, HUD_TEXT]
+enum { HUD_BARS, HUD_MARKS, HUD_ICONS, HUD_TEXT }
+const HUD_PASSES := [HUD_BARS, HUD_MARKS, HUD_ICONS, HUD_TEXT]
 const STATUS_DOT_RADIUS := 3.0  # Fallback when the icon sheet has no icon for a status
-const STACK_FONT_SIZE := 10
+const STACK_FONT_SIZE := 12
 static var _stack_font: FontVariation
 static var _icons := {}  # {status id: Texture2D or null}, shared by every nightmare
 const BOLT_FLASH_TIME := 0.2
@@ -206,13 +207,13 @@ var _hud_root := RID()
 var _hud_items: Array[RID] = []
 var _hud_shown := false
 var _hud_scale := -1.0
-# What the bars item shows (health, coat, Restless, bars always), and the discs item (statuses, arc steps)
+# What the bars item shows (health, coat, Restless, bars always), and the marks item (statuses, time-bar steps)
 var _hud_health := -2  # (Bar width in px; -1 = hidden)
 var _hud_coat := -1
 var _hud_restless := -1
 var _hud_unbound := false
 var _hud_always := false
-var _hud_discs_key := -1
+var _hud_marks_key := -1
 var _hud_stagger := randi() % 4  # So a crowd doesn't check its arcs on the same frame
 var _hud_flashing := false
 var hud_builds := 0  # Items rebuilt (tests: only when something changed)
@@ -536,8 +537,8 @@ func _draw() -> void:
 
 # The HUD over this nightmare (health bar, blight coat, Restless arrows, status badges), in canvas
 # items of its own under this node's (so they move with it, and the renderer culls them off screen):
-# HUD_BARS, HUD_DISCS, HUD_ICONS, HUD_TEXT, each on its own absolute z layer (NightmareOverlay.Z +
-# kind), so every nightmare's bars draw together, then every disc (one atlas), every icon, every
+# HUD_BARS, HUD_MARKS, HUD_ICONS, HUD_TEXT, each on its own absolute z layer (NightmareOverlay.Z +
+# kind), so every nightmare's bars draw together, then every mark (time bars, glows: one atlas), every icon, every
 # number: the field batches. Each item is rebuilt only when what it shows changes (checked from
 # _process); freed with the nightmare. NightmareOverlay keeps the shared badge atlas.
 func _update_hud() -> void:
@@ -558,7 +559,7 @@ func _update_hud() -> void:
 	if text_scale != _hud_scale:  # The badges keep their screen size: scaled round the row's anchor
 		_hud_scale = text_scale
 		var badges := Transform2D(0.0, Vector2(text_scale, text_scale), 0.0, _hud_anchor())
-		for kind in [HUD_DISCS, HUD_ICONS, HUD_TEXT]:
+		for kind in [HUD_MARKS, HUD_ICONS, HUD_TEXT]:
 			RenderingServer.canvas_item_set_transform(_hud_items[kind], badges)
 	# The bars are keyed on their width in whole px (a smaller change can't be seen), -1 = not shown.
 	var bar_px := int(HEALTH_BAR_SIZE.x * health / max_health) if health < max_health or _bars_always else -1
@@ -579,19 +580,19 @@ func _update_hud() -> void:
 		_update_hud_layout()
 		_build_hud_icons(_hud_items[HUD_ICONS])
 		_build_hud_text(_hud_items[HUD_TEXT])
-	# The rim arcs drain in ARC_STEPS steps: looked at every HUD_ARC_FRAMES frames (staggered), and
-	# the discs rebuilt when a step moved (or a status changed, or a combo flash plays).
+	# The time bars shorten in TIME_STEPS steps: looked at every HUD_TIME_FRAMES frames (staggered), and
+	# the marks rebuilt when a step moved (or a status changed, or a combo flash plays).
 	var flashing := not _status_flash.is_empty()
 	if not changed and not flashing and not _hud_flashing \
-			and (Engine.get_process_frames() + _hud_stagger) % HUD_ARC_FRAMES != 0:
+			and (Engine.get_process_frames() + _hud_stagger) % HUD_TIME_FRAMES != 0:
 		return
-	var discs_key := _hud_changes << 16  # Below that: 4 bits of arc steps per badge (up to 4 badges)
+	var marks_key := _hud_changes << 16  # Below that: 4 bits of time-bar steps per icon (up to 4 icons)
 	for i in _hud_ids.size():
-		discs_key += _arc_steps(i) << (i * 4)
-	if discs_key != _hud_discs_key or flashing or _hud_flashing:
-		_hud_discs_key = discs_key
+		marks_key += _time_steps(i) << (i * 4)
+	if marks_key != _hud_marks_key or flashing or _hud_flashing:
+		_hud_marks_key = marks_key
 		_hud_flashing = not _status_flash.is_empty()  # (One more once a flash ends, to clear it)
-		_build_hud_discs(_hud_items[HUD_DISCS], overlay)
+		_build_hud_marks(_hud_items[HUD_MARKS], overlay)
 		hud_builds += 1
 
 func _make_hud() -> void:
@@ -603,7 +604,9 @@ func _make_hud() -> void:
 		RenderingServer.canvas_item_set_parent(item, _hud_root)
 		RenderingServer.canvas_item_set_z_as_relative_to_parent(item, false)
 		RenderingServer.canvas_item_set_z_index(item, NightmareOverlay.Z + kind)
-		if kind != HUD_BARS:
+		if kind == HUD_ICONS:  # The pixel-art icons keep their pixels; the marks and numbers are smooth
+			RenderingServer.canvas_item_set_default_texture_filter(item, RenderingServer.CANVAS_ITEM_TEXTURE_FILTER_NEAREST)
+		elif kind != HUD_BARS:
 			RenderingServer.canvas_item_set_default_texture_filter(item, RenderingServer.CANVAS_ITEM_TEXTURE_FILTER_LINEAR)
 		_hud_items.append(item)
 	_hud_shown = true
@@ -640,18 +643,17 @@ func _update_hud_layout() -> void:
 		_hud_colors.append(EnemyStatuses.COLORS.get(id, Palette.MOONLIGHT))
 		_hud_icons.append(_status_icon(id))
 
-# Badge i's centre in the badge items' space (screen px round the anchor).
+# Status icon i's centre in the badge items' space (screen px round the anchor): a row of icons with
+# room under each for its time bar.
 func _badge_centre(i: int) -> Vector2:
 	var r := get_badge_size() / 2.0
 	var step := r * 2.0 + STATUS_BADGE_GAP
 	var extra := statuses.count() - _hud_ids.size()
-	var width := _hud_ids.size() * step - STATUS_BADGE_GAP + (step * 0.9 if extra > 0 else 0.0)
-	return Vector2(-width / 2.0 + r + i * step, -r)
+	var width := _hud_ids.size() * step - STATUS_BADGE_GAP + (step * 0.6 if extra > 0 else 0.0)
+	return Vector2(-width / 2.0 + r + i * step, -r - TIME_BAR_GAP)
 
-func _arc_steps(i: int) -> int:
-	if _hud_full[i]:
-		return 0
-	return mini(ceili(statuses.time_share(_hud_ids[i]) * NightmareOverlay.ARC_STEPS), NightmareOverlay.ARC_STEPS)
+func _time_steps(i: int) -> int:
+	return mini(ceili(statuses.time_share(_hud_ids[i]) * NightmareOverlay.TIME_STEPS), NightmareOverlay.TIME_STEPS)
 
 func _build_hud_bars(item: RID) -> void:
 	RenderingServer.canvas_item_clear(item)
@@ -673,25 +675,27 @@ func _build_hud_bars(item: RID) -> void:
 		RenderingServer.canvas_item_add_rect(item, crust.grow(1), Color(Palette.VOID, 0.8))
 		RenderingServer.canvas_item_add_rect(item, crust, COAT_COLOR)
 
-# The badges' discs, from NightmareOverlay's pre-drawn atlas: the dark disc, the rim in the status's
-# colour (solid at max stacks; else faint, with a bright arc that drains with the time left), a dot
-# if the icon sheet has none, and the flash when a combo just used the status.
-func _build_hud_discs(item: RID, overlay: NightmareOverlay) -> void:
+# The marks under and behind the status icons, from NightmareOverlay's atlas: a soft gold glow behind
+# an icon at max stacks, a thin bar under each icon that shortens with the time left, a dot if the
+# icon sheet has none, and the flash when a combo just used the status.
+func _build_hud_marks(item: RID, overlay: NightmareOverlay) -> void:
 	RenderingServer.canvas_item_clear(item)
 	var atlas: Texture2D = overlay.badge_atlas
+	var solid := overlay.badge_region(NightmareOverlay.MARK_SOLID)
 	var r := get_badge_size() / 2.0
 	for i in _hud_ids.size():
 		var centre := _badge_centre(i)
 		var color: Color = _hud_colors[i]
-		var rect := Rect2(centre - Vector2(r, r), Vector2(r, r) * 2.0)
-		atlas.draw_rect_region(item, rect, overlay.badge_region(NightmareOverlay.BADGE_DISC))
-		if _hud_full[i]:
-			atlas.draw_rect_region(item, rect, overlay.badge_region(NightmareOverlay.BADGE_RIM_FULL), color)
-		else:
-			atlas.draw_rect_region(item, rect, overlay.badge_region(NightmareOverlay.BADGE_RIM), Color(color, 0.3))
-			var steps := _arc_steps(i)
-			if steps > 0:
-				atlas.draw_rect_region(item, rect, overlay.badge_region(NightmareOverlay.BADGE_ARC + steps - 1), color)
+		if _hud_full[i]:  # At max stacks: a warm glow behind the icon
+			var g := r * 1.7
+			atlas.draw_rect_region(item, Rect2(centre - Vector2(g, g), Vector2(g, g) * 2.0),
+				overlay.badge_region(NightmareOverlay.MARK_GLOW), Color(Palette.GOLD, 0.75))
+		var bar := Rect2(centre + Vector2(-r * 0.8, r + 1.0), Vector2(r * 1.6, 2.0))
+		atlas.draw_rect_region(item, bar.grow(1.0), solid, Color(Palette.VOID, 0.75))
+		var steps := _time_steps(i)
+		if steps > 0:
+			bar.size.x *= float(steps) / NightmareOverlay.TIME_STEPS
+			atlas.draw_rect_region(item, bar, solid, color)
 		if _hud_icons[i] == null:
 			RenderingServer.canvas_item_add_circle(item, centre, STATUS_DOT_RADIUS, color)
 		var id: StringName = _hud_ids[i]
@@ -700,25 +704,26 @@ func _build_hud_discs(item: RID, overlay: NightmareOverlay) -> void:
 			RenderingServer.canvas_item_add_circle(item, centre, r + 2.0 + 4.0 * (1.0 - f), Color(color, 0.5 * f))
 			RenderingServer.canvas_item_add_circle(item, centre, r, Color(1, 1, 1, 0.45 * f))
 
+# The bare pixel-art status icons, at the badge size (drawn nearest-neighbour: the icons' own look).
 func _build_hud_icons(item: RID) -> void:
 	RenderingServer.canvas_item_clear(item)
-	var s := get_badge_size() / 2.0 * 1.4
+	var s := get_badge_size()
 	for i in _hud_ids.size():
 		var icon: Texture2D = _hud_icons[i]
 		if icon != null:
 			icon.draw_rect(item, Rect2(_badge_centre(i) - Vector2(s, s) / 2.0, Vector2(s, s)), false)
 
-# Stack counts (bold, dark outline, from 2 stacks; gold at max) and "+N" past the fourth badge.
+# Stack counts (bold, dark outline, lower right, from 2 stacks; gold at max) and "+N" past the fourth.
 func _build_hud_text(item: RID) -> void:
 	RenderingServer.canvas_item_clear(item)
 	var r := get_badge_size() / 2.0
 	for i in _hud_ids.size():
 		if _hud_stacks[i] > 1:
-			_add_stack_text(item, _badge_centre(i) + Vector2(r * 0.15, r + 2.0), str(_hud_stacks[i]),
+			_add_stack_text(item, _badge_centre(i) + Vector2(r * 0.3, r), str(_hud_stacks[i]),
 				Palette.GOLD if _hud_full[i] else Palette.MOONLIGHT)
 	var extra := statuses.count() - _hud_ids.size()
 	if extra > 0:
-		var after := _badge_centre(_hud_ids.size() - 1) + Vector2(r + STATUS_BADGE_GAP + 1.0, STACK_FONT_SIZE * 0.4)
+		var after := _badge_centre(_hud_ids.size() - 1) + Vector2(r + STATUS_BADGE_GAP, STACK_FONT_SIZE * 0.35)
 		_add_stack_text(item, after, "+%d" % extra, Palette.MOONLIGHT)
 
 static func _add_stack_text(item: RID, at: Vector2, text: String, color: Color) -> void:
