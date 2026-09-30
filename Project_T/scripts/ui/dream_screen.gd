@@ -330,39 +330,12 @@ func _add_needs_row(box: VBoxContainer, card: UpgradeData) -> void:
 	if text != "":
 		row.add_child(_needs_label(text, UiStyle.INK_DIM))
 
-# "Needs [emblem] Wind" (dream_design.md "Named by damage type"): each missing damage type with its
-# emblem, the word a link to the family's popup; the native tooltip names a specific form ("Samara, a
-# Wind Warden").
+# "Needs [emblem] Wind" (NeedsRow, shared with "Dreams this run").
 func _add_missing_row(box: VBoxContainer, card: UpgradeData) -> void:
-	var needs := dream_state.missing_needs(card)
-	if needs.is_empty():
-		return
-	var row := HBoxContainer.new()
-	row.name = "MissingRow"
-	row.mouse_filter = Control.MOUSE_FILTER_PASS
-	row.add_theme_constant_override("separation", 4)
-	row.modulate.a = 0.85
-	box.add_child(row)
-	row.add_child(_needs_label("Needs", UiStyle.INK_DIM))
-	for i in needs.size():
-		var need: Dictionary = needs[i]
-		if i > 0:
-			row.add_child(_needs_label("and", UiStyle.INK_DIM))
-		var emblem := TextureRect.new()
-		emblem.texture = IconInfo.family_emblem(need.line)
-		emblem.custom_minimum_size = Vector2(16, 16)
-		emblem.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-		emblem.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-		emblem.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-		emblem.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		row.add_child(emblem)
-		var word := StatusLinks.make_label("", SECONDARY_SIZE, UiStyle.INK_DIM)
-		word.text = StatusLinks._link(StatusLinks.FAMILY_PREFIX + need.family, need.type)
-		word.autowrap_mode = TextServer.AUTOWRAP_OFF
-		word.mouse_filter = Control.MOUSE_FILTER_PASS
-		if need.form != "":
-			word.tooltip_text = "%s, a %s Warden" % [need.form, need.type]
-		row.add_child(word)
+	var row := NeedsRow.make(dream_state.missing_needs(card), SECONDARY_SIZE, UiStyle.INK_DIM)
+	if row != null:
+		row.modulate.a = 0.85
+		box.add_child(row)
 
 func _needs_label(text: String, colour: Color) -> Label:
 	var label := Label.new()

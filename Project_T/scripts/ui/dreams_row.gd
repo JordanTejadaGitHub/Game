@@ -216,11 +216,15 @@ func _card_row(source: DreamIcon) -> Control:
 	body.mouse_filter = Control.MOUSE_FILTER_PASS
 	text.add_child(body)
 	if source.dormant:  # Asleep: dimmed, with the families it still needs ("Needs Dewdrop")
-		var needs := Label.new()
-		needs.text = _sleeping_text(card)
-		needs.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		UiStyle.caps(needs, 13)
-		text.add_child(needs)
+		var needs_row := NeedsRow.make(dream_state.missing_needs(card), 13, UiStyle.INK_DIM) if dream_state.has_method("missing_needs") else null
+		if needs_row != null:  # "Needs [emblem] Wind", as on the Dream card
+			text.add_child(needs_row)
+		else:
+			var needs := Label.new()
+			needs.text = _sleeping_text(card)
+			needs.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+			UiStyle.caps(needs, 13)
+			text.add_child(needs)
 		frame.modulate = Color(1, 1, 1, 0.55)
 	row.add_child(text)
 	var live := Label.new()
