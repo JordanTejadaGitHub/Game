@@ -1,38 +1,96 @@
 extends SceneTree
 
-# Build packages: do the cards come? (dream_design.md "Build packages: do the cards come? (2026-09-30)").
-# A measurement, not a feature: offer simulation (DreamState.sim_rest, no combat) with a full Grove and
-# everything discovered. The bot owns each build's families and board from the stated drift, takes a
-# package card whenever one is offered (else its style's best) and counts package cards (stacks once).
-# Prints, per build: % of runs with 3+ / 5+ package cards by drift 25 / 50 / 75 / 100, the average
-# count, and the share of offers with a package card. Never touches the player's saves.
-#   godot --headless --path . --script res://tools/build_packages.gd --fixed-fps 60 -- --runs=1000
+# Build packages and the catalogue (dream_design.md "Build packages", "Your Dreams steer your Dreams,
+# not your family picks", "The build catalogue", "New cards for the catalogue"). A measurement, not a
+# feature: offer simulation (DreamState.sim_rest, no combat), full Grove (Bittersweet included),
+# everything discovered. Never touches the player's saves.
+#
+#   Chasing:   -- --mode=chase --build=B7 --runs=300    (or --build=all)
+#     The bot owns the build's families and board from drift 1 (forms its cards name, the board it
+#     needs: ranks, Sprouts, walls, a Kinship…), takes a package card whenever one is offered (else
+#     Balanced's best). Prints 3+ by drift 50 and 5+ by drift 100 (targets ~35–55% / ~30–50%).
+#   Emergence: -- --mode=emerge --runs=1000
+#     A no-plan bot: random families (a pick after drift 1 and after the drift 25 boss), a small board
+#     of them, Balanced's best card each rest. At drift 50: % of runs with 3+ cards of some package
+#     (~70%+) and each build's share of those runs (none above ~15%). Adapt: % of offers with a card
+#     usable now that shares no tag with the cards taken (~70%+). Own-family share (reference only).
 
+# Package = enhancers by display name (Legendaries are capstones, not package cards). Bridge cards are
+# listed under both builds. Names that aren't cards in the pool are reported and skipped.
 const PACKAGES := {
-	"Storm Grid": ["rolling_thunder", "rain_on_glass", "soaked_through", "heavy_dew", "brighter_jars", "static_field", "conductive_soil"],
-	"Spore Bomb": ["soft_spores", "lingering_spores", "spore_cascade", "chain_bloom", "sparking_spores", "twin_puff"],
-	"Eldest": ["tender_care", "warm_hands", "kindred_roots", "deeper_rings", "sunlit_rest", "chosen_few"],
-	"Wide Sprouts": ["seedfall", "sprout_surge", "sprout_chorus", "root_network", "seedling_gift", "many_hands"],
-	"Kinship": ["family_ties", "sweet_harmony", "close_kin", "old_friends", "rooted_bond", "extended_family"],
+	"B1 Storm Grid": ["Rolling Thunder", "Rain on Glass", "Soaked Through", "Heavy Dew", "Brighter Jars", "Charged Field", "Conductive Soil", "Fireflies in the Grass", "Live Wire"],
+	"B2 The Long Walk": ["Cozy Corners", "Hedge Maze", "Straightaway", "Winding Path", "Bitter Hedges", "Heart of the Maze", "Thornheart", "Eddy", "Spinning Corners", "Heartwood's Fury", "Mixed Grove"],
+	"B3 Spore Bomb": ["Soft Spores", "Lingering Spores", "Spore Cascade", "Chain Bloom", "Damp Rot", "Twin Puff", "Mushroom Rain", "Mycelium", "Spore Kin"],
+	"B4 Sniper's Rest": ["Long Shadows", "Patient Aim", "Starlit Aim", "Called Shot", "Sharpened Light", "Solitude", "Watchful Rest", "Hunter's Patience"],
+	"B5 Full Moon": ["Glinting Dew", "Sharpened Light", "Still Target", "Shattering Blow", "Deep Frost", "Shiny Things", "Reckless Bloom"],
+	"B6 Gale": ["Carried on the Wind", "Lasting Dreams", "Ill Wind", "Eddy"],
+	"B7 Fairy Mines": ["Ring Dance", "Sweet Scent", "Scented Hedge", "Deep Grip", "Root Web", "Lingering Spores"],
+	"B8 Hairpin Mill": ["Hairpin Winds", "Cozy Corners", "Hedge Maze", "Crowded Path", "Spinning Corners"],
+	"B9 Sleepy Hollow": ["Heavy Eyelids", "Hush", "Bad Dreams", "Many Threads", "Lullaby", "Clear Tones", "Chorus", "Heavy Air"],
+	"B10 Storm Corridor": ["Windborne Rain", "Straightaway", "Longer Flight", "Rolling Thunder", "Rain on Glass", "Heavy Dew"],
+	"B11 Thousand Cuts": ["Charged Feathers", "Thousand Cuts", "Sharp Beaks", "Needle Point", "Called Shot", "Bright Marks"],
+	"B12 Encore": ["Encore", "Quick Reactions", "Seeping", "Kin and Kindling", "Rolling Thunder", "Wildfire Spores", "Sparking Spores", "Mushroom Rain", "Damp Rot", "Deep Water"],
+	"B13 Rockfall": ["Loose Stones", "Shattering Blow", "Heavy Stones", "Crowded Path", "Falling Weight"],
+	"B14 Deep Poison": ["Seeping", "Bitter Sap", "Venom Bloom", "Soft Spores", "Lingering Spores", "Damp Rot", "Lasting Dreams", "Ill Wind"],
+	"B15 Thunder Chimes": ["Clear Tones", "Charged Field", "Brighter Jars", "Chorus", "Resonance"],
+	"B16 Bramble Maze": ["Hedge Maze", "Bitter Hedges", "Weathered Walls", "Living Walls", "Thorn Snare", "Bramble Oath", "Thornheart", "Hedgerow"],
+	"B17 The Grove": ["Grandfather Stump", "Kind Canopy", "Shared Light", "Hedgerow Roots", "Warm Hearth"],
+	"B18 Greedy Gardener": ["Dew Bowl", "Harvest Moon", "Deep Well", "Overflowing Well", "Dew Trail", "Gathered Dew", "Hurried Harvest"],
+	"B19 Eldest": ["Tender Care", "Warm Hands", "Kindred Roots", "Remembered Care", "Sunlit Rest", "Deeper Rings", "Chosen Few", "Nursery", "Elder Kin", "Many Rings", "Seasoned Eye"],
+	"B20 Wide Sprouts": ["Seedfall", "Sprout Surge", "Sprout Chorus", "Root Network", "Seedling Gift", "Many Hands", "Canopy", "Nursery", "Many Rings", "Big Family", "Mycelium", "Fireflies in the Grass", "Hedgerow", "Warm Hearth", "Fresh Soil"],
+	"B21 Lone Lantern": ["Solitude", "Few and Mighty", "Heart of the Maze", "Watchful Rest", "Chosen Few"],
+	"B22 Kinship": ["Family Ties", "Sweet Harmony", "Close Kin", "Old Friends", "Rooted Bond", "Extended Family", "Blood Is Thicker", "Elder Kin", "Big Family", "Spore Kin"],
+	"B23 Clearing": ["Cleared Ground", "Heartwood's Reach", "Reclaimed Earth", "Tended Forest", "Fresh Soil"],
+	"B24 Tempo": ["Call of the Wild", "Fresh Growth", "Quick Step", "Hurried Harvest"],
+	"B25 Last Leaf": ["Last Stand", "Heartwood's Fury", "Thin Bark"],
+	"B26 Menagerie": ["Patchwork", "Mixed Grove"],
+	"B27 Hunter's Moon": ["Bright Marks", "Lingering Mark", "Called Shot", "Guiding Light", "Starlit Aim"],
+	"B28 Eternal Charge": ["Charged Field", "Charged Bloom", "Brighter Jars", "Live Wire", "Resonance"],
+	"B29 Rooted Nightmares": ["Deep Grip", "Tangled Release", "Long Light", "Root Web", "Patient Roots", "Still Target", "Falling Weight"],
+	"B30 The Quiet Ones": ["Kind Canopy", "Shared Light", "Hedgerow Roots", "Grandfather Stump", "Many Threads", "Dew Trail"],
+	"B31 Crit": ["Glinting Dew", "Sharpened Light", "Still Target", "Shattering Blow", "First Light", "Called Shot", "Seasoned Eye"],
+	"B32 Swarm clearing": ["Crowded Path", "Last Breath", "Thinning the Herd", "Shattering Blow"],
+	"B33 First strike": ["First Light", "Called Shot", "Lone Hunter"],
 }
-const CHECKPOINTS := [25, 50, 75, 100]
+# Board extras the chasing bot needs for some builds (ranks, Sprouts, walls, a Kinship, clearing…).
+const EXTRAS := {
+	"B19 Eldest": {"ranks": true},
+	"B20 Wide Sprouts": {"wide": true},
+	"B22 Kinship": {"kinship": true},
+	"B2 The Long Walk": {"walls": true},
+	"B8 Hairpin Mill": {"walls": true, "families": ["whirligig"]},
+	"B16 Bramble Maze": {"walls": true, "families": ["rootling"], "forms": ["bramble"]},
+	"B23 Clearing": {"clearing": true},
+	"B26 Menagerie": {"families": ["sporeling", "firefly_jar", "dewdrop", "pebbling"]},
+	"B17 The Grove": {"families": ["acorn"], "forms": ["grove_heart", "elder_stump"]},
+	"B30 The Quiet Ones": {"families": ["acorn"], "forms": ["elder_stump", "dewcatcher"], "walls": true},
+	"B18 Greedy Gardener": {"families": ["acorn"], "forms": ["dewcatcher", "wellspring"]},
+}
+const DEFAULT_FAMILIES := ["sporeling", "firefly_jar"]
 
 var main: Node
 var dreams: DreamState
 var director: DriftDirector
-var _stages: Array = []  # [[from drift, Array[Tower], {unlocks}, rank V?, kinships]]
+var ids := {}  # Build -> Array of card ids
+var missing := {}  # Display name -> true (named in the catalogue, not a card)
+var _planted: Array[Tower] = []
+var _policy: DreamSimPolicy
 
 func _initialize() -> void:
 	_run.call_deferred()
 
 func _run() -> void:
-	var runs := 1000
-	var only := ""  # --build=Eldest: one build (run several in parallel)
+	var mode := "chase"
+	var only := "all"
+	var runs := 300
 	for arg in OS.get_cmdline_user_args():
-		if arg.begins_with("--runs="):
-			runs = int(arg.trim_prefix("--runs="))
-		if arg.begins_with("--build="):
+		if arg.begins_with("--mode="):
+			mode = arg.trim_prefix("--mode=")
+		elif arg.begins_with("--build="):
 			only = arg.trim_prefix("--build=")
+		elif arg.begins_with("--runs="):
+			runs = int(arg.trim_prefix("--runs="))
+	MetaRun.force_all_families = true  # Full Grove: every family in the picks (Grove families' cards can be eligible)
 	main = load("res://scenes/main.tscn").instantiate()
 	main.get_node("MapGenerator").map_seed = 424242
 	root.add_child(main)
@@ -41,163 +99,193 @@ func _run() -> void:
 	director = main.get_node("%DriftDirector")
 	dreams.unlock_everything = false
 	dreams.grove_cards.assign(dreams.pool.map(func(c: UpgradeData) -> String: return c.id))  # Full Grove
-	dreams.allow_bittersweet = true  # The full Grove includes Bittersweet Dreams
+	dreams.allow_bittersweet = true
 	dreams.discovery_profile = null  # Not the real game: everything discovered
+	_policy = DreamSimPolicy.new(dreams, DreamSimPolicy.Style.BALANCED)
 	for tower in main.get_node("%TowerContainer").get_children():
 		tower.free()
-	print("build packages: %d runs per build, full Grove, everything discovered" % runs)
-	print("| Build | 3+ by 25 / 50 / 75 / 100 | 5+ by 25 / 50 / 75 / 100 | avg by 100 | offers with one |")
-	print("|---|---|---|---|---|")
-	for build in PACKAGES:
-		if only == "" or only == build:
-			_measure(build, runs)
+	_resolve()
+	if mode == "emerge":
+		_emerge(runs)
+	else:
+		for build in PACKAGES:
+			if only == "all" or Array(only.split(",")).has(build.get_slice(" ", 0)):
+				_chase(build, runs)
+	if not missing.is_empty():
+		print("not cards (skipped): " + ", ".join(missing.keys()))
 	quit(0)
 
-func _measure(build: String, runs: int) -> void:
-	var package: Array = PACKAGES[build]
-	for id in package:
-		if not dreams.pool.any(func(c: UpgradeData) -> bool: return c.id == id):
-			printerr("%s: no card %s" % [build, id])
-	_build_board(build)
-	var style := _style(build)
-	var policy := DreamSimPolicy.new(dreams, style)
-	var three := [0, 0, 0, 0]
-	var five := [0, 0, 0, 0]
+func _resolve() -> void:
+	var by_name := {}
+	for card in dreams.pool:
+		by_name[card.display_name.to_lower()] = card.id
+	for build in PACKAGES:
+		var list: Array = []
+		for name in PACKAGES[build]:
+			var id: String = by_name.get(String(name).to_lower(), "")
+			if id == "":
+				missing[name] = true
+			elif not list.has(id):
+				list.append(id)
+		ids[build] = list
+
+# --- Chasing ------------------------------------------------------------------------------------------
+
+func _chase(build: String, runs: int) -> void:
+	var package: Array = ids[build]
+	var extras: Dictionary = EXTRAS.get(build, {})
+	var three := 0
+	var five := 0
 	var total := 0.0
-	var tally := [0, 0]  # [offers, offers with a package card] (an Array: lambdas capture ints by value)
-	var eligible := {}  # Card id -> rests where it could be offered (not owned yet)
-	var open := {}  # Card id -> rests where it wasn't owned yet
 	for run in runs:
 		_reset(run)
-		var stage := -1
+		_build_chase_board(package, extras)
 		for drift in range(5, 101, 5):
-			var want := _stage_for(drift)
-			if want != stage:
-				_apply_stage(want)
-				stage = want
 			director.drifts_started = drift
-			for id in package:
-				var c := _card(id)
-				if c != null and not dreams.has_card(id):
-					open[id] = int(open.get(id, 0)) + 1
-				if c != null and not dreams.has_card(id) and dreams.can_offer(c, director.get_act(drift)):
-					eligible[id] = int(eligible.get(id, 0)) + 1
 			dreams.sim_rest(drift, func(offer: Array) -> UpgradeData:
-				tally[0] += 1
 				var fresh := offer.filter(func(c: UpgradeData) -> bool: return package.has(c.id) and not dreams.has_card(c.id))
-				var any := offer.filter(func(c: UpgradeData) -> bool: return package.has(c.id))
-				if not any.is_empty():
-					tally[1] += 1
 				if not fresh.is_empty():
 					return fresh[0]
-				if not any.is_empty():
-					return any[0]
-				return policy.pick_dream(offer))
-			var i := CHECKPOINTS.find(drift)
-			if i >= 0:
-				var count := _count(package)
-				three[i] += 1 if count >= 3 else 0
-				five[i] += 1 if count >= 5 else 0
-				if drift == 100:
-					total += count
-	var pct := func(a: Array) -> String:
-		return " / ".join(a.map(func(n: int) -> String: return "%d%%" % roundi(100.0 * n / runs)))
-	print("| %s | %s | %s | %.1f | %d%% |" % [build, pct.call(three), pct.call(five), total / runs,
-		roundi(100.0 * tally[1] / maxi(tally[0], 1))])
-	print("  eligible (share of rests, while not owned): " + ", ".join(package.map(func(id: String) -> String:
-		return "%s %d%%" % [id, roundi(100.0 * int(eligible.get(id, 0)) / maxi(int(open.get(id, 0)), 1))])))
+				return _policy.pick_dream(offer))
+			var count := _count(package)
+			if drift == 50 and count >= 3:
+				three += 1
+			if drift == 100:
+				five += 1 if count >= 5 else 0
+				total += count
+	print("CHASE | %s | %d | %d%% | %d%% | %.1f |" % [build, package.size(), roundi(100.0 * three / runs), roundi(100.0 * five / runs), total / runs])
+
+# The build's families (from what its cards name, or the defaults), the forms its cards name, and
+# its extras, planted off the map (no touching, no Kinships unless asked).
+func _build_chase_board(package: Array, extras: Dictionary) -> void:
+	var families := {}
+	var forms := {}
+	for id in package:
+		var card := _card(id)
+		for need in Array(card.requires) + Array(card.requires_any):
+			var family := dreams.family_of(need)
+			if family != "":
+				families[family] = true
+				if need != family:
+					forms[need] = true
+	for family in extras.get("families", []):
+		families[family] = true
+	for form in extras.get("forms", []):
+		forms[form] = true
+	if families.is_empty():
+		for family in DEFAULT_FAMILIES:
+			families[family] = true
+	var plant: Array = []
+	for family in families:
+		dreams.unlocked[family] = true
+		plant.append_array([family, family])
+	for form in forms:
+		dreams.unlocked[form] = true
+		plant.append(form)
+	if extras.get("wide", false):
+		for i in 10:
+			plant.append(families.keys()[i % families.size()])
+		plant.append_array(["sprout", "sprout", "sprout", "sprout", "sprout", "sprout"])
+	if extras.get("walls", false):
+		for i in 8:
+			plant.append("thornwall")
+	_plant(plant)
+	if extras.get("ranks", false) and _planted.size() >= 2:
+		_planted[0].rank = 5
+		_planted[1].rank = 3
+	dreams.sim_kinships = 1 if extras.get("kinship", false) else 0
+	dreams.clearing_open = extras.get("clearing", false)
+	dreams.bump_board()
+
+# --- Emergence ----------------------------------------------------------------------------------------
+
+func _emerge(runs: int) -> void:
+	var some := 0
+	var per_build := {}
+	var offers := [0, 0, 0]  # [offers, with a usable card sharing no tag, …a tagged one]
+	var shown := [0, 0]  # [cards offered, own-family cards]
+	for run in runs:
+		_reset(run)
+		var rng := RandomNumberGenerator.new()
+		rng.seed = 7000 + run
+		var roots: Array = dreams._family_roots().map(func(d: TowerData) -> String: return d.get_id())
+		var owned: Array = []
+		for drift in range(5, 51, 5):
+			director.drifts_started = drift
+			if drift == 5 or drift == 30:  # The family picks (after drift 1, after the drift 25 boss)
+				var left := roots.filter(func(r: String) -> bool: return not owned.has(r))
+				var family: String = left[rng.randi_range(0, left.size() - 1)]
+				owned.append(family)
+				dreams.unlocked[family] = true
+				_plant([family, family, family, "sprout", "thornwall"])
+				dreams.bump_board()
+			var lines := {}
+			for family in owned:
+				var data := IconInfo.family_data(family)
+				if data != null:
+					lines[data.line] = true
+			dreams.sim_rest(drift, func(offer: Array) -> UpgradeData:
+				offers[0] += 1
+				var taken_tags := {}
+				for c in dreams.get_taken_cards():
+					for tag in c.tags:
+						taken_tags[tag] = true
+				var fresh := offer.filter(func(c: UpgradeData) -> bool:
+					return not dreams.is_half_dreamed(c) and not c.tags.any(func(t: String) -> bool: return taken_tags.has(t)))
+				offers[1] += 1 if not fresh.is_empty() else 0
+				offers[2] += 1 if fresh.any(func(c: UpgradeData) -> bool: return not c.tags.is_empty()) else 0
+				for c in offer:
+					shown[0] += 1
+					if c.tags.any(func(t: String) -> bool: return lines.has(t)):
+						shown[1] += 1
+				return _policy.pick_dream(offer))
+		var hit := false
+		for build in PACKAGES:
+			if _count(ids[build]) >= 3:
+				per_build[build] = int(per_build.get(build, 0)) + 1
+				hit = true
+		some += 1 if hit else 0
+	print("EMERGE 3+ cards of some package by drift 50: %d%% of %d runs" % [roundi(100.0 * some / runs), runs])
+	var order: Array = per_build.keys()
+	order.sort_custom(func(a, b) -> bool: return per_build[a] > per_build[b])
+	print("EMERGE each build's share of those runs: " + ", ".join(order.map(func(b: String) -> String:
+		return "%s %d%%" % [b, roundi(100.0 * per_build[b] / maxi(some, 1))])))
+	print("ADAPT offers with a usable card sharing no tag with your cards: %d%% (%d%% counting tagged cards only)" % [
+		roundi(100.0 * offers[1] / maxi(offers[0], 1)), roundi(100.0 * offers[2] / maxi(offers[0], 1))])
+	print("OWNFAMILY own-family share of offered cards (reference): %d%%" % roundi(100.0 * shown[1] / maxi(shown[0], 1)))
+
+# --- Shared ---------------------------------------------------------------------------------------------
 
 func _count(package: Array) -> int:
 	return package.filter(func(id: String) -> bool: return dreams.has_card(id)).size()
 
-func _style(build: String) -> DreamSimPolicy.Style:
-	match build:
-		"Eldest":
-			return DreamSimPolicy.Style.NARROW
-		"Wide Sprouts":
-			return DreamSimPolicy.Style.SPROUT
-		"Kinship":
-			return DreamSimPolicy.Style.COMBO
-	return DreamSimPolicy.Style.BALANCED
+func _card(id: String) -> UpgradeData:
+	for c in dreams.pool:
+		if c.id == id:
+			return c
+	return null
 
-# The board by drift (dream_design.md): stage 0 from drift 1, stage 1 from the build's drift.
-func _build_board(build: String) -> void:
-	for stage in _stages:
-		for tower in stage[1]:
-			if tower.get_parent() != null:
-				tower.get_parent().remove_child(tower)
-			tower.free()
-	_stages.clear()
-	match build:
-		"Storm Grid":
-			_stages.append([1, _plant(["firefly_jar", "firefly_jar", "dewdrop", "dewdrop", "sprout"]), ["firefly_jar", "dewdrop"], false, 0])
-			_stages.append([25, _plant(["stormcap", "stormcap", "rain_lily", "rain_lily"]), ["stormcap", "rain_lily"], false, 0])
-		"Spore Bomb":
-			_stages.append([1, _plant(["sporeling", "sporeling", "sporeling", "driftspore", "sprout"]), ["sporeling", "driftspore"], false, 0])
-			_stages.append([25, _plant(["dewdrop", "mistveil", "puffball"]), ["dewdrop", "mistveil", "puffball"], false, 0])
-		"Eldest":
-			_stages.append([1, _plant(["sporeling", "sporeling", "firefly_jar"]), ["sporeling", "firefly_jar"], false, 0])
-			_stages.append([20, _plant(["stormcap", "sporeling"]), ["stormcap"], true, 0])  # A rank V Warden and a second ranked one
-		"Wide Sprouts":
-			_stages.append([1, _plant(["sporeling", "sporeling", "sprout", "sprout", "sprout"]), ["sporeling"], false, 0])
-			_stages.append([15, _plant(["sporeling", "sporeling", "sporeling", "firefly_jar", "firefly_jar", "dewdrop", "dewdrop",
-				"sprout", "sprout", "sprout", "driftspore"]), ["firefly_jar", "dewdrop", "driftspore"], false, 0])
-		"Kinship":
-			_stages.append([1, _plant(["sporeling", "sporeling", "sprout"]), ["sporeling"], false, 0])
-			_stages.append([10, _plant(["driftspore", "bloomcap"]), ["driftspore", "bloomcap"], false, 1])
-	for stage in _stages:
-		for tower in stage[1]:
-			if tower.get_parent() != null:
-				tower.get_parent().remove_child(tower)
-
-func _stage_for(drift: int) -> int:
-	var at := 0
-	for i in _stages.size():
-		if drift >= _stages[i][0]:
-			at = i
-	return at
-
-# Puts stages 0..`index` on the map (and their unlocks, rank V, Kinships); the rest off.
-func _apply_stage(index: int) -> void:
+func _plant(list: Array) -> void:
 	var container := main.get_node("%TowerContainer")
-	dreams.sim_kinships = 0
-	for i in _stages.size():
-		var on := i <= index
-		for tower in _stages[i][1]:
-			if on and tower.get_parent() == null:
-				container.add_child(tower)
-				tower.set_process(false)
-			elif not on and tower.get_parent() != null:
-				container.remove_child(tower)
-			if _stages[i][3]:
-				tower.rank = (5 if tower == _stages[i][1][0] else 3) if on else 0
-		if on:
-			for id in _stages[i][2]:
-				dreams.unlocked[id] = true
-			dreams.sim_kinships = maxi(dreams.sim_kinships, _stages[i][4])
-	dreams.bump_board()
-
-func _plant(ids: Array) -> Array[Tower]:
-	var out: Array[Tower] = []
-	var container := main.get_node("%TowerContainer")
-	for id in ids:
+	for id in list:
+		var path := "res://resource/tower/%s.tres" % id
+		if not ResourceLoader.exists(path):
+			continue
 		var tower: Tower = load("res://scenes/tower/tower.tscn").instantiate()
-		tower.tower_data = load("res://resource/tower/%s.tres" % id)
-		var n := container.get_child_count() + _stages.size() * 20 + out.size()
-		tower.cell = Vector2(200 + (n % 10) * 2, 200 + (n / 10) * 2)  # Off the map, 1 cell apart (no Kinships, no touching)
+		tower.tower_data = load(path)
+		var n := _planted.size()
+		tower.cell = Vector2(200 + (n % 12) * 2, 200 + (n / 12) * 2)  # Off the map, 1 cell apart
 		tower.position = tower.MAP_GRID.calculate_map_position(tower.cell)
 		container.add_child(tower)
 		tower.set_process(false)
-		out.append(tower)
-	return out
+		_planted.append(tower)
 
 func _reset(run: int) -> void:
-	for stage in _stages:
-		for tower in stage[1]:
-			if tower.get_parent() != null:
-				tower.get_parent().remove_child(tower)
-			tower.rank = 0
+	for tower in _planted:
+		tower.free()
+	_planted.clear()
 	dreams.stacks.clear()
+	dreams._resonance.clear()
 	dreams.unlocked = {"sprout": true, "thornwall": true}
 	dreams.dreams_seen = 0
 	dreams._dreams_without_rare = 0
@@ -212,11 +300,7 @@ func _reset(run: int) -> void:
 	dreams._banished.clear()
 	dreams._legendary_next = 0
 	dreams.current_stray = null
+	dreams.sim_kinships = 0
+	dreams.clearing_open = false
 	dreams._rng.seed = 1000 + run
 	dreams.bump_board()
-
-func _card(id: String) -> UpgradeData:
-	for c in dreams.pool:
-		if c.id == id:
-			return c
-	return null
