@@ -546,6 +546,13 @@ From a user playtest with screenshots; each line is the rule going forward.
   shows only a **gold border** (and gold text), no fill. **Hovering** fills the **whole box** with the
   soft highlight. Pressing darkens it for a moment. So "chosen" and "under the pointer" never look
   alike. One UiStyle rule for all buttons, tabs and segmented switches.
+  - **No button is filled unless the pointer is on it** (user, 2026-09-30: "still seems highlighted
+    when I'm not hovering", the Warden panel's "Grow into Acorn"). Primary / affordable / keyboard-
+    focused buttons don't get a resting fill either: at most the gold border. Keyboard focus shows
+    as the border too (it must not look like hover).
+- **Warden panel header shows the Warden's portrait** (its animated idle art), not the family
+  emblem (user, 2026-09-30: "go back to the Warden portrait instead of the icon"). The family emblem
+  stays on the damage-type line and the tower bar hotkeys.
 - **Less hand-holding on buttons** (2026-09-30, user: "a bit too much hand holding"):
   - Unlock buttons read **"Unlock with 2 Dreamlight (0)"**, not "(you have 0)".
   - A button you **can't afford never glows or pulses**; it's shown dim. Glow means "you can do this now".

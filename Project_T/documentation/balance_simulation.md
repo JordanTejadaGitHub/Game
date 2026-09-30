@@ -165,6 +165,33 @@ Income only for drifts 1–60 (assumed perfect blocks), then drifts 61–70 foug
 
 **Family openings + Grove player (2026-09-29):** only the starting three carry act 1 alone (Bellflower, Whirligig 6/10; Nestling 3/10; Pebbling, Rootling, Acorn 0/10) → base Warden DPS floor (`warden_stats.md`). The Grove player (Firefly + Dewdrop, finals first): Fresh 35.5, Half 39 (one win), Full 40 median; **half of all runs at every profile die at drifts 28–29** (the act 2 opening, before finals) → the guaranteed elite moves to drift 31; **no Ascended form in any run** (3–6 Dreamlight earned) → bosses give 4 Dreamlight.
 
+## Batch grove10 (2026-09-30; random drifts, 10 seeds per cell)
+
+**A. Each family alone, Full Grove, to drift 25** (reached 25 / average leaves lost by 25): Sporeling
+10/1.1, Firefly 10/0.3, Dewdrop 10/0.3, Bellflower 10/0.5, Pebbling 9/3.1, **Acorn 9/9.2**, Nestling
+8/0.4, **Rootling 8/0.5 (its 2 deaths at drifts 2–3)**, **Whirligig 7/7.8**.
+**E. Fresh Balanced:** beat the drift 25 boss **10/10** (target ~75%), 0.8 leaves by 25.
+**C. Spend or save** (Mixed style, 5 families × 10, reached 25 · close calls · approach): Fresh
+spender 36/50 · 1.5 · 0.86, saver **46/50** · 0.7 · 0.80; Early spender 36/50, saver 45/50. The
+spender's deaths are Dewdrop and Firefly (4/10 each, drifts 5–13); the saver's weak spot is Early
+Pebbling (5/10).
+**D. Grove player** (Firefly + Dewdrop, to 100): medians Fresh 38, Half 41, Full 39; wins 0/30; the
+26–30 death cluster is gone; best 97 (Half). Stormheart unlocked in 2 Full runs, planted in 1.
+
+Decisions (design chat, 2026-09-30):
+- **Openings under the floor:** Rootling (dies at drift 2–3 on some seeds, a terrible first run),
+  Whirligig (7/10) and Acorn (9.2 leaves). The floor is now **≥ 8/10 reach 25 and ≤ 3 leaves on
+  average**, alone, at Fresh. Tower Code tunes their base Wardens; rerun A for those three at Fresh.
+- **The first boss is too easy at Fresh:** raise **only the drift 25 boss** (the act stays the
+  teacher): boss health ×1.5 → **×1.75** for act 1's boss, rerun E with 20 seeds, target 14–16/20.
+- **Saving is safer than spending, the reverse of the target.** No tuning yet: first a breakdown of
+  what the spender bought by drift 10 in its Dewdrop / Firefly deaths (plants, ranks, clears,
+  growth). If spending on the wrong thing kills it, fix the bot; if the target is wrong, act 1's
+  early drifts need to punish an unspent 100+ Dew bank.
+- **The Grove still doesn't move the median.** Fresh at 38 is on target, so act 2 stays; the Grove
+  must add more. Next: per profile, the death drift and what leaked, Dew and damage at 30 / 45, the
+  perks carried. Then buff the perks and the Grove families (not lower act 2).
+
 ## Later
 
 A **human baseline**: the same CSV written from real playtests (debug builds only), so the bot's
