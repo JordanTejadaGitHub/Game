@@ -27,7 +27,7 @@ func _ready() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	var dim := ColorRect.new()
-	dim.color = Color(0.06, 0.05, 0.03, 0.72)
+	dim.color = Color(UiStyle.FOG, 0.72)
 	dim.set_anchors_preset(Control.PRESET_FULL_RECT)
 	add_child(dim)
 
@@ -55,7 +55,7 @@ func _ready() -> void:
 	_active_tag.offset_top = 64
 	_active_tag.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_active_tag.add_theme_color_override("font_color", OMEN_COLOR)
-	_active_tag.add_theme_color_override("font_outline_color", Color(0.08, 0.1, 0.14))
+	_active_tag.add_theme_color_override("font_outline_color", Palette.DREAD)
 	_active_tag.add_theme_constant_override("outline_size", 6)
 	_active_tag.visible = false
 	get_parent().add_child.call_deferred(_active_tag)

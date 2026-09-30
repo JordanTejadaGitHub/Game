@@ -12,7 +12,7 @@ const BUTTON_MIN_WIDTH := 32.0
 const BAR_CLEARANCE := 336.0
 const SPROUT_ID := "sprout"
 const CLEAR_TOOL_GAP := 10.0
-const SEED_COLOR := Color(0.6, 0.85, 0.4)
+const SEED_COLOR := Palette.SPRIG
 const COUNTER_ICON_GAP := 6.0
 
 @onready var tower_bar: HBoxContainer = %TowerBar
@@ -34,7 +34,7 @@ const MENU_SLOT := [-16.0, 84.0]
 const REMEMBER_SLOT := [-106.0, 124.0]
 const BUFFS_SLOT := [-236.0, 84.0]
 const CODEX_SLOT := [-326.0, 48.0]
-const LEAF_LOST_COLOR := Color(1.0, 0.6, 0.3)
+const LEAF_LOST_COLOR := UiStyle.POOR
 const TOAST_TIME := 2.5
 
 @onready var dream_state: DreamState = %DreamState
@@ -255,12 +255,12 @@ func _make_seed_badge() -> Control:
 	_seed_badge.position = Vector2(BUTTON_SIZE.x - 14, 2)
 	_seed_badge.draw.connect(func() -> void:
 		_seed_badge.draw_set_transform(Vector2(0, 7), -0.5, Vector2(0.7, 1.0))
-		_seed_badge.draw_circle(Vector2.ZERO, 6.0, Color(0.08, 0.1, 0.12))
+		_seed_badge.draw_circle(Vector2.ZERO, 6.0, Palette.ROOT)
 		_seed_badge.draw_circle(Vector2.ZERO, 4.5, SEED_COLOR)
 		_seed_badge.draw_set_transform(Vector2.ZERO)
 		var font := ThemeDB.fallback_font
 		var text := str(run_state.sprout_charges)
-		_seed_badge.draw_string_outline(font, Vector2(-2, 22), text, HORIZONTAL_ALIGNMENT_LEFT, -1, 11, 4, Color(0.05, 0.06, 0.08))
+		_seed_badge.draw_string_outline(font, Vector2(-2, 22), text, HORIZONTAL_ALIGNMENT_LEFT, -1, 11, 4, Palette.DREAD)
 		_seed_badge.draw_string(font, Vector2(-2, 22), text, HORIZONTAL_ALIGNMENT_LEFT, -1, 11, SEED_COLOR.lightened(0.3)))
 	return _seed_badge
 
@@ -542,7 +542,7 @@ func _process(delta: float) -> void:
 		remember_button.text = "Remember ✦" if _remember_ready else "Remember"
 	_remember_glow += real
 	remember_button.modulate = Color.WHITE.lerp(Color(1.35, 1.2, 0.8), 0.5 + 0.5 * sin(_remember_glow * 4.0)) \
-		if _remember_ready else Color.WHITE
+		if _remember_ready else Color.WHITE  # A multiplier (glow pulse)
 
 # Full-screen overlays draw above the rest of the HUD (the Coming strip, the top-right buttons and
 # the counters are added in code after the scene's screens): they go last, in rest order, with the

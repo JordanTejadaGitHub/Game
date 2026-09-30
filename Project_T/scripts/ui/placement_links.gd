@@ -5,8 +5,8 @@ extends Node2D
 # green-gold one to the Warden it would form a Kinship with ("Forms Kinship: Slumber Rot",
 # Kinships.preview). Reads the TowerPlacer's hover state; draws in the world, over the ghost.
 
-const VINE := Color(0.55, 0.95, 0.5)
-const KIN_VINE := Color(0.85, 0.9, 0.4)  # A Kinship: green-gold (a link's optional third element is its colour)
+const VINE := UiStyle.LIVE
+const KIN_VINE := UiStyle.LIVE  # A Kinship: green-gold (a link's optional third element is its colour)
 
 @onready var tower_placer: TowerPlacer = %TowerPlacer
 @onready var tower_container: Node2D = %TowerContainer

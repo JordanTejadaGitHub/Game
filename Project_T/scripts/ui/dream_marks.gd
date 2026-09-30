@@ -12,7 +12,7 @@ class_name DreamMarks
 # time one appears in a run it pulses once with the card's name under it (INTRO_TIME).
 # Reached untyped with has_method / has_signal, so it works before and after the cards exist.
 
-const HEART_COLOR := Color(1.0, 0.45, 0.55)
+const HEART_COLOR := Palette.BLOSSOM
 const POLL_TIME := 0.25
 const INTRO_TIME := 2.0
 const HEART_OFFSET := Vector2(0, -44)
@@ -111,7 +111,7 @@ func _draw() -> void:
 		var width := font.get_string_size(words, HORIZONTAL_ALIGNMENT_LEFT, -1, 13).x
 		var at := _heart_at + Vector2(-width / 2.0, -14.0)
 		var alpha := minf(_intro / 0.4, 1.0)
-		draw_string_outline(font, at, words, HORIZONTAL_ALIGNMENT_LEFT, -1, 13, 4, Color(0.06, 0.04, 0.06, alpha))
+		draw_string_outline(font, at, words, HORIZONTAL_ALIGNMENT_LEFT, -1, 13, 4, Color(UiStyle.FOG, alpha))
 		draw_string(font, at, words, HORIZONTAL_ALIGNMENT_LEFT, -1, 13, Color(HEART_COLOR.lightened(0.3), alpha))
 	draw_heart(self, _heart_at, 6.0 * beat, HEART_COLOR)
 
@@ -120,7 +120,7 @@ static func draw_heart(canvas: CanvasItem, at: Vector2, s: float, colour: Color)
 	for i in 24:  # The classic heart curve, scaled to `s`
 		var t := TAU * i / 24.0
 		points.append(at + Vector2(16.0 * pow(sin(t), 3), -(13.0 * cos(t) - 5.0 * cos(2 * t) - 2.0 * cos(3 * t) - cos(4 * t))) * s / 16.0)
-	canvas.draw_colored_polygon(points, Color(0.08, 0.05, 0.07, 0.85))
+	canvas.draw_colored_polygon(points, Color(Palette.DREAD, 0.85))
 	var inner := PackedVector2Array()
 	for p in points:
 		inner.append(at + (p - at) * 0.78)
@@ -129,8 +129,8 @@ static func draw_heart(canvas: CanvasItem, at: Vector2, s: float, colour: Color)
 
 # Thick Bark's shield beside the leaves counter (a child of the leaves label, right-aligned text).
 class BarkShield extends Control:
-	const BARK := Color(0.62, 0.45, 0.28)
-	const RIM := Color(0.95, 0.8, 0.5)
+	const BARK := Palette.OAK
+	const RIM := UiStyle.GOLD
 	var charges := 0
 	var tip: MarkTip = null
 	var _label: Label
@@ -208,11 +208,11 @@ class BarkShield extends Control:
 		draw_polyline(shield + PackedVector2Array([shield[0]]), RIM, 1.5, true)
 		for i in 3:  # Bark grain
 			var x := -s * 0.5 + i * s * 0.5
-			draw_line(c + Vector2(x, -s * 0.7), c + Vector2(x, s * 0.5), Color(0.35, 0.24, 0.14), 1.0)
+			draw_line(c + Vector2(x, -s * 0.7), c + Vector2(x, s * 0.5), Palette.BARK, 1.0)
 		if charges > 1:
 			var font := ThemeDB.fallback_font
-			draw_string_outline(font, c + Vector2(4, s + 4), str(charges), HORIZONTAL_ALIGNMENT_LEFT, -1, 12, 3, Color(0.08, 0.08, 0.1))
-			draw_string(font, c + Vector2(4, s + 4), str(charges), HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color.WHITE)
+			draw_string_outline(font, c + Vector2(4, s + 4), str(charges), HORIZONTAL_ALIGNMENT_LEFT, -1, 12, 3, Palette.DREAD)
+			draw_string(font, c + Vector2(4, s + 4), str(charges), HORIZONTAL_ALIGNMENT_LEFT, -1, 12, UiStyle.INK)
 		if _intro > 0.0:  # First appearance: a ring pulse and the card's name under the shield
 			var t := 1.0 - _intro / DreamMarks.INTRO_TIME
 			draw_arc(c, 10.0 + 16.0 * t, 0.0, TAU, 28, Color(RIM, 0.8 * (1.0 - t)), 2.0, true)
@@ -222,7 +222,7 @@ class BarkShield extends Control:
 			var width := font.get_string_size(words, HORIZONTAL_ALIGNMENT_LEFT, -1, 13).x
 			var at := Vector2(c.x - width / 2.0, size.y + 16.0)
 			var alpha := minf(_intro / 0.4, 1.0)
-			draw_string_outline(font, at, words, HORIZONTAL_ALIGNMENT_LEFT, -1, 13, 4, Color(0.06, 0.05, 0.04, alpha))
+			draw_string_outline(font, at, words, HORIZONTAL_ALIGNMENT_LEFT, -1, 13, 4, Color(UiStyle.FOG, alpha))
 			draw_string(font, at, words, HORIZONTAL_ALIGNMENT_LEFT, -1, 13, Color(RIM, alpha))
 
 

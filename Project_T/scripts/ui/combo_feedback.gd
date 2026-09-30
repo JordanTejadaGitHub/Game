@@ -328,8 +328,8 @@ class ComboRing extends Node2D:
 
 	func _draw() -> void:
 		var pulse := 0.5 + 0.5 * sin(_time * 4.0)
-		draw_arc(Vector2.ZERO, 26.0 + pulse * 4.0, 0.0, TAU, 40, Color(1.0, 0.95, 0.6, 0.9), 3.0, true)
-		draw_arc(Vector2.ZERO, 36.0 + pulse * 6.0, 0.0, TAU, 40, Color(1.0, 0.95, 0.6, 0.35 * (1.0 - pulse)), 2.0, true)
+		draw_arc(Vector2.ZERO, 26.0 + pulse * 4.0, 0.0, TAU, 40, Color(UiStyle.LIVE, 0.9), 3.0, true)
+		draw_arc(Vector2.ZERO, 36.0 + pulse * 6.0, 0.0, TAU, 40, Color(UiStyle.LIVE, 0.35 * (1.0 - pulse)), 2.0, true)
 
 static func discovery_text(id: StringName) -> String:
 	var combo := CodexData.get_any(id)
@@ -354,7 +354,7 @@ func _show_next() -> void:
 	if new_dreams.has(_card_id):  # "New Dreams: Rolling Thunder, Rain on Glass" (discovery unlocks)
 		_card_label.text += "\nNew Dreams: " + ", ".join(new_dreams[_card_id])
 	var reaction := Reactions.get_data(_card_id)
-	_card_label.add_theme_color_override("font_color", reaction.callout_color if reaction != null else Color(0.9, 1.0, 0.8))
+	_card_label.add_theme_color_override("font_color", reaction.callout_color if reaction != null else UiStyle.INK)
 	_crown_corners.visible = CodexData.CROWNED.has(_card_id)
 	var pausing := pause_setting()
 	_buttons.visible = pausing

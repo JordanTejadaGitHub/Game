@@ -43,7 +43,7 @@ func _ready() -> void:
 	add_to_group(StatusLinks.CODEX_HOST_GROUP)  # Status links' "More in the Codex"
 	set_anchors_preset(Control.PRESET_FULL_RECT)
 	var background := ColorRect.new()
-	background.color = Color(0.07, 0.11, 0.09)
+	background.color = Palette.ROOT
 	background.set_anchors_preset(Control.PRESET_FULL_RECT)
 	add_child(background)
 	var center := CenterContainer.new()
@@ -57,13 +57,13 @@ func _ready() -> void:
 	title.text = TITLE
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	UiStyle.display(title, 44)
-	title.add_theme_color_override("font_color", Color(0.85, 1.0, 0.8))
+	title.add_theme_color_override("font_color", UiStyle.INK)
 	_menu.add_child(title)
 	if ResultsScreen.is_demo():
 		var demo := Label.new()
 		demo.text = "Demo"
 		demo.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		demo.add_theme_color_override("font_color", Color(0.7, 0.8, 0.7))
+		demo.add_theme_color_override("font_color", UiStyle.WHISPER)
 		_menu.add_child(demo)
 	_menu.add_child(HSeparator.new())
 
@@ -96,7 +96,7 @@ func _ready() -> void:
 	if int(memory.highest_blight_won) > 0:  # A blossom per Blight Level won (text until the art exists)
 		seeds.text += "\n" + "✿".repeat(int(memory.highest_blight_won)) + "  Blight Level %d won" % int(memory.highest_blight_won)
 	seeds.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	seeds.add_theme_color_override("font_color", Color(0.75, 0.95, 0.6))
+	seeds.add_theme_color_override("font_color", UiStyle.LIVE)
 	_menu.add_child(seeds)
 
 	_settings = SettingsPanel.new()

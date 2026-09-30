@@ -5,9 +5,9 @@ class_name WorldLabel
 # draw_tag does it; other world text can use text_scale() / begin_screen_size() the same way.
 
 const FONT_SIZE := 14
-const BACKGROUND := Color(0.1, 0.1, 0.12, 0.75)
-const AFFORDABLE_COLOR := Color.WHITE
-const UNAFFORDABLE_COLOR := Color(1.0, 0.5, 0.45)
+const BACKGROUND := Color(UiStyle.FOG, 0.75)
+const AFFORDABLE_COLOR := UiStyle.INK
+const UNAFFORDABLE_COLOR := UiStyle.POOR  # The palette has no red
 
 # The scale world text is drawn at so it keeps its size on screen when zoomed in: UI-sized (the UI
 # scale, UiStyle.apply_ui_scale) at a view zoom of 1× and closer; zoomed out it shrinks with the map.

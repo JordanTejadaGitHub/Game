@@ -27,13 +27,13 @@ func _draw() -> void:
 		var scale := maxi(floori(minf(size.x, size.y) / 16.0), 1)
 		var side := Vector2(16, 16) * scale
 		draw_texture_rect(art, Rect2((size - side) / 2.0, side), false,
-			Color(0.6, 0.6, 0.65) if dim else Color.WHITE)
+			Color(0.6, 0.6, 0.65) if dim else Color.WHITE)  # A multiplier on the icon art
 		return
-	var colour: Color = EnemyStatuses.COLORS.get(status, Color.WHITE)
+	var colour: Color = EnemyStatuses.COLORS.get(status, UiStyle.INK)
 	if dim:
-		colour = colour.lerp(Color(0.5, 0.5, 0.55), 0.5)
+		colour = colour.lerp(UiStyle.OFF, 0.5)
 	var c := size / 2.0
-	draw_circle(c, 11.0, Color(0.05, 0.06, 0.08, 0.85))
+	draw_circle(c, 11.0, Color(Palette.DREAD, 0.85))
 	match status:
 		&"damp":  # Droplet
 			draw_colored_polygon(PackedVector2Array([c + Vector2(0, -8), c + Vector2(5, 1), c + Vector2(0, 7),

@@ -73,7 +73,7 @@ static func _statuses(text: String) -> String:
 	return out + text.substr(at)
 
 # A RichTextLabel showing `text` with its status names as links (wraps, sizes to its content).
-static func make_label(text: String, font_size: int = 15, colour: Color = Color(0.92, 0.94, 0.9)) -> RichTextLabel:
+static func make_label(text: String, font_size: int = 15, colour: Color = UiStyle.INK) -> RichTextLabel:
 	var label := RichTextLabel.new()
 	label.bbcode_enabled = true
 	label.fit_content = true

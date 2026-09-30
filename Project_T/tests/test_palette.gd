@@ -84,7 +84,7 @@ func _check_files() -> void:
 # season tints in CODE_COLOUR_EXEMPT (multipliers, art_direction.md "The acts' seasons").
 const CODE_COLOUR_EXEMPT := ["palette.gd", "seasons.gd", "environment_lighting.gd"]
 # Folders not swept yet (UI Code owns the UI look); reported, not failed. Empty it when they're done.
-const CODE_COLOUR_PENDING := ["res://scripts/ui/"]
+const CODE_COLOUR_PENDING := []
 
 
 func _check_code_colours() -> void:
@@ -108,13 +108,15 @@ func _check_code_colours() -> void:
 			continue
 		var lines := FileAccess.get_file_as_string(f).split("\n")
 		for i in lines.size():
-			if "multiplier" in lines[i]:
+			if "multiplier" in lines[i] or "Accessibility" in lines[i]:
 				continue  # Marked as a tint on art (a modulate), not a colour
 			var code := lines[i].split("#")[0] if not "\"#" in lines[i] else lines[i]
 			for m in re.search_all(code):
 				var lit := m.get_string()
-				if white.search(lit) or clear.search(lit) or lit == "Color.WHITE":
-					continue  # A multiplier (modulate / tint) or "no colour"
+				if white.search(lit) or clear.search(lit) or _overbright(lit):
+					continue  # A multiplier (modulate / tint), an over-1 flash, or "no colour"
+				if lit == "Color.WHITE" and ("modulate" in code or "tint" in code or "set_pixel" in code):
+					continue  # White as a multiplier; drawn white is Palette.HEARTLIGHT / UiStyle.INK
 				if m.get_string(1) != "" and HeartwoodPalette.index_of(Color.html(m.get_string(1))) >= 0:
 					continue  # A palette colour by hex (UiStyle's constants, checked in test_ui_style)
 				var pend := false
@@ -135,6 +137,12 @@ func _check_code_colours() -> void:
 	var v := crack.get_string(1).split(",") if crack else PackedStringArray()
 	_check(v.size() == 3 and HeartwoodPalette.index_of(Color(float(v[0]), float(v[1]), float(v[2]))) >= 0,
 		"the blight shader's crack colour is a palette colour")
+
+
+# A channel over 1 can only brighten art (a modulate flash), never be a colour on screen.
+func _overbright(lit: String) -> bool:
+	var m := RegEx.create_from_string("^Color\\(\\s*([0-9.]+)\\s*,\\s*([0-9.]+)\\s*,\\s*([0-9.]+)").search(lit)
+	return m != null and maxf(float(m.get_string(1)), maxf(float(m.get_string(2)), float(m.get_string(3)))) > 1.0
 
 
 func _gd_files(dir: String, out: PackedStringArray) -> void:

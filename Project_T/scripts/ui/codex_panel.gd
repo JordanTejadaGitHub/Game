@@ -17,12 +17,12 @@ class_name CodexPanel
 const TOWER_DIR := "res://resource/tower/"
 const ENEMY_DIR := "res://resource/enemy/"
 const START_FAMILIES := ["sporeling", "firefly_jar", "dewdrop"]
-const LOCKED_COLOR := Color(0.5, 0.52, 0.56)
-const TERM_COLOR := Color(0.95, 0.9, 0.7)
-const HIGHLIGHT := Color(1.0, 0.95, 0.6, 0.18)
-const CROWN_COLOR := Color(1.0, 0.82, 0.35)  # Crowned Reactions: the gold tier
+const LOCKED_COLOR := UiStyle.OFF
+const TERM_COLOR := UiStyle.LIVE
+const HIGHLIGHT := Color(UiStyle.LIVE, 0.18)
+const CROWN_COLOR := UiStyle.GOLD  # Crowned Reactions: the gold tier
 const CROWN_SILHOUETTE := preload("res://assets/effects/crowned_codex_silhouette.png")
-const KIN_COLOR := Color(0.7, 0.9, 0.45)  # Kinships: green-gold, the forest growing between Wardens
+const KIN_COLOR := UiStyle.LIVE  # Kinships: green-gold, the forest growing between Wardens
 const KIN_FRAME := preload("res://assets/effects/kin_codex_frame.png")
 const KIN_LEAF := preload("res://assets/effects/kin_leaf_icon.png")
 
@@ -138,7 +138,7 @@ func _focus(scroll: ScrollContainer, target: Control) -> void:
 		return  # Rebuilt since the jump was asked for (the page reopened in the same frame)
 	scroll.ensure_control_visible(target)
 	var tween := target.create_tween()
-	target.modulate = Color(1.6, 1.5, 1.1)
+	target.modulate = Color(1.6, 1.5, 1.1)  # A multiplier (flash), not a colour
 	tween.tween_property(target, "modulate", Color.WHITE, 0.8)
 
 func _find_combo(name: String) -> Dictionary:
@@ -176,7 +176,7 @@ func _add_group(title: String, entries: Array) -> void:
 	var header := Label.new()
 	header.text = title
 	header.add_theme_font_size_override("font_size", 20)
-	header.add_theme_color_override("font_color", Color(0.75, 0.9, 0.75))
+	header.add_theme_color_override("font_color", UiStyle.LIVE)
 	_glossary.add_child(header)
 	for entry in entries:
 		var card := VBoxContainer.new()
@@ -228,7 +228,7 @@ static func get_met_nightmares() -> Array:
 # small leaf "New from the Grove" mark (profile codex_covered).
 
 const COVERED_KEY := "codex_covered"
-const GROVE_COLOR := Color(0.6, 0.85, 0.55)
+const GROVE_COLOR := Palette.SPRIG
 var _scope := {}
 var _fresh := {}  # Entry ids newly covered since the last Codex (the leaf mark)
 
@@ -403,7 +403,7 @@ func _kinship_card(k: Dictionary, discovered: bool, times: int) -> Control:
 	var pair := Label.new()
 	pair.text = "%s + %s" % [k.a, k.b]
 	pair.add_theme_font_size_override("font_size", 14)
-	pair.add_theme_color_override("font_color", Color(0.8, 0.95, 0.75))
+	pair.add_theme_color_override("font_color", UiStyle.LIVE)
 	inner.add_child(pair)
 	inner.add_child(StatusLinks.make_label(k.text, 15))
 	var count := Label.new()
@@ -427,7 +427,7 @@ func _crowned_silhouette(c: Dictionary) -> Control:
 
 func _crowned_card(c: Dictionary, discovered: bool, times: int) -> Control:
 	var panel := PanelContainer.new()
-	panel.add_theme_stylebox_override("panel", UiStyle.panel_in(CROWN_COLOR if discovered else Color(0.25, 0.23, 0.18)))
+	panel.add_theme_stylebox_override("panel", UiStyle.panel_in(CROWN_COLOR if discovered else Palette.DEEPMOSS))
 	var box := VBoxContainer.new()
 	panel.add_child(box)
 	var row := HBoxContainer.new()
@@ -456,7 +456,7 @@ func _crowned_card(c: Dictionary, discovered: bool, times: int) -> Control:
 		var hint := Label.new()
 		hint.text = "%s  ·  %s" % [CodexData.crowned_recipe(c), ", ".join(families)]
 		hint.add_theme_font_size_override("font_size", 14)
-		hint.add_theme_color_override("font_color", Color(0.9, 0.82, 0.6))
+		hint.add_theme_color_override("font_color", UiStyle.WHISPER)
 		box.add_child(hint)
 		box.add_child(StatusLinks.make_label(c.text, 15))  # Status names are links
 		var count := Label.new()
@@ -485,13 +485,13 @@ func _combo_card(combo: Dictionary, discovered: bool, times: int) -> Control:
 	row.add_child(name)
 	if not discovered:
 		return panel  # Just "???" (no ingredients either)
-	box.add_child(StatusLinks.make_label(CodexData.ingredients_text(combo), 14, Color(0.75, 0.85, 1.0)))
+	box.add_child(StatusLinks.make_label(CodexData.ingredients_text(combo), 14, Palette.DEWLIGHT))
 	box.add_child(StatusLinks.make_label(combo.text, 15))  # Status names are links
 	var by := Label.new()
 	by.text = get_sources_text(combo)
 	by.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	by.add_theme_font_size_override("font_size", 13)
-	by.add_theme_color_override("font_color", Color(0.75, 0.9, 0.75))
+	by.add_theme_color_override("font_color", UiStyle.LIVE)
 	box.add_child(by)
 	var count := Label.new()
 	count.text = "Set off %d time%s" % [times, "" if times == 1 else "s"]
@@ -549,7 +549,7 @@ static func get_player_wardens() -> Array[TowerData]:
 # keeps are silhouettes ("Memory Grove"); the rest are unlocked in a run with Dreamlight. Below, its
 # combos: names once discovered, "???" before; each jumps to its entry.
 
-const SILHOUETTE := Color(0.05, 0.05, 0.07, 0.9)
+const SILHOUETTE := Color(UiStyle.FOG, 0.9)
 
 func _build_families() -> void:
 	for child in _families.get_children():

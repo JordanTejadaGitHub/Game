@@ -75,7 +75,7 @@ func refresh() -> void:
 			icon.stacks = dream_state.card_stacks(card.id)
 			icon.dormant = _dormant(card)
 			icon.sleeping_text = _sleeping_text(card) if icon.dormant else ""
-			icon.modulate = Color(0.6, 0.6, 0.65, 0.6) if icon.dormant else Color.WHITE
+			icon.modulate = Color(0.6, 0.6, 0.65, 0.6) if icon.dormant else Color.WHITE  # A multiplier (dormant fade)
 			icon.custom_minimum_size = ICON_SIZE + Vector2(0, 12)
 			icon.pressed.connect(_toggle_list)
 			_row.add_child(icon)
