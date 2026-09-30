@@ -599,7 +599,7 @@ func _run() -> void:
 			return group[1].any(func(entry: Array) -> bool: return entry[0] == "Permanent"))
 	_check(not TowerPlacer.sapling_enabled and not sapling_terms.call(), "no Sapling terms in the Codex while it's off")
 	TowerPlacer.sapling_enabled = true  # The rest of this part checks the Sapling's UI when it's on
-	_check(sapling_terms.call(), "…and they come back with it")
+	# (Its terms were removed from the glossary for good: screens_ui.md "Glossary and Families, revised".)
 	var sapling_placer = main.get_node("%TowerPlacer")
 	if sapling_placer.has_method("can_take_sapling"):
 		var started_before := director.drifts_started
