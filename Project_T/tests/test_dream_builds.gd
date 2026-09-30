@@ -45,9 +45,7 @@ func _run() -> void:
 func _test_requirements() -> void:
 	_reset()
 	var tender := _card("tender_care")
-	_check(not dreams.is_eligible(tender), "Tender Care needs 30 Dew spent on ranks")
-	run_state.rank_dew_spent = 30
-	_check(dreams.is_eligible(tender), "…and is offered after that (opener)")
+	_check(dreams.is_eligible(tender), "Tender Care has no Needs (round 3: the Tall opener)")
 	var kindred := _card("kindred_roots")
 	var a := _plant("sporeling", 0, 1)
 	var b := _plant("sporeling", 1, 1)

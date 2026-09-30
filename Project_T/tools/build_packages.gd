@@ -37,16 +37,15 @@ const PACKAGES := {
 	"B16 Bramble Maze": ["Hedge Maze", "Bitter Hedges", "Weathered Walls", "Living Walls", "Thorn Snare", "Bramble Oath", "Thornheart"],
 	"B17 The Grove": ["Grandfather Stump", "Kind Canopy", "Shared Light", "Hedgerow Roots", "Warm Hearth"],
 	"B18 Greedy Gardener": ["Dew Bowl", "Harvest Moon", "Deep Well", "Overflowing Well", "Dew Trail", "Morning Dew", "Call of the Wild"],
-	# The 9 card builds (dream_design.md "Pool trim", layer 2): enhancers only, Legendaries are capstones.
-	"C1 Tall": ["Tender Care", "Kindred Roots", "Sunlit Rest", "Deeper Rings", "Chosen Few", "Nursery", "Elder Kin", "Solitude", "Few and Mighty"],
+	# The 8 card builds (dream_design.md "Pool trim", layer 2 + rounds 2–3): enhancers only, Legendaries are capstones.
+	"C1 Tall": ["Tender Care", "Kindred Roots", "Sunlit Rest", "Deeper Rings", "Chosen Few", "Elder Kin", "Solitude", "Few and Mighty"],
 	"C2 Overgrowth": ["Seedfall", "Sprout Chorus", "Root Network", "Seedling Gift", "Canopy", "Many Hands", "Mixed Grove", "Odd One Out", "Grand Tour"],
 	"C3 Daring": ["Call of the Wild", "Fresh Growth", "Head Start", "Quick Step", "Second Wind", "Scarred Bark", "Desperate Bloom", "Thin Bark", "Last Stand"],
 	"C4 Precision": ["Glinting Dew", "Sharpened Light", "Shattering Blow", "Still Target", "First Light", "Lone Hunter", "Hunter's Patience", "Watchful Rest"],
 	"C5 Affliction": ["Bitter Sap", "Seeping", "Venom Bloom", "Lasting Dreams", "Heavy Air", "Crowd Breaker", "Crowded Path", "Last Breath", "Thinning the Herd"],
 	"C6 Maze": ["Cozy Corners", "Straightaway", "Winding Path", "Heart of the Maze", "Forest's Edge", "Hedge Maze", "Bitter Hedges", "Thornheart", "Weathered Walls"],
-	"C7 Tending": ["Cleared Ground", "Heartwood's Reach", "Reclaimed Earth", "Tended Forest", "Burn Back the Dead Wood", "Morning Dew", "Evergreen"],
+	"C7 Tending": ["Cleared Ground", "Heartwood's Reach", "Reclaimed Earth", "Tended Forest", "Burn Back the Dead Wood", "Morning Dew", "Evergreen", "Living Walls", "Scented Hedge", "Thorn Snare", "Warm Hearth", "Kind Canopy"],
 	"C8 Kinship": ["Family Ties", "Sweet Harmony", "Old Friends", "Rooted Bond", "Extended Family", "Kin and Kindling", "Blood Is Thicker", "Elder Kin"],
-	"C10 Support": ["Living Walls", "Scented Hedge", "Thorn Snare", "Warm Hearth", "Kind Canopy"],
 }
 # Board extras the chasing bot needs for some builds (ranks, Sprouts, walls, a Kinship, clearing…).
 const EXTRAS := {
@@ -57,8 +56,8 @@ const EXTRAS := {
 	"B2 The Long Walk": {"walls": true},
 	"B8 Hairpin Mill": {"walls": true, "families": ["whirligig"]},
 	"B16 Bramble Maze": {"walls": true, "families": ["rootling"], "forms": ["bramble"]},
-	"C7 Tending": {"clearing": true},
-	"C10 Support": {"families": ["acorn"], "forms": ["grove_heart", "elder_stump", "dewcatcher", "wellspring"], "walls": true},
+	"C7 Tending": {"clearing": true, "walls": true, "families": ["acorn"]},
+	"B6 Gale": {"families": ["whirligig", "sporeling"]},
 	"B17 The Grove": {"families": ["acorn"], "forms": ["grove_heart", "elder_stump"]},
 	"B18 Greedy Gardener": {"families": ["acorn"], "forms": ["dewcatcher", "wellspring"]},
 }
@@ -139,6 +138,7 @@ func _chase(build: String, runs: int) -> void:
 	var package: Array = ids[build]
 	var extras: Dictionary = EXTRAS.get(build, {})
 	var three := 0
+	var three_75 := 0  # Late builds (Tall) are judged at drift 75
 	var five := 0
 	var total := 0.0
 	for run in runs:
@@ -154,10 +154,12 @@ func _chase(build: String, runs: int) -> void:
 			var count := _count(package)
 			if drift == 50 and count >= 3:
 				three += 1
+			if drift == 75 and count >= 3:
+				three_75 += 1
 			if drift == 100:
 				five += 1 if count >= 5 else 0
 				total += count
-	print("CHASE | %s | %d | %d%% | %d%% | %.1f |" % [build, package.size(), roundi(100.0 * three / runs), roundi(100.0 * five / runs), total / runs])
+	print("CHASE | %s | %d | %d%% | %d%% | %.1f | 3+ by 75: %d%% |" % [build, package.size(), roundi(100.0 * three / runs), roundi(100.0 * five / runs), total / runs, roundi(100.0 * three_75 / runs)])
 
 # The build's families (from what its cards name, or the defaults), the forms its cards name, and
 # its extras, planted off the map (no touching, no Kinships unless asked).

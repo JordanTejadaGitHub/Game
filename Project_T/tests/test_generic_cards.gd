@@ -312,7 +312,7 @@ func _test_catalogue() -> void:
 	_check(not dreams.is_in_build(soft), "owning Sporeling doesn't make spore cards your build")
 	dreams.take(_card("glinting_dew"))
 	_check(dreams.is_in_build(_card("sharpened_light")) and not dreams.is_in_build(soft), "a taken precision card lifts the precision build")
-	_check(DreamState.ARCHETYPE_TAGS.size() == 9 and DreamState.OPPOSITE_DIRECTION.get("tall") == "overgrowth", "9 archetype tags; tall opposes overgrowth")
+	_check(DreamState.ARCHETYPE_TAGS.size() == 8 and DreamState.OPPOSITE_DIRECTION.get("tall") == "overgrowth", "8 archetype tags; tall opposes overgrowth")
 	dreams.stacks.clear()
 	# Nurture follow-ups: needing a Nurture card is soft (Kindred Roots weighs ×0.4 until you have one); Sunlit Rest is an opener
 	var kindred := _card("kindred_roots")
@@ -321,11 +321,11 @@ func _test_catalogue() -> void:
 	_check(dreams._meets_needs(kindred) and not dreams.soft_needs_met(kindred), "Kindred Roots: drawn without a Nurture card, weighs ×0.4")
 	_check(dreams.soft_needs_met(_card("sunlit_rest")), "Sunlit Rest: an opener, no Nurture card weighting")
 	ranked.free()
-	# Family line tags weigh once a taken card carries them (round 2), never from owning the family
+	# Family line tags never weigh (round 3 reverted round 2's rule), not even from a taken card
 	dreams.unlocked["sporeling"] = true
 	_check(not dreams.is_in_build(soft), "owning Sporeling still doesn't")
 	dreams.take(_card("lingering_spores"))
-	_check(dreams.is_in_build(soft), "a taken spore card makes spore cards your build")
+	_check(not dreams.is_in_build(soft), "…nor a taken spore card (only archetype tags weigh)")
 	dreams.stacks.clear()
 	# The new cards' own numbers
 	var ids := ["elder_kin", "mycelium", "fireflies_in_the_grass",
@@ -616,7 +616,8 @@ func _test_support_cards() -> void:
 			"grandfather_stump", "thorn_snare", "thorn_snare_ii", "scented_hedge", "living_walls", "many_threads", "the_quiet_ones"]:
 		var card := _card(id)
 		if card:
-			_check(card.tags.has("support") and card.in_start_pool == start.has(id), "%s: support card, pool" % id)
+			var moved := ["thorn_snare", "thorn_snare_ii", "scented_hedge", "living_walls", "the_quiet_ones"].has(id)  # Round 3: support -> tending
+			_check(card.tags.has("tending" if moved else "support") and card.in_start_pool == start.has(id), "%s: support card (tending since round 3), pool" % id)
 	_check(dreams.can_offer(_card("thorn_snare")) and not dreams.can_offer(_card("scented_hedge")), "Thorn Snare needs nothing; Scented Hedge needs Honeysuckle")
 	dreams.grove_cards.assign(["acorn_cache", "the_quiet_ones"])
 	var acorn: TowerData = load("res://resource/tower/acorn.tres")
