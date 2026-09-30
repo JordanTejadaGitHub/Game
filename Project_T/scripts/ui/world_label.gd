@@ -15,12 +15,20 @@ const UNAFFORDABLE_COLOR := Color(1.0, 0.5, 0.45)
 static func text_scale(canvas: CanvasItem) -> float:
 	if not canvas.is_inside_tree():
 		return 1.0
-	var camera := canvas.get_viewport().get_camera_2d()
-	if camera == null:
+	# The camera and UI factor are looked up once per frame (every label on every nightmare / Warden
+	# asks: the lookup per draw was a measurable cost); the zoom itself is read fresh.
+	var frame := Engine.get_process_frames()
+	if frame != _lookup_frame or not is_instance_valid(_camera):
+		_lookup_frame = frame
+		_camera = canvas.get_viewport().get_camera_2d()
+		var root := canvas.get_tree().root
+		_ui = root.content_scale_factor if root.content_scale_factor > 0.0 else 1.0
+	if _camera == null:
 		return 1.0
-	var root := canvas.get_tree().root
-	var ui := root.content_scale_factor if root.content_scale_factor > 0.0 else 1.0
-	return ui / maxf(camera.zoom.x * ui, 1.0)
+	return _ui / maxf(_camera.zoom.x * _ui, 1.0)
+static var _lookup_frame := -1
+static var _camera: Camera2D = null
+static var _ui := 1.0
 
 # Draws what follows (until end_screen_size) scaled around `anchor` (world px) by text_scale.
 static func begin_screen_size(canvas: CanvasItem, anchor: Vector2) -> void:
