@@ -281,6 +281,23 @@ underestimate player power; the history is the check.
   rewards; bosses met and dispelled (time to dispel); Dew earned / spent on planting, growth, ranks,
   clears, and banked at each rest; Wardens at the end (count by form and rank, number of attackers);
   top 5 Wardens by damage and their share; combo and Reaction counts; Dreamlight earned / spent.
+- **The exact build it was played on** (2026-09-30, user: *"make sure you know what version I am
+  playing on; versions are not commits but every change"*). Many chats edit the folder at once and
+  the user plays whatever is on disk, often with uncommitted edits, so a commit hash isn't enough.
+  Each record carries:
+  - **`build_id`**: a short hash of the **contents** of every script and data file the game loads
+    (`.gd`, `.tres`, `.tscn`, `project.godot`, `.json` data), computed once at launch (debug builds)
+    or baked at export. Any change, committed or not, gives a new id; the same files give the same id.
+  - **`commit`** (HEAD) and **`dirty`**: the uncommitted files at launch, each with its own content
+    hash, so a build can be matched to "commit X plus these edits".
+  - **`build_time`** (when the id was computed) and a readable **`build_label`**: "Sep 30 21:14 ·
+    3f9a2c" shown on the title screen (debug) and in the run report.
+  - **`balance`**: a snapshot of the tuning numbers that matter for comparing runs (DriftDirector
+    health multipliers per act, boss multiplier, starting Dew and leaves, rest bonus, Dew per act),
+    so two runs on different builds can be compared number by number.
+  - A local **`builds.json`** log next to the history: every new `build_id` the first time it's
+    launched, with its commit, dirty files and time, so the design chat can see which changes
+    landed between two runs.
 - **Per drift, compact:** drift, leaves lost, Dew banked, nightmare health spawned vs damage dealt,
   closest approach (share of the route). Same column names as the bot's `runs.csv` / drift log, so
   `tools/balance_summary.gd` can read human and bot runs side by side.
