@@ -16,6 +16,9 @@ const SPROUT_ID := "sprout"
 const CLEAR_TOOL_GAP := 10.0
 const SEED_COLOR := Palette.SPRIG
 const COUNTER_ICON_GAP := 8.0  # Icon to number (UI Code: pairs group, counters stand apart)
+const COUNTER_ICON := 24.0  # Resource icons (the mock's .pxi 24 px; user: "the icons on the right seem too big")
+const BUTTON_GLYPH := 20  # The top-right buttons' icons and glyphs
+const BUTTON_BOX_INSET := 6.0  # Their visible box: ~36 px inside the 48 px hit area
 
 @onready var tower_bar: HFlowContainer = %TowerBar
 @onready var tower_placer: TowerPlacer = %TowerPlacer
@@ -433,7 +436,7 @@ func _add_counter_icon(label: Label, id: StringName, scale: int) -> void:
 	icon.texture = IconInfo.icon(id)
 	icon.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	icon.size = Vector2(16, 16) * scale
+	icon.size = Vector2(COUNTER_ICON, COUNTER_ICON) if scale >= 2 else Vector2(16, 16) * scale  # The mock: 24 px beside 28 px numbers
 	icon.mouse_filter = Control.MOUSE_FILTER_IGNORE  # The label's own tooltip / tap explains it
 	label.add_child(icon)
 	label.set_meta(&"icon_width", icon.size.x + COUNTER_ICON_GAP)  # DreamMarks' shield goes left of it
@@ -531,12 +534,22 @@ func _add_buff_lens_button() -> void:
 # Puts a top-right button in its slot ([right, width]) of the row under the resources.
 func _place_top_button(button: Button, slot: Array) -> void:
 	button.theme_type_variation = &"HudButton"
-	# Icon buttons read at the counters' size (UI Code): glyphs at 26 px, pixel icons ×2 (32 px).
-	button.add_theme_font_size_override("font_size", 26)
+	# Compact icon buttons (the mock; user: "the icons on the right seem too big"): the glyph / icon at
+	# BUTTON_GLYPH, the visible box inset to ~36 px, the hit area still 48 (platforms.md).
+	button.add_theme_font_size_override("font_size", BUTTON_GLYPH)
 	button.expand_icon = true
 	button.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	button.add_theme_constant_override("icon_max_width", 32)
+	button.add_theme_constant_override("icon_max_width", BUTTON_GLYPH)
 	button.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	for state in ["normal", "hover", "pressed", "hover_pressed", "disabled", "focus"]:
+		var box := button.get_theme_stylebox(state, &"HudButton")
+		if box != null:
+			box = box.duplicate()
+			box.expand_margin_left = -BUTTON_BOX_INSET
+			box.expand_margin_right = -BUTTON_BOX_INSET
+			box.expand_margin_top = -BUTTON_BOX_INSET
+			box.expand_margin_bottom = -BUTTON_BOX_INSET
+			button.add_theme_stylebox_override(state, box)
 	if button.name == &"CodexButton":
 		button.add_theme_font_override("font", UiStyle.display_font())
 	button.set_anchors_preset(Control.PRESET_TOP_RIGHT)
@@ -554,7 +567,7 @@ func _place_top_button(button: Button, slot: Array) -> void:
 # right edge, packed right to left in TOP_ROW order so hidden buttons leave no gap; Remember ends up
 # nearest the Dreamlight counter above it.
 const TOP_ROW := ["MenuButton", "CodexButton", "BuffLensButton", "RememberButton"]  # Right to left
-const TOP_ROW_GAP := 6.0
+const TOP_ROW_GAP := 0.0  # The visible boxes are inset, so they sit 12 px apart
 # The top-right row as in the Moonlit Thread mock (screens_ui.md "Top-right layout, as in the Moonlit
 # Thread mock-up"): leaves · Dew · Dreamlight · path (icon + a big Cormorant number), then the icon
 # buttons Remember ✦ · Boosts · ? · ≡, all on one soft fog patch. When the buttons would run into the

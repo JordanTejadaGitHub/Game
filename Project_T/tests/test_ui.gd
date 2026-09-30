@@ -165,12 +165,16 @@ func _run() -> void:
 			meter.block_summary = summary
 			for f in 4:
 				meter._fit()
+				while meter._rows.get_child_count() > meter._max_rows:  # What refresh does with the cap
+					var extra := meter._rows.get_child(meter._rows.get_child_count() - 1)
+					meter._rows.remove_child(extra)
+					extra.queue_free()
 				await process_frame
 			var meter_rect := meter.get_global_rect()
 			var panel_rect := (main.get_node("HUD/DriftPanel") as Control).get_global_rect()
 			_check(not meter_rect.intersects(panel_rect) and meter_rect.position.y >= DriftMeter.TOP_LIMIT - 1.0,
 				"the damage meter (%s tab) clears the DriftPanel at %s (%s vs %s)" % ["block" if summary else "Wardens", screen, meter_rect, panel_rect])
-		for row in fake_rows:
+		for row in fake_rows.filter(func(r: Button) -> bool: return is_instance_valid(r)):
 			row.queue_free()
 		meter._more.visible = false
 		meter.block_summary = false
