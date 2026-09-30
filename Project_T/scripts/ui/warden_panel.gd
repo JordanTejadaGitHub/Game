@@ -212,9 +212,9 @@ func _refresh() -> void:
 			var grow := _tower.get_grow_cost(next)  # Ranked Wardens also pay the rank difference
 			var cost: int = grow.total
 			button.text = "Grow into %s · %d Dew" % [next.display_name, cost]
-			if grow.ranks > 0:
-				button.text += " (%d + %d for rank %s)" % [grow.base, grow.ranks, Tower.rank_name(_tower.rank)]
 			button.tooltip_text = IconInfo.format(next.description)  # {spored}-style tokens as words
+			if grow.ranks > 0:
+				button.tooltip_text += "\n\n%d Dew + %d for its rank %s." % [grow.base, grow.ranks, Tower.rank_name(_tower.rank)]
 			button.disabled = not run_state.can_afford(cost)
 			button.set_meta(&"cost", cost)  # Affordability updates in place on Dew changes
 			var awake := tower_placer.ascended_blocker(next)
@@ -238,8 +238,8 @@ func _refresh() -> void:
 		for which in [Tower.Focus.POWER, Tower.Focus.SWIFT, Tower.Focus.REACH, Tower.Focus.DEEP]:
 			# Usually rank III; a Warden planted at a higher rank (Remembered Care) chooses on its next one.
 			var button := _add_button("Rank %s · %s: %s per rank · %s" % [Tower.rank_name(_tower.rank + 1),
-				Tower.FOCUS_NAMES[which], Tower.FOCUS_TEXT[which], _price(cost)] + _growth_note())
-			button.tooltip_text = "The usual rank gains, plus this Focus at ranks III, IV and V. Can't be changed later."
+				Tower.FOCUS_NAMES[which], Tower.FOCUS_TEXT[which], _price(cost)])
+			button.tooltip_text = "The usual rank gains, plus this Focus at ranks III, IV and V. Can't be changed later." + _growth_note()
 			button.disabled = not run_state.can_afford(cost)
 			button.set_meta(&"cost", cost)  # Affordability updates in place on Dew changes
 			button.pressed.connect(func() -> void:
@@ -263,9 +263,9 @@ func _refresh() -> void:
 				_confirm_eldest = false
 				_refresh())
 		else:
-			var nurture := _add_button("Nurture to rank %s · %s (R)" % [Tower.rank_name(_tower.rank + 1), _price(cost)] + _growth_note())
+			var nurture := _add_button("Nurture to rank %s · %s (R)" % [Tower.rank_name(_tower.rank + 1), _price(cost)])
 			nurture.tooltip_text = "+10%% damage, +4%% attack speed, +0.1 range%s. Kept when it grows." % (
-				", and %s" % Tower.FOCUS_TEXT[_tower.focus] if _tower.focus != Tower.Focus.NONE else "")
+				", and %s" % Tower.FOCUS_TEXT[_tower.focus] if _tower.focus != Tower.Focus.NONE else "") + _growth_note()
 			nurture.disabled = not run_state.can_afford(cost)
 			nurture.set_meta(&"cost", cost)
 			nurture.pressed.connect(func() -> void:
@@ -285,12 +285,14 @@ func _refresh() -> void:
 		else:
 			_add_button("Rank %s: fully nurtured" % Tower.rank_name(_tower.rank)).disabled = true
 	var refund := tower_seller.get_refund(_tower)
-	var note := "" if drift_director.is_build_phase() else " (half during a drift)"
+	# Buttons show the action and its price (screens_ui.md "Less hand-holding"); the refund rule is the tooltip.
+	var note := "Half the Dew back while nightmares walk." if not drift_director.is_build_phase() else ""
 	if tower_seller.is_placed_this_rest(_tower):
-		note = " (placed this rest: full refund)"
+		note = "Placed this rest: all its Dew back."
 	elif drift_director.is_build_phase() and _tower.rest_dew > 0:
-		note = " (this rest's %d Dew in full)" % _tower.rest_dew
-	var sell := _add_button("Sell · +%d Dew%s (%s)" % [refund, note, tower_seller.sell_key_name()])  # Its hotkey, like Nurture's (R)
+		note = "This rest's %d Dew comes back in full." % _tower.rest_dew
+	var sell := _add_button("Sell · +%d Dew (%s)" % [refund, tower_seller.sell_key_name()])  # Its hotkey, like Nurture's (R)
+	sell.tooltip_text = note
 	sell.pressed.connect(func() -> void: tower_seller.sell(_tower.cell))
 	if _tower.tower_data.rooted:
 		sell.text = "Permanent: the Sapling can't be sold or moved"
@@ -427,7 +429,8 @@ func _refresh_group() -> void:
 			button.pressed.connect(func() -> void: tower_seller.nurture_group(tower_seller.selection, which))
 	var refund := tower_seller.get_selection_refund()
 	var in_drift := not drift_director.is_build_phase()
-	var sell := _add_button("Sell %d · +%d Dew%s (%s)" % [selection.size(), refund, " (half during a drift)" if in_drift else "", tower_seller.sell_key_name()])
+	var sell := _add_button("Sell %d · +%d Dew (%s)" % [selection.size(), refund, tower_seller.sell_key_name()])
+	sell.tooltip_text = "Half the Dew back while nightmares walk." if in_drift else ""
 	if _confirm_sell:
 		sell.text = "Really sell %d while nightmares walk? +%d Dew" % [selection.size(), refund]
 	sell.pressed.connect(_sell_group)
@@ -512,8 +515,15 @@ func _locked_form_button(button: Button, label: String, next: TowerData) -> void
 	if blocker != "":
 		button.text = "%s · %s" % [label, blocker]
 	elif not affordable:
-		button.text += " (you have %d)" % dream_state.dreamlight
+		button.text += " (%d)" % dream_state.dreamlight  # What you have
+	if blocker != "" or not affordable:
+		_dim(button)  # Glow means "you can do this now"; still opens Remember
 	button.pressed.connect(_on_locked_form.bind(next, affordable and blocker == ""))
+
+# Can't do it now, but still clickable: the plain, dimmed look instead of the primary glow.
+func _dim(button: Button) -> void:
+	button.theme_type_variation = &""
+	button.modulate.a = 0.6
 
 func _on_locked_form(next: TowerData, _can_unlock_now: bool) -> void:
 	# Playtest fix (screens_ui.md 2026-09-30): a form not unlocked yet opens the Remember tree on that node,
@@ -617,11 +627,11 @@ func _kindred_row(line: String, bonus: float) -> HBoxContainer:
 	row.add_child(label)
 	return row
 
-# " (and +60 when it grows into Thunderhead)": what this rank adds to the Warden's next growth
-# (warden_stats.md; growing pays the ranks held). "" when it adds nothing or there's no growth.
+# The Nurture / Focus tooltip's last line, "+60 when it grows into Thunderhead.": what this rank adds to the
+# next growth's price (warden_stats.md; off the button since "less hand-holding"). "" when nothing.
 func _growth_note() -> String:
 	var next := _tower.next_growth()
 	if next == null:
 		return ""
 	var extra := _tower.get_next_rank_growth_extra(next)
-	return " (and +%d when it grows into %s)" % [extra, next.display_name] if extra > 0 else ""
+	return "\n\n+%d when it grows into %s." % [extra, next.display_name] if extra > 0 else ""

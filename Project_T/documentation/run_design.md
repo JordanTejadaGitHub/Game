@@ -376,13 +376,16 @@ risk: players set their own difficulty block by block.
      face-down card, the wind swirling over it: *"An unknown twist for the next block. Survive it
      for a reward."*) and **Clear Skies** (*"Nothing changes. No reward."*, the default; Esc /
      right-click pick it).
-  2. Choosing **Face an Omen** draws **one** Omen at random from those that make sense now and
-     **flips the card** to reveal it: name, what changes, the reward in gold. It's **locked in**; no
-     backing out, no choosing between Omens.
-  - **Harsher Omens, bigger rewards:** every Omen's downside is about **1.5× its old strength**
-    (e.g. Crowded Paths 30% → 45% more nightmares, Blood Moon 25% → 35% faster) and its reward about
-    **1.5×** too, since you can't see it before committing. Omens that were double-edged (the twist
-    is the reward) get a sharper edge on both sides.
+  2. Choosing **Face an Omen** commits you (no going back to Clear Skies), then **reveals 2 Omens**
+     (valid now, never the previous rest's) and you **pick 1**: name, what changes, the reward in
+     gold. (Revised 2026-09-30, user via Meta Game Discussion: "you either choose Face an Omen or
+     Clear Skies, then if you face an Omen, you have two Omens to pick from"; this replaces the
+     single blind draw.) The Grove perk **Omen Reader** shows **3** to pick from (`meta_design.md`).
+  - **Harsher Omens:** every Omen's downside stays about **1.5× its old strength** (e.g. Crowded
+    Paths 45% more nightmares, Blood Moon 35% faster), as the user wanted Omens more punishing.
+    Rewards are **×1.25** of the old values (were ×1.5 under the blind draw): with a choice of 2 the
+    gamble is smaller, but committing before seeing them still earns something. Double-edged Omens
+    keep their sharper downside.
   - The goal: facing an Omen is a real gamble you take when your maze is strong, not something you
     do every rest. Target: a Balanced player facing an Omen every rest should lose clearly more
     leaves than one who picks their moments.

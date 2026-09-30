@@ -201,7 +201,7 @@ func _first_to_unlock(tree: Array) -> TowerData:
 func _make_tab(root: TowerData) -> Button:
 	var tab := Button.new()
 	tab.text = "Thornwall" if root.line == "wall" else root.display_name
-	tab.icon = WardenIcon.make(root)
+	tab.icon = IconInfo.family_emblem(root.line)  # The family emblem (screens_ui.md 2026-09-30)
 	tab.toggle_mode = true
 	tab.button_pressed = root == _tab_root
 	tab.focus_mode = Control.FOCUS_NONE
@@ -268,7 +268,7 @@ func _fill_side(data: TowerData) -> void:
 	kind.add_theme_constant_override("separation", 6)
 	names.add_child(kind)
 	var type_icon := TextureRect.new()
-	type_icon.texture = IconInfo.damage_type_icon(data.line)
+	type_icon.texture = IconInfo.family_emblem(data.line)  # The family emblem (screens_ui.md 2026-09-30)
 	type_icon.stretch_mode = TextureRect.STRETCH_KEEP_CENTERED
 	kind.add_child(type_icon)
 	var tier := Label.new()

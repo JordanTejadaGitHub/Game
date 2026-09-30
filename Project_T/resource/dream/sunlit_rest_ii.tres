@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "sunlit_rest_ii"
 display_name = "Sunlit Rest II"
-description = "At every rest, your two ranked Wardens nearest the Heartwood gain a free rank."
+description = "At every {rest}, your two ranked Wardens nearest the Heartwood gain a free rank."
 rarity = 1
 kind = 3
 tags = Array[String](["nurture"])

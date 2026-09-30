@@ -124,7 +124,7 @@ visibly separate paths look too neat, not like a real tree).
 |---|---|---|---|---|---|
 | 1 | Second Thoughts | 2 | 50 / 100 | 2 Dream rerolls per run | — (trunk) |
 | 2 | Let Go | 1 | 60 | banish 1 card per run | Second Thoughts |
-| 3 | Omen Reader | 1 | 80 | Omen rests offer 3 Omens instead of 2 | Let Go |
+| 3 | Omen Reader | 1 | 80 | after choosing **Face an Omen**, pick from **3** Omens instead of 2 (2026-09-30, see `run_design.md` Omens) | Let Go |
 | 4 | Wider Dreams | 1 | 150 | 4 cards per Dream instead of 3 | Omen Reader + Second Thoughts II |
 | side 1 | Early Bloom | 1 | 80 | the first family pick offers **every** unlocked family | Second Thoughts |
 | side 2 | Early Light | 1 | 120 | **+1 Dreamlight** at run start | Early Bloom |

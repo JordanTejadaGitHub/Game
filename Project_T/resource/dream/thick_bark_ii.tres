@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "thick_bark_ii"
 display_name = "Thick Bark II"
-description = "The first 2 leaks each block (between two rests) cost no leaves."
+description = "The first 2 leaks each {block} (between two {rests}) cost no leaves."
 rarity = 0
 kind = 3
 tags = Array[String](["leaves"])

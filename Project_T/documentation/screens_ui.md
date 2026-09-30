@@ -426,6 +426,28 @@ the game**.
 - The "Dev: any card…" grid does **not** mark cards as seen (only real offers do).
 - Milestone: **"Dream of everything"** (every card seen, normal runs only); a Steam achievement.
 
+**Nightmares** (added 2026-09-30, user: "add a Codex of enemies, do the discover too"; this is the
+bestiary that `onboarding.md` had parked as the "Forest Journal"): a Codex section listing **every
+nightmare and boss**.
+- **Every entry starts as "???"** (a dark silhouette-less frame, no name or hints).
+- An entry is **discovered the first time that nightmare appears in one of your runs** (the same
+  `nightmares_seen` that drives the "New" tag and the intro card); bosses the first time you meet
+  them.
+- A discovered entry shows: the portrait on its moonlit disc, name, the one-line trait, **what it
+  does** (the intro lines), the hint, resist / weak / immune icons (damage-type badges and crossed
+  statuses), health, speed and leaves it takes (at drift 1 scaling, "grows with each drift"), its
+  first-appearance act, and **how many you've dispelled** in total. Bosses show their dossier
+  (abilities and when, escorts) and your record against them.
+- Grouped **by act** (in first-appearance order), bosses last in each act, with a counter
+  *"23 / 34 nightmares met"*. Newly met entries wear the gold "New" until you open them.
+- Milestone: **"Know every nightmare"** (all met, normal runs only).
+
+**Account knowledge always lives on the real profile** (2026-09-30: with Dev Grove on, a separate dev
+profile made every nightmare "New" again). What you've **met, discovered or seen** (nightmares,
+combos and Reactions, Kinships, Dream cards) is always read from and written to the **real
+profile**, even in Dev Grove, Test Grove and Unlock all families (dev finds keep their hidden dev flag
+for milestones). Only the Grove's unlocks, perks and loadout come from the Dev Grove profile.
+
 New combos (new Wardens, Reactions) are added to this table and the Codex automatically.
 
 **What the Codex covers** (2026-09-28, user): **the families you can get in a run**: the three
@@ -473,6 +495,11 @@ From a user playtest with screenshots; each line is the rule going forward.
   "share"); clicking a row **selects that Warden and glides the camera to it** (must work); the
   **last drift's DPS** lives in this panel ("Last drift 62 DPS"), not as loose text by Start;
   scrolling the panel never scrolls or zooms the map.
+- **Meter shows the top 5 only** (2026-09-30, user: "the scroll bar doesn't work; limit the Wardens to
+  the top 5 and show a ratio compared to last drift"): the Wardens tab lists the **5 highest**
+  Wardens by the current sort, **no scrolling**, and each row adds its change against its own
+  last drift (**"↑12%"** gold / **"↓8%"** dim, "new" if it didn't fight last drift). A small line
+  under the list says *"and 18 more"*; clicking a Warden on the map still shows its own numbers.
 - **"Needs ~N DPS" is removed in release:** the maze's own DPS stays; the estimate of what a drift
   needs is **dev-only** (debug builds / dev runs), since it's a rough balance number and can mislead.
 - **Remember tree:** the lines from the root to every **unlocked or grown** node glow gold (the path
@@ -481,6 +508,12 @@ From a user playtest with screenshots; each line is the rule going forward.
 - **Warden panel → Remember:** a Grow button for a form you haven't unlocked (needs Dreamlight or
   its branch first) **opens the Remember tree on that node** instead of doing nothing.
 - **Sell button** shows its hotkey icon (**X**, or the rebound key) like other hotkeyed buttons.
+- **Less hand-holding on buttons** (2026-09-30, user: "a bit too much hand holding"):
+  - Unlock buttons read **"Unlock with 2 Dreamlight (0)"**, not "(you have 0)".
+  - A button you **can't afford never glows or pulses**; it's shown dim. Glow means "you can do this now".
+  - Sell reads **"Sell · +176 Dew"**, without "(half during a drift)" (the refund rule is in the
+    glossary and the number already shows it).
+  - General rule: buttons show the action and its price; explanations live in tooltips and the Codex.
 - **Plain words on cards** (user: "still don't know what a perfect block means, and what a block is
   if I was new"): card text says it plainly ("5 drifts in a row without losing a leaf") and any game
   term that remains (**drift, block, rest, perfect block, Dreamlight, family pick, Deeply Blighted**)

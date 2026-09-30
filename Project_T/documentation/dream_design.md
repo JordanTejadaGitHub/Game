@@ -153,9 +153,11 @@ alternative**: a strong card you can use now if you bend the plan.
      **Accepted** (2026-09-28): a temptation should be occasional, so no stronger weight (it would
      become a lure). The number grows naturally as the pool gets more cross-family combo cards
      (`design_plan.md`, Dream pool to ~70).
-   - **Card face:** a pale **"Half-dreamed"** vine tag and the missing piece in plain words:
-     *"Needs Dewdrop: a family you can pick after the Hollow Stag (drift 25)."* The card's effect
-     works only once everything it needs is owned (it never pretends to do something now).
+   - **Card face** (simplified 2026-09-30, user: "remove the 'half dream' from cards"): **no
+     "Half-dreamed" tag or label and no "sleeps until then"**. Only one short muted line under the
+     effect: *"Needs Dewdrop"* (the family is a linked term to its family pick). "Half-dreamed" stays
+     an internal name for the mechanic. The card's effect works only once everything it needs is
+     owned. In "Dreams this run" such a card is dimmed with the same "Needs Dewdrop" line.
    - **Taking one makes the next family pick offer the missing family** as one of its 3 choices
      (if several are missing, one of them). The player still chooses; it's never auto-picked.
    - Entwined's guaranteed slot is unchanged (it still fires once all ingredients are owned).

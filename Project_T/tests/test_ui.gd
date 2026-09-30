@@ -175,6 +175,13 @@ func _run() -> void:
 	_check(IconInfo.format("each {block}, {Rests}, {dreamlight}") == "each block, Rests, Dreamlight", "plain text gets the words")
 	for id in IconInfo.TERMS:
 		_check(CodexData.definition(StatusLinks.term_name(id)) != "", "the glossary defines %s" % StatusLinks.term_name(id))
+	# Family names as links ({family:dewdrop}): the popup shows its emblem, damage type and identity.
+	var family_text := StatusLinks.bbcode("Needs {family:dewdrop}.")
+	_check(family_text.contains("[url=family:dewdrop]") and family_text.contains("Dewdrop[/color]")
+		and IconInfo.format("Needs {family:dewdrop}.") == "Needs Dewdrop.", "family tokens become links / plain names (%s)" % family_text)
+	link_label.meta_clicked.emit("family:dewdrop")
+	_check(popup.visible and popup._name.text == "Dewdrop family" and popup._text.text.begins_with("Water damage.") and popup._icon.visible,
+		"tapping a family shows its emblem, damage type and identity (%s)" % popup._text.text)
 	link_label.meta_clicked.emit("term:perfect_block")
 	_check(popup.visible and popup._name.text == "Perfect block" and popup._text.text.contains("no leaf lost") and not popup._icon.visible,
 		"tapping a term shows its glossary line (%s)" % popup._text.text)

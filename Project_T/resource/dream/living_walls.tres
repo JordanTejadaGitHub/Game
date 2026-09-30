@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "living_walls"
 display_name = "Living Walls"
-description = "A Thornwall that stands 5 drifts grows into a Bramble for free."
+description = "A Thornwall that stands 5 {drifts} grows into a Bramble for free."
 rarity = 2
 kind = 3
 tags = Array[String](["support", "wall"])

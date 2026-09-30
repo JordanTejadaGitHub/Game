@@ -185,6 +185,9 @@ const AREA_FIRST := {"pebbling": "cairn", "nestling": "wrens_nest"}  # Cairn's l
 
 # --- Omens ------------------------------------------------------------------------------------------
 
-# The baseline takes Clear Skies (no Omen).
-func pick_omen(_offer: Array) -> OmenData:
-	return null
+# The baseline takes Clear Skies (no Omen); `face_omens` faces every one (the offer is the one Omen
+# drawn, blind). Pass the result to OmenDirector.choose().
+var face_omens := false
+
+func pick_omen(offer: Array) -> OmenData:
+	return offer[0] if face_omens and not offer.is_empty() else null

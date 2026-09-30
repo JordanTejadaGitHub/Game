@@ -9,4 +9,4 @@ display_name = "Fog Bank"
 description = "Every Warden has 1 less range (never below 1)."
 kind = 1
 warden_range_add = -1.0
-reward_seeds = 4
+reward_seeds = 6

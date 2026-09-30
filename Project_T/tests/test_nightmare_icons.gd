@@ -33,6 +33,20 @@ func _run() -> void:
 	profile["nightmares_seen"] = ["leaf_bug"]
 	HeartwoodMemory.save_data(profile)
 	_check(not NightmareCard.is_new(shade), "a Shade met before isn't New")
+	# Dev Grove on (a dev profile with its own Grove): account knowledge still lives on the real profile.
+	var dev_path := "user://test_nightmare_icons_dev_%d.json" % OS.get_process_id()
+	HeartwoodMemory.real_settings_path = PROFILE_PATH
+	HeartwoodMemory.file_path = dev_path
+	HeartwoodMemory.save_data(HeartwoodMemory.defaults())  # The dev profile: nothing seen
+	_check(not NightmareCard.is_new(shade), "Dev Grove on: a Shade met on the real profile isn't New")
+	var dev_data := HeartwoodMemory.load_data()
+	dev_data["nightmares_seen"] = ["leaf_bug", "bark_beetle"]
+	HeartwoodMemory.save_data(dev_data)
+	HeartwoodMemory.file_path = PROFILE_PATH
+	HeartwoodMemory.real_settings_path = ""
+	_check(HeartwoodMemory.load_data().get("nightmares_seen", []).has("bark_beetle"),
+		"a nightmare met with Dev Grove on is saved to the real profile")
+	DirAccess.remove_absolute(ProjectSettings.globalize_path(dev_path))
 	HeartwoodMemory.save_data(HeartwoodMemory.defaults())
 
 	# --- The icon rows --------------------------------------------------------------------------

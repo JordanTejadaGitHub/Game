@@ -94,6 +94,9 @@ trigger at these moments:
 
 ## Forest Journal (later: not in the first playable or demo)
 
+**Update 2026-09-30:** the nightmare half of this is now the Codex's **Nightmares** section
+(`screens_ui.md`), with discovery, in the game and the demo. A Warden journal stays a later idea.
+
 A bestiary on the title screen: each nightmare gets an entry (art, a line of unsettling lore, its
 trait) the first time it's dispelled, and each Warden when first grown. It gives curious players a
 place to look things up without tutorials, rewards seeing new things, and adds a completionist

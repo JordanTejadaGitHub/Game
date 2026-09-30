@@ -4,11 +4,12 @@
 
 [resource]
 script = ExtResource("1_card")
-id = "winding_path"
-display_name = "Winding Path"
-description = "At each {rest}, +1 Dew for every 10 path tiles."
+id = "tend_the_forest"
+display_name = "Tend the Forest"
+description = "Your first 2 clears are free."
 rarity = 0
-kind = 3
-tags = Array[String](["maze", "economy"])
+kind = 4
+tags = Array[String](["clearing", "opener"])
 max_stacks = 1
-rule_id = &"winding_path"
+min_obstacles = 8
+free_first_clears_add = 2

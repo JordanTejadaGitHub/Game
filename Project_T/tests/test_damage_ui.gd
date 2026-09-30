@@ -64,6 +64,14 @@ func _run() -> void:
 		and DriftMeter.rank_color(1, 2) == DriftMeter.FINE_COLOR, "rank colours: top ~20% gold, bottom ~20% dim, the rest white")
 	var far_row: Button = meter._rows.get_child(meter._rows.get_child_count() - 1)
 	_check(far_row.tooltip_text.contains("Underused: few nightmares in range"), "the underused reason in its tooltip")
+	# The Wardens tab: the top 5, no scroll; each row's change vs its own last drift (playtest 2026-09-30).
+	_check(meter._rows.get_child_count() <= DriftMeter.TOP_ROWS and meter._rows.get_parent() == meter._body,
+		"the Wardens tab lists at most 5 rows, outside any scroll")
+	_check(first.get_node_or_null("Change") != null, "each row has its change label")
+	_check(DriftMeter.row_change({"last_dps": 0.0})[0] == "new"
+		and DriftMeter.row_change({"last_dps": 10.0, "change": 0.12}) == ["↑12%", DriftMeter.UP_COLOR]
+		and DriftMeter.row_change({"last_dps": 10.0, "change": -0.08}) == ["↓8%", DriftMeter.UNDERUSED_COLOR],
+		"new / ↑12% gold / ↓8% dim")
 	# Crowding: the meter never reaches the DriftPanel (its rows scroll) and sits below the nightmare info.
 	meter._fit()
 	var drift_panel_top: float = main.get_node("HUD/DriftPanel").get_global_rect().position.y

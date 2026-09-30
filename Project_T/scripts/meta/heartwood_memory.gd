@@ -70,10 +70,23 @@ static func defaults() -> Dictionary:
 		},
 	}
 
+# Account knowledge (screens_ui.md, 2026-09-30: "account knowledge always lives on the real profile"):
+# what the player has met, discovered and seen. With Dev Grove on these are read from and written to
+# the REAL profile (like the settings); only the Grove unlocks, perks and loadout come from the dev one.
+const ACCOUNT_KEYS := ["nightmares_seen", "intros_seen", "nightmare_dispels", "boss_records", "combos_seen",
+	"combos_seen_dev", "reactions_seen", "codex_covered", "dreams_seen", "dreams_seen_dev", "dreams_taken",
+	"dreams_won", "dreams_viewed", "nightmares_viewed", "whispers_seen"]
+
 static func load_data() -> Dictionary:
 	var data := _load_file()
 	if real_settings_path != "" and real_settings_path != file_path:
 		data.settings = _real_settings()  # Dev Grove: settings live in the real profile
+		var real := _shared(real_settings_path)
+		for key in ACCOUNT_KEYS:  # …and so does account knowledge
+			if real.has(key):
+				data[key] = real[key].duplicate(true) if real[key] is Array or real[key] is Dictionary else real[key]
+			else:
+				data.erase(key)
 	return data
 
 static func _load_file() -> Dictionary:
@@ -150,12 +163,48 @@ static func _migrate(data: Dictionary) -> void:
 
 static func save_data(data: Dictionary) -> void:
 	data["version"] = VERSION
+	if real_settings_path != "" and real_settings_path != file_path:
+		_save_account_keys(data)  # Dev Grove: account knowledge goes to the real profile
 	_cache.erase(file_path)  # The path actually written (save_settings switches it for Dev Grove)
 	var file := FileAccess.open(file_path, FileAccess.WRITE)
 	if file == null:
 		push_error("Could not write %s: %s" % [file_path, error_string(FileAccess.get_open_error())])
 		return
 	file.store_string(JSON.stringify(data, "\t"))
+
+# Merged, never replaced: account knowledge only grows, so a fresh dev profile being written (Dev
+# Grove presets) can't wipe what the player has seen. Lists gain new entries; dictionaries gain or
+# update keys (counts, records) but keep the others.
+static func _save_account_keys(data: Dictionary) -> void:
+	var real := _shared(real_settings_path).duplicate(true)
+	var changed := false
+	for key in ACCOUNT_KEYS:
+		if not data.has(key):
+			continue
+		var value = data[key]
+		if value is Array:
+			var merged: Array = real.get(key, []).duplicate() if real.get(key) is Array else []
+			for item in value:
+				if not merged.has(item):
+					merged.append(item)
+					changed = true
+			real[key] = merged
+		elif value is Dictionary:
+			var merged: Dictionary = real.get(key, {}).duplicate(true) if real.get(key) is Dictionary else {}
+			for item in value:
+				if merged.get(item) != value[item]:
+					merged[item] = value[item]
+					changed = true
+			real[key] = merged
+		elif real.get(key) != value:
+			real[key] = value
+			changed = true
+	if not changed:
+		return
+	var path := file_path
+	file_path = real_settings_path
+	save_data(real)
+	file_path = path
 
 # Records a finished run and banks its Seeds. Returns the new banked total.
 static func record_run(seeds: int, won: bool, drift_reached: int) -> int:

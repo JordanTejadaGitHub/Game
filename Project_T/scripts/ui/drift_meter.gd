@@ -25,6 +25,9 @@ const OPEN_SETTING := "meter_open"
 
 var drift_director: DriftDirector
 var sort_by_share := false
+const TOP_ROWS := 5  # The Wardens tab lists the top 5 (screens_ui.md, user playtest)
+const UP_COLOR := UiStyle.GOLD  # A row's change vs its own last drift: up gold, down dim
+var _more := Label.new()  # "and N more"
 var block_summary := false  # The "Last block" tab is showing (not the Wardens)
 var _wardens_tab := Button.new()
 var _block_tab := Button.new()
@@ -161,16 +164,19 @@ func _ready() -> void:
 	_wardens_tab.set_pressed_no_signal(true)
 	_body.add_child(tabs)
 	_body.add_child(_sort)
-	_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	var content := VBoxContainer.new()
-	content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	# The Wardens tab: the top TOP_ROWS by the current sort, no scrolling (user: the scroll bar didn't
+	# work), then "and N more". Only the Last block summary scrolls.
 	_rows.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	content.add_child(_rows)
+	_body.add_child(_rows)
+	_more.name = "More"
+	UiStyle.caps(_more, 14)
+	_more.visible = false
+	_body.add_child(_more)
+	_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	_summary.name = "BlockSummary"
 	UiStyle.tip_body(_summary, WIDTH - 36.0)
-	_summary.visible = false
-	content.add_child(_summary)
-	_scroll.add_child(content)
+	_scroll.add_child(_summary)
+	_scroll.visible = false
 	_body.add_child(_scroll)
 	_body.visible = bool(HeartwoodMemory.get_settings().get(OPEN_SETTING, false))
 	visible = false
@@ -224,9 +230,9 @@ func _fit() -> void:
 	offset_top = top - screen_mid
 	var panel := hud.get_node_or_null("DriftPanel") as Control
 	var bottom := panel.get_global_rect().position.y - GAP if panel != null else get_viewport_rect().size.y - 16.0
-	var used := _header.size.y + _sort.size.y + 32.0 + 28.0  # Header, tabs, sort, margins
+	var used := _header.size.y + _last.size.y + 32.0 + 28.0  # Header, last drift, tabs, margins (the summary scrolls)
 	var room := maxf(bottom - top - used, 72.0)  # At least two rows
-	var wanted := (_summary if block_summary else _rows).get_combined_minimum_size().y
+	var wanted := _summary.get_combined_minimum_size().y if block_summary else 0.0
 	_scroll.custom_minimum_size = Vector2(0, minf(wanted, room))
 	# No refresh here: rebuilding the rows every frame swallowed row clicks (the press and the release
 	# landed on different buttons). The rows refresh on the clock, in place.
@@ -263,6 +269,12 @@ func refresh() -> void:
 		by_dps[i]["rank_color"] = rank_color(i, by_dps.size())
 	if sort_by_share:
 		rows.sort_custom(func(a: Dictionary, c: Dictionary) -> bool: return a.share > c.share)
+	else:
+		rows = by_dps
+	var more := maxi(rows.size() - TOP_ROWS, 0)
+	rows = rows.slice(0, TOP_ROWS)
+	_more.visible = more > 0
+	_more.text = "and %d more" % more
 	# Same Wardens in the same order: update the rows in place (a click mid-refresh still lands).
 	var same := _rows.get_child_count() == rows.size()
 	for i in rows.size() if same else 0:
@@ -296,6 +308,9 @@ func show_block_summary(on: bool) -> void:
 func _update_view() -> void:
 	_sort.visible = not block_summary
 	_rows.visible = not block_summary
+	if block_summary:
+		_more.visible = false
+	_scroll.visible = block_summary
 	_summary.visible = block_summary
 	if block_summary:
 		var text := block_summary_text()
@@ -330,10 +345,34 @@ func _setup_row(button: Button, r: Dictionary) -> void:
 	button.add_theme_font_size_override("font_size", 15)
 	button.alignment = HORIZONTAL_ALIGNMENT_LEFT
 	button.pressed.connect(func() -> void: focus_tower(tower))
+	# Its change against its own last drift, at the row's right end.
+	var change := Label.new()
+	change.name = "Change"
+	change.set_anchors_and_offsets_preset(Control.PRESET_CENTER_RIGHT)
+	change.grow_horizontal = Control.GROW_DIRECTION_BEGIN
+	change.offset_right = -6.0
+	change.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	UiStyle.number(change, 15, UP_COLOR)
+	button.add_child(change)
+
+# "↑12%" (gold) / "↓8%" (dim) against that Warden's own last drift, or "new" if it didn't fight then.
+static func row_change(r: Dictionary) -> Array:
+	if float(r.get("last_dps", 0.0)) <= 0.0:
+		return ["new", FINE_COLOR]
+	var change = r.get("change")
+	var text := change_text(change)
+	if text == "":
+		return ["", FINE_COLOR]
+	return [text, UP_COLOR if float(change) > 0.0 else UNDERUSED_COLOR]
 
 func _fill_row(button: Button, r: Dictionary) -> void:
 	var star := " ★" if r.get("most_improved", false) else ""
-	button.text = "%s  %s DPS · %d%%  %s%s" % [r.name, fmt(r.dps), roundi(float(r.share) * 100.0), change_text(r.get("change")), star]
+	button.text = "%s  %s DPS · %d%%%s" % [r.name, fmt(r.dps), roundi(float(r.share) * 100.0), star]
+	var change: Array = row_change(r)
+	var change_label := button.get_node_or_null("Change") as Label
+	if change_label != null:
+		change_label.text = change[0]
+		change_label.add_theme_color_override("font_color", change[1])
 	var colour: Color = r.get("rank_color", FINE_COLOR)  # By rank on the board, like the DPS tags
 	for state in ["font_color", "font_hover_color", "font_pressed_color"]:
 		button.add_theme_color_override(state, colour)

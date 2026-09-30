@@ -205,7 +205,24 @@ static func format(text: String) -> String:
 		text = text.replace("{%s}" % id, STATUSES[id][0])
 	for token in term_tokens():
 		text = text.replace(token[0], token[2])
+	if text.contains("{family:"):
+		for found in family_pattern().search_all(text):
+			var data := family_data(found.get_string(1))
+			text = text.replace(found.get_string(), data.display_name if data != null else found.get_string(1).capitalize())
 	return text
+
+# Family names as links (screens_ui.md "remove Half-dreamed"): "{family:dewdrop}" is the family's
+# name, a link (StatusLinks) whose popup is its emblem, damage type and identity.
+static var _family_pattern: RegEx = null
+static func family_pattern() -> RegEx:
+	if _family_pattern == null:
+		_family_pattern = RegEx.create_from_string("\\{family:([a-z_]+)\\}")
+	return _family_pattern
+
+# The family's base Warden (resource/tower/<id>.tres), or null.
+static func family_data(id: String) -> TowerData:
+	var path := "res://resource/tower/%s.tres" % id
+	return load(path) as TowerData if ResourceLoader.exists(path) else null
 
 # The status id for a display name ("Soaked" -> &"damp"), or &"" (StatusLinks uses it).
 static func status_id(name: String) -> StringName:
