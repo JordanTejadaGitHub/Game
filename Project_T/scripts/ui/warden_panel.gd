@@ -20,7 +20,7 @@ var _title := Label.new()
 var _portrait := TextureRect.new()  # Left of the title: the Warden's idle art, animated (screens_ui.md "Selected vs hovered")
 var _portrait_atlas := AtlasTexture.new()
 var _portrait_time := 0.0
-var _damage_type := HBoxContainer.new()  # Under the title: the damage type icon + name (one Warden)
+var _damage_type := HBoxContainer.new()  # Under the title: the damage type name in its colour (one Warden)
 var _desc: RichTextLabel  # What it does, with its status words as links (StatusLinks)
 var _stats := VBoxContainer.new()  # Stat rows: each stat explains itself on hover and tap (IconInfo)
 var _buffs := VBoxContainer.new()  # Buffs: every source of this Warden's power (BuffSources), then the total
@@ -53,7 +53,7 @@ func _ready() -> void:
 	_title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	header.add_child(_title)
 	box.add_child(header)
-	# Damage type (enemy_design.md "Damage types"): the type's icon and "Light damage" in its colour.
+	# Damage type (enemy_design.md "Damage types"): "Light damage" in its colour (no icon: user, 2026-09-30).
 	_damage_type.add_theme_constant_override("separation", 4)
 	_damage_type.add_child(TextureRect.new())
 	_damage_type.get_child(0).stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
@@ -742,9 +742,8 @@ func _show_damage_type(data: TowerData) -> void:
 	_damage_type.visible = data.can_attack
 	if not data.can_attack:
 		return
-	var icon := _damage_type.get_child(0) as TextureRect
+	_damage_type.get_child(0).visible = false  # Plain coloured text, no icon (user, 2026-09-30)
 	var label := _damage_type.get_child(1) as Label
-	icon.texture = IconInfo.damage_type_icon(data.line)
 	label.text = IconInfo.damage_type_text(data.line)
 	label.add_theme_color_override("font_color", IconInfo.damage_type_color(data.line))
 	_damage_type.tooltip_text = "Nightmares can resist or be weak to a damage type."
