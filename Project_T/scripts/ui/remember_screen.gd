@@ -6,7 +6,7 @@ class_name RememberScreen
 # portraits: the base at the root, its two branches above, each branch's final form above that, the
 # hidden branch (Memory Grove) in a third lane, and the Ascended form at the crown. Node states:
 # grown on the map (×N), unlocked, can unlock (cost in motes, pulsing), locked (needs its branch
-# first: 75%, chained), Memory Grove (dim, moonlit, a leaf badge and its name). Selecting a node opens a side panel (on phones it
+# first: chained), Memory Grove (a leaf badge and its name); every form not unlocked is a silhouette on a moonlit disc. Selecting a node opens a side panel (on phones it
 # slides up from the bottom) with its stats, Dew to grow, Kinship, combos and the Unlock button; an
 # unlock blooms along the tree line. Opens from the HUD's Remember button (any time; pauses) and
 # after each boss's family pick. Built in code.
@@ -243,6 +243,10 @@ func _layout_for_screen() -> void:
 	parent.add_child(_body)
 	parent.move_child(_body, index)
 
+# Grown or unlocked this run: full colour; anything else is a silhouette on the moonlit disc.
+static func is_unlocked_state(state: State) -> bool:
+	return state == State.GROWN or state == State.UNLOCKED
+
 func state_of(data: TowerData) -> State:
 	var cost := dream_state.get_unlock_cost(data)
 	var blocker := dream_state.get_unlock_blocker(data)
@@ -270,7 +274,7 @@ func _fill_side(data: TowerData) -> void:
 	var head := HBoxContainer.new()
 	head.add_theme_constant_override("separation", 10)
 	_side_box.add_child(head)
-	head.add_child(Portrait.new(data, 72.0, grove))
+	head.add_child(Portrait.new(data, 72.0))  # The side panel shows the full portrait in every state
 	if grove:  # run_design.md "Grove forms readable too": the portrait, its name, one line on what it does, the invitation
 		var grove_name := Label.new()
 		grove_name.text = data.display_name
@@ -292,12 +296,8 @@ func _fill_side(data: TowerData) -> void:
 	var kind := HBoxContainer.new()
 	kind.add_theme_constant_override("separation", 6)
 	names.add_child(kind)
-	var type_icon := TextureRect.new()
-	type_icon.texture = IconInfo.damage_type_icon(data.line)
-	type_icon.stretch_mode = TextureRect.STRETCH_KEEP_CENTERED
-	kind.add_child(type_icon)
 	var tier := Label.new()
-	tier.text = "%s · %s" % [_tier_name(data), IconInfo.damage_type_name(data.line)]
+	tier.text = "%s · %s damage" % [_tier_name(data), IconInfo.damage_type_name(data.line)]  # No icon (user): the damage type in its colour
 	tier.add_theme_color_override("font_color", IconInfo.damage_type_color(data.line))
 	kind.add_child(tier)
 	var what := StatusLinks.make_label(data.description, 15, UiStyle.INK)
@@ -584,13 +584,9 @@ class FormNode extends Button:
 		focus_mode = Control.FOCUS_NONE
 		process_mode = Node.PROCESS_MODE_ALWAYS
 		var state := screen.state_of(data)
-		portrait = Portrait.new(data, PORTRAIT, state == State.GROVE)
+		portrait = Portrait.new(data, PORTRAIT, not RememberScreen.is_unlocked_state(state))
 		portrait.position = Vector2((NODE_SIZE.x - PORTRAIT) / 2.0, 4)
 		add_child(portrait)
-		if state == State.LOCKED:  # Readable: ~75% brightness, lightly desaturated (only Grove forms are silhouettes)
-			portrait.material = Portrait.locked_material()
-		elif state == State.CAN_UNLOCK or state == State.NEEDS_LIGHT:
-			portrait.modulate = Color(1, 1, 1, 0.75)
 		tooltip_text = data.display_name + (" · Memory Grove" if state == State.GROVE else "")
 		pressed.connect(func() -> void: screen._select(data))
 
@@ -606,6 +602,8 @@ class FormNode extends Button:
 		var stone := centre + Vector2(0, PORTRAIT / 2.0 - 2)
 		draw_circle(stone, PORTRAIT / 2.0 - 6, WAYSTONE_COLOR)
 		draw_arc(stone, PORTRAIT / 2.0 - 6.5, 0.0, TAU, 40, WAYSTONE_RIM, 1.0, true)
+		if not RememberScreen.is_unlocked_state(state):  # The lit backdrop that makes the silhouette readable
+			UiStyle.draw_moon_disc(self, centre, PORTRAIT / 2.0 - 1)
 		if screen.selected == data:
 			draw_arc(centre, PORTRAIT / 2.0 + 3, 0.0, TAU, 40, UiStyle.GOLD, 2.0, true)
 		if state == State.CAN_UNLOCK:
@@ -658,52 +656,24 @@ class Portrait extends TextureRect:
 	var _atlas := AtlasTexture.new()
 	var _frame := 0
 	var _clock := 0.0
-	static var _locked: ShaderMaterial
+	static var _silhouette: ShaderMaterial
 
-	static var _grove: ShaderMaterial
-
-	# Memory Grove forms: desaturated at ~45% brightness, a cold moonlight tint and a pale rim (the dimmest
-	# node state; locked forms stay at 75%).
-	static func grove_material() -> ShaderMaterial:
-		if _grove == null:
+	# A form not unlocked this run (run_design.md "Not unlocked = a silhouette on a lit backdrop"): a flat dark
+	# silhouette; FormNode draws the pale moonlit disc behind it so it still reads.
+	static func silhouette_material() -> ShaderMaterial:
+		if _silhouette == null:
 			var shader := Shader.new()
 			shader.code = """shader_type canvas_item;
-uniform vec4 tint : source_color;
-uniform vec4 rim : source_color;
+uniform vec4 ink : source_color;
 void fragment() {
 	vec4 c = texture(TEXTURE, UV);
-	float grey = dot(c.rgb, vec3(0.299, 0.587, 0.114));
-	vec3 cold = mix(vec3(grey), vec3(grey) * tint.rgb, 0.7) * 0.45;
-	vec2 px = TEXTURE_PIXEL_SIZE;
-	float near = texture(TEXTURE, UV + vec2(px.x, 0.0)).a + texture(TEXTURE, UV - vec2(px.x, 0.0)).a
-		+ texture(TEXTURE, UV + vec2(0.0, px.y)).a + texture(TEXTURE, UV - vec2(0.0, px.y)).a;
-	if (c.a < 0.5 && near > 0.5) {
-		COLOR = vec4(rim.rgb, 0.6 * COLOR.a);
-	} else {
-		COLOR = vec4(cold, c.a * COLOR.a);
-	}
+	COLOR = vec4(ink.rgb, c.a * COLOR.a);
 }
 """
-			_grove = ShaderMaterial.new()
-			_grove.shader = shader
-			_grove.set_shader_parameter("tint", UiStyle.MOONLIGHT)
-			_grove.set_shader_parameter("rim", UiStyle.MOONLIGHT)
-		return _grove
-
-	# Locked forms: ~75% brightness with a light desaturation.
-	static func locked_material() -> ShaderMaterial:
-		if _locked == null:
-			var shader := Shader.new()
-			shader.code = """shader_type canvas_item;
-void fragment() {
-	vec4 c = texture(TEXTURE, UV) * COLOR;
-	float grey = dot(c.rgb, vec3(0.299, 0.587, 0.114));
-	COLOR = vec4(mix(c.rgb, vec3(grey), 0.35) * 0.75, c.a);
-}
-"""
-			_locked = ShaderMaterial.new()
-			_locked.shader = shader
-		return _locked
+			_silhouette = ShaderMaterial.new()
+			_silhouette.shader = shader
+			_silhouette.set_shader_parameter("ink", Palette.DREAD)
+		return _silhouette
 
 	func _init(form: TowerData, side: float, silhouette: bool = false) -> void:
 		data = form
@@ -718,8 +688,8 @@ void fragment() {
 			_atlas.atlas = data.texture
 			_atlas.region = _crop()
 			texture = _atlas
-		if silhouette:  # A Memory Grove form: readable, but the dimmest state (run_design.md "Grove forms readable too")
-			material = grove_material()
+		if silhouette:  # Not unlocked this run: a dark silhouette (FormNode draws the moonlit disc behind it)
+			material = silhouette_material()
 
 	# An Ascended form (tier 4) is taller than 64 px: its whole frame, crown and all, scaled into the
 	# disc like the others (screens_ui.md "Playtest fixes"); the rest show their bottom 64 px.

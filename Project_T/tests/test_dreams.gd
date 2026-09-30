@@ -1191,7 +1191,7 @@ func _test_blessing_dream(main: Node) -> void:
 	var seen := false
 	for i in 200:
 		dreams.dreams_seen = 0
-		if dreams.make_offer(20).has(blessing):
+		if dreams.make_offer(30).has(blessing):  # Act 2 (Blessings may wait for it, Meta)
 			seen = true
 			break
 	_check(seen, "a Blessing can turn up as a Dream")
