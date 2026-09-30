@@ -285,10 +285,9 @@ function groveTree() {
     const wob = (pnoise(x, 0, 90, seed + 2) - .5) * h * 1.2, yy = y - wob;  // the band drifts up and down
     const band = clamp(1 - Math.abs(yy - cy) / h, 0, 1) ** 1.5, n = pnoise(x * .6, yy, 34, seed) * .75 + pnoise(x, yy, 12, seed + 1) * .25;
     const d = band * clamp((n - .36) * 2.6, 0, 1);
-    if (d > 0 && bay(x, y) < d * dens) out.set(x, y, d > .6 ? HW.Bruise : HW.Shade);  // violet dream mist
-    if (d > .7 && hash(x, y, seed + 3) < .01) out.set(x, y, HW.Wraithlight);
+    if (d > 0 && bay(x, y) < d * dens) out.set(x, y, d > .75 ? (y > 850 ? HW.Bruise : HW.Shade) : HW.Dusk);  // muted dream mist, violet only in the thick low cores
   } };
-  wisps(610, 55, .8, 113); wisps(700, 50, .9, 114); wisps(790, 48, .95, 111); wisps(895, 45, .9, 112);
+  wisps(610, 55, .35, 113); wisps(700, 50, .5, 114); wisps(790, 50, .7, 111); wisps(890, 55, 1.1, 112);  // thicker toward the ground
   return out;
 }
 
@@ -535,13 +534,12 @@ function groveCanopy(stage) {
   }
   // Violet dream mist drifting across the crown itself, over the leaves (the shape stays the same for
   // the node layout, which reads this layer).
-  for (const [cy, h, seed] of [[210, 40, 121], [360, 46, 122], [490, 44, 123]]) for (let y = cy - h * 2; y < cy + h * 2; y++) for (let x = 0; x < GW; x++) {
+  for (const [cy, h, seed, dens] of [[210, 40, 121, .22], [360, 46, 122, .32], [490, 44, 123, .48]]) for (let y = cy - h * 2; y < cy + h * 2; y++) for (let x = 0; x < GW; x++) {
     if (y < 0 || !out.alpha(x, y)) continue;
     const wob = (pnoise(x, 0, 90, seed + 2) - .5) * h * 1.2, yy = y - wob;
     const band = clamp(1 - Math.abs(yy - cy) / h, 0, 1) ** 1.5, n = pnoise(x * .6, yy, 34, seed) * .75 + pnoise(x, yy, 12, seed + 1) * .25;
     const d = band * clamp((n - .36) * 2.6, 0, 1);
-    if (d > 0 && bay(x, y) < d * .7) out.set(x, y, d > .6 ? HW.Bruise : HW.Shade);
-    if (d > .7 && hash(x, y, seed + 3) < .01) out.set(x, y, HW.Wraithlight);
+    if (d > 0 && bay(x, y) < d * dens) out.set(x, y, d > .8 ? HW.Shade : HW.Dusk);  // muted: mostly dusk, violet only at the cores
   }
   // A wisp of mist drifting in front of the crown's underside and the top of the trunk, continuing
   // across the open fog (this layer is drawn over the limbs and trunk).
@@ -549,7 +547,7 @@ function groveCanopy(stage) {
     if (!out.alpha(x, y)) continue;  // only over the leaves: the open-air part is in grove_tree.png (the layout reads this layer's shape)
     const band = Math.sin(Math.PI * (y - 560) / 80) ** 2, n = pnoise(x * .35, y, 26, 113) * .8 + pnoise(x, y, 9, 114) * .2;
     const d = band * clamp((n - .32) * 2.4, 0, 1);
-    if (d > 0 && bay(x, y) < d * .75) out.set(x, y, d > .6 ? HW.Bruise : HW.Shade);
+    if (d > 0 && bay(x, y) < d * .4) out.set(x, y, d > .8 ? HW.Shade : HW.Dusk);
   }
   // Long swamp-moss drapes hanging from the crown.
   for (let k = 0; k < 140; k++) {
