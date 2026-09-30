@@ -35,6 +35,7 @@ static func migrate_old_saves() -> void:
 const GROUP := &"title_screen"
 
 func _ready() -> void:
+	UiStyle.install_tooltip_wrap(get_tree())  # Long tooltips wrap at the tip width
 	migrate_old_saves()
 	DevGrove.apply()  # Dev Grove (debug builds): the dev profile, before anything reads the profile
 	HeartwoodMemory.apply_settings()

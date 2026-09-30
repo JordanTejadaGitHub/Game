@@ -112,12 +112,9 @@ func _init() -> void:
 	row.add_child(_icon)
 	var box := VBoxContainer.new()
 	row.add_child(box)
-	_name.add_theme_font_size_override("font_size", 16)
-	_name.add_theme_color_override("font_color", LINK_COLOR)
+	UiStyle.tip_name(_name, LINK_COLOR)  # Tip sizes (screens_ui.md playtest fixes 2026-09-30)
 	box.add_child(_name)
-	_text.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_text.custom_minimum_size = Vector2(240, 0)
-	_text.add_theme_font_size_override("font_size", 14)
+	UiStyle.tip_body(_text)
 	box.add_child(_text)
 	var more := LinkButton.new()
 	more.text = "More in the Codex"

@@ -6,6 +6,7 @@ const UNAFFORDABLE_BUTTON_ALPHA := UiStyle.UNAFFORDABLE_ALPHA
 # Warden bar buttons (bottom centre): 13 of them must fit between the Warden panel and the drift
 # controls at 1280×800 (screens_ui.md principle 6: buttons at least 48 px tall).
 const BUTTON_SIZE := Vector2(46, 60)
+const EMBLEM_SIZE := 18.0  # The family emblem in a Warden button's corner (the hotkey sits on it)
 const BUTTON_MIN_WIDTH := 32.0
 # Half-width taken from each side: the Warden panel (16–316 px) or the drift controls (272 px + 16),
 # plus a small gap; the wider of the two, so the centred bar clears both.
@@ -45,6 +46,7 @@ var _toast_tween: Tween
 var _counter_icons := {}  # Label -> its icon (TextureRect)
 
 func _ready() -> void:
+	UiStyle.install_tooltip_wrap(get_tree())  # Long tooltips wrap at the tip width (also when main runs alone)
 	# The Clear tool sits at the left end of the Warden bar, set apart (screens_ui.md "The Clear tool").
 	# (A sibling of %TowerBar, placed and sized with it in _fit_tower_bar.)
 	_style_resources()
@@ -178,14 +180,21 @@ func _build_tower_bar() -> void:
 		button.tooltip_text = "%s (%s)\n%s · Cost: %d Dew\n%s" % [data.display_name, str(i + 1) if i < 9 else "no key",
 			IconInfo.damage_type_text(data.line), tower_placer.get_cost(data), IconInfo.format(data.description)]  # "Light damage"
 		button.pressed.connect(_on_tower_pressed.bind(data))
+		# The family emblem (its damage-type badge) in the top-left corner, the hotkey number on it
+		# (screens_ui.md playtest fixes 2026-09-30).
+		button.add_child(IconInfo.emblem_rect(data.line, EMBLEM_SIZE, Vector2(2, 2)))
 		if i < 9:
 			var hotkey := Label.new()
+			hotkey.name = "Hotkey"
 			hotkey.text = str(i + 1)
-			hotkey.position = Vector2(3, 0)
+			hotkey.position = Vector2(2, 2)
+			hotkey.size = Vector2(EMBLEM_SIZE, EMBLEM_SIZE)
+			hotkey.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+			hotkey.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 			hotkey.mouse_filter = Control.MOUSE_FILTER_IGNORE
-			UiStyle.number(hotkey, 13, UiStyle.INK_DIM)
+			UiStyle.number(hotkey, 14, UiStyle.INK)
 			hotkey.add_theme_color_override("font_outline_color", UiStyle.FOG)
-			hotkey.add_theme_constant_override("outline_size", 3)
+			hotkey.add_theme_constant_override("outline_size", 5)  # Reads on any badge colour
 			button.add_child(hotkey)
 		if data.get_id() == SPROUT_ID:
 			button.add_child(_make_seed_badge())

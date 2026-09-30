@@ -254,6 +254,7 @@ func _make_card(data: TowerData) -> Button:
 	box.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	button.add_child(box)
 	_fit_card(button, box)
+	button.add_child(IconInfo.emblem_rect(data.line, 24.0, Vector2(10, 10)))  # The family's emblem (its damage type)
 	if data.texture != null:
 		var icon := TextureRect.new()
 		var atlas := AtlasTexture.new()

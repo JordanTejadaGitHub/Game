@@ -29,8 +29,19 @@ func _run() -> void:
 	dreams.unlocks_changed.emit()
 	var bar: HBoxContainer = main.get_node("%TowerBar")
 	var first_button := bar.get_child(0) as Button
-	_check(first_button.text.is_valid_int() and first_button.get_child(0) is Label and first_button.get_child(0).text == "1",
+	var hotkey_label := first_button.get_node_or_null("Hotkey") as Label
+	var emblem := first_button.get_node_or_null("Emblem") as TextureRect
+	_check(first_button.text.is_valid_int() and hotkey_label != null and hotkey_label.text == "1",
 		"Warden buttons show the cost and the hotkey (%s)" % first_button.text)
+	# The family emblem (its damage-type badge) in the corner, the hotkey on it (playtest fixes 2026-09-30).
+	_check(emblem != null and emblem.texture != null and emblem.position == hotkey_label.position
+		and first_button.get_children().find(hotkey_label) > first_button.get_children().find(emblem),
+		"the family emblem sits in the corner with the hotkey drawn on it")
+	_check((IconInfo.family_emblem("water") as AtlasTexture).region == (IconInfo.damage_type_icon("water") as AtlasTexture).region
+		and (IconInfo.family_emblem("acorn") as AtlasTexture).region == (IconInfo.icon(&"plain") as AtlasTexture).region
+		and IconInfo.family_emblem("memory") != null, "emblems: the damage-type badge; Acorn / Memory the plain leaf")
+	_check(UiStyle.TIP_SIZE >= 16 and UiStyle.TIP_NAME_SIZE >= 18
+		and ThemeDB.get_project_theme().get_font_size("font_size", "TooltipLabel") >= 16, "tooltip text is at least 16 px, names 18")
 	# Seedling Gift: a seed badge with the count on the Sprout button, hidden at 0.
 	var hud_node = main.get_node("HUD")
 	_check(hud_node._seed_badge != null and not hud_node._seed_badge.visible, "no seed badge without free Sprouts")
@@ -321,7 +332,7 @@ func _run() -> void:
 	if bark_card != null:
 		marks_hud.bark_shield.tip.show_card(marks_hud.bark_shield, bark_card, Vector2(200, 200))
 		_check(marks_hud.bark_shield.tip.visible and marks_hud.bark_shield.tip._name.text == bark_card.display_name
-			and marks_hud.bark_shield.tip._text.text == bark_card.description, "hover / tap: the card's icon, name and text")
+			and marks_hud.bark_shield.tip._text.text == IconInfo.format(bark_card.description), "hover / tap: the card's icon, name and text")
 		marks_hud.bark_shield.tip.hide_tip(marks_hud.bark_shield)
 	marks_hud.bark_shield.set_charges(0)
 	_check(not marks_hud.bark_shield.visible, "…and hides at 0")

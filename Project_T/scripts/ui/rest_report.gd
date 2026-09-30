@@ -20,7 +20,7 @@ var unbound_block := 0  # Nightmares that turned Unbound this block ("Unbound: N
 
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_STOP
-	_label.custom_minimum_size = Vector2(260, 0)
+	UiStyle.tip_body(_label)  # Tip sizes (screens_ui.md playtest fixes 2026-09-30)
 	_label.mouse_filter = Control.MOUSE_FILTER_PASS  # Clicks reach the card (dismiss) too
 	add_child(_label)
 	visible = false
