@@ -486,6 +486,19 @@ From a user playtest with screenshots; each line is the rule going forward.
   term that remains (**drift, block, rest, perfect block, Dreamlight, family pick, Deeply Blighted**)
   is a **linked term** like the status words: underlined, hover / tap for a one-line definition
   from the Codex glossary (e.g. *"Block: the 5 drifts between two rests."*).
+- **Family icons on the Warden bar** (user: "create icons for each family, then have them display
+  for hotkeys"): every family gets an **emblem**, reusing its **damage-type badge** (Spore, Stone,
+  Water, Light, Root, Song, Talon, Wind; Acorn and Memory forms a plain leaf; Sprout and Thornwall
+  their own small sprout / hedge marks), so one symbol means "this family" everywhere. On each
+  Warden bar button the **hotkey number sits on that emblem** in the top-left corner (the cost stays
+  under the icon). The same emblem heads the Warden panel, the family pick cards and the Remember
+  tabs.
+- **Readable tooltips and hover text** (user: "hovering things, in general, the text is too small
+  and hard to read"): every tooltip, hover panel and tap popup uses **at least 16 px body text at
+  1080p** (18 px for the first line / name), **1.35 line height**, a maximum width of about **42
+  characters**, and scales with the UI scale setting. Small caps captions stay for labels only, never
+  for sentences. Contrast at least 4.5:1 against the fog panel. Applies to the Warden bar, Warden
+  panel stats, status and term links, nightmare info, Codex glossary popups and the rest report.
 - **Family-seeding cards** ("Seed · calls Rootling to your next family pick", e.g. Patient Roots):
   if you **already own** that family, the seed line is hidden and nothing is seeded (it only calls
   families you don't have yet).
