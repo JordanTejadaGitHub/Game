@@ -80,7 +80,8 @@ func _test_blocks_and_rests() -> void:
 	var act_4_paid := run_state._scaled_dispel_dew(3) + run_state._scaled_dispel_dew(3)
 	director.drifts_started = started
 	run_state._dispel_dew_carry = 0.0
-	_check(act_4_paid == 3, "act 4 pays half, the halves adding up (3 + 3 → %d)" % act_4_paid)
+	var act_4_expected := floori(6.0 * run_state.act_dew_multipliers[3] + 0.0001)  # The fractions carry
+	_check(act_4_paid == act_4_expected, "act 4 pays its share, the fractions adding up (3 + 3 → %d, expected %d)" % [act_4_paid, act_4_expected])
 	# Mid-game rework: ×1.045 per drift to 25, ×1.055 for 26–50 (≈ ×11 by drift 50), ×1.045 from 51
 	# (≈ ×33 at 75, ×100 at 100).
 	_check(is_equal_approx(director.get_growth(25), pow(1.045, 24)) and is_equal_approx(director.get_growth(26), pow(1.045, 24) * 1.055)
