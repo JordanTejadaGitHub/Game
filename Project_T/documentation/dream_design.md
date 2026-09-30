@@ -1173,6 +1173,21 @@ opener didn't move Tall (14 → 16); Support at 5 cards collapsed to 1%. Round 3
 4. **Measurement fix:** the Gale bot's board must include a status-applying family (Gale copies
    statuses; with none it measured 0%).
 
+**Round 3 measured (8662fba0):** Emergence (mixed) **76%** ✓, random 28%, Adapt 93–94% ✓. In band:
+Daring 44, Affliction 37, Maze 47, and Tall **48 at drift 75** ✓. Tending jumped to **87** (12 cards,
+too many, like Support before); Overgrowth fell 32 → 23 because Tender Care is now an early opener
+and a single Tall card halved Overgrowth's weight; Precision and Kinship sit at 26. Round 4:
+
+1. **Tending back to 9:** Evergreen becomes an untagged basic (cheaper evolving helps everyone);
+   **Kind Canopy** leaves (a Seed card: it belongs to The Grove / Greedy Gardener); **Warm Hearth**
+   moves to **Overgrowth** (its aura boost is for Sprouts), so Overgrowth gets 10.
+2. **Opposition needs commitment:** Tall ↔ Overgrowth halves the other side only once you own **2+
+   cards** of one of them (one early discount card shouldn't close a direction).
+3. **Precision picks up its family crit cards:** Heavy Stones and Called Shot also carry `precision`
+   (family-gated, so they only count when you have Pebbling / Lanternmoth).
+4. Kinship (26) is left as it is: it needs a Kinship on the map, which the Dreamlight change (free
+   branches) now makes much earlier. Re-measure it with the free-branch grant in the bots.
+
 ## Status effect numbers
 
 Status strength **scales with the Warden that applies it** (a % of its soothe), so statuses keep
