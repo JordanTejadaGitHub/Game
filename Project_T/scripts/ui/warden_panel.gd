@@ -198,7 +198,8 @@ func _refresh() -> void:
 	if _tower.can_choose_target():
 		_add_target_switch([_tower])
 	if data.has_bird_toggle:
-		var birds := _add_button("Birds: %s (click to change)" % ("all on the strongest" if _tower.focus_strongest else "spread out"))
+		var birds := _add_button("Birds: %s" % ("all on the strongest" if _tower.focus_strongest else "spread out"))
+		birds.tooltip_text = "Click to switch: spread out, or all on the strongest."
 		birds.pressed.connect(func() -> void:
 			_tower.focus_strongest = not _tower.focus_strongest
 			_refresh())
@@ -225,7 +226,7 @@ func _refresh() -> void:
 				button.disabled = true
 			elif next.footprint > _tower.get_footprint() and tower_placer.get_grow_squares(_tower, next).is_empty():
 				# A 2×2 form needs three free cells (or Thornwalls) beside it, and the path must stay open.
-				button.text = "Grow into %s · Needs room: 3 free cells next to it (2×2)" % next.display_name
+				button.text = "Grow into %s · Needs 3 free cells beside it" % next.display_name
 				button.disabled = true
 			var changes := tower_placer.grow_changes(_tower, next)
 			if changes != "":
@@ -293,7 +294,7 @@ func _refresh() -> void:
 	elif _tower.nurture_blocker() != "":
 		var locked := _add_button(_tower.nurture_blocker())  # "Rank III needs a Nurture Dream"
 		locked.disabled = true
-		locked.tooltip_text = "Every Warden can reach rank II. A Nurture Dream opens ranks III-V and the Focus."
+		locked.tooltip_text = "Every Warden can reach rank II. A Nurture Dream opens ranks III–V and the Focus."
 	elif _tower.can_be_nurtured() and _tower.rank > 0:
 		var others_can: bool = dream_state.has_method("get_max_rank") and dream_state.get_max_rank() > _tower.rank
 		if others_can and not _is_eldest(_tower):

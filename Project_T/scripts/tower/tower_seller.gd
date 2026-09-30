@@ -611,7 +611,7 @@ func _draw() -> void:
 			refund += get_refund(tower)
 		var at: Vector2 = armed[0].position
 		WorldLabel.draw_tag(self, at.x, at.y - MAP_GRID.cell_size.y / 2.0 - 8.0,
-			"Press %s again to sell for +%d Dew (half during a drift)" % [_sell_key_name(), refund],
+			"Press %s again to sell for +%d Dew" % [_sell_key_name(), refund],
 			Color(1.0, 0.8, 0.45))
 	if _dragging:
 		var box := Rect2(_press_world, Vector2.ZERO).expand(get_global_mouse_position())
