@@ -457,6 +457,34 @@ entry arrives as "???" with a small leaf "New from the Grove" mark.
   combo still name it, since a card must say what it does; taking one doesn't discover it.)
 - Touch: everything is tap-based; the discovery card can be tapped to open the entry.
 
+## Playtest fixes (2026-09-30)
+
+From a user playtest with screenshots; each line is the rule going forward.
+
+- **Drift banner:** the drift reads **"Drift 5"** (no "/ 100"). The boss line is prominent (gold,
+  larger, the boss portrait on its disc) and gives the drift, not only a countdown: **"The Hollow
+  Stag · drift 25 (in 20)"**.
+- **"New" tags** (Coming strip, intro cards) mean **never seen on this profile**
+  (`nightmares_seen`); a Shade you've met before is never "New". Dev runs follow the same rule.
+- **DPS tags on Wardens:** colour by **rank on this board**, so the strongest reads strongest: top
+  ~20% gold, middle white, bottom ~20% dim (the "underused" reason stays in the tooltip). A tag is
+  never greyed just because the Warden underperforms its own potential.
+- **Damage meter panel:** sort buttons read **"Sort: DPS"** and **"Sort: % of damage"** (was
+  "share"); clicking a row **selects that Warden and glides the camera to it** (must work); the
+  **last drift's DPS** lives in this panel ("Last drift 62 DPS"), not as loose text by Start;
+  scrolling the panel never scrolls or zooms the map.
+- **"Needs ~N DPS" is removed in release:** the maze's own DPS stays; the estimate of what a drift
+  needs is **dev-only** (debug builds / dev runs), since it's a rough balance number and can mislead.
+- **Remember tree:** the lines from the root to every **unlocked or grown** node glow gold (the path
+  you've taken reads at a glance); locked lines stay dim. The **Ascended** node uses the same node
+  size as the others (its art scaled to fit the disc; its crown sits above, not bigger).
+- **Warden panel → Remember:** a Grow button for a form you haven't unlocked (needs Dreamlight or
+  its branch first) **opens the Remember tree on that node** instead of doing nothing.
+- **Sell button** shows its hotkey icon (**X**, or the rebound key) like other hotkeyed buttons.
+- **Family-seeding cards** ("Seed · calls Rootling to your next family pick", e.g. Patient Roots):
+  if you **already own** that family, the seed line is hidden and nothing is seeded (it only calls
+  families you don't have yet).
+
 ## Panels
 
 ### Warden panel (on selection)
