@@ -100,6 +100,46 @@ func _run() -> void:
 	_rule(&"live_wire")
 	_check(dreams.get_bolt_multiplier() > bolt_before, "Live Wire: the bolt multiplier grows (%.2f)" % dreams.get_bolt_multiplier())
 
+	# --- Crit / new-Warden cards and 227-234 (34a713c0, f771aaf5) ---
+	# Patient Aim: waiting longer hits harder.
+	_rule(&"patient_aim")
+	var sniper := _plant("standing_stone", Vector2(18, 12))
+	sniper._aim_idle = 2.0
+	_check(is_equal_approx(sniper._card_hit_multiplier(null, false), 1.0 + minf(DreamState.PATIENT_AIM_PER * 2.0, DreamState.PATIENT_AIM_MAX) * dreams.rule_power(&"patient_aim")),
+		"Patient Aim: +15%% per second it didn't fire")
+	# Crowd Breaker and Crush: area hits on a crowd.
+	_rule(&"crowd_breaker")
+	_rule(&"crush")
+	var pulser := _plant("rootling", Vector2(18, 14))
+	var crowd := []
+	for i in 3:
+		crowd.append(_spawn(pulser.global_position + Vector2(CELL, 8.0 * i)))
+	pulser._area_count = 3
+	var crowded := pulser._card_hit_multiplier(crowd[1], true)
+	_check(crowded > 1.0 + DreamState.CROWD_BREAKER_PER * 3.0, "Crush + Crowd Breaker: an area hit on a crowded nightmare hits harder (%.2f)" % crowded)
+	_check(is_equal_approx(pulser._card_hit_multiplier(crowd[1], false), 1.0), "a single-target hit doesn't")
+	# Shiny Things: each stolen buff adds damage for a while.
+	_rule(&"shiny_things")
+	var magpie := _plant("magpie_perch", Vector2(2, 14))
+	magpie._shiny_stole()
+	magpie._shiny_stole()
+	_check(is_equal_approx(magpie._card_hit_multiplier(null, false), 1.0 + 2 * DreamState.SHINY_THINGS_BONUS * dreams.rule_power(&"shiny_things")),
+		"Shiny Things: two stolen buffs")
+	# Sweet Scent: Honeysuckle reaches 2 tiles.
+	_rule(&"sweet_scent")
+	var honey := _plant("honeysuckle", Vector2(2, 2))
+	honey.clear_dream_cache()
+	_check(honey.get_range_cells() >= DreamState.SWEET_SCENT_TILES, "Sweet Scent: Honeysuckle reaches 2 tiles (%.1f)" % honey.get_range_cells())
+	# Ring Dance: one burst sets off the rings nearby.
+	_rule(&"ring_dance")
+	var fairy := _plant("fairy_ring", Vector2(20, 2))
+	var ring_a := FairyRing.new(fairy, Vector2(20, 5))
+	var ring_b := FairyRing.new(fairy, Vector2(21, 5))
+	fairy.add_child(ring_a)
+	fairy.add_child(ring_b)
+	ring_a._set_off()
+	_check(ring_b.is_spent(), "Ring Dance: a burst sets off the ring next to it")
+
 	print("catalogue cards test: %s" % ("PASS" if failures == 0 else "%d FAILED" % failures))
 	main.queue_free()
 	await process_frame

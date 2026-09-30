@@ -554,6 +554,8 @@ func _compute_range_cells() -> float:
 	if _dream_state and _dream_state.has_method("get_tower_range_bonus"):
 		reach += _dream_bonus(&"range")  # Solitude
 	var total := get_range_for(attack_data, _dream_state) + _aura_range + reach
+	if tower_data.get_id() == "honeysuckle" and _rule_stacks(&"sweet_scent") > 0:
+		total = maxf(total, DreamState.SWEET_SCENT_TILES * _rule_power(&"sweet_scent"))  # Sweet Scent
 	if tower_data.line == "song" and attack_data.attack_kind == TowerData.AttackKind.PULSE:
 		total *= 1.0 + HUSH_RADIUS * _rule_stacks(&"hush") * _rule_power(&"hush")  # Hush: wider song pulses
 	if _omens and _omens.has_method("get_warden_range_add"):
@@ -1192,6 +1194,8 @@ func _show_attack_pose() -> void:
 # The attack lands. A target that left range during the wind-up wastes a projectile/chain/cloud.
 func _release() -> void:
 	_attack_count += 1
+	_aim_idle = _anim_time - _last_release  # Patient Aim: how long it waited
+	_last_release = _anim_time
 	attack_released.emit(self)
 	var boost := _take_empowered()
 	if _chorus_sync:
@@ -1202,6 +1206,41 @@ func _release() -> void:
 		_release_attack()
 	else:
 		_boosted(boost, _release_attack)
+
+# Card hit multipliers (dream_design.md): Patient Aim (+15% per second it didn't fire, max +60%), Crush (area
+# hits on a crowded nightmare), Crowd Breaker (area attacks +5% per nightmare hit, max +45%), Shiny Things
+# (the Magpie's stolen buffs). Tag resonance on each.
+var _aim_idle := 0.0
+var _last_release := 0.0
+var _area_count := 0  # Nightmares the current area attack hits (Crowd Breaker)
+var _shiny: Array[float] = []  # Shiny Things: _anim_time each stolen buff runs out
+
+func _card_hit_multiplier(enemy: Node2D, is_area: bool) -> float:
+	if _dream_state == null:
+		return 1.0
+	var multiplier := 1.0
+	if _rule_stacks(&"patient_aim") > 0:
+		multiplier *= 1.0 + minf(DreamState.PATIENT_AIM_PER * _aim_idle, DreamState.PATIENT_AIM_MAX) * _rule_power(&"patient_aim")  # Slow snipers gain most
+	if is_area and _rule_stacks(&"crush") > 0:
+		var crowd := 0
+		for other in get_tree().get_nodes_in_group(ENEMY_GROUP):
+			if other != enemy and other.global_position.distance_to(enemy.global_position) <= MAP_GRID.cell_size.x * 1.0:
+				crowd += 1
+		if crowd >= DreamState.CRUSH_CROWD:
+			multiplier *= 1.0 + DreamState.CRUSH_BONUS[_rule_level(&"crush")] * _rule_power(&"crush")
+	if is_area and _rule_stacks(&"crowd_breaker") > 0 and _area_count > 1:
+		multiplier *= 1.0 + minf(DreamState.CROWD_BREAKER_PER * _area_count, DreamState.CROWD_BREAKER_MAX) * _rule_power(&"crowd_breaker")
+	if not _shiny.is_empty():
+		_shiny = _shiny.filter(func(until: float) -> bool: return until > _anim_time)
+		multiplier *= 1.0 + DreamState.SHINY_THINGS_BONUS * _shiny.size() * _rule_power(&"shiny_things")
+	return multiplier
+
+func _shiny_stole() -> void:
+	if _rule_stacks(&"shiny_things") <= 0:
+		return
+	_shiny.append(_anim_time + DreamState.SHINY_THINGS_TIME)
+	if _shiny.size() > DreamState.SHINY_THINGS_STACKS:
+		_shiny.pop_front()
 
 # Chorus (Dream): a Bellflower-line pulse pulls in the others of its line within CHORUS_CELLS whose attack
 # is ready within CHORUS_SYNC_WINDOW; they fire with it and every synced pulse deals +30%. A soft ring links
@@ -1302,6 +1341,7 @@ func _release_attack() -> void:
 	match attack_data.attack_kind:
 		TowerData.AttackKind.PULSE:
 			var in_range := get_enemies_in_range()
+			_area_count = in_range.size()
 			var statics := 0
 			if attack_data.rain:
 				var world := Reactions._world(self)
@@ -1372,8 +1412,10 @@ func hit(enemy: Node2D, soothe_multiplier: float = 1.0, is_area: bool = false, c
 	if attack_data.dew_mark:
 		enemy.bonus_dew = maxi(enemy.bonus_dew, 1)  # Before the hit, so a dispelling hit counts
 	if attack_data.strips_buffs and enemy.has_method("strip_buff"):
-		enemy.strip_buff(self)  # Magpie, the thief: shell chip x2, a Weeper's mending stopped, Omen boosts gone (Enemy's side)
+		if enemy.strip_buff(self):  # Magpie, the thief: shell chip x2, a Weeper's mending stopped, Omen boosts gone (Enemy's side)
+			_shiny_stole()
 	var soothe := get_damage() * soothe_multiplier * _damage_against(enemy) * _hit_boost
+	soothe *= _card_hit_multiplier(enemy, is_area)  # Patient Aim, Crush, Crowd Breaker, Shiny Things
 	if kin_share(&"sunspot", "b") > 0.0:  # Sunspot: hits in a row on one nightmare ramp up
 		_ramp_hits = _ramp_hits + 1 if enemy == _ramp_target else 0
 		_ramp_target = enemy
@@ -1760,6 +1802,7 @@ func projectile_landed(target: Node2D, where: Vector2) -> void:
 	if attack_data.splash_share < 1.0 and target != null and is_instance_valid(target):
 		# Boulderback: the full hit on its target, a share of it to everything else nearby.
 		hit(target, 1.0, false, crit)
+		_area_count = get_tree().get_nodes_in_group(ENEMY_GROUP).filter(func(e: Node2D) -> bool: return e.global_position.distance_to(where) <= splash).size()
 		for enemy in get_tree().get_nodes_in_group(ENEMY_GROUP):
 			if enemy != target and enemy.global_position.distance_to(where) <= splash:
 				hit(enemy, attack_data.splash_share, true, crit)
@@ -2750,6 +2793,7 @@ func _spread() -> void:
 		return a.global_position.distance_squared_to(source.global_position) \
 			< b.global_position.distance_squared_to(source.global_position))
 	var copied: Array = source.statuses.snapshot()
+	var full_copy := _rule_stacks(&"carried_on_the_wind") > 0  # Carried on the Wind (Entwined): full stacks
 	# Ill Wind (Dream): copied statuses deal more effect damage (their potency).
 	var ill_wind := 1.0 + (DreamState.ILL_WIND_BONUS * _rule_power(&"ill_wind") if _rule_stacks(&"ill_wind") > 0 else 0.0)
 	# Eddy (Dream): Gust copies also reach nightmares on the path tiles beside each target (a bend: 2 along).
@@ -2760,7 +2804,7 @@ func _spread() -> void:
 	for i in copies:
 		others[i].statuses.gust_time = 0.5  # Storm Front: a Reaction these statuses complete reaches further
 		for status in copied:
-			others[i].apply_status(status.id, maxi(ceili(status.stacks / 2.0), 1), status.time,
+			others[i].apply_status(status.id, status.stacks if full_copy else maxi(ceili(status.stacks / 2.0), 1), status.time,
 				status.potency * ill_wind, 0, status.line, status.source)
 		var devil := kin_share(&"dust_devil", "a")
 		var blade := _kin_partner()
@@ -2824,8 +2868,9 @@ func _spin() -> void:
 		for dy in [-1, 0, 1]:
 			if (dx != 0 or dy != 0) and route.has(cell + Vector2(dx, dy)):
 				path_tiles += 1
+	var hairpin := DreamState.HAIRPIN_WINDS_EXTRA * _rule_power(&"hairpin_winds") if _rule_stacks(&"hairpin_winds") > 0 else 0.0
 	var bonus := clampf((path_tiles - attack_data.spin_free_path_tiles) * attack_data.spin_bonus,
-		0.0, attack_data.spin_bonus_max)
+		0.0, attack_data.spin_bonus_max + hairpin * attack_data.spin_bonus)  # Hairpin Winds: one more path tile counts
 	var struck := _enemies_on_adjacent_tiles()
 	for enemy in struck:
 		hit(enemy, 1.0 + bonus, true)

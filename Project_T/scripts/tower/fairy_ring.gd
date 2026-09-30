@@ -10,6 +10,7 @@ class_name FairyRing
 const SCALE := 2.0  # The 16x16 ring sprite drawn at 32x32 on the 64px tile
 const ANIMATION_FPS := 6.0
 const BURST_TIME := 0.3
+const GROUP := &"fairy_rings"
 
 var cell: Vector2
 var _tower: Tower
@@ -27,6 +28,7 @@ func _init(tower: Tower, at_cell: Vector2, data: TowerData = null, strength: flo
 	_boost = tower._hit_boost * strength  # Sudden Bloom / Watchful Rest
 	cell = at_cell
 	_lifetime = _data.trap_lifetime
+	add_to_group(GROUP)
 	top_level = true
 	z_index = -1  # On the path (after the ground and path layers), under the y-sorted nightmares
 	position = Tower.MAP_GRID.calculate_map_position(at_cell)
@@ -61,8 +63,16 @@ func _set_off() -> void:
 		if enemy.global_position.distance_to(global_position) <= reach:
 			caught.append(enemy)
 	var crit := _tower.roll_crit(caught[0]) if not caught.is_empty() else false
+	_tower._area_count = caught.size()  # Crowd Breaker
 	for enemy in caught:
 		_tower.run_as(_data, _boost, func() -> void: _tower.hit(enemy, 1.0, true, Tower.CRIT if crit else Tower.NO_CRIT))
+	# Ring Dance (Entwined Dream): the burst sets off every ring within RING_DANCE_TILES.
+	var dreams := _tower._dream_state
+	if dreams != null and dreams.has_rule(&"ring_dance"):
+		var dance := DreamState.RING_DANCE_TILES * dreams.rule_power(&"ring_dance") * Tower.MAP_GRID.cell_size.x
+		for ring in get_tree().get_nodes_in_group(GROUP):
+			if ring != self and not ring.is_spent() and ring.global_position.distance_to(global_position) <= dance:
+				ring._set_off()
 
 func _draw() -> void:
 	if _burst >= 0.0:
