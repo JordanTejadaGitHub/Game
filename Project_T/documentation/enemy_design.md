@@ -122,6 +122,8 @@ Queen an act 3 boss.
 
 **A boss that reaches the Heartwood stays** (2026-09-30, user, after Tower Code found a boss leak cost only its 5 leaves and never decided a run, so health barely mattered): an act boss that gets through **doesn't leave. It stays at the Heartwood and takes 1 leaf every 2 s until it's dispelled**; Wardens in range of the Heartwood can still hit it (Last Stand shines here). Damage decides the outcome, so a maze without Dreams loses the run and a good one saves it late. **The Night Mare keeps its own rule** (user: *"isn't there a boss that reruns once it hits the end"*): it laps, taking 3 leaves and running the maze again, faster; that is its version of this. Applies to every act boss including the Hollow Oak; echoes and escorts leak normally. The boss bar shows "At the Heartwood" and pulses; the Heartwood trembles each leaf.
 
+**Sweep with the new rule** (Tower Code, 270 runs, fresh, drift 25): **Hollow Stag at ×1.75 health: taking Dreams 73%, skipping 33%** (it drains 10–15 leaves once through, usually the run): **chosen**. **Night Mare** never stays (laps), barely separates (Dreams 14–15/15, skip 11–14) → try a **costlier lap (4 / 5 / 6 leaves)** at ×2.0. **Scarecrow** with route-flying Crows is too easy (15/15 vs 13–14) → try **Crows 4 / 5 per burst × health ×1.75 / 2.25**. Skip surviving 1 in 3 against the Stag is by killing it outright: fixed later by early Dreams, not the drain.
+
 **Weakness spread:** act 1 water / light / spore (the three starting families); act 2 root / stone /
 water; act 3 light / root / song; act 4 spore / water / light. Bosses are tallied **separately** from the regular
 nightmares' family tally below (they're one fight each, not a drift's worth of health).
