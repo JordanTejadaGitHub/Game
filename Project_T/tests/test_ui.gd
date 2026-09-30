@@ -627,6 +627,33 @@ func _run() -> void:
 	var stats := results.get_stats_text()
 	_check(stats.contains("Leaves lost: 1") and stats.contains("Longest path"), "results show the run's stats (%s)" % stats)
 
+	# --- Omen cards: no label's text past its card's content rect (the padding inside the border), at
+	# 1280×800 and at the largest UI scale (1280×720 in view units). Face an Omen / Clear Skies, then
+	# every Omen revealed (the long twists).
+	var omen_screen = main.get_node("HUD/OmenScreen")
+	var all_omens: Array[OmenData] = []
+	for file in DirAccess.get_files_at("res://resource/omen"):
+		if file.ends_with(".tres"):
+			all_omens.append(load("res://resource/omen/" + file))
+	for view in [Vector2i(1280, 800), Vector2i(1280, 720)]:
+		root.size = view
+		omen_screen._show_offer([] as Array[OmenData], 2)
+		await _frames(3)
+		_check_omen_cards(omen_screen, "front cards at %s" % view)
+		var body_sizes: Array = []
+		for card in omen_screen._cards.get_children():
+			var labels: Array = card.find_children("*", "Label", true, false)
+			body_sizes.append(labels[1].get_theme_font_size("font_size") if labels.size() > 1 else -1)
+		_check(body_sizes.size() == 2 and body_sizes[0] == body_sizes[1], "Face an Omen and Clear Skies share one body size (%s)" % [body_sizes])
+		omen_screen._clear_cards()
+		for i in range(0, all_omens.size(), 3):
+			omen_screen._reveal(all_omens.slice(i, i + 3), null)
+			await _frames(3)
+			_check_omen_cards(omen_screen, "revealed Omens %d–%d at %s" % [i, i + 2, view])
+			omen_screen._clear_cards()
+	omen_screen._on_closed()
+	root.size = Vector2i(1280, 800)
+
 	main.queue_free()
 	await process_frame
 	print("ui test: %s" % ("PASS" if failures == 0 else "%d FAILED" % failures))
@@ -635,6 +662,20 @@ func _run() -> void:
 func _frames(n: int) -> void:
 	for i in n:
 		await process_frame
+
+# Every Label / RichTextLabel in each Omen card keeps OMEN_MIN_PAD from the card edge (clear of the border).
+const OMEN_MIN_PAD := Vector2(16, 14)
+func _check_omen_cards(screen, what: String) -> void:
+	for card in screen._cards.get_children():
+		var inner := Rect2(card.get_global_rect().position + OMEN_MIN_PAD, card.get_global_rect().size - OMEN_MIN_PAD * 2.0).grow(0.5)
+		for label in card.find_children("*", "", true, false):
+			if not (label is Label or label is RichTextLabel) or not label.is_visible_in_tree() or label.text == "":
+				continue  # Status-link popups and other hidden helpers
+			var rect: Rect2 = label.get_global_rect()
+			if label is RichTextLabel:
+				rect.size.y = maxf(rect.size.y, label.get_content_height())
+			_check(inner.encloses(rect), "Omen card %s: \"%s\" stays inside its card (%s in %s; %s)"
+				% [card.name, label.text.left(24), rect, inner, what])
 
 func _free_cell(map_generator) -> Vector2:
 	var path: PackedVector2Array = map_generator.get_path_from(map_generator.startPath)
