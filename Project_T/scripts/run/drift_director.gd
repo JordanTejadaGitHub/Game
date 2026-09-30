@@ -60,7 +60,8 @@ const DEMO_DRIFTS_DIR := "res://resource/drift/demo/"
 @export var act1_boss_health_multiplier: float = 2.0  # Act 1's boss (drift 25) instead (grove10: Fresh beat ×1.5 10/10, ×1.75 19/20)
 # Acts 3–4 (run_design.md "Act 3 probe", interim): a flat health multiplier for every nightmare from
 # `late_acts_from_act`, bosses included, on top of the growth / boss multiplier.
-@export var late_acts_health_multiplier: float = 2.4  # Interim (run_design.md "Human playtest after the Dream power pass"; was 1.6)
+@export var late_acts_health_multiplier: float = 3.5  # Acts 3–4, bosses included (balance_simulation.md "Human run 1"; was 1.6)
+@export var final_boss_late_multiplier: float = 1.6  # …except the Hollow Oak at drift 100: the health the first human run met
 @export var late_acts_from_act: int = 3
 # Acts 1–2 (run_design.md 72860af, balance batches): act 1 is x1.0 through `act1_ramp_from`, rising
 # evenly to `act1_health_multiplier` at `act1_ramp_to` and holding to the act's end; act 2 holds that
@@ -69,7 +70,7 @@ const DEMO_DRIFTS_DIR := "res://resource/drift/demo/"
 @export var act1_health_multiplier: float = 1.15
 @export var act1_ramp_from: int = 9
 @export var act1_ramp_to: int = 20
-@export var early_acts_health_multiplier: float = 2.0  # Act 2 ends at this (interim, was 1.55)
+@export var early_acts_health_multiplier: float = 2.5  # Act 2 ends at this ("Human run 1"; was 1.55)
 @export var act2_start_health_multiplier: float = 1.3  # …starting from this at act 2's first drift (interim; was act 1's 1.15)
 @export var early_ramp_from: int = 26
 @export var early_ramp_to: int = 45
@@ -352,7 +353,8 @@ func get_health_scale(data: EnemyData, number: int) -> float:
 	var boss := act1_boss_health_multiplier if get_act(number) == 1 else boss_health_multiplier
 	var scale := boss if data.is_boss else get_growth(number)
 	if get_act(number) >= late_acts_from_act:
-		scale *= late_acts_health_multiplier
+		var final_boss := data.is_boss and number >= drifts_per_act * 4
+		scale *= final_boss_late_multiplier if final_boss else late_acts_health_multiplier
 	elif not (data.is_boss and get_act(number) == 1):  # Act 1's boss keeps its own multiplier (its escort takes the ramp)
 		scale *= get_early_multiplier(number)
 	return scale * get_health_multiplier(data, number)

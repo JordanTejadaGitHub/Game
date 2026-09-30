@@ -96,8 +96,8 @@ func _test_blocks_and_rests() -> void:
 	var oak_data: EnemyData = load("res://resource/enemy/hollow_oak.tres")
 	_check(is_equal_approx(director.get_health_scale(shade_data, 50), director.get_growth(50) * act2_end * director.get_health_multiplier(shade_data, 50))
 		and is_equal_approx(director.get_health_scale(shade_data, 51), director.get_growth(51) * late * director.get_health_multiplier(shade_data, 51))
-		and is_equal_approx(director.get_health_scale(oak_data, 100), director.boss_health_multiplier * late * director.get_health_multiplier(oak_data, 100)),
-		"acts 3–4 nightmares and bosses have ×%.1f health" % late)
+		and is_equal_approx(director.get_health_scale(oak_data, 100), director.boss_health_multiplier * director.final_boss_late_multiplier * director.get_health_multiplier(oak_data, 100)),
+		"acts 3–4 nightmares and bosses have ×%.1f health (the Hollow Oak at 100 its own)" % late)
 	# Act 1: ×1.0 to 9, ramping to ×1.15 at 20, held to 25. Act 2 (interim): act2_start at 26, ramping to
 	# act2_end at 45, held to 50.
 	var curve := {1: 1.0, 9: 1.0, 20: 1.15, 25: 1.15, 26: act2_start, 45: act2_end, 50: act2_end}
