@@ -117,6 +117,15 @@ levels you choose an option"*). Replaces the gate below and the fixed per-rank g
 - UI: Nurture (R) opens the four choices in the Warden panel (1–4 or click; each shows its effect on
   this Warden: "Power · 28 → 33 damage"). Group Nurture asks once and applies it to every selected
   Warden. The rank pips under a Warden show each rank's choice by shape/colour.
+  **Playtest fix (2026-09-30**, user: *"fix the text alignment for the upgrades, and the hotkeys
+  aren't working"*): the four choices were always shown with keys 1–4, which clash with the Warden
+  bar's 1–4. Now:
+  - The panel shows **one button, "Nurture to rank III · 50 Dew (R)"**. Pressing it (or R) opens the
+    four choices in place; **while they're open, 1–4 pick** (they don't reach the Warden bar) and
+    Esc / R closes them.
+  - Each choice is a **three-column row**: the choice's name left-aligned, the change in the middle
+    column ("14 → 17 damage"), the price right-aligned, the key badge at the far right. All four rows
+    share the same column edges.
 - The Nurture cards stay as boosts (Tender Care cheaper, Warm Hands +6% per rank, Sunlit Rest free
   ranks); none of them gate anything any more.
 - The old "Focus at rank III" disappears; a Warden with a Focus from an old save keeps it as the
