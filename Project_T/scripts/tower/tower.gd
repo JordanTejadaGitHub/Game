@@ -1684,7 +1684,6 @@ func _update_ability(delta: float) -> void:
 			if attack_data.pull_once and enemy.has_meta(&"pulled_home"):
 				continue
 			var tiles: float = attack_data.pull_boss_tiles if enemy.enemy_data.is_boss else attack_data.pull_tiles
-			var before: Vector2 = enemy.global_position
 			pull(enemy, tiles)
 			var snare := kin_share(&"snare", "a")
 			if snare > 0.0:
@@ -1692,9 +1691,6 @@ func _update_ability(delta: float) -> void:
 				_kin_fired(&"snare")
 			if attack_data.pull_once:
 				enemy.set_meta(&"pulled_home", true)
-			var world := Reactions._world(self)
-			if world:
-				Fx.segment(&"long_way_home_drag", before, enemy.global_position, world, 0.4)
 			break  # One nightmare per pull
 	if attack_data.hold_targets > 0:
 		for enemy in in_range.slice(0, attack_data.hold_targets):

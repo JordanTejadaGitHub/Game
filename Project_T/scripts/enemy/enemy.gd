@@ -29,7 +29,28 @@ signal shrugged(enemy: Node2D)
 # A Warden tried a status this nightmare is immune to (the UI flashes the crossed-out icon). At most
 # once per status every REFUSED_THROTTLE seconds per nightmare.
 signal status_refused(enemy: Node2D, status: StringName)
+# A pull began dragging it back (Sound: root_yank, soil_drag) / the drag ended (tower_design.md
+# "pulls drag, not teleport").
+signal drag_started(enemy: Node2D, tiles: float)
+signal drag_ended(enemy: Node2D)
 const REFUSED_THROTTLE := 1.0
+# Pull drag: roots grab for DRAG_GRAB s, then an ease-out drag of DRAG_BASE + DRAG_PER_TILE × tiles s
+# (bosses × DRAG_BOSS_SLOW); reduced motion: DRAG_REDUCED s, no grab, dust or wobble.
+const DRAG_GRAB := 0.15
+const DRAG_BASE := 0.25
+const DRAG_PER_TILE := 0.18
+const DRAG_BOSS_SLOW := 1.4
+const DRAG_REDUCED := 0.2
+const DRAG_WOBBLE := 0.08  # Radians
+const DRAG_DUST_EVERY := 22.0  # Pixels dragged per dust puff
+var _dragging := false
+var _drag_total := 0.0  # Pixels this drag moves (from where the current ease started)
+var _drag_done := 0.0
+var _drag_time := 0.0
+var _drag_duration := 0.0
+var _grab_left := 0.0
+var _drag_reduced := false
+var _dust_left := 0.0
 var _refused_at := {}  # {status id: Time.get_ticks_msec() of the last status_refused}
 
 # Deeply Blighted elites (acts_1_2.md): ×3 health, ×2 Dew, 2 leaves, 20% bigger, wrapped in a slow
@@ -303,6 +324,9 @@ func _process(delta: float) -> void:
 	_was_animating = animating
 	_update_presence(delta)
 
+	if _dragging:
+		_update_drag(delta)  # Pulled back: no walking, traits or trampling meanwhile
+		return
 	if hold_time > 0.0:
 		hold_time -= delta
 		return
@@ -630,6 +654,7 @@ func _leap() -> void:
 # Squashes flat into the ground and fades, moves to `landing` (pixels) while under, rises the same
 # way back up, then calls `on_risen`. Not walking meanwhile (Mire Hag, Gravecrawler).
 func _sink_and_rise(landing: Vector2, on_risen: Callable) -> void:
+	_end_drag(false)
 	_leaping = true
 	if sprite.sprite_frames.has_animation(&"burrow"):
 		_burrow_to(landing, on_risen)
@@ -1299,6 +1324,7 @@ func _mark_hit(kind: int) -> void:
 # the old "cleanse" names; players only ever see "dispel".
 func _cleanse() -> void:
 	is_cleansed = true
+	_end_drag(false)
 	remove_from_group(GROUP)
 	# Great Dreamcatcher: a Caught nightmare (never a boss) leaves a Dreamlight shard.
 	if statuses.caught_shard and statuses.is_caught() and not enemy_data.is_boss:
@@ -1372,15 +1398,76 @@ func _set_crack(amount: float) -> void:
 
 # Sets the cells to walk through (grid coordinates). The enemy heads to points[0] first.
 func set_path(points: PackedVector2Array) -> void:
+	_end_drag()  # A re-route mid-drag: it walks the new route from here
 	_path = points
 	_path_index = 0
 
-# Moves the nightmare back along the way it came by `pixels` (Whirligig gusts, Pond Keeper). It can't
-# go back past the start of its current route (routes restart at each re-route). Returns the pixels
-# actually moved.
+# Drags the nightmare back along the way it came by `pixels` (pulls, Whirligig gusts, the Tidecaller's
+# wave): roots grab its feet, it slides back over a moment (ease-out, still facing forward), then walks
+# on. A pull during a drag extends it. It can't go back past the start of its current route (routes
+# restart at each re-route). Returns the pixels it will move.
 func push_back(pixels: float) -> float:
-	if is_cleansed or _leaping or _path.is_empty():
+	if is_cleansed or _leaping or _path.is_empty() or pixels <= 0.0:
 		return 0.0
+	var left := _drag_total - _drag_done if _dragging else 0.0
+	var amount := minf(pixels, _room_behind() - left)
+	if amount <= 0.0:
+		return 0.0
+	if not _dragging:
+		_dragging = true
+		_drag_reduced = bool(Fx.setting("reduced_motion", false))
+		_grab_left = 0.0 if _drag_reduced else DRAG_GRAB
+		_dust_left = DRAG_DUST_EVERY * 0.5
+		if not _drag_reduced:
+			PullDragFx.grab(self)
+		drag_started.emit(self, amount / grid.cell_size.x)
+	# Start the ease again from here over what's left (a second pull extends the drag, no new grab).
+	_drag_total = left + amount
+	_drag_done = 0.0
+	_drag_time = 0.0
+	_drag_duration = _drag_seconds(_drag_total)
+	return amount
+
+func is_dragged() -> bool:
+	return _dragging
+
+func _drag_seconds(pixels: float) -> float:
+	if _drag_reduced:
+		return DRAG_REDUCED
+	var seconds := DRAG_BASE + DRAG_PER_TILE * pixels / grid.cell_size.x
+	return seconds * (DRAG_BOSS_SLOW if enemy_data != null and enemy_data.is_boss else 1.0)
+
+# Pixels back to the start of the current route.
+func _room_behind() -> float:
+	if _path_index <= 0:
+		return 0.0
+	var room := position.distance_to(grid.calculate_map_position(_path[_path_index - 1]))
+	for i in range(_path_index - 1, 0, -1):
+		room += grid.calculate_map_position(_path[i]).distance_to(grid.calculate_map_position(_path[i - 1]))
+	return room
+
+func _update_drag(delta: float) -> void:
+	if _grab_left > 0.0:
+		_grab_left -= delta  # The roots take hold
+		return
+	_drag_time += delta
+	var t := minf(_drag_time / maxf(_drag_duration, 0.01), 1.0)
+	var eased := 1.0 - pow(1.0 - t, 3.0)  # Fast, then settling
+	var step := _drag_total * eased - _drag_done
+	var moved := _step_back(step) if step > 0.0 else 0.0
+	_drag_done += moved
+	if not _drag_reduced:
+		sprite.rotation = sin(_drag_time * 28.0) * DRAG_WOBBLE * (1.0 - t)
+		_dust_left -= moved
+		if _dust_left <= 0.0:
+			_dust_left = DRAG_DUST_EVERY
+			PullDragFx.dust(self)
+	if t >= 1.0 or moved < step - 0.01:
+		_end_drag()
+
+# Moves back along the route by `pixels` (the old instant push_back, now one frame's worth). Leaves a
+# furrow on each cell it's dragged back onto. Returns the pixels moved.
+func _step_back(pixels: float) -> float:
 	var moved := 0.0
 	while pixels > 0.0 and _path_index > 0:
 		var previous := grid.calculate_map_position(_path[_path_index - 1])
@@ -1392,7 +1479,26 @@ func push_back(pixels: float) -> float:
 		moved += distance
 		pixels -= distance
 		_path_index -= 1  # Now walking back toward the cell it just stood on
+		var along := previous - (grid.calculate_map_position(_path[_path_index - 1]) if _path_index > 0 else previous)
+		PullDragFx.furrow(self, global_position, along)
 	return moved
+
+# Ends a drag: the roots sink (`release`) and it walks on at its current speed from the cell it's on.
+func _end_drag(release: bool = true) -> void:
+	if not _dragging:
+		return
+	_dragging = false
+	_grab_left = 0.0
+	_drag_total = 0.0
+	_drag_done = 0.0
+	if sprite:
+		sprite.rotation = 0.0
+	_speed_stale = true
+	if _path_index > 0 and _path_index <= _path.size():
+		_last_cell = _path[_path_index - 1]  # Restless: the cell it ended on, never a "turn back"
+	if release and not _drag_reduced and not is_cleansed:
+		PullDragFx.release(self)
+	drag_ended.emit(self)
 
 # Index into the current route of the cell the nightmare last stood on (or is standing on).
 func get_route_index() -> int:
