@@ -865,6 +865,7 @@ static func get_range_for(data: TowerData, dream_state: DreamState) -> float:
 # Performance: other Wardens bucketed by TOWER_BUCKET px, rebuilt only when Wardens come, go or move
 # (towers_moved), so a neighbour scan looks at the ~9 buckets around it, not the whole map.
 const TOWER_BUCKET := 320.0  # 5 cells: past the furthest neighbour effect (the White Stag's crit aura, 4)
+const NEIGHBOUR_REACH := 5.0  # Cells: past every neighbour effect (auras 4 with Wide + Kind Canopy, a relay +1.5)
 static var _tower_buckets := {}
 static var _tower_key := []
 static var _towers_epoch := 0
@@ -1083,9 +1084,17 @@ func _refresh_neighbours() -> void:
 	var harmony := {}
 	var best: Tower = null
 	var best_dps := 0.0
+	_touch_lines = {}
+	var my_aura := tower_data.aura_damage_bonus > 0.0 or tower_data.aura_speed_bonus > 0.0
+	var my_reach := get_aura_reach() if my_aura else 0.0
 	for other in _towers_near():
 		var distance: float = other.global_position.distance_to(global_position) / MAP_GRID.cell_size.x
+		if distance > NEIGHBOUR_REACH:
+			continue  # Performance: the bucket window is ~15 cells wide; nothing reaches this far
 		var data: TowerData = other.tower_data
+		var touching := absf(other.cell.x - cell.x) <= 1 and absf(other.cell.y - cell.y) <= 1
+		if touching:
+			_touch_lines[data.line] = true  # Mycelium, Fireflies in the Grass
 		if data.aura_crit_bonus > 0.0 and distance <= data.attack_range:
 			_aura_crit = maxf(_aura_crit, data.aura_crit_bonus)  # Auras don't stack with themselves
 		if (data.aura_damage_bonus > 0.0 or data.aura_speed_bonus > 0.0) \
@@ -1095,10 +1104,10 @@ func _refresh_neighbours() -> void:
 			if not auras.has(kind):
 				auras[kind] = []
 			auras[kind].append([other, other.get_aura_bonus(false), other.get_aura_bonus(true), distance > other.get_aura_reach()])
-		if (tower_data.aura_damage_bonus > 0.0 or tower_data.aura_speed_bonus > 0.0) and distance <= get_aura_reach():
+		if my_aura and distance <= my_reach:
 			aura_count += 1
-		var growth: float = other.kin_share(&"old_growth", "b")
-		if growth > 0.0 and distance <= 1.5:  # Old Growth: the Dewcatcher kin's small aura (its own kind)
+		var growth: float = other.kin_share(&"old_growth", "b") if distance <= 1.5 else 0.0
+		if growth > 0.0:  # Old Growth: the Dewcatcher kin's small aura (its own kind)
 			if not auras.has("old_growth"):
 				auras["old_growth"] = []
 			auras["old_growth"].append([other, 0.0, 0.1 * growth, false])
@@ -1121,10 +1130,6 @@ func _refresh_neighbours() -> void:
 		for source in _aura_sources:
 			source.damage *= hearth
 			source.speed *= hearth
-	_touch_lines = {}
-	for other in _towers_near():
-		if absf(other.cell.x - cell.x) <= 1 and absf(other.cell.y - cell.y) <= 1:
-			_touch_lines[other.tower_data.line] = true
 	_big_family = tower_data.get_id() == "sprout" and _rule_stacks(&"big_family") > 0 and _near_kin_pair()
 	_aura_count = aura_count
 	_graft_status = _strongest_neighbour_status() if kin_share(&"true_graft", "b") > 0.0 else []
