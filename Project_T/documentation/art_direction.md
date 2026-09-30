@@ -99,6 +99,8 @@ Dewdrop blue, Acorn amber. The palette gains three colours that **only Warden id
 - **Idle sheets only.** Attack sheets, projectiles and glows keep full warm light: attacks are light
   pushing back the dark.
 - **Nothing else uses the new three.** The Heartwood, nightmares, tiles and UI stay on the original 32.
+  So does the **Heartwood Sapling**: it's a piece of the Heartwood and keeps its full glow (user,
+  2026-09-30).
 - **No more additions.** If the step down merges two lines a Warden needs, fix it by hand. The
   per-act ground allowance above is separate and still unused.
 - Owners: Tower Assets applies the map to the Warden sheets. Theme Code adds the three colours to
