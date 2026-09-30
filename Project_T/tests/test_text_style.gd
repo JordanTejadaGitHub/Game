@@ -9,7 +9,7 @@ extends SceneTree
 # Findings are grouped by owner (text_style.md "First sweep"). Only owners in ENFORCED fail the test;
 # the others print as TODO until their sweep is done (then add them). Allowed exceptions: EXCEPTIONS.
 
-const ENFORCED := ["Main"]
+const ENFORCED := ["Main", "Meta Game Code", "Tower Code", "Enemy Code"]
 # Substrings of a text (lowercase) that may break a rule on purpose.
 const EXCEPTIONS := [
 	"fall asleep", "falls asleep", "asleep", "the seed a samara throws", "seeds it throws", "its seeds",
