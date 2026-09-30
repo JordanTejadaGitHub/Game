@@ -851,15 +851,15 @@ var _family := ""  # The family shown
 var _family_body := VBoxContainer.new()
 var _family_card := VBoxContainer.new()  # The tapped node's card, under the tree
 const FAMILY_ROLES := {
-	"sporeling": "Damage over time: stack Poisoned and keep it.",
-	"dewdrop": "Soak and slow: Soaked nightmares take more from Water and carry lightning.",
-	"firefly_jar": "Lightning: Charge nightmares until bolts strike and chain.",
-	"pebbling": "Heavy single hits that break shells and Expose.",
-	"rootling": "Control: hold nightmares in place and pull them back.",
-	"bellflower": "Song: lull nightmares Drowsy, then to sleep.",
-	"acorn": "Support: auras that strengthen the Wardens around it.",
-	"nestling": "Talons: swift strikes from birds that swoop far.",
-	"whirligig": "Wind: spread statuses and push the crowd around.",
+	"sporeling": "Damage over time: stack {spored} and keep it.",
+	"dewdrop": "Water: splash, fog and ice. {damp} nightmares conduct lightning.",
+	"firefly_jar": "Light: lightning, marking and beams. {static} builds to free bolts; {marked} nightmares take more.",
+	"pebbling": "Heavy hits: slow, powerful shots for the toughest nightmares.",
+	"rootling": "Control: {held} nightmares in place, and pull them back.",
+	"bellflower": "Song and sleep: sing nightmares {drowsy}, then {asleep}.",
+	"acorn": "Support and economy: auras for the Wardens around it, and Dew.",
+	"nestling": "Birds: fast hunters for the quickest nightmares.",
+	"whirligig": "Wind: spread one nightmare's statuses to the crowd.",
 }
 const TREE_W := 640.0
 const TREE_H := 380.0
@@ -948,10 +948,8 @@ func _family_header(root: TowerData) -> Control:
 	kind.text = IconInfo.damage_type_text(root.line)
 	UiStyle.caps(kind, 15, IconInfo.damage_type_color(root.line))
 	box.add_child(kind)
-	var role := Label.new()
-	role.text = FAMILY_ROLES.get(root.get_id(), IconInfo.format(root.description))
-	role.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	role.add_theme_font_size_override("font_size", 16)
+	var role := StatusLinks.make_label(IconInfo.format(FAMILY_ROLES.get(root.get_id(), root.description)), 16)  # Status words are links
+	role.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	box.add_child(role)
 	var statuses := _family_statuses(root)
 	if not statuses.is_empty():
