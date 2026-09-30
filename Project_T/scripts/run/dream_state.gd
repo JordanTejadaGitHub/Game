@@ -439,6 +439,15 @@ func add_dreamlight(amount: int, source: StringName = &"other") -> void:
 	if amount > 0:
 		dreamlight_earned.emit(amount, source)
 
+# A boss family pick with no new family left is skipped (meta_design.md "Replaced 2026-09-30"): the
+# rest gives this much Dreamlight instead, with NO_FAMILY_LINE. FamilyPickScreen calls it.
+const NO_FAMILY_DREAMLIGHT := 2
+const NO_FAMILY_LINE := "The Heartwood remembers deeper."
+
+func grant_no_family_pick() -> String:
+	add_dreamlight(NO_FAMILY_DREAMLIGHT, &"no_family")
+	return NO_FAMILY_LINE
+
 # Great Dreamcatcher: one shard per Caught nightmare dispelled; 10 shards = 1 Dreamlight, at most
 # 2 Dreamlight a run this way.
 func add_dreamlight_shard() -> void:
