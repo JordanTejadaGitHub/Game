@@ -31,6 +31,7 @@ func _run() -> void:
 
 func _test_card_changes() -> void:
 	_reset()
+	dreams.clearing_open = true  # Wildwood Reclaimed is a clearing follow-up
 	var ids := ["crossroads", "briar_crown", "menagerie", "restless_night", "last_leaf", "lucid_dreaming",
 		"court_of_the_eldest", "hunters_moon", "eternal_static", "rooted_nightmares", "wildwood_reclaimed"]
 	for id in ids:
@@ -43,8 +44,9 @@ func _test_card_changes() -> void:
 		_check(_card(id).rarity == UpgradeData.Rarity.RARE, "%s is now Rare" % id)
 	_check(_card("nightshade").potency_bonus == 0.0 and _card("the_old_ones").rank_crit_bonus == 0.0,
 		"Nightshade and The Old Ones keep to one archetype")
-	dreams.take(_card("wildwood_reclaimed"))
-	_check(dreams.can_clear(), "Wildwood Reclaimed unlocks clearing")
+	dreams.clearing_open = false
+	_check(not dreams.can_offer(_card("wildwood_reclaimed"), 2), "Wildwood Reclaimed waits for clearing (a follow-up)")
+	dreams.clearing_open = true
 
 # Ranks past V belong to one Warden, the Eldest.
 func _test_eldest() -> void:
@@ -172,6 +174,9 @@ func _test_damage_legendaries() -> void:
 	var off_clear := _plant("sporeling", Vector2(104, 100), 0)
 	var on_base := dreams.get_soothe_multiplier(on_clear)
 	var off_base := dreams.get_soothe_multiplier(off_clear)
+	dreams.clearing_open = false
+	_check(not dreams.can_offer(_card("wildwood_reclaimed"), 2), "Wildwood Reclaimed waits for clearing (a follow-up)")
+	dreams.clearing_open = true
 	dreams.take(_card("wildwood_reclaimed"))
 	_check(is_equal_approx(dreams.get_soothe_multiplier(on_clear) - on_base, 0.36)
 		and is_equal_approx(dreams.get_soothe_multiplier(off_clear), off_base), "Wildwood: +30% +2% per clear, only on cleared cells")

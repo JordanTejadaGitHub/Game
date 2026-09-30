@@ -466,8 +466,8 @@ func _test_clear_tool() -> void:
 	_check(not clearer.set_tool_active(true) and refused.size() == 1, "the tool is refused while clearing is locked")
 	var locks := []
 	clearer.lock_changed.connect(func(locked: bool) -> void: locks.append(locked))
-	dreams.take(_card("tended_forest"))
-	_check(locks == [false], "lock_changed(false) when the first clearing Dream unlocks it")
+	dreams.take(_card("tend_the_forest"))  # The opener
+	_check(locks == [false], "lock_changed(false) when the opener unlocks clearing")
 
 	var cell: Vector2 = map_generator.obstacles.keys()[0]
 	clearer._hover_cell = cell

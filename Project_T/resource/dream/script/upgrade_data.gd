@@ -114,6 +114,7 @@ enum Kind { UNLOCK_WARDEN, UNLOCK_EVOLUTION, STAT, RULE, ECONOMY }
 @export var min_obstacles: int = 0
 @export var clear_discount: float = 0.0  # 0.4 = clearing costs 40% less (stacks, min 1 Dew)
 @export var free_clears_add: int = 0  # Free clears gained now (Heartwood's Reach)
+@export var free_first_clears_add: int = 0  # Clears that cost nothing (Tend the Forest: the first 2)
 @export var dew_per_obstacle_clear: int = 0  # Dew for every clear from now on (Reclaimed Earth)
 # One-shot: clears every obstacle of this kind now, without Seeds (Burn Back the Dead Wood).
 @export var clears_obstacle: ObstacleData

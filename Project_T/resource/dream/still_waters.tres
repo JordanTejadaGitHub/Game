@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "still_waters"
 display_name = "Still Waters"
-description = "Wellspring's interest is 4% higher at a rest if you spent no Dew during that block."
+description = "Wellspring's interest is 4% higher at a {rest} if you spent no Dew during that {block}."
 rarity = 1
 kind = 3
 tags = Array[String](["support", "acorn"])

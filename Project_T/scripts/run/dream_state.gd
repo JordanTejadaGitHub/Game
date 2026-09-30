@@ -131,7 +131,7 @@ const UNDERDOG := [[3, 0.20], [4, 0.25]]  # [Wardens, damage] (II)
 const WEATHERED_FREE_EVERY := 10
 const HEAVY_AIR_BONUS := 0.20
 const SLOW_STATUSES: Array[StringName] = [&"drowsy"]  # Damp and fog no longer slow; frost is a freeze (5821d9f)
-const WANDERING_MIND_REROLLS := 2
+const WANDERING_MIND_REROLLS := 1
 const WINDING_PATH_TILES := 10  # +1 Dew per this many path tiles at each rest
 const SHELTER_BONUS := 0.15
 const CLIFFSIDE_RANGE := 1.0
@@ -1032,6 +1032,8 @@ func get_rest_bonus_add() -> int:
 # stack (max −50%), a Heartwood's Reach charge (`half_price`) halves it, and it never goes below half
 # the base cost, rounded up (tree 3, boulder 4). Blight 9's ×2 is ObstacleClearer's, on top.
 func get_clear_cost(data: ObstacleData, half_price: bool = false) -> int:
+	if free_first_clears > 0:
+		return 0  # Tend the Forest
 	var discount := 0.0
 	for card in _taken_cards():
 		discount += card.clear_discount * stacks[card.id]
@@ -1060,15 +1062,22 @@ func get_creature_speed_multiplier() -> float:
 		bonus += card.creature_speed_bonus * stacks[card.id]
 	return 1.0 + bonus
 
-# Whether obstacles can be cleared: after any clearing Dream (tag "clearing"). Taken cards are in
-# the save, so this needs no saving of its own.
+# Whether obstacles can be cleared: after the opener (Tend the Forest, tag "opener") or Burn Back
+# (dream_design.md "Clearing: one opener, the rest follow"). Taken cards are in the save, so this needs
+# no saving of its own.
 func can_clear() -> bool:
 	if clearing_open:
 		return true
 	for card in _taken_cards():
-		if card.tags.has("clearing"):
+		if unlocks_clearing(card):
 			return true
 	return false
+
+# The cards that unlock clearing: the opener, and Burn Back (it clears the trees itself).
+static func unlocks_clearing(card: UpgradeData) -> bool:
+	return card.tags.has(OPENER_TAG) or card.clears_obstacle != null
+
+const OPENER_TAG := "opener"
 
 
 # Make the clearing unlock obvious (dream_design.md "Clearing cards" / "Make the unlock obvious"):
@@ -1081,7 +1090,16 @@ const OPENED_CLEARING_LINE := "Unlocked clearing"
 var clearing_opened_by := ""  # The card id that unlocked clearing this run (saved)
 
 func opens_clearing(card: UpgradeData) -> bool:
-	return card != null and card.tags.has("clearing") and not can_clear()
+	return card != null and card.tags.has(OPENER_TAG) and not can_clear()
+
+# Tend the Forest: clears that cost nothing, spent before any half-price charge (ObstacleClearer).
+var free_first_clears := 0
+
+func use_free_first_clear() -> bool:
+	if free_first_clears <= 0:
+		return false
+	free_first_clears -= 1
+	return true
 
 func opened_clearing(card: UpgradeData) -> bool:
 	return card != null and clearing_opened_by != "" and card.id == clearing_opened_by
@@ -1195,7 +1213,7 @@ func _update_bends() -> void:
 # --- Taking cards -------------------------------------------------------------------------------------
 
 func take(card: UpgradeData) -> void:
-	if opens_clearing(card):
+	if unlocks_clearing(card) and not can_clear():
 		clearing_opened_by = card.id  # "Unlocked clearing" in Dreams this run and the Codex
 	for family in half_dreamed_missing(card):  # The next family pick will include one of them
 		if not _owed_families.has(family):
@@ -1222,6 +1240,8 @@ func take(card: UpgradeData) -> void:
 	add_rare_dreams(card.rare_dreams_add)
 	if card.dreamlight_now > 0:
 		add_dreamlight(card.dreamlight_now)
+	if card.free_first_clears_add > 0:
+		free_first_clears += card.free_first_clears_add
 	if card.free_clears_add > 0:
 		run_state.add_free_clears(card.free_clears_add)
 	if card.rule_id == &"court_of_the_eldest":
@@ -1470,6 +1490,8 @@ func can_offer(card: UpgradeData, act: int = 1) -> bool:
 		return false
 	if card.is_deepened() and not has_card(card.deepens):
 		return false
+	if card.tags.has("clearing") and not unlocks_clearing(card) and not can_clear():
+		return false  # Clearing follow-ups only once clearing is unlocked (the opener first)
 	if card.is_bittersweet() and not allow_bittersweet:
 		return false
 	# A card never costs the last leaves (Deep Sleep).
@@ -1715,8 +1737,8 @@ func _weighted_pick(cards: Array, stray: bool = false) -> UpgradeData:
 			for tag in opposed:  # e.g. a narrow card while you've gone wide
 				if card.tags.has(tag) and not card.tags.has(OPPOSITE_DIRECTION[tag]):
 					weight *= OPPOSITE_WEIGHT
-		if clearing_locked and card.tags.has("clearing"):
-			weight *= CLEARING_LOCKED_WEIGHT  # Until the first one unlocks clearing
+		if clearing_locked and card.tags.has(OPENER_TAG):
+			weight *= CLEARING_LOCKED_WEIGHT  # The opener, until clearing is unlocked
 		var half_missing := half_dreamed_missing(card)
 		if not half_missing.is_empty():
 			var declined := half_missing.any(func(family: String) -> bool: return _declined_families.has(family))
@@ -1762,6 +1784,7 @@ func to_save() -> Dictionary:
 		"walls_planted": _walls_planted, "glimmer_shards": glimmer_shards,
 		"legendary_next": _legendary_next,
 		"clearing_opened_by": clearing_opened_by,
+		"free_first_clears": free_first_clears,
 		"rng_state": str(_rng.state),  # A string: JSON would round a 64-bit int
 	}
 
@@ -1799,6 +1822,7 @@ func load_save(data: Dictionary) -> void:
 	_walls_planted = int(data.get("walls_planted", 0))
 	glimmer_shards = int(data.get("glimmer_shards", 0))
 	clearing_opened_by = String(data.get("clearing_opened_by", ""))
+	free_first_clears = int(data.get("free_first_clears", 0))
 	_legendary_next = int(data.get("legendary_next", 0))
 	_refill_bark()  # Saved at a rest, where Thick Bark is full again
 	dreamlight = int(data.get("dreamlight", 0))
@@ -2485,6 +2509,8 @@ func needs_note(card: UpgradeData, act: int = -1) -> String:
 		needs.append("no more stacks")
 	if card.is_deepened() and not has_card(card.deepens):
 		needs.append(get_display_name(card.deepens))
+	if card.tags.has("clearing") and not unlocks_clearing(card) and not can_clear():
+		needs.append("clearing unlocked (Tend the Forest)")
 	if card.is_bittersweet() and not allow_bittersweet:
 		needs.append("Bittersweet Dreams (Grove)")
 	var missing: Array = card.requires.filter(func(id: String) -> bool: return not owns(id))

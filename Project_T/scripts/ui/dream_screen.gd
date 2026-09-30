@@ -5,13 +5,12 @@ extends Control
 
 const CARD_SIZE := Vector2(250, 220)
 const CARD_PADDING := 24.0  # The box's top + bottom offsets inside a card
-const SECONDARY_SIZE := 12  # Entwined / Deepened / Half-dreamed / Stray lines
+const SECONDARY_SIZE := 12  # Entwined / Deepened / Half-dreamed lines (the Stray slot shows nothing: playtest)
 const SECONDARY_MIN_SIZE := 10
 const SCREEN_MARGIN := 240.0  # Title, buttons and gaps around the cards
 const ENTWINED_COLOR := Color(0.45, 0.8, 0.4)  # Vine border
 const DEEPENED_COLOR := Color(0.6, 0.85, 1.0)
 const BITTERSWEET_COLOR := Color(0.72, 0.5, 0.68)  # Muted plum, for the cost line
-const STRAY_COLOR := Color(0.75, 0.85, 0.95)  # Pale wisp
 const SEED_COLOR := Color("d4ec9c")  # Heartwood 32 "Newleaf": what a Seed card grows into
 const HALF_DREAMED_COLOR := Color(0.62, 0.82, 0.6, 0.85)  # Pale vine
 
@@ -165,8 +164,6 @@ func _make_card(card: UpgradeData) -> Button:
 	_add_needs_row(box, card)  # "Needs: Soaked + Charged" / "Nestling family": never a Warden's name
 	if dream_state.calls_family_now(card) != "":  # A Seed card calls its family to the next pick (not one you own)
 		secondary.append(_add_line(box, "Seed  ·  calls %s to your next family pick" % dream_state.get_display_name(card.calls_family), SEED_COLOR, SECONDARY_SIZE))
-	if dream_state.is_stray(card):  # The Stray Dream slot (dream_design.md "Adapt, don't get handed")
-		secondary.append(_add_line(box, "✧ Stray  ·  something the Heartwood hasn't dreamed of yet", STRAY_COLOR, SECONDARY_SIZE))
 	for label in secondary:
 		label.modulate.a = 0.85  # Muted
 	for label in [rarity, name_label]:

@@ -84,7 +84,7 @@ func _test_economy() -> void:
 	_check(dreams.get_rest_bonus_add() == dreams.path_length / 10, "Winding Path: +1 Dew per 10 path tiles (%d tiles)" % dreams.path_length)
 	var rerolls := dreams.rerolls_left
 	dreams.take(_card("wandering_mind"))
-	_check(dreams.rerolls_left == rerolls + 2, "Wandering Mind: +2 rerolls")
+	_check(dreams.rerolls_left == rerolls + 1, "Wandering Mind: +1 reroll")
 	dreams.take(_card("weathered_walls"))
 	var wall: TowerData = load("res://resource/tower/thornwall.tres")
 	dreams._walls_planted = 9

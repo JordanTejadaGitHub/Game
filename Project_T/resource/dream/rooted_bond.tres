@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "rooted_bond"
 display_name = "Rooted Bond"
-description = "If you sell a bonded Warden and plant a new kin of its partner within reach during the same rest, the bond keeps its stage."
+description = "If you sell a bonded Warden and plant a new kin of its partner within reach during the same {rest}, the bond keeps its stage."
 rarity = 1
 kind = 3
 tags = Array[String](["kinship", "maze"])
