@@ -157,6 +157,8 @@ func apply(id: StringName, stacks: int = 1, duration: float = 0.0, potency: floa
 	status.stacks = mini(status.stacks + stacks, cap)
 	var length: float = (duration if duration > 0.0 else DEFAULT_DURATION[id]) * duration_multipliers.get(id, 1.0) \
 		* duration_multiplier_all
+	if length >= status.time:
+		status["full"] = length  # A fresh timer: the badge's rim arc drains from full again
 	status.time = maxf(status.time, length)
 	if potency >= status.potency:
 		status["line"] = line  # The strongest applier's family sets the ticks' family
@@ -203,6 +205,19 @@ func potency(id: StringName) -> float:
 
 func time_left(id: StringName) -> float:
 	return _active[id].time if _active.has(id) else 0.0
+
+# Share of its timer left, 1 → 0 (the status badge's draining rim arc).
+func time_share(id: StringName) -> float:
+	if not _active.has(id):
+		return 0.0
+	var status: Dictionary = _active[id]
+	return clampf(status.time / maxf(status.get("full", status.time), 0.001), 0.0, 1.0)
+
+# One status for the nightmare info panel: "Charged 4/5 · 2.1 s" (stacks only when it can stack).
+func describe(id: StringName) -> String:
+	var cap := get_max_stacks(id)
+	var count := " %d/%d" % [stacks(id), cap] if cap > 1 else ""
+	return "%s%s · %.1f s" % [IconInfo.status_name(id), count, time_left(id)]
 
 func remove(id: StringName) -> void:
 	if _active.erase(id):
@@ -339,11 +354,13 @@ func tick(delta: float) -> float:
 			continue
 		if (id == MARKED and marked_forever) or (id == STATIC and static_forever):
 			status.time = 1.0  # Never expires, never bleeds off
+			status["full"] = 1.0
 			continue
 		if id == STATIC and status.stacks > 1:
 			status.stacks -= 1  # Static bleeds off one charge at a time
 			changes += 1
 			status.time = STATIC_DECAY_TIME
+			status["full"] = STATIC_DECAY_TIME
 		else:
 			_active.erase(id)
 			changes += 1

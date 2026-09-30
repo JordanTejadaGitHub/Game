@@ -95,9 +95,19 @@ var health_scale := 1.0
 # Damp, Drowsy, Spored, Marked, Static (see EnemyStatuses). Wardens apply them via apply_status().
 var statuses := EnemyStatuses.new()
 
+# Status badges (screens_ui.md "Status icons, clearer"): the status's icon on a dark disc with a
+# status-coloured rim whose arc drains with the time left (solid at max stacks), in one row above
+# the health bar, the stack count in the lower-right corner from 2 stacks. Screen px (they keep
+# their screen size when zoomed and follow the UI scale); bosses and elites get the big ones.
+const STATUS_BADGE := 14.0
+const STATUS_BADGE_BIG := 18.0
+const STATUS_BADGE_GAP := 3.0
+const STATUS_BADGES_MAX := 4  # More → the most important ones (BADGE_ORDER) and "+N"
+const BADGE_ORDER: Array[StringName] = [&"static", &"held", &"marked", &"spored", &"drowsy", &"damp"]
+const STATUS_REDRAW_EVERY := 0.2  # The rim arcs drain in steps this long (no redraw every frame)
 const STATUS_DOT_RADIUS := 3.0  # Fallback when the icon sheet has no icon for a status
-const STATUS_ICON_STEP := 17.0  # 16 px icons, 1 px apart
-const STACK_FONT_SIZE := 8
+const STACK_FONT_SIZE := 10
+static var _stack_font: FontVariation
 static var _icons := {}  # {status id: Texture2D or null}, shared by every nightmare
 const BOLT_FLASH_TIME := 0.2
 const HIT_MARK_TIME := 0.35  # Grey puff (resisted) / sparkle (weak) after a hit
@@ -187,6 +197,7 @@ var _lingered := false
 var _release_spent := false  # The current hold came from a release pull (Snare): it won't pull again
 var _caught_left := 0.0  # Caught time after last frame's tick (a rise = caught again)
 var _drawn_changes := -1
+var _badge_redraw_left := randf() * STATUS_REDRAW_EVERY  # Staggered, so a crowd doesn't redraw on one frame
 var _drawn_aura := false
 var _was_animating := false
 var _speed_cache := 0.0
@@ -352,7 +363,13 @@ func _process(delta: float) -> void:
 	var aura := statuses.is_in_stag_aura()
 	var animating := _bolt_flash > 0.0 or _shrug_flash > 0.0 or _hit_mark_time > 0.0 or elite or _crit_flash > 0.0 \
 		or not _status_flash.is_empty() or not _ash_cells.is_empty() or unbound
-	if animating or _was_animating or statuses.changes != _drawn_changes or aura != _drawn_aura:
+	var badges_due := false  # The badges' rim arcs drain: a redraw every STATUS_REDRAW_EVERY s, not every frame
+	if statuses.count() > 0:
+		_badge_redraw_left -= delta
+		if _badge_redraw_left <= 0.0:
+			_badge_redraw_left = STATUS_REDRAW_EVERY
+			badges_due = true
+	if animating or _was_animating or badges_due or statuses.changes != _drawn_changes or aura != _drawn_aura:
 		_drawn_changes = statuses.changes
 		_drawn_aura = aura
 		queue_redraw()  # (One more after an animation ends, to clear its last frame.)
@@ -484,33 +501,8 @@ func _draw() -> void:
 		_draw_hit_mark(_hit_mark_time / HIT_MARK_TIME)
 	if statuses.is_in_stag_aura():
 		draw_arc(Vector2(0, 6), 18.0, 0.0, TAU, 24, Color(Palette.MOONLIGHT, 0.35), 2.0)
-	# One icon per status (IconInfo's pixel-art sheet; a coloured dot if it has none), in a row just
-	# above the health bar, with the stack count when there's more than one.
-	var ids := statuses.active_ids()
-	var x := -(ids.size() - 1) * STATUS_ICON_STEP / 2.0
-	for id in ids:
-		var at := HEALTH_BAR_OFFSET + Vector2(x, -12)
-		var color: Color = EnemyStatuses.COLORS.get(id, Palette.MOONLIGHT)
-		var texture := _status_icon(id)
-		if texture != null:
-			draw_texture(texture, (at - texture.get_size() / 2.0).round())
-		else:
-			draw_circle(at, STATUS_DOT_RADIUS + 1, Color(Palette.VOID, 0.8))
-			draw_circle(at, STATUS_DOT_RADIUS, color)
-		var stacks := statuses.stacks(id)
-		if stacks > 1:
-			var corner := at + Vector2(3, 8)
-			WorldLabel.begin_screen_size(self, corner)  # The number keeps its screen size when zoomed in
-			draw_string_outline(ThemeDB.fallback_font, corner, str(stacks), HORIZONTAL_ALIGNMENT_LEFT,
-				-1, STACK_FONT_SIZE, 3, Palette.DREAD)
-			draw_string(ThemeDB.fallback_font, corner, str(stacks), HORIZONTAL_ALIGNMENT_LEFT, -1,
-				STACK_FONT_SIZE, Palette.MOONLIGHT)
-			WorldLabel.end_screen_size(self)
-		if _status_flash.has(id):
-			var f: float = _status_flash[id] / STATUS_FLASH_TIME  # 1 -> 0
-			draw_circle(at, 7.0, Color(1, 1, 1, 0.55 * f))
-			draw_arc(at, 9.0 + 4.0 * (1.0 - f), 0.0, TAU, 16, Color(color, f), 1.5)
-		x += STATUS_ICON_STEP
+	if statuses.count() > 0:
+		_draw_status_badges()
 	# Restless: a small backward arrow per stack, right of the health bar (red-hot once Unbound)
 	for i in restless:
 		var tip := HEALTH_BAR_OFFSET + Vector2(HEALTH_BAR_SIZE.x / 2 + 5 + i * 6, 0)
@@ -528,6 +520,79 @@ func _draw() -> void:
 		var crust := Rect2(bar.position - Vector2(0, 4), Vector2(bar.size.x * coat / maxf(coat_max, 1.0), 3))
 		draw_rect(crust.grow(1), Color(Palette.VOID, 0.8))
 		draw_rect(crust, COAT_COLOR)
+
+# The statuses its badges show, most important first (BADGE_ORDER), at most STATUS_BADGES_MAX; the
+# rest only count towards the "+N".
+func get_badge_ids() -> Array:
+	return get_status_order().slice(0, STATUS_BADGES_MAX)
+
+# Every status it carries, most important first (the info panel lists them in this order).
+func get_status_order() -> Array:
+	var ids := statuses.active_ids()
+	ids.sort_custom(func(a: StringName, b: StringName) -> bool: return _badge_rank(a) < _badge_rank(b))
+	return ids
+
+static func _badge_rank(id: StringName) -> int:
+	var rank := BADGE_ORDER.find(id)
+	return rank if rank >= 0 else BADGE_ORDER.size()
+
+func get_badge_size() -> float:
+	return STATUS_BADGE_BIG if enemy_data.is_boss or elite else STATUS_BADGE
+
+func _draw_status_badges() -> void:
+	var ids := get_badge_ids()
+	var extra := statuses.count() - ids.size()
+	var size := get_badge_size()
+	var r := size / 2.0
+	var step := size + STATUS_BADGE_GAP
+	# The row sits on the health bar's top edge; everything below is in screen px around that point.
+	var anchor := HEALTH_BAR_OFFSET - Vector2(0, HEALTH_BAR_SIZE.y / 2.0 + 2.0)
+	WorldLabel.begin_screen_size(self, anchor)
+	var width := ids.size() * step - STATUS_BADGE_GAP + (step * 0.9 if extra > 0 else 0.0)
+	var x := -width / 2.0 + r
+	for id in ids:
+		var at := anchor + Vector2(x, -r)
+		_draw_status_badge(id, at, r)
+		x += step
+	if extra > 0:
+		var plus := anchor + Vector2(x - r + 1.0, -r + STACK_FONT_SIZE * 0.4)
+		_draw_stack_text(plus, "+%d" % extra, Palette.MOONLIGHT)
+	WorldLabel.end_screen_size(self)
+
+func _draw_status_badge(id: StringName, at: Vector2, r: float) -> void:
+	var color: Color = EnemyStatuses.COLORS.get(id, Palette.MOONLIGHT)
+	var stacks := statuses.stacks(id)
+	var cap := statuses.get_max_stacks(id)
+	var full := cap > 1 and stacks >= cap
+	draw_circle(at, r, Color(Palette.VOID, 0.88))
+	if full:
+		draw_arc(at, r - 1.25, 0.0, TAU, 20, color, 2.5)  # At max stacks the rim fills solid
+	else:
+		draw_arc(at, r - 1.0, 0.0, TAU, 20, Color(color, 0.3), 1.5)
+		var share := statuses.time_share(id)  # The rim drains with the time left
+		if share > 0.0:
+			draw_arc(at, r - 1.0, -PI / 2.0, -PI / 2.0 + TAU * share, maxi(4, ceili(20 * share)), color, 1.5)
+	var texture := _status_icon(id)
+	if texture != null:
+		var s := r * 1.4
+		draw_texture_rect(texture, Rect2(at - Vector2(s, s) / 2.0, Vector2(s, s)), false)
+	else:
+		draw_circle(at, STATUS_DOT_RADIUS, color)
+	if stacks > 1:
+		_draw_stack_text(at + Vector2(r * 0.15, r + 2.0), str(stacks), Palette.GOLD if full else Palette.MOONLIGHT)
+	if _status_flash.has(id):
+		var f: float = _status_flash[id] / STATUS_FLASH_TIME  # 1 -> 0
+		draw_circle(at, r, Color(1, 1, 1, 0.45 * f))
+		draw_arc(at, r + 2.0 + 4.0 * (1.0 - f), 0.0, TAU, 16, Color(color, f), 1.5)
+
+# A bold stack count with a dark outline (baseline at `at`).
+func _draw_stack_text(at: Vector2, text: String, color: Color) -> void:
+	if _stack_font == null:
+		_stack_font = FontVariation.new()
+		_stack_font.base_font = UiStyle.body_medium_font()
+		_stack_font.variation_embolden = 0.9
+	draw_string_outline(_stack_font, at, text, HORIZONTAL_ALIGNMENT_LEFT, -1, STACK_FONT_SIZE, 4, Palette.VOID)
+	draw_string(_stack_font, at, text, HORIZONTAL_ALIGNMENT_LEFT, -1, STACK_FONT_SIZE, color)
 
 # Deeply Blighted: soft puffs drifting slowly round the nightmare, and a swirl left of the health bar.
 func _draw_elite_haze() -> void:

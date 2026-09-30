@@ -575,6 +575,38 @@ func _run() -> void:
 	_check(boss_walker.get_restless() == 3 and not boss_walker.is_unbound(), "a boss gains Restless but never turns Unbound")
 	_clear_enemies()
 
+	# --- Status badges (screens_ui.md "Status icons, clearer") ---
+	_clear_enemies()
+	var badged := _still("leaf_bug", route[6])
+	for id in [&"damp", &"drowsy", &"spored", &"marked", &"held"]:
+		badged.statuses.apply(id, 1, 4.0, 1.0)
+	badged.statuses.apply(&"static", 4, 0.0, 1.0)
+	_check(badged.get_badge_ids() == [&"static", &"held", &"marked", &"spored"],
+		"4 badges, the most important first (%s)" % [badged.get_badge_ids()])
+	_check(badged.get_status_order().size() == 6, "the info panel still lists all 6")
+	_check(badged.statuses.describe(&"static") == "Charged 4/5 · 2.0 s", "info line: %s" % badged.statuses.describe(&"static"))
+	_check(badged.statuses.describe(&"damp") == "Soaked · 4.0 s", "no stack count for a status that can't stack (%s)" % badged.statuses.describe(&"damp"))
+	badged.statuses.tick(1.0)
+	_check(is_equal_approx(badged.statuses.time_share(&"damp"), 0.75), "the rim drains with the time left (%.2f)" % badged.statuses.time_share(&"damp"))
+	badged.statuses.apply(&"damp", 1, 4.0, 1.0)
+	_check(is_equal_approx(badged.statuses.time_share(&"damp"), 1.0), "a fresh Damp fills it again")
+	_check(badged.get_badge_size() == badged.STATUS_BADGE and _still("old_stag", route[7]).get_badge_size() == badged.STATUS_BADGE_BIG,
+		"14 px badges, 18 px on bosses")
+	badged.statuses.remove(&"spored")  # Its ticks hurt, and hits and combo flashes redraw on their own
+	badged.statuses.remove(&"marked")
+	badged.set_process(true)
+	badged.hold_time = 100.0  # Stands still
+	for f in 3:
+		await process_frame
+	var redraws := [0]
+	badged.draw.connect(func() -> void: redraws[0] += 1)
+	for f in 30:
+		await process_frame
+	_check(redraws[0] >= 1 and redraws[0] <= 6, "the badges redraw a few times a second, not every frame (%d in 30 frames)" % redraws[0])
+	badged.queue_redraw()
+	await process_frame  # Draws the badges once, in a real draw (no errors)
+	_clear_enemies()
+
 	# --- Display settings: health bars "always", the Deeply Blighted outline ---
 	_clear_enemies()
 	Fx._settings = {}  # Defaults, whatever the player's profile says

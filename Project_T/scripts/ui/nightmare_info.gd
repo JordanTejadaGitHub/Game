@@ -91,7 +91,7 @@ func _process(delta: float) -> void:
 	var numbers_text := "\n".join(numbers)
 	if numbers_text != _numbers.text:
 		_numbers.text = numbers_text
-	# Words with status links: the trait, the Omen, the statuses (whole seconds).
+	# Words with status links: the trait, the Omen, the statuses ("Charged 4/5 · 2.1 s").
 	var lines: Array[String] = []
 	if data.trait_text != "":
 		lines.append(data.trait_text)
@@ -99,12 +99,10 @@ func _process(delta: float) -> void:
 	if omen_line != "":
 		lines.append(omen_line)
 	var statuses: Array[String] = []
-	for id in _target.statuses.active_ids():
-		var stacks: int = _target.statuses.stacks(id)
-		statuses.append("%s%s %.0fs" % [IconInfo.status_name(id), " ×%d" % stacks if stacks > 1 else "",
-			_target.statuses.time_left(id)])
+	for id in _target.get_status_order():  # The badge row's order, most important first
+		statuses.append(_target.statuses.describe(id))
 	if not statuses.is_empty():
-		lines.append(", ".join(statuses))
+		lines.append("\n".join(statuses))
 	var body := StatusLinks.bbcode("\n".join(lines))
 	if body != _body.text and not _body_in_use():
 		_body.text = body
