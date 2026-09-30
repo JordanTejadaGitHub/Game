@@ -126,6 +126,17 @@ func _run() -> void:
 	await process_frame
 	_check(strip != null and strip.visible and strip.items().size() == ComingStrip.kinds_in_block(director, 1).size(),
 		"the strip shows block 1's kinds at the first rest")
+	if strip != null and strip.visible:
+		await process_frame
+		var caption_rect: Rect2 = strip._caption.get_global_rect()
+		var clear := strip.items().all(func(item: Control) -> bool:
+			var face := item.get_child(0) as Control
+			var top := face.get_global_rect().position.y
+			for badge in face.get_children():  # "New" sits above the disc
+				if badge is Label:
+					top = minf(top, (badge as Label).get_global_rect().position.y)
+			return top - caption_rect.end.y >= 6.0)
+		_check(clear, "the caption stands clear of the discs and their badges (user: the disc overlapped it)")
 	# "Too tall" (screens_ui.md): one row of equal discs, the count a badge on the disc, the name on hover.
 	var first_kinds := ComingStrip.kinds_in_block(director, 1)
 	if strip != null and not first_kinds.is_empty():
