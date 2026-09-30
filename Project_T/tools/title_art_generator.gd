@@ -1,11 +1,12 @@
 extends SceneTree
 # Generates the title screen background (screens_ui.md "Meta screens"). Detailed pixel art at 640×360,
 # shown at a whole-number scale (3× at 1080p, 2× at 720p, 4× at 1440p).
-# The view from a ruined castle gate at night: the dark arch frames the shot (its left pillar is the
-# calm backdrop for the logo and menu), a moonlit courtyard leads in, and a stone Warden titan stands
-# among the ruins, backlit by the moon, fog around its feet, moss and a small tree growing on it and
-# the Heartwood's warm light glowing through a crack in its chest. The Sporeling, tiny, stands at the
-# threshold with its lantern, looking up. Scale comes from that contrast, not from detail on the titan.
+# A dream forest at night, seen from the forest floor: an ancient Warden, grown as big as a hill,
+# sits among the trees with its head against the moon. It has the Wardens' shape (a big round head
+# with warm eyes and a small smile, a broad round body, heavy arms resting on the ground) but it's
+# mossy stone, with trees growing on it and glowing spore-mushrooms at its knees. Mist hides its base;
+# dark trees frame the shot (the left side stays calm for the logo and menu). The tiny Sporeling
+# stands in a moonlit clearing with its lantern, looking up: the scale comes from that contrast.
 # Every pixel is snapped to Heartwood 32 (art_direction.md).
 #   assets/ui/title/title_background.png   640×360, the art
 #   tools/previews/title_background_3x.png 1920×1080 preview
@@ -17,20 +18,17 @@ const OUT := "res://assets/ui/title/"
 const PREVIEW := "res://tools/previews/title_background_3x.png"
 const Palette := preload("res://tools/art/heartwood_palette.gd")
 
-const MOON := Vector2(506, 84)
-const MOON_R := 27.0
-const HORIZON := 262            # the far side of the courtyard, where the titan stands
-const VANISH := Vector2(410, 262)
-const ARCH_C := Vector2(396, 178)  # the gate's opening: straight jambs, an elliptical arch on top
-const ARCH_R := Vector2(222, 152)
-const REVEAL := 13.0               # the depth of the arch's inner face that we can see
-const FIGURE := Vector2i(292, 322)
+const MOON := Vector2(446, 74)
+const MOON_R := 36.0
+const TITAN_X := 438.0
+const HEAD := Vector2(438, 96)
+const FIGURE := Vector2i(282, 334)
 const BAYER := [0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5]
 
 const SKY := ["void", "night", "dusk", "slate", "stone"]
 const INK := ["void", "night", "dusk", "slate", "stone", "mist", "moonlight"]
 const MOSS := ["deepmoss", "moss", "leaf", "sprig"]
-const FIRE := ["ember", "gold", "glow", "heartlight"]
+const DARK_MOSS := ["void", "night", "deepmoss", "moss"]
 
 var img: Image
 var noise := FastNoiseLite.new()
@@ -38,6 +36,7 @@ var grain := FastNoiseLite.new()
 var rng := RandomNumberGenerator.new()
 var _colors := {}
 var _mask := PackedByteArray()    # titan part id per pixel (0 = none), for rims and occlusion lines
+var _shape := []                  # per part: Vector4(centre x, centre y, radius x, radius y) for form shading
 
 
 func _init() -> void:
@@ -53,16 +52,16 @@ func _init() -> void:
 	_sky()
 	_moon()
 	_clouds()
-	_far_ruins()
-	_near_ruins()
-	_courtyard()
+	_moon_rays()
+	_forest(238, 130, 0.48, 1, 0, 40.0, 100.0)   # far trees, pale in the fog
 	_titan()
-	_birds()
-	_ground_fog()
+	_mist(230, 262, 0.62)
+	_forest(270, 60, 0.2, 2, 150, 50.0, 110.0)   # nearer trees, left and right of the titan
+	_mist(266, 292, 0.5)
+	_clearing()
 	_figure()
-	_gate()
-	_ivy()
-	_motes()
+	_frame_trees()
+	_fireflies()
 	Palette.snap_image(img)
 
 	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(OUT))
@@ -130,12 +129,11 @@ func glow(center: Vector2, radius: float, c: Color, strength := 0.35) -> void:
 			blend(x, y, c, strength * step)
 
 
-## Blocky value noise: one random value per `cell`-sized square, for stony, stepped edges.
 func blocky(x: int, y: int, cell: int, salt: int) -> float:
 	return hash01(int(floor(float(x) / cell)), int(floor(float(y) / cell)), salt)
 
 
-## Voronoi stones: returns (distance to the nearest seed, gap to the second nearest, cell hash).
+## Voronoi stones: (distance to the nearest seed, gap to the second nearest, cell hash).
 func stones(x: int, y: int, size: float, salt: int) -> Vector3:
 	var gx := int(floor(x / size))
 	var gy := int(floor(y / size))
@@ -169,7 +167,6 @@ func in_poly(p: Vector2, poly: PackedVector2Array) -> bool:
 	return result
 
 
-## Signed distance to a polygon's outline (negative inside).
 func poly_sd(p: Vector2, poly: PackedVector2Array) -> float:
 	var best := 1e9
 	var j := poly.size() - 1
@@ -183,18 +180,41 @@ func poly_sd(p: Vector2, poly: PackedVector2Array) -> float:
 	return -best if in_poly(p, poly) else best
 
 
-func in_opening(x: float, y: float) -> bool:
-	# The gate's opening; the top right of the arch has fallen in (the notch shows sky).
-	if y >= ARCH_C.y:
-		return absf(x - ARCH_C.x) <= ARCH_R.x
-	var q := Vector2((x - ARCH_C.x) / ARCH_R.x, (y - ARCH_C.y) / ARCH_R.y)
-	return q.length() <= 1.0
+## A rounded outline with a weathered, lumpy edge (boulders, moss mounds), not a clean ellipse.
+func lumpy(c: Vector2, r: Vector2, amount: float, salt: int) -> PackedVector2Array:
+	var pts := PackedVector2Array()
+	var n := int(clampf((r.x + r.y) * 0.9, 24.0, 90.0))
+	for i in n:
+		var a := TAU * i / n
+		var k := 1.0 + amount * noise.get_noise_1d(i * 7.0 + salt * 131.0) + (hash01(i, salt) - 0.5) * amount * 0.5
+		pts.append(c + Vector2(cos(a) * r.x, sin(a) * r.y) * k)
+	return pts
 
 
-func in_breach(x: float, y: float) -> bool:
-	var breach := PackedVector2Array([Vector2(492, -2), Vector2(596, -2), Vector2(584, 18), Vector2(566, 26),
-		Vector2(560, 44), Vector2(538, 50), Vector2(520, 38), Vector2(508, 30), Vector2(500, 12)])
-	return in_poly(Vector2(x, y), breach) and blocky(int(x), int(y), 5, 44) > 0.12
+## A heavy limb: a tapered, lumpy capsule from a (radius r0) to b (radius r1).
+func limb(a: Vector2, b: Vector2, r0: float, r1: float, salt: int) -> PackedVector2Array:
+	var d := (b - a).normalized()
+	var n := Vector2(-d.y, d.x)
+	var left := PackedVector2Array()
+	var right := PackedVector2Array()
+	for i in 13:
+		var t := i / 12.0
+		var p := a.lerp(b, t)
+		var r := lerpf(r0, r1, t)
+		left.append(p + n * r * (1.0 + 0.1 * noise.get_noise_1d(i * 9.0 + salt * 50.0)))
+		right.append(p - n * r * (1.0 + 0.1 * noise.get_noise_1d(i * 9.0 + salt * 50.0 + 400.0)))
+	var pts := PackedVector2Array()
+	for p in left:
+		pts.append(p)
+	for i in range(1, 8):  # the rounded end at b
+		var ang := PI * i / 8.0
+		pts.append(b + (n * cos(ang) + d * sin(ang)) * r1)
+	for i in range(right.size() - 1, -1, -1):
+		pts.append(right[i])
+	for i in range(1, 8):  # the rounded end at a
+		var ang := PI * i / 8.0
+		pts.append(a + (-n * cos(ang) - d * sin(ang)) * r0)
+	return pts
 
 
 # --- sky -----------------------------------------------------------------------------------------
@@ -202,14 +222,14 @@ func in_breach(x: float, y: float) -> bool:
 func _sky() -> void:
 	for y in H:
 		for x in W:
-			var v := float(y) / HORIZON * 0.62
-			v += 0.42 * exp(-Vector2(x, y).distance_to(MOON) / 70.0)
+			var v := float(y) / 250.0 * 0.6
+			v += 0.45 * exp(-Vector2(x, y).distance_to(MOON) / 80.0)
 			v += noise.get_noise_2d(x * 0.5, y * 2.2) * 0.04
 			img.set_pixel(x, y, pick(SKY, v, x, y, 0.22))
-	for i in 220:
+	for i in 240:
 		var x := rng.randi_range(0, W - 1)
-		var y := rng.randi_range(0, 150)
-		if Vector2(x, y).distance_to(MOON) < MOON_R + 34:
+		var y := rng.randi_range(0, 160)
+		if Vector2(x, y).distance_to(MOON) < MOON_R + 40:
 			continue
 		put(x, y, col("mist") if rng.randf() < 0.3 else col("slate"))
 		if rng.randf() < 0.06:
@@ -218,36 +238,35 @@ func _sky() -> void:
 
 
 func _moon() -> void:
-	var r := int(MOON_R) + 40
+	var r := int(MOON_R) + 50
 	for y in range(int(MOON.y) - r, int(MOON.y) + r + 1):
 		for x in range(int(MOON.x) - r, int(MOON.x) + r + 1):
 			var d := Vector2(x, y).distance_to(MOON)
 			if d > MOON_R:
 				var halo := 0.0
-				if d < MOON_R + 4:
+				if d < MOON_R + 5:
 					halo = 0.5
-				elif d < MOON_R + 12:
+				elif d < MOON_R + 16:
 					halo = 0.25
-				elif d < MOON_R + 30:
+				elif d < MOON_R + 40:
 					halo = 0.1
 				blend(x, y, col("mist"), halo)
 				continue
 			var n := (Vector2(x, y) - MOON) / MOON_R
-			var v := 0.7 + 0.3 * n.dot(Vector2(-0.6, -0.6))
+			var v := 0.72 + 0.28 * n.dot(Vector2(-0.6, -0.6))
 			var crater := noise.get_noise_2d(x * 3.0 + 300.0, y * 3.0)
 			if crater > 0.2:
-				v -= 0.22
+				v -= 0.2
 			elif crater > 0.1:
-				v -= 0.1
+				v -= 0.09
 			put(x, y, pick(["stone", "mist", "moonlight"], v, x, y, 0.1))
 
 
 func _clouds() -> void:
-	# Long, thin clouds, moonlit on top; the one across the moon is lit from behind.
-	_stratus(380, 640, 102, 5.0, 1)
-	_stratus(180, 420, 60, 3.0, 2)
-	_stratus(0, 260, 128, 4.0, 3)
-	_stratus(420, 640, 150, 6.0, 4)
+	_stratus(0, 300, 118, 4.0, 1)
+	_stratus(40, 240, 60, 3.0, 2)
+	_stratus(520, 640, 132, 5.0, 3)
+	_stratus(300, 520, 150, 3.0, 4)
 
 
 func _stratus(x0: float, x1: float, mid: float, thick: float, salt: int) -> void:
@@ -260,220 +279,175 @@ func _stratus(x0: float, x1: float, mid: float, thick: float, salt: int) -> void
 			continue
 		for y in range(int(y_mid - h), int(y_mid + h * 0.6) + 1):
 			var u := (y - (y_mid - h)) / (h * 1.6)
-			var lit := exp(-Vector2(x, y).distance_to(MOON) / 60.0)
-			var v := 0.4 - u * 0.25 + lit * 0.5
-			put(x, y, pick(INK, v, x, y, 0.2))
+			var lit := exp(-Vector2(x, y).distance_to(MOON) / 70.0)
+			put(x, y, pick(INK, 0.38 - u * 0.22 + lit * 0.5, x, y, 0.2))
 
 
-# --- ruins and courtyard -------------------------------------------------------------------------
-
-func _skyline(x0: int, x1: int, base: int, salt: int, towers: Array) -> PackedInt32Array:
-	# A ruined wall top: crenellations, broken gaps, and towers with pointed or broken tops.
-	var tops := PackedInt32Array()
-	tops.resize(W)
-	tops.fill(H)
-	for x in range(x0, x1):
-		var y := base + int(noise.get_noise_1d(x * 0.6 + salt * 70.0) * 6.0)
-		if (x / 5) % 2 == 0:
-			y -= 3  # merlons
-		if blocky(x, 0, 18, salt) < 0.22:
-			y += 10 + int(blocky(x, 1, 6, salt) * 10.0)  # a collapsed stretch
-		tops[x] = y
-	for t: Vector4 in towers:  # x centre, half width, top y, 1 = pointed roof
-		for x in range(int(t.x - t.y), int(t.x + t.y) + 1):
-			if x < 0 or x >= W:
-				continue
-			var top := int(t.z)
-			if t.w > 0.5:
-				top += int(absf(x - t.x) * 2.2)
-			else:
-				top += int(blocky(x, 2, 3, salt) * 8.0)  # broken top
-			tops[x] = mini(tops[x], top)
-	return tops
-
-
-func _far_ruins() -> void:
-	# The castle's far walls and towers, pale in the fog behind the titan.
-	var tops := _skyline(0, W, 212, 1, [Vector4(236, 11, 150, 1), Vector4(292, 7, 176, 0),
-		Vector4(560, 13, 138, 0), Vector4(610, 9, 170, 1), Vector4(470, 6, 186, 0)])
-	for x in W:
-		for y in range(tops[x], HORIZON + 4):
-			var v := 0.52 - (y - tops[x]) * 0.002
-			if (y - tops[x]) < 1:
-				v += 0.12
-			var window := (x % 9 < 2) and ((y + 4) % 14 < 5) and y > tops[x] + 8 and blocky(x, y, 9, 3) < 0.25
-			if window:
-				v -= 0.18
-			put(x, y, pick(INK, v, x, y))
-
-
-func _near_ruins() -> void:
-	# The courtyard's side walls, darker and closer, their tops lit by the moon.
-	var tops := _skyline(0, W, 226, 2, [Vector4(270, 16, 170, 0), Vector4(588, 18, 160, 0)])
-	for x in W:
-		for y in range(tops[x], HORIZON + 6):
-			var s := stones(x, y, 6.0, 30)
-			var v := 0.36 + (s.z - 0.5) * 0.06
-			if s.y < 0.9:
-				v -= 0.1
-			if y - tops[x] < 2:
-				v = 0.5
-			var arch := absf(x - 270) < 5 and y > tops[x] + 16 and y < tops[x] + 34  # an arrow slit
-			if arch:
-				v = 0.14
-			put(x, y, pick(INK, v, x, y))
-
-
-func _courtyard() -> void:
-	# Flagstones in perspective (their joints run to the titan's feet), grass and rubble.
-	for y in range(HORIZON, H):
-		var depth := float(y - HORIZON + 6) / (H - HORIZON + 6)  # 0 far .. 1 near
+func _moon_rays() -> void:
+	# Faint shafts of moonlight fanning down through the mist, in two alpha steps.
+	for y in range(int(MOON.y), 300):
 		for x in W:
-			var z := 70.0 / (y - HORIZON + 4.0)  # a rough distance: rows get taller toward us
-			var along := z * 9.0
-			var across := (x - VANISH.x) / (y - HORIZON + 4.0) * 7.0
-			var row := int(floor(along))
-			var colx := int(floor(across + (row % 2) * 0.5))
-			var joint := absf(along - round(along)) < 0.06 / z * 3.0 or absf(across + (row % 2) * 0.5 - round(across + (row % 2) * 0.5)) < 0.05 * (1.0 + depth)
-			var v := 0.46 + (hash01(colx, row, 9) - 0.5) * 0.14 - depth * 0.12
-			v += 0.12 * exp(-absf(x - VANISH.x) / 120.0) * (1.0 - depth)  # the moonlit lane to the titan
-			if joint:
-				v -= 0.18
-			var c := pick(INK, v, x, y)
-			var g := noise.get_noise_2d(x * 1.2, y * 2.4)
-			if g > 0.34 or (joint and g > 0.12):  # grass taking the courtyard back
-				c = pick(MOSS, 0.22 + (g - 0.1) * 0.8 - depth * 0.1, x, y)
-			put(x, y, c)
-	# Grass blades and rubble, bigger near the gate.
-	for i in 500:
-		var y := rng.randi_range(HORIZON + 2, H - 1)
-		var x := rng.randi_range(0, W - 1)
-		var depth := float(y - HORIZON) / (H - HORIZON)
-		var length := 1 + int(depth * rng.randf_range(1.0, 5.0))
-		put(x, y + 1, col("deepmoss"))
-		for k in length:
-			put(x, y - k, col("leaf") if k == length - 1 else col("moss"))
-	for i in 24:
-		var y := rng.randi_range(HORIZON + 4, H - 20)
-		var x := rng.randi_range(60, W - 60)
-		var depth := float(y - HORIZON) / (H - HORIZON)
-		_rubble(Vector2i(x, y), int(2 + depth * 8.0))
+			var a := atan2(y - MOON.y, x - MOON.x)
+			var band := sin(a * 38.0 + 1.3) * sin(a * 11.0)
+			var fade := 1.0 - (y - MOON.y) / 240.0
+			if band > 0.75:
+				blend(x, y, col("mist"), 0.1 * fade)
+			elif band > 0.55:
+				blend(x, y, col("mist"), 0.05 * fade)
 
 
-func _rubble(at: Vector2i, size: int) -> void:
-	# A fallen block: a lit top, a dark front, a hard shadow on the ground.
-	for x in range(-size, size + 1):
-		put(at.x + x + 1, at.y + 1, col("night"))
-	for y in range(-size, 1):
-		for x in range(-size, size + 1):
-			var top := y < -size + maxi(1, size / 2)
-			var c := col("slate") if top else col("dusk")
-			if x == -size or x == size or y == -size or y == 0:
-				c = col("night")
-			elif top and x > size / 3:
-				c = col("stone")  # the moon's side
-			put(at.x + x, at.y + y, c)
+# --- forest --------------------------------------------------------------------------------------
+
+func _forest(base: int, count: int, value: float, salt: int, clear: int, hmin: float, hmax: float) -> void:
+	# A band of trees: tall pines and round-crowned trees, darker toward their feet, with a moonlit
+	# edge on the side facing the moon. `value` sets how pale (far) they are.
+	var r := RandomNumberGenerator.new()
+	r.seed = salt * 77
+	var trees := []
+	for i in count:
+		var x := r.randf_range(-20.0, W + 20.0)
+		if absf(x - TITAN_X) < clear:
+			continue  # keep the titan clear
+		var h := r.randf_range(hmin, hmax)
+		trees.append(Vector4(x, base + r.randf_range(-6.0, 10.0), h, 1.0 if r.randf() < 0.6 else 0.0))
+	trees.sort_custom(func(a: Vector4, b: Vector4) -> bool: return a.y < b.y)
+	for t: Vector4 in trees:
+		_tree(Vector2(t.x, t.y), t.z, t.w > 0.5, value, salt)
+	# Fill below the band so the ground behind is solid.
+	for x in W:
+		for y in range(base + 8, H):
+			put(x, y, pick(INK, value - 0.14, x, y))
+
+
+func _tree(foot: Vector2, height: float, pine: bool, value: float, salt: int) -> void:
+	var top := foot.y - height
+	var width := height * (0.13 if pine else 0.2)
+	for y in range(int(top), int(foot.y) + 1):
+		var t := (y - top) / height  # 0 at the top .. 1 at the foot
+		var half := 0.0
+		if pine:
+			# Stacked tiers: each widens then steps back in, with a ragged edge.
+			var tier := fposmod(t * 6.0, 1.0)
+			half = width * (0.25 + t * 0.85) * (0.6 + tier * 0.5)
+			if t > 0.9:
+				half = 1.5  # the trunk
+		else:
+			var crown := 1.0 - pow((t - 0.35) / 0.4, 2.0)
+			half = width * sqrt(maxf(crown, 0.0)) if t < 0.78 else 1.8
+		half += noise.get_noise_2d(foot.x + y * 1.7, y * 1.3) * 1.6
+		if half <= 0.0:
+			continue
+		for x in range(int(foot.x - half), int(foot.x + half) + 1):
+			var side := (x - foot.x) / maxf(half, 1.0)  # -1 left .. 1 right
+			var v := value - t * 0.12 + (0.05 if grain.get_noise_2d(x * 2.0, y * 2.0) > 0.3 else 0.0)
+			var toward := signf(MOON.x - foot.x)
+			if side * toward > 0.93 and t < 0.85 and half > 3.0:
+				v += 0.08  # moonlit edge
+			put(x, y, pick(INK, v, x, y))
+
+
+func _mist(y0: int, y1: int, value: float) -> void:
+	# A drifting fog band, as dithered palette pixels (a blend would snap to muddy colours).
+	for y in range(y0, y1):
+		for x in W:
+			var m := noise.get_noise_2d(x * 0.35 + y0, y * 2.4)
+			var band := maxf(0.0, 1.0 - absf(y - (y0 + y1) * 0.5) / ((y1 - y0) * 0.5))
+			var a := (m + 0.3) * band
+			if a > 0.42:
+				put(x, y, pick(INK, value, x, y))
+			elif a > 0.26 and (x + y) % 2 == 0:
+				put(x, y, pick(INK, value, x, y))
+			elif a > 0.14 and bayer(x, y) < 0.25:
+				put(x, y, pick(INK, value, x, y))
 
 
 # --- the titan -----------------------------------------------------------------------------------
 
-func _titan_parts() -> Array:
-	# Hand-placed outlines, back to front. Low view: heavy legs, a torso that narrows up to a small
-	# head sunk between boulder shoulders, long arms (the right one reaching a little toward the gate).
-	return [
-		PackedVector2Array([Vector2(360, 92), Vector2(390, 84), Vector2(440, 84), Vector2(468, 92),
-			Vector2(474, 120), Vector2(460, 160), Vector2(438, 178), Vector2(388, 178), Vector2(366, 158), Vector2(352, 120)]),
-		PackedVector2Array([Vector2(384, 170), Vector2(444, 170), Vector2(452, 194), Vector2(432, 206),
-			Vector2(396, 206), Vector2(378, 194)]),
-		PackedVector2Array([Vector2(380, 194), Vector2(412, 196), Vector2(408, 236), Vector2(382, 238)]),
-		PackedVector2Array([Vector2(378, 232), Vector2(408, 232), Vector2(410, 266), Vector2(374, 268)]),
-		PackedVector2Array([Vector2(366, 262), Vector2(410, 262), Vector2(416, 276), Vector2(362, 278)]),
-		PackedVector2Array([Vector2(418, 196), Vector2(450, 190), Vector2(456, 232), Vector2(428, 236)]),
-		PackedVector2Array([Vector2(428, 230), Vector2(456, 228), Vector2(460, 266), Vector2(430, 268)]),
-		PackedVector2Array([Vector2(424, 262), Vector2(462, 260), Vector2(470, 276), Vector2(420, 278)]),
-		PackedVector2Array([Vector2(396, 52), Vector2(408, 44), Vector2(424, 46), Vector2(432, 58),
-			Vector2(430, 80), Vector2(414, 90), Vector2(400, 86), Vector2(394, 68)]),
-		PackedVector2Array([Vector2(332, 102), Vector2(344, 86), Vector2(372, 84), Vector2(382, 102),
-			Vector2(372, 118), Vector2(340, 118)]),
-		PackedVector2Array([Vector2(452, 98), Vector2(466, 82), Vector2(490, 82), Vector2(500, 98),
-			Vector2(492, 116), Vector2(460, 118)]),
-		PackedVector2Array([Vector2(336, 110), Vector2(364, 114), Vector2(356, 162), Vector2(332, 158)]),
-		PackedVector2Array([Vector2(330, 154), Vector2(356, 158), Vector2(350, 212), Vector2(324, 208)]),
-		PackedVector2Array([Vector2(320, 204), Vector2(352, 208), Vector2(356, 222), Vector2(348, 236),
-			Vector2(340, 232), Vector2(334, 238), Vector2(326, 232), Vector2(316, 222)]),
-		PackedVector2Array([Vector2(474, 108), Vector2(498, 110), Vector2(510, 154), Vector2(486, 158)]),
-		PackedVector2Array([Vector2(486, 152), Vector2(510, 150), Vector2(526, 196), Vector2(502, 202)]),
-		PackedVector2Array([Vector2(498, 196), Vector2(528, 192), Vector2(536, 206), Vector2(532, 222),
-			Vector2(524, 218), Vector2(518, 226), Vector2(508, 220), Vector2(500, 212)]),
-	]
-
-
 func _titan() -> void:
-	var parts := _titan_parts()
-	# 1. The silhouette: each outline roughened into stepped stone edges.
+	# The Warden shape, grown huge: body, arms resting on the ground, knees, spore boulders on the
+	# shoulders, then the big round head (drawn last so its chin overlaps the body).
+	var parts := [
+		[lumpy(Vector2(TITAN_X, 218), Vector2(104, 100), 0.05, 1), Vector4(TITAN_X, 218, 104, 100)],
+		[lumpy(Vector2(TITAN_X - 52, 292), Vector2(46, 30), 0.08, 2), Vector4(TITAN_X - 52, 292, 46, 30)],
+		[lumpy(Vector2(TITAN_X + 56, 294), Vector2(48, 30), 0.08, 3), Vector4(TITAN_X + 56, 294, 48, 30)],
+		[limb(Vector2(TITAN_X - 84, 150), Vector2(TITAN_X - 118, 272), 24.0, 30.0, 4), Vector4(TITAN_X - 101, 211, 30, 70)],
+		[limb(Vector2(TITAN_X + 84, 152), Vector2(TITAN_X + 120, 274), 24.0, 30.0, 5), Vector4(TITAN_X + 102, 213, 30, 70)],
+		[lumpy(Vector2(TITAN_X - 70, 136), Vector2(22, 15), 0.12, 6), Vector4(TITAN_X - 70, 136, 22, 15)],
+		[lumpy(Vector2(TITAN_X + 74, 140), Vector2(18, 13), 0.12, 7), Vector4(TITAN_X + 74, 140, 18, 13)],
+		[lumpy(HEAD, Vector2(50, 45), 0.05, 8), Vector4(HEAD.x, HEAD.y, 50, 45)],
+	]
+	_shape.clear()
 	for i in parts.size():
-		var poly: PackedVector2Array = parts[i]
+		var poly: PackedVector2Array = parts[i][0]
+		_shape.append(parts[i][1])
 		var box := Rect2(poly[0], Vector2.ZERO)
 		for p in poly:
 			box = box.expand(p)
-		for y in range(int(box.position.y) - 4, int(box.end.y) + 5):
-			for x in range(int(box.position.x) - 4, int(box.end.x) + 5):
+		for y in range(int(box.position.y) - 3, int(box.end.y) + 4):
+			for x in range(int(box.position.x) - 3, int(box.end.x) + 4):
 				if not inside(x, y):
 					continue
-				var sd := poly_sd(Vector2(x, y), poly)
-				var rough := blocky(x, y, 3, 60 + i) * 3.2 - 1.6 + (blocky(x, y, 7, 80 + i) - 0.5) * 2.4
-				if sd < rough:
+				var rough := (blocky(x, y, 2, 60 + i) - 0.5) * 2.2
+				if poly_sd(Vector2(x, y), poly) < rough:
 					_mask[y * W + x] = i + 1
-	# 2. Shading: backlit dark stone with moonlit rims, stones and cracks, moss on the tops,
-	# thickening fog toward the feet.
 	for y in H:
 		for x in W:
 			var id := _mask[y * W + x]
-			if id == 0:
-				continue
-			var s := stones(x, y, 7.0, 7 + id)
-			var v := 0.24 + (s.z - 0.5) * 0.1
-			if s.y < 1.0:
-				v -= 0.12  # the crack between two stones
-			elif s.x < 2.0 and s.z > 0.5:
-				v += 0.05
-			# Sky light on surfaces that face up.
-			if _part_at(x, y - 2) == 0:
-				v += 0.12
-			# An occlusion line where a part in front meets one behind it.
-			var behind := false
-			for d in [Vector2i(-1, 0), Vector2i(1, 0), Vector2i(0, -1), Vector2i(0, 1)]:
-				var other := _part_at(x + d.x, y + d.y)
-				if other != 0 and other < id:
-					behind = true
-			if behind:
-				v = 0.06
-			# The rim: open sky one or two pixels toward the moon.
-			var dir := (MOON - Vector2(x, y)).normalized()
-			var rim := 0
-			if _part_at(int(round(x + dir.x)), int(round(y + dir.y))) == 0:
-				rim = 2
-			elif _part_at(int(round(x + dir.x * 2.5)), int(round(y + dir.y * 2.5))) == 0:
-				rim = 1
-			var fog := clampf((y - 170.0) / 110.0, 0.0, 1.0) * 0.55 + 0.08
-			var c: Color
-			var mossy := noise.get_noise_2d(x * 1.1 + 13.0, y * 1.1) + (0.25 if _part_at(x, y - 5) == 0 else 0.0)
-			if mossy > 0.32 and not behind:
-				var mv := 0.2 + (s.z - 0.5) * 0.12 + (0.5 if rim == 2 else (0.25 if rim == 1 else 0.0))
-				c = pick(MOSS, mv, x, y)
-				if bayer(x, y) < fog * 0.8:
-					c = pick(INK, lerpf(v, 0.5, fog), x, y)
-			else:
-				if rim == 2:
-					v = 0.7
-				elif rim == 1:
-					v = maxf(v, 0.62)
-				c = pick(INK, lerpf(v, 0.5, fog), x, y)
-			put(x, y, c)
+			if id != 0:
+				put(x, y, _titan_pixel(x, y, id))
 	_hanging_moss()
-	_head_tree(Vector2(402, 48))
-	_heart_crack()
-	_eyes()
+	_crown_tree(Vector2(HEAD.x - 20, HEAD.y - 40), 1.0)
+	_crown_tree(Vector2(TITAN_X - 74, 124), 0.6)
+	_crown_tree(Vector2(TITAN_X + 90, 130), 0.5)
+	_spore_mushrooms()
+	_face()
+
+
+func _titan_pixel(x: int, y: int, id: int) -> Color:
+	var shape: Vector4 = _shape[id - 1]
+	var q := Vector2((x - shape.x) / shape.z, (y - shape.y) / shape.w)
+	var to_moon := (MOON - Vector2(x, y)).normalized()
+	var s := stones(x, y, 8.0, 7 + id)
+	# Round form: brighter toward the moon, darker away; plus stones, cracks and a sky-lit top.
+	var v := 0.3 + 0.12 * q.normalized().dot(to_moon) * minf(q.length(), 1.0) + (s.z - 0.5) * 0.08
+	if s.y < 1.0:
+		v -= 0.11
+	if _part_at(x, y - 2) == 0:
+		v += 0.1
+	var behind := false
+	for d in [Vector2i(-1, 0), Vector2i(1, 0), Vector2i(0, -1), Vector2i(0, 1)]:
+		var other := _part_at(x + d.x, y + d.y)
+		if other != 0 and other < id:
+			behind = true
+	if id == 4 or id == 5:
+		v += 0.05  # the arms stand a little forward of the body
+	if behind:
+		return col("void")
+	var rim := 0
+	if _part_at(int(round(x + to_moon.x)), int(round(y + to_moon.y))) == 0:
+		rim = 2
+	elif _part_at(int(round(x + to_moon.x * 2.5)), int(round(y + to_moon.y * 2.5))) == 0:
+		rim = 1
+	var fog := clampf((y - 200.0) / 90.0, 0.0, 1.0) * 0.5 + 0.1
+	# Moss grows over the tops and down the sides in thick patches.
+	var mossy := noise.get_noise_2d(x * 0.9 + 13.0, y * 0.9) - q.y * 0.25
+	if id == 8:
+		mossy -= 0.2 if absf(q.x) < 0.7 and q.y > -0.45 else -0.2  # keep the face mostly bare
+	if mossy > 0.2:
+		var mv := 0.22 + (s.z - 0.5) * 0.1 + (0.45 if rim == 2 else (0.22 if rim == 1 else 0.0))
+		if grain.get_noise_2d(x * 3.0, y * 3.0) > 0.4:
+			mv += 0.14
+		if hash01(x, y, 91) < 0.012:
+			return col("blossom")  # tiny flowers in the moss
+		var c := pick(MOSS, mv, x, y)
+		if bayer(x, y) < fog * 0.7:
+			c = pick(INK, lerpf(v, 0.52, fog), x, y)
+		return c
+	if rim == 2:
+		v = 0.72
+	elif rim == 1:
+		v = maxf(v, 0.55)
+	return pick(INK, lerpf(v, 0.52, fog), x, y)
 
 
 func _part_at(x: int, y: int) -> int:
@@ -483,15 +457,14 @@ func _part_at(x: int, y: int) -> int:
 
 
 func _hanging_moss() -> void:
-	# Moss hanging from the undersides of the shoulders and arms.
 	var r := RandomNumberGenerator.new()
 	r.seed = 88
-	for i in 900:
-		var x := r.randi_range(326, 534)
-		var y := r.randi_range(90, 230)
+	for i in 1400:
+		var x := r.randi_range(300, 580)
+		var y := r.randi_range(100, 260)
 		if _part_at(x, y) == 0 or _part_at(x, y + 1) != 0:
-			continue  # only from an underside edge
-		var length := r.randi_range(3, 12)
+			continue
+		var length := r.randi_range(3, 14)
 		for k in length:
 			if _part_at(x, y + 1 + k) != 0:
 				break
@@ -500,138 +473,145 @@ func _hanging_moss() -> void:
 				put(x + 1, y + 1 + k, col("deepmoss"))
 
 
-func _head_tree(base: Vector2) -> void:
-	# A small gnarled tree growing out of the titan's head, backlit like the rest of it.
-	var trunk := PackedVector2Array([base, base + Vector2(-3, -8), base + Vector2(-2, -16), base + Vector2(-6, -24)])
-	for i in range(1, trunk.size()):
-		for s in 6:
-			var p := trunk[i - 1].lerp(trunk[i], s / 6.0)
-			var w := 2 if i < 3 else 1
-			for dx in range(-w, w + 1):
-				put(int(p.x) + dx, int(p.y), col("night") if dx < w else col("slate"))
-	put(int(base.x) + 4, int(base.y) - 12, col("night"))
-	put(int(base.x) + 5, int(base.y) - 13, col("night"))
-	put(int(base.x) + 6, int(base.y) - 15, col("night"))
-	var clumps := [Vector3(-8, -30, 9), Vector3(2, -32, 8), Vector3(-16, -24, 6), Vector3(9, -24, 6), Vector3(-4, -38, 6)]
+func _crown_tree(base: Vector2, scale: float) -> void:
+	# A small tree growing out of the titan, backlit.
+	var trunk_h := 22.0 * scale
+	for k in int(trunk_h):
+		var x := int(base.x + sin(k * 0.2) * 1.5)
+		put(x, int(base.y) - k, col("night"))
+		put(x + 1, int(base.y) - k, col("night"))
+		put(x + 2, int(base.y) - k, col("slate") if k % 3 else col("night"))
+	var clumps := [Vector3(-7, -26, 9), Vector3(4, -29, 8), Vector3(-14, -20, 6), Vector3(10, -21, 6), Vector3(-3, -35, 6)]
 	for cl: Vector3 in clumps:
-		var c := base + Vector2(cl.x, cl.y)
-		var rr := cl.z
+		var c := base + Vector2(cl.x, cl.y) * scale
+		var rr := cl.z * scale + 1.0
 		for y in range(int(c.y - rr) - 2, int(c.y + rr) + 3):
 			for x in range(int(c.x - rr) - 2, int(c.x + rr) + 3):
 				var off := Vector2(x, y) - c
-				if off.length() > rr + grain.get_noise_2d(x * 2.0, y * 2.0) * 2.4:
+				if off.length() > rr + grain.get_noise_2d(x * 2.0, y * 2.0) * 2.2:
 					continue
 				var dir := (MOON - Vector2(x, y)).normalized()
 				var edge := off.length() > rr - 1.6 and off.normalized().dot(dir) > 0.3
-				var v := 0.18 + (0.5 if edge else 0.0) + (0.12 if grain.get_noise_2d(x * 3.0, y * 3.0) > 0.35 else 0.0)
+				var v := 0.15 + (0.5 if edge else 0.0) + (0.12 if grain.get_noise_2d(x * 3.0, y * 3.0) > 0.35 else 0.0)
 				put(x, y, pick(MOSS, v, x, y))
 
 
-func _heart_crack() -> void:
-	# The Heartwood's warm light glowing through a crack in the titan's chest: it's one of ours.
-	var pts := PackedVector2Array([Vector2(416, 104), Vector2(412, 116), Vector2(418, 126), Vector2(413, 138),
-		Vector2(419, 150), Vector2(415, 160)])
-	glow(Vector2(415, 132), 14.0, col("gold"), 0.16)
-	for i in range(1, pts.size()):
-		for s in 8:
-			var p := pts[i - 1].lerp(pts[i], s / 8.0)
-			var core := i > 1 and i < pts.size() - 1
-			put(int(p.x), int(p.y), col("heartlight") if core else col("glow"))
-			put(int(p.x) - 1, int(p.y), col("gold"))
-			put(int(p.x) + 1, int(p.y), col("ember") if core else col("gold"))
-			if core and s % 3 == 0:
-				put(int(p.x) + 2, int(p.y), col("ember"))
-	# Small side cracks catching the light.
-	for b in [[Vector2(413, 138), Vector2(404, 132)], [Vector2(418, 126), Vector2(428, 120)], [Vector2(419, 150), Vector2(430, 156)]]:
-		var a: Vector2 = b[0]
-		var e: Vector2 = b[1]
-		for s in 10:
-			var p := a.lerp(e, s / 10.0)
-			put(int(p.x), int(p.y), col("gold") if s < 6 else col("ember"))
+func _spore_mushrooms() -> void:
+	# Glowing spore-mushrooms on its knees and shoulders: the Sporeling's kin, grown old.
+	for m in [Vector3(TITAN_X - 70, 266, 4), Vector3(TITAN_X - 60, 268, 3), Vector3(TITAN_X - 36, 266, 5),
+			Vector3(TITAN_X + 40, 268, 4), Vector3(TITAN_X + 72, 267, 5), Vector3(TITAN_X - 80, 123, 3),
+			Vector3(TITAN_X + 66, 129, 3)]:
+		var p := Vector2(m.x, m.y)
+		var s := int(m.z)
+		glow(p + Vector2(0, -s), s * 3.0, col("blossom"), 0.22)
+		for k in s:
+			put(int(p.x), int(p.y) - k, col("mist"))
+		for y in range(-s / 2 - 1, 1):
+			for x in range(-s, s + 1):
+				if Vector2(x, y * 2).length() > s + 0.5:
+					continue
+				put(int(p.x) + x, int(p.y) - s + y, col("blossom") if y < 0 and x < s / 2 else col("orchid"))
+		put(int(p.x) - s / 2, int(p.y) - s - 1, col("heartlight"))
 
 
-func _eyes() -> void:
-	# Two warm eyes deep under the brow.
-	for e in [Vector2(406, 68), Vector2(420, 67)]:
-		glow(e, 6.0, col("gold"), 0.35)
-		put(int(e.x), int(e.y), col("heartlight"))
-		put(int(e.x) + 1, int(e.y), col("glow"))
-		put(int(e.x) - 1, int(e.y), col("gold"))
-	for x in range(400, 428):  # the brow's shadow
-		if _part_at(x, 63) != 0:
-			put(x, 63, col("void"))
+func _face() -> void:
+	# The Wardens' face: two warm eyes and a small smile, glowing from inside.
+	for side in [-1, 1]:
+		var e := HEAD + Vector2(side * 17, 2)
+		glow(e, 9.0, col("gold"), 0.3)
+		for y in range(-4, 5):
+			for x in range(-2, 3):
+				if pow(x / 2.6, 2) + pow(y / 4.6, 2) > 1.0:
+					continue
+				var c := col("glow")
+				if absi(x) == 2 or absi(y) >= 3:
+					c = col("gold")
+				put(int(e.x) + x, int(e.y) + y, c)
+		put(int(e.x) - 1, int(e.y) - 2, col("heartlight"))
+		put(int(e.x), int(e.y) - 2, col("heartlight"))
+	for x in range(-7, 8):
+		var y := int(round(pow(x / 7.0, 2) * -3.0))
+		put(int(HEAD.x) + x, int(HEAD.y) + 17 + y, col("ember") if absi(x) > 4 else col("gold"))
 
 
-func _birds() -> void:
-	# A few birds wheeling around its head, for scale.
-	for b in [Vector2i(350, 44), Vector2i(372, 30), Vector2i(470, 40), Vector2i(452, 24), Vector2i(492, 56), Vector2i(330, 64)]:
-		put(b.x, b.y, col("night"))
-		put(b.x - 1, b.y - 1, col("night"))
-		put(b.x + 1, b.y - 1, col("night"))
-		put(b.x - 2, b.y - 1, col("night"))
-		put(b.x + 2, b.y - 2, col("night"))
+# --- foreground ----------------------------------------------------------------------------------
 
-
-func _ground_fog() -> void:
-	# Fog pooling around the titan's feet and across the far courtyard, as dithered palette pixels.
-	for y in range(236, 300):
+func _clearing() -> void:
+	# A moonlit clearing on the forest floor: dark grass, a worn trail, glowing flowers.
+	for y in range(272, H):
+		var near := clampf(float(y - 284) / (H - 284), 0.0, 1.0)
 		for x in W:
-			var m := noise.get_noise_2d(x * 0.35 + 200.0, y * 2.2)
-			var band := maxf(0.0, 1.0 - absf(y - 268.0) / 26.0)
-			var near_titan := exp(-absf(x - 420.0) / 120.0)
-			var a := (m + 0.25) * band * (0.5 + near_titan)
-			if a > 0.36:
-				put(x, y, pick(INK, 0.6, x, y))
-			elif a > 0.22 and (x + y) % 2 == 0:
-				put(x, y, col("slate"))
-			elif a > 0.12 and bayer(x, y) < 0.25:
-				put(x, y, col("slate"))
+			if y < 284 + noise.get_noise_1d(x * 1.5 + 70.0) * 12.0:
+				continue  # a ragged far edge, meeting the mist
+			var lane := exp(-pow((x - lerpf(TITAN_X - 30, FIGURE.x, near)) / (40.0 + near * 60.0), 2.0))
+			var v := 0.14 + near * 0.12 + lane * 0.3 + noise.get_noise_2d(x * 1.2, y * 2.0) * 0.12
+			var c := pick(MOSS, v, x, y)
+			if lane > 0.75 and noise.get_noise_2d(x * 2.0 + 40.0, y * 3.0) > -0.1:
+				c = pick(["loam", "path", "moonpath"], 0.2 + lane * 0.5, x, y)
+			put(x, y, c)
+	for i in 1300:
+		var y := rng.randi_range(290, H - 1)
+		var x := rng.randi_range(0, W - 1)
+		var near := float(y - 290) / (H - 290)
+		var length := 1 + int(near * rng.randf_range(1.0, 6.0))
+		put(x, y + 1, col("deepmoss"))
+		for k in length:
+			put(x, y - k, col("sprig") if k == length - 1 and rng.randf() < 0.4 else col("leaf"))
+	for i in 70:
+		var y := rng.randi_range(296, H - 12)
+		var x := rng.randi_range(60, W - 60)
+		var petal: String = ["blossom", "dewlight", "moonlight"][rng.randi_range(0, 2)]
+		put(x, y, col(petal))
+		if rng.randf() < 0.4:
+			put(x - 1, y, col(petal))
+			put(x + 1, y, col(petal))
+			put(x, y - 1, col(petal))
+			put(x, y, col("heartlight"))
+			glow(Vector2(x, y), 3.0, col(petal), 0.2)
 
-
-# --- the Sporeling, the gate ---------------------------------------------------------------------
 
 func _figure() -> void:
-	# The Sporeling at the threshold, tiny, looking up: a dark shape with a moonlit rim, its long
-	# shadow falling toward us, and its lantern held out.
-	# Its head tilted back to look up at the titan; the rim is on the moon's side (upper right).
+	# The Sporeling, tiny, from behind: pink round head on a round body, rim-lit by the moon, its
+	# lantern held out, its shadow falling toward us.
 	var shape := [
-		".....OOOOOr......",
-		"...OOOOOOOOrr....",
-		"..OOOOOOOOOOOr...",
-		".OOOOOOOOOOOOOr..",
-		".OOOOOOOOOOOOOr..",
-		".OOOOOOOOOOOOOr..",
-		"..OOOOOOOOOOOr...",
-		"...OOOOOOOOOr....",
-		".....OOOOOO......",
-		"...OOOOOOOOOr....",
-		"..OOOOOOOOOOOr...",
-		".OOOOOOOOOOOOOr..",
-		"OOOOOOOOOOOOOOOr.",
-		"OOOOOOOOOOOOOOOr.",
-		"OOOOOOOOOOOOOOOr.",
-		"OOOOOOOOOOOOOOOr.",
-		".OOOOOOOOOOOOOr..",
-		"..OOOOOOOOOOOr...",
-		"...OOO....OOO....",
-		"...OOO....OOO....",
+		"....OOOOOO.....",
+		"..OOBBBBBBOO...",
+		".OBBBBBBBBbbO..",
+		".OBBBBBBBBbbO..",
+		".OBBBBBBBbbbO..",
+		"..OBBBBBbbbO...",
+		"...OOOOOOOO....",
+		"..OBBBBBBbbO...",
+		".OBBBBBBBBbbO..",
+		"OBBBBBBBBBbbbO.",
+		"OBBBBBBBBBbbbO.",
+		".OBBBBBBBbbbO..",
+		"..OOO...OOO....",
 	]
-	var ox := FIGURE.x - 8
+	var key := {"O": "night", "B": "orchid", "b": "bruise"}
+	var ox := FIGURE.x - 7
 	var oy := FIGURE.y - shape.size()
-	for k in 38:  # the shadow, stretching toward the viewer
-		var w := 7.0 - k * 0.1
+	for k in 22:
+		var w := 6.0 - k * 0.15
 		for dx in range(int(-w), int(w) + 1):
-			put(FIGURE.x - k / 2 + dx, FIGURE.y + k, col("night"))
+			put(FIGURE.x - k / 3 + dx, FIGURE.y + k, col("deepmoss"))
 	for row in shape.size():
 		var line: String = shape[row]
 		for i in line.length():
-			if line[i] != ".":
-				put(ox + i, oy + row, col("void") if line[i] == "O" else col("mist"))
-	# The lantern on a short stick, held out to the left.
-	for k in 8:
-		put(ox - k, oy + 12 - k / 3, col("void"))
-	var lamp := Vector2(ox - 9, oy + 12)
-	glow(lamp, 12.0, col("gold"), 0.3)
+			var ch := line[i]
+			if ch == ".":
+				continue
+			var c := col(key[ch])
+			# Moonlight on the upper right of each round form.
+			if ch == "B" and i + 1 < line.length() and line[i + 1] == "b" and row < 5:
+				c = col("blossom")
+			if ch == "O" and row <= 1:
+				c = col("blossom") if i > 5 else col("night")
+			put(ox + i, oy + row, c)
+	for k in 7:
+		put(ox - k, oy + 9 - k / 3, col("night"))
+	var lamp := Vector2(ox - 8, oy + 9)
+	glow(lamp, 12.0, col("gold"), 0.32)
 	for y in range(-1, 3):
 		for x in range(-1, 2):
 			put(int(lamp.x) + x, int(lamp.y) + y, col("glow") if x == 0 else col("gold"))
@@ -639,150 +619,82 @@ func _figure() -> void:
 	put(int(lamp.x), int(lamp.y) - 2, col("night"))
 
 
-func _gate() -> void:
-	# The ruined gate we look through: dark stone in coursed blocks, the arch's inner face (voussoirs)
-	# catching moonlight, cracks, a fallen notch at the top right.
-	for y in H:
-		for x in W:
-			if in_opening(x, y) or in_breach(x, y):
-				continue
-			var reveal := _reveal_depth(x, y)
-			var course := int(floor(y / 11.0))
-			var bx := int(floor((x + (course % 2) * 13) / 26.0))
-			var in_block_x := fposmod(x + (course % 2) * 13, 26.0)
-			var in_block_y := fposmod(y, 11.0)
-			var v := 0.02 if hash01(bx, course, 3) > 0.72 else 0.12  # flat blocks: Night, some Void
-			if in_block_x < 1.0 or in_block_y < 1.0:
-				v = 0.0  # mortar joints
-			elif in_block_y < 2.0:
-				v += 0.04
-			if grain.get_noise_2d(x * 0.9, y * 0.9) > 0.7:
-				v -= 0.05  # weathering
-			if reveal >= 0.0 and reveal < REVEAL:
-				# The inner face: radial arch stones up top, courses on the jambs; lit from inside.
-				var lit := 1.0 - reveal / REVEAL
-				v = 0.2 + lit * 0.24 + (hash01(int(_voussoir(x, y)), course, 5) - 0.5) * 0.08
-				if fposmod(_voussoir(x, y), 1.0) < 0.12 or (in_block_y < 1.0 and y > ARCH_C.y):
-					v -= 0.14
-				if reveal < 1.5:
-					v = 0.55  # the moonlit edge
-			var c := pick(INK, v, x, y, 0.1)
-			# Moss on the ledges and the lower courses.
-			var m := noise.get_noise_2d(x * 1.4 + 70.0, y * 1.4)
-			if (y > 300 and m > 0.4) or (reveal >= 0.0 and reveal < 3.0 and m > 0.3):
-				c = pick(MOSS, 0.05 + (m - 0.2) * 0.3 + (0.3 if reveal >= 0.0 and reveal < 3.0 else 0.0), x, y)
+func _frame_trees() -> void:
+	# Dark foreground trees framing the shot: a big trunk on the left (the menu sits over its
+	# shadow), a thinner one on the right, an overhanging canopy fringe with hanging vines, ferns.
+	_trunk(Vector2(26, 360), 0, 30.0, 1)
+	_trunk(Vector2(624, 360), 0, 18.0, 2)
+	_trunk(Vector2(140, 360), 60, 8.0, 3)
+	# The canopy fringe along the top, leaves hanging in clumps.
+	for x in W:
+		var depth := 14.0 + noise.get_noise_1d(x * 1.2) * 12.0 + (40.0 if x < 180 else 0.0) * (1.0 - x / 180.0)
+		depth += (30.0 if x > 560 else 0.0) * ((x - 560) / 80.0)
+		for y in range(0, int(depth)):
+			var leaf := grain.get_noise_2d(x * 2.0, y * 2.0)
+			var c := pick(DARK_MOSS, 0.08 + (0.3 if leaf > 0.4 else 0.0) * (1.0 - y / depth), x, y)
 			put(x, y, c)
-	# Big cracks running through the wall.
-	for crack in [[Vector2(120, 40), 90.0, 1], [Vector2(40, 170), 120.0, 2], [Vector2(612, 60), 70.0, 3], [Vector2(150, 230), 80.0, 4]]:
-		_crack(crack[0], crack[1], crack[2])
-	_portcullis()
-
-
-func _reveal_depth(x: int, y: int) -> float:
-	# How far outside the opening this wall pixel is, measured toward the opening's centre.
-	var dir := Vector2(ARCH_C.x - x, 0.0 if y >= ARCH_C.y else ARCH_C.y - y).normalized()
-	for d in int(REVEAL) + 1:
-		var p := Vector2(x, y) + dir * d
-		if in_opening(p.x, p.y):
-			return float(d)
-	return -1.0
-
-
-func _voussoir(x: int, y: int) -> float:
-	# The arch stones' index around the arch (their joints point at the arch's centre).
-	if y >= ARCH_C.y:
-		return y / 11.0
-	var a := atan2((y - ARCH_C.y) / ARCH_R.y, (x - ARCH_C.x) / ARCH_R.x)
-	return a / (PI / 22.0)
-
-
-func _crack(start: Vector2, length: float, salt: int) -> void:
-	var p := start
+		if int(depth) < H:  # the lit lower lip of the canopy
+			if noise.get_noise_1d(x * 3.0 + 50.0) > 0.1:
+				put(x, int(depth), col("deepmoss"))
 	var r := RandomNumberGenerator.new()
-	r.seed = salt * 13
-	var dir := Vector2(r.randf_range(-0.4, 0.4), 1.0).normalized()
-	for i in int(length):
-		if in_opening(p.x, p.y):
-			return
-		put(int(p.x), int(p.y), col("void"))
-		put(int(p.x) + 1, int(p.y), col("dusk") if i % 3 == 0 else col("night"))
-		dir = (dir + Vector2(r.randf_range(-0.5, 0.5), 0)).normalized()
-		p += dir
-		if r.randf() < 0.04:  # a branch
-			var q := p
-			for k in r.randi_range(4, 12):
-				q += Vector2(signf(dir.x + 0.01) * 0.8, 0.6)
-				put(int(q.x), int(q.y), col("void"))
-
-
-func _portcullis() -> void:
-	# The broken portcullis still hanging in the top of the arch: a few iron bars with points.
-	for bar in [[300, 34], [318, 46], [336, 20], [354, 38], [372, 28]]:
-		var x: int = bar[0]
-		var length: int = bar[1]
-		var top := 0
-		while top < H and not in_opening(x, top):
-			top += 1
-		for y in range(top, top + length):
-			put(x, y, col("void"))
-			put(x + 1, y, col("night"))
-			put(x + 2, y, col("dusk") if y % 7 == 0 else col("void"))
-		put(x + 1, top + length, col("void"))
-		put(x + 1, top + length + 1, col("night"))
-	for y in [24, 38]:  # cross bars
-		for x in range(298, 376):
-			if in_opening(x, y) and (x < 332 or y == 24):
-				put(x, y, col("void"))
-				put(x, y + 1, col("night"))
-
-
-func _ivy() -> void:
-	# Ivy and vines hanging over the arch, dark against the moonlit courtyard.
-	var r := RandomNumberGenerator.new()
-	r.seed = 321
-	for i in 16:
-		var x := r.randi_range(150, 639)
-		var y := 0
-		while y < H and not in_opening(x, y):
-			y += 1
-		if y >= 200 or (x > 280 and x < 380 and y < 60):
-			continue
-		var length := r.randi_range(8, 60)
+	r.seed = 404
+	for i in 14:
+		var x := r.randi_range(0, W - 1)
+		if x > 200 and x < 580:
+			continue  # keep the titan's head clear
+		var top := 20 + r.randi_range(0, 30)
+		var length := r.randi_range(16, 60)
 		var phase := r.randf_range(0.0, TAU)
 		for k in length:
-			var vx := x + int(round(sin(k * 0.12 + phase) * 2.0))
-			put(vx, y + k, col("void"))
-			put(vx + 1, y + k, col("night"))
-			if k % 4 == 1:  # a leaf pair: dark, with a moonlit edge on the inner side
-				for leaf in [Vector2i(-2, 0), Vector2i(-3, 1), Vector2i(-2, 1), Vector2i(2, -1), Vector2i(3, 0), Vector2i(2, 0)]:
-					put(vx + leaf.x, y + k + leaf.y, col("deepmoss"))
-				put(vx + 3, y + k - 1, col("moss"))
-	# Clumps of ivy spilling over the arch's edge.
-	for i in 40:
-		var x := r.randi_range(160, 630)
-		var y := 0
-		while y < H and not in_opening(x, y):
-			y += 1
-		y -= r.randi_range(0, 4)
-		for dy in range(-3, 3):
-			for dx in range(-4, 5):
-				if dx * dx + dy * dy * 2 > 14 or grain.get_noise_2d((x + dx) * 3.0, (y + dy) * 3.0) < -0.2:
-					continue
-				put(x + dx, y + dy, col("deepmoss") if dy > -2 else col("moss"))
+			var vx := x + int(round(sin(k * 0.09 + phase) * 2.5))
+			put(vx, top + k, col("void"))
+			if k % 5 == 2:
+				put(vx - 2, top + k, col("night"))
+				put(vx - 1, top + k, col("deepmoss"))
+				put(vx + 1, top + k - 1, col("deepmoss"))
+				put(vx + 2, top + k - 1, col("night"))
+	for fern in [Vector2(80, 362), Vector2(10, 350), Vector2(560, 364), Vector2(630, 352), Vector2(200, 364)]:
+		_fern(fern, 34.0)
 
 
-func _motes() -> void:
-	# Warm motes rising from the titan's heart, a few pale ones in the moonlight.
+func _trunk(foot: Vector2, lean: int, half: float, salt: int) -> void:
+	# A dark foreground trunk: bark ridges, a moonlit edge on the side facing the moon, roots.
+	for y in H:
+		var t := float(y) / H
+		var cx := foot.x + lean * (1.0 - t) * 0.3 + noise.get_noise_1d(y * 0.8 + salt * 90.0) * 3.0
+		var hw := half * (0.85 + 0.15 * t) + (pow(maxf(t - 0.8, 0.0) * 5.0, 2.0) * half * 0.8)
+		for x in range(int(cx - hw), int(cx + hw) + 1):
+			var u := (x - cx) / hw
+			var ridge := grain.get_noise_2d(u * 6.0 + salt * 11.0, y * 0.25)
+			var v := 0.05 + (0.06 if ridge > 0.2 else 0.0)
+			var toward := signf(MOON.x - cx)
+			if u * toward > 0.9:
+				v = 0.3
+			put(x, y, pick(INK, v, x, y))
+			if ridge < -0.5 and absf(u) < 0.8 and noise.get_noise_2d(x * 1.5, y * 1.5) > 0.2:
+				put(x, y, col("deepmoss"))  # moss on the bark
+
+
+func _fern(base: Vector2, length: float) -> void:
+	for side in [-1, 1]:
+		for f in 4:
+			var ang: float = -PI / 2 + side * (0.25 + f * 0.3)
+			var dir := Vector2(cos(ang), sin(ang))
+			for k in int(length - f * 5):
+				var p: Vector2 = base + dir * k + Vector2(side * k * k * 0.014, 0)
+				put(int(p.x), int(p.y), col("void"))
+				if k % 3 == 0 and k > 2:
+					var leaflet := Vector2(-dir.y, dir.x) * 3.0
+					for s in 3:
+						put(int(p.x + leaflet.x * s / 3.0), int(p.y + leaflet.y * s / 3.0), col("night"))
+						put(int(p.x - leaflet.x * s / 3.0), int(p.y - leaflet.y * s / 3.0), col("void"))
+
+
+func _fireflies() -> void:
 	var r := RandomNumberGenerator.new()
 	r.seed = 5150
-	for i in 40:
-		var p := Vector2(415 + r.randf_range(-70.0, 70.0), r.randf_range(50.0, 170.0))
-		if not in_opening(p.x, p.y) or _part_at(int(p.x), int(p.y)) != 0:
-			continue
+	for i in 60:
+		var p := Vector2(r.randf_range(60.0, 620.0), r.randf_range(120.0, 340.0))
 		if i % 4 == 0:
-			glow(p, 3.0, col("gold"), 0.35)
+			glow(p, 4.0, col("gold"), 0.4)
 		put(int(p.x), int(p.y), col("glow") if i % 3 else col("heartlight"))
-	for i in 20:
-		var p := Vector2(r.randf_range(200.0, 620.0), r.randf_range(180.0, 330.0))
-		if in_opening(p.x, p.y) and _part_at(int(p.x), int(p.y)) == 0:
-			put(int(p.x), int(p.y), col("mist"))
