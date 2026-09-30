@@ -135,6 +135,10 @@ func _run() -> void:
 		and blessing.max_stacks == 1, "a Family Blessing is a Rare Dream card that needs its family")
 	dreams.take(blessing)
 	_check(dreams.card_stacks(blessing.id) == 1, "a Blessing is taken like a card")
+	var blessed := MetaRun.load_blessings().map(func(b: UpgradeData) -> String: return b.requires[0] if not b.requires.is_empty() else "")
+	blessed.sort()
+	_check(blessed == ["acorn", "bellflower", "dewdrop", "firefly_jar", "nestling", "pebbling", "rootling", "sporeling", "whirligig"],
+		"one Blessing per family, all 9 (%s)" % [blessed])
 	var seeds := run_state.get_seed_breakdown(10, 0, false)
 	_check(seeds.any(func(l: Array) -> bool: return l[0].begins_with("Seed bonus")), "the Seed bonus shows in the breakdown")
 
