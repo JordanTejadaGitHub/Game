@@ -288,23 +288,30 @@ func _process(delta: float) -> void:
 	if is_cleansed or _path_index >= _path.size():
 		return
 
-	if _spawner != null:
+	# Thin-family bookkeeping only while one of those cards is owned (the spawner checks once a frame).
+	var thin: bool = _spawner != null and _spawner.thin_cards
+	var was_caught := false
+	var was_held := false
+	if thin:
 		statuses.marked_bonus = _spawner.marked_bonus  # Bright Marks
-	var was_caught := statuses.is_caught()
-	if statuses.caught_time > _caught_left + 0.0001:
-		_lingered = false  # Caught again (a Dreamcatcher's tick): its next lapse lingers again
-	var was_held := statuses.is_held()
-	if was_held:
-		_held_by = statuses.source(EnemyStatuses.HELD)
-	_web_cooldown = maxf(_web_cooldown - delta, 0.0)
+		was_caught = statuses.is_caught()
+		if statuses.caught_time > _caught_left + 0.0001:
+			_lingered = false  # Caught again (a Dreamcatcher's tick): its next lapse lingers again
+		was_held = statuses.is_held()
+		if was_held:
+			_held_by = statuses.source(EnemyStatuses.HELD)
+		_web_cooldown = maxf(_web_cooldown - delta, 0.0)
+	elif statuses.marked_bonus != 0.0:
+		statuses.marked_bonus = 0.0
 	var spore_soothe := statuses.tick(delta)
-	if was_caught and not statuses.is_caught():
-		_on_caught_lapsed()
-	_caught_left = statuses.caught_time
-	if was_held and not statuses.is_held():
-		_on_hold_ended()
-		if is_cleansed:
-			return
+	if thin:
+		if was_caught and not statuses.is_caught():
+			_on_caught_lapsed()
+		_caught_left = statuses.caught_time
+		if was_held and not statuses.is_held():
+			_on_hold_ended()
+			if is_cleansed:
+				return
 	if spore_soothe > 0.0:
 		var dreams := get_tree().get_first_node_in_group(DreamState.GROUP) as DreamState
 		if dreams != null:

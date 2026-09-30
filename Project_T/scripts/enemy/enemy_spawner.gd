@@ -33,6 +33,7 @@ var root_web_boss_share := 0.0  # …and bosses for this share
 var release_pull := 0.0  # Tangled Release: tiles pulled back when a hold ends
 var caught_linger := 0.0  # Lullaby: seconds Caught lasts after leaving a Dreamcatcher
 var marked_bonus := 0.0  # Bright Marks: added to Marked's extra damage taken
+var thin_cards := false  # Any of the above owned (else nightmares skip their per-frame bookkeeping)
 var rooted_cells := {}  # {cell: Held nightmare} (Rooted Nightmares; see _update_rooted_cells)
 var waiting_cells := {}  # {cell: nightmare waiting behind a rooted one}
 # Boss pools (enemy_design.md): the Night Mare galloped round again (it took `leaves`); a Warden
@@ -147,6 +148,8 @@ func _process(delta: float) -> void:
 	release_pull = dreams.get_release_pull() if dreams != null else 0.0
 	caught_linger = dreams.get_caught_linger() if dreams != null else 0.0
 	marked_bonus = dreams.get_marked_bonus() if dreams != null else 0.0
+	thin_cards = root_web_share > 0.0 or root_web_boss_share > 0.0 or release_pull > 0.0 \
+			or caught_linger > 0.0 or marked_bonus > 0.0
 	_update_rooted_cells(dreams)
 	_update_lantern_light()
 
