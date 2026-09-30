@@ -139,6 +139,7 @@ func _run() -> void:
 	# --- Scarecrow: crows at every 20% ---
 	var crow_data: EnemyData = load("res://resource/enemy/crow.tres")
 	var scarecrow := _still("scarecrow", route[8])
+	scarecrow._path_index = 9  # Walking from route[8] to route[9] (its target cell)
 	scarecrow.take_damage(scarecrow.max_health * 0.21)
 	_check(_count(crow_data) == 3, "3 Crows burst out at 80%% (%d)" % _count(crow_data))
 	scarecrow.take_damage(scarecrow.max_health * 0.4)
@@ -146,9 +147,9 @@ func _run() -> void:
 	var crows := spawner.get_children().filter(func(e) -> bool: return e.enemy_data == crow_data)
 	var airborne := true
 	for crow in crows:
-		airborne = airborne and crow.is_flying() and crow._path.size() == 2 and crow._path[-1] == map_generator.endPath \
-			and crow._path[0].distance_to(route[8]) <= 1.0
-	_check(airborne, "the Crows take to the air: straight at the Heartwood from where they burst")
+		airborne = airborne and crow.is_flying() and crow._path.size() > 2 and crow._path[-1] == map_generator.endPath \
+			and crow._path[0].distance_to(route[8]) <= 1.0 and crow._path == map_generator.get_path_from(crow._path[0])
+	_check(airborne, "the Crows take to the air: they fly the route from where they burst (Wardens along it reach them)")
 	_check(not spawner.get_maze_walkers().any(func(e) -> bool: return e.enemy_data == crow_data), "flyers: not maze walkers")
 	var walk: float = scarecrow.get_move_speed()
 	_check(is_equal_approx(walk, scarecrow.speed * 1.25), "Stitched: faster below 40% health")
