@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "falling_weight"
+display_name = "Falling Weight"
+description = "The Pebbling line deals 40% more to {held} or {asleep} nightmares."
+rarity = 1
+kind = 3
+tags = Array[String](["stone", "held"])
+requires = Array[String](["pebbling"])
+max_stacks = 1
+rule_id = &"falling_weight"

@@ -32,6 +32,9 @@ const REPORTERS := {
 	&"lone_hunter": "_lone_hunter", &"skyward_gaze": "_skyward_gaze", &"fresh_growth": "_fresh_growth",
 	&"underdog": "_underdog", &"shelter_of_stones": "_shelter_of_stones", &"cliffside": "_cliffside",
 	&"sudden_bloom": "_sudden_bloom", &"watchful_rest": "_watchful_rest", &"straightaway": "_straightaway",
+	&"many_rings": "_many_rings", &"hedgerow": "_hedgerow", &"spinning_corners": "_spinning_corners",
+	&"fresh_soil": "_fresh_soil", &"heartwoods_fury": "_heartwoods_fury", &"patchwork": "_patchwork",
+	&"mixed_grove": "_mixed_grove", &"quick_step": "_quick_step",
 	&"heart_of_the_maze": "_heart_of_the_maze",
 	&"rain_on_glass": "_rain_on_glass",
 	&"kind_canopy": "_kind_canopy", &"shared_light": "_shared_light", &"bramble_oath": "_bramble_oath",
@@ -41,7 +44,7 @@ const STAT_KEYS := {&"damage": "damage", &"attack_speed": "speed", &"range": "ra
 
 # The rows that move with the field between board changes (nightmares in range, dispels this drift):
 # rows_cached recomputes these on every call.
-const LIVE_RULES: Array[StringName] = [&"crowded_path", &"thinning_the_herd"]
+const LIVE_RULES: Array[StringName] = [&"crowded_path", &"thinning_the_herd", &"quick_step"]
 
 var ds: DreamState
 var _board: Board = null
@@ -665,3 +668,75 @@ func preview_line(card: UpgradeData) -> String:
 	return "%s · %s" % [note, value]
 
 const PREVIEW_ATTACKER := preload("res://resource/tower/sprout.tres")
+
+
+# --- Catalogue cards 204–226 (dream_design.md "New cards for the catalogue") ----------------------
+
+func _many_rings(spot: Dictionary, board: Board, _card: UpgradeData) -> Dictionary:
+	if spot.data.get_id() != "sprout":
+		return {}
+	var ranks := DreamEffects._rank(spot) if not board.holds(spot) else 0
+	for o in board.entries:
+		ranks += DreamEffects._rank(o)
+	var bonus := minf(DreamState.MANY_RINGS_PER * ranks, DreamState.MANY_RINGS_MAX)
+	return {"run_wide": true, "active": bonus > 0.0, "damage": bonus, "note": "%d ranks" % ranks,
+		"reason": "" if bonus > 0.0 else "no ranks on any Warden yet"}
+
+func _hedgerow(spot: Dictionary, board: Board, _card: UpgradeData) -> Dictionary:
+	if spot.data.get_id() != "sprout":
+		return {}
+	var on := board.touching(spot).any(func(o: Dictionary) -> bool: return DreamEffects._data(o).line == "wall")
+	return {"positional": true, "radius": 1.0, "active": on, "damage": DreamState.HEDGEROW_BONUS,
+		"reason": "" if on else "no Thornwall touching it"}
+
+func _spinning_corners(spot: Dictionary, _board: Board, _card: UpgradeData) -> Dictionary:
+	if not DreamState.SPINNING_WARDENS.has(spot.data.get_id()):
+		return {}
+	var on := ds.is_beside_bend(spot.cell, 1)
+	return {"positional": true, "radius": 1.0, "active": on, "speed": DreamState.SPINNING_CORNERS_SPEED,
+		"reason": "" if on else "no bend in the path in the 8 cells around it"}
+
+func _fresh_soil(spot: Dictionary, _board: Board, _card: UpgradeData) -> Dictionary:
+	if spot.data.get_id() != "sprout":
+		return {}
+	var on: bool = ds.run_state.tended_cells.has(spot.cell)
+	return {"positional": true, "radius": 0.0, "active": on, "damage": DreamState.FRESH_SOIL_BONUS,
+		"reason": "" if on else "not on a cleared cell"}
+
+func _heartwoods_fury(spot: Dictionary, _board: Board, _card: UpgradeData) -> Dictionary:
+	if not spot.data.can_attack:
+		return {}
+	var heart: Vector2 = ds.map_generator.endPath
+	var near := maxf(absf(spot.cell.x - heart.x), absf(spot.cell.y - heart.y)) <= DreamState.FURY_CELLS
+	var down := maxi(ds.run_state.max_leaves - ds.run_state.leaves, 0)
+	var bonus := minf(DreamState.FURY_PER * down, DreamState.FURY_MAX)
+	var on := near and bonus > 0.0
+	return {"positional": true, "radius": 0.0, "active": on, "damage": bonus, "note": "%d leaves down" % down,
+		"reason": "" if on else ("more than %d cells from the Heartwood" % DreamState.FURY_CELLS if not near else "no leaves lost")}
+
+func _patchwork(spot: Dictionary, _board: Board, _card: UpgradeData) -> Dictionary:
+	if not spot.data.can_attack:
+		return {}
+	var families := ds.count_owned_families()
+	var bonus := minf(DreamState.PATCHWORK_PER * families, DreamState.PATCHWORK_MAX)
+	return {"run_wide": true, "active": bonus > 0.0, "damage": bonus, "note": "%d families" % families}
+
+func _mixed_grove(spot: Dictionary, board: Board, _card: UpgradeData) -> Dictionary:
+	if not spot.data.can_attack:
+		return {}
+	var own := ds.family_of(spot.data.get_id())
+	var others := {}
+	for o in board.touching(spot):
+		var family := ds.family_of(DreamEffects._data(o).get_id())
+		if family != "" and family != own:
+			others[family] = true
+	var bonus := minf(DreamState.MIXED_GROVE_PER * others.size(), DreamState.MIXED_GROVE_MAX)
+	return {"positional": true, "radius": 1.0, "active": bonus > 0.0, "damage": bonus,
+		"reason": "" if bonus > 0.0 else "no Warden of another family touching it"}
+
+func _quick_step(spot: Dictionary, _board: Board, _card: UpgradeData) -> Dictionary:
+	if not spot.data.can_attack:
+		return {}
+	var on := ds.quick_step_active()
+	return {"run_wide": true, "active": on, "speed": DreamState.QUICK_STEP_SPEED * ds.rule_stacks(&"quick_step"),
+		"reason": "" if on else "call a drift early"}

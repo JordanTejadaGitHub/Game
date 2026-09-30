@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "quick_step"
+display_name = "Quick Step"
+description = "Calling a {drift} early makes all Wardens attack 10% faster for 10 s (stacks)."
+rarity = 0
+kind = 3
+tags = Array[String](["tempo"])
+requires = Array[String]([])
+max_stacks = 3
+rule_id = &"quick_step"

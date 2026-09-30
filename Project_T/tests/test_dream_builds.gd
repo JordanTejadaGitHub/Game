@@ -719,7 +719,7 @@ func _test_kinship_cards() -> void:
 	_check(dreams.count_kinships() == 0 and not dreams.is_eligible(harmony), "Sweet Harmony needs a Kinship on the map")
 	_check(not dreams.is_in_build(harmony), "…and kinship cards aren't your build yet")
 	kin.pairs = [{}]
-	_check(dreams.is_eligible(harmony) and dreams.is_in_build(harmony), "…offered with one, and weighted as your build")
+	_check(dreams.is_eligible(harmony) and not dreams.is_in_build(harmony), "…offered with one, but not weighted up until you take a Kinship card")
 	dreams.grove_cards.assign(["grove_of_kin", "kin_and_kindling"])
 	_check(not dreams.is_eligible(grove, 2), "Grove of Kin needs 2 Kinships")
 	kin.pairs = [{}, {}]

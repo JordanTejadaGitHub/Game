@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "many_rings"
+display_name = "Many Rings"
+description = "Each rank on any Warden gives all Sprouts +1% damage (max +25%)."
+rarity = 1
+kind = 3
+tags = Array[String](["nurture", "sprout"])
+requires = Array[String]([])
+max_stacks = 1
+rule_id = &"many_rings"

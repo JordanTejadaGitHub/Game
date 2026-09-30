@@ -845,7 +845,8 @@ func _test_few_and_mighty_sim(main: Node) -> void:
 	_check(float(faded[3]) / maxi(faded[2], 1) <= 0.25, "Few and Mighty: after its 2nd pass at most ~1 offer in 4")
 
 # "Adapt, don't get handed" (dream_design.md): the Stray Dream slot, and how much of an offer is
-# your build. Targets: own-family ≈ 25% of cards, an out-of-build card in ≥ ~70% of offers.
+# your build. Target: an out-of-build card in ≥ ~70% of offers. The own-family share is printed for
+# reference only ("Your Dreams steer your Dreams, not your family picks": no target).
 func _test_stray_dream(main: Node) -> void:
 	var dreams: DreamState = main.get_node("%DreamState")
 	_reset_dreams(main)
@@ -903,7 +904,10 @@ func _test_stray_dream(main: Node) -> void:
 			dreams.unlocked = {"sprout": true, "thornwall": true, "sporeling": true, "firefly_jar": true}
 			if direction != "":
 				dreams.take(_card(dreams, direction))
-			var owned: Dictionary = dreams._owned_tags()[0]
+			var own_lines := {}  # The owned families' lines (families no longer count as build tags)
+			for id in dreams.unlocked:
+				if dreams._line_of(id) != "":
+					own_lines[dreams._line_of(id)] = true
 			var shown := 0
 			var own_family := 0
 			var offers_out := 0
@@ -916,7 +920,7 @@ func _test_stray_dream(main: Node) -> void:
 				for card in dreams.make_offer(drift):
 					shown += 1
 					# Own-family: an owned family tag (a half-dreamed combo's family tags don't count yet)
-					if not dreams.is_half_dreamed(card) and card.tags.any(func(t: String) -> bool: return family_lines.has(t) and owned.has(t)):
+					if not dreams.is_half_dreamed(card) and card.tags.any(func(t: String) -> bool: return family_lines.has(t) and own_lines.has(t)):
 						own_family += 1
 					# Out of build: points at a family / direction / archetype you don't have, or its soft Need is unmet
 					if not dreams.is_in_build(card) and (card.tags.any(func(t: String) -> bool: return build_tags.has(t))
@@ -928,7 +932,6 @@ func _test_stray_dream(main: Node) -> void:
 			print("adapt: %s, drift %d: own-family %d%% of cards, an out-of-build card in %d%% of offers" % [
 				direction if direction != "" else "no direction", drift, roundi(family_share * 100), roundi(out_share * 100)])
 			if drift >= DreamState.STRAY_FROM_DRIFT:
-				_check(family_share > 0.18 and family_share < 0.30, "own-family ≈ 22–25%% of cards (%.2f)" % family_share)
 				_check(out_share >= 0.7, "an out-of-build card in ≥ 70%% of offers (%.2f)" % out_share)
 	for tower in planted:
 		tower.free()

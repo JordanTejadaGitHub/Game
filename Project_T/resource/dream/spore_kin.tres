@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "spore_kin"
+display_name = "Spore Kin"
+description = "Harmony strikes by Sporeling-line kin apply 2 {spored}."
+rarity = 1
+kind = 3
+tags = Array[String](["spore", "kinship"])
+requires = Array[String](["sporeling"])
+max_stacks = 1
+rule_id = &"spore_kin"
