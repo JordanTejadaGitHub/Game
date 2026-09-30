@@ -88,19 +88,23 @@ func _test_blocks_and_rests() -> void:
 	_check(is_equal_approx(director.get_growth(51), director.get_growth(50) * 1.045) and absf(director.get_growth(75) - 33.0) < 1.5
 		and absf(director.get_growth(100) - 100.0) < 3.0, "growth eases to ×1.045 from 51 (×%.0f at 75, ×%.0f at 100)" % [
 		director.get_growth(75), director.get_growth(100)])
-	# Acts 3–4: ×1.6 on top of growth, bosses included (run_design.md "Act 3 probe").
+	# Acts 3–4: late_acts_health_multiplier on top of growth, bosses included (interim ×2.4).
+	var late := director.late_acts_health_multiplier
+	var act2_end := director.early_acts_health_multiplier
+	var act2_start := director.act2_start_health_multiplier
 	var shade_data: EnemyData = load("res://resource/enemy/leaf_bug.tres")
 	var oak_data: EnemyData = load("res://resource/enemy/hollow_oak.tres")
-	_check(is_equal_approx(director.get_health_scale(shade_data, 50), director.get_growth(50) * 1.55 * director.get_health_multiplier(shade_data, 50))
-		and is_equal_approx(director.get_health_scale(shade_data, 51), director.get_growth(51) * 1.6 * director.get_health_multiplier(shade_data, 51))
-		and is_equal_approx(director.get_health_scale(oak_data, 100), director.boss_health_multiplier * 1.6 * director.get_health_multiplier(oak_data, 100)),
-		"acts 3–4 nightmares and bosses have ×1.6 health")
-	# Acts 1–2 (run_design.md 72860af): ×1.0 to 9, ramping to ×1.15 at 20 (held through 30), ramping to ×1.55 at 45.
-	var curve := {1: 1.0, 9: 1.0, 20: 1.15, 25: 1.15, 26: 1.15, 30: 1.15, 45: 1.55, 50: 1.55}
+	_check(is_equal_approx(director.get_health_scale(shade_data, 50), director.get_growth(50) * act2_end * director.get_health_multiplier(shade_data, 50))
+		and is_equal_approx(director.get_health_scale(shade_data, 51), director.get_growth(51) * late * director.get_health_multiplier(shade_data, 51))
+		and is_equal_approx(director.get_health_scale(oak_data, 100), director.boss_health_multiplier * late * director.get_health_multiplier(oak_data, 100)),
+		"acts 3–4 nightmares and bosses have ×%.1f health" % late)
+	# Act 1: ×1.0 to 9, ramping to ×1.15 at 20, held to 25. Act 2 (interim): act2_start at 26, ramping to
+	# act2_end at 45, held to 50.
+	var curve := {1: 1.0, 9: 1.0, 20: 1.15, 25: 1.15, 26: act2_start, 45: act2_end, 50: act2_end}
 	for number in curve:
 		_check(is_equal_approx(director.get_early_multiplier(number), curve[number]),
 			"drift %d: health ×%.2f (got %.3f)" % [number, curve[number], director.get_early_multiplier(number)])
-	_check(absf(director.get_early_multiplier(37) - (1.15 + 0.4 * 7.0 / 15.0)) < 0.001 and director.get_early_multiplier(14) > 1.0
+	_check(absf(director.get_early_multiplier(37) - lerpf(act2_start, act2_end, 11.0 / 19.0)) < 0.001 and director.get_early_multiplier(14) > 1.0
 		and director.get_early_multiplier(14) < 1.15, "both ramps are straight lines")
 	# One Deeply Blighted from drift 31 when the drift lists none (boss drifts: from the escort); two from 76.
 	for number in [25, 26, 30, 31, 35, 45, 50, 51, 75, 76, 100]:
@@ -113,10 +117,10 @@ func _test_blocks_and_rests() -> void:
 			"drift %d: %d elite(s) (%d listed)" % [number, elites.size(), listed])
 	var stag: EnemyData = load("res://resource/enemy/old_stag.tres")
 	_check(is_equal_approx(director.get_health_scale(stag, 25), director.act1_boss_health_multiplier * director.get_health_multiplier(stag, 25))
-		and is_equal_approx(director.get_health_scale(shade_data, 25), director.get_growth(25) * 1.15 * director.get_health_multiplier(shade_data, 25)),
+		and is_equal_approx(director.get_health_scale(shade_data, 25), director.get_growth(25) * director.act1_health_multiplier * director.get_health_multiplier(shade_data, 25)),
 		"act 1's boss has its own multiplier (no ramp); its escort takes ×1.15")
-	_check(is_equal_approx(director.get_health_scale(stag, 50), 1.5 * 1.55 * director.get_health_multiplier(stag, 50)),
-		"later bosses keep their act's multiplier (act 2's ×1.55)")
+	_check(is_equal_approx(director.get_health_scale(stag, 50), director.boss_health_multiplier * act2_end * director.get_health_multiplier(stag, 50)),
+		"later bosses keep their act's multiplier (act 2's end)")
 
 	# Selling in a rest what was planted this rest: a full refund (75% once it stood through a drift)
 	var sprout: TowerData = placer.towers[0]
