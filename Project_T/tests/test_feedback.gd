@@ -168,7 +168,7 @@ func _run() -> void:
 	ResultsScreen.demo_override = 0  # The full game: every combo in scope (the scope itself: test_codex_scope)
 	codex.open(&"combos")
 	_check(codex.visible and codex.tabs.current_tab == 1 and CodexData.combos().filter(CodexData.in_build).all(func(c: Dictionary) -> bool: return codex._entries.has(String(c.id)))
-		and CodexData.combos().size() == 15, "the Codex lists every combo in scope, of 15")
+		and CodexData.combos().size() == 14, "the Codex lists every combo in scope, of 14 (Popped retired: spores no longer pop)")
 	ResultsScreen.demo_override = -1
 	# Locked entries are just "???": no ingredient icons or text (they'd give the answer away).
 	var seen_now := ComboFeedback.load_seen()
@@ -271,7 +271,7 @@ func _run() -> void:
 				"the Omen's extra traits (" + omen_line + ")")
 		juggled.queue_free()
 	# Crowned Reactions: their own discovery card, a hidden entry until found, outside the 15.
-	_check(CodexData.crowned().size() == 8 and CodexData.combos().size() == 15, "8 Crowned Reactions, apart from the 15 combos")
+	_check(CodexData.crowned().size() == 8 and CodexData.combos().size() == 14, "8 Crowned Reactions, apart from the 14 combos")
 	_check(ComboFeedback.discovery_text(&"tempest").begins_with("Crowned Reaction discovered: Tempest")
 		and ComboFeedback.discovery_text(&"tempest").contains("Thunderclap + Poisoned"), "a Crowned discovery card names its recipe")
 	var was_demo = ProjectSettings.get_setting("game/demo", false)

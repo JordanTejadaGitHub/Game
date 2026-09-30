@@ -743,19 +743,19 @@ func _raise_overlays() -> void:
 			move_child(overlay, get_child_count() - 1)
 
 # --- The Sprout price rule (warden_stats.md "The rule is shown") -------------------------------------
-# Every TowerPlacer.SPROUTS_PER_STEP Sprouts on the map add SPROUT_STEP_DEW to the price; Seedfall fixes
-# it. The tooltip says so, a small "↑ 8/10" tag above the button counts to the next rise, and the
-# first rise in a run gets a one-line toast.
+# Every TowerPlacer.sprout_per_step() Sprouts on the map add sprout_step_dew() to the price (Seedfall:
+# a slower rise). The tooltip says so, a small "↑ 8/10" tag above the button counts to the next rise,
+# and the first rise in a run gets a one-line toast.
 var _sprout_rise_told := false
 var _sprout_last_cost := -1
 
 func sprout_rule_text(cost: int) -> String:
-	if tower_placer.sprout_price_halved():
-		return "Sprout · %d Dew, fixed (Seedfall)." % cost
-	var per := TowerPlacer.SPROUTS_PER_STEP
+	var per := tower_placer.sprout_per_step()
+	if per <= 0:
+		return "Sprout · %d Dew, fixed." % cost
 	var next := (tower_placer.count_paid_sprouts() / per + 1) * per
-	return "Sprout · %d Dew. Every %d Sprouts on the map add +%d Dew to the price (next rise at %d Sprouts). Selling or growing one lowers it." % [
-		cost, per, TowerPlacer.SPROUT_STEP_DEW, next]
+	return "Sprout · %d Dew. Every %d Sprouts on the map add +%d Dew to the price (next rise at %d Sprouts).%s Selling or growing one lowers it." % [
+		cost, per, tower_placer.sprout_step_dew(), next, " (Seedfall: a slower rise.)" if tower_placer.sprout_price_halved() else ""]
 
 func _update_sprout_rule(button: Button, cost: int) -> void:
 	var tag := button.get_node_or_null("SproutRise") as Label
@@ -768,11 +768,11 @@ func _update_sprout_rule(button: Button, cost: int) -> void:
 		tag.add_theme_color_override("font_outline_color", UiStyle.FOG)
 		tag.add_theme_constant_override("outline_size", 4)
 		button.add_child(tag)
-	var fixed := tower_placer.sprout_price_halved()
-	var per := TowerPlacer.SPROUTS_PER_STEP
+	var per := tower_placer.sprout_per_step()
 	var count := tower_placer.count_paid_sprouts()
-	tag.visible = not fixed and cost > 0
-	tag.text = "↑ %d/%d" % [count, (count / per + 1) * per]
+	tag.visible = per > 0 and cost > 0
+	if per > 0:
+		tag.text = "↑ %d/%d" % [count, (count / per + 1) * per]
 	tag.reset_size()
 	tag.position = Vector2((button.size.x - tag.size.x) / 2.0, -tag.size.y + 2.0)
 	var lines := button.tooltip_text.split("\n")
@@ -782,7 +782,7 @@ func _update_sprout_rule(button: Button, cost: int) -> void:
 		button.tooltip_text = "\n".join(lines)
 	else:
 		button.tooltip_text += "\n" + rule
-	if _sprout_last_cost >= 0 and cost > _sprout_last_cost and not fixed and not _sprout_rise_told:
+	if _sprout_last_cost >= 0 and cost > _sprout_last_cost and per > 0 and not _sprout_rise_told:
 		_sprout_rise_told = true
 		show_toast("Sprouts now cost %d Dew: the more you have, the more they cost." % cost)
 	_sprout_last_cost = cost

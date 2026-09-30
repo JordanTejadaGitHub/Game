@@ -9,12 +9,12 @@ const MAX_ALIVE := 3
 const TAG_COOLDOWN := 0.7  # Seconds before the same word can pop again
 const LIFE := 0.9
 # Combo tag -> the word shown ("" = no word, only the status flash).
-const WORDS := {&"conducted": "Conducted!", &"popped": "Popped!", &"asleep": "Asleep!",
+const WORDS := {&"conducted": "Conducted!", &"asleep": "Asleep!",
 	&"crit": "Critical!", &"weak": "Weak!", &"marked": "", &"fog": "", &"static": ""}
 # Combo tag -> the status it used (flashes on the nightmare).
-const USES_STATUS := {&"conducted": &"damp", &"popped": &"spored", &"asleep": &"drowsy",
+const USES_STATUS := {&"conducted": &"damp", &"asleep": &"drowsy",
 	&"marked": &"marked", &"fog": &"spored", &"static": &"static"}
-const PRIORITY: Array[StringName] = [&"popped", &"asleep", &"conducted", &"crit", &"weak"]
+const PRIORITY: Array[StringName] = [&"asleep", &"conducted", &"crit", &"weak"]
 
 var _cooldowns := {}  # tag -> seconds left
 var _alive: Array = []  # [age, text, colour, enemy (weak ref target), offset]

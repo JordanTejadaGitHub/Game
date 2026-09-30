@@ -10,7 +10,7 @@ class_name ComboFeedback
 # (`combos_seen`, lifetime `combo_counts`; also in the demo; never tests; developer-run finds carry a
 # hidden flag, `combos_seen_dev`, and never count for the milestone), with the
 # "all_combos" milestone once all are found. Also counts Reactions per block for the rest report
-# (Fx shows their callouts). Sources: DamageLog combo tags (conducted, popped, fog), ReactionTracker
+# (Fx shows their callouts). Sources: DamageLog combo tags (conducted, fog), ReactionTracker
 # (Reactions), and ComboFeedback.report(id, near) from game code where a synergy happens (set_off,
 # marked_blow, caught, asleep).
 
@@ -23,7 +23,7 @@ const SEEN_KEY := "combos_seen"
 const COUNTS_KEY := "combo_counts"
 const LEGACY_KEY := "reactions_seen"  # Before synergies were combos
 const MILESTONE := "all_combos"
-const DAMAGE_TAGS: Array[StringName] = [&"conducted", &"popped", &"fog"]
+const DAMAGE_TAGS: Array[StringName] = [&"conducted", &"fog"]
 
 @onready var drift_director: DriftDirector = %DriftDirector
 @onready var run_state: RunState = %RunState

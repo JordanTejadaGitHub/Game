@@ -107,7 +107,7 @@ func save_now() -> bool:
 	for tower in tower_container.get_children():
 		if tower is Tower and not tower.is_queued_for_deletion():
 			towers.append({"cell": [tower.cell.x, tower.cell.y], "data": tower.tower_data.resource_path,
-				"invested": tower.invested_dew, "rest_dew": tower.rest_dew, "rank": tower.rank, "focus": tower.focus,
+				"invested": tower.invested_dew, "rest_dew": tower.rest_dew, "rank": tower.rank, "focus": tower.focus, "rank_choices": Array(tower.rank_choices),
 				"target_mode": tower.target_mode, "target_chosen": tower.target_chosen, "kin_branch": tower.kin_branch, "size": tower.get_footprint(),
 				"legacy": tower.legacy_data.resource_path if tower.legacy_data else "",  # An Ascended form's final
 				"drifts_stood": int(tower.get_meta(&"drifts_stood", 0)),  # Old Growth (DreamState counts it)
@@ -184,6 +184,10 @@ func _restore(data: Dictionary) -> void:
 		tower.rest_dew = int(saved.get("rest_dew", 0))  # Placed this rest (saves happen at rests)
 		tower.rank = int(saved.get("rank", 0))  # Saves from before Nurture have none
 		tower.focus = int(saved.get("focus", 0)) as Tower.Focus
+		tower.rank_choices.clear()  # Nurture v3: one choice per rank (older saves: Tower._migrate_choices fills them)
+		for choice in saved.get("rank_choices", []):
+			tower.rank_choices.append(int(choice))
+		tower._migrate_choices()
 		tower.target_mode = int(saved.get("target_mode", 0)) as TowerData.TargetMode  # Targeting
 		tower.target_chosen = bool(saved.get("target_chosen", saved.has("target_mode") and tower.tower_data.has_target_priority))
 		tower.kin_branch = String(saved.get("kin_branch", ""))  # An Ascended form's branch (Kinships)
