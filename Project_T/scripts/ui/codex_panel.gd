@@ -86,6 +86,7 @@ func _ready() -> void:
 	families_page.add_child(_families)
 	tabs.add_child(families_page)
 	_setup_dreams_page()
+	_setup_nightmares_page()
 
 	var close := Button.new()
 	close.text = "Close"
@@ -100,6 +101,7 @@ func open(tab: StringName = &"", entry: String = "") -> void:
 	_build_combos()
 	_build_families()
 	_build_dreams()
+	_build_nightmares()
 	visible = true
 	if tab == &"combos":
 		tabs.current_tab = 1
@@ -845,5 +847,156 @@ func _dream_entry(card: UpgradeData, seen: Array, viewed: Array, taken: Dictiona
 	var wins := int(won.get(card.id, 0))
 	stats.text = "Taken %d time%s · won %d run%s with it" % [times, "" if times == 1 else "s", wins, "" if wins == 1 else "s"]
 	stats.add_theme_font_size_override("font_size", 13)
+	box.add_child(stats)
+	return panel
+
+# --- Nightmares (screens_ui.md "Nightmares") ------------------------------------------------------
+# Every nightmare and boss, "???" until first met (profile nightmares_seen); a met one shows its
+# portrait on a moon disc, name, trait, intro lines and hint, resist / weak / immune icons, health /
+# speed / leaves at drift 1, its act and the times you've dispelled it; a boss adds its dossier
+# (abilities, what helps) and your record. Grouped by act, bosses last; "23 / 34 nightmares met";
+# a gold "New" until the page has been opened.
+
+var _nightmares := VBoxContainer.new()
+var _nightmares_count := Label.new()
+var nightmare_entries := {}  # Kind -> its entry (tests)
+var _nightmares_tab := -1
+
+func _setup_nightmares_page() -> void:
+	var page := VBoxContainer.new()
+	page.name = "Nightmares"
+	tabs.add_child(page)
+	_nightmares_tab = tabs.get_tab_count() - 1
+	_nightmares_count.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	UiStyle.caps(_nightmares_count, 16)
+	page.add_child(_nightmares_count)
+	var scroll := ScrollContainer.new()
+	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	_nightmares.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_nightmares.add_theme_constant_override("separation", 8)
+	scroll.add_child(_nightmares)
+	page.add_child(scroll)
+	tabs.tab_changed.connect(func(index: int) -> void:
+		if tabs.get_tab_control(index) == page:
+			NightmareCodex.mark_viewed(NightmareCodex.seen()))
+
+func _build_nightmares() -> void:
+	for child in _nightmares.get_children():
+		_nightmares.remove_child(child)
+		child.queue_free()
+	nightmare_entries.clear()
+	var profile := HeartwoodMemory.load_data()
+	var met: Array = profile.get("nightmares_seen", [])
+	var viewed: Array = profile.get(NightmareCodex.VIEWED_KEY, [])
+	var dispels: Dictionary = profile.get(NightmareCodex.DISPELS_KEY, {})
+	var records: Dictionary = profile.get(BossDossier.RECORDS_KEY, {})
+	var kinds := NightmareCodex.all_kinds()
+	var met_count := kinds.filter(func(d: EnemyData) -> bool: return met.has(NightmareCodex.kind_of(d))).size()
+	_nightmares_count.text = "%d / %d nightmares met" % [met_count, kinds.size()]
+	tabs.set_tab_title(_nightmares_tab, "Nightmares %d / %d" % [met_count, kinds.size()])
+	var act_names: Array = ["Forest's Edge", "Deep Wood", "Misty Hollow", "Heartwood Glade"]
+	var shown_act := 0
+	for data in kinds:
+		var act := NightmareCodex.act_of(data)
+		if act != shown_act:
+			shown_act = act
+			var header := Label.new()
+			header.text = "Act %d · %s" % [act, act_names[act - 1] if act <= act_names.size() else ""]
+			header.add_theme_font_size_override("font_size", 18)
+			header.add_theme_color_override("font_color", TERM_COLOR)
+			_nightmares.add_child(header)
+		var entry := _nightmare_entry(data, met, viewed, dispels, records)
+		_nightmares.add_child(entry)
+		nightmare_entries[NightmareCodex.kind_of(data)] = entry
+
+func _nightmare_entry(data: EnemyData, met: Array, viewed: Array, dispels: Dictionary, records: Dictionary) -> Control:
+	var kind := NightmareCodex.kind_of(data)
+	var panel := PanelContainer.new()
+	var style := UiStyle.card(UiStyle.BOSS if data.is_boss else UiStyle.MOONLIGHT)
+	style.shadow_size = 0
+	style.set_content_margin_all(10)
+	if not met.has(kind):
+		style.thread = MoonStyleBox.TopLine.NONE
+		style.glow_color = Color(0, 0, 0, 0)
+	panel.add_theme_stylebox_override("panel", style)
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation", 4)
+	panel.add_child(box)
+	if not met.has(kind):  # Never met: "???" only
+		var unknown := Label.new()
+		unknown.text = "???"
+		UiStyle.title(unknown, 20, LOCKED_COLOR)
+		box.add_child(unknown)
+		return panel
+	var head := HBoxContainer.new()
+	head.add_theme_constant_override("separation", 10)
+	var face := TextureRect.new()
+	face.texture = NightmareCard.portrait(data)
+	face.modulate = data.tint
+	face.custom_minimum_size = Vector2(52, 52)
+	face.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	face.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	face.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	face.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	head.add_child(UiStyle.on_moon_disc(face))
+	var names := VBoxContainer.new()
+	names.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	var name := Label.new()
+	name.text = data.display_name
+	UiStyle.title(name, 20, UiStyle.BOSS.lightened(0.25) if data.is_boss else UiStyle.INK)
+	names.add_child(name)
+	if data.title != "":
+		var title := Label.new()
+		title.text = data.title
+		UiStyle.whisper(title, 16)
+		names.add_child(title)
+	head.add_child(names)
+	if not viewed.has(kind):
+		var fresh := Label.new()
+		fresh.name = "New"
+		fresh.text = "New"
+		UiStyle.caps(fresh, 14, UiStyle.GOLD)
+		fresh.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		head.add_child(fresh)
+	box.add_child(head)
+	var lines: Array[String] = []
+	if data.trait_text != "":
+		lines.append(data.trait_text)
+	lines.append_array(data.get_intro_lines())
+	if not lines.is_empty():
+		box.add_child(StatusLinks.make_label("\n".join(lines), UiStyle.TIP_SIZE))
+	if data.hint != "":
+		var hint := Label.new()
+		hint.text = data.format_text(data.hint)
+		hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		UiStyle.whisper(hint, 16)
+		box.add_child(hint)
+	box.add_child(NightmareIcons.make_rows(data, 22.0))
+	var facts := Label.new()
+	facts.name = "Facts"
+	facts.text = "At drift 1: health %d · speed %.1f tiles/s · leaves %d   ·   Act %d" % [data.health, data.speed / 64.0,
+		data.leaf_cost, NightmareCodex.act_of(data)]
+	UiStyle.number(facts, 15, UiStyle.INK_DIM)
+	box.add_child(facts)
+	if data.is_boss:  # Its dossier: abilities and what helps
+		for i in data.abilities.size():
+			var ability := data.get_ability(i)
+			var when := String(ability.get("when", ""))
+			box.add_child(StatusLinks.make_label("%s%s: %s" % [ability.get("name", ""), " (" + when + ")" if when != "" else "",
+				ability.get("text", "")], 15))
+		for tip in data.tips:
+			box.add_child(StatusLinks.make_label("· " + data.format_text(tip), 15, Color(0.85, 0.9, 0.85)))
+	var stats := Label.new()
+	stats.name = "Stats"
+	var times := int(dispels.get(kind, 0))
+	var text := "Dispelled %d time%s" % [times, "" if times == 1 else "s"]
+	var record: Dictionary = records.get(kind, {})
+	if data.is_boss and not record.is_empty():
+		text = "Dispelled %d time%s" % [int(record.get("dispelled", times)), "" if int(record.get("dispelled", times)) == 1 else "s"]
+		if float(record.get("best", 0.0)) > 0.0:
+			text += " · best time %d s" % roundi(float(record.best))
+	stats.text = text
+	stats.add_theme_font_size_override("font_size", 14)
 	box.add_child(stats)
 	return panel

@@ -96,6 +96,8 @@ func _ready() -> void:
 	owner.add_child.call_deferred(close_calls)
 	# The Codex's Dreams: every card offered is seen on the account (DreamCodex).
 	add_child(DreamCodex.new(dream_state, run_state))
+	# The Codex's Nightmares: lifetime dispels per kind and the "Know every nightmare" milestone.
+	add_child(NightmareCodex.new(drift_director))
 	_raise_overlays.call_deferred()  # After everything above (and deferred adds) is in
 	# Resist / weak pips and the immune flash, drawn in the world over the nightmares.
 	owner.add_child.call_deferred(ResistPips.new())
