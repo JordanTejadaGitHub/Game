@@ -6,7 +6,7 @@
 script = ExtResource("1_unlock")
 id = "omen_reader"
 display_name = "Omen Reader"
-description = "Omen rests offer 3 Omens instead of 2."
+description = "Facing an Omen reveals 3 to choose from instead of 2."
 root = 2
 costs = Array[int]([80])
 order = 14
