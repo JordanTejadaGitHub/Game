@@ -35,6 +35,12 @@ const LEAN_SHARE := 0.3  # A drift "leans" on a resisted family above this share
 const MAX_LEANS := 2  # …in at most this many drifts of a block
 const ATTEMPTS := 40
 const ELITE_COST := 3.0  # Deeply Blighted health (Enemy.ELITE_HEALTH)
+const ELITE_LEAVES := 2  # …and leaves (Enemy.ELITE_LEAVES)
+# Leaves at stake: a rolled drift may put at most LEAVES_SCALE × (or + LEAVES_EXTRA) the hand-made
+# drift's leaves at stake. Budgets weigh nightmares by EnemyData.get_roll_weight (the Phantom ×4).
+const LEAVES_SCALE := 1.5
+const LEAVES_EXTRA := 8
+const EASE_IN := 5  # For this many drifts after its intro, a type comes at most as many as at its intro
 const DEFAULT_WINDOW := 20.0  # Arrival window (s) when the hand-made drift has a single arrival
 const META_HAND_MADE := &"hand_made_drifts"
 const META_TEMPLATE := &"roll_template"
@@ -63,7 +69,7 @@ static func roll_run(director: Node, seed: int) -> void:
 			previous = &""
 			continue
 		var state: Dictionary = blocks.get_or_add(director.get_block(n), {"limited": false, "leans": {}})
-		var rolled := _roll_drift(director, n, hand_made[n - 1], rng, previous, state)
+		var rolled := _roll_drift(director, n, hand_made[n - 1], hand_made, rng, previous, state)
 		if rolled != null:
 			director.drifts[n - 1] = rolled
 			previous = rolled.get_meta(META_TEMPLATE)
@@ -114,7 +120,7 @@ static func get_budget(drift: DriftData) -> float:
 	for group in drift.groups:
 		for entry in group.entries:
 			if entry.enemy != null and not entry.enemy.is_boss and not entry.elite:
-				budget += entry.count * entry.enemy.get_roll_cost()
+				budget += entry.count * entry.enemy.get_roll_weight()
 	return budget
 
 # Every type with an intro drift (the rollable roster), sorted by intro.
@@ -142,13 +148,22 @@ static func get_templates() -> Array[DriftTemplate]:
 
 # --- One drift ---------------------------------------------------------------------------------
 
-static func _roll_drift(director: Node, number: int, drift: DriftData, rng: RandomNumberGenerator,
+static func _roll_drift(director: Node, number: int, drift: DriftData, hand_made: Array, rng: RandomNumberGenerator,
 		previous: StringName, state: Dictionary) -> DriftData:
 	var act: int = director.get_act(number)
 	var pool := get_pool(number)
 	var budget := get_budget(drift)
 	if pool.is_empty() or budget <= 0.0:
 		return null
+	var hand_leaves := get_leaves(_slots_of(drift, false))
+	var fresh_caps := {}  # EnemyData -> most per drift while it eases in
+	for data in pool:
+		if number - data.intro_drift <= EASE_IN and data.intro_drift <= hand_made.size():
+			var at_intro := 0
+			for slot in _slots_of(hand_made[data.intro_drift - 1], false):
+				if slot[0] == data:
+					at_intro += slot[1]
+			fresh_caps[data] = maxi(at_intro, 1)
 	var kept_elites: Array = []  # [[EnemyData, count, true]] from the hand-made drift
 	for group in drift.groups:
 		for entry in group.entries:
@@ -158,11 +173,13 @@ static func _roll_drift(director: Node, number: int, drift: DriftData, rng: Rand
 		var template := _pick_template(rng, act, pool, previous, state)
 		if template == null:
 			return null
-		var mix := _mix(rng, template, pool, budget, RESIST_CAP_ACT1 if act <= 1 else RESIST_CAP, act)
+		var mix := _mix(rng, template, pool, budget, RESIST_CAP_ACT1 if act <= 1 else RESIST_CAP, act, fresh_caps)
 		if mix.is_empty():
 			continue
 		# Fairness judges the rolled part: the hand-made elites are a fixed design choice (drift 23's
 		# first elites are Husks on purpose).
+		if get_leaves(mix) > maxi(ceili(hand_leaves * LEAVES_SCALE), hand_leaves + LEAVES_EXTRA):
+			continue  # More leaves at stake than the drift was made for (many cheap Phantoms)
 		var leans: Variant = _leans_if_fair(mix, act, state)
 		if leans == null:
 			continue
@@ -196,7 +213,7 @@ static func _pick_template(rng: RandomNumberGenerator, act: int, pool: Array[Ene
 
 # [[EnemyData, count, elite], …] sharing `budget`, or [] if the counts can't land close enough.
 static func _mix(rng: RandomNumberGenerator, template: DriftTemplate, pool: Array[EnemyData], budget: float,
-		cap: float, act: int = 2) -> Array:
+		cap: float, act: int = 2, fresh_caps: Dictionary = {}) -> Array:
 	var leads := pool.filter(template.can_lead)
 	var lead: EnemyData = leads[rng.randi() % leads.size()]
 	var max_types := mini(template.max_types, pool.size())
@@ -230,22 +247,22 @@ static func _mix(rng: RandomNumberGenerator, template: DriftTemplate, pool: Arra
 	# Elite hunt: some of the lead come Deeply Blighted, paid for out of the budget.
 	var elites := 0
 	var elite_cost := 0.0
-	if template.extra_elites > 0 and template.extra_elites * lead.get_roll_cost() * ELITE_COST <= budget * 0.5:
+	if template.extra_elites > 0 and template.extra_elites * lead.get_roll_weight() * ELITE_COST <= budget * 0.5:
 		elites = template.extra_elites
-		elite_cost = elites * lead.get_roll_cost() * ELITE_COST
+		elite_cost = elites * lead.get_roll_weight() * ELITE_COST
 	var normal := budget - elite_cost
 	var counts: Array[int] = []
 	for i in types.size():
-		counts.append(maxi(1, roundi(shares[i] * normal / types[i].get_roll_cost())))
+		counts.append(maxi(1, roundi(shares[i] * normal / types[i].get_roll_weight())))
 	# Land on the budget: the cheapest type takes up the rounding.
 	var cheapest := 0
 	for i in types.size():
-		if types[i].get_roll_cost() < types[cheapest].get_roll_cost():
+		if types[i].get_roll_weight() < types[cheapest].get_roll_weight():
 			cheapest = i
 	var total := elite_cost
 	for i in types.size():
-		total += counts[i] * types[i].get_roll_cost()
-	counts[cheapest] = maxi(1, counts[cheapest] + roundi((budget - total) / types[cheapest].get_roll_cost()))
+		total += counts[i] * types[i].get_roll_weight()
+	counts[cheapest] = maxi(1, counts[cheapest] + roundi((budget - total) / types[cheapest].get_roll_weight()))
 	# Act 1 Swarm: at most ACT1_SWARM_MAX small nightmares; the rest of the budget goes to a bigger type.
 	if act <= 1 and template.id == &"swarm":
 		var small := 0
@@ -258,7 +275,7 @@ static func _mix(rng: RandomNumberGenerator, template: DriftTemplate, pool: Arra
 				var cut := mini(small - ACT1_SWARM_MAX, counts[i] - 1)
 				counts[i] -= cut
 				small -= cut
-				excess += cut * types[i].get_roll_cost()
+				excess += cut * types[i].get_roll_weight()
 		if excess > 0.0:
 			var bulky := -1
 			for i in types.size():
@@ -271,10 +288,40 @@ static func _mix(rng: RandomNumberGenerator, template: DriftTemplate, pool: Arra
 				types.append(bigger[rng.randi() % bigger.size()])
 				counts.append(0)
 				bulky = types.size() - 1
-			counts[bulky] += maxi(1, roundi(excess / types[bulky].get_roll_cost()))
+			counts[bulky] += maxi(1, roundi(excess / types[bulky].get_roll_weight()))
+	# New types ease in (acts_1_2.md "Introduce, then mix"): for EASE_IN drifts after its intro, a type
+	# comes at most as many as at its intro; the rest of its share goes to a type the player knows.
+	var spill := 0.0
+	for i in types.size():
+		if fresh_caps.has(types[i]) and counts[i] > fresh_caps[types[i]]:
+			spill += (counts[i] - fresh_caps[types[i]]) * types[i].get_roll_weight()
+			counts[i] = fresh_caps[types[i]]
+	if spill > 0.0:
+		var known := -1
+		for i in types.size():
+			if not fresh_caps.has(types[i]) and (known < 0 or types[i].get_roll_weight() < types[known].get_roll_weight()):
+				known = i
+		if known < 0:
+			var settled := pool.filter(func(data: EnemyData) -> bool: return not fresh_caps.has(data))
+			if settled.is_empty():
+				return []
+			types.append(settled[rng.randi() % settled.size()])
+			counts.append(0)
+			known = types.size() - 1
+		counts[known] += maxi(1, roundi(spill / types[known].get_roll_weight()))
+	# The spills can undo each other (a Swarm's excess onto a new type, or a new type's onto Shades):
+	# then this template doesn't fit this drift.
+	var small_total := 0
+	for i in types.size():
+		if fresh_caps.has(types[i]) and counts[i] > fresh_caps[types[i]]:
+			return []
+		if &"small" in types[i].roll_tags:
+			small_total += counts[i]
+	if act <= 1 and template.id == &"swarm" and small_total > ACT1_SWARM_MAX:
+		return []
 	total = elite_cost
 	for i in types.size():
-		total += counts[i] * types[i].get_roll_cost()
+		total += counts[i] * types[i].get_roll_weight()
 	if absf(total - budget) > budget * BUDGET_TOLERANCE:
 		return []
 	var mix := []
@@ -334,6 +381,24 @@ static func _build(drift: DriftData, mix: Array, template: DriftTemplate, act: i
 	rolled.groups.append(group)
 	rolled.set_meta(META_TEMPLATE, template.id)
 	return rolled
+
+# Leaves at stake in [[EnemyData, count, elite], …] if all of it reached the Heartwood (an elite
+# costs at least Enemy.ELITE_LEAVES).
+static func get_leaves(mix: Array) -> int:
+	var leaves := 0
+	for slot in mix:
+		var data: EnemyData = slot[0]
+		leaves += slot[1] * (maxi(data.get_roll_leaves(), ELITE_LEAVES) if slot[2] else data.get_roll_leaves())
+	return leaves
+
+# A drift's non-boss entries as [[EnemyData, count, elite], …] (`elites`: include the elite ones).
+static func _slots_of(drift: DriftData, elites: bool) -> Array:
+	var slots := []
+	for group in drift.groups:
+		for entry in group.entries:
+			if entry.enemy != null and not entry.enemy.is_boss and (elites or not entry.elite):
+				slots.append([entry.enemy, entry.count, entry.elite])
+	return slots
 
 static func _shuffle(items: Array, rng: RandomNumberGenerator) -> void:
 	for i in range(items.size() - 1, 0, -1):

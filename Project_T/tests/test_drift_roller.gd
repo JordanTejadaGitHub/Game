@@ -46,7 +46,8 @@ func _run() -> void:
 	var fallbacks := 0
 	var fallback_drifts := {}  # drift -> seeds that fell back
 	var template_counts := {}
-	var bad := {"budget": 0, "intro": 0, "fixed": 0, "cap": 0, "flyers": 0, "limited": 0, "repeat": 0, "leans": 0, "density": 0}
+	var bad := {"budget": 0, "intro": 0, "fixed": 0, "cap": 0, "flyers": 0, "limited": 0, "repeat": 0, "leans": 0, "density": 0, "leaves_cap": 0}
+	var phantoms_by_drift := {}  # Drift -> Phantoms over all seeds
 	for seed in SEEDS:
 		DriftRoller.roll_run(director, seed + 1)
 		var previous := &""
@@ -70,6 +71,7 @@ func _run() -> void:
 			template_counts[template] = template_counts.get(template, 0) + 1
 			var budget := DriftRoller.get_budget(original)
 			var total := 0.0  # The rolled part: the hand-made elites the roller keeps come last
+			var weight := 0.0  # …in budget weight (the Phantom ×4)
 			var resisted := {}
 			var all_flyers := true
 			var entries: Array = drift.groups[0].entries
@@ -83,11 +85,19 @@ func _run() -> void:
 					continue
 				var cost := entry.count * entry.enemy.get_roll_cost() * (DriftRoller.ELITE_COST if entry.elite else 1.0)
 				total += cost
+				weight += entry.count * entry.enemy.get_roll_weight() * (DriftRoller.ELITE_COST if entry.elite else 1.0)
 				for family in entry.enemy.resists:
 					resisted[family] = resisted.get(family, 0.0) + cost
 				if entry.enemy.trait_kind != EnemyData.Trait.FLYING:
 					all_flyers = false
-			var rolled_budget := total
+			var rolled_budget := weight
+			var rolled_leaves := DriftRoller.get_leaves(_rolled_slots(drift, entries.size() - _elite_entries(original)))
+			var hand_leaves := DriftRoller.get_leaves(DriftRoller._slots_of(original, false))
+			if rolled_leaves > maxi(ceili(hand_leaves * DriftRoller.LEAVES_SCALE), hand_leaves + DriftRoller.LEAVES_EXTRA):
+				bad.leaves_cap += 1
+			for entry in entries:
+				if entry.enemy.is_through_walls() and not entry.elite:
+					phantoms_by_drift[n] = phantoms_by_drift.get(n, 0) + entry.count
 			if absf(rolled_budget - budget) > budget * DriftRoller.BUDGET_TOLERANCE + 0.01:
 				bad.budget += 1
 			if all_flyers:
@@ -119,6 +129,9 @@ func _run() -> void:
 			if template == previous:
 				bad.repeat += 1
 			previous = template
+	for n in [28, 29, 30]:
+		var average: float = phantoms_by_drift.get(n, 0) / float(SEEDS)
+		_check(average <= 8.0, "drift %d: Phantoms stay near the hand-made count (%.1f on average)" % [n, average])
 	for rule in bad:
 		_check(bad[rule] == 0, "over %d seeds, rule '%s' holds (%d breaks)" % [SEEDS, rule, bad[rule]])
 	_check(fallbacks <= rolled_total / 50, "hand-made fallbacks stay rare (%d of %d)" % [fallbacks, rolled_total + fallbacks])
@@ -175,3 +188,11 @@ func _check(condition: bool, label: String) -> void:
 	if not condition:
 		failures += 1
 		printerr("FAIL: " + label)
+
+# The rolled entries (before the kept hand-made elites) as [[EnemyData, count, elite], …].
+func _rolled_slots(drift: DriftData, rolled_entries: int) -> Array:
+	var slots := []
+	for i in rolled_entries:
+		var entry: DriftEntry = drift.groups[0].entries[i]
+		slots.append([entry.enemy, entry.count, entry.elite])
+	return slots

@@ -154,6 +154,9 @@ enum Trait { NONE, FLYING, ROLLING, TRAMPLE, LEAP, BURROW, WANDER }
 # trait-heavy type, the old named drifts). Flying / through walls come from the trait.
 @export var intro_drift: int = 0
 @export var roll_tags: Array[StringName] = []
+# How much more than its health one of these weighs in a rolled drift's budget: nightmares whose
+# threat isn't health (the Phantom skips the whole maze for a leaf) would otherwise come by the dozen.
+@export var roll_threat: float = 1.0
 
 @export_group("Followers")
 # Mother Duck: spawns `follower_count` `followers` right behind her in single file. If she's
@@ -302,6 +305,19 @@ func get_roll_cost() -> float:
 	if split_into != null and split_count > 0:
 		cost += split_count * split_into.get_roll_cost()
 	return cost
+
+# What one of these weighs in a rolled drift's budget: get_roll_cost() × roll_threat.
+func get_roll_weight() -> float:
+	return get_roll_cost() * roll_threat
+
+# Leaves at stake if it and everything it brings reach the Heartwood.
+func get_roll_leaves() -> int:
+	var leaves := leaf_cost
+	if followers != null and follower_count > 0:
+		leaves += follower_count * followers.get_roll_leaves()
+	if split_into != null and split_count > 0:
+		leaves += split_count * split_into.get_roll_leaves()
+	return leaves
 
 # Flies straight over the maze (the Phantom): walls don't shape its path.
 func is_through_walls() -> bool:
