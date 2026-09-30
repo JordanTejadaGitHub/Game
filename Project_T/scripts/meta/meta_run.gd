@@ -121,8 +121,8 @@ func _ready() -> void:
 	records = active and get_tree().current_scene == owner and not is_dev_run()
 	if DevGrove.is_active():
 		_add_dev_tag.call_deferred()
-	# Family Blessings are in the Dream pool (never offered; the family pick grants them), so their
-	# effects count and saved runs find them.
+	# Family Blessings are Rare Dream cards (meta_design.md "Replaced 2026-09-30"): one per family, offered
+	# like any card once you own that family. MetaRun keeps them in the pool (their own folder).
 	for blessing in load_blessings():
 		if not dream_state.pool.has(blessing):
 			dream_state.pool.append(blessing)

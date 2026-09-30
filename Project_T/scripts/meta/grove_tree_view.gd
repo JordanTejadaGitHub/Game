@@ -26,6 +26,12 @@ const TAP_RADIUS := 22.0  # Tree px around a node, fruit or stone that counts as
 const DRAG_THRESHOLD := 8.0  # Screen px before a press becomes a pan
 const GROW_STEP := 0.1  # Seconds per branch / bud frame while planting
 const CANOPY_FADE := 1.2
+# Ambient life (like the title screen): calm, stepped, in whole art pixels; all still under reduced motion.
+const CANOPY_BASE_Y := 620  # The crown stretches upward from this tree-space row (where it meets the limbs)
+const CANOPY_BREATH := 2  # Art px at the top of a breath
+const CANOPY_BREATH_PERIOD := 5.5  # Seconds per breath
+const FRUIT_BOB_PERIODS: Array[float] = [2.4, 2.9, 3.3, 2.6]  # Each dream-fruit bobs 1 px at its own pace
+const HOLLOW_PULSE_PERIOD := 4.0  # The warm light in the hollow (layout "hollow", optional)
 const SECTION_ROW := {"perks": 0, "families": 1, "cards": 2}
 const SECTION_COLOR := {"perks": Palette.GLOW, "families": Palette.NEWLEAF, "cards": Palette.BLOSSOM}
 
@@ -44,8 +50,9 @@ var _fruit_opening := {}  # index -> time it began opening
 var _time := 0.0
 var _world := Control.new()
 var _layer := Control.new()
-var _canopy_back := TextureRect.new()
-var _canopy_front := TextureRect.new()
+var _canopy_back := BreathLayer.new()
+var _canopy_front := BreathLayer.new()
+var _breath := -1  # Canopy stretch in art px now (0..CANOPY_BREATH), -1 = not drawn yet
 var _canopy_stage := -1
 var _press_pos := Vector2.ZERO
 var _pressing := false
@@ -113,6 +120,7 @@ func _ready() -> void:
 	for rect in [_canopy_back, _canopy_front]:
 		rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		rect.size = TREE_SIZE
+		rect.base_y = CANOPY_BASE_Y
 	_layer.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_layer.size = TREE_SIZE
 	_layer.draw.connect(_draw_layer)
@@ -168,8 +176,8 @@ func _set_canopy(stage: int, instant: bool) -> void:
 	if stage == _canopy_stage:
 		return
 	var texture: Texture2D = load(ART + "grove/grove_canopy_%d.png" % stage)
-	_canopy_back.texture = _canopy_front.texture if _canopy_front.texture else texture
-	_canopy_front.texture = texture
+	_canopy_back.set_texture(_canopy_front.texture if _canopy_front.texture else texture)
+	_canopy_front.set_texture(texture)
 	_canopy_stage = stage
 	if instant or _reduced_motion:
 		_canopy_front.modulate.a = 1.0
@@ -339,6 +347,14 @@ func node_screen_position(id: String) -> Vector2:
 
 func _process(delta: float) -> void:
 	_time += delta
+	# The canopy breathes: a slow stepped stretch upward from where it meets the limbs (0 → 2 → 0 art px),
+	# redrawn only when the step changes. Still under reduced motion.
+	var breath := 0 if _reduced_motion else roundi((1.0 - cos(TAU * _time / CANOPY_BREATH_PERIOD)) * 0.5 * CANOPY_BREATH)
+	if breath != _breath:
+		_breath = breath
+		for rect in [_canopy_back, _canopy_front]:
+			rect.grow = breath
+			rect.queue_redraw()
 	_layer.queue_redraw()
 
 # --- Drawing (tree space) ---
@@ -346,6 +362,8 @@ func _process(delta: float) -> void:
 func _draw_layer() -> void:
 	if _memory.is_empty():
 		return
+	_draw_hollow_light()
+	_draw_mists()
 	for node in _nodes:
 		_draw_branch(node)
 	_draw_fruit()
@@ -444,6 +462,8 @@ func _draw_fruit() -> void:
 			var step := floori((_time - _fruit_opening[i]) / GROW_STEP)
 			frame = 4 + step if step < 4 else 8
 		var top := vec(spots[i])
+		if not _reduced_motion:  # Each fruit bobs 1 px on its stem, at its own pace
+			top.y += roundf(sin(TAU * _time / FRUIT_BOB_PERIODS[i % FRUIT_BOB_PERIODS.size()] + i * 1.7))
 		_layer.draw_texture_rect_region(_fruit_texture, Rect2(top - Vector2(FRUIT_FRAME / 2.0, 0), Vector2.ONE * FRUIT_FRAME),
 			Rect2(frame * FRUIT_FRAME, 0, FRUIT_FRAME, FRUIT_FRAME))
 
@@ -494,3 +514,58 @@ func _draw_motes() -> void:
 		var drift := Vector2(sin(_time * 0.3 + mote.z) * 14.0, cos(_time * 0.22 + mote.z * 1.3) * 10.0)
 		var alpha := 0.25 + 0.25 * sin(_time * 1.3 + mote.z * 2.0)
 		_layer.draw_circle(Vector2(mote.x, mote.y) + drift, 1.2, Color(Palette.GLOW, alpha))
+
+# The warm light in the Heartwood's hollow, pulsing softly (layout "hollow": its centre; skipped if absent).
+func _draw_hollow_light() -> void:
+	var hollow = load_layout().get("hollow")
+	if hollow == null:
+		return
+	var pulse := 0.5 if _reduced_motion else 0.5 + 0.5 * sin(TAU * _time / HOLLOW_PULSE_PERIOD)
+	var centre := vec(hollow)
+	_layer.draw_circle(centre, 22.0, Color(1.0, 0.72, 0.35, 0.06 + 0.05 * pulse))
+	_layer.draw_circle(centre, 12.0, Color(1.0, 0.82, 0.5, 0.08 + 0.07 * pulse))
+
+# Mist strips drifting through the roots (layout "mists": [{file, y, speed}], art px per second, wrapping).
+var _mist_textures := {}
+
+func _draw_mists() -> void:
+	for mist in load_layout().get("mists", []):
+		var path := ART + "grove/" + str(mist.file)
+		if not _mist_textures.has(path):
+			_mist_textures[path] = load(path) if ResourceLoader.exists(path) else null
+		var tex: Texture2D = _mist_textures[path]
+		if tex == null:
+			continue
+		var width := float(tex.get_width())
+		var shift := 0.0 if _reduced_motion else floorf(fposmod(_time * float(mist.speed), width))
+		var x := shift - width
+		while x < TREE_SIZE.x:
+			_layer.draw_texture(tex, Vector2(x, float(mist.y)))
+			x += width
+
+# A texture layer that stretches upward from `base_y` by `grow` whole pixels, one source row per drawn
+# row (inverse mapping, like the title backdrop), so pixel art stays crisp and never gaps.
+class BreathLayer extends Control:
+	var texture: Texture2D
+	var base_y := 0
+	var grow := 0
+
+	func set_texture(value: Texture2D) -> void:
+		texture = value
+		queue_redraw()
+
+	func _draw() -> void:
+		if texture == null:
+			return
+		var w := float(texture.get_width())
+		var h := float(texture.get_height())
+		if grow <= 0:
+			draw_texture(texture, Vector2.ZERO)
+			return
+		draw_texture_rect_region(texture, Rect2(0, base_y, w, h - base_y), Rect2(0, base_y, w, h - base_y))
+		var span := float(base_y)
+		for dy in range(-grow, base_y):
+			var sy := base_y - int(ceil((base_y - dy) * span / (span + grow)))
+			if sy < 0:
+				continue
+			draw_texture_rect_region(texture, Rect2(0, dy, w, 1), Rect2(0, sy, w, 1))
