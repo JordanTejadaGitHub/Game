@@ -882,8 +882,10 @@ it is **when the act begins** and has the whole act to build for it:
 - **Acts 2–4:** it opens at the act-break rest (the boss rest after drifts 25 / 50 / 75), last in
   the rest order, for the **next** act's boss.
 - **The rest opening the boss block** (after drifts 20, 45, 70, 95) no longer opens the full card,
-  only a short reminder (*"The Hollow Stag arrives in 5 drifts"*, the portrait, an "Open dossier"
-  button): a nudge, not a repeat. It can be closed and **reopened any time
+  only a short reminder (*"The Hollow Stag arrives in 5 drifts"*, the portrait, an **"About the
+  Hollow Stag"** button): a nudge, not a repeat. **The word "dossier" never reaches the player**
+  (2026-09-30, user: *"Open dossier???"*): buttons and tooltips name the boss ("About the Mire
+  Hag"); "dossier" stays an internal name. It can be closed and **reopened any time
 until the boss is dispelled**: tap the "Boss in N" countdown in the drift banner, or its portrait in
 *Coming this block*.
 
