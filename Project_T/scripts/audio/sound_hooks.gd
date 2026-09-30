@@ -863,7 +863,11 @@ func _remember_bloom(data: TowerData) -> void:
 		if sound.has_sound(deep):
 			sound.play(deep, null, REMEMBER_DB - 2.0, 1.0, 0.0, &"UI")
 
-func _on_dreamlight_earned(_amount = 0, _source = &"") -> void:
+# Sources (Roguelite Code 9c3c25ee): boss, shard, glimmer, first_pick, wake, card, omen, other. "other"
+# is the Sapling (it plays its own ripening swell) and Early Light at run start, so it stays quiet.
+func _on_dreamlight_earned(_amount = 0, source = &"") -> void:
+	if source == &"other":
+		return
 	sound.play(&"dreamlight_glow", null, REMEMBER_DB, 1.0, 0.0, &"UI")
 
 # The boss card opening (Main's BossDossier, 6a57ff6e; at act starts and from the banner): a low sting
