@@ -198,13 +198,15 @@ static func button_box(hover: bool = false) -> StyleBoxFlat:
 	_margins(box, 14.0, 6.0)
 	return box
 
-# Primary and toggled buttons: gold at 16% fill, solid gold outline, a soft gold glow.
+# Primary buttons (the panel's main action, Continue, Start): at rest only a solid gold outline on the
+# fog, never a fill (user, 2026-09-30: "still seems highlighted when I'm not hovering"); hovering fills
+# the whole box with the soft highlight, like every button.
 static func primary_box(hover: bool = false) -> StyleBoxFlat:
 	var box := button_box()
-	box.bg_color = Color(BUTTON_GOLD, 0.24 if hover else 0.16)
 	box.border_color = GOLD if hover else BUTTON_GOLD
-	box.shadow_color = Color(BUTTON_GOLD, 0.3)
-	box.shadow_size = 8
+	box.set_border_width_all(2 if hover else 1)
+	if hover:
+		box.bg_color = Color(FOG, 0.55).blend(HOVER_FILL)
 	return box
 
 # Selected vs hovered (screens_ui.md, playtest 2026-09-30: "First" selected and a hovered button looked
@@ -390,7 +392,7 @@ static func make_theme() -> Theme:
 	primary_press.bg_color = Color(FOG, 0.7)
 	primary_press.shadow_size = 0
 	var primary_hover := primary_box(true)
-	primary_hover.bg_color = primary_hover.bg_color.blend(HOVER_FILL)
+	# (primary_box(true) already carries the hover fill)
 	_button_styles(theme, "PrimaryButton", primary_box(), primary_hover, primary_press, primary_hover)
 	for state in ["font_color", "font_hover_color", "font_focus_color"]:
 		theme.set_color(state, "PrimaryButton", GOLD_TEXT)

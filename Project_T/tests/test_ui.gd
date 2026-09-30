@@ -58,6 +58,15 @@ func _run() -> void:
 		and IconInfo.family_emblem("memory") != null, "emblems: the damage-type badge; Acorn / Memory the plain leaf")
 	_check(UiStyle.TIP_SIZE >= 16 and UiStyle.TIP_NAME_SIZE >= 18
 		and ThemeDB.get_project_theme().get_font_size("font_size", "TooltipLabel") >= 16, "tooltip text is at least 16 px, names 18")
+	# Selected vs hovered: no button rests filled; the primary look at rest is only its gold border.
+	var theme := ThemeDB.get_project_theme()
+	var plain_rest := theme.get_stylebox("normal", "Button") as StyleBoxFlat
+	var primary_rest := theme.get_stylebox("normal", "PrimaryButton") as StyleBoxFlat
+	var primary_hover := theme.get_stylebox("hover", "PrimaryButton") as StyleBoxFlat
+	var focus := theme.get_stylebox("focus", "Button") as StyleBoxFlat
+	_check(primary_rest.bg_color == plain_rest.bg_color and primary_rest.shadow_size == 0
+		and primary_hover.bg_color != primary_rest.bg_color and not focus.draw_center,
+		"primary buttons rest unfilled (gold border only); hover fills; focus is an outline")
 	# Seedling Gift: a seed badge with the count on the Sprout button, hidden at 0.
 	var hud_node = main.get_node("HUD")
 	_check(hud_node._seed_badge != null and not hud_node._seed_badge.visible, "no seed badge without free Sprouts")
