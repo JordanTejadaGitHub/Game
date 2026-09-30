@@ -104,7 +104,10 @@ const STATUS_BADGE_BIG := 18.0
 const STATUS_BADGE_GAP := 3.0
 const STATUS_BADGES_MAX := 4  # More → the most important ones (BADGE_ORDER) and "+N"
 const BADGE_ORDER: Array[StringName] = [&"static", &"held", &"marked", &"spored", &"drowsy", &"damp"]
-const STATUS_REDRAW_EVERY := 0.2  # The rim arcs drain in steps this long (no redraw every frame)
+const VIEW_MARGIN := 96.0  # px past the screen edge where nightmares still draw (their badges overhang)
+# NightmareOverlay's passes (draw_hud): one kind at a time for the whole field, so it batches.
+enum { HUD_BARS, HUD_DISCS, HUD_ICONS, HUD_TEXT }
+const HUD_PASSES := [HUD_BARS, HUD_DISCS, HUD_ICONS, HUD_TEXT]
 const STATUS_DOT_RADIUS := 3.0  # Fallback when the icon sheet has no icon for a status
 const STACK_FONT_SIZE := 10
 static var _stack_font: FontVariation
@@ -196,8 +199,14 @@ var _held_by: Node = null
 var _lingered := false
 var _release_spent := false  # The current hold came from a release pull (Snare): it won't pull again
 var _caught_left := 0.0  # Caught time after last frame's tick (a rise = caught again)
-var _drawn_changes := -1
-var _badge_redraw_left := randf() * STATUS_REDRAW_EVERY  # Staggered, so a crowd doesn't redraw on one frame
+var _redraw_pending := false  # Something drawn changed: redrawn in _process once on screen
+# The badge row, cached until statuses.changes moves (_update_hud_layout)
+var _hud_changes := -1
+var _hud_ids: Array = []
+var _hud_stacks: Array[int] = []
+var _hud_full: Array[bool] = []
+var _hud_colors: Array[Color] = []
+var _hud_icons: Array[Texture2D] = []
 var _drawn_aura := false
 var _was_animating := false
 var _speed_cache := 0.0
@@ -288,10 +297,9 @@ func _ready() -> void:
 		sprite.modulate.a *= ECHO_ALPHA  # A pale face from the Oak's bark
 	sprite.play("walk_side")
 
-	# Nightmare look: per-enemy material so each one can crack apart on its own
-	var blight_material := ShaderMaterial.new()
-	blight_material.shader = BLIGHT_SHADER
-	sprite.material = blight_material
+	# Nightmare look: one material shared by every nightmare (so their sprites batch into few draw
+	# calls); one cracking apart gets its own copy (_set_crack), outlined elites share a second one.
+	sprite.material = _blight_material(false)
 
 	_refresh_display_settings()
 	_keep_always_statuses()
@@ -338,42 +346,44 @@ func _process(delta: float) -> void:
 		Reactions.on_smother_ended(self)  # Fever Dream (a Crowned Reaction)
 		if is_cleansed:
 			return
-	_bolt_flash = maxf(_bolt_flash - delta, 0.0)
-	_shrug_flash = maxf(_shrug_flash - delta, 0.0)
+	# Timers: only the running ones count down (most sit at 0; this runs for every nightmare every frame).
+	if _bolt_flash > 0.0:
+		_bolt_flash = maxf(_bolt_flash - delta, 0.0)
+	if _shrug_flash > 0.0:
+		_shrug_flash = maxf(_shrug_flash - delta, 0.0)
 	if elite:
 		_haze_phase += ELITE_HAZE_SPEED * delta
-	_hit_mark_time = maxf(_hit_mark_time - delta, 0.0)
-	for id: StringName in (_status_flash.keys() if not _status_flash.is_empty() else []):
-		_status_flash[id] -= delta
-		if _status_flash[id] <= 0.0:
-			_status_flash.erase(id)
-	_crit_flash = maxf(_crit_flash - delta, 0.0)
-	_pose_left = maxf(_pose_left - delta, 0.0)
-	freeze_cooldown = maxf(freeze_cooldown - delta, 0.0)
-	push_cooldown = maxf(push_cooldown - delta, 0.0)
-	# Smother's looping effect lasts while it's held with spores on it (Reactions).
-	if has_meta(&"smother_fx") and not statuses.smothering:
-		var smother = get_meta(&"smother_fx")
-		if is_instance_valid(smother):
-			smother.queue_free()
-		remove_meta(&"smother_fx")
-	# Redraw only when something drawn changed: the status row (a status came, went or changed
-	# stacks), the Stag aura ring, or an animation that's playing (flashes, haze, embers, glow).
-	# Health / shell bars redraw from take_damage and heal.
+	if _hit_mark_time > 0.0:
+		_hit_mark_time = maxf(_hit_mark_time - delta, 0.0)
+	if not _status_flash.is_empty():
+		for id: StringName in _status_flash.keys():
+			_status_flash[id] -= delta
+			if _status_flash[id] <= 0.0:
+				_status_flash.erase(id)
+	if _crit_flash > 0.0:
+		_crit_flash = maxf(_crit_flash - delta, 0.0)
+	if _pose_left > 0.0:
+		_pose_left = maxf(_pose_left - delta, 0.0)
+	if freeze_cooldown > 0.0:
+		freeze_cooldown = maxf(freeze_cooldown - delta, 0.0)
+	if push_cooldown > 0.0:
+		push_cooldown = maxf(push_cooldown - delta, 0.0)
+	# Smother's looping effect lasts while it's held with spores on it (Reactions): ended on the frame
+	# tick() reports it stopping, and checked on each presence tick as well (_update_presence).
+	if statuses.smother_ended:
+		_end_smother_fx()
+	# Its own drawing (the bars and badges are NightmareOverlay's): redrawn only for the Stag aura ring
+	# or an animation that's playing (flashes, haze, embers, glow); off screen it waits until it's back.
 	var aura := statuses.is_in_stag_aura()
 	var animating := _bolt_flash > 0.0 or _shrug_flash > 0.0 or _hit_mark_time > 0.0 or elite or _crit_flash > 0.0 \
-		or not _status_flash.is_empty() or not _ash_cells.is_empty() or unbound
-	var badges_due := false  # The badges' rim arcs drain: a redraw every STATUS_REDRAW_EVERY s, not every frame
-	if statuses.count() > 0:
-		_badge_redraw_left -= delta
-		if _badge_redraw_left <= 0.0:
-			_badge_redraw_left = STATUS_REDRAW_EVERY
-			badges_due = true
-	if animating or _was_animating or badges_due or statuses.changes != _drawn_changes or aura != _drawn_aura:
-		_drawn_changes = statuses.changes
+		or not _ash_cells.is_empty() or unbound
+	if animating or _was_animating or aura != _drawn_aura:
 		_drawn_aura = aura
-		queue_redraw()  # (One more after an animation ends, to clear its last frame.)
+		_redraw_pending = true  # (One more after an animation ends, to clear its last frame.)
 	_was_animating = animating
+	if _redraw_pending and _on_screen(self):
+		_redraw_pending = false
+		queue_redraw()
 	_update_presence(delta)
 
 	if _dragging:
@@ -501,25 +511,107 @@ func _draw() -> void:
 		_draw_hit_mark(_hit_mark_time / HIT_MARK_TIME)
 	if statuses.is_in_stag_aura():
 		draw_arc(Vector2(0, 6), 18.0, 0.0, TAU, 24, Color(Palette.MOONLIGHT, 0.35), 2.0)
-	if statuses.count() > 0:
-		_draw_status_badges()
+	# The health bar, coat, Restless arrows and status badges are NightmareOverlay's (draw_hud below).
+
+# The HUD over this nightmare, drawn by NightmareOverlay onto its one canvas item (`at` = this
+# nightmare's origin there), one kind per pass so the whole field batches: HUD_BARS (health bar,
+# blight coat, Restless arrows), HUD_DISCS (badge discs, rim arcs, flashes), HUD_ICONS, HUD_TEXT
+# (stack counts, "+N"). `text_scale` = WorldLabel.text_scale (badges keep their screen size).
+func draw_hud(canvas: CanvasItem, at: Vector2, pass_kind: int, text_scale: float) -> void:
+	if pass_kind == HUD_BARS:
+		_draw_hud_bars(canvas, at)
+		return
+	if statuses.count() == 0:
+		return
+	_update_hud_layout()
+	var n := _hud_ids.size()
+	var extra := statuses.count() - n
+	var r := get_badge_size() / 2.0
+	var step := r * 2.0 + STATUS_BADGE_GAP
+	# The row sits on the health bar's top edge; the badges are screen px around that point.
+	var anchor := at + HEALTH_BAR_OFFSET - Vector2(0, HEALTH_BAR_SIZE.y / 2.0 + 2.0)
+	canvas.draw_set_transform(anchor - anchor * text_scale, 0.0, Vector2(text_scale, text_scale))
+	var width := n * step - STATUS_BADGE_GAP + (step * 0.9 if extra > 0 else 0.0)
+	var x := -width / 2.0 + r
+	for i in n:
+		var centre := anchor + Vector2(x, -r)
+		match pass_kind:
+			HUD_DISCS:
+				_draw_badge_disc(canvas, i, centre, r)
+			HUD_ICONS:
+				var icon: Texture2D = _hud_icons[i]
+				if icon != null:
+					var s := r * 1.4
+					canvas.draw_texture_rect(icon, Rect2(centre - Vector2(s, s) / 2.0, Vector2(s, s)), false)
+			HUD_TEXT:
+				if _hud_stacks[i] > 1:
+					_draw_stack_text(canvas, centre + Vector2(r * 0.15, r + 2.0), str(_hud_stacks[i]),
+						Palette.GOLD if _hud_full[i] else Palette.MOONLIGHT)
+		x += step
+	if extra > 0 and pass_kind == HUD_TEXT:
+		_draw_stack_text(canvas, anchor + Vector2(x - r + 1.0, -r + STACK_FONT_SIZE * 0.4), "+%d" % extra,
+			Palette.MOONLIGHT)
+
+# The badge row's statuses, stacks, caps, colours and icons, worked out again only when a status
+# comes, goes or changes stacks (statuses.changes): the overlay draws every frame.
+func _update_hud_layout() -> void:
+	if _hud_changes == statuses.changes:
+		return
+	_hud_changes = statuses.changes
+	_hud_ids = get_badge_ids()
+	_hud_stacks.clear()
+	_hud_full.clear()
+	_hud_colors.clear()
+	_hud_icons.clear()
+	for id in _hud_ids:
+		var stacks := statuses.stacks(id)
+		var cap := statuses.get_max_stacks(id)
+		_hud_stacks.append(stacks)
+		_hud_full.append(cap > 1 and stacks >= cap)
+		_hud_colors.append(EnemyStatuses.COLORS.get(id, Palette.MOONLIGHT))
+		_hud_icons.append(_status_icon(id))
+
+func _draw_hud_bars(canvas: CanvasItem, at: Vector2) -> void:
 	# Restless: a small backward arrow per stack, right of the health bar (red-hot once Unbound)
 	for i in restless:
-		var tip := HEALTH_BAR_OFFSET + Vector2(HEALTH_BAR_SIZE.x / 2 + 5 + i * 6, 0)
+		var tip := at + HEALTH_BAR_OFFSET + Vector2(HEALTH_BAR_SIZE.x / 2 + 5 + i * 6, 0)
 		var arrow := PackedVector2Array([tip + Vector2(4, -3), tip, tip + Vector2(4, 3)])
-		draw_polyline(arrow, Color(Palette.VOID, 0.8), 3.0)
-		draw_polyline(arrow, UNBOUND_GLOW if unbound else RESTLESS_COLOR, 1.5)
+		canvas.draw_polyline(arrow, Color(Palette.VOID, 0.8), 3.0)
+		canvas.draw_polyline(arrow, UNBOUND_GLOW if unbound else RESTLESS_COLOR, 1.5)
 	# Health bar once the enemy has been hit, with the blight coat as a grey bar on top of it
-	var bar := Rect2(HEALTH_BAR_OFFSET - HEALTH_BAR_SIZE / 2, HEALTH_BAR_SIZE)
+	var bar := Rect2(at + HEALTH_BAR_OFFSET - HEALTH_BAR_SIZE / 2, HEALTH_BAR_SIZE)
 	if health < max_health or _bars_always:
-		draw_rect(bar.grow(1), Color(Palette.VOID, 0.8))
+		canvas.draw_rect(bar.grow(1), Color(Palette.VOID, 0.8))
 		var fill := bar
 		fill.size.x *= float(health) / max_health
-		draw_rect(fill, Palette.SPRIG)  # The health bar is HUD, not the nightmare: green reads as health
+		canvas.draw_rect(fill, Palette.SPRIG)  # The health bar is HUD, not the nightmare: green reads as health
 	if coat > 0.0:
 		var crust := Rect2(bar.position - Vector2(0, 4), Vector2(bar.size.x * coat / maxf(coat_max, 1.0), 3))
-		draw_rect(crust.grow(1), Color(Palette.VOID, 0.8))
-		draw_rect(crust, COAT_COLOR)
+		canvas.draw_rect(crust.grow(1), Color(Palette.VOID, 0.8))
+		canvas.draw_rect(crust, COAT_COLOR)
+
+func _end_smother_fx() -> void:
+	if has_meta(&"smother_fx") and not statuses.smothering:
+		var smother = get_meta(&"smother_fx")
+		if is_instance_valid(smother):
+			smother.queue_free()
+		remove_meta(&"smother_fx")
+
+# Whether `node` is inside the camera's view (plus a margin), with the view worked out once a frame
+# for every nightmare. No camera, or headless: always on screen.
+static func _on_screen(node: Node2D) -> bool:
+	var frame := Engine.get_process_frames()
+	if frame != _view_frame:
+		_view_frame = frame
+		_view_rect = Rect2()
+		var camera := node.get_viewport().get_camera_2d()
+		# Headless has a 64 px stand-in window: no culling there (tests and perf runs see every redraw)
+		if camera != null and camera.zoom.x > 0.0 and DisplayServer.get_name() != "headless":
+			var size := node.get_viewport().get_visible_rect().size / camera.zoom
+			_view_rect = Rect2(camera.get_screen_center_position() - size / 2.0, size).grow(VIEW_MARGIN)
+	return not _view_rect.has_area() or _view_rect.has_point(node.global_position)
+static var _view_frame := -1
+static var _view_rect := Rect2()
 
 # The statuses its badges show, most important first (BADGE_ORDER), at most STATUS_BADGES_MAX; the
 # rest only count towards the "+N".
@@ -539,60 +631,36 @@ static func _badge_rank(id: StringName) -> int:
 func get_badge_size() -> float:
 	return STATUS_BADGE_BIG if enemy_data.is_boss or elite else STATUS_BADGE
 
-func _draw_status_badges() -> void:
-	var ids := get_badge_ids()
-	var extra := statuses.count() - ids.size()
-	var size := get_badge_size()
-	var r := size / 2.0
-	var step := size + STATUS_BADGE_GAP
-	# The row sits on the health bar's top edge; everything below is in screen px around that point.
-	var anchor := HEALTH_BAR_OFFSET - Vector2(0, HEALTH_BAR_SIZE.y / 2.0 + 2.0)
-	WorldLabel.begin_screen_size(self, anchor)
-	var width := ids.size() * step - STATUS_BADGE_GAP + (step * 0.9 if extra > 0 else 0.0)
-	var x := -width / 2.0 + r
-	for id in ids:
-		var at := anchor + Vector2(x, -r)
-		_draw_status_badge(id, at, r)
-		x += step
-	if extra > 0:
-		var plus := anchor + Vector2(x - r + 1.0, -r + STACK_FONT_SIZE * 0.4)
-		_draw_stack_text(plus, "+%d" % extra, Palette.MOONLIGHT)
-	WorldLabel.end_screen_size(self)
-
-func _draw_status_badge(id: StringName, at: Vector2, r: float) -> void:
-	var color: Color = EnemyStatuses.COLORS.get(id, Palette.MOONLIGHT)
-	var stacks := statuses.stacks(id)
-	var cap := statuses.get_max_stacks(id)
-	var full := cap > 1 and stacks >= cap
-	draw_circle(at, r, Color(Palette.VOID, 0.88))
-	if full:
-		draw_arc(at, r - 1.25, 0.0, TAU, 20, color, 2.5)  # At max stacks the rim fills solid
-	else:
-		draw_arc(at, r - 1.0, 0.0, TAU, 20, Color(color, 0.3), 1.5)
-		var share := statuses.time_share(id)  # The rim drains with the time left
-		if share > 0.0:
-			draw_arc(at, r - 1.0, -PI / 2.0, -PI / 2.0 + TAU * share, maxi(4, ceili(20 * share)), color, 1.5)
-	var texture := _status_icon(id)
-	if texture != null:
-		var s := r * 1.4
-		draw_texture_rect(texture, Rect2(at - Vector2(s, s) / 2.0, Vector2(s, s)), false)
-	else:
-		draw_circle(at, STATUS_DOT_RADIUS, color)
-	if stacks > 1:
-		_draw_stack_text(at + Vector2(r * 0.15, r + 2.0), str(stacks), Palette.GOLD if full else Palette.MOONLIGHT)
-	if _status_flash.has(id):
+# One badge's disc: a rim in the status's colour (solid at max stacks; else faint, with a bright arc
+# that drains with the time left), the dark disc, a dot if the icon sheet has none, and the flash.
+func _draw_badge_disc(canvas: CanvasItem, i: int, centre: Vector2, r: float) -> void:
+	var id: StringName = _hud_ids[i]
+	var color: Color = _hud_colors[i]
+	var atlas: Texture2D = canvas.badge_atlas  # NightmareOverlay's pre-drawn shapes
+	var rect := Rect2(centre - Vector2(r, r), Vector2(r, r) * 2.0)
+	canvas.draw_texture_rect_region(atlas, rect, canvas.badge_region(NightmareOverlay.BADGE_DISC))
+	if _hud_full[i]:  # At max stacks the rim fills solid
+		canvas.draw_texture_rect_region(atlas, rect, canvas.badge_region(NightmareOverlay.BADGE_RIM_FULL), color)
+	else:  # A faint rim, and a bright arc that drains with the time left
+		canvas.draw_texture_rect_region(atlas, rect, canvas.badge_region(NightmareOverlay.BADGE_RIM), Color(color, 0.3))
+		var steps := mini(ceili(statuses.time_share(id) * NightmareOverlay.ARC_STEPS), NightmareOverlay.ARC_STEPS)
+		if steps > 0:
+			canvas.draw_texture_rect_region(atlas, rect, canvas.badge_region(NightmareOverlay.BADGE_ARC + steps - 1), color)
+	if _hud_icons[i] == null:
+		canvas.draw_circle(centre, STATUS_DOT_RADIUS, color)
+	if _status_flash.has(id):  # A combo just used it (flash_status)
 		var f: float = _status_flash[id] / STATUS_FLASH_TIME  # 1 -> 0
-		draw_circle(at, r, Color(1, 1, 1, 0.45 * f))
-		draw_arc(at, r + 2.0 + 4.0 * (1.0 - f), 0.0, TAU, 16, Color(color, f), 1.5)
+		canvas.draw_circle(centre, r, Color(1, 1, 1, 0.45 * f))
+		canvas.draw_arc(centre, r + 2.0 + 4.0 * (1.0 - f), 0.0, TAU, 16, Color(color, f), 1.5)
 
 # A bold stack count with a dark outline (baseline at `at`).
-func _draw_stack_text(at: Vector2, text: String, color: Color) -> void:
+static func _draw_stack_text(canvas: CanvasItem, at: Vector2, text: String, color: Color) -> void:
 	if _stack_font == null:
 		_stack_font = FontVariation.new()
 		_stack_font.base_font = UiStyle.body_medium_font()
 		_stack_font.variation_embolden = 0.9
-	draw_string_outline(_stack_font, at, text, HORIZONTAL_ALIGNMENT_LEFT, -1, STACK_FONT_SIZE, 4, Palette.VOID)
-	draw_string(_stack_font, at, text, HORIZONTAL_ALIGNMENT_LEFT, -1, STACK_FONT_SIZE, color)
+	canvas.draw_string_outline(_stack_font, at, text, HORIZONTAL_ALIGNMENT_LEFT, -1, STACK_FONT_SIZE, 4, Palette.VOID)
+	canvas.draw_string(_stack_font, at, text, HORIZONTAL_ALIGNMENT_LEFT, -1, STACK_FONT_SIZE, color)
 
 # Deeply Blighted: soft puffs drifting slowly round the nightmare, and a swirl left of the health bar.
 func _draw_elite_haze() -> void:
@@ -1097,6 +1165,8 @@ func _update_presence(delta: float) -> void:
 	var elapsed := _presence_elapsed
 	_presence_elapsed = 0.0
 	_speed_stale = true  # Timed slows (the Stag's aura, charges) may have run out
+	if not statuses.smothering:
+		_end_smother_fx()
 
 	_revealed_time = maxf(_revealed_time - elapsed, 0.0)
 	var hide := (enemy_data.hidden or _is_eclipsed()) and not _is_revealed()
@@ -1208,8 +1278,28 @@ func _refresh_display_settings() -> void:
 	var outlined := elite and not _hidden and not is_cleansed and bool(Fx.setting("blight_outline", false))
 	if outlined != _outlined:
 		_outlined = outlined
-		(sprite.material as ShaderMaterial).set_shader_parameter("outline_color",
-			ELITE_OUTLINE_COLOR if outlined else Color(0, 0, 0, 0))
+		if _is_shared_material():
+			sprite.material = _blight_material(outlined)
+		else:  # Cracking apart on its own copy: change just that
+			(sprite.material as ShaderMaterial).set_shader_parameter("outline_color",
+				ELITE_OUTLINE_COLOR if outlined else Color(0, 0, 0, 0))
+
+# The shared blight material: plain, or with the Deeply Blighted outline. Kept by the spawner (never
+# a static: a material still held at exit is freed after the renderer and crashes). A nightmare
+# outside an EnemyContainer gets a material of its own.
+func _blight_material(outlined: bool) -> ShaderMaterial:
+	var shared: Dictionary = _spawner.blight_materials if _spawner != null else {}
+	if not shared.has(outlined):
+		var material := ShaderMaterial.new()
+		material.shader = BLIGHT_SHADER
+		if outlined:
+			material.set_shader_parameter("outline_color", ELITE_OUTLINE_COLOR)
+		shared[outlined] = material
+	return shared[outlined]
+
+func _is_shared_material() -> bool:
+	return _spawner != null and (sprite.material == _spawner.blight_materials.get(false)
+		or sprite.material == _spawner.blight_materials.get(true))
 
 # The 16×16 pixel-art icon for a status id (or "elite"), cached; null if the sheet has none.
 static func _status_icon(id: StringName) -> Texture2D:
@@ -1264,7 +1354,6 @@ func heal(amount: float) -> void:
 	var whole := int(_heal_carry)
 	_heal_carry -= whole
 	health = mini(health + whole, max_health)
-	queue_redraw()
 
 # Boss moments that happen at a share of health: the Moth Queen's Eclipse, the Hollow Oak's Grief.
 func _check_health_thresholds() -> void:
@@ -1353,7 +1442,6 @@ func take_damage(amount: float, line: String = "", is_area: bool = false, is_cri
 	var whole := int(_soothe_carry)
 	_soothe_carry -= whole
 	health = maxi(health - whole, 1 if unkillable else 0)
-	queue_redraw()
 	# Asleep is long but fragile: one hit (not an effect tick) of 10%+ of max health wakes it.
 	if statuses.can_wake_from_hit() and not Reactions.is_effect(tag) \
 			and soothe >= max_health * EnemyStatuses.WAKE_HIT_SHARE:
@@ -1381,8 +1469,7 @@ func apply_status(id: StringName, stacks: int = 1, duration: float = 0.0, potenc
 	if id == EnemyStatuses.DROWSY:
 		statuses.drowsy_cap_bonus = Reactions.drowsy_cap_bonus(self)  # Heavy Eyelids
 	var was_held := statuses.is_held()
-	var bolt := statuses.apply(id, stacks, duration, potency, max_stacks, line, source)
-	queue_redraw()
+	var bolt := statuses.apply(id, stacks, duration, potency, max_stacks, line, source)  # (Bumps statuses.changes: the badges redraw)
 	if id == EnemyStatuses.HELD and statuses.is_held() and not was_held:
 		_spread_root_web(source)
 	if bolt > 0.0:
@@ -1577,6 +1664,10 @@ func _burst_into_motes() -> void:
 
 # 0 = whole, 1 = cracked through with light (see shaders/blight.gdshader).
 func _set_crack(amount: float) -> void:
+	if _is_shared_material():
+		if is_zero_approx(amount):
+			return  # Whole already: the shared material says so
+		sprite.material = sprite.material.duplicate()  # Its own copy, to crack apart on its own
 	(sprite.material as ShaderMaterial).set_shader_parameter("crack", amount)
 
 

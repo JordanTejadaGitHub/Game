@@ -592,6 +592,10 @@ func _run() -> void:
 	_check(is_equal_approx(badged.statuses.time_share(&"damp"), 1.0), "a fresh Damp fills it again")
 	_check(badged.get_badge_size() == badged.STATUS_BADGE and _still("old_stag", route[7]).get_badge_size() == badged.STATUS_BADGE_BIG,
 		"14 px badges, 18 px on bosses")
+	# Bars and badges come from one overlay (batched), not from each nightmare's own _draw.
+	var overlay: Node2D = spawner.overlay
+	_check(overlay != null and overlay.is_inside_tree() and overlay.get_parent() != spawner,
+		"one NightmareOverlay draws the bars and badges (outside the EnemyContainer)")
 	badged.statuses.remove(&"spored")  # Its ticks hurt, and hits and combo flashes redraw on their own
 	badged.statuses.remove(&"marked")
 	badged.set_process(true)
@@ -599,13 +603,21 @@ func _run() -> void:
 	for f in 3:
 		await process_frame
 	var redraws := [0]
+	var overlay_draws := [0]
 	badged.draw.connect(func() -> void: redraws[0] += 1)
+	overlay.draw.connect(func() -> void: overlay_draws[0] += 1)
+	badged.take_damage(5.0)
 	for f in 30:
 		await process_frame
-	_check(redraws[0] >= 1 and redraws[0] <= 6, "the badges redraw a few times a second, not every frame (%d in 30 frames)" % redraws[0])
-	badged.queue_redraw()
-	await process_frame  # Draws the badges once, in a real draw (no errors)
+	_check(redraws[0] == 0, "a nightmare doesn't redraw itself for statuses or hits (%d in 30 frames)" % redraws[0])
+	_check(overlay_draws[0] >= 25, "the overlay redraws while nightmares are out (%d in 30 frames)" % overlay_draws[0])
 	_clear_enemies()
+	for f in 3:
+		await process_frame
+	overlay_draws[0] = 0
+	for f in 10:
+		await process_frame
+	_check(overlay_draws[0] == 0, "and rests once the field is empty (%d)" % overlay_draws[0])
 
 	# --- Display settings: health bars "always", the Deeply Blighted outline ---
 	_clear_enemies()

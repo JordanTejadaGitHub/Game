@@ -33,6 +33,8 @@ var root_web_boss_share := 0.0  # …and bosses for this share
 var release_pull := 0.0  # Tangled Release: tiles pulled back when a hold ends
 var caught_linger := 0.0  # Lullaby: seconds Caught lasts after leaving a Dreamcatcher
 var marked_bonus := 0.0  # Bright Marks: added to Marked's extra damage taken
+var overlay: NightmareOverlay  # Draws every nightmare's health bar and status badges (see NightmareOverlay)
+var blight_materials := {}  # {outlined: ShaderMaterial} shared by the nightmares (Enemy._blight_material)
 var thin_cards := false  # Any of the above owned (else nightmares skip their per-frame bookkeeping)
 var rooted_cells := {}  # {cell: Held nightmare} (Rooted Nightmares; see _update_rooted_cells)
 var waiting_cells := {}  # {cell: nightmare waiting behind a rooted one}
@@ -55,6 +57,12 @@ var _sapling_sprites := {}  # {cell: AnimatedSprite2D} the saplings' grow / idle
 @onready var tower_container: Node2D = %TowerContainer
 
 func _ready() -> void:
+	# Every nightmare's bars and badges, from one canvas item (never a child of this node: its
+	# children are all nightmares)
+	overlay = NightmareOverlay.new()
+	overlay.name = "NightmareOverlay"
+	overlay.spawner = self
+	(owner if owner != null else get_parent()).add_child.call_deferred(overlay)
 	map_generator.path_changed.connect(_on_path_changed)
 	map_generator.obstacle_cleared.connect(func(cell: Vector2, _data: ObstacleData) -> void: _wither_sprite(cell))
 

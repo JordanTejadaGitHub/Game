@@ -345,26 +345,30 @@ func tick(delta: float) -> float:
 		smothering = false
 	smother_ended = was_smothering and not smothering
 
-	for id in (_active.keys() if not _active.is_empty() and not is_caught() else []):
-		if is_caught():
-			break  # Caught: statuses stop wearing off (Static doesn't bleed, timers pause); Spored still ticks
-		var status: Dictionary = _active[id]
-		status.time -= delta
-		if status.time > 0.0:
-			continue
-		if (id == MARKED and marked_forever) or (id == STATIC and static_forever):
-			status.time = 1.0  # Never expires, never bleeds off
-			status["full"] = 1.0
-			continue
-		if id == STATIC and status.stacks > 1:
-			status.stacks -= 1  # Static bleeds off one charge at a time
-			changes += 1
-			status.time = STATIC_DECAY_TIME
-			status["full"] = STATIC_DECAY_TIME
-		else:
+	# Caught: statuses stop wearing off (Static doesn't bleed, timers pause); Spored still ticks.
+	# (Iterates the dictionary itself, no keys() copy: this runs for every nightmare every frame.)
+	if not _active.is_empty() and caught_time <= 0.0:
+		var expired: Array = []
+		for id in _active:
+			var status: Dictionary = _active[id]
+			status.time -= delta
+			if status.time > 0.0:
+				continue
+			if (id == MARKED and marked_forever) or (id == STATIC and static_forever):
+				status.time = 1.0  # Never expires, never bleeds off
+				status["full"] = 1.0
+				continue
+			if id == STATIC and status.stacks > 1:
+				status.stacks -= 1  # Static bleeds off one charge at a time
+				changes += 1
+				status.time = STATIC_DECAY_TIME
+				status["full"] = STATIC_DECAY_TIME
+			else:
+				expired.append(id)
+		for id in expired:
 			_active.erase(id)
 			changes += 1
-	if not has(MARKED):
+	if marked_extra != 0.0 and not has(MARKED):
 		marked_extra = 0.0
 	return spore_damage
 
