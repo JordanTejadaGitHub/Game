@@ -676,10 +676,12 @@ every Warden has two damage axes, and builds lean one way:
 
 ## Target priority
 
-Most Wardens target the nightmare **furthest along** the path. **Standing Stone and Moonstone** let
-the player choose (click the Warden): *Furthest along* (default), *Strongest*, or *Bosses first*.
-Only snipers get this, since that's where the choice matters most and it keeps everything else
-simple.
+Most Wardens target the nightmare **furthest along** the path by default. Since 2026-09-28 every
+attacking Warden that picks a target has a switch (`screens_ui.md` "Targeting"): **First**
+(default), **Last** (furthest back, the newest arrival; added 2026-09-30), **Strongest** and
+**Closest**; snipers keep *Bosses first* as well. **Last** pairs with status Wardens near the start
+(Driftspore, Lanternmoth, Firefly Jar tagging nightmares so they carry the status through the whole
+maze).
 
 ## Maze and placement synergies
 

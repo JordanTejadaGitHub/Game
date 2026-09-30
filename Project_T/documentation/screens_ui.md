@@ -722,11 +722,15 @@ From a user playtest with screenshots; each line is the rule going forward.
     Dreamlight"), since those are goals within reach.
   - Developer modes that unlock everything (Test Grove) show every family.
 - **Sell:** "+62 Dew" (full during a rest, half while nightmares walk; the button says which).
-- **Targeting** (**decided 2026-09-28**, user): three modes for attacking Wardens that pick a target:
+- **Targeting** (**decided 2026-09-28**, user; **Last added 2026-09-30**): four modes for attacking
+  Wardens that pick a target:
   - **First** (default): the nightmare closest to the Heartwood (today's rule).
+  - **Last**: the nightmare **furthest from the Heartwood** in range, the newest arrival. Good for
+    status Wardens (tag a nightmare so it walks the whole maze Spored, Marked or Static), for
+    Wardens near the start, and for mopping up stragglers.
   - **Strongest**: the most current health (bosses, elites, Husks).
   - **Closest**: the nearest to the Warden (good for short-range and splash Wardens).
-  - Set per Warden with a 3-way switch in its panel (icons + words); with several selected, the
+  - Set per Warden with a 4-way switch in its panel (icons + words); with several selected, the
     group panel sets all of them. **T** cycles the selected Wardens' mode. Kept through growing
     and in the run save. The Warden shows a tiny mode pip only while selected.
   - Hidden for Wardens that don't pick a target (pulses, auras, traps, rings, Thornwalls). Snipers'
