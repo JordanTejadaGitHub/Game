@@ -166,7 +166,9 @@ const PATIENT_ROOTS_HELD := 0.25
 const GOLDEN_HARVEST_PER := 0.02  # Per 100 Dew harvested / earned as interest
 const GOLDEN_HARVEST_MAX := 0.30
 # Dreamlight (run_design.md "Dreamlight"): sources and unlock costs.
-const FIRST_PICK_DREAMLIGHT := 1
+const FIRST_PICK_DREAMLIGHT := 1  # The default for first_pick_dreamlight
+# Dreamlight with the first family pick (Blight 2 sets it to 0 via MetaRun).
+var first_pick_dreamlight := FIRST_PICK_DREAMLIGHT
 const BOSS_DREAMLIGHT := 4
 # "The Heartwood wakes" (run_design.md Dreamlight sources): every rest from drift 51 frees +1 more.
 const WAKE_DREAMLIGHT := 1
@@ -292,7 +294,7 @@ func _ready() -> void:
 	run_state.run_ended.connect(_save_discoveries.unbind(1))
 	drift_director.family_pick_requested.connect(func(reason: StringName) -> void:
 		if reason == &"first":
-			add_dreamlight(FIRST_PICK_DREAMLIGHT))  # Act 1 can take one branch
+			add_dreamlight(first_pick_dreamlight))  # Act 1 can take one branch
 	map_generator.path_changed.connect(_update_bends)
 	spawner.enemy_cleansed.connect(_on_enemy_cleansed)
 	map_generator.obstacle_cleared.connect(_on_obstacle_cleared)
@@ -2393,8 +2395,8 @@ func get_ignite_multiplier() -> float:
 # (fade, half-dreamed, owed families, Stray, pity, Lucid) exactly as in play.
 
 # Dreamlight a run earns at `kind`: &"first" (the first family pick) or &"boss" (a boss rest).
-static func sim_dreamlight_for(kind: StringName) -> int:
-	return FIRST_PICK_DREAMLIGHT if kind == &"first" else (BOSS_DREAMLIGHT if kind == &"boss" else 0)
+func sim_dreamlight_for(kind: StringName) -> int:
+	return first_pick_dreamlight if kind == &"first" else (BOSS_DREAMLIGHT if kind == &"boss" else 0)
 
 # The rest after drift `drift`: what _on_rest_started does (rest rules, Sunlit Rest, Seedling Gift,
 # the boss's +4 Dreamlight) and a real offer. `pick.call(offer: Array) -> UpgradeData` (null = let it
