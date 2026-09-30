@@ -296,9 +296,23 @@ func _make(tower_name: String, draw: Callable) -> Image:
 		var canvas := _layer()
 		draw.call(canvas, _idle_state(f))
 		sheet.blit_rect(canvas, Rect2i(0, 0, S, S), Vector2i(f * S, 0))
-	sheet = _detail_pass(sheet, Vector2i(S, S))
+	sheet = _warden_night(_detail_pass(sheet, Vector2i(S, S)))
 	sheet.save_png(OUT + tower_name + ".png")
 	return sheet
+
+# Warden Night (art_direction.md, 2026-09-30): idle sheets only step one shade darker inside their
+# own ramp (HeartwoodPalette.warden_night, after the palette pass), so the Wardens sit in the fog.
+# Attack sheets, projectiles and glows keep full warm light. Alpha is kept, so glow halos stay.
+const PALETTE := "res://tools/art/heartwood_palette.gd"
+
+func _warden_night(sheet: Image) -> Image:
+	if not ResourceLoader.exists(PALETTE):
+		return sheet
+	var palette: Script = load(PALETTE)
+	if not palette.has_method("warden_night"):
+		push_warning("HeartwoodPalette.warden_night missing: saving idle sheets without Warden Night")
+		return sheet
+	return palette.warden_night(sheet)
 
 # The Heartwood 32 palette and the detailed-64 pass (tools/art/detail_pass.gd, art_direction.md
 # "Rendering style"): every Warden sheet goes through it before saving, frame by frame. Loaded by

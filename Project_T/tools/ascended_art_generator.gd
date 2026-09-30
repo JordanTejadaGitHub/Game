@@ -47,13 +47,13 @@ func _init() -> void:
 	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(PREVIEWS))
 	var rows: Array = []
 	for warden: String in ASCENDED:
-		var idle := _gsheet(warden + ".png", FRAMES, W, H, func(cv: Image, f: int) -> void: _draw_ascended(warden, cv, _idle_state(f)), true)
+		var idle := _gsheet(warden + ".png", FRAMES, W, H, func(cv: Image, f: int) -> void: _draw_ascended(warden, cv, _idle_state(f)), true, true)
 		var attack := _gsheet(warden + "_attack.png", ATTACK_FRAMES, W, H, func(cv: Image, a: int) -> void: _draw_ascended(warden, cv, _attack_state(a)), true)
 		rows.append([idle, attack])
 	var empty := _gsheet("dawnwing_empty.png", FRAMES, W, H, func(cv: Image, f: int) -> void:
 		var st := _idle_state(f)
 		st["empty"] = true
-		_draw_ascended("dawnwing", cv, st), true)
+		_draw_ascended("dawnwing", cv, st), true, true)
 	rows.append([empty, null])
 	_save_rows(rows, W, H, PREVIEWS + "ascended.png", 2)
 	var fx: Array = []
@@ -74,7 +74,7 @@ func _init() -> void:
 	print("ascended art written")
 	quit()
 
-func _gsheet(file: String, n: int, w: int, h: int, draw: Callable, warden_art: bool = false) -> Image:
+func _gsheet(file: String, n: int, w: int, h: int, draw: Callable, warden_art: bool = false, night: bool = false) -> Image:
 	var sheet := Image.create_empty(w * n, h, false, Image.FORMAT_RGBA8)
 	for i in n:
 		var cv := Image.create_empty(w, h, false, Image.FORMAT_RGBA8)
@@ -82,6 +82,8 @@ func _gsheet(file: String, n: int, w: int, h: int, draw: Callable, warden_art: b
 		sheet.blit_rect(cv, Rect2i(0, 0, w, h), Vector2i(i * w, 0))
 	if warden_art:
 		sheet = _detail_pass(sheet, Vector2i(w, h))  # the palette pass, like every Warden sheet
+	if night:
+		sheet = _warden_night(sheet)  # idle sheets only (Warden Night)
 	sheet.save_png(AOUT + file)
 	return sheet
 
