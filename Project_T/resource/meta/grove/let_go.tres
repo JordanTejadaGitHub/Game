@@ -6,7 +6,7 @@
 script = ExtResource("1_unlock")
 id = "let_go"
 display_name = "Let Go"
-description = "Banish 1 Dream card per run: it never appears again that run."
+description = "Banish 1 Dream card per run."
 root = 2
 costs = Array[int]([60])
 order = 13

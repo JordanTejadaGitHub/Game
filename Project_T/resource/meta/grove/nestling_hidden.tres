@@ -6,7 +6,7 @@
 script = ExtResource("1_unlock")
 id = "nestling_hidden"
 display_name = "Hidden branch: Hummingbird Bower"
-description = "Nestlings can grow into Hummingbird Bowers (and Jewelwing Courts). Brings the on-hit cards."
+description = "Nestlings can grow into Hummingbird Bowers, then Jewelwing Courts. Brings the on-hit cards."
 root = 0
 costs = Array[int]([80])
 order = 27

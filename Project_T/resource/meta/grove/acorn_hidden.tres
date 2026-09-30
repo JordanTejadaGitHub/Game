@@ -6,7 +6,7 @@
 script = ExtResource("1_unlock")
 id = "acorn_hidden"
 display_name = "Hidden branch: Graftling"
-description = "Acorns can grow into Graftlings (and Grafted Elders): copying their strongest neighbour."
+description = "Acorns can grow into Graftlings, then Grafted Elders: they copy their strongest neighbor."
 root = 0
 costs = Array[int]([60])
 order = 26

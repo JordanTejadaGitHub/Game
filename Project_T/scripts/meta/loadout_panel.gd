@@ -123,12 +123,11 @@ func _rebuild() -> void:
 		_slots_row.add_child(_slot(MAX_SLOTS, true, normal, true))
 	var owned := _owned_perks()
 	if owned.is_empty():
-		_hint.text = "Plant perks on the Heartwood's left limb to carry them here."
+		_hint.text = "Plant perks on the Perks limb to carry them."
 	elif _carried.size() >= slots:
-		_hint.text = "Every slot is full. Tap a carried perk to put it back." + \
-			("" if normal >= MAX_SLOTS else " The Perks limb grows more slots.")
+		_hint.text = "Every slot is full"
 	else:
-		_hint.text = "Tap a perk to carry it (%d of %d slots)." % [_carried.size(), slots]
+		_hint.text = "Carrying %d of %d" % [_carried.size(), slots]
 	for unlock in owned:
 		_perks.add_child(_perk_button(unlock))
 
@@ -178,7 +177,7 @@ func _perk_button(unlock: UnlockData) -> Button:
 	button.expand_icon = false
 	var roman := ["", " I", " II", " III"]
 	var level_text: String = roman[level] if unlock.get_levels() > 1 and level < roman.size() else ""
-	button.text = "%s%s\n%s" % [unlock.display_name, level_text, unlock.description]  # No hover needed (touch)
+	button.text = "%s%s\n%s" % [unlock.display_name, level_text, IconInfo.format(unlock.description)]  # No hover needed (touch)
 	button.disabled = not carried and _carried.size() >= HeartwoodMemory.loadout_slots(_memory)
 	button.add_theme_color_override("font_pressed_color", Color(1.0, 0.88, 0.5))
 	button.pressed.connect(toggle.bind(unlock.id))

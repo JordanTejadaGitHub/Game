@@ -6,7 +6,7 @@
 script = ExtResource("1_unlock")
 id = "firefly_jar_final"
 display_name = "Firefly Jar final forms"
-description = "Firefly Jar final forms can grow in your runs: Thunderhead, Beacon."
+description = "Final forms can grow in your runs: Thunderhead, Beacon."
 root = 0
 costs = Array[int]([50])
 order = 11

@@ -6,7 +6,7 @@
 script = ExtResource("1_unlock")
 id = "bellflower_hidden"
 display_name = "Hidden branch: Echo Hollow"
-description = "Bellflowers can grow into Echo Hollows (and Whispering Hollows)."
+description = "Bellflowers can grow into Echo Hollows, then Whispering Hollows."
 root = 0
 costs = Array[int]([60])
 order = 25

@@ -6,7 +6,7 @@
 script = ExtResource("1_unlock")
 id = "the_quiet_ones"
 display_name = "The Quiet Ones"
-description = "The Legendary The Quiet Ones joins the pool."
+description = "Legendary: The Quiet Ones joins the pool."
 root = 1
 costs = Array[int]([120])
 order = 62

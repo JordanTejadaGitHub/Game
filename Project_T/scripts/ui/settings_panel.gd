@@ -100,14 +100,16 @@ func _ready() -> void:
 		families.toggled.connect(func(on: bool) -> void: _set_value(MetaRun.ALL_FAMILIES_SETTING, on))
 		box.add_child(families)
 		var dreams_rewards := CheckButton.new()  # meta_design.md "Dev options"
-		dreams_rewards.text = "Dream of everything rewards: starlit card backs + 1 Dream reroll (no Seeds banked)"
+		dreams_rewards.text = "Dream of everything rewards · starlit card backs, +1 Dream reroll"
+		dreams_rewards.tooltip_text = "For testing: nothing is recorded and no Seeds are banked."
 		dreams_rewards.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		dreams_rewards.button_pressed = _settings.get(MetaRun.ALL_DREAMS_SETTING, false)
 		dreams_rewards.focus_mode = Control.FOCUS_NONE
 		dreams_rewards.toggled.connect(func(on: bool) -> void: _set_value(MetaRun.ALL_DREAMS_SETTING, on))
 		box.add_child(dreams_rewards)
 		var sixth_slot := CheckButton.new()  # meta_design.md: the secret 6th loadout slot, for testing
-		sixth_slot.text = "Secret 6th loadout slot (no milestone recorded, no Seeds banked)"
+		sixth_slot.text = "Secret 6th loadout slot"
+		sixth_slot.tooltip_text = "For testing: no milestone is recorded and no Seeds are banked."
 		sixth_slot.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		sixth_slot.button_pressed = _settings.get(MetaRun.SIXTH_SLOT_SETTING, false)
 		sixth_slot.focus_mode = Control.FOCUS_NONE
