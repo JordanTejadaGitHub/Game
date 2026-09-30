@@ -406,6 +406,40 @@ drift 10 on**, after the Dream, the wind brings **2 Omens**. Pick one to change 
 (5 drifts) for a reward, or keep **Clear Skies** (the default: nothing changes). This is optional
 risk: players set their own difficulty block by block.
 
+- **Omen voice** (user, 2026-09-30: *"the text for omen doesn't match the vibe"*). Omen cards were
+  pure rules text. Per `text_style.md` ("whispers and flavour lines are the only places for mood"),
+  every Omen card now has **a flavour line**: one short sentence in the Heartwood's dark-fairytale
+  voice, in the whisper face, between the name and the rules line. The rules line stays plain.
+  - **Front cards:** Face an Omen · *"Something stirs out in the dark."* then "A twist for the next
+    block. Face it for a reward." Clear Skies · *"The night stays still."* then "Nothing changes. No
+    reward."
+  - **Each Omen** (`OmenData.flavor`):
+
+    | Omen | Flavour line |
+    |---|---|
+    | Moth Night | *"Moths crowd the lanterns. Something follows them in."* |
+    | Thick Blight | *"The blight runs deep tonight."* |
+    | Crowded Paths | *"The path fills with footsteps."* |
+    | Hard Bark | *"Their shells have grown thick with rot."* |
+    | Swift Stream | *"They're hungry, and they're hurrying."* |
+    | Dry Spell | *"Not a drop of Dew falls tonight."* |
+    | Stubborn Blight | *"They shake off every charm."* |
+    | Restless Wind | *"They come in waves, one on the heels of the last."* |
+    | Fog Bank | *"A fog rolls in. Your Wardens squint into it."* |
+    | Wilting | *"The Wardens droop, heavy with sleep."* |
+    | Frozen Ground | *"The ground freezes hard. Nothing takes root."* |
+    | Leaf Fall | *"The Heartwood's leaves hang by a thread."* |
+    | Lean Season | *"A thin season, with a strange gift at its end."* |
+    | Heavy Rain | *"Rain soaks everything. They drink it in."* |
+    | Blood Moon | *"A red moon. They run fast, and fat with Dew."* |
+    | Bountiful Night | *"A heavy harvest walks the path tonight."* |
+    | Elder Night | *"The old nightmares wake."* |
+    | Hollow Wind | *"The wind is full of wings."* |
+    | Sleepless | *"Nothing will sleep tonight."* |
+    | Shifting Ground | *"Dead trees push up through the dream."* |
+
+  - Curly quotes aren't shown on the card (the whisper face marks it as flavour); the rules line and
+    reward follow `text_style.md` ("Reward · +75 Dew").
 - **How an Omen looks** (user, 2026-09-30):
   - **Icon: a moth before the moon.** A dark moth silhouette crossing a pale full moon (moths are old
     folk omens; it reads at small size). It replaces the placeholder wind swirl on the Face an Omen
