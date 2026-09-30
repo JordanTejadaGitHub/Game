@@ -168,7 +168,7 @@ const PATIENT_ROOTS_HELD := 0.5
 const GOLDEN_HARVEST_PER := 0.02  # Per 100 Dew harvested / earned as interest
 const GOLDEN_HARVEST_MAX := 0.30
 # Dreamlight (run_design.md "Dreamlight"): sources and unlock costs.
-const FIRST_PICK_DREAMLIGHT := 1  # The default for first_pick_dreamlight
+const FIRST_PICK_DREAMLIGHT := 2  # The default for first_pick_dreamlight (2026-09-30: a final form in act 1)
 # Dreamlight with the first family pick (Blight 2 sets it to 0 via MetaRun).
 var first_pick_dreamlight := FIRST_PICK_DREAMLIGHT
 # The power pass (dream_audit.md, 2026-09-30): old save ids -> the card that absorbed them ("" = cut).
@@ -187,7 +187,7 @@ const BOSS_DREAMLIGHT := 4
 # "The Heartwood wakes" (run_design.md Dreamlight sources): every rest from drift 51 frees +1 more.
 const WAKE_DREAMLIGHT := 1
 const WAKE_FROM_DRIFT := 51
-const BRANCH_DREAMLIGHT := 1  # Branch, hidden branch, wall growth
+const BRANCH_DREAMLIGHT := 1  # Hidden branch, wall growth (regular branches come free with the family)
 const FINAL_DREAMLIGHT := 2  # Final form (needs its branch)
 # Ascended forms (tower_design.md): tier 4, grown from any of the family's final forms.
 const ASCENDED_TIER := 4
@@ -305,7 +305,8 @@ func _ready() -> void:
 	run_state.run_ended.connect(_save_discoveries.unbind(1))
 	drift_director.family_pick_requested.connect(func(reason: StringName) -> void:
 		if reason == &"first":
-			add_dreamlight(first_pick_dreamlight))  # Act 1 can take one branch
+			add_dreamlight(first_pick_dreamlight))  # Act 1 can take a final form
+	unlocks_changed.connect(grant_free_branches)  # A family pick (screen or sim), a save load
 	map_generator.path_changed.connect(_update_bends)
 	spawner.enemy_cleansed.connect(_on_enemy_cleansed)
 	spawner.child_entered_tree.connect(_stamp_head_start)
@@ -443,9 +444,32 @@ func get_unlock_blocker(data: TowerData) -> String:
 	if parent != null and not is_unlocked(parent.get_id()):
 		return "needs %s" % parent.display_name
 	var card := _unlock_card_for(data)
-	if card != null and not (card.in_start_pool or grove_cards.has(card.id)):
+	if card != null and not (card.in_start_pool or grove_cards.has(card.id)) and not _is_regular_final(data):
 		return "Memory Grove"
 	return ""
+
+# run_design.md "Dreamlight" (2026-09-30): a final form of a family (not a wall growth) needs no Grove node,
+# only its branch and 2 Dreamlight.
+func _is_regular_final(data: TowerData) -> bool:
+	return data.tier == 3 and data.line != "wall"
+
+# Owning a family unlocks its base and both regular branches at once (growing still costs Dew); hidden
+# branches (Grove) still cost Dreamlight. Runs on every unlocks_changed (family picks, save loads: an old
+# save with a branch not bought gets it, nothing refunded).
+func grant_free_branches() -> void:
+	var granted := false
+	for root in _roster() + _family_roots():
+		if not (root is TowerData and root.tier == 1 and root.buildable_directly and root.line != "wall"):
+			continue
+		if not unlocked.has(root.get_id()):
+			continue
+		for branch in root.evolves_to:
+			var card := _unlock_card_for(branch)
+			if not unlocked.has(branch.get_id()) and (card == null or card.in_start_pool):
+				unlocked[branch.get_id()] = true
+				granted = true
+	if granted:
+		unlocks_changed.emit()
 
 func can_unlock(data: TowerData) -> bool:
 	var cost := get_unlock_cost(data)

@@ -495,7 +495,7 @@ func _test_new_forms() -> void:
 	dreams.unlocked["bloomcap"] = true
 	_check(dreams.get_unlock_cost(mossback) == 1 and dreams.get_unlock_blocker(mossback) == "", "Mossback: a branch for 1 Dreamlight")
 	_check(dreams.get_unlock_cost(boulderback) == 2 and dreams.get_unlock_cost(dreamshroom) == 2, "Boulderback and Dreamshroom: final forms for 2")
-	_check(dreams.get_unlock_blocker(dreamshroom) == "Memory Grove", "Dreamshroom waits for Sporeling's final-forms node")
+	_check(dreams.get_unlock_blocker(dreamshroom) == "", "Dreamshroom needs no Grove node (finals come with the family, 2026-09-30)")
 	dreams.grove_cards.assign(["dream_boulderback", "dream_dreamshroom"])
 	_check(dreams.get_unlock_blocker(boulderback) == "needs Mossback" and dreams.get_unlock_blocker(dreamshroom) == "",
 		"with the Grove nodes: Boulderback needs Mossback, Dreamshroom is ready")
