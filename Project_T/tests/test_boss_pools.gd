@@ -6,6 +6,8 @@ extends SceneTree
 # shrug, Mourning Mother's Sorrow, Withering and Remembering Oak).
 #   godot --headless --path . --script res://tests/test_boss_pools.gd --fixed-fps 60
 
+const DAMAGE_LINES := ["spore", "stone", "water", "light", "root", "song", "wing", "wind"]
+
 var failures := 0
 var spawner: Node
 var map_generator: Node
@@ -35,6 +37,8 @@ func _run() -> void:
 				var ability := boss.get_ability(i)
 				_check(not IconInfo.format(ability.text + " " + ability.when).contains("{"), "%s ability %d reads fully" % [data.get_id(), i])
 			_check(boss.weak_to.size() == 1 and boss.resists.size() <= 2, "%s: one weakness, at most two resistances" % data.get_id())
+			for line in boss.resists + boss.weak_to:  # Damage line ids (TowerData.line), not display names ("wing", never "talon")
+				_check(line in DAMAGE_LINES, "%s: \"%s\" is a damage line" % [data.get_id(), line])
 	_check(BossPool.get_default(1).get_id() == "hollow_stag", "act 1's default is the Hollow Stag")
 	_check(BossPool.get_default(4).get_id() == "hollow_oak_thorned", "act 4's default is the Thorned Oak")
 
