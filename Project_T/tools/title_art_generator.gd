@@ -360,8 +360,8 @@ func _titan() -> void:
 		[lumpy(Vector2(TITAN_X, 218), Vector2(104, 100), 0.05, 1), Vector4(TITAN_X, 218, 104, 100)],
 		[lumpy(Vector2(TITAN_X - 52, 292), Vector2(46, 30), 0.08, 2), Vector4(TITAN_X - 52, 292, 46, 30)],
 		[lumpy(Vector2(TITAN_X + 56, 294), Vector2(48, 30), 0.08, 3), Vector4(TITAN_X + 56, 294, 48, 30)],
-		[limb(Vector2(TITAN_X - 84, 150), Vector2(TITAN_X - 118, 272), 24.0, 30.0, 4), Vector4(TITAN_X - 101, 211, 30, 70)],
-		[limb(Vector2(TITAN_X + 84, 152), Vector2(TITAN_X + 120, 274), 24.0, 30.0, 5), Vector4(TITAN_X + 102, 213, 30, 70)],
+		[limb(Vector2(TITAN_X - 76, 150), Vector2(TITAN_X - 110, 272), 28.0, 30.0, 4), Vector4(TITAN_X - 101, 211, 30, 70)],
+		[limb(Vector2(TITAN_X + 76, 152), Vector2(TITAN_X + 112, 274), 28.0, 30.0, 5), Vector4(TITAN_X + 102, 213, 30, 70)],
 		[lumpy(Vector2(TITAN_X - 70, 136), Vector2(22, 15), 0.12, 6), Vector4(TITAN_X - 70, 136, 22, 15)],
 		[lumpy(Vector2(TITAN_X + 74, 140), Vector2(18, 13), 0.12, 7), Vector4(TITAN_X + 74, 140, 18, 13)],
 		[lumpy(HEAD, Vector2(50, 45), 0.05, 8), Vector4(HEAD.x, HEAD.y, 50, 45)],
@@ -397,7 +397,8 @@ func _titan_pixel(x: int, y: int, id: int) -> Color:
 	var shape: Vector4 = _shape[id - 1]
 	var q := Vector2((x - shape.x) / shape.z, (y - shape.y) / shape.w)
 	var to_moon := (MOON - Vector2(x, y)).normalized()
-	var s := stones(x, y, 8.0, 7 + id)
+	# Body, arms and shoulders share one stone pattern, so the arms read as grown from the body.
+	var s := stones(x, y, 8.0, 7 if id in [1, 4, 5, 6, 7] else 7 + id)
 	# Round form: brighter toward the moon, darker away; plus stones, cracks and a sky-lit top.
 	var v := 0.3 + 0.12 * q.normalized().dot(to_moon) * minf(q.length(), 1.0) + (s.z - 0.5) * 0.08
 	if s.y < 1.0:
@@ -410,9 +411,18 @@ func _titan_pixel(x: int, y: int, id: int) -> Color:
 		if other != 0 and other < id:
 			behind = true
 	if id == 4 or id == 5:
-		v += 0.05  # the arms stand a little forward of the body
+		v += 0.03  # the arms stand a little forward of the body
 	if behind:
-		return col("void")
+		if id == 8:
+			return col("void")  # the chin keeps a hard line under the head
+		v -= 0.2  # elsewhere a soft shadowed crease: the arms and knees grow out of the body
+	if id == 1:
+		# The body darkens where an arm hangs beside it (a shadow, not an outline).
+		for dx in [-4, -3, -2, 2, 3, 4]:
+			var other := _part_at(x + dx, y)
+			if other == 4 or other == 5:
+				v -= 0.09
+				break
 	var rim := 0
 	if _part_at(int(round(x + to_moon.x)), int(round(y + to_moon.y))) == 0:
 		rim = 2
@@ -583,8 +593,8 @@ func _roots() -> void:
 
 func _mid_trunks() -> void:
 	# Trees between us and the Warden, standing on the forest floor, rising into the canopy.
-	for t in [Vector3(206, 306, 10), Vector3(250, 292, 5), Vector3(334, 298, 7), Vector3(372, 288, 3),
-			Vector3(528, 290, 4), Vector3(566, 300, 9), Vector3(604, 306, 6)]:
+	for t in [Vector3(196, 306, 10), Vector3(244, 292, 5), Vector3(292, 298, 7),
+			Vector3(586, 300, 9), Vector3(612, 306, 6)]:  # clear of the Warden's arms
 		var x0: float = t.x
 		var foot: float = t.y
 		var half: float = t.z
