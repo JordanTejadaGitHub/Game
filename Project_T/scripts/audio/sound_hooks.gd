@@ -88,6 +88,8 @@ const HARVEST_WINDOW_MS := 4000  # Pours within this of the first belong to the 
 # Close calls: a soft tension cue, one per 2 s at most (like the Heartwood's tremble).
 const CLOSE_CALL_DB := -8.0
 const BOSS_REVEAL_DB := -4.0  # The boss card's sting (UI bus)
+const FINAL_BLOOM_DB := -4.0  # A final form's first bloom per run
+const FINAL_SIGNATURE_DELAY := 0.9  # Then the new form's hit, as its signature
 const REMEMBER_DB := -4.0  # The Remember screen (UI bus)
 const REMEMBER_TRAVEL := 0.45  # Seconds for the unlock swell to travel the gold line before the bloom
 const PULL_BOSS_PITCH := 0.8  # Rootcurl dragging a boss: lower, strained
@@ -139,6 +141,7 @@ var _presence := {}  # Tower instance id -> a Warden with a presence loop
 var _dew_catch_at := -100000
 var _close_call_at := -100000
 var _drags := {}  # Nightmare instance id -> its soil-drag player (cut when the pull ends)
+var _final_blooming := {}  # Tower instance id -> a Final Bloom is playing its hit (skip the first breath)
 var _harvest_at := -100000  # msec of this rest's harvest sound (later pours add droplets)
 
 func _ready() -> void:
@@ -446,6 +449,8 @@ func _on_tower_added(node: Node) -> void:
 		_touch_loop("loop_" + warden_id(t.attack_data), 0.5 + 0.5 * clampf((ramp - 1.0) / 3.0, 0.0, 1.0), BEAM_HOLD))
 	tower.nurtured.connect(_on_nurtured)
 	# Ascended Wardens and the Sapling (Tower Code a187e96); connected only if present.
+	if tower.has_signal("final_bloomed"):
+		tower.final_bloomed.connect(_on_final_bloomed)
 	if tower.has_signal("ascended"):
 		tower.ascended.connect(_on_ascended)
 	if tower.has_signal("ascended_event"):
@@ -527,6 +532,28 @@ func _nurture_swell(tower_id: int, id: StringName, volume: float, pitch: float, 
 	if lean != &"":
 		sound.play(lean, tower.global_position, volume, 1.0, 0.03)
 
+# Final Bloom (audio_direction.md 23c6c5d7; the first grow into each final form per run): after the
+# evolve bloom, a warm harp strum in D over a slow swell of the family's material, then the new form's
+# hit once (instead of the usual first breath), with a small duck. Unpositioned: growing works while
+# the game is paused. Later grows into the same form use the normal evolve.
+func _on_final_bloomed(tower: Tower) -> void:
+	var tower_id := tower.get_instance_id()
+	_final_blooming[tower_id] = true
+	sound.duck(3.0, 0.5)
+	sound.play(&"final_bloom", null, FINAL_BLOOM_DB, 1.0, 0.0)
+	var material := StringName("nurture_" + tower.tower_data.line)
+	sound.play(material if sound.has_sound(material) else &"nurture_sprout", null, FINAL_BLOOM_DB - 2.0, 0.8, 0.0)
+	get_tree().create_timer(FINAL_SIGNATURE_DELAY).timeout.connect(_final_signature.bind(tower_id))
+
+func _final_signature(tower_id: int) -> void:
+	_final_blooming.erase(tower_id)
+	var tower := _tower_from(tower_id)
+	if tower == null:
+		return
+	var id := _sound_for("hit_", tower.attack_data)
+	if id != &"":
+		sound.play(id, null, HIT_DB, 1.0, 0.0, _bus_for(tower))
+
 # Ascending: the evolve bloom (evolved), then a slow, deep swell of the family's material, then the
 # Warden's first event (or its hit, for Wardens without one).
 func _on_ascended(tower: Tower) -> void:
@@ -556,8 +583,8 @@ func _tower_from(tower_id: int) -> Tower:
 # The evolved Warden's first hit, as a "first breath" after the bloom.
 func _first_breath(tower_id: int) -> void:
 	var tower := _tower_from(tower_id)
-	if tower == null:
-		return
+	if tower == null or _final_blooming.has(tower_id):
+		return  # A Final Bloom plays the new form's hit itself
 	var id := _sound_for("hit_", tower.attack_data)
 	if id != &"":
 		sound.play(id, tower.global_position, HIT_DB, 1.0, 0.03, _bus_for(tower))
