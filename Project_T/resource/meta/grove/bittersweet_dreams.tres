@@ -6,7 +6,7 @@
 script = ExtResource("1_unlock")
 id = "bittersweet_dreams"
 display_name = "Bittersweet Dreams"
-description = "Bittersweet Dreams join the pool: Deep Sleep, Borrowed Dew, Wild Growth, Overgrown, Restless Dreams, Hungry Roots, Borrowed Memory."
+description = "Bittersweet Dreams join the pool: Deep Sleep, Restless Dreams."
 root = 1
 costs = Array[int]([52])
 order = 19
@@ -14,4 +14,4 @@ icon = 7
 requires_any = Array[String](["storm_lore", "guiding_lights", "spore_lore", "dawnbreak", "sharpened", "reckless", "full_moon", "seeping", "venom", "nightshade", "grove_of_kin", "planted_promises", "deep_promises", "golden_harvest", "catchers", "old_wood", "the_quiet_ones", "tending_hands", "nursery", "the_old_ones", "seedbed", "wild_planting", "rootbound", "one_line", "the_last_light", "dead_wood", "the_long_walk"])
 requires_any_count = 2
 allows_bittersweet = true
-dream_cards = Array[String](["deep_sleep", "borrowed_dew", "wild_growth", "overgrown", "restless_dreams", "hungry_roots", "borrowed_memory"])
+dream_cards = Array[String](["deep_sleep", "restless_dreams"])
