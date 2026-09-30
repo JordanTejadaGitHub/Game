@@ -18,8 +18,8 @@ const BLOB_SIZE := Vector2(300, 150)  # px, a soft disc stretched flat (low mist
 const PATH_THINNING := 0.25  # Over path cells the mist keeps this share of its density
 const DRIFT := 40.0  # px each blob sways around its home
 
-@export var violet := Color(0.66, 0.58, 0.9)
-@export var gold := Color(0.95, 0.82, 0.55)
+@export var violet := Palette.WRAITHLIGHT
+@export var gold := Palette.GLOW
 @export var density := 0.26  # Peak alpha of a blob at full strength
 
 var map_generator: Node  # Set before adding
