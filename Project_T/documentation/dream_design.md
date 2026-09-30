@@ -932,39 +932,39 @@ can take early) and its **key card must exist**.
 
 | # | Build | Wardens / source | Capstone | Package (existing enhancers) | Status |
 |---|---|---|---|---|---|
-| 1 | Storm Grid | Rain Lily + Stormcap | — | Rolling Thunder, Rain on Glass, Soaked Through, Heavy Dew, Brighter Jars, Charged Field, Conductive Soil | ✓ 7 |
-| 2 | The Long Walk | Thornwalls + long maze | The Long Walk, Crossroads | Cozy Corners, Hedge Maze, Straightaway, Winding Path, Bitter Hedges, Echoing Steps, Heart of the Maze | ✓ 7 |
-| 3 | Spore Bomb | Puffball + Mistveil | — | Soft Spores, Lingering Spores, Spore Cascade, Chain Bloom, Damp Rot, Twin Puff, Mushroom Rain | ✓ 7 |
-| 4 | Sniper's Rest | Beacon + Moonstone | — | Long Shadows, Patient Aim, Starlit Aim, Called Shot, Sharpened Light, Solitude, Watchful Rest, Hunter's Patience | ✓ 8 |
-| 5 | Full Moon | Moonstone + Hoarfrost + Magpie's Hoard | Full Moon | Glinting Dew, Sharpened Light, Still Target, Shattering Blow, Deep Frost, Shiny Things, Reckless Bloom | ✓ 7 |
-| 6 | Gale | Gust / Zephyr + a status family | — | Carried on the Wind, Lasting Dreams | ❌ 2 → new: **Ill Wind**, **Eddy** |
-| 7 | Fairy Mines | Elf Circle + Honeysuckle + Tangleroot | — | Ring Dance, Sweet Scent, Scented Hedge, Deep Grip, Root Web, Lingering Spores | ✓ 6 |
-| 8 | Hairpin Mill | Windmill + Thornwalls | Rootbound | Hairpin Winds, Cozy Corners, Hedge Maze, Crowded Path | ⚠ 4 → new: **Spinning Corners** |
-| 9 | Sleepy Hollow | Bellflower + Dreamcatcher + Dreamshroom | — | Heavy Eyelids, Hush, Bad Dreams, Many Threads, Lullaby, Clear Tones, Chorus, Heavy Air | ✓ 8 |
-| 10 | Storm Corridor | Rain Lily + Samara + Stormcap | — | Windborne Rain, Straightaway, Longer Flight, Rolling Thunder, Rain on Glass, Heavy Dew | ✓ 6 |
-| 11 | Thousand Cuts | Jewelwing Court + Firefly / Rain Lily + Beacon | — | Charged Feathers, Thousand Cuts, Sharp Beaks, Needle Point, Called Shot, Bright Marks | ✓ 6 |
-| 12 | Encore | Whispering Hollow + Reactions | Dawnbreak | Encore, Quick Reactions, Seeping, Kin and Kindling + the Reaction cards | ✓ |
-| 13 | Rockfall | Rockslide + Snugroot + Bloomcap | — | Loose Stones, Shattering Blow, Heavy Stones, Crowded Path | ⚠ 4 → new: **Falling Weight** |
-| 14 | Deep Poison | Puffball + Mistveil + Echo Hollow | Nightshade | Seeping, Bitter Sap, Venom Bloom, Soft Spores, Lingering Spores, Damp Rot, Lasting Dreams | ✓ 7 |
-| 15 | Thunder Chimes | Stormcap + Chime Stone | — | Clear Tones, Charged Field, Brighter Jars, Chorus | ❌ key card *Resonance* missing → new: **Resonance** |
-| 16 | Bramble Maze | Thornwalls / Brambles + Snugroot | Briar Crown | Hedge Maze, Bitter Hedges, Weathered Walls, Living Walls, Thorn Snare, Bramble Oath, Cheap Hedges | ⚠ key card *Thornheart* missing → new: **Thornheart** |
-| 17 | The Grove | Grove Heart + a tight cluster | Rootbound | Grandfather Stump, Kind Canopy, Shared Light, Hedgerow Roots | ⚠ 4 → new: **Warm Hearth** |
-| 18 | Greedy Gardener | Dewcatcher → Wellspring | Golden Harvest | Dew Bowl, Harvest Moon, Deep Well, Wide Bowl, Still Waters, Overflowing Well, Dew Trail, Gathered Dew | ✓ 8 |
-| 19 | Eldest (tall) | any, ranks | Endless Rings, The Old Ones, Court of the Eldest | Tender Care, Warm Hands, Kindred Roots, Remembered Care, Sunlit Rest, Deeper Rings, Chosen Few, Nursery | ✓ 8 (weighting fix) |
-| 20 | Wide Sprouts | Sprouts everywhere | Rootbound | Seedfall, Sprout Surge, Sprout Chorus, Root Network, Seedling Gift, Many Hands, Canopy, Nursery | ✓ 8 (weighting fix) |
-| 21 | Lone Lantern (narrow) | ≤ 8 attackers | The Last Light | Solitude, Few and Mighty, Heart of the Maze, Watchful Rest, Chosen Few | ✓ 5 |
-| 22 | Kinship | one family, both branches | Grove of Kin | Quick Bonds, Family Ties, Sweet Harmony, Close Kin, Old Friends, Rooted Bond, Extended Family, Blood Is Thicker | ✓ 8 (weighting fix) |
-| 23 | Clearing | tend the forest | Wildwood Reclaimed | Cleared Ground, Heartwood's Reach, Reclaimed Earth, Tended Forest | ⚠ 4 → new: **Fresh Soil** |
-| 24 | Tempo | call every drift early | Restless Night | Call of the Wild, Fresh Growth, Echoing Steps | ❌ 3 → new: **Quick Step**, **Hurried Harvest** |
-| 25 | Last Leaf | play near losing | Last Leaf | Last Stand | ❌ 1 → new: **Heartwood's Fury**, **Thin Bark** |
-| 26 | Menagerie | one of everything | Menagerie | — | ❌ 0 → new: **Patchwork**, **Mixed Grove** |
-| 27 | Hunter's Moon | Marked | Hunter's Moon | Bright Marks, Lingering Mark, Called Shot, Guiding Light, Starlit Aim | ✓ 5 |
-| 28 | Eternal Charge | Charged | Eternal Charge | Charged Field, Charged Bloom, Brighter Jars | ⚠ 3 → new: **Live Wire**, + Resonance |
-| 29 | Rooted Nightmares | Held | Rooted Nightmares | Deep Grip, Tangled Release, Long Light, Root Web, Patient Roots, Still Target | ✓ 6 |
-| 30 | The Quiet Ones | support Wardens | The Quiet Ones | Kind Canopy, Shared Light, Hedgerow Roots, Grandfather Stump, Many Threads, Dew Trail | ✓ 6 |
-| 31 | Crit (any) | crit-heavy Wardens | Full Moon | Glinting Dew, Sharpened Light, Still Target, Shattering Blow, First Light, Called Shot | ✓ 6 |
-| 32 | Swarm clearing | area Wardens | — | Crowded Path, Last Breath, Thinning the Herd, Shattering Blow | ⚠ 4 (bridges below add) |
-| 33 | First strike | many single hits | — | First Light, Called Shot, Lone Hunter | ⚠ 3 (small on purpose: it's a side-direction of Crit and Hunter's Moon) |
+| B1 | Storm Grid | Rain Lily + Stormcap | — | Rolling Thunder, Rain on Glass, Soaked Through, Heavy Dew, Brighter Jars, Charged Field, Conductive Soil | ✓ 7 |
+| B2 | The Long Walk | Thornwalls + long maze | The Long Walk, Crossroads | Cozy Corners, Hedge Maze, Straightaway, Winding Path, Bitter Hedges, Echoing Steps, Heart of the Maze | ✓ 7 |
+| B3 | Spore Bomb | Puffball + Mistveil | — | Soft Spores, Lingering Spores, Spore Cascade, Chain Bloom, Damp Rot, Twin Puff, Mushroom Rain | ✓ 7 |
+| B4 | Sniper's Rest | Beacon + Moonstone | — | Long Shadows, Patient Aim, Starlit Aim, Called Shot, Sharpened Light, Solitude, Watchful Rest, Hunter's Patience | ✓ 8 |
+| B5 | Full Moon | Moonstone + Hoarfrost + Magpie's Hoard | Full Moon | Glinting Dew, Sharpened Light, Still Target, Shattering Blow, Deep Frost, Shiny Things, Reckless Bloom | ✓ 7 |
+| B6 | Gale | Gust / Zephyr + a status family | — | Carried on the Wind, Lasting Dreams | ❌ 2 → new: **Ill Wind**, **Eddy** |
+| B7 | Fairy Mines | Elf Circle + Honeysuckle + Tangleroot | — | Ring Dance, Sweet Scent, Scented Hedge, Deep Grip, Root Web, Lingering Spores | ✓ 6 |
+| B8 | Hairpin Mill | Windmill + Thornwalls | Rootbound | Hairpin Winds, Cozy Corners, Hedge Maze, Crowded Path | ⚠ 4 → new: **Spinning Corners** |
+| B9 | Sleepy Hollow | Bellflower + Dreamcatcher + Dreamshroom | — | Heavy Eyelids, Hush, Bad Dreams, Many Threads, Lullaby, Clear Tones, Chorus, Heavy Air | ✓ 8 |
+| B10 | Storm Corridor | Rain Lily + Samara + Stormcap | — | Windborne Rain, Straightaway, Longer Flight, Rolling Thunder, Rain on Glass, Heavy Dew | ✓ 6 |
+| B11 | Thousand Cuts | Jewelwing Court + Firefly / Rain Lily + Beacon | — | Charged Feathers, Thousand Cuts, Sharp Beaks, Needle Point, Called Shot, Bright Marks | ✓ 6 |
+| B12 | Encore | Whispering Hollow + Reactions | Dawnbreak | Encore, Quick Reactions, Seeping, Kin and Kindling + the Reaction cards | ✓ |
+| B13 | Rockfall | Rockslide + Snugroot + Bloomcap | — | Loose Stones, Shattering Blow, Heavy Stones, Crowded Path | ⚠ 4 → new: **Falling Weight** |
+| B14 | Deep Poison | Puffball + Mistveil + Echo Hollow | Nightshade | Seeping, Bitter Sap, Venom Bloom, Soft Spores, Lingering Spores, Damp Rot, Lasting Dreams | ✓ 7 |
+| B15 | Thunder Chimes | Stormcap + Chime Stone | — | Clear Tones, Charged Field, Brighter Jars, Chorus | ❌ key card *Resonance* missing → new: **Resonance** |
+| B16 | Bramble Maze | Thornwalls / Brambles + Snugroot | Briar Crown | Hedge Maze, Bitter Hedges, Weathered Walls, Living Walls, Thorn Snare, Bramble Oath, Cheap Hedges | ⚠ key card *Thornheart* missing → new: **Thornheart** |
+| B17 | The Grove | Grove Heart + a tight cluster | Rootbound | Grandfather Stump, Kind Canopy, Shared Light, Hedgerow Roots | ⚠ 4 → new: **Warm Hearth** |
+| B18 | Greedy Gardener | Dewcatcher → Wellspring | Golden Harvest | Dew Bowl, Harvest Moon, Deep Well, Wide Bowl, Still Waters, Overflowing Well, Dew Trail, Gathered Dew | ✓ 8 |
+| B19 | Eldest (tall) | any, ranks | Endless Rings, The Old Ones, Court of the Eldest | Tender Care, Warm Hands, Kindred Roots, Remembered Care, Sunlit Rest, Deeper Rings, Chosen Few, Nursery | ✓ 8 (weighting fix) |
+| B20 | Wide Sprouts | Sprouts everywhere | Rootbound | Seedfall, Sprout Surge, Sprout Chorus, Root Network, Seedling Gift, Many Hands, Canopy, Nursery | ✓ 8 (weighting fix) |
+| B21 | Lone Lantern (narrow) | ≤ 8 attackers | The Last Light | Solitude, Few and Mighty, Heart of the Maze, Watchful Rest, Chosen Few | ✓ 5 |
+| B22 | Kinship | one family, both branches | Grove of Kin | Quick Bonds, Family Ties, Sweet Harmony, Close Kin, Old Friends, Rooted Bond, Extended Family, Blood Is Thicker | ✓ 8 (weighting fix) |
+| B23 | Clearing | tend the forest | Wildwood Reclaimed | Cleared Ground, Heartwood's Reach, Reclaimed Earth, Tended Forest | ⚠ 4 → new: **Fresh Soil** |
+| B24 | Tempo | call every drift early | Restless Night | Call of the Wild, Fresh Growth, Echoing Steps | ❌ 3 → new: **Quick Step**, **Hurried Harvest** |
+| B25 | Last Leaf | play near losing | Last Leaf | Last Stand | ❌ 1 → new: **Heartwood's Fury**, **Thin Bark** |
+| B26 | Menagerie | one of everything | Menagerie | — | ❌ 0 → new: **Patchwork**, **Mixed Grove** |
+| B27 | Hunter's Moon | Marked | Hunter's Moon | Bright Marks, Lingering Mark, Called Shot, Guiding Light, Starlit Aim | ✓ 5 |
+| B28 | Eternal Charge | Charged | Eternal Charge | Charged Field, Charged Bloom, Brighter Jars | ⚠ 3 → new: **Live Wire**, + Resonance |
+| B29 | Rooted Nightmares | Held | Rooted Nightmares | Deep Grip, Tangled Release, Long Light, Root Web, Patient Roots, Still Target | ✓ 6 |
+| B30 | The Quiet Ones | support Wardens | The Quiet Ones | Kind Canopy, Shared Light, Hedgerow Roots, Grandfather Stump, Many Threads, Dew Trail | ✓ 6 |
+| B31 | Crit (any) | crit-heavy Wardens | Full Moon | Glinting Dew, Sharpened Light, Still Target, Shattering Blow, First Light, Called Shot | ✓ 6 |
+| B32 | Swarm clearing | area Wardens | — | Crowded Path, Last Breath, Thinning the Herd, Shattering Blow | ⚠ 4 (bridges below add) |
+| B33 | First strike | many single hits | — | First Light, Called Shot, Lone Hunter | ⚠ 3 (small on purpose: it's a side-direction of Crit and Hunter's Moon) |
 
 ### New cards for the catalogue (2026-09-30)
 
