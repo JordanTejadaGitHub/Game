@@ -269,6 +269,7 @@ var _leaf_mote: Node2D = null  # Drifts up in _process while an aura boosts this
 var _harmony := {}
 var _harmony_glow: Array = []
 var _lit_cells: Array[Vector2] = []  # Rootlight: path tiles it lights
+var _lit_until := {}  # Long Light: cell -> _anim_time it stops being lit (after the light moved on)
 var _out: Array = []  # Hummingbirds / seeds that are away (the next attack waits for them)
 var _catch_tick := 0.0
 var _pecks_landed := 0  # Jewelwing Court's Flurry: every Nth peck crits
@@ -1156,10 +1157,39 @@ func _release() -> void:
 	_attack_count += 1
 	attack_released.emit(self)
 	var boost := _take_empowered()
+	if _chorus_sync:
+		boost *= 1.0 + DreamState.CHORUS_BONUS  # Chorus: pulled into a Bellflower's pulse
+	elif _chorus_pulse():
+		boost *= 1.0 + DreamState.CHORUS_BONUS
 	if boost == 1.0:
 		_release_attack()
 	else:
 		_boosted(boost, _release_attack)
+
+# Chorus (Dream): a Bellflower-line pulse pulls in the others of its line within CHORUS_CELLS whose attack
+# is ready within CHORUS_SYNC_WINDOW; they fire with it and every synced pulse deals +30%. A soft ring links
+# them. True if any joined.
+var _chorus_sync := false
+
+func _chorus_pulse() -> bool:
+	if tower_data.line != "song" or attack_data.attack_kind != TowerData.AttackKind.PULSE or _dream_state == null \
+			or not _dream_state.has_method("has_chorus") or not _dream_state.has_chorus():
+		return false
+	var joined := false
+	for other in _towers_near():
+		if other.tower_data.line != "song" or other.attack_data.attack_kind != TowerData.AttackKind.PULSE \
+				or other._attack_time >= 0.0 or other._cooldown > DreamState.CHORUS_SYNC_WINDOW \
+				or other.global_position.distance_to(global_position) / MAP_GRID.cell_size.x > DreamState.CHORUS_CELLS:
+			continue
+		other._chorus_sync = true
+		other._cooldown = 1.0 / maxf(other.get_attacks_per_second(), 0.01)
+		other._release()
+		other._chorus_sync = false
+		add_child(ChainBolt.new(PackedVector2Array([global_position, other.global_position]), CHORUS_RING_COLOR, 0.0))
+		joined = true
+	return joined
+
+const CHORUS_RING_COLOR := Color(0.85, 0.75, 1.0, 0.45)
 
 # Sudden Bloom / Watchful Rest: this attack's multiplier (×2 each), using up what it spends.
 func _take_empowered() -> float:
@@ -1297,6 +1327,8 @@ func hit(enemy: Node2D, soothe_multiplier: float = 1.0, is_area: bool = false, c
 	if not is_instance_valid(enemy) or enemy.is_cleansed:
 		return false
 	var is_crit := roll_crit(enemy) if crit == ROLL_CRIT else crit == CRIT
+	if _dream_state and _dream_state.has_method("called_shot") and _dream_state.called_shot(self, enemy):
+		is_crit = true  # Called Shot: the first hit on a Marked nightmare (once per Warden per nightmare)
 	if attack_data.dew_mark:
 		enemy.bonus_dew = maxi(enemy.bonus_dew, 1)  # Before the hit, so a dispelling hit counts
 	if attack_data.strips_buffs and enemy.has_method("strip_buff"):
@@ -1766,6 +1798,8 @@ func fire_at(target: Node2D) -> void:
 		# Sudden Bloom / Watchful Rest and a legacy attack's data ride the projectile to where it lands.
 		on_land = _land_as.bind(attack_data, _hit_boost)
 	var projectile := Projectile.new(target, attack_data, on_land)
+	if attack_data.projectile_returns and _dream_state and _dream_state.has_method("get_swoop_return_multiplier"):
+		projectile.return_multiplier = _dream_state.get_swoop_return_multiplier()  # Homing Instinct (swoops only)
 	projectile.trail = kin_look()
 	# Placed before it enters the tree: _ready() takes its home (swoops fly back to it) and a lob's arc
 	# length from where it starts. It's top_level, so position is world space.
@@ -2745,10 +2779,22 @@ func _grab(target: Node2D) -> void:
 
 # Rootlight: glowing roots light the path tiles in range; nightmares there are soothed and Marked.
 func _light() -> void:
+	var before := _lit_cells.duplicate()
 	_lit_cells.clear()
 	for at in _route():
 		if _is_cell_in_range(at):
 			_lit_cells.append(at)
+	# Long Light (Dream): tiles the light moved on from stay lit a while (still holding once per nightmare).
+	var linger: float = _dream_state.get_lit_linger() if _dream_state and _dream_state.has_method("get_lit_linger") else 0.0
+	if linger > 0.0:
+		for at in before:
+			if not _lit_cells.has(at) and not _lit_until.has(at):
+				_lit_until[at] = _anim_time + linger
+		for at in _lit_until.keys():
+			if _lit_until[at] < _anim_time or _lit_cells.has(at):
+				_lit_until.erase(at)
+			else:
+				_lit_cells.append(at)
 	queue_redraw()
 	for enemy in get_enemies_in_range():
 		hit(enemy, 1.0, true)
