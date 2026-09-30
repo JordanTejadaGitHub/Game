@@ -174,11 +174,7 @@ func _refresh() -> void:
 	if kin != null:
 		var kin_line := kin.describe(_tower)  # "Kin: Bloomcap · Slumber Rot · Blooming (3 drifts to Old Kin)"
 		if kin_line != "":
-			lines.append(kin_line)
-		else:
-			var hint := kin.no_kin_hint(_tower)  # "No kin. A Chime Stone within 2 cells would form Night Chimes."
-			if hint != "":
-				lines.append(hint)
+			lines.append(kin_line)  # Only with kin (screens_ui.md: no "No kin. A … would form …" line)
 		var family := kin.family_bonus(data.line)
 		if family > 0.0:
 			_stats.add_child(_kindred_row(data.line, family))  # The family icon + "Kindred +10%"
