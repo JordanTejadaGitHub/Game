@@ -285,20 +285,18 @@ func _make_sfx() -> void:
 		_sfx("dispel_%02d" % (v + 1), _own("dispel%d" % v, func() -> PackedFloat32Array: return _dispel(v)), 0.5)
 	_burn(4)  # What the old chime drew
 	_side(func() -> PackedFloat32Array: return _old_release_draws())  # What the old release drew from side_rng
-	# Releasing a soul (audio_direction.md ecc238a4): after the last breath and the unbinding, one soft
-	# warm sung vowel ("ooh" -> "ahh") rising ONCE by a fourth onto a note of the D chord, its filter
-	# opening as it thins into air, with a faint breath of motes. Variants = which chord note it lands on.
-	for i in DISPEL_RELEASE_LANDINGS.size():
-		var land: int = DISPEL_RELEASE_LANDINGS[i]
-		_sfx("dispel_release_%02d" % (i + 1), _own("dispel_release%d" % i, func() -> PackedFloat32Array:
-			return _soul_rise(land, 0.75)), 0.4)
+	# Deeply Blighted: a slower gathering and a fuller, slightly lower bloom (its own variants, not a
+	# pitch shift, so it stays in D).
+	for v in 2:
+		_sfx("dispel_elite_%02d" % (v + 1), _own("dispel_elite%d" % v, func() -> PackedFloat32Array:
+			return _light_burst(0.25, 0.55, DISPEL_CHORD + [45, 50])), 0.5)
 
-	# The boss: its last breath, then a full warm choir rising into the Memory moment. No bell, no boom.
+	# The boss: its dispel, then a large, slow bloom of tuned air across the chord (D3–A5, ~4 s) into
+	# the Memory moment. No choir, no bell, no boom.
 	_old_boss_dispel_draws()  # Keeps the shared random stream
 	_sfx("dispel_boss", _own("dispel_boss", func() -> PackedFloat32Array:
-		var out := _dispel(3)
-		for land in [50, 54, 57, 62]:  # D major, rising into it together
-			_mix(out, _normalize(_soul_rise(land, 2.4), 1.0), SFX_RATE, 0.35, 0.35)
+		var out := _light_burst(0.15, 0.5, DISPEL_CHORD)
+		_mix(out, _normalize(_light_burst(1.2, 2.8, [50, 54, 57, 62, 66, 69, 74, 78, 81]), 1.0), SFX_RATE, 0.4, 0.8)
 		return out))
 
 	var split := _seg(0.6, r)  # Breaking into Sobs: a soft, detuned low chime and a small sniffle
@@ -1655,27 +1653,47 @@ func _boss_reveal() -> PackedFloat32Array:
 func _soil_drag(length: float) -> PackedFloat32Array:  # Dirt dragged: a soft, low, grainy scrape
 	return _layers([[_scrape(length, 420.0), 1.0], [_rumble(length, 140.0, 0.05, length * 0.4), 0.5]])
 
-# The dispel, fourth listen: a voiced sigh (a ghostly "haah": a steady voice through the "ah" vowel's
-# formants, a little breath) and the unravel (a short swell played backwards, rising over ~0.15 s and
-# softly cut off, like a breath pulled in backwards), both kept between ~250 Hz and 1.5 kHz.
-const DISPEL_VOICE_HZ := [210.0, 195.0, 180.0, 170.0]
+# The dispel, fifth listen (audio_direction.md ac4fdf75): "a soft burst of light, releasing a soul".
+# No voice at all (vowels, formants and glides read as speech). Tuned air: soft breathy noise through
+# narrow resonances on D, F#, A, a pitch-coloured glow rather than a tone. ~0.8 s: a gentle gathering
+# (rising, its first 0.1 s a little flat and darker, settling into the chord: cold to warm), the bloom
+# (the filter opening), then it drifts away (thinning and fading). Range ~250 Hz–2.5 kHz, no low body.
+const DISPEL_CHORD := [62, 66, 69, 74, 78]  # D4 F#4 A4 D5 F#5
 func _dispel(v: int) -> PackedFloat32Array:
+	var chord: Array = DISPEL_CHORD if v % 2 == 0 else [62, 66, 69, 74, 81]  # Variants: the top note
+	return _light_burst(0.15, 0.5 + v * 0.03, chord)
+
+# One burst of tuned air: gathering over `gather` s, blooming, drifting away over `drift` s.
+func _light_burst(gather: float, drift: float, notes: Array) -> PackedFloat32Array:
 	var r := SFX_RATE
-	var f0: float = DISPEL_VOICE_HZ[v]
-	# The last breath: ~0.2 s, cold (two voices slightly detuned), then the unbinding.
-	var env := perc(0.03, 0.08, 0.24)
-	var voice := _tone(r, 0.24, func(t: float) -> float: return f0 * (1.0 + 0.012 * sin(t * 31.0)), env, "saw")
-	_mix(voice, _tone(r, 0.24, f0 * 1.018, env, "saw"), r, 0.0, 0.7)
-	_mix(voice, _noise(r, 0.24, env), r, 0.0, 0.3)  # A little breath in the voice
-	var sigh := _filter(voice, r, 750.0, 0.3, "bp")  # "ah": F1
-	_mix(sigh, _filter(voice, r, 1150.0, 0.35, "bp"), r, 0.0, 0.6)  # F2
-	var unravel := _filter(_noise(r, 0.18, perc(0.002, 0.05, 0.18)), r, 700.0, 0.5, "bp")
-	_mix(unravel, _filter(_tone(r, 0.18, f0 * 2.0, perc(0.002, 0.05, 0.18), "tri"), r, 900.0, 0.6), r, 0.0, 0.3)
-	unravel = _reverse(unravel)
-	for i in int(0.015 * r):  # Softly cut off at its peak
-		unravel[unravel.size() - 1 - i] *= float(i) / (0.015 * r)
-	var out := _layers([[sigh, 1.0], [unravel, 0.8, 0.15]])
-	return _filter(_filter(out, r, 250.0, 0.7, "hp"), r, 1500.0, 0.7)
+	var length := gather + 0.15 + drift
+	var bloom_at := gather
+	var env := func(t: float) -> float:
+		if t < bloom_at:
+			return pow(t / bloom_at, 2.0)  # Gathering: a soft reversed-swell rise, no transient
+		return exp(-(t - bloom_at) / (drift * 0.45)) * clampf((length - t) / 0.05, 0.0, 1.0)  # Drifting away
+	var cold := func(t: float) -> float: return clampf(1.0 - t / minf(0.1, bloom_at), 0.0, 1.0)  # The flat, dark start
+	var tuned := _tuned_air(length, notes, 1.0)
+	var flat := _lowpass(_tuned_air(length, notes, 0.97), 900.0)
+	var out := _seg(length, r)
+	for i in out.size():
+		var t := float(i) / r
+		var c: float = cold.call(t)
+		out[i] = (tuned[i] * (1.0 - c) + flat[i] * c) * env.call(t)
+	# The bloom: the filter opens, then the sound thins (the low side lifts) as it drifts away.
+	out = _filter(out, r, func(t: float) -> float: return lerpf(900.0, 2500.0, clampf((t - bloom_at * 0.5) / 0.2, 0.0, 1.0)), 0.7)
+	out = _filter(out, r, func(t: float) -> float: return lerpf(250.0, 600.0, clampf((t - bloom_at) / drift, 0.0, 1.0)), 0.7, "hp")
+	return out
+
+# Breathy noise through narrow resonances at `notes` (× `tune`, 0.97 = a little flat).
+func _tuned_air(length: float, notes: Array, tune: float) -> PackedFloat32Array:
+	var r := SFX_RATE
+	var n := _noise(r, length, 1.0)
+	var out := _seg(length, r)
+	for m in notes:
+		_mix(out, _normalize(_filter(n, r, hz(m) * tune, 0.02, "bp"), 1.0), r, 0.0, 1.0 / notes.size())
+	_mix(out, _normalize(_filter(n, r, 1200.0, 0.9, "bp"), 1.0), r, 0.0, 0.08)  # A little open breath
+	return out
 
 # The old dispel's draws from the shared RNG (one randf, 0.4 s of noise, two tones' phases, 0.3 s of
 # noise), made and thrown away so every sound generated after the dispel stays byte-identical.
@@ -1692,34 +1710,7 @@ func _old_release_draws() -> PackedFloat32Array:
 	_choir(SFX_RATE, hz(57), 0.8)
 	return _noise(SFX_RATE, 0.7, 1.0)
 
-# Releasing a soul: the rising sung vowel. It starts a fourth below `land` (a D chord note) and glides
-# up once; the vowel turns from "ooh" to "ahh" and its filter opens while the voice thins into air,
-# with a faint lowpassed breath of motes. `length` s (0.75 for a dispel, longer for the boss's choir).
-# Starts after a short lead so it follows the breath and the unbinding in the same play.
-const DISPEL_RELEASE_LANDINGS := [62, 65, 69]  # D4 F4 A4
-const SOUL_LEAD := 0.28
-func _soul_rise(land: int, length: float) -> PackedFloat32Array:
-	var r := SFX_RATE
-	var to := hz(land)
-	var from := hz(land - 5)
-	var up := func(t: float) -> float: return clampf(t / (length * 0.6), 0.0, 1.0)
-	var pitch := func(t: float) -> float:
-		var k: float = up.call(t)
-		return lerpf(from, to, k * k * (3.0 - 2.0 * k)) * (1.0 + 0.006 * sin(t * 33.0))
-	var body := swell(0.08, length * 0.55, length)
-	var voice := _tone(r, length, pitch, func(t: float) -> float: return body.call(t) * (1.0 - 0.7 * up.call(t)), "saw")
-	var air := _noise(r, length, func(t: float) -> float: return body.call(t) * (0.15 + 0.6 * up.call(t)))  # Thins into air
-	_mix(voice, air, r, 0.0, 0.4)
-	var f1 := func(t: float) -> float: return lerpf(350.0, 750.0, up.call(t))  # "ooh" -> "ahh"
-	var f2 := func(t: float) -> float: return lerpf(800.0, 1150.0, up.call(t))
-	var sung := _filter(voice, r, f1, 0.3, "bp")
-	_mix(sung, _filter(voice, r, f2, 0.35, "bp"), r, 0.0, 0.6)
-	sung = _filter(sung, r, func(t: float) -> float: return lerpf(900.0, 2400.0, up.call(t)), 0.7)  # Opening
-	var motes := _lowpass(_noise(r, length, swell(length * 0.3, length * 0.5, length)), 1200.0)
-	var out := _seg(SOUL_LEAD + length, r)
-	_mix(out, _normalize(sung, 1.0), r, SOUL_LEAD, 1.0)
-	_mix(out, _normalize(motes, 1.0), r, SOUL_LEAD, 0.12)
-	return _filter(out, r, 250.0, 0.7, "hp")
+const DISPEL_RELEASE_LANDINGS := [62, 65, 69]  # D4 F4 A4 (the Remember screen's sung notes)
 
 # The old boss dispel's draws from the shared RNG, made and thrown away (later sounds stay identical).
 func _old_boss_dispel_draws() -> void:
