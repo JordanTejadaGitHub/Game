@@ -61,6 +61,7 @@ canopies.forEach(limbsInCrown);  // the limbs show through every stage's leaves
 canopies.forEach((c, i) => emitImg("grove/grove_canopy_" + i + ".png", c));
 const tree = groveTree(), sky = grovesky();
 emitImg("grove/grove_sky.png", sky);
+emitImg("grove/grove_backdrop.png", grovesky(640));  // 2560 wide: the sky continued 640 px past each side, for wide screens
 emitImg("grove/grove_tree.png", tree);
 spreadNodes(canopies[0]);
 FRUIT_SPOTS.forEach(s => { s[1] = maskBottom(s[0]) - 8; });
