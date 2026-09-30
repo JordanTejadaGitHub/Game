@@ -2988,36 +2988,37 @@ static func resonance_text(bonus: float, tag: String, count: int) -> String:
 # Hearth) with the numbers below.
 
 const ELDER_KIN_SHARE := 0.25  # Ranked Wardens in a Kinship share this much of their rank bonuses
-const MANY_RINGS_PER := 0.01  # Per rank on any Warden, for every Sprout
-const MANY_RINGS_MAX := 0.25
-const BIG_FAMILY_SPEED := 0.10  # Sprouts within BIG_FAMILY_CELLS of a Kinship pair
+const MANY_RINGS_PER := 0.02  # Per rank on any Warden, for every Sprout
+const MANY_RINGS_MAX := 0.50
+const BIG_FAMILY_SPEED := 0.45  # Sprouts within BIG_FAMILY_CELLS of a Kinship pair
 const BIG_FAMILY_CELLS := 2.0
 const MYCELIUM_SPORED := 1  # Poisoned stacks a Sprout touching a Sporeling-line Warden applies on hit
 const FIREFLIES_EVERY := 3  # Sprouts touching a Firefly-line Warden add 1 Charged every Nth hit
-const SEASONED_EYE_PER := 0.01
-const SEASONED_EYE_MAX := 0.07
-const HEDGEROW_BONUS := 0.10  # Sprouts touching a Thornwall
+const SEASONED_EYE_PER := 0.03
+const SEASONED_EYE_MAX := 0.21
+const HEDGEROW_BONUS := 0.30  # Sprouts touching a Thornwall
 const SPORE_KIN_SPORED := 2  # Harmony strikes by Sporeling-line kin
 const RESONANCE_CHARGED := 1  # Chime Stone pulses count as lightning: +1 Charged per nightmare hit
 const THORNHEART_PER := 0.05  # Bramble thorns, per Bramble you own
 const THORNHEART_MAX := 1.0
-const ILL_WIND_BONUS := 0.25  # Effect damage of statuses Gust / Zephyr copied
-const SPINNING_CORNERS_SPEED := 0.20  # Pinwheel / Windmill beside a bend
+const ILL_WIND_BONUS := 0.45  # Effect damage of statuses Gust / Zephyr copied
+const SPINNING_CORNERS_SPEED := 0.45  # Pinwheel / Windmill beside a bend
 const SPINNING_WARDENS: Array[String] = ["pinwheel", "windmill"]
-const FALLING_WEIGHT_BONUS := 0.40  # Pebbling line vs Held or Asleep
+const FALLING_WEIGHT_BONUS := 0.45  # Pebbling line vs Held or Asleep
 const WARM_HEARTH_SPROUTS := 0.50  # Aura bonuses on Sprouts
-const FRESH_SOIL_BONUS := 0.20  # A Sprout on a cleared cell
+const FRESH_SOIL_BONUS := 0.30  # A Sprout on a cleared cell
 const FRESH_SOIL_COST := 7
-const QUICK_STEP_SPEED := 0.10  # Per stack, for QUICK_STEP_TIME after calling a drift early
+const QUICK_STEP_SPEED := 0.15  # Per stack, for QUICK_STEP_TIME after calling a drift early
 const QUICK_STEP_TIME := 10.0
-const HURRIED_HARVEST_CAP := 20  # +1 Dew per nightmare of an early-called drift, per drift
+const HURRIED_HARVEST_CAP := 40  # +1 Dew per nightmare of an early-called drift, per drift
+const HURRIED_HARVEST_DEW := 2  # Per nightmare
 const FURY_CELLS := 4  # Heartwood's Fury: from the Heartwood (Chebyshev)
-const FURY_PER := 0.03  # Per missing leaf
-const FURY_MAX := 0.30
-const PATCHWORK_PER := 0.03  # Per family owned
-const PATCHWORK_MAX := 0.12
-const MIXED_GROVE_PER := 0.08  # Per neighbouring family that isn't the Warden's own
-const MIXED_GROVE_MAX := 0.24
+const FURY_PER := 0.05  # Per missing leaf
+const FURY_MAX := 0.45
+const PATCHWORK_PER := 0.05  # Per family owned
+const PATCHWORK_MAX := 0.15
+const MIXED_GROVE_PER := 0.15  # Per neighbouring family that isn't the Warden's own
+const MIXED_GROVE_MAX := 0.45
 const LIVE_WIRE_PER := 0.15  # Charged bolts, per stack (max 3)
 
 var _quick_step_until := -1.0
@@ -3031,8 +3032,8 @@ func quick_step_active() -> bool:
 func _hurried_harvest(enemy: Node2D) -> void:
 	if not has_rule(&"hurried_harvest") or drift_director.drifts_started != _hurried_drift or _hurried_paid >= HURRIED_HARVEST_CAP:
 		return
-	_hurried_paid += 1
-	run_state.earn_dew_at(1, enemy.global_position)
+	_hurried_paid += HURRIED_HARVEST_DEW
+	run_state.earn_dew_at(HURRIED_HARVEST_DEW, enemy.global_position)
 
 # Live Wire: Charged bolts multiplier (Enemy / Reactions bolt code; 1.0 without the card).
 func get_bolt_multiplier() -> float:

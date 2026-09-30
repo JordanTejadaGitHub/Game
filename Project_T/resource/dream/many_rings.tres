@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "many_rings"
 display_name = "Many Rings"
-description = "Each rank on any Warden gives all Sprouts +1% damage (max +25%)."
+description = "Each rank on any Warden gives all Sprouts +2% damage (max +50%)."
 rarity = 1
 kind = 3
 tags = Array[String](["nurture", "sprout"])

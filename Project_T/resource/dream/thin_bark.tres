@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "thin_bark"
 display_name = "Thin Bark"
-description = "All Wardens deal 15% more damage."
+description = "All Wardens deal 35% more damage."
 rarity = 1
 kind = 2
 tags = Array[String](["leaves", "bittersweet"])
@@ -14,7 +14,7 @@ requires = Array[String]([])
 max_stacks = 1
 cost_description = "The Heartwood holds 3 fewer leaves, and loses them now."
 min_act = 2
-soothe_bonus = 0.15
+soothe_bonus = 0.35
 max_leaves_add = -3
 leaves_now = -3
 rule_id = &"thin_bark"

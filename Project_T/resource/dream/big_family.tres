@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "big_family"
 display_name = "Big Family"
-description = "Sprouts within 2 cells of a Kinship pair attack 10% faster."
+description = "Sprouts within 2 cells of a Kinship pair attack 45% faster."
 rarity = 1
 kind = 3
 tags = Array[String](["sprout", "kinship"])

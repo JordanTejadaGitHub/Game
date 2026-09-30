@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "seasoned_eye"
 display_name = "Seasoned Eye"
-description = "+1% crit chance per rank (max +7%)."
+description = "+3% crit chance per rank (max +21%)."
 rarity = 1
 kind = 3
 tags = Array[String](["nurture", "crit"])

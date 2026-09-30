@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "hedgerow"
 display_name = "Hedgerow"
-description = "Sprouts touching a Thornwall deal 10% more damage."
+description = "Sprouts touching a Thornwall deal 30% more damage."
 rarity = 0
 kind = 3
 tags = Array[String](["wall", "sprout"])

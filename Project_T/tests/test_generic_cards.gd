@@ -352,19 +352,19 @@ func _test_catalogue() -> void:
 	var eye := _plant("sporeling", Vector2(100, 104))
 	eye.rank = 5
 	dreams.take(_card("seasoned_eye"))
-	_check(is_equal_approx(dreams.get_crit_chance_bonus(eye), 0.05), "Seasoned Eye: rank V = +5% crit")
+	_check(is_equal_approx(dreams.get_crit_chance_bonus(eye), 0.15), "Seasoned Eye: rank V = +15% crit")
 	# Falling Weight: the Pebbling line vs Held
 	var pebble := _plant("pebbling", Vector2(104, 104))
 	var held := _spawn(Vector2(5, 5))
 	var plain := dreams.on_hit_multiplier(pebble, held)
 	dreams.take(_card("falling_weight"))
 	held.statuses.apply(EnemyStatuses.HELD, 1, 5.0)
-	_check(is_equal_approx(dreams.on_hit_multiplier(pebble, held), plain + 0.40), "Falling Weight: +40% vs Held")
+	_check(is_equal_approx(dreams.on_hit_multiplier(pebble, held), plain + 0.45), "Falling Weight: +45% vs Held")
 	held.free()
 	# Many Rings / Hedgerow / Patchwork / Mixed Grove rows
 	var sprout := _plant("sprout", Vector2(110, 110))
 	dreams.take(_card("many_rings"))
-	_check(is_equal_approx(_row(sprout.tower_data, sprout.cell, "many_rings", sprout).damage, 0.05), "Many Rings: 5 ranks = +5% on Sprouts")
+	_check(is_equal_approx(_row(sprout.tower_data, sprout.cell, "many_rings", sprout).damage, 0.10), "Many Rings: 5 ranks = +10% on Sprouts")
 	dreams.take(_card("hedgerow"))
 	_check(not _row(sprout.tower_data, sprout.cell, "hedgerow", sprout).active, "Hedgerow: off with no wall touching")
 	_plant("thornwall", Vector2(111, 110))
@@ -373,7 +373,7 @@ func _test_catalogue() -> void:
 	dreams.unlocked["firefly_jar"] = true
 	dreams.take(_card("patchwork"))
 	var families := dreams.count_owned_families()
-	_check(is_equal_approx(_row(eye.tower_data, eye.cell, "patchwork", eye).damage, minf(0.03 * families, 0.12)), "Patchwork: +3%% per family (%d)" % families)
+	_check(is_equal_approx(_row(eye.tower_data, eye.cell, "patchwork", eye).damage, minf(0.05 * families, 0.15)), "Patchwork: +5%% per family (%d)" % families)
 	_check(dreams._meets_needs(_card("mixed_grove")) == (families >= 2), "Mixed Grove needs 2 families")
 	# Fresh Soil: a Sprout on a cleared cell costs 7 and deals +20%
 	dreams.take(_card("fresh_soil"))
@@ -386,12 +386,12 @@ func _test_catalogue() -> void:
 	dreams.take(_card("quick_step"))
 	_check(not dreams.quick_step_active(), "Quick Step: off until you call a drift early")
 	dreams._quick_step_until = dreams._game_clock + DreamState.QUICK_STEP_TIME
-	_check(dreams.quick_step_active() and is_equal_approx(_row(eye.tower_data, eye.cell, "quick_step", eye).speed, 0.10), "…then +10% speed")
+	_check(dreams.quick_step_active() and is_equal_approx(_row(eye.tower_data, eye.cell, "quick_step", eye).speed, 0.15), "…then +15% speed")
 	# Live Wire and Thin Bark
 	_check(dreams.get_bolt_multiplier() == 1.0, "no Live Wire: bolts ×1")
 	dreams.take(_card("live_wire"))
 	_check(is_equal_approx(dreams.get_bolt_multiplier(), 1.15), "Live Wire: bolts +15%")
-	_check(_card("thin_bark").soothe_bonus == 0.15 and _card("thin_bark").max_leaves_add == -3, "Thin Bark: +15% damage, −3 max leaves")
+	_check(_card("thin_bark").soothe_bonus == 0.35 and _card("thin_bark").max_leaves_add == -3, "Thin Bark: +35% damage, −3 max leaves")
 	_clear()
 	_reset()
 

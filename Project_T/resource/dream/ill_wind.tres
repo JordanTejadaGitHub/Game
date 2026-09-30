@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "ill_wind"
 display_name = "Ill Wind"
-description = "Statuses copied by Gust and Zephyr deal 25% more effect damage."
+description = "Statuses copied by Gust and Zephyr deal 45% more effect damage."
 rarity = 1
 kind = 3
 tags = Array[String](["wind", "potency"])

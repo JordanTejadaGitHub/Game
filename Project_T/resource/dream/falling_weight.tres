@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "falling_weight"
 display_name = "Falling Weight"
-description = "The Pebbling line deals 40% more to {held} or {asleep} nightmares."
+description = "The Pebbling line deals 45% more to {held} or {asleep} nightmares."
 rarity = 1
 kind = 3
 tags = Array[String](["stone", "held"])

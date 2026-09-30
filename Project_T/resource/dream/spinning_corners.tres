@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "spinning_corners"
 display_name = "Spinning Corners"
-description = "Pinwheels and Windmills beside a bend in the path spin 20% faster."
+description = "Pinwheels and Windmills beside a bend in the path spin 45% faster."
 rarity = 1
 kind = 3
 tags = Array[String](["wind", "maze"])

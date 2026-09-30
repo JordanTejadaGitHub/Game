@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "hurried_harvest"
 display_name = "Hurried Harvest"
-description = "Nightmares of a {drift} you called early give +1 Dew (up to 20 per {drift})."
+description = "Nightmares of a {drift} you called early give +2 Dew (up to 40 per {drift})."
 rarity = 1
 kind = 3
 tags = Array[String](["tempo", "economy"])

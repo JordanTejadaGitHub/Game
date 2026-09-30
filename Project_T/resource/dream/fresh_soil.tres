@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "fresh_soil"
 display_name = "Fresh Soil"
-description = "A Sprout planted on a cleared cell costs 7 Dew and deals 20% more damage."
+description = "A Sprout planted on a cleared cell costs 7 Dew and deals 30% more damage."
 rarity = 0
 kind = 3
 tags = Array[String](["clearing", "sprout", "opener"])

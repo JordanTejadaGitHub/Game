@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "heartwoods_fury"
 display_name = "Heartwood's Fury"
-description = "Wardens within 4 cells of the Heartwood deal 3% more damage for each missing leaf (max +30%)."
+description = "Wardens within 4 cells of the Heartwood deal 5% more damage for each missing leaf (max +45%)."
 rarity = 1
 kind = 3
 tags = Array[String](["leaves", "maze"])
