@@ -180,7 +180,7 @@ static func reaction(reaction: StringName, at: Vector2, parent: Node, towers: Ar
 	# The Wardens that made it: a soft pulse ring on each (playtest: straight threads to them read as debug lines).
 	for tower in towers:
 		if tower is Node2D and is_instance_valid(tower):
-			var ring := FxRing.new(colour)
+			var ring := FxRing.new(colour, 14.0, 22.0, RING_SECONDS)
 			parent.add_child(ring)
 			ring.global_position = tower.global_position
 	_shake(parent, 2.0)
@@ -230,7 +230,7 @@ static func chain(count: int, where: Vector2, parent: Node, towers: Array = []) 
 	if count == 5 or count == 10:
 		_hitstop(parent)
 		if not reduce_flashes():
-			_surge(parent)
+			_local_surge(where, parent)  # A local burst (playtest: the old full-screen gold wash)
 	if count == 10:
 		play(&"dawnburst", where, parent, DAWNBURST_SCALE, false)
 		for tower in towers:
@@ -260,6 +260,14 @@ static func _end_hitstop() -> void:
 		Engine.time_scale = _hitstop_base  # (If the player changed speed meanwhile, keep theirs)
 	_hitstop_base = -1.0
 
+# A chain of 5 or 10: a big gold ring swelling around where it happened, never a screen tint.
+static func _local_surge(where: Vector2, parent: Node) -> void:
+	var ring := FxRing.new(Color(1.0, 0.85, 0.45), 24.0, 110.0, 0.6)
+	ring.z_index = Z
+	parent.add_child(ring)
+	ring.global_position = where
+
+# (Unused since the playtest: a whole-screen tint read as a glitch.)
 static func _surge(parent: Node) -> void:
 	var tex := texture(&"surge")
 	if tex == null:
@@ -301,21 +309,27 @@ static func _shake(parent: Node, pixels: float) -> void:
 class FxRing extends Node2D:
 	var _colour: Color
 	var _age := 0.0
+	var _base := 14.0
+	var _grow := 22.0
+	var _life := 0.45
 
-	func _init(colour: Color) -> void:
+	func _init(colour: Color, base := 14.0, grow := 22.0, life := 0.45) -> void:
 		_colour = colour
+		_base = base
+		_grow = grow
+		_life = life
 		z_index = -1
 
 	func _process(delta: float) -> void:
 		_age += delta
-		if _age >= Fx.RING_SECONDS:
+		if _age >= _life:
 			queue_free()
 			return
 		queue_redraw()
 
 	func _draw() -> void:
-		var t := _age / Fx.RING_SECONDS
-		var radius := 14.0 + 22.0 * t
+		var t := _age / _life
+		var radius := _base + _grow * t
 		var alpha := 1.0 - t
 		draw_circle(Vector2(0, 6), radius, Color(_colour, 0.12 * alpha))
 		draw_arc(Vector2(0, 6), radius, 0.0, TAU, 32, Color(_colour, 0.7 * alpha), 2.0)
