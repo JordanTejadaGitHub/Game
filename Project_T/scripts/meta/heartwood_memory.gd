@@ -8,7 +8,7 @@ class_name HeartwoodMemory
 # Static helpers only: every caller loads, changes and saves. The file is tiny.
 
 const PATH := "user://heartwood.json"
-const VERSION := 4  # 2: Grove ids match grove_layout.json (MIGRATED_IDS), perk loadout; 3: REFUNDED_V3; 4: REFUNDED_V4
+const VERSION := 5  # 2: Grove ids match grove_layout.json (MIGRATED_IDS), perk loadout; 3: REFUNDED_V3; 4: REFUNDED_V4; 5: REFUNDED_V5
 
 # Where the profile lives (tests point this elsewhere so they never touch the player's Seeds).
 static var file_path := PATH
@@ -138,6 +138,9 @@ const PRICE_DROPS_V3 := {"bittersweet_dreams": 8}  # Kept, 8 Seeds back (60 -> 5
 # Version 4 (meta_design.md "Section 1: Perks", 2026-09-29): slots 1–3 are open from the start, so the
 # slot_2 / slot_3 nodes are gone and their Seeds come back.
 const REFUNDED_V4 := {"slot_2": 40, "slot_3": 80}
+# Version 5 (dream_audit.md "Pool trim", 2026-09-30): Reckless and Wild Planting granted only cut cards
+# and were removed; Full Moon now grows from Sharpened, Rootbound from Seedbed.
+const REFUNDED_V5 := {"reckless": 40, "wild_planting": 50}
 
 static func _migrate(data: Dictionary) -> void:
 	var version := int(data.get("version", VERSION))
@@ -158,6 +161,11 @@ static func _migrate(data: Dictionary) -> void:
 		for id in REFUNDED_V4:
 			if int(data.unlocks.get(id, 0)) > 0:
 				data.seeds = int(data.seeds) + REFUNDED_V4[id]
+				data.unlocks.erase(id)
+	if version < 5:
+		for id in REFUNDED_V5:
+			if int(data.unlocks.get(id, 0)) > 0:
+				data.seeds = int(data.seeds) + REFUNDED_V5[id]
 				data.unlocks.erase(id)
 	data.version = VERSION
 
