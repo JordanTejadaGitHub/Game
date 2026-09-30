@@ -272,6 +272,25 @@ func _on_run_ended(won: bool) -> void:
 		run.reactions = tracker.counts.duplicate()
 	save_run(run)
 
+# The record so far, for the run save (RunSaver, at each rest): a Save & quit run is recorded whole.
+func to_save() -> Dictionary:
+	return {"run": run.duplicate(true), "omen_offers": _omen_offers}
+
+# Continue: the saved record goes on (the counters restored before this don't count twice).
+func load_save(data: Dictionary) -> void:
+	var saved = data.get("run")
+	if not saved is Dictionary or saved.is_empty():
+		return
+	run = saved.duplicate(true)
+	run["resumed"] = int(run.get("resumed", 0)) + 1
+	_omen_offers = int(data.get("omen_offers", 0))
+	_drift = {}
+	if run_state != null:
+		_last_leaves = run_state.leaves
+		_last_dew = run_state.dew
+	if dream_state != null:
+		_last_dreamlight = dream_state.dreamlight
+
 # The real game (the run's scene is the current scene), or a test that asked to record into a temp file.
 func _may_write() -> bool:
 	if record_in_tests:
