@@ -70,6 +70,20 @@ func _run() -> void:
 	_check(codex._combos.find_children("Waiting", "Label", false, false).is_empty(), "…with nothing waiting")
 	MetaRun.force_all_families = false
 
+	# Combat callouts in the glossary (user: "been seeing 'Shattered' but don't know what it means"): a
+	# callout's line appears once it's been seen; Weak / Resisted always; a Reaction once discovered.
+	var fresh := HeartwoodMemory.defaults()
+	HeartwoodMemory.save_data(fresh)
+	var names := CodexData.callout_entries().map(func(e: Array) -> String: return e[0])
+	_check(names.has("Weak") and names.has("Resisted") and not names.has("Shattered") and not names.has("Thunderclap"),
+		"before seeing them: only Weak and Resisted (%s)" % [names])
+	fresh[CodexData.CALLOUT_SEEN_KEY] = ["crit"]
+	fresh["combos_seen"] = ["thunderclap"]
+	HeartwoodMemory.save_data(fresh)
+	names = CodexData.callout_entries().map(func(e: Array) -> String: return e[0])
+	_check(names.has("Shattered") and names.has("Thunderclap"), "seen callouts join the glossary (%s)" % [names])
+	_check(CodexData.definition("Shattered").begins_with("A critical hit"), "Shattered means a critical hit")
+
 	codex.queue_free()
 	ResultsScreen.demo_override = -1
 	DirAccess.remove_absolute(ProjectSettings.globalize_path(PROFILE_PATH))

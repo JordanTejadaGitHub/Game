@@ -50,6 +50,21 @@ func _on_damage(event: DamageLog.Event) -> void:
 			return  # One callout per nightmare at a time
 	_cooldowns[tag] = TAG_COOLDOWN
 	_alive.append([0.0, WORDS[tag], _colour(event.source), event.enemy, event.enemy.global_position])
+	_note_seen(tag)
+
+# The glossary explains a callout once it has been seen (CodexData.callout_entries): remembered on the
+# profile the first time each word shows (real game only; account knowledge).
+static var _noted := {}
+func _note_seen(tag: StringName) -> void:
+	if _noted.has(tag) or owner == null or get_tree().current_scene != owner:
+		return
+	_noted[tag] = true
+	var profile := HeartwoodMemory.load_data()
+	var seen: Array = profile.get(CodexData.CALLOUT_SEEN_KEY, [])
+	if not seen.has(String(tag)):
+		seen.append(String(tag))
+		profile[CodexData.CALLOUT_SEEN_KEY] = seen
+		HeartwoodMemory.save_data(profile)
 
 func _pick(event: DamageLog.Event) -> StringName:
 	for tag in PRIORITY:

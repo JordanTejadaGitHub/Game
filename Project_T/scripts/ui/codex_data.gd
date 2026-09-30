@@ -372,7 +372,40 @@ static func glossary() -> Array:
 				entries.append([IconInfo.format(entry[0]), IconInfo.format(text),
 					entry[2].map(func(s: String) -> String: return IconInfo.format(s))])
 			_glossary.append([group[0], entries])
-	return _glossary
+	var callouts := callout_entries()
+	if callouts.is_empty():
+		return _glossary
+	return _glossary + [["Combat callouts", callouts]]
+
+# Combat callouts (screens_ui.md, user: "been seeing 'Shattered' but don't know what it means"): every
+# word that pops over nightmares gets a plain line, linking to its Codex combo. An entry shows once
+# its callout has been seen on this profile (callouts_seen; Reactions: combos_seen), so it never
+# spoils a "???" combo. "Resisted" and "Weak" are basics: always there.
+const CALLOUT_SEEN_KEY := "callouts_seen"
+const CALLOUT_ENTRIES := [
+	# [callout id, entry name, line, related]
+	[&"crit", "Shattered", "A critical hit: the Warden's hit landed for extra damage (its crit chance is on the Warden panel). Not the Shatter Reaction.", ["Crit"]],
+	[&"conducted", "Conducted", "Lightning through {damp}: bolts jump further and more often between {damp} nightmares (the Conducted combo).", ["Conducted"]],
+	[&"popped", "Popped", "Poison pops: 10+ {spored} bursts over the nightmare and its neighbours (the Popped combo).", ["Popped"]],
+	[&"asleep", "Asleep", "Full {drowsy}: the nightmare falls asleep for a moment; a big hit wakes it (the Asleep combo).", ["Asleep"]],
+	[&"weak", "Weak", "A hit from a family this nightmare is weak to: ×1.5 damage (the sparkle).", []],
+	[&"resisted", "Resisted", "A hit from a family this nightmare resists: ×0.5 damage (the grey puff).", []],
+]
+const ALWAYS_SHOWN := [&"weak", &"resisted"]
+
+static func callout_entries() -> Array:
+	var profile := HeartwoodMemory.load_data()
+	var seen: Array = profile.get(CALLOUT_SEEN_KEY, [])
+	var combos: Array = profile.get("combos_seen", []) + profile.get("reactions_seen", [])
+	var entries: Array = []
+	for entry in CALLOUT_ENTRIES:
+		if ALWAYS_SHOWN.has(entry[0]) or seen.has(String(entry[0])) or combos.has(String(entry[0])):
+			entries.append([entry[1], IconInfo.format(entry[2]), entry[3]])
+	# Each Reaction's callout, once that Reaction has been discovered.
+	for reaction in Reactions.all() + Reactions.crowned():
+		if combos.has(String(reaction.id)):
+			entries.append([reaction.display_name, IconInfo.format(reaction.description), [reaction.display_name]])
+	return entries
 
 # The glossary's one-line definition of `term` ("" if it has none): the popup of a linked game term.
 static func definition(term: String) -> String:
