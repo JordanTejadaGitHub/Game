@@ -372,7 +372,7 @@ risk: players set their own difficulty block by block.
   are mandatory", then "the Omens should appear like a Dream card, not in the bottom right"; this
   replaces the small ask-first prompt beside Start). After the Dream, the Omen screen opens
   **centred, in the Dream screen's layout**: the title *"The wind carries Omens"* and **three cards
-  side by side**: the two Omens (name, what changes this block, the reward in gold, the Omen art)
+  side by side**: the two Omens (name, what changes this block, the reward in gold; **no art yet: Omen emblems are on hold**, user 2026-09-29, "wait on the Omen emblems")
   and **Clear Skies** (a calm moonlit card: *"Nothing changes. No reward."*), which is highlighted
   as the default. Esc and right-click pick Clear Skies; "Peek at the map" works as on the Dream
   screen. Setting (Gameplay): **Omens: Ask each rest / Never** (Never = no screen, always Clear
