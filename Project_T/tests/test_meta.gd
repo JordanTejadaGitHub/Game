@@ -129,10 +129,10 @@ func _run() -> void:
 	for data in family.families:
 		dreams.unlocked[data.get_id()] = true
 	# Family Blessings are Rare Dream cards now (meta_design.md "Replaced 2026-09-30"): one per family,
-	# offered like any card once you own that family.
+	# offered like any card once you own that family, from act 2 (their old boss-pick timing; design 2026-09-30).
 	var blessing: UpgradeData = dreams.pool.filter(func(c: UpgradeData) -> bool: return c.id == "blessing_sporeling").front()
 	_check(blessing != null and blessing.in_start_pool and blessing.requires == ["sporeling"] and blessing.rarity == UpgradeData.Rarity.RARE
-		and blessing.max_stacks == 1, "a Family Blessing is a Rare Dream card that needs its family")
+		and blessing.max_stacks == 1 and blessing.min_act == 2, "a Family Blessing is a Rare Dream card that needs its family, from act 2")
 	dreams.take(blessing)
 	_check(dreams.card_stacks(blessing.id) == 1, "a Blessing is taken like a card")
 	var blessed := MetaRun.load_blessings().map(func(b: UpgradeData) -> String: return b.requires[0] if not b.requires.is_empty() else "")
