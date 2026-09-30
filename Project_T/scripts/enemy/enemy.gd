@@ -465,10 +465,13 @@ func _draw() -> void:
 			draw_circle(at, STATUS_DOT_RADIUS, color)
 		var stacks := statuses.stacks(id)
 		if stacks > 1:
-			draw_string_outline(ThemeDB.fallback_font, at + Vector2(3, 8), str(stacks), HORIZONTAL_ALIGNMENT_LEFT,
+			var corner := at + Vector2(3, 8)
+			WorldLabel.begin_screen_size(self, corner)  # The number keeps its screen size when zoomed in
+			draw_string_outline(ThemeDB.fallback_font, corner, str(stacks), HORIZONTAL_ALIGNMENT_LEFT,
 				-1, STACK_FONT_SIZE, 3, Color(0.08, 0.08, 0.1))
-			draw_string(ThemeDB.fallback_font, at + Vector2(3, 8), str(stacks), HORIZONTAL_ALIGNMENT_LEFT, -1,
+			draw_string(ThemeDB.fallback_font, corner, str(stacks), HORIZONTAL_ALIGNMENT_LEFT, -1,
 				STACK_FONT_SIZE, Color.WHITE)
+			WorldLabel.end_screen_size(self)
 		if _status_flash.has(id):
 			var f: float = _status_flash[id] / STATUS_FLASH_TIME  # 1 -> 0
 			draw_circle(at, 7.0, Color(1, 1, 1, 0.55 * f))
