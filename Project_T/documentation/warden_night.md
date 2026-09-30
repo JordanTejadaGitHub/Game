@@ -1,14 +1,15 @@
 # Warden Night: the Wardens' shade for the Mistwood look
 
-**Status: proposal (2026-09-30).** The user picked "night shade" for the Wardens and asked for it
-to be fixed and made into a palette. It goes with the Mistwood environment preview
-(https://claude.ai/artifact/R3v9xg1JhCoRXkRpob3twd), which is also preview only. The in-game Warden art is
-unchanged. Comparison page: https://claude.ai/artifact/969uR9QxNS9D71h8gCDqdh
+**Status: decided (2026-09-30).** The user confirmed Warden Night. `art_direction.md` records it,
+so the palette is now Heartwood 32 + 3 = 35 colours. Tower Assets applies the map to the Warden
+sheets, and Theme Code adds the colours to `HeartwoodPalette`. It goes with the Mistwood
+environment preview (https://claude.ai/artifact/R3v9xg1JhCoRXkRpob3twd), which is still preview
+only. Comparison page: https://claude.ai/artifact/969uR9QxNS9D71h8gCDqdh
 
 **Owners.** Tower Assets applies this to the Warden sheets. Theme Code wires the colours into
-`HeartwoodPalette` / the palette export. The 3 added colours would **change the palette itself**
-(Heartwood 32 → 35). That isn't covered by the per-act "at most 4 ground colours" allowance, so it
-needs the user's confirmation. Theme Discussion then records it in `art_direction.md`.
+`HeartwoodPalette` / the palette export. The 3 added colours **change the palette itself**
+(Heartwood 32 → 35), recorded in `art_direction.md`. They are not part of the per-act allowance for
+ground colours.
 
 ## The idea
 
