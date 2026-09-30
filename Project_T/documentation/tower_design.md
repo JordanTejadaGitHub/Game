@@ -459,7 +459,7 @@ Harvest), Grove Heart (grows per Warden). Numbers are starting points.
 | **Starcave** | **Starlit snare** | each lit tile **Holds the first nightmare to step on it each drift** for 0.5 s | a star-glint pops on the tile |
 | **Great Dreamcatcher** | **Mended leaves** | every **25** Caught nightmares dispelled **restores 1 leaf** (max **3 per run**; the only leaf healing outside act breaks). If that's too strong: shards count double instead | a leaf drifts from the dreamcatcher to the Heartwood |
 | **Grafted Elder** | **Double graft** | copies its **two** strongest neighbours and **alternates** between their attacks | its graft glows in the two borrowed colours, swapping |
-| **Starling Murmuration** | **Dark swirl** | every **6 s** the flock forms a swirl (1 cell) over the busiest path tile for 2 s; **Phantoms gliding through it are Held 0.5 s** (once each) | a spinning swirl of starlings |
+| **Starling Murmuration** | **Dark swirl** | every **6 s** the flock forms a swirl (1 cell) over the busiest path tile for 2 s; **Phantoms gliding through it are swept up: a 0.5 s pause** (once each; a non-status pause, since Phantoms are immune to Held and "immune" should stay trustworthy) | a spinning swirl of starlings |
 | **Zephyr** | **Gale lane** | every **10 s** a gust sweeps **3 path tiles** in range, copying statuses (half stacks) onto everything on them | a gust streak along the path |
 | **Windmill** | **Momentum** | attack speed ramps **+5% per second** while nightmares are in reach (max **+50%**), and drops back after 2 s idle | the blades visibly spin up |
 | **Elf Circle** | **Fairy dance** | a nightmare that steps on **3 rings in one walk** is caught dancing: **Held 1 s** (once per nightmare) | a little ring of lights spins around it |
