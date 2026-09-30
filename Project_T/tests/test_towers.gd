@@ -115,6 +115,9 @@ func _run() -> void:
 	midsummer.position = Tower.MAP_GRID.calculate_map_position(Vector2(1, 1))
 	tower_container.add_child(midsummer)
 	midsummer.set_process(false)
+	for child in spawner.get_children():
+		child.queue_free()  # Only its own target: a leftover nightmare in range would keep the beam on
+	await process_frame
 	var beamed = _spawn_still(spawner, leaf_bug, midsummer.global_position + Vector2(40, 0))
 	midsummer._update_beam(0.1)
 	_check(midsummer.sprite.hframes == midsummer.tower_data.attack_frame_count, "Midsummer holds its attack pose while beaming")

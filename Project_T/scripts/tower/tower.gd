@@ -1571,6 +1571,7 @@ func projectile_landed(target: Node2D, where: Vector2) -> void:
 		for enemy in get_tree().get_nodes_in_group(ENEMY_GROUP):
 			if enemy != target and enemy.global_position.distance_to(where) <= splash:
 				hit(enemy, attack_data.splash_share, true, crit)
+		_skip(target, where)  # Pebbling: the splash, then the skip
 	else:
 		_splash(where, splash, 1.0, crit)
 		var rainfog := kin_share(&"rainfog", "a")
