@@ -777,6 +777,16 @@ more clear with icons of their resistances"):
     label "Coming this block" uses the body size, not small caps at caption size. The same disc
     treatment applies to nightmare portraits everywhere they're shown on dark UI (dossier, intro
     card, nightmare info).
+  - **Too tall** (2026-09-30, user screenshot: 6 kinds stacked 5 rows deep down the map, wide
+    kinds like the Night Hound and Lantern Bearer each on a row of their own). Fixes:
+    - **One row**, left to right, centred under the banner; a second row only past 6 kinds, never
+      a third ("+2" chip after that, tap = the list).
+    - Every portrait sits in the **same round disc** (48 px at rests), the art fitted inside it
+      whatever its shape, so wide nightmares don't make wide pills.
+    - The count is a **badge on the disc's corner** ("×28"), the resist / weak icons a small row
+      under it (14 px); names only on hover / tap, not under every disc.
+    - The whole strip stays about **90 px tall at rests** and never covers the map's playfield more
+      than the banner does.
 - **New nightmare introduction** (2026-09-28, user: "new enemies should have a display window in
   the middle like bosses"): the first time **ever** a nightmare type is about to appear (profile
   `nightmares_seen`), the rest before its block opens a **centred card**, in the boss dossier's style
