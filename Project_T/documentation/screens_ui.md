@@ -887,7 +887,22 @@ it is **when the act begins** and has the whole act to build for it:
   the rest order, for the **next** act's boss.
 - **The rest opening the boss block** (after drifts 20, 45, 70, 95) no longer opens the full card,
   only a short reminder (*"The Hollow Stag arrives in 5 drifts"*, the portrait, an **"About the
-  Hollow Stag"** button): a nudge, not a repeat. **The word "dossier" never reaches the player**
+  Hollow Stag"** button): a nudge, not a repeat.
+- **It must feel like THE boss** (2026-09-30, user on the Night Mare card: *"these boss screens should
+  give more of that feel and info that this is THE BOSS"*). The card read like a nightmare info panel.
+  Changes (the content stays):
+  - **Eyebrow over the name:** *"The boss of act 1"* in small caps, in **Wraithlight** (the boss
+    colour, `UiStyle.BOSS`), and a subline *"Drift 25 · the last drift of the act"*.
+  - **The portrait is the hero:** the boss's full animated art **~3× larger** (about 240 px tall),
+    on the left, rising out of a cold violet mist, not in the small disc. Right column: name, title,
+    whisper, numbers.
+  - **Boss frame:** the panel's thread and diamond in Wraithlight instead of gold; the screen behind
+    dims further (the map almost black) with a slow cold vignette pulse.
+  - **Scale that reads:** the numbers get context: *"Health 4,000 · about 13 Husks"*, and the leaves it
+    takes in large type (*"3 leaves each lap"*), the one number that ends runs.
+  - **An entrance:** the portrait fades up from the mist, the name writes in, a low boss sting
+    and one heartbeat (Sound: `boss_reveal`); reduced motion = a plain fade.
+  - The button stays "Prepare"; the reminder card and the Codex entry use the same eyebrow and colour. **The word "dossier" never reaches the player**
   (2026-09-30, user: *"Open dossier???"*): buttons and tooltips name the boss ("About the Mire
   Hag"); "dossier" stays an internal name. It can be closed and **reopened any time
 until the boss is dispelled**: tap the "Boss in N" countdown in the drift banner, or its portrait in
