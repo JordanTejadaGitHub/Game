@@ -685,7 +685,10 @@ class BossStage extends Control:
 			var sway := sin(_time * 0.6 + i * 1.3) * 10.0
 			var r := size.x * (0.52 - t * 0.28)
 			var centre := base + Vector2(sway, -t * size.y * 0.55)
-			var colour := Color(UiStyle.BOSS, (0.16 - t * 0.1) * (0.4 + 0.6 * reveal))
+			# The Nightmare ramp (Dread → Shade → Bruise), Wraithlight only on the thin top wisp (ui_style.md:
+			# the gold stays the card's only warmth).
+			var ramp: Color = [Palette.DREAD, Palette.DREAD, Palette.SHADE, Palette.SHADE, Palette.BRUISE, Palette.BRUISE, Palette.WRAITHLIGHT][i]
+			var colour := Color(ramp, (0.5 - t * 0.38) * (0.4 + 0.6 * reveal))
 			draw_set_transform(centre, 0.0, Vector2(1.0, 0.45))
 			draw_circle(Vector2.ZERO, r, colour)
 		draw_set_transform(Vector2.ZERO)

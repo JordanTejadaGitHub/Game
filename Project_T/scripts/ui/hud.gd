@@ -66,6 +66,10 @@ func _ready() -> void:
 	get_viewport().size_changed.connect(_fit_tower_bar)
 	# New Wardens unlocked by Dreams appear in the bar (and prices can change).
 	dream_state.unlocks_changed.connect(_build_tower_bar)
+	# The Sprout price follows the Sprouts on the map (planted, sold, grown): refresh the bar after each.
+	var refresh_prices := func(_node: Node) -> void: (func() -> void: _on_dew_changed(run_state.dew)).call_deferred()
+	tower_placer.tower_container.child_entered_tree.connect(refresh_prices)
+	tower_placer.tower_container.child_exiting_tree.connect(refresh_prices)
 	# Keep the buttons in sync when build mode is toggled with B / cancelled with Esc or right-click.
 	tower_placer.build_mode_changed.connect(_sync_buttons.unbind(1))
 
@@ -292,11 +296,13 @@ func _on_dew_changed(dew: int) -> void:
 		var affordable := run_state.can_afford(cost)
 		# Only when something changed: rewriting text / theme on every Dew change (each dispel) would
 		# reset a hovered button's tooltip (screens_ui.md "Hover and tap tips").
-		var bar_state := "%d:%s" % [cost, affordable]
+		var bar_state := "%d:%s:%d" % [cost, affordable, tower_placer.count_paid_sprouts() if _bar_towers[i].get_id() == SPROUT_ID else 0]
 		if _tower_buttons[i].get_meta(&"bar_state", "") == bar_state:
 			continue
 		_tower_buttons[i].set_meta(&"bar_state", bar_state)
 		_tower_buttons[i].text = str(cost)
+		if _bar_towers[i].get_id() == SPROUT_ID:
+			_update_sprout_rule(_tower_buttons[i], cost)
 		_tower_buttons[i].modulate.a = 1.0 if affordable else UNAFFORDABLE_BUTTON_ALPHA
 		# Colour is never alone (ui_style.md): faded AND the cost in red.
 		for state in ["font_color", "font_hover_color", "font_pressed_color", "font_hover_pressed_color"]:
@@ -556,3 +562,48 @@ func _raise_overlays() -> void:
 		var overlay := get_node_or_null(overlay_name)
 		if overlay != null:
 			move_child(overlay, get_child_count() - 1)
+
+# --- The Sprout price rule (warden_stats.md "The rule is shown") -------------------------------------
+# Every TowerPlacer.SPROUTS_PER_STEP Sprouts on the map add SPROUT_STEP_DEW to the price; Seedfall fixes
+# it. The tooltip says so, a small "↑ 8/10" tag above the button counts to the next rise, and the
+# first rise in a run gets a one-line toast.
+var _sprout_rise_told := false
+var _sprout_last_cost := -1
+
+func sprout_rule_text(cost: int) -> String:
+	if tower_placer.sprout_price_halved():
+		return "Sprout · %d Dew, fixed (Seedfall)." % cost
+	var per := TowerPlacer.SPROUTS_PER_STEP
+	var next := (tower_placer.count_paid_sprouts() / per + 1) * per
+	return "Sprout · %d Dew. Every %d Sprouts on the map add +%d Dew to the price (next rise at %d Sprouts). Selling or growing one lowers it." % [
+		cost, per, TowerPlacer.SPROUT_STEP_DEW, next]
+
+func _update_sprout_rule(button: Button, cost: int) -> void:
+	var tag := button.get_node_or_null("SproutRise") as Label
+	if tag == null:
+		tag = Label.new()
+		tag.name = "SproutRise"
+		tag.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		tag.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		UiStyle.number(tag, 12, UiStyle.INK_DIM)
+		tag.add_theme_color_override("font_outline_color", UiStyle.FOG)
+		tag.add_theme_constant_override("outline_size", 4)
+		button.add_child(tag)
+	var fixed := tower_placer.sprout_price_halved()
+	var per := TowerPlacer.SPROUTS_PER_STEP
+	var count := tower_placer.count_paid_sprouts()
+	tag.visible = not fixed and cost > 0
+	tag.text = "↑ %d/%d" % [count, (count / per + 1) * per]
+	tag.reset_size()
+	tag.position = Vector2((button.size.x - tag.size.x) / 2.0, -tag.size.y + 2.0)
+	var lines := button.tooltip_text.split("\n")
+	var rule := sprout_rule_text(cost)
+	if lines.size() >= 3 and lines[lines.size() - 1].begins_with("Sprout · "):
+		lines[lines.size() - 1] = rule
+		button.tooltip_text = "\n".join(lines)
+	else:
+		button.tooltip_text += "\n" + rule
+	if _sprout_last_cost >= 0 and cost > _sprout_last_cost and not fixed and not _sprout_rise_told:
+		_sprout_rise_told = true
+		show_toast("Sprouts now cost %d Dew: the more you have, the more they cost." % cost)
+	_sprout_last_cost = cost
