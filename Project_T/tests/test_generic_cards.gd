@@ -47,6 +47,7 @@ func _run() -> void:
 	_test_seed_cards()
 	_test_support_cards()
 	_test_needs_text()
+	_test_live_lines()
 	print("generic cards test: %s" % ("PASS" if failures == 0 else "%d FAILED" % failures))
 	quit(failures)
 
@@ -633,6 +634,36 @@ func _test_support_cards() -> void:
 	_reset()
 
 # How Needs are shown on a card: never the name of a Warden (only statuses, families, card names).
+# Live lines on the card face (user, 2026-09-30: "Winding Path should give me the current bonus"; "the
+# tooltip for Crowded Path makes no sense" at a rest). "+0%", never "off"; plurals; last drift at a rest.
+func _test_live_lines() -> void:
+	_reset()
+	var fx := dreams.effects()
+	var line: String = fx.preview_line(_card("winding_path"))
+	_check(line == "Now: %d path tiles · +%d Dew per rest" % [dreams.path_length, dreams.path_length / DreamState.WINDING_PATH_TILES], "Winding Path: %s" % line)
+	var dew := run_state.dew
+	run_state.dew = 275
+	line = fx.preview_line(_card("deep_well"))
+	_check(line == "Now: 275 Dew banked · +13 Dew at the next rest", "Deep Well: %s" % line)
+	run_state.dew = dew
+	_plant("thornwall", Vector2(100, 100))
+	line = fx.preview_line(_card("hedge_maze"))
+	_check(line == "Now: 1 Thornwall · +0% (3 for the next +1%)", "Hedge Maze: \"+0%\", singular (%s)" % line)
+	line = fx.preview_line(_card("canopy"))
+	_check(line.begins_with("Now: 0 attacking Wardens planted · +0% (20 for the next +12%)"), "Canopy shows its next step (%s)" % line)
+	var director: DriftDirector = main.get_node("%DriftDirector")
+	director.resting = true
+	dreams.last_drift_stats = {}
+	_check(fx.preview_line(_card("crowded_path")) == "", "Crowded Path at a rest before any drift: no live line")
+	dreams.last_drift_stats = {"in_range": 3.2, "alone": 0.4, "near": 0.1}
+	line = fx.preview_line(_card("crowded_path"))
+	_check(line.begins_with("Last drift: 3.2 nightmares in range on average · about +"), "…at a rest: last drift's average (%s)" % line)
+	_check(fx.preview_line(_card("lone_hunter")).begins_with("Last drift: 40% of nightmares alone"), "Lone Hunter: last drift's share")
+	for card in dreams.pool:
+		_check(not fx.preview_line(card).contains("off"), "%s: no \"off\" in its live line" % card.id)
+	dreams.last_drift_stats = {}
+	_clear()
+
 func _test_needs_text() -> void:
 	_reset()
 	_check(dreams.needs_text(_card("rolling_thunder")) == "Needs: Soaked + Charged", "Rolling Thunder: %s" % dreams.needs_text(_card("rolling_thunder")))

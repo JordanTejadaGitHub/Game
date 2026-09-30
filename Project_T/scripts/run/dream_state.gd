@@ -864,6 +864,7 @@ func _on_drift_started(number: int) -> void:
 func _process(delta: float) -> void:
 	if not get_tree().paused:
 		_game_clock += delta  # Murmur's 1 s window
+		_sample_drift(delta)
 	var briar := has_rule(&"briar_crown")
 	var bitter := has_rule(&"bitter_hedges")
 	if get_tree().paused or not (briar or bitter):
@@ -1113,7 +1114,7 @@ func get_rest_bonus_add() -> int:
 	for card in _taken_cards():
 		add += card.rest_bonus_add * stacks[card.id]
 	if has_rule(&"winding_path"):
-		add += path_length / WINDING_PATH_TILES  # Winding Path: +1 Dew per 10 path tiles
+		add += roundi(path_length / WINDING_PATH_TILES * rule_power(&"winding_path"))  # Winding Path: +1 Dew per 5 path tiles (resonance scales it)
 	return add
 
 # Dew to clear `data` (Cleared Ground: −40% per stack, never below 1 Dew).
@@ -2304,7 +2305,7 @@ func _refill_bark() -> void:
 # Echoing Steps ends.
 func _rest_rules(perfect: bool) -> void:
 	if has_rule(&"deep_well"):  # Deep Well: interest on banked Dew
-		run_state.add_dew(mini(DEEP_WELL_MAX, floori(run_state.dew * DEEP_WELL_RATE)))
+		run_state.add_dew(deep_well_interest(rule_power(&"deep_well")))
 	if perfect and has_rule(&"mending_bark"):
 		run_state.regrow_leaves(1)
 	_refill_bark()
@@ -2343,6 +2344,55 @@ func _pick_underdogs() -> void:
 
 func is_underdog(tower: Tower) -> bool:
 	return tower != null and tower.get_meta(&"underdog", false)
+
+# Bitter Hedges' live line: Thornwalls touching the path (a nightmare passing them counts each).
+func walls_beside_path() -> int:
+	var count := 0
+	for wall in _towers():
+		if wall.tower_data.line != "wall":
+			continue
+		for offset in [Vector2.LEFT, Vector2.RIGHT, Vector2.UP, Vector2.DOWN]:
+			if _path_index.has(wall.cell + offset):
+				count += 1
+				break
+	return count
+
+# Deep Well: interest on the Dew banked now (the rest pays it; the card's live line shows it).
+func deep_well_interest(power: float = 1.0) -> int:
+	return mini(roundi(DEEP_WELL_MAX * power), floori(run_state.dew * DEEP_WELL_RATE * power))
+
+# Live lines for cards whose value only exists during a drift (Crowded Path, Lone Hunter, Last Stand):
+# sampled every DRIFT_SAMPLE_EVERY s while nightmares walk; at a rest the cards show the last drift's
+# averages (last_drift_stats, empty before drift 1).
+const DRIFT_SAMPLE_EVERY := 0.5
+var last_drift_stats := {}  # {in_range: avg nightmares in an attacking Warden's range, alone: share, near: share}
+var _drift_sums := {"samples": 0, "in_range": 0.0, "alone": 0.0, "near": 0.0}
+var _sample_left := 0.0
+
+func _sample_drift(delta: float) -> void:
+	if drift_director == null or drift_director.resting:
+		if _drift_sums.samples > 0:  # The drift's over: keep its averages for the rest
+			var n := float(_drift_sums.samples)
+			last_drift_stats = {"in_range": _drift_sums.in_range / n, "alone": _drift_sums.alone / n, "near": _drift_sums.near / n}
+			_drift_sums = {"samples": 0, "in_range": 0.0, "alone": 0.0, "near": 0.0}
+		return
+	_sample_left -= delta
+	if _sample_left > 0.0:
+		return
+	_sample_left = DRIFT_SAMPLE_EVERY
+	var enemies: Array = spawner.get_enemies()
+	if enemies.is_empty():
+		return
+	var attackers := _towers().filter(func(t: Tower) -> bool: return t.tower_data.can_attack)
+	var in_range := 0.0
+	for tower in attackers:
+		in_range += count_in_range(tower)
+	var alone := enemies.filter(func(e: Node2D) -> bool: return _is_alone(e)).size()
+	var near := enemies.filter(func(e: Node2D) -> bool: return is_near_heartwood(e)).size()
+	_drift_sums.samples += 1
+	_drift_sums.in_range += in_range / maxf(attackers.size(), 1.0)
+	_drift_sums.alone += float(alone) / enemies.size()
+	_drift_sums.near += float(near) / enemies.size()
 
 # Crowded Path: nightmares in the Warden's range right now.
 var _counting := false  # count_in_range asks the range, whose rows ask Crowded Path again
