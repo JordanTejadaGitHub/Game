@@ -6,7 +6,7 @@
 script = ExtResource("1_omen")
 id = "frozen_ground"
 display_name = "Frozen Ground"
-description = "No planting or growing during {drifts}, only at {rests} (selling and clearing still work)."
+description = "No planting or growing during {drifts}, only at {rests}."
 kind = 1
 no_build_during_drift = true
 reward_dew = 75

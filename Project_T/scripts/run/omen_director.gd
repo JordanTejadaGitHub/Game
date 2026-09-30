@@ -127,9 +127,9 @@ func describe_reward(omen: OmenData, act: int, rest_bonus: int = -1) -> String:
 	if omen.reward_seeds > 0:
 		parts.append("+%d Seeds" % roundi(omen.reward_seeds * scale))
 	if omen.reward_leaves > 0:
-		parts.append("regrow %d leaves" % omen.reward_leaves)
+		parts.append("regrow %d %s" % [omen.reward_leaves, "leaf" if omen.reward_leaves == 1 else "leaves"])
 	if omen.reward_max_leaves > 0:
-		parts.append("+%d max leaf" % omen.reward_max_leaves)
+		parts.append("+%d max %s" % [omen.reward_max_leaves, "leaf" if omen.reward_max_leaves == 1 else "leaves"])
 	if omen.reward_rare_dreams > 0:
 		parts.append("next Dream: one card is Rare+")
 	if omen.reward_extra_dream_cards > 0:

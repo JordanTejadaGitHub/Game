@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "acorn_cache"
 display_name = "Acorn Cache"
-description = "Acorns cost 15 Dew and their aura is +8% (was +5%)."
+description = "Acorns cost 15 Dew and their aura is +8%."
 rarity = 0
 kind = 3
 tags = Array[String](["support", "acorn"])

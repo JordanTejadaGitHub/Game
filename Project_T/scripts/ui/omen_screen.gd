@@ -73,12 +73,12 @@ func _show_offer(_offer: Array[OmenData], block: int) -> void:
 		_was_paused = game_speed.paused
 	game_speed.set_paused(true)
 	_drifts = omens.get_block_range(block)
-	_title.text = "The wind stirs  ·  drifts %d–%d" % [_drifts.x, _drifts.y]
+	_title.text = "The wind stirs · drifts %d–%d" % [_drifts.x, _drifts.y]
 	_clear_cards()
 	visible = true
 	if omens.forced or omens.faced:
 		if omens.forced:
-			_title.text = "An Omen must be faced  ·  drifts %d–%d" % [_drifts.x, _drifts.y]
+			_title.text = "An Omen must be faced · drifts %d–%d" % [_drifts.x, _drifts.y]
 		_reveal(omens.face(), null)
 		return
 	var back := _make_face_down_card()
@@ -134,7 +134,7 @@ func _reveal(offer: Array[OmenData], from: Button) -> void:
 			_cards.remove_child(child)
 			child.queue_free()  # Clear Skies goes: no backing out
 	if not omens.forced:
-		_title.text = "Choose the Omen  ·  drifts %d–%d" % [_drifts.x, _drifts.y]
+		_title.text = "Choose the Omen · drifts %d–%d" % [_drifts.x, _drifts.y]
 	if from != null and not HeartwoodMemory.get_settings().get("reduced_motion", false):  # The flip
 		from.pivot_offset = from.size / 2.0
 		var tween := create_tween()
@@ -199,7 +199,7 @@ func _on_closed() -> void:
 	game_speed.set_paused(_was_paused)
 
 func _on_omen_started(omen: OmenData, first_drift: int, last_drift: int) -> void:
-	_active_tag.text = "Omen: %s (drifts %d–%d) · %s" % [omen.display_name, first_drift, last_drift,
+	_active_tag.text = "Omen: %s · drifts %d–%d · %s" % [omen.display_name, first_drift, last_drift,
 		IconInfo.format(omen.description)]
 	_active_tag.visible = true
 	_toast("Omen faced: %s" % omen.display_name)

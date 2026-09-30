@@ -7,7 +7,7 @@
 script = ExtResource("1_card")
 id = "dream_great_dreamcatcher"
 display_name = "Great Dreamcatcher"
-description = "Dreamcatchers can now grow into Great Dreamcatchers (200 Dew): a wider net; Caught nightmares' statuses stop wearing off and tick 25% harder; sleep in its range lasts 1 s longer, and Caught nightmares leave {dreamlight} shards."
+description = "Dreamcatchers can now grow into Great Dreamcatchers (200 Dew): a wider net; {caught} nightmares' statuses stop wearing off and tick 25% harder; sleep in its range lasts 1 s longer, and {caught} nightmares leave {dreamlight} shards."
 rarity = 2
 kind = 1
 tags = Array[String](["song"])

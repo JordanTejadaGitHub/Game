@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "full_moon"
 display_name = "Full Moon"
-description = "All Wardens +10% crit chance. Crit chance above 100% becomes crit damage (each 1% over = +1% crit multiplier)."
+description = "All Wardens +10% crit chance. Crit chance above 100% becomes crit damage."
 rarity = 3
 kind = 3
 tags = Array[String](["crit"])

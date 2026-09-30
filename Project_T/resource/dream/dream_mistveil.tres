@@ -7,7 +7,7 @@
 script = ExtResource("1_card")
 id = "dream_mistveil"
 display_name = "Mistveil"
-description = "Dewdrops can now grow into Mistveils (80 Dew): fog on the path keeps nightmares Damp; Spored ticks harder inside."
+description = "Dewdrops can now grow into Mistveils (80 Dew): fog on the path keeps nightmares {damp}; {spored} ticks harder inside."
 rarity = 1
 kind = 1
 tags = Array[String](["water", "fog"])

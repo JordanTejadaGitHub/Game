@@ -6,7 +6,7 @@
 script = ExtResource("1_omen")
 id = "shifting_ground"
 display_name = "Shifting Ground"
-description = "5 Withered Trees sprout on empty ground at the {block}'s start (never on the route or a Warden)."
+description = "5 Withered Trees sprout on empty ground at the {block}'s start."
 kind = 3
 needs_free_cells = 3
 sprout_obstacles = 5

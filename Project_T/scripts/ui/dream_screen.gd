@@ -71,11 +71,11 @@ func _show_offer(cards: Array[UpgradeData], drift_number: int) -> void:
 	game_speed.set_paused(true)
 	_title.text = "A Dream, after drift %d" % drift_number
 	if dream_state.has_rule(&"lucid_dreaming"):  # Take 2 of 4
-		_title.text += "  ·  take %d" % dream_state.picks_left if dream_state.picks_left > 1 else "  ·  take 1 more"
-	_skip.text = "Let it pass  (+%d Dew)" % dream_state.skip_dew if dream_state.skip_dew > 0 else "Let it pass"
+		_title.text += " · take %d" % dream_state.picks_left if dream_state.picks_left > 1 else " · take 1 more"
+	_skip.text = "Let it pass · +%d Dew" % dream_state.skip_dew if dream_state.skip_dew > 0 else "Let it pass"
 	_skip.visible = dream_state.can_skip()  # Restless Dreams
 	_dev_any.visible = DreamState.dev_tools_on()
-	_reroll.text = "Dream again  (%d left)" % dream_state.rerolls_left
+	_reroll.text = "Dream again · %d left" % dream_state.rerolls_left
 	_reroll.visible = dream_state.rerolls_left > 0
 	for child in _cards.get_children():
 		_cards.remove_child(child)  # Right away: a reroll rebuilds the row in the same frame
@@ -85,7 +85,7 @@ func _show_offer(cards: Array[UpgradeData], drift_number: int) -> void:
 		column.add_child(_make_card(card))
 		if dream_state.banishes_left > 0:  # Let Go (Memory Grove)
 			var let_go := Button.new()
-			let_go.text = "Let go  (%d left)" % dream_state.banishes_left
+			let_go.text = "Let go · %d left" % dream_state.banishes_left
 			let_go.tooltip_text = "This card won't come back this run; another takes its place."
 			let_go.focus_mode = Control.FOCUS_NONE
 			let_go.pressed.connect(dream_state.banish.bind(card))
@@ -119,7 +119,7 @@ func _make_card(card: UpgradeData) -> Button:
 	rarity.text = UpgradeData.rarity_name(card.rarity)
 	var stack_count := dream_state.card_stacks(card.id)
 	if card.max_stacks == 0 and stack_count > 0:
-		rarity.text += "  ·  " + _roman(stack_count + 1)
+		rarity.text += " · " + _roman(stack_count + 1)
 	UiStyle.caps(rarity, 16, UpgradeData.rarity_color(card.rarity))
 	rarity.text = rarity.text.to_upper().left(1) + rarity.text.substr(1)  # Small caps with a capital
 	var gem_row := HBoxContainer.new()
@@ -155,7 +155,7 @@ func _make_card(card: UpgradeData) -> Button:
 	if card.entwined:
 		secondary.append(_add_line(box, "Woven" if card.woven else "Entwined", ENTWINED_COLOR, SECONDARY_SIZE))
 	elif card.is_deepened():
-		secondary.append(_add_line(box, "Deepened  ·  replaces %s" % dream_state.get_display_name(card.deepens), DEEPENED_COLOR, SECONDARY_SIZE))
+		secondary.append(_add_line(box, "Deepened · replaces %s" % dream_state.get_display_name(card.deepens), DEEPENED_COLOR, SECONDARY_SIZE))
 	elif card.is_bittersweet():
 		secondary.append(_add_line(box, "Bittersweet", BITTERSWEET_COLOR, SECONDARY_SIZE))
 	if dream_state.is_half_dreamed(card):  # One muted line, no label (dream_design.md half-dreamed "Card face")
@@ -163,7 +163,7 @@ func _make_card(card: UpgradeData) -> Button:
 	else:
 		_add_needs_row(box, card)  # "Needs: Soaked + Charged" / "Nestling family": never a Warden's name
 	if dream_state.calls_family_now(card) != "":  # A Seed card calls its family to the next pick (not one you own)
-		secondary.append(_add_line(box, "Seed  ·  calls %s to your next family pick" % dream_state.get_display_name(card.calls_family), SEED_COLOR, SECONDARY_SIZE))
+		secondary.append(_add_line(box, "Seed · calls %s to your next family pick" % dream_state.get_display_name(card.calls_family), SEED_COLOR, SECONDARY_SIZE))
 	for label in secondary:
 		label.modulate.a = 0.85  # Muted
 	for label in [rarity, name_label]:
