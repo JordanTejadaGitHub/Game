@@ -736,6 +736,15 @@ function groveTree() {
     const d = clamp((y - 520) / 300, 0, 1) * clamp((900 - y) / 60, 0, 1) * (.55 + pnoise(x, y, 50, 101) * .6);  // fades out before the roots and waystones
     if (bay(x, y) < d * .24) out.set(x, y, d > .6 ? HW.Pool : HW.Dusk);
   }
+  // Wisps of mist drifting IN FRONT of the tree and on across the background at the same heights, so
+  // the tree stands inside the fog. Cool, sparse, opaque dither; the Hollow stays clear.
+  const wisps = (cy, h, dens, seed) => { for (let y = cy - h; y < cy + h; y++) for (let x = 0; x < GW; x++) {
+    if (x > 575 && x < 650 && y > 748 && y < 828) continue;
+    const band = Math.sin(Math.PI * (y - cy + h) / (2 * h)) ** 2, n = pnoise(x * .35, y, 26, seed) * .8 + pnoise(x, y, 9, seed + 1) * .2;
+    const d = band * clamp((n - .42) * 2.2, 0, 1);
+    if (d > 0 && bay(x, y) < d * dens) out.set(x, y, d > .55 ? HW.Slate : HW.Pool);
+  } };
+  wisps(600, 40, .45, 113); wisps(795, 26, .5, 111); wisps(900, 30, .55, 112);
   return out;
 }
 
@@ -979,6 +988,14 @@ function groveCanopy(stage) {
     if (!out.alpha(x, y)) continue;
     const d = clamp((y - 150) / 500, 0, 1) * (.5 + pnoise(x, y, 60, 102) * .6);
     if (bay(x, y) < d * .22) out.set(x, y, d > .55 ? HW.Pool : HW.Dusk);
+  }
+  // A wisp of mist drifting in front of the crown's underside and the top of the trunk, continuing
+  // across the open fog (this layer is drawn over the limbs and trunk).
+  for (let y = 560; y < 640; y++) for (let x = 0; x < GW; x++) {
+    if (!out.alpha(x, y)) continue;  // only over the leaves: the open-air part is in grove_tree.png (the layout reads this layer's shape)
+    const band = Math.sin(Math.PI * (y - 560) / 80) ** 2, n = pnoise(x * .35, y, 26, 113) * .8 + pnoise(x, y, 9, 114) * .2;
+    const d = band * clamp((n - .42) * 2.2, 0, 1);
+    if (d > 0 && bay(x, y) < d * .45) out.set(x, y, d > .55 ? HW.Slate : HW.Pool);
   }
   // Long swamp-moss drapes hanging from the crown.
   for (let k = 0; k < 140; k++) {
