@@ -55,7 +55,7 @@ func _process(delta: float) -> void:
 	var target_gone: bool = not is_instance_valid(_target) or _target.is_cleansed
 	if target_gone and _target != null and _dispelled_left <= 0.0 and visible:
 		_dispelled_left = DISPELLED_TIME  # Its nightmare was just dispelled: say so, then clear
-		_title.text += "   · Dispelled"
+		_title.text += " · Dispelled"
 	if _dispelled_left > 0.0:
 		_dispelled_left -= delta / maxf(Engine.time_scale, 0.001)
 		if _dispelled_left > 0.0 and not moved:
@@ -75,9 +75,9 @@ func _process(delta: float) -> void:
 	visible = true
 	var data: EnemyData = _target.enemy_data
 	var kind := _kind(data)
-	_title.text = data.display_name + ("   · New" if not _known.has(kind) else "")
+	_title.text = data.display_name + (" · New" if not _known.has(kind) else "")
 	if _target.elite:
-		_title.text += "   · Deeply Blighted"
+		_title.text += " · Deeply Blighted"
 	# Numbers: a plain label, rewritten freely.
 	var numbers: Array[String] = ["Health %d / %d" % [_target.health, _target.max_health],
 		"Speed %.1f tiles/s   Leaves %d" % [_target.get_move_speed() / 64.0, _target.get_leaf_cost()]]

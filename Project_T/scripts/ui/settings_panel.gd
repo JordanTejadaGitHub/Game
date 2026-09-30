@@ -21,7 +21,7 @@ const REBINDABLE := [
 	["buff_lens", "Buff lens"],
 	["cycle_target", "Cycle targeting"],
 	["center_heartwood", "Center on the Heartwood"],
-	["center_start", "Center on the forest's edge"],
+	["center_start", "Center on the start"],
 ]
 
 const TITLE_SCENE := "res://scenes/title.tscn"

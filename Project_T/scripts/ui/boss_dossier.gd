@@ -354,7 +354,7 @@ func _header(data: EnemyData, drift: int) -> Control:
 	box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	box.alignment = BoxContainer.ALIGNMENT_CENTER
 	var name := Label.new()
-	name.text = data.display_name + ("   · New" if NightmareCard.is_new(data) else "")
+	name.text = data.display_name + (" · New" if NightmareCard.is_new(data) else "")
 	UiStyle.display(name, 24)
 	name.add_theme_color_override("font_color", BOSS_COLOR.lightened(0.25))
 	box.add_child(name)
