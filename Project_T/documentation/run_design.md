@@ -311,7 +311,7 @@ card luck**. Dispelling a great nightmare frees the light it stole from the drea
 
 | Source | Dreamlight |
 |---|---|
-| First family pick (after drift 1) | **1** (so act 1 can take one branch) |
+| First family pick (after drift 1) | **2** (was 1; 2026-09-30: branches now come free, so this buys your first final form in act 1) |
 | Each boss (drifts 25, 50, 75) | **4** (was 3, 2026-09-29: runs earned only 3–6 Dreamlight, so no run ever reached an Ascended form) |
 | Dream cards (Sudden Insight, Borrowed Memory) | +1 / +2 |
 | Grove perk *Early Light* | +1 at run start |
@@ -321,13 +321,24 @@ card luck**. Dispelling a great nightmare frees the light it stole from the drea
 
 | Unlock | Cost |
 |---|---|
-| A **branch** of a family you own (Stormcap, Rain Lily, Driftspore, …) | **1** |
-| A **final form** (needs its branch unlocked) | **2** |
+| A **branch** of a family you own (Stormcap, Rain Lily, Driftspore, …) | **free**: comes with the family (2026-09-30) |
+| A **final form** of a family you own | **2** |
 | A **hidden branch** (only if the Grove has unlocked it) | **1** |
 | A **wall growth** (Bramble, Honeysuckle) | **1** |
 
 - About **10 Dreamlight per run** against 4 families × (2 branches + 2 finals) = 24 possible: you
   can't have everything, so each run is a set of real choices. Unspent Dreamlight carries over.
+- **A family comes with its base and both branches** (user, 2026-09-30: *"if you unlock a family,
+  the first and 2nd forms are unlocked with it, or what else am I going to do with these Dreamlight
+  if I just started"*). Picking a family unlocks its base Warden and its two regular branches at once
+  (growing each Warden still costs Dew). **Dreamlight is for what comes after:** final forms (2),
+  hidden branches (1, Grove), wall growths (1) and Ascended forms (3, Grove). A new player's first
+  Dreamlight therefore always has a use: the first pick's 2 buys a final form of that family.
+  - **Budget now:** ~2 + 12 (bosses) + ~9 (rests from 51) ≈ **23 per run**, against 4 families ×
+    2 finals × 2 = 16, plus hidden branches, walls and Ascended forms (3 each): still more to want
+    than you can have.
+  - **Watch in the balance sim:** Kinships (need both branches) and final forms both arrive earlier.
+    Evolving still costs Dew (branch +45, final +90), which is the real gate in act 1.
 - **Where:** a **Remember** screen (a branching tree per owned family) opens right after each boss's
   family pick, and can be reopened at any rest from the rest panel. The Warden panel's disabled
   "Grow into Stormcap" button says *"Unlock with 1 Dreamlight"* and opens it.

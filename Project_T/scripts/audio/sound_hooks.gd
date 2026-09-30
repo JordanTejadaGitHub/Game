@@ -152,7 +152,8 @@ func _ready() -> void:
 
 	enemy_container.child_entered_tree.connect(_on_enemy_added)
 	enemy_container.enemy_cleansed.connect(func(enemy: Node2D) -> void:
-		sound.play_dispel(enemy.global_position, enemy.enemy_data.is_boss))
+		# Bigger nightmares: a lower, slower sigh (the same weight as their hits).
+		sound.play_dispel(enemy.global_position, enemy.enemy_data.is_boss, _weight_pitch(enemy)))
 	enemy_container.enemy_reached_goal.connect(func(_enemy: Node2D) -> void:
 		sound.duck(8.0, 1.0)
 		sound.play(&"leaf_lost", null, 0.0, 1.0, 0.03))

@@ -11,6 +11,5 @@ rarity = 0
 kind = 4
 tags = Array[String](["nurture", "economy", "tall"])
 max_stacks = 0
-min_rank_dew = 30
 nurture_discount = 0.15
 rank_damage_bonus = 0.03

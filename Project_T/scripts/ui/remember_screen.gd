@@ -258,10 +258,15 @@ func _fill_side(data: TowerData) -> void:
 	head.add_theme_constant_override("separation", 10)
 	_side_box.add_child(head)
 	head.add_child(Portrait.new(data, 72.0, grove))
+	if grove:  # Only the invitation (run_design.md "Playtest fixes"): no name, no stats
+		_line("Plant it in the Memory Grove", UiStyle.INK_DIM, 15)
+		if _dev_free.button_pressed:
+			_add_unlock(data)  # Dev: even Grove-hidden forms
+		return
 	var names := VBoxContainer.new()
 	head.add_child(names)
 	var name_label := Label.new()
-	name_label.text = "???" if grove else data.display_name
+	name_label.text = data.display_name
 	UiStyle.display(name_label, 22)
 	names.add_child(name_label)
 	var kind := HBoxContainer.new()
@@ -275,11 +280,6 @@ func _fill_side(data: TowerData) -> void:
 	tier.text = "%s · %s" % [_tier_name(data), IconInfo.damage_type_name(data.line)]
 	tier.add_theme_color_override("font_color", IconInfo.damage_type_color(data.line))
 	kind.add_child(tier)
-	if grove:
-		_line("A form the Memory Grove hasn't grown yet.", UiStyle.INK_DIM, 15)
-		if _dev_free.button_pressed:
-			_add_unlock(data)  # Dev: even Grove-hidden forms
-		return
 	var what := StatusLinks.make_label(data.description, 15, UiStyle.INK)
 	what.custom_minimum_size = Vector2(SIDE_WIDTH - 30, 0)
 	_side_box.add_child(what)
@@ -479,7 +479,8 @@ class TreeCanvas extends Control:
 			var branch: TowerData = shown[i][0]
 			_place(branch, Vector2(lane_x, _row_y(1, rows)))
 			edges.append([root, branch])
-			var finals: Array = shown[i][1]
+			# A lane the Grove hasn't planted shows only its branch (the silhouette): no final, no line up to it
+			var finals: Array = [] if hidden.has(shown[i]) else shown[i][1]
 			for j in finals.size():
 				var spread := (j - (finals.size() - 1) / 2.0) * (NODE_SIZE.x + 6)
 				_place(finals[j], Vector2(lane_x + spread, _row_y(2, rows)))
@@ -565,8 +566,8 @@ class FormNode extends Button:
 		portrait = Portrait.new(data, PORTRAIT, state == State.GROVE)
 		portrait.position = Vector2((NODE_SIZE.x - PORTRAIT) / 2.0, 4)
 		add_child(portrait)
-		if state == State.LOCKED:
-			portrait.modulate = Color(1, 1, 1, 0.5)
+		if state == State.LOCKED:  # Readable: ~75% brightness, lightly desaturated (only Grove forms are silhouettes)
+			portrait.material = Portrait.locked_material()
 		elif state == State.CAN_UNLOCK or state == State.NEEDS_LIGHT:
 			portrait.modulate = Color(1, 1, 1, 0.75)
 		tooltip_text = "Memory Grove" if state == State.GROVE else data.display_name
@@ -620,6 +621,22 @@ class Portrait extends TextureRect:
 	var _atlas := AtlasTexture.new()
 	var _frame := 0
 	var _clock := 0.0
+	static var _locked: ShaderMaterial
+
+	# Locked forms: ~75% brightness with a light desaturation.
+	static func locked_material() -> ShaderMaterial:
+		if _locked == null:
+			var shader := Shader.new()
+			shader.code = """shader_type canvas_item;
+void fragment() {
+	vec4 c = texture(TEXTURE, UV) * COLOR;
+	float grey = dot(c.rgb, vec3(0.299, 0.587, 0.114));
+	COLOR = vec4(mix(c.rgb, vec3(grey), 0.35) * 0.75, c.a);
+}
+"""
+			_locked = ShaderMaterial.new()
+			_locked.shader = shader
+		return _locked
 
 	func _init(form: TowerData, side: float, silhouette: bool = false) -> void:
 		data = form

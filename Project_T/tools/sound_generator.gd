@@ -275,30 +275,21 @@ func _sfx(sound_name: String, seg: PackedFloat32Array, peak := SFX_PEAK, onset :
 func _make_sfx() -> void:
 	var r := SFX_RATE
 
-	# The dispel (the most important sound): sigh -> dissolve, all rounded (second listen: the saw
-	# shriek and the crackle were too sharp). The warm release chime is its own sound so the game can
-	# step its pitch up when several dispels land close together.
+	# The dispel (the most important sound), fourth listen (audio_direction.md 02442918): it sounded too
+	# close to lightning / thunder. Now a voiced sigh (a ghostly "haah", more vowel than noise) and a
+	# reversed "unravel" swell, all mid range (~250 Hz–1.5 kHz): no low glide, no downward sweeps, no
+	# sub or boom (those belong to the storm sounds). SoundHooks pitches it lower and slower for bigger
+	# nightmares. The release is only a warm hum in D.
 	for v in 4:
-		var s := _seg(0.6, r)
-		var top := rng.randf_range(600.0, 850.0)
-		# Sigh: the nightmare's cold breath going out, a falling breathy formant with a faint voice under it.
-		var breath := _filter(_noise(r, 0.4, perc(0.03, 0.12, 0.4)), r, glide(top, top * 0.45, 0.35), 0.45, "bp")
-		_mix(s, _filter(breath, r, 1500.0, 0.7), r, 0.0, 1.0)
-		var voice := _tone(r, 0.35, glide(top * 0.3, top * 0.18, 0.35), perc(0.03, 0.1, 0.35), "tri")
-		_mix(s, _filter(voice, r, 900.0, 0.7), r, 0.0, 0.25)
-		# Dissolve: a soft, muffled whumpf with an airy swell.
-		_mix(s, _tone(r, 0.35, glide(200.0, 100.0, 0.08), perc(0.01, 0.08, 0.35)), r, 0.12, 0.6)
-		_mix(s, _filter(_noise(r, 0.3, swell(0.05, 0.2, 0.3)), r, 600.0, 0.7), r, 0.12, 0.35)
-		_sfx("dispel_%02d" % (v + 1), s, 0.5)
-	# Release: the dream settling, a warm exhale over a low hum in D fading over ~0.5 s. No bell or chime
-	# (third listen: chimes read as coins).
-	_burn(4)  # What the old chime drew, so later sounds (the approved Firefly Jar) stay identical
-	_sfx("dispel_release", _side(func() -> PackedFloat32Array:
-		var release := _seg(0.8, r)
-		for m in [50, 57]:  # D3 + A3
-			_mix(release, _env(_choir(r, hz(m), 0.8), r, swell(0.06, 0.5, 0.8)), r, 0.0, 0.5)
-		_mix(release, _filter(_noise(r, 0.7, swell(0.05, 0.5, 0.7)), r, glide(900.0, 350.0, 0.7), 0.6, "bp"), r, 0.0, 0.5)
-		return release), 0.45)
+		_old_dispel_draws()  # Keeps the shared random stream: every later sound stays identical
+		_sfx("dispel_%02d" % (v + 1), _own("dispel%d" % v, func() -> PackedFloat32Array: return _dispel(v)), 0.5)
+	_burn(4)  # What the old chime drew
+	_side(func() -> PackedFloat32Array: return _old_release_draws())  # What the old release drew from side_rng
+	_sfx("dispel_release", _own("dispel_release", func() -> PackedFloat32Array:  # A warm hum in D, ~0.4 s
+		var release := _seg(0.5, r)
+		for m in [62, 69]:  # D4 + A4, mid range
+			_mix(release, _env(_choir(r, hz(m), 0.5), r, swell(0.05, 0.35, 0.5)), r, 0.0, 0.5)
+		return _filter(_filter(release, r, 250.0, 0.7, "hp"), r, 1500.0, 0.7)), 0.4)
 
 	var boss := _seg(3.0, r)
 	var roar := _tone(r, 0.8, glide(300.0, 80.0, 0.8), perc(0.04, 0.3, 0.8), "saw")
@@ -1649,3 +1640,38 @@ func _make_economy() -> void:
 
 func _soil_drag(length: float) -> PackedFloat32Array:  # Dirt dragged: a soft, low, grainy scrape
 	return _layers([[_scrape(length, 420.0), 1.0], [_rumble(length, 140.0, 0.05, length * 0.4), 0.5]])
+
+# The dispel, fourth listen: a voiced sigh (a ghostly "haah": a steady voice through the "ah" vowel's
+# formants, a little breath) and the unravel (a short swell played backwards, rising over ~0.15 s and
+# softly cut off, like a breath pulled in backwards), both kept between ~250 Hz and 1.5 kHz.
+const DISPEL_VOICE_HZ := [210.0, 195.0, 180.0, 170.0]
+func _dispel(v: int) -> PackedFloat32Array:
+	var r := SFX_RATE
+	var f0: float = DISPEL_VOICE_HZ[v]
+	var env := perc(0.04, 0.14, 0.42)
+	var voice := _tone(r, 0.42, func(t: float) -> float: return f0 * (1.0 + 0.012 * sin(t * 31.0)), env, "saw")
+	_mix(voice, _noise(r, 0.42, env), r, 0.0, 0.3)  # A little breath in the voice
+	var sigh := _filter(voice, r, 750.0, 0.3, "bp")  # "ah": F1
+	_mix(sigh, _filter(voice, r, 1150.0, 0.35, "bp"), r, 0.0, 0.6)  # F2
+	var unravel := _filter(_noise(r, 0.18, perc(0.002, 0.05, 0.18)), r, 700.0, 0.5, "bp")
+	_mix(unravel, _filter(_tone(r, 0.18, f0 * 2.0, perc(0.002, 0.05, 0.18), "tri"), r, 900.0, 0.6), r, 0.0, 0.3)
+	unravel = _reverse(unravel)
+	for i in int(0.015 * r):  # Softly cut off at its peak
+		unravel[unravel.size() - 1 - i] *= float(i) / (0.015 * r)
+	var out := _layers([[sigh, 1.0], [unravel, 0.8, 0.15]])
+	return _filter(_filter(out, r, 250.0, 0.7, "hp"), r, 1500.0, 0.7)
+
+# The old dispel's draws from the shared RNG (one randf, 0.4 s of noise, two tones' phases, 0.3 s of
+# noise), made and thrown away so every sound generated after the dispel stays byte-identical.
+func _old_dispel_draws() -> void:
+	rng.randf_range(600.0, 850.0)
+	_noise(SFX_RATE, 0.4, 1.0)
+	rng.randf()
+	rng.randf()
+	_noise(SFX_RATE, 0.3, 1.0)
+
+# The old release's draws (two hums and 0.7 s of noise), for the side RNG's later sounds.
+func _old_release_draws() -> PackedFloat32Array:
+	_choir(SFX_RATE, hz(50), 0.8)
+	_choir(SFX_RATE, hz(57), 0.8)
+	return _noise(SFX_RATE, 0.7, 1.0)

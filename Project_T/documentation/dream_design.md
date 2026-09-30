@@ -683,7 +683,7 @@ Evolving is still the better buy when a Dream allows it; Nurture cards make rank
 
 | # | Card | Rarity | Effect | Tags | Needs | Pool |
 |---|---|---|---|---|---|---|
-| 60 | **Tender Care** | Common | Nurturing costs **15% less** Dew (stacks, max −45%) | nurture, economy | *opener:* 30+ Dew spent on ranks | Start |
+| 60 | **Tender Care** | Common | Nurturing costs **15% less** Dew (stacks, max −45%) | nurture, economy | — (the opener gate was dropped in trim round 3) | Start |
 | 61 | **Warm Hands** | Common | each Nurture rank gives **+3% more damage** (10% → 13%; stacks) | nurture | *opener:* 30+ Dew spent on ranks | Start |
 | 62 | **Kindred Roots** | Uncommon | each Warden gets **+2% damage per rank of the Wardens touching it** (max +30%) | nurture, maze | any `nurture` card (soft) + **1** ranked Warden (was 2; trim round 2) | Start |
 | 63 | **Remembered Care** | Uncommon | selling a ranked Warden leaves a **memory seed** on the HUD; the next Warden you plant starts at that rank (one seed at a time, the highest one is kept) | nurture | any `nurture` card + a rank III+ Warden | Start |
@@ -1152,6 +1152,26 @@ packages. Round 2 (my call, within the user's "solve and balance" brief):
 5. **Maze may be the most common build.** It sits at ~38% of emerging runs (with The Long Walk's
    overlap), over the 15% cap, because maze cards help every board. In a maze tower defense that's
    the right default; the cap applies to every **other** build.
+
+**Round 2 measured (3e4482f0):** the Swarm → Affliction merge worked (Affliction 7% → 35%). **Family
+line tags backfired:** once you took one family card, the whole family's many cards weighed ×1.6, so
+strong Warden-combo builds rose (Storm Grid 85 → 89, Spore Bomb 65 → 73) while every card build fell
+2–7 points and Emergence (mixed) dropped 74% → 70%; the weak combo builds didn't move. The Tall
+opener didn't move Tall (14 → 16); Support at 5 cards collapsed to 1%. Round 3:
+
+1. **Revert the family line tags** (round 2, point 4). Weighting reads the **archetype tags only**
+   again. Warden-combo builds are driven by the family picks; their chasing numbers are for reference.
+2. **Support merges into Tending** ("tend the forest and the quiet Wardens": clearing, economy, walls
+   and auras that don't attack). Tending's enhancers: Cleared Ground, Heartwood's Reach, Reclaimed
+   Earth, Tended Forest, Burn Back, Morning Dew, Evergreen, Living Walls, Scented Hedge, Thorn Snare,
+   Warm Hearth, Kind Canopy (12); Legendaries Wildwood Reclaimed and The Quiet Ones. `support` →
+   `tending`. **8 card builds.**
+3. **Tall is a late build:** ranks cost Dew and grow over time, so Tall is measured at **3+ by drift
+   75** (target 35–55%) instead of drift 50. Its package also drops **Nursery** (Entwined with
+   Seedling Gift, a Sprout card: it belongs to Overgrowth), and **Tender Care loses its opener gate**
+   (30 Dew spent on ranks): a nurture discount is useful the moment you think about nurturing.
+4. **Measurement fix:** the Gale bot's board must include a status-applying family (Gale copies
+   statuses; with none it measured 0%).
 
 ## Status effect numbers
 

@@ -65,10 +65,7 @@ const RECKLESS_PENALTY := 0.15
 # The 10 card builds (dream_design.md "Pool trim", layer 2): the only tags build weighting reads.
 # Tall and overgrowth halve each other.
 const ARCHETYPE_TAGS: Array[String] = ["tall", "overgrowth", "daring", "precision", "affliction", "maze",
-	"tending", "kinship", "support"]  # Round 2: swarm merged into affliction
-# Family lines: a build tag only once a taken card carries it (never from the family pick or Wardens).
-const LINE_TAGS: Array[String] = ["spore", "water", "storm", "light", "mark", "stone", "root", "song", "acorn",
-	"wing", "wind"]
+	"tending", "kinship"]  # Round 2: swarm merged into affliction; round 3: support into tending
 const DIRECTION_TAGS: Array[String] = ["nurture", "wide", "narrow", "sprout"]  # Old directions: rules and Needs only
 const NOT_BUILD_TAGS: Array[String] = ["bittersweet", "opener"]  # Structural tags, never a build
 const SOFT_TAG_NEEDS: Array[String] = ["nurture"]  # requires_tag Needs that only weigh (x0.4), never gate
@@ -514,8 +511,19 @@ func get_remember_trees() -> Array:
 					if next.tier >= ASCENDED_TIER:
 						ascended = next
 			branches.append([branch, finals])
+		if ascended != null and not ascended_visible(ascended):
+			ascended = null  # No crown and no line to it yet (run_design.md "Playtest fixes")
 		trees.append([root, branches, ascended])  # ascended: the family's Ascended form, or null
 	return trees
+
+# The Remember tree shows an Ascended crown only once it can be unlocked this run: its Grove node planted
+# and drift ASCENDED_FROM_DRIFT reached (or already unlocked; Test Grove shows everything).
+func ascended_visible(data: TowerData) -> bool:
+	if is_unlocked(data.get_id()):
+		return true
+	var card := _unlock_card_for(data)
+	var planted := card == null or card.in_start_pool or grove_cards.has(card.id)
+	return planted and drift_director.drifts_started + 1 >= ASCENDED_FROM_DRIFT
 
 # Whether any final form that grows into Ascended `data` is unlocked this run.
 func _has_unlocked_final(data: TowerData) -> bool:
@@ -1737,15 +1745,15 @@ func _roll_rarity(act: int, want_rare: bool, skip: Array[int] = []) -> int:
 	return 0
 
 # The build tags your Dreams have steered you to (dream_design.md "Pool trim", layer 2): the archetype
-# tags of the cards you've taken (a Legendary's too), and (round 2) the family line tags those cards
-# carry. Owning a family never counts; statuses and the old direction tags stay on the cards for rules and
-# discovery but never boost. Tall and overgrowth push each other away.
+# tags of the cards you've taken (a Legendary's too). Families, statuses and the old direction tags stay
+# on the cards for rules and discovery but never boost (round 3: family lines no longer weigh either).
+# Tall and overgrowth push each other away.
 func _owned_tags() -> Array:
 	var owned := {}
 	var opposed := {}
 	for card in _taken_cards():
 		for tag in card.tags:
-			if ARCHETYPE_TAGS.has(tag) or LINE_TAGS.has(tag):
+			if ARCHETYPE_TAGS.has(tag):
 				owned[tag] = true
 				if OPPOSITE_DIRECTION.has(tag):
 					opposed[OPPOSITE_DIRECTION[tag]] = true
@@ -1763,8 +1771,6 @@ func _card_in_build(card: UpgradeData, owned: Dictionary) -> bool:
 	if families.size() >= 2 and families.keys().any(func(family: String) -> bool: return not is_unlocked(family)):
 		for root in _family_roots():
 			skip[root.line] = true
-		for tag in LINE_TAGS:  # storm / mark are card tags, not Warden lines
-			skip[tag] = true
 	return card.tags.any(func(tag: String) -> bool: return owned.has(tag) and not skip.has(tag))
 
 # Picks one of `cards` by weight: build tags (×tag_weight), unmet soft Needs, opposed directions, the
