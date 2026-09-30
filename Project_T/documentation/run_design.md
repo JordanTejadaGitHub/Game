@@ -182,8 +182,8 @@ turn leaks into a hold. Targets for the balance simulation and playtests (averag
   a run that **ends in act 2**. The cards were made stronger on purpose; the matching health rise
   for acts 2–4 was waiting on human data, and this is it. **Interim health (until the run history
   has more runs):**
-  - **Act 2:** ×1.3 at drift 26, ramping to **×2.0 by drift 45**, held to 50 (was ×1.15 → ×1.55).
-  - **Acts 3–4:** **×2.4** (was ×1.6), bosses included.
+  - **Act 2:** ×1.3 at drift 26, ramping to **×2.5 by drift 45**, held to 50 (was ×1.15 → ×1.55; first set to ×2.0, raised after human run 1, balance_simulation.md).
+  - **Acts 3–4:** **×3.5** (was ×1.6; first set to ×2.4), bosses included **except the Hollow Oak at drift 100**, which keeps today's health.
   - Act 1 unchanged (the first boss is being tuned on its own).
   - **Dreams steer a little less:** the build tag weight 1.6 → **1.3**, so a direction takes
     choices (a pass, a reroll) instead of arriving by itself. Card power stays.

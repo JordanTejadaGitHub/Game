@@ -260,6 +260,34 @@ can't set act 2–4 health. Decision:
 - **Acts 2–4 from people:** the run history of real runs decides the rise (target: a sensible run
   ends in act 3–4, a build that comes together wins). Until then act 2–4 health stays.
 
+## Human run 1 (2026-09-30, the run history's first record)
+
+Fresh profile (7 Grove nodes, perk Morning Stores), Blight 0, the old health (before the interim
+rise), 3× speed, 29 min. **Lost at drift 100 to the Hollow Oak: Remembering**; drifts 1–99 without a
+single leak.
+
+| What | Number | Reading |
+|---|---|---|
+| Leaks, drifts 1–99 | **0** (46 close calls, all in act 1–2 boss drifts) | acts 1–4 far too easy |
+| Closest approach, drifts 51–99 | **0.00–0.3 of the route** (most 0.02–0.14) | nightmares die in the first tenth of the maze: a several-fold surplus, not 30% |
+| Bosses | Hollow Stag 32 s, Mire Hag 20 s, Barrow King 18 s | no threat |
+| Drift 100 | 12.6M health spawned vs 5.9M dealt, 15 leaves in one drift | one wall at the very end |
+| Dew | earned 18,953; spent 9,650 (plant 1,095 · grow 4,681 · ranks 3,874); **9,277 banked** at the end | nothing left to buy |
+| Omens | 18 faced, 0 Clear Skies, 4× Bountiful Night (×2.5 Dew) | Omens cost nothing to a strong maze and paid a lot |
+| Dreams | 25 taken (Lucid Dreaming from 70), 0 passed | |
+| Build | 59 Sprouts + 29 branches (88 attackers); Driftspore 31%, Bloomcap 14% | the Sprout swarm |
+
+Decisions (design chat; the interim rise in run_design.md was too small for this):
+1. **Health, replacing the interim:** act 2 ×1.3 at 26 → **×2.5 by 45**; acts 3–4 **×3.5**; **the Hollow
+   Oak (drift 100) keeps today's health** so the curve builds up to it instead of ending on a wall.
+   Act 1 as is (the first boss is tuned separately). Next human run checks it.
+2. **Bountiful Night:** ×2.5 Dew → **×1.6**.
+3. **Dew had nothing to buy** once the map was full and ranks stopped at II: a Dew sink question for
+   the user (see below).
+4. **Per-drift rows are unreliable when drifts are called early:** most drifts show 0.1–0.6 s and
+   the block's health lands on its 5th drift. Record health, damage and leaks **by the drift that
+   spawned the nightmare**, not by the drift that was current when it happened.
+
 ## Later
 
 A **human baseline**: the same CSV written from real playtests (debug builds only), so the bot's
