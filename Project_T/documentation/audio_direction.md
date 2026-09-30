@@ -95,14 +95,29 @@ vocabulary**, reserved for the light family (Thunderclap, Thunderhead, Stormhear
 Tempest). The dispel is a **voice coming undone**: breath, a ghostly vowel, a reversed swell. It
 lives in the mid range (~250 Hz–1.5 kHz) with **no sub or low boom** and **no downward noise sweeps**.
 
-1. **Sigh:** the nightmare's cold breath going out of it: a short, **voiced** exhale (more vowel than
-   noise, a ghostly "haah", lowpassed near 1.5 kHz), pitched by size. Unsettling, not a scream.
-2. **Unravel** (replaces the "whumpf"): the shadow drawn out of the world as a **short reversed
-   swell**, rising over ~0.15 s and cut off softly, like a breath pulled *in* backwards. Nothing
-   falling, nothing booming. This is the dispel's signature: no other sound in the game is reversed
-   except the Phantom's choir.
-3. **Release:** the dream settling: a quiet, warm **hummed tone** in the music's key (no noise sweep
-   under it), fading over ~0.4 s. **No bell or chime** (third listen: chimes read as coins).
+**Releasing a soul** (fifth listen, 2026-09-30: "should sound like releasing a soul"). Every
+nightmare is a dream the Hollow twisted; dispelling it **sets that dream free**, and its motes drift
+up (story.md). The sound is one arc: **cold → warm, held → rising, one voice becoming air.** About
+1 s in total, but the last half is very quiet, so it never crowds the mix.
+
+1. **Last breath** (cold, ~0.2 s): the nightmare's cold breath going out: a short, **voiced** exhale
+   (a ghostly "haah", slightly detuned, lowpassed near 1.5 kHz), pitched by size. Unsettling, not a scream.
+2. **Unbinding** (~0.15 s): the shadow letting go: a **short reversed swell**, like a breath pulled
+   *in* backwards, cut off softly. Nothing falling, nothing booming.
+3. **Rising** (warm, the heart of it, ~0.6–0.8 s): the freed soul floating up. A single soft,
+   warm **sung vowel** ("ooh" turning to "ahh") that **glides gently upward once** (about a fourth,
+   landing on a note of the D chord) while its filter opens and it **thins into air**, with a faint,
+   lowpassed breath of motes around it (no sparkle, no tinkle). It starts where the cold sigh ends,
+   so you hear the cold voice turn warm and leave. **No bell or chime**, and no hum sitting still.
+
+- **Many at once:** each dispel's glide is its own small rise and never steps up across dispels (no
+  climbing combo). Overlapping dispels become a **soft chorus of rising voices**, voice-limited and
+  quieter each, which should sound beautiful, not busy.
+- **Deeply Blighted:** a slower, deeper last breath and **two voices** rising (a fifth apart).
+- **Bosses:** the stolen memory set free: the boss's own dispel, then a **full warm choir** rising
+  and opening into the Memory moment (the boss dispel is where the Heartwood gets a memory back).
+- **Its opposite is the leaf lost** (the dream being taken): keep that one falling, cold and hollow,
+  so the two read as a pair.
 
 - **No music duck on normal dispels** (they're frequent; ducking on every kill pumped like a
   thunderclap). Only bosses, lost leaves and the big moments duck.
@@ -430,6 +445,29 @@ soft shimmer under the card. Crowned discovery adds the crown's choir swell.
 Dream screen opening: a breath in and a shimmer; card reveal chimes by rarity (Common a soft
 note, Rare a hummed choir, Legendary a full choir chord). Family pick: a deep warm bell. Omen: wind.
 Rest starting: the music exhales and the ambience calms. Buttons: soft wooden clicks.
+
+### The Remember screen (unlocking Wardens with Dreamlight, 2026-09-30)
+
+Unlocking a Warden here is **the Heartwood remembering one of its guardians**. It should feel like a
+memory coming back: warm, a little magical, and clearly bigger than a button click. It's also the
+sister of the dispel: there a twisted dream is set free, here a lost one comes home.
+
+| Moment | Sound |
+|---|---|
+| Open the Remember screen | a slow **breath in**; the music muffles like other choice screens |
+| Select / tap a node | a soft woody tap (like a button, a little warmer); no hover-only sound (touch) |
+| Can't unlock (not enough Dreamlight, or its branch first) | the muted wooden knock (invalid), soft |
+| **Unlock a branch form** | the **memory returning**: a warm swell travels along the gold line from the root to the node (a soft rising breath, panned along the line where it can be), then the node **blooms**: that family's **material** (spore breath, stone settling, water welling, warm glow, root creak, low bell hum, bark, wingbeat, gust) + a warm **sung note** in key, ~1 s |
+| **Unlock a final form** | the same, fuller: two sung notes (a fifth), a longer bloom (~1.5 s) |
+| **Unlock an Ascended form** | the same, then the **crown** layer (the shared warm choir swell of the Crowned Reactions) and a slow, deep swell of the family's material; the biggest moment on this screen (~2.5 s) |
+| Dreamlight spent (the counter going down) | no separate sound (the unlock is the sound) |
+| Close | a soft breath out; the music opens back up |
+
+- Unlocks are rare and chosen, so they can be **fuller and longer** than in-run sounds.
+- Every unlock uses the **Warden's own family material**, so a Rain Lily unlock sounds like water
+  coming home and a Mossback like stone settling.
+- **Dreamlight earned** (a boss, a shard, the Sapling ripening): a slow, warm **glow swell** with a
+  faint hummed note (the same as the Sapling's ripening), so the currency has one consistent sound.
 
 ## Ambience
 
