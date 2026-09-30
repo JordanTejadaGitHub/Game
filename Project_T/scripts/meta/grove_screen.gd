@@ -48,14 +48,6 @@ func _ready() -> void:
 	background.color = Palette.VOID
 	background.set_anchors_preset(Control.PRESET_FULL_RECT)
 	add_child(background)
-	# The sky again, covering the screen and dimmed, so a wide window has no bars beside the tree.
-	var sky := TextureRect.new()
-	sky.texture = load(GroveTreeView.ART + "grove/grove_sky.png")
-	sky.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	sky.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
-	sky.modulate = Color(0.55, 0.55, 0.65)  # A multiplier on the sky art, not a colour
-	sky.set_anchors_preset(Control.PRESET_FULL_RECT)
-	add_child(sky)
 	tree_view.set_anchors_preset(Control.PRESET_FULL_RECT)
 	add_child(tree_view)
 	tree_view.node_pressed.connect(_select)
