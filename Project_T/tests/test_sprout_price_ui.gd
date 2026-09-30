@@ -37,8 +37,8 @@ func _run() -> void:
 	_check(planted == 6, "planted 6 Sprouts (%d)" % planted)
 	var button: Button = hud.tower_bar.get_node("Warden_sprout")
 	var tag := button.get_node_or_null("SproutRise") as Label
-	_check(tag != null and tag.visible and tag.text == "↑ 6/10", "the tag counts to the next rise (%s)" % (tag.text if tag else "none"))
-	_check(button.tooltip_text.contains("Every 5 Sprouts on the map add +3 Dew") and button.tooltip_text.contains("next rise at 10 Sprouts"),
+	_check(tag != null and tag.visible and tag.text == "↑ 6/%d" % (TowerPlacer.SPROUTS_PER_STEP * 2), "the tag counts to the next rise (%s)" % (tag.text if tag else "none"))
+	_check(button.tooltip_text.contains("Every %d Sprouts on the map add +%d Dew" % [TowerPlacer.SPROUTS_PER_STEP, TowerPlacer.SPROUT_STEP_DEW]) and button.tooltip_text.contains("next rise at %d Sprouts" % (TowerPlacer.SPROUTS_PER_STEP * 2)),
 		"the tooltip states the rule (%s)" % button.tooltip_text)
 	_check(toasts.size() >= 1 and hud._sprout_rise_told, "the first rise toasts (%s)" % [toasts])
 	_check(button.text == str(placer.get_cost(sprout)), "the button shows the current price")
