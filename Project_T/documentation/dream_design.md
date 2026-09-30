@@ -135,6 +135,8 @@ alternative**: a strong card you can use now if you bend the plan.
 
 1. **Tag weighting 2× → 1.4× → 2.4×** (`tag_weight`; raised to 2.4 on 2026-09-28 (measured, 15f07aa) after cards 142–168 grew the generic pool and own-family cards fell to 16–18%; the target is the **share**, ~22–25%, not the number), for owned families, directions (wide / narrow /
    nurture) and Legendary archetypes alike. Wide vs narrow opposition (×0.5) stays.
+   **Superseded 2026-09-30** (*Your Dreams steer your Dreams*, under "Build packages"): families no
+   longer boost weighting at all; only tags of cards you've taken do, at ~1.6×.
 2. **Soft Needs.** A Need is *hard* if the card would do nothing without it, *soft* if it only
    checks what you've built so far:
    - **Hard (still gate):** owning a Warden or family, card Needs (follow-ups need their opener,
@@ -913,15 +915,35 @@ Kinship (43% / 33% / 25%), Wide Sprouts (32% / 18% / 19%), Eldest (6% / 5% / 12%
 follow-ups wait for an opener card *and* ranked Wardens; card-built directions (wide, nurture, sprout)
 only get the build weighting after their first card, while families get it at the family pick.
 
-**Fixes (user-approved 2026-09-30):**
-1. **Nurture follow-ups:** "any `nurture` card" becomes a **soft** Need (×0.4 until met). Their
-   board Needs (ranked Wardens, a rank V Warden) stay hard, so they're never dead.
-2. **Directions read the board too:** a direction counts as your build (×`tag_weight`) once you've
-   taken one of its cards **or** the map shows it: **wide** at 15+ attacking Wardens, **sprout** at
-   6+ Sprouts (sprout joins the direction tags), **nurture** at a rank III+ Warden. Weight only, never
-   a gate; the Stray slot still brings an outside card.
-3. **Bridge cards** (below): cards in two builds' packages, weighted up by either.
-4. Re-run the measurement for **every build in the catalogue** below (not only the first five).
+**Your Dreams steer your Dreams, not your family picks** (user, 2026-09-30, restating *Adapt, don't
+get handed*: *"I want you to be able to adapt to the cards you get, not have the cards given to you
+because you chose that family."*). This replaces the fixes first proposed after the measurement
+(one of them, "directions read the board", was the game recognising your build: withdrawn).
+1. **Families no longer boost weighting.** Owning a family only makes its cards **eligible** (their
+   Needs are met); they're drawn at **×1**, like any other eligible card. **Only tags of cards you've
+   taken** (and taken Legendaries' archetypes) get `tag_weight`. So a build grows from the Dreams you
+   choose, and a strong card from somewhere else can always pull you a new way.
+2. **Lower `tag_weight` to ~1.6** (from 2.4, which was raised only to hold the family share): enough
+   that a direction you've started keeps turning up, not enough to feed it.
+3. **Nurture follow-ups:** "any `nurture` card" becomes a **soft** Need (×0.4 until met); their board
+   Needs stay hard. This makes Nurture cards *tempt* players who never nurtured, not feed those who did.
+4. **Bridge cards** (below) are the main tool for adapting: they sit between two builds, so the card
+   you're offered can lead from what you have into its neighbour.
+5. **The Stray slot and half-dreamed cards stay** as they are.
+
+**New measurement targets** (replace the package targets above; the package table stays as the
+list of what belongs to each build):
+- **Adapt:** in **~70%+ of offers**, at least one card is **usable now** (hard Needs met) and **not
+  yet part of your build** (no shared tag with cards you've taken).
+- **Builds emerge from cards:** a bot with **no plan** (takes the best card for the board it has)
+  ends drift 50 with **3+ cards of some package** in **~70%+** of runs, and **no single build is
+  more than ~15%** of those runs (variety: the cards choose, not the family).
+- **Chasing still works, but isn't handed:** a bot **chasing** one build gets 3+ of its package by
+  drift 50 in **~35–55%** of runs, and 5+ by drift 100 in **~30–50%**. Above that, the build is being
+  handed out; below, it's out of reach.
+- **Own-family share of offered cards:** no target any more (it was the handed-out measure). Report it
+  for reference only.
+- Measure **every build in the catalogue** below.
 
 ### The build catalogue (2026-09-30)
 
