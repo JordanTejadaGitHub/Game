@@ -61,6 +61,10 @@ func _run() -> void:
 			"per-drift rows use the bot's column names (%s)" % [drifts[0] if not drifts.is_empty() else {}])
 		var report := RunHistory.report_text(record)
 		_check(report.contains("Result: abandoned") and report.contains("drift,act,seconds,health_spawned"), "the copyable report")
+		# The exact build (balance_simulation.md): content id + label, and the tuning snapshot.
+		_check(String(record.get("build", {}).get("id", "")).length() == 6 and report.contains("Build ")
+			and int(record.get("balance", {}).get("starting_dew", 0)) > 0 and record.balance.has("health_by_drift"),
+			"the record carries its build and balance (%s)" % record.get("build", {}))
 	# The Codex lists it.
 	var codex: CodexPanel = main.get_node("%PauseMenu").codex
 	codex.open()

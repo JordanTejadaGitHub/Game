@@ -208,6 +208,9 @@ accessibility, Steam achievements (milestones map to them). Acts 3–4 and all f
   that frame's plant / grow / rank / clear), Wardens, top 5, combos / Reactions, Dreamlight, and per-drift rows with the
   bot's column names (drift, act, seconds, health_spawned, damage, leaks, leaves_lost, leaves_left, banked) + closest.
   `report_text` = "Copy run report" (results screen, Codex "Past runs"). Tests only via `record_in_tests` + a temp `file_path`.
+  Each record carries `build` (`BuildInfo`, `scripts/run/build_info.gd`: content hash of the game files on disk + git
+  commit + dirty files, label "Sep 30 21:14 · 3f9a2c" on the title in debug; new ids go to `user://builds.json`) and
+  `balance` (the tuning exports + base health by drift). `tests/test_build_info.gd`.
 - `RunSaver` (`%RunSaver`, `user://run.json`): autosaves each rest once no choice screen is open;
   `resume_next` (set by Continue) rebuilds the run from the save (map seed, tended cells, Wardens,
   counters, `DreamState`/`OmenDirector` `to_save`/`load_save`). `PauseMenu` (Esc): Resume,

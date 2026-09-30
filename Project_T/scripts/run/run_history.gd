@@ -127,6 +127,21 @@ func _start_record() -> void:
 	}
 	if map != null:
 		run.seed = int(map.map_seed)
+	BuildInfo.start()  # Hashes on a thread; noted at rests and the end (_note_build)
+	run.balance = BuildInfo.balance_snapshot(drift_director, run_state)
+
+# The build this run was played on (balance_simulation.md "The exact build it was played on"); a
+# run continued after a relaunch on a changed build lists the later ones in `later_builds`.
+func _note_build() -> void:
+	var info := BuildInfo.current()
+	if info.is_empty():
+		return
+	var entry := {"id": info.get("id", ""), "label": info.get("label", ""), "commit": info.get("commit", ""),
+		"dirty": info.get("dirty", {}), "time": info.get("time", "")}
+	if not run.has("build"):
+		run.build = entry
+	elif run.build.get("id", "") != entry.id and not run.get("later_builds", []).any(func(b: Dictionary) -> bool: return b.id == entry.id):
+		run.later_builds = run.get("later_builds", []) + [entry]
 
 # "" for a normal run, else which developer setting made it one ("all families", "Test Grove", "Dev Grove: …").
 static func dev_tag() -> String:
@@ -240,6 +255,7 @@ func _sort_spends() -> void:
 
 func _on_run_ended(won: bool) -> void:
 	_close_drift()
+	_note_build()
 	run.won = won
 	run.result = "won" if won else ("abandoned" if run_state.abandoned else "lost")
 	run.survived = drift_director.drifts_started
@@ -274,6 +290,7 @@ func _on_run_ended(won: bool) -> void:
 
 # The record so far, for the run save (RunSaver, at each rest): a Save & quit run is recorded whole.
 func to_save() -> Dictionary:
+	_note_build()
 	return {"run": run.duplicate(true), "omen_offers": _omen_offers}
 
 # Continue: the saved record goes on (the counters restored before this don't count twice).
@@ -322,6 +339,14 @@ static func report_text(record: Dictionary) -> String:
 	var lines: Array[String] = []
 	lines.append("Heartwood TD run · %s · %s%s" % [record.get("date", ""), record.get("version", ""),
 		" · dev (%s)" % record.dev if String(record.get("dev", "")) != "" else ""])
+	var build: Dictionary = record.get("build", {})
+	if not build.is_empty():
+		var dirty: Dictionary = build.get("dirty", {})
+		lines.append("Build %s · commit %s%s%s" % [build.get("label", build.get("id", "")), build.get("commit", "?"),
+			" + %d uncommitted: %s" % [dirty.size(), ", ".join(dirty.keys().map(func(p: String) -> String: return "%s (%s)" % [p.get_file(), dirty[p]]))] if not dirty.is_empty() else "",
+			" · later on %s" % ", ".join(record.get("later_builds", []).map(func(b: Dictionary) -> String: return b.id)) if record.has("later_builds") else ""])
+	if record.has("balance"):
+		lines.append("Balance: " + JSON.stringify(record.balance))
 	lines.append("Result: %s · drift %d · %s · seed %d · Blight %d%s" % [record.get("result", ""), int(record.get("survived", 0)),
 		_time_text(float(record.get("seconds", 0.0))), int(record.get("seed", 0)), int(record.get("blight", 0)), " · demo" if record.get("demo", false) else ""])
 	lines.append("Leaves lost by act: %s · first leak: drift %d · close calls: %d" % [JSON.stringify(record.get("leaves_lost_by_act", {})),
