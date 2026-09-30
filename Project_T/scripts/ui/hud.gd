@@ -568,6 +568,7 @@ const ROW_PAD := 10.0  # The fog patch around the row
 const BANNER_CLEARANCE := 16.0
 const ROW_BUTTON := 48.0  # Touch-sized (platforms.md); the icon inside is drawn smaller
 var row_wrapped := false  # The buttons sit on a second line (tests)
+var leaves_down := false  # …and the leaves counter with them (tests)
 var _leaves_max := Label.new()  # "/15" after the leaves value, dim
 var _clears_label: Label
 var _row_key := ""
@@ -611,27 +612,39 @@ func _layout_top_row() -> void:
 		button.offset_top = button_top
 		button.offset_bottom = button_top + ROW_BUTTON
 		x -= ROW_BUTTON + TOP_ROW_GAP
-	# Counters: left of the buttons on one line, or from the right edge on line 1.
-	x = (x - ROW_GAP + TOP_ROW_GAP) if not row_wrapped and not buttons.is_empty() else ROW_RIGHT
+	# Counters: left of the buttons on one line, or from the right edge on line 1. If line 1 still
+	# reaches the banner's text (its boss line, at 1280), the leaves counter joins the buttons' line.
+	var line2_x := x - ROW_GAP + TOP_ROW_GAP
+	x = line2_x if not row_wrapped and not buttons.is_empty() else ROW_RIGHT
+	var max_w := 0.0
+	if _leaves_max.text != "":
+		max_w = ceilf(_leaves_max.get_theme_font("font").get_string_size(_leaves_max.text, HORIZONTAL_ALIGNMENT_LEFT, -1,
+			_leaves_max.get_theme_font_size("font_size")).x + 2.0)
+	leaves_down = row_wrapped and not buttons.is_empty() \
+		and screen_w + ROW_RIGHT - counters_w - ROW_PAD < banner_right + BANNER_CLEARANCE
 	var left := x
 	for label: Label in counters:
-		if label == leaves_label and _leaves_max.text != "":  # "/15" right after the value, dim
-			var max_w := ceilf(_leaves_max.get_theme_font("font").get_string_size(_leaves_max.text, HORIZONTAL_ALIGNMENT_LEFT, -1,
-				_leaves_max.get_theme_font_size("font_size")).x + 2.0)
-			_leaves_max.offset_right = x
-			_leaves_max.offset_left = x - max_w
-			_leaves_max.offset_top = ROW_TOP + 4.0  # Sits on the value's baseline
-			_leaves_max.offset_bottom = ROW_TOP + ROW_H
-			x -= max_w
+		var top := ROW_TOP
+		var at := x
+		if label == leaves_label and leaves_down:
+			top = button_top
+			at = line2_x
+		if label == leaves_label and max_w > 0.0:  # "/15" right after the value, dim
+			_leaves_max.offset_right = at
+			_leaves_max.offset_left = at - max_w
+			_leaves_max.offset_top = top + 4.0  # Sits on the value's baseline
+			_leaves_max.offset_bottom = top + ROW_H
+			at -= max_w
 		label.set_anchors_preset(Control.PRESET_TOP_RIGHT)
 		label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 		label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-		label.offset_right = x
-		label.offset_left = x - widths[label]
-		label.offset_top = ROW_TOP
-		label.offset_bottom = ROW_TOP + ROW_H
-		left = label.offset_left
-		x = label.offset_left - ROW_GAP
+		label.offset_right = at
+		label.offset_left = at - widths[label]
+		label.offset_top = top
+		label.offset_bottom = top + ROW_H
+		left = minf(left, label.offset_left)
+		if not (label == leaves_label and leaves_down):
+			x = label.offset_left - ROW_GAP
 		_place_counter_icon.call_deferred(label)
 	if not buttons.is_empty():
 		left = minf(left, buttons[buttons.size() - 1].offset_left)
