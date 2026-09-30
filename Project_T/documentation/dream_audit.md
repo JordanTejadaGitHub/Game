@@ -186,3 +186,5 @@ for the same rarity.
 1. **Approved by the user (2026-09-30).** Balance direction: **raise nightmare health, never cut Warden damage** (only outliers get their own trims); if drifts drag, part of the rise becomes more nightmares instead.
 2. Roguelite Code applies it (data + the two rules above; card text through `text_style.md`).
 3. Tower Code reruns skip / random / Balanced and tunes health; the numbers here move with it.
+
+**Applied (cc38d56e, Roguelite Code):** all Proposed lines, the cuts, merges (old ids migrate in run saves; the Grove Catchers node dropped them) and tag resonance (counted on the card's best-represented tag, locked when taken, never from a Deepened card's own base; `DreamState.rule_power(rule_id)` for rule numbers). Calls made there: **Deep Grip and Bright Marks no longer stack** (at +50% / +20%, three stacks would be too much); Cliffside's +20% shows in its Dream row. Numbers that live in Tower Code's files (Acorn aura, Hush, Sudden Bloom, Backspin, Kinship, catches) follow from them.

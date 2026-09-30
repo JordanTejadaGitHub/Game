@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "the_long_walk"
 display_name = "The Long Walk"
-description = "+1% damage for every 4 path tiles."
+description = "+1% damage for every 2 path tiles."
 rarity = 3
 kind = 3
 tags = Array[String](["maze"])

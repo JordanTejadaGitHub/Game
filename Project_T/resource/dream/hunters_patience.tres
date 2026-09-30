@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "hunters_patience"
 display_name = "Hunter's Patience"
-description = "Wardens deal 50% more damage to {deeply_blighted} nightmares and 20% more to bosses."
+description = "Wardens deal 60% more damage to {deeply_blighted} nightmares and 35% more to bosses."
 rarity = 2
 kind = 3
 tags = Array[String]([])

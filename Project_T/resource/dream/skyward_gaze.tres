@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "skyward_gaze"
 display_name = "Skyward Gaze"
-description = "Wardens deal 40% more damage and have +1 range against flying nightmares."
+description = "Wardens deal 60% more damage and have +1 range against flying nightmares."
 rarity = 1
 kind = 3
 tags = Array[String]([])

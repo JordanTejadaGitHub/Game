@@ -32,7 +32,7 @@ const REPORTERS := {
 	&"lone_hunter": "_lone_hunter", &"skyward_gaze": "_skyward_gaze", &"fresh_growth": "_fresh_growth",
 	&"underdog": "_underdog", &"shelter_of_stones": "_shelter_of_stones", &"cliffside": "_cliffside",
 	&"sudden_bloom": "_sudden_bloom", &"watchful_rest": "_watchful_rest", &"straightaway": "_straightaway",
-	&"heart_of_the_maze": "_heart_of_the_maze", &"echoing_steps": "_echoing_steps",
+	&"heart_of_the_maze": "_heart_of_the_maze",
 	&"rain_on_glass": "_rain_on_glass",
 	&"kind_canopy": "_kind_canopy", &"shared_light": "_shared_light", &"bramble_oath": "_bramble_oath",
 	&"golden_harvest": "_golden_harvest",
@@ -232,6 +232,10 @@ func _finish(row: Dictionary, card: UpgradeData) -> Dictionary:
 		"note": "", "damage": 0.0, "speed": 0.0, "range": 0.0, "cost": 0, "rank_share": 0.0, "radius": 0.0,
 		"positional": false, "run_wide": false, "plain": false}
 	full.merge(row, true)
+	var power := ds.resonance(card)  # Tag resonance scales the numbers, never the rule
+	if power != 1.0:
+		for key in ["damage", "speed", "range"]:
+			full[key] = full[key] * power
 	full["conditional"] = full.positional or full.run_wide
 	if not full.has("effect"):
 		full["effect"] = _describe(full)
@@ -576,7 +580,7 @@ func _cliffside(spot: Dictionary, _board: Board, _card: UpgradeData) -> Dictiona
 	if not spot.data.can_attack:
 		return {}
 	var on := ds.is_on_cliff(spot.cell)
-	return {"positional": true, "radius": 1.0, "active": on, "range": DreamState.CLIFFSIDE_RANGE,
+	return {"positional": true, "radius": 1.0, "active": on, "range": DreamState.CLIFFSIDE_RANGE, "damage": DreamState.CLIFFSIDE_BONUS,
 		"reason": "" if on else "not touching the island's edge"}
 
 func _sudden_bloom(_spot: Dictionary, _board: Board, _card: UpgradeData) -> Dictionary:
@@ -600,11 +604,6 @@ func _heart_of_the_maze(spot: Dictionary, _board: Board, _card: UpgradeData) -> 
 	return {"run_wide": true, "active": on, "damage": DreamState.HEART_OF_MAZE_BONUS,
 		"reason": "" if on else "another Warden stands furthest from the rest"}
 
-func _echoing_steps(_spot: Dictionary, _board: Board, _card: UpgradeData) -> Dictionary:
-	var bonus := ds.get_echo_bonus()
-	return {"run_wide": true, "active": bonus > 0.0, "damage": bonus, "note": "%d route changes this drift" % ds._echoes,
-		"reason": "" if bonus > 0.0 else "the route hasn't changed this drift"}
-
 func _rain_on_glass(spot: Dictionary, _board: Board, _card: UpgradeData) -> Dictionary:
 	if spot.data.line != "light":
 		return {}
@@ -625,7 +624,7 @@ func _shared_light(spot: Dictionary, board: Board, _card: UpgradeData) -> Dictio
 
 func _bramble_oath(_spot: Dictionary, _board: Board, _card: UpgradeData) -> Dictionary:
 	var tiles := ds.walls_added_tiles()
-	var bonus := minf(DreamState.BRAMBLE_OATH_PER * (tiles / 10), DreamState.BRAMBLE_OATH_MAX)
+	var bonus := minf(DreamState.BRAMBLE_OATH_PER * (tiles / DreamState.BRAMBLE_OATH_TILES), DreamState.BRAMBLE_OATH_MAX)
 	return {"run_wide": true, "active": bonus > 0.0, "damage": bonus, "note": "walls add %d path tiles" % tiles,
 		"reason": "" if bonus > 0.0 else "your walls add fewer than 10 path tiles"}
 

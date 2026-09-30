@@ -53,7 +53,7 @@ const CHAIN_DAMP_EXTRA_JUMPS := 2
 const CHAIN_DAMP_EXTRA_RANGE := 1.0  # Cells
 const POP_SPREAD_RANGE := 1.5  # Cells: how far a Puffball pop's spores drift on
 const LOOSE_STONE_SHARE := 0.35  # Loose Stones: each of the 3 fragments
-const HUSH_RADIUS := 0.15  # Hush: Bellflower-line pulses +15% radius per stack (max 3)
+const HUSH_RADIUS := 0.25  # Hush: Bellflower-line pulses +25% radius per stack (max 3; dream_audit.md)
 const BEAM_TICK := 0.25  # Seconds between beam hits
 const BEAM_RAMP_FAST := 2.0  # Beams ramp this much faster on Drowsy or Held nightmares
 const AURA_TICK := 0.25  # Seconds between aura refreshes (White Stag)
@@ -71,7 +71,7 @@ const PATIENT_ROOTS_PULL := 0.5  # Patient Roots (Seed card): the Rootling line 
 const PATIENT_ROOTS_ROOT_HOLD := 0.25  # …and holds this much longer, on top of the +0.25 s for every Hold
 const KIND_CANOPY_WARDENS := ["acorn", "elder_stump", "grove_heart"]  # Kind Canopy (Seed card): these auras reach…
 const KIND_CANOPY_REACH := 1.0  # …a cell further
-const ACORN_CACHE_AURA := 0.08  # Acorn Cache: the Acorn's aura
+const ACORN_CACHE_AURA := 0.10  # Acorn Cache: the Acorn's aura (dream_audit.md)
 const GRANDFATHER_PER_WARDEN := 0.04  # Grandfather Stump: the Elder Stump +4% per Warden around it…
 const GRANDFATHER_MAX := 0.45  # …up to this in all
 const SHARED_LIGHT := 0.5  # Shared Light (Seed card): aura bonuses +50%
@@ -288,7 +288,8 @@ var kin_branch := ""  # The branch an Ascended form grew from (Kinships); saved 
 var footprint_size := 0  # 0 = the data's footprint; 1 keeps an old save's 1-cell Ascended form
 var _hits_landed := 0  # Eternal Charge / Rooted Nightmares count this Warden's hits
 var _hunted := {}  # Hunter's Moon: nightmares this Warden has hit (instance ids)
-var bloom_attacks := 0  # Sudden Bloom: attacks left at ×2 after growing
+var bloom_left := 0.0  # Sudden Bloom: seconds left at ×2 damage after growing
+const SUDDEN_BLOOM_SECONDS := 10.0  # dream_audit.md: was "next 3 attacks ×2"
 var watch_charged := false  # Watchful Rest: a stored charge (its next attack deals ×2)
 var _watch_time := 0.0  # Watchful Rest: seconds with nothing in range
 var _hit_boost := 1.0  # ×2 while a boosted attack's hits land (Sudden Bloom, Watchful Rest)
@@ -361,7 +362,7 @@ func evolve(data: TowerData, cost: int) -> void:
 	_apply_data()
 	_nudge_neighbours()
 	if _rule_stacks(&"sudden_bloom") > 0:
-		bloom_attacks = maxi(bloom_attacks, DreamState.SUDDEN_BLOOM_ATTACKS)  # Its next attacks deal ×2
+		bloom_left = maxf(bloom_left, SUDDEN_BLOOM_SECONDS * _rule_power(&"sudden_bloom"))  # ×2 damage for 10 s
 		queue_redraw()
 	evolved.emit(self)
 	if data.tier >= 4:
@@ -501,6 +502,8 @@ func _compute_attacks_per_second() -> float:
 		if _dream_state.has_method("get_tower_attack_speed_bonus"):
 			dreams += _dream_bonus(&"speed")  # Sprout Chorus, The Last Light
 	var omen := _omens.get_warden_speed_multiplier() if _omens and _omens.has_method("get_warden_speed_multiplier") else 1.0  # Wilting
+	if _big_family:
+		speed += DreamState.BIG_FAMILY_SPEED * _rule_power(&"big_family")  # Big Family: a Sprout near a Kinship pair
 	return attack_data.attacks_per_second * speed * dreams * (1.0 + _aura_speed) * omen * dim_multiplier \
 		* (get_wall_multiplier() if attack_data.damage <= 0 else 1.0)  # Honeysuckle: Bramble Oath, The Quiet Ones
 
@@ -531,7 +534,7 @@ var _stats_key := []
 var _stats_until := -1.0
 
 func _stats_fresh() -> bool:
-	var key := [attack_data, rank, focus, _aura_range, _aura_damage, _aura_speed, _damage_share, _aura_crit, dim_multiplier,
+	var key := [attack_data, rank, focus, _aura_range, _aura_damage, _aura_speed, _damage_share, _aura_crit, dim_multiplier, _big_family,
 		_dream_state.board_version if _dream_state else 0, _dream_state.stacks.size() if _dream_state else 0,
 		_kin.get_pairs(self).size() if is_instance_valid(_kin) else 0,
 		_kin.families.hash() if is_instance_valid(_kin) else 0,
@@ -552,7 +555,7 @@ func _compute_range_cells() -> float:
 		reach += _dream_bonus(&"range")  # Solitude
 	var total := get_range_for(attack_data, _dream_state) + _aura_range + reach
 	if tower_data.line == "song" and attack_data.attack_kind == TowerData.AttackKind.PULSE:
-		total *= 1.0 + HUSH_RADIUS * _rule_stacks(&"hush")  # Hush: wider song pulses
+		total *= 1.0 + HUSH_RADIUS * _rule_stacks(&"hush") * _rule_power(&"hush")  # Hush: wider song pulses
 	if _omens and _omens.has_method("get_warden_range_add"):
 		var fog: float = _omens.get_warden_range_add()  # Fog Bank: -1 range, never below 1
 		if fog != 0.0:
@@ -585,9 +588,16 @@ func get_rank_damage_multiplier() -> float:
 # Court of the Eldest: rank-equivalents from touching the Eldest (25% of its rank). They count for the
 # per-rank damage, attack speed and range, never the Focus.
 func get_court_ranks() -> float:
+	var court := 0.0
 	if _dream_state and _dream_state.has_method("get_court_rank_share"):
-		return _dream_state.get_court_rank_share(self)
-	return 0.0
+		court = _dream_state.get_court_rank_share(self)
+	# Elder Kin (Dream): a ranked kin shares 25% of its ranks, like the Court.
+	if is_instance_valid(_kin) and _rule_stacks(&"elder_kin") > 0:
+		for pair in _kin.get_pairs(self):
+			var partner: Tower = pair.b if pair.a == self else pair.a
+			if is_instance_valid(partner) and partner.rank > 0:
+				court += DreamState.ELDER_KIN_SHARE * _rule_power(&"elder_kin") * partner.rank
+	return court
 
 # Potency: the multiplier on this Warden's effect damage (Spored, Static bolts, clouds, pops, Reactions
 # it completes, echoes). The Warden's own (100% by default) + Dreams (Bitter Sap, Venom Bloom,
@@ -912,7 +922,7 @@ func get_aura_bonus(speed: bool) -> float:
 	if base <= 0.0:
 		return 0.0
 	if not speed and tower_data.get_id() == "acorn" and _rule_stacks(&"acorn_cache") > 0:
-		base = ACORN_CACHE_AURA
+		base = 0.05 + (ACORN_CACHE_AURA - 0.05) * _rule_power(&"acorn_cache")  # Tag resonance scales the card's part
 	if is_aura_support():
 		var ranks := get_effective_rank()
 		base *= pow(AURA_PER_RANK, ranks)  # Grove Heart: its base only, not the per-Warden extra
@@ -920,7 +930,7 @@ func get_aura_bonus(speed: bool) -> float:
 			base *= 1.0 + FOCUS_STRONG_AURA * _focus_ranks(ranks)
 	var bonus := base + get_aura_extra()
 	if _rule_stacks(&"shared_light") > 0:
-		bonus *= 1.0 + SHARED_LIGHT
+		bonus *= 1.0 + SHARED_LIGHT * _rule_power(&"shared_light")
 	return bonus * get_quiet_multiplier()
 
 # Bramble Oath (Seed card): Bramble and Honeysuckle 50% stronger (Bramble's damage, Honeysuckle's
@@ -929,6 +939,9 @@ func get_wall_multiplier() -> float:
 	var multiplier := get_quiet_multiplier()
 	if BRAMBLE_OATH_WARDENS.has(tower_data.get_id()) and _rule_stacks(&"bramble_oath") > 0:
 		multiplier *= 1.0 + BRAMBLE_OATH
+	if tower_data.get_id() == "bramble" and _rule_stacks(&"thornheart") > 0:
+		var brambles := get_parent().get_children().filter(func(t) -> bool: return t is Tower and t.tower_data.get_id() == "bramble").size() if get_parent() else 1
+		multiplier *= 1.0 + minf(DreamState.THORNHEART_PER * brambles, DreamState.THORNHEART_MAX) * _rule_power(&"thornheart")  # Thornheart
 	return multiplier
 
 # The Quiet Ones (card): Wardens that don't attack (walls, Grandmother Oak, the White Stag, Honeysuckle)
@@ -974,6 +987,18 @@ static func _refresh_slot() -> bool:
 # fully. _aura_sources keeps each Warden's share (AuraView, the panel's "Elder Stump ×3" lines); the
 # _from fields name the biggest giver (SupportLog credit).
 var _aura_sources: Array = []  # [{"tower", "kind", "damage", "speed", "position", "kindred", "relayed"}, …]
+var _touch_lines := {}  # Lines of the Wardens on the 8 cells around (Mycelium, Fireflies in the Grass)
+var _big_family := false  # Big Family: a Sprout within BIG_FAMILY_CELLS of a Kinship pair
+
+func _near_kin_pair() -> bool:
+	var kin := Kinships.find(self)
+	if kin == null:
+		return false
+	for pair in kin.pairs:
+		for member in [pair.a, pair.b]:
+			if is_instance_valid(member) and member.global_position.distance_to(global_position) / MAP_GRID.cell_size.x <= DreamState.BIG_FAMILY_CELLS + 0.001:
+				return true
+	return false
 
 func _stack_auras(auras: Dictionary) -> void:
 	_aura_sources = []
@@ -1079,6 +1104,18 @@ func _refresh_neighbours() -> void:
 				best_dps = dps
 				best = other
 	_stack_auras(auras)
+	if tower_data.get_id() == "sprout" and _rule_stacks(&"warm_hearth") > 0:
+		var hearth := 1.0 + DreamState.WARM_HEARTH_SPROUTS * _rule_power(&"warm_hearth")  # Warm Hearth: auras on Sprouts
+		_aura_damage *= hearth
+		_aura_speed *= hearth
+		for source in _aura_sources:
+			source.damage *= hearth
+			source.speed *= hearth
+	_touch_lines = {}
+	for other in _towers_near():
+		if absf(other.cell.x - cell.x) <= 1 and absf(other.cell.y - cell.y) <= 1:
+			_touch_lines[other.tower_data.line] = true
+	_big_family = tower_data.get_id() == "sprout" and _rule_stacks(&"big_family") > 0 and _near_kin_pair()
 	_aura_count = aura_count
 	_graft_status = _strongest_neighbour_status() if kin_share(&"true_graft", "b") > 0.0 else []
 	_update_support_looks()
@@ -1194,9 +1231,8 @@ const CHORUS_RING_COLOR := Color(0.85, 0.75, 1.0, 0.45)
 # Sudden Bloom / Watchful Rest: this attack's multiplier (×2 each), using up what it spends.
 func _take_empowered() -> float:
 	var boost := 1.0
-	if bloom_attacks > 0:
-		bloom_attacks -= 1
-		boost *= EMPOWERED_MULTIPLIER
+	if bloom_left > 0.0:
+		boost *= EMPOWERED_MULTIPLIER  # Sudden Bloom: every attack while it lasts
 	if watch_charged:
 		watch_charged = false
 		_watch_time = 0.0
@@ -1245,6 +1281,10 @@ func _update_legacy(delta: float) -> void:
 # Watchful Rest (card, rule watchful_rest): nothing in range for WATCHFUL_REST_TIME seconds (II: less)
 # stores one charge.
 func _update_watch(delta: float) -> void:
+	if bloom_left > 0.0:
+		bloom_left = maxf(bloom_left - delta, 0.0)
+		if bloom_left == 0.0:
+			queue_redraw()  # The Sudden Bloom glow fades
 	if watch_charged or _rule_stacks(&"watchful_rest") <= 0:
 		return
 	_watch_check -= delta
@@ -1364,7 +1404,8 @@ func hit(enemy: Node2D, soothe_multiplier: float = 1.0, is_area: bool = false, c
 	var dealt: float = soothe * (crit_multiplier if is_crit else non_crit) * reaction.multiplier
 	if reaction.tag != &"":
 		combo = reaction.tag
-	enemy.take_damage(dealt, tower_data.line, is_area, is_crit, self, combo)
+	var damage_line := "light" if _resonance() else tower_data.line  # Resonance: Chime Stone pulses count as lightning
+	enemy.take_damage(dealt, damage_line, is_area, is_crit, self, combo)
 	if reaction.shatter:
 		Reactions.shatter_splash(enemy, self, dealt)
 	if is_crit:
@@ -1374,6 +1415,7 @@ func hit(enemy: Node2D, soothe_multiplier: float = 1.0, is_area: bool = false, c
 	hit_landed.emit(self, enemy, is_area, is_crit)
 	apply_status_to(enemy, soothe)
 	_after_hit(enemy, is_crit)
+	_catalogue_hit(enemy)
 	_legendary_hit_rules(enemy, soothe)
 	if is_instance_valid(_kin):
 		_kin_night_chimes(enemy)
@@ -1862,7 +1904,7 @@ func hold(enemy: Node2D, seconds: float) -> void:
 		return
 	var bonus: float = _dream_state.get_held_bonus() if _dream_state and _dream_state.has_method("get_held_bonus") else 0.0
 	if bonus > 0.0 and tower_data.line == "root":
-		bonus += PATIENT_ROOTS_ROOT_HOLD
+		bonus += PATIENT_ROOTS_ROOT_HOLD * _rule_power(&"patient_roots")
 	enemy.apply_status(EnemyStatuses.HELD, 1, seconds + bonus, 0.0, 0, tower_data.line, self)
 	if is_instance_valid(enemy) and enemy.statuses.is_held():
 		SupportLog.credit(self, &"held_seconds", seconds + bonus)
@@ -2034,7 +2076,7 @@ func pull(enemy: Node2D, tiles: float) -> void:
 	if not is_instance_valid(enemy) or enemy.is_cleansed:
 		return
 	if tower_data.line == "root" and _rule_stacks(&"patient_roots") > 0:
-		tiles += PATIENT_ROOTS_PULL
+		tiles += PATIENT_ROOTS_PULL * _rule_power(&"patient_roots")
 	enemy.push_back(tiles * MAP_GRID.cell_size.x)
 	SupportLog.credit(self, &"tiles_pulled", tiles)
 	var look := kin_look()
@@ -2322,7 +2364,8 @@ func is_catcher() -> bool:
 	return tower_data.catch_share > 0.0
 
 func get_catch_radius() -> float:
-	return tower_data.catch_radius + DewCatch.WIDE_BOWL_STEP * _rule_stacks(&"wide_bowl") + (FOCUS_WIDE if focus == Focus.WIDE else 0.0)
+	# Dew Trail (any level) also widens the catch (Wide Bowl merged into it, dream_audit.md).
+	return tower_data.catch_radius + (DewCatch.WIDE_BOWL_STEP if _rule_stacks(&"dew_trail") > 0 else 0.0) + (FOCUS_WIDE if focus == Focus.WIDE else 0.0)
 
 # The extra share of Dew `enemy` drops if it's dispelled now (0 = out of reach). Nurture ranks add
 # catch instead of damage; Old Growth's Elder Stump catches inside its aura.
@@ -2337,7 +2380,7 @@ func get_catch_share(enemy: Node2D) -> float:
 	if growth > 0.0 and distance <= get_aura_reach():
 		share = maxf(share, DewCatch.OLD_GROWTH_CATCH * growth)
 	if share > 0.0 and _rule_stacks(&"dew_trail") > 0 and enemy.statuses.has(EnemyStatuses.DAMP):
-		share += DewCatch.DEW_TRAIL[_rule_level(&"dew_trail")]
+		share += DewCatch.DEW_TRAIL[_rule_level(&"dew_trail")] * _rule_power(&"dew_trail")
 	return share
 
 func add_to_bowl(amount: float) -> void:
@@ -2684,6 +2727,10 @@ func _has_rule(rule: StringName) -> bool:
 func _rule_level(rule: StringName) -> int:
 	return _rule_entry(rule)[1]
 
+# Tag resonance (dream_audit.md): a card's numbers scale with the owned cards sharing its tags (1.0 = none).
+func _rule_power(rule: StringName) -> float:
+	return _dream_state.rule_power(rule) if _dream_state and _dream_state.has_method("rule_power") else 1.0
+
 # Gust: soothes everything in range a little, then copies the statuses of the most-afflicted
 # nightmare onto up to `spread_targets` others near it (half stacks, full duration).
 func _spread() -> void:
@@ -2703,12 +2750,18 @@ func _spread() -> void:
 		return a.global_position.distance_squared_to(source.global_position) \
 			< b.global_position.distance_squared_to(source.global_position))
 	var copied: Array = source.statuses.snapshot()
+	# Ill Wind (Dream): copied statuses deal more effect damage (their potency).
+	var ill_wind := 1.0 + (DreamState.ILL_WIND_BONUS * _rule_power(&"ill_wind") if _rule_stacks(&"ill_wind") > 0 else 0.0)
+	# Eddy (Dream): Gust copies also reach nightmares on the path tiles beside each target (a bend: 2 along).
+	if tower_data.line == "wind" and _rule_stacks(&"eddy") > 0:
+		others = _eddy_targets(others.slice(0, attack_data.spread_targets), source)
 	var points := PackedVector2Array()
-	for i in mini(attack_data.spread_targets, others.size()):
+	var copies := others.size() if tower_data.line == "wind" and _rule_stacks(&"eddy") > 0 else mini(attack_data.spread_targets, others.size())
+	for i in copies:
 		others[i].statuses.gust_time = 0.5  # Storm Front: a Reaction these statuses complete reaches further
 		for status in copied:
 			others[i].apply_status(status.id, maxi(ceili(status.stacks / 2.0), 1), status.time,
-				status.potency, 0, status.line, status.source)
+				status.potency * ill_wind, 0, status.line, status.source)
 		var devil := kin_share(&"dust_devil", "a")
 		var blade := _kin_partner()
 		if devil > 0.0 and blade and is_instance_valid(others[i]):
@@ -2718,6 +2771,50 @@ func _spread() -> void:
 		points.append(others[i].global_position)
 	for i in range(0, points.size(), 2):
 		add_child(ChainBolt.new(PackedVector2Array([points[i], points[i + 1]]), WIND_COLOR, 3.0))
+
+# Catalogue cards on a hit (dream_design.md 204–226): Mycelium (a Sprout touching a Sporeling-line Warden
+# poisons), Fireflies in the Grass (… touching a Firefly-line Warden: 1 Charged every 3rd hit), Resonance
+# (Chime Stone: +1 Charged per nightmare it pulses).
+var _firefly_hits := 0
+
+func _catalogue_hit(enemy: Node2D) -> void:
+	if not is_instance_valid(enemy) or enemy.is_cleansed or _dream_state == null:
+		return
+	if tower_data.get_id() == "sprout":
+		if _touch_lines.has("spore") and _rule_stacks(&"mycelium") > 0:
+			_apply_one_status(enemy, EnemyStatuses.SPORED, roundi(DreamState.MYCELIUM_SPORED * _rule_power(&"mycelium")), get_damage())
+		if _touch_lines.has("light") and _rule_stacks(&"fireflies_in_the_grass") > 0:
+			_firefly_hits += 1
+			if _firefly_hits % DreamState.FIREFLIES_EVERY == 0 and is_instance_valid(enemy):
+				_apply_one_status(enemy, EnemyStatuses.STATIC, 1, get_damage())
+	if _resonance() and is_instance_valid(enemy) and not enemy.is_cleansed:
+		_apply_one_status(enemy, EnemyStatuses.STATIC, roundi(DreamState.RESONANCE_CHARGED * _rule_power(&"resonance")), get_damage())
+
+func _resonance() -> bool:
+	return tower_data.get_id() == "chime_stone" and _dream_state != null and _dream_state.has_rule(&"resonance")
+
+# Eddy: `targets` plus the nightmares on the route tiles next to each (2 along where the path bends).
+func _eddy_targets(targets: Array, source: Node2D) -> Array:
+	var route := _route()
+	var result := targets.duplicate()
+	var extra_cells := {}
+	for target in targets:
+		var at: int = route.find(target.get_current_cell())
+		if at < 0:
+			continue
+		var reach := 2 if _is_bend(route, at) else 1
+		for step in range(-reach, reach + 1):
+			if step != 0 and at + step >= 0 and at + step < route.size():
+				extra_cells[route[at + step]] = true
+	for enemy in get_tree().get_nodes_in_group(ENEMY_GROUP):
+		if enemy != source and not result.has(enemy) and extra_cells.has(enemy.get_current_cell()):
+			result.append(enemy)
+	return result
+
+static func _is_bend(route: PackedVector2Array, at: int) -> bool:
+	if at <= 0 or at >= route.size() - 1:
+		return false
+	return (route[at] - route[at - 1]) != (route[at + 1] - route[at])
 
 # Pinwheel: blades hit every nightmare on the 8 tiles around it, harder the more of those tiles are path.
 func _spin() -> void:
@@ -2921,7 +3018,7 @@ func _draw_empowered() -> void:
 	if _underdog_drawn:
 		for i in 3:
 			draw_circle(Vector2(0, 6), radius * (1.0 - i * 0.2), Color(UNDERDOG_GLOW, 0.07))
-	if bloom_attacks > 0 or watch_charged:
+	if bloom_left > 0.0 or watch_charged:
 		draw_arc(Vector2(0, 6), radius, 0.0, TAU, 32, Color(EMPOWERED_GLOW, 0.3), 5.0)
 		draw_arc(Vector2(0, 6), radius, 0.0, TAU, 32, Color(EMPOWERED_GLOW, 0.85), 1.5)
 

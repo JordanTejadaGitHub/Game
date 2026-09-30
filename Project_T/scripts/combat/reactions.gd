@@ -353,6 +353,10 @@ static func shatter_splash(enemy: Node2D, tower: Tower, dealt: float) -> void:
 # A Static bolt worth `damage` goes off on `target` (a 5-stack bolt, or a Thunderclap arc). A Marked,
 # charged nightmare within 3 cells takes it instead at ×2 (Lightning Rod). Returns who was struck.
 static func strike_bolt(target: Node2D, damage: float, tower: Node, tag: StringName = &"static") -> Node2D:
+	if tag == &"static":
+		var dreams := _dreams(target)
+		if dreams != null and dreams.has_method("get_bolt_multiplier"):
+			damage *= dreams.get_bolt_multiplier()  # Live Wire (Dream): Charged bolts +15% per stack
 	var rod := _find_rod(target)
 	if rod == null:
 		var at := target.global_position

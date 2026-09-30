@@ -11,14 +11,14 @@ const DREAM_DIR := "res://resource/dream/"
 # Rarity weights (Common, Uncommon, Rare, Legendary) by act.
 const RARITY_WEIGHTS := [[65, 28, 7, 0], [50, 32, 15, 3], [38, 34, 22, 6]]
 # Rule numbers: [base, Deepened (II)].
-const COZY_CORNERS_BONUS := [0.15, 0.25]
+const COZY_CORNERS_BONUS := [0.30, 0.50]
 const COZY_CORNERS_REACH := [1, 2]  # Cells from a bend, diagonals included (1 = the 8 around, 2 = 5×5)
-const HEDGE_PER_WALLS := [5, 4]
+const HEDGE_PER_WALLS := [3, 2]
 const HEDGE_BONUS_PER := 0.01
-const HEDGE_BONUS_MAX := [0.20, 0.30]
+const HEDGE_BONUS_MAX := [0.30, 0.45]
 const SPORE_CASCADE_TARGETS := [2, 3]
-const TENDED_FOREST_PER_CLEAR := 0.01
-const TENDED_FOREST_MAX := 0.25
+const TENDED_FOREST_PER_CLEAR := 0.02
+const TENDED_FOREST_MAX := 0.40
 const FERTILE_DISCOUNT := 0.5  # Reclaimed Earth: the first Warden on a cleared cell
 const CLEAR_DISCOUNT_MAX := 0.5  # Cleared Ground stacks to −50%
 const RECLAIMED_REFUND := 0.4  # Reclaimed Earth: share of the Dew paid for a clear
@@ -26,13 +26,13 @@ const BURN_BACK_PER_TREE := 5  # Burn Back: Dew per Withered Tree, paid when tak
 const CLEAR_SURCHARGE := 1  # Every clear this run makes later clears +1 Dew
 const CLEARING_LOCKED_WEIGHT := 2.0  # Clearing cards are this much likelier until you own one
 # Nurture and wide / narrow cards (dream_design.md). [base, Deepened (II)] where it deepens.
-const NURTURE_DISCOUNT_MAX := 0.45
+const NURTURE_DISCOUNT_MAX := 0.50
 const BASE_MAX_RANK := 5
 const EXTRA_RANK_COSTS := {6: 130, 7: 180}  # Deeper Rings, before the Warden's tier multiplier
 const FREE_RANK_MAX := 7  # Free ranks (Sunlit Rest, seeds, The Old Ones) never go past VII
 const ENDLESS_RANK_GROWTH := 1.2  # Endless Rings: each rank past VII costs ×1.2 the one before
-const SEEPING_PER := [0.05, 0.07]
-const SEEPING_MAX_STATUSES := 6
+const SEEPING_PER := [0.08, 0.12]
+const SEEPING_MAX_STATUSES := 5
 const VENOM_HIT_PENALTY := 0.15
 const KINDRED_PER_RANK := [0.02, 0.03]
 const KINDRED_MAX := [0.30, 0.45]
@@ -40,13 +40,13 @@ const MEMORY_SEEDS := [1, 2]  # Remembered Care keeps this many seeds
 const SUNLIT_WARDENS := [1, 2]  # Sunlit Rest raises this many per rest
 const CHOSEN_FEW_BONUS := 0.5  # Rank V+
 const CHOSEN_FEW_PENALTY := 0.15  # Below rank III
-const MANY_HANDS_PER := 4  # +1% per this many attacking Wardens
-const MANY_HANDS_MAX := 0.25
-const SPROUT_CHORUS_PER := 0.05
-const SPROUT_CHORUS_MAX := 0.40
+const MANY_HANDS_PER := 2  # +1% per this many attacking Wardens
+const MANY_HANDS_MAX := 0.40
+const SPROUT_CHORUS_PER := 0.08
+const SPROUT_CHORUS_MAX := 0.60
 const CANOPY_STEPS: Array[int] = [20, 30, 40]  # Attacking Wardens planted this run
-const CANOPY_BONUS := 0.08
-const SOLITUDE_BONUS := 0.30
+const CANOPY_BONUS := 0.12
+const SOLITUDE_BONUS := 0.45
 const SOLITUDE_RANGE := 0.5
 const FEW_AND_MIGHTY_BELOW := 12
 const FEW_AND_MIGHTY_PER := 0.08
@@ -54,13 +54,13 @@ const LAST_LIGHT_MAX := 5
 const NEARBY_CELLS := 2  # "Within 2 cells" (Sprout Chorus, Solitude): Chebyshev distance
 # Grove cards (dream_design.md 26–44): maze Legendaries and crit cards.
 const LONG_WALK_PER := 0.01  # The Long Walk: +1% damage…
-const LONG_WALK_TILES := 4  # …per this many path tiles
-const MONOCULTURE_BONUS := 0.60
+const LONG_WALK_TILES := 2  # …per this many path tiles
+const MONOCULTURE_BONUS := 1.00
 const ROOTBOUND_TOUCHING := 3
-const STILL_TARGET_CRIT := [0.15, 0.25]
+const STILL_TARGET_CRIT := [0.25, 0.40]
 const STARLIT_AIM_CRIT := 0.25
 const FULL_MOON_CRIT := 0.10
-const RECKLESS_CRIT := 0.20
+const RECKLESS_CRIT := 0.30
 const RECKLESS_PENALTY := 0.15
 # Build directions: owning one makes its tag count as a family (2×); wide and narrow halve each other.
 const DIRECTION_TAGS: Array[String] = ["nurture", "wide", "narrow"]
@@ -102,74 +102,74 @@ const ROOT_NETWORK_PER := [0.06, 0.08]  # Per Sprout in the network (II: diagona
 const ROOT_NETWORK_MAX := [0.60, 0.80]
 const FIRST_LIGHT_MULTIPLIER := 3.0
 const LAST_STAND_CELLS := 4  # From the Heartwood (Chebyshev)
-const LAST_STAND_BONUS := 0.35
-const OLD_GROWTH_STEPS := [[15, 0.30], [5, 0.15]]  # [drifts stood, damage], highest first
-const HUNTERS_PATIENCE_ELITE := 0.50
-const HUNTERS_PATIENCE_BOSS := 0.20
-const HERD_PER := 0.01
-const HERD_MAX := 0.25
-const BITTER_PER := 0.03
-const BITTER_MAX := 0.15
+const LAST_STAND_BONUS := 0.50
+const OLD_GROWTH_STEPS := [[15, 0.40], [5, 0.20]]  # [drifts stood, damage], highest first
+const HUNTERS_PATIENCE_ELITE := 0.60
+const HUNTERS_PATIENCE_BOSS := 0.35
+const HERD_PER := 0.02
+const HERD_MAX := 0.50
+const BITTER_PER := 0.08
+const BITTER_MAX := 0.40
 const BITTER_TIME := 2.0
 # Generic Commons and Uncommons (142–156) and the second batch (157–168)
-const GATHERED_DEW_PER := 0.10
-const FAIR_TRADE_PER := 0.10
-const FAIR_TRADE_CAPS := [1.0, 0.75]  # [resting, walking] refund shares
-const CALL_OF_THE_WILD_CAP := 20
-const LASTING_DREAMS_PER := 1.0  # Seconds per stack
+const GATHERED_DEW_PER := 0.20
+const CALL_OF_THE_WILD_CAP := 40
+const LASTING_DREAMS_PER := 2.0  # Seconds per stack
 const SHORT_ROOTS_RANGE := 2.0
-const SHORT_ROOTS_BONUS := 0.25
+const SHORT_ROOTS_BONUS := 0.35
 const FORESTS_EDGE_CELLS := 3  # From the start (Chebyshev)
-const FORESTS_EDGE_BONUS := 0.20
-const CROWDED_PER := [0.03, 0.04]
-const CROWDED_MAX := [0.30, 0.40]
-const LONE_HUNTER_BONUS := [0.30, 0.45]
+const FORESTS_EDGE_BONUS := 0.35
+const CROWDED_PER := [0.05, 0.07]
+const CROWDED_MAX := [0.50, 0.70]
+const LONE_HUNTER_BONUS := [0.45, 0.70]
 const LONE_HUNTER_CELLS := 2.0
-const SKYWARD_BONUS := 0.40
+const SKYWARD_BONUS := 0.60
 const SKYWARD_RANGE := 1.0  # Against flyers (Tower Code's targeting)
-const FRESH_GROWTH_BONUS := [0.30, 0.45]
-const UNDERDOG := [[3, 0.20], [4, 0.25]]  # [Wardens, damage] (II)
-const WEATHERED_FREE_EVERY := 10
-const HEAVY_AIR_BONUS := 0.20
+const FRESH_GROWTH_BONUS := [0.50, 0.75]
+const UNDERDOG := [[3, 0.40], [4, 0.60]]  # [Wardens, damage] (II)
+const HEAVY_AIR_BONUS := 0.40
 const SLOW_STATUSES: Array[StringName] = [&"drowsy"]  # Damp and fog no longer slow; frost is a freeze (5821d9f)
-const WANDERING_MIND_REROLLS := 1
-const WINDING_PATH_TILES := 10  # +1 Dew per this many path tiles at each rest
-const SHELTER_BONUS := 0.15
+const WANDERING_MIND_REROLLS := 2
+const WINDING_PATH_TILES := 5  # +1 Dew per this many path tiles at each rest
+const SHELTER_BONUS := 0.30
 const CLIFFSIDE_RANGE := 1.0
+const CLIFFSIDE_BONUS := 0.20  # …and +20% damage (dream_audit.md)
 const THICK_BARK_CHARGES := [1, 2]
 const SUDDEN_BLOOM_ATTACKS := 3
 const LAST_BREATH_SHARE := [0.10, 0.15]
 const LAST_BREATH_BOSS_CAP := 0.05
 const LAST_BREATH_CELLS := 1.0
-const TANGLED_SLOW := 0.10
+const TANGLED_SLOW := 0.20
 const WATCHFUL_REST_TIME := [5.0, 3.0]
 const GLIMMER_CHANCE := 0.30
 const GLIMMER_DREAMLIGHT_MAX := 3  # Per run, its own cap (not the Great Dreamcatcher's)
 const STRAIGHT_TILES := 5
-const STRAIGHTAWAY := [[0.15, 0.5], [0.25, 0.5]]  # [damage, range]
-const HEART_OF_MAZE_BONUS := 0.50
-const ECHO_PER := 0.05
-const ECHO_MAX := 0.25
+const STRAIGHTAWAY := [[0.30, 0.5], [0.50, 0.5]]  # [damage, range]
+const HEART_OF_MAZE_BONUS := 1.00
 # Half-dreamed Commons (189–191, stack to 3)
-const DAMP_ROT_PER := 0.20  # Poisoned (Spored) ticks on Soaked nightmares
-const SPARKING_SPORES_PER := 0.20  # Ignite detonations
-const RAIN_ON_GLASS_PER := 0.12  # Light Wardens vs Soaked
+const DAMP_ROT_PER := 0.50  # Poisoned (Spored) ticks on Soaked nightmares
+const SPARKING_SPORES_PER := 0.50  # Ignite detonations
+const RAIN_ON_GLASS_PER := 0.35  # Light Wardens vs Soaked
 # Seed cards (dream_design.md "Seed cards", 169–176)
-const DEEP_WELL_RATE := 0.03
-const DEEP_WELL_MAX := 20
+const DEEP_WELL_RATE := 0.05
+const DEEP_WELL_MAX := 40
 const KIND_CANOPY_TOUCHING := 3
-const KIND_CANOPY_BONUS := 0.05
-const SHARED_LIGHT_PER := 0.02
-const SHARED_LIGHT_MAX := 0.10
-const BRAMBLE_OATH_PER := 0.02  # Per 10 path tiles the walls add
-const BRAMBLE_OATH_MAX := 0.15
-const PATIENT_ROOTS_HELD := 0.25
+const KIND_CANOPY_BONUS := 0.20
+const SHARED_LIGHT_PER := 0.04
+const SHARED_LIGHT_MAX := 0.20
+const BRAMBLE_OATH_PER := 0.03  # Per BRAMBLE_OATH_TILES path tiles the walls add
+const BRAMBLE_OATH_TILES := 5
+const BRAMBLE_OATH_MAX := 0.30
+const PATIENT_ROOTS_HELD := 0.5
 const GOLDEN_HARVEST_PER := 0.02  # Per 100 Dew harvested / earned as interest
 const GOLDEN_HARVEST_MAX := 0.30
 # Dreamlight (run_design.md "Dreamlight"): sources and unlock costs.
 const FIRST_PICK_DREAMLIGHT := 1  # The default for first_pick_dreamlight
 # Dreamlight with the first family pick (Blight 2 sets it to 0 via MetaRun).
 var first_pick_dreamlight := FIRST_PICK_DREAMLIGHT
+# The power pass (dream_audit.md, 2026-09-30): old save ids -> the card that absorbed them ("" = cut).
+const MERGED_CARDS := {"cheap_hedges": "weathered_walls", "quick_bonds": "old_friends", "wide_bowl": "dew_trail",
+	"fair_trade": "", "still_waters": "", "echoing_steps": ""}
 const BOSS_DREAMLIGHT := 4
 # "The Heartwood wakes" (run_design.md Dreamlight sources): every rest from drift 51 frees +1 more.
 const WAKE_DREAMLIGHT := 1
@@ -251,9 +251,6 @@ var _first_hits := {}  # "Warden id:nightmare id" -> true (First Light)
 var _herd := {}  # Warden id -> dispels in its range this drift (Thinning the Herd)
 var _walls_planted := 0  # Thornwalls planted this run (Weathered Walls: every 10th is free)
 var bark_charges := 0  # Thick Bark: leaks it can still save this block
-var _echoes := 0  # Echoing Steps: real route changes this drift
-var _last_echo := -INF
-var _last_route := PackedVector2Array()
 var _straight_cells := {}  # Route tiles in a straight stretch of 5+ (Straightaway)
 var _heart_cache := []  # [key, Tower] (get_heart_of_maze)
 var _glimmer_rng := RandomNumberGenerator.new()
@@ -784,7 +781,6 @@ func crossroads_at(cell: Vector2) -> bool:
 # Restless Night: a real call early = the previous drift was still arriving.
 func _on_drift_started(number: int) -> void:
 	_herd.clear()  # Thinning the Herd lasts the rest of the drift
-	_echoes = 0  # Echoing Steps lasts until the drift ends
 	for tower in _towers():
 		_watch_growth(tower)
 	_first_hits.clear()
@@ -967,9 +963,9 @@ func get_status_strength_multiplier(status: StringName) -> float:
 	var bonus := 0.0
 	for card in _taken_cards():
 		if card.status_id == status:
-			bonus += card.status_strength_bonus * stacks[card.id]
+			bonus += card.status_strength_bonus * stacks[card.id] * resonance(card)
 	if SLOW_STATUSES.has(status) and has_rule(&"heavy_air"):
-		bonus += HEAVY_AIR_BONUS  # Heavy Air: every slow 20% stronger
+		bonus += HEAVY_AIR_BONUS * rule_power(&"heavy_air")  # Heavy Air: every slow 20% stronger
 	return 1.0 + bonus
 
 # Duration of `status` when `data` applies it (its own duration or the default, plus Dreams).
@@ -979,7 +975,7 @@ func get_status_duration(data: TowerData, status: StringName) -> float:
 	for card in _taken_cards():
 		if card.status_id != status or not _applies_to(card, data):
 			continue
-		duration += card.status_duration_add * stacks[card.id]
+		duration += card.status_duration_add * stacks[card.id] * resonance(card)
 		multiplier *= pow(card.status_duration_multiplier, stacks[card.id])
 	duration += LASTING_DREAMS_PER * rule_stacks(&"lasting_dreams")  # Lasting Dreams: every status +1 s
 	return duration * multiplier
@@ -1054,9 +1050,6 @@ func get_clear_cost(data: ObstacleData, half_price: bool = false) -> int:
 func get_build_cost_at(data: TowerData, cell: Vector2) -> int:
 	if data.get_id() == "sprout" and run_state.sprout_charges > 0:
 		return 0  # The charge is used in _on_tower_built
-	if data.get_id() == "thornwall" and has_rule(&"weathered_walls") \
-			and (_walls_planted + 1) % WEATHERED_FREE_EVERY == 0:
-		return 0  # Weathered Walls: every 10th Thornwall is free
 	var cost := get_build_cost(data)
 	if run_state.fertile_cells.has(cell):
 		cost = roundi(cost * FERTILE_DISCOUNT)
@@ -1155,7 +1148,7 @@ func _sum_stat(data: TowerData, stat: String) -> float:
 	var total := 0.0
 	for card in _taken_cards():
 		if _applies_to(card, data):
-			total += float(card.get(stat)) * stacks[card.id]
+			total += float(card.get(stat)) * stacks[card.id] * resonance(card)
 	return total
 
 func _applies_to(card: UpgradeData, data: TowerData) -> bool:
@@ -1207,19 +1200,14 @@ func _update_bends() -> void:
 					_straight_cells[path[i]] = true
 			run_start = step
 	_heart_cache.clear()
-	# Echoing Steps: a real route change while nightmares walk (max 1 per second)
-	if path != _last_route and not _last_route.is_empty() and not drift_director.resting \
-			and not spawner.get_enemies().is_empty():
-		var now := Time.get_ticks_msec() / 1000.0
-		if now - _last_echo >= 1.0:
-			_last_echo = now
-			_echoes += 1
-	_last_route = path
 
 
 # --- Taking cards -------------------------------------------------------------------------------------
 
 func take(card: UpgradeData) -> void:
+	if card_stacks(card.id) == 0:  # The first copy this run locks it
+		var preview := resonance_preview(card)
+		_resonance[card.id] = {"power": 1.0 + preview.bonus, "tag": preview.tag, "count": preview.count}  # Locked when taken
 	if unlocks_clearing(card) and not can_clear():
 		clearing_opened_by = card.id  # "Unlocked clearing" in Dreams this run and the Codex
 	for family in half_dreamed_missing(card):  # The next family pick will include one of them
@@ -1794,6 +1782,7 @@ func to_save() -> Dictionary:
 		"legendary_next": _legendary_next,
 		"clearing_opened_by": clearing_opened_by,
 		"free_first_clears": free_first_clears,
+		"resonance": _resonance.duplicate(),
 		"rng_state": str(_rng.state),  # A string: JSON would round a 64-bit int
 	}
 
@@ -1804,7 +1793,9 @@ func load_save(data: Dictionary) -> void:
 	stacks.clear()
 	var saved_stacks: Dictionary = data.get("stacks", {})
 	for id in saved_stacks:
-		stacks[id] = int(saved_stacks[id])  # JSON gives floats
+		var kept: String = MERGED_CARDS.get(id, id)  # Cards cut or merged by the power pass (dream_audit.md)
+		if kept != "":
+			stacks[kept] = maxi(int(stacks.get(kept, 0)), 1 if kept != id else int(saved_stacks[id]))  # JSON gives floats
 	dreams_seen = int(data.get("dreams_seen", 0))
 	_dreams_without_rare = int(data.get("dreams_without_rare", 0))
 	_rare_dreams_left = int(data.get("rare_dreams_left", 0))
@@ -1832,6 +1823,7 @@ func load_save(data: Dictionary) -> void:
 	glimmer_shards = int(data.get("glimmer_shards", 0))
 	clearing_opened_by = String(data.get("clearing_opened_by", ""))
 	free_first_clears = int(data.get("free_first_clears", 0))
+	_resonance = data.get("resonance", {}).duplicate()
 	_legendary_next = int(data.get("legendary_next", 0))
 	_refill_bark()  # Saved at a rest, where Thick Bark is full again
 	dreamlight = int(data.get("dreamlight", 0))
@@ -2110,20 +2102,20 @@ func on_hit_multiplier(tower: Tower, enemy: Node2D) -> float:
 		return 1.0
 	var bonus := 0.0
 	if has_rule(&"last_stand") and is_near_heartwood(enemy):
-		bonus += LAST_STAND_BONUS
+		bonus += LAST_STAND_BONUS * rule_power(&"last_stand")
 	if has_rule(&"hunters_patience"):
 		if enemy.elite:
-			bonus += HUNTERS_PATIENCE_ELITE
+			bonus += HUNTERS_PATIENCE_ELITE * rule_power(&"hunters_patience")
 		elif enemy.enemy_data != null and enemy.enemy_data.is_boss:
-			bonus += HUNTERS_PATIENCE_BOSS
+			bonus += HUNTERS_PATIENCE_BOSS * rule_power(&"hunters_patience")
 	bonus += get_bitter_bonus(enemy)
 	if has_rule(&"lone_hunter") and _is_alone(enemy):
-		bonus += LONE_HUNTER_BONUS[rule_level(&"lone_hunter")]
+		bonus += LONE_HUNTER_BONUS[rule_level(&"lone_hunter")] * rule_power(&"lone_hunter")
 	if tower != null and tower.tower_data.line == "light" and has_rule(&"rain_on_glass") \
 			and enemy.statuses.has(EnemyStatuses.DAMP):
-		bonus += RAIN_ON_GLASS_PER * rule_stacks(&"rain_on_glass")  # Rain on Glass
+		bonus += RAIN_ON_GLASS_PER * rule_stacks(&"rain_on_glass") * rule_power(&"rain_on_glass")  # Rain on Glass
 	if has_rule(&"skyward_gaze") and enemy.enemy_data != null and enemy.enemy_data.trait_kind == EnemyData.Trait.FLYING:
-		bonus += SKYWARD_BONUS
+		bonus += SKYWARD_BONUS * rule_power(&"skyward_gaze")
 	bonus += _thin_family_hit_bonus(tower, enemy)  # Deep Grip, Murmur
 	var multiplier := 1.0 + bonus
 	if has_rule(&"first_light") and tower != null:
@@ -2188,15 +2180,12 @@ func get_old_growth_bonus(tower: Tower) -> float:
 
 # Gathered Dew: extra share of dispel Dew (RunState._scaled_dispel_dew adds it to Rich Dew).
 func get_dew_gain_bonus() -> float:
-	return GATHERED_DEW_PER * rule_stacks(&"gathered_dew")
+	return GATHERED_DEW_PER * rule_stacks(&"gathered_dew") * rule_power(&"gathered_dew")
 
-# Fair Trade: the refund share for selling (TowerSeller.get_refund): +10% per stack, capped at
-# 100% resting / 75% walking.
-func get_refund_share(base: float, resting: bool) -> float:
-	var stacks_taken := rule_stacks(&"fair_trade")
-	if stacks_taken == 0:
-		return base
-	return minf(base + FAIR_TRADE_PER * stacks_taken, FAIR_TRADE_CAPS[0] if resting else FAIR_TRADE_CAPS[1])
+# The refund share for selling (TowerSeller.get_refund asks). Fair Trade was cut (dream_audit.md), so
+# no card changes it now.
+func get_refund_share(base: float, _resting: bool) -> float:
+	return base
 
 # Call of the Wild: calling a drift early pays double, capped at 20 (DriftDirector.get_call_early_bonus).
 func get_call_early_bonus(uncapped: int, cap: int) -> int:
@@ -2224,7 +2213,6 @@ func _rest_rules(perfect: bool) -> void:
 	if perfect and has_rule(&"mending_bark"):
 		run_state.regrow_leaves(1)
 	_refill_bark()
-	_echoes = 0
 	for tower in _towers():
 		tower.remove_meta(&"fresh_growth")
 	_pick_underdogs()
@@ -2351,10 +2339,6 @@ func _closest_step(cell: Vector2) -> int:
 			best_distance = distance
 			best_step = _path_index[route_cell]
 	return best_step
-
-# Echoing Steps: +5% per real route change this drift (max +25%).
-func get_echo_bonus() -> float:
-	return minf(ECHO_PER * _echoes, ECHO_MAX) if has_rule(&"echoing_steps") else 0.0
 
 # Cliffside: touching the island's rim (the border cells).
 func is_on_cliff(cell: Vector2) -> bool:
@@ -2848,8 +2832,8 @@ func _save_discoveries() -> void:
 # Homing Instinct, Long Light) and Enemy Code (Root Web, Tangled Release, Lullaby, Bright Marks) read.
 # Clear Tones and Lingering Mark are plain stat / status-duration cards.
 
-const DEEP_GRIP_PER := 0.15  # Rootling line vs Held, per stack (max 3)
-const MURMUR_BONUS := 0.15  # A bird's hit on a nightmare another bird hit within MURMUR_WINDOW
+const DEEP_GRIP_PER := 0.50  # Rootling line vs Held
+const MURMUR_BONUS := 0.30  # A bird's hit on a nightmare another bird hit within MURMUR_WINDOW
 const MURMUR_WINDOW := 1.0
 const TANGLED_RELEASE_TILES: Array[float] = [0.5, 1.0]  # II
 const LONG_LIGHT_LINGER := 3.0  # Seconds Rootlight's lit tiles stay lit
@@ -2860,8 +2844,8 @@ const LULLABY_LINGER: Array[float] = [1.0, 2.0]  # II
 const CHORUS_CELLS := 3.0
 const CHORUS_SYNC_WINDOW := 0.3  # Others whose attack is ready within this fire together
 const CHORUS_BONUS := 0.30
-const BRIGHT_MARKS_PER := 0.05  # Marked +5% per stack (25% → max 40%; Beacon: on top of its 35%)
-const HOMING_SPEED: Array[float] = [1.3, 1.5]  # Swoop return speed (II)
+const BRIGHT_MARKS_PER := 0.20  # Marked nightmares take +20% more (on top of Marked; Beacon too)
+const HOMING_SPEED: Array[float] = [1.5, 1.9]  # Swoop return speed (II)
 
 var _game_clock := 0.0
 var _bird_hits := {}  # Nightmare id -> [tower id, _game_clock] of the last bird hit (Murmur)
@@ -2873,12 +2857,12 @@ func _thin_family_hit_bonus(tower: Tower, enemy: Node2D) -> float:
 	var bonus := 0.0
 	var line := tower.tower_data.line
 	if line == "root" and has_rule(&"deep_grip") and enemy.statuses.has(EnemyStatuses.HELD):
-		bonus += DEEP_GRIP_PER * rule_stacks(&"deep_grip")
+		bonus += DEEP_GRIP_PER * rule_stacks(&"deep_grip") * rule_power(&"deep_grip")
 	if line == "wing" and has_rule(&"murmur"):
 		var id := enemy.get_instance_id()
 		var last: Array = _bird_hits.get(id, [])
 		if not last.is_empty() and last[0] != tower.get_instance_id() and _game_clock - last[1] <= MURMUR_WINDOW:
-			bonus += MURMUR_BONUS
+			bonus += MURMUR_BONUS * rule_power(&"murmur")
 		if _bird_hits.size() > 2048:
 			_bird_hits.clear()
 		_bird_hits[id] = [tower.get_instance_id(), _game_clock]
@@ -2919,8 +2903,62 @@ func has_chorus() -> bool:
 
 # Bright Marks: extra Marked bonus (added to EnemyStatuses.MARKED_EXTRA / Beacon's marked_extra).
 func get_marked_bonus() -> float:
-	return BRIGHT_MARKS_PER * rule_stacks(&"bright_marks")
+	return BRIGHT_MARKS_PER * rule_stacks(&"bright_marks") * rule_power(&"bright_marks")
 
 # Homing Instinct: swoop return speed multiplier (1 = none; swoops only, never pecks).
 func get_swoop_return_multiplier() -> float:
 	return HOMING_SPEED[rule_level(&"homing_instinct")] if has_rule(&"homing_instinct") else 1.0
+
+
+# --- Tag resonance (dream_audit.md "Builds pay off", 2026-09-30) ------------------------------------
+# Each card you own with a tag makes later cards of that tag +RESONANCE_PER stronger (their numbers,
+# not their rules), up to +RESONANCE_MAX: counted on the card's best-represented tag and locked when the
+# card is taken. Untagged (generic) cards neither resonate nor count. Applied to stat and status
+# numbers (_sum_stat, statuses), DreamEffects rows (damage / speed / range) and the per-hit rules
+# here; other scripts scale their rule numbers with rule_power(rule_id).
+const RESONANCE_PER := 0.10
+const RESONANCE_MAX := 0.50
+const NOT_RESONANT: Array[String] = ["bittersweet", "opener"]  # Structural tags, not builds
+
+var _resonance := {}  # Card id -> {power, tag, count} locked when it was taken (saved)
+var resonance_enabled := true  # Tests of single-card numbers turn it off; test_dreams checks the rule
+
+# The resonance a card would get if taken now: {bonus, tag, count} (bonus 0 = none).
+func resonance_preview(card: UpgradeData) -> Dictionary:
+	var best := {"bonus": 0.0, "tag": "", "count": 0}
+	if card == null or not resonance_enabled:
+		return best
+	var owned := _taken_cards(true)
+	for tag in card.tags:
+		if NOT_RESONANT.has(tag):
+			continue
+		var count := owned.filter(func(c: UpgradeData) -> bool:
+			return c.id != card.id and c.id != card.deepens and c.deepens != card.id and c.tags.has(tag)).size()  # Never its own base
+		if count > best.count:
+			best = {"bonus": minf(RESONANCE_PER * count, RESONANCE_MAX), "tag": tag, "count": count}
+	return best
+
+# The multiplier a taken card's numbers get (1.0 = none).
+func resonance(card: UpgradeData) -> float:
+	if card == null or not _resonance.has(card.id):
+		return 1.0
+	return float(_resonance[card.id].get("power", 1.0))
+
+# "+20% from 2 spore cards" for a taken card ("" = none): Dreams this run.
+func resonance_line(card: UpgradeData) -> String:
+	var r: Dictionary = _resonance.get(card.id, {}) if card != null else {}
+	return resonance_text(float(r.get("power", 1.0)) - 1.0, str(r.get("tag", "")), int(r.get("count", 0)))
+
+# The strongest resonance among the taken cards with `rule` (for rule code in other scripts).
+func rule_power(rule: StringName) -> float:
+	var power := 1.0
+	for card in _taken_cards():
+		if card.rule_id == rule:
+			power = maxf(power, resonance(card))
+	return power
+
+# "+20% from 2 spore cards" (the card face, Dreams this run). "" = none.
+static func resonance_text(bonus: float, tag: String, count: int) -> String:
+	if bonus <= 0.0:
+		return ""
+	return "+%d%% from %d %s card%s" % [roundi(bonus * 100), count, tag, "" if count == 1 else "s"]

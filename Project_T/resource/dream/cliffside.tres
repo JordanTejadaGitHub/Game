@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "cliffside"
 display_name = "Cliffside"
-description = "Wardens touching the island's edge get +1 range."
+description = "Wardens touching the island's edge get +1 range and deal 20% more damage."
 rarity = 0
 kind = 3
 tags = Array[String](["maze"])

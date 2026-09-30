@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "tangled"
 display_name = "Tangled"
-description = "Nightmares carrying 2 or more statuses move 10% slower."
+description = "Nightmares carrying 2 or more statuses move 20% slower."
 rarity = 1
 kind = 3
 tags = Array[String](["status"])

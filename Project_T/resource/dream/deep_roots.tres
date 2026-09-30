@@ -6,11 +6,11 @@
 script = ExtResource("1_card")
 id = "deep_roots"
 display_name = "Deep Roots"
-description = "The Heartwood can hold 2 more leaves, and regrows 2 now."
+description = "The Heartwood can hold 3 more leaves, and regrows 3 now."
 rarity = 0
 kind = 4
 tags = Array[String](["leaves"])
 requires = Array[String]([])
 max_stacks = 1
-leaves_now = 2
-max_leaves_add = 2
+leaves_now = 3
+max_leaves_add = 3

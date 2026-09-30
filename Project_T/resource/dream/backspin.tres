@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "backspin"
 display_name = "Backspin"
-description = "The return pass gets +25% crit chance."
+description = "The return pass gets +40% crit chance."
 rarity = 1
 kind = 3
 tags = Array[String](["wind", "crit"])
