@@ -12,5 +12,5 @@ kind = 3
 tags = Array[String](["nurture", "maze", "tall"])
 max_stacks = 1
 requires_tag = "nurture"
-min_rank_count = 2
+min_rank_count = 1
 rule_id = &"kindred_roots"

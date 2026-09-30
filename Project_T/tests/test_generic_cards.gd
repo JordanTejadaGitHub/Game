@@ -310,20 +310,23 @@ func _test_catalogue() -> void:
 	dreams.unlocked["sporeling"] = true
 	var soft := _card("soft_spores")
 	_check(not dreams.is_in_build(soft), "owning Sporeling doesn't make spore cards your build")
-	dreams.take(_card("lingering_spores"))
-	_check(not dreams.is_in_build(soft), "…nor does a spore card (only archetype tags weigh, Pool trim)")
 	dreams.take(_card("glinting_dew"))
 	_check(dreams.is_in_build(_card("sharpened_light")) and not dreams.is_in_build(soft), "a taken precision card lifts the precision build")
-	_check(DreamState.ARCHETYPE_TAGS.size() == 10 and DreamState.OPPOSITE_DIRECTION.get("tall") == "overgrowth", "10 archetype tags; tall opposes overgrowth")
+	_check(DreamState.ARCHETYPE_TAGS.size() == 9 and DreamState.OPPOSITE_DIRECTION.get("tall") == "overgrowth", "9 archetype tags; tall opposes overgrowth")
 	dreams.stacks.clear()
-	# Nurture follow-ups: needing a Nurture card is soft now; board Needs stay hard
-	var sunlit := _card("sunlit_rest")
-	dreams.grove_cards.append("sunlit_rest")
+	# Nurture follow-ups: needing a Nurture card is soft (Kindred Roots weighs ×0.4 until you have one); Sunlit Rest is an opener
+	var kindred := _card("kindred_roots")
 	var ranked := _plant("sporeling", Vector2(100, 100))
 	ranked.rank = 3
-	_check(dreams._meets_needs(sunlit) or sunlit.min_rank_count > 1, "Sunlit Rest: no Nurture card needed to be drawn")
-	_check(not dreams.soft_needs_met(sunlit), "…but it weighs ×0.4 until you have one")
+	_check(dreams._meets_needs(kindred) and not dreams.soft_needs_met(kindred), "Kindred Roots: drawn without a Nurture card, weighs ×0.4")
+	_check(dreams.soft_needs_met(_card("sunlit_rest")), "Sunlit Rest: an opener, no Nurture card weighting")
 	ranked.free()
+	# Family line tags weigh once a taken card carries them (round 2), never from owning the family
+	dreams.unlocked["sporeling"] = true
+	_check(not dreams.is_in_build(soft), "owning Sporeling still doesn't")
+	dreams.take(_card("lingering_spores"))
+	_check(dreams.is_in_build(soft), "a taken spore card makes spore cards your build")
+	dreams.stacks.clear()
 	# The new cards' own numbers
 	var ids := ["elder_kin", "mycelium", "fireflies_in_the_grass",
 		"spore_kin", "resonance", "thornheart", "ill_wind", "eddy", "spinning_corners", "falling_weight", "warm_hearth",
@@ -428,8 +431,9 @@ func _test_cards_227() -> void:
 	for pair in [["head_start_ii", "head_start"], ["scarred_bark_ii", "scarred_bark"], ["odd_one_out_ii", "odd_one_out"]]:
 		_check(_card(pair[0]).deepens == pair[1], "%s deepens %s" % pair)
 	_check(_card("desperate_bloom").min_act == 2 and _card("grand_tour").min_owned_statuses == 2, "Desperate Bloom act 2+; Grand Tour needs 2 statuses")
-	for id in ["crowded_path", "last_breath", "thinning_the_herd", "shattering_blow"]:
-		_check(_card(id).tags.has("swarm"), "%s carries the swarm tag" % id)
+	for id in ["crowded_path", "last_breath", "thinning_the_herd", "crowd_breaker"]:
+		_check(_card(id).tags.has("affliction") and not _card(id).tags.has("swarm"), "%s: swarm merged into affliction" % id)
+	_check(_card("shattering_blow").tags.has("precision") and not _card("shattering_blow").tags.has("swarm"), "Shattering Blow keeps precision only")
 	var tower := _plant("sporeling", Vector2(100, 100))
 	# Head Start: a nightmare arriving in a drift you called early, for 10 s
 	dreams.take(_card("head_start"))
