@@ -55,7 +55,7 @@ two trees pulse in step.
 | `ground_details.png` | 256×64 | 4 variants: mushrooms, ferns, pebbles, leaf litter | walkable decoration |
 | `island_edge.png` | 1024×64 | 16 tiles, **column = neighbour mask** (N=1, E=2, S=4, W=8: which neighbours are island) | the map's unbuildable rim (screens_ui.md): **no grass**, a sunken ledge of crumbled dark earth (value below the ground's; the pipeline checks it) whose open sides crumble and fade into the void, roots hanging off the lip, and a shadow step with overhanging grass where it meets the buildable ground; the south lip meets the cliff tops. Assumes a convex (blocky) island: no inner-corner tiles |
 | `cliff.png` | 256×256 | columns: bit 1 = the cell to the west also has cliff, bit 2 = the east does; rows: 4 variants | cliff face under island cells whose south neighbour is void; transparent below its ragged, dripping underside |
-| `heartwood.png` | 512×2688 | 128×128 frames: **row = leaves lost (0–20)**, 4 frames per row | the goal; anchor its bottom centre about 8 px below the goal cell's bottom centre, so it overhangs the cells around it |
+| `heartwood.png` | 512×2688 | 128×128 frames: **row = leaves lost (0–20)**, 4 frames per row; the Memory Grove's Heartwood (twisted trunk, gold-rimmed mossy bark, the Hollow's light): rot spreads through the crown, a dream-fruit darkens per 4 leaves, the rim turns ember and the Hollow fades by 20 | the goal; anchor its bottom centre about 8 px below the goal cell's bottom centre, so it overhangs the cells around it |
 
 ### The dream's outer layer (shared, `assets/environment/dream/`)
 
@@ -83,7 +83,8 @@ healthy trees are no longer used.
   fixed seed 1207, with `export_tail.js`) in headless Chrome, then `process_environment.gd` puts every
   sheet through Theme Code's `DetailPass` and `HeartwoodPalette` (`tools/art/`) into
   `assets/environment/`: no added grain on grass / island rim / dew pool / blight patch, 0.3 on the
-  other ground tiles, full detail on obstacles and the Heartwood, 64×96 tree cells, palette snap only
-  for mist, void and cloud shadows. It prints the value order per act and fails if it breaks. A run
+  other ground tiles, full detail on obstacles, 64×96 tree cells, palette snap only for mist, void,
+  cloud shadows and the Heartwood (drawn with its own rim and banded glow; redrawn 2026-09-30 to
+  match the Memory Grove's Heartwood). It prints the value order per act and fails if it breaks. A run
   on unchanged sources reproduces the committed sheets byte for byte. Only PNGs are written (UIDs stay).
   To change the art, change the generator, re-run, and keep this table in sync.
