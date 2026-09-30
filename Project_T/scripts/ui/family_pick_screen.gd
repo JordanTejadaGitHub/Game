@@ -4,8 +4,8 @@ extends Control
 # of up to 3 base Wardens you don't have yet, drawn at random from every family the profile has
 # unlocked (the starting 3 + Grove families added by MetaRun); the first pick avoids repeating the
 # previous run's first offer. The pick unlocks it (Sprouts can grow into it, or
-# plant it directly). When fewer than 3 new families are left, the empty slots become Family
-# Blessings for families you own (meta_design.md). Early Bloom (Grove perk) makes the first pick offer
+# plant it directly). Only real new families are offered: 3, else 2 or 1 (no Blessing filler, user
+# 2026-09-30); a boss pick with none left is skipped for +2 Dreamlight. Early Bloom (Grove perk) makes the first pick offer
 # every family. Pauses the game while open; "Peek at the map" minimises it. Cards show the statuses
 # the family applies and its two branches (screens_ui.md "Family pick"). Built in code.
 
@@ -100,10 +100,13 @@ func show_pick(reason: StringName = &"first") -> void:
 	pending_memory_warden = null
 	if reason == &"first":
 		_remember_first_offer()
-	var blessings := get_blessings()
-	blessings.shuffle()
-	while offer.size() < cards_per_pick and not blessings.is_empty():
-		offer.append(blessings.pop_back())
+	# Only real new families: no Blessing filler (user, meta_design.md "Replaced 2026-09-30"). With no
+	# family left, a boss pick is skipped for +2 Dreamlight ("The Heartwood remembers deeper.").
+	if offer.is_empty() and reason == &"boss":
+		var line := dream_state.grant_no_family_pick()
+		var hud := get_parent()
+		if hud != null and hud.has_method("show_toast"):
+			hud.show_toast(line)
 	if offer.is_empty():
 		if should_offer_sapling():  # No family left, but the Sapling still gets its card
 			if not visible:
