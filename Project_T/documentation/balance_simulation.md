@@ -205,6 +205,19 @@ Decisions (design chat, 2026-09-30):
   column**, rerun D. Perks and Grove families are buffed only if the Grove still doesn't move the
   median after that.
 
+**Omens and reruns (same day):**
+- **Omens, always face vs never** (Balanced, 15 seeds, to 50): Fresh reached 50 in 6/15 vs 8/15
+  (mean death 41.3 vs 44.7); Early 4/15 vs 7/15 (36.3 vs 43.7). Leaves lost in drifts 11–25: 14.4 vs
+  5.9 (Fresh), 18.3 vs 3.2 (Early). **Passes** the "facing every Omen loses clearly more" target
+  (run_design.md): Omens have teeth. Later, lower priority: a bot that faces only when its maze has
+  slack, to check the rewards make picking your moments worth it.
+- **Openings:** Rootling 10/10 (3.7 leaves: accepted, within 10-seed noise), Whirligig 10/10 (0.3).
+  **Acorn 1/10** at 14 @ 1.6/s (single target loses act 1's swarms); now 16 @ 1.4/s with a small
+  bounce splash (85c4240), rerunning.
+- **First boss:** ×1.75 still beaten 19/20 → **×2.0**, rerun E (target 14–16/20).
+- **Acorn keeps attacker ranks and the attacker Focus** (decision): it's its family's base attacker
+  and opener. Only **Elder Stump and Grove Heart** are pure supports whose ranks go to the aura.
+
 ## Later
 
 A **human baseline**: the same CSV written from real playtests (debug builds only), so the bot's
