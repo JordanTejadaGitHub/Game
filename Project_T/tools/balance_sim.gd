@@ -58,6 +58,8 @@ var forced_families: Array[String] = []
 var hand_drifts := false  # --hand-drifts: the hand-made drift files instead of rolled ones (DriftDirector.random_drifts)
 var save_mode := ""  # --save=spender (never saves up) or saver (holds Dew up to SAVER_DRIFTS drifts for a growth)
 var omen_mode := ""  # --omens=face: faces every Omen drawn (DreamSimPolicy.face_omens); default: Clear Skies, no Omens
+var all_families := false  # --all-families: the developer "Unlock all families" run (MetaRun.force_all_families)
+var favored: Array[String] = []  # --favor=many_hands,seedfall: these Dream cards score highest (a player's build)
 var omens: OmenDirector
 var omens_faced: Array[String] = []
 var _save_since := -1  # The drift the saver started holding Dew at
@@ -103,6 +105,8 @@ func _run() -> void:
 			"--hand-drifts": hand_drifts = true
 			"--save": save_mode = value
 			"--omens": omen_mode = value
+			"--all-families": all_families = true
+			"--favor": favored.assign(value.split(","))
 	if profile != "fresh":
 		var meta: Script = load("res://scripts/meta/meta_run.gd")
 		if not meta.get_script_method_list().any(func(m: Dictionary) -> bool: return m.name == "load_preset"):
@@ -111,6 +115,8 @@ func _run() -> void:
 			return
 		ProjectSettings.set_setting("game/demo", false)  # Meta applies only in the full game
 		meta.call("load_preset", StringName(profile))
+	if all_families:
+		load("res://scripts/meta/meta_run.gd").set("force_all_families", true)
 	main = load("res://scenes/main.tscn").instantiate()
 	main.get_node("%MapGenerator").map_seed = map_seed
 	if hand_drifts:
@@ -128,7 +134,9 @@ func _run() -> void:
 	for card in dreams.pool:
 		if start_cards.has(card.id):
 			dreams.take(card)
-	policy = DreamSimPolicy.new(dreams, STYLES.get(style, 0))
+	policy = FavorPolicy.new(dreams, STYLES.get(style, 0)) if not favored.is_empty() else DreamSimPolicy.new(dreams, STYLES.get(style, 0))
+	if policy is FavorPolicy:
+		policy.favored = favored
 	omens = main.get_node_or_null("%OmenDirector")
 	if omen_mode == "face" and omens:
 		policy.face_omens = true
@@ -529,7 +537,7 @@ func _finish() -> void:
 		"max_top_warden": run.max_top_warden, "max_asleep": snappedf(run.max_asleep, 0.001), "cards": dreams.stacks.size(),
 		"sprout_cards_25": run.sprout_cards_25,
 		"sprouts_end": _attackers().filter(func(t) -> bool: return t.tower_data.get_id() == "sprout").size(), "cards_start": "+".join(start_cards),
-		"loadout": _loadout(), "save": save_mode, "omens": omen_mode, "omens_faced": "+".join(omens_faced), "families_forced": "+".join(forced_families), "hand_drifts": hand_drifts,
+		"loadout": _loadout(), "all_families": all_families, "favored": "+".join(favored), "save": save_mode, "omens": omen_mode, "omens_faced": "+".join(omens_faced), "families_forced": "+".join(forced_families), "hand_drifts": hand_drifts,
 		"close_calls": rows.filter(func(r) -> bool: return r.approach > CLOSE_CALL).size(),
 		"approach_max": snappedf(rows.reduce(func(m, r) -> float: return maxf(m, r.approach), 0.0), 0.01),
 		"seconds": snappedf(game_time, 1.0)}
@@ -637,3 +645,11 @@ func _sprout_waits(tower: Tower) -> bool:
 		if form is TowerData and form.tier == 1 and dreams.is_unlocked(form.get_id()):
 			return true
 	return director.drifts_started <= 1  # The family pick comes after drift 1
+
+# --favor: the named Dream cards come first (then the style's own scoring).
+class FavorPolicy extends DreamSimPolicy:
+	const FAVOR := 1000.0
+	var favored: Array[String] = []
+
+	func score(card: UpgradeData) -> float:
+		return super.score(card) + (FAVOR if favored.has(card.id) else 0.0)
