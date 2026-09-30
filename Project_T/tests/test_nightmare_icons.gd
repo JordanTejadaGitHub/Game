@@ -124,16 +124,20 @@ func _run() -> void:
 		if child is ComingStrip:
 			strip = child
 	await process_frame
-	_check(strip != null and strip.visible and strip._row.get_child_count() == ComingStrip.kinds_in_block(director, 1).size(),
+	_check(strip != null and strip.visible and strip.items().size() == ComingStrip.kinds_in_block(director, 1).size(),
 		"the strip shows block 1's kinds at the first rest")
-	# Readable on the night sky: each kind's name and block count (extras included) at rests.
+	# "Too tall" (screens_ui.md): one row of equal discs, the count a badge on the disc, the name on hover.
 	var first_kinds := ComingStrip.kinds_in_block(director, 1)
 	if strip != null and not first_kinds.is_empty():
-		var first_item: Control = strip._row.get_child(0)
-		var count_label := first_item.find_child("KindCount", false, false) as Label
-		var name_label := first_item.find_child("KindName", false, false) as Label
-		_check(count_label != null and count_label.text == "×%d" % first_kinds[0][2] and name_label != null
-			and name_label.text.to_lower() == first_kinds[0][0].display_name.to_lower(), "the strip names each kind and counts it")
+		var first_item: Control = strip.items()[0]
+		var count_label := first_item.find_child("KindCount", true, false) as Label
+		var face := first_item.get_child(0) as Button
+		_check(count_label != null and count_label.text == "×%d" % first_kinds[0][2] and face.tooltip_text.begins_with(first_kinds[0][0].display_name)
+			and first_item.find_child("KindName", true, false) == null, "each kind: its count as a badge, its name on hover")
+		_check(strip._row.get_child_count() == ceili(first_kinds.size() / float(ComingStrip.PER_ROW))
+			and face.size.x == face.size.y, "one row of up to 6 round discs (no wide pills)")
+		await process_frame
+		_check(strip.get_combined_minimum_size().y <= 100.0, "the strip stays low (%.0f px)" % strip.get_combined_minimum_size().y)
 	var d10 := ComingStrip.kinds_in_range(director, 10, 10)
 	var listed := 0
 	for group in director.drifts[9].groups:
