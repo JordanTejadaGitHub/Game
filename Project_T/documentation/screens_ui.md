@@ -846,6 +846,11 @@ resist / immune rows.
 → **boss dossier** (the act's start: run start and act-break rests; a short reminder at the rest
 opening a boss block) → free building → Start. Each choice screen can be **minimised** to look at the map first (a
 "peek" button), then reopened.
+- **A minimised choice still blocks the next drift** (bug, 2026-09-30, user: "I can hide the Dream
+  choice and start the wave"). While any choice (family pick, Dream, Omen) is open or minimised, Start
+  / Enter / Auto-drift / call early can't begin a drift. The Start button changes to the pending
+  choice ("Choose a Dream", "Face an Omen or Clear Skies", "Pick a family") and reopens it. Building,
+  selling and clearing stay allowed while peeking. The dossier is information only, so it doesn't block.
 
 ### Family pick
 
