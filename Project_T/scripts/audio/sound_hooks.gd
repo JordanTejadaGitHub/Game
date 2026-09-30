@@ -88,6 +88,8 @@ const HARVEST_DB := -3.0
 const HARVEST_WINDOW_MS := 4000  # Pours within this of the first belong to the same Harvest
 # Close calls: a soft tension cue, one per 2 s at most (like the Heartwood's tremble).
 const CLOSE_CALL_DB := -8.0
+const PULL_BOSS_PITCH := 0.8  # Rootcurl dragging a boss: lower, strained
+const DRAG_TAIL := 0.12  # Seconds the soil drag fades when the drag ends early
 const CLOSE_CALL_THROTTLE_MS := 2000
 const HIT_FAMILIES := ["stone", "root", "water", "light", "spore", "sprout"]  # Others sound like sprout
 const HIT_GROUP_MS := 90  # A pulse or splash hitting many nightmares at once is one impact
@@ -135,6 +137,7 @@ var _resting := true
 var _presence := {}  # Tower instance id -> a Warden with a presence loop
 var _dew_catch_at := -100000
 var _close_call_at := -100000
+var _drags := {}  # Nightmare instance id -> its soil-drag player (cut when the pull ends)
 var _harvest_at := -100000  # msec of this rest's harvest sound (later pours add droplets)
 
 func _ready() -> void:
@@ -290,6 +293,9 @@ func _scan_field() -> void:
 func _on_enemy_added(enemy: Node) -> void:
 	# Its position is set right after it enters the tree, so wait a frame.
 	_play_signature.call_deferred(enemy)
+	if enemy.has_signal("drag_started") and not enemy.is_connected("drag_started", _on_drag_started):
+		enemy.connect("drag_started", _on_drag_started)  # Rootcurl's drag
+		enemy.connect("drag_ended", _on_drag_ended)
 	if enemy.has_signal("leaped"):
 		enemy.leaped.connect(func(e: Node2D) -> void:
 			if e.enemy_data.is_boss:
@@ -585,6 +591,29 @@ func _ascended_duck(tower: Tower) -> void:
 	if now - int(_ducked_at.get(tower.get_instance_id(), -100000)) >= ASCENDED_DUCK_INTERVAL_MS:
 		_ducked_at[tower.get_instance_id()] = now
 		sound.duck(3.0, 0.5)
+
+# Rootcurl: the yank, then soil dragging for about the drag's length (1 tile short, more long). Bosses:
+# lower, so it reads strained. The drag is cut when the pull ends early.
+# Enemy.drag_started(enemy, tiles) / drag_ended(enemy) (Tower Code 183abad); a second pull mid-drag
+# extends the drag without a new start.
+func _on_drag_started(enemy: Node2D, tiles: float = 1.0) -> void:
+	if not is_instance_valid(enemy):
+		return
+	var pitch := PULL_BOSS_PITCH if enemy.enemy_data.is_boss else 1.0
+	sound.play(&"root_yank", enemy.global_position, EVENT_DB, pitch, 0.04)
+	var drag: Node = sound.play(&"soil_drag_long" if tiles > 1.5 else &"soil_drag_short", enemy.global_position,
+		EVENT_DB - 2.0, pitch, 0.04)
+	if drag != null:
+		_drags[enemy.get_instance_id()] = drag
+
+func _on_drag_ended(enemy) -> void:  # Untyped: the nightmare may be gone by now
+	var key: int = enemy.get_instance_id() if is_instance_valid(enemy) else 0
+	var drag = _drags.get(key)
+	_drags.erase(key)
+	if is_instance_valid(drag) and drag.is_inside_tree():  # A short tail, not a click
+		var fade: Tween = drag.create_tween()
+		fade.tween_property(drag, "volume_db", -40.0, DRAG_TAIL)
+		fade.tween_callback(drag.queue_free)
 
 func _on_cloud(tower: Tower, where: Vector2, duration: float) -> void:
 	if tower.attack_data.cloud_fog:
