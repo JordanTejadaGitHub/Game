@@ -263,6 +263,9 @@ func _test_sim_policy() -> void:
 			_check(forms[0].get_id() == pair[1], "%s unlocks %s first (%s)" % [pair[0], pair[1], forms[0].get_id()])
 		else:
 			_check(forms[0] == tree[1][0][0], "an area family keeps the Remember order")
+			if tree.size() > 2 and tree[2] != null and not tree[1][0][1].is_empty():
+				_check(forms.find(tree[2]) == 2, "Ascended right after the first final form, before the other branch (%s)"
+					% ", ".join(forms.map(func(f: TowerData) -> String: return f.get_id())))
 	dreams._owed_families.assign(["dewdrop"])
 	var sleep := DreamSimPolicy.new(dreams, DreamSimPolicy.Style.SLEEP)
 	_check(sleep.pick_family(["pebbling", "dewdrop"]) == &"dewdrop", "family order before the owed family")

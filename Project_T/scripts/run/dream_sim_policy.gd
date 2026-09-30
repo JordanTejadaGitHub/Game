@@ -168,12 +168,17 @@ func _forms_in_order(tree: Array) -> Array[TowerData]:
 		if branches[i][0].get_id() == first:
 			branches.push_front(branches.pop_at(i))
 			break
+	# Ascended right after the first final form (design 0d0642d): while it's still closed (Grove, drift
+	# 51) spend_dreamlight skips it and goes on; once open, the family saves up for it first.
+	var ascended: TowerData = tree[2] if tree.size() > 2 else null
 	for branch in branches:
 		forms.append(branch[0])
 		for final in branch[1]:
 			forms.append(final)
-	if tree.size() > 2 and tree[2] != null:
-		forms.append(tree[2])
+			if ascended != null and not forms.has(ascended):
+				forms.append(ascended)
+	if ascended != null and not forms.has(ascended):
+		forms.append(ascended)
 	return forms
 
 const AREA_FIRST := {"pebbling": "cairn", "nestling": "wrens_nest"}  # Cairn's lob splash, Wren's second strike
