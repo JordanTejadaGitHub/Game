@@ -1328,9 +1328,43 @@ function segment(n) {
       });
       if (upto < 1) { out.set(tip[0] - box[0], tip[1] - box[1], LEAFG[4]); out.set(tip[0] - box[0] + 1, tip[1] - box[1] - 1, "#d8f0a0"); }
     }
-    frames.push(out);
+    frames[frames.length] = integrateBranch(out, g, box, seed);
   }
   return { frames, box, W, H };
+}
+// Tucks a branch frame into the crown: its wood takes the shaded tones, a few leaf clusters (the same
+// in every frame) cover parts of it so it dips behind the foliage, and the whole frame snaps to the
+// crown's 2 px art-pixel grid (aligned to tree space), so it reads as part of the same picture.
+function integrateBranch(img, g, box, seed) {
+  const shade = new Map([[HW.Loam, HW.Bark], [HW.Oak, HW.Bark]].map(([a, b]) => [C(a).slice(0, 3).join(), b]));
+  for (let y = 0; y < img.h; y++) for (let x = 0; x < img.w; x++) {
+    if (!img.alpha(x, y)) continue;
+    const to = shade.get(img.get(x, y).slice(0, 3).join()); if (to) img.set(x, y, to);
+  }
+  const n = clamp(Math.round(g.len / 55), 1, 3);
+  for (let k = 0; k < n; k++) {
+    const t = .22 + (k + hash(seed, k, 150)) / n * .55, [cx, cy] = along(g, t);
+    // An irregular clump: 2-3 overlapping lobes, lower ones first, each lit on its upper left.
+    const lobes = [...Array(2 + (hash(seed, k, 152) < .5 ? 1 : 0)).keys()].map(i => [cx + (hash(seed, k * 7 + i, 153) - .5) * 12, cy + (hash(seed, k * 7 + i, 154) - .5) * 7, 3 + hash(seed, k * 7 + i, 155) * 3.5]).sort((p, q) => q[1] - p[1]);
+    for (const [lx, ly, r] of lobes) for (let y = Math.floor(ly - r); y <= ly + r; y++) for (let x = Math.floor(lx - r); x <= lx + r; x++) {
+      const dx = (x - lx) / r, dy = (y - ly) / r, q = Math.hypot(dx, dy) / (1 + .18 * Math.sin(Math.atan2(dy, dx) * 4 + k));
+      if (q > 1) continue;
+      const lit = -dx * .5 - dy * .8 + (1 - q) * .4;
+      img.set(x - box[0], y - box[1], lit > .55 ? HW.Moss : lit > .1 ? HW.Pool : HW.Deepmoss);
+    }
+  }
+  const out = new Img(img.w, img.h), ox = ((box[0] % 2) + 2) % 2, oy = ((box[1] % 2) + 2) % 2;
+  for (let by = -oy; by < img.h; by += 2) for (let bx = -ox; bx < img.w; bx += 2) {
+    const count = new Map();
+    for (const [a, b] of [[0, 0], [1, 0], [0, 1], [1, 1]]) {
+      const x = bx + a, y = by + b; if (x < 0 || y < 0 || x >= img.w || y >= img.h || !img.alpha(x, y)) continue;
+      const key = img.get(x, y).join(); count.set(key, (count.get(key) || 0) + 1);
+    }
+    if (!count.size) continue;
+    const c = [...count].sort((p, q) => q[1] - p[1])[0][0].split(",").map(Number);
+    for (const [a, b] of [[0, 0], [1, 0], [0, 1], [1, 1]]) out.set(bx + a, by + b, c);
+  }
+  return out;
 }
 
 // ---- drifting mist strips (grove_layout.json "mists"; GroveTreeView tiles and scrolls them) ----
