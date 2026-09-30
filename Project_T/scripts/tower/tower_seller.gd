@@ -64,6 +64,8 @@ const GROW_OPTION_KEYS: Array[Key] = [KEY_Q, KEY_E, KEY_Z]
 
 # A grow key went down / up: the panel previews that option while it's held.
 signal grow_option_held(index: int, held: bool)
+# R (nurture_warden): the Warden panel arms its rank choices (1–4); Nurture v3 asks every rank.
+signal nurture_asked
 
 func _ready() -> void:
 	# Build mode owns the mouse; selling is available the rest of the time.
@@ -299,7 +301,7 @@ func grow_group(towers: Array, into: TowerData) -> int:
 # they're left out).
 static func _nurturable(tower, focus: Tower.Focus) -> bool:
 	return is_instance_valid(tower) and tower.can_nurture() \
-		and (tower.focus_options().has(focus) or not tower.needs_focus())  # Only a Focus it can take
+		and (focus == Tower.Focus.NONE or tower.focus_options().has(focus))  # Only a choice it can take
 
 # The Wardens in `towers` that group Nurture would raise one rank each with the Dew there is,
 # nearest the Heartwood first (like group grow), and what that costs: [Array[Tower], cost].
@@ -495,7 +497,7 @@ func _unhandled_input(event: InputEvent) -> void:
 		select(null)
 		get_viewport().set_input_as_handled()
 	elif event.is_action_pressed("nurture_warden") and not selection.is_empty():
-		nurture_group(selection)
+		nurture_asked.emit()  # Every rank is a choice: the panel's 1–4 pick it
 		get_viewport().set_input_as_handled()
 	elif event.is_action_pressed("grow_warden") and not selection.is_empty():
 		grow_selected()

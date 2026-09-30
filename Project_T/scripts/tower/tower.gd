@@ -170,27 +170,28 @@ const STAT_TOP_RANK := 7  # Attack speed and range from ranks stop at VII (Endle
 enum Focus { NONE, POWER, SWIFT, REACH, DEEP, WIDE, STRONG, KINDRED }  # Append only (saved as ints)
 const FOCUS_NAMES := {Focus.POWER: "Power", Focus.SWIFT: "Swift", Focus.REACH: "Reach", Focus.DEEP: "Deep",
 	Focus.WIDE: "Wide", Focus.STRONG: "Strong", Focus.KINDRED: "Kindred"}
-const FOCUS_TEXT := {Focus.POWER: "+8% damage", Focus.SWIFT: "+6% attack speed", Focus.REACH: "+0.2 range",
-	Focus.DEEP: "+10% status strength and duration",
-	Focus.WIDE: "+1 aura reach", Focus.STRONG: "a stronger aura, ×1.25 by rank V", Focus.KINDRED: "ignores the aura falloff"}
+const FOCUS_TEXT := {Focus.POWER: "+18% damage", Focus.SWIFT: "+12% attack speed", Focus.REACH: "+0.3 range",
+	Focus.DEEP: "+18% Potency and status duration",
+	Focus.WIDE: "+0.2 aura reach", Focus.STRONG: "+5% aura", Focus.KINDRED: "ignores the aura falloff"}
 const FOCUS_COLORS := {Focus.POWER: Palette.EMBER, Focus.SWIFT: Palette.NEWLEAF,
 	Focus.REACH: Palette.DEWLIGHT, Focus.DEEP: Palette.ORCHID,
 	Focus.WIDE: Palette.SPRIG, Focus.STRONG: Palette.GLOW, Focus.KINDRED: Palette.BLOSSOM}
-const FOCUS_POWER := 0.08
-const FOCUS_SWIFT := 0.06
-const FOCUS_REACH := 0.2
-const FOCUS_DEEP := 0.10
+# Nurture v3 (warden_stats.md): every rank is a choice; each rank of a choice adds this.
+const FOCUS_POWER := 0.18  # Damage
+const FOCUS_SWIFT := 0.12  # Attack speed
+const FOCUS_REACH := 0.3  # Range, cells
+const FOCUS_DEEP := 0.18  # Potency and status duration
 # Support Wardens (warden_stats.md "Support Wardens and Nurture", fdd7003): ranks multiply the aura (×1.1
 # each) instead of damage, speed and range; their rank III Focus is Wide / Strong / Kindred.
 const SUPPORT_AURA_WARDENS := ["elder_stump", "grove_heart"]  # Acorn keeps attacker ranks + Focus: its family's opener
 const ATTACKER_FOCUSES: Array[Focus] = [Focus.POWER, Focus.SWIFT, Focus.REACH, Focus.DEEP]
 const SUPPORT_FOCUSES: Array[Focus] = [Focus.WIDE, Focus.STRONG, Focus.KINDRED]
 const AURA_PER_RANK := 1.1  # The aura bonus ×1.1 per rank (Grove Heart: its base only)
-const FOCUS_WIDE := 1.0  # Wide: aura reach / catch radius +1 cell
-const FOCUS_STRONG_AURA := 0.25 / 3.0  # Strong: the aura +8.33% per rank III–V (×1.25 by V)
-const FOCUS_STRONG_CATCH := 0.10  # Strong catchers: +10% catch per rank III–V
-const KINDRED_INTEREST := 0.02  # Kindred Wellspring: +2% interest
-const KINDRED_DEW := 4  # Kindred Dewcatcher: +4 Dew per drift
+const FOCUS_WIDE := 0.2  # Wide, per rank: aura reach / catch radius (+1 cell over five ranks)
+const FOCUS_STRONG_AURA := 0.05  # Strong, per rank: the aura +5% (×1.25 over five)
+const FOCUS_STRONG_CATCH := 0.06  # Strong catchers, per rank: +6% catch (+30% over five)
+const KINDRED_INTEREST := 0.004  # Kindred Wellspring, per rank: +0.4% interest (+2% over five)
+const KINDRED_DEW := 0.8  # Kindred Dewcatcher, per rank: +0.8 Dew per drift (+4 over five)
 # Same-kind auras stack with falloff: the strongest counts 100%, the next 50%, 25%… (Kindred: always 100%).
 const AURA_FALLOFF := 0.5
 const PIP_COLOR := Palette.GLOW
@@ -220,6 +221,38 @@ var focus: Focus = Focus.NONE:
 	set(value):
 		focus = value
 		queue_redraw()
+# Nurture v3: the choice made at each rank (kept through evolution, never changed). `focus` is the latest
+# one (old saves: their rank III Focus, migrated by _migrate_choices).
+var rank_choices: Array[int] = []
+
+# "Power ×2, Reach": the rank choices, for labels.
+func choices_text() -> String:
+	_migrate_choices()
+	var parts: Array[String] = []
+	for which in focus_options():
+		var n := rank_choices.count(which)
+		if n > 0:
+			parts.append(FOCUS_NAMES[which] + (" ×%d" % n if n > 1 else ""))
+	return ", ".join(parts)
+
+func choice_count(which: Focus) -> int:
+	_migrate_choices()
+	return rank_choices.count(which)
+
+# Old saves and ranks given by Dreams: Power (supports: their first option) for I–II, the old Focus from III.
+func _migrate_choices() -> void:
+	if rank_choices.size() == rank:
+		return
+	var fallback: int = focus_options()[0]
+	while rank_choices.size() < rank:
+		rank_choices.append(focus if rank_choices.size() >= 2 and focus != Focus.NONE else fallback)
+	if rank_choices.size() > rank:
+		rank_choices.resize(rank)
+
+# The choice a rank takes when none is given (a free rank from a Dream): the latest, else the first option.
+func default_choice() -> Focus:
+	_migrate_choices()
+	return rank_choices[-1] as Focus if not rank_choices.is_empty() else focus_options()[0]
 # What the attack does: `tower_data` itself, or for a Graftling the neighbour it copies.
 var attack_data: TowerData
 # Who snipers shoot at (the player can change it in the Warden panel).
@@ -494,7 +527,7 @@ func get_attacks_per_second() -> float:
 
 func _compute_attacks_per_second() -> float:
 	var ranks := mini(get_effective_rank(), STAT_TOP_RANK)
-	var speed := 1.0 + RANK_SPEED * (ranks + get_court_ranks()) + (FOCUS_SWIFT * _focus_ranks(ranks) if focus == Focus.SWIFT else 0.0)
+	var speed := 1.0 + RANK_SPEED * _plain_ranks() + FOCUS_SWIFT * choice_count(Focus.SWIFT)  # Nurture v3
 	if is_aura_support():
 		speed = 1.0  # Its ranks scale the aura instead
 	var dreams := 1.0
@@ -549,7 +582,7 @@ func _stats_fresh() -> bool:
 
 func _compute_range_cells() -> float:
 	var ranks := mini(get_effective_rank(), STAT_TOP_RANK)
-	var reach := RANK_RANGE * (ranks + get_court_ranks()) + (FOCUS_REACH * _focus_ranks(ranks) if focus == Focus.REACH else 0.0)
+	var reach := RANK_RANGE * _plain_ranks() + FOCUS_REACH * choice_count(Focus.REACH)  # Nurture v3
 	if is_aura_support():
 		reach = 0.0  # Its ranks scale the aura instead
 	if _dream_state and _dream_state.has_method("get_tower_range_bonus"):
@@ -582,11 +615,14 @@ static func _focus_ranks(ranks: int) -> int:
 func get_rank_damage_multiplier() -> float:
 	if is_catcher() or is_aura_support():
 		return 1.0  # Catchers' ranks add catch; aura supports' ranks scale the aura (get_aura_bonus)
-	var ranks := get_effective_rank()
-	var per_rank := RANK_DAMAGE
+	var warm := 0.0
 	if _dream_state and _dream_state.has_method("get_rank_damage_bonus"):
-		per_rank += _dream_state.get_rank_damage_bonus()
-	return 1.0 + per_rank * (ranks + get_court_ranks()) + (FOCUS_POWER * _focus_ranks(ranks) if focus == Focus.POWER else 0.0)
+		warm = _dream_state.get_rank_damage_bonus()  # Warm Hands: every rank, whatever it chose
+	return 1.0 + RANK_DAMAGE * _plain_ranks() + warm * rank + FOCUS_POWER * choice_count(Focus.POWER)
+
+# Rank-equivalents that aren't chosen ranks (The Old Ones' +1, the Eldest's Court): the plain old gains.
+func _plain_ranks() -> float:
+	return maxf(get_effective_rank() - rank, 0) + get_court_ranks()
 
 # Court of the Eldest: rank-equivalents from touching the Eldest (25% of its rank). They count for the
 # per-rank damage, attack speed and range, never the Focus.
@@ -609,13 +645,12 @@ func get_potency() -> float:
 	var total := attack_data.potency
 	if _dream_state and _dream_state.has_method("get_potency_bonus"):
 		total += _dream_state.get_potency_bonus(tower_data)
-	if focus == Focus.DEEP:
-		total += FOCUS_DEEP * _focus_ranks(get_effective_rank())
+	total += FOCUS_DEEP * choice_count(Focus.DEEP)  # Deep ranks
 	return total
 
 # Deep Focus: status strength and duration multiplier.
 func get_status_focus_multiplier() -> float:
-	return 1.0 + FOCUS_DEEP * _focus_ranks(get_effective_rank()) if focus == Focus.DEEP else 1.0
+	return 1.0 + FOCUS_DEEP * choice_count(Focus.DEEP)
 
 func get_max_rank() -> int:
 	var cap := RANK_MAX
@@ -623,10 +658,8 @@ func get_max_rank() -> int:
 		cap = _dream_state.get_max_rank_for(self)  # Past V only for the Eldest
 	elif _dream_state and _dream_state.has_method("get_max_rank"):
 		cap = _dream_state.get_max_rank()
-	# warden_stats.md (b061d29): every Warden can be nurtured to rank II; III-V (and the Focus) open
-	# once any Nurture Dream is owned. Ranks a Warden already has (old saves) are kept.
-	if not has_nurture_dream():
-		cap = mini(cap, UNDREAMED_MAX_RANK)
+	# Nurture v3: ranks I–V for Dew, no Nurture Dream needed (Deeper Rings still opens VI–VII).
+	cap = maxi(cap, RANK_MAX)
 	return cap
 
 const UNDREAMED_MAX_RANK := 2
@@ -637,9 +670,7 @@ func has_nurture_dream() -> bool:
 
 # Why the next rank can't be bought, for the Nurture button ("" = it can, or it's simply the top).
 func nurture_blocker() -> String:
-	if can_be_nurtured() and rank >= UNDREAMED_MAX_RANK and rank < RANK_MAX and not has_nurture_dream():
-		return "Rank %s needs a Nurture Dream" % rank_name(rank + 1)
-	return ""
+	return ""  # Nurture v3: nothing gates ranks I–V any more
 
 # Attacking Wardens can be nurtured (not walls or wall growths, not the White Stag's aura).
 func can_be_nurtured() -> bool:
@@ -653,7 +684,7 @@ func can_nurture() -> bool:
 
 # The next rank asks for a Focus first (rank II -> III, no Focus yet).
 func needs_focus() -> bool:
-	return can_nurture() and (tower_data.can_attack or is_support()) and rank + 1 >= FOCUS_RANK and focus == Focus.NONE
+	return can_nurture() and tower_data.dew_per_rank <= 0  # Nurture v3: every rank is a choice (the Sapling's ranks only raise its yield)
 
 # Support Wardens: the aura ones (ranks scale the aura) and the catchers (ranks add catch).
 func is_support() -> bool:
@@ -766,9 +797,14 @@ func get_nurture_price() -> int:
 # Raises the rank by one; `cost` is added to invested Dew (TowerPlacer.nurture charges it).
 # `chosen` sets the Focus when this is the rank that asks for one.
 func nurture(cost: int, chosen: Focus = Focus.NONE) -> void:
-	if focus == Focus.NONE and chosen != Focus.NONE:
-		focus = chosen
+	if chosen == Focus.NONE or not focus_options().has(chosen):
+		chosen = default_choice()
+	_migrate_choices()
+	var before := rank
 	rank = mini(rank + 1, get_max_rank())
+	if rank > before:
+		rank_choices.append(chosen)
+		focus = chosen
 	clear_dream_cache()
 	_nudge_neighbours()
 	invested_dew += cost
@@ -910,8 +946,8 @@ func get_aura_reach() -> float:
 	var reach := tower_data.aura_radius if tower_data.aura_radius > 0.0 else tower_data.attack_range
 	if _rule_stacks(&"kind_canopy") > 0 and KIND_CANOPY_WARDENS.has(tower_data.get_id()):
 		reach += KIND_CANOPY_REACH
-	if focus == Focus.WIDE and is_aura_support():
-		reach += FOCUS_WIDE
+	if is_aura_support():
+		reach += FOCUS_WIDE * choice_count(Focus.WIDE)  # Wide ranks
 	return reach
 
 # Grove Heart: +aura_per_warden for each Warden in its radius, keeping the total under aura_max.
@@ -936,8 +972,7 @@ func get_aura_bonus(speed: bool) -> float:
 	if is_aura_support():
 		var ranks := get_effective_rank()
 		base *= pow(AURA_PER_RANK, ranks)  # Grove Heart: its base only, not the per-Warden extra
-		if focus == Focus.STRONG:
-			base *= 1.0 + FOCUS_STRONG_AURA * _focus_ranks(ranks)
+		base *= 1.0 + FOCUS_STRONG_AURA * choice_count(Focus.STRONG)  # Strong ranks
 	var bonus := base + get_aura_extra()
 	if _rule_stacks(&"shared_light") > 0:
 		bonus *= 1.0 + SHARED_LIGHT * _rule_power(&"shared_light")
@@ -1023,7 +1058,7 @@ func _stack_auras(auras: Dictionary) -> void:
 		for entry in list:
 			var giver: Tower = entry[0]
 			var share := weight
-			var kindred := giver.focus == Focus.KINDRED and giver.is_aura_support()
+			var kindred := giver.is_aura_support() and giver.choice_count(Focus.KINDRED) > 0
 			if kindred:
 				share = 1.0  # Kindred: outside the falloff
 			else:
@@ -2444,7 +2479,7 @@ func is_catcher() -> bool:
 
 func get_catch_radius() -> float:
 	# Dew Trail (any level) also widens the catch (Wide Bowl merged into it, dream_audit.md).
-	return tower_data.catch_radius + (DewCatch.WIDE_BOWL_STEP if _rule_stacks(&"dew_trail") > 0 else 0.0) + (FOCUS_WIDE if focus == Focus.WIDE else 0.0)
+	return tower_data.catch_radius + (DewCatch.WIDE_BOWL_STEP if _rule_stacks(&"dew_trail") > 0 else 0.0) + FOCUS_WIDE * choice_count(Focus.WIDE)
 
 # The extra share of Dew `enemy` drops if it's dispelled now (0 = out of reach). Nurture ranks add
 # catch instead of damage; Old Growth's Elder Stump catches inside its aura.
@@ -2454,7 +2489,7 @@ func get_catch_share(enemy: Node2D) -> float:
 	if is_catcher() and distance <= get_catch_radius():
 		share = tower_data.catch_share + tower_data.catch_per_rank * get_effective_rank() \
 			+ DewCatch.DEW_BOWL_STEP * _rule_stacks(&"dew_bowl") \
-			+ (FOCUS_STRONG_CATCH * _focus_ranks(get_effective_rank()) if focus == Focus.STRONG else 0.0)
+			+ FOCUS_STRONG_CATCH * choice_count(Focus.STRONG)
 	var growth := kin_share(&"old_growth", "a")
 	if growth > 0.0 and distance <= get_aura_reach():
 		share = maxf(share, DewCatch.OLD_GROWTH_CATCH * growth)
@@ -2563,8 +2598,8 @@ func _on_wall_drift_cleared(_number: int, _bonus: int, _perfect: bool) -> void:
 # Dew this Warden yields at the end of a drift right now.
 func get_drift_yield() -> int:
 	var dew := tower_data.dew_per_drift + tower_data.dew_per_rank * rank
-	if focus == Focus.KINDRED and is_catcher() and tower_data.rest_interest <= 0.0:
-		dew += KINDRED_DEW
+	if is_catcher() and tower_data.rest_interest <= 0.0:
+		dew += roundi(KINDRED_DEW * choice_count(Focus.KINDRED))  # Kindred Dewcatcher ranks
 	return roundi(dew * maxf(1.0 - WITHER_PER_LEAF * _wither, 0.0))
 
 # Plays one pass of a sheet (a row of `frames`) with its `anchor` pixel on `at`, in the world (never
@@ -3291,15 +3326,12 @@ func _draw_rank_pips() -> void:
 		pips.draw.connect(func() -> void:
 			if rank <= 0:
 				return
-			var step := 7.0 if rank <= 5 else 6.0
-			var icon_space := 9.0 if focus != Focus.NONE else 0.0
-			var left := -((rank - 1) * step + icon_space) / 2.0
+			# Nurture v3: one pip per rank, each its choice's glyph (shape and colour).
+			_migrate_choices()
+			var step := 9.0 if rank <= 5 else 7.5
+			var left := -(rank - 1) * step / 2.0
 			for i in rank:
-				var at := Vector2(left + i * step, 27.0)
-				pips.draw_circle(at, 3.2, Color(Palette.ROOT, 0.85))
-				pips.draw_circle(at, 2.2, PIP_COLOR)
-			if focus != Focus.NONE:
-				draw_focus_icon(pips, Vector2(left + (rank - 1) * step + icon_space, 27.0), focus))
+				draw_focus_icon(pips, Vector2(left + i * step, 27.0), rank_choices[i] as Focus, 0.8))
 		add_child(pips)
 	pips.queue_redraw()
 

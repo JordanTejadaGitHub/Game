@@ -30,6 +30,7 @@ var _buttons := VBoxContainer.new()
 var _confirm_sell := false  # Selling a group during a drift asks once more
 var _confirm_unlock: TowerData = null  # Unlocking a form with Dreamlight asks once more
 var _confirm_eldest := false  # Rank VI would crown the Eldest: asks once more
+var _choosing := false  # R armed the rank choices: 1–4 pick one
 var _confirm_grow: TowerData = null  # Touch: the Grow tapped once (previewing; the next tap grows)
 var _touch := false
 
@@ -87,6 +88,7 @@ func _ready() -> void:
 		dream_state.dreamlight_changed.connect(_refresh_unless_hovered.unbind(1))  # Shards arrive mid-drift
 	drift_director.build_phase_changed.connect(_refresh.unbind(1))
 	tower_seller.grow_option_held.connect(_on_grow_key_held)
+	tower_seller.nurture_asked.connect(func() -> void: _choosing = visible)
 	tower_seller.selection_changed.connect(func(_t: Array[Tower]) -> void: _confirm_grow = null)
 
 # TowerSeller emits tower_selected right before selection_changed, which refreshes: refreshing here
@@ -128,11 +130,11 @@ func _refresh() -> void:
 		_title.text += " · Rank %s" % Tower.rank_name(_tower.rank)
 		if _is_eldest(_tower):
 			_title.text += " · Eldest"
-		if _tower.focus != Tower.Focus.NONE:
-			_title.text += " · %s" % Tower.FOCUS_NAMES[_tower.focus]
+		if _tower.rank > 0 and _tower.choices_text() != "":
+			_title.text += " · %s" % _tower.choices_text()  # "Power ×2, Reach"
 	_title.tooltip_text = ""
 	if _tower.rank > 0:
-		_title.tooltip_text = IconInfo.stat_tooltip(&"rank") + ("\n" + IconInfo.stat_tooltip(&"focus") if _tower.focus != Tower.Focus.NONE else "")
+		_title.tooltip_text = IconInfo.stat_tooltip(&"rank") + ("\n" + IconInfo.stat_tooltip(&"focus") if _tower.rank > 0 else "")
 	_title.mouse_filter = Control.MOUSE_FILTER_PASS if _title.tooltip_text != "" else Control.MOUSE_FILTER_IGNORE
 	_desc.text = StatusLinks.bbcode(data.description)  # {damp}-style tokens and plain names both work
 	if _tower.legacy_data != null:
@@ -259,58 +261,30 @@ func _refresh() -> void:
 			_locked_form_button(button, "Grow into %s" % next.display_name, next)
 		_grow_key(button, index)
 		_preview_on(button, [[_tower, next]])
-	if _tower.needs_focus():
-		# Rank III asks for a Focus, kept through growth and never changed.
-		var cost := _tower.get_nurture_cost()
-		for which in _tower.focus_options():  # Support Wardens: Wide / Strong / Kindred
-			# Usually rank III; a Warden planted at a higher rank (Remembered Care) chooses on its next one.
-			var effect := _tower.focus_text(which) + (" per rank" if Tower.ATTACKER_FOCUSES.has(which) else "")
-			var button := _add_button("Rank %s · %s: %s · %s" % [Tower.rank_name(_tower.rank + 1),
-				Tower.FOCUS_NAMES[which], effect, _price(cost)])
-			button.tooltip_text = "The usual rank gains, plus this Focus at ranks III, IV and V. Can't be changed later." + _growth_note()
-			button.disabled = not run_state.can_afford(cost)
-			button.set_meta(&"cost", cost)  # Affordability updates in place on Dew changes
-			button.pressed.connect(func() -> void:
-				if tower_placer.nurture(_tower, which):
-					_refresh())
-	elif _tower.can_nurture():
+	if _tower.can_nurture():
 		var cost := _tower.get_nurture_cost()
 		# The Eldest (a Legendary): rank VI crowns the one Warden that can grow past V, so ask first.
 		var eldest_ask: bool = dream_state.has_method("needs_eldest_confirm") and dream_state.needs_eldest_confirm(_tower)
-		if eldest_ask and _confirm_eldest:
+		if eldest_ask:
 			_add_button("Make this the Eldest? Only one Warden can grow past rank V").disabled = true
-			var yes := _add_button("Yes: make it the Eldest · rank %s · %s" % [Tower.rank_name(_tower.rank + 1), _price(cost)])
-			yes.disabled = not run_state.can_afford(cost)
-			yes.set_meta(&"cost", cost)
+			var yes := _add_button("Yes: make it the Eldest")
 			yes.pressed.connect(func() -> void:
-				_confirm_eldest = false
-				if dream_state.make_eldest(_tower):
-					tower_placer.nurture(_tower)
-				_refresh())
-			_add_button("Not now").pressed.connect(func() -> void:
-				_confirm_eldest = false
+				dream_state.make_eldest(_tower)  # Then the rank VI choices show
 				_refresh())
 		else:
-			var nurture := _add_button("Nurture to rank %s · %s (R)" % [Tower.rank_name(_tower.rank + 1), _price(cost)])
-			var gains := "+10%% damage, +4%% attack speed, +0.1 range"
-			if _tower.is_aura_support():
-				gains = "Its aura ×%.1f" % Tower.AURA_PER_RANK  # Support Nurture: ranks scale the aura
-			elif _tower.is_catcher():
-				gains = "+%d%% catch" % roundi(_tower.tower_data.catch_per_rank * 100.0)
-			nurture.tooltip_text = "%s%s. Kept when it grows." % [gains,
-				", and %s" % _tower.focus_text(_tower.focus) if _tower.focus != Tower.Focus.NONE else ""] + _growth_note()
-			nurture.disabled = not run_state.can_afford(cost)
-			nurture.set_meta(&"cost", cost)
-			nurture.pressed.connect(func() -> void:
-				if eldest_ask:
-					_confirm_eldest = true
-				else:
-					tower_placer.nurture(_tower)
-				_refresh())
-	elif _tower.nurture_blocker() != "":
-		var locked := _add_button(_tower.nurture_blocker())  # "Rank III needs a Nurture Dream"
-		locked.disabled = true
-		locked.tooltip_text = "Every Warden can reach rank II. A Nurture Dream opens ranks III–V and the Focus."
+			# Nurture v3 (warden_stats.md): every rank is a choice, kept for good. R arms 1–4. (The Heartwood
+			# Sapling's ranks only raise its yield: one plain button.)
+			var choices: Array = _tower.focus_options() if _tower.needs_focus() else [_tower.default_choice()]
+			for index in choices.size():
+				var which: Tower.Focus = choices[index]
+				var button := _add_button("%s · %s · %s (%d)" % [Tower.FOCUS_NAMES[which], _choice_preview(_tower, which),
+					_price(cost), index + 1]) if _tower.needs_focus() \
+					else _add_button("Nurture to rank %s · %s (R)" % [Tower.rank_name(_tower.rank + 1), _price(cost)])
+				button.tooltip_text = "Rank %s: %s. Kept when it grows; can't be changed." % [
+					Tower.rank_name(_tower.rank + 1), _tower.focus_text(which)] + _growth_note()
+				button.disabled = not run_state.can_afford(cost)
+				button.set_meta(&"cost", cost)  # Affordability updates in place on Dew changes
+				button.pressed.connect(_nurture_with.bind(which))
 	elif _tower.can_be_nurtured() and _tower.rank > 0:
 		var others_can: bool = dream_state.has_method("get_max_rank") and dream_state.get_max_rank() > _tower.rank
 		if others_can and not _is_eldest(_tower):
@@ -435,43 +409,30 @@ func _refresh_group() -> void:
 			button.pressed.connect(func() -> void: tower_seller.grow_group(towers, next))
 			_grow_key(button, index)
 			_preview_on(button, towers.map(func(t: Tower) -> Array: return [t, next]))
-	# Nurture all: one rank each, as far as the Dew goes (nearest the Heartwood first).
-	var full: Array = tower_seller.full_nurture_cost(selection)
-	if full[0] > 0:
-		var plan: Array = tower_seller.plan_nurture(selection)
-		var nurture := _add_button("")
-		if plan[0].size() >= full[0]:
-			nurture.text = "Nurture all %d · %s (R)" % [full[0], _price(full[1])]
+	# Nurture v3: one choice for the whole group ("Group Nurture asks once"); each Warden takes it if it can
+	# (attackers Power / Swift / Reach / Deep, support Wardens their own). R arms 1–4.
+	var rank_options: Array[Tower.Focus] = []
+	for tower in selection:
+		if is_instance_valid(tower) and tower.can_nurture():
+			for which in tower.focus_options():
+				if not rank_options.has(which):
+					rank_options.append(which)
+	for index in rank_options.size():
+		var which: Tower.Focus = rank_options[index]
+		var cost: Array = tower_seller.full_nurture_cost(selection, which)
+		var plan_focus: Array = tower_seller.plan_nurture(selection, which)
+		var button := _add_button("")
+		if plan_focus[0].size() >= cost[0]:
+			button.text = "Nurture all %d · %s · %s (%d)" % [cost[0], Tower.FOCUS_NAMES[which], _price(cost[1]), index + 1]
 		else:
-			nurture.text = "Nurture %d of %d · %s (R)" % [plan[0].size(), full[0], _price(plan[1])]
-			nurture.disabled = plan[0].is_empty()
-		nurture.tooltip_text = "Each gains a rank: +10% damage, +4% attack speed, +0.1 range."
-		if tower_seller.count_needing_focus(selection) > 0:
-			nurture.tooltip_text += " Wardens at rank II wait for a Focus (below)."
-		nurture.pressed.connect(func() -> void: tower_seller.nurture_group(tower_seller.selection))
-	# Wardens at rank II need a Focus for rank III: one choice for the whole group.
-	var waiting := tower_seller.count_needing_focus(selection)
-	if waiting > 0:
-		var options: Array[Tower.Focus] = []
-		for tower in selection:
-			if is_instance_valid(tower) and tower.needs_focus():
-				for which in tower.focus_options():
-					if not options.has(which):
-						options.append(which)
-		for which in options:  # Attackers' four, support Wardens' three (each Warden takes only its own)
-			var cost: Array = tower_seller.full_nurture_cost(selection, which)
-			var plan_focus: Array = tower_seller.plan_nurture(selection, which)
-			var button := _add_button("")
-			if plan_focus[0].size() >= cost[0]:
-				button.text = "Nurture all %d, %d at rank III take %s · %s" % [cost[0], waiting,
-					Tower.FOCUS_NAMES[which], _price(cost[1])]
-			else:
-				button.text = "Nurture %d of %d, rank III take %s · %s" % [plan_focus[0].size(), cost[0],
-					Tower.FOCUS_NAMES[which], _price(plan_focus[1])]
-				button.disabled = plan_focus[0].is_empty()
-			button.tooltip_text = "%s: %s per rank from rank III. Can't be changed later." % [
-				Tower.FOCUS_NAMES[which], Tower.FOCUS_TEXT[which]]
-			button.pressed.connect(func() -> void: tower_seller.nurture_group(tower_seller.selection, which))
+			button.text = "Nurture %d of %d · %s · %s (%d)" % [plan_focus[0].size(), cost[0], Tower.FOCUS_NAMES[which],
+				_price(plan_focus[1]), index + 1]
+			button.disabled = plan_focus[0].is_empty()
+		button.tooltip_text = "Each gains a rank of %s: %s. Kept when it grows; can't be changed." % [
+			Tower.FOCUS_NAMES[which], Tower.FOCUS_TEXT[which]]
+		button.pressed.connect(func() -> void:
+			_choosing = false
+			tower_seller.nurture_group(tower_seller.selection, which))
 	var refund := tower_seller.get_selection_refund()
 	var in_drift := not drift_director.is_build_phase()
 	var sell := _add_button("Sell %d · +%d Dew (%s)" % [selection.size(), refund, tower_seller.sell_key_name()])
@@ -618,6 +579,11 @@ func _on_grow_key_held(index: int, held: bool) -> void:
 
 # Touch (platforms.md): the last input was a touch, so Grow asks with a first tap.
 func _input(event: InputEvent) -> void:
+	if _choosing and event is InputEventKey and event.pressed and not event.echo \
+			and event.physical_keycode >= KEY_1 and event.physical_keycode <= KEY_4:
+		_pick_choice(event.physical_keycode - KEY_1)
+		get_viewport().set_input_as_handled()  # Not the Warden bar's 1–4 while choosing
+		return
 	if event is InputEventScreenTouch:
 		_touch = true
 	elif event is InputEventMouseMotion and event.device != InputEvent.DEVICE_ID_EMULATION:
@@ -659,6 +625,35 @@ func _on_locked_form(next: TowerData, _can_unlock_now: bool) -> void:
 	# where it's unlocked (or shows what it needs first).
 	_confirm_unlock = null
 	dream_state.open_remember(next)
+
+# One rank of `which` on `tower`, as its effect: "28 → 33 damage", "2.5 → 2.8 range".
+func _choice_preview(tower: Tower, which: Tower.Focus) -> String:
+	match which:
+		Tower.Focus.POWER:
+			var mult := tower.get_rank_damage_multiplier()
+			return "%d → %d damage" % [roundi(tower.get_damage()), roundi(tower.get_damage() * (mult + Tower.FOCUS_POWER) / maxf(mult, 0.01))]
+		Tower.Focus.SWIFT:
+			return "%.2f → %.2f/s" % [tower.get_attacks_per_second(), tower.get_attacks_per_second() * (1.0 + Tower.FOCUS_SWIFT)]
+		Tower.Focus.REACH:
+			return "%.1f → %.1f range" % [tower.get_range_cells(), tower.get_range_cells() + Tower.FOCUS_REACH]
+		Tower.Focus.DEEP:
+			return "Potency %d%% → %d%%" % [roundi(tower.get_potency() * 100.0), roundi((tower.get_potency() + Tower.FOCUS_DEEP) * 100.0)]
+	return tower.focus_text(which)
+
+# R, then 1–4: presses the rank choice at `index` (single Warden or the group's), if it's there and affordable.
+func _pick_choice(index: int) -> void:
+	_choosing = false
+	var choices := _buttons.get_children().filter(func(b) -> bool:
+		return b is Button and b.text.ends_with("(%d)" % (index + 1)) and (b.text.begins_with("Nurture") or FOCUS_WORDS.any(func(w: String) -> bool: return b.text.begins_with(w))))
+	if not choices.is_empty() and not choices[0].disabled:
+		choices[0].pressed.emit()
+
+const FOCUS_WORDS := ["Power", "Swift", "Reach", "Deep", "Wide", "Strong", "Kindred"]
+
+func _nurture_with(which: Tower.Focus) -> void:
+	_choosing = false
+	if tower_placer.nurture(_tower, which):
+		_refresh()
 
 # A Nurture price for a button: "40 Dew", or "free" (First Care's free ranks).
 static func _price(dew: int) -> String:

@@ -211,19 +211,22 @@ func _run() -> void:
 	var one := stumps[0].get_aura_bonus(true)
 	_check(is_equal_approx(middle._aura_speed, one * 1.75), "three Elder Stumps: 100%% + 50%% + 25%% (%.3f, one is %.3f)" % [middle._aura_speed, one])
 	_check(middle.get_aura_lines() == ["Elder Stump ×3: +%d%% attack speed" % roundi(one * 175.0)], "panel line: %s" % [middle.get_aura_lines()])
-	stumps[2].focus = Tower.Focus.KINDRED
+	stumps[2].rank = 1
+	stumps[2].rank_choices = [Tower.Focus.KINDRED]  # Nurture v3: a Kindred rank
 	middle._refresh_neighbours()
-	_check(is_equal_approx(middle._aura_speed, one * 2.5), "a Kindred Elder Stump sits outside the falloff (%.3f)" % middle._aura_speed)
+	var kindred_bonus := stumps[2].get_aura_bonus(true)
+	_check(is_equal_approx(middle._aura_speed, kindred_bonus + one * 1.5), "a Kindred Elder Stump sits outside the falloff (%.3f)" % middle._aura_speed)
 	_check(stumps[0].focus_options() == Tower.SUPPORT_FOCUSES and middle.focus_options() == Tower.ATTACKER_FOCUSES,
 		"support Wardens choose Wide / Strong / Kindred, attackers Power / Swift / Reach / Deep")
 	stumps[0].rank = 2
 	_check(is_equal_approx(stumps[0].get_aura_bonus(true), one * 1.21) and is_equal_approx(stumps[0].get_rank_damage_multiplier(), 1.0),
 		"support Nurture: the aura ×1.1 per rank, no damage (%.3f)" % stumps[0].get_aura_bonus(true))
 	stumps[0].rank = 5
-	stumps[0].focus = Tower.Focus.STRONG
+	stumps[0].rank_choices = [Tower.Focus.STRONG, Tower.Focus.STRONG, Tower.Focus.STRONG, Tower.Focus.STRONG, Tower.Focus.STRONG]
 	_check(is_equal_approx(stumps[0].get_aura_bonus(true), one * pow(1.1, 5) * 1.25), "Strong: ×1.25 more by rank V (%.3f)" % stumps[0].get_aura_bonus(true))
-	stumps[1].focus = Tower.Focus.WIDE
-	_check(is_equal_approx(stumps[1].get_aura_reach(), 2.5), "Wide: the 8 around become everything within 2 cells")
+	stumps[1].rank = 5
+	stumps[1].rank_choices = [Tower.Focus.WIDE, Tower.Focus.WIDE, Tower.Focus.WIDE, Tower.Focus.WIDE, Tower.Focus.WIDE]
+	_check(is_equal_approx(stumps[1].get_aura_reach(), 2.5), "Wide ×5: the 8 around become everything within 2 cells")
 	await _clean_towers()
 
 	# --- Walls: Bramble Oath, The Quiet Ones; Honeysuckle's Drowsy credit ---

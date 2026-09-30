@@ -898,8 +898,8 @@ func nurture(tower: Tower, focus: Tower.Focus = Tower.Focus.NONE) -> bool:
 	if frozen_ground():
 		_toast_frozen()
 		return false
-	if tower.needs_focus() and not tower.focus_options().has(focus):
-		return false  # No Focus yet, or one this Warden can't take (support: Wide / Strong / Kindred)
+	if focus != Tower.Focus.NONE and not tower.focus_options().has(focus):
+		return false  # A choice this Warden can't take (support Wardens: Wide / Strong / Kindred); none = its default
 	# Rank VI would make it the Eldest (only one Warden grows past V): the panel asks first and calls
 	# DreamState.make_eldest; group Nurture and the hotkey never crown one by accident.
 	if dream_state.has_method("needs_eldest_confirm") and dream_state.needs_eldest_confirm(tower):

@@ -1,9 +1,9 @@
 extends SceneTree
 
-# Headless test for Warden ranks (warden_stats.md "Nurture v2"): base costs 25/40/60/90/135 × the tier
-# multiplier at purchase (Sprout ×0.5, base ×1, branch ×2, final ×3, Memory Warden ×2), +10% damage,
-# +4% attack speed, +0.1 range per rank, a Focus chosen at rank III (Power / Swift / Reach / Deep),
-# ranks and Focus kept through evolution, walls and auras can't be nurtured, status potency uses the
+# Headless test for Warden ranks (warden_stats.md "Nurture v3"): base costs 25/40/60/90/135 × the tier
+# multiplier at purchase (Sprout ×0.5, base ×1, branch ×2, final ×3, Memory Warden ×2), a choice at every
+# rank (Power / Swift / Reach / Deep), no Nurture Dream gate, old saves migrated,
+# ranks and their choices kept through evolution, walls and auras can't be nurtured, status potency uses the
 # ranked damage, refunds include rank Dew, group Nurture (partial, nearest the Heartwood first, one
 # Focus for the group), the R hotkey and the mid-run save. Run from the project folder:
 #   godot --headless --path . --script res://tests/test_nurture.gd --fixed-fps 60
@@ -40,32 +40,27 @@ func _run() -> void:
 	var base_range := tower.get_range_cells()
 	var invested := tower.invested_dew
 
-	# A Sprout ranks at half price: I 13, II 20 (25 and 40 × 0.5, rounded).
+
+
+	# A Sprout ranks at half price: I 13, II 20 (25 and 40 × 0.5, rounded). Nurture v3 (warden_stats.md):
+	# every rank is a choice; no choice given = the Warden's default (Power for attackers).
 	var dew := run_state.dew
 	_check(tower.get_nurture_cost() == 13, "Sprout rank I costs 25 × 0.5 = 13 (%d)" % tower.get_nurture_cost())
-	placer.nurture(tower)
+	placer.nurture(tower, Tower.Focus.POWER)
 	_check(tower.get_nurture_cost() == 20, "Sprout rank II costs 40 × 0.5 = 20")
 	placer.nurture(tower)
 	_check(tower.rank == 2 and run_state.dew == dew - 33, "ranks I-II on a Sprout cost 33")
-	_check(is_equal_approx(tower.get_damage(), base_damage * 1.2), "rank II: +20% damage")
-	_check(is_equal_approx(tower.get_attacks_per_second(), base_speed * 1.08), "rank II: +8% attack speed")
-	_check(is_equal_approx(tower.get_range_cells(), base_range + 0.2), "rank II: +0.2 range")
+	_check(tower.rank_choices == [Tower.Focus.POWER, Tower.Focus.POWER], "each rank records its choice (%s)" % [tower.rank_choices])
+	_check(is_equal_approx(tower.get_damage(), base_damage * (1.0 + 2 * Tower.FOCUS_POWER)), "two Power ranks: +36% damage")
+	_check(is_equal_approx(tower.get_attacks_per_second(), base_speed) and is_equal_approx(tower.get_range_cells(), base_range),
+		"and nothing else (no fixed per-rank gains any more)")
 
-	# Ranks III-V need a Nurture Dream (warden_stats.md, b061d29): stuck at II without one.
-	_check(not tower.can_nurture() and not placer.nurture(tower, Tower.Focus.POWER) and tower.rank == 2,
-		"without a Nurture Dream a Warden stops at rank II")
-	_check(tower.nurture_blocker() == "Rank III needs a Nurture Dream", "and the button says why (%s)" % tower.nurture_blocker())
-	_check(seller.plan_nurture([tower])[0].is_empty(), "group Nurture / R plan nothing for it")
-	for card in dreams.pool:
-		if card.id == "chosen_few":  # Any Nurture-tagged card opens III-V
-			dreams.take(card)
-	_check(tower.can_nurture() and tower.nurture_blocker() == "", "a Nurture Dream opens rank III")
-
-	# Rank III asks for a Focus.
-	_check(tower.needs_focus() and not placer.nurture(tower), "rank III needs a Focus first")
-	_check(placer.nurture(tower, Tower.Focus.POWER) and tower.rank == 3 and tower.focus == Tower.Focus.POWER,
-		"rank III with the Power Focus")
-	_check(is_equal_approx(tower.get_damage(), base_damage * (1.0 + 0.3 + 0.08)), "rank III Power: +30% +8% damage")
+	# No Nurture Dream gate: ranks III–V for Dew.
+	_check(tower.can_nurture() and tower.nurture_blocker() == "", "rank III needs no Nurture Dream")
+	_check(not placer.nurture(tower, Tower.Focus.WIDE), "a support choice is refused for an attacker")
+	_check(placer.nurture(tower, Tower.Focus.REACH) and tower.rank == 3 and tower.focus == Tower.Focus.REACH,
+		"rank III with Reach")
+	_check(is_equal_approx(tower.get_range_cells(), base_range + Tower.FOCUS_REACH), "Reach: +0.3 range")
 	_check(tower.invested_dew == invested + 13 + 20 + 30, "rank Dew counts as invested")
 	_check(seller.get_refund(tower) == tower.invested_dew,
 		"rank Dew bought this rest comes back in full, like the rest of it (placed this rest)")
@@ -80,47 +75,42 @@ func _run() -> void:
 		"a rank III Sprout growing into a Sporeling pays %d + 62 (%s)" % [evolve_base, grow])
 	var invested_before := tower.invested_dew
 	var dew_before: int = run_state.dew
-	# Ranks and Focus carry through evolution.
+	# Ranks and their choices carry through evolution.
 	placer.evolve(tower, sporeling_data)
 	_check(run_state.dew == dew_before - grow.total and tower.invested_dew == invested_before + grow.total,
 		"the whole grow cost is charged and counts as invested (selling refunds it)")
-	_check(tower.tower_data == sporeling_data and tower.rank == 3 and tower.focus == Tower.Focus.POWER,
-		"a rank III Power Sprout grows into a rank III Power Sporeling")
-	_check(is_equal_approx(tower.get_damage(), sporeling_data.damage * 1.38), "with the rank's damage")
+	_check(tower.tower_data == sporeling_data and tower.rank == 3 and tower.rank_choices == [Tower.Focus.POWER, Tower.Focus.POWER, Tower.Focus.REACH],
+		"the choices grow with it")
+	_check(is_equal_approx(tower.get_damage(), sporeling_data.damage * (1.0 + 2 * Tower.FOCUS_POWER)), "with the ranks' damage")
 	_check(tower.get_nurture_cost() == 90, "a base Warden's rank IV costs 90 × 1")
-	placer.nurture(tower)
-	_check(is_equal_approx(tower.get_damage(), sporeling_data.damage * (1.0 + 0.4 + 0.16)), "rank IV Power: +40% +16%")
+	placer.nurture(tower, Tower.Focus.SWIFT)
+	_check(is_equal_approx(tower.get_attacks_per_second(), sporeling_data.attacks_per_second * (1.0 + Tower.FOCUS_SWIFT)),
+		"Swift: +12% attack speed")
 	placer.evolve(tower, driftspore_data)
 	_check(tower.get_nurture_cost() == 270, "a branch's rank V costs 135 × 2")
 	var shade := _spawn(main, tower.global_position + Vector2(64, 0))
 	tower.hit(shade, 1.0, false, Tower.NO_CRIT)
 	_check(is_equal_approx(shade.statuses.potency(EnemyStatuses.SPORED), tower.get_damage() * Tower.SPORE_POTENCY),
 		"Spored potency uses the ranked damage")
-	placer.nurture(tower)
+	placer.nurture(tower, Tower.Focus.POWER)
 	_check(tower.rank == 5 and not tower.can_nurture() and not placer.nurture(tower), "rank V is the most")
+	_check(tower.choices_text() == "Power ×3, Swift, Reach", "the story of its ranks (%s)" % tower.choices_text())
 
-	# Deep: +10% Potency (effect damage) and status duration per rank from III.
+	# Deep: +18% Potency (effect damage) and status duration per rank.
 	var deep := _build(placer, map_generator, sporeling_data)
-	deep.rank = 2
 	placer.nurture(deep, Tower.Focus.DEEP)
 	var soaked := _spawn(main, deep.global_position + Vector2(64, 0))
 	deep.hit(soaked, 1.0, false, Tower.NO_CRIT)
-	_check(is_equal_approx(soaked.statuses.potency(EnemyStatuses.SPORED), deep.get_damage() * Tower.SPORE_POTENCY)
-		and is_equal_approx(deep.get_potency(), 1.1), "Deep: +10% Potency at rank III (the status keeps the plain strength)")
-	_check(is_equal_approx(soaked.statuses.time_left(EnemyStatuses.SPORED), EnemyStatuses.DEFAULT_DURATION[EnemyStatuses.SPORED] * 1.1),
-		"Deep: +10% status duration at rank III")
+	_check(is_equal_approx(deep.get_potency(), 1.0 + Tower.FOCUS_DEEP), "Deep: +18% Potency")
+	_check(is_equal_approx(soaked.statuses.time_left(EnemyStatuses.SPORED), EnemyStatuses.DEFAULT_DURATION[EnemyStatuses.SPORED] * (1.0 + Tower.FOCUS_DEEP)),
+		"Deep: +18% status duration")
 
-	# Reach and Swift.
-	var reach := _build(placer, map_generator, sporeling_data)
-	var reach_base := reach.get_range_cells()
-	reach.rank = 2
-	placer.nurture(reach, Tower.Focus.REACH)
-	_check(is_equal_approx(reach.get_range_cells(), reach_base + 0.3 + 0.2), "Reach: +0.2 range at rank III")
-	var swift := _build(placer, map_generator, sporeling_data)
-	var swift_base := swift.get_attacks_per_second()
-	swift.rank = 2
-	placer.nurture(swift, Tower.Focus.SWIFT)
-	_check(is_equal_approx(swift.get_attacks_per_second(), swift_base * (1.0 + 0.12 + 0.06)), "Swift: +6% attack speed at rank III")
+	# Old saves: a rank and a Focus chosen at III migrate to Power for I–II and the Focus from III.
+	var old := _build(placer, map_generator, sporeling_data)
+	old.rank = 4
+	old.focus = Tower.Focus.REACH
+	_check(old.choice_count(Tower.Focus.POWER) == 2 and old.choice_count(Tower.Focus.REACH) == 2,
+		"an old rank IV Reach Warden: Power, Power, Reach, Reach (%s)" % [old.rank_choices])
 
 	# Walls, wall growths and the White Stag's aura can't be nurtured; Memory Wardens rank at ×2.
 	var wall := _build(placer, map_generator, load("res://resource/tower/thornwall.tres"))
@@ -152,26 +142,25 @@ func _run() -> void:
 	_check(seller.nurture_group(group) == 2 and run_state.dew == 2, "group Nurture raises 2 of 3")
 	_check(nearest.all(func(t: Tower) -> bool: return t.rank == 1), "the 2 nearest the Heartwood")
 
-	# R nurtures the selection.
+	# R arms the Warden panel's rank choices (1–4); it doesn't nurture on its own any more.
 	var r_events := InputMap.action_get_events("nurture_warden")
 	_check(r_events.any(func(e: InputEvent) -> bool: return e is InputEventKey and e.physical_keycode == KEY_R),
 		"R is the Nurture hotkey")
 	run_state.dew = 1000
+	var asked := [0]
+	seller.nurture_asked.connect(func() -> void: asked[0] += 1)
+	var ranks_before: Array = group.map(func(t: Tower) -> int: return t.rank)
 	var press := InputEventAction.new()
 	press.action = "nurture_warden"
 	press.pressed = true
 	seller._unhandled_input(press)
-	_check(group.all(func(t: Tower) -> bool: return t.rank == 2 or t.rank == 1) and group.any(func(t: Tower) -> bool: return t.rank == 2),
-		"R nurtures every selected Warden one rank")
+	_check(asked[0] == 1 and group.map(func(t: Tower) -> int: return t.rank) == ranks_before,
+		"R asks for the rank choice instead of nurturing")
 
-	# One Focus for the whole group at rank III; without one, those Wardens are left out.
-	for t in group:
-		t.rank = 2
-	_check(seller.count_needing_focus(group) == 3 and seller.nurture_group(group) == 0,
-		"group Nurture skips Wardens waiting for a Focus")
+	# Group Nurture asks once: one choice for the whole group.
 	_check(seller.nurture_group(group, Tower.Focus.SWIFT) == 3 \
-		and group.all(func(t: Tower) -> bool: return t.rank == 3 and t.focus == Tower.Focus.SWIFT),
-		"one Focus for the whole group")
+		and group.all(func(t: Tower) -> bool: return t.focus == Tower.Focus.SWIFT and t.rank_choices[-1] == Tower.Focus.SWIFT),
+		"one choice for the whole group")
 
 	# First Care (Grove perk): the run's first free_nurtures ranks cost nothing.
 	if "free_nurtures" in run_state:

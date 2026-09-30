@@ -88,8 +88,7 @@ static func for_tower(tower: Tower) -> Array[Dictionary]:
 		else:
 			entry.stat = "damage"
 			entry.amount = tower.get_rank_damage_multiplier() - 1.0
-		entry.label = "Rank %s%s" % [Tower.rank_name(tower.rank),
-			" (%s)" % Tower.FOCUS_NAMES[tower.focus] if tower.focus != Tower.Focus.NONE else ""]
+		entry.label = "Rank %s (%s)" % [Tower.rank_name(tower.rank), tower.choices_text()]
 		result.append(entry)
 	# Dreams on this Warden (DreamState rows: position and run-wide cards).
 	var dreams := tower._dream_state
@@ -216,7 +215,7 @@ static func would_receive(data: TowerData, centre: Vector2, towers: Array) -> Ar
 		var position := 0
 		for item in list:
 			var giver: Tower = item[0]
-			var kindred := giver.focus == Tower.Focus.KINDRED and giver.is_aura_support()
+			var kindred := giver.is_aura_support() and giver.choice_count(Tower.Focus.KINDRED) > 0
 			var share := 1.0 if kindred else weight
 			if not kindred:
 				weight *= Tower.AURA_FALLOFF

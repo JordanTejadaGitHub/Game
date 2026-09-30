@@ -48,7 +48,8 @@ func _run() -> void:
 		target.global_position, [first, second, acorn]))
 	_check(summary.contains("from 2 Elder Stumps") and summary.contains("from an Acorn"),
 		"the placement preview: %s" % summary)
-	second.focus = Tower.Focus.KINDRED
+	second.rank = 1
+	second.rank_choices = [Tower.Focus.KINDRED]  # A Kindred rank (Nurture v3)
 	target._refresh_neighbours()
 	_check(BuffSources.for_tower(target).any(func(e: Dictionary) -> bool: return e.kindred and BuffSources.thread_label(e).begins_with("Kindred")),
 		"a Kindred stump's thread reads \"Kindred +…\"")
