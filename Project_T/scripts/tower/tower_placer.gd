@@ -314,23 +314,23 @@ func _draw() -> void:
 		tag += " (fertile)"
 	var growth := get_hover_path_growth()
 	if is_edge_cell(_hover_cell) and _hover_cell != map_generator.startPath and _hover_cell != map_generator.endPath:
-		tag += "  ·  the dream's edge"  # The island's rim (screens_ui.md "Invalid placement")
+		tag += " · the dream's edge"  # The island's rim (screens_ui.md "Invalid placement")
 	elif frozen_ground():
-		tag += "  ·  Frozen Ground: plant at the rest"
+		tag += " · Frozen Ground: plant at the rest"
 	elif is_unique_placed(tower_data):
-		tag += "  ·  already planted (one per run)"
+		tag += " · already planted (one per run)"
 	elif settling_left(_footprint(_hover_cell)) > 0.0:
-		tag += "  ·  The ground is settling (%d s)" % ceili(settling_left(_footprint(_hover_cell)))
+		tag += " · The ground is settling (%d s)" % ceili(settling_left(_footprint(_hover_cell)))
 	elif hover_breaks_path():
-		tag += "  ·  would close the dream"  # The forest's rule: it may bend, never close
+		tag += " · would close the dream"  # The forest's rule: it may bend, never close
 	elif _cells_occupied(_footprint(_hover_cell)):
-		tag += "  ·  nightmare here"
+		tag += " · nightmare here"
 	elif growth != 0:
-		tag += "  ·  %+d path" % growth  # "Wardens are walls": how much longer the walk gets
+		tag += " · %+d path" % growth  # "Wardens are walls": how much longer the walk gets
 	if _kin_here != "":
-		tag += "  ·  Kin spot: forms %s" % _kin_here
+		tag += " · Kin spot: forms %s" % _kin_here
 	if _heart_here:
-		tag += "  ·  Becomes the Heart of the Maze"
+		tag += " · Becomes the Heart of the Maze"
 	var broken := get_neighbour_changes().filter(func(change: Array) -> bool: return not change[2])
 	if not broken.is_empty():
 		# Placing a Warden should never silently weaken others.
@@ -338,7 +338,7 @@ func _draw() -> void:
 		for change in broken:
 			names[change[1]] = names.get(change[1], 0) + 1
 		for name in names:
-			tag += "  ·  breaks %s on %d Warden%s" % [name, names[name], "" if names[name] == 1 else "s"]
+			tag += " · breaks %s on %d Warden%s" % [name, names[name], "" if names[name] == 1 else "s"]
 	WorldLabel.draw_tag(self, 0.0, MAP_GRID.cell_size.y / 2.0 + 18.0, tag,
 		WorldLabel.cost_color(_hover_affordable))
 	# Bonus chips above the ghost: each position card, on (green, what it gives) or off (grey, why).
@@ -1117,7 +1117,7 @@ func _draw_stroke() -> void:
 		return
 	draw_set_transform(MAP_GRID.calculate_map_position(_stroke.back()))
 	var last_why: String = _stroke_plan.get(_stroke.back(), "")
-	var tag := get_stroke_tag() + ("  ·  %s" % last_why if last_why != "" else "")
+	var tag := get_stroke_tag() + (" · %s" % last_why if last_why != "" else "")
 	WorldLabel.draw_tag(self, 0.0, MAP_GRID.cell_size.y / 2.0 + 18.0, tag, WorldLabel.cost_color(true))
 	draw_set_transform(Vector2.ZERO)
 
