@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "windborne_rain"
 display_name = "Windborne Rain"
-description = "Every pass applies {damp}, so the line becomes a Thunderclap corridor."
+description = "Samara's seeds apply {damp} to every nightmare they pass, out and back."
 rarity = 2
 kind = 3
 tags = Array[String](["wind", "water", "reaction"])

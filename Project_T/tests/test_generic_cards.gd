@@ -39,6 +39,7 @@ func _run() -> void:
 	_test_sim_entry()
 	_test_sim_policy()
 	_test_rows_cache()
+	_test_scaling_cards()
 	_test_seed_cards()
 	_test_support_cards()
 	_test_needs_text()
@@ -320,6 +321,27 @@ func _test_sim_policy() -> void:
 	_reset()
 
 # DreamEffects.rows_cached (Tower's hot path) matches rows() and follows board changes.
+# Few and Mighty is never offered to a wide build (#98), and scaling cards show where you stand (#75).
+func _test_scaling_cards() -> void:
+	_reset()
+	var few := _card("few_and_mighty")
+	dreams.grove_cards.append("few_and_mighty")
+	for i in 7:
+		_plant("sporeling", Vector2(100 + i * 2, 100))
+	_check(dreams.can_offer(few, 2), "Few and Mighty: offered with 7 attackers")
+	_check(dreams.effects().preview_line(few) == "You have 7 attacking Wardens · +40%",
+		"…its card shows \"You have 7 attacking Wardens · +40%%\" (%s)" % dreams.effects().preview_line(few))
+	for i in 6:
+		_plant("sporeling", Vector2(100 + i * 2, 110))
+	dreams.bump_board()
+	_check(not dreams.can_offer(few, 2), "…never with 13 (a hard Need, not a weight)")
+	_check(dreams.effects().preview_line(_card("many_hands")).begins_with("You have 13 attacking Wardens"), "Many Hands shows the count too")
+	_check(dreams.effects().preview_line(_card("tended_forest")).begins_with("Now: "), "Tended Forest: \"Now: N cleared · …\"")
+	_check(dreams.effects().preview_line(_card("quickened_sap")) == "", "a card that doesn't scale shows no live line")
+	dreams.grove_cards.erase("few_and_mighty")
+	_clear()
+	_reset()
+
 func _test_rows_cache() -> void:
 	_reset()
 	dreams.take(_card("solitude"))

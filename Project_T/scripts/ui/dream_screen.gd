@@ -142,6 +142,9 @@ func _make_card(card: UpgradeData) -> Button:
 		_add_opens_clearing(button, box)
 	# The effect comes right after the name; it never shrinks.
 	_add_linked_line(box, card.description, UiStyle.INK, 16)
+	var live: String = dream_state.effects().preview_line(card)
+	if live != "":  # Scaling cards: where you stand now (dream_design.md #75)
+		_add_line(box, live, UiStyle.GOLD, 14).name = "LiveLine"
 	if card.cost_description != "":
 		_add_linked_line(box, card.cost_description, BITTERSWEET_COLOR, 15)
 	if card.grows_text != "":  # Seed cards: the bigger effect once its Wardens are yours
@@ -159,7 +162,7 @@ func _make_card(card: UpgradeData) -> Button:
 	elif card.is_bittersweet():
 		secondary.append(_add_line(box, "Bittersweet", BITTERSWEET_COLOR, SECONDARY_SIZE))
 	if dream_state.is_half_dreamed(card):  # One muted line, no label (dream_design.md half-dreamed "Card face")
-		_add_linked_line(box, dream_state.missing_families_text(card), UiStyle.INK_DIM, SECONDARY_SIZE).modulate.a = 0.85  # The family is a link
+		_add_missing_row(box, card)  # "Needs [emblem] Wind": the damage type, linked
 	else:
 		_add_needs_row(box, card)  # "Needs: Soaked + Charged" / "Nestling family": never a Warden's name
 	if dream_state.calls_family_now(card) != "":  # A Seed card calls its family to the next pick (not one you own)
@@ -326,6 +329,40 @@ func _add_needs_row(box: VBoxContainer, card: UpgradeData) -> void:
 		text = " · ".join(rest.slice(1)) if rest.size() > 1 else ""
 	if text != "":
 		row.add_child(_needs_label(text, UiStyle.INK_DIM))
+
+# "Needs [emblem] Wind" (dream_design.md "Named by damage type"): each missing damage type with its
+# emblem, the word a link to the family's popup; the native tooltip names a specific form ("Samara, a
+# Wind Warden").
+func _add_missing_row(box: VBoxContainer, card: UpgradeData) -> void:
+	var needs := dream_state.missing_needs(card)
+	if needs.is_empty():
+		return
+	var row := HBoxContainer.new()
+	row.name = "MissingRow"
+	row.mouse_filter = Control.MOUSE_FILTER_PASS
+	row.add_theme_constant_override("separation", 4)
+	row.modulate.a = 0.85
+	box.add_child(row)
+	row.add_child(_needs_label("Needs", UiStyle.INK_DIM))
+	for i in needs.size():
+		var need: Dictionary = needs[i]
+		if i > 0:
+			row.add_child(_needs_label("and", UiStyle.INK_DIM))
+		var emblem := TextureRect.new()
+		emblem.texture = IconInfo.family_emblem(need.line)
+		emblem.custom_minimum_size = Vector2(16, 16)
+		emblem.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		emblem.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		emblem.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		emblem.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		row.add_child(emblem)
+		var word := StatusLinks.make_label("", SECONDARY_SIZE, UiStyle.INK_DIM)
+		word.text = StatusLinks._link(StatusLinks.FAMILY_PREFIX + need.family, need.type)
+		word.autowrap_mode = TextServer.AUTOWRAP_OFF
+		word.mouse_filter = Control.MOUSE_FILTER_PASS
+		if need.form != "":
+			word.tooltip_text = "%s, a %s Warden" % [need.form, need.type]
+		row.add_child(word)
 
 func _needs_label(text: String, colour: Color) -> Label:
 	var label := Label.new()

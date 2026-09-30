@@ -1536,6 +1536,8 @@ func _meets_needs(card: UpgradeData) -> bool:
 		return false
 	if card.max_range_owned > 0.0 and not owns_range_at_most(card.max_range_owned):
 		return false
+	if card.max_attackers > 0 and count_attackers() > card.max_attackers:
+		return false  # Few and Mighty: never offered to a wide build (a hard Need, playtest #98)
 	if card.min_non_attackers > 0 and _towers().size() - count_attackers() < card.min_non_attackers:
 		return false
 	if card.min_kinships > 0 and count_kinships() < card.min_kinships:
@@ -1544,15 +1546,13 @@ func _meets_needs(card: UpgradeData) -> bool:
 		return false
 	return true
 
-# Soft Needs (×SOFT_NEED_WEIGHT when unmet, never a gate): attacker counts, count_warden, and the
+# Soft Needs (×SOFT_NEED_WEIGHT when unmet, never a gate): min_attackers, count_warden, and the
 # Nurture openers' rank Needs (cards with no requires_tag).
 func soft_needs_met(card: UpgradeData) -> bool:
 	if card.requires_tag == "" and not _rank_needs_met(card):
 		return false
-	if card.min_attackers > 0 or card.max_attackers > 0:
-		var attackers := count_attackers()
-		if attackers < card.min_attackers or (card.max_attackers > 0 and attackers > card.max_attackers):
-			return false
+	if card.min_attackers > 0 and count_attackers() < card.min_attackers:
+		return false
 	if card.count_warden != "" and count_wardens(card.count_warden) < card.min_warden_count:
 		return false
 	return true
@@ -2589,18 +2589,26 @@ func dew_harvested() -> int:
 # A card never names a Warden you don't have: combo cards show their statuses (lit if one of your
 # Wardens applies it, dim if not), Warden Needs show the family, card ingredients stay by name.
 
-# The one line a half-dreamed or sleeping card shows (dream_design.md half-dreamed "Card face"):
-# "Needs {family:dewdrop}" (the families it still needs, as linked family names; IconInfo.format gives
-# "Needs Dewdrop"; "half-dreamed" stays an internal name). "" = none.
-func missing_families_text(card: UpgradeData) -> String:
-	var names: Array[String] = []
+# What a half-dreamed or sleeping card still needs, by damage type (dream_design.md "Named by damage
+# type"): [{family: "whirligig", type: "Wind", line: "wind", form: "Samara" or ""}] (form = the
+# specific Warden when the card needs one, for its tooltip: "Samara, a Wind Warden").
+func missing_needs(card: UpgradeData) -> Array[Dictionary]:
+	var out: Array[Dictionary] = []
 	for id in card.requires:
 		var family := family_of(id)
-		if family != "" and not is_unlocked(family):
-			var token := "{family:%s}" % family
-			if not names.has(token):
-				names.append(token)
-	return "" if names.is_empty() else "Needs " + " and ".join(names)
+		if family == "" or is_unlocked(family) or out.any(func(n: Dictionary) -> bool: return n.family == family):
+			continue
+		var data := IconInfo.family_data(family)
+		var line: String = data.line if data != null else ""
+		out.append({"family": family, "line": line, "type": IconInfo.damage_type_name(line),
+			"form": get_display_name(id) if id != family else ""})
+	return out
+
+# The one line a half-dreamed or sleeping card shows: "Needs Wind" ("" = none; "half-dreamed" stays an
+# internal name). The Dream card draws it with the type's emblem and a link.
+func missing_families_text(card: UpgradeData) -> String:
+	var needs := missing_needs(card)
+	return "" if needs.is_empty() else "Needs " + " and ".join(needs.map(func(n: Dictionary) -> String: return n.type))
 
 # {"statuses": [[status id, lit]], "families": [display names], "cards": [display names], "either": bool}
 func needs_parts(card: UpgradeData) -> Dictionary:
