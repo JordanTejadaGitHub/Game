@@ -68,7 +68,7 @@ func _test_requirements() -> void:
 	any_card.id = "test_requires_any"
 	any_card.requires_any.assign(["bloomcap", "frostfern"])
 	_check(not dreams.is_eligible(any_card), "requires_any: none owned")
-	dreams.unlocked["frostfern"] = true
+	_own("frostfern")
 	_check(dreams.is_eligible(any_card), "requires_any: one owned is enough")
 	_clear_towers()
 
@@ -257,10 +257,10 @@ func _test_reaction_cards() -> void:
 	_reset()
 	var rolling := _card("rolling_thunder")
 	_check(not dreams.is_eligible(rolling), "Rolling Thunder needs Stormcap + Dewdrop")
-	dreams.unlocked["dewdrop"] = true
-	dreams.unlocked["firefly_jar"] = true
+	_own("dewdrop")
+	_own("firefly_jar")
 	_check(dreams.count_reaction_pairs() == 1, "Dewdrop + Firefly Jar: one Reaction pair (Thunderclap)")
-	dreams.unlocked["stormcap"] = true
+	_own("stormcap")
 	_check(dreams.is_eligible(rolling), "…offered once Stormcap is unlocked too")
 	dreams.take(rolling)
 	_check(dreams.has_rule(&"rolling_thunder") and dreams.rule_level(&"rolling_thunder") == 0, "Rolling Thunder switches on its rule")
@@ -270,15 +270,15 @@ func _test_reaction_cards() -> void:
 	var quick := _card("quick_reactions")
 	dreams.grove_cards.assign(["quick_reactions", "dawnbreak", "deep_water", "wildfire_spores"])
 	_check(not dreams.is_eligible(quick), "Quick Reactions needs 2 Reaction pairs")
-	dreams.unlocked["sporeling"] = true  # + Ignite (Spored + Static), Mushrooming (Spored + Damp)
+	_own("sporeling")  # + Ignite (Spored + Static), Mushrooming (Spored + Damp)
 	_check(dreams.count_reaction_pairs() == 3 and dreams.is_eligible(quick), "…offered with 3")
 	_check(dreams.is_eligible(_card("wildfire_spores")) and dreams.is_eligible(_card("deep_water")),
 		"Wildfire Spores (Sporeling + Firefly Jar) and Deep Water (Dewdrop) from the Grove")
 	_check(not dreams.is_eligible(_card("dawnbreak"), 1) and dreams.is_eligible(_card("dawnbreak"), 2),
 		"Dawnbreak is a Legendary: act 2+")
-	dreams.unlocked["lanternmoth"] = true  # Marked: + Lightning Rod (Marked + Static)
+	_own("lanternmoth")  # Marked: + Lightning Rod (Marked + Static)
 	_check(dreams.count_reaction_pairs() == 4, "Lanternmoth adds Lightning Rod")
-	dreams.unlocked["tangleroot"] = true  # Held: + Shatter, Pinned, Smother
+	_own("tangleroot")  # Held: + Shatter, Pinned, Smother
 	_check(dreams.count_reaction_pairs() == 7, "Tangleroot's Held adds Shatter, Pinned and Smother (%d)" % dreams.count_reaction_pairs())
 
 # Cards 84–99 (family review): Grove-only, their Needs, stacking rules and Entwined combos.
@@ -293,12 +293,12 @@ func _test_family_review_cards() -> void:
 
 	var eyelids := _card("heavy_eyelids")
 	_check(not dreams.is_eligible(eyelids), "Heavy Eyelids needs a Drowsy Warden")
-	dreams.unlocked["bloomcap"] = true
+	_own("bloomcap")
 	_check(dreams.is_eligible(eyelids), "…Bloomcap makes nightmares Drowsy")
 
 	var beaks := _card("sharp_beaks")
 	_check(not dreams.is_eligible(beaks), "Sharp Beaks needs Hummingbird Bower or Wren's Nest")
-	dreams.unlocked["wrens_nest"] = true
+	_own("wrens_nest")
 	_check(dreams.is_eligible(beaks), "…Wren's Nest is enough")
 	dreams.take(beaks)
 	dreams.take(beaks)
@@ -307,15 +307,15 @@ func _test_family_review_cards() -> void:
 	_check(not dreams.is_eligible(beaks), "Sharp Beaks stops at +3")
 
 	var encore := _card("encore")
-	dreams.unlocked["echo_hollow"] = true
+	_own("echo_hollow")
 	_check(not dreams.is_eligible(encore), "Encore needs a Reaction card as well as Echo Hollow")
-	dreams.unlocked["stormcap"] = true  # Rolling Thunder's Wardens (else it sleeps: half-dreamed)
-	dreams.unlocked["dewdrop"] = true
+	_own("stormcap")  # Rolling Thunder's Wardens (else it sleeps: half-dreamed)
+	_own("dewdrop")
 	dreams.take(_card("rolling_thunder"))
 	_check(dreams.is_eligible(encore) and dreams.make_offer(10).has(encore), "…then Entwined: guaranteed next offer")
 
-	dreams.unlocked["samara"] = true
-	dreams.unlocked["rain_lily"] = true
+	_own("samara")
+	_own("rain_lily")
 	_check(dreams.is_eligible(_card("windborne_rain")) and not dreams.is_eligible(_card("seed_storm"), 1)
 		and dreams.is_eligible(_card("seed_storm"), 2), "Windborne Rain (Samara + Rain Lily); Seed Storm is act 2+")
 
@@ -390,9 +390,9 @@ func _test_grove_cards() -> void:
 	dreams.allow_bittersweet = false
 
 	# Needs
-	dreams.unlocked["stormcap"] = true
+	_own("stormcap")
 	_check(not dreams.is_eligible(_card("static_bloom")), "Static Bloom: Entwined, needs Bloomcap too")
-	dreams.unlocked["bloomcap"] = true
+	_own("bloomcap")
 	_check(dreams.make_offer(10).has(_card("static_bloom")), "…then guaranteed")
 	_check(dreams.is_eligible(_card("still_target")), "Still Target: a Drowsy / Held Warden (Bloomcap)")
 	_check(dreams.is_eligible(_card("full_moon"), 2) and not dreams.is_eligible(_card("full_moon"), 1),
@@ -493,9 +493,9 @@ func _test_new_forms() -> void:
 	var mossback: TowerData = load("res://resource/tower/mossback.tres")
 	var boulderback: TowerData = load("res://resource/tower/boulderback.tres")
 	var dreamshroom: TowerData = load("res://resource/tower/dreamshroom.tres")
-	dreams.unlocked["pebbling"] = true
-	dreams.unlocked["sporeling"] = true
-	dreams.unlocked["bloomcap"] = true
+	_own("pebbling")
+	_own("sporeling")
+	_own("bloomcap")
 	_check(dreams.get_unlock_cost(mossback) == 1 and dreams.get_unlock_blocker(mossback) == "", "Mossback: a branch for 1 Dreamlight")
 	_check(dreams.get_unlock_cost(boulderback) == 2 and dreams.get_unlock_cost(dreamshroom) == 2, "Boulderback and Dreamshroom: final forms for 2")
 	_check(dreams.get_unlock_blocker(dreamshroom) == "", "Dreamshroom needs no Grove node (finals come with the family, 2026-09-30)")
@@ -515,14 +515,14 @@ func _test_ascended() -> void:
 	var thunderhead: TowerData = load("res://resource/tower/thunderhead.tres")
 	var stormheart: TowerData = load("res://resource/tower/stormheart.tres")
 	dreams.grove_cards.clear()
-	dreams.unlocked["firefly_jar"] = true
+	_own("firefly_jar")
 	dreams.dreamlight = 5
 	director.drifts_started = 40
 	_check(dreams.get_unlock_cost(stormheart) == 3, "Ascended: 3 Dreamlight")
 	_check(dreams.get_unlock_blocker(stormheart) == "from drift 51", "not before drift 51")
 	director.drifts_started = 50
 	_check(dreams.get_unlock_blocker(stormheart) == "needs a final form", "needs a final form of the family")
-	dreams.unlocked["thunderhead"] = true
+	_own("thunderhead")
 	_check(dreams.get_unlock_blocker(stormheart) == "Memory Grove", "needs the Grove's Ascension node")
 	dreams.grove_cards.assign(["dream_stormheart"])
 	_check(dreams.can_unlock(stormheart), "unlockable at the rest before drift 51")
@@ -544,10 +544,10 @@ func _test_woven() -> void:
 			"%s is a Woven Rare in the start pool, discovered by its Crowned Reaction" % id)
 	dreams.grove_cards.assign(ids)
 	var stars := _card("falling_stars")
-	dreams.unlocked["firefly_jar"] = true
-	dreams.unlocked["tangleroot"] = true
+	_own("firefly_jar")
+	_own("tangleroot")
 	_check(not dreams.is_eligible(stars, 2), "Falling Stars needs its third vine")
-	dreams.unlocked["chime_stone"] = true
+	_own("chime_stone")
 	_check(dreams.is_eligible(stars, 2) and not dreams.is_eligible(stars, 1), "…Chime Stone (or Bellflower) completes it, act 2+")
 	_check(dreams.make_offer(30).has(stars), "a Woven card is guaranteed once all three are owned")
 
@@ -561,8 +561,8 @@ func _test_potency_and_endless() -> void:
 	var seeping := _card("seeping")
 	dreams.grove_cards.assign(["seeping", "seeping_ii", "venom_bloom", "nightshade", "endless_rings", "deeper_rings"])
 	_check(not dreams.is_eligible(seeping), "Seeping needs 2 status families")
-	dreams.unlocked["sporeling"] = true
-	dreams.unlocked["dewdrop"] = true
+	_own("sporeling")
+	_own("dewdrop")
 	_check(dreams.is_eligible(seeping), "…Spored + Damp is enough")
 	dreams.take(seeping)
 	var target: Node2D = main.get_node("%EnemyContainer").enemy_scene.instantiate()
@@ -779,9 +779,15 @@ func _find(rows: Array[Dictionary], id: String) -> Dictionary:
 			return row
 	return {"active": false, "damage": 0.0, "note": ""}
 
+# Owning a Warden for a card's Needs: unlocked and grown this run (round 5: unlocked alone isn't enough).
+func _own(id: String) -> void:
+	dreams.unlocked[id] = true
+	dreams.grown_wardens[id] = true
+
 func _reset() -> void:
 	dreams.stacks.clear()
 	dreams.unlocked = {"sprout": true, "thornwall": true}
+	dreams.grown_wardens.clear()
 	dreams.grove_cards.clear()
 	dreams.allow_bittersweet = false
 	run_state.rank_dew_spent = 0

@@ -343,11 +343,33 @@ func _on_rank_changed(tower: Tower) -> void:
 
 func _on_tower_added(node: Node) -> void:
 	bump_board()
+	if node is Tower:
+		_note_grown(node)
+		if not node.evolved.is_connected(_note_grown):
+			node.evolved.connect(_note_grown)
 	if node.has_signal("evolved") and not node.evolved.is_connected(bump_board.unbind(1)):
 		node.evolved.connect(bump_board.unbind(1))
 	if node.has_signal("nurtured") and not node.nurtured.is_connected(_on_rank_changed):
 		node.nurtured.connect(_on_rank_changed)
 
+# Round 5 (dream_design.md "Round 4 measured"): Wardens built or grown into this run. A card naming a
+# Warden in requires / requires_any is offered only once that Warden has stood on the map; being
+# unlocked (free branch, Dreamlight final) isn't enough, and selling it later doesn't un-meet it. Saved.
+var grown_wardens := {}  # Warden id -> true
+
+func _note_grown(tower: Tower) -> void:
+	if tower.tower_data != null:
+		grown_wardens[tower.tower_data.get_id()] = true
+
+func grown_needs_met(card: UpgradeData) -> bool:
+	if unlock_everything:
+		return true  # Test Grove: everything
+	for id in card.requires:
+		if _is_warden_id(id) and not grown_wardens.has(id):
+			return false
+	if not card.requires_any.is_empty():
+		return card.requires_any.any(func(id: String) -> bool: return grown_wardens.has(id) if _is_warden_id(id) else owns(id))
+	return true
 static func load_pool() -> Array[UpgradeData]:
 	var cards: Array[UpgradeData] = []
 	# list_directory also sees resources in exported builds (where files are remapped).
@@ -1618,6 +1640,8 @@ func can_offer(card: UpgradeData, act: int = 1) -> bool:
 		return false
 	if not _requires_met(card) and not is_half_dreamed(card):
 		return false  # A half-dreamed combo card may be offered before its families are all yours
+	if not is_half_dreamed(card) and not grown_needs_met(card):
+		return false  # Round 5: a Warden it names must have been built or grown this run
 	return true
 
 # The hard run-state and card Needs (dream_design.md "Card requirements"). Only gates new offers:
@@ -1894,6 +1918,7 @@ func to_save() -> Dictionary:
 		"clearing_opened_by": clearing_opened_by,
 		"free_first_clears": free_first_clears,
 		"resonance": _resonance.duplicate(),
+		"grown_wardens": grown_wardens.keys(),
 		"rng_state": str(_rng.state),  # A string: JSON would round a 64-bit int
 	}
 
@@ -1901,6 +1926,8 @@ func load_save(data: Dictionary) -> void:
 	unlocked.clear()
 	for id in data.get("unlocked", []):
 		unlocked[id] = true
+	for id in data.get("grown_wardens", []):  # Round 5 (the Wardens replanted from the save add theirs too)
+		grown_wardens[id] = true
 	stacks.clear()
 	var saved_stacks: Dictionary = data.get("stacks", {})
 	for id in saved_stacks:

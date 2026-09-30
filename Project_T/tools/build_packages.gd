@@ -234,6 +234,10 @@ func _emerge(runs: int, picker: String = "balanced") -> void:
 				if drift == 5:
 					dreams.add_dreamlight(dreams.sim_dreamlight_for(&"first"))
 				_plant([family, family, family, "sprout", "thornwall"])
+				var root_data: TowerData = load("res://resource/tower/%s.tres" % family)
+				for branch in root_data.evolves_to:
+					if dreams.is_unlocked(branch.get_id()):
+						_plant([branch.get_id()])  # Both free branches get grown
 				dreams.bump_board()
 			var lines := {}
 			for family in owned:
@@ -308,6 +312,8 @@ func _spend_dreamlight() -> void:
 					best = form
 		if best == null or not dreams.unlock_with_dreamlight(best):
 			return
+		_plant([best.get_id()])  # A player grows what they buy (round 5: a card's Warden must have stood on the map)
+		dreams.bump_board()
 
 func _tree_forms(tree: Array) -> Array:
 	var forms: Array = []
@@ -326,6 +332,7 @@ func _reset(run: int) -> void:
 	dreams._resonance.clear()
 	dreams.unlocked = {"sprout": true, "thornwall": true}
 	dreams.dreamlight = 0
+	dreams.grown_wardens.clear()
 	dreams.dreams_seen = 0
 	dreams._dreams_without_rare = 0
 	dreams._rare_dreams_left = 0

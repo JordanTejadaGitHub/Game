@@ -29,6 +29,7 @@ func _run() -> void:
 	_test_stray_dream(main)
 	_test_half_dreamed(main)
 	await _test_discovery(main)
+	_test_grown_needs(main)
 	_test_resonance(main)
 	print("dreams test: %s" % ("PASS" if failures == 0 else "%d FAILED" % failures))
 	quit(failures)
@@ -505,6 +506,8 @@ func _test_meta_hooks(main: Node) -> void:
 	var bloom := _card(dreams, "chain_bloom")
 	dreams.unlocked["puffball"] = true
 	dreams.unlocked["mistveil"] = true
+	dreams.grown_wardens["puffball"] = true  # Grown this run too (round 5)
+	dreams.grown_wardens["mistveil"] = true
 	_check(bloom.entwined and bloom.rule_id == &"chain_bloom" and not dreams.is_eligible(bloom),
 		"Chain Bloom stays out until the Grove unlocks it")
 	dreams.grove_cards.assign(["chain_bloom"])
@@ -1168,6 +1171,39 @@ func _spawn_near(main: Node, cell: Vector2, offset: Vector2 = Vector2.ZERO) -> N
 func _free_enemies(main: Node) -> void:
 	for child in main.get_node("%EnemyContainer").get_children():
 		child.free()
+
+# Round 5 (dream_design.md "Round 4 measured"): a Warden a card names must have been built or grown this
+# run; unlocked (a free branch) isn't enough, and selling it later doesn't un-meet it.
+func _test_grown_needs(main: Node) -> void:
+	var dreams: DreamState = main.get_node("%DreamState")
+	_reset_dreams(main)
+	dreams.grown_wardens.clear()
+	dreams.unlocked["firefly_jar"] = true  # The first pick: Stormcap comes free
+	dreams.unlocked["dewdrop"] = true
+	dreams.unlocks_changed.emit()
+	var thunder := _card(dreams, "rolling_thunder")  # Stormcap + any Dewdrop
+	_check(dreams.is_unlocked("stormcap") and not dreams.grown_needs_met(thunder) and not dreams.can_offer(thunder, 2),
+		"a Stormcap card isn't offered after the first pick (Stormcap only unlocked)")
+	var planted: Array[Tower] = []
+	for id in ["stormcap", "dewdrop"]:
+		var tower: Tower = load("res://scenes/tower/tower.tscn").instantiate()
+		tower.tower_data = load("res://resource/tower/%s.tres" % id)
+		tower.cell = Vector2(120 + planted.size() * 3, 120)
+		main.get_node("%TowerContainer").add_child(tower)
+		tower.set_process(false)
+		planted.append(tower)
+	_check(dreams.grown_needs_met(thunder), "…once a Stormcap (and a Dewdrop) has stood on the map it is")
+	for tower in planted:
+		tower.free()
+	_check(dreams.grown_needs_met(thunder), "…and stays offered after they're sold")
+	var saved := dreams.to_save()
+	dreams.grown_wardens.clear()
+	dreams.load_save(JSON.parse_string(JSON.stringify(saved)))
+	_check(dreams.grown_wardens.has("stormcap"), "grown Wardens survive a save")
+	dreams.unlock_everything = true
+	dreams.grown_wardens.clear()
+	_check(dreams.grown_needs_met(thunder), "Test Grove: no need to grow anything")
+	_reset_dreams(main)
 
 func _reset_dreams(main: Node) -> void:
 	var dreams: DreamState = main.get_node("%DreamState")
