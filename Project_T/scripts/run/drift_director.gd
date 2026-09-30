@@ -451,6 +451,10 @@ func _on_enemy_split(parent: Node2D, child: Node2D) -> void:
 	_drift_of[child] = number
 	_active[number].remaining += 1
 
+# The drift that spawned `enemy` (split children and followers: their parent's), 0 if none.
+func drift_of(enemy: Node) -> int:
+	return int(_drift_of.get(enemy, 0))
+
 func _on_enemy_cleansed(enemy: Node2D) -> void:
 	if enemy.enemy_data.is_boss and _drift_of.has(enemy) and not enemy.is_echo:  # Echoes (Remembering Oak) aren't bosses
 		bosses_cleansed += 1

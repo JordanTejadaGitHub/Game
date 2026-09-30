@@ -21,8 +21,14 @@ var drift_director: DriftDirector
 var run_state: RunState
 var dream_state: DreamState
 var run := {}  # The record being built
-var _drift := {}  # The drift row being filled (the latest drift started)
-var _drift_started_at := 0.0
+var _drift := {}  # The latest drift's row (leaves lost, leaves left and banked go here)
+# Rows of this block, by drift number, until the rest: a nightmare's health, damage, leak and closest
+# approach count for the drift that spawned it, even when the next drift was called early
+# (balance_simulation.md "Human run 1" item 4). "seconds" is the drift's own arrival span.
+var _open := {}
+var _started := {}  # Drift number -> clock when it started
+var _arrived := {}  # Drift numbers whose arrival ended
+var _origin := {}  # Nightmare instance id -> the drift that spawned it
 var _clock := 0.0
 var _sample := 0.0
 var _longest := {}  # Enemy id -> the most route it had left (px)
@@ -53,9 +59,14 @@ func _ready() -> void:
 	if spawner != null:
 		spawner.child_entered_tree.connect(_on_spawned)
 		spawner.enemy_cleansed.connect(_on_dispelled)
-		spawner.enemy_reached_goal.connect(func(_e: Node2D) -> void:
-			if not _drift.is_empty():
-				_drift["leaks"] = int(_drift.get("leaks", 0)) + 1)
+		spawner.enemy_reached_goal.connect(func(enemy: Node2D) -> void:
+			var row := _row_for(enemy)
+			if not row.is_empty():
+				row["leaks"] = int(row.get("leaks", 0)) + 1)
+	drift_director.drift_arrived.connect(func(number: int) -> void:
+		if _open.has(number) and not _arrived.has(number):
+			_arrived[number] = true
+			_open[number]["seconds"] = snappedf(_clock - float(_started.get(number, _clock)), 0.1))
 	if run_state != null:
 		_last_leaves = run_state.leaves
 		_last_dew = run_state.dew
@@ -157,7 +168,7 @@ static func dev_tag() -> String:
 func _process(delta: float) -> void:
 	_clock += delta
 	_sample -= delta
-	if _sample > 0.0 or _drift.is_empty():
+	if _sample > 0.0 or _open.is_empty():
 		return
 	_sample = SAMPLE_EVERY
 	var spawner := drift_director.get_node_or_null("%EnemyContainer")
@@ -170,8 +181,15 @@ func _process(delta: float) -> void:
 		var left: float = enemy.get_remaining_distance()
 		var longest: float = maxf(_longest.get(id, 0.0), left)
 		_longest[id] = longest
-		if longest > 0.0:
-			_drift["closest"] = maxf(float(_drift.get("closest", 0.0)), snappedf(1.0 - left / longest, 0.01))
+		var row := _row_for(enemy)
+		if longest > 0.0 and not row.is_empty():
+			row["closest"] = maxf(float(row.get("closest", 0.0)), snappedf(1.0 - left / longest, 0.01))
+
+# The row of the drift that spawned `enemy` (the latest drift's if unknown).
+func _row_for(enemy: Node) -> Dictionary:
+	if enemy == null or not is_instance_valid(enemy):
+		return _drift
+	return _open.get(_origin.get(enemy.get_instance_id(), 0), _drift)
 
 func _on_drift_started(number: int) -> void:
 	_close_drift()
@@ -180,31 +198,54 @@ func _on_drift_started(number: int) -> void:
 		run.seed = int(map.map_seed) if map != null else 0
 	_drift = {"drift": number, "act": drift_director.get_act(number), "seconds": 0.0, "health_spawned": 0,
 		"damage": 0, "leaks": 0, "leaves_lost": 0, "leaves_left": run_state.leaves if run_state else 0, "banked": 0, "closest": 0.0}
-	_drift_started_at = _clock
+	_open[number] = _drift
+	_started[number] = _clock
 	if DamageLog.instance != null and not DamageLog.instance.damage_dealt.is_connected(_on_damage):
 		DamageLog.instance.damage_dealt.connect(_on_damage)
 
+# The latest drift stops being "the latest" (the next one started, or the rest): its leaves left and
+# Dew banked are taken now; its row stays open for its nightmares until the rest (_flush_rows).
 func _close_drift() -> void:
 	if _drift.is_empty():
 		return
-	_drift["seconds"] = snappedf(_clock - _drift_started_at, 0.1)
+	var number := int(_drift.drift)
+	if not _arrived.has(number):  # Still arriving: its span so far
+		_drift["seconds"] = snappedf(_clock - float(_started.get(number, _clock)), 0.1)
 	_drift["leaves_left"] = run_state.leaves if run_state else 0
 	_drift["banked"] = run_state.dew if run_state else 0
-	_drift["damage"] = roundi(float(_drift.get("damage", 0.0)))
-	run.drifts.append(_drift)
 	_drift = {}
 
-func _on_rest_started(block: int, _boss: bool, _bonus: int, _perfect: bool) -> void:
+# The block is over (a rest, or the run's end): its rows go into the record, in drift order.
+func _flush_rows() -> void:
 	_close_drift()
+	var numbers := _open.keys()
+	numbers.sort()
+	for number in numbers:
+		var row: Dictionary = _open[number]
+		row["damage"] = roundi(float(row.get("damage", 0.0)))
+		run.drifts.append(row)
+	_open.clear()
+	_started.clear()
+	_arrived.clear()
+	_origin.clear()
+
+func _on_rest_started(block: int, _boss: bool, _bonus: int, _perfect: bool) -> void:
+	_flush_rows()
 	run.dew.banked_at_rest.append([block, run_state.dew if run_state else 0])
 
 func _on_spawned(node: Node) -> void:
 	var data = node.get("enemy_data")
-	if not data is EnemyData or _drift.is_empty():
+	if not data is EnemyData or _open.is_empty():
 		return
-	(func() -> void:  # Its health is set once it's ready
-		if is_instance_valid(node):
-			_drift["health_spawned"] = int(_drift.get("health_spawned", 0)) + int(node.get("max_health") if node.get("max_health") != null else 0)
+	(func() -> void:  # Its health and drift are set once it's in (the director tags it after spawning)
+		if not is_instance_valid(node):
+			return
+		var number := drift_director.drift_of(node)
+		if number <= 0 or not _open.has(number):
+			number = int(_drift.get("drift", 0)) if not _drift.is_empty() else int(_open.keys().max())
+		_origin[node.get_instance_id()] = number
+		var row: Dictionary = _open[number]
+		row["health_spawned"] = int(row.get("health_spawned", 0)) + int(node.get("max_health") if node.get("max_health") != null else 0)
 	).call_deferred()
 	if data.is_boss:
 		_boss_seen[node.get_instance_id()] = [NightmareCodex.kind_of(data), _clock, drift_director.drifts_started]
@@ -217,8 +258,9 @@ func _on_dispelled(enemy: Node2D) -> void:
 		_boss_seen.erase(id)
 
 func _on_damage(event: DamageLog.Event) -> void:
-	if not _drift.is_empty():
-		_drift["damage"] = float(_drift.get("damage", 0.0)) + event.amount
+	var row := _row_for(event.enemy)
+	if not row.is_empty():
+		row["damage"] = float(row.get("damage", 0.0)) + event.amount
 
 func _on_leaves_changed(leaves: int, _max: int) -> void:
 	var lost := _last_leaves - leaves
@@ -254,7 +296,7 @@ func _sort_spends() -> void:
 	_frame_events.clear()
 
 func _on_run_ended(won: bool) -> void:
-	_close_drift()
+	_flush_rows()
 	_note_build()
 	run.won = won
 	run.result = "won" if won else ("abandoned" if run_state.abandoned else "lost")
@@ -302,6 +344,10 @@ func load_save(data: Dictionary) -> void:
 	run["resumed"] = int(run.get("resumed", 0)) + 1
 	_omen_offers = int(data.get("omen_offers", 0))
 	_drift = {}
+	_open.clear()
+	_started.clear()
+	_arrived.clear()
+	_origin.clear()
 	if run_state != null:
 		_last_leaves = run_state.leaves
 		_last_dew = run_state.dew

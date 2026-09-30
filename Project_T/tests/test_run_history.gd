@@ -46,6 +46,19 @@ func _run() -> void:
 		await process_frame
 	var history := root.get_tree().get_first_node_in_group(RunHistory.GROUP) as RunHistory
 	_check(history != null, "the HUD makes the run history")
+	# Called early: drift 91 starts while drift 90's nightmare is still out; its damage stays drift 90's.
+	var straggler := Node2D.new()
+	root.add_child(straggler)
+	history._on_drift_started(90)
+	history._origin[straggler.get_instance_id()] = 90
+	history._on_drift_started(91)
+	var hit := DamageLog.Event.new()
+	hit.enemy = straggler
+	hit.amount = 50.0
+	history._on_damage(hit)
+	_check(float(history._open[90].damage) == 50.0 and float(history._open[91].damage) == 0.0,
+		"damage counts for the drift that spawned the nightmare, even after the next was called early")
+	straggler.queue_free()
 	run_state.abandoned = true
 	run_state.end_run(false)
 	await process_frame
