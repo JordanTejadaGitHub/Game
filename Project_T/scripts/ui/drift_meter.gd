@@ -393,7 +393,7 @@ func _fill_row(button: Button, r: Dictionary) -> void:
 	# read "Sprout" beside its Frostfern icon).
 	var tower = r.tower
 	var name: String = tower.tower_data.display_name if is_instance_valid(tower) else String(r.name)
-	if is_instance_valid(tower) and button.get_meta(&"form", null) != tower.tower_data:
+	if is_instance_valid(tower) and (not button.has_meta(&"form") or button.get_meta(&"form") != tower.tower_data):  # A null default still warns
 		button.set_meta(&"form", tower.tower_data)
 		button.icon = WardenIcon.make(tower.tower_data)
 	button.text = "%s  %s DPS · %d%%%s" % [name, fmt(r.dps), roundi(float(r.share) * 100.0), star]
