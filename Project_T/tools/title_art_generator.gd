@@ -36,6 +36,7 @@ const WARM := ["slate", "loam", "path", "moonpath", "heartlight"]  # fog lit by 
 
 const FLESH := ["void", "dread", "shade", "bruise", "loam", "blossom"]  # the Sporeling variant's body
 const CAP := ["void", "dread", "shade", "bruise", "stone", "mist"]      # its Bloomcap cap
+const BARK := ["void", "root", "bark", "oak", "deadwood"]               # the Rootling variant's bark
 
 ## Which Warden the titan is: "stone" (the title art) or "sporeling" (a comparison variant, a vast
 ## Bloomcap). Set with `-- --warden=sporeling --out=<file.png>`; a variant never overwrites the title art.
@@ -415,6 +416,12 @@ func _titan() -> void:
 		_face()
 		_giant_cap()
 		return
+	if variant == "rootling":
+		_hanging_moss()
+		_great_roots()
+		_face()
+		_giant_sprout()
+		return
 	_hanging_moss()
 	_crown_tree(Vector2(HEAD.x - 20, HEAD.y - 40), 1.0)
 	_crown_tree(Vector2(TITAN_X - 74, 124), 0.6)
@@ -473,6 +480,8 @@ func _titan_pixel(x: int, y: int, id: int) -> Color:
 	var fog := clampf((y - 160.0) / 120.0, 0.0, 1.0) * 0.8 + 0.05  # the mist swallows it from the waist down
 	if variant == "sporeling":
 		return _flesh_pixel(x, y, id, v, rim, lit, fog)
+	if variant == "rootling":
+		return _bark_pixel(x, y, v, rim, lit, fog)
 	# Moss grows over the tops and down the sides in thick patches.
 	var mossy := noise.get_noise_2d(x * 0.9 + 13.0, y * 0.9) - q.y * 0.25
 	if id == 8:
@@ -506,6 +515,63 @@ func _flesh_pixel(x: int, y: int, id: int, v: float, rim: int, lit: float, fog: 
 	if band(fog + noise.get_noise_2d(x * 0.8, y * 0.8) * 0.2, x, y, 0.08):
 		return pick(FOG, lerpf(v, 0.5, fog), x, y, 0.1)
 	return pick(FLESH, v + 0.14, x, y, 0.1)
+
+
+## The Rootling variant's body: old bark in long vertical grain with dark grooves, moss in the hollows.
+func _bark_pixel(x: int, y: int, v: float, rim: int, lit: float, fog: float) -> Color:
+	var g := grain.get_noise_2d(x * 0.7 + noise.get_noise_1d(y * 0.4) * 6.0, y * 0.035)
+	if absf(g) < 0.1:
+		v -= 0.2  # a groove between the bark ridges
+	elif g > 0.3:
+		v += 0.06  # a ridge catching a little light
+	if rim == 2:
+		v = maxf(v, 0.3 + lit * 0.4)
+	elif rim == 1:
+		v = maxf(v, 0.4)
+	if band(fog + noise.get_noise_2d(x * 0.8, y * 0.8) * 0.2, x, y, 0.08):
+		return pick(FOG, lerpf(v, 0.5, fog), x, y, 0.1)
+	if noise.get_noise_2d(x * 0.6 + 40.0, y * 0.9) > 0.5:
+		return pick(MOSS, v + 0.02, x, y, 0.1)  # moss in the hollows
+	return pick(BARK, v + 0.1, x, y, 0.1)
+
+
+## The Rootling variant's crown: the Rootling's sprout grown huge, two great leaves on a stem, backlit.
+func _giant_sprout() -> void:
+	var base := Vector2(HEAD.x + 4, HEAD.y - 40)
+	for k in 18:  # the stem, curving a little
+		var p := base + Vector2(sin(k * 0.08) * 4.0, -k)
+		for dx in range(-2, 3):
+			put(int(p.x) + dx, int(p.y), col("night") if absi(dx) < 2 else col("deepmoss"))
+	var tip := base + Vector2(1, -18)
+	for leaf: Vector3 in [Vector3(-1.0, 40.0, 0.1), Vector3(1.0, 36.0, -0.1)]:
+		var dir := Vector2(leaf.x, -0.25).normalized().rotated(leaf.z)
+		var length := leaf.y
+		var n := Vector2(-dir.y, dir.x)
+		for k in int(length):
+			var t := k / length
+			var half := sin(t * PI) * length * 0.3
+			var mid := tip + dir * k + Vector2(0, t * t * 14.0 - sin(t * PI) * 4.0)  # drooping at the tip
+			for w in range(-int(half), int(half) + 1):
+				var p := mid + n * w
+				var warm := exp(-p.distance_to(MOON) / 130.0)
+				var edge := absi(w) >= int(half) - 1
+				var v := 0.18 + (0.08 if absi(w) < 1 else 0.0) + (0.1 if grain.get_noise_2d(p.x * 2.0, p.y * 2.0) > 0.35 else 0.0)
+				if edge and w * signf(n.y) < 0 and band(warm * 1.6 - 0.1, int(p.x), int(p.y), 0.1):
+					put(int(p.x), int(p.y), col("gold"))  # the Heartwood's rim on the upper edge
+				else:
+					put(int(p.x), int(p.y), pick(MOSS, v, int(p.x), int(p.y)))
+			put(int(mid.x), int(mid.y), col("deepmoss"))  # the vein
+
+
+## The Rootling variant's roots: great roots arching from its base into the water.
+func _great_roots() -> void:
+	for root: Array in [[Vector2(-104, 250), Vector2(-160, 214), Vector2(-186, 296), 10.0, 4.0],
+			[Vector2(-80, 268), Vector2(-120, 240), Vector2(-132, 300), 8.0, 3.0],
+			[Vector2(106, 252), Vector2(164, 216), Vector2(188, 298), 10.0, 4.0],
+			[Vector2(82, 270), Vector2(124, 242), Vector2(138, 300), 8.0, 3.0],
+			[Vector2(-20, 290), Vector2(-36, 284), Vector2(-50, 302), 6.0, 3.0]]:
+		var off := Vector2(TITAN_X, 0)
+		_root_arch(off + (root[0] as Vector2), off + (root[1] as Vector2), off + (root[2] as Vector2), root[3], root[4])
 
 
 ## The Sporeling variant's crown: a vast cap (the Bloomcap's), backlit, its brim drooping low over the
