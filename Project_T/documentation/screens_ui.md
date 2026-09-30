@@ -102,6 +102,7 @@ drag-select and works on touch (`platforms.md`).
 | **Status icons** | up to 3 small icons above a nightmare, most important first; each status has its own **shape** (Damp droplet, Drowsy "z", Spored dots, Marked ring, Static bolt, Held vine) and a stack number where relevant |
 | **Status icons, clearer** (2026-09-30, user: *"their stack of statuses should be more clear"*; the drift 28 screenshot showed tiny bolts with 6 px digits) | Each status is a **14 px badge** (its shape on a dark disc with a status-coloured rim) in one row centred above the health bar; the **stack count is a bold 10 px number in the badge's lower-right corner** with a dark outline, shown from 2 stacks; **at max stacks the rim fills solid** and the number turns gold (e.g. Charged 5/5 about to bolt). A thin rim arc **drains with the time left**. Up to 4 badges; more → the 4 most important + "+1". Bosses and elites: 18 px. Scales with the UI scale setting; zoomed in, the badges keep their screen size (`WorldLabel.text_scale`). Hover / tap a nightmare: the info panel lists each status "Charged 4/5 · 2.1 s". |
 | **Status icons, revised** (same day, user: *"the statuses on enemies are too small, I like the old icons from before"*) | Back to the **old status icons** (the bare shapes: bolt, droplet, "z", ring, vine, spore dots; no dark disc), **drawn larger: 20 px** (bosses and elites 24 px), in one row centred above the health bar. Kept from the badge version: the **stack number** (now **12 px**, bold, dark outline, lower-right, from 2 stacks), **gold number + a glow at max stacks**, the "+N" overflow, screen-size under zoom and the batched overlay drawing. The time-left arc becomes a **thin bar under the icon** that shortens. |
+| **Status icons, third pass** (same day, user: *"have the status icons bigger"*, then *"keep [the duration bars] as is but make the status stacking more noticeable"*) | Icons **28 px** (bosses and elites 32), **at most 3 then "+N"** (4 would span two cells; built in 9ecf1cb1); the duration bar under each stays as is (3 px). **Stacks stand out:** a bold **16 px** count on a small dark pill at the lower right (from 2 stacks), **one small pip per stack** along the top of the icon (filled up to the current count, to the status's max), and a **quick pop** of the icon each time a stack lands. Max stacks: gold count and gold glow. |
 | **Elites** | Deeply Blighted nightmares: black haze + a small swirl icon, larger sprite |
 | **Bosses** | a name plate on arrival ("The Hollow Stag"), the screen edges darken; the top-centre boss bar with health and a marker at 50% (where its behaviour changes) |
 | **Leak** | when a nightmare reaches the Heartwood: it lunges into the tree, a leaf blackens and falls, a dark pulse at the goal, the leaves counter shakes |
@@ -403,6 +404,50 @@ one-line definition, a small icon, and "see also" links. Terms in tooltips, card
 
 Boss names and late nightmares only show once met, to avoid spoilers (the rest is always visible).
 
+**Glossary and Families, revised (2026-09-30, user: *"make the glossary Codex more visually appealing
+and update the families"*).**
+
+*Terms updated* (the table above is out of date; the Codex follows this list):
+- **Statuses:** Soaked, Drowsy, Asleep, Poisoned, Exposed, Charged, Rooted, Caught, Frozen (the old
+  Damp / Spored / Marked / Static / Held names are gone).
+- **Damage types:** Spore, Water, Light, Stone, Root, Song, Wind, Talon, Plain, with who deals each.
+- **Wardens:** Nurture's **per-rank choice** (Power / Swift / Reach / Deep) replaces Focus;
+  **Kinship**, **Harmony strike**, **Boosts** (auras, Kinship, Kindred / Whole Tree) added;
+  Heartwood Sapling and Memory Warden removed (cut / parked).
+- **The run:** Close call, Chain added; **Dreams:** Entwined and Half-dreamed stay internal (not
+  entries); Woven, Deepened, Bittersweet stay.
+
+*Glossary look:*
+- **Two panes:** the groups down the left as a list with an icon each (Resources, The run, Combat,
+  Wardens, Nightmares, Statuses, Damage types, Dreams, The Memory Grove); the right pane shows that
+  group's entries. Search box at the top of the left pane; a result jumps to its entry and flashes it.
+- **Every entry is a small card**, not a line of text: a **32 px icon** on the left (the status icon,
+  the resource icon, the damage type's Warden face, a Warden portrait for Warden terms), the **term
+  in the display font**, the one-line definition in body text, one muted **example** line (*"Stormcap's
+  chain jumps farther through Soaked nightmares."*), and "See also" as **gold link chips**.
+- **Statuses page:** each card has its **status colour** as the rim, and adds its numbers (max stacks,
+  duration, what a stack does) and **who applies it** (small Warden portraits of your families); the
+  combos it's part of show as chips, ??? until discovered.
+- **Damage types page:** each type's card lists the nightmares weak to it and resisting it (icons,
+  ??? until met).
+- Cards sit in a 2-column grid on wide screens, 1 column on narrow; group headers use the gold thread
+  divider. Moonlit Thread throughout (fog panels, no hand-built boxes).
+
+*Families page, updated:*
+- One page per family, tabs along the top with the base Warden's portrait (like Remember).
+- **Header:** the base Warden large (animated), family name, damage type, its **role in one line**
+  (*"Damage over time: stack Poisoned and keep it."*), its statuses, and **your record** (picked N times,
+  won N runs with it).
+- **The tree** drawn like the Remember screen (portraits on waystones): base → two branches → two
+  finals → hidden branch → Ascended, each node with its **tier, Dew to grow (120 / 300 / 600) and
+  Dreamlight to unlock (1 / 2 / 3)**, and its Grove state (planted, or a silhouette "in the Memory
+  Grove"). Tapping a node shows its full card (the Warden panel's top half).
+- Under the tree: its **Kinships** (the two branches, the bond's name and stages), its **combos**
+  (chips, ??? until found), and the family's Dream cards (a count and a link to the Dreams tab).
+- Numbers come from the data (TowerData / DreamState), never typed into the Codex, so balance changes
+  (branch 120, final 300, Ascended 600, Puffball no longer popping, Nurture choices) show up by
+  themselves.
+
 ### Combos (discovered in play)
 
 Every combo starts **locked** and is **discovered the first time it actually fires** in a run.
@@ -635,6 +680,8 @@ From a user playtest with screenshots; each line is the rule going forward.
     Remember tabs go back to their earlier look, and a Dream card's requirement reads **"Needs
     Wind"** (the damage type as a linked word, no emblem). The nightmare resist / weak icons (the
     base Warden face with a shield or spark, `NightmareIcons`) predate the emblems and stay.
+- **Warden bar hover = the Warden panel's info** (2026-09-30, user: *"when you hover a tower in the tower bar, it should give you more detail, like when you select a tower"*). Hovering (or long-pressing on touch) a Warden bar button shows a card with **the same top half as the Warden panel**: portrait, name, damage type, description with status links, stats with this run's Dream bonuses (↑), statuses it applies, Potency, **"Grows into"** (its branches with their Dew and Dreamlight state), and the price line (Sprout: the rising price rule). No buttons. One shared view with the panel so the two never disagree.
+- **Top-right layout** (same day, user: *"should the Buffs / Remember / ? area be above the resources or beside it?"*): **under them**, right-aligned in one row: the resources stay the top-right corner (glanced at constantly), and the buttons sit directly below with the same right edge, Remember nearest the Dreamlight counter above it. Not above (it would push the numbers down from the corner) and not beside (it would crowd the drift banner and Coming strip, worst at 1280×800).
 - **Readable tooltips and hover text** (user: "hovering things, in general, the text is too small
   and hard to read"): every tooltip, hover panel and tap popup uses **at least 16 px body text at
   1080p** (18 px for the first line / name), **1.35 line height**, a maximum width of about **42

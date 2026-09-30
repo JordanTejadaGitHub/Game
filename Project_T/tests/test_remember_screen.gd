@@ -39,6 +39,8 @@ func _run() -> void:
 	var final: TowerData = branch.evolves_to[0] if not branch.evolves_to.is_empty() else null
 	if final != null:
 		_check(nodes.has(final) and screen.state_of(final) == RememberScreen.State.LOCKED, "its final form is locked behind it")
+		_check(nodes[final].portrait.material == RememberScreen.Portrait.silhouette_material(), "…drawn as a silhouette on the moonlit disc")
+	_check(nodes[sporeling].portrait.material == null, "an owned form is full colour")
 	_check(nodes[sporeling].position.y > nodes[branch].position.y, "the root sits below its branches")
 
 	# The side panel and unlocking
@@ -106,8 +108,10 @@ func _run() -> void:
 		_check(side.size() >= 2 and side[0] == hidden.display_name and side[-1] == "Plant it in the Memory Grove",
 			"its side panel: the name, what it does, and to plant it (%s)" % " | ".join(side))
 		var grove_node: Control = nodes[hidden]
-		_check(grove_node.portrait.material == RememberScreen.Portrait.grove_material() and grove_node.portrait.self_modulate == Color.WHITE,
-			"a Grove form is drawn dim and moonlit (the Grove material), not a black silhouette")
+		_check(grove_node.portrait.material == RememberScreen.Portrait.silhouette_material(),
+			"a Grove form is a silhouette (on the moonlit disc)")
+		var side_portrait: Array = screen._side_box.find_children("*", "TextureRect", true, false)
+		_check(not side_portrait.is_empty() and side_portrait[0].material == null, "…the side panel shows its full portrait")
 		_check(grove_node.tooltip_text.begins_with(hidden.display_name), "…and named")
 		screen.close()
 

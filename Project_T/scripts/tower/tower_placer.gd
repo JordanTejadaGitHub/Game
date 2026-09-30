@@ -300,13 +300,6 @@ func _draw() -> void:
 	else:
 		var frame := tower_data.get_frame_rect(0)
 		draw_texture_rect_region(tower_data.texture, Rect2(-frame.size / 2.0 + tower_data.sprite_offset, frame.size), frame, tint)
-	if tower_data.can_attack:
-		# Its damage type (screens_ui.md "Damage-type icons"): the icon at the ghost's top-left.
-		var type_icon := IconInfo.damage_type_icon(tower_data.line)
-		if type_icon:
-			var corner := -MAP_GRID.cell_size / 2.0 + Vector2(2, 2)
-			draw_rect(Rect2(corner - Vector2(1, 1), Vector2(18, 18)), Color(Palette.ROOT, 0.8))
-			draw_texture_rect(type_icon, Rect2(corner, Vector2(16, 16)), false)
 	var tag := "%s · %d Dew" % [tower_data.display_name, get_cost(null, _hover_cell)]
 	if tower_data.can_attack:
 		tag = "%s · %s · %d Dew" % [tower_data.display_name, IconInfo.damage_type_name(tower_data.line), get_cost(null, _hover_cell)]

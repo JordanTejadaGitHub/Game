@@ -310,6 +310,21 @@ set small. (Nightmares that resist or exploit these: see `enemy_design.md`.)
 
 Towers also interact **through placement** and **through Dreams** (rule changes that link lines).
 
+### Spores don't pop (2026-09-30)
+
+User: *"spores shouldn't pop, they should just stack poison; [popping and poison] fill similar
+roles."* Poisoned (the old Spored) is the Sporeling family's one job: **stack it, keep it, spread
+it**. No burst at a stack count anywhere:
+- **Puffball** (final): its puff **bursts on landing over 1 tile**, giving **2 Poisoned to every
+  nightmare there**, and nightmares it hits can hold **16 Poisoned** (the usual cap is 8, Driftspore
+  12). The area poisoner, next to Driftspore's single-target stacking. No pop.
+- **Sporemother** (Ascended): her storm gives 2 Poisoned per second to everything in range, and
+  **Poisoned never wears off while a nightmare is in her range**. No pop.
+- **Chain Bloom** (Entwined Puffball + Mistveil) is reworked: *"Puffball's puffs cover 2 tiles
+  inside Mistveil's fog."* (Roguelite rewrites the card.)
+- "Popped!" callouts and the pop effect go; Fever Dream and Ignite stay as they are (sleep and burn,
+  not pops). The Spore Bomb build becomes stack-and-fog (Tower Discussion renames it).
+
 ### Status jobs (overlap review, 2026-09-29)
 
 Several statuses and Wardens did the same thing (many slows, four kinds of "takes more damage",

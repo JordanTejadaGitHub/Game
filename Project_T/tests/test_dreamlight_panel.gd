@@ -30,10 +30,11 @@ func _run() -> void:
 
 	var tower := _build(placer, map_generator, load("res://resource/tower/sporeling.tres"))
 	_check(tower != null, "planted a Sporeling")
+	dreams.unlocked["driftspore"] = true  # The branch (free with the family or bought: either way it's owned here)
 	tower.evolve(driftspore, 0)  # Grown into the branch: its final is the locked form
 	seller.select(tower)
 	await process_frame
-	_check(dreams.is_unlocked("driftspore") and not dreams.is_unlocked(final_form.get_id()), "the branch comes free, its final form starts locked")
+	_check(not dreams.is_unlocked(final_form.get_id()), "the final form starts locked")
 
 	# No Dreamlight: the button says what it costs, and opens the Remember screen.
 	dreams.dreamlight = 0

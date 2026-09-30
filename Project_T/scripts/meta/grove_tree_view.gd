@@ -26,8 +26,11 @@ const TAP_RADIUS := 22.0  # Tree px around a node, fruit or stone that counts as
 const DRAG_THRESHOLD := 8.0  # Screen px before a press becomes a pan
 const GROW_STEP := 0.1  # Seconds per branch / bud frame while planting
 const CANOPY_FADE := 1.2
+const BACKDROP := "grove/grove_backdrop.png"  # 2560×960: grove_sky.png plus 640 px of scene each side
+const BACKDROP_MARGIN := 640.0
 # Ambient life (like the title screen): calm, stepped, in whole art pixels; all still under reduced motion.
 const CANOPY_BASE_Y := 620  # The crown stretches upward from this tree-space row (where it meets the limbs)
+const ART_PX := 2  # Tree px per art pixel (the Grove art is drawn in 2 px pixels): motion moves in whole art px
 const CANOPY_BREATH := 2  # Art px at the top of a breath
 const CANOPY_BREATH_PERIOD := 5.5  # Seconds per breath
 const FRUIT_BOB_PERIODS: Array[float] = [2.4, 2.9, 3.3, 2.6]  # Each dream-fruit bobs 1 px at its own pace
@@ -113,8 +116,13 @@ func _ready() -> void:
 	_world.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_world.size = TREE_SIZE
 	add_child(_world)
-	for path in ["grove/grove_sky.png", "grove/grove_tree.png"]:
-		_world.add_child(_art(load(ART + path)))
+	# The backdrop: the sky scene 640 px wider on each side (its middle 1280 px are grove_sky.png), inside
+	# the world so it pans and zooms with the tree and a wide screen shows no seam beside the art.
+	var backdrop := _art(load(ART + BACKDROP))
+	backdrop.position = Vector2(-BACKDROP_MARGIN, 0)
+	backdrop.size = TREE_SIZE + Vector2(BACKDROP_MARGIN * 2, 0)
+	_world.add_child(backdrop)
+	_world.add_child(_art(load(ART + "grove/grove_tree.png")))
 	_world.add_child(_canopy_back)
 	_world.add_child(_canopy_front)
 	for rect in [_canopy_back, _canopy_front]:
@@ -353,7 +361,8 @@ func _process(delta: float) -> void:
 	if breath != _breath:
 		_breath = breath
 		for rect in [_canopy_back, _canopy_front]:
-			rect.grow = breath
+			rect.unit = ART_PX
+			rect.grow = breath * ART_PX  # Whole art pixels, so the crown's 2 px checkers never split into stripes
 			rect.queue_redraw()
 	_layer.queue_redraw()
 
@@ -463,7 +472,7 @@ func _draw_fruit() -> void:
 			frame = 4 + step if step < 4 else 8
 		var top := vec(spots[i])
 		if not _reduced_motion:  # Each fruit bobs 1 px on its stem, at its own pace
-			top.y += roundf(sin(TAU * _time / FRUIT_BOB_PERIODS[i % FRUIT_BOB_PERIODS.size()] + i * 1.7))
+			top.y += roundf(sin(TAU * _time / FRUIT_BOB_PERIODS[i % FRUIT_BOB_PERIODS.size()] + i * 1.7)) * ART_PX
 		_layer.draw_texture_rect_region(_fruit_texture, Rect2(top - Vector2(FRUIT_FRAME / 2.0, 0), Vector2.ONE * FRUIT_FRAME),
 			Rect2(frame * FRUIT_FRAME, 0, FRUIT_FRAME, FRUIT_FRAME))
 
@@ -512,7 +521,7 @@ func is_sixth_rising() -> bool:
 func _draw_motes() -> void:
 	for mote in _motes:
 		var drift := Vector2(sin(_time * 0.3 + mote.z) * 14.0, cos(_time * 0.22 + mote.z * 1.3) * 10.0)
-		var alpha := 0.25 + 0.25 * sin(_time * 1.3 + mote.z * 2.0)
+		var alpha := 0.15 + 0.15 * _stepped(sin(_time * 0.6 + mote.z * 2.0))  # 3 calm levels, no flicker
 		_layer.draw_circle(Vector2(mote.x, mote.y) + drift, 1.2, Color(Palette.GLOW, alpha))
 
 # The warm light in the Heartwood's hollow, pulsing softly (layout "hollow": its centre; skipped if absent).
@@ -520,10 +529,10 @@ func _draw_hollow_light() -> void:
 	var hollow = load_layout().get("hollow")
 	if hollow == null:
 		return
-	var pulse := 0.5 if _reduced_motion else 0.5 + 0.5 * sin(TAU * _time / HOLLOW_PULSE_PERIOD)
+	var pulse := 0.5 if _reduced_motion else _stepped(sin(TAU * _time / HOLLOW_PULSE_PERIOD))  # 3 stepped levels
 	var centre := vec(hollow)
-	_layer.draw_circle(centre, 22.0, Color(1.0, 0.72, 0.35, 0.06 + 0.05 * pulse))
-	_layer.draw_circle(centre, 12.0, Color(1.0, 0.82, 0.5, 0.08 + 0.07 * pulse))
+	_layer.draw_circle(centre, 22.0, Color(Palette.EMBER, 0.06 + 0.05 * pulse))
+	_layer.draw_circle(centre, 12.0, Color(Palette.GLOW, 0.08 + 0.07 * pulse))
 
 # Mist strips drifting through the roots (layout "mists": [{file, y, speed}], art px per second, wrapping).
 var _mist_textures := {}
@@ -537,18 +546,24 @@ func _draw_mists() -> void:
 		if tex == null:
 			continue
 		var width := float(tex.get_width())
-		var shift := 0.0 if _reduced_motion else floorf(fposmod(_time * float(mist.speed), width))
-		var x := shift - width
-		while x < TREE_SIZE.x:
+		var shift := 0.0 if _reduced_motion else floorf(fposmod(_time * float(mist.speed), width) / ART_PX) * ART_PX
+		var x := shift - width * ceilf(BACKDROP_MARGIN / width + 1.0)  # Across the wide backdrop too
+		while x < TREE_SIZE.x + BACKDROP_MARGIN:
 			_layer.draw_texture(tex, Vector2(x, float(mist.y)))
 			x += width
 
-# A texture layer that stretches upward from `base_y` by `grow` whole pixels, one source row per drawn
-# row (inverse mapping, like the title backdrop), so pixel art stays crisp and never gaps.
+# A wave (-1..1) as 3 calm levels (0, 0.5, 1): glows step softly instead of shimmering.
+static func _stepped(wave: float) -> float:
+	return roundf((wave + 1.0)) * 0.5
+
+# A texture layer that stretches upward from `base_y` by `grow` pixels, in whole `unit`-pixel rows (the
+# art's pixel size): each drawn art row samples one source art row (inverse mapping, like the title
+# backdrop), so chunky pixel art and its checker dithers stay crisp and never tear into stripes.
 class BreathLayer extends Control:
 	var texture: Texture2D
-	var base_y := 0
-	var grow := 0
+	var base_y := 0  # A multiple of `unit`
+	var grow := 0  # A multiple of `unit`
+	var unit := 1
 
 	func set_texture(value: Texture2D) -> void:
 		texture = value
@@ -563,9 +578,10 @@ class BreathLayer extends Control:
 			draw_texture(texture, Vector2.ZERO)
 			return
 		draw_texture_rect_region(texture, Rect2(0, base_y, w, h - base_y), Rect2(0, base_y, w, h - base_y))
-		var span := float(base_y)
-		for dy in range(-grow, base_y):
-			var sy := base_y - int(ceil((base_y - dy) * span / (span + grow)))
-			if sy < 0:
+		var rows := base_y / unit  # Art rows above the base
+		var extra := grow / unit
+		for r in range(-extra, rows):
+			var s := rows - int(ceil(float(rows - r) * rows / float(rows + extra)))
+			if s < 0:
 				continue
-			draw_texture_rect_region(texture, Rect2(0, dy, w, 1), Rect2(0, sy, w, 1))
+			draw_texture_rect_region(texture, Rect2(0, r * unit, w, unit), Rect2(0, s * unit, w, unit))

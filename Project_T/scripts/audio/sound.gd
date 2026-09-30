@@ -48,8 +48,6 @@ const MUFFLED_BUSES := {&"SFXMuffled": 1000.0, &"SFXBark": 2200.0}
 # Dispels landing this close together blend into one softer swell (third listen: no climbing combo,
 # a dispel is a nightmare ending, never a reward sound). Each one in a cluster is this much quieter.
 const DISPEL_CLUSTER_MS := 700
-const ELITE_BREATH_PITCH := 0.85  # Deeply Blighted: a slower, deeper last breath
-const FIFTH := 1.4983  # A fifth up: the Deeply Blighted's second rising voice
 const DISPEL_CLUSTER_DB := -1.5
 const DISPEL_CLUSTER_MAX_DB := -6.0
 
@@ -185,12 +183,11 @@ func has_sound(id: StringName) -> bool:
 
 # The dispel: sigh and dissolve, then the release (a warm exhale / low hum in D). Several close
 # together blend into one softer swell: each is a little quieter, never higher.
-# Releasing a soul (audio_direction.md ecc238a4): the last breath and the unbinding (`dispel`), then one
-# warm sung voice rising a fourth onto a D chord note (`dispel_release`, its own lead-in baked in).
-# `size_pitch` < 1 for bigger nightmares: a lower, slower breath (the voice stays in key). Deeply
-# Blighted (`elite`): slower and deeper still, and two voices a fifth apart. Close together they become
-# a soft chorus, each quieter (never stepping up). Normal dispels don't duck; the boss's does.
-func play_dispel(at: Vector2, boss := false, size_pitch := 1.0, elite := false) -> void:
+# A soft burst of light, releasing a soul (audio_direction.md ac4fdf75): tuned air on D, F#, A; no voice.
+# Played at its own pitch so it stays in D (`_size_pitch` is ignored now: a pitch shift would detune it).
+# Deeply Blighted (`elite`): its own slower, fuller, lower variant. Close together they blend into one
+# wider glow, each quieter (never stepping). Normal dispels don't duck; the boss's does.
+func play_dispel(at: Vector2, boss := false, _size_pitch := 1.0, elite := false) -> void:
 	if boss:
 		duck(8.0, 1.0)
 		play(&"dispel_boss", at, 2.0, 1.0, 0.0)
@@ -199,11 +196,7 @@ func play_dispel(at: Vector2, boss := false, size_pitch := 1.0, elite := false) 
 	_dispel_cluster = _dispel_cluster + 1 if now - _dispel_time < DISPEL_CLUSTER_MS else 0
 	_dispel_time = now
 	var cluster_db := maxf(DISPEL_CLUSTER_DB * _dispel_cluster, DISPEL_CLUSTER_MAX_DB)
-	play(&"dispel", at, -3.0 + cluster_db, size_pitch * (ELITE_BREATH_PITCH if elite else 1.0))
-	play(&"dispel_release", at, -6.0 + cluster_db, 1.0, 0.0)
-	if elite:
-		_last_start.erase(&"dispel_release")  # The second voice isn't a repeat: let it through
-		play(&"dispel_release", at, -9.0 + cluster_db, FIFTH, 0.0)
+	play(&"dispel_elite" if elite else &"dispel", at, -3.0 + cluster_db, 1.0, 0.0)
 
 
 # --- Music and ambience ---------------------------------------------------------------------------

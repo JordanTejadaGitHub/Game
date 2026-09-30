@@ -189,7 +189,6 @@ func _build_chase_board(package: Array, extras: Dictionary) -> void:
 	for form in forms:
 		dreams.unlocked[form] = true
 		plant.append(form)
-	dreams.grant_free_branches()  # As in play: a family comes with both regular branches
 	dreams.add_dreamlight(dreams.sim_dreamlight_for(&"first"))
 	_spend_dreamlight()
 	if extras.get("wide", false):
@@ -230,14 +229,9 @@ func _emerge(runs: int, picker: String = "balanced") -> void:
 				var family: String = left[rng.randi_range(0, left.size() - 1)]
 				owned.append(family)
 				dreams.unlocked[family] = true
-				dreams.grant_free_branches()  # Both regular branches come with the family
 				if drift == 5:
 					dreams.add_dreamlight(dreams.sim_dreamlight_for(&"first"))
 				_plant([family, family, family, "sprout", "thornwall"])
-				var root_data: TowerData = load("res://resource/tower/%s.tres" % family)
-				for branch in root_data.evolves_to:
-					if dreams.is_unlocked(branch.get_id()):
-						_plant([branch.get_id()])  # Both free branches get grown
 				dreams.bump_board()
 			var lines := {}
 			for family in owned:

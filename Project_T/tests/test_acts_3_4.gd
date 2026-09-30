@@ -581,8 +581,8 @@ func _run() -> void:
 	for id in [&"damp", &"drowsy", &"spored", &"marked", &"held"]:
 		badged.statuses.apply(id, 1, 4.0, 1.0)
 	badged.statuses.apply(&"static", 4, 0.0, 1.0)
-	_check(badged.get_badge_ids() == [&"static", &"held", &"marked", &"spored"],
-		"4 badges, the most important first (%s)" % [badged.get_badge_ids()])
+	_check(badged.get_badge_ids() == [&"static", &"held", &"marked"],
+		"3 icons, the most important first (%s)" % [badged.get_badge_ids()])
 	_check(badged.get_status_order().size() == 6, "the info panel still lists all 6")
 	_check(badged.statuses.describe(&"static") == "Charged 4/5 · 2.0 s", "info line: %s" % badged.statuses.describe(&"static"))
 	_check(badged.statuses.describe(&"damp") == "Soaked · 4.0 s", "no stack count for a status that can't stack (%s)" % badged.statuses.describe(&"damp"))
@@ -603,7 +603,7 @@ func _run() -> void:
 	badged.hold_time = 100.0  # Stands still
 	for f in 3:
 		await process_frame
-	_check(badged._hud_root.is_valid() and badged._hud_items.size() == 4, "its HUD items exist once it's shown")
+	_check(badged._hud_root.is_valid() and badged._hud_items.size() == 5, "its HUD items exist once it's shown")
 	var redraws := [0]
 	badged.draw.connect(func() -> void: redraws[0] += 1)
 	var builds: int = badged.hud_builds
@@ -617,6 +617,12 @@ func _run() -> void:
 	var bar_px := int(badged.HEALTH_BAR_SIZE.x * badged.health / badged.max_health)
 	_check(badged.hud_builds > builds and badged._hud_health == bar_px,
 		"a hit rebuilds the bars at their new width (%d px, %d builds)" % [badged._hud_health, badged.hud_builds - builds])
+	badged.statuses.apply(&"drowsy", 1, 4.0, 1.0)
+	await process_frame
+	_check(badged._hud_pops.has(&"drowsy"), "a stack added: its icon pops")
+	for f in 20:
+		await process_frame
+	_check(badged._hud_pops.is_empty() and not badged._hud_popping, "and settles back")
 	_check(redraws[0] == 0, "a nightmare doesn't redraw itself for statuses or hits (%d in 30 frames)" % redraws[0])
 	_clear_enemies()
 

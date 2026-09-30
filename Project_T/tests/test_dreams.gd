@@ -30,6 +30,7 @@ func _run() -> void:
 	_test_half_dreamed(main)
 	await _test_discovery(main)
 	_test_grown_needs(main)
+	_test_blessing_dream(main)
 	_test_resonance(main)
 	print("dreams test: %s" % ("PASS" if failures == 0 else "%d FAILED" % failures))
 	quit(failures)
@@ -145,7 +146,7 @@ func _test_evolution(main: Node) -> void:
 	_check(tower.tower_data == sporeling and tower.sprite.texture == sporeling.texture, "the Warden changes in place")
 	_check(map_generator.get_path_from(map_generator.startPath) == path_before, "evolving doesn't change the path")
 	var driftspore: TowerData = load("res://resource/tower/driftspore.tres")
-	_check(dreams.is_unlocked("driftspore"), "owning Sporeling unlocks its regular branches free (run_design.md Dreamlight, 2026-09-30)")
+	_check(not dreams.is_unlocked("driftspore"), "a branch isn't free: it's bought with Dreamlight (run_design.md Dreamlight, clarified 2026-09-30)")
 	dreams.take(_card(dreams, "evergreen"))
 	dreams.take(_card(dreams, "dream_driftspore"))
 	dew = run_state.dew
@@ -593,24 +594,23 @@ func _test_dreamlight(main: Node) -> void:
 		if card.kind == UpgradeData.Kind.UNLOCK_EVOLUTION and dreams.is_eligible(card, 2):
 			_check(false, "%s is still a Dream card" % card.id)
 
-	# The first family pick (run_design.md "Dreamlight", 2026-09-30): the family, both regular branches free,
-	# +2 Dreamlight, and a final form can be unlocked straight away (no Grove node)
+	# The first family pick (run_design.md "Dreamlight", clarified 2026-09-30): the family and +2 Dreamlight;
+	# branches cost 1 and finals 2 (no Grove node for either), bought on the Remember screen
 	dreams.dreamlight = 0
 	director.family_pick_requested.emit(&"first")
 	dreams.unlocked["firefly_jar"] = true  # What FamilyPickScreen.choose does
 	dreams.unlocks_changed.emit()
 	var sunpetal: TowerData = load("res://resource/tower/sunpetal.tres")
 	_check(dreams.dreamlight == 2, "+2 Dreamlight with the first family pick")
-	_check(dreams.is_unlocked("stormcap") and dreams.is_unlocked("lanternmoth") and not dreams.is_unlocked("sunpetal"),
-		"owning Firefly Jar unlocks Stormcap and Lanternmoth free, not the hidden Sunpetal")
-	_check(dreams.get_unlock_cost(stormcap) == 0 and dreams.get_unlock_blocker(thunderhead) == "" and dreams.can_unlock(thunderhead),
-		"a final form (Thunderhead, 2) can be unlocked straight away, no Grove node")
+	_check(not dreams.is_unlocked("stormcap") and not dreams.is_unlocked("lanternmoth"), "owning Firefly Jar doesn't unlock its branches")
+	_check(dreams.get_unlock_cost(stormcap) == 1 and dreams.can_unlock(stormcap) and dreams.get_unlock_blocker(thunderhead) == "needs Stormcap",
+		"a branch costs 1 Dreamlight (can unlock now); its final waits for it")
 	_check(dreams.get_unlock_cost(sunpetal) == 1 and dreams.get_unlock_blocker(sunpetal) == "Memory Grove", "the hidden branch keeps its Grove node and 1 Dreamlight")
-	# An old save: the family owned, a branch never bought -> unlocked on load, nothing refunded
+	# An old save with a branch granted free (a75b5770) keeps it; nothing is taken away
 	var old := dreams.to_save()
-	old["unlocked"] = (old["unlocked"] as Array).filter(func(id) -> bool: return id != "lanternmoth")
+	(old["unlocked"] as Array).append("lanternmoth")
 	dreams.load_save(old)
-	_check(dreams.is_unlocked("lanternmoth") and dreams.dreamlight == 2, "an old save gets its free branch on load (no refund)")
+	_check(dreams.is_unlocked("lanternmoth") and dreams.dreamlight == 2, "an old save keeps a branch it was given")
 	dreams.dreamlight = 1
 	var remembers := []
 	dreams.remember_requested.connect(func(focus: TowerData) -> void: remembers.append(focus))
@@ -625,13 +625,14 @@ func _test_dreamlight(main: Node) -> void:
 	dreams.skip()
 	director.drifts_started = 0
 
-	# Costs: final 2, hidden branch and wall growth 1; base families never
-	_check(dreams.get_unlock_cost(thunderhead) == 2 and dreams.get_unlock_cost(bramble) == 1, "costs: final form 2, wall growth 1")
+	# Costs: branch 1, final 2 (needs its branch), wall growth 1; base families never
+	_check(dreams.get_unlock_cost(stormcap) == 1 and dreams.get_unlock_cost(thunderhead) == 2 and dreams.get_unlock_cost(bramble) == 1,
+		"costs: branch 1, final form 2, wall growth 1")
 	_check(not dreams.can_unlock(rain_lily), "no branches for a family you don't own")
 	_check(dreams.get_unlock_blocker(sporeling) == "family pick", "base families only come from the family pick")
-	_check(not dreams.unlock_with_dreamlight(stormcap), "a free branch has nothing to buy")
-	_check(dreams.unlock_with_dreamlight(thunderhead) and dreams.dreamlight == 2, "Thunderhead for 2")
-	_check(dreams.unlock_with_dreamlight(bramble) and dreams.dreamlight == 1, "Bramble for 1")
+	_check(dreams.unlock_with_dreamlight(stormcap) and dreams.is_unlocked("stormcap") and dreams.dreamlight == 3, "unlocking Stormcap spends 1")
+	_check(dreams.unlock_with_dreamlight(thunderhead) and dreams.dreamlight == 1, "then Thunderhead for 2")
+	_check(dreams.unlock_with_dreamlight(bramble) and dreams.dreamlight == 0, "Bramble for 1")
 	dreams.dreamlight = 0
 	var moth_final: TowerData = (load("res://resource/tower/lanternmoth.tres") as TowerData).evolves_to[0]
 	_check(not dreams.unlock_with_dreamlight(moth_final), "not without Dreamlight")
@@ -763,7 +764,7 @@ func _test_few_and_mighty_sim(main: Node) -> void:
 		_reset_dreams_quiet(dreams)
 		dreams.unlocked[family] = true
 		var drawable: Array = dreams.pool.filter(func(c: UpgradeData) -> bool:
-			return c.rarity == UpgradeData.Rarity.RARE and dreams.can_offer(c, 1))
+			return c.rarity == UpgradeData.Rarity.RARE and dreams.can_offer(c, 1) and not c.id.begins_with("blessing_"))  # Generic Rares (a family's Blessing isn't one)
 		var full := drawable.filter(func(c: UpgradeData) -> bool: return dreams.is_eligible(c, 1))
 		print("act 1 Rares with %s: %d drawable, %d with every Need met (%s)" % [family, drawable.size(), full.size(),
 			", ".join(drawable.map(func(c: UpgradeData) -> String: return c.id))])
@@ -986,7 +987,6 @@ func _test_half_dreamed(main: Node) -> void:
 	screen.visible = false
 	main.get_node("%GameSpeed").set_paused(false)
 	dreams.unlocked["dewdrop"] = true
-	dreams.unlocked.erase("stormcap")  # Free with Firefly Jar now; take it away to check the form Need on its own
 	_check(dreams.is_dormant(thunder), "…still asleep without Stormcap itself")
 	dreams.unlocked["stormcap"] = true
 	_check(not dreams.is_dormant(thunder) and dreams.has_rule(thunder.rule_id), "…and wakes once it's all yours")
@@ -1172,13 +1172,41 @@ func _free_enemies(main: Node) -> void:
 	for child in main.get_node("%EnemyContainer").get_children():
 		child.free()
 
+# Family Blessings are Rare Dream cards now (meta_design.md "Replaced 2026-09-30"): offered once you own the
+# family (and a Warden of it has stood on the map), never before; one per family.
+func _test_blessing_dream(main: Node) -> void:
+	var dreams: DreamState = main.get_node("%DreamState")
+	_reset_dreams(main)
+	for card in MetaRun.load_blessings():  # MetaRun puts them in the pool at run start
+		if not dreams.pool.any(func(c: UpgradeData) -> bool: return c.id == card.id):
+			dreams.pool.append(card)
+	var blessing := _card(dreams, "blessing_sporeling")
+	_check(blessing != null and blessing.rarity == UpgradeData.Rarity.RARE and blessing.max_stacks == 1 and blessing.tags == ["spore"],
+		"the Sporeling Blessing: Rare, one per run, the family line tag")
+	_check(not dreams.can_offer(blessing, 2), "…not offered without the Sporeling family")
+	dreams.unlocked["sporeling"] = true
+	dreams.grown_wardens["sporeling"] = true
+	dreams.unlocks_changed.emit()
+	_check(dreams.can_offer(blessing, 2), "…offered once you own Sporeling")
+	var seen := false
+	for i in 200:
+		dreams.dreams_seen = 0
+		if dreams.make_offer(30).has(blessing):  # Act 2 (Blessings may wait for it, Meta)
+			seen = true
+			break
+	_check(seen, "a Blessing can turn up as a Dream")
+	dreams.take(blessing)
+	_check(not dreams.can_offer(blessing, 2), "…and only once")
+	_reset_dreams(main)
+
 # Round 5 (dream_design.md "Round 4 measured"): a Warden a card names must have been built or grown this
 # run; unlocked (a free branch) isn't enough, and selling it later doesn't un-meet it.
 func _test_grown_needs(main: Node) -> void:
 	var dreams: DreamState = main.get_node("%DreamState")
 	_reset_dreams(main)
 	dreams.grown_wardens.clear()
-	dreams.unlocked["firefly_jar"] = true  # The first pick: Stormcap comes free
+	dreams.unlocked["firefly_jar"] = true
+	dreams.unlocked["stormcap"] = true  # Unlocked with Dreamlight, not grown yet
 	dreams.unlocked["dewdrop"] = true
 	dreams.unlocks_changed.emit()
 	var thunder := _card(dreams, "rolling_thunder")  # Stormcap + any Dewdrop

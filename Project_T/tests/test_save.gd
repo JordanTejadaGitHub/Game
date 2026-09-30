@@ -44,6 +44,7 @@ func _run() -> void:
 	run_state.dew = 500
 	placer.tower_data = load("res://resource/tower/sprout.tres")
 	var cell := _free_cell(map_generator)
+	var sprout_cost := placer.get_cost(placer.tower_data)
 	placer._try_build(cell)
 	main.get_node("%TowerSeller").get_tower_at(cell).set_meta(&"drifts_stood", 7)  # Old Growth
 	main.get_node("%TowerSeller").get_tower_at(cell).set_meta(&"underdog", true)  # Underdog's mark
@@ -87,7 +88,7 @@ func _run() -> void:
 	_check(run_state.creatures_cleansed == saved.cleansed and run_state.obstacles_tended == saved.tended,
 		"Seed counters restored")
 	var tower: Tower = main.get_node("%TowerSeller").get_tower_at(cell)
-	_check(tower != null and tower.tower_data.get_id() == "sprout" and tower.invested_dew == 10, "the Sprout is back")
+	_check(tower != null and tower.tower_data.get_id() == "sprout" and tower.invested_dew == sprout_cost, "the Sprout is back")
 	_check(tower != null and int(tower.get_meta(&"drifts_stood", 0)) == 7, "Old Growth: its drifts stood are kept")
 	_check(tower != null and tower.get_meta(&"underdog", false) == true, "Underdog: its mark is kept")
 	_check(not map_generator.is_buildable(cell), "and it blocks its cell again")
