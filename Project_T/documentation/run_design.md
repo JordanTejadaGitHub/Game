@@ -411,8 +411,8 @@ risk: players set their own difficulty block by block.
     folk omens; it reads at small size). It replaces the placeholder wind swirl on the Face an Omen
     card and is the Omen icon everywhere (active-Omen tag, run history, Codex). **Clear Skies** gets
     the matching calm icon: **the moon alone, with a few stars**, so the two cards balance. Both are
-    32 px pixel art in the UI icon sheet (`assets/ui/icons.png`, ids `omen` and `clear_skies`),
-    drawn larger on the cards (×3, nearest).
+    16×16 pixel art appended to the end of the UI icon sheet (`assets/ui/icons.png` via `tools/ui_icon_generator.gd`, ids `omen` and `clear_skies`, Heartwood 32 palette: Moonlight moon, Gold / Glow rim light),
+    shown at whole-number scales (×2 in tags, ×3 on the cards, nearest).
   - **Card text is bigger:** the body lines on both front cards use the card body size (as on Dream
     cards, ~18 px, not 15), same face and spot on both.
   - **Omen mist:** facing an Omen brings **mist onto the map** for that block. It rolls in when the
