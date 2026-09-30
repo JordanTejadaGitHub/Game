@@ -92,30 +92,35 @@ were too sharp; revised again on 2026-09-30: it sounded like **thunder or lightn
 
 **It must never sound like weather.** Low booms and falling, rumbling noise are the **storm
 vocabulary**, reserved for the light family (Thunderclap, Thunderhead, Stormheart, the Crowned
-Tempest). The dispel is a **voice coming undone**: breath, a ghostly vowel, a reversed swell. It
-lives in the mid range (~250 Hz–1.5 kHz) with **no sub or low boom** and **no downward noise sweeps**.
+Tempest). It lives in the mid range (~250 Hz–2.5 kHz) with **no sub or low boom** and **no downward
+noise sweeps**.
 
-**Releasing a soul** (fifth listen, 2026-09-30: "should sound like releasing a soul"). Every
-nightmare is a dream the Hollow twisted; dispelling it **sets that dream free**, and its motes drift
-up (story.md). The sound is one arc: **cold → warm, held → rising, one voice becoming air.** About
-1 s in total, but the last half is very quiet, so it never crowds the mix.
+**A soft burst of light, releasing a soul** (sixth listen, 2026-09-30). The fifth listen asked for
+"releasing a soul"; the sung-vowel version **sounded like talking**, so there is **no voice at all**:
+no vowels, no formants, no sighs, no pitch glides (vowel changes and glides are what make a sound
+read as speech). Every nightmare is a dream the Hollow twisted; dispelling it sets that dream free
+and its motes drift up (story.md). The sound is that **light opening and drifting away**: soothing,
+airy, warm. About 0.8 s, the second half very quiet.
 
-1. **Last breath** (cold, ~0.2 s): the nightmare's cold breath going out: a short, **voiced** exhale
-   (a ghostly "haah", slightly detuned, lowpassed near 1.5 kHz), pitched by size. Unsettling, not a scream.
-2. **Unbinding** (~0.15 s): the shadow letting go: a **short reversed swell**, like a breath pulled
-   *in* backwards, cut off softly. Nothing falling, nothing booming.
-3. **Rising** (warm, the heart of it, ~0.6–0.8 s): the freed soul floating up. A single soft,
-   warm **sung vowel** ("ooh" turning to "ahh") that **glides gently upward once** (about a fourth,
-   landing on a note of the D chord) while its filter opens and it **thins into air**, with a faint,
-   lowpassed breath of motes around it (no sparkle, no tinkle). It starts where the cold sigh ends,
-   so you hear the cold voice turn warm and leave. **No bell or chime**, and no hum sitting still.
+- **Material: tuned air.** Soft breathy noise shaped by narrow resonances tuned to the notes of the
+  D chord (D, F#, A), so it glows with a pitch without being a tone, a bell or a voice. Think of a
+  warm, breathy pad or light through mist, not an instrument.
+- **Shape:** a gentle **gathering** (a soft reversed swell of that tuned air, ~0.15 s, the shadow
+  letting go) → the **bloom** (the tuned air opening wide and warm: filter opening, a slight stereo
+  spread) → it **drifts away** (thins out and fades over ~0.5 s). Soft onset, no transient, no pitch
+  movement.
+- **Cold to warm, without a voice:** the first ~0.1 s of the gathering is slightly out of tune and
+  darker; it settles into the warm chord as it blooms. That's the soul turning from nightmare to dream.
+- **Not the Firefly Jar:** the light family's hit is a short *fwump* with low body; the dispel has
+  **no low body**, is tuned, airy and wider, and lasts longer.
+- **Never:** a bell, chime, tinkle or sparkle; a voice; a sweep; a boom.
 
-- **Many at once:** each dispel's glide is its own small rise and never steps up across dispels (no
-  climbing combo). Overlapping dispels become a **soft chorus of rising voices**, voice-limited and
-  quieter each, which should sound beautiful, not busy.
-- **Deeply Blighted:** a slower, deeper last breath and **two voices** rising (a fifth apart).
-- **Bosses:** the stolen memory set free: the boss's own dispel, then a **full warm choir** rising
-  and opening into the Memory moment (the boss dispel is where the Heartwood gets a memory back).
+- **Many at once:** they blend into **one wider, warmer glow** (voice-limited, each quieter), never
+  stepping up in pitch (no climbing combo).
+- **Deeply Blighted:** a slower gathering and a fuller bloom (more resonances, the chord a little lower).
+- **Bosses:** the stolen memory set free: the boss's own dispel, then a **large, slow bloom of
+  light** (the tuned air across the whole chord, several seconds) opening into the Memory moment.
+  Still no voice or choir.
 - **Its opposite is the leaf lost** (the dream being taken): keep that one falling, cold and hollow,
   so the two read as a pair.
 
@@ -571,6 +576,13 @@ rustles hurt the ear.
 | Problem | Cause in the placeholder | Change |
 |---|---|---|
 | The dispel sounds like thunder | a falling band of noise (the sigh) + a falling low tone 200→100 Hz with a noise swell (the "whumpf") + a release with another falling noise sweep = the recipe for distant thunder; plus a 4 dB music duck on every kill, pumping like a thunderclap; and it shares the low whumpf + rumble with Thunderclap | dispel = voiced sigh + **reversed "unravel" swell** + a warm hum; mid range only, no sub, no downward noise sweeps; no duck on normal dispels; storm sounds (booms, rumbles) reserved for the light family |
+
+**Fifth and sixth listens (2026-09-30):** the dispel should sound like "releasing a soul" (fifth); the
+sung-vowel version "sounds like they're talking; maybe a burst of light, but more soothing" (sixth).
+
+| Problem | Cause | Change |
+|---|---|---|
+| The dispel sounds like talking | a voiced "haah" sigh + a sung vowel changing "ooh" → "ahh" and gliding up: vowel changes + pitch glides = speech | **no voice at all**: a soft burst of tuned air (breathy noise through resonances on D, F#, A) gathering, blooming and drifting away; cold-to-warm by settling into tune; bosses a big slow bloom, no choir |
 
 Open question: whether every attack keeps a launch sound, or only the slower, heavier Wardens
 (Pebbling, Rootling) do and the fast ones are hit-only. Default: all keep it, very quiet (mostly air).
