@@ -19,6 +19,41 @@ points.
   Conductive Soil, Charged Bloom, Chain Bloom and Spore Cascade only **amplify** a combo or **add a
   new twist**. Any new card must follow this.
 
+## Dreams must matter (2026-09-30)
+
+User: *"cards aren't impactful enough to a run; I can play and beat it without choosing optimal
+cards."* (Their drift-100 win was an all-families Sprout swarm.) Two problems, both to fix:
+the **base game is strong enough without Dreams**, and **many cards are small** (+8%, +10% attack
+speed, −4 Dew) so a wrong pick costs little.
+
+**Targets** (Balanced bot and the run history, same Grove level):
+
+| Dream choices | Where the run should end |
+|---|---|
+| **Let it pass every time** | act 2 (drift ~35–45) |
+| **Random card every time** | act 3 (~55–70) |
+| **Sensible picks** (Balanced bot) | act 3–4, wins sometimes |
+| **A build that comes together** (tags stacked, combos, Entwined) | wins |
+
+By act 3, **Dreams should be about half of a run's damage** (measured: damage with vs without the
+taken cards' bonuses, `DamageLog`).
+
+**Step 1, measure (now):** the same seeds with the three policies above (skip all / random / Balanced)
+to 100, Fresh and Full, all families on and off. If "skip all" lands near Balanced, cards don't
+matter, confirmed.
+
+**Step 2, levers** (chosen after step 1; recommendation in order):
+1. **Fewer, bigger cards.** Cut or merge Commons under ~15% of a Warden's power; a Common is +20–30%
+   to its target or a clear rule. Rares change how you build (rule-changers, Entwined), Legendaries
+   define the run. Every card gets a **power budget** by rarity, checked in the sim.
+2. **Move power from the base into the Dreams.** Raise nightmare health from act 2 on while cards grow
+   to match, so a run without Dreams falls where the table says, and a run with good ones doesn't
+   get harder.
+3. **Builds pay off:** a card's value grows with the cards of its tag you already own (e.g. every
+   2nd card of a tag adds a small bonus to all of them), so committing beats picking the biggest
+   number.
+4. **"Let it pass" pays less** (+15 Dew → +10, 0 from act 3), so skipping isn't a free fallback.
+
 ## Where Warden families come from (not Dreams)
 
 - **After drift 1:** pick 1 of 3 base Wardens, drawn **at random from every family you've
