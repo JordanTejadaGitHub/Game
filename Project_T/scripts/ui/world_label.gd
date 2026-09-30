@@ -22,7 +22,7 @@ static func text_scale(canvas: CanvasItem) -> float:
 		_lookup_frame = frame
 		_camera = canvas.get_viewport().get_camera_2d()
 		var root := canvas.get_tree().root
-		_ui = root.content_scale_factor if root.content_scale_factor > 0.0 else 1.0
+		_ui = UiStyle.ui_factor(root)  # The total UI scale (canvas_items stretch × the share)
 	if _camera == null:
 		return 1.0
 	return _ui / maxf(_camera.zoom.x * _ui, 1.0)
