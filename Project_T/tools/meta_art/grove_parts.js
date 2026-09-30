@@ -29,7 +29,7 @@ function bud(L, cx, cy, sec, swell = 0, lit = false) {
 }
 function haloOut(out, cx, cy, r, sec, a) {
   const [R, G, B] = SECTION[sec].glow.split(",").map(Number);
-  ellipse(out, cx, cy, r, r, (x, y, dx, dy) => [R, G, B, Math.round(255 * a * Math.max(0, 1 - Math.hypot(dx, dy)) ** 1.5)]);
+  ellipse(out, cx, cy, r, r, (x, y, dx, dy) => { const q = Math.hypot(dx, dy); return [R, G, B, Math.round(255 * a * (q < .45 ? .75 : q < .72 ? .4 : .15))]; });  // banded: 3 alpha steps, never a soft blur
 }
 // One node sprite. state: "locked" | "afford" (f 0-3) | "open" (f 0-3) | "bloom" (f 0-1). size 32 or 48 (Legendary).
 function nodeSprite(sec, state, f, big = false) {

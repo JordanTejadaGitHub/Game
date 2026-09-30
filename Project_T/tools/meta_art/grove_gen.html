@@ -657,9 +657,10 @@ function groveTree() {
     if (n > .45) for (let d = 0; d < 1 + Math.floor((n - .45) * 8); d++) if (L.alpha(x, y + d)) M.set(x, y + d, LEAFG[Math.min(4, 2 + d % 3)]);
   }
   out.stamp(L, HB6[0]);
-  // Moonlight rims the tree's upper-right edges (the moon is up and to the right).
+  // A 1 px warm gold rim on the upper-left edges (art_direction.md: light from the upper left, warm
+  // gold rim on Wardens and the Heartwood), matching the map Heartwood.
   for (let y = 1; y < GH - 1; y++) for (let x = 1; x < GW - 1; x++)
-    if (L.alpha(x, y) && !L.alpha(x + 1, y - 1) && L.alpha(x - 1, y + 1)) out.set(x, y, hash(x, y, 5) < .7 ? "#8a8ea8" : "#6a6a88");
+    if (L.alpha(x, y) && !L.alpha(x - 1, y - 1) && L.alpha(x + 1, y + 1)) out.set(x, y, hash(x, y, 5) < .7 ? HW.Gold : HW.Oak);
   out.put(M);
   // Bark knots on the trunk and limb bases.
   for (const [x, y, r] of [[618, 700, 6], [664, 836, 5], [610, 870, 4], [588, 612, 4], [700, 612, 4], [646, 520, 4], [470, 574, 4], [900, 540, 4]]) {
@@ -716,11 +717,12 @@ function groveTree() {
 function hollow(img, cx, by) {
   const y0 = by - 68, halfW = y => { const k = clamp((y - y0) / 24, 0, 1); return (15.5 * Math.sqrt(k) + (y > by - 20 ? (y - (by - 20)) * .08 : 0)) + (pnoise(0, y, 6, 991) - .5) * 2.4; };
   const inOpen = (x, y, g = 0) => y >= y0 - g && y <= by && Math.abs(x + .5 - cx - (y - by) * .06) <= halfW(y + g * .3) + g;
-  for (let y = by - 140; y < by + 40; y++) for (let x = cx - 90; x < cx + 90; x++) {
-    const r = Math.hypot((x - cx) / 90, (y - (by - 34)) / 110); if (r >= 1 || !img.alpha(x, y) || inOpen(x, y, 7)) continue;
-    img.set(x, y, CA("#ffb060", .3 * (1 - r) ** 1.6));
+  // A narrow banded halo just outside the lip (1-2 px steps, never a soft blur).
+  for (let y = by - 90; y < by + 4; y++) for (let x = cx - 30; x < cx + 30; x++) {
+    if (!img.alpha(x, y) || inOpen(x, y, 7)) continue;
+    if (inOpen(x, y, 9)) img.set(x, y, CA(HW.Glow, .3)); else if (inOpen(x, y, 11)) img.set(x, y, CA(HW.Glow, .14));
   }
-  ellipse(img, cx + 2, by + 8, 38, 9, (x, y, dx, dy) => CA("#ffc070", .28 * (1 - Math.hypot(dx, dy))));
+  ellipse(img, cx + 2, by + 6, 24, 6, (x, y, dx, dy) => CA(HW.Glow, Math.hypot(dx, dy) < .6 ? .22 : .1));  // banded pool of light
   for (const k of [10, 15, 21]) for (let y = y0 - k - 8; y <= by; y++) for (let x = cx - 50; x <= cx + 50; x++) {
     const q = Math.hypot((x + .5 - cx) / (17 + k), Math.min(0, y - (by - 34)) / (36 + k)), q2 = Math.hypot((x + .5 - cx) / (18 + k), Math.min(0, y - (by - 34)) / (37 + k));
     if (!img.alpha(x, y) || q <= 1 || q2 > 1 || inOpen(x, y, 7) || pnoise(x, y, 5, 992 + k) > .62) continue;
@@ -1199,7 +1201,7 @@ function bud(L, cx, cy, sec, swell = 0, lit = false) {
 }
 function haloOut(out, cx, cy, r, sec, a) {
   const [R, G, B] = SECTION[sec].glow.split(",").map(Number);
-  ellipse(out, cx, cy, r, r, (x, y, dx, dy) => [R, G, B, Math.round(255 * a * Math.max(0, 1 - Math.hypot(dx, dy)) ** 1.5)]);
+  ellipse(out, cx, cy, r, r, (x, y, dx, dy) => { const q = Math.hypot(dx, dy); return [R, G, B, Math.round(255 * a * (q < .45 ? .75 : q < .72 ? .4 : .15))]; });  // banded: 3 alpha steps, never a soft blur
 }
 // One node sprite. state: "locked" | "afford" (f 0-3) | "open" (f 0-3) | "bloom" (f 0-1). size 32 or 48 (Legendary).
 function nodeSprite(sec, state, f, big = false) {
