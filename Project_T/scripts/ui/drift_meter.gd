@@ -240,6 +240,8 @@ func _fit() -> void:
 	# (header, tabs, rows, "and N more") moves up into the room above, down to TOP_LIMIT; if it still
 	# doesn't fit, it lists fewer Warden rows (the rest go into "and N more").
 	var height := get_combined_minimum_size().y
+	if get_viewport_rect().size.y < UiStyle.LAYOUT_MIN.y * 0.5:
+		return  # No real screen (headless stand-in window): nothing to fit into
 	if top + height > bottom:
 		var highest := TOP_LIMIT
 		if info != null and info.visible:
