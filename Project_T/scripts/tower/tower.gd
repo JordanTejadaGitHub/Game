@@ -838,14 +838,20 @@ func get_crit_chance(enemy: Node2D = null) -> float:
 
 # Crit chance before the 100% cap (Full Moon turns what's above 100% into crit damage).
 func get_raw_crit_chance(enemy: Node2D = null) -> float:
-	var chance := attack_data.crit_chance + _aura_crit
-	if _dream_state and _dream_state.has_method("get_rank_crit_bonus"):
-		chance += _dream_state.get_rank_crit_bonus() * get_effective_rank()  # The Old Ones
+	# Performance: the part that doesn't depend on the nightmare rides the stat cache (asked every hit).
+	var cached: Array = _stats.get(&"crit_base", []) if _stats_fresh() else []
+	var chance := -1.0
+	if not cached.is_empty() and cached[1] == attack_data.crit_chance:
+		chance = cached[0]
+	else:
+		chance = attack_data.crit_chance + _aura_crit + 0.1 * kin_share(&"hammer_and_anvil", "a")  # Hammer and Anvil: the sniper's eye
+		if _dream_state and _dream_state.has_method("get_rank_crit_bonus"):
+			chance += _dream_state.get_rank_crit_bonus() * get_effective_rank()  # The Old Ones
+		_stats[&"crit_base"] = [chance, attack_data.crit_chance]  # (the data's own chance too: tests change it in place)
 	if _dream_state and _dream_state.has_method("get_crit_chance_bonus"):
 		chance += _dream_state.get_crit_chance_bonus(self, enemy)  # Still Target, Starlit Aim, Full Moon…
 	if enemy != null and enemy.statuses.is_held():
 		chance += attack_data.crit_bonus_vs_held
-	chance += 0.1 * kin_share(&"hammer_and_anvil", "a")  # Hammer and Anvil: the sniper's eye
 	return chance
 
 # Range in cells for `data` including Dreams (shared with the build ghost).
@@ -1778,9 +1784,15 @@ func _apply_one_status(enemy: Node2D, status: StringName, stacks: int, soothe: f
 	var duration := attack_data.status_duration
 	var max_stacks := attack_data.status_max_stacks
 	if _dream_state:
-		potency *= _dream_state.get_status_strength_multiplier(status)
-		duration = _dream_state.get_status_duration(attack_data, status)
-		max_stacks = _dream_state.get_status_max_stacks(attack_data, status)
+		# Performance: the Dreams' status numbers ride the stat cache (they change with cards and the board).
+		var cached: Array = _stats.get(status, []) if _stats_fresh() else []
+		if cached.is_empty() or cached[3] != attack_data.status_duration or cached[4] != attack_data.status_max_stacks:
+			cached = [_dream_state.get_status_strength_multiplier(status), _dream_state.get_status_duration(attack_data, status),
+				_dream_state.get_status_max_stacks(attack_data, status), attack_data.status_duration, attack_data.status_max_stacks]
+			_stats[status] = cached
+		potency *= cached[0]
+		duration = cached[1]
+		max_stacks = cached[2]
 	var deep := get_status_focus_multiplier()  # Deep Focus: stronger and longer
 	if deep != 1.0:
 		if duration <= 0.0:
