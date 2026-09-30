@@ -519,6 +519,15 @@ From a user playtest with screenshots; each line is the rule going forward.
     Rooted"), and for a 2×2 Ascended form the valid squares show as ghosts.
   - Leaving the button restores the map. **Touch:** the first tap on a Grow button shows the preview
     with a "Grow · 80 Dew" confirm; the second tap grows. For a group, every selected Warden shows it.
+- **No "No kin" line** (2026-09-30, user): the Warden panel shows a Kinship line **only when the
+  Warden has kin** ("Kin: Mossback · Hammer and Anvil · Blooming"). The "No kin. A Mossback within 2
+  cells would form…" hint is removed (kin spots while placing stay).
+- **Every combat callout word is in the glossary** (user: "been seeing 'Shattered' but don't know
+  what it means; it's not in the glossary"). Each callout (**Shattered!, Conducted!, Popped!, Asleep!,
+  Weak!, Resisted, Crit**, Reaction names, "Chain N") has a glossary entry with one plain line
+  (e.g. *"Shattered: a heavy hit on a Frozen or Rooted nightmare breaks it for bonus damage (the
+  Shatter combo)."*) linking to its Codex combo entry. The glossary entry appears once you've seen
+  the callout (it names a discovered combo, so it doesn't spoil "???").
 - **Selected vs hovered, everywhere** (2026-09-30, user): a **selected / active** control (the chosen
   targeting mode, the open tab, the current speed, a toggled option, the selected Warden's frame)
   shows only a **gold border** (and gold text), no fill. **Hovering** fills the **whole box** with the
