@@ -4,11 +4,12 @@
 
 [resource]
 script = ExtResource("1_card")
-id = "tender_care"
-display_name = "Tender Care"
-description = "Every Warden's first Nurture rank is free."
-rarity = 0
+id = "tender_care_ii"
+display_name = "Tender Care II"
+description = "Every Warden's first Nurture rank is free, and ranks II–V cost 20% less."
+rarity = 1
 kind = 4
 tags = Array[String](["nurture", "tall"])
 max_stacks = 1
+deepens = "tender_care"
 rule_id = &"tender_care"
