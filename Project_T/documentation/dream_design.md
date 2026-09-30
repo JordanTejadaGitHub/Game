@@ -1212,6 +1212,26 @@ card builds sit at **40–66%**; Emergence (mixed) 66%, Adapt 93–94%. Round 5 
    judged at drift 50 (≥ 60% mixed).
 3. `tag_weight` stays **1.3**.
 
+**Round 5 measured (a399d702) — the pass ends here.** At 1.3, all 8 card builds reach their target on
+at least one measure:
+
+| Card build | 3+ by 75 (35–65) | 5+ by 100 (25–50) |
+|---|---|---|
+| Tall | 40 ✓ | 10 ✗ |
+| Overgrowth | 58 ✓ | 29 ✓ |
+| Daring | 61 ✓ | 26 ✓ |
+| Precision | 66 (edge) | 32 ✓ |
+| Affliction | 73 (a bit high) | 30 ✓ |
+| Maze | 70 (a bit high) | 31 ✓ |
+| Tending | 73 (a bit high) | 38 ✓ |
+| Kinship | 51 ✓ | 13 ✗ |
+
+Emergence (mixed) **69%** ✓, random 21%; Adapt **94%** ✓; own-family 12%. **Open:** Tall and Kinship
+are short at 5+ by 100 (both board-heavy, no stacking card: a card change if wanted, not weighting);
+the three-family Warden builds (Full Moon, Gale, Hairpin Mill, Rockfall, Thunder Chimes, The Grove)
+stay rare by nature; overall power after the free-branch change belongs to the balance sim
+(`balance_simulation.md`), not to Dream weighting.
+
 ## Status effect numbers
 
 Status strength **scales with the Warden that applies it** (a % of its soothe), so statuses keep
