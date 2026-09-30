@@ -58,16 +58,19 @@ func _init() -> void:
 	_trunk_layer(46, 0.58, Vector2(2.0, 5.0), 290.0, 1, 96.0)   # far trees, ghostly in the fog (none over the Heartwood)
 	_mist(210, 290, 0.62)
 	_titan()
+	_islets()
 	_mist(246, 292, 0.58)
 	_trunk_layer(20, 0.38, Vector2(4.0, 8.0), 292.0, 2, 128.0)  # nearer trees round the Warden
 	_mist(262, 292, 0.5)
 	_trunk_layer(9, 0.18, Vector2(7.0, 12.0), 294.0, 3, 150.0)  # dark trees, closer still
 	_water()
 	_mist(288, 302, 0.45)
-	_watchers()
+	_lilies()
 	_banks()
+	_glow_shrooms()
 	_figure()
 	_frame_trees()
+	_motes()
 	_fireflies()
 	Palette.snap_image(img)
 
@@ -319,19 +322,7 @@ func _trunk_layer(count: int, value: float, widths: Vector2, foot_y: float, salt
 						put(mx, int(p.y) + 2 + d, pick(FOG, value + 0.02, mx, int(p.y) + 2 + d))
 
 
-# --- watchers and mist ---------------------------------------------------------------------------
-
-func _watchers() -> void:
-	# Two pairs of faint eyes in the darkest trees behind the Shade: more of them, waiting.
-	for e in [Vector3(98, 250, 0), Vector3(164, 272, 1)]:
-		var p := Vector2(e.x, e.y)
-		glow(p, 7.0, col("wraithlight"), 0.35)
-		var c := col("moonlight")
-		for dx in [-3, -2, 2, 3]:
-			put(int(p.x) + dx, int(p.y), c)
-		put(int(p.x) - 3, int(p.y) - 1, col("shade"))
-		put(int(p.x) + 3, int(p.y) - 1, col("shade"))
-
+# --- mist -------------------------------------------------------------------------------------------
 
 func _mist(y0: int, y1: int, value: float) -> void:
 	# A drifting fog band, as dithered palette pixels (a blend would snap to muddy colours).
@@ -607,89 +598,151 @@ func _root_arch(a: Vector2, c: Vector2, b: Vector2, r0: float, r1: float) -> voi
 				put(x, y, col("slate") if lit else (col("night") if grain.get_noise_2d(x * 2.0, y * 2.0) > 0.3 else col("void")))
 
 
-# Shades, hunched, heads pushed forward toward the Warden (to the right), a thin clawed arm reaching.
-# O dread outline, S shade body, B violet rim (toward the light), E pale eyes. Rows are padded.
-const SHADE_BIG := [
-	"............OOOO",
-	"..........OOSSSSOB",
-	".........OSSSSSSSBO",
-	".........OSSEESEESBO",
-	"....OOOO.OSSSSSSSSO",
-	"..OOSSSSOOSSSSSSSO",
-	".OSSSSSSSSSSSSSSSBO",
-	"OSSSSSSSSSSSSSSSSSBO",
-	"OSSSSSSSSSSSSSSSSSSOO",
-	"OSSSSSSSSSSSSSSSSSSSSO",
-	".OSSSSSSSSSSSSSO.OSSSSO",
-	".OSSSSSSSSSSSSO....OSSO",
-	"..OSSSSSSSSSSO......OO.O",
-	"..OSS.SSSS.SSO",
-	"..SS...SS...SS",
-	"...S....S....S",
-]
-const SHADE_SMALL := [
-	"........OOO",
-	".......OSSSOB",
-	"......OSEESEEO",
-	"...OOOOSSSSSO",
-	".OOSSSSSSSSSBO",
-	"OSSSSSSSSSSSSBO",
-	"OSSSSSSSSSSSSSOO",
-	".OSSSSSSSSSO.OSSO",
-	".OSSSSSSSSO...OO",
-	"..SS.SSS.S",
-	"..S...S...S",
-]
-
-
 func _figure() -> void:
-	# Shades (enemy_design.md: "a small hunched shadow with two pinprick eyes") creeping over the water
-	# toward the Warden, dark against the pale mist line where they read best.
-	_shade(Vector2i(338, 306), SHADE_BIG, false)
-	_shade(Vector2i(300, 302), SHADE_SMALL, false)
-	_shade(Vector2i(378, 300), SHADE_SMALL, false)
+	# The nightmares are the game's own sprites (assets/creatures/, frame 0), so they look exactly like
+	# the nightmares in play. They stand on the banks and roots, turned toward the Warden; only the
+	# will-o'-wisp floats, as it does in the game. Further ones sink a little into the fog.
+	_sprite("leaf_bug", Vector2i(0, 0), Vector2i(282, 340), true, 0.0)      # a Shade on the front bank
+	_sprite("leaf_bug", Vector2i(0, 0), Vector2i(236, 346), true, 0.0)
+	_sprite("gravecrawler", Vector2i(0, 0), Vector2i(560, 334), true, 0.0)  # crawling off the right bank
+	_sprite("weeper", Vector2i(0, 1), Vector2i(84, 322), false, 0.15)       # on the left bank, weeping
+	_sprite("watcher", Vector2i(0, 0), Vector2i(186, 302), false, 0.35)     # half in the fog, all eyes
+	_sprite("will_o_wisp", Vector2i(0, 0), Vector2i(360, 290), true, 0.0)   # drifting toward the light
 
 
-func _shade(foot: Vector2i, shape: Array, flip: bool) -> void:
-	# Cold only (art_direction.md): a dark body, a violet rim toward the light, pale eyes in a cold
-	# glow, a ragged smoky lower edge. A pale patch of mist behind it so the shape reads.
-	var w := 0
-	for line: String in shape:
-		w = maxi(w, line.length())
-	var ox := foot.x - w / 2
-	var oy := foot.y - shape.size()
-	var r := float(w) * 0.75
-	for y in range(-int(r), 3):
-		for x in range(-int(r), int(r) + 1):
-			if Vector2(x, y * 1.3).length() < r and bayer(foot.x + x, oy + shape.size() / 2 + y) < 0.5:
-				put(foot.x + x, oy + shape.size() / 2 + y, col("slate"))
-	for y in range(-3, 4):  # cold mist curling round its base
-		for x in range(-w, w + 1):
-			var a := 1.0 - Vector2(x / float(w), y / 3.5).length() + noise.get_noise_2d(x * 3.0, y * 5.0) * 0.4
-			if a > 0.3 and (x + y) % 2 == 0:
-				put(foot.x + x, foot.y + y, col("bruise"))
-			elif a > 0.05 and bayer(foot.x + x, foot.y + y) < 0.25:
-				put(foot.x + x, foot.y + y, col("shade"))
-	var key := {"O": "dread", "S": "shade", "B": "wraithlight", "E": "moonlight"}
-	for row in shape.size():  # the eyes' cold glow first, so the body is drawn crisp over it
-		var line: String = shape[row]
-		for i in line.length():
-			if line[i] == "E":
-				glow(Vector2(ox + (w - 1 - i if flip else i), oy + row), 5.0, col("wraithlight"), 0.3)
-	for row in shape.size():
-		var line: String = shape[row]
-		for i in line.length():
-			var ch := line[i]
-			if ch == ".":
+func _sprite(sheet: String, frame: Vector2i, foot: Vector2i, flip: bool, fog: float) -> void:
+	# Blits one 64×64 frame with its lowest opaque pixel on `foot`: a soft contact shadow first,
+	# opaque pixels only (the sheet's soft ground shadow is left out), dithered into the fog by `fog`.
+	var src := Image.load_from_file(ProjectSettings.globalize_path("res://assets/creatures/%s.png" % sheet))
+	var cell := src.get_region(Rect2i(frame * 64, Vector2i(64, 64)))
+	var bottom := 0
+	var left := 64
+	var right := 0
+	for y in 64:
+		for x in 64:
+			if cell.get_pixel(x, y).a > 0.6:
+				bottom = maxi(bottom, y)
+				left = mini(left, x)
+				right = maxi(right, x)
+	var cx := (left + right) / 2
+	for x in range(-(right - left) / 2 - 2, (right - left) / 2 + 3):
+		if (x + foot.y) % 2 == 0 or absi(x) < (right - left) / 3:
+			put(foot.x + x, foot.y + 1, col("void"))
+	for y in 64:
+		for x in 64:
+			var c := cell.get_pixel(x, y)
+			if c.a <= 0.6:
 				continue
-			var c := col(key[ch])
-			if row >= shape.size() - 3 and bayer(ox + i, oy + row) < 0.5:
-				c = col("bruise")  # the smoky, fraying bottom
-			put(ox + (w - 1 - i if flip else i), oy + row, c)
-	for k in 8:  # wisps of smoke rising off it
-		put(ox + 3 + int(sin(k * 0.8) * 1.5), oy - 1 - k, col("shade") if k < 5 else col("bruise"))
-		if k % 3 == 0:
-			put(ox + w / 2 + int(sin(k * 0.6 + 2.0)), oy - 2 - k, col("shade"))
+			var px := foot.x + ((cx - x) if flip else (x - cx))
+			var py := foot.y - (bottom - y)
+			c.a = 1.0
+			if fog > 0.0 and bayer(px, py) < fog:
+				c = pick(FOG, 0.34, px, py)
+			put(px, py, c)
+
+
+# --- dreamlike touches ---------------------------------------------------------------------------
+
+func _islets() -> void:
+	# Small islands of moss and rock floating in the fog, trailing roots (like the dream-map's islands
+	# adrift in their void). Fogged by distance like the trees.
+	for isl: Vector4 in [Vector4(246, 134, 30, 0.2), Vector4(324, 70, 12, 0.5), Vector4(588, 108, 16, 0.45)]:
+		var c := Vector2(isl.x, isl.y)
+		var w := isl.z
+		var fog := isl.w
+		for y in range(int(c.y) - 3, int(c.y + w * 0.9) + 1):
+			var t := (y - c.y) / (w * 0.9)  # 0 at the top .. 1 at the point underneath
+			var half := w * (1.0 - maxf(t, 0.0)) * (1.0 + noise.get_noise_1d(y * 2.0 + c.x) * 0.2)
+			for x in range(int(c.x - half), int(c.x + half) + 1):
+				var col_c: Color
+				if y < c.y:
+					col_c = pick(MOSS, 0.3 + (0.3 if x > c.x else 0.0), x, y)  # the grassy top
+				else:
+					var v := 0.3 - t * 0.15 + (0.06 if grain.get_noise_2d(x * 3.0, y * 3.0) > 0.3 else 0.0)
+					col_c = pick(["night", "root", "bark", "loam"], v + 0.2, x, y)
+				if bayer(x, y) < fog:
+					col_c = pick(FOG, 0.46, x, y)
+				put(x, y, col_c)
+		for k in int(w * 0.6):  # roots dangling from the underside
+			var rx := int(c.x - w * 0.5 + hash01(k, int(c.x)) * w)
+			var length := int(4.0 + hash01(k, int(c.y)) * w * 0.8)
+			for d in length:
+				var yy := int(c.y + w * 0.9 * (1.0 - absf(rx - c.x) / w)) + d
+				put(rx + int(sin(d * 0.4 + k) * 0.8), yy, pick(FOG, 0.3 + fog * 0.2, rx, yy))
+		for g in 3:  # a few glowing blossoms on top
+			var gx := int(c.x - w * 0.6 + hash01(g, int(c.x) + 5) * w * 1.2)
+			put(gx, int(c.y) - 2, col("dewlight") if g % 2 else col("blossom"))
+			glow(Vector2(gx, c.y - 2), 3.0, col("dewlight"), 0.25)
+
+
+func _lilies() -> void:
+	# Lily pads on the still water, some holding a softly glowing bloom.
+	var r := RandomNumberGenerator.new()
+	r.seed = 2112
+	for i in 26:
+		var p := Vector2(r.randf_range(150.0, 620.0), r.randf_range(300.0, 352.0))
+		var near := (p.y - WATER_Y) / (H - WATER_Y)
+		var rw := 3.0 + near * 6.0
+		for y in range(int(p.y - rw * 0.35) - 1, int(p.y + rw * 0.35) + 2):
+			for x in range(int(p.x - rw), int(p.x + rw) + 1):
+				var q := Vector2((x - p.x) / rw, (y - p.y) / (rw * 0.35))
+				if q.length() > 1.0 or (q.x > 0.2 and absf(q.y) < 0.25):  # the notch
+					continue
+				put(x, y, pick(MOSS, 0.2 + (0.35 if q.y < -0.3 else 0.0), x, y))  # lit along the far edge
+		if r.randf() < 0.45:
+			var bloom := Vector2i(int(p.x - rw * 0.3), int(p.y - 1))
+			glow(Vector2(bloom), 5.0 + near * 3.0, col("blossom"), 0.22)
+			put(bloom.x, bloom.y, col("heartlight"))
+			put(bloom.x - 1, bloom.y, col("blossom"))
+			put(bloom.x + 1, bloom.y, col("blossom"))
+			put(bloom.x, bloom.y - 1, col("blossom"))
+
+
+func _glow_shrooms() -> void:
+	# Clusters of luminous mushrooms on the banks and the frame roots, pale blue and soft pink.
+	for cl: Vector3 in [Vector3(58, 312, 0), Vector3(128, 318, 1), Vector3(206, 338, 0), Vector3(318, 334, 1),
+			Vector3(520, 326, 0), Vector3(604, 318, 1), Vector3(160, 296, 0), Vector3(424, 300, 1)]:
+		var cap := "dewlight" if cl.z < 0.5 else "blossom"
+		var dark := "dew" if cl.z < 0.5 else "orchid"
+		glow(Vector2(cl.x, cl.y - 3), 9.0, col(cap), 0.22)
+		for m in 3:  # one big cap and two small ones: rounded domes on short pale stems
+			var size := 3 if m == 0 else 2
+			var offsets: Array[int] = [0, -5, 5]
+			var mx: int = int(cl.x) + offsets[m] + int(hash01(m, int(cl.x)) * 2.0)
+			var h := size + 1 + int(hash01(m, int(cl.y)) * 2.0)
+			for k in h:
+				put(mx, int(cl.y) - k, col("mist"))
+			var top := int(cl.y) - h
+			for x in range(-size, size + 1):
+				put(mx + x, top, col(dark))  # the dark gill line under the cap
+				if absi(x) < size:
+					put(mx + x, top - 1, col(cap))
+				if absi(x) < size - 1 or size == 2 and x == 0:
+					put(mx + x, top - 2, col("heartlight") if x <= 0 else col(cap))
+
+
+func _motes() -> void:
+	# Dream motes drifting up through the fog, and faint four-point sparkles.
+	var r := RandomNumberGenerator.new()
+	r.seed = 4040
+	for i in 90:
+		var p := Vector2(r.randf_range(160.0, 630.0), r.randf_range(30.0, 330.0))
+		var kind := i % 3
+		var c := col("dewlight") if kind == 0 else (col("blossom") if kind == 1 else col("glow"))
+		if i % 5 == 0:
+			glow(p, 3.5, c, 0.3)
+		put(int(p.x), int(p.y), c)
+		if i % 7 == 0:  # a short fading trail below a rising mote
+			put(int(p.x), int(p.y) + 1, col("mist"))
+			put(int(p.x), int(p.y) + 3, col("slate"))
+	for i in 14:
+		var p := Vector2i(r.randi_range(170, 630), r.randi_range(30, 280))
+		put(p.x, p.y, col("heartlight"))
+		for d in [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]:
+			put(p.x + d.x, p.y + d.y, col("mist"))
+		if i % 3 == 0:
+			for d in [Vector2i(2, 0), Vector2i(-2, 0), Vector2i(0, 2), Vector2i(0, -2)]:
+				put(p.x + d.x, p.y + d.y, col("slate"))
 
 
 func _frame_trees() -> void:
