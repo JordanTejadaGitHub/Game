@@ -261,15 +261,15 @@ they do**, not their (tiny) attack:
 | Warden | Each rank (I–V) | At rank V |
 |---|---|---|
 | Elder Stump | its attack-speed bonus ×1.1 | +20% → **+30%** |
-| Acorn | its damage bonus ×1.1 | +5% → +7.5% |
+| Acorn | *(changed after 7996d89: the Acorn keeps **attacker** ranks and the attacker Focus; only Elder Stump and Grove Heart are pure supports)* | — |
 | Grove Heart | its base bonus ×1.1 (the +3% per Warden is unchanged) | +15% → +22.5% |
 | Dewcatcher, Wellspring | +10% catch (above) | +50% more catch |
 
-At **rank III** support Wardens choose a **support Focus** instead of Power / Swift / Reach / Deep:
+At **rank III** support Wardens (Elder Stump, Grove Heart, Dewcatcher, Wellspring) choose a **support Focus** instead of Power / Swift / Reach / Deep:
 
 | Focus | Auras (Acorn, Elder Stump, Grove Heart) | Catchers (Dewcatcher, Wellspring) |
 |---|---|---|
-| **Wide** | aura reach **+1 cell** (Elder Stump / Acorn: the 8 neighbours become everything within 2; Grove Heart radius 3) | catch radius **+1** |
+| **Wide** | aura reach **+1 cell** (Elder Stump: the 8 neighbours become everything within 2; Grove Heart radius 3) | catch radius **+1** |
 | **Strong** | the aura bonus grows a further **+25%** by rank V (on top of the ×1.1 per rank) | catch **+30%** more by rank V |
 | **Kindred** | **ignores the stacking falloff:** always counts 100%, even as the 2nd or 3rd aura of its kind | Wellspring interest **+2%**; Dewcatcher **+4 Dew per drift** |
 
