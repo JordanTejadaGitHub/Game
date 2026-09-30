@@ -500,7 +500,7 @@ accessibility, Steam achievements (milestones map to them). Acts 3–4 and all f
   `tools/ui_theme_generator.gd` saves it to `assets/ui/ui_theme.tres` = project `gui/theme/custom`:
   **re-run it after changing UiStyle**. `MoonStyleBox` (fog + gold thread + diamond; `TopLine` NONE /
   GOLD / FULL, `underline`) is every PanelContainer / tooltip / popup panel; `MoonDivider` = HSeparator.
-  Type variations: `PrimaryButton` (also what toggled buttons look like), `WardenSlot`, `TitleLabel`,
+  Type variations: `PrimaryButton`, `HudButton` / `HudPrimary` (every HUD control: `UiStyle.HUD_BUTTON_H` 48 tall, small caps at `HUD_TEXT_SIZE`; one HUD scale), `WardenSlot` (the same frame, `HUD_SLOT`; the bar wraps into rows below 48 px wide), `TitleLabel`,
   `NumberLabel`, `CapsLabel`, `WhisperLabel`, `FogPatch`. In code: `UiStyle.primary(button)`,
   `title` / `display` / `number` / `caps` / `whisper(label, size)`, `card_button(button, colour)`,
   `panel_in(colour)`, `fog_patch()`, `draw_gem(canvas, centre, r, rarity)`; don't hand-build

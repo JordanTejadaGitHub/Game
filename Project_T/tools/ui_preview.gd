@@ -37,6 +37,13 @@ func _run() -> void:
 		placer.select_tower(buildable[3])
 		main.get_node("HUD")._sync_buttons()
 	await _frames(30)
+	for path in ["HUD/BossDossier", "HUD/NightmareIntro"]:  # They open themselves at some rests
+		var card := main.get_node_or_null(path) as CanvasItem
+		if card != null:
+			card.visible = false
+	for node in get_nodes_in_group(&"boss_dossier"):
+		(node as CanvasItem).visible = false
+	await _frames(5)
 	_save("hud")
 
 	var offer: Array[UpgradeData] = []

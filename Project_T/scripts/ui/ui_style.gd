@@ -43,6 +43,13 @@ const NUMBER_SIZE := 24
 const CARD_NAME_SIZE := 24
 const CHOICE_TITLE_SIZE := 32
 const BUTTON_SIZE := 18
+# One HUD scale (user, 2026-09-30: "the UI looks bigger than the tower bar"): every HUD control is
+# HUD_BUTTON_H tall with HUD_TEXT_SIZE small caps (HudButton / HudPrimary), and the Warden bar slots
+# are the same frame, HUD_SLOT big. The UI scale setting scales them all together.
+const HUD_BUTTON_H := 48.0
+const HUD_TEXT_SIZE := 16
+const HUD_SLOT := Vector2(64, 78)  # A Warden bar slot: 48 px sprite + the cost
+const HUD_SPRITE := 48
 # Tooltips, hover panels and tap popups (screens_ui.md playtest fixes 2026-09-30: "too small"): body
 # ≥16 px, names 18 px, ~1.35 line height, at most ~42 characters wide; scaled by the UI scale like
 # everything else. Small caps only for labels, never sentences.
@@ -276,6 +283,12 @@ static func focus_box() -> StyleBoxFlat:
 	box.set_expand_margin_all(2)
 	return box
 
+# A HUD button's box: the same look, tighter padding.
+static func _compact(box: StyleBox) -> StyleBox:
+	var copy := box.duplicate() as StyleBox
+	_margins(copy, 10.0, 4.0)
+	return copy
+
 static func _margins(box: StyleBox, x: float, y: float) -> void:
 	box.content_margin_left = x
 	box.content_margin_right = x
@@ -443,18 +456,33 @@ static func make_theme() -> Theme:
 			theme.set_stylebox(state, type, empty)
 		_font_colours(theme, type)
 
-	# Warden bar slot: a fog patch; selected = the glowing underline.
+	# Warden bar slot: the same frame as every HUD button (the bar is the hero, not a lesser row);
+	# selected = the gold border, like any selected control.
 	theme.set_type_variation("WardenSlot", "Button")
-	for state in ["normal", "disabled"]:
-		theme.set_stylebox(state, "WardenSlot", slot(false))
-	theme.set_stylebox("hover", "WardenSlot", slot(false, true))
-	for state in ["pressed", "hover_pressed"]:
-		theme.set_stylebox(state, "WardenSlot", slot(true))
+	var slot_boxes := [button_box(), hover_box(), selected_box(), hover_box(true), disabled_box()]
+	for box: StyleBoxFlat in slot_boxes:
+		_margins(box, 4.0, 4.0)
+	for i in 5:
+		theme.set_stylebox(["normal", "hover", "pressed", "hover_pressed", "disabled"][i], "WardenSlot", slot_boxes[i])
 	theme.set_stylebox("focus", "WardenSlot", StyleBoxEmpty.new())
 	theme.set_font("font", "WardenSlot", number_font())
 	theme.set_font_size("font_size", "WardenSlot", 16)
 	for state in ["font_color", "font_hover_color", "font_pressed_color", "font_hover_pressed_color", "font_focus_color"]:
 		theme.set_color(state, "WardenSlot", GOLD)
+
+	# HUD buttons (top-right row, drift controls): compact, HUD_BUTTON_H tall, small caps at
+	# HUD_TEXT_SIZE, the thin frame. HudPrimary is the same size in the call-to-action look (Start).
+	theme.set_type_variation("HudButton", "Button")
+	_button_styles(theme, "HudButton", _compact(button_box()), _compact(hover_box()), _compact(selected_box()),
+		_compact(hover_box(true)))
+	theme.set_type_variation("HudPrimary", "Button")
+	_button_styles(theme, "HudPrimary", _compact(primary_box()), _compact(primary_hover), _compact(primary_press),
+		_compact(primary_hover))
+	for state in ["font_color", "font_hover_color", "font_focus_color"]:
+		theme.set_color(state, "HudPrimary", GOLD_TEXT)
+	for type in ["HudButton", "HudPrimary"]:
+		theme.set_font("font", type, caps_font())
+		theme.set_font_size("font_size", type, HUD_TEXT_SIZE)
 
 	# Tabs (the settings panel).
 	var tab_selected := StyleBoxFlat.new()

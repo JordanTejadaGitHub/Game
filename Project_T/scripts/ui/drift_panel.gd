@@ -5,7 +5,6 @@ extends VBoxContainer
 # call-early button (Enter), the Auto-drift toggle, and pause / 1× / 2× / 3× buttons (Space pauses,
 # Tab cycles speed). The act / drift line is the top-centre DriftBanner.
 
-const BUTTON_FONT_SIZE := 19
 
 @onready var drift_director: DriftDirector = %DriftDirector
 @onready var game_speed: GameSpeed = %GameSpeed
@@ -25,20 +24,23 @@ var _speed_buttons: Array[Button] = []
 
 func _ready() -> void:
 	alignment = BoxContainer.ALIGNMENT_END
+	add_theme_constant_override("separation", 8)  # The status line keeps clear of Start
 	# Status line, with the Remember button (run_design.md "Dreamlight") beside it during rests.
 	var status_row := HBoxContainer.new()
 	add_child(status_row)
 	_remember_button.text = "Remember"
 	_remember_button.tooltip_text = "Spend Dreamlight on branches and final forms of your families."
 	_remember_button.focus_mode = Control.FOCUS_NONE
-	_remember_button.custom_minimum_size = Vector2(0, 40)
+	_remember_button.custom_minimum_size = Vector2(0, UiStyle.HUD_BUTTON_H)
+	_remember_button.theme_type_variation = &"HudButton"
 	_remember_button.pressed.connect(func() -> void: dream_state.open_remember())
 	status_row.add_child(_remember_button)
 	# The Heartwood Sapling (run_design.md): plant it later if it was declined, or place it if taken.
 	_sapling_button.text = "Sapling"
 	_sapling_button.tooltip_text = "Plant the Heartwood Sapling: free, 2×2, rooted; yields Dew after every drift."
 	_sapling_button.focus_mode = Control.FOCUS_NONE
-	_sapling_button.custom_minimum_size = Vector2(0, 40)
+	_sapling_button.custom_minimum_size = Vector2(0, UiStyle.HUD_BUTTON_H)
+	_sapling_button.theme_type_variation = &"HudButton"
 	_sapling_button.visible = false
 	_sapling_button.pressed.connect(plant_sapling)
 	status_row.add_child(_sapling_button)
@@ -51,22 +53,27 @@ func _ready() -> void:
 	_status_label.add_theme_font_size_override("font_size", 15)
 	_status_label.add_theme_color_override("font_color", UiStyle.INK_DIM)
 	status_row.add_child(_status_label)
+	var edge := Control.new()  # A little room between the status text and the panel's right edge
+	edge.custom_minimum_size = Vector2(6, 0)
+	edge.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	status_row.add_child(edge)
 
 	_start_button.focus_mode = Control.FOCUS_NONE
-	_start_button.custom_minimum_size = Vector2(272, 48)
-	_start_button.add_theme_font_size_override("font_size", BUTTON_FONT_SIZE)
-	UiStyle.primary(_start_button)
+	# One HUD scale (ui_style.md): the same height and text as every HUD button, in the primary look.
+	_start_button.custom_minimum_size = Vector2(272, UiStyle.HUD_BUTTON_H)
+	_start_button.theme_type_variation = &"HudPrimary"
 	_start_button.pressed.connect(_on_start_pressed)
 	add_child(_start_button)
 
 	# Kept compact (screens_ui.md principle 5): Auto-drift shares the speed row.
 	var speed_row := HBoxContainer.new()
 	speed_row.alignment = BoxContainer.ALIGNMENT_END
-	speed_row.add_theme_constant_override("separation", 2)
+	speed_row.add_theme_constant_override("separation", 6)
 	add_child(speed_row)
 	_auto_toggle.text = "Auto"
 	_auto_toggle.toggle_mode = true
-	_auto_toggle.custom_minimum_size = Vector2(64, 40)
+	_auto_toggle.custom_minimum_size = Vector2(64, UiStyle.HUD_BUTTON_H)
+	_auto_toggle.theme_type_variation = &"HudButton"
 	_auto_toggle.tooltip_text = "Auto-drift: drifts in a block start by themselves a few seconds after the last one arrived."
 	_auto_toggle.focus_mode = Control.FOCUS_NONE
 	_auto_toggle.button_pressed = drift_director.auto_drift
@@ -104,7 +111,8 @@ func plant_sapling() -> void:
 func _add_speed_button(row: HBoxContainer, button: Button) -> void:
 	button.toggle_mode = true
 	button.focus_mode = Control.FOCUS_NONE
-	button.custom_minimum_size = Vector2(44, 40)
+	button.custom_minimum_size = Vector2(44, UiStyle.HUD_BUTTON_H)
+	button.theme_type_variation = &"HudButton"
 	row.add_child(button)
 
 func _unhandled_input(event: InputEvent) -> void:
