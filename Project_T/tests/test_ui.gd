@@ -44,7 +44,7 @@ func _run() -> void:
 	var dreams: DreamState = main.get_node("%DreamState")
 	dreams.unlock_everything = true  # Every Warden in the bar, as in Test Grove
 	dreams.unlocks_changed.emit()
-	var bar: HBoxContainer = main.get_node("%TowerBar")
+	var bar: HFlowContainer = main.get_node("%TowerBar")
 	var first_button := bar.get_child(0) as Button
 	var hotkey_label := first_button.get_node_or_null("Hotkey") as Label
 	_check(first_button.text.is_valid_int() and hotkey_label != null and hotkey_label.text == "1",

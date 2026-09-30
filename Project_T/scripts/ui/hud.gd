@@ -3,10 +3,12 @@ extends CanvasLayer
 const DEW_COLOR := UiStyle.GOLD
 const DEW_SHORT_COLOR := UiStyle.POOR
 const UNAFFORDABLE_BUTTON_ALPHA := UiStyle.UNAFFORDABLE_ALPHA
-# Warden bar buttons (bottom centre): 13 of them must fit between the Warden panel and the drift
-# controls at 1280×800 (screens_ui.md principle 6: buttons at least 48 px tall).
-const BUTTON_SIZE := Vector2(46, 60)
-const BUTTON_MIN_WIDTH := 32.0
+# Warden bar slots (bottom centre): the HUD's hero, framed like every HUD button, a 48 px sprite and the
+# cost (UiStyle.HUD_SLOT). They stay between the Warden panel and the drift controls: slots shrink to
+# BUTTON_MIN_WIDTH (the 48 px touch minimum, platforms.md), then the bar wraps into more rows.
+const BUTTON_SIZE := UiStyle.HUD_SLOT
+const BUTTON_MIN_WIDTH := UiStyle.HUD_BUTTON_H
+const BAR_GAP := 6  # Between slots and between rows
 # Half-width taken from each side: the Warden panel (16–316 px) or the drift controls (272 px + 16),
 # plus a small gap; the wider of the two, so the centred bar clears both.
 const BAR_CLEARANCE := 336.0
@@ -15,7 +17,7 @@ const CLEAR_TOOL_GAP := 10.0
 const SEED_COLOR := Palette.SPRIG
 const COUNTER_ICON_GAP := 6.0
 
-@onready var tower_bar: HBoxContainer = %TowerBar
+@onready var tower_bar: HFlowContainer = %TowerBar
 @onready var tower_placer: TowerPlacer = %TowerPlacer
 @onready var dew_label: Label = %DewLabel
 @onready var leaves_label: Label = %LeavesLabel
@@ -29,11 +31,13 @@ const DREAMLIGHT_COLOR := UiStyle.GOLD
 # (They used to share the top row with the resources, which ran into the drift banner at 1280 wide.)
 # Each is [right, width] from the screen's right edge; all TOP_BUTTON_H tall (touch: 48).
 const TOP_BUTTONS_Y := 150.0
-const TOP_BUTTON_H := 48.0
+const TOP_BUTTON_H := UiStyle.HUD_BUTTON_H
+# Compact HudButtons (small caps at the HUD text size, the thin frame), not big boxes (user,
+# 2026-09-30: "the Remember etc tabs look out of place").
 const MENU_SLOT := [-16.0, 84.0]
 const REMEMBER_SLOT := [-106.0, 124.0]
-const BUFFS_SLOT := [-236.0, 84.0]
-const CODEX_SLOT := [-326.0, 48.0]
+const BUFFS_SLOT := [-236.0, 76.0]
+const CODEX_SLOT := [-318.0, 48.0]
 const LEAF_LOST_COLOR := UiStyle.POOR
 const TOAST_TIME := 2.5
 
@@ -193,8 +197,10 @@ func _build_tower_bar() -> void:
 		button.icon = _tower_icon(data)
 		button.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		button.vertical_icon_alignment = VERTICAL_ALIGNMENT_TOP
-		button.add_theme_constant_override("icon_max_width", 34)
-		button.theme_type_variation = &"WardenSlot"  # A fog patch; selected = the gold underline (ui_style.md)
+		button.add_theme_constant_override("icon_max_width", UiStyle.HUD_SPRITE)
+		button.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST  # Pixel art stays crisp
+		button.expand_icon = true  # The sprite fits the slot (above the cost), never taller than it
+		button.theme_type_variation = &"WardenSlot"  # The HUD button frame; selected = the gold border
 		button.add_theme_font_size_override("font_size", 16)
 		button.custom_minimum_size = BUTTON_SIZE
 		button.tooltip_text = "%s (%s)\n%s · Cost: %d Dew\n%s" % [data.display_name, str(i + 1) if i < 9 else "no key",
@@ -220,32 +226,41 @@ func _build_tower_bar() -> void:
 	_fit_tower_bar()
 
 # The bar is centred at the bottom and must stay clear of the Warden panel (left) and the drift
-# controls (right): buttons shrink from BUTTON_SIZE.x down to BUTTON_MIN_WIDTH as Wardens are added
-# or the screen gets narrower (screens_ui.md principle 6: still 60 px tall).
+# controls (right). With the Clear tool as one more slot on the left: one row at the widest slot that
+# fits (BUTTON_SIZE.x at most); if even BUTTON_MIN_WIDTH doesn't fit, the bar wraps upward into more
+# rows at that width (%TowerBar is an HFlowContainer; the Clear tool sits by the bottom row).
 func _fit_tower_bar() -> void:
 	if _tower_buttons.is_empty():
 		return
-	var half := get_viewport().get_visible_rect().size.x / 2.0 - BAR_CLEARANCE
-	var gap := tower_bar.get_theme_constant("separation")
-	# The Clear tool counts as one more button, plus its gap, to the left of the bar.
-	var n := _tower_buttons.size() + 1
-	var fixed := CLEAR_TOOL_GAP + gap * (n - 2)  # The gap to the tool and the bar's own separations
-	var width := clampf(floorf((half * 2.0 - fixed) / n), BUTTON_MIN_WIDTH, BUTTON_SIZE.x)
+	var room := get_viewport().get_visible_rect().size.x - BAR_CLEARANCE * 2.0
+	var n := _tower_buttons.size()
+	var width := floorf((room - CLEAR_TOOL_GAP - BAR_GAP * (n - 1)) / (n + 1))
+	var per_row := n
+	if width < BUTTON_MIN_WIDTH:
+		width = BUTTON_MIN_WIDTH
+		per_row = maxi(1, floori((room - width - CLEAR_TOOL_GAP + BAR_GAP) / (width + BAR_GAP)))
+	width = minf(width, BUTTON_SIZE.x)
+	var rows := ceili(float(n) / per_row)
+	var icon := mini(UiStyle.HUD_SPRITE, int(width) - 12)
 	for button in _tower_buttons:
 		button.custom_minimum_size = Vector2(width, BUTTON_SIZE.y)
-		button.add_theme_constant_override("icon_max_width", int(width) - 12)
+		button.add_theme_constant_override("icon_max_width", icon)
 		if button == _seed_badge_button():
 			_seed_badge.position.x = width - 14
+	clear_tool.add_theme_constant_override("icon_max_width", icon)
 	# Centre the tool + bar from the computed widths (the container only re-sorts its children next
-	# frame).
-	var total := width * n + fixed
+	# frame). The bar grows upward from 16 px above the bottom.
+	var bar_width := width * per_row + BAR_GAP * (per_row - 1)
+	var total := width + CLEAR_TOOL_GAP + bar_width
 	var left := -total / 2.0
 	clear_tool.offset_left = left
 	clear_tool.offset_right = left + width
-	clear_tool.offset_top = tower_bar.offset_top
-	clear_tool.offset_bottom = tower_bar.offset_top + BUTTON_SIZE.y
+	clear_tool.offset_bottom = -16.0
+	clear_tool.offset_top = -16.0 - BUTTON_SIZE.y
 	tower_bar.offset_left = left + width + CLEAR_TOOL_GAP
 	tower_bar.offset_right = total / 2.0
+	tower_bar.offset_bottom = -16.0
+	tower_bar.offset_top = -16.0 - BUTTON_SIZE.y * rows - BAR_GAP * (rows - 1)
 
 func _seed_badge_button() -> Button:
 	return _seed_badge.get_parent() as Button if is_instance_valid(_seed_badge) else null
@@ -503,6 +518,7 @@ func _add_buff_lens_button() -> void:
 
 # Puts a top-right button in its slot ([right, width]) of the row under the resources.
 func _place_top_button(button: Button, slot: Array) -> void:
+	button.theme_type_variation = &"HudButton"
 	button.set_anchors_preset(Control.PRESET_TOP_RIGHT)
 	button.offset_right = slot[0]
 	button.offset_left = slot[0] - slot[1]
