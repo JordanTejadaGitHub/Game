@@ -82,7 +82,8 @@ func _run() -> void:
 	var director: DriftDirector = main.get_node("%DriftDirector")
 	var family = main.get_node("%FamilyPickScreen")
 	var dreams: DreamState = main.get_node("%DreamState")
-	_check(run_state.dew == run_state.starting_dew + 30 - 20, "starting Dew: base + Morning Stores 30 − Blight 20 (%d)" % run_state.dew)
+	_check(run_state.dew == run_state.starting_dew + 30, "starting Dew: base + Morning Stores 30, Blight takes none (%d)" % run_state.dew)
+	_check(dreams_first_pick(main) == 0, "Blight 2+: the first family pick gives no Dreamlight")
 	var family_ids: Array = family.families.map(func(d: TowerData) -> String: return d.get_id())
 	_check(family_ids.has("pebbling") and family_ids.has("acorn") and family_ids.has("nestling"), "Grove families join the picks (%s)" % [family_ids])
 	_check(dreams.grove_cards.has("dream_wrens_nest") and not dreams.grove_cards.has("dream_magpies_hoard"),
@@ -224,6 +225,7 @@ func _run() -> void:
 	director = main.get_node("%DriftDirector")
 	dreams = main.get_node("%DreamState")
 	_check(is_equal_approx(run_state.dew_gain_bonus, 0.15), "Rich Dew III: +15%% Dew (%s)" % run_state.dew_gain_bonus)
+	_check(dreams_first_pick(main) == DreamState.FIRST_PICK_DREAMLIGHT, "no Blight: the first family pick gives its Dreamlight")
 	_check(is_equal_approx(director.rest_bonus_perk_multiplier, 1.2), "Rested Roots II: rest bonus ×1.2")
 	_check(run_state.sprout_charges == 2, "Sprout Bed: 2 free Sprouts (%d)" % run_state.sprout_charges)
 	_check(dreams.card_stacks("cleared_ground") >= 1 and dreams.can_clear(), "Clear Sight: clearing opened and Cleared Ground from the start")
@@ -584,3 +586,6 @@ func _check_layout(grove: Array[UnlockData]) -> void:
 				"%s needs its parent %s" % [node.id, node.parent])
 	for unlock in grove:
 		_check(nodes.any(func(n) -> bool: return n.id == unlock.id), "%s is on the tree" % unlock.id)
+
+func dreams_first_pick(main: Node) -> int:
+	return (main.get_node("%DreamState") as DreamState).first_pick_dreamlight

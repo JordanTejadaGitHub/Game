@@ -271,9 +271,9 @@ func _apply_blight(level: int) -> void:
 	seed_bonus += 0.1 * level
 	if level >= 1:
 		drift_director.blight_health_multiplier = 1.1
-	if level >= 2:
-		run_state.dew = maxi(run_state.dew - 20, 0)
-		run_state.dew_changed.emit(run_state.dew)
+	if level >= 2:  # The first family pick gives no Dreamlight (was "starting Dew −20": drift 1 unwinnable)
+		if "first_pick_dreamlight" in dream_state:
+			dream_state.first_pick_dreamlight = 0
 	if level >= 3:
 		drift_director.blight_boss_health_multiplier = 1.25
 	if level >= 4:
