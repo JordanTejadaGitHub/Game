@@ -285,7 +285,9 @@ func _entry_card(group: String, entry: Array) -> Control:
 	elif line != "":
 		rim = IconInfo.damage_type_color(line)
 	var card := PanelContainer.new()
-	card.add_theme_stylebox_override("panel", UiStyle.card(rim))
+	var style := UiStyle.card(rim)
+	style.shadow_size = 0  # Many cards in a grid: no drop shadow (as the Dreams tab)
+	card.add_theme_stylebox_override("panel", style)
 	card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 10)
@@ -304,7 +306,7 @@ func _entry_card(group: String, entry: Array) -> Control:
 	row.add_child(body)
 	var name := Label.new()
 	name.text = term
-	UiStyle.display(name, 19)
+	UiStyle.display(name, 20)
 	name.add_theme_color_override("font_color", TERM_COLOR)
 	body.add_child(name)
 	var text := StatusLinks.make_label(entry[1], 15)  # Status names are links
@@ -315,7 +317,7 @@ func _entry_card(group: String, entry: Array) -> Control:
 		var muted := Label.new()
 		muted.text = example
 		muted.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		muted.add_theme_font_size_override("font_size", 13)
+		muted.add_theme_font_size_override("font_size", 15)
 		muted.add_theme_color_override("font_color", UiStyle.INK_DIM)
 		body.add_child(muted)
 	if status != &"":
@@ -340,9 +342,9 @@ func _chip(text: String, on_press: Callable = Callable()) -> Button:
 	chip.text = text
 	chip.focus_mode = Control.FOCUS_NONE
 	chip.theme_type_variation = &"HudButton"
-	chip.add_theme_font_size_override("font_size", 13)
+	chip.add_theme_font_size_override("font_size", 15)
 	chip.add_theme_color_override("font_color", UiStyle.GOLD)
-	chip.custom_minimum_size = Vector2(0, 28)
+	chip.custom_minimum_size = Vector2(0, 40)  # Tappable (ui_style.md small-button minimum)
 	if on_press.is_valid():
 		chip.pressed.connect(on_press)
 	else:
@@ -383,7 +385,7 @@ func _status_extras(body: VBoxContainer, status: StringName) -> void:
 	if not numbers.is_empty():
 		var label := Label.new()
 		label.text = " · ".join(numbers)
-		UiStyle.caps(label, 13, UiStyle.INK_DIM)
+		UiStyle.caps(label, 14, UiStyle.INK_DIM)
 		body.add_child(label)
 	var who := _families_applying(status)
 	if not who.is_empty():
@@ -391,7 +393,7 @@ func _status_extras(body: VBoxContainer, status: StringName) -> void:
 		row.add_theme_constant_override("separation", 4)
 		var by := Label.new()
 		by.text = "Applied by"
-		by.add_theme_font_size_override("font_size", 13)
+		by.add_theme_font_size_override("font_size", 15)
 		by.add_theme_color_override("font_color", UiStyle.INK_DIM)
 		row.add_child(by)
 		for data in who:
@@ -452,7 +454,7 @@ func _damage_extras(body: VBoxContainer, line: String) -> void:
 		row.add_theme_constant_override("h_separation", 4)
 		var label := Label.new()
 		label.text = side[0]
-		label.add_theme_font_size_override("font_size", 13)
+		label.add_theme_font_size_override("font_size", 15)
 		label.add_theme_color_override("font_color", UiStyle.INK_DIM)
 		row.add_child(label)
 		for data in kinds.slice(0, 10):
@@ -469,7 +471,7 @@ func _damage_extras(body: VBoxContainer, line: String) -> void:
 			else:
 				var unknown := Label.new()
 				unknown.text = "???"
-				unknown.add_theme_font_size_override("font_size", 13)
+				unknown.add_theme_font_size_override("font_size", 15)
 				unknown.add_theme_color_override("font_color", LOCKED_COLOR)
 				row.add_child(unknown)
 		body.add_child(row)
