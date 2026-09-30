@@ -203,7 +203,7 @@ func _build_footer() -> void:
 		button.pressed.connect(tree_view.zoom_by.bind(spec[1]))
 		zoom.add_child(button)
 	var whole := Button.new()
-	whole.text = "Whole tree"
+	whole.text = "Show all"  # Fits the whole Heartwood in view (not "Whole Tree": that's a Kinship name)
 	whole.custom_minimum_size = Vector2(0, 48)
 	whole.focus_mode = Control.FOCUS_NONE
 	whole.pressed.connect(tree_view.fit)
