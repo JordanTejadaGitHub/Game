@@ -8,6 +8,6 @@ id = &"smother"
 display_name = "Smother"
 statuses = Array[StringName]([&"held", &"spored"])
 description = "Rooted + Poisoned: spores tick three times as fast while it is Rooted."
-callout_color = Color(0.659, 0.816, 0.376, 1)
+callout_color = Color(0.6117647, 0.76862746, 0.42352942, 1)
 effect = &"smother"
 effect_scale = 1.5

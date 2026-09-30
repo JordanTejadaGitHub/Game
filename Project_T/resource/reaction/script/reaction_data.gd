@@ -11,7 +11,7 @@ class_name ReactionData
 # Statuses that can stand in for the second one (Pinned: full Drowsy instead of Held).
 @export var alternatives: Array[StringName] = []
 @export_multiline var description: String = ""
-@export var callout_color: Color = Color.WHITE
+@export var callout_color: Color = Palette.HEARTLIGHT
 @export var effect: StringName = &""  # assets/effects/effects.json entry
 @export var effect_scale: float = 1.5  # The sheets peak small in their frames; played bigger
 @export var cooldown: float = 1.5  # Seconds before it can fire again on the same nightmare

@@ -42,8 +42,10 @@ func toggle() -> void:
 	visible = true
 	reset_size()
 	var at := host.global_position + Vector2(0, -size.y - 6)
+	if at.y < 4.0:  # No room above (a counter at the top of the screen): just below it instead
+		at.y = host.global_position.y + host.size.y + 6
 	var screen := get_viewport_rect().size
-	global_position = Vector2(clampf(at.x, 4, screen.x - size.x - 4), maxf(at.y, 4))
+	global_position = Vector2(clampf(at.x, 4, screen.x - size.x - 4), clampf(at.y, 4, screen.y - size.y - 4))
 	_timer = SHOW_TIME
 
 func _process(delta: float) -> void:

@@ -352,11 +352,11 @@ func _add_dreamlight_counter() -> void:
 	label.offset_left = label.offset_right - 110
 	label.add_theme_color_override("font_color", DREAMLIGHT_COLOR)
 	label.mouse_filter = Control.MOUSE_FILTER_STOP
-	label.tooltip_text = IconInfo.resource_tooltip(&"dreamlight")
-	# Tap / click says the same as the tooltip (platforms.md: no hover-only information).
-	label.gui_input.connect(func(event: InputEvent) -> void:
-		if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
-			show_toast("%s (%d)" % [IconInfo.resource_tooltip(&"dreamlight"), dream_state.dreamlight]))
+	# Tap / click shows the same text as the tooltip, at the counter (platforms.md: no hover-only
+	# information; a top-centre toast read as a misplaced tooltip).
+	dreamlight_tip = TapTip.attach(label, IconInfo.resource_tooltip(&"dreamlight"))
+	dream_state.dreamlight_changed.connect(func(amount: int) -> void:
+		dreamlight_tip._label.text = "%s (%d)" % [IconInfo.resource_tooltip(&"dreamlight"), amount])
 	add_child(label)
 	var update := func(amount: int) -> void:
 		label.text = str(amount)
@@ -468,6 +468,7 @@ func _tower_icon(data: TowerData) -> Texture2D:
 # Dreamlight you have (DreamState.can_unlock). The screen pauses mid-drift and restores it on close.
 
 var remember_button := Button.new()
+var dreamlight_tip: TapTip  # The Dreamlight counter's tap tip
 var _remember_glow := 0.0
 
 func _add_remember_button() -> void:

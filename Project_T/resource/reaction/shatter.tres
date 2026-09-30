@@ -8,6 +8,6 @@ id = &"shatter"
 display_name = "Shatter"
 statuses = Array[StringName]([&"held", &"damp"])
 description = "Rooted + Soaked, then a crit or a heavy hit: that hit does ×2.5 and shards fly."
-callout_color = Color(0.749, 0.957, 1, 1)
+callout_color = Color(0.8627451, 0.9098039, 0.95686275, 1)
 effect = &"shatter"
 effect_scale = 1.75

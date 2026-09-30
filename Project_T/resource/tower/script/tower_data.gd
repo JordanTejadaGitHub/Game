@@ -29,7 +29,7 @@ const ASCENDED_JSON := "res://assets/towers/ascended/ascended.json"  # 128×128 
 @export var texture: Texture2D  # Tower sprite; leave empty to draw a placeholder block
 @export var frame_count: int = 1  # Idle-loop frames laid out in one row of `texture`
 @export var animation_fps: float = 6.0
-@export var placeholder_color: Color = Color(0.55, 0.55, 0.6)  # Placeholder block colour when there's no texture
+@export var placeholder_color: Color = Palette.STONE  # Placeholder block colour when there's no texture
 
 @export_group("Evolution")
 @export var line: String = ""  # sprout, wall, spore, light, water, stone, root, acorn (Dream tags)
@@ -49,7 +49,7 @@ const ASCENDED_JSON := "res://assets/towers/ascended/ascended.json"  # 128×128 
 @export var projectile_speed: float = 400.0  # Pixels per second
 @export var projectile_texture: Texture2D  # Row of frames drawn pointing right; empty = coloured puff
 @export var projectile_frames: int = 4
-@export var projectile_color: Color = Color(0.85, 0.6, 1.0)  # Placeholder puff colour
+@export var projectile_color: Color = Palette.BLOSSOM  # Placeholder puff colour
 
 @export_group("Crits and targeting")
 @export var crit_chance: float = 0.0  # 0.05 = 5% of hits deal crit_multiplier × damage
@@ -235,7 +235,7 @@ const ASCENDED_JSON := "res://assets/towers/ascended/ascended.json"  # 128×128 
 @export var beam_ramp_max: float = 4.0  # Damage multiplier cap
 @export var beam_behind_share: float = 0.0  # Also hits the nightmare right behind at this share
 @export var beam_keep_share: float = 0.0  # Midsummer: switching target within BEAM_KEEP_TIME keeps this share of the ramp
-@export var beam_color: Color = Color(1.0, 0.85, 0.35)
+@export var beam_color: Color = Palette.GLOW
 
 @export_group("Copy")
 @export var copy_share: float = 0.6  # Graftling: copies the strongest neighbour's attack at 60%

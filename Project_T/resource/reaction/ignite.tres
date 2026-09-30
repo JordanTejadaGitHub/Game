@@ -8,6 +8,6 @@ id = &"ignite"
 display_name = "Ignite"
 statuses = Array[StringName]([&"spored", &"static"])
 description = "3 Poisoned + Charged: the spores burn for 3 s: Poisoned ticks 3 times as fast, and each second a stack spreads to neighbors (who may catch fire too). Uses up the Charged."
-callout_color = Color(1, 0.753, 0.251, 1)
+callout_color = Color(0.9137255, 0.65882355, 0.23529412, 1)
 effect = &"ignite"
 effect_scale = 1.75
