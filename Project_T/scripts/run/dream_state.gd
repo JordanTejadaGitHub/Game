@@ -1944,7 +1944,12 @@ func _on_enemy_cleansed(enemy: Node2D) -> void:
 			enemy.statuses.source(EnemyStatuses.SPORED))
 
 # Kinships on the map (Tower Code's Kinships; 0 outside a run or before it exists).
+# Sims and tools: >= 0 stands in for the Kinships on the map (tools/build_packages.gd).
+var sim_kinships := -1
+
 func count_kinships() -> int:
+	if sim_kinships >= 0:
+		return sim_kinships
 	var kinships = Kinships.find(self)
 	if kinships == null or not kinships.has_method("count"):
 		return 0
