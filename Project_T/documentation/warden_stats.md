@@ -99,8 +99,17 @@ and a tall build is a choice the cards make possible (Nurture, narrow cards, Sol
 - Selling refunds rank Dew like any other Dew spent on the Warden.
 - Shown as small pips under the Warden and in its panel ("Rank III").
 
-**Auras don't stack with themselves:** a Warden next to two Elder Stumps gets the bonus once (the
-highest one applies). Different aura types do stack.
+**Auras of the same kind stack with falloff** (changed 2026-09-30, user: "Elder Stumps and support
+Wardens should stack"; was: only the highest applied). When several auras of one kind touch a
+Warden, **the strongest counts 100%, the next 50%, then 25%, 12.5%**, and so on, so the total tops
+out at about **2× a single aura** (Elder Stump: +20 / +30 / +35 / +37.5%… cap ≈ +40%; Acorn: +5 /
++7.5 / +8.75%… ≈ +10%). A **Kindred**-focused aura (see *Support Wardens and Nurture* below) always
+counts 100% and isn't part of the falloff. **Different aura kinds** (Acorn, Elder Stump, Grove
+Heart, Grandmother Oak) still stack fully with each other. Full stacking was rejected: four stumps
+around one attacker would give +80% and make a stump checkerboard the best build. The Warden panel
+shows it: *"Elder Stump ×3: +35% attack speed"*. **Watch:** *The Quiet Ones* and *Hedgerow Roots*
+multiply this; if support clusters run away, lower the cap (≈1.75× a single aura) or make Kindred
+count 75%.
 
 **Potency** (rules in `tower_design.md`, "Potency: effect damage"): every Warden is **100%** unless
 listed. It multiplies the effect damage of the statuses it applies and the Reactions it completes.
@@ -245,6 +254,31 @@ Caught bosses give no Dreamlight shards.
 
 **Economy Wardens and Nurture** (2026-09-29): for Dewcatcher and Wellspring, each rank adds **+10%
 catch** instead of damage (rank V Wellspring: +110%). Rank costs are unchanged.
+
+**Support Wardens and Nurture** (2026-09-30, user request). Ranks for support Wardens grow **what
+they do**, not their (tiny) attack:
+
+| Warden | Each rank (I–V) | At rank V |
+|---|---|---|
+| Elder Stump | its attack-speed bonus ×1.1 | +20% → **+30%** |
+| Acorn | its damage bonus ×1.1 | +5% → +7.5% |
+| Grove Heart | its base bonus ×1.1 (the +3% per Warden is unchanged) | +15% → +22.5% |
+| Dewcatcher, Wellspring | +10% catch (above) | +50% more catch |
+
+At **rank III** support Wardens choose a **support Focus** instead of Power / Swift / Reach / Deep:
+
+| Focus | Auras (Acorn, Elder Stump, Grove Heart) | Catchers (Dewcatcher, Wellspring) |
+|---|---|---|
+| **Wide** | aura reach **+1 cell** (Elder Stump / Acorn: the 8 neighbours become everything within 2; Grove Heart radius 3) | catch radius **+1** |
+| **Strong** | the aura bonus grows a further **+25%** by rank V (on top of the ×1.1 per rank) | catch **+30%** more by rank V |
+| **Kindred** | **ignores the stacking falloff:** always counts 100%, even as the 2nd or 3rd aura of its kind | Wellspring interest **+2%**; Dewcatcher **+4 Dew per drift** |
+
+- Two Kindred Elder Stumps at rank V give **+60%** to the Wardens between them: strong, but it
+  costs two cells, the rank Dew and both Focus picks. It's the deliberate way to stack.
+- The strongest stacked aura (for the falloff) is the one with the highest bonus after ranks, so
+  nurturing your best stump makes it the one that counts fully.
+- Rank costs, "growing pays the rank difference" and the Focus rules (kept through evolution, can't
+  be changed) are the same as for attackers. Walls (Thornwall, Honeysuckle) still can't be nurtured.
 
 **Support credit** (2026-09-29): Wardens whose value isn't damage are credited with what they
 *enable*, so they show up in panels and reports: auras (Acorn, Elder Stump, Grove Heart, Grandmother
