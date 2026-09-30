@@ -27,10 +27,11 @@ const COUNTER_ICON_GAP := 6.0
 
 const LEAVES_COLOR := UiStyle.INK
 const DREAMLIGHT_COLOR := UiStyle.GOLD
-# The top-right buttons sit in one row under the resources, right-aligned: [?][Buffs][Remember][Menu].
+# The top-right buttons sit in one row directly under the resources, right-aligned (_layout_top_row):
+# [Remember][Buffs][?][Menu], Remember nearest the Dreamlight counter.
 # (They used to share the top row with the resources, which ran into the drift banner at 1280 wide.)
 # Each is [right, width] from the screen's right edge; all TOP_BUTTON_H tall (touch: 48).
-const TOP_BUTTONS_Y := 150.0
+const TOP_BUTTONS_Y := 128.0  # Directly under the resources (their fog patch ends at y 124)
 const TOP_BUTTON_H := UiStyle.HUD_BUTTON_H
 # Compact HudButtons (small caps at the HUD text size, the thin frame), not big boxes (user,
 # 2026-09-30: "the Remember etc tabs look out of place").
@@ -144,8 +145,8 @@ func _ready() -> void:
 	# Half-price clears (Heartwood's Reach; clearing always costs Dew), under the path length; hidden when there are none.
 	var clears_label := path_label.duplicate() as Label
 	clears_label.unique_name_in_owner = false
-	clears_label.offset_top = path_label.offset_bottom
-	clears_label.offset_bottom = path_label.offset_bottom + (path_label.offset_bottom - path_label.offset_top)
+	clears_label.offset_top = TOP_BUTTONS_Y + TOP_BUTTON_H + 6.0  # Under the button row (it shows only with free clears)
+	clears_label.offset_bottom = clears_label.offset_top + (path_label.offset_bottom - path_label.offset_top)
 	clears_label.tooltip_text = "Half-price clears: tending a tree or moving a rock costs half (never less than half its base price)."
 	add_child(clears_label)
 	var update_clears := func(n: int) -> void:
@@ -525,6 +526,26 @@ func _place_top_button(button: Button, slot: Array) -> void:
 	button.offset_top = TOP_BUTTONS_Y
 	button.offset_bottom = TOP_BUTTONS_Y + TOP_BUTTON_H
 	button.grow_horizontal = Control.GROW_DIRECTION_BEGIN
+	button.set_meta(&"top_width", slot[1])
+	if not button.visibility_changed.is_connected(_layout_top_row):
+		button.visibility_changed.connect(_layout_top_row)
+	_layout_top_row.call_deferred()
+
+# The row under the resources (user 2026-09-30, screens_ui.md): right-aligned with the resources'
+# right edge, packed right to left in TOP_ROW order so hidden buttons leave no gap; Remember ends up
+# nearest the Dreamlight counter above it.
+const TOP_ROW := ["MenuButton", "CodexButton", "BuffLensButton", "RememberButton"]
+const TOP_ROW_GAP := 6.0
+func _layout_top_row() -> void:
+	var right := MENU_SLOT[0]
+	for name in TOP_ROW:
+		var button := get_node_or_null(name) as Button
+		if button == null or not button.visible:
+			continue
+		var width: float = button.get_meta(&"top_width", 64.0)
+		button.offset_right = right
+		button.offset_left = right - width
+		right -= width + TOP_ROW_GAP
 
 func _action_key(action: String) -> String:
 	for event in InputMap.action_get_events(action) if InputMap.has_action(action) else []:
