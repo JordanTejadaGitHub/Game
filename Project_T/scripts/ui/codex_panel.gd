@@ -1038,29 +1038,25 @@ func _show_form_card(data: TowerData) -> void:
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 14)
 	panel.add_child(row)
-	row.add_child(RememberScreen.Portrait.new(data, 72.0, not shown))
+	if not shown:  # A known form's portrait and name come with its WardenHeaderView
+		row.add_child(RememberScreen.Portrait.new(data, 72.0, true))
 	var box := VBoxContainer.new()
 	box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	box.add_theme_constant_override("separation", 3)
 	row.add_child(box)
-	var name := Label.new()
-	name.text = data.display_name if shown else "???"
-	UiStyle.display(name, 22)
-	box.add_child(name)
+	if not shown:
+		var name := Label.new()
+		name.text = "???"
+		UiStyle.display(name, 22)
+		box.add_child(name)
 	var costs := Label.new()
 	costs.text = form_costs(data) + ("" if shown else " · in the Memory Grove")
 	UiStyle.caps(costs, 14, UiStyle.GOLD if shown else GROVE_COLOR)
 	box.add_child(costs)
 	if shown:
-		var stats := Label.new()
-		stats.text = "%s · %s damage · %.2f attacks/s · range %.1f" % [IconInfo.damage_type_text(data.line),
-			str(data.damage), data.attacks_per_second, data.attack_range]
-		stats.add_theme_font_size_override("font_size", 15)
-		stats.add_theme_color_override("font_color", UiStyle.INK_DIM)
-		box.add_child(stats)
-		var text := StatusLinks.make_label(IconInfo.format(data.description), 15)
-		text.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		box.add_child(text)
+		# The Warden panel's top half (Tower Code's shared WardenHeaderView): stats, statuses, Potency, Grows into.
+		var dreams := get_tree().get_first_node_in_group(DreamState.GROUP) as DreamState if is_inside_tree() else null
+		box.add_child(WardenHeaderView.build(data, null, dreams, true))
 	else:
 		var wait := Label.new()
 		wait.text = "Plant it in the Memory Grove to meet it."

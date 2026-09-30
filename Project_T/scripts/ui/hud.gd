@@ -208,8 +208,12 @@ func _build_tower_bar() -> void:
 		button.theme_type_variation = &"WardenSlot"  # The HUD button frame; selected = the gold border
 		button.add_theme_font_size_override("font_size", 16)
 		button.custom_minimum_size = BUTTON_SIZE
-		button.tooltip_text = "%s (%s)\n%s · Cost: %d Dew\n%s" % [data.display_name, str(i + 1) if i < 9 else "no key",
-			IconInfo.damage_type_text(data.line), tower_placer.get_cost(data), IconInfo.format(data.description)]  # "Light damage"
+		# Hover (long-press on touch) shows the Warden card (WardenHeaderView + price), not a plain tooltip.
+		button.set_meta(&"price_line", "Cost: %d Dew · key %s" % [tower_placer.get_cost(data), str(i + 1) if i < 9 else "none"])
+		button.mouse_entered.connect(_show_hover_card.bind(button, data))
+		button.mouse_exited.connect(_hide_hover_card.bind(button))
+		button.button_down.connect(_on_slot_down.bind(button, data))
+		button.button_up.connect(_hide_hover_card.bind(button))
 		button.pressed.connect(_on_tower_pressed.bind(data))
 		if i < 9:
 			var hotkey := Label.new()
@@ -322,6 +326,7 @@ func _on_dew_changed(dew: int) -> void:
 			continue
 		_tower_buttons[i].set_meta(&"bar_state", bar_state)
 		_tower_buttons[i].text = str(cost)
+		_tower_buttons[i].set_meta(&"price_line", "Cost: %d Dew" % cost)
 		if _bar_towers[i].get_id() == SPROUT_ID:
 			_update_sprout_rule(_tower_buttons[i], cost)
 		_tower_buttons[i].modulate.a = 1.0 if affordable else UNAFFORDABLE_BUTTON_ALPHA
@@ -775,14 +780,80 @@ func _update_sprout_rule(button: Button, cost: int) -> void:
 		tag.text = "↑ %d/%d" % [count, (count / per + 1) * per]
 	tag.reset_size()
 	tag.position = Vector2((button.size.x - tag.size.x) / 2.0, -tag.size.y + 2.0)
-	var lines := button.tooltip_text.split("\n")
-	var rule := sprout_rule_text(cost)
-	if lines.size() >= 3 and lines[lines.size() - 1].begins_with("Sprout · "):
-		lines[lines.size() - 1] = rule
-		button.tooltip_text = "\n".join(lines)
-	else:
-		button.tooltip_text += "\n" + rule
+	button.set_meta(&"price_line", sprout_rule_text(cost))  # The hover card's price line
 	if _sprout_last_cost >= 0 and cost > _sprout_last_cost and per > 0 and not _sprout_rise_told:
 		_sprout_rise_told = true
 		show_toast("Sprouts now cost %d Dew: the more you have, the more they cost." % cost)
 	_sprout_last_cost = cost
+
+# --- The Warden bar's hover card (screens_ui.md, the bullets above "Readable tooltips") --------------
+# Hovering a Warden slot (a long press on touch) shows the Warden panel's top half for it: the shared
+# WardenHeaderView (portrait, name, damage type, description, stats with this run's Dreams, statuses,
+# Potency, Grows into) plus its price line (the Sprout's rising rule). No buttons. Above the slot.
+const HOVER_LONG_PRESS := 0.45  # Seconds held before the card shows on touch
+var hover_card: PanelContainer  # (tests)
+var _hover_box := VBoxContainer.new()
+var _hover_view: WardenHeaderView
+var _hover_price := Label.new()
+var _hover_for: Button = null
+var _press_serial := 0
+
+func _ensure_hover_card() -> void:
+	if hover_card != null:
+		return
+	hover_card = PanelContainer.new()
+	hover_card.name = "WardenHoverCard"
+	hover_card.add_theme_stylebox_override("panel", UiStyle.panel_in(UiStyle.GOLD, 14.0, 12.0))
+	hover_card.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	hover_card.process_mode = Node.PROCESS_MODE_ALWAYS
+	hover_card.visible = false
+	_hover_box.add_theme_constant_override("separation", 6)
+	_hover_box.custom_minimum_size = Vector2(WardenHeaderView.WIDTH, 0)
+	_hover_box.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	hover_card.add_child(_hover_box)
+	_hover_price.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_hover_price.custom_minimum_size = Vector2(WardenHeaderView.WIDTH, 0)
+	UiStyle.caps(_hover_price, 14, UiStyle.GOLD)
+	add_child(hover_card)
+
+func _show_hover_card(button: Button, data: TowerData) -> void:
+	_ensure_hover_card()
+	if is_instance_valid(_hover_view):
+		_hover_box.remove_child(_hover_view)
+		_hover_view.queue_free()
+	_hover_view = WardenHeaderView.build(data, null, dream_state, true)
+	_hover_view.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_hover_box.add_child(_hover_view)
+	if _hover_price.get_parent() != null:
+		_hover_box.remove_child(_hover_price)
+	_hover_price.text = String(button.get_meta(&"price_line", ""))
+	_hover_price.text = _hover_price.text.replace("Cost:", "Plant for") if not _hover_price.text.begins_with("Sprout") else _hover_price.text
+	_hover_box.add_child(_hover_price)
+	_hover_for = button
+	move_child(hover_card, get_child_count() - 1)  # Above the rest of the HUD
+	hover_card.visible = true
+	hover_card.reset_size()
+	_place_hover_card.call_deferred(button)
+
+func _place_hover_card(button: Button) -> void:
+	if hover_card == null or not hover_card.visible or _hover_for != button:
+		return
+	hover_card.reset_size()
+	var screen := get_viewport().get_visible_rect().size
+	var rect := button.get_global_rect()
+	var at := Vector2(rect.get_center().x - hover_card.size.x / 2.0, rect.position.y - hover_card.size.y - 10.0)
+	hover_card.position = Vector2(clampf(at.x, 8.0, screen.x - hover_card.size.x - 8.0), maxf(at.y, 8.0))
+
+func _hide_hover_card(button: Button) -> void:
+	_press_serial += 1  # A pending long press no longer shows it
+	if hover_card != null and _hover_for == button:
+		hover_card.visible = false
+		_hover_for = null
+
+# Touch: a long press shows the card (a tap still just picks the Warden).
+func _on_slot_down(button: Button, data: TowerData) -> void:
+	_press_serial += 1
+	var serial := _press_serial
+	get_tree().create_timer(HOVER_LONG_PRESS, true, false, true).timeout.connect(func() -> void:
+		if serial == _press_serial:  # Still held (button_up bumps the serial)
+			_show_hover_card(button, data))
