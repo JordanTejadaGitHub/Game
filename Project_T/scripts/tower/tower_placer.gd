@@ -46,13 +46,13 @@ const TOWER_SCENE_PATH := "res://scenes/tower/tower.tscn"
 var tower_data: TowerData
 
 const MAP_GRID = preload("res://resource/map/map_grid.tres")
-const VALID_TINT := Color(0.4, 1.0, 0.5, 0.65)
-const CATCH_TINT := Color(1.0, 0.85, 0.44, 0.16)  # Path tiles in a catcher's reach (placement preview)
-const INVALID_TINT := Color(1.0, 0.35, 0.35, 0.65)
+const VALID_TINT := Color(Palette.SPRIG, 0.65)
+const CATCH_TINT := Color(Palette.GLOW, 0.16)  # Path tiles in a catcher's reach (placement preview)
+const INVALID_TINT := Color(Palette.EMBER, 0.65)  # The palette has no red: Ember is "no"
 const NO_CELL := Vector2(-1, -1)
-const BONUS_ON := Color(0.55, 1.0, 0.6)  # A position card that would be on here
-const BONUS_OFF := Color(0.7, 0.72, 0.76)  # …off (grey, with the reason)
-const BONUS_LOST := Color(1.0, 0.45, 0.4)  # A planted Warden this placement would switch a card off for
+const BONUS_ON := Palette.NEWLEAF  # A position card that would be on here
+const BONUS_OFF := Palette.STONE  # …off (grey, with the reason)
+const BONUS_LOST := Palette.EMBER  # A planted Warden this placement would switch a card off for
 const CHIP_STEP := 20.0
 
 @onready var map_generator = %MapGenerator
@@ -73,16 +73,16 @@ var _range_gain := 0.0  # Cells of range position cards would add here
 var _kin_spots := {}  # Cells where the selected Warden would find a kin (Kinships.kin_spots)
 var _kin_here := ""  # The Kinship it would form on the hovered cell
 var _heart_here := false  # Heart of the Maze would move to the Warden planted here
-const KIN_SPOT_COLOR := Color(0.78, 0.86, 0.42, 0.4)  # Faint green-gold leaf outline
+const KIN_SPOT_COLOR := Color(Palette.NEWLEAF, 0.4)  # Faint green-gold leaf outline
 var _path_preview := Line2D.new()
-const PREVIEW_COLOR := Color(0.4, 0.9, 1.0, 0.6)  # The route preview (RouteLine: high-contrast setting)
+const PREVIEW_COLOR := Color(Palette.DEWLIGHT, 0.6)  # The route preview (RouteLine: high-contrast setting)
 
 # Settling ground (run_design.md "No maze juggling"): during a drift, the cells a Warden was sold from
 # can't be planted on again for SETTLE_SECONDS of game time (every footprint cell). Rests are exempt and
 # settle everything at once. The rings with their countdown are drawn by a SettlingMarks node in the
 # world (this placer hides outside build mode).
 const SETTLE_SECONDS := 8.0
-const SETTLE_COLOR := Color(0.85, 0.72, 0.5)
+const SETTLE_COLOR := Palette.GOLD
 var settling := {}  # cell -> game seconds left
 var _settling_marks: Node2D = null
 
@@ -305,7 +305,7 @@ func _draw() -> void:
 		var type_icon := IconInfo.damage_type_icon(tower_data.line)
 		if type_icon:
 			var corner := -MAP_GRID.cell_size / 2.0 + Vector2(2, 2)
-			draw_rect(Rect2(corner - Vector2(1, 1), Vector2(18, 18)), Color(0.1, 0.08, 0.05, 0.8))
+			draw_rect(Rect2(corner - Vector2(1, 1), Vector2(18, 18)), Color(Palette.ROOT, 0.8))
 			draw_texture_rect(type_icon, Rect2(corner, Vector2(16, 16)), false)
 	var tag := "%s · %d Dew" % [tower_data.display_name, get_cost(null, _hover_cell)]
 	if tower_data.can_attack:
@@ -873,7 +873,7 @@ func _draw_grow_choice() -> void:
 			var frame := into.get_frame_rect(0)
 			var centre := Tower.footprint_centre(origin, 2)
 			draw_texture_rect_region(into.texture, Rect2(centre - frame.size / 2.0 + into.sprite_offset, frame.size), frame,
-				Color(1, 1, 1, 0.6))
+				Color(1, 1, 1, 0.6))  # A texture modulate (fade), not a colour
 	var tower: Tower = _grow_choice.tower
 	if is_instance_valid(tower):
 		WorldLabel.draw_tag(self, tower.global_position.x, tower.global_position.y - MAP_GRID.cell_size.y,
@@ -962,7 +962,7 @@ func _is_occupied_by_enemy(cell: Vector2) -> bool:
 # button calls plant_stroke().
 
 signal stroke_changed(active: bool)
-const STROKE_SKIP_TINT := Color(1.0, 0.35, 0.35, 0.45)
+const STROKE_SKIP_TINT := Color(Palette.EMBER, 0.45)
 var stroking := false
 var confirm_on_release := true
 var _stroke: Array[Vector2] = []  # Cells in drag order

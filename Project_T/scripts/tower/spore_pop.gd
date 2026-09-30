@@ -6,8 +6,8 @@ class_name SporePop
 
 const LIFETIME := 0.45
 const SPORES := 10
-const COLOR := Color(0.78, 0.9, 0.45)
-const RIM := Color(0.85, 0.65, 1.0)
+const COLOR := Palette.NEWLEAF
+const RIM := Palette.BLOSSOM
 
 var _radius: float
 var _age := 0.0

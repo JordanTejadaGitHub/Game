@@ -110,7 +110,7 @@ func _draw_pips(tower: Tower) -> void:
 
 # One pip: a shape per kind (not only a colour, for accessibility). Shared with the Warden panel.
 static func draw_pip(canvas: CanvasItem, at: Vector2, kind: String, colour: Color, r: float = PIP_RADIUS) -> void:
-	var dark := Color(0.08, 0.06, 0.04, 0.85)
+	var dark := Color(Palette.DREAD, 0.85)
 	canvas.draw_circle(at, r + 1.5, dark)
 	match kind:
 		"acorn":
@@ -209,6 +209,6 @@ func _draw_lens(towers: Array) -> void:
 			if entry.stat == "damage" or entry.stat == "attack_speed":
 				boost += entry.amount
 		if absf(boost) > 0.001:
-			var shade := BuffSources.COLORS.penalty if boost < 0.0 else Color(1.0, 0.85, 0.45)
+			var shade := BuffSources.COLORS.penalty if boost < 0.0 else Palette.GLOW
 			draw_circle(to_local(tower.global_position), Tower.MAP_GRID.cell_size.x * 0.42,
 				Color(shade, clampf(absf(boost), 0.08, 0.6)))

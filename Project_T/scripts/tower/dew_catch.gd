@@ -18,7 +18,7 @@ const HARVEST_MOON := 0.5  # Harvest Moon (Seed card): the Harvest pays +50%
 const DEEP_WELL_CAP := 30  # Deep Well (Seed card): each Wellspring's interest cap +30
 const OVERFLOW_PER_SHARD := 50  # Overflowing Well: each 50 Dew of interest over the cap = a Dreamlight shard
 const BOWL_FULL := 60.0  # Dew in the bowl that shows it full
-const GOLD := Color("ffd870")
+const GOLD := Palette.GLOW
 const DROPLETS_PER_SECOND := 6  # Catch droplets share the effects budget (below Harmony sparks)
 const DROPLET_TIME := 0.45
 const HARVEST_DROPLETS := 5

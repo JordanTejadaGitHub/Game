@@ -116,7 +116,7 @@ func _mote(at: Vector2, rgb: Color, alpha: float) -> void:
 	draw_rect(Rect2(p, Vector2(2, 2)), Color(rgb, alpha))
 
 func _draw_warm_motes() -> void:
-	var rgb := Color(1.0, 214 / 255.0, 130 / 255.0)
+	var rgb := Palette.GLOW
 	for k in int(18 * particle_scale):
 		var ph := fposmod(_rand(k, 3) + _time * 0.05, 1.0)
 		var at := heartwood_position + Vector2((_rand(k, 1) - 0.5) * 480 + sin(_time * 0.7 + k) * 16, 60 - ph * 360)
@@ -137,7 +137,7 @@ func _draw_autumn_fog() -> void:
 	for k in _count(10):
 		var at := Vector2(fposmod(_rand(k, 1) * _size.x + _time * 22, _size.x),
 			fposmod(_rand(k, 2) * _size.y + _time * 26, _size.y) + sin(_time * 3 + k) * 6)
-		draw_rect(Rect2(at.floor(), Vector2(3, 2)), Color("#4e1e1c") if k % 2 == 0 else Color("#a85a34"))
+		draw_rect(Rect2(at.floor(), Vector2(3, 2)), Palette.BARK if k % 2 == 0 else Palette.EMBER)
 
 func _draw_snow() -> void:
 	for k in _count(70):

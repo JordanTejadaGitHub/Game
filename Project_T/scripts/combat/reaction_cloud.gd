@@ -57,5 +57,5 @@ func _draw() -> void:
 	if _effect != null:
 		return
 	var fade := minf(1.0, (_duration - _age) / 0.5)
-	draw_circle(Vector2.ZERO, _radius, Color(0.75, 0.5, 1.0, 0.18 * fade))
-	draw_arc(Vector2.ZERO, _radius, 0.0, TAU, 20, Color(0.8, 0.6, 1.0, 0.4 * fade), 2.0)
+	draw_circle(Vector2.ZERO, _radius, Color(Palette.ORCHID, 0.18 * fade))
+	draw_arc(Vector2.ZERO, _radius, 0.0, TAU, 20, Color(Palette.BLOSSOM, 0.4 * fade), 2.0)

@@ -23,9 +23,9 @@ const ALL: Array[StringName] = [DAMP, DROWSY, SPORED, MARKED, STATIC, HELD]
 const DEFAULT_DURATION := {DAMP: 4.0, DROWSY: 3.0, SPORED: 5.0, MARKED: 5.0, STATIC: 2.0, HELD: 1.0}
 const DEFAULT_MAX_STACKS := {DAMP: 1, DROWSY: 5, SPORED: 8, MARKED: 1, STATIC: 5, HELD: 1}
 const BOSS_MAX_STACKS := {DROWSY: 3, STATIC: 8}
-const COLORS := {
-	DAMP: Color(0.45, 0.7, 1.0), DROWSY: Color(0.75, 0.6, 1.0), SPORED: Color(0.7, 0.9, 0.4),
-	MARKED: Color(1.0, 0.85, 0.3), STATIC: Color(1.0, 1.0, 0.55), HELD: Color(0.8, 0.95, 1.0),
+const COLORS := {  # Marks the Wardens put on nightmares, so they keep the Wardens' colours (one each)
+	DAMP: Palette.DEWLIGHT, DROWSY: Palette.BLOSSOM, SPORED: Palette.SPRIG,
+	MARKED: Palette.GOLD, STATIC: Palette.GLOW, HELD: Palette.MOONLIGHT,
 }
 # The White Stag's aura (a Memory Warden): nightmares inside are slower and take more damage.
 const STAG_SLOW := 0.15

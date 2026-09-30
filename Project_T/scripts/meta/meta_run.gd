@@ -351,8 +351,8 @@ func _add_dev_tag() -> void:
 	tag.text = DevGrove.tag()
 	tag.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	tag.add_theme_font_size_override("font_size", 13)
-	tag.add_theme_color_override("font_color", Color(1.0, 0.7, 0.4, 0.85))
-	tag.add_theme_color_override("font_outline_color", Color(0, 0, 0))
+	tag.add_theme_color_override("font_color", Color(Palette.GOLD, 0.85))
+	tag.add_theme_color_override("font_outline_color", Palette.VOID)
 	tag.add_theme_constant_override("outline_size", 4)
 	hud.add_child(tag)
 	tag.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_RIGHT, Control.PRESET_MODE_MINSIZE, 6)

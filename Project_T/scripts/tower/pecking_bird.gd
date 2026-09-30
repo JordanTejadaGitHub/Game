@@ -64,9 +64,9 @@ func _draw() -> void:
 	var bob := Vector2(0, sin(_anim * 30.0) * 1.5)
 	if texture == null:
 		# A tiny bright bird: body and a blur of wings.
-		draw_circle(bob, 3.5, Color(0.35, 0.85, 0.6))
-		draw_circle(bob + Vector2(-3, -2), 3.0, Color(1, 1, 1, 0.35))
-		draw_line(bob + Vector2(3, 0), bob + Vector2(8, 1), Color(0.2, 0.2, 0.2), 1.0)
+		draw_circle(bob, 3.5, Palette.SPRIG)
+		draw_circle(bob + Vector2(-3, -2), 3.0, Color(Palette.HEARTLIGHT, 0.35))
+		draw_line(bob + Vector2(3, 0), bob + Vector2(8, 1), Palette.DEEPMOSS, 1.0)
 		return
 	var frames: int = _data.projectile_frames
 	var size := Vector2(texture.get_width() / float(frames), texture.get_height())

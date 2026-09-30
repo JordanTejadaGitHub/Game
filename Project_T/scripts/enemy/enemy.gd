@@ -62,10 +62,10 @@ const ELITE_LEAVES := 2
 const ELITE_SCALE := 1.2
 const ELITE_HAZE_PUFFS := 6
 const ELITE_HAZE_SPEED := 0.6  # Radians per second the haze drifts round
-const ELITE_HAZE_COLOR := Color(0.1, 0.08, 0.14, 0.32)
-const ELITE_HAZE_RIM := Color(0.62, 0.58, 0.72, 0.16)  # Keeps the haze visible on dark ground
-const ELITE_SWIRL_COLOR := Color(0.78, 0.7, 0.95)
-const ELITE_OUTLINE_COLOR := Color(0.9, 0.85, 1.0, 0.9)  # Setting "blight_outline" (accessibility)
+const ELITE_HAZE_COLOR := Color(Palette.DREAD, 0.32)
+const ELITE_HAZE_RIM := Color(Palette.STONE, 0.16)  # Keeps the haze visible on dark ground
+const ELITE_SWIRL_COLOR := Palette.MIST
+const ELITE_OUTLINE_COLOR := Color(Palette.MOONLIGHT, 0.9)  # Setting "blight_outline" (accessibility)
 const LEAP_TIME := 0.45  # Seconds to sink, move under the mire and rise again
 
 # Group of nightmares that are still walking and targetable. Dispelled ones leave it.
@@ -78,7 +78,7 @@ const SHRIEK_TIME := 0.12
 const CRACK_TIME := 0.25
 const BURST_TIME := 0.12
 const MOTE_LIFETIME := 0.7
-const MOTE_COLOR := Color(1.0, 0.92, 0.62)
+const MOTE_COLOR := Palette.GLOW  # Dispelled: the Wardens' light bursting out (warm on purpose)
 
 @export var enemy_data: EnemyData
 @onready var sprite: AnimatedSprite2D = $AnimatedSprite2D
@@ -104,7 +104,7 @@ const HIT_MARK_TIME := 0.35  # Grey puff (resisted) / sparkle (weak) after a hit
 const REACTION_TAGS: Array[StringName] = [&"thunderclap", &"ignite", &"shatter", &"pinned", &"lightning_rod",
 	&"dawnbreak", &"echo"]
 const STATUS_FLASH_TIME := 0.3  # A status icon flashes when a combo uses it (see flash_status)
-const COAT_COLOR := Color(0.62, 0.6, 0.66)
+const COAT_COLOR := Palette.STONE
 const CRIT_FLASH_TIME := 0.3  # Seconds a crit counts as "just happened" (the glint itself is Fx.crit)
 
 var _crit_flash := 0.0
@@ -161,8 +161,8 @@ const REROUTE_RETRY := 0.25  # Seconds between re-route attempts while waiting
 signal trample_cell_requested(enemy: Node2D, cell: Vector2)
 const RESTLESS_SPEED := 0.2
 const UNBOUND_AT := 3
-const RESTLESS_COLOR := Color(1.0, 0.62, 0.3)
-const UNBOUND_GLOW := Color(1.0, 0.3, 0.1)
+const RESTLESS_COLOR := Palette.DEWLIGHT
+const UNBOUND_GLOW := Palette.WRAITHLIGHT
 var restless := 0
 var unbound := false
 var _last_cell := Vector2(-1, -1)  # The cell it last stood on (a turn-back heads there again)
@@ -201,7 +201,7 @@ const PRESENCE_TICK := 0.1
 const CLOSE_REVEAL_CELLS := 1.5  # Any Warden this close sees a hidden nightmare
 const HIDDEN_ALPHA := 0.22
 const ALWAYS_DAMP_TIME := 3600.0
-const ASH_COLOR := Color(1.0, 0.45, 0.15, 0.5)
+const ASH_COLOR := Color(Palette.DEWLIGHT, 0.5)  # Cold ghost-fire (art_direction.md: no warm embers on nightmares)
 const DIRECTIONS: Array[Vector2] = [Vector2.LEFT, Vector2.RIGHT, Vector2.UP, Vector2.DOWN]
 var _hidden := false
 var _presence_elapsed := 0.0
@@ -220,7 +220,7 @@ var _has_risen := false
 # Boss pools (enemy_design.md)
 const ECHO_ALPHA := 0.6
 const SHRUG_FLASH_TIME := 0.5
-const SHRUG_COLOR := Color(0.72, 0.68, 0.6)
+const SHRUG_COLOR := Palette.MIST
 var is_echo := false  # An echo of an earlier boss (Remembering Oak): not counted as a boss dispelled
 var pack: Array = []  # Huntsman's hounds (set by the spawner); it takes pack_shield damage while one lives
 var laps := 0  # Night Mare: times it has reached the Heartwood and gone round again
@@ -455,46 +455,46 @@ func _draw() -> void:
 			draw_circle(at + Vector2(-10 + 10 * i, 6 - 5 * (i % 2)), 2.0 + 1.5 * t, Color(ASH_COLOR, ASH_COLOR.a * t))
 	if _hidden:
 		return  # Only the faint sprite shows: no bars, no status icons
-	if unbound:  # Red-hot glow behind the sprite, pulsing
+	if unbound:  # Cold ghost-fire glow behind the sprite, pulsing (no warm colour on nightmares)
 		var pulse := 0.5 + 0.5 * sin(Time.get_ticks_msec() / 150.0)
 		draw_circle(Vector2(0, -8), 24.0 * sprite.scale.x, Color(UNBOUND_GLOW, 0.18 + 0.12 * pulse))
-		draw_circle(Vector2(0, -8), 15.0 * sprite.scale.x, Color(1.0, 0.55, 0.2, 0.22 + 0.12 * pulse))
+		draw_circle(Vector2(0, -8), 15.0 * sprite.scale.x, Color(Palette.MOONLIGHT, 0.22 + 0.12 * pulse))
 	if elite:
 		_draw_elite_haze()  # Drawn before the sprite (a child), so it sits behind it
 	if _bolt_flash > 0.0:
 		var t := _bolt_flash / BOLT_FLASH_TIME
-		draw_circle(Vector2.ZERO, 26.0 * (1.5 - t), Color(1.0, 1.0, 0.6, 0.5 * t))
+		draw_circle(Vector2.ZERO, 26.0 * (1.5 - t), Color(Palette.GLOW, 0.5 * t))  # The Warden's bolt: warm light
 	if _shrug_flash > 0.0:  # Barrow King: a ring of grave-dust out to the shrug's reach
 		var t := _shrug_flash / SHRUG_FLASH_TIME
 		draw_arc(Vector2.ZERO, enemy_data.shrug_radius * grid.cell_size.x * (1.0 - t * 0.6), 0.0, TAU, 48,
 			Color(SHRUG_COLOR, 0.6 * t), 4.0)
 	if enemy_data.pack_shield < 1.0 and pack_alive() > 0:  # Huntsman: the faint ring the pack keeps round him
-		draw_arc(Vector2(0, -8), 30.0 * sprite.scale.x, 0.0, TAU, 32, Color(0.75, 0.8, 1.0, 0.35), 2.0)
+		draw_arc(Vector2(0, -8), 30.0 * sprite.scale.x, 0.0, TAU, 32, Color(Palette.DEWLIGHT, 0.35), 2.0)
 	if _hit_mark_time > 0.0:
 		_draw_hit_mark(_hit_mark_time / HIT_MARK_TIME)
 	if statuses.is_in_stag_aura():
-		draw_arc(Vector2(0, 6), 18.0, 0.0, TAU, 24, Color(0.9, 0.95, 1.0, 0.35), 2.0)
+		draw_arc(Vector2(0, 6), 18.0, 0.0, TAU, 24, Color(Palette.MOONLIGHT, 0.35), 2.0)
 	# One icon per status (IconInfo's pixel-art sheet; a coloured dot if it has none), in a row just
 	# above the health bar, with the stack count when there's more than one.
 	var ids := statuses.active_ids()
 	var x := -(ids.size() - 1) * STATUS_ICON_STEP / 2.0
 	for id in ids:
 		var at := HEALTH_BAR_OFFSET + Vector2(x, -12)
-		var color: Color = EnemyStatuses.COLORS.get(id, Color.WHITE)
+		var color: Color = EnemyStatuses.COLORS.get(id, Palette.MOONLIGHT)
 		var texture := _status_icon(id)
 		if texture != null:
 			draw_texture(texture, (at - texture.get_size() / 2.0).round())
 		else:
-			draw_circle(at, STATUS_DOT_RADIUS + 1, Color(0.1, 0.1, 0.12, 0.8))
+			draw_circle(at, STATUS_DOT_RADIUS + 1, Color(Palette.VOID, 0.8))
 			draw_circle(at, STATUS_DOT_RADIUS, color)
 		var stacks := statuses.stacks(id)
 		if stacks > 1:
 			var corner := at + Vector2(3, 8)
 			WorldLabel.begin_screen_size(self, corner)  # The number keeps its screen size when zoomed in
 			draw_string_outline(ThemeDB.fallback_font, corner, str(stacks), HORIZONTAL_ALIGNMENT_LEFT,
-				-1, STACK_FONT_SIZE, 3, Color(0.08, 0.08, 0.1))
+				-1, STACK_FONT_SIZE, 3, Palette.DREAD)
 			draw_string(ThemeDB.fallback_font, corner, str(stacks), HORIZONTAL_ALIGNMENT_LEFT, -1,
-				STACK_FONT_SIZE, Color.WHITE)
+				STACK_FONT_SIZE, Palette.MOONLIGHT)
 			WorldLabel.end_screen_size(self)
 		if _status_flash.has(id):
 			var f: float = _status_flash[id] / STATUS_FLASH_TIME  # 1 -> 0
@@ -505,18 +505,18 @@ func _draw() -> void:
 	for i in restless:
 		var tip := HEALTH_BAR_OFFSET + Vector2(HEALTH_BAR_SIZE.x / 2 + 5 + i * 6, 0)
 		var arrow := PackedVector2Array([tip + Vector2(4, -3), tip, tip + Vector2(4, 3)])
-		draw_polyline(arrow, Color(0.1, 0.1, 0.12, 0.8), 3.0)
+		draw_polyline(arrow, Color(Palette.VOID, 0.8), 3.0)
 		draw_polyline(arrow, UNBOUND_GLOW if unbound else RESTLESS_COLOR, 1.5)
 	# Health bar once the enemy has been hit, with the blight coat as a grey bar on top of it
 	var bar := Rect2(HEALTH_BAR_OFFSET - HEALTH_BAR_SIZE / 2, HEALTH_BAR_SIZE)
 	if health < max_health or _bars_always:
-		draw_rect(bar.grow(1), Color(0.1, 0.1, 0.12, 0.8))
+		draw_rect(bar.grow(1), Color(Palette.VOID, 0.8))
 		var fill := bar
 		fill.size.x *= float(health) / max_health
-		draw_rect(fill, Color(0.55, 0.9, 0.5))
+		draw_rect(fill, Palette.SPRIG)  # The health bar is HUD, not the nightmare: green reads as health
 	if coat > 0.0:
 		var crust := Rect2(bar.position - Vector2(0, 4), Vector2(bar.size.x * coat / maxf(coat_max, 1.0), 3))
-		draw_rect(crust.grow(1), Color(0.1, 0.1, 0.12, 0.8))
+		draw_rect(crust.grow(1), Color(Palette.VOID, 0.8))
 		draw_rect(crust, COAT_COLOR)
 
 # Deeply Blighted: soft puffs drifting slowly round the nightmare, and a swirl left of the health bar.
@@ -537,7 +537,7 @@ func _draw_elite_haze() -> void:
 	for s in 14:
 		var t := s / 13.0
 		swirl.append(centre + Vector2.from_angle(t * TAU * 1.6 + _haze_phase) * (1.0 + 4.0 * t))
-	draw_circle(centre, 6.0, Color(0.1, 0.1, 0.12, 0.8))
+	draw_circle(centre, 6.0, Color(Palette.VOID, 0.8))
 	draw_polyline(swirl, ELITE_SWIRL_COLOR, 1.5)
 
 # A small grey puff for a resisted hit, a little sparkle for a weak one. `t` fades 1 -> 0.
@@ -546,10 +546,10 @@ func _draw_hit_mark(t: float) -> void:
 	if _hit_mark < 0:
 		for i in 3:
 			var puff := at + Vector2.from_angle(TAU * i / 3.0) * 4.0 * (1.6 - t)
-			draw_circle(puff, 3.5 * t + 1.0, Color(0.75, 0.75, 0.78, 0.7 * t))
+			draw_circle(puff, 3.5 * t + 1.0, Color(Palette.MIST, 0.7 * t))
 	else:
 		var r := 7.0 * (1.4 - t)
-		var col := Color(1.0, 0.95, 0.6, t)
+		var col := Color(Palette.GLOW, t)  # A Warden's hit: warm light
 		draw_line(at + Vector2(-r, 0), at + Vector2(r, 0), col, 2.0)
 		draw_line(at + Vector2(0, -r), at + Vector2(0, r), col, 2.0)
 
@@ -843,7 +843,7 @@ func _start_unbound_trail() -> void:
 	_unbound_trail.scale_amount_min = 1.5
 	_unbound_trail.scale_amount_max = 3.0
 	var fade := Gradient.new()
-	fade.set_color(0, Color(1.0, 0.6, 0.2, 0.9))
+	fade.set_color(0, Color(Palette.MOONLIGHT, 0.9))
 	fade.set_color(1, Color(UNBOUND_GLOW, 0.0))
 	_unbound_trail.color_ramp = fade
 	_unbound_trail.position = Vector2(0, -6)

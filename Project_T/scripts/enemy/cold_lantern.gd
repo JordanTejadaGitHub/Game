@@ -8,7 +8,7 @@ class_name ColdLantern
 
 signal snuffed(lantern: ColdLantern, by_player: bool)
 
-const COLOR := Color(0.45, 0.7, 1.0)
+const COLOR := Palette.DEWLIGHT
 const CLICK_RADIUS := 24.0
 const FADE_TIME := 0.4
 
@@ -63,7 +63,7 @@ func _draw() -> void:
 	draw_circle(Vector2.ZERO, get_reach(), Color(COLOR, 0.07 * fade))
 	draw_arc(Vector2.ZERO, get_reach(), 0.0, TAU, 48, Color(COLOR, 0.25 * fade), 1.5)
 	# The lantern: a dark post with a cold flame in a small cage
-	draw_line(Vector2(0, 14), Vector2(0, -6), Color(0.12, 0.12, 0.16), 3.0)
-	draw_rect(Rect2(-6, -18, 12, 12), Color(0.15, 0.16, 0.22))
+	draw_line(Vector2(0, 14), Vector2(0, -6), Palette.VOID, 3.0)
+	draw_rect(Rect2(-6, -18, 12, 12), Palette.NIGHT)
 	draw_circle(Vector2(0, -12), 4.5 * flicker, Color(COLOR, 0.95 * fade))
 	draw_circle(Vector2(0, -12), 9.0 * flicker, Color(COLOR, 0.3 * fade))

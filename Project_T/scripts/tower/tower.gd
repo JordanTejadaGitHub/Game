@@ -59,9 +59,9 @@ const BEAM_RAMP_FAST := 2.0  # Beams ramp this much faster on Drowsy or Held nig
 const AURA_TICK := 0.25  # Seconds between aura refreshes (White Stag)
 const AURA_PULSE_EVERY := 2.5  # Seconds between the White Stag's pulse animations
 const NEIGHBOUR_REFRESH := 5.0  # Seconds between looks at neighbouring Wardens (copy, auras); map changes, growing and ranks refresh sooner
-const TONGUE_COLOR := Color(0.95, 0.55, 0.6)
-const WIND_COLOR := Color(0.85, 0.95, 1.0)
-const LIGHT_COLOR := Color(1.0, 0.9, 0.5)
+const TONGUE_COLOR := Palette.BLOSSOM
+const WIND_COLOR := Palette.MOONLIGHT
+const LIGHT_COLOR := Palette.GLOW
 # Nurture ranks (warden_stats.md "Nurture v2"). Costs are base × tier multiplier (at purchase) × Dreams.
 const RANK_MAX := 5  # Without Dreams (Deeper Rings: VII)
 const RANK_COSTS: Array[int] = [25, 40, 60, 90, 135]  # Base Dew for ranks I-V (economy pass v2)
@@ -122,7 +122,7 @@ static func grow_options(dreams: DreamState, data: TowerData) -> Array:
 const NO_FAMILY_YET := "Pick a family after the first drift to grow Sprouts."
 
 const GROUP := &"wardens"
-const BADGE_COLORS: Array[Color] = [Color(0.85, 0.85, 0.8), Color(0.55, 0.9, 0.6), Color(0.5, 0.75, 1.0), Color(1.0, 0.8, 0.35)]  # Common … Legendary
+const BADGE_COLORS: Array[Color] = [Palette.MIST, Palette.SPRIG, Palette.DEWLIGHT, Palette.GOLD]  # Common … Legendary (UiStyle.RARITY)
 
 # Card badges (screens_ui.md "Dream bonuses on Wardens", On the map): a Warden with an active position
 # card shows a small badge at its base while in build mode or while Wardens are selected.
@@ -173,9 +173,9 @@ const FOCUS_NAMES := {Focus.POWER: "Power", Focus.SWIFT: "Swift", Focus.REACH: "
 const FOCUS_TEXT := {Focus.POWER: "+8% damage", Focus.SWIFT: "+6% attack speed", Focus.REACH: "+0.2 range",
 	Focus.DEEP: "+10% status strength and duration",
 	Focus.WIDE: "+1 aura reach", Focus.STRONG: "a stronger aura, ×1.25 by rank V", Focus.KINDRED: "ignores the aura falloff"}
-const FOCUS_COLORS := {Focus.POWER: Color(1.0, 0.5, 0.35), Focus.SWIFT: Color(0.6, 1.0, 0.55),
-	Focus.REACH: Color(0.55, 0.8, 1.0), Focus.DEEP: Color(0.8, 0.6, 1.0),
-	Focus.WIDE: Color(0.55, 0.85, 0.45), Focus.STRONG: Color(1.0, 0.8, 0.4), Focus.KINDRED: Color(0.95, 0.6, 0.75)}
+const FOCUS_COLORS := {Focus.POWER: Palette.EMBER, Focus.SWIFT: Palette.NEWLEAF,
+	Focus.REACH: Palette.DEWLIGHT, Focus.DEEP: Palette.ORCHID,
+	Focus.WIDE: Palette.SPRIG, Focus.STRONG: Palette.GLOW, Focus.KINDRED: Palette.BLOSSOM}
 const FOCUS_POWER := 0.08
 const FOCUS_SWIFT := 0.06
 const FOCUS_REACH := 0.2
@@ -193,7 +193,7 @@ const KINDRED_INTEREST := 0.02  # Kindred Wellspring: +2% interest
 const KINDRED_DEW := 4  # Kindred Dewcatcher: +4 Dew per drift
 # Same-kind auras stack with falloff: the strongest counts 100%, the next 50%, 25%… (Kindred: always 100%).
 const AURA_FALLOFF := 0.5
-const PIP_COLOR := Color(1.0, 0.85, 0.45)
+const PIP_COLOR := Palette.GLOW
 const RANK_ART := "res://assets/towers/ranks/rank_%d_%s.png"
 const RANK_UP_ART := preload("res://assets/towers/ranks/rank_up.png")
 const RANK_UP_FPS := 16.0
@@ -256,7 +256,7 @@ var _aura_speed_from: Tower = null
 # by the EnemyContainer; 1.0 = none), and the Withering Oak withers one (no attacks while it lasts).
 var dim_multiplier := 1.0
 var withered_left := 0.0
-const WITHERED_TINT := Color(0.55, 0.55, 0.5)
+const WITHERED_TINT := Color(0.55, 0.55, 0.5)  # A multiplier (self_modulate) on the Warden art, not a colour
 var _last_fired: Node2D = null  # The nightmare its last projectile flew at (Spotter: the sniper's target)
 var _ramp_target: Node2D = null  # Sunspot B: the nightmare the last hits went to…
 var _ramp_hits := 0  # …and how many in a row
@@ -1265,7 +1265,7 @@ func _chorus_pulse() -> bool:
 		joined = true
 	return joined
 
-const CHORUS_RING_COLOR := Color(0.85, 0.75, 1.0, 0.45)
+const CHORUS_RING_COLOR := Color(Palette.BLOSSOM, 0.45)
 
 # Sudden Bloom / Watchful Rest: this attack's multiplier (×2 each), using up what it spends.
 func _take_empowered() -> float:
@@ -1730,7 +1730,7 @@ func _set_harmony(harmony: Dictionary) -> void:
 	for i in 2:
 		var glow := Fx.play([&"grafted_harmony_a", &"grafted_harmony_b"][i], global_position, self, 1.0, false, 1e6)
 		if glow != null:
-			glow.modulate = EnemyStatuses.COLORS.get(ids[i], Color.WHITE)
+			glow.modulate = EnemyStatuses.COLORS.get(ids[i], Palette.HEARTLIGHT)
 			_harmony_glow.append(glow)
 
 # Dreamshroom: a nightmare at full Drowsy falls asleep (once each; bosses never sleep, their cap is 3).
@@ -1978,7 +1978,7 @@ func _update_support_looks() -> void:
 		if ring:
 			ring.name = "AuraRing"
 			ring.z_index = -1  # On the ground, under the Wardens
-			ring.modulate = Kinships.FAMILY_COLORS.get(tower_data.line, Color(0.85, 0.7, 0.45))
+			ring.modulate = Kinships.FAMILY_COLORS.get(tower_data.line, Palette.GOLD)
 	elif ring and not is_aura:
 		ring.queue_free()
 		ring = null
@@ -1992,7 +1992,7 @@ func _update_support_looks() -> void:
 		mote = Fx.play(&"leaf_mote", global_position + LEAF_MOTE_AT, self)
 		if mote:
 			mote.name = "LeafMote"
-			mote.modulate = Color(Kinships.FAMILY_COLORS.get(aura.tower_data.line, Color(0.85, 0.7, 0.45)), LEAF_MOTE_ALPHA)
+			mote.modulate = Color(Kinships.FAMILY_COLORS.get(aura.tower_data.line, Palette.GOLD), LEAF_MOTE_ALPHA)
 	elif mote and aura == null:
 		mote.queue_free()
 		mote = null
@@ -3040,22 +3040,22 @@ func _draw() -> void:
 				continue
 			var to := to_local(target.global_position)
 			draw_line(from, to, Color(_beam_data().beam_color, 0.35), width * 2.0)
-			draw_line(from, to, Color(1.0, 1.0, 0.9, 0.9), maxf(width * 0.5, 1.5))
+			draw_line(from, to, Color(Palette.HEARTLIGHT, 0.9), maxf(width * 0.5, 1.5))
 			from = to  # Midsummer's beam carries on from the target to the one behind it
 	if attack_data != null and attack_data.attack_kind == TowerData.AttackKind.AURA:
-		draw_arc(Vector2.ZERO, get_range_pixels(), 0.0, TAU, 64, Color(0.85, 0.9, 1.0, 0.12), 3.0)
+		draw_arc(Vector2.ZERO, get_range_pixels(), 0.0, TAU, 64, Color(Palette.MOONLIGHT, 0.12), 3.0)
 	_draw_badges()
 	_draw_target_pip()
 	if _dream_state and _dream_state.has_method("is_eldest") and _dream_state.is_eldest(self):
 		# The Eldest: a small crown of three golden rings over the slab.
 		var top := Vector2(0, -MAP_GRID.cell_size.y * 0.5 - 4.0) + tower_data.sprite_offset
 		for i in 3:
-			draw_arc(top + Vector2((i - 1) * 7.0, -absf(i - 1) * -2.0), 3.5, 0.0, TAU, 12, Color(1.0, 0.85, 0.4, 0.95), 1.5)
+			draw_arc(top + Vector2((i - 1) * 7.0, -absf(i - 1) * -2.0), 3.5, 0.0, TAU, 12, Color(Palette.GLOW, 0.95), 1.5)
 
 # Under the sprite: a warm ring while an attack is stored (Sudden Bloom, Watchful Rest) and a soft
 # rising glow on this block's Underdogs (DreamState.is_underdog: the least damage last block).
-const EMPOWERED_GLOW := Color(1.0, 0.85, 0.45)
-const UNDERDOG_GLOW := Color(0.65, 0.85, 1.0)
+const EMPOWERED_GLOW := Palette.GLOW
+const UNDERDOG_GLOW := Palette.DEWLIGHT
 
 func _draw_empowered() -> void:
 	var radius := MAP_GRID.cell_size.x * 0.42 * get_footprint()
@@ -3168,7 +3168,7 @@ func get_slow_multiplier() -> float:
 
 # Root Network (card, rule root_network): Sprouts touching side by side (II: diagonally too) glow along
 # their shared edges. Each Sprout draws its half of every link, so a pair reads as one glowing root.
-const ROOT_GLOW := Color(0.7, 1.0, 0.55)
+const ROOT_GLOW := Palette.NEWLEAF
 
 func _refresh_root_links() -> void:
 	var links: Array[Vector2] = []
@@ -3211,7 +3211,7 @@ func _draw_badges() -> void:
 	for item in items:
 		var at := Vector2(x, y)
 		if item[0] == "kin":
-			var colour: Color = Kinships.FAMILY_COLORS.get(tower_data.line, Color(0.78, 0.86, 0.42))
+			var colour: Color = Kinships.FAMILY_COLORS.get(tower_data.line, Palette.NEWLEAF)
 			var leaf := Fx.texture(&"kin_leaf_icon")
 			if leaf:
 				draw_texture_rect(leaf, Rect2(at - Vector2(7, 7), Vector2(14, 14)), false, colour)
@@ -3224,7 +3224,7 @@ func _draw_badges() -> void:
 			var colour: Color = BADGE_COLORS[clampi(rarity, 0, BADGE_COLORS.size() - 1)]
 			var diamond := PackedVector2Array([at + Vector2(0, -5), at + Vector2(5, 0), at + Vector2(0, 5), at + Vector2(-5, 0)])
 			draw_colored_polygon(diamond, colour)
-			draw_polyline(diamond + PackedVector2Array([diamond[0]]), Color(0.1, 0.08, 0.05, 0.8), 1.0)
+			draw_polyline(diamond + PackedVector2Array([diamond[0]]), Color(Palette.ROOT, 0.8), 1.0)
 		y -= 13.0
 
 # Small warm pips along the bottom of the tile, one per Nurture rank, with the Focus icon after them.
@@ -3247,7 +3247,7 @@ func _draw_rank_pips() -> void:
 			var left := -((rank - 1) * step + icon_space) / 2.0
 			for i in rank:
 				var at := Vector2(left + i * step, 27.0)
-				pips.draw_circle(at, 3.2, Color(0.1, 0.08, 0.05, 0.85))
+				pips.draw_circle(at, 3.2, Color(Palette.ROOT, 0.85))
 				pips.draw_circle(at, 2.2, PIP_COLOR)
 			if focus != Focus.NONE:
 				draw_focus_icon(pips, Vector2(left + (rank - 1) * step + icon_space, 27.0), focus))
@@ -3257,8 +3257,8 @@ func _draw_rank_pips() -> void:
 # A tiny Focus glyph: Power an upward flame, Swift a double chevron, Reach a ring, Deep a drop.
 # Shared with the Warden panel.
 static func draw_focus_icon(canvas: CanvasItem, at: Vector2, which: Focus, size: float = 1.0) -> void:
-	var color: Color = FOCUS_COLORS.get(which, Color.WHITE)
-	var dark := Color(0.1, 0.08, 0.05, 0.9)
+	var color: Color = FOCUS_COLORS.get(which, Palette.HEARTLIGHT)
+	var dark := Color(Palette.ROOT, 0.9)
 	canvas.draw_circle(at, 4.6 * size, dark)
 	match which:
 		Focus.POWER:
@@ -3315,8 +3315,8 @@ func _draw_target_pip() -> void:
 	if not (is_selected and can_choose_target()):
 		return
 	var at := Vector2(MAP_GRID.cell_size.x / 2.0 - 8.0, -MAP_GRID.cell_size.y / 2.0 + 8.0)
-	draw_circle(at, 6.0, Color(0.1, 0.08, 0.05, 0.85))
-	var ink := Color(1.0, 0.92, 0.7)
+	draw_circle(at, 6.0, Color(Palette.ROOT, 0.85))
+	var ink := Palette.HEARTLIGHT
 	match get_target_mode():
 		TowerData.TargetMode.STRONGEST:
 			draw_colored_polygon(PackedVector2Array([at + Vector2(0, -3.5), at + Vector2(3.5, 0), at + Vector2(0, 3.5), at + Vector2(-3.5, 0)]), ink)
