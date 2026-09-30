@@ -607,7 +607,7 @@ func get_tower_attack_speed_bonus(tower: Tower) -> float:
 # ~16 us) instead of rebuilding them (~110 us); a Warden not in the tree (tests, previews) rebuilds.
 func _tower_rule_total(tower: Tower, key: String) -> float:
 	if tower.is_inside_tree():
-		return effects().rule_total_cached(tower, key)
+		return effects().rule_total_cached(tower, key, false)  # Exact: no rank-rebuild budget (tests and stat rebuilds read it right away)
 	return effects().rule_total(DreamEffects.spot_for(tower), key)
 
 # The card reporter (built on first use).

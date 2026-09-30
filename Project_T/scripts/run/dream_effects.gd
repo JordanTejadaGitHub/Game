@@ -184,7 +184,7 @@ func _soon(tower: Node) -> void:
 # rows() for a planted Warden, cached until the board or the cards change (DreamState.board_version,
 # the taken cards, its rank and form); the LIVE_RULES rows are recomputed on every call. For the
 # per-frame stat reads (Tower) and the badge poll.
-func rows_cached(tower: Tower) -> Array[Dictionary]:
+func rows_cached(tower: Tower, allow_stale: bool = true) -> Array[Dictionary]:
 	var spot := spot_for(tower)
 	var base := hash([ds.board_version, ds.stacks, tower.tower_data, tower.cell])
 	var key := hash([base, tower.rank, _near_rank.get(tower.get_instance_id(), 0)])
@@ -196,7 +196,7 @@ func rows_cached(tower: Tower) -> Array[Dictionary]:
 		if frame != _rebuild_frame:
 			_rebuild_frame = frame
 			_rebuilds = 0
-		if cached.size() > 2 and cached[2] == base and _rebuilds >= RANK_REBUILDS_PER_FRAME:
+		if allow_stale and cached.size() > 2 and cached[2] == base and _rebuilds >= RANK_REBUILDS_PER_FRAME:
 			_soon(tower)  # Only a rank changed: the previous rows for now, rebuilt within a moment
 			return _with_live(spot, cached[1])
 		_rebuilds += 1
@@ -222,9 +222,9 @@ func _with_live(spot: Dictionary, rows_in: Array) -> Array[Dictionary]:
 	return out
 
 # rule_total over the cached rows (Tower's hot path).
-func rule_total_cached(tower: Tower, key: String) -> float:
+func rule_total_cached(tower: Tower, key: String, allow_stale: bool = true) -> float:
 	var total := 0.0
-	for row in rows_cached(tower):
+	for row in rows_cached(tower, allow_stale):
 		if row.active and not row.plain:
 			total += row.get(key, 0.0)
 	return total
