@@ -242,47 +242,41 @@ func _sky() -> void:
 
 
 func _heartwood() -> void:
-	# The Heartwood, vast and far behind the Warden: a braided trunk rising into the fog, its roots
-	# spreading into the water on both sides. Its hollow is hidden behind the Warden; its light fills
-	# the haze in front of the trunk and catches the edges of its strands. Great branches spread out
-	# into the fog above, with a few golden leaves.
+	# The Heartwood, far behind the Warden and deep in the fog: drawn like the other trees (a fogged
+	# trunk with soft grain), only vast, with a gentle twist in its strands and roots flaring into the
+	# water. Its hollow is hidden behind the Warden; its light is a warm haze on the fog around it.
 	for y in range(0, WATER_Y + 1):
 		var t := float(y) / WATER_Y
-		var cx := MOON.x + sin(y * 0.018) * 6.0
-		var hw := 62.0 + 14.0 * t + pow(maxf(0.0, (t - 0.72) / 0.28), 2.0) * 110.0
+		var cx := MOON.x + sin(y * 0.018) * 5.0
+		var hw := 54.0 + 12.0 * t + pow(maxf(0.0, (t - 0.75) / 0.25), 2.0) * 80.0
 		for x in range(maxi(int(cx - hw), 0), mini(int(cx + hw), W - 1) + 1):
 			var u := (x - cx) / hw
-			var band := sin((u * 2.6 + y * 0.03) * PI)  # the strands twisting round the trunk
-			var v := 0.3 + band * 0.08 - absf(u) * 0.06
-			var warm := exp(-Vector2(x, y).distance_to(MOON) / 120.0)
+			var band := sin((u * 2.2 + y * 0.02) * PI)  # the strands, twisting slowly
+			var v := 0.5 + (0.03 if grain.get_noise_2d(u * 4.0 + 90.0, y * 0.3) > 0.3 else 0.0) - absf(u) * 0.06
+			if absf(band) < 0.1:
+				v -= 0.06  # a soft groove between strands
+			var warm := exp(-Vector2(x, y).distance_to(MOON) / 110.0)
 			var c := pick(FOG, v, x, y)
-			if absf(band) < 0.16:
-				c = pick(FOG, 0.14, x, y)  # the dark grooves between strands
-			elif band > 0.7 and bayer(x, y) < warm * 1.6:
-				c = pick(WARM, 0.35 + warm * 0.5, x, y)  # the light catching a strand's edge
-			if absf(u) > 0.95:
-				c = pick(WARM, 0.3 + warm * 0.5, x, y) if bayer(x, y) < warm * 1.4 else pick(FOG, 0.2, x, y)
+			if bayer(x, y) < warm * 0.9 - 0.15:
+				c = pick(WARM, v + 0.05, x, y)
 			put(x, y, c)
-	for branch in [[Vector2(-40, 30), Vector2(-150, -10), Vector2(-250, 16)], [Vector2(40, 26), Vector2(150, -6), Vector2(240, 20)],
-			[Vector2(-20, 10), Vector2(-90, -30), Vector2(-120, -40)]]:
+	var r := RandomNumberGenerator.new()
+	r.seed = 808
+	for branch in [[Vector2(-30, 36), Vector2(-120, 6), Vector2(-210, 22)], [Vector2(30, 30), Vector2(120, 2), Vector2(200, 18)]]:
 		var a := Vector2(MOON.x, 0) + (branch[0] as Vector2)
 		var b := Vector2(MOON.x, 0) + (branch[1] as Vector2)
 		var e := Vector2(MOON.x, 0) + (branch[2] as Vector2)
-		for i in 120:
-			var s := i / 119.0
+		for i in 100:
+			var s := i / 99.0
 			var p := a.lerp(b, s).lerp(b.lerp(e, s), s)
-			var rr := lerpf(14.0, 3.0, s)
+			var rr := lerpf(9.0, 2.0, s)
 			for y in range(int(p.y - rr), int(p.y + rr) + 1):
 				for x in range(int(p.x - rr), int(p.x + rr) + 1):
-					if Vector2(x, y).distance_to(p) > rr:
-						continue
-					var lit := y > p.y + rr * 0.5  # the underside, lit from the hollow below
-					put(x, y, pick(WARM, 0.4, x, y) if lit and bayer(x, y) < 0.5 else pick(FOG, 0.24, x, y))
-			if i % 9 == 4:  # a golden leaf hanging from the branch
-				var leaf := Vector2i(int(p.x) + int((hash01(i, 3) - 0.5) * 16.0), int(p.y + rr) + 2 + int(hash01(i, 4) * 6.0))
-				put(leaf.x, leaf.y, col("glow"))
-				put(leaf.x + 1, leaf.y, col("gold"))
-				put(leaf.x, leaf.y + 1, col("gold"))
+					if Vector2(x, y).distance_to(p) <= rr:
+						put(x, y, pick(FOG, 0.47, x, y))
+			if i % 4 == 0 and r.randf() < 0.6:  # moss hanging from the branch, as on the other trees
+				for d in r.randi_range(4, 20):
+					put(int(p.x), int(p.y + rr) + d, pick(FOG, 0.5, int(p.x), int(p.y + rr) + d))
 
 
 # --- forest --------------------------------------------------------------------------------------
@@ -331,8 +325,8 @@ func _watchers() -> void:
 	# Two pairs of faint eyes in the darkest trees behind the Shade: more of them, waiting.
 	for e in [Vector3(98, 250, 0), Vector3(164, 272, 1)]:
 		var p := Vector2(e.x, e.y)
-		glow(p, 5.0, col("wraithlight"), 0.2)
-		var c := col("wraithlight") if e.z > 0.5 else col("stone")
+		glow(p, 7.0, col("wraithlight"), 0.35)
+		var c := col("moonlight")
 		for dx in [-3, -2, 2, 3]:
 			put(int(p.x) + dx, int(p.y), c)
 		put(int(p.x) - 3, int(p.y) - 1, col("shade"))
@@ -613,42 +607,75 @@ func _root_arch(a: Vector2, c: Vector2, b: Vector2, r0: float, r1: float) -> voi
 				put(x, y, col("slate") if lit else (col("night") if grain.get_noise_2d(x * 2.0, y * 2.0) > 0.3 else col("void")))
 
 
+# Shades, hunched, heads pushed forward toward the Warden (to the right), a thin clawed arm reaching.
+# O dread outline, S shade body, B violet rim (toward the light), E pale eyes. Rows are padded.
+const SHADE_BIG := [
+	"............OOOO",
+	"..........OOSSSSOB",
+	".........OSSSSSSSBO",
+	".........OSSEESEESBO",
+	"....OOOO.OSSSSSSSSO",
+	"..OOSSSSOOSSSSSSSO",
+	".OSSSSSSSSSSSSSSSBO",
+	"OSSSSSSSSSSSSSSSSSBO",
+	"OSSSSSSSSSSSSSSSSSSOO",
+	"OSSSSSSSSSSSSSSSSSSSSO",
+	".OSSSSSSSSSSSSSO.OSSSSO",
+	".OSSSSSSSSSSSSO....OSSO",
+	"..OSSSSSSSSSSO......OO.O",
+	"..OSS.SSSS.SSO",
+	"..SS...SS...SS",
+	"...S....S....S",
+]
+const SHADE_SMALL := [
+	"........OOO",
+	".......OSSSOB",
+	"......OSEESEEO",
+	"...OOOOSSSSSO",
+	".OOSSSSSSSSSBO",
+	"OSSSSSSSSSSSSBO",
+	"OSSSSSSSSSSSSSOO",
+	".OSSSSSSSSSO.OSSO",
+	".OSSSSSSSSO...OO",
+	"..SS.SSS.S",
+	"..S...S...S",
+]
+
+
 func _figure() -> void:
-	# A Shade (enemy_design.md: "a small hunched shadow with two pinprick eyes"), tiny in the clearing,
-	# turned toward the Warden. Cold only (art_direction.md): dark body, a violet rim on the moon's
-	# side, pale eyes in a cold glow, a ragged smoky lower edge trailing on the grass.
-	var shape := [
-		"......OOOO......",
-		"....OOSSSSOB....",
-		"...OSSSSSSSSBO..",
-		"..OSSSSSSSSSSBO.",
-		"..OSSSSSSSSESEO.",
-		".OSSSSSSSSSSSSBO",
-		".OSSSSSSSSSSSSBO",
-		"OSSSSSSSSSSSSSBO",
-		"OSSSSSSSSSSSSSBO",
-		"OSSSSSSSSSSSSSSO",
-		".OSSSSSSSSSSSSO.",
-		".OSS.SSSSS.SSSO.",
-		"..S...SS.S..SO..",
-		"..S....S....S...",
-	]
-	var key := {"O": "dread", "S": "shade", "B": "bruise", "E": "moonlight"}
-	var ox := FIGURE.x - 8
-	var oy := FIGURE.y - shape.size()
-	# Cold mist curling round it on the grass.
-	for y in range(-4, 5):
-		for x in range(-22, 23):
-			var a := 1.0 - Vector2(x / 22.0, y / 4.5).length() + noise.get_noise_2d(x * 3.0, y * 5.0) * 0.4
+	# Shades (enemy_design.md: "a small hunched shadow with two pinprick eyes") creeping over the water
+	# toward the Warden, dark against the pale mist line where they read best.
+	_shade(Vector2i(338, 306), SHADE_BIG, false)
+	_shade(Vector2i(300, 302), SHADE_SMALL, false)
+	_shade(Vector2i(378, 300), SHADE_SMALL, false)
+
+
+func _shade(foot: Vector2i, shape: Array, flip: bool) -> void:
+	# Cold only (art_direction.md): a dark body, a violet rim toward the light, pale eyes in a cold
+	# glow, a ragged smoky lower edge. A pale patch of mist behind it so the shape reads.
+	var w := 0
+	for line: String in shape:
+		w = maxi(w, line.length())
+	var ox := foot.x - w / 2
+	var oy := foot.y - shape.size()
+	var r := float(w) * 0.75
+	for y in range(-int(r), 3):
+		for x in range(-int(r), int(r) + 1):
+			if Vector2(x, y * 1.3).length() < r and bayer(foot.x + x, oy + shape.size() / 2 + y) < 0.5:
+				put(foot.x + x, oy + shape.size() / 2 + y, col("slate"))
+	for y in range(-3, 4):  # cold mist curling round its base
+		for x in range(-w, w + 1):
+			var a := 1.0 - Vector2(x / float(w), y / 3.5).length() + noise.get_noise_2d(x * 3.0, y * 5.0) * 0.4
 			if a > 0.3 and (x + y) % 2 == 0:
-				put(FIGURE.x + x, FIGURE.y + y, col("bruise"))
-			elif a > 0.05 and bayer(FIGURE.x + x, FIGURE.y + y) < 0.25:
-				put(FIGURE.x + x, FIGURE.y + y, col("shade"))
-	for y in range(-14, 3):  # a pale patch of mist behind it, so its shape reads against the dark
-		for x in range(-16, 17):
-			if Vector2(x, y * 1.4).length() < 15.0 and bayer(FIGURE.x + x, FIGURE.y - 8 + y) < 0.5:
-				put(FIGURE.x + x, FIGURE.y - 8 + y, col("slate"))
-	glow(Vector2(ox + 13, oy + 4), 7.0, col("wraithlight"), 0.3)
+				put(foot.x + x, foot.y + y, col("bruise"))
+			elif a > 0.05 and bayer(foot.x + x, foot.y + y) < 0.25:
+				put(foot.x + x, foot.y + y, col("shade"))
+	var key := {"O": "dread", "S": "shade", "B": "wraithlight", "E": "moonlight"}
+	for row in shape.size():  # the eyes' cold glow first, so the body is drawn crisp over it
+		var line: String = shape[row]
+		for i in line.length():
+			if line[i] == "E":
+				glow(Vector2(ox + (w - 1 - i if flip else i), oy + row), 5.0, col("wraithlight"), 0.3)
 	for row in shape.size():
 		var line: String = shape[row]
 		for i in line.length():
@@ -656,18 +683,13 @@ func _figure() -> void:
 			if ch == ".":
 				continue
 			var c := col(key[ch])
-			if row >= 12 and bayer(ox + i, oy + row) < 0.5:
+			if row >= shape.size() - 3 and bayer(ox + i, oy + row) < 0.5:
 				c = col("bruise")  # the smoky, fraying bottom
-			put(ox + i, oy + row, c)
-	put(ox + 11, oy + 1, col("wraithlight"))  # the violet rim along its hunched back
-	put(ox + 12, oy + 2, col("wraithlight"))
-	for row in range(5, 10):
-		put(ox + 15, oy + row, col("wraithlight") if row % 2 else col("bruise"))
-	# Wisps of smoke rising off it.
-	for k in 8:
+			put(ox + (w - 1 - i if flip else i), oy + row, c)
+	for k in 8:  # wisps of smoke rising off it
 		put(ox + 3 + int(sin(k * 0.8) * 1.5), oy - 1 - k, col("shade") if k < 5 else col("bruise"))
 		if k % 3 == 0:
-			put(ox + 9 + int(sin(k * 0.6 + 2.0)), oy - 2 - k, col("shade"))
+			put(ox + w / 2 + int(sin(k * 0.6 + 2.0)), oy - 2 - k, col("shade"))
 
 
 func _frame_trees() -> void:
