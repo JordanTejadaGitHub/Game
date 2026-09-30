@@ -15,7 +15,7 @@ changed" log at the top (date, commit, what), newest first.
 | Enemy Assets | nightmares, bosses, portraits | *(pending)* |
 | Environment Assets | tiles, obstacles, trees, the island edge, void | *(pending)* |
 | Theme Asset | style references, Heartwood, capsule art | *(pending)* |
-| UI Asset | icons, UI style (Moonlit Thread) | *(pending; style concept page: https://claude.ai/artifact/4Cs1PP2CrqTjth2dHiZFow)* |
+| UI Asset | icons (`assets/ui/icons.png`), Clear tool frames | https://claude.ai/artifact/3PZKNfNnBtBTzMouyqyDPN (style concept page: https://claude.ai/artifact/4Cs1PP2CrqTjth2dHiZFow) |
 | Meta Game Asset | Memory Grove art | *(pending)* |
 | Title Screen | title screen art and layers | *(pending)* |
 
