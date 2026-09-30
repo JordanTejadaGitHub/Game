@@ -42,6 +42,11 @@ const BARK := ["void", "root", "bark", "oak", "deadwood"]               # the Ro
 ## Bloomcap). Set with `-- --warden=sporeling --out=<file.png>`; a variant never overwrites the title art.
 var variant := "stone"
 var out_file := ""
+var _skip := ""                      # a step _build leaves out ("titan" / "figures")
+var _titan_px := PackedByteArray()   # 1 where the Warden step drew
+var _titan_img: Image                # right after the Warden step
+var _nm_id := PackedByteArray()      # the nightmare (index + 1) that drew each pixel
+var _nm_img: Image                   # right after the nightmares
 var img: Image
 var noise := FastNoiseLite.new()
 var grain := FastNoiseLite.new()
@@ -61,20 +66,61 @@ func _init() -> void:
 		push_error("title_art_generator: a variant needs --out=<file.png>")
 		quit(1)
 		return
-	rng.seed = 20260930
 	noise.seed = 11
 	noise.frequency = 0.045
 	noise.fractal_octaves = 3
 	grain.seed = 5
 	grain.frequency = 0.25
+	var raw := _build("")
+	var final := img.duplicate() as Image
+
+	if out_file != "":
+		final.save_png(out_file)
+		var big_variant := final.duplicate() as Image
+		big_variant.resize(W * 3, H * 3, Image.INTERPOLATE_NEAREST)
+		big_variant.save_png(out_file.get_basename() + "_3x.png")
+		print("title_art_generator: wrote ", out_file)
+		quit()
+		return
+	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(OUT))
+	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(PREVIEW.get_base_dir()))
+	final.save_png(OUT + "title_background.png")
+	var big := final.duplicate() as Image
+	big.resize(W * 3, H * 3, Image.INTERPOLATE_NEAREST)
+	big.save_png(PREVIEW)
+	var titan_px := _titan_px.duplicate()
+	var titan_img := _titan_img
+	var nm_id := _nm_id.duplicate()
+	var nm_img := _nm_img
+	_build("titan")
+	var no_titan := img.duplicate() as Image
+	_build("figures")
+	var no_figures := img.duplicate() as Image
+	_export_layers(raw, final, no_titan, no_figures, titan_px, titan_img, nm_id, nm_img)
+	print("title_art_generator: wrote ", OUT, "title_background.png and the animation layers")
+	quit()
+
+
+## One full render. `skip` leaves out the Warden ("titan") or the nightmares ("figures"), for the
+## backgrounds behind the animated layers. A full render also records which pixels the Warden and each
+## nightmare drew. Returns the image before the palette snap; `img` ends snapped.
+func _build(skip: String) -> Image:
+	rng.seed = 20260930
 	img = Image.create(W, H, false, Image.FORMAT_RGBA8)
 	_mask.resize(W * H)
-
+	_mask.fill(0)
+	_skip = skip
+	_nm_id.resize(W * H)
+	_nm_id.fill(0)
 	_sky()
 	_heartwood()
 	_trunk_layer(46, 0.58, Vector2(2.0, 5.0), 290.0, 1, 96.0)   # far trees, ghostly in the fog (none over the Heartwood)
 	_mist(210, 290, 0.62)
-	_titan()
+	var pre := img.duplicate() as Image
+	if skip != "titan":
+		_titan()
+	_titan_img = img.duplicate() as Image
+	_titan_px = _changed(pre, img)
 	_islets()
 	_mist(246, 292, 0.58)
 	_trunk_layer(20, 0.38, Vector2(4.0, 8.0), 292.0, 2, 128.0)  # nearer trees round the Warden
@@ -85,28 +131,100 @@ func _init() -> void:
 	_lilies()
 	_banks()
 	_glow_shrooms()
-	_figure()
+	if skip != "figures":
+		_figure()
+	_nm_img = img.duplicate() as Image
 	_frame_trees()
 	_motes()
 	_fireflies()
+	var raw := img.duplicate() as Image
 	Palette.snap_image(img)
+	return raw
 
-	if out_file != "":
-		img.save_png(out_file)
-		var big_variant := img.duplicate() as Image
-		big_variant.resize(W * 3, H * 3, Image.INTERPOLATE_NEAREST)
-		big_variant.save_png(out_file.get_basename() + "_3x.png")
-		print("title_art_generator: wrote ", out_file)
-		quit()
-		return
-	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(OUT))
-	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(PREVIEW.get_base_dir()))
-	img.save_png(OUT + "title_background.png")
-	var big := img.duplicate() as Image
-	big.resize(W * 3, H * 3, Image.INTERPOLATE_NEAREST)
-	big.save_png(PREVIEW)
-	print("title_art_generator: wrote ", OUT, "title_background.png")
-	quit()
+
+func _changed(a: Image, b: Image) -> PackedByteArray:
+	var out := PackedByteArray()
+	out.resize(W * H)
+	for y in H:
+		for x in W:
+			out[y * W + x] = 1 if a.get_pixel(x, y) != b.get_pixel(x, y) else 0
+	return out
+
+
+# --- animation layers ------------------------------------------------------------------------------
+# The title screen (TitleBackdrop) animates the art in layers: the background without the Warden or
+# the nightmares, the Warden (it breathes), each nightmare (they breathe too), a front layer for what
+# covers them (trees, mist), and seamless mist strips that drift. Stacked still, they give exactly
+# title_background.png. Layout in title_layers.json.
+
+func _export_layers(raw: Image, final: Image, no_titan: Image, no_figures: Image, titan_px: PackedByteArray,
+		titan_img: Image, nm_id: PackedByteArray, nm_img: Image) -> void:
+	var back := final.duplicate() as Image
+	var warden := Image.create(W, H, false, Image.FORMAT_RGBA8)
+	var nightmares := Image.create(W, H, false, Image.FORMAT_RGBA8)
+	var front := Image.create(W, H, false, Image.FORMAT_RGBA8)
+	var warden_top := H
+	var boxes := {}  # nightmare index -> Rect2i
+	for y in H:
+		for x in W:
+			var i := y * W + x
+			var c := final.get_pixel(x, y)
+			if nm_id[i] != 0:
+				back.set_pixel(x, y, no_figures.get_pixel(x, y))
+				if raw.get_pixel(x, y) == nm_img.get_pixel(x, y):
+					nightmares.set_pixel(x, y, c)
+					var n := int(nm_id[i]) - 1
+					boxes[n] = (boxes[n] as Rect2i).expand(Vector2i(x, y)) if boxes.has(n) else Rect2i(x, y, 1, 1)
+				else:
+					front.set_pixel(x, y, c)
+			elif titan_px[i] != 0 and y < WATER_Y:
+				back.set_pixel(x, y, no_titan.get_pixel(x, y))
+				if raw.get_pixel(x, y) == titan_img.get_pixel(x, y):
+					warden.set_pixel(x, y, c)
+					warden_top = mini(warden_top, y)
+				else:
+					front.set_pixel(x, y, c)
+	back.save_png(OUT + "title_back.png")
+	warden.save_png(OUT + "title_warden.png")
+	nightmares.save_png(OUT + "title_nightmares.png")
+	front.save_png(OUT + "title_front.png")
+	var layout := {"size": [W, H], "warden": {"top": warden_top, "pivot": WATER_Y, "amp": 2, "period": 5.5}, "nightmares": [], "mists": []}
+	var r := RandomNumberGenerator.new()
+	r.seed = 31
+	for n in boxes.keys():
+		var box: Rect2i = boxes[n]
+		box.size += Vector2i.ONE
+		layout.nightmares.append({"name": NIGHTMARES[n][0], "rect": [box.position.x, box.position.y, box.size.x, box.size.y],
+			"amp": 1, "period": snappedf(r.randf_range(2.2, 3.4), 0.01), "phase": snappedf(r.randf(), 0.01),
+			"floats": NIGHTMARES[n][0] == "will_o_wisp"})
+	for m in MIST_STRIPS.size():
+		var strip: Array = MIST_STRIPS[m]
+		var file := "title_mist_%d.png" % m
+		_mist_strip(strip[1], strip[2], 70 + m).save_png(OUT + file)
+		layout.mists.append({"file": file, "y": strip[0], "speed": strip[3]})
+	var json := FileAccess.open(OUT + "title_layers.json", FileAccess.WRITE)
+	json.store_string(JSON.stringify(layout, "\t"))
+	json.close()
+
+
+## [y, height, fog value, speed in art px per second (negative = leftward)]
+const MIST_STRIPS := [[222, 40, 0.6, 1.6], [252, 44, 0.52, -2.4], [284, 26, 0.46, 3.2]]
+
+
+## A band of drifting mist wisps that tiles seamlessly left to right (the noise is sampled round a
+## cylinder), thinner than the painted mist so it only moves over it.
+func _mist_strip(h: int, value: float, salt: int) -> Image:
+	var strip := Image.create(W, h, false, Image.FORMAT_RGBA8)
+	var radius := W / TAU * 0.35
+	for y in h:
+		var band := maxf(0.0, 1.0 - absf(y - h * 0.5) / (h * 0.5))
+		for x in W:
+			var ang := TAU * x / W
+			var m := noise.get_noise_3d(cos(ang) * radius + salt * 50.0, y * 2.4, sin(ang) * radius)
+			var a := (m + 0.15) * band
+			if a > 0.4 or (a > 0.28 and (x + y) % 2 == 0) or (a > 0.18 and bayer(x, y) < 0.2):
+				strip.set_pixel(x, y, pick(FOG, value, x, y))
+	return strip
 
 
 # --- helpers -------------------------------------------------------------------------------------
@@ -777,16 +895,29 @@ func _root_arch(a: Vector2, c: Vector2, b: Vector2, r0: float, r1: float) -> voi
 				put(x, y, col("slate") if lit else (col("night") if grain.get_noise_2d(x * 2.0, y * 2.0) > 0.3 else col("void")))
 
 
+## [sheet, frame, foot, flip, fog]: the nightmares, each its own layer on the title screen.
+const NIGHTMARES := [
+	["leaf_bug", Vector2i(0, 2), Vector2i(282, 340), false, 0.0],     # a Shade on the front bank, its back to us
+	["leaf_bug", Vector2i(0, 0), Vector2i(236, 346), false, 0.0],     # another, creeping right toward it
+	["gravecrawler", Vector2i(0, 0), Vector2i(560, 334), true, 0.0],  # crawling off the right bank
+	["weeper", Vector2i(0, 0), Vector2i(84, 322), false, 0.15],       # on the left bank, turned toward it
+	["watcher", Vector2i(0, 0), Vector2i(186, 302), false, 0.35],     # half in the fog, all eyes on it
+	["will_o_wisp", Vector2i(0, 0), Vector2i(360, 290), false, 0.0],  # drifting toward the light
+]
+
+
 func _figure() -> void:
 	# The nightmares are the game's own sprites (assets/creatures/, frame 0), so they look exactly like
 	# the nightmares in play. They stand on the banks and roots, turned toward the Warden; only the
 	# will-o'-wisp floats, as it does in the game. Further ones sink a little into the fog.
-	_sprite("leaf_bug", Vector2i(0, 2), Vector2i(282, 340), false, 0.0)     # a Shade on the front bank, its back to us
-	_sprite("leaf_bug", Vector2i(0, 0), Vector2i(236, 346), false, 0.0)    # another, creeping right toward it
-	_sprite("gravecrawler", Vector2i(0, 0), Vector2i(560, 334), true, 0.0)  # crawling off the right bank
-	_sprite("weeper", Vector2i(0, 0), Vector2i(84, 322), false, 0.15)       # on the left bank, turned toward it
-	_sprite("watcher", Vector2i(0, 0), Vector2i(186, 302), false, 0.35)     # half in the fog, all eyes on it
-	_sprite("will_o_wisp", Vector2i(0, 0), Vector2i(360, 290), false, 0.0)  # drifting toward the light
+	for n in NIGHTMARES.size():
+		var nm: Array = NIGHTMARES[n]
+		var pre := img.duplicate() as Image
+		_sprite(nm[0], nm[1], nm[2], nm[3], nm[4])
+		for y in H:
+			for x in W:
+				if img.get_pixel(x, y) != pre.get_pixel(x, y):
+					_nm_id[y * W + x] = n + 1
 
 
 func _sprite(sheet: String, frame: Vector2i, foot: Vector2i, flip: bool, fog: float) -> void:
