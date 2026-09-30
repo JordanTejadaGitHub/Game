@@ -11,5 +11,5 @@ root = 0
 costs = Array[int]([60])
 order = 26
 icon = 6
-requires_all = Array[String](["acorn_final"])
+requires_all = Array[String](["acorn"])
 dream_cards = Array[String](["dream_graftling", "dream_grafted_elder"])
