@@ -582,11 +582,21 @@ unlocks clearing":
 | 55 | **Heartwood's Reach** | Common | gain **4 half-price clears**; use them any time (a charge counter on the HUD; unused charges last all run). Deepened II: 7 | clearing | Start |
 | 56 | **Reclaimed Earth** | Common | each clear **refunds 40% of the Dew you paid for it**, and the cell is left **fertile**: the first Warden planted there costs 50% less | clearing, economy | Start |
 | 57 | **Tended Forest** | Common | **+1% damage for every obstacle cleared this run** (max +25%; clears from before the card count) | clearing, maze | Start |
-| 58 | **Burn Back the Dead Wood** | Rare, **Bittersweet** | clear **every Withered Tree** on the map right now for **2 Dew each** (paid when taken; only offered if you can pay). **Cost:** nightmares +10% speed for the rest of the run | clearing, bittersweet | Grove |
+| 58 | **Burn Back the Dead Wood** | Rare, **Bittersweet** | clear **every Withered Tree** on the map right now for **5 Dew each** (paid when taken; only offered if you can pay). **Cost:** nightmares +10% speed for the rest of the run | clearing, bittersweet | Grove |
+
+**Clear prices, raised** (2026-09-30, user: "clearing obstacles seems too cheap"). At 5 / 8 Dew a
+clear cost less than a Sprout, so by act 2 the map was free to reshape and each clear was a cheap
++1 Seed. Now:
+- **Base:** Withered Tree **12 Dew**, Mossy Boulder and Thorn-Sapling **18 Dew** (was 5 / 8 / 8).
+- **Each clear this run adds +1 Dew** to every later clear (`RunState.obstacles_tended`, like the
+  Sprout price rule), so the first few are affordable in act 1 and clearing half the map is a real
+  investment. The hover tag and the Clear tool show the current price.
+- Floor stays half the **base** (tree 6, boulder 9), before the per-clear rise; Blight 9 ×2 on top.
+- Burn Back's price becomes **5 Dew per tree** (was 2).
 
 **Clearing always costs Dew** (user rule, 2026-09-28). No card, perk or combination makes a clear
 free or profitable:
-- **Floor:** a clear never costs less than **half its base cost** (tree 3, boulder 4, rounded up),
+- **Floor:** a clear never costs less than **half its base cost** (tree 6, boulder 9),
   whatever stacks: Cleared Ground, Heartwood's Reach charges, Grove perks. Blight Level 9's ×2 is
   applied on top.
 - **Dew back** from a clear (Reclaimed Earth) is a share of what you **paid**, so it's always less
