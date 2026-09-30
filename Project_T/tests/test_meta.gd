@@ -420,6 +420,17 @@ func _run() -> void:
 		and memory.unlocks.has("slot_4") and HeartwoodMemory.loadout_slots(memory) == 4,
 		"v3 profiles: slot 2 and 3 refund 120 Seeds, slot 4 stays (%d, %s)" % [int(memory.seeds), memory.unlocks.keys()])
 
+	# --- v4 profiles: Reckless and Wild Planting (cut in the pool trim) refund their Seeds ---
+	old = FileAccess.open(PROFILE_PATH, FileAccess.WRITE)
+	old.store_string(JSON.stringify({"version": 4, "seeds": 0, "unlocks": {"reckless": 1, "wild_planting": 1, "sharpened": 1}}))
+	old.close()
+	HeartwoodMemory.forget()
+	memory = HeartwoodMemory.load_data()
+	_check(int(memory.seeds) == 40 + 50 and not memory.unlocks.has("reckless") and not memory.unlocks.has("wild_planting")
+		and memory.unlocks.has("sharpened"), "v4 profiles: Reckless and Wild Planting refund 90 Seeds (%d, %s)" % [int(memory.seeds), memory.unlocks.keys()])
+	_check(_unlock(grove, "full_moon").requires_all == ["sharpened"] and _unlock(grove, "rootbound").requires_all == ["seedbed"],
+		"Full Moon grows from Sharpened, Rootbound from Seedbed")
+
 	# --- Memory Wardens: a boss's first dispel grows its bloom; later runs offer it after that boss ---
 	HeartwoodMemory.save_data(HeartwoodMemory.defaults())
 	main = await _new_run()
@@ -569,7 +580,7 @@ func _layout_node(id: String) -> Dictionary:
 func _check_layout(grove: Array[UnlockData]) -> void:
 	var nodes: Array = GroveTreeView.load_layout().nodes
 	var parked := 0 if MetaRun.MEMORY_WARDENS_ENABLED else 3  # Memory Warden blooms: in the layout, off the tree
-	_check(nodes.size() == 84 and grove.size() == 84 - parked, "84 Grove spots, %d nodes on the tree (layout %d, data %d)" % [84 - parked, nodes.size(), grove.size()])
+	_check(nodes.size() == 82 and grove.size() == 82 - parked, "82 Grove spots, %d nodes on the tree (layout %d, data %d)" % [82 - parked, nodes.size(), grove.size()])
 	for node in nodes:
 		var unlock := HeartwoodMemory.get_unlock(node.id)
 		if unlock == null and node.get("memory_row") != null and parked > 0:

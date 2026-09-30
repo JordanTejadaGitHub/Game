@@ -68,14 +68,12 @@ N("guiding_lights", "cards", "Guiding Lights", 790, 452, "storm_lore");
 N("spore_lore", "cards", "Spore Lore", 852, 482, [842, 560]);
 N("dawnbreak", "cards", "Dawnbreak", 884, 330, "spore_lore", { legendary: true });  // Reactions and Woven are discovery unlocks now
 N("sharpened", "cards", "Sharpened", 952, 440, [942, 516]);
-N("reckless", "cards", "Reckless", 980, 370, "sharpened");
-N("full_moon", "cards", "Full Moon", 1000, 288, "reckless", { legendary: true });
+N("full_moon", "cards", "Full Moon", 1000, 288, "sharpened", { legendary: true });  // Reckless was cut in the pool trim
 N("tending_hands", "cards", "Tending Hands", 1062, 392, [1044, 465]);
 N("nursery", "cards", "Nursery", 1090, 320, "tending_hands");
 N("the_old_ones", "cards", "The Old Ones", 1102, 238, "nursery", { legendary: true });
 N("seedbed", "cards", "Seedbed", 1172, 340, [1134, 404]);
-N("wild_planting", "cards", "Wild Planting", 1208, 278, "seedbed");
-N("rootbound", "cards", "Rootbound", 1228, 206, "wild_planting", { legendary: true });
+N("rootbound", "cards", "Rootbound", 1228, 206, "seedbed", { legendary: true });  // Wild Planting was cut in the pool trim
 N("one_line", "cards", "One Line", 832, 640, [846, 562]);
 N("the_last_light", "cards", "The Last Light", 800, 710, "one_line", { legendary: true });
 N("dead_wood", "cards", "Dead Wood", 962, 600, [944, 518]);

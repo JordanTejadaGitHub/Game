@@ -11,6 +11,6 @@ root = 1
 costs = Array[int]([100])
 order = 14
 icon = 4
-requires_all = Array[String](["wild_planting"])
+requires_all = Array[String](["seedbed"])
 legendary = true
 dream_cards = Array[String](["rootbound"])
