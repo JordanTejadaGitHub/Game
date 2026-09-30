@@ -21,7 +21,7 @@ signal dew_spent(cost: int)  # Every spend (RunHistory sorts them into planting,
 @export var max_leaves: int = 15
 # Dispel Dew by act (economy pass v2, run_design.md): acts 1–4. Act 2 × 0.85 (interim, "Difficulty
 # curve targets": was 0.8; act 1 stays whole so a fresh profile reaches drift 25).
-@export var act_dew_multipliers: Array[float] = [1.0, 0.68, 0.65, 0.5]
+@export var act_dew_multipliers: Array[float] = [1.0, 0.68, 0.45, 0.35]  # "Earn less late" (balance_simulation.md "Human run 1", item 2)
 var _dispel_dew_carry := 0.0
 
 var dew: int

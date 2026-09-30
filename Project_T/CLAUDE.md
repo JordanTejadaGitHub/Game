@@ -139,7 +139,7 @@ accessibility, Steam achievements (milestones map to them). Acts 3–4 and all f
   before a boss rest; `FamilyPickScreen` calls `family_picked()` (first pick: 3 random of every
   unlocked family, never the last run's offer again, profile `last_first_pick`). `is_build_phase()`
   = resting (75% refunds). Health `get_growth(n)`: × 1.045 per drift, × 1.055 from drift 26 (`late_growth_from`), × 1.045 from 51 (`endgame_growth_from`); bosses × 1.5; acts 3–4 × 1.4 on top, bosses too (`late_acts_health_multiplier`). From drift 31 a drift listing no elites gets one, two from 76 (`add_guaranteed_elite`). Hooks for Dreams/Omens:
-  `get_health_multiplier`, `get_schedule_modifiers`, `get_spawn_modifiers`, `_pay_rest_bonus`. Acts 1–2 health (`get_early_multiplier`, `act1_*` / `early_*` exports): ×1.0 to drift 9 → ×1.15 at 20, held through 30 → ×1.55 at 45, held to 50 (act 1's boss exempt: stays ×1.5); acts 3–4 ×1.4; act 2 dispel Dew ×0.85 (`RunState.act_dew_multipliers` [1.0, 0.68, 0.65, 0.5]).
+  `get_health_multiplier`, `get_schedule_modifiers`, `get_spawn_modifiers`, `_pay_rest_bonus`. Acts 1–2 health (`get_early_multiplier`, `act1_*` / `early_*` exports): ×1.0 to drift 9 → ×1.15 at 20, held through 30 → ×1.55 at 45, held to 50 (act 1's boss exempt: stays ×1.5); acts 3–4 ×1.4; act 2 dispel Dew ×0.85 (`RunState.act_dew_multipliers` [1.0, 0.68, 0.45, 0.35]).
 - Drift data: `DriftData.groups: Array[DriftGroup]`; `DriftGroup.entries: Array[DriftEntry]`
   (enemy + count + `elite`; several entries mix evenly), `spacing`, `delay`. `get_schedule()` →
   `[[time, EnemyData, elite], …]`. Drifts 1–50 mirror the acts_1_2.md table (hand-edited files; mixed
