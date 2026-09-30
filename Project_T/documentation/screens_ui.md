@@ -636,6 +636,8 @@ From a user playtest with screenshots; each line is the rule going forward.
     Remember tabs go back to their earlier look, and a Dream card's requirement reads **"Needs
     Wind"** (the damage type as a linked word, no emblem). The nightmare resist / weak icons (the
     base Warden face with a shield or spark, `NightmareIcons`) predate the emblems and stay.
+- **Warden bar hover = the Warden panel's info** (2026-09-30, user: *"when you hover a tower in the tower bar, it should give you more detail, like when you select a tower"*). Hovering (or long-pressing on touch) a Warden bar button shows a card with **the same top half as the Warden panel**: portrait, name, damage type, description with status links, stats with this run's Dream bonuses (↑), statuses it applies, Potency, **"Grows into"** (its branches with their Dew and Dreamlight state), and the price line (Sprout: the rising price rule). No buttons. One shared view with the panel so the two never disagree.
+- **Top-right layout** (same day, user: *"should the Buffs / Remember / ? area be above the resources or beside it?"*): **under them**, right-aligned in one row: the resources stay the top-right corner (glanced at constantly), and the buttons sit directly below with the same right edge, Remember nearest the Dreamlight counter above it. Not above (it would push the numbers down from the corner) and not beside (it would crowd the drift banner and Coming strip, worst at 1280×800).
 - **Readable tooltips and hover text** (user: "hovering things, in general, the text is too small
   and hard to read"): every tooltip, hover panel and tap popup uses **at least 16 px body text at
   1080p** (18 px for the first line / name), **1.35 line height**, a maximum width of about **42

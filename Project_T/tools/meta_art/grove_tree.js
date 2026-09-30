@@ -883,13 +883,14 @@ const GROVE_MISTS = [
   { file: "grove_mist_2.png", y: 820, h: 120, dens: .95, speed: 12, seed: 143 },
 ];
 function groveMistStrip(m) {
+  // Drawn in 2 px art pixels (like the crown), so it moves and scales without shimmering.
   const out = new Img(GW, m.h), deep = m.dens > .8;
-  for (let y = 0; y < m.h; y++) for (let x = 0; x < GW; x++) {
+  for (let y = 0; y < m.h; y += 2) for (let x = 0; x < GW; x += 2) {
     const wob = (pnoise(x, 0, 80, m.seed + 2, 16) - .5) * m.h * .5;
     const band = clamp(1 - Math.abs(y - m.h / 2 - wob) / (m.h * .42), 0, 1) ** 1.5;
     const n = pnoise(x, y, 40, m.seed, 32) * .75 + pnoise(x, y, 16, m.seed + 1, 80) * .25;
     const d = band * clamp((n - .36) * 2.6, 0, 1);
-    if (d > 0 && bay(x, y) < d * m.dens) out.set(x, y, d > .75 ? (deep ? HW.Bruise : HW.Shade) : d > .45 ? HW.Shade : HW.Dusk);
+    if (d > 0 && bay(x >> 1, y >> 1) < d * m.dens) { const c = d > .75 ? (deep ? HW.Bruise : HW.Shade) : d > .45 ? HW.Shade : HW.Dusk; out.set(x, y, c); out.set(x + 1, y, c); out.set(x, y + 1, c); out.set(x + 1, y + 1, c); }
   }
   return out;
 }

@@ -120,6 +120,26 @@ func _run() -> void:
 			and not back_rect.intersects(strip_rect) and back_rect.end.y <= screen.y,
 			"the peek's Back button clears the bar, banner and Coming strip at %s (%s; bar %s, strip %s)" % [screen, back_rect, bar_rect, strip_rect])
 		peek_screen.queue_free()
+		# The top-right buttons: one row directly under the resources, right-aligned with them, no gaps,
+		# Remember leftmost (nearest the Dreamlight counter above it).
+		var top_names := ["RememberButton", "BuffLensButton", "CodexButton", "MenuButton"]
+		var was_shown := {}
+		for n in top_names:
+			var b := main.get_node("HUD/" + n) as Control
+			was_shown[n] = b.visible
+			b.visible = true
+		await _frames(2)
+		var rects: Array = top_names.map(func(n: String) -> Rect2: return (main.get_node("HUD/" + n) as Control).get_global_rect())
+		var dew_rect := (main.get_node("%DewLabel") as Control).get_global_rect()
+		var in_row := true
+		for i in rects.size():
+			in_row = in_row and absf(rects[i].position.y - rects[0].position.y) < 0.5
+			if i > 0:
+				in_row = in_row and rects[i].position.x > rects[i - 1].end.x - 0.5 and rects[i].position.x - rects[i - 1].end.x < 12.0
+		_check(in_row and absf(rects[3].end.x - dew_rect.end.x) < 1.0 and rects[0].position.y >= 120.0 and rects[0].position.y <= 140.0,
+			"the top-right buttons sit in one row under the resources, right-aligned with them, Remember first at %s (%s, Dew %s)" % [screen, rects, dew_rect])
+		for n in top_names:
+			(main.get_node("HUD/" + n) as Control).visible = was_shown[n]
 		# The expanded damage meter (both tabs, the top rows + "and N more") never covers the DriftPanel
 		# (user: "maze dps shouldn't go over the call drift").
 		var meter := main.get_node("HUD/DriftMeter") as DriftMeter

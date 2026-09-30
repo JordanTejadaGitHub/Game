@@ -21,11 +21,24 @@ enum { MARK_SOLID, MARK_GLOW, MARK_DOT, MARK_PILL }
 
 var spawner: Node2D
 var badge_atlas: ImageTexture
+# Kept here, not in statics, so they're freed with the run (a font or texture held by a static is
+# freed after the servers at exit, and crashes): the stack-count font and the status icons.
+var stack_font: FontVariation
+var _icons := {}  # {status id: Texture2D or null}
 
 func _ready() -> void:
 	z_index = Z
 	z_as_relative = false
 	badge_atlas = _make_badge_atlas()
+	stack_font = FontVariation.new()
+	stack_font.base_font = UiStyle.body_medium_font()
+	stack_font.variation_embolden = 0.9
+
+# A status's pixel-art icon (IconInfo's sheet), cached; null if the sheet has none.
+func icon(id: StringName) -> Texture2D:
+	if not _icons.has(id):
+		_icons[id] = IconInfo.icon(id)
+	return _icons[id]
 
 func badge_region(kind: int) -> Rect2:
 	if kind == MARK_SOLID:

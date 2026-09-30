@@ -188,7 +188,7 @@ const BOSS_DREAMLIGHT := 4
 # "The Heartwood wakes" (run_design.md Dreamlight sources): every rest from drift 51 frees +1 more.
 const WAKE_DREAMLIGHT := 1
 const WAKE_FROM_DRIFT := 51
-const BRANCH_DREAMLIGHT := 1  # Hidden branch, wall growth (regular branches come free with the family)
+const BRANCH_DREAMLIGHT := 1  # Branch (regular or hidden), wall growth: bought with Dreamlight in a run (clarified 2026-09-30)
 const FINAL_DREAMLIGHT := 2  # Final form (needs its branch)
 # Ascended forms (tower_design.md): tier 4, grown from any of the family's final forms.
 const ASCENDED_TIER := 4
@@ -310,7 +310,6 @@ func _ready() -> void:
 	drift_director.family_pick_requested.connect(func(reason: StringName) -> void:
 		if reason == &"first":
 			add_dreamlight(first_pick_dreamlight, &"first_pick"))  # Act 1 can take a final form
-	unlocks_changed.connect(grant_free_branches)  # A family pick (screen or sim), a save load
 	map_generator.path_changed.connect(_update_bends)
 	spawner.enemy_cleansed.connect(_on_enemy_cleansed)
 	spawner.child_entered_tree.connect(_stamp_head_start)
@@ -489,24 +488,6 @@ func get_unlock_blocker(data: TowerData) -> String:
 # only its branch and 2 Dreamlight.
 func _is_regular_final(data: TowerData) -> bool:
 	return data.tier == 3 and data.line != "wall"
-
-# Owning a family unlocks its base and both regular branches at once (growing still costs Dew); hidden
-# branches (Grove) still cost Dreamlight. Runs on every unlocks_changed (family picks, save loads: an old
-# save with a branch not bought gets it, nothing refunded).
-func grant_free_branches() -> void:
-	var granted := false
-	for root in _roster() + _family_roots():
-		if not (root is TowerData and root.tier == 1 and root.buildable_directly and root.line != "wall"):
-			continue
-		if not unlocked.has(root.get_id()):
-			continue
-		for branch in root.evolves_to:
-			var card := _unlock_card_for(branch)
-			if not unlocked.has(branch.get_id()) and (card == null or card.in_start_pool):
-				unlocked[branch.get_id()] = true
-				granted = true
-	if granted:
-		unlocks_changed.emit()
 
 func can_unlock(data: TowerData) -> bool:
 	var cost := get_unlock_cost(data)

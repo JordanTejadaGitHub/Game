@@ -116,8 +116,6 @@ const STACK_FONT_SIZE := 16
 const STACK_POP_TIME := 0.18  # An icon's quick scale bump when a stack is added
 const STACK_POP_SCALE := 0.35  # …up to this much bigger
 const STACK_PIP_MAX := 4.0  # Stack pips above an icon: at most this big (px), smaller when many
-static var _stack_font: FontVariation
-static var _icons := {}  # {status id: Texture2D or null}, shared by every nightmare
 const BOLT_FLASH_TIME := 0.2
 const HIT_MARK_TIME := 0.35  # Grey puff (resisted) / sparkle (weak) after a hit
 # Damage that only happened because of a Reaction (DamageLog: whole-hit combos, event kind "reaction").
@@ -632,11 +630,13 @@ func _make_hud() -> void:
 	_hud_health = -2  # Builds the bars on the first update
 
 func _free_hud() -> void:
-	for item in _hud_items:
-		RenderingServer.free_rid(item)
+	if not _hud_root.is_valid():
+		return
+	for item in _hud_items:  # Children first, then the root
+		if item.is_valid():
+			RenderingServer.free_rid(item)
 	_hud_items.clear()
-	if _hud_root.is_valid():
-		RenderingServer.free_rid(_hud_root)
+	RenderingServer.free_rid(_hud_root)
 	_hud_root = RID()
 
 # Where the badge row sits (its bottom centre on the health bar's top edge), from the nightmare's origin.
@@ -787,14 +787,12 @@ func _stack_pill(i: int) -> Rect2:
 	var corner := _badge_centre(i) + Vector2(r + 2.0, r + 1.0)  # The pill's lower-right corner
 	return Rect2(corner - Vector2(maxf(width, height), height), Vector2(maxf(width, height), height))
 
-static func _stack_font_face() -> Font:
-	if _stack_font == null:
-		_stack_font = FontVariation.new()
-		_stack_font.base_font = UiStyle.body_medium_font()
-		_stack_font.variation_embolden = 0.9
-	return _stack_font
+# The stack-count font: NightmareOverlay's (an instance's, freed with the run: a Font kept in a static
+# is freed after the TextServer at exit and crashes).
+func _stack_font_face() -> Font:
+	return _spawner.overlay.stack_font
 
-static func _add_stack_text(item: RID, at: Vector2, text: String, color: Color) -> void:
+func _add_stack_text(item: RID, at: Vector2, text: String, color: Color) -> void:
 	var font := _stack_font_face()
 	font.draw_string_outline(item, at, text, HORIZONTAL_ALIGNMENT_LEFT, -1, STACK_FONT_SIZE, 3, Palette.VOID)
 	font.draw_string(item, at, text, HORIZONTAL_ALIGNMENT_LEFT, -1, STACK_FONT_SIZE, color)
@@ -1480,10 +1478,9 @@ func _is_shared_material() -> bool:
 		or sprite.material == _spawner.blight_materials.get(true))
 
 # The 16×16 pixel-art icon for a status id (or "elite"), cached; null if the sheet has none.
-static func _status_icon(id: StringName) -> Texture2D:
-	if not _icons.has(id):
-		_icons[id] = IconInfo.icon(id)
-	return _icons[id]
+func _status_icon(id: StringName) -> Texture2D:
+	var overlay: NightmareOverlay = _spawner.overlay if _spawner != null else null
+	return overlay.icon(id) if overlay != null else IconInfo.icon(id)
 
 func _outline_alpha() -> float:
 	var color = (sprite.material as ShaderMaterial).get_shader_parameter("outline_color")
