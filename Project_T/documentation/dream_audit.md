@@ -183,6 +183,6 @@ for the same rarity.
 
 ## Order
 
-1. **The user approves** this page (or changes lines).
+1. **Approved by the user (2026-09-30).** Balance direction: **raise nightmare health, never cut Warden damage** (only outliers get their own trims); if drifts drag, part of the rise becomes more nightmares instead.
 2. Roguelite Code applies it (data + the two rules above; card text through `text_style.md`).
 3. Tower Code reruns skip / random / Balanced and tunes health; the numbers here move with it.
