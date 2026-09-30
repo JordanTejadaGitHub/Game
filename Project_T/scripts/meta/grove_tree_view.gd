@@ -27,7 +27,7 @@ const DRAG_THRESHOLD := 8.0  # Screen px before a press becomes a pan
 const GROW_STEP := 0.1  # Seconds per branch / bud frame while planting
 const CANOPY_FADE := 1.2
 const SECTION_ROW := {"perks": 0, "families": 1, "cards": 2}
-const SECTION_COLOR := {"perks": Color(1.0, 0.82, 0.4), "families": Color(0.6, 0.95, 0.55), "cards": Color(0.78, 0.62, 1.0)}
+const SECTION_COLOR := {"perks": Palette.GLOW, "families": Palette.NEWLEAF, "cards": Palette.BLOSSOM}
 
 enum State { LOCKED, AVAILABLE, AFFORDABLE, OWNED }
 
@@ -415,7 +415,7 @@ func _draw_node(node: Dictionary, font: Font) -> void:
 	var tint := Color(1, 1, 1, 0.55) if state == State.LOCKED else Color.WHITE
 	_layer.draw_texture_rect_region(texture, rect, Rect2(column * frame_px, row * frame_px, frame_px, frame_px), tint)
 	if node.id == selected_id:
-		var colour: Color = SECTION_COLOR.get(node.section, Color.WHITE)
+		var colour: Color = SECTION_COLOR.get(node.section, Palette.HEARTLIGHT)
 		_layer.draw_arc(pos, frame_px * 0.55, 0.0, TAU, 32, colour, 1.5)
 	# Level pips for perks with levels (Morning Stores I–III …).
 	var levels := unlock.get_levels()
@@ -423,16 +423,16 @@ func _draw_node(node: Dictionary, font: Font) -> void:
 		var owned := HeartwoodMemory.node_level(_memory, unlock)
 		for i in levels:
 			var dot := pos + Vector2((i - (levels - 1) / 2.0) * 6.0, frame_px * 0.5 + 3.0)
-			_layer.draw_circle(dot, 2.0, Color(1.0, 0.85, 0.45) if i < owned else Color(0.25, 0.22, 0.2))
+			_layer.draw_circle(dot, 2.0, Palette.GLOW if i < owned else Palette.DEEPMOSS)
 	# The next cost, under buds you could plant now or once you have the Seeds.
 	if state == State.AFFORDABLE or state == State.AVAILABLE or (state == State.OWNED and HeartwoodMemory.buy_problem(_memory, unlock) in ["", "Not enough Seeds"]):
 		var cost := unlock.get_cost(HeartwoodMemory.unlock_level(_memory, unlock.id))
 		if cost > 0:
 			var text := str(cost)
-			var colour := Color(1.0, 0.92, 0.6) if int(_memory.seeds) >= cost else Color(0.7, 0.68, 0.65)
+			var colour := Palette.NEWLEAF if int(_memory.seeds) >= cost else Palette.PATH
 			var y := pos.y + frame_px * 0.5 + (11.0 if levels > 1 else 8.0)
 			var width := font.get_string_size(text, HORIZONTAL_ALIGNMENT_CENTER, -1, 8).x
-			_layer.draw_string_outline(font, Vector2(pos.x - width / 2.0, y), text, HORIZONTAL_ALIGNMENT_LEFT, -1, 8, 3, Color(0.05, 0.04, 0.06, 0.9))
+			_layer.draw_string_outline(font, Vector2(pos.x - width / 2.0, y), text, HORIZONTAL_ALIGNMENT_LEFT, -1, 8, 3, Color(Palette.VOID, 0.9))
 			_layer.draw_string(font, Vector2(pos.x - width / 2.0, y), text, HORIZONTAL_ALIGNMENT_LEFT, -1, 8, colour)
 
 func _draw_fruit() -> void:
@@ -465,8 +465,8 @@ func _draw_stones() -> void:
 		var i: int = lit[k]
 		var centre := vec(stones[i])
 		var pulse := 0.5 + 0.5 * sin(_time * 2.0 + i)
-		_layer.draw_circle(centre, 16.0, Color(1.0, 0.8, 0.45, 0.10 + 0.06 * pulse))
-		_layer.draw_circle(centre, 9.0, Color(1.0, 0.85, 0.5, 0.12 + 0.08 * pulse))
+		_layer.draw_circle(centre, 16.0, Color(Palette.GLOW, 0.10 + 0.06 * pulse))
+		_layer.draw_circle(centre, 9.0, Color(Palette.GLOW, 0.12 + 0.08 * pulse))
 		if k < carried.size() and not (i == SIXTH_STONE and is_sixth_rising()):
 			var icon := get_icon(_unlocks[carried[k]])
 			if icon:
@@ -493,4 +493,4 @@ func _draw_motes() -> void:
 	for mote in _motes:
 		var drift := Vector2(sin(_time * 0.3 + mote.z) * 14.0, cos(_time * 0.22 + mote.z * 1.3) * 10.0)
 		var alpha := 0.25 + 0.25 * sin(_time * 1.3 + mote.z * 2.0)
-		_layer.draw_circle(Vector2(mote.x, mote.y) + drift, 1.2, Color(1.0, 0.9, 0.6, alpha))
+		_layer.draw_circle(Vector2(mote.x, mote.y) + drift, 1.2, Color(Palette.GLOW, alpha))

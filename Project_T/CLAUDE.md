@@ -312,6 +312,10 @@ accessibility, Steam achievements (milestones map to them). Acts 3–4 and all f
   texture, banded glow, smoke, then snap; `texture` 0..1 thins the grain for calm tiles / pre-shaded art).
   Every art generator runs its frames through it. `tools/art/palette_export.gd` writes
   `assets/palette/heartwood32.{gpl,hex,json,png}` for non-Godot tools. `tests/test_palette.gd`.
+  **Game code draws only palette colours:** `Palette` (`scripts/palette.gd`) has the 32 as constants
+  (`Palette.GOLD`, `Color(Palette.WRAITHLIGHT, 0.4)`; alpha is free). Nightmare visuals cold, Warden/dream
+  warm. Raw colours only for multipliers (modulates, lighting/season tints: mark the line "multiplier").
+  `tests/test_palette.gd` fails on any other colour literal in `scripts/` (scripts/ui/ still pending).
 - `tools/sound_generator.gd` synthesizes every sound into `assets/audio/` (sfx 44.1 kHz; music
   stems + ambience 22 kHz, D minor 72 bpm 3/4, 20 s loops of equal length). Re-run it, then `--import`.
 - `Sound` autoload (`scripts/audio/sound.gd`): buses Music/SFX/Ambience/UI (reverb on Music/SFX,

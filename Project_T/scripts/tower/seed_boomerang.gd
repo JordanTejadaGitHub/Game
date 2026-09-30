@@ -82,7 +82,7 @@ func _carry_storm(before: Vector2) -> void:
 		if spot.is_empty():
 			return
 		var data := Reactions.get_data(Reactions.CROWNED_BASE.get(spot.id, spot.id))
-		_storm = {"id": spot.id, "applier": spot.applier, "colour": data.callout_color if data else Color.WHITE}
+		_storm = {"id": spot.id, "applier": spot.applier, "colour": data.callout_color if data else Palette.HEARTLIGHT}
 		return
 	var trail := Fx.segment(&"carried_storm", before, global_position, tracker.get_parent(), 0.3)
 	if trail != null:
@@ -143,8 +143,8 @@ func _draw() -> void:
 	if texture == null:
 		# A maple seed: a round seed and one long wing, spinning.
 		var wing := Vector2.from_angle(spin) * 11.0
-		draw_line(Vector2.ZERO, wing, Color(0.85, 0.6, 0.3), 4.0)
-		draw_circle(Vector2.ZERO, 3.5, Color(0.6, 0.4, 0.2))
+		draw_line(Vector2.ZERO, wing, Palette.GOLD, 4.0)
+		draw_circle(Vector2.ZERO, 3.5, Palette.OAK)
 		return
 	draw_set_transform(Vector2.ZERO, spin)
 	var frames: int = _data.projectile_frames

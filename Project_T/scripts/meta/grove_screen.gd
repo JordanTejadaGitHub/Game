@@ -45,7 +45,7 @@ var _blight := BlightPicker.new()
 func _ready() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
 	var background := ColorRect.new()
-	background.color = Color(0.03, 0.04, 0.07)
+	background.color = Palette.VOID
 	background.set_anchors_preset(Control.PRESET_FULL_RECT)
 	add_child(background)
 	# The sky again, covering the screen and dimmed, so a wide window has no bars beside the tree.
@@ -53,7 +53,7 @@ func _ready() -> void:
 	sky.texture = load(GroveTreeView.ART + "grove/grove_sky.png")
 	sky.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	sky.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
-	sky.modulate = Color(0.55, 0.55, 0.65)
+	sky.modulate = Color(0.55, 0.55, 0.65)  # A multiplier on the sky art, not a colour
 	sky.set_anchors_preset(Control.PRESET_FULL_RECT)
 	add_child(sky)
 	tree_view.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -67,7 +67,7 @@ func _ready() -> void:
 	_build_card()
 	_build_footer()
 
-	_backdrop.color = Color(0, 0, 0, 0.55)
+	_backdrop.color = Color(Palette.VOID, 0.55)
 	_backdrop.set_anchors_preset(Control.PRESET_FULL_RECT)
 	_backdrop.visible = false
 	_backdrop.gui_input.connect(func(event: InputEvent) -> void:
@@ -95,28 +95,28 @@ func _build_header() -> void:
 	var title := Label.new()
 	title.text = "The Memory Grove"
 	title.add_theme_font_size_override("font_size", 26)
-	title.add_theme_color_override("font_color", Color(0.85, 1.0, 0.8))
-	title.add_theme_color_override("font_outline_color", Color(0.02, 0.03, 0.05))
+	title.add_theme_color_override("font_color", Palette.HEARTLIGHT)
+	title.add_theme_color_override("font_outline_color", Palette.VOID)
 	title.add_theme_constant_override("outline_size", 6)
 	header.add_child(title)
 	_seeds_label.add_theme_font_size_override("font_size", 22)
-	_seeds_label.add_theme_color_override("font_color", Color(0.8, 0.95, 0.55))
-	_seeds_label.add_theme_color_override("font_outline_color", Color(0.02, 0.03, 0.05))
+	_seeds_label.add_theme_color_override("font_color", Palette.NEWLEAF)
+	_seeds_label.add_theme_color_override("font_outline_color", Palette.VOID)
 	_seeds_label.add_theme_constant_override("outline_size", 6)
 	header.add_child(_seeds_label)
 	if DevGrove.is_active():  # A dev profile, not the player's
 		var dev := Label.new()
 		dev.text = DevGrove.tag()
 		dev.add_theme_font_size_override("font_size", 14)
-		dev.add_theme_color_override("font_color", Color(1.0, 0.7, 0.4))
+		dev.add_theme_color_override("font_color", Palette.GOLD)
 		header.add_child(dev)
 	add_child(header)
 	_message.grow_horizontal = Control.GROW_DIRECTION_BOTH
 	_message.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_message.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_message.add_theme_font_size_override("font_size", 18)
-	_message.add_theme_color_override("font_color", Color(0.92, 0.88, 1.0))
-	_message.add_theme_color_override("font_outline_color", Color(0.02, 0.03, 0.05))
+	_message.add_theme_color_override("font_color", Palette.MOONLIGHT)
+	_message.add_theme_color_override("font_outline_color", Palette.VOID)
 	_message.add_theme_constant_override("outline_size", 6)
 	add_child(_message)
 	_message.set_anchors_and_offsets_preset(Control.PRESET_CENTER_TOP, Control.PRESET_MODE_MINSIZE, 18)
@@ -127,7 +127,7 @@ func _build_card() -> void:
 	_card.grow_horizontal = Control.GROW_DIRECTION_BEGIN
 	_card.grow_vertical = Control.GROW_DIRECTION_BOTH
 	var style := StyleBoxFlat.new()
-	style.bg_color = Color(0.07, 0.07, 0.1, 0.94)
+	style.bg_color = Color(Palette.DREAD, 0.94)
 	style.set_border_width_all(2)
 	style.set_corner_radius_all(10)
 	style.set_content_margin_all(14)
@@ -214,8 +214,8 @@ func _build_footer() -> void:
 func _build_viewer() -> void:
 	_viewer.visible = false
 	var style := StyleBoxFlat.new()
-	style.bg_color = Color(0.06, 0.06, 0.09, 0.97)
-	style.border_color = Color(0.85, 0.8, 1.0)
+	style.bg_color = Color(Palette.DREAD, 0.97)
+	style.border_color = Palette.DEWLIGHT
 	style.set_border_width_all(2)
 	style.set_corner_radius_all(10)
 	style.set_content_margin_all(16)
@@ -225,7 +225,7 @@ func _build_viewer() -> void:
 	_viewer.add_child(box)
 	_viewer_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_viewer_title.add_theme_font_size_override("font_size", 20)
-	_viewer_title.add_theme_color_override("font_color", Color(0.9, 0.86, 1.0))
+	_viewer_title.add_theme_color_override("font_color", Palette.MOONLIGHT)
 	box.add_child(_viewer_title)
 	_viewer_art.custom_minimum_size = Vector2(640, 360)
 	_viewer_art.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
@@ -283,7 +283,7 @@ func _update_card() -> void:
 	if selected == null:
 		return
 	var section := selected.get_section()
-	var colour: Color = GroveTreeView.SECTION_COLOR.get(section, Color.WHITE)
+	var colour: Color = GroveTreeView.SECTION_COLOR.get(section, Palette.HEARTLIGHT)
 	(_card.get_theme_stylebox("panel") as StyleBoxFlat).border_color = colour
 	_card_icon.texture = tree_view.get_icon(selected)
 	_card_name.text = selected.display_name
@@ -314,7 +314,7 @@ func _update_card() -> void:
 		_:
 			_card_status.text = ("Or grows by itself: %s." % MILESTONE_TEXT.get(selected.milestone, "a milestone")) if selected.milestone != "" else ""
 	_card_status.visible = _card_status.text != ""
-	_card_status.add_theme_color_override("font_color", Color(0.7, 0.95, 0.6) if problem == "Grown" else Color(0.85, 0.82, 0.75))
+	_card_status.add_theme_color_override("font_color", Palette.NEWLEAF if problem == "Grown" else Palette.MOONPATH)
 	var carried := HeartwoodMemory.get_loadout(_memory).has(selected.id)
 	_carry.visible = selected.is_perk() and level > 0
 	_carry.text = "Put back" if carried else "Carry into the dream"

@@ -107,7 +107,7 @@ func _draw() -> void:
 		var t := float(i + 1) / (_trail.size() + 1)
 		draw_circle(to_local(_trail[i]), 1.5 + 2.0 * t, Color(trail, trail.a * 0.55 * t))
 	if _lob:
-		draw_circle(Vector2.ZERO, RADIUS * (1.0 - lift / (_lob_height * 2.0)), Color(0, 0, 0, 0.25))  # Its shadow
+		draw_circle(Vector2.ZERO, RADIUS * (1.0 - lift / (_lob_height * 2.0)), Color(Palette.VOID, 0.25))  # Its shadow
 	var at := Vector2(0, -lift)
 	if texture == null:
 		draw_circle(at, RADIUS, color.darkened(0.3))

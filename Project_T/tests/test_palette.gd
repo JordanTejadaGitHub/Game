@@ -56,6 +56,7 @@ func _init() -> void:
 		"snap_image() keeps alpha")
 
 	_check_files()
+	_check_code_colours()
 	_check_warden_night(rng)
 	_check_detail_pass()
 	_preview()
@@ -75,6 +76,73 @@ func _check_files() -> void:
 	var strip: Image = load("res://assets/palette/heartwood32.png").get_image()
 	_check(strip != null and strip.get_width() == 32 and strip.get_pixel(12, 0) == cols[12],
 		"heartwood32.png is the 32x1 palette strip")
+
+
+# Colours drawn in code (scripts/palette.gd, art_direction.md): Palette's constants are the 32, and
+# scripts/ + shaders/ use no colour literal outside the palette. Allowed: palette hex literals
+# (UiStyle's own constants), transparent black, white multipliers (modulates), and the lighting /
+# season tints in CODE_COLOUR_EXEMPT (multipliers, art_direction.md "The acts' seasons").
+const CODE_COLOUR_EXEMPT := ["palette.gd", "seasons.gd", "environment_lighting.gd"]
+# Folders not swept yet (UI Code owns the UI look); reported, not failed. Empty it when they're done.
+const CODE_COLOUR_PENDING := ["res://scripts/ui/"]
+
+
+func _check_code_colours() -> void:
+	var consts: Dictionary = load("res://scripts/palette.gd").get_script_constant_map()
+	var names := HeartwoodPalette.names()
+	var same := consts.size() == 32
+	for n in names:
+		same = same and consts.get(n.to_upper()) == HeartwoodPalette.color(n)
+	_check(same, "Palette's 32 constants match HeartwoodPalette")
+
+	var re := RegEx.create_from_string(
+		"Color8\\([^)]*\\)|Color\\(\\s*-?[0-9.]+\\s*,[^)]*\\)|Color\\(\\s*\"#?([0-9a-fA-F]{6})[0-9a-fA-F]{0,2}\"|Color\\.(?!TRANSPARENT\\b)[A-Z][A-Z_]+")
+	var white := RegEx.create_from_string("^Color\\(\\s*1(\\.0)?\\s*,\\s*1(\\.0)?\\s*,\\s*1(\\.0)?\\s*[,)]")
+	var clear := RegEx.create_from_string("^Color\\(\\s*0(\\.0)?\\s*,\\s*0(\\.0)?\\s*,\\s*0(\\.0)?\\s*,\\s*0(\\.0)?\\s*\\)")
+	var files: PackedStringArray = []
+	_gd_files("res://scripts", files)
+	var bad: PackedStringArray = []
+	var pending := 0
+	for f in files:
+		if f.get_file() in CODE_COLOUR_EXEMPT:
+			continue
+		var lines := FileAccess.get_file_as_string(f).split("\n")
+		for i in lines.size():
+			if "multiplier" in lines[i]:
+				continue  # Marked as a tint on art (a modulate), not a colour
+			var code := lines[i].split("#")[0] if not "\"#" in lines[i] else lines[i]
+			for m in re.search_all(code):
+				var lit := m.get_string()
+				if white.search(lit) or clear.search(lit) or lit == "Color.WHITE":
+					continue  # A multiplier (modulate / tint) or "no colour"
+				if m.get_string(1) != "" and HeartwoodPalette.index_of(Color.html(m.get_string(1))) >= 0:
+					continue  # A palette colour by hex (UiStyle's constants, checked in test_ui_style)
+				var pend := false
+				for p in CODE_COLOUR_PENDING:
+					pend = pend or f.begins_with(p)
+				if pend:
+					pending += 1
+				else:
+					bad.append("%s:%d %s" % [f.trim_prefix("res://"), i + 1, lit])
+	for b in bad:
+		push_error("off-palette colour in code: " + b)
+	_check(bad.is_empty(), "scripts/ draws only palette colours (%d off-palette literals)" % bad.size())
+	if pending > 0:
+		print("note: %d colour literals left in %s (not swept yet)" % [pending, ", ".join(CODE_COLOUR_PENDING)])
+
+	var shader := FileAccess.get_file_as_string("res://shaders/blight.gdshader")
+	var crack := RegEx.create_from_string("crack_color[^=]*=\\s*vec3\\(([^)]*)\\)").search(shader)
+	var v := crack.get_string(1).split(",") if crack else PackedStringArray()
+	_check(v.size() == 3 and HeartwoodPalette.index_of(Color(float(v[0]), float(v[1]), float(v[2]))) >= 0,
+		"the blight shader's crack colour is a palette colour")
+
+
+func _gd_files(dir: String, out: PackedStringArray) -> void:
+	for f in DirAccess.get_files_at(dir):
+		if f.ends_with(".gd"):
+			out.append(dir.path_join(f))
+	for d in DirAccess.get_directories_at(dir):
+		_gd_files(dir.path_join(d), out)
 
 
 # Warden Night (warden_night.md): 35 colours for Warden idle sheets; nothing else ever snaps to the 3.

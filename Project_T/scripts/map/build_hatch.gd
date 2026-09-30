@@ -10,7 +10,7 @@ const HATCH_Z := 1  # Over the ground, trees and Wardens (z 0), under the cold m
 const SPACING := 8  # px between hatch lines
 const LINE := 2  # px
 
-@export var color := Color(0.62, 0.72, 1.0, 0.22)
+@export var color := Color(Palette.DEWLIGHT, 0.22)
 
 var map_generator: Node  # Set these before adding
 var tower_container: Node

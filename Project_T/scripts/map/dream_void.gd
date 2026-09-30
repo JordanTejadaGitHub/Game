@@ -41,7 +41,7 @@ func _ready() -> void:
 		placed.append(at)
 		var islet := _islet(islets, rng.randi_range(0, count - 1), at)
 		islet.scale = Vector2.ONE * rng.randf_range(0.6, 1.0)  # Farther away
-		islet.modulate = Color(0.75, 0.75, 0.9)
+		islet.modulate = Color(0.75, 0.75, 0.9)  # A multiplier on the islet art, not a colour
 		add_child(islet)
 
 func _layer(sheet: String, scroll: float, drift: Vector2) -> Parallax2D:

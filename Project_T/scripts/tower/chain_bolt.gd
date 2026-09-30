@@ -5,7 +5,7 @@ class_name ChainBolt
 
 const LIFETIME := 0.25
 const JAG := 6.0  # Pixels of zig-zag per segment
-const COLOR := Color(1.0, 0.95, 0.55)
+const COLOR := Palette.NEWLEAF
 
 var _points: PackedVector2Array
 var _age := 0.0

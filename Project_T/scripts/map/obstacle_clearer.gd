@@ -21,9 +21,9 @@ signal clear_pending(cell: Vector2)
 
 const MAP_GRID = preload("res://resource/map/map_grid.tres")
 const NO_CELL := Vector2(-1, -1)
-const HIGHLIGHT_COLOR := Color(1.0, 0.85, 0.4)
-const LOCKED_COLOR := Color(0.78, 0.78, 0.8)
-const NAME_COLOR := Color(0.92, 0.92, 0.88)
+const HIGHLIGHT_COLOR := Palette.GLOW
+const LOCKED_COLOR := Palette.MOONPATH
+const NAME_COLOR := Palette.MOONLIGHT
 
 @onready var map_generator = %MapGenerator
 @onready var tower_placer: TowerPlacer = %TowerPlacer

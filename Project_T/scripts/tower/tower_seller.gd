@@ -24,8 +24,8 @@ signal selection_changed(towers: Array[Tower])
 
 const MAP_GRID = preload("res://resource/map/map_grid.tres")
 const NO_CELL := Vector2(-1, -1)
-const HIGHLIGHT_COLOR := Color(0.55, 0.85, 1.0)
-const SELECTED_COLOR := Color(1.0, 0.78, 0.42)  # The warm outline on selected Wardens
+const HIGHLIGHT_COLOR := Palette.DEWLIGHT
+const SELECTED_COLOR := Palette.GLOW  # The warm outline on selected Wardens
 const DRAG_THRESHOLD := 8.0  # Screen pixels before a press becomes a box drag
 const BLOOM_TIME := 0.45
 const BLOOM_STAGGER := 0.06  # Seconds between Wardens in a group grow's bloom
@@ -610,7 +610,7 @@ func _draw() -> void:
 		draw_circle(at, 12.0 + 30.0 * t, Color(SELECTED_COLOR, 0.35 * (1.0 - t)))
 		for i in 6:
 			var dir := Vector2.from_angle(TAU * i / 6.0 + t)
-			draw_circle(at + dir * (10.0 + 26.0 * t), 3.0 * (1.0 - t) + 1.0, Color(1.0, 0.95, 0.7, 1.0 - t))
+			draw_circle(at + dir * (10.0 + 26.0 * t), 3.0 * (1.0 - t) + 1.0, Color(Palette.HEARTLIGHT, 1.0 - t))
 	var armed := get_armed_sell()
 	if not armed.is_empty():
 		# First press during a drift: show the (half) refund; a second press sells.
@@ -620,7 +620,7 @@ func _draw() -> void:
 		var at: Vector2 = armed[0].position
 		WorldLabel.draw_tag(self, at.x, at.y - MAP_GRID.cell_size.y / 2.0 - 8.0,
 			"Press %s again to sell for +%d Dew" % [_sell_key_name(), refund],
-			Color(1.0, 0.8, 0.45))
+			Palette.GLOW)
 	if _dragging:
 		var box := Rect2(_press_world, Vector2.ZERO).expand(get_global_mouse_position())
 		draw_rect(box, Color(SELECTED_COLOR, 0.08))

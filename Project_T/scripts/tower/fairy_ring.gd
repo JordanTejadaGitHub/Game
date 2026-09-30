@@ -77,7 +77,7 @@ func _set_off() -> void:
 func _draw() -> void:
 	if _burst >= 0.0:
 		var t := _burst / BURST_TIME
-		var color := Color(0.75, 0.95, 0.5, 1.0 - t)
+		var color := Color(Palette.NEWLEAF, 1.0 - t)
 		draw_circle(Vector2.ZERO, 12.0 + 26.0 * t, Color(color, 0.35 * (1.0 - t)))
 		for i in 8:
 			var dir := Vector2.from_angle(TAU * i / 8.0)
@@ -89,7 +89,7 @@ func _draw() -> void:
 	if _lifetime > 0.0:
 		alpha = minf(alpha, (_lifetime - _age) / 1.0)
 	if texture == null:
-		draw_arc(Vector2.ZERO, 12.0, 0.0, TAU, 16, Color(0.8, 0.95, 0.6, alpha), 3.0)
+		draw_arc(Vector2.ZERO, 12.0, 0.0, TAU, 16, Color(Palette.NEWLEAF, alpha), 3.0)
 		return
 	var frames: int = _data.trap_frames
 	var size := Vector2(texture.get_width() / float(frames), texture.get_height())
