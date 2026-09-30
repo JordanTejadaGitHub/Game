@@ -2584,6 +2584,19 @@ func dew_harvested() -> int:
 # A card never names a Warden you don't have: combo cards show their statuses (lit if one of your
 # Wardens applies it, dim if not), Warden Needs show the family, card ingredients stay by name.
 
+# The one line a half-dreamed or sleeping card shows (dream_design.md half-dreamed "Card face"):
+# "Needs {family:dewdrop}" (the families it still needs, as linked family names; IconInfo.format gives
+# "Needs Dewdrop"; "half-dreamed" stays an internal name). "" = none.
+func missing_families_text(card: UpgradeData) -> String:
+	var names: Array[String] = []
+	for id in card.requires:
+		var family := family_of(id)
+		if family != "" and not is_unlocked(family):
+			var token := "{family:%s}" % family
+			if not names.has(token):
+				names.append(token)
+	return "" if names.is_empty() else "Needs " + " and ".join(names)
+
 # {"statuses": [[status id, lit]], "families": [display names], "cards": [display names], "either": bool}
 func needs_parts(card: UpgradeData) -> Dictionary:
 	var parts := {"statuses": [], "families": [], "cards": [], "either": false}

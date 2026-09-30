@@ -74,6 +74,7 @@ func refresh() -> void:
 			icon.card = card
 			icon.stacks = dream_state.card_stacks(card.id)
 			icon.dormant = _dormant(card)
+			icon.sleeping_text = _sleeping_text(card) if icon.dormant else ""
 			icon.modulate = Color(0.6, 0.6, 0.65, 0.6) if icon.dormant else Color.WHITE
 			icon.custom_minimum_size = ICON_SIZE + Vector2(0, 12)
 			icon.pressed.connect(_toggle_list)
@@ -214,9 +215,9 @@ func _card_row(source: DreamIcon) -> Control:
 	var body := StatusLinks.make_label(card.description, 14, UiStyle.INK)
 	body.mouse_filter = Control.MOUSE_FILTER_PASS
 	text.add_child(body)
-	if source.dormant:  # Half-dreamed and asleep: what it waits for
+	if source.dormant:  # Asleep: dimmed, with the families it still needs ("Needs Dewdrop")
 		var needs := Label.new()
-		needs.text = "Half-dreamed · " + _needs_text(card)
+		needs.text = _sleeping_text(card)
 		needs.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		UiStyle.caps(needs, 13)
 		text.add_child(needs)
@@ -253,7 +254,12 @@ func _missing_text(card: UpgradeData) -> String:
 			return ", ".join(missing.map(func(id: String) -> String: return CodexData.FAMILY_NAMES.get(id, id.capitalize())))
 	return "a family you don't have yet"
 
-# A half-dreamed card still asleep (dream_design.md "Adapt, don't get handed"): shown greyed.
+# "Needs Dewdrop" for a sleeping card (dream_design.md half-dreamed "Card face"; no "Half-dreamed" label).
+func _sleeping_text(card: UpgradeData) -> String:
+	var text: String = dream_state.missing_families_text(card) if dream_state.has_method("missing_families_text") else ""
+	return IconInfo.format(text) if text != "" else _needs_text(card)
+
+# A card still asleep until its families are yours (dream_design.md "Adapt, don't get handed"): shown greyed.
 func _dormant(card: UpgradeData) -> bool:
 	return dream_state.has_method("is_dormant") and dream_state.is_dormant(card)
 
@@ -268,7 +274,8 @@ class DreamIcon extends Control:
 	var card: UpgradeData
 	var stacks := 1
 	var live := ""  # The live bonus under the icon ("" = none)
-	var dormant := false  # Half-dreamed and still asleep: greyed, "Half-dreamed" in the tooltip
+	var dormant := false  # Asleep until its families are yours: greyed, "Needs Dewdrop" in the tooltip
+	var sleeping_text := ""
 
 	func _ready() -> void:
 		mouse_filter = Control.MOUSE_FILTER_STOP
@@ -280,7 +287,7 @@ class DreamIcon extends Control:
 		live = text
 		tooltip_text = "%s (%s%s)\n%s%s" % [card.display_name, UpgradeData.rarity_name(card.rarity),
 			" ×%d" % stacks if stacks > 1 else "", IconInfo.format(card.description),
-			"\nHalf-dreamed: it works once you own every family it needs." if dormant else ("\nNow: " + live if live != "" else "")]
+			"\n" + sleeping_text if dormant else ("\nNow: " + live if live != "" else "")]
 		queue_redraw()
 
 	func _gui_input(event: InputEvent) -> void:

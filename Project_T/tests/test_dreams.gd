@@ -395,7 +395,7 @@ func _test_clearing_cards(main: Node) -> void:
 	_check(not dreams.opens_clearing(opener) and dreams.can_offer(_card(dreams, "cleared_ground")), "…then the follow-ups can come")
 	_check(clearer.try_clear(locked_cell) and run_state.dew == 100, "…its first clear is free")
 	var second: Vector2 = map_generator.obstacles.keys()[0]
-	_check(clearer.try_clear(second) and run_state.dew == 100 and dreams.free_first_clears == 0, "…and the second")
+	_check(clearer.try_clear(second) and run_state.dew == 100 and dreams.free_first_clears == 0, "…and the second (%s, dew %d, left %d)" % [second, run_state.dew, dreams.free_first_clears])
 	var saved := dreams.to_save()
 	_reset_dreams(main)
 	_check(not dreams.can_clear(), "a new run starts locked")
@@ -1138,6 +1138,7 @@ func _free_enemies(main: Node) -> void:
 
 func _reset_dreams(main: Node) -> void:
 	var dreams: DreamState = main.get_node("%DreamState")
+	dreams.free_first_clears = 0
 	dreams.unlock_everything = false
 	dreams.stacks.clear()
 	var run_state: RunState = main.get_node("%RunState")

@@ -54,6 +54,14 @@ func _run() -> void:
 		# Rarity row, name, then the effect (a RichTextLabel with the card's description)
 		_check(labels.size() >= 3 and labels[2] is RichTextLabel, "%s: the effect comes right after the name" % _name_of(button))
 	_check(heights.size() == 1, "all cards share one height (%s)" % heights.keys())
+	# Half-dreamed stays internal: the card shows only "Needs <family>", no label, no "Sleeps until then"
+	var bloom_texts: Array = (screen._cards.get_child(0).get_child(0) as Button).find_children("*", "", true, false) \
+		.filter(func(n: Node) -> bool: return n is Label or n is RichTextLabel) \
+		.map(func(n: Node) -> String: return n.text if n is Label else n.get_parsed_text())
+	var joined := " | ".join(bloom_texts)
+	_check(bloom_texts.has(IconInfo.format(dreams.missing_families_text(bloom))) and dreams.missing_families_text(bloom).begins_with("Needs {family:")
+		and not joined.to_lower().contains("half-dreamed") and not joined.contains("Sleeps"),
+		"a half-dreamed card: one \"Needs <family>\" line (%s)" % joined)
 
 	# Make the clearing unlock obvious: while clearing is locked, a clearing card leads with it.
 	dreams.clearing_open = false

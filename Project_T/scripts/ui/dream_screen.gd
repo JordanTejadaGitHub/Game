@@ -5,14 +5,13 @@ extends Control
 
 const CARD_SIZE := Vector2(250, 220)
 const CARD_PADDING := 24.0  # The box's top + bottom offsets inside a card
-const SECONDARY_SIZE := 12  # Entwined / Deepened / Half-dreamed lines (the Stray slot shows nothing: playtest)
+const SECONDARY_SIZE := 12  # Entwined / Deepened / "Needs Dewdrop" lines
 const SECONDARY_MIN_SIZE := 10
 const SCREEN_MARGIN := 240.0  # Title, buttons and gaps around the cards
 const ENTWINED_COLOR := Color(0.45, 0.8, 0.4)  # Vine border
 const DEEPENED_COLOR := Color(0.6, 0.85, 1.0)
 const BITTERSWEET_COLOR := Color(0.72, 0.5, 0.68)  # Muted plum, for the cost line
 const SEED_COLOR := Color("d4ec9c")  # Heartwood 32 "Newleaf": what a Seed card grows into
-const HALF_DREAMED_COLOR := Color(0.62, 0.82, 0.6, 0.85)  # Pale vine
 
 @onready var dream_state: DreamState = %DreamState
 @onready var game_speed: GameSpeed = %GameSpeed
@@ -159,9 +158,10 @@ func _make_card(card: UpgradeData) -> Button:
 		secondary.append(_add_line(box, "Deepened  ·  replaces %s" % dream_state.get_display_name(card.deepens), DEEPENED_COLOR, SECONDARY_SIZE))
 	elif card.is_bittersweet():
 		secondary.append(_add_line(box, "Bittersweet", BITTERSWEET_COLOR, SECONDARY_SIZE))
-	if dream_state.is_half_dreamed(card):  # A combo card whose other family you could still pick
-		secondary.append(_add_line(box, "Half-dreamed  ·  " + dream_state.half_dreamed_text(card) + ". Sleeps until then.", HALF_DREAMED_COLOR, SECONDARY_SIZE))
-	_add_needs_row(box, card)  # "Needs: Soaked + Charged" / "Nestling family": never a Warden's name
+	if dream_state.is_half_dreamed(card):  # One muted line, no label (dream_design.md half-dreamed "Card face")
+		_add_linked_line(box, dream_state.missing_families_text(card), UiStyle.INK_DIM, SECONDARY_SIZE).modulate.a = 0.85  # The family is a link
+	else:
+		_add_needs_row(box, card)  # "Needs: Soaked + Charged" / "Nestling family": never a Warden's name
 	if dream_state.calls_family_now(card) != "":  # A Seed card calls its family to the next pick (not one you own)
 		secondary.append(_add_line(box, "Seed  ·  calls %s to your next family pick" % dream_state.get_display_name(card.calls_family), SEED_COLOR, SECONDARY_SIZE))
 	for label in secondary:
