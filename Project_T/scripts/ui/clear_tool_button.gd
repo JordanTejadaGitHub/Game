@@ -42,7 +42,7 @@ func _ready() -> void:
 	add_theme_constant_override("icon_max_width", 34)
 	add_theme_font_size_override("font_size", 14)
 	_update_icon()
-	tooltip_text = "Clear tool (0 / C): tend withered trees and move boulders."
+	tooltip_text = "Clear tool (0 / C): Tend Withered Trees and move Mossy Boulders."
 	pressed.connect(toggle_tool)
 	clearer.tool_changed.connect(func(active: bool) -> void: set_pressed_no_signal(active))
 	clearer.tool_refused.connect(func() -> void: toast.call(LOCKED_TEXT))

@@ -345,7 +345,7 @@ func _build_kinships(seen: Array, counts: Dictionary, live: ComboFeedback, kin_a
 		return
 	var found := kin.filter(func(k: Dictionary) -> bool: return seen.has(String(k.id))).size()
 	var header := Label.new()
-	header.text = "Kinships  %d / %d" % [found, kin.size()]
+	header.text = "Kinships %d / %d" % [found, kin.size()]
 	header.add_theme_font_size_override("font_size", 20)
 	header.add_theme_color_override("font_color", KIN_COLOR)
 	_combos.add_child(header)
@@ -395,7 +395,7 @@ func _kinship_card(k: Dictionary, discovered: bool, times: int) -> Control:
 	leaf.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	row.add_child(leaf)
 	var name := Label.new()
-	name.text = "%s  ·  Kinship" % k.name
+	name.text = "%s · Kinship" % k.name
 	name.add_theme_font_size_override("font_size", 18)
 	name.add_theme_color_override("font_color", KIN_COLOR)
 	row.add_child(name)
@@ -445,7 +445,7 @@ func _crowned_card(c: Dictionary, discovered: bool, times: int) -> Control:
 			icon.tooltip_text = CodexData.FAMILY_NAMES.get(family, family)
 			row.add_child(icon)
 	var name := Label.new()
-	name.text = "%s  ·  Crowned" % c.name if discovered else "???"
+	name.text = "%s · Crowned" % c.name if discovered else "???"
 	name.add_theme_font_size_override("font_size", 18)
 	name.add_theme_color_override("font_color", CROWN_COLOR if discovered else LOCKED_COLOR)
 	row.add_child(name)
@@ -454,7 +454,7 @@ func _crowned_card(c: Dictionary, discovered: bool, times: int) -> Control:
 		families.append(CodexData.FAMILY_NAMES.get(family, family))
 	if discovered:  # Locked: the crown frame and "???" only
 		var hint := Label.new()
-		hint.text = "%s  ·  %s" % [CodexData.crowned_recipe(c), ", ".join(families)]
+		hint.text = "%s · %s" % [CodexData.crowned_recipe(c), ", ".join(families)]
 		hint.add_theme_font_size_override("font_size", 14)
 		hint.add_theme_color_override("font_color", UiStyle.WHISPER)
 		box.add_child(hint)
@@ -478,7 +478,7 @@ func _combo_card(combo: Dictionary, discovered: bool, times: int) -> Control:
 		for status in combo.statuses:
 			row.add_child(StatusIcon.new(status))
 	var name := Label.new()
-	name.text = "%s  ·  %s" % [combo.name, combo.kind] if discovered else "???"
+	name.text = "%s · %s" % [combo.name, combo.kind] if discovered else "???"
 	name.add_theme_font_size_override("font_size", 18)
 	var reaction := Reactions.get_data(combo.id)
 	name.add_theme_color_override("font_color", (reaction.callout_color if reaction else TERM_COLOR) if discovered else LOCKED_COLOR)
@@ -985,7 +985,7 @@ func _nightmare_entry(data: EnemyData, met: Array, viewed: Array, dispels: Dicti
 	box.add_child(NightmareIcons.make_rows(data, 22.0))
 	var facts := Label.new()
 	facts.name = "Facts"
-	facts.text = "At drift 1: health %d · speed %.1f tiles/s · leaves %d   ·   Act %d" % [data.health, data.speed / 64.0,
+	facts.text = "At drift 1: health %d · speed %.1f tiles/s · leaves %d · Act %d" % [data.health, data.speed / 64.0,
 		data.leaf_cost, NightmareCodex.act_of(data)]
 	UiStyle.number(facts, 15, UiStyle.INK_DIM)
 	box.add_child(facts)

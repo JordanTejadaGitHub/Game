@@ -150,7 +150,7 @@ func _draw() -> void:
 		price = "free (%d left)" % dreams.free_first_clears  # Tend the Forest
 	var label := "%s %s · %s" % [_hover_obstacle.clear_verb, _hover_obstacle.display_name, price]
 	if pending_cell == _hover_cell:
-		label += "  ·  tap ✓ to clear"
+		label += " · tap ✓ to clear"
 	WorldLabel.draw_tag(self, center.x, rect.position.y - 8, label, WorldLabel.cost_color(affordable))
 
 # True until the run's first clearing Dream (then clearing works for the rest of the run).

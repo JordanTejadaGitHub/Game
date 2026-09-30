@@ -351,7 +351,7 @@ static func discovery_text(id: StringName) -> String:
 		var families: Array[String] = []
 		for family in combo.families:
 			families.append(CodexData.FAMILY_NAMES.get(family, family))
-		return "Crowned Reaction discovered: %s\n%s  ·  %s\n%s\nAdded to the Codex." % [combo.name,
+		return "Crowned Reaction discovered: %s\n%s · %s\n%s\nAdded to the Codex." % [combo.name,
 			CodexData.crowned_recipe(combo), ", ".join(families), combo.text]
 	return "Combo discovered: %s\n%s\n%s\nAdded to the Codex." % [combo.name, CodexData.ingredients_text(combo), combo.text]
 

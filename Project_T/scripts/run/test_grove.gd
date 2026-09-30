@@ -290,7 +290,7 @@ func _build_dock() -> void:
 	var outer := VBoxContainer.new()
 	_dock.add_child(outer)
 	var title := Button.new()
-	title.text = "Test Grove (dev)  ·  F10"
+	title.text = "Test Grove (dev) · F10"
 	title.flat = true
 	title.alignment = HORIZONTAL_ALIGNMENT_LEFT
 	title.focus_mode = Control.FOCUS_NONE

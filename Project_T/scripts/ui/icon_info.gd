@@ -153,6 +153,8 @@ const TERMS := {
 	&"dreamlight": ["Dreamlight", "Dreamlight", "Dreamlight"],
 	&"family_pick": ["family pick", "family picks", "Family pick"],
 	&"deeply_blighted": ["Deeply Blighted", "Deeply Blighted", "Deeply Blighted"],
+	&"kinship": ["Kinship", "Kinships", "Kinship"],
+	&"harmony": ["Harmony strike", "Harmony strikes", "Harmony strike"],
 }
 
 # Every term token form: [token text, term id, word shown]. Longest tokens first.
@@ -170,6 +172,18 @@ static var _term_tokens: Array = []
 
 static func _upper_first(s: String) -> String:
 	return s.left(1).to_upper() + s.substr(1)
+
+# A name as it reads mid-sentence (text_style.md): a leading "The" is lowercase ("About the Mire
+# Hag"); at a line start or on a name plate use the name as is.
+static func name_in_sentence(name: String) -> String:
+	return "the " + name.substr(4) if name.begins_with("The ") else name
+
+# "the X" for a nightmare in a sentence, whether or not its name carries "The"; `start` capitalises it.
+static func the_name(name: String, start := false) -> String:
+	var text := name_in_sentence(name)
+	if not text.begins_with("the "):
+		text = "the " + text
+	return _upper_first(text) if start else text
 
 # Puts the current status names and term words into `text`: "{damp} + {static}" -> "Soaked +
 # Charged", "each {block}" -> "each block". Unknown tokens stay as they are.

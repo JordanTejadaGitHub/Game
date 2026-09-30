@@ -46,7 +46,7 @@ const GLOSSARY_SOURCE := [
 		["Thornwall", "A cheap wall that doesn't attack; grows into Bramble or Honeysuckle.", ["Warden"]],
 		["Crit", "A critical hit: some Wardens sometimes hit much harder.", ["Pinned", "Potency"]],
 		["Potency", "Effect damage: scales status and poison damage and Reactions the way crit scales hits.", ["Crit", "{spored}"]],
-		["Clear tool", "Tend withered trees and move boulders to reshape the maze. Opens with a clearing Dream.", ["Dew"]],
+		["Clear tool", "Tend Withered Trees and move Mossy Boulders to reshape the maze. Opens with a clearing Dream.", ["Dew"]],
 		["Ascended", "A family's endgame Warden, from drift 51: 3 Dreamlight, then grown from a final form for 400 Dew. One per family per run.", ["Final form", "Ascension"]],
 		["Heartwood Sapling", "A 2×2 offshoot of the Heartwood from drift 51: it yields Dew every drift and Dreamlight every 10 drifts. Permanent.", ["Permanent", "Dreamlight"]],
 		["Permanent", "Can't be sold or moved.", ["Heartwood Sapling"]],
@@ -85,6 +85,8 @@ const GLOSSARY_SOURCE := [
 		["Chain", "Reactions setting each other off within 1 s. Shown as Chain 5, not a damage multiplier; Chain 10 is a Dawnburst.", ["Reaction", "Dawnburst"]],
 		["Dawnburst", "A Chain 10: a flash of dawn over the whole fight. With the Dawnbreak Legendary it also takes a tenth of the health of every nightmare within 4 cells (bosses: 2%).", ["Chain", "Dawnbreak"]],
 		["Dawnbreak", "The Legendary Dream that gives a Dawnburst its bite (grown in the Memory Grove).", ["Dawnburst", "Legendary"]],
+		["Kinship", "Two branches of the same family within 2 tiles of each other bond and grow stronger the longer they stand together.", ["Harmony strike", "Branch"]],
+		["Harmony strike", "When two Wardens in a Kinship hit the same nightmare within 1 s, petals burst on it for extra damage (at most every 2 s per pair).", ["Kinship"]],
 	]],
 	["Dreams", [
 		["Rarity", "Common, Uncommon, Rare, Legendary: the shape and color of a Dream card's gem.", ["Legendary"]],

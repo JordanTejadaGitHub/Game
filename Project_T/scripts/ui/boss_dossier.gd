@@ -216,7 +216,7 @@ func _show_reminder(drift: int) -> void:
 	text.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	row.add_child(text)
 	var button := Button.new()
-	button.text = "About %s" % data.display_name
+	button.text = "About %s" % IconInfo.name_in_sentence(data.display_name)
 	button.focus_mode = Control.FOCUS_NONE
 	button.pressed.connect(func() -> void:
 		open(drift)

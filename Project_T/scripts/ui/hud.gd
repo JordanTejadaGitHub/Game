@@ -150,7 +150,7 @@ func _ready() -> void:
 		if enemy.enemy_data.cleanse_line != "":
 			show_toast(enemy.enemy_data.cleanse_line))
 	spawner.wall_trampled.connect(func(_cell: Vector2, by: Node2D) -> void:
-		show_toast("The %s tramples a Thornwall!" % by.enemy_data.display_name))
+		show_toast("%s tramples a Thornwall!" % IconInfo.the_name(by.enemy_data.display_name, true)))
 	toast_label.modulate.a = 0.0
 	# Counters are icon + number (ui_style.md, the mock); the words stay in their tooltips.
 	_add_counter_icon(dew_label, &"dew", 2)
