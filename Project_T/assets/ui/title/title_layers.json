@@ -18,7 +18,7 @@
 	],
 	"nightmares": [
 		{
-			"amp": 1,
+			"amp": 2,
 			"floats": false,
 			"name": "watcher",
 			"period": 2.49,
@@ -31,7 +31,7 @@
 			]
 		},
 		{
-			"amp": 1,
+			"amp": 2,
 			"floats": true,
 			"name": "will_o_wisp",
 			"period": 2.31,
@@ -44,7 +44,7 @@
 			]
 		},
 		{
-			"amp": 1,
+			"amp": 2,
 			"floats": false,
 			"name": "weeper",
 			"period": 3.11,
@@ -57,7 +57,7 @@
 			]
 		},
 		{
-			"amp": 1,
+			"amp": 2,
 			"floats": false,
 			"name": "gravecrawler",
 			"period": 2.74,
@@ -70,7 +70,7 @@
 			]
 		},
 		{
-			"amp": 1,
+			"amp": 2,
 			"floats": false,
 			"name": "leaf_bug",
 			"period": 3.22,
@@ -83,7 +83,7 @@
 			]
 		},
 		{
-			"amp": 1,
+			"amp": 2,
 			"floats": false,
 			"name": "leaf_bug",
 			"period": 2.7,

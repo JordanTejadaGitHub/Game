@@ -206,6 +206,9 @@ signal card_taken(card: UpgradeData)
 signal offer_ready(cards: Array[UpgradeData], drift_number: int)
 signal offer_closed
 signal dreamlight_changed(dreamlight: int)
+# Dreamlight gained (never spent), for Sound: `source` &"boss", &"shard", &"glimmer", &"sapling", &"first_pick",
+# &"wake", &"card", &"omen", &"grove" (Early Light), or &"other".
+signal dreamlight_earned(amount: int, source: StringName)
 # The Eldest changed (null = the title is free). Tower Code shows its crown and panel line.
 signal eldest_changed(tower: Tower)
 signal bark_changed(charges: int)  # Thick Bark: leaks it can still save this block (HUD shield)
@@ -306,7 +309,7 @@ func _ready() -> void:
 	run_state.run_ended.connect(_save_discoveries.unbind(1))
 	drift_director.family_pick_requested.connect(func(reason: StringName) -> void:
 		if reason == &"first":
-			add_dreamlight(first_pick_dreamlight))  # Act 1 can take a final form
+			add_dreamlight(first_pick_dreamlight, &"first_pick"))  # Act 1 can take a final form
 	unlocks_changed.connect(grant_free_branches)  # A family pick (screen or sim), a save load
 	map_generator.path_changed.connect(_update_bends)
 	spawner.enemy_cleansed.connect(_on_enemy_cleansed)
@@ -430,9 +433,20 @@ func get_evolve_cost(to: TowerData) -> int:
 
 # --- Dreamlight (run_design.md "Dreamlight: choosing your build paths") -------------------------------
 
-func add_dreamlight(amount: int) -> void:
+func add_dreamlight(amount: int, source: StringName = &"other") -> void:
 	dreamlight = maxi(dreamlight + amount, 0)
 	dreamlight_changed.emit(dreamlight)
+	if amount > 0:
+		dreamlight_earned.emit(amount, source)
+
+# A boss family pick with no new family left is skipped (meta_design.md "Replaced 2026-09-30"): the
+# rest gives this much Dreamlight instead, with NO_FAMILY_LINE. FamilyPickScreen calls it.
+const NO_FAMILY_DREAMLIGHT := 2
+const NO_FAMILY_LINE := "The Heartwood remembers deeper."
+
+func grant_no_family_pick() -> String:
+	add_dreamlight(NO_FAMILY_DREAMLIGHT, &"no_family")
+	return NO_FAMILY_LINE
 
 # Great Dreamcatcher: one shard per Caught nightmare dispelled; 10 shards = 1 Dreamlight, at most
 # 2 Dreamlight a run this way.
@@ -441,7 +455,7 @@ func add_dreamlight_shard() -> void:
 		return
 	dreamlight_shards += 1
 	if dreamlight_shards % SHARDS_PER_DREAMLIGHT == 0:
-		add_dreamlight(1)
+		add_dreamlight(1, &"shard")
 
 # Dreamlight to unlock `data` for the run: 1 for a branch, hidden branch or wall growth, 2 for a
 # final form. 0 = already unlocked.
@@ -968,7 +982,21 @@ func _attackers_near(tower: Tower, cells: int) -> Array[Tower]:
 
 # --- Nurture ranks (Tower reads these; warden_stats.md "Ranks: Nurture") ------------------------------
 
-# Multiplies the Dew for a rank: Tender Care (−15% per stack, max −45%), Nursery (Sprouts half price).
+# Tender Care (dream_design.md card 60, rework 2026-09-30): every Warden's rank I is free (0 Dew, nothing
+# invested); Tender Care II also takes 20% off ranks II–V. Tower multiplies rank `which`'s price by this
+# (0 = free: skip the 1-Dew minimum).
+const TENDER_CARE_II_DISCOUNT := 0.20
+
+func rank_cost_factor(which: int) -> float:
+	if not has_rule(&"tender_care"):
+		return 1.0
+	if which == 1:
+		return 0.0
+	if which <= BASE_MAX_RANK and rule_level(&"tender_care") > 0:
+		return 1.0 - TENDER_CARE_II_DISCOUNT
+	return 1.0
+
+# Multiplies the Dew for a rank: card nurture discounts (Family Blessings), Nursery (Sprouts half price).
 func get_nurture_cost_multiplier(tower: Tower = null) -> float:
 	var discount := 0.0
 	for card in _taken_cards():
@@ -1366,7 +1394,7 @@ func take(card: UpgradeData) -> void:
 		run_state.regrow_leaves(maxi(card.leaves_now, 0))  # Also clamps to a lower maximum
 	add_rare_dreams(card.rare_dreams_add)
 	if card.dreamlight_now > 0:
-		add_dreamlight(card.dreamlight_now)
+		add_dreamlight(card.dreamlight_now, &"card")
 	if card.free_first_clears_add > 0:
 		free_first_clears += card.free_first_clears_add
 	if card.free_clears_add > 0:
@@ -1421,10 +1449,10 @@ func _on_rest_started(_block: int, is_boss_rest: bool, _bonus: int, _perfect: bo
 	_second_wind()
 	_early_calls = 0  # Restless Night counts per block
 	_rest_rules(_perfect)
-	add_dreamlight(rest_dreamlight(drift_director.drifts_started))
+	add_dreamlight(rest_dreamlight(drift_director.drifts_started), &"wake")
 	if is_boss_rest:
 		# The freed light: +4 Dreamlight, and the Remember screen opens before the Dream.
-		add_dreamlight(BOSS_DREAMLIGHT)
+		add_dreamlight(BOSS_DREAMLIGHT, &"boss")
 		_remember_open = true
 		remember_requested.emit(null)
 	if has_rule(&"sunlit_rest"):
@@ -1934,6 +1962,9 @@ func load_save(data: Dictionary) -> void:
 		var kept: String = MERGED_CARDS.get(id, id)  # Cards cut or merged by the power pass (dream_audit.md)
 		if kept != "":
 			stacks[kept] = maxi(int(stacks.get(kept, 0)), 1 if kept != id else int(saved_stacks[id]))  # JSON gives floats
+	for card in pool:  # A card that stopped stacking (Tender Care, 2026-09-30): an old save owns it once
+		if card.max_stacks > 0 and int(stacks.get(card.id, 0)) > card.max_stacks:
+			stacks[card.id] = card.max_stacks
 	dreams_seen = int(data.get("dreams_seen", 0))
 	_dreams_without_rare = int(data.get("dreams_without_rare", 0))
 	_rare_dreams_left = int(data.get("rare_dreams_left", 0))
@@ -2473,7 +2504,7 @@ func _glimmer(enemy: Node2D) -> void:
 		return
 	glimmer_shards += 1
 	if glimmer_shards % SHARDS_PER_DREAMLIGHT == 0:
-		add_dreamlight(1)
+		add_dreamlight(1, &"glimmer")
 
 # Last Breath: a dispelled nightmare bursts for 10% (II 15%) of its max health on nightmares within
 # 1 cell; bosses' bursts are capped at 5% of the boss's max health. Effect damage (tag last_breath);

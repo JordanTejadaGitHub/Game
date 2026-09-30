@@ -741,6 +741,11 @@ func _rank_price_for(which: int, data: TowerData, self_price: bool) -> int:
 	var multiplier := tier_cost_multiplier_for(data)
 	if _dream_state and _dream_state.has_method("get_nurture_cost_multiplier"):
 		multiplier *= _dream_state.get_nurture_cost_multiplier(self if self_price else null)
+	if _dream_state and _dream_state.has_method("rank_cost_factor"):
+		var factor: float = _dream_state.rank_cost_factor(which)  # Tender Care: rank I free, II: ranks II–V 20% off
+		if factor <= 0.0:
+			return 0
+		multiplier *= factor
 	return maxi(roundi(base * multiplier), 1)
 
 # What growing into `into` costs (warden_stats.md "Growing a ranked Warden pays the rank difference"):
@@ -792,6 +797,11 @@ func get_nurture_price() -> int:
 	var multiplier := get_tier_cost_multiplier()
 	if _dream_state and _dream_state.has_method("get_nurture_cost_multiplier"):
 		multiplier *= _dream_state.get_nurture_cost_multiplier(self)  # Nursery: Sprouts at half price
+	if _dream_state and _dream_state.has_method("rank_cost_factor"):
+		var factor: float = _dream_state.rank_cost_factor(next)  # Tender Care: rank I free, II: ranks II–V 20% off
+		if factor <= 0.0:
+			return 0
+		multiplier *= factor
 	return maxi(roundi(base * multiplier), 1)
 
 # Raises the rank by one; `cost` is added to invested Dew (TowerPlacer.nurture charges it).
@@ -2466,7 +2476,7 @@ func _on_drift_cleared(_number: int, _bonus: int, _perfect: bool) -> void:
 		if rank >= FOCUS_RANK and tower_data.dreamlight_every_ranked > 0:
 			every = tower_data.dreamlight_every_ranked
 		if _drifts_yielded % every == 0:
-			_dream_state.add_dreamlight(1)  # The Sapling ripens
+			_dream_state.add_dreamlight(1, &"sapling")  # The Sapling ripens (tagged for Sound)
 			dreamlight_ripened.emit(self)
 
 

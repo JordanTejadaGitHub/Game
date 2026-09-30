@@ -236,6 +236,17 @@ a family you already own (e.g. *"Sporeling Blessing: Sporeling family +25% sooth
 cheaper"*). So early runs deepen few families; unlocking Pebbling, Rootling, Bellflower and Acorn widens later
 runs, which makes those Grove purchases feel big.
 
+**Replaced 2026-09-30** (user: *"not a fan of the Blessing here, you get it every time if you have no
+family unlocked"*): with only the 3 starting families, a Blessing filled a slot at **every** boss pick,
+so it was predictable, not a choice.
+- **The family pick shows only real families:** 3 when there are 3+ new families, otherwise **2 or 1
+  cards**. No filler slots.
+- **When no new family is left**, there is no family pick at that boss: the Heartwood gives **+2
+  Dreamlight** instead (*"The Heartwood remembers deeper."*), for finals and Ascended forms.
+- **Blessings move into the Dream pool** as **Rare** cards (one per family, all 9 including Bellflower: +25% damage and 25% cheaper growth for that family; Needs: that family; one each, no stacking, no Deepened), offered
+  like any other card, so they turn up now and then as a real choice instead of every boss.
+- Unlocking families in the Grove still widens later runs, and a full Grove never needs any of this.
+
 ### Later: Forests
 
 New biomes (e.g. **Misty Marsh**, **Autumn Hollow**) will be a small fourth limb or nodes at the top

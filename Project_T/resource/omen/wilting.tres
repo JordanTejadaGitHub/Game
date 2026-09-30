@@ -7,6 +7,7 @@ script = ExtResource("1_omen")
 id = "wilting"
 display_name = "Wilting"
 description = "Every Warden attacks 22% slower."
+flavor = "The Wardens droop, heavy with sleep."
 kind = 1
 warden_attack_speed_multiplier = 0.78
 reward_dreamlight = 1

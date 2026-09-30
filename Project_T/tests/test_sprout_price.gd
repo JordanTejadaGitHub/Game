@@ -1,9 +1,9 @@
 extends SceneTree
 
-# Headless test for "Sprouts get pricier as you plant" (warden_stats.md, card 69): every 5 Sprouts on
-# the map add +3 Dew to the next one's price (10 for the first 5, 13 at 5-9, …); selling or growing one
-# lowers it; Seedling Gift Sprouts are free and don't count; a drag stroke prices each Sprout after the
-# ones before it; Seedfall makes them 6 Dew, flat. Run:
+# Headless test for "Sprouts cost more, walls do the maze" (warden_stats.md): every 5 Sprouts on the map
+# add +4 Dew to the next one's price (12 for the first 5, 16 at 5-9, …); selling or growing one lowers it;
+# Seedling Gift Sprouts are free and don't count; a drag stroke prices each Sprout after the ones before it;
+# Seedfall sets the start (its card) and the price rises +2 per 5. Run:
 #   godot --headless --path . --script res://tests/test_sprout_price.gd --fixed-fps 60
 
 const MAP_SEED := 42
@@ -29,14 +29,14 @@ func _run() -> void:
 
 	var planted: Array = []
 	for i in 5:
-		_check(placer.get_cost(sprout) == 10, "Sprout %d costs 10 (%d)" % [i + 1, placer.get_cost(sprout)])
+		_check(placer.get_cost(sprout) == 12, "Sprout %d costs 12 (%d)" % [i + 1, placer.get_cost(sprout)])
 		planted.append(_build(placer, map, sprout))
-	_check(planted.all(func(t) -> bool: return t != null and t.invested_dew == 10), "the first five paid 10 each")
-	_check(placer.get_cost(sprout) == 13, "with 5 on the map the next costs 13 (%d)" % placer.get_cost(sprout))
+	_check(planted.all(func(t) -> bool: return t != null and t.invested_dew == 12), "the first five paid 12 each")
+	_check(placer.get_cost(sprout) == 16, "with 5 on the map the next costs 16 (%d)" % placer.get_cost(sprout))
 	seller.sell(planted[4].cell)
-	_check(placer.get_cost(sprout) == 10, "selling one lowers it")
+	_check(placer.get_cost(sprout) == 12, "selling one lowers it")
 	planted[3].evolve(sprout.evolves_to[0], 0)
-	_check(placer.count_paid_sprouts() == 3 and placer.get_cost(sprout) == 10, "a Sprout that grows no longer counts")
+	_check(placer.count_paid_sprouts() == 3 and placer.get_cost(sprout) == 12, "a Sprout that grows no longer counts")
 
 	# Seedling Gift: a charge plants one free, and it doesn't raise the price
 	run_state.add_sprout_charges(1)
@@ -45,36 +45,38 @@ func _run() -> void:
 	_check(placer.count_paid_sprouts() == 3, "and doesn't count toward the price")
 	_build(placer, map, sprout)  # A fourth paid Sprout
 
-	# A drag stroke: each Sprout priced after the ones before it (4 on the map: 10, then 13, 13)
+	# A drag stroke: each Sprout priced after the ones before it (4 on the map: 12, then 16, 16)
 	var cells := _row_of_three(map, placer)
 	if cells.size() == 3:
 		placer.set_build_mode(true)
 		placer.select_tower(sprout)
 		placer.begin_stroke(cells[0])
 		placer.extend_stroke(cells[2])
-		_check(placer.get_stroke_tag().contains("3 Sprouts · 36 Dew"), "a stroke of 3 costs 10 + 13 + 13 (%s)" % placer.get_stroke_tag())
+		_check(placer.get_stroke_tag().contains("3 Sprouts · 44 Dew"), "a stroke of 3 costs 12 + 16 + 16 (%s)" % placer.get_stroke_tag())
 		var dew := run_state.dew
 		placer.plant_stroke()
-		_check(dew - run_state.dew == 36, "and plants for exactly that (%d)" % (dew - run_state.dew))
+		_check(dew - run_state.dew == 44, "and plants for exactly that (%d)" % (dew - run_state.dew))
 		placer.set_build_mode(false)
 	else:
 		_check(false, "found 3 open cells in a row for the stroke")
 
-	# Seedfall: 6 Dew, and the price never rises (TowerPlacer.SEEDFALL_SPROUTS_PER_STEP 0 = flat)
+	# Seedfall: its card sets the start, and the price rises +2 per 5 (half as fast)
+	var start := 0
 	for card in dreams.pool:
 		if card.id == TowerPlacer.SEEDFALL_CARD:
+			start = card.set_cost
 			dreams.take(card)
 	var per_step := TowerPlacer.SEEDFALL_SPROUTS_PER_STEP
 	var paid := placer.count_paid_sprouts()  # 7 by now
-	var expected := 6 + (paid / per_step * TowerPlacer.SPROUT_STEP_DEW if per_step > 0 else 0)
-	_check(placer.get_cost(sprout) == expected, "Seedfall: Sprouts cost %d (%d with %d)" % [expected, placer.get_cost(sprout), paid])
+	var expected := start + (paid / per_step * TowerPlacer.SEEDFALL_STEP_DEW if per_step > 0 else 0)
+	_check(start > 0 and placer.get_cost(sprout) == expected, "Seedfall: Sprouts cost %d (%d with %d)" % [expected, placer.get_cost(sprout), paid])
 	while placer.count_paid_sprouts() < 16:
 		if _build(placer, map, sprout) == null:
 			break
 	paid = placer.count_paid_sprouts()
-	expected = 6 + (paid / per_step * TowerPlacer.SPROUT_STEP_DEW if per_step > 0 else 0)
+	expected = start + (paid / per_step * TowerPlacer.SEEDFALL_STEP_DEW if per_step > 0 else 0)
 	_check(paid < 16 or placer.get_cost(sprout) == expected, "and %s with %d on the map (%d)" % [
-		"never rise" if per_step == 0 else "rise +3 per %d" % per_step, paid, placer.get_cost(sprout)])
+		"never rise" if per_step == 0 else "rise +2 per %d" % per_step, paid, placer.get_cost(sprout)])
 
 	print("sprout price test: %s" % ("PASS" if failures == 0 else "%d FAILED" % failures))
 	quit(failures)

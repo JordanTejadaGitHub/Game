@@ -218,6 +218,8 @@ func _process(delta: float) -> void:
 # info when that's showing, and its rows scroll instead of reaching the DriftPanel.
 const GAP := 8.0
 const BASE_TOP := 40.0  # Offset from the vertical centre, as anchored
+const TOP_LIMIT := 200.0  # Highest it may move up to (clear of the resources and the top-right buttons)
+var _max_rows := TOP_ROWS  # Fewer when the screen is short (_fit)
 func _fit() -> void:
 	var hud := get_parent()
 	if hud == null:
@@ -234,6 +236,24 @@ func _fit() -> void:
 	var room := maxf(bottom - top - used, 72.0)  # At least two rows
 	var wanted := _summary.get_combined_minimum_size().y if block_summary else 0.0
 	_scroll.custom_minimum_size = Vector2(0, minf(wanted, room))
+	# Never over the DriftPanel (user: "maze dps shouldn't go over the call drift"): the whole card
+	# (header, tabs, rows, "and N more") moves up into the room above, down to TOP_LIMIT; if it still
+	# doesn't fit, it lists fewer Warden rows (the rest go into "and N more").
+	var height := get_combined_minimum_size().y
+	if top + height > bottom:
+		var highest := TOP_LIMIT
+		if info != null and info.visible:
+			highest = maxf(highest, info.get_global_rect().end.y + GAP)
+		top = maxf(bottom - height, highest)
+		offset_top = top - screen_mid
+	var row_count := _rows.get_child_count()
+	if not block_summary and row_count > 0:
+		var row_h := _rows.size.y / row_count
+		var spare := bottom - (top + height)
+		if spare < 0.0:
+			_max_rows = maxi(_max_rows - ceili(-spare / maxf(row_h, 1.0)), 1)
+		elif _max_rows < TOP_ROWS and spare > row_h + 4.0:
+			_max_rows += 1
 	# No refresh here: rebuilding the rows every frame swallowed row clicks (the press and the release
 	# landed on different buttons). The rows refresh on the clock, in place.
 
@@ -271,8 +291,8 @@ func refresh() -> void:
 		rows.sort_custom(func(a: Dictionary, c: Dictionary) -> bool: return a.share > c.share)
 	else:
 		rows = by_dps
-	var more := maxi(rows.size() - TOP_ROWS, 0)
-	rows = rows.slice(0, TOP_ROWS)
+	var more := maxi(rows.size() - _max_rows, 0)
+	rows = rows.slice(0, _max_rows)
 	_more.visible = more > 0
 	_more.text = "and %d more" % more
 	# Same Wardens in the same order: update the rows in place (a click mid-refresh still lands).

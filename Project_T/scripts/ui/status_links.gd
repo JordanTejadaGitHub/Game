@@ -162,8 +162,13 @@ func _show_for(meta: String, host: Control, tapped: bool) -> void:
 	reset_size()
 	var mouse := host.get_global_mouse_position()
 	var screen := get_viewport_rect().size
+	# Below the word first (above it sat over screen titles and card names: user screenshot of the Omen
+	# cards), above only when there's no room below; always on screen.
+	var y := mouse.y + 20.0
+	if y + size.y > screen.y - 4.0:
+		y = mouse.y - size.y - 12.0
 	global_position = Vector2(clampf(mouse.x - size.x / 2.0, 4, screen.x - size.x - 4),
-		mouse.y - size.y - 12 if mouse.y - size.y - 12 > 4 else mouse.y + 20)
+		clampf(y, 4.0, maxf(screen.y - size.y - 4.0, 4.0)))
 	_hide_in = -1.0
 
 func _hide_soon() -> void:

@@ -195,7 +195,7 @@ func _export_layers(raw: Image, final: Image, no_titan: Image, no_figures: Image
 		var box: Rect2i = boxes[n]
 		box.size += Vector2i.ONE
 		layout.nightmares.append({"name": NIGHTMARES[n][0], "rect": [box.position.x, box.position.y, box.size.x, box.size.y],
-			"amp": 1, "period": snappedf(r.randf_range(2.2, 3.4), 0.01), "phase": snappedf(r.randf(), 0.01),
+			"amp": 2, "period": snappedf(r.randf_range(2.2, 3.4), 0.01), "phase": snappedf(r.randf(), 0.01),
 			"floats": NIGHTMARES[n][0] == "will_o_wisp"})
 	for m in MIST_STRIPS.size():
 		var strip: Array = MIST_STRIPS[m]

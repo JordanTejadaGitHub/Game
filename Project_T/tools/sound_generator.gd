@@ -285,20 +285,21 @@ func _make_sfx() -> void:
 		_sfx("dispel_%02d" % (v + 1), _own("dispel%d" % v, func() -> PackedFloat32Array: return _dispel(v)), 0.5)
 	_burn(4)  # What the old chime drew
 	_side(func() -> PackedFloat32Array: return _old_release_draws())  # What the old release drew from side_rng
-	_sfx("dispel_release", _own("dispel_release", func() -> PackedFloat32Array:  # A warm hum in D, ~0.4 s
-		var release := _seg(0.5, r)
-		for m in [62, 69]:  # D4 + A4, mid range
-			_mix(release, _env(_choir(r, hz(m), 0.5), r, swell(0.05, 0.35, 0.5)), r, 0.0, 0.5)
-		return _filter(_filter(release, r, 250.0, 0.7, "hp"), r, 1500.0, 0.7)), 0.4)
+	# Releasing a soul (audio_direction.md ecc238a4): after the last breath and the unbinding, one soft
+	# warm sung vowel ("ooh" -> "ahh") rising ONCE by a fourth onto a note of the D chord, its filter
+	# opening as it thins into air, with a faint breath of motes. Variants = which chord note it lands on.
+	for i in DISPEL_RELEASE_LANDINGS.size():
+		var land: int = DISPEL_RELEASE_LANDINGS[i]
+		_sfx("dispel_release_%02d" % (i + 1), _own("dispel_release%d" % i, func() -> PackedFloat32Array:
+			return _soul_rise(land, 0.75)), 0.4)
 
-	var boss := _seg(3.0, r)
-	var roar := _tone(r, 0.8, glide(300.0, 80.0, 0.8), perc(0.04, 0.3, 0.8), "saw")
-	_mix(boss, _filter(roar, r, 900.0, 0.5), r, 0.0, 0.5)
-	_mix(boss, _tone(r, 0.6, glide(160.0, 70.0, 0.15), perc(0.01, 0.15, 0.6)), r, 0.35, 0.8)  # The whumpf
-	_mix(boss, _filter(_noise(r, 0.6, swell(0.1, 0.4, 0.6)), r, 500.0, 0.7), r, 0.35, 0.6)
-	for m in [50, 54, 57, 62, 66]:  # D major, the Heartwood wins
-		_mix(boss, _bell(r, hz(m), 0.3, 0.9, CHIME, 2.2), r, 0.6 + (m - 50) * 0.012)
-	_sfx("dispel_boss", boss)
+	# The boss: its last breath, then a full warm choir rising into the Memory moment. No bell, no boom.
+	_old_boss_dispel_draws()  # Keeps the shared random stream
+	_sfx("dispel_boss", _own("dispel_boss", func() -> PackedFloat32Array:
+		var out := _dispel(3)
+		for land in [50, 54, 57, 62]:  # D major, rising into it together
+			_mix(out, _normalize(_soul_rise(land, 2.4), 1.0), SFX_RATE, 0.35, 0.35)
+		return out))
 
 	var split := _seg(0.6, r)  # Breaking into Sobs: a soft, detuned low chime and a small sniffle
 	_mix(split, _bell(r, hz(69), 0.4, 0.15, CHIME, 0.5), r, 0.0)
@@ -1637,6 +1638,19 @@ func _make_economy() -> void:
 		return _layers([[_lowpass(_creak(SFX_RATE, 0.25, 30.0, 14.0, 300.0), 800.0), 1.0], [_thump(0.2, 130.0, 0.04), 0.6, 0.05]]))
 	_ws("soil_drag_short", 2, 0.35, func(_v: int) -> PackedFloat32Array: return _soil_drag(0.45))
 	_ws("soil_drag_long", 2, 0.35, func(_v: int) -> PackedFloat32Array: return _soil_drag(0.8))
+	_ws("boss_reveal", 1, 0.6, func(_v: int) -> PackedFloat32Array: return _boss_reveal())
+	_make_remember()
+
+# The boss card (BossDossier, 6a57ff6e): a low, cold sting as the portrait fades up, then one heartbeat
+# as the name writes in, ~1.1 s. Low and rounded, no boom (those are the storms').
+func _boss_reveal() -> PackedFloat32Array:
+	var r := SFX_RATE
+	var sting := _seg(1.4, r)
+	for m in [38, 39]:  # D2 and a cold minor second
+		_mix(sting, _filter(_tone(r, 1.4, hz(m), swell(0.12, 0.9, 1.4), "saw"), r, 320.0, 0.5), r, 0.0, 0.5)
+	_mix(sting, _env(_filter(_choir(r, hz(50), 1.4), r, 500.0, 0.7), r, swell(0.2, 0.9, 1.4)), r, 0.0, 0.4)
+	var beat := _layers([[_thump(0.25, 90.0, 0.06), 1.0], [_thump(0.2, 80.0, 0.05), 0.7, 0.28]])  # Lub-dub
+	return _layers([[sting, 1.0], [beat, 0.9, 0.6]])
 
 func _soil_drag(length: float) -> PackedFloat32Array:  # Dirt dragged: a soft, low, grainy scrape
 	return _layers([[_scrape(length, 420.0), 1.0], [_rumble(length, 140.0, 0.05, length * 0.4), 0.5]])
@@ -1648,9 +1662,11 @@ const DISPEL_VOICE_HZ := [210.0, 195.0, 180.0, 170.0]
 func _dispel(v: int) -> PackedFloat32Array:
 	var r := SFX_RATE
 	var f0: float = DISPEL_VOICE_HZ[v]
-	var env := perc(0.04, 0.14, 0.42)
-	var voice := _tone(r, 0.42, func(t: float) -> float: return f0 * (1.0 + 0.012 * sin(t * 31.0)), env, "saw")
-	_mix(voice, _noise(r, 0.42, env), r, 0.0, 0.3)  # A little breath in the voice
+	# The last breath: ~0.2 s, cold (two voices slightly detuned), then the unbinding.
+	var env := perc(0.03, 0.08, 0.24)
+	var voice := _tone(r, 0.24, func(t: float) -> float: return f0 * (1.0 + 0.012 * sin(t * 31.0)), env, "saw")
+	_mix(voice, _tone(r, 0.24, f0 * 1.018, env, "saw"), r, 0.0, 0.7)
+	_mix(voice, _noise(r, 0.24, env), r, 0.0, 0.3)  # A little breath in the voice
 	var sigh := _filter(voice, r, 750.0, 0.3, "bp")  # "ah": F1
 	_mix(sigh, _filter(voice, r, 1150.0, 0.35, "bp"), r, 0.0, 0.6)  # F2
 	var unravel := _filter(_noise(r, 0.18, perc(0.002, 0.05, 0.18)), r, 700.0, 0.5, "bp")
@@ -1675,3 +1691,67 @@ func _old_release_draws() -> PackedFloat32Array:
 	_choir(SFX_RATE, hz(50), 0.8)
 	_choir(SFX_RATE, hz(57), 0.8)
 	return _noise(SFX_RATE, 0.7, 1.0)
+
+# Releasing a soul: the rising sung vowel. It starts a fourth below `land` (a D chord note) and glides
+# up once; the vowel turns from "ooh" to "ahh" and its filter opens while the voice thins into air,
+# with a faint lowpassed breath of motes. `length` s (0.75 for a dispel, longer for the boss's choir).
+# Starts after a short lead so it follows the breath and the unbinding in the same play.
+const DISPEL_RELEASE_LANDINGS := [62, 65, 69]  # D4 F4 A4
+const SOUL_LEAD := 0.28
+func _soul_rise(land: int, length: float) -> PackedFloat32Array:
+	var r := SFX_RATE
+	var to := hz(land)
+	var from := hz(land - 5)
+	var up := func(t: float) -> float: return clampf(t / (length * 0.6), 0.0, 1.0)
+	var pitch := func(t: float) -> float:
+		var k: float = up.call(t)
+		return lerpf(from, to, k * k * (3.0 - 2.0 * k)) * (1.0 + 0.006 * sin(t * 33.0))
+	var body := swell(0.08, length * 0.55, length)
+	var voice := _tone(r, length, pitch, func(t: float) -> float: return body.call(t) * (1.0 - 0.7 * up.call(t)), "saw")
+	var air := _noise(r, length, func(t: float) -> float: return body.call(t) * (0.15 + 0.6 * up.call(t)))  # Thins into air
+	_mix(voice, air, r, 0.0, 0.4)
+	var f1 := func(t: float) -> float: return lerpf(350.0, 750.0, up.call(t))  # "ooh" -> "ahh"
+	var f2 := func(t: float) -> float: return lerpf(800.0, 1150.0, up.call(t))
+	var sung := _filter(voice, r, f1, 0.3, "bp")
+	_mix(sung, _filter(voice, r, f2, 0.35, "bp"), r, 0.0, 0.6)
+	sung = _filter(sung, r, func(t: float) -> float: return lerpf(900.0, 2400.0, up.call(t)), 0.7)  # Opening
+	var motes := _lowpass(_noise(r, length, swell(length * 0.3, length * 0.5, length)), 1200.0)
+	var out := _seg(SOUL_LEAD + length, r)
+	_mix(out, _normalize(sung, 1.0), r, SOUL_LEAD, 1.0)
+	_mix(out, _normalize(motes, 1.0), r, SOUL_LEAD, 0.12)
+	return _filter(out, r, 250.0, 0.7, "hp")
+
+# The old boss dispel's draws from the shared RNG, made and thrown away (later sounds stay identical).
+func _old_boss_dispel_draws() -> void:
+	var r := SFX_RATE
+	_tone(r, 0.8, 1.0, 1.0)
+	_tone(r, 0.6, 1.0, 1.0)
+	_noise(r, 0.6, 1.0)
+	for m in [50, 54, 57, 62, 66]:
+		_bell(r, hz(m), 0.3, 0.9, CHIME, 2.2)
+
+# The Remember screen (audio_direction.md ecc238a4). Open / close: a breath in / out (the music is
+# muffled while it's open). A node: a warm woody tap. Unlocking: a warm swell travelling along the gold
+# line (remember_travel), then SoundHooks adds the family bloom (nurture_<line>) and a sung note in key
+# (remember_note; final forms: remember_fifth; Ascended also the crown and its ascension swell).
+# Dreamlight earned: one shared warm glow swell.
+func _make_remember() -> void:
+	_ws("remember_open", 1, 0.4, func(_v: int) -> PackedFloat32Array:
+		return _lowpass(_filter(_noise(SFX_RATE, 0.8, swell(0.7, 0.08, 0.8)), SFX_RATE, glide(300.0, 1200.0, 0.8), 0.6, "bp"), 1600.0))
+	_ws("remember_close", 1, 0.35, func(_v: int) -> PackedFloat32Array:
+		return _lowpass(_filter(_noise(SFX_RATE, 0.9, swell(0.08, 0.8, 0.9)), SFX_RATE, glide(1100.0, 300.0, 0.9), 0.6, "bp"), 1500.0))
+	_ws("remember_tap", 2, 0.3, func(_v: int) -> PackedFloat32Array: return _lowpass(_wood_knock(rng.randf_range(210.0, 250.0)), 1400.0))
+	_ws("remember_travel", 1, 0.35, func(_v: int) -> PackedFloat32Array:  # Along the gold line, root to node
+		return _lowpass(_layers([[_air(0.55, 500.0, 0.4, 0.12), 1.0], [_soft_hum([50], 0.55), 0.3]]), 1600.0))
+	for i in DISPEL_RELEASE_LANDINGS.size():  # One warm sung note in key
+		var n: int = DISPEL_RELEASE_LANDINGS[i]
+		_w("remember_note_%02d" % (i + 1), _own("remember_note%d" % i, func() -> PackedFloat32Array:
+			return _env(_lowpass(_choir(SFX_RATE, hz(n), 0.9), 1800.0), SFX_RATE, swell(0.06, 0.6, 0.9))), 0.4)
+	for i in 2:  # Final form: two sung notes a fifth apart, longer
+		var n: int = [50, 57][i]
+		_w("remember_fifth_%02d" % (i + 1), _own("remember_fifth%d" % i, func() -> PackedFloat32Array:
+			var out := _choir(SFX_RATE, hz(n), 1.5)
+			_mix(out, _choir(SFX_RATE, hz(n + 7), 1.5), SFX_RATE, 0.0, 0.9)
+			return _env(_lowpass(out, 1800.0), SFX_RATE, swell(0.1, 0.9, 1.5))), 0.45)
+	_ws("dreamlight_glow", 1, 0.4, func(_v: int) -> PackedFloat32Array:  # Dreamlight earned: one warm glow swell
+		return _lowpass(_layers([[_glow_swell(1.0), 1.0], [_air(1.0, 500.0, 0.3, 0.6), 0.3]]), 1600.0))

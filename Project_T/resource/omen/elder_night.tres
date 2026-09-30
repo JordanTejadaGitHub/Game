@@ -7,6 +7,7 @@ script = ExtResource("1_omen")
 id = "elder_night"
 display_name = "Elder Night"
 description = "Every {drift} has two more {deeply_blighted} nightmares."
+flavor = "The old nightmares wake."
 kind = 0
 min_drift = 26
 extra_elites = 2

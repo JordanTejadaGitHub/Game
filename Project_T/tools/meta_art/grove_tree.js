@@ -287,7 +287,7 @@ function groveTree() {
     const d = band * clamp((n - .36) * 2.6, 0, 1);
     if (d > 0 && bay(x, y) < d * dens) out.set(x, y, d > .75 ? (y > 850 ? HW.Bruise : HW.Shade) : HW.Dusk);  // muted dream mist, violet only in the thick low cores
   } };
-  wisps(610, 55, .35, 113); wisps(700, 50, .5, 114); wisps(790, 50, .7, 111); wisps(890, 55, 1.1, 112);  // thicker toward the ground
+  // The drifting mist bands are separate strips now (groveMistStrip, animated by GroveTreeView).
   // Mist curling across the trunk itself (a little denser than the haze round it), the Hollow clear.
   for (let y = 590; y < 900; y++) for (let x = 470; x < 820; x++) {
     if (x > 572 && x < 652 && y > 745 && y < 832) continue;
@@ -868,3 +868,25 @@ function segment(n) {
   }
   return { frames, box, W, H };
 }
+
+// ---- drifting mist strips (grove_layout.json "mists"; GroveTreeView tiles and scrolls them) ----
+// Seamless horizontally over the 1280 px width (the noise wraps), soft top and bottom. Muted violet
+// dream mist: Dusk, Shade in the thicker parts, Bruise only in the densest cores near the ground.
+const GROVE_MISTS = [
+  { file: "grove_mist_0.png", y: 610, h: 110, dens: .45, speed: 5, seed: 141 },
+  { file: "grove_mist_1.png", y: 715, h: 110, dens: .65, speed: -8, seed: 142 },
+  { file: "grove_mist_2.png", y: 820, h: 120, dens: .95, speed: 12, seed: 143 },
+];
+function groveMistStrip(m) {
+  const out = new Img(GW, m.h), deep = m.dens > .8;
+  for (let y = 0; y < m.h; y++) for (let x = 0; x < GW; x++) {
+    const wob = (pnoise(x, 0, 80, m.seed + 2, 16) - .5) * m.h * .5;
+    const band = clamp(1 - Math.abs(y - m.h / 2 - wob) / (m.h * .42), 0, 1) ** 1.5;
+    const n = pnoise(x, y, 40, m.seed, 32) * .75 + pnoise(x, y, 16, m.seed + 1, 80) * .25;
+    const d = band * clamp((n - .36) * 2.6, 0, 1);
+    if (d > 0 && bay(x, y) < d * m.dens) out.set(x, y, d > .75 ? (deep ? HW.Bruise : HW.Shade) : d > .45 ? HW.Shade : HW.Dusk);
+  }
+  return out;
+}
+// The centre of the Hollow's light (GroveTreeView pulses a warm glow here).
+const HOLLOW_LIGHT = [608, 792];

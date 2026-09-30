@@ -1,25 +1,22 @@
 extends Node2D
 class_name NightmareOverlay
 
-# What the nightmares' HUDs share (screens_ui.md "Status icons, clearer"; perf, 2026-09-30). Every
-# nightmare keeps its health bar, blight coat, Restless arrows and status badges in canvas items of
-# its own (Enemy._update_hud), not in its _draw: that sits in the y-sort among the Wardens and
-# obstacles and broke the batches (~5 draw calls a nightmare). Each HUD kind has its own absolute z
-# layer (Z + Enemy.HUD_*): all bars, then all badge discs (one atlas, below), all icons, all numbers,
-# so the whole field is a few batches. Made by EnemyContainer (never a child of it: its children are
-# all nightmares).
+# What the nightmares' HUDs share (screens_ui.md "Status icons, revised"; perf, 2026-09-30). Every
+# nightmare keeps its health bar, blight coat, Restless arrows and status icons in canvas items of its
+# own (Enemy._update_hud), not in its _draw: that sits in the y-sort among the Wardens and obstacles
+# and broke the batches (~5 draw calls a nightmare). Each HUD kind has its own absolute z layer
+# (Z + Enemy.HUD_*): all bars, then all marks (time bars and max-stack glows, from the atlas below),
+# all icons, all numbers, so the whole field is a few batches. Made by EnemyContainer (never a child
+# of it: its children are all nightmares).
 
 const Z := 7  # Above the field, its effects and the edge fog (EnvironmentAmbience is 6); up to Z + 3
 
-# The status badges' shapes, pre-drawn once into one small texture (so a badge is a few textured quads
-# from one texture: the discs layer batches as one draw, and no circle or arc is built at runtime):
-# the dark disc, the faint rim, the solid rim (max stacks), and the rim arc in ARC_STEPS steps, drawn
-# white and tinted per status. Cells of CELL px; `badge_region(kind)` finds one.
+# The marks under and behind the status icons, pre-drawn once into one small texture (so the marks
+# layer is textured quads from one texture and batches as one draw): a solid white cell (the time
+# bars, tinted) and a soft round glow (behind an icon at max stacks). Cells of CELL px.
 const CELL := 32
-const ARC_STEPS := 12
-enum { BADGE_DISC, BADGE_RIM, BADGE_RIM_FULL, BADGE_ARC }  # BADGE_ARC + k - 1 = k twelfths of the arc
-const RIM_SHARE := 0.21  # The faint rim and the arc: 1.5 px of a 7 px badge radius
-const RIM_FULL_SHARE := 0.36  # The solid rim at max stacks: 2.5 px of 7
+const TIME_STEPS := 12  # The time bars shorten in this many steps (rebuilt once a step)
+enum { MARK_SOLID, MARK_GLOW }
 
 var spawner: Node2D
 var badge_atlas: ImageTexture
@@ -30,25 +27,17 @@ func _ready() -> void:
 	badge_atlas = _make_badge_atlas()
 
 func badge_region(kind: int) -> Rect2:
+	if kind == MARK_SOLID:
+		return Rect2(CELL / 2 - 1, CELL / 2 - 1, 2, 2)  # The middle of the solid cell: no soft edge
 	return Rect2(kind * CELL, 0, CELL, CELL)
 
 static func _make_badge_atlas() -> ImageTexture:
-	var cells := BADGE_ARC + ARC_STEPS
-	var image := Image.create(CELL * cells, CELL, false, Image.FORMAT_RGBA8)
+	var image := Image.create(CELL * 2, CELL, false, Image.FORMAT_RGBA8)
 	var c := CELL / 2.0
 	for y in CELL:
 		for x in CELL:
-			var dx := x + 0.5 - c
-			var dy := y + 0.5 - c
-			var d := sqrt(dx * dx + dy * dy)
-			var outer := clampf(c - d, 0.0, 1.0)  # Anti-aliased edge of the whole badge
-			var rim := minf(outer, clampf(d - c * (1.0 - RIM_SHARE) + 0.5, 0.0, 1.0))
-			var rim_full := minf(outer, clampf(d - c * (1.0 - RIM_FULL_SHARE) + 0.5, 0.0, 1.0))
-			var angle := fposmod(atan2(dx, -dy), TAU)  # Clockwise from the top
-			image.set_pixel(BADGE_DISC * CELL + x, y, Color(Palette.VOID, 0.9 * outer))
-			image.set_pixel(BADGE_RIM * CELL + x, y, Color(1, 1, 1, rim))
-			image.set_pixel(BADGE_RIM_FULL * CELL + x, y, Color(1, 1, 1, rim_full))
-			for k in range(1, ARC_STEPS + 1):
-				var inside := clampf((TAU * k / ARC_STEPS - angle) * d, 0.0, 1.0)  # Soft cut at the arc's end
-				image.set_pixel((BADGE_ARC + k - 1) * CELL + x, y, Color(1, 1, 1, rim * inside))
+			image.set_pixel(MARK_SOLID * CELL + x, y, Color.WHITE)
+			var d := Vector2(x + 0.5 - c, y + 0.5 - c).length() / c
+			var glow := clampf(1.0 - d, 0.0, 1.0)
+			image.set_pixel(MARK_GLOW * CELL + x, y, Color(1, 1, 1, glow * glow))
 	return ImageTexture.create_from_image(image)

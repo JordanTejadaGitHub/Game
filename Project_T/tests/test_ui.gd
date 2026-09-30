@@ -120,6 +120,36 @@ func _run() -> void:
 			and not back_rect.intersects(strip_rect) and back_rect.end.y <= screen.y,
 			"the peek's Back button clears the bar, banner and Coming strip at %s (%s; bar %s, strip %s)" % [screen, back_rect, bar_rect, strip_rect])
 		peek_screen.queue_free()
+		# The expanded damage meter (both tabs, the top rows + "and N more") never covers the DriftPanel
+		# (user: "maze dps shouldn't go over the call drift").
+		var meter := main.get_node("HUD/DriftMeter") as DriftMeter
+		var meter_was := meter.visible
+		meter.set_process(false)  # Its refresh would hide it (no Warden meter in this test)
+		meter.visible = true
+		var fake_rows: Array[Button] = []
+		for i in 6:
+			var row := Button.new()
+			row.text = "Sporeling %d" % i
+			row.custom_minimum_size = Vector2(0, 40)
+			meter._rows.add_child(row)
+			fake_rows.append(row)
+		meter._more.visible = true
+		meter._more.text = "and 16 more"
+		for summary in [false, true]:
+			meter.block_summary = summary
+			for f in 4:
+				meter._fit()
+				await process_frame
+			var meter_rect := meter.get_global_rect()
+			var panel_rect := (main.get_node("HUD/DriftPanel") as Control).get_global_rect()
+			_check(not meter_rect.intersects(panel_rect) and meter_rect.position.y >= DriftMeter.TOP_LIMIT - 1.0,
+				"the damage meter (%s tab) clears the DriftPanel at %s (%s vs %s)" % ["block" if summary else "Wardens", screen, meter_rect, panel_rect])
+		for row in fake_rows:
+			row.queue_free()
+		meter._more.visible = false
+		meter.block_summary = false
+		meter.visible = meter_was
+		meter.set_process(true)
 	_check(banner.get_drift_text() == "Ready · Drift 1", "before the first drift the banner reads Ready · Drift 1")
 	# The camera can scroll past the map's far corner, so the Heartwood can clear the drift controls.
 	var camera = main.get_node("GameCameraNode")
@@ -426,6 +456,9 @@ func _run() -> void:
 		"Plant plants the stroke")
 	touch_placer.begin_stroke(_free_cell(main.get_node("%MapGenerator")))
 	var touch_camera = main.get_node("GameCameraNode")
+	var open_dossier := main.get_tree().get_first_node_in_group(BossDossier.GROUP) as BossDossier
+	if open_dossier != null and open_dossier.visible:
+		open_dossier.close_dossier()  # It opens by itself at the first rest; a modal screen stops map pans
 	var cam_before: Vector2 = touch_camera.target_position
 	for i in 2:
 		var press := InputEventScreenTouch.new()
@@ -664,13 +697,18 @@ func _run() -> void:
 		var body_sizes: Array = []
 		for card in omen_screen._cards.get_children():
 			var labels: Array = card.find_children("*", "Label", true, false)
-			body_sizes.append(labels[1].get_theme_font_size("font_size") if labels.size() > 1 else -1)
+			body_sizes.append(labels[2].get_theme_font_size("font_size") if labels.size() > 2 else -1)  # Name, flavour, then the body
+			_check(card.find_child("Flavor", true, false) != null, "%s has a flavour line (Omen voice)" % card.name)
 		_check(body_sizes.size() == 2 and body_sizes[0] == body_sizes[1], "Face an Omen and Clear Skies share one body size (%s)" % [body_sizes])
 		omen_screen._clear_cards()
 		for i in range(0, all_omens.size(), 3):
 			omen_screen._reveal(all_omens.slice(i, i + 3), null)
 			await _frames(3)
 			_check_omen_cards(omen_screen, "revealed Omens %d–%d at %s" % [i, i + 2, view])
+			for card in omen_screen._cards.get_children():
+				var reward_label: Label = card.find_child("Reward", true, false)
+				_check(reward_label != null and (reward_label.text.begins_with("Reward · ") or reward_label.text.begins_with("Double-edged")) and not reward_label.text.contains(":"),
+					"%s: \"Reward · …\", no colon (%s)" % [card.name, reward_label.text if reward_label else "none"])
 			omen_screen._clear_cards()
 	omen_screen._on_closed()
 	root.size = Vector2i(1280, 800)

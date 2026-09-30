@@ -74,11 +74,24 @@ func _test_requirements() -> void:
 
 func _test_nurture_effects() -> void:
 	_reset()
+	# Tender Care (rework 2026-09-30): rank I free on every Warden, not stackable; II: ranks II–V 20% less
 	var tender := _card("tender_care")
-	for i in 4:
-		dreams.take(tender)
-	_check(is_equal_approx(dreams.get_nurture_cost_multiplier(), 0.50), "Tender Care stacks to −50%, no further")
-	_check(is_equal_approx(dreams.get_rank_damage_bonus(), 0.12), "Tender Care (absorbs Warm Hands): +3% damage per rank, stacks (×4)")
+	_check(tender.max_stacks == 1 and not tender.tags.has("economy") and tender.tags.has("nurture") and tender.tags.has("tall"),
+		"Tender Care: one stack, nurture + tall (no economy tag)")
+	_check(dreams.rank_cost_factor(1) == 1.0, "no card: rank I at full price")
+	dreams.take(tender)
+	_check(dreams.rank_cost_factor(1) == 0.0 and dreams.rank_cost_factor(2) == 1.0, "Tender Care: rank I free, rank II full price")
+	_check(is_equal_approx(dreams.get_nurture_cost_multiplier(), 1.0) and dreams.get_rank_damage_bonus() == 0.0,
+		"…and nothing else (the old −15% and +3% per rank are gone)")
+	_check(dreams.resonance_preview(_card("tender_care_ii")).tag != "economy", "no economy resonance line on it")
+	dreams.take(_card("tender_care_ii"))
+	_check(dreams.rank_cost_factor(1) == 0.0 and is_equal_approx(dreams.rank_cost_factor(2), 0.8)
+		and is_equal_approx(dreams.rank_cost_factor(5), 0.8) and dreams.rank_cost_factor(6) == 1.0, "Tender Care II: ranks II–V 20% less")
+	var old := dreams.to_save()
+	old.stacks = {"tender_care": 4}
+	dreams.load_save(old)
+	_check(dreams.card_stacks("tender_care") == 1, "an old save with 4 stacks owns it once")
+	_reset()
 	_check(dreams.get_max_rank() == 5 and dreams.get_extra_rank_cost(6) == 0, "rank V is the cap by default")
 	dreams.take(_card("deeper_rings"))
 	_check(dreams.get_max_rank() == 7 and dreams.get_extra_rank_cost(6) == 130 and dreams.get_extra_rank_cost(7) == 180,
@@ -352,7 +365,7 @@ func _test_seedling_gift() -> void:
 	dreams.take(_card("tender_care"))
 	_check(dreams.is_eligible(nursery) and dreams.make_offer(10).has(nursery), "…then Nursery is Entwined: guaranteed")
 	dreams.take(nursery)
-	_check(is_equal_approx(dreams.get_nurture_cost_multiplier(sprout), 0.85 * 0.5), "Nursery: Sprouts nurture for half price")
+	_check(is_equal_approx(dreams.get_nurture_cost_multiplier(sprout), 0.5), "Nursery: Sprouts nurture for half price")
 	run_state.add_sprout_charges(1)
 	var nursery_cell := _free_cell(map_generator)
 	placer._try_build(nursery_cell)

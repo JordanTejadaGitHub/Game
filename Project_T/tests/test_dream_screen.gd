@@ -54,6 +54,26 @@ func _run() -> void:
 		# Rarity row, name, then the effect (a RichTextLabel with the card's description)
 		_check(labels.size() >= 3 and labels[2] is RichTextLabel, "%s: the effect comes right after the name" % _name_of(button))
 	_check(heights.size() == 1, "all cards share one height (%s)" % heights.keys())
+	# The largest UI scale leaves 1280×720 in view units (user screenshot: the third card's text ran off the
+	# right edge). Every card and every line on it stays on screen and inside its card, left to right too.
+	root.size = Vector2i(1280, 720)
+	screen._show_offer(cards, 25)
+	for i in 4:
+		await process_frame
+	var small := Rect2(Vector2.ZERO, Vector2(root.size))
+	for column in screen._cards.get_children():
+		var card_button := column.get_child(0) as Button
+		var card_rect := card_button.get_global_rect()
+		_check(small.encloses(card_rect), "1280×720: %s fits the screen (%s)" % [_name_of(card_button), card_rect])
+		for line in card_button.find_children("*", "", true, false):
+			if (line is Label or line is RichTextLabel) and line.is_visible_in_tree() and line.text != "":
+				var line_rect: Rect2 = line.get_global_rect()
+				_check(card_rect.grow(0.5).encloses(line_rect), "1280×720: %s: \"%s\" stays inside the card (%s in %s)"
+					% [_name_of(card_button), String(line.text).left(20), line_rect, card_rect])
+	root.size = Vector2i(1280, 800)
+	screen._show_offer(cards, 25)
+	for i in 3:
+		await process_frame
 	# Half-dreamed stays internal: the card shows only "Needs <damage type>" (no emblem), no label, no "Sleeps"
 	var bloom_button := screen._cards.get_child(0).get_child(0) as Button
 	var bloom_texts: Array = bloom_button.find_children("*", "", true, false) \

@@ -1986,6 +1986,27 @@
   1062,
   118
  ],
+ "hollow": [
+  608,
+  792
+ ],
+ "mists": [
+  {
+   "file": "grove_mist_0.png",
+   "y": 610,
+   "speed": 5
+  },
+  {
+   "file": "grove_mist_1.png",
+   "y": 715,
+   "speed": -8
+  },
+  {
+   "file": "grove_mist_2.png",
+   "y": 820,
+   "speed": 12
+  }
+ ],
  "node_cell": 32,
  "legendary_cell": 48,
  "fruit_cell": 48

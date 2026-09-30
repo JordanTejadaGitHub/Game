@@ -8,6 +8,7 @@ class_name OmenData
 @export var id: String = ""
 @export var display_name: String = "Omen"
 @export_multiline var description: String = ""  # The twist, e.g. "Creatures have 20% more health."
+@export var flavor: String = ""  # One line in the Heartwood's voice, shown in the whisper face (run_design.md "Omen voice")
 @export var min_drift: int = 0  # Only offered for blocks starting at this drift or later
 @export var requires_flyers: bool = false  # Only offered if the next block has flying creatures
 # The offer shows 2 Omens of different kinds (run_design.md "More Omens").

@@ -11,10 +11,10 @@ const CARD_PAD := Vector2(18, 16)  # Inner padding on every side (x: left and ri
 const BODY_SIZE := 15  # Revealed Omens' reward line
 const FRONT_BODY_SIZE := 18  # Face an Omen and Clear Skies: the Dream card body size (user: "a bit bigger")
 const EMBLEM_SCALE := 3  # The 16 px icons drawn x3, nearest
+const FLAVOR_SIZE := 17  # The whisper face runs large; this sits level with the 18 px body
 const SECONDARY_MIN_SIZE := 12  # Secondary lines shrink to this before a card outgrows the screen
 const SCREEN_MARGIN := 240.0  # Title, buttons and gaps around the cards
 const OMEN_COLOR := UiStyle.BUTTON_GOLD  # Heartwood 32 "Gold"
-const TWIST_COLOR := Color("9a84e8")  # Heartwood 32 "Wraithlight": the nightmares' side of the deal
 const REWARD_COLOR := UiStyle.GOLD  # Heartwood 32 "Glow": the reward in gold (run_design.md)
 const CLEAR_SKIES_COLOR := UiStyle.MOONLIGHT  # A calm moonlit card: Moonlight thread and title
 const CLEAR_SKIES_GLOW := Color("3c3c5c")  # Dusk: a cooler, lighter middle than an Omen's Night
@@ -64,6 +64,17 @@ func _ready() -> void:
 	_active_tag.add_theme_color_override("font_outline_color", Palette.DREAD)
 	_active_tag.add_theme_constant_override("outline_size", 6)
 	_active_tag.visible = false
+	var tag_icon := IconInfo.icon(&"omen")  # The Omen icon x2 before the tag (once UI Asset adds it)
+	if tag_icon != null:
+		var icon_rect := TextureRect.new()
+		icon_rect.texture = tag_icon
+		icon_rect.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		icon_rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		icon_rect.size = Vector2(32, 32)
+		icon_rect.position = Vector2(-38, -4)
+		icon_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		icon_rect.name = "OmenIcon"
+		_active_tag.add_child(icon_rect)
 	get_parent().add_child.call_deferred(_active_tag)
 
 	omens.offer_ready.connect(_show_offer)
@@ -107,7 +118,8 @@ func _make_face_down_card() -> Button:
 	UiStyle.card_button(button, OMEN_COLOR)
 	var box := _card_box(button)
 	UiStyle.title(_add_line(box, "Face an Omen", UiStyle.INK, 22), UiStyle.CARD_NAME_SIZE)
-	var body := _add_line(box, "An unknown twist for the next block. Survive it for a reward.", UiStyle.INK, FRONT_BODY_SIZE)
+	_add_flavor(box, "Something stirs out in the dark.")
+	var body := _add_line(box, "A twist for the next block. Face it for a reward.", UiStyle.INK, FRONT_BODY_SIZE)
 	box.add_child(_emblem(&"omen", true))  # A moth before the moon (the wind swirl until UI Asset's icon exists)
 	_fit_card(button, box, [body])
 	button.pressed.connect(func() -> void: _reveal(omens.face(), button))
@@ -216,14 +228,35 @@ func _make_card(omen: OmenData, act: int) -> Button:
 	UiStyle.card_button(button, OMEN_COLOR)  # Moonlit Thread card (ui_style.md)
 	var box := _card_box(button)
 	UiStyle.title(_add_line(box, omen.display_name, UiStyle.INK, 22), UiStyle.CARD_NAME_SIZE)
-	var twist := StatusLinks.make_label(omen.description, 16, TWIST_COLOR)  # Status words as links
+	# Name, flavour (whisper), the twist, a thin divider, the reward right under it (run_design.md "Omen voice")
+	var flavor: Label = null
+	if omen.flavor != "":
+		flavor = _add_flavor(box, omen.flavor)
+	var twist := StatusLinks.make_label(omen.description, FRONT_BODY_SIZE, UiStyle.INK)  # Status words as links
 	twist.mouse_filter = Control.MOUSE_FILTER_PASS  # A click still picks the Omen
-	twist.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	box.add_child(twist)
+	var divider := HSeparator.new()
+	divider.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	box.add_child(divider)
 	var reward := omens.describe_reward(omen, act)
-	var reward_line := _add_line(box, "Reward: " + reward if reward != "" else "Double-edged: the twist is the reward", REWARD_COLOR, BODY_SIZE)
-	_fit_card(button, box, [twist, reward_line])
+	var reward_line := _add_line(box, "Reward · " + (reward if reward != "" else "the twist itself (double-edged)"), REWARD_COLOR, FRONT_BODY_SIZE)
+	reward_line.name = "Reward"
+	var rest := Control.new()  # Any spare height goes below, so both cards keep the same spots
+	rest.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	rest.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	box.add_child(rest)
+	var secondary: Array = [twist, reward_line]
+	if flavor != null:
+		secondary.push_front(flavor)
+	_fit_card(button, box, secondary)
 	return button
+
+# An Omen's flavour line: the whisper face, no quote marks (run_design.md "Omen voice").
+func _add_flavor(box: VBoxContainer, text: String) -> Label:
+	var label := _add_line(box, text, UiStyle.WHISPER, FLAVOR_SIZE)
+	UiStyle.whisper(label, FLAVOR_SIZE)
+	label.name = "Flavor"
+	return label
 
 func _add_line(box: VBoxContainer, text: String, color: Color, font_size: int) -> Label:
 	var label := Label.new()
@@ -277,8 +310,8 @@ func _make_clear_skies_card() -> Button:
 		style.glow_color = CLEAR_SKIES_GLOW.lightened(0.08) if state.begins_with("hover") else CLEAR_SKIES_GLOW
 	var box := _card_box(button)
 	UiStyle.title(_add_line(box, "Clear Skies", CLEAR_SKIES_COLOR, 22), UiStyle.CARD_NAME_SIZE, CLEAR_SKIES_COLOR)
-	# The same body style and spot as Face an Omen's line; only the calmer whisper colour differs
-	var calm := _add_line(box, "Nothing changes. No reward.", UiStyle.WHISPER, FRONT_BODY_SIZE)
+	_add_flavor(box, "The night stays still.")
+	var calm := _add_line(box, "Nothing changes. No reward.", UiStyle.INK, FRONT_BODY_SIZE)  # The same rules spot as Face an Omen's
 	box.add_child(_emblem(&"clear_skies", false))  # The moon and stars (an empty space until the icon exists)
 	UiStyle.caps(_add_line(box, "The default", UiStyle.INK_DIM, 13), 14)
 	_fit_card(button, box, [calm])
