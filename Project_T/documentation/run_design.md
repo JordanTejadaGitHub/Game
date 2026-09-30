@@ -406,6 +406,22 @@ drift 10 on**, after the Dream, the wind brings **2 Omens**. Pick one to change 
 (5 drifts) for a reward, or keep **Clear Skies** (the default: nothing changes). This is optional
 risk: players set their own difficulty block by block.
 
+- **How an Omen looks** (user, 2026-09-30):
+  - **Icon: a moth before the moon.** A dark moth silhouette crossing a pale full moon (moths are old
+    folk omens; it reads at small size). It replaces the placeholder wind swirl on the Face an Omen
+    card and is the Omen icon everywhere (active-Omen tag, run history, Codex). **Clear Skies** gets
+    the matching calm icon: **the moon alone, with a few stars**, so the two cards balance. Both are
+    32 px pixel art in the UI icon sheet (`assets/ui/icons.png`, ids `omen` and `clear_skies`),
+    drawn larger on the cards (×3, nearest).
+  - **Card text is bigger:** the body lines on both front cards use the card body size (as on Dream
+    cards, ~18 px, not 15), same face and spot on both.
+  - **Omen mist:** facing an Omen brings **mist onto the map** for that block. It rolls in when the
+    Omen is picked (over ~3 s), stays for the block's 5 drifts, and **lifts at the next rest** (when
+    the reward is paid). Low, drifting mist, heaviest at the map's edges and the forest's edge
+    (start), thin over the path; a faint cool tint (Omen gold-violet, not grey). **Readability first:**
+    it sits under Wardens, nightmares, health bars and the build ghost, never hides the path, and is
+    lighter with *reduced motion* (static, no drift). Clear Skies: no mist; the sky above the island
+    stays clear. The same mist marks an active Omen in a resumed save.
 - **Commit blind, then the Omen is revealed** (2026-09-30, user: "we should be asking if we want Clear
   Skies or an Omen, so the player locks in the Omen before seeing what it is; make the Omens a bit
   more punishing; I feel like I can Omen every rest"). Replaces the "pick 1 of 2 Omens or Clear
