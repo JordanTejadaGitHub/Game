@@ -88,6 +88,9 @@ const HARVEST_DB := -3.0
 const HARVEST_WINDOW_MS := 4000  # Pours within this of the first belong to the same Harvest
 # Close calls: a soft tension cue, one per 2 s at most (like the Heartwood's tremble).
 const CLOSE_CALL_DB := -8.0
+const BOSS_REVEAL_DB := -4.0  # The boss card's sting (UI bus)
+const REMEMBER_DB := -4.0  # The Remember screen (UI bus)
+const REMEMBER_TRAVEL := 0.45  # Seconds for the unlock swell to travel the gold line before the bloom
 const PULL_BOSS_PITCH := 0.8  # Rootcurl dragging a boss: lower, strained
 const DRAG_TAIL := 0.12  # Seconds the soil drag fades when the drag ends early
 const CLOSE_CALL_THROTTLE_MS := 2000
@@ -153,7 +156,7 @@ func _ready() -> void:
 	enemy_container.child_entered_tree.connect(_on_enemy_added)
 	enemy_container.enemy_cleansed.connect(func(enemy: Node2D) -> void:
 		# Bigger nightmares: a lower, slower sigh (the same weight as their hits).
-		sound.play_dispel(enemy.global_position, enemy.enemy_data.is_boss, _weight_pitch(enemy)))
+		sound.play_dispel(enemy.global_position, enemy.enemy_data.is_boss, _weight_pitch(enemy), enemy.elite))
 	enemy_container.enemy_reached_goal.connect(func(_enemy: Node2D) -> void:
 		sound.duck(8.0, 1.0)
 		sound.play(&"leaf_lost", null, 0.0, 1.0, 0.03))
@@ -232,6 +235,7 @@ func _ready() -> void:
 	for node in owner.find_children("*", "", true, false):  # Kinship nodes already in the scene
 		_hook_kinships(node)
 		_hook_economy(node)
+		_hook_remember(node)
 
 	sound.play_music(&"act1", [&"base"])
 	sound.play_ambience(&"act1")
@@ -748,6 +752,7 @@ func _on_node_added(node: Node) -> void:
 		node.chain_reached.connect(_on_chain)
 	_hook_kinships(node)
 	_hook_economy(node)
+	_hook_remember(node)
 
 # Kinships (tower_design.md "Kinships"): whichever node carries these signals (Tower Code's), hooked
 # when it joins the tree. Rewarding but quiet: bonds and stage-ups are chords at rests, the Harmony
@@ -786,7 +791,7 @@ func _on_family_whole(_family: String) -> void:
 # one warm pour, fuller with the amount; the Wellspring's interest is a gentle ripple.
 func _hook_economy(node: Node) -> void:
 	for pair in [["dew_caught", _on_dew_caught], ["harvest_poured", _on_harvest_poured], ["interest_paid", _on_interest_paid],
-			["close_call", _on_close_call]]:
+			["close_call", _on_close_call], ["boss_revealed", _on_boss_revealed]]:
 		if node.has_signal(pair[0]) and not node.is_connected(pair[0], pair[1]):
 			node.connect(pair[0], pair[1])
 
@@ -815,6 +820,57 @@ func _on_interest_paid(_tower: Node = null, _amount = 0) -> void:
 
 # Close calls (Main's CloseCalls, 6d95009; added deferred, so hooked as it joins the tree): a nightmare
 # past 85% of its route. A soft tension cue, throttled like the visual (one per 2 s).
+# The Remember screen (audio_direction.md ecc238a4). Its signals are generic names, so only a
+# RememberScreen is hooked; DreamState's dreamlight_earned (gained, never spent) plays the shared glow.
+func _hook_remember(node: Node) -> void:
+	if node.has_signal("dreamlight_earned") and not node.is_connected("dreamlight_earned", _on_dreamlight_earned):
+		node.connect("dreamlight_earned", _on_dreamlight_earned)
+	if not node is RememberScreen:
+		return
+	if not _choice_screens.has(node):
+		_choice_screens.append(node)  # The music is muffled while it's open
+	for pair in [["opened", _on_remember_opened], ["closed", _on_remember_closed], ["node_selected", _on_remember_tap],
+			["unlocked", _on_remember_unlocked], ["unlock_rejected", _on_remember_rejected]]:
+		if node.has_signal(pair[0]) and not node.is_connected(pair[0], pair[1]):
+			node.connect(pair[0], pair[1])
+
+func _on_remember_opened() -> void:
+	sound.play(&"remember_open", null, REMEMBER_DB, 1.0, 0.0, &"UI")
+
+func _on_remember_closed() -> void:
+	sound.play(&"remember_close", null, REMEMBER_DB, 1.0, 0.0, &"UI")
+
+func _on_remember_tap(_data: Resource = null) -> void:
+	sound.play(&"remember_tap", null, REMEMBER_DB - 2.0, 1.0, 0.03, &"UI")
+
+func _on_remember_rejected(_data: Resource = null) -> void:
+	sound.ui(&"invalid")
+
+# An unlock: a warm swell travels along the gold line, then the node blooms (see _remember_bloom).
+func _on_remember_unlocked(data: TowerData) -> void:
+	sound.play(&"remember_travel", null, REMEMBER_DB, 1.0, 0.0, &"UI")
+	get_tree().create_timer(REMEMBER_TRAVEL).timeout.connect(_remember_bloom.bind(data))
+
+# The bloom in the Warden's family material + a warm sung note in key (branch, ~1 s); a final form sings
+# two notes a fifth apart (~1.5 s); an Ascended adds the crown's choir swell and its deep family swell.
+func _remember_bloom(data: TowerData) -> void:
+	var material := StringName("nurture_" + data.line)
+	sound.play(material if sound.has_sound(material) else &"nurture_sprout", null, REMEMBER_DB, 0.9, 0.0, &"UI")
+	sound.play(&"remember_fifth" if data.tier >= 3 else &"remember_note", null, REMEMBER_DB, 1.0, 0.0, &"UI")
+	if data.tier >= ASCENDED_TIER:
+		sound.play(&"crown_swell", null, REMEMBER_DB, 1.0, 0.0, &"UI")
+		var deep := StringName("ascend_" + warden_id(data))
+		if sound.has_sound(deep):
+			sound.play(deep, null, REMEMBER_DB - 2.0, 1.0, 0.0, &"UI")
+
+func _on_dreamlight_earned(_amount = 0, _source = &"") -> void:
+	sound.play(&"dreamlight_glow", null, REMEMBER_DB, 1.0, 0.0, &"UI")
+
+# The boss card opening (Main's BossDossier, 6a57ff6e; at act starts and from the banner): a low sting
+# and one heartbeat, under the portrait fading up and the name writing in.
+func _on_boss_revealed(_data: Resource = null) -> void:
+	sound.play(&"boss_reveal", null, BOSS_REVEAL_DB, 1.0, 0.0, &"UI")
+
 func _on_close_call(enemy: Node2D = null) -> void:
 	var now := Time.get_ticks_msec()
 	if now - _close_call_at < CLOSE_CALL_THROTTLE_MS:
