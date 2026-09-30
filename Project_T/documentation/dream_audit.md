@@ -230,3 +230,18 @@ Designed in 2026-09 but never built until the catalogue measurement found them m
 The other eight (Sharpened Light / II, Long Shadows, Patient Aim, Ring Dance, Carried on the Wind,
 Sweet Scent, Shiny Things, Hairpin Winds) were already at budget. Grove homes (Meta): Long Shadows
 on the Pebbling node, Sweet Scent on the Bellflower node.
+
+## Pool trim (2026-09-30)
+
+User-approved shrink of the pool (the full rationale and the 10 card builds are in `dream_design.md`,
+"Pool trim"). Merged cards take the stronger number within budget, not the sum:
+
+- **Cut:** Borrowed Dew, Hungry Roots, Overgrown, Wild Growth, Reckless Bloom, Overgrowth, Borrowed
+  Memory, Remembered Care, Seasoned Eye, Many Rings, Big Family, Sudden Bloom, Underdog, Cliffside,
+  Tangled (broke the status jobs), Patchwork, Hedgerow, Shelter of Stones, Short Roots.
+- **Merged away:** Gathered Dew (→ Morning Dew), Fresh Soil (→ Reclaimed Earth), Tend the Forest (→
+  Heartwood's Reach; it gave free clears), Mending Bark (→ Thick Bark), Heartwood's Fury (→ Last
+  Stand), Warm Hands (→ Tender Care), Court of the Eldest (→ Endless Rings), Sprout Surge (→
+  Seedfall), Close Kin (→ Extended Family), Skyward Gaze (→ Hunter's Patience), Crush (→ Crowd
+  Breaker), Hurried Harvest (→ Call of the Wild).
+- Their Deepened versions go with them (a merged card's II follows the absorbing card's II).

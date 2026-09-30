@@ -1068,6 +1068,66 @@ changing the maze mid-drift, the reason Echoing Steps was cut). User-approved.
 - After these (and the 11 cards being built), every catalogue build has **5+ real enhancers** except
   First strike (by design).
 
+## Pool trim (2026-09-30, user: option 2 "shrink the pool")
+
+**Why:** a run sees **57 cards** (19 Dreams × 3). Slay the Spire's builds come together with no
+synergy weighting because a character's pool (~75) is about what a run sees (~80 + shops). Ours was
+**223 base cards**, 145 of them generic (always in play), so a typical run drew from ~180 and saw
+under a third of it; small builds never came together (catalogue measurement a6b41172: Emergence
+15–52%, most card builds 0–25% when chased). Weighting can't fix that ratio without handing builds
+out, so the pool shrinks instead, in two layers. Merged cards take the **stronger** number (per the
+`dream_audit.md` budget), not the sum.
+
+### Layer 1: redundant, too small, or breaking a rule (~29 cards)
+
+| Area | Merged into | Cut |
+|---|---|---|
+| Bittersweet (14 was too many) | — | Borrowed Dew, Hungry Roots, Overgrown, Wild Growth, Reckless Bloom, Overgrowth, Borrowed Memory |
+| Economy | **Gathered Dew → Morning Dew** (+20 now, +10 each rest, nightmares +10% Dew) | — |
+| Clearing | **Fresh Soil → Reclaimed Earth** (fertile cells also give Sprouts +20%); **Tend the Forest → Heartwood's Reach** (it gave 2 *free* clears, which breaks "clearing always costs Dew") | — |
+| Leaves | **Mending Bark → Thick Bark** (saves the first leak each block; a perfect block regrows 1); **Heartwood's Fury → Last Stand** (+35% near the Heartwood, +3% more per missing leaf) | — |
+| Tall | **Warm Hands → Tender Care** (−15% nurture cost and +3% damage per rank, stacks); **Court of the Eldest → Endless Rings** (taking it also names the Eldest and gives touching Wardens 25% of its rank bonuses) | Remembered Care (exploit-prone), Seasoned Eye, Many Rings |
+| Wide | **Sprout Surge → Seedfall** (Sprouts cost 6 and +30% soothe) | Big Family |
+| Kinship | **Close Kin → Extended Family** (reach 3 and two Kinships per Warden) | — |
+| Generic | **Skyward Gaze → Hunter's Patience** (+ flyers: +40% and +1 range) | Sudden Bloom, Underdog, Cliffside |
+| Status | — | **Tangled** (it slowed; slowing belongs to Drowsy, `tower_design.md` "Status jobs") |
+| Swarm / Tempo / Variety / Walls | **Crush → Crowd Breaker**; **Hurried Harvest → Call of the Wild** | Patchwork, Hedgerow |
+
+### Layer 2: fewer, broader card builds
+
+Slay the Spire's characters have ~4–6 archetypes in 75 cards; we had ~15 card-driven builds. Neighbours
+merge into **10 card builds**, each with one **archetype tag** that weighting reads (taking one card
+of it boosts the whole build, so chasing works with a smaller pool). The 18 **Warden-combo builds**
+(Storm Grid, Spore Bomb, Sleepy Hollow…) are family-gated, don't dilute, and stay as they are.
+
+| Card build (tag) | Was | Enhancers | Legendaries |
+|---|---|---|---|
+| **Tall** (`tall`) | Eldest + Lone Lantern | Tender Care, Kindred Roots, Sunlit Rest, Deeper Rings, Chosen Few, Nursery, Elder Kin, Solitude, Few and Mighty | Endless Rings, The Old Ones, The Last Light, Monoculture |
+| **Overgrowth** (`overgrowth`) | Wide Sprouts + Menagerie | Seedfall, Sprout Chorus, Root Network, Seedling Gift, Canopy, Many Hands, Mixed Grove, Odd One Out, Grand Tour | Menagerie, Rootbound |
+| **Daring** (`daring`) | Tempo + Last Leaf | Call of the Wild, Fresh Growth, Head Start, Quick Step, Second Wind, Scarred Bark, Desperate Bloom, Thin Bark, Last Stand | Restless Night, Last Leaf |
+| **Precision** (`precision`) | Crit + First strike + Sniper's cards | Glinting Dew, Sharpened Light, Shattering Blow, Still Target, First Light, Lone Hunter, Hunter's Patience, Watchful Rest | Full Moon |
+| **Affliction** (`affliction`) | Potency + status cards | Bitter Sap, Seeping, Venom Bloom, Lasting Dreams, Heavy Air | Nightshade |
+| **Maze** (`maze`) | Long Walk + walls + Hairpin | Cozy Corners, Straightaway, Winding Path, Heart of the Maze, Forest's Edge, Hedge Maze, Bitter Hedges, Thornheart, Weathered Walls | The Long Walk, Crossroads, Briar Crown |
+| **Tending** (`tending`) | Clearing + economy | Cleared Ground, Heartwood's Reach, Reclaimed Earth, Tended Forest, Burn Back, Morning Dew, Evergreen | Wildwood Reclaimed |
+| **Kinship** (`kinship`) | Kinship | Family Ties, Sweet Harmony, Old Friends, Rooted Bond, Extended Family, Kin and Kindling, Blood Is Thicker, Elder Kin | Grove of Kin |
+| **Swarm** (`swarm`) | Swarm | Crowd Breaker, Crowded Path, Last Breath, Thinning the Herd, Shattering Blow | — |
+| **Support** (`support`) | The Quiet Ones | Living Walls, Scented Hedge, Thorn Snare, Warm Hearth (+ the Acorn family's cards) | The Quiet Ones |
+
+- **Layer 2 cuts:** Shelter of Stones, Short Roots (their builds are covered by broader cards).
+- **Always-useful basics stay untagged:** Quickened Sap, Deeper Calm, Longer Roots, Deep Roots,
+  Thick Bark; and the Dreams / Dreamlight cards (Lucid Dreaming, Wandering Mind, Sudden Insight,
+  Glimmering Hunt), Deep Sleep, Restless Dreams.
+- **Weighting:** the archetype tags replace `nurture` / `narrow` / `wide` / `sprout` / `tempo` /
+  `leaves` / `variety` / `crit` / `potency` / `status` / `wall` / `clearing` / `economy` as build tags
+  (cards keep the old tags for rules). Opposition: **Tall ↔ Overgrowth ×0.5** (was narrow ↔ wide). A
+  card can carry two archetype tags (bridges: Elder Kin is `tall` + `kinship`; Shattering Blow
+  `precision` + `swarm`).
+- **Result:** ~223 → **~192 base cards**; a typical 4-family run can be offered **~120** (was ~180), and
+  each card build is one tag of 5–9 enhancers, so one taken card lifts the whole build.
+- **Measure again** (Emergence with the random and mixed pickers, Chasing for all 10 card builds and
+  the Warden-combo builds, Adapt) and tune **only `tag_weight`** (1.6 → at most 2.2) if chasing is
+  still short; Adapt must stay ≥ 70%.
+
 ## Status effect numbers
 
 Status strength **scales with the Warden that applies it** (a % of its soothe), so statuses keep
