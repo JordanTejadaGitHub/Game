@@ -47,7 +47,7 @@ const REACTIONS := {
 # Sheets that peak small in their frame: shown bigger (screens_ui.md "Size check").
 const DEFAULT_SCALE := {&"thunderclap": 1.5, &"thunderclap_lite": 1.5, &"ignite": 1.5, &"ignite_lite": 1.5,
 	&"pinned": 1.5, &"shatter": 1.5, &"crit_flare": 1.25}
-const THREAD_SECONDS := 0.3
+const RING_SECONDS := 0.45  # The contributing Wardens' pulse ring
 const CROWN_OFFSET := Vector2(0, -34)  # The Crowned crown mark over its callout
 const CALLOUT_LIFE := 0.9
 const CALLOUT_COOLDOWN := 0.5  # Per reaction, so a chain doesn't wall the screen with words
@@ -177,9 +177,12 @@ static func reaction(reaction: StringName, at: Vector2, parent: Node, towers: Ar
 			# The crown mark sits on the callout and goes with it (the sheet loops: never leave it in the
 			# world, or every Crowned Reaction leaves a crown behind).
 			play(&"crowned_crown", at + CROWN_OFFSET, shown)
+	# The Wardens that made it: a soft pulse ring on each (playtest: straight threads to them read as debug lines).
 	for tower in towers:
 		if tower is Node2D and is_instance_valid(tower):
-			segment(&"light_thread", tower.global_position, at, parent, THREAD_SECONDS)
+			var ring := FxRing.new(colour)
+			parent.add_child(ring)
+			ring.global_position = tower.global_position
 	_shake(parent, 2.0)
 	return node
 
@@ -294,6 +297,30 @@ static func _shake(parent: Node, pixels: float) -> void:
 # --- Nodes --------------------------------------------------------------------------------------
 
 # One sheet playing at its anchor. Frees itself at the end (or after `seconds` when looping).
+# A soft ring that swells and fades on a Warden that helped make a Reaction (under the Wardens).
+class FxRing extends Node2D:
+	var _colour: Color
+	var _age := 0.0
+
+	func _init(colour: Color) -> void:
+		_colour = colour
+		z_index = -1
+
+	func _process(delta: float) -> void:
+		_age += delta
+		if _age >= Fx.RING_SECONDS:
+			queue_free()
+			return
+		queue_redraw()
+
+	func _draw() -> void:
+		var t := _age / Fx.RING_SECONDS
+		var radius := 14.0 + 22.0 * t
+		var alpha := 1.0 - t
+		draw_circle(Vector2(0, 6), radius, Color(_colour, 0.12 * alpha))
+		draw_arc(Vector2(0, 6), radius, 0.0, TAU, 32, Color(_colour, 0.7 * alpha), 2.0)
+
+
 class FxSprite extends Node2D:
 	var effect: StringName  # The sheet shown (the _lite one if it was swapped)
 	var row := 0
