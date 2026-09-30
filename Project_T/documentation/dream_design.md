@@ -200,6 +200,10 @@ alternative**: a strong card you can use now if you bend the plan.
      effect: *"Needs Dewdrop"* (the family is a linked term to its family pick). "Half-dreamed" stays
      an internal name for the mechanic. The card's effect works only once everything it needs is
      owned. In "Dreams this run" such a card is dimmed with the same "Needs Dewdrop" line.
+   - **No "Entwined" label on the card** (2026-09-30, user: *"still don't know what Entwined
+     is"*): like "Half-dreamed", it's an internal name. The vine border stays (it says "this joins
+     two of your families"), and the card's text names both Wardens. **The "Needs" line appears only
+     when something is still missing**; an Entwined card offered because you own both shows none.
    - **Named by damage type** (2026-09-30, user: "Needs Whirligig … should be the type of damage"):
      the line reads **"Needs Wind"** (the family's damage type, linked; no emblem since the emblems were removed), not the
      family's name. When the card needs a specific form (Windborne Rain needs Samara), the tooltip on
