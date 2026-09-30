@@ -47,15 +47,14 @@ N("early_light", "perks", "Early Light", 232, 436, "early_bloom");
 N("kindling", "perks", "Kindling", 214, 500, "early_light");
 N("slot_4", "perks", "Loadout slot 4", 400, 520, [410, 466]);  // Slots 1–3 are open from the start
 N("slot_5", "perks", "Loadout slot 5", 318, 540, "slot_4");
-// Families: a short branch of four per family (family, final forms, hidden branch, Ascension),
+// Families: a short branch of three per family (family, hidden branch, Ascension),
 // alternating sides up the middle limb.
 [["sporeling", "Sporeling", true], ["firefly_jar", "Firefly Jar", true], ["dewdrop", "Dewdrop", true], ["pebbling", "Pebbling"],
  ["rootling", "Rootling"], ["bellflower", "Bellflower"], ["acorn", "Acorn"], ["nestling", "Nestling"], ["whirligig", "Whirligig"]]
   .forEach(([id, name, start], i) => {
     const side = i % 2 ? 1 : -1, ay = 604 - i * 50, ax = 640 + Math.sin((604 - ay) / 90) * 4;
     N(id, "families", name, ax + side * 38, ay - 20, [ax, ay], start ? { start: true } : {});
-    N(id + "_final", "families", name + ": final forms", ax + side * 60, ay - 52, id);
-    N(id + "_hidden", "families", name + ": hidden branch", ax + side * 72, ay - 86, id + "_final");
+    N(id + "_hidden", "families", name + ": hidden branch", ax + side * 66, ay - 62, id);  // Final forms need no node any more
     N(id + "_ascension", "families", name + ": Ascension", ax + side * 96, ay - 108, id + "_hidden");
   });
 // Memory Wardens: free blooms a boss leaves the first time it is dispelled (low on the Families limb).

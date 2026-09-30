@@ -11,5 +11,4 @@ root = 0
 costs = Array[int]([40])
 order = 22
 icon = 2
-requires_all = Array[String](["dewdrop_final"])
 dream_cards = Array[String](["dream_frostfern", "dream_hoarfrost", "deep_frost"])

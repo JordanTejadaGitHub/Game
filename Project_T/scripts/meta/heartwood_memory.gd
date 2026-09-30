@@ -8,7 +8,7 @@ class_name HeartwoodMemory
 # Static helpers only: every caller loads, changes and saves. The file is tiny.
 
 const PATH := "user://heartwood.json"
-const VERSION := 5  # 2: Grove ids match grove_layout.json (MIGRATED_IDS), perk loadout; 3: REFUNDED_V3; 4: REFUNDED_V4; 5: REFUNDED_V5
+const VERSION := 6  # 2: Grove ids match grove_layout.json (MIGRATED_IDS), perk loadout; 3: REFUNDED_V3; 4: REFUNDED_V4; 5: REFUNDED_V5; 6: REFUNDED_V6
 
 # Where the profile lives (tests point this elsewhere so they never touch the player's Seeds).
 static var file_path := PATH
@@ -141,6 +141,12 @@ const REFUNDED_V4 := {"slot_2": 40, "slot_3": 80}
 # Version 5 (dream_audit.md "Pool trim", 2026-09-30): Reckless and Wild Planting granted only cut cards
 # and were removed; Full Moon now grows from Sharpened, Rootbound from Seedbed.
 const REFUNDED_V5 := {"reckless": 40, "wild_planting": 50}
+# Version 6 (meta_design.md "Final-forms nodes removed", 2026-09-30): owning a family gives its finals in
+# runs (2 Dreamlight each), so the nine final-forms nodes are gone and their Seeds come back.
+const REFUNDED_V6 := {
+	"sporeling_final": 50, "firefly_jar_final": 50, "dewdrop_final": 50, "pebbling_final": 50,
+	"rootling_final": 50, "bellflower_final": 50, "acorn_final": 50, "nestling_final": 60, "whirligig_final": 60,
+}
 
 static func _migrate(data: Dictionary) -> void:
 	var version := int(data.get("version", VERSION))
@@ -166,6 +172,11 @@ static func _migrate(data: Dictionary) -> void:
 		for id in REFUNDED_V5:
 			if int(data.unlocks.get(id, 0)) > 0:
 				data.seeds = int(data.seeds) + REFUNDED_V5[id]
+				data.unlocks.erase(id)
+	if version < 6:
+		for id in REFUNDED_V6:
+			if int(data.unlocks.get(id, 0)) > 0:
+				data.seeds = int(data.seeds) + REFUNDED_V6[id]
 				data.unlocks.erase(id)
 	data.version = VERSION
 
