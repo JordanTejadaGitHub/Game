@@ -70,7 +70,7 @@ leaves lost by 25 / 50 / 75, banked Dew at act starts, the most frequent top War
 | Check | Target |
 |---|---|
 | Fresh, Balanced: first leak | drift **20 or later** (revised 2026-09-28: act 1 teaches; reach 25) |
-| Fresh, Balanced: leaves lost by drift 25 | **0–3** of 15; **reaches drift 25** in almost every run |
+| Fresh, Balanced: leaves lost by drift 25 | **0–3** of 15; reaches drift 25 in almost every run and **beats the first boss in about 75%** of runs (user, 2026-09-29: "a fresh player doesn't have to beat the first boss every time") |
 | Fresh, Balanced: run end | **act 2** (drift 35–50) in most runs; a win in **< 5%** |
 | Act 1, Spender (spends whenever affordable, builds the maze) | nightmares' **closest approach ≤ ~70%** of the route in most drifts; 0–1 leaves by 25 |
 | Act 1, Saver (holds Dew up to 5 drifts for a bigger growth) | closest approach **85–100%**, **0–2 leaves** by 25, survives; its Warden power at drift 25 clearly above the Spender's |

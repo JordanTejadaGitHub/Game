@@ -142,7 +142,7 @@ turn leaks into a hold. Targets for the balance simulation and playtests (averag
 
 | Player | By the Hollow Stag (25) | Typical run end | Wins |
 |---|---|---|---|
-| **Fresh profile** (no Grove) | **reaches the Hollow Stag** with few leaks (**0–3 leaves** lost; revised 2026-09-28, user: "players should be able to get to 25 even without perks and unlocks; 25 is when they start getting combos") | act 2 (drift 35–50): **it gets harder after 25** | rare (<5%, strong play + good Dreams) |
+| **Fresh profile** (no Grove) | **reaches the first boss** with few leaks and **beats it about 75% of the time** (user, 2026-09-29: "doesn't have to beat the first boss all the time") (**0–3 leaves** lost; revised 2026-09-28, user: "players should be able to get to 25 even without perks and unlocks; 25 is when they start getting combos") | act 2 (drift 35–50): **it gets harder after 25** | rare (<5%, strong play + good Dreams) |
 | **~5 Grove unlocks** (~3 h in) | a few leaks, 2–4 leaves lost | act 3 | occasional |
 | **Half the tree** (~15 h) | few leaks | act 4 | the first win |
 | **Full tree** | clean | wins reliably at Blight 0 | Blight Levels bring the leaking back |
