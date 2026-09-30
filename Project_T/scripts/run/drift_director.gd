@@ -129,6 +129,8 @@ func _ready() -> void:
 	spawner.enemy_split.connect(_on_enemy_split)
 	spawner.enemy_cleansed.connect(_on_enemy_cleansed)
 	spawner.enemy_reached_goal.connect(_resolve.bind(true))
+	if spawner.has_signal("boss_drained"):  # A boss at the Heartwood drains leaves: its drift and block leaked
+		spawner.boss_drained.connect(_on_boss_drained)
 	run_state.run_ended.connect(_on_run_ended)
 	if random_drifts:
 		_roll_drifts.call_deferred()
@@ -459,6 +461,14 @@ func _on_enemy_cleansed(enemy: Node2D) -> void:
 	if enemy.enemy_data.is_boss and _drift_of.has(enemy) and not enemy.is_echo:  # Echoes (Remembering Oak) aren't bosses
 		bosses_cleansed += 1
 	_resolve(enemy, false)
+
+# A boss that got through stays at the Heartwood, draining leaves (enemy_design.md "A boss that
+# reaches the Heartwood stays"): it never reaches the goal, so its drift and block are marked here.
+func _on_boss_drained(enemy: Node2D, _leaves: int) -> void:
+	var number := int(_drift_of.get(enemy, 0))
+	if _active.has(number):
+		_active[number].leaked = true
+	_block_leaked = true
 
 # A creature left the field: cleansed, or reached the Heartwood (`leaked`).
 func _resolve(enemy: Node2D, leaked: bool) -> void:

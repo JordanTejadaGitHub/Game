@@ -18,6 +18,11 @@ func _ready() -> void:
 	spawner.enemy_reached_goal.connect(func(_enemy: Node2D) -> void:
 		_pulses.append(0.0)
 		_leaves.append([0.0, randf_range(-1.0, 1.0)]))
+	if spawner.has_signal("boss_drained"):  # A boss staying at the Heartwood: each drained leaf falls too
+		spawner.boss_drained.connect(func(_enemy: Node2D, leaves: int) -> void:
+			_pulses.append(0.0)
+			for i in maxi(leaves, 1):
+				_leaves.append([0.0, randf_range(-1.0, 1.0)]))
 
 func _process(delta: float) -> void:
 	if _pulses.is_empty() and _leaves.is_empty():

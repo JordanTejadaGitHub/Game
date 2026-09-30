@@ -40,6 +40,8 @@ func _ready() -> void:
 	var main := get_parent()
 	_map = main.get_node_or_null("%MapGenerator")
 	_spawner = main.get_node_or_null("%EnemyContainer")
+	if _spawner != null and _spawner.has_signal("boss_drained"):  # A boss draining at the Heartwood: it trembles
+		_spawner.boss_drained.connect(func(_enemy: Node2D, _leaves: int) -> void: _tremble())
 	var director := main.get_node_or_null("%DriftDirector")
 	if director != null:
 		director.rest_ended.connect(_on_rest_ended)

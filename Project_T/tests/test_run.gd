@@ -64,6 +64,14 @@ func _test_blocks_and_rests() -> void:
 	var speed: GameSpeed = main.get_node("%GameSpeed")
 	var family: Control = main.get_node("%FamilyPickScreen")
 	var dreams: DreamState = main.get_node("%DreamState")
+	# A boss staying at the Heartwood drains leaves: that block isn't perfect (it never reaches the goal).
+	if spawner.has_signal("boss_drained"):
+		var staying := Node2D.new()
+		director._block_leaked = false
+		spawner.boss_drained.emit(staying, 1)
+		_check(director._block_leaked, "a boss draining at the Heartwood marks the block as leaked")
+		director._block_leaked = false
+		staying.free()
 	var map_generator = main.get_node("%MapGenerator")
 
 	_check(director.is_resting() and director.drifts_started == 0, "the run starts resting")
