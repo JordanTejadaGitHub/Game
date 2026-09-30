@@ -73,6 +73,7 @@ func _ready() -> void:
 	_on_leaves_changed(run_state.leaves, run_state.max_leaves)
 	_add_dreamlight_counter()
 	_add_menu_button()
+	_add_buff_lens_button()
 	_add_remember_button()
 	# "Coming this block" (top centre, under the drift banner) and the new-nightmare introduction
 	# card (before the dossier in the rest order), both from screens_ui.md.
@@ -151,6 +152,10 @@ func _ready() -> void:
 	_add_counter_icon(%PathLabel, &"path_length", 1)
 
 func _unhandled_input(event: InputEvent) -> void:
+	if event.is_action_pressed("buff_lens"):  # V: the buff lens on / off (a toggle, for touch too)
+		buff_lens_button.button_pressed = not buff_lens_button.button_pressed
+		get_viewport().set_input_as_handled()
+		return
 	# Number keys 1-9 pick a Warden.
 	var key := event as InputEventKey
 	if key == null or not key.pressed or key.echo:
@@ -480,6 +485,31 @@ func _add_remember_button() -> void:
 	remember_button.process_mode = Node.PROCESS_MODE_ALWAYS
 	remember_button.pressed.connect(open_remember)
 	add_child(remember_button)
+
+# The buff lens toggle (BuffLens; V): under the Menu button, the theme's selected look while on.
+var buff_lens_button := Button.new()
+func _add_buff_lens_button() -> void:
+	BuffLens.set_on(get_tree(), false)  # A new run starts with the lens off
+	buff_lens_button.name = "BuffLensButton"
+	buff_lens_button.text = "Buffs"
+	buff_lens_button.tooltip_text = "Buff lens (%s)" % _action_key("buff_lens")
+	buff_lens_button.toggle_mode = true
+	buff_lens_button.focus_mode = Control.FOCUS_NONE
+	buff_lens_button.set_anchors_preset(Control.PRESET_TOP_RIGHT)
+	buff_lens_button.offset_left = MENU_BUTTON_RIGHT - 84
+	buff_lens_button.offset_right = MENU_BUTTON_RIGHT
+	buff_lens_button.offset_top = 66
+	buff_lens_button.offset_bottom = 106
+	buff_lens_button.grow_horizontal = Control.GROW_DIRECTION_BEGIN
+	buff_lens_button.process_mode = Node.PROCESS_MODE_ALWAYS
+	buff_lens_button.toggled.connect(func(pressed: bool) -> void: BuffLens.set_on(get_tree(), pressed))
+	add_child(buff_lens_button)
+
+func _action_key(action: String) -> String:
+	for event in InputMap.action_get_events(action) if InputMap.has_action(action) else []:
+		if event is InputEventKey:
+			return OS.get_keycode_string(event.physical_keycode if event.physical_keycode != 0 else event.keycode)
+	return ""
 
 func open_remember() -> void:
 	if run_state.is_over:

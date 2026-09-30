@@ -58,6 +58,27 @@ func _run() -> void:
 		and IconInfo.family_emblem("memory") != null, "emblems: the damage-type badge; Acorn / Memory the plain leaf")
 	_check(UiStyle.TIP_SIZE >= 16 and UiStyle.TIP_NAME_SIZE >= 18
 		and ThemeDB.get_project_theme().get_font_size("font_size", "TooltipLabel") >= 16, "tooltip text is at least 16 px, names 18")
+	# The buff lens (screens_ui.md "Buff readability"): the HUD toggle and V, a toggle (touch too);
+	# lens nodes in BuffLens.GROUP hear every change.
+	var lens_button := main.get_node_or_null("HUD/BuffLensButton") as Button
+	var heard: Array = []
+	var lens_script := GDScript.new()
+	lens_script.source_code = "extends Node\nvar calls: Array = []\nfunc set_lens(on: bool) -> void:\n\tcalls.append(on)\n"
+	lens_script.reload()
+	var listener := Node.new()
+	listener.set_script(lens_script)
+	listener.add_to_group(BuffLens.GROUP)
+	main.add_child(listener)
+	_check(lens_button != null and lens_button.toggle_mode and not BuffLens.on and InputMap.has_action("buff_lens"),
+		"the Buffs toggle is there, off at the start, with its V action")
+	var v := InputEventAction.new()
+	v.action = "buff_lens"
+	v.pressed = true
+	main.get_node("HUD")._unhandled_input(v)
+	_check(BuffLens.on and lens_button.button_pressed and listener.get("calls") == [true], "V turns the lens on (and tells the lens)")
+	main.get_node("HUD")._unhandled_input(v)
+	_check(not BuffLens.on and listener.get("calls") == [true, false], "and off again")
+	listener.queue_free()
 	# Selected vs hovered: no button rests filled; the primary look at rest is only its gold border.
 	var theme := ThemeDB.get_project_theme()
 	var plain_rest := theme.get_stylebox("normal", "Button") as StyleBoxFlat
