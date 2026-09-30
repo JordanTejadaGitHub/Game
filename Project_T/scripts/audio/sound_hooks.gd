@@ -40,7 +40,7 @@ const FAMILY_BASE := {"spore": "sporeling", "stone": "pebbling", "water": "dewdr
 	"root": "rootling", "song": "bellflower", "acorn": "acorn", "wing": "nestling", "wind": "whirligig"}
 const PULSE_THROTTLE_MS := {"bramble": 800, "honeysuckle": 3000, "acorn": 5000, "tempest": 400}
 # Sound id prefixes a Warden can have (warden_sounds, tests).
-const EVENT_PREFIXES := ["attack_", "hit_", "drowsy_", "pop_", "cloud_", "fog_", "sleep_", "trap_", "trigger_",
+const EVENT_PREFIXES := ["attack_", "hit_", "drowsy_", "cloud_", "fog_", "sleep_", "trap_", "trigger_",
 	"crit_", "storm_", "loop_", "echo_", "shard_", "place_", "plop_", "dew_", "turn_", "catch_", "event_",
 	"ascend_", "plant_", "sap_", "ripen_", "wither_", "recover_"]
 # Ascended Wardens (tier 4, audio_direction.md 4d1f283): their big events are the loudest Warden
@@ -50,7 +50,6 @@ const ASCENDED_EVENT_DB := -2.0
 const ASCENDED_GROWTH_DB := 1.5  # Per doubling of nightmares hit, up to ASCENDED_GROWTH_MAX
 const ASCENDED_GROWTH_MAX := 4.0
 const ASCENDED_DUCK_INTERVAL_MS := 1500  # Stormheart chains often; its duck doesn't pump
-const ASCENDED_POP_MS := 300  # Sporemother's crowds popping read as one rolling fwoomp
 const PRESENCE_LEVEL := 0.45  # Presence loops: very quiet, a little fuller while nightmares walk
 const ASCEND_SWELL_DELAY := 0.8  # Evolve bloom, then the material swell, then the first event
 const ASCEND_EVENT_DELAY := 2.6
@@ -126,7 +125,6 @@ var _attack_counts := {}  # Tower instance id -> attacks released (storms, sleep
 var _loop_until := {}  # loop id -> [until msec, level]
 var _slept_at := {}  # Warden id -> msec of its last sleep drone
 var _withered := {}  # Tower instance id -> Sapling withered since the last rest
-var _popped_at := {}  # Tower instance id -> msec of its last pop sound (Sporemother)
 var _ducked_at := {}  # Tower instance id -> msec of its last Ascended duck
 var _nurture_frame := -1  # Group nurtures arrive in one frame
 var _nurture_index := 0
@@ -443,13 +441,6 @@ func _on_tower_added(node: Node) -> void:
 			sound.play(&"crit_punch", enemy.global_position, -4.0)
 		if t.attack_data.crit_dew > 0:
 			_event("dew_", t, enemy.global_position, EVENT_DB - 3.0))
-	tower.popped.connect(func(t: Tower, enemy: Node2D, _stacks: int) -> void:
-		if t.tower_data.tier >= ASCENDED_TIER:  # A crowd popping reads as one rolling fwoomp
-			var now := Time.get_ticks_msec()
-			if now - int(_popped_at.get(t.get_instance_id(), -100000)) < ASCENDED_POP_MS:
-				return
-			_popped_at[t.get_instance_id()] = now
-		_event("pop_", t, enemy.global_position))
 	# Beams (Sunpetal / Midsummer): one warm loop per Warden type, swelling with the ramp (1 -> 4 or 5).
 	tower.beam_ticked.connect(func(t: Tower, ramp: float) -> void:
 		_touch_loop("loop_" + warden_id(t.attack_data), 0.5 + 0.5 * clampf((ramp - 1.0) / 3.0, 0.0, 1.0), BEAM_HOLD))
@@ -864,9 +855,10 @@ func _remember_bloom(data: TowerData) -> void:
 			sound.play(deep, null, REMEMBER_DB - 2.0, 1.0, 0.0, &"UI")
 
 # Sources (Roguelite Code 9c3c25ee): boss, shard, glimmer, first_pick, wake, card, omen, other. "other"
-# is the Sapling (it plays its own ripening swell) and Early Light at run start, so it stays quiet.
+# is Early Light at run start, and "sapling" (Tower Code ee849b19) plays its own ripening swell, so both
+# stay quiet here.
 func _on_dreamlight_earned(_amount = 0, source = &"") -> void:
-	if source == &"other":
+	if source == &"other" or source == &"sapling":
 		return
 	sound.play(&"dreamlight_glow", null, REMEMBER_DB, 1.0, 0.0, &"UI")
 
