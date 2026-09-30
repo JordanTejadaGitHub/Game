@@ -140,9 +140,9 @@ func _run() -> void:
 	var crow_data: EnemyData = load("res://resource/enemy/crow.tres")
 	var scarecrow := _still("scarecrow", route[8])
 	scarecrow.take_damage(scarecrow.max_health * 0.21)
-	_check(_count(crow_data) == 5, "5 Crows burst out at 80%% (%d)" % _count(crow_data))
+	_check(_count(crow_data) == 3, "3 Crows burst out at 80%% (%d)" % _count(crow_data))
 	scarecrow.take_damage(scarecrow.max_health * 0.4)
-	_check(_count(crow_data) == 15, "5 more at 60%% and 40%% (%d)" % _count(crow_data))
+	_check(_count(crow_data) == 9, "3 more at 60%% and 40%% (%d)" % _count(crow_data))
 	var crows := spawner.get_children().filter(func(e) -> bool: return e.enemy_data == crow_data)
 	var airborne := true
 	for crow in crows:
