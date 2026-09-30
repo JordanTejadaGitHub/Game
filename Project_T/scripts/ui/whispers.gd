@@ -23,6 +23,7 @@ const TEXT := {
 	&"tend": "Tend the forest, and it will remember you.",
 	&"chain": "One reaction set off another: a chain. Reach 10 for a Dawnburst.",
 	&"leaf": "It fed. A leaf blackens and falls.",
+	&"flyer": "Some of them don't walk. Guard the ground near the Heartwood.",
 	&"sell": "Selling gives everything back during a rest, and half while nightmares walk.",
 	&"boss": "Something old has found the dream.",
 	&"after_boss": "It's gone, and something I'd forgotten came back.",
@@ -117,6 +118,10 @@ func _ready() -> void:
 	run_state.leaves_changed.connect(func(leaves: int, _max: int) -> void:
 		if leaves < run_state.max_leaves:
 			whisper(&"leaf"))
+	# The first leaf lost to a flyer (a Phantom): it never walked the maze (onboarding.md).
+	%EnemyContainer.enemy_reached_goal.connect(func(enemy: Node2D) -> void:
+		if enemy.has_method("is_flying") and enemy.is_flying():
+			whisper(&"flyer"))
 	%TowerSeller.tower_sold.connect(func(_t: Tower, _refund: int) -> void: whisper(&"sell"), CONNECT_ONE_SHOT)
 
 # First run: the camera glides from the forest's edge to the Heartwood along the path.
