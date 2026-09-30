@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "forests_edge"
 display_name = "Forest's Edge"
-description = "Wardens within 3 cells of the start deal 20% more damage."
+description = "Wardens within 3 cells of the start deal 35% more damage."
 rarity = 0
 kind = 3
 tags = Array[String](["maze"])

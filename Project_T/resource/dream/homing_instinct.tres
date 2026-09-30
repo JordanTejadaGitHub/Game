@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "homing_instinct"
 display_name = "Homing Instinct"
-description = "Birds come back from a swoop 30% faster."
+description = "Birds come back from a swoop 50% faster."
 rarity = 1
 kind = 3
 tags = Array[String](["wing"])

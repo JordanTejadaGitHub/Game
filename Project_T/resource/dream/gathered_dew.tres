@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "gathered_dew"
 display_name = "Gathered Dew"
-description = "Nightmares give 10% more Dew."
+description = "Nightmares give 20% more Dew."
 rarity = 0
 kind = 3
 tags = Array[String](["economy"])

@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "fresh_growth_ii"
 display_name = "Fresh Growth II"
-description = "A Warden planted or grown during a {drift} deals 45% more damage until the next {rest}."
+description = "A Warden planted or grown during a {drift} deals 75% more damage until the next {rest}."
 rarity = 1
 kind = 3
 tags = Array[String](["tempo"])

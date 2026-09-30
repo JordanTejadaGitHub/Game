@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "sprout_chorus"
 display_name = "Sprout Chorus"
-description = "Sprouts attack 5% faster for each other Sprout within 2 cells (up to +40%)."
+description = "Sprouts attack 8% faster for each other Sprout within 2 cells (up to +60%)."
 rarity = 1
 kind = 3
 tags = Array[String](["sprout", "wide"])

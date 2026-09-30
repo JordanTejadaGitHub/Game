@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "straightaway_ii"
 display_name = "Straightaway II"
-description = "Wardens beside a straight stretch of 5+ path tiles deal 25% more damage and get +0.5 range."
+description = "Wardens beside a straight stretch of 5+ path tiles deal 50% more damage and get +0.5 range."
 rarity = 1
 kind = 3
 tags = Array[String](["maze"])

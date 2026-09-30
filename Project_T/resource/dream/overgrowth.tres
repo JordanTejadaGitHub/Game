@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "overgrowth"
 display_name = "Overgrowth"
-description = "Planting any Warden costs 30% less Dew."
+description = "Planting any Warden costs 40% less Dew."
 cost_description = "Wardens can't be nurtured past rank I."
 rarity = 2
 kind = 4
@@ -14,5 +14,5 @@ tags = Array[String](["wide", "bittersweet"])
 max_stacks = 1
 min_act = 2
 in_start_pool = false
-plant_discount = 0.3
+plant_discount = 0.4
 max_rank_set = 1

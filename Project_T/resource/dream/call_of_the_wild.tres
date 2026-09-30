@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "call_of_the_wild"
 display_name = "Call of the Wild"
-description = "Calling a {drift} early gives double Dew (up to 20 per {drift})."
+description = "Calling a {drift} early gives double Dew (up to 40 per {drift})."
 rarity = 0
 kind = 3
 tags = Array[String](["tempo", "economy"])

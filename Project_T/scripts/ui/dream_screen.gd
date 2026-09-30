@@ -142,6 +142,9 @@ func _make_card(card: UpgradeData) -> Button:
 		_add_opens_clearing(button, box)
 	# The effect comes right after the name; it never shrinks.
 	_add_linked_line(box, card.description, UiStyle.INK, 16)
+	var res := dream_state.resonance_preview(card)
+	if res.bonus > 0.0:  # Tag resonance (dream_audit.md): "+20% from 2 spore cards"
+		_add_line(box, DreamState.resonance_text(res.bonus, res.tag, res.count), UiStyle.GOLD, 14).name = "ResonanceLine"
 	var live: String = dream_state.effects().preview_line(card)
 	if live != "":  # Scaling cards: where you stand now (dream_design.md #75)
 		_add_line(box, live, UiStyle.GOLD, 14).name = "LiveLine"

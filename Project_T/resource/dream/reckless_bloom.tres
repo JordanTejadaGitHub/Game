@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "reckless_bloom"
 display_name = "Reckless Bloom"
-description = "All Wardens +20% crit chance."
+description = "All Wardens +30% crit chance."
 cost_description = "Hits that don't crit deal 15% less damage."
 rarity = 1
 kind = 3

@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "short_roots"
 display_name = "Short Roots"
-description = "Wardens with range 2 or less deal 25% more damage."
+description = "Wardens with range 2 or less deal 35% more damage."
 rarity = 0
 kind = 3
 tags = Array[String]([])

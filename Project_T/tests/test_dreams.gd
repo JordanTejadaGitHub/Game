@@ -15,6 +15,7 @@ func _run() -> void:
 	main.get_node("MapGenerator").map_seed = 424242  # Same map every run, so failures reproduce
 	root.add_child(main)
 	await process_frame
+	main.get_node("%DreamState").resonance_enabled = false  # Single-card numbers; _test_resonance turns it on
 	await _test_attacks(main)
 	await _test_evolution(main)
 	await _test_dream_flow(main)
@@ -28,6 +29,7 @@ func _run() -> void:
 	_test_stray_dream(main)
 	_test_half_dreamed(main)
 	await _test_discovery(main)
+	_test_resonance(main)
 	print("dreams test: %s" % ("PASS" if failures == 0 else "%d FAILED" % failures))
 	quit(failures)
 
@@ -306,9 +308,9 @@ func _test_new_cards(main: Node) -> void:
 	run_state.leaves = 4
 	_check(not dreams.is_eligible(deep_sleep, 2), "Deep Sleep never offered when it would end the run")
 	run_state.leaves = 16
-	dreams.take(_card(dreams, "cheap_hedges"))
+	dreams.take(_card(dreams, "weathered_walls"))
 	dreams.take(_card(dreams, "hungry_roots"))
-	_check(placer.get_cost(thornwall) == 6, "Hungry Roots: Thornwalls cost 6, even with Cheap Hedges")
+	_check(placer.get_cost(thornwall) == 6, "Hungry Roots: Thornwalls cost 6, even with Weathered Walls")
 	dreams.take(_card(dreams, "borrowed_dew"))
 	_check(dreams.get_rest_bonus_add() == -15, "Borrowed Dew: rest bonus −15")
 	var bug: EnemyData = load("res://resource/enemy/leaf_bug.tres")
@@ -342,19 +344,17 @@ func _test_card_effects(main: Node) -> void:
 	var thornwall: TowerData = load("res://resource/tower/thornwall.tres")
 	dreams.take(_card(dreams, "quickened_sap"))
 	dreams.take(_card(dreams, "quickened_sap"))
-	_check(is_equal_approx(dreams.get_attack_speed_multiplier(sprout), 1.2), "Quickened Sap stacks additively (×1.2)")
+	_check(is_equal_approx(dreams.get_attack_speed_multiplier(sprout), 1.3), "Quickened Sap stacks additively (×1.3)")
 	dreams.take(_card(dreams, "sprout_surge"))
 	_check(is_equal_approx(dreams.get_range_bonus(sprout), 0.5) and is_equal_approx(dreams.get_range_bonus(thornwall), 0.0),
 		"Sprout Surge only affects Sprouts")
-	dreams.take(_card(dreams, "cheap_hedges"))
-	_check(placer.get_cost(thornwall) == 2, "Cheap Hedges: Thornwalls cost 2")
 	var dew := run_state.dew
 	dreams.take(_card(dreams, "morning_dew"))
-	_check(run_state.dew == dew + 20 and dreams.get_dew_per_clear() == 5, "Morning Dew: +20 now, +5 per clear")
+	_check(run_state.dew == dew + 30 and dreams.get_dew_per_clear() == 8, "Morning Dew: +30 now, +8 per clear")
 	run_state.max_leaves = 20  # The flow test's random pick may have been Deep Roots already
 	run_state.leaves = 15
 	dreams.take(_card(dreams, "deep_roots"))
-	_check(run_state.max_leaves == 22 and run_state.leaves == 17, "Deep Roots: +2 max, regrow 2")
+	_check(run_state.max_leaves == 23 and run_state.leaves == 18, "Deep Roots: +3 max, regrow 3")
 	var dewdrop: TowerData = load("res://resource/tower/dewdrop.tres")
 	dreams.take(_card(dreams, "soaked_through"))
 	_check(is_equal_approx(dreams.get_status_duration(dewdrop, EnemyStatuses.DAMP), 8.0), "Soaked Through doubles Damp")
@@ -412,12 +412,12 @@ func _test_clearing_cards(main: Node) -> void:
 	_check(not dreams.is_eligible(ground), "clearing cards need 8+ obstacles left")
 	map_generator.obstacles = all_obstacles
 
-	# Cleared Ground: −25% per stack, max −50%, through the clearer's one cost function; +1 Dew per clear
+	# Cleared Ground: −30% per stack, max −50%, through the clearer's one cost function; +1 Dew per clear
 	# this run after the discounts. Clearing always costs Dew: never below half the base (tree 12 → 6, boulder 18 → 9).
 	var rock: ObstacleData = load("res://resource/obstacle/rock.tres")
 	run_state.tended_cells.clear()  # No clears yet: no surcharge
 	dreams.take(ground)
-	_check(clearer.get_clear_cost(tree) == roundi(tree.clear_cost * 0.75), "Cleared Ground: −25%% (tree %d → %d)" % [tree.clear_cost, clearer.get_clear_cost(tree)])
+	_check(clearer.get_clear_cost(tree) == roundi(tree.clear_cost * 0.7), "Cleared Ground: −30%% (tree %d → %d)" % [tree.clear_cost, clearer.get_clear_cost(tree)])
 	for i in 3:
 		dreams.take(ground)
 	_check(clearer.get_clear_cost(tree) == ceili(tree.clear_cost / 2.0) and clearer.get_clear_cost(rock) == ceili(rock.clear_cost / 2.0),
@@ -461,16 +461,16 @@ func _test_clearing_cards(main: Node) -> void:
 		_check(run_state.dew == dew - 5 and not run_state.fertile_cells.has(cell), "only the first Warden gets the fertile price")
 		main.get_node("%TowerSeller").sell(cell)
 
-	# Tended Forest: +1% damage per clear this run, earlier clears count, max +25%
+	# Tended Forest: +2% damage per clear this run, earlier clears count, max +40%
 	var tower := Tower.new()
 	tower.tower_data = sprout
 	tower.cell = Vector2(-5, -5)
 	var clears: int = run_state.tended_cells.size()
 	dreams.take(_card(dreams, "tended_forest"))
-	_check(is_equal_approx(dreams.get_soothe_multiplier(tower), 1.0 + minf(0.01 * clears, 0.25)),
+	_check(is_equal_approx(dreams.get_soothe_multiplier(tower), 1.0 + minf(0.02 * clears, 0.40)),
 		"Tended Forest counts the %d earlier clears" % clears)
 	run_state.tended_cells.resize(40)
-	_check(is_equal_approx(dreams.get_soothe_multiplier(tower), 1.25), "Tended Forest caps at +25%")
+	_check(is_equal_approx(dreams.get_soothe_multiplier(tower), 1.40), "Tended Forest caps at +40%")
 	run_state.tended_cells.resize(clears)
 	tower.free()
 
@@ -1101,6 +1101,39 @@ func _test_discovery(main: Node) -> void:
 	if tracker != null:
 		tracker.longest_chain = chain
 	_check(dreams.discovery_met(thunder), "tests without a profile have everything discovered")
+
+# Tag resonance (dream_audit.md "Builds pay off"): each owned card with a tag makes later cards of that
+# tag +10% stronger (numbers, not rules), up to +50%, locked when taken; untagged cards never resonate.
+func _test_resonance(main: Node) -> void:
+	var dreams: DreamState = main.get_node("%DreamState")
+	_reset_dreams(main)
+	dreams.resonance_enabled = true
+	dreams._resonance.clear()
+	dreams.unlocked["sporeling"] = true
+	var sporeling: TowerData = load("res://resource/tower/sporeling.tres")
+	var base := dreams.get_status_duration(sporeling, EnemyStatuses.SPORED)
+	var lingering := _card(dreams, "lingering_spores")
+	_check(dreams.resonance_preview(lingering).bonus == 0.0, "resonance: nothing with no spore cards")
+	dreams.take(_card(dreams, "soft_spores"))
+	dreams.take(_card(dreams, "chain_bloom"))
+	var preview := dreams.resonance_preview(lingering)
+	_check(is_equal_approx(preview.bonus, 0.2) and preview.tag == "spore" and preview.count == 2,
+		"2 spore cards: +20% (%s)" % preview)
+	_check(DreamState.resonance_text(preview.bonus, preview.tag, preview.count) == "+20% from 2 spore cards", "…shown as \"+20% from 2 spore cards\"")
+	dreams.take(lingering)
+	_check(is_equal_approx(dreams.get_status_duration(sporeling, EnemyStatuses.SPORED), base + 3.0 * 1.2), "Lingering Spores: +3 s × 1.2")
+	_check(dreams.resonance_line(lingering) == "+20% from 2 spore cards", "…Dreams this run shows the locked bonus")
+	dreams.take(_card(dreams, "bitter_sap"))  # Another tag: doesn't change the locked one
+	_check(is_equal_approx(dreams.resonance(lingering), 1.2), "…locked when taken")
+	_check(dreams.resonance_preview(_card(dreams, "deeper_calm")).bonus == 0.0, "untagged cards never resonate")
+	var saved := dreams.to_save()
+	dreams._resonance.clear()
+	dreams.load_save(JSON.parse_string(JSON.stringify(saved)))
+	_check(is_equal_approx(dreams.resonance(lingering), 1.2), "…kept in the run save")
+	_check(is_equal_approx(dreams.resonance_preview(_card(dreams, "lingering_spores_ii")).bonus, 0.2), "a Deepened card never resonates off its own base")
+	dreams.resonance_enabled = false
+	dreams._resonance.clear()
+	_reset_dreams(main)
 
 func _card(dreams: DreamState, id: String) -> UpgradeData:
 	for card in dreams.pool:

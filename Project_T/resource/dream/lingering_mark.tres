@@ -6,11 +6,11 @@
 script = ExtResource("1_card")
 id = "lingering_mark"
 display_name = "Lingering Mark"
-description = "{marked} lasts 2 s longer."
+description = "{marked} lasts 3 s longer."
 rarity = 1
 kind = 2
 tags = Array[String](["light", "mark"])
 requires = Array[String](["lanternmoth"])
 max_stacks = 1
 status_id = &"marked"
-status_duration_add = 2.0
+status_duration_add = 3.0

@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "last_stand"
 display_name = "Last Stand"
-description = "Nightmares within 4 cells of the Heartwood take 35% more damage from every Warden."
+description = "Nightmares within 4 cells of the Heartwood take 50% more damage from every Warden."
 rarity = 2
 kind = 3
 tags = Array[String](["maze"])

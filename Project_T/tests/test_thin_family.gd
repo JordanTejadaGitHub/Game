@@ -28,6 +28,7 @@ func _run() -> void:
 	await process_frame
 	dreams = main.get_node("%DreamState")
 	dreams.unlock_everything = false
+	dreams.resonance_enabled = false  # Single-card numbers (test_dreams checks resonance)
 	_test_data()
 	_test_hits()
 	_test_queries()
@@ -46,8 +47,8 @@ func _test_data() -> void:
 		dreams.discovery_profile["wardens_built"] = [CARDS[id]]
 		_check(dreams.discovery_met(card), "%s: …then it can come" % id)
 		dreams.discovery_profile = null
-	_check(_card("deep_grip").max_stacks == 3 and _card("bright_marks").max_stacks == 3 and _card("clear_tones").max_stacks == 0,
-		"Deep Grip and Bright Marks stack to 3, Clear Tones stacks")
+	_check(_card("deep_grip").max_stacks == 1 and _card("bright_marks").max_stacks == 1 and _card("clear_tones").max_stacks == 0,
+		"Deep Grip and Bright Marks once (power pass), Clear Tones stacks")
 	for pair in [["tangled_release_ii", "tangled_release"], ["lullaby_ii", "lullaby"], ["lingering_mark_ii", "lingering_mark"],
 			["homing_instinct_ii", "homing_instinct"]]:
 		_check(_card(pair[0]).deepens == pair[1], "%s deepens %s" % pair)
@@ -68,9 +69,7 @@ func _test_hits() -> void:
 	dreams.take(_card("deep_grip"))
 	_check(is_equal_approx(dreams.on_hit_multiplier(rootling, enemy), base), "Deep Grip: nothing on a free nightmare")
 	enemy.statuses.apply(EnemyStatuses.HELD, 1, 5.0)
-	_check(is_equal_approx(dreams.on_hit_multiplier(rootling, enemy), base + 0.15), "Deep Grip: +15% on a Held one")
-	dreams.take(_card("deep_grip"))
-	_check(is_equal_approx(dreams.on_hit_multiplier(rootling, enemy), base + 0.30), "…+30% with two")
+	_check(is_equal_approx(dreams.on_hit_multiplier(rootling, enemy), base + 0.50), "Deep Grip: +50% on a Held one")
 	rootling.free()
 	dreams.stacks.clear()
 
@@ -83,7 +82,7 @@ func _test_hits() -> void:
 	dreams._bird_hits.clear()
 	dreams.on_hit_multiplier(a, bird)
 	_check(is_equal_approx(dreams.on_hit_multiplier(a, bird), plain), "Murmur: the same bird again gives nothing")
-	_check(is_equal_approx(dreams.on_hit_multiplier(b, bird), plain + 0.15), "…another bird within 1 s: +15%")
+	_check(is_equal_approx(dreams.on_hit_multiplier(b, bird), plain + 0.30), "…another bird within 1 s: +30%")
 	dreams._game_clock += 1.5
 	_check(is_equal_approx(dreams.on_hit_multiplier(a, bird), plain), "…not after 1 s")
 	dreams.stacks.clear()
@@ -119,24 +118,23 @@ func _test_queries() -> void:
 	_check(dreams.get_root_web_share(false) == 0.5 and dreams.get_root_web_share(true) == 0.25, "Root Web: half, a quarter on bosses")
 	dreams.take(_card("chorus"))
 	_check(dreams.has_chorus(), "Chorus: on")
-	for i in 3:
-		dreams.take(_card("bright_marks"))
-	_check(is_equal_approx(dreams.get_marked_bonus(), 0.15), "Bright Marks ×3: +15% (Marked 40%)")
+	dreams.take(_card("bright_marks"))
+	_check(is_equal_approx(dreams.get_marked_bonus(), 0.20), "Bright Marks: +20%")
 	dreams.take(_card("homing_instinct"))
-	_check(is_equal_approx(dreams.get_swoop_return_multiplier(), 1.3), "Homing Instinct: 30% faster")
+	_check(is_equal_approx(dreams.get_swoop_return_multiplier(), 1.5), "Homing Instinct: 50% faster")
 	dreams.take(_card("homing_instinct_ii"))
-	_check(is_equal_approx(dreams.get_swoop_return_multiplier(), 1.5), "…II: 50%")
+	_check(is_equal_approx(dreams.get_swoop_return_multiplier(), 1.9), "…II: 90%")
 	# Plain stat / status cards
 	var bell: TowerData = load("res://resource/tower/bellflower.tres")
 	var moth: TowerData = load("res://resource/tower/lanternmoth.tres")
 	var speed := dreams.get_attack_speed_multiplier(bell)
 	dreams.take(_card("clear_tones"))
-	_check(is_equal_approx(dreams.get_attack_speed_multiplier(bell), speed + 0.15), "Clear Tones: the Bellflower line +15% attack speed")
+	_check(is_equal_approx(dreams.get_attack_speed_multiplier(bell), speed + 0.35), "Clear Tones: the Bellflower line +35% attack speed")
 	var marked := dreams.get_status_duration(moth, EnemyStatuses.MARKED)
 	dreams.take(_card("lingering_mark"))
-	_check(is_equal_approx(dreams.get_status_duration(moth, EnemyStatuses.MARKED), marked + 2.0), "Lingering Mark: +2 s")
+	_check(is_equal_approx(dreams.get_status_duration(moth, EnemyStatuses.MARKED), marked + 3.0), "Lingering Mark: +3 s")
 	dreams.take(_card("lingering_mark_ii"))
-	_check(is_equal_approx(dreams.get_status_duration(moth, EnemyStatuses.MARKED), marked + 4.0), "…II: +4 s (replaces it)")
+	_check(is_equal_approx(dreams.get_status_duration(moth, EnemyStatuses.MARKED), marked + 6.0), "…II: +6 s (replaces it)")
 	dreams.stacks.clear()
 
 func _card(id: String) -> UpgradeData:

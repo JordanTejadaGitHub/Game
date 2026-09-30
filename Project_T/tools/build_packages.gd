@@ -13,7 +13,7 @@ const PACKAGES := {
 	"Spore Bomb": ["soft_spores", "lingering_spores", "spore_cascade", "chain_bloom", "sparking_spores", "twin_puff"],
 	"Eldest": ["tender_care", "warm_hands", "kindred_roots", "deeper_rings", "sunlit_rest", "chosen_few"],
 	"Wide Sprouts": ["seedfall", "sprout_surge", "sprout_chorus", "root_network", "seedling_gift", "many_hands"],
-	"Kinship": ["quick_bonds", "family_ties", "sweet_harmony", "close_kin", "old_friends", "rooted_bond", "extended_family"],
+	"Kinship": ["family_ties", "sweet_harmony", "close_kin", "old_friends", "rooted_bond", "extended_family"],
 }
 const CHECKPOINTS := [25, 50, 75, 100]
 
