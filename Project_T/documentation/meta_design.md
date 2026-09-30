@@ -26,7 +26,7 @@ Revised for 100-drift runs (`run_design.md`).
 
 Examples: a loss around drift 20 ≈ **30 Seeds**; a loss at drift 60 ≈ **120**; a win ≈ **350**.
 Averaging ~280 across a player's first runs, the full tech tree (**~5,960 Seeds** as built:
-Perks ~2,090, Families ~2,470 incl. Ascension, Cards ~1,400) takes **~21 runs ≈ 30 hours** (confirmed as the target, 2026-09-28). **2026-09-29:** discovery unlocks removed 6 fully covered Cards nodes (Reactions, Woven Dreams I–II, Kin Lore, Deep Bonds; `dream_design.md` "Grove overlap"), the cards now come from discovering combos and Kinships in play. **As built (763f228): 5 nodes removed; the tree is 6,722 Seeds** (Families 2,470, Cards 2,162, Perks 2,090; the earlier 5,960 predates the Seeds and Quiet Ones rows and the Ascension nodes), about **24 runs ≈ 34 hours** at ~280 Seeds per run, a little over the 30-hour target. **2026-09-29:** slot_2 / slot_3 removed (−120): **6,602 Seeds ≈ 24 runs ≈ 33 hours**. The user confirmed ~30 hours is right, so no cuts.
+Perks ~2,090, Families ~2,470 incl. Ascension, Cards ~1,400) takes **~21 runs ≈ 30 hours** (confirmed as the target, 2026-09-28). **2026-09-29:** discovery unlocks removed 6 fully covered Cards nodes (Reactions, Woven Dreams I–II, Kin Lore, Deep Bonds; `dream_design.md` "Grove overlap"), the cards now come from discovering combos and Kinships in play. **As built (763f228): 5 nodes removed; the tree is 6,722 Seeds** (Families 2,470, Cards 2,162, Perks 2,090; the earlier 5,960 predates the Seeds and Quiet Ones rows and the Ascension nodes), about **24 runs ≈ 34 hours** at ~280 Seeds per run, a little over the 30-hour target. **2026-09-29:** slot_2 / slot_3 removed (−120): **6,602 Seeds ≈ 24 runs ≈ 33 hours**. The user confirmed ~30 hours is right, so no cuts. **2026-09-30:** Reckless and Wild Planting removed (−90, refunded to old saves): **6,512 Seeds**.
 (Raised twice on 2026-09-27 as the Grove grew; the first unlocks still come every run, and a full
 Grove is a long-term goal next to Blight Levels.)
 
@@ -46,7 +46,7 @@ marks them as imported.
 
 Redesigned 2026-09-27 (user decision): the Grove is a **tech tree** growing up from the Heartwood's
 roots, with **three sections**. Each node costs Seeds and needs its parent node(s). 84 nodes,
-**6,602 Seeds** in total as built (2026-09-29; see Seeds above).
+**6,512 Seeds** in total (2026-09-30; see Seeds above).
 
 ```
                  FAMILIES (middle limb)
@@ -116,7 +116,7 @@ visibly separate paths look too neat, not like a real tree).
 |---|---|---|---|---|---|
 | 1 | Deep Taproot | 3 | 25 / 50 / 75 | **+3 max leaves** | — (trunk) |
 | 2 | First Care | 1 | 70 | your **first 3 Nurture ranks** each run are free | Deep Taproot |
-| 3 | Clear Sight | 1 | 80 | start the run holding **Cleared Ground** (so clearing trees and rocks is unlocked from drift 1, and cheaper) | First Care |
+| 3 | Clear Sight | 1 | 80 | start the run holding **Heartwood's Reach** and **Cleared Ground** (free clears plus cheaper clearing from drift 1; Heartwood's Reach added 2026-09-30 after the pool trim) | First Care |
 
 **Choice path** (Dreams, families, Omens)
 
@@ -185,7 +185,7 @@ above its family's final forms, so veterans keep finding new playstyles. Reviewe
 - **Memory Wardens: parked 2026-09-29** (cut for now, `tower_design.md`). While parked, dispelling a
   boss grows no Memory bloom on this limb and the family pick offers no Memory Warden card.
   (Was: a free bloom on the first dispel, then offered after that boss in later runs.)
-- Total ≈ 2,470 Seeds incl. Ascension (as built 2026-09-29; whole tree 6,602, see Seeds above).
+- Total ≈ 2,470 Seeds incl. Ascension (as built 2026-09-29; whole tree 6,512, see Seeds above).
 - Each hidden-branch node needs its family's final-forms node, so hidden branches really are late.
 
 ### Section 3: Cards (Dream pool unlocks)
@@ -200,13 +200,13 @@ styles a player has grown into.
 | **Storm** | *Storm Lore*: Charged Bloom, Charged Field (40) | *Guiding Lights*: Guiding Light, Starlit Aim (60) | — (Storm builds share the Reactions tip) |
 | **Spores and Reactions** | *Spore Lore*: Twin Puff, Chain Bloom (40) | *Reactions*: Wildfire Spores, Deep Water, Quick Reactions, Kin and Kindling (70) | **Dawnbreak** (120) |
 | **Woven** (Crowned Reactions) | *Woven Dreams I*: Eye of the Tempest, Deep Stillness, Fever Pitch, Falling Stars (90; needs *Reactions*) | *Woven Dreams II*: Mountain's Fall, Prism Heart, Endless Night, Ring of Rings (90) | — (Crowned Reactions always work; these cards strengthen them) |
-| **Keen Edges** (crit) | *Sharpened*: Still Target, Shattering Blow (50) | *Reckless*: Reckless Bloom (40) | **Full Moon** (120) |
+| **Keen Edges** (crit) | *Sharpened*: Still Target, Shattering Blow (50) | — (*Reckless* removed 2026-09-30: its only card was cut in the pool trim) | **Full Moon** (120; needs Sharpened) |
 | **Deep Poison** (Potency) | *Seeping* (50) | *Venom*: Venom Bloom (40) | **Nightshade** (120) |
 | **Kinship** (going deep) | *Kin Lore*: Close Kin, Old Friends (50) | *Deep Bonds*: Rooted Bond, Extended Family (70) | **Grove of Kin** (120) |
 | **The Quiet Ones** (support Wardens) | *Catchers*: Wide Bowl, Dew Trail, Still Waters, Acorn Cache (50) | *Old Wood*: Overflowing Well, Hedgerow Roots, Grandfather Stump, Living Walls, Many Threads (70) | **The Quiet Ones** (120) |
 | **Seeds** (support and economy bets) | *Planted Promises*: Dew Bowl, Harvest Moon, Kind Canopy, Patient Roots (50) | *Deep Promises*: Deep Well, Shared Light (70) | **Golden Harvest** (120) |
 | **Tending** (nurture, tall) | *Tending Hands*: Sunlit Rest, Deeper Rings (60) | *Nursery*: Nursery, Chosen Few (70) | **The Old Ones** + **Endless Rings** (150) |
-| **Overgrowth** (wide) | *Seedbed*: Seedling Gift, Canopy (60) | *Wild Planting*: Overgrowth (50) | **Rootbound** (100) |
+| **Overgrowth** (wide) | *Seedbed*: Seedling Gift, Canopy (60) | — (*Wild Planting* removed 2026-09-30: its only card was cut in the pool trim) | **Rootbound** (100; needs Seedbed) |
 | **Lone Lantern** (narrow) | *One Line*: Monoculture (80) | — | **The Last Light** (120) |
 | **The Long Way** (maze, clearing) | *Dead Wood*: Burn Back the Dead Wood (40) | — | **The Long Walk** (100) |
 | **Bittersweet** | *Bittersweet Dreams*: Deep Sleep, Borrowed Dew, Wild Growth, Overgrown, Restless Dreams, Hungry Roots, Borrowed Memory, Blood Is Thicker (60; needs any 2 other nodes) | — | — |
