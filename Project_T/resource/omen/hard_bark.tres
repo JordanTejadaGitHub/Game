@@ -8,4 +8,5 @@ id = "hard_bark"
 display_name = "Hard Bark"
 description = "Blight coats are 75% thicker."
 coat_multiplier = 1.75
-reward_rare_dreams = 1reward_dew = 25
+reward_rare_dreams = 1
+reward_dew = 25

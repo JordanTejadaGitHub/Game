@@ -185,9 +185,27 @@ const AREA_FIRST := {"pebbling": "cairn", "nestling": "wrens_nest"}  # Cairn's l
 
 # --- Omens ------------------------------------------------------------------------------------------
 
-# The baseline takes Clear Skies (no Omen); `face_omens` faces every one (the offer is the one Omen
-# drawn, blind). Pass the result to OmenDirector.choose().
+# The baseline takes Clear Skies (no Omen); `face_omens` faces every one and picks the lower-risk of
+# the revealed Omens (omen_risk). Pass the result to OmenDirector.choose().
 var face_omens := false
 
 func pick_omen(offer: Array) -> OmenData:
-	return offer[0] if face_omens and not offer.is_empty() else null
+	if not face_omens or offer.is_empty():
+		return null
+	var best: OmenData = offer[0]
+	for omen in offer:
+		if omen_risk(omen) < omen_risk(best):
+			best = omen
+	return best
+
+# A rough danger score for an Omen's twist (0 = harmless): the extra nightmare strength it adds.
+static func omen_risk(omen: OmenData) -> float:
+	var risk := (omen.health_multiplier - 1.0) + (omen.speed_multiplier - 1.0) * 1.5 + (omen.count_multiplier - 1.0)
+	risk += (omen.flyer_count_multiplier - 1.0) * 0.5 + (omen.coat_multiplier - 1.0) * 0.5
+	risk += (1.0 - omen.arrival_spacing_multiplier) + (1.0 - omen.warden_attack_speed_multiplier) * 1.5
+	risk += (1.0 - omen.status_duration_multiplier) * 0.4 + maxf(1.0 - omen.creature_dew_multiplier, 0.0) * 0.3  # More Dew is no danger
+	risk += (1.0 - omen.rest_bonus_multiplier) * 0.2 + (omen.leak_multiplier - 1.0) * 0.5
+	risk += -omen.warden_range_add * 0.4 + omen.extra_elites * 0.25 + omen.all_flyer_drifts * 0.1 + omen.sprout_obstacles * 0.03
+	risk += 0.3 if omen.no_build_during_drift else 0.0
+	risk += 0.1 * omen.status_immune.size() + (0.2 if omen.always_status != &"" else 0.0)
+	return risk

@@ -9,4 +9,5 @@ display_name = "Moth Night"
 description = "60% more flying nightmares."
 requires_flyers = true
 flyer_count_multiplier = 1.6
-reward_rare_dreams = 1reward_dew = 25
+reward_rare_dreams = 1
+reward_dew = 25

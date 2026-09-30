@@ -304,6 +304,15 @@ func _test_sim_policy() -> void:
 	_check(not mixed.choices.any(func(c: String) -> bool: return c.contains("bramble") or c.contains("honeysuckle")),
 		"Mixed: Dreamlight on families only, never Thornwall growths (%s)" % ", ".join(mixed.choices))
 	_check(balanced.pick_omen([]) == null, "Omens: Clear Skies")
+	var crowded: OmenData = load("res://resource/omen/crowded_paths.tres")
+	var bountiful: OmenData = load("res://resource/omen/bountiful_night.tres")
+	var swift: OmenData = load("res://resource/omen/swift_stream.tres")
+	_check(balanced.pick_omen([crowded, swift]) == null, "…Clear Skies unless face_omens")
+	balanced.face_omens = true
+	_check(balanced.pick_omen([crowded, swift]) == swift and balanced.pick_omen([bountiful, crowded]) == bountiful,
+		"face_omens: the lower-risk of the revealed Omens (%.2f / %.2f / %.2f)" % [DreamSimPolicy.omen_risk(crowded),
+		DreamSimPolicy.omen_risk(bountiful), DreamSimPolicy.omen_risk(swift)])
+	balanced.face_omens = false
 	_clear()
 	_reset()
 
