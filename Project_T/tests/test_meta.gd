@@ -645,6 +645,10 @@ func _check_layout(grove: Array[UnlockData]) -> void:
 			continue
 		_check(unlock.get_section() == node.section, "%s is on the %s limb" % [node.id, node.section])
 		_check(maxi(unlock.get_levels(), 1) == int(node.levels), "%s has %d levels" % [node.id, int(node.levels)])
+		if int(node.levels) > 1:  # Grown perks with levels: a look per level (grove_level_blooms.png, 2 frames each)
+			var level_sheet: Texture2D = load("res://assets/meta/grove/grove_level_blooms.png")
+			_check(int(node.levels) <= 3 and level_sheet.get_width() >= int(node.levels) * 2 * GroveTreeView.NODE_FRAME
+				and level_sheet.get_height() >= 3 * GroveTreeView.NODE_FRAME, "%s has a look for each of its %d levels" % [node.id, int(node.levels)])
 		# Grown Ascensions have their own Legendary-sized bloom; every other node keeps the uniform flowers.
 		if node.id.ends_with("_ascension"):
 			var sheet: Texture2D = load("res://assets/meta/grove/grove_ascended_blooms.png")

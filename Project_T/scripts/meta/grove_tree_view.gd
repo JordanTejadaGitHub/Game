@@ -73,6 +73,7 @@ var _nodes_texture: Texture2D = load(ART + "grove/grove_nodes.png")
 var _legendary_texture: Texture2D = load(ART + "grove/grove_legendary.png")
 var _memory_nodes_texture: Texture2D = load(ART + "grove/grove_memory_nodes.png")  # Same 11 columns
 var _ascended_texture: Texture2D = load(ART + "grove/grove_ascended_blooms.png")  # Grown Ascensions ("ascended_bloom" row), 4 frames
+var _level_texture: Texture2D = load(ART + "grove/grove_level_blooms.png")  # Grown perks with levels: 2 frames per level, a row per limb
 var _fruit_texture: Texture2D = load(ART + "grove/dream_fruit.png")
 var _sixth_rise: Texture2D = load(ART + "grove/waystone_6_rise.png")
 var _sixth_idle: Texture2D = load(ART + "grove/waystone_6_idle.png")
@@ -446,6 +447,12 @@ func _draw_node(node: Dictionary, font: Font) -> void:
 				column = 1 + int(_time * 6.0) % 4
 			State.OWNED:
 				column = 9 + int(_time * 2.0) % 2
+				var levels := int(node.get("levels", 1))
+				if levels > 1 and _level_texture != null and not legendary and node.get("memory_row") == null:
+					# Each level its own look (Meta Game Asset): plain flower, + petal ring, + gold ring with pips.
+					texture = _level_texture
+					var level := clampi(HeartwoodMemory.node_level(_memory, unlock), 1, mini(levels, 3))
+					column = (level - 1) * 2 + (0 if _reduced_motion else int(_time * 2.0) % 2)
 	var pos := vec(node.pos)
 	var rect := Rect2(pos - Vector2.ONE * frame_px / 2.0, Vector2.ONE * frame_px)
 	var tint := Color(1, 1, 1, 0.55) if state == State.LOCKED else Color.WHITE
