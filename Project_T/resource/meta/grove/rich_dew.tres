@@ -6,7 +6,7 @@
 script = ExtResource("1_unlock")
 id = "rich_dew"
 display_name = "Rich Dew"
-description = "+5% Dew from dispelled nightmares per level, up to +15%."
+description = "+5% Dew from every {drift} per level, up to +15%."
 root = 2
 costs = Array[int]([30, 60, 90])
 order = 2
