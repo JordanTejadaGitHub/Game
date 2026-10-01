@@ -356,17 +356,17 @@ func _test_clearing_cards(main: Node) -> void:
 	var sprout: TowerData = load("res://resource/tower/sprout.tres")
 	_reset_dreams(main)
 
-	# Clearing is locked until the opener (Heartwood's Reach, which absorbed Tend the Forest); until then it weighs double and the other
-	# clearing cards are never offered (dream_design.md "Clearing: one opener, the rest follow").
+	# Clearing is locked until a clearing card is taken (2026-09-30: any clearing card opens it; Heartwood's
+	# Reach is the start-pool one); until then the opener weighs double.
 	dreams.clearing_open = false
 	run_state.dew = 100
 	var locked_cell: Vector2 = map_generator.obstacles.keys()[0]
 	_check(clearer.is_locked() and not clearer.try_clear(locked_cell) and run_state.dew == 100,
-		"obstacles can't be cleared before the opener")
+		"obstacles can't be cleared before a clearing card")
 	var opener := _card(dreams, "heartwoods_reach")
-	for id in ["cleared_ground", "reclaimed_earth", "tended_forest", "wildwood_reclaimed"]:
-		_check(not dreams.can_offer(_card(dreams, id), 4), "%s isn't offered while clearing is locked" % id)
-	_check(dreams.can_offer(opener) and dreams.opens_clearing(opener), "Heartwood's Reach is, with the Unlocks clearing layout")
+	for id in ["heartwoods_reach", "reclaimed_earth", "tended_forest", "tended_stumps", "hollow_ground", "wildwood_reclaimed"]:
+		_check(DreamState.unlocks_clearing(_card(dreams, id)), "%s opens clearing (any clearing card does)" % id)
+	_check(dreams.can_offer(opener) and dreams.opens_clearing(opener), "Heartwood's Reach is offered, with the Unlocks clearing layout")
 	var picks := 0
 	var clearing_picks := 0
 	var cards_with_one: Array = [opener, _card(dreams, "quickened_sap")]
@@ -377,7 +377,7 @@ func _test_clearing_cards(main: Node) -> void:
 	_check(clearing_picks > picks * 0.6, "the opener weighs double while clearing is locked (%d / %d)" % [clearing_picks, picks])
 	dreams.take(opener)
 	_check(dreams.can_clear() and not clearer.is_locked(), "Heartwood's Reach unlocks clearing")
-	_check(not dreams.opens_clearing(opener) and dreams.can_offer(_card(dreams, "cleared_ground")), "…then the follow-ups can come")
+	_check(not dreams.opens_clearing(opener), "…and no longer says so")
 	_check(clearer.try_clear(locked_cell) and run_state.dew < 100 and dreams.free_first_clears == 0, "…and clearing always costs Dew (no free clears)")
 	run_state.add_free_clears(-run_state.free_clears)
 	var saved := dreams.to_save()
@@ -385,52 +385,51 @@ func _test_clearing_cards(main: Node) -> void:
 	_check(not dreams.can_clear(), "a new run starts locked")
 	dreams.load_save(saved)
 	_check(dreams.can_clear(), "the unlock survives a mid-run save (it's in the taken cards)")
-	dreams.take(_card(dreams, "heartwoods_reach_ii"))
-	_check(dreams.can_clear(), "taking Heartwood's Reach II (it replaces the opener) keeps clearing open")
+	var old := dreams.to_save()
+	old.stacks = {"cleared_ground": 2, "heartwoods_reach_ii": 1}
+	dreams.load_save(old)
+	_check(dreams.card_stacks("heartwoods_reach") >= 1 and dreams.card_stacks("cleared_ground") == 0, "an old save's Cleared Ground / Heartwood's Reach II become Heartwood's Reach")
 	_reset_dreams(main)
 	dreams.clearing_open = true  # The rest of these checks: clearing open
 
 	# Offered only while 8+ obstacles are left
-	var ground := _card(dreams, "cleared_ground")
-	_check(dreams.is_eligible(ground), "Cleared Ground offered on a full map (%d obstacles)" % dreams.count_obstacles())
+	_check(dreams.is_eligible(opener), "Heartwood's Reach offered on a full map (%d obstacles)" % dreams.count_obstacles())
 	var all_obstacles: Dictionary = map_generator.obstacles
 	map_generator.obstacles = {}
-	_check(not dreams.is_eligible(ground), "clearing cards need 8+ obstacles left")
+	_check(not dreams.is_eligible(opener), "clearing cards need 8+ obstacles left")
 	map_generator.obstacles = all_obstacles
 
-	# Cleared Ground: −30% per stack, max −50%, through the clearer's one cost function; +1 Dew per clear
-	# this run after the discounts. Clearing always costs Dew: never below half the base (tree 12 → 6, boulder 18 → 9).
+	# Heartwood's Reach (absorbed Cleared Ground): −25% per stack (max 2: −50%) through the clearer's one cost
+	# function, +3 half-price clears per stack; +1 Dew per clear this run after the discounts. Clearing always
+	# costs Dew: never below half the base (tree 12 → 6, boulder 18 → 9).
 	var rock: ObstacleData = load("res://resource/obstacle/rock.tres")
 	run_state.tended_cells.clear()  # No clears yet: no surcharge
-	dreams.take(ground)
-	_check(clearer.get_clear_cost(tree) == roundi(tree.clear_cost * 0.7), "Cleared Ground: −30%% (tree %d → %d)" % [tree.clear_cost, clearer.get_clear_cost(tree)])
-	for i in 3:
-		dreams.take(ground)
-	_check(clearer.get_clear_cost(tree) == ceili(tree.clear_cost / 2.0) and clearer.get_clear_cost(rock) == ceili(rock.clear_cost / 2.0),
-		"Cleared Ground stacks to −50%%, never below half the base (tree %d, boulder %d)" % [clearer.get_clear_cost(tree), clearer.get_clear_cost(rock)])
+	run_state.add_free_clears(-run_state.free_clears)
+	dreams.take(opener)
+	_check(clearer.get_clear_cost(tree) == roundi(tree.clear_cost * 0.75) and run_state.free_clears == 3,
+		"Heartwood's Reach: −25%% (tree %d → %d) and 3 half-price clears (%d)" % [tree.clear_cost, clearer.get_clear_cost(tree), run_state.free_clears])
+	dreams.take(opener)
+	_check(clearer.get_clear_cost(tree) == ceili(tree.clear_cost / 2.0) and clearer.get_clear_cost(rock) == ceili(rock.clear_cost / 2.0)
+		and run_state.free_clears == 6 and opener.max_stacks == 2,
+		"…two stacks: −50%%, never below half the base (tree %d, boulder %d), 6 charges" % [clearer.get_clear_cost(tree), clearer.get_clear_cost(rock)])
 	_check(clearer.get_clear_cost(tree, true) == ceili(tree.clear_cost / 2.0), "…a half-price charge on top still hits the floor")
 	run_state.tended_cells.assign([Vector2(-1, -1), Vector2(-2, -2), Vector2(-3, -3)])
 	_check(clearer.get_clear_cost(tree) == ceili(tree.clear_cost / 2.0) + 3, "every clear so far adds +1 Dew after the discounts (%d)" % clearer.get_clear_cost(tree))
 	run_state.tended_cells.clear()
 	_check(tree.clear_cost == 12 and rock.clear_cost == 18, "raised base prices: tree 12, boulder 18")
 
-	# Heartwood's Reach: half-price clears (used first), still +1 Seed each; II gives 7
-	dreams.stacks.erase("cleared_ground")
-	dreams.take(_card(dreams, "heartwoods_reach"))
-	_check(run_state.free_clears == 4, "Heartwood's Reach: 4 half-price clears (%d)" % run_state.free_clears)
+	# The charges: used first, half price (never free), still +1 Seed each
 	run_state.dew = 0
 	var tended := run_state.obstacles_tended
 	var cell: Vector2 = map_generator.obstacles.keys()[0]
-	_check(not clearer.try_clear(cell) and run_state.free_clears == 4, "a charge doesn't make a clear free: no Dew, no clear, charge kept")
+	_check(not clearer.try_clear(cell) and run_state.free_clears == 6, "a charge doesn't make a clear free: no Dew, no clear, charge kept")
 	var cost := clearer.get_next_clear_cost(map_generator.get_obstacle(cell))
 	_check(cost == ceili(map_generator.get_obstacle(cell).clear_cost / 2.0), "…it halves the price (%d)" % cost)
 	run_state.dew = 100
-	_check(clearer.try_clear(cell) and run_state.free_clears == 3 and run_state.dew == 100 - cost, "a half-price clear")
+	_check(clearer.try_clear(cell) and run_state.free_clears == 5 and run_state.dew == 100 - cost, "a half-price clear")
 	_check(run_state.obstacles_tended == tended + 1, "half-price clears still give a Seed")
-	_check(dreams.is_eligible(_card(dreams, "heartwoods_reach_ii")), "Heartwood's Reach II once the base is owned")
-	dreams.take(_card(dreams, "heartwoods_reach_ii"))
-	_check(run_state.free_clears == 6, "Heartwood's Reach II: 7 in all (3 left + 3 more)")
 	run_state.add_free_clears(-run_state.free_clears)
+	dreams.stacks.erase("heartwoods_reach")
 
 	# Reclaimed Earth: refunds 40% of the Dew paid (never a profit), and the cell halves its first Warden
 	dreams.take(_card(dreams, "reclaimed_earth"))
@@ -509,9 +508,8 @@ func _test_meta_hooks(main: Node) -> void:
 	dreams.unlocked["mistveil"] = true
 	dreams.grown_wardens["puffball"] = true  # Grown this run too (round 5)
 	dreams.grown_wardens["mistveil"] = true
-	_check(bloom.entwined and bloom.rule_id == &"chain_bloom" and not dreams.is_eligible(bloom),
-		"Chain Bloom stays out until the Grove unlocks it")
-	dreams.grove_cards.assign(["chain_bloom"])
+	_check(bloom.entwined and bloom.rule_id == &"chain_bloom" and bloom.in_start_pool and Array(bloom.discovered_by) == ["event:puff_in_fog"],
+		"Chain Bloom: start pool, discovered by a Puffball puff in Mistveil's fog")
 	dreams.unlocked.erase("mistveil")
 	_check(not dreams.is_eligible(bloom), "Chain Bloom needs Mistveil too")
 	dreams.unlocked["mistveil"] = true
@@ -1072,10 +1070,28 @@ func _test_discovery(main: Node) -> void:
 		_check(not dreams.discovery_met(_card(dreams, "eye_of_the_tempest")), "a Woven card waits for its Crowned Reaction")
 	dreams.discovery_profile["seen"] = [String(Kinships.KINSHIPS.keys()[0])]
 	_check(dreams.discovery_met(_card(dreams, "extended_family")), "any Kinship lets the Kinship cards in")
-	_check(dreams.discovery_met(_card(dreams, "dawnbreak")), "Legendaries are never discovery-gated")
+	_check(dreams.discovery_met(_card(dreams, "grove_of_kin")), "…Grove of Kin too (a Legendary with an explicit trigger)")
+	_check(not dreams.discovery_met(_card(dreams, "dawnbreak")), "Dawnbreak waits for a ×10 chain")
 	_check(not dreams._key_met("chain:5", []), "a ×5 chain key waits…")
 	dreams.discovery_profile["best_chain"] = 5
 	_check(dreams._key_met("chain:5", []), "…the profile's best chain counts")
+	dreams.discovery_profile["best_chain"] = 10
+	_check(dreams.discovery_met(_card(dreams, "dawnbreak")), "…and comes with the first ×10")
+	# The discovery moments (2026-09-30): a crit on a Marked nightmare, a Puffball puff in Mistveil's fog
+	dreams._events_this_run.clear()
+	var starlit := _card(dreams, "starlit_aim")
+	var fog_card := _card(dreams, "chain_bloom")
+	_check(starlit.in_start_pool and not dreams.discovery_met(starlit) and not dreams.discovery_met(fog_card),
+		"Starlit Aim and Chain Bloom are start pool, waiting for their moments")
+	var crit := DamageLog.Event.new()
+	crit.combos.assign([&"crit"])
+	dreams._on_damage_dealt(crit)
+	_check(not dreams.event_discovered("crit_marked"), "a plain crit isn't it")
+	crit.combos.assign([&"crit", &"marked"])
+	dreams._on_damage_dealt(crit)
+	_check(dreams.event_discovered("crit_marked") and dreams._key_met("event:crit_marked", []), "a crit on a Marked nightmare discovers Starlit Aim")
+	dreams.note_discovery(DreamState.EVENT_PUFF_IN_FOG)  # Tower Code calls this when a puff lands in Mistveil's fog
+	_check(dreams.event_discovered("puff_in_fog"), "a Puffball puff in Mistveil's fog discovers Chain Bloom")
 	var cache := _card(dreams, "acorn_cache")
 	_check(not dreams.discovery_met(cache), "Acorn Cache waits for an Acorn to be built")
 	var before: Array[UpgradeData] = [cache]  # A Grove card: not in this run's pool
@@ -1086,6 +1102,8 @@ func _test_discovery(main: Node) -> void:
 	dreams.unlocked["firefly_jar"] = true
 	dreams._offer_drift = 10
 	var beaks := _card(dreams, "static_bloom")  # Stormcap (Firefly Jar's) + Bloomcap
+	_check(not dreams.discovery_met(beaks), "Charged Bloom waits for Charged + Drowsy on one nightmare")
+	dreams.note_discovery(DreamState.EVENT_CHARGED_DROWSY)
 	_check(dreams.is_half_dreamed(beaks) and dreams.discovery_met(beaks), "a half-dreamed card skips the Warden gate (%s)" % [dreams.half_dreamed_missing(beaks)])
 	for family in dreams.half_dreamed_missing(beaks):
 		dreams.unlocked[family] = true
@@ -1094,6 +1112,7 @@ func _test_discovery(main: Node) -> void:
 	acorn.queue_free()
 	dreams.discovery_profile = null
 	dreams._built_this_run.clear()
+	dreams._events_this_run.clear()
 	if feedback != null:
 		feedback.run_counts = run_counts
 	if tracker != null:

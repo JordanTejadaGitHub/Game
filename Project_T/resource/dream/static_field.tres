@@ -13,4 +13,4 @@ tags = Array[String](["storm"])
 requires = Array[String](["firefly_jar"])
 max_stacks = 1
 rule_id = &"static_field"
-in_start_pool = false
+in_start_pool = true

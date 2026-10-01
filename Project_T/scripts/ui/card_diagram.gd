@@ -9,7 +9,7 @@ class_name CardDiagram
 const CELL := 20.0
 const COLS := 7
 const ROWS := 5
-const HIGHLIGHT := "+123456789*XQ"  # Characters outlined in gold
+const HIGHLIGHT := "+123456789*XQU"  # Characters outlined in gold
 
 var card: UpgradeData
 var _rows: PackedStringArray = []
@@ -71,6 +71,9 @@ func _draw_grid() -> void:
 				"T", "X":
 					_grid.draw_rect(inner.grow(-3.0), Palette.MOSS)
 					_grid.draw_rect(inner.grow(-3.0), Palette.LEAF, false, 1.0)
+				"U":  # A tended stump (a cleared Withered Tree)
+					_grid.draw_circle(centre, CELL * 0.3, Palette.BARK)
+					_grid.draw_circle(centre, CELL * 0.18, Palette.DEADWOOD)
 				"O":
 					_grid.draw_circle(centre, CELL * 0.33, Palette.STONE)
 				"H":

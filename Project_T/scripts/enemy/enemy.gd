@@ -179,6 +179,7 @@ var _startled := false
 var _charge_left := 0.0
 var at_heartwood := false  # A boss that got through: it stays, draining leaves (see heartwood_drained)
 var _drain_left := 0.0  # Seconds to its next leaf (0 on arrival: the first goes at once)
+var _linger_left := 0.0  # Night Mare: seconds left of this visit before it gallops off again
 var straight_charging := false  # Hollow Stag: on a straight of straight_charge_tiles+ (see _update_straight_charge)
 var _bellowed := false
 var _leaping := false  # Sinking / underground / rising (Mire Hag, Gravecrawler): not walking
@@ -432,6 +433,13 @@ func _process(delta: float) -> void:
 		if _path_index < _path.size():
 			at_heartwood = false  # Pulled back off the Heartwood, or re-routed: it walks in again
 		else:
+			if enemy_data.laps():  # Night Mare: it lingers (6 s: leaves at 0, 2, 4), then gallops off again
+				_linger_left -= delta
+				if _linger_left <= 0.0:
+					_linger_left = 0.0
+					at_heartwood = false
+					_lap()
+					return
 			_drain_left -= delta  # It stays, draining a leaf every HEARTWOOD_DRAIN_EVERY s
 			if _drain_left <= 0.0:
 				_drain_left = HEARTWOOD_DRAIN_EVERY
@@ -488,19 +496,18 @@ func _process(delta: float) -> void:
 		if loops_route:
 			_restart_route()
 			return
-		if enemy_data.laps():
-			_lap()
-			return
-		if enemy_data.is_boss and not is_echo:
-			at_heartwood = true  # Bosses stay (the timer keeps running if it's re-routed and walks back in)
+		if enemy_data.laps() and _linger_left <= 0.0:  # Night Mare: a new visit, a little longer each lap
+			_linger_left = enemy_data.lap_linger + enemy_data.lap_linger_step * laps
+			_drain_left = 0.0  # Its first leaf of the visit at once
+		if (enemy_data.is_boss and not is_echo) or enemy_data.laps():
+			at_heartwood = true  # Bosses stay (the timers keep running if it's re-routed and walks back in)
 			return
 		reached_goal.emit(self)
 		queue_free()
 
-# Night Mare: what its next lap will cost (lap_leaves, + lap_leaves_step for each lap already run):
-# the boss bar and dossier show it.
-func next_lap_leaves() -> int:
-	return enemy_data.lap_leaves + enemy_data.lap_leaves_step * laps
+# Night Mare: seconds left of its stay at the Heartwood (0 when it isn't there): the boss bar shows it.
+func linger_left() -> float:
+	return _linger_left if at_heartwood else 0.0
 
 # Night Mare: the Heartwood loses its lap leaves (the spawner takes them) and the Mare gallops back to
 # the start, faster each time.
@@ -1567,6 +1574,23 @@ func _is_eclipsed() -> bool:
 func _is_revealed() -> bool:
 	if _revealed_time > 0.0:
 		return true  # Held in the light a while (Lantern Roots)
+	if _spawner != null:  # The spawner's lookups: a few cells and short lists, not every Warden and nightmare
+		_spawner.refresh_reveal_lookup()
+		var reach := CLOSE_REVEAL_CELLS * grid.cell_size.x
+		var here := get_current_cell()
+		for dy in range(-2, 3):
+			for dx in range(-2, 3):
+				var tower = _spawner.tower_cells.get(here + Vector2(dx, dy))
+				if tower != null and is_instance_valid(tower) and global_position.distance_to(tower.global_position) <= reach:
+					return true
+		for tower in _spawner.marker_towers:
+			if is_instance_valid(tower) and global_position.distance_to(tower.global_position) <= tower.get_range_pixels():
+				return true
+		for other in _spawner.revealers:
+			if other != self and is_instance_valid(other) and not other.is_cleansed and not other.is_hidden() \
+					and global_position.distance_to(other.global_position) <= other.enemy_data.reveal_radius * grid.cell_size.x:
+				return true
+		return false
 	var towers = get_parent().get("tower_container") if get_parent() else null
 	if towers:
 		for tower in towers.get_children():

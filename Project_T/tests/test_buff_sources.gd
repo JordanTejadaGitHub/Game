@@ -67,11 +67,28 @@ func _run() -> void:
 	await process_frame
 	await process_frame
 	var buffs: VBoxContainer = panel._buffs
-	var texts: Array = buffs.get_children().map(func(c: Control) -> String: return c.text if "text" in c else "")
+	# Folded by default (screens_ui.md "The Warden panel never fills the screen"): header + Total + Details.
+	var folded: Array = buffs.find_children("*", "", true, false).map(func(c: Node) -> String: return c.text if "text" in c else "")
+	_check(folded.any(func(t: String) -> bool: return t.begins_with("Total:")) and folded.any(func(t: String) -> bool: return t.begins_with("Details"))
+		and not folded.any(func(t: String) -> bool: return t.begins_with("Elder Stump")), "Buffs fold to the Total line with a Details toggle (%s)" % [folded])
+	panel._buffs_open = true
+	panel._fill_buffs(target)
+	var texts: Array = buffs.find_children("*", "", true, false).map(func(c: Node) -> String: return c.text if "text" in c else "")
 	_check(buffs.visible and texts.any(func(t: String) -> bool: return t.to_lower() == "buffs") and texts.any(func(t: String) -> bool: return t.begins_with("Total:")),
 		"the panel lists the buffs and a total (%s)" % [texts])
 	_check(buffs.get_children().any(func(c: Control) -> bool: return c is Button and c.text.begins_with("Elder Stump")),
 		"a Warden source is a button")
+	# Never more than MAX_SHARE of the screen; Sell and Close in the footer.
+	root.size = Vector2i(1280, 800)
+	await process_frame
+	for i in 30:
+		panel._add_button("filler %d" % i)  # A long panel
+	panel._fit_height()
+	await process_frame
+	var screen: float = panel.get_viewport().get_visible_rect().size.y
+	_check(panel.size.y <= screen * panel.MAX_SHARE + 1.0, "the panel stays within %d%% of the screen (%.0f of %.0f px)" % [roundi(panel.MAX_SHARE * 100), panel.size.y, screen])
+	_check(panel._footer.get_children().any(func(c: Node) -> bool: return c is Button and c.text.begins_with("Sell"))
+		and panel._footer.get_children().any(func(c: Node) -> bool: return c is Button and c.text == "Close"), "Sell and Close stay in the footer")
 
 	# The Boosts button (screens_ui.md "The lens button, revised"): shown once there's a local source; only
 	# local sources light a Warden up; the legend lists the kinds on the map.

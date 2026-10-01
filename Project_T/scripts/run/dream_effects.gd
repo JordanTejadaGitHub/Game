@@ -34,7 +34,7 @@ const REPORTERS := {
 	&"sudden_bloom": "_sudden_bloom", &"watchful_rest": "_watchful_rest", &"straightaway": "_straightaway",
 	&"many_rings": "_many_rings", &"hedgerow": "_hedgerow", &"spinning_corners": "_spinning_corners",
 	&"fresh_soil": "_fresh_soil", &"heartwoods_fury": "_heartwoods_fury", &"patchwork": "_patchwork",
-	&"mixed_grove": "_mixed_grove", &"quick_step": "_quick_step",
+	&"mixed_grove": "_mixed_grove", &"quick_step": "_quick_step", &"restless_roots": "_restless_roots", &"far_reach": "_far_reach", &"tended_stumps": "_tended_stumps", &"hollow_ground": "_hollow_ground",
 	&"long_shadows": "_long_shadows", &"scarred_bark": "_scarred_bark", &"desperate_bloom": "_desperate_bloom",
 	&"odd_one_out": "_odd_one_out", &"grand_tour": "_grand_tour",
 	&"heart_of_the_maze": "_heart_of_the_maze",
@@ -647,6 +647,36 @@ func _golden_harvest(_spot: Dictionary, _board: Board, card: UpgradeData) -> Dic
 	var grown := ds.seed_grown(card)
 	return {"run_wide": true, "active": grown and bonus > 0.0, "damage": bonus, "note": "%d Dew harvested" % dew,
 		"reason": "" if grown and bonus > 0.0 else ("no catcher yet" if not grown else "harvest 100 Dew")}
+
+# Clearing payoffs (cards 246–247): a Warden touching a tended stump, or planted in a moved hollow.
+func _tended_stumps(spot: Dictionary, _board: Board, _card: UpgradeData) -> Dictionary:
+	if not spot.data.can_attack:
+		return {}
+	var on := ds.touches_stump(spot.cell)
+	return {"positional": true, "radius": 1.0, "active": on, "damage": DreamState.TENDED_STUMPS_BONUS[ds.rule_level(&"tended_stumps")],
+		"reason": "" if on else "no tended stump touching it"}
+
+func _hollow_ground(spot: Dictionary, _board: Board, _card: UpgradeData) -> Dictionary:
+	if not spot.data.can_attack:
+		return {}
+	var on := ds.in_hollow(spot.cell)
+	return {"positional": true, "radius": 0.0, "active": on, "range": DreamState.HOLLOW_GROUND_RANGE[ds.rule_level(&"hollow_ground")],
+		"reason": "" if on else "not planted in a moved hollow"}
+
+# Grove build branches (cards 238, 243): Restless Roots speeds slow Wardens; Far Reach lengthens area attackers.
+func _restless_roots(spot: Dictionary, _board: Board, _card: UpgradeData) -> Dictionary:
+	if not spot.data.can_attack:
+		return {}
+	var on: bool = spot.data.attacks_per_second < DreamState.RESTLESS_ROOTS_BELOW
+	return {"active": on, "speed": DreamState.RESTLESS_ROOTS_SPEED,
+		"reason": "" if on else "attacks %.2f times a second (needs under 1)" % spot.data.attacks_per_second}
+
+func _far_reach(spot: Dictionary, _board: Board, _card: UpgradeData) -> Dictionary:
+	if not spot.data.can_attack:
+		return {}
+	var on := DreamState.has_area_attack(spot.data)
+	return {"active": on, "range": DreamState.FAR_REACH_RANGE[ds.rule_level(&"far_reach")],
+		"reason": "" if on else "no area attack"}
 
 # The live line a board-scaling card shows on its face in an offer (dream_design.md #75): "You have 7
 # attacking Wardens · +40%", "Now: 12 cleared · +12%". "" for cards that don't scale with the board.

@@ -38,7 +38,8 @@ func _init(tower: Tower, center: Vector2) -> void:
 	_data = tower.attack_data  # What it was made with (a legacy attack, a Graftling's copy)
 	_boost = tower._hit_boost  # Sudden Bloom / Watchful Rest
 	# attack_data: a Graftling copying a Bloomcap drops the Bloomcap's cloud.
-	_radius = _data.cloud_radius * Tower.MAP_GRID.cell_size.x
+	var broad: float = tower._dream_state.get_area_radius_add() if tower._dream_state and tower._dream_state.has_method("get_area_radius_add") else 0.0
+	_radius = (_data.cloud_radius + broad) * Tower.MAP_GRID.cell_size.x  # Broad Splash widens clouds too
 	_duration = _data.cloud_duration
 	_fog = _data.cloud_fog
 	_color = _data.projectile_color
@@ -69,7 +70,7 @@ func _tick() -> void:
 		if enemy.global_position.distance_to(global_position) > _radius:
 			continue
 		if _fog:
-			enemy.statuses.set_in_fog(TICK * 1.5)
+			enemy.statuses.set_in_fog(TICK * 1.5, _tower)  # Credited with the fog part of Spored ticks
 		var data: TowerData = _data if is_instance_valid(_tower) else null
 		if data and data.cloud_slow > 0.0:
 			enemy.statuses.slow_time = maxf(enemy.statuses.slow_time, TICK * 1.6)

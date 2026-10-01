@@ -26,7 +26,7 @@ Revised for 100-drift runs (`run_design.md`).
 
 Examples: a loss around drift 20 ≈ **30 Seeds**; a loss at drift 60 ≈ **120**; a win ≈ **350**.
 Averaging ~280 across a player's first runs, the full tech tree (**~5,960 Seeds** as built:
-Perks ~2,090, Families ~2,470 incl. Ascension, Cards ~1,400) takes **~21 runs ≈ 30 hours** (confirmed as the target, 2026-09-28). **2026-09-29:** discovery unlocks removed 6 fully covered Cards nodes (Reactions, Woven Dreams I–II, Kin Lore, Deep Bonds; `dream_design.md` "Grove overlap"), the cards now come from discovering combos and Kinships in play. **As built (763f228): 5 nodes removed; the tree is 6,722 Seeds** (Families 2,470, Cards 2,162, Perks 2,090; the earlier 5,960 predates the Seeds and Quiet Ones rows and the Ascension nodes), about **24 runs ≈ 34 hours** at ~280 Seeds per run, a little over the 30-hour target. **2026-09-29:** slot_2 / slot_3 removed (−120): **6,602 Seeds ≈ 24 runs ≈ 33 hours**. The user confirmed ~30 hours is right, so no cuts. **2026-09-30:** Reckless and Wild Planting removed (−90, refunded to old saves): **6,512 Seeds**. **2026-09-30:** the 9 final-forms nodes removed (≈ −470, refunded): **≈ 6,040 Seeds ≈ 22 runs ≈ 30 hours**, right on the target, so the freed Seeds are not re-spent (no rebalancing).
+Perks ~2,090, Families ~2,470 incl. Ascension, Cards ~1,400) takes **~21 runs ≈ 30 hours** (confirmed as the target, 2026-09-28). **2026-09-29:** discovery unlocks removed 6 fully covered Cards nodes (Reactions, Woven Dreams I–II, Kin Lore, Deep Bonds; `dream_design.md` "Grove overlap"), the cards now come from discovering combos and Kinships in play. **As built (763f228): 5 nodes removed; the tree is 6,722 Seeds** (Families 2,470, Cards 2,162, Perks 2,090; the earlier 5,960 predates the Seeds and Quiet Ones rows and the Ascension nodes), about **24 runs ≈ 34 hours** at ~280 Seeds per run, a little over the 30-hour target. **2026-09-29:** slot_2 / slot_3 removed (−120): **6,602 Seeds ≈ 24 runs ≈ 33 hours**. The user confirmed ~30 hours is right, so no cuts. **2026-09-30:** Reckless and Wild Planting removed (−90, refunded to old saves): **6,512 Seeds**. **2026-09-30:** the 9 final-forms nodes removed (≈ −470, refunded): **≈ 6,040 Seeds ≈ 22 runs ≈ 30 hours**, right on the target, so the freed Seeds are not re-spent (no rebalancing). **2026-09-30 (later):** the Cards limb swap (≈ 6,140) and the lean starting pool (+1,200): **≈ 7,340 Seeds ≈ 26 runs ≈ 33–36 hours**.
 (Raised twice on 2026-09-27 as the Grove grew; the first unlocks still come every run, and a full
 Grove is a long-term goal next to Blight Levels.)
 
@@ -46,7 +46,7 @@ marks them as imported.
 
 Redesigned 2026-09-27 (user decision): the Grove is a **tech tree** growing up from the Heartwood's
 roots, with **three sections**. Each node costs Seeds and needs its parent node(s). 84 nodes,
-**≈ 6,140 Seeds** in total (2026-09-30, after the final-forms nodes left and the Cards limb swap; see Seeds above).
+**≈ 7,340 Seeds** in total (2026-09-30, after the lean starting pool moved build cards onto the Cards limb; see Seeds above).
 
 ```
                  FAMILIES (middle limb)
@@ -116,7 +116,7 @@ visibly separate paths look too neat, not like a real tree).
 |---|---|---|---|---|---|
 | 1 | Deep Taproot | 3 | 25 / 50 / 75 | **+3 max leaves** | — (trunk) |
 | 2 | First Care | 1 | 70 | your **first 3 Nurture ranks** each run are free | Deep Taproot |
-| 3 | Clear Sight | 1 | 80 | start the run holding **Heartwood's Reach** and **Cleared Ground** (free clears plus cheaper clearing from drift 1; Heartwood's Reach added 2026-09-30 after the pool trim) | First Care |
+| 3 | Clear Sight | 1 | 80 | start the run holding **Heartwood's Reach** (cheaper clearing plus half-price clears from drift 1; it absorbed Cleared Ground on 2026-09-30) | First Care |
 
 **Choice path** (Dreams, families, Omens)
 
@@ -221,19 +221,39 @@ two systems together.
   (area / splash). Cards to be designed by Roguelite Mechanic Discussion; each tip is a
   build-defining Legendary. Tree ≈ **6,140 Seeds**, still ~30 hours.
 
-| Branch | Node 1 (near the trunk) | Node 2 | Tip: Legendary |
+**Lean starting pool** (2026-09-30, user "implement" via the design hub; `dream_design.md` "The
+starting Dream pool"): a fresh profile starts with **65 cards (25 C / 30 U / 10 R / 0 L)**. Every
+build-defining card, most Rares and **all Legendaries** now live on these nodes, **one build
+direction per branch**, so each purchase deliberately widens one build. Combo cards (incl. the
+**Kinship** cards Rooted Bond, Extended Family, Blood Is Thicker) are **never** here: they unlock by
+discovery in play. Branches may **fork** into two tips (each tip needs the node below it).
+
+| Branch (direction) | Node 1 (near the trunk) | Node 2 | Tip(s): Legendary |
 |---|---|---|---|
-| **Swift** (attack speed) *(new)* | *Quickening*: Momentum, Quickening, Flurry (50) | *Light Feet*: Restless Roots, Hummingheart (70) | **Whirlwind Heart** (120) |
-| **Wide Reach** (area, splash) *(new)* | *Broad Strokes*: Broad Splash, Lingering Splash (50) | *Far Reach*: Far Reach, Spillover (70) | **Great Ripple** (120) |
-| **Keen Edges** (crit) | *Sharpened*: Still Target, Shattering Blow (50) | — | **Full Moon** (120; needs Sharpened) |
-| **Deep Poison** (Potency) | *Seeping* (50) | *Venom*: Venom Bloom (40) | **Nightshade** (120) |
-| **The Quiet Ones** (support Wardens) | *Catchers*: Dew Trail, Acorn Cache (50; Wide Bowl merged into Dew Trail, Still Waters cut in the power pass) | *Old Wood*: Overflowing Well, Hedgerow Roots, Grandfather Stump, Living Walls, Many Threads (70) | **The Quiet Ones** (120) |
-| **Seeds** (support and economy bets) | *Planted Promises*: Dew Bowl, Harvest Moon, Kind Canopy, Patient Roots (50) | *Deep Promises*: Deep Well, Shared Light (70) | **Golden Harvest** (120) |
-| **Tending** (nurture, tall) | *Tending Hands*: Sunlit Rest, Deeper Rings (60) | *Nursery*: Nursery, Chosen Few (70) | **The Old Ones** + **Endless Rings** (150) |
-| **Overgrowth** (wide) | *Seedbed*: Seedling Gift, Canopy (60) | — | **Rootbound** (100; needs Seedbed) |
+| **Swift** (attack speed) | *Quickening*: Momentum, Quickening, Flurry (50) | *Light Feet*: Restless Roots, Hummingheart (70) | **Whirlwind Heart** (120) |
+| **Wide Reach** (area, splash) | *Broad Strokes*: Broad Splash, Lingering Splash (50) | *Far Reach*: Far Reach, Spillover (70) | **Great Ripple** (120) |
+| **Keen Edges** (precision, crit) | *Sharpened*: Still Target, Shattering Blow, **Hunter's Patience**, **Sharpened Light** (50) | — | **Full Moon** (120) · **Hunter's Moon** (80) |
+| **Deep Poison** (affliction, effects) | *Seeping*: + **Crowd Breaker** (50) | *Venom*: Venom Bloom (40) | **Nightshade** (120) · **Eternal Charge** (80) |
+| **Daring** (low leaves, tempo) *(new)* | *Scarred Bark*: Scarred Bark, Thin Bark (40) | *Last Stand*: Desperate Bloom, Second Wind, Last Stand (50) | **Last Leaf** (80) · **Restless Night** (80) |
+| **Tending** (nurture, tall) | *Tending Hands*: Sunlit Rest, Deeper Rings (60) | *Nursery*: Nursery, Chosen Few (70) → *Elders*: Solitude, Elder Kin, Few and Mighty (50) | **The Old Ones** + **Endless Rings** (150; needs Elders) |
 | **Lone Lantern** (narrow) | *One Line*: Monoculture (80) | — | **The Last Light** (120) |
-| **The Long Way** (maze, clearing) | *Dead Wood*: Burn Back the Dead Wood (40) | — | **The Long Walk** (100) |
-| **Bittersweet** | *Bittersweet Dreams*: Deep Sleep, Restless Dreams (60; needs any 2 other nodes) | — | — |
+| **Overgrowth** (wide) | *Seedbed*: Seedling Gift, Canopy (60) | *Mixed Company*: Mixed Grove, Odd One Out, Grand Tour (50) | **Rootbound** (100; needs Seedbed) · **Menagerie** (80; needs Mixed Company) |
+| **The Long Way** (path length) | *Dead Wood*: Burn Back the Dead Wood (40) | *Winding Roads*: Forest's Edge (50) | **The Long Walk** (100; needs Dead Wood) · **Crossroads** (80; needs Winding Roads) |
+| **Hedgerows** (walls, holding) *(new)* | *Bitter Hedges*: Bitter Hedges, **Thornheart** (40) | — | **Briar Crown** (80) · **Rooted Nightmares** (80) |
+| **Reclaiming** (clearing) *(new)* | *Reclaimed Earth*: Reclaimed Earth, Tended Stumps, Hollow Ground (50; the "where you clear" payoffs first) | *Thorn and Bramble*: Tended Forest, Thorn Snare, Bramble Oath (70) | **Wildwood Reclaimed** (80) |
+| **The Quiet Ones** (support Wardens) | *Catchers*: Dew Trail, Acorn Cache (50; Wide Bowl merged into Dew Trail, Still Waters cut in the power pass) | *Old Wood*: Overflowing Well, Hedgerow Roots, Grandfather Stump, Living Walls, **Scented Hedge**, Many Threads (70) | **The Quiet Ones** (120) |
+| **Seeds** (support and economy bets) | *Planted Promises*: Dew Bowl, Harvest Moon, Kind Canopy, Patient Roots (50) | *Deep Promises*: Deep Well, Shared Light (70) | **Golden Harvest** (120) |
+| **Bittersweet** | *Bittersweet Dreams*: Deep Sleep, Restless Dreams (60; needs any 2 other nodes) | — | **Lucid Dreaming** (80; the "dreams" Legendary: 4 cards, take 2, no Commons) |
+
+- **Costs:** the new tips and nodes are cheaper (tips 80, nodes 40–50) than the original ones, so a
+  direction is reachable in 2–3 runs. **+1,200 Seeds**: the tree is **≈ 7,340 Seeds ≈ 26 runs ≈
+  33–36 hours**, a little over the ~30-hour target (as it was at 6,722); fine, since every early
+  run still buys something.
+- **Old saves** (profile migration): every Grove node already owned stays owned and keeps working;
+  nothing is refunded or lost. A profile from **before** this change also gets every **new node
+  whose cards it could already be offered** (Elders, Mixed Company, Winding Roads, Daring, Hedgerows,
+  Reclaiming and the moved Legendary tips) **for free**, so returning players don't lose cards
+  they had. Fresh profiles start lean.
 
 Removed over time: Reactions, Woven Dreams I–II, Kin Lore, Deep Bonds (2026-09-29, discovery
 unlocks); Reckless, Wild Planting (2026-09-30, pool trim); Storm Lore, Guiding Lights, Spore Lore,
@@ -243,9 +263,9 @@ Dawnbreak, Grove of Kin (2026-09-30, no combo cards in the Grove).
   where a branch has a single node).
 - **Family-specific cards** (Skipping Stones, Deep Frost, Sweet Scent, etc.) aren't here: they come
   with their family or hidden-branch node on the Families limb.
-- **Start-pool cards** (the basic stat, economy and first build cards) are always available, so a
+- **Start-pool cards** (65 since 2026-09-30: basics, the starting families' cards, one or two tasters per build) are always available, so a
   new player already has a full Dream pool; this limb adds depth and big payoffs.
-- Total ≈ 2,200 Seeds as of 2026-09-30 (with the two new branches). New cards join an existing branch's bundle or start a new branch; **combo cards never go here**.
+- Total ≈ 3,370 Seeds as of 2026-09-30 (lean starting pool). New cards join an existing branch's bundle or start a new branch; **combo cards never go here**.
 
 **Families before the Grove fills in:** a new player has only 3 families (Sporeling, Firefly Jar,
 Dewdrop), but a run offers family picks at drift 1 and at the 25/50/75 bosses. When there are

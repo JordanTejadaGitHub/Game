@@ -14,4 +14,5 @@ requires = Array[String](["standing_stone", "lanternmoth"])
 max_stacks = 1
 entwined = true
 rule_id = &"starlit_aim"
-in_start_pool = false
+in_start_pool = true
+discovered_by = Array[String](["event:crit_marked"])

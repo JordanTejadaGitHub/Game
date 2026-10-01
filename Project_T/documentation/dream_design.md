@@ -90,6 +90,48 @@ matter, confirmed.
 
 ## How Dream offers work
 
+**Each run draws its own pool, and it follows your build** (2026-09-30, user: *"doesn't a lean starting pool create optimal builds though?"* → *"yes, depending on the build you're going for"*). With ~55 cards against ~57 offers a run, a fixed pool shows almost everything every run and the best picks become a solved routine. So:
+- **At run start** the run draws its **Dream pool**: the **core** (basic stat cards and the cards of the families you hold) plus a **random ~60%** of everything else you have available (seeded with the map).
+- ~~The pool follows your build~~ **Removed (user, same day: "I want the player to be able to change their build depending on the random cards they get, not send them down a path").** Taking a card adds nothing to the pool: the run's random draw is the run, and the player adapts to it.
+- **New families** (family picks at 25 / 50 / 75) add their family cards to the core when picked.
+- The Grove grows what can be drawn, so meta progress means **more varied runs**, not just stronger ones.
+- Owner: Roguelite Mechanic Discussion (rules), Roguelite Code (DreamState). The offer weights, fade and pity rules work inside the run's pool. Codex "Dreams" keeps showing every card.
+- **Exact rules (Roguelite design chat, 2026-09-30):**
+  - **Available** = every card this profile could be offered (start pool + Grove unlocks +
+    discoveries), before in-run Needs.
+  - **Core** (always in the run's pool):
+    - the **basics**: Quickened Sap, Deeper Calm, Longer Roots, Deep Roots, Thick Bark, Evergreen,
+      Morning Dew (stacking, untagged cards that every build uses);
+    - **family cards of every family you hold** (cards whose Needs name that family or one of its
+      Wardens, and its Blessing), added at each family pick;
+    - **the clearing opener** (Heartwood's Reach) on maps with 8+ obstacles, so clearing is always
+      reachable.
+  - **The rest** (generic and direction cards, combo cards, Legendaries) is sampled at **60%**,
+    seeded with the map seed (same map, same pool), **per rarity** so the split doesn't skew, with
+    **floors**: at least **12 Common, 12 Uncommon, 6 Rare** and (if available) **3 Legendary** from
+    the rest. If fewer exist, take them all.
+  - **Starvation check:** a run has 19 Dreams (up to ~28 offers with Lucid Dreaming, rerolls and
+    Grove perks), 3–4 cards each.
+    - **New account:** ~55 available → core ~14 + rest ~40 sampled to the floors ≈ **~45 cards**.
+      Stat cards stack, the fade lets a passed card return after a gap, and every rarity has its
+      floor: offers always fill.
+    - **Full Grove:** ~200 available → **~120 cards**: very varied runs, still far more than offers.
+    - The boss and pity Rare+ guarantee: with ≥ 6 Rares in the run's pool plus the family Rares,
+      a forced Rare+ offer finds a card. If none is eligible, the existing fall-through applies.
+  - ~~**The pool follows your build:** taking an archetype-tagged card pulls that archetype's
+    remaining cards into the run's pool.~~ **Removed** (user, 2026-09-30: *"I want the player to be
+    able to change their build depending on the random cards they get, not send them down a
+    path."*). The run's pool is fixed at run start; only family picks and discoveries add to it.
+  - **Discovery mid-run** adds the discovered cards to this run's pool right away (you just did the
+    thing; the half-dreamed rule still applies).
+  - **Unaffected:** Entwined guaranteed slots (their card joins the pool when due), Seed cards'
+    "calls", Banish (removes from the run's pool), the Stray slot (draws from the run's pool, outside
+    your tags).
+  - **Shown:** nothing new on screen. The Codex lists every card; the "Dreams this run" panel could
+    later show "dreams in reach this run" (optional).
+  - **Tests:** two map seeds give different pools (same seed, same pool); the floors hold on a fresh
+    profile; taking a tagged card adds **nothing** to the pool; a family pick adds its family cards;
+    19 offers on a fresh profile never show fewer than 3 cards.
 - **3 cards per Dream**, after drifts 5, 10, … 95. No duplicates within an offer.
 - **Passed-over cards fade** (added 2026-09-28; playtest: Few and Mighty was offered ~5 times by
   drift 35 to a player not going narrow). A card that was offered and **not taken**:
@@ -657,11 +699,39 @@ unlocks clearing":
 | # | Card | Rarity | Effect | Tags | Pool |
 |---|---|---|---|---|---|
 | 54 | **Cleared Ground** | Common | clearing obstacles costs **25% less** Dew (stacks, **max −50%**) | clearing, economy | Start |
-| 55 | **Heartwood's Reach** | Common | gain **4 half-price clears**; use them any time (a charge counter on the HUD; unused charges last all run). Deepened II: 7 | clearing | Start |
+| 55 | **Heartwood's Reach** | Common | *(2026-09-30: now absorbs Cleared Ground: clearing −25% (−50% at 2 stacks) and 3 half-price clears per stack, see "Finalized" under Clearing follow-ups.)* Was: gain **4 half-price clears**; use them any time (a charge counter on the HUD; unused charges last all run). Deepened II: 7 | clearing | Start |
 | 56 | **Reclaimed Earth** | Common | each clear **refunds 40% of the Dew you paid for it**, and the cell is left **fertile**: the first Warden planted there costs 50% less | clearing, economy | Start |
 | 57 | **Tended Forest** | Common | **+1% damage for every obstacle cleared this run** (max +25%; clears from before the card count) | clearing, maze | Start |
 | 58 | **Burn Back the Dead Wood** | Rare, **Bittersweet** | clear **every Withered Tree** on the map right now for **5 Dew each** (paid when taken; only offered if you can pay). **Cost:** nightmares +10% speed for the rest of the run | clearing, bittersweet | Grove |
 
+**Clearing follow-ups need a payoff on the map** (2026-09-30, user: *"the obstacle clearing cards become useless once you unlock it first; only good with the Legendary"*). After Tend the Forest, the follow-ups are mostly discounts (Cleared Ground, Heartwood's Reach) on something you do a few times a run; only Wildwood Reclaimed (Wardens on cleared cells) pays off. Direction for the redesign (Roguelite Mechanic Discussion owns the cards):
+- **The cleared spot itself becomes worth something**, as a smaller version of Wildwood: a **tended stump** (a cleared Withered Tree) gives the Wardens touching it **+10% damage**; a **moved hollow** (a cleared boulder) gives a Warden planted in it **+1 range**. These come from Uncommon cards (one each), and stack up to Wildwood at the top.
+- **Merge the two discount cards into one Common** (cheaper clears and a few free ones), so the clearing line has room for payoffs.
+- **Tended Forest** stays (global % per clear) and **Reclaimed Earth** stays (fertile cells).
+- Goal: a clearing build that reshapes the map and is rewarded for **where** it clears, with Wildwood as its Legendary peak, not its only card.
+- **Finalized (Roguelite design chat, 2026-09-30):**
+
+  | # | Card | Rarity | Effect | Diagram | Where |
+  |---|---|---|---|---|---|
+  | (55) | **Heartwood's Reach** (absorbs Cleared Ground) | Common, stacks (max 2) | clearing costs **25% less** (−50% at 2 stacks, still above the floor), and gain **3 half-price clears** per stack | — | **Start pool** (the clearing opener: any clearing card unlocks clearing) |
+  | 246 | **Tended Stumps** | Uncommon | each **tended stump** (a Withered Tree you cleared) gives the Wardens **touching it +25% damage** (a Warden counts its best stump once; stumps don't stack) | `".......\n..WWW..\n..WUW..\n..www..\n......."` with `U` = stump; caption *"Touching a tended stump: +25%."* (the dimmed `w` row shows Wardens one cell too far) | Grove · **Reclaiming node 1** |
+  | 247 | **Hollow Ground** | Uncommon | a Warden **planted in a moved hollow** (where you cleared a Mossy Boulder or Thorn-Sapling) gets **+1 range** | `".......\n.PPPPP.\n...Q...\n.....w.\n......."` with `Q` = Warden in a hollow; caption *"Planted in a moved hollow: +1 range."* | Grove · **Reclaiming node 1** |
+
+  - **Why +25%, not +10%:** the `dream_audit.md` budget for an Uncommon conditional card is +45%;
+    +10% would be "too small to change a choice". +25% because one stump can reach several Wardens.
+  - **Why half-price, not free:** "clearing always costs Dew" (user rule): the merged card gives
+    half-price charges, never free clears. Merged, it also frees a Common slot.
+  - **Reclaiming branch** (`meta_design.md`, Meta owns the final call): node 1 (50) = **Reclaimed
+    Earth, Tended Stumps, Hollow Ground** (the "where you clear" payoffs come first, so buying the
+    branch fixes the user's complaint at once); node 2 (70) = **Tended Forest, Thorn Snare, Bramble
+    Oath**; tip **Wildwood Reclaimed** (120).
+  - **Starting pool:** Cleared Ground leaves (merged); Commons go 25 → **24**. Heartwood's Reach stays
+    the one start-pool clearing card (the taster).
+  - **Deepened:** Tended Stumps II (+40%, and diagonal-only Wardens count too: it already counts the
+    8 cells, so II is the number only), Hollow Ground II (+1.5 range).
+  - **Tower hooks:** Tended Stumps and Hollow Ground read the cleared cells' marks
+    (`ObstacleData.cleared_source_id`: tended stump / moved hollow) per Warden cell, live (a new clear
+    updates neighbours). Tower Code adds them to the Warden's stat breakdown.
 **Clear prices, raised** (2026-09-30, user: "clearing obstacles seems too cheap"). At 5 / 8 Dew a
 clear cost less than a Sprout, so by act 2 the map was free to reshape and each clear was a cheap
 +1 Seed. Now:
@@ -1238,7 +1308,7 @@ card builds sit at **40–66%**; Emergence (mixed) 66%, Adapt 93–94%. Round 5 
    coming together by the middle of act 3 is right, and the user's playtest said builds came too
    easily. Chasing target: **3+ by drift 75 in 35–65%**, 5+ by 100 in 25–50%. Emergence stays
    judged at drift 50 (≥ 60% mixed).
-3. `tag_weight` stays **1.3**.
+3. `tag_weight` stays **1.3**. **Superseded 2026-09-30:** the user turned build tag steering off: `tag_weight` = **1.0** and the Tall ↔ Overgrowth ×0.5 opposition is removed. Offers are shaped only by rarity, the fade, the run's random pool, Needs and the Stray slot; archetype tags stay for tag resonance, the Legendary rules and measurement.
 
 **Round 5 measured (a399d702) — the pass ends here.** At 1.3, all 8 card builds reach their target on
 at least one measure:
@@ -1260,9 +1330,9 @@ the three-family Warden builds (Full Moon, Gale, Hairpin Mill, Rockfall, Thunder
 stay rare by nature; overall power after the free-branch change belongs to the balance sim
 (`balance_simulation.md`), not to Dream weighting.
 
-## The starting Dream pool (DRAFT, 2026-09-30, for the design hub)
+## The starting Dream pool (2026-09-30, user-approved)
 
-**Status: draft for Meta Game Discussion and the design hub; not to be built until the hub signs off.**
+**Status: approved by the user via the design hub ("implement"). Final Grove node list, costs and old-save rule: `meta_design.md` Section 3 (Meta Game Discussion, 2026-09-30); the "suggested homes" table below is superseded there (Kinship cards stay discovery, not a node; Lucid Dreaming is the Bittersweet tip).**
 Why: a new account's first run can be offered most of the pool (123 base cards in the start pool:
 32 C / 50 U / 31 R / **10 Legendary**), so builds come together too easily. Target **~25 C / 30 U /
 10 R / 0 L**. Rules:
@@ -1727,3 +1797,5 @@ requirement fields (*Card requirements*): `requires_tag` + `requires_tag_count` 
 (e.g. rank V, 1; any rank, 2),
 plus effect parameters (stat modifiers: target line + stat + amount; or a `rule_id` the game
 checks for).
+
+**Offers are random within the run's pool (2026-09-30, user):** the build tag weight ("Dreams steer your Dreams", 1.6 → 1.3) is **turned off (1.0)**. The player adapts their build to the random cards they get; nothing steers them down a path. Tag resonance (+10% per owned card of a tag, up to +50%) stays: committing is still rewarded, by choice.

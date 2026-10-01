@@ -84,7 +84,8 @@ enum Kind { UNLOCK_WARDEN, UNLOCK_EVOLUTION, STAT, RULE, ECONOMY }
 # A placement card's map picture (dream_design.md "Placement cards show a diagram"): rows of 7 characters,
 # drawn by CardDiagram. Legend: . grass, P path, + path outlined gold, 1–9 numbered route steps (outlined),
 # W a Warden that qualifies (glows), w one that doesn't (dimmed, ✗), a another Warden, T Thornwall, X a
-# Thornwall outlined gold, O obstacle, Q a qualifying Warden on a cleared cell, * a grass cell in range
+# Thornwall outlined gold, O obstacle, Q a qualifying Warden on a cleared cell (a moved hollow), U a tended stump,
+# * a grass cell in range
 # (outlined), H the Heartwood, S the start. `diagram_caption`: one short line under it.
 @export_multiline var diagram: String = ""
 @export var diagram_caption: String = ""

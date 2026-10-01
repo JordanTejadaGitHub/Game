@@ -12,5 +12,6 @@ kind = 3
 tags = Array[String](["reaction"])
 max_stacks = 1
 min_act = 2
-in_start_pool = false
+in_start_pool = true
 rule_id = &"dawnbreak"
+discovered_by = Array[String](["chain:10"])

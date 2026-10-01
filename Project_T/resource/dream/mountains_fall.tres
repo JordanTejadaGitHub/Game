@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "mountains_fall"
 display_name = "Mountain's Fall"
-description = "Avalanche also leaves rubble where each spread Shatter lands."
+description = "{combo:avalanche} also leaves rubble where each spread {combo:shatter} lands."
 rarity = 2
 kind = 3
 tags = Array[String](["reaction"])

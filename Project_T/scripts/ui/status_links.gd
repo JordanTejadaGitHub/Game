@@ -195,7 +195,8 @@ func _show_for(meta: String, host: Control, tapped: bool) -> void:
 		var combo := CodexData.get_any(id)
 		var found := CodexData.is_discovered(id) and not combo.is_empty()
 		var statuses: Array = combo.get("statuses", [])
-		_icon.texture = IconInfo.icon(statuses[0]) if found and not statuses.is_empty() else null  # Its first status
+		var own := IconInfo.icon(id) if found else null  # Its Reaction icon (UI Asset; known ones only), else its first status
+		_icon.texture = own if own != null else (IconInfo.icon(statuses[0]) if found and not statuses.is_empty() else null)
 		_icon.visible = _icon.texture != null
 		_name.text = combo.get("name", String(id)) if found else "???"
 		_text.text = combo_tip_text(id)

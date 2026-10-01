@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "flurry"
+display_name = "Flurry"
+description = "Every 5th attack from a Warden fires twice."
+rarity = 1
+kind = 3
+tags = Array[String](["swift"])
+max_stacks = 1
+in_start_pool = false
+rule_id = &"flurry"

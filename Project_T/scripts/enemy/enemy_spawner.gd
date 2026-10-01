@@ -38,7 +38,18 @@ var blight_materials := {}  # {outlined: ShaderMaterial} shared by the nightmare
 # Most nightmares on the field at once (platforms.md "Calling drifts early stacks them"): drifts
 # called early stack, so the drift schedule holds new arrivals in the start mist while it's full
 # (DriftDirector asks has_room). Split children, followers and summons still always come.
-@export var max_field := 180
+@export var max_field := 140  # Was 180: stacked late drifts still spiked (Main's probe); interim, story chat
+# For hidden nightmares' reveal checks (Enemy._is_revealed), kept here so a crowd of Lurkers doesn't
+# each scan every Warden and every nightmare: {cell: Tower} for every Warden's cells, the Wardens that
+# Mark (they reveal in their whole range), and the nightmares that reveal others (reveal_radius).
+# Rebuilt when Wardens come or go, and every TOWER_LOOKUP_REFRESH s (evolving changes what they apply).
+var tower_cells := {}
+var marker_towers: Array = []
+var revealers: Array = []
+var _towers_dirty := true
+var _revealers_dirty := true
+var _tower_lookup_age := 0.0
+const TOWER_LOOKUP_REFRESH := 0.5
 var thin_cards := false  # Any of the above owned (else nightmares skip their per-frame bookkeeping)
 var rooted_cells := {}  # {cell: Held nightmare} (Rooted Nightmares; see _update_rooted_cells)
 var waiting_cells := {}  # {cell: nightmare waiting behind a rooted one}
@@ -70,6 +81,10 @@ func _ready() -> void:
 	overlay.name = "NightmareOverlay"
 	overlay.spawner = self
 	(owner if owner != null else get_parent()).add_child.call_deferred(overlay)
+	tower_container.child_entered_tree.connect(func(_node: Node) -> void: _towers_dirty = true)
+	tower_container.child_exiting_tree.connect(func(_node: Node) -> void: _towers_dirty = true)
+	child_entered_tree.connect(func(_node: Node) -> void: _revealers_dirty = true)
+	child_exiting_tree.connect(func(_node: Node) -> void: _revealers_dirty = true)
 	map_generator.path_changed.connect(_on_path_changed)
 	map_generator.obstacle_cleared.connect(func(cell: Vector2, _data: ObstacleData) -> void: _wither_sprite(cell))
 
@@ -173,6 +188,7 @@ func _process(delta: float) -> void:
 	thin_cards = root_web_share > 0.0 or root_web_boss_share > 0.0 or release_pull > 0.0 \
 			or caught_linger > 0.0 or marked_bonus > 0.0
 	_update_rooted_cells(dreams)
+	_update_reveal_lookup(delta)
 	_update_lantern_light()
 
 # Rooted Nightmares (Dream card 122): with the card, every Held maze walker blocks its cell for the
@@ -194,6 +210,36 @@ func _update_rooted_cells(dreams: DreamState = null) -> void:
 				rooted_cells[enemy.get_current_cell()] = enemy
 		elif enemy.waiting:
 			waiting_cells[enemy.get_current_cell()] = enemy
+
+# The reveal lookups (see tower_cells) go stale every TOWER_LOOKUP_REFRESH s (evolving changes what a
+# Warden applies); coming and going marks them stale at once (signals in _ready).
+func _update_reveal_lookup(delta: float) -> void:
+	_tower_lookup_age += delta
+	if _tower_lookup_age >= TOWER_LOOKUP_REFRESH:  # Evolving changes what a Warden applies
+		_tower_lookup_age = 0.0
+		_towers_dirty = true
+
+# Rebuilds the reveal lookups that went stale (Wardens or nightmares came or went, or the refresh):
+# Enemy._is_revealed calls it first, so a Warden planted this frame already counts.
+func refresh_reveal_lookup() -> void:
+	if _revealers_dirty:
+		_revealers_dirty = false
+		revealers.clear()
+		for enemy in get_children():
+			if enemy.enemy_data.reveal_radius > 0.0:
+				revealers.append(enemy)
+	if not _towers_dirty:
+		return
+	_towers_dirty = false
+	tower_cells.clear()
+	marker_towers.clear()
+	for tower in tower_container.get_children():
+		if not tower is Tower or tower.is_queued_for_deletion() or tower.attack_data == null:
+			continue
+		for cell in tower.get_cells():
+			tower_cells[cell] = tower
+		if tower.attack_data.applies_status == EnemyStatuses.MARKED:
+			marker_towers.append(tower)
 
 # A route from `from` to the Heartwood that avoids every rooted cell (except `from` itself), without
 # changing the map. Empty if the Held nightmares close every way (then the walker waits).
@@ -463,7 +509,7 @@ func _call_pack(huntsman: Node2D) -> void:
 	if count > 0:
 		huntsman.play_pose(&"horn")  # He raises the bone horn and blows
 
-# Night Mare: every lap takes its lap leaves (Leaf Fall doubles them, as for any leak).
+# Night Mare: back at the start for another lap (its leaves went while it lingered), Shades behind it.
 func _on_heartwood_drained(enemy: Node2D) -> void:
 	var leaves := 1
 	var omens := get_tree().get_first_node_in_group(OmenDirector.GROUP) as OmenDirector
@@ -475,15 +521,7 @@ func _on_heartwood_drained(enemy: Node2D) -> void:
 	boss_drained.emit(enemy, leaves)
 
 func _on_lapped(enemy: Node2D) -> void:
-	# The lap it just ran (laps already counts it): 3, then 5, 7… with lap_leaves_step 2
-	var leaves: int = enemy.enemy_data.lap_leaves + enemy.enemy_data.lap_leaves_step * (enemy.laps - 1)
-	var omens := get_tree().get_first_node_in_group(OmenDirector.GROUP) as OmenDirector
-	if omens:
-		leaves = roundi(leaves * omens.get_leak_multiplier())
-	var run_state = get_node_or_null("%RunState")
-	if run_state != null:
-		run_state.lose_leaves(leaves)
-	enemy_lapped.emit(enemy, leaves)
+	enemy_lapped.emit(enemy, 0)  # A lap costs nothing itself: it drains leaves while it lingers (boss_drained)
 	_run_from_start(enemy.enemy_data.lap_spawn, enemy.enemy_data.lap_spawn_count, enemy)  # Shades behind it
 
 # Lamplighter: lights a cold lantern on an empty cell beside its route, near it (up to lantern_max).
