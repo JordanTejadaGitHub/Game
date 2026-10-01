@@ -130,6 +130,7 @@ Queen an act 3 boss.
 - **Night Mare: each lap costs more** than the last: **3, then 5, then 7, then 9 leaves** (+2 per lap), and it keeps speeding up. A strong maze kills it on the first or second pass; a weak one is lapped to death by the third or fourth. Health back to the act 1 boss value (×1.75).
 - **Scarecrow: Crows cost 2 leaves each** (were 1), **4 per burst** and 4 when it falls. Health ×1.75. *Pre-run: barely matters (15/15 vs 14/15): the maze shoots almost every Crow down. Next: **tougher Crows**. **Chosen after the sweep: Crow health 120, speed 190, 2 leaves** (Dreams 80% vs skip 40%; 160/190 was lethal for skip and dropped Dreams to 53%).*
 Then the same sweep (Dreams vs skip, 15 seeds).
+**Results:** Night Mare with laps 3/5/7/9 at ×2.0–2.5 barely separates (it dies on its second pass; one lap costs 3) → next: **laps start at 5** (5/7/9) at ×2.0 / 2.25; fallback the first lap drains like the Stag. **Scarecrow** at Crows 120 HP / 190 speed / 2 leaves: two runs gave 12/15 vs 6/15 and 10/15 vs 9/15 → about **Dreams 73% / skip 50%: accepted**, human runs refine it.
 
 **Weakness spread:** act 1 water / light / spore (the three starting families); act 2 root / stone /
 water; act 3 light / root / song; act 4 spore / water / light. Bosses are tallied **separately** from the regular
@@ -438,3 +439,5 @@ echoes (Remembering Oak: spawns this run's dispelled bosses from the draw at a h
 6. Boss pools: the draw and boss slot first (Stag, Hag and Queen already give acts 1–3 one
    each), then the new bosses act by act: Night Mare and Scarecrow, then Huntsman and
    Lamplighter, then Barrow King and Mourning Mother.
+
+**Night Mare, final fallback (2026-09-30):** laps starting at 5 (5/7/9) at ×2.0–2.25 still didn't separate (Dreams 14/15, skip 12/15; it dies on its second pass). Now it **stays and drains at the Heartwood like the other bosses (1 leaf every 2 s, hittable), then gallops back for another lap (+30% speed); each visit lingers longer: 6 s, 10 s, 14 s (≈3, 5, 7 leaves)**. Damage at the Heartwood decides it. Swept Dreams vs skip at ×1.75 / 2.0 after Enemy Code's commit.

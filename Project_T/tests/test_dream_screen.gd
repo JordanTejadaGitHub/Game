@@ -124,6 +124,44 @@ func _run() -> void:
 	_check(dreams.opened_clearing(ground) and not dreams.opens_clearing(ground), "once taken it opened clearing; later clearing cards don't say so")
 	_check(dreams.to_save().get("clearing_opened_by") == "heartwoods_reach", "…saved with the run")
 	print("longest cards: %s, %s" % [cards[1].display_name, cards[2].display_name])
+	# Placement cards show a diagram (dream_design.md, user: "confusing cards like Crossroads should have a diagram"):
+	# every diagram is 5 rows of 7 legend characters with a qualifying Warden and a caption; hovering Crossroads in an
+	# offer shows it beside the card, on screen; leaving hides it.
+	var legend := ".P+123456789WwaTXOQ*HS"
+	var with_diagram := 0
+	for card in dreams.pool:
+		if not CardDiagram.has_diagram(card):
+			continue
+		with_diagram += 1
+		var rows: PackedStringArray = card.diagram.strip_edges().split("
+")
+		var shape_ok := rows.size() == 5 and Array(rows).all(func(r: String) -> bool: return r.length() == 7)
+		var chars_ok := Array(rows).all(func(r: String) -> bool:
+			for ch in r:
+				if not legend.contains(ch):
+					return false
+			return true)
+		var has_hero := card.diagram.contains("W") or card.diagram.contains("Q") or card.diagram.contains("X")
+		_check(shape_ok and chars_ok and has_hero and card.diagram_caption != "", "%s: a 7×5 diagram with a caption (%s)" % [card.id, card.diagram])
+	_check(with_diagram >= 15, "the first set of placement cards have diagrams (%d)" % with_diagram)
+	var crossroads: UpgradeData = dreams.pool.filter(func(c: UpgradeData) -> bool: return c.id == "crossroads").front()
+	var diagram_offer: Array[UpgradeData] = [crossroads, longest[0], longest[1]]
+	dreams.current_offer = diagram_offer
+	screen._show_offer(diagram_offer, 30)
+	for i in 3:
+		await process_frame
+	var cross_button := screen._cards.get_child(0).get_child(0) as Button
+	cross_button.mouse_entered.emit()
+	for i in 3:
+		await process_frame
+	var shown_diagram: Control = screen._diagram
+	_check(shown_diagram != null and is_instance_valid(shown_diagram) and shown_diagram.visible, "hovering Crossroads shows its diagram")
+	if shown_diagram != null and is_instance_valid(shown_diagram):
+		var diagram_rect := shown_diagram.get_global_rect()
+		_check(Rect2(Vector2.ZERO, Vector2(root.size)).encloses(diagram_rect) and not diagram_rect.intersects(cross_button.get_global_rect()),
+			"…beside the card, on screen (%s, card %s)" % [diagram_rect, cross_button.get_global_rect()])
+	cross_button.mouse_exited.emit()
+	_check(screen._diagram == null, "…and leaving the card hides it")
 	print("dream screen test: %s" % ("PASS" if failures == 0 else "%d FAILED" % failures))
 	quit(failures)
 

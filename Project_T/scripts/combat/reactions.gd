@@ -192,6 +192,30 @@ const EFFECT_TAGS: Array[StringName] = [&"spored", &"static", &"thunderclap", &"
 static func is_effect(tag: StringName) -> bool:
 	return tag in EFFECT_TAGS
 
+# Chain falloff (tower_design.md "Chain falloff", 2026-09-30): from the 6th link of a chain, each
+# Reaction deals 15% less than the one before (6th ×0.85, 7th ×0.70 …), never below 25%. Read off the
+# nightmare's chain mark (_fire sets it before the Reaction deals its damage). Chain counts, discoveries
+# and Dawnbreak still count every link; Dawnbreak's own damage isn't reduced. Enemy.take_damage asks.
+const CHAIN_FALLOFF_FROM := 6
+const CHAIN_FALLOFF_STEP := 0.15
+const CHAIN_FALLOFF_FLOOR := 0.25
+const CHAIN_FALLOFF_TAGS: Array[StringName] = [&"thunderclap", &"ignite", &"shatter", &"pinned", &"lightning_rod",
+	&"echo", &"carried_storm", &"avalanche", &"starfall", &"fever_dream", &"drown"]
+
+static var chain_falloff_on := true  # Balance sims: --no-falloff measures without it
+
+static func chain_falloff(enemy: Node2D, tag: StringName) -> float:
+	if not chain_falloff_on or not tag in CHAIN_FALLOFF_TAGS:
+		return 1.0
+	var s: EnemyStatuses = enemy.statuses
+	return chain_falloff_at(s.chain_count if s.chain_time > 0.0 else 1)
+
+# The falloff for link `chain` of a chain (1.0 up to the 5th).
+static func chain_falloff_at(chain: int) -> float:
+	if chain < CHAIN_FALLOFF_FROM:
+		return 1.0
+	return maxf(1.0 - CHAIN_FALLOFF_STEP * (chain - CHAIN_FALLOFF_FROM + 1), CHAIN_FALLOFF_FLOOR)
+
 # Effect damage × the source's Potency × Seeping (1 + 5% per status the nightmare carries).
 static func effect_multiplier(enemy: Node2D, source: Tower) -> float:
 	var multiplier := source.get_potency()

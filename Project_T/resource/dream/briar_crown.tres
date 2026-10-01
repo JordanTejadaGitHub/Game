@@ -13,3 +13,5 @@ tags = Array[String](["wall", "maze"])
 max_stacks = 1
 min_act = 2
 rule_id = &"briar_crown"
+diagram = ".......\n...W...\n...X...\nPP+++PP\n......."
+diagram_caption = "A nightmare stepping beside the Thornwall takes 25% of the strongest Warden touching it."

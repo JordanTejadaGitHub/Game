@@ -46,7 +46,7 @@ marks them as imported.
 
 Redesigned 2026-09-27 (user decision): the Grove is a **tech tree** growing up from the Heartwood's
 roots, with **three sections**. Each node costs Seeds and needs its parent node(s). 84 nodes,
-**≈ 6,040 Seeds** in total (2026-09-30, after the final-forms nodes left; see Seeds above).
+**≈ 6,140 Seeds** in total (2026-09-30, after the final-forms nodes left and the Cards limb swap; see Seeds above).
 
 ```
                  FAMILIES (middle limb)
@@ -205,21 +205,39 @@ Dream pool). The limb splits into **one branch per build style**; each branch gr
 bundles near the trunk to **a Legendary flower at its tip**. So the tree also shows which build
 styles a player has grown into.
 
+**No combo cards in the Grove** (user, 2026-09-30: *"combo cards shouldn't be locked behind the
+Grove; other generic cards that help with builds or can define builds should be"*). The Cards limb
+holds only **generic build cards**: ones that help or define a build style, not ones that pay off
+two systems together.
+- **Combo cards unlock by discovering their combo in play** (like the Reactions, Woven and Kinship
+  cards since 2026-09-29, `dream_design.md` "Grove overlap"): **Dawnbreak** (a ×10 Reaction chain),
+  **Grove of Kin** (a Kinship), **Static Bloom** (Storm + Sleep), **Chain Bloom** (Puffball in
+  Mistveil's fog), **Starlit Aim** (Marked + crit).
+- **Family cards** left over (Static Field, Twin Puff, Guiding Light) come with their family; all
+  three are starting families, so they're always in the pool.
+- So the **Storm**, **Spores and Reactions** and **Kinship** branches are gone (Storm Lore 40,
+  Guiding Lights 60, Spore Lore 40, Dawnbreak 120, Grove of Kin 120 = −380, refunded to old saves).
+- Two **new build branches** take their place (+480): **Swift** (attack speed) and **Wide Reach**
+  (area / splash). Cards to be designed by Roguelite Mechanic Discussion; each tip is a
+  build-defining Legendary. Tree ≈ **6,140 Seeds**, still ~30 hours.
+
 | Branch | Node 1 (near the trunk) | Node 2 | Tip: Legendary |
 |---|---|---|---|
-| **Storm** | *Storm Lore*: Charged Bloom, Charged Field (40) | *Guiding Lights*: Guiding Light, Starlit Aim (60) | — (Storm builds share the Reactions tip) |
-| **Spores and Reactions** | *Spore Lore*: Twin Puff, Chain Bloom (40) | *Reactions*: Wildfire Spores, Deep Water, Quick Reactions, Kin and Kindling (70) | **Dawnbreak** (120) |
-| **Woven** (Crowned Reactions) | *Woven Dreams I*: Eye of the Tempest, Deep Stillness, Fever Pitch, Falling Stars (90; needs *Reactions*) | *Woven Dreams II*: Mountain's Fall, Prism Heart, Endless Night, Ring of Rings (90) | — (Crowned Reactions always work; these cards strengthen them) |
-| **Keen Edges** (crit) | *Sharpened*: Still Target, Shattering Blow (50) | — (*Reckless* removed 2026-09-30: its only card was cut in the pool trim) | **Full Moon** (120; needs Sharpened) |
+| **Swift** (attack speed) *(new)* | *Quickening*: Momentum, Quickening, Flurry (50) | *Light Feet*: Restless Roots, Hummingheart (70) | **Whirlwind Heart** (120) |
+| **Wide Reach** (area, splash) *(new)* | *Broad Strokes*: Broad Splash, Lingering Splash (50) | *Far Reach*: Far Reach, Spillover (70) | **Great Ripple** (120) |
+| **Keen Edges** (crit) | *Sharpened*: Still Target, Shattering Blow (50) | — | **Full Moon** (120; needs Sharpened) |
 | **Deep Poison** (Potency) | *Seeping* (50) | *Venom*: Venom Bloom (40) | **Nightshade** (120) |
-| **Kinship** (going deep) | *Kin Lore*: Close Kin, Old Friends (50) | *Deep Bonds*: Rooted Bond, Extended Family (70) | **Grove of Kin** (120) |
-| **The Quiet Ones** (support Wardens) | *Catchers*: Wide Bowl, Dew Trail, Still Waters, Acorn Cache (50) | *Old Wood*: Overflowing Well, Hedgerow Roots, Grandfather Stump, Living Walls, Many Threads (70) | **The Quiet Ones** (120) |
+| **The Quiet Ones** (support Wardens) | *Catchers*: Dew Trail, Acorn Cache (50; Wide Bowl merged into Dew Trail, Still Waters cut in the power pass) | *Old Wood*: Overflowing Well, Hedgerow Roots, Grandfather Stump, Living Walls, Many Threads (70) | **The Quiet Ones** (120) |
 | **Seeds** (support and economy bets) | *Planted Promises*: Dew Bowl, Harvest Moon, Kind Canopy, Patient Roots (50) | *Deep Promises*: Deep Well, Shared Light (70) | **Golden Harvest** (120) |
 | **Tending** (nurture, tall) | *Tending Hands*: Sunlit Rest, Deeper Rings (60) | *Nursery*: Nursery, Chosen Few (70) | **The Old Ones** + **Endless Rings** (150) |
-| **Overgrowth** (wide) | *Seedbed*: Seedling Gift, Canopy (60) | — (*Wild Planting* removed 2026-09-30: its only card was cut in the pool trim) | **Rootbound** (100; needs Seedbed) |
+| **Overgrowth** (wide) | *Seedbed*: Seedling Gift, Canopy (60) | — | **Rootbound** (100; needs Seedbed) |
 | **Lone Lantern** (narrow) | *One Line*: Monoculture (80) | — | **The Last Light** (120) |
 | **The Long Way** (maze, clearing) | *Dead Wood*: Burn Back the Dead Wood (40) | — | **The Long Walk** (100) |
-| **Bittersweet** | *Bittersweet Dreams*: Deep Sleep, Borrowed Dew, Wild Growth, Overgrown, Restless Dreams, Hungry Roots, Borrowed Memory, Blood Is Thicker (60; needs any 2 other nodes) | — | — |
+| **Bittersweet** | *Bittersweet Dreams*: Deep Sleep, Restless Dreams (60; needs any 2 other nodes) | — | — |
+
+Removed over time: Reactions, Woven Dreams I–II, Kin Lore, Deep Bonds (2026-09-29, discovery
+unlocks); Reckless, Wild Planting (2026-09-30, pool trim); Storm Lore, Guiding Lights, Spore Lore,
+Dawnbreak, Grove of Kin (2026-09-30, no combo cards in the Grove).
 
 - Each node needs the one before it on its branch; a tip needs both nodes below it (or the one,
   where a branch has a single node).
@@ -227,7 +245,7 @@ styles a player has grown into.
   with their family or hidden-branch node on the Families limb.
 - **Start-pool cards** (the basic stat, economy and first build cards) are always available, so a
   new player already has a full Dream pool; this limb adds depth and big payoffs.
-- Total ≈ 1,300 Seeds. New cards join an existing branch's bundle or start a new branch.
+- Total ≈ 2,200 Seeds as of 2026-09-30 (with the two new branches). New cards join an existing branch's bundle or start a new branch; **combo cards never go here**.
 
 **Families before the Grove fills in:** a new player has only 3 families (Sporeling, Firefly Jar,
 Dewdrop), but a run offers family picks at drift 1 and at the 25/50/75 bosses. When there are

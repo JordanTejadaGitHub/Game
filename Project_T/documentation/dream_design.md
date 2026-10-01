@@ -305,7 +305,11 @@ the profile like the Codex). The forest dreams of what it has seen.
 |---|---|---|
 | **A Reaction** | the first time that Reaction fires, ever (profile `reactions_seen`) | cards that name that Reaction: Thunderclap → Rolling Thunder, Rain on Glass, Conductive Soil; Ignite → Wildfire Spores, Sparking Spores; Mushrooming → Mushroom Rain, Damp Rot; Drown → Deep Water. **Any 2 Reactions** → Quick Reactions |
 | **A Crowned Reaction** | the first time it fires | its Woven card (Tempest → Eye of the Tempest, Still Pool → Deep Stillness, …) |
-| ~~**A chain**~~ | — | (Dawnbreak is a Legendary: not discovery-gated, it stays a Grove tip; resolved 2026-09-29) |
+| **A ×10 chain** | the first ×10 Reaction chain, ever (profile `best_chain`) | **Dawnbreak** (Legendary; moved out of the Grove 2026-09-30) |
+| **A first Kinship** | the first time any Kinship forms (same as the row below) | also **Grove of Kin** (Legendary; moved out of the Grove 2026-09-30) |
+| **Charged + Drowsy** | the first time one nightmare carries Charged and Drowsy together | **Charged Bloom** (id `static_bloom`) |
+| **Puffball in the fog** | the first Puffball pop on a nightmare inside Mistveil's fog | **Chain Bloom** |
+| **A crit on a Marked nightmare** | the first crit that lands on a Marked nightmare | **Starlit Aim** |
 | **A Kinship** | the first time **any** Kinship forms | the Kinship cards (124–133) |
 | **A Warden** | the first time you **build or grow into** that Warden | cards whose Needs name it (Soft Spores → Sporeling, Shiny Things → Magpie Perch, Heavy Stones → Pebbling, Twin Puff → Sporeling, …) and its branch / final-form unlock cards |
 
@@ -340,6 +344,12 @@ the profile like the Codex). The forest dreams of what it has seen.
   a Stormcap, which defeats a card meant to tempt toward the other family.
 - **Not covered** (stay as they are): generic cards, stat cards, Legendaries (they start builds and
   need no discovery), clearing and Nurture cards (their openers already read the run).
+  **Exception (2026-09-30, "no combo cards in the Grove", `meta_design.md` Section 3):** the two
+  *combo* Legendaries, **Dawnbreak** and **Grove of Kin**, now unlock by discovery (rows above)
+  instead of being Grove tips; this replaces the 2026-09-29 "Resolved" note for them. Discovery is
+  a profile unlock like the Grove, not an in-run Need, so the Legendary rules still hold (no card
+  Needs in a run). **Static Field, Twin Puff and Guiding Light** come with their starting families
+  and are in the pool from the first run.
 - **Demo:** nothing is saved, so discoveries count **for the current run only**. **Dev modes** (Test
   Grove, Unlock all families) treat everything as discovered.
 - **Data:** `UpgradeData.discovered_by` (a list: `reaction:<id>`, `crowned:<id>`, `chain:5`,
@@ -1249,6 +1259,96 @@ are short at 5+ by 100 (both board-heavy, no stacking card: a card change if wan
 the three-family Warden builds (Full Moon, Gale, Hairpin Mill, Rockfall, Thunder Chimes, The Grove)
 stay rare by nature; overall power after the free-branch change belongs to the balance sim
 (`balance_simulation.md`), not to Dream weighting.
+
+## The starting Dream pool (DRAFT, 2026-09-30, for the design hub)
+
+**Status: draft for Meta Game Discussion and the design hub; not to be built until the hub signs off.**
+Why: a new account's first run can be offered most of the pool (123 base cards in the start pool:
+32 C / 50 U / 31 R / **10 Legendary**), so builds come together too easily. Target **~25 C / 30 U /
+10 R / 0 L**. Rules:
+- **Starting pool** = the basics, the three starting families' cards, and **one or two "taster"
+  cards per build direction**, so a new player meets every build without being handed one.
+- **Build-defining cards** (a direction's payoffs and Rares, and **all Legendaries**) move to **Grove
+  Card nodes, one direction per node** (Meta owns the nodes).
+- **Not counted / unchanged:** family cards of **Grove families** (Pebbling, Rootling, Bellflower,
+  Acorn, Nestling, Whirligig) stay "start pool" but can't be offered until that family is unlocked;
+  **combo cards** stay start pool but are discovery-gated (a new account hasn't found the combo).
+  So a brand-new account's first run really sees **~55** cards.
+
+**The starting pool (65):**
+
+| Rarity | Cards |
+|---|---|
+| **Common (25)** | *Basics:* Quickened Sap, Deeper Calm, Longer Roots, Deep Roots, Thick Bark · *Starting families:* Soft Spores, Brighter Jars, Heavy Dew, Bright Marks, Live Wire · *Combo (discovery):* Damp Rot, Rain on Glass, Sparking Spores · *Economy:* Morning Dew, Call of the Wild · *Tasters, one per direction:* Tender Care (Tall), Seedfall (Overgrowth), Quick Step (Daring), Glinting Dew (Precision), Bitter Sap (Affliction), Winding Path (Maze), Cleared Ground + Heartwood's Reach (Tending / clearing), Family Ties (Kinship) · Lasting Dreams |
+| **Uncommon (30)** | *Starting families:* Lingering Spores, Soaked Through, Lingering Mark, Twin Puff · *Bridges with them:* Mycelium, Fireflies in the Grass, Spore Kin · *Combo (discovery):* Rolling Thunder, Wildfire Spores, Mushroom Rain, Deep Water · *Maze basics:* Cozy Corners, Straightaway, Hedge Maze, Weathered Walls · *General:* Evergreen, Sudden Insight, Glimmering Hunt, Heavy Air · *Second tasters:* Crowded Path, Last Breath (Affliction), Lone Hunter, Watchful Rest (Precision), Sprout Chorus, Many Hands (Overgrowth), Kindred Roots (Tall), Sweet Harmony, Old Friends (Kinship), Fresh Growth, Head Start (Daring) |
+| **Rare (10)** | *Starting families:* Charged Field, Guiding Light, Called Shot · *Combo:* Conductive Soil, Spore Cascade (Entwined) · *General:* Heart of the Maze, First Light, Root Network, Thinning the Herd, Steadfast |
+| **Legendary (0)** | all Legendaries are Grove tips (or discovery, for Dawnbreak and Grove of Kin) |
+
+**Moving to Grove nodes (suggested homes; Meta owns the final node list):**
+
+| Direction node | Cards that move there | Tip (Legendary) suggestions |
+|---|---|---|
+| Tall | Solitude, Elder Kin, Few and Mighty (+ its existing Sunlit Rest, Deeper Rings, Nursery, Chosen Few) | The Old Ones + Endless Rings; The Last Light; Monoculture |
+| Overgrowth | Mixed Grove, Odd One Out, Grand Tour (+ Seedling Gift, Canopy) | Menagerie; Rootbound |
+| Daring | Scarred Bark, Thin Bark, Desperate Bloom, Second Wind, Last Stand | Restless Night; Last Leaf |
+| Precision | Hunter's Patience (+ Still Target, Shattering Blow) | Full Moon; Hunter's Moon |
+| Affliction | Crowd Breaker (+ Seeping, Venom Bloom) | Nightshade; Eternal Charge |
+| Maze | Forest's Edge, Bitter Hedges (+ Burn Back) | The Long Walk; Crossroads; Briar Crown; Rooted Nightmares |
+| Tending | Reclaimed Earth, Tended Forest, Thorn Snare, Bramble Oath | Wildwood Reclaimed; The Quiet Ones |
+| Kinship | Rooted Bond, Extended Family, Blood Is Thicker | (Grove of Kin is discovery) |
+| Swift / Wide Reach | their new cards (235–245) | Whirlwind Heart; Great Ripple |
+| Dreams | Lucid Dreaming (a small node, or with Bittersweet) | — |
+
+- **Counts after the move:** start pool 65 (+ Grove-family cards and discovery cards that a new
+  account can't see yet). Each Grove direction node adds 2–5 cards, so buying one deliberately
+  widens one build.
+- **Interaction with the trim's measurements:** tasters keep every card build discoverable on run
+  one (Emergence), while the payoffs need the Grove (a build you choose to grow into, across runs).
+  Re-measure with a fresh-profile preset (`MetaRun.load_preset(&"fresh")`) after the move.
+
+## Grove build branches: Swift and Wide Reach (2026-09-30)
+
+For `meta_design.md` Section 3 (Meta Game Discussion, after the user's "no combo cards in the
+Grove"). Two **generic** build branches: no combo payoffs, no single-family cards; each works with
+any Warden. Grove pool (they join once the node is bought). Two new archetype tags, so taking one
+lifts its branch: **`swift`** and **`reach`** (card builds C9 and C10). Numbers sized to the
+`dream_audit.md` budget.
+
+**Swift (attack speed)**
+
+| Node | # | Card | Rarity | Effect |
+|---|---|---|---|---|
+| 1 *Quickening* (50) | 235 | **Momentum** | Uncommon | a Warden attacking the **same nightmare** again gains **+6% attack speed per hit** (max +45%); resets on a new target |
+| | 236 | **Quickening** | Common | when a nightmare is dispelled in a Warden's range, that Warden gets **+30% attack speed for 4 s** |
+| | 237 | **Flurry** | Uncommon | every **5th attack** from a Warden **fires twice** |
+| 2 *Light Feet* (70) | 238 | **Restless Roots** | Uncommon | Wardens with **under 1 attack per second** (before bonuses) get **+45% attack speed** |
+| | 239 | **Hummingheart** | Rare | every **+10% bonus attack speed** a Warden has also gives it **+3% damage** (max +60%) |
+| Tip (120) | 240 | **Whirlwind Heart** | Legendary | **all attack-speed bonuses count double**; every hit deals **−20% damage**. You build around stacking attack speed |
+
+**Wide Reach (area, splash)**: "area attacks" = splashes, pulses, clouds, lobs, chains, sweeps
+(anything `Tower.hit(..., is_area = true)`).
+
+| Node | # | Card | Rarity | Effect |
+|---|---|---|---|---|
+| 1 *Broad Strokes* (50) | 241 | **Broad Splash** | Common, stacks (max 3) | area attacks' **radius +0.25 cells** per stack |
+| | 242 | **Lingering Splash** | Uncommon | every **3rd area attack** leaves a patch (1 cell, 2 s) that deals **25% of that hit per second** to nightmares inside (effect damage) |
+| 2 *Far Reach* (70) | 243 | **Far Reach** | Uncommon | Wardens with an **area attack** get **+0.75 range** |
+| | 244 | **Spillover** | Rare | when an area attack **dispels** a nightmare, the **leftover damage** splashes to nightmares within 1 cell |
+| Tip (120) | 245 | **Great Ripple** | Legendary | every area attack **hits again 1 s later** in a ring **1 cell wider**, at **50%** (an aftershock). You build around big area Wardens |
+
+- **Generic by design:** every family has attackers with both normal and area attacks, so neither
+  branch needs a family. Swift helps single-target and fast Wardens; Wide Reach helps splash, pulse
+  and cloud Wardens: the two pull a board different ways.
+- **Archetypes:** `swift` and `reach` join the build tags (two more card builds, C9 Swift and C10
+  Wide Reach, measured like the others). They're Grove-only, so a fresh profile never sees them.
+  `reach` and `affliction` overlap a little (area and effect damage both hit crowds); that's fine,
+  as a bridge.
+- **Limits:** Flurry's extra shot and Great Ripple's aftershock never trigger themselves (no chains).
+  Spillover doesn't trigger off its own splash. Whirlwind Heart's doubling applies to bonuses only,
+  not base speed, and attack speed is capped where the attack animation can't go faster (Tower
+  Code's existing cap).
+- **Deepened:** Momentum II (+8% per hit, max +60%), Broad Splash II not needed (it stacks), Lingering
+  Splash II (every 2nd area attack), Far Reach II (+1.25 range).
 
 ## Status effect numbers
 

@@ -23,6 +23,9 @@ var _skip := Button.new()
 var _reroll := Button.new()  # Second Thoughts (Memory Grove)
 var _dev_any := Button.new()  # "Dev: any card…" (dev runs of debug builds; demo_scope.md "Pick any card")
 var peek: ChoicePeek  # Minimise to look at the map (screens_ui.md "Choice screens")
+var _diagram: CardDiagram = null  # The hovered placement card's map picture (dream_design.md "Placement cards show a diagram")
+var _held_for_diagram := false  # A long-press showed the diagram: that release doesn't take the card
+const LONG_PRESS := 0.45
 
 func _ready() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -97,7 +100,23 @@ func _make_card(card: UpgradeData) -> Button:
 	var button := Button.new()
 	button.custom_minimum_size = CARD_SIZE
 	button.focus_mode = Control.FOCUS_NONE
-	button.pressed.connect(dream_state.choose.bind(card))
+	button.pressed.connect(func() -> void:
+		if _held_for_diagram:
+			_held_for_diagram = false  # The long-press was to look, not to take
+			return
+		dream_state.choose(card))
+	if CardDiagram.has_diagram(card):
+		button.mouse_entered.connect(show_diagram.bind(card, button))
+		button.mouse_exited.connect(hide_diagram)
+		button.button_down.connect(func() -> void:  # Touch: a long-press shows it
+			await get_tree().create_timer(LONG_PRESS, true).timeout
+			if is_instance_valid(button) and button.button_pressed:
+				_held_for_diagram = true
+				show_diagram(card, button))
+		button.button_up.connect(func() -> void:
+			if not _held_for_diagram:
+				return
+			hide_diagram())
 	# Moonlit Thread card (ui_style.md): solid fog, the top thread in the rarity colour (Entwined: the
 	# vine green; Woven: glowing).
 	UiStyle.card_button(button, ENTWINED_COLOR if card.entwined else UpgradeData.rarity_color(card.rarity))
@@ -288,7 +307,34 @@ func _add_linked_line(box: VBoxContainer, text: String, color: Color, font_size:
 	box.add_child(label)
 	return label
 
+# The diagram panel beside `button` (right of it, or left when there's no room), kept on screen.
+func show_diagram(card: UpgradeData, button: Control) -> void:
+	hide_diagram()
+	_diagram = CardDiagram.make(card)
+	if _diagram == null:
+		return
+	_diagram.name = "CardDiagram"
+	_diagram.z_index = 10
+	add_child(_diagram)
+	await get_tree().process_frame
+	if not is_instance_valid(_diagram) or not is_instance_valid(button):
+		return
+	var card_rect := button.get_global_rect()
+	var view := get_viewport_rect().size
+	var size := _diagram.get_combined_minimum_size()
+	var x := card_rect.end.x + 8.0
+	if x + size.x > view.x - 8.0:
+		x = card_rect.position.x - size.x - 8.0
+	var y := clampf(card_rect.position.y + 24.0, 8.0, view.y - size.y - 8.0)
+	_diagram.global_position = Vector2(maxf(x, 8.0), y)
+
+func hide_diagram() -> void:
+	if _diagram != null and is_instance_valid(_diagram):
+		_diagram.queue_free()
+	_diagram = null
+
 func _on_closed() -> void:
+	hide_diagram()
 	# If another Dream is queued, offer_ready follows right away and shows (and pauses) again.
 	visible = false
 	game_speed.set_paused(_was_paused)

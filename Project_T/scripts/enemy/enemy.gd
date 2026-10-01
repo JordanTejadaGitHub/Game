@@ -1661,6 +1661,7 @@ func take_damage(amount: float, line: String = "", is_area: bool = false, is_cri
 		return
 	if source is Tower and Reactions.is_effect(tag):
 		amount *= Reactions.effect_multiplier(self, source)  # Potency (and Seeping)
+	amount *= Reactions.chain_falloff(self, tag)  # Chain falloff: 6th link ×0.85, 7th ×0.70 … (floor 25%)
 	if is_crit:
 		_crit_flash = CRIT_FLASH_TIME
 		var world := Reactions._world(self)

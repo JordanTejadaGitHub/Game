@@ -228,7 +228,7 @@ adds +5%. Clouds, fog, Spored, Static bolts and Puffball pops never crit.
 | ✓ Sprout | 10 | 2.5 | 10 × 1.0 | 10 | projectile | none |
 | ✓ Thornwall | 3 | — | — | — | wall | no attack |
 | ✓ Bramble | +10 | 1.25 | 6 × 1.5 | 9 (area) | pulse | soothes creatures walking beside it; **×2 vs Held** (proposed) |
-| ✓ Honeysuckle | +10 | 1.25 | — | — | aura | nightmares beside it gain **1 Drowsy per 1.5 s** (no damage) |
+| ✓ Honeysuckle | **+30** (was +10) | 1.25 | — | — | aura | nightmares beside it gain **1 Drowsy per 1.5 s** (no damage); **Drowsy from walls caps at 3 stacks** (walls slow, they don't put to sleep alone; 2026-09-30, user: "too overpowering with the slow for how cheap it was", run 2 had 35 Honeysuckles) |
 
 ## Sporeling family (spore)
 

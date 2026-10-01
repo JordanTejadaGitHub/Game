@@ -107,13 +107,14 @@ func _test_blocks_and_rests() -> void:
 		and is_equal_approx(director.get_health_scale(shade_data, 51), director.get_growth(51) * late * director.get_health_multiplier(shade_data, 51))
 		and is_equal_approx(director.get_health_scale(oak_data, 100), director.boss_health_multiplier * director.final_boss_late_multiplier * director.get_health_multiplier(oak_data, 100)),
 		"acts 3–4 nightmares and bosses have ×%.1f health (the Hollow Oak at 100 its own)" % late)
-	# Act 1: ×1.0 to 9, ramping to ×1.15 at 20, held to 25. Act 2 (interim): act2_start at 26, ramping to
-	# act2_end at 45, held to 50.
-	var curve := {1: 1.0, 9: 1.0, 20: 1.15, 25: 1.15, 26: act2_start, 45: act2_end, 50: act2_end}
+	# Act 1: ×1.0 to 9, ramping to ×1.15 at 20, held to 25. Act 2 ("Human run 2"): act2_start at 26, the old
+	# gentle ramp to act2_steep_value at 37, then most of the rise to act2_end at 45, held to 50.
+	var curve := {1: 1.0, 9: 1.0, 20: 1.15, 25: 1.15, 26: act2_start, 37: director.act2_steep_value, 45: act2_end, 50: act2_end}
 	for number in curve:
 		_check(is_equal_approx(director.get_early_multiplier(number), curve[number]),
 			"drift %d: health ×%.2f (got %.3f)" % [number, curve[number], director.get_early_multiplier(number)])
-	_check(absf(director.get_early_multiplier(37) - lerpf(act2_start, act2_end, 11.0 / 19.0)) < 0.001 and director.get_early_multiplier(14) > 1.0
+	_check(absf(director.get_early_multiplier(31) - lerpf(act2_start, director.act2_steep_value, 5.0 / 11.0)) < 0.001
+		and absf(director.get_early_multiplier(41) - lerpf(director.act2_steep_value, act2_end, 0.5)) < 0.001 and director.get_early_multiplier(14) > 1.0
 		and director.get_early_multiplier(14) < 1.15, "both ramps are straight lines")
 	# One Deeply Blighted from drift 31 when the drift lists none (boss drifts: from the escort); two from 76.
 	for number in [25, 26, 30, 31, 35, 45, 50, 51, 75, 76, 100]:

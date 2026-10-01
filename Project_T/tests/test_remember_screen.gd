@@ -48,14 +48,17 @@ func _run() -> void:
 	screen._select(branch)
 	var texts: Array = screen._side_box.get_children().filter(func(c: Node) -> bool: return c is Label).map(func(l: Label) -> String: return l.text)
 	_check(texts.any(func(t: String) -> bool: return t.begins_with("Grow from Sporeling")), "the side panel shows the Dew to grow (%s)" % " | ".join(texts))
-	var combo_names: Array = []
-	for n in screen._side_box.find_children("*", "", true, false):
-		if n is LinkButton or (n is Label and n.get_parent() is HFlowContainer):
-			combo_names.append(n.text)
-	var seen := ComboFeedback.load_seen()
-	for combo in CodexData.combos():
-		if combo_names.has(combo.name):
-			_check(CodexData.is_discovered(StringName(combo.id), seen), "only discovered combos show their name (%s)" % combo.name)
+	# Combos are {combo:<id>} links (user: "hovering over combos doesn't do anything"): hovering one shows its tip
+	var combos_label: RichTextLabel = screen._side_box.find_child("Combos", true, false)
+	if combos_label != null:
+		var first_id := combos_label.text.get_slice("[url=combo:", 1).get_slice("]", 0)
+		_check(first_id != "", "the combos are links (%s)" % combos_label.text)
+		combos_label.meta_hover_started.emit("combo:" + first_id)
+		var combo_popup: StatusLinks = combos_label.get_meta(&"status_popup")
+		_check(combo_popup != null and combo_popup.visible and combo_popup._text.text != "", "hovering a combo in the Remember panel shows its tip")
+		combo_popup.visible = false
+	else:
+		_check(false, "Sporeling's branch lists its combos")
 	_check(screen.unlock(branch) and dreams.is_unlocked(branch.get_id()) and dreams.dreamlight == 0,
 		"Unlock spends Dreamlight and unlocks the branch")
 	_check(screen.state_of(branch) == RememberScreen.State.UNLOCKED and not screen._canvas._bloom_edge.is_empty(),

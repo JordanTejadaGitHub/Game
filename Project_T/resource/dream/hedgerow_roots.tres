@@ -14,3 +14,5 @@ max_stacks = 1
 requires_any = Array[String](["acorn", "elder_stump", "grove_heart"])
 rule_id = &"hedgerow_roots"
 in_start_pool = false
+diagram = ".......\n.......\n.aXW...\n.......\n......."
+diagram_caption = "An aura flows through a touching Thornwall to the Warden beyond it."

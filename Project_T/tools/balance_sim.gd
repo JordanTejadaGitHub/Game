@@ -32,7 +32,7 @@ const STYLES := {"balanced": 0, "wide": 1, "narrow": 2, "combo": 3, "sleep": 4, 
 const COLUMNS := ["drift", "act", "seconds", "health_spawned", "damage", "leaks", "leaves_lost", "leaves_left",
 	"dew_rest", "dew_other", "spent_plant", "spent_walls", "spent_grow", "spent_nurture", "banked",
 	"attackers", "walls", "tier1", "tier2", "tier3", "tier4", "avg_rank", "route", "families", "cards",
-	"dreamlight", "top_warden", "top_share", "asleep_share", "reaction_share", "crit_share", "restless", "trampled", "approach"]
+	"dreamlight", "top_warden", "top_share", "asleep_share", "reaction_share", "crit_share", "restless", "trampled", "approach", "chain_share", "longest_chain"]
 
 # Per style: [attacker room at drift 0, + per drift, cap], walls per attacker, nurture weight.
 const STYLE_PLAN := {
@@ -116,6 +116,7 @@ func _run() -> void:
 			"--favor": favored.assign(value.split(","))
 			"--dreams": dream_mode = value
 			"--boss": act1_boss = value
+			"--no-falloff": Reactions.chain_falloff_on = false  # Measure without chain falloff
 			"--director":
 				var setting := arg.substr(arg.find("=") + 1)
 				director_overrides[setting.get_slice("=", 0)] = float(setting.get_slice("=", 1))
@@ -476,7 +477,7 @@ func _hook_stats() -> void:
 	director.drift_cleared.connect(func(n, _b, _p) -> void: _close_window(n))
 
 func _new_window() -> void:
-	d = {"start": game_time, "health_spawned": 0.0, "damage": 0.0, "leaks": 0, "leaves_left": run_state.leaves,
+	d = {"start": game_time, "health_spawned": 0.0, "damage": 0.0, "chain_deep": 0.0, "leaks": 0, "leaves_left": run_state.leaves,
 		"leaves_before": run_state.leaves, "dew_rest": 0, "dew_other": 0, "spent_plant": 0, "spent_walls": 0,
 		"spent_grow": 0, "spent_nurture": 0, "by_tower": {}, "asleep": 0.0, "reaction": 0.0, "crit": 0.0,
 		"restless": 0, "trampled": 0, "approach": 0.0}
@@ -488,6 +489,9 @@ func _on_damage(event) -> void:
 	d.by_tower[key] = d.by_tower.get(key, 0.0) + event.amount
 	if reaction_tags.has(event.tag):
 		d.reaction += event.amount
+		var hit_enemy = event.enemy
+		if is_instance_valid(hit_enemy) and hit_enemy.statuses.chain_time > 0.0 and hit_enemy.statuses.chain_count >= Reactions.CHAIN_FALLOFF_FROM:
+			d.chain_deep += event.amount  # Reactions from the 6th link on (where chain falloff bites)
 	if event.crit_multiplier > 1.0:
 		d.crit += event.amount
 	var e = event.enemy
@@ -521,7 +525,7 @@ func _close_window(n: int) -> void:
 		"avg_rank": snappedf(float(ranks) / maxf(_attackers().size(), 1), 0.1),
 		"route": map.get_path_from(map.startPath).size(), "families": lines.size(), "cards": dreams.stacks.size(),
 		"dreamlight": dreams.dreamlight, "top_warden": top, "top_share": snappedf(top_amount / damage, 0.001),
-		"asleep_share": snappedf(d.asleep / damage, 0.001), "reaction_share": snappedf(d.reaction / damage, 0.001),
+		"asleep_share": snappedf(d.asleep / damage, 0.001), "reaction_share": snappedf(d.reaction / damage, 0.001), "chain_share": snappedf(d.chain_deep / damage, 0.001), "longest_chain": _longest_chain(),
 		"crit_share": snappedf(d.crit / damage, 0.001), "restless": d.restless, "trampled": d.trampled,
 		"approach": snappedf(d.approach, 0.01)}
 	rows.append(row)
@@ -723,3 +727,8 @@ class FavorPolicy extends DreamSimPolicy:
 			"random":
 				return offer[rng.randi_range(0, offer.size() - 1)] if not offer.is_empty() else null
 		return super.pick_dream(offer)
+
+# The run's longest Reaction chain so far (ReactionTracker; 0 before the first Reaction).
+func _longest_chain() -> int:
+	var tracker := main.get_tree().get_first_node_in_group(ReactionTracker.GROUP) as ReactionTracker
+	return tracker.longest_chain if tracker else 0

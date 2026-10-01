@@ -12,3 +12,5 @@ kind = 3
 tags = Array[String](["narrow", "maze", "tall"])
 max_stacks = 1
 rule_id = &"solitude"
+diagram = "****...\n****...\n*W**.wa\n****...\n****..."
+diagram_caption = "No other attacking Warden within 2 cells: +45% and +0.5 range. ✗ a neighbour within 2."
