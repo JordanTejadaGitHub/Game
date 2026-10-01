@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "tended_stumps"
+display_name = "Tended Stumps"
+description = "Each tended stump (a Withered Tree you cleared) gives the Wardens touching it 25% more damage (a Warden counts its best stump once)."
+rarity = 1
+kind = 3
+tags = Array[String](["clearing", "tending"])
+max_stacks = 1
+in_start_pool = false
+min_obstacles = 8
+rule_id = &"tended_stumps"
+diagram = ".......\n..WWW..\n..WUW..\n..www..\n......."
+diagram_caption = "Touching a tended stump: +25%. ✗ one cell too far."

@@ -356,17 +356,17 @@ func _test_clearing_cards(main: Node) -> void:
 	var sprout: TowerData = load("res://resource/tower/sprout.tres")
 	_reset_dreams(main)
 
-	# Clearing is locked until the opener (Heartwood's Reach, which absorbed Tend the Forest); until then it weighs double and the other
-	# clearing cards are never offered (dream_design.md "Clearing: one opener, the rest follow").
+	# Clearing is locked until a clearing card is taken (2026-09-30: any clearing card opens it; Heartwood's
+	# Reach is the start-pool one); until then the opener weighs double.
 	dreams.clearing_open = false
 	run_state.dew = 100
 	var locked_cell: Vector2 = map_generator.obstacles.keys()[0]
 	_check(clearer.is_locked() and not clearer.try_clear(locked_cell) and run_state.dew == 100,
-		"obstacles can't be cleared before the opener")
+		"obstacles can't be cleared before a clearing card")
 	var opener := _card(dreams, "heartwoods_reach")
-	for id in ["cleared_ground", "reclaimed_earth", "tended_forest", "wildwood_reclaimed"]:
-		_check(not dreams.can_offer(_card(dreams, id), 4), "%s isn't offered while clearing is locked" % id)
-	_check(dreams.can_offer(opener) and dreams.opens_clearing(opener), "Heartwood's Reach is, with the Unlocks clearing layout")
+	for id in ["heartwoods_reach", "reclaimed_earth", "tended_forest", "tended_stumps", "hollow_ground", "wildwood_reclaimed"]:
+		_check(DreamState.unlocks_clearing(_card(dreams, id)), "%s opens clearing (any clearing card does)" % id)
+	_check(dreams.can_offer(opener) and dreams.opens_clearing(opener), "Heartwood's Reach is offered, with the Unlocks clearing layout")
 	var picks := 0
 	var clearing_picks := 0
 	var cards_with_one: Array = [opener, _card(dreams, "quickened_sap")]
@@ -377,7 +377,7 @@ func _test_clearing_cards(main: Node) -> void:
 	_check(clearing_picks > picks * 0.6, "the opener weighs double while clearing is locked (%d / %d)" % [clearing_picks, picks])
 	dreams.take(opener)
 	_check(dreams.can_clear() and not clearer.is_locked(), "Heartwood's Reach unlocks clearing")
-	_check(not dreams.opens_clearing(opener) and dreams.can_offer(_card(dreams, "cleared_ground")), "…then the follow-ups can come")
+	_check(not dreams.opens_clearing(opener), "…and no longer says so")
 	_check(clearer.try_clear(locked_cell) and run_state.dew < 100 and dreams.free_first_clears == 0, "…and clearing always costs Dew (no free clears)")
 	run_state.add_free_clears(-run_state.free_clears)
 	var saved := dreams.to_save()
@@ -385,52 +385,51 @@ func _test_clearing_cards(main: Node) -> void:
 	_check(not dreams.can_clear(), "a new run starts locked")
 	dreams.load_save(saved)
 	_check(dreams.can_clear(), "the unlock survives a mid-run save (it's in the taken cards)")
-	dreams.take(_card(dreams, "heartwoods_reach_ii"))
-	_check(dreams.can_clear(), "taking Heartwood's Reach II (it replaces the opener) keeps clearing open")
+	var old := dreams.to_save()
+	old.stacks = {"cleared_ground": 2, "heartwoods_reach_ii": 1}
+	dreams.load_save(old)
+	_check(dreams.card_stacks("heartwoods_reach") >= 1 and dreams.card_stacks("cleared_ground") == 0, "an old save's Cleared Ground / Heartwood's Reach II become Heartwood's Reach")
 	_reset_dreams(main)
 	dreams.clearing_open = true  # The rest of these checks: clearing open
 
 	# Offered only while 8+ obstacles are left
-	var ground := _card(dreams, "cleared_ground")
-	_check(dreams.is_eligible(ground), "Cleared Ground offered on a full map (%d obstacles)" % dreams.count_obstacles())
+	_check(dreams.is_eligible(opener), "Heartwood's Reach offered on a full map (%d obstacles)" % dreams.count_obstacles())
 	var all_obstacles: Dictionary = map_generator.obstacles
 	map_generator.obstacles = {}
-	_check(not dreams.is_eligible(ground), "clearing cards need 8+ obstacles left")
+	_check(not dreams.is_eligible(opener), "clearing cards need 8+ obstacles left")
 	map_generator.obstacles = all_obstacles
 
-	# Cleared Ground: −30% per stack, max −50%, through the clearer's one cost function; +1 Dew per clear
-	# this run after the discounts. Clearing always costs Dew: never below half the base (tree 12 → 6, boulder 18 → 9).
+	# Heartwood's Reach (absorbed Cleared Ground): −25% per stack (max 2: −50%) through the clearer's one cost
+	# function, +3 half-price clears per stack; +1 Dew per clear this run after the discounts. Clearing always
+	# costs Dew: never below half the base (tree 12 → 6, boulder 18 → 9).
 	var rock: ObstacleData = load("res://resource/obstacle/rock.tres")
 	run_state.tended_cells.clear()  # No clears yet: no surcharge
-	dreams.take(ground)
-	_check(clearer.get_clear_cost(tree) == roundi(tree.clear_cost * 0.7), "Cleared Ground: −30%% (tree %d → %d)" % [tree.clear_cost, clearer.get_clear_cost(tree)])
-	for i in 3:
-		dreams.take(ground)
-	_check(clearer.get_clear_cost(tree) == ceili(tree.clear_cost / 2.0) and clearer.get_clear_cost(rock) == ceili(rock.clear_cost / 2.0),
-		"Cleared Ground stacks to −50%%, never below half the base (tree %d, boulder %d)" % [clearer.get_clear_cost(tree), clearer.get_clear_cost(rock)])
+	run_state.add_free_clears(-run_state.free_clears)
+	dreams.take(opener)
+	_check(clearer.get_clear_cost(tree) == roundi(tree.clear_cost * 0.75) and run_state.free_clears == 3,
+		"Heartwood's Reach: −25%% (tree %d → %d) and 3 half-price clears (%d)" % [tree.clear_cost, clearer.get_clear_cost(tree), run_state.free_clears])
+	dreams.take(opener)
+	_check(clearer.get_clear_cost(tree) == ceili(tree.clear_cost / 2.0) and clearer.get_clear_cost(rock) == ceili(rock.clear_cost / 2.0)
+		and run_state.free_clears == 6 and opener.max_stacks == 2,
+		"…two stacks: −50%%, never below half the base (tree %d, boulder %d), 6 charges" % [clearer.get_clear_cost(tree), clearer.get_clear_cost(rock)])
 	_check(clearer.get_clear_cost(tree, true) == ceili(tree.clear_cost / 2.0), "…a half-price charge on top still hits the floor")
 	run_state.tended_cells.assign([Vector2(-1, -1), Vector2(-2, -2), Vector2(-3, -3)])
 	_check(clearer.get_clear_cost(tree) == ceili(tree.clear_cost / 2.0) + 3, "every clear so far adds +1 Dew after the discounts (%d)" % clearer.get_clear_cost(tree))
 	run_state.tended_cells.clear()
 	_check(tree.clear_cost == 12 and rock.clear_cost == 18, "raised base prices: tree 12, boulder 18")
 
-	# Heartwood's Reach: half-price clears (used first), still +1 Seed each; II gives 7
-	dreams.stacks.erase("cleared_ground")
-	dreams.take(_card(dreams, "heartwoods_reach"))
-	_check(run_state.free_clears == 4, "Heartwood's Reach: 4 half-price clears (%d)" % run_state.free_clears)
+	# The charges: used first, half price (never free), still +1 Seed each
 	run_state.dew = 0
 	var tended := run_state.obstacles_tended
 	var cell: Vector2 = map_generator.obstacles.keys()[0]
-	_check(not clearer.try_clear(cell) and run_state.free_clears == 4, "a charge doesn't make a clear free: no Dew, no clear, charge kept")
+	_check(not clearer.try_clear(cell) and run_state.free_clears == 6, "a charge doesn't make a clear free: no Dew, no clear, charge kept")
 	var cost := clearer.get_next_clear_cost(map_generator.get_obstacle(cell))
 	_check(cost == ceili(map_generator.get_obstacle(cell).clear_cost / 2.0), "…it halves the price (%d)" % cost)
 	run_state.dew = 100
-	_check(clearer.try_clear(cell) and run_state.free_clears == 3 and run_state.dew == 100 - cost, "a half-price clear")
+	_check(clearer.try_clear(cell) and run_state.free_clears == 5 and run_state.dew == 100 - cost, "a half-price clear")
 	_check(run_state.obstacles_tended == tended + 1, "half-price clears still give a Seed")
-	_check(dreams.is_eligible(_card(dreams, "heartwoods_reach_ii")), "Heartwood's Reach II once the base is owned")
-	dreams.take(_card(dreams, "heartwoods_reach_ii"))
-	_check(run_state.free_clears == 6, "Heartwood's Reach II: 7 in all (3 left + 3 more)")
 	run_state.add_free_clears(-run_state.free_clears)
+	dreams.stacks.erase("heartwoods_reach")
 
 	# Reclaimed Earth: refunds 40% of the Dew paid (never a profit), and the cell halves its first Warden
 	dreams.take(_card(dreams, "reclaimed_earth"))

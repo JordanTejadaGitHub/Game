@@ -50,6 +50,7 @@ func _run() -> void:
 	_test_live_lines()
 	_test_reaction_links()
 	_test_grove_branches()
+	_test_clearing_payoffs()
 	print("generic cards test: %s" % ("PASS" if failures == 0 else "%d FAILED" % failures))
 	quit(failures)
 
@@ -648,6 +649,40 @@ func _test_reaction_links() -> void:
 				var word := RegEx.create_from_string("\\b%s\\b" % name)
 				_check(word.search(bare) == null, "%s: \"%s\" is a link, not bare text" % [card.id, name])
 	_check(IconInfo.format("{combo:mushrooming}") in ["Mushrooming", "???"], "plain text shows a combo's name (or ??? until found)")
+
+# Clearing payoffs on the map (cards 246–247): a tended stump lifts the Wardens touching it, a moved hollow
+# gives the Warden planted in it range; both open clearing; clears record what they left.
+func _test_clearing_payoffs() -> void:
+	_reset()
+	var sporeling: TowerData = load("res://resource/tower/sporeling.tres")
+	for id in ["tended_stumps", "tended_stumps_ii", "hollow_ground", "hollow_ground_ii"]:
+		var card := _card(id)
+		_check(card != null and not card.in_start_pool and card.tags.has("clearing") and card.tags.has("tending")
+			and DreamState.unlocks_clearing(card) and card.diagram != "", "%s: Grove, clearing + tending, opens clearing, has a diagram" % id)
+	dreams.cleared_kinds = {Vector2(110, 110): DreamState.STUMP, Vector2(120, 120): DreamState.HOLLOW}
+	dreams.bump_board()
+	dreams.take(_card("tended_stumps"))
+	_check(_has_row(sporeling, Vector2(111, 111), "tended_stumps", 0.25) and not _has_row(sporeling, Vector2(112, 110), "tended_stumps", 0.25),
+		"Tended Stumps: +25% touching a stump (diagonal too), not two cells away")
+	dreams.take(_card("tended_stumps_ii"))
+	_check(_has_row(sporeling, Vector2(110, 111), "tended_stumps_ii", 0.40), "…II: +40%")
+	dreams.take(_card("hollow_ground"))
+	_check(is_equal_approx(_row(sporeling, Vector2(120, 120), "hollow_ground").range, 1.0) and not _row(sporeling, Vector2(121, 120), "hollow_ground").active,
+		"Hollow Ground: +1 range planted in a hollow, nothing beside it")
+	dreams.take(_card("hollow_ground_ii"))
+	_check(is_equal_approx(_row(sporeling, Vector2(120, 120), "hollow_ground").range, 1.5), "…II: +1.5")
+	var tree: ObstacleData = load("res://resource/obstacle/tree.tres")
+	var rock: ObstacleData = load("res://resource/obstacle/rock.tres")
+	dreams._on_obstacle_cleared(Vector2(130, 130), tree)
+	dreams._on_obstacle_cleared(Vector2(131, 130), rock)
+	_check(dreams.cleared_kinds[Vector2(130, 130)] == DreamState.STUMP and dreams.cleared_kinds[Vector2(131, 130)] == DreamState.HOLLOW,
+		"a cleared Withered Tree leaves a stump, a Mossy Boulder a hollow")
+	var saved := dreams.to_save()
+	dreams.cleared_kinds.clear()
+	dreams.load_save(JSON.parse_string(JSON.stringify(saved)))
+	_check(dreams.cleared_kinds.get(Vector2(130, 130), "") == DreamState.STUMP, "…saved with the run")
+	dreams.cleared_kinds.clear()
+	_reset()
 
 # Grove build branches Swift and Wide Reach (cards 235–245): data, and the DreamState side (Tower Code hooks
 # the per-hit parts by rule id).

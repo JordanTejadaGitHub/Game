@@ -173,6 +173,8 @@ var first_pick_dreamlight := FIRST_PICK_DREAMLIGHT
 # The power pass (dream_audit.md, 2026-09-30): old save ids -> the card that absorbed them ("" = cut).
 const MERGED_CARDS := {"cheap_hedges": "weathered_walls", "quick_bonds": "old_friends", "wide_bowl": "dew_trail",
 	"fair_trade": "", "still_waters": "", "echoing_steps": "",
+	# Clearing rework (2026-09-30): Cleared Ground and Heartwood's Reach II merge into Heartwood's Reach (stacks 2)
+	"cleared_ground": "heartwoods_reach", "heartwoods_reach_ii": "heartwoods_reach",
 	# Pool trim (dream_design.md "Pool trim", 2026-09-30)
 	"gathered_dew": "morning_dew", "fresh_soil": "reclaimed_earth", "tend_the_forest": "heartwoods_reach",
 	"mending_bark": "thick_bark", "heartwoods_fury": "last_stand", "warm_hands": "tender_care",
@@ -1207,7 +1209,7 @@ func can_clear() -> bool:
 
 # The cards that unlock clearing: the opener, and Burn Back (it clears the trees itself).
 static func unlocks_clearing(card: UpgradeData) -> bool:
-	return card.tags.has(OPENER_TAG) or card.clears_obstacle != null
+	return card.tags.has(OPENER_TAG) or card.tags.has("clearing") or card.clears_obstacle != null  # Any clearing card opens it (2026-09-30)
 
 const OPENER_TAG := "opener"
 
@@ -1919,6 +1921,7 @@ func to_save() -> Dictionary:
 		"legendary_next": _legendary_next,
 		"clearing_opened_by": clearing_opened_by,
 		"free_first_clears": free_first_clears,
+		"cleared_kinds": cleared_kinds.keys().map(func(cell: Vector2) -> Array: return [cell.x, cell.y, cleared_kinds[cell]]),
 		"resonance": _resonance.duplicate(),
 		"grown_wardens": grown_wardens.keys(),
 		"rng_state": str(_rng.state),  # A string: JSON would round a 64-bit int
@@ -1966,6 +1969,9 @@ func load_save(data: Dictionary) -> void:
 	glimmer_shards = int(data.get("glimmer_shards", 0))
 	clearing_opened_by = String(data.get("clearing_opened_by", ""))
 	free_first_clears = int(data.get("free_first_clears", 0))
+	cleared_kinds.clear()
+	for entry in data.get("cleared_kinds", []):
+		cleared_kinds[Vector2(entry[0], entry[1])] = String(entry[2])
 	_resonance = data.get("resonance", {}).duplicate()
 	_legendary_next = int(data.get("legendary_next", 0))
 	_refill_bark()  # Saved at a rest, where Thick Bark is full again
@@ -2047,7 +2053,9 @@ func _on_tower_built(tower: Tower) -> void:
 
 # Reclaimed Earth: every clear gives Dew and leaves the cell fertile. Not Burn Back's mass clear
 # (it would flood the Dew economy, same as its no-Seeds rule).
-func _on_obstacle_cleared(cell: Vector2, _data: ObstacleData) -> void:
+func _on_obstacle_cleared(cell: Vector2, data: ObstacleData) -> void:
+	cleared_kinds[cell] = STUMP if data != null and data.resource_path.get_file().begins_with("tree") else HOLLOW  # Tended Stumps / Hollow Ground
+	bump_board()  # Neighbours' card rows read it
 	var paid := last_clear_paid
 	last_clear_paid = 0
 	if run_state.clearing_without_seeds:
@@ -3395,3 +3403,24 @@ static func has_area_attack(data: TowerData) -> bool:
 		return true
 	return data.attack_kind in [TowerData.AttackKind.PULSE, TowerData.AttackKind.CLOUD, TowerData.AttackKind.CHAIN,
 		TowerData.AttackKind.SWEEP, TowerData.AttackKind.SPIN] or ("lob" in data and data.lob)
+
+
+# --- Clearing payoffs on the map: Tended Stumps and Hollow Ground (cards 246–247, 2026-09-30) ----------------
+# What each cleared cell left behind (saved): a tended stump (a Withered Tree) or a moved hollow (a Mossy
+# Boulder or Thorn-Sapling). DreamEffects reads it per Warden cell (live: a new clear bumps the board).
+const STUMP := "stump"
+const HOLLOW := "hollow"
+const TENDED_STUMPS_BONUS: Array[float] = [0.25, 0.40]  # II
+const HOLLOW_GROUND_RANGE: Array[float] = [1.0, 1.5]  # II
+var cleared_kinds := {}  # Cleared cell -> STUMP or HOLLOW
+
+# A tended stump in the 8 cells around `cell` (the Warden counts its best stump once).
+func touches_stump(cell: Vector2) -> bool:
+	for dx in [-1, 0, 1]:
+		for dy in [-1, 0, 1]:
+			if (dx != 0 or dy != 0) and cleared_kinds.get(cell + Vector2(dx, dy), "") == STUMP:
+				return true
+	return false
+
+func in_hollow(cell: Vector2) -> bool:
+	return cleared_kinds.get(cell, "") == HOLLOW
