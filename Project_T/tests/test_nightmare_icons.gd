@@ -93,6 +93,13 @@ func _run() -> void:
 	await process_frame
 	_check(info.visible and not _icons(info._rows_box, NightmareIcons.Kind.FAMILY, &"resist").is_empty(),
 		"the nightmare info shows the resist icons")
+	# Slow / sleep limits (Enemy's get_status_notes) are listed under the statuses.
+	enemy.statuses.sleep_cooldown = 3.0
+	await process_frame
+	await process_frame  # The panel rewrites its body in its own _process, after this frame's signal
+	var body: String = info._body.get_parsed_text()
+	_check(body.contains("Awake: can't fall asleep again"), "the info lists the status limits under the statuses: Awake (%s)" % body)
+	enemy.statuses.sleep_cooldown = 0.0
 
 	# --- Map pips in context -------------------------------------------------------------------
 	var pips: ResistPips = null
