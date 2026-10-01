@@ -484,7 +484,10 @@ func _hook_stats() -> void:
 		if run.first_leak == 0:
 			run.first_leak = maxi(director.drifts_started, 1))
 	if spawner.has_signal("boss_drained"):  # A boss at the Heartwood drains leaves (no enemy_reached_goal)
-		spawner.boss_drained.connect(func(_e, leaves: int) -> void: run.boss_drained += leaves)
+		spawner.boss_drained.connect(func(e, leaves: int) -> void:
+			run.boss_drained += leaves
+			if is_instance_valid(e):
+				_boss_fight(e).drained += leaves)
 	if spawner.has_signal("nightmare_restless"):
 		spawner.nightmare_restless.connect(func(_e, _stacks) -> void: d.restless += 1)
 	if spawner.has_signal("wall_trampled"):
@@ -831,7 +834,7 @@ func _boss_fight(enemy: Node2D) -> Dictionary:
 	if not bosses.has(id):
 		bosses[id] = {"drift": director.drifts_started, "kind": enemy.enemy_data.resource_path.get_file().get_basename(),
 			"health": enemy.max_health, "spawn": game_time, "arrive": -1.0, "hp_arrive": -1, "route_damage": 0.0,
-			"heart_damage": 0.0, "in_range": -1, "end": -1.0, "leaked": false, "echo": bool(enemy.get("is_echo"))}
+			"heart_damage": 0.0, "in_range": -1, "end": -1.0, "leaked": false, "visits": 0, "hp_visits": [], "there": false, "drained": 0, "echo": bool(enemy.get("is_echo"))}
 	return bosses[id]
 
 func _note_boss_hit(enemy: Node2D, amount: float) -> void:
@@ -840,6 +843,10 @@ func _note_boss_hit(enemy: Node2D, amount: float) -> void:
 
 func _watch_boss(enemy: Node2D) -> void:
 	var fight := _boss_fight(enemy)
+	if enemy.at_heartwood and not fight.there:  # A new visit (the Night Mare laps: several)
+		fight.visits += 1
+		fight.hp_visits.append(enemy.health)
+	fight.there = enemy.at_heartwood
 	if enemy.at_heartwood and fight.arrive < 0.0:
 		fight.arrive = game_time
 		fight.hp_arrive = enemy.health
@@ -849,7 +856,8 @@ func _watch_boss(enemy: Node2D) -> void:
 		fight.end = game_time
 
 # drift:kind:health:route s:health at the Heartwood (-1 = never got there):route damage:Heartwood damage:
-# Heartwood s:Wardens in range there:dispelled 1/0 (:leaked = an act boss that bit and left)
+# Heartwood s:Wardens in range there:dispelled 1/0 (:leaked = an act boss that bit and left), then
+# :v=visits to the Heartwood:hp=health at each visit (a/b/…):dr=leaves it drained there
 func _boss_text(fight: Dictionary) -> String:
 	var arrived: bool = fight.arrive >= 0.0
 	var route_s: float = (fight.arrive if arrived else fight.end) - fight.spawn
@@ -857,7 +865,7 @@ func _boss_text(fight: Dictionary) -> String:
 	var dispelled: bool = fight.route_damage + fight.heart_damage >= fight.health * 0.999
 	return "%d:%s%s:%d:%.0f:%d:%.0f:%.0f:%.0f:%d:%d%s" % [fight.drift, fight.kind, "(echo)" if fight.echo else "", fight.health,
 		route_s, fight.hp_arrive, fight.route_damage, fight.heart_damage, heart_s, fight.in_range, 1 if dispelled else 0,
-		":leaked" if fight.leaked else ""]
+		":leaked" if fight.leaked else ""] + ":v=%d:hp=%s:dr=%d" % [fight.visits, "/".join(fight.hp_visits.map(func(h) -> String: return str(h))), fight.drained]
 
 # An attacker has the Heartwood cell in range (a boss that gets through stays there, draining leaves).
 func _heartwood_covered() -> bool:
