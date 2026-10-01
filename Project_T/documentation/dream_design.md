@@ -1825,3 +1825,5 @@ plus effect parameters (stat modifiers: target line + stat + amount; or a `rule_
 checks for).
 
 **Offers are random within the run's pool (2026-09-30, user):** the build tag weight ("Dreams steer your Dreams", 1.6 → 1.3) is **turned off (1.0)**. The player adapts their build to the random cards they get; nothing steers them down a path. Tag resonance (+10% per owned card of a tag, up to +50%) stays: committing is still rewarded, by choice.
+
+**No "Needs" line on cards (2026-10-01, user: "can remove the Needs Water"):** the Dream card face no longer shows a "Needs …" line (families, statuses or forms). The card text already names what it works with; a card for a family you don't have yet stays a quiet lure for the family pick. In "Dreams this run", a card that isn't doing anything yet is shown dimmed with a hover line "Not active yet: needs a Water Warden", so the information is there when asked.
