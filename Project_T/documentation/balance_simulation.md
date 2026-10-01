@@ -400,6 +400,13 @@ Decisions:
    In the game: e5de9471 (rewards, Bountiful / Blood Moon, Dry Spell) and bd507e42 (Dry Spell pays the
    pot the block would really have paid, with the player's own multipliers, × 1.25).
 
+**Batch (a), act 1 without the boss** (e5de9471, full profile, `--last=24`, 20 seeds × 3 modes):
+**all three targets met.** Always vs Clear Skies: **+9.5 leaves** (median, by 24; target ≥ 3), dormancy
+**30% vs 5%** (+25 points; target ≥ +10); picking moments **0.52 vs 0.38** reward shares per Omen-block
+leaf ✓ (per run leaf a tie, 0.15 vs 0.16). Mean drift reached 23.9 / 21.8 / 23.3. Omen reward Dew
+~50 median per run: in scale. No change. Batch (c) (half profile to 50, on 4993001b) checks acts 2–3
+and the Dry Spell +25%.
+
 ## Later
 
 A **human baseline**: the same CSV written from real playtests (debug builds only), so the bot's
