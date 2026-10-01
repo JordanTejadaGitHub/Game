@@ -2565,7 +2565,10 @@ func _bob_bowl() -> void:
 		return
 	var bob: Array = DewCatch.bowl_info(tower_data).get("dy_by_frame", [])
 	var dy: float = bob[sprite.frame % bob.size()] if not bob.is_empty() else 0.0
-	fill.offset = sprite.offset + Vector2(0, dy)
+	# A tall 64×96 Warden (body = the bottom 64 rows, sprite_offset (0, −16)) has its body on the node centre, like
+	# the 64×64 bowl fill: only Ascended art, laid out differently, moves the bowl by its offset.
+	var lift: Vector2 = sprite.offset if tower_data.tier >= DreamState.ASCENDED_TIER else Vector2.ZERO
+	fill.offset = lift + Vector2(0, dy)
 
 # --- Wall cards (Thornwall; dream_design.md "Support Warden cards") -------------------------------
 

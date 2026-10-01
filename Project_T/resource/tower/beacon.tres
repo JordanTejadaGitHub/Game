@@ -7,8 +7,8 @@
 [ext_resource type="Texture2D" path="res://assets/towers/projectiles/light_orb.png" id="3_proj"]
 
 [resource]
-sprite_offset = Vector2(0, -16)
 script = ExtResource("1_tdata")
+sprite_offset = Vector2(0, -16)
 display_name = "Beacon"
 description = "Every 2 s, Exposes every nightmare in range, and its Exposed is stronger: +50% damage taken."
 cost = 0
