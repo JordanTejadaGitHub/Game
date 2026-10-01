@@ -49,6 +49,7 @@ var is_boss := false
 var is_elite := false  # Deeply Blighted (Enemy sets it with is_boss): its own slow floor
 var slow_capped := false  # All slows together hit the floor ("Slowed to the limit" in the status UI)
 var sleep_cooldown := 0.0  # After waking, seconds before it can fall Asleep again
+var dream_spores_cooldown := 0.0  # Dreamshroom's Dream Spores: this sleeper puffed; no Dreamshroom makes it puff again yet (shared)
 var hold_cooldown := 0.0  # After a Hold ends, seconds before it can be Held again
 var _hold_just_ended := false  # The frame a Hold ran out (Snare's release-pull Hold may follow)
 const SLOW_FLOOR := 0.5
@@ -378,6 +379,8 @@ func tick(delta: float) -> float:
 		veil_time = maxf(veil_time - delta, 0.0)
 	if sleep_cooldown > 0.0:
 		sleep_cooldown = maxf(sleep_cooldown - delta, 0.0)
+	if dream_spores_cooldown > 0.0:
+		dream_spores_cooldown = maxf(dream_spores_cooldown - delta, 0.0)
 	_hold_just_ended = false
 	if hold_cooldown > 0.0:
 		hold_cooldown = maxf(hold_cooldown - delta, 0.0)
