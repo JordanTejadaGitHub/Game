@@ -14,4 +14,4 @@ requires = Array[String](["lanternmoth"])
 max_stacks = 1
 deepens = "guiding_light"
 rule_id = &"guiding_light"
-in_start_pool = false
+in_start_pool = true

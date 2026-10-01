@@ -18,3 +18,4 @@ soothe_bonus = 0.35
 max_leaves_add = -3
 leaves_now = -3
 rule_id = &"thin_bark"
+in_start_pool = false

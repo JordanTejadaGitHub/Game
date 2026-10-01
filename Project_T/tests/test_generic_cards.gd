@@ -13,6 +13,9 @@ const IDS := ["call_of_the_wild", "lasting_dreams",
 	"last_breath", "last_breath_ii", "watchful_rest", "watchful_rest_ii",
 	"glimmering_hunt", "straightaway", "straightaway_ii", "heart_of_the_maze"]
 
+# The lean starting pool (dream_design.md "The starting Dream pool", 2026-09-30): these moved to Grove nodes.
+const LEAN_GROVE := ["bitter_hedges", "bramble_oath", "briar_crown", "crossroads", "crowd_breaker", "desperate_bloom", "elder_kin", "eternal_static", "few_and_mighty", "forests_edge", "grand_tour", "hunters_moon", "hunters_patience", "last_leaf", "last_stand", "lucid_dreaming", "menagerie", "mixed_grove", "odd_one_out", "odd_one_out_ii", "reclaimed_earth", "restless_night", "rooted_nightmares", "scarred_bark", "scarred_bark_ii", "scented_hedge", "second_wind", "sharpened_light", "sharpened_light_ii", "solitude", "tended_forest", "thin_bark", "thorn_snare", "thorn_snare_ii", "thornheart", "wildwood_reclaimed"]
+
 var failures := 0
 var main: Node
 var dreams: DreamState
@@ -58,7 +61,7 @@ func _test_pool() -> void:
 	for id in IDS:
 		var card := _card(id)
 		if card:
-			_check(card.in_start_pool == (id != "wandering_mind"), "%s: pool" % id)
+			_check(card.in_start_pool == (id != "wandering_mind" and not LEAN_GROVE.has(id)), "%s: pool" % id)
 	_check(_card("glimmering_hunt").min_act == 2, "Glimmering Hunt from act 2")
 	_reset()
 	_check(not dreams.is_eligible(_card("heavy_air")), "Heavy Air needs a Warden that slows")
@@ -338,7 +341,7 @@ func _test_catalogue() -> void:
 	for id in ids:
 		var card := _card(id)
 		if card:
-			_check(card.in_start_pool and card.rarity != UpgradeData.Rarity.LEGENDARY and not card.tags.is_empty(), "%s: Start pool, tagged" % id)
+			_check(card.in_start_pool != LEAN_GROVE.has(id) and card.rarity != UpgradeData.Rarity.LEGENDARY and not card.tags.is_empty(), "%s: pool (lean), tagged" % id)
 	_check(_card("resonance").requires.size() == 2 and _card("thin_bark").is_bittersweet() and _card("thin_bark").min_act == 2, "Resonance crosses 2 families; Thin Bark bittersweet act 2+")
 	var eye := _plant("sporeling", Vector2(100, 104))
 	eye.rank = 5
@@ -386,7 +389,7 @@ func _test_eleven_cards() -> void:
 	for id in ["glinting_dew", "heavy_stones", "sharpened_light", "sharpened_light_ii"] + grove:
 		var card := _card(id)
 		if card:
-			_check(card.in_start_pool != grove.has(id) and not card.tags.is_empty(), "%s: pool and tags" % id)
+			_check(card.in_start_pool != (grove.has(id) or LEAN_GROVE.has(id)) and not card.tags.is_empty(), "%s: pool and tags" % id)
 	_check(_card("ring_dance").entwined and _card("carried_on_the_wind").entwined and _card("sharpened_light_ii").deepens == "sharpened_light",
 		"Ring Dance and Carried on the Wind are Entwined; Sharpened Light II deepens")
 	var pebble := _plant("pebbling", Vector2(100, 100))
@@ -431,7 +434,7 @@ func _test_cards_227() -> void:
 	for id in ["head_start", "second_wind", "scarred_bark", "desperate_bloom", "odd_one_out", "grand_tour", "crowd_breaker"]:
 		var card := _card(id)
 		if card:
-			_check(card.in_start_pool and not card.tags.is_empty(), "%s: Start pool, tagged" % id)
+			_check(card.in_start_pool != LEAN_GROVE.has(id) and not card.tags.is_empty(), "%s: pool (lean), tagged" % id)
 	for pair in [["head_start_ii", "head_start"], ["scarred_bark_ii", "scarred_bark"], ["odd_one_out_ii", "odd_one_out"]]:
 		_check(_card(pair[0]).deepens == pair[1], "%s deepens %s" % pair)
 	_check(_card("desperate_bloom").min_act == 2 and _card("grand_tour").min_owned_statuses == 2, "Desperate Bloom act 2+; Grand Tour needs 2 statuses")
@@ -562,7 +565,7 @@ func _test_seed_cards() -> void:
 	for id in ids:
 		var card := _card(id)
 		if card:
-			_check(card.tags.has("seed") and card.in_start_pool == (id == "bramble_oath") and card.grows_text != "", "%s: a Seed card" % id)
+			_check(card.tags.has("seed") and not card.in_start_pool and card.grows_text != "", "%s: a Seed card" % id)
 	_check(_card("golden_harvest").rarity == UpgradeData.Rarity.LEGENDARY and _card("golden_harvest").min_act == 2, "Golden Harvest: Legendary, act 2+")
 	# Offered without their Wardens
 	dreams.grove_cards.assign(ids)
@@ -615,13 +618,14 @@ func _test_seed_cards() -> void:
 # Support Warden cards (dream_design.md "Support Warden cards: the quiet Wardens").
 func _test_support_cards() -> void:
 	_reset()
-	var start := ["thorn_snare", "thorn_snare_ii", "scented_hedge"]
+	var start := []  # Lean starting pool: Thorn Snare (Thorn and Bramble) and Scented Hedge (Old Wood) are Grove cards now
 	for id in ["dew_trail", "dew_trail_ii", "overflowing_well", "acorn_cache", "hedgerow_roots",
 			"grandfather_stump", "thorn_snare", "thorn_snare_ii", "scented_hedge", "living_walls", "many_threads", "the_quiet_ones"]:
 		var card := _card(id)
 		if card:
 			var moved := ["thorn_snare", "thorn_snare_ii", "scented_hedge", "living_walls", "the_quiet_ones"].has(id)  # Round 3: support -> tending
 			_check(card.tags.has("tending" if moved else "support") and card.in_start_pool == start.has(id), "%s: support card (tending since round 3), pool" % id)
+	dreams.grove_cards.append_array(["thorn_snare", "scented_hedge"])
 	_check(dreams.can_offer(_card("thorn_snare")) and not dreams.can_offer(_card("scented_hedge")), "Thorn Snare needs nothing; Scented Hedge needs Honeysuckle")
 	dreams.grove_cards.assign(["acorn_cache", "the_quiet_ones"])
 	var acorn: TowerData = load("res://resource/tower/acorn.tres")

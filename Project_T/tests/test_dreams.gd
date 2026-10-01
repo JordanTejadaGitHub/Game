@@ -767,7 +767,8 @@ func _test_few_and_mighty_sim(main: Node) -> void:
 		var full := drawable.filter(func(c: UpgradeData) -> bool: return dreams.is_eligible(c, 1))
 		print("act 1 Rares with %s: %d drawable, %d with every Need met (%s)" % [family, drawable.size(), full.size(),
 			", ".join(drawable.map(func(c: UpgradeData) -> String: return c.id))])
-		_check(full.size() >= 5 and full.size() <= 8, "act 1 board with %s: ~5–7 eligible Rares (%d)" % [family, full.size()])
+		# The lean starting pool (2026-09-30): 10 Rares on a fresh account, a few need families or discovery
+		_check(full.size() >= 3 and full.size() <= 8, "act 1 board with %s: 3–8 eligible generic Rares (%d)" % [family, full.size()])
 	const RUNS := 300
 	var results := []  # Per mode: [offers by 35, by 50, offers after 2nd pass, of them with it]
 	for fading in [false, true]:

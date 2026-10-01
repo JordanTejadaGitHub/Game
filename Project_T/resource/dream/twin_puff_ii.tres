@@ -14,4 +14,4 @@ requires = Array[String](["sporeling"])
 max_stacks = 1
 deepens = "twin_puff"
 rule_id = &"twin_puff"
-in_start_pool = false
+in_start_pool = true
