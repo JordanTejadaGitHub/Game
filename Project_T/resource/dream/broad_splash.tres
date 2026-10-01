@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "broad_splash"
 display_name = "Broad Splash"
-description = "Area attacks reach 0.25 cells wider."
+description = "Splashes and clouds reach 0.25 cells wider."
 rarity = 0
 kind = 3
 tags = Array[String](["reach"])
