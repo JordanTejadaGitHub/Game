@@ -283,6 +283,18 @@ func refresh() -> void:
 				var first: bool = KINSHIPS[id][2] == ba
 				edges.append([distance, id, ta if first else tb, tb if first else ta])
 	edges.sort_custom(func(x: Array, y: Array) -> bool: return x[0] < y[0])
+	# Bonds are sticky (tower_design.md): a bond still in reach is kept before anyone else pairs, so a
+	# nearer newcomer never takes it over; nearest-first only matches the Wardens still unbonded.
+	var held := {}
+	for pair in pairs:
+		if is_instance_valid(pair.a) and is_instance_valid(pair.b):
+			held["%d:%d" % [pair.a.get_instance_id(), pair.b.get_instance_id()]] = pair.id
+	var kept := []
+	var rest := []
+	for edge in edges:
+		var pair_id := "%d:%d" % [edge[2].get_instance_id(), edge[3].get_instance_id()]
+		(kept if held.get(pair_id, &"") == edge[1] else rest).append(edge)
+	edges = kept + rest
 	var taken := {}  # Tower instance id -> bonds so far
 	var capacity := 2 if _has(&"extended_family") else 1  # Extended Family: two kin each
 	var new_pairs := []
