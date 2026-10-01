@@ -12,16 +12,16 @@ const CELL := 64.0
 const COLS := 7
 const ROWS := 5
 const VIEW_SCALE := 0.7  # 448×320 world px shown at ~314×224
-const WALK_SPEED := 70.0  # World px per second (a Shade's stroll)
-const SPAWN_EVERY := 1.6  # Seconds between nightmares
+const WALK_SPEED := 135.0  # World px per second: S to H in ~5 s (the loop the spec asks for)
+const SPAWN_EVERY := 1.2  # Seconds between nightmares
 const NIGHTMARES := 3
-const ATTACK_EVERY := 1.1  # Seconds between a puppet Warden's attacks
+const ATTACK_EVERY := 0.8  # Seconds between a puppet Warden's attacks
 const RANGE_CELLS := 2.2
 const BASE_HIT := 10  # The number a plain hit shows
 const PUFF_SPEED := 420.0
 const NUMBER_RISE := 26.0
 const NUMBER_TIME := 0.8
-const HITS_TO_DISPEL := 4
+const HITS_TO_DISPEL := 7  # Most reach the favoured Warden, whose double hits finish them
 const WARDEN := preload("res://resource/tower/sporeling.tres")  # The puppet attacker (the first family most players have)
 const NIGHTMARE := preload("res://resource/enemy/leaf_bug.tres")  # A Shade
 const QUALIFYING := "WQ"
@@ -187,6 +187,7 @@ func _add_warden(cell: Vector2i, c: String) -> void:
 	sprite.hframes = maxi(data.frame_count, 1)
 	sprite.offset = Vector2(0, -16) + data.sprite_offset  # 64×96: the bottom 64 px on the cell
 	sprite.position = _centre(cell)
+	sprite.z_index = 1  # Over the Heartwood's canopy (the favoured Warden often stands beside it)
 	if c == "w":
 		sprite.modulate = Color(1, 1, 1, 0.7)  # multiplier: the one that doesn't qualify reads dimmer
 	_world.add_child(sprite)
