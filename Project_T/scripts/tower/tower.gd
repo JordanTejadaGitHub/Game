@@ -76,6 +76,7 @@ const GRANDFATHER_MAX := 0.45  # …up to this in all
 const SHARED_LIGHT := 0.5  # Shared Light (Seed card): aura bonuses +50%
 const QUIET_ONES := 0.5  # The Quiet Ones: non-attacking Wardens +50%
 const BRAMBLE_OATH_WARDENS := ["bramble", "honeysuckle"]
+const WALL_DROWSY_CAP := 3  # Drowsy from walls (Honeysuckle, Scented Hedge) stops here; Wardens' Drowsy can go past it
 const BRAMBLE_OATH := 0.5  # Bramble Oath (Seed card): +50%
 const WALL_TICK := 0.2
 const THORN_SNARE_KINDS := ["dandelion_seed", "gravecrawler"]  # Phantom (through), Gravecrawler (under)
@@ -1826,6 +1827,8 @@ func _apply_one_status(enemy: Node2D, status: StringName, stacks: int, soothe: f
 			duration = EnemyStatuses.DEFAULT_DURATION[status]
 		duration *= deep  # Its strength side is Potency (get_potency)
 	var at: Vector2 = enemy.global_position
+	if status == EnemyStatuses.DROWSY and tower_data.line == "wall":
+		stacks = _wall_drowsy_room(enemy, stacks)  # Walls slow, but can't put a nightmare to sleep alone
 	enemy.apply_status(status, stacks, duration, potency, max_stacks, tower_data.line, self)
 	if status == EnemyStatuses.DROWSY:
 		SupportLog.credit(self, &"drowsy", stacks)  # Honeysuckle's panel line and the rest report
@@ -2565,8 +2568,9 @@ func _update_wall(delta: float) -> void:
 				if is_instance_valid(enemy) and not enemy.is_cleansed \
 						and enemy.global_position.distance_to(global_position) / cell_px <= scent.tower_data.attack_range:
 					var data: TowerData = scent.tower_data
-					enemy.apply_status(EnemyStatuses.DROWSY, data.status_stacks, data.status_duration, 1.0, data.status_max_stacks, data.line, self)
-					SupportLog.credit(self, &"drowsy", data.status_stacks)
+					var added := _wall_drowsy_room(enemy, data.status_stacks)  # The relay is a wall too: capped at 3
+					enemy.apply_status(EnemyStatuses.DROWSY, added, data.status_duration, 1.0, data.status_max_stacks, data.line, self)
+					SupportLog.credit(self, &"drowsy", added)
 
 func _snare_key() -> StringName:
 	return StringName("snared_%d" % get_instance_id())
@@ -3625,3 +3629,8 @@ func _twist_dispelled(enemy: Node2D) -> void:
 func _twist_released(_tower: Tower) -> void:
 	if _chorus > 0.0:
 		FinalTwists._chorus_notes(self)
+
+# How many of `stacks` Drowsy a wall may add to `enemy` (warden_stats.md, Honeysuckle: walls cap at
+# WALL_DROWSY_CAP). 0 still refreshes its timer.
+func _wall_drowsy_room(enemy: Node2D, stacks: int) -> int:
+	return clampi(WALL_DROWSY_CAP - enemy.statuses.stacks(EnemyStatuses.DROWSY), 0, stacks)
