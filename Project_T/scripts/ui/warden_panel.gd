@@ -620,11 +620,38 @@ func _pick_choice(index: int) -> void:
 func _toggle_choices() -> void:
 	if not visible:
 		return
+	if not _choosing and not _can_afford_a_rank():
+		_refuse_nurture()  # User: "still able to press the hotkey for nurture when I don't have enough Dew"
+		return
 	if _tower != null and tower_seller.selection.size() <= 1 and _tower.can_nurture() and not _tower.needs_focus():
 		_nurture_with(_tower.default_choice())
 		return
 	_choosing = not _choosing
 	_refresh()
+
+# Whether any selected Warden can pay for its next rank now (First Care's free ranks count). Nothing to
+# nurture at all is left to the old path (it does nothing).
+func _can_afford_a_rank() -> bool:
+	var towers: Array = tower_seller.selection.filter(func(t) -> bool: return is_instance_valid(t) and t.can_nurture())
+	if towers.is_empty() or int(run_state.get("free_nurtures") if run_state.get("free_nurtures") != null else 0) > 0:
+		return true
+	return towers.any(func(t: Tower) -> bool: return t.get_nurture_price() <= run_state.dew)
+
+# Short of Dew for any rank: no choices open, nothing is spent; the "can't buy" refusal instead (the Nurture
+# button shakes; dew_short brings the "needs N Dew" toast, the Dew counter's flash and the refusal sound).
+func _refuse_nurture() -> void:
+	var prices: Array = tower_seller.selection.filter(func(t) -> bool: return is_instance_valid(t) and t.can_nurture()) \
+		.map(func(t: Tower) -> int: return t.get_nurture_price())
+	if not prices.is_empty():
+		run_state.dew_short.emit(prices.min())
+	nurture_refused += 1
+	for button in _buttons.get_children():
+		if button is Button and String(button.text).begins_with("Nurture"):
+			var x: float = button.position.x
+			var shake := button.create_tween()
+			for step in [6.0, -6.0, 4.0, -2.0, 0.0]:
+				shake.tween_property(button, "position:x", x + step, 0.04)
+var nurture_refused := 0  # Refusals so far (tests)
 
 # One rank choice as a row of columns: name, its change, price, key. Fixed widths, so every row's
 # columns line up (warden_stats.md "Playtest fix").
