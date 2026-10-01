@@ -1228,27 +1228,57 @@ function rock(A, t, seed) {
 // fringe show the step down. South lips meet the cliff tiles below.
 // Heartwood 32 names: Void, Dread, Root, Shade, Bark (drawn in palette colours so nothing snaps to moss).
 const RIM_EARTH = ["#05050d", "#140f26", "#241c14", "#2c2444", "#5c3c24"];
-function islandEdge(A, mask) {
+// v = variant (row): every variant shares the wobble at the tile's ends, so any variants sit side by
+// side, but bulges and bites differently in between. One variant repeated every 64 px read as a
+// regular scallop all round the island (2026-10-01: "the outer edges don't look natural").
+const RIM_VARIANTS = 4;
+function islandEdge(A, mask, v = 0) {
   const L = new Img(), g = A.grass, m = 10, s = SEED + 900;
   const open = { n: !(mask & 1), e: !(mask & 2), s: !(mask & 4), w: !(mask & 8) };
   const rect = [open.w ? m : -20, open.n ? m : -20, open.e ? T - m : T + 20, open.s ? T - m : T + 20];
   const opens = Object.values(open).filter(Boolean).length;
-  const D = (x, y) => sdBox(x + .5, y + .5, rect, 14) + (pnoise(x, y, 6, s, 8) - .5) * 9 + (pnoise(x, y, 3, s + 1, 16) - .5) * 3;
-  // The step up to the buildable grass: only for straight edges (one open side), on the opposite side.
-  const inner = opens === 1 ? (open.n ? "s" : open.s ? "n" : open.e ? "w" : "e") : null;
-  const toInner = (x, y) => inner === "s" ? T - 1 - y : inner === "n" ? y : inner === "w" ? x : inner === "e" ? T - 1 - x : 99;
+  const win = u => Math.sin(Math.PI * (u + .5) / T);  // 0 at the tile's ends, 1 in the middle
+  // Per-variant bumps along each open side, strongest at that side and gone 40 px in.
+  const bumps = (x, y) => {
+    let b = 0;
+    for (const [k, u, to] of [["n", x, y], ["s", x, T - 1 - y], ["w", y, x], ["e", y, T - 1 - x]]) {
+      if (!open[k]) continue;
+      b += (pnoise(u, "nesw".indexOf(k) * 31 + v * 97, 14, s + 30) - .5) * 44 * win(u) * clamp(1 - to / 40, 0, 1);
+    }
+    return b;
+  };
+  const D = (x, y) => sdBox(x + .5, y + .5, rect, 14) + (pnoise(x, y, 6, s, 8) - .5) * 9 + (pnoise(x, y, 3, s + 1, 16) - .5) * 3
+    + (pnoise(x, y, 16, s + 10, 4) - .5) * 8 + (pnoise(x, y, 32, s + 11, 2) - .5) * 8 + bumps(x, y);
+  // The step up to the buildable grass, on the sides facing the island (opposite the open sides): the
+  // grass creeps over the lip in uneven tongues with a shadow under them, so the ground doesn't end on a
+  // straight cell edge. A straight rim tile has one such side; a corner has two, and the grass only
+  // reaches into the corner where both meet (the ground is its diagonal neighbour). The creep depth is a
+  // function of the position along that side only, so it lines up with the neighbouring rim tiles.
+  const creepDepth = (u, side) => Math.max(1, 2 + pnoise(u, side * 16, 8, s + 20, 8) * 6 + pnoise(u, side * 16 + 8, 16, s + 21, 4) * 8
+    + pnoise(u, side * 16 + 4, 32, s + 22, 2) * 6 + (pnoise(u, side * 31 + v * 97, 12, s + 31) - .3) * 40 * win(u));
+  const innerSides = opens === 1 || opens === 2 ? ["n", "e", "s", "w"].filter(k => open[{ n: "s", e: "w", s: "n", w: "e" }[k]]) : [];
+  const creep = (x, y) => {  // > 0 inside the grass, the distance past its edge (negative) outside
+    if (!innerSides.length) return -99;
+    let v = 1e9;
+    for (const k of innerSides) {
+      const to = k === "s" ? T - 1 - y : k === "n" ? y : k === "w" ? x : T - 1 - x;
+      v = Math.min(v, creepDepth(k === "n" || k === "s" ? x : y, "nesw".indexOf(k)) - to);
+    }
+    return v;
+  };
   for (let y = 0; y < T; y++) for (let x = 0; x < T; x++) {
     const d = D(x, y);
     if (d > 0) continue;
     if (d > -3 && bay(x, y) < (d + 3) / 3.5) continue;  // the crumbling edge fades into the void
     // Seamless noise only (a per-tile light gradient repeated as a checker along the rim).
-    const lit = .42 + (pnoise(x, y, 5, s + 2, 16) - .5) * .6 + (pnoise(x, y, 16, s + 3, 4) - .5) * .3;
+    const lit = .42 + (pnoise(x, y, 8, s + 2, 8) - .5) * .35 + (pnoise(x, y, 16, s + 3, 4) - .5) * .35
+      + (pnoise(x, y, 10, s + 40 + v * 13) - .5) * .35 * win(x) * win(y);
     let c = pick(RIM_EARTH.slice(1), clamp(lit, 0, 1), x, y, .6);
-    if (d > -5) c = pick(RIM_EARTH.slice(2), clamp(lit + .2, 0, 1), x, y, .4);  // the broken lip catches a little light
+    if (d > -5 && hash(x >> 2, y >> 2, s + 12) < .3) c = pick(RIM_EARTH.slice(2), clamp(lit + .2, 0, 1), x, y, .4);  // bits of the broken lip catch a little light (a continuous band read as a rope)
     if (hash(x, y, s + 3) < .025) c = hash(x, y, s + 4) < .5 ? "#3c3c5c" : "#5c5a78";  // loose stones
-    const ti = toInner(x, y);
-    if (ti < 4) c = RIM_EARTH[0];  // shadow under the grass edge above
-    if (ti < 2 && hash(x, y, s + 5) < .55) c = hash(x, y, s + 6) < .5 ? g[1] : g[2];  // grass hanging over the step
+    const cv = creep(x, y);
+    if (cv > 0) c = cv < 1.2 && hash(x, y, s + 5) < .5 ? g[3] : hash(x, y, s + 6) < .3 ? g[2] : g[1];  // grass, its lip catching light
+    else if (cv > -3) c = RIM_EARTH[0];  // shadow under the grass edge
     L.set(x, y, c);
   }
   // Roots falling off the lip into the void: straight down past the west and east lips, curling over the north lip.
@@ -1433,7 +1463,7 @@ const BUILD = {
   decor: (A, v) => decorAt(A, v, SEED + v),
   dead: (A, v, f) => deadTree(A, v, f, SEED + v * 29),
   rock: (A, v) => shrinkRock(rock(A, v, SEED + v * 31)),
-  isle: (A, m) => islandEdge(A, m),
+  isle: (A, k) => islandEdge(A, k & 15, k >> 4),  // k = mask + 16 × variant
   cliff: (A, k) => cliffTile(A, k),
   voidsky: () => voidSky(),
   voidstars: () => voidStars(),

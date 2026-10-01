@@ -365,12 +365,16 @@ func _compute_noise_levels(noise: FastNoiseLite, tree_density: float) -> void:
 # The rim stays unwalkable; the start and end are open (the path draws them).
 func _generate_border(startPath: Vector2i, endPath: Vector2i) -> void:
 	var last := Vector2i(MAP_GRID.size) - Vector2i.ONE
+	# island_edge.png has a variant per row (they all meet at the tile ends): a mix of them keeps the
+	# rim from repeating one scallop round the island. Picked by a hash of the cell, so the rng is untouched.
+	var variants := (tile_set.get_source(EnvironmentTiles.ISLAND_EDGE) as TileSetAtlasSource).get_atlas_grid_size().y
 	for x in range(0, last.x + 1):
 		for y in range(0, last.y + 1):
 			var cell := Vector2i(x, y)
 			if (x != 0 and y != 0 and x != last.x and y != last.y) or cell == startPath or cell == endPath:
 				continue
-			set_cell(cell, EnvironmentTiles.ISLAND_EDGE, Vector2i(EnvironmentTiles.rim_mask(cell, last + Vector2i.ONE), 0))
+			var variant := absi(hash(cell)) % maxi(variants, 1)
+			set_cell(cell, EnvironmentTiles.ISLAND_EDGE, Vector2i(EnvironmentTiles.rim_mask(cell, last + Vector2i.ONE), variant))
 			unwalkable_cells.append(Vector2(cell))
 
 # Cliff faces hanging under the island's bottom row.
