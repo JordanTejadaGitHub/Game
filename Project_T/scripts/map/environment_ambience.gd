@@ -16,7 +16,9 @@ const FOG_COLOR := Color(16 / 255.0, 10 / 255.0, 30 / 255.0)
 
 const CLOUD_SIZE := Vector2(256, 128)  # One cloud shadow in dream/cloud_shadows.png (a row of them)
 # Mist banks (dream/mist_banks.png, a seamless 256 px tile): the title and Grove screens' teal-grey fog,
-# drawn with the cloud shadows (under the cold multiply) in flat 32 px bands, stretched 2× wide.
+# in flat 32 px bands, stretched 2× wide. On the ground (z -1, after the ground and path, like OmenMist):
+# Wardens, nightmares and their health bars stand crisp above it, even where nightmares arrive.
+const MIST_Z := -1
 const MIST_BAND := 32.0
 const MIST_STRETCH := Vector2(2, 1)
 
@@ -35,7 +37,7 @@ var _clouds: Texture2D  # Cloud shadow shapes (null = fall back to plain ovals)
 var _cloud_count := 1
 var _shadows: Node2D  # Draws the crossing cloud shadows at CLOUD_SHADOW_Z
 var _mist: Texture2D
-var _mist_layer: Node2D  # Draws the mist banks at CLOUD_SHADOW_Z, over the cloud shadows
+var _mist_layer: Node2D  # Draws the mist banks at MIST_Z
 
 func _ready() -> void:
 	z_index = AMBIENCE_Z
@@ -55,7 +57,7 @@ func _ready() -> void:
 		_mist = load(mist_path)
 	_mist_layer = Node2D.new()
 	_mist_layer.name = "MistBanks"
-	_mist_layer.z_index = CLOUD_SHADOW_Z - AMBIENCE_Z
+	_mist_layer.z_index = MIST_Z - AMBIENCE_Z
 	_mist_layer.texture_repeat = CanvasItem.TEXTURE_REPEAT_ENABLED  # The tile wraps as it drifts
 	_mist_layer.draw.connect(_draw_mist)
 	add_child(_mist_layer)
