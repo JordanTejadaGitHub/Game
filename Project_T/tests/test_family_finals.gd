@@ -29,6 +29,8 @@ func _initialize() -> void:
 	_run.call_deferred()
 
 func _run() -> void:
+	HeartwoodMemory.file_path = "user://test_family_finals_%d.json" % OS.get_process_id()  # Not the player's settings (reduced motion shortens drags)
+	Fx.reset_run()
 	_check_data()
 	main = load("res://scenes/main.tscn").instantiate()
 	root.add_child(main)
