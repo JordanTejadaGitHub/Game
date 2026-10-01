@@ -1434,10 +1434,11 @@ lifts its branch: **`swift`** and **`reach`** (card builds C9 and C10). Numbers 
   0–1%: with only 5–6 Grove cards, a 60% run pool rarely holds a full set). Every other card build has
   bridges; these two had none. Existing cards that already do the job get the second tag (no new
   cards, no pool growth, the 60% stays):
-  - **`swift`** also on **Quickened Sap** (all Wardens +attack speed; a core basic) and **Quick Step**
-    (attack speed after calling early; Daring). Swift's package: 6 → **8**.
+  - **`swift`** also on **Quick Step**
+    (attack speed after calling early; Daring). Swift's package: 6 → **7**. (Quickened Sap was tagged first, but as a core basic it sits in every run's pool and pushed Swift's dream build to 9%: untagged again.)
   - **`reach`** also on **Crowd Breaker** (area attacks +5% per nightmare hit) and **Last Breath** (a
-    dispel burst on nearby nightmares; Affliction). Wide Reach's package: 5 → **7**.
+    dispel burst on nearby nightmares; Affliction), and **Shattering Blow** (crits splash; Precision).
+    Wide Reach's package: 5 → **8** (at 7 it measured 2%, short).
   - Their effects don't change; the tag adds tag resonance and counts them in the package.
     Target: 5+ by 100 at **~3–5%** with a full Grove, like the other card builds.
 
