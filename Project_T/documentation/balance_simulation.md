@@ -521,7 +521,9 @@ profiles: patient_roots with no status gate; rolling_thunder, rain_on_glass gate
 planted, Wardens; heavy_eyelids is usable, since Bloomcap applies Drowsy). **No dilution problem.** Survival: 32.7 / 31.8 / 32.9 mean drift
 reached, so the first run's "fresh ≥ half ≥ full" was noise: **the bot shows no Grove effect either
 way** (every profile dies in act 2). The Grove's value has to come from human runs on Dev Grove
-presets. Small fix: status gates on the two dead cards (Roguelite Code).
+presets. The "dead" offers turned out to be **by design** (Roguelite Code, 35efae49): patient_roots
+is a Seed card that calls the Rootling family to the next pick; rolling_thunder / rain_on_glass are
+half-dreamed "Adapt" offers. **No change.**
 This conflicts with the targets (Half Grove reaches act 4, Full wins). Next: find out whether the
 off-build cards are dead for the build (a `can_offer` rule fixes it) or usable (a pool-size question),
 then bring the fix to the user. Caveat: one family pair, one bot style, which picks by tag + rarity.
