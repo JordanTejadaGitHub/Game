@@ -12,7 +12,7 @@ const OUT := "res://assets/environment"
 const KINDS := {
 	"grass": DetailPass.Kind.TILE, "path": DetailPass.Kind.TILE, "path_rim": DetailPass.Kind.TILE,
 	"island_edge": DetailPass.Kind.TILE,
-	"cliff": DetailPass.Kind.TILE, "dew_pool": DetailPass.Kind.TILE, "pond": DetailPass.Kind.TILE, "blight_patch": DetailPass.Kind.TILE,
+	"cliff": DetailPass.Kind.TILE, "dew_pool": DetailPass.Kind.TILE, "pond": DetailPass.Kind.TILE, "pond_inner": DetailPass.Kind.TILE, "blight_patch": DetailPass.Kind.TILE,
 	"border_wall": DetailPass.Kind.TILE, "rope_bridge": DetailPass.Kind.TILE,
 	"withered_tree": DetailPass.Kind.OBSTACLE, "mossy_boulder": DetailPass.Kind.OBSTACLE,
 	"tended_stump": DetailPass.Kind.OBSTACLE, "moved_hollow": DetailPass.Kind.OBSTACLE,
@@ -25,7 +25,7 @@ const KINDS := {
 const SNAP_ONLY := ["edge_mist", "void_sky", "void_stars", "cloud_shadows", "mist_banks", "heartwood"]  # heartwood: drawn with its own rim and banded glow (matches the Memory Grove)
 # Grain strength (the user's picks, 2026-09-28): no added grain on anything grassy, a light grain on
 # the other ground tiles, full detail on props.
-const NO_GRAIN := ["grass", "island_edge", "dew_pool", "pond", "blight_patch"]
+const NO_GRAIN := ["grass", "island_edge", "dew_pool", "pond", "pond_inner", "blight_patch"]
 const TILE_GRAIN := 0.3
 
 func _init() -> void:
