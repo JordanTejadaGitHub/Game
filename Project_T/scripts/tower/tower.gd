@@ -327,6 +327,7 @@ var _root_links: Array[Vector2] = []  # Root Network: directions to touching Spr
 var kin_branch := ""  # The branch an Ascended form grew from (Kinships); saved with the run
 var _branch_form: TowerData = null  # Kinships.branch_for cache: the form it was worked out for
 var _branch_cached := ""
+var _area_queue: AreaHitQueue = null  # Spreads dense area bursts over frames (AreaHitQueue)
 var footprint_size := 0  # 0 = the data's footprint; 1 keeps an old save's 1-cell Ascended form
 var _hits_landed := 0  # Eternal Charge / Rooted Nightmares count this Warden's hits
 var _hunted := {}  # Hunter's Moon: nightmares this Warden has hit (instance ids)
@@ -1527,6 +1528,11 @@ func hit(enemy: Node2D, soothe_multiplier: float = 1.0, is_area: bool = false, c
 		combo: StringName = &"") -> bool:
 	if not is_instance_valid(enemy) or enemy.is_cleansed:
 		return false
+	if is_area and is_inside_tree():
+		if not is_instance_valid(_area_queue):
+			_area_queue = AreaHitQueue.find(self)
+		if _area_queue != null and _area_queue.defer(self, enemy, soothe_multiplier, crit, combo):
+			return false  # A dense burst: this hit lands next frame (same numbers), spreading the cost
 	var is_crit := roll_crit(enemy) if crit == ROLL_CRIT else crit == CRIT
 	if _has_rule(&"called_shot") and _dream_state.called_shot(self, enemy):
 		is_crit = true  # Called Shot: the first hit on a Marked nightmare (once per Warden per nightmare)
