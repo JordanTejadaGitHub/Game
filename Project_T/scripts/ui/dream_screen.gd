@@ -26,6 +26,7 @@ var _reroll := Button.new()  # Second Thoughts (Memory Grove)
 var _dev_any := Button.new()  # "Dev: any card…" (dev runs of debug builds; demo_scope.md "Pick any card")
 var peek: ChoicePeek  # Minimise to look at the map (screens_ui.md "Choice screens")
 var _diagram: CardDiagram = null  # The hovered placement card's map picture (dream_design.md "Placement cards show a diagram")
+var _scene: CardScene = null  # The living mini-scene (pooled: one view, reused card to card)
 var _held_for_diagram := false  # A long-press showed the diagram: that release doesn't take the card
 const LONG_PRESS := 0.45
 
@@ -309,30 +310,45 @@ func _add_linked_line(box: VBoxContainer, text: String, color: Color, font_size:
 	return label
 
 # The diagram panel beside `button` (right of it, or left when there's no room), kept on screen.
+# Cards with a living mini-scene (CardScene.LIVE_CARDS) play it in the one pooled view; reduced motion and the
+# rest keep the still diagram.
 func show_diagram(card: UpgradeData, button: Control) -> void:
 	hide_diagram()
-	_diagram = CardDiagram.make(card)
-	if _diagram == null:
-		return
-	_diagram.name = "CardDiagram"
-	_diagram.z_index = 10
-	add_child(_diagram)
+	var panel: Control
+	if CardScene.can_show(card):
+		if _scene == null or not is_instance_valid(_scene):
+			_scene = CardScene.new()
+			_scene.name = "CardScene"
+			_scene.z_index = 10
+			add_child(_scene)
+		_scene.show_card(card)
+		panel = _scene
+	else:
+		_diagram = CardDiagram.make(card)
+		if _diagram == null:
+			return
+		_diagram.name = "CardDiagram"
+		_diagram.z_index = 10
+		add_child(_diagram)
+		panel = _diagram
 	await get_tree().process_frame
-	if not is_instance_valid(_diagram) or not is_instance_valid(button):
+	if not is_instance_valid(panel) or not panel.visible or not is_instance_valid(button):
 		return
 	var card_rect := button.get_global_rect()
 	var view := get_viewport_rect().size
-	var size := _diagram.get_combined_minimum_size()
+	var size := panel.get_combined_minimum_size()
 	var x := card_rect.end.x + 8.0
 	if x + size.x > view.x - 8.0:
 		x = card_rect.position.x - size.x - 8.0
 	var y := clampf(card_rect.position.y + 24.0, 8.0, view.y - size.y - 8.0)
-	_diagram.global_position = Vector2(maxf(x, 8.0), y)
+	panel.global_position = Vector2(maxf(x, 8.0), y)
 
 func hide_diagram() -> void:
 	if _diagram != null and is_instance_valid(_diagram):
 		_diagram.queue_free()
 	_diagram = null
+	if _scene != null and is_instance_valid(_scene):
+		_scene.stop()  # Pooled: kept, but nothing runs or draws
 
 func _on_closed() -> void:
 	hide_diagram()

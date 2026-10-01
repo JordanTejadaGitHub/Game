@@ -178,6 +178,39 @@ func _run() -> void:
 			"…beside the card, on screen (%s, card %s)" % [diagram_rect, cross_button.get_global_rect()])
 	cross_button.mouse_exited.emit()
 	_check(screen._diagram == null, "…and leaving the card hides it")
+	# The living mini-scene (dream_design.md "Revised: a living mini-scene"): Heart of the Maze plays one in the pooled view
+	var heart: UpgradeData = null
+	for card in dreams.pool:
+		if card.id == "heart_of_the_maze":
+			heart = card
+	if heart != null:
+		var heart_offer: Array[UpgradeData] = [heart]
+		dreams.current_offer = heart_offer
+		screen._show_offer(heart_offer, 30)
+		for i in 3:
+			await process_frame
+		var heart_button := screen._cards.get_child(0).get_child(0) as Button
+		heart_button.mouse_entered.emit()
+		var scene: CardScene = screen._scene
+		_check(scene != null and scene.visible and screen._diagram == null, "Heart of the Maze: a living scene, not the still diagram")
+		if scene != null:
+			_check(scene._wardens.size() == 3 and scene._wardens.filter(func(w: Dictionary) -> bool: return w.boosted).size() == 1,
+				"…three puppet Wardens, one of them the favoured one")
+			_check(scene._path.size() == 11, "…nightmares walk the diagram's path from the start to the Heartwood (%d cells)" % scene._path.size())
+			var golds := 0
+			var whites := 0
+			for i in 360:  # 6 s at 60 fps: the loop plays
+				await process_frame
+				for node in scene._world.get_children() if scene._world else []:
+					if node is Label and not node.has_meta(&"counted"):
+						node.set_meta(&"counted", true)
+						if node.text.begins_with("×2"):
+							golds += 1
+						else:
+							whites += 1
+			_check(golds > 0 and whites > 0, "…the favoured Warden hits for gold \"×2\", the others for white numbers (%d / %d)" % [golds, whites])
+			heart_button.mouse_exited.emit()
+			_check(not scene.visible and not scene.is_processing() and scene._world == null, "…and leaving stops it (pooled, nothing running)")
 	print("dream screen test: %s" % ("PASS" if failures == 0 else "%d FAILED" % failures))
 	quit(failures)
 
