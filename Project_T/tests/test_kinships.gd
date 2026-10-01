@@ -19,6 +19,9 @@ func _initialize() -> void:
 	_run.call_deferred()
 
 func _run() -> void:
+	# The player's own settings (reduce flashes, Kinship effects) must not change what the test sees.
+	HeartwoodMemory.file_path = "user://test_kinships_%d.json" % OS.get_process_id()
+	Fx.reset_run()
 	Kinships.force_full = true
 	main = load("res://scenes/main.tscn").instantiate()
 	root.add_child(main)
