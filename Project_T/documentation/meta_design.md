@@ -79,8 +79,30 @@ roots, with **three sections**. Each node costs Seeds and needs its parent node(
   every 3 nodes planted; tapping it plays that Memory.
 - Tap or click a node for its card and a **Plant** button (no hover needed). Pan and zoom like the
   map. A Seeds counter top left; **Start run** opens the loadout (below) first.
-- **Carried into the run** (optional, cosmetic): the in-run Heartwood sprite shows a few of the
-  player's flowers and dream-fruit, so the tree on the map reflects their progress.
+- **Carried into the run: the Heartwood you defend is your Grove** (user idea via the design hub,
+  2026-10-01; cosmetic only, no gameplay). The in-run Heartwood matches the Grove screen's tree:
+  - **Canopy stage:** it follows the Grove's canopy stages by `HeartwoodMemory.grown_share()`
+    (about 4: young → fuller → broad → great old tree), with the same silhouette, palette and
+    blossoms as the Grove art, so it reads as the same tree.
+  - **Lit nodes** (user: *"the amount of nodes unlocked with colour should match the one in game"*):
+    every planted Grove node shows as a **small coloured blossom or light** on the in-run
+    Heartwood, in the **same relative place** as on the Grove tree (`grove_layout.json` positions
+    scaled onto the in-run canopy and roots), coloured by limb as on the Grove screen (Families
+    green, Cards violet, Perks gold). Unplanted nodes are absent. A full tree is fully lit, so a
+    glance at the tree you defend shows your Grove.
+  - **Readability first:** leaf loss stays just as readable at every stage (leaves dim and fall
+    **over** the blossoms), and the lights stay subtle under the Heartwood's leaf-loss dimming and
+    the close-call glow. It fits the Heartwood's 128 px canopy and keeps its fade when something is
+    behind it.
+  - **Cost:** built once at run start (one baked texture or a handful of sprites), nothing per
+    frame.
+  - **Scope:** full game only; the demo keeps a fixed young tree. Dev runs (Dev Grove, Test Grove,
+    "Unlock all families") show their preset's tree. A Grove change shows from the next run.
+  - **Who builds what:** the ~4 canopy stages (in-run size) are Environment Assets' art, checked
+    against `assets/meta/` by Meta Game Asset so both trees match; the stage pick and the node lights
+    are Environment Code's (`heartwood.gd`), reading `HeartwoodMemory` (`grown_share()`,
+    `node_level()`) and `grove_layout.json`; Meta Game Code adds a helper if one is needed
+    (e.g. planted nodes with their limb and layout position).
 
 ### Section 1: Perks (bring into the game)
 
