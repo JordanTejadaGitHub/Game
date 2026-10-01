@@ -290,6 +290,36 @@ Decisions (design chat; the interim rise in run_design.md was too small for this
    the block's health lands on its 5th drift. Record health, damage and leaks **by the drift that
    spawned the nightmare**, not by the drift that was current when it happened.
 
+## Human run 2 (2026-09-30, build a596ea, after the Dream power pass and the health rise)
+
+Fresh profile (7 Grove nodes), Blight 0. **Won at drift 100, 2 leaves lost (both at the drift 25
+Scarecrow)**, 35 min. Build: **92 Thornwalls, 35 Honeysuckles**, 9 Morning Fog, 7 Puffball, 4 Dewdrop,
+3 Sporeling (a poison-in-fog maze, path 188 tiles). Top Wardens: **one Puffball 76% of all damage**,
+Morning Fog 20%.
+
+| Stretch | Closest approach | Reading |
+|---|---|---|
+| Act 1 (drifts 6–25) | **0.54–0.86** (one 1.00 at 23) | right: tense, readable, the target |
+| Early act 2 (26–40) | 0.28–0.72 | still has teeth |
+| **Drift 41 → 100** | **0.08–0.22**, no leaks | the maze kills in the first ~15% of the route: too easy, matches the user's *"good until mid act 2"* |
+
+- **Bosses:** Scarecrow 183 s (a real fight, cost the 2 leaves), Mire Hag 35 s, Moth Queen 92 s,
+  **Hollow Oak 17 s** (the drift 100 boss is trivial now that it was exempted from the ×3.5).
+- **Dew:** earned 15,274; spent on growing 6,915, ranks 2,450, clears 1,663; the bank rose to ~1–2.7k late
+  (better than run 1's 9k; the late cut works).
+- **Dreams:** 28 taken (Lucid Dreaming at 50), a poison build (Lingering Spores I+II, Spore Cascade
+  I+II, Mushroom Rain, Monoculture late).
+
+Decisions (design chat):
+1. **Puffball is the outlier** (one Warden, 76%): its area puff gives **1 Poisoned** (was 2) and its
+   hit cap goes **16 → 12** (Driftspore's). Check the "Top" attribution too: Spore Cascade spreads
+   and fog-boosted ticks may all be credited to the first applier (fine if true, but verify).
+2. **Hollow Oak at drift 100:** ×1.6 → **×3.0** (17 s is no final boss; run 1's wall was before the
+   boss-stays rule and the old curve).
+3. **Steepen from mid act 2** (both runs agree): act 2 ends at **×3.0** (was 2.5) with the ramp's
+   steeper half from drift 38; acts 3–4 **×4.0** (was 3.5). Act 1 and drifts 26–37 unchanged.
+4. **Chain falloff** (already queued) lands with these. Next human run checks all four.
+
 ## Later
 
 A **human baseline**: the same CSV written from real playtests (debug builds only), so the bot's
