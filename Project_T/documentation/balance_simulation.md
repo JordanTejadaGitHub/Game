@@ -441,8 +441,12 @@ boss: **fresh Balanced 90%**, fresh skip 45%, full Balanced 80%, full skip 65%. 
 (fresh Balanced bots that nearly kill him pay 8 and carry on). Too kind against the targets (~75% /
 skip loses), and humans play better than the bot: **act 1 bite 8 → 10** (`boss_bite_leaves` [10, 10,
 12]); re-check fresh only. The full profile doing worse than fresh (29% vs 67% dispelled) is on the
-bot's side (same boss health); cause **not yet measured**. Balancing Code finds it after the Omen
-batch; it's needed before the Grove's effect can be read.
+bot's side (same boss health). **Cause (measured):** the first family. Fresh always draws Sporeling
+(every start offer has it; Balanced picks it): 20/20, Stag dispelled 67%. Full offers 3 of 9 families:
+Sporeling 7/20 (dispelled 50%), **other families 2/11 (18%)**; Pebbling and Acorn are resisted by
+the Stag (stone, root), Firefly lost 3/3. Same attackers, tiers and card counts in both: no thinning.
+So **non-Sporeling families look weak in act 1** (n = 1–5 each). Next: a per-family act 1 batch
+(10 seeds per forced family), then a same-family Grove control (fresh / half / full, Sporeling + one).
 
 ## Later
 
