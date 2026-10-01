@@ -40,7 +40,7 @@ var _key_buttons := {}  # action -> Button
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	_settings = HeartwoodMemory.get_settings()
-	custom_minimum_size = Vector2(480, 0)
+	custom_minimum_size = Vector2(760, 0)  # All six tabs on one row (user: only 3 showed at 1280×720 virtual)
 	var outer := VBoxContainer.new()
 	outer.add_theme_constant_override("separation", 8)
 	add_child(outer)
@@ -49,7 +49,7 @@ func _ready() -> void:
 	UiStyle.display(title, 24)
 	outer.add_child(title)
 	# Tabs as in screens_ui.md "Settings" (Language comes with translations).
-	tabs.custom_minimum_size = Vector2(0, 420)
+	tabs.custom_minimum_size = Vector2(0, 380)  # Fits 720 virtual with the title and Back row
 	outer.add_child(tabs)
 
 	var audio := _tab("Audio")

@@ -35,6 +35,9 @@ func _run() -> void:
 		strip._stack()
 		_check(strip.offset_top >= omen_tag.offset_top + omen_tag.size.y, "the Coming strip stacks under the Omen line (%.0f vs %.0f)"
 			% [strip.offset_top, omen_tag.offset_top + omen_tag.size.y])
+		var banner_end: float = main.get_node("%DriftBanner").drawn_rect().end.y
+		_check(omen_tag.get_global_rect().position.y >= banner_end - 0.5, "the Omen line starts under the drift banner (%.0f vs %.0f)"
+			% [omen_tag.get_global_rect().position.y, banner_end])
 		omen_tag.visible = false
 		strip._stack()
 	else:
@@ -92,9 +95,27 @@ func _run() -> void:
 	run_state.add_sprout_charges(2)
 	_check(hud_node._seed_badge.visible, "free Sprouts show a seed badge on the Sprout button")
 	run_state.add_sprout_charges(-2)
-	for screen in [Vector2i(1920, 1080), Vector2i(1280, 800), Vector2i(1280, 720)]:
-		root.size = screen
+	# Real windows, then the UI scale cases (user screenshots: 2560x1440 at the largest UI size = 1280x720
+	# virtual, and at 40%): [window, UI share (0 = no stretch)]. `screen` is the virtual size the HUD lays out in.
+	var layout_was := [root.content_scale_mode, root.content_scale_size, root.content_scale_aspect, root.content_scale_factor]
+	for case in [[Vector2i(1920, 1080), 0.0], [Vector2i(1280, 800), 0.0], [Vector2i(1280, 720), 0.0],
+			[Vector2i(2560, 1440), 1.0], [Vector2i(1920, 1080), 1.0], [Vector2i(3840, 2160), 1.0], [Vector2i(2560, 1440), 0.4]]:
+		if case[1] > 0.0:
+			root.content_scale_mode = Window.CONTENT_SCALE_MODE_CANVAS_ITEMS
+			root.content_scale_size = UiStyle.LAYOUT_MIN
+			root.content_scale_aspect = Window.CONTENT_SCALE_ASPECT_EXPAND
+			root.content_scale_factor = case[1]
+		else:
+			root.content_scale_mode = layout_was[0]
+			root.content_scale_size = layout_was[1]
+			root.content_scale_aspect = layout_was[2]
+			root.content_scale_factor = layout_was[3]
+		root.size = case[0]
 		await _frames(2)
+		hud_node._fit_tower_bar()
+		hud_node._layout_top_row()
+		await _frames(2)
+		var screen := Vector2i(main.get_viewport().get_visible_rect().size)
 		# The Clear tool + the Warden bar, centred together at the bottom.
 		var tool_rect := (main.get_node("HUD/ClearTool") as Control).get_global_rect()
 		var bar_rect := bar.get_global_rect().merge(tool_rect)
@@ -140,6 +161,7 @@ func _run() -> void:
 			was_shown[n] = b.visible
 			b.visible = true
 		var row_hud = main.get_node("HUD")
+		row_hud.set_process(false)  # Its 0.2 s relayout would hide Boosts again (no boost source here)
 		row_hud._layout_top_row()
 		await _frames(2)
 		var row_rect: Rect2 = row_hud.resource_row_rect()
@@ -156,6 +178,7 @@ func _run() -> void:
 			"the top-right row: counters and buttons in order on one fog patch, clear of the banner at %s (row %s, banner %s, wrapped %s)" % [screen, row_rect, banner_rect, row_hud.row_wrapped])
 		for n in top_names:
 			(main.get_node("HUD/" + n) as Control).visible = was_shown[n]
+		row_hud.set_process(true)
 		# The expanded damage meter (both tabs, the top rows + "and N more") never covers the DriftPanel
 		# (user: "maze dps shouldn't go over the call drift").
 		var meter := main.get_node("HUD/DriftMeter") as DriftMeter
@@ -190,6 +213,33 @@ func _run() -> void:
 		meter.block_summary = false
 		meter.visible = meter_was
 		meter.set_process(true)
+	# The pause menu's Settings at 1280×720 virtual (the largest UI size): on screen, all six tabs on one row,
+	# and the Coming strip hidden under the menu (user screenshot: it showed through over the panel).
+	root.content_scale_mode = Window.CONTENT_SCALE_MODE_CANVAS_ITEMS
+	root.content_scale_size = UiStyle.LAYOUT_MIN
+	root.content_scale_aspect = Window.CONTENT_SCALE_ASPECT_EXPAND
+	root.content_scale_factor = 1.0
+	root.size = Vector2i(2560, 1440)
+	await _frames(2)
+	var pause_menu := main.get_node("%PauseMenu")
+	pause_menu.open()
+	pause_menu._show_settings()
+	await _frames(3)
+	var settings_panel: SettingsPanel = pause_menu._settings
+	var view_rect := main.get_viewport().get_visible_rect()
+	var tab_bar := settings_panel.tabs.get_tab_bar()
+	await create_timer(0.3, true, false, true).timeout  # The strip checks every 0.2 s
+	var strip_hidden: bool = main.get_node("HUD").get_children().filter(func(c: Node) -> bool: return c is ComingStrip and c.visible).is_empty()
+	_check(view_rect.encloses(settings_panel.get_global_rect()) and not tab_bar.get_offset_buttons_visible() and strip_hidden,
+		"at %s virtual the Settings panel fits, shows all %d tabs and hides the Coming strip (%s in %s, tab arrows %s, strip hidden %s)"
+		% [view_rect.size, settings_panel.tabs.get_tab_count(), settings_panel.get_global_rect(), view_rect, tab_bar.get_offset_buttons_visible(), strip_hidden])
+	pause_menu.close()
+	root.content_scale_mode = layout_was[0]
+	root.content_scale_size = layout_was[1]
+	root.content_scale_aspect = layout_was[2]
+	root.content_scale_factor = layout_was[3]
+	root.size = Vector2i(1920, 1080)
+	await _frames(2)
 	# The Warden bar is always one row (user: "the tower bar should not stack like this"), even with every
 	# family: slots shrink to 56 px, then the bar scrolls with arrows.
 	var bar_dreams: DreamState = main.get_node("%DreamState")
