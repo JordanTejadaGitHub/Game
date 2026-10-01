@@ -27,6 +27,8 @@ const MIXED_SPROUTS := 0.4  # Mixed: the share of attackers kept as Sprouts
 const SAVER_DRIFTS := 5  # Saver: holds Dew at most this many drifts for a growth
 const APPROACH_EVERY := 0.25  # Game seconds between closest-approach samples
 const CLOSE_CALL := 0.85  # A drift where a nightmare got this far along the route
+const COVER_HEARTWOOD_FROM := 18  # From this drift one attacker keeps the Heartwood in range (a boss that gets through stays there; humans cover it)
+const LAST_STRETCH := 8  # Route tiles before the Heartwood a covering Warden should also reach
 var _saving_for_final := false  # The cheapest open growth is a final form (saves longer for it)
 const STYLES := {"balanced": 0, "wide": 1, "narrow": 2, "combo": 3, "sleep": 4, "sprout": 5, "grove": 3, "mixed": 6}  # DreamSimPolicy.Style; grove = the hand-written Grove player (Combo cards, --families); mixed = Style.MIXED
 const COLUMNS := ["drift", "act", "seconds", "health_spawned", "damage", "leaks", "leaves_lost", "leaves_left",
@@ -289,6 +291,8 @@ func _next_buy() -> String:
 	# Sprouts are planted (players don't sit on five Sprouts while drift 3 walks in).
 	if style != "sprout" and _grow_sprout_into_family():
 		return "grow"
+	if director.drifts_started >= COVER_HEARTWOOD_FROM and not _heartwood_covered() and _plant_attacker(true):
+		return "plant"  # Cover the Heartwood (past the planned room)
 	if attackers < target and _plant_attacker():
 		return "plant"
 	if walls < int(attackers * plan.walls) and _plant_wall():
@@ -348,18 +352,19 @@ func _walls() -> Array:
 	return container.get_children().filter(func(t) -> bool:
 		return t is Tower and not t.is_queued_for_deletion() and not t.tower_data.can_attack)
 
-func _plant_attacker() -> bool:
+# `cover_heart`: only cells with the Heartwood in range, scored by the last stretch they also reach.
+func _plant_attacker(cover_heart := false) -> bool:
 	var plan: Dictionary = STYLE_PLAN.get(style, STYLE_PLAN.balanced)
 	if plan.has("plant"):
 		var only: TowerData = load("res://resource/tower/%s.tres" % plan.plant)
 		if not run_state.can_afford(placer.get_cost(only)):
 			return false
-		var at := _best_cell(only.attack_range, plan.get("growth_weight", 0.5))
+		var at := _best_cell(only.attack_range, plan.get("growth_weight", 0.5), cover_heart)
 		return at != NO_CELL and _build(only, at)
 	if style == "mixed" and _sprout_share() < MIXED_SPROUTS:
 		var sprout: TowerData = load("res://resource/tower/sprout.tres")
 		if run_state.can_afford(placer.get_cost(sprout)):
-			var at := _best_cell(sprout.attack_range, 0.5)
+			var at := _best_cell(sprout.attack_range, 0.5, cover_heart)
 			if at != NO_CELL and _build(sprout, at):
 				return true
 	var options: Array = placer.get_buildable_towers().filter(func(t: TowerData) -> bool:
@@ -377,7 +382,7 @@ func _plant_attacker() -> bool:
 	var data: TowerData = options[0]
 	if not run_state.can_afford(placer.get_cost(data)):
 		return false
-	var cell := _best_cell(data.attack_range, 0.5)
+	var cell := _best_cell(data.attack_range, 0.5, cover_heart)
 	return cell != NO_CELL and _build(data, cell)
 
 func _plant_wall() -> bool:
@@ -392,8 +397,9 @@ func _build(data: TowerData, cell: Vector2) -> bool:
 	return placer._try_build(cell)
 
 # The open cell scoring best: path cells within `reach` + `growth_weight` × the path it adds. Walls
-# (reach 0) only count if they add path.
-func _best_cell(reach: float, growth_weight: float) -> Vector2:
+# (reach 0) only count if they add path. `cover_heart`: only cells reaching the Heartwood, the last
+# LAST_STRETCH route tiles counting double.
+func _best_cell(reach: float, growth_weight: float, cover_heart := false) -> Vector2:
 	var route: PackedVector2Array = map.get_path_from(map.startPath)
 	var enemy_cells := PackedVector2Array()
 	for enemy in spawner.get_maze_walkers():
@@ -847,3 +853,10 @@ func _boss_text(fight: Dictionary) -> String:
 	var dispelled: bool = fight.route_damage + fight.heart_damage >= fight.health * 0.999
 	return "%d:%s%s:%d:%.0f:%d:%.0f:%.0f:%.0f:%d:%d" % [fight.drift, fight.kind, "(echo)" if fight.echo else "", fight.health,
 		route_s, fight.hp_arrive, fight.route_damage, fight.heart_damage, heart_s, fight.in_range, 1 if dispelled else 0]
+
+# An attacker has the Heartwood cell in range (a boss that gets through stays there, draining leaves).
+func _heartwood_covered() -> bool:
+	for tower in _attackers():
+		if tower.cell.distance_to(map.endPath) <= tower.get_range_cells():
+			return true
+	return false
