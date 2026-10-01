@@ -54,13 +54,18 @@ function nodeSprite(sec, state, f, big = false) {
   flower(L, c, c, sec, r, petals, 1, f * .06);
   out.stamp(L, "#0e0a06");
   if (big) for (let k = 0; k < 4; k++) { const a = k * Math.PI / 2 + f * .4; out.set(c + Math.cos(a) * (r + 5), c + Math.sin(a) * (r + 5), "#fffbe8"); }
-  // A Cards Legendary (purple level 3) gets its own mark, like the Ascension crown and the Perks gold ring:
-  // a twinkling gold four-point star above the flower with a short trail of sparks.
+  // A Cards Legendary (purple level 3) gets its own mark, attached to the flower so it never reads as a
+  // background mote: a gold rim round the flower and a gold crescent moon hugging its upper right.
   if (big && sec === "cards" && state === "bloom") {
-    const sx = c + 9, sy = 7, arm = f ? 5 : 4;
-    for (let i = -arm; i <= arm; i++) { out.set(sx + i, sy, Math.abs(i) < 2 ? HW.Heartlight : HW.Gold); out.set(sx, sy + i, Math.abs(i) < 2 ? HW.Heartlight : HW.Gold); }
-    out.set(sx - 1, sy - 1, HW.Glow); out.set(sx + 1, sy + 1, HW.Glow); out.set(sx + 1, sy - 1, HW.Glow); out.set(sx - 1, sy + 1, HW.Glow);
-    [[-7, 3], [-11, 6], [-14, 10]].forEach(([dx, dy], k) => out.set(sx + dx, sy + dy, k === (f ? 1 : 2) ? HW.Glow : HW.Gold));
+    for (let y = 1; y < S - 1; y++) for (let x = 1; x < S - 1; x++) {
+      const p = out.get(x, y); if (p[3] < 255 || !(p[0] === 14 && p[1] === 10 && p[2] === 6)) continue;
+      if (Math.hypot(x - c, y - c) > r * .7) out.set(x, y, HW.Gold);
+    }
+    for (let y = 0; y < S; y++) for (let x = 0; x < S; x++) {
+      const a = Math.hypot(x + .5 - (c + 10), y + .5 - (c - 11)), b = Math.hypot(x + .5 - (c + 12.5), y + .5 - (c - 13));
+      if (a < 6 && b > 4.6) out.set(x, y, a < 4.5 && b < 6.2 ? HW.Heartlight : HW.Gold);
+    }
+    if (f) out.set(c + 7, c - 14, HW.Heartlight);
   }
   out.set(c - 3 + f * 5, c - r + 1, "#ffffff");
   return out;
