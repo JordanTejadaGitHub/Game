@@ -223,8 +223,8 @@ two systems together.
 
 | Branch | Node 1 (near the trunk) | Node 2 | Tip: Legendary |
 |---|---|---|---|
-| **Swift** (attack speed) *(new)* | *TBD* (50) | *TBD* (70) | *TBD* (120) |
-| **Wide Reach** (area, splash) *(new)* | *TBD* (50) | *TBD* (70) | *TBD* (120) |
+| **Swift** (attack speed) *(new)* | *Quickening*: Momentum, Quickening, Flurry (50) | *Light Feet*: Restless Roots, Hummingheart (70) | **Whirlwind Heart** (120) |
+| **Wide Reach** (area, splash) *(new)* | *Broad Strokes*: Broad Splash, Lingering Splash (50) | *Far Reach*: Far Reach, Spillover (70) | **Great Ripple** (120) |
 | **Keen Edges** (crit) | *Sharpened*: Still Target, Shattering Blow (50) | — | **Full Moon** (120; needs Sharpened) |
 | **Deep Poison** (Potency) | *Seeping* (50) | *Venom*: Venom Bloom (40) | **Nightshade** (120) |
 | **The Quiet Ones** (support Wardens) | *Catchers*: Wide Bowl, Dew Trail, Still Waters, Acorn Cache (50) | *Old Wood*: Overflowing Well, Hedgerow Roots, Grandfather Stump, Living Walls, Many Threads (70) | **The Quiet Ones** (120) |
