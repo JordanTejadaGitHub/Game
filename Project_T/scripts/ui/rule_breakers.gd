@@ -148,6 +148,8 @@ func _on_spawned(node: Node) -> void:
 	if not data is EnemyData:
 		return
 	(func() -> void:  # Its data is set once it's in
+		if not is_instance_valid(node):
+			return  # Freed the same frame (tests spawn and clear)
 		var real: EnemyData = node.get("enemy_data")
 		if real == null or not breaks_rules(real) or _plated.has(kind_of(real)):
 			return
