@@ -6,8 +6,9 @@
 script = ExtResource("1_omen")
 id = "sleepless"
 display_name = "Sleepless"
-description = "Nightmares are immune to {drowsy} and {held}."
+description = "Nightmares have 15% more health, and are immune to {drowsy} and {held}."
 flavor = "Nothing will sleep tonight."
 kind = 0
+health_multiplier = 1.15
 status_immune = Array[StringName]([&"drowsy", &"held"])
 reward_dew = 60

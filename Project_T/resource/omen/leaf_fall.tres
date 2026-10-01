@@ -6,8 +6,9 @@
 script = ExtResource("1_omen")
 id = "leaf_fall"
 display_name = "Leaf Fall"
-description = "Every leak costs double leaves, and a boss at the Heartwood drains two at a time."
+description = "Nightmares move 20% faster. Every leak costs double leaves, and a boss at the Heartwood drains two at a time."
 flavor = "The Heartwood's leaves hang by a thread."
 kind = 1
+speed_multiplier = 1.2
 leak_multiplier = 2.0
 reward_max_leaves = 3

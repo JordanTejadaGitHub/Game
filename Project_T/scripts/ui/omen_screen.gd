@@ -81,6 +81,9 @@ func _ready() -> void:
 	omens.offer_closed.connect(_on_closed)
 	omens.omen_started.connect(_on_omen_started)
 	omens.omen_rewarded.connect(_on_omen_rewarded)
+	var run_state := get_node_or_null("%RunState")
+	if run_state:
+		run_state.leaves_changed.connect(func(_l: int, _m: int) -> void: _refresh_tag())  # The reward line follows the block's losses
 
 # Commit blind (run_design.md "Commit blind, then the Omen is revealed"): a face-down "Face an Omen"
 # card and Clear Skies. Facing it flips to the drawn Omens (2; Omen Reader 3): pick one, no going back.
@@ -243,6 +246,8 @@ func _make_card(omen: OmenData, act: int) -> Button:
 	divider.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	box.add_child(divider)
 	var reward := omens.describe_reward(omen, act)
+	if reward != "" and omen.kind != OmenData.Kind.DOUBLE_EDGED:
+		reward += " · 25% less per leaf lost"  # Omens with teeth: the block decides the reward
 	var reward_line := _add_line(box, "Reward · " + (reward if reward != "" else "the twist itself (double-edged)"), REWARD_COLOR, REWARD_SIZE)
 	reward_line.name = "Reward"
 	box.add_child(_emblem(&"omen", false))  # The same 64 px emblem as the front card; spare height goes here, so both cards keep the same spots
@@ -275,10 +280,20 @@ func _on_closed() -> void:
 	game_speed.set_paused(_was_paused)
 
 func _on_omen_started(omen: OmenData, first_drift: int, last_drift: int) -> void:
-	_active_tag.text = "Omen: %s · drifts %d–%d · %s" % [omen.display_name, first_drift, last_drift,
+	_tag_base = "Omen: %s · drifts %d–%d · %s" % [omen.display_name, first_drift, last_drift,
 		IconInfo.format(omen.description)]
 	_active_tag.visible = true
+	_refresh_tag()
 	_toast("Omen faced: %s" % omen.display_name)
+
+# The tag's second line: what the reward stands at ("Reward · 75% · 1 leaf lost"; none for double-edged Omens).
+var _tag_base := ""
+
+func _refresh_tag() -> void:
+	if not _active_tag.visible or omens.active == null:
+		return
+	var status := omens.get_reward_status()
+	_active_tag.text = _tag_base + ("\n" + status if status != "" else "")
 
 func _on_omen_rewarded(omen: OmenData, summary: String) -> void:
 	_active_tag.visible = false

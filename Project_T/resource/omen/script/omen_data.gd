@@ -14,7 +14,7 @@ class_name OmenData
 @export var requires_coat: bool = false  # Only offered if the next block has a coated nightmare (Hard Bark)
 @export var requires_legendary: bool = false  # Only offered if a Legendary can still be offered this run (Lean Season)
 # The offer shows 2 Omens of different kinds (run_design.md "More Omens").
-enum Kind { NIGHTMARES, YOUR_SIDE, DOUBLE_EDGED, MAP }
+enum Kind { NIGHTMARES, YOUR_SIDE, DOUBLE_EDGED, MAP, MAZE }  # MAZE: Omens that test the maze, not the numbers
 @export var kind: Kind = Kind.NIGHTMARES
 @export var needs_free_cells: int = 0  # Only on maps with this many free cells away from the route (Shifting Ground)
 @export var waiting_for_hook: bool = false  # Not offered until its twist is built in Tower / Enemy code
@@ -38,6 +38,12 @@ enum Kind { NIGHTMARES, YOUR_SIDE, DOUBLE_EDGED, MAP }
 @export var extra_elites: int = 0  # Elder Night: +1 elite in every drift
 @export var all_flyer_drifts: int = 0  # Hollow Wind: the block's first N drifts are all flyers
 @export var sprout_obstacles: int = 0  # Shifting Ground: Withered Trees sprout at the block's start
+@export var sprouts_beside_path: bool = false  # Shifting Ground: trees may sprout right beside the route (never on it)
+# The maze Omens (run_design.md "Omens with teeth"):
+@export var trample_thornwall: bool = false  # Tramplers: each drift, the first nightmare to walk past a Thornwall tramples it (Enemy Code)
+@export var crumble_thornwall: bool = false  # Second Path: the block's start crumbles the Thornwall that shortens the route most (full refund; no replanting until the rest)
+@export var burrow_tiles: int = 0  # Burrowers: at every bend, nightmares burrow this many path tiles ahead (Enemy Code)
+@export var burrow_time: float = 0.5  # …untargetable for this long
 
 @export_group("Reward")
 # Dew and Seeds scale with the act (OmenDirector.ACT_REWARD_SCALE).
