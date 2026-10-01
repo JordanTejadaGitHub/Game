@@ -382,7 +382,7 @@ func _make_attack(tower_name: String) -> Image:
 # Tall Wardens (64x96 frames, the body's 64x64 frame in the bottom 64 rows; the 32 rows above hold
 # what rises over it). In game: TowerData.sprite_offset (0, -16) keeps the slab on its cell, and the
 # attacks.json point stays in body-frame pixels (it's measured from the body, not the tall frame).
-const TALL_WARDENS := ["beacon", "thunderhead", "wellspring", "elf_circle", "starcave"]
+const TALL_WARDENS := ["beacon", "thunderhead", "wellspring", "elf_circle", "starcave", "snugroot"]
 const TALL_H := 96
 
 func _frame_h(tower_name: String) -> int:
@@ -399,7 +399,35 @@ func _tall_frame(tower_name: String, body: Image, st: Dictionary) -> Image:
 	frame.blend_rect(back, Rect2i(0, 0, S, S), Vector2i.ZERO)
 	frame.blend_rect(body, Rect2i(0, 0, S, S), Vector2i(0, TALL_H - S))
 	frame.blend_rect(front, Rect2i(0, 0, S, S), Vector2i.ZERO)
+	if has_method("_tall_full_" + tower_name):
+		call("_tall_full_" + tower_name, frame, st)  # drawn over the whole 64x96 frame
 	return frame
+
+# A thick outlined stroke straight onto a tall frame (any size), for parts spanning body and tall rows.
+func _tall_stroke(frame: Image, pts: Array, r: float, color: Color, o: Color) -> void:
+	var w := frame.get_width()
+	var h := frame.get_height()
+	var layer := Image.create_empty(w, h, false, Image.FORMAT_RGBA8)
+	for i in pts.size() - 1:
+		var a: Vector2 = pts[i]
+		var b: Vector2 = pts[i + 1]
+		var steps := int(a.distance_to(b) * 2.0) + 1
+		for s in steps + 1:
+			var p := a.lerp(b, s / float(steps))
+			for y in range(floori(p.y - r), ceili(p.y + r) + 1):
+				for x in range(floori(p.x - r), ceili(p.x + r) + 1):
+					if x >= 0 and y >= 0 and x < w and y < h and Vector2(x + 0.5, y + 0.5).distance_to(p) <= r:
+						layer.set_pixel(x, y, color)
+	for y in h:
+		for x in w:
+			if layer.get_pixel(x, y).a == 0.0:
+				continue
+			var edge := false
+			for d: Vector2i in [Vector2i.LEFT, Vector2i.RIGHT, Vector2i.UP, Vector2i.DOWN]:
+				var q := Vector2i(x, y) + d
+				if q.x < 0 or q.y < 0 or q.x >= w or q.y >= h or layer.get_pixelv(q).a == 0.0:
+					edge = true
+			frame.set_pixel(x, y, o if edge else color)
 
 # <name>_channel.png for the BEAM Wardens (Sunpetal, Midsummer): 3 frames the game ping-pongs while
 # the beam is held (TowerData.beam_sustain_texture). The code draws the beam itself, toward the
@@ -2645,6 +2673,26 @@ func _tall_starcave(back: Image, front: Image, st: Dictionary) -> void:
 			_sparkle(front, p, Color("#f0e8ff"))
 		else:
 			_px(front, p.x, p.y, Color("#c0a0ff"))
+
+# Snugroot's tall frame: two roots rise from the slab's back corners and arch over its head into a
+# bower (thin, so the cell above shows through), hung with blossoms; the tall rows behind are empty.
+func _tall_snugroot(back: Image, front: Image, st: Dictionary) -> void:
+	pass
+
+func _tall_full_snugroot(frame: Image, st: Dictionary) -> void:
+	var dy: int = st.dy
+	var root := Color("#d8c08a")
+	var o := Color("#1e160e")
+	var apex := 12 + dy
+	_tall_stroke(frame, [Vector2(8, 76), Vector2(7, 52), Vector2(10, 30), Vector2(18, apex + 8), Vector2(31, apex), Vector2(44, apex + 8), Vector2(53, 30), Vector2(56, 52), Vector2(55, 76)], 1.4, root, o)
+	# Twigs off the arch and blossoms along it.
+	for b: Vector2 in [Vector2(12, 26), Vector2(22, apex + 4), Vector2(31, apex - 1), Vector2(40, apex + 4), Vector2(51, 26), Vector2(8, 44), Vector2(56, 44)]:
+		var p := Vector2i(b)
+		frame.set_pixel(p.x, p.y - 1, Color("#6ab04a"))
+		frame.set_pixel(p.x + 1, p.y - 2, Color("#9ad86a"))
+		for d: Vector2i in [Vector2i.LEFT, Vector2i.RIGHT, Vector2i.UP, Vector2i.DOWN]:
+			frame.set_pixelv(p + d + Vector2i(0, 1), Color("#f4a0c0"))
+		frame.set_pixelv(p + Vector2i(0, 1), Color("#ffd24a"))
 
 # Lanternmoth: an amber lantern golem with soft moth wings, feathery antennae and a warm light
 # glowing in its chest.
