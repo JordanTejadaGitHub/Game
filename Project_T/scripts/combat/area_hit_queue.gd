@@ -14,6 +14,7 @@ var _frame := -1
 var _count := 0
 var _queue: Array = []  # [tower, enemy, multiplier, crit, combo]
 var flushing := false
+var skipped_gone := 0  # Queued hits whose Warden or nightmare was freed before the flush (tests)
 
 static func find(near: Node) -> AreaHitQueue:
 	if near == null or not near.is_inside_tree():
@@ -56,9 +57,14 @@ func _process(_delta: float) -> void:
 	_queue = _queue.slice(BUDGET)
 	flushing = true
 	for entry in now:
+		# Checked on the raw Variants first: assigning a freed object to a typed variable is itself an error
+		# (user crash: a nightmare freed between queueing and the flush).
+		if not is_instance_valid(entry[0]) or not is_instance_valid(entry[1]):
+			skipped_gone += 1
+			continue
 		var tower: Node = entry[0]
 		var enemy: Node2D = entry[1]
-		if is_instance_valid(tower) and is_instance_valid(enemy) and not enemy.is_cleansed:
+		if not enemy.is_cleansed:
 			tower.hit(enemy, entry[2], true, entry[3], entry[4])
 	flushing = false
 	_frame = Engine.get_process_frames()

@@ -64,13 +64,14 @@ func _run() -> void:
 	var dew_before := run_state.dew
 	dispelled.take_damage(dispelled.health * 10.0)
 	var dew_after_dispel := run_state.dew
-	gone.queue_free()  # As when it reaches the Heartwood
+	gone.free()  # Gone before the flush (as when it reached the Heartwood a frame earlier: the user's crash)
 	var dealt_before: Array = queued.slice(2).map(func(e) -> int: return e.max_health - e.health)
 	await process_frame
 	await process_frame
 	_check(run_state.dew == dew_after_dispel and dew_after_dispel >= dew_before,
 		"the dispelled nightmare's Dew is paid once (%d → %d → %d)" % [dew_before, dew_after_dispel, run_state.dew])
 	var dealt_after: Array = queued.slice(2).map(func(e) -> int: return e.max_health - e.health)
+	_check(queue.skipped_gone >= 1, "a nightmare freed before the flush is skipped cleanly (no typed-assignment error: user crash)")
 	_check(queue.pending() == 0 and range(dealt_after.size()).all(func(i: int) -> bool: return dealt_after[i] > dealt_before[i]),
 		"the other queued hits still land")
 
