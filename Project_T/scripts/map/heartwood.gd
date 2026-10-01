@@ -29,6 +29,7 @@ var tower_container: Node  # Optional, for the fade
 var enemy_container: Node
 var _behind_check := 0.0
 var _behind := false
+var _warden_behind := false  # A Warden stands behind the canopy (cached)
 var _frame_time := 0.0
 var _light_time := 0.0
 var _light: PointLight2D
@@ -36,6 +37,10 @@ var _glow: Sprite2D
 
 func _ready() -> void:
 	texture = load(EnvironmentTiles.sheet_path(EnvironmentTiles.HEARTWOOD, 1))
+	if tower_container != null:  # Recheck the Wardens only when one joins or leaves
+		tower_container.child_entered_tree.connect(func(_n: Node) -> void: _refresh_wardens_behind.call_deferred())
+		tower_container.child_exiting_tree.connect(func(_n: Node) -> void: _refresh_wardens_behind.call_deferred())
+		_refresh_wardens_behind()
 	hframes = EnvironmentTiles.FRAMES
 	vframes = EnvironmentTiles.HEARTWOOD_STATES
 	var half_cell := EnvironmentTiles.SIZE.y / 2.0
@@ -71,19 +76,36 @@ func _process(delta: float) -> void:
 	self_modulate.a = lerpf(self_modulate.a, BEHIND_ALPHA if _behind else 1.0, 1.0 - exp(-FADE_RATE * delta))
 
 # True when a Warden or a nightmare stands on one of the 3 cells the canopy covers (the row above).
+# Wardens are cached (`_warden_behind`, refreshed when one joins or leaves the TowerContainer: plant,
+# sell, a save restore; growing keeps its cells); each check only looks at the nightmares, against the
+# canopy's rectangle.
 func is_something_behind() -> bool:
-	var grid: Grid = MAP_GRID
-	var cell := grid.calculate_grid_coordinates(position)
-	var behind: Array[Vector2] = [cell + Vector2(-1, -1), cell + Vector2(0, -1), cell + Vector2(1, -1)]
-	if tower_container != null:
-		for tower in tower_container.get_children():
-			if tower is Tower and (behind.has(tower.cell) or tower.get_cells().any(func(c: Vector2) -> bool: return behind.has(c))):
-				return true
+	if _warden_behind:
+		return true
 	if enemy_container != null and enemy_container.has_method("get_enemies"):
+		var canopy := _canopy_rect()
 		for enemy: Node2D in enemy_container.get_enemies():
-			if behind.has(grid.calculate_grid_coordinates(enemy.position)):
+			if canopy.has_point(enemy.position):
 				return true
 	return false
+
+# The 3 cells behind the Heartwood (the row above, one either side), in pixels.
+func _canopy_rect() -> Rect2:
+	var cell := Vector2(MAP_GRID.cell_size)
+	var centre := MAP_GRID.calculate_map_position(MAP_GRID.calculate_grid_coordinates(position))
+	return Rect2(centre - cell * Vector2(1.5, 1.5), cell * Vector2(3, 1))
+
+func _refresh_wardens_behind() -> void:
+	_warden_behind = false
+	if tower_container == null:
+		return
+	var cell := MAP_GRID.calculate_grid_coordinates(position)
+	var behind: Array[Vector2] = [cell + Vector2(-1, -1), cell + Vector2(0, -1), cell + Vector2(1, -1)]
+	for tower in tower_container.get_children():
+		if tower is Tower and not tower.is_queued_for_deletion() \
+				and (behind.has(tower.cell) or tower.get_cells().any(func(c: Vector2) -> bool: return behind.has(c))):
+			_warden_behind = true
+			return
 
 # The tree is the same warm moss-gold in every act; only its sheet's folder changes.
 func set_act(act: int) -> void:
