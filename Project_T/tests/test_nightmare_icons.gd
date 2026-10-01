@@ -149,7 +149,7 @@ func _run() -> void:
 	if strip != null and not first_kinds.is_empty():
 		var first_item: Control = strip.items()[0]
 		var count_label := first_item.find_child("KindCount", true, false) as Label
-		var face := first_item.get_child(0) as Button
+		var face := first_item.find_child("Face", true, false) as Button
 		_check(count_label != null and count_label.text == "×%d" % first_kinds[0][2] and face.tooltip_text.begins_with(first_kinds[0][0].display_name)
 			and first_item.find_child("KindName", true, false) == null, "each kind: its count as a badge, its name on hover")
 		_check(strip._row.get_child_count() == ceili(first_kinds.size() / float(ComingStrip.PER_ROW))

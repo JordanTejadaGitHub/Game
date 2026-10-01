@@ -43,9 +43,55 @@ func _run() -> void:
 	_check(lead != null and lead.get_meta(&"kind") == phantom and lead.get_meta(&"breaks_rules", false)
 		and lead.find_child("TraitWords", true, false) != null and lead.find_child("New", true, false) != null,
 		"the Coming strip shows the Phantom first, with \"New\" and its trait in words")
-	var face: Button = lead.get_child(0) if lead != null else null
+	var face: Button = lead.find_child("Face", true, false) if lead != null else null
 	_check(face != null and face.custom_minimum_size.x == ComingStrip.FACE_BIG and items.size() > 1
-		and (items[1].get_child(0) as Button).custom_minimum_size.x == ComingStrip.FACE, "…larger than the others")
+		and (items[1].find_child("Face", true, false) as Button).custom_minimum_size.x == ComingStrip.FACE, "…larger than the others")
+
+	# Nothing clipped (user screenshot: "EW" for New, "×1?" for counts): at 1280×720 virtual (the largest UI
+	# size) and 1920×1080 at 100%, every badge sits inside the strip's fog panel and clear of the next disc.
+	var scale_was := [root.content_scale_mode, root.content_scale_size, root.content_scale_aspect, root.content_scale_factor, root.size]
+	for case in [[Vector2i(2560, 1440), 1.0], [Vector2i(1920, 1080), 0.0]]:
+		if case[1] > 0.0:
+			root.content_scale_mode = Window.CONTENT_SCALE_MODE_CANVAS_ITEMS
+			root.content_scale_size = UiStyle.LAYOUT_MIN
+			root.content_scale_aspect = Window.CONTENT_SCALE_ASPECT_EXPAND
+			root.content_scale_factor = case[1]
+		else:
+			root.content_scale_mode = scale_was[0]
+			root.content_scale_size = scale_was[1]
+			root.content_scale_aspect = scale_was[2]
+			root.content_scale_factor = scale_was[3]
+		root.size = case[0]
+		strip._built_for = ""
+		strip._clock = 0.0
+		strip._process(0.0)
+		for f in 3:
+			await process_frame
+		var fog := strip.get_global_rect().grow_individual(14, 8, 14, 4)
+		var discs: Array = strip.items().map(func(it: Control) -> Rect2: return (it.find_child("Disc", true, false) as Control).get_global_rect())
+		var clean := true
+		var where := ""
+		for i in strip.items().size():
+			var disc_node := strip.items()[i].find_child("Disc", true, false) as Control
+			for badge in disc_node.get_children():
+				if not badge is Label:
+					continue
+				var r: Rect2 = (badge as Label).get_global_rect()
+				var hits_other := false
+				for j in discs.size():
+					if j != i and r.intersects(discs[j].grow(-1.0)):
+						hits_other = true
+				if not fog.encloses(r) or hits_other:
+					clean = false
+					where = "%s on %s" % [badge.name, strip.items()[i].get_meta(&"kind").display_name]
+		_check(clean, "at %s (UI share %s) every New tab and count is inside the strip and clear of the next disc (%s)" % [case[0], case[1], where])
+		_check(strip.get_combined_minimum_size().y <= 140.0, "…and the strip stays low (%.0f px)" % strip.get_combined_minimum_size().y)
+	root.content_scale_mode = scale_was[0]
+	root.content_scale_size = scale_was[1]
+	root.content_scale_aspect = scale_was[2]
+	root.content_scale_factor = scale_was[3]
+	root.size = scale_was[4]
+	await process_frame
 
 	# The DriftPanel line and the dashed line on the map.
 	var panel = main.get_node("HUD/DriftPanel")
