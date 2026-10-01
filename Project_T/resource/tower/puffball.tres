@@ -8,6 +8,7 @@
 
 [resource]
 script = ExtResource("1_tdata")
+sprite_offset = Vector2(0, -16)
 display_name = "Puffball"
 description = "Its puffs burst over a tile, leaving 1 Poisoned on every nightmare there. Nightmares it hits can hold up to 16 Poisoned."
 cost = 0
