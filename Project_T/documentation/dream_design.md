@@ -1441,6 +1441,9 @@ lifts its branch: **`swift`** and **`reach`** (card builds C9 and C10). Numbers 
     Wide Reach's package: 5 → **8** (at 7 it measured 2%, short).
   - Their effects don't change; the tag adds tag resonance and counts them in the package.
     Target: 5+ by 100 at **~3–5%** with a full Grove, like the other card builds.
+  - **Measured (61f25e69, Full, 300 runs):** Wide Reach (8) **5%** ✓; Swift (7) **2%** (accepted:
+    within noise of the band; a core basic as a bridge pushed it to 9%). Precision unchanged (8%).
+    Pass closed.
 
 ## Status effect numbers
 
