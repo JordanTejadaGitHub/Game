@@ -32,6 +32,7 @@ var unwalkable_cells: PackedVector2Array
 var obstacles: Dictionary = {}
 var tile_set: TileSet  # Shared by the ground, path and object layers (EnvironmentTiles)
 var heartwood: Heartwood  # The goal tree on the end cell
+var _pond_corners: Array[Sprite2D] = []  # pond_inner overlays on a non-rectangular pond's inside corners
 var dream_void: DreamVoid  # The starry void around the island
 var omen_mist: OmenMist  # Low gold-violet mist while an Omen twists the block
 var build_hatch: BuildHatch  # In build mode: a cold hatch on every unbuildable cell
@@ -89,6 +90,7 @@ func _ready() -> void:
 	var no_details := unwalkable_cells + path_layer.current_path + PackedVector2Array(obstacles.keys())
 	no_details.append_array(PackedVector2Array(environment_object_layer.pond_cells))
 	environment_object_layer.generate_details(rng, no_details)
+	_draw_pond_corners()
 
 	heartwood = Heartwood.new()
 	heartwood.position = MAP_GRID.calculate_map_position(endPath)
@@ -118,9 +120,25 @@ func _ready() -> void:
 	ambience.heartwood_position = heartwood.position
 	add_child(ambience)
 
+# A pond that isn't a rectangle gets pond_inner.png's inside corners over its tiles: one small sprite
+# per corner, sorted with the pond cell and drawn just after it (a cell can need two).
+func _draw_pond_corners() -> void:
+	var sheet := (tile_set.get_source(EnvironmentTiles.POND_INNER) as TileSetAtlasSource).texture
+	for corner: Array in environment_object_layer.pond_corners:
+		var sprite := Sprite2D.new()
+		sprite.name = "PondCorner"
+		sprite.texture = sheet
+		sprite.region_enabled = true
+		sprite.region_rect = Rect2(Vector2(corner[1] * EnvironmentTiles.SIZE.x, 0), Vector2(EnvironmentTiles.SIZE))
+		sprite.position = MAP_GRID.calculate_map_position(corner[0])
+		add_child(sprite)
+		_pond_corners.append(sprite)
+
 # Swaps the environment art to act `act`'s season (every sheet, and the Heartwood's).
 func set_act(act: int) -> void:
 	EnvironmentTiles.set_act(tile_set, act)
+	for corner: Sprite2D in _pond_corners:  # The inside corners follow the season's pond sheet
+		corner.texture = (tile_set.get_source(EnvironmentTiles.POND_INNER) as TileSetAtlasSource).texture
 	heartwood.set_act(act)
 	ambience.act = act
 

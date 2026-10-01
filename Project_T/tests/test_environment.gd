@@ -207,6 +207,7 @@ func _render(main: Node, layers: Array, file: String) -> void:
 			var coords := layer.get_cell_atlas_coords(cell)
 			var origin := source.get_tile_data(coords, 0).texture_origin
 			image.blend_rect(sheets[source], Rect2i(coords * region, region), at + (tile - region) / 2 - origin)
+	_blend_pond_corners(image, map, offset)
 	var heartwood: Heartwood = map.heartwood
 	var tree: Image = heartwood.texture.get_image()
 	tree.convert(Image.FORMAT_RGBA8)
@@ -365,6 +366,7 @@ func _flat_map(main: Node) -> Image:
 			var coords := layer.get_cell_atlas_coords(cell)
 			var origin := source.get_tile_data(coords, 0).texture_origin
 			image.blend_rect(sheets[source], Rect2i(coords * region, region), cell * tile + (tile - region) / 2 - origin)
+	_blend_pond_corners(image, map, Vector2i.ZERO)
 	var heartwood: Heartwood = map.heartwood
 	var tree: Image = heartwood.texture.get_image()
 	tree.convert(Image.FORMAT_RGBA8)
@@ -393,3 +395,12 @@ func _draw_text(image: Image, text: String, at: Vector2i, scale: int, color: Col
 				if glyph[row][col] == "#":
 					image.fill_rect(Rect2i(x + col * scale, at.y + row * scale, scale, scale), color)
 		x += 4 * scale
+
+# The pond's inside-corner sprites (MapGenerator._draw_pond_corners), drawn over the tiles.
+func _blend_pond_corners(image: Image, map: Node, offset: Vector2i) -> void:
+	for child in map.get_children():
+		if child is Sprite2D and String(child.name).begins_with("PondCorner"):
+			var art: Image = child.texture.get_image()
+			art.convert(Image.FORMAT_RGBA8)
+			var region := Rect2i(child.region_rect)
+			image.blend_rect(art, region, Vector2i(child.position) - region.size / 2 + offset)

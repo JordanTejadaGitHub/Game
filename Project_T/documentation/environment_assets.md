@@ -134,8 +134,9 @@ same way. Now each map rolls a layout, ridges that follow it, and one feature.
   shortest** (`MapGenerator._straightest_route`: per cell and heading, the fewest turns along shortest
   paths, handed to `PathGenerator.prefer_route` so the first draw and the sticky re-routes start from
   it; lengths unchanged). One-tile steps on the 12 sheet seeds 68 → 12 (turns 174 → 88), over 50 seeds
-  270 → 47 (700 → 364). **Ponds** are blobs (2×3, 3×2, 3×3, 2×2; `POND_SIZES`); dropped corners and L
-  shapes wait for inner-corner pond tiles (requested). **Ponds and ruins shape the opening**: their first
+  270 → 47 (700 → 364). **Ponds** are organic: half are blobs (2×3, 3×2, 3×3, 2×2; `POND_SIZES`), the rest
+  a 3×3 with 1–2 corners dropped or an occasional L; `pond_inner.png` covers their inside corners
+  (`pond_corners`, drawn as small sprites by `MapGenerator._draw_pond_corners`, season-swapped). **Ponds and ruins shape the opening**: their first
   `NEAR_ROUTE_TRIES` (50) placements must come within `NEAR_ROUTE` (2) cells of the route as the ridges
   leave it (`_provisional_route`), then anywhere as before; 8 of 8 test seeds each land near the route.
 - **Carving** keeps ridges and the feature whole if it can, breaks the feature next, and ridges only as

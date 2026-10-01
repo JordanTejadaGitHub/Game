@@ -111,6 +111,7 @@ func _layout_case(kind: int, short: int) -> void:
 func _feature_case(feature: int) -> void:
 	var placed := 0
 	var near_route := 0
+	var corners := 0
 	for seed_value in range(1, 9):
 		var main := await _make(seed_value, -1, -1, feature)
 		var map = main.get_node("%MapGenerator")
@@ -123,6 +124,8 @@ func _feature_case(feature: int) -> void:
 			_check(maxf(absf(cell.x - map.startPath.x), absf(cell.y - map.startPath.y)) >= far
 				and maxf(absf(cell.x - map.endPath.x), absf(cell.y - map.endPath.y)) >= far,
 				"%s seed %d: feature cell %s keeps clear of the start and end" % [MapLayout.FEATURE_NAMES[feature], seed_value, cell])
+			if feature == MapLayout.Feature.POND:
+				corners += env.pond_corners.filter(func(c: Array) -> bool: return c[0] == cell).size()
 			if feature == MapLayout.Feature.POND:
 				_check(not map.obstacles.has(cell) and not map.is_buildable(cell)
 					and map.path_layer.is_cell_blocked(cell), "pond seed %d: %s blocks but isn't an obstacle" % [seed_value, cell])
@@ -142,6 +145,8 @@ func _feature_case(feature: int) -> void:
 				near_route += 1
 		main.free()
 	_check(placed >= 6, "%s placed on %d of 8 seeds" % [MapLayout.FEATURE_NAMES[feature], placed])
+	if feature == MapLayout.Feature.POND:
+		print("  feature pond: %d inside corners over 8 seeds (non-rectangular ponds)" % corners)
 	if feature == MapLayout.Feature.POND or feature == MapLayout.Feature.RUIN:
 		_check(near_route >= 6, "%s within 2 cells of the opening route on %d of 8 seeds" % [MapLayout.FEATURE_NAMES[feature], near_route])
 		print("  feature %s: near the opening route on %d of 8 seeds" % [MapLayout.FEATURE_NAMES[feature], near_route])
