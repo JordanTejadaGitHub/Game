@@ -289,8 +289,13 @@ func _run() -> void:
 		"a stat breakdown reads base → final with each part")
 	_check(DreamBonusView.format_breakdown(&"range", {"base": 2.5, "final": 2.5, "parts": []}) == "Range 2.5", "an unchanged stat is just its value")
 	var some_card: UpgradeData = main.get_node("%DreamState").pool[0]
-	_check(DreamBonusView.get_line({"card": some_card, "active": false, "reason": "Rain Lily is 1 cell away"}) == "off: Rain Lily is 1 cell away"
+	_check(DreamBonusView.get_line({"card": some_card, "active": false, "reason": "Rain Lily is 1 cell away"}) == "Off: Rain Lily is 1 cell away"
 		and DreamBonusView.get_line({"card": some_card, "active": true, "effect": "+30% damage"}) == "+30% damage", "row lines: the effect, or why it's off")
+	# One card with two rules (Hunter's Patience + Skyward Gaze) is listed once, under its own name.
+	var two_rules := DreamBonusView.merge_by_card([{"card": some_card, "active": true, "effect": "+20% damage"},
+		{"card": some_card, "active": true, "effect": "+40% against flying"}])
+	_check(two_rules.size() == 1 and String(two_rules[0].effect).contains("+20% damage") and String(two_rules[0].effect).contains("+40% against flying"),
+		"a card with two rules shows once, both lines joined (%s)" % [two_rules])
 	_check(DreamBonusView.chip_text({"card": some_card, "active": true, "effect": "+30% damage"}) == some_card.display_name + " ✓ +30% damage"
 		and DreamBonusView.chip_text({"card": some_card, "active": false, "reason": "Rain Lily is 1 cell away"}).ends_with("✗ Rain Lily is 1 cell away"),
 		"ghost chips: ✓ with the effect, ✗ with the reason")
