@@ -432,6 +432,9 @@ health (0.7%) left cost all 18 leaves, the same as 3,400. The bot now covers the
   Act 1's target "always-skip loses to the boss" now has to come from leaks before 25 plus the 8.
 - **Leaf Fall is never offered for a block with a boss drift** (its ×2 would make the bite 16–24
   leaves: a boss must never one-shot the run).
+- In the game: **bfc33e75** (boss bite, `EnemyContainer.boss_bite_leaves` [8, 10, 12],
+  `EnemyData.stays_at_heartwood` on the Oak; the Huntsman's silent horn dropped) and **b708815a**
+  (Leaf Fall, `OmenData.never_before_boss`).
 
 ## Later
 
