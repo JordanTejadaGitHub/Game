@@ -76,6 +76,8 @@ const GRANDFATHER_MAX := 0.45  # …up to this in all
 const SHARED_LIGHT := 0.5  # Shared Light (Seed card): aura bonuses +50%
 const QUIET_ONES := 0.5  # The Quiet Ones: non-attacking Wardens +50%
 const BRAMBLE_OATH_WARDENS := ["bramble", "honeysuckle"]
+const GROVE_SPEED_RULES: Array[StringName] = [&"momentum", &"quickening"]  # GroveRules (Swift)
+const GROVE_AREA_RULES: Array[StringName] = [&"lingering_splash", &"great_ripple"]  # GroveRules (Wide Reach)
 const WALL_DROWSY_CAP := 3  # Drowsy from walls (Honeysuckle, Scented Hedge) stops here; Wardens' Drowsy can go past it
 const BRAMBLE_OATH := 0.5  # Bramble Oath (Seed card): +50%
 const WALL_TICK := 0.2
@@ -306,6 +308,7 @@ var _lit_cells: Array[Vector2] = []  # Rootlight: path tiles it lights
 var _twist: StringName = &""  # Its final form's signature twist (FinalTwists), or ""
 var _twist_state := {}  # The twist's own state (timers, counts)
 var _chorus := 0.0  # Lullaby Bell's Chorus: +damage from the Bellflower-family Wardens around it
+var _grove := {}  # Grove build-branch state (GroveRules): Momentum streak, Quickening, area counts
 var _lit_until := {}  # Long Light: cell -> _anim_time it stops being lit (after the light moved on)
 var _out: Array = []  # Hummingbirds / seeds that are away (the next attack waits for them)
 var _catch_tick := 0.0
@@ -350,6 +353,8 @@ var _crit_dew_given := 0
 
 func _ready() -> void:
 	_dream_state = get_tree().get_first_node_in_group(DreamState.GROUP) as DreamState
+	if _dream_state:
+		GroveRules.listen(self)  # Quickening: dispels in range speed Wardens up
 	_omens = get_tree().get_first_node_in_group(OmenDirector.GROUP) as OmenDirector
 	if _dream_state:
 		_dream_state.card_taken.connect(clear_dream_cache.unbind(1))
@@ -517,7 +522,9 @@ func _compute_damage() -> float:
 	return attack_data.damage * _damage_share * get_rank_damage_multiplier() * (1.0 + _aura_damage) \
 		* _dream_bonus(&"soothe") \
 		* (1.0 + (_kin.damage_bonus(self) if is_instance_valid(_kin) else 0.0)) \
-		* get_wall_multiplier() * (1.0 + _chorus)  # Kindred / Whole Tree, Kinship cards; Bramble Oath; Chorus
+		* get_wall_multiplier() * (1.0 + _chorus) \
+		* (1.0 + (GroveRules.hummingheart(self, get_attacks_per_second()) if _dream_state and _has_rule(&"hummingheart") else 0.0))
+	# (Kindred / Whole Tree, Kinship cards; Bramble Oath; Lullaby Bell's Chorus; Hummingheart: bonus speed as damage)
 
 # Withering Oak: the Warden withers for `seconds` (grey, no attacks), then comes back unharmed.
 func wither(seconds: float) -> void:
@@ -529,6 +536,8 @@ func is_withered() -> bool:
 
 func get_attacks_per_second() -> float:
 	var momentum := FinalTwists.momentum(self) if _twist == &"momentum" else 0.0  # Windmill: spins up
+	if _dream_state and _any_rule(&"grove_speed", GROVE_SPEED_RULES):
+		momentum += GroveRules.speed_bonus(self)  # Momentum (a streak), Quickening (a dispel in range)
 	if _stats_fresh() and _stats.has(&"speed"):
 		return _stats[&"speed"] * (1.0 + momentum)
 	_stats[&"speed"] = _compute_attacks_per_second()
@@ -547,7 +556,10 @@ func _compute_attacks_per_second() -> float:
 	var omen := _omens.get_warden_speed_multiplier() if _omens and _omens.has_method("get_warden_speed_multiplier") else 1.0  # Wilting
 	if _big_family:
 		speed += DreamState.BIG_FAMILY_SPEED * _rule_power(&"big_family")  # Big Family: a Sprout near a Kinship pair
-	return attack_data.attacks_per_second * speed * dreams * (1.0 + _aura_speed) * omen * dim_multiplier \
+	var bonus := speed * dreams * (1.0 + _aura_speed) * omen
+	if _dream_state and _has_rule(&"whirlwind_heart"):
+		bonus = GroveRules.whirlwind(self, bonus)  # Whirlwind Heart: the bonus part counts double
+	return attack_data.attacks_per_second * bonus * dim_multiplier \
 		* (get_wall_multiplier() if attack_data.damage <= 0 else 1.0)  # Honeysuckle: Bramble Oath, The Quiet Ones
 
 func get_range_cells() -> float:
@@ -887,7 +899,10 @@ func _play_rank_up() -> void:
 	tween.tween_callback(burst.queue_free)
 
 func get_splash_cells() -> float:
-	return attack_data.splash_radius * (_dream_state.get_splash_multiplier(tower_data) if _dream_state else 1.0)
+	if attack_data.splash_radius <= 0.0:
+		return 0.0
+	var broad: float = _dream_state.get_area_radius_add() if _dream_state and _dream_state.has_method("get_area_radius_add") else 0.0  # Broad Splash
+	return (attack_data.splash_radius + broad) * (_dream_state.get_splash_multiplier(tower_data) if _dream_state else 1.0)
 
 func get_crit_chance(enemy: Node2D = null) -> float:
 	return minf(get_raw_crit_chance(enemy), 1.0)
@@ -1289,6 +1304,9 @@ func _release() -> void:
 		_release_attack()
 	else:
 		_boosted(boost, _release_attack)
+	# Flurry (Grove card): every 5th attack fires twice; the extra shot never counts toward it.
+	if _dream_state and _has_rule(&"flurry") and _attack_count % DreamState.FLURRY_EVERY == 0:
+		_release_attack()
 
 # Card hit multipliers (dream_design.md): Patient Aim (+15% per second it didn't fire, max +60%), Crush (area
 # hits on a crowded nightmare), Crowd Breaker (area attacks +5% per nightmare hit, max +45%), Shiny Things
@@ -1459,6 +1477,8 @@ func _release_attack() -> void:
 				if _set_off_static(enemy):
 					statics += 1
 			_resonant_echo(in_range)
+			if _dream_state and _any_rule(&"grove_area", GROVE_AREA_RULES):
+				GroveRules.area_attack(self, global_position, get_range_pixels(), 1.0)  # A pulse is an area attack
 			if statics > 0 and attack_data.tier >= 4:
 				statics_set_off.emit(self, global_position, statics)  # The Great Bell's toll
 			if attack_data.pulse_hold_every > 0 and _attack_count % attack_data.pulse_hold_every == 0:
@@ -1547,7 +1567,12 @@ func hit(enemy: Node2D, soothe_multiplier: float = 1.0, is_area: bool = false, c
 	if reaction.tag != &"":
 		combo = reaction.tag
 	var damage_line := "light" if _resonance() else tower_data.line  # Resonance: Chime Stone pulses count as lightning
+	var health_before: int = enemy.health
 	enemy.take_damage(dealt, damage_line, is_area, is_crit, self, combo)
+	if _dream_state and not is_area and _has_rule(&"momentum"):
+		GroveRules.note_hit(self, enemy)  # Momentum: a streak on one nightmare
+	if _dream_state and is_area and combo != &"spillover" and enemy.is_cleansed and _has_rule(&"spillover"):
+		GroveRules.spillover(self, enemy, dealt - health_before)  # Spillover: the leftover splashes on
 	if reaction.shatter:
 		Reactions.shatter_splash(enemy, self, dealt)
 	if is_crit:
@@ -1912,6 +1937,8 @@ func _skip_landed(target, _where: Vector2, share: float) -> void:
 		hit(target, share)
 
 func _splash(where: Vector2, radius: float, share: float, crit: int) -> void:
+	if _dream_state and _any_rule(&"grove_area", GROVE_AREA_RULES):
+		GroveRules.area_attack(self, where, radius, share)  # Lingering Splash, Great Ripple
 	for enemy in get_tree().get_nodes_in_group(ENEMY_GROUP):
 		if enemy.global_position.distance_to(where) <= radius:
 			hit(enemy, share, true, crit)
