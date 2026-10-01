@@ -318,7 +318,7 @@ func _build_dock() -> void:
 # The drift controls grow upward with their content, so keep the dock's bottom just above them.
 func _fit_dock() -> void:
 	var drift_panel := get_parent().get_node_or_null("HUD/DriftPanel") as Control
-	if drift_panel == null or not drift_panel.visible:
+	if drift_panel == null or not drift_panel.visible or not _dock.is_inside_tree() or not drift_panel.is_inside_tree():
 		return
 	var height := _dock.get_viewport_rect().size.y
 	var gap := maxf(DOCK_BOTTOM_GAP, height - drift_panel.get_global_rect().position.y + 8.0)
