@@ -172,8 +172,12 @@ func _forms_in_order(tree: Array) -> Array[TowerData]:
 	# Ascended right after the first final form (design 0d0642d): while it's still closed (Grove, drift
 	# 51) spend_dreamlight skips it and goes on; once open, the family saves up for it first.
 	var ascended: TowerData = tree[2] if tree.size() > 2 else null
+	if branches_first:  # Kinship placement: two branches before any final form (a Kinship needs two)
+		for branch in branches.slice(0, 2):
+			forms.append(branch[0])
 	for branch in branches:
-		forms.append(branch[0])
+		if not forms.has(branch[0]):
+			forms.append(branch[0])
 		for final in branch[1]:
 			forms.append(final)
 			if ascended != null and not forms.has(ascended):
@@ -183,6 +187,7 @@ func _forms_in_order(tree: Array) -> Array[TowerData]:
 	return forms
 
 const AREA_FIRST := {"pebbling": "cairn", "nestling": "wrens_nest"}  # Cairn's lob splash, Wren's second strike
+var branches_first := false  # The runner sets it with Kinship placement on (balance_sim.gd --no-kin keeps the old order)
 
 # --- Omens ------------------------------------------------------------------------------------------
 

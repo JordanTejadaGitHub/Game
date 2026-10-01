@@ -31,6 +31,7 @@ const COVER_HEARTWOOD_FROM := 18  # From this drift one attacker keeps the Heart
 const LAST_STRETCH := 8  # Route tiles before the Heartwood a covering Warden should also reach
 const AURA_WEIGHT := 2.0  # Aura placement: path tiles a Warden in (or under) an aura is worth (balance_simulation.md: path coverage still dominates)
 const AURA_COUNT_MAX := 5  # …counting at most this many Wardens per cell (a bonus of up to 10 tiles; a cell covers ~8-20 path tiles)
+const KIN_WEIGHT := 2.0  # Kinship placement: path tiles per unbonded kin of the same family within Kinships reach (at most AURA_COUNT_MAX)
 var _saving_for_final := false  # The cheapest open growth is a final form (saves longer for it)
 const STYLES := {"balanced": 0, "wide": 1, "narrow": 2, "combo": 3, "sleep": 4, "sprout": 5, "grove": 3, "mixed": 6}  # DreamSimPolicy.Style; grove = the hand-written Grove player (Combo cards, --families); mixed = Style.MIXED
 const COLUMNS := ["drift", "act", "seconds", "health_spawned", "damage", "leaks", "leaves_lost", "leaves_left",
@@ -70,6 +71,8 @@ var enemy_overrides := {}  # --enemy=id.field=value (repeatable): EnemyData fiel
 var _keep: Array = []  # The edited EnemyData, held so the cache keeps them
 var act1_boss := ""  # --boss=night_mare: act 1's boss forced (DriftDirector.preset_bosses); "" = the default draw
 var aura_placement := true  # --no-aura: place and grow aura Wardens (Acorn, Elder Stump, Grove Heart, Moon Moth) by path only
+var kin_placement := true  # --no-kin: no Kinship placement, and growth takes the first open form in evolves_to (the old bot)
+var kin_pairs := {}  # Drift -> Kinships on the map as it starts (kin_pairs_24 / kin_pairs_50 columns: as drifts 25 / 51 start)
 var dream_share := {}  # Drift -> the share of the maze's damage per second that the taken Dreams add (20, 25, 50, 75)
 var dreams_20 := ""  # The Dreams taken by drift 20 ("a+b")
 var omens: OmenDirector
@@ -132,6 +135,7 @@ func _run() -> void:
 			"--dreams": dream_mode = value
 			"--boss": act1_boss = value
 			"--no-aura": aura_placement = false
+			"--no-kin": kin_placement = false
 			"--no-falloff": Reactions.chain_falloff_on = false  # Measure without chain falloff
 			"--director":
 				var setting := arg.substr(arg.find("=") + 1)
@@ -184,6 +188,7 @@ func _run() -> void:
 	policy = FavorPolicy.new(dreams, STYLES.get(style, 0))
 	policy.favored = favored
 	policy.on_offer = _note_offer
+	policy.branches_first = kin_placement
 	policy.mode = dream_mode
 	policy.rng.seed = map_seed
 	omens = main.get_node_or_null("%OmenDirector")
@@ -222,6 +227,9 @@ func _run() -> void:
 		if director.drifts_started >= 25 and wardens_24 == "":
 			wardens_24 = _warden_counts()
 			auras_24 = _attackers().filter(func(t: Tower) -> bool: return _covered_by_aura(t)).size()
+		for mark in [25, 51]:
+			if director.drifts_started >= mark and not kin_pairs.has(mark):
+				kin_pairs[mark] = Kinships.count_on_map(main)
 		if director.drifts_started in [20, 25, 50, 75] and not dream_share.has(director.drifts_started):
 			dream_share[director.drifts_started] = _dream_share()
 			if director.drifts_started == 20:
@@ -432,7 +440,7 @@ func _best_cell(reach: float, growth_weight: float, cover_heart := false, data: 
 				for i in new_route.size():
 					if new_route[i].distance_to(cell) <= reach:
 						cover += 2 if cover_heart and i >= new_route.size() - LAST_STRETCH else 1
-			var score := cover + growth_weight * (new_route.size() - route.size()) + (_aura_bonus(cell, data) if data != null else 0.0)
+			var score := cover + growth_weight * (new_route.size() - route.size()) + (_aura_bonus(cell, data) + _kin_bonus(cell, data) if data != null else 0.0)
 			if score > best_score:
 				best_score = score
 				best = cell
@@ -454,6 +462,10 @@ func _grow() -> bool:
 			continue  # The swarm stays Sprouts
 		if style == "mixed" and tower.tower_data.get_id() == "sprout" and _sprout_share() <= MIXED_SPROUTS:
 			continue  # Mixed keeps about 40% Sprouts
+		# The form: the first open one in evolves_to (--no-kin, the old bot); with Kinship placement the one
+		# that bonds with the most unbonded kin nearby, then the branch with fewer on the map (both branches seen).
+		var pick: TowerData = null
+		var pick_score := -INF
 		for form in tower.tower_data.evolves_to:
 			if not (form is TowerData) or not dreams.is_unlocked(form.get_id()) or placer.ascended_blocker(form) != "":
 				continue
@@ -461,10 +473,18 @@ func _grow() -> bool:
 				continue
 			if tower.get_grow_cost(form).total > run_state.dew:
 				continue
-			var cover := _coverage(tower) + _aura_bonus(tower.cell, form, tower, false)  # Growing into an aura Warden: the Wardens around it count
+			if not kin_placement:
+				pick = form
+				break
+			var form_score := 100.0 * _kin_bonus(tower.cell, form, tower) - _count_on_map(form.get_id())
+			if form_score > pick_score:
+				pick_score = form_score
+				pick = form
+		if pick != null:
+			# Growing into an aura Warden: the Wardens around it count; into a kin branch: its unbonded kin.
+			var cover := _coverage(tower) + _aura_bonus(tower.cell, pick, tower, false) + _kin_bonus(tower.cell, pick, tower)
 			if best.is_empty() or cover > best[0]:
-				best = [cover, tower, form]
-			break
+				best = [cover, tower, pick]
 	return not best.is_empty() and placer.evolve(best[1], best[2])
 
 # Balanced: the lowest rank first, most path in range among those; Narrow the same but it plants few.
@@ -643,6 +663,8 @@ func _finish() -> void:
 		summary["dream_" + key] = dream_offers[key]
 	summary.wardens_24 = wardens_24
 	summary.auras_24 = auras_24
+	summary.kin_pairs_24 = kin_pairs.get(25, -1)
+	summary.kin_pairs_50 = kin_pairs.get(51, -1)
 	summary.dream_pool_mean = snappedf(float(dream_offers.pool) / maxf(dream_offers.offers, 1.0), 0.1)
 	var runs_path := out_dir.path_join("runs.csv")
 	var keys := summary.keys()
@@ -978,3 +1000,29 @@ func _covered_by_aura(target: Tower) -> bool:
 			if reach > 0.0 and tower.cell.distance_to(target.cell) <= reach:
 				return true
 	return false
+
+# --- Kinship-aware placement (tower_design.md "Kinships") ----------------------------------------------
+# Path-tile bonus for a Warden of `data` at `cell`: KIN_WEIGHT per unbonded Warden of the same family within
+# Kinships reach that it bonds with (a branch: its Kinship partner branch; a base Warden: any branch of its
+# family, which it can grow to meet). Bonded Wardens never count (bonds are sticky).
+func _kin_bonus(cell: Vector2, data: TowerData, exclude: Tower = null) -> float:
+	if not kin_placement or data == null or not data.can_attack:
+		return 0.0
+	var kin := Kinships.find(main)
+	var reach := kin.get_reach() if kin else Kinships.REACH
+	var mine := Kinships.branch_of(data)
+	var count := 0
+	for tower in _attackers():
+		if tower == exclude or tower.tower_data.line != data.line:
+			continue
+		var theirs := Kinships.branch_for(tower)
+		if theirs == "" or theirs == mine or (kin and not kin.get_pairs(tower).is_empty()):
+			continue
+		if Kinships._distance_to_cell(tower, cell) > reach:
+			continue
+		if mine == "" or Kinships.kinship_for(mine, theirs) != &"":
+			count += 1
+	return KIN_WEIGHT * mini(count, AURA_COUNT_MAX)
+
+func _count_on_map(id: String) -> int:
+	return _attackers().filter(func(t: Tower) -> bool: return t.tower_data.get_id() == id).size()
