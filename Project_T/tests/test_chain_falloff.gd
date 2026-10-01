@@ -41,6 +41,20 @@ func _run() -> void:
 	enemy.statuses.chain_time = 0.0
 	_check(is_equal_approx(Reactions.chain_falloff(enemy, &"thunderclap"), 1.0), "an expired chain mark: full damage again")
 
+	# End to end (Enemy.take_damage asks, Enemy Code a6c08abe): the same Thunderclap on a 7-link chain.
+	enemy.max_health = 100000
+	enemy.health = 100000
+	enemy.take_damage(1000.0, "light", false, false, null, &"thunderclap")
+	var full: int = 100000 - enemy.health
+	enemy.health = 100000
+	enemy.statuses.mark_chain(7, [], 1.0)
+	enemy.take_damage(1000.0, "light", false, false, null, &"thunderclap")
+	var late: int = 100000 - enemy.health
+	_check(full > 0 and absf(float(late) / full - 0.70) < 0.01, "a Thunderclap as the 7th link deals 70%% (%d of %d)" % [late, full])
+	enemy.health = 100000
+	enemy.take_damage(1000.0, "light", false, false, null, &"")
+	_check(100000 - enemy.health == full, "a plain hit on the chained nightmare isn't reduced")
+
 	print("chain falloff test: %s" % ("PASS" if failures == 0 else "%d FAILED" % failures))
 	main.queue_free()
 	await process_frame
