@@ -19,6 +19,9 @@ const LAYOUT_PATH := ART + "grove/grove_layout.json"
 const TREE_SIZE := Vector2(1280, 960)
 const NODE_FRAME := 32
 const LEGENDARY_FRAME := 48
+const BLOOM_FPS := 1.5  # The bloomed-node shimmer (grove_blooms.png)
+const ASCENDED_FPS := 3.0  # Turning gold rays (grove_ascended_blooms.png)
+const OWNED_TAP_BONUS := 1.3  # Bloomed nodes are drawn bigger (56 / 72 px), so they take taps a little further out
 const FRUIT_FRAME := 48
 const ICON := 32
 const MAX_ZOOM := 3.0
@@ -71,6 +74,8 @@ var _branch_textures := {}
 var _nodes_texture: Texture2D = load(ART + "grove/grove_nodes.png")
 var _legendary_texture: Texture2D = load(ART + "grove/grove_legendary.png")
 var _memory_nodes_texture: Texture2D = load(ART + "grove/grove_memory_nodes.png")  # Same 11 columns
+var _blooms_texture: Texture2D = load(ART + "grove/grove_blooms.png")  # Owned nodes: a row per node (layout "bloom"), 2 frames
+var _ascended_texture: Texture2D = load(ART + "grove/grove_ascended_blooms.png")  # Ascensions ("ascended_bloom"), 4 frames
 var _fruit_texture: Texture2D = load(ART + "grove/dream_fruit.png")
 var _sixth_rise: Texture2D = load(ART + "grove/waystone_6_rise.png")
 var _sixth_idle: Texture2D = load(ART + "grove/waystone_6_idle.png")
@@ -320,8 +325,12 @@ func tap(point: Vector2) -> void:
 	var best_id := ""
 	var best := TAP_RADIUS
 	for node in _nodes:
+		if not _unlocks.has(node.id):
+			continue
 		var distance := point.distance_to(vec(node.pos))
-		if distance < best and _unlocks.has(node.id):
+		if state_of(_unlocks[node.id]) == State.OWNED:
+			distance /= OWNED_TAP_BONUS  # Its bloom is bigger than a bud
+		if distance < best:
 			best = distance
 			best_id = node.id
 	if best_id != "":
@@ -429,6 +438,9 @@ func _draw_node(node: Dictionary, font: Font) -> void:
 		texture = _memory_nodes_texture
 		row = int(node.memory_row)
 	var state := state_of(unlock)
+	if state == State.OWNED and _plant_step(node.id) < 0 and _draw_bloom(node):
+		_draw_node_extras(node, unlock, state, _bloom_size(node), font)
+		return
 	var column := 0
 	var step := _plant_step(node.id)
 	if step >= 0:
@@ -443,6 +455,29 @@ func _draw_node(node: Dictionary, font: Font) -> void:
 	var rect := Rect2(pos - Vector2.ONE * frame_px / 2.0, Vector2.ONE * frame_px)
 	var tint := Color(1, 1, 1, 0.55) if state == State.LOCKED else Color.WHITE
 	_layer.draw_texture_rect_region(texture, rect, Rect2(column * frame_px, row * frame_px, frame_px, frame_px), tint)
+	_draw_node_extras(node, unlock, state, frame_px, font)
+
+# The grown look (Meta Game Asset af774475): every owned node its own bloom, the Ascensions grandest. Returns
+# false when the layout or art has no bloom for it (then the bud sheet's owned columns are used).
+func _draw_bloom(node: Dictionary) -> bool:
+	var ascended = node.get("ascended_bloom")
+	var row = ascended if ascended != null else node.get("bloom")
+	var texture := _ascended_texture if ascended != null else _blooms_texture
+	if row == null or texture == null:
+		return false
+	var size := _bloom_size(node)
+	var frames := 4 if ascended != null else 2
+	var frame := 0 if _reduced_motion else int(_time * (ASCENDED_FPS if ascended != null else BLOOM_FPS)) % frames
+	_layer.draw_texture_rect_region(texture, Rect2(vec(node.pos) - Vector2.ONE * size / 2.0, Vector2.ONE * size),
+		Rect2(frame * size, int(row) * size, size, size))
+	return true
+
+func _bloom_size(node: Dictionary) -> int:
+	return int(load_layout().get("ascended_cell", 72)) if node.get("ascended_bloom") != null else int(load_layout().get("bloom_cell", 56))
+
+# The selection ring, level pips and next cost under a node drawn `frame_px` wide.
+func _draw_node_extras(node: Dictionary, unlock: UnlockData, state: State, frame_px: int, font: Font) -> void:
+	var pos := vec(node.pos)
 	if node.id == selected_id:
 		var colour: Color = SECTION_COLOR.get(node.section, Palette.HEARTLIGHT)
 		_layer.draw_arc(pos, frame_px * 0.55, 0.0, TAU, 32, colour, 1.5)

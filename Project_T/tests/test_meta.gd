@@ -635,6 +635,13 @@ func _check_layout(grove: Array[UnlockData]) -> void:
 			continue
 		_check(unlock.get_section() == node.section, "%s is on the %s limb" % [node.id, node.section])
 		_check(maxi(unlock.get_levels(), 1) == int(node.levels), "%s has %d levels" % [node.id, int(node.levels)])
+		# Its grown look: a bloom row, or the grander Ascension bloom, inside the sheet (Meta Game Asset af774475).
+		var ascended: bool = node.get("ascended_bloom") != null
+		var row = node.get("ascended_bloom") if ascended else node.get("bloom")
+		var sheet: Texture2D = load("res://assets/meta/grove/%s" % ("grove_ascended_blooms.png" if ascended else "grove_blooms.png"))
+		var cell := 72 if ascended else 56
+		_check(row != null and (int(row) + 1) * cell <= sheet.get_height() and ascended == node.id.ends_with("_ascension"),
+			"%s has its own bloom (row %s)" % [node.id, row])
 		_check(unlock.legendary == bool(node.legendary) and unlock.start == bool(node.start), "%s: Legendary / start match" % node.id)
 		_check(ResourceLoader.exists("res://assets/meta/grove/branches/%s.png" % node.id), "%s has branch art" % node.id)
 		if node.parent != null and node.id != "firefly_jar_ascension":  # Drawn from Sunpetal, needs final forms
