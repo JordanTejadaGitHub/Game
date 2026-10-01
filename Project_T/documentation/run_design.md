@@ -640,8 +640,8 @@ the map or the rules**. That makes ~20; aim for no Omen twice in a row and each 
   was paid even after a bad block; and several Omens cost nothing. Four changes:
   1. **The reward depends on the block.** A **clean block** (no leaf lost during the Omen's 5
      drifts) pays the **full reward**; **each leaf lost cuts it by 25%**; **4+ leaves lost pays
-     nothing**. Dew, Seeds and Dreamlight scale (rounded down); max leaves too (a +2 needs a clean
-     block for both). **Dream rewards** (a Rare+ card, 4 cards, a Legendary) are kept with **≤ 1
+     nothing**. Dew, Seeds and Dreamlight scale (rounded down). (No Omen gives leaves or max leaves
+     any more: "Omen rewards: no leaf regrowth", Balancing Discussion 0891119a.) **Dream rewards** (a Rare+ card, 4 cards, a Legendary) are kept with **≤ 1
      leaf lost**, gone otherwise. A boss leak counts as its leaves. **Double-edged** Omens (Blood
      Moon, Bountiful Night) are unchanged: their reward is the twist. The active-Omen tag shows it
      live (*"Reward · 75% · 1 leaf lost"*); the rest report says what was paid and why.
