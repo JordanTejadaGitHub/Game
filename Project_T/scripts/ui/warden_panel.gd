@@ -503,7 +503,7 @@ func _fill_buffs(tower: Tower) -> void:
 	head.add_child(details)
 	_buffs.add_child(head)
 	for entry in (entries if _buffs_open else []):
-		var colour: Color = BuffSources.COLORS.penalty if entry.negative else BuffSources.color(entry.kind, entry.source)
+		var colour: Color = BuffSources.PENALTY_TEXT if entry.negative else BuffSources.color(entry.kind, entry.source)
 		var row: Control
 		if entry.source is Tower and is_instance_valid(entry.source):
 			var link := Button.new()
