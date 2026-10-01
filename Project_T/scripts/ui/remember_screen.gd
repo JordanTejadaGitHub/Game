@@ -388,28 +388,13 @@ func _add_combos(data: TowerData) -> void:
 	if found.is_empty():
 		return
 	UiStyle.caps(_line("Combos", UiStyle.INK_DIM, 13), 15)  # A small-caps section label
-	var flow := HFlowContainer.new()
-	flow.custom_minimum_size = Vector2(SIDE_WIDTH - 30, 0)
-	_side_box.add_child(flow)
-	var seen := ComboFeedback.load_seen()
-	for combo in found.slice(0, 6):
-		if not CodexData.is_discovered(StringName(combo.id), seen):
-			var unknown := Label.new()  # Undiscovered: "???" only, no name, statuses or link
-			unknown.text = "???"
-			unknown.add_theme_color_override("font_color", UiStyle.INK_DIM)
-			flow.add_child(unknown)
-			continue
-		var link := LinkButton.new()
-		link.text = combo.name
-		link.focus_mode = Control.FOCUS_NONE
-		link.pressed.connect(_open_in_codex.bind(StringName(combo.id)))
-		flow.add_child(link)
-
-func _open_in_codex(id: StringName) -> void:
-	var pause := get_node_or_null("%PauseMenu")
-	if pause != null and pause.has_method("open_codex"):
-		close()
-		pause.open_codex(&"combos", String(id))
+	# {combo:<id>} links (Main's StatusLinks, 43acd9f8): the name or ??? until found; hover or tap shows the combo
+	# tip, a second tap opens it in the Codex (user: "hovering over combos doesn't do anything").
+	var tokens: Array = found.slice(0, 6).map(func(combo: Dictionary) -> String: return "{combo:%s}" % combo.id)
+	var links := StatusLinks.make_label(" · ".join(tokens), 15, UiStyle.INK)
+	links.name = "Combos"
+	links.custom_minimum_size = Vector2(SIDE_WIDTH - 30, 0)
+	_side_box.add_child(links)
 
 func _add_unlock(data: TowerData) -> void:
 	var cost := dream_state.get_unlock_cost(data)
