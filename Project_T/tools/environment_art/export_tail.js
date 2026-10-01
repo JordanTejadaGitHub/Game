@@ -37,7 +37,8 @@ for (const A of ACTS) {
   emit(d + "tended_stump.png", getImg("tended"));
   // Columns 0-1: the original boulder; 2-8: standing stone, cairn, cluster, split, lichen, ruin, crystal.
   emit(d + "mossy_boulder.png", strip([getImg("boulder:0"), getImg("boulder:1"), ...[0, 1, 2, 3, 4, 5, 6].map(t => getImg("rock:" + t))]));
-  emit(d + "island_edge.png", strip(Array.from({ length: 16 }, (_, m) => getImg("isle:" + m))));
+  // island_edge.png: column = neighbour mask, row = variant.
+  emit(d + "island_edge.png", stack(Array.from({ length: RIM_VARIANTS }, (_, v) => strip(Array.from({ length: 16 }, (_, m) => getImg("isle:" + (m + 16 * v)))))));
   emit(d + "cliff.png", stack([0, 1, 2, 3].map(v => strip([0, 1, 2, 3].map(cm => getImg("cliff:" + (cm + 4 * v)))))));
   if (A.id === "edge") {
     emit("dream/void_sky.png", getImg("voidsky"));
