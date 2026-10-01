@@ -443,8 +443,8 @@ skip loses), and humans play better than the bot: **act 1 bite 8 → 10** (`boss
 12]); re-check fresh only. The full profile doing worse than fresh (29% vs 67% dispelled) is on the
 bot's side (same boss health). **Cause (measured):** the first family. Fresh always draws Sporeling
 (every start offer has it; Balanced picks it): 20/20, Stag dispelled 67%. Full offers 3 of 9 families:
-Sporeling 7/20 (dispelled 50%), **other families 2/11 (18%)**; Pebbling and Acorn are resisted by
-the Stag (stone, root), Firefly lost 3/3. Same attackers, tiers and card counts in both: no thinning.
+Sporeling 7/20 (dispelled 50%), **other families 2/11 (18%)**; Pebbling is resisted by
+the Stag (stone; Acorn is neutral, never resisted), Firefly lost 3/3. Same attackers, tiers and card counts in both: no thinning.
 So **non-Sporeling families look weak in act 1** (n = 1–5 each). Next: a per-family act 1 batch
 (10 seeds per forced family), then a same-family Grove control (fresh / half / full, Sporeling + one).
 
@@ -496,8 +496,9 @@ with and without it on the same seeds.
 **Acorn re-check** (e0627b99: Acorn +15% from 67e4e9f6, aura-aware bot with AURA_WEIGHT 2 tiles per
 Warden, cap 5; full, 10 seeds): Balanced survives the boss **100%** (was 50%) and loses **0 leaves
 before him** (was 6): the +15% fixed the normal drifts. The auras add **+15% maze DPS** (537 vs 466;
-skip +10%, and 100% vs 70% survival). Acorn still almost never dispels the Stag (1/40; he resists
-root): a matchup, not a weak family. **Closed:** no first-pick change (Tower Discussion's fallback not
+skip +10%, and 100% vs 70% survival). Acorn still almost never dispels the Stag (1/40). Not a
+resistance (Acorn is neutral, line `acorn`; he resists stone and root only): its damage on him (~2,100–
+3,000 of 5,250) is low. The bite keeps it survivable; watch Acorn's boss damage, no change yet. **Closed:** no first-pick change (Tower Discussion's fallback not
 needed). The bots never grew Dewcatcher / Wellspring / Grove Heart (first-form blind spot), so the
 economy branches are unmeasured.
 
