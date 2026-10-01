@@ -138,8 +138,8 @@ accessibility, Steam achievements (milestones map to them). Acts 3–4 and all f
   (+1 leaf, `act_started`). `family_pick_requested(&"first"|&"boss")` fires after drift 1 and
   before a boss rest; `FamilyPickScreen` calls `family_picked()` (first pick: 3 random of every
   unlocked family, never the last run's offer again, profile `last_first_pick`). `is_build_phase()`
-  = resting (75% refunds). Health `get_growth(n)`: × 1.045 per drift, × 1.055 from drift 26 (`late_growth_from`), × 1.045 from 51 (`endgame_growth_from`); bosses × 1.5; acts 3–4 × 1.4 on top, bosses too (`late_acts_health_multiplier`). From drift 31 a drift listing no elites gets one, two from 76 (`add_guaranteed_elite`). Hooks for Dreams/Omens:
-  `get_health_multiplier`, `get_schedule_modifiers`, `get_spawn_modifiers`, `_pay_rest_bonus`. Acts 1–2 health (`get_early_multiplier`, `act1_*` / `early_*` exports): ×1.0 to drift 9 → ×1.15 at 20, held through 30 → ×1.55 at 45, held to 50 (act 1's boss exempt: stays ×1.5); acts 3–4 ×1.4; act 2 dispel Dew ×0.85 (`RunState.act_dew_multipliers` [1.0, 0.68, 0.45, 0.35]).
+  = resting (75% refunds). Health `get_growth(n)`: × 1.045 per drift, × 1.055 from drift 26 (`late_growth_from`), × 1.045 from 51 (`endgame_growth_from`); bosses × 1.5 (act 1's boss × 1.75, `act1_boss_health_multiplier`); acts 3–4 × 4.0 on top, bosses too (`late_acts_health_multiplier`; the Hollow Oak × 3.0, `final_boss_late_multiplier`). From drift 31 a drift listing no elites gets one, two from 76 (`add_guaranteed_elite`). Hooks for Dreams/Omens:
+  `get_health_multiplier`, `get_schedule_modifiers`, `get_spawn_modifiers`, `_pay_rest_bonus`. Acts 1–2 health (`get_early_multiplier`, `act1_*` / `early_*` exports): ×1.0 to drift 9 → ×1.15 at 20, held to 25 (act 1's boss exempt: its own ×1.75); act 2 ×1.3 at 26 → ×2.0 at 37 → ×3.0 at 45, held to 50 (`act2_*`); acts 3–4 ×4.0; dispel Dew by act `RunState.act_dew_multipliers` [1.0, 0.68, 0.45, 0.35].
 - Drift data: `DriftData.groups: Array[DriftGroup]`; `DriftGroup.entries: Array[DriftEntry]`
   (enemy + count + `elite`; several entries mix evenly), `spacing`, `delay`. `get_schedule()` →
   `[[time, EnemyData, elite], …]`. Drifts 1–50 mirror the acts_1_2.md table (hand-edited files; mixed
@@ -266,7 +266,7 @@ accessibility, Steam achievements (milestones map to them). Acts 3–4 and all f
   saves profile `reactions_seen` (real game only). `CodexPanel` (pause menu + Grove): Glossary / Combos / Families / Dreams (`DreamCodex`) / Nightmares (`NightmareCodex`: ??? until met, lifetime dispels, act groups, milestone `all_nightmares`); account knowledge on the real profile (`HeartwoodMemory.ACCOUNT_KEYS`, also under Dev Grove); lists what `CodexData.scope()` covers (starting three + Grove-planted families and forms; demo its three; dev runs all), "N more wait in the Memory Grove.", "New from the Grove" leaf (profile `codex_covered`). `tests/test_codex_scope.gd`.
 
 ## Meta (meta_design.md; full game only — `game/demo` true = nothing applied or recorded)
-- Grove = tech tree on the Heartwood: 73 `UnlockData` nodes (`resource/meta/grove/<id>.tres`, ids =
+- Grove = tech tree on the Heartwood: 92 `UnlockData` nodes (the lean Cards limb holds most build cards; the start pool is lean) (`resource/meta/grove/<id>.tres`, ids =
   `assets/meta/grove/grove_layout.json` ids; limbs `root` WARDENS = Families, DREAMS = Cards, PERKS =
   Perks). `costs` per level, `requires_all` ("id" or "id:level") / `requires_any` (+count), `icon`,
   `start` (Sporeling / Firefly Jar / Dewdrop, never bought), `<family>_ascension` (Ascended Warden card), `milestone` (grows free, refunds a
@@ -278,7 +278,7 @@ accessibility, Steam achievements (milestones map to them). Acts 3–4 and all f
   `starting_cards` (Clear Sight), `random_common_cards` (Kindling), `sprout_charges`, `free_nurtures`
   (`RunState.free_nurtures`, spent by Tower Code's nurture hook); `allows_bittersweet` (Bittersweet
   Dreams node sets `DreamState.allow_bittersweet`).
-- `HeartwoodMemory` (VERSION 6; `MIGRATED_IDS` renames v1 Grove ids, `REFUNDED_V3`..`V6` refund removed nodes): `unlocks {id: level}`,
+- `HeartwoodMemory` (VERSION 9; `MIGRATED_IDS` renames v1 Grove ids, `REFUNDED_V3`..`V7` refund removed nodes (v7: the five combo-card nodes), `GRANTED_V8` gives older profiles the lean Cards limb's moved-card nodes free, v9 the nodes below them too): `unlocks {id: level}`,
   `node_level()` (counts start / milestone growth; use it, not `unlock_level()`, for "owned"),
   `buy()` / `buy_problem()` / `requirements_met()`, `get_unlock(id)`, `grow_milestone_nodes()`,
   `grown_share()`, loadout (`loadout`, `loadout_slots()`: 3 open + slot_4/5 + the secret 6th via `has_sixth_slot()` = milestone `full_bloom` (`check_full_bloom`, `tree_complete`) or `MetaRun.sixth_slot_dev_active()`; `get_loadout()`, `save_loadout()`),
@@ -387,9 +387,10 @@ accessibility, Steam achievements (milestones map to them). Acts 3–4 and all f
   unlocked with Dreamlight),
   art in `assets/towers/` (generated by `tools/tower_art_generator.gd`). The HUD's `%TowerBar` has
   a button per Warden (hotkeys 1-9). Thornwall has `can_attack = false`.
-  Ranks (Nurture v2): `Tower.rank` 0-5 (VII with Deeper Rings), cost `RANK_COSTS` 25/40/60/90/135 ×
-  tier multiplier × Dreams; +10% dmg, +4% speed, +0.1 range each; `Tower.focus` (Power/Swift/Reach/
-  Deep) chosen at rank III (`needs_focus()`, `TowerPlacer.nurture(tower, focus)`). Growing a ranked Warden
+  Ranks (Nurture v3): `Tower.rank` 0-5 (VII with Deeper Rings), cost `RANK_COSTS` 25/40/60/90/135 ×
+  tier multiplier × Dreams; +10% dmg, +4% speed, +0.1 range each; every rank is a choice
+  (`Tower.rank_choices`, `focus` = the latest; Power/Swift/Reach/Deep, support Wardens Wide/Strong/
+  Kindred; `needs_focus()`, `TowerPlacer.nurture(tower, focus)`). Growing a ranked Warden
   pays the rank difference: `Tower.get_grow_cost(into)` {total, base, ranks}, used by every grow path
   (`TowerSeller.plan_grow` for groups); rank art children
   RankUnder/RankOver. `TowerSeller.plan_nurture` / `nurture_group`, R = `nurture_warden`; kept
@@ -411,8 +412,8 @@ accessibility, Steam achievements (milestones map to them). Acts 3–4 and all f
   movement. Memory Wardens (`is_unique`): one on the map at a time. Branches and final forms are
   unlocked with Dreamlight (`DreamState.get_unlock_cost` / `unlock_with_dreamlight`; the Warden panel
   offers it); `DreamState.unlock_everything` shows all.
-- Late game: branches grow for 80 Dew, finals for 200 (damage ×1.25 / ×1.5 over v1); Nurture base
-  `RANK_COSTS` 25/40/60/90/135. **Ascended** forms (tier 4, 400 Dew, Nurture ×4, 3 Dreamlight from
+- Late game: branches grow for 120 Dew, finals for 300 (damage ×1.25 / ×1.5 over v1); Nurture base
+  `RANK_COSTS` 25/40/60/90/135. **Ascended** forms (tier 4, 600 Dew, Nurture ×4, 3 Dreamlight from
   drift 51): `resource/tower/<id>.tres` + `dream_<id>.tres`, listed in `evolves_to` of every final form
   of the family (Sporemother, Tidecaller, Stormheart, Old Mountain, World Root, Great Bell,
   Grandmother Oak, Dawnwing, The Whirlwind = id `tempest`). `AttackKind.PATROL` = `PatrolFlight` (Dawnwing / Whirlwind).
@@ -448,7 +449,7 @@ accessibility, Steam achievements (milestones map to them). Acts 3–4 and all f
   (`EnemyStatuses.gust_time`, set by Gust), Carried Storm (`ReactionTracker.note_spot` / `spot_near`,
   `SeedBoomerang._carry_storm`, `Reactions.carry`). Woven rules 100–107 by rule id. `tests/test_crowned.gd`.
 - **Potency** (effect damage): `TowerData.potency` (1.0; Puffball 1.3, …), `Tower.get_potency()` (+ Dream
-  `get_potency_bonus`, + Deep Focus 10% per rank III–V; Deep no longer boosts status strength).
+  `get_potency_bonus`, + 18% per Deep rank choice, which also lengthens statuses).
   `Enemy.take_damage` multiplies damage whose tag is in `Reactions.EFFECT_TAGS` by the source's
   Potency × Seeping (`DreamState.get_effect_bonus`); Nightshade (`Reactions.nightshade_bonus`): effect damage
   +20% per status the nightmare carries, adding with Seeping. `PathCloud` damage is tagged "cloud" (an effect). Venom Bloom =
