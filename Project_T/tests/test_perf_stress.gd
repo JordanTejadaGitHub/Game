@@ -82,9 +82,11 @@ func _run() -> void:
 
 # Late drifts called early back to back (platforms.md "Calling drifts early stacks them", the field cap):
 # the dummies leave, drifts 88, 89, 90 start half a second apart at 3× with real nightmares (Reactions
-# on), and the frame is measured as the field fills to the cap. Reported, not a failure yet (it's over
-# budget while Tower / Enemy cut the interaction costs; tools/perf/stacked_drifts.gd has the probe).
+# on), and the frame is measured as the field fills to the cap. A check since the interaction cuts
+# (Tower 6e7f4316 / 763f5042 / aca77e57, Roguelite's _sample_drift 0c3586f4: p95 ~19 ms): fails over
+# STACKED_PASS_MS; STACKED_BAR_MS stays the target it reports against (tools/perf/stacked_drifts.gd: the probe).
 const STACKED_BAR_MS := 16.0
+const STACKED_PASS_MS := 22.0  # The check: ~19 ms measured plus noise headroom
 func _measure_stacked() -> void:
 	for enemy in spawner.get_children():
 		enemy.queue_free()
@@ -96,9 +98,10 @@ func _measure_stacked() -> void:
 		director.start_next_drift()
 		for f in 30:
 			await process_frame
-	await _measure("stacked drifts 88-90, 3x (not a failure yet)")
+	await _measure("stacked drifts 88-90, 3x")
 	print("    -> stacked p95 %.2f ms %s the %.1f ms bar (field cap %s)" % [result.p95,
 		"within" if result.p95 <= STACKED_BAR_MS else "over", STACKED_BAR_MS, str(spawner.get("max_field"))])
+	_check(result.p95 <= STACKED_PASS_MS, "stacked drifts at 3x: p95 %.2f ms within %.0f ms" % [result.p95, STACKED_PASS_MS])
 	if OS.get_cmdline_user_args().has("--breakdown"):
 		await _count_bursts()
 
