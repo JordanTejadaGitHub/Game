@@ -110,7 +110,7 @@ visibly separate paths look too neat, not like a real tree).
 | # | Perk | Levels | Cost per level | Effect (at max) | Needs |
 |---|---|---|---|---|---|
 | 1 | Morning Stores | 3 | 20 / 40 / 60 | **+30 starting Dew** (+10 per level) | — (trunk) |
-| 2 | Rich Dew | 3 | 30 / 60 / 90 | **+15% Dew** from dispelled nightmares (+5% per level) | Morning Stores |
+| 2 | Rich Dew | 3 | 30 / 60 / 90 | **+15% Dew** from each drift's Dew pot (+5% per level; `run_design.md` "The Dew pot") | Morning Stores |
 | 3 | Rested Roots | 2 | 40 / 80 | rest bonus **+20%** (+10% per level) | Rich Dew |
 | 4 | Seed Pouch | 1 | 100 | +10% Seeds at run end | Rested Roots |
 | side | Sprout Bed | 1 | 60 | start with **2 free Sprouts** to place | Morning Stores |
@@ -191,9 +191,9 @@ above its family's final forms, so veterans keep finding new playstyles. Reviewe
   boss grows no Memory bloom on this limb and the family pick offers no Memory Warden card.
   (Was: a free bloom on the first dispel, then offered after that boss in later runs.)
 - Total ≈ 2,000 Seeds incl. Ascension (2026-09-30, final-forms nodes gone; whole tree ≈ 6,040, see Seeds above).
-- Each hidden-branch node needs its family's final-forms node, so hidden branches really are late.
+- Each hidden-branch node needs only its family node (since the final-forms nodes left, 2026-09-30).
 - **Final-forms nodes removed (user, 2026-09-30).** A family's regular final forms exist as soon as
-  you have the family: owning a family in a run gives its base and both branches free, and its final
+  you have the family: owning a family in a run gives its base; its branches cost 1 Dreamlight and its final
   forms cost Dreamlight (`run_design.md`, "Dreamlight"). New players always have something to spend
   Dreamlight on, and the starting families' finals (Thunderhead, Beacon, Puffball, …) are there
   from the first run. So:
