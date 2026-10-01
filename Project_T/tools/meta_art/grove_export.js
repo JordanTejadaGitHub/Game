@@ -78,17 +78,14 @@ for (const n of NODES) {
   layout.nodes.push({ id: n.id, section: n.section, name: n.name, pos: [n.x, n.y], parent: n.parent || null, from: n.from || null,
     levels: n.lv || 1, start: !!n.start, legendary: !!n.legendary, ...(MEMORY_WARDENS.includes(n.id) ? { memory_row: MEMORY_WARDENS.indexOf(n.id) } : {}), branch: { offset: [s.box[0], s.box[1]], frame_size: [s.W, s.H], frames: 5 } });
 }
-// Per-node blooms (fully grown): grove_blooms.png, a row per node, and grove_ascended_blooms.png for
-// the Ascension nodes. Each layout node gets its row ("bloom" / "ascended_bloom").
+// Ascension blooms (fully grown): grove_ascended_blooms.png, a row per Ascension node; other grown nodes use the uniform flowers.
 const bloomNodes = NODES.filter(n => NODE_ICON[n.id] && !n.id.endsWith("_ascension") && !n.id.startsWith("memory_"));
 const ascNodes = NODES.filter(n => n.id.endsWith("_ascension") && ASCENDED_ART[n.id.replace(/_ascension$/, "")]);
 layout.nodes.forEach(e => {
   const b = bloomNodes.findIndex(n => n.id === e.id), a = ascNodes.findIndex(n => n.id === e.id);
-  if (b >= 0) e.bloom = b;
   if (a >= 0) e.ascended_bloom = a;
 });
-layout.bloom_cell = BLOOM_CELL; layout.ascended_cell = 48;
-emitImg("grove/grove_blooms.png", stack(bloomNodes.map(n => strip([0, 1].map(f => bloomSprite(n, f))))));
+layout.ascended_cell = 48;
 emitImg("grove/grove_ascended_blooms.png", stack(ascNodes.map(() => strip([0, 1, 2, 3].map(ascendedBloomPlain)))));
 GROVE_MISTS.forEach(m => emitImg("grove/" + m.file, groveMistStrip(m)));
 emitText("grove/grove_layout.json", JSON.stringify(layout, null, 1));
@@ -116,7 +113,7 @@ emitImg("grove/grove_memory_nodes.png", stack(MEMORY_WARDENS.map(memoryNodeRow))
 const memoryBorders = [...Array(MEMORY_CARD_FRAMES).keys()].map(memoryCardBorder);
 emitImg("ui/memory_card_border.png", strip(memoryBorders));
 {
-  // Preview: the three blooms (bloomed, 4×) and the border over a mock card, standard and tall.
+  // Preview: the three blooms (bloomed, 4Ã—) and the border over a mock card, standard and tall.
   const P = new Img(640, 400); for (let y = 0; y < P.h; y++) for (let x = 0; x < P.w; x++) P.set(x, y, HW.Void);
   MEMORY_WARDENS.forEach((id, k) => { const s = memoryNodeSprite(id, "bloom", 0); for (let y = 0; y < 32; y++) for (let x = 0; x < 32; x++) if (s.alpha(x, y)) for (let a = 0; a < 3; a++) for (let b = 0; b < 3; b++) P.set(8 + k * 100 + x * 3 + a, 8 + y * 3 + b, s.get(x, y)); });
   [[330, 0, 300], [20, 100, 290]].slice(0, 1).forEach(() => {});
@@ -127,7 +124,7 @@ emitImg("ui/memory_card_border.png", strip(memoryBorders));
   T.put(mock(370), 25, 25); T.put(nineTile(memoryBorders[2], 250 + 2 * MEMORY_BLEED, 370 + 2 * MEMORY_BLEED, MEMORY_MARGIN), 25 - MEMORY_BLEED, 25 - MEMORY_BLEED);
   emitImg("_preview/memory_card_tall_preview.png", T);
 }
-// Starlit card backs: 4 twinkle frames of 250×220 side by side.
+// Starlit card backs: 4 twinkle frames of 250Ã—220 side by side.
 const starlit = [0, 1, 2, 3].map(starlitCard);
 emitImg("ui/starlit_card.png", strip(starlit));
 // Preview: a standard card and a tall one (tiled edges) under a mock of the card's own style
