@@ -507,6 +507,18 @@ reach, cap 5, sticky bonds respected), the grow step picks the branch that bonds
 Dreamlight unlocks a family's two branches before its finals (finals arrive a little later). Still
 blind: the 9 hidden Kinships (third branches).
 
+## Grove control (2026-10-01, bfa430cd, Sporeling + Firefly Jar forced, auras + kin, 20 seeds, to 50)
+
+**The Grove shows no measurable gain; fresh ≥ half ≥ full.** Mean drift reached 34.0 / 33.1 / 31.9;
+reached 35: 8 / 8 / 6 of 20; Stag dispelled 14/19, 15/20, 12/19. Perks add +7% maze DPS at 24 (583 vs
+543), which doesn't turn into survival; every run dies in act 2.
+**Dream pool dilution, measured:** the drawable pool goes **49 → ~91** cards (half already owns nearly
+every card node), and the share of offered cards that fit the build (matched + generic) falls **36% →
+~24%**; off-build cards are **64% → 77%** of offers. ~6 cards are taken by 50 in every profile.
+This conflicts with the targets (Half Grove reaches act 4, Full wins). Next: find out whether the
+off-build cards are dead for the build (a `can_offer` rule fixes it) or usable (a pool-size question),
+then bring the fix to the user. Caveat: one family pair, one bot style, which picks by tag + rarity.
+
 ## Later
 
 A **human baseline**: the same CSV written from real playtests (debug builds only), so the bot's
