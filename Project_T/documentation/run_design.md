@@ -807,3 +807,5 @@ Named to fit the fiction: **Withered Tree** ("Tend") and **Mossy Boulder** ("Mov
 - Leaves: are 15 (+1 per act break) right over 100 drifts?
 - Dew curve vs the target table; health scaling (×1.035) vs player power.
 - Do overlapping drifts feel good, or do players prefer Auto-drift off?
+
+**Omen rewards: no leaf regrowth (2026-10-01, user: "don't offer regrow leaves if I haven't lost any, and regrowing leaves doesn't feel like a good reward").** Stubborn Blight's "regrow 3 leaves" becomes **+1 Dreamlight** (scaled by act like other rewards: +1 / +1 / +2 / +2). Max-leaf rewards (Leaf Fall +3 max leaves, Restless Wind +2) stay, since they're always useful, but are never offered when you're already at the absolute leaf cap. No Omen reward heals leaves.
