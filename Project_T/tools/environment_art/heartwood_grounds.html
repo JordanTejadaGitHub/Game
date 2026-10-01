@@ -590,9 +590,9 @@ const HEART_BARK = ["#1a0e08", "#3a2414", "#5e3c20", "#8a5e34"];
 const DEAD = ["#241a16", "#56463c", "#8a7462", "#bca38c"];
 // Dead trees are 96×128: the bottom 64 px rows are their cell (base and shadow where the old 64 px
 // base was), centred, so 16 px overhang each side and the top 64 px the cell above. Heights above the
-// base (design y 56) are × 1.7, widths × 1.3 (TX_W) around the centre (design x 32).
+// base (design y 56) are × 2, widths × 1.3 (TX_W) around the centre (design x 32).
 const TREE_W = 96, TREE_H = 128;
-const TREE_TT = y => 120 + (y - 56) * 1.7;
+const TREE_TT = y => 120 + (y - 56) * 2.0;
 const TREE_TX = x => 48 + (x - 32) * TX_W;
 function withered(A, f, seed) {
   // Pale bark on the lit side so the tree reads as a pale shape on dark grass (value order).
