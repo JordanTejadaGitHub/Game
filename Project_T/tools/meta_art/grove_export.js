@@ -90,6 +90,7 @@ emitImg("grove/grove_ascended_blooms.png", stack(ascNodes.map(() => strip([0, 1,
 GROVE_MISTS.forEach(m => emitImg("grove/" + m.file, groveMistStrip(m)));
 emitText("grove/grove_layout.json", JSON.stringify(layout, null, 1));
 emitImg("grove/grove_nodes.png", stack(["perks", "families", "cards"].map(s => nodeRow(s, false))));
+emitImg("grove/grove_level_blooms.png", stack(["perks", "families", "cards"].map(s => strip([1, 2, 3].flatMap(lv => [0, 1].map(f => levelBloom(s, lv, f)))))));
 emitImg("grove/grove_legendary.png", nodeRow("cards", true));
 emitImg("grove/dream_fruit.png", strip([0, 1, 2, 3, 4, 5, 6, 7, 8].map(fruitSprite)));
 emitImg("ui/loadout_slots.png", strip([0, 1, 2, 3].map(slotSprite)));

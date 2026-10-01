@@ -118,3 +118,21 @@ function slotSprite(state) {
   if (state === 3) haloOut(out, c, c + 2, 31, "perks", .35);
   return out;
 }
+// A grown node with levels (Perks like Morning Stores): the same uniform flower, fuller per level.
+// Level 1 = the plain bloom; 2 adds an inner ring of lighter petals; 3 adds a gold ring and pips.
+// Sheet grove_level_blooms.png: rows Perks / Families / Cards; columns level 1 f0 f1, 2 f0 f1, 3 f0 f1.
+function levelBloom(sec, level, f) {
+  const S = 32, c = 16, out = new Img(S, S), L = new Img(S, S), P = SECTION[sec].petals;
+  haloOut(out, c, c, 14 + (level - 1), sec, (f ? .42 : .34) + (level - 1) * .04);
+  // Level 2+: a second ring of petals behind, their tips peeking out between the front ones.
+  if (level >= 2) for (let k = 0; k < 5; k++) petal(L, c, c, f * .06 + (k + .5) / 5 * Math.PI * 2 - Math.PI / 2, 12, 3, [P[0], P[1], P[2]]);
+  flower(L, c, c, sec, 9, 5, 1, f * .06);
+  ellipse(L, c, c, 2.4, 2.4, (x, y, dx, dy) => dy < 0 && dx < .3 ? SECTION[sec].mid : P[2]);
+  out.stamp(L, "#0e0a06");
+  if (level >= 3) {
+    for (let a = 0; a < Math.PI * 2; a += .12) out.set(c + Math.cos(a) * 12.5, c + Math.sin(a) * 12.5, HW.Gold);
+    for (let k = 0; k < 4; k++) { const a = (k + .5) / 4 * Math.PI * 2 + f * .2; out.set(c + Math.cos(a) * 12.5, c + Math.sin(a) * 12.5, HW.Heartlight); }
+  }
+  out.set(c - 3 + f * 5, c - 9, "#ffffff");
+  return out;
+}
