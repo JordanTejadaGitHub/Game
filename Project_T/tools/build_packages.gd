@@ -73,6 +73,7 @@ var ids := {}  # Build -> Array of card ids
 var missing := {}  # Display name -> true (named in the catalogue, not a card)
 var _planted: Array[Tower] = []
 var _policy: DreamSimPolicy
+var use_run_pool := false
 
 func _initialize() -> void:
 	_run.call_deferred()
@@ -83,6 +84,7 @@ func _run() -> void:
 	var runs := 300
 	var picker := "balanced"
 	var tag_weight := -1.0
+	var preset := "full"  # full: the whole Grove, everything discovered; fresh: a new account (start pool, nothing discovered)
 	for arg in OS.get_cmdline_user_args():
 		if arg.begins_with("--mode="):
 			mode = arg.trim_prefix("--mode=")
@@ -92,6 +94,10 @@ func _run() -> void:
 			runs = int(arg.trim_prefix("--runs="))
 		elif arg.begins_with("--picker="):
 			picker = arg.trim_prefix("--picker=")  # balanced / random / mixed (emergence)
+		elif arg.begins_with("--preset="):
+			preset = arg.trim_prefix("--preset=")
+		elif arg == "--run_pool":
+			use_run_pool = true  # Each run draws its own pool (dream_design.md "Exact rules")
 		elif arg.begins_with("--tag_weight="):
 			tag_weight = float(arg.trim_prefix("--tag_weight="))  # Tuning: overrides DreamState.tag_weight
 	MetaRun.force_all_families = true  # Full Grove: every family in the picks (Grove families' cards can be eligible)
@@ -102,11 +108,16 @@ func _run() -> void:
 	dreams = main.get_node("%DreamState")
 	director = main.get_node("%DriftDirector")
 	dreams.unlock_everything = false
-	dreams.grove_cards.assign(dreams.pool.map(func(c: UpgradeData) -> String: return c.id))  # Full Grove
+	if preset == "fresh":
+		dreams.grove_cards.clear()  # A new account: the start pool only
+	else:
+		dreams.grove_cards.assign(dreams.pool.map(func(c: UpgradeData) -> String: return c.id))  # Full Grove
 	dreams.allow_bittersweet = true
 	if tag_weight > 0.0:
 		dreams.tag_weight = tag_weight
-	dreams.discovery_profile = null  # Not the real game: everything discovered
+	dreams.discovery_profile = {"seen": [], "wardens_built": [], "best_chain": 0} if preset == "fresh" else null  # fresh: nothing discovered
+	dreams.allow_bittersweet = preset != "fresh"
+	dreams.run_pool_forced = use_run_pool
 	_policy = DreamSimPolicy.new(dreams, DreamSimPolicy.Style.BALANCED)
 	for tower in main.get_node("%TowerContainer").get_children():
 		tower.free()
@@ -346,4 +357,7 @@ func _reset(run: int) -> void:
 	dreams.sim_kinships = 0
 	dreams.clearing_open = false
 	dreams._rng.seed = 1000 + run
+	if use_run_pool:
+		dreams.run_pool.clear()  # Drawn again at the run's first offer (seeded by the run)
+		main.get_node("MapGenerator").map_seed = 424242 + run
 	dreams.bump_board()
