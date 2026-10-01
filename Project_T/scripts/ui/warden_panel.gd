@@ -163,6 +163,8 @@ func _refresh() -> void:
 	var kin := Kinships.find(_tower)
 	if kin != null:
 		var kin_line := kin.describe(_tower)  # "Kin: Bloomcap · Slumber Rot · Blooming (3 drifts to Old Kin)"
+		if kin_line == "":
+			kin_line = kin.unbonded_reason(_tower)  # A kin in reach but bonded elsewhere: say so
 		if kin_line != "":
 			lines.append(kin_line)  # Only with kin (screens_ui.md: no "No kin. A … would form …" line)
 		var family := kin.family_bonus(data.line)

@@ -195,6 +195,8 @@ func _draw_threads_in(tower: Tower) -> void:
 		var source = entry.source
 		if not (source is Tower) or not is_instance_valid(source) or entry.stat == "":
 			continue
+		if entry.kind == "kinship":
+			continue  # Kinships draws the bond itself (the root); a straight thread on top read as "string"
 		var key := "%d|%s" % [source.get_instance_id(), entry.kind]
 		if seen.has(key):
 			seen[key].amount += entry.amount  # Damage and attack speed from one giver: one thread

@@ -110,7 +110,16 @@ func _run() -> void:
 	_check(knots != null and not knots.z_as_relative and knots.z_index > 0, "kin knots draw above the Wardens")
 	_check(kin.bow_offset({"a": drift, "b": bloom}) == Vector2.ZERO,
 		"a bond 2 cells across stays straight")
-	for tower in [top, below]:
+	# A kin in reach but bonded elsewhere: the panel says why (user: "these two aren't kin"); an unrelated
+	# family stays silent.
+	var late := _plant("driftspore", Vector2(3, 9))  # Beside the bonded Bloomcap
+	var stranger := _plant("standing_stone", Vector2(1, 9))
+	await process_frame
+	kin.refresh()
+	_check(kin.get_pairs(late).is_empty() and kin.unbonded_reason(late) == "No kin: the Bloomcap nearby is bonded to its Driftspore",
+		"a would-be kin that's taken is explained (%s)" % kin.unbonded_reason(late))
+	_check(kin.unbonded_reason(stranger) == "", "another family: nothing to explain")
+	for tower in [top, below, late, stranger]:
 		tower.queue_free()
 	await process_frame
 	kin.refresh()

@@ -552,6 +552,32 @@ func describe(tower: Tower) -> String:
 		lines.append(text)
 	return "\n".join(lines)
 
+# Why a Warden with a would-be kin in reach has no bond (bonds are sticky, one each): "No kin: the Stormcap
+# nearby is bonded to its Lanternmoth". "" when it's bonded, or no kin of its family is in reach (not kin:
+# nothing to explain, the less-hand-holding rule).
+func unbonded_reason(tower: Tower) -> String:
+	if not get_pairs(tower).is_empty():
+		return ""
+	var branch := branch_for(tower)
+	if branch == "":
+		return ""
+	var capacity := 2 if _has(&"extended_family") else 1
+	for other in _towers():
+		if other == tower or other.tower_data.line != tower.tower_data.line:
+			continue
+		var other_branch := branch_for(other)
+		if other_branch == "" or other_branch == branch:
+			continue
+		var id := kinship_for(branch, other_branch)
+		if id == &"" or not is_available(id) or _distance(tower, other) > get_reach():
+			continue
+		var taken := get_pairs(other)
+		if taken.size() >= capacity:
+			var partner: Tower = taken[0].b if taken[0].a == other else taken[0].a
+			return "No kin: the %s nearby is bonded to its %s" % [other.tower_data.display_name,
+				partner.tower_data.display_name if is_instance_valid(partner) else "kin"]
+	return ""
+
 # For a branch Warden with no kin, what would bond it: "No kin. A Chime Stone within 2 cells would form
 # Night Chimes." (+ "(unlock Chime Stone with Dreamlight)" if that branch is locked). "" otherwise.
 func no_kin_hint(tower: Tower) -> String:
@@ -796,7 +822,7 @@ static func draw_knot(canvas: CanvasItem, at: Vector2, colour: Color, alpha: flo
 	canvas.draw_circle(at, KNOT_RADIUS, Color(colour, alpha))
 	canvas.draw_circle(at + Vector2(-0.8, -0.8), 1.2, Color(Palette.HEARTLIGHT, 0.8 * alpha))  # Its glint
 
-# The Kinship vine (tower_design.md / screens_ui.md, playtest "kinship" 2026-10-01): a thin, slightly
+# The Kinship vine (tower_design.md / screens_ui.md, playtest "kinship" 2026-10-01; "looks like string": a root):
 # wavy vine in the family colour on the ground, base to base (it was a tinted 32x10 strip at body
 # height, which read as a debug bar). Sapling: a bare vine; Blooming: leaves and buds; Old Kin: flowers.
 # Fainter over path tiles (nightmares walk there). Subtle mode: fainter, no leaves or flowers.
@@ -804,6 +830,7 @@ const VINE_WIDTH := 3.0
 const VINE_WAVE := 2.5  # px either side
 const VINE_WAVELENGTH := 26.0
 const VINE_PATH_ALPHA := 0.45  # Its share of the vine's alpha over path tiles
+const PULSE_SPEED := 40.0  # px a second: the light travelling along a Blooming / Old Kin root
 
 func _draw_vine(pair: Dictionary, stage: int, mode: int, alpha: float) -> void:
 	var from: Vector2 = to_local(pair.a.global_position + ARCH_FOOT)
@@ -827,18 +854,19 @@ func _draw_vine(pair: Dictionary, stage: int, mode: int, alpha: float) -> void:
 		var d := length * t
 		var p := from + dir * d + bow * 4.0 * t * (1.0 - t) \
 			+ side * sin(d / VINE_WAVELENGTH * TAU + pair.a.cell.x) * VINE_WAVE * sin(t * PI)
-		points.append(p)
+		points.append(p.round())  # Pixel-snapped (Heartwood 32 pixel art)
 		var on_path: bool = path.has(Tower.MAP_GRID.calculate_grid_coordinates(to_global(p)))
 		shades.append(VINE_PATH_ALPHA if on_path else 1.0)
 	var colour := _colour(pair)
+	# A living root (user: "it looks like string"): a dark outline, a bark core, its top edge in the family
+	# colour; knots (Sapling), leaves and buds (Blooming), flowers (Old Kin); palette colours only.
+	var width := VINE_WIDTH + (1.0 if stage >= 1 else 0.0)
 	for i in steps:
 		var a := alpha * shades[i]
-		draw_line(points[i], points[i + 1], Color(Palette.DEEPMOSS, 0.55 * a), VINE_WIDTH + 1.5)
-		draw_line(points[i], points[i + 1], Color(colour, a), VINE_WIDTH)
-	if mode != 0:
-		return
-	# Leaves (Blooming on), buds (Blooming), flowers (Old Kin): along the vine, off its path tiles.
-	var spacing := 14.0
+		draw_line(points[i], points[i + 1], Color(Palette.ROOT, 0.7 * a), width + 2.0)
+		draw_line(points[i], points[i + 1], Color(Palette.BARK, a), width)
+		draw_line(points[i] + Vector2(0, -1), points[i + 1] + Vector2(0, -1), Color(colour, 0.85 * a), 1.0)
+	var spacing := 12.0
 	var n := int(length / spacing)
 	for k in range(1, n):
 		var i := clampi(int(float(k) / n * steps), 0, steps)
@@ -846,15 +874,27 @@ func _draw_vine(pair: Dictionary, stage: int, mode: int, alpha: float) -> void:
 			continue
 		var p := points[i]
 		var out := side * (1.0 if k % 2 == 0 else -1.0)
-		if stage >= 1:
-			var leaf := p + out * 3.0
-			draw_colored_polygon(PackedVector2Array([p, leaf + dir * 2.0, leaf + out * 2.0, leaf - dir * 2.0]),
-				Color(Palette.SPRIG, alpha * 0.9))
+		if stage == 0 or mode != 0:
+			if k % 2 == 0:
+				draw_circle(p, 1.5, Color(Palette.OAK, alpha))  # A knot in the root
+			continue
+		var leaf := (p + out * 4.0).round()
+		draw_colored_polygon(PackedVector2Array([p, leaf + dir * 2.0, leaf + out * 2.0, leaf - dir * 2.0]),
+			Color(Palette.LEAF, alpha))
+		draw_line(p, leaf, Color(colour, alpha), 1.0)  # Its stem in the family colour
 		if stage == 1 and k % 3 == 1:
-			draw_circle(p - out * 2.0, 1.5, Color(Palette.BLOSSOM, alpha * 0.8))  # A bud
+			draw_circle((p - out * 3.0).round(), 1.5, Color(colour, alpha))  # A bud
 		if stage >= 2 and k % 2 == 1:
-			draw_circle(p - out * 2.5, 2.5, Color(Palette.BLOSSOM, alpha))  # A flower
-			draw_circle(p - out * 2.5, 1.0, Color(Palette.GLOW, alpha))
+			var at := (p - out * 3.5).round()
+			draw_circle(at, 2.5, Color(Palette.BLOSSOM, alpha))  # A flower
+			draw_circle(at, 1.0, Color(colour, alpha))
+	# Blooming / Old Kin: a slow light travels along the root (two at Old Kin). Full effects only.
+	if mode == 0 and stage >= 1 and not Fx.reduce_flashes():
+		for bead in (2 if stage >= 2 else 1):
+			var t := fmod(_clock * PULSE_SPEED / maxf(length, 1.0) + bead * 0.5 + pair.a.cell.x * 0.13, 1.0)
+			var at := points[clampi(int(t * steps), 0, steps)]
+			draw_circle(at, 3.5, Color(colour, 0.35 * alpha))
+			draw_circle(at, 1.5, Color(Palette.HEARTLIGHT, 0.9 * alpha))
 
 # A bond whose straight vine the sprites cover (user: "can't see the visual root if they're above each other"):
 # a vertical bond, or any shorter than BOW_UNDER, bows out BOW cells to the side with more free ground
@@ -869,10 +909,45 @@ func bow_offset(pair: Dictionary) -> Vector2:
 	var cell_size: float = Tower.MAP_GRID.cell_size.x
 	var vertical := absf(delta.normalized().y) > 0.8
 	if not vertical and delta.length() >= BOW_UNDER * cell_size:
-		return Vector2.ZERO  # Diagonal and horizontal bonds stay straight
+		# Long enough to show: straight, unless it crosses the path and a bow either way crosses less
+		# (user: the root should bow toward grass, not over the path).
+		var straight := _path_cells_on(pair, Vector2.ZERO)
+		if straight == 0:
+			return Vector2.ZERO
+		var side := delta.normalized().orthogonal() * BOW_AROUND * cell_size
+		var best := Vector2.ZERO
+		var fewest := straight
+		for offset in [side, -side]:
+			var crossed := _path_cells_on(pair, offset)
+			if crossed < fewest:
+				fewest = crossed
+				best = offset
+		return best
 	if not vertical:
 		return Vector2(0, BOW * cell_size)  # Short and level: down, in front of the sprites
-	return Vector2(_freer_side(pair) * BOW * cell_size, 0)
+	var right := Vector2(BOW * cell_size, 0)
+	var on_right := _path_cells_on(pair, right)
+	var on_left := _path_cells_on(pair, -right)
+	if on_right != on_left:
+		return right if on_right < on_left else -right  # Toward the grass
+	return right * _freer_side(pair)
+
+const BOW_AROUND := 0.6  # Cells: how far a path-crossing bond bows to go around
+
+# Path tiles the vine would lie on with `bow` at its middle (sampled along it).
+func _path_cells_on(pair: Dictionary, bow: Vector2) -> int:
+	var path := {}
+	for cell in _route_cells_cached():
+		path[cell] = true
+	var from: Vector2 = pair.a.global_position + ARCH_FOOT
+	var to: Vector2 = pair.b.global_position + ARCH_FOOT
+	var seen := {}
+	for i in 13:
+		var t := i / 12.0
+		var cell: Vector2 = Tower.MAP_GRID.calculate_grid_coordinates(from.lerp(to, t) + bow * 4.0 * t * (1.0 - t))
+		if path.has(cell):
+			seen[cell] = true
+	return seen.size()
 
 # -1 (left) or 1 (right): the side of a vertical pair with fewer Wardens beside it.
 func _freer_side(pair: Dictionary) -> float:
