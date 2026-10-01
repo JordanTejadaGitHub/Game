@@ -28,13 +28,14 @@ const ISLAND_EDGE := 15  # The island's rim: column = neighbour mask of island c
 const CLIFF := 16  # Under the bottom row: column bit 1 = cliff to the west, bit 2 = to the east; rows = variants
 const ROPE_BRIDGE := 17  # Shared (dream/): column 0 = east-west, 1 = north-south
 const PATH_RIM := 18  # path.png's art, transparent outside the path: for the start and goal, over the rim
+const POND := 19  # Column = neighbour mask of pond cells (N=1, E=2, S=4, W=8); its 4 frames run down the rows
 # (Ids 2 and 8-10 were the drystone wall and healthy trees; the island and the void replaced them.)
 
 const SHEETS := {
 	GRASS: "grass", PATH: "path", WITHERED_TREE: "withered_tree",
 	TENDED_STUMP: "tended_stump", MOSSY_BOULDER: "mossy_boulder", MOVED_HOLLOW: "moved_hollow",
 	EDGE_MIST: "edge_mist", GROUND_DETAILS: "ground_details", WAYSTONE: "waystone",
-	DEW_POOL: "dew_pool", BLIGHT_PATCH: "blight_patch", ISLAND_EDGE: "island_edge", CLIFF: "cliff", PATH_RIM: "path_rim",
+	DEW_POOL: "dew_pool", BLIGHT_PATCH: "blight_patch", ISLAND_EDGE: "island_edge", CLIFF: "cliff", PATH_RIM: "path_rim", POND: "pond",
 }
 # The dream's outer layer, the same in every act (assets/environment/dream/).
 const DREAM_FOLDER := "dream"
@@ -68,7 +69,16 @@ static func create_tile_set(act: int = 1) -> TileSet:
 		var region: Vector2i = TALL.get(id, SIZE)
 		source.texture_region_size = region
 		var grid := source.get_atlas_grid_size()
-		if id in ANIMATED:
+		if id == POND:  # One tile per mask column, animated down its column
+			for column in grid.x:
+				var coords := Vector2i(column, 0)
+				source.create_tile(coords)
+				source.set_tile_animation_columns(coords, 1)
+				source.set_tile_animation_frames_count(coords, grid.y)
+				source.set_tile_animation_mode(coords, TileSetAtlasSource.TILE_ANIMATION_MODE_RANDOM_START_TIMES)
+				for frame in grid.y:
+					source.set_tile_animation_frame_duration(coords, frame, 1.0 / FPS)
+		elif id in ANIMATED:
 			for row in grid.y:
 				var coords := Vector2i(0, row)
 				source.create_tile(coords)

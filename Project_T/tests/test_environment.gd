@@ -2,13 +2,17 @@ extends SceneTree
 # The environment art is wired in: every layer draws from EnvironmentTiles, clearing leaves a mark,
 # the Heartwood shows leaves lost, and act breaks swap the season's sheets.
 # Run:  Godot --headless --path . --script res://tests/test_environment.gd --fixed-fps 60
-# Pass a path after `--` (e.g. `-- --preview=C:/tmp/map.png`) to also save a flat render of the map.
+# Pass a path after `--` (e.g. `-- --preview=C:/tmp/map.png`) to also save a flat render of the map,
+# `-- --seed=N` to preview another map, `-- --layouts=<file.png>` for a sheet of ~12 layouts.
 
 var failures := 0
 
 func _init() -> void:
 	var main: Node = load("res://scenes/main.tscn").instantiate()
 	main.get_node("MapGenerator").map_seed = 1207
+	for arg in OS.get_cmdline_user_args():  # `-- --seed=N` previews another map
+		if arg.begins_with("--seed="):
+			main.get_node("MapGenerator").map_seed = int(arg.trim_prefix("--seed="))
 	root.add_child(main)
 	await process_frame
 	var map = main.get_node("%MapGenerator")
@@ -20,18 +24,25 @@ func _init() -> void:
 		"all layers share the environment TileSet")
 	_check(ground.get_cell_source_id(Vector2i(5, 5)) == EnvironmentTiles.GRASS, "ground is grass")
 	var size := Vector2i(map.MAP_GRID.size)
-	_check(ground.get_cell_source_id(Vector2i(0, 5)) == -1, "no grass square under the island's rim")
-	_check(env.get_cell_source_id(Vector2i(0, 5)) == EnvironmentTiles.ISLAND_EDGE
-		and env.get_cell_atlas_coords(Vector2i(0, 5)).x == 1 | 2 | 4, "the left rim: island to the N, E and S")
+	var rim_cell := Vector2i(0, 1)  # A left-edge rim cell that isn't the start or the goal (layouts move them)
+	while Vector2(rim_cell) == map.startPath or Vector2(rim_cell) == map.endPath:
+		rim_cell.y += 1
+	_check(ground.get_cell_source_id(rim_cell) == -1, "no grass square under the island's rim")
+	_check(env.get_cell_source_id(rim_cell) == EnvironmentTiles.ISLAND_EDGE
+		and env.get_cell_atlas_coords(rim_cell).x == 1 | 2 | 4, "the left rim: island to the N, E and S")
 	_check(env.get_cell_atlas_coords(Vector2i(0, 0)).x == 2 | 4, "the top-left corner: island to the E and S")
 	var tree_sheet := map.tile_set.get_source(EnvironmentTiles.WITHERED_TREE) as TileSetAtlasSource
 	_check(tree_sheet.texture_region_size == Vector2i(96, 128) and tree_sheet.get_tiles_count() == 9
 		and tree_sheet.get_tile_data(Vector2i(0, 8), 0).texture_origin == Vector2i(0, 32),
 		"Withered Trees are 96x128, 9 kinds, bottom 64 px on their own cell")
-	_check(env.get_cell_source_id(Vector2i(5, size.y)) == EnvironmentTiles.CLIFF
-		and env.get_cell_atlas_coords(Vector2i(5, size.y)).x == 3, "a cliff hangs under the bottom row")
-	_check(env.get_cell_source_id(Vector2i(map.startPath) + Vector2i.UP) == EnvironmentTiles.ROPE_BRIDGE,
-		"a rope bridge leads out from the start")
+	var cliffs := 0  # Under the bottom row, except where a rope bridge crosses out over them
+	for x in range(1, size.x - 1):
+		if env.get_cell_source_id(Vector2i(x, size.y)) == EnvironmentTiles.CLIFF and env.get_cell_atlas_coords(Vector2i(x, size.y)).x == 3:
+			cliffs += 1
+	_check(cliffs >= size.x - 3, "cliffs hang under the bottom row (%d)" % cliffs)
+	var out: Vector2i = env._outward(Vector2i(map.startPath))
+	_check(env.get_cell_source_id(Vector2i(map.startPath) + out) == EnvironmentTiles.ROPE_BRIDGE,
+		"a rope bridge leads out from the start, off its edge")
 	_check(map.dream_void.get_child(0) is Parallax2D and map.dream_void.z_index < 0, "the void sits behind the map")
 	_check(env.get_cell_source_id(Vector2i(map.startPath)) == EnvironmentTiles.EDGE_MIST, "mist on the start cell")
 	var trees := map.tile_set.get_source(EnvironmentTiles.WITHERED_TREE) as TileSetAtlasSource
@@ -51,7 +62,8 @@ func _init() -> void:
 		and ground.get_cell_source_id(Vector2i(map.startPath)) == EnvironmentTiles.ISLAND_EDGE
 		and ground.get_cell_source_id(Vector2i(map.endPath)) == EnvironmentTiles.ISLAND_EDGE,
 		"the start and goal draw rim-edge path over the rim, no grass")
-	_check(start_mask & 1, "the start's path tile runs off the top edge (mask %d)" % start_mask)
+	var out_bit: int = {Vector2i.UP: 1, Vector2i.RIGHT: 2, Vector2i.DOWN: 4, Vector2i.LEFT: 8}[out]
+	_check(start_mask & out_bit, "the start's path tile runs off its edge (mask %d)" % start_mask)
 	for cell in map.obstacles:
 		var data: ObstacleData = map.obstacles[cell]
 		if env.get_cell_source_id(Vector2i(cell)) != data.source_id:
@@ -121,7 +133,7 @@ func _init() -> void:
 	main.get_node("%TowerPlacer").build_mode_changed.emit(true)
 	var hatched := hatch.get_hatched_cells()
 	var an_obstacle: Vector2 = map.obstacles.keys()[0]
-	_check(hatch.visible and hatched.has(Vector2(0, 5)) and hatched.has(map.startPath) and hatched.has(map.endPath)
+	_check(hatch.visible and hatched.has(Vector2(rim_cell)) and hatched.has(map.startPath) and hatched.has(map.endPath)
 		and hatched.has(an_obstacle), "build mode hatches the rim, the start, the end and obstacles")
 	var open_cell := Vector2(-1, -1)
 	_check(hatched.all(func(cell: Vector2) -> bool: return not map.is_buildable(cell)), "only unbuildable cells are hatched")
@@ -137,6 +149,8 @@ func _init() -> void:
 	for arg in OS.get_cmdline_user_args():
 		if arg.begins_with("--preview="):
 			_render(main, [ground, path, env], arg.trim_prefix("--preview="))
+		if arg.begins_with("--layouts="):
+			await _layout_sheet(arg.trim_prefix("--layouts="))
 
 	print("test_environment: %d failure(s)" % failures)
 	main.free()
@@ -243,3 +257,139 @@ func _light_pass(image: Image, map: Node, margin: Vector2i, scale: float) -> voi
 					c += added[1] * falloff.sample(g).a
 			c.a = 1.0
 			image.set_pixel(x, y, c.clamp())
+
+# --- Layout sheet (`-- --layouts=<file.png>`) ---------------------------------------------------------
+# ~12 seeds in one sheet, covering every layout and feature, each labelled and with its starting route.
+
+const SHEET_SEEDS := 12
+const SHEET_COLUMNS := 4
+const SHEET_SCALE := 4  # Each map is drawn at 1/4 size (16 px per cell)
+const LABEL_HEIGHT := 16
+const ROUTE_COLOR := Color("fcd47c")  # Palette.GLOW
+const FONT := {
+	"A": [".#.", "#.#", "###", "#.#", "#.#"], "B": ["##.", "#.#", "##.", "#.#", "##."],
+	"C": [".##", "#..", "#..", "#..", ".##"], "D": ["##.", "#.#", "#.#", "#.#", "##."],
+	"E": ["###", "#..", "##.", "#..", "###"], "F": ["###", "#..", "##.", "#..", "#.."],
+	"G": [".##", "#..", "#.#", "#.#", ".##"], "H": ["#.#", "#.#", "###", "#.#", "#.#"],
+	"I": ["###", ".#.", ".#.", ".#.", "###"], "J": ["..#", "..#", "..#", "#.#", ".#."],
+	"K": ["#.#", "#.#", "##.", "#.#", "#.#"], "L": ["#..", "#..", "#..", "#..", "###"],
+	"M": ["#.#", "###", "###", "#.#", "#.#"], "N": ["##.", "#.#", "#.#", "#.#", "#.#"],
+	"O": [".#.", "#.#", "#.#", "#.#", ".#."], "P": ["##.", "#.#", "##.", "#..", "#.."],
+	"Q": [".#.", "#.#", "#.#", "##.", ".##"], "R": ["##.", "#.#", "##.", "#.#", "#.#"],
+	"S": [".##", "#..", ".#.", "..#", "##."], "T": ["###", ".#.", ".#.", ".#.", ".#."],
+	"U": ["#.#", "#.#", "#.#", "#.#", "###"], "V": ["#.#", "#.#", "#.#", "#.#", ".#."],
+	"W": ["#.#", "#.#", "###", "###", "#.#"], "X": ["#.#", "#.#", ".#.", "#.#", "#.#"],
+	"Y": ["#.#", "#.#", ".#.", ".#.", ".#."], "Z": ["###", "..#", ".#.", "#..", "###"],
+	"0": ["###", "#.#", "#.#", "#.#", "###"], "1": [".#.", "##.", ".#.", ".#.", "###"],
+	"2": ["##.", "..#", ".#.", "#..", "###"], "3": ["##.", "..#", ".#.", "..#", "##."],
+	"4": ["#.#", "#.#", "###", "..#", "..#"], "5": ["###", "#..", "##.", "..#", "##."],
+	"6": [".##", "#..", "###", "#.#", "###"], "7": ["###", "..#", ".#.", ".#.", ".#."],
+	"8": ["###", "#.#", "###", "#.#", "###"], "9": ["###", "#.#", "###", "..#", "##."],
+	"-": ["...", "...", "###", "...", "..."], "(": [".#.", "#..", "#..", "#..", ".#."],
+	")": [".#.", "..#", "..#", "..#", ".#."], ":": ["...", ".#.", "...", ".#.", "..."],
+}
+
+func _layout_sheet(file: String) -> void:
+	var seeds := _pick_sheet_seeds()
+	var cell := EnvironmentTiles.SIZE
+	var map_px := Vector2i(Vector2(load("res://resource/map/map_grid.tres").size)) * cell / SHEET_SCALE
+	var tile := map_px + Vector2i(0, LABEL_HEIGHT)
+	var rows := ceili(float(seeds.size()) / SHEET_COLUMNS)
+	var sheet := Image.create_empty(tile.x * SHEET_COLUMNS + 8 * (SHEET_COLUMNS + 1), tile.y * rows + 8 * (rows + 1),
+		false, Image.FORMAT_RGBA8)
+	sheet.fill(Color("05050d"))  # Palette.VOID
+	for i in seeds.size():
+		var main: Node = load("res://scenes/main.tscn").instantiate()
+		main.get_node("MapGenerator").map_seed = seeds[i]
+		root.add_child(main)
+		await process_frame
+		var map = main.get_node("%MapGenerator")
+		var image := _flat_map(main)
+		image.resize(map_px.x, map_px.y, Image.INTERPOLATE_BILINEAR)
+		_draw_route(image, map.get_path_from(map.startPath), cell.x / SHEET_SCALE)
+		var at := Vector2i(8 + (i % SHEET_COLUMNS) * (tile.x + 8), 8 + (i / SHEET_COLUMNS) * (tile.y + 8))
+		sheet.blit_rect(image, Rect2i(Vector2i.ZERO, image.get_size()), at + Vector2i(0, LABEL_HEIGHT))
+		var label := "%d %s - %s" % [seeds[i], map.layout.get_kind_name(), map.layout.get_feature_name()]
+		_draw_text(sheet, label.to_upper(), at + Vector2i(2, 3), 2, Color("dce8f4"))
+		main.free()
+	sheet.save_png(file)
+	print("layout sheet saved to ", file, " (seeds ", seeds, ")")
+
+# Seeds covering every layout (corner, both sides, inlet) and every feature, then more variety.
+func _pick_sheet_seeds() -> Array[int]:
+	var picked: Array[int] = []
+	var kinds := {}
+	var features := {}
+	var pairs := {}
+	var size := Vector2i(load("res://resource/map/map_grid.tres").size)
+	for pass_index in 3:
+		for seed_value in range(1, 400):
+			if picked.size() >= SHEET_SEEDS or picked.has(seed_value):
+				continue
+			var rng := RandomNumberGenerator.new()
+			rng.seed = seed_value
+			var layout := MapLayout.roll(rng, size)
+			var kind := layout.get_kind_name()
+			var feature := layout.get_feature_name()
+			var wanted: bool = (pass_index == 0 and not kinds.has(kind)) \
+				or (pass_index == 1 and not features.has(feature)) \
+				or (pass_index == 2 and not pairs.has(kind + feature))
+			if wanted:
+				picked.append(seed_value)
+				kinds[kind] = true
+				features[feature] = true
+				pairs[kind + feature] = true
+	return picked
+
+# The map's tile layers, the Heartwood and its Wardens, flat (no lighting), one cell of void around.
+func _flat_map(main: Node) -> Image:
+	var map = main.get_node("%MapGenerator")
+	var layers: Array = [main.get_node("%GroundTileMapLayer"), main.get_node("%PathTileMapLayer"),
+		main.get_node("%EnvironmentObjectTileMapLayer")]
+	var size := Vector2i(map.MAP_GRID.size)
+	var tile := EnvironmentTiles.SIZE
+	var image := Image.create_empty(size.x * tile.x, size.y * tile.y, false, Image.FORMAT_RGBA8)
+	image.fill(Color("140f26"))  # Palette.DREAD: the void
+	var sheets := {}
+	for layer: TileMapLayer in layers:
+		var cells := layer.get_used_cells()
+		cells.sort_custom(func(a: Vector2i, b: Vector2i) -> bool: return a.y < b.y)
+		for cell in cells:
+			if cell.x < 0 or cell.y < 0 or cell.x >= size.x or cell.y >= size.y:
+				continue
+			var source := layer.tile_set.get_source(layer.get_cell_source_id(cell)) as TileSetAtlasSource
+			if not sheets.has(source):
+				sheets[source] = source.texture.get_image()
+				sheets[source].convert(Image.FORMAT_RGBA8)
+			var region := source.texture_region_size
+			var coords := layer.get_cell_atlas_coords(cell)
+			var origin := source.get_tile_data(coords, 0).texture_origin
+			image.blend_rect(sheets[source], Rect2i(coords * region, region), cell * tile + (tile - region) / 2 - origin)
+	var heartwood: Heartwood = map.heartwood
+	var tree: Image = heartwood.texture.get_image()
+	tree.convert(Image.FORMAT_RGBA8)
+	var frame := Vector2i(EnvironmentTiles.HEARTWOOD_SIZE, EnvironmentTiles.HEARTWOOD_SIZE)
+	image.blend_rect(tree, Rect2i(heartwood.frame_coords * frame, frame), Vector2i(heartwood.position + heartwood.offset) - frame / 2)
+	return image
+
+func _draw_route(image: Image, route: PackedVector2Array, cell: int) -> void:
+	for i in route.size():
+		var a := Vector2i(route[i]) * cell + Vector2i.ONE * (cell / 2)
+		var b := Vector2i(route[mini(i + 1, route.size() - 1)]) * cell + Vector2i.ONE * (cell / 2)
+		var r := Rect2i(Vector2i(mini(a.x, b.x), mini(a.y, b.y)) - Vector2i.ONE, (a - b).abs() + Vector2i(3, 3))
+		image.fill_rect(r.intersection(Rect2i(Vector2i.ZERO, image.get_size())), ROUTE_COLOR)
+	if not route.is_empty():  # Start and goal markers
+		for end in [route[0], route[route.size() - 1]]:
+			var c := Vector2i(end) * cell + Vector2i.ONE * (cell / 2)
+			image.fill_rect(Rect2i(c - Vector2i(4, 4), Vector2i(9, 9)).intersection(Rect2i(Vector2i.ZERO, image.get_size())),
+				Color("bc44dc") if end == route[0] else Color("9cc46c"))  # Palette.ORCHID start, SPRIG goal
+
+func _draw_text(image: Image, text: String, at: Vector2i, scale: int, color: Color) -> void:
+	var x := at.x
+	for ch in text:
+		var glyph: Array = FONT.get(ch, [])
+		for row in glyph.size():
+			for col in 3:
+				if glyph[row][col] == "#":
+					image.fill_rect(Rect2i(x + col * scale, at.y + row * scale, scale, scale), color)
+		x += 4 * scale
