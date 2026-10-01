@@ -81,6 +81,28 @@ static func damage_type_icon(line: String) -> Texture2D:
 
 const ICON_SHEET := "res://assets/ui/icons.png"
 const ICON_MANIFEST := "res://assets/ui/icons.json"
+# HUD-size icons (UI Asset, hud_icons.json): 12 px counters and 10 px button glyphs, drawn for exactly ×2.
+const HUD_MANIFEST := "res://assets/ui/hud_icons.json"
+static var _hud_sets := {}  # Parsed hud_icons.json (plain data)
+
+# A HUD icon by id ("dew_hud", "menu_hud"…) from its set's sheet, or null. `frame_size` gives its pixel size.
+static func hud_icon(id: StringName) -> Texture2D:
+	if _hud_sets.is_empty():
+		var data = JSON.parse_string(FileAccess.get_file_as_string(HUD_MANIFEST)) if FileAccess.file_exists(HUD_MANIFEST) else null
+		_hud_sets = data if data is Dictionary else {"_": {}}
+	for set_name in _hud_sets:
+		var entry = _hud_sets[set_name]
+		if not entry is Dictionary or not entry.get("icons", {}).has(String(id)):
+			continue
+		var sheet := "res://assets/ui/" + String(entry.image)
+		if not ResourceLoader.exists(sheet):
+			return null
+		var frame := int(entry.frame_size)
+		var atlas := AtlasTexture.new()
+		atlas.atlas = load(sheet)
+		atlas.region = Rect2(int(entry.icons[String(id)]) * frame, 0, frame, frame)
+		return atlas
+	return null
 const ICON_ALIASES := {&"elite": &"deeply_blighted"}  # IconInfo id -> sheet id
 static var _columns := {}
 static var _frame := 16

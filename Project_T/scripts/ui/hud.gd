@@ -18,6 +18,8 @@ const SEED_COLOR := Palette.SPRIG
 const COUNTER_ICON_GAP := 8.0  # Icon to number (UI Code: pairs group, counters stand apart)
 const COUNTER_ICON := 24.0  # Resource icons (the mock's .pxi 24 px; user: "the icons on the right seem too big")
 const BUTTON_GLYPH := 20  # The top-right buttons' icons and glyphs
+const HUD_COUNTER_ICONS := {&"dew": &"dew_hud", &"dreamlight": &"dreamlight_hud", &"leaves": &"leaf_hud", &"path_length": &"path_hud"}
+const HUD_GLYPHS := {&"MenuButton": &"menu_hud", &"CodexButton": &"help_hud", &"BuffLensButton": &"boosts_hud", &"RememberButton": &"remember_hud"}
 const BUTTON_BOX_INSET := 6.0  # Their visible box: ~36 px inside the 48 px hit area
 
 @onready var tower_bar: HFlowContainer = %TowerBar
@@ -488,7 +490,9 @@ func _on_act_started(act: int, leaves_regrown: int) -> void:
 func _add_counter_icon(label: Label, id: StringName, scale: int) -> void:
 	var icon := TextureRect.new()
 	icon.name = "CounterIcon"
-	icon.texture = IconInfo.icon(id)
+	# The row's counters use the 12 px HUD icons at exactly ×2 (UI Asset 93963da1), the rest the 16 px set.
+	var hud_tex: Texture2D = IconInfo.hud_icon(HUD_COUNTER_ICONS[id]) if scale >= 2 and HUD_COUNTER_ICONS.has(id) else null
+	icon.texture = hud_tex if hud_tex != null else IconInfo.icon(id)
 	icon.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	icon.size = Vector2(COUNTER_ICON, COUNTER_ICON) if scale >= 2 else Vector2(16, 16) * scale  # The mock: 24 px beside 28 px numbers
@@ -607,6 +611,11 @@ func _place_top_button(button: Button, slot: Array) -> void:
 			button.add_theme_stylebox_override(state, box)
 	if button.name == &"CodexButton":
 		button.add_theme_font_override("font", UiStyle.display_font())
+	# The 10 px glyphs at exactly ×2 (20 px, nearest) in place of the font glyphs (UI Asset 93963da1).
+	var glyph: Texture2D = IconInfo.hud_icon(HUD_GLYPHS[button.name]) if HUD_GLYPHS.has(button.name) else null
+	if glyph != null:
+		button.text = ""
+		button.icon = glyph
 	button.set_anchors_preset(Control.PRESET_TOP_RIGHT)
 	button.offset_right = slot[0]
 	button.offset_left = slot[0] - slot[1]
