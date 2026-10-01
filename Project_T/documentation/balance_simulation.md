@@ -448,6 +448,16 @@ the Stag (stone, root), Firefly lost 3/3. Same attackers, tiers and card counts 
 So **non-Sporeling families look weak in act 1** (n = 1–5 each). Next: a per-family act 1 batch
 (10 seeds per forced family), then a same-family Grove control (fresh / half / full, Sporeling + one).
 
+**Omen batch, full profile to 50** (0b4861b6): always facing reaches **~10 drifts less** (19.9 vs 29.6)
+and loses **+10 leaves by 25** ✓; clean reaches 5.7 more drifts than always but pays the same per leaf
+(0.27 vs 0.28). Every Omen's Dew is as designed. **Act 2 kills every bot profile**, so acts 2–3 Omens
+are read from human runs, not the sim. **The Omen check is closed** for the sim: targets met in act 1.
+
+**Bite-10 re-check** (e19b9230, fresh, 20 seeds): Balanced survives the boss **90%** (Stag dispelled
+89%), skip **45%** (6 of skip's 11 deaths come before the boss; skip runs that fight him often survive
+the 10 on 5 leaves). The bite alone can't push skip to ≤ 25%. **Held** until the per-family batch:
+fresh runs here are all Sporeling, so act 1 boss health is set once the family spread is known.
+
 ## Later
 
 A **human baseline**: the same CSV written from real playtests (debug builds only), so the bot's
