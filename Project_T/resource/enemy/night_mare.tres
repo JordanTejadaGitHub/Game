@@ -8,7 +8,7 @@
 script = ExtResource("1_edata")
 sprite_frames = ExtResource("2_frames")
 display_name = "The Night Mare"
-health = 2286
+health = 3430
 speed = 110.0
 dew_reward = 40
 leaf_cost = 3
