@@ -5,12 +5,15 @@ class_name EnemyStatuses
 # Wardens apply statuses; other Wardens and Dreams pay them off by reading them here.
 # Strength scales with the applying Warden's soothe (`potency`), so statuses keep up with health.
 #
-#   damp    −10% speed, 4 s                           (no stacks)
+#   damp    (Soaked) conducts: water hits +20%, 4 s; no slow    (no stacks)
 #   drowsy  −8% speed per stack, 3 s, up to 5         (bosses: up to 3)
-#   spored  soothe/s per stack = potency, 5 s, up to 8 (Driftspore raises the cap)
-#   marked  +25% soothe taken from everything, 5 s    (no stacks)
-#   static  charges; at 5 (bosses 8) a free bolt of 3× potency, then reset; −1 stack per 2 s
-#   held    can't move (Frostfern's freeze), 1 s                  (no stacks)
+#   spored  (Poisoned) 25% of the applier's hit damage per stack per second, 5 s, up to 8 (Driftspore raises the cap)
+#   marked  (Exposed) +25% damage taken from everything, 5 s    (no stacks)
+#   static  (Charged) charges; at 5 (bosses 8) a free bolt of 3× the charge potency, then reset; −1 stack per 2 s
+#   held    (Rooted) can't move (Frostfern's freeze), 1 s       (no stacks)
+# All slows together stop at SLOW_FLOOR of a nightmare's speed (elites / bosses higher); sleep and Hold
+# have cooldowns. Potency (the applier's) multiplies only effect damage (Poisoned ticks, Charged bolts,
+# Reactions: Reactions.EFFECT_TAGS in Enemy.take_damage); Soaked, Drowsy, Exposed and Rooted deal none.
 
 const DAMP := &"damp"
 const DROWSY := &"drowsy"
