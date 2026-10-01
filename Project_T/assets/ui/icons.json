@@ -37,6 +37,7 @@
 		"crit_damage": 14,
 		"damage": 10,
 		"damp": 0,
+		"dawnbreak": 78,
 		"deeply_blighted": 8,
 		"dew": 21,
 		"dew_cost": 21,
@@ -105,6 +106,9 @@
 		"wind": 55,
 		"wing": 54
 	},
+	"legendary": [
+		"dawnbreak"
+	],
 	"nightmare": [
 		"flying",
 		"dread_shell",

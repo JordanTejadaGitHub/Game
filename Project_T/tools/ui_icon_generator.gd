@@ -271,6 +271,8 @@ const OMEN_ICONS := ["omen", "clear_skies"]
 # statuses' colours; Crowned ones wear a small gold crown.
 const REACTION_ICONS := ["thunderclap", "ignite", "mushrooming", "drown", "shatter", "pinned", "smother", "lightning_rod"]
 const CROWNED_ICONS := ["tempest", "still_pool", "fever_dream", "starfall", "avalanche", "prismstorm", "nightbloom", "fairy_circle"]
+# Legendary Dream marks for discovery cards and the Codex (Dawnbreak fires at a Chain 10).
+const LEGENDARY_ICONS := ["dawnbreak"]
 # Ids that share another icon's column.
 const ICON_ALIASES := {"always_damp": "damp", "burrows": "rises", "dew": "dew_cost", "dreamlight": "dreamlight_cost"}
 
@@ -281,7 +283,7 @@ var _n := ICON  # size of the icon being drawn (16; the Omen card emblems are 32
 
 func _make_icons() -> void:
 	var ids: Array = STATUS_ICONS + STAT_ICONS + NIGHTMARE_ICONS + DAMAGE_TYPE_ICONS + RESOURCE_ICONS + OMEN_ICONS \
-		+ REACTION_ICONS + CROWNED_ICONS
+		+ REACTION_ICONS + CROWNED_ICONS + LEGENDARY_ICONS
 	var sheet := Image.create(ICON * ids.size(), ICON, false, Image.FORMAT_RGBA8)
 	var index := {}
 	for i in ids.size():
@@ -296,7 +298,7 @@ func _make_icons() -> void:
 		nightmare = NIGHTMARE_ICONS + ["hidden", "always_damp", "burrows"], damage_type = DAMAGE_TYPE_ICONS,
 		resources = RESOURCE_ICONS + ["dew", "dreamlight"],
 		omen = OMEN_ICONS,
-		reactions = REACTION_ICONS, crowned = CROWNED_ICONS,
+		reactions = REACTION_ICONS, crowned = CROWNED_ICONS, legendary = LEGENDARY_ICONS,
 		note = "One row of 16x16 icons; column = icons[id]. Readable at 12 px; for 24-32 px panels scale by whole numbers with nearest filtering."}
 	var file := FileAccess.open(OUT + "icons.json", FileAccess.WRITE)
 	file.store_string(JSON.stringify(data, "\t") + "\n")
@@ -1364,3 +1366,21 @@ func _ic_lightning_rod() -> void:
 	for d: Vector2 in [Vector2.UP, Vector2.DOWN, Vector2.LEFT, Vector2.RIGHT]:
 		_c_line([c + d * 4.2, c + d * 5.6], 1.1, gold)
 	_c_line([Vector2(0.8, 0.8), Vector2(5.6, 2.6), Vector2(3.0, 5.0), Vector2(7.4, 7.4)], 1.6, _rpn("heartlight", "glow", "gold"))
+
+# Legendary marks ---------------------------------------------------------------------------------
+
+func _ic_dawnbreak() -> void:
+	# Dawnbreak: the dawn breaking up between dark nightmare petals, thin rays fanning out above.
+	var c := Vector2(8, 11.2)
+	for i in 7:
+		var d := Vector2.from_angle(PI + (i + 0.0) * PI / 6.0)
+		var a := Vector2i((c + d * 5.4).round())
+		var b := Vector2i((c + d * (7.6 if i % 2 == 1 else 6.6)).round())
+		_dt_line(a, b, Palette.color("glow") if i % 2 == 1 else Palette.color("gold"))
+	_c_disc(c, 3.8, _rpn("heartlight", "glow", "gold"))
+	var petal := _rpn("slate", "shade", "dread")
+	_c_poly(PackedVector2Array([Vector2(0.4, 15.8), Vector2(1.4, 8.8), Vector2(5.4, 15.8)]), petal)
+	_c_poly(PackedVector2Array([Vector2(3.8, 15.8), Vector2(5.8, 12.4), Vector2(8, 15.8)]), petal)
+	_c_poly(PackedVector2Array([Vector2(8, 15.8), Vector2(10.2, 12.4), Vector2(12.2, 15.8)]), petal)
+	_c_poly(PackedVector2Array([Vector2(10.6, 15.8), Vector2(14.6, 8.8), Vector2(15.6, 15.8)]), petal)
+	_dt(7, 9, Palette.color("heartlight"))
