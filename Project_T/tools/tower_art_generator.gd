@@ -382,7 +382,7 @@ func _make_attack(tower_name: String) -> Image:
 # Tall Wardens (64x96 frames, the body's 64x64 frame in the bottom 64 rows; the 32 rows above hold
 # what rises over it). In game: TowerData.sprite_offset (0, -16) keeps the slab on its cell, and the
 # attacks.json point stays in body-frame pixels (it's measured from the body, not the tall frame).
-const TALL_WARDENS := ["beacon", "thunderhead", "wellspring"]
+const TALL_WARDENS := ["beacon", "thunderhead", "wellspring", "elf_circle"]
 const TALL_H := 96
 
 func _frame_h(tower_name: String) -> int:
@@ -2605,6 +2605,33 @@ func _tall_wellspring(back: Image, front: Image, st: Dictionary) -> void:
 		_stamp(front, bead, Color("#2c4c5c"))
 		_px(front, int(p.x), int(p.y) - 1, Color("#dce8f4"))
 
+# Elf Circle's tall rows: a tall pointed leaf hat rising off its head, its tip bending over with a
+# glowing teal light hanging from it (narrow: little of the cell above is hidden).
+func _tall_elf_circle(back: Image, front: Image, st: Dictionary) -> void:
+	var dy: int = st.dy
+	var base := 32.0 + 6 + dy  # the hat brim, in tall-frame rows
+	var sway: float = [0.0, 0.5, 1.0, 0.5, 0.0, -0.5, -1.0, -0.5][st.f % 8]
+	var tip := Vector2(41 + sway, 9)
+	var hat := _layer()
+	_flat_polygon(hat, PackedVector2Array([Vector2(22, base), Vector2(27, base - 14), Vector2(32 + sway * 0.5, base - 24),
+		tip, Vector2(37 + sway * 0.5, base - 20), Vector2(36, base - 10), Vector2(40, base)]), Color(LEAF[1]))
+	for y in S:
+		for x in S:
+			if hat.get_pixel(x, y).a > 0.0 and x > 31 + (base - y) * 0.15:
+				hat.set_pixel(x, y, Color(LEAF[0]))  # its shaded side
+	_stamp(front, hat, Color("#17174d"))
+	# The leaf's midrib and a band of mushrooms round the brim.
+	_line(front, [Vector2(31, base - 1), Vector2(32 + sway * 0.5, base - 22), tip + Vector2(-1, 1)], Color(LEAF[2]))
+	for k in 4:
+		var x := 24 + k * 5
+		_px(front, x, int(base) - 1, Color("#7ff0e0"))
+		_px(front, x + 1, int(base) - 1, Color("#7ff0e0"))
+		_px(front, x, int(base) - 2, Color("#d8fff8"))
+	# The light hanging off the tip, swinging.
+	var light := Vector2i((tip + Vector2(1, 4)).round())
+	_px(front, light.x, light.y - 1, Color("#17174d"))
+	_glow_dot(front, light + Vector2i(0, 1), Color("#d8fff8"), Color("#7ff0e0"))
+
 # Lanternmoth: an amber lantern golem with soft moth wings, feathery antennae and a warm light
 # glowing in its chest.
 func _draw_lanternmoth(canvas: Image, st: Dictionary) -> void:
@@ -3338,7 +3365,17 @@ func _fairy_body(canvas: Image, st: Dictionary, elf: bool) -> void:
 		_px(canvas, x, y - 2, fig.o)
 		_px(canvas, x - 1, y - 1, cap.lightened(0.35))
 	if elf:
-		_leaf(canvas, Vector2(30.5, 6 + dy), Vector2(36 + st.sway, -2), 4.0, _ramp(LEAF), fig.o)
+		# Two tall glowing toadstools on the slab either side (its hat is in _tall_elf_circle).
+		for t: Vector3 in [Vector3(9, 45, 11), Vector3(55, 44, 9)]:
+			var foot := Vector2(t.x, t.y)
+			var stem := _layer()
+			_stroke(stem, [foot, foot + Vector2(0, -t.z)], 0.9, Color("#f0e4d8"))
+			_stamp(canvas, stem, fig.o)
+			var cap_l := _layer()
+			_ellipse(cap_l, foot + Vector2(0.5, -t.z - 0.5), Vector2(4.2, 2.6), _ramp(["#2a8878", "#5ad0c0", "#b8fff4"]), foot.y - t.z + 0.5)
+			_stamp(canvas, cap_l, fig.o)
+			_px(canvas, int(foot.x) - 1, int(foot.y - t.z) - 2, Color("#d8fff8"))
+			_px(canvas, int(foot.x) + 2, int(foot.y - t.z) - 1, Color("#d8fff8"))
 	for k in (6 if elf else 4):
 		var a: float = TAU * float(st.f) / st.n + k * TAU / (6 if elf else 4)
 		var p := Vector2i((Vector2(31, 22) + Vector2(cos(a) * 22.0, sin(a) * 9.0 - 6)).round())
