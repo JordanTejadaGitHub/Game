@@ -97,8 +97,19 @@ func set_active(value: bool) -> void:
 
 # The Overgrown Dream (bittersweet) roots Wardens in place while creatures are walking.
 func can_sell() -> bool:
+	return sell_block_reason() == ""
+
+# Why selling is refused right now ("" = it isn't): the Frozen Ground Omen (no selling while nightmares walk,
+# like planting; Roguelite 279f8137) or the Overgrown Dream.
+func sell_block_reason() -> String:
+	if drift_director.is_build_phase():
+		return ""
+	if tower_placer.frozen_ground():
+		return "Frozen Ground: sell at the rest"
 	var dreams := get_tree().get_first_node_in_group(DreamState.GROUP) as DreamState
-	return drift_director.is_build_phase() or dreams == null or not dreams.has_rule(&"overgrown")
+	if dreams != null and dreams.has_rule(&"overgrown"):
+		return "Overgrown: no selling while nightmares walk"
+	return ""
 
 # Dew that selling `tower` gives back right now.
 func get_refund(tower: Tower) -> int:
@@ -370,8 +381,13 @@ func get_selection_refund() -> int:
 func sell_key() -> bool:
 	var targets: Array = selection.duplicate() if not selection.is_empty() else ([_hover_tower] if _hover_tower else [])
 	targets = targets.filter(func(t) -> bool: return is_instance_valid(t) and not t.tower_data.rooted)
-	if targets.is_empty() or not can_sell():
+	if targets.is_empty():
 		return false
+	if not can_sell():
+		var hud := owner.get_node_or_null("HUD") if owner else null
+		if hud and hud.has_method("show_toast"):
+			hud.show_toast(sell_block_reason())
+		return true  # Handled: the toast says why
 	var ask: bool = not drift_director.is_build_phase() and Fx.setting("confirm_sell", true)  # Cached (get_settings reads the profile)
 	var now := Time.get_ticks_msec()
 	if ask and not (now < _sell_armed_until and _sell_armed == targets):

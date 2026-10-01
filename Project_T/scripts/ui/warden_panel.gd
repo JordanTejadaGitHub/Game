@@ -285,7 +285,7 @@ func _refresh() -> void:
 		sell.text = "Permanent: the Sapling can't be sold or moved"
 		sell.disabled = true
 	elif not tower_seller.can_sell():
-		sell.text = "Overgrown: no selling while nightmares walk"
+		sell.text = tower_seller.sell_block_reason()
 		sell.disabled = true
 	var close := _add_footer_button("Close")
 	close.pressed.connect(tower_seller.select.bind(null))
@@ -390,7 +390,7 @@ func _refresh_group() -> void:
 		sell.text = "Really sell %d while nightmares walk? +%d Dew" % [selection.size(), refund]
 	sell.pressed.connect(_sell_group)
 	if not tower_seller.can_sell():
-		sell.text = "Overgrown: no selling while nightmares walk"
+		sell.text = tower_seller.sell_block_reason()
 		sell.disabled = true
 	var close := _add_footer_button("Close")
 	close.pressed.connect(tower_seller.select.bind(null))
