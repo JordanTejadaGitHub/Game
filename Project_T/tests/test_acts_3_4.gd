@@ -237,14 +237,18 @@ func _run() -> void:
 	_check(sapling_sprites.size() == 1 and sapling_sprites[0].animation == &"grow", "the sapling grows in")
 	_check(not map_generator.get_path_from(map_generator.startPath).is_empty(), "the path stays open")
 	var grief := []
-	spawner.enemy_split.connect(func(parent: Node2D, child: Node2D) -> void:
+	# Captures the Oak, so it's disconnected once these checks are done (a lambda whose capture was freed
+	# logs an error every time the signal fires).
+	var count_grief := func(parent: Node2D, child: Node2D) -> void:
 		if parent == oak:
-			grief.append(child))
+			grief.append(child)
+	spawner.enemy_split.connect(count_grief)
 	oak.take_damage(oak.max_health * 0.34 + 1)
 	_check(grief.size() == 6 and oak.hold_time > 0.0, "two-thirds health: it stops, and 6 Mourners rise")
 	_check(oak.sprite.animation == &"grief", "and wails (grief animation)")
 	oak.take_damage(oak.max_health * 0.34)
 	_check(grief.size() == 12, "and again at one third")
+	spawner.enemy_split.disconnect(count_grief)
 	MetaRun.blight_level = 10
 	oak.take_damage(1e9)
 	_check(not oak.is_cleansed and oak.health == oak.max_health / 2, "Blight Level 10: it rises again at half health")
