@@ -176,7 +176,7 @@ func _run() -> void:
 	feedback.continue_on()
 	_check(not game_speed.paused, "resumed")
 	# Chains are discovered too (screens_ui.md): the first Chain 3 ever pauses with its Reactions in order.
-	feedback._chains_seen = ["5", "10"]
+	feedback._chains_seen = []
 	for id in ["ignite", "mushrooming"]:
 		if not feedback._seen.has(id):
 			feedback._seen.append(id)
@@ -184,8 +184,10 @@ func _run() -> void:
 	tracker.record(&"ignite", shade, 2, [storm])
 	tracker.record(&"mushrooming", shade, 3, [storm])
 	_check(feedback._card.visible and game_speed.paused
-		and feedback.card_text.begins_with("Chain discovered: Chain 3\nThunderclap → Ignite → Mushrooming\nReactions can set each other off."),
-		"a first Chain 3 is a discovery with its Reactions in order (%s)" % feedback.card_text)
+		and feedback.card_text.begins_with("Chain discovered: Chain 3\nThunderclap → Ignite → Mushrooming\n" + ComboFeedback.CHAIN_LINE)
+		and feedback.card_text.contains("Your longest: Chain 3"),
+		"a first Chain 3 is the one chain discovery: its Reactions in order, what a chain does, the longest (%s)" % feedback.card_text)
+	_check(ComboFeedback.chain_text(3, [], 7).contains("Your longest: Chain 7"), "…the longest can be past the tier")
 	# It stands out in combat: a solid panel, the title in display gold, its Reactions in the icons row,
 	# the world dimmed behind it.
 	var card_style := feedback._card.get_theme_stylebox("panel") as MoonStyleBox
@@ -194,9 +196,25 @@ func _run() -> void:
 		and words == ["Thunderclap", "→", "Ignite", "→", "Mushrooming"] and feedback._dim.visible,
 		"the discovery card is solid, titled, shows the chain in its icons row and dims the world (%s)" % [words])
 	tracker.record(&"thunderclap", shade, 3, [storm])
-	_check(feedback._queue.is_empty(), "a chain tier is discovered once")
+	feedback._on_chain(10, Vector2.ZERO, [])
+	_check(feedback._queue.is_empty(), "chains are discovered once: no card at Chain 3 again, nor at Chain 10")
 	feedback.continue_on()
 	_check(not game_speed.paused, "resumed after the chain card")
+	# A profile that saw only an old tier (5) before this change isn't shown the chain card again.
+	feedback._chains_seen = ["5"]
+	feedback._on_chain(4, Vector2.ZERO, [])
+	_check(feedback._queue.is_empty() and not feedback._card.visible, "an older profile that saw a tier gets no chain card")
+	# Dawnbreak's first Dawnburst is its own discovery: its gem, what it did, Added to the Codex; once.
+	ComboFeedback.pause_in_tests = true
+	var dawn := DamageLog.Event.new()
+	dawn.tag = ComboFeedback.DAWNBREAK_ID
+	dawn.enemy = shade
+	feedback._on_damage(dawn)
+	_check(feedback._card.visible and feedback.card_text == ComboFeedback.DAWNBREAK_TEXT and feedback.card_text.contains("10% of max health")
+		and feedback._card_icons.get_child_count() == 1, "Dawnbreak's first Dawnburst shows its discovery card with its gem (%s)" % feedback.card_text)
+	feedback.continue_on()
+	feedback._on_damage(dawn)
+	_check(not feedback._card.visible and feedback._queue.is_empty(), "…once")
 	ComboFeedback.pause_in_tests = false
 	report.show_report(1)
 	_check(report._label.get_parsed_text().contains("Reactions: Thunderclap 4 · Ignite 1 · Mushrooming 1 · longest chain: 3") and report._label.get_parsed_text().contains("New combos: Set Off, Thunderclap") and report._label.get_parsed_text().contains("New chain: Chain 3"),

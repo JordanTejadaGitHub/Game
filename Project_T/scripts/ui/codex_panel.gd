@@ -1707,24 +1707,23 @@ func _build_chains(live: ComboFeedback) -> void:
 				seen.append(tier)
 		if int(live._best_this_session.get("links", 0)) > int(best.get("links", 0)):
 			best = live._best_this_session
+	# One entry, then the longest chain (screens_ui.md "Chains: one discovery, then Dawnbreak": no tier list).
 	var header := Label.new()
-	header.text = "Chains · %d / %d" % [ComboFeedback.CHAIN_TIERS.filter(func(t: int) -> bool: return seen.has(str(t))).size(),
-		ComboFeedback.CHAIN_TIERS.size()]
+	header.text = "Chains"
 	header.add_theme_font_size_override("font_size", 20)
 	header.add_theme_color_override("font_color", TERM_COLOR)
 	_combos.add_child(header)
-	for tier in ComboFeedback.CHAIN_TIERS:
-		var card := PanelContainer.new()
-		var label := Label.new()
-		label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		if seen.has(str(tier)):
-			label.text = "Chain %d\nReactions set each other off %d times in a row." % [tier, tier]
-		else:
-			label.text = "???"
-			label.add_theme_color_override("font_color", LOCKED_COLOR)
-		card.add_child(label)
-		_combos.add_child(card)
-		_entries[ComboFeedback.CHAIN_PREFIX + str(tier)] = card
+	var card := PanelContainer.new()
+	var label := Label.new()
+	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	if seen.any(func(s) -> bool: return String(s).is_valid_int()):
+		label.text = "Chain\n" + ComboFeedback.CHAIN_LINE
+	else:
+		label.text = "???"
+		label.add_theme_color_override("font_color", LOCKED_COLOR)
+	card.add_child(label)
+	_combos.add_child(card)
+	_entries[ComboFeedback.CHAIN_PREFIX + str(ComboFeedback.CHAIN_TIERS[0])] = card
 	var links := int(best.get("links", 0))
 	if links >= 2:
 		var line := Label.new()

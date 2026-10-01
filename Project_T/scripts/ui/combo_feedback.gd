@@ -286,31 +286,56 @@ func _on_chain(links: int, _where: Vector2, _towers: Array) -> void:
 			var memory := HeartwoodMemory.load_data()
 			memory[CHAIN_BEST_KEY] = _best_this_session
 			HeartwoodMemory.save_data(memory)
-	for tier in CHAIN_TIERS:
-		if links < tier or _chains_seen.has(str(tier)):
-			continue
-		_chains_seen.append(str(tier))
-		block_new_chains.append(tier)
-		if _may_write():
-			var memory := HeartwoodMemory.load_data()
-			var seen: Array = memory.get(CHAINS_KEY, []).duplicate()
-			if not seen.has(str(tier)):
-				seen.append(str(tier))
-			memory[CHAINS_KEY] = seen
-			HeartwoodMemory.save_data(memory)
-		var id := StringName(CHAIN_PREFIX + str(tier))
-		_chain_orders[id] = order
-		_queue.append(id)
-		if not showing():
-			_try_show()
+	# One discovery ever (screens_ui.md "Chains: one discovery, then Dawnbreak"): the first Chain 3+. Profiles
+	# that saw any tier before never see it again.
+	if links < CHAIN_TIERS[0] or has_seen_chain():
+		return
+	var tier: int = CHAIN_TIERS[0]
+	_note_seen(str(tier))
+	block_new_chains.append(tier)
+	var id := StringName(CHAIN_PREFIX + str(tier))
+	_chain_orders[id] = order
+	_queue.append(id)
+	if not showing():
+		_try_show()
+
+# Whether a chain was ever discovered (any tier: older profiles saw 3, 5, 10 separately).
+func has_seen_chain() -> bool:
+	return _chains_seen.any(func(s) -> bool: return String(s).is_valid_int())
+
+# Adds `key` to the profile's `chains_seen` (tiers, and "dawnbreak").
+func _note_seen(key: String) -> void:
+	_chains_seen.append(key)
+	if _may_write():
+		var memory := HeartwoodMemory.load_data()
+		var seen: Array = memory.get(CHAINS_KEY, []).duplicate()
+		if not seen.has(key):
+			seen.append(key)
+		memory[CHAINS_KEY] = seen
+		HeartwoodMemory.save_data(memory)
+
+# Dawnbreak (the Legendary that fires at a Chain 10) gets its own one-time card the first time it goes off.
+const DAWNBREAK_ID := &"dawnbreak"
+const DAWNBREAK_TEXT := "Dawnbreak discovered\nA Chain 10 broke into dawn: 10% of max health to every nightmare within 4 tiles (bosses 2%).\nAdded to the Codex."
+func _discover_dawnbreak(enemy: Node2D) -> void:
+	_note_seen(String(DAWNBREAK_ID))
+	_queue.append(DAWNBREAK_ID)
+	_enemies[DAWNBREAK_ID] = enemy
+	if not showing():
+		_try_show()
 
 var _best_this_session := {}  # Tests and scenes that don't write the profile
 
-static func chain_text(tier: int, order: Array) -> String:
+# The one chain discovery: what a chain is, then the longest so far (screens_ui.md "Chains: one discovery").
+const CHAIN_LINE := "A Reaction can spread its statuses and set off another. Past the fifth link each one hits a little softer, but the chain keeps counting."
+
+static func chain_text(tier: int, order: Array, longest: int = 0) -> String:
 	var text := "Chain discovered: Chain %d\n" % tier
 	if not order.is_empty():
 		text += " → ".join(order) + "\n"
-	return text + "Reactions can set each other off.\nAdded to the Codex."
+	text += CHAIN_LINE + "\n"
+	text += "Your longest: Chain %d\n" % maxi(longest, tier)
+	return text + "Added to the Codex."
 
 # Kinships (Tower Code's node, group "kinships"; tower_design.md "Kinships"): the first-ever bond of
 # each kind is a discovery like a combo, and bonds formed / Harmony strikes / families made Whole are
@@ -342,6 +367,8 @@ func _on_kinship(kinship: StringName, a: Node, b: Node) -> void:
 	record(kinship, a as Node2D)
 
 func _on_damage(event: DamageLog.Event) -> void:
+	if event.tag == DAWNBREAK_ID and not _chains_seen.has(String(DAWNBREAK_ID)):  # Its first Dawnburst ever
+		_discover_dawnbreak(event.enemy)
 	if event.combos.is_empty():  # Most hits (every hit and status tick comes through here)
 		return
 	for tag in event.combos:
@@ -482,6 +509,15 @@ class ComboRing extends Node2D:
 		draw_arc(Vector2.ZERO, 26.0 + pulse * 4.0, 0.0, TAU, 40, Color(UiStyle.LIVE, 0.9), 3.0, true)
 		draw_arc(Vector2.ZERO, 36.0 + pulse * 6.0, 0.0, TAU, 40, Color(UiStyle.LIVE, 0.35 * (1.0 - pulse)), 2.0, true)
 
+# A Legendary's gem at the card's icon size (Dawnbreak has no icon art of its own yet).
+class _LegendaryGem extends Control:
+	func _init() -> void:
+		custom_minimum_size = Vector2(48, 48)
+		mouse_filter = Control.MOUSE_FILTER_IGNORE
+
+	func _draw() -> void:
+		UiStyle.draw_gem(self, size / 2.0, 18.0, UpgradeData.Rarity.LEGENDARY)
+
 static func discovery_text(id: StringName) -> String:
 	var combo := CodexData.get_any(id)
 	if combo.is_empty():
@@ -505,7 +541,10 @@ func _show_next() -> void:
 	var is_chain := String(_card_id).begins_with(CHAIN_PREFIX)
 	var order: Array = _chain_orders.get(_card_id, [])
 	if is_chain:
-		card_text = chain_text(int(String(_card_id).trim_prefix(CHAIN_PREFIX)), order)
+		var best: Dictionary = chain_best() if _may_write() else _best_this_session
+		card_text = chain_text(int(String(_card_id).trim_prefix(CHAIN_PREFIX)), order, int(best.get("links", 0)))
+	elif _card_id == DAWNBREAK_ID:
+		card_text = DAWNBREAK_TEXT
 	else:
 		card_text = discovery_text(_card_id)
 	if new_dreams.has(_card_id):  # "New Dreams: Rolling Thunder, Rain on Glass" (discovery unlocks)
@@ -657,6 +696,9 @@ func _build_card_icons(id: StringName, is_chain: bool, order: Array) -> void:
 	for child in _card_icons.get_children():
 		_card_icons.remove_child(child)
 		child.queue_free()
+	if id == DAWNBREAK_ID:  # A Legendary: its gem (no icon art yet)
+		_card_icons.add_child(_LegendaryGem.new())
+		return
 	if is_chain:
 		var runs: Array = []  # [name, count]
 		for name in order:
