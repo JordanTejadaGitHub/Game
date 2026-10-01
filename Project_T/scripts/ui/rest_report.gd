@@ -39,7 +39,7 @@ func _ready() -> void:
 	if omens != null and omens.has_signal("omen_rewarded"):  # Paid on rest_started, before this report (deferred)
 		omens.omen_rewarded.connect(func(omen: OmenData, summary: String) -> void:
 			if summary != "":
-				_omen_line = "Omen · %s: %s" % [omen.display_name, summary])
+				_omen_line = "Omen · %s · %s" % [omen.display_name, summary])  # The summary reads "Reward: …" / "No reward: …"
 	var spawner := get_node_or_null("%EnemyContainer")
 	if spawner != null and spawner.has_signal("nightmare_unbound"):  # No maze juggling (run_design.md)
 		spawner.nightmare_unbound.connect(func(_e: Node2D) -> void: unbound_block += 1)
