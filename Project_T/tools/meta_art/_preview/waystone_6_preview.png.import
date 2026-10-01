@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://bj0dgitk0ppyo"
-path="res://.godot/imported/dawnbreak.png-981751b1bf3b1fe7b20d2b802c7748ae.ctex"
+uid="uid://ctiscl4ndo5dx"
+path="res://.godot/imported/waystone_6_preview.png-d9dc12885691b826741e8aaa7a7ea1d6.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/meta/grove/branches/dawnbreak.png"
-dest_files=["res://.godot/imported/dawnbreak.png-981751b1bf3b1fe7b20d2b802c7748ae.ctex"]
+source_file="res://tools/meta_art/_preview/waystone_6_preview.png"
+dest_files=["res://.godot/imported/waystone_6_preview.png-d9dc12885691b826741e8aaa7a7ea1d6.ctex"]
 
 [params]
 

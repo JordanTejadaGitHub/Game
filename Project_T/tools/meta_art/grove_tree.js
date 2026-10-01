@@ -62,10 +62,6 @@ N("memory_white_stag", "families", "Memory Warden: The White Stag", 600, 560, [6
 N("memory_pond_keeper", "families", "Memory Warden: The Pond Keeper", 680, 560, [640, 575]);
 N("memory_moon_moth", "families", "Memory Warden: The Moon Moth", 640, 530, [640, 560]);
 // Cards: one branch per build style, Legendary flower at the tip.
-N("storm_lore", "cards", "Storm Lore", 760, 522, [742, 602]);
-N("guiding_lights", "cards", "Guiding Lights", 790, 452, "storm_lore");
-N("spore_lore", "cards", "Spore Lore", 852, 482, [842, 560]);
-N("dawnbreak", "cards", "Dawnbreak", 884, 330, "spore_lore", { legendary: true });  // Reactions and Woven are discovery unlocks now
 N("sharpened", "cards", "Sharpened", 952, 440, [942, 516]);
 N("full_moon", "cards", "Full Moon", 1000, 288, "sharpened", { legendary: true });  // Reckless was cut in the pool trim
 N("tending_hands", "cards", "Tending Hands", 1062, 392, [1044, 465]);
@@ -83,7 +79,6 @@ N("seeping", "cards", "Seeping", 1102, 552, [1090, 436]);
 N("venom", "cards", "Venom", 1120, 622, "seeping");
 N("nightshade", "cards", "Nightshade", 1132, 702, "venom", { legendary: true });
 // Grove of Kin: the Kinship Legendary (its cards come from discovering a Kinship).
-N("grove_of_kin", "cards", "Grove of Kin", 742, 808, "storm_lore", { legendary: true });  // Kin Lore / Deep Bonds became discovery unlocks
 // Seeds (support and economy bets).
 N("planted_promises", "cards", "Planted Promises", 1010, 470, [1000, 480]);
 N("deep_promises", "cards", "Deep Promises", 1030, 400, "planted_promises");

@@ -13,7 +13,7 @@ const PRESETS: Array[StringName] = [&"fresh", &"early", &"half", &"full"]
 const PATH := "user://sim_heartwood.json"
 static var file_path := PATH  # Tests use a per-process name (every checkout shares user://)
 # Early: Morning Stores I, Deep Taproot I, one family, two card bundles.
-const EARLY := {"morning_stores": 1, "deep_taproot": 1, "pebbling": 1, "spore_lore": 1, "storm_lore": 1}
+const EARLY := {"morning_stores": 1, "deep_taproot": 1, "pebbling": 1, "sharpened": 1, "tending_hands": 1}
 # Perks carried, best first (the loadout takes as many as there are slots).
 const LOADOUT_PRIORITY: Array[String] = ["morning_stores", "deep_taproot", "rich_dew", "second_thoughts",
 	"wider_dreams", "sprout_bed", "rested_roots", "early_bloom", "clear_sight", "first_care", "kindling",

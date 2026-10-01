@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://qjtaq7iy6hpp"
-path="res://.godot/imported/spore_lore.png-eaa7d296f151a46ee71c28c123cff803.ctex"
+uid="uid://dav7e3iajer3c"
+path="res://.godot/imported/memory_wardens_preview.png-20088a88d69c5e354ac7894299dc82dc.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/meta/grove/branches/spore_lore.png"
-dest_files=["res://.godot/imported/spore_lore.png-eaa7d296f151a46ee71c28c123cff803.ctex"]
+source_file="res://tools/meta_art/_preview/memory_wardens_preview.png"
+dest_files=["res://.godot/imported/memory_wardens_preview.png-20088a88d69c5e354ac7894299dc82dc.ctex"]
 
 [params]
 
