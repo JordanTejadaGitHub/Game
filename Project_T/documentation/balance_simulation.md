@@ -464,6 +464,28 @@ laps never show, and one visit (5 leaves) is half the other bosses' bite. **Heal
 so a typical maze needs two passes; visits stay 5 / 7 / 9 leaves (one lap is kinder than a bite, two are
 worse). Check: Night Mare forced, fresh Balanced / skip; target Balanced laps once+ in ~60% of fights.
 
+**Per-family act 1** (e19b9230, **full profile** so every family has its branches; first family
+forced, 10 seeds; the fresh run was confounded: unowned families had no branches):
+
+| family | survived boss | Stag dispelled | leaves lost before the boss |
+|---|---|---|---|
+| Rootling | 100% | 9/10 | 0 |
+| Nestling | 100% | 8/10 | 0 |
+| Dewdrop | 90% | 6/10 | 0 |
+| Firefly Jar | 70% | 2/8 | 1 |
+| Sporeling | 80% | 2/9 | 1.5 |
+| Bellflower | 90% | 2/10 | 0 |
+| Pebbling | 100% | 1/10 | 0 (highest maze DPS, 673, but stone is resisted) |
+| Whirligig | 100% | 0/10 | 4 |
+| **Acorn** | **50%** | **0/10** | **6** (2 runs dead before 25) |
+
+Decisions: **"beats the first boss" = survives it**: 8 of 9 families at 70–100%, so **the Stag stays**.
+**Acorn +15% attack damage** across its forms (auras unchanged; Tower Code): the only family that
+leaks in normal act 1 drifts. Whirligig holds normal drifts, no change. Sporeling dispels 2/9 on full
+vs 6/9 on fresh: possibly a big Grove Dream pool diluting the cards; the same-family Grove control
+(Sporeling + Firefly Jar, fresh / half / full) measures it. The "skip loses by 25" target is still
+unmet (Sporeling skip on full survives 70%); act 1 health is held for the next fresh human run.
+
 ## Later
 
 A **human baseline**: the same CSV written from real playtests (debug builds only), so the bot's
