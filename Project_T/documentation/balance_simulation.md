@@ -542,6 +542,10 @@ Decisions:
    whose `intro_drift` is this drift (skipped if nothing else is there). In the game: ade9a9ef.
 2. Act 1 block 3 and act 2's start: no change from one run.
 
+User: *"The run felt fair so far, lost because of flyers that I didn't notice would be coming from
+the wave, but that is my fault."* So **the curve reads fair**; the loss was not seeing the first
+flyers coming (a readability point for the Coming strip / new-nightmare warning, passed to the hub).
+
 ## Later
 
 A **human baseline**: the same CSV written from real playtests (debug builds only), so the bot's
