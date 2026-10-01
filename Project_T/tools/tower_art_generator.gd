@@ -382,7 +382,7 @@ func _make_attack(tower_name: String) -> Image:
 # Tall Wardens (64x96 frames, the body's 64x64 frame in the bottom 64 rows; the 32 rows above hold
 # what rises over it). In game: TowerData.sprite_offset (0, -16) keeps the slab on its cell, and the
 # attacks.json point stays in body-frame pixels (it's measured from the body, not the tall frame).
-const TALL_WARDENS := ["beacon", "thunderhead", "wellspring", "elf_circle", "starcave", "snugroot", "grafted_elder", "midsummer"]
+const TALL_WARDENS := ["beacon", "thunderhead", "wellspring", "elf_circle", "starcave", "snugroot", "grafted_elder", "midsummer", "puffball"]
 const TALL_H := 96
 
 func _frame_h(tower_name: String) -> int:
@@ -2737,6 +2737,26 @@ func _tall_midsummer(back: Image, front: Image, st: Dictionary) -> void:
 		_flat_ellipse(disc, head, Vector2(4.2, 3.8), Color("#6a4020"))
 		_stamp(back, disc, o)
 		_px(back, int(head.x) - 1, int(head.y) - 1, Color("#8a5a2a"))
+
+# Puffball's tall rows: a giant puffball grown up out of its cap with a smaller one on top, puffing a
+# little cloud of spores from its opening each loop.
+func _tall_puffball(back: Image, front: Image, st: Dictionary) -> void:
+	var dy: int = st.dy
+	var puff := _ramp(["#c8b898", "#e4d8bc", "#f6eedc", "#ffffff"])
+	var o := Color(LAVENDER[0])
+	var big := Vector2(30.5, 27 + dy)
+	_puffball(front, big, 9.5, puff, o)
+	_puffball(front, Vector2(38, 20 + dy), 4.5, puff, o)
+	# The opening on top of the big one, and the spores puffing out of it.
+	_px(front, int(big.x) - 1, int(big.y) - 8, Color("#8a7a5a"))
+	_px(front, int(big.x), int(big.y) - 8, Color("#8a7a5a"))
+	var t := fposmod(float(st.f) / st.n, 1.0)
+	for k in 5:
+		var a := k * TAU / 5.0 + t * 2.0
+		var p := Vector2(big.x - 0.5, big.y - 9) + Vector2(cos(a) * (2.0 + t * 7.0), -t * 10.0 + sin(a) * 1.5)
+		_px(front, int(p.x), int(p.y), Color("#f0eaff", 1.0 - t * 0.7))
+		if k % 2 == 0:
+			_px(front, int(p.x) + 1, int(p.y), Color("#b4a0ee", 1.0 - t * 0.7))
 
 # Lanternmoth: an amber lantern golem with soft moth wings, feathery antennae and a warm light
 # glowing in its chest.
