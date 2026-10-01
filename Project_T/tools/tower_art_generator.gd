@@ -382,7 +382,7 @@ func _make_attack(tower_name: String) -> Image:
 # Tall Wardens (64x96 frames, the body's 64x64 frame in the bottom 64 rows; the 32 rows above hold
 # what rises over it). In game: TowerData.sprite_offset (0, -16) keeps the slab on its cell, and the
 # attacks.json point stays in body-frame pixels (it's measured from the body, not the tall frame).
-const TALL_WARDENS := ["beacon", "thunderhead", "wellspring", "elf_circle"]
+const TALL_WARDENS := ["beacon", "thunderhead", "wellspring", "elf_circle", "starcave"]
 const TALL_H := 96
 
 func _frame_h(tower_name: String) -> int:
@@ -2631,6 +2631,20 @@ func _tall_elf_circle(back: Image, front: Image, st: Dictionary) -> void:
 	var light := Vector2i((tip + Vector2(1, 4)).round())
 	_px(front, light.x, light.y - 1, Color("#17174d"))
 	_glow_dot(front, light + Vector2i(0, 1), Color("#d8fff8"), Color("#7ff0e0"))
+
+# Starcave's tall rows: a cluster of crystal spires grown up behind it (drawn behind the body so its
+# head and shoulders sit in front), stars twinkling round their tips.
+func _tall_starcave(back: Image, front: Image, st: Dictionary) -> void:
+	var gems := _ramp(["#8a60d0", "#c0a0ff", "#f0e8ff"])
+	var o := Color("#1e120a")
+	for c: Vector4 in [Vector4(24, 50, 22, -3), Vector4(41, 50, 18, 3), Vector4(32.5, 52, 38, 0)]:
+		_prism(back, Vector2(c.x, c.y), 3.2, c.z, c.w, gems, o)
+	for k in 4:
+		var p: Vector2i = [Vector2i(32, 11), Vector2i(19, 26), Vector2i(46, 30), Vector2i(38, 18)][k]
+		if (st.f + k) % 2 == 0:
+			_sparkle(front, p, Color("#f0e8ff"))
+		else:
+			_px(front, p.x, p.y, Color("#c0a0ff"))
 
 # Lanternmoth: an amber lantern golem with soft moth wings, feathery antennae and a warm light
 # glowing in its chest.
