@@ -1541,6 +1541,8 @@ func hit(enemy: Node2D, soothe_multiplier: float = 1.0, is_area: bool = false, c
 		_ramp_target = enemy
 	if _dream_state and _dream_state.has_method("get_hit_damage_multiplier"):
 		soothe *= _dream_state.get_hit_damage_multiplier()  # Venom Bloom: hits weaker, effects stronger
+	if is_area and _dream_state and _has_rule(&"overlap"):
+		soothe *= _dream_state.overlap_multiplier(self, enemy)  # Overlap: another Warden's area hit within 1 s
 	if _dream_state and _dream_state.has_method("on_hit_multiplier"):
 		# First Light, Last Stand, Hunter's Patience, Bitter Hedges (tracked inside: once per hit).
 		soothe *= _dream_state.on_hit_multiplier(self, enemy)
