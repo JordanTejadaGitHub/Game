@@ -569,7 +569,7 @@ Reading: with a good build, act 2–3 normal drifts don't threaten a human, agai
 profile ends in act 2" (runs 5 and 6 ended at 35 and 24, but run 5's act 2 also read 0.22–0.29 before
 its flyer leak). Decisions:
 1. **Acts 2–4 health +25%:** act 2 **2.0** at 26 → **2.9** at 37 → **4.5** at 45 (was 1.6 / 2.3 / 3.6);
-   acts 3–4 **×6.0** (was 4.8). Act 1, boss multipliers, the bite and the Oak unchanged.
+   acts 3–4 **×6.0** (was 4.8). Act 1, boss multipliers, the bite and the Oak unchanged. In the game: d55618fd.
 2. **Dreamshroom:** measure before changing: per-final damage shares in the status-Potency A/B, and a
    fixed-maze probe (Dreamshroom vs Morning Fog / Mistveil / Puffball, damage per Dew).
 
