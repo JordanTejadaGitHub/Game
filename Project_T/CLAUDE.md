@@ -388,7 +388,7 @@ accessibility, Steam achievements (milestones map to them). Acts 3–4 and all f
   `path.png` column = neighbour mask. The map is an island in a starry void: border cells are
   `island_edge` rim tiles (neighbour mask; no grass under them), cliffs under the bottom row, a rope
   bridge out from the start (shared sheets in `assets/environment/dream/`), and `DreamVoid`
-  (`dream_void.gd`: Parallax2D sky + stars behind the map, islets). Mist on the start, `Heartwood` (`heartwood.gd`, Sprite2D) on the end shows leaves lost (its warm light and additive
+  (`dream_void.gd`: Parallax2D sky + stars behind the map, islets). Mist on the start, `Heartwood` (`heartwood.gd`, Sprite2D) on the end shows leaves lost and mirrors the Grove (stage by `grown_share`, a glint per planted node, a dream-fruit per Memory; demo: stage 0, 3 fruit; `tests/test_heartwood_grove.gd`) (its warm light and additive
   glow dim with them). Lighting pass (art_direction.md), made by MapGenerator: `EnvironmentLighting`
   (MUL-blended radial multiply, cold at the edges, z 3; attacking Wardens glow via one additive canvas item,
   redrawn only on plant/sell/grow) and `EnvironmentAmbience` (`_draw`: edge fog + the act's particles, z 6). `tests/test_environment.gd`
