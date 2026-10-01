@@ -25,6 +25,7 @@ func _run() -> void:
 	await _test_screenshot_fixes(main)
 	_test_leaf_rewards(main)
 	await _test_active_tag(main)
+	_test_reward_words(main)
 	print("omens test: %s" % ("PASS" if failures == 0 else "%d FAILED" % failures))
 	quit(failures)
 
@@ -469,18 +470,18 @@ func _test_teeth(main: Node) -> void:
 	omens.omen_rewarded.connect(func(_o: OmenData, summary: String) -> void: paid.append(summary))
 	# Crowded Paths (60 Dew): clean = all, 1 leaf lost = 75% (rounded down), 4+ = nothing
 	_activate(omens, "crowded_paths", 3)
-	_check(omens.get_reward_status() == "You'd get it all right now." and omens.get_reward_line() == "Reward: +60 Dew, less for each leaf lost", "a clean block so far: the full reward (%s)" % omens.get_reward_status())
+	_check(omens.get_reward_status() == "You'd get it all right now." and omens.get_reward_line() == "Reward: +60 Dew. Each leaf you lose in these drifts takes a quarter of it.", "a clean block so far: the full reward (%s)" % omens.get_reward_status())
 	run_state.leaves_lost += 1
 	_check(omens.get_reward_status() == "You'd get 75% right now: 1 leaf lost.", "…the tag follows the losses (%s)" % omens.get_reward_status())
 	var dew := run_state.dew
 	omens._pay_reward(0)
 	_check(run_state.dew == dew + 45, "1 leaf lost: 75%% of 60 Dew (%d)" % (run_state.dew - dew))
-	_check(not paid.is_empty() and paid[-1] == "+45 Dew (75%: 1 leaf lost)", "…and the rest says why (%s)" % [paid[-1] if not paid.is_empty() else ""])
+	_check(not paid.is_empty() and paid[-1] == "Reward: +45 Dew (1 leaf lost: it took a quarter)", "…and the rest says why (%s)" % [paid[-1] if not paid.is_empty() else ""])
 	_activate(omens, "crowded_paths", 3)
 	run_state.leaves_lost += 4
 	dew = run_state.dew
 	omens._pay_reward(0)
-	_check(run_state.dew == dew and paid[-1] == "nothing (4 leaves lost)", "4 leaves lost: nothing (%s)" % paid[-1])
+	_check(run_state.dew == dew and paid[-1] == "No reward: 4 leaves lost.", "4 leaves lost: nothing (%s)" % paid[-1])
 	# Leaf Fall (next Dream: 4 cards, one Rare+): 1 leaf lost keeps it; no leaves, no Dreamlight
 	_activate(omens, "leaf_fall", 3)
 	run_state.leaves_lost += 1
@@ -657,7 +658,7 @@ func _test_active_tag(main: Node) -> void:
 	await _frames(3)
 	var tag: Label = main.get_node("HUD/ActiveOmen")
 	var lines: PackedStringArray = tag.text.split("\n")
-	_check(lines.size() == 3 and lines[0].strip_edges() == "Omen: Stubborn Blight · drifts 16–20" and lines[2] == "Reward: +40 Dew, less for each leaf lost",
+	_check(lines.size() == 3 and lines[0].strip_edges() == "Omen: Stubborn Blight · drifts 16–20" and lines[2] == "Reward: +40 Dew. Each leaf you lose in these drifts takes a quarter of it.",
 		"the tag: name and drifts, the twist, then a plain reward line (%s)" % " / ".join(lines))
 	_check(tag.tooltip_text == "You'd get it all right now.", "…where the reward stands is in the tooltip (%s)" % tag.tooltip_text)
 	var icon: TextureRect = tag.get_node_or_null("OmenIcon")
@@ -666,6 +667,29 @@ func _test_active_tag(main: Node) -> void:
 	screen._on_omen_rewarded(omens.active, "")
 	omens.active = null
 	director.drifts_started = 0
+
+# The reward in plain words (user: "what does 25% less per leaf lost mean"): Dew is cut a quarter per leaf; a Dream
+# reward is kept with at most 1 leaf lost, never "25% less"; double-edged Omens say the extra Dew is the prize.
+func _test_reward_words(main: Node) -> void:
+	var omens: OmenDirector = main.get_node("%OmenDirector")
+	var by_id := {}
+	for omen in omens.pool:
+		by_id[omen.id] = omen
+	_check(omens.reward_sentence(by_id["stubborn_blight"], 1) == "Reward: +40 Dew. Each leaf you lose in these drifts takes a quarter of it.",
+		"Dew: \"Each leaf you lose in these drifts takes a quarter of it.\" (%s)" % omens.reward_sentence(by_id["stubborn_blight"], 1))
+	_check(omens.reward_sentence(by_id["thick_blight"], 1) == "Reward: your next Dream offers 5 cards, if you lose at most 1 leaf in these drifts.",
+		"a Dream reward: kept with at most 1 leaf lost, not cut (%s)" % omens.reward_sentence(by_id["thick_blight"], 1))
+	_check(omens.reward_sentence(by_id["leaf_fall"], 1) == "Reward: your next Dream offers 4 cards, one of them Rare+, if you lose at most 1 leaf in these drifts.",
+		"…4 cards, one Rare+ (%s)" % omens.reward_sentence(by_id["leaf_fall"], 1))
+	var mixed := omens.reward_sentence(by_id["hard_bark"], 1)
+	_check(mixed.begins_with("Reward: +25 Dew, and a Rare+ card in your next Dream if you lose at most 1 leaf") and mixed.ends_with("takes a quarter of the Dew."),
+		"Dew and a Dream reward: both rules, in words (%s)" % mixed)
+	_check(omens.reward_sentence(by_id["blood_moon"], 1) == OmenDirector.DOUBLE_EDGED_LINE and not OmenDirector.REWARD_RULE.contains("%"),
+		"double-edged: \"No other reward: the extra Dew is the prize.\"; the full rule has no percentages")
+	_check(not omens.reward_sentence(by_id["thick_blight"], 1).contains("%") and not mixed.contains("%"), "no \"25% less\" anywhere")
+	var gone := omens.paid_sentence(by_id["hard_bark"], 1, 0, 2, 0)
+	_check(gone.begins_with("Reward: +12 Dew (2 leaves lost: it took half)") and gone.ends_with("The Dream reward is gone: 2 leaves lost."),
+		"paid with 2 leaves lost: half the Dew, the card gone, said plainly (%s)" % gone)
 
 func _frames(n: int) -> void:
 	for i in n:

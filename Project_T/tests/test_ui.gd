@@ -902,8 +902,8 @@ func _run() -> void:
 			_check_omen_cards(omen_screen, "revealed Omens %d–%d at %s" % [i, i + 2, view])
 			for card in omen_screen._cards.get_children():
 				var reward_label: Label = card.find_child("Reward", true, false)
-				_check(reward_label != null and (reward_label.text.begins_with("Reward · ") or reward_label.text.begins_with("Double-edged")) and not reward_label.text.contains(":"),
-					"%s: \"Reward · …\", no colon (%s)" % [card.name, reward_label.text if reward_label else "none"])
+				_check(reward_label != null and (reward_label.text.begins_with("Reward: ") or reward_label.text == OmenDirector.DOUBLE_EDGED_LINE),
+					"%s: the reward in plain words (%s)" % [card.name, reward_label.text if reward_label else "none"])
 			omen_screen._clear_cards()
 	omen_screen._on_closed()
 	root.size = Vector2i(1280, 800)
