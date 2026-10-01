@@ -207,6 +207,29 @@ func _run() -> void:
 			var panel_rect := (main.get_node("HUD/DriftPanel") as Control).get_global_rect()
 			_check(not meter_rect.intersects(panel_rect) and meter_rect.position.y >= DriftMeter.TOP_LIMIT - 1.0,
 				"the damage meter (%s tab) clears the DriftPanel at %s (%s vs %s)" % ["block" if summary else "Wardens", screen, meter_rect, panel_rect])
+		# With the nightmare info open (user screenshot: a Mourner pinned), the meter shrinks to its header line
+		# and never reaches the DriftPanel; it opens again when the info closes.
+		meter.block_summary = false
+		meter._user_open = true
+		meter._body.visible = true
+		var info_node := main.get_node("%NightmareInfo") as Control
+		var pinned: Node2D = main.get_node("%EnemyContainer").spawn_enemy(load("res://resource/enemy/leaf_bug.tres"))
+		pinned.set_process(false)
+		info_node._target = pinned
+		for f in 4:
+			await process_frame
+			meter._fit()
+		var meter_info_rect := meter.get_global_rect()
+		var panel_info_rect := (main.get_node("HUD/DriftPanel") as Control).get_global_rect()
+		_check(info_node.visible and meter.collapsed and not meter._body.visible and not meter_info_rect.intersects(panel_info_rect),
+			"with the nightmare info open the meter is its header line, clear of the DriftPanel at %s (%s vs %s)" % [screen, meter_info_rect, panel_info_rect])
+		info_node._target = null
+		pinned.queue_free()
+		for f in 3:
+			await process_frame
+			meter._fit()
+		_check(not meter.collapsed and meter._body.visible, "…and opens again when the info closes at %s" % screen)
+		meter._user_open = false
 		for row in fake_rows.filter(func(r) -> bool: return is_instance_valid(r)):
 			row.queue_free()
 		meter._more.visible = false
