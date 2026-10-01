@@ -382,7 +382,7 @@ func _make_attack(tower_name: String) -> Image:
 # Tall Wardens (64x96 frames, the body's 64x64 frame in the bottom 64 rows; the 32 rows above hold
 # what rises over it). In game: TowerData.sprite_offset (0, -16) keeps the slab on its cell, and the
 # attacks.json point stays in body-frame pixels (it's measured from the body, not the tall frame).
-const TALL_WARDENS := ["beacon", "thunderhead", "wellspring", "elf_circle", "starcave", "snugroot", "grafted_elder"]
+const TALL_WARDENS := ["beacon", "thunderhead", "wellspring", "elf_circle", "starcave", "snugroot", "grafted_elder", "midsummer"]
 const TALL_H := 96
 
 func _frame_h(tower_name: String) -> int:
@@ -438,7 +438,8 @@ const CHANNEL_FRAMES := 3
 
 func _make_channel(tower_name: String) -> Image:
 	_warden_name = tower_name
-	var sheet := Image.create_empty(S * CHANNEL_FRAMES, S, false, Image.FORMAT_RGBA8)
+	var h := _frame_h(tower_name)
+	var sheet := Image.create_empty(S * CHANNEL_FRAMES, h, false, Image.FORMAT_RGBA8)
 	var at := Vector2(ATTACKS[tower_name].point)
 	for c in CHANNEL_FRAMES:
 		var canvas := _layer()
@@ -459,8 +460,8 @@ func _make_channel(tower_name: String) -> Image:
 			for i in range(int(r) + 2, int(r) + 2 + len):
 				_px(canvas, roundi(at.x + d.x * i), roundi(at.y + d.y * i), Color("#ffd24a") if i > int(r) + 2 else Color("#fff4a0"))
 		_warm_glow(canvas, at, Vector2(8.0 + c, 7.0 + c), c)
-		sheet.blit_rect(canvas, Rect2i(0, 0, S, S), Vector2i(c * S, 0))
-	sheet = _detail_pass(sheet, Vector2i(S, S))
+		sheet.blit_rect(_tall_frame(tower_name, canvas, st), Rect2i(0, 0, S, h), Vector2i(c * S, 0))
+	sheet = _detail_pass(sheet, Vector2i(S, h))
 	sheet.save_png(OUT + tower_name + "_channel.png")
 	return sheet
 
@@ -2720,6 +2721,22 @@ func _tall_grafted_elder(back: Image, front: Image, st: Dictionary) -> void:
 	# Twine where the grafts are bound.
 	_px(front, int(fork.x) - 1, int(fork.y) + 1, Color("#e8d8b0"))
 	_px(front, int(fork.x) + 1, int(fork.y) + 1, Color("#e8d8b0"))
+
+# Midsummer's tall rows: two tall sunflowers grown up behind it, one either side, their heads turned
+# to the light, so the final towers over Sunpetal's single bloom.
+func _tall_midsummer(back: Image, front: Image, st: Dictionary) -> void:
+	var o := Color("#1e3a14")
+	for s: Vector3 in [Vector3(12, 20, -1), Vector3(51, 13, 1)]:
+		var head := Vector2(s.x, s.y + (1.0 if st.f % 4 == 2 else 0.0))
+		var stalk := _layer()
+		_stroke(stalk, [Vector2(s.x - s.z * 3, 63), Vector2(s.x - s.z, 40), head], 1.0, Color(LEAF[1]))
+		_stamp(back, stalk, o)
+		_leaf(back, Vector2(s.x - s.z * 2, 44), Vector2(s.x - s.z * 2 - s.z * 7, 38), 2.6, _ramp(LEAF), o)
+		_petals(back, head, 13, 4.0, 10.0, 2.8, _ramp(["#f0c030", "#ffe070", "#fff4c0"]), o, float(st.f) * TAU / 96.0 + s.x)
+		var disc := _layer()
+		_flat_ellipse(disc, head, Vector2(4.2, 3.8), Color("#6a4020"))
+		_stamp(back, disc, o)
+		_px(back, int(head.x) - 1, int(head.y) - 1, Color("#8a5a2a"))
 
 # Lanternmoth: an amber lantern golem with soft moth wings, feathery antennae and a warm light
 # glowing in its chest.
