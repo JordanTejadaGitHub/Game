@@ -1797,3 +1797,5 @@ requirement fields (*Card requirements*): `requires_tag` + `requires_tag_count` 
 (e.g. rank V, 1; any rank, 2),
 plus effect parameters (stat modifiers: target line + stat + amount; or a `rule_id` the game
 checks for).
+
+**Offers are random within the run's pool (2026-09-30, user):** the build tag weight ("Dreams steer your Dreams", 1.6 → 1.3) is **turned off (1.0)**. The player adapts their build to the random cards they get; nothing steers them down a path. Tag resonance (+10% per owned card of a tag, up to +50%) stays: committing is still rewarded, by choice.
