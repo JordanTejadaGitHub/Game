@@ -1413,6 +1413,10 @@ func _dream_entry(card: UpgradeData, seen: Array, viewed: Array, taken: Dictiona
 	gem.custom_minimum_size = DreamsRow.ICON_SIZE
 	gem.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	head.add_child(gem)
+	if card.rarity == UpgradeData.Rarity.LEGENDARY and IconInfo.icon(StringName(card.id)) != null:  # Own art (icons.json "legendary": Dawnbreak), ×2
+		var art := IconInfo.make_icon(StringName(card.id), 2)
+		art.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		head.add_child(art)
 	var name := Label.new()
 	name.text = card.display_name
 	UiStyle.title(name, 20, UpgradeData.rarity_color(card.rarity))

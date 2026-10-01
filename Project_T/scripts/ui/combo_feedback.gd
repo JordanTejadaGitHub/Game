@@ -696,8 +696,8 @@ func _build_card_icons(id: StringName, is_chain: bool, order: Array) -> void:
 	for child in _card_icons.get_children():
 		_card_icons.remove_child(child)
 		child.queue_free()
-	if id == DAWNBREAK_ID:  # A Legendary: its gem (no icon art yet)
-		_card_icons.add_child(_LegendaryGem.new())
+	if id == DAWNBREAK_ID:  # Its own icon (UI Asset, icons.json "legendary"), else the Legendary gem
+		_card_icons.add_child(_card_icon(id) if IconInfo.icon(id) != null else _LegendaryGem.new())
 		return
 	if is_chain:
 		var runs: Array = []  # [name, count]
