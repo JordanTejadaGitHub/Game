@@ -147,15 +147,19 @@ func _on_spawned(node: Node) -> void:
 	var data = node.get("enemy_data")
 	if not data is EnemyData:
 		return
-	(func() -> void:  # Its data is set once it's in
-		if not is_instance_valid(node):
-			return  # Freed the same frame (tests spawn and clear)
-		var real: EnemyData = node.get("enemy_data")
-		if real == null or not breaks_rules(real) or _plated.has(kind_of(real)):
-			return
-		_plated[kind_of(real)] = true
-		_plates.append([node, PLATE_TIME])
-		_plate_layer.queue_redraw()).call_deferred()
+	_plate_spawned.call_deferred(node.get_instance_id())  # Its data is set once it's in
+
+# By instance id (a captured node freed the same frame logs "Lambda capture … was freed").
+func _plate_spawned(id: int) -> void:
+	var node := instance_from_id(id) as Node
+	if node == null:
+		return  # Freed the same frame (tests spawn and clear)
+	var real: EnemyData = node.get("enemy_data")
+	if real == null or not breaks_rules(real) or _plated.has(kind_of(real)):
+		return
+	_plated[kind_of(real)] = true
+	_plates.append([node, PLATE_TIME])
+	_plate_layer.queue_redraw()
 
 func _draw() -> void:
 	if line_shown and map != null:

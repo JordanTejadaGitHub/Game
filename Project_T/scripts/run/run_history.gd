@@ -234,20 +234,24 @@ func _on_rest_started(block: int, _boss: bool, _bonus: int, _perfect: bool) -> v
 	_flush_rows()
 	run.dew.banked_at_rest.append([block, run_state.dew if run_state else 0])
 
+# By instance id, never a captured node: a nightmare freed the same frame made the deferred lambda log
+# "Lambda capture … was freed" (the guard inside ran too late to stop it).
+func _tag_spawned(id: int) -> void:
+	var node := instance_from_id(id) as Node
+	if node == null or _open.is_empty():  # Freed, or the rows closed before this ran (Tower Code found it)
+		return
+	var number := drift_director.drift_of(node)
+	if number <= 0 or not _open.has(number):
+		number = int(_drift.get("drift", 0)) if not _drift.is_empty() else int(_open.keys().max())
+	_origin[id] = number
+	var row: Dictionary = _open[number]
+	row["health_spawned"] = int(row.get("health_spawned", 0)) + int(node.get("max_health") if node.get("max_health") != null else 0)
+
 func _on_spawned(node: Node) -> void:
 	var data = node.get("enemy_data")
 	if not data is EnemyData or _open.is_empty():
 		return
-	(func() -> void:  # Its health and drift are set once it's in (the director tags it after spawning)
-		if not is_instance_valid(node) or _open.is_empty():  # The rows may have closed before this ran (Tower Code found it)
-			return
-		var number := drift_director.drift_of(node)
-		if number <= 0 or not _open.has(number):
-			number = int(_drift.get("drift", 0)) if not _drift.is_empty() else int(_open.keys().max())
-		_origin[node.get_instance_id()] = number
-		var row: Dictionary = _open[number]
-		row["health_spawned"] = int(row.get("health_spawned", 0)) + int(node.get("max_health") if node.get("max_health") != null else 0)
-	).call_deferred()
+	_tag_spawned.call_deferred(node.get_instance_id())  # Its health and drift are set once it's in (the director tags it after spawning)
 	if data.is_boss:
 		_boss_seen[node.get_instance_id()] = [NightmareCodex.kind_of(data), _clock, drift_director.drifts_started]
 

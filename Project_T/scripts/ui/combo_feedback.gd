@@ -340,8 +340,9 @@ static func chain_text(tier: int, order: Array, longest: int = 0) -> String:
 # Kinships (Tower Code's node, group "kinships"; tower_design.md "Kinships"): the first-ever bond of
 # each kind is a discovery like a combo, and bonds formed / Harmony strikes / families made Whole are
 # counted here for the rest report and results (so they don't depend on when Kinships resets).
-func _hook_kinships(node: Node) -> void:
-	if node == null or not node.is_in_group(KINSHIPS_GROUP) or node.is_connected("kinship_formed", _on_kinship):
+# Untyped: a node freed before this deferred call ran would fail the typed argument ("Cannot convert … Object").
+func _hook_kinships(node) -> void:
+	if not is_instance_valid(node) or not node is Node or not node.is_in_group(KINSHIPS_GROUP) or node.is_connected("kinship_formed", _on_kinship):
 		return
 	node.connect("kinship_formed", _on_kinship)
 	if node.has_signal("harmony_struck"):
