@@ -284,23 +284,25 @@ function groveTree() {
     const len = 6 + hash(k, 3, 50) * 16;
     for (let i = 1; i < len; i++) out.set(x + Math.round(Math.sin(i * .3 + k)), y + i, i % 3 ? "#56624e" : "#3e4a3a");
   }
+  // The limb sigils stay readable: no moss or mist over them.
+  const nearSigil = (x, y) => [[600, 640], [641, 596], [684, 640]].some(([sx, sy]) => Math.hypot(x - sx, y - sy) < 18);
   // Moss patches all over the trunk and roots, like the title's giant.
   for (let y = 560; y < 960; y++) for (let x = 400; x < 880; x++) {
-    if (!L.alpha(x, y) || (x > 560 && x < 665 && y > 735 && y < 835)) continue;  // keep the Hollow clear
+    if (!L.alpha(x, y) || (x > 560 && x < 665 && y > 735 && y < 835) || nearSigil(x, y)) continue;  // keep the Hollow and sigils clear
     const n = pnoise(x, y, 14, 95) * .7 + pnoise(x, y, 5, 96) * .3;
     if (n > .6) out.set(x, y, n > .72 ? HW.Moss : HW.Deepmoss);
     else if (n > .57 && hash(x, y, 97) < .5) out.set(x, y, HW.Leaf);
   }
   // A cool veil of mist over the wood (the fog's teal and dusk, never white), thicker low down.
   for (let y = 520; y < GH; y++) for (let x = 0; x < GW; x++) {
-    if (!out.alpha(x, y) || (x > 570 && x < 655 && y > 745 && y < 830)) continue;
+    if (!out.alpha(x, y) || (x > 570 && x < 655 && y > 745 && y < 830) || nearSigil(x, y)) continue;
     const d = clamp((y - 520) / 300, 0, 1) * clamp((900 - y) / 60, 0, 1) * (.55 + pnoise(x, y, 50, 101) * .6);  // fades out before the roots and waystones
     if (bay(x, y) < d * .24) out.set(x, y, d > .6 ? HW.Pool : HW.Dusk);
   }
   // Wisps of mist drifting IN FRONT of the tree and on across the background at the same heights, so
   // the tree stands inside the fog. Cool, sparse, opaque dither; the Hollow stays clear.
   const wisps = (cy, h, dens, seed) => { for (let y = cy - h; y < cy + h; y++) for (let x = 0; x < GW; x++) {
-    if (x > 575 && x < 650 && y > 748 && y < 828) continue;
+    if ((x > 575 && x < 650 && y > 748 && y < 828) || nearSigil(x, y)) continue;
     if (LOADOUT_STONES.some(([sx, sy]) => Math.hypot(x - sx, (y - sy) * 1.3) < 26)) continue;  // waystones stay clear
     const wob = (pnoise(x, 0, 90, seed + 2) - .5) * h * 1.2, yy = y - wob;  // the band drifts up and down
     const band = clamp(1 - Math.abs(yy - cy) / h, 0, 1) ** 1.5, n = pnoise(x * .6, yy, 34, seed) * .75 + pnoise(x, yy, 12, seed + 1) * .25;
@@ -310,7 +312,7 @@ function groveTree() {
   // The drifting mist bands are separate strips now (groveMistStrip, animated by GroveTreeView).
   // Mist curling across the trunk itself (a little denser than the haze round it), the Hollow clear.
   for (let y = 590; y < 900; y++) for (let x = 470; x < 820; x++) {
-    if (x > 572 && x < 652 && y > 745 && y < 832) continue;
+    if ((x > 572 && x < 652 && y > 745 && y < 832) || nearSigil(x, y)) continue;
     const tx = trunkX(Math.min(y, 905)), dx = (x - tx) / 150;
     const n = pnoise(x * .7, y, 28, 131) * .7 + pnoise(x, y, 10, 132) * .3, curl = Math.sin(y / 38 + dx * 3) * .5 + .5;
     const d = Math.max(0, 1 - dx * dx) * clamp((n - .4) * 2.4, 0, 1) * (.55 + curl * .45) * (.6 + (y - 590) / 310 * .5);
