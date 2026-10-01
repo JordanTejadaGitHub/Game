@@ -408,15 +408,19 @@ static func draw_gem(canvas: CanvasItem, centre: Vector2, r: float, rarity: int,
 		points.append(points[0])
 		canvas.draw_polyline(points, rim, 2.0, true)
 	if with_glyph:
-		var art := dream_glyph_texture(glyph)
-		if art != null:
+		# Straight from the sheet (held by _glyph_sheet): a temporary AtlasTexture made here was freed
+		# before the frame rendered and drew as a white square (2026-10-01).
+		var sheet := _glyph_sheet_texture()
+		var region := dream_glyph_region(glyph)
+		if sheet != null and region.has_area():
 			var side := Vector2(16, 16) if r >= 11.0 else Vector2(8, 8)  # Whole-number scale only
-			canvas.draw_texture_rect(art, Rect2((centre - side / 2.0).round(), side), false)
+			canvas.draw_texture_rect_region(sheet, Rect2((centre - side / 2.0).round(), side), region)
 
 # Dream card glyphs (UI Asset, assets/ui/dream_glyphs.json): the first `priority` id any of the card's
 # tags maps to, else `fallback`. Every gem caller uses this, so a card shows the same glyph everywhere.
 const DREAM_GLYPHS := "res://assets/ui/dream_glyphs"
-static var _glyph_data := {}  # The parsed JSON: plain data only, never textures (exit crash)
+static var _glyph_data := {}  # The parsed JSON
+static var _glyph_sheet: Texture2D = null  # Kept alive for draw calls; released at exit (release_at_exit)
 
 static func dream_glyph(card: UpgradeData) -> StringName:
 	var data := _glyphs()
@@ -431,6 +435,21 @@ static func dream_glyph(card: UpgradeData) -> StringName:
 		if mapped.has(id):
 			return StringName(id)
 	return StringName(data.get("fallback", "generic"))
+
+# The glyph's cell in assets/ui/dream_glyphs.png (an empty Rect2 for an unknown id).
+static func dream_glyph_region(id: StringName) -> Rect2:
+	var data := _glyphs()
+	var icons: Dictionary = data.get("icons", {})
+	if not icons.has(String(id)):
+		return Rect2()
+	var frame := int(data.get("frame_size", 8))
+	return Rect2(int(icons[String(id)]) * frame, 0, frame, frame)
+
+static func _glyph_sheet_texture() -> Texture2D:
+	if _glyph_sheet == null and ResourceLoader.exists(DREAM_GLYPHS + ".png"):
+		_glyph_sheet = load(DREAM_GLYPHS + ".png")
+		release_at_exit(func() -> void: _glyph_sheet = null)
+	return _glyph_sheet
 
 # The glyph's 8×8 cell of the sheet (a new AtlasTexture: cache it on the caller's instance if drawn often).
 static func dream_glyph_texture(id: StringName) -> Texture2D:

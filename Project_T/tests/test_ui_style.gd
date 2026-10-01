@@ -40,6 +40,19 @@ func _initialize() -> void:
 	var edge := UiStyle.tip_beside(Rect2(1250, 400, 24, 24), Vector2(200, 60), Vector2(1280, 800))
 	_check(above == Vector2(516, 332) and below.y == 50.0 and edge.x + 200.0 <= 1276.0,
 		"tips sit centred above their control, flip below, stay on screen (%s, %s, %s)" % [above, below, edge])
+	# Even letter spacing at fractional UI scales (2026-10-01: "B l oom i ng"): every UI font imports with
+	# subpixel positioning off, so oversampled glyphs land on whole pixels.
+	for file in ["AlegreyaSans-Regular.ttf", "AlegreyaSans-Medium.ttf", "CormorantGaramond-Variable.ttf",
+			"CormorantGaramond-Italic-Variable.ttf", "CormorantSC-Medium.ttf"]:
+		var font: FontFile = load(UiStyle.FONT_DIR + file)
+		_check(font != null and font.subpixel_positioning == TextServer.SUBPIXEL_POSITIONING_DISABLED,
+			"%s imports with subpixel positioning off" % file)
+	# Every glyph id has a non-empty cell inside the sheet (a blank region drew a white square).
+	var sheet: Texture2D = load(UiStyle.DREAM_GLYPHS + ".png")
+	var glyph_ids: Dictionary = JSON.parse_string(FileAccess.get_file_as_string(UiStyle.DREAM_GLYPHS + ".json")).icons
+	for id in glyph_ids:
+		var region := UiStyle.dream_glyph_region(StringName(id))
+		_check(region.has_area() and Rect2(Vector2.ZERO, sheet.get_size()).encloses(region), "glyph %s has a cell in the sheet (%s)" % [id, region])
 	_scale_and_layout.call_deferred()
 
 # UI scale (UiStyle.apply_ui_scale): only the UI scales, never past its 1280×720 layout, and the
