@@ -181,6 +181,7 @@ func _test_wide_and_narrow() -> void:
 	var lone := _plant("sporeling", 0, 0)
 	for i in 6:
 		_plant("sporeling", 10 + i * 3, 0)
+	dreams.grove_cards.append("few_and_mighty")  # A Grove card since the lean starting pool (Elders node)
 	_check(dreams.is_eligible(few), "Few and Mighty offered with 7 attacking Wardens")
 	base = dreams.get_soothe_multiplier(lone)
 	dreams.take(few)

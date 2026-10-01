@@ -14,3 +14,4 @@ max_stacks = 1
 rule_id = &"forests_edge"
 diagram = "****...\n**W*.w.\nSPPPPPP\n****...\n****..."
 diagram_caption = "Within 3 cells of the start: +35%. ✗ further out."
+in_start_pool = false

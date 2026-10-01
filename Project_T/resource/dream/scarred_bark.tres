@@ -13,3 +13,4 @@ tags = Array[String](["leaves", "daring"])
 requires = Array[String]([])
 max_stacks = 1
 rule_id = &"scarred_bark"
+in_start_pool = false

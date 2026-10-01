@@ -14,3 +14,4 @@ requires = Array[String]([])
 max_stacks = 1
 rule_id = &"crowd_breaker"
 extra_rules = Array[StringName]([&"crush"])
+in_start_pool = false
