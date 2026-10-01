@@ -217,6 +217,21 @@ static func lift_tip(tip: Control, host: Node) -> void:
 
 # Where a tip goes: above-right of the pointer, flipped left / below at the screen edges, so it never
 # covers the text under the pointer.
+# A tip anchored to its control (story chat, user 2026-10-01: "the text is not placed over the hovered
+# icon"): centred above `anchor` (a rect in viewport coordinates, see canvas_rect), flipped below when
+# there's no room above, clamped on screen.
+const TIP_GAP := 8.0
+static func tip_beside(anchor: Rect2, tip_size: Vector2, screen: Vector2) -> Vector2:
+	var at := Vector2(anchor.get_center().x - tip_size.x / 2.0, anchor.position.y - tip_size.y - TIP_GAP)
+	if at.y < 4.0:
+		at.y = anchor.end.y + TIP_GAP
+	return Vector2(clampf(at.x, 4.0, maxf(screen.x - tip_size.x - 4.0, 4.0)), clampf(at.y, 4.0, maxf(screen.y - tip_size.y - 4.0, 4.0)))
+
+# `control`'s rect in its viewport's coordinates (through CanvasLayers and the camera for world UI).
+static func canvas_rect(control: Control) -> Rect2:
+	var transform := control.get_global_transform_with_canvas()
+	return Rect2(transform.origin, control.size * transform.get_scale())
+
 static func tip_position(pointer: Vector2, tip_size: Vector2, screen: Vector2) -> Vector2:
 	var at := pointer + Vector2(16.0, -tip_size.y - 12.0)
 	if at.x + tip_size.x > screen.x - 4.0:
@@ -498,13 +513,18 @@ static func _wrap_tooltip(label: Label) -> void:
 	if panel == null:
 		return
 	panel.size = Vector2i(panel.get_contents_minimum_size())
-	# Above-right of the pointer, flipped at the edges, so it never covers the text being pointed at
-	# (screens_ui.md "tips are opaque"). The popup lives in window pixels, so the pointer is too.
+	# Anchored to the hovered control: above it, flipped below, clamped (tip_beside); else by the pointer.
+	# The tip is an embedded popup, so it lives in the root viewport's units, which the UI scale
+	# (canvas_items stretch) makes different from window pixels: everything here is in viewport units.
 	var window := panel.get_tree().root if panel.is_inside_tree() else null
 	if window == null:
 		return
-	var pointer := Vector2(DisplayServer.mouse_get_position() - DisplayServer.window_get_position())
-	panel.position = Vector2i(tip_position(pointer, Vector2(panel.size), Vector2(window.size)))
+	var screen := window.get_visible_rect().size
+	var hovered := window.gui_get_hovered_control()
+	if hovered != null:
+		panel.position = Vector2i(tip_beside(canvas_rect(hovered), Vector2(panel.size), screen))
+	else:
+		panel.position = Vector2i(tip_position(window.get_mouse_position(), Vector2(panel.size), screen))
 
 static func caps(label: Control, font_size: int = LABEL_SIZE, colour: Color = INK_DIM) -> void:
 	_font(label, caps_font(), font_size, colour)

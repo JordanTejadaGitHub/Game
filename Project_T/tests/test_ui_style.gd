@@ -34,6 +34,12 @@ func _initialize() -> void:
 	_check(UiStyle.dream_glyph(tagged) == &"bittersweet", "a card's glyph is the highest-priority tag (%s)" % UiStyle.dream_glyph(tagged))
 	_check(UiStyle.dream_glyph(UpgradeData.new()) == &"generic", "an untagged card gets the fallback glyph")
 	_check(UiStyle.dream_glyph_texture(&"spore") != null, "the glyph sheet has a spore cell")
+	# Tips anchor to their control: centred above, flipped below at the top, clamped at the sides.
+	var above := UiStyle.tip_beside(Rect2(600, 400, 32, 32), Vector2(200, 60), Vector2(1280, 800))
+	var below := UiStyle.tip_beside(Rect2(600, 10, 32, 32), Vector2(200, 60), Vector2(1280, 800))
+	var edge := UiStyle.tip_beside(Rect2(1250, 400, 24, 24), Vector2(200, 60), Vector2(1280, 800))
+	_check(above == Vector2(516, 332) and below.y == 50.0 and edge.x + 200.0 <= 1276.0,
+		"tips sit centred above their control, flip below, stay on screen (%s, %s, %s)" % [above, below, edge])
 	_scale_and_layout.call_deferred()
 
 # UI scale (UiStyle.apply_ui_scale): only the UI scales, never past its 1280×720 layout, and the

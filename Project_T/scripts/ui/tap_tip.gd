@@ -47,7 +47,11 @@ func toggle() -> void:
 	UiStyle.lift_tip(self, host)  # Above every panel and screen
 	visible = true
 	reset_size()
-	global_position = UiStyle.tip_position(pointer, size, get_viewport_rect().size)
+	# Anchored to the control it explains: above it, flipped below, clamped (UiStyle.tip_beside).
+	if host != null:
+		global_position = UiStyle.tip_beside(UiStyle.canvas_rect(host), size, get_viewport_rect().size)
+	else:
+		global_position = UiStyle.tip_position(pointer, size, get_viewport_rect().size)
 	_timer = SHOW_TIME
 
 func _process(delta: float) -> void:
