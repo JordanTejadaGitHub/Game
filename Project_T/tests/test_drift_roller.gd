@@ -25,6 +25,23 @@ func _run() -> void:
 	for n in range(6, director.drifts.size() + 1):
 		rolled_any = rolled_any or DriftRoller.template_of(director, n) != &""
 	_check(director.random_drifts and rolled_any, "DriftDirector rolls the drifts at startup")
+	# Guaranteed elites skip a kind on its intro drift (human run 5): drift 31 teaches the Phantom
+	var phantom: EnemyData = load("res://resource/enemy/dandelion_seed.tres")
+	var intro := [[0.0, phantom, false], [1.0, phantom, false], [2.0, phantom, false], [3.0, phantom, false]]
+	for attempt in 20:
+		var schedule := intro.duplicate(true)
+		director.add_guaranteed_elite(schedule, 31)
+		if schedule.any(func(a: Array) -> bool: return a.size() > 2 and a[2]):
+			_check(false, "drift 31 (the Phantom's intro): no elite Phantom")
+			break
+	var shade: EnemyData = load("res://resource/enemy/leaf_bug.tres")
+	var mixed := [[0.0, phantom, false], [1.0, shade, false], [2.0, phantom, false]]
+	director.add_guaranteed_elite(mixed, 31)
+	_check(mixed.any(func(a: Array) -> bool: return a.size() > 2 and a[2] and a[1] == shade),
+		"on its intro drift the elite goes to another kind")
+	var later := intro.duplicate(true)
+	director.add_guaranteed_elite(later, 32)
+	_check(later.any(func(a: Array) -> bool: return a.size() > 2 and a[2]), "a normal drift 32 still gets its elite")
 	var at_start := _describe(director)
 	director._roll_drifts()
 	_check(_describe(director) == at_start, "rolling the run's seed again (a resume) gives the same drifts")
