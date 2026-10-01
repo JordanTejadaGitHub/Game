@@ -405,7 +405,7 @@ right; the family tree should include the portraits"):
     Unlocked and grown forms are full brightness.
   - **A Grove-locked form's side panel stays locked too** (user, Frostfern: *"I don't have it
     unlocked, it should say locked and not have the picture when I click it"*): the panel shows the
-    **silhouette** (not the portrait), the name, the caption **"Locked"** and "Plant it in the Memory
+    **silhouette** (not the portrait), **"???" instead of the name** (user, same day: "remove the name and add ??? when locked"; also under the silhouette on the tree), the caption **"Locked"** and "Plant it in the Memory
     Grove". No description, stats or combos until the Grove plants it.
   - **The Ascended crown is hidden** until it can be unlocked this run: its Grove node planted **and**
     drift 51 reached. Before that there is no node and no line to it. From drift 51 it appears
