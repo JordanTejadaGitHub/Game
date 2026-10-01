@@ -382,7 +382,7 @@ func _make_attack(tower_name: String) -> Image:
 # Tall Wardens (64x96 frames, the body's 64x64 frame in the bottom 64 rows; the 32 rows above hold
 # what rises over it). In game: TowerData.sprite_offset (0, -16) keeps the slab on its cell, and the
 # attacks.json point stays in body-frame pixels (it's measured from the body, not the tall frame).
-const TALL_WARDENS := ["beacon", "thunderhead", "wellspring", "elf_circle", "starcave", "snugroot", "grafted_elder", "midsummer", "puffball"]
+const TALL_WARDENS := ["beacon", "thunderhead", "wellspring", "elf_circle", "starcave", "snugroot", "grafted_elder", "midsummer", "puffball", "monsoon"]
 const TALL_H := 96
 
 func _frame_h(tower_name: String) -> int:
@@ -2464,7 +2464,7 @@ func _draw_monsoon(canvas: Image, st: Dictionary) -> void:
 	var mask := _draw_template_figure(canvas, st.pose, fig)
 	_water_gloss(canvas, mask, st, fig)
 	_golem_face(canvas, st, fig)
-	_cloud(canvas, Vector2(30.5, 3 + dy), 24, _ramp(["#4a5a80", "#6a7aa0", "#9aaac8", "#c8d4e8"]), Color("#1e2a48"))
+	# Its rain cloud hovers above it in the tall rows (_tall_monsoon); the rain falls past its head.
 	_rain(canvas, st, 7)
 
 func _rain(canvas: Image, st: Dictionary, n: int, color: Color = Color("#9ad4ff")) -> void:
@@ -2757,6 +2757,28 @@ func _tall_puffball(back: Image, front: Image, st: Dictionary) -> void:
 		_px(front, int(p.x), int(p.y), Color("#f0eaff", 1.0 - t * 0.7))
 		if k % 2 == 0:
 			_px(front, int(p.x) + 1, int(p.y), Color("#b4a0ee", 1.0 - t * 0.7))
+
+# Monsoon's tall rows: a broad, flat rain cloud hovering above it (not Thunderhead's tall column), heavy
+# rain falling from it in slanted sheets onto the Warden.
+func _tall_monsoon(back: Image, front: Image, st: Dictionary) -> void:
+	var dy: int = st.dy
+	var ramp := _ramp(["#4a5a80", "#6a7aa0", "#9aaac8", "#c8d4e8"])
+	var o := Color("#1e2a48")
+	var c := Vector2(31, 14 + dy)
+	var cloud := _layer()
+	_ellipse(cloud, c, Vector2(15, 5), ramp)
+	_ellipse(cloud, c + Vector2(-8, -3), Vector2(7, 5), ramp)
+	_ellipse(cloud, c + Vector2(6, -4), Vector2(8, 6), ramp)
+	_ellipse(cloud, c + Vector2(13, 0), Vector2(5, 4), ramp)
+	_stamp(front, cloud, o)
+	for x in range(int(c.x) - 13, int(c.x) + 14):
+		if front.get_pixel(x, int(c.y) + 4).a > 0.0 and front.get_pixel(x, int(c.y) + 4) != o:
+			front.set_pixel(x, int(c.y) + 4, ramp[0])  # its dark rainy underside
+	for k in 9:
+		var x := int(c.x) - 12 + k * 3
+		var y0: int = int(c.y) + 6 + ((st.f * 4 + k * 7) % 18)
+		for i in 3:
+			_px(back, x - i / 2 - (y0 + i) / 12, y0 + i, Color("#9ad4ff", 0.9 - i * 0.2))
 
 # Lanternmoth: an amber lantern golem with soft moth wings, feathery antennae and a warm light
 # glowing in its chest.
