@@ -597,8 +597,11 @@ func _add_buff_lens_button() -> void:
 	buff_lens_button.toggle_mode = true
 	buff_lens_button.focus_mode = Control.FOCUS_NONE
 	_place_top_button(buff_lens_button, BUFFS_SLOT)
+	_boosts_glyph(false)  # Off at the start of a run
 	buff_lens_button.process_mode = Node.PROCESS_MODE_ALWAYS
-	buff_lens_button.toggled.connect(func(pressed: bool) -> void: BuffLens.set_on(get_tree(), pressed))
+	buff_lens_button.toggled.connect(func(pressed: bool) -> void:
+		BuffLens.set_on(get_tree(), pressed)
+		_boosts_glyph(pressed))
 	add_child(buff_lens_button)
 
 # Puts a top-right button in its slot ([right, width]) of the row under the resources.
@@ -939,6 +942,12 @@ func _on_slot_down(button: Button, data: TowerData) -> void:
 # top-right patch: each kind's pip (BuffOverlay.draw_pip) and name, hoverable and tappable.
 var boosts_legend: VBoxContainer  # (tests)
 var _legend_key := ""
+
+# The Boosts toggle's glyph (UI Asset c2a2a600): a grey arrow off, the gold one with sparkles on.
+func _boosts_glyph(on: bool) -> void:
+	var glyph := IconInfo.hud_icon(&"boosts_on" if on else &"boosts_off")
+	if glyph != null:
+		buff_lens_button.icon = glyph
 
 func _update_boosts() -> void:
 	var sources := BuffOverlay.has_local_sources(self)

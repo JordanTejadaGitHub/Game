@@ -683,6 +683,14 @@ func _run() -> void:
 	var boosts_button := order_hud.get_node("BuffLensButton") as Button
 	_check(boosts_button.visible == (BuffOverlay.has_local_sources(order_hud) or boosts_button.button_pressed),
 		"the Boosts button shows only with a boost source on the map (%s)" % boosts_button.visible)
+	# Its glyph follows the toggle (UI Asset c2a2a600): grey arrow off, gold with sparkles on.
+	var glyph_region := func() -> Rect2: return (boosts_button.icon as AtlasTexture).region if boosts_button.icon is AtlasTexture else Rect2()
+	var off_region: Rect2 = glyph_region.call()
+	boosts_button.button_pressed = true
+	var on_region: Rect2 = glyph_region.call()
+	boosts_button.button_pressed = false
+	_check(off_region == (IconInfo.hud_icon(&"boosts_off") as AtlasTexture).region and on_region == (IconInfo.hud_icon(&"boosts_on") as AtlasTexture).region
+		and glyph_region.call() == off_region, "the Boosts glyph: off, then on while pressed, then off again")
 	_check(idx.call("PauseMenu") == order_hud.get_child_count() - 1, "…and the pause menu stays on top after the legend is made")
 	# The field cap: nightmares waiting in the start mist show as "+N" over it.
 	var mist := main.get_node_or_null("MistCount") as MistCount
