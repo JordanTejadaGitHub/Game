@@ -430,6 +430,8 @@ health (0.7%) left cost all 18 leaves, the same as 3,400. The bot now covers the
 - **The Night Mare keeps its own laps** (untouchable lingers that drain, then another lap).
 - This replaces enemy_design.md's "A boss that reaches the Heartwood stays" for every boss but the Oak.
   Act 1's target "always-skip loses to the boss" now has to come from leaks before 25 plus the 8.
+- **Leaf Fall is never offered for a block with a boss drift** (its ×2 would make the bite 16–24
+  leaves: a boss must never one-shot the run).
 
 ## Later
 
