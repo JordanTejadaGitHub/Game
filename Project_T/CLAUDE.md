@@ -292,8 +292,8 @@ accessibility, Steam achievements (milestones map to them). Acts 3–4 and all f
   `act_break_leaves`, `DreamState.skip_dew` / `lean_common`, `MetaRun.clear_cost_multiplier()`.
   `RunState.seed_bonus` adds a Seeds line. `RunSaver` saves `sprout_charges` / `free_nurtures`.
 - Family Blessings: `resource/meta/blessing/blessing_<family>.tres` (UpgradeData, +25% damage and
-  25% cheaper growth for that family), put in the Dream pool by MetaRun (never offered); the family
-  pick fills empty slots with them.
+  25% cheaper growth for that family): Rare Dream cards in the start pool (requires the family,
+  max_stacks 1, min_act 2, so offered from act 2). The family pick no longer fills slots with them.
 - `scenes/grove.tscn` (`grove_screen.gd`): `GroveTreeView` (the art from `assets/meta/`, layered
   sky → tree → canopy stage (by `grown_share`, crossfades) → branches → dream-fruit → waystones →
   nodes; pan / wheel / pinch zoom, tap only), node card + Plant (planting grows the branch 1→4, then
