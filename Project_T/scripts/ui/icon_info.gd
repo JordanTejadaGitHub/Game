@@ -198,7 +198,18 @@ static func format(text: String) -> String:
 		for found in family_pattern().search_all(text):
 			var data := family_data(found.get_string(1))
 			text = text.replace(found.get_string(), data.display_name if data != null else found.get_string(1).capitalize())
+	if text.contains("{combo:"):  # A combo (or Crowned Reaction): its name, or ??? until discovered
+		for found in _combo_pattern().search_all(text):
+			var id := StringName(found.get_string(1))
+			var combo := CodexData.get_any(id)
+			text = text.replace(found.get_string(), combo.get("name", "???") if not combo.is_empty() and CodexData.is_discovered(id) else "???")
 	return text
+
+static var _combo_regex: RegEx = null
+static func _combo_pattern() -> RegEx:
+	if _combo_regex == null:
+		_combo_regex = RegEx.create_from_string("\\{combo:([a-z_]+)\\}")
+	return _combo_regex
 
 # Family names as links (screens_ui.md "remove Half-dreamed"): "{family:dewdrop}" is the family's
 # name, a link (StatusLinks) whose popup is its emblem, damage type and identity.
