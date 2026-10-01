@@ -194,9 +194,9 @@ func _test_rewards(main: Node) -> void:
 	omens._offer_waiting = false
 
 	# Dry Spell: no Dew during the block; at its rest, the block's base pot ×1.25 (cut by leaves lost like any reward)
-	var base_pot := 0.0
+	var base_pot := 0.0  # What the block would really have paid: the player's own multipliers, not Dry Spell's ×0
 	for n in range(11, 16):
-		base_pot += director.get_dew_pot(n)
+		base_pot += director.get_dew_pot(n) * director.get_dew_pot_multiplier(n, false, false)
 	_activate(omens, "dry_spell", 3)
 	dew = run_state.dew
 	omens._on_rest_started(3, false, 50, true)
@@ -208,6 +208,25 @@ func _test_rewards(main: Node) -> void:
 	dew = run_state.dew
 	omens._on_rest_started(3, false, 50, true)
 	_check(run_state.dew == dew + floori(roundi(base_pot * 1.25) * 0.75), "…one leaf lost: 75%% of it (+%d)" % (run_state.dew - dew))
+	omens.current_offer = []
+	omens._offer_waiting = false
+	# With Morning Dew (+10% pot), the payback is the pot the block would really have paid: base × 1.1 × 1.25,
+	# recorded as each drift starts (never Dry Spell's own ×0)
+	var plain_pot := 0.0
+	for n in range(11, 16):
+		plain_pot += director.get_dew_pot(n)
+	for card in dreams.pool:
+		if card.id == "morning_dew":
+			dreams.take(card)
+	_activate(omens, "dry_spell", 3)
+	for n in range(11, 16):
+		omens._on_drift_started(n)
+	_check(is_equal_approx(director.get_effective_pot(12), 0.0), "…the block itself pays nothing")
+	dew = run_state.dew
+	omens._on_rest_started(3, false, 50, true)
+	_check(abs(run_state.dew - dew - plain_pot * 1.1 * 1.25) <= 1.0,
+		"Dry Spell with Morning Dew: the real pot ×1.25 (+%d, expected ~%.0f)" % [run_state.dew - dew, plain_pot * 1.1 * 1.25])
+	dreams.stacks.erase("morning_dew")
 	omens.current_offer = []
 	omens._offer_waiting = false
 
@@ -248,6 +267,7 @@ func _activate(omens: OmenDirector, id: String, block: int) -> void:
 			omens.active = omen
 			omens.active_block = block
 			omens._leaves_lost_at_start = omens.run_state.leaves_lost  # A clean block so far
+			omens._withheld.clear()
 			return
 	_check(false, "Omen %s exists" % id)
 

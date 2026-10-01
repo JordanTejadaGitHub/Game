@@ -370,6 +370,9 @@ func _crumble_thornwall() -> void:
 # Shifting Ground: Withered Trees sprout on free cells at the start of its block (once).
 # Second Path: its Thornwall crumbles at the start of its block (once).
 func _on_drift_started(number: int) -> void:
+	if is_active_for(number) and active.reward_pot_multiplier > 0.0:
+		_withheld[number] = drift_director.get_dew_pot(number) \
+			* drift_director.get_dew_pot_multiplier(number, drift_director.is_calling_early(), false)
 	if is_active_for(number) and active.crumble_thornwall and _crumbled_block != active_block:
 		_crumbled_block = active_block
 		_crumble_thornwall()
@@ -407,6 +410,7 @@ func choose(omen: OmenData) -> void:
 		active = omen
 		active_block = current_offer_block
 		_leaves_lost_at_start = run_state.leaves_lost
+		_withheld.clear()
 		var drifts := get_block_range(active_block)
 		omen_started.emit(omen, drifts.x, drifts.y)
 	current_offer = []
@@ -505,8 +509,14 @@ func get_pot_reward(omen: OmenData, block: int) -> int:
 	var drifts := get_block_range(block)
 	var pot := 0.0
 	for number in range(drifts.x, drifts.y + 1):
-		pot += drift_director.get_dew_pot(number)
+		# Started: what it would really have paid (the player's own multipliers, called early or not); still to come:
+		# today's multipliers, not called early. Never Dry Spell's own ×0.
+		pot += _withheld.get(number, drift_director.get_dew_pot(number) * drift_director.get_dew_pot_multiplier(number, false, false))
 	return roundi(pot * omen.reward_pot_multiplier)
+
+# Dry Spell: each of its drifts' real pot without the Omen (Rich Dew, Morning Dew, Call of the Wild if called early,
+# Blight), recorded as the drift starts. {drift number: pot}; saved.
+var _withheld := {}
 
 func _pay_reward(rest_bonus: int) -> void:
 	var lost := leaves_lost_in_block()
@@ -592,6 +602,7 @@ func to_save() -> Dictionary:
 		"last_offer": _last_offer_ids.duplicate(), "tree_seed_bonus": tree_seed_bonus, "sprouted_block": _sprouted_block,
 		"crumbled_block": _crumbled_block, "locked_cells": locked_cells.map(func(c: Vector2) -> Array: return [c.x, c.y]),
 		"leaves_lost_at_start": _leaves_lost_at_start, "trampled_drift": _trampled_drift,
+		"withheld": _withheld.keys().map(func(k: int) -> Array: return [k, _withheld[k]]),
 		"offer": current_offer.map(func(o: OmenData) -> String: return o.id), "offer_block": current_offer_block,
 		"faced": faced,
 		"rng_state": str(_rng.state)}
@@ -606,6 +617,9 @@ func load_save(data: Dictionary) -> void:
 	locked_cells.assign(Array(data.get("locked_cells", [])).map(func(c: Array) -> Vector2: return Vector2(c[0], c[1])))
 	_leaves_lost_at_start = int(data.get("leaves_lost_at_start", 0))
 	_trampled_drift = int(data.get("trampled_drift", 0))
+	_withheld.clear()
+	for pair in data.get("withheld", []):
+		_withheld[int(pair[0])] = float(pair[1])
 	# An offer still open at a save comes back as the Omen screen
 	current_offer = []
 	showing = false

@@ -518,7 +518,8 @@ func get_dew_pot(number: int) -> float:
 # What multiplies the pot: Dream cards (Morning Dew; Call of the Wild when called early) and Omens
 # (Bountiful Night, Blood Moon, Dry Spell), Rich Dew (Grove dew_gain) and a Blight Dew cut. Catchers, call-early
 # Dew and rest bonuses come on top instead.
-func get_dew_pot_multiplier(number: int, called_early: bool = false) -> float:
+# `with_omen` false: everything but the active Omen's factor (Dry Spell pays back what the block would have held).
+func get_dew_pot_multiplier(number: int, called_early: bool = false, with_omen: bool = true) -> float:
 	var multiplier := 1.0
 	if run_state != null:  # Rich Dew (Grove dew_gain, +5% a level): the pot, not each nightmare (run_design.md, fixed)
 		multiplier *= 1.0 + run_state.dew_gain_bonus
@@ -527,7 +528,7 @@ func get_dew_pot_multiplier(number: int, called_early: bool = false) -> float:
 	if dreams != null and dreams.has_method("get_dew_pot_multiplier"):
 		multiplier *= dreams.get_dew_pot_multiplier(number, called_early)
 	var omens := get_tree().get_first_node_in_group(OmenDirector.GROUP) if is_inside_tree() else null
-	if omens != null and omens.has_method("get_dew_pot_multiplier"):
+	if with_omen and omens != null and omens.has_method("get_dew_pot_multiplier"):
 		multiplier *= omens.get_dew_pot_multiplier(number)
 	return multiplier
 
