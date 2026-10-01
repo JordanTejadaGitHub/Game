@@ -72,6 +72,7 @@ var _keep: Array = []  # The edited EnemyData, held so the cache keeps them
 var act1_boss := ""  # --boss=night_mare: act 1's boss forced (DriftDirector.preset_bosses); "" = the default draw
 var aura_placement := true  # --no-aura: place and grow aura Wardens (Acorn, Elder Stump, Grove Heart, Moon Moth) by path only
 var kin_placement := true  # --no-kin: no Kinship placement, and growth takes the first open form in evolves_to (the old bot)
+var focus_mode := ""  # --focus=deep: Nurture picks Deep where it's offered and Potency cards score high (a committed Deep build)
 var kin_pairs := {}  # Drift -> Kinships on the map as it starts (kin_pairs_24 / kin_pairs_50 columns: as drifts 25 / 51 start)
 var dream_share := {}  # Drift -> the share of the maze's damage per second that the taken Dreams add (20, 25, 50, 75)
 var dreams_20 := ""  # The Dreams taken by drift 20 ("a+b")
@@ -142,6 +143,7 @@ func _run() -> void:
 			"--boss": act1_boss = value
 			"--no-aura": aura_placement = false
 			"--no-kin": kin_placement = false
+			"--focus": focus_mode = value
 			"--no-status-potency": Tower.status_potency_on = false  # The old status rules (87fb47fb A/B)
 			"--no-falloff": Reactions.chain_falloff_on = false  # Measure without chain falloff
 			"--director":
@@ -196,6 +198,7 @@ func _run() -> void:
 	policy.favored = favored
 	policy.on_offer = _note_offer
 	policy.branches_first = kin_placement
+	policy.deep = focus_mode == "deep"
 	policy.mode = dream_mode
 	policy.rng.seed = map_seed
 	omens = main.get_node_or_null("%OmenDirector")
@@ -503,6 +506,8 @@ func _nurture() -> bool:
 	towers.sort_custom(func(a, b) -> bool:
 		return a.rank < b.rank or (a.rank == b.rank and _coverage(a) > _coverage(b)))
 	var tower: Tower = towers[0]
+	if focus_mode == "deep" and tower.needs_focus() and tower.focus_options().has(Tower.Focus.DEEP):
+		return placer.nurture(tower, Tower.Focus.DEEP)  # --focus=deep
 	return placer.nurture(tower, tower.focus_options()[0] if tower.needs_focus() else Tower.Focus.NONE)  # Power; support Wardens Wide
 
 func _family_count(base: TowerData) -> int:
@@ -676,6 +681,7 @@ func _finish() -> void:
 	summary.auras_24 = auras_24
 	summary.heart_cover_24 = heart_cover_24
 	summary.status_potency = Tower.status_potency_on
+	summary.focus = focus_mode
 	summary.merge(_status_columns())
 	summary.forms = _form_column()
 	summary.kin_pairs_24 = kin_pairs.get(25, -1)
@@ -799,9 +805,12 @@ class FavorPolicy extends DreamSimPolicy:
 	# damage, attack speed and Potency cards first, economy last (act 1 "damage-first")
 	var rng := RandomNumberGenerator.new()
 	var on_offer: Callable  # The runner logs each offer (Dream pool size, build relevance)
+	var deep := false  # --focus=deep: Potency cards first
 
 	func score(card: UpgradeData) -> float:
 		var value := super.score(card) + (FAVOR if favored.has(card.id) else 0.0)
+		if deep and (card.potency_bonus > 0.0 or card.tags.has("potency")):
+			value += 500.0  # A committed Deep build takes its Potency cards
 		if mode == "damage":
 			value += 1000.0 * (card.soothe_bonus + card.attack_speed_bonus + card.potency_bonus + 0.5 * card.status_strength_bonus)
 			if card.dew_now > 0 or card.rest_bonus_add > 0 or card.dew_per_clear > 0 or card.evolve_discount > 0.0 or card.set_cost > 0:
