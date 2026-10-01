@@ -396,7 +396,9 @@ Decisions:
    pot ×1.25**, cut by leaves lost like any reward (25% per leaf). The twist becomes "build without
    income, get paid late"; the ×1.5 rest bonus goes.
 5. Fixed Dew rewards are in scale (≤ one drift's pot); Tramplers +50 and Stubborn Blight +40 stay.
-6. The sim's `omen_dew` should count the pot multipliers' extra (or loss) too.
+6. The sim's `omen_dew` should count the pot multipliers' extra (or loss) too (321811ef).
+   In the game: e5de9471 (rewards, Bountiful / Blood Moon, Dry Spell) and bd507e42 (Dry Spell pays the
+   pot the block would really have paid, with the player's own multipliers, × 1.25).
 
 ## Later
 
