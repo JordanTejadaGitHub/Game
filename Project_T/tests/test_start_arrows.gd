@@ -42,7 +42,22 @@ func _run() -> void:
 	for i in count - 1:  # Along the route they're exactly `spacing` apart; straight-line gaps can only be shorter (corners)
 		even = even and gaps[i] <= spacing + 0.5
 	_check(even and spacing >= 2.0 * StartArrows.CELL and spacing <= 4.0 * StartArrows.CELL, "…evenly spaced along the route (%.0f px)" % spacing)
-	_check(StartArrows.SIZE * 2.0 <= 0.45 * StartArrows.CELL and StartArrows.BASE_ALPHA <= 0.45 and StartArrows.LIT_ALPHA <= 0.75, "…small and subtle")
+	# Visible (user: "can't see the arrows"): half a cell, 0.85 opacity, a dark outline around a gold fill
+	_check(is_equal_approx(StartArrows.SIZE * 2.0, 0.5 * StartArrows.CELL) and StartArrows.ALPHA >= 0.8, "…half a cell, clearly visible")
+	var sprite := StartArrows.make_chevron()
+	var colours := {}
+	for y in sprite.get_height():
+		for x in sprite.get_width():
+			var c := sprite.get_pixel(x, y)
+			if c.a > 0.0:
+				colours[c.to_html(false)] = true
+	_check(colours.has(Palette.DREAD.to_html(false)) and colours.has(Palette.GOLD.to_html(false)) and colours.has(Palette.GLOW.to_html(false)),
+		"…a pixel chevron: dark outline, gold fill, a lighter top edge (%s)" % colours.keys())
+	var first: Vector2 = arrows._point_at(fposmod(arrows._age * StartArrows.MARCH_SPEED, arrows._spacing))
+	for i in 30:
+		await process_frame
+	var later: Vector2 = arrows._point_at(fposmod(arrows._age * StartArrows.MARCH_SPEED, arrows._spacing))
+	_check(arrows._still or not first.is_equal_approx(later), "…and they march along the route (%s → %s)" % [first, later])
 	_check(arrows.z_index < 0, "…drawn under the build ghost's route preview")
 	# Planting changes the route: they follow it live
 	var blocked := Vector2(-1, -1)
