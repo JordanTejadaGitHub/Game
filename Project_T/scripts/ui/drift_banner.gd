@@ -149,6 +149,8 @@ func _draw_boss_bar(font: Font, center_x: float) -> void:
 		var at_text := "%s · at the Heartwood" % _boss.enemy_data.display_name
 		if _boss.has_method("linger_left") and _boss.linger_left() > 0.0:  # The Night Mare lingers, then laps on
 			at_text = "%s · At the Heartwood: %d s" % [_boss.enemy_data.display_name, ceili(_boss.linger_left())]
+		if _boss.has_method("is_untouchable") and _boss.is_untouchable():  # Can't be hit while it lingers
+			at_text += " · Untouchable"
 		_draw_centered(font, at_text, Vector2(center_x, bar.end.y + 16),
 			SMALL_FONT_SIZE, UiStyle.POOR)
 		return
