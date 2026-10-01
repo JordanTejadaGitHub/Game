@@ -372,21 +372,69 @@ static func rarity_color(rarity: int) -> Color:
 
 # The rarity gem (screens_ui.md: shape AND colour): Common circle, Uncommon diamond, Rare hexagon,
 # Legendary star, `r` px from the centre.
-static func draw_gem(canvas: CanvasItem, centre: Vector2, r: float, rarity: int) -> void:
+# With `glyph` (a dream_glyph id, UI Asset's assets/ui/dream_glyphs.png): the gem is dark (Night) with
+# the rarity colour on its rim and shape, and the light glyph sits inside at ×2 (16 px; needs r ≥ 11).
+static func draw_gem(canvas: CanvasItem, centre: Vector2, r: float, rarity: int, glyph: StringName = &"") -> void:
 	var colour := rarity_color(rarity)
 	var dark := Color(FOG, 0.9)
+	var with_glyph := glyph != &""
+	var fill := CARD_BG if with_glyph else colour
+	var rim := colour if with_glyph else dark
 	if rarity == 0:
-		canvas.draw_circle(centre, r, dark)
-		canvas.draw_circle(centre, r - 2.0, colour)
-		return
-	var corners: int = {1: 4, 2: 6}.get(rarity, 10)
-	var points := PackedVector2Array()
-	for i in corners:
-		var radius := r if corners < 10 or i % 2 == 0 else r * 0.5  # Legendary: a star
-		points.append(centre + Vector2.from_angle(TAU * i / corners - PI / 2.0) * radius)
-	canvas.draw_colored_polygon(points, colour)
-	points.append(points[0])
-	canvas.draw_polyline(points, dark, 2.0, true)
+		canvas.draw_circle(centre, r, rim if with_glyph else dark)
+		canvas.draw_circle(centre, r - 2.0, fill)
+	else:
+		var corners: int = {1: 4, 2: 6}.get(rarity, 10)
+		var points := PackedVector2Array()
+		for i in corners:
+			var radius := r if corners < 10 or i % 2 == 0 else r * 0.5  # Legendary: a star
+			points.append(centre + Vector2.from_angle(TAU * i / corners - PI / 2.0) * radius)
+		canvas.draw_colored_polygon(points, fill)
+		points.append(points[0])
+		canvas.draw_polyline(points, rim, 2.0, true)
+	if with_glyph:
+		var art := dream_glyph_texture(glyph)
+		if art != null:
+			var side := Vector2(16, 16) if r >= 11.0 else Vector2(8, 8)  # Whole-number scale only
+			canvas.draw_texture_rect(art, Rect2((centre - side / 2.0).round(), side), false)
+
+# Dream card glyphs (UI Asset, assets/ui/dream_glyphs.json): the first `priority` id any of the card's
+# tags maps to, else `fallback`. Every gem caller uses this, so a card shows the same glyph everywhere.
+const DREAM_GLYPHS := "res://assets/ui/dream_glyphs"
+static var _glyph_data := {}  # The parsed JSON: plain data only, never textures (exit crash)
+
+static func dream_glyph(card: UpgradeData) -> StringName:
+	var data := _glyphs()
+	if data.is_empty() or card == null:
+		return &""
+	var tags: Dictionary = data.get("tags", {})
+	var mapped := {}
+	for tag in card.tags:
+		if tags.has(tag):
+			mapped[tags[tag]] = true
+	for id in data.get("priority", []):
+		if mapped.has(id):
+			return StringName(id)
+	return StringName(data.get("fallback", "generic"))
+
+# The glyph's 8×8 cell of the sheet (a new AtlasTexture: cache it on the caller's instance if drawn often).
+static func dream_glyph_texture(id: StringName) -> Texture2D:
+	var data := _glyphs()
+	var icons: Dictionary = data.get("icons", {})
+	if not icons.has(String(id)) or not ResourceLoader.exists(DREAM_GLYPHS + ".png"):
+		return null
+	var frame := int(data.get("frame_size", 8))
+	var atlas := AtlasTexture.new()
+	atlas.atlas = load(DREAM_GLYPHS + ".png")
+	atlas.region = Rect2(int(icons[String(id)]) * frame, 0, frame, frame)
+	return atlas
+
+static func _glyphs() -> Dictionary:
+	if _glyph_data.is_empty() and FileAccess.file_exists(DREAM_GLYPHS + ".json"):
+		var parsed = JSON.parse_string(FileAccess.get_file_as_string(DREAM_GLYPHS + ".json"))
+		if parsed is Dictionary:
+			_glyph_data = parsed
+	return _glyph_data
 
 # The display face at `font_size`, keeping the control's colour.
 static func display(control: Control, font_size: int = TITLE_SIZE) -> void:
