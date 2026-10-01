@@ -21,6 +21,7 @@ points.
 
 ## Placement cards show a diagram (2026-09-30)
 
+**Revised: a living mini-scene, not a static diagram** (2026-10-01, user: *"the visual tool isn't really helpful when hovering; can it be like a mini video of gameplay?"*). The hover panel plays a **looping 4–6 s mini-scene with the real sprites** in a small SubViewport, built from the card's existing `diagram` layout (no recorded video, so it follows art and balance changes and costs no file size): nightmares walk the diagram's path, the **qualifying Warden** attacks with its **boosted damage numbers in gold** (e.g. "×2" for Heart of the Maze), the non-qualifying one attacks normally in white, and the caption names the difference. Statuses and Reactions show with their real effects where the card is about them. Stops when the hover ends; reduced motion = the still diagram. Placement cards first, then status / Reaction cards.
 User: *"confusing cards like Crossroads should have a diagram of what that looks like when you
 hover."* Cards whose condition is about **where** a Warden stands get a small map picture:
 - **Shown on hover** of the card (Dream offer, Dreams this run, Codex) and on **long-press** on touch,
