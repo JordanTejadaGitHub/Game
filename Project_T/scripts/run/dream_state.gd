@@ -2456,19 +2456,69 @@ func _sample_drift(delta: float) -> void:
 	var enemies: Array = spawner.get_enemies()
 	if enemies.is_empty():
 		return
-	var attackers := _towers().filter(func(t: Tower) -> bool: return t.tower_data.can_attack)
-	var in_range := 0.0
-	for tower in attackers:
-		in_range += count_in_range(tower)
+	# The averages only feed live lines: a rotating slice of the attackers per sample is enough (perf:
+	# 200+ Wardens × 140 nightmares cost ~27 ms a sample when every Warden was counted).
+	var in_range := average_in_range()
 	if not _events_this_run.has(String(EVENT_CHARGED_DROWSY)) and enemies.any(func(e: Node2D) -> bool:
 			return e.statuses.has(EnemyStatuses.STATIC) and e.statuses.has(EnemyStatuses.DROWSY)):
 		note_discovery(EVENT_CHARGED_DROWSY)  # Discovery: Charged + Drowsy on one nightmare (Charged Bloom)
 	var alone := enemies.filter(func(e: Node2D) -> bool: return _is_alone(e)).size()
 	var near := enemies.filter(func(e: Node2D) -> bool: return is_near_heartwood(e)).size()
 	_drift_sums.samples += 1
-	_drift_sums.in_range += in_range / maxf(attackers.size(), 1.0)
+	_drift_sums.in_range += in_range
 	_drift_sums.alone += float(alone) / enemies.size()
 	_drift_sums.near += float(near) / enemies.size()
+
+const DRIFT_SAMPLE_WARDENS := 20  # Attacking Wardens counted per sample (rotating)
+var _sample_cursor := 0
+
+# Nightmares in an attacking Warden's range, averaged over a rotating slice of the attackers.
+func average_in_range() -> float:
+	var attackers := _towers().filter(func(t: Tower) -> bool: return t.tower_data.can_attack)
+	if attackers.is_empty():
+		return 0.0
+	var slice := mini(attackers.size(), DRIFT_SAMPLE_WARDENS)
+	var total := 0.0
+	for i in slice:
+		total += count_in_range(attackers[(_sample_cursor + i) % attackers.size()])
+	_sample_cursor = (_sample_cursor + slice) % attackers.size()
+	return total / slice
+
+# Nightmare positions bucketed by map cell, rebuilt at most once a frame (Crowded Path, Lone Hunter).
+var _bucket_frame := -1
+var _bucket_children := -1  # A spawn in the same frame rebuilds too
+var _buckets := {}  # {Vector2i cell: Array[Node2D]}
+
+func _enemy_buckets() -> Dictionary:
+	var frame := Engine.get_process_frames()
+	if frame != _bucket_frame or spawner.get_child_count() != _bucket_children:
+		_bucket_frame = frame
+		_bucket_children = spawner.get_child_count()
+		_buckets.clear()
+		var size: float = map_generator.MAP_GRID.cell_size.x
+		for enemy in spawner.get_enemies():
+			var cell := Vector2i((enemy.global_position / size).floor())
+			if not _buckets.has(cell):
+				_buckets[cell] = []
+			_buckets[cell].append(enemy)
+	return _buckets
+
+# Nightmares within `reach` px of `at` (minus `skip`); stops counting at `limit` (0 = no limit).
+func _count_near(at: Vector2, reach: float, skip: Node2D = null, limit: int = 0) -> int:
+	var buckets := _enemy_buckets()
+	var size: float = map_generator.MAP_GRID.cell_size.x
+	var low := Vector2i(((at - Vector2(reach, reach)) / size).floor())
+	var high := Vector2i(((at + Vector2(reach, reach)) / size).floor())
+	var reach_sq := reach * reach
+	var count := 0
+	for x in range(low.x, high.x + 1):
+		for y in range(low.y, high.y + 1):
+			for enemy in buckets.get(Vector2i(x, y), []):
+				if enemy != skip and is_instance_valid(enemy) and not enemy.is_cleansed and at.distance_squared_to(enemy.global_position) <= reach_sq:
+					count += 1
+					if limit > 0 and count >= limit:
+						return count
+	return count
 
 # Crowded Path: nightmares in the Warden's range right now.
 var _counting := false  # count_in_range asks the range, whose rows ask Crowded Path again
@@ -2478,20 +2528,13 @@ func count_in_range(tower: Tower) -> int:
 		return 0
 	_counting = true
 	var reach: float = tower.get_range_cells() * map_generator.MAP_GRID.cell_size.x
-	var count := 0
-	for enemy in spawner.get_enemies():
-		if tower.global_position.distance_to(enemy.global_position) <= reach:
-			count += 1
+	var count := _count_near(tower.global_position, reach)
 	_counting = false
 	return count
 
 # Lone Hunter: no other nightmare within 2 cells of `enemy`.
 func _is_alone(enemy: Node2D) -> bool:
-	var reach: float = LONE_HUNTER_CELLS * map_generator.MAP_GRID.cell_size.x
-	for other in spawner.get_enemies():
-		if other != enemy and other.global_position.distance_to(enemy.global_position) <= reach:
-			return false
-	return true
+	return _count_near(enemy.global_position, LONE_HUNTER_CELLS * map_generator.MAP_GRID.cell_size.x, enemy, 1) == 0
 
 # Glimmering Hunt: a dispelled elite has a 30% chance to drop a Dreamlight shard (10 = 1 Dreamlight),
 # up to 3 Dreamlight per run from this card, apart from the Great Dreamcatcher's shards and cap.

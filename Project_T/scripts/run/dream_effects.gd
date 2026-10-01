@@ -790,11 +790,7 @@ func _drift_line(rule: StringName, power: float) -> String:
 			var level := ds.rule_level(&"crowded_path") if ds.has_rule(&"crowded_path") else 0
 			var count: float
 			if live:
-				var towers := ds._towers().filter(func(t: Tower) -> bool: return t.tower_data.can_attack)
-				count = 0.0
-				for tower in towers:
-					count += ds.count_in_range(tower)
-				count /= maxf(towers.size(), 1.0)
+				count = ds.average_in_range()
 			else:
 				count = float(stats.in_range)
 			var bonus := minf(DreamState.CROWDED_PER[level] * count, DreamState.CROWDED_MAX[level]) * power
