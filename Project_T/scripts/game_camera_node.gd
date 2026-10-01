@@ -34,6 +34,12 @@ func _ready() -> void:
 	target_zoom = camera_2d.zoom
 	_view_zoom = camera_2d.zoom
 	camera_2d.zoom = _view_zoom / ui_factor()
+	# Open framed on the run: halfway between the start and the Heartwood (which now sits inland).
+	var map_generator = get_node_or_null("%MapGenerator")
+	if map_generator != null and map_generator.get("layout") != null:
+		target_position = (MAP_GRID.calculate_map_position(map_generator.startPath)
+			+ MAP_GRID.calculate_map_position(map_generator.endPath)) / 2.0
+		camera_2d.position = target_position
 
 var _glide_points := PackedVector2Array()  # Onboarding glide along the path (pixels)
 var _glide_time := 0.0

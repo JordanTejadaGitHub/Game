@@ -51,7 +51,7 @@ func draw():
 		var mask := _get_tile_score(cell)
 		if cell == cell_start_path:
 			mask |= _edge_mask(cell)
-		var on_rim := cell == cell_start_path or cell == cell_end_path  # Over the rim: no grass around the path
+		var on_rim := cell == cell_start_path  # Over the rim: no grass around the path (the Heartwood is inland)
 		set_cell(cell, EnvironmentTiles.PATH_RIM if on_rim else EnvironmentTiles.PATH, EnvironmentTiles.path_tile(mask))
 		if board != null:
 			board.environment_object_layer.wear_away(Vector2i(cell))  # The path wore the debris away

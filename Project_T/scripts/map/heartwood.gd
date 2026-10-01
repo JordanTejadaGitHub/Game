@@ -6,6 +6,7 @@ extends Sprite2D
 # Position it at the goal cell's centre; the sprite's bottom centre sits 8 px below the cell's bottom.
 # Its warm light (the warm side of art_direction.md's warm-vs-cold) flickers and fades as leaves are lost.
 
+const MAP_GRID = preload("res://resource/map/map_grid.tres")
 const BASE_BELOW_CELL := 8.0
 const LIGHT_COLOR := Palette.GLOW
 const LIGHT_ENERGY := 0.5
@@ -17,6 +18,17 @@ const GLOW_RADIUS := 230.0  # px
 const LIGHT_OFFSET := Vector2(0, -16)
 
 var run_state: RunState  # Optional: without one the tree stays whole
+# Inland, the canopy overhangs the 3 cells behind it (the row above): when a Warden or nightmare is
+# there, the tree fades to BEHIND_ALPHA so it stays visible (environment_assets.md "Inland Heartwood").
+# Only the sprite fades (self_modulate), not its light. Taps there still pick the cell (nothing here
+# takes input).
+const BEHIND_ALPHA := 0.5
+const FADE_RATE := 8.0
+const BEHIND_CHECK_EVERY := 0.1  # s
+var tower_container: Node  # Optional, for the fade
+var enemy_container: Node
+var _behind_check := 0.0
+var _behind := false
 var _frame_time := 0.0
 var _light_time := 0.0
 var _light: PointLight2D
@@ -52,6 +64,26 @@ func _process(delta: float) -> void:
 	var flicker := 1.0 + sin(_light_time * 2.3) * 0.04
 	_light.scale = Vector2.ONE * flicker
 	_glow.scale = Vector2.ONE * flicker * GLOW_RADIUS / (_glow.texture.get_width() / 2.0)
+	_behind_check -= delta
+	if _behind_check <= 0.0:
+		_behind_check = BEHIND_CHECK_EVERY
+		_behind = is_something_behind()
+	self_modulate.a = lerpf(self_modulate.a, BEHIND_ALPHA if _behind else 1.0, 1.0 - exp(-FADE_RATE * delta))
+
+# True when a Warden or a nightmare stands on one of the 3 cells the canopy covers (the row above).
+func is_something_behind() -> bool:
+	var grid: Grid = MAP_GRID
+	var cell := grid.calculate_grid_coordinates(position)
+	var behind: Array[Vector2] = [cell + Vector2(-1, -1), cell + Vector2(0, -1), cell + Vector2(1, -1)]
+	if tower_container != null:
+		for tower in tower_container.get_children():
+			if tower is Tower and (behind.has(tower.cell) or tower.get_cells().any(func(c: Vector2) -> bool: return behind.has(c))):
+				return true
+	if enemy_container != null and enemy_container.has_method("get_enemies"):
+		for enemy: Node2D in enemy_container.get_enemies():
+			if behind.has(grid.calculate_grid_coordinates(enemy.position)):
+				return true
+	return false
 
 # The tree is the same warm moss-gold in every act; only its sheet's folder changes.
 func set_act(act: int) -> void:

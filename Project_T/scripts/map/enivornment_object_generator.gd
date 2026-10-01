@@ -9,8 +9,8 @@ const BRIDGE_CELLS := 3  # Rope bridge from the start out into the void (DreamVo
 @export var rock_obstacle: ObstacleData = preload("res://resource/obstacle/rock.tres")
 @export_group("Trees")
 # Share of the noise range that becomes trees; each map rolls a value in this range.
-@export_range(0.0, 0.6) var tree_density_min: float = 0.13
-@export_range(0.0, 0.6) var tree_density_max: float = 0.24
+@export_range(0.0, 0.6) var tree_density_min: float = 0.08
+@export_range(0.0, 0.6) var tree_density_max: float = 0.16
 # Each map scales the noise frequency by a random factor in this range: low = big groves, high = small copses.
 @export var tree_cluster_scale_min: float = 1.1
 @export var tree_cluster_scale_max: float = 1.8
@@ -23,8 +23,8 @@ const BRIDGE_CELLS := 3  # Rope bridge from the start out into the void (DreamVo
 @export_group("Ridges")
 # Ridges are wobbly lines of rocks and trees running in from the left or right wall. They make the
 # starting route snake back and forth; clearing one of their cells opens a shortcut.
-@export var ridge_count_min: int = 2
-@export var ridge_count_max: int = 2  # The Wardens should build most of the maze, not the map
+@export var ridge_count_min: int = 3
+@export var ridge_count_max: int = 3  # As many as fit between the start and the inland Heartwood
 @export_range(0.1, 1.0) var ridge_length_min: float = 0.5  # Fraction of the map's width
 @export_range(0.1, 1.0) var ridge_length_max: float = 0.7
 @export var ridge_min_spacing: int = 4  # Rows between ridge centres (and walls); ridges span ±1, so keep >= 4
@@ -43,25 +43,20 @@ const BRIDGE_CELLS := 3  # Rope bridge from the start out into the void (DreamVo
 @export var ridge_stray_gap_min: int = 1  # Open columns before each stray
 @export var ridge_stray_gap_max: int = 2
 @export_group("Layouts")
-@export_range(0.1, 1.0) var spine_length_min: float = 0.75  # INLET spine, fraction of the way across
-@export_range(0.1, 1.0) var spine_length_max: float = 0.85
 # SIDE layouts start mid-edge, so their ridges reach further across (more overlap = a longer zig-zag).
 @export_range(0.1, 1.0) var side_ridge_length_min: float = 0.65
 @export_range(0.1, 1.0) var side_ridge_length_max: float = 0.8
-# SIDE along the short axis has three ridges across a wider span: a little shorter, and fewer trees.
-@export_range(0.1, 1.0) var short_side_ridge_length_min: float = 0.65
-@export_range(0.1, 1.0) var short_side_ridge_length_max: float = 0.8
-@export_range(0.0, 1.0) var short_side_tree_scale: float = 0.35
 @export var feature_clearance: int = 3  # Feature cells stay at least this far (chessboard) from start and end
 const RUIN_STONES: Array[int] = [2, 3, 7]  # mossy_boulder.png: standing stone, cairn, ruined waystone
 # A gap in the first ridge sits at least this far inside the second ridge's reach, so going through it
 # still means doubling back that far. SIDE layouts (which start mid-edge) keep both ridges gap-free.
 const BEND_DEPTH := 4
+const RIDGE_END_GAP := 3  # Ridge rows keep this far from the start's row and the Heartwood's (its glade is ±1)
 # Pond blob sizes (half the ponds; the rest are 3×3 with corners dropped or an L, with pond_inner.png
 # drawing their inside corners).
 const POND_SIZES: Array[Vector2i] = [Vector2i(2, 3), Vector2i(3, 2), Vector2i(2, 3), Vector2i(3, 2), Vector2i(3, 3), Vector2i(2, 2)]
 const NEAR_ROUTE := 2  # A pond or ruin first tries to come this close (chessboard) to the opening route
-const NEAR_ROUTE_TRIES := 50
+const NEAR_ROUTE_TRIES := 120
 @onready var path_tile_map_layer: PathGenerator = %PathTileMapLayer
 
 var unwalkable_cells: PackedVector2Array
@@ -106,8 +101,6 @@ func generate_obstacles(rng: RandomNumberGenerator, skip_cells: PackedVector2Arr
 	noise.seed = rng.randi()
 	noise.frequency = _base_noise_frequency * rng.randf_range(tree_cluster_scale_min, tree_cluster_scale_max)
 	var density := rng.randf_range(tree_density_min, tree_density_max)
-	if layout != null and layout.short_side:
-		density *= short_side_tree_scale
 	_compute_noise_levels(noise, density)
 
 	var obstacles := {}
@@ -139,42 +132,33 @@ func _fill_to_minimum(rng: RandomNumberGenerator, skip_cells: PackedVector2Array
 			_place_obstacle(rng, cell, tree_obstacle if rng.randf() < 0.5 else rock_obstacle, obstacles)
 
 # Ridges are wobbly tapering lines of rocks and trees running in from a wall, laid out by the map's
-# layout (MapLayout, environment_assets.md "Map layouts"). They're generated in a frame where u runs
-# along the ridge and v across it (`_cell(u, v)`): ridges along x when the route mainly travels along y,
-# and along y when it travels along x. Each ridge has its own rock/tree mix. Diagonal wobbles still
-# block: creatures only move up/down/left/right.
-# CORNER and SIDE: 2-3 ridges across the route, from alternating walls, the first on the start's side.
-# One bend is guaranteed (game_design.md "The forest (map)"): the second ridge has no gaps, the first
-# only has gaps well inside where the second lies past it (BEND_DEPTH; none at all in SIDE layouts), and
-# the two always overlap, so any way past the first lands against the second's solid part and has to
-# double back. Later ridges gap freely.
-# INLET: a gap-free spine from the shared edge, between the start and the Heartwood (the U), plus 0-1
-# more from the far wall. Blight Level 9 adds one more ridge in either case.
+# layout (MapLayout, environment_assets.md "Map layouts" / "Inland Heartwood"). They're generated in a
+# frame where u runs along the ridge and v across it (`_cell(u, v)`): ridges run across the
+# start → Heartwood direction. Each ridge has its own rock/tree mix. Diagonal wobbles still block:
+# creatures only move up/down/left/right.
+# 2 ridges (+1 at Blight 9, as many as fit) on rows between the start and the Heartwood, from
+# alternating walls, the first nearest the start. One bend is guaranteed (game_design.md "The forest
+# (map)"): the second ridge has no gaps, the first only has gaps well inside where the second lies past
+# it (BEND_DEPTH; none at all for a SIDE start), and the two always overlap, so any way past the first
+# lands against the second's solid part and has to double back. Later ridges gap freely. Rows stay
+# RIDGE_END_GAP from the start's and the Heartwood's rows, so no ridge reaches the glade.
 func _generate_ridges(rng: RandomNumberGenerator, skip_cells: PackedVector2Array, obstacles: Dictionary) -> void:
 	_axis_u = layout.ridge_axis if layout != null else 0
-	if layout != null and layout.kind == MapLayout.Kind.INLET:
-		_inlet_ridges(rng, skip_cells, obstacles)
-	else:
-		_crossing_ridges(rng, skip_cells, obstacles)
-
-func _crossing_ridges(rng: RandomNumberGenerator, skip_cells: PackedVector2Array, obstacles: Dictionary) -> void:
 	var u_inner := _u_size() - 2  # Cells between the walls the ridges hang from
 	var count := rng.randi_range(ridge_count_min, ridge_count_max)
-	if layout != null and layout.short_side:
-		count += 1  # Top ↔ bottom is the short way across: one more ridge keeps the route as long
 	if MetaRun.blight_level >= 9:
 		count += blight_extra_ridges  # Blight Level 9: one extra ridge
-	var rows := _pick_ridge_rows(rng, count, _v_size())
-	if _v_of(_start) > _v_size() / 2:
+	var a := _v_of(_start)
+	var b := _v_of(_end)
+	var rows := _pick_ridge_rows(rng, count, mini(a, b) + RIDGE_END_GAP, maxi(a, b) - RIDGE_END_GAP)
+	if a > b:
 		rows.reverse()  # The first ridge is the one nearest the start
 	ridge_count = rows.size()
+	var side_start := layout != null and layout.kind == MapLayout.Kind.SIDE
 	var lengths: Array[int] = []
 	for ridge in rows.size():
-		var span := Vector2(ridge_length_min, ridge_length_max)
-		if layout != null and layout.kind == MapLayout.Kind.SIDE and layout.short_side:
-			span = Vector2(short_side_ridge_length_min, short_side_ridge_length_max)
-		elif layout != null and layout.kind == MapLayout.Kind.SIDE:
-			span = Vector2(side_ridge_length_min, side_ridge_length_max)
+		var span := Vector2(side_ridge_length_min, side_ridge_length_max) if side_start \
+			else Vector2(ridge_length_min, ridge_length_max)
 		lengths.append(int(u_inner * rng.randf_range(span.x, span.y)))
 	if rows.size() >= 2:
 		lengths[0] = mini(maxi(lengths[0], u_inner + 1 - lengths[1]), u_inner - 1)  # Overlap
@@ -182,39 +166,12 @@ func _crossing_ridges(rng: RandomNumberGenerator, skip_cells: PackedVector2Array
 	for ridge in rows.size():
 		# Cells (counted from this ridge's wall) where a gap may open: see the bend rule above.
 		var gaps_from := lengths[ridge]
-		if ridge == 0 and rows.size() >= 2 and not (layout != null and layout.kind == MapLayout.Kind.SIDE):
+		if ridge == 0 and rows.size() >= 2 and not side_start:
 			gaps_from = u_inner - lengths[1] + BEND_DEPTH  # Well inside where the second ridge lies past it
 		elif ridge >= 2:
 			gaps_from = 0
 		_ridge(rng, rows[ridge], from_low, lengths[ridge], gaps_from, skip_cells, obstacles)
 		from_low = not from_low
-
-func _inlet_ridges(rng: RandomNumberGenerator, skip_cells: PackedVector2Array, obstacles: Dictionary) -> void:
-	var u_inner := _u_size() - 2
-	var from_low := _u_of(_start) == 0  # The spine hangs from the shared edge
-	var a := _v_of(_start)
-	var b := _v_of(_end)
-	var spine_v := clampi((a + b) / 2 + rng.randi_range(-1, 1), mini(a, b) + 3, maxi(a, b) - 3)
-	var spine_length := int(u_inner * rng.randf_range(spine_length_min, spine_length_max))
-	_ridge(rng, spine_v, from_low, spine_length, spine_length, skip_cells, obstacles)  # No gaps
-	ridge_count = 1
-	var extras := rng.randi_range(0, 1) + (blight_extra_ridges if MetaRun.blight_level >= 9 else 0)
-	var halves: Array[int] = [a, b]
-	if rng.randf() < 0.5:
-		halves.reverse()
-	for extra in mini(extras, 2):
-		# From the far wall, halfway between the spine and the start or the Heartwood: the route has to
-		# climb over its tip on the way round.
-		var side: int = halves[extra]
-		var v := (side + spine_v) / 2
-		if absi(v - spine_v) < 3 or absi(v - side) < 2:
-			continue
-		# Capped so a passage of 2+ cells stays between its tip and the spine's: their bands can touch.
-		var length := mini(int(u_inner * rng.randf_range(0.3, 0.5)), u_inner - spine_length - 2)
-		if length < 3:
-			continue
-		_ridge(rng, v, not from_low, length, 0, skip_cells, obstacles)
-		ridge_count += 1
 
 # One tapering ridge: from the low-u wall (or the high one) `length` cells along u, wandering inside
 # its band (v_base ±1): a thicket/outcrop root, a two-row middle, a one-row tip, then a few strays.
@@ -295,10 +252,8 @@ func _generate_rock_clusters(rng: RandomNumberGenerator, skip_cells: PackedVecto
 				if rng.randf() < 1.0 - distance / (radius + 1.0):
 					_place_obstacle(rng, cell, rock_obstacle, obstacles)
 
-# Up to `count` rows, sorted, each at least `ridge_min_spacing` from the others and the walls.
-func _pick_ridge_rows(rng: RandomNumberGenerator, count: int, across: int) -> Array[int]:
-	var first := ridge_min_spacing
-	var last := across - 1 - ridge_min_spacing
+# Up to `count` rows between `first` and `last`, sorted, each at least `ridge_min_spacing` apart.
+func _pick_ridge_rows(rng: RandomNumberGenerator, count: int, first: int, last: int) -> Array[int]:
 	var rows: Array[int] = []
 	if last < first:
 		return rows
@@ -421,7 +376,7 @@ func _place_feature(rng: RandomNumberGenerator, skip: PackedVector2Array, obstac
 	# route as the ridges leave it; then anywhere, as before.
 	var shapes_route := layout.feature == MapLayout.Feature.POND or layout.feature == MapLayout.Feature.RUIN
 	var route := _provisional_route() if shapes_route else {}
-	for attempt in 80:
+	for attempt in 160:
 		var cells := _feature_shape(rng, layout.feature)
 		if cells.is_empty() or not cells.all(func(c: Vector2) -> bool: return _feature_cell_ok(c, skip, obstacles)):
 			continue
