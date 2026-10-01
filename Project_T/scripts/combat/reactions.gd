@@ -264,7 +264,7 @@ static func on_smother_ended(enemy: Node2D) -> void:
 	# catch the fever.
 	if not s.is_boss:
 		var was_asleep := s.is_asleep()
-		s.sleep_time = maxf(s.sleep_time, FEVER_SLEEP)
+		s.sleep(FEVER_SLEEP)
 		var singer := _tower_of(s.source(DROWSY), spore_source)
 		if singer != null and not was_asleep:
 			singer.put_to_sleep.emit(singer, enemy)  # Sound: the sleep drone

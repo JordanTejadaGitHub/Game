@@ -32,4 +32,4 @@ attack_texture = ExtResource("4_atk")
 attack_frame_count = 6
 attack_release_frame = 2
 evolves_to = Array[Resource]([ExtResource("asc_1")])
-potency = 1.3
+potency = 1.0

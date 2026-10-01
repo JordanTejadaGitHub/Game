@@ -43,6 +43,18 @@ const SPORE_TICK := 0.5  # Spored soothes in ticks this long
 const FOG_SPORE_BONUS := 0.5  # Spored ticks +50% while in fog (Mistveil)
 
 var is_boss := false
+var is_elite := false  # Deeply Blighted (Enemy sets it with is_boss): its own slow floor
+var slow_capped := false  # All slows together hit the floor ("Slowed to the limit" in the status UI)
+var sleep_cooldown := 0.0  # After waking, seconds before it can fall Asleep again
+var hold_cooldown := 0.0  # After a Hold ends, seconds before it can be Held again
+var _hold_just_ended := false  # The frame a Hold ran out (Snare's release-pull Hold may follow)
+const SLOW_FLOOR := 0.5
+const SLOW_FLOOR_ELITE := 0.6
+const SLOW_FLOOR_BOSS := 0.7
+const SLEEP_COOLDOWN := 4.0
+const SLEEP_COOLDOWN_BOSS := 8.0
+const HOLD_COOLDOWN := 1.5
+const HOLD_COOLDOWN_BOSS := 3.0
 var ignores_slows := false  # Drowned One: statuses still apply, they just don't slow it
 # From EnemyData: statuses that don't take, and {status id: duration multiplier}.
 var immune: Array[StringName] = []
@@ -155,6 +167,9 @@ func apply(id: StringName, stacks: int = 1, duration: float = 0.0, potency: floa
 		max_stacks: int = 0, line: String = "", source: Node = null) -> float:
 	if id in immune:
 		return 0.0
+	if id == HELD and hold_cooldown > 0.0 and not has(HELD) and not _hold_just_ended:
+		return 0.0  # Just shook off a Hold (an ongoing Hold can still be stretched; Snare's release-pull Hold, in
+		# the very frame the Hold ended, is the designed hold -> pull -> hold cycle and still lands)
 	var cap := get_max_stacks(id, max_stacks)
 	var status: Dictionary = _active.get(id, {"stacks": 0, "time": 0.0, "potency": 0.0})
 	var before: int = status.stacks
@@ -285,7 +300,11 @@ func get_speed_multiplier(extra_slow: float = 0.0) -> float:
 		slow += STAG_SLOW
 	if slow_time > 0.0:
 		slow += slow_amount
-	return maxf(1.0 - slow, 0.1)
+	# Slow and sleep have limits (tower_design.md, 2026-10-01): all slows together never take a nightmare below
+	# SLOW_FLOOR of its speed (bosses / elites higher). Full stops (Held, Asleep) are separate.
+	var floor_share := SLOW_FLOOR_BOSS if is_boss else (SLOW_FLOOR_ELITE if is_elite else SLOW_FLOOR)
+	slow_capped = 1.0 - slow < floor_share
+	return maxf(1.0 - slow, floor_share)
 
 # Soothe taken multiplier (Marked, and the White Stag's aura).
 func get_damage_taken_multiplier() -> float:
@@ -325,11 +344,18 @@ func tick(delta: float) -> float:
 		slow_time = maxf(slow_time - delta, 0.0)
 	if veil_time > 0.0:
 		veil_time = maxf(veil_time - delta, 0.0)
+	if sleep_cooldown > 0.0:
+		sleep_cooldown = maxf(sleep_cooldown - delta, 0.0)
+	_hold_just_ended = false
+	if hold_cooldown > 0.0:
+		hold_cooldown = maxf(hold_cooldown - delta, 0.0)
 	if sleep_time > 0.0:
 		if is_boss:
 			sleep_time = 0.0  # Bosses never sleep
 		elif sleep_locked_time <= 0.0:
 			sleep_time = maxf(sleep_time - delta, 0.0)  # Nightbloom's lock: sleep doesn't end
+			if sleep_time <= 0.0:
+				sleep_cooldown = SLEEP_COOLDOWN_BOSS if is_boss else SLEEP_COOLDOWN  # Awake: a breather first
 	if caught_time > 0.0:
 		caught_time = maxf(caught_time - delta, 0.0)
 	if cut_time > 0.0:
@@ -378,6 +404,9 @@ func tick(delta: float) -> float:
 		for id in expired:
 			_active.erase(id)
 			changes += 1
+			if id == HELD:
+				hold_cooldown = HOLD_COOLDOWN_BOSS if is_boss else HOLD_COOLDOWN  # A Hold ran out: a breather first
+				_hold_just_ended = true
 	if marked_extra != 0.0 and not has(MARKED):
 		marked_extra = 0.0
 	return spore_damage
@@ -415,3 +444,11 @@ func spore_credit() -> Array:
 		if is_instance_valid(entry[0]):
 			out.append([entry[0], float(entry[1]) / total])
 	return out
+
+# Puts it to sleep for `seconds` (longest wins), unless it woke less than SLEEP_COOLDOWN ago (or is a
+# boss). Every sleep source goes through here. Returns whether it's asleep now.
+func sleep(seconds: float) -> bool:
+	if is_boss or (sleep_cooldown > 0.0 and sleep_time <= 0.0):
+		return sleep_time > 0.0
+	sleep_time = maxf(sleep_time, seconds)
+	return true

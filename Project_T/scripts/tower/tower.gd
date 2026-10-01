@@ -1822,7 +1822,7 @@ func _put_to_sleep(enemy: Node2D) -> void:
 		return
 	s.dreamshroom_slept = true
 	var was_asleep := s.is_asleep()
-	s.sleep_time = maxf(s.sleep_time, attack_data.sleep_at_max_drowsy)
+	s.sleep(attack_data.sleep_at_max_drowsy)
 	ComboFeedback.report(&"asleep", self)  # Codex: Asleep
 	if not was_asleep:
 		put_to_sleep.emit(self, enemy)

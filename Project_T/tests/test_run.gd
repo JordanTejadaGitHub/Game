@@ -129,7 +129,7 @@ func _test_blocks_and_rests() -> void:
 	_check(is_equal_approx(director.get_health_scale(stag, 25), director.act1_boss_health_multiplier * director.get_health_multiplier(stag, 25))
 		and is_equal_approx(director.get_health_scale(shade_data, 25), director.get_growth(25) * director.act1_health_multiplier * director.get_health_multiplier(shade_data, 25)),
 		"act 1's boss has its own multiplier (no ramp); its escort takes ×1.15")
-	_check(is_equal_approx(director.get_health_scale(stag, 50), director.boss_health_multiplier * act2_end * director.get_health_multiplier(stag, 50)),
+	_check(is_equal_approx(director.get_health_scale(stag, 50), director.mid_boss_health_multiplier * act2_end * director.get_health_multiplier(stag, 50)),
 		"later bosses keep their act's multiplier (act 2's end)")
 
 	# Selling in a rest what was planted this rest: a full refund (75% once it stood through a drift)
