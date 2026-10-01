@@ -12,6 +12,8 @@ class_name ComingStrip
 
 const FACE := 48.0  # screens_ui.md "Readable on the night sky": 48 px at rests, 36 in drifts
 const FACE_SMALL := 36.0
+const FACE_BIG := 64.0  # A new rule-breaker at a rest (RuleBreakers)
+const TRAIT_WIDTH := 140.0  # Its trait in words, under it
 const PIP := 16.0
 const TOP := 72.0  # Just under the drift banner
 const BOSS_COLOR := UiStyle.BOSS  # Heartwood 32 (ui_style.md)
@@ -153,6 +155,14 @@ func _build(span: Vector2i) -> void:
 		_row.remove_child(child)
 		child.queue_free()
 	var kinds := kinds_in_range(drift_director, span.x, span.y)
+	# New rule-breakers (RuleBreakers: a flyer, sprinter… this run hasn't faced) lead at rests, larger, with their trait in words.
+	var breaking := {}
+	if not compact:
+		for item in RuleBreakers.new_in(drift_director, span.x, span.y):
+			breaking[item[0].resource_path] = true
+		if not breaking.is_empty():
+			var first_ones := kinds.filter(func(k: Array) -> bool: return breaking.has(k[0].resource_path))
+			kinds = first_ones + kinds.filter(func(k: Array) -> bool: return not breaking.has(k[0].resource_path))
 	var shown := kinds
 	var rest: Array = []
 	if kinds.size() > PER_ROW * 2:  # The last slot becomes "+N"
@@ -166,7 +176,7 @@ func _build(span: Vector2i) -> void:
 			line.add_theme_constant_override("separation", 6)
 			line.mouse_filter = Control.MOUSE_FILTER_IGNORE
 			_row.add_child(line)
-		line.add_child(_make_item(shown[i][0], shown[i][1], shown[i][2]))
+		line.add_child(_make_item(shown[i][0], shown[i][1], shown[i][2], breaking.has(shown[i][0].resource_path)))
 	if not rest.is_empty():
 		line.add_child(_more_chip(rest))
 
@@ -196,12 +206,13 @@ func _light_next() -> void:
 
 # One kind: the same round disc for every kind (the art fitted inside, whatever its shape), "New" and
 # the count as badges on its corners, the resist / weak row under it (14 px). Its name on hover / tap.
-func _make_item(data: EnemyData, drift: int, count: int = 1) -> Control:
+func _make_item(data: EnemyData, drift: int, count: int = 1, breaks_rules: bool = false) -> Control:
 	var item := VBoxContainer.new()
 	item.set_meta(&"kind", data)
+	item.set_meta(&"breaks_rules", breaks_rules)
 	item.add_theme_constant_override("separation", 1)
 	item.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var side := FACE_SMALL if compact else FACE
+	var side := FACE_SMALL if compact else (FACE_BIG if breaks_rules else FACE)
 	var face := Button.new()
 	face.icon = NightmareCard.portrait(data)
 	face.expand_icon = true
@@ -229,7 +240,7 @@ func _make_item(data: EnemyData, drift: int, count: int = 1) -> Control:
 	badge.add_theme_constant_override("outline_size", 5)
 	badge.position = Vector2(side - 14, side - 16)
 	face.add_child(badge)
-	if NightmareCard.is_new(data):  # "New": a small gold badge on the upper-left corner
+	if breaks_rules or NightmareCard.is_new(data):  # "New": a gold badge on the upper-left corner (a new rule-breaker: always)
 		var tag := Label.new()
 		tag.name = "New"
 		tag.text = "New"
@@ -243,6 +254,16 @@ func _make_item(data: EnemyData, drift: int, count: int = 1) -> Control:
 		var icons := NightmareIcons.make_rows(data, 14.0, true)
 		icons.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 		item.add_child(icons)
+	if breaks_rules and data.trait_text != "":  # Its trait in words ("Flies straight over the maze")
+		var words := Label.new()
+		words.name = "TraitWords"
+		words.text = data.trait_text
+		words.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		words.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		words.custom_minimum_size = Vector2(TRAIT_WIDTH, 0)
+		words.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		UiStyle.caps(words, 13, UiStyle.GOLD)
+		item.add_child(words)
 	return item
 
 # "+N": the kinds that didn't fit; a tap opens their cards in turn.

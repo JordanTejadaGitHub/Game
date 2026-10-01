@@ -118,6 +118,9 @@ func _ready() -> void:
 	var start_arrows := StartArrows.new()  # Route arrows, start to Heartwood, until the first drift (world)
 	start_arrows.name = "StartArrows"
 	owner.add_child.call_deferred(start_arrows)
+	var rule_breakers := RuleBreakers.new(drift_director)  # New flyers / sprinters…: the dashed path and name plates (world)
+	rule_breakers.name = "RuleBreakers"
+	owner.add_child.call_deferred(rule_breakers)
 	var mist_count := MistCount.new(drift_director)  # "+N" waiting in the start mist (the field cap)
 	mist_count.name = "MistCount"
 	owner.add_child.call_deferred(mist_count)
