@@ -74,16 +74,19 @@ func _run() -> void:
 			dreams.take(card)
 	var map_generator = main.get_node("%MapGenerator")
 	var route: PackedVector2Array = map_generator.get_path_from(map_generator.startPath)
-	var near_planted: Vector2 = planted.cell + Vector2(0, 1)
-	var far_cell := Vector2(-1, -1)
-	for i in range(route.size() - 3, 0, -1):  # A buildable cell beside the far end of the route
-		for offset in [Vector2.LEFT, Vector2.RIGHT, Vector2.UP, Vector2.DOWN]:
-			var c: Vector2 = route[i] + offset
-			if not route.has(c) and map_generator.can_block(c) and c.distance_to(planted.cell) > 6.0:
-				far_cell = c
-				break
-		if far_cell != Vector2(-1, -1):
-			break
+	# By route step, not distance (the inland Heartwood can sit anywhere, 722cf38b): the planted Warden moves
+	# beside an early step, the ghost goes beside a step well further along.
+	var early := _beside_route(map_generator, route, 2, 1)
+	_check(early[0] != Vector2(-1, -1), "a buildable cell beside the route's start")
+	planted.cell = early[0]
+	planted.position = Tower.MAP_GRID.calculate_map_position(early[0])
+	var near_planted := Vector2(-1, -1)  # Another free cell right beside the planted Warden
+	for offset in [Vector2.DOWN, Vector2.UP, Vector2.LEFT, Vector2.RIGHT]:
+		if near_planted == Vector2(-1, -1) and not route.has(early[0] + offset) and map_generator.can_block(early[0] + offset):
+			near_planted = early[0] + offset
+	var far := _beside_route(map_generator, route, route.size() - 3, -1, early[1] + 10)
+	var far_cell: Vector2 = far[0]
+	_check(far_cell != Vector2(-1, -1), "a buildable cell at least 10 steps further along the route (step %d vs %d)" % [far[1], early[1]])
 	placer.set_build_mode(true)
 	placer.select_tower(sprout)
 	_check(placer.becomes_heart(far_cell, map_generator.get_path_if_blocked_cells([far_cell])),
@@ -106,6 +109,21 @@ func _run() -> void:
 
 	print("dream ghost test: %s" % ("PASS" if failures == 0 else "%d FAILED" % failures))
 	quit(failures)
+
+# [a buildable cell beside the route, its route step]: scanning steps from `from` by `step` (±1), only steps
+# at or past `min_step` going forward. [(-1, -1), -1] when there's none.
+func _beside_route(map_generator, route: PackedVector2Array, from: int, step: int, min_step: int = 0) -> Array:
+	var i := from
+	while i >= 0 and i < route.size():
+		if i >= min_step:
+			for offset in [Vector2.LEFT, Vector2.RIGHT, Vector2.UP, Vector2.DOWN]:
+				var c: Vector2 = route[i] + offset
+				if not route.has(c) and map_generator.can_block(c):
+					return [c, i]
+		elif step < 0:
+			break
+		i += step
+	return [Vector2(-1, -1), -1]
 
 # A free cell with nothing within 3 cells (so Solitude would be on), away from the route.
 func _open_cell(map_generator, container: Node) -> Vector2:
