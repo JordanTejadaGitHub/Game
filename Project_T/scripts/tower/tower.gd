@@ -2713,9 +2713,15 @@ func find_targets(count: int) -> Array:
 		var one := find_target()
 		return [one] if one != null else []
 	var mode := get_target_mode()
-	var ranked := get_enemies_in_range()
-	ranked.sort_custom(func(a: Node2D, b: Node2D) -> bool: return _target_score(a, mode) > _target_score(b, mode))
-	return ranked.slice(0, count)
+	# Perf (stacked drifts): each nightmare scored once, not twice per comparison inside the sort.
+	var scored: Array = []
+	for enemy in get_enemies_in_range():
+		scored.append([_target_score(enemy, mode), enemy])
+	scored.sort_custom(func(a: Array, b: Array) -> bool: return a[0] > b[0])
+	var ranked: Array = []
+	for i in mini(count, scored.size()):
+		ranked.append(scored[i][1])
+	return ranked
 
 # Hummingbird Bower / Jewelwing Court: birds fly out and peck; each peck is a full hit.
 func _send_hummingbirds() -> void:
