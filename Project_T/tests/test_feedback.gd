@@ -112,8 +112,8 @@ func _run() -> void:
 	_check(whispers._queue.has(&"chain"), "the first chain ever whispers what a chain is")
 	_check(shown == [&"chain"], "whispered fires when it's shown (%s)" % [shown])
 	whispers.set_enabled(false)
-	_check(feedback._card.visible and feedback._card_label.text.begins_with("Combo discovered: Set Off"),
-		"the first Set Off shows a discovery card (%s)" % feedback._card_label.text)
+	_check(feedback._card.visible and feedback.card_text.begins_with("Combo discovered: Set Off"),
+		"the first Set Off shows a discovery card (%s)" % feedback.card_text)
 	var card_layer := feedback._card.get_canvas_layer_node()
 	var card_centre := feedback._card.get_global_rect().get_center()
 	var screen_centre := feedback._card.get_viewport_rect().size / 2.0
@@ -125,7 +125,7 @@ func _run() -> void:
 		"the card names the ingredients and says it's in the Codex")
 	_check(feedback.block_counts.get(&"thunderclap", 0) == 2 and feedback.block_longest_chain == 3, "Reactions are counted per block")
 	feedback.continue_on()
-	_check(feedback._card.visible and feedback._card_label.text.begins_with("Combo discovered: Thunderclap") and game_speed.paused,
+	_check(feedback._card.visible and feedback.card_text.begins_with("Combo discovered: Thunderclap") and game_speed.paused,
 		"Continue shows the next discovery, still paused")
 	feedback.continue_on()
 	_check(not feedback._card.visible and not game_speed.paused and not is_instance_valid(feedback._ring),
@@ -150,8 +150,15 @@ func _run() -> void:
 	tracker.record(&"ignite", shade, 2, [storm])
 	tracker.record(&"mushrooming", shade, 3, [storm])
 	_check(feedback._card.visible and game_speed.paused
-		and feedback._card_label.text.begins_with("Chain discovered: Chain 3\nThunderclap → Ignite → Mushrooming\nReactions can set each other off."),
-		"a first Chain 3 is a discovery with its Reactions in order (%s)" % feedback._card_label.text)
+		and feedback.card_text.begins_with("Chain discovered: Chain 3\nThunderclap → Ignite → Mushrooming\nReactions can set each other off."),
+		"a first Chain 3 is a discovery with its Reactions in order (%s)" % feedback.card_text)
+	# It stands out in combat: a solid panel, the title in display gold, its Reactions in the icons row,
+	# the world dimmed behind it.
+	var card_style := feedback._card.get_theme_stylebox("panel") as MoonStyleBox
+	var words: Array = feedback._card_icons.get_children().filter(func(c: Node) -> bool: return c is Label).map(func(l: Label) -> String: return l.text)
+	_check(card_style != null and card_style.center_alpha >= 0.9 and feedback._card_title.text == "Chain discovered: Chain 3"
+		and words == ["Thunderclap", "→", "Ignite", "→", "Mushrooming"] and feedback._dim.visible,
+		"the discovery card is solid, titled, shows the chain in its icons row and dims the world (%s)" % [words])
 	tracker.record(&"thunderclap", shade, 3, [storm])
 	_check(feedback._queue.is_empty(), "a chain tier is discovered once")
 	feedback.continue_on()

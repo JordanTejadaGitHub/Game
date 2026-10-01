@@ -46,7 +46,14 @@ var _seen: Array = []  # Combo ids (String) discovered ever
 var _unsaved := {}  # Combo id -> count not yet added to the profile's lifetime counts
 var _queue: Array[StringName] = []
 var _card := PanelContainer.new()
-var _card_label := Label.new()
+var _card_label := Label.new()  # The body (18 px)
+var _card_title := Label.new()  # "Combo discovered: Thunderclap" (display 28, gold)
+var _card_icons := HFlowContainer.new()  # 48 px status icons, or a chain's Reactions with arrows
+var _dim := TextureRect.new()  # The world dimmed behind a pausing card, the nightmare left lit
+var card_text := ""  # The card's whole text (title + body; tests)
+const DIM_ALPHA := 0.6  # The world at ~40%
+const DIM_HOLE := 70.0  # Radius (px) left lit around the nightmare
+var _dim_gradient: Gradient
 var _card_id: StringName = &""
 var _card_tween: Tween
 var _crown_corners := Control.new()  # Gold corners, shown on Crowned discovery cards
@@ -106,13 +113,29 @@ func _ready() -> void:
 	_card.set_anchors_preset(Control.PRESET_CENTER)
 	_card.grow_horizontal = Control.GROW_DIRECTION_BOTH
 	_card.grow_vertical = Control.GROW_DIRECTION_BOTH
+	# It stands out in combat (screens_ui.md "The discovery card stands out in combat"): a solid panel
+	# with the gold thread, the title in the display font, 48 px icons, 18 px body.
+	var style := UiStyle.panel(28.0, 20.0)
+	style.center_alpha = UiStyle.TIP_ALPHA
+	style.edge_alpha = UiStyle.TIP_ALPHA
+	style.shadow_size = 14
+	_card.add_theme_stylebox_override("panel", style)
+	_card_title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_card_title.custom_minimum_size = Vector2(440, 0)
+	_card_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	UiStyle.display(_card_title, 28)
+	_card_title.add_theme_color_override("font_color", UiStyle.GOLD)
+	_card_icons.alignment = FlowContainer.ALIGNMENT_CENTER
+	_card_icons.add_theme_constant_override("h_separation", 8)
 	_card_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_card_label.custom_minimum_size = Vector2(380, 0)
+	_card_label.custom_minimum_size = Vector2(440, 0)
 	_card_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_card_label.add_theme_font_size_override("font_size", 16)
+	_card_label.add_theme_font_size_override("font_size", 18)
 	var card_box := VBoxContainer.new()
-	card_box.add_theme_constant_override("separation", 10)
+	card_box.add_theme_constant_override("separation", 12)
 	_card.add_child(card_box)
+	card_box.add_child(_card_title)
+	card_box.add_child(_card_icons)
 	card_box.add_child(_card_label)
 	# Pausing cards: Continue (also Space / Enter / a tap on the card) and Open in Codex.
 	_buttons.alignment = BoxContainer.ALIGNMENT_CENTER
@@ -151,6 +174,23 @@ func _ready() -> void:
 	holder.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	holder.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	layer.add_child(holder)
+	_dim_gradient = Gradient.new()  # Lit in the middle (the nightmare), dark beyond
+	var gradient := _dim_gradient
+	gradient.set_color(0, Color(Palette.VOID, 0.0))
+	gradient.set_color(1, Color(Palette.VOID, DIM_ALPHA))
+	var hole := GradientTexture2D.new()
+	hole.gradient = gradient
+	hole.fill = GradientTexture2D.FILL_RADIAL
+	hole.fill_from = Vector2(0.5, 0.5)
+	hole.fill_to = Vector2(0.5, 0.0)
+	hole.width = 256
+	hole.height = 256
+	_dim.texture = hole
+	_dim.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	_dim.stretch_mode = TextureRect.STRETCH_SCALE
+	_dim.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_dim.visible = false
+	holder.add_child(_dim)
 	holder.add_child(_card)
 	drift_director.rest_ended.connect(func(_block: int) -> void:
 		block_counts.clear()
@@ -384,6 +424,7 @@ func continue_on() -> void:
 		_show_next()
 		return
 	_card.visible = false
+	_dim.visible = false
 	if _pausing:
 		_pausing = false
 		var speed = get_node_or_null("%GameSpeed")
@@ -441,16 +482,26 @@ static func discovery_text(id: StringName) -> String:
 func _show_next() -> void:
 	if _queue.is_empty():
 		_card.visible = false
+		_dim.visible = false
 		return
 	_card_id = _queue.pop_front()
-	if String(_card_id).begins_with(CHAIN_PREFIX):
-		_card_label.text = chain_text(int(String(_card_id).trim_prefix(CHAIN_PREFIX)), _chain_orders.get(_card_id, []))
+	var is_chain := String(_card_id).begins_with(CHAIN_PREFIX)
+	var order: Array = _chain_orders.get(_card_id, [])
+	if is_chain:
+		card_text = chain_text(int(String(_card_id).trim_prefix(CHAIN_PREFIX)), order)
 	else:
-		_card_label.text = discovery_text(_card_id)
+		card_text = discovery_text(_card_id)
 	if new_dreams.has(_card_id):  # "New Dreams: Rolling Thunder, Rain on Glass" (discovery unlocks)
-		_card_label.text += "\nNew Dreams: " + ", ".join(new_dreams[_card_id])
-	var reaction := Reactions.get_data(_card_id)
-	_card_label.add_theme_color_override("font_color", reaction.callout_color if reaction != null else UiStyle.INK)
+		card_text += "\nNew Dreams: " + ", ".join(new_dreams[_card_id])
+	# Title (display 28, gold), the icons, then the body (a chain's order is in the icons row).
+	var lines := card_text.split("\n")
+	_card_title.text = lines[0]
+	var body := lines.slice(1)
+	if is_chain and not order.is_empty() and body.size() > 0:
+		body = body.slice(1)
+	_card_label.text = "\n".join(body)
+	_card_label.add_theme_color_override("font_color", UiStyle.INK)
+	_build_card_icons(_card_id, is_chain, order)
 	_crown_corners.visible = CodexData.CROWNED.has(_card_id)
 	var pausing := pause_setting()
 	_buttons.visible = pausing
@@ -462,6 +513,7 @@ func _show_next() -> void:
 			speed.set_paused(true)
 	if pausing:
 		_highlight(_enemies.get(_card_id))
+		_show_dim(_enemies.get(_card_id))
 	_enemies.erase(_card_id)
 	_card.visible = true
 	_card.reset_size()
@@ -474,6 +526,12 @@ func _show_next() -> void:
 		_card_tween.kill()
 	_card_tween = create_tween()
 	_card_tween.tween_property(_card, "modulate:a", 1.0, 0.3)
+	if not bool(HeartwoodMemory.get_settings().get("reduced_motion", false)):  # A soft rise-in
+		_card.pivot_offset = _card.size / 2.0  # A soft rise-in: it grows into place (its rect never moves)
+		_card.scale = Vector2(0.95, 0.95)
+		_card_tween.parallel().tween_property(_card, "scale", Vector2.ONE, 0.35).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+	if is_chain:
+		combo_discovered.emit(_card_id)  # The discovery chime for chains too (combos emit when found)
 	if pausing:
 		return  # Stays until Continue
 	_card_tween.tween_interval(CARD_TIME)  # Setting off: the old slide-in card, for 5 s
@@ -560,3 +618,51 @@ func _save_counts() -> void:
 	memory[COUNTS_KEY] = counts
 	HeartwoodMemory.save_data(memory)
 	_unsaved.clear()
+
+# The world dims to ~40% behind a pausing card, except a soft circle around the nightmare it fired on.
+func _show_dim(enemy: Node2D) -> void:
+	var screen := get_viewport().get_visible_rect().size
+	var centre := screen / 2.0
+	var hole := 0.0
+	if is_instance_valid(enemy) and enemy.is_inside_tree():
+		centre = enemy.get_global_transform_with_canvas().origin
+		hole = DIM_HOLE
+	var reach := screen.length() * 1.2  # Big enough to cover the screen from any centre
+	_dim.size = Vector2(reach, reach) * 2.0
+	_dim.position = centre - Vector2(reach, reach)
+	_dim_gradient.set_offset(0, hole / reach)
+	_dim_gradient.set_offset(1, minf((hole * 2.0 + 1.0) / reach, 1.0))
+	_dim.visible = true
+
+# The card's icons: a combo's two statuses at 48 px ("Soaked + Charged"); a chain's Reactions in
+# order with arrows, repeats collapsed ("Drown → Nightbloom ×2").
+func _build_card_icons(id: StringName, is_chain: bool, order: Array) -> void:
+	for child in _card_icons.get_children():
+		_card_icons.remove_child(child)
+		child.queue_free()
+	if is_chain:
+		var runs: Array = []  # [name, count]
+		for name in order:
+			if not runs.is_empty() and runs[-1][0] == name:
+				runs[-1][1] += 1
+			else:
+				runs.append([name, 1])
+		for i in runs.size():
+			if i > 0:
+				_card_icons.add_child(_card_word("→", UiStyle.INK_DIM))
+			_card_icons.add_child(_card_word(runs[i][0] + (" ×%d" % runs[i][1] if runs[i][1] > 1 else ""), UiStyle.GOLD))
+		return
+	var combo := CodexData.get_any(id)
+	var statuses: Array = combo.get("statuses", [])
+	for i in statuses.size():
+		if i > 0:
+			_card_icons.add_child(_card_word("+", UiStyle.INK_DIM))
+		_card_icons.add_child(IconInfo.make_icon(statuses[i], 3))  # 48 px, with its tap tip
+
+func _card_word(text: String, colour: Color) -> Label:
+	var word := Label.new()
+	word.text = text
+	UiStyle.display(word, 22)
+	word.add_theme_color_override("font_color", colour)
+	word.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	return word
