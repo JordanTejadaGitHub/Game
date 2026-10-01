@@ -92,7 +92,7 @@ func _detail(img: Image, sheet: String) -> void:
 	if sheet == "heartwood":
 		frame = Vector2i(128, 128)
 	elif sheet == "withered_tree":
-		frame = Vector2i(64, 96)  # Tall trees: the bottom 64 px are the cell
+		frame = Vector2i(96, 128)  # Big trees: the bottom 64 px rows are the cell, centred
 	DetailPass.apply_sheet(img, frame, kind, 0, texture)
 
 # Mean OKLab lightness of the opaque pixels.

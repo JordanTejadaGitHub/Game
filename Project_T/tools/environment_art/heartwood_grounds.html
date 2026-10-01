@@ -331,13 +331,20 @@ function pick(r, t, x, y, dither = .5) {
   dither *= STYLE.dither;
   const n = r.length; return r[clamp(Math.floor(t * n + (bay(x, y) - .5) * dither), 0, n - 1)]; }
 
-// TT: an optional vertical transform for drawing tall sprites from 64 px designs (the dead trees):
-// ellipse / stroke / tset map a design y through it; the shapes' radii stay as drawn.
-let TT = null;
+// TT / TX: optional vertical and horizontal transforms for drawing big sprites from 64 px designs
+// (the dead trees): ellipse / stroke / tset map a design point through them; heights stay as drawn,
+// widths grow by TX_W so trunks and limbs fill the wider frame.
+let TT = null, TX = null;
+const TX_W = 1.3;
 const ty = y => TT ? TT(y) : y;
-function tset(L, x, y, c) { L.set(x, ty(y), c); }
-function talpha(L, x, y) { return L.alpha(x, Math.floor(ty(y))); }
-function ellipse(L, cx, cy, rx, ry, col) { ellipseRaw(L, cx, ty(cy), rx, ry, col); }
+const tx = x => TX ? TX(x) : x;
+function tset(L, x, y, c) {
+  if (!TX) { L.set(x, ty(y), c); return; }
+  const x0 = Math.floor(tx(x)), x1 = Math.max(x0 + 1, Math.floor(tx(x + 1)));  // a design pixel spans 1–2 columns
+  for (let ox = x0; ox < x1; ox++) L.set(ox, ty(y), c);
+}
+function talpha(L, x, y) { return L.alpha(Math.floor(tx(x)), Math.floor(ty(y))); }
+function ellipse(L, cx, cy, rx, ry, col) { ellipseRaw(L, tx(cx), ty(cy), TX ? rx * TX_W : rx, ry, col); }
 function ellipseRaw(L, cx, cy, rx, ry, col) {
   for (let y = Math.floor(cy - ry); y <= Math.ceil(cy + ry); y++)
     for (let x = Math.floor(cx - rx); x <= Math.ceil(cx + rx); x++) {
@@ -362,8 +369,8 @@ function blob(L, cx, cy, rx, ry, ramp, o = {}) {
     }
 }
 function stroke(L, x0, y0, x1, y1, w0, w1, fn) {
-  y0 = ty(y0); y1 = ty(y1);
-  if (TT) { w0 *= 1.25; w1 *= 1.25; }  // tall trees get sturdier trunks and limbs
+  y0 = ty(y0); y1 = ty(y1); x0 = tx(x0); x1 = tx(x1);
+  if (TT) { const k = TX ? 1.25 * TX_W : 1.25; w0 *= k; w1 *= k; }  // big trees get sturdier trunks and limbs
   const dx = x1 - x0, dy = y1 - y0, len = Math.hypot(dx, dy) || 1, px = -dy / len, py = dx / len, n = Math.ceil(len * 2) + 1;
   for (let i = 0; i <= n; i++) {
     const t = i / n, cx = x0 + dx * t, cy = y0 + dy * t, r = Math.max(.6, (w0 + (w1 - w0) * t) / 2);
@@ -581,13 +588,16 @@ const HEART_BARK = ["#1a0e08", "#3a2414", "#5e3c20", "#8a5e34"];
 // Ashen umber dead wood: a different hue from the lavender stone, so trees and rocks separate by
 // colour as well as shape, even under the cold edge lighting.
 const DEAD = ["#241a16", "#56463c", "#8a7462", "#bca38c"];
-// Dead trees are 64×96: the bottom 64 px are their cell (base and shadow where the old 64 px base
-// was), the top 32 px overhang the cell above. Heights above the base (design y 56) are × 1.5.
-const TREE_TT = y => 88 + (y - 56) * 1.5;
+// Dead trees are 96×128: the bottom 64 px rows are their cell (base and shadow where the old 64 px
+// base was), centred, so 16 px overhang each side and the top 64 px the cell above. Heights above the
+// base (design y 56) are × 1.7, widths × 1.3 (TX_W) around the centre (design x 32).
+const TREE_W = 96, TREE_H = 128;
+const TREE_TT = y => 120 + (y - 56) * 1.7;
+const TREE_TX = x => 48 + (x - 32) * TX_W;
 function withered(A, f, seed) {
   // Pale bark on the lit side so the tree reads as a pale shape on dark grass (value order).
-  const out = new Img(64, 96), L = new Img(64, 96);
-  TT = TREE_TT;  // drawn 1.5× taller from the 64 px design (see TREE_TT)
+  const out = new Img(TREE_W, TREE_H), L = new Img(TREE_W, TREE_H);
+  TT = TREE_TT; TX = TREE_TX;  // drawn bigger from the 64 px design (see TREE_TT / TREE_TX)
   const bf = (x, y, nx) => nx < .15 ? (hash(x, y >> 1, 77) < .15 ? DEAD[2] : DEAD[3]) : nx > .6 ? DEAD[1] : DEAD[2];
   ellipse(out, 32, 55, 20, 6, SHADOW(.42));
   ellipse(out, 32, 53, 21, 7, CA("#6a5a80", .18));
@@ -618,7 +628,7 @@ function withered(A, f, seed) {
     ellipse(out, x, y, r, r * .85, CA("#140e20", a));
     tset(out, x - 1, y - 1, CA("#6a4a9a", a));
   }
-  TT = null;
+  TT = null; TX = null;
   return out;
 }
 
@@ -916,6 +926,13 @@ function heartwood(A, f, lost = 0) {
   return out;
 }
 
+// Ground details: 12 variants = the 4 kinds (v % 4) each drawn at 3 spots in the cell, so a scatter of
+// them never lines up on the cell grid. Variants 0–3 are the four kinds, one spot each.
+const DECOR_SPOTS = [[-13, -18], [11, -6], [-6, 6]];
+function decorAt(A, v, seed) {
+  const kind = v % 4, [dx, dy] = DECOR_SPOTS[(Math.floor(v / 4) + kind) % 3];
+  return new Img().put(decor(A, kind, seed), dx, dy);
+}
 function decor(A, v, seed) {
   const out = new Img(), L = new Img(), g = A.grass;
   if (v === 0) {
@@ -968,19 +985,19 @@ function glintEyes(out, f, pts) { if (f === 2) for (const [x, y] of pts) tset(ou
 
 // t: 0 split trunk, 1 broken snag, 2 weeping willow, 3 dead pine, 4 dead birch, 5 thorn tree
 function deadTree(A, t, f, seed) {
-  const out = new Img(64, 96), L = new Img(64, 96);
-  TT = TREE_TT;  // drawn 1.5× taller from the 64 px design (see TREE_TT)
+  const out = new Img(TREE_W, TREE_H), L = new Img(TREE_W, TREE_H);
+  TT = TREE_TT; TX = TREE_TX;  // drawn bigger from the 64 px design (see TREE_TT / TREE_TX)
   deadBase(out, seed);
   if (t === 0) {
     stroke(L, 32, 56, 32, 40, 13, 10, deadFn); deadRoots(L, deadFn);
     stroke(L, 29, 41, 19, 13, 7, 3, deadFn); stroke(L, 35, 41, 45, 11, 7, 3, deadFn);
     branch(L, 21, 19, -2.5, 7, 3, 0, seed, deadFn); branch(L, 43, 17, -.6, 8, 3, 0, seed + 3, deadFn);
     out.stamp(L, DEAD[0]);
-    for (let y = Math.round(ty(30)); y <= ty(45); y++) { const x = 32 + Math.round(Math.sin(y * .5) * 1.2); out.set(x, y, "#0c0a12"); if (y % 4 === 0) out.set(x + 1, y, "#d8d0e8"); }
+    for (let y = Math.round(ty(30)); y <= ty(45); y++) { const x = Math.round(tx(32) + Math.sin(y * .5) * 1.2); out.set(x, y, "#0c0a12"); if (y % 4 === 0) out.set(x + 1, y, "#d8d0e8"); }
     smoke(out, f, [22, 33, 42]);
   } else if (t === 1) {
     stroke(L, 32, 57, 32, 26, 17, 13, deadFn); stroke(L, 30, 54, 20, 58, 5, 2, deadFn); stroke(L, 34, 54, 44, 58, 5, 2, deadFn);
-    for (let x = 16; x <= 48; x++) { const top = 24 + [0, -5, -2, -7, -1, -4][(x + seed) % 6] + Math.floor(hash(x, 1, seed) * 2); for (let y = 0; y < ty(top); y++) copyPx(L, x, y, [0, 0, 0, 0]); }
+    for (let x = 16; x <= 48; x++) { const top = 24 + [0, -5, -2, -7, -1, -4][(x + seed) % 6] + Math.floor(hash(x, 1, seed) * 2); for (let ox = Math.floor(tx(x)); ox < Math.floor(tx(x + 1)); ox++) for (let y = 0; y < ty(top); y++) copyPx(L, ox, y, [0, 0, 0, 0]); }
     // Limbs reaching out, so it reads as a tree (branching, tall) and never as a stone pillar.
     branch(L, 38, 34, -.55, 11, 4, 1, seed, deadFn);
     branch(L, 26, 30, -2.55, 11, 4, 1, seed + 2, deadFn);
@@ -1005,8 +1022,8 @@ function deadTree(A, t, f, seed) {
     pts.forEach(([x, y], k) => {
       if (k % 2) return;
       const len = 8 + hash(k, 5, seed) * 16;
-      const y0 = Math.round(ty(y)), n = Math.round(len * 1.4);
-      for (let i = 1; i < n; i++) out.set(x + Math.round(sway * i / n * 1.5), y0 + i, i % 4 === 0 ? "#4a4054" : "#7a6e86");
+      const y0 = Math.round(ty(y)), n = Math.round(len * 1.6);
+      for (let i = 1; i < n; i++) out.set(Math.round(tx(x) + sway * i / n * 1.5), y0 + i, i % 4 === 0 ? "#4a4054" : "#7a6e86");
     });
     smoke(out, f, [26, 38]);
   } else if (t === 3) {
@@ -1036,10 +1053,10 @@ function deadTree(A, t, f, seed) {
     stroke(L, 32, 57, 31, 40, 13, 9, deadFn);
     for (const [a, len] of [[-2.9, 18], [-2.4, 16], [-1.9, 13], [-1.25, 13], [-.7, 16], [-.25, 18]]) branch(L, 31, 42, a, len, 4.5, 1, seed + len, deadFn);
     out.stamp(L, DEAD[0]);
-    for (let y = 4; y < ty(50); y++) for (let x = 2; x < 62; x++) if (L.alpha(x, y) && !L.alpha(x, y - 1) && hash(x, y, seed + 9) < .22) out.set(x, y - 1, DEAD[0]);
+    for (let y = 4; y < ty(50); y++) for (let x = 2; x < L.w - 2; x++) if (L.alpha(x, y) && !L.alpha(x, y - 1) && hash(x, y, seed + 9) < .22) out.set(x, y - 1, DEAD[0]);
     smoke(out, f, [22, 32, 42]);
   }
-  TT = null;
+  TT = null; TX = null;
   return out;
 }
 
@@ -1309,7 +1326,7 @@ const BUILD = {
   blight: (A, v, f) => blightPatch(A, f, SEED + v * 5),
   mist: (A, v, f) => mist(A, f),
   heart: (A, v, f) => heartwood(A, f, v),
-  decor: (A, v) => decor(A, v, SEED + v),
+  decor: (A, v) => decorAt(A, v, SEED + v),
   dead: (A, v, f) => deadTree(A, v, f, SEED + v * 29),
   rock: (A, v) => shrinkRock(rock(A, v, SEED + v * 31)),
   isle: (A, m) => islandEdge(A, m),
@@ -1463,7 +1480,8 @@ function buildGround() {
     else { const h = hash(x, y, SEED + 1); key = "grass:" + (h < .5 ? 0 : h < .72 ? 1 : h < .88 ? 2 : 3); }
     g.drawImage(getCan(key), x * T, y * T);
   }
-  for (const [k, x, y] of DECALS) g.drawImage(getCan(k), x * T, y * T);
+  // Big sprites (the 96×128 trees) sit bottom-centre on their cell, drawn top row first.
+  for (const [k, x, y] of DECALS.slice().sort((a, b) => a[2] - b[2])) { const cv = getCan(k); g.drawImage(cv, x * T - (cv.width - T) / 2, y * T - (cv.height - T)); }
   groundCanvas = c;
 }
 

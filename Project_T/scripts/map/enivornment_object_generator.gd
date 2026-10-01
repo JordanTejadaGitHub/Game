@@ -232,6 +232,10 @@ func wear_away(cell: Vector2i) -> void:
 		erase_cell(cell)
 
 
+# Share of the cells in the noise's detail band that get a detail: one on every such cell lined the
+# ground up into a dotted grid.
+const DETAIL_SHARE := 0.3
+
 # Sprinkles grass details (decoration only) on cells not in `skip_cells`. Call after generate_obstacles().
 func generate_details(rng: RandomNumberGenerator, skip_cells: PackedVector2Array) -> void:
 	var noise: FastNoiseLite = noise_texture.noise
@@ -241,7 +245,7 @@ func generate_details(rng: RandomNumberGenerator, skip_cells: PackedVector2Array
 			if skip_cells.has(cell):
 				continue
 			var value := noise.get_noise_2d(x, y)
-			if value > _tree_level and value <= _detail_level:
+			if value > _tree_level and value <= _detail_level and rng.randf() < DETAIL_SHARE:
 				var details := tile_set.get_source(EnvironmentTiles.GROUND_DETAILS) as TileSetAtlasSource
 				set_cell(Vector2i(cell), EnvironmentTiles.GROUND_DETAILS,
 					Vector2i(rng.randi_range(0, details.get_atlas_grid_size().x - 1), 0))
