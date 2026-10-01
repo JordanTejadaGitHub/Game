@@ -316,6 +316,15 @@ before a second family arrives at drift 25. When fewer than 3 new families are a
 in the meta, before the Grove unlocks Pebbling, Rootling and Acorn), the pick shows **fewer cards**, and with none left the boss gives +2 Dreamlight (was: empty slots became **Family
 Blessings**; replaced 2026-09-30, `meta_design.md`).
 
+### The Dew pot: Dew per drift, not per nightmare (2026-10-01)
+
+User: *"should we have a set Dew you can get from each drift, but it can be modified?"* → yes. Per-nightmare Dew made income follow how many nightmares spawned (9,000 unspent in run 1, Omens paying twice, the act cut as a patch).
+- **Each drift has a Dew pot** from one table (`DriftDirector` / a `dew_pot` curve per drift, bosses and act breaks included). Roguelite Mechanic Discussion sets the table from the run-history Dew curves: a good run should be able to afford its next growth most rests, never bank thousands.
+- **The pot is split across the drift's nightmares** by weight (elites and big nightmares a bigger share; split children and followers share their parent's): each dispel still pops its share. **A leaked nightmare's share is lost.**
+- **Modifiers multiply the pot:** Dew cards (Gathered Dew…), Omens whose reward is Dew (Bountiful Night, Blood Moon) or that cut it (Dry Spell), Grove perks (`dew_gain`), Blight. Catchers (Dewcatcher, Wellspring), Magpie Dew, call-early Dew and rest bonuses stay on top, unchanged.
+- **Added nightmares never add Dew** (Crowded Paths, Elder Night, Moth Night, `extra_nightmares`, splits): they share the same pot. This replaces the Omen double-benefit fix and the per-act Dew multipliers (folded into the table).
+- UI: the DriftPanel can show "Drift 31 · 180 Dew" before it starts; the rest report shows "Dew this block: 840 of 900" (leaks).
+
 ### Dreamlight: choosing your build paths
 
 Added 2026-09-27 (user decision): a second in-run currency so build paths come from **choice, not
