@@ -118,9 +118,10 @@ matter, confirmed.
     - **Full Grove:** ~200 available → **~120 cards**: very varied runs, still far more than offers.
     - The boss and pity Rare+ guarantee: with ≥ 6 Rares in the run's pool plus the family Rares,
       a forced Rare+ offer finds a card. If none is eligible, the existing fall-through applies.
-  - **The pool follows your build:** taking a card with an **archetype tag** adds **all remaining
-    available cards of that archetype** to the run's pool (bridges pull both). Passed cards don't
-    pull. Pulled cards are still drawn by the normal weights (×`tag_weight` 1.3 for a taken tag).
+  - ~~**The pool follows your build:** taking an archetype-tagged card pulls that archetype's
+    remaining cards into the run's pool.~~ **Removed** (user, 2026-09-30: *"I want the player to be
+    able to change their build depending on the random cards they get, not send them down a
+    path."*). The run's pool is fixed at run start; only family picks and discoveries add to it.
   - **Discovery mid-run** adds the discovered cards to this run's pool right away (you just did the
     thing; the half-dreamed rule still applies).
   - **Unaffected:** Entwined guaranteed slots (their card joins the pool when due), Seed cards'
@@ -129,8 +130,8 @@ matter, confirmed.
   - **Shown:** nothing new on screen. The Codex lists every card; the "Dreams this run" panel could
     later show "dreams in reach this run" (optional).
   - **Tests:** two map seeds give different pools (same seed, same pool); the floors hold on a fresh
-    profile; taking a `maze` card adds every remaining available maze card; a family pick adds its
-    family cards; 19 offers on a fresh profile never show fewer than 3 cards.
+    profile; taking a tagged card adds **nothing** to the pool; a family pick adds its family cards;
+    19 offers on a fresh profile never show fewer than 3 cards.
 - **3 cards per Dream**, after drifts 5, 10, … 95. No duplicates within an offer.
 - **Passed-over cards fade** (added 2026-09-28; playtest: Few and Mighty was offered ~5 times by
   drift 35 to a player not going narrow). A card that was offered and **not taken**:
