@@ -311,8 +311,8 @@ Morning Fog 20%.
   I+II, Mushroom Rain, Monoculture late).
 
 Decisions (design chat):
-1. **Puffball is the outlier** (one Warden, 76%): its area puff gives **1 Poisoned** (was 2) and its
-   hit cap goes **16 → 12** (Driftspore's). Check the "Top" attribution too: Spore Cascade spreads
+1. **Puffball is the outlier** (one Warden, 76%): its area puff gives **1 Poisoned** (was 2) and **keeps its 16-stack cap** (revised: the cap is its identity, "the deepest poison"; user asked whether it stays unique). Not:
+   hit cap 16 → 12. Check the "Top" attribution too: Spore Cascade spreads
    and fog-boosted ticks may all be credited to the first applier (fine if true, but verify).
 2. **Hollow Oak at drift 100:** ×1.6 → **×3.0** (17 s is no final boss; run 1's wall was before the
    boss-stays rule and the old curve).
