@@ -152,7 +152,7 @@ func _test_hit_rules() -> void:
 	dreams.take(_card("crowded_path"))
 	var near := _plant("sporeling", map_generator.startPath + Vector2(1, 1))
 	_check(dreams.count_in_range(near) == 2 and _row(near.tower_data, near.cell, "crowded_path", near).damage > 0.05,
-		"Crowded Path: +3% per nightmare in range (%d)" % dreams.count_in_range(near))
+		"Crowded Path: +3%% per nightmare in range (%d)" % dreams.count_in_range(near))
 	# Last Breath: the neighbour takes 10% of the dispelled one's max health, no chain
 	dreams.take(_card("last_breath"))
 	var before: float = b.health
@@ -793,7 +793,7 @@ func _test_live_lines() -> void:
 	run_state.dew = dew
 	_plant("thornwall", Vector2(100, 100))
 	line = fx.preview_line(_card("hedge_maze"))
-	_check(line == "Now: 1 Thornwall · +0% (3 for the next +1%)", "Hedge Maze: \"+0%\", singular (%s)" % line)
+	_check(line == "Now: 1 Thornwall · +0% (3 for the next +1%)", "Hedge Maze: \"+0%%\", singular (%s)" % line)
 	line = fx.preview_line(_card("canopy"))
 	_check(line.begins_with("Now: 0 attacking Wardens planted · +0% (20 for the next +12%)"), "Canopy shows its next step (%s)" % line)
 	var director: DriftDirector = main.get_node("%DriftDirector")

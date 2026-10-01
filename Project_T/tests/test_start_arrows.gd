@@ -52,7 +52,7 @@ func _run() -> void:
 			if c.a > 0.0:
 				colours[c.to_html(false)] = true
 	_check(colours.has(Palette.DREAD.to_html(false)) and colours.has(Palette.GOLD.to_html(false)) and colours.has(Palette.GLOW.to_html(false)),
-		"…a pixel chevron: dark outline, gold fill, a lighter top edge (%s)" % colours.keys())
+		"…a pixel chevron: dark outline, gold fill, a lighter top edge (%s)" % [colours.keys()])
 	var first: Vector2 = arrows._point_at(fposmod(arrows._age * StartArrows.MARCH_SPEED, arrows._spacing))
 	for i in 30:
 		await process_frame
