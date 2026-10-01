@@ -589,6 +589,11 @@ untested for Deep builds: a `--focus=deep` check follows. Per Warden, **Bloomcap
 each** (mostly Spored ticks) vs Driftspore 7%, Sporeling 5%; Dreamshroom too rare for the bot (2/80);
 a fixed-maze finals probe measures it.
 
+**Deep-focus check** (8bed3b93, `--focus=deep`, 10 seeds): Deep builds are **weaker than Power**
+(drift reached spore+dew 28.4 vs 32.5, firefly+bell 21.8 vs 28.1; firefly+bell Deep lost 17 leaves by
+25). Status strength reaches ~1.2–2.2; Soaked sits at its cap 27% of the time, Exposed never (max 1.56).
+**Deep rank +18% → +25% Potency** (rank IV Deep = 2.0); re-check after Tower Code's commit.
+
 **Finals probe** (`tools/balance_finals.gd`, ≥ 144d371b, drifts 61–65, 4 copies in the same spots +
 8 fixed finals, rank IV Power, no Dreams, 3 map seeds): per Warden over 5 drifts, **Dreamshroom
 ~319k vs Puffball ~154k, Morning Fog ~137k, Mistveil (branch) ~51k**; at the same 1,090 Dew,
