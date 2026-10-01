@@ -111,7 +111,9 @@ matter, confirmed.
       cards, so offers filled with family cards. Not steering (tag weighting is off, and tag
       resonance only changes a taken card's power, never the odds; checked in `_weighted_pick`).
       If offers still lean family-heavy, the next step is an offer rule (at least 1 general card
-      per offer), not more weighting;
+      per offer), not more weighting. **Measured (cdbcbe64, drift 35, 3 families, 100 seeds):** family
+      cards are 22% of the eligible pool on a fresh profile (12% with a full Grove), **0.72 / 0.38 per
+      3-card offer**: well under the 1.5 line, so no offer rule is needed;
     - **the clearing opener** (Heartwood's Reach) on maps with 8+ obstacles, so clearing is always
       reachable.
   - **The rest** (generic and direction cards, combo cards, Legendaries) is sampled at **60%**,
