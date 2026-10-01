@@ -163,6 +163,7 @@ func _spawn_followers(leader: Node2D, path: PackedVector2Array) -> void:
 		follower.hold_time = data.follower_spacing * (i + 1)
 		followers.append(follower)
 		enemy_split.emit(leader, follower)
+	leader.dew_followers.append_array(followers)  # They share half its Dew pot share (Enemy.set_dew_share)
 	if data.pack_shield < 1.0:
 		leader.pack.append_array(followers)  # Huntsman: they shield him while they hunt
 	leader.cleansed.connect(func(_leader: Node2D) -> void:
@@ -312,10 +313,18 @@ func _split(parent: Node2D) -> void:
 		return
 	var ahead: Vector2 = parent.grid.calculate_map_position(path[0]) - parent.position
 	var back := -ahead.normalized() if not ahead.is_zero_approx() else Vector2.ZERO
+	# The Dew pot: the children share 60% of the parent's share, the parent keeps 40% (paid just after
+	# this, when enemy_cleansed goes out).
+	var share: float = parent.dew_share
+	var child_share: float = share * parent.SPLIT_CHILDREN_DEW_SHARE / data.split_count if share >= 0.0 else -1.0
+	if share >= 0.0:
+		parent.dew_share = share * (1.0 - parent.SPLIT_CHILDREN_DEW_SHARE)
 	for i in data.split_count:
 		var child := _create(data.split_into, parent.health_scale, parent.modifiers)
 		child.position = parent.position + back * SPLIT_SPACING * i
 		child.set_path(_flight_from(child) if _flies_straight(data.split_into) else path)
+		if child_share >= 0.0:
+			child.dew_share = child_share
 		enemy_split.emit(parent, child)
 
 # Flyers that burst out mid-maze (the Scarecrow's Crows) fly straight at the Heartwood from there.

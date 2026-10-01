@@ -138,6 +138,13 @@ const CRIT_FLASH_TIME := 0.3  # Seconds a crit counts as "just happened" (the gl
 var _crit_flash := 0.0
 # Extra Dew when dispelled (Magpie Perch: +1 once it's been hit by a magpie).
 var bonus_dew := 0
+# The Dew pot (run_design.md "The Dew pot"): its share of its drift's pot, set by the DriftDirector at
+# spawn (set_dew_share); -1 = none assigned (old rule: EnemyData.dew_reward). Followers share half of
+# their leader's (dew_followers); split children share 60% of their parent's (the spawner's _split).
+var dew_share := -1.0
+var dew_followers: Array = []
+const FOLLOWER_DEW_SHARE := 0.5  # Of a leader's share, split among its followers
+const SPLIT_CHILDREN_DEW_SHARE := 0.6  # Of a parent's share, split among the children it breaks into
 # The next hit ignores the blight coat's (dread shell's) reduction (Needle Point pecks).
 var pierce_coat_once := false
 # Seconds before this nightmare can be frozen (Frostfern) / pushed back (Whirligig) again.
@@ -958,9 +965,27 @@ func update_animation(velocity: Vector2) -> void:
 		sprite.play(animation)  # Only when it changes: this runs every frame for every nightmare
 	sprite.flip_h = flip
 
-# Dew for dispelling this nightmare (Omens can change it, e.g. Dry Spell = 0).
+# Dew for dispelling this nightmare (Omens can change it, e.g. Dry Spell = 0): its Dew pot share when
+# it has one (a leak pays nothing: only a dispel pays), else the old per-kind dew_reward.
 func get_dew_reward() -> int:
+	return roundi(get_dew_share())
+
+# The same, before rounding (the pot's shares are fractions; RunState can carry the remainder).
+func get_dew_share() -> float:
+	if dew_share >= 0.0:
+		return dew_share * modifiers.get("dew", 1.0) + bonus_dew
 	return roundi(enemy_data.dew_reward * modifiers.get("dew", 1.0)) * (ELITE_DEW if elite else 1) + bonus_dew
+
+# The DriftDirector's pot share for this nightmare. A leader with followers keeps half and its
+# followers share the other half (FOLLOWER_DEW_SHARE).
+func set_dew_share(share: float) -> void:
+	var followers := dew_followers.filter(func(f) -> bool: return is_instance_valid(f) and not f.is_cleansed)
+	if followers.is_empty():
+		dew_share = share
+		return
+	dew_share = share * (1.0 - FOLLOWER_DEW_SHARE)
+	for follower in followers:
+		follower.dew_share = share * FOLLOWER_DEW_SHARE / followers.size()
 
 # Leaves lost when this nightmare reaches the Heartwood (Deeply Blighted cost at least 2).
 func get_leaf_cost() -> int:

@@ -575,6 +575,36 @@ func _run() -> void:
 	_check(boss_walker.get_restless() == 3 and not boss_walker.is_unbound(), "a boss gains Restless but never turns Unbound")
 	_clear_enemies()
 
+	# --- The Dew pot (run_design.md): shares split with their children / followers, a leak pays nothing ---
+	_clear_enemies()
+	var pot_state = main.get_node("%RunState")
+	var spider := _still("mother_spider", route[10])
+	spider.dew_share = 10.0
+	var children_before := spawner.get_child_count()
+	spider.dispel()
+	var spiderlings := spawner.get_children().slice(children_before)
+	var children_total := 0.0
+	for child in spiderlings:
+		children_total += child.get_dew_share()
+	_check(is_equal_approx(spider.get_dew_share(), 4.0) and is_equal_approx(children_total, 6.0),
+		"a split parent keeps 40%% of its share, its children share 60%% (%.2f + %.2f)" % [spider.get_dew_share(), children_total])
+	_clear_enemies()
+	var duck: Node2D = spawner.spawn_enemy(load("res://resource/enemy/mother_duck.tres"))
+	duck.set_dew_share(10.0)
+	var ducklings_total := 0.0
+	for duckling in duck.dew_followers:
+		ducklings_total += duckling.get_dew_share()
+	_check(not duck.dew_followers.is_empty() and is_equal_approx(duck.get_dew_share(), 5.0) and is_equal_approx(ducklings_total, 5.0),
+		"a leader keeps half its share, its followers share the other half (%.2f + %.2f)" % [duck.get_dew_share(), ducklings_total])
+	_clear_enemies()
+	var leaker := _still("leaf_bug", route[-1])
+	leaker.dew_share = 7.0
+	leaker.set_path(PackedVector2Array([route[-1]]))
+	var dew_before: int = pot_state.dew
+	leaker._process(0.016)
+	_check(pot_state.dew == dew_before, "a leak pays nothing (%d → %d)" % [dew_before, pot_state.dew])
+	_clear_enemies()
+
 	# --- Omens with teeth: Tramplers (one Thornwall trampled per drift) and Burrowers (bends) ---
 	_clear_enemies()
 	var omen_director = main.get_node("%OmenDirector")
