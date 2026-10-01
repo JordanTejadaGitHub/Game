@@ -91,6 +91,7 @@ var dream_off_ids := {}  # Off-build card id -> times offered (dream_off_ids col
 const CARD_LINES := ["spore", "water", "wind", "song", "acorn", "wing", "root", "light", "stone", "wall"]  # Warden lines a card tag can name (the 9 families + Thornwall)
 var wardens_24 := ""  # The Wardens on the map as drift 25 starts ("id:n+…", wardens_24 column)
 var auras_24 := -1  # Attackers under at least one aura Warden as drift 25 starts (auras_24 column)
+var heart_cover_24 := -1  # Attackers with the Heartwood cell in range as drift 25 starts (heart_cover_24 column)
 
 var main: Node
 var map
@@ -229,6 +230,7 @@ func _run() -> void:
 		if director.drifts_started >= 25 and wardens_24 == "":
 			wardens_24 = _warden_counts()
 			auras_24 = _attackers().filter(func(t: Tower) -> bool: return _covered_by_aura(t)).size()
+			heart_cover_24 = _attackers().filter(func(t: Tower) -> bool: return t.cell.distance_to(map.endPath) <= t.get_range_cells()).size()
 		for mark in [25, 51]:
 			if director.drifts_started >= mark and not kin_pairs.has(mark):
 				kin_pairs[mark] = Kinships.count_on_map(main)
@@ -665,6 +667,7 @@ func _finish() -> void:
 		summary["dream_" + key] = dream_offers[key]
 	summary.wardens_24 = wardens_24
 	summary.auras_24 = auras_24
+	summary.heart_cover_24 = heart_cover_24
 	summary.kin_pairs_24 = kin_pairs.get(25, -1)
 	summary.kin_pairs_50 = kin_pairs.get(51, -1)
 	summary.dream_off_ids = "+".join(dream_off_ids.keys().map(func(id) -> String: return "%s:%d" % [id, dream_off_ids[id]]))
