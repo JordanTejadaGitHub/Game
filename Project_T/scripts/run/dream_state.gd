@@ -2890,6 +2890,22 @@ func missing_families_text(card: UpgradeData) -> String:
 	var needs := missing_needs(card)
 	return "" if needs.is_empty() else "Needs " + " and ".join(needs.map(func(n: Dictionary) -> String: return n.type))
 
+# Why a taken card isn't working yet, for "Dreams this run"'s hover ("" = it's active): "Not active yet: needs a
+# Water Warden" / "…needs a Warden that applies Soaked" (dream_design.md 2026-10-01: the card face has no Needs line).
+func not_active_reason(card: UpgradeData) -> String:
+	if card == null:
+		return ""
+	var needs := missing_needs(card)
+	if not needs.is_empty():
+		return "Not active yet: needs %s" % " and ".join(needs.map(func(n: Dictionary) -> String:
+			return "a%s %s Warden" % ["n" if "AEIOU".contains(String(n.type).left(1)) else "", n.type]))
+	var parts := needs_parts(card)
+	var missing: Array = parts.statuses.filter(func(s: Array) -> bool: return not s[1]).map(func(s: Array) -> String:
+		return IconInfo.status_name(s[0]))
+	if not missing.is_empty():
+		return "Not active yet: needs a Warden that applies %s" % " or ".join(missing)
+	return ""
+
 # {"statuses": [[status id, lit]], "families": [display names], "cards": [display names], "either": bool}
 func needs_parts(card: UpgradeData) -> Dictionary:
 	var parts := {"statuses": [], "families": [], "cards": [], "either": false}

@@ -224,16 +224,13 @@ func _card_row(source: DreamIcon) -> Control:
 		res_label.add_theme_color_override("font_color", UiStyle.GOLD)
 		res_label.add_theme_font_size_override("font_size", 13)
 		text.add_child(res_label)
-	if source.dormant:  # Asleep: dimmed, with the families it still needs ("Needs Dewdrop")
-		var needs_row := NeedsRow.make(dream_state.missing_needs(card), 13, UiStyle.INK_DIM) if dream_state.has_method("missing_needs") else null
-		if needs_row != null:  # "Needs Wind", as on the Dream card
-			text.add_child(needs_row)
-		else:
-			var needs := Label.new()
-			needs.text = _sleeping_text(card)
-			needs.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-			UiStyle.caps(needs, 13)
-			text.add_child(needs)
+	if source.dormant:  # Not active yet: dimmed, and why ("Not active yet: needs a Water Warden"; no NeedsRow)
+		var needs := Label.new()
+		needs.text = _sleeping_text(card)
+		needs.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		needs.add_theme_font_size_override("font_size", 13)
+		needs.add_theme_color_override("font_color", UiStyle.INK_DIM)
+		text.add_child(needs)
 		frame.modulate = Color(1, 1, 1, 0.55)
 	row.add_child(text)
 	var live := Label.new()
@@ -269,12 +266,17 @@ func _missing_text(card: UpgradeData) -> String:
 
 # "Needs Dewdrop" for a sleeping card (dream_design.md half-dreamed "Card face"; no "Half-dreamed" label).
 func _sleeping_text(card: UpgradeData) -> String:
+	var reason: String = dream_state.not_active_reason(card) if dream_state.has_method("not_active_reason") else ""
+	if reason != "":
+		return reason  # "Not active yet: needs a Water Warden" (dream_design.md 2026-10-01)
 	var text: String = dream_state.missing_families_text(card) if dream_state.has_method("missing_families_text") else ""
 	return IconInfo.format(text) if text != "" else _needs_text(card)
 
-# A card still asleep until its families are yours (dream_design.md "Adapt, don't get handed"): shown greyed.
+# A card still asleep until its families are yours (dream_design.md "Adapt, don't get handed"), or not active yet
+# (needs a Warden you don't have): shown greyed, its hover says why.
 func _dormant(card: UpgradeData) -> bool:
-	return dream_state.has_method("is_dormant") and dream_state.is_dormant(card)
+	return (dream_state.has_method("is_dormant") and dream_state.is_dormant(card)) \
+		or (dream_state.has_method("not_active_reason") and dream_state.not_active_reason(card) != "")  # Or waiting on a Warden it needs
 
 func _toggle_list() -> void:
 	_list.visible = not _list.visible

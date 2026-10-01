@@ -88,7 +88,7 @@ func _run() -> void:
 	screen._show_offer(cards, 25)
 	for i in 3:
 		await process_frame
-	# Half-dreamed stays internal: the card shows only "Needs <damage type>" (no emblem), no label, no "Sleeps"
+	# No Needs line on the card face (dream_design.md 2026-10-01, user: "can remove the Needs Water"), even half-dreamed
 	var bloom_button := screen._cards.get_child(0).get_child(0) as Button
 	var bloom_texts: Array = bloom_button.find_children("*", "", true, false) \
 		.filter(func(n: Node) -> bool: return n is Label or n is RichTextLabel) \
@@ -96,9 +96,11 @@ func _run() -> void:
 	var joined := " | ".join(bloom_texts)
 	var needs := dreams.missing_needs(bloom)
 	var row := bloom_button.find_child("MissingRow", true, false)
-	_check(not needs.is_empty() and row != null and bloom_texts.has(needs[0].type) and row.get_children().filter(func(c: Node) -> bool: return c is TextureRect).is_empty()
+	_check(not needs.is_empty() and row == null and not bloom_texts.any(func(t: String) -> bool: return t.begins_with("Needs"))
 		and not joined.to_lower().contains("half-dreamed") and not joined.contains("Sleeps"),
-		"a half-dreamed card: one \"Needs <type>\" line, no emblem (%s)" % joined)
+		"a half-dreamed card: no \"Needs …\" line, no label (%s)" % joined)
+	_check(dreams.not_active_reason(bloom) == "Not active yet: needs a %s Warden" % needs[0].type or dreams.not_active_reason(bloom).begins_with("Not active yet: needs a"),
+		"…the reason lives on for the Dreams this run hover (%s)" % dreams.not_active_reason(bloom))
 	_check(dreams.missing_families_text(bloom) == "Needs " + needs[0].type and needs[0].type == IconInfo.damage_type_name(needs[0].line),
 		"…named by damage type, not the family (%s)" % dreams.missing_families_text(bloom))
 	_check(not joined.contains("Entwined"), "no \"Entwined\" label, the vine border says it (%s)" % joined)
