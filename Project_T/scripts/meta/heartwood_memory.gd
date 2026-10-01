@@ -102,14 +102,31 @@ static func _shared(path: String) -> Dictionary:
 	if not hit.is_empty() and hit[0] == stamp:
 		return hit[1]
 	var data := defaults()
-	var parsed = JSON.parse_string(FileAccess.get_file_as_string(path))
+	var parsed = _parse_file(path)
+	if typeof(parsed) != TYPE_DICTIONARY:  # Caught mid-write by another process? Read once more
+		parsed = _parse_file(path)
 	if typeof(parsed) != TYPE_DICTIONARY:
-		push_warning("Heartwood save unreadable; starting fresh")
-		return data
+		# Never fall back to a fresh profile while a good copy exists (a save would then wipe the player's
+		# Grove): the last parse, else the backup save_data keeps. Not cached, so the next read tries again.
+		if not hit.is_empty():
+			push_warning("Heartwood save unreadable; using the last good copy")
+			return hit[1]
+		var backup = _parse_file(path + ".bak") if FileAccess.file_exists(path + ".bak") else null
+		DirAccess.copy_absolute(path, path + ".unreadable")  # Kept for a look, whatever happens next
+		if typeof(backup) != TYPE_DICTIONARY:
+			push_warning("Heartwood save unreadable; starting fresh (the file is kept as .unreadable)")
+			return data
+		push_warning("Heartwood save unreadable; using its backup")
+		parsed = backup
 	_merge(data, parsed)
 	_migrate(data)
 	_cache[path] = [stamp, data]
 	return data
+
+# The JSON in the file at `path`, or null when it doesn't parse (quietly: the callers handle a torn file).
+static func _parse_file(path: String) -> Variant:
+	var json := JSON.new()
+	return json.data if json.parse(FileAccess.get_file_as_string(path)) == OK else null
 
 # Drops every cached profile (a test or tool that writes the file without save_data).
 static func forget() -> void:
@@ -185,11 +202,30 @@ static func save_data(data: Dictionary) -> void:
 	if real_settings_path != "" and real_settings_path != file_path:
 		_save_account_keys(data)  # Dev Grove: account knowledge goes to the real profile
 	_cache.erase(file_path)  # The path actually written (save_settings switches it for Dev Grove)
-	var file := FileAccess.open(file_path, FileAccess.WRITE)
+	_write_atomic(file_path, JSON.stringify(data, "\t"))
+
+# Writes `text` to `path` without ever leaving a half-written file (every Godot process shares user://,
+# and a crash mid-write would cost the profile): a per-process temp file, renamed over the real one.
+# The previous good version is kept as `path`.bak, the fallback when the file can't be read.
+static func _write_atomic(path: String, text: String) -> void:
+	var temp := "%s.%d.tmp" % [path, OS.get_process_id()]
+	var file := FileAccess.open(temp, FileAccess.WRITE)
 	if file == null:
-		push_error("Could not write %s: %s" % [file_path, error_string(FileAccess.get_open_error())])
+		push_error("Could not write %s: %s" % [temp, error_string(FileAccess.get_open_error())])
 		return
-	file.store_string(JSON.stringify(data, "\t"))
+	file.store_string(text)
+	var failed := file.get_error() != OK
+	file.close()
+	if failed:
+		push_error("Could not write %s" % temp)
+		DirAccess.remove_absolute(temp)
+		return
+	if FileAccess.file_exists(path) and typeof(_parse_file(path)) == TYPE_DICTIONARY:
+		DirAccess.copy_absolute(path, path + ".bak")
+	var error := DirAccess.rename_absolute(temp, path)
+	if error != OK:
+		push_error("Could not replace %s: %s" % [path, error_string(error)])
+		DirAccess.remove_absolute(temp)
 
 # Merged, never replaced: account knowledge only grows, so a fresh dev profile being written (Dev
 # Grove presets) can't wipe what the player has seen. Lists gain new entries; dictionaries gain or
