@@ -565,6 +565,12 @@ func _run() -> void:
 	var idx := func(n: String) -> int: return order_hud.get_node(n).get_index()
 	_check(idx.call("RememberScreen") > idx.call("RememberButton") and idx.call("DreamScreen") > idx.call("MenuButton")
 		and idx.call("PauseMenu") == order_hud.get_child_count() - 1, "overlays draw above the HUD, the pause menu on top")
+	# Boosts: the button shows only once a local boost source is on the map (screens_ui.md "The lens button, revised").
+	order_hud._update_boosts()
+	var boosts_button := order_hud.get_node("BuffLensButton") as Button
+	_check(boosts_button.visible == (BuffOverlay.has_local_sources(order_hud) or boosts_button.button_pressed),
+		"the Boosts button shows only with a boost source on the map (%s)" % boosts_button.visible)
+	_check(idx.call("PauseMenu") == order_hud.get_child_count() - 1, "…and the pause menu stays on top after the legend is made")
 	var strip_node: Node = order_hud.get_children().filter(func(c: Node) -> bool: return c is ComingStrip).front()
 	_check(strip_node.get_index() < idx.call("OmenScreen"), "the Coming strip stays under the Omen screen")
 	# UI scrolling never moves the map: a wheel over the open Codex leaves the zoom alone; over the

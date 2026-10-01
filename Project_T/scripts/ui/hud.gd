@@ -773,6 +773,7 @@ func _process(delta: float) -> void:
 	_row_check -= real
 	if _row_check <= 0.0:  # The top-right row follows its numbers, buttons and the banner (cheap key)
 		_row_check = 0.2
+		_update_boosts()
 		var banner := get_node_or_null("DriftBanner")
 		var key := "%s|%s|%s|%s|%s|%s|%d" % [leaves_label.text, dew_label.text, %PathLabel.text,
 			"%s%s" % [(get_node("DreamlightLabel") as Label).text, _clears_label.text if _clears_label else ""], buff_lens_button.visible,
@@ -880,7 +881,8 @@ func _show_hover_card(button: Button, data: TowerData) -> void:
 	_hover_price.text = _hover_price.text.replace("Cost:", "Plant for") if not _hover_price.text.begins_with("Sprout") else _hover_price.text
 	_hover_box.add_child(_hover_price)
 	_hover_for = button
-	move_child(hover_card, get_child_count() - 1)  # Above the rest of the HUD
+	move_child(hover_card, get_child_count() - 1)  # Above the rest of the HUD…
+	_raise_overlays()  # …but under the full-screen overlays and the pause menu
 	hover_card.visible = true
 	hover_card.reset_size()
 	_place_hover_card.call_deferred(button)
@@ -907,3 +909,59 @@ func _on_slot_down(button: Button, data: TowerData) -> void:
 	get_tree().create_timer(HOVER_LONG_PRESS, true, false, true).timeout.connect(func() -> void:
 		if serial == _press_serial:  # Still held (button_up bumps the serial)
 			_show_hover_card(button, data))
+
+# --- Boosts (screens_ui.md "The lens button, revised") ------------------------------------------------
+# The Boosts button shows only once the map has a local boost source (an aura, a Kinship, Kindred /
+# Whole Tree: BuffOverlay.has_local_sources); while the lens is on, a small legend sits under the
+# top-right patch: each kind's pip (BuffOverlay.draw_pip) and name, hoverable and tappable.
+var boosts_legend: VBoxContainer  # (tests)
+var _legend_key := ""
+
+func _update_boosts() -> void:
+	var sources := BuffOverlay.has_local_sources(self)
+	buff_lens_button.visible = sources or buff_lens_button.button_pressed  # Never hidden while it's on
+	if not sources and buff_lens_button.button_pressed:
+		buff_lens_button.button_pressed = false  # The last source went: the lens goes off with it
+	var kinds: Array = BuffOverlay.legend_kinds(self) if BuffLens.on else []
+	var key := ",".join(kinds.map(func(k: Array) -> String: return String(k[0])))
+	if key == _legend_key and boosts_legend != null:
+		boosts_legend.visible = not kinds.is_empty()
+		return
+	_legend_key = key
+	if boosts_legend == null:
+		boosts_legend = VBoxContainer.new()
+		boosts_legend.name = "BoostsLegend"
+		boosts_legend.add_theme_constant_override("separation", 2)
+		boosts_legend.set_anchors_preset(Control.PRESET_TOP_RIGHT)
+		boosts_legend.grow_horizontal = Control.GROW_DIRECTION_BEGIN
+		add_child(boosts_legend)
+		_raise_overlays()  # Full-screen overlays and the pause menu stay on top
+	for child in boosts_legend.get_children():
+		boosts_legend.remove_child(child)
+		child.queue_free()
+	for kind in kinds:
+		var row := HBoxContainer.new()
+		row.alignment = BoxContainer.ALIGNMENT_END
+		row.add_theme_constant_override("separation", 6)
+		var name := Label.new()
+		name.text = String(kind[2])
+		name.add_theme_font_size_override("font_size", 15)
+		name.add_theme_color_override("font_color", UiStyle.INK)
+		name.add_theme_color_override("font_outline_color", UiStyle.FOG)
+		name.add_theme_constant_override("outline_size", 4)
+		row.add_child(name)
+		var pip := Control.new()
+		pip.custom_minimum_size = Vector2(18, 18)
+		var pip_kind := String(kind[0])
+		var pip_colour: Color = kind[1]
+		pip.draw.connect(func() -> void: BuffOverlay.draw_pip(pip, pip.size / 2.0, pip_kind, pip_colour))
+		row.add_child(pip)
+		TapTip.attach(row, "%s: a Warden boosted by %s shows this pip." % [kind[2], kind[2]])
+		boosts_legend.add_child(row)
+	boosts_legend.visible = not kinds.is_empty()
+	var fog := get_node_or_null("ResourcesFog") as Control
+	var top := fog.offset_bottom + 8.0 if fog != null else 140.0
+	if _clears_label != null and _clears_label.visible:
+		top = _clears_label.offset_bottom + 4.0
+	boosts_legend.offset_right = ROW_RIGHT
+	boosts_legend.offset_top = top
