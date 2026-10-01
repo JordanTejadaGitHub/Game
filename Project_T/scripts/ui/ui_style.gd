@@ -69,6 +69,8 @@ static var _fonts := {}
 const LAYOUT_MIN := Vector2(1280.0, 720.0)
 const UI_SHARE_MIN := 0.5  # The settings slider: 50% … 100% of the fitting scale
 const UI_SHARE_MAX := 1.0
+# The settings dropdown's choices (user, 2026-10-01: a dropdown, not a slider): [name, share].
+const UI_SIZES := [["Small", 0.6], ["Medium", 0.75], ["Large", 0.9], ["Largest (fits the screen)", 1.0]]
 
 static var _scale_share := 1.0
 

@@ -63,9 +63,10 @@ func _ready() -> void:
 	_choice(display, "Window size", WINDOW_SIZE_SETTING,
 		WINDOW_SIZES.map(func(s: Vector2i) -> String: return "%d × %d" % [s.x, s.y]), 0)
 	_toggle(display, "V-sync", VSYNC_SETTING, true)
-	# UI size: a share of the largest scale that fits this window (UiStyle.apply_ui_scale). 100% = as big
-	# as the layout allows (1.5× at 1920×1080); the map never zooms with it (user, 2026-09-30).
-	_slider(display, "UI size", "ui_scale", UiStyle.UI_SHARE_MIN, UiStyle.UI_SHARE_MAX, 0.05)
+	# UI size: a share of the largest scale that fits this window (UiStyle.apply_ui_scale). Largest = as
+	# big as the layout allows (1.5× at 1920×1080); the map never zooms with it. A dropdown of presets
+	# (UiStyle.UI_SIZES; user, 2026-10-01), not a slider.
+	_choice_nearest(display, "UI size", "ui_scale", UiStyle.UI_SIZES, 1.0)
 
 	var gameplay := _tab("Gameplay")
 	_toggle(gameplay, "Heartwood whispers", "whispers", true, "Short hints the first time something happens.")
@@ -388,6 +389,27 @@ func _refresh_keys() -> void:
 		_key_buttons[action].text = ", ".join(names) if not names.is_empty() else "—"
 
 # Like _choice, but saves `values[index]` (a string) instead of the index.
+# A dropdown of [name, number] presets for a number setting; the saved value selects the nearest one
+# (older saves can hold any number, e.g. from the old slider).
+func _choice_nearest(box: VBoxContainer, text: String, key: String, presets: Array, default: float) -> void:
+	var row := HBoxContainer.new()
+	var label := Label.new()
+	label.text = text
+	label.custom_minimum_size = Vector2(120, 0)
+	row.add_child(label)
+	var pick := OptionButton.new()
+	var saved := float(_settings.get(key, default))
+	var best := 0
+	for i in presets.size():
+		pick.add_item(presets[i][0])
+		if absf(float(presets[i][1]) - saved) < absf(float(presets[best][1]) - saved):
+			best = i
+	pick.selected = best
+	pick.focus_mode = Control.FOCUS_NONE
+	pick.item_selected.connect(func(index: int) -> void: _set_value(key, float(presets[index][1])))
+	row.add_child(pick)
+	box.add_child(row)
+
 func _choice_values(box: VBoxContainer, text: String, key: String, options: Array, values: Array, default: String) -> void:
 	var row := HBoxContainer.new()
 	var label := Label.new()
