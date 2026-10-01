@@ -867,8 +867,11 @@ const SILHOUETTE := Color(UiStyle.FOG, 0.9)
 # Dreamlight to unlock, Grove state; tapping a node shows its card), and under it its Kinships, combos
 # and Dream cards. Every number comes from the data (TowerData / DreamState constants).
 var _family := ""  # The family shown
-var _family_body := VBoxContainer.new()
-var _family_card := VBoxContainer.new()  # The tapped node's card, under the tree
+var _family_card := VBoxContainer.new()  # The tapped node's card, under the tree (freed with the panel if never shown)
+
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_PREDELETE and is_instance_valid(_family_card) and _family_card.get_parent() == null:
+		_family_card.free()  # Built only when the Families page opens: otherwise it leaked at exit
 const FAMILY_ROLES := {
 	"sporeling": "Damage over time: stack {spored} and keep it.",
 	"dewdrop": "Water: splash, fog and ice. {damp} nightmares conduct lightning.",
