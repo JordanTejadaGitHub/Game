@@ -576,6 +576,13 @@ func _run() -> void:
 	_check(boosts_button.visible == (BuffOverlay.has_local_sources(order_hud) or boosts_button.button_pressed),
 		"the Boosts button shows only with a boost source on the map (%s)" % boosts_button.visible)
 	_check(idx.call("PauseMenu") == order_hud.get_child_count() - 1, "…and the pause menu stays on top after the legend is made")
+	# The field cap: nightmares waiting in the start mist show as "+N" over it.
+	var mist := main.get_node_or_null("MistCount") as MistCount
+	if mist != null:
+		mist._clock = 0.0
+		mist._process(0.0)
+	_check(mist != null and mist.waiting == (main.get_node("%DriftDirector") as DriftDirector).get_waiting_count(),
+		"the start mist counts the nightmares waiting there")
 	var strip_node: Node = order_hud.get_children().filter(func(c: Node) -> bool: return c is ComingStrip).front()
 	_check(strip_node.get_index() < idx.call("OmenScreen"), "the Coming strip stays under the Omen screen")
 	# UI scrolling never moves the map: a wheel over the open Codex leaves the zoom alone; over the

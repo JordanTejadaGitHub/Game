@@ -112,6 +112,9 @@ func _ready() -> void:
 	var close_calls := CloseCalls.new()
 	close_calls.name = "CloseCalls"
 	owner.add_child.call_deferred(close_calls)
+	var mist_count := MistCount.new(drift_director)  # "+N" waiting in the start mist (the field cap)
+	mist_count.name = "MistCount"
+	owner.add_child.call_deferred(mist_count)
 	# The Codex's Dreams: every card offered is seen on the account (DreamCodex).
 	add_child(DreamCodex.new(dream_state, run_state))
 	# The Codex's Nightmares: lifetime dispels per kind and the "Know every nightmare" milestone.
