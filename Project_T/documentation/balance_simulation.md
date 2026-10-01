@@ -593,6 +593,12 @@ a fixed-maze finals probe measures it.
 (drift reached spore+dew 28.4 vs 32.5, firefly+bell 21.8 vs 28.1; firefly+bell Deep lost 17 leaves by
 25). Status strength reaches ~1.2–2.2; Soaked sits at its cap 27% of the time, Exposed never (max 1.56).
 **Deep rank +18% → +25% Potency** (rank IV Deep = 2.0); re-check after Tower Code's commit.
+**Re-run** (a9951bd1, 27155a73 in, Power re-run on the same build and seeds): gap to Power **−2.2**
+drifts (spore+dew) and **−3.1** (firefly+bell), halved; Deep maze DPS at 24 now *above* Power (549 vs
+518, 644 vs 571); Exposed at its cap 5% of the time ✓. Deep still survives the act 1 boss less (7/10 vs
+9/10; firefly+bell Deep median 13 leaves by 25 ≈ the bite). The bot runs Deep on every Warden from
+drift 1, before a second family exists for its statuses to pay off; a player choosing Deep later
+wouldn't. **Accepted, closed:** within noise of the target at 10 seeds; Deep is the act 2+ choice.
 
 **Finals probe** (`tools/balance_finals.gd`, ≥ 144d371b, drifts 61–65, 4 copies in the same spots +
 8 fixed finals, rank IV Power, no Dreams, 3 map seeds): per Warden over 5 drifts, **Dreamshroom
