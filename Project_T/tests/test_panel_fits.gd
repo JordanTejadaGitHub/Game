@@ -56,6 +56,35 @@ func _run() -> void:
 			_check(view.encloses(rect), "%s: \"%s\" is on screen (%s in %s)" % [screen, b.text, rect, view])
 		var panel_rect: Rect2 = panel.get_global_rect()
 		_check(view.encloses(panel_rect), "%s: the whole panel is on screen (%s)" % [screen, panel_rect])
+	# Buffs "Details" then "Hide" (user: the panel kept its open height, a gap above the buttons): back to the
+	# same height, the buttons inside the panel.
+	root.size = Vector2i(1920, 2400)  # Tall: the panel isn't at its height cap, so Details can grow it
+	root.content_scale_factor = 1.0
+	placer.nurture(sprout, Tower.Focus.POWER)  # A rank: a Buffs row for sure
+	seller.select(null)
+	await process_frame
+	seller.select(sprout)
+	for i in 4:
+		await process_frame
+	var closed_height: float = panel.size.y
+	var details: Array = panel.find_children("*", "Button", true, false).filter(func(b: Button) -> bool: return b.text.begins_with("Details"))
+	_check(details.size() == 1, "a Buffs Details toggle")
+	if details.size() == 1:
+		details[0].pressed.emit()
+		for i in 4:
+			await process_frame
+		var open_height: float = panel.size.y
+		var hide: Array = panel.find_children("*", "Button", true, false).filter(func(b: Button) -> bool: return b.text == "Hide")
+		_check(open_height > closed_height and hide.size() == 1, "Details opens the list (%.0f → %.0f)" % [closed_height, open_height])
+		if hide.size() == 1:
+			hide[0].pressed.emit()
+			for i in 4:
+				await process_frame
+			_check(is_equal_approx(panel.size.y, closed_height), "Hide shrinks it back (%.0f, was %.0f)" % [panel.size.y, closed_height])
+			var close_button: Array = panel.find_children("*", "Button", true, false).filter(func(b: Button) -> bool: return b.text == "Close")
+			_check(not close_button.is_empty() and panel.get_global_rect().encloses(close_button[0].get_global_rect())
+				and panel.get_global_rect().end.y - close_button[0].get_global_rect().end.y < 40.0,
+				"the buttons stay at the panel's bottom, inside it")
 	print("panel fits test: %s" % ("PASS" if failures == 0 else "%d FAILED" % failures))
 	main.queue_free()
 	await process_frame

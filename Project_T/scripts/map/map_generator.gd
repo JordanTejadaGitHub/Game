@@ -26,6 +26,8 @@ var layout: MapLayout
 @export var force_feature := -1
 # Starting-route cap: environment_assets.md "Map layouts" keeps it within ±25% of the old median (46).
 @export var max_route_length := 57
+# And its floor: an inland Heartwood can sit close, so a short route gets plain obstacles added on it.
+@export var min_route_length := 35
 @export var map_seed: int = 0  # 0 = new random map every run; anything else reproduces a map
 var unwalkable_cells: PackedVector2Array
 # Clearable trees/rocks still on the map: {cell (Vector2): ObstacleData}.
@@ -64,11 +66,10 @@ func _ready() -> void:
 	ground_layer.z_index = -1
 	path_layer.z_index = -1
 	ground_layer.initialize()
-	# The start and goal sit in the rim ring: the rim goes under their path (path_rim.png is transparent
-	# outside the path), on the ground layer since the object layer draws over the path.
-	for end_cell in [startPath, endPath]:
-		ground_layer.set_cell(Vector2i(end_cell), EnvironmentTiles.ISLAND_EDGE,
-			Vector2i(EnvironmentTiles.rim_mask(Vector2i(end_cell), Vector2i(MAP_GRID.size)), 0))
+	# The start sits in the rim ring: the rim goes under its path (path_rim.png is transparent outside the
+	# path), on the ground layer since the object layer draws over the path. The Heartwood is inland.
+	ground_layer.set_cell(Vector2i(startPath), EnvironmentTiles.ISLAND_EDGE,
+		Vector2i(EnvironmentTiles.rim_mask(Vector2i(startPath), Vector2i(MAP_GRID.size)), 0))
 	unwalkable_cells = environment_object_layer.initialize(startPath, endPath)
 	path_layer.initialize(get_array_board(), startPath, endPath)
 
@@ -76,6 +77,9 @@ func _ready() -> void:
 	var skip := unwalkable_cells.duplicate()
 	skip.append(startPath)
 	skip.append(endPath)
+	for cell in get_glade_cells():  # The Heartwood's glade: never an obstacle, ridge or feature
+		if not skip.has(cell):
+			skip.append(cell)
 	environment_object_layer.layout = layout
 	obstacles = environment_object_layer.generate_obstacles(rng, skip)
 	for cell in obstacles:
@@ -84,6 +88,7 @@ func _ready() -> void:
 		path_layer.set_cell_blocked(cell, true)
 	_carve_route_if_blocked()
 	_trim_route_if_long()
+	_extend_route_if_short()
 	path_layer.prefer_route(_straightest_route())  # Fewest turns among the shortest routes
 
 	path_layer.draw()
@@ -95,6 +100,8 @@ func _ready() -> void:
 	heartwood = Heartwood.new()
 	heartwood.position = MAP_GRID.calculate_map_position(endPath)
 	heartwood.run_state = get_node_or_null("%RunState")
+	heartwood.tower_container = get_node_or_null("%TowerContainer")
+	heartwood.enemy_container = get_node_or_null("%EnemyContainer")
 	add_child(heartwood)
 
 	dream_void = DreamVoid.new()
@@ -133,6 +140,16 @@ func _draw_pond_corners() -> void:
 		sprite.position = MAP_GRID.calculate_map_position(corner[0])
 		add_child(sprite)
 		_pond_corners.append(sprite)
+
+# The 8 cells around the Heartwood (environment_assets.md "Inland Heartwood"): kept clear of obstacles,
+# ridges and the feature, so the player can wall it in on some sides. Wardens may be built there.
+func get_glade_cells() -> PackedVector2Array:
+	var cells := PackedVector2Array()
+	for dx in range(-1, 2):
+		for dy in range(-1, 2):
+			if dx != 0 or dy != 0:
+				cells.append(endPath + Vector2(dx, dy))
+	return cells
 
 # Swaps the environment art to act `act`'s season (every sheet, and the Heartwood's).
 func set_act(act: int) -> void:
@@ -209,6 +226,32 @@ func _straightest_route() -> PackedVector2Array:
 		route.insert(0, Vector2(key[0]))
 		key = best[key][1]
 	return route
+
+# A route shorter than `min_route_length` (an inland Heartwood close to the start) gets a plain
+# obstacle (a tree or rock, clearable like any other) on the route cell whose blocking lengthens it
+# most while a way through remains and it stays under `max_route_length`. Never the start, the
+# Heartwood or its glade.
+func _extend_route_if_short() -> void:
+	var glade := get_glade_cells()
+	for attempt in 12:
+		var route := path_layer.find_path_from(startPath)
+		if route.size() >= min_route_length:
+			return
+		var best := Vector2(-1, -1)
+		var best_length := route.size()
+		for cell in route:
+			if cell == startPath or cell == endPath or glade.has(cell):
+				continue
+			var longer := get_path_if_blocked(cell).size()
+			if longer > best_length and longer <= max_route_length:
+				best_length = longer
+				best = cell
+		if best == Vector2(-1, -1):
+			return
+		var data: ObstacleData = environment_object_layer.tree_obstacle if hash(best) % 2 == 0 else environment_object_layer.rock_obstacle
+		var tile: Vector2i = data.tiles[posmod(hash(best + Vector2(7, 3)), data.tiles.size())]
+		environment_object_layer._place_obstacle_tile(best, data, tile, obstacles)
+		path_layer.set_cell_blocked(best, true)
 
 # A route much longer than usual (trees piling up along the ridges) is trimmed back under
 # `max_route_length`, one cell at a time: a plain obstacle if one helps, else a ridge cell as a last

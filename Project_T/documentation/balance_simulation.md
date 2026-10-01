@@ -514,8 +514,24 @@ reached 35: 8 / 8 / 6 of 20; Stag dispelled 14/19, 15/20, 12/19. Perks add +7% m
 543), which doesn't turn into survival; every run dies in act 2.
 **Dream pool dilution, measured:** the drawable pool goes **49 → ~91** cards (half already owns nearly
 every card node), and ~6 cards are taken by 50 in every profile. *(The first "fits the build" shares, 36% → 24%, were
-**invalid**: the classifier counted style-only cards like "maze" or "economy" as off-build. A re-run
-with a family-line classifier replaces them.)*
+**invalid**: the classifier counted style-only cards like "maze" or "economy" as off-build.)*
+**Re-run** (e4e54ba2, family-line classifier, same seeds): matched 24% → 17%, generic ~75% in all,
+off-build **1% → 8%**, and of those 69 offers only **10 are dead** (~0.8% of offers on Grove
+profiles: patient_roots with no status gate; rolling_thunder, rain_on_glass gated on unlocked, not
+planted, Wardens; heavy_eyelids is usable, since Bloomcap applies Drowsy). **No dilution problem.** Survival: 32.7 / 31.8 / 32.9 mean drift
+reached, so the first run's "fresh ≥ half ≥ full" was noise: **the bot shows no Grove effect either
+way** (every profile dies in act 2). The Grove's value has to come from human runs on Dev Grove
+presets. The "dead" offers turned out to be **by design** (Roguelite Code, 35efae49): patient_roots
+is a Seed card that calls the Rootling family to the next pick; rolling_thunder / rain_on_glass are
+half-dreamed "Adapt" offers. **No change.**
+
+## Map change: inland Heartwood (722cf38b, 2026-10-01)
+
+Environment Code: the Heartwood sits on an inland cell (its 8 neighbours always open, reachable from
+several sides), the start stays on the rim; opening routes are a little shorter (median 39 corner / 44
+side vs 46; band 35–57); 240–294 buildable cells; ~69 obstacles. **Every sim and human run above is
+"edge Heartwood"**; human run 5 (ee3d82d0) predates it. Re-baseline: act 1 fresh Balanced / skip on
+722cf38b+, plus a check that the bot's maze and cover rule handle the open glade.
 This conflicts with the targets (Half Grove reaches act 4, Full wins). Next: find out whether the
 off-build cards are dead for the build (a `can_offer` rule fixes it) or usable (a pool-size question),
 then bring the fix to the user. Caveat: one family pair, one bot style, which picks by tag + rarity.

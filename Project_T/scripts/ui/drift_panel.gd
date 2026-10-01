@@ -15,6 +15,8 @@ extends VBoxContainer
 @onready var dream_state: DreamState = %DreamState
 
 var _status_label := Label.new()
+var warning_label := Label.new()  # "Flyers in drift 31: they ignore your maze" (tests)
+var _warning_key := ""
 var _remember_button := Button.new()
 var _sapling_button := Button.new()
 var _start_button := Button.new()
@@ -28,6 +30,15 @@ func _ready() -> void:
 	# Status line, with the Remember button (run_design.md "Dreamlight") beside it during rests.
 	var status_row := HBoxContainer.new()
 	add_child(status_row)
+	# New rule-breakers in the next block (RuleBreakers): one warning line under the status, at rests
+	warning_label.name = "RuleBreakerWarning"
+	warning_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	warning_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	warning_label.visible = false
+	UiStyle.caps(warning_label, 14, UiStyle.GOLD)
+	warning_label.add_theme_color_override("font_outline_color", UiStyle.FOG)
+	warning_label.add_theme_constant_override("outline_size", 5)
+	add_child(warning_label)
 	_remember_button.text = "Remember"
 	_remember_button.tooltip_text = "Spend Dreamlight on branches and final forms of your families."
 	_remember_button.focus_mode = Control.FOCUS_NONE
@@ -122,6 +133,7 @@ func _unhandled_input(event: InputEvent) -> void:
 
 # The call-early bonus changes every frame as creatures walk, so refresh continuously.
 func _process(_delta: float) -> void:
+	_update_warning()
 	var latest := drift_director.drifts_started
 	var next := latest + 1
 
@@ -195,3 +207,17 @@ func _on_speed_changed(paused: bool, speed: float) -> void:
 	for i in _speed_buttons.size():
 		_speed_buttons[i].set_pressed_no_signal(not paused and game_speed.speeds[i] == speed)
 
+
+# The rule-breaker warning (screens_ui.md "New rule-breaker warning"): rebuilt only when the drift count or
+# the rest changes (the scan reads the drift tables).
+func _update_warning() -> void:
+	var key := "%d:%s:%s" % [drift_director.drifts_started, drift_director.is_resting(), drift_director.awaiting_family_pick]
+	if key == _warning_key:
+		return
+	_warning_key = key
+	var lines: Array[String] = []
+	if not drift_director.awaiting_family_pick:
+		for item in RuleBreakers.coming(drift_director):
+			lines.append(RuleBreakers.warning_line(item[0], item[1]))
+	warning_label.text = "\n".join(lines)
+	warning_label.visible = not lines.is_empty()

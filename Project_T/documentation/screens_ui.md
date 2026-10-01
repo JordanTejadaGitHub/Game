@@ -342,7 +342,7 @@ details show when the player asks (selecting, hovering, placing, pausing, rests)
   unless the player selects or hovers (Reactions own the screen).
 - The numbers come from one place (Tower Code exposes each Warden's list of buff sources with
   amounts), so the panel, threads, preview and lens always agree.
-- **Icons needed (for the UI Asset chat, not made yet):** buff pips for Elder Stump (attack speed),
+- **Icons: done** (UI Asset c2a2a600: `assets/ui/buff_pips.png` + `buff_pips.json`, `buff_stacks.png`, `boosts_off` / `boosts_on` in `hud_glyphs.png`; penalty pip tinted in code, **Bruise** so it never reads as a fire/Ember effect). Originally requested: buff pips for Elder Stump (attack speed),
   Acorn (damage), Grove Heart, Grandmother Oak, Kinship (leaf), Whole Tree (badge) and Kindred (a
   Focus mark), a tiny stack count (×2, ×3), a **penalty** pip, and a **buff lens** toggle button
   (on/off). Notes from the old UI Asset chat: icons come from `tools/ui_icon_generator.gd` (16 px,

@@ -1,97 +1,85 @@
 class_name MapLayout
 extends RefCounted
 
-# Where a map's start and Heartwood go, and its one feature (environment_assets.md "Map layouts").
-# Rolled per seed from the map rng, so a saved run rebuilds the same layout.
-# - CORNER (~40%): near a corner to near the opposite one, any of the 4 mirrors, along either axis.
-# - SIDE (~35%): one side to the opposite side, along the long axis (left↔right) or the short one
-#   (top↔bottom, which gets an extra ridge so its route stays as long).
-# - INLET (~25%): start and Heartwood on the same edge with a spine ridge between them: a U-shaped run.
-# Start and end are jittered along their edge, never exact corners or midpoints.
+# Where a map's start and Heartwood go, and its one feature (environment_assets.md "Map layouts" and
+# "Inland Heartwood"). Rolled per seed from the map rng, so a saved run rebuilds the same layout.
+# - The start is on the island's edge: CORNER (~50%: 1-4 cells in from a corner, any of the four,
+#   along either edge) or SIDE (~50%: an edge's middle ±3, any of the four edges).
+# - The Heartwood is inland: a random cell at least EDGE_MARGIN from every edge, in the half of the map
+#   away from the start (split by the line through the centre perpendicular to start→centre), at least
+#   half the map's diagonal from the start (else among the farthest), uniform among those that qualify.
 
-enum Kind { CORNER, SIDE, INLET }
+enum Kind { CORNER, SIDE }
 enum Feature { POND, RUIN, GROVE, LOG }
 const FEATURE_NAMES: Array[String] = ["pond", "ruin", "grove", "fallen log"]
-const CORNER_SHARE := 0.4
-const SIDE_SHARE := 0.35  # The rest are INLET
+const CORNER_SHARE := 0.5  # The rest are SIDE starts
 const CORNER_JITTER := 3  # Cells in from the corner along its edge (1 + 0..3)
 const SIDE_JITTER := 3  # Cells either side of the edge's middle
-const INLET_JITTER := 2
+const EDGE_MARGIN := 2  # The Heartwood keeps this many cells from every edge
+const MIN_DISTANCE_SHARE := 0.5  # Of the map's diagonal, from the start
+const FALLBACK_COUNT := 6  # If no cell is far enough: one of this many farthest
 
 var kind: Kind
 var start: Vector2i
-var end: Vector2i
-var ridge_axis: int  # Ridges run along x (0) or y (1); the route mainly crosses them
-var short_side := false  # SIDE along the short axis (top↔bottom)
+var end: Vector2i  # The Heartwood's cell (inland)
+var ridge_axis: int  # Ridges run along x (0) or y (1); the route mainly crosses them, start → Heartwood
+var short_side := false  # The start is on the top or bottom edge
+var heartwood_fallback := false  # No cell was far enough; the Heartwood is among the farthest
 var feature: Feature
 
-# `force_kind` / `force_feature` (-1 = roll) and `force_short` are for tests; the rolls still happen,
-# so everything rolled after the layout stays the same.
+# `force_kind` / `force_feature` (-1 = roll) and `force_short` (1 = a top/bottom start, 0 = left/right)
+# are for tests; the rolls still happen, so everything rolled after the layout stays the same.
 static func roll(rng: RandomNumberGenerator, size: Vector2i, force_kind: int = -1, force_short: int = -1,
 		force_feature: int = -1) -> MapLayout:
 	var layout := MapLayout.new()
-	var r := rng.randf()
-	layout.kind = Kind.CORNER if r < CORNER_SHARE else (Kind.SIDE if r < CORNER_SHARE + SIDE_SHARE else Kind.INLET)
+	layout.kind = Kind.CORNER if rng.randf() < CORNER_SHARE else Kind.SIDE
 	if force_kind >= 0:
 		layout.kind = force_kind as Kind
-	var axis := rng.randi_range(0, 1)  # CORNER: the route crosses along x (0) or y (1)
-	var flip_a := rng.randf() < 0.5
-	var flip_b := rng.randf() < 0.5
-	var short_roll := rng.randf() < 0.5
-	var jitters := [rng.randi_range(0, 3), rng.randi_range(-3, 3), rng.randi_range(-3, 3), rng.randi_range(-2, 2),
-		rng.randi_range(-2, 2), rng.randi_range(0, 3)]
-	var inlet_edge := rng.randi_range(0, 3)
+	var edge := rng.randi_range(0, 3)  # 0 top, 1 bottom, 2 left, 3 right
+	var flip := rng.randf() < 0.5  # Which end of the edge a corner start is near
+	var corner_in := rng.randi_range(0, CORNER_JITTER)
+	var side_offset := rng.randi_range(-SIDE_JITTER, SIDE_JITTER)
 	var feature_roll := rng.randi_range(0, 3)
 	layout.feature = (feature_roll if force_feature < 0 else force_feature) as Feature
-	var w := size.x
-	var h := size.y
-	match layout.kind:
-		Kind.CORNER:
-			if axis == 1:  # Top/bottom edges, ridges along x
-				var x0: int = 1 + jitters[0] if flip_b else w - 2 - jitters[0]
-				var x1: int = w - 2 - jitters[5] if flip_b else 1 + jitters[5]
-				layout.start = Vector2i(x0, 0 if flip_a else h - 1)
-				layout.end = Vector2i(x1, h - 1 if flip_a else 0)
-				layout.ridge_axis = 0
-			else:  # Left/right edges, ridges along y
-				var y0: int = 1 + jitters[0] if flip_b else h - 2 - jitters[0]
-				var y1: int = h - 2 - jitters[5] if flip_b else 1 + jitters[5]
-				layout.start = Vector2i(0 if flip_a else w - 1, y0)
-				layout.end = Vector2i(w - 1 if flip_a else 0, y1)
-				layout.ridge_axis = 1
-		Kind.SIDE:
-			layout.short_side = short_roll if force_short < 0 else force_short == 1
-			if layout.short_side:  # Top ↔ bottom
-				layout.start = Vector2i(w / 2 + jitters[1], 0 if flip_a else h - 1)
-				layout.end = Vector2i(w / 2 + jitters[2], h - 1 if flip_a else 0)
-				layout.ridge_axis = 0
-			else:  # Left ↔ right
-				layout.start = Vector2i(0 if flip_a else w - 1, h / 2 + jitters[1])
-				layout.end = Vector2i(w - 1 if flip_a else 0, h / 2 + jitters[2])
-				layout.ridge_axis = 1
-		Kind.INLET:
-			# Both on one edge, about a quarter and three quarters along it; the spine runs inward between.
-			var along_x := inlet_edge < 2  # Top or bottom edge
-			var length := w if along_x else h
-			var a: int = roundi(length * 0.25) + jitters[3]
-			var b: int = roundi(length * 0.75) + jitters[4]
-			if flip_b:
-				var swap := a
-				a = b
-				b = swap
-			var fixed := 0 if inlet_edge % 2 == 0 else (h - 1 if along_x else w - 1)
-			layout.start = Vector2i(a, fixed) if along_x else Vector2i(fixed, a)
-			layout.end = Vector2i(b, fixed) if along_x else Vector2i(fixed, b)
-			layout.ridge_axis = 1 if along_x else 0  # The spine runs inward from the shared edge
+	if force_short >= 0:
+		edge = edge % 2 + (0 if force_short == 1 else 2)
+	var along_x := edge < 2  # The start's edge runs along x (top or bottom)
+	var length := size.x if along_x else size.y
+	var along: int = length / 2 + side_offset
+	if layout.kind == Kind.CORNER:
+		along = 1 + corner_in if flip else length - 2 - corner_in
+	var fixed := 0 if edge % 2 == 0 else (size.y - 1 if along_x else size.x - 1)
+	layout.start = Vector2i(along, fixed) if along_x else Vector2i(fixed, along)
+	layout.short_side = along_x
+	layout.end = layout._pick_heartwood(rng, size)
+	var travel := layout.end - layout.start
+	layout.ridge_axis = 1 if absi(travel.x) >= absi(travel.y) else 0
 	return layout
 
+# One random inland cell in the far half, far enough from the start (else one of the farthest).
+func _pick_heartwood(rng: RandomNumberGenerator, size: Vector2i) -> Vector2i:
+	var centre := Vector2(size - Vector2i.ONE) / 2.0
+	var away := centre - Vector2(start)
+	var reach := Vector2(size).length() * MIN_DISTANCE_SHARE
+	var candidates: Array[Vector2i] = []
+	var far: Array[Vector2i] = []
+	for x in range(EDGE_MARGIN, size.x - EDGE_MARGIN):
+		for y in range(EDGE_MARGIN, size.y - EDGE_MARGIN):
+			var cell := Vector2i(x, y)
+			if (Vector2(cell) - centre).dot(away) <= 0.0:
+				continue  # The start's half
+			candidates.append(cell)
+			if Vector2(cell - start).length() >= reach:
+				far.append(cell)
+	if far.is_empty():
+		heartwood_fallback = true
+		candidates.sort_custom(func(a: Vector2i, b: Vector2i) -> bool:
+			return Vector2(a - start).length() > Vector2(b - start).length())
+		far = candidates.slice(0, FALLBACK_COUNT)
+	return far[rng.randi_range(0, far.size() - 1)]
+
 func get_kind_name() -> String:
-	match kind:
-		Kind.CORNER:
-			return "corner"
-		Kind.SIDE:
-			return "side (short)" if short_side else "side (long)"
-	return "inlet"
+	return "corner" if kind == Kind.CORNER else "side"
 
 func get_feature_name() -> String:
 	return FEATURE_NAMES[feature]

@@ -206,6 +206,41 @@ inland. This replaces the Heartwood half of the layouts above.
 8. **Balance:** routes no longer end at an edge, and nightmares can arrive from several sides. Tell
    Balancing Discussion when it lands.
 
+### Inland Heartwood (as built, 2026-10-01)
+
+- `MapLayout` now only places the start: `CORNER` / `SIDE` (50/50, any edge; `short_side` = the start
+  is on the top or bottom edge), then `_pick_heartwood` rolls `end` (the Heartwood) from the same rng:
+  inland (`EDGE_MARGIN` 2), the far half, at least `MIN_DISTANCE_SHARE` 0.5 of the diagonal away, else
+  one of the `FALLBACK_COUNT` (6) farthest (`heartwood_fallback`; no test seed needed it). Inlet and its
+  spine are gone. `ridge_axis` follows start→Heartwood (ridges across the larger of the two
+  directions).
+- Ridges sit on rows between the start's and the Heartwood's (`RIDGE_END_GAP` 3 from each, so none
+  reaches the glade), up to 3 (+1 at Blight 9) as fit, the first nearest the start; the bend rule is
+  unchanged. Tree groves are thinner (density 0.08–0.16) to pay for the third ridge.
+- `MapGenerator.get_glade_cells()`: the 8 around the Heartwood join the generation skip list, so no
+  ridge, feature, tree or rock lands there (Wardens can). The rim is closed except the start (the rim
+  under the start only; the Heartwood stands on a plain path tile on grass).
+- **Route floor** (`_extend_route_if_short`, `min_route_length` 35): an inland Heartwood can sit
+  close, so a short opening route gets a plain tree or rock (clearable) on the route cell whose
+  blocking lengthens it most, staying under 57 and keeping a way through; never the start, the
+  Heartwood or the glade. With `_trim_route_if_long` the band is held both ways.
+- `Heartwood`: fades (`self_modulate`, so not its light) to 50% when a Warden or nightmare is on the 3
+  cells behind it (`is_something_behind`); it takes no input, so taps there pick the cell. CloseCalls,
+  LeakEffect, the H hotkey, the Whispers glide, `EnvironmentAmbience.heartwood_position` and the lights
+  already read the Heartwood's live position; `GameCameraNode` now opens framed halfway between the
+  start and the Heartwood. BossDossier only has text ("at the Heartwood").
+- Ponds and ruins get up to 120 of 160 placements near the route (a ruin is a bulky ring).
+- Measured (20 seeds per start kind; bands 35–57 route, 206–344 buildable):
+
+  | Start | Route | Buildable | Obstacles (median) |
+  |---|---|---|---|
+  | Corner | 36–51 (median 39) | 260–294 | 41–75 (61) |
+  | Side | 36–54 (median 44) | 240–283 | 52–95 (76) |
+
+  50 random seeds: 48–94 obstacles (mean 69) at Blight 0; every Heartwood inland, far half, far
+  enough, glade clear; every route bends. Ponds near the route on 7 of 8 seeds, ruins 6 of 8.
+  RunSaver VERSION 9.
+
 ## Notes
 
 - Colours (2026-09-30, to fit the title and Memory Grove screens): the ground is night-indigo with a moss grain (act 1–2 moss/teal, act 3 violet with rust, act 4 frost), the dead trees are cool night bark with a teal lit side and moss flecks (the Grove trunks), rocks stay lavender stone. Warmth is only the path, the Heartwood and the Wardens.

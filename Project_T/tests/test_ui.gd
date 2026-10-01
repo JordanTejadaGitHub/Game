@@ -413,6 +413,17 @@ func _run() -> void:
 	var off_row := DreamBonusView._row({"card": some_card, "active": false, "reason": "not alone"})
 	_check(off_row.get_child(0).modulate.a < 1.0, "an off card is greyed")
 	off_row.free()
+	# Interim card glyphs: a Spore card's gem carries the Poisoned icon, a card with no status tag stays plain.
+	var spore_card := UpgradeData.new()
+	spore_card.tags.assign(["spore", "maze"])
+	var gem := Control.new()
+	gem.custom_minimum_size = Vector2(30, 30)
+	DreamBonusView.add_tag_glyph(gem, spore_card)
+	_check(DreamBonusView.tag_status(spore_card) == &"spored" and gem.get_node_or_null("TagGlyph") != null,
+		"a Spore card's gem shows the Poisoned glyph")
+	spore_card.tags.assign(["economy"])
+	_check(DreamBonusView.tag_status(spore_card) == &"", "a card with no status tag keeps the plain gem")
+	gem.free()
 	# Status display names (story.md): ids unchanged, names from IconInfo; {tokens} fill them in.
 	_check(IconInfo.status_name(&"damp") == "Soaked" and IconInfo.status_name(&"static") == "Charged"
 		and IconInfo.status_name(&"held") == "Rooted" and IconInfo.format("{spored} + {marked}") == "Poisoned + Exposed",

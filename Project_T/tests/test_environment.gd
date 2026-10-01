@@ -52,16 +52,16 @@ func _init() -> void:
 		and trees.get_tile_animation_frame_duration(Vector2i(0, 0), 0) != trees.get_tile_animation_frame_duration(Vector2i(0, 0), 1),
 		"each dead-tree type animates at its own pace")
 	for cell in path.get_used_cells():
-		var on_rim: bool = Vector2(cell) == map.startPath or Vector2(cell) == map.endPath
+		var on_rim: bool = Vector2(cell) == map.startPath
 		if path.get_cell_source_id(cell) != (EnvironmentTiles.PATH_RIM if on_rim else EnvironmentTiles.PATH):
 			_check(false, "path cell %s uses the path sheet" % cell)
 			break
 	var start_mask: int = path.get_cell_atlas_coords(Vector2i(map.startPath)).x
 	_check(path.get_cell_source_id(Vector2i(map.startPath)) == EnvironmentTiles.PATH_RIM
-		and path.get_cell_source_id(Vector2i(map.endPath)) == EnvironmentTiles.PATH_RIM
-		and ground.get_cell_source_id(Vector2i(map.startPath)) == EnvironmentTiles.ISLAND_EDGE
-		and ground.get_cell_source_id(Vector2i(map.endPath)) == EnvironmentTiles.ISLAND_EDGE,
-		"the start and goal draw rim-edge path over the rim, no grass")
+		and ground.get_cell_source_id(Vector2i(map.startPath)) == EnvironmentTiles.ISLAND_EDGE,
+		"the start draws rim-edge path over the rim, no grass")
+	_check(path.get_cell_source_id(Vector2i(map.endPath)) == EnvironmentTiles.PATH
+		and ground.get_cell_source_id(Vector2i(map.endPath)) == EnvironmentTiles.GRASS, "the Heartwood stands inland, on grass")
 	var out_bit: int = {Vector2i.UP: 1, Vector2i.RIGHT: 2, Vector2i.DOWN: 4, Vector2i.LEFT: 8}[out]
 	_check(start_mask & out_bit, "the start's path tile runs off its edge (mask %d)" % start_mask)
 	for cell in map.obstacles:
@@ -126,6 +126,18 @@ func _init() -> void:
 	sprout.free()
 	await process_frame
 	_check(lighting.get_glowing_warden_count() == glowing_before + 1, "a sold Warden's glow goes with it")
+
+	# Inland, the canopy covers the 3 cells behind the Heartwood: something there fades it.
+	_check(not heartwood.is_something_behind(), "nothing behind the Heartwood at first")
+	var behind := _add_warden(main, "res://resource/tower/sprout.tres", map.endPath + Vector2(0, -1))
+	_check(heartwood.is_something_behind(), "a Warden behind the Heartwood is seen")
+	for i in 30:
+		await process_frame
+	_check(heartwood.self_modulate.a < 0.7, "the canopy fades over it (%.2f)" % heartwood.self_modulate.a)
+	behind.free()
+	for i in 30:
+		await process_frame
+	_check(heartwood.self_modulate.a > 0.9, "and comes back when it's gone (%.2f)" % heartwood.self_modulate.a)
 
 	# Build mode: a cold hatch on every unbuildable cell (screens_ui.md: the edge must look unbuildable).
 	var hatch: BuildHatch = map.build_hatch
@@ -262,7 +274,7 @@ func _light_pass(image: Image, map: Node, margin: Vector2i, scale: float) -> voi
 # --- Layout sheet (`-- --layouts=<file.png>`) ---------------------------------------------------------
 # ~12 seeds in one sheet, covering every layout and feature, each labelled and with its starting route.
 
-const SHEET_SEEDS := 12
+const SHEET_SEED_LIST: Array[int] = [1, 2, 3, 4, 8, 9, 6, 7, 10, 12, 24, 27]  # The first sheet's seeds (453a65a9)
 const SHEET_COLUMNS := 4
 const SHEET_SCALE := 4  # Each map is drawn at 1/4 size (16 px per cell)
 const LABEL_HEIGHT := 16
@@ -291,7 +303,7 @@ const FONT := {
 }
 
 func _layout_sheet(file: String) -> void:
-	var seeds := _pick_sheet_seeds()
+	var seeds: Array[int] = SHEET_SEED_LIST  # The same seeds every time, so sheets compare
 	var cell := EnvironmentTiles.SIZE
 	var map_px := Vector2i(Vector2(load("res://resource/map/map_grid.tres").size)) * cell / SHEET_SCALE
 	var tile := map_px + Vector2i(0, LABEL_HEIGHT)
@@ -315,32 +327,6 @@ func _layout_sheet(file: String) -> void:
 		main.free()
 	sheet.save_png(file)
 	print("layout sheet saved to ", file, " (seeds ", seeds, ")")
-
-# Seeds covering every layout (corner, both sides, inlet) and every feature, then more variety.
-func _pick_sheet_seeds() -> Array[int]:
-	var picked: Array[int] = []
-	var kinds := {}
-	var features := {}
-	var pairs := {}
-	var size := Vector2i(load("res://resource/map/map_grid.tres").size)
-	for pass_index in 3:
-		for seed_value in range(1, 400):
-			if picked.size() >= SHEET_SEEDS or picked.has(seed_value):
-				continue
-			var rng := RandomNumberGenerator.new()
-			rng.seed = seed_value
-			var layout := MapLayout.roll(rng, size)
-			var kind := layout.get_kind_name()
-			var feature := layout.get_feature_name()
-			var wanted: bool = (pass_index == 0 and not kinds.has(kind)) \
-				or (pass_index == 1 and not features.has(feature)) \
-				or (pass_index == 2 and not pairs.has(kind + feature))
-			if wanted:
-				picked.append(seed_value)
-				kinds[kind] = true
-				features[feature] = true
-				pairs[kind + feature] = true
-	return picked
 
 # The map's tile layers, the Heartwood and its Wardens, flat (no lighting), one cell of void around.
 func _flat_map(main: Node) -> Image:
@@ -380,11 +366,14 @@ func _draw_route(image: Image, route: PackedVector2Array, cell: int) -> void:
 		var b := Vector2i(route[mini(i + 1, route.size() - 1)]) * cell + Vector2i.ONE * (cell / 2)
 		var r := Rect2i(Vector2i(mini(a.x, b.x), mini(a.y, b.y)) - Vector2i.ONE, (a - b).abs() + Vector2i(3, 3))
 		image.fill_rect(r.intersection(Rect2i(Vector2i.ZERO, image.get_size())), ROUTE_COLOR)
-	if not route.is_empty():  # Start and goal markers
-		for end in [route[0], route[route.size() - 1]]:
-			var c := Vector2i(end) * cell + Vector2i.ONE * (cell / 2)
-			image.fill_rect(Rect2i(c - Vector2i(4, 4), Vector2i(9, 9)).intersection(Rect2i(Vector2i.ZERO, image.get_size())),
-				Color("bc44dc") if end == route[0] else Color("9cc46c"))  # Palette.ORCHID start, SPRIG goal
+	if not route.is_empty():  # Start: a square; the Heartwood: a ring round its cell
+		var bounds := Rect2i(Vector2i.ZERO, image.get_size())
+		var s := Vector2i(route[0]) * cell + Vector2i.ONE * (cell / 2)
+		image.fill_rect(Rect2i(s - Vector2i(4, 4), Vector2i(9, 9)).intersection(bounds), Color("bc44dc"))  # Palette.ORCHID
+		var h := Vector2i(route[route.size() - 1]) * cell + Vector2i.ONE * (cell / 2)
+		for side in [Rect2i(h - Vector2i(10, 10), Vector2i(21, 3)), Rect2i(h + Vector2i(-10, 8), Vector2i(21, 3)),
+				Rect2i(h - Vector2i(10, 10), Vector2i(3, 21)), Rect2i(h + Vector2i(8, -10), Vector2i(3, 21))]:
+			image.fill_rect(side.intersection(bounds), Color("9cc46c"))  # Palette.SPRIG
 
 func _draw_text(image: Image, text: String, at: Vector2i, scale: int, color: Color) -> void:
 	var x := at.x

@@ -12,7 +12,7 @@ extends SceneTree
 const SEEDS := 50
 const LAYOUT_SEEDS := 20
 const MIN_OBSTACLES := 10
-const MAX_RIDGES := 3  # SIDE (short) gets a third
+const MAX_RIDGES := 3  # +1 at Blight 9 (as many as fit between the start and the Heartwood)
 const LENGTH_MEDIAN := 46  # Corner-to-corner maps before layouts (50 seeds, 2026-10-01)
 const BUILDABLE_MEDIAN := 275
 const BAND := 0.25
@@ -28,8 +28,7 @@ func _run() -> void:
 	MetaRun.blight_level = 9
 	await _survey(9, MAX_RIDGES + 1)
 	MetaRun.blight_level = 0
-	for kind: Array in [[MapLayout.Kind.CORNER, -1], [MapLayout.Kind.SIDE, 0], [MapLayout.Kind.SIDE, 1],
-			[MapLayout.Kind.INLET, -1]]:
+	for kind: Array in [[MapLayout.Kind.CORNER, -1], [MapLayout.Kind.SIDE, -1]]:  # Per start kind
 		await _layout_case(kind[0], kind[1])
 	for feature in MapLayout.FEATURE_NAMES.size():
 		await _feature_case(feature)
@@ -64,6 +63,7 @@ func _survey(blight: int, max_ridges: int) -> void:
 			blight, seed_value, env.ridge_count, max_ridges])
 		_check(not map.get_path_from(map.startPath).is_empty(), "blight %d seed %d: a route exists" % [blight, seed_value])
 		_check(_bends(map), "blight %d seed %d (%s): the route bends" % [blight, seed_value, map.layout.describe()])
+		_check_heartwood(map, env, "blight %d seed %d" % [blight, seed_value])
 		main.free()
 	var total := 0
 	for c in counts:
@@ -151,6 +151,22 @@ func _feature_case(feature: int) -> void:
 		_check(near_route >= 6, "%s within 2 cells of the opening route on %d of 8 seeds" % [MapLayout.FEATURE_NAMES[feature], near_route])
 		print("  feature %s: near the opening route on %d of 8 seeds" % [MapLayout.FEATURE_NAMES[feature], near_route])
 	print("  feature %s: placed on %d of 8 seeds" % [MapLayout.FEATURE_NAMES[feature], placed])
+
+# The Heartwood (environment_assets.md "Inland Heartwood"): inland, in the half away from the start, at
+# least half the diagonal from it (unless no cell is: then among the farthest), and its glade is clear.
+func _check_heartwood(map: Node, env: Node, what: String) -> void:
+	var h: Vector2 = map.endPath
+	var size: Vector2 = map.MAP_GRID.size
+	var margin := MapLayout.EDGE_MARGIN
+	_check(h.x >= margin and h.y >= margin and h.x <= size.x - 1 - margin and h.y <= size.y - 1 - margin,
+		"%s: the Heartwood %s is inland" % [what, h])
+	var centre := (size - Vector2.ONE) / 2.0
+	_check((h - centre).dot(centre - map.startPath) > 0.0, "%s: the Heartwood is in the far half" % what)
+	_check(map.layout.heartwood_fallback or h.distance_to(map.startPath) >= size.length() * MapLayout.MIN_DISTANCE_SHARE,
+		"%s: the Heartwood is far enough (%.1f)" % [what, h.distance_to(map.startPath)])
+	for cell in map.get_glade_cells():
+		_check(not map.obstacles.has(cell) and not env.pond_cells.has(cell) and not env.feature_cells.has(cell)
+			and not env.ridge_cells.has(cell), "%s: glade cell %s is clear" % [what, cell])
 
 # Longer than the straightest possible route: the maze makes the route turn back at least once.
 func _bends(map: Node) -> bool:

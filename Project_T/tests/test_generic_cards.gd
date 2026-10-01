@@ -69,6 +69,10 @@ func _test_pool() -> void:
 	_check(not dreams.is_eligible(_card("heavy_air")), "…Dewdrop isn't (Soaked no longer slows)")
 	dreams.unlocked["bellflower"] = true
 	_check(dreams.is_eligible(_card("heavy_air")), "…Bellflower (Drowsy) is")
+	# Offer gate (Grove sim, balancing): Heavy Eyelids needs a Drowsy source. Patient Roots stays ungated: it's a Seed
+	# card, offered before its Wardens on purpose (it calls the Rootling family to the next pick).
+	_check(_card("heavy_eyelids").requires_status == &"drowsy" and dreams._meets_needs(_card("heavy_eyelids")),
+		"Heavy Eyelids needs a Drowsy source (Bellflower has one)")
 
 func _test_economy() -> void:
 	_reset()

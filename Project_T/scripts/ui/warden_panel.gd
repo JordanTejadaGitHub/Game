@@ -475,6 +475,7 @@ func _add_target_switch(towers: Array) -> void:
 # muted plum; a Warden source is a button that selects it and glides the camera there.
 func _fill_buffs(tower: Tower) -> void:
 	for child in _buffs.get_children():
+		_buffs.remove_child(child)  # Out of the layout now: the height fits the new rows at once (user: "Hide" left a gap)
 		child.queue_free()
 	_buffs.visible = false
 	if tower == null:
@@ -496,7 +497,9 @@ func _fill_buffs(tower: Tower) -> void:
 	details.pressed.connect(func() -> void:
 		_buffs_open = not _buffs_open
 		_fill_buffs(tower)
-		_fit_height())
+		_fit_height()
+		if not get_tree().process_frame.is_connected(_fit_height):
+			get_tree().process_frame.connect(_fit_height, CONNECT_ONE_SHOT))  # Again once the new rows are laid out
 	head.add_child(details)
 	_buffs.add_child(head)
 	for entry in (entries if _buffs_open else []):
