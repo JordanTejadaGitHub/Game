@@ -502,7 +502,7 @@ func _has_work() -> bool:
 			_out = _out.filter(func(n) -> bool: return is_instance_valid(n))
 			if not _out.is_empty():
 				return false
-	return not get_enemies_in_range().is_empty()  # Performance: whether one is in range, not which (find_target scores them)
+	return has_enemy_in_range()  # Performance: whether one is in range, not which (find_target scores them)
 
 
 # --- Effective stats (base × Dreams) ----------------------------------------------------------------
@@ -1431,7 +1431,7 @@ func _update_watch(delta: float) -> void:
 	if _watch_check > 0.0:
 		return
 	_watch_check = WATCH_CHECK
-	if not get_enemies_in_range().is_empty():
+	if has_enemy_in_range():
 		_watch_time = 0.0
 	elif _watch_time >= DreamState.WATCHFUL_REST_TIME[mini(_rule_level(&"watchful_rest"), 1)]:
 		watch_charged = true
@@ -3452,16 +3452,21 @@ func get_enemies_in_range() -> Array[Node2D]:
 	_nightmares_this_frame(get_tree())  # Refreshes the shared list first if nightmares came or went
 	if frame == _in_range_frame and _in_range_key == Vector3(range_squared, sky_squared, min_squared) \
 			and _in_range_count == _nightmares.size():
-		return _in_range.filter(func(e) -> bool: return is_instance_valid(e) and not e.is_cleansed)
+		var kept: Array[Node2D] = []  # A plain loop: filter() with a lambda cost more than the scan (perf probe)
+		for e in _in_range:
+			if is_instance_valid(e) and not e.is_cleansed:
+				kept.append(e)
+		return kept
 	var result: Array[Node2D] = []
 	var reach := sqrt(maxf(range_squared, sky_squared))
-	for enemy in _nightmares_near(global_position, reach):
-		if not is_instance_valid(enemy) or enemy.is_cleansed:
-			continue
-		var distance_squared := global_position.distance_squared_to(enemy.global_position)
-		var flying: bool = enemy.enemy_data != null and enemy.enemy_data.trait_kind == EnemyData.Trait.FLYING
-		if distance_squared <= (sky_squared if flying else range_squared) and distance_squared >= min_squared:
-			result.append(enemy)
+	for bucket in _buckets_near(global_position, reach):  # The buckets themselves: no merged array built
+		for enemy in bucket:
+			if not is_instance_valid(enemy) or enemy.is_cleansed:
+				continue
+			var distance_squared := global_position.distance_squared_to(enemy.global_position)
+			var flying: bool = enemy.enemy_data != null and enemy.enemy_data.trait_kind == EnemyData.Trait.FLYING
+			if distance_squared <= (sky_squared if flying else range_squared) and distance_squared >= min_squared:
+				result.append(enemy)
 	_in_range_frame = frame
 	_in_range_key = Vector3(range_squared, sky_squared, min_squared)
 	_in_range_count = _nightmares.size()
@@ -3634,3 +3639,37 @@ func _twist_released(_tower: Tower) -> void:
 # WALL_DROWSY_CAP). 0 still refreshes its timer.
 func _wall_drowsy_room(enemy: Node2D, stacks: int) -> int:
 	return clampi(WALL_DROWSY_CAP - enemy.statuses.stacks(EnemyStatuses.DROWSY), 0, stacks)
+
+# The nightmare buckets within `reach` px of `at` ([[nightmares], …]; the whole list as one bucket for a
+# long reach). Callers check the distance and is_cleansed. Perf probe (stacked drifts): walking the
+# buckets in place is cheaper than merging them into a new array per query.
+func _buckets_near(at: Vector2, reach: float) -> Array:
+	_nightmares_this_frame(get_tree())
+	var r := int(ceil(reach / BUCKET))
+	if (2 * r + 1) * (2 * r + 1) >= _buckets.size():
+		return [_nightmares]
+	var centre := Vector2i((at / BUCKET).floor())
+	var out: Array = []
+	for dy in range(-r, r + 1):
+		for dx in range(-r, r + 1):
+			var bucket = _buckets.get(centre + Vector2i(dx, dy))
+			if bucket != null:
+				out.append(bucket)
+	return out
+
+# Whether any nightmare is in range: stops at the first (_has_work and Watchful Rest only need yes / no).
+func has_enemy_in_range() -> bool:
+	var range_squared := get_range_pixels() ** 2
+	var sky_squared := range_squared
+	if _rule_stacks(&"skyward_gaze") > 0:
+		sky_squared = range_to_pixels(get_range_cells() + DreamState.SKYWARD_RANGE) ** 2
+	var min_squared := (attack_data.min_range * MAP_GRID.cell_size.x) ** 2
+	for bucket in _buckets_near(global_position, sqrt(maxf(range_squared, sky_squared))):
+		for enemy in bucket:
+			if not is_instance_valid(enemy) or enemy.is_cleansed:
+				continue
+			var distance_squared := global_position.distance_squared_to(enemy.global_position)
+			var flying: bool = enemy.enemy_data != null and enemy.enemy_data.trait_kind == EnemyData.Trait.FLYING
+			if distance_squared <= (sky_squared if flying else range_squared) and distance_squared >= min_squared:
+				return true
+	return false
