@@ -92,6 +92,7 @@ static var force_full := false  # Tests: every Kinship and Whole Tree, as in the
 var pairs: Array = []  # [{id, a: Tower, b: Tower, key}]
 var ages := {}  # Pair key -> drifts stood together
 var families := {}  # line -> 0 none, 1 Kindred, 2 Whole Tree
+var version := 0  # Bumped when the pairs or the families change (Tower._stats_fresh reads it, not the dictionaries)
 var formed_block := 0
 var formed_run := 0
 var harmony_block := 0
@@ -327,6 +328,7 @@ func refresh() -> void:
 	var changed := pairs.size() != new_pairs.size() or pairs.any(func(p) -> bool: return not keys.has(p.key))
 	pairs = new_pairs
 	if changed:
+		version += 1
 		for tower in towers:
 			tower.queue_redraw()  # Their leaf badges come and go
 	_partner.clear()
@@ -438,6 +440,8 @@ func _count_families(towers: Array) -> void:
 			families[line] = 2
 		elif count >= 2:
 			families[line] = 1
+	if families != before:
+		version += 1
 	for line in families:
 		if not kindred_shown and before.get(line, 0) == 0:
 			kindred_shown = true  # The first Kindred of the run gets one quiet callout

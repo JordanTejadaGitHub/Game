@@ -591,8 +591,7 @@ var _stats_until := -1.0
 func _stats_fresh() -> bool:
 	var key := [attack_data, rank, focus, _aura_range, _aura_damage, _aura_speed, _damage_share, _aura_crit, dim_multiplier, _big_family,
 		_dream_state.board_version if _dream_state else 0, _dream_state.stacks.size() if _dream_state else 0,
-		_kin.get_pairs(self).size() if is_instance_valid(_kin) else 0,
-		_kin.families.hash() if is_instance_valid(_kin) else 0,
+		_kin.version if is_instance_valid(_kin) else 0,  # Pairs / families changed (was a pairs lookup and a dictionary hash per call)
 		_chorus,
 		_omens.active if _omens else null]
 	if key != _stats_key or _anim_time > _stats_until:
