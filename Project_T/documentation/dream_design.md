@@ -1260,9 +1260,9 @@ the three-family Warden builds (Full Moon, Gale, Hairpin Mill, Rockfall, Thunder
 stay rare by nature; overall power after the free-branch change belongs to the balance sim
 (`balance_simulation.md`), not to Dream weighting.
 
-## The starting Dream pool (DRAFT, 2026-09-30, for the design hub)
+## The starting Dream pool (2026-09-30, user-approved)
 
-**Status: draft for Meta Game Discussion and the design hub; not to be built until the hub signs off.**
+**Status: approved by the user via the design hub ("implement"); Meta Game Discussion sets the final Grove node list.**
 Why: a new account's first run can be offered most of the pool (123 base cards in the start pool:
 32 C / 50 U / 31 R / **10 Legendary**), so builds come together too easily. Target **~25 C / 30 U /
 10 R / 0 L**. Rules:
