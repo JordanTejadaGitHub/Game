@@ -24,6 +24,8 @@ var candidates: Array[Tower] = []
 var by_tower := {}  # instance id -> damage
 var split := {"hit": 0.0, "cloud": 0.0, "status": 0.0, "combo": 0.0, "asleep": 0.0}
 var by_tag := {}  # "kind/tag" -> the candidates' damage (tags column)
+var spore_appliers := {}  # For Spored ticks credited to the candidates: applier form id -> damage share (by stacks added)
+var spore_combos := {}  # …and their combo tags -> damage
 var total := 0.0
 var spawned_health := 0.0
 var leaked_health := 0.0
@@ -164,6 +166,15 @@ func _on_damage(event) -> void:
 	split.combo += combo
 	var tag_key := "%s/%s" % [event.kind, event.tag if event.tag != &"" else &"-"]
 	by_tag[tag_key] = float(by_tag.get(tag_key, 0.0)) + event.amount
+	if event.tag == &"spored" and is_instance_valid(event.enemy):
+		var credit: Array = event.enemy.statuses.spore_credit()
+		if credit.is_empty():
+			spore_appliers["(none)"] = float(spore_appliers.get("(none)", 0.0)) + event.amount
+		for part in credit:
+			var who: String = part[0].tower_data.get_id() if is_instance_valid(part[0]) and part[0] is Tower else "(gone)"
+			spore_appliers[who] = float(spore_appliers.get(who, 0.0)) + event.amount * part[1]
+		for c in event.combos:
+			spore_combos[String(c)] = float(spore_combos.get(String(c), 0.0)) + event.amount
 	if event.tag == &"cloud":
 		split.cloud += event.amount - combo
 	elif event.kind == &"status" or event.kind == &"bolt":
@@ -186,7 +197,7 @@ func _report(director: DriftDirector) -> void:
 		"hit": snappedf(split.hit / t, 0.01), "cloud": snappedf(split.cloud / t, 0.01), "status": snappedf(split.status / t, 0.01),
 		"combo": snappedf(split.combo / t, 0.01), "asleep": snappedf(split.asleep / t, 0.01),
 		"leaked": snappedf(leaked_health / maxf(spawned_health, 1.0), 0.001), "status_potency": Tower.status_potency_on,
-		"tags": _tag_text(t)}
+		"tags": _tag_text(t), "spore_appliers": _share_text(spore_appliers, t), "spore_combos": _share_text(spore_combos, t)}
 	print("FINALS %s" % JSON.stringify(row))
 	if out_path != "":
 		var exists := FileAccess.file_exists(out_path)
@@ -202,3 +213,8 @@ func _tag_text(t: float) -> String:
 	var keys := by_tag.keys()
 	keys.sort_custom(func(a, b) -> bool: return by_tag[a] > by_tag[b])
 	return "|".join(keys.map(func(k) -> String: return "%s:%.3f" % [k, by_tag[k] / t]))
+
+func _share_text(d: Dictionary, t: float) -> String:
+	var keys := d.keys()
+	keys.sort_custom(func(a, b) -> bool: return d[a] > d[b])
+	return "|".join(keys.map(func(k) -> String: return "%s:%.3f" % [k, d[k] / t]))
