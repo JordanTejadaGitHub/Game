@@ -126,6 +126,11 @@ Queen an act 3 boss.
 
 **Second lever sweep (255 runs):** early Dreams **do** decide the Stag fight when picked for damage (damage-first 14/15, Balanced 10/15, skip 7/15; Dream share at drift 20 median 0.13 vs ~0.02): no card change; Balanced's position cards need placement the bot doesn't do. Night Mare lap cost 4–6 at ×2.0 and Scarecrow Crows 4–5 at ×1.75–2.25 **don't separate** (Dreams 14–15/15, skip 13–14): next, Night Mare ×2.5 / 3.0 with lap 5, Scarecrow ×3.0 / 3.5 with 4 Crows; if still flat, a lap that drains as it passes and Crows that cost more.
 
+**Higher health didn't separate either** (120 runs: Night Mare ×2.5–3.0 at lap 5, Scarecrow ×3.0–3.5 with 4 Crows; health only made both modes harder). **Fallback, chosen:**
+- **Night Mare: each lap costs more** than the last: **3, then 5, then 7, then 9 leaves** (+2 per lap), and it keeps speeding up. A strong maze kills it on the first or second pass; a weak one is lapped to death by the third or fourth. Health back to the act 1 boss value (×1.75).
+- **Scarecrow: Crows cost 2 leaves each** (were 1), **4 per burst** and 4 when it falls. Health ×1.75.
+Then the same sweep (Dreams vs skip, 15 seeds).
+
 **Weakness spread:** act 1 water / light / spore (the three starting families); act 2 root / stone /
 water; act 3 light / root / song; act 4 spore / water / light. Bosses are tallied **separately** from the regular
 nightmares' family tally below (they're one fight each, not a drift's worth of health).
