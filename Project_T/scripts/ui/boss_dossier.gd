@@ -422,8 +422,13 @@ func _build(data: EnemyData, drift: int) -> void:
 	right.add_child(numbers)
 	var leaves := Label.new()  # What it costs you, large
 	var lap_leaves := int(data.get("lap_leaves")) if data.laps() else 0
-	leaves.text = "%d leaves each lap" % lap_leaves if lap_leaves > 0 else \
-		"Stays at the Heartwood, draining a leaf every %s s" % String.num(ENEMY_SCRIPT.HEARTWOOD_DRAIN_EVERY)
+	var lap_step := int(data.get("lap_leaves_step")) if data.laps() else 0
+	if lap_leaves > 0 and lap_step > 0:
+		leaves.text = "%d leaves for its first lap, %d more each lap after" % [lap_leaves, lap_step]
+	elif lap_leaves > 0:
+		leaves.text = "%d leaves each lap" % lap_leaves
+	else:
+		leaves.text = "Stays at the Heartwood, draining a leaf every %s s" % String.num(ENEMY_SCRIPT.HEARTWOOD_DRAIN_EVERY)
 	UiStyle.display(leaves, 26)
 	leaves.add_theme_color_override("font_color", BOSS_COLOR.lightened(0.25))
 	TapTip.attach(leaves, IconInfo.resource_tooltip(&"leaves"))

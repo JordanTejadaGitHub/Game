@@ -466,7 +466,8 @@ func _on_heartwood_drained(enemy: Node2D) -> void:
 	boss_drained.emit(enemy, leaves)
 
 func _on_lapped(enemy: Node2D) -> void:
-	var leaves: int = enemy.enemy_data.lap_leaves
+	# The lap it just ran (laps already counts it): 3, then 5, 7… with lap_leaves_step 2
+	var leaves: int = enemy.enemy_data.lap_leaves + enemy.enemy_data.lap_leaves_step * (enemy.laps - 1)
 	var omens := get_tree().get_first_node_in_group(OmenDirector.GROUP) as OmenDirector
 	if omens:
 		leaves = roundi(leaves * omens.get_leak_multiplier())

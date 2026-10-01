@@ -497,6 +497,11 @@ func _process(delta: float) -> void:
 		reached_goal.emit(self)
 		queue_free()
 
+# Night Mare: what its next lap will cost (lap_leaves, + lap_leaves_step for each lap already run):
+# the boss bar and dossier show it.
+func next_lap_leaves() -> int:
+	return enemy_data.lap_leaves + enemy_data.lap_leaves_step * laps
+
 # Night Mare: the Heartwood loses its lap leaves (the spawner takes them) and the Mare gallops back to
 # the start, faster each time.
 func _lap() -> void:

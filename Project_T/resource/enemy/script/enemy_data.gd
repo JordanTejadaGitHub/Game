@@ -95,6 +95,7 @@ enum Trait { NONE, FLYING, ROLLING, TRAMPLE, LEAP, BURROW, WANDER }
 # Night Mare: reaching the Heartwood costs `lap_leaves` and it gallops back to the start, ×
 # `lap_speed_multiplier` faster each lap (stacking), until dispelled.
 @export var lap_leaves: int = 0
+@export var lap_leaves_step: int = 0  # Each lap costs this many leaves more than the last (3, 5, 7…)
 @export var lap_speed_multiplier: float = 1.2
 # …and each new lap drops `lap_spawn_count` `lap_spawn` in behind it at the start.
 @export var lap_spawn: EnemyData

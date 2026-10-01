@@ -155,6 +155,12 @@ func _run() -> void:
 		lined_up = lined_up and shade.position.distance_to(mare_start) <= 4.5 * spawner.SPLIT_SPACING + 1.0 \
 			and shade._path[0] == route[0]
 	_check(lined_up, "lined up behind the start, walking the maze")
+	_check(mare.next_lap_leaves() == 5, "its next lap will cost 5 (+2 a lap; %d)" % mare.next_lap_leaves())
+	var after_first := run_state.leaves
+	mare.position = mare.grid.calculate_map_position(route[-1])
+	mare.set_path(PackedVector2Array([route[-1]]))
+	mare._process(0.016)
+	_check(mare.laps == 2 and run_state.leaves == after_first - 5, "and the second lap costs 5 (%d → %d)" % [after_first, run_state.leaves])
 	mare.take_damage(mare.max_health * 0.55)
 	_check(mare._charge_left > 0.0, "it bolts at half health")
 	_clear_enemies()
@@ -164,10 +170,11 @@ func _run() -> void:
 	var scarecrow := _still("scarecrow", route[8])
 	scarecrow._path_index = 9  # Walking from route[8] to route[9] (its target cell)
 	scarecrow.take_damage(scarecrow.max_health * 0.21)
-	_check(_count(crow_data) == 3, "3 Crows burst out at 80%% (%d)" % _count(crow_data))
+	_check(_count(crow_data) == 4, "4 Crows burst out at 80%% (%d)" % _count(crow_data))
 	_check(scarecrow.sprite.animation == &"burst", "and its coat flies open (the burst pose)")
 	scarecrow.take_damage(scarecrow.max_health * 0.4)
-	_check(_count(crow_data) == 9, "3 more at 60%% and 40%% (%d)" % _count(crow_data))
+	_check(_count(crow_data) == 12, "4 more at 60%% and 40%% (%d)" % _count(crow_data))
+	_check(crow_data.leaf_cost == 2, "each Crow that gets through takes 2 leaves")
 	var crows := spawner.get_children().filter(func(e) -> bool: return e.enemy_data == crow_data)
 	var airborne := true
 	for crow in crows:
