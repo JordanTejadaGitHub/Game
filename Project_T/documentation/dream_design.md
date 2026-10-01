@@ -667,6 +667,29 @@ unlocks clearing":
 - **Merge the two discount cards into one Common** (cheaper clears and a few free ones), so the clearing line has room for payoffs.
 - **Tended Forest** stays (global % per clear) and **Reclaimed Earth** stays (fertile cells).
 - Goal: a clearing build that reshapes the map and is rewarded for **where** it clears, with Wildwood as its Legendary peak, not its only card.
+- **Finalized (Roguelite design chat, 2026-09-30):**
+
+  | # | Card | Rarity | Effect | Diagram | Where |
+  |---|---|---|---|---|---|
+  | 55 | **Heartwood's Reach** (absorbs Cleared Ground) | Common, stacks (max 2) | clearing costs **25% less** (−50% at 2 stacks, still above the floor), and gain **3 half-price clears** per stack | — | **Start pool** (the clearing opener: any clearing card unlocks clearing) |
+  | 246 | **Tended Stumps** | Uncommon | each **tended stump** (a Withered Tree you cleared) gives the Wardens **touching it +25% damage** (a Warden counts its best stump once; stumps don't stack) | `".......\n..WWW..\n..WUW..\n..www..\n......."` with `U` = stump; caption *"Touching a tended stump: +25%."* (the dimmed `w` row shows Wardens one cell too far) | Grove · **Reclaiming node 1** |
+  | 247 | **Hollow Ground** | Uncommon | a Warden **planted in a moved hollow** (where you cleared a Mossy Boulder or Thorn-Sapling) gets **+1 range** | `".......\n.PPPPP.\n...Q...\n.....w.\n......."` with `Q` = Warden in a hollow; caption *"Planted in a moved hollow: +1 range."* | Grove · **Reclaiming node 1** |
+
+  - **Why +25%, not +10%:** the `dream_audit.md` budget for an Uncommon conditional card is +45%;
+    +10% would be "too small to change a choice". +25% because one stump can reach several Wardens.
+  - **Why half-price, not free:** "clearing always costs Dew" (user rule): the merged card gives
+    half-price charges, never free clears. Merged, it also frees a Common slot.
+  - **Reclaiming branch** (`meta_design.md`, Meta owns the final call): node 1 (50) = **Reclaimed
+    Earth, Tended Stumps, Hollow Ground** (the "where you clear" payoffs come first, so buying the
+    branch fixes the user's complaint at once); node 2 (70) = **Tended Forest, Thorn Snare, Bramble
+    Oath**; tip **Wildwood Reclaimed** (120).
+  - **Starting pool:** Cleared Ground leaves (merged); Commons go 25 → **24**. Heartwood's Reach stays
+    the one start-pool clearing card (the taster).
+  - **Deepened:** Tended Stumps II (+40%, and diagonal-only Wardens count too: it already counts the
+    8 cells, so II is the number only), Hollow Ground II (+1.5 range).
+  - **Tower hooks:** Tended Stumps and Hollow Ground read the cleared cells' marks
+    (`ObstacleData.cleared_source_id`: tended stump / moved hollow) per Warden cell, live (a new clear
+    updates neighbours). Tower Code adds them to the Warden's stat breakdown.
 **Clear prices, raised** (2026-09-30, user: "clearing obstacles seems too cheap"). At 5 / 8 Dew a
 clear cost less than a Sprout, so by act 2 the map was free to reshape and each clear was a cheap
 +1 Seed. Now:
