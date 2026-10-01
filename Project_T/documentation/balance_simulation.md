@@ -407,6 +407,14 @@ leaf ✓ (per run leaf a tie, 0.15 vs 0.16). Mean drift reached 23.9 / 21.8 / 23
 ~50 median per run: in scale. No change. Batch (c) (half profile to 50, on 4993001b) checks acts 2–3
 and the Dry Spell +25%.
 
+**Batch (c)** (4993001b, half profile to 50): **the Omen Dew is right**: clean Dry Spell nets exactly
+**+25%**, Bountiful Night +50%, Blood Moon +40%, fixed rewards at their table values. The acts 2–3
+check failed to run: **12/20 Clear Skies bots die at the Stag** again; only 3–8 runs per mode start act
+2. Next: Balancing Code finds out **why untouched bots lose all 18 leaves to the Stag** (maze DPS vs
+his health and route time, Dew banked at 24, drain speed). That's the "easy, then a wall" shape
+from human run 4, so it may be a game change, not just a bot fix. Then an Omen batch with the act 1
+boss at ×1.0 (test-only) for acts 2–3.
+
 ## Later
 
 A **human baseline**: the same CSV written from real playtests (debug builds only), so the bot's
