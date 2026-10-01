@@ -320,6 +320,24 @@ Decisions (design chat):
    steeper half from drift 38; acts 3–4 **×4.0** (was 3.5). Act 1 and drifts 26–37 unchanged.
 4. **Chain falloff** (already queued) lands with these. Next human run checks all four.
 
+## Human run 3 (2026-10-01, build ebc899, fresh profile with 0 Grove nodes)
+
+Abandoned at drift 50 by the user (*"I know I can beat 100 already"*), 6 leaves lost (4 at drift 9–10,
+2 at 31–32). Spore + water build: **2 Puffballs = 76% of all damage** (57% + 19%), 6 Bloomcap, 4
+Driftspore, 5 Rain Lily, 20 Sprouts. Bosses: **Hollow Stag 38 s, Lamplighter 29 s**. Dew earned 6,995,
+banked up to 1,671 at drift 25. Closest: act 1 mostly ~0.30 (one leak spike at 9); act 2 0.17–0.68,
+drifts 44–49 ~0.20.
+
+Decisions (design chat):
+1. **Puffball is still the outlier** after the stack nerf. The cause: Poisoned stacks tick at the
+   **strongest applier's Potency** (Puffball 1.3), so one Puffball lifts every Sporeling's and
+   Driftspore's poison. Puffball **Potency 1.3 → 1.0**; its deep cap (16) and area stay.
+2. **Act 2–3 bosses are trivial** (Mire Hag 35 s in run 2, Lamplighter 29 s here):
+   `boss_health_multiplier` **1.5 → 2.25** for acts 2–3 (act 1 keeps its tuned ×1.75, the Oak its ×3.0).
+3. Act 1's first half reads a little calm (~0.30) after the lean pool; watch, no change yet.
+4. A fresh profile reaching drift 50 comfortably and "knowing it can beat 100" says late acts are
+   still soft: the next run after these two fixes decides whether acts 3–4 go from ×4.0 to ×5.0.
+
 ## Later
 
 A **human baseline**: the same CSV written from real playtests (debug builds only), so the bot's
