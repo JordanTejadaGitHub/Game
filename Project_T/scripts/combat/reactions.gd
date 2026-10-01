@@ -89,6 +89,8 @@ const CROWNED_BASE := {&"tempest": &"thunderclap", &"still_pool": &"drown", &"fe
 	&"starfall": &"pinned", &"avalanche": &"shatter", &"prismstorm": &"shatter", &"nightbloom": &"mushrooming",
 	&"fairy_circle": &"mushrooming"}
 
+# Reaction id -> its resource path (not the resource: a static holding Resources at exit can crash the
+# engine's teardown, the exit-crash hunt). load() hits ResourceLoader's cache after the first time.
 static var _data := {}
 
 
@@ -96,7 +98,7 @@ static var _data := {}
 
 static func get_data(id: StringName) -> ReactionData:
 	_load()
-	return _data.get(id)
+	return load(_data[id]) as ReactionData if _data.has(id) else null
 
 # The base Reactions (the Crowned ones are separate: crowned()).
 static func all() -> Array[ReactionData]:
@@ -104,7 +106,7 @@ static func all() -> Array[ReactionData]:
 	var list: Array[ReactionData] = []
 	for id in _data:
 		if not is_crowned(id):
-			list.append(_data[id])
+			list.append(load(_data[id]) as ReactionData)
 	return list
 
 # The Crowned Reactions (resource/reaction/crowned/).
@@ -113,7 +115,7 @@ static func crowned() -> Array[ReactionData]:
 	var list: Array[ReactionData] = []
 	for id in _data:
 		if is_crowned(id):
-			list.append(_data[id])
+			list.append(load(_data[id]) as ReactionData)
 	return list
 
 static func _load() -> void:
@@ -124,7 +126,7 @@ static func _load() -> void:
 			if file.ends_with(".tres") or file.ends_with(".res"):
 				var data := load(dir + file) as ReactionData
 				if data != null:
-					_data[data.id] = data
+					_data[data.id] = data.resource_path
 
 
 # --- Triggers ---------------------------------------------------------------------------------------
