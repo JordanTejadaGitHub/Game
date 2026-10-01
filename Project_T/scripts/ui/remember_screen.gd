@@ -442,9 +442,7 @@ func _refuse_unlock(data: TowerData, button: Button) -> void:
 	var hud := get_parent()
 	if hud != null and hud.has_method("show_toast"):
 		hud.show_toast("Not enough Dreamlight")
-	var counter := hud.get_node_or_null("DreamlightLabel") as Label if hud != null else null
-	if counter != null:
-		CantAfford.flash_counter(counter, UiStyle.GOLD)
+	dream_state.dreamlight_short.emit(dream_state.get_unlock_cost(data))  # The HUD flashes the Dreamlight counter
 
 func _select(data: TowerData) -> void:
 	selected = data
