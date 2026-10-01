@@ -60,7 +60,17 @@ func _run() -> void:
 	if overlay:
 		BuffLens.set_on(self, true)
 		_check(overlay.lens, "the lens (Main's BuffLens, V) reaches the overlay")
+		# Visible on and off (Main, user: "toggling Boosts doesn't change anything"): pips and markers draw above
+		# the Wardens, only the aura tint on the ground; the lens adds halos over boosted Wardens.
+		_check(overlay.z_index > 0 and overlay.get_node("LensGround").z_index < 0, "pips and markers above the Wardens, the tint on the ground")
+		overlay.queue_redraw()
+		await process_frame
+		await process_frame
+		var markers_on: int = overlay.drawn_markers
 		BuffLens.set_on(self, false)
+		await process_frame
+		await process_frame
+		_check(markers_on >= 1 and overlay.drawn_markers == 0, "the lens adds halos over boosted Wardens and removes them (%d → %d)" % [markers_on, overlay.drawn_markers])
 
 	# The Warden panel's Buffs section.
 	seller.select(target)

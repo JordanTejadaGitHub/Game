@@ -260,6 +260,7 @@ func _refresh() -> void:
 				var price := 0 if _free_rank() else cost
 				_priced(nurture, "Nurture to rank %s" % Tower.rank_name(_tower.rank + 1), _price(price), price, &"dew", false)
 				nurture.pressed.connect(_toggle_choices)  # Short: refuses (_refuse_nurture)
+				_rank_preview_on(nurture, [_tower], _tower.default_choice() if not _tower.needs_focus() else Tower.Focus.NONE)
 			else:
 				var choices: Array = _tower.focus_options()
 				for index in choices.size():
@@ -270,6 +271,7 @@ func _refresh() -> void:
 					button.set_meta(&"cost", 0 if _free_rank() else cost)
 					_mark_choice(button, _free_rank() or run_state.can_afford(cost))  # Picking one plays the refusal (spend_dew)
 					button.pressed.connect(_nurture_with.bind(which))
+					_rank_preview_on(button, [_tower], which)
 	elif _tower.can_be_nurtured() and _tower.rank > 0:
 		var others_can: bool = dream_state.has_method("get_max_rank") and dream_state.get_max_rank() > _tower.rank
 		if others_can and not _is_eldest(_tower):
@@ -382,6 +384,7 @@ func _refresh_group() -> void:
 		var cheapest_rank: int = 0 if _free_rank() else nurturable.map(func(t: Tower) -> int: return t.get_nurture_price()).min()
 		_priced(open, "Nurture %d · choose a rank" % nurturable.size(), _price(cheapest_rank), cheapest_rank, &"dew", false)  # Short: R refuses
 		open.pressed.connect(_toggle_choices)
+		_rank_preview_on(open, nurturable, Tower.Focus.NONE)
 	for index in (rank_options.size() if _choosing else 0):
 		var which: Tower.Focus = rank_options[index]
 		var cost: Array = tower_seller.full_nurture_cost(selection, which)
@@ -397,6 +400,7 @@ func _refresh_group() -> void:
 		button.pressed.connect(func() -> void:
 			_choosing = false
 			tower_seller.nurture_group(tower_seller.selection, which))
+		_rank_preview_on(button, selection.filter(func(t) -> bool: return is_instance_valid(t) and t.can_nurture()), which)
 	var refund := tower_seller.get_selection_refund()
 	var in_drift := not drift_director.is_build_phase()
 	var sell := _add_footer_button("Sell %d · +%s Dew (%s)" % [selection.size(), BossDossier.thousands(refund), tower_seller.sell_key_name()])
@@ -975,3 +979,13 @@ func _on_grow_refused(index: int, text: String) -> void:
 		if button is Button and button.has_meta(&"grow_index") and (index < 0 or int(button.get_meta(&"grow_index")) == index):
 			_shake(button)
 var grow_refused := 0  # Refusals so far (tests)
+
+# Nurture range preview (user: "hovering Nurture range should show the range it would go into"): pointing at
+# (or focusing, touch / controller) a Nurture button or rank choice shows each Warden's range after that rank.
+func _rank_preview_on(button: Button, towers: Array, focus: Tower.Focus) -> void:
+	var show := func() -> void: tower_placer.show_rank_preview(towers, focus)
+	button.mouse_entered.connect(show)
+	button.focus_entered.connect(show)
+	button.mouse_exited.connect(tower_placer.hide_rank_preview)
+	button.focus_exited.connect(tower_placer.hide_rank_preview)
+	button.tree_exiting.connect(tower_placer.hide_rank_preview)  # The panel rebuilt under the pointer

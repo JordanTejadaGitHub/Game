@@ -40,8 +40,10 @@ func _run() -> void:
 		shown.append(Fx._pick(&"thunderclap", true))
 	_check(shown.count(&"thunderclap") == Fx.REDUCED_FULL_PER_SECOND, "reduced: only %d full Reactions a second (%s)" % [Fx.REDUCED_FULL_PER_SECOND, shown])
 	Fx.auto_reduced = false
-	Fx.view_rect = Rect2(0, 0, 100, 100)
-	_check(Fx.on_screen(Vector2(50, 50)) and not Fx.on_screen(Vector2(500, 500)), "on_screen reads the visible rect")
+	Fx.view_rect = Rect2(0, 0, 1000, 800)
+	_check(Fx.on_screen(Vector2(50, 50)) and not Fx.on_screen(Vector2(2000, 2000)), "on_screen reads the visible rect")
+	Fx.view_rect = Rect2(0, 0, 64, 64)
+	_check(Fx.on_screen(Vector2(2000, 2000)), "a headless / tiny viewport never calls the map off-screen")
 	Fx.view_rect = Rect2()
 	# Callouts stack instead of overlapping (user: "Lightning Rod!" over "Thunderclap!").
 	var first := Fx.callout("Thunderclap!", Palette.GLOW, Vector2(300, 300), world, &"t1")

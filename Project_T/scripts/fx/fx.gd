@@ -83,7 +83,9 @@ static func reduced() -> bool:
 
 # Whether `at` (world) is on screen, with `margin` px around it (true when the rect isn't known yet).
 static func on_screen(at: Vector2, margin: float = 64.0) -> bool:
-	return view_rect.size == Vector2.ZERO or view_rect.grow(margin).has_point(at)
+	if view_rect.size.x < 256.0 or view_rect.size.y < 256.0:
+		return true  # Not known yet, or a headless / tiny viewport (64×64): never call the map off-screen
+	return view_rect.grow(margin).has_point(at)
 
 # Photosensitivity (user: "a flash in the middle of my screen"): at most MAX_BRIGHT_PER_SECOND bright
 # flashes (Dawnburst, chain surges) on screen a second; the rest are skipped. Every effect is at most
