@@ -213,6 +213,17 @@ func _run() -> void:
 			_check(golds > 0 and whites > 0, "…the favoured Warden hits for gold \"×2\", the others for white numbers (%d / %d)" % [golds, whites])
 			heart_button.mouse_exited.emit()
 			_check(not scene.visible and not scene.is_processing() and scene._world == null, "…and leaving stops it (pooled, nothing running)")
+		# The dev card grid previews it too, so it can be reviewed without waiting for a Dream to offer it
+		var picker := DevCardPicker.open(screen, dreams, func(_c: UpgradeData) -> void: pass)
+		picker._search.text = "Heart of the Maze"
+		picker._refresh()
+		await process_frame
+		var grid_button: Button = picker._grid.get_child(0) if picker._grid.get_child_count() > 0 else null
+		if grid_button != null:
+			grid_button.mouse_entered.emit()
+			await process_frame
+		_check(picker._scene != null and picker._scene.visible, "the dev card grid plays Heart of the Maze's scene on hover")
+		picker.queue_free()
 	print("dream screen test: %s" % ("PASS" if failures == 0 else "%d FAILED" % failures))
 	quit(failures)
 
