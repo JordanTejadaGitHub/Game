@@ -28,6 +28,12 @@ func _initialize() -> void:
 		var button := saved.get_stylebox("normal", "Button") as StyleBoxFlat
 		_check(button != null and Color(button.border_color, 1.0).is_equal_approx(UiStyle.BUTTON_GOLD),
 			"button outlines are BUTTON_GOLD")
+	# Dream glyphs (UI Asset's dream_glyphs.json): first priority id a tag maps to, else the fallback.
+	var tagged := UpgradeData.new()
+	tagged.tags = ["swift", "bittersweet"]
+	_check(UiStyle.dream_glyph(tagged) == &"bittersweet", "a card's glyph is the highest-priority tag (%s)" % UiStyle.dream_glyph(tagged))
+	_check(UiStyle.dream_glyph(UpgradeData.new()) == &"generic", "an untagged card gets the fallback glyph")
+	_check(UiStyle.dream_glyph_texture(&"spore") != null, "the glyph sheet has a spore cell")
 	_scale_and_layout.call_deferred()
 
 # UI scale (UiStyle.apply_ui_scale): only the UI scales, never past its 1280×720 layout, and the

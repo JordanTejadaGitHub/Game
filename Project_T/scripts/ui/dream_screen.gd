@@ -151,10 +151,12 @@ func _make_card(card: UpgradeData) -> Button:
 	gem_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	gem_row.add_theme_constant_override("separation", 8)
 	var gem := Control.new()
-	gem.custom_minimum_size = Vector2(18, 18)
+	gem.custom_minimum_size = Vector2(28, 28)  # Room for the 16 px glyph inside the gem
+	gem.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	gem.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	gem.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	gem.draw.connect(func() -> void: UiStyle.draw_gem(gem, gem.size / 2.0, 8.0, card.rarity))
+	var glyph := UiStyle.dream_glyph(card)  # The card's glyph inside its rarity gem (UI Asset)
+	gem.draw.connect(func() -> void: UiStyle.draw_gem(gem, gem.size / 2.0, 13.0, card.rarity, glyph))
 	gem_row.add_child(gem)
 	gem_row.add_child(rarity)
 	box.add_child(gem_row)

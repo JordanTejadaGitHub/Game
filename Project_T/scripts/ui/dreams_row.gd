@@ -312,7 +312,7 @@ class DreamIcon extends Control:
 
 	func _draw() -> void:
 		var centre := Vector2(size.x / 2.0, 15.0)
-		UiStyle.draw_gem(self, centre, 12.0, card.rarity)
+		UiStyle.draw_gem(self, centre, 12.0, card.rarity, UiStyle.dream_glyph(card))  # The card's glyph in its gem
 		var font := UiStyle.number_font()
 		if stacks > 1:
 			var count := str(stacks)
