@@ -409,6 +409,7 @@ Hummingbird's pecks apply on-hit statuses six times per attack, so both families
 
 ### Chains
 
+**Chain falloff** (2026-09-30, user: *"everything was good until mid act 2 in terms of difficulty"*; their drift 68 screenshot showed **Chain 120** and nightmares dying at the very start of a long maze): from the **6th link** of a chain, each Reaction in it deals **15% less** than the one before (links 1–5 full; 6th ×0.85, 7th ×0.70 …), **never below 25%**. Short chains keep their full punch; a hundred-link chain stops wiping a drift on its own. Chain *counts*, discoveries and Dawnbreak still count every link. If acts 2–4 are still easy after this, the health curve steepens from drift 38 (act 2 to ×3.0, acts 3–4 to ×4.5), never before.
 Reactions can set off Reactions: Thunderclap arcs add Static to wet nightmares (more
 Thunderclaps), Ignite spreads spores onto charged ones (more Ignites), Mushrooming clouds spread
 Spored into Damp crowds. When a Reaction is caused by another within **1 s**, or a different
