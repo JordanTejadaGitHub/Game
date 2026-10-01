@@ -657,7 +657,7 @@ unlocks clearing":
 | # | Card | Rarity | Effect | Tags | Pool |
 |---|---|---|---|---|---|
 | 54 | **Cleared Ground** | Common | clearing obstacles costs **25% less** Dew (stacks, **max −50%**) | clearing, economy | Start |
-| 55 | **Heartwood's Reach** | Common | gain **4 half-price clears**; use them any time (a charge counter on the HUD; unused charges last all run). Deepened II: 7 | clearing | Start |
+| 55 | **Heartwood's Reach** | Common | *(2026-09-30: now absorbs Cleared Ground: clearing −25% (−50% at 2 stacks) and 3 half-price clears per stack, see "Finalized" under Clearing follow-ups.)* Was: gain **4 half-price clears**; use them any time (a charge counter on the HUD; unused charges last all run). Deepened II: 7 | clearing | Start |
 | 56 | **Reclaimed Earth** | Common | each clear **refunds 40% of the Dew you paid for it**, and the cell is left **fertile**: the first Warden planted there costs 50% less | clearing, economy | Start |
 | 57 | **Tended Forest** | Common | **+1% damage for every obstacle cleared this run** (max +25%; clears from before the card count) | clearing, maze | Start |
 | 58 | **Burn Back the Dead Wood** | Rare, **Bittersweet** | clear **every Withered Tree** on the map right now for **5 Dew each** (paid when taken; only offered if you can pay). **Cost:** nightmares +10% speed for the rest of the run | clearing, bittersweet | Grove |
@@ -671,7 +671,7 @@ unlocks clearing":
 
   | # | Card | Rarity | Effect | Diagram | Where |
   |---|---|---|---|---|---|
-  | 55 | **Heartwood's Reach** (absorbs Cleared Ground) | Common, stacks (max 2) | clearing costs **25% less** (−50% at 2 stacks, still above the floor), and gain **3 half-price clears** per stack | — | **Start pool** (the clearing opener: any clearing card unlocks clearing) |
+  | (55) | **Heartwood's Reach** (absorbs Cleared Ground) | Common, stacks (max 2) | clearing costs **25% less** (−50% at 2 stacks, still above the floor), and gain **3 half-price clears** per stack | — | **Start pool** (the clearing opener: any clearing card unlocks clearing) |
   | 246 | **Tended Stumps** | Uncommon | each **tended stump** (a Withered Tree you cleared) gives the Wardens **touching it +25% damage** (a Warden counts its best stump once; stumps don't stack) | `".......\n..WWW..\n..WUW..\n..www..\n......."` with `U` = stump; caption *"Touching a tended stump: +25%."* (the dimmed `w` row shows Wardens one cell too far) | Grove · **Reclaiming node 1** |
   | 247 | **Hollow Ground** | Uncommon | a Warden **planted in a moved hollow** (where you cleared a Mossy Boulder or Thorn-Sapling) gets **+1 range** | `".......\n.PPPPP.\n...Q...\n.....w.\n......."` with `Q` = Warden in a hollow; caption *"Planted in a moved hollow: +1 range."* | Grove · **Reclaiming node 1** |
 
