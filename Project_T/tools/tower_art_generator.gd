@@ -299,6 +299,7 @@ func _make(tower_name: String, draw: Callable) -> Image:
 		var canvas := _layer()
 		var st := _idle_state(f)
 		draw.call(canvas, st)
+		_final_extra(tower_name, canvas, st)
 		sheet.blit_rect(_tall_frame(tower_name, canvas, st), Rect2i(0, 0, S, h), Vector2i(f * S, 0))
 	sheet = _warden_night(_detail_pass(sheet, Vector2i(S, h)))
 	if NIGHT_RIM.has(tower_name):
@@ -373,6 +374,7 @@ func _make_attack(tower_name: String) -> Image:
 		var canvas := _layer()
 		var st := _attack_state(a)
 		call("_draw_" + tower_name, canvas, st)
+		_final_extra(tower_name, canvas, st)
 		call("_attack_" + tower_name, canvas, st)
 		sheet.blit_rect(_tall_frame(tower_name, canvas, st), Rect2i(0, 0, S, h), Vector2i(a * S, 0))
 	sheet = _detail_pass(sheet, Vector2i(S, h))
@@ -447,6 +449,7 @@ func _make_channel(tower_name: String) -> Image:
 		st.f = c
 		st.power = [0.85, 1.0, 0.9][c]
 		call("_draw_" + tower_name, canvas, st)
+		_final_extra(tower_name, canvas, st)
 		# The pouring light: a bright core on the flower's face, a ring that breathes, eight short
 		# sparks round it (no direction), all warm.
 		var r: float = [2.0, 2.6, 2.3][c]
@@ -2779,6 +2782,141 @@ func _tall_monsoon(back: Image, front: Image, st: Dictionary) -> void:
 		var y0: int = int(c.y) + 6 + ((st.f * 4 + k * 7) % 18)
 		for i in 3:
 			_px(back, x - i / 2 - (y0 + i) / 12, y0 + i, Color("#9ad4ff", 0.9 - i * 0.2))
+
+# --- Final forms: a stronger 64x64 silhouette than their branch (grey 32 px test) ----------------
+# Drawn over the finished body (idle and attack), framing the figure so its face stays clear: a
+# wider stance, a distinct crown or prop, a different outline mass. Ten finals went tall instead
+# (TALL_WARDENS); the rest stay 64x64 and get one of these.
+
+func _final_extra(tower_name: String, canvas: Image, st: Dictionary) -> void:
+	if has_method("_final_extra_" + tower_name):
+		call("_final_extra_" + tower_name, canvas, st)
+
+# Hoarfrost: great ice spikes jutting out of both shoulders and icicles off the arms (Frostfern has
+# a few small crystals).
+func _final_extra_hoarfrost(canvas: Image, st: Dictionary) -> void:
+	var dy: int = st.dy
+	var ice := _ramp(["#6aa8e0", "#b4e4ff", "#f4fcff"])
+	var o := Color("#16305e")
+	for s: Vector4 in [Vector4(16, 24, 17, -10), Vector4(46, 24, 17, 10), Vector4(13, 32, 11, -8), Vector4(49, 32, 11, 8)]:
+		_prism(canvas, Vector2(s.x, s.y + dy), 3.6, s.z, s.w, ice, o)
+	for x in [19, 22, 41, 44]:
+		var len: int = 2 + (x + st.f) % 2
+		for i in len:
+			_px(canvas, x, 34 + i, Color("#b4e4ff") if i < len - 1 else Color("#f4fcff"))
+
+# Lullaby Bell: two big bells hung from the ends of its frame's crossbar, swinging out past the frame
+# (Chime Stone has thin chimes there).
+func _final_extra_lullaby_bell(canvas: Image, st: Dictionary) -> void:
+	var swing: float = [0.0, 1.0, 0.0, -1.0][st.f % 4]
+	var bronze := _ramp(["#a86a1a", "#e8b040", "#ffe080"])
+	var o := Color("#3a2410")
+	for side: int in [-1, 1]:
+		var top := Vector2(31.5 + side * 25, 15)
+		var c := top + Vector2(swing * side, 7)
+		var bell := _layer()
+		_flat_polygon(bell, PackedVector2Array([c + Vector2(-2, -5), c + Vector2(2, -5), c + Vector2(3, -1), c + Vector2(5, 4), c + Vector2(-5, 4), c + Vector2(-3, -1)]), bronze[1])
+		_ellipse(bell, c + Vector2(0, -4), Vector2(2.6, 2.0), bronze)
+		_stamp(canvas, bell, o)
+		_line(canvas, [c + Vector2(-1, -3), c + Vector2(-2, 2)], bronze[2])
+		_px(canvas, int(c.x), int(c.y) + 5, o)  # the clapper
+		_line(canvas, [top, c + Vector2(0, -6)], o)
+
+# Long Way Home: a broad-brimmed traveller's hat and a bundle slung at its side (Rootcurl is bare-headed).
+func _final_extra_long_way_home(canvas: Image, st: Dictionary) -> void:
+	var dy: int = st.dy
+	var o := Color("#1e160e")
+	var hat := _layer()
+	_flat_ellipse(hat, Vector2(30.5, 5.5 + dy), Vector2(15, 2.6), Color("#5c3c24"))
+	_ellipse(hat, Vector2(30.5, 2.5 + dy), Vector2(7, 3.5), _ramp(["#3a2410", "#5c3c24", "#8c5c34"]), 5.0 + dy)
+	_stamp(canvas, hat, o)
+	_line(canvas, [Vector2(24, 4 + dy), Vector2(37, 4 + dy)], Color("#e9a83c"))  # a hat band
+	_leaf(canvas, Vector2(36, 3 + dy), Vector2(41, -1 + dy), 1.6, _ramp(LEAF), o)  # a leaf tucked in it
+	var bundle := _layer()
+	_ellipse(bundle, Vector2(11, 33), Vector2(6, 5), _ramp(["#8a6a44", "#b09070", "#d0b48c"]))
+	_stamp(canvas, bundle, o)
+	_line(canvas, [Vector2(8, 30), Vector2(14, 36)], Color("#5c3c24"))
+	_line(canvas, [Vector2(11, 28), Vector2(19, 22)], Color("#5c3c24"))  # its strap
+
+# Autumn Gale: a whirl of big autumn leaves orbiting it, widening its outline (Samara holds one seed).
+func _final_extra_autumn_gale(canvas: Image, st: Dictionary) -> void:
+	var o := Color(MAPLE[0])
+	for k in 8:
+		var a: float = k * TAU / 8.0 + float(st.f) * TAU / st.n * 0.5
+		var p := Vector2(31, 20) + Vector2(cos(a) * 26.0, sin(a) * 13.0)
+		if sin(a) < -0.85:
+			continue  # the ones behind are hidden by it
+		var d := Vector2.from_angle(a + PI / 2.0 + k)
+		_leaf(canvas, p - d * 4.5, p + d * 5.0, 3.6, _ramp(["#b8662c", "#e9a83c", "#fcd47c"]), o)
+
+# Zephyr: a long scarf streaming from its neck far out to one side in the wind (Gust has none).
+func _final_extra_zephyr(canvas: Image, st: Dictionary) -> void:
+	var dy: int = st.dy
+	var pts: Array = []
+	for i in 9:
+		var t := i / 8.0
+		pts.append(Vector2(38 + t * 24, 16 + dy - t * 6 + sin(t * 5.0 + st.f * 0.8) * 2.0))
+	var scarf := _layer()
+	_stroke(scarf, pts, 2.3, Color("#9cd4fc"))
+	_stroke(scarf, [Vector2(22, 17 + dy), Vector2(30, 19 + dy), Vector2(39, 16 + dy)], 2.0, Color("#9cd4fc"))
+	_stamp(canvas, scarf, Color("#1e2a48"))
+	for i in range(1, pts.size(), 2):
+		var p: Vector2 = pts[i]
+		_px(canvas, int(p.x), int(p.y), Color("#4c8ca4"))  # stripes
+	var end: Vector2 = pts[pts.size() - 1]
+	for i in 3:
+		_px(canvas, int(end.x) - i, int(end.y) + 2 + i, Color("#9cd4fc"))  # the fringe
+
+# Jewelwing Court: a jewelled crown and big trumpet blossoms at the top of its bower (the Bower is bare).
+func _final_extra_jewelwing_court(canvas: Image, st: Dictionary) -> void:
+	var dy: int = st.dy
+	var o := Color("#12101e")
+	var crown := _layer()
+	_flat_polygon(crown, PackedVector2Array([Vector2(24, 7 + dy), Vector2(24, 2 + dy), Vector2(27, 4 + dy), Vector2(30.5, 0 + dy),
+		Vector2(34, 4 + dy), Vector2(37, 2 + dy), Vector2(37, 7 + dy)]), Color("#e9a83c"))
+	_stamp(canvas, crown, o)
+	_px(canvas, 30, 3 + dy, Color("#3ac070"))
+	_px(canvas, 26, 5 + dy, Color("#ec9cf4"))
+	_px(canvas, 35, 5 + dy, Color("#9cd4fc"))
+	for c: Vector2 in [Vector2(9, 15), Vector2(54, 15)]:
+		for k in 3:
+			var d := Vector2.from_angle(PI / 2.0 + (k - 1) * 0.7)
+			var tr := _layer()
+			_stroke(tr, [c, c + d * 6.0], 1.0, Color("#ec9cf4"))
+			_flat_ellipse(tr, c + d * 6.5, Vector2(1.8, 1.8), Color("#ec9cf4"))
+			_stamp(canvas, tr, o)
+			_px(canvas, int(c.x + d.x * 6.5), int(c.y + d.y * 6.5), Color("#fcd47c"))
+
+# Magpie's Hoard: an open treasure chest spilling coins at its right foot, opposite the coin mound
+# (the Perch has neither).
+func _final_extra_magpies_hoard(canvas: Image, st: Dictionary) -> void:
+	var o := Color("#141420")
+	var chest := _layer()
+	_round_rect(chest, Rect2i(44, 37, 15, 8), 1, Color("#8c5c34"))
+	_round_rect(chest, Rect2i(44, 31, 15, 6), 1, Color("#5c3c24"))  # the open lid, tipped back
+	_stamp(canvas, chest, o)
+	_line(canvas, [Vector2(44, 40), Vector2(58, 40)], Color("#e9a83c"))
+	_line(canvas, [Vector2(51, 37), Vector2(51, 44)], Color("#e9a83c"))
+	for p: Vector2i in [Vector2i(46, 36), Vector2i(49, 35), Vector2i(53, 36), Vector2i(56, 35), Vector2i(43, 44), Vector2i(60, 44)]:
+		_px(canvas, p.x, p.y, Color("#fcd47c"))
+		_px(canvas, p.x + 1, p.y, Color("#e9a83c"))
+	if st.f % 4 < 2:
+		_sparkle(canvas, Vector2i(52, 33), Color("#fff4dc"))
+
+# Grove Heart: a broad leafy canopy spreading over its head like a small grove (Elder Stump is bare).
+func _final_extra_grove_heart(canvas: Image, st: Dictionary) -> void:
+	var dy: int = st.dy
+	var o := Color("#22160e")
+	var canopy := _layer()
+	for c: Vector3 in [Vector3(17, 4, 6), Vector3(26, 1, 6.5), Vector3(36, 1, 6.5), Vector3(45, 4, 6)]:
+		_ellipse(canopy, Vector2(c.x + (st.sway if c.x > 30 else 0), c.y + dy), Vector2(c.z, c.z * 0.65), _ramp(LEAF))
+	# Keep its face clear: nothing below the brow line.
+	for y in range(EYE_TOP - 4 + dy, S):
+		for x in S:
+			canopy.set_pixel(x, y, Color(0, 0, 0, 0))
+	_stamp(canvas, canopy, o)
+	for p: Vector2i in [Vector2i(20, 2), Vector2i(31, 0), Vector2i(41, 2)]:
+		_px(canvas, p.x, p.y + dy, Color("#fcd47c"))  # blossoms in it
 
 # Lanternmoth: an amber lantern golem with soft moth wings, feathery antennae and a warm light
 # glowing in its chest.
