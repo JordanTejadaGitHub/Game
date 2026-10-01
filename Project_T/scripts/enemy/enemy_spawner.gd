@@ -38,7 +38,10 @@ var blight_materials := {}  # {outlined: ShaderMaterial} shared by the nightmare
 # Most nightmares on the field at once (platforms.md "Calling drifts early stacks them"): drifts
 # called early stack, so the drift schedule holds new arrivals in the start mist while it's full
 # (DriftDirector asks has_room). Split children, followers and summons still always come.
-@export var max_field := 140  # Was 180: stacked late drifts still spiked (Main's probe); interim, story chat
+@export var max_field := 140  # PC (was 180: stacked late drifts still spiked at 3x)
+# Mobile and Steam Deck get a lower cap (platforms.md; tuned when porting). The Deck export preset
+# needs the custom feature tag "steamdeck".
+@export var max_field_handheld := 110
 # For hidden nightmares' reveal checks (Enemy._is_revealed), kept here so a crowd of Lurkers doesn't
 # each scan every Warden and every nightmare: {cell: Tower} for every Warden's cells, the Wardens that
 # Mark (they reveal in their whole range), and the nightmares that reveal others (reveal_radius).
@@ -75,6 +78,8 @@ var _sapling_sprites := {}  # {cell: AnimatedSprite2D} the saplings' grow / idle
 @onready var tower_container: Node2D = %TowerContainer
 
 func _ready() -> void:
+	if OS.has_feature("mobile") or OS.has_feature("steamdeck"):
+		max_field = max_field_handheld
 	# Every nightmare's bars and badges, from one canvas item (never a child of this node: its
 	# children are all nightmares)
 	overlay = NightmareOverlay.new()

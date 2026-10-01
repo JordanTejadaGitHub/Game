@@ -256,7 +256,14 @@ func can_start_next_drift() -> bool:
 		return false  # A choice open or minimised (peeking at the map) holds the next drift
 	if resting:
 		return true
+	if is_mist_full():
+		return false  # Calling early stacks up to the field cap, not past it for free Dew (platforms.md)
 	return _next_is_in_block()
+
+# Nightmares are waiting in the start mist for room on the field (EnemyContainer.max_field): calling
+# the next drift early is refused until they're in (the Call early button greys: "The mist is full").
+func is_mist_full() -> bool:
+	return get_waiting_count() > 0
 
 # The choice that must be made before the next drift (screens_ui.md "Choice screens", user bug: "I can
 # hide the Dream choice and start the wave"): &"family" (the family pick), &"dream" (an offer shown or

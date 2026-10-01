@@ -595,6 +595,10 @@ func _run() -> void:
 	spawner.get_child(0).free()
 	director._process(0.0)
 	_check(spawner.get_child_count() == 3 and director.get_waiting_count() == 1, "they walk in as room frees up (%d waiting)" % director.get_waiting_count())
+	var was_resting: bool = director.resting
+	director.resting = false
+	_check(director.is_mist_full() and not director.can_start_next_drift(), "calling early is refused while the mist is full")
+	director.resting = was_resting
 	var split_parent: Node2D = spawner.get_child(0)
 	spawner._run_from_start(shade_kind, 2, split_parent)
 	_check(spawner.get_child_count() == 5, "summons are never held back (%d)" % spawner.get_child_count())
