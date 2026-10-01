@@ -659,6 +659,16 @@ func _test_live_lines() -> void:
 	line = fx.preview_line(_card("crowded_path"))
 	_check(line.begins_with("Last drift: 3.2 nightmares in range on average · about +"), "…at a rest: last drift's average (%s)" % line)
 	_check(fx.preview_line(_card("lone_hunter")).begins_with("Last drift: 40% of nightmares alone"), "Lone Hunter: last drift's share")
+	_check(fx.preview_line(_card("quick_step")) == "", "Quick Step at a rest: no live line (it's about calling drifts early)")
+	director.resting = false
+	_check(fx.preview_line(_card("quick_step")).contains(" called early this block · "), "…during a block: drifts called early (%s)" % fx.preview_line(_card("quick_step")))
+	director.resting = true
+	_check(fx.preview_line(_card("heart_of_the_maze")) == "", "a card with no run number shows no live line (not the attacker count)")
+	for card in dreams.pool:
+		var shown: String = fx.preview_line(card)
+		if shown.begins_with("You have"):
+			_check(["few_and_mighty", "last_light", "many_hands", "the_last_light"].has(String(card.rule_id)) or card.id in ["few_and_mighty", "the_last_light", "many_hands"],
+				"%s: the attacker count only on attacker-count cards (%s)" % [card.id, shown])
 	for card in dreams.pool:
 		_check(not fx.preview_line(card).contains("off"), "%s: no \"off\" in its live line" % card.id)
 	dreams.last_drift_stats = {}

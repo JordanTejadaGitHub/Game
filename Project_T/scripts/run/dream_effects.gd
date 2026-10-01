@@ -390,6 +390,7 @@ func _monoculture(spot: Dictionary, board: Board, _card: UpgradeData) -> Diction
 	lines[spot.data.line] = true
 	var on := lines.size() == 1
 	return {"run_wide": true, "active": on, "damage": DreamState.MONOCULTURE_BONUS,
+		"note": count_text(lines.size(), "Warden line"),
 		"reason": "" if on else "%d Warden lines (needs one)" % lines.size()}
 
 func _crossroads(spot: Dictionary, _board: Board, _card: UpgradeData) -> Dictionary:
@@ -405,7 +406,7 @@ func _menagerie(spot: Dictionary, board: Board, _card: UpgradeData) -> Dictionar
 	var kinds := board.kinds.duplicate()
 	kinds[spot.data.get_id()] = true
 	return {"run_wide": true, "damage": minf(DreamState.MENAGERIE_PER * kinds.size(), DreamState.MENAGERIE_MAX),
-		"note": "%d kinds" % kinds.size()}
+		"note": count_text(kinds.size(), "kind") + " of Warden"}
 
 func _restless_night(_spot: Dictionary, _board: Board, _card: UpgradeData) -> Dictionary:
 	var bonus := minf(DreamState.RESTLESS_PER * ds._early_calls, DreamState.RESTLESS_MAX)
@@ -442,6 +443,7 @@ func _last_light(spot: Dictionary, board: Board, _card: UpgradeData) -> Dictiona
 	var attackers := board.attackers_with(spot)
 	var on := attackers <= DreamState.LAST_LIGHT_MAX
 	return {"run_wide": true, "active": on, "speed": 1.0, "effect": "attacks twice as fast",
+		"note": count_text(attackers, "attacking Warden"),
 		"reason": "" if on else "%d attacking Wardens (needs %d or fewer)" % [attackers, DreamState.LAST_LIGHT_MAX]}
 
 func _rootbound(spot: Dictionary, board: Board, _card: UpgradeData) -> Dictionary:
@@ -677,7 +679,9 @@ func preview_line(card: UpgradeData) -> String:
 		else:
 			value = "%+d%%" % roundi(row.get("damage", 0.0) * power * 100)
 	var note: String = row.get("note", "")
-	if note == "" or note.ends_with("attacking Wardens") or note.ends_with("attacking Warden"):
+	if note == "":
+		return ""  # No number from the run to show (Heart of the Maze, Long Shadows…): no live line
+	if note.ends_with("attacking Wardens") or note.ends_with("attacking Warden"):
 		note = "You have %s" % count_text(ds.count_attackers(), "attacking Warden")
 	else:
 		note = "Now: " + note
@@ -689,7 +693,7 @@ static func count_text(n: int, word: String, plural: String = "") -> String:
 
 # Cards whose live line comes from the run rather than a Warden's row.
 const STATE_LINES: Array[StringName] = [&"winding_path", &"deep_well", &"canopy", &"old_growth", &"bitter_hedges",
-	&"hedge_maze", &"crowded_path", &"lone_hunter", &"last_stand"]
+	&"hedge_maze", &"crowded_path", &"lone_hunter", &"last_stand", &"quick_step"]
 
 func _state_line(rule: StringName, power: float) -> String:
 	match rule:
@@ -728,6 +732,11 @@ func _state_line(rule: StringName, power: float) -> String:
 				roundi(DreamState.HEDGE_BONUS_PER * power * 100)]
 		&"crowded_path", &"lone_hunter", &"last_stand":
 			return _drift_line(rule, power)
+		&"quick_step":  # About calling drifts early: only during a block (user: it showed the attacker count)
+			if ds.drift_director.resting:
+				return ""
+			var speed := DreamState.QUICK_STEP_SPEED * maxi(ds.rule_stacks(&"quick_step"), 1) * power if ds.quick_step_active() else 0.0
+			return "Now: %d called early this block · %+d%% speed" % [ds._early_calls, roundi(speed * 100)]
 	return ""
 
 # During a drift: the value now; at a rest: last drift's averages ("" before the first drift).
@@ -864,6 +873,7 @@ func _desperate_bloom(spot: Dictionary, _board: Board, _card: UpgradeData) -> Di
 		return {}
 	var on: bool = ds.run_state.leaves * 2 < ds.run_state.max_leaves
 	return {"run_wide": true, "active": on, "speed": DreamState.DESPERATE_BLOOM_SPEED,
+		"note": "%d of %d leaves" % [ds.run_state.leaves, ds.run_state.max_leaves],
 		"reason": "" if on else "not below half your leaves"}
 
 func _odd_one_out(spot: Dictionary, board: Board, _card: UpgradeData) -> Dictionary:
