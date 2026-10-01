@@ -458,6 +458,12 @@ are read from human runs, not the sim. **The Omen check is closed** for the sim:
 the 10 on 5 leaves). The bite alone can't push skip to ≤ 25%. **Held** until the per-family batch:
 fresh runs here are all Sporeling, so act 1 boss health is set once the family spread is known.
 
+**The Night Mare** (user: "feels useless now, since its mechanic is to do it multiple times"): at
+2,286 base (×1.75 ≈ 4,000, under the Stag's 5,250) it dies on its first pass (23 s in run 4), so its
+laps never show, and one visit (5 leaves) is half the other bosses' bite. **Health ×1.5 (3,430 base)**
+so a typical maze needs two passes; visits stay 5 / 7 / 9 leaves (one lap is kinder than a bite, two are
+worse). Check: Night Mare forced, fresh Balanced / skip; target Balanced laps once+ in ~60% of fights.
+
 ## Later
 
 A **human baseline**: the same CSV written from real playtests (debug builds only), so the bot's
