@@ -172,14 +172,14 @@ func _run() -> void:
 	cross_button.mouse_entered.emit()
 	for i in 3:
 		await process_frame
-	var shown_diagram: Control = screen._diagram
-	_check(shown_diagram != null and is_instance_valid(shown_diagram) and shown_diagram.visible, "hovering Crossroads shows its diagram")
+	var shown_diagram: Control = screen._scene if screen._scene != null and screen._scene.visible else screen._diagram  # The living scene (still diagram under reduced motion)
+	_check(shown_diagram != null and is_instance_valid(shown_diagram) and shown_diagram.visible, "hovering Crossroads shows its scene")
 	if shown_diagram != null and is_instance_valid(shown_diagram):
 		var diagram_rect := shown_diagram.get_global_rect()
 		_check(Rect2(Vector2.ZERO, Vector2(root.size)).encloses(diagram_rect) and not diagram_rect.intersects(cross_button.get_global_rect()),
 			"…beside the card, on screen (%s, card %s)" % [diagram_rect, cross_button.get_global_rect()])
 	cross_button.mouse_exited.emit()
-	_check(screen._diagram == null, "…and leaving the card hides it")
+	_check(screen._diagram == null and (screen._scene == null or not screen._scene.visible), "…and leaving the card hides it")
 	# The living mini-scene (dream_design.md "Revised: a living mini-scene"): Heart of the Maze plays one in the pooled view
 	var heart: UpgradeData = null
 	for card in dreams.pool:
@@ -213,6 +213,18 @@ func _run() -> void:
 			_check(golds > 0 and whites > 0, "…the favoured Warden hits for gold \"×2\", the others for white numbers (%d / %d)" % [golds, whites])
 			heart_button.mouse_exited.emit()
 			_check(not scene.visible and not scene.is_processing() and scene._world == null, "…and leaving stops it (pooled, nothing running)")
+		# Every placement card plays one (user approved Heart of the Maze, 2026-10-01): a walkable path, its gold
+		# effect in CardScene.EFFECTS, and something that shows it (a favoured Warden or a marked Thornwall)
+		var tester := CardScene.new()
+		screen.add_child(tester)
+		await process_frame
+		for card in dreams.pool.filter(func(c: UpgradeData) -> bool: return CardDiagram.has_diagram(c)):
+			tester.show_card(card)
+			var shows: bool = tester._wardens.any(func(w: Dictionary) -> bool: return w.boosted) or not tester._walls.is_empty()
+			_check(CardScene.can_show(card) and CardScene.EFFECTS.has(card.id) and tester._path.size() >= 5 and shows,
+				"%s: a living scene (path %d cells, %d Wardens, %d marked walls)" % [card.id, tester._path.size(), tester._wardens.size(), tester._walls.size()])
+		tester.stop()
+		tester.queue_free()
 		# The dev card grid previews it too, so it can be reviewed without waiting for a Dream to offer it
 		var picker := DevCardPicker.open(screen, dreams, func(_c: UpgradeData) -> void: pass)
 		picker._search.text = "Heart of the Maze"
