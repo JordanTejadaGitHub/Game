@@ -375,6 +375,29 @@ reading is stronger, and a player who never calls early will find the new curve 
   cards", f2f2a428). Tramplers +50 Dew and Stubborn Blight +40 Dew are starting numbers; the
   three-mode Omen sim on the new rewards sets them.
 
+## Omen three-mode sim (2026-10-01, build f214066a, full profile, 20 seeds per mode, to 40)
+
+Balancing Code, `tools/balance_omens.gd`. **Saturated by the act 1 boss:** 9–10 of 20 bots per mode
+die exactly at drift 25 (the Hollow Stag drains 14–18 leaves from untouched bots), so run-level leaf
+and dormancy targets read 18 vs 18 and 100% vs 100%. **Measured before the wall (by 20), Omens bite:**
+always +5 leaves (median), +25 points dormancy, clean 0.87 reward shares per Omen-block leaf vs 0.38;
+drift reached always −5.0, clean −4.2 (mean).
+
+Decisions:
+1. **Measure without the boss:** re-run with `--last=24` on the build with the no-Dreamlight rewards
+   (f2f2a428); a half-profile batch to 50 later for acts 2–3 rewards.
+2. **The Stag wall is the bot, not the game** for now: humans passed him in runs 2–4 (38 s in run 3).
+   Watch the next fresh human run (target: beats him ~75%).
+3. **Pot-multiplier Omens are out of scale** (Bountiful Night ×2 = +580–800 Dew a block in act 2,
+   5–8× the biggest fixed reward): **Bountiful Night ×2.0 → ×1.5**, **Blood Moon ×1.75 → ×1.4**;
+   their twists (+35% health / +35% speed) stay.
+4. **Dry Spell is a pure loss under the pot** (−556 to −769 Dew in act 2 for +27–35 rest bonus).
+   New: **no Dew from nightmares during the block; at the rest the Heartwood releases the block's
+   pot ×1.25**, cut by leaves lost like any reward (25% per leaf). The twist becomes "build without
+   income, get paid late"; the ×1.5 rest bonus goes.
+5. Fixed Dew rewards are in scale (≤ one drift's pot); Tramplers +50 and Stubborn Blight +40 stay.
+6. The sim's `omen_dew` should count the pot multipliers' extra (or loss) too.
+
 ## Later
 
 A **human baseline**: the same CSV written from real playtests (debug builds only), so the bot's
