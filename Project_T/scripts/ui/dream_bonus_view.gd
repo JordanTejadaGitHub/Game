@@ -19,6 +19,7 @@ const OFF_COLOR := UiStyle.OFF
 const RUN_WIDE_COLOR := UiStyle.MOONLIGHT
 const BOOSTED_COLOR := UiStyle.GOLD  # The warm tint for a boosted stat
 const ICON_SCRIPT := preload("res://scripts/ui/dreams_row.gd")
+const GEMS_PER_ROW := 8  # Dream gems per row in the Warden panel
 
 # --- Rows -------------------------------------------------------------------------------------------
 
@@ -41,9 +42,10 @@ static func make_rows_at(data: TowerData, cell: Vector2, tower: Tower = null) ->
 	# gems (rarity shape + stacks; hover / tap = its line), the rest collapsed to one muted line.
 	var merged := merge_by_card(dreams)
 	merged.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return _rank(a) < _rank(b))
-	var gems := HFlowContainer.new()
-	gems.add_theme_constant_override("h_separation", 6)
-	gems.add_theme_constant_override("v_separation", 4)
+	# Fixed rows of GEMS_PER_ROW, one gem per card with a gap (a flow container stacked them on top of each
+	# other in the Warden panel before its width settled: user screenshot, Driftspore).
+	var gems := VBoxContainer.new()
+	gems.add_theme_constant_override("separation", 6)
 	var off: Array[String] = []
 	var states := _dream_state()
 	for entry in merged:
@@ -57,7 +59,11 @@ static func make_rows_at(data: TowerData, cell: Vector2, tower: Tower = null) ->
 		icon.custom_minimum_size = Vector2(30, 30)
 		var line := get_line(entry)
 		TapTip.attach(icon, IconInfo.format("%s: %s" % [card.display_name, line if line != "" else card.description]))
-		gems.add_child(icon)
+		if gems.get_child_count() == 0 or gems.get_child(-1).get_child_count() >= GEMS_PER_ROW:
+			var row := HBoxContainer.new()
+			row.add_theme_constant_override("separation", 8)
+			gems.add_child(row)
+		gems.get_child(-1).add_child(icon)
 	if gems.get_child_count() > 0:
 		box.add_child(gems)
 	if not off.is_empty():
