@@ -520,6 +520,28 @@ This conflicts with the targets (Half Grove reaches act 4, Full wins). Next: fin
 off-build cards are dead for the build (a `can_offer` rule fixes it) or usable (a pool-size question),
 then bring the fix to the user. Caveat: one family pair, one bot style, which picks by tag + rarity.
 
+## Human run 5 (2026-10-01, build b6d458 = ee3d82d0: run-4 curve, Dew pot, boss bite 10, Night Mare ×1.5, Acorn +15%)
+
+Lost at **drift 35**, 1 Grove node (Morning Stores), no early calls. Firefly Jar first, Sporeling at
+25. Top damage: 2 Stormcaps 51%, 2 Lanternmoths 23%. Dew earned 3,729 (ranks 2,140), banked ≤ 571.
+Dreams 6 taken, 0 passed; Omens 4 faced, 1 Clear Skies.
+
+- **Act 1 block 3 spiked:** closest 0.80–1.00 at drifts 11–15, **9 leaves lost** (first leak 13; the
+  Swarm at 15 took 5). Blocks 4–5 settled at 0.25–0.55. Target for a fresh profile is 0–3 by 25.
+  One run, and Firefly Jar (single target) against the Swarm is a readable matchup: **watch**.
+- **The Stag: dispelled in 46 s**, no leaves.
+- **Act 2 drifts 26–30: closest 0.22–0.29** (the breather), then **drift 31 cost 6 leaves**: it's the
+  Phantom's intro drift (4 Phantoms, flying, fixed), and the guaranteed elite from drift 31 made one an
+  elite Phantom; all 5 flew past (802 of 3,193 damage). Down to 1 leaf, then drift 34 (77k health,
+  closest 1.0) ended the run at 35.
+- Against the targets: **a fresh profile ending in act 2 ✓**. But the deciding leak was an intro
+  drift doubled by a rule, which isn't readable.
+
+Decisions:
+1. **No guaranteed elite on a nightmare's intro drift:** `add_guaranteed_elite` never picks a kind
+   whose `intro_drift` is this drift (skipped if nothing else is there). Enemy Code.
+2. Act 1 block 3 and act 2's start: no change from one run.
+
 ## Later
 
 A **human baseline**: the same CSV written from real playtests (debug builds only), so the bot's
