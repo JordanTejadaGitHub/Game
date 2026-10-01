@@ -312,8 +312,7 @@ func _run() -> void:
 	memory = HeartwoodMemory.load_data()
 	var migrated := {}
 	for id in memory.unlocks:
-		if HeartwoodMemory.get_unlock(id).root != UnlockData.Root.DREAMS:  # v8 / v9's free Cards nodes are checked below
-			migrated[id] = int(memory.unlocks[id])
+		migrated[id] = int(memory.unlocks[id])
 	_check(migrated == {"pebbling": 1, "pebbling_hidden": 1, "morning_stores": 2}, "v1 ids migrate, the old final-forms node refunded (%s)" % [migrated])
 	_check(memory.loadout == [] and int(memory.seeds) == 5 + 50, "a migrated profile keeps its Seeds and gets the final-forms 50 back (%d)" % int(memory.seeds))
 	old = FileAccess.open(PROFILE_PATH, FileAccess.WRITE)
@@ -331,21 +330,7 @@ func _run() -> void:
 	memory = HeartwoodMemory.load_data()
 	_check(int(memory.seeds) == 3 + 40 + 60 + 40 + 120 + 120 and memory.unlocks.has("sharpened") and not memory.unlocks.has("storm_lore") and not memory.unlocks.has("dawnbreak"),
 		"v6 profiles: the combo-card nodes are gone and refunded (%d, %s)" % [int(memory.seeds), memory.unlocks.keys()])
-	# v8 (the lean starting pool): older profiles get the nodes whose cards they already had, free; never Swift / Wide Reach.
-	_check(HeartwoodMemory.GRANTED_V8.all(func(id: String) -> bool: return int(memory.unlocks.get(id, 0)) == 1 and HeartwoodMemory.get_unlock(id) != null)
-		and not memory.unlocks.has("quickening") and not memory.unlocks.has("broad_strokes") and int(memory.seeds) == 3 + 380,
-		"v7 and older profiles: the lean pool's moved cards come back as free nodes, no Seeds change (%s)" % [memory.unlocks.keys()])
 	_check(not HeartwoodMemory.defaults().unlocks.has("elders"), "fresh profiles start lean")
-	# v9 (meta_design.md 7831948a): every node below a granted one grows too, so nothing blooms above an ungrown node.
-	for below: String in ["sharpened", "venom", "seeping", "mixed_company", "seedbed", "winding_roads", "dead_wood", "bittersweet_dreams", "nursery", "tending_hands"]:
-		_check(int(memory.unlocks.get(below, 0)) >= 1, "v9: %s grows under a granted node" % below)
-	old = FileAccess.open(PROFILE_PATH, FileAccess.WRITE)
-	old.store_string(JSON.stringify({"version": 8, "seeds": 9, "unlocks": {"hunters_moon": 1, "eternal_static": 1, "lucid_dreaming": 1}}))
-	old.close()
-	HeartwoodMemory.forget()
-	memory = HeartwoodMemory.load_data()
-	_check(int(memory.seeds) == 9 and ["sharpened", "venom", "seeping", "bittersweet_dreams"].all(func(id: String) -> bool: return int(memory.unlocks.get(id, 0)) == 1)
-		and not memory.unlocks.has("quickening"), "v8 profiles: the nodes under their granted tips grow free (%s)" % [memory.unlocks])
 	var every_card := {}
 	for unlock in HeartwoodMemory.load_grove():
 		for card in unlock.dream_cards:

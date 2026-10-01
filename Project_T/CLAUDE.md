@@ -278,7 +278,7 @@ accessibility, Steam achievements (milestones map to them). Acts 3–4 and all f
   `starting_cards` (Clear Sight), `random_common_cards` (Kindling), `sprout_charges`, `free_nurtures`
   (`RunState.free_nurtures`, spent by Tower Code's nurture hook); `allows_bittersweet` (Bittersweet
   Dreams node sets `DreamState.allow_bittersweet`).
-- `HeartwoodMemory` (VERSION 9; `MIGRATED_IDS` renames v1 Grove ids, `REFUNDED_V3`..`V7` refund removed nodes (v7: the five combo-card nodes), `GRANTED_V8` gives older profiles the lean Cards limb's moved-card nodes free, v9 the nodes below them too): `unlocks {id: level}`,
+- `HeartwoodMemory` (VERSION 9; `MIGRATED_IDS` renames v1 Grove ids, `REFUNDED_V3`..`V7` refund removed nodes (v7: the five combo-card nodes); no free grants: the game is pre-release): `unlocks {id: level}`,
   `node_level()` (counts start / milestone growth; use it, not `unlock_level()`, for "owned"),
   `buy()` / `buy_problem()` / `requirements_met()`, `get_unlock(id)`, `grow_milestone_nodes()`,
   `grown_share()`, loadout (`loadout`, `loadout_slots()`: 3 open + slot_4/5 + the secret 6th via `has_sixth_slot()` = milestone `full_bloom` (`check_full_bloom`, `tree_complete`) or `MetaRun.sixth_slot_dev_active()`; `get_loadout()`, `save_loadout()`),
@@ -292,8 +292,8 @@ accessibility, Steam achievements (milestones map to them). Acts 3–4 and all f
   `act_break_leaves`, `DreamState.skip_dew` / `lean_common`, `MetaRun.clear_cost_multiplier()`.
   `RunState.seed_bonus` adds a Seeds line. `RunSaver` saves `sprout_charges` / `free_nurtures`.
 - Family Blessings: `resource/meta/blessing/blessing_<family>.tres` (UpgradeData, +25% damage and
-  25% cheaper growth for that family), put in the Dream pool by MetaRun (never offered); the family
-  pick fills empty slots with them.
+  25% cheaper growth for that family): Rare Dream cards in the start pool (requires the family,
+  max_stacks 1, min_act 2, so offered from act 2). The family pick no longer fills slots with them.
 - `scenes/grove.tscn` (`grove_screen.gd`): `GroveTreeView` (the art from `assets/meta/`, layered
   sky → tree → canopy stage (by `grown_share`, crossfades) → branches → dream-fruit → waystones →
   nodes; pan / wheel / pinch zoom, tap only), node card + Plant (planting grows the branch 1→4, then
