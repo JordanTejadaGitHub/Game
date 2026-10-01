@@ -103,8 +103,15 @@ matter, confirmed.
   - **Core** (always in the run's pool):
     - the **basics**: Quickened Sap, Deeper Calm, Longer Roots, Deep Roots, Thick Bark, Evergreen,
       Morning Dew (stacking, untagged cards that every build uses);
-    - **family cards of every family you hold** (cards whose Needs name that family or one of its
-      Wardens, and its Blessing), added at each family pick;
+    - ~~family cards of every family you hold~~ **Removed 2026-10-01** (user, after a drift-35 Dream
+      of 3 family cards out of 4: *"there shouldn't always be a family card in the pool"*). Held
+      families' cards (Needs name the family or one of its Wardens, and its Blessing) are now
+      **sampled at 60% like the rest**: a family pick adds a seeded 60% of that family's cards.
+      Why: with 3–4 families held, ~10 guaranteed cards each outnumbered the 60%-sampled general
+      cards, so offers filled with family cards. Not steering (tag weighting is off, and tag
+      resonance only changes a taken card's power, never the odds; checked in `_weighted_pick`).
+      If offers still lean family-heavy, the next step is an offer rule (at least 1 general card
+      per offer), not more weighting;
     - **the clearing opener** (Heartwood's Reach) on maps with 8+ obstacles, so clearing is always
       reachable.
   - **The rest** (generic and direction cards, combo cards, Legendaries) is sampled at **60%**,
@@ -131,7 +138,7 @@ matter, confirmed.
   - **Shown:** nothing new on screen. The Codex lists every card; the "Dreams this run" panel could
     later show "dreams in reach this run" (optional).
   - **Tests:** two map seeds give different pools (same seed, same pool); the floors hold on a fresh
-    profile; taking a tagged card adds **nothing** to the pool; a family pick adds its family cards;
+    profile; taking a tagged card adds **nothing** to the pool; a family pick adds a seeded 60% of its family cards (never all of them);
     19 offers on a fresh profile never show fewer than 3 cards.
   - **Targets (design hub, 2026-09-30):** a **decent build** (3+ of a package by drift 50) in
     **~50%** of runs; the **full dream build** (5+ by drift 100) in **~5%** with a full Grove and
