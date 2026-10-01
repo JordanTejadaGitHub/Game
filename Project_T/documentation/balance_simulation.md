@@ -539,7 +539,7 @@ Dreams 6 taken, 0 passed; Omens 4 faced, 1 Clear Skies.
 
 Decisions:
 1. **No guaranteed elite on a nightmare's intro drift:** `add_guaranteed_elite` never picks a kind
-   whose `intro_drift` is this drift (skipped if nothing else is there). Enemy Code.
+   whose `intro_drift` is this drift (skipped if nothing else is there). In the game: ade9a9ef.
 2. Act 1 block 3 and act 2's start: no change from one run.
 
 ## Later
