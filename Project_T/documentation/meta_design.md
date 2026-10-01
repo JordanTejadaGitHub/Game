@@ -232,18 +232,18 @@ discovery in play. Branches may **fork** into two tips (each tip needs the node 
 |---|---|---|---|
 | **Swift** (attack speed) | *Quickening*: Momentum, Quickening, Flurry (50) | *Light Feet*: Restless Roots, Hummingheart (70) | **Whirlwind Heart** (120) |
 | **Wide Reach** (area, splash) | *Broad Strokes*: Broad Splash, Lingering Splash (50) | *Far Reach*: Far Reach, Spillover (70) | **Great Ripple** (120) |
-| **Keen Edges** (precision, crit) | *Sharpened*: Still Target, Shattering Blow, **Hunter's Patience** (50) | — | **Full Moon** (120) · **Hunter's Moon** (80) |
+| **Keen Edges** (precision, crit) | *Sharpened*: Still Target, Shattering Blow, **Hunter's Patience**, **Sharpened Light** (50) | — | **Full Moon** (120) · **Hunter's Moon** (80) |
 | **Deep Poison** (affliction, effects) | *Seeping*: + **Crowd Breaker** (50) | *Venom*: Venom Bloom (40) | **Nightshade** (120) · **Eternal Charge** (80) |
 | **Daring** (low leaves, tempo) *(new)* | *Scarred Bark*: Scarred Bark, Thin Bark (40) | *Last Stand*: Desperate Bloom, Second Wind, Last Stand (50) | **Last Leaf** (80) · **Restless Night** (80) |
 | **Tending** (nurture, tall) | *Tending Hands*: Sunlit Rest, Deeper Rings (60) | *Nursery*: Nursery, Chosen Few (70) → *Elders*: Solitude, Elder Kin, Few and Mighty (50) | **The Old Ones** + **Endless Rings** (150; needs Elders) |
 | **Lone Lantern** (narrow) | *One Line*: Monoculture (80) | — | **The Last Light** (120) |
 | **Overgrowth** (wide) | *Seedbed*: Seedling Gift, Canopy (60) | *Mixed Company*: Mixed Grove, Odd One Out, Grand Tour (50) | **Rootbound** (100; needs Seedbed) · **Menagerie** (80; needs Mixed Company) |
 | **The Long Way** (path length) | *Dead Wood*: Burn Back the Dead Wood (40) | *Winding Roads*: Forest's Edge (50) | **The Long Walk** (100; needs Dead Wood) · **Crossroads** (80; needs Winding Roads) |
-| **Hedgerows** (walls, holding) *(new)* | *Bitter Hedges*: Bitter Hedges (40) | — | **Briar Crown** (80) · **Rooted Nightmares** (80) |
+| **Hedgerows** (walls, holding) *(new)* | *Bitter Hedges*: Bitter Hedges, **Thornheart** (40) | — | **Briar Crown** (80) · **Rooted Nightmares** (80) |
 | **Reclaiming** (clearing) *(new)* | *Reclaimed Earth*: Reclaimed Earth, Tended Stumps, Hollow Ground (50; the "where you clear" payoffs first) | *Thorn and Bramble*: Tended Forest, Thorn Snare, Bramble Oath (70) | **Wildwood Reclaimed** (80) |
-| **The Quiet Ones** (support Wardens) | *Catchers*: Dew Trail, Acorn Cache (50; Wide Bowl merged into Dew Trail, Still Waters cut in the power pass) | *Old Wood*: Overflowing Well, Hedgerow Roots, Grandfather Stump, Living Walls, Many Threads (70) | **The Quiet Ones** (120) |
+| **The Quiet Ones** (support Wardens) | *Catchers*: Dew Trail, Acorn Cache (50; Wide Bowl merged into Dew Trail, Still Waters cut in the power pass) | *Old Wood*: Overflowing Well, Hedgerow Roots, Grandfather Stump, Living Walls, **Scented Hedge**, Many Threads (70) | **The Quiet Ones** (120) |
 | **Seeds** (support and economy bets) | *Planted Promises*: Dew Bowl, Harvest Moon, Kind Canopy, Patient Roots (50) | *Deep Promises*: Deep Well, Shared Light (70) | **Golden Harvest** (120) |
-| **Bittersweet** | *Bittersweet Dreams*: Deep Sleep, Restless Dreams (60; needs any 2 other nodes) | — | **Lucid Dreaming** (80; the "dreams" Legendary: 4 cards, take 2, no Commons) |
+| **Bittersweet** | *Bittersweet Dreams*: Deep Sleep, Restless Dreams, **Wandering Mind** (60; needs any 2 other nodes) | — | **Lucid Dreaming** (80; the "dreams" Legendary: 4 cards, take 2, no Commons) |
 
 - **Costs:** the new tips and nodes are cheaper (tips 80, nodes 40–50) than the original ones, so a
   direction is reachable in 2–3 runs. **+1,200 Seeds**: the tree is **≈ 7,340 Seeds ≈ 26 runs ≈
