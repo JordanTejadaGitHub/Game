@@ -605,6 +605,9 @@ neighbours every 1 s at `get_damage() × 0.25` = 2× Puffball's stack, which als
 to its potency and credit; every overlapping Dreamshroom puffs separately). Cloud 10%; the sleep is
 only the trigger. **Nerf:** Dream Spores at **half soothe**, and **one puff per sleeper per second
 across all Dreamshrooms**. Re-probe after Tower Code's commit.
+**Drifts 45–49** (f80fb34d): Dreamshroom ~240k vs Puffball ~197k per Warden (**~1.2×**), board leak 0%
+vs 15%: its edge grows with the field (2.1× at 61). Acceptance after the nerf: **1.0–1.3× Puffball in
+both windows**; if act 2 drops below 1.0×, Dream Spores soothe goes ×0.5 → ×0.65.
 This conflicts with the targets (Half Grove reaches act 4, Full wins). Next: find out whether the
 off-build cards are dead for the build (a `can_offer` rule fixes it) or usable (a pool-size question),
 then bring the fix to the user. Caveat: one family pair, one bot style, which picks by tag + rarity.
