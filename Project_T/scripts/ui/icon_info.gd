@@ -153,6 +153,7 @@ const TERMS := {
 	&"dreamlight": ["Dreamlight", "Dreamlight", "Dreamlight"],
 	&"family_pick": ["family pick", "family picks", "Family pick"],
 	&"deeply_blighted": ["Deeply Blighted", "Deeply Blighted", "Deeply Blighted"],
+	&"dread_shell": ["dread shell", "dread shells", "Dread shell"],
 	&"kinship": ["Kinship", "Kinships", "Kinship"],
 	&"harmony": ["Harmony strike", "Harmony strikes", "Harmony strike", "harmonies"],  # {harmonies}: the plural
 }
