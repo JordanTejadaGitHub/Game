@@ -98,7 +98,7 @@ func show_warden(data: TowerData, tower: Tower = null, dreams: DreamState = null
 		var range_text := "range %.2f" % _tower.get_range_cells()
 		if attack.min_range > 0.0:
 			range_text = "range %.1f–%.1f" % [attack.min_range, _tower.get_range_cells()]
-		_stat_row([["Damage %.0f" % _tower.get_damage(), &"damage"],
+		_stat_row([["Damage %s" % BossDossier.thousands(roundi(_tower.get_damage())), &"damage"],
 			["%.2f/s" % _tower.get_attacks_per_second(), &"attack_speed"],
 			[range_text, &"range"]])
 		var second: Array = []

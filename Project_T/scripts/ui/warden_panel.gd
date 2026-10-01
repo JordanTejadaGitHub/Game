@@ -145,7 +145,7 @@ func _refresh() -> void:
 		var stats := log.get_tower_stats(_tower)
 		var run: float = stats.get("run", 0.0)
 		if run > 0.0:
-			lines.append("This run: %d damage · %.0f/s · from combos %d%%" % [roundi(run),
+			lines.append("This run: %s damage · %.0f/s · from combos %d%%" % [BossDossier.thousands(roundi(run)),
 				log.get_dps(_tower), roundi(100.0 * stats.get("run_combo", 0.0) / run)])
 	var links := Synergies.find_links(data, _tower.cell, _tower.get_parent().get_children())
 	# Combos with: the shared combo links (hover / tap = its tip, ??? until found; a click opens the Codex).
@@ -199,7 +199,7 @@ func _refresh() -> void:
 		if option[1]:
 			var grow := _tower.get_grow_cost(next)  # Ranked Wardens also pay the rank difference
 			var cost: int = grow.total
-			button.text = "Grow into %s · %d Dew" % [next.display_name, cost]
+			button.text = "Grow into %s · %s Dew" % [next.display_name, BossDossier.thousands(cost)]
 			button.tooltip_text = IconInfo.format(next.description)  # {spored}-style tokens as words
 			if grow.ranks > 0:
 				button.tooltip_text += "\n\n%d Dew + %d for its rank %s." % [grow.base, grow.ranks, Tower.rank_name(_tower.rank)]
@@ -278,7 +278,7 @@ func _refresh() -> void:
 		note = "Placed this rest: all its Dew back."
 	elif drift_director.is_build_phase() and _tower.rest_dew > 0:
 		note = "This rest's %d Dew comes back in full." % _tower.rest_dew
-	var sell := _add_footer_button("Sell · +%d Dew (%s)" % [refund, tower_seller.sell_key_name()])  # Its hotkey, like Nurture's (R)
+	var sell := _add_footer_button("Sell · +%s Dew (%s)" % [BossDossier.thousands(refund), tower_seller.sell_key_name()])  # Its hotkey, like Nurture's (R)
 	sell.tooltip_text = note
 	sell.pressed.connect(func() -> void: tower_seller.sell(_tower.cell))
 	if _tower.tower_data.rooted:
@@ -384,7 +384,7 @@ func _refresh_group() -> void:
 			tower_seller.nurture_group(tower_seller.selection, which))
 	var refund := tower_seller.get_selection_refund()
 	var in_drift := not drift_director.is_build_phase()
-	var sell := _add_footer_button("Sell %d · +%d Dew (%s)" % [selection.size(), refund, tower_seller.sell_key_name()])
+	var sell := _add_footer_button("Sell %d · +%s Dew (%s)" % [selection.size(), BossDossier.thousands(refund), tower_seller.sell_key_name()])
 	sell.tooltip_text = "Half the Dew back while nightmares walk." if in_drift else ""
 	if _confirm_sell:
 		sell.text = "Really sell %d while nightmares walk? +%d Dew" % [selection.size(), refund]
@@ -577,7 +577,7 @@ func _locked_form_button(button: Button, label: String, next: TowerData) -> void
 	if blocker != "":
 		button.text = "%s · %s" % [label, blocker]
 	elif not affordable:
-		button.text += " (%d)" % dream_state.dreamlight  # What you have
+		button.tooltip_text += ("\n\n" if button.tooltip_text != "" else "") + "You have %d Dreamlight." % dream_state.dreamlight  # (Not a second bracket in the label)
 	if blocker != "" or not affordable:
 		_dim(button)  # Glow means "you can do this now"; still opens Remember
 	button.pressed.connect(_on_locked_form.bind(next, affordable and blocker == ""))

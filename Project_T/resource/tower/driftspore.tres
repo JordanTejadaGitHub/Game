@@ -9,7 +9,7 @@
 [resource]
 script = ExtResource("1_tdata")
 display_name = "Driftspore"
-description = "Two spore stacks per puff, and nightmares root more of them."
+description = "Two {spored} stacks per puff, and nightmares can hold more of them."
 cost = 0
 texture = ExtResource("2_tex")
 frame_count = 8
