@@ -357,8 +357,10 @@ User: *"should we have a set Dew you can get from each drift, but it can be modi
       mid-fight by another nightmare): their summoner's share already pays for the fight, and a
       summoner can keep spawning, so any Dew on summons could be farmed. (Ruling 2026-10-01.)
   - **Modifiers multiply the pot** (stacking additively within a source type, then multiplied):
-    - Grove `dew_gain`, Blight Level Dew cuts, and the old `act_dew_multipliers` **removed** (folded
-      into the table).
+    - **Grove `dew_gain` (Rich Dew) and Blight Level Dew cuts multiply the pot** (Rich Dew +5% per
+      level, as `meta_design.md` says). Only the old **`act_dew_multipliers` are removed** (folded
+      into the table). *(Corrected 2026-10-01: this line first said dew_gain was removed too, a
+      writing slip; Main built it that way and Rich Dew did nothing.)*
     - **Cards:** *Morning Dew* "nightmares +10% Dew" → **pot +10%**. *Call of the Wild* (absorbed
       Hurried Harvest's "+1 Dew per nightmare of a drift called early") → **a drift you call early
       has its pot +10%**; its "call-early Dew ×2" stays on top. *Glimmering Hunt* (Dreamlight shards),
