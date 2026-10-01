@@ -608,6 +608,10 @@ across all Dreamshrooms**. Re-probe after Tower Code's commit.
 **Drifts 45–49** (f80fb34d): Dreamshroom ~240k vs Puffball ~197k per Warden (**~1.2×**), board leak 0%
 vs 15%: its edge grows with the field (2.1× at 61). Acceptance after the nerf: **1.0–1.3× Puffball in
 both windows**; if act 2 drops below 1.0×, Dream Spores soothe goes ×0.5 → ×0.65.
+**Re-probe** (a9951bd1, c7f3e56d in): **61–65: 1.22–1.25× on every seed ✓** (was 2.1×). 45–49:
+per-seed 0.77 / 1.11 / 0.77, ratio of medians 1.05 (one high Puffball seed); its board still leaks
+least (1.6–4.7% vs 12–20%). **Kept at ×0.5:** the board-level strength says it isn't weak in act 2,
+and ×0.65 would push act 3 to ~1.5×. Watch it in human runs. Closed.
 This conflicts with the targets (Half Grove reaches act 4, Full wins). Next: find out whether the
 off-build cards are dead for the build (a `can_offer` rule fixes it) or usable (a pool-size question),
 then bring the fix to the user. Caveat: one family pair, one bot style, which picks by tag + rarity.
