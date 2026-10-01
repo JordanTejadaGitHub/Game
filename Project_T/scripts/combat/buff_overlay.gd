@@ -58,6 +58,9 @@ func _init() -> void:
 	_ground.z_index = -1
 	_ground.draw.connect(_draw_ground)
 	add_child(_ground)
+	_all.name = "AllPips"
+	_all.draw.connect(_draw_all)
+	add_child(_all)
 	process_mode = Node.PROCESS_MODE_ALWAYS  # Paused: the pips show
 
 func set_lens(on: bool) -> void:
@@ -65,6 +68,7 @@ func set_lens(on: bool) -> void:
 	lens_changed.emit(on)
 	queue_redraw()
 	_ground.queue_redraw()
+	_all.queue_redraw()
 
 # Performance (test_perf_stress: redrawing every Warden's pips every 0.2 s cost ~75 ms spikes): redraw when
 # what's asked about changes (lens, rest / pause / build mode, hovered / selected Warden, the board), and
@@ -76,12 +80,18 @@ func _process(delta: float) -> void:
 	if _signature_left <= 0.0:
 		_signature_left = SIGNATURE_EVERY
 		_signature = _board_signature()
+	# The board-wide layers only when the board, the rest state or the lens change; a hover only redraws the
+	# cheap focus layer (threads).
+	var all_key := [lens, _show_all(), _signature]
+	if all_key != _all_key:
+		_all_key = all_key
+		_all.queue_redraw()
+		_ground.queue_redraw()
 	var key := [lens, _show_all(), focus, _signature]
 	if key != _last_key or (_redraw_left <= 0.0 and not focus.is_empty()):
 		_last_key = key
 		_redraw_left = REDRAW_EVERY
 		queue_redraw()
-		_ground.queue_redraw()
 
 func _show_all() -> bool:
 	return lens or (director != null and director.is_resting()) or get_tree().paused \
@@ -107,6 +117,8 @@ func _towers() -> Array:
 	return container.get_children().filter(func(t) -> bool: return t is Tower and not t.is_queued_for_deletion())
 
 var _ground := Node2D.new()
+var _all := Node2D.new()  # Every Warden's pips and the lens markers (_draw_all)
+var _all_key := []
 var drawn_pips := 0  # Pip rows and lens markers drawn last frame (tests)
 var drawn_markers := 0
 
@@ -114,38 +126,48 @@ func _draw_ground() -> void:
 	if lens:
 		_draw_lens_areas(_towers())
 
+# The hovered / selected Warden: its threads (and its pips when the board's aren't all shown). Cheap: this
+# layer redraws on every focus change.
 func _draw() -> void:
-	var towers := _towers()
-	drawn_pips = 0
-	drawn_markers = 0
-	if lens:
-		_draw_lens(towers)
 	var focus := _focus()
 	for tower in focus:
 		_draw_threads_in(tower)
 		if AuraView.is_aura(tower.tower_data):
 			_draw_threads_out(tower)
-	var with_pips: Array = towers if _show_all() else focus
-	for tower in with_pips:
-		_draw_pips(tower)
+	if not _show_all():
+		for tower in focus:
+			_draw_pips(tower)
+
+# Every Warden's pips (rests, paused, build mode, the lens) and the lens markers: the expensive layer
+# (~70 ms for 200 Wardens), redrawn only when the board, the rest state or the lens changes, never on a hover
+# (perf: the first-run camera glide changed the hovered Warden every second, redrawing all of them).
+func _draw_all() -> void:
+	drawn_pips = 0
+	drawn_markers = 0
+	var towers := _towers()
+	if lens:
+		_draw_lens(towers)
+	if _show_all():
+		for tower in towers:
+			_draw_pips(tower, _all)
 
 # --- Pips --------------------------------------------------------------------------------------------
 
-func _draw_pips(tower: Tower) -> void:
+func _draw_pips(tower: Tower, canvas: CanvasItem = self) -> void:
 	var rows := BuffSources.pips(tower)
 	if rows.is_empty():
 		return
 	drawn_pips += 1
 	var at := to_local(tower.global_position) + Vector2(-(rows.size() - 1) * PIP_STEP / 2.0, PIP_Y)
-	WorldLabel.begin_screen_size(self, at + Vector2((rows.size() - 1) * PIP_STEP / 2.0, 0.0))  # Screen size when zoomed in
+	WorldLabel.begin_screen_size(canvas, at + Vector2((rows.size() - 1) * PIP_STEP / 2.0, 0.0))  # Screen size when zoomed in
 	var font := ThemeDB.fallback_font
 	for row in rows:
 		var colour := BuffSources.color(row[0], row[2])
-		draw_pip(self, at, row[0], colour)
+		draw_pip(canvas, at, row[0], colour)
 		if row[1] > 1:
-			draw_stacks(self, at + Vector2(PIP_RADIUS, 1), row[1], colour, font)
+			draw_stacks(canvas, at + Vector2(PIP_RADIUS, 1), row[1], colour, font)
 		at.x += PIP_STEP
-	WorldLabel.end_screen_size(self)
+	WorldLabel.end_screen_size(canvas)
 
 # UI Asset's pip art (c2a2a600, assets/ui/buff_pips.json): 10 px pips, one shape per kind in its colour;
 # kinship (a leaf) and penalty (a down chevron) are grey, tinted here (family colour; Bruise). ×1 on the map.
@@ -286,11 +308,11 @@ func _draw_lens(towers: Array) -> void:
 		var boost := local_boost(tower)
 		if boost > 0.001:
 			var strength := clampf(boost, 0.25, 0.9)
-			draw_arc(at + Vector2(0, HALO_Y), Tower.MAP_GRID.cell_size.x * 0.38, 0.0, TAU, 32, Color(Palette.GLOW, strength), 2.5)
-			draw_arc(at + Vector2(0, HALO_Y), Tower.MAP_GRID.cell_size.x * 0.38 + 3.0, 0.0, TAU, 32, Color(Palette.GLOW, strength * 0.35), 2.0)
+			_all.draw_arc(at + Vector2(0, HALO_Y), Tower.MAP_GRID.cell_size.x * 0.38, 0.0, TAU, 32, Color(Palette.GLOW, strength), 2.5)
+			_all.draw_arc(at + Vector2(0, HALO_Y), Tower.MAP_GRID.cell_size.x * 0.38 + 3.0, 0.0, TAU, 32, Color(Palette.GLOW, strength * 0.35), 2.0)
 			drawn_markers += 1
 		else:
-			draw_circle(at + Vector2(0, HALO_Y * 0.5), Tower.MAP_GRID.cell_size.x * 0.45, Color(Palette.DREAD, DIM_ALPHA))
+			_all.draw_circle(at + Vector2(0, HALO_Y * 0.5), Tower.MAP_GRID.cell_size.x * 0.45, Color(Palette.DREAD, DIM_ALPHA))
 
 # The damage + attack speed a Warden gets from local sources (auras, Kindred / Whole Tree).
 static func local_boost(tower: Tower) -> float:
