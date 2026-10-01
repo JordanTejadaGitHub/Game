@@ -382,7 +382,7 @@ func _make_attack(tower_name: String) -> Image:
 # Tall Wardens (64x96 frames, the body's 64x64 frame in the bottom 64 rows; the 32 rows above hold
 # what rises over it). In game: TowerData.sprite_offset (0, -16) keeps the slab on its cell, and the
 # attacks.json point stays in body-frame pixels (it's measured from the body, not the tall frame).
-const TALL_WARDENS := ["beacon"]
+const TALL_WARDENS := ["beacon", "thunderhead"]
 const TALL_H := 96
 
 func _frame_h(tower_name: String) -> int:
@@ -2546,6 +2546,33 @@ func _storm_body(canvas: Image, st: Dictionary, big: bool) -> void:
 			_bolt(canvas, Vector2(16, 7), Vector2(11, 15), zap, Color("#8a8af0"), 3)
 	else:
 		_cloud(canvas, Vector2(30.5, 4 + dy), 19, _ramp(["#3a3a58", "#5a5a7a", "#8a8aa8", "#b8b8d0"]), Color("#16162a"))
+
+# Thunderhead's tall rows: its cap cloud towers up into a storm column with an anvil top (narrow, about
+# Beacon's width, so it hides little of the cell above), lightning flickering inside it.
+func _tall_thunderhead(back: Image, front: Image, st: Dictionary) -> void:
+	var dy: int = st.dy
+	var ramp := _ramp(["#2a2a44", "#44446a", "#6a6a90", "#9a9ac0"])
+	var o := Color("#10101e")
+	var base_y := 32.0 + 3 + dy  # the cap cloud's centre, in tall-frame rows
+	# Puffs overlapping and stepping sideways as they climb, then a wide flat anvil, lit from the top.
+	_cloud(front, Vector2(27, base_y - 7), 20, ramp, o)
+	_cloud(front, Vector2(35, base_y - 12), 19, ramp, o)
+	_cloud(front, Vector2(29, base_y - 17), 18, ramp, o)
+	var anvil := _layer()
+	_ellipse(anvil, Vector2(31, base_y - 24), Vector2(14, 4.5), _ramp(["#44446a", "#6a6a90", "#9a9ac0", "#c0c0dc"]))
+	_ellipse(anvil, Vector2(24, base_y - 22), Vector2(6, 3.5), ramp)
+	_ellipse(anvil, Vector2(39, base_y - 22), Vector2(6, 3.5), ramp)
+	_stamp(front, anvil, o)
+	var zap := Color("#fff6a0")
+	if st.attack < 0:
+		var k: int = st.f % 4
+		if k == 0:
+			_bolt(front, Vector2(26, base_y - 22), Vector2(24, base_y - 12), zap, Color("#8a8af0"), 3)
+		elif k == 2:
+			_bolt(front, Vector2(36, base_y - 20), Vector2(38, base_y - 10), zap, Color("#8a8af0"), 3)
+	for p: Vector2i in [Vector2i(22, int(base_y) - 25), Vector2i(40, int(base_y) - 24)]:
+		if (p.x + st.f) % 3 == 0:
+			_px(front, p.x, p.y, Color("#c0f0ff"))
 
 # Lanternmoth: an amber lantern golem with soft moth wings, feathery antennae and a warm light
 # glowing in its chest.
