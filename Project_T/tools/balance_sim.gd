@@ -77,6 +77,7 @@ var omen_blocks: Array[String] = []  # Per paid Omen: "id:reward Dew:pot part:pl
 var _block_pot := Vector2.ZERO  # The current Omen block's pot part (x) and its plain pot (y)
 var _save_since := -1  # The drift the saver started holding Dew at
 var _approach_timer := 0.0
+var bosses := {}  # Instance id -> a boss fight: drift, kind, health, route and Heartwood seconds and damage (bosses column)
 
 var main: Node
 var map
@@ -494,6 +495,8 @@ func _new_window() -> void:
 
 func _on_damage(event) -> void:
 	d.damage += event.amount
+	if is_instance_valid(event.enemy) and event.enemy.enemy_data.is_boss:
+		_note_boss_hit(event.enemy, event.amount)
 	# Per Warden (instance), not per kind: twenty Sporelings are twenty Wardens for the "one Warden" check.
 	var key: String = "%s#%d" % [event.source_name, event.source.get_instance_id()] if is_instance_valid(event.source) else event.source_name
 	d.by_tower[key] = d.by_tower.get(key, 0.0) + event.amount
@@ -611,6 +614,7 @@ func _finish() -> void:
 		"seconds": snappedf(game_time, 1.0)}
 	summary.merge(_omen_act_columns())
 	summary.omen_blocks = ";".join(omen_blocks)
+	summary.bosses = ";".join(bosses.values().map(_boss_text))
 	var runs_path := out_dir.path_join("runs.csv")
 	var keys := summary.keys()
 	var new_file := not FileAccess.file_exists(runs_path)
@@ -700,6 +704,8 @@ func _sprout_share() -> float:
 func _sample_approach() -> void:
 	var route_px := maxf((map.get_path_from(map.startPath).size() - 1) * Tower.MAP_GRID.cell_size.x, 1.0)
 	for enemy in spawner.get_enemies():
+		if is_instance_valid(enemy) and enemy.enemy_data.is_boss:
+			_watch_boss(enemy)
 		if is_instance_valid(enemy) and not enemy.is_cleansed:
 			d.approach = maxf(d.approach, clampf(1.0 - enemy.get_remaining_distance() / route_px, 0.0, 1.0))
 
@@ -806,3 +812,38 @@ func _on_omen_rewarded(omen: OmenData) -> void:
 	omen_blocks.append("%s:%d:%d:%d:%d" % [omen.id, int(_omen_seen.dew) - int(before.dew), roundi(_block_pot.x), roundi(_block_pot.y),
 		int(_omen_seen.leaves_lost) - int(before.leaves_lost)])
 	_block_pot = Vector2.ZERO
+
+# --- Boss fights (the "Stag wall" probe) --------------------------------------------------------------
+# Per boss: health at spawn, seconds on the route, health left when it reached the Heartwood, damage dealt
+# on the route and at the Heartwood, seconds it stayed there, Wardens in range of it there, how it ended.
+func _boss_fight(enemy: Node2D) -> Dictionary:
+	var id := enemy.get_instance_id()
+	if not bosses.has(id):
+		bosses[id] = {"drift": director.drifts_started, "kind": enemy.enemy_data.resource_path.get_file().get_basename(),
+			"health": enemy.max_health, "spawn": game_time, "arrive": -1.0, "hp_arrive": -1, "route_damage": 0.0,
+			"heart_damage": 0.0, "in_range": -1, "end": -1.0, "echo": bool(enemy.get("is_echo"))}
+	return bosses[id]
+
+func _note_boss_hit(enemy: Node2D, amount: float) -> void:
+	var fight := _boss_fight(enemy)
+	fight["heart_damage" if enemy.at_heartwood else "route_damage"] += amount
+
+func _watch_boss(enemy: Node2D) -> void:
+	var fight := _boss_fight(enemy)
+	if enemy.at_heartwood and fight.arrive < 0.0:
+		fight.arrive = game_time
+		fight.hp_arrive = enemy.health
+		fight.in_range = _attackers().filter(func(t: Tower) -> bool:
+			return t.global_position.distance_to(enemy.global_position) <= t.get_range_cells() * Tower.MAP_GRID.cell_size.x).size()
+	if not enemy.is_cleansed:
+		fight.end = game_time
+
+# drift:kind:health:route s:health at the Heartwood (-1 = never got there):route damage:Heartwood damage:
+# Heartwood s:Wardens in range there:dispelled 1/0
+func _boss_text(fight: Dictionary) -> String:
+	var arrived: bool = fight.arrive >= 0.0
+	var route_s: float = (fight.arrive if arrived else fight.end) - fight.spawn
+	var heart_s: float = fight.end - fight.arrive if arrived else 0.0
+	var dispelled: bool = fight.route_damage + fight.heart_damage >= fight.health * 0.999
+	return "%d:%s%s:%d:%.0f:%d:%.0f:%.0f:%.0f:%d:%d" % [fight.drift, fight.kind, "(echo)" if fight.echo else "", fight.health,
+		route_s, fight.hp_arrive, fight.route_damage, fight.heart_damage, heart_s, fight.in_range, 1 if dispelled else 0]
