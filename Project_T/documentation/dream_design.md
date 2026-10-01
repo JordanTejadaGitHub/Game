@@ -1260,6 +1260,52 @@ the three-family Warden builds (Full Moon, Gale, Hairpin Mill, Rockfall, Thunder
 stay rare by nature; overall power after the free-branch change belongs to the balance sim
 (`balance_simulation.md`), not to Dream weighting.
 
+## The starting Dream pool (DRAFT, 2026-09-30, for the design hub)
+
+**Status: draft for Meta Game Discussion and the design hub; not to be built until the hub signs off.**
+Why: a new account's first run can be offered most of the pool (123 base cards in the start pool:
+32 C / 50 U / 31 R / **10 Legendary**), so builds come together too easily. Target **~25 C / 30 U /
+10 R / 0 L**. Rules:
+- **Starting pool** = the basics, the three starting families' cards, and **one or two "taster"
+  cards per build direction**, so a new player meets every build without being handed one.
+- **Build-defining cards** (a direction's payoffs and Rares, and **all Legendaries**) move to **Grove
+  Card nodes, one direction per node** (Meta owns the nodes).
+- **Not counted / unchanged:** family cards of **Grove families** (Pebbling, Rootling, Bellflower,
+  Acorn, Nestling, Whirligig) stay "start pool" but can't be offered until that family is unlocked;
+  **combo cards** stay start pool but are discovery-gated (a new account hasn't found the combo).
+  So a brand-new account's first run really sees **~55** cards.
+
+**The starting pool (65):**
+
+| Rarity | Cards |
+|---|---|
+| **Common (25)** | *Basics:* Quickened Sap, Deeper Calm, Longer Roots, Deep Roots, Thick Bark · *Starting families:* Soft Spores, Brighter Jars, Heavy Dew, Bright Marks, Live Wire · *Combo (discovery):* Damp Rot, Rain on Glass, Sparking Spores · *Economy:* Morning Dew, Call of the Wild · *Tasters, one per direction:* Tender Care (Tall), Seedfall (Overgrowth), Quick Step (Daring), Glinting Dew (Precision), Bitter Sap (Affliction), Winding Path (Maze), Cleared Ground + Heartwood's Reach (Tending / clearing), Family Ties (Kinship) · Lasting Dreams |
+| **Uncommon (30)** | *Starting families:* Lingering Spores, Soaked Through, Lingering Mark, Twin Puff · *Bridges with them:* Mycelium, Fireflies in the Grass, Spore Kin · *Combo (discovery):* Rolling Thunder, Wildfire Spores, Mushroom Rain, Deep Water · *Maze basics:* Cozy Corners, Straightaway, Hedge Maze, Weathered Walls · *General:* Evergreen, Sudden Insight, Glimmering Hunt, Heavy Air · *Second tasters:* Crowded Path, Last Breath (Affliction), Lone Hunter, Watchful Rest (Precision), Sprout Chorus, Many Hands (Overgrowth), Kindred Roots (Tall), Sweet Harmony, Old Friends (Kinship), Fresh Growth, Head Start (Daring) |
+| **Rare (10)** | *Starting families:* Charged Field, Guiding Light, Called Shot · *Combo:* Conductive Soil, Spore Cascade (Entwined) · *General:* Heart of the Maze, First Light, Root Network, Thinning the Herd, Steadfast |
+| **Legendary (0)** | all Legendaries are Grove tips (or discovery, for Dawnbreak and Grove of Kin) |
+
+**Moving to Grove nodes (suggested homes; Meta owns the final node list):**
+
+| Direction node | Cards that move there | Tip (Legendary) suggestions |
+|---|---|---|
+| Tall | Solitude, Elder Kin, Few and Mighty (+ its existing Sunlit Rest, Deeper Rings, Nursery, Chosen Few) | The Old Ones + Endless Rings; The Last Light; Monoculture |
+| Overgrowth | Mixed Grove, Odd One Out, Grand Tour (+ Seedling Gift, Canopy) | Menagerie; Rootbound |
+| Daring | Scarred Bark, Thin Bark, Desperate Bloom, Second Wind, Last Stand | Restless Night; Last Leaf |
+| Precision | Hunter's Patience (+ Still Target, Shattering Blow) | Full Moon; Hunter's Moon |
+| Affliction | Crowd Breaker (+ Seeping, Venom Bloom) | Nightshade; Eternal Charge |
+| Maze | Forest's Edge, Bitter Hedges (+ Burn Back) | The Long Walk; Crossroads; Briar Crown; Rooted Nightmares |
+| Tending | Reclaimed Earth, Tended Forest, Thorn Snare, Bramble Oath | Wildwood Reclaimed; The Quiet Ones |
+| Kinship | Rooted Bond, Extended Family, Blood Is Thicker | (Grove of Kin is discovery) |
+| Swift / Wide Reach | their new cards (235–245) | Whirlwind Heart; Great Ripple |
+| Dreams | Lucid Dreaming (a small node, or with Bittersweet) | — |
+
+- **Counts after the move:** start pool 65 (+ Grove-family cards and discovery cards that a new
+  account can't see yet). Each Grove direction node adds 2–5 cards, so buying one deliberately
+  widens one build.
+- **Interaction with the trim's measurements:** tasters keep every card build discoverable on run
+  one (Emergence), while the payoffs need the Grove (a build you choose to grow into, across runs).
+  Re-measure with a fresh-profile preset (`MetaRun.load_preset(&"fresh")`) after the move.
+
 ## Grove build branches: Swift and Wide Reach (2026-09-30)
 
 For `meta_design.md` Section 3 (Meta Game Discussion, after the user's "no combo cards in the
