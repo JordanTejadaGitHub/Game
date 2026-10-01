@@ -67,6 +67,7 @@ func _run() -> void:
 		if n.has_method("take_damage"):
 			(func() -> void: spawned_health += n.max_health).call_deferred())
 	spawner.enemy_reached_goal.connect(func(e) -> void: leaked_health += e.health)
+	director.family_pick_requested.connect(func(_kind) -> void: director.family_picked.call_deferred())  # No new family: the probe's board is fixed
 	director.drifts_started = first - 1
 	director.drifts_cleared = first - 1
 	Engine.time_scale = SPEED
@@ -74,11 +75,23 @@ func _run() -> void:
 	var last := first + count - 1
 	while director.drifts_cleared < last and frames < 60 * 60 * 30:
 		paused = false
+		match director.pending_choice():  # No Dreams, no Omens: every rest's choice lets it pass
+			&"dream":
+				if dreams.is_offering():
+					dreams.skip()
+			&"omen":
+				var omens = main.get_node_or_null("%OmenDirector")
+				if omens and omens.is_offering():
+					omens.choose(null)
 		if director.is_resting() and director.drifts_started < last:
 			director.start_next_block()
 		await process_frame
 		frames += 1
 		game_time += SPEED / 60.0
+		if frames % (60 * 60) == 0:  # Watchdog: the director's state every minute of wall time
+			print("  t %.0f s: started %d cleared %d resting %s arriving %s awaiting pick %s over %s field %d" % [game_time,
+				director.drifts_started, director.drifts_cleared, director.is_resting(), director._arriving.keys(),
+				director.awaiting_family_pick, main.get_node("%RunState").is_over, spawner.get_enemies().size()])
 	Engine.time_scale = 1.0
 	_report(director)
 	quit(0)
