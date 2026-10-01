@@ -493,6 +493,19 @@ range only, so Acorn's auras (the 8 around; Grove Heart radius 2, +3% per Warden
 the support family is undersold. Balancing Code adds aura-aware placement; the Acorn re-check runs
 with and without it on the same seeds.
 
+**Acorn re-check** (e0627b99: Acorn +15% from 67e4e9f6, aura-aware bot with AURA_WEIGHT 2 tiles per
+Warden, cap 5; full, 10 seeds): Balanced survives the boss **100%** (was 50%) and loses **0 leaves
+before him** (was 6): the +15% fixed the normal drifts. The auras add **+15% maze DPS** (537 vs 466;
+skip +10%, and 100% vs 70% survival). Acorn still almost never dispels the Stag (1/40; he resists
+root): a matchup, not a weak family. **Closed:** no first-pick change (Tower Discussion's fallback not
+needed). The bots never grew Dewcatcher / Wellspring / Grove Heart (first-form blind spot), so the
+economy branches are unmeasured.
+
+**Bot upgrades for the Grove control** (bfa430cd): Kinship placement (+2 tiles per unbonded kin in
+reach, cap 5, sticky bonds respected), the grow step picks the branch that bonds / the rarer one, and
+Dreamlight unlocks a family's two branches before its finals (finals arrive a little later). Still
+blind: the 9 hidden Kinships (third branches).
+
 ## Later
 
 A **human baseline**: the same CSV written from real playtests (debug builds only), so the bot's
