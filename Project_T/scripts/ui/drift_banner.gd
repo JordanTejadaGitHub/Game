@@ -146,12 +146,13 @@ func _draw_boss_bar(font: Font, center_x: float) -> void:
 	if _boss_at_heartwood():  # It got through and stays, draining leaves: say so, and pulse
 		var pulse := 0.5 + 0.5 * sin(Time.get_ticks_msec() / 1000.0 * TAU * 0.8)
 		draw_rect(bar.grow(4), Color(UiStyle.POOR, 0.35 + 0.45 * pulse), false, 2.0)
-		_draw_centered(font, "%s · at the Heartwood" % _boss.enemy_data.display_name, Vector2(center_x, bar.end.y + 16),
+		var at_text := "%s · at the Heartwood" % _boss.enemy_data.display_name
+		if _boss.has_method("linger_left") and _boss.linger_left() > 0.0:  # The Night Mare lingers, then laps on
+			at_text = "%s · At the Heartwood: %d s" % [_boss.enemy_data.display_name, ceili(_boss.linger_left())]
+		_draw_centered(font, at_text, Vector2(center_x, bar.end.y + 16),
 			SMALL_FONT_SIZE, UiStyle.POOR)
 		return
 	var name: String = _boss.enemy_data.display_name
-	if _boss.enemy_data.laps() and _boss.has_method("next_lap_leaves"):  # The Night Mare: what its next lap costs
-		name += " · Next lap: %d leaves" % _boss.next_lap_leaves()
 	_draw_centered(font, name, Vector2(center_x, bar.end.y + 16), SMALL_FONT_SIZE, BOSS_COLOR.lightened(0.3))
 
 func _boss_at_heartwood() -> bool:
