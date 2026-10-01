@@ -411,14 +411,16 @@ func _best_cell(reach: float, growth_weight: float, cover_heart := false) -> Vec
 			var cell := Vector2(x, y)
 			if not map.is_buildable(cell) or placer.settling_left([cell]) > 0.0 or placer._cells_occupied([cell]):
 				continue
+			if cover_heart and cell.distance_to(map.endPath) > reach:
+				continue
 			var new_route: PackedVector2Array = map.get_path_if_blocked_cells([cell])
 			if new_route.is_empty() or not map.can_block_cells([cell], enemy_cells):
 				continue
 			var cover := 0
 			if reach > 0.0:
-				for at in new_route:
-					if at.distance_to(cell) <= reach:
-						cover += 1
+				for i in new_route.size():
+					if new_route[i].distance_to(cell) <= reach:
+						cover += 2 if cover_heart and i >= new_route.size() - LAST_STRETCH else 1
 			var score := cover + growth_weight * (new_route.size() - route.size())
 			if score > best_score:
 				best_score = score
