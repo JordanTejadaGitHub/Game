@@ -366,14 +366,16 @@ User: *"should we have a set Dew you can get from each drift, but it can be modi
       has its pot +10%**; its "call-early Dew ×2" stays on top. *Glimmering Hunt* (Dreamlight shards),
       *Reclaimed Earth* (clear refunds), catchers (Dewcatcher, Wellspring), Magpie Dew, call-early Dew
       and rest bonuses: **unchanged, on top of the pot**.
-    - **Omens:** *Bountiful Night* +100% → **pot ×2**; *Blood Moon* +75% → **pot ×1.75**; *Dry Spell*
-      → **pot ×0** (its ×1.5 rest bonus stays); *Crowded Paths*, *Elder Night*, *Moth Night*,
+    - **Omens** (numbers revised by Balancing Discussion, balance_simulation.md 95762f14):
+      *Bountiful Night* → **pot ×1.5**; *Blood Moon* → **pot ×1.4**; *Dry Spell* → **no Dew during
+      the block**; at the rest it pays **the block's pot ×1.25**, cut by leaves lost (−25% per leaf,
+      like other Omen rewards). *Crowded Paths*, *Elder Night*, *Moth Night*,
       *Hollow Wind*: their added nightmares **share** the pot (no extra Dew: that was the double
       benefit). Omen Dew rewards (e.g. Frozen Ground's) are paid on top as rewards.
   - **Leaks:** a leaked nightmare's share is lost (the rest report shows "840 of 900").
   - **Tests:** a drift's dispels sum to its pot (± rounding); a leak loses exactly its share; an elite
     gets 3× a normal share; splits and followers sum to the parent's share; Crowded Paths doesn't
-    change a drift's total; Bountiful Night doubles it.
+    change a drift's total; Bountiful Night makes it ×1.5.
 
 ### Dreamlight: choosing your build paths
 
@@ -649,7 +651,7 @@ the map or the rules**. That makes ~20; aim for no Omen twice in a row and each 
      - **Frozen Ground:** no planting, growing, **selling or Nurture** during drifts (rests only).
      - **Leaf Fall:** leaks cost double **and nightmares move 20% faster**, so a leak is likely.
      - **Lean Season:** **no rest bonus** at the block's end (was a quarter).
-     - **Dry Spell:** the rest bonus is **×1.5** (was ×2), so no Dew from nightmares is a real loss.
+     - **Dry Spell:** (superseded under the Dew pot) no Dew during the block; the rest pays the block's pot ×1.25, cut by leaves lost (Balancing Discussion 95762f14).
      - **Shifting Ground:** its trees may sprout **beside the path** (still never blocking the
        route or on a Warden), so they can cut a Warden off from its stretch.
      - **Sleepless:** immune to Drowsy and Held **and +15% health**, so it bites builds that don't
