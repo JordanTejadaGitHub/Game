@@ -1409,6 +1409,8 @@ func _dream_entry(card: UpgradeData, seen: Array, viewed: Array, taken: Dictiona
 		head.add_child(fresh)
 	box.add_child(head)
 	box.add_child(StatusLinks.make_label(card.description, 15))
+	if CardDiagram.has_diagram(card):  # Placement cards show their diagram (dream_design.md)
+		box.add_child(CardDiagram.make(card))
 	var facts: Array[String] = [RARITY_NAMES[card.rarity], DreamsRow.group_of(card)]
 	for tag in card.tags:
 		facts.append(IconInfo.damage_type_name(tag) if IconInfo.DAMAGE_TYPES.has(tag) else tag.capitalize())
