@@ -77,7 +77,7 @@ const GROUP := "enemies"
 const BLIGHT_SHADER := preload("res://shaders/blight.gdshader")
 const HEALTH_BAR_SIZE := Vector2(40, 5)
 const HEARTWOOD_DRAIN_EVERY := 2.0  # A boss at the Heartwood takes a leaf this often (s)
-const UNTOUCHABLE_TINT := Color(0.42, 0.38, 0.55)  # The Night Mare lingering: a dark, smoky shimmer
+const UNTOUCHABLE_TINT := Color(0.42, 0.38, 0.55)  # The Night Mare lingering: a dark, smoky shimmer (a self_modulate multiplier)
 const UNTOUCHABLE_ALPHA := 0.55
 # Enemy Assets' art bounds: {sheet: {"frame", "top", "bottom"}} (px from the frame centre). The bar
 # goes BAR_ABOVE_HEAD over the top of tall art (the big bosses), never lower than HEALTH_BAR_OFFSET.
