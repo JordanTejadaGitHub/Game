@@ -1138,17 +1138,21 @@ func _test_resonance(main: Node) -> void:
 	var preview := dreams.resonance_preview(lingering)
 	_check(is_equal_approx(preview.bonus, 0.2) and preview.tag == "spore" and preview.count == 2,
 		"2 spore cards: +20% (%s)" % preview)
-	_check(DreamState.resonance_text(preview.bonus, preview.tag, preview.count) == "+20% from 2 Spore cards", "…shown as \"+20% from 2 Spore cards\"")
+	var shown := DreamState.resonance_text(preview.bonus, preview.cards)
+	_check(shown == "+20% from Soft Spores, Chain Bloom" or shown == "+20% from Chain Bloom, Soft Spores", "…shown with the cards' names, never the tag (%s)" % shown)
+	_check(DreamState.resonance_text(0.3, ["A", "B", "C"]) == "+30% from A, B and 1 more" and DreamState.resonance_tooltip(["A", "B", "C"]) == "From: A, B, C",
+		"…past 2: \"and 1 more\", the hover lists them all")
+	_check(DreamState.resonance_text(0.1, ["Seedfall"]) == "+10% from Seedfall" and DreamState.resonance_tooltip(["Seedfall"]) == "", "…one card: just its name")
 	dreams.take(lingering)
 	_check(is_equal_approx(dreams.get_status_duration(sporeling, EnemyStatuses.SPORED), base + 3.0 * 1.2), "Lingering Spores: +3 s × 1.2")
-	_check(dreams.resonance_line(lingering) == "+20% from 2 Spore cards", "…Dreams this run shows the locked bonus")
+	_check(dreams.resonance_line(lingering) == shown, "…Dreams this run shows the locked bonus (%s)" % dreams.resonance_line(lingering))
 	dreams.take(_card(dreams, "bitter_sap"))  # Another tag: doesn't change the locked one
 	_check(is_equal_approx(dreams.resonance(lingering), 1.2), "…locked when taken")
 	_check(dreams.resonance_preview(_card(dreams, "deeper_calm")).bonus == 0.0, "untagged cards never resonate")
 	var saved := dreams.to_save()
 	dreams._resonance.clear()
 	dreams.load_save(JSON.parse_string(JSON.stringify(saved)))
-	_check(is_equal_approx(dreams.resonance(lingering), 1.2), "…kept in the run save")
+	_check(is_equal_approx(dreams.resonance(lingering), 1.2) and dreams.resonance_line(lingering) == shown, "…kept in the run save, names too")
 	_check(is_equal_approx(dreams.resonance_preview(_card(dreams, "lingering_spores_ii")).bonus, 0.2), "a Deepened card never resonates off its own base")
 	dreams.resonance_enabled = false
 	dreams._resonance.clear()

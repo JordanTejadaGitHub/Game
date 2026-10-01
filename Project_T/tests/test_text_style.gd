@@ -24,6 +24,10 @@ const COMMON_WORDS := ["spore", "stone", "water", "light", "root", "song", "talo
 	"bramble", "honeysuckle", "puffball", "thornwall", "hummingbird", "samara", "dewdrop", "firefly", "morning fog",
 	"rain", "fog", "bell", "starling", "gust", "whirlwind", "tempest", "dawnburst", "chain", "reaction"]
 const LINE_IDS := ["wing", "acorn", "song", "spore", "stone", "water", "light", "root", "wind", "sprout"]
+# Internal archetype (resonance) tags: never shown as "wide cards" / "1 tempo card" (text_style.md "Same-tag (resonance) lines
+# name the cards", user: "what are wide cards?"). Kinship is a player term, so it isn't here.
+const ARCHETYPE_WORDS := ["tall", "overgrowth", "daring", "precision", "affliction", "maze", "tending", "swift", "reach",
+	"wide", "narrow", "tempo", "crit", "economy", "nurture", "status", "opener", "clearing"]
 
 var names: Array[String] = []  # Every name, Title Case, longest first
 var findings := {}  # Owner -> ["source: problem"]
@@ -155,6 +159,9 @@ func _lint(owner: String, source: String, text: String, is_title := false, is_co
 		var line_id := RegEx.create_from_string("\\b(?:[Aa]ny|[Aa]n?|[Tt]he)\\s+(" + "|".join(LINE_IDS) + ")\\s+(?:final form|cards?|family|wardens?|branch)").search(plain)
 		if line_id != null:
 			problems.append("line id \"%s\"" % line_id.get_string())
+		var archetype := RegEx.create_from_string("(?i)\\b(" + "|".join(ARCHETYPE_WORDS) + ")\\s+cards?\\b").search(plain)
+		if archetype != null:
+			problems.append("archetype tag \"%s\" (name the cards instead)" % archetype.get_string())
 		var damage := RegEx.create_from_string("\\b(spore|stone|water|light|root|song|talon|wind|plain) damage\\b").search(plain)
 		if damage != null:
 			problems.append("\"%s\" (damage types are names)" % damage.get_string())
@@ -198,9 +205,10 @@ func _self_check() -> void:
 	_lint("Self", "b", "Old  ·  New")
 	_lint("Self", "c", "Any wing final form")
 	_lint("Self", "d", "About The Mire Hag")
+	_lint("Self", "f", "+20% from 2 wide cards")
 	_lint("Self", "e", "Tend Withered Trees and move Mossy Boulders.")
 	var hits: Array = findings.get("Self", [])
-	var ok := hits.size() == 4 and not hits.any(func(h: String) -> bool: return h.begins_with("e:"))
+	var ok := hits.size() == 5 and not hits.any(func(h: String) -> bool: return h.begins_with("e:"))
 	findings = saved
 	if not ok:
 		findings["Main"] = findings.get("Main", []) + ["linter self-check: %s" % [hits]]

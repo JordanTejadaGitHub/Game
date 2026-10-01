@@ -1220,7 +1220,6 @@ const OPENER_TAG := "opener"
 # that opened it says so in Dreams this run and the Codex.
 const OPENS_CLEARING_LINE := "Unlocks clearing"
 const OPENS_CLEARING_TEXT := "Tend Withered Trees and move Mossy Boulders for Dew (Clear tool, C)."
-const OPENS_CLEARING_TAG := "Opens clearing"
 const OPENED_CLEARING_LINE := "Unlocked clearing"
 var clearing_opened_by := ""  # The card id that unlocked clearing this run (saved)
 
@@ -1355,7 +1354,7 @@ func _update_bends() -> void:
 func take(card: UpgradeData) -> void:
 	if card_stacks(card.id) == 0:  # The first copy this run locks it
 		var preview := resonance_preview(card)
-		_resonance[card.id] = {"power": 1.0 + preview.bonus, "tag": preview.tag, "count": preview.count}  # Locked when taken
+		_resonance[card.id] = {"power": 1.0 + preview.bonus, "tag": preview.tag, "count": preview.count, "cards": preview.cards}  # Locked when taken
 	if unlocks_clearing(card) and not can_clear():
 		clearing_opened_by = card.id  # "Unlocked clearing" in Dreams this run and the Codex
 	for family in half_dreamed_missing(card):  # The next family pick will include one of them
@@ -3243,17 +3242,18 @@ var resonance_enabled := true  # Tests of single-card numbers turn it off; test_
 
 # The resonance a card would get if taken now: {bonus, tag, count} (bonus 0 = none).
 func resonance_preview(card: UpgradeData) -> Dictionary:
-	var best := {"bonus": 0.0, "tag": "", "count": 0}
+	var best := {"bonus": 0.0, "tag": "", "count": 0, "cards": []}
 	if card == null or not resonance_enabled:
 		return best
 	var owned := _taken_cards(true)
 	for tag in card.tags:
 		if NOT_RESONANT.has(tag):
 			continue
-		var count := owned.filter(func(c: UpgradeData) -> bool:
-			return c.id != card.id and c.id != card.deepens and c.deepens != card.id and c.tags.has(tag)).size()  # Never its own base
-		if count > best.count:
-			best = {"bonus": minf(RESONANCE_PER * count, RESONANCE_MAX), "tag": tag, "count": count}
+		var sharing := owned.filter(func(c: UpgradeData) -> bool:
+			return c.id != card.id and c.id != card.deepens and c.deepens != card.id and c.tags.has(tag))  # Never its own base
+		if sharing.size() > best.count:
+			best = {"bonus": minf(RESONANCE_PER * sharing.size(), RESONANCE_MAX), "tag": tag, "count": sharing.size(),
+				"cards": sharing.map(func(c: UpgradeData) -> String: return c.display_name)}  # The player sees these, never the tag
 	return best
 
 # The multiplier a taken card's numbers get (1.0 = none).
@@ -3262,10 +3262,15 @@ func resonance(card: UpgradeData) -> float:
 		return 1.0
 	return float(_resonance[card.id].get("power", 1.0))
 
-# "+20% from 2 spore cards" for a taken card ("" = none): Dreams this run.
+# "+20% from Soft Spores, Damp Rot" for a taken card ("" = none): Dreams this run.
 func resonance_line(card: UpgradeData) -> String:
 	var r: Dictionary = _resonance.get(card.id, {}) if card != null else {}
-	return resonance_text(float(r.get("power", 1.0)) - 1.0, str(r.get("tag", "")), int(r.get("count", 0)))
+	return resonance_text(float(r.get("power", 1.0)) - 1.0, Array(r.get("cards", [])), int(r.get("count", 0)))
+
+# Every card a taken card's resonance came from ("" = none), for the line's hover.
+func resonance_cards(card: UpgradeData) -> Array:
+	var r: Dictionary = _resonance.get(card.id, {}) if card != null else {}
+	return Array(r.get("cards", []))
 
 # The strongest resonance among the taken cards with `rule` (for rule code in other scripts).
 func rule_power(rule: StringName) -> float:
@@ -3275,16 +3280,26 @@ func rule_power(rule: StringName) -> float:
 			power = maxf(power, resonance(card))
 	return power
 
-# "+20% from 2 Spore cards" (the card face, Dreams this run). "" = none. Tags that are names read capitalised
-# (text_style.md "Second pass"), plain categories stay lowercase ("+10% from 1 economy card").
-const TAG_NAMES := {"spore": "Spore", "water": "Water", "light": "Light", "stone": "Stone", "root": "Root", "song": "Song",
-	"wind": "Wind", "wing": "Wing", "acorn": "Acorn", "kinship": "Kinship", "reaction": "Reaction", "sprout": "Sprout",
-	"wall": "Thornwall", "nurture": "Nurture"}
+# "+10% from Seedfall", "+20% from Soft Spores, Damp Rot", past 2 "+30% from Soft Spores, Damp Rot and 1 more"
+# (the card face, Dreams this run; the hover lists them all). "" = none. text_style.md "Same-tag (resonance) lines
+# name the cards": the internal tag (wide, affliction, tempo…) never reaches the player. `count` is only for an
+# old save's entry without card names ("+20% from 2 of your cards").
+const RESONANCE_NAMED := 2
 
-static func resonance_text(bonus: float, tag: String, count: int) -> String:
+static func resonance_text(bonus: float, cards: Array, count: int = -1) -> String:
 	if bonus <= 0.0:
 		return ""
-	return "+%d%% from %d %s card%s" % [roundi(bonus * 100), count, TAG_NAMES.get(tag, tag), "" if count == 1 else "s"]
+	if cards.is_empty():
+		var n := maxi(count, 1)
+		return "+%d%% from %d of your cards" % [roundi(bonus * 100), n] if n > 1 else "+%d%% from one of your cards" % roundi(bonus * 100)
+	var shown := ", ".join(cards.slice(0, RESONANCE_NAMED))
+	if cards.size() > RESONANCE_NAMED:
+		shown += " and %d more" % (cards.size() - RESONANCE_NAMED)
+	return "+%d%% from %s" % [roundi(bonus * 100), shown]
+
+# The hover on a resonance line: every card it comes from.
+static func resonance_tooltip(cards: Array) -> String:
+	return "From: " + ", ".join(cards) if cards.size() > RESONANCE_NAMED else ""
 
 
 # --- Catalogue cards 204–226 (dream_design.md "New cards for the catalogue") ----------------------

@@ -131,8 +131,10 @@ func _run() -> void:
 		await process_frame
 	var clear_button := screen._cards.get_child(0).get_child(0) as Button
 	var texts: Array = clear_button.find_children("*", "Label", true, false).map(func(l: Label) -> String: return l.text.to_lower())  # Small caps lower the text
-	_check(texts.has(DreamState.OPENS_CLEARING_LINE.to_lower()) and texts.has(DreamState.OPENS_CLEARING_TEXT.to_lower()) and texts.has(DreamState.OPENS_CLEARING_TAG.to_lower()),
+	_check(texts.has(DreamState.OPENS_CLEARING_LINE.to_lower()) and texts.has(DreamState.OPENS_CLEARING_TEXT.to_lower()),
 		"a clearing card says it unlocks clearing (%s)" % ", ".join(texts))
+	_check(clear_button.find_child("OpensClearingTag", true, false) == null and texts.filter(func(t: String) -> bool: return t.contains("clearing") and t.contains("open")).is_empty(),
+		"…once: the line with the Clear tool icon, no \"Opens clearing\" corner tag")
 	_check(viewport.encloses(clear_button.get_global_rect()), "…and still fits the screen (%s)" % clear_button.get_global_rect())
 	dreams.take(ground)
 	_check(dreams.opened_clearing(ground) and not dreams.opens_clearing(ground), "once taken it opened clearing; later clearing cards don't say so")
