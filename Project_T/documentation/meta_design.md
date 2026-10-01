@@ -26,7 +26,7 @@ Revised for 100-drift runs (`run_design.md`).
 
 Examples: a loss around drift 20 ≈ **30 Seeds**; a loss at drift 60 ≈ **120**; a win ≈ **350**.
 Averaging ~280 across a player's first runs, the full tech tree (**~5,960 Seeds** as built:
-Perks ~2,090, Families ~2,470 incl. Ascension, Cards ~1,400) takes **~21 runs ≈ 30 hours** (confirmed as the target, 2026-09-28). **2026-09-29:** discovery unlocks removed 6 fully covered Cards nodes (Reactions, Woven Dreams I–II, Kin Lore, Deep Bonds; `dream_design.md` "Grove overlap"), the cards now come from discovering combos and Kinships in play. **As built (763f228): 5 nodes removed; the tree is 6,722 Seeds** (Families 2,470, Cards 2,162, Perks 2,090; the earlier 5,960 predates the Seeds and Quiet Ones rows and the Ascension nodes), about **24 runs ≈ 34 hours** at ~280 Seeds per run, a little over the 30-hour target. **2026-09-29:** slot_2 / slot_3 removed (−120): **6,602 Seeds ≈ 24 runs ≈ 33 hours**. The user confirmed ~30 hours is right, so no cuts. **2026-09-30:** Reckless and Wild Planting removed (−90, refunded to old saves): **6,512 Seeds**. **2026-09-30:** the 9 final-forms nodes removed (≈ −470, refunded): **≈ 6,040 Seeds ≈ 22 runs ≈ 30 hours**, right on the target, so the freed Seeds are not re-spent (no rebalancing). **2026-09-30 (later):** the Cards limb swap (≈ 6,140) and the lean starting pool (+1,170): **≈ 7,310 Seeds ≈ 26 runs ≈ 33–36 hours**.
+Perks ~2,090, Families ~2,470 incl. Ascension, Cards ~1,400) takes **~21 runs ≈ 30 hours** (confirmed as the target, 2026-09-28). **2026-09-29:** discovery unlocks removed 6 fully covered Cards nodes (Reactions, Woven Dreams I–II, Kin Lore, Deep Bonds; `dream_design.md` "Grove overlap"), the cards now come from discovering combos and Kinships in play. **As built (763f228): 5 nodes removed; the tree is 6,722 Seeds** (Families 2,470, Cards 2,162, Perks 2,090; the earlier 5,960 predates the Seeds and Quiet Ones rows and the Ascension nodes), about **24 runs ≈ 34 hours** at ~280 Seeds per run, a little over the 30-hour target. **2026-09-29:** slot_2 / slot_3 removed (−120): **6,602 Seeds ≈ 24 runs ≈ 33 hours**. The user confirmed ~30 hours is right, so no cuts. **2026-09-30:** Reckless and Wild Planting removed (−90, refunded to old saves): **6,512 Seeds**. **2026-09-30:** the 9 final-forms nodes removed (≈ −470, refunded): **≈ 6,040 Seeds ≈ 22 runs ≈ 30 hours**, right on the target, so the freed Seeds are not re-spent (no rebalancing). **2026-09-30 (later):** the Cards limb swap (≈ 6,140) and the lean starting pool (+1,200): **≈ 7,340 Seeds ≈ 26 runs ≈ 33–36 hours**.
 (Raised twice on 2026-09-27 as the Grove grew; the first unlocks still come every run, and a full
 Grove is a long-term goal next to Blight Levels.)
 
@@ -46,7 +46,7 @@ marks them as imported.
 
 Redesigned 2026-09-27 (user decision): the Grove is a **tech tree** growing up from the Heartwood's
 roots, with **three sections**. Each node costs Seeds and needs its parent node(s). 84 nodes,
-**≈ 7,310 Seeds** in total (2026-09-30, after the lean starting pool moved build cards onto the Cards limb; see Seeds above).
+**≈ 7,340 Seeds** in total (2026-09-30, after the lean starting pool moved build cards onto the Cards limb; see Seeds above).
 
 ```
                  FAMILIES (middle limb)
@@ -116,7 +116,7 @@ visibly separate paths look too neat, not like a real tree).
 |---|---|---|---|---|---|
 | 1 | Deep Taproot | 3 | 25 / 50 / 75 | **+3 max leaves** | — (trunk) |
 | 2 | First Care | 1 | 70 | your **first 3 Nurture ranks** each run are free | Deep Taproot |
-| 3 | Clear Sight | 1 | 80 | start the run holding **Heartwood's Reach** and **Cleared Ground** (free clears plus cheaper clearing from drift 1; Heartwood's Reach added 2026-09-30 after the pool trim) | First Care |
+| 3 | Clear Sight | 1 | 80 | start the run holding **Heartwood's Reach** (cheaper clearing plus half-price clears from drift 1; it absorbed Cleared Ground on 2026-09-30) | First Care |
 
 **Choice path** (Dreams, families, Omens)
 
@@ -240,13 +240,13 @@ discovery in play. Branches may **fork** into two tips (each tip needs the node 
 | **Overgrowth** (wide) | *Seedbed*: Seedling Gift, Canopy (60) | *Mixed Company*: Mixed Grove, Odd One Out, Grand Tour (50) | **Rootbound** (100; needs Seedbed) · **Menagerie** (80; needs Mixed Company) |
 | **The Long Way** (path length) | *Dead Wood*: Burn Back the Dead Wood (40) | *Winding Roads*: Forest's Edge (50) | **The Long Walk** (100; needs Dead Wood) · **Crossroads** (80; needs Winding Roads) |
 | **Hedgerows** (walls, holding) *(new)* | *Bitter Hedges*: Bitter Hedges (40) | — | **Briar Crown** (80) · **Rooted Nightmares** (80) |
-| **Reclaiming** (clearing) *(new)* | *Reclaimed Earth*: Reclaimed Earth, Tended Forest (40) | *Thorn and Bramble*: Thorn Snare, Bramble Oath (50) | **Wildwood Reclaimed** (80) |
+| **Reclaiming** (clearing) *(new)* | *Reclaimed Earth*: Reclaimed Earth, Tended Stumps, Hollow Ground (50; the "where you clear" payoffs first) | *Thorn and Bramble*: Tended Forest, Thorn Snare, Bramble Oath (70) | **Wildwood Reclaimed** (80) |
 | **The Quiet Ones** (support Wardens) | *Catchers*: Dew Trail, Acorn Cache (50; Wide Bowl merged into Dew Trail, Still Waters cut in the power pass) | *Old Wood*: Overflowing Well, Hedgerow Roots, Grandfather Stump, Living Walls, Many Threads (70) | **The Quiet Ones** (120) |
 | **Seeds** (support and economy bets) | *Planted Promises*: Dew Bowl, Harvest Moon, Kind Canopy, Patient Roots (50) | *Deep Promises*: Deep Well, Shared Light (70) | **Golden Harvest** (120) |
 | **Bittersweet** | *Bittersweet Dreams*: Deep Sleep, Restless Dreams (60; needs any 2 other nodes) | — | **Lucid Dreaming** (80; the "dreams" Legendary: 4 cards, take 2, no Commons) |
 
 - **Costs:** the new tips and nodes are cheaper (tips 80, nodes 40–50) than the original ones, so a
-  direction is reachable in 2–3 runs. **+1,170 Seeds**: the tree is **≈ 7,310 Seeds ≈ 26 runs ≈
+  direction is reachable in 2–3 runs. **+1,200 Seeds**: the tree is **≈ 7,340 Seeds ≈ 26 runs ≈
   33–36 hours**, a little over the ~30-hour target (as it was at 6,722); fine, since every early
   run still buys something.
 - **Old saves** (profile migration): every Grove node already owned stays owned and keeps working;
