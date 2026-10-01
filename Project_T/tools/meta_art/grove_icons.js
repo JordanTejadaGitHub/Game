@@ -67,6 +67,12 @@ const CARD_ICONS = {
   kinship: e => { sprout(e, 12, 24, 10); sprout(e, 20, 24, 10); for (const [x, y] of [[15, 12], [17, 12], [14, 13], [18, 13], [16, 15]]) e.set(x, y, "#f07a8a"); e.set(16, 14, "#f07a8a"); e.set(15, 14, "#f07a8a"); e.set(17, 14, "#f07a8a"); },
   seeds: e => { for (const [x, y] of [[11, 20], [16, 16], [21, 20]]) ellipse(e, x, y, 3, 4, (xx, yy, dx, dy) => pick(["#6a4a1c", "#b88a3a", "#f2d27a"], .55 - dx * .3 - dy * .35, xx, yy)); for (let y = 8; y <= 12; y++) e.set(16, y, LEAFG[2]); stroke(e, 16, 10, 20, 7, 1.2, 1, LEAFG[1]); },
   quiet_ones: e => { for (let x = 9; x <= 23; x++) { const d = Math.abs(x - 16) / 7, y = 18 + Math.round(Math.sqrt(Math.max(0, 1 - d * d)) * 5); for (let yy = 18; yy <= y; yy++) e.set(x, yy, yy === y ? PARCH[1] : PARCH[3]); } ellipse(e, 16, 12, 2.5, 3.5, (xx, yy, dx, dy) => pick(["#3a7ab8", "#7ab8e8", "#d8f0ff"], .5 - dx * .3 - dy * .4, xx, yy)); },
+  // The lean Cards limb (meta_design.md Section 3, 2026-09-30): first-pass icons, Meta Game Asset may repaint.
+  swift: e => { for (const [y, l] of [[11, 9], [16, 12], [21, 9]]) stroke(e, 22 - l, y, 22, y, 1.8, 1.4, y === 16 ? GOLDC[3] : PARCH[3]); for (const [x0, y0, x1, y1] of [[20, 12, 25, 16], [25, 16, 20, 20]]) stroke(e, x0, y0, x1, y1, 1.8, 1.6, GOLDC[3]); },
+  wide_reach: e => { for (const [r, c] of [[9, "#3a7ab8"], [6, "#7ab8e8"], [3, "#d8f0ff"]]) for (let a = 0; a < Math.PI * 2; a += .1) e.set(16 + Math.cos(a) * r, 17 + Math.sin(a) * r * .6, c); e.set(16, 17, "#ffffff"); },
+  daring: e => { petal(e, 16, 25, -Math.PI / 2, 16, 4.2, ["#5a1418", "#9a2a28", "#d0503a", "#f08a6a"]); for (let y = 12; y <= 24; y++) e.set(16, y, "#5a1418"); },
+  hedgerows: e => { for (let x = 8; x <= 24; x += 4) ellipse(e, x, 19, 3, 5, (xx, yy, dx, dy) => pick(LEAFG.slice(0, 3), .55 - dx * .3 - dy * .35, xx, yy)); for (const [x, y] of [[10, 13], [14, 12], [18, 12], [22, 13], [12, 24], [20, 24]]) e.set(x, y, PARCH[1]); },
+  reclaiming: e => { for (let y = 17; y <= 25; y++) for (let x = 10; x <= 22; x++) e.set(x, y, y === 17 ? "#e8b870" : pick(["#6a3a18", "#9a5a2a", "#c88a44"], .6 - (x - 16) / 12, x, y)); for (let a = 0; a < Math.PI * 2; a += .3) e.set(16 + Math.cos(a) * 3, 17 + Math.sin(a) * .8, "#9a5a2a"); sprout(e, 16, 17, 7); },
 };
 function cardIcon(key) {
   return icon((L, o) => {

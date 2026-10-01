@@ -8,7 +8,7 @@ class_name HeartwoodMemory
 # Static helpers only: every caller loads, changes and saves. The file is tiny.
 
 const PATH := "user://heartwood.json"
-const VERSION := 7  # 2: Grove ids match grove_layout.json (MIGRATED_IDS), perk loadout; 3: REFUNDED_V3; 4: REFUNDED_V4; 5: REFUNDED_V5; 6: REFUNDED_V6; 7: REFUNDED_V7
+const VERSION := 8  # 2: Grove ids match grove_layout.json (MIGRATED_IDS), perk loadout; 3: REFUNDED_V3; 4: REFUNDED_V4; 5: REFUNDED_V5; 6: REFUNDED_V6; 7: REFUNDED_V7; 8: GRANTED_V8
 
 # Where the profile lives (tests point this elsewhere so they never touch the player's Seeds).
 static var file_path := PATH
@@ -167,6 +167,14 @@ const REFUNDED_V6 := {
 # Version 7 (meta_design.md "Section 3: Cards", 2026-09-30): no combo cards in the Grove. These nodes are gone
 # (their cards come from discovery or the starting families now) and their Seeds come back.
 const REFUNDED_V7 := {"storm_lore": 40, "guiding_lights": 60, "spore_lore": 40, "dawnbreak": 120, "grove_of_kin": 120}
+# Version 8 (meta_design.md "Lean starting pool", 2026-09-30): these nodes hold cards that used to be in every
+# player's pool, so older profiles get them free and keep every card they had (fresh profiles start lean).
+# Not Swift / Wide Reach: their cards are new.
+const GRANTED_V8: Array[String] = [
+	"elders", "mixed_company", "winding_roads", "scarred_bark", "last_stand", "bitter_hedges", "reclaimed_earth",
+	"thorn_and_bramble", "hunters_moon", "eternal_static", "menagerie", "crossroads", "lucid_dreaming", "last_leaf",
+	"restless_night", "briar_crown", "rooted_nightmares", "wildwood_reclaimed",
+]
 
 static func _migrate(data: Dictionary) -> void:
 	var version := int(data.get("version", VERSION))
@@ -203,6 +211,9 @@ static func _migrate(data: Dictionary) -> void:
 			if int(data.unlocks.get(id, 0)) > 0:
 				data.seeds = int(data.seeds) + REFUNDED_V7[id]
 				data.unlocks.erase(id)
+	if version < 8:
+		for id in GRANTED_V8:
+			data.unlocks[id] = maxi(int(data.unlocks.get(id, 0)), 1)
 	data.version = VERSION
 
 static func save_data(data: Dictionary) -> void:

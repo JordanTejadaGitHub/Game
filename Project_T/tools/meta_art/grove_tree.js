@@ -64,20 +64,45 @@ N("memory_moon_moth", "families", "Memory Warden: The Moon Moth", 640, 530, [640
 // Cards: one branch per build style, Legendary flower at the tip.
 N("sharpened", "cards", "Sharpened", 952, 440, [942, 516]);
 N("full_moon", "cards", "Full Moon", 1000, 288, "sharpened", { legendary: true });  // Reckless was cut in the pool trim
+N("hunters_moon", "cards", "Hunter's Moon", 930, 300, "sharpened", { legendary: true });
 N("tending_hands", "cards", "Tending Hands", 1062, 392, [1044, 465]);
 N("nursery", "cards", "Nursery", 1090, 320, "tending_hands");
-N("the_old_ones", "cards", "The Old Ones", 1102, 238, "nursery", { legendary: true });
+N("elders", "cards", "Elders", 1096, 260, "nursery");
+N("the_old_ones", "cards", "The Old Ones", 1104, 190, "elders", { legendary: true });
 N("seedbed", "cards", "Seedbed", 1172, 340, [1134, 404]);
 N("rootbound", "cards", "Rootbound", 1228, 206, "seedbed", { legendary: true });  // Wild Planting was cut in the pool trim
+N("mixed_company", "cards", "Mixed Company", 1190, 270, "seedbed");
+N("menagerie", "cards", "Menagerie", 1170, 200, "mixed_company", { legendary: true });
 N("one_line", "cards", "One Line", 832, 640, [846, 562]);
 N("the_last_light", "cards", "The Last Light", 800, 710, "one_line", { legendary: true });
 N("dead_wood", "cards", "Dead Wood", 962, 600, [944, 518]);
 N("the_long_walk", "cards", "The Long Walk", 992, 676, "dead_wood", { legendary: true });
+N("winding_roads", "cards", "Winding Roads", 950, 680, "dead_wood");
+N("crossroads", "cards", "Crossroads", 960, 750, "winding_roads", { legendary: true });
 N("bittersweet_dreams", "cards", "Bittersweet Dreams", 1152, 482, [1128, 410]);
+N("lucid_dreaming", "cards", "Lucid Dreaming", 1190, 540, "bittersweet_dreams", { legendary: true });
 // Deep Poison hangs under the limb past Keen Edges.
 N("seeping", "cards", "Seeping", 1102, 552, [1090, 436]);
 N("venom", "cards", "Venom", 1120, 622, "seeping");
 N("nightshade", "cards", "Nightshade", 1132, 702, "venom", { legendary: true });
+N("eternal_static", "cards", "Eternal Charge", 1160, 690, "venom", { legendary: true });
+// Swift and Wide Reach near the trunk (where Storm and Spores grew); Daring, Hedgerows and Reclaiming below the limb.
+N("quickening", "cards", "Quickening", 760, 522, [742, 602]);
+N("light_feet", "cards", "Light Feet", 790, 452, "quickening");
+N("whirlwind_heart", "cards", "Whirlwind Heart", 800, 380, "light_feet", { legendary: true });
+N("broad_strokes", "cards", "Broad Strokes", 852, 482, [842, 560]);
+N("far_reach", "cards", "Far Reach", 870, 410, "broad_strokes");
+N("great_ripple", "cards", "Great Ripple", 884, 330, "far_reach", { legendary: true });
+N("scarred_bark", "cards", "Scarred Bark", 760, 680, [760, 600]);
+N("last_stand", "cards", "Last Stand", 750, 750, "scarred_bark");
+N("last_leaf", "cards", "Last Leaf", 720, 810, "last_stand", { legendary: true });
+N("restless_night", "cards", "Restless Night", 780, 820, "last_stand", { legendary: true });
+N("bitter_hedges", "cards", "Bitter Hedges", 1040, 600, [1030, 500]);
+N("briar_crown", "cards", "Briar Crown", 1020, 680, "bitter_hedges", { legendary: true });
+N("rooted_nightmares", "cards", "Rooted Nightmares", 1060, 690, "bitter_hedges", { legendary: true });
+N("reclaimed_earth", "cards", "Reclaimed Earth", 1200, 420, [1170, 400]);
+N("thorn_and_bramble", "cards", "Thorn and Bramble", 1230, 480, "reclaimed_earth");
+N("wildwood_reclaimed", "cards", "Wildwood Reclaimed", 1240, 550, "thorn_and_bramble", { legendary: true });
 // Grove of Kin: the Kinship Legendary (its cards come from discovering a Kinship).
 // Seeds (support and economy bets).
 N("planted_promises", "cards", "Planted Promises", 1010, 470, [1000, 480]);

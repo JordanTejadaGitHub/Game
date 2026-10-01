@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="UnlockData" format=3]
+
+[ext_resource type="Script" path="res://resource/meta/script/unlock_data.gd" id="1_unlock"]
+
+[resource]
+script = ExtResource("1_unlock")
+id = "scarred_bark"
+display_name = "Scarred Bark"
+description = "Daring Dreams join the pool: Scarred Bark, Thin Bark."
+root = 1
+costs = Array[int]([40])
+order = 36
+icon = 15
+dream_cards = Array[String](["scarred_bark", "scarred_bark_ii", "thin_bark"])

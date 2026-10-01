@@ -2,7 +2,7 @@
 // The icon sheets' orders (used by the per-node blooms before the icon sheets are written).
 const PERK_ORDER = ["morning_stores", "rich_dew", "rested_roots", "seed_pouch", "clear_sight", "sprout_bed", "kindling", "early_bloom", "early_light", "first_care", "deep_taproot", "second_thoughts", "let_go", "omen_reader", "wider_dreams"];
 const FAMILY_ORDER = ["sporeling", "firefly_jar", "dewdrop", "pebbling", "rootling", "bellflower", "acorn", "nestling", "whirligig"];
-const CARD_ORDER = ["storm", "spores_and_reactions", "keen_edges", "tending", "overgrowth", "lone_lantern", "the_long_way", "bittersweet", "woven", "deep_poison", "kinship", "seeds", "quiet_ones"];
+const CARD_ORDER = ["storm", "spores_and_reactions", "keen_edges", "tending", "overgrowth", "lone_lantern", "the_long_way", "bittersweet", "woven", "deep_poison", "kinship", "seeds", "quiet_ones", "swift", "wide_reach", "daring", "hedgerows", "reclaiming"];  // Storm, Spores and Kinship icons stay for stable indices (their nodes are gone)
 
 // ---------- export (assets/meta/...) ----------
 function strip(imgs) { const w = imgs.reduce((s, i) => s + i.w, 0), h = Math.max(...imgs.map(i => i.h)), S = new Img(w, h); let x = 0; for (const i of imgs) { S.put(i, x, 0); x += i.w; } return S; }

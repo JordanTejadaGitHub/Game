@@ -312,7 +312,8 @@ func _run() -> void:
 	memory = HeartwoodMemory.load_data()
 	var migrated := {}
 	for id in memory.unlocks:
-		migrated[id] = int(memory.unlocks[id])
+		if not HeartwoodMemory.GRANTED_V8.has(id):  # v8's free lean-pool nodes, checked below
+			migrated[id] = int(memory.unlocks[id])
 	_check(migrated == {"pebbling": 1, "pebbling_hidden": 1, "morning_stores": 2}, "v1 ids migrate, the old final-forms node refunded (%s)" % [migrated])
 	_check(memory.loadout == [] and int(memory.seeds) == 5 + 50, "a migrated profile keeps its Seeds and gets the final-forms 50 back (%d)" % int(memory.seeds))
 	old = FileAccess.open(PROFILE_PATH, FileAccess.WRITE)
@@ -328,8 +329,20 @@ func _run() -> void:
 	old.close()
 	HeartwoodMemory.forget()
 	memory = HeartwoodMemory.load_data()
-	_check(int(memory.seeds) == 3 + 40 + 60 + 40 + 120 + 120 and memory.unlocks.keys() == ["sharpened"],
+	_check(int(memory.seeds) == 3 + 40 + 60 + 40 + 120 + 120 and memory.unlocks.keys().filter(func(id: String) -> bool: return not HeartwoodMemory.GRANTED_V8.has(id)) == ["sharpened"],
 		"v6 profiles: the combo-card nodes are gone and refunded (%d, %s)" % [int(memory.seeds), memory.unlocks.keys()])
+	# v8 (the lean starting pool): older profiles get the nodes whose cards they already had, free; never Swift / Wide Reach.
+	_check(HeartwoodMemory.GRANTED_V8.all(func(id: String) -> bool: return int(memory.unlocks.get(id, 0)) == 1 and HeartwoodMemory.get_unlock(id) != null)
+		and not memory.unlocks.has("quickening") and not memory.unlocks.has("broad_strokes") and int(memory.seeds) == 3 + 380,
+		"v7 and older profiles: the lean pool's moved cards come back as free nodes, no Seeds change (%s)" % [memory.unlocks.keys()])
+	_check(not HeartwoodMemory.defaults().unlocks.has("elders"), "fresh profiles start lean")
+	var every_card := {}
+	for unlock in HeartwoodMemory.load_grove():
+		for card in unlock.dream_cards:
+			every_card[card] = unlock.id
+	for card: String in ["hunters_patience", "sharpened_light", "crowd_breaker", "thornheart", "scented_hedge", "tended_stumps", "hollow_ground", "momentum", "great_ripple", "lucid_dreaming"]:
+		_check(every_card.has(card) and ResourceLoader.exists("res://resource/dream/%s.tres" % card), "a Grove node grants %s" % card)
+	_check(_unlock(HeartwoodMemory.load_grove(), "the_old_ones").requires_all == ["elders"], "The Old Ones needs Elders")
 
 	# --- The Grove screen: the tree, tapping a bud, planting, the canopy ---
 	memory = HeartwoodMemory.defaults()
@@ -612,7 +625,7 @@ func _layout_node(id: String) -> Dictionary:
 func _check_layout(grove: Array[UnlockData]) -> void:
 	var nodes: Array = GroveTreeView.load_layout().nodes
 	var parked := 0 if MetaRun.MEMORY_WARDENS_ENABLED else 3  # Memory Warden blooms: in the layout, off the tree
-	_check(nodes.size() == 68 and grove.size() == 68 - parked, "68 Grove spots, %d nodes on the tree (layout %d, data %d)" % [68 - parked, nodes.size(), grove.size()])
+	_check(nodes.size() == 92 and grove.size() == 92 - parked, "92 Grove spots, %d nodes on the tree (layout %d, data %d)" % [92 - parked, nodes.size(), grove.size()])
 	for node in nodes:
 		var unlock := HeartwoodMemory.get_unlock(node.id)
 		if unlock == null and node.get("memory_row") != null and parked > 0:
