@@ -202,8 +202,10 @@ const CHAIN_FALLOFF_FLOOR := 0.25
 const CHAIN_FALLOFF_TAGS: Array[StringName] = [&"thunderclap", &"ignite", &"shatter", &"pinned", &"lightning_rod",
 	&"echo", &"carried_storm", &"avalanche", &"starfall", &"fever_dream", &"drown"]
 
+static var chain_falloff_on := true  # Balance sims: --no-falloff measures without it
+
 static func chain_falloff(enemy: Node2D, tag: StringName) -> float:
-	if not tag in CHAIN_FALLOFF_TAGS:
+	if not chain_falloff_on or not tag in CHAIN_FALLOFF_TAGS:
 		return 1.0
 	var s: EnemyStatuses = enemy.statuses
 	return chain_falloff_at(s.chain_count if s.chain_time > 0.0 else 1)
