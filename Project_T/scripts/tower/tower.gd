@@ -3523,9 +3523,12 @@ static func nightmares_near(tree: SceneTree, at: Vector2, reach: float) -> Array
 	_nightmares_this_frame(tree)
 	var r := int(ceil(reach / BUCKET))  # A bucket either side reaches at least BUCKET px past this one
 	var centre := Vector2i((at / BUCKET).floor())
-	if (2 * r + 1) * (2 * r + 1) >= _buckets.size():
-		return _nightmares  # A long reach: every bucket anyway
 	var out: Array = []
+	if (2 * r + 1) * (2 * r + 1) >= _buckets.size():
+		for key: Vector2i in _buckets:  # Fewer occupied buckets than squares: walk those (not every nightmare)
+			if absi(key.x - centre.x) <= r and absi(key.y - centre.y) <= r:
+				out.append_array(_buckets[key])
+		return out
 	for dy in range(-r, r + 1):
 		for dx in range(-r, r + 1):
 			var bucket = _buckets.get(centre + Vector2i(dx, dy))
@@ -3646,10 +3649,15 @@ func _wall_drowsy_room(enemy: Node2D, stacks: int) -> int:
 func _buckets_near(at: Vector2, reach: float) -> Array:
 	_nightmares_this_frame(get_tree())
 	var r := int(ceil(reach / BUCKET))
-	if (2 * r + 1) * (2 * r + 1) >= _buckets.size():
-		return [_nightmares]
 	var centre := Vector2i((at / BUCKET).floor())
 	var out: Array = []
+	if (2 * r + 1) * (2 * r + 1) >= _buckets.size():
+		# Fewer occupied buckets than squares in reach: walk those and keep the ones in reach (perf probe:
+		# returning every nightmare here made every Warden scan the whole crowd at the start).
+		for key: Vector2i in _buckets:
+			if absi(key.x - centre.x) <= r and absi(key.y - centre.y) <= r:
+				out.append(_buckets[key])
+		return out
 	for dy in range(-r, r + 1):
 		for dx in range(-r, r + 1):
 			var bucket = _buckets.get(centre + Vector2i(dx, dy))
