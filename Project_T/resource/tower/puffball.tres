@@ -9,7 +9,7 @@
 [resource]
 script = ExtResource("1_tdata")
 display_name = "Puffball"
-description = "Its puffs burst over a tile, leaving 2 Poisoned on every nightmare there. Nightmares it hits can hold up to 16 Poisoned."
+description = "Its puffs burst over a tile, leaving 1 Poisoned on every nightmare there. Nightmares it hits can hold up to 12 Poisoned."
 cost = 0
 texture = ExtResource("2_tex")
 frame_count = 8
@@ -24,8 +24,8 @@ projectile_speed = 380
 projectile_texture = ExtResource("3_proj")
 projectile_color = Color(0.9254902, 0.6117647, 0.95686275, 1)
 applies_status = &"spored"
-status_stacks = 2
-status_max_stacks = 16
+status_stacks = 1
+status_max_stacks = 12
 splash_radius = 1.0
 crit_chance = 0.05
 attack_texture = ExtResource("4_atk")

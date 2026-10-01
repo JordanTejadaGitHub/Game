@@ -60,8 +60,8 @@ const DEMO_DRIFTS_DIR := "res://resource/drift/demo/"
 @export var act1_boss_health_multiplier: float = 1.75  # Act 1's boss (drift 25) instead (boss stays and drains: ×1.75 = Dreams 11/15, skip 5/15 vs the Stag)
 # Acts 3–4 (run_design.md "Act 3 probe", interim): a flat health multiplier for every nightmare from
 # `late_acts_from_act`, bosses included, on top of the growth / boss multiplier.
-@export var late_acts_health_multiplier: float = 3.5  # Acts 3–4, bosses included (balance_simulation.md "Human run 1"; was 1.6)
-@export var final_boss_late_multiplier: float = 1.6  # …except the Hollow Oak at drift 100: the health the first human run met
+@export var late_acts_health_multiplier: float = 4.0  # Acts 3–4, bosses included ("Human run 2"; was 3.5, 1.6)
+@export var final_boss_late_multiplier: float = 3.0  # …except the Hollow Oak at drift 100 ("Human run 2": it died in 17 s at 1.6)
 @export var late_acts_from_act: int = 3
 # Acts 1–2 (run_design.md 72860af, balance batches): act 1 is x1.0 through `act1_ramp_from`, rising
 # evenly to `act1_health_multiplier` at `act1_ramp_to` and holding to the act's end; act 2 holds that
@@ -70,10 +70,12 @@ const DEMO_DRIFTS_DIR := "res://resource/drift/demo/"
 @export var act1_health_multiplier: float = 1.15
 @export var act1_ramp_from: int = 9
 @export var act1_ramp_to: int = 20
-@export var early_acts_health_multiplier: float = 2.5  # Act 2 ends at this ("Human run 1"; was 1.55)
+@export var early_acts_health_multiplier: float = 3.0  # Act 2 ends at this ("Human run 2"; was 2.5, 1.55)
 @export var act2_start_health_multiplier: float = 1.3  # …starting from this at act 2's first drift (interim; was act 1's 1.15)
 @export var early_ramp_from: int = 26
 @export var early_ramp_to: int = 45
+@export var act2_steep_from: int = 37  # "Human run 2": drifts 26-37 keep the old ramp (to act2_steep_value), the rest of the rise comes after
+@export var act2_steep_value: float = 1.995  # The old ramp's value at drift 37 (1.3 -> 2.5 over 26-45)
 @export var extra_nightmares: float = 1.25  # Nightmares per drift (rounded up) from `extra_nightmares_from`
 @export var extra_nightmares_from: int = 10  # The intro drifts before it are unchanged
 # Rest bonus = base + per_block × block number (economy pass v2, run_design.md: was 20 + 10 × block,
@@ -359,8 +361,11 @@ func get_extra_nightmares(number: int) -> float:
 func get_early_multiplier(number: int) -> float:
 	var act1 := clampf(float(number - act1_ramp_from) / maxf(act1_ramp_to - act1_ramp_from, 1), 0.0, 1.0)
 	if get_act(number) >= 2:  # Act 2: from act2_start at its first drift up to early_acts at early_ramp_to, then held
-		var act2 := clampf(float(number - early_ramp_from) / maxf(early_ramp_to - early_ramp_from, 1), 0.0, 1.0)
-		return lerpf(act2_start_health_multiplier, early_acts_health_multiplier, act2)
+		if number <= act2_steep_from:  # The old, gentle ramp to drift 37
+			var early := clampf(float(number - early_ramp_from) / maxf(act2_steep_from - early_ramp_from, 1), 0.0, 1.0)
+			return lerpf(act2_start_health_multiplier, act2_steep_value, early)
+		var steep := clampf(float(number - act2_steep_from) / maxf(early_ramp_to - act2_steep_from, 1), 0.0, 1.0)
+		return lerpf(act2_steep_value, early_acts_health_multiplier, steep)  # Then most of the rise to drift 45
 	return lerpf(1.0, act1_health_multiplier, act1)
 
 # Health multiplier for `data` in drift `number`: get_growth (bosses: ×1.5 their base), × the act 2
