@@ -365,8 +365,8 @@ Decisions:
 reading is stronger, and a player who never calls early will find the new curve gentler still.
 - **Per-drift rows are fine for runs 2–4:** RunHistory counts each nightmare under the drift that
   spawned it since ae47049e (2026-09-30 10:36); only run 1 is blurred per drift (per block is fine).
-  The record has **no early-call count** yet: asked Main Merger for `early_calls` per run and a
-  `called_early` flag per drift row, plus the call-early Dew total.
+  Early calls are recorded **from 9a31505a**: run-level `early_calls` and `dew_call_early`, per-drift
+  `called_early` (last CSV column), report line "Called early: N drifts · X Dew". Runs 1–4 lack them.
 - **Call-early Dew stays outside the pot, unchanged** (+1 per 2 s skipped, cap 10 per drift, ~500 by
   drift 50 = ~9% of run 4's income). It pays for a real risk (stacked drifts), which the harder act 2
   makes bite. Revisit if a run with `early_calls` data shows calling early as both safe and the
