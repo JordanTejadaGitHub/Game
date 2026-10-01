@@ -109,6 +109,7 @@ func _ready() -> void:
 	_seen = load_seen()
 	_dev_flagged = dev_seen()
 	_chains_seen = chains_seen()
+	_best_ever = chain_best() if _may_write() else {}  # Read once: the per-chain check stays in memory
 	_card.visible = false
 	_card.mouse_filter = Control.MOUSE_FILTER_STOP
 	# Screen centre on its own layer above the HUD: the drift banner, Omen line and Coming strip never
@@ -279,13 +280,12 @@ func chain_order(links: int) -> Array[String]:
 
 func _on_chain(links: int, _where: Vector2, _towers: Array) -> void:
 	var order := chain_order(links)
-	var best := chain_best() if _may_write() else _best_this_session
-	if links > int(best.get("links", 0)):
+	# Perf (Tower: one Reaction burst cost 12–124 ms in the listeners): the longest chain is compared in memory and
+	# written at the next rest / the run's end (_save_counts), never a profile read or file write per chain.
+	if links > maxi(int(_best_ever.get("links", 0)), int(_best_this_session.get("links", 0))):
 		_best_this_session = {"links": links, "reactions": order}
-		if _may_write():
-			var memory := HeartwoodMemory.load_data()
-			memory[CHAIN_BEST_KEY] = _best_this_session
-			HeartwoodMemory.save_data(memory)
+		_best_ever = _best_this_session
+		_best_dirty = true
 	# One discovery ever (screens_ui.md "Chains: one discovery, then Dawnbreak"): the first Chain 3+. Profiles
 	# that saw any tier before never see it again.
 	if links < CHAIN_TIERS[0] or has_seen_chain():
@@ -325,6 +325,8 @@ func _discover_dawnbreak(enemy: Node2D) -> void:
 		_try_show()
 
 var _best_this_session := {}  # Tests and scenes that don't write the profile
+var _best_ever := {}  # The profile's longest chain, read once (real game), raised in memory
+var _best_dirty := false  # A longer chain to write at the next rest / run end
 
 # The one chain discovery: what a chain is, then the longest so far (screens_ui.md "Chains: one discovery").
 const CHAIN_LINE := "A Reaction can spread its statuses and set off another. Past the fifth link each one hits a little softer, but the chain keeps counting."
@@ -665,6 +667,11 @@ func _check_milestone(memory: Dictionary) -> void:
 
 # Lifetime counts ("times you've set it off") go to the profile at rests and at the run's end.
 func _save_counts() -> void:
+	if _best_dirty and _may_write():  # The longest chain, held since the chain ran
+		_best_dirty = false
+		var profile := HeartwoodMemory.load_data()
+		profile[CHAIN_BEST_KEY] = _best_ever
+		HeartwoodMemory.save_data(profile)
 	if _unsaved.is_empty() or not _may_write() or MetaRun.is_dev_run():  # Lifetime counts: normal runs only
 		_unsaved.clear()
 		return
