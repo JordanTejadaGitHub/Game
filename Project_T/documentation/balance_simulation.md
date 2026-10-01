@@ -524,6 +524,14 @@ way** (every profile dies in act 2). The Grove's value has to come from human ru
 presets. The "dead" offers turned out to be **by design** (Roguelite Code, 35efae49): patient_roots
 is a Seed card that calls the Rootling family to the next pick; rolling_thunder / rain_on_glass are
 half-dreamed "Adapt" offers. **No change.**
+
+## Map change: inland Heartwood (722cf38b, 2026-10-01)
+
+Environment Code: the Heartwood sits on an inland cell (its 8 neighbours always open, reachable from
+several sides), the start stays on the rim; opening routes are a little shorter (median 39 corner / 44
+side vs 46; band 35–57); 240–294 buildable cells; ~69 obstacles. **Every sim and human run above is
+"edge Heartwood"**; human run 5 (ee3d82d0) predates it. Re-baseline: act 1 fresh Balanced / skip on
+722cf38b+, plus a check that the bot's maze and cover rule handle the open glade.
 This conflicts with the targets (Half Grove reaches act 4, Full wins). Next: find out whether the
 off-build cards are dead for the build (a `can_offer` rule fixes it) or usable (a pool-size question),
 then bring the fix to the user. Caveat: one family pair, one bot style, which picks by tag + rarity.
