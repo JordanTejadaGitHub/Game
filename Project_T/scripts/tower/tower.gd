@@ -359,6 +359,11 @@ var _crit_dew_drift := -1  # Magpie's Hoard: drift the crit-Dew count belongs to
 var _crit_dew_given := 0
 
 func _ready() -> void:
+	# The beam draws on its own layer above the sprite (Tower._draw is under it: the Warden's art hid the start
+	# of its own beam, so it seemed to come from the slab).
+	_beam_layer.name = "BeamLayer"
+	_beam_layer.draw.connect(_draw_beam)
+	add_child(_beam_layer)
 	_dream_state = get_tree().get_first_node_in_group(DreamState.GROUP) as DreamState
 	if _dream_state:
 		GroveRules.listen(self)  # Quickening: dispels in range speed Wardens up
@@ -1286,14 +1291,6 @@ func _show_idle() -> void:
 	sprite.texture = tower_data.texture
 	sprite.hframes = tower_data.frame_count
 	sprite.frame = int(_anim_time * tower_data.animation_fps) % tower_data.frame_count
-
-# Holds the attack pose (the release frame) while beaming.
-func _show_attack_pose() -> void:
-	if tower_data.attack_texture == null or _legacy_active:
-		return
-	sprite.texture = tower_data.attack_texture
-	sprite.hframes = tower_data.attack_frame_count
-	sprite.frame = tower_data.attack_release_frame
 
 # The attack lands. A target that left range during the wind-up wastes a projectile/chain/cloud.
 func _release() -> void:
@@ -3085,7 +3082,6 @@ func _update_beam(delta: float) -> void:
 		_beam_ramp = 1.0 + (old_ramp - 1.0) * attack_data.beam_keep_share
 		_beam_tick = 0.0
 		_beam_target = target
-		_show_attack_pose()
 	if _beam_target == null:
 		return
 	_animate_beam_pose()
@@ -3111,14 +3107,46 @@ func _update_beam(delta: float) -> void:
 		_stop_beam()  # The target is gone: back to the idle sheet (8 frames), not the 6-frame pose
 	queue_redraw()
 
+var _beam_layer := Node2D.new()
+
+# The beam, from the attack point (the flower's face) to its target, above the Warden's own art.
+func _draw_beam() -> void:
+	if not is_instance_valid(_beam_target):
+		return
+	var from := tower_data.get_attack_origin()
+	var width := 2.0 + 2.0 * _beam_ramp
+	for target in [_beam_target, _beam_behind]:
+		if not is_instance_valid(target):
+			continue
+		var to := to_local(target.global_position)
+		_beam_layer.draw_line(from, to, Color(_beam_data().beam_color, 0.35), width * 2.0)
+		_beam_layer.draw_line(from, to, Color(Palette.HEARTLIGHT, 0.9), maxf(width * 0.5, 1.5))
+		from = to  # Midsummer's beam carries on from the target to the one behind it
+	_beam_layer.draw_circle(tower_data.get_attack_origin(), 2.0 + _beam_ramp, Color(Palette.HEARTLIGHT, 0.8))  # The glow at its source
+
 # While the beam is on, the attack sheet loops from its release frame to its last (it used to hold the
 # release frame: user, "the Sunpetal animation gets stuck when attacking").
 func _animate_beam_pose() -> void:
-	if tower_data.attack_texture == null or _legacy_active or sprite.texture != tower_data.attack_texture:
+	_beam_layer.queue_redraw()
+	if _legacy_active:
 		return
-	var first := tower_data.attack_release_frame
-	var span := maxi(tower_data.attack_frame_count - first, 1)
-	var frame := first + int(_anim_time * tower_data.animation_fps) % span
+	# Channelling: the data's channel loop (beam_sustain_texture, ping-ponged) or the idle loop. The attack
+	# sheet's firing frames have a ray baked in one direction, which fought the real beam (user: "the attack
+	# animation for Sunpetal doesn't look correct"), and looping them flashed the recovery pose.
+	var sheet: Texture2D = tower_data.beam_sustain_texture
+	var frame := 0
+	if sheet != null:
+		if sprite.texture != sheet:
+			sprite.texture = sheet
+			sprite.hframes = maxi(tower_data.beam_sustain_frames, 1)
+		var span := maxi(tower_data.beam_sustain_frames - 1, 0)
+		if span > 0:
+			var k := int(_anim_time * tower_data.animation_fps) % (2 * span)
+			frame = k if k <= span else 2 * span - k
+	else:
+		if sprite.texture != tower_data.texture:
+			_show_idle()
+		frame = int(_anim_time * tower_data.animation_fps) % tower_data.frame_count
 	if sprite.frame != frame:
 		sprite.frame = frame  # Only on change: each set redraws
 
@@ -3133,6 +3161,7 @@ func _stop_beam() -> void:
 	if was_beaming and is_node_ready() and not _legacy_active:
 		_show_idle()
 	queue_redraw()
+	_beam_layer.queue_redraw()
 
 # The nightmare right behind `target` on the path (Midsummer's beam carries through to it).
 func _find_behind(target: Node2D) -> Node2D:
@@ -3177,16 +3206,6 @@ func _draw() -> void:
 		var centre := to_local(MAP_GRID.calculate_map_position(at))
 		var half := MAP_GRID.cell_size / 2.0 - Vector2(6, 6)
 		draw_rect(Rect2(centre - half, half * 2.0), Color(LIGHT_COLOR, 0.12))
-	if is_instance_valid(_beam_target):
-		var from := tower_data.get_attack_origin()
-		var width := 2.0 + 2.0 * _beam_ramp
-		for target in [_beam_target, _beam_behind]:
-			if not is_instance_valid(target):
-				continue
-			var to := to_local(target.global_position)
-			draw_line(from, to, Color(_beam_data().beam_color, 0.35), width * 2.0)
-			draw_line(from, to, Color(Palette.HEARTLIGHT, 0.9), maxf(width * 0.5, 1.5))
-			from = to  # Midsummer's beam carries on from the target to the one behind it
 	if attack_data != null and attack_data.attack_kind == TowerData.AttackKind.AURA:
 		draw_arc(Vector2.ZERO, get_range_pixels(), 0.0, TAU, 64, Color(Palette.MOONLIGHT, 0.12), 3.0)
 	_draw_badges()

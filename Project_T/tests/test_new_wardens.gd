@@ -199,9 +199,9 @@ func _test_beam() -> void:
 	for i in 60:
 		await process_frame
 		frames[tower.sprite.frame] = true
-	_check(tower._beam_target == target and tower.sprite.texture == sun.attack_texture and frames.size() >= 3
-		and frames.keys().all(func(f: int) -> bool: return f >= sun.attack_release_frame),
-		"a sustained beam loops its attack frames from the release frame (%s)" % [frames.keys()])
+	_check(tower._beam_target == target and tower.sprite.texture == sun.texture and frames.size() >= 3
+		and tower.get_node_or_null("BeamLayer") != null,
+		"a sustained beam channels on the idle loop (no baked ray), drawn on a layer above the art (%s)" % [frames.keys()])
 	target.dispel() if target.has_method("dispel") else target.take_damage(target.health * 10.0)
 	for i in 3:
 		await process_frame
