@@ -550,7 +550,9 @@ at drift 20, spent at that rest.
   within noise (same old bot, edge → inland: Balanced survives the boss 90 → 85%, skip 45 → 50%; the
   opening route is ~4 tiles *longer* at drift 1). The newer bot (Kinship placement + branches first)
   lifts Balanced to 95% and skip to 70%. **New baseline = inland, current bot.** An exact edge/inland
-  A/B (4c8050a9 vs 722cf38b, Sporeling and Firefly first) is running.
+  A/B (4c8050a9 vs 722cf38b, Sporeling and Firefly first, 20 seeds): **no map effect**; inland is if
+anything a little easier (Firefly: leaves lost by 25 8.5 → 3, first leak 9 → 14; survived 90% both).
+Run 6's early pressure was that seed or the opening, not the inland change. Closed.
 This conflicts with the targets (Half Grove reaches act 4, Full wins). Next: find out whether the
 off-build cards are dead for the build (a `can_offer` rule fixes it) or usable (a pool-size question),
 then bring the fix to the user. Caveat: one family pair, one bot style, which picks by tag + rarity.
