@@ -247,7 +247,7 @@ func _apply_grove(memory: Dictionary) -> void:
 		dream_state.rerolls_left += rerolls
 	if "banishes_left" in dream_state:
 		dream_state.banishes_left += banishes
-	# Clear Sight's Cleared Ground, then Kindling's random Commons (a resumed run's save replaces them).
+	# Clear Sight's Heartwood's Reach, then Kindling's random Commons (a resumed run's save replaces them).
 	for id in start_cards:
 		var card := _card(id)
 		if card != null:

@@ -237,8 +237,8 @@ func _run() -> void:
 	_check(dreams_first_pick(main) == DreamState.FIRST_PICK_DREAMLIGHT, "no Blight: the first family pick gives its Dreamlight")
 	_check(is_equal_approx(director.rest_bonus_perk_multiplier, 1.2), "Rested Roots II: rest bonus ×1.2")
 	_check(run_state.sprout_charges == 2, "Sprout Bed: 2 free Sprouts (%d)" % run_state.sprout_charges)
-	_check(dreams.card_stacks("cleared_ground") >= 1 and dreams.can_clear(), "Clear Sight: clearing opened and Cleared Ground from the start")
-	var starting := 0  # Clear Sight's cards (the opener Tend the Forest, once it exists, and Cleared Ground)
+	_check(dreams.card_stacks("heartwoods_reach") >= 1 and dreams.can_clear(), "Clear Sight: clearing opened from the start (Heartwood's Reach)")
+	var starting := 0  # Clear Sight's cards (Heartwood's Reach)
 	for id in _unlock(grove, "clear_sight").starting_cards:
 		if dreams.pool.any(func(c: UpgradeData) -> bool: return c.id == id):
 			starting += 1
