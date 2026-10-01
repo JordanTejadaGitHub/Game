@@ -74,6 +74,15 @@ func _run() -> void:
 	report.show_report(1)
 	_check(report.visible == RestReport.auto_show() and report.last_block_text.contains("Stormcap") and report._label.get_parsed_text().contains("Stormcap") and report._label.get_parsed_text().contains("Lightning through Soaked: 2 times"),
 		"the rest report shows the top Warden and the combos (%s)" % report._label.get_parsed_text())
+	# The Omen paid at this rest, and why it was cut ("Omens with teeth"): the summary from omen_rewarded.
+	var omens: OmenDirector = main.get_node("%OmenDirector")
+	var hard_bark := OmenData.new()
+	hard_bark.display_name = "Hard Bark"
+	omens.omen_rewarded.emit(hard_bark, "+18 Dew (75%: 1 leaf lost)")
+	report.show_report(2)
+	_check(report.last_block_text.contains("Omen · Hard Bark: +18 Dew (75%: 1 leaf lost)"), "the rest report says what the Omen paid, and why")
+	report.show_report(3)
+	_check(not report.last_block_text.contains("Hard Bark"), "…once (the next rest has no Omen line)")
 
 	# Warden panel lines
 	var seller: TowerSeller = main.get_node("%TowerSeller")
