@@ -1117,9 +1117,21 @@ function dreamFruit(v, f) {
       if (r > 3 && r < 5.6 && bay(x, y) < density * (1 - (r - 3) / 2.6)) out.set(x, y, r < 4.2 ? HWN.Glow : HWN.Gold);
     }
   }
-  out.set(6, 2, dark ? HWN.Night : HWN.Moss); out.set(6, 3, dark ? HWN.Night : HWN.Deepmoss);  // stem
-  ellipseRaw(out, 6, 6.5, 2.4, 2.8, (x, y, dx, dy) => dark ? (dx < 0 && dy < 0 ? HWN.Dusk : HWN.Night)
-    : dx < 0 && dy < 0 ? HWN.Heartlight : dy > .3 ? HWN.Ember : HWN.Gold);
+  if (dark) {
+    // A dark husk, still hanging (the user's call, 2026-10-01: lost fruit must stay visible): shrivelled
+    // cold violet-grey with a dent, a 1 px Dread outline and a faint cold rim, so it reads against the
+    // Deepmoss / Pool crown and the night ground.
+    const H = new Img(12, 12);
+    H.set(6, 2, HWN.Dusk); H.set(6, 3, HWN.Dusk);  // a withered stem
+    ellipseRaw(H, 6, 6.5, 2.2, 2.6, (x, y, dx, dy) => dx < -.1 && dy < -.1 ? "#8c8cac" /* Stone */ : dy > .35 || dx > .55 ? HWN.Dusk : HWN.Slate);
+    H.set(7, 6, HWN.Dusk); H.set(6, 7, HWN.Dusk);  // the shrivelled dent
+    out.stamp(H, HWN.Dread);
+    for (let y = 1; y < 11; y++) for (let x = 1; x < 11; x++)  // cold rim on the upper-left edge
+      if (H.alpha(x, y) && !H.alpha(x - 1, y) && !H.alpha(x, y - 1) && y > 3) out.set(x, y, HWN.Wraithlight);
+    return out;
+  }
+  out.set(6, 2, HWN.Moss); out.set(6, 3, HWN.Deepmoss);  // stem
+  ellipseRaw(out, 6, 6.5, 2.4, 2.8, (x, y, dx, dy) => dx < 0 && dy < 0 ? HWN.Heartlight : dy > .3 ? HWN.Ember : HWN.Gold);
   return out;
 }
 
