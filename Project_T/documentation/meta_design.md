@@ -252,7 +252,7 @@ discovery in play. Branches may **fork** into two tips (each tip needs the node 
 - **Old saves** (profile migration): every Grove node already owned stays owned and keeps working;
   nothing is refunded or lost. A profile from **before** this change also gets every **new node
   whose cards it could already be offered** (Elders, Mixed Company, Winding Roads, Daring, Hedgerows,
-  Reclaiming and the moved Legendary tips) **for free**, so returning players don't lose cards
+  Reclaiming and the moved Legendary tips) **for free**, plus **every node below a granted tip** (e.g. Sharpened under Hunter's Moon; user 2026-09-30, so the tree always grows from the roots up), so returning players don't lose cards
   they had. Fresh profiles start lean.
 
 Removed over time: Reactions, Woven Dreams I–II, Kin Lore, Deep Bonds (2026-09-29, discovery
