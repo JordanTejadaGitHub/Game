@@ -151,7 +151,7 @@ func claim_trample(drift_number: int) -> bool:
 # The reward line for `omen` when paid in `act`, e.g. "+60 Dew · next Dream offers 4 cards".
 # `rest_bonus` >= 0: the rest bonus it multiplies is known, so show the extra Dew instead of "×2".
 # `lost` >= 0: what a block with that many leaves lost paid (scaled, with why); -1: the full promise.
-func describe_reward(omen: OmenData, act: int, rest_bonus: int = -1, lost: int = -1) -> String:
+func describe_reward(omen: OmenData, act: int, rest_bonus: int = -1, lost: int = -1, block: int = 0) -> String:
 	var parts: Array[String] = []
 	var scale := _act_scale(act)
 	var share := 1.0
@@ -159,9 +159,11 @@ func describe_reward(omen: OmenData, act: int, rest_bonus: int = -1, lost: int =
 	if lost >= 0 and omen.kind != OmenData.Kind.DOUBLE_EDGED:
 		share = clampf(1.0 - REWARD_CUT_PER_LEAF * lost, 0.0, 1.0)
 		dreams = lost <= DREAM_REWARD_MAX_LOST
-	var dew := floori(roundi(omen.reward_dew * scale) * share)
+	var dew := floori((roundi(omen.reward_dew * scale) + get_pot_reward(omen, block)) * share)
 	if dew > 0:
 		parts.append("+%d Dew" % dew)
+	elif omen.reward_pot_multiplier > 0.0 and block <= 0:  # Dry Spell before its block is known
+		parts.append("the block's Dew back, and a quarter more")
 	var seeds := floori(roundi(omen.reward_seeds * scale) * share)
 	if seeds > 0:
 		parts.append("+%d Seeds" % seeds)
@@ -485,7 +487,7 @@ func get_reward_status() -> String:
 func get_reward_line() -> String:
 	if active == null or active.kind == OmenData.Kind.DOUBLE_EDGED:
 		return ""
-	var reward := describe_reward(active, drift_director.get_act(maxi(drift_director.drifts_started, 1)))
+	var reward := describe_reward(active, drift_director.get_act(maxi(drift_director.drifts_started, 1)), -1, -1, active_block)
 	return "Reward: %s, less for each leaf lost" % reward if reward != "" else ""
 
 static func _has_dream_reward(omen: OmenData) -> bool:
@@ -495,11 +497,23 @@ static func _has_dream_reward(omen: OmenData) -> bool:
 # Omen blocks and Dew paid.
 var stats := {"paid": 0, "share": 0.0, "leaves_lost": 0, "dew": 0}
 
+# Dry Spell: the block's base Dew pot (the drifts' pots before any multiplier) × reward_pot_multiplier, 0 for other
+# Omens or an unknown block. The leaves-lost share is applied by the caller.
+func get_pot_reward(omen: OmenData, block: int) -> int:
+	if omen.reward_pot_multiplier <= 0.0 or block <= 0:
+		return 0
+	var drifts := get_block_range(block)
+	var pot := 0.0
+	for number in range(drifts.x, drifts.y + 1):
+		pot += drift_director.get_dew_pot(number)
+	return roundi(pot * omen.reward_pot_multiplier)
+
 func _pay_reward(rest_bonus: int) -> void:
 	var lost := leaves_lost_in_block()
 	var share := get_reward_share(lost)
 	var dreams := keeps_dream_reward(lost)
 	var omen := active
+	var block := active_block
 	active = null
 	stats.leaves_lost += lost
 	if run_state.is_over and not run_state.won:
@@ -508,7 +522,7 @@ func _pay_reward(rest_bonus: int) -> void:
 	stats.share += share
 	var act := drift_director.get_act(drift_director.drifts_started)
 	var scale := _act_scale(act)
-	var dew := floori((roundi(omen.reward_dew * scale) + _extra_rest_bonus(omen, rest_bonus)) * share)
+	var dew := floori((roundi(omen.reward_dew * scale) + _extra_rest_bonus(omen, rest_bonus) + get_pot_reward(omen, block)) * share)
 	run_state.add_dew(dew)
 	stats.dew += dew
 	if omen.rest_bonus_multiplier < 1.0:  # Lean Season: this rest's bonus shrinks (the twist, never scaled)
@@ -530,7 +544,7 @@ func _pay_reward(rest_bonus: int) -> void:
 	if dreams:
 		dream_state.add_rare_dreams(omen.reward_rare_dreams)
 		dream_state.add_extra_cards(omen.reward_extra_dream_cards)
-	omen_rewarded.emit(omen, describe_reward(omen, act, rest_bonus, lost))
+	omen_rewarded.emit(omen, describe_reward(omen, act, rest_bonus, lost, block))
 
 # The run was won during an Omen's block: there's no rest after it, so pay now (Seeds still count).
 func _on_run_ended(won: bool) -> void:

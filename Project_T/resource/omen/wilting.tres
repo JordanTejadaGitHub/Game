@@ -10,5 +10,5 @@ description = "Every Warden attacks 22% slower."
 flavor = "The Wardens droop, heavy with sleep."
 kind = 1
 warden_attack_speed_multiplier = 0.78
-reward_dreamlight = 1
+reward_extra_dream_cards = 1
 reward_dew = 30

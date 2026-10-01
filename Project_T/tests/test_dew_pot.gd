@@ -44,7 +44,7 @@ func _run() -> void:
 	var boss_shares: Array = director.pot_shares([[0.0, boss, false], [1.0, shade, false], [2.0, shade, false]], 25)
 	_check(is_equal_approx(boss_shares[0], director.get_effective_pot(25) * 0.5) and is_equal_approx(boss_shares[1], boss_shares[2]),
 		"a boss drift's boss takes half its pot (%.0f of %.0f)" % [boss_shares[0], director.get_effective_pot(25)])
-	# Bountiful Night (Roguelite's Omen hook): pot ×2, once the hook exists.
+	# Bountiful Night (Roguelite's Omen hook): pot ×1.5 (balance_simulation.md 95762f14).
 	# Rich Dew (Grove dew_gain, +5% a level) multiplies the pot: level 1 = a drift's dispels 5% more in total.
 	run_state.dew_gain_bonus = 0.05
 	var rich_total := 0.0
@@ -58,7 +58,7 @@ func _run() -> void:
 			if omen.id == "bountiful_night":
 				omens.active = omen
 				omens.active_block = director.get_block(12)
-				_check(is_equal_approx(director.get_effective_pot(12), director.get_dew_pot(12) * 2.0), "Bountiful Night doubles the pot")
+				_check(is_equal_approx(director.get_effective_pot(12), director.get_dew_pot(12) * 1.5), "Bountiful Night: the pot ×1.5")
 				omens.active = null
 
 	# A real drift: every dispel pays its share; a leak loses exactly its own.

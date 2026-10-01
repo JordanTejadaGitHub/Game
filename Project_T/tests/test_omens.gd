@@ -164,8 +164,8 @@ func _test_twists(main: Node) -> void:
 	_activate(omens, "dry_spell", 3)
 	_check(director.get_effective_pot(12) == 0.0 and omens.get_dew_pot_multiplier(12) == 0.0, "Dry Spell: the block's Dew pot is empty")
 	_activate(omens, "bountiful_night", 3)
-	_check(is_equal_approx(omens.get_dew_pot_multiplier(12), 2.0) and not director.get_spawn_modifiers(bug, 12).has("dew"),
-		"Bountiful Night: the pot ×2, never a per-nightmare Dew modifier (the pot carries it)")
+	_check(is_equal_approx(omens.get_dew_pot_multiplier(12), 1.5) and not director.get_spawn_modifiers(bug, 12).has("dew"),
+		"Bountiful Night: the pot ×1.5, never a per-nightmare Dew modifier (the pot carries it)")
 	_activate(omens, "swift_stream", 3)
 	var swift: Node2D = spawner.spawn_enemy(bug, 1.0, director.get_spawn_modifiers(bug, 12))
 	_check(is_equal_approx(swift.speed, bug.speed * 1.25), "Swift Stream: +25% speed")
@@ -193,10 +193,21 @@ func _test_rewards(main: Node) -> void:
 	omens.current_offer = []
 	omens._offer_waiting = false
 
+	# Dry Spell: no Dew during the block; at its rest, the block's base pot ×1.25 (cut by leaves lost like any reward)
+	var base_pot := 0.0
+	for n in range(11, 16):
+		base_pot += director.get_dew_pot(n)
 	_activate(omens, "dry_spell", 3)
 	dew = run_state.dew
 	omens._on_rest_started(3, false, 50, true)
-	_check(run_state.dew == dew + 25, "Dry Spell: rest bonus ×1.5 (+25 on a 50 bonus)")
+	_check(run_state.dew == dew + roundi(base_pot * 1.25), "Dry Spell, clean block: the block's base pot ×1.25 (+%d of %.0f)" % [run_state.dew - dew, base_pot])
+	omens.current_offer = []
+	omens._offer_waiting = false
+	_activate(omens, "dry_spell", 3)
+	run_state.leaves_lost += 1
+	dew = run_state.dew
+	omens._on_rest_started(3, false, 50, true)
+	_check(run_state.dew == dew + floori(roundi(base_pot * 1.25) * 0.75), "…one leaf lost: 75%% of it (+%d)" % (run_state.dew - dew))
 	omens.current_offer = []
 	omens._offer_waiting = false
 
@@ -336,6 +347,7 @@ func _test_new_omens(main: Node) -> void:
 
 	# Shifting Ground: 5 trees on free cells away from the route, once; then +1 Seed per tree cleared
 	omens.active = by_id["shifting_ground"]
+	omens._leaves_lost_at_start = run_state.leaves_lost  # A clean block (earlier checks lost leaves)
 	omens._sprouted_block = 0
 	var route_before: PackedVector2Array = map_generator.get_path_from(map_generator.startPath)
 	var obstacles_before: int = map_generator.obstacles.size()
@@ -417,13 +429,18 @@ func _test_teeth(main: Node) -> void:
 	dew = run_state.dew
 	omens._pay_reward(0)
 	_check(run_state.dew == dew and paid[-1] == "nothing (4 leaves lost)", "4 leaves lost: nothing (%s)" % paid[-1])
-	# Leaf Fall (+2 Dreamlight): 1 lost → +1 (75%, rounded down); no leaves
+	# Leaf Fall (next Dream: 4 cards, one Rare+): 1 leaf lost keeps it; no leaves, no Dreamlight
 	_activate(omens, "leaf_fall", 3)
 	run_state.leaves_lost += 1
 	var max_leaves := run_state.max_leaves
 	var light := dreams.dreamlight
+	var rare_left := dreams._rare_dreams_left
+	var extra := dreams._extra_cards_next
 	omens._pay_reward(0)
-	_check(dreams.dreamlight == light + 1 and run_state.max_leaves == max_leaves, "Dreamlight scales too, rounded down (+%d), and no leaves" % (dreams.dreamlight - light))
+	_check(dreams._rare_dreams_left == rare_left + 1 and dreams._extra_cards_next == extra + 1 and dreams.dreamlight == light
+		and run_state.max_leaves == max_leaves, "Leaf Fall with 1 leaf lost: the next Dream has 4 cards, one Rare+ (no leaves, no Dreamlight)")
+	dreams._rare_dreams_left = rare_left
+	dreams._extra_cards_next = extra
 	# Dream rewards: kept with ≤ 1 leaf lost, gone with 2
 	_activate(omens, "hard_bark", 3)
 	run_state.leaves_lost += 1
@@ -457,8 +474,8 @@ func _test_teeth(main: Node) -> void:
 	for omen in omens.pool:
 		by_id[omen.id] = omen
 	_check(is_equal_approx(by_id["leaf_fall"].speed_multiplier, 1.2) and is_equal_approx(by_id["sleepless"].health_multiplier, 1.15)
-		and by_id["lean_season"].rest_bonus_multiplier == 0.0 and is_equal_approx(by_id["dry_spell"].reward_rest_bonus_multiplier, 1.5),
-		"Leaf Fall +20% speed, Sleepless +15% health, Lean Season no rest bonus, Dry Spell ×1.5")
+		and by_id["lean_season"].rest_bonus_multiplier == 0.0 and by_id["dry_spell"].reward_rest_bonus_multiplier == 1.0 and is_equal_approx(by_id["dry_spell"].reward_pot_multiplier, 1.25),
+		"Leaf Fall +20% speed, Sleepless +15% health, Lean Season no rest bonus, Dry Spell pays the pot back ×1.25")
 	var route: PackedVector2Array = map_generator.get_path_from(map_generator.startPath)
 	var beside := omens.get_free_cells(true)
 	var away := omens.get_free_cells()
@@ -551,7 +568,7 @@ func _test_screenshot_fixes(main: Node) -> void:
 	screen._clear_cards()
 	screen._on_closed()
 
-# run_design.md "Omen rewards: no leaf regrowth": Stubborn Blight pays Dreamlight by act, no Omen heals leaves,
+# run_design.md "Omen rewards: no leaf regrowth" + "Revised again": Stubborn Blight pays Dew by act, no Omen heals leaves,
 # and max-leaf Omens aren't offered at the leaf cap.
 func _test_leaf_rewards(main: Node) -> void:
 	var omens: OmenDirector = main.get_node("%OmenDirector")
@@ -562,14 +579,16 @@ func _test_leaf_rewards(main: Node) -> void:
 	omens._offer_waiting = false
 	_check(not omens.pool.any(func(o: OmenData) -> bool: return o.reward_leaves > 0 or o.reward_max_leaves > 0),
 		"no Omen gives leaves of any kind (regrown or max: run_design.md)")
-	for case in [[15, 1], [60, 2]]:  # Act 1: +1, act 3: +2
+	_check(not omens.pool.any(func(o: OmenData) -> bool: return o.reward_dreamlight > 0), "no Omen gives Dreamlight (it stays in cards)")
+	for case in [[15, 40], [60, 80]]:  # +40 Dew, by act: act 1 ×1, act 3 ×2
 		director.drifts_started = case[0]
 		_activate(omens, "stubborn_blight", director.get_block(case[0]))
 		var light := dreams.dreamlight
 		var leaves := run_state.leaves
+		var dew := run_state.dew
 		omens._pay_reward(0)
-		_check(dreams.dreamlight == light + case[1] and run_state.leaves == leaves,
-			"Stubborn Blight at drift %d: +%d Dreamlight, no leaves healed (%d)" % [case[0], case[1], dreams.dreamlight - light])
+		_check(run_state.dew == dew + case[1] and dreams.dreamlight == light and run_state.leaves == leaves,
+			"Stubborn Blight at drift %d: +%d Dew, no Dreamlight, no leaves healed (%d)" % [case[0], case[1], run_state.dew - dew])
 	omens._last_offer_ids.clear()
 	omens.active = null
 	director.drifts_started = 0
@@ -586,7 +605,7 @@ func _test_active_tag(main: Node) -> void:
 	await _frames(3)
 	var tag: Label = main.get_node("HUD/ActiveOmen")
 	var lines: PackedStringArray = tag.text.split("\n")
-	_check(lines.size() == 3 and lines[0] == "Omen: Stubborn Blight · drifts 16–20" and lines[2] == "Reward: +1 Dreamlight, less for each leaf lost",
+	_check(lines.size() == 3 and lines[0].strip_edges() == "Omen: Stubborn Blight · drifts 16–20" and lines[2] == "Reward: +40 Dew, less for each leaf lost",
 		"the tag: name and drifts, the twist, then a plain reward line (%s)" % " / ".join(lines))
 	_check(tag.tooltip_text == "You'd get it all right now.", "…where the reward stands is in the tooltip (%s)" % tag.tooltip_text)
 	var icon: TextureRect = tag.get_node_or_null("OmenIcon")

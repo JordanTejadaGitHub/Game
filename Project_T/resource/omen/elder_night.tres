@@ -11,4 +11,4 @@ flavor = "The old nightmares wake."
 kind = 0
 min_drift = 26
 extra_elites = 2
-reward_dreamlight = 2
+reward_rare_dreams = 1

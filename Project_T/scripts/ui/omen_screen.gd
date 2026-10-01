@@ -323,7 +323,21 @@ func _refresh_tag() -> void:
 	_active_tag.tooltip_text = omens.get_reward_status()
 	_place_tag_icon.call_deferred()
 
-# The icon sits just left of the (centred) first line, one text line tall (16 px ×1, or ×2 for big text).
+# The icon sits in leading spaces at the start of the (centred) first line, so it stays inside the tag even when
+# that line is the widest; one text line tall (16 px ×1, or ×2 for big text).
+const TAG_ICON_GAP := 6.0
+
+func _tag_icon_side() -> float:
+	return 32.0 if _active_tag.get_theme_font("font").get_height(_active_tag.get_theme_font_size("font_size")) >= 28.0 else 16.0
+
+# Spaces wide enough for the icon and its gap ("" without an icon).
+func _icon_pad() -> String:
+	if _tag_icon.texture == null:
+		return ""
+	var font := _active_tag.get_theme_font("font")
+	var space := maxf(font.get_string_size(" ", HORIZONTAL_ALIGNMENT_LEFT, -1, _active_tag.get_theme_font_size("font_size")).x, 1.0)
+	return " ".repeat(ceili((_tag_icon_side() + TAG_ICON_GAP) / space))
+
 func _place_tag_icon() -> void:
 	if _tag_icon.texture == null:
 		_tag_icon.visible = false
@@ -331,10 +345,10 @@ func _place_tag_icon() -> void:
 	var font := _active_tag.get_theme_font("font")
 	var font_size := _active_tag.get_theme_font_size("font_size")
 	var line_height := font.get_height(font_size)
-	var side := 32.0 if line_height >= 28.0 else 16.0
-	var width := font.get_string_size(_tag_title, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size).x
+	var side := _tag_icon_side()
+	var width := font.get_string_size(_icon_pad() + _tag_title, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size).x
 	_tag_icon.size = Vector2(side, side)
-	_tag_icon.position = Vector2((_active_tag.size.x - width) / 2.0 - side - 6.0, (line_height - side) / 2.0)
+	_tag_icon.position = Vector2(maxf((_active_tag.size.x - width) / 2.0, 0.0), (line_height - side) / 2.0)
 	_tag_icon.visible = true
 
 func _on_omen_rewarded(omen: OmenData, summary: String) -> void:
