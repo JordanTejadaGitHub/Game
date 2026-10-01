@@ -554,6 +554,25 @@ at drift 20, spent at that rest.
 anything a little easier (Firefly: leaves lost by 25 8.5 → 3, first leak 9 → 14; survived 90% both).
 Run 6's early pressure was that seed or the opening, not the inland change. Closed.
 
+## Human run 7 (2026-10-01, build 25755d = cbae70bc, before status Potency; 1 Grove node)
+
+**Abandoned at drift 80** (29 min, "started lagging": that was 8 parallel sims starting at the same
+time, not the game; sims are capped at 2 while the user may play). Firefly → Sporeling (25) → Dewdrop
+(50); 16 Dreams, none passed, Kinship-heavy (extended_family, grove_of_kin, spore_kin, kin_and_kindling,
+old_friends) plus both family Blessings; 15 Omens faced, 0 Clear Skies. Dew earned 11,861.
+- Closest: **act 1 median ~0.33**, no leaks; **act 2 median ~0.16** (0.05–0.44), no leaks, banked up
+  to 1,230 at 45; **drift 50: the act 2 boss bit for 10** (the run's biggest loss); **act 3 median
+  ~0.27**, 2 leaves; act 4 2 leaves by 80. Scarecrow 70 s, Barrow King 48 s.
+- **2 Dreamshrooms = 61% of all damage** (47% + 14%), under the old status rules.
+
+Reading: with a good build, act 2–3 normal drifts don't threaten a human, against the target "a fresh
+profile ends in act 2" (runs 5 and 6 ended at 35 and 24, but run 5's act 2 also read 0.22–0.29 before
+its flyer leak). Decisions:
+1. **Acts 2–4 health +25%:** act 2 **2.0** at 26 → **2.9** at 37 → **4.5** at 45 (was 1.6 / 2.3 / 3.6);
+   acts 3–4 **×6.0** (was 4.8). Act 1, boss multipliers, the bite and the Oak unchanged.
+2. **Dreamshroom:** measure before changing: per-final damage shares in the status-Potency A/B, and a
+   fixed-maze probe (Dreamshroom vs Morning Fog / Mistveil / Puffball, damage per Dew).
+
 ## Potency scales statuses (user, 2026-10-01; tower_design.md 175bf263)
 
 Caps confirmed: **Soaked** water bonus 20% × Potency, cap +40%; **Exposed** 25% × Potency (Beacon
