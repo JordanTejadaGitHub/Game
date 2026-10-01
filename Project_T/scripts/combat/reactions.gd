@@ -399,20 +399,32 @@ static func strike_bolt(target: Node2D, damage: float, tower: Node, tag: StringN
 	var rod := _find_rod(target)
 	if rod == null:
 		var at := target.global_position
+		var tracker := ReactionTracker.find(target) if tag == &"static" else null  # Found first: the bolt may dispel it
 		target.take_damage(damage, "light", false, false, tower, tag)
 		if tag == &"static":
-			_static_field(target, at, damage, tower)
+			var reach := _static_field(target, at, damage, tower)
+			_bolt_seen(target, at, damage, reach, tracker)
 		return target
 	_fire(rod, &"lightning_rod", [tower] if tower else [], true)
 	rod.take_damage(damage * ROD_MULTIPLIER, "light", false, false, tower, &"lightning_rod")
 	return rod
 
+# A Charged bolt struck at `at` (screens_ui.md "Charged bolt"): the bolt and spark burst (ChargedBolt, budgeted),
+# the Charged pips empty with a pop, and ReactionTracker.bolt_struck for Sound. `reach` = Static Field's ring.
+static func _bolt_seen(target: Node2D, at: Vector2, damage: float, reach: float, tracker: ReactionTracker) -> void:
+	if tracker == null or not is_instance_valid(tracker):
+		return
+	tracker.bolt_struck.emit(at, damage)
+	ChargedBolt.strike(at, tracker.get_parent(), reach)
+	if is_instance_valid(target) and not target.is_cleansed and target.has_method("flash_status"):
+		target.flash_status(STATIC)
+
 # Static Field: a Static bolt also hits nightmares within 1 tile of where it struck (II: 1.5 tiles,
-# and they gain 1 Static, which can set off their own bolt).
-static func _static_field(struck: Node2D, at: Vector2, damage: float, tower: Node) -> void:
+# and they gain 1 Static, which can set off their own bolt). Returns its reach in pixels (0 = no Static Field).
+static func _static_field(struck: Node2D, at: Vector2, damage: float, tower: Node) -> float:
 	var dreams := _dreams(struck)
 	if dreams == null or not dreams.has_rule(&"static_field"):
-		return
+		return 0.0
 	var deep := dreams.rule_level(&"static_field") > 0
 	var reach := (1.5 if deep else 1.0) * CELL
 	var potency := damage / EnemyStatuses.STATIC_BOLT_MULTIPLIER
@@ -424,6 +436,7 @@ static func _static_field(struck: Node2D, at: Vector2, damage: float, tower: Nod
 		other.take_damage(damage, "light", true, false, tower, &"static")
 		if deep and is_instance_valid(other) and not other.is_cleansed:
 			other.apply_status(STATIC, 1, 0.0, potency, 0, "light", tower)
+	return reach
 
 static func _find_rod(near: Node2D) -> Node2D:
 	var best: Node2D = null
