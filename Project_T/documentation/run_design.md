@@ -817,3 +817,10 @@ Named to fit the fiction: **Withered Tree** ("Tend") and **Mossy Boulder** ("Mov
 
 **Omen rewards: no leaf regrowth (2026-10-01, user: "don't offer regrow leaves if I haven't lost any, and regrowing leaves doesn't feel like a good reward").** Stubborn Blight's "regrow 3 leaves" becomes **+1 Dreamlight** (scaled by act like other rewards: +1 / +1 / +2 / +2). Max-leaf rewards (Leaf Fall +3 max leaves, Restless Wind +2) stay, since they're always useful, but are never offered when you're already at the absolute leaf cap. No Omen reward heals leaves.
 **Revised the same day (user: "don't think we should be offering leaves back for omens as well since they can feel easy sometimes"; human run 4 climbed to 20 leaves on them): no Omen gives leaves of any kind, max leaves included.** Leaf Fall's +3 max leaves becomes **+2 Dreamlight** (by act, as Elder Night); Restless Wind's +2 max leaves becomes **the next Dream includes a Rare+ card, +25 Dew** (as Hard Bark / Moth Night). `reward_max_leaves` stays unused.
+**Revised again (2026-10-01, user: "Omens also shouldn't give Dreamlight, leave it in cards"): no Omen gives Dreamlight.** Dreamlight comes only from family picks, bosses and Dream cards (Glimmering Hunt, Wardens that ripen it). Omen rewards are Dew, Seeds and Dream rewards (a Rare+ card, 4 cards, a Legendary). Replacements (Dew scales by act as before; Balancing Discussion tunes the amounts):
+- **Wilting** (+1 Dreamlight) → **the next Dream offers 4 cards**.
+- **Elder Night** (+1 Dreamlight) → **the next Dream includes a Rare+ card**.
+- **Tramplers** (+1 Dreamlight) → **+50 Dew** (pays back the trampled Thornwalls).
+- **Stubborn Blight** (+1 Dreamlight) → **+40 Dew**.
+- **Leaf Fall** (+2 Dreamlight) → **the next Dream offers 4 cards, one of them Rare+** (the hardest Omen on your side gets the best Dream reward short of Lean Season's Legendary).
+The block rule stays the same: Dew is cut 25% per leaf lost, and a Dream reward is kept with ≤ 1 leaf lost. `reward_dreamlight` on `OmenData` stays unused.
