@@ -137,7 +137,8 @@ func describe_reward(omen: OmenData, act: int, rest_bonus: int = -1) -> String:
 	if omen.reward_rare_dreams > 0:
 		parts.append("a Rare+ card in the next Dream")
 	if omen.reward_extra_dream_cards > 0:
-		parts.append("next Dream offers %d cards" % (dream_state.cards_per_offer + omen.reward_extra_dream_cards))
+		parts.append("next Dream offers %d cards" % maxi(dream_state.cards_per_offer,
+			mini(dream_state.cards_per_offer + omen.reward_extra_dream_cards, DreamState.MAX_OFFER_CARDS)))
 	if omen.reward_rest_bonus_multiplier > 1.0:
 		if rest_bonus >= 0:
 			parts.append("rest bonus +%d Dew" % _extra_rest_bonus(omen, rest_bonus))
@@ -169,6 +170,10 @@ func make_offer(block: int) -> Array[OmenData]:
 		if omen.waiting_for_hook or omen.min_drift > drifts.x or _last_offer_ids.has(omen.id):
 			continue
 		if omen.requires_flyers and not _block_has_flyers(drifts):
+			continue
+		if omen.requires_coat and not _block_has_coat(drifts):
+			continue
+		if omen.requires_legendary and not dream_state.has_legendary_left():
 			continue
 		if omen.needs_free_cells > 0:
 			if free_cells < 0:
@@ -386,6 +391,17 @@ func _act_scale(act: int) -> float:
 
 func _block_has_flyers(drifts: Vector2i) -> bool:
 	return not _block_flyers(drifts).is_empty()
+
+# Hard Bark: a nightmare with a blight coat in drifts `drifts.x`..`drifts.y` (not a boss: bosses ignore Omens).
+func _block_has_coat(drifts: Vector2i) -> bool:
+	for number in range(drifts.x, drifts.y + 1):
+		if number - 1 >= drift_director.drifts.size():
+			break
+		for group in drift_director.drifts[number - 1].groups:
+			for entry in group.entries:
+				if entry.enemy != null and entry.enemy.coat_total > 0 and not entry.enemy.is_boss:
+					return true
+	return false
 
 # The flying nightmares scheduled in drifts `drifts.x`..`drifts.y` (Hollow Wind turns others into them).
 func _block_flyers(drifts: Vector2i) -> Array[EnemyData]:

@@ -11,6 +11,8 @@ class_name OmenData
 @export var flavor: String = ""  # One line in the Heartwood's voice, shown in the whisper face (run_design.md "Omen voice")
 @export var min_drift: int = 0  # Only offered for blocks starting at this drift or later
 @export var requires_flyers: bool = false  # Only offered if the next block has flying creatures
+@export var requires_coat: bool = false  # Only offered if the next block has a coated nightmare (Hard Bark)
+@export var requires_legendary: bool = false  # Only offered if a Legendary can still be offered this run (Lean Season)
 # The offer shows 2 Omens of different kinds (run_design.md "More Omens").
 enum Kind { NIGHTMARES, YOUR_SIDE, DOUBLE_EDGED, MAP }
 @export var kind: Kind = Kind.NIGHTMARES

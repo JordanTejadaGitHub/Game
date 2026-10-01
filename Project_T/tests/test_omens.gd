@@ -20,6 +20,7 @@ func _run() -> void:
 	_test_twists(main)
 	_test_rewards(main)
 	_test_new_omens(main)
+	_test_offer_conditions(main)
 	print("omens test: %s" % ("PASS" if failures == 0 else "%d FAILED" % failures))
 	quit(failures)
 
@@ -201,6 +202,10 @@ func _test_rewards(main: Node) -> void:
 	dreams.unlocked["firefly_jar"] = true
 	_check(dreams.make_offer(15).size() == 5, "Thick Blight: the next Dream offers 5 cards")
 	_check(dreams.make_offer(20).size() == 3, "…only the next one")
+	dreams.cards_per_offer = 4  # Wider Dreams
+	dreams.add_extra_cards(2)
+	_check(dreams.make_offer(25).size() == 5, "…at most 5 cards, Wider Dreams included")
+	dreams.cards_per_offer = 3
 
 	_activate(omens, "restless_wind", 3)
 	var max_leaves := run_state.max_leaves
@@ -337,6 +342,43 @@ func _test_new_omens(main: Node) -> void:
 	omens.tree_seed_bonus = 0
 	omens.active = null
 	director.drifts_started = 0
+
+# Omen audit fixes (run_design.md): Hard Bark only before a block with a coated nightmare; Lean Season only
+# while a Legendary can still be offered this run.
+func _test_offer_conditions(main: Node) -> void:
+	var omens: OmenDirector = main.get_node("%OmenDirector")
+	var dreams: DreamState = main.get_node("%DreamState")
+	var coated := -1
+	var bare := -1
+	for block in range(2, 20):
+		if omens._block_has_coat(omens.get_block_range(block)):
+			coated = block if coated < 0 else coated
+		elif bare < 0:
+			bare = block
+	_check(coated > 0 and bare > 0, "blocks with and without a coated nightmare (%d, %d)" % [coated, bare])
+	var offered := func(block: int, id: String) -> bool:
+		for i in 80:
+			omens._last_offer_ids.clear()
+			if omens.make_offer(block).any(func(o: OmenData) -> bool: return o.id == id):
+				return true
+		return false
+	_check(not offered.call(bare, "hard_bark"), "Hard Bark: never offered before a block with no coated nightmare (block %d)" % bare)
+	_check(offered.call(coated, "hard_bark"), "…offered before one with a coat (block %d)" % coated)
+	# Lean Season (act 2+): needs a Legendary left to give
+	var legendaries: Array = dreams.pool.filter(func(c: UpgradeData) -> bool: return c.rarity == UpgradeData.Rarity.LEGENDARY)
+	var grove_before := dreams.grove_cards.duplicate()
+	for card in legendaries:
+		if not card.in_start_pool and not dreams.grove_cards.has(card.id):
+			dreams.grove_cards.append(card.id)
+	_check(dreams.has_legendary_left(), "a Legendary is left to offer")
+	_check(offered.call(11, "lean_season"), "Lean Season: offered while a Legendary can be offered")
+	for card in legendaries:
+		dreams._banished[card.id] = true
+	_check(not dreams.has_legendary_left() and not offered.call(11, "lean_season"), "…never once no Legendary is left")
+	for card in legendaries:
+		dreams._banished.erase(card.id)
+	dreams.grove_cards.assign(grove_before)
+	omens._last_offer_ids.clear()
 
 func _frames(n: int) -> void:
 	for i in n:

@@ -251,6 +251,7 @@ var current_offer_drift := 0
 var _dreams_without_rare := 0
 var _rare_dreams_left := 0  # Restless Dreams / Omens: the next N offers each include a Rare+
 var _extra_cards_next := 0  # Omens (Thick Blight): the next offer has this many more cards
+const MAX_OFFER_CARDS := 5  # Extra cards stop here (run_design.md "Omen audit fixes"); the Dream screen fits 5
 var _entwined_offered := {}  # Entwined card id -> true once its guaranteed offer happened
 var _banished := {}  # Card id -> true: Let Go took it out of this run's pool
 var _passed_count := {}  # Card id -> times offered and not taken this run
@@ -1407,6 +1408,16 @@ func add_extra_cards(count: int) -> void:
 func add_legendary_dreams(count: int) -> void:
 	_legendary_next += count
 
+# Lean Season is only offered while its reward can pay: a Legendary unlocked (start pool or Grove), in this
+# run's pool, not banished and not taken yet. Its Needs are checked when the Dream is drawn.
+func has_legendary_left() -> bool:
+	for card in pool:
+		if card.rarity == UpgradeData.Rarity.LEGENDARY and (card.in_start_pool or grove_cards.has(card.id)) \
+				and not _banished.has(card.id) and in_run_pool(card) \
+				and not (card.max_stacks > 0 and card_stacks(card.id) >= card.max_stacks):
+			return true
+	return false
+
 # Restless Dreams (bittersweet) takes "Let it pass" away for the rest of the run.
 func can_skip() -> bool:
 	return not has_rule(&"restless_dreams")
@@ -1565,11 +1576,13 @@ func _restore_offer_counters(counters: Dictionary) -> void:
 func make_offer(drift_number: int) -> Array[UpgradeData]:
 	dreams_seen += 1
 	_offer_drift = drift_number
-	var size := cards_per_offer + _extra_cards_next
+	var size := cards_per_offer
 	picks_left = 1
 	if has_rule(&"lucid_dreaming"):  # 4 cards, take 2, no Commons
 		size += LUCID_EXTRA_CARDS
 		picks_left = LUCID_PICKS
+	if _extra_cards_next > 0:  # Thick Blight / Second Wind: at most 5 cards (Wider Dreams too), never fewer than without them
+		size = maxi(size, mini(size + _extra_cards_next, MAX_OFFER_CARDS))
 	_extra_cards_next = 0
 	var offer: Array[UpgradeData] = []
 	var act := drift_director.get_act(drift_number)

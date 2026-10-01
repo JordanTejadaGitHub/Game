@@ -8,6 +8,7 @@ const CARD_PADDING := 24.0  # The box's top + bottom offsets inside a card
 const SECONDARY_SIZE := 12  # Entwined / Deepened / "Needs Dewdrop" lines
 const SECONDARY_MIN_SIZE := 10
 const SCREEN_MARGIN := 240.0  # Title, buttons and gaps around the cards
+const SIDE_MARGIN := 16.0  # Left and right of the card row when many cards (5) narrow it
 const ENTWINED_COLOR := Palette.SPRIG  # Vine border
 const DEEPENED_COLOR := Palette.DEWLIGHT
 const BITTERSWEET_COLOR := UiStyle.POOR  # The cost line: Ember, the palette's "bad" colour
@@ -19,6 +20,7 @@ const SEED_COLOR := Color("d4ec9c")  # Heartwood 32 "Newleaf": what a Seed card 
 var _was_paused := false
 var _title := Label.new()
 var _cards := HBoxContainer.new()
+var _card_width := CARD_SIZE.x  # Narrower when 5 cards (Thick Blight + Wider Dreams) would pass the screen
 var _skip := Button.new()
 var _reroll := Button.new()  # Second Thoughts (Memory Grove)
 var _dev_any := Button.new()  # "Dev: any card…" (dev runs of debug builds; demo_scope.md "Pick any card")
@@ -80,6 +82,9 @@ func _show_offer(cards: Array[UpgradeData], drift_number: int) -> void:
 	_dev_any.visible = DreamState.dev_tools_on()
 	_reroll.text = "Dream again · %d left" % dream_state.rerolls_left
 	_reroll.visible = dream_state.rerolls_left > 0
+	var gap := float(_cards.get_theme_constant("separation"))
+	var room := get_viewport_rect().size.x - 2.0 * SIDE_MARGIN - gap * (cards.size() - 1)
+	_card_width = minf(CARD_SIZE.x, floorf(room / maxf(cards.size(), 1.0)))
 	for child in _cards.get_children():
 		_cards.remove_child(child)  # Right away: a reroll rebuilds the row in the same frame
 		child.queue_free()
@@ -98,7 +103,7 @@ func _show_offer(cards: Array[UpgradeData], drift_number: int) -> void:
 
 func _make_card(card: UpgradeData) -> Button:
 	var button := Button.new()
-	button.custom_minimum_size = CARD_SIZE
+	button.custom_minimum_size = Vector2(_card_width, CARD_SIZE.y)
 	button.focus_mode = Control.FOCUS_NONE
 	button.pressed.connect(func() -> void:
 		if _held_for_diagram:
@@ -285,7 +290,7 @@ func _fit_card(button: Button, box: Control, secondary: Array[Label]) -> void:
 			for label in secondary:
 				if label.get_theme_font_size("font_size") > SECONDARY_MIN_SIZE:
 					label.add_theme_font_size_override("font_size", SECONDARY_MIN_SIZE)  # Refits via minimum_size_changed
-		button.custom_minimum_size = Vector2(CARD_SIZE.x, maxf(CARD_SIZE.y, needed))
+		button.custom_minimum_size = Vector2(_card_width, maxf(CARD_SIZE.y, needed))
 	box.minimum_size_changed.connect(fit)
 	fit.call_deferred()
 

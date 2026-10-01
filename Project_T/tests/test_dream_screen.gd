@@ -70,6 +70,20 @@ func _run() -> void:
 				var line_rect: Rect2 = line.get_global_rect()
 				_check(card_rect.grow(0.5).encloses(line_rect), "1280×720: %s: \"%s\" stays inside the card (%s in %s)"
 					% [_name_of(card_button), String(line.text).left(20), line_rect, card_rect])
+	# Thick Blight with Wider Dreams: 5 cards, the most an offer shows (run_design.md "Omen audit fixes"), still fit
+	var five: Array[UpgradeData] = [bloom, longest[0], longest[1], longest[2], longest[3]]
+	screen._show_offer(five, 25)
+	for i in 4:
+		await process_frame
+	_check(screen._cards.get_child_count() == 5, "five cards shown")
+	for column in screen._cards.get_children():
+		var five_button := column.get_child(0) as Button
+		var five_rect := five_button.get_global_rect()
+		_check(small.encloses(five_rect), "1280×720, 5 cards: %s fits the screen (%s)" % [_name_of(five_button), five_rect])
+		for line in five_button.find_children("*", "", true, false):
+			if (line is Label or line is RichTextLabel) and line.is_visible_in_tree() and line.text != "":
+				_check(five_rect.grow(0.5).encloses(line.get_global_rect()), "1280×720, 5 cards: %s: \"%s\" stays inside the card"
+					% [_name_of(five_button), String(line.text).left(20)])
 	root.size = Vector2i(1280, 800)
 	screen._show_offer(cards, 25)
 	for i in 3:

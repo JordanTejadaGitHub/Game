@@ -10,5 +10,6 @@ description = "The {rest} bonus after this {block} is cut to a quarter."
 flavor = "A thin season, with a strange gift at its end."
 kind = 1
 min_drift = 26
+requires_legendary = true
 rest_bonus_multiplier = 0.25
 reward_legendary = true
