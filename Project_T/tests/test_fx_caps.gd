@@ -43,6 +43,11 @@ func _run() -> void:
 	Fx.view_rect = Rect2(0, 0, 100, 100)
 	_check(Fx.on_screen(Vector2(50, 50)) and not Fx.on_screen(Vector2(500, 500)), "on_screen reads the visible rect")
 	Fx.view_rect = Rect2()
+	# Callouts stack instead of overlapping (user: "Lightning Rod!" over "Thunderclap!").
+	var first := Fx.callout("Thunderclap!", Palette.GLOW, Vector2(300, 300), world, &"t1")
+	var second := Fx.callout("Lightning Rod!", Palette.GLOW, Vector2(305, 302), world, &"t2")
+	_check(first != null and second != null and absf(first.global_position.y - second.global_position.y) >= Fx.CALLOUT_CLEAR.y,
+		"a second callout on the same spot stacks a line up")
 	world.queue_free()
 	await process_frame
 	print("fx caps test: %s" % ("PASS" if failures == 0 else "%d FAILED" % failures))

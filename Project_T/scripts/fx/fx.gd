@@ -52,6 +52,7 @@ const CROWN_OFFSET := Vector2(0, -34)  # The Crowned crown mark over its callout
 const CALLOUT_LIFE := 0.9
 const CALLOUT_COOLDOWN := 0.5  # Per reaction, so a chain doesn't wall the screen with words
 const MAX_CALLOUTS := 3
+const CALLOUT_CLEAR := Vector2(110, 20)  # Two callouts closer than this stack (a line apart)
 const BADGE_OFFSET := Vector2(0, -60)
 const HITSTOP_SECONDS := 0.07
 const HITSTOP_SCALE := 0.05  # Speed during a hitstop
@@ -261,6 +262,13 @@ static func callout(text: String, colour: Color, at: Vector2, parent: Node, key:
 	if _callouts_alive.size() >= MAX_CALLOUTS or now < _callout_cooldown.get(key, 0):
 		return null
 	_callout_cooldown[key] = now + int(CALLOUT_COOLDOWN * 1000)
+	# Stacked, never drawn over each other (user: "Lightning Rod!" over "Thunderclap!"): a callout that would
+	# land on a live one moves up a line, up to MAX_CALLOUTS lines.
+	for i in MAX_CALLOUTS:
+		if not _callouts_alive.any(func(c) -> bool: return is_instance_valid(c) \
+				and absf(c.global_position.x - at.x) < CALLOUT_CLEAR.x and absf(c.global_position.y - at.y) < CALLOUT_CLEAR.y):
+			break
+		at.y -= CALLOUT_CLEAR.y
 	var node := FxCallout.new(text, colour)
 	parent.add_child(node)
 	node.global_position = at
