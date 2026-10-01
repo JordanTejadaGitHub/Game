@@ -3074,6 +3074,7 @@ func _update_beam(delta: float) -> void:
 		_show_attack_pose()
 	if _beam_target == null:
 		return
+	_animate_beam_pose()
 	var fast: bool = _beam_target.statuses.has(EnemyStatuses.DROWSY) or _beam_target.statuses.is_held()
 	var rate := attack_data.beam_ramp_per_second * (BEAM_RAMP_FAST if fast else 1.0)
 	_beam_ramp = minf(_beam_ramp + rate * delta, attack_data.beam_ramp_max)
@@ -3095,6 +3096,17 @@ func _update_beam(delta: float) -> void:
 	if not is_instance_valid(_beam_target) or _beam_target.is_cleansed:
 		_stop_beam()  # The target is gone: back to the idle sheet (8 frames), not the 6-frame pose
 	queue_redraw()
+
+# While the beam is on, the attack sheet loops from its release frame to its last (it used to hold the
+# release frame: user, "the Sunpetal animation gets stuck when attacking").
+func _animate_beam_pose() -> void:
+	if tower_data.attack_texture == null or _legacy_active or sprite.texture != tower_data.attack_texture:
+		return
+	var first := tower_data.attack_release_frame
+	var span := maxi(tower_data.attack_frame_count - first, 1)
+	var frame := first + int(_anim_time * tower_data.animation_fps) % span
+	if sprite.frame != frame:
+		sprite.frame = frame  # Only on change: each set redraws
 
 func _stop_beam() -> void:
 	var was_beaming := _beam_target != null
