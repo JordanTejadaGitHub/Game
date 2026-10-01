@@ -516,9 +516,9 @@ reached 35: 8 / 8 / 6 of 20; Stag dispelled 14/19, 15/20, 12/19. Perks add +7% m
 every card node), and ~6 cards are taken by 50 in every profile. *(The first "fits the build" shares, 36% → 24%, were
 **invalid**: the classifier counted style-only cards like "maze" or "economy" as off-build.)*
 **Re-run** (e4e54ba2, family-line classifier, same seeds): matched 24% → 17%, generic ~75% in all,
-off-build **1% → 8%**, and of those 69 offers only **13 are dead** (~1.5% of offers on Grove
-profiles: patient_roots, heavy_eyelids with no status gate; rolling_thunder, rain_on_glass gated on
-unlocked, not planted, Wardens). **No dilution problem.** Survival: 32.7 / 31.8 / 32.9 mean drift
+off-build **1% → 8%**, and of those 69 offers only **10 are dead** (~0.8% of offers on Grove
+profiles: patient_roots with no status gate; rolling_thunder, rain_on_glass gated on unlocked, not
+planted, Wardens; heavy_eyelids is usable, since Bloomcap applies Drowsy). **No dilution problem.** Survival: 32.7 / 31.8 / 32.9 mean drift
 reached, so the first run's "fresh ≥ half ≥ full" was noise: **the bot shows no Grove effect either
 way** (every profile dies in act 2). The Grove's value has to come from human runs on Dev Grove
 presets. Small fix: status gates on the two dead cards (Roguelite Code).
