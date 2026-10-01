@@ -439,3 +439,5 @@ echoes (Remembering Oak: spawns this run's dispelled bosses from the draw at a h
 6. Boss pools: the draw and boss slot first (Stag, Hag and Queen already give acts 1–3 one
    each), then the new bosses act by act: Night Mare and Scarecrow, then Huntsman and
    Lamplighter, then Barrow King and Mourning Mother.
+
+**Night Mare, final fallback (2026-09-30):** laps starting at 5 (5/7/9) at ×2.0–2.25 still didn't separate (Dreams 14/15, skip 12/15; it dies on its second pass). Now it **stays and drains at the Heartwood like the other bosses (1 leaf every 2 s, hittable), then gallops back for another lap (+30% speed); each visit lingers longer: 6 s, 10 s, 14 s (≈3, 5, 7 leaves)**. Damage at the Heartwood decides it. Swept Dreams vs skip at ×1.75 / 2.0 after Enemy Code's commit.
