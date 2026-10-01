@@ -691,9 +691,11 @@ every Warden has two damage axes, and builds lean one way:
 - **Reactions** still read the source's Potency for **damage only**; what a Reaction *does* (sleep
   length, freeze length, arcs) doesn't scale with it.
 - **Still untouched:** hits, stack caps, and how long statuses last (except Rooted, above).
-- **The Deep focus** becomes simply **+18% Potency** per Deep rank; the separate +duration is
-  dropped (confirmed by Balancing Discussion). Exposed reaches its +40% cap at Potency 1.6 (about a
-  base Warden with 3 Deep ranks); past that, Deep still grows effect damage and the other statuses.
+- **The Deep focus** is simply **+25% Potency** per Deep rank (raised from +18% on 2026-10-01 by
+  Balancing Discussion: a committed Deep build reached 4–6 fewer drifts than Power, and Exposed
+  never hit its cap); the separate +duration is dropped. Rank IV Deep = Potency 2.0: Soaked at its
+  cap, and Exposed capped from rank III (it caps at Potency 1.6). Past the caps, Deep still grows
+  effect damage and the other statuses.
 - **Several Wardens on one status:** the status uses the **strongest current applier's** Potency
   (as Poisoned already does), never a sum. With the caps, this stops one high-Potency Warden from
   lifting everyone's statuses past the limits.
@@ -710,7 +712,7 @@ every Warden has two damage axes, and builds lean one way:
 - **Order:** `effect damage × Potency × family resist/weak × Marked` (no crit, no attack shape
   except the Whisper Swarm's area rule, as before).
 - **Sources:** a few Wardens start above 100% (`warden_stats.md`), the Nurture **Deep** focus
-  (+18% Potency per Deep rank, see below), and the Potency cards in `dream_design.md`.
+  (+25% Potency per Deep rank, see below), and the Potency cards in `dream_design.md`.
 - **Shown** in the Warden tooltip next to crit (e.g. "Crit 5% · ×2 · Potency 130%"), with what it
   does for this Warden's status (e.g. *"Soaked: water hits +26%"*, *"Rooted 1.3 s"*). Effect damage
   numbers use the status's colour, so a poison build *looks* different from a crit build.
