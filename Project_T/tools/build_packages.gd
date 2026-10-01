@@ -44,7 +44,7 @@ const PACKAGES := {
 	"C4 Precision": ["Glinting Dew", "Sharpened Light", "Shattering Blow", "Still Target", "First Light", "Lone Hunter", "Hunter's Patience", "Watchful Rest", "Heavy Stones", "Called Shot"],
 	"C5 Affliction": ["Bitter Sap", "Seeping", "Venom Bloom", "Lasting Dreams", "Heavy Air", "Crowd Breaker", "Crowded Path", "Last Breath", "Thinning the Herd"],
 	"C6 Maze": ["Cozy Corners", "Straightaway", "Winding Path", "Heart of the Maze", "Forest's Edge", "Hedge Maze", "Bitter Hedges", "Thornheart", "Weathered Walls"],
-	"C7 Tending": ["Cleared Ground", "Heartwood's Reach", "Reclaimed Earth", "Tended Forest", "Burn Back the Dead Wood", "Morning Dew", "Living Walls", "Scented Hedge", "Thorn Snare"],
+	"C7 Tending": ["Heartwood's Reach", "Tended Stumps", "Hollow Ground", "Reclaimed Earth", "Tended Forest", "Burn Back the Dead Wood", "Morning Dew", "Living Walls", "Scented Hedge", "Thorn Snare"],
 	"C8 Kinship": ["Family Ties", "Sweet Harmony", "Old Friends", "Rooted Bond", "Extended Family", "Kin and Kindling", "Blood Is Thicker", "Elder Kin"],
 	"C9 Swift": ["Momentum", "Quickening", "Flurry", "Restless Roots", "Hummingheart"],  # Grove build branch
 	"C10 Wide Reach": ["Broad Splash", "Lingering Splash", "Far Reach", "Spillover"],  # Grove build branch
