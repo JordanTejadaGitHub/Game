@@ -543,8 +543,14 @@ at drift 20, spent at that rest.
   leaves)**; 17 close calls.
 - Same curve as run 5, so the differences are the **map** (shorter routes, open glade) and the maze
   (fewer walls). Two Firefly-first runs lost 9 and 15 leaves in act 1 against a fresh target of 0–3.
-- Held for the sim re-baseline on the inland map and the user's read; candidate lever: act 1's ramp
-  (`act1_health_multiplier` 1.15 at drift 20) to compensate for the shorter routes.
+- User: *"I like the Heartwood inland; making it shorter doesn't matter because you don't have
+  enough towers to make a difference. It feels fair. I haven't unlocked perks yet so this is fine so
+  far. Needs a bit more testing."* **No change.**
+- **Sim re-baseline** (980f0b41, fresh, Sporeling via the bot's pick, 20 seeds): the map change is
+  within noise (same old bot, edge → inland: Balanced survives the boss 90 → 85%, skip 45 → 50%; the
+  opening route is ~4 tiles *longer* at drift 1). The newer bot (Kinship placement + branches first)
+  lifts Balanced to 95% and skip to 70%. **New baseline = inland, current bot.** An exact edge/inland
+  A/B (4c8050a9 vs 722cf38b, Sporeling and Firefly first) is running.
 This conflicts with the targets (Half Grove reaches act 4, Full wins). Next: find out whether the
 off-build cards are dead for the build (a `can_offer` rule fixes it) or usable (a pool-size question),
 then bring the fix to the user. Caveat: one family pair, one bot style, which picks by tag + rarity.
