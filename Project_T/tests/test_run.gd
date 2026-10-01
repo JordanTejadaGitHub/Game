@@ -116,12 +116,16 @@ func _test_blocks_and_rests() -> void:
 		and absf(director.get_early_multiplier(41) - lerpf(director.act2_steep_value, act2_end, 0.5)) < 0.001 and director.get_early_multiplier(14) > 1.0
 		and director.get_early_multiplier(14) < 1.15, "both ramps are straight lines")
 	# One Deeply Blighted from drift 31 when the drift lists none (boss drifts: from the escort); two from 76.
-	for number in [25, 26, 30, 31, 35, 45, 50, 51, 75, 76, 100]:
+	# Never a kind on its intro drift (ade9a9ef, human run 5): a drift of only new kinds (31: the Phantom) gets none.
+	for number in [25, 26, 30, 31, 32, 35, 45, 50, 51, 75, 76, 100]:
 		var schedule: Array = director.drifts[number - 1].get_schedule()
 		var listed: int = schedule.filter(func(a: Array) -> bool: return a[2]).size()
+		var eligible: int = schedule.filter(func(a: Array) -> bool: return not a[1].is_boss and a[1].intro_drift != number).size()
 		director.add_guaranteed_elite(schedule, number)
 		var elites: Array = schedule.filter(func(a: Array) -> bool: return a[2])
-		var expected := listed if number < 31 or listed > 0 else (2 if number >= 76 else 1)
+		var expected := listed if number < 31 or listed > 0 else mini(2 if number >= 76 else 1, eligible)
+		if number == 32:
+			_check(eligible > 0 and elites.size() >= 1, "drift 32 (older kinds again) gets its guaranteed elite")
 		_check(elites.size() == expected and elites.all(func(a: Array) -> bool: return not a[1].is_boss),
 			"drift %d: %d elite(s) (%d listed)" % [number, elites.size(), listed])
 	var stag: EnemyData = load("res://resource/enemy/old_stag.tres")
