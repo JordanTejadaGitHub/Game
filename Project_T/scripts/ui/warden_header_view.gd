@@ -176,6 +176,9 @@ func _probe_for(data: TowerData, dreams: DreamState) -> Tower:
 	_probe.clear_dream_cache()
 	return _probe
 
+# One row of stats. Each stat (its icon and value) is one hover / tap target, so its tip sits over the stat
+# pointed at, and the tip says what it means for this Warden: "Attack speed: 1.24 attacks a second (base 1.10,
+# Swift +13%)", with the Dream / Nurture breakdown and the local buffs (auras, Kinships) that changed it.
 func _stat_row(parts: Array) -> void:
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 0)
@@ -187,25 +190,65 @@ func _stat_row(parts: Array) -> void:
 			row.add_child(dot)
 		var id: StringName = part[1]
 		var is_status: bool = part.size() > 2 and part[2]
-		var tip := IconInfo.status_tooltip(id) if is_status else IconInfo.stat_tooltip(id)
-		if id != &"" and IconInfo.icon(id) != null:
-			var icon := IconInfo.make_icon(id, 1)  # Carries its own TapTip
+		var target := HBoxContainer.new()  # The icon and its value: one tip
+		target.add_theme_constant_override("separation", 3)
+		var art: Texture2D = IconInfo.icon(id) if id != &"" else null
+		if art != null:
+			var icon := TextureRect.new()
+			icon.texture = art
+			icon.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+			icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+			icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+			icon.custom_minimum_size = Vector2(16, 16)
 			icon.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-			row.add_child(icon)
-			var gap := Control.new()
-			gap.custom_minimum_size = Vector2(3, 0)
-			row.add_child(gap)
+			icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			target.add_child(icon)
 		var label := Label.new()
 		label.text = part[0]
-		if not is_status and id != &"" and is_instance_valid(_tower) and _tower != _probe:
-			# Dream bonuses on Wardens: the real number, and what made it (base · Nurture · cards).
-			var breakdown := DreamBonusView.stat_breakdown(_tower, id)
-			if breakdown != "":
-				tip = breakdown + ("\n" + tip if tip != "" else "")
-			if DreamBonusView.is_boosted(_tower, id):
-				label.text += " ↑"
-				label.add_theme_color_override("font_color", DreamBonusView.BOOSTED_COLOR)
+		label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		if not is_status and id != &"" and is_instance_valid(_tower) and _tower != _probe and DreamBonusView.is_boosted(_tower, id):
+			label.text += " ↑"
+			label.add_theme_color_override("font_color", DreamBonusView.BOOSTED_COLOR)
+		target.add_child(label)
+		var tip := IconInfo.status_tooltip(id) if is_status else stat_tip(id)
 		if tip != "":
-			TapTip.attach(label, tip)
-		row.add_child(label)
+			TapTip.attach(target, tip)
+		row.add_child(target)
 	stats.add_child(row)
+
+const LOCAL_BUFF_STATS := {&"damage": "damage", &"attack_speed": "attack_speed", &"range": "range"}
+
+# What `stat` means for the shown Warden, then what made it ("base 24 · Nurture II +20% · Acorn +5%").
+func stat_tip(stat: StringName) -> String:
+	if not is_instance_valid(_tower):
+		return IconInfo.stat_tooltip(stat)
+	var attack := _tower.attack_data
+	var meaning := ""
+	match stat:
+		&"damage":
+			meaning = "Damage: %s per hit" % BossDossier.thousands(roundi(_tower.get_damage()))
+		&"attack_speed":
+			meaning = "Attack speed: %.2f attacks a second" % _tower.get_attacks_per_second()
+		&"range":
+			meaning = ("Range: %.1f–%.1f tiles" % [attack.min_range, _tower.get_range_cells()]) if attack.min_range > 0.0 \
+				else "Range: %.1f tiles" % _tower.get_range_cells()
+		&"crit_chance":
+			meaning = "Crit chance: %d%% of its hits are critical" % roundi(_tower.get_crit_chance() * 100)
+		&"crit_damage":
+			meaning = "Critical hits deal ×%s damage" % str(attack.crit_multiplier)
+		&"potency":
+			meaning = "Potency: its effects (statuses, clouds, Reactions) deal %d%%" % roundi(_tower.get_potency() * 100)
+		_:
+			return IconInfo.stat_tooltip(stat)
+	var why: Array[String] = []
+	if _tower != _probe:
+		var breakdown := DreamBonusView.stat_breakdown(_tower, stat)  # "Damage 18 → 27: base 18 · Nurture II +20%"
+		if breakdown.contains(": "):
+			why.append(breakdown.split(": ", true, 1)[1])
+		if LOCAL_BUFF_STATS.has(stat):
+			for entry in BuffSources.for_tower(_tower):
+				if entry.stat == LOCAL_BUFF_STATS[stat] and BuffSources.LOCAL_KINDS.has(entry.kind):
+					var source: String = "Kindred" if entry.get("kindred", false) \
+						else (entry.source.tower_data.display_name if entry.source is Tower and is_instance_valid(entry.source) else String(entry.kind).capitalize())
+					why.append("%s %s" % [source, BuffSources._signed(entry.amount, stat == &"range")])
+	return meaning + (" (%s)" % ", ".join(why) if not why.is_empty() else "")

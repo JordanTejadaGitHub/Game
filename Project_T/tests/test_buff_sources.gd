@@ -78,6 +78,16 @@ func _run() -> void:
 		"the panel lists the buffs and a total (%s)" % [texts])
 	_check(buffs.get_children().any(func(c: Control) -> bool: return c is Button and c.text.begins_with("Elder Stump")),
 		"a Warden source is a button")
+	# Stat tips (story chat 2026-10-01): one tip per stat (icon + value), saying what it means for this Warden.
+	var stat_tips: Array = panel._stats.find_children("*", "TapTip", true, false).map(func(t: TapTip) -> String: return t._label.text)
+	var speed_tip: String = stat_tips.filter(func(t: String) -> bool: return t.begins_with("Attack speed:")).front() if stat_tips.any(func(t: String) -> bool: return t.begins_with("Attack speed:")) else ""
+	_check(stat_tips.any(func(t: String) -> bool: return t.begins_with("Damage: ") and t.contains("per hit"))
+		and speed_tip.contains("attacks a second") and speed_tip.contains("Elder Stump +")
+		and stat_tips.any(func(t: String) -> bool: return t.begins_with("Range: ") and t.contains("tiles")),
+		"each stat's tip says its value and what changed it (%s)" % [stat_tips])
+	var speed_targets: Array = panel._stats.find_children("*", "TapTip", true, false).filter(func(t: TapTip) -> bool: return t._label.text.begins_with("Attack speed:"))
+	_check(speed_targets.size() == 1 and speed_targets[0].get_parent().get_child_count() == 3,
+		"the speed tip belongs to its own icon + value (one target, not the row)")
 	# Never more than MAX_SHARE of the screen; Sell and Close in the footer.
 	root.size = Vector2i(1280, 800)
 	await process_frame
