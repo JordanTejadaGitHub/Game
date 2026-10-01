@@ -52,6 +52,28 @@ func _run() -> void:
 	var amounts: Array = enemies.slice(1).map(func(e) -> int: return e.max_health - e.health)
 	_check(amounts.all(func(a: int) -> bool: return a == amounts[0]), "every deferred hit dealt the same as the immediate ones (%s)" % [amounts.slice(0, 3)])
 
+	# Edge cases: a queued target dispelled before the flush (its Dew paid once, by the hit that dispelled it),
+	# and one gone from the field (reached the Heartwood: freed) are skipped without errors or extra credit.
+	var run_state: RunState = main.get_node("%RunState")
+	for enemy in enemies:
+		tower.hit(enemy, 1.0, true, Tower.NO_CRIT)
+	var queued: Array = queue._queue.map(func(entry: Array) -> Node2D: return entry[1])
+	_check(queued.size() == 40 - AreaHitQueue.BUDGET, "a second burst queues its overflow again")
+	var dispelled: Node2D = queued[0]
+	var gone: Node2D = queued[1]
+	var dew_before := run_state.dew
+	dispelled.take_damage(dispelled.health * 10.0)
+	var dew_after_dispel := run_state.dew
+	gone.queue_free()  # As when it reaches the Heartwood
+	var dealt_before: Array = queued.slice(2).map(func(e) -> int: return e.max_health - e.health)
+	await process_frame
+	await process_frame
+	_check(run_state.dew == dew_after_dispel and dew_after_dispel >= dew_before,
+		"the dispelled nightmare's Dew is paid once (%d → %d → %d)" % [dew_before, dew_after_dispel, run_state.dew])
+	var dealt_after: Array = queued.slice(2).map(func(e) -> int: return e.max_health - e.health)
+	_check(queue.pending() == 0 and range(dealt_after.size()).all(func(i: int) -> bool: return dealt_after[i] > dealt_before[i]),
+		"the other queued hits still land")
+
 	print("area hit queue test: %s" % ("PASS" if failures == 0 else "%d FAILED" % failures))
 	main.queue_free()
 	await process_frame
