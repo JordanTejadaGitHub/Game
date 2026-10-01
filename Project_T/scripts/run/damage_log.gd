@@ -249,7 +249,7 @@ func _show_number(event: Event) -> void:
 	if numbers_mode == NumbersMode.OFF or not is_instance_valid(event.enemy) or event.amount < 0.5:
 		return
 	var big: bool = event.combos.has(&"crit") or event.combos.has(&"weak") or event.combos.has(&"conducted") \
-		or event.combos.has(&"popped") or event.kind == &"reaction" \
+		or event.combos.has(&"popped") or event.kind == &"reaction" or event.kind == &"bolt" \
 		or event.amount >= event.enemy.max_health * 0.1
 	if numbers_mode == NumbersMode.BIG and not big:
 		return
@@ -267,6 +267,9 @@ func _show_number(event: Event) -> void:
 	if event.kind == &"status":
 		size = 11
 		color = color.darkened(0.15)
+	elif event.kind == &"bolt" and not event.combos.has(&"crit"):
+		size = 16  # A Charged bolt: slightly larger, warm, with its bolt glyph (screens_ui.md "Charged bolt")
+		color = Palette.GLOW
 	# Thinning (platforms.md: busy fights stay smooth): a nightmare's ordinary hits and ticks within
 	# NUMBER_MERGE_WINDOW add to its last number instead of spawning more; past MAX_NUMBERS alive only
 	# big ones (crits, weak, Reactions) still appear. A busy 3× fight made hundreds of number nodes.
@@ -281,6 +284,7 @@ func _show_number(event: Event) -> void:
 	var number := FloatingNumber.new(event.enemy.global_position + Vector2(randf_range(-10, 10), -30),
 		event.amount, color, size)
 	number.source = event.source
+	number.bolt = event.kind == &"bolt"
 	add_child(number)
 	if _last_number.size() > 256:
 		_last_number.clear()
@@ -339,6 +343,7 @@ class FloatingNumber:
 	var _size: int
 	var _age := 0.0
 	var source: Node  # The Warden that dealt it: a click on the number focuses it
+	var bolt := false  # A Charged bolt's number: a small bolt glyph before it
 
 	# Adds `amount` to the number, tinting it toward `tint` (Harmony).
 	func add(amount: float, tint: Color) -> void:
@@ -376,6 +381,13 @@ class FloatingNumber:
 			Color(Palette.DREAD, alpha))
 		draw_string(font, Vector2(-width / 2, 0), _text, HORIZONTAL_ALIGNMENT_LEFT, -1, _size,
 			Color(_color, alpha))
+		if bolt:  # A small zigzag bolt left of the number
+			var x := -width / 2 - 4.0
+			var h := _size * 0.8
+			var glyph := PackedVector2Array([Vector2(x + 2, -h), Vector2(x - 3, -h * 0.42), Vector2(x + 2, -h * 0.5),
+				Vector2(x - 3, 0)])
+			draw_polyline(glyph, Color(Palette.DREAD, alpha), 4.0)
+			draw_polyline(glyph, Color(_color, alpha), 2.0)
 		WorldLabel.end_screen_size(self)
 
 # --- Credit ------------------------------------------------------------------------------------------

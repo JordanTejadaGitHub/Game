@@ -12,6 +12,8 @@ const GROUP := &"reaction_tracker"
 signal reaction_fired(id: StringName, enemy: Node2D, chain: int, towers: Array)
 # A chain reached `count` links (2, 3, …) at `where` (chain badge from ×2, surge at ×5, Dawnburst at ×10).
 signal chain_reached(count: int, where: Vector2, towers: Array)
+# A Charged (Static) bolt struck at `at` for `damage` (Reactions.strike_bolt; ChargedBolt shows it), for Sound.
+signal bolt_struck(at: Vector2, damage: float)
 
 var counts := {}  # Reaction id -> times it fired this run
 var longest_chain := 0
