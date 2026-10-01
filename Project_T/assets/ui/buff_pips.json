@@ -1,0 +1,37 @@
+{
+	"note": "Buff pips: 10 px, x1 under a Warden on the map, x2 in panels; nearest. kinship and penalty are light greys: modulate them (family colour; plum). Stack badges x2..x9 sit to the pip's right; use x9 for 9 or more.",
+	"pips": {
+		"frame_size": 10,
+		"icons": {
+			"acorn": 0,
+			"elder_stump": 1,
+			"grandmother_oak": 3,
+			"grove_heart": 2,
+			"kindred": 6,
+			"kinship": 5,
+			"old_growth": 4,
+			"penalty": 8,
+			"whole_tree": 7
+		},
+		"image": "buff_pips.png"
+	},
+	"stacks": {
+		"frame_height": 7,
+		"frame_width": 9,
+		"icons": {
+			"x2": 0,
+			"x3": 1,
+			"x4": 2,
+			"x5": 3,
+			"x6": 4,
+			"x7": 5,
+			"x8": 6,
+			"x9": 7
+		},
+		"image": "buff_stacks.png"
+	},
+	"tint": [
+		"kinship",
+		"penalty"
+	]
+}
