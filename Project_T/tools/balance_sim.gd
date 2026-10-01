@@ -87,6 +87,8 @@ var _save_since := -1  # The drift the saver started holding Dew at
 var _approach_timer := 0.0
 var bosses := {}  # Instance id -> a boss fight: drift, kind, health, route and Heartwood seconds and damage (bosses column)
 var dream_offers := {"offers": 0, "pool": 0, "pool_5": -1, "cards": 0, "matched": 0, "generic": 0, "off": 0}  # Dream pool / build relevance (dream_* columns)
+var dream_off_ids := {}  # Off-build card id -> times offered (dream_off_ids column)
+const CARD_LINES := ["spore", "water", "wind", "song", "acorn", "wing", "root", "light", "stone", "wall"]  # Warden lines a card tag can name (the 9 families + Thornwall)
 var wardens_24 := ""  # The Wardens on the map as drift 25 starts ("id:n+…", wardens_24 column)
 var auras_24 := -1  # Attackers under at least one aura Warden as drift 25 starts (auras_24 column)
 
@@ -665,6 +667,7 @@ func _finish() -> void:
 	summary.auras_24 = auras_24
 	summary.kin_pairs_24 = kin_pairs.get(25, -1)
 	summary.kin_pairs_50 = kin_pairs.get(51, -1)
+	summary.dream_off_ids = "+".join(dream_off_ids.keys().map(func(id) -> String: return "%s:%d" % [id, dream_off_ids[id]]))
 	summary.dream_pool_mean = snappedf(float(dream_offers.pool) / maxf(dream_offers.offers, 1.0), 0.1)
 	var runs_path := out_dir.path_join("runs.csv")
 	var keys := summary.keys()
@@ -925,8 +928,9 @@ func _boss_leaked(enemy: Node2D) -> void:
 	fight.leaked = true
 
 # --- Dream pool and build relevance (Grove control: does a big Grove pool dilute the Dreams?) -----------
-# Per offer: the drawable pool (DreamState.can_offer now) and each offered card as matched (its tags /
-# stat line / stat Warden belong to a family on the map), generic (no family at all) or off (another family's).
+# Per offer: the drawable pool (DreamState.can_offer now) and each offered card as matched (its Warden-line
+# tags / stat line / stat Warden belong to a line on the map), generic (no Warden line; style tags don't count)
+# or off (only other lines').
 func _note_offer(offer: Array) -> void:
 	var act := director.get_act(maxi(director.drifts_started, 1))
 	var pool_size := dreams.pool.filter(func(c: UpgradeData) -> bool: return dreams.can_offer(c, act)).size()
@@ -942,7 +946,8 @@ func _note_offer(offer: Array) -> void:
 			families[dreams.family_of(tower.tower_data.get_id())] = true
 	for card in offer:
 		dream_offers.cards += 1
-		var own: Array = card.tags.duplicate()
+		# Only Warden lines count (tags also hold style tags: maze, reaction, economy…, which are generic).
+		var own: Array = card.tags.filter(func(t: String) -> bool: return CARD_LINES.has(t))
 		if card.stat_line != "":
 			own.append(card.stat_line)
 		if own.is_empty() and card.stat_warden == "":
@@ -952,6 +957,7 @@ func _note_offer(offer: Array) -> void:
 			dream_offers.matched += 1
 		else:
 			dream_offers.off += 1
+			dream_off_ids[card.id] = int(dream_off_ids.get(card.id, 0)) + 1
 
 # "id:count+…" of every Warden on the map, most first.
 func _warden_counts() -> String:
