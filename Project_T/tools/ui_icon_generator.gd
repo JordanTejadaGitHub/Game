@@ -39,6 +39,7 @@ func _init() -> void:
 	sheet.save_png(OUT + "clear_tool.png")
 	_save_preview(sheet)
 	_make_icons()
+	_make_omen_cards()
 	print("ui icons written")
 	quit()
 
@@ -276,6 +277,7 @@ const ICON_ALIASES := {"always_damp": "damp", "burrows": "rises", "dew": "dew_co
 var _cells := {}  # Vector2i -> ramp index
 var _ramps: Array = []  # [light, mid, dark]
 var _details: Array = []  # [Vector2i, Color], painted last
+var _n := ICON  # size of the icon being drawn (16; the Omen card emblems are 32)
 
 func _make_icons() -> void:
 	var ids: Array = STATUS_ICONS + STAT_ICONS + NIGHTMARE_ICONS + DAMAGE_TYPE_ICONS + RESOURCE_ICONS + OMEN_ICONS \
@@ -316,12 +318,13 @@ func _make_icons() -> void:
 		pre.blend_rect(ic, Rect2i(0, 0, ICON, ICON), Vector2i(48 + i * 72, 108))
 	pre.save_png("res://tools/previews/ui_icon_set.png")
 
-func _icon(id: String) -> Image:
+func _icon(id: String, size := ICON) -> Image:
+	_n = size
 	_cells = {}
 	_ramps = []
 	_details = []
 	call("_ic_" + id)
-	var img := Image.create(ICON, ICON, false, Image.FORMAT_RGBA8)
+	var img := Image.create(_n, _n, false, Image.FORMAT_RGBA8)
 	for cell: Vector2i in _cells:
 		var k: int = _cells[cell]
 		var r: Array = _ramps[k]
@@ -335,8 +338,8 @@ func _icon(id: String) -> Image:
 		elif down or right:
 			col = r[2]
 		img.set_pixelv(cell, col)
-	for y in ICON:
-		for x in ICON:
+	for y in _n:
+		for x in _n:
 			var p := Vector2i(x, y)
 			if _cells.has(p):
 				continue
@@ -346,7 +349,7 @@ func _icon(id: String) -> Image:
 					break
 	for d: Array in _details:
 		var p: Vector2i = d[0]
-		if p.x >= 0 and p.y >= 0 and p.x < ICON and p.y < ICON:
+		if p.x >= 0 and p.y >= 0 and p.x < _n and p.y < _n:
 			img.set_pixelv(p, d[1])
 	return img
 
@@ -355,31 +358,31 @@ func _rp(light: String, mid: String, dark: String) -> int:
 	return _ramps.size() - 1
 
 func _cset(x: int, y: int, k: int) -> void:
-	if x >= 0 and y >= 0 and x < ICON and y < ICON:
+	if x >= 0 and y >= 0 and x < _n and y < _n:
 		_cells[Vector2i(x, y)] = k
 
 func _c_disc(c: Vector2, r: float, k: int) -> void:
-	for y in ICON:
-		for x in ICON:
+	for y in _n:
+		for x in _n:
 			if Vector2(x + 0.5, y + 0.5).distance_to(c) <= r:
 				_cset(x, y, k)
 
 func _c_ring(c: Vector2, ro: float, ri: float, k: int) -> void:
-	for y in ICON:
-		for x in ICON:
+	for y in _n:
+		for x in _n:
 			var d := Vector2(x + 0.5, y + 0.5).distance_to(c)
 			if d <= ro and d > ri:
 				_cset(x, y, k)
 
 func _c_ell(c: Vector2, r: Vector2, k: int, angle: float = 0.0) -> void:
-	for y in ICON:
-		for x in ICON:
+	for y in _n:
+		for x in _n:
 			if ((Vector2(x + 0.5, y + 0.5) - c).rotated(-angle) / r).length() <= 1.0:
 				_cset(x, y, k)
 
 func _c_poly(pts: PackedVector2Array, k: int) -> void:
-	for y in ICON:
-		for x in ICON:
+	for y in _n:
+		for x in _n:
 			if Geometry2D.is_point_in_polygon(Vector2(x + 0.5, y + 0.5), pts):
 				_cset(x, y, k)
 
@@ -387,8 +390,8 @@ func _c_line(pts: Array, w: float, k: int) -> void:
 	for i in pts.size() - 1:
 		var a: Vector2 = pts[i]
 		var b: Vector2 = pts[i + 1]
-		for y in ICON:
-			for x in ICON:
+		for y in _n:
+			for x in _n:
 				var p := Vector2(x + 0.5, y + 0.5)
 				var t := clampf((p - a).dot(b - a) / maxf((b - a).length_squared(), 0.001), 0.0, 1.0)
 				if p.distance_to(a.lerp(b, t)) <= w * 0.5:
@@ -1058,37 +1061,105 @@ func _star(x: int, y: int) -> void:
 	for d: Vector2i in [Vector2i.UP, Vector2i.DOWN, Vector2i.LEFT, Vector2i.RIGHT]:
 		_dt(x + d.x, y + d.y, Palette.color("glow"))
 
-# The moth, drawn by hand: "m" = silhouette (Void), "g" = Gold rim light, "l" = Glow.
-const MOTH := [
-	"................",
-	"................",
-	"................",
-	"................",
-	".....m....m.....",
-	"......m..m......",
-	"..g....mm....g..",
-	"..lm...mm...ml..",
-	"..mmm.mmmm.mmm..",
-	"...mmmmmmmmmm...",
-	"....mmmmmmmm....",
-	".....mmmmmm.....",
-	"....mmm..mmm....",
-	".....m.mm.m.....",
-	"................",
-	"................"]
+func _moth_ramps() -> Array:
+	# [wings, wing band, body] by palette name: dark night wings with a pale band, never a face.
+	return [_rpn("slate", "shade", "dread"), _rpn("mist", "stone", "slate"), _rpn("dusk", "night", "void")]
 
 func _ic_omen() -> void:
-	# A dark moth crossing a pale full moon: a flat silhouette so it reads at 16 px, with Gold rim
-	# light only on the wingtips. The moon shows all round it.
-	_moon(Vector2(8, 8), 6.8)
-	_dt(4, 11, Palette.color("mist"))
-	_dt(11, 3, Palette.color("mist"))
-	var cols := {"m": Palette.color("void"), "g": Palette.color("gold"), "l": Palette.color("glow")}
-	for y in MOTH.size():
-		for x in MOTH[y].length():
-			var ch: String = MOTH[y][x]
-			if cols.has(ch):
-				_dt(x, y, cols[ch])
+	# Revised 2026-10-01 (run_design.md): the moth's spread wings come first, in front of a moon that
+	# only peeks out at the top right; no dark-blobs-on-a-white-disc symmetry.
+	_moon(Vector2(12, 4.4), 4.0)
+	var r := _moth_ramps()
+	_c_poly(PackedVector2Array([Vector2(6.6, 7.4), Vector2(0.4, 3.6), Vector2(0.4, 8.6), Vector2(6.6, 10.6)]), r[0])
+	_c_poly(PackedVector2Array([Vector2(8.4, 7.4), Vector2(14.6, 3.6), Vector2(14.6, 8.6), Vector2(8.4, 10.6)]), r[0])
+	_c_ell(Vector2(4.4, 12.2), Vector2(2.6, 2.0), r[0])
+	_c_ell(Vector2(10.6, 12.2), Vector2(2.6, 2.0), r[0])
+	_c_line([Vector2(7.5, 7), Vector2(7.5, 14.6)], 1.2, r[2])
+	_dt_line(Vector2i(7, 6), Vector2i(5, 3), Palette.color("night"))
+	_dt_line(Vector2i(8, 6), Vector2i(10, 3), Palette.color("night"))
+	_dt(1, 4, Palette.color("gold"))
+	_dt(14, 4, Palette.color("gold"))
+	_dt(2, 5, Palette.color("glow"))
+	_dt(13, 5, Palette.color("glow"))
+	_dt(4, 12, Palette.color("gold"))
+	_dt(10, 12, Palette.color("gold"))
+
+func _c_erase_disc(c: Vector2, r: float) -> void:
+	for y in _n:
+		for x in _n:
+			if Vector2(x + 0.5, y + 0.5).distance_to(c) <= r:
+				_cells.erase(Vector2i(x, y))
+
+func _big_star(c: Vector2i, arm: int) -> void:
+	var gold := _rpn("heartlight", "glow", "gold")
+	_c_rect(Rect2i(c.x - arm, c.y, arm * 2 + 1, 1), gold)
+	_c_rect(Rect2i(c.x, c.y - arm, 1, arm * 2 + 1), gold)
+	_c_rect(Rect2i(c.x - 1, c.y - 1, 3, 3), gold)
+
+# --- Omen card emblems (32x32, shown x2 on the Face an Omen / Clear Skies cards) --------------------
+
+const OMEN_CARD_ICONS := ["omen_card", "clear_skies_card"]
+
+func _make_omen_cards() -> void:
+	var sheet := Image.create(32 * OMEN_CARD_ICONS.size(), 32, false, Image.FORMAT_RGBA8)
+	var index := {}
+	for i in OMEN_CARD_ICONS.size():
+		var icon := _icon(OMEN_CARD_ICONS[i], 32)
+		Palette.snap_image(icon)
+		sheet.blit_rect(icon, Rect2i(0, 0, 32, 32), Vector2i(i * 32, 0))
+		index[OMEN_CARD_ICONS[i]] = i
+	sheet.save_png(OUT + "omen_cards.png")
+	var file := FileAccess.open(OUT + "omen_cards.json", FileAccess.WRITE)
+	file.store_string(JSON.stringify({frame_size = 32, icons = index,
+		note = "Omen card emblems (run_design.md \"How an Omen looks\"). Show x2, nearest. Tags and lists use the 16 px omen / clear_skies in icons.png."}, "\t") + "\n")
+	_n = ICON
+
+func _ic_omen_card() -> void:
+	# A moth with wide, patterned wings in front of a pale moon that shows only behind its right wing.
+	_moon(Vector2(25, 6.6), 7.0)
+	_dt(23, 3, Palette.color("mist"))
+	_dt(28, 6, Palette.color("mist"))
+	_dt(25, 9, Palette.color("mist"))
+	var r := _moth_ramps()
+	# Forewings, swept up and out, each crossed by a pale band.
+	_c_poly(PackedVector2Array([Vector2(13.6, 13), Vector2(1, 7), Vector2(0.4, 13.6), Vector2(4.4, 19), Vector2(13.6, 18.6)]), r[0])
+	_c_poly(PackedVector2Array([Vector2(16.4, 13), Vector2(29, 7), Vector2(29.6, 13.6), Vector2(25.6, 19), Vector2(16.4, 18.6)]), r[0])
+	_c_line([Vector2(3, 10.6), Vector2(8, 13.6), Vector2(12.6, 14.4)], 1.4, r[1])
+	_c_line([Vector2(27, 10.6), Vector2(22, 13.6), Vector2(17.4, 14.4)], 1.4, r[1])
+	# Hindwings, rounder, with gold-ringed eye-spots low down.
+	_c_ell(Vector2(9, 22.4), Vector2(5.4, 4.4), r[0], 0.3)
+	_c_ell(Vector2(21, 22.4), Vector2(5.4, 4.4), r[0], -0.3)
+	var gold := _rpn("heartlight", "glow", "gold")
+	_c_ring(Vector2(8.6, 23), 2.3, 1.1, gold)
+	_c_ring(Vector2(21.4, 23), 2.3, 1.1, gold)
+	_dt(8, 22, Palette.color("void"))
+	_dt(21, 22, Palette.color("void"))
+	# A thin body and feathered antennae.
+	_c_line([Vector2(15, 11), Vector2(15, 27.6)], 1.4, r[2])
+	_c_disc(Vector2(15, 11.2), 1.4, r[2])
+	_dt_line(Vector2i(14, 9), Vector2i(10, 3), Palette.color("night"))
+	_dt_line(Vector2i(15, 9), Vector2i(19, 3), Palette.color("night"))
+	for p: Vector2i in [Vector2i(11, 5), Vector2i(12, 6), Vector2i(17, 6), Vector2i(18, 5)]:
+		_dt(p.x - 1, p.y, Palette.color("night"))
+	# Rim light along the forewing tips.
+	for p: Vector2i in [Vector2i(1, 7), Vector2i(2, 7), Vector2i(3, 8), Vector2i(28, 7), Vector2i(27, 7), Vector2i(26, 8)]:
+		_dt(p.x, p.y, Palette.color("gold"))
+	_dt(1, 8, Palette.color("glow"))
+	_dt(28, 8, Palette.color("glow"))
+
+func _ic_clear_skies_card() -> void:
+	# A calm crescent moon and three small stars; no moth.
+	_moon(Vector2(13, 16), 11)
+	_c_erase_disc(Vector2(19.4, 11.6), 9.6)
+	_dt(6, 18, Palette.color("mist"))
+	_dt(9, 24, Palette.color("mist"))
+	_big_star(Vector2i(25, 5), 2)
+	_big_star(Vector2i(27, 19), 2)
+	_dt(20, 26, Palette.color("glow"))
+	_dt(19, 26, Palette.color("gold"))
+	_dt(21, 26, Palette.color("gold"))
+	_dt(20, 25, Palette.color("gold"))
+	_dt(20, 27, Palette.color("gold"))
 
 func _ic_clear_skies() -> void:
 	# The same moon, alone and calm, with a few small stars.
