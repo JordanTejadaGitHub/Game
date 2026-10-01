@@ -75,9 +75,30 @@ func _run() -> void:
 	await _measure("stretch goal: 3x (not a failure)")
 	print("    -> 3x p95 %.2f ms %s the %.1f ms budget (revisit before release)" % [result.p95,
 		"within" if result.p95 <= BUDGET_MS * SCRIPT_SHARE else "over", BUDGET_MS * SCRIPT_SHARE])
+	await _measure_stacked()
 	Engine.time_scale = 1.0
 	print("perf stress test: %s" % ("PASS" if failures == 0 else "%d FAILED" % failures))
 	quit(failures)
+
+# Late drifts called early back to back (platforms.md "Calling drifts early stacks them", the field cap):
+# the dummies leave, drifts 88, 89, 90 start half a second apart at 3× with real nightmares (Reactions
+# on), and the frame is measured as the field fills to the cap. Reported, not a failure yet (it's over
+# budget while Tower / Enemy cut the interaction costs; tools/perf/stacked_drifts.gd has the probe).
+const STACKED_BAR_MS := 16.0
+func _measure_stacked() -> void:
+	for enemy in spawner.get_children():
+		enemy.queue_free()
+	await process_frame
+	var director: DriftDirector = main.get_node("%DriftDirector")
+	director.drifts_started = 87
+	Engine.time_scale = STRETCH_SPEED
+	for i in 3:
+		director.start_next_drift()
+		for f in 30:
+			await process_frame
+	await _measure("stacked drifts 88-90, 3x (not a failure yet)")
+	print("    -> stacked p95 %.2f ms %s the %.1f ms bar (field cap %s)" % [result.p95,
+		"within" if result.p95 <= STACKED_BAR_MS else "over", STACKED_BAR_MS, str(spawner.get("max_field"))])
 
 func _fill_map() -> void:
 	var placer: TowerPlacer = main.get_node("%TowerPlacer")
