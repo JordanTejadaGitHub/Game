@@ -128,7 +128,7 @@ Queen an act 3 boss.
 
 **Higher health didn't separate either** (120 runs: Night Mare ×2.5–3.0 at lap 5, Scarecrow ×3.0–3.5 with 4 Crows; health only made both modes harder). **Fallback, chosen:**
 - **Night Mare: each lap costs more** than the last: **3, then 5, then 7, then 9 leaves** (+2 per lap), and it keeps speeding up. A strong maze kills it on the first or second pass; a weak one is lapped to death by the third or fourth. Health back to the act 1 boss value (×1.75).
-- **Scarecrow: Crows cost 2 leaves each** (were 1), **4 per burst** and 4 when it falls. Health ×1.75. *Pre-run: barely matters (15/15 vs 14/15): the maze shoots almost every Crow down. Next: **tougher Crows** (health 80–160, speed 150–190) so damage decides how many get through; not back to flying straight (the maze must matter).*
+- **Scarecrow: Crows cost 2 leaves each** (were 1), **4 per burst** and 4 when it falls. Health ×1.75. *Pre-run: barely matters (15/15 vs 14/15): the maze shoots almost every Crow down. Next: **tougher Crows**. **Chosen after the sweep: Crow health 120, speed 190, 2 leaves** (Dreams 80% vs skip 40%; 160/190 was lethal for skip and dropped Dreams to 53%).*
 Then the same sweep (Dreams vs skip, 15 seeds).
 
 **Weakness spread:** act 1 water / light / spore (the three starting families); act 2 root / stone /
