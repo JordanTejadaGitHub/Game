@@ -597,6 +597,15 @@ func _run() -> void:
 	_check(not duck.dew_followers.is_empty() and is_equal_approx(duck.get_dew_share(), 5.0) and is_equal_approx(ducklings_total, 5.0),
 		"a leader keeps half its share, its followers share the other half (%.2f + %.2f)" % [duck.get_dew_share(), ducklings_total])
 	_clear_enemies()
+	var summoner := _still("scarecrow", route[9])
+	summoner.dew_share = 50.0
+	summoner.take_damage(summoner.max_health * 0.21)  # Its first Crows burst out
+	var crows_out := spawner.get_children().filter(func(e) -> bool: return e != summoner)
+	for crow in crows_out:
+		crow.bonus_dew = 3  # A card's bonus doesn't make a summon pay either
+	_check(not crows_out.is_empty() and crows_out.all(func(e) -> bool: return e.get_dew_reward() == 0),
+		"a summon (the Scarecrow's Crows) pays no Dew (%d of them)" % crows_out.size())
+	_clear_enemies()
 	var leaker := _still("leaf_bug", route[-1])
 	leaker.dew_share = 7.0
 	leaker.set_path(PackedVector2Array([route[-1]]))

@@ -345,6 +345,7 @@ func _run_from_start(data: EnemyData, count: int, parent: Node2D) -> void:
 	var back := -ahead.normalized()
 	for i in count:
 		var child := _create(data, drift_health_scale, parent.modifiers)
+		child.dew_share = 0.0  # A summon: its summoner's Dew share pays for the fight (the Dew pot)
 		child.position = first + back * SPLIT_SPACING * (i + 1)
 		child.set_path(path)
 		enemy_split.emit(parent, child)
@@ -452,6 +453,7 @@ func _on_brood_requested(queen: Node2D) -> void:
 			nearest = i
 	var path := route.slice(nearest)
 	var child := _create(queen.enemy_data.brood, drift_health_scale)
+	child.dew_share = 0.0  # A summon pays no Dew (the Dew pot)
 	child.position = child.grid.calculate_map_position(path[0])
 	child.set_path(path)
 	enemy_split.emit(queen, child)
@@ -464,6 +466,7 @@ func _on_grief_requested(oak: Node2D) -> void:
 		return
 	for i in data.grief_count:
 		var child := _create(data.grief_spawn, drift_health_scale)
+		child.dew_share = 0.0  # A summon pays no Dew (the Dew pot)
 		child.position = oak.position + Vector2.from_angle(TAU * i / data.grief_count) * GRIEF_RING
 		child.set_path(_flight_from(child) if _flies_straight(data.grief_spawn) else path)
 		enemy_split.emit(oak, child)
@@ -553,6 +556,7 @@ func _call_pack(huntsman: Node2D) -> void:
 	var count := missing if huntsman.is_regrouped() else 1
 	for i in count:
 		var hound := _create(data.brood, drift_health_scale, huntsman.modifiers)
+		hound.dew_share = 0.0  # A summon pays no Dew (the Dew pot)
 		hound.position = huntsman.position + Vector2.from_angle(TAU * i / maxi(count, 1)) * SPLIT_SPACING
 		hound.set_path(path)
 		huntsman.pack.append(hound)
@@ -680,6 +684,7 @@ func _on_echo_requested(oak: Node2D, act: int) -> void:
 	var echo = enemy_scene.instantiate()
 	echo.is_echo = true
 	var created := _create_prepared(echo, boss, scale)
+	created.dew_share = 0.0  # A summon pays no Dew (the Dew pot)
 	if boss.trait_kind == EnemyData.Trait.FLYING and not boss.flies_along_route:
 		path = PackedVector2Array([oak.get_target_cell(), map_generator.endPath])
 	created.position = oak.position + Vector2(GRIEF_RING, 0).rotated(TAU * act / 3.0)

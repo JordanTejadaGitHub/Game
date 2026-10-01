@@ -972,7 +972,9 @@ func get_dew_reward() -> int:
 
 # The same, before rounding (the pot's shares are fractions; RunState can carry the remainder).
 func get_dew_share() -> float:
-	if dew_share >= 0.0:
+	if dew_share == 0.0:
+		return 0.0  # A summon (or a summon's split): nothing, not even card bonuses (they'd be farmable)
+	if dew_share > 0.0:
 		return dew_share * modifiers.get("dew", 1.0) + bonus_dew
 	return roundi(enemy_data.dew_reward * modifiers.get("dew", 1.0)) * (ELITE_DEW if elite else 1) + bonus_dew
 
