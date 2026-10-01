@@ -23,6 +23,7 @@ var out_path := ""
 var candidates: Array[Tower] = []
 var by_tower := {}  # instance id -> damage
 var split := {"hit": 0.0, "cloud": 0.0, "status": 0.0, "combo": 0.0, "asleep": 0.0}
+var by_tag := {}  # "kind/tag" -> the candidates' damage (tags column)
 var total := 0.0
 var spawned_health := 0.0
 var leaked_health := 0.0
@@ -161,6 +162,8 @@ func _on_damage(event) -> void:
 		return
 	var combo := clampf(event.combo_amount, 0.0, event.amount)
 	split.combo += combo
+	var tag_key := "%s/%s" % [event.kind, event.tag if event.tag != &"" else &"-"]
+	by_tag[tag_key] = float(by_tag.get(tag_key, 0.0)) + event.amount
 	if event.tag == &"cloud":
 		split.cloud += event.amount - combo
 	elif event.kind == &"status" or event.kind == &"bolt":
@@ -182,7 +185,8 @@ func _report(director: DriftDirector) -> void:
 		"share": snappedf(damage / maxf(total, 1.0), 0.001), "rank": candidates[0].rank,
 		"hit": snappedf(split.hit / t, 0.01), "cloud": snappedf(split.cloud / t, 0.01), "status": snappedf(split.status / t, 0.01),
 		"combo": snappedf(split.combo / t, 0.01), "asleep": snappedf(split.asleep / t, 0.01),
-		"leaked": snappedf(leaked_health / maxf(spawned_health, 1.0), 0.001), "status_potency": Tower.status_potency_on}
+		"leaked": snappedf(leaked_health / maxf(spawned_health, 1.0), 0.001), "status_potency": Tower.status_potency_on,
+		"tags": _tag_text(t)}
 	print("FINALS %s" % JSON.stringify(row))
 	if out_path != "":
 		var exists := FileAccess.file_exists(out_path)
@@ -192,3 +196,9 @@ func _report(director: DriftDirector) -> void:
 		file.seek_end()
 		file.store_line(",".join(row.keys().map(func(k) -> String: return str(row[k]))))
 		file.close()
+
+# "kind/tag:share|…" of the candidates' damage, largest first.
+func _tag_text(t: float) -> String:
+	var keys := by_tag.keys()
+	keys.sort_custom(func(a, b) -> bool: return by_tag[a] > by_tag[b])
+	return "|".join(keys.map(func(k) -> String: return "%s:%.3f" % [k, by_tag[k] / t]))
