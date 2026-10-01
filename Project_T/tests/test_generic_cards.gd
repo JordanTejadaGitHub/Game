@@ -38,6 +38,7 @@ func _run() -> void:
 	_test_economy()
 	_test_stat_rules()
 	_test_hit_rules()
+	_test_crowd_counts()
 	_test_rest_rules()
 	_test_map_rules()
 	_test_sim_entry()
@@ -949,3 +950,41 @@ func _check(condition: bool, label: String) -> void:
 	if not condition:
 		failures += 1
 		printerr("FAIL: " + label)
+
+# The drift sample's crowd counts (perf, 2026-10-01): the bucketed "alone" check with its crowded-cell fast path gives
+# exactly the brute-force answer (every pair) on a stacked field, and the in-range count matches a brute-force count.
+func _test_crowd_counts() -> void:
+	_reset()
+	_free_enemies()
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 7
+	var spawned: Array = []
+	var base: Vector2 = map_generator.startPath
+	for i in 60:  # Clusters and stragglers over a few cells
+		var cell := base + Vector2(rng.randi_range(0, 6), rng.randi_range(-2, 2))
+		spawned.append(_spawn(cell, Vector2(rng.randf_range(-30, 30), rng.randf_range(-30, 30))))
+	await_frame_hint()
+	var reach: float = DreamState.LONE_HUNTER_CELLS * map_generator.MAP_GRID.cell_size.x
+	var brute := 0
+	for a in spawned:
+		var lonely := true
+		for b in spawned:
+			if a != b and a.global_position.distance_to(b.global_position) <= reach:
+				lonely = false
+				break
+		brute += 1 if lonely else 0
+	var fast := 0
+	for a in spawned:
+		fast += 1 if dreams._is_alone(a) else 0
+	_check(fast == brute and is_equal_approx(dreams.alone_share(spawned), float(brute) / spawned.size()),
+		"Lone Hunter's alone count: the fast bucketed check equals every-pair brute force (%d vs %d of %d)" % [fast, brute, spawned.size()])
+	var tower := _plant("sporeling", base + Vector2(3, 3))
+	var range_px: float = tower.get_range_cells() * map_generator.MAP_GRID.cell_size.x
+	var in_brute := spawned.filter(func(e: Node2D) -> bool: return tower.global_position.distance_to(e.global_position) <= range_px).size()
+	_check(dreams.count_in_range(tower) == in_brute and is_equal_approx(dreams.average_in_range(), float(in_brute)),
+		"Crowded Path's in-range count equals brute force (%d)" % in_brute)
+	_clear()
+	_free_enemies()
+
+func await_frame_hint() -> void:
+	dreams._bucket_frame = -1  # Spawned this frame: rebuild the buckets

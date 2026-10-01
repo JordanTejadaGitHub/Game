@@ -2487,15 +2487,40 @@ func _sample_drift(delta: float) -> void:
 	if not _events_this_run.has(String(EVENT_CHARGED_DROWSY)) and enemies.any(func(e: Node2D) -> bool:
 			return e.statuses.has(EnemyStatuses.STATIC) and e.statuses.has(EnemyStatuses.DROWSY)):
 		note_discovery(EVENT_CHARGED_DROWSY)  # Discovery: Charged + Drowsy on one nightmare (Charged Bloom)
-	var alone := enemies.filter(func(e: Node2D) -> bool: return _is_alone(e)).size()
+	var alone := alone_share(enemies)
 	var near := enemies.filter(func(e: Node2D) -> bool: return is_near_heartwood(e)).size()
 	_drift_sums.samples += 1
 	_drift_sums.in_range += in_range
-	_drift_sums.alone += float(alone) / enemies.size()
+	_drift_sums.alone += alone
 	_drift_sums.near += float(near) / enemies.size()
 
-const DRIFT_SAMPLE_WARDENS := 20  # Attacking Wardens counted per sample (rotating)
+const DRIFT_SAMPLE_WARDENS := 8  # Attacking Wardens counted per sample (rotating; each scans its range's buckets)
+
+# Lone Hunter's share of nightmares alone (live lines and the drift sample), exact over every nightmare.
+func alone_share(enemies: Array = []) -> float:
+	if enemies.is_empty():
+		enemies = spawner.get_enemies()
+	if enemies.is_empty():
+		return 0.0
+	var alone := 0
+	for enemy in enemies:  # Exact: every nightmare (a crowded cell answers at once, see _is_alone)
+		if _is_alone(enemy):
+			alone += 1
+	return float(alone) / enemies.size()
 var _sample_cursor := 0
+
+# The sample's Warden ranges (perf: get_range_cells reads every card's rows; ranges only change on plant / grow /
+# Dreams): re-read every RANGE_REFRESH samples. Crowded Path's own count (count_in_range) stays live.
+const RANGE_REFRESH := 10
+var _range_cache := {}  # Tower instance id -> [range cells, the _range_age it was read at]
+var _range_age := 0
+
+func _sample_range(tower: Tower) -> float:
+	var entry: Array = _range_cache.get(tower.get_instance_id(), [])
+	if entry.is_empty() or _range_age - int(entry[1]) >= RANGE_REFRESH:
+		entry = [tower.get_range_cells(), _range_age]
+		_range_cache[tower.get_instance_id()] = entry
+	return float(entry[0])
 
 # Nightmares in an attacking Warden's range, averaged over a rotating slice of the attackers.
 func average_in_range() -> float:
@@ -2504,8 +2529,10 @@ func average_in_range() -> float:
 		return 0.0
 	var slice := mini(attackers.size(), DRIFT_SAMPLE_WARDENS)
 	var total := 0.0
+	_range_age += 1
 	for i in slice:
-		total += count_in_range(attackers[(_sample_cursor + i) % attackers.size()])
+		var tower: Tower = attackers[(_sample_cursor + i) % attackers.size()]
+		total += _count_near(tower.global_position, _sample_range(tower) * map_generator.MAP_GRID.cell_size.x)
 	_sample_cursor = (_sample_cursor + slice) % attackers.size()
 	return total / slice
 
@@ -2559,7 +2586,12 @@ func count_in_range(tower: Tower) -> int:
 
 # Lone Hunter: no other nightmare within 2 cells of `enemy`.
 func _is_alone(enemy: Node2D) -> bool:
-	return _count_near(enemy.global_position, LONE_HUNTER_CELLS * map_generator.MAP_GRID.cell_size.x, enemy, 1) == 0
+	# Fast path: another nightmare in its own cell is always within 2 cells (a cell's diagonal is under 1.5 cells)
+	var size: float = map_generator.MAP_GRID.cell_size.x
+	for other in _enemy_buckets().get(Vector2i((enemy.global_position / size).floor()), []):
+		if other != enemy and is_instance_valid(other) and not other.is_cleansed:
+			return false
+	return _count_near(enemy.global_position, LONE_HUNTER_CELLS * size, enemy, 1) == 0
 
 # Glimmering Hunt: a dispelled elite has a 30% chance to drop a Dreamlight shard (10 = 1 Dreamlight),
 # up to 3 Dreamlight per run from this card, apart from the Great Dreamcatcher's shards and cap.
