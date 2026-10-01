@@ -29,6 +29,9 @@ const APPROACH_EVERY := 0.25  # Game seconds between closest-approach samples
 const CLOSE_CALL := 0.85  # A drift where a nightmare got this far along the route
 const COVER_HEARTWOOD_FROM := 18  # From this drift one attacker keeps the Heartwood in range (a boss that gets through stays there; humans cover it)
 const LAST_STRETCH := 8  # Route tiles before the Heartwood a covering Warden should also reach
+const AURA_WEIGHT := 2.0  # Aura placement: path tiles a Warden in (or under) an aura is worth (balance_simulation.md: path coverage still dominates)
+const AURA_COUNT_MAX := 5  # …counting at most this many Wardens per cell (a bonus of up to 10 tiles; a cell covers ~8-20 path tiles)
+const KIN_WEIGHT := 2.0  # Kinship placement: path tiles per unbonded kin of the same family within Kinships reach (at most AURA_COUNT_MAX)
 var _saving_for_final := false  # The cheapest open growth is a final form (saves longer for it)
 const STYLES := {"balanced": 0, "wide": 1, "narrow": 2, "combo": 3, "sleep": 4, "sprout": 5, "grove": 3, "mixed": 6}  # DreamSimPolicy.Style; grove = the hand-written Grove player (Combo cards, --families); mixed = Style.MIXED
 const COLUMNS := ["drift", "act", "seconds", "health_spawned", "damage", "leaks", "leaves_lost", "leaves_left",
@@ -67,6 +70,9 @@ var director_overrides := {}  # --director=act1_boss_health_multiplier=3.0 (repe
 var enemy_overrides := {}  # --enemy=id.field=value (repeatable): EnemyData fields for sweeps
 var _keep: Array = []  # The edited EnemyData, held so the cache keeps them
 var act1_boss := ""  # --boss=night_mare: act 1's boss forced (DriftDirector.preset_bosses); "" = the default draw
+var aura_placement := true  # --no-aura: place and grow aura Wardens (Acorn, Elder Stump, Grove Heart, Moon Moth) by path only
+var kin_placement := true  # --no-kin: no Kinship placement, and growth takes the first open form in evolves_to (the old bot)
+var kin_pairs := {}  # Drift -> Kinships on the map as it starts (kin_pairs_24 / kin_pairs_50 columns: as drifts 25 / 51 start)
 var dream_share := {}  # Drift -> the share of the maze's damage per second that the taken Dreams add (20, 25, 50, 75)
 var dreams_20 := ""  # The Dreams taken by drift 20 ("a+b")
 var omens: OmenDirector
@@ -80,6 +86,11 @@ var _block_pot := Vector2.ZERO  # The current Omen block's pot part (x) and its 
 var _save_since := -1  # The drift the saver started holding Dew at
 var _approach_timer := 0.0
 var bosses := {}  # Instance id -> a boss fight: drift, kind, health, route and Heartwood seconds and damage (bosses column)
+var dream_offers := {"offers": 0, "pool": 0, "pool_5": -1, "cards": 0, "matched": 0, "generic": 0, "off": 0}  # Dream pool / build relevance (dream_* columns)
+var dream_off_ids := {}  # Off-build card id -> times offered (dream_off_ids column)
+const CARD_LINES := ["spore", "water", "wind", "song", "acorn", "wing", "root", "light", "stone", "wall"]  # Warden lines a card tag can name (the 9 families + Thornwall)
+var wardens_24 := ""  # The Wardens on the map as drift 25 starts ("id:n+…", wardens_24 column)
+var auras_24 := -1  # Attackers under at least one aura Warden as drift 25 starts (auras_24 column)
 
 var main: Node
 var map
@@ -125,6 +136,8 @@ func _run() -> void:
 			"--favor": favored.assign(value.split(","))
 			"--dreams": dream_mode = value
 			"--boss": act1_boss = value
+			"--no-aura": aura_placement = false
+			"--no-kin": kin_placement = false
 			"--no-falloff": Reactions.chain_falloff_on = false  # Measure without chain falloff
 			"--director":
 				var setting := arg.substr(arg.find("=") + 1)
@@ -176,6 +189,8 @@ func _run() -> void:
 			dreams.take(card)
 	policy = FavorPolicy.new(dreams, STYLES.get(style, 0))
 	policy.favored = favored
+	policy.on_offer = _note_offer
+	policy.branches_first = kin_placement
 	policy.mode = dream_mode
 	policy.rng.seed = map_seed
 	omens = main.get_node_or_null("%OmenDirector")
@@ -211,6 +226,12 @@ func _run() -> void:
 		if _approach_timer <= 0.0:
 			_approach_timer = APPROACH_EVERY
 			_sample_approach()
+		if director.drifts_started >= 25 and wardens_24 == "":
+			wardens_24 = _warden_counts()
+			auras_24 = _attackers().filter(func(t: Tower) -> bool: return _covered_by_aura(t)).size()
+		for mark in [25, 51]:
+			if director.drifts_started >= mark and not kin_pairs.has(mark):
+				kin_pairs[mark] = Kinships.count_on_map(main)
 		if director.drifts_started in [20, 25, 50, 75] and not dream_share.has(director.drifts_started):
 			dream_share[director.drifts_started] = _dream_share()
 			if director.drifts_started == 20:
@@ -359,12 +380,12 @@ func _plant_attacker(cover_heart := false) -> bool:
 		var only: TowerData = load("res://resource/tower/%s.tres" % plan.plant)
 		if not run_state.can_afford(placer.get_cost(only)):
 			return false
-		var at := _best_cell(only.attack_range, plan.get("growth_weight", 0.5), cover_heart)
+		var at := _best_cell(only.attack_range, plan.get("growth_weight", 0.5), cover_heart, only)
 		return at != NO_CELL and _build(only, at)
 	if style == "mixed" and _sprout_share() < MIXED_SPROUTS:
 		var sprout: TowerData = load("res://resource/tower/sprout.tres")
 		if run_state.can_afford(placer.get_cost(sprout)):
-			var at := _best_cell(sprout.attack_range, 0.5, cover_heart)
+			var at := _best_cell(sprout.attack_range, 0.5, cover_heart, sprout)
 			if at != NO_CELL and _build(sprout, at):
 				return true
 	var options: Array = placer.get_buildable_towers().filter(func(t: TowerData) -> bool:
@@ -382,7 +403,7 @@ func _plant_attacker(cover_heart := false) -> bool:
 	var data: TowerData = options[0]
 	if not run_state.can_afford(placer.get_cost(data)):
 		return false
-	var cell := _best_cell(data.attack_range, 0.5, cover_heart)
+	var cell := _best_cell(data.attack_range, 0.5, cover_heart, data)
 	return cell != NO_CELL and _build(data, cell)
 
 func _plant_wall() -> bool:
@@ -399,7 +420,7 @@ func _build(data: TowerData, cell: Vector2) -> bool:
 # The open cell scoring best: path cells within `reach` + `growth_weight` × the path it adds. Walls
 # (reach 0) only count if they add path. `cover_heart`: only cells reaching the Heartwood, the last
 # LAST_STRETCH route tiles counting double.
-func _best_cell(reach: float, growth_weight: float, cover_heart := false) -> Vector2:
+func _best_cell(reach: float, growth_weight: float, cover_heart := false, data: TowerData = null) -> Vector2:
 	var route: PackedVector2Array = map.get_path_from(map.startPath)
 	var enemy_cells := PackedVector2Array()
 	for enemy in spawner.get_maze_walkers():
@@ -421,7 +442,7 @@ func _best_cell(reach: float, growth_weight: float, cover_heart := false) -> Vec
 				for i in new_route.size():
 					if new_route[i].distance_to(cell) <= reach:
 						cover += 2 if cover_heart and i >= new_route.size() - LAST_STRETCH else 1
-			var score := cover + growth_weight * (new_route.size() - route.size())
+			var score := cover + growth_weight * (new_route.size() - route.size()) + (_aura_bonus(cell, data) + _kin_bonus(cell, data) if data != null else 0.0)
 			if score > best_score:
 				best_score = score
 				best = cell
@@ -443,6 +464,10 @@ func _grow() -> bool:
 			continue  # The swarm stays Sprouts
 		if style == "mixed" and tower.tower_data.get_id() == "sprout" and _sprout_share() <= MIXED_SPROUTS:
 			continue  # Mixed keeps about 40% Sprouts
+		# The form: the first open one in evolves_to (--no-kin, the old bot); with Kinship placement the one
+		# that bonds with the most unbonded kin nearby, then the branch with fewer on the map (both branches seen).
+		var pick: TowerData = null
+		var pick_score := -INF
 		for form in tower.tower_data.evolves_to:
 			if not (form is TowerData) or not dreams.is_unlocked(form.get_id()) or placer.ascended_blocker(form) != "":
 				continue
@@ -450,10 +475,18 @@ func _grow() -> bool:
 				continue
 			if tower.get_grow_cost(form).total > run_state.dew:
 				continue
-			var cover := _coverage(tower)
+			if not kin_placement:
+				pick = form
+				break
+			var form_score := 100.0 * _kin_bonus(tower.cell, form, tower) - _count_on_map(form.get_id())
+			if form_score > pick_score:
+				pick_score = form_score
+				pick = form
+		if pick != null:
+			# Growing into an aura Warden: the Wardens around it count; into a kin branch: its unbonded kin.
+			var cover := _coverage(tower) + _aura_bonus(tower.cell, pick, tower, false) + _kin_bonus(tower.cell, pick, tower)
 			if best.is_empty() or cover > best[0]:
-				best = [cover, tower, form]
-			break
+				best = [cover, tower, pick]
 	return not best.is_empty() and placer.evolve(best[1], best[2])
 
 # Balanced: the lowest rank first, most path in range among those; Narrow the same but it plants few.
@@ -477,12 +510,17 @@ func _hook_stats() -> void:
 	spawner.child_entered_tree.connect(func(n) -> void:
 		if n.has_method("take_damage"):
 			(func() -> void: d.health_spawned += n.max_health).call_deferred())
-	spawner.enemy_reached_goal.connect(func(_e) -> void:
+	spawner.enemy_reached_goal.connect(func(e) -> void:
 		d.leaks += 1
+		if is_instance_valid(e) and e.enemy_data.is_boss:  # An act boss bites (8 / 10 / 12 leaves) and leaves (bfc33e75)
+			_boss_leaked(e)
 		if run.first_leak == 0:
 			run.first_leak = maxi(director.drifts_started, 1))
 	if spawner.has_signal("boss_drained"):  # A boss at the Heartwood drains leaves (no enemy_reached_goal)
-		spawner.boss_drained.connect(func(_e, leaves: int) -> void: run.boss_drained += leaves)
+		spawner.boss_drained.connect(func(e, leaves: int) -> void:
+			run.boss_drained += leaves
+			if is_instance_valid(e):
+				_boss_fight(e).drained += leaves)
 	if spawner.has_signal("nightmare_restless"):
 		spawner.nightmare_restless.connect(func(_e, _stacks) -> void: d.restless += 1)
 	if spawner.has_signal("wall_trampled"):
@@ -623,6 +661,14 @@ func _finish() -> void:
 	summary.merge(_omen_act_columns())
 	summary.omen_blocks = ";".join(omen_blocks)
 	summary.bosses = ";".join(bosses.values().map(_boss_text))
+	for key in ["offers", "pool_5", "cards", "matched", "generic", "off"]:
+		summary["dream_" + key] = dream_offers[key]
+	summary.wardens_24 = wardens_24
+	summary.auras_24 = auras_24
+	summary.kin_pairs_24 = kin_pairs.get(25, -1)
+	summary.kin_pairs_50 = kin_pairs.get(51, -1)
+	summary.dream_off_ids = "+".join(dream_off_ids.keys().map(func(id) -> String: return "%s:%d" % [id, dream_off_ids[id]]))
+	summary.dream_pool_mean = snappedf(float(dream_offers.pool) / maxf(dream_offers.offers, 1.0), 0.1)
 	var runs_path := out_dir.path_join("runs.csv")
 	var keys := summary.keys()
 	var new_file := not FileAccess.file_exists(runs_path)
@@ -737,6 +783,7 @@ class FavorPolicy extends DreamSimPolicy:
 	var mode := "balanced"  # --dreams: "skip" lets every offer pass, "random" takes any card, "balanced" the style's pick; "damage":
 	# damage, attack speed and Potency cards first, economy last (act 1 "damage-first")
 	var rng := RandomNumberGenerator.new()
+	var on_offer: Callable  # The runner logs each offer (Dream pool size, build relevance)
 
 	func score(card: UpgradeData) -> float:
 		var value := super.score(card) + (FAVOR if favored.has(card.id) else 0.0)
@@ -747,6 +794,8 @@ class FavorPolicy extends DreamSimPolicy:
 		return value
 
 	func pick_dream(offer: Array) -> UpgradeData:
+		if on_offer.is_valid():
+			on_offer.call(offer)
 		match mode:
 			"skip":
 				return null  # Let it pass (DreamState.sim_rest skips)
@@ -829,7 +878,7 @@ func _boss_fight(enemy: Node2D) -> Dictionary:
 	if not bosses.has(id):
 		bosses[id] = {"drift": director.drifts_started, "kind": enemy.enemy_data.resource_path.get_file().get_basename(),
 			"health": enemy.max_health, "spawn": game_time, "arrive": -1.0, "hp_arrive": -1, "route_damage": 0.0,
-			"heart_damage": 0.0, "in_range": -1, "end": -1.0, "echo": bool(enemy.get("is_echo"))}
+			"heart_damage": 0.0, "in_range": -1, "end": -1.0, "leaked": false, "visits": 0, "hp_visits": [], "there": false, "drained": 0, "echo": bool(enemy.get("is_echo"))}
 	return bosses[id]
 
 func _note_boss_hit(enemy: Node2D, amount: float) -> void:
@@ -838,6 +887,10 @@ func _note_boss_hit(enemy: Node2D, amount: float) -> void:
 
 func _watch_boss(enemy: Node2D) -> void:
 	var fight := _boss_fight(enemy)
+	if enemy.at_heartwood and not fight.there:  # A new visit (the Night Mare laps: several)
+		fight.visits += 1
+		fight.hp_visits.append(enemy.health)
+	fight.there = enemy.at_heartwood
 	if enemy.at_heartwood and fight.arrive < 0.0:
 		fight.arrive = game_time
 		fight.hp_arrive = enemy.health
@@ -847,14 +900,16 @@ func _watch_boss(enemy: Node2D) -> void:
 		fight.end = game_time
 
 # drift:kind:health:route s:health at the Heartwood (-1 = never got there):route damage:Heartwood damage:
-# Heartwood s:Wardens in range there:dispelled 1/0
+# Heartwood s:Wardens in range there:dispelled 1/0 (:leaked = an act boss that bit and left), then
+# :v=visits to the Heartwood:hp=health at each visit (a/b/…):dr=leaves it drained there
 func _boss_text(fight: Dictionary) -> String:
 	var arrived: bool = fight.arrive >= 0.0
 	var route_s: float = (fight.arrive if arrived else fight.end) - fight.spawn
 	var heart_s: float = fight.end - fight.arrive if arrived else 0.0
 	var dispelled: bool = fight.route_damage + fight.heart_damage >= fight.health * 0.999
-	return "%d:%s%s:%d:%.0f:%d:%.0f:%.0f:%.0f:%d:%d" % [fight.drift, fight.kind, "(echo)" if fight.echo else "", fight.health,
-		route_s, fight.hp_arrive, fight.route_damage, fight.heart_damage, heart_s, fight.in_range, 1 if dispelled else 0]
+	return "%d:%s%s:%d:%.0f:%d:%.0f:%.0f:%.0f:%d:%d%s" % [fight.drift, fight.kind, "(echo)" if fight.echo else "", fight.health,
+		route_s, fight.hp_arrive, fight.route_damage, fight.heart_damage, heart_s, fight.in_range, 1 if dispelled else 0,
+		":leaked" if fight.leaked else ""] + ":v=%d:hp=%s:dr=%d" % [fight.visits, "/".join(fight.hp_visits.map(func(h) -> String: return str(h))), fight.drained]
 
 # An attacker has the Heartwood cell in range (a boss that gets through stays there, draining leaves).
 func _heartwood_covered() -> bool:
@@ -862,3 +917,118 @@ func _heartwood_covered() -> bool:
 		if tower.cell.distance_to(map.endPath) <= tower.get_range_cells():
 			return true
 	return false
+
+# An act boss that got through takes its bite and is gone: it "arrives" with the health it has left.
+func _boss_leaked(enemy: Node2D) -> void:
+	var fight := _boss_fight(enemy)
+	if fight.arrive < 0.0:
+		fight.arrive = game_time
+		fight.hp_arrive = enemy.health
+	fight.end = game_time
+	fight.leaked = true
+
+# --- Dream pool and build relevance (Grove control: does a big Grove pool dilute the Dreams?) -----------
+# Per offer: the drawable pool (DreamState.can_offer now) and each offered card as matched (its Warden-line
+# tags / stat line / stat Warden belong to a line on the map), generic (no Warden line; style tags don't count)
+# or off (only other lines').
+func _note_offer(offer: Array) -> void:
+	var act := director.get_act(maxi(director.drifts_started, 1))
+	var pool_size := dreams.pool.filter(func(c: UpgradeData) -> bool: return dreams.can_offer(c, act)).size()
+	dream_offers.offers += 1
+	dream_offers.pool += pool_size
+	if dream_offers.pool_5 < 0:
+		dream_offers.pool_5 = pool_size
+	var lines := {}
+	var families := {}
+	for tower in container.get_children():
+		if tower is Tower and not tower.is_queued_for_deletion():
+			lines[tower.tower_data.line] = true
+			families[dreams.family_of(tower.tower_data.get_id())] = true
+	for card in offer:
+		dream_offers.cards += 1
+		# Only Warden lines count (tags also hold style tags: maze, reaction, economy…, which are generic).
+		var own: Array = card.tags.filter(func(t: String) -> bool: return CARD_LINES.has(t))
+		if card.stat_line != "":
+			own.append(card.stat_line)
+		if own.is_empty() and card.stat_warden == "":
+			dream_offers.generic += 1
+		elif own.any(func(t: String) -> bool: return lines.has(t)) \
+				or (card.stat_warden != "" and families.has(dreams.family_of(card.stat_warden))):
+			dream_offers.matched += 1
+		else:
+			dream_offers.off += 1
+			dream_off_ids[card.id] = int(dream_off_ids.get(card.id, 0)) + 1
+
+# "id:count+…" of every Warden on the map, most first.
+func _warden_counts() -> String:
+	var counts := {}
+	for tower in container.get_children():
+		if tower is Tower and not tower.is_queued_for_deletion():
+			var id: String = tower.tower_data.get_id()
+			counts[id] = int(counts.get(id, 0)) + 1
+	var ids := counts.keys()
+	ids.sort_custom(func(a, b) -> bool: return counts[a] > counts[b])
+	return "+".join(ids.map(func(id) -> String: return "%s:%d" % [id, counts[id]]))
+
+# --- Aura-aware placement (Acorn, Elder Stump, Grove Heart; Moon Moth's range aura) ---------------------
+# The cells an aura Warden of `data` reaches (0 = it has no aura).
+func _aura_reach(data: TowerData) -> float:
+	var reach := 0.0
+	if data.aura_damage_bonus > 0.0 or data.aura_speed_bonus > 0.0 or data.aura_per_warden > 0.0:
+		reach = data.aura_radius if data.aura_radius > 0.0 else data.attack_range
+	if data.range_aura_bonus > 0.0:
+		reach = maxf(reach, data.range_aura_radius)
+	return reach
+
+# Path-tile bonus for a Warden of `data` at `cell`: AURA_WEIGHT per attacker its aura would cover, and (when
+# `receive` and it attacks) per aura Warden whose aura covers the cell; at most AURA_COUNT_MAX Wardens.
+func _aura_bonus(cell: Vector2, data: TowerData, exclude: Tower = null, receive := true) -> float:
+	if not aura_placement or data == null:
+		return 0.0
+	var count := 0
+	var reach := _aura_reach(data)
+	for tower in container.get_children():
+		if not (tower is Tower) or tower == exclude or tower.is_queued_for_deletion():
+			continue
+		var distance: float = tower.cell.distance_to(cell)
+		if reach > 0.0 and tower.tower_data.can_attack and distance <= reach:
+			count += 1
+		elif receive and data.can_attack:
+			var theirs := _aura_reach(tower.tower_data)
+			if theirs > 0.0 and distance <= theirs:
+				count += 1
+	return AURA_WEIGHT * mini(count, AURA_COUNT_MAX)
+
+func _covered_by_aura(target: Tower) -> bool:
+	for tower in container.get_children():
+		if tower is Tower and tower != target and not tower.is_queued_for_deletion():
+			var reach := _aura_reach(tower.tower_data)
+			if reach > 0.0 and tower.cell.distance_to(target.cell) <= reach:
+				return true
+	return false
+
+# --- Kinship-aware placement (tower_design.md "Kinships") ----------------------------------------------
+# Path-tile bonus for a Warden of `data` at `cell`: KIN_WEIGHT per unbonded Warden of the same family within
+# Kinships reach that it bonds with (a branch: its Kinship partner branch; a base Warden: any branch of its
+# family, which it can grow to meet). Bonded Wardens never count (bonds are sticky).
+func _kin_bonus(cell: Vector2, data: TowerData, exclude: Tower = null) -> float:
+	if not kin_placement or data == null or not data.can_attack:
+		return 0.0
+	var kin := Kinships.find(main)
+	var reach := kin.get_reach() if kin else Kinships.REACH
+	var mine := Kinships.branch_of(data)
+	var count := 0
+	for tower in _attackers():
+		if tower == exclude or tower.tower_data.line != data.line:
+			continue
+		var theirs := Kinships.branch_for(tower)
+		if theirs == "" or theirs == mine or (kin and not kin.get_pairs(tower).is_empty()):
+			continue
+		if Kinships._distance_to_cell(tower, cell) > reach:
+			continue
+		if mine == "" or Kinships.kinship_for(mine, theirs) != &"":
+			count += 1
+	return KIN_WEIGHT * mini(count, AURA_COUNT_MAX)
+
+func _count_on_map(id: String) -> int:
+	return _attackers().filter(func(t: Tower) -> bool: return t.tower_data.get_id() == id).size()

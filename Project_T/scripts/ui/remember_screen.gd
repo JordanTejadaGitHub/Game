@@ -416,16 +416,33 @@ func _add_unlock(data: TowerData) -> void:
 	var blocker := dream_state.get_unlock_blocker(data)
 	if blocker != "":
 		_line("Locked: " + blocker, UiStyle.INK_DIM, 13)
-	elif cost > dream_state.dreamlight:
-		_line("Needs %d more %s" % [cost - dream_state.dreamlight, MOTE], UiStyle.INK_DIM, 13)
 	var button := Button.new()
+	button.name = "UnlockButton"
 	button.focus_mode = Control.FOCUS_NONE
 	button.custom_minimum_size = Vector2(0, 48)
-	button.text = "Unlock · %d %s" % [cost, MOTE]
-	button.disabled = not dream_state.can_unlock(data)
+	var label := "Unlock · %d Dreamlight" % cost
+	var short := cost - dream_state.dreamlight  # > 0: can't afford
+	button.disabled = blocker != ""  # Locked for another reason: a plain disabled button (the line says why)
 	UiStyle.primary(button)
-	button.pressed.connect(unlock.bind(data))
 	_side_box.add_child(button)
+	if blocker == "" and short > 0:  # Can't afford yet (CantAfford): the cost in POOR, no count (user); a press refuses
+		CantAfford.apply(button, "Unlock", "%d Dreamlight" % cost, IconInfo.format(SHORT_TIP))
+		button.pressed.connect(_refuse_unlock.bind(data, button))
+	else:
+		button.text = label
+		button.pressed.connect(unlock.bind(data))
+
+# The short button's hover / tap: no count (user: "too much hand-holding"), just where Dreamlight comes from.
+const SHORT_TIP := "Not enough Dreamlight. It comes at {rests} and from bosses."
+
+# Pressed while short: the shake, the toast, the Dreamlight counter flashing (and Sound's refusal via unlock_rejected).
+func _refuse_unlock(data: TowerData, button: Button) -> void:
+	unlock_rejected.emit(data)
+	CantAfford.shake(button)
+	var hud := get_parent()
+	if hud != null and hud.has_method("show_toast"):
+		hud.show_toast("Not enough Dreamlight")
+	dream_state.dreamlight_short.emit(dream_state.get_unlock_cost(data))  # The HUD flashes the Dreamlight counter
 
 func _select(data: TowerData) -> void:
 	selected = data

@@ -15,6 +15,7 @@ speed = 35.0
 dew_reward = 100
 leaf_cost = 5
 is_boss = true
+stays_at_heartwood = true
 resists = Array[String](["light", "song"])
 weak_to = Array[String](["spore"])
 sapling = ExtResource("3_sapling")

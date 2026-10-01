@@ -190,6 +190,8 @@ func _ready() -> void:
 	map_generator.path_changed.connect(_on_path_changed)
 
 	run_state.dew_short.connect(func(_cost: int) -> void: sound.ui(&"invalid"))
+	if dream_state.has_signal("dreamlight_short"):  # A grow / unlock refused for too little Dreamlight
+		dream_state.dreamlight_short.connect(func(_cost: int) -> void: sound.ui(&"invalid"))
 	# No Dew sound per kill (third listen: kills sounded like coins); only lump sums make one.
 	run_state.run_ended.connect(_on_run_ended)
 

@@ -42,6 +42,26 @@ var blight_materials := {}  # {outlined: ShaderMaterial} shared by the nightmare
 # Mobile and Steam Deck get a lower cap (platforms.md; tuned when porting). The Deck export preset
 # needs the custom feature tag "steamdeck".
 @export var max_field_handheld := 110
+# Leaves an act boss takes when it reaches the Heartwood, by act (1, 2, 3, …); then it's gone, a leak
+# like any other. The Hollow Oak stays and drains instead (EnemyData.stays_at_heartwood), and the
+# Night Mare runs its laps (balance_simulation.md 538b85b7).
+@export var boss_bite_leaves: Array[int] = [10, 10, 12]
+
+# The bite for a boss in act `act` (the last entry for later acts).
+func get_boss_bite(act: int) -> int:
+	if boss_bite_leaves.is_empty():
+		return 5
+	return boss_bite_leaves[clampi(act - 1, 0, boss_bite_leaves.size() - 1)]
+
+# The act `enemy` is in: its drift's, else the drift being played (tests, summons outside a drift).
+func act_of(enemy: Node) -> int:
+	var director = get_node_or_null("%DriftDirector")
+	if director == null:
+		return 1
+	var number: int = director.drift_of(enemy)
+	if number <= 0:
+		number = maxi(director.drifts_started, 1)
+	return director.get_act(number)
 # For hidden nightmares' reveal checks (Enemy._is_revealed), kept here so a crowd of Lurkers doesn't
 # each scan every Warden and every nightmare: {cell: Tower} for every Warden's cells, the Wardens that
 # Mark (they reveal in their whole range), and the nightmares that reveal others (reveal_radius).

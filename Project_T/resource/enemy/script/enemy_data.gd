@@ -95,6 +95,10 @@ enum Trait { NONE, FLYING, ROLLING, TRAMPLE, LEAP, BURROW, WANDER }
 # Night Mare, revised (enemy_design.md): at the Heartwood it stays and drains like any boss (a leaf
 # every Enemy.HEARTWOOD_DRAIN_EVERY s) for lap_linger s, + lap_linger_step s each visit (6, 10, 14…),
 # then gallops back to the start for another lap.
+# The Hollow Oak (every form): reaching the Heartwood it stays and drains a leaf every
+# Enemy.HEARTWOOD_DRAIN_EVERY s until dispelled. Every other act boss takes a flat bite and leaves
+# (EnemyContainer.boss_bite_leaves, by act; balance_simulation.md 538b85b7).
+@export var stays_at_heartwood: bool = false
 @export var lap_linger: float = 0.0
 @export var lap_linger_step: float = 0.0
 @export var lap_speed_multiplier: float = 1.2

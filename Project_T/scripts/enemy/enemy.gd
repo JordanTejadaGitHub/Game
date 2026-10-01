@@ -519,8 +519,8 @@ func _process(delta: float) -> void:
 			_linger_left = enemy_data.lap_linger + enemy_data.lap_linger_step * laps
 			_drain_left = 0.0  # Its first leaf of the visit at once
 			_set_untouchable(true)  # At the Heartwood it can't be touched
-		if (enemy_data.is_boss and not is_echo) or enemy_data.laps():
-			at_heartwood = true  # Bosses stay (the timers keep running if it's re-routed and walks back in)
+		if (enemy_data.is_boss and not is_echo and enemy_data.stays_at_heartwood) or enemy_data.laps():
+			at_heartwood = true  # The Hollow Oak stays (the timers keep running if it's re-routed and walks back in)
 			return
 		reached_goal.emit(self)
 		queue_free()
@@ -1021,6 +1021,9 @@ func set_dew_share(share: float) -> void:
 
 # Leaves lost when this nightmare reaches the Heartwood (Deeply Blighted cost at least 2).
 func get_leaf_cost() -> int:
+	if enemy_data.is_boss and not is_echo and not enemy_data.stays_at_heartwood and not enemy_data.laps() \
+			and _spawner != null:
+		return _spawner.get_boss_bite(_spawner.act_of(self))  # An act boss's flat bite (8 / 10 / 12)
 	return maxi(enemy_data.leaf_cost, ELITE_LEAVES) if elite else enemy_data.leaf_cost
 
 func is_flying() -> bool:
@@ -1573,8 +1576,7 @@ func _update_presence(delta: float) -> void:
 		_brood_timer += elapsed
 		if _brood_timer >= enemy_data.brood_interval:
 			_brood_timer = 0.0
-			if not (at_heartwood and enemy_data.pack_shield < 1.0):  # The horn is silent at the Heartwood
-				brood_requested.emit(self)
+			brood_requested.emit(self)
 	if enemy_data.sapling != null:  # Hollow Oak
 		_sapling_timer += elapsed * _sapling_speed
 		if _sapling_timer >= enemy_data.sapling_interval:

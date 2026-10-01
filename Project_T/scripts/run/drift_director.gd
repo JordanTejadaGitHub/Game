@@ -458,10 +458,12 @@ func add_guaranteed_elite(schedule: Array, number: int) -> void:
 	for n in (2 if number >= second_elite_from else 1):
 		var by_kind := {}  # EnemyData -> [schedule index, …] not elite yet
 		for i in schedule.size():
-			if not schedule[i][1].is_boss and not (schedule[i].size() > 2 and schedule[i][2]):
+			# Never a kind on its intro drift: that drift teaches it (human run 5: an elite Phantom on drift 31)
+			if not schedule[i][1].is_boss and not (schedule[i].size() > 2 and schedule[i][2]) \
+					and schedule[i][1].intro_drift != number:
 				by_kind.get_or_add(schedule[i][1], []).append(i)
 		if by_kind.is_empty():
-			return
+			return  # Only the new kind (or bosses) here: no guaranteed elite this drift
 		var arrivals: Array = by_kind[by_kind.keys().pick_random()]
 		var index: int = arrivals.pick_random()
 		if schedule[index].size() > 2:

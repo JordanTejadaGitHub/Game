@@ -108,6 +108,13 @@ perks can modify them.
   side** (~35%) or an **inlet** (~26%, both on one edge, a U around a spine ridge); ends jitter along
   their edge; ridges run across the route; **one feature** per map (pond, stone ruin, dense grove,
   fallen-log line). Route length and buildable space stay within ±25% of before.
+- **Inland Heartwood** (2026-10-01, user: *"move the Heartwood out of the outer edges, put it in the
+  outer half from where the start is, in a random position"*; spec 929c8cdb, `environment_assets.md`
+  "Map layouts" → "Inland Heartwood"): the start stays on the edge (corner or side, ~50/50; inlets
+  dropped), and the Heartwood stands **inland at a random cell in the half farthest from the start**:
+  ≥ 2 cells from any edge and ≥ 50% of the diagonal from the start, in a small clear glade. Nightmares
+  can reach it from several sides, so walling around the tree itself is part of the maze. Its canopy
+  fades when something is behind it.
 - **Fewer obstacles** (2026-09-28, user: "the maze aspect is getting lost… maybe less rocks and
   trees would help"): about **40% fewer** obstacles than now: at most **2 ridges** (shorter, with
   gaps), smaller and rarer tree groves and rock clusters, and most scattered single rocks gone. The

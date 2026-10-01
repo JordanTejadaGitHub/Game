@@ -120,7 +120,13 @@ Queen an act 3 boss.
 
 **Act 1 bosses must be a threat** (2026-09-30, user): health alone didn't do it (×1.5–×2.0 all dispelled cleanly 19–20/20). Targets, Fresh, sensible picks: beat it **~75%**; always-skip **loses** to it; and **a win still costs leaves**: the boss (or what it brings) reaches **85%+ of the route in most wins, ~1–3 leaves lost** on average. The sharpened abilities above come first; the health sweep (×2.5–×3.5) then tunes to the targets.
 
-**A boss that reaches the Heartwood stays** (2026-09-30, user, after Tower Code found a boss leak cost only its 5 leaves and never decided a run, so health barely mattered): an act boss that gets through **doesn't leave. It stays at the Heartwood and takes 1 leaf every 2 s until it's dispelled**; Wardens in range of the Heartwood can still hit it (Last Stand shines here). Damage decides the outcome, so a maze without Dreams loses the run and a good one saves it late. **The Night Mare keeps its own rule** (user: *"isn't there a boss that reruns once it hits the end"*): it laps, taking 3 leaves and running the maze again, faster; that is its version of this. Applies to every act boss including the Hollow Oak; echoes and escorts leak normally. The boss bar shows "At the Heartwood" and pulses; the Heartwood trembles each leaf.
+**A boss that reaches the Heartwood: only the Hollow Oak stays** (2026-10-01, user: *"most bosses just lose a lot of leaves and have 1 boss that sticks"*; balance_simulation.md 538b85b7). The lingering rule below made a cliff: a Hollow Stag with 38 health (0.7%) left cost all 18 leaves when nothing covered the Heartwood. Now:
+- **The Hollow Oak (drift 100, every form: Thorned, Withering, Remembering) stays and drains** until dispelled, 1 leaf every 2 s, still hittable: the run's last stand.
+- **Every other act boss takes a flat bite and leaves:** **8 leaves in act 1, 10 in act 2, 12 in act 3** (Hollow Stag, Scarecrow; Mire Hag, Huntsman, Lamplighter; Moth Queen, Barrow King, Mourning Mother). This replaces their `leaf_cost` 5.
+- **The Night Mare keeps its own laps** as decided below (untouchable lingers that drain, then another, faster lap).
+- Echoes (Remembering Oak) and escorts leak normally.
+
+*Replaced 2026-10-01 for every boss but the Oak:* **A boss that reaches the Heartwood stays** (2026-09-30, user, after Tower Code found a boss leak cost only its 5 leaves and never decided a run, so health barely mattered): an act boss that gets through **doesn't leave. It stays at the Heartwood and takes 1 leaf every 2 s until it's dispelled**; Wardens in range of the Heartwood can still hit it (Last Stand shines here). Damage decides the outcome, so a maze without Dreams loses the run and a good one saves it late. **The Night Mare keeps its own rule** (user: *"isn't there a boss that reruns once it hits the end"*): it laps, taking 3 leaves and running the maze again, faster; that is its version of this. Applies to every act boss including the Hollow Oak; echoes and escorts leak normally. The boss bar shows "At the Heartwood" and pulses; the Heartwood trembles each leaf.
 
 **Sweep with the new rule** (Tower Code, 270 runs, fresh, drift 25): **Hollow Stag at ×1.75 health: taking Dreams 73%, skipping 33%** (it drains 10–15 leaves once through, usually the run): **chosen**. **Night Mare** never stays (laps), barely separates (Dreams 14–15/15, skip 11–14) → try a **costlier lap (4 / 5 / 6 leaves)** at ×2.0. **Scarecrow** with route-flying Crows is too easy (15/15 vs 13–14) → try **Crows 4 / 5 per burst × health ×1.75 / 2.25**. Skip surviving 1 in 3 against the Stag is by killing it outright: fixed later by early Dreams, not the drain.
 
@@ -357,19 +363,19 @@ are marked ✓; the rest are proposals to tune.
 | Whisper Swarm (Bee Swarm) | 180 | 105 | 5 | 1 | — | wind | single-target ×0.5 (its shape resistance is its trait) |
 | Dream Thief (Squirrel) | 90 | 120 | 3 (×2) | 1 | light | wing | steals 5 Dew if it reaches the Heartwood |
 | Weeper (Mossling) | 160 | 70 | 5 | 1 | water | light | mends nightmares within 1.5 cells for 2% of their max health/s |
-| **The Hollow Stag** (Old Stag) ✓ | 3,000 | 51 | 40 | 5 | stone, root | water | tramples Thornwalls |
-| **The Mire Hag** (Great Toad) | 8,000 | 55 (+ rises ahead) | 60 | 5 | water | root | surfaces 3 tiles ahead every 6 s |
-| **The Moth Queen** (Mother Moth) | 16,000 | 65 | 80 | 5 | spore, wing | light | flies; drops a Lurker every 4 s |
-| **The Hollow Oak: Thorned** | 30,000 | 35 | 100 | 5 | light, song | spore | plants a thorn-sapling every 8 s |
-| **The Hollow Oak: Withering** | 30,000 | 35 | 100 | 5 | root, stone | water | withers a Warden every 10 s |
-| **The Hollow Oak: Remembering** | 26,000 | 35 | 100 | 5 | spore, water | light | echoes of this run's bosses at 75/50/25% |
-| **The Night Mare** *(act 1)* | 2,000 | 110 (+20% per lap) | 40 | 3 per lap | root | light | laps the maze until dispelled |
-| **The Scarecrow** *(act 1)* | 2,600 | 45 | 40 | 5 | stone, talon | spore | Crows at every 20% |
+| **The Hollow Stag** (Old Stag) ✓ | 3,000 | 51 | 40 | 8 | stone, root | water | tramples Thornwalls |
+| **The Mire Hag** (Great Toad) | 8,000 | 55 (+ rises ahead) | 60 | 10 | water | root | surfaces 3 tiles ahead every 6 s |
+| **The Moth Queen** (Mother Moth) | 16,000 | 65 | 80 | 12 | spore, wing | light | flies; drops a Lurker every 4 s |
+| **The Hollow Oak: Thorned** | 30,000 | 35 | 100 | stays: 1 per 2 s | light, song | spore | plants a thorn-sapling every 8 s |
+| **The Hollow Oak: Withering** | 30,000 | 35 | 100 | stays: 1 per 2 s | root, stone | water | withers a Warden every 10 s |
+| **The Hollow Oak: Remembering** | 26,000 | 35 | 100 | stays: 1 per 2 s | spore, water | light | echoes of this run's bosses at 75/50/25% |
+| **The Night Mare** *(act 1)* | 2,000 | 110 (+20% per lap) | 40 | drains while it lingers (untouchable), then laps | root | light | laps the maze until dispelled |
+| **The Scarecrow** *(act 1)* | 2,600 | 45 | 40 | 8 | stone, wing | spore | Crows at every 20% |
 | Crow (Scarecrow) | 40 | 150 | 1 | 1 | — | — | |
-| **The Huntsman** *(act 2)* | 6,500 | 65 | 60 | 5 | spore | stone | half damage while a hound lives |
-| **The Lamplighter** *(act 2)* | 7,000 | 55 | 60 | 5 | light, song | water | cold lanterns slow Wardens |
-| **The Barrow King** *(act 3)* | 16,000 | 40 | 80 | 5 | song, water | root | shrugs off statuses every 10 s |
-| **The Mourning Mother** *(act 3)* | 14,000 | 45 | 80 | 5 | stone, light | song | heals when unhit for 1.5 s |
+| **The Huntsman** *(act 2)* | 6,500 | 65 | 60 | 10 | spore | stone | half damage while a hound lives |
+| **The Lamplighter** *(act 2)* | 7,000 | 55 | 60 | 10 | light, song | water | cold lanterns slow Wardens |
+| **The Barrow King** *(act 3)* | 16,000 | 40 | 80 | 12 | song, water | root | shrugs off statuses every 10 s |
+| **The Mourning Mother** *(act 3)* | 14,000 | 45 | 80 | 12 | stone, light | song | heals when unhit for 1.5 s |
 
 New boss health is set against its act's base (3,000 / 8,000 / 16,000) for how much the trait
 multiplies it: the Night Mare's laps and the Huntsman's shield make their real health much higher,

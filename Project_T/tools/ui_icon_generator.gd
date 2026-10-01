@@ -41,6 +41,7 @@ func _init() -> void:
 	_make_icons()
 	_make_omen_cards()
 	_make_hud_icons()
+	_make_dream_glyphs()
 	print("ui icons written")
 	quit()
 
@@ -1526,4 +1527,253 @@ func _make_hud_icons() -> void:
 		note = "HUD-size icons, drawn for exactly x2: counters 12 px -> 24 px, button glyphs 10 px -> 20 px. Nearest filtering.",
 	}
 	var file := FileAccess.open(OUT + "hud_icons.json", FileAccess.WRITE)
+	file.store_string(JSON.stringify(data, "\t") + "\n")
+
+# --- Dream card glyphs (8x8, shown x2 = 16 px inside the rarity gem) -------------------------------
+# One light glyph per card tag group, drawn on the dark gem (no outline). "H" = Heartlight, "M" = Mist.
+# No family emblems: the family lines use their attack's mark (spore puff, bolt, bell...), as on the
+# damage-type badges.
+
+const GLYPH_INK := {"H": "heartlight", "M": "mist"}
+
+const DREAM_GLYPHS := {
+	"spore": [
+		".HH.....",
+		"HHHH....",
+		"HHHH.HH.",
+		".HH.HHHH",
+		"....HHHH",
+		".HH..HH.",
+		"HHHH....",
+		".HH....."],
+	"water": [
+		"........",
+		".HH..HH.",
+		"H..HH..H",
+		"........",
+		".HH..HH.",
+		"H..HH..H",
+		"........",
+		"........"],
+	"storm": [
+		"....HHH.",
+		"...HHH..",
+		"..HHH...",
+		".HHHHHH.",
+		"...HHH..",
+		"..HHH...",
+		".HHH....",
+		".H......"],
+	"stone": [
+		"........",
+		"..HHHH..",
+		".HHHHHH.",
+		"HHHMHHHH",
+		"HHHHHMHH",
+		"HHHHHHHH",
+		".HHHHHH.",
+		"........"],
+	"root": [
+		"HHHHHHHH",
+		"...HH...",
+		"..HHHH..",
+		".H.HH.H.",
+		"H..HH..H",
+		"...HH...",
+		"..H..H..",
+		".H....H."],
+	"song": [
+		"...HH...",
+		"..HHHH..",
+		".HHHHHH.",
+		".HHMHHH.",
+		".HHMHHH.",
+		"HHHHHHHH",
+		"...HH...",
+		"........"],
+	"wing": [
+		".......H",
+		".....HHH",
+		"...HHHH.",
+		".HHHHM..",
+		"HHHHM...",
+		".HHM....",
+		"H.H.....",
+		"........"],
+	"wind": [
+		"HHHHH...",
+		".....H..",
+		"HHHH.H..",
+		"....H...",
+		"HHHHHHH.",
+		".......H",
+		".HHHH..H",
+		".....HH."],
+	"acorn": [
+		"...H....",
+		".HHHHH..",
+		"HHHHHHH.",
+		"HMMMMMH.",
+		".HHHHH..",
+		".HHHHH..",
+		"..HHH...",
+		"...H...."],
+	"sprout": [
+		"........",
+		"HHH...HH",
+		".HHH.HHH",
+		"..HHHHH.",
+		"...HH...",
+		"...HH...",
+		".HHHHHH.",
+		"HHHHHHHH"],
+	"wall": [
+		".H..H..H",
+		"HHHHHHHH",
+		"HMHHHMHH",
+		"HHHHHHHH",
+		"HHHMHHHM",
+		"HHHHHHHH",
+		"HMHHHMHH",
+		"HHHHHHHH"],
+	"kinship": [
+		".HHH....",
+		"H...H...",
+		"H..HHHH.",
+		"H.H.H..H",
+		".HHH...H",
+		"...H...H",
+		"....HHH.",
+		"........"],
+	"economy": [
+		"..H...H.",
+		"..HH.HHH",
+		".HHHH.H.",
+		".HHHH...",
+		"HHHHHH..",
+		"HMHHHH..",
+		".HHHH...",
+		"........"],
+	"clearing": [
+		"........",
+		".HHHHHH.",
+		"HMMMMMMH",
+		"HMHHHHMH",
+		".HHHHHH.",
+		".HHHHHH.",
+		"HH.HH.HH",
+		"........"],
+	"leaves": [
+		".....HHH",
+		"...HHHHH",
+		"..HHHHHH",
+		".HHHMHH.",
+		".HHMHH..",
+		".HMHH...",
+		"HM......",
+		"H......."],
+	"maze": [
+		"HHHHHHHH",
+		"H......H",
+		"H.HHHH.H",
+		"H.H..H.H",
+		"H.H.HH.H",
+		"H.H....H",
+		"H.HHHHHH",
+		"H......."],
+	"nurture": [
+		"...HH...",
+		"..HHHH..",
+		".HH..HH.",
+		"H..HH..H",
+		"..HHHH..",
+		".HH..HH.",
+		"H......H",
+		"........"],
+	"crit": [
+		"..HHHH..",
+		".H....H.",
+		"H......H",
+		"H..HH..H",
+		"H..HH..H",
+		"H......H",
+		".H....H.",
+		"..HHHH.."],
+	"reaction": [
+		"H..H..H.",
+		".H.H.H..",
+		"..HHH...",
+		"HHHHHHH.",
+		"..HHH...",
+		".H.H.H..",
+		"H..H..H.",
+		"........"],
+	"bittersweet": [
+		".HH..HH.",
+		"HHHHHHHH",
+		"HHHMHHHH",
+		"HHHHHHHH",
+		".HHHHHH.",
+		"H.HHHH.H",
+		"...HH...",
+		"........"],
+	"generic": [
+		"...HH...",
+		"...HH...",
+		"..HHHH..",
+		"HHHHHHHH",
+		"HHHHHHHH",
+		"..HHHH..",
+		"...HH...",
+		"...HH..."],
+}
+
+# Every card tag (resource/dream/*.tres) -> its glyph. Rare tags fold into the closest one.
+const DREAM_TAG_GLYPHS := {
+	"spore": "spore", "trap": "spore",
+	"water": "water", "fog": "water",
+	"storm": "storm", "light": "storm",
+	"stone": "stone",
+	"root": "root", "held": "root",
+	"song": "song", "wing": "wing",
+	"wind": "wind", "swift": "wind", "tempo": "wind",
+	"acorn": "acorn", "support": "acorn",
+	"sprout": "sprout", "seed": "sprout",
+	"wall": "wall",
+	"kinship": "kinship",
+	"economy": "economy", "dreamlight": "economy",
+	"clearing": "clearing", "tending": "clearing",
+	"leaves": "leaves",
+	"maze": "maze", "wide": "maze", "narrow": "maze",
+	"nurture": "nurture", "tall": "nurture", "potency": "nurture",
+	"crit": "crit", "precision": "crit", "reach": "crit", "range": "crit", "mark": "crit",
+	"reaction": "reaction", "affliction": "reaction", "status": "reaction", "on-hit": "reaction", "sleep": "reaction",
+	"bittersweet": "bittersweet",
+	"daring": "generic", "variety": "generic", "opener": "generic", "dreams": "generic", "overgrowth": "generic",
+}
+
+# A card with several tags shows the first glyph in this order that any of its tags maps to.
+const DREAM_GLYPH_PRIORITY := ["bittersweet", "kinship", "spore", "water", "storm", "stone", "root", "song",
+	"wing", "wind", "acorn", "sprout", "wall", "clearing", "economy", "leaves", "maze", "nurture", "crit",
+	"reaction", "generic"]
+
+func _make_dream_glyphs() -> void:
+	var ids := DREAM_GLYPHS.keys()
+	var sheet := Image.create(8 * ids.size(), 8, false, Image.FORMAT_RGBA8)
+	var index := {}
+	for i in ids.size():
+		var rows: Array = DREAM_GLYPHS[ids[i]]
+		assert(rows.size() == 8, "%s: %d rows" % [ids[i], rows.size()])
+		for y in 8:
+			var row: String = rows[y]
+			assert(row.length() == 8, "%s row %d: %d wide" % [ids[i], y, row.length()])
+			for x in 8:
+				if GLYPH_INK.has(row[x]):
+					sheet.set_pixel(i * 8 + x, y, Palette.color(GLYPH_INK[row[x]]))
+		index[ids[i]] = i
+	sheet.save_png(OUT + "dream_glyphs.png")
+	var data := {frame_size = 8, icons = index, tags = DREAM_TAG_GLYPHS, priority = DREAM_GLYPH_PRIORITY,
+		fallback = "generic",
+		note = "Dream card glyphs, light on the dark rarity gem. Show x2 (16 px), nearest. A card shows the first glyph in `priority` that any of its tags maps to in `tags`; untagged or unknown tags use `fallback`."}
+	var file := FileAccess.open(OUT + "dream_glyphs.json", FileAccess.WRITE)
 	file.store_string(JSON.stringify(data, "\t") + "\n")

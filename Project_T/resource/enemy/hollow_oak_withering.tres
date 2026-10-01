@@ -12,6 +12,7 @@ speed = 35.0
 dew_reward = 100
 leaf_cost = 5
 is_boss = true
+stays_at_heartwood = true
 resists = Array[String](["root", "stone"])
 weak_to = Array[String](["water"])
 wither_interval = 10.0

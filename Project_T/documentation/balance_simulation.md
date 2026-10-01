@@ -430,6 +430,121 @@ health (0.7%) left cost all 18 leaves, the same as 3,400. The bot now covers the
 - **The Night Mare keeps its own laps** (untouchable lingers that drain, then another lap).
 - This replaces enemy_design.md's "A boss that reaches the Heartwood stays" for every boss but the Oak.
   Act 1's target "always-skip loses to the boss" now has to come from leaks before 25 plus the 8.
+- **Leaf Fall is never offered for a block with a boss drift** (its ×2 would make the bite 16–24
+  leaves: a boss must never one-shot the run).
+- In the game: **bfc33e75** (boss bite, `EnemyContainer.boss_bite_leaves` [8, 10, 12],
+  `EnemyData.stays_at_heartwood` on the Oak; the Huntsman's silent horn dropped) and **b708815a**
+  (Leaf Fall, `OmenData.never_before_boss`).
+
+**Act 1 boss check with the bite** (0b4861b6, cover rule, Hollow Stag 5,250, 20 seeds): survived the
+boss: **fresh Balanced 90%**, fresh skip 45%, full Balanced 80%, full skip 65%. The cliff is gone
+(fresh Balanced bots that nearly kill him pay 8 and carry on). Too kind against the targets (~75% /
+skip loses), and humans play better than the bot: **act 1 bite 8 → 10** (`boss_bite_leaves` [10, 10,
+12]); re-check fresh only. The full profile doing worse than fresh (29% vs 67% dispelled) is on the
+bot's side (same boss health). **Cause (measured):** the first family. Fresh always draws Sporeling
+(every start offer has it; Balanced picks it): 20/20, Stag dispelled 67%. Full offers 3 of 9 families:
+Sporeling 7/20 (dispelled 50%), **other families 2/11 (18%)**; Pebbling is resisted by
+the Stag (stone; Acorn is neutral, never resisted), Firefly lost 3/3. Same attackers, tiers and card counts in both: no thinning.
+So **non-Sporeling families look weak in act 1** (n = 1–5 each). Next: a per-family act 1 batch
+(10 seeds per forced family), then a same-family Grove control (fresh / half / full, Sporeling + one).
+
+**Omen batch, full profile to 50** (0b4861b6): always facing reaches **~10 drifts less** (19.9 vs 29.6)
+and loses **+10 leaves by 25** ✓; clean reaches 5.7 more drifts than always but pays the same per leaf
+(0.27 vs 0.28). Every Omen's Dew is as designed. **Act 2 kills every bot profile**, so acts 2–3 Omens
+are read from human runs, not the sim. **The Omen check is closed** for the sim: targets met in act 1.
+
+**Bite-10 re-check** (e19b9230, fresh, 20 seeds): Balanced survives the boss **90%** (Stag dispelled
+89%), skip **45%** (6 of skip's 11 deaths come before the boss; skip runs that fight him often survive
+the 10 on 5 leaves). The bite alone can't push skip to ≤ 25%. **Held** until the per-family batch:
+fresh runs here are all Sporeling, so act 1 boss health is set once the family spread is known.
+
+**The Night Mare** (user: "feels useless now, since its mechanic is to do it multiple times"): at
+2,286 base (×1.75 ≈ 4,000, under the Stag's 5,250) it dies on its first pass (23 s in run 4), so its
+laps never show, and one visit (5 leaves) is half the other bosses' bite. **Health ×1.5 (3,430 base)**
+so a typical maze needs two passes; visits stay 5 / 7 / 9 leaves (one lap is kinder than a bite, two are
+worse). Check: Night Mare forced, fresh Balanced / skip; target Balanced laps once+ in ~60% of fights.
+**Result** (cde782f3, 6,003 health, 20 seeds): Balanced **laps 88%**, dies on lap 2 in 12 of 15
+dispels, **survives 75%**, median 5 leaves drained ✓ all three. Skip survives **35%** (12 leaves): the
+act 1 boss that best separates Dreams from skipping. **Kept.**
+
+**Per-family act 1** (e19b9230, **full profile** so every family has its branches; first family
+forced, 10 seeds; the fresh run was confounded: unowned families had no branches):
+
+| family | survived boss | Stag dispelled | leaves lost before the boss |
+|---|---|---|---|
+| Rootling | 100% | 9/10 | 0 |
+| Nestling | 100% | 8/10 | 0 |
+| Dewdrop | 90% | 6/10 | 0 |
+| Firefly Jar | 70% | 2/8 | 1 |
+| Sporeling | 80% | 2/9 | 1.5 |
+| Bellflower | 90% | 2/10 | 0 |
+| Pebbling | 100% | 1/10 | 0 (highest maze DPS, 673, but stone is resisted) |
+| Whirligig | 100% | 0/10 | 4 |
+| **Acorn** | **50%** | **0/10** | **6** (2 runs dead before 25) |
+
+Decisions: **"beats the first boss" = survives it**: 8 of 9 families at 70–100%, so **the Stag stays**.
+**Acorn +15% attack damage** across its forms (auras unchanged; Tower Code): the only family that
+leaks in normal act 1 drifts. Whirligig holds normal drifts, no change. Sporeling dispels 2/9 on full
+vs 6/9 on fresh: possibly a big Grove Dream pool diluting the cards; the same-family Grove control
+(Sporeling + Firefly Jar, fresh / half / full) measures it. The "skip loses by 25" target is still
+unmet (Sporeling skip on full survives 70%); act 1 health is held for the next fresh human run.
+**Caveat (user: "are we testing that we have Wardens around it?"):** no. The bot places by path in
+range only, so Acorn's auras (the 8 around; Grove Heart radius 2, +3% per Warden) land by chance and
+the support family is undersold. Balancing Code adds aura-aware placement; the Acorn re-check runs
+with and without it on the same seeds.
+
+**Acorn re-check** (e0627b99: Acorn +15% from 67e4e9f6, aura-aware bot with AURA_WEIGHT 2 tiles per
+Warden, cap 5; full, 10 seeds): Balanced survives the boss **100%** (was 50%) and loses **0 leaves
+before him** (was 6): the +15% fixed the normal drifts. The auras add **+15% maze DPS** (537 vs 466;
+skip +10%, and 100% vs 70% survival). Acorn still almost never dispels the Stag (1/40). Not a
+resistance (Acorn is neutral, line `acorn`; he resists stone and root only): its damage on him (~2,100–
+3,000 of 5,250) is low. The bite keeps it survivable; watch Acorn's boss damage, no change yet. **Closed:** no first-pick change (Tower Discussion's fallback not
+needed). The bots never grew Dewcatcher / Wellspring / Grove Heart (first-form blind spot), so the
+economy branches are unmeasured.
+
+**Bot upgrades for the Grove control** (bfa430cd): Kinship placement (+2 tiles per unbonded kin in
+reach, cap 5, sticky bonds respected), the grow step picks the branch that bonds / the rarer one, and
+Dreamlight unlocks a family's two branches before its finals (finals arrive a little later). Still
+blind: the 9 hidden Kinships (third branches).
+
+## Grove control (2026-10-01, bfa430cd, Sporeling + Firefly Jar forced, auras + kin, 20 seeds, to 50)
+
+**The Grove shows no measurable gain; fresh ≥ half ≥ full.** Mean drift reached 34.0 / 33.1 / 31.9;
+reached 35: 8 / 8 / 6 of 20; Stag dispelled 14/19, 15/20, 12/19. Perks add +7% maze DPS at 24 (583 vs
+543), which doesn't turn into survival; every run dies in act 2.
+**Dream pool dilution, measured:** the drawable pool goes **49 → ~91** cards (half already owns nearly
+every card node), and ~6 cards are taken by 50 in every profile. *(The first "fits the build" shares, 36% → 24%, were
+**invalid**: the classifier counted style-only cards like "maze" or "economy" as off-build. A re-run
+with a family-line classifier replaces them.)*
+This conflicts with the targets (Half Grove reaches act 4, Full wins). Next: find out whether the
+off-build cards are dead for the build (a `can_offer` rule fixes it) or usable (a pool-size question),
+then bring the fix to the user. Caveat: one family pair, one bot style, which picks by tag + rarity.
+
+## Human run 5 (2026-10-01, build b6d458 = ee3d82d0: run-4 curve, Dew pot, boss bite 10, Night Mare ×1.5, Acorn +15%)
+
+Lost at **drift 35**, 1 Grove node (Morning Stores), no early calls. Firefly Jar first, Sporeling at
+25. Top damage: 2 Stormcaps 51%, 2 Lanternmoths 23%. Dew earned 3,729 (ranks 2,140), banked ≤ 571.
+Dreams 6 taken, 0 passed; Omens 4 faced, 1 Clear Skies.
+
+- **Act 1 block 3 spiked:** closest 0.80–1.00 at drifts 11–15, **9 leaves lost** (first leak 13; the
+  Swarm at 15 took 5). Blocks 4–5 settled at 0.25–0.55. Target for a fresh profile is 0–3 by 25.
+  One run, and Firefly Jar (single target) against the Swarm is a readable matchup: **watch**.
+- **The Stag: dispelled in 46 s**, no leaves.
+- **Act 2 drifts 26–30: closest 0.22–0.29** (the breather), then **drift 31 cost 6 leaves**: it's the
+  Phantom's intro drift (4 Phantoms, flying, fixed), and the guaranteed elite from drift 31 made one an
+  elite Phantom; all 5 flew past (802 of 3,193 damage). Down to 1 leaf, then drift 34 (77k health,
+  closest 1.0) ended the run at 35.
+- Against the targets: **a fresh profile ending in act 2 ✓**. But the deciding leak was an intro
+  drift doubled by a rule, which isn't readable.
+
+Decisions:
+1. **No guaranteed elite on a nightmare's intro drift:** `add_guaranteed_elite` never picks a kind
+   whose `intro_drift` is this drift (skipped if nothing else is there). In the game: ade9a9ef.
+2. Act 1 block 3 and act 2's start: no change from one run.
+
+User: *"The run felt fair so far, lost because of flyers that I didn't notice would be coming from
+the wave, but that is my fault."* So **the curve reads fair**; the loss was not seeing the first
+flyers coming (a readability point for the Coming strip / new-nightmare warning, passed to the hub).
 
 ## Later
 

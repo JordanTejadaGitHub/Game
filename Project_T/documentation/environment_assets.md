@@ -160,6 +160,52 @@ same way. Now each map rolls a layout, ridges that follow it, and one feature.
 
   50 random seeds: 36–91 obstacles (mean 62) at Blight 0, 35–100 (69) at Blight 9. Every route bends.
 
+### Inland Heartwood (spec, Environment Discussion, 2026-10-01)
+
+User (via the design chat): "move the Heartwood out of the outer edges, put it in the outer half from
+where the start is, in a random position." The start stays on the island's edge; the Heartwood moves
+inland. This replaces the Heartwood half of the layouts above.
+
+1. **Layouts describe only the start.** Two kinds remain, about 50/50: **corner start** (1–4 cells in
+   from a corner, any of the 4 corners, along either edge) and **side start** (mid-edge ±3, any of the
+   4 edges). **Inlet goes away**, because the Heartwood is never on an edge any more. Rename
+   `MapLayout.end` as `heartwood` (or keep `end` with a comment) and drop the end-edge logic.
+2. **Heartwood placement**, random per seed, rolled from the map rng right after the start:
+   - **Far half:** split the map by the line through its centre perpendicular to start→centre, and keep
+     the half without the start.
+   - **Inland:** at least 2 cells from every edge (x 2–20, y 2–15 on the 23×18 map).
+   - **Far enough:** straight-line distance from the start of at least **50% of the map's diagonal**
+     (about 14.6 cells). 50% rather than 55%, because from a mid-edge start on the short axis 55% leaves
+     only the two far corners. If no cell qualifies, take the farthest candidates.
+   - Pick uniformly among the cells that qualify, so it really lands in different spots.
+3. **The glade:** the 8 cells around the Heartwood (chessboard 1) never get obstacles, ridges or a
+   feature. Wardens can be built there, so the player can wall it in on some sides and make nightmares
+   walk round to an open one. That approach from several sides is the new tactical layer. The
+   existing rule still stands: never fully cut off the route.
+4. **Generation order:** start → Heartwood → glade → ridges → feature → scatter. Ridges run across the
+   start→Heartwood direction (the axis they use now). The guaranteed bend, the carve and trim guards,
+   `max_route_length` and the opening-route band (35–57) must still hold. Features keep
+   `feature_clearance` from both ends and never touch the glade.
+5. **The island:** the rim is now closed everywhere except the start (no open rim cell for the end).
+   Cliffs, the bridge and the mist are unchanged.
+6. **Visuals:**
+   - **The canopy:** the 128×128 Heartwood sits on its cell and its canopy overhangs the row above and
+     half a cell on each side. With the y-sort, anything on the 3 cells above it is drawn behind the
+     canopy. When a Warden or nightmare is behind it, fade the canopy to about 50% so it stays visible.
+     A tap on a cell behind the canopy selects that cell, not the Heartwood (touch-friendly).
+   - **Light:** check that the warm light, the leaf-loss stages and the close-call glow still read
+     against open grass. The warm centre and cold edge of art_direction.md fit better now.
+   - **Pointers:** `CloseCalls`, `LeakEffect`, `BossDossier`'s "at the Heartwood",
+     `EnvironmentAmbience.heartwood_position`, the H hotkey, the opening camera framing and the
+     Whispers glide must all follow the new position.
+7. **Checks:**
+   - `test_map_density` per start kind: route band, buildable band, bend, obstacle floor.
+   - New: the Heartwood is inland, in the far half and far enough, and its glade is clear.
+   - Bump RunSaver VERSION.
+   - Re-render `tools/previews/map_layouts.png` with the Heartwood marked.
+8. **Balance:** routes no longer end at an edge, and nightmares can arrive from several sides. Tell
+   Balancing Discussion when it lands.
+
 ## Notes
 
 - Colours (2026-09-30, to fit the title and Memory Grove screens): the ground is night-indigo with a moss grain (act 1–2 moss/teal, act 3 violet with rust, act 4 frost), the dead trees are cool night bark with a teal lit side and moss flecks (the Grove trunks), rocks stay lavender stone. Warmth is only the path, the Heartwood and the Wardens.

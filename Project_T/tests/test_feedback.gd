@@ -80,7 +80,7 @@ func _run() -> void:
 	hard_bark.display_name = "Hard Bark"
 	omens.omen_rewarded.emit(hard_bark, "+18 Dew (75%: 1 leaf lost)")
 	report.show_report(2)
-	_check(report.last_block_text.contains("Omen · Hard Bark: +18 Dew (75%: 1 leaf lost)"), "the rest report says what the Omen paid, and why")
+	_check(report.last_block_text.contains("Omen · Hard Bark · +18 Dew (75%: 1 leaf lost)"), "the rest report says what the Omen paid, and why")
 	report.show_report(3)
 	_check(not report.last_block_text.contains("Hard Bark"), "…once (the next rest has no Omen line)")
 

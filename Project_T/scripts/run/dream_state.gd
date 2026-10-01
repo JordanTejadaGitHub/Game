@@ -206,6 +206,9 @@ signal card_taken(card: UpgradeData)
 signal offer_ready(cards: Array[UpgradeData], drift_number: int)
 signal offer_closed
 signal dreamlight_changed(dreamlight: int)
+# Tried to unlock a form without enough Dreamlight (Q / a short Grow button): the HUD's Dreamlight counter
+# flashes, like RunState.dew_short for Dew.
+signal dreamlight_short(cost: int)
 # Dreamlight gained (never spent), for Sound: `source` &"boss", &"shard", &"glimmer", &"sapling", &"first_pick",
 # &"wake", &"card", &"omen", &"grove" (Early Light), or &"other".
 signal dreamlight_earned(amount: int, source: StringName)

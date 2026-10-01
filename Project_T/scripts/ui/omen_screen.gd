@@ -263,11 +263,11 @@ func _make_card(omen: OmenData, act: int) -> Button:
 	var divider := HSeparator.new()
 	divider.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	box.add_child(divider)
-	var reward := omens.describe_reward(omen, act)
-	if reward != "" and omen.kind != OmenData.Kind.DOUBLE_EDGED:
-		reward += " · 25% less per leaf lost"  # Omens with teeth: the block decides the reward
-	var reward_line := _add_line(box, "Reward · " + (reward if reward != "" else "the twist itself (double-edged)"), REWARD_COLOR, REWARD_SIZE)
+	# The reward in plain words (OmenDirector.reward_sentence); hover or tap for the whole rule
+	var reward_line := _add_line(box, omens.reward_sentence(omen, act, omens.current_offer_block), REWARD_COLOR, REWARD_SIZE)
 	reward_line.name = "Reward"
+	reward_line.tooltip_text = OmenDirector.REWARD_RULE if omen.kind != OmenData.Kind.DOUBLE_EDGED else ""
+	reward_line.mouse_filter = Control.MOUSE_FILTER_PASS  # The tooltip; a click still picks the Omen
 	var spare := Control.new()  # No emblem on a revealed Omen (user: "just the beginning"); its spare height still goes here
 	spare.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	spare.mouse_filter = Control.MOUSE_FILTER_IGNORE

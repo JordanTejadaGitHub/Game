@@ -423,8 +423,13 @@ func _build(data: EnemyData, drift: int) -> void:
 	var leaves := Label.new()  # What it costs you, large
 	if data.laps():  # The Night Mare: untouchable while it lingers, longer each lap
 		leaves.text = "At the Heartwood it can't be touched: it drains, then runs the maze again, faster"
-	else:
+	elif data.stays_at_heartwood:  # The Hollow Oak
 		leaves.text = "Stays at the Heartwood, draining a leaf every %s s" % String.num(ENEMY_SCRIPT.HEARTWOOD_DRAIN_EVERY)
+	else:  # Every other act boss: a flat bite by act (EnemyContainer.boss_bite_leaves), then it's gone
+		var spawner = drift_director.get_node_or_null("%EnemyContainer") if drift_director != null else null
+		var act: int = drift_director.get_act(drift) if drift_director != null else 1
+		var bite: int = spawner.get_boss_bite(act) if spawner != null else data.leaf_cost
+		leaves.text = "Reaching the Heartwood costs %d leaves" % bite
 	UiStyle.display(leaves, 26)
 	leaves.add_theme_color_override("font_color", BOSS_COLOR.lightened(0.25))
 	TapTip.attach(leaves, IconInfo.resource_tooltip(&"leaves"))

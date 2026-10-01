@@ -89,6 +89,7 @@ func _ready() -> void:
 	drift_director.build_phase_changed.connect(_refresh.unbind(1))
 	tower_seller.grow_option_held.connect(_on_grow_key_held)
 	tower_seller.nurture_asked.connect(_toggle_choices)
+	tower_seller.grow_refused.connect(_on_grow_refused)
 	tower_seller.selection_changed.connect(func(_t: Array[Tower]) -> void:
 		_confirm_grow = null
 		_choosing = false)
@@ -196,29 +197,31 @@ func _refresh() -> void:
 		var next: TowerData = option[0]
 		var button := _add_button("")
 		UiStyle.primary(button)  # Grow is the panel's main action (ui_style.md)
+		_grow_key(button, index)
 		if option[1]:
 			var grow := _tower.get_grow_cost(next)  # Ranked Wardens also pay the rank difference
 			var cost: int = grow.total
-			button.text = "Grow into %s · %s Dew" % [next.display_name, BossDossier.thousands(cost)]
 			button.tooltip_text = IconInfo.format(next.description)  # {spored}-style tokens as words
 			if grow.ranks > 0:
 				button.tooltip_text += "\n\n%d Dew + %d for its rank %s." % [grow.base, grow.ranks, Tower.rank_name(_tower.rank)]
-			_mark_affordable(button, run_state.can_afford(cost))  # Dimmed, still clickable: a click plays the "can't afford"
-			button.set_meta(&"cost", cost)  # Affordability updates in place on Dew changes
-			var awake := tower_placer.ascended_blocker(next)
-			if awake != "":
-				button.text = "Grow into %s · %s" % [next.display_name, awake]  # One per family
-				button.disabled = true
-			elif next.footprint > _tower.get_footprint() and tower_placer.get_grow_squares(_tower, next).is_empty():
-				# A 2×2 form needs three free cells (or Thornwalls) beside it, and the path must stay open.
-				button.text = "Grow into %s · Needs 3 free cells beside it" % next.display_name
-				button.disabled = true
 			var changes := tower_placer.grow_changes(_tower, next)
 			if changes != "":
 				button.tooltip_text += "\n\n" + changes
-			if _confirm_grow == next:
-				button.text = "Grow · %d Dew" % cost  # Touch: the second tap grows
+			var label := "Grow" if _confirm_grow == next else "Grow into %s" % next.display_name  # Touch: the second tap grows
+			var awake := tower_placer.ascended_blocker(next)
+			if awake != "":
+				button.text = "Grow into %s · %s%s" % [next.display_name, awake, button.get_meta(&"key", "")]  # One per family
+				button.disabled = true
+			elif next.footprint > _tower.get_footprint() and tower_placer.get_grow_squares(_tower, next).is_empty():
+				# A 2×2 form needs three free cells (or Thornwalls) beside it, and the path must stay open.
+				button.text = "Grow into %s · Needs 3 free cells beside it%s" % [next.display_name, button.get_meta(&"key", "")]
+				button.disabled = true
+			else:
+				_priced(button, label, "%s Dew" % BossDossier.thousands(cost), cost, &"dew", true)  # Short: dim, the cost in POOR; a press refuses
+			var tower := _tower
 			button.pressed.connect(func() -> void:
+				if tower_seller.refuse_if_short([tower], next, true, index):
+					return  # Short of Dew: the refusal (shake, toast, Dew counter); nothing previewed or spent
 				if _touch and _confirm_grow != next:
 					_confirm_grow = next  # First tap: preview + confirm
 					_refresh()
@@ -231,8 +234,7 @@ func _refresh() -> void:
 				button.mouse_entered.connect(func() -> void: tower_placer.show_catch_preview(_tower.global_position, radius))
 				button.mouse_exited.connect(tower_placer.hide_catch_preview)
 		else:
-			_locked_form_button(button, "Grow into %s" % next.display_name, next)
-		_grow_key(button, index)
+			_locked_form_button(button, "Grow into %s" % next.display_name, next, [_tower], index)
 		_preview_on(button, [[_tower, next]])
 	if _tower.can_nurture():
 		var cost := _tower.get_nurture_cost()
@@ -249,12 +251,13 @@ func _refresh() -> void:
 			# in place, 1–4 pick, Esc / R close. (The Heartwood Sapling's ranks only raise its yield: the
 			# button nurtures at once.)
 			if not _choosing or not _tower.needs_focus():
-				var nurture := _add_button("Nurture to rank %s · %s (R)" % [Tower.rank_name(_tower.rank + 1), _price(cost)])
+				var nurture := _add_button("")
+				nurture.set_meta(&"key", " (R)")
 				nurture.tooltip_text = ("Choose what rank %s adds. Kept when it grows; can't be changed." % Tower.rank_name(_tower.rank + 1)
 					if _tower.needs_focus() else "Rank %s: %s." % [Tower.rank_name(_tower.rank + 1), _tower.focus_text(_tower.default_choice())]) + _growth_note()
-				_mark_affordable(nurture, run_state.can_afford(cost))  # R / a click still opens the choices (prices shown)
-				nurture.set_meta(&"cost", cost)  # Affordability updates in place on Dew changes
-				nurture.pressed.connect(_toggle_choices)
+				var price := 0 if _free_rank() else cost
+				_priced(nurture, "Nurture to rank %s" % Tower.rank_name(_tower.rank + 1), _price(price), price, &"dew", false)
+				nurture.pressed.connect(_toggle_choices)  # Short: refuses (_refuse_nurture)
 			else:
 				var choices: Array = _tower.focus_options()
 				for index in choices.size():
@@ -262,8 +265,8 @@ func _refresh() -> void:
 					var button := _choice_row(index, Tower.FOCUS_NAMES[which], _choice_preview(_tower, which), _price(cost))
 					button.tooltip_text = "Rank %s: %s. Kept when it grows; can't be changed." % [
 						Tower.rank_name(_tower.rank + 1), _tower.focus_text(which)] + _growth_note()
-					_mark_affordable(button, run_state.can_afford(cost))  # Picking one plays the refusal (spend_dew)
-					button.set_meta(&"cost", cost)
+					button.set_meta(&"cost", 0 if _free_rank() else cost)
+					_mark_choice(button, _free_rank() or run_state.can_afford(cost))  # Picking one plays the refusal (spend_dew)
 					button.pressed.connect(_nurture_with.bind(which))
 	elif _tower.can_be_nurtured() and _tower.rank > 0:
 		var others_can: bool = dream_state.has_method("get_max_rank") and dream_state.get_max_rank() > _tower.rank
@@ -331,29 +334,36 @@ func _refresh_group() -> void:
 			var next: TowerData = option[0]
 			var button := _add_button("")
 			UiStyle.primary(button)
+			_grow_key(button, index)
 			button.tooltip_text = IconInfo.format(next.description)  # {spored}-style tokens as words
 			if not option[1]:
-				_locked_form_button(button, "%s → %s" % [_plural(data, towers.size()), next.display_name], next)
-				_grow_key(button, index)
+				_locked_form_button(button, "%s → %s" % [_plural(data, towers.size()), next.display_name], next, towers, index)
 				_preview_on(button, towers.map(func(t: Tower) -> Array: return [t, next]))
 				continue
 			# Each pays Tower.get_grow_cost (ranked ones their rank difference too).
 			var plan: Array = tower_seller.plan_grow(towers, next)
 			var affordable: int = plan[0]
+			var cheapest: int = towers.map(func(t: Tower) -> int: return t.get_grow_cost(next).total).min()
+			var label: String
+			var price := plan[1] as int
 			if affordable >= towers.size():
-				button.text = "Grow %d %s into %s · %d Dew" % [towers.size(), _plural(data, towers.size()),
-					next.display_name, plan[1]]
-			else:
+				label = "Grow %d %s into %s" % [towers.size(), _plural(data, towers.size()), next.display_name]
+			elif affordable > 0:
 				# Grows as many as the Dew allows, closest to the Heartwood first.
-				button.text = "Grow %d of %d %s into %s · %d Dew" % [affordable, towers.size(),
-					_plural(data, towers.size()), next.display_name, plan[1]]
-				button.disabled = affordable == 0
+				label = "Grow %d of %d %s into %s" % [affordable, towers.size(), _plural(data, towers.size()), next.display_name]
+			else:
+				# None affordable: the price of the first one.
+				label = "Grow 1 of %d %s into %s" % [towers.size(), _plural(data, towers.size()), next.display_name]
+				price = cheapest
 			var awake := tower_placer.ascended_blocker(next)
 			if awake != "":
-				button.text = "%s → %s · %s" % [_plural(data, towers.size()), next.display_name, awake]
+				button.text = "%s → %s · %s%s" % [_plural(data, towers.size()), next.display_name, awake, button.get_meta(&"key", "")]
 				button.disabled = true
-			button.pressed.connect(func() -> void: tower_seller.grow_group(towers, next))
-			_grow_key(button, index)
+			else:
+				_priced(button, label, "%s Dew" % BossDossier.thousands(price), cheapest, &"dew", true)  # Short of even one: the can't-afford style
+			button.pressed.connect(func() -> void:
+				if not tower_seller.refuse_if_short(towers, next, true, index):
+					tower_seller.grow_group(towers, next))
 			_preview_on(button, towers.map(func(t: Tower) -> Array: return [t, next]))
 	# Nurture v3: one choice for the whole group ("Group Nurture asks once"); each Warden takes it if it can
 	# (attackers Power / Swift / Reach / Deep, support Wardens their own). R arms 1–4.
@@ -364,8 +374,11 @@ func _refresh_group() -> void:
 				if not rank_options.has(which):
 					rank_options.append(which)
 	if not rank_options.is_empty() and not _choosing:
-		var open := _add_button("Nurture %d · choose a rank (R)" % selection.filter(func(t) -> bool:
-			return is_instance_valid(t) and t.can_nurture()).size())
+		var nurturable := selection.filter(func(t) -> bool: return is_instance_valid(t) and t.can_nurture())
+		var open := _add_button("")
+		open.set_meta(&"key", " (R)")
+		var cheapest_rank: int = 0 if _free_rank() else nurturable.map(func(t: Tower) -> int: return t.get_nurture_price()).min()
+		_priced(open, "Nurture %d · choose a rank" % nurturable.size(), _price(cheapest_rank), cheapest_rank, &"dew", false)  # Short: R refuses
 		open.pressed.connect(_toggle_choices)
 	for index in (rank_options.size() if _choosing else 0):
 		var which: Tower.Focus = rank_options[index]
@@ -376,7 +389,7 @@ func _refresh_group() -> void:
 			button = _choice_row(index, Tower.FOCUS_NAMES[which], "all %d" % cost[0], _price(cost[1]))
 		else:
 			button = _choice_row(index, Tower.FOCUS_NAMES[which], "%d of %d" % [plan_focus[0].size(), cost[0]], _price(plan_focus[1]))
-			_mark_affordable(button, not plan_focus[0].is_empty())  # None affordable: the press plays the refusal
+			_mark_choice(button, not plan_focus[0].is_empty())  # None affordable: the press plays the refusal
 		button.tooltip_text = "Each gains a rank of %s: %s. Kept when it grows; can't be changed." % [
 			Tower.FOCUS_NAMES[which], Tower.FOCUS_TEXT[which]]
 		button.pressed.connect(func() -> void:
@@ -560,11 +573,16 @@ func _input(event: InputEvent) -> void:
 func _grow_key(button: Button, index: int) -> void:
 	if index >= TowerSeller.GROW_OPTION_ACTIONS.size():
 		return
+	button.set_meta(&"grow_index", index)  # TowerSeller.grow_refused shakes it
 	var key := TowerSeller.key_name(TowerSeller.GROW_OPTION_ACTIONS[index])
 	if key != "":
+		button.set_meta(&"key", " (%s)" % key)  # Added by _set_short after the price / missing part
 		button.text += " (%s)" % key
 
-func _locked_form_button(button: Button, label: String, next: TowerData) -> void:
+# A form not unlocked yet: "Grow into Beacon · 2 Dreamlight (Q)" opens the Remember tree on it; short of
+# Dreamlight it's the can't-afford style (the cost in POOR) and a press refuses; not open yet (Memory Grove,
+# its branch first, drift 51) it's dim with the reason, and a press refuses too.
+func _locked_form_button(button: Button, label: String, next: TowerData, towers: Array, index: int) -> void:
 	button.tooltip_text = IconInfo.format(next.description)  # {spored}-style tokens as words
 	if not dream_state.has_method("get_unlock_cost"):
 		button.text = "%s · needs a Dream" % label  # Before Dreamlight
@@ -572,26 +590,19 @@ func _locked_form_button(button: Button, label: String, next: TowerData) -> void
 		return
 	var cost: int = dream_state.get_unlock_cost(next)
 	var blocker: String = dream_state.get_unlock_blocker(next)
-	var affordable: bool = dream_state.can_unlock(next) and dream_state.dreamlight >= cost
-	button.text = "%s · Unlock with %d Dreamlight" % [label, cost]
 	if blocker != "":
-		button.text = "%s · %s" % [label, blocker]
-	elif not affordable:
-		button.tooltip_text += ("\n\n" if button.tooltip_text != "" else "") + "You have %d Dreamlight." % dream_state.dreamlight  # (Not a second bracket in the label)
-	if blocker != "" or not affordable:
-		_dim(button)  # Glow means "you can do this now"; still opens Remember
-	button.pressed.connect(_on_locked_form.bind(next, affordable and blocker == ""))
-
-# Can't do it now, but still clickable: the plain, dimmed look instead of the primary glow.
-func _dim(button: Button) -> void:
-	button.theme_type_variation = &""
-	button.modulate.a = 0.6
-
-func _on_locked_form(next: TowerData, _can_unlock_now: bool) -> void:
-	# Playtest fix (screens_ui.md 2026-09-30): a form not unlocked yet opens the Remember tree on that node,
-	# where it's unlocked (or shows what it needs first).
-	_confirm_unlock = null
-	dream_state.open_remember(next)
+		button.set_meta(&"label", label)
+		button.set_meta(&"price", blocker)
+		button.tooltip_text = TowerSeller.blocker_message(blocker) + ".\n\n" + button.tooltip_text
+		_set_short(button, true, false)  # Not a price: just the dim look
+	else:
+		_priced(button, label, "%d Dreamlight" % cost, cost, &"dreamlight", true)
+	button.pressed.connect(func() -> void:
+		_confirm_unlock = null
+		if tower_seller.refuse_if_short(towers, next, false, index):
+			return  # Short of Dreamlight (or not open yet): shake, toast, the counter flashes; nothing opens
+		# Playtest fix (screens_ui.md 2026-09-30): the Remember tree on that node, where it's unlocked.
+		dream_state.open_remember(next))
 
 # One rank of `which` on `tower`, as its effect: "28 → 33 damage", "2.5 → 2.8 range".
 func _choice_preview(tower: Tower, which: Tower.Focus) -> String:
@@ -620,11 +631,40 @@ func _pick_choice(index: int) -> void:
 func _toggle_choices() -> void:
 	if not visible:
 		return
+	if not _choosing and not _can_afford_a_rank():
+		_refuse_nurture()  # User: "still able to press the hotkey for nurture when I don't have enough Dew"
+		return
 	if _tower != null and tower_seller.selection.size() <= 1 and _tower.can_nurture() and not _tower.needs_focus():
 		_nurture_with(_tower.default_choice())
 		return
 	_choosing = not _choosing
 	_refresh()
+
+# Whether any selected Warden can pay for its next rank now (First Care's free ranks count). Nothing to
+# nurture at all is left to the old path (it does nothing).
+func _can_afford_a_rank() -> bool:
+	var towers: Array = tower_seller.selection.filter(func(t) -> bool: return is_instance_valid(t) and t.can_nurture())
+	if towers.is_empty() or int(run_state.get("free_nurtures") if run_state.get("free_nurtures") != null else 0) > 0:
+		return true
+	return towers.any(func(t: Tower) -> bool: return t.get_nurture_price() <= run_state.dew)
+
+# Short of Dew for any rank: no choices open, nothing is spent; the "can't buy" refusal instead (the Nurture
+# button shakes; dew_short brings the "needs N Dew" toast, the Dew counter's flash and the refusal sound).
+func _refuse_nurture() -> void:
+	var prices: Array = tower_seller.selection.filter(func(t) -> bool: return is_instance_valid(t) and t.can_nurture()) \
+		.map(func(t: Tower) -> int: return t.get_nurture_price())
+	if not prices.is_empty():
+		run_state.dew_short.emit(prices.min())
+		_toast(tower_seller.dew_message(prices.min()))  # "Not enough Dew"
+	nurture_refused += 1
+	for button in _buttons.get_children():
+		if button is Button and String(button.text).begins_with("Nurture"):
+			_shake(button)
+
+# First Care's free ranks: the next rank costs nothing.
+func _free_rank() -> bool:
+	return int(run_state.get("free_nurtures") if run_state.get("free_nurtures") != null else 0) > 0
+var nurture_refused := 0  # Refusals so far (tests)
 
 # One rank choice as a row of columns: name, its change, price, key. Fixed widths, so every row's
 # columns line up (warden_stats.md "Playtest fix").
@@ -721,9 +761,7 @@ var _group_refreshed_at := 0  # Ticks (ms) of the last Dew-driven group refresh
 const GROUP_REFRESH_MS := 250  # A big selection's refresh walks every Warden: at most 4 times a second
 
 func _on_dew_changed() -> void:
-	for button in _buttons.get_children():
-		if button is Button and button.has_meta(&"cost"):
-			_mark_affordable(button, run_state.can_afford(int(button.get_meta(&"cost"))))
+	_update_prices()  # Live counts, the style switching the moment it's affordable
 	if _pointer_inside():
 		_dew_dirty = true
 	elif tower_seller.selection.size() > 1:
@@ -751,6 +789,7 @@ func _process(delta: float) -> void:
 		_refresh()
 
 func _refresh_unless_hovered() -> void:
+	_update_prices()  # Dreamlight-priced buttons follow at once, even under the pointer
 	if _pointer_inside():
 		_dew_dirty = true  # Rebuilt once the pointer leaves
 	else:
@@ -818,17 +857,116 @@ func _place_from_bottom() -> void:
 	var height := get_combined_minimum_size().y
 	offset_top = offset_bottom - height
 
-# A price the player can't pay right now (screens_ui.md "can't buy"): dimmed, its price in the poor colour,
-# but still clickable, so a click goes through run_state.spend_dew and plays the refusal (the Dew shake and
-# the "needs N Dew" toast). Back to normal once it's affordable.
-func _mark_affordable(button: Button, affordable: bool) -> void:
-	button.set_meta(&"short", not affordable)
-	button.modulate.a = 1.0 if affordable else 0.6
-	var price_colour: Color = UiStyle.INK if affordable else UiStyle.POOR
-	if affordable:
-		button.remove_theme_color_override("font_color")
+# --- Prices on action buttons (screens_ui.md "can't buy", user 2026-10-01) ---------------------------------
+# Every action the player can't pay for looks the same: the plain frame, a dim INK_DIM label, and only the
+# cost in POOR ("Nurture to rank III · 120 Dew (R)", "Grow into Beacon · 2 Dreamlight (Q)"; no "more
+# needed": user, "a bit too much hand holding"). Still pressable: the press plays the refusal
+# (TowerSeller.refuse_if_short / _refuse_nurture: the button shakes, "Not enough Dew", the counter flashes).
+# Dew / Dreamlight changes update it in place (_update_prices), back to the normal look the moment it's affordable.
+const FONT_STATES := ["font_color", "font_hover_color", "font_pressed_color", "font_hover_pressed_color", "font_focus_color"]
+
+# `label` and `price` make the line "<label> · <price>" (the key badge follows); `cost` in `currency` decides short.
+func _priced(button: Button, label: String, price: String, cost: int, currency: StringName, primary: bool) -> void:
+	button.set_meta(&"label", label)
+	button.set_meta(&"price", price)
+	button.set_meta(&"cost", cost)
+	button.set_meta(&"currency", currency)
+	button.set_meta(&"primary", primary)
+	button.set_meta(&"tip", button.tooltip_text)
+	_apply_price(button)
+
+func _apply_price(button: Button) -> void:
+	var currency: StringName = button.get_meta(&"currency", &"dew")
+	var have: int = dream_state.dreamlight if currency == &"dreamlight" else run_state.dew
+	var short := int(button.get_meta(&"cost", 0)) > have
+	var tip: String = button.get_meta(&"tip", "")
+	if short:
+		var why := "Not enough Dreamlight: it's unlocked on the Remember screen." if currency == &"dreamlight" else "Not enough Dew."
+		button.tooltip_text = why + ("\n\n" + tip if tip != "" else "")
 	else:
-		button.add_theme_color_override("font_color", UiStyle.POOR)
+		button.tooltip_text = tip
+	_set_short(button, short)
+
+# The look: normal (primary frame for Grow), or the can't-afford style. A short line is drawn by an overlay of
+# three labels (label, price, key; the button's own text stays, transparent, so sizes and tests see the line).
+# `poor_price` false: a dim line with nothing in POOR (a form that isn't open yet).
+func _set_short(button: Button, short: bool, poor_price := true) -> void:
+	button.set_meta(&"short", short)
+	button.set_meta(&"cant_afford", short)  # CantAfford.is_shown, like the Remember screen's buttons
+	var label: String = button.get_meta(&"label", "")
+	var price: String = button.get_meta(&"price", "")
+	var key: String = button.get_meta(&"key", "")
+	button.text = label + (" · " + price if price != "" else "") + key
+	button.modulate.a = 1.0
+	var overlay := button.get_node_or_null("Short")
+	if not short:
+		if overlay != null:
+			overlay.free()
+		button.theme_type_variation = &"PrimaryButton" if button.get_meta(&"primary", false) else &""
+		for state in FONT_STATES:
+			button.remove_theme_color_override(state)
+		return
+	button.theme_type_variation = &""  # One frame for every short action
+	for state in FONT_STATES:
+		button.add_theme_color_override(state, Color(UiStyle.INK, 0.0))  # The overlay draws the words
+	if overlay == null:
+		overlay = HBoxContainer.new()
+		overlay.name = "Short"
+		overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		overlay.add_theme_constant_override("separation", 0)
+		overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		overlay.offset_left = button.get_theme_stylebox("normal").get_margin(SIDE_LEFT)
+		button.add_child(overlay)
+		for i in 3:
+			var part := Label.new()
+			part.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+			part.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			part.add_theme_font_override("font", button.get_theme_font("font"))
+			part.add_theme_font_size_override("font_size", button.get_theme_font_size("font_size"))
+			overlay.add_child(part)
+	var parts := [label + (" · " if price != "" else ""), price, key]
+	for i in 3:
+		var part := overlay.get_child(i) as Label
+		part.text = parts[i]
+		part.add_theme_color_override("font_color", UiStyle.POOR if i == 1 and poor_price else UiStyle.INK_DIM)
+
+# A Nurture choice row (columns: name, change, price, key): the same style, its price column in POOR.
+func _mark_choice(button: Button, affordable: bool) -> void:
+	button.set_meta(&"short", not affordable)
 	var row := button.get_child(0) as HBoxContainer if button.get_child_count() > 0 else null
-	if row != null and row.get_child_count() >= 3:
-		(row.get_child(2) as Label).add_theme_color_override("font_color", price_colour)  # A choice row's price column
+	if row == null or row.get_child_count() < 4:
+		return
+	for i in 4:
+		var colour: Color = UiStyle.INK if affordable else UiStyle.INK_DIM
+		if i == 2 and not affordable:
+			colour = UiStyle.POOR
+		if i == 3:
+			continue  # The key badge keeps its own colour
+		(row.get_child(i) as Label).add_theme_color_override("font_color", colour)
+
+# Dew or Dreamlight changed: every priced button follows at once (no rebuild: a tooltip under the pointer stays).
+func _update_prices() -> void:
+	for button in _buttons.get_children():
+		if not button is Button:
+			continue
+		if button.has_meta(&"currency"):
+			_apply_price(button)
+		elif button.has_meta(&"cost") and button.has_meta(&"choice"):
+			_mark_choice(button, run_state.can_afford(int(button.get_meta(&"cost"))))
+
+func _shake(button: Control) -> void:
+	CantAfford.shake(button)  # The Remember screen's shake (none under reduced motion)
+
+func _toast(text: String) -> void:
+	var hud := get_parent()
+	if hud != null and hud.has_method("show_toast"):
+		hud.show_toast(text)
+
+# TowerSeller refused a grow (Q / E / Z, G, or one of these buttons): shake its button(s), say why.
+func _on_grow_refused(index: int, text: String) -> void:
+	grow_refused += 1
+	_toast(text)
+	for button in _buttons.get_children():
+		if button is Button and button.has_meta(&"grow_index") and (index < 0 or int(button.get_meta(&"grow_index")) == index):
+			_shake(button)
+var grow_refused := 0  # Refusals so far (tests)

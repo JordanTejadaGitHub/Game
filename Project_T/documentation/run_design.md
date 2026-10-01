@@ -598,7 +598,7 @@ the map or the rules**. That makes ~20; aim for no Omen twice in a row and each 
 | **Fog Bank** | your side | every Warden **−1 range** (min 1) | +4 Seeds |
 | **Wilting** | your side | every Warden **−15% attack speed** | ~~+1 Dreamlight~~ next Dream offers 4 cards (no Omen gives Dreamlight) |
 | **Frozen Ground** | your side | **no planting or growing during drifts** (rests only) | +50 Dew |
-| **Leaf Fall** | your side | every leak costs **double leaves** | +2 max leaves |
+| **Leaf Fall** | your side | every leak costs **double leaves**; **never offered for a block with a boss drift** (a doubled 8 / 10 / 12 boss leak would end the run) | ~~+2 max leaves~~ next Dream: 4 cards, one Rare+ (no Omen gives leaves) |
 | **Lean Season** | your side | **rest bonus halved** at the end of the block | next Dream **includes a Legendary** (act 2+) |
 | **Heavy Rain** | double-edged | every nightmare is **always Soaked**, but has **+35% health** | +30 Dew |
 | **Blood Moon** | double-edged | nightmares **+25% speed**, and give **+50% Dew** | (the Dew is the reward) |
@@ -612,8 +612,8 @@ the map or the rules**. That makes ~20; aim for no Omen twice in a row and each 
   what you've built (Heavy Rain feeds Thunderclap and Conductive Soil; Sleepless hurts sleep builds).
   That's the point: an Omen that's free for *your* build is a reason to take it.
 - **Frozen Ground** still allows selling (at the usual 50%) and clearing; it's only about planting.
-- **Leaf Fall** doubles a boss's leaf cost too, but bosses ignore Omens only for their *own* stats,
-  so a boss leak costs 10. Shown clearly on the Omen card.
+- **Leaf Fall** doubles every leak, so it is **never offered for a block that contains a boss drift** (a boss leak would cost 16 / 20 / 24 and end the run; Balancing Discussion, enemy_design.md 8bc4be6a). Outside boss blocks it doubles normal leaks;
+  (That includes the Hollow Oak's block, so its drain is never doubled.)
 - **Lean Season's Legendary** follows the Legendary rules (any Legendary you could be offered);
   before act 2 it isn't offered.
 - **Shifting Ground:** **only offered once clearing is unlocked** this run (any clearing card;
@@ -634,7 +634,7 @@ the map or the rules**. That makes ~20; aim for no Omen twice in a row and each 
   3. **Bountiful Night** reward ×1.6 → **×2 Dew** (100% more): health hurts more than Blood Moon's speed, so it must pay at least as well.
   4. **Shifting Ground** needs 5 free cells (it sprouts 5).
   5. **Thick Blight's** extra cards: the next Dream shows at most **5 cards** (with Wider Dreams too); the Dream screen must fit 5.
-  6. Text: **"N% more Dew"** everywhere (Bountiful "100% more Dew"); **"move"** for speed (Swift Stream "Nightmares move 25% faster"); Stubborn Blight **"Statuses last a third as long."**; Leaf Fall **"Every leak costs double leaves, and a boss at the Heartwood drains two at a time."** (boss leaks no longer cost a flat 5 / 10).
+  6. Text: **"N% more Dew"** everywhere (Bountiful "100% more Dew"); **"move"** for speed (Swift Stream "Nightmares move 25% faster"); Stubborn Blight **"Statuses last a third as long."**; Leaf Fall **"Every leak costs double leaves."** (the doubling covers the act 1–3 bosses' flat 8 / 10 / 12 and the Hollow Oak's drain; balance_simulation.md 538b85b7).
 
 - **Omens with teeth (2026-09-30, user: "do you think the Omens are dangerous enough" → "write the
   changes").** The user's run reached drift 60 at full leaves: for a strong maze most Omens were

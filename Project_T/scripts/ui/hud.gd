@@ -86,6 +86,7 @@ func _ready() -> void:
 	run_state.sprout_charges_changed.connect(_update_seed_badge)
 	run_state.dew_changed.connect(_on_dew_changed)
 	run_state.dew_short.connect(_on_dew_short.unbind(1))
+	dream_state.dreamlight_short.connect(_on_dreamlight_short.unbind(1))
 	_on_dew_changed(run_state.dew)
 
 	run_state.leaves_changed.connect(_on_leaves_changed)
@@ -114,7 +115,7 @@ func _ready() -> void:
 	var close_calls := CloseCalls.new()
 	close_calls.name = "CloseCalls"
 	owner.add_child.call_deferred(close_calls)
-	var start_arrows := StartArrows.new()  # Chevrons on the route from the start as each drift begins (world)
+	var start_arrows := StartArrows.new()  # Route arrows, start to Heartwood, until the first drift (world)
 	start_arrows.name = "StartArrows"
 	owner.add_child.call_deferred(start_arrows)
 	var mist_count := MistCount.new(drift_director)  # "+N" waiting in the start mist (the field cap)
@@ -402,6 +403,10 @@ func _on_dew_short() -> void:
 		_dew_flash.tween_property(dew_label, "rotation_degrees", offset * 0.5, 0.04)
 	_dew_flash.tween_interval(0.25)
 	_dew_flash.tween_callback(dew_label.add_theme_color_override.bind("font_color", DEW_COLOR))
+
+# Tried to unlock a form without enough Dreamlight: the same flash and shake on the Dreamlight counter.
+func _on_dreamlight_short() -> void:
+	CantAfford.flash_counter(get_node_or_null("DreamlightLabel") as Label, DREAMLIGHT_COLOR)  # The Remember screen's flash
 
 # The pause menu on screen (screens_ui.md "Top right: … Menu"; platforms.md: Esc is only a
 # shortcut), left of the resources.

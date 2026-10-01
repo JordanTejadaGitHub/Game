@@ -113,7 +113,8 @@ accessibility, Steam achievements (milestones map to them). Acts 3–4 and all f
   `resource/omen/*.tres`. At rests from drift `first_rest_drift` (10), after the Dream: 2 Omens or
   Clear Skies (`choose(null)`); the pick twists the next block (`get_multiplier`,
   `get_schedule_modifiers`, `get_spawn_modifiers` → `Enemy.modifiers`; bosses ignore them). The reward is
-  paid at the rest after that block, or on a win (Dew/Seeds × act scale; `RunState.omen_seeds`).
+  paid at the rest after that block, or on a win (Dew/Seeds × act scale; `RunState.omen_seeds`); no Omen gives
+  leaves or Dreamlight. Dew Omens multiply the drift's Dew pot (`OmenDirector.get_dew_pot_multiplier`).
   `OmenScreen` shows the offer and an active-Omen tag. `tests/test_omens.gd`.
 - UI: `WardenPanel` (click a Warden: stats, grow buttons, Sell), `DreamScreen` (pauses; 3 cards +
   "Let it pass"; Entwined vine border, Deepened / bittersweet lines). Tower bar shows only unlocked Wardens.
@@ -139,8 +140,15 @@ accessibility, Steam achievements (milestones map to them). Acts 3–4 and all f
   (+1 leaf, `act_started`). `family_pick_requested(&"first"|&"boss")` fires after drift 1 and
   before a boss rest; `FamilyPickScreen` calls `family_picked()` (first pick: 3 random of every
   unlocked family, never the last run's offer again, profile `last_first_pick`). `is_build_phase()`
-  = resting (75% refunds). Health `get_growth(n)`: × 1.045 per drift, × 1.055 from drift 26 (`late_growth_from`), × 1.045 from 51 (`endgame_growth_from`); bosses × 1.5 (act 1's boss × 1.75, `act1_boss_health_multiplier`); acts 3–4 × 4.0 on top, bosses too (`late_acts_health_multiplier`; the Hollow Oak × 3.0, `final_boss_late_multiplier`). From drift 31 a drift listing no elites gets one, two from 76 (`add_guaranteed_elite`). Hooks for Dreams/Omens:
-  `get_health_multiplier`, `get_schedule_modifiers`, `get_spawn_modifiers`, `_pay_rest_bonus`. Acts 1–2 health (`get_early_multiplier`, `act1_*` / `early_*` exports): ×1.0 to drift 9 → ×1.15 at 20, held to 25 (act 1's boss exempt: its own ×1.75); act 2 ×1.3 at 26 → ×2.0 at 37 → ×3.0 at 45, held to 50 (`act2_*`); acts 3–4 ×4.0; dispel Dew by act `RunState.act_dew_multipliers` [1.0, 0.68, 0.45, 0.35].
+  = resting (75% refunds). Health `get_growth(n)`: × 1.045 per drift, × 1.055 from drift 26 (`late_growth_from`), × 1.045 from 51 (`endgame_growth_from`); bosses × 1.5 (act 1's boss × 1.75, `act1_boss_health_multiplier`; acts 2–3 × 2.25, `mid_boss_health_multiplier`); acts 3–4 × 4.8 on top, bosses too (`late_acts_health_multiplier`; the Hollow Oak × 3.0, `final_boss_late_multiplier`). From drift 31 a drift listing no elites gets one, two from 76 (`add_guaranteed_elite`). Hooks for Dreams/Omens:
+  `get_health_multiplier`, `get_schedule_modifiers`, `get_spawn_modifiers`, `_pay_rest_bonus`. Acts 1–2 health (`get_early_multiplier`, `act1_*` / `early_*` exports): ×1.0 to drift 9 → ×1.15 at 20, held to 25 (act 1's boss exempt: its own ×1.75); act 2 ×1.6 at 26 → ×2.3 at 37 → ×3.6 at 45, held to 50 (`act2_*`); acts 3–4 ×4.8.
+- **The Dew pot** (run_design.md): each drift pays a fixed pot from `DriftDirector.dew_pot_acts` / `dew_pot_bosses`
+  (act 1 30 → 115 … bosses 220 / 270 / 320, the win 0), split at its start across its nightmares by `dew_reward`
+  (Deeply Blighted ×3, a boss drift's boss half; `pot_shares`, `Enemy.set_dew_share`, followers share their
+  leader's); added nightmares share it, a leak loses its share. `get_dew_pot_multiplier`: Dream cards (Morning Dew,
+  Call of the Wild when called early), the Omen, Rich Dew (`RunState.dew_gain_bonus`), `blight_dew_multiplier`.
+  RunState pays shares with a fraction carry; DriftPanel shows the next drift's pot, the rest report "Dew this
+  block: X of Y". It replaced the per-act `act_dew_multipliers`. `tests/test_dew_pot.gd`.
 - Drift data: `DriftData.groups: Array[DriftGroup]`; `DriftGroup.entries: Array[DriftEntry]`
   (enemy + count + `elite`; several entries mix evenly), `spacing`, `delay`. `get_schedule()` →
   `[[time, EnemyData, elite], …]`. Drifts 1–50 mirror the acts_1_2.md table (hand-edited files; mixed
@@ -169,6 +177,8 @@ accessibility, Steam achievements (milestones map to them). Acts 3–4 and all f
   `Tower.dim_multiplier` set each frame by the spawner), shrug + `min_speed_share` (Barrow King),
   `regen_*` (Mourning Mother), wither (`Tower.wither()` / `withered_left`), echoes (`Enemy.is_echo`:
   never counted as a boss). New bosses use tinted placeholder art. `tests/test_boss_pools.gd`.
+  At the Heartwood: act 1–3 bosses take a flat 8 / 10 / 12 leaves and leave; only the Hollow Oak stays and
+  drains (bfc33e75).
 - Selling: `TowerSeller` (`%TowerSeller`): outside build mode, hover a Warden, Delete (or the panel's Sell) sells for
   `Tower.invested_dew` × 100% (resting) or 50% (walking); `MapGenerator.unblock_cell`.
   It also owns selection (`selection`, `selected` = first; `selection_changed`): click, drag box
