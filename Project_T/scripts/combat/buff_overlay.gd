@@ -122,12 +122,30 @@ func _draw_pips(tower: Tower) -> void:
 		var colour := BuffSources.color(row[0], row[2])
 		draw_pip(self, at, row[0], colour)
 		if row[1] > 1:
-			draw_string(font, at + Vector2(PIP_RADIUS, 9), "×%d" % row[1], HORIZONTAL_ALIGNMENT_LEFT, -1, 9, colour)
+			draw_stacks(self, at + Vector2(PIP_RADIUS, 1), row[1], colour, font)
 		at.x += PIP_STEP
 	WorldLabel.end_screen_size(self)
 
-# One pip: a shape per kind (not only a colour, for accessibility). Shared with the Warden panel.
+# UI Asset's pip art (c2a2a600, assets/ui/buff_pips.json): 10 px pips, one shape per kind in its colour;
+# kinship (a leaf) and penalty (a down chevron) are grey, tinted here (family colour; Bruise). ×1 on the map.
+const PIP_SHEET := "res://assets/ui/buff_pips.png"
+const STACK_SHEET := "res://assets/ui/buff_stacks.png"
+const PIP_FRAMES := {"acorn": 0, "elder_stump": 1, "grove_heart": 2, "grandmother_oak": 3, "old_growth": 4,
+	"kinship": 5, "kindred": 6, "whole_tree": 7, "penalty": 8}
+const PIP_TINTED := ["kinship", "penalty"]
+const PIP_FRAME := 10
+const STACK_SIZE := Vector2(9, 7)  # x2..x9 badges, frames 0..7
+
+# One pip: a shape per kind (not only a colour, for accessibility). Shared with the HUD legend. The sheet's
+# art when it has the kind; otherwise the drawn shape below.
 static func draw_pip(canvas: CanvasItem, at: Vector2, kind: String, colour: Color, r: float = PIP_RADIUS) -> void:
+	if PIP_FRAMES.has(kind) and ResourceLoader.exists(PIP_SHEET):
+		var scale := maxf(roundf(r * 2.0 / PIP_FRAME), 1.0)  # Whole-pixel scale (r 4.5 = ×1)
+		var side := Vector2(PIP_FRAME, PIP_FRAME) * scale
+		var tint: Color = colour if PIP_TINTED.has(kind) else Color.WHITE  # A multiplier on the grey art
+		canvas.draw_texture_rect_region(load(PIP_SHEET), Rect2(at - side / 2.0, side),
+			Rect2(int(PIP_FRAMES[kind]) * PIP_FRAME, 0, PIP_FRAME, PIP_FRAME), tint)
+		return
 	var dark := Color(Palette.DREAD, 0.85)
 	canvas.draw_circle(at, r + 1.5, dark)
 	match kind:
@@ -158,6 +176,15 @@ static func draw_pip(canvas: CanvasItem, at: Vector2, kind: String, colour: Colo
 			canvas.draw_colored_polygon(star, colour)
 		_:
 			canvas.draw_circle(at, r * 0.7, colour)
+
+# A stack badge (x2..x9; 9 or more = x9) to the pip's right, its top-left at `at`; text without the art.
+static func draw_stacks(canvas: CanvasItem, at: Vector2, count: int, colour: Color, font: Font) -> void:
+	if ResourceLoader.exists(STACK_SHEET):
+		var frame := clampi(count, 2, 9) - 2
+		canvas.draw_texture_rect_region(load(STACK_SHEET), Rect2(at, STACK_SIZE),
+			Rect2(frame * STACK_SIZE.x, 0, STACK_SIZE.x, STACK_SIZE.y))
+		return
+	canvas.draw_string(font, at + Vector2(0, 8), "×%d" % count, HORIZONTAL_ALIGNMENT_LEFT, -1, 9, colour)
 
 # --- Threads -----------------------------------------------------------------------------------------
 

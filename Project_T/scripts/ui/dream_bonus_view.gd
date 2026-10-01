@@ -57,7 +57,6 @@ static func make_rows_at(data: TowerData, cell: Vector2, tower: Tower = null) ->
 		icon.card = card
 		icon.stacks = states.card_stacks(card.id) if states != null else 1
 		icon.custom_minimum_size = Vector2(30, 30)
-		add_tag_glyph(icon, card)
 		var line := get_line(entry)
 		TapTip.attach(icon, IconInfo.format("%s: %s" % [card.display_name, line if line != "" else card.description]))
 		if gems.get_child_count() == 0 or gems.get_child(-1).get_child_count() >= GEMS_PER_ROW:
@@ -75,33 +74,6 @@ static func make_rows_at(data: TowerData, cell: Vector2, tower: Tower = null) ->
 		TapTip.attach(more, IconInfo.format("\n".join(off)))
 		box.add_child(more)
 	return box
-
-# Interim card glyphs (story chat 2026-10-01, until UI Asset's per-tag glyphs land): a card whose tags match a
-# status shows that status's icon inside its rarity gem (a Common's plain grey circle read as blank). First
-# matching tag wins; no match = the plain gem. The Dreams row can reuse tag_status / add_tag_glyph.
-const TAG_STATUS := {"spore": &"spored", "water": &"damp", "storm": &"static", "light": &"static",
-	"sleep": &"drowsy", "song": &"drowsy", "root": &"held", "marked": &"marked"}
-
-static func tag_status(card: UpgradeData) -> StringName:
-	for tag in card.tags:
-		if TAG_STATUS.has(String(tag)):
-			return TAG_STATUS[String(tag)]
-	return &""
-
-# Puts the card's tag glyph (16 px status art) in the middle of a DreamIcon's gem (drawn at y 15, radius 12).
-static func add_tag_glyph(icon: Control, card: UpgradeData) -> void:
-	var status := tag_status(card)
-	var art: Texture2D = IconInfo.icon(status) if status != &"" else null
-	if art == null:
-		return
-	var glyph := TextureRect.new()
-	glyph.name = "TagGlyph"
-	glyph.texture = art
-	glyph.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	glyph.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-	glyph.size = Vector2(16, 16)
-	glyph.position = Vector2(icon.custom_minimum_size.x / 2.0 - 8.0, 7.0)
-	icon.add_child(glyph)
 
 # One entry per card: a card with extra rules (Hunter's Patience + its Skyward Gaze rule) reports one
 # effect per rule; they merge here (its lines joined), so it's listed once under its own name.

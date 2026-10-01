@@ -25,8 +25,9 @@ const COLORS := {
 	"grandmother_oak": Palette.DEADWOOD, "old_growth": Palette.NEWLEAF, "kinship": Palette.NEWLEAF,
 	"kindred": Palette.MOONPATH, "whole_tree": Palette.SPRIG, "kin_cards": Palette.NEWLEAF,
 	"rank": Palette.MOONPATH, "focus": Palette.MOONPATH, "dream": Palette.MIST,
-	"omen": Palette.STONE, "penalty": Palette.EMBER,  # Ember: the palette's "bad" colour (no red)
+	"omen": Palette.STONE, "penalty": Palette.BRUISE,  # Bruise (plum): never read as a fire or Ember effect (screens_ui.md)
 }
+const PENALTY_TEXT := Palette.WRAITHLIGHT  # Penalty rows in panels: the lighter plum (Bruise is too dark to read as text)
 const STAT_WORDS := {"damage": "damage", "attack_speed": "attack speed", "range": "range", "aura": "aura", "catch": "catch"}
 const ORDINALS := ["", "", "2nd", "3rd", "4th", "5th", "6th"]
 

@@ -413,17 +413,10 @@ func _run() -> void:
 	var off_row := DreamBonusView._row({"card": some_card, "active": false, "reason": "not alone"})
 	_check(off_row.get_child(0).modulate.a < 1.0, "an off card is greyed")
 	off_row.free()
-	# Interim card glyphs: a Spore card's gem carries the Poisoned icon, a card with no status tag stays plain.
+	# Dream gems carry UI Asset's per-tag glyph (UiStyle.dream_glyph; DreamIcon draws it, panel and Dreams row alike).
 	var spore_card := UpgradeData.new()
 	spore_card.tags.assign(["spore", "maze"])
-	var gem := Control.new()
-	gem.custom_minimum_size = Vector2(30, 30)
-	DreamBonusView.add_tag_glyph(gem, spore_card)
-	_check(DreamBonusView.tag_status(spore_card) == &"spored" and gem.get_node_or_null("TagGlyph") != null,
-		"a Spore card's gem shows the Poisoned glyph")
-	spore_card.tags.assign(["economy"])
-	_check(DreamBonusView.tag_status(spore_card) == &"", "a card with no status tag keeps the plain gem")
-	gem.free()
+	_check(UiStyle.dream_glyph(spore_card) not in [&"", &"generic"], "a Spore card has its own glyph (%s)" % UiStyle.dream_glyph(spore_card))
 	# Status display names (story.md): ids unchanged, names from IconInfo; {tokens} fill them in.
 	_check(IconInfo.status_name(&"damp") == "Soaked" and IconInfo.status_name(&"static") == "Charged"
 		and IconInfo.status_name(&"held") == "Rooted" and IconInfo.format("{spored} + {marked}") == "Poisoned + Exposed",
@@ -683,6 +676,14 @@ func _run() -> void:
 	var boosts_button := order_hud.get_node("BuffLensButton") as Button
 	_check(boosts_button.visible == (BuffOverlay.has_local_sources(order_hud) or boosts_button.button_pressed),
 		"the Boosts button shows only with a boost source on the map (%s)" % boosts_button.visible)
+	# Its glyph follows the toggle (UI Asset c2a2a600): grey arrow off, gold with sparkles on.
+	var glyph_region := func() -> Rect2: return (boosts_button.icon as AtlasTexture).region if boosts_button.icon is AtlasTexture else Rect2()
+	var off_region: Rect2 = glyph_region.call()
+	boosts_button.button_pressed = true
+	var on_region: Rect2 = glyph_region.call()
+	boosts_button.button_pressed = false
+	_check(off_region == (IconInfo.hud_icon(&"boosts_off") as AtlasTexture).region and on_region == (IconInfo.hud_icon(&"boosts_on") as AtlasTexture).region
+		and glyph_region.call() == off_region, "the Boosts glyph: off, then on while pressed, then off again")
 	_check(idx.call("PauseMenu") == order_hud.get_child_count() - 1, "…and the pause menu stays on top after the legend is made")
 	# The field cap: nightmares waiting in the start mist show as "+N" over it.
 	var mist := main.get_node_or_null("MistCount") as MistCount
