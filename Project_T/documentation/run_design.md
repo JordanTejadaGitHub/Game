@@ -324,6 +324,51 @@ User: *"should we have a set Dew you can get from each drift, but it can be modi
 - **Modifiers multiply the pot:** Dew cards (Gathered Dew…), Omens whose reward is Dew (Bountiful Night, Blood Moon) or that cut it (Dry Spell), Grove perks (`dew_gain`), Blight. Catchers (Dewcatcher, Wellspring), Magpie Dew, call-early Dew and rest bonuses stay on top, unchanged.
 - **Added nightmares never add Dew** (Crowded Paths, Elder Night, Moth Night, `extra_nightmares`, splits): they share the same pot. This replaces the Omen double-benefit fix and the per-act Dew multipliers (folded into the table).
 - UI: the DriftPanel can show "Drift 31 · 180 Dew" before it starts; the rest report shows "Dew this block: 840 of 900" (leaks).
+- **The numbers (Roguelite design chat, 2026-10-01), from the run history** (`user://run_history.json`):
+  - *Run 1* (old curve) earned **18,953** and banked up to **9,277**: far too much. *Run 2* (the
+    win) earned **15,274**, banked 100–1,600 most of the run, **2,693** at the end: close to right,
+    slightly high late. *Run 3* (fresh, 0 Grove) earned **6,995 by drift 50** and banked **1,671 at
+    drift 25**: act 1 too rich. Target: about run 2's income, ~10% lower and flatter late.
+  - **Pot per drift** (linear inside each act; drift *d*, act boss drifts separate):
+
+    | Act | Drifts | Pot per drift | Boss drift pot | Act total |
+    |---|---|---|---|---|
+    | 1 | 1–24 | **30 → 115** | 25: **220** | ~1,960 |
+    | 2 | 26–49 | **115 → 135** | 50: **270** | ~3,270 |
+    | 3 | 51–74 | **135 → 145** | 75: **320** | ~3,680 |
+    | 4 | 76–99 | **140 → 145** | 100: **0** (the win) | ~3,420 |
+
+    **Base total ≈ 12,300** from nightmares. With rest bonuses (~1,440), the start (60) and a typical
+    run's modifiers (+10–20%: Morning Dew, a Dew Omen or two, Grove `dew_gain`), a good run earns
+    **~14–15.5k**, a little under run 2. **Spending check:** run 2 spent 12.5k (grow 6.9k, ranks
+    2.5k, clears 1.7k, plant 1.5k). Late Dew has sinks (ranks ×tier on finals: 690 to rank V,
+    Ascended 400), so a run that keeps growing banks **~0.5–1.5k**. The balance sim's "banked < 2 rest
+    bonuses after act 1" check and the next human run confirm or nudge the four rows.
+  - **Share weights:** a nightmare's share = pot × its weight ÷ the sum of weights of every
+    nightmare the drift spawns (including added ones):
+    - **weight = its `EnemyData.dew_reward`** (the data already ranks them: Leaf Bug 3, Bark Beetle
+      8, big ones 15, bosses 40–100), so no new numbers per nightmare;
+    - **elite ×3** (as today, but now a bigger slice, not extra Dew);
+    - **a boss drift:** the boss takes **50% of the pot**, its escorts share the rest;
+    - **splits:** the parent keeps **40%** of its share when it splits, the children share the other
+      60%; **followers** (Ducklings) take **50%** of their leader's share between them;
+    - fractions carry over (`RunState` keeps the fractional Dew; popups show whole numbers).
+  - **Modifiers multiply the pot** (stacking additively within a source type, then multiplied):
+    - Grove `dew_gain`, Blight Level Dew cuts, and the old `act_dew_multipliers` **removed** (folded
+      into the table).
+    - **Cards:** *Morning Dew* "nightmares +10% Dew" → **pot +10%**. *Call of the Wild* (absorbed
+      Hurried Harvest's "+1 Dew per nightmare of a drift called early") → **a drift you call early
+      has its pot +10%**; its "call-early Dew ×2" stays on top. *Glimmering Hunt* (Dreamlight shards),
+      *Reclaimed Earth* (clear refunds), catchers (Dewcatcher, Wellspring), Magpie Dew, call-early Dew
+      and rest bonuses: **unchanged, on top of the pot**.
+    - **Omens:** *Bountiful Night* +100% → **pot ×2**; *Blood Moon* +75% → **pot ×1.75**; *Dry Spell*
+      → **pot ×0** (its ×1.5 rest bonus stays); *Crowded Paths*, *Elder Night*, *Moth Night*,
+      *Hollow Wind*: their added nightmares **share** the pot (no extra Dew: that was the double
+      benefit). Omen Dew rewards (e.g. Frozen Ground's) are paid on top as rewards.
+  - **Leaks:** a leaked nightmare's share is lost (the rest report shows "840 of 900").
+  - **Tests:** a drift's dispels sum to its pot (± rounding); a leak loses exactly its share; an elite
+    gets 3× a normal share; splits and followers sum to the parent's share; Crowded Paths doesn't
+    change a drift's total; Bountiful Night doubles it.
 
 ### Dreamlight: choosing your build paths
 
