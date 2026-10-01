@@ -29,6 +29,8 @@ const APPROACH_EVERY := 0.25  # Game seconds between closest-approach samples
 const CLOSE_CALL := 0.85  # A drift where a nightmare got this far along the route
 const COVER_HEARTWOOD_FROM := 18  # From this drift one attacker keeps the Heartwood in range (a boss that gets through stays there; humans cover it)
 const LAST_STRETCH := 8  # Route tiles before the Heartwood a covering Warden should also reach
+const AURA_WEIGHT := 2.0  # Aura placement: path tiles a Warden in (or under) an aura is worth (balance_simulation.md: path coverage still dominates)
+const AURA_COUNT_MAX := 5  # …counting at most this many Wardens per cell (a bonus of up to 10 tiles; a cell covers ~8-20 path tiles)
 var _saving_for_final := false  # The cheapest open growth is a final form (saves longer for it)
 const STYLES := {"balanced": 0, "wide": 1, "narrow": 2, "combo": 3, "sleep": 4, "sprout": 5, "grove": 3, "mixed": 6}  # DreamSimPolicy.Style; grove = the hand-written Grove player (Combo cards, --families); mixed = Style.MIXED
 const COLUMNS := ["drift", "act", "seconds", "health_spawned", "damage", "leaks", "leaves_lost", "leaves_left",
@@ -67,6 +69,7 @@ var director_overrides := {}  # --director=act1_boss_health_multiplier=3.0 (repe
 var enemy_overrides := {}  # --enemy=id.field=value (repeatable): EnemyData fields for sweeps
 var _keep: Array = []  # The edited EnemyData, held so the cache keeps them
 var act1_boss := ""  # --boss=night_mare: act 1's boss forced (DriftDirector.preset_bosses); "" = the default draw
+var aura_placement := true  # --no-aura: place and grow aura Wardens (Acorn, Elder Stump, Grove Heart, Moon Moth) by path only
 var dream_share := {}  # Drift -> the share of the maze's damage per second that the taken Dreams add (20, 25, 50, 75)
 var dreams_20 := ""  # The Dreams taken by drift 20 ("a+b")
 var omens: OmenDirector
@@ -82,6 +85,7 @@ var _approach_timer := 0.0
 var bosses := {}  # Instance id -> a boss fight: drift, kind, health, route and Heartwood seconds and damage (bosses column)
 var dream_offers := {"offers": 0, "pool": 0, "pool_5": -1, "cards": 0, "matched": 0, "generic": 0, "off": 0}  # Dream pool / build relevance (dream_* columns)
 var wardens_24 := ""  # The Wardens on the map as drift 25 starts ("id:n+…", wardens_24 column)
+var auras_24 := -1  # Attackers under at least one aura Warden as drift 25 starts (auras_24 column)
 
 var main: Node
 var map
@@ -127,6 +131,7 @@ func _run() -> void:
 			"--favor": favored.assign(value.split(","))
 			"--dreams": dream_mode = value
 			"--boss": act1_boss = value
+			"--no-aura": aura_placement = false
 			"--no-falloff": Reactions.chain_falloff_on = false  # Measure without chain falloff
 			"--director":
 				var setting := arg.substr(arg.find("=") + 1)
@@ -216,6 +221,7 @@ func _run() -> void:
 			_sample_approach()
 		if director.drifts_started >= 25 and wardens_24 == "":
 			wardens_24 = _warden_counts()
+			auras_24 = _attackers().filter(func(t: Tower) -> bool: return _covered_by_aura(t)).size()
 		if director.drifts_started in [20, 25, 50, 75] and not dream_share.has(director.drifts_started):
 			dream_share[director.drifts_started] = _dream_share()
 			if director.drifts_started == 20:
@@ -364,12 +370,12 @@ func _plant_attacker(cover_heart := false) -> bool:
 		var only: TowerData = load("res://resource/tower/%s.tres" % plan.plant)
 		if not run_state.can_afford(placer.get_cost(only)):
 			return false
-		var at := _best_cell(only.attack_range, plan.get("growth_weight", 0.5), cover_heart)
+		var at := _best_cell(only.attack_range, plan.get("growth_weight", 0.5), cover_heart, only)
 		return at != NO_CELL and _build(only, at)
 	if style == "mixed" and _sprout_share() < MIXED_SPROUTS:
 		var sprout: TowerData = load("res://resource/tower/sprout.tres")
 		if run_state.can_afford(placer.get_cost(sprout)):
-			var at := _best_cell(sprout.attack_range, 0.5, cover_heart)
+			var at := _best_cell(sprout.attack_range, 0.5, cover_heart, sprout)
 			if at != NO_CELL and _build(sprout, at):
 				return true
 	var options: Array = placer.get_buildable_towers().filter(func(t: TowerData) -> bool:
@@ -387,7 +393,7 @@ func _plant_attacker(cover_heart := false) -> bool:
 	var data: TowerData = options[0]
 	if not run_state.can_afford(placer.get_cost(data)):
 		return false
-	var cell := _best_cell(data.attack_range, 0.5, cover_heart)
+	var cell := _best_cell(data.attack_range, 0.5, cover_heart, data)
 	return cell != NO_CELL and _build(data, cell)
 
 func _plant_wall() -> bool:
@@ -404,7 +410,7 @@ func _build(data: TowerData, cell: Vector2) -> bool:
 # The open cell scoring best: path cells within `reach` + `growth_weight` × the path it adds. Walls
 # (reach 0) only count if they add path. `cover_heart`: only cells reaching the Heartwood, the last
 # LAST_STRETCH route tiles counting double.
-func _best_cell(reach: float, growth_weight: float, cover_heart := false) -> Vector2:
+func _best_cell(reach: float, growth_weight: float, cover_heart := false, data: TowerData = null) -> Vector2:
 	var route: PackedVector2Array = map.get_path_from(map.startPath)
 	var enemy_cells := PackedVector2Array()
 	for enemy in spawner.get_maze_walkers():
@@ -426,7 +432,7 @@ func _best_cell(reach: float, growth_weight: float, cover_heart := false) -> Vec
 				for i in new_route.size():
 					if new_route[i].distance_to(cell) <= reach:
 						cover += 2 if cover_heart and i >= new_route.size() - LAST_STRETCH else 1
-			var score := cover + growth_weight * (new_route.size() - route.size())
+			var score := cover + growth_weight * (new_route.size() - route.size()) + (_aura_bonus(cell, data) if data != null else 0.0)
 			if score > best_score:
 				best_score = score
 				best = cell
@@ -455,7 +461,7 @@ func _grow() -> bool:
 				continue
 			if tower.get_grow_cost(form).total > run_state.dew:
 				continue
-			var cover := _coverage(tower)
+			var cover := _coverage(tower) + _aura_bonus(tower.cell, form, tower, false)  # Growing into an aura Warden: the Wardens around it count
 			if best.is_empty() or cover > best[0]:
 				best = [cover, tower, form]
 			break
@@ -636,6 +642,7 @@ func _finish() -> void:
 	for key in ["offers", "pool_5", "cards", "matched", "generic", "off"]:
 		summary["dream_" + key] = dream_offers[key]
 	summary.wardens_24 = wardens_24
+	summary.auras_24 = auras_24
 	summary.dream_pool_mean = snappedf(float(dream_offers.pool) / maxf(dream_offers.offers, 1.0), 0.1)
 	var runs_path := out_dir.path_join("runs.csv")
 	var keys := summary.keys()
@@ -934,3 +941,40 @@ func _warden_counts() -> String:
 	var ids := counts.keys()
 	ids.sort_custom(func(a, b) -> bool: return counts[a] > counts[b])
 	return "+".join(ids.map(func(id) -> String: return "%s:%d" % [id, counts[id]]))
+
+# --- Aura-aware placement (Acorn, Elder Stump, Grove Heart; Moon Moth's range aura) ---------------------
+# The cells an aura Warden of `data` reaches (0 = it has no aura).
+func _aura_reach(data: TowerData) -> float:
+	var reach := 0.0
+	if data.aura_damage_bonus > 0.0 or data.aura_speed_bonus > 0.0 or data.aura_per_warden > 0.0:
+		reach = data.aura_radius if data.aura_radius > 0.0 else data.attack_range
+	if data.range_aura_bonus > 0.0:
+		reach = maxf(reach, data.range_aura_radius)
+	return reach
+
+# Path-tile bonus for a Warden of `data` at `cell`: AURA_WEIGHT per attacker its aura would cover, and (when
+# `receive` and it attacks) per aura Warden whose aura covers the cell; at most AURA_COUNT_MAX Wardens.
+func _aura_bonus(cell: Vector2, data: TowerData, exclude: Tower = null, receive := true) -> float:
+	if not aura_placement or data == null:
+		return 0.0
+	var count := 0
+	var reach := _aura_reach(data)
+	for tower in container.get_children():
+		if not (tower is Tower) or tower == exclude or tower.is_queued_for_deletion():
+			continue
+		var distance: float = tower.cell.distance_to(cell)
+		if reach > 0.0 and tower.tower_data.can_attack and distance <= reach:
+			count += 1
+		elif receive and data.can_attack:
+			var theirs := _aura_reach(tower.tower_data)
+			if theirs > 0.0 and distance <= theirs:
+				count += 1
+	return AURA_WEIGHT * mini(count, AURA_COUNT_MAX)
+
+func _covered_by_aura(target: Tower) -> bool:
+	for tower in container.get_children():
+		if tower is Tower and tower != target and not tower.is_queued_for_deletion():
+			var reach := _aura_reach(tower.tower_data)
+			if reach > 0.0 and tower.cell.distance_to(target.cell) <= reach:
+				return true
+	return false
