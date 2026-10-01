@@ -1025,6 +1025,12 @@ func _on_cell_reached() -> void:
 		_ash_cells[get_current_cell()] = enemy_data.ash_trail_time
 	if enemy_data.straight_charge_tiles > 0:
 		_update_straight_charge()
+	if not modifiers.is_empty():  # Omens: Tramplers, Burrowers
+		if modifiers.get("tramples_thornwall", false) and _spawner != null and not is_flying():
+			_spawner.try_omen_trample(self)
+		var burrow_tiles := int(modifiers.get("burrow_tiles", 0))
+		if burrow_tiles > 0 and not _leaping:
+			_try_omen_burrow(burrow_tiles, float(modifiers.get("burrow_time", 0.5)))
 	match enemy_data.trait_kind:
 		EnemyData.Trait.ROLLING:
 			_update_rolling()
@@ -1334,6 +1340,8 @@ func _try_burrow() -> void:
 		return
 	var walls := _tower_cells()
 	var here := get_current_cell()
+	if _spawner != null and _spawner.is_lit(here):
+		return  # Rootlight's light holds it above ground
 	var best_route := PackedVector2Array()
 	var best_length := _path.size() - _path_index - enemy_data.burrow_min_saving  # Cells to beat
 	for direction in DIRECTIONS:
@@ -1349,6 +1357,42 @@ func _try_burrow() -> void:
 	_burrows += 1
 	var surface := grid.calculate_map_position(best_route[0])
 	_sink_and_rise(surface, func() -> void: set_path(best_route))
+
+# The Burrowers Omen (run_design.md "Omens with teeth"; modifiers burrow_tiles, burrow_time): at a bend
+# in its route it burrows `tiles` path tiles ahead, untargetable while under (out of the enemies group).
+# Never onto the Heartwood's own tile, and never from a tile Rootlight lights.
+func _try_omen_burrow(tiles: int, seconds: float) -> void:
+	if _path_index < 2 or _path_index >= _path.size() or is_flying():
+		return
+	var here := _path[_path_index - 1]
+	if _path[_path_index] - here == here - _path[_path_index - 2]:
+		return  # Not a bend
+	if _spawner != null and _spawner.is_lit(here):
+		return
+	var landing_index := mini(_path_index + tiles - 1, _path.size() - 2)
+	if landing_index < _path_index:
+		return
+	_end_drag(false)
+	_leaping = true
+	remove_from_group(GROUP)
+	var route := _path
+	var landing := grid.calculate_map_position(_path[landing_index])
+	var tween := create_tween()
+	_leap_tween = tween
+	tween.tween_property(sprite, "modulate:a", 0.15, seconds * 0.3)
+	tween.tween_property(self, "position", landing, seconds * 0.4)
+	tween.tween_property(sprite, "modulate:a", 1.0, seconds * 0.3)
+	tween.tween_callback(func() -> void:
+		_leaping = false
+		if _path == route:
+			_path_index = landing_index + 1
+			_last_cell = _path[landing_index]
+		else:  # The maze changed while it was under: on from where it surfaced
+			var map_generator = _map_generator()
+			if map_generator != null:
+				set_path(map_generator.get_path_from(grid.calculate_grid_coordinates(position)))
+		if not is_cleansed and not _hidden and not _untouchable:
+			add_to_group(GROUP))
 
 # Sleepwalker: sometimes steps into a dead-end pocket beside it, walks to the end and comes back.
 func _try_wander() -> void:

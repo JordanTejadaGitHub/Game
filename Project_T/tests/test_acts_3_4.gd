@@ -575,6 +575,66 @@ func _run() -> void:
 	_check(boss_walker.get_restless() == 3 and not boss_walker.is_unbound(), "a boss gains Restless but never turns Unbound")
 	_clear_enemies()
 
+	# --- Omens with teeth: Tramplers (one Thornwall trampled per drift) and Burrowers (bends) ---
+	_clear_enemies()
+	var omen_director = main.get_node("%OmenDirector")
+	var drifts = main.get_node("%DriftDirector")
+	omen_director.active = load("res://resource/omen/tramplers.tres")
+	omen_director.active_block = drifts.get_block(30)
+	var hedge_cell := _free_neighbour(route[14])
+	var hedge := _plant("thornwall", hedge_cell)
+	var other_cell := _free_neighbour(route[16])
+	var other_hedge := _plant("thornwall", other_cell)
+	var trampler := _still("leaf_bug", route[14])
+	trampler.modifiers = {"tramples_thornwall": true}
+	drifts._drift_of[trampler] = 30
+	trampler.set_path(route)
+	trampler._path_index = 15
+	var walls_card: int = dreams.stacks.get("weathered_walls", 0)
+	if walls_card > 0:  # Taken earlier in this test: Weathered Walls keeps Thornwalls standing
+		trampler._on_cell_reached()
+		_check(is_instance_valid(hedge) and not hedge.is_queued_for_deletion(), "Tramplers: Weathered Walls still holds")
+		dreams.stacks.erase("weathered_walls")
+	trampler._on_cell_reached()
+	_check(not is_instance_valid(hedge) or hedge.is_queued_for_deletion(), "Tramplers: the first nightmare past a Thornwall tramples it")
+	if walls_card > 0:
+		dreams.stacks["weathered_walls"] = walls_card
+	var second := _still("leaf_bug", route[16])
+	second.modifiers = {"tramples_thornwall": true}
+	drifts._drift_of[second] = 30
+	second.set_path(route)
+	second._path_index = 17
+	second._on_cell_reached()
+	_check(is_instance_valid(other_hedge) and not other_hedge.is_queued_for_deletion(), "only one per drift")
+	omen_director.active = null
+	if is_instance_valid(other_hedge):
+		other_hedge.free()
+	_clear_enemies()
+	route = map_generator.get_path_from(map_generator.startPath)
+	var bend := -1
+	for i in range(3, route.size() - 4):
+		if route[i] - route[i - 1] != route[i + 1] - route[i]:
+			bend = i
+			break
+	if bend > 0:
+		var burrower := _still("leaf_bug", route[bend])
+		burrower.modifiers = {"burrow_tiles": 2, "burrow_time": 0.5}
+		burrower.set_path(route)
+		burrower._path_index = bend + 1
+		burrower._on_cell_reached()
+		_check(burrower._leaping and not burrower.is_in_group(burrower.GROUP), "Burrowers: at a bend it burrows, untargetable")
+		for f in 45:
+			await process_frame
+		_check(not burrower._leaping and burrower.is_in_group(burrower.GROUP) and burrower._path_index == bend + 3,
+			"and surfaces 2 tiles ahead (index %d, bend %d)" % [burrower._path_index, bend])
+		var straight := _still("leaf_bug", route[bend + 1])
+		straight.modifiers = {"burrow_tiles": 2}
+		straight.set_path(route)
+		straight._path_index = bend + 2
+		straight._on_cell_reached()
+		_check(not straight._leaping or route[bend + 1] - route[bend] != route[bend + 2] - route[bend + 1], "not on a straight")
+	_clear_enemies()
+
 	# --- Field cap (platforms.md "Calling drifts early stacks them"): arrivals wait in the start mist ---
 	_clear_enemies()
 	await process_frame

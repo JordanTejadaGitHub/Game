@@ -53,6 +53,8 @@ var _towers_dirty := true
 var _revealers_dirty := true
 var _tower_lookup_age := 0.0
 const TOWER_LOOKUP_REFRESH := 0.5
+var _lit := {}  # Rootlight's lit path tiles this frame ({cell: true}; is_lit)
+var _lit_frame := -1
 var thin_cards := false  # Any of the above owned (else nightmares skip their per-frame bookkeeping)
 var rooted_cells := {}  # {cell: Held nightmare} (Rooted Nightmares; see _update_rooted_cells)
 var waiting_cells := {}  # {cell: nightmare waiting behind a rooted one}
@@ -245,6 +247,41 @@ func refresh_reveal_lookup() -> void:
 			tower_cells[cell] = tower
 		if tower.attack_data.applies_status == EnemyStatuses.MARKED:
 			marker_towers.append(tower)
+
+# Rootlight's lit path tiles stop burrowing (Gravecrawlers, the Burrowers Omen). Gathered from the
+# Wardens at most once a frame, and only when someone asks.
+func is_lit(cell: Vector2) -> bool:
+	var frame := Engine.get_process_frames()
+	if frame != _lit_frame:
+		_lit_frame = frame
+		_lit.clear()
+		for tower in tower_container.get_children():
+			var lit = tower.get("_lit_cells")
+			if lit is Array:
+				for at in lit:
+					_lit[at] = true
+	return _lit.has(cell)
+
+# The Tramplers Omen (run_design.md "Omens with teeth"): the first nightmare of each drift to walk
+# past a Thornwall tramples it, like the Hollow Stag (gone for good, no refund, everyone re-routes).
+# OmenDirector.claim_trample(drift) lets only the first caller of each drift through.
+func try_omen_trample(enemy: Node2D) -> void:
+	var dreams := get_tree().get_first_node_in_group(DreamState.GROUP) as DreamState
+	if dreams != null and dreams.has_rule(WEATHERED_WALLS_RULE):
+		return  # Weathered Walls: Thornwalls stand like any other wall
+	refresh_reveal_lookup()  # (tower_cells: Wardens by cell)
+	var here: Vector2 = enemy.get_current_cell()
+	for offset in [Vector2.LEFT, Vector2.RIGHT, Vector2.UP, Vector2.DOWN]:
+		var tower = tower_cells.get(here + offset)
+		if tower == null or not is_instance_valid(tower) or tower.tower_data.line != "wall":
+			continue
+		var omens := get_tree().get_first_node_in_group(OmenDirector.GROUP) as OmenDirector
+		var director = get_node_or_null("%DriftDirector")
+		if omens == null or director == null or not omens.claim_trample(director.drift_of(enemy)):
+			return
+		_trample_tower(tower, here + offset, enemy)
+		_towers_dirty = true
+		return
 
 # A route from `from` to the Heartwood that avoids every rooted cell (except `from` itself), without
 # changing the map. Empty if the Held nightmares close every way (then the walker waits).
