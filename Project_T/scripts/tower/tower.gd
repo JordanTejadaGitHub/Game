@@ -325,6 +325,8 @@ var _aura_count := 0  # Other Wardens inside this Warden's aura (Grove Heart)
 var _kin: Kinships = null  # The run's Kinships (two branches of one family bond)
 var _root_links: Array[Vector2] = []  # Root Network: directions to touching Sprouts (glow on shared edges)
 var kin_branch := ""  # The branch an Ascended form grew from (Kinships); saved with the run
+var _branch_form: TowerData = null  # Kinships.branch_for cache: the form it was worked out for
+var _branch_cached := ""
 var footprint_size := 0  # 0 = the data's footprint; 1 keeps an old save's 1-cell Ascended form
 var _hits_landed := 0  # Eternal Charge / Rooted Nightmares count this Warden's hits
 var _hunted := {}  # Hunter's Moon: nightmares this Warden has hit (instance ids)

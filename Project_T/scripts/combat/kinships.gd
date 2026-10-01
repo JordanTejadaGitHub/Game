@@ -202,9 +202,13 @@ static func branch_of(data: TowerData) -> String:
 
 # A planted Warden's branch: its form's, or for an Ascended form the branch it grew from.
 static func branch_for(tower: Tower) -> String:
+	if tower._branch_form == tower.tower_data:
+		return tower._branch_cached  # Perf: refresh asks for every Warden twice a second
 	var branch := branch_of(tower.tower_data)
 	if branch == "" and tower.tower_data.tier >= DreamState.ASCENDED_TIER:
-		return tower.kin_branch
+		return tower.kin_branch  # Not cached: kin_branch can change while the form stays
+	tower._branch_form = tower.tower_data
+	tower._branch_cached = branch
 	return branch
 
 # The Kinship two branches form ("" if none).
@@ -268,27 +272,35 @@ func note_moved(tower: Tower, old_cell: Vector2) -> void:
 func refresh() -> void:
 	_refresh_timer = REFRESH
 	var towers := _towers()
+	# Perf (stacked drifts: 0.7 ms a call with 200+ Wardens): branch_for once per Warden, then pairs only
+	# within a family; Sprouts and walls (no branch) never enter the pair loop.
+	var by_line := {}
+	for tower in towers:
+		var branch := branch_for(tower)
+		if branch != "":
+			var line: String = tower.tower_data.line
+			if not by_line.has(line):
+				by_line[line] = []
+			by_line[line].append([tower, branch])
 	var edges := []
-	for i in towers.size():
-		var ta: Tower = towers[i]
-		var ba := branch_for(ta)
-		if ba == "":
-			continue
-		for j in range(i + 1, towers.size()):
-			var tb: Tower = towers[j]
-			if tb.tower_data.line != ta.tower_data.line:
-				continue
-			var bb := branch_for(tb)
-			if bb == "" or bb == ba:
-				continue
-			var id := kinship_for(ba, bb)
-			if id == &"" or not is_available(id):
-				continue
-			var distance := _distance(ta, tb)
-			if distance <= get_reach():
-				# Side A is the Warden from the table's first branch.
-				var first: bool = KINSHIPS[id][2] == ba
-				edges.append([distance, id, ta if first else tb, tb if first else ta])
+	for line in by_line:
+		var kin: Array = by_line[line]
+		for i in kin.size():
+			var ta: Tower = kin[i][0]
+			var ba: String = kin[i][1]
+			for j in range(i + 1, kin.size()):
+				var tb: Tower = kin[j][0]
+				var bb: String = kin[j][1]
+				if bb == ba:
+					continue
+				var id := kinship_for(ba, bb)
+				if id == &"" or not is_available(id):
+					continue
+				var distance := _distance(ta, tb)
+				if distance <= get_reach():
+					# Side A is the Warden from the table's first branch.
+					var first: bool = KINSHIPS[id][2] == ba
+					edges.append([distance, id, ta if first else tb, tb if first else ta])
 	edges.sort_custom(func(x: Array, y: Array) -> bool: return x[0] < y[0])
 	# Bonds are sticky (tower_design.md): a bond still in reach is kept before anyone else pairs, so a
 	# nearer newcomer never takes it over; nearest-first only matches the Wardens still unbonded.
@@ -357,7 +369,7 @@ func refresh() -> void:
 				_partner[tower.get_instance_id()] = []
 			_partner[tower.get_instance_id()].append(pair)
 		_breathe_together(pair)
-	_count_families(towers)
+	_count_families(towers, by_line)
 
 # Breathing together: a bonded pair's idle animations sync (the Warden planted later takes its kin's
 # phase), once per bond. Kept in Subtle, off when Kinship effects are Off.
@@ -441,16 +453,23 @@ func damage_bonus(tower: Tower) -> float:
 		bonus += minf(GROVE_OF_KIN_PER * _power(&"grove_of_kin") * pairs.size(), GROVE_OF_KIN_MAX * _power(&"grove_of_kin"))
 	return bonus
 
-func _count_families(towers: Array) -> void:
+# `by_line` ({line: [[tower, branch], …]}, from refresh) saves looking every branch up again.
+func _count_families(towers: Array, by_line = null) -> void:
 	var present := {}
-	for tower in towers:
-		var branch := branch_for(tower)
-		if branch == "":
-			continue
-		var line: String = tower.tower_data.line
-		if not present.has(line):
+	if by_line is Dictionary:
+		for line in by_line:
 			present[line] = {}
-		present[line][branch] = true
+			for entry in by_line[line]:
+				present[line][entry[1]] = true
+	else:
+		for tower in towers:
+			var branch := branch_for(tower)
+			if branch == "":
+				continue
+			var line: String = tower.tower_data.line
+			if not present.has(line):
+				present[line] = {}
+			present[line][branch] = true
 	var before := families.duplicate()
 	families.clear()
 	for line in present:
