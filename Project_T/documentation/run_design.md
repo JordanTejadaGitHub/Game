@@ -612,8 +612,8 @@ the map or the rules**. That makes ~20; aim for no Omen twice in a row and each 
   what you've built (Heavy Rain feeds Thunderclap and Conductive Soil; Sleepless hurts sleep builds).
   That's the point: an Omen that's free for *your* build is a reason to take it.
 - **Frozen Ground** still allows selling (at the usual 50%) and clearing; it's only about planting.
-- **Leaf Fall** doubles a boss's leaf cost too, but bosses ignore Omens only for their *own* stats,
-  so a boss leak costs 10. Shown clearly on the Omen card.
+- **Leaf Fall** doubles every leak, bosses included: an act 1–3 boss costs 16 / 20 / 24 instead of 8 / 10 / 12,
+  and the Hollow Oak drains twice as fast (bosses ignore Omens only for their *own* stats).
 - **Lean Season's Legendary** follows the Legendary rules (any Legendary you could be offered);
   before act 2 it isn't offered.
 - **Shifting Ground:** **only offered once clearing is unlocked** this run (any clearing card;
@@ -634,7 +634,7 @@ the map or the rules**. That makes ~20; aim for no Omen twice in a row and each 
   3. **Bountiful Night** reward ×1.6 → **×2 Dew** (100% more): health hurts more than Blood Moon's speed, so it must pay at least as well.
   4. **Shifting Ground** needs 5 free cells (it sprouts 5).
   5. **Thick Blight's** extra cards: the next Dream shows at most **5 cards** (with Wider Dreams too); the Dream screen must fit 5.
-  6. Text: **"N% more Dew"** everywhere (Bountiful "100% more Dew"); **"move"** for speed (Swift Stream "Nightmares move 25% faster"); Stubborn Blight **"Statuses last a third as long."**; Leaf Fall **"Every leak costs double leaves, and a boss at the Heartwood drains two at a time."** (boss leaks no longer cost a flat 5 / 10).
+  6. Text: **"N% more Dew"** everywhere (Bountiful "100% more Dew"); **"move"** for speed (Swift Stream "Nightmares move 25% faster"); Stubborn Blight **"Statuses last a third as long."**; Leaf Fall **"Every leak costs double leaves."** (the doubling covers the act 1–3 bosses' flat 8 / 10 / 12 and the Hollow Oak's drain; balance_simulation.md 538b85b7).
 
 - **Omens with teeth (2026-09-30, user: "do you think the Omens are dangerous enough" → "write the
   changes").** The user's run reached drift 60 at full leaves: for a strong maze most Omens were
