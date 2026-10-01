@@ -132,6 +132,15 @@ matter, confirmed.
   - **Tests:** two map seeds give different pools (same seed, same pool); the floors hold on a fresh
     profile; taking a tagged card adds **nothing** to the pool; a family pick adds its family cards;
     19 offers on a fresh profile never show fewer than 3 cards.
+  - **Targets (design hub, 2026-09-30):** a **decent build** (3+ of a package by drift 50) in
+    **~50%** of runs; the **full dream build** (5+ by drift 100) in **~5%** with a full Grove and
+    **close to 0%** on a fresh profile.
+  - **Measured (09a9a069: lean pool, Grove nodes, 60% run pool, steering off):** decent build **57%**
+    fresh / **52%** full (mixed picker; broad spread at full) ✓; dream build ~0% fresh (except Kinship
+    12, Affliction 8, Precision 7) / **~5%** full (Tall 5, Overgrowth 6, Daring 4, Precision 9,
+    Affliction 8, Maze 8, Tending 4, Kinship 4, Swift 0, Wide Reach 0) ✓; Adapt 95–96% ✓; every
+    offer fills. **The 60% share stays.** Optional later: one more card each for Swift and Wide Reach,
+    so their dream build is possible at all.
 - **3 cards per Dream**, after drifts 5, 10, … 95. No duplicates within an offer.
 - **Passed-over cards fade** (added 2026-09-28; playtest: Few and Mighty was offered ~5 times by
   drift 35 to a player not going narrow). A card that was offered and **not taken**:
