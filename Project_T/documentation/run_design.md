@@ -598,7 +598,7 @@ the map or the rules**. That makes ~20; aim for no Omen twice in a row and each 
 | **Fog Bank** | your side | every Warden **−1 range** (min 1) | +4 Seeds |
 | **Wilting** | your side | every Warden **−15% attack speed** | ~~+1 Dreamlight~~ next Dream offers 4 cards (no Omen gives Dreamlight) |
 | **Frozen Ground** | your side | **no planting or growing during drifts** (rests only) | +50 Dew |
-| **Leaf Fall** | your side | every leak costs **double leaves**; **never offered for a block with a boss drift** (a doubled 8 / 10 / 12 boss leak would end the run) | +2 max leaves |
+| **Leaf Fall** | your side | every leak costs **double leaves**; **never offered for a block with a boss drift** (a doubled 8 / 10 / 12 boss leak would end the run) | ~~+2 max leaves~~ next Dream: 4 cards, one Rare+ (no Omen gives leaves) |
 | **Lean Season** | your side | **rest bonus halved** at the end of the block | next Dream **includes a Legendary** (act 2+) |
 | **Heavy Rain** | double-edged | every nightmare is **always Soaked**, but has **+35% health** | +30 Dew |
 | **Blood Moon** | double-edged | nightmares **+25% speed**, and give **+50% Dew** | (the Dew is the reward) |
@@ -613,7 +613,7 @@ the map or the rules**. That makes ~20; aim for no Omen twice in a row and each 
   That's the point: an Omen that's free for *your* build is a reason to take it.
 - **Frozen Ground** still allows selling (at the usual 50%) and clearing; it's only about planting.
 - **Leaf Fall** doubles every leak, so it is **never offered for a block that contains a boss drift** (a boss leak would cost 16 / 20 / 24 and end the run; Balancing Discussion, enemy_design.md 8bc4be6a). Outside boss blocks it doubles normal leaks;
-  and the Hollow Oak drains twice as fast (bosses ignore Omens only for their *own* stats).
+  (That includes the Hollow Oak's block, so its drain is never doubled.)
 - **Lean Season's Legendary** follows the Legendary rules (any Legendary you could be offered);
   before act 2 it isn't offered.
 - **Shifting Ground:** **only offered once clearing is unlocked** this run (any clearing card;
