@@ -382,7 +382,7 @@ func _make_attack(tower_name: String) -> Image:
 # Tall Wardens (64x96 frames, the body's 64x64 frame in the bottom 64 rows; the 32 rows above hold
 # what rises over it). In game: TowerData.sprite_offset (0, -16) keeps the slab on its cell, and the
 # attacks.json point stays in body-frame pixels (it's measured from the body, not the tall frame).
-const TALL_WARDENS := ["beacon", "thunderhead", "wellspring", "elf_circle", "starcave", "snugroot"]
+const TALL_WARDENS := ["beacon", "thunderhead", "wellspring", "elf_circle", "starcave", "snugroot", "grafted_elder"]
 const TALL_H := 96
 
 func _frame_h(tower_name: String) -> int:
@@ -2693,6 +2693,33 @@ func _tall_full_snugroot(frame: Image, st: Dictionary) -> void:
 		for d: Vector2i in [Vector2i.LEFT, Vector2i.RIGHT, Vector2i.UP, Vector2i.DOWN]:
 			frame.set_pixelv(p + d + Vector2i(0, 1), Color("#f4a0c0"))
 		frame.set_pixelv(p + Vector2i(0, 1), Color("#ffd24a"))
+
+# Grafted Elder's tall rows: a small grafted tree grows up out of its stump-top, its trunk splitting
+# into three compact crowns, blossom, leaf and gold (one per graft), each swaying a little.
+func _tall_grafted_elder(back: Image, front: Image, st: Dictionary) -> void:
+	var dy: int = st.dy
+	var o := Color("#22160e")
+	var foot := Vector2(31, 32 + 5 + dy)  # its stump-top, in tall-frame rows
+	var fork := Vector2(31, 26 + dy)
+	var trunk := _layer()
+	_stroke(trunk, [foot, fork], 1.6, Color("#7a5234"))
+	var crowns := [[Vector2(22, 14 + dy), _ramp(["#c05080", "#f090b8", "#ffd0e4"])],
+		[Vector2(31, 9 + dy), _ramp(LEAF)],
+		[Vector2(40, 14 + dy), _ramp(["#b87a20", "#e8b040", "#ffe080"])]]
+	for c: Array in crowns:
+		_stroke(trunk, [fork, (c[0] as Vector2) + Vector2(0, 4)], 1.0, Color("#7a5234"))
+	_stamp(front, trunk, o)
+	for i in crowns.size():
+		var c: Vector2 = crowns[i][0]
+		var sway: float = [0.0, 0.5, 0.0, -0.5][(st.f + i * 2) % 4]
+		var crown := _layer()
+		_ellipse(crown, c + Vector2(sway, 0), Vector2(5.2, 4.4), crowns[i][1])
+		_ellipse(crown, c + Vector2(sway - 3, 2), Vector2(3.0, 2.6), crowns[i][1])
+		_ellipse(crown, c + Vector2(sway + 3, 2), Vector2(3.0, 2.6), crowns[i][1])
+		_stamp(front, crown, o)
+	# Twine where the grafts are bound.
+	_px(front, int(fork.x) - 1, int(fork.y) + 1, Color("#e8d8b0"))
+	_px(front, int(fork.x) + 1, int(fork.y) + 1, Color("#e8d8b0"))
 
 # Lanternmoth: an amber lantern golem with soft moth wings, feathery antennae and a warm light
 # glowing in its chest.
