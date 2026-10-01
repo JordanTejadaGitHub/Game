@@ -29,6 +29,11 @@ var _buffs := VBoxContainer.new()  # Buffs: every source of this Warden's power 
 var _body := Label.new()
 var _groups := VBoxContainer.new()  # Several selected: one row per kind with its portrait
 var _buttons := VBoxContainer.new()
+var _scroll := ScrollContainer.new()  # Everything between the header and the footer, capped (_fit_height)
+var _content: VBoxContainer
+var _footer := HBoxContainer.new()  # Sell and Close: always visible
+var _buffs_open := false  # Buffs: folded to the Total line until "Details"
+const MAX_SHARE := 0.55  # The panel never takes more of the screen's height than this
 var _confirm_sell := false  # Selling a group during a drift asks once more
 var _confirm_unlock: TowerData = null  # Unlocking a form with Dreamlight asks once more
 var _confirm_eldest := false  # Rank VI would crown the Eldest: asks once more
@@ -45,13 +50,26 @@ func _ready() -> void:
 	# WardenHeaderView, also on the Warden bar's hover card and the Codex, so they never disagree.
 	_header.growth.visible = false
 	box.add_child(_header)
+	# screens_ui.md "The Warden panel never fills the screen": the header stays, the middle scrolls inside a
+	# cap (MAX_SHARE of the screen, below the Dreams row) and Sell / Close stay in the footer.
+	_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	box.add_child(_scroll)
+	var content := VBoxContainer.new()
+	content.add_theme_constant_override("separation", 6)
+	content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_scroll.add_child(content)
+	_content = content
 	_buffs.add_theme_constant_override("separation", 1)
-	box.add_child(_buffs)
+	content.add_child(_buffs)
 	_body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_body.custom_minimum_size = Vector2(280, 0)
-	box.add_child(_body)
-	box.add_child(_groups)
-	box.add_child(_buttons)
+	content.add_child(_body)
+	content.add_child(_groups)
+	content.add_child(_buttons)
+	_footer.add_theme_constant_override("separation", 6)
+	box.add_child(_footer)
+	get_viewport().size_changed.connect(_fit_height)
 	visible = false
 
 	tower_seller.tower_selected.connect(_show)
@@ -78,6 +96,8 @@ func _show(tower: Tower) -> void:
 	_tower = tower
 
 func _refresh() -> void:
+	if is_inside_tree() and not get_tree().process_frame.is_connected(_fit_height):
+		get_tree().process_frame.connect(_fit_height, CONNECT_ONE_SHOT)  # Next frame: the new rows are in, the old ones gone
 	_group_refresh_queued = false  # This refresh already shows the current Dew
 	_shown = _selection_state()
 	for child in _groups.get_children():
@@ -155,7 +175,7 @@ func _refresh() -> void:
 			lines.append("Crossroads: +%d%%" % roundi(crossroads * 100))
 	_body.text = "\n".join(lines)
 
-	for child in _buttons.get_children():
+	for child in _buttons.get_children() + _footer.get_children():
 		child.queue_free()
 	if _tower.can_choose_target():
 		_add_target_switch([_tower])
@@ -255,7 +275,7 @@ func _refresh() -> void:
 		note = "Placed this rest: all its Dew back."
 	elif drift_director.is_build_phase() and _tower.rest_dew > 0:
 		note = "This rest's %d Dew comes back in full." % _tower.rest_dew
-	var sell := _add_button("Sell · +%d Dew (%s)" % [refund, tower_seller.sell_key_name()])  # Its hotkey, like Nurture's (R)
+	var sell := _add_footer_button("Sell · +%d Dew (%s)" % [refund, tower_seller.sell_key_name()])  # Its hotkey, like Nurture's (R)
 	sell.tooltip_text = note
 	sell.pressed.connect(func() -> void: tower_seller.sell(_tower.cell))
 	if _tower.tower_data.rooted:
@@ -264,7 +284,7 @@ func _refresh() -> void:
 	elif not tower_seller.can_sell():
 		sell.text = "Overgrown: no selling while nightmares walk"
 		sell.disabled = true
-	var close := _add_button("Close")
+	var close := _add_footer_button("Close")
 	close.pressed.connect(tower_seller.select.bind(null))
 
 func _is_eldest(tower: Tower) -> bool:
@@ -294,7 +314,7 @@ func _refresh_group() -> void:
 	lines.append_array(DreamBonusView.group_summary(selection))  # "Solitude: 3 of 5"
 	_body.text = "\n".join(lines)
 
-	for child in _buttons.get_children():
+	for child in _buttons.get_children() + _footer.get_children():
 		child.queue_free()
 	var aimed := selection.filter(func(t) -> bool: return is_instance_valid(t) and t.can_choose_target())
 	if not aimed.is_empty():
@@ -361,7 +381,7 @@ func _refresh_group() -> void:
 			tower_seller.nurture_group(tower_seller.selection, which))
 	var refund := tower_seller.get_selection_refund()
 	var in_drift := not drift_director.is_build_phase()
-	var sell := _add_button("Sell %d · +%d Dew (%s)" % [selection.size(), refund, tower_seller.sell_key_name()])
+	var sell := _add_footer_button("Sell %d · +%d Dew (%s)" % [selection.size(), refund, tower_seller.sell_key_name()])
 	sell.tooltip_text = "Half the Dew back while nightmares walk." if in_drift else ""
 	if _confirm_sell:
 		sell.text = "Really sell %d while nightmares walk? +%d Dew" % [selection.size(), refund]
@@ -369,7 +389,7 @@ func _refresh_group() -> void:
 	if not tower_seller.can_sell():
 		sell.text = "Overgrown: no selling while nightmares walk"
 		sell.disabled = true
-	var close := _add_button("Close")
+	var close := _add_footer_button("Close")
 	close.pressed.connect(tower_seller.select.bind(null))
 
 # Portrait and count for one kind in the selection.
@@ -447,11 +467,23 @@ func _fill_buffs(tower: Tower) -> void:
 	if entries.is_empty():
 		return
 	_buffs.visible = true
+	var head := HBoxContainer.new()  # "Buffs" and its Details toggle: the list folds to its Total line
 	var header := Label.new()
 	header.text = "Buffs"
 	UiStyle.caps(header)
-	_buffs.add_child(header)
-	for entry in entries:
+	header.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	head.add_child(header)
+	var details := Button.new()
+	details.text = "Hide" if _buffs_open else "Details (%d)" % entries.size()
+	details.flat = true
+	details.focus_mode = Control.FOCUS_NONE
+	details.pressed.connect(func() -> void:
+		_buffs_open = not _buffs_open
+		_fill_buffs(tower)
+		_fit_height())
+	head.add_child(details)
+	_buffs.add_child(head)
+	for entry in (entries if _buffs_open else []):
 		var colour: Color = BuffSources.COLORS.penalty if entry.negative else BuffSources.color(entry.kind, entry.source)
 		var row: Control
 		if entry.source is Tower and is_instance_valid(entry.source):
@@ -755,3 +787,23 @@ func _growth_note() -> String:
 		return ""
 	var extra := _tower.get_next_rank_growth_extra(next)
 	return "\n\n+%d when it grows into %s." % [extra, next.display_name] if extra > 0 else ""
+
+# Sell / Close: in the footer, never scrolled away.
+func _add_footer_button(text: String) -> Button:
+	var button := Button.new()
+	button.text = text
+	button.focus_mode = Control.FOCUS_NONE
+	button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	button.clip_text = true
+	_footer.add_child(button)
+	return button
+
+# The middle scrolls once the panel would pass MAX_SHARE of the screen (the Dreams row stays clear).
+func _fit_height() -> void:
+	if _content == null:
+		return
+	var screen: float = get_viewport().get_visible_rect().size.y
+	var room := screen * MAX_SHARE - _header.get_combined_minimum_size().y - _footer.get_combined_minimum_size().y - 40.0
+	var wanted := _content.get_combined_minimum_size().y
+	_scroll.custom_minimum_size.y = clampf(wanted, 0.0, maxf(room, 120.0))
+	reset_size()
