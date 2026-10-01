@@ -230,8 +230,8 @@ discovery in play. Branches may **fork** into two tips (each tip needs the node 
 
 | Branch (direction) | Node 1 (near the trunk) | Node 2 | Tip(s): Legendary |
 |---|---|---|---|
-| **Swift** (attack speed) | *Quickening*: Momentum, Quickening, Flurry (50) | *Light Feet*: Restless Roots, Hummingheart (70) | **Whirlwind Heart** (120) |
-| **Wide Reach** (area, splash) | *Broad Strokes*: Broad Splash, Lingering Splash (50) | *Far Reach*: Far Reach, Spillover (70) | **Great Ripple** (120) |
+| **Swift** (attack speed) | *Quickening*: Momentum, Quickening, Flurry (50) | *Light Feet*: Restless Roots, Hummingheart, Drumbeat (70) | **Whirlwind Heart** (120) |
+| **Wide Reach** (area, splash) | *Broad Strokes*: Broad Splash, Lingering Splash, Overlap (50) | *Far Reach*: Far Reach, Spillover (70) | **Great Ripple** (120) |
 | **Keen Edges** (precision, crit) | *Sharpened*: Still Target, Shattering Blow, **Hunter's Patience**, **Sharpened Light** (50) | — | **Full Moon** (120) · **Hunter's Moon** (80) |
 | **Deep Poison** (affliction, effects) | *Seeping*: + **Crowd Breaker** (50) | *Venom*: Venom Bloom (40) | **Nightshade** (120) · **Eternal Charge** (80) |
 | **Daring** (low leaves, tempo) *(new)* | *Scarred Bark*: Scarred Bark, Thin Bark (40) | *Last Stand*: Desperate Bloom, Second Wind, Last Stand (50) | **Last Leaf** (80) · **Restless Night** (80) |

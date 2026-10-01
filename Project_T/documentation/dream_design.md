@@ -1402,6 +1402,7 @@ lifts its branch: **`swift`** and **`reach`** (card builds C9 and C10). Numbers 
 | | 237 | **Flurry** | Uncommon | every **5th attack** from a Warden **fires twice** |
 | 2 *Light Feet* (70) | 238 | **Restless Roots** | Uncommon | Wardens with **under 1 attack per second** (before bonuses) get **+45% attack speed** |
 | | 239 | **Hummingheart** | Rare | every **+10% bonus attack speed** a Warden has also gives it **+3% damage** (max +60%) |
+| | 248 | **Drumbeat** | Uncommon | a Warden **touching 2+ other attacking Wardens** gets **+30% attack speed**. Diagram `".......\n..www..\n..wWw..\n.......\n...W..."` (the lone `W` below is dimmed: ✗ alone), caption *"Touching 2+ Wardens: +30% attack speed."* *(added 2026-09-30 so Swift's dream build is possible)* | |
 | Tip (120) | 240 | **Whirlwind Heart** | Legendary | **all attack-speed bonuses count double**; every hit deals **−20% damage**. You build around stacking attack speed |
 
 **Wide Reach (area, splash)**: "area attacks" = splashes, pulses, clouds, lobs, chains, sweeps
@@ -1411,6 +1412,7 @@ lifts its branch: **`swift`** and **`reach`** (card builds C9 and C10). Numbers 
 |---|---|---|---|---|
 | 1 *Broad Strokes* (50) | 241 | **Broad Splash** | Common, stacks (max 3) | **splashes and clouds** reach **0.25 cells wider** per stack (pulses use their range: not affected) |
 | | 242 | **Lingering Splash** | Uncommon | every **3rd area attack** leaves a patch (1 cell, 2 s) that deals **25% of that hit per second** to nightmares inside (effect damage) |
+| | 249 | **Overlap** | Uncommon | a nightmare hit by **two different Wardens' area attacks within 1 s** takes **+40%** from the second. Diagram `".......\n.PPPPP.\n.W.*.W.\n.......\n......."` (`*` = where both splashes land), caption *"Two area Wardens covering the same spot: +40%."* *(added 2026-09-30 so Wide Reach's dream build is possible)* |
 | 2 *Far Reach* (70) | 243 | **Far Reach** | Uncommon | Wardens with an **area attack** get **+0.75 range** |
 | | 244 | **Spillover** | Rare | when an area attack **dispels** a nightmare, the **leftover damage** splashes to nightmares within 1 cell |
 | Tip (120) | 245 | **Great Ripple** | Legendary | every area attack **hits again 1 s later** in a ring **1 cell wider**, at **50%** (an aftershock). You build around big area Wardens |
