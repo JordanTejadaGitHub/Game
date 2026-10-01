@@ -338,6 +338,25 @@ Decisions (design chat):
 4. A fresh profile reaching drift 50 comfortably and "knowing it can beat 100" says late acts are
    still soft: the next run after these two fixes decides whether acts 3–4 go from ×4.0 to ×5.0.
 
+## Human run 4 (2026-10-01, build 82373f, 1 Grove node)
+
+*"Still lost, but felt easy."* Lost at **drift 50 to the Huntsman: 20 leaves in that one drift** (the
+first leak of the run). Drifts 1–49: **closest 0.07–0.48, mostly 0.10–0.25** (act 2 ~0.09–0.27), no
+leaks; leaves rose to 20 from Omen rewards. Night Mare 23 s. Two families only (spore + water);
+Puffballs 25% + 25%, Bloomcap 14% (Potency 1.0 is fairer). Dew earned 5,814 by 50.
+
+Reading: **easy drifts, then a wall.** Normal drifts never threaten, so the player has no warning,
+and the Huntsman (pack shield, hounds respawning every 12 s, now ×2.25 and staying to drain) becomes
+unkillable once he reaches the Heartwood.
+
+Decisions:
+1. **Normal drifts harder from act 2:** act 2 starts at **×1.6** (was 1.3) and ends at **×3.6** (was 3.0);
+   acts 3–4 **×4.8** (was 4.0). Act 1 unchanged. Target: closest ~0.4–0.7 most drifts, the odd leak.
+2. **Huntsman at the Heartwood:** his horn stops (no new hounds while he drains), and his pack shield
+   only counts hounds within 3 tiles of him, so clearing the hounds around the tree lets the maze
+   finish him.
+3. Next run checks both; the act 2–3 boss ×2.25 stays.
+
 ## Later
 
 A **human baseline**: the same CSV written from real playtests (debug builds only), so the bot's
