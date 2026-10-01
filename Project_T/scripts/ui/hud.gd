@@ -151,10 +151,13 @@ func _ready() -> void:
 	clears_label.offset_top = TOP_BUTTONS_Y + TOP_BUTTON_H + 6.0  # Under the button row (it shows only with free clears)
 	clears_label.offset_bottom = clears_label.offset_top + (path_label.offset_bottom - path_label.offset_top)
 	clears_label.tooltip_text = "Half-price clears: tending a tree or moving a rock costs half (never less than half its base price)."
+	UiStyle.number(clears_label, 16, UiStyle.GOLD)  # A small line under the patch (it was title-size: user)
+	clears_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	clears_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	add_child(clears_label)
 	_clears_label = clears_label
 	var update_clears := func(n: int) -> void:
-		clears_label.text = "Half-price clears %d" % n
+		clears_label.text = "%d" % n  # The icon (left of it) says what it counts; the tooltip explains
 		clears_label.visible = n > 0
 	run_state.free_clears_changed.connect(update_clears)
 	update_clears.call(run_state.free_clears)
@@ -170,6 +173,7 @@ func _ready() -> void:
 	_add_counter_icon(get_node("DreamlightLabel"), &"dreamlight", 2)
 	_add_counter_icon(leaves_label, &"leaves", 2)
 	_add_counter_icon(%PathLabel, &"path_length", 2)
+	_add_counter_icon(_clears_label, &"dew_cost", 1)  # Half-price clears: the cost icon, 16 px
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("buff_lens"):  # V: the buff lens on / off (a toggle, for touch too)
@@ -235,42 +239,84 @@ func _build_tower_bar() -> void:
 	_fit_tower_bar()
 
 # The bar is centred at the bottom and must stay clear of the Warden panel (left) and the drift
-# controls (right). With the Clear tool as one more slot on the left: one row at the widest slot that
-# fits (BUTTON_SIZE.x at most); if even BUTTON_MIN_WIDTH doesn't fit, the bar wraps upward into more
-# rows at that width (%TowerBar is an HFlowContainer; the Clear tool sits by the bottom row).
+# controls (right). It is always ONE row (user: "the tower bar should not stack like this"): the Clear
+# slot first, then the Wardens in key order. Slots shrink evenly to SLOT_MIN_WIDTH; past that the bar
+# shows a window of slots with ‹ › arrows at its ends (hotkeys still reach every Warden).
+const SLOT_MIN_WIDTH := 56.0
+const ARROW_W := 28.0
+var _bar_offset := 0  # The first Warden shown when the bar scrolls
+var _bar_arrows: Array[Button] = []
+
 func _fit_tower_bar() -> void:
 	if _tower_buttons.is_empty():
 		return
 	var room := get_viewport().get_visible_rect().size.x - BAR_CLEARANCE * 2.0
 	var n := _tower_buttons.size()
 	var width := floorf((room - CLEAR_TOOL_GAP - BAR_GAP * (n - 1)) / (n + 1))
-	var per_row := n
-	if width < BUTTON_MIN_WIDTH:
-		width = BUTTON_MIN_WIDTH
-		per_row = maxi(1, floori((room - width - CLEAR_TOOL_GAP + BAR_GAP) / (width + BAR_GAP)))
+	var shown := n
+	if width < SLOT_MIN_WIDTH:
+		width = SLOT_MIN_WIDTH
+		var inner := room - 2.0 * (ARROW_W + BAR_GAP)  # The arrows take their room first
+		shown = clampi(floori((inner - width - CLEAR_TOOL_GAP + BAR_GAP) / (width + BAR_GAP)), 1, n)
 	width = minf(width, BUTTON_SIZE.x)
-	var rows := ceili(float(n) / per_row)
+	_bar_offset = clampi(_bar_offset, 0, n - shown)
 	var icon := mini(UiStyle.HUD_SPRITE, int(width) - 12)
-	for button in _tower_buttons:
+	for i in n:
+		var button: Button = _tower_buttons[i]
 		button.custom_minimum_size = Vector2(width, BUTTON_SIZE.y)
 		button.add_theme_constant_override("icon_max_width", icon)
+		button.visible = i >= _bar_offset and i < _bar_offset + shown
 		if button == _seed_badge_button():
 			_seed_badge.position.x = width - 14
 	clear_tool.add_theme_constant_override("icon_max_width", icon)
 	clear_tool.custom_minimum_size = Vector2(width, BUTTON_SIZE.y)  # Exactly a Warden slot (user: not a different size)
-	# Centre the tool + bar from the computed widths (the container only re-sorts its children next
-	# frame). The bar grows upward from 16 px above the bottom.
-	var bar_width := width * per_row + BAR_GAP * (per_row - 1)
-	var total := width + CLEAR_TOOL_GAP + bar_width
+	# Centre the tool + bar (+ arrows) from the computed widths (the container only re-sorts its children
+	# next frame), one row, 16 px above the bottom.
+	var scrolling := shown < n
+	var bar_width := width * shown + BAR_GAP * (shown - 1)
+	var arrows_w := (ARROW_W + BAR_GAP) * 2.0 if scrolling else 0.0
+	var total := width + CLEAR_TOOL_GAP + bar_width + arrows_w
 	var left := -total / 2.0
 	clear_tool.offset_left = left
 	clear_tool.offset_right = left + width
 	clear_tool.offset_bottom = -16.0
 	clear_tool.offset_top = -16.0 - BUTTON_SIZE.y
-	tower_bar.offset_left = left + width + CLEAR_TOOL_GAP
-	tower_bar.offset_right = total / 2.0
+	var bar_left := left + width + CLEAR_TOOL_GAP + (ARROW_W + BAR_GAP if scrolling else 0.0)
+	tower_bar.offset_left = bar_left
+	tower_bar.offset_right = bar_left + bar_width
 	tower_bar.offset_bottom = -16.0
-	tower_bar.offset_top = -16.0 - BUTTON_SIZE.y * rows - BAR_GAP * (rows - 1)
+	tower_bar.offset_top = -16.0 - BUTTON_SIZE.y
+	_place_bar_arrows(scrolling, bar_left, bar_left + bar_width, n - shown)
+
+func _place_bar_arrows(scrolling: bool, bar_left: float, bar_right: float, hidden: int) -> void:
+	if _bar_arrows.is_empty():
+		for pair in [["‹", -1], ["›", 1]]:
+			var arrow := Button.new()
+			arrow.name = "BarArrowLeft" if pair[1] < 0 else "BarArrowRight"
+			arrow.text = pair[0]
+			arrow.focus_mode = Control.FOCUS_NONE
+			arrow.theme_type_variation = &"HudButton"
+			arrow.add_theme_font_size_override("font_size", 22)
+			arrow.anchor_left = 0.5
+			arrow.anchor_right = 0.5
+			arrow.anchor_top = 1.0
+			arrow.anchor_bottom = 1.0
+			arrow.tooltip_text = "More Wardens"
+			var step: int = pair[1]
+			arrow.pressed.connect(func() -> void:
+				_bar_offset += step
+				_fit_tower_bar())
+			add_child(arrow)
+			_bar_arrows.append(arrow)
+	for i in 2:
+		var arrow := _bar_arrows[i]
+		arrow.visible = scrolling
+		var x := bar_left - BAR_GAP - ARROW_W if i == 0 else bar_right + BAR_GAP
+		arrow.offset_left = x
+		arrow.offset_right = x + ARROW_W
+		arrow.offset_bottom = -16.0
+		arrow.offset_top = -16.0 - BUTTON_SIZE.y
+		arrow.disabled = (i == 0 and _bar_offset <= 0) or (i == 1 and _bar_offset >= hidden)
 
 func _seed_badge_button() -> Button:
 	return _seed_badge.get_parent() as Button if is_instance_valid(_seed_badge) else null
@@ -675,8 +721,12 @@ func _layout_top_row() -> void:
 		fog.offset_top = ROW_TOP - ROW_PAD + 4.0
 		fog.offset_bottom = bottom + ROW_PAD - 2.0
 	if _clears_label != null:  # The half-price clears counter: just under the row
-		_clears_label.offset_top = bottom + 6.0
-		_clears_label.offset_bottom = bottom + 34.0
+		var clears_w := _clears_label.get_theme_font("font").get_string_size(_clears_label.text, HORIZONTAL_ALIGNMENT_LEFT, -1, 16).x + 16.0 + COUNTER_ICON_GAP + 2.0
+		_clears_label.offset_right = ROW_RIGHT
+		_clears_label.offset_left = ROW_RIGHT - clears_w
+		_clears_label.offset_top = bottom + ROW_PAD + 2.0  # Just under the patch
+		_clears_label.offset_bottom = _clears_label.offset_top + 22.0
+		_place_counter_icon.call_deferred(_clears_label)
 
 # The row's global rect (the fog patch), for tests and the banner check.
 func resource_row_rect() -> Rect2:
@@ -725,7 +775,7 @@ func _process(delta: float) -> void:
 		_row_check = 0.2
 		var banner := get_node_or_null("DriftBanner")
 		var key := "%s|%s|%s|%s|%s|%s|%d" % [leaves_label.text, dew_label.text, %PathLabel.text,
-			(get_node("DreamlightLabel") as Label).text, buff_lens_button.visible,
+			"%s%s" % [(get_node("DreamlightLabel") as Label).text, _clears_label.text if _clears_label else ""], buff_lens_button.visible,
 			banner.drawn_width() if banner != null and banner.has_method("drawn_width") else 0.0,
 			get_viewport().get_visible_rect().size.x]
 		if key != _row_key:

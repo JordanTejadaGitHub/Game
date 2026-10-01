@@ -98,11 +98,16 @@ func _run() -> void:
 		# The Clear tool + the Warden bar, centred together at the bottom.
 		var tool_rect := (main.get_node("HUD/ClearTool") as Control).get_global_rect()
 		var bar_rect := bar.get_global_rect().merge(tool_rect)
+		for arrow_name in ["BarArrowLeft", "BarArrowRight"]:  # A scrolling bar centres with its arrows
+			var arrow := main.get_node("HUD").get_node_or_null(arrow_name) as Control
+			if arrow != null and arrow.visible:
+				bar_rect = bar_rect.merge(arrow.get_global_rect())
 		_check(bar_rect.end.y > screen.y - 100 and absf(bar_rect.get_center().x - screen.x / 2.0) < 2.0
 			and tool_rect.end.x < bar.get_global_rect().position.x,
 			"the Clear tool and Warden bar sit at the bottom centre at %s (%s)" % [screen, bar_rect])
 		# The Clear slot is a Warden slot's size and shape, on the same baseline (user: not a different size).
-		var slot_rect := (bar.get_child(bar.get_child_count() - 1) as Control).get_global_rect()  # The bottom row
+		var visible_slots := bar.get_children().filter(func(b: Node) -> bool: return b is Control and b.visible)
+		var slot_rect := (visible_slots[-1] as Control).get_global_rect()  # A shown slot (the bar may scroll)
 		_check(tool_rect.size.is_equal_approx(slot_rect.size) and absf(tool_rect.end.y - slot_rect.end.y) < 1.0
 			and (main.get_node("HUD/ClearTool").get_node_or_null("Hotkey") as Label) != null,
 			"the Clear slot matches a Warden slot at %s (%s vs %s)" % [screen, tool_rect, slot_rect])
@@ -185,6 +190,26 @@ func _run() -> void:
 		meter.block_summary = false
 		meter.visible = meter_was
 		meter.set_process(true)
+	# The Warden bar is always one row (user: "the tower bar should not stack like this"), even with every
+	# family: slots shrink to 56 px, then the bar scrolls with arrows.
+	var bar_dreams: DreamState = main.get_node("%DreamState")
+	var was_everything := bar_dreams.unlock_everything
+	bar_dreams.unlock_everything = true
+	bar_dreams.unlocks_changed.emit()
+	for screen in [Vector2i(1280, 800), Vector2i(1920, 1080)]:
+		root.size = screen
+		await _frames(3)
+		var shown_slots: Array = bar.get_children().filter(func(b: Node) -> bool: return b is Button and b.visible)
+		var tool_y := (main.get_node("HUD/ClearTool") as Control).get_global_rect().position.y
+		var one_row := not shown_slots.is_empty() and shown_slots.all(func(b: Button) -> bool:
+			return absf(b.get_global_rect().position.y - tool_y) < 1.0 and b.get_global_rect().size.x >= 55.0)
+		var all_slots := bar.get_children().filter(func(b: Node) -> bool: return b is Button).size()
+		var arrows := main.get_node("HUD").get_node_or_null("BarArrowRight") as Control
+		_check(one_row and (shown_slots.size() == all_slots or (arrows != null and arrows.visible)),
+			"the Warden bar stays one row with %d Wardens at %s (%d shown, arrows %s)" % [all_slots, screen, shown_slots.size(), arrows != null and arrows.visible])
+	bar_dreams.unlock_everything = was_everything
+	bar_dreams.unlocks_changed.emit()
+	await _frames(2)
 	_check(banner.get_drift_text() == "Ready · Drift 1", "before the first drift the banner reads Ready · Drift 1")
 	# The camera can scroll past the map's far corner, so the Heartwood can clear the drift controls.
 	var camera = main.get_node("GameCameraNode")

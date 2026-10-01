@@ -149,7 +149,10 @@ func _draw_boss_bar(font: Font, center_x: float) -> void:
 		_draw_centered(font, "%s · at the Heartwood" % _boss.enemy_data.display_name, Vector2(center_x, bar.end.y + 16),
 			SMALL_FONT_SIZE, UiStyle.POOR)
 		return
-	_draw_centered(font, _boss.enemy_data.display_name, Vector2(center_x, bar.end.y + 16), SMALL_FONT_SIZE, BOSS_COLOR.lightened(0.3))
+	var name: String = _boss.enemy_data.display_name
+	if _boss.enemy_data.laps() and _boss.has_method("next_lap_leaves"):  # The Night Mare: what its next lap costs
+		name += " · Next lap: %d leaves" % _boss.next_lap_leaves()
+	_draw_centered(font, name, Vector2(center_x, bar.end.y + 16), SMALL_FONT_SIZE, BOSS_COLOR.lightened(0.3))
 
 func _boss_at_heartwood() -> bool:
 	return is_instance_valid(_boss) and bool(_boss.get("at_heartwood"))
