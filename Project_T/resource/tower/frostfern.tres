@@ -9,7 +9,7 @@
 [resource]
 script = ExtResource("1_tdata")
 display_name = "Frostfern"
-description = "Hits on Soaked nightmares freeze them for a moment (Rooted)."
+description = "Hits on {damp} nightmares leave them {held} for a moment."
 cost = 0
 texture = ExtResource("2_tex")
 frame_count = 8

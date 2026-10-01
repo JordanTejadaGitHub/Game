@@ -9,7 +9,7 @@
 [resource]
 script = ExtResource("1_tdata")
 display_name = "Magpie's Hoard"
-description = "As Magpie Perch (every hit strips a buff), and every crit it lands gives +1 Dew (up to 25 per drift)."
+description = "Each hit strips a buff, and every crit it lands gives +1 Dew (up to 25 per drift)."
 cost = 0
 texture = ExtResource("2_tex")
 frame_count = 8
