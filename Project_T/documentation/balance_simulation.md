@@ -440,8 +440,9 @@ health (0.7%) left cost all 18 leaves, the same as 3,400. The bot now covers the
 boss: **fresh Balanced 90%**, fresh skip 45%, full Balanced 80%, full skip 65%. The cliff is gone
 (fresh Balanced bots that nearly kill him pay 8 and carry on). Too kind against the targets (~75% /
 skip loses), and humans play better than the bot: **act 1 bite 8 → 10** (`boss_bite_leaves` [10, 10,
-12]); re-check fresh only. The full profile doing worse than fresh (29% vs 67% dispelled) is the bot
-spreading 13 attackers over many families: a bot fix, needed before the Grove's effect can be read.
+12]); re-check fresh only. The full profile doing worse than fresh (29% vs 67% dispelled) is on the
+bot's side (same boss health); cause **not yet measured**. Balancing Code finds it after the Omen
+batch; it's needed before the Grove's effect can be read.
 
 ## Later
 
