@@ -330,6 +330,38 @@ func _test_new_omens(main: Node) -> void:
 	_check(not omens.blocks_building() and seller.can_sell(), "…both fine at a rest")
 	omens.active = by_id["leaf_fall"]
 	_check(omens.get_leak_multiplier() == 2.0, "Leaf Fall: leaks ×2")
+	# A boss's flat leak doubles too (balance_simulation.md 538b85b7: act 1–3 bosses take a flat cost and leave)
+	var stag: EnemyData = load("res://resource/enemy/old_stag.tres")
+	var boss: Node2D = main.get_node("%EnemyContainer").spawn_enemy(stag)
+	if boss != null:
+		var leaves_before := run_state.leaves
+		var over_before := run_state.is_over
+		var won_before := run_state.won
+		var lost_before := run_state.leaves_lost
+		run_state.is_over = false  # An earlier check won the run; a leak needs a live one
+		run_state.leaves = 100  # Plenty, so the leak never ends the run
+		var full := run_state.leaves
+		run_state._on_enemy_reached_goal(boss)
+		_check(full - run_state.leaves == boss.get_leaf_cost() * 2,
+			"…a boss's leak costs double its leaves too (%d → %d)" % [boss.get_leaf_cost(), full - run_state.leaves])
+		run_state.leaves = leaves_before
+		run_state.is_over = over_before
+		run_state.won = won_before
+		run_state.leaves_lost = lost_before  # Later checks measure their own blocks' losses
+		boss.free()
+	_check(not by_id["leaf_fall"].description.contains("drains"), "Leaf Fall's text: just \"Every leak costs double leaves.\"")
+	# Never for a block with a boss drift (a doubled flat boss leak would end the run): blocks 5 / 10 / 15 / 20
+	omens.active = null
+	var leaf_fall_offered := func(block: int) -> bool:
+		for i in 80:
+			omens._last_offer_ids.clear()
+			if omens.make_offer(block).any(func(o: OmenData) -> bool: return o.id == "leaf_fall"):
+				return true
+		return false
+	_check(not leaf_fall_offered.call(5) and not leaf_fall_offered.call(10) and not leaf_fall_offered.call(20),
+		"Leaf Fall is never offered at the rest before a boss block")
+	_check(leaf_fall_offered.call(9), "…but is before an ordinary one")
+	omens._last_offer_ids.clear()
 
 	# Lean Season: no rest bonus, the next Dream (act 2+) includes a Legendary
 	omens.active = by_id["lean_season"]

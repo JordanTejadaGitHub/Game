@@ -220,6 +220,8 @@ func make_offer(block: int) -> Array[OmenData]:
 			continue
 		if omen.requires_clearing and not dream_state.can_clear():
 			continue
+		if omen.never_before_boss and range(drifts.x, drifts.y + 1).any(func(n: int) -> bool: return drift_director.is_boss_drift(n)):
+			continue  # Leaf Fall: never the block with a boss in it
 		if omen.needs_free_cells > 0 and get_free_cells(omen.sprouts_beside_path).size() < omen.needs_free_cells:
 			continue
 		if omen.crumble_thornwall and second_path_target() == null:
