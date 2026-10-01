@@ -11,4 +11,4 @@ flavor = "The Heartwood's leaves hang by a thread."
 kind = 1
 speed_multiplier = 1.2
 leak_multiplier = 2.0
-reward_max_leaves = 3
+reward_dreamlight = 2

@@ -23,6 +23,8 @@ func _run() -> void:
 	_test_offer_conditions(main)
 	_test_teeth(main)
 	await _test_screenshot_fixes(main)
+	_test_leaf_rewards(main)
+	await _test_active_tag(main)
 	print("omens test: %s" % ("PASS" if failures == 0 else "%d FAILED" % failures))
 	quit(failures)
 
@@ -212,8 +214,10 @@ func _test_rewards(main: Node) -> void:
 
 	_activate(omens, "restless_wind", 3)
 	var max_leaves := run_state.max_leaves
+	var rare_before := dreams._rare_dreams_left
 	omens._on_rest_started(3, false, 50, true)
-	_check(run_state.max_leaves == max_leaves + 2, "Restless Wind: +2 max leaves")
+	_check(run_state.max_leaves == max_leaves and dreams._rare_dreams_left == rare_before + 1, "Restless Wind: a Rare+ card and Dew, no leaves (Omens never give leaves)")
+	dreams._rare_dreams_left = rare_before
 	omens.current_offer = []
 	omens._offer_waiting = false
 
@@ -401,9 +405,9 @@ func _test_teeth(main: Node) -> void:
 	omens.omen_rewarded.connect(func(_o: OmenData, summary: String) -> void: paid.append(summary))
 	# Crowded Paths (60 Dew): clean = all, 1 leaf lost = 75% (rounded down), 4+ = nothing
 	_activate(omens, "crowded_paths", 3)
-	_check(omens.get_reward_status() == "Reward · 100% · no leaf lost", "a clean block so far: the full reward (%s)" % omens.get_reward_status())
+	_check(omens.get_reward_status() == "You'd get it all right now." and omens.get_reward_line() == "Reward: +60 Dew, less for each leaf lost", "a clean block so far: the full reward (%s)" % omens.get_reward_status())
 	run_state.leaves_lost += 1
-	_check(omens.get_reward_status() == "Reward · 75% · 1 leaf lost", "…the tag follows the losses (%s)" % omens.get_reward_status())
+	_check(omens.get_reward_status() == "You'd get 75% right now: 1 leaf lost.", "…the tag follows the losses (%s)" % omens.get_reward_status())
 	var dew := run_state.dew
 	omens._pay_reward(0)
 	_check(run_state.dew == dew + 45, "1 leaf lost: 75%% of 60 Dew (%d)" % (run_state.dew - dew))
@@ -413,12 +417,13 @@ func _test_teeth(main: Node) -> void:
 	dew = run_state.dew
 	omens._pay_reward(0)
 	_check(run_state.dew == dew and paid[-1] == "nothing (4 leaves lost)", "4 leaves lost: nothing (%s)" % paid[-1])
-	# Leaf Fall (+3 max leaves): 1 lost → +2 (rounded down)
+	# Leaf Fall (+2 Dreamlight): 1 lost → +1 (75%, rounded down); no leaves
 	_activate(omens, "leaf_fall", 3)
 	run_state.leaves_lost += 1
 	var max_leaves := run_state.max_leaves
+	var light := dreams.dreamlight
 	omens._pay_reward(0)
-	_check(run_state.max_leaves == max_leaves + 2, "max leaves scale too, rounded down (+%d)" % (run_state.max_leaves - max_leaves))
+	_check(dreams.dreamlight == light + 1 and run_state.max_leaves == max_leaves, "Dreamlight scales too, rounded down (+%d), and no leaves" % (dreams.dreamlight - light))
 	# Dream rewards: kept with ≤ 1 leaf lost, gone with 2
 	_activate(omens, "hard_bark", 3)
 	run_state.leaves_lost += 1
@@ -427,7 +432,7 @@ func _test_teeth(main: Node) -> void:
 	_check(dreams._rare_dreams_left == rare + 1, "Hard Bark: 1 leaf lost keeps the Rare+ card")
 	_activate(omens, "hard_bark", 3)
 	run_state.leaves_lost += 2
-	_check(omens.get_reward_status().ends_with("Dream reward gone"), "…the tag says when it's gone (%s)" % omens.get_reward_status())
+	_check(omens.get_reward_status().ends_with("The Dream reward is gone."), "…the tag says when it's gone (%s)" % omens.get_reward_status())
 	rare = dreams._rare_dreams_left
 	omens._pay_reward(0)
 	_check(dreams._rare_dreams_left == rare, "…2 leaves lost: no Rare+ card")
@@ -545,6 +550,51 @@ func _test_screenshot_fixes(main: Node) -> void:
 		"revealed Omen cards have no emblem")
 	screen._clear_cards()
 	screen._on_closed()
+
+# run_design.md "Omen rewards: no leaf regrowth": Stubborn Blight pays Dreamlight by act, no Omen heals leaves,
+# and max-leaf Omens aren't offered at the leaf cap.
+func _test_leaf_rewards(main: Node) -> void:
+	var omens: OmenDirector = main.get_node("%OmenDirector")
+	var dreams: DreamState = main.get_node("%DreamState")
+	var director: DriftDirector = main.get_node("%DriftDirector")
+	var run_state: RunState = main.get_node("%RunState")
+	omens.current_offer = []
+	omens._offer_waiting = false
+	_check(not omens.pool.any(func(o: OmenData) -> bool: return o.reward_leaves > 0 or o.reward_max_leaves > 0),
+		"no Omen gives leaves of any kind (regrown or max: run_design.md)")
+	for case in [[15, 1], [60, 2]]:  # Act 1: +1, act 3: +2
+		director.drifts_started = case[0]
+		_activate(omens, "stubborn_blight", director.get_block(case[0]))
+		var light := dreams.dreamlight
+		var leaves := run_state.leaves
+		omens._pay_reward(0)
+		_check(dreams.dreamlight == light + case[1] and run_state.leaves == leaves,
+			"Stubborn Blight at drift %d: +%d Dreamlight, no leaves healed (%d)" % [case[0], case[1], dreams.dreamlight - light])
+	omens._last_offer_ids.clear()
+	omens.active = null
+	director.drifts_started = 0
+
+# The active-Omen tag: the icon inline before "Omen: …", a plain reward line, where it stands only in the tooltip.
+func _test_active_tag(main: Node) -> void:
+	var omens: OmenDirector = main.get_node("%OmenDirector")
+	var director: DriftDirector = main.get_node("%DriftDirector")
+	var screen = main.get_node("HUD/OmenScreen")
+	await _frames(2)
+	director.drifts_started = 15
+	_activate(omens, "stubborn_blight", 4)
+	screen._on_omen_started(omens.active, 16, 20)
+	await _frames(3)
+	var tag: Label = main.get_node("HUD/ActiveOmen")
+	var lines: PackedStringArray = tag.text.split("\n")
+	_check(lines.size() == 3 and lines[0] == "Omen: Stubborn Blight · drifts 16–20" and lines[2] == "Reward: +1 Dreamlight, less for each leaf lost",
+		"the tag: name and drifts, the twist, then a plain reward line (%s)" % " / ".join(lines))
+	_check(tag.tooltip_text == "You'd get it all right now.", "…where the reward stands is in the tooltip (%s)" % tag.tooltip_text)
+	var icon: TextureRect = tag.get_node_or_null("OmenIcon")
+	_check(icon != null and icon.visible and icon.position.x >= 0.0 and icon.position.x + icon.size.x <= tag.size.x / 2.0 and icon.position.y >= -4.0,
+		"…the icon sits inline before the first line, inside the tag (%s in %s)" % [icon.position if icon else "none", tag.size])
+	screen._on_omen_rewarded(omens.active, "")
+	omens.active = null
+	director.drifts_started = 0
 
 func _frames(n: int) -> void:
 	for i in n:

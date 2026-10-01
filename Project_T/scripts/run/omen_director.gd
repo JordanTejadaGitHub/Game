@@ -165,9 +165,6 @@ func describe_reward(omen: OmenData, act: int, rest_bonus: int = -1, lost: int =
 	var seeds := floori(roundi(omen.reward_seeds * scale) * share)
 	if seeds > 0:
 		parts.append("+%d Seeds" % seeds)
-	var regrow := floori(omen.reward_leaves * share)
-	if regrow > 0:
-		parts.append("regrow %d %s" % [regrow, "leaf" if regrow == 1 else "leaves"])
 	var max_leaves := floori(omen.reward_max_leaves * share)
 	if max_leaves > 0:
 		parts.append("+%d max %s" % [max_leaves, "leaf" if max_leaves == 1 else "leaves"])
@@ -183,7 +180,7 @@ func describe_reward(omen: OmenData, act: int, rest_bonus: int = -1, lost: int =
 				parts.append("rest bonus +%d Dew" % extra)
 		else:
 			parts.append("rest bonus ×%s" % str(omen.reward_rest_bonus_multiplier).trim_suffix(".0"))
-	var dreamlight := floori(omen.reward_dreamlight * share)
+	var dreamlight := floori(floori(omen.reward_dreamlight * scale) * share)  # By act: +1 / +1 / +2 / +2
 	if dreamlight > 0:
 		parts.append("+%d Dreamlight" % dreamlight)
 	if omen.reward_legendary and dreams:
@@ -469,17 +466,27 @@ func keeps_dream_reward(lost: int = -1) -> bool:
 		return true
 	return (leaves_lost_in_block() if lost < 0 else lost) <= DREAM_REWARD_MAX_LOST
 
-# The active-Omen tag's line: "Reward · 75% · 1 leaf lost" ("" with no Omen or a double-edged one).
+# Where the active Omen's reward stands now, for the tag's tooltip ("" with no Omen or a double-edged one):
+# "You'd get it all right now." / "You'd get 75% right now: 1 leaf lost." (+ "The Dream reward is gone.")
 func get_reward_status() -> String:
 	if active == null or active.kind == OmenData.Kind.DOUBLE_EDGED:
 		return ""
 	var lost := leaves_lost_in_block()
 	if lost == 0:
-		return "Reward · 100% · no leaf lost"
-	var text := "Reward · %d%% · %d %s lost" % [roundi(get_reward_share(lost) * 100), lost, "leaf" if lost == 1 else "leaves"]
+		return "You'd get it all right now."
+	var share := get_reward_share(lost)
+	var why := "%d %s lost" % [lost, "leaf" if lost == 1 else "leaves"]
+	var text := ("You'd get nothing right now: %s." % why) if share <= 0.0 else ("You'd get %d%% right now: %s." % [roundi(share * 100), why])
 	if not keeps_dream_reward(lost) and _has_dream_reward(active):
-		text += " · Dream reward gone"
+		text += " The Dream reward is gone."
 	return text
+
+# The tag's plain reward line: "Reward: +1 Dreamlight, less for each leaf lost" ("" for a double-edged Omen).
+func get_reward_line() -> String:
+	if active == null or active.kind == OmenData.Kind.DOUBLE_EDGED:
+		return ""
+	var reward := describe_reward(active, drift_director.get_act(maxi(drift_director.drifts_started, 1)))
+	return "Reward: %s, less for each leaf lost" % reward if reward != "" else ""
 
 static func _has_dream_reward(omen: OmenData) -> bool:
 	return omen.reward_rare_dreams > 0 or omen.reward_extra_dream_cards > 0 or omen.reward_legendary
@@ -508,7 +515,7 @@ func _pay_reward(rest_bonus: int) -> void:
 		var gone := mini(roundi(rest_bonus * (1.0 - omen.rest_bonus_multiplier)), run_state.dew)
 		if gone > 0:
 			run_state.spend_dew(gone)
-	var dreamlight := floori(omen.reward_dreamlight * share)
+	var dreamlight := floori(floori(omen.reward_dreamlight * scale) * share)  # By act: +1 / +1 / +2 / +2
 	if dreamlight > 0:
 		dream_state.add_dreamlight(dreamlight, &"omen")
 	if omen.reward_legendary and dreams:
@@ -518,9 +525,8 @@ func _pay_reward(rest_bonus: int) -> void:
 	var max_leaves := floori(omen.reward_max_leaves * share)
 	if max_leaves > 0:
 		run_state.max_leaves += max_leaves
-	var regrow := floori(omen.reward_leaves * share) + max_leaves
-	if regrow > 0:
-		run_state.regrow_leaves(regrow)
+	if max_leaves > 0:
+		run_state.regrow_leaves(max_leaves)  # The new leaves grow in (no Omen heals lost ones: run_design.md)
 	if dreams:
 		dream_state.add_rare_dreams(omen.reward_rare_dreams)
 		dream_state.add_extra_cards(omen.reward_extra_dream_cards)
