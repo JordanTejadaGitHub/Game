@@ -77,6 +77,7 @@ var _level_texture: Texture2D = load(ART + "grove/grove_level_blooms.png")  # Gr
 var _fruit_texture: Texture2D = load(ART + "grove/dream_fruit.png")
 var _sixth_rise: Texture2D = load(ART + "grove/waystone_6_rise.png")
 var _sixth_idle: Texture2D = load(ART + "grove/waystone_6_idle.png")
+var _waystone_texture: Texture2D = load(ART + "grove/waystone.png")  # A root waystone (layout "waystone_anchor")
 var _sixth_rise_started := -1.0
 const SIXTH_STONE := 5  # loadout_stones index of the secret 6th waystone
 const SIXTH_STONE_ANCHOR := Vector2(48, 60)
@@ -339,11 +340,8 @@ func tap(point: Vector2) -> void:
 		if point.distance_to(vec(spots[i]) + Vector2(0, FRUIT_FRAME * 0.6)) < TAP_RADIUS * 1.2:
 			fruit_pressed.emit(i)
 			return
-	var stones: Array = load_layout().get("loadout_stones", [])
-	for i in stones.size():
-		if i == SIXTH_STONE and not HeartwoodMemory.has_sixth_slot(_memory):
-			continue  # The secret stone gives no hint until it has risen
-		if point.distance_to(vec(stones[i])) < TAP_RADIUS * 1.5:
+	for centre in stone_points():  # Only unlocked slots (the secret stone gives no hint until it has risen)
+		if point.distance_to(centre) < TAP_RADIUS * 1.5:
 			stones_pressed.emit()
 			return
 	selected_id = ""
@@ -516,27 +514,39 @@ func _draw_fruit() -> void:
 		_layer.draw_texture_rect_region(_fruit_texture, Rect2(top - Vector2(FRUIT_FRAME / 2.0, 0), Vector2.ONE * FRUIT_FRAME),
 			Rect2(frame * FRUIT_FRAME, 0, FRUIT_FRAME, FRUIT_FRAME))
 
-# The waystones at the roots: unlocked slots glow, filled ones hold their perk's icon.
-# The waystones at the roots: stones 0–4 are slots 1–5 (painted in the tree; unlocked ones glow),
-# stone 5 is the secret 6th (drawn here: it rises once, then idles). Filled ones hold their perk's icon.
-func _draw_stones() -> void:
-	var stones: Array = load_layout().get("loadout_stones", [])
+# The waystones at the roots, one per unlocked loadout slot, in loadout order: the root row (3–5 stones, centred
+# under the trunk, layout "loadout_stone_sets"; waystone.png) and then the secret 6th at loadout_stones[5] once it
+# has risen (drawn with its own rise / idle sheets). Falls back to loadout_stones if the sets are missing.
+func stone_points() -> Array[Vector2]:
+	var layout := load_layout()
 	var sixth := HeartwoodMemory.has_sixth_slot(_memory)
-	var normal := HeartwoodMemory.loadout_slots(_memory) - (1 if sixth else 0)
-	var carried := HeartwoodMemory.get_loadout(_memory)
-	var lit: Array[int] = []  # Stone index per slot, in loadout order
-	for i in mini(normal, SIXTH_STONE):
-		lit.append(i)
+	var row := mini(HeartwoodMemory.loadout_slots(_memory) - (1 if sixth else 0), SIXTH_STONE)
+	var stones: Array = layout.get("loadout_stones", [])
+	var points: Array = layout.get("loadout_stone_sets", {}).get(str(row), stones.slice(0, row))
+	var result: Array[Vector2] = []
+	for i in mini(row, points.size()):
+		result.append(vec(points[i]))
 	if sixth and stones.size() > SIXTH_STONE:
-		lit.append(SIXTH_STONE)
-		_draw_sixth_stone(vec(stones[SIXTH_STONE]))
-	for k in lit.size():
-		var i: int = lit[k]
-		var centre := vec(stones[i])
-		var pulse := 0.5 if _reduced_motion else 0.5 + 0.5 * sin(_time * 0.8 + i)  # A slow, faint glow
+		result.append(vec(stones[SIXTH_STONE]))
+	return result
+
+# Unlocked slots glow on their stones; filled ones hold their perk's icon.
+func _draw_stones() -> void:
+	var points := stone_points()
+	var sixth := HeartwoodMemory.has_sixth_slot(_memory)
+	var carried := HeartwoodMemory.get_loadout(_memory)
+	var anchor := vec(load_layout().get("waystone_anchor", [24, 18]))
+	for k in points.size():
+		var centre := points[k]
+		var secret := sixth and k == points.size() - 1
+		if secret:
+			_draw_sixth_stone(centre)
+		elif _waystone_texture:
+			_layer.draw_texture(_waystone_texture, centre - anchor)
+		var pulse := 0.5 if _reduced_motion else 0.5 + 0.5 * sin(_time * 0.8 + k)  # A slow, faint glow
 		_layer.draw_circle(centre, 16.0, Color(Palette.GLOW, 0.11 + 0.03 * pulse))
 		_layer.draw_circle(centre, 9.0, Color(Palette.GLOW, 0.14 + 0.04 * pulse))
-		if k < carried.size() and not (i == SIXTH_STONE and is_sixth_rising()):
+		if k < carried.size() and not (secret and is_sixth_rising()):
 			var icon := get_icon(_unlocks[carried[k]])
 			if icon:
 				_layer.draw_texture_rect(icon, Rect2(centre - Vector2(12, 26), Vector2(24, 24)), false)

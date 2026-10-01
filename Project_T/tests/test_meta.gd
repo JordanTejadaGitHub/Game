@@ -370,6 +370,14 @@ func _run() -> void:
 	await process_frame
 	var view: GroveTreeView = grove_screen.tree_view
 	_check(view.get_canopy_stage() == 0, "a new Grove shows the first canopy stage")
+	var stone_sets: Dictionary = GroveTreeView.load_layout().get("loadout_stone_sets", {})
+	_check(view.stone_points().size() == 3 and view.stone_points()[0] == GroveTreeView.vec(stone_sets["3"][0]),
+		"a new Grove shows only its 3 open waystones, centred under the trunk")
+	var opened_stones := [false]
+	view.stones_pressed.connect(func() -> void: opened_stones[0] = true, CONNECT_ONE_SHOT)
+	view.tap(view.stone_points()[2])
+	_check(opened_stones[0], "tapping a waystone opens the loadout")
+	grove_screen.loadout.close(false)
 	var stores_node := _layout_node("morning_stores")
 	view.tap(GroveTreeView.vec(stores_node.pos))
 	_check(grove_screen.selected != null and grove_screen.selected.id == "morning_stores", "tapping a bud selects its node")
