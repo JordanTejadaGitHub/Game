@@ -624,7 +624,7 @@ func _choice_preview(tower: Tower, which: Tower.Focus) -> String:
 		Tower.Focus.REACH:
 			return "%.1f → %.1f range" % [tower.get_range_cells(), tower.get_range_cells() + Tower.FOCUS_REACH]
 		Tower.Focus.DEEP:
-			return "Potency %d%% → %d%%" % [roundi(tower.get_potency() * 100.0), roundi((tower.get_potency() + Tower.FOCUS_DEEP) * 100.0)]
+			return "Potency %d%% → %d%%" % [roundi(tower.get_potency() * 100.0), roundi((tower.get_potency() + Tower.deep_share()) * 100.0)]
 	return tower.focus_text(which)
 
 # R, then 1–4: presses the rank choice at `index` (single Warden or the group's), if it's there and affordable.

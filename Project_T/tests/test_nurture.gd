@@ -102,13 +102,13 @@ func _run() -> void:
 	placer.nurture(deep, Tower.Focus.DEEP)
 	var soaked := _spawn(main, deep.global_position + Vector2(64, 0))
 	deep.hit(soaked, 1.0, false, Tower.NO_CRIT)
-	_check(is_equal_approx(deep.get_potency(), 1.0 + Tower.FOCUS_DEEP), "Deep: +18% Potency")
+	_check(is_equal_approx(deep.get_potency(), 1.0 + Tower.deep_share()), "Deep: +25% Potency")
 	_check(is_equal_approx(soaked.statuses.time_left(EnemyStatuses.SPORED), EnemyStatuses.DEFAULT_DURATION[EnemyStatuses.SPORED]),
 		"Deep: no longer lengthens its statuses")
 	Tower.status_potency_on = false
 	var old_rule := _spawn(main, deep.global_position + Vector2(64, 0))
 	deep.hit(old_rule, 1.0, false, Tower.NO_CRIT)
-	_check(is_equal_approx(old_rule.statuses.time_left(EnemyStatuses.SPORED), EnemyStatuses.DEFAULT_DURATION[EnemyStatuses.SPORED] * (1.0 + Tower.FOCUS_DEEP)),
+	_check(is_equal_approx(old_rule.statuses.time_left(EnemyStatuses.SPORED), EnemyStatuses.DEFAULT_DURATION[EnemyStatuses.SPORED] * (1.0 + Tower.FOCUS_DEEP_OLD)),
 		"status Potency off: Deep's old +18% duration")
 	Tower.status_potency_on = true
 

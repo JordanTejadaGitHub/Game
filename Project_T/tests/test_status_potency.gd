@@ -48,7 +48,7 @@ func _initialize() -> void:
 	# The panel line next to crit.
 	_check(WardenHeaderView.status_strength_text(EnemyStatuses.DAMP, 1.2) == "Soaked: water hits +24%", "the panel's Soaked line")
 	_check(WardenHeaderView.status_strength_text(EnemyStatuses.HELD, 1.3, 1.0) == "Rooted 1.3 s", "the panel's Rooted line")
-	_check(Tower.FOCUS_TEXT[Tower.Focus.DEEP].begins_with("+18% Potency"), "Deep is only +18% Potency")
+	_check(Tower.FOCUS_TEXT[Tower.Focus.DEEP].begins_with("+25% Potency"), "Deep is only +25% Potency")
 
 	# Off: the old rules (for Balancing's A/B).
 	Tower.status_potency_on = false

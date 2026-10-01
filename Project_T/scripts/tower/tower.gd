@@ -174,7 +174,7 @@ enum Focus { NONE, POWER, SWIFT, REACH, DEEP, WIDE, STRONG, KINDRED }  # Append 
 const FOCUS_NAMES := {Focus.POWER: "Power", Focus.SWIFT: "Swift", Focus.REACH: "Reach", Focus.DEEP: "Deep",
 	Focus.WIDE: "Wide", Focus.STRONG: "Strong", Focus.KINDRED: "Kindred"}
 const FOCUS_TEXT := {Focus.POWER: "+18% damage", Focus.SWIFT: "+12% attack speed", Focus.REACH: "+0.3 range",
-	Focus.DEEP: "+18% Potency (stronger statuses and effects)",
+	Focus.DEEP: "+25% Potency (stronger statuses and effects)",
 	Focus.WIDE: "+0.2 aura reach", Focus.STRONG: "+5% aura", Focus.KINDRED: "ignores the aura falloff"}
 const FOCUS_COLORS := {Focus.POWER: Palette.EMBER, Focus.SWIFT: Palette.NEWLEAF,
 	Focus.REACH: Palette.DEWLIGHT, Focus.DEEP: Palette.ORCHID,
@@ -183,7 +183,12 @@ const FOCUS_COLORS := {Focus.POWER: Palette.EMBER, Focus.SWIFT: Palette.NEWLEAF,
 const FOCUS_POWER := 0.18  # Damage
 const FOCUS_SWIFT := 0.12  # Attack speed
 const FOCUS_REACH := 0.3  # Range, cells
-const FOCUS_DEEP := 0.18  # Potency per Deep rank (status duration too only with status_potency_on off)
+const FOCUS_DEEP := 0.25  # Potency per Deep rank (Balancing Discussion 2026-10-01; was 0.18)
+const FOCUS_DEEP_OLD := 0.18  # The old rule (Potency and status duration), only with status_potency_on off (the A/B)
+
+# Potency a Deep rank adds under the rules in force.
+static func deep_share() -> float:
+	return FOCUS_DEEP if status_potency_on else FOCUS_DEEP_OLD
 # Potency strengthens every status (tower_design.md "Potency: effect damage and status strength", 2026-10-01):
 # Soaked, Exposed, Drowsy and Rooted read their strongest applier's Potency (EnemyStatuses.strength). Off =
 # the old rules (Potency only for effect damage, Deep lengthens statuses), for Balancing's A/B.
@@ -674,12 +679,12 @@ func get_potency() -> float:
 	var total := attack_data.potency
 	if _dream_state and _dream_state.has_method("get_potency_bonus"):
 		total += _dream_state.get_potency_bonus(tower_data)
-	total += FOCUS_DEEP * choice_count(Focus.DEEP)  # Deep ranks
+	total += deep_share() * choice_count(Focus.DEEP)  # Deep ranks
 	return total
 
 # Deep Focus: status strength and duration multiplier.
 func get_status_focus_multiplier() -> float:
-	return 1.0 + FOCUS_DEEP * choice_count(Focus.DEEP)
+	return 1.0 + FOCUS_DEEP_OLD * choice_count(Focus.DEEP)  # Only read with status Potency off (the old rule)
 
 func get_max_rank() -> int:
 	var cap := RANK_MAX

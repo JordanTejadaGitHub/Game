@@ -49,7 +49,7 @@ func _run() -> void:
 	# Deep ranks (Nurture v3): +18% Potency each rank chosen.
 	sprout.rank = 3
 	sprout.rank_choices = [Tower.Focus.DEEP, Tower.Focus.POWER, Tower.Focus.DEEP]
-	_check(is_equal_approx(sprout.get_potency(), 1.0 + 2 * Tower.FOCUS_DEEP), "two Deep ranks: +36%% Potency (%.2f)" % sprout.get_potency())
+	_check(is_equal_approx(sprout.get_potency(), 1.0 + 2 * Tower.deep_share()), "two Deep ranks: +50%% Potency (%.2f)" % sprout.get_potency())
 	sprout.rank = 0
 	sprout.rank_choices = []
 
