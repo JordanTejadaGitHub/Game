@@ -889,7 +889,7 @@ func _draw_vine(pair: Dictionary, stage: int, mode: int, alpha: float) -> void:
 			draw_circle(at, 2.5, Color(Palette.BLOSSOM, alpha))  # A flower
 			draw_circle(at, 1.0, Color(colour, alpha))
 	# Blooming / Old Kin: a slow light travels along the root (two at Old Kin). Full effects only.
-	if mode == 0 and stage >= 1 and not Fx.reduce_flashes():
+	if mode == 0 and stage >= 1 and not Fx.reduce_flashes() and not Fx.reduced():  # Effects quality / long frames: no pulse
 		for bead in (2 if stage >= 2 else 1):
 			var t := fmod(_clock * PULSE_SPEED / maxf(length, 1.0) + bead * 0.5 + pair.a.cell.x * 0.13, 1.0)
 			var at := points[clampi(int(t * steps), 0, steps)]

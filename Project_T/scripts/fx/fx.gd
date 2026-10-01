@@ -70,6 +70,20 @@ static var longest_chain := 0  # This run's longest chain (reset with reset_run(
 
 # --- Data ---------------------------------------------------------------------------------------
 
+# Effects quality (Settings → Display "effects_quality": 0 Full, 1 Reduced) plus the automatic step-down
+# when real frames run long (FxCache measures them). Reduced: Reaction sheets play their lite versions,
+# fewer full Reactions a second, Kinship root pulses off, off-screen Wardens skip their idle animation.
+static var auto_reduced := false
+static var view_rect := Rect2()  # The visible world rect (FxCache, each frame)
+const REDUCED_FULL_PER_SECOND := 2
+
+static func reduced() -> bool:
+	return auto_reduced or int(setting("effects_quality", 0)) == 1
+
+# Whether `at` (world) is on screen, with `margin` px around it (true when the rect isn't known yet).
+static func on_screen(at: Vector2, margin: float = 64.0) -> bool:
+	return view_rect.size == Vector2.ZERO or view_rect.grow(margin).has_point(at)
+
 # Photosensitivity (user: "a flash in the middle of my screen"): at most MAX_BRIGHT_PER_SECOND bright
 # flashes (Dawnburst, chain surges) on screen a second; the rest are skipped. Every effect is at most
 # MAX_EFFECT_PX across (2.5 cells).
@@ -154,7 +168,8 @@ static func _pick(effect: StringName, lite_ok: bool) -> StringName:
 	var now := Time.get_ticks_msec()
 	while not _full_times.is_empty() and now - _full_times[0] > 1000:
 		_full_times.pop_front()
-	if lite_ok and _full_times.size() >= FULL_PER_SECOND:
+	var budget := REDUCED_FULL_PER_SECOND if reduced() else FULL_PER_SECOND  # Effects quality / long frames
+	if lite_ok and _full_times.size() >= budget:
 		return lite
 	_full_times.append(now)
 	return effect

@@ -120,7 +120,7 @@ func _run() -> void:
 	await process_frame
 	var beamed = _spawn_still(spawner, leaf_bug, midsummer.global_position + Vector2(40, 0))
 	midsummer._update_beam(0.1)
-	_check(midsummer.sprite.hframes == midsummer.tower_data.attack_frame_count, "Midsummer holds its attack pose while beaming")
+	_check(midsummer.sprite.texture == midsummer.tower_data.beam_sustain_texture and midsummer.sprite.hframes == midsummer.tower_data.beam_sustain_frames, "Midsummer channels on its channel sheet while beaming")
 	beamed.dispel()
 	await process_frame
 	midsummer._update_beam(0.1)
