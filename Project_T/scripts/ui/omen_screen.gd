@@ -64,10 +64,27 @@ func _ready() -> void:
 	_active_tag.grow_horizontal = Control.GROW_DIRECTION_BOTH
 	_active_tag.offset_top = 64
 	_active_tag.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_active_tag.add_theme_color_override("font_color", OMEN_COLOR)
-	_active_tag.add_theme_color_override("font_outline_color", Palette.DREAD)
-	_active_tag.add_theme_constant_override("outline_size", 6)
+	_active_tag.add_theme_color_override("font_color", Color(OMEN_COLOR, 0.0))  # The overlay (_tag_rich) draws the text
+	_active_tag.add_theme_constant_override("outline_size", 0)
+	_active_tag.add_theme_stylebox_override("normal", UiStyle.fog_patch())  # A backing: reads on the pale path too
 	_active_tag.visible = false
+	var tag_style := _active_tag.get_theme_stylebox("normal")
+	_tag_rich.bbcode_enabled = true
+	_tag_rich.fit_content = true
+	_tag_rich.scroll_active = false
+	_tag_rich.autowrap_mode = TextServer.AUTOWRAP_OFF
+	_tag_rich.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_tag_rich.name = "TagText"
+	_tag_rich.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_tag_rich.offset_left = tag_style.get_margin(SIDE_LEFT)
+	_tag_rich.offset_top = tag_style.get_margin(SIDE_TOP)
+	_tag_rich.offset_right = -tag_style.get_margin(SIDE_RIGHT)
+	_tag_rich.offset_bottom = -tag_style.get_margin(SIDE_BOTTOM)
+	_tag_rich.add_theme_font_override("normal_font", _active_tag.get_theme_font("font"))
+	_tag_rich.add_theme_font_size_override("normal_font_size", _active_tag.get_theme_font_size("font_size"))
+	_tag_rich.add_theme_color_override("font_outline_color", Palette.DREAD)
+	_tag_rich.add_theme_constant_override("outline_size", 6)
+	_active_tag.add_child(_tag_rich)
 	# The Omen's icon inline at the start of the first line ("[icon] Omen: Stubborn Blight · drifts 11–15"), placed by
 	# _place_tag_icon after layout (user: the old one floated off into the void).
 	_tag_icon.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
@@ -265,16 +282,22 @@ func _make_card(omen: OmenData, act: int) -> Button:
 	var divider := HSeparator.new()
 	divider.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	box.add_child(divider)
-	# The reward in plain words (OmenDirector.reward_sentence); hover or tap for the whole rule
-	var reward_line := _add_line(box, omens.reward_sentence(omen, act, omens.current_offer_block), REWARD_COLOR, REWARD_SIZE)
+	# The reward in point form (user: "point form for each different reward"): a "Reward" caps header, then a bullet
+	# per reward with its own condition (OmenDirector.reward_bullets); hover or tap the header for the whole rule
+	var reward_line := _add_line(box, "Reward", REWARD_COLOR, REWARD_SIZE)
+	UiStyle.caps(reward_line, REWARD_SIZE, REWARD_COLOR)
 	reward_line.name = "Reward"
 	reward_line.tooltip_text = OmenDirector.REWARD_RULE if omen.kind != OmenData.Kind.DOUBLE_EDGED else ""
 	reward_line.mouse_filter = Control.MOUSE_FILTER_PASS  # The tooltip; a click still picks the Omen
+	var bullet_labels: Array[Label] = []
+	for text in omens.reward_bullets(omen, act, omens.current_offer_block):
+		bullet_labels.append(_add_bullet(box, text))
 	var spare := Control.new()  # No emblem on a revealed Omen (user: "just the beginning"); its spare height still goes here
 	spare.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	spare.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	box.add_child(spare)
-	var secondary: Array = [twist, reward_line]
+	var secondary: Array = [twist]
+	secondary.append_array(bullet_labels)
 	if flavor != null:
 		secondary.push_front(flavor)
 	_fit_card(button, box, secondary)
@@ -285,6 +308,34 @@ func _add_flavor(box: VBoxContainer, text: String) -> Label:
 	var label := _add_line(box, text, UiStyle.WHISPER, FLAVOR_SIZE)
 	UiStyle.whisper(label, FLAVOR_SIZE)
 	label.name = "Flavor"
+	return label
+
+# One reward bullet: a small gold diamond, then the text, which wraps under itself (not under the diamond).
+const BULLET_SIDE := 7.0
+
+func _add_bullet(box: VBoxContainer, text: String) -> Label:
+	var row := HBoxContainer.new()
+	row.name = "RewardBullet"
+	row.add_theme_constant_override("separation", 8)
+	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var diamond := Control.new()
+	diamond.custom_minimum_size = Vector2(BULLET_SIDE + 2.0, 0)
+	diamond.size_flags_vertical = Control.SIZE_FILL
+	diamond.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	diamond.draw.connect(func() -> void:
+		var c := Vector2(diamond.size.x / 2.0, REWARD_SIZE * 0.7)  # On the first line's middle
+		var r := BULLET_SIDE / 2.0
+		diamond.draw_colored_polygon(PackedVector2Array([c + Vector2(0, -r), c + Vector2(r, 0), c + Vector2(0, r), c + Vector2(-r, 0)]), REWARD_COLOR))
+	row.add_child(diamond)
+	box.add_child(row)
+	var label := Label.new()
+	label.text = text
+	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	label.add_theme_color_override("font_color", REWARD_COLOR)
+	label.add_theme_font_size_override("font_size", REWARD_SIZE)
+	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	row.add_child(label)
 	return label
 
 func _add_line(box: VBoxContainer, text: String, color: Color, font_size: int) -> Label:
@@ -303,31 +354,59 @@ func _on_closed() -> void:
 	game_speed.set_paused(_was_paused)
 
 func _on_omen_started(omen: OmenData, first_drift: int, last_drift: int) -> void:
-	_tag_title = "Omen: %s · drifts %d–%d" % [omen.display_name, first_drift, last_drift]
-	_tag_twist = IconInfo.format(omen.description)
+	_tag_title = "%s · %d–%d" % [omen.display_name, first_drift, last_drift]
 	var own := IconInfo.icon(StringName(omen.id))  # The Omen's own icon if it has one, else the generic one
 	_tag_icon.texture = own if own != null else IconInfo.icon(&"omen")
 	_active_tag.visible = true
 	_refresh_tag()
 	_toast("Omen faced: %s" % omen.display_name)
 
-# The tag: "[icon] Omen: <name> · drifts 11–15", the twist, then the plain reward line ("Reward: +1 Dreamlight, less
-# for each leaf lost"; none for double-edged Omens). Where the reward stands now is only in the tooltip.
+# The tag (user: "one compact line"): [icon] "Crowded Paths · 11–15 · +60 Dew". The amount follows the block's
+# losses (in POOR once it drops; "Reward gone" at 4+); a Dream reward reads "Reward kept" / "Reward lost"; a double-edged
+# Omen shows only its name and drifts. The twist and the plain-words reward are in its tooltip (hover or tap, opaque,
+# by the tag). The Label keeps the plain text (layout, ComingStrip, tests); a RichTextLabel over it draws the colours.
 var _tag_title := ""
-var _tag_twist := ""
 var _tag_icon := TextureRect.new()
+var _tag_rich := RichTextLabel.new()
+var _tag_tip: TapTip = null
 
 func _refresh_tag() -> void:
 	if not _active_tag.visible or omens.active == null:
 		return
-	var reward := omens.get_reward_line()
-	_active_tag.text = "%s\n%s%s" % [_tag_title, _tag_twist, ("\n" + reward) if reward != "" else ""]
-	_active_tag.tooltip_text = omens.get_reward_status()
+	var share := tag_share_text()
+	_active_tag.text = _icon_pad() + _tag_title + (" · " + share if share != "" else "")
+	var poor := share == "Reward gone" or share == "Reward lost" or omens.get_reward_share() < 1.0
+	_tag_rich.text = "[center]%s[color=#%s]%s[/color]%s[/center]" % [_icon_pad(), OMEN_COLOR.to_html(false), _tag_title,
+		(" · [color=#%s]%s[/color]" % [(UiStyle.POOR if poor else OMEN_COLOR).to_html(false), share]) if share != "" else ""]
+	var tip := IconInfo.format(omens.active.description) + "\n" + omens.reward_sentence(omens.active,
+		drift_director.get_act(maxi(drift_director.drifts_started, 1)), omens.active_block)
+	var status := omens.get_reward_status()
+	if status != "":
+		tip += "\n" + status
+	if _tag_tip == null:
+		_tag_tip = TapTip.attach(_active_tag, tip)
+	_active_tag.tooltip_text = tip
+	_tag_tip._label.text = tip
 	_place_tag_icon.call_deferred()
 
-# The icon sits in leading spaces at the start of the (centred) first line, so it stays inside the tag even when
-# that line is the widest; one text line tall (16 px ×1, or ×2 for big text).
-const TAG_ICON_GAP := 6.0
+# The live reward ("+30 Dew", "+5 Seeds"; "Reward 75%" without an amount) or "Reward gone"; Dream-only rewards "Reward kept" /
+# "Reward lost"; "" if double-edged.
+func tag_share_text() -> String:
+	var omen := omens.active
+	if omen == null or omen.kind == OmenData.Kind.DOUBLE_EDGED:
+		return ""
+	var dream_only := omen.reward_dew <= 0 and omen.reward_seeds <= 0 and omen.reward_tree_seeds <= 0 \
+		and omen.reward_pot_multiplier <= 0.0 and omen.reward_rest_bonus_multiplier <= 1.0
+	if dream_only:
+		return "Reward kept" if omens.keeps_dream_reward() else "Reward lost"
+	var share := omens.get_reward_share()
+	if share <= 0.0:
+		return "Reward gone"
+	var live := omens.live_reward_text()  # "+30 Dew": the live amount (user: "or show the live Dew")
+	return live if live != "" else "Reward %d%%" % roundi(share * 100)
+
+# The icon sits in leading spaces at the start of the centred line, clear of the text.
+const TAG_ICON_GAP := 8.0
 
 func _tag_icon_side() -> float:
 	return 32.0 if _active_tag.get_theme_font("font").get_height(_active_tag.get_theme_font_size("font_size")) >= 28.0 else 16.0
@@ -348,9 +427,13 @@ func _place_tag_icon() -> void:
 	var font_size := _active_tag.get_theme_font_size("font_size")
 	var line_height := font.get_height(font_size)
 	var side := _tag_icon_side()
-	var width := font.get_string_size(_icon_pad() + _tag_title, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size).x
+	var style := _active_tag.get_theme_stylebox("normal")
+	var left := style.get_margin(SIDE_LEFT) if style else 0.0
+	var top := style.get_margin(SIDE_TOP) if style else 0.0
+	var inner := _active_tag.size.x - left - (style.get_margin(SIDE_RIGHT) if style else 0.0)
+	var width := font.get_string_size(_active_tag.text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size).x
 	_tag_icon.size = Vector2(side, side)
-	_tag_icon.position = Vector2(maxf((_active_tag.size.x - width) / 2.0, 0.0), (line_height - side) / 2.0)
+	_tag_icon.position = Vector2(left + maxf((inner - width) / 2.0, 0.0), top + (line_height - side) / 2.0)
 	_tag_icon.visible = true
 
 func _on_omen_rewarded(omen: OmenData, summary: String) -> void:
