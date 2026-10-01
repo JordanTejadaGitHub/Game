@@ -679,7 +679,7 @@ every Warden has two damage axes, and builds lean one way:
   like Potency should change those"; before, it only scaled effect damage and Soaked, Drowsy,
   Exposed and Rooted were fixed). Each status keeps the applier's Potency, as Poisoned already did:
 
-  | Status (code name) | What Potency scales | Cap (starting point; Balancing Discussion sets the final caps) |
+  | Status (code name) | What Potency scales | Cap (confirmed by Balancing Discussion, 2026-10-01) |
   |---|---|---|
   | **Poisoned** (Spored), **Charged** (Static) | their damage (unchanged) | — |
   | **Soaked** (Damp) | the water-hit bonus: +20% × Potency | **+40%** |
@@ -691,8 +691,14 @@ every Warden has two damage axes, and builds lean one way:
 - **Reactions** still read the source's Potency for **damage only**; what a Reaction *does* (sleep
   length, freeze length, arcs) doesn't scale with it.
 - **Still untouched:** hits, stack caps, and how long statuses last (except Rooted, above).
-- **The Deep focus** becomes simply **+18% Potency** per Deep rank (the separate +duration is
-  dropped, since Potency now covers strength). Balancing Discussion may keep both; to confirm with them.
+- **The Deep focus** becomes simply **+18% Potency** per Deep rank; the separate +duration is
+  dropped (confirmed by Balancing Discussion). Exposed reaches its +40% cap at Potency 1.6 (about a
+  base Warden with 3 Deep ranks); past that, Deep still grows effect damage and the other statuses.
+- **Several Wardens on one status:** the status uses the **strongest current applier's** Potency
+  (as Poisoned already does), never a sum. With the caps, this stops one high-Potency Warden from
+  lifting everyone's statuses past the limits.
+- **Built behind one toggle** (e.g. `Tower.status_potency_on`, on by default) so Balancing Code can
+  A/B the same seeds with and without it.
 - **Why it matters:** a status family (Dewdrop, Firefly Jar, Bellflower, Rootling) can now grow its
   *control* through Potency, not only its damage. The caps keep a single Warden from making Exposed
   or Soaked the whole build.
