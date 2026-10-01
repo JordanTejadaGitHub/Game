@@ -40,7 +40,7 @@ func _on_damage(event: DamageLog.Event) -> void:
 		if status != &"" and event.enemy.has_method("flash_status"):
 			event.enemy.flash_status(status)
 	var tag := _pick(event)
-	var reduced := SettingsPanel.effects_reduced()  # Effects quality Reduced: one at a time, slower repeats
+	var reduced := Fx.reduced()  # Effects quality Reduced, or Fx stepped down on long frames: one at a time, slower repeats
 	if tag == &"" or _alive.size() >= (REDUCED_MAX_ALIVE if reduced else MAX_ALIVE) or _cooldowns.get(tag, 0.0) > 0.0:
 		return
 	if tag == &"weak":

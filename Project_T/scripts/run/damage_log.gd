@@ -275,7 +275,7 @@ func _show_number(event: Event) -> void:
 	# Thinning (platforms.md: busy fights stay smooth): a nightmare's ordinary hits and ticks within
 	# NUMBER_MERGE_WINDOW add to its last number instead of spawning more; past MAX_NUMBERS alive only
 	# big ones (crits, weak, Reactions) still appear. A busy 3× fight made hundreds of number nodes.
-	var reduced := SettingsPanel.effects_reduced()  # Effects quality Reduced: thinner still
+	var reduced := Fx.reduced()  # Effects quality Reduced, or Fx stepped down on long frames: thinner still
 	var enemy_id: int = event.enemy.get_instance_id()
 	if not big:
 		var last_any: Array = _last_number.get(enemy_id, [])
