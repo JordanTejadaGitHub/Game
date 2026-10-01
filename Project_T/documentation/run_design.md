@@ -353,6 +353,9 @@ User: *"should we have a set Dew you can get from each drift, but it can be modi
     - **splits:** the parent keeps **40%** of its share when it splits, the children share the other
       60%; **followers** (Ducklings) take **50%** of their leader's share between them;
     - fractions carry over (`RunState` keeps the fractional Dew; popups show whole numbers).
+    - **summons pay 0** (Crows, the bellow's Husks, the Moth Queen's brood, anything spawned
+      mid-fight by another nightmare): their summoner's share already pays for the fight, and a
+      summoner can keep spawning, so any Dew on summons could be farmed. (Ruling 2026-10-01.)
   - **Modifiers multiply the pot** (stacking additively within a source type, then multiplied):
     - Grove `dew_gain`, Blight Level Dew cuts, and the old `act_dew_multipliers` **removed** (folded
       into the table).
