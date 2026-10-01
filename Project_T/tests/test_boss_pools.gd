@@ -135,7 +135,7 @@ func _run() -> void:
 	_check(through.health < hp and through.is_in_group(through.GROUP), "Wardens can still hit it there")
 	_clear_enemies()
 
-	# --- Night Mare: it lingers at the Heartwood, draining, then laps (6 s, 10 s, 14 s…) ---
+	# --- Night Mare: it lingers at the Heartwood, draining, then laps (10 s, 14 s, 18 s…) ---
 	var mare := _still("night_mare", route[-1])
 	mare.set_path(PackedVector2Array([route[-1]]))
 	var leaves := run_state.leaves
@@ -143,11 +143,11 @@ func _run() -> void:
 	mare._process(0.016)  # Arrives
 	mare._process(0.016)  # Its first leaf (the frame after it arrives, as for every boss)
 	_check(is_instance_valid(mare) and mare.at_heartwood and mare.laps == 0, "the Night Mare stays at the Heartwood")
-	_check(run_state.leaves == leaves - 1 and is_equal_approx(mare.linger_left(), 6.0 - 0.016),
-		"drains a leaf at once and lingers 6 s (%d → %d, %.2f s)" % [leaves, run_state.leaves, mare.linger_left()])
-	for f in 180:
+	_check(run_state.leaves == leaves - 1 and is_equal_approx(mare.linger_left(), 10.0 - 0.016),
+		"drains a leaf at once and lingers 10 s (%d → %d, %.2f s)" % [leaves, run_state.leaves, mare.linger_left()])
+	for f in 300:
 		mare._process(1.0 / 30.0)
-	_check(run_state.leaves == leaves - 3, "3 leaves in its first 6 s (%d → %d)" % [leaves, run_state.leaves])
+	_check(run_state.leaves == leaves - 5, "5 leaves in its first 10 s (%d → %d)" % [leaves, run_state.leaves])
 	_check(mare.laps == 1 and not mare.at_heartwood and is_equal_approx(mare.speed, mare_speed * 1.3),
 		"then it goes round again 30% faster")
 	_check(mare.get_target_cell() == route[0] or mare.grid.calculate_grid_coordinates(mare.position) == map_generator.startPath,
@@ -166,10 +166,10 @@ func _run() -> void:
 	mare.set_path(PackedVector2Array([route[-1]]))
 	mare._process(0.016)
 	mare._process(0.016)
-	_check(mare.at_heartwood and is_equal_approx(mare.linger_left(), 10.0 - 0.016), "its second visit lingers 10 s (%.2f)" % mare.linger_left())
-	for f in 300:
+	_check(mare.at_heartwood and is_equal_approx(mare.linger_left(), 14.0 - 0.016), "its second visit lingers 14 s (%.2f)" % mare.linger_left())
+	for f in 420:
 		mare._process(1.0 / 30.0)
-	_check(mare.laps == 2 and run_state.leaves == after_first - 5, "5 leaves on its second visit (%d → %d)" % [after_first, run_state.leaves])
+	_check(mare.laps == 2 and run_state.leaves == after_first - 7, "7 leaves on its second visit (%d → %d)" % [after_first, run_state.leaves])
 	mare.take_damage(mare.max_health * 0.55)
 	_check(mare._charge_left > 0.0, "it bolts at half health")
 	_clear_enemies()
