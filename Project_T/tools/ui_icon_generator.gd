@@ -42,6 +42,7 @@ func _init() -> void:
 	_make_omen_cards()
 	_make_hud_icons()
 	_make_dream_glyphs()
+	_make_buff_pips()
 	print("ui icons written")
 	quit()
 
@@ -1398,6 +1399,7 @@ const HUD_INK := {
 	"D": "dewlight", "d": "dew", "P": "pool",
 	"W": "wraithlight", "U": "bruise",
 	"m": "moonpath", "p": "path", "l": "loam",
+	"M": "mist", "s": "stone",
 }
 
 const HUD_COUNTERS := {
@@ -1500,6 +1502,28 @@ const HUD_GLYPHS := {
 		".oHGGGGgo.",
 		".oggggggo.",
 		".oooooooo."],
+	"boosts_off": [
+		"....oo....",
+		"...oMso...",
+		"..oMssso..",
+		".oMssssso.",
+		"ooooMsoooo",
+		"...oMso...",
+		"...oMso...",
+		"...oMso...",
+		"...osso...",
+		"...oooo..."],
+	"boosts_on": [
+		"G...oo...G",
+		"...oHGo...",
+		"..oHGGgo..",
+		".oHGGGggo.",
+		"ooooGgoooo",
+		"G..oGgo..G",
+		"...oGgo...",
+		"...oGgo...",
+		"...oggo...",
+		"...oooo..."],
 }
 
 func _hud_sheet(maps: Dictionary, size: int, file_name: String) -> Dictionary:
@@ -1776,4 +1800,188 @@ func _make_dream_glyphs() -> void:
 		fallback = "generic",
 		note = "Dream card glyphs, light on the dark rarity gem. Show x2 (16 px), nearest. A card shows the first glyph in `priority` that any of its tags maps to in `tags`; untagged or unknown tags use `fallback`."}
 	var file := FileAccess.open(OUT + "dream_glyphs.json", FileAccess.WRITE)
+	file.store_string(JSON.stringify(data, "\t") + "\n")
+
+# --- Buff pips (screens_ui.md "Buff readability"; kinds from BuffSources) ---------------------------
+# 10x10, outlined so they read on the map under a Warden (shown x1 in the world, x2 in panels). Each
+# kind has its own shape and its BuffSources.COLORS colour; kinship and penalty are light greys for
+# code to tint (the family colour; the Bittersweet plum). Stack counts ("x2".."x9") are 9x7 badges.
+
+const PIP_INK := {
+	"o": "dread", "H": "heartlight", "G": "glow", "g": "gold", "e": "ember",
+	"D": "deadwood", "k": "oak", "b": "bark",
+	"N": "newleaf", "S": "sprig", "L": "leaf",
+	"m": "moonpath", "p": "path",
+	"W": "moonlight", "M": "mist", "s": "stone",
+}
+
+const BUFF_PIPS := {
+	"acorn": [
+		"....oo....",
+		"..oobboo..",
+		".obkkkkbo.",
+		".okkkkkko.",
+		".oooooooo.",
+		".oGGGGggo.",
+		".oGHGGggo.",
+		"..oGGggo..",
+		"...oggo...",
+		"....oo...."],
+	"elder_stump": [
+		"..........",
+		".oooooooo.",
+		"oHGGGGGGgo",
+		"oGGgggGGgo",
+		"oGGGgGGggo",
+		".oooooooo.",
+		".ogeggego.",
+		".ogeggego.",
+		"oggeggeggo",
+		"oooooooooo"],
+	"grove_heart": [
+		"..........",
+		".ooo..ooo.",
+		"oHHGooHGgo",
+		"oHGGGGGGgo",
+		"oHGGGGGGgo",
+		".oGGGGGgo.",
+		"..oGGGgo..",
+		"...oGgo...",
+		"....oo....",
+		".........."],
+	"grandmother_oak": [
+		"..oooooo..",
+		".oDDDDDko.",
+		"oDDDDDDDko",
+		"oDDDDDDkko",
+		"oDDDDDkkko",
+		".oDkkkkko.",
+		"...obko...",
+		"...obko...",
+		"..obbkko..",
+		"..oooooo.."],
+	"old_growth": [
+		"....oo....",
+		"...oNNo...",
+		"..oNNSSo..",
+		"...oNSo...",
+		"..oNNSSo..",
+		".oNNSSSSo.",
+		".oNSSSSLo.",
+		"oNSSSSLLLo",
+		"oooobboooo",
+		"...obbo..."],
+	"kinship": [
+		"......ooo.",
+		"....ooWWo.",
+		"...oWWWMo.",
+		"..oWWMMso.",
+		".oWWMMso..",
+		".oWMMso...",
+		".oMMso....",
+		"oMsoo.....",
+		"oso.......",
+		"oo........"],
+	"kindred": [
+		"....oo....",
+		"...oHmo...",
+		"..oHmmpo..",
+		".oHmmmmpo.",
+		"oHmmoommpo",
+		"ommmoomppo",
+		".ommmmppo.",
+		"..ommppo..",
+		"...oppo...",
+		"....oo...."],
+	"whole_tree": [
+		"oooooooooo",
+		"oSSSNNSSLo",
+		"oSSNNNNSLo",
+		"oSNNNNNNLo",
+		"oSSSkkSSLo",
+		"oSSSkkSSLo",
+		".oSSSSSLo.",
+		"..oSSSLo..",
+		"...oSLo...",
+		"....oo...."],
+	"penalty": [
+		"..........",
+		"..........",
+		"ooo....ooo",
+		"oWMo..oWso",
+		".oWMooWso.",
+		"..oWMWso..",
+		"...oWso...",
+		"....oo....",
+		"..........",
+		".........."],
+}
+
+const STACK_DIGITS := {
+	"2": ["HHH", "..H", "HHH", "H..", "HHH"], "3": ["HHH", "..H", "HHH", "..H", "HHH"],
+	"4": ["H.H", "H.H", "HHH", "..H", "..H"], "5": ["HHH", "H..", "HHH", "..H", "HHH"],
+	"6": ["HHH", "H..", "HHH", "H.H", "HHH"], "7": ["HHH", "..H", "..H", "..H", "..H"],
+	"8": ["HHH", "H.H", "HHH", "H.H", "HHH"], "9": ["HHH", "H.H", "HHH", "..H", "HHH"],
+}
+
+func _paint_map(sheet: Image, rows: Array, at: Vector2i, ink: Dictionary) -> void:
+	for y in rows.size():
+		var row: String = rows[y]
+		for x in row.length():
+			if ink.has(row[x]):
+				sheet.set_pixel(at.x + x, at.y + y, Palette.color(ink[row[x]]))
+
+func _stack_badge(digit: String) -> Array:
+	# "x" (3x3) then the digit (3x5) in Heartlight, outlined all round in Dread: 9x7.
+	var grid := []
+	for y in 7:
+		grid.append(".........".split(""))
+	for p: Vector2i in [Vector2i(1, 2), Vector2i(3, 2), Vector2i(2, 3), Vector2i(1, 4), Vector2i(3, 4)]:
+		grid[p.y][p.x] = "H"
+	var d: Array = STACK_DIGITS[digit]
+	for y in 5:
+		for x in 3:
+			if d[y][x] == "H":
+				grid[y + 1][x + 5] = "H"
+	for y in 7:
+		for x in 9:
+			if grid[y][x] != ".":
+				continue
+			for dy in [-1, 0, 1]:
+				for dx in [-1, 0, 1]:
+					var nx: int = x + dx
+					var ny: int = y + dy
+					if nx >= 0 and ny >= 0 and nx < 9 and ny < 7 and grid[ny][nx] == "H":
+						grid[y][x] = "o"
+	var rows := []
+	for y in 7:
+		rows.append("".join(grid[y]))
+	return rows
+
+func _make_buff_pips() -> void:
+	var ids := BUFF_PIPS.keys()
+	var pips := Image.create(10 * ids.size(), 10, false, Image.FORMAT_RGBA8)
+	var pip_index := {}
+	for i in ids.size():
+		var rows: Array = BUFF_PIPS[ids[i]]
+		assert(rows.size() == 10, "%s: %d rows" % [ids[i], rows.size()])
+		for row: String in rows:
+			assert(row.length() == 10, "%s: a row is %d wide" % [ids[i], row.length()])
+		_paint_map(pips, rows, Vector2i(10 * i, 0), PIP_INK)
+		pip_index[ids[i]] = i
+	pips.save_png(OUT + "buff_pips.png")
+	var digits := STACK_DIGITS.keys()
+	var stacks := Image.create(9 * digits.size(), 7, false, Image.FORMAT_RGBA8)
+	var stack_index := {}
+	for i in digits.size():
+		_paint_map(stacks, _stack_badge(digits[i]), Vector2i(9 * i, 0), PIP_INK)
+		stack_index["x" + digits[i]] = i
+	stacks.save_png(OUT + "buff_stacks.png")
+	var data := {
+		pips = {image = "buff_pips.png", frame_size = 10, icons = pip_index},
+		stacks = {image = "buff_stacks.png", frame_width = 9, frame_height = 7, icons = stack_index},
+		tint = ["kinship", "penalty"],
+		note = "Buff pips: 10 px, x1 under a Warden on the map, x2 in panels; nearest. kinship and penalty are light greys: modulate them (family colour; plum). Stack badges x2..x9 sit to the pip's right; use x9 for 9 or more.",
+	}
+	var file := FileAccess.open(OUT + "buff_pips.json", FileAccess.WRITE)
 	file.store_string(JSON.stringify(data, "\t") + "\n")
