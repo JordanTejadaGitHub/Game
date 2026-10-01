@@ -471,6 +471,7 @@ Every combo starts **locked** and is **discovered the first time it actually fir
     closes (and pauses then).
   - Setting (Gameplay): **"Pause on new combos"**, on by default; off = the old 5 s slide-in card.
   - The rest report lists *"New combos: Thunderclap"*.
+  - **The discovery card stands out in combat** (2026-09-30, user: *"the discovery window should be more visible during combat and have the icons"*; it was a see-through panel with small text over a busy fight): a **solid panel** (the opaque tip fog, ~95%) with the gold thread, the world behind **dimmed to ~40%** except the nightmare it fired on (lit), a **title in the display font, 28 px gold** (*"Combo discovered: Thunderclap"*, *"Chain discovered: Chain 5"*), **icons at 48 px**: a combo shows its two status icons "+" its Reaction icon; a chain shows each Reaction's icon in order with arrows (repeats collapsed as "Nightbloom ×2"); body text 18 px; then Continue / Open in Codex. A soft rise-in and the discovery chime.
   - **Chains are discovered too** (2026-09-30, user: *"discover chain too as well should be like
     discovering a combo"*). A Reaction chain (Reactions setting each other off, the tracker's chain
     length) gets the **same pause + discovery card** the first time ever it reaches **Chain 3, Chain 5 and Chain 10**
