@@ -650,6 +650,9 @@ func _build_card_icons(id: StringName, is_chain: bool, order: Array) -> void:
 		for i in runs.size():
 			if i > 0:
 				_card_icons.add_child(_card_word("→", UiStyle.INK_DIM))
+			var reaction_id := _reaction_id_named(String(runs[i][0]))
+			if reaction_id != &"" and IconInfo.icon(reaction_id) != null:
+				_card_icons.add_child(_card_icon(reaction_id))  # Each Reaction's own icon (UI Asset), 48 px
 			_card_icons.add_child(_card_word(runs[i][0] + (" ×%d" % runs[i][1] if runs[i][1] > 1 else ""), UiStyle.GOLD))
 		return
 	var combo := CodexData.get_any(id)
@@ -658,6 +661,26 @@ func _build_card_icons(id: StringName, is_chain: bool, order: Array) -> void:
 		if i > 0:
 			_card_icons.add_child(_card_word("+", UiStyle.INK_DIM))
 		_card_icons.add_child(IconInfo.make_icon(statuses[i], 3))  # 48 px, with its tap tip
+	if IconInfo.icon(id) != null:  # A Reaction: its own icon after its statuses (it's discovered now)
+		_card_icons.add_child(_card_word("→", UiStyle.INK_DIM))
+		_card_icons.add_child(_card_icon(id))
+
+# A Reaction's icon at 48 px (16 px art ×3, nearest).
+func _card_icon(id: StringName) -> TextureRect:
+	var icon := TextureRect.new()
+	icon.texture = IconInfo.icon(id)
+	icon.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	icon.custom_minimum_size = Vector2(48, 48)
+	return icon
+
+# The Reaction (or Crowned Reaction) id for a name in a chain's order.
+static func _reaction_id_named(name: String) -> StringName:
+	for entry in CodexData.combos() + Array(CodexData.crowned()):
+		if entry.get("name", "") == name:
+			return StringName(entry.id)
+	return &""
 
 func _card_word(text: String, colour: Color) -> Label:
 	var word := Label.new()

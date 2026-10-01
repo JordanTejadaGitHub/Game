@@ -729,6 +729,14 @@ func _crowned_card(c: Dictionary, discovered: bool, times: int) -> Control:
 	if not discovered:
 		row.add_child(_crowned_silhouette(c))  # Only the crown frame while undiscovered
 	else:
+		var own := IconInfo.icon(StringName(c.id))  # The Crowned Reaction's own icon (UI Asset), ×2
+		if own != null:
+			var reaction_icon := TextureRect.new()
+			reaction_icon.texture = own
+			reaction_icon.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+			reaction_icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+			reaction_icon.custom_minimum_size = Vector2(32, 32)
+			row.add_child(reaction_icon)
 		for family in c.families:
 			var icon := TextureRect.new()
 			icon.texture = CodexData.family_icon(family)
@@ -768,6 +776,14 @@ func _combo_card(combo: Dictionary, discovered: bool, times: int) -> Control:
 	row.add_theme_constant_override("separation", 6)
 	box.add_child(row)
 	if discovered:  # Locked combos are just "???": icons would give the answer away (screens_ui.md)
+		var own := IconInfo.icon(StringName(combo.id))  # A Reaction's own icon (UI Asset), ×2
+		if own != null:
+			var icon := TextureRect.new()
+			icon.texture = own
+			icon.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+			icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+			icon.custom_minimum_size = Vector2(32, 32)
+			row.add_child(icon)
 		for status in combo.statuses:
 			row.add_child(StatusIcon.new(status))
 	var name := Label.new()
