@@ -533,6 +533,7 @@ static func make_theme() -> Theme:
 	var slot_boxes := [button_box(), hover_box(), selected_box(), hover_box(true), disabled_box()]
 	for box: StyleBoxFlat in slot_boxes:
 		_margins(box, 4.0, 4.0)
+		box.bg_color.a = maxf(box.bg_color.a, TIP_ALPHA)  # Solid: the map never shows through a slot (user)
 	for i in 5:
 		theme.set_stylebox(["normal", "hover", "pressed", "hover_pressed", "disabled"][i], "WardenSlot", slot_boxes[i])
 	theme.set_stylebox("focus", "WardenSlot", StyleBoxEmpty.new())

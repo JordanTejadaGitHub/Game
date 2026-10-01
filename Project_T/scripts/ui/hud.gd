@@ -22,7 +22,7 @@ const HUD_COUNTER_ICONS := {&"dew": &"dew_hud", &"dreamlight": &"dreamlight_hud"
 const HUD_GLYPHS := {&"MenuButton": &"menu_hud", &"CodexButton": &"help_hud", &"BuffLensButton": &"boosts_hud", &"RememberButton": &"remember_hud"}
 const BUTTON_BOX_INSET := 6.0  # Their visible box: ~36 px inside the 48 px hit area
 
-@onready var tower_bar: HFlowContainer = %TowerBar
+@onready var tower_bar: HBoxContainer = %TowerBar  # One row by construction (user: "should not stack")
 @onready var tower_placer: TowerPlacer = %TowerPlacer
 @onready var dew_label: Label = %DewLabel
 @onready var leaves_label: Label = %LeavesLabel

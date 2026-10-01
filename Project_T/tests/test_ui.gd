@@ -44,7 +44,7 @@ func _run() -> void:
 	var dreams: DreamState = main.get_node("%DreamState")
 	dreams.unlock_everything = true  # Every Warden in the bar, as in Test Grove
 	dreams.unlocks_changed.emit()
-	var bar: HFlowContainer = main.get_node("%TowerBar")
+	var bar: HBoxContainer = main.get_node("%TowerBar")
 	var first_button := bar.get_child(0) as Button
 	var hotkey_label := first_button.get_node_or_null("Hotkey") as Label
 	_check(first_button.text.is_valid_int() and hotkey_label != null and hotkey_label.text == "1",
@@ -196,17 +196,41 @@ func _run() -> void:
 	var was_everything := bar_dreams.unlock_everything
 	bar_dreams.unlock_everything = true
 	bar_dreams.unlocks_changed.emit()
-	for screen in [Vector2i(1280, 800), Vector2i(1920, 1080)]:
-		root.size = screen
-		await _frames(3)
-		var shown_slots: Array = bar.get_children().filter(func(b: Node) -> bool: return b is Button and b.visible)
-		var tool_y := (main.get_node("HUD/ClearTool") as Control).get_global_rect().position.y
-		var one_row := not shown_slots.is_empty() and shown_slots.all(func(b: Button) -> bool:
-			return absf(b.get_global_rect().position.y - tool_y) < 1.0 and b.get_global_rect().size.x >= 55.0)
-		var all_slots := bar.get_children().filter(func(b: Node) -> bool: return b is Button).size()
-		var arrows := main.get_node("HUD").get_node_or_null("BarArrowRight") as Control
-		_check(one_row and (shown_slots.size() == all_slots or (arrows != null and arrows.visible)),
-			"the Warden bar stays one row with %d Wardens at %s (%d shown, arrows %s)" % [all_slots, screen, shown_slots.size(), arrows != null and arrows.visible])
+	# Every UI scale share too (user screenshot: two rows at a high UI scale): canvas_items stretch from
+	# UiStyle.LAYOUT_MIN with the share as the factor, as UiStyle.apply_ui_scale sets it outside headless.
+	var scale_was := [root.content_scale_mode, root.content_scale_size, root.content_scale_aspect, root.content_scale_factor, root.size]
+	var bar_hud := main.get_node("HUD")
+	for share in [0.0, 0.4, 0.5, 0.75, 1.0, 2.0]:  # 0 = no stretch (headless default); 2.0 = an old saved value
+		if share > 0.0:
+			root.content_scale_mode = Window.CONTENT_SCALE_MODE_CANVAS_ITEMS
+			root.content_scale_size = UiStyle.LAYOUT_MIN
+			root.content_scale_aspect = Window.CONTENT_SCALE_ASPECT_EXPAND
+			root.content_scale_factor = share
+		for screen in [Vector2i(1280, 800), Vector2i(1920, 1080), Vector2i(2560, 1440), Vector2i(3840, 2160)]:
+			root.size = screen
+			await _frames(3)
+			bar_hud._fit_tower_bar()
+			await _frames(2)
+			var shown_slots: Array = bar.get_children().filter(func(b: Node) -> bool: return b is Button and b.visible)
+			var tool_rect := (main.get_node("HUD/ClearTool") as Control).get_global_rect()
+			var view := bar_hud.get_viewport().get_visible_rect()
+			var one_row := not shown_slots.is_empty() and shown_slots.all(func(b: Button) -> bool:
+				var r := b.get_global_rect()
+				return absf(r.position.y - tool_rect.position.y) < 1.0 and r.size.x >= 55.0 and view.encloses(r))
+			var all_slots := bar.get_children().filter(func(b: Node) -> bool: return b is Button).size()
+			var arrows := bar_hud.get_node_or_null("BarArrowRight") as Control
+			_check(one_row and (shown_slots.size() == all_slots or (arrows != null and arrows.visible)),
+				"the Warden bar stays one row, on screen, with %d Wardens at %s, UI scale %s (%d shown, arrows %s)" % [all_slots, screen,
+				share, shown_slots.size(), arrows != null and arrows.visible])
+	root.content_scale_mode = scale_was[0]
+	root.content_scale_size = scale_was[1]
+	root.content_scale_aspect = scale_was[2]
+	root.content_scale_factor = scale_was[3]
+	root.size = scale_was[4]
+	await _frames(2)
+	# The slots are solid (user: the map showed through them).
+	var slot_box := (bar.get_child(0) as Button).get_theme_stylebox("normal") as StyleBoxFlat
+	_check(slot_box != null and slot_box.bg_color.a >= 0.9, "Warden slots are solid (fill alpha %.2f)" % (slot_box.bg_color.a if slot_box else 0.0))
 	bar_dreams.unlock_everything = was_everything
 	bar_dreams.unlocks_changed.emit()
 	await _frames(2)
