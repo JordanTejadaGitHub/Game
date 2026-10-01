@@ -466,6 +466,17 @@ risk: players set their own difficulty block by block.
     the matching calm icon: **the moon alone, with a few stars**, so the two cards balance. Both are
     16×16 pixel art appended to the end of the UI icon sheet (`assets/ui/icons.png` via `tools/ui_icon_generator.gd`, ids `omen` and `clear_skies`, Heartwood 32 palette: Moonlight moon, Gold / Glow rim light),
     shown at whole-number scales (×2 in tags, ×3 on the cards, nearest).
+  - **Revised 2026-10-01** (user: *"don't have to show the icon on every single card, just the
+    beginning; the icon seems too big and unrecognizable"*):
+    - The icon appears **only on the two front cards** (Face an Omen, Clear Skies), not on the
+      revealed Omens (they have name, flavour, rules and reward; that's enough).
+    - Blown up ×3, the 16 px moth read as a face or a skull. The cards get their own **card emblems**:
+      **32×32** (`omen_card`, `clear_skies_card`) drawn for that size, shown **×2 (64 px)**, smaller
+      than before (the ×3 16 px icon was 48 px of mush; the emblem has real detail at 64). Design so
+      it reads at a glance: a **moth with wide, spread, clearly patterned wings** (eye-spots on the
+      wings help it read as a moth), the body a thin dark line, **in front of** a pale moon that's
+      only partly visible behind the wings; no face-like symmetry of dark blobs on white. Clear
+      Skies: a crescent moon and three stars, no moth. The 16 px icons stay for tags and lists.
   - **Card text is bigger:** the body lines on both front cards use the card body size (as on Dream
     cards, ~18 px, not 15), same face and spot on both.
   - **Omen mist:** facing an Omen brings **mist onto the map** for that block. It rolls in when the
@@ -544,9 +555,10 @@ the map or the rules**. That makes ~20; aim for no Omen twice in a row and each 
   so a boss leak costs 10. Shown clearly on the Omen card.
 - **Lean Season's Legendary** follows the Legendary rules (any Legendary you could be offered);
   before act 2 it isn't offered.
-- **Shifting Ground:** clearing is still locked until a clearing card (the trees stay as terrain if
-  you never unlock it); its trees can be cleared at normal cost. Not offered on maps with fewer than
-  3 free cells that don't touch the route.
+- **Shifting Ground:** **only offered once clearing is unlocked** this run (any clearing card;
+  2026-10-01, user: *"Shifting Ground is useless because I can't clear yet"*: before that, its reward
+  for clearing trees can't be earned). Its trees can be cleared at normal cost. Not offered on maps
+  with fewer than 5 free cells that don't touch the route.
 - **Offer rules:** each offer's 2 Omens are of **two different kinds**; an Omen never repeats from
   the previous rest; the reward scaling by act (×1 / ×1.5 / ×2 / ×2.5) applies to Dew and Seeds only.
 - **New `OmenData` fields:** Warden range add / attack-speed multiplier, `no_build_during_drift`,
