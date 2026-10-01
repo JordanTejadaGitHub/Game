@@ -532,6 +532,27 @@ several sides), the start stays on the rim; opening routes are a little shorter 
 side vs 46; band 35–57); 240–294 buildable cells; ~69 obstacles. **Every sim and human run above is
 "edge Heartwood"**; human run 5 (ee3d82d0) predates it. Re-baseline: act 1 fresh Balanced / skip on
 722cf38b+, plus a check that the bot's maze and cover rule handle the open glade.
+
+## Human run 6 (2026-10-01, build 88ef33 = b2d8b3e6: **first run on the inland Heartwood**, intro-elite fix)
+
+**Lost at drift 24, before the boss**, 1 Grove node, Firefly Jar again, no early calls. 13 attackers,
+5 Thornwalls, 7 Sprouts (run 5: 17 Thornwalls, 15 Sprouts). Dew earned 1,896 by 24; banked up to 875
+at drift 20, spent at that rest.
+- **Act 1 closest 0.41–0.70 from drift 1** (run 5, same family and Grove on the edge map: 0.25–0.55
+  outside block 3). Leaks at drift 8 (5 nightmares, 5 leaves) and **drift 22 (9 nightmares, 10
+  leaves)**; 17 close calls.
+- Same curve as run 5, so the differences are the **map** (shorter routes, open glade) and the maze
+  (fewer walls). Two Firefly-first runs lost 9 and 15 leaves in act 1 against a fresh target of 0–3.
+- User: *"I like the Heartwood inland; making it shorter doesn't matter because you don't have
+  enough towers to make a difference. It feels fair. I haven't unlocked perks yet so this is fine so
+  far. Needs a bit more testing."* **No change.**
+- **Sim re-baseline** (980f0b41, fresh, Sporeling via the bot's pick, 20 seeds): the map change is
+  within noise (same old bot, edge → inland: Balanced survives the boss 90 → 85%, skip 45 → 50%; the
+  opening route is ~4 tiles *longer* at drift 1). The newer bot (Kinship placement + branches first)
+  lifts Balanced to 95% and skip to 70%. **New baseline = inland, current bot.** An exact edge/inland
+  A/B (4c8050a9 vs 722cf38b, Sporeling and Firefly first, 20 seeds): **no map effect**; inland is if
+anything a little easier (Firefly: leaves lost by 25 8.5 → 3, first leak 9 → 14; survived 90% both).
+Run 6's early pressure was that seed or the opening, not the inland change. Closed.
 This conflicts with the targets (Half Grove reaches act 4, Full wins). Next: find out whether the
 off-build cards are dead for the build (a `can_offer` rule fixes it) or usable (a pool-size question),
 then bring the fix to the user. Caveat: one family pair, one bot style, which picks by tag + rarity.

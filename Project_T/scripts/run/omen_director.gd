@@ -200,7 +200,7 @@ func describe_reward(omen: OmenData, act: int, rest_bonus: int = -1, lost: int =
 # tag and (paid_sentence) the rest report: "Reward: +40 Dew. Each leaf you lose in these drifts takes a quarter of
 # it." / "Reward: your next Dream offers 5 cards, if you lose at most 1 leaf in these drifts." / double-edged "No
 # other reward: the extra Dew is the prize." REWARD_RULE is the full rule (the line's hover / tap).
-const REWARD_RULE := "Lose no leaf in the Omen's drifts and its reward is yours in full. Each leaf lost takes a quarter of its Dew and Seeds (4 or more: nothing). A Dream reward stays only if you lose at most 1 leaf."
+const REWARD_RULE := "Lose no leaf in the Omen's drifts and its reward is yours in full. Each leaf lost takes a quarter of its Dew and Seeds away (4 leaves: nothing). A Dream reward stays only if you lose at most 1 leaf."
 const DOUBLE_EDGED_LINE := "No other reward: the extra Dew is the prize."
 
 func reward_sentence(omen: OmenData, act: int, block: int = 0) -> String:
@@ -211,14 +211,70 @@ func reward_sentence(omen: OmenData, act: int, block: int = 0) -> String:
 	var dream: Array = parts[1]
 	if scaled.is_empty() and dream.is_empty():
 		return ""
+	var minus := per_leaf_text(omen, act, block)  # "minus 10" (user: the concrete number, not "a quarter")
+	var cut := ("%s for each leaf you lose" % minus) if minus != "" else "less for each leaf you lose"
 	if dream.is_empty():
-		return "Reward: %s. Each leaf you lose in these drifts takes a quarter of it." % _and(scaled)
+		return "Reward: %s, %s in these drifts." % [_and(scaled), cut]
 	if scaled.is_empty():
 		return "Reward: %s, if you lose at most 1 leaf in these drifts." % _and(dream)
-	return "Reward: %s, and %s if you lose at most 1 leaf in these drifts. Each leaf you lose takes a quarter of the %s." % [
-		_and(scaled), _and(dream), "Dew" if omen.reward_seeds <= 0 else "Dew and Seeds"]
+	return "Reward: %s, %s, and %s if you lose at most 1 leaf." % [_and(scaled), cut, _and(dream)]
 
-# What a block with `lost` leaves lost paid, in the same words (the rest report and the toast).
+# "minus 10" (Dew only), "minus 10 Dew and 1 Seed" (both): a quarter of the act-scaled reward, rounded down; "" when
+# there's no number to cut (Dry Spell before its block is known, tree Seeds only).
+func per_leaf_text(omen: OmenData, act: int, block: int = 0) -> String:
+	var scale := _act_scale(act)
+	var dew := floori((roundi(omen.reward_dew * scale) + get_pot_reward(omen, block)) * REWARD_CUT_PER_LEAF)
+	var seeds := floori(roundi(omen.reward_seeds * scale) * REWARD_CUT_PER_LEAF)
+	if dew > 0 and seeds > 0:
+		return "minus %d Dew and %d %s" % [dew, seeds, "Seed" if seeds == 1 else "Seeds"]
+	if dew > 0:
+		return "minus %d" % dew
+	if seeds > 0:
+		return "minus %d" % seeds
+	return ""
+
+# The Omen card's reward bullets (user: "point form for each different reward given on the single card"), each with
+# its own condition: "+40 Dew, minus 10 for each leaf you lose", "Next Dream offers 4 cards, if you lose at most 1
+# leaf", "A Rare+ card in your next Dream, if you lose at most 1 leaf"; double-edged: "The extra Dew is the prize".
+func reward_bullets(omen: OmenData, act: int, block: int = 0) -> Array[String]:
+	var bullets: Array[String] = []
+	if omen.kind == OmenData.Kind.DOUBLE_EDGED:
+		bullets.append("The extra Dew is the prize")
+		return bullets
+	var scale := _act_scale(act)
+	var keep := ", if you lose at most 1 leaf"
+	var dew := roundi(omen.reward_dew * scale) + get_pot_reward(omen, block)
+	if dew > 0:
+		var cut := floori(dew * REWARD_CUT_PER_LEAF)
+		bullets.append("+%d Dew, %s for each leaf you lose" % [dew, "minus %d" % cut if cut > 0 else "less"])
+	elif omen.reward_pot_multiplier > 0.0:
+		bullets.append("The block's Dew back, and a quarter more, less for each leaf you lose")
+	var seeds := roundi(omen.reward_seeds * scale)
+	if seeds > 0:
+		var seed_cut := floori(seeds * REWARD_CUT_PER_LEAF)
+		bullets.append("+%d Seeds, %s for each leaf you lose" % [seeds, "minus %d" % seed_cut if seed_cut > 0 else "less"])
+	if omen.reward_tree_seeds > 0:
+		bullets.append("%d Seeds for every Withered Tree you clear this run, less for each leaf you lose" % (1 + omen.reward_tree_seeds))
+	var cards := maxi(dream_state.cards_per_offer, mini(dream_state.cards_per_offer + omen.reward_extra_dream_cards, DreamState.MAX_OFFER_CARDS))
+	if omen.reward_extra_dream_cards > 0:
+		bullets.append("Next Dream offers %d cards%s%s" % [cards, ", one of them Rare+" if omen.reward_rare_dreams > 0 else "", keep])
+	elif omen.reward_rare_dreams > 0:
+		bullets.append("A Rare+ card in your next Dream" + keep)
+	if omen.reward_legendary:
+		bullets.append("A Legendary in your next Dream" + keep)
+	return bullets
+
+# The live amount for the compact tag ("+30 Dew"), "" when the reward has no amount (Dream rewards, double-edged).
+func live_reward_text() -> String:
+	if active == null or active.kind == OmenData.Kind.DOUBLE_EDGED:
+		return ""
+	var parts := _reward_parts(active, drift_director.get_act(maxi(drift_director.drifts_started, 1)), active_block,
+		get_reward_share(), true)
+	var scaled: Array = parts[0]
+	return scaled[0] if not scaled.is_empty() and String(scaled[0]).begins_with("+") else ""
+
+# What a block with `lost` leaves lost paid, in the same words (the rest report and the toast): "Reward: +30 Dew
+# (1 leaf lost).", "No reward: 4 leaves lost.", "… The Dream reward is gone."
 func paid_sentence(omen: OmenData, act: int, rest_bonus: int, lost: int, block: int) -> String:
 	if omen.kind == OmenData.Kind.DOUBLE_EDGED:
 		return "No other reward: the extra Dew was the prize."
@@ -229,11 +285,9 @@ func paid_sentence(omen: OmenData, act: int, rest_bonus: int, lost: int, block: 
 	var lost_dream: bool = not parts[2].is_empty() and lost > DREAM_REWARD_MAX_LOST
 	if got.is_empty():
 		return "No reward: %s." % why if lost > 0 else "No reward."
-	var text := "Reward: %s" % _and(got)
-	if lost > 0 and not parts[3]:
-		text += " (%s: %s)" % [why, "it took the reward" if share <= 0.0 else "it took %s" % _taken(share)]
+	var text := "Reward: %s%s." % [_and(got), (" (%s)" % why) if lost > 0 else ""]
 	if lost_dream:
-		text += ". The Dream reward is gone: %s." % why
+		text += " The Dream reward is gone."
 	return text
 
 static func _taken(share: float) -> String:
