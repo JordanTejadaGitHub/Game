@@ -243,7 +243,7 @@ discovery in play. Branches may **fork** into two tips (each tip needs the node 
 | **Reclaiming** (clearing) *(new)* | *Reclaimed Earth*: Reclaimed Earth, Tended Stumps, Hollow Ground (50; the "where you clear" payoffs first) | *Thorn and Bramble*: Tended Forest, Thorn Snare, Bramble Oath (70) | **Wildwood Reclaimed** (80) |
 | **The Quiet Ones** (support Wardens) | *Catchers*: Dew Trail, Acorn Cache (50; Wide Bowl merged into Dew Trail, Still Waters cut in the power pass) | *Old Wood*: Overflowing Well, Hedgerow Roots, Grandfather Stump, Living Walls, **Scented Hedge**, Many Threads (70) | **The Quiet Ones** (120) |
 | **Seeds** (support and economy bets) | *Planted Promises*: Dew Bowl, Harvest Moon, Kind Canopy, Patient Roots (50) | *Deep Promises*: Deep Well, Shared Light (70) | **Golden Harvest** (120) |
-| **Bittersweet** | *Bittersweet Dreams*: Deep Sleep, Restless Dreams, **Wandering Mind** (60; needs any 2 other nodes) | — | **Lucid Dreaming** (80; the "dreams" Legendary: 4 cards, take 2, no Commons) |
+| **Bittersweet** | *Bittersweet Dreams*: Deep Sleep, Restless Dreams (60; needs any 2 other nodes) | — | **Lucid Dreaming** (80; the "dreams" Legendary: 4 cards, take 2, no Commons) |
 
 - **Costs:** the new tips and nodes are cheaper (tips 80, nodes 40–50) than the original ones, so a
   direction is reachable in 2–3 runs. **+1,200 Seeds**: the tree is **≈ 7,340 Seeds ≈ 26 runs ≈
