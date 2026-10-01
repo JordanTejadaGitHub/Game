@@ -254,11 +254,12 @@ discovery in play. Branches may **fork** into two tips (each tip needs the node 
   direction is reachable in 2–3 runs. **+1,200 Seeds**: the tree is **≈ 7,340 Seeds ≈ 26 runs ≈
   33–36 hours**, a little over the ~30-hour target (as it was at 6,722); fine, since every early
   run still buys something.
-- **Old saves** (profile migration): every Grove node already owned stays owned and keeps working;
-  nothing is refunded or lost. A profile from **before** this change also gets every **new node
-  whose cards it could already be offered** (Elders, Mixed Company, Winding Roads, Daring, Hedgerows,
-  Reclaiming and the moved Legendary tips) **for free**, plus **every node below a granted tip** (e.g. Sharpened under Hunter's Moon; user 2026-09-30, so the tree always grows from the roots up), so returning players don't lose cards
-  they had. Fresh profiles start lean.
+- **Old saves:** no special handling (user 2026-09-30: *"this game isn't out yet, so don't worry
+  about players"*). Owned nodes that still exist stay owned; there are no free grants (the v8 / v9
+  grants were removed, 016ca4ec).
+- **Rule from now on (until release):** Grove changes come **without** player-protecting
+  migrations (no refunds, no free grants) unless the user asks for one. Revisit at launch, when
+  real players' saves matter.
 
 Removed over time: Reactions, Woven Dreams I–II, Kin Lore, Deep Bonds (2026-09-29, discovery
 unlocks); Reckless, Wild Planting (2026-09-30, pool trim); Storm Lore, Guiding Lights, Spore Lore,
