@@ -1843,9 +1843,11 @@ func _apply_one_status(enemy: Node2D, status: StringName, stacks: int, soothe: f
 # splash radius (the splash shares the main hit's crit roll).
 func projectile_landed(target: Node2D, where: Vector2) -> void:
 	var splash := get_splash_cells() * MAP_GRID.cell_size.x
-	if splash > 0.0 and tower_data.get_id() == "puffball" and _dream_state and _has_rule(&"chain_bloom") \
+	if splash > 0.0 and tower_data.get_id() == "puffball" and _dream_state \
 			and PathCloud.fog_at(get_tree(), where, "mistveil"):
-		splash *= CHAIN_BLOOM_SPLASH  # Chain Bloom: a puff inside Mistveil's fog covers 2 tiles
+		_dream_state.note_discovery(DreamState.EVENT_PUFF_IN_FOG)  # Lets Chain Bloom into the profile's pool
+		if _has_rule(&"chain_bloom"):
+			splash *= CHAIN_BLOOM_SPLASH  # Chain Bloom: a puff inside Mistveil's fog covers 2 tiles
 	_kin_on_landing(target, where)
 	if splash <= 0.0:
 		hit(target)
