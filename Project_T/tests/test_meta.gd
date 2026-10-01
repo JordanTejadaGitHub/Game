@@ -370,6 +370,9 @@ func _run() -> void:
 	await process_frame
 	var view: GroveTreeView = grove_screen.tree_view
 	_check(view.get_canopy_stage() == 0, "a new Grove shows the first canopy stage")
+	var planted := HeartwoodMemory.planted_nodes(HeartwoodMemory.load_data())
+	_check(planted.size() == 3 and planted.all(func(p: Dictionary) -> bool: return p.limb == "families" and p.pos is Vector2),
+		"a new Grove has only its 3 starting families planted, for the in-run Heartwood (%s)" % [planted])
 	var stone_sets: Dictionary = GroveTreeView.load_layout().get("loadout_stone_sets", {})
 	_check(view.stone_points().size() == 3 and view.stone_points()[0] == GroveTreeView.vec(stone_sets["3"][0]),
 		"a new Grove shows only its 3 open waystones, centred under the trunk")

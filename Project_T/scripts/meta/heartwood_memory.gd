@@ -467,6 +467,17 @@ static func grown_share(data: Dictionary) -> float:
 			grown += 1
 	return float(grown) / maxf(total, 1.0)
 
+# The grown Grove nodes, for the in-run Heartwood that mirrors the Grove (meta_design.md "Carried into the
+# run"): [{id, limb ("perks" / "families" / "cards"), pos (Vector2, grove_layout.json tree space)}], in layout
+# order. Reads the current profile, so Dev Grove runs see their preset. Callers skip it in the demo.
+static func planted_nodes(data: Dictionary) -> Array[Dictionary]:
+	var result: Array[Dictionary] = []
+	for node in GroveTreeView.load_layout().get("nodes", []):
+		var unlock := get_unlock(str(node.id))
+		if unlock != null and node_level(data, unlock) > 0:
+			result.append({"id": unlock.id, "limb": str(node.section), "pos": GroveTreeView.vec(node.pos)})
+	return result
+
 # --- Perk loadout ("Carry into the dream") ---
 
 const BASE_LOADOUT_SLOTS := 3  # Slots 1–3 are open from the start; 4 and 5 are Perks nodes
