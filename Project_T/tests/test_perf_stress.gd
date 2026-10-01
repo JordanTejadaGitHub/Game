@@ -99,6 +99,80 @@ func _measure_stacked() -> void:
 	await _measure("stacked drifts 88-90, 3x (not a failure yet)")
 	print("    -> stacked p95 %.2f ms %s the %.1f ms bar (field cap %s)" % [result.p95,
 		"within" if result.p95 <= STACKED_BAR_MS else "over", STACKED_BAR_MS, str(spawner.get("max_field"))])
+	if OS.get_cmdline_user_args().has("--breakdown"):
+		await _count_bursts()
+
+# --breakdown, stacked: what the slow frames do more of. Counts per frame (hits, area hits, DamageLog events,
+# Reactions, longest chain, spawns, dispels) without touching the game's code, then compares the slowest 5%
+# of frames with the median ones and lists the worst few.
+const COUNT_KEYS := ["hits", "area", "events", "reactions", "chain", "spawns", "dispels"]
+var _counts := {}
+func _count_bursts() -> void:
+	var bump := func(key: String, by: int = 1) -> void: _counts[key] = _counts.get(key, 0) + by
+	for tower in container.get_children():
+		if tower is Tower:
+			tower.hit_landed.connect(func(_t, _e, is_area: bool, _c) -> void:
+				bump.call("hits")
+				if is_area:
+					bump.call("area"))
+	DamageLog.instance.damage_dealt.connect(func(_e) -> void: bump.call("events"))
+	spawner.child_entered_tree.connect(func(_n) -> void: bump.call("spawns"))
+	spawner.enemy_cleansed.connect(func(_e) -> void: bump.call("dispels"))
+	var tracker: ReactionTracker = null
+	var frames: Array = []  # [ms, counts]
+	var last := Time.get_ticks_usec()
+	for i in FRAMES:
+		_counts = {}
+		await process_frame
+		var now := Time.get_ticks_usec()
+		if tracker == null:
+			tracker = ReactionTracker.find(main)
+			if tracker != null:
+				tracker.reaction_fired.connect(func(_id, _en, chain: int, _t) -> void:
+					bump.call("reactions")
+					_counts["chain"] = maxi(_counts.get("chain", 0), chain))
+		frames.append([(now - last) / 1000.0, _counts.duplicate(), i])
+		last = now
+	var over: Array[int] = []  # Frame numbers over the bar: evenly spaced = something on a timer
+	for f in frames:
+		if f[0] > STACKED_BAR_MS * 2.0:
+			over.append(f[2])
+	print("    frames over %.0f ms (frame numbers): %s" % [STACKED_BAR_MS * 2.0, str(over)])
+	frames.sort_custom(func(a, b) -> bool: return a[0] < b[0])
+	var slow: Array = frames.slice(int(frames.size() * 0.95))
+	var mid: Array = frames.slice(int(frames.size() * 0.4), int(frames.size() * 0.6))
+	print("  stacked frame make-up (mean per frame)   %s" % "  ".join(COUNT_KEYS))
+	for row in [["median frames", mid], ["slowest 5%", slow]]:
+		var means: Array[String] = []
+		for key in COUNT_KEYS:
+			var total := 0.0
+			for f in row[1]:
+				total += f[1].get(key, 0)
+			means.append("%.1f" % (total / maxf(row[1].size(), 1)))
+		print("    %-14s %5.1f ms   %s" % [row[0], _mean_ms(row[1]), "  ".join(means)])
+	# The periodic suspects (every 0.5 s of game time = every 11 frames at 3x), timed one call each
+	var dreams: DreamState = main.get_node("%DreamState")
+	var kin := Kinships.find(main)
+	var suspects := {"DreamState._sample_drift": func() -> void:
+			dreams._sample_left = 0.0
+			dreams._sample_drift(0.0),
+		"Kinships.refresh": func() -> void:
+			if kin != null:
+				kin.refresh()}
+	for label in suspects:
+		var start := Time.get_ticks_usec()
+		for n in 3:
+			suspects[label].call()
+		print("    %-26s %6.2f ms a call" % [label, (Time.get_ticks_usec() - start) / 3000.0])
+	print("    worst frames:")
+	for f in frames.slice(-5):
+		print("      %6.2f ms  frame %d  %s" % [f[0], f[2], str(f[1])])
+
+func _mean_ms(rows: Array) -> float:
+	var total := 0.0
+	for f in rows:
+		total += f[0]
+	return total / maxf(rows.size(), 1)
 
 func _fill_map() -> void:
 	var placer: TowerPlacer = main.get_node("%TowerPlacer")
