@@ -4,13 +4,12 @@
 
 [resource]
 script = ExtResource("1_card")
-id = "static_field"
-display_name = "Charged Field"
-description = "{static} bolts also hit nightmares within 1 tile."
+id = "spillover"
+display_name = "Spillover"
+description = "When an area attack dispels a nightmare, the leftover damage splashes onto nightmares within 1 cell."
 rarity = 2
 kind = 3
-tags = Array[String](["storm"])
-requires = Array[String](["firefly_jar"])
+tags = Array[String](["reach"])
 max_stacks = 1
-rule_id = &"static_field"
-in_start_pool = true
+in_start_pool = false
+rule_id = &"spillover"

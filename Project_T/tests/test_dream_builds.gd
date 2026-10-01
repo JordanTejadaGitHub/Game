@@ -392,7 +392,8 @@ func _test_seedling_gift() -> void:
 # The Grove's Cards limb (meta_design.md Section 3): 12 cards + Deepened, and Bittersweet Dreams.
 func _test_grove_cards() -> void:
 	_reset()
-	var ids := ["static_bloom", "static_field", "guiding_light", "starlit_aim", "twin_puff", "still_target",
+	# Charged Bloom, Charged Field, Guiding Light, Starlit Aim and Twin Puff left the Grove (2026-09-30: start pool, discovery-gated)
+	var ids := ["still_target",
 		"shattering_blow", "full_moon", "rootbound", "monoculture", "the_long_walk",
 		"deep_sleep", "restless_dreams"]
 	for id in ids:
@@ -695,11 +696,9 @@ func _test_kinship_cards() -> void:
 			"blood_is_thicker"]:
 		var card := _card(id)
 		if card:
-			# Discovery unlocks: every Kinship card but the Legendary Grove of Kin (a Grove tip) is in the
-			# start pool and waits for any Kinship.
-			var legendary: bool = id == "grove_of_kin"
-			_check(card.in_start_pool != legendary and card.tags.has("kinship")
-					and Array(card.discovered_by) == (["kinship:any"] if not legendary else []),
+			# Discovery unlocks: every Kinship card, the Legendary Grove of Kin too (2026-09-30), is in the start pool
+			# and waits for any Kinship.
+			_check(card.in_start_pool and card.tags.has("kinship") and Array(card.discovered_by) == ["kinship:any"],
 				"Kinship card %s: pool, tag and discovery" % id)
 	_check(_card("family_ties").max_stacks == 0, "Family Ties stacks (Quick Bonds merged into Old Friends)")
 	var kin := Kinships.find(dreams)

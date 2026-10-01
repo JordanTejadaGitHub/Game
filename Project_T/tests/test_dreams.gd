@@ -509,9 +509,8 @@ func _test_meta_hooks(main: Node) -> void:
 	dreams.unlocked["mistveil"] = true
 	dreams.grown_wardens["puffball"] = true  # Grown this run too (round 5)
 	dreams.grown_wardens["mistveil"] = true
-	_check(bloom.entwined and bloom.rule_id == &"chain_bloom" and not dreams.is_eligible(bloom),
-		"Chain Bloom stays out until the Grove unlocks it")
-	dreams.grove_cards.assign(["chain_bloom"])
+	_check(bloom.entwined and bloom.rule_id == &"chain_bloom" and bloom.in_start_pool and Array(bloom.discovered_by) == ["event:puff_in_fog"],
+		"Chain Bloom: start pool, discovered by a Puffball puff in Mistveil's fog")
 	dreams.unlocked.erase("mistveil")
 	_check(not dreams.is_eligible(bloom), "Chain Bloom needs Mistveil too")
 	dreams.unlocked["mistveil"] = true
@@ -1072,10 +1071,28 @@ func _test_discovery(main: Node) -> void:
 		_check(not dreams.discovery_met(_card(dreams, "eye_of_the_tempest")), "a Woven card waits for its Crowned Reaction")
 	dreams.discovery_profile["seen"] = [String(Kinships.KINSHIPS.keys()[0])]
 	_check(dreams.discovery_met(_card(dreams, "extended_family")), "any Kinship lets the Kinship cards in")
-	_check(dreams.discovery_met(_card(dreams, "dawnbreak")), "Legendaries are never discovery-gated")
+	_check(dreams.discovery_met(_card(dreams, "grove_of_kin")), "…Grove of Kin too (a Legendary with an explicit trigger)")
+	_check(not dreams.discovery_met(_card(dreams, "dawnbreak")), "Dawnbreak waits for a ×10 chain")
 	_check(not dreams._key_met("chain:5", []), "a ×5 chain key waits…")
 	dreams.discovery_profile["best_chain"] = 5
 	_check(dreams._key_met("chain:5", []), "…the profile's best chain counts")
+	dreams.discovery_profile["best_chain"] = 10
+	_check(dreams.discovery_met(_card(dreams, "dawnbreak")), "…and comes with the first ×10")
+	# The discovery moments (2026-09-30): a crit on a Marked nightmare, a Puffball puff in Mistveil's fog
+	dreams._events_this_run.clear()
+	var starlit := _card(dreams, "starlit_aim")
+	var fog_card := _card(dreams, "chain_bloom")
+	_check(starlit.in_start_pool and not dreams.discovery_met(starlit) and not dreams.discovery_met(fog_card),
+		"Starlit Aim and Chain Bloom are start pool, waiting for their moments")
+	var crit := DamageLog.Event.new()
+	crit.combos.assign([&"crit"])
+	dreams._on_damage_dealt(crit)
+	_check(not dreams.event_discovered("crit_marked"), "a plain crit isn't it")
+	crit.combos.assign([&"crit", &"marked"])
+	dreams._on_damage_dealt(crit)
+	_check(dreams.event_discovered("crit_marked") and dreams._key_met("event:crit_marked", []), "a crit on a Marked nightmare discovers Starlit Aim")
+	dreams.note_discovery(DreamState.EVENT_PUFF_IN_FOG)  # Tower Code calls this when a puff lands in Mistveil's fog
+	_check(dreams.event_discovered("puff_in_fog"), "a Puffball puff in Mistveil's fog discovers Chain Bloom")
 	var cache := _card(dreams, "acorn_cache")
 	_check(not dreams.discovery_met(cache), "Acorn Cache waits for an Acorn to be built")
 	var before: Array[UpgradeData] = [cache]  # A Grove card: not in this run's pool
@@ -1086,6 +1103,8 @@ func _test_discovery(main: Node) -> void:
 	dreams.unlocked["firefly_jar"] = true
 	dreams._offer_drift = 10
 	var beaks := _card(dreams, "static_bloom")  # Stormcap (Firefly Jar's) + Bloomcap
+	_check(not dreams.discovery_met(beaks), "Charged Bloom waits for Charged + Drowsy on one nightmare")
+	dreams.note_discovery(DreamState.EVENT_CHARGED_DROWSY)
 	_check(dreams.is_half_dreamed(beaks) and dreams.discovery_met(beaks), "a half-dreamed card skips the Warden gate (%s)" % [dreams.half_dreamed_missing(beaks)])
 	for family in dreams.half_dreamed_missing(beaks):
 		dreams.unlocked[family] = true
@@ -1094,6 +1113,7 @@ func _test_discovery(main: Node) -> void:
 	acorn.queue_free()
 	dreams.discovery_profile = null
 	dreams._built_this_run.clear()
+	dreams._events_this_run.clear()
 	if feedback != null:
 		feedback.run_counts = run_counts
 	if tracker != null:

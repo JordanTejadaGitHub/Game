@@ -15,4 +15,4 @@ count_warden = "sporeling"
 min_warden_count = 1
 max_stacks = 1
 rule_id = &"twin_puff"
-in_start_pool = false
+in_start_pool = true

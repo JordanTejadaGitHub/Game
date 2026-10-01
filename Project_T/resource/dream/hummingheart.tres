@@ -4,13 +4,12 @@
 
 [resource]
 script = ExtResource("1_card")
-id = "static_field"
-display_name = "Charged Field"
-description = "{static} bolts also hit nightmares within 1 tile."
+id = "hummingheart"
+display_name = "Hummingheart"
+description = "Every +10% bonus attack speed a Warden has also gives it +3% damage (up to +60%)."
 rarity = 2
 kind = 3
-tags = Array[String](["storm"])
-requires = Array[String](["firefly_jar"])
+tags = Array[String](["swift"])
 max_stacks = 1
-rule_id = &"static_field"
-in_start_pool = true
+in_start_pool = false
+rule_id = &"hummingheart"

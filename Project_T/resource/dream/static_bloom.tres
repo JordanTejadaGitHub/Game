@@ -14,4 +14,5 @@ requires = Array[String](["stormcap", "bloomcap"])
 max_stacks = 1
 entwined = true
 rule_id = &"static_bloom"
-in_start_pool = false
+in_start_pool = true
+discovered_by = Array[String](["event:charged_drowsy"])
