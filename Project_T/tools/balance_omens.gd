@@ -100,7 +100,7 @@ func _print_table(stats: Dictionary) -> void:
 		lines.append(["leaves lost by %d" % mark, "lost_%d" % mark])
 	lines.append_array([["leaves lost / 10 drifts", "per10"], ["leaves lost, run", "lost_total"],
 		["Omens paid", "paid"], ["reward shares", "share"], ["leaves lost in Omen blocks", "omen_lost"],
-		["omen_dew", "omen_dew"], ["Dreamlight from Omens", "omen_dreamlight"]])
+		["Omen reward Dew", "omen_dew"]])
 	for mark in marks:
 		lines.append(["Dew earned by %d" % mark, "earned_%d" % mark])
 		lines.append(["Dew banked at %d (alive)" % mark, "banked_%d" % mark])
