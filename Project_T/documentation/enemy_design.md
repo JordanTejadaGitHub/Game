@@ -124,6 +124,8 @@ Queen an act 3 boss.
 
 **Sweep with the new rule** (Tower Code, 270 runs, fresh, drift 25): **Hollow Stag at ×1.75 health: taking Dreams 73%, skipping 33%** (it drains 10–15 leaves once through, usually the run): **chosen**. **Night Mare** never stays (laps), barely separates (Dreams 14–15/15, skip 11–14) → try a **costlier lap (4 / 5 / 6 leaves)** at ×2.0. **Scarecrow** with route-flying Crows is too easy (15/15 vs 13–14) → try **Crows 4 / 5 per burst × health ×1.75 / 2.25**. Skip surviving 1 in 3 against the Stag is by killing it outright: fixed later by early Dreams, not the drain.
 
+**Second lever sweep (255 runs):** early Dreams **do** decide the Stag fight when picked for damage (damage-first 14/15, Balanced 10/15, skip 7/15; Dream share at drift 20 median 0.13 vs ~0.02): no card change; Balanced's position cards need placement the bot doesn't do. Night Mare lap cost 4–6 at ×2.0 and Scarecrow Crows 4–5 at ×1.75–2.25 **don't separate** (Dreams 14–15/15, skip 13–14): next, Night Mare ×2.5 / 3.0 with lap 5, Scarecrow ×3.0 / 3.5 with 4 Crows; if still flat, a lap that drains as it passes and Crows that cost more.
+
 **Weakness spread:** act 1 water / light / spore (the three starting families); act 2 root / stone /
 water; act 3 light / root / song; act 4 spore / water / light. Bosses are tallied **separately** from the regular
 nightmares' family tally below (they're one fight each, not a drift's worth of health).
