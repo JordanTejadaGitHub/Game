@@ -581,6 +581,13 @@ Potency, cap 2 s. **Deep rank = +18% Potency only** (the separate duration bonus
 appliers: the strongest current applier's Potency (as Poisoned). Exposed caps at Potency 1.6 (~3 Deep
 ranks on a base Warden). Built behind a toggle; A/B on the same seeds (maze DPS, Exposed share, how
 often the caps bind) once it lands.
+
+**A/B (c961b3ec, full, 20 seeds, Power-focus bot):** on vs off barely differs (drift reached 32.2 vs
+32.0 spore+dew, 28.7 vs 28.0 firefly+bell; maze DPS +4–14%), and **no cap ever binds**: applier
+Potency stays ~1.0–1.37 because the bot nurtures Power, never Deep. Harmless for Power players;
+untested for Deep builds: a `--focus=deep` check follows. Per Warden, **Bloomcap ~18% of all damage
+each** (mostly Spored ticks) vs Driftspore 7%, Sporeling 5%; Dreamshroom too rare for the bot (2/80);
+a fixed-maze finals probe measures it.
 This conflicts with the targets (Half Grove reaches act 4, Full wins). Next: find out whether the
 off-build cards are dead for the build (a `can_offer` rule fixes it) or usable (a pool-size question),
 then bring the fix to the user. Caveat: one family pair, one bot style, which picks by tag + rarity.
