@@ -1400,7 +1400,7 @@ lifts its branch: **`swift`** and **`reach`** (card builds C9 and C10). Numbers 
 
 | Node | # | Card | Rarity | Effect |
 |---|---|---|---|---|
-| 1 *Broad Strokes* (50) | 241 | **Broad Splash** | Common, stacks (max 3) | area attacks' **radius +0.25 cells** per stack |
+| 1 *Broad Strokes* (50) | 241 | **Broad Splash** | Common, stacks (max 3) | **splashes and clouds** reach **0.25 cells wider** per stack (pulses use their range: not affected) |
 | | 242 | **Lingering Splash** | Uncommon | every **3rd area attack** leaves a patch (1 cell, 2 s) that deals **25% of that hit per second** to nightmares inside (effect damage) |
 | 2 *Far Reach* (70) | 243 | **Far Reach** | Uncommon | Wardens with an **area attack** get **+0.75 range** |
 | | 244 | **Spillover** | Rare | when an area attack **dispels** a nightmare, the **leftover damage** splashes to nightmares within 1 cell |
