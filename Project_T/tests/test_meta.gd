@@ -289,6 +289,21 @@ func _run() -> void:
 	main.queue_free()
 	await process_frame
 
+	# --- Saves are atomic, and an unreadable profile never turns into a fresh one ---
+	var kept := HeartwoodMemory.load_data()
+	kept.seeds = 77
+	HeartwoodMemory.save_data(kept)
+	HeartwoodMemory.save_data(kept)  # Replaces an existing file, keeping the last as .bak
+	_check(int(HeartwoodMemory.load_data().seeds) == 77 and FileAccess.file_exists(PROFILE_PATH + ".bak")
+		and not FileAccess.file_exists("%s.%d.tmp" % [PROFILE_PATH, OS.get_process_id()]), "a save replaces the profile through a temp file and keeps a backup")
+	var torn := FileAccess.open(PROFILE_PATH, FileAccess.WRITE)
+	torn.store_string("{\"version\": 6, \"seeds\": 7")  # Half-written
+	torn.close()
+	_check(int(HeartwoodMemory.load_data().seeds) == 77, "a half-written profile reads as the last good copy")
+	HeartwoodMemory.forget()
+	_check(int(HeartwoodMemory.load_data().seeds) == 77 and FileAccess.file_exists(PROFILE_PATH + ".unreadable"),
+		"with nothing cached, an unreadable profile reads from its backup and is kept aside")
+
 	# --- Old profiles: version 1 Grove ids move to the layout ids ---
 	var old := FileAccess.open(PROFILE_PATH, FileAccess.WRITE)
 	old.store_string(JSON.stringify({"version": 1, "seeds": 5, "unlocks": {"pebbling_line": 1, "cairn": 1, "sporeling_finals": 1, "morning_stores": 2}}))
@@ -569,8 +584,9 @@ func _unlock(grove: Array[UnlockData], id: String) -> UnlockData:
 	return null
 
 func _delete(path: String) -> void:
-	if FileAccess.file_exists(path):
-		DirAccess.remove_absolute(ProjectSettings.globalize_path(path))
+	for file in [path, path + ".bak", path + ".unreadable"]:  # With save_data's backup
+		if FileAccess.file_exists(file):
+			DirAccess.remove_absolute(ProjectSettings.globalize_path(file))
 
 func _check(condition: bool, label: String) -> void:
 	if not condition:
