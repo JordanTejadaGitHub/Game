@@ -96,7 +96,7 @@ func _test_court() -> void:
 func _test_legendary_weighting() -> void:
 	_reset()
 	var maze_card := _card("cozy_corners")  # tags: maze
-	var plain := _card("quickened_sap")  # no tags
+	var plain := _card("deeper_calm")  # no tags
 	dreams.take(_card("crossroads"))
 	var maze_picks := 0
 	for i in 2000:

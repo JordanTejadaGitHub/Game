@@ -370,7 +370,7 @@ func _test_clearing_cards(main: Node) -> void:
 	_check(dreams.can_offer(opener) and dreams.opens_clearing(opener), "Heartwood's Reach is offered, with the Unlocks clearing layout")
 	var picks := 0
 	var clearing_picks := 0
-	var cards_with_one: Array = [opener, _card(dreams, "quickened_sap")]
+	var cards_with_one: Array = [opener, _card(dreams, "deeper_calm")]
 	for i in 2000:
 		if dreams._weighted_pick(cards_with_one) == opener:
 			clearing_picks += 1
@@ -856,7 +856,7 @@ func _test_stray_dream(main: Node) -> void:
 	# Weighting turned around: build cards ×0.25, soft Needs ignored
 	var in_build := _card(dreams, "cozy_corners")
 	dreams.take(_card(dreams, "crossroads"))  # Its archetype ("maze") joins the build
-	var plain := _card(dreams, "quickened_sap")
+	var plain := _card(dreams, "deeper_calm")
 	var build_picks := 0
 	var soft_picks := 0
 	var soft := _card(dreams, "many_hands")  # Soft Need unmet (15 attackers)
@@ -960,7 +960,7 @@ func _test_half_dreamed(main: Node) -> void:
 		forced_soil += 1 if dreams._draw_card(1, [], true) == soil else 0
 	_check(dreams.is_half_dreamed(soil) and forced_soil == 0, "…never in a guaranteed Rare slot")
 	# Declined: Dewdrop was offered at the last pick and not taken → ×0.3 instead of ×0.6
-	var plain := _card(dreams, "quickened_sap")
+	var plain := _card(dreams, "deeper_calm")
 	var shares := []
 	for declined in [false, true]:
 		dreams.note_family_pick(["dewdrop", "sporeling"] if declined else [], "sporeling")

@@ -46,8 +46,8 @@ const PACKAGES := {
 	"C6 Maze": ["Cozy Corners", "Straightaway", "Winding Path", "Heart of the Maze", "Forest's Edge", "Hedge Maze", "Bitter Hedges", "Thornheart", "Weathered Walls"],
 	"C7 Tending": ["Heartwood's Reach", "Tended Stumps", "Hollow Ground", "Reclaimed Earth", "Tended Forest", "Burn Back the Dead Wood", "Morning Dew", "Living Walls", "Scented Hedge", "Thorn Snare"],
 	"C8 Kinship": ["Family Ties", "Sweet Harmony", "Old Friends", "Rooted Bond", "Extended Family", "Kin and Kindling", "Blood Is Thicker", "Elder Kin"],
-	"C9 Swift": ["Momentum", "Quickening", "Flurry", "Restless Roots", "Hummingheart", "Drumbeat"],  # Grove build branch
-	"C10 Wide Reach": ["Broad Splash", "Lingering Splash", "Far Reach", "Spillover", "Overlap"],  # Grove build branch
+	"C9 Swift": ["Momentum", "Quickening", "Flurry", "Restless Roots", "Hummingheart", "Drumbeat", "Quickened Sap", "Quick Step"],  # Grove build branch
+	"C10 Wide Reach": ["Broad Splash", "Lingering Splash", "Far Reach", "Spillover", "Overlap", "Crowd Breaker", "Last Breath"],  # Grove build branch
 }
 # Board extras the chasing bot needs for some builds (ranks, Sprouts, walls, a Kinship, clearing…).
 const EXTRAS := {
