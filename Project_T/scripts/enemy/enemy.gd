@@ -79,6 +79,10 @@ const HEALTH_BAR_SIZE := Vector2(40, 5)
 const HEARTWOOD_DRAIN_EVERY := 2.0  # A boss at the Heartwood takes a leaf this often (s)
 const UNTOUCHABLE_TINT := Color(0.42, 0.38, 0.55)  # The Night Mare lingering: a dark, smoky shimmer (a self_modulate multiplier)
 const UNTOUCHABLE_ALPHA := 0.55
+const AWAKE_RING_COLOR := Color(Palette.MOONLIGHT, 0.35)  # Just woke: can't fall asleep again yet
+const AWAKE_RING_RADIUS := 20.0
+const AWAKE_RING_POINTS := 24
+const SLOW_FLOOR_COLOR := Color(Palette.MOONLIGHT, 0.75)  # Slowed to the limit: the floor mark
 # Enemy Assets' art bounds: {sheet: {"frame", "top", "bottom"}} (px from the frame centre). The bar
 # goes BAR_ABOVE_HEAD over the top of tall art (the big bosses), never lower than HEALTH_BAR_OFFSET.
 const ART_BOUNDS_PATH := "res://assets/creatures/bounds.json"
@@ -237,6 +241,8 @@ var _hud_coat := -1
 var _hud_restless := -1
 var _hud_unbound := false
 var _hud_always := false
+var _hud_slow_capped := false  # Slowed to the limit (statuses.slow_capped): a floor mark under the bar
+var _hud_awake := false  # Can't fall asleep again yet (statuses.sleep_cooldown): a faint ring
 var _hud_marks_key := -1
 var _hud_stagger := randi() % 4  # So a crowd doesn't check its time bars on the same frame
 var _hud_pops := {}  # {status id: seconds left of its icon's pop} (a stack was just added)
@@ -320,6 +326,7 @@ func _ready() -> void:
 	health = max_health
 	speed = enemy_data.speed * modifiers.get("speed", 1.0)
 	statuses.is_boss = enemy_data.is_boss
+	statuses.is_elite = elite  # Deeply Blighted: its own slow floor
 	statuses.ignores_slows = enemy_data.ignores_slows
 	# A copy: Omens (Sleepless) add to it per nightmare, never to the shared EnemyData.
 	statuses.immune = enemy_data.status_immune.duplicate()
@@ -637,13 +644,16 @@ func _update_hud(delta: float) -> void:
 	# The bars are keyed on their width in whole px (a smaller change can't be seen), -1 = not shown.
 	var bar_px := int(HEALTH_BAR_SIZE.x * health / max_health) if health < max_health or _bars_always else -1
 	var coat_px := int(HEALTH_BAR_SIZE.x * coat / maxf(coat_max, 1.0)) if coat > 0.0 else -1
+	var awake := statuses.sleep_cooldown > 0.0
 	if bar_px != _hud_health or coat_px != _hud_coat or restless != _hud_restless or unbound != _hud_unbound \
-			or _bars_always != _hud_always:
+			or _bars_always != _hud_always or statuses.slow_capped != _hud_slow_capped or awake != _hud_awake:
 		_hud_health = bar_px
 		_hud_coat = coat_px
 		_hud_restless = restless
 		_hud_unbound = unbound
 		_hud_always = _bars_always
+		_hud_slow_capped = statuses.slow_capped
+		_hud_awake = awake
 		_build_hud_bars(_hud_items[HUD_BARS])
 		hud_builds += 1
 	if _hud_ids.is_empty() and _hud_changes == statuses.changes:
@@ -749,6 +759,16 @@ func _time_steps(i: int) -> int:
 
 func _build_hud_bars(item: RID) -> void:
 	RenderingServer.canvas_item_clear(item)
+	if _hud_awake:  # Just woke: a faint ring round it, it can't fall asleep again yet (tower_design.md)
+		var ring := PackedVector2Array()
+		for i in AWAKE_RING_POINTS + 1:
+			ring.append(Vector2(0, -8) + Vector2.from_angle(TAU * i / AWAKE_RING_POINTS) * AWAKE_RING_RADIUS * sprite.scale.x)
+		RenderingServer.canvas_item_add_polyline(item, ring, PackedColorArray([AWAKE_RING_COLOR]), 1.5)
+	if _hud_slow_capped:  # Slowed to the limit: a pale floor line with end ticks under the health bar
+		var y := _bar_offset.y + HEALTH_BAR_SIZE.y / 2.0 + 3.0
+		var half := HEALTH_BAR_SIZE.x / 2.0
+		var floor_line := PackedVector2Array([Vector2(-half, y - 2), Vector2(-half, y), Vector2(half, y), Vector2(half, y - 2)])
+		RenderingServer.canvas_item_add_polyline(item, floor_line, PackedColorArray([SLOW_FLOOR_COLOR]), 1.5)
 	# Restless: a small backward arrow per stack, right of the health bar (red-hot once Unbound)
 	for i in restless:
 		var tip := _bar_offset + Vector2(HEALTH_BAR_SIZE.x / 2 + 5 + i * 6, 0)
@@ -893,6 +913,16 @@ static var _view_rect := Rect2()
 # rest only count towards the "+N".
 func get_badge_ids() -> Array:
 	return get_status_order().slice(0, STATUS_BADGES_MAX)
+
+# Lines for the nightmare info panel about the limits on slow and sleep (tower_design.md "Slow and
+# sleep have limits"), under its statuses.
+func get_status_notes() -> Array[String]:
+	var notes: Array[String] = []
+	if statuses.slow_capped:
+		notes.append("Slowed to the limit")
+	if statuses.sleep_cooldown > 0.0:
+		notes.append("Awake: can't fall asleep again for %.1f s" % statuses.sleep_cooldown)
+	return notes
 
 # Every status it carries, most important first (the info panel lists them in this order).
 func get_status_order() -> Array:
