@@ -477,8 +477,10 @@ func _hook_stats() -> void:
 	spawner.child_entered_tree.connect(func(n) -> void:
 		if n.has_method("take_damage"):
 			(func() -> void: d.health_spawned += n.max_health).call_deferred())
-	spawner.enemy_reached_goal.connect(func(_e) -> void:
+	spawner.enemy_reached_goal.connect(func(e) -> void:
 		d.leaks += 1
+		if is_instance_valid(e) and e.enemy_data.is_boss:  # An act boss bites (8 / 10 / 12 leaves) and leaves (bfc33e75)
+			_boss_leaked(e)
 		if run.first_leak == 0:
 			run.first_leak = maxi(director.drifts_started, 1))
 	if spawner.has_signal("boss_drained"):  # A boss at the Heartwood drains leaves (no enemy_reached_goal)
@@ -829,7 +831,7 @@ func _boss_fight(enemy: Node2D) -> Dictionary:
 	if not bosses.has(id):
 		bosses[id] = {"drift": director.drifts_started, "kind": enemy.enemy_data.resource_path.get_file().get_basename(),
 			"health": enemy.max_health, "spawn": game_time, "arrive": -1.0, "hp_arrive": -1, "route_damage": 0.0,
-			"heart_damage": 0.0, "in_range": -1, "end": -1.0, "echo": bool(enemy.get("is_echo"))}
+			"heart_damage": 0.0, "in_range": -1, "end": -1.0, "leaked": false, "echo": bool(enemy.get("is_echo"))}
 	return bosses[id]
 
 func _note_boss_hit(enemy: Node2D, amount: float) -> void:
@@ -847,14 +849,15 @@ func _watch_boss(enemy: Node2D) -> void:
 		fight.end = game_time
 
 # drift:kind:health:route s:health at the Heartwood (-1 = never got there):route damage:Heartwood damage:
-# Heartwood s:Wardens in range there:dispelled 1/0
+# Heartwood s:Wardens in range there:dispelled 1/0 (:leaked = an act boss that bit and left)
 func _boss_text(fight: Dictionary) -> String:
 	var arrived: bool = fight.arrive >= 0.0
 	var route_s: float = (fight.arrive if arrived else fight.end) - fight.spawn
 	var heart_s: float = fight.end - fight.arrive if arrived else 0.0
 	var dispelled: bool = fight.route_damage + fight.heart_damage >= fight.health * 0.999
-	return "%d:%s%s:%d:%.0f:%d:%.0f:%.0f:%.0f:%d:%d" % [fight.drift, fight.kind, "(echo)" if fight.echo else "", fight.health,
-		route_s, fight.hp_arrive, fight.route_damage, fight.heart_damage, heart_s, fight.in_range, 1 if dispelled else 0]
+	return "%d:%s%s:%d:%.0f:%d:%.0f:%.0f:%.0f:%d:%d%s" % [fight.drift, fight.kind, "(echo)" if fight.echo else "", fight.health,
+		route_s, fight.hp_arrive, fight.route_damage, fight.heart_damage, heart_s, fight.in_range, 1 if dispelled else 0,
+		":leaked" if fight.leaked else ""]
 
 # An attacker has the Heartwood cell in range (a boss that gets through stays there, draining leaves).
 func _heartwood_covered() -> bool:
@@ -862,3 +865,12 @@ func _heartwood_covered() -> bool:
 		if tower.cell.distance_to(map.endPath) <= tower.get_range_cells():
 			return true
 	return false
+
+# An act boss that got through takes its bite and is gone: it "arrives" with the health it has left.
+func _boss_leaked(enemy: Node2D) -> void:
+	var fight := _boss_fight(enemy)
+	if fight.arrive < 0.0:
+		fight.arrive = game_time
+		fight.hp_arrive = enemy.health
+	fight.end = game_time
+	fight.leaked = true
