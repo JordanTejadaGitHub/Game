@@ -261,15 +261,8 @@ function groveTree() {
     out.set(x - 1, y - 1, "#f4f0ff"); ellipse(out, x, y, 9 * s, 7 * s, (xx, yy, dx, dy) => CA("#c8b0ff", Math.max(0, 1 - Math.hypot(dx, dy)) * .22));
   }
   // The loadout's waystones: five small carved stones in an arc at the roots ("Carry into the dream").
-  LOADOUT_STONES.forEach(([x, y], i) => {
-    const S = new Img(GW, GH);
-    ellipse(out, x, y + 13, 20, 5, SHADOW(.4));
-    blob(S, x, y, 16, 13, [ST.d1, ST.m, ST.l1, ST.l2, ST.hi], { tex: .1, rim: true, seed: i });
-    blob(S, x - 6, y - 9, 7, 3, [LEAFG[1], LEAFG[2], LEAFG[3]], { tex: .2 });
-    out.stamp(S, ST.out);
-    for (let a = 0; a < Math.PI * 2; a += .3) out.set(x + Math.cos(a) * 6, y + 2 + Math.sin(a) * 4.5, "#8ad8c8");
-    out.set(x, y + 2, "#c8fff0");
-  });
+  // The loadout waystones are no longer painted here: the game draws grove/waystone.png at the
+  // layout's loadout_stone_sets for the slots the player has (centred under the trunk).
   hollow(out, 610, 824);
   // Threads of dream-light curling up out of the Hollow into the trunk, dithered, thinning as they rise.
   for (const [ph, amp] of [[0, 16], [2.2, 12], [4.1, 20]]) for (let t = 0; t < 1; t += .002) {
@@ -954,3 +947,20 @@ function groveMistStrip(m) {
 }
 // The centre of the Hollow's light (GroveTreeView pulses a warm glow here).
 const HOLLOW_LIGHT = [608, 792];
+
+// ---- loadout waystones (drawn by the game, only for unlocked slots) ----
+// One stone, 48x40, its centre at WAYSTONE_ANCHOR. Positions for 3, 4 and 5 stones, centred on the
+// trunk along the roots' arc (slot order left to right); the secret sixth keeps SECRET_STONE.
+const WAYSTONE_ANCHOR = [24, 18];
+function waystoneSprite() {
+  const out = new Img(48, 40), S = new Img(48, 40), [x, y] = WAYSTONE_ANCHOR;
+  ellipse(out, x, y + 13, 20, 5, SHADOW(.4));
+  blob(S, x, y, 16, 13, [ST.d1, ST.m, ST.l1, ST.l2, ST.hi], { tex: .1, rim: true, seed: 0 });
+  blob(S, x - 6, y - 9, 7, 3, [LEAFG[1], LEAFG[2], LEAFG[3]], { tex: .2 });
+  out.stamp(S, ST.out);
+  for (let a = 0; a < Math.PI * 2; a += .3) out.set(x + Math.cos(a) * 6, y + 2 + Math.sin(a) * 4.5, "#8ad8c8");
+  out.set(x, y + 2, "#c8fff0");
+  return out;
+}
+const stoneArc = n => [...Array(n).keys()].map(i => { const x = 640 + (i - (n - 1) / 2) * 81; return [Math.round(x), Math.round(934 - ((x - 640) / 162) ** 2 * 28)]; });
+const LOADOUT_STONE_SETS = { 3: stoneArc(3), 4: stoneArc(4), 5: stoneArc(5) };

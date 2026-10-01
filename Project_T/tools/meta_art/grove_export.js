@@ -68,9 +68,10 @@ const tree = groveTree(), sky = grovesky();
 emitImg("grove/grove_sky.png", sky);
 emitImg("grove/grove_backdrop.png", grovesky(640));  // 2560 wide: the sky continued 640 px past each side, for wide screens
 emitImg("grove/grove_tree.png", tree);
+emitImg("grove/waystone.png", waystoneSprite());
 spreadNodes(canopies[0]);
 FRUIT_SPOTS.forEach(s => { s[1] = maskBottom(s[0]) - 8; });
-const layout = { size: [GW, GH], nodes: [], fruit_spots: FRUIT_SPOTS, loadout_stones: [...LOADOUT_STONES, SECRET_STONE], moon: MOON, hollow: HOLLOW_LIGHT, mists: GROVE_MISTS.map(({ file, y, speed }) => ({ file, y, speed })), node_cell: 32, legendary_cell: 48, fruit_cell: 48 };
+const layout = { size: [GW, GH], nodes: [], fruit_spots: FRUIT_SPOTS, loadout_stones: [...LOADOUT_STONES, SECRET_STONE], loadout_stone_sets: LOADOUT_STONE_SETS, waystone_anchor: WAYSTONE_ANCHOR, moon: MOON, hollow: HOLLOW_LIGHT, mists: GROVE_MISTS.map(({ file, y, speed }) => ({ file, y, speed })), node_cell: 32, legendary_cell: 48, fruit_cell: 48 };
 const segs = {};
 for (const n of NODES) {
   const s = segment(n); segs[n.id] = s;
